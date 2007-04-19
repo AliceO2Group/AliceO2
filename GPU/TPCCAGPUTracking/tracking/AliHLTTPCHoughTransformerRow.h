@@ -4,8 +4,8 @@
 #ifndef ALIHLTTPCHOUGHTRANSFORMERROW_H
 #define ALIHLTTPCHOUGHTRANSFORMERROW_H
 
-#include "AliHLTRootTypes.h"
-#include "AliHLTTPCHoughBaseTransformer.h"
+#include "AliHLTTPCRootTypes.h"
+#include "AliHLTTPCHoughTransformer.h"
 
 #define MAX_N_GAPS 5
 #define MIN_TRACK_LENGTH 70
@@ -29,10 +29,10 @@ struct AliHLTPadHoughParams {
   Int_t fLastBin; // Last alpha2 bin to be filled
 };
 
-class AliHLTDigitData;
-class AliHLTHistogram;
+class AliHLTTPCDigitData;
+class AliHLTTPCHistogram;
 
-class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughBaseTransformer {
+class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughTransformer {
 
  public:
   AliHLTTPCHoughTransformerRow(); 
@@ -40,7 +40,7 @@ class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughBaseTransformer {
   virtual ~AliHLTTPCHoughTransformerRow();
 
   void CreateHistograms(Float_t ptmin,Float_t ptmax,Float_t pres,Int_t nybin,Float_t psi) {
-    AliHLTTPCHoughBaseTransformer::CreateHistograms(ptmin,ptmax,pres,nybin,psi);
+    AliHLTTPCHoughTransformer::CreateHistograms(ptmin,ptmax,pres,nybin,psi);
   }
   void CreateHistograms(Int_t /*nxbin*/,Float_t /*ptmin*/,Int_t /*nybin*/,Float_t /*phimin*/,Float_t /*phimax*/)
   {STDCERR<<"This method for creation of parameter space histograms is not supported for this Transformer!"<<STDENDL;}
@@ -49,11 +49,11 @@ class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughBaseTransformer {
   void Reset();
   void TransformCircle();
   void TransformCircle(Int_t *row_range,Int_t every) {
-    AliHLTTPCHoughBaseTransformer::TransformCircle(row_range,every);
+    AliHLTTPCHoughTransformer::TransformCircle(row_range,every);
   }
 
   Int_t GetEtaIndex(Double_t eta) const;
-  AliHLTHistogram *GetHistogram(Int_t etaindex);
+  AliHLTTPCHistogram *GetHistogram(Int_t etaindex);
   Double_t GetEta(Int_t etaindex,Int_t slice) const;
   Int_t GetTrackID(Int_t etaindex,Double_t alpha1,Double_t alpha2) const;
   Int_t GetTrackLength(Double_t alpha1,Double_t alpha2,Int_t *rows) const;
@@ -99,7 +99,7 @@ class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughBaseTransformer {
   Float_t *fLUTforwardZ; //!
   Float_t *fLUTbackwardZ; //!
 
-  AliHLTHistogram **fParamSpace; //!
+  AliHLTTPCHistogram **fParamSpace; //!
 
   void TransformCircleFromDigitArray();
   void TransformCircleFromRawStream();

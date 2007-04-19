@@ -4,13 +4,12 @@
 // Author: Anders Vestbo <mailto:vestbo@fi.uib.no>
 //*-- Copyright &copy ALICE HLT Group
 
-#include "AliHLTStandardIncludes.h"
+#include "AliHLTStdIncludes.h"
 
-#include "AliHLTLogging.h"
-#include "AliHLTTrack.h"
+#include "AliHLTTPCLogging.h"
 #include "AliHLTTPCHoughTrack.h"
-#include "AliHLTTransform.h"
-#include "AliHLTHoughTransformerRow.h"
+#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCHoughTransformerRow.h"
 
 #if __GNUC__ >= 3
 using namespace std;
@@ -26,10 +25,10 @@ using namespace std;
 </pre>
 */
 
-ClassImp(AliHLTTPCHoughTrack)
+ClassImp(AliHLTTPCHoughTrack);
 
 
-    AliHLTTPCHoughTrack::AliHLTTPCHoughTrack() : AliHLTTrack()
+AliHLTTPCHoughTrack::AliHLTTPCHoughTrack() : AliHLTTPCTrack()
 {
   //Constructor
   
@@ -48,7 +47,7 @@ AliHLTTPCHoughTrack::~AliHLTTPCHoughTrack()
   //dtor
 }
 
-void AliHLTTPCHoughTrack::Set(AliHLTTrack *track)
+void AliHLTTPCHoughTrack::Set(AliHLTTPCTrack *track)
 {
   //Basically copy constructor
   AliHLTTPCHoughTrack *tpt = (AliHLTTPCHoughTrack*)track;
@@ -81,7 +80,7 @@ void AliHLTTPCHoughTrack::Set(AliHLTTrack *track)
 //    fIsHelix = false;
 }
 
-Int_t AliHLTTPCHoughTrack::Compare(const AliHLTTrack *tpt) const
+Int_t AliHLTTPCHoughTrack::Compare(const AliHLTTPCTrack *tpt) const
 {
   //Compare 2 hough tracks according to their weight
   AliHLTTPCHoughTrack *track = (AliHLTTPCHoughTrack*)tpt;
@@ -96,7 +95,7 @@ void AliHLTTPCHoughTrack::SetEta(Double_t f)
 
   fEta = f;
   Double_t theta = 2*atan(exp(-1.*fEta));
-  Double_t dipangle = AliHLTTransform::PiHalf() - theta;
+  Double_t dipangle = AliHLTTPCTransform::PiHalf() - theta;
   Double_t tgl = tan(dipangle);
   SetTgl(tgl);
 }
@@ -109,8 +108,8 @@ void AliHLTTPCHoughTrack::UpdateToFirstRow()
   //Get the crossing point with the first padrow:
   Float_t xyz[3];
   if(!GetCrossingPoint(GetFirstRow(),xyz))
-    LOG(AliHLTLog::kWarning,"AliHLTTPCHoughTrack::UpdateToFirstRow()","Track parameters")
-      <<AliHLTLog::kDec<<"Track does not cross padrow "<<GetFirstRow()<<" centerx "
+    LOG(AliHLTTPCLog::kWarning,"AliHLTTPCHoughTrack::UpdateToFirstRow()","Track parameters")
+      <<AliHLTTPCLog::kDec<<"Track does not cross padrow "<<GetFirstRow()<<" centerx "
       <<GetCenterX()<<" centery "<<GetCenterY()<<" Radius "<<GetRadius()<<" tgl "<<GetTgl()<<ENDLOG;
   
   //printf("Track with eta %f tgl %f crosses at x %f y %f z %f on padrow %d\n",GetEta(),GetTgl(),xyz[0],xyz[1],xyz[2],GetFirstRow());
@@ -124,8 +123,8 @@ void AliHLTTPCHoughTrack::UpdateToFirstRow()
     Double_t x0    = GetR0() * cos(GetPhi0()) ;
     Double_t y0    = GetR0() * sin(GetPhi0()) ;
   */
-  Double_t rc    = GetRadius();//fabs(GetPt()) / AliHLTTransform::GetBFieldValue();
-  Double_t tPhi0 = GetPsi() + GetCharge() * AliHLTTransform::PiHalf() / abs(GetCharge()) ;
+  Double_t rc    = GetRadius();//fabs(GetPt()) / AliHLTTPCTransform::GetBFieldValue();
+  Double_t tPhi0 = GetPsi() + GetCharge() * AliHLTTPCTransform::PiHalf() / abs(GetCharge()) ;
   Double_t xc    = GetCenterX();//x0 - rc * cos(tPhi0) ;
   Double_t yc    = GetCenterY();//y0 - rc * sin(tPhi0) ;
   
@@ -134,7 +133,7 @@ void AliHLTTPCHoughTrack::UpdateToFirstRow()
   Double_t sfac = sqrt( fac1 ) ;
   
   if ( fabs(sfac-rc) > radius || fabs(sfac+rc) < radius ) {
-    LOG(AliHLTLog::kError,"AliHLTTPCHoughTrack::UpdateToFirstRow","Tracks")<<AliHLTLog::kDec<<
+    LOG(AliHLTTPCLog::kError,"AliHLTTPCHoughTrack::UpdateToFirstRow","Tracks")<<AliHLTTPCLog::kDec<<
       "Track does not intersect"<<ENDLOG;
     return;
   }
@@ -145,10 +144,10 @@ void AliHLTTPCHoughTrack::UpdateToFirstRow()
   Double_t td     = atan2(radius*sin(phi) - yc,radius*cos(phi) - xc) ;
   
   //Intersection in z
-  if ( td < 0 ) td = td + AliHLTTransform::TwoPi();
-  Double_t deltat = fmod((-GetCharge()*td + GetCharge()*tPhi0),AliHLTTransform::TwoPi());
-  if ( deltat < 0. ) deltat += AliHLTTransform::TwoPi();
-  else if ( deltat > AliHLTTransform::TwoPi() ) deltat -= AliHLTTransform::TwoPi();
+  if ( td < 0 ) td = td + AliHLTTPCTransform::TwoPi();
+  Double_t deltat = fmod((-GetCharge()*td + GetCharge()*tPhi0),AliHLTTPCTransform::TwoPi());
+  if ( deltat < 0. ) deltat += AliHLTTPCTransform::TwoPi();
+  else if ( deltat > AliHLTTPCTransform::TwoPi() ) deltat -= AliHLTTPCTransform::TwoPi();
   Double_t z = GetZ0() + rc * GetTgl() * deltat ;
   
   Double_t xExtra = radius * cos(phi) ;
@@ -157,9 +156,9 @@ void AliHLTTPCHoughTrack::UpdateToFirstRow()
   Double_t tPhi = atan2(yExtra-yc,xExtra-xc);
   
   //if ( tPhi < 0 ) tPhi += 2. * M_PI ;
-  Double_t tPsi = tPhi - GetCharge() * AliHLTTransform::PiHalf() / abs(GetCharge()) ;
-  if ( tPsi > AliHLTTransform::TwoPi() ) tPsi -= AliHLTTransform::TwoPi() ;
-  else if ( tPsi < 0. ) tPsi += AliHLTTransform::TwoPi();
+  Double_t tPsi = tPhi - GetCharge() * AliHLTTPCTransform::PiHalf() / abs(GetCharge()) ;
+  if ( tPsi > AliHLTTPCTransform::TwoPi() ) tPsi -= AliHLTTPCTransform::TwoPi() ;
+  else if ( tPsi < 0. ) tPsi += AliHLTTPCTransform::TwoPi();
   
   //And finally, update the track parameters
   SetR0(radius);
@@ -183,7 +182,7 @@ void AliHLTTPCHoughTrack::SetTrackParameters(Double_t kappa,Double_t eangle,Int_
   fWeight = weight;
   fMinDist = 100000;
   SetKappa(kappa);
-  Double_t pt = fabs(AliHLTTransform::GetBFieldValue()/kappa);
+  Double_t pt = fabs(AliHLTTPCTransform::GetBFieldValue()/kappa);
   SetPt(pt);
   Double_t radius = 1/fabs(kappa);
   SetRadius(radius);
@@ -193,7 +192,7 @@ void AliHLTTPCHoughTrack::SetTrackParameters(Double_t kappa,Double_t eangle,Int_
   SetR0(0);
   Double_t charge = -1.*kappa;
   SetCharge((Int_t)copysign(1.,charge));
-  Double_t trackPhi0 = GetPsi() + charge*0.5*AliHLTTransform::Pi()/fabs(charge);
+  Double_t trackPhi0 = GetPsi() + charge*0.5*AliHLTTPCTransform::Pi()/fabs(charge);
   Double_t xc = GetFirstPointX() - GetRadius() * cos(trackPhi0) ;
   Double_t yc = GetFirstPointY() - GetRadius() * sin(trackPhi0) ;
   SetCenterX(xc);
@@ -206,13 +205,13 @@ void AliHLTTPCHoughTrack::SetTrackParametersRow(Double_t alpha1,Double_t alpha2,
 {
   //Set track parameters for HoughTransformerRow
   //This includes curvature,emission angle and eta
-  Double_t psi = atan((alpha1-alpha2)/(AliHLTHoughTransformerRow::GetBeta1()-AliHLTHoughTransformerRow::GetBeta2()));
-  Double_t kappa = 2.0*(alpha1*cos(psi)-AliHLTHoughTransformerRow::GetBeta1()*sin(psi));
+  Double_t psi = atan((alpha1-alpha2)/(AliHLTTPCHoughTransformerRow::GetBeta1()-AliHLTTPCHoughTransformerRow::GetBeta2()));
+  Double_t kappa = 2.0*(alpha1*cos(psi)-AliHLTTPCHoughTransformerRow::GetBeta1()*sin(psi));
   SetTrackParameters(kappa,psi,weight);
 
   Double_t zovr;
-  Double_t etaparam1 = AliHLTHoughTransformerRow::GetEtaCalcParam1();
-  Double_t etaparam2 = AliHLTHoughTransformerRow::GetEtaCalcParam2();
+  Double_t etaparam1 = AliHLTTPCHoughTransformerRow::GetEtaCalcParam1();
+  Double_t etaparam2 = AliHLTTPCHoughTransformerRow::GetEtaCalcParam2();
   if(eta>0)
     zovr = (etaparam1 - sqrt(etaparam1*etaparam1 - 4.*etaparam2*eta))/(2.*etaparam2);
   else
@@ -258,7 +257,7 @@ void AliHLTTPCHoughTrack::GetLineCrossingPoint(Int_t padrow,Float_t *xy)
       return;
     }
 
-  Float_t xhit = AliHLTTransform::Row2X(padrow) - AliHLTTransform::Row2X(GetFirstRow());
+  Float_t xhit = AliHLTTPCTransform::Row2X(padrow) - AliHLTTPCTransform::Row2X(GetFirstRow());
   Float_t a = -1/tan(fPsiLine);
   Float_t b = fDLine/sin(fPsiLine);
   Float_t yhit = a*xhit + b;

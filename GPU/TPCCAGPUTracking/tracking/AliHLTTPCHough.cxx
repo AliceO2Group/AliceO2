@@ -4,35 +4,68 @@
 // Author: Anders Vestbo <mailto:vestbo@fi.uib.no>
 //*-- Copyright &copy ALICE HLT Group
 
-#include "AliHLTStandardIncludes.h"
+#include "AliHLTStdIncludes.h"
+#include "AliLog.h"
 #include <sys/time.h>
 
-#include "AliHLTLogging.h"
+#include "AliHLTTPCLogging.h"
+
+#ifdef HAVE_ALIHLTHOUGHMERGER
 #include "AliHLTHoughMerger.h"
+#endif //HAVE_ALIHLTHOUGHMERGER
+
+#ifdef HAVE_ALIHLTHOUGHINTMERGER
 #include "AliHLTHoughIntMerger.h"
+#endif //HAVE_ALIHLTHOUGHINTMERGER
+
+#ifdef HAVE_ALIHLTHOUGHGLOBALMERGER
 #include "AliHLTHoughGlobalMerger.h"
-#include "AliHLTHistogram.h"
-#include "AliHLTHough.h"
+#endif //HAVE_ALIHLTHOUGHGLOBALMERGER
+
+#include "AliHLTTPCHistogram.h"
+#include "AliHLTTPCHough.h"
+
+#ifdef HAVE_ALIHLTHOUGHTRANSFORMERDEFAULT
+// the original AliHLTHoughBaseTransformer has been renamed to
+// AliHLTTPCHoughTransformer and AliHLTHoughTransformer to
+// AliHLTHoughTransformerDefault, but the latter is not yet
+// migrated
 #include "AliHLTHoughTransformer.h"
-//#include "AliHLTHoughClusterTransformer.h"
+#endif // HAVE_ALIHLTHOUGHTRANSFORMERDEFAULT
+
+#ifdef HAVE_ALIHLTHOUGHCLUSTERTRANSFORMER
+#include "AliHLTHoughClusterTransformer.h"
+#endif // HAVE_ALIHLTHOUGHCLUSTERTRANSFORMER
+
+#ifdef HAVE_ALIHLTHOUGHTRANSFORMERLUT
 #include "AliHLTHoughTransformerLUT.h"
+#endif // HAVE_ALIHLTHOUGHTRANSFORMERLUT
+
+#ifdef HAVE_ALIHLTHOUGHTRANSFORMERVHDL
 #include "AliHLTHoughTransformerVhdl.h"
-#include "AliHLTHoughTransformerRow.h"
-#include "AliHLTHoughMaxFinder.h"
-#include "AliHLTBenchmark.h"
-#ifdef use_aliroot
-#include "AliHLTFileHandler.h"
-#else
-#include "AliHLTMemHandler.h"
-#endif
+#endif // HAVE_ALIHLTHOUGHTRANSFORMERVHDL
+
+#include "AliHLTTPCHoughTransformerRow.h"
+
+#include "AliHLTTPCHoughMaxFinder.h"
+#include "AliHLTTPCBenchmark.h"
+#include "AliHLTTPCFileHandler.h"
+
+#ifdef HAVE_ALIHLTDATAHANDLER
 #include "AliHLTDataHandler.h"
-#include "AliHLTDigitData.h"
-#include "AliHLTHoughEval.h"
-#include "AliHLTTransform.h"
-#include "AliHLTTrackArray.h"
-#include "AliHLTHoughTrack.h"
+#endif // HAVE_ALIHLTDATAHANDLER
+
+//#include "AliHLTDigitData.h"
+#include "AliHLTTPCHoughEval.h"
+#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCTrackArray.h"
+#include "AliHLTTPCHoughTrack.h"
+
+#ifdef HAVE_ALIHLTDDLDATAFILEHANDLER
 #include "AliHLTDDLDataFileHandler.h"
-#include "AliHLTHoughKalmanTrack.h"
+#endif // HAVE_ALIHLTDDLDATAFILEHANDLER
+
+#include "AliHLTTPCHoughKalmanTrack.h"
 
 #include "TThread.h"
 
@@ -54,7 +87,7 @@ using namespace std;
 // hough->Transform();
 // hough->FindTrackCandidates();
 // 
-// AliHLTTrackArray *tracks = hough->GetTracks(patch);
+// AliHLTTPCTrackArray *tracks = hough->GetTracks(patch);
 //
 //</pre>
 */
@@ -99,13 +132,9 @@ AliHLTTPCHough::AliHLTTPCHough()
   SetThreshold();
   SetNSaveIterations();
   SetPeakThreshold();
-#ifdef use_aliroot
   //just be sure that index is empty for new event
-    AliHLTFileHandler::CleanStaticIndex(); 
-#ifdef use_newio
+    AliHLTTPCFileHandler::CleanStaticIndex(); 
     fRunLoader = 0;
-#endif
-#endif
   fThread = 0;
 }
 
@@ -136,13 +165,9 @@ AliHLTTPCHough::AliHLTTPCHough(Char_t *path,Bool_t binary,Int_t netasegments,Boo
     fInputFile = 0;
     fInputPtr = 0;
   }
-#ifdef use_aliroot
   //just be sure that index is empty for new event
-    AliHLTFileHandler::CleanStaticIndex(); 
-#ifdef use_newio
+    AliHLTTPCFileHandler::CleanStaticIndex(); 
     fRunLoader = 0;
-#endif
-#endif
   fThread = 0;
 }
 
@@ -151,17 +176,24 @@ AliHLTTPCHough::~AliHLTTPCHough()
   //dtor
 
   CleanUp();
+
   if(fMerger)
+#ifdef HAVE_ALIHLTHOUGHMERGER
     delete fMerger;
+#endif //HAVE_ALIHLTHOUGHMERGER
   //cout << "Cleaned class merger " << endl;
   if(fInterMerger)
+#ifdef HAVE_ALIHLTHOUGHINTMERGER
     delete fInterMerger;
+#endif //HAVE_ALIHLTHOUGHINTMERGER
   //cout << "Cleaned class inter " << endl;
   if(fPeakFinder)
     delete fPeakFinder;
   //cout << "Cleaned class peak " << endl;
   if(fGlobalMerger)
+#ifdef HAVE_ALIHLTHOUGHGLOBALMERGER
     delete fGlobalMerger;
+#endif //HAVE_ALIHLTHOUGHGLOBALMERGER
   //cout << "Cleaned class global " << endl;
   if(fBenchmark)
     delete fBenchmark;
@@ -247,34 +279,50 @@ void AliHLTTPCHough::Init(Bool_t doit, Bool_t addhists)
   fDoIterative   = doit; 
   fAddHistograms = addhists;
 
-  fNPatches = AliHLTTransform::GetNPatches();
-  fHoughTransformer = new AliHLTHoughBaseTransformer*[fNPatches];
-  fMemHandler = new AliHLTMemHandler*[fNPatches];
+  fNPatches = AliHLTTPCTransform::GetNPatches();
+  fHoughTransformer = new AliHLTTPCHoughTransformer*[fNPatches];
+  fMemHandler = new AliHLTTPCMemHandler*[fNPatches];
 
-  fTracks = new AliHLTTrackArray*[fNPatches];
-  fEval = new AliHLTHoughEval*[fNPatches];
+  fTracks = new AliHLTTPCTrackArray*[fNPatches];
+  fEval = new AliHLTTPCHoughEval*[fNPatches];
   
-  fGlobalTracks = new AliHLTTrackArray("AliHLTHoughTrack");
+  fGlobalTracks = new AliHLTTPCTrackArray("AliHLTTPCHoughTrack");
   
-  AliHLTHoughBaseTransformer *lasttransformer = 0;
+  AliHLTTPCHoughTransformer *lasttransformer = 0;
 
   for(Int_t i=0; i<fNPatches; i++)
     {
       switch (fVersion){ //choose Transformer
       case 1: 
+#ifdef HAVE_ALIHLTHOUGHTRANSFORMERLUT
 	fHoughTransformer[i] = new AliHLTHoughTransformerLUT(0,i,fNEtaSegments);
+#else
+	AliErrorClassStream() << "AliHLTHoughTransformerLUT not compiled" << endl;
+#endif // HAVE_ALIHLTHOUGHTRANSFORMERLUT
 	break;
       case 2:
-	//fHoughTransformer[i] = new AliHLTHoughClusterTransformer(0,i,fNEtaSegments);
+#ifdef HAVE_ALIHLTHOUGHCLUSTERTRANSFORMER
+	fHoughTransformer[i] = new AliHLTHoughClusterTransformer(0,i,fNEtaSegments);
+#else
+	AliErrorClassStream() << "AliHLTHoughClusterTransformer not compiled" << endl;
+#endif // HAVE_ALIHLTHOUGHCLUSTERTRANSFORMER
 	break;
       case 3:
+#ifdef HAVE_ALIHLTHOUGHTRANSFORMERVHDL
 	fHoughTransformer[i] = new AliHLTHoughTransformerVhdl(0,i,fNEtaSegments,fNSaveIterations);
+#else
+	AliErrorClassStream() << "AliHLTHoughTransformerVhdl not compiled" << endl;
+#endif // HAVE_ALIHLTHOUGHTRANSFORMERVHDL
 	break;
       case 4:
-	fHoughTransformer[i] = new AliHLTHoughTransformerRow(0,i,fNEtaSegments,kFALSE,fZVertex);
+	fHoughTransformer[i] = new AliHLTTPCHoughTransformerRow(0,i,fNEtaSegments,kFALSE,fZVertex);
 	break;
       default:
-	fHoughTransformer[i] = new AliHLTHoughTransformer(0,i,fNEtaSegments,kFALSE,kFALSE);
+#ifdef HAVE_ALIHLTHOUGHTRANSFORMERDEFAULT
+	fHoughTransformer[i] = new AliHLTHoughTransformerDefault(0,i,fNEtaSegments,kFALSE,kFALSE);
+#else
+	AliErrorClassStream() << "AliHLTHoughTransformerDefault not compiled" << endl;
+#endif // HAVE_ALIHLTHOUGHTRANSFORMERDEFAULT
       }
 
       fHoughTransformer[i]->SetLastTransformer(lasttransformer);
@@ -286,70 +334,86 @@ void AliHLTTPCHough::Init(Bool_t doit, Bool_t addhists)
       fHoughTransformer[i]->SetLowerThreshold(fThreshold[i]);
       fHoughTransformer[i]->SetUpperThreshold(100);
 
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHough::Init","Version")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHough::Init","Version")
 	<<"Initializing Hough transformer version "<<fVersion<<ENDLOG;
       
-      fEval[i] = new AliHLTHoughEval();
-      fTracks[i] = new AliHLTTrackArray("AliHLTHoughTrack");
+      fEval[i] = new AliHLTTPCHoughEval();
+      fTracks[i] = new AliHLTTPCTrackArray("AliHLTTPCHoughTrack");
       if(fUse8bits)
+#ifdef HAVE_ALIHLTDATAHANDLER
 	fMemHandler[i] = new AliHLTDataHandler();
+#else //!HAVE_ALIHLTDATAHANDLER
+      AliErrorClassStream() << "AliHLTDataHandler not compiled" << endl;
+#endif // HAVE_ALIHLTDATAHANDLER
       else
-#ifdef use_aliroot
       	{
 	  if(!fRawEvent) {
 	    if(!fInputFile) {
 	      if(!fInputPtr) {
 		/* In case of reading digits file */
-		fMemHandler[i] = new AliHLTFileHandler(kTRUE); //use static index
+		fMemHandler[i] = new AliHLTTPCFileHandler(kTRUE); //use static index
 		if(!fBinary) {
-#if use_newio
 		  if(!fRunLoader) {
-#endif
 		    Char_t filename[1024];
 		    sprintf(filename,"%s/digitfile.root",fPath);
 		    fMemHandler[i]->SetAliInput(filename);
-#if use_newio
 		  }
 		  else {
 		    fMemHandler[i]->SetAliInput(fRunLoader);
 		  }
-#endif
 		}
 	      }
 	      else {
 		/* In case of reading from DATE */
+#ifdef HAVE_ALIHLTDDLDATAFILEHANDLER
 		fMemHandler[i] = new AliHLTDDLDataFileHandler();
 		fMemHandler[i]->SetReaderInput(fInputPtr,-1);
+#else //!HAVE_ALIHLTDDLDATAFILEHANDLER
+		AliErrorClassStream() << "AliHLTDDLDataFileHandler not compiled" << endl;
+#endif //HAVE_ALIHLTDDLDATAFILEHANDLER
 	      }
 	    }
 	    else {
 	      /* In case of reading rawdata from ROOT file */
+#ifdef HAVE_ALIHLTDDLDATAFILEHANDLER
 	      fMemHandler[i] = new AliHLTDDLDataFileHandler();
 	      fMemHandler[i]->SetReaderInput(fInputFile);
+#else //!HAVE_ALIHLTDDLDATAFILEHANDLER
+	      AliErrorClassStream() << "AliHLTDDLDataFileHandler not compiled" << endl;
+#endif //HAVE_ALIHLTDDLDATAFILEHANDLER
 	    }
 	  }
 	  else {
 	    /* In case of reading rawdata using AliRawEvent */
+#ifdef HAVE_ALIHLTDDLDATAFILEHANDLER
 	    fMemHandler[i] = new AliHLTDDLDataFileHandler();
 	    fMemHandler[i]->SetReaderInput(fRawEvent);
+#else //!HAVE_ALIHLTDDLDATAFILEHANDLER
+	    AliErrorClassStream() << "AliHLTDDLDataFileHandler not compiled" << endl;
+#endif //HAVE_ALIHLTDDLDATAFILEHANDLER
 	  }
 	}
-#else
-      fMemHandler[i] = new AliHLTMemHandler();
-#endif
     }
 
-  fPeakFinder = new AliHLTHoughMaxFinder("KappaPhi",50000);
+  fPeakFinder = new AliHLTTPCHoughMaxFinder("KappaPhi",50000);
   if(fVersion!=4) {
+#ifdef HAVE_ALIHLTHOUGHMERGER
     fMerger = new AliHLTHoughMerger(fNPatches);
+#else 
+    AliErrorClassStream() << "AliHLTHoughMerger not compiled" << endl;
+#endif //HAVE_ALIHLTHOUGHMERGER
+#ifdef HAVE_ALIHLTHOUGHINTMERGER
     fInterMerger = new AliHLTHoughIntMerger();
+#else 
+    AliErrorClassStream() << "AliHLTHoughIntMerger not compiled" << endl;
+#endif //HAVE_ALIHLTHOUGHINTMERGER
   }
   else {
     fMerger = 0;
     fInterMerger = 0;
   }
   fGlobalMerger = 0;
-  fBenchmark = new AliHLTBenchmark();
+  fBenchmark = new AliHLTTPCBenchmark();
 }
 
 void AliHLTTPCHough::SetTransformerParams(Float_t ptres,Float_t ptmin,Float_t ptmax,Int_t ny,Int_t patch)
@@ -363,12 +427,12 @@ void AliHLTTPCHough::SetTransformerParams(Float_t ptres,Float_t ptmin,Float_t pt
   if(patch==-1)
     mrow = 80;
   else
-    mrow = AliHLTTransform::GetLastRow(patch);
+    mrow = AliHLTTPCTransform::GetLastRow(patch);
   if(ptmin)
     {
-      Double_t lineradius = sqrt(pow(AliHLTTransform::Row2X(mrow),2) + pow(AliHLTTransform::GetMaxY(mrow),2));
-      Double_t kappa = -1*AliHLTTransform::GetBField()*AliHLTTransform::GetBFact()/ptmin;
-      psi = AliHLTTransform::Deg2Rad(10) - asin(lineradius*kappa/2);
+      Double_t lineradius = sqrt(pow(AliHLTTPCTransform::Row2X(mrow),2) + pow(AliHLTTPCTransform::GetMaxY(mrow),2));
+      Double_t kappa = -1*AliHLTTPCTransform::GetBField()*AliHLTTPCTransform::GetBFact()/ptmin;
+      psi = AliHLTTPCTransform::Deg2Rad(10) - asin(lineradius*kappa/2);
       cout<<"Calculated psi range "<<psi<<" in patch "<<patch<<endl;
     }
 
@@ -400,9 +464,9 @@ void AliHLTTPCHough::SetTransformerParams(Int_t nx,Int_t ny,Float_t ptmin,Int_t 
   // Setup the parameters for the Hough Transformer
 
   Int_t mrow=80;
-  Double_t lineradius = sqrt(pow(AliHLTTransform::Row2X(mrow),2) + pow(AliHLTTransform::GetMaxY(mrow),2));
-  Double_t kappa = -1*AliHLTTransform::GetBField()*AliHLTTransform::GetBFact()/ptmin;
-  Double_t psi = AliHLTTransform::Deg2Rad(10) - asin(lineradius*kappa/2);
+  Double_t lineradius = sqrt(pow(AliHLTTPCTransform::Row2X(mrow),2) + pow(AliHLTTPCTransform::GetMaxY(mrow),2));
+  Double_t kappa = -1*AliHLTTPCTransform::GetBField()*AliHLTTPCTransform::GetBFact()/ptmin;
+  Double_t psi = AliHLTTPCTransform::Deg2Rad(10) - asin(lineradius*kappa/2);
   cout<<"Calculated psi range "<<psi<<" in patch "<<patch<<endl;
   
   Int_t i=0;
@@ -420,12 +484,12 @@ void AliHLTTPCHough::SetTransformerParams(Int_t nx,Int_t ny,Float_t ptmin,Int_t 
 {
   // Setup the parameters for the Hough Transformer
 
-  Double_t lineradius = 1.0/(AliHLTHoughTransformerRow::GetBeta1()*sqrt(1.0+tan(AliHLTTransform::Pi()*10/180)*tan(AliHLTTransform::Pi()*10/180)));
-  Double_t alpha1 = AliHLTHoughTransformerRow::GetBeta1()*tan(AliHLTTransform::Pi()*10/180);
-  Double_t kappa = 1*AliHLTTransform::GetBField()*AliHLTTransform::GetBFact()/(ptmin*0.9);
-  Double_t psi = AliHLTTransform::Deg2Rad(10) - asin(lineradius*kappa/2);
+  Double_t lineradius = 1.0/(AliHLTTPCHoughTransformerRow::GetBeta1()*sqrt(1.0+tan(AliHLTTPCTransform::Pi()*10/180)*tan(AliHLTTPCTransform::Pi()*10/180)));
+  Double_t alpha1 = AliHLTTPCHoughTransformerRow::GetBeta1()*tan(AliHLTTPCTransform::Pi()*10/180);
+  Double_t kappa = 1*AliHLTTPCTransform::GetBField()*AliHLTTPCTransform::GetBFact()/(ptmin*0.9);
+  Double_t psi = AliHLTTPCTransform::Deg2Rad(10) - asin(lineradius*kappa/2);
   //  cout<<"Calculated psi range "<<psi<<" in patch "<<patch<<endl;
-  Double_t alpha2 = alpha1 - (AliHLTHoughTransformerRow::GetBeta1()-AliHLTHoughTransformerRow::GetBeta2())*tan(psi);
+  Double_t alpha2 = alpha1 - (AliHLTTPCHoughTransformerRow::GetBeta1()-AliHLTTPCHoughTransformerRow::GetBeta2())*tan(psi);
   //  cout<<"Calculated alphas range "<<alpha1<<" "<<alpha2<<" in patch "<<patch<<endl;
 
   Int_t i=0;
@@ -446,17 +510,17 @@ void AliHLTTPCHough::CalcTransformerParams(Float_t ptmin)
   // that the size of the hough bin is 2x (in X) and 2.5 (in Y) the
   // size of the tpc pads
 
-  Double_t lineradius = 1.0/(AliHLTHoughTransformerRow::GetBeta1()*sqrt(1.0+tan(AliHLTTransform::Pi()*10/180)*tan(AliHLTTransform::Pi()*10/180)));
-  Double_t alpha1 = AliHLTHoughTransformerRow::GetBeta1()*tan(AliHLTTransform::Pi()*10/180);
-  Double_t kappa = 1*AliHLTTransform::GetBField()*AliHLTTransform::GetBFact()/(ptmin*0.9);
-  Double_t psi = AliHLTTransform::Deg2Rad(10) - asin(lineradius*kappa/2);
+  Double_t lineradius = 1.0/(AliHLTTPCHoughTransformerRow::GetBeta1()*sqrt(1.0+tan(AliHLTTPCTransform::Pi()*10/180)*tan(AliHLTTPCTransform::Pi()*10/180)));
+  Double_t alpha1 = AliHLTTPCHoughTransformerRow::GetBeta1()*tan(AliHLTTPCTransform::Pi()*10/180);
+  Double_t kappa = 1*AliHLTTPCTransform::GetBField()*AliHLTTPCTransform::GetBFact()/(ptmin*0.9);
+  Double_t psi = AliHLTTPCTransform::Deg2Rad(10) - asin(lineradius*kappa/2);
   //  cout<<"Calculated psi range "<<psi<<endl;
-  Double_t alpha2 = alpha1 - (AliHLTHoughTransformerRow::GetBeta1()-AliHLTHoughTransformerRow::GetBeta2())*tan(psi);
+  Double_t alpha2 = alpha1 - (AliHLTTPCHoughTransformerRow::GetBeta1()-AliHLTTPCHoughTransformerRow::GetBeta2())*tan(psi);
   alpha1 *= 1.1;
   //  cout<<"Calculated alphas range "<<alpha1<<" "<<alpha2<<endl;
 
-  Double_t sizex = 2.0*AliHLTTransform::GetPadPitchWidthLow()*AliHLTHoughTransformerRow::GetBeta1()*AliHLTHoughTransformerRow::GetBeta1();
-  Double_t sizey = 2.5*AliHLTTransform::GetPadPitchWidthUp()*AliHLTHoughTransformerRow::GetBeta2()*AliHLTHoughTransformerRow::GetBeta2();
+  Double_t sizex = 2.0*AliHLTTPCTransform::GetPadPitchWidthLow()*AliHLTTPCHoughTransformerRow::GetBeta1()*AliHLTTPCHoughTransformerRow::GetBeta1();
+  Double_t sizey = 2.5*AliHLTTPCTransform::GetPadPitchWidthUp()*AliHLTTPCHoughTransformerRow::GetBeta2()*AliHLTTPCHoughTransformerRow::GetBeta2();
 
   Int_t nx = 2*(Int_t)(alpha1/sizex)+1;
   Int_t ny = 2*(Int_t)(alpha2/sizey)+1;
@@ -520,8 +584,12 @@ void AliHLTTPCHough::DoBench(Char_t *name)
 void AliHLTTPCHough::Process(Int_t minslice,Int_t maxslice)
 {
   //Process all slices [minslice,maxslice].
+#ifdef HAVE_ALIHLTHOUGHGLOBALMERGER
   fGlobalMerger = new AliHLTHoughGlobalMerger(minslice,maxslice);
-  
+#else
+  return;
+#endif //HAVE_ALIHLTHOUGHGLOBALMERGER
+
   for(Int_t i=minslice; i<=maxslice; i++)
     {
       ReadData(i);
@@ -542,17 +610,15 @@ void AliHLTTPCHough::ReadData(Int_t slice,Int_t eventnr)
 {
   //Read data from files, binary or root.
   
-#ifdef use_aliroot
   if(fEvent!=eventnr) //just be sure that index is empty for new event
-    AliHLTFileHandler::CleanStaticIndex(); 
-#endif
+    AliHLTTPCFileHandler::CleanStaticIndex(); 
   fCurrentSlice = slice;
 
   for(Int_t i=0; i<fNPatches; i++)
     {
       fMemHandler[i]->Free();
       UInt_t ndigits=0;
-      AliHLTDigitRowData *digits =0;
+      AliHLTTPCDigitRowData *digits =0;
       Char_t name[256];
       fMemHandler[i]->Init(slice,i);
       if(fBinary)//take input data from binary files
@@ -563,18 +629,14 @@ void AliHLTTPCHough::ReadData(Int_t slice,Int_t eventnr)
 	    sprintf(name,"%s/binaries/digits_%d_%d_%d.raw",fPath,eventnr,slice,i);
 
 	  fMemHandler[i]->SetBinaryInput(name);
-	  digits = (AliHLTDigitRowData *)fMemHandler[i]->CompBinary2Memory(ndigits);
+	  digits = (AliHLTTPCDigitRowData *)fMemHandler[i]->CompBinary2Memory(ndigits);
 	  fMemHandler[i]->CloseBinaryInput();
 	}
       else //read data from root file
 	{
-#ifdef use_aliroot
 	  if(fEvent!=eventnr)
 	    fMemHandler[i]->FreeDigitsTree();//or else the new event is not loaded
-	  digits=(AliHLTDigitRowData *)fMemHandler[i]->AliAltroDigits2Memory(ndigits,eventnr);
-#else
-	  cerr<<"You cannot read from rootfile now"<<endl;
-#endif
+	  digits=(AliHLTTPCDigitRowData *)fMemHandler[i]->AliAltroDigits2Memory(ndigits,eventnr);
 	}
 
       //Set the pointer to the TPCRawStream in case of fast raw data reading
@@ -624,7 +686,7 @@ void AliHLTTPCHough::Transform(Int_t *rowrange)
       fLastPatch=patchorder[i];
     }
   cpuTime = GetCpuTime() - initTime;
-  LOG(AliHLTLog::kInformational,"AliHLTTPCHough::Transform()","Timing")
+  LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHough::Transform()","Timing")
     <<"Transform done in average per patch of "<<cpuTime*1000/fNPatches<<" ms"<<ENDLOG;
 }
 
@@ -633,18 +695,26 @@ void AliHLTTPCHough::MergePatches()
   // Merge patches if they are not summed
   if(fAddHistograms) //Nothing to merge here
     return;
+  if (fMerger==NULL) return;
+#ifdef HAVE_ALIHLTHOUGHMERGER
   fMerger->MergePatches(kTRUE);
+#endif // HAVE_ALIHLTHOUGHMERGER
 }
 
 void AliHLTTPCHough::MergeInternally()
 {
   // Merge patches internally
+  if (fMerger==NULL) return;
+#ifdef HAVE_ALIHLTHOUGHINTMERGER
   if(fAddHistograms)
     fInterMerger->FillTracks(fTracks[0]);
   else
+#ifdef HAVE_ALIHLTHOUGHMERGER
     fInterMerger->FillTracks(fMerger->GetOutTracks());
+#endif HAVE_ALIHLTHOUGHMERGER
   
   fInterMerger->MMerge();
+#endif // HAVE_ALIHLTHOUGHINTMERGER
 }
 
 void AliHLTTPCHough::ProcessSliceIter()
@@ -653,10 +723,13 @@ void AliHLTTPCHough::ProcessSliceIter()
   
   if(!fAddHistograms)
     {
+      if (fMerger==NULL) return;
       for(Int_t i=0; i<fNPatches; i++)
 	{
 	  ProcessPatchIter(i);
+#ifdef HAVE_ALIHLTHOUGHMERGER
 	  fMerger->FillTracks(fTracks[i],i); //Copy tracks to merger
+#endif // HAVE_ALIHLTHOUGHMERGER
 	}
     }
   else
@@ -666,15 +739,15 @@ void AliHLTTPCHough::ProcessSliceIter()
 	  Transform();
 	  AddAllHistograms();
 	  InitEvaluate();
-	  AliHLTHoughBaseTransformer *tr = fHoughTransformer[0];
+	  AliHLTTPCHoughTransformer *tr = fHoughTransformer[0];
 	  for(Int_t j=0; j<fNEtaSegments; j++)
 	    {
-	      AliHLTHistogram *hist = tr->GetHistogram(j);
+	      AliHLTTPCHistogram *hist = tr->GetHistogram(j);
 	      if(hist->GetNEntries()==0) continue;
 	      fPeakFinder->Reset();
 	      fPeakFinder->SetHistogram(hist);
 	      fPeakFinder->FindAbsMaxima();
-	      AliHLTHoughTrack *track = (AliHLTHoughTrack*)fTracks[0]->NextTrack();
+	      AliHLTTPCHoughTrack *track = (AliHLTTPCHoughTrack*)fTracks[0]->NextTrack();
 	      track->SetTrackParameters(fPeakFinder->GetXPeak(0),fPeakFinder->GetYPeak(0),fPeakFinder->GetWeight(0));
 	      track->SetEtaIndex(j);
 	      track->SetEta(tr->GetEta(j,fCurrentSlice));
@@ -705,15 +778,15 @@ void AliHLTTPCHough::ProcessPatchIter(Int_t patch)
   //transform + peakfinding + evaluation + transform +...
 
   Int_t numoftries = 5;
-  AliHLTHoughBaseTransformer *tr = fHoughTransformer[patch];
-  AliHLTTrackArray *tracks = fTracks[patch];
+  AliHLTTPCHoughTransformer *tr = fHoughTransformer[patch];
+  AliHLTTPCTrackArray *tracks = fTracks[patch];
   tracks->Reset();
-  AliHLTHoughEval *ev = fEval[patch];
+  AliHLTTPCHoughEval *ev = fEval[patch];
   ev->InitTransformer(tr);
   //ev->RemoveFoundTracks();
   ev->SetNumOfRowsToMiss(3);
   ev->SetNumOfPadsToLook(2);
-  AliHLTHistogram *hist;
+  AliHLTTPCHistogram *hist;
   for(Int_t t=0; t<numoftries; t++)
     {
       tr->Reset();
@@ -726,7 +799,7 @@ void AliHLTTPCHough::ProcessPatchIter(Int_t patch)
 	  fPeakFinder->SetHistogram(hist);
 	  fPeakFinder->FindAbsMaxima();
 	  //fPeakFinder->FindPeak1();
-	  AliHLTHoughTrack *track = (AliHLTHoughTrack*)tracks->NextTrack();
+	  AliHLTTPCHoughTrack *track = (AliHLTTPCHoughTrack*)tracks->NextTrack();
 	  track->SetTrackParameters(fPeakFinder->GetXPeak(0),fPeakFinder->GetYPeak(0),fPeakFinder->GetWeight(0));
 	  track->SetEtaIndex(i);
 	  track->SetEta(tr->GetEta(i,fCurrentSlice));
@@ -741,8 +814,8 @@ void AliHLTTPCHough::ProcessPatchIter(Int_t patch)
 	}
     }
   fTracks[0]->QSort();
-  LOG(AliHLTLog::kInformational,"AliHLTTPCHough::ProcessPatch","NTracks")
-    <<AliHLTLog::kDec<<"Found "<<tracks->GetNTracks()<<" tracks in patch "<<patch<<ENDLOG;
+  LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHough::ProcessPatch","NTracks")
+    <<AliHLTTPCLog::kDec<<"Found "<<tracks->GetNTracks()<<" tracks in patch "<<patch<<ENDLOG;
 }
 
 void AliHLTTPCHough::AddAllHistograms()
@@ -755,17 +828,17 @@ void AliHLTTPCHough::AddAllHistograms()
   fBenchmark->Start("Add Histograms");
   for(Int_t i=0; i<fNEtaSegments; i++)
     {
-      AliHLTHistogram *hist0 = fHoughTransformer[0]->GetHistogram(i);
+      AliHLTTPCHistogram *hist0 = fHoughTransformer[0]->GetHistogram(i);
       for(Int_t j=1; j<fNPatches; j++)
 	{
-	  AliHLTHistogram *hist = fHoughTransformer[j]->GetHistogram(i);
+	  AliHLTTPCHistogram *hist = fHoughTransformer[j]->GetHistogram(i);
 	  hist0->Add(hist);
 	}
     }
   fBenchmark->Stop("Add Histograms");
   fAddHistograms = kTRUE;
   cpuTime = GetCpuTime() - initTime;
-  LOG(AliHLTLog::kInformational,"AliHLTTPCHough::AddAllHistograms()","Timing")
+  LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHough::AddAllHistograms()","Timing")
     <<"Adding histograms in "<<cpuTime*1000<<" ms"<<ENDLOG;
 }
 
@@ -778,16 +851,16 @@ void AliHLTTPCHough::AddAllHistogramsRows()
   initTime = GetCpuTime();
   fBenchmark->Start("Add HistogramsRows");
 
-  UChar_t lastpatchlastrow = AliHLTTransform::GetLastRowOnDDL(fLastPatch)+1;
+  UChar_t lastpatchlastrow = AliHLTTPCTransform::GetLastRowOnDDL(fLastPatch)+1;
 
-  UChar_t *tracklastrow = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetTrackLastRow();
+  UChar_t *tracklastrow = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetTrackLastRow();
 
   for(Int_t i=0; i<fNEtaSegments; i++)
     {
-      UChar_t *gapcount = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetGapCount(i);
-      UChar_t *currentrowcount = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetCurrentRowCount(i);
+      UChar_t *gapcount = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetGapCount(i);
+      UChar_t *currentrowcount = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetCurrentRowCount(i);
 
-      AliHLTHistogram *hist = fHoughTransformer[0]->GetHistogram(i);
+      AliHLTTPCHistogram *hist = fHoughTransformer[0]->GetHistogram(i);
       Int_t xmin = hist->GetFirstXbin();
       Int_t xmax = hist->GetLastXbin();
       Int_t ymin = hist->GetFirstYbin();
@@ -818,7 +891,7 @@ void AliHLTTPCHough::AddAllHistogramsRows()
   fBenchmark->Stop("Add HistogramsRows");
   fAddHistograms = kTRUE;
   cpuTime = GetCpuTime() - initTime;
-  LOG(AliHLTLog::kInformational,"AliHLTTPCHough::AddAllHistogramsRows()","Timing")
+  LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHough::AddAllHistogramsRows()","Timing")
     <<"Adding histograms in "<<cpuTime*1000<<" ms"<<ENDLOG;
 }
 
@@ -839,25 +912,25 @@ void AliHLTTPCHough::PrepareForNextPatch(Int_t nextpatch)
   if(fLastPatch == -1)
     lastpatchlastrow = 0;
   else
-    lastpatchlastrow = AliHLTTransform::GetLastRowOnDDL(fLastPatch)+1;
+    lastpatchlastrow = AliHLTTPCTransform::GetLastRowOnDDL(fLastPatch)+1;
   UChar_t nextpatchfirstrow;
   if(nextpatch==0)
     nextpatchfirstrow = 0;
   else
-    nextpatchfirstrow = AliHLTTransform::GetFirstRowOnDDL(nextpatch)-1;
+    nextpatchfirstrow = AliHLTTPCTransform::GetFirstRowOnDDL(nextpatch)-1;
 
-  UChar_t *trackfirstrow = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetTrackFirstRow();
-  UChar_t *tracklastrow = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetTrackLastRow();
+  UChar_t *trackfirstrow = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetTrackFirstRow();
+  UChar_t *tracklastrow = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetTrackLastRow();
 
   for(Int_t i=0; i<fNEtaSegments; i++)
     {
-      UChar_t *gapcount = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetGapCount(i);
-      UChar_t *currentrowcount = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetCurrentRowCount(i);
-      UChar_t *prevbin = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetPrevBin(i);
-      UChar_t *nextbin = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetNextBin(i);
-      UChar_t *nextrow = ((AliHLTHoughTransformerRow *)fHoughTransformer[0])->GetNextRow(i);
+      UChar_t *gapcount = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetGapCount(i);
+      UChar_t *currentrowcount = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetCurrentRowCount(i);
+      UChar_t *prevbin = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetPrevBin(i);
+      UChar_t *nextbin = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetNextBin(i);
+      UChar_t *nextrow = ((AliHLTTPCHoughTransformerRow *)fHoughTransformer[0])->GetNextRow(i);
 
-      AliHLTHistogram *hist = fHoughTransformer[0]->GetHistogram(i);
+      AliHLTTPCHistogram *hist = fHoughTransformer[0]->GetHistogram(i);
       Int_t xmin = hist->GetFirstXbin();
       Int_t xmax = hist->GetLastXbin();
       Int_t ymin = hist->GetFirstYbin();
@@ -973,10 +1046,10 @@ void AliHLTTPCHough::AddTracks()
       cerr<<"AliHLTTPCHough::AddTracks : No tracks"<<endl;
       return;
     }
-  AliHLTTrackArray *tracks = fTracks[0];
+  AliHLTTPCTrackArray *tracks = fTracks[0];
   for(Int_t i=0; i<tracks->GetNTracks(); i++)
     {
-      AliHLTTrack *track = tracks->GetCheckedTrack(i);
+      AliHLTTPCTrack *track = tracks->GetCheckedTrack(i);
       if(!track) continue;
       if(track->GetNHits()!=1) cerr<<"NHITS "<<track->GetNHits()<<endl;
       UInt_t *ids = track->GetHitNumbers();
@@ -988,9 +1061,9 @@ void AliHLTTPCHough::AddTracks()
 
 void AliHLTTPCHough::FindTrackCandidatesRow()
 {
-  // Find AliHLTHoughTransformerRow track candidates
+  // Find AliHLTTPCHoughTransformerRow track candidates
   if(fVersion != 4) {
-    LOG(AliHLTLog::kError,"AliHLTTPCHough::FindTrackCandidatesRow()","")
+    LOG(AliHLTTPCLog::kError,"AliHLTTPCHough::FindTrackCandidatesRow()","")
       <<"Incompatible Peak Finder version!"<<ENDLOG;
     return;
   }
@@ -1007,24 +1080,24 @@ void AliHLTTPCHough::FindTrackCandidatesRow()
   fBenchmark->Start("Find Maxima");
   for(Int_t i=0; i<npatches; i++)
     {
-      AliHLTHoughBaseTransformer *tr = fHoughTransformer[i];
-      AliHLTHistogram *h = tr->GetHistogram(0);
-      Float_t deltax = h->GetBinWidthX()*AliHLTHoughTransformerRow::GetDAlpha();
-      Float_t deltay = h->GetBinWidthY()*AliHLTHoughTransformerRow::GetDAlpha();
-      Float_t deltaeta = (tr->GetEtaMax()-tr->GetEtaMin())/tr->GetNEtaSegments()*AliHLTHoughTransformerRow::GetDEta();
+      AliHLTTPCHoughTransformer *tr = fHoughTransformer[i];
+      AliHLTTPCHistogram *h = tr->GetHistogram(0);
+      Float_t deltax = h->GetBinWidthX()*AliHLTTPCHoughTransformerRow::GetDAlpha();
+      Float_t deltay = h->GetBinWidthY()*AliHLTTPCHoughTransformerRow::GetDAlpha();
+      Float_t deltaeta = (tr->GetEtaMax()-tr->GetEtaMin())/tr->GetNEtaSegments()*AliHLTTPCHoughTransformerRow::GetDEta();
       Float_t zvertex = tr->GetZVertex();
       fTracks[i]->Reset();
       fPeakFinder->Reset();
       
       for(Int_t j=0; j<fNEtaSegments; j++)
 	{
-	  AliHLTHistogram *hist = tr->GetHistogram(j);
+	  AliHLTTPCHistogram *hist = tr->GetHistogram(j);
 	  if(hist->GetNEntries()==0) continue;
 	  fPeakFinder->SetHistogram(hist);
 	  fPeakFinder->SetEtaSlice(j);
-	  fPeakFinder->SetTrackLUTs(((AliHLTHoughTransformerRow *)tr)->GetTrackNRows(),((AliHLTHoughTransformerRow *)tr)->GetTrackFirstRow(),((AliHLTHoughTransformerRow *)tr)->GetTrackLastRow(),((AliHLTHoughTransformerRow *)tr)->GetNextRow(j));
+	  fPeakFinder->SetTrackLUTs(((AliHLTTPCHoughTransformerRow *)tr)->GetTrackNRows(),((AliHLTTPCHoughTransformerRow *)tr)->GetTrackFirstRow(),((AliHLTTPCHoughTransformerRow *)tr)->GetTrackLastRow(),((AliHLTTPCHoughTransformerRow *)tr)->GetNextRow(j));
 #ifdef do_mc
-	  LOG(AliHLTLog::kInformational,"AliHLTTPCHough::FindTrackCandidates()","")
+	  LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHough::FindTrackCandidates()","")
 	    <<"Starting "<<j<<" etaslice"<<ENDLOG;
 #endif
 	  fPeakFinder->SetThreshold(fPeakThreshold[i]);
@@ -1034,7 +1107,7 @@ void AliHLTTPCHough::FindTrackCandidatesRow()
       for(Int_t k=0; k<fPeakFinder->GetEntries(); k++)
 	{
 	  //	  if(fPeakFinder->GetWeight(k) < 0) continue;
-	  AliHLTHoughTrack *track = (AliHLTHoughTrack*)fTracks[i]->NextTrack();
+	  AliHLTTPCHoughTrack *track = (AliHLTTPCHoughTrack*)fTracks[i]->NextTrack();
 	  Double_t starteta = tr->GetEta(fPeakFinder->GetStartEta(k),fCurrentSlice);
 	  Double_t endeta = tr->GetEta(fPeakFinder->GetEndEta(k),fCurrentSlice);
 	  Double_t eta = (starteta+endeta)/2.0;
@@ -1045,7 +1118,7 @@ void AliHLTTPCHough::FindTrackCandidatesRow()
 	  Int_t etaindex = (fPeakFinder->GetStartEta(k)+fPeakFinder->GetEndEta(k))/2;
 	  track->SetEtaIndex(etaindex);
 	  Int_t rows[2];
-	  ((AliHLTHoughTransformerRow *)tr)->GetTrackLength(fPeakFinder->GetXPeak(k),fPeakFinder->GetYPeak(k),rows);
+	  ((AliHLTTPCHoughTransformerRow *)tr)->GetTrackLength(fPeakFinder->GetXPeak(k),fPeakFinder->GetYPeak(k),rows);
 	  track->SetRowRange(rows[0],rows[1]);
 	  track->SetSector(fCurrentSlice);
 	  track->SetSlice(fCurrentSlice);
@@ -1054,21 +1127,21 @@ void AliHLTTPCHough::FindTrackCandidatesRow()
 	  track->SetMCid(label);
 #endif
 	}
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHough::FindTrackCandidates()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHough::FindTrackCandidates()","")
 	<<"Found "<<fTracks[i]->GetNTracks()<<" tracks in slice "<<fCurrentSlice<<ENDLOG;
       fTracks[i]->QSort();
     }
   fBenchmark->Stop("Find Maxima");
   cpuTime = GetCpuTime() - initTime;
-  LOG(AliHLTLog::kInformational,"AliHLTTPCHough::FindTrackCandidates()","Timing")
+  LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHough::FindTrackCandidates()","Timing")
     <<"Maxima finding done in "<<cpuTime*1000<<" ms"<<ENDLOG;
 }
 
 void AliHLTTPCHough::FindTrackCandidates()
 {
-  // Find AliHLTHoughTransformer track candidates
+  // Find AliHLTTPCHoughTransformer track candidates
   if(fVersion == 4) {
-    LOG(AliHLTLog::kError,"AliHLTTPCHough::FindTrackCandidatesRow()","")
+    LOG(AliHLTTPCLog::kError,"AliHLTTPCHough::FindTrackCandidatesRow()","")
       <<"Incompatible Peak Finder version!"<<ENDLOG;
     return;
   }
@@ -1084,12 +1157,12 @@ void AliHLTTPCHough::FindTrackCandidates()
   fBenchmark->Start("Find Maxima");
   for(Int_t i=0; i<npatches; i++)
     {
-      AliHLTHoughBaseTransformer *tr = fHoughTransformer[i];
+      AliHLTTPCHoughTransformer *tr = fHoughTransformer[i];
       fTracks[i]->Reset();
       
       for(Int_t j=0; j<fNEtaSegments; j++)
 	{
-	  AliHLTHistogram *hist = tr->GetHistogram(j);
+	  AliHLTTPCHistogram *hist = tr->GetHistogram(j);
 	  if(hist->GetNEntries()==0) continue;
 	  fPeakFinder->Reset();
 	  fPeakFinder->SetHistogram(hist);
@@ -1101,11 +1174,11 @@ void AliHLTTPCHough::FindTrackCandidates()
 	  
 	  for(Int_t k=0; k<fPeakFinder->GetEntries(); k++)
 	    {
-	      AliHLTHoughTrack *track = (AliHLTHoughTrack*)fTracks[i]->NextTrack();
+	      AliHLTTPCHoughTrack *track = (AliHLTTPCHoughTrack*)fTracks[i]->NextTrack();
 	      track->SetTrackParameters(fPeakFinder->GetXPeak(k),fPeakFinder->GetYPeak(k),fPeakFinder->GetWeight(k));
 	      track->SetEtaIndex(j);
 	      track->SetEta(tr->GetEta(j,fCurrentSlice));
-	      track->SetRowRange(AliHLTTransform::GetFirstRow(0),AliHLTTransform::GetLastRow(5));
+	      track->SetRowRange(AliHLTTPCTransform::GetFirstRow(0),AliHLTTPCTransform::GetLastRow(5));
 	    }
 	}
       cout<<"Found "<<fTracks[i]->GetNTracks()<<" tracks in patch "<<i<<endl;
@@ -1113,13 +1186,13 @@ void AliHLTTPCHough::FindTrackCandidates()
     }
   fBenchmark->Stop("Find Maxima");
   cpuTime = GetCpuTime() - initTime;
-  LOG(AliHLTLog::kInformational,"AliHLTTPCHough::FindTrackCandidates()","Timing")
+  LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHough::FindTrackCandidates()","Timing")
     <<"Maxima finding done in "<<cpuTime*1000<<" ms"<<ENDLOG;
 }
 
 void AliHLTTPCHough::InitEvaluate()
 {
-  //Pass the transformer objects to the AliHLTHoughEval objects:
+  //Pass the transformer objects to the AliHLTTPCHoughEval objects:
   //This will provide the evaluation objects with all the necessary
   //data and parameters it needs.
   
@@ -1142,20 +1215,20 @@ Int_t AliHLTTPCHough::Evaluate(Int_t roadwidth,Int_t nrowstomiss)
   
   if(!fTracks[0])
     {
-      LOG(AliHLTLog::kError,"AliHLTTPCHough::Evaluate","Track Array")
+      LOG(AliHLTTPCLog::kError,"AliHLTTPCHough::Evaluate","Track Array")
 	<<"No tracks to work with..."<<ENDLOG;
       return 0;
     }
   
   Int_t removedtracks=0;
-  AliHLTTrackArray *tracks=0;
+  AliHLTTPCTrackArray *tracks=0;
 
   if(fAddHistograms)
     {
       tracks = fTracks[0];
       for(Int_t i=0; i<tracks->GetNTracks(); i++)
 	{
-	  AliHLTTrack *track = tracks->GetCheckedTrack(i);
+	  AliHLTTPCTrack *track = tracks->GetCheckedTrack(i);
 	  if(!track) continue;
 	  track->SetNHits(0);
 	}
@@ -1171,9 +1244,9 @@ Int_t AliHLTTPCHough::Evaluate(Int_t roadwidth,Int_t nrowstomiss)
     {
       for(Int_t j=0; j<tracks->GetNTracks(); j++)
 	{
-	  AliHLTHoughTrack *track = (AliHLTHoughTrack*)tracks->GetCheckedTrack(j);
+	  AliHLTTPCHoughTrack *track = (AliHLTTPCHoughTrack*)tracks->GetCheckedTrack(j);
 	  
-	  if(track->GetNHits() < AliHLTTransform::GetNRows() - nrowstomiss)
+	  if(track->GetNHits() < AliHLTTPCTransform::GetNRows() - nrowstomiss)
 	    {
 	      tracks->Remove(j);
 	      removedtracks++;
@@ -1195,7 +1268,7 @@ void AliHLTTPCHough::EvaluatePatch(Int_t i,Int_t roadwidth,Int_t nrowstomiss)
   fEval[i]->SetNumOfRowsToMiss(nrowstomiss);
   //fEval[i]->RemoveFoundTracks();
   
-  AliHLTTrackArray *tracks=0;
+  AliHLTTPCTrackArray *tracks=0;
   
   if(!fAddHistograms)
     tracks = fTracks[i];
@@ -1205,15 +1278,15 @@ void AliHLTTPCHough::EvaluatePatch(Int_t i,Int_t roadwidth,Int_t nrowstomiss)
   Int_t nrows=0;
   for(Int_t j=0; j<tracks->GetNTracks(); j++)
     {
-      AliHLTHoughTrack *track = (AliHLTHoughTrack*)tracks->GetCheckedTrack(j);
+      AliHLTTPCHoughTrack *track = (AliHLTTPCHoughTrack*)tracks->GetCheckedTrack(j);
       if(!track)
 	{
-	  LOG(AliHLTLog::kWarning,"AliHLTTPCHough::EvaluatePatch","Track array")
+	  LOG(AliHLTTPCLog::kWarning,"AliHLTTPCHough::EvaluatePatch","Track array")
 	    <<"Track object missing!"<<ENDLOG;
 	  continue;
 	} 
       nrows=0;
-      Int_t rowrange[2] = {AliHLTTransform::GetFirstRow(i),AliHLTTransform::GetLastRow(i)};
+      Int_t rowrange[2] = {AliHLTTPCTransform::GetFirstRow(i),AliHLTTPCTransform::GetLastRow(i)};
       Bool_t result = fEval[i]->LookInsideRoad(track,nrows,rowrange);
       if(fAddHistograms)
 	{
@@ -1237,7 +1310,7 @@ void AliHLTTPCHough::MergeEtaSlices()
   //Removes the track with the lower weight.
   
   fBenchmark->Start("Merge Eta-slices");
-  AliHLTTrackArray *tracks = fTracks[0];
+  AliHLTTPCTrackArray *tracks = fTracks[0];
   if(!tracks)
     {
       cerr<<"AliHLTTPCHough::MergeEtaSlices : No tracks "<<endl;
@@ -1245,11 +1318,11 @@ void AliHLTTPCHough::MergeEtaSlices()
     }
   for(Int_t j=0; j<tracks->GetNTracks(); j++)
     {
-      AliHLTHoughTrack *track1 = (AliHLTHoughTrack*)tracks->GetCheckedTrack(j);
+      AliHLTTPCHoughTrack *track1 = (AliHLTTPCHoughTrack*)tracks->GetCheckedTrack(j);
       if(!track1) continue;
       for(Int_t k=j+1; k<tracks->GetNTracks(); k++)
 	{
-	  AliHLTHoughTrack *track2 = (AliHLTHoughTrack*)tracks->GetCheckedTrack(k);
+	  AliHLTTPCHoughTrack *track2 = (AliHLTTPCHoughTrack*)tracks->GetCheckedTrack(k);
 	  if(!track2) continue;
 	  if(abs(track1->GetEtaIndex() - track2->GetEtaIndex()) != 1) continue;
 	  if(fabs(track1->GetKappa()-track2->GetKappa()) < 0.006 && 
@@ -1275,7 +1348,7 @@ void AliHLTTPCHough::WriteTracks(Char_t *path)
   
   Char_t filename[1024];
   sprintf(filename,"%s/tracks_%d.raw",path,fEvent);
-  AliHLTMemHandler mem;
+  AliHLTTPCMemHandler mem;
   mem.SetBinaryOutput(filename);
   mem.TrackArray2Binary(fGlobalTracks);
   mem.CloseBinaryOutput();
@@ -1286,7 +1359,7 @@ void AliHLTTPCHough::WriteTracks(Int_t slice,Char_t *path)
 {
   // Write found tracks slice by slice into file
   
-  AliHLTMemHandler mem;
+  AliHLTTPCMemHandler mem;
   Char_t fname[100];
   if(fAddHistograms)
     {
@@ -1307,7 +1380,6 @@ void AliHLTTPCHough::WriteTracks(Int_t slice,Char_t *path)
     }
 }
 
-#ifdef use_aliroot
 Int_t AliHLTTPCHough::FillESD(AliESD *esd)
 {
   // Fill the found hough transform tracks
@@ -1325,11 +1397,11 @@ Int_t AliHLTTPCHough::FillESD(AliESD *esd)
   Int_t nglobaltracks = 0;
   for(Int_t i=0; i<fGlobalTracks->GetNTracks(); i++)
     {
-      AliHLTHoughTrack *tpt = (AliHLTHoughTrack *)fGlobalTracks->GetCheckedTrack(i);
+      AliHLTTPCHoughTrack *tpt = (AliHLTTPCHoughTrack *)fGlobalTracks->GetCheckedTrack(i);
       if(!tpt) continue; 
       
       if(tpt->GetWeight()<0) continue;
-      AliHLTHoughKalmanTrack *tpctrack = new AliHLTHoughKalmanTrack(*tpt);
+      AliHLTTPCHoughKalmanTrack *tpctrack = new AliHLTTPCHoughKalmanTrack(*tpt);
       if(!tpctrack) continue;
       AliESDtrack *esdtrack2 = new AliESDtrack() ; 
       esdtrack2->UpdateTrackParams(tpctrack,AliESDtrack::kTPCin);
@@ -1341,22 +1413,15 @@ Int_t AliHLTTPCHough::FillESD(AliESD *esd)
     }
   return nglobaltracks;
 }
-#endif
 
 void AliHLTTPCHough::WriteDigits(Char_t *outfile)
 {
   //Write the current data to a new rootfile.
-#ifdef use_aliroot  
-
   for(Int_t i=0; i<fNPatches; i++)
     {
-      AliHLTDigitRowData *tempPt = (AliHLTDigitRowData*)fHoughTransformer[i]->GetDataPointer();
+      AliHLTTPCDigitRowData *tempPt = (AliHLTTPCDigitRowData*)fHoughTransformer[i]->GetDataPointer();
       fMemHandler[i]->AliDigits2RootFile(tempPt,outfile);
     }
-#else
-  cerr<<"AliHLTTPCHough::WriteDigits : You need to compile with AliROOT!"<<endl;
-  return;
-#endif  
 }
 
 Double_t AliHLTTPCHough::GetCpuTime()
@@ -1372,7 +1437,7 @@ void *AliHLTTPCHough::ProcessInThread(void *args)
   // Called in case Hough transform tracking
   // is executed in a thread
 
-  AliHLTHough *instance = (AliHLTHough *)args;
+  AliHLTTPCHough *instance = (AliHLTTPCHough *)args;
   Int_t minslice = instance->GetMinSlice();
   Int_t maxslice = instance->GetMaxSlice();
   for(Int_t i=minslice; i<=maxslice; i++)

@@ -3,29 +3,25 @@
 #ifndef ALIHLTTPCHOUGH_H
 #define ALIHLTTPCHOUGH_H
 
-#include "AliHLTRootTypes.h"
+#include "AliHLTTPCRootTypes.h"
 
-class AliHLTHoughMaxFinder;
-class AliHLTHoughBaseTransformer;
-class AliHLTHistogram;
-class AliHLTMemHandler;
-class AliHLTFileHandler;
-class AliHLTHoughEval;
-class AliHLTTrackArray;
-class AliHLTHoughMerger;
-class AliHLTHoughIntMerger;
-class AliHLTHoughGlobalMerger;
-class AliHLTBenchmark;
+class AliHLTTPCHoughMaxFinder;
+class AliHLTTPCHoughTransformer;
+class AliHLTTPCHistogram;
+class AliHLTTPCMemHandler;
+class AliHLTTPCFileHandler;
+class AliHLTTPCHoughEval;
+class AliHLTTPCTrackArray;
+class AliHLTTPCHoughMerger;
+class AliHLTTPCHoughIntMerger;
+class AliHLTTPCHoughGlobalMerger;
+class AliHLTTPCBenchmark;
 
 #include "TThread.h"
-#ifdef use_newio
 #include <AliRunLoader.h>
 #include <../RAW/AliRawEvent.h>
-#endif
-#ifdef use_aliroot
 #include <AliESD.h>
 #include <AliESDHLTtrack.h>
-#endif
 
 class AliHLTTPCHough {
  public:
@@ -34,9 +30,7 @@ class AliHLTTPCHough {
   AliHLTTPCHough(Char_t *path,Bool_t binary,Int_t netasegments=100,Bool_t bit8=kFALSE,Int_t tv=0,Char_t *infile=0,Char_t *ptr=0);
   virtual ~AliHLTTPCHough();
 
-#ifdef use_newio  
   void SetRunLoader(AliRunLoader *runloader) {fRunLoader = runloader;}
-#endif
 
   void Init(Int_t netasegments,Int_t tv,AliRawEvent *rawevent,Float_t zvertex=0.0);
   void Init(Char_t *path,Bool_t binary,Int_t netasegments=100,Bool_t bit8=kFALSE,Int_t tv=0,Char_t *infile=0,Char_t *ptr=0,Float_t zvertex=0.0);
@@ -60,9 +54,7 @@ class AliHLTTPCHough {
   void EvaluatePatch(Int_t i,Int_t roadwidth,Int_t nrowstomiss);
   void WriteTracks(Int_t slice,Char_t *path="./");
   void WriteTracks(Char_t *path);
-#ifdef use_aliroot
   Int_t FillESD(AliESD *esd);
-#endif
   void WriteDigits(Char_t *outfile="output_digits.root");
   void InitEvaluate();
   void DoBench(Char_t *filename);
@@ -86,13 +78,13 @@ class AliHLTTPCHough {
   void SetPeakParameters(Int_t kspread,Float_t pratio) {fKappaSpread=kspread; fPeakRatio=pratio;}
   
   //Getters
-  AliHLTHoughBaseTransformer *GetTransformer(Int_t i) {if(!fHoughTransformer[i]) return 0; return fHoughTransformer[i];}
-  AliHLTTrackArray *GetTracks(Int_t i) {if(!fTracks[i]) return 0; return fTracks[i];}
-  AliHLTHoughEval *GetEval(Int_t i) {if(!fEval[i]) return 0; return fEval[i];}
-  AliHLTHoughMerger *GetMerger() {if(!fMerger) return 0; return fMerger;}
-  AliHLTHoughIntMerger *GetInterMerger() {if(!fInterMerger) return 0; return fInterMerger;}
-  AliHLTMemHandler *GetMemHandler(Int_t i) {if(!fMemHandler[i]) return 0; return fMemHandler[i];}
-  AliHLTHoughMaxFinder *GetMaxFinder() {return fPeakFinder;}
+  AliHLTTPCHoughTransformer *GetTransformer(Int_t i) {if(!fHoughTransformer[i]) return 0; return fHoughTransformer[i];}
+  AliHLTTPCTrackArray *GetTracks(Int_t i) {if(!fTracks[i]) return 0; return fTracks[i];}
+  AliHLTTPCHoughEval *GetEval(Int_t i) {if(!fEval[i]) return 0; return fEval[i];}
+  AliHLTTPCHoughMerger *GetMerger() {if(!fMerger) return 0; return fMerger;}
+  AliHLTTPCHoughIntMerger *GetInterMerger() {if(!fInterMerger) return 0; return fInterMerger;}
+  AliHLTTPCMemHandler *GetMemHandler(Int_t i) {if(!fMemHandler[i]) return 0; return fMemHandler[i];}
+  AliHLTTPCHoughMaxFinder *GetMaxFinder() {return fPeakFinder;}
 
   //Special methods for executing Hough Transform as a thread
   static void *ProcessInThread(void *args);
@@ -138,20 +130,18 @@ class AliHLTTPCHough {
   Int_t fMinSlice; // First TPC slice (sector) to process while running in a thread
   Int_t fMaxSlice; // Last TPC slice (sector) to process while running in a thread
 
-  AliHLTMemHandler **fMemHandler; //!
-  AliHLTHoughBaseTransformer **fHoughTransformer; //!
-  AliHLTHoughEval **fEval; //!
-  AliHLTHoughMaxFinder *fPeakFinder; //!
-  AliHLTTrackArray **fTracks; //!
-  AliHLTTrackArray *fGlobalTracks; //!
-  AliHLTHoughMerger *fMerger; //!
-  AliHLTHoughIntMerger *fInterMerger; //!
-  AliHLTHoughGlobalMerger *fGlobalMerger; //!
-  AliHLTBenchmark *fBenchmark; //!
+  AliHLTTPCMemHandler **fMemHandler; //!
+  AliHLTTPCHoughTransformer **fHoughTransformer; //!
+  AliHLTTPCHoughEval **fEval; //!
+  AliHLTTPCHoughMaxFinder *fPeakFinder; //!
+  AliHLTTPCTrackArray **fTracks; //!
+  AliHLTTPCTrackArray *fGlobalTracks; //!
+  AliHLTTPCHoughMerger *fMerger; //!
+  AliHLTTPCHoughIntMerger *fInterMerger; //!
+  AliHLTTPCHoughGlobalMerger *fGlobalMerger; //!
+  AliHLTTPCBenchmark *fBenchmark; //!
 
-#ifdef use_newio
   AliRunLoader *fRunLoader; // Run Loader
-#endif
 
   void CleanUp();
   Double_t GetCpuTime();
@@ -160,7 +150,5 @@ class AliHLTTPCHough {
 
   ClassDef(AliHLTTPCHough,1) //Hough transform base class
 };
-
-typedef AliHLTTPCHough AliL3Hough; // for backward comaptibility
 
 #endif

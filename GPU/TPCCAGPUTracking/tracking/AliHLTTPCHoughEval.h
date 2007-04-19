@@ -4,7 +4,7 @@
 #ifndef ALIHLTTPCHOUGHEVAL_H
 #define ALIHLTTPCHOUGHEVAL_H
 
-#include "AliHLTRootTypes.h"
+#include "AliHLTTPCRootTypes.h"
 
 class AliHLTTPCTrackArray;
 class AliHLTTPCHoughTransformer;

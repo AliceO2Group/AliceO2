@@ -5,7 +5,7 @@
 #define ALIHLTTPCHOUGHMAXFINDER_H
 
 #include "AliHLTTPCRootTypes.h"
-#include "AliHLTTPCStdIncludes.h"
+#include "AliHLTStdIncludes.h"
 
 class AliHLTTPCHistogram;
 class AliHLTTPCTrackArray;
@@ -106,9 +106,7 @@ class AliHLTTPCHoughMaxFinder {
   
   Char_t fHistoType; // Histogram type
 
-#ifndef no_root
   TNtuple *fNtuppel; //!
-#endif
 
   ClassDef(AliHLTTPCHoughMaxFinder,1) //Maximum finder class
 

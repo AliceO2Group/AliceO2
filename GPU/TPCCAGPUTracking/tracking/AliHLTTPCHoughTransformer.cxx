@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCHoughTransformer.cxx,v 1.1 2006/11/30 17:45:43 hristov Exp 
+// @(#) $Id$
 // origin hough/AliL3HoughBaseTransformer.cxx,v 1.16 Tue Mar 22 13:11:58 2005 UTC by cvetan 
 
 // Author: Anders Vestbo <mailto:vestbo@fi.uib.no>
@@ -9,8 +9,6 @@
 //  AliHLTHoughTransformerVhdl, AliHLTHoughTransformerGlobal,
 //  AliHLTHoughTransformerRow    
 //-------------------------------------------------------------------------
-
-#include "AliHLTStandardIncludes.h"
 
 #include "AliHLTTPCHoughTransformer.h"
 

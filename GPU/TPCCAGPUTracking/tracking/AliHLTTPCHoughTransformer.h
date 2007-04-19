@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTHoughTransformer.h,v 1.1 2006/11/30 17:45:43 hristov Exp 
+// @(#) $Id$
 // origin hough/AliL3HoughBaseTransformer.h,v 1.22 Tue Mar 22 13:11:58 2005 UTC by cvetan
 
 #ifndef ALIHLTTPCHOUGHBASETRANSFORMER_H
@@ -10,7 +10,8 @@
 //   algorithms for HLT.
 //-------------------------------------------------------------------------
 
-#include "AliHLTRootTypes.h"
+#include "AliHLTStdIncludes.h"
+#include "AliHLTTPCRootTypes.h"
 
 #ifdef do_mc
 const UInt_t MaxTrack=120;
@@ -22,8 +23,8 @@ struct AliHLTTrackIndex {
 typedef struct AliHLTTrackIndex AliHLTTrackIndex;
 #endif
 
-class AliHLTDigitRowData;
-class AliHLTHistogram;
+class AliHLTTPCDigitRowData;
+class AliHLTTPCHistogram;
 
 #include "AliTPCRawStream.h"
 
@@ -35,7 +36,7 @@ class AliHLTTPCHoughTransformer {
   AliHLTTPCHoughTransformer(Int_t slice,Int_t patch,Int_t netasegments,Float_t zvertex=0.0);
   virtual ~AliHLTTPCHoughTransformer();
   
-  void SetInputData(UInt_t /*ndigits*/,AliHLTDigitRowData *ptr) {fDigitRowData = ptr;}
+  void SetInputData(UInt_t /*ndigits*/,AliHLTTPCDigitRowData *ptr) {fDigitRowData = ptr;}
   
   //this is for adaptave histograms
   virtual void CreateHistograms(Float_t /*ptmin*/,Float_t /*ptmax*/,Float_t /*pres*/,Int_t /*nybin*/,Float_t /*psi*/)
@@ -68,12 +69,12 @@ class AliHLTTPCHoughTransformer {
   Double_t GetEtaMax() const {return fEtaMax;}
   Float_t GetZVertex() const {return fZVertex;}
 
-  AliHLTDigitRowData *GetDataPointer() {return fDigitRowData;}
+  AliHLTTPCDigitRowData *GetDataPointer() {return fDigitRowData;}
  
   virtual Int_t GetEtaIndex(Double_t eta) const = 0;
   virtual void GetEtaIndexes(Double_t /*eta*/,Int_t */*indexes*/) const
     {STDCERR<<"GetEtaIndexes not implemented for this Transformer class"<<STDENDL;}
-  virtual AliHLTHistogram *GetHistogram(Int_t etaindex) = 0;
+  virtual AliHLTTPCHistogram *GetHistogram(Int_t etaindex) = 0;
   virtual Double_t GetEta(Int_t etaindex,Int_t slice) const = 0;
 
   virtual Int_t GetTrackID(Int_t /*etaindex*/,Double_t /*kappa*/,Double_t /*psi*/) const {
@@ -107,7 +108,7 @@ class AliHLTTPCHoughTransformer {
   Int_t fLowerThreshold;//Lower threshold for digits amplitude 
   Int_t fUpperThreshold;//Upper threshold for digits amplitude
   
-  AliHLTDigitRowData *fDigitRowData; //!
+  AliHLTTPCDigitRowData *fDigitRowData; //!
 
   Float_t fZVertex;//Z position of the primary vertex
 

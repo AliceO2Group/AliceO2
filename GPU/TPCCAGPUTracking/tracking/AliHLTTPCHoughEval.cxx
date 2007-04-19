@@ -4,18 +4,16 @@
 // Author: Anders Vestbo <mailto:vestbo@fi.uib.no>
 //*-- Copyright &copy ALICE HLT Group
 
-#include "AliHLTStandardIncludes.h"
+#include "AliHLTStdIncludes.h"
 
-#ifdef use_root
 #include <TH1.h>
 #include <TFile.h>
-#endif
 
 #include "AliHLTTPCLogging.h"
 #include "AliHLTTPCHoughEval.h"
 #include "AliHLTTPCMemHandler.h"
 #include "AliHLTTPCTrackArray.h"
-#include "AliHLTTPCHoughBaseTransformer.h"
+#include "AliHLTTPCHoughTransformer.h"
 #include "AliHLTTPCDigitData.h"
 #include "AliHLTTPCHoughTrack.h"
 #include "AliHLTTPCTransform.h"
@@ -61,7 +59,7 @@ AliHLTTPCHoughEval::~AliHLTTPCHoughEval()
     }
 }
 
-void AliHLTTPCHoughEval::InitTransformer(AliHLTTPCHoughBaseTransformer *transformer)
+void AliHLTTPCHoughEval::InitTransformer(AliHLTTPCHoughTransformer *transformer)
 {
   //Init hough transformer
   fHoughTransformer = transformer;
@@ -321,7 +319,6 @@ void AliHLTTPCHoughEval::DisplayEtaSlice(Int_t etaindex,AliHLTTPCHistogram *hist
   
 }
 
-#ifdef use_root
 void AliHLTTPCHoughEval::CompareMC(AliHLTTPCTrackArray */*tracks*/,Char_t */*trackfile*/,Int_t /*threshold*/)
 {
   /*  
@@ -420,5 +417,3 @@ void AliHLTTPCHoughEval::CompareMC(AliHLTTPCTrackArray */*tracks*/,Char_t */*tra
   delete [] ftracks;
   */  
 }
-
-#endif

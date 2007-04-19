@@ -7,9 +7,7 @@
 #include "AliHLTStdIncludes.h"
 #include "AliHLTTPCRootTypes.h"
 
-#ifdef use_root
 #include <TH2.h>
-#endif
 
 class AliHLTTPCHistogram {
  public:
@@ -42,11 +40,7 @@ class AliHLTTPCHistogram {
 
   friend ofstream& operator<< (ofstream &o, const AliHLTTPCHistogram &h);
 
-#ifdef use_root
   TH2F *GetRootHisto();
-#else
-  void *GetRootHisto();
-#endif
     
   Double_t GetXmin() const {return fXmin;}
   Double_t GetXmax() const {return fXmax;}
@@ -86,9 +80,7 @@ class AliHLTTPCHistogram {
   Double_t fXmax; // Upper limit in X
   Double_t fYmax; // Upper limit in Y
 
-#ifdef use_root
   TH2F *fRootHisto; // Corresponding ROOT histogram
-#endif  
 
  private:
   Double_t fBinwidthX; // Bin width of the Hough space
@@ -98,9 +90,6 @@ class AliHLTTPCHistogram {
     
 };
 
-typedef AliHLTTPCHistogram AliL3Histogram; // for backward comaptibility
-
-#ifdef use_root
 inline TH2F *AliHLTTPCHistogram::GetRootHisto()
 {
   if(!fRootHisto)
@@ -111,12 +100,5 @@ inline TH2F *AliHLTTPCHistogram::GetRootHisto()
   else
     return fRootHisto;
 }
-#else
-inline void *AliHLTTPCHistogram::GetRootHisto()
-{
-  STDCERR<<"AliHLTTPCHistogram::GetRootHisto() : You must compile with ROOT in order to interface the ROOT histogram"<<STDENDL;
-  return 0;
-}
-#endif
 
 #endif

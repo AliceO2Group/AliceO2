@@ -10,9 +10,7 @@
 #include "AliHLTTPCLogging.h"
 #include "AliHLTTPCHistogram1D.h"
 
-#ifdef use_root
 #include <TH1.h>
-#endif
 
 #if __GNUC__ >= 3
 using namespace std;
@@ -33,9 +31,7 @@ AliHLTTPCHistogram1D::AliHLTTPCHistogram1D()
   fEntries = 0;
   fXmin = 0;
   fXmax = 0;
-#ifdef use_root
   fRootHisto = 0;
-#endif
   fThreshold = 0;
   fContent = 0;
   
@@ -51,9 +47,7 @@ AliHLTTPCHistogram1D::AliHLTTPCHistogram1D(Char_t *name,Char_t */*id*/,Int_t nxb
   fEntries = 0;
   fXmin = xmin;
   fXmax = xmax;
-#ifdef use_root
   fRootHisto = 0;
-#endif
   fThreshold = 0;
   
   fContent = new Double_t[fNcells];
@@ -65,10 +59,8 @@ AliHLTTPCHistogram1D::~AliHLTTPCHistogram1D()
   //Destructor
   if(fContent)
     delete [] fContent;
-#ifdef use_root
   if(fRootHisto)
     delete fRootHisto;
-#endif
 }
 
 

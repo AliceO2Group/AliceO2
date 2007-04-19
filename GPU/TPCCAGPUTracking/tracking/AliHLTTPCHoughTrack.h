@@ -1,19 +1,19 @@
-// @(#) $Id: AliHLTHoughTrack.h,v 1.1 2006/11/30 17:45:43 hristov Exp 
+// @(#) $Id$
 // origin hough/AliL3HoughTrack.h,v 1.8 Thu Mar 31 04:48:58 2005 UTC by cvetan
 
 #ifndef ALIHLTTPCHOUGHTRACK_H
 #define ALIHLTTPCHOUGHTRACK_H
 
-#include "AliHLTTrack.h"
+#include "AliHLTTPCTrack.h"
 
-class AliHLTTPCHoughTrack : public AliHLTTrack {
+class AliHLTTPCHoughTrack : public AliHLTTPCTrack {
   
  public:
   AliHLTTPCHoughTrack(); 
   virtual ~AliHLTTPCHoughTrack();
   
-  virtual void Set(AliHLTTrack *track);
-  virtual Int_t Compare(const AliHLTTrack *track) const;
+  virtual void Set(AliHLTTPCTrack *track);
+  virtual Int_t Compare(const AliHLTTPCTrack *track) const;
   
   Bool_t IsHelix() const {return fIsHelix;}
   void UpdateToFirstRow();

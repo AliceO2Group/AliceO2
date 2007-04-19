@@ -21,7 +21,7 @@
 #include "AliTracker.h"
 #include "AliLog.h"
 
-#include "AliHLTTransform.h"
+#include "AliHLTTPCTransform.h"
 
 class AliRunLoader;
 class AliESD;
@@ -45,7 +45,5 @@ private:
 
   ClassDef(AliHLTTPCHoughTracker,1)   //HLT TPC Hough tracker
 };
-
-typedef AliHLTTPCtracker AliL3TPCtracker; // for backward compatibility
 
 #endif

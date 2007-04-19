@@ -1,16 +1,16 @@
-// @(#) $Id: AliHLTTPCHoughTransformerRow.cxx,v 1.1 2006/11/30 17:45:43 hristov Exp 
+// @(#) $Id$
 // origin hough/AliL3HoughTransformerRow.cxx,v 1.21 Tue Mar 28 18:05:12 2006 UTC by alibrary
 
 // Author: Cvetan Cheshkov <mailto:cvetan.cheshkov@cern.ch>
 
-#include "AliHLTStandardIncludes.h"
+#include "AliHLTStdIncludes.h"
 
-#include "AliHLTLogging.h"
-#include "AliHLTMemHandler.h"
-#include "AliHLTTransform.h"
-#include "AliHLTDigitData.h"
-#include "AliHLTHistogramAdaptive.h"
-#include "AliHLTHoughTrack.h"
+#include "AliHLTTPCLogging.h"
+#include "AliHLTTPCMemHandler.h"
+#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCDigitData.h"
+#include "AliHLTTPCHistogramAdaptive.h"
+#include "AliHLTTPCHoughTrack.h"
 #include "AliHLTTPCHoughTransformerRow.h"
 
 #if __GNUC__ >= 3
@@ -27,8 +27,8 @@ using namespace std;
 
 ClassImp(AliHLTTPCHoughTransformerRow)
 
-Float_t AliHLTTPCHoughTransformerRow::fgBeta1 = 1.0/AliHLTTransform::Row2X(84);
-Float_t AliHLTTPCHoughTransformerRow::fgBeta2 = 1.0/(AliHLTTransform::Row2X(158)*(1.0+tan(AliHLTTransform::Pi()*10/180)*tan(AliHLTTransform::Pi()*10/180)));
+Float_t AliHLTTPCHoughTransformerRow::fgBeta1 = 1.0/AliHLTTPCTransform::Row2X(84);
+Float_t AliHLTTPCHoughTransformerRow::fgBeta2 = 1.0/(AliHLTTPCTransform::Row2X(158)*(1.0+tan(AliHLTTPCTransform::Pi()*10/180)*tan(AliHLTTPCTransform::Pi()*10/180)));
 Float_t AliHLTTPCHoughTransformerRow::fgDAlpha = 0.22;
 Float_t AliHLTTPCHoughTransformerRow::fgDEta   = 0.40;
 Double_t AliHLTTPCHoughTransformerRow::fgEtaCalcParam1 = 1.0289;
@@ -62,7 +62,7 @@ AliHLTTPCHoughTransformerRow::AliHLTTPCHoughTransformerRow()
 
 }
 
-AliHLTTPCHoughTransformerRow::AliHLTTPCHoughTransformerRow(Int_t slice,Int_t patch,Int_t netasegments,Bool_t /*DoMC*/,Float_t zvertex) : AliHLTHoughBaseTransformer(slice,patch,netasegments,zvertex)
+AliHLTTPCHoughTransformerRow::AliHLTTPCHoughTransformerRow(Int_t slice,Int_t patch,Int_t netasegments,Bool_t /*DoMC*/,Float_t zvertex) : AliHLTTPCHoughTransformer(slice,patch,netasegments,zvertex)
 {
   //Normal constructor
   fParamSpace = 0;
@@ -180,7 +180,7 @@ AliHLTTPCHoughTransformerRow::~AliHLTTPCHoughTransformerRow()
     }
   if(fStartPadParams)
     {
-      for(Int_t i = AliHLTTransform::GetFirstRow(0); i<=AliHLTTransform::GetLastRow(5); i++)
+      for(Int_t i = AliHLTTPCTransform::GetFirstRow(0); i<=AliHLTTPCTransform::GetLastRow(5); i++)
 	{
 	  if(!fStartPadParams[i]) continue;
 	  delete [] fStartPadParams[i];
@@ -190,7 +190,7 @@ AliHLTTPCHoughTransformerRow::~AliHLTTPCHoughTransformerRow()
     }
   if(fEndPadParams)
     {
-      for(Int_t i = AliHLTTransform::GetFirstRow(0); i<=AliHLTTransform::GetLastRow(5); i++)
+      for(Int_t i = AliHLTTPCTransform::GetFirstRow(0); i<=AliHLTTPCTransform::GetLastRow(5); i++)
 	{
 	  if(!fEndPadParams[i]) continue;
 	  delete [] fEndPadParams[i];
@@ -200,7 +200,7 @@ AliHLTTPCHoughTransformerRow::~AliHLTTPCHoughTransformerRow()
     }
   if(fLUTr)
     {
-      for(Int_t i = AliHLTTransform::GetFirstRow(0); i<=AliHLTTransform::GetLastRow(5); i++)
+      for(Int_t i = AliHLTTPCTransform::GetFirstRow(0); i<=AliHLTTPCTransform::GetLastRow(5); i++)
 	{
 	  if(!fLUTr[i]) continue;
 	  delete [] fLUTr[i];
@@ -254,23 +254,23 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
     SetTransformerArrays((AliHLTTPCHoughTransformerRow *)fLastTransformer);
     return;
   }
-  fParamSpace = new AliHLTHistogram*[GetNEtaSegments()];
+  fParamSpace = new AliHLTTPCHistogram*[GetNEtaSegments()];
   
   Char_t histname[256];
   for(Int_t i=0; i<GetNEtaSegments(); i++)
     {
       sprintf(histname,"paramspace_%d",i);
-      fParamSpace[i] = new AliHLTHistogram(histname,"",nxbin,xmin,xmax,nybin,ymin,ymax);
+      fParamSpace[i] = new AliHLTTPCHistogram(histname,"",nxbin,xmin,xmax,nybin,ymin,ymax);
     }
 #ifdef do_mc
   {
-    AliHLTHistogram *hist = fParamSpace[0];
+    AliHLTTPCHistogram *hist = fParamSpace[0];
     Int_t ncellsx = (hist->GetNbinsX()+3)/2;
     Int_t ncellsy = (hist->GetNbinsY()+3)/2;
     Int_t ncells = ncellsx*ncellsy;
     if(!fTrackID)
       {
-	LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+	LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	  <<"Transformer: Allocating "<<GetNEtaSegments()*ncells*sizeof(AliHLTTrackIndex)<<" bytes to fTrackID"<<ENDLOG;
 	fTrackID = new AliHLTTrackIndex*[GetNEtaSegments()];
 	for(Int_t i=0; i<GetNEtaSegments(); i++)
@@ -278,11 +278,11 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
       }
   }
 #endif
-  AliHLTHistogram *hist = fParamSpace[0];
+  AliHLTTPCHistogram *hist = fParamSpace[0];
   Int_t ncells = (hist->GetNbinsX()+2)*(hist->GetNbinsY()+2);
   if(!fGapCount)
     {
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<GetNEtaSegments()*ncells*sizeof(UChar_t)<<" bytes to fGapCount"<<ENDLOG;
       fGapCount = new UChar_t*[GetNEtaSegments()];
       for(Int_t i=0; i<GetNEtaSegments(); i++)
@@ -290,7 +290,7 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
     }
   if(!fCurrentRowCount)
     {
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<GetNEtaSegments()*ncells*sizeof(UChar_t)<<" bytes to fCurrentRowCount"<<ENDLOG;
       fCurrentRowCount = new UChar_t*[GetNEtaSegments()];
       for(Int_t i=0; i<GetNEtaSegments(); i++)
@@ -298,7 +298,7 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
     }
   if(!fPrevBin)
     {
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<GetNEtaSegments()*ncells*sizeof(UChar_t)<<" bytes to fPrevBin"<<ENDLOG;
       fPrevBin = new UChar_t*[GetNEtaSegments()];
       for(Int_t i=0; i<GetNEtaSegments(); i++)
@@ -306,7 +306,7 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
     }
   if(!fNextBin)
     {
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<GetNEtaSegments()*ncells*sizeof(UChar_t)<<" bytes to fNextBin"<<ENDLOG;
       fNextBin = new UChar_t*[GetNEtaSegments()];
       for(Int_t i=0; i<GetNEtaSegments(); i++)
@@ -315,7 +315,7 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
   Int_t ncellsy = hist->GetNbinsY()+2;
   if(!fNextRow)
     {
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<GetNEtaSegments()*ncellsy*sizeof(UChar_t)<<" bytes to fNextRow"<<ENDLOG;
       fNextRow = new UChar_t*[GetNEtaSegments()];
       for(Int_t i=0; i<GetNEtaSegments(); i++)
@@ -324,21 +324,21 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
 
   if(!fTrackNRows)
     {
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<ncells*sizeof(UChar_t)<<" bytes to fTrackNRows"<<ENDLOG;
       fTrackNRows = new UChar_t[ncells];
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<ncells*sizeof(UChar_t)<<" bytes to fTrackFirstRow"<<ENDLOG;
       fTrackFirstRow = new UChar_t[ncells];
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<ncells*sizeof(UChar_t)<<" bytes to fTrackLastRow"<<ENDLOG;
       fTrackLastRow = new UChar_t[ncells];
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<ncells*sizeof(UChar_t)<<" bytes to fInitialGapCount"<<ENDLOG;
       fInitialGapCount = new UChar_t[ncells];
 
 
-      AliHLTHoughTrack track;
+      AliHLTTPCHoughTrack track;
       Int_t xmin = hist->GetFirstXbin();
       Int_t xmax = hist->GetLastXbin();
       Int_t xmiddle = (hist->GetNbinsX()+1)/2;
@@ -376,7 +376,7 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
 		    Float_t kappa = 2.0*(xtrack*cos(psi)-fgBeta1*sin(psi));
 		    track.SetTrackParameters(kappa,psi,1);
 		    maxtrackpt = track.GetPt();
-		    if(maxtrackpt < 0.9*0.1*AliHLTTransform::GetSolenoidField())
+		    if(maxtrackpt < 0.9*0.1*AliHLTTPCTransform::GetSolenoidField())
 		      {
 			maxfirstrow = maxlastrow = 0;
 			curtracklength->fIsFilled = kTRUE;
@@ -394,11 +394,11 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
 			Double_t centery = track.GetCenterY();
 			Double_t radius = track.GetRadius();
 
-			for(Int_t j=AliHLTTransform::GetFirstRow(0); j<=AliHLTTransform::GetLastRow(5); j++)
+			for(Int_t j=AliHLTTPCTransform::GetFirstRow(0); j<=AliHLTTPCTransform::GetLastRow(5); j++)
 			  {
 			    Float_t hit[3];
 			    //		      if(!track.GetCrossingPoint(j,hit)) continue;
-			    hit[0] = AliHLTTransform::Row2X(j);
+			    hit[0] = AliHLTTPCTransform::Row2X(j);
 			    Double_t aa = (hit[0] - centerx)*(hit[0] - centerx);
 			    Double_t r2 = radius*radius;
 			    if(aa > r2)
@@ -412,9 +412,9 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
  
 			    hit[2] = 0;
 			
-			    AliHLTTransform::LocHLT2Raw(hit,0,j);
+			    AliHLTTPCTransform::LocHLT2Raw(hit,0,j);
 			    hit[1] += 0.5;
-			    if(hit[1]>=0 && hit[1]<AliHLTTransform::GetNPads(j))
+			    if(hit[1]>=0 && hit[1]<AliHLTTPCTransform::GetNPads(j))
 			      {
 				if(!firstrow) {
 				  curfirstrow = j;
@@ -448,7 +448,7 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
 		    fInitialGapCount[xbin + ybin*nxbins] = 1;
 		    if((maxlastrow-maxfirstrow+1)<=MIN_TRACK_LENGTH)
 		      fInitialGapCount[xbin + ybin*nxbins] = MAX_N_GAPS+1;
-		    if(maxtrackpt < 0.9*0.1*AliHLTTransform::GetSolenoidField())
+		    if(maxtrackpt < 0.9*0.1*AliHLTTPCTransform::GetSolenoidField())
 		      fInitialGapCount[xbin + ybin*nxbins] = MAX_N_GAPS;
 		    fTrackFirstRow[xbin + ybin*nxbins] = maxfirstrow;
 		    fTrackLastRow[xbin + ybin*nxbins] = maxlastrow;
@@ -470,14 +470,14 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
 
   if(!fStartPadParams)
     {
-      Int_t nrows = AliHLTTransform::GetLastRow(5) - AliHLTTransform::GetFirstRow(0) + 1;
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      Int_t nrows = AliHLTTPCTransform::GetLastRow(5) - AliHLTTPCTransform::GetFirstRow(0) + 1;
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating about "<<nrows*100*sizeof(AliHLTPadHoughParams)<<" bytes to fStartPadParams"<<ENDLOG;
       fStartPadParams = new AliHLTPadHoughParams*[nrows];
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating about "<<nrows*100*sizeof(AliHLTPadHoughParams)<<" bytes to fEndPadParams"<<ENDLOG;
       fEndPadParams = new AliHLTPadHoughParams*[nrows];
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating about "<<nrows*100*sizeof(Float_t)<<" bytes to fLUTr"<<ENDLOG;
       fLUTr = new Float_t*[nrows];
 
@@ -494,12 +494,12 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
       Int_t nbinx = hist->GetNbinsX()+2;
       Int_t firstbin = hist->GetFirstYbin();
       Int_t lastbin = hist->GetLastYbin();
-      for(Int_t i=AliHLTTransform::GetFirstRow(0); i<=AliHLTTransform::GetLastRow(5); i++)
+      for(Int_t i=AliHLTTPCTransform::GetFirstRow(0); i<=AliHLTTPCTransform::GetLastRow(5); i++)
 	{
-	  Int_t npads = AliHLTTransform::GetNPads(i);
-	  Int_t ipatch = AliHLTTransform::GetPatch(i);
-	  Double_t padpitch = AliHLTTransform::GetPadPitchWidth(ipatch);
-	  Float_t x = AliHLTTransform::Row2X(i);
+	  Int_t npads = AliHLTTPCTransform::GetNPads(i);
+	  Int_t ipatch = AliHLTTPCTransform::GetPatch(i);
+	  Double_t padpitch = AliHLTTPCTransform::GetPadPitchWidth(ipatch);
+	  Float_t x = AliHLTTPCTransform::Row2X(i);
 	  Float_t x2 = x*x;
 
 	  fStartPadParams[i] = new AliHLTPadHoughParams[npads];
@@ -587,18 +587,18 @@ void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Flo
   //create lookup table for z of the digits
   if(!fLUTforwardZ)
     {
-      Int_t ntimebins = AliHLTTransform::GetNTimeBins();
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      Int_t ntimebins = AliHLTTPCTransform::GetNTimeBins();
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<ntimebins*sizeof(Float_t)<<" bytes to fLUTforwardZ"<<ENDLOG;
       fLUTforwardZ = new Float_t[ntimebins];
-      LOG(AliHLTLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
+      LOG(AliHLTTPCLog::kInformational,"AliHLTTPCHoughTransformerRow::CreateHistograms()","")
 	<<"Transformer: Allocating "<<ntimebins*sizeof(Float_t)<<" bytes to fLUTbackwardZ"<<ENDLOG;
       fLUTbackwardZ = new Float_t[ntimebins];
       for(Int_t i=0; i<ntimebins; i++){
 	Float_t z;
-	z=AliHLTTransform::GetZFast(0,i,GetZVertex());
+	z=AliHLTTPCTransform::GetZFast(0,i,GetZVertex());
 	fLUTforwardZ[i]=z;
-	z=AliHLTTransform::GetZFast(18,i,GetZVertex());
+	z=AliHLTTPCTransform::GetZFast(18,i,GetZVertex());
 	fLUTbackwardZ[i]=z;
       }
     }
@@ -610,7 +610,7 @@ void AliHLTTPCHoughTransformerRow::Reset()
   if(fLastTransformer) return;
   if(!fParamSpace)
     {
-      LOG(AliHLTLog::kWarning,"AliHLTTPCHoughTransformer::Reset","Histograms")
+      LOG(AliHLTTPCLog::kWarning,"AliHLTTPCHoughTransformer::Reset","Histograms")
 	<<"No histograms to reset"<<ENDLOG;
       return;
     }
@@ -620,7 +620,7 @@ void AliHLTTPCHoughTransformerRow::Reset()
   
 #ifdef do_mc
   {
-    AliHLTHistogram *hist = fParamSpace[0];
+    AliHLTTPCHistogram *hist = fParamSpace[0];
     Int_t ncellsx = (hist->GetNbinsX()+3)/2;
     Int_t ncellsy = (hist->GetNbinsY()+3)/2;
     Int_t ncells = ncellsx*ncellsy;
@@ -628,7 +628,7 @@ void AliHLTTPCHoughTransformerRow::Reset()
       memset(fTrackID[i],0,ncells*sizeof(AliHLTTrackIndex));
   }
 #endif
-  AliHLTHistogram *hist = fParamSpace[0];
+  AliHLTTPCHistogram *hist = fParamSpace[0];
   Int_t ncells = (hist->GetNbinsX()+2)*(hist->GetNbinsY()+2);
   for(Int_t i=0; i<GetNEtaSegments(); i++)
     {
@@ -646,7 +646,7 @@ Int_t AliHLTTPCHoughTransformerRow::GetEtaIndex(Double_t eta) const
   return (Int_t)index;
 }
 
-inline AliHLTHistogram *AliHLTTPCHoughTransformerRow::GetHistogram(Int_t etaindex)
+inline AliHLTTPCHistogram *AliHLTTPCHoughTransformerRow::GetHistogram(Int_t etaindex)
 {
   // Return a pointer to the histogram which contains etaindex eta slice
   if(!fParamSpace || etaindex >= GetNEtaSegments() || etaindex < 0)
@@ -692,7 +692,7 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromDigitArray()
   Int_t lowerthreshold = GetLowerThreshold();
 
   //Assumes that all the etaslice histos are the same!
-  AliHLTHistogram *h = fParamSpace[0];
+  AliHLTTPCHistogram *h = fParamSpace[0];
   Int_t firstbiny = h->GetFirstYbin();
   Int_t firstbinx = h->GetFirstXbin();
   Int_t lastbinx = h->GetLastXbin();
@@ -702,10 +702,10 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromDigitArray()
   Int_t lastetaindex=-1;
   AliHLTEtaRow *etaclust = new AliHLTEtaRow[netasegments];
 
-  AliHLTDigitRowData *tempPt = GetDataPointer();
+  AliHLTTPCDigitRowData *tempPt = GetDataPointer();
   if(!tempPt)
     {
-      LOG(AliHLTLog::kError,"AliHLTTPCHoughTransformer::TransformCircle","Data")
+      LOG(AliHLTTPCLog::kError,"AliHLTTPCHoughTransformer::TransformCircle","Data")
 	<<"No input data "<<ENDLOG;
       return;
     }
@@ -720,7 +720,7 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromDigitArray()
     lutz = fLUTbackwardZ;
 
   //Loop over the padrows:
-  for(UChar_t i=AliHLTTransform::GetFirstRow(ipatch); i<=AliHLTTransform::GetLastRow(ipatch); i++)
+  for(UChar_t i=AliHLTTPCTransform::GetFirstRow(ipatch); i<=AliHLTTPCTransform::GetLastRow(ipatch); i++)
     {
       lastpad = 255;
       //Flush eta clusters array
@@ -729,10 +729,10 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromDigitArray()
       Float_t radius=0;
 
       //Get the data on this padrow:
-      AliHLTDigitData *digPt = tempPt->fDigitData;
+      AliHLTTPCDigitData *digPt = tempPt->fDigitData;
       if((Int_t)i != (Int_t)tempPt->fRow)
 	{
-	  LOG(AliHLTLog::kError,"AliHLTTPCHoughTransformerRow::TransformCircle","Data")
+	  LOG(AliHLTTPCLog::kError,"AliHLTTPCHoughTransformerRow::TransformCircle","Data")
 	    <<"AliHLTTPCHoughTransform::TransformCircle : Mismatching padrow numbering "<<(Int_t)i<<" "<<(Int_t)tempPt->fRow<<ENDLOG;
 	  continue;
 	}
@@ -812,7 +812,7 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromDigitArray()
 	}
 
       //Move the data pointer to the next padrow:
-      AliHLTMemHandler::UpdateRowPointer(tempPt);
+      AliHLTTPCMemHandler::UpdateRowPointer(tempPt);
     }
 
   delete [] etaclust;
@@ -834,7 +834,7 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromRawStream()
   Int_t lowerthreshold = GetLowerThreshold();
 
   //Assumes that all the etaslice histos are the same!
-  AliHLTHistogram *h = fParamSpace[0];
+  AliHLTTPCHistogram *h = fParamSpace[0];
   Int_t firstbiny = h->GetFirstYbin();
   Int_t firstbinx = h->GetFirstXbin();
   Int_t lastbinx = h->GetLastXbin();
@@ -845,15 +845,15 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromRawStream()
 
   if(!fTPCRawStream)
     {
-      LOG(AliHLTLog::kError,"AliHLTTPCHoughTransformer::TransformCircle","Data")
+      LOG(AliHLTTPCLog::kError,"AliHLTTPCHoughTransformer::TransformCircle","Data")
 	<<"No input data "<<ENDLOG;
       return;
     }
 
   Int_t ipatch = GetPatch();
-  UChar_t rowmin = AliHLTTransform::GetFirstRowOnDDL(ipatch);
-  UChar_t rowmax = AliHLTTransform::GetLastRowOnDDL(ipatch);
-  //  Int_t ntimebins = AliHLTTransform::GetNTimeBins();
+  UChar_t rowmin = AliHLTTPCTransform::GetFirstRowOnDDL(ipatch);
+  UChar_t rowmax = AliHLTTPCTransform::GetLastRowOnDDL(ipatch);
+  //  Int_t ntimebins = AliHLTTPCTransform::GetNTimeBins();
   Int_t ilastpatch = GetLastPatch();
   Int_t islice = GetSlice();
   Float_t *lutz;
@@ -887,15 +887,15 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromRawStream()
       Int_t sector=fTPCRawStream->GetSector();
       Int_t row=fTPCRawStream->GetRow();
       Int_t slice,srow;
-      AliHLTTransform::Sector2Slice(slice,srow,sector,row);
+      AliHLTTPCTransform::Sector2Slice(slice,srow,sector,row);
       if(slice!=islice){
-	LOG(AliHLTLog::kError,"AliHLTDDLDataFileHandler::DDLDigits2Memory","Slice")
-	  <<AliHLTLog::kDec<<"Found slice "<<slice<<", expected "<<islice<<ENDLOG;
+	LOG(AliHLTTPCLog::kError,"AliHLTDDLDataFileHandler::DDLDigits2Memory","Slice")
+	  <<AliHLTTPCLog::kDec<<"Found slice "<<slice<<", expected "<<islice<<ENDLOG;
 	continue;
       }
     
       i=(UChar_t)srow;
-      npads = AliHLTTransform::GetNPads(srow)-1;
+      npads = AliHLTTPCTransform::GetNPads(srow)-1;
 
       //Flush eta clusters array
       memset(etaclust,0,netasegments*sizeof(AliHLTEtaRow));  
@@ -912,8 +912,8 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromRawStream()
       pad=fTPCRawStream->GetPad();
       /*
       if((pad<0)||(pad>=(npads+1))){
-	LOG(AliHLTLog::kError,"AliHLTDDLDataFileHandler::DDLDigits2Memory","Pad")
-	  <<AliHLTLog::kDec<<"Pad value out of bounds "<<pad<<" "
+	LOG(AliHLTTPCLog::kError,"AliHLTDDLDataFileHandler::DDLDigits2Memory","Pad")
+	  <<AliHLTTPCLog::kDec<<"Pad value out of bounds "<<pad<<" "
 	  <<npads+1<<ENDLOG;
 	continue;
       }
@@ -925,9 +925,9 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromRawStream()
     UShort_t time=fTPCRawStream->GetTime();
     /*
     if((time<0)||(time>=ntimebins)){
-      LOG(AliHLTLog::kError,"AliHLTDDLDataFileHandler::DDLDigits2Memory","Time")
-	<<AliHLTLog::kDec<<"Time out of bounds "<<time<<" "
-	<<AliHLTTransform::GetNTimeBins()<<ENDLOG;
+      LOG(AliHLTTPCLog::kError,"AliHLTDDLDataFileHandler::DDLDigits2Memory","Time")
+	<<AliHLTTPCLog::kDec<<"Time out of bounds "<<time<<" "
+	<<AliHLTTPCTransform::GetNTimeBins()<<ENDLOG;
       continue;
     }
     */
@@ -991,7 +991,7 @@ void AliHLTTPCHoughTransformerRow::TransformCircleFromRawStream()
 Int_t AliHLTTPCHoughTransformerRow::GetTrackID(Int_t /*etaindex*/,Double_t /*alpha1*/,Double_t /*alpha2*/) const
 {
   // Does nothing if do_mc undefined
-  LOG(AliHLTLog::kWarning,"AliHLTTPCHoughTransformerRow::GetTrackID","Data")
+  LOG(AliHLTTPCLog::kWarning,"AliHLTTPCHoughTransformerRow::GetTrackID","Data")
     <<"Flag switched off"<<ENDLOG;
   return -1;
 #else
@@ -1000,14 +1000,14 @@ Int_t AliHLTTPCHoughTransformerRow::GetTrackID(Int_t etaindex,Double_t alpha1,Do
   // Returns the MC label for a given peak found in the Hough space
   if(etaindex < 0 || etaindex > GetNEtaSegments())
     {
-      LOG(AliHLTLog::kWarning,"AliHLTTPCHoughTransformerRow::GetTrackID","Data")
+      LOG(AliHLTTPCLog::kWarning,"AliHLTTPCHoughTransformerRow::GetTrackID","Data")
 	<<"Wrong etaindex "<<etaindex<<ENDLOG;
       return -1;
     }
-  AliHLTHistogram *hist = fParamSpace[etaindex];
+  AliHLTTPCHistogram *hist = fParamSpace[etaindex];
   Int_t bin = hist->FindLabelBin(alpha1,alpha2);
   if(bin==-1) {
-    LOG(AliHLTLog::kWarning,"AliHLTTPCHoughTransformerRow::GetTrackID()","")
+    LOG(AliHLTTPCLog::kWarning,"AliHLTTPCHoughTransformerRow::GetTrackID()","")
       <<"Track candidate outside Hough space boundaries: "<<alpha1<<" "<<alpha2<<ENDLOG;
     return -1;
   }
@@ -1038,7 +1038,7 @@ Int_t AliHLTTPCHoughTransformerRow::GetTrackID(Int_t etaindex,Double_t alpha1,Do
 	}
     }
   if(max2 !=0 ) {
-    LOG(AliHLTLog::kDebug,"AliHLTTPCHoughTransformerRow::GetTrackID()","")
+    LOG(AliHLTTPCLog::kDebug,"AliHLTTPCHoughTransformerRow::GetTrackID()","")
       <<" TrackID"<<" label "<<label<<" max "<<max<<" label2 "<<label2<<" max2 "<<max2<<" "<<(Float_t)max2/(Float_t)max<<" "<<fTrackID[etaindex][bin].fLabel[MaxTrack-1]<<" "<<(Int_t)fTrackID[etaindex][bin].fNHits[MaxTrack-1]<<ENDLOG;
   }
   return label;
@@ -1049,10 +1049,10 @@ Int_t AliHLTTPCHoughTransformerRow::GetTrackLength(Double_t alpha1,Double_t alph
 {
   // Returns the track length for a given peak found in the Hough space
 
-  AliHLTHistogram *hist = fParamSpace[0];
+  AliHLTTPCHistogram *hist = fParamSpace[0];
   Int_t bin = hist->FindBin(alpha1,alpha2);
   if(bin==-1) {
-    LOG(AliHLTLog::kWarning,"AliHLTTPCHoughTransformerRow::GetTrackLength()","")
+    LOG(AliHLTTPCLog::kWarning,"AliHLTTPCHoughTransformerRow::GetTrackLength()","")
       <<"Track candidate outside Hough space boundaries: "<<alpha1<<" "<<alpha2<<ENDLOG;
     return -1;
   }
@@ -1153,7 +1153,7 @@ inline void AliHLTTPCHoughTransformerRow::FillCluster(UChar_t i,Int_t etaindex,A
 	if(binx2>lastbinx) binx2 = lastbinx;
 #ifdef do_mc
 	if(binx2<binx1) {
-	  LOG(AliHLTLog::kWarning,"AliHLTTPCHoughTransformerRow::TransformCircle()","")
+	  LOG(AliHLTTPCLog::kWarning,"AliHLTTPCHoughTransformerRow::TransformCircle()","")
 	    <<"Wrong filling "<<binx1<<" "<<binx2<<" "<<i<<" "<<etaclust[etaindex].fStartPad<<" "<<etaclust[etaindex].fEndPad<<ENDLOG;
 	}
 #endif
@@ -1183,7 +1183,7 @@ inline void AliHLTTPCHoughTransformerRow::FillCluster(UChar_t i,Int_t etaindex,A
 	if(binx2>lastbinx) binx2 = lastbinx;
 #ifdef do_mc
 	if(binx2<binx1) {
-	  LOG(AliHLTLog::kWarning,"AliHLTTPCHoughTransformerRow::TransformCircle()","")
+	  LOG(AliHLTTPCLog::kWarning,"AliHLTTPCHoughTransformerRow::TransformCircle()","")
 	    <<"Wrong filling "<<binx1<<" "<<binx2<<" "<<i<<" "<<etaclust[etaindex].fStartPad<<" "<<etaclust[etaindex].fEndPad<<ENDLOG;
 	}
 #endif
@@ -1215,7 +1215,7 @@ inline void AliHLTTPCHoughTransformerRow::FillCluster(UChar_t i,Int_t etaindex,A
 }
 
 #ifdef do_mc
-inline void AliHLTTPCHoughTransformerRow::FillClusterMCLabels(AliHLTDigitData digpt,AliHLTEtaRow *etaclust)
+inline void AliHLTTPCHoughTransformerRow::FillClusterMCLabels(AliHLTTPCDigitData digpt,AliHLTEtaRow *etaclust)
 {
   // The method is a part of the fast hough transform.
   // It fills the MC labels of a TPC cluster into a

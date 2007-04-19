@@ -24,9 +24,9 @@
 
 #include "AliHLTTPCHoughKalmanTrack.h"
 
-#include "AliHLTStandardIncludes.h"
+#include "AliHLTStdIncludes.h"
 #include "AliHLTTPCHoughTrack.h"
-#include "AliHLTTPCHoughBaseTransformer.h"
+#include "AliHLTTPCHoughTransformer.h"
 #include "AliHLTTPCHoughTransformerRow.h"
 #include "AliHLTTPCHistogram.h"
 

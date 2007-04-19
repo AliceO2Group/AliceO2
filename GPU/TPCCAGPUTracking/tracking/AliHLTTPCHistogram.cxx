@@ -4,7 +4,7 @@
 // Author: Anders Vestbo <mailto:vestbo@fi.uib.no>
 //*-- Copyright &copy ALICE HLT Group
 
-#include "AliHLTStandardIncludes.h"
+#include "AliHLTStdIncludes.h"
 
 #include "AliHLTTPCLogging.h"
 #include "AliHLTTPCHistogram.h"
@@ -47,9 +47,7 @@ AliHLTTPCHistogram::AliHLTTPCHistogram()
   fEntries = 0;
   fContent = 0;
   fThreshold = 0;
-#ifdef use_root
   fRootHisto = 0;
-#endif
 }
 
 AliHLTTPCHistogram::AliHLTTPCHistogram(Char_t *name,Char_t */*id*/,
@@ -74,9 +72,7 @@ AliHLTTPCHistogram::AliHLTTPCHistogram(Char_t *name,Char_t */*id*/,
   fFirstYbin = 1;
   fLastXbin = nxbin;
   fLastYbin = nybin;
-#ifdef use_root
   fRootHisto = 0;
-#endif
   fThreshold = 0;
 
   fContent = new Int_t[fNcells];
@@ -88,10 +84,8 @@ AliHLTTPCHistogram::~AliHLTTPCHistogram()
   //Destructor
   if(fContent)
     delete [] fContent;
-#ifdef use_root
   if(fRootHisto)
     delete fRootHisto;
-#endif
 }
 
 void AliHLTTPCHistogram::Reset()
@@ -376,7 +370,6 @@ Double_t AliHLTTPCHistogram::GetPreciseBinCenterY(Float_t ybin) const
 void AliHLTTPCHistogram::Draw(Char_t *option)
 {
   // Fill the contents of the corresponding ROOT histogram and draws it 
-#ifdef use_root
   if(!fRootHisto)
     CreateRootHisto();
   
@@ -392,9 +385,6 @@ void AliHLTTPCHistogram::Draw(Char_t *option)
   //fRootHisto->SetStats(kFALSE);
   fRootHisto->Draw(option);
   return;
-#else
-  cerr<<"AliHLTTPCHistogram::Draw : You need to compile with ROOT in order to draw histogram"<<endl;
-#endif  
 }
 
 void AliHLTTPCHistogram::CreateRootHisto()

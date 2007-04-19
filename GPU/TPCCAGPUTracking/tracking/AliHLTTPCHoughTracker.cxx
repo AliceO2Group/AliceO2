@@ -30,7 +30,7 @@
 #include "AliESD.h"
 #include "AliRunLoader.h"
 #include "AliHLTTPCHoughTracker.h"
-#include "AliHLTHough.h"
+#include "AliHLTTPCHough.h"
 
 ClassImp(AliHLTTPCHoughTracker)
 
@@ -40,9 +40,9 @@ AliHLTTPCHoughTracker::AliHLTTPCHoughTracker(AliRunLoader *runLoader):AliTracker
   // Constructor
   //--------------------------------------------------------------
 
-  if(AliHLTTransform::GetVersion() == AliHLTTransform::kVdefault) {
-    Bool_t isinit=AliHLTTransform::Init(runLoader);
-    if(!isinit) AliWarning("Could not init AliHLTTransform settings, using defaults!");
+  if(AliHLTTPCTransform::GetVersion() == AliHLTTPCTransform::kVdefault) {
+    Bool_t isinit=AliHLTTPCTransform::Init(runLoader);
+    if(!isinit) AliWarning("Could not init AliHLTTPCTransform settings, using defaults!");
   }
 
   fRunLoader = runLoader;
@@ -60,13 +60,13 @@ Int_t AliHLTTPCHoughTracker::Clusters2Tracks(AliESD *event)
   }
   Int_t iEvent = fRunLoader->GetEventNumber();
   
-  Float_t ptmin = 0.1*AliHLTTransform::GetSolenoidField();
+  Float_t ptmin = 0.1*AliHLTTPCTransform::GetSolenoidField();
 
   Float_t zvertex = GetZ();
 
   AliInfo(Form("Hough Transform will run with ptmin=%f and zvertex=%f",ptmin,zvertex));
 
-  AliHLTHough *hough = new AliHLTHough();
+  AliHLTTPCHough *hough = new AliHLTTPCHough();
     
   hough->SetThreshold(4);
   hough->CalcTransformerParams(ptmin);

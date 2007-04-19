@@ -6,9 +6,7 @@
 
 #include "AliHLTTPCRootTypes.h"
 
-#ifdef use_root
 class TH1F;
-#endif
 
 class AliHLTTPCHistogram1D {
   
@@ -48,9 +46,7 @@ class AliHLTTPCHistogram1D {
   Double_t fXmax;//Upper limit in X
 
   
-#ifdef use_root
   TH1F *fRootHisto;//The corresponding ROOT histogram
-#endif  
 
   ClassDef(AliHLTTPCHistogram1D,1) //1D histogram class
     
