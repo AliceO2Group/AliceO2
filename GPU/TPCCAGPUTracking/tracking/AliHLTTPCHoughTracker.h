@@ -3,8 +3,14 @@
 
 #ifndef ALIL3TPCHOUGHTRACKER_H
 #define ALIL3TPCHOUGHTRACKER_H
+
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
+
+/** @file   AliHLTTPCHoughTracker.h
+    @author Cvetan Cheshkov
+    @date   
+    @brief  Implementation of the HLT TPC hough transform tracker. */
 
 //-------------------------------------------------------------------------
 //                          High Level Trigger TPC tracker
@@ -19,9 +25,6 @@
 //-------------------------------------------------------------------------
 
 #include "AliTracker.h"
-#include "AliLog.h"
-
-#include "AliHLTTPCTransform.h"
 
 class AliRunLoader;
 class AliESD;

@@ -16,6 +16,11 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/** @file   AliHLTTPCHoughTracker.cxx
+    @author Cvetan Cheshkov
+    @date   
+    @brief  Implementation of the HLT TPC hough transform tracker. */
+
 //-------------------------------------------------------------------------
 //       Implementation of the HLT TPC hough transform tracker class
 //
@@ -31,8 +36,21 @@
 #include "AliRunLoader.h"
 #include "AliHLTTPCHoughTracker.h"
 #include "AliHLTTPCHough.h"
+#include "AliLog.h"
+#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCLog.h"
 
-ClassImp(AliHLTTPCHoughTracker)
+/** ROOT macro for the implementation of ROOT specific class methods */
+ClassImp(AliHLTTPCHoughTracker);
+
+/** 
+ * creator
+ * used for instantiation when the library is loaded dynamically
+ */
+extern "C" AliTracker* CreateHLTTPCHoughTrackerInstance(AliRunLoader* runLoader)
+{
+  return new AliHLTTPCHoughTracker(runLoader);
+}
 
 AliHLTTPCHoughTracker::AliHLTTPCHoughTracker(AliRunLoader *runLoader):AliTracker()
 {
@@ -66,6 +84,10 @@ Int_t AliHLTTPCHoughTracker::Clusters2Tracks(AliESD *event)
 
   AliInfo(Form("Hough Transform will run with ptmin=%f and zvertex=%f",ptmin,zvertex));
 
+  // increase logging level temporarily to avoid bunches of info messages
+  AliHLTTPCLog::TLogLevel loglevelbk=AliHLTTPCLog::fgLevel;
+  AliHLTTPCLog::fgLevel=AliHLTTPCLog::kWarning;
+
   AliHLTTPCHough *hough = new AliHLTTPCHough();
     
   hough->SetThreshold(4);
@@ -89,6 +111,7 @@ Int_t AliHLTTPCHoughTracker::Clusters2Tracks(AliESD *event)
   Info("Clusters2Tracks","Number of found tracks: %d\n",ntrk);
   
   delete hough;
+  AliHLTTPCLog::fgLevel=loglevelbk;
 
   return 0;
 }

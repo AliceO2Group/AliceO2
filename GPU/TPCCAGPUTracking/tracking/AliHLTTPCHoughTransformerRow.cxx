@@ -1,7 +1,18 @@
 // @(#) $Id$
 // origin hough/AliL3HoughTransformerRow.cxx,v 1.21 Tue Mar 28 18:05:12 2006 UTC by alibrary
 
-// Author: Cvetan Cheshkov <mailto:cvetan.cheshkov@cern.ch>
+/** @file   AliHLTTPCHoughTransformerRow.h
+    @author Cvetan Cheshkov <mailto:cvetan.cheshkov@cern.ch>
+    @date   
+    @brief  Implementation of fast HLT TPC hough transform tracking. */
+
+//_____________________________________________________________
+// AliHLTTPCHoughTransformerRow
+//
+// Impelementation of the so called "TPC rows Hough transformation" class
+//
+// Transforms the TPC data into the hough space and counts the missed TPC
+// rows corresponding to each track cnadidate - hough space bin
 
 #include "AliHLTStdIncludes.h"
 
@@ -12,20 +23,14 @@
 #include "AliHLTTPCHistogramAdaptive.h"
 #include "AliHLTTPCHoughTrack.h"
 #include "AliHLTTPCHoughTransformerRow.h"
+#include "AliTPCRawStream.h"
 
 #if __GNUC__ >= 3
 using namespace std;
 #endif
 
-//_____________________________________________________________
-// AliHLTTPCHoughTransformerRow
-//
-// Impelementation of the so called "TPC rows Hough transformation" class
-//
-// Transforms the TPC data into the hough space and counts the missed TPC
-// rows corresponding to each track cnadidate - hough space bin
-
-ClassImp(AliHLTTPCHoughTransformerRow)
+/** ROOT macro for the implementation of ROOT specific class methods */
+ClassImp(AliHLTTPCHoughTransformerRow);
 
 Float_t AliHLTTPCHoughTransformerRow::fgBeta1 = 1.0/AliHLTTPCTransform::Row2X(84);
 Float_t AliHLTTPCHoughTransformerRow::fgBeta2 = 1.0/(AliHLTTPCTransform::Row2X(158)*(1.0+tan(AliHLTTPCTransform::Pi()*10/180)*tan(AliHLTTPCTransform::Pi()*10/180)));
@@ -88,6 +93,41 @@ AliHLTTPCHoughTransformerRow::AliHLTTPCHoughTransformerRow(Int_t slice,Int_t pat
   fLUTforwardZ = 0;
   fLUTbackwardZ = 0;
 
+}
+
+AliHLTTPCHoughTransformerRow::AliHLTTPCHoughTransformerRow(const AliHLTTPCHoughTransformerRow&)
+{
+  // see header file for class documentation
+  fParamSpace = 0;
+
+  fGapCount = 0;
+  fCurrentRowCount = 0;
+#ifdef do_mc
+  fTrackID = 0;
+#endif
+  fTrackNRows = 0;
+  fTrackFirstRow = 0;
+  fTrackLastRow = 0;
+  fInitialGapCount = 0;
+
+  fPrevBin = 0;
+  fNextBin = 0;
+  fNextRow = 0;
+
+  fStartPadParams = 0;
+  fEndPadParams = 0;
+  fLUTr = 0;
+  fLUTforwardZ = 0;
+  fLUTbackwardZ = 0;
+
+  std::cerr << "AliHLTTPCHoughTransformerRow copy constructor untested" << std::endl;
+}
+
+AliHLTTPCHoughTransformerRow& AliHLTTPCHoughTransformerRow::operator=(const AliHLTTPCHoughTransformerRow&)
+{ 
+  // see header file for class documentation
+  std::cerr << "AliHLTTPCHoughTransformerRow assignment operator untested" << std::endl;
+  return *this;
 }
 
 AliHLTTPCHoughTransformerRow::~AliHLTTPCHoughTransformerRow()
@@ -232,16 +272,6 @@ void AliHLTTPCHoughTransformerRow::DeleteHistograms()
     }
   delete [] fParamSpace;
 }
-
-struct AliHLTTrackLength {
-  // Structure is used for temporarely storage of the LUT
-  // which contains the track lengths associated to each hough
-  // space bin
-  Bool_t fIsFilled; // Is bin already filled?
-  UInt_t fFirstRow; // First TPC row crossed by the track
-  UInt_t fLastRow; // Last TPC row crossed by the track
-  Float_t fTrackPt; // Pt of the track
-};
 
 void AliHLTTPCHoughTransformerRow::CreateHistograms(Int_t nxbin,Float_t xmin,Float_t xmax,
 						Int_t nybin,Float_t ymin,Float_t ymax)

@@ -1,8 +1,26 @@
 // @(#) $Id$
 // origin: hough/AliL3Hough.cxx,v 1.50 Tue Mar 28 18:05:12 2006 UTC by alibrary
 
-// Author: Anders Vestbo <mailto:vestbo@fi.uib.no>
-//*-- Copyright &copy ALICE HLT Group
+/**************************************************************************
+ * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ *                                                                        *
+ * Author: The ALICE Off-line Project.                                    *
+ * Contributors are mentioned in the code where appropriate.              *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
+
+/** @file   AliHLTTPCHough.cxx
+    @author Anders Vestbo, Cvetan Cheshkov
+    @date   
+    @brief  Steering for HLT TPC hough transform tracking algorithms. */
+
 
 #include "AliHLTStdIncludes.h"
 #include "AliLog.h"
@@ -68,31 +86,17 @@
 #include "AliHLTTPCHoughKalmanTrack.h"
 
 #include "TThread.h"
+#include <AliRunLoader.h>
+#include <AliRawEvent.h>
+#include <AliESD.h>
+#include <AliESDHLTtrack.h>
 
 #if __GNUC__ >= 3
 using namespace std;
 #endif
 
-/** /class AliHLTTPCHough
-//<pre>
-//_____________________________________________________________
-// AliHLTTPCHough
-//
-// Interface class for the Hough transform
-//
-// Example how to use:
-//
-// AliHLTTPCHough *hough = new AliHLTTPCHough(path,kTRUE,NumberOfEtaSegments);
-// hough->ReadData(slice);
-// hough->Transform();
-// hough->FindTrackCandidates();
-// 
-// AliHLTTPCTrackArray *tracks = hough->GetTracks(patch);
-//
-//</pre>
-*/
-
-ClassImp(AliHLTTPCHough)
+/** ROOT macro for the implementation of ROOT specific class methods */
+ClassImp(AliHLTTPCHough);
 
 AliHLTTPCHough::AliHLTTPCHough()
 {

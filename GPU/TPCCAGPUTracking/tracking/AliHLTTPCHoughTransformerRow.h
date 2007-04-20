@@ -1,6 +1,14 @@
 // @(#) $Id$
 // origin hough/AliL3HoughTransformerRow.h,v 1.15 Sun Apr 30 16:37:32 2006 UTC by hristov 
 
+/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ * See cxx source for full Copyright notice                               */
+
+/** @file   AliHLTTPCHoughTransformerRow.h
+    @author Cvetan Cheshkov
+    @date   
+    @brief  Implementation of fast HLT TPC hough transform tracking. */
+
 #ifndef ALIHLTTPCHOUGHTRANSFORMERROW_H
 #define ALIHLTTPCHOUGHTRANSFORMERROW_H
 
@@ -10,34 +18,53 @@
 #define MAX_N_GAPS 5
 #define MIN_TRACK_LENGTH 70
 
-struct AliHLTEtaRow {
-  UChar_t fStartPad; //First pad in the cluster
-  UChar_t fEndPad; //Last pad in the cluster
-  Bool_t fIsFound; //Is the cluster already found
-#ifdef do_mc
-  Int_t fMcLabels[MaxTrack]; //Array to store mc labels inside cluster
-#endif
-};
-
-struct AliHLTPadHoughParams {
-  // Parameters which represent given pad in the hough space
-  // Used in order to avoid as much as possible floating
-  // point operations during the hough transform
-  Float_t fAlpha; // Starting value for the hough parameter alpha1
-  Float_t fDeltaAlpha; // Slope of alpha1
-  Int_t fFirstBin; // First alpha2 bin to be filled 
-  Int_t fLastBin; // Last alpha2 bin to be filled
-};
-
 class AliHLTTPCDigitData;
 class AliHLTTPCHistogram;
 
 class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughTransformer {
 
  public:
+  /** standard constructor */
   AliHLTTPCHoughTransformerRow(); 
+  /** constructor */
   AliHLTTPCHoughTransformerRow(Int_t slice,Int_t patch,Int_t netasegments,Bool_t DoMC=kFALSE,Float_t zvertex=0.0);
+  /** not a valid copy constructor, defined according to effective C++ style */
+  AliHLTTPCHoughTransformerRow(const AliHLTTPCHoughTransformerRow&);
+  /** not a valid assignment op, but defined according to effective C++ style */
+  AliHLTTPCHoughTransformerRow& operator=(const AliHLTTPCHoughTransformerRow&);
+  /** standard destructor */
   virtual ~AliHLTTPCHoughTransformerRow();
+
+  struct AliHLTEtaRow {
+    UChar_t fStartPad; //First pad in the cluster
+    UChar_t fEndPad; //Last pad in the cluster
+    Bool_t fIsFound; //Is the cluster already found
+#ifdef do_mc
+    Int_t fMcLabels[MaxTrack]; //Array to store mc labels inside cluster
+#endif
+  };
+
+  struct AliHLTPadHoughParams {
+    // Parameters which represent given pad in the hough space
+    // Used in order to avoid as much as possible floating
+    // point operations during the hough transform
+    Float_t fAlpha; // Starting value for the hough parameter alpha1
+    Float_t fDeltaAlpha; // Slope of alpha1
+    Int_t fFirstBin; // First alpha2 bin to be filled 
+    Int_t fLastBin; // Last alpha2 bin to be filled
+  };
+
+  struct AliHLTTrackLength {
+    // Structure is used for temporarely storage of the LUT
+    // which contains the track lengths associated to each hough
+    // space bin
+    Bool_t fIsFilled; // Is bin already filled?
+    UInt_t fFirstRow; // First TPC row crossed by the track
+    UInt_t fLastRow; // Last TPC row crossed by the track
+    Float_t fTrackPt; // Pt of the track
+  };
+
+
 
   void CreateHistograms(Float_t ptmin,Float_t ptmax,Float_t pres,Int_t nybin,Float_t psi) {
     AliHLTTPCHoughTransformer::CreateHistograms(ptmin,ptmax,pres,nybin,psi);
@@ -48,8 +75,8 @@ class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughTransformer {
 			Int_t nybin,Float_t ymin,Float_t ymax);
   void Reset();
   void TransformCircle();
-  void TransformCircle(Int_t *row_range,Int_t every) {
-    AliHLTTPCHoughTransformer::TransformCircle(row_range,every);
+  void TransformCircle(Int_t *rowRange,Int_t every) {
+    AliHLTTPCHoughTransformer::TransformCircle(rowRange,every);
   }
 
   Int_t GetEtaIndex(Double_t eta) const;
@@ -127,7 +154,7 @@ class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughTransformer {
 
   ClassDef(AliHLTTPCHoughTransformerRow,1) //TPC Rows Hough transformation class
 
-};
+    };
 
 #endif
 

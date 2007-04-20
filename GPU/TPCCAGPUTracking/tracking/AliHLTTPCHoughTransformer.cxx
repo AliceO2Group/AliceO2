@@ -11,6 +11,7 @@
 //-------------------------------------------------------------------------
 
 #include "AliHLTTPCHoughTransformer.h"
+#include "AliTPCRawStream.h"
 
 /** \class AliHLTTPCHoughTransformer
 <pre>
@@ -28,38 +29,63 @@
 ClassImp(AliHLTTPCHoughTransformer)
 
 AliHLTTPCHoughTransformer::AliHLTTPCHoughTransformer()
+  :
+  fLastTransformer(NULL),
+  fSlice(0),
+  fPatch(0),
+  fLastPatch(-1),
+  fNEtaSegments(0),
+  fEtaMin(0),
+  fEtaMax(0),
+  fLowerThreshold(0),
+  fUpperThreshold(1023),
+  fDigitRowData(NULL),
+  fZVertex(0.0)
 {
   //Default constructor
-  fDigitRowData = 0;
-
-  fSlice = 0;
-  fPatch = 0;
-  fLastPatch = -1;
-  fLastTransformer = 0;
-  fNEtaSegments =0;
-  fEtaMin = 0;
-  fEtaMax = 0;
-  fLowerThreshold = 0;
-  fUpperThreshold = 1023;
-  fZVertex = 0.0;
 }
 
 AliHLTTPCHoughTransformer::AliHLTTPCHoughTransformer(Int_t slice,Int_t patch,Int_t netasegments,Float_t zvertex)
+  :
+  fLastTransformer(NULL),
+  fSlice(0),
+  fPatch(0),
+  fLastPatch(-1),
+  fNEtaSegments(0),
+  fEtaMin(0),
+  fEtaMax(0),
+  fLowerThreshold(3),
+  fUpperThreshold(1023),
+  fDigitRowData(NULL),
+  fZVertex(zvertex)
 {
   //normal ctor
-  fDigitRowData = 0;
-
-  fSlice = 0;
-  fPatch = 0;
-  fLastPatch = -1;
-  fNEtaSegments =0;
-  fEtaMin = 0;
-  fEtaMax = 0;
-  fLowerThreshold = 3;
-  fUpperThreshold = 1023;
-  fZVertex = zvertex;
-
   Init(slice,patch,netasegments);
+}
+
+AliHLTTPCHoughTransformer::AliHLTTPCHoughTransformer(const AliHLTTPCHoughTransformer&)
+  :
+  fLastTransformer(NULL),
+  fSlice(0),
+  fPatch(0),
+  fLastPatch(-1),
+  fNEtaSegments(0),
+  fEtaMin(0),
+  fEtaMax(0),
+  fLowerThreshold(0),
+  fUpperThreshold(1023),
+  fDigitRowData(NULL),
+  fZVertex(0.0)
+{
+  // see header file for class documentation
+  std::cerr << "AliHLTTPCHoughTransformer copy constructor untested" << std::endl;
+}
+
+AliHLTTPCHoughTransformer& AliHLTTPCHoughTransformer::operator=(const AliHLTTPCHoughTransformer&)
+{ 
+  // see header file for class documentation
+  std::cerr << "AliHLTTPCHoughTransformer assignment operator untested" << std::endl;
+  return *this;
 }
 
 AliHLTTPCHoughTransformer::~AliHLTTPCHoughTransformer()

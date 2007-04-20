@@ -3,6 +3,14 @@
 #ifndef ALIHLTTPCHOUGH_H
 #define ALIHLTTPCHOUGH_H
 
+/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ * See cxx source for full Copyright notice                               */
+
+/** @file   AliHLTTPCHough.h
+    @author Anders Vestbo, Cvetan Cheshkov
+    @date   
+    @brief  Steering for HLT TPC hough transform tracking algorithms. */
+
 #include "AliHLTTPCRootTypes.h"
 
 class AliHLTTPCHoughMaxFinder;
@@ -18,11 +26,26 @@ class AliHLTTPCHoughGlobalMerger;
 class AliHLTTPCBenchmark;
 
 #include "TThread.h"
-#include <AliRunLoader.h>
-#include <../RAW/AliRawEvent.h>
-#include <AliESD.h>
-#include <AliESDHLTtrack.h>
+class AliRunLoader;
+class AliRawEvent;
+class AliESD;
+class AliESDHLTtrack;
 
+/** 
+ * @class AliHLTTPCHough
+ * Interface class for the HLT TPC Hough transform tracking algorithms
+ *
+ * Example how to use:
+ *<pre>
+ * AliHLTTPCHough *hough = new AliHLTTPCHough(path,kTRUE,NumberOfEtaSegments);
+ * hough->ReadData(slice);
+ * hough->Transform();
+ * hough->FindTrackCandidates();
+ * 
+ * AliHLTTPCTrackArray *tracks = hough->GetTracks(patch);
+ *
+ *</pre>
+*/
 class AliHLTTPCHough {
  public:
   

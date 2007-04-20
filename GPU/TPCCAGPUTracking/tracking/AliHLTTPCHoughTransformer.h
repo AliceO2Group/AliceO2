@@ -4,6 +4,15 @@
 #ifndef ALIHLTTPCHOUGHBASETRANSFORMER_H
 #define ALIHLTTPCHOUGHBASETRANSFORMER_H
 
+/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ * See cxx source for full Copyright notice                               */
+
+/** @file   AliHLTTPCHoughTransformer.h
+    @author Anders Vestbo
+    @date   
+    @brief  Base class for TPC hough tracking algorithms
+                                                                          */
+
 //-------------------------------------------------------------------------
 //                Class AliHLTTPCHoughTransformer
 //   This is the base class for all the Hough Transformer tracking
@@ -25,15 +34,25 @@ typedef struct AliHLTTrackIndex AliHLTTrackIndex;
 
 class AliHLTTPCDigitRowData;
 class AliHLTTPCHistogram;
+class AliTPCRawStream;
 
-#include "AliTPCRawStream.h"
-
+/**
+ * @class AliHLTTPCHoughTransformer
+ * Base class for TPC hough tracking transfomers.
+ */
 class AliHLTTPCHoughTransformer {
 
  public:
 
-  AliHLTTPCHoughTransformer(); 
+  /** standard constructor */
+  AliHLTTPCHoughTransformer();
+  /** constructor */
   AliHLTTPCHoughTransformer(Int_t slice,Int_t patch,Int_t netasegments,Float_t zvertex=0.0);
+  /** not a valid copy constructor, defined according to effective C++ style */
+  AliHLTTPCHoughTransformer(const AliHLTTPCHoughTransformer&);
+  /** not a valid assignment op, but defined according to effective C++ style */
+  AliHLTTPCHoughTransformer& operator=(const AliHLTTPCHoughTransformer&);
+  /** standard destructor */
   virtual ~AliHLTTPCHoughTransformer();
   
   void SetInputData(UInt_t /*ndigits*/,AliHLTTPCDigitRowData *ptr) {fDigitRowData = ptr;}
@@ -48,9 +67,9 @@ class AliHLTTPCHoughTransformer {
   virtual void Reset() = 0;
   virtual void TransformCircle()
     {STDCERR<<"TransformCircle is not defined for this transformer!"<<STDENDL;}
-  virtual void TransformCircle(Int_t */*row_range*/,Int_t /*every*/)
+  virtual void TransformCircle(Int_t */*rowRange*/,Int_t /*every*/)
     {STDCERR<<"TransformCircle is not defined for this transformer!"<<STDENDL;}
-  virtual void TransformCircleC(Int_t */*row_range*/,Int_t /*every*/)
+  virtual void TransformCircleC(Int_t */*rowRange*/,Int_t /*every*/)
     {STDCERR<<"TransformCircleC is not defined for this transformer!"<<STDENDL;}
   virtual void TransformLine(Int_t */*rowrange*/=0,Float_t */*phirange*/=0)
     {STDCERR<<"TransformLine is not defined for this Transformer!"<<STDENDL;}
