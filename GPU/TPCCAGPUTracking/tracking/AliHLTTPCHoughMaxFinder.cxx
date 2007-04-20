@@ -55,9 +55,7 @@ AliHLTTPCHoughMaxFinder::AliHLTTPCHoughMaxFinder()
   fNMax=0;
   fGradX=1;
   fGradY=1;
-#ifndef no_root
   fNtuppel = 0;
-#endif
 }
 
 AliHLTTPCHoughMaxFinder::AliHLTTPCHoughMaxFinder(Char_t *histotype,Int_t nmax,AliHLTTPCHistogram *hist)
@@ -85,9 +83,7 @@ AliHLTTPCHoughMaxFinder::AliHLTTPCHoughMaxFinder(Char_t *histotype,Int_t nmax,Al
   fENDYPeaks = new Int_t[fNMax];
   fSTARTETAPeaks = new Int_t[fNMax];
   fENDETAPeaks = new Int_t[fNMax];
-#ifndef no_root
   fNtuppel = 0;
-#endif
   fThreshold=0;
 }
 
@@ -112,10 +108,8 @@ AliHLTTPCHoughMaxFinder::~AliHLTTPCHoughMaxFinder()
     delete [] fSTARTETAPeaks;
   if(fENDETAPeaks)
     delete [] fENDETAPeaks;
-#ifndef no_root
   if(fNtuppel)
     delete fNtuppel;
-#endif
 }
 
 void AliHLTTPCHoughMaxFinder::Reset()
@@ -141,17 +135,14 @@ void AliHLTTPCHoughMaxFinder::Reset()
 void AliHLTTPCHoughMaxFinder::CreateNtuppel()
 {
   // Fill a NTuple with the peak parameters
-#ifndef no_root
   //content#; neighbouring bins of the peak.
   fNtuppel = new TNtuple("ntuppel","Peak charateristics","kappa:phi0:weigth:content3:content5:content1:content7");
   fNtuppel->SetDirectory(0);
-#endif  
 }
 
 void AliHLTTPCHoughMaxFinder::WriteNtuppel(Char_t *filename)
 {
   // Write the NTuple with the peak parameters
-#ifndef no_root
   TFile *file = TFile::Open(filename,"RECREATE");
   if(!file)
     {
@@ -160,7 +151,6 @@ void AliHLTTPCHoughMaxFinder::WriteNtuppel(Char_t *filename)
     }
   fNtuppel->Write();
   file->Close();
-#endif
 }
 
 void AliHLTTPCHoughMaxFinder::FindAbsMaxima()
@@ -215,7 +205,6 @@ void AliHLTTPCHoughMaxFinder::FindAbsMaxima()
   fWeight[fNPeaks] = (Int_t)maxvalue;
 
   fNPeaks++;
-#ifndef no_root
   if(fNtuppel)
     {
       Int_t bin3 = hist->GetBin(maxxbin-1,maxybin);
@@ -225,7 +214,6 @@ void AliHLTTPCHoughMaxFinder::FindAbsMaxima()
       
       fNtuppel->Fill(maxx,maxy,maxvalue,hist->GetBinContent(bin3),hist->GetBinContent(bin5),hist->GetBinContent(bin1),hist->GetBinContent(bin7));
     }
-#endif  
 }
 
 void AliHLTTPCHoughMaxFinder::FindBigMaxima()

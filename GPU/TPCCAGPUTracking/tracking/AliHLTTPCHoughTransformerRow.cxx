@@ -1,7 +1,7 @@
 // @(#) $Id$
 // origin hough/AliL3HoughTransformerRow.cxx,v 1.21 Tue Mar 28 18:05:12 2006 UTC by alibrary
 
-/** @file   AliHLTTPCHoughTransformerRow.h
+/** @file   AliHLTTPCHoughTransformerRow.cxx
     @author Cvetan Cheshkov <mailto:cvetan.cheshkov@cern.ch>
     @date   
     @brief  Implementation of fast HLT TPC hough transform tracking. */

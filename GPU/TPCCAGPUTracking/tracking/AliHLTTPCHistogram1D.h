@@ -27,11 +27,8 @@ class AliHLTTPCHistogram1D {
   void SetBinContent(Int_t bin,Int_t value);
   void SetThreshold(Int_t i) {fThreshold = i;}
   
-
-#ifdef use_root
   void Draw(Char_t *option="hist");
   TH1F *GetRootHisto() {return fRootHisto;}
-#endif
   
  private:
   

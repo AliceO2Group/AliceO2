@@ -390,12 +390,8 @@ void AliHLTTPCHistogram::Draw(Char_t *option)
 void AliHLTTPCHistogram::CreateRootHisto()
 {
   // Create ROOT histogram out of AliHLTTPCHistogram
-#ifdef use_root
   fRootHisto = new TH2F(fName,"",fNxbins,fXmin,fXmax,fNybins,fYmin,fYmax);
   return;
-#else
-  cerr<<"AliHLTTPCHistogram::CreateRootHisto : You need to compile with ROOT in order to create ROOT histogram"<<endl;
-#endif
 }
 
 ofstream& operator<<(ofstream &o, const AliHLTTPCHistogram &h)

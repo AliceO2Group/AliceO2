@@ -202,7 +202,6 @@ Double_t AliHLTTPCHistogramAdaptive::GetBinCenterY(Int_t ybin) const
 void AliHLTTPCHistogramAdaptive::Draw(Char_t *option)
 {
   //Draw the histogram
-#ifdef use_root
   if(!fRootHisto)
     CreateRootHisto();
   
@@ -221,9 +220,6 @@ void AliHLTTPCHistogramAdaptive::Draw(Char_t *option)
     }
   fRootHisto->Draw(option);
   return;
-#else
-  cerr<<"AliHLTTPCHistogramAdaptive::Draw : You need to compile with ROOT in order to draw histogram"<<endl;
-#endif
 }
 
 void AliHLTTPCHistogramAdaptive::Print() const
