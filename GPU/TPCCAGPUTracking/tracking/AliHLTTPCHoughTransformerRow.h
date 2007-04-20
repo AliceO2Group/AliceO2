@@ -154,7 +154,7 @@ class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughTransformer {
 
   ClassDef(AliHLTTPCHoughTransformerRow,1) //TPC Rows Hough transformation class
 
-    };
+};
 
 #endif
 
