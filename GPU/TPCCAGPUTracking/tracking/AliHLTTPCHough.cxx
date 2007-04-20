@@ -181,21 +181,21 @@ AliHLTTPCHough::~AliHLTTPCHough()
 
   CleanUp();
 
-  if(fMerger)
 #ifdef HAVE_ALIHLTHOUGHMERGER
+  if(fMerger)
     delete fMerger;
 #endif //HAVE_ALIHLTHOUGHMERGER
   //cout << "Cleaned class merger " << endl;
-  if(fInterMerger)
 #ifdef HAVE_ALIHLTHOUGHINTMERGER
+  if(fInterMerger)
     delete fInterMerger;
 #endif //HAVE_ALIHLTHOUGHINTMERGER
   //cout << "Cleaned class inter " << endl;
   if(fPeakFinder)
     delete fPeakFinder;
   //cout << "Cleaned class peak " << endl;
-  if(fGlobalMerger)
 #ifdef HAVE_ALIHLTHOUGHGLOBALMERGER
+  if(fGlobalMerger)
     delete fGlobalMerger;
 #endif //HAVE_ALIHLTHOUGHGLOBALMERGER
   //cout << "Cleaned class global " << endl;
@@ -343,13 +343,13 @@ void AliHLTTPCHough::Init(Bool_t doit, Bool_t addhists)
       
       fEval[i] = new AliHLTTPCHoughEval();
       fTracks[i] = new AliHLTTPCTrackArray("AliHLTTPCHoughTrack");
-      if(fUse8bits)
+      if(fUse8bits) {
 #ifdef HAVE_ALIHLTDATAHANDLER
 	fMemHandler[i] = new AliHLTDataHandler();
 #else //!HAVE_ALIHLTDATAHANDLER
-      AliErrorClassStream() << "AliHLTDataHandler not compiled" << endl;
+	AliErrorClassStream() << "AliHLTDataHandler not compiled" << endl;
 #endif // HAVE_ALIHLTDATAHANDLER
-      else
+      } else
       	{
 	  if(!fRawEvent) {
 	    if(!fInputFile) {
@@ -712,10 +712,11 @@ void AliHLTTPCHough::MergeInternally()
 #ifdef HAVE_ALIHLTHOUGHINTMERGER
   if(fAddHistograms)
     fInterMerger->FillTracks(fTracks[0]);
-  else
+  else {
 #ifdef HAVE_ALIHLTHOUGHMERGER
     fInterMerger->FillTracks(fMerger->GetOutTracks());
-#endif HAVE_ALIHLTHOUGHMERGER
+#endif // HAVE_ALIHLTHOUGHMERGER
+  }
   
   fInterMerger->MMerge();
 #endif // HAVE_ALIHLTHOUGHINTMERGER
