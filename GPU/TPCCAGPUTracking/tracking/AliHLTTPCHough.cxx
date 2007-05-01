@@ -85,7 +85,9 @@
 
 #include "AliHLTTPCHoughKalmanTrack.h"
 
+#ifdef HAVE_THREAD
 #include "TThread.h"
+#endif // HAVE_THREAD
 #include <AliRunLoader.h>
 #include <AliRawEvent.h>
 #include <AliESD.h>
@@ -139,7 +141,9 @@ AliHLTTPCHough::AliHLTTPCHough()
   //just be sure that index is empty for new event
     AliHLTTPCFileHandler::CleanStaticIndex(); 
     fRunLoader = 0;
+#ifdef HAVE_THREAD
   fThread = 0;
+#endif // HAVE_THREAD
 }
 
 AliHLTTPCHough::AliHLTTPCHough(Char_t *path,Bool_t binary,Int_t netasegments,Bool_t bit8,Int_t tv,Char_t *infile,Char_t *ptr)
@@ -172,7 +176,9 @@ AliHLTTPCHough::AliHLTTPCHough(Char_t *path,Bool_t binary,Int_t netasegments,Boo
   //just be sure that index is empty for new event
     AliHLTTPCFileHandler::CleanStaticIndex(); 
     fRunLoader = 0;
+#ifdef HAVE_THREAD
   fThread = 0;
+#endif // HAVE_THREAD
 }
 
 AliHLTTPCHough::~AliHLTTPCHough()
@@ -205,11 +211,13 @@ AliHLTTPCHough::~AliHLTTPCHough()
   if(fGlobalTracks)
     delete fGlobalTracks;
   //cout << "Cleaned class globaltracks " << endl;
+#ifdef HAVE_THREAD
   if(fThread) {
     //    fThread->Delete();
     delete fThread;
     fThread = 0;
   }
+#endif // HAVE_THREAD
 }
 
 void AliHLTTPCHough::CleanUp()
@@ -1462,6 +1470,7 @@ void AliHLTTPCHough::StartProcessInThread(Int_t minslice,Int_t maxslice)
   // separate thread. Takes as parameters the
   // range of TPC slices (sectors) to be reconstructed
 
+#ifdef HAVE_THREAD
   if(!fThread) {
     char buf[255];
     sprintf(buf,"houghtrans_%d_%d",minslice,maxslice);
@@ -1470,6 +1479,9 @@ void AliHLTTPCHough::StartProcessInThread(Int_t minslice,Int_t maxslice)
     fThread = new TThread(buf,&ProcessInThread,(void *)this);
     fThread->Run();
   }
+#else  // HAVE_THREAD
+  AliErrorClassStream() << "thread support not compiled" << endl;  
+#endif // HAVE_THREAD
   return;
 }
 
@@ -1480,9 +1492,12 @@ Int_t AliHLTTPCHough::WaitForThreadFinish()
   // threads and want to sync them before
   // writing the results to the ESD
 
+#ifdef HAVE_THREAD
 #if ROOT_VERSION_CODE < 262403
   return TThread::Join(fThread->GetId());
 #else
   return fThread->Join(fThread->GetId());
 #endif
+  AliErrorClassStream() << "thread support not compiled" << endl;
+#endif // HAVE_THREAD
 }
