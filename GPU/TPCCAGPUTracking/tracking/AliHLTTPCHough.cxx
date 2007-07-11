@@ -90,7 +90,7 @@
 #endif // HAVE_THREAD
 #include <AliRunLoader.h>
 #include <AliRawEvent.h>
-#include <AliESD.h>
+#include <AliESDEvent.h>
 #include <AliESDHLTtrack.h>
 
 #if __GNUC__ >= 3
@@ -1393,7 +1393,7 @@ void AliHLTTPCHough::WriteTracks(Int_t slice,Char_t *path)
     }
 }
 
-Int_t AliHLTTPCHough::FillESD(AliESD *esd)
+Int_t AliHLTTPCHough::FillESD(AliESDEvent *esd)
 {
   // Fill the found hough transform tracks
   // into the ESD. The tracks are stored as

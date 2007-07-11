@@ -30,7 +30,7 @@ class TThread;
 #endif // HAVE_THREAD
 class AliRunLoader;
 class AliRawEvent;
-class AliESD;
+class AliESDEvent;
 class AliESDHLTtrack;
 
 /** 
@@ -79,7 +79,7 @@ class AliHLTTPCHough {
   void EvaluatePatch(Int_t i,Int_t roadwidth,Int_t nrowstomiss);
   void WriteTracks(Int_t slice,Char_t *path="./");
   void WriteTracks(Char_t *path);
-  Int_t FillESD(AliESD *esd);
+  Int_t FillESD(AliESDEvent *esd);
   void WriteDigits(Char_t *outfile="output_digits.root");
   void InitEvaluate();
   void DoBench(Char_t *filename);

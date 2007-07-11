@@ -27,17 +27,17 @@
 #include "AliTracker.h"
 
 class AliRunLoader;
-class AliESD;
+class AliESDEvent;
 
 //-------------------------------------------------------------------------
 class AliHLTTPCHoughTracker : public AliTracker {
 public:
   AliHLTTPCHoughTracker(AliRunLoader *runLoader);
 
-  Int_t Clusters2Tracks(AliESD *event);
+  Int_t Clusters2Tracks(AliESDEvent *event);
 
-  Int_t PropagateBack(AliESD */*event*/) {return 0;}
-  Int_t RefitInward(AliESD */*event*/) {return 0;}
+  Int_t PropagateBack(AliESDEvent */*event*/) {return 0;}
+  Int_t RefitInward(AliESDEvent */*event*/) {return 0;}
   Int_t LoadClusters(TTree */*cf*/) {return 0;}
   void  UnloadClusters() {return;}
 
