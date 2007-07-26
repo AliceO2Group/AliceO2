@@ -91,6 +91,7 @@
 #include <AliRunLoader.h>
 #include <AliRawEvent.h>
 #include <AliESDEvent.h>
+#include <AliESDtrack.h>
 #include <AliESDHLTtrack.h>
 
 #if __GNUC__ >= 3
