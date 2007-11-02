@@ -28,10 +28,6 @@ class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughTransformer {
   AliHLTTPCHoughTransformerRow(); 
   /** constructor */
   AliHLTTPCHoughTransformerRow(Int_t slice,Int_t patch,Int_t netasegments,Bool_t DoMC=kFALSE,Float_t zvertex=0.0);
-  /** not a valid copy constructor, defined according to effective C++ style */
-  AliHLTTPCHoughTransformerRow(const AliHLTTPCHoughTransformerRow&);
-  /** not a valid assignment op, but defined according to effective C++ style */
-  AliHLTTPCHoughTransformerRow& operator=(const AliHLTTPCHoughTransformerRow&);
   /** standard destructor */
   virtual ~AliHLTTPCHoughTransformerRow();
 
@@ -103,6 +99,10 @@ class AliHLTTPCHoughTransformerRow : public AliHLTTPCHoughTransformer {
   void SetTPCRawStream(AliTPCRawStream *rawstream) {fTPCRawStream=rawstream;}
 
  private:
+  /** copy constructor prohibited */
+  AliHLTTPCHoughTransformerRow(const AliHLTTPCHoughTransformerRow&);
+  /** assignment operator prohibited */
+  AliHLTTPCHoughTransformerRow& operator=(const AliHLTTPCHoughTransformerRow&);
 
   UChar_t **fGapCount; //!
   UChar_t **fCurrentRowCount; //!

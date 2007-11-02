@@ -48,10 +48,6 @@ class AliHLTTPCHoughTransformer {
   AliHLTTPCHoughTransformer();
   /** constructor */
   AliHLTTPCHoughTransformer(Int_t slice,Int_t patch,Int_t netasegments,Float_t zvertex=0.0);
-  /** not a valid copy constructor, defined according to effective C++ style */
-  AliHLTTPCHoughTransformer(const AliHLTTPCHoughTransformer&);
-  /** not a valid assignment op, but defined according to effective C++ style */
-  AliHLTTPCHoughTransformer& operator=(const AliHLTTPCHoughTransformer&);
   /** standard destructor */
   virtual ~AliHLTTPCHoughTransformer();
   
@@ -117,6 +113,10 @@ class AliHLTTPCHoughTransformer {
   AliHLTTPCHoughTransformer *fLastTransformer;//Pointer to the previous hough transformer
   
  private:
+  /** copy constructor prohibited */
+  AliHLTTPCHoughTransformer(const AliHLTTPCHoughTransformer&);
+  /** assignment operator prohibited */
+  AliHLTTPCHoughTransformer& operator=(const AliHLTTPCHoughTransformer&);
 
   Int_t fSlice;//Index of the current slice being processed
   Int_t fPatch;//Index of the current patch being processed

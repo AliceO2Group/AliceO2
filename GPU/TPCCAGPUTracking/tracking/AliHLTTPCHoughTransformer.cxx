@@ -63,31 +63,6 @@ AliHLTTPCHoughTransformer::AliHLTTPCHoughTransformer(Int_t slice,Int_t patch,Int
   Init(slice,patch,netasegments);
 }
 
-AliHLTTPCHoughTransformer::AliHLTTPCHoughTransformer(const AliHLTTPCHoughTransformer&)
-  :
-  fLastTransformer(NULL),
-  fSlice(0),
-  fPatch(0),
-  fLastPatch(-1),
-  fNEtaSegments(0),
-  fEtaMin(0),
-  fEtaMax(0),
-  fLowerThreshold(0),
-  fUpperThreshold(1023),
-  fDigitRowData(NULL),
-  fZVertex(0.0)
-{
-  // see header file for class documentation
-  std::cerr << "AliHLTTPCHoughTransformer copy constructor untested" << std::endl;
-}
-
-AliHLTTPCHoughTransformer& AliHLTTPCHoughTransformer::operator=(const AliHLTTPCHoughTransformer&)
-{ 
-  // see header file for class documentation
-  std::cerr << "AliHLTTPCHoughTransformer assignment operator untested" << std::endl;
-  return *this;
-}
-
 AliHLTTPCHoughTransformer::~AliHLTTPCHoughTransformer()
 {
   //dtor

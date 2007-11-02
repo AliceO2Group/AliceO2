@@ -95,41 +95,6 @@ AliHLTTPCHoughTransformerRow::AliHLTTPCHoughTransformerRow(Int_t slice,Int_t pat
 
 }
 
-AliHLTTPCHoughTransformerRow::AliHLTTPCHoughTransformerRow(const AliHLTTPCHoughTransformerRow&)
-{
-  // see header file for class documentation
-  fParamSpace = 0;
-
-  fGapCount = 0;
-  fCurrentRowCount = 0;
-#ifdef do_mc
-  fTrackID = 0;
-#endif
-  fTrackNRows = 0;
-  fTrackFirstRow = 0;
-  fTrackLastRow = 0;
-  fInitialGapCount = 0;
-
-  fPrevBin = 0;
-  fNextBin = 0;
-  fNextRow = 0;
-
-  fStartPadParams = 0;
-  fEndPadParams = 0;
-  fLUTr = 0;
-  fLUTforwardZ = 0;
-  fLUTbackwardZ = 0;
-
-  std::cerr << "AliHLTTPCHoughTransformerRow copy constructor untested" << std::endl;
-}
-
-AliHLTTPCHoughTransformerRow& AliHLTTPCHoughTransformerRow::operator=(const AliHLTTPCHoughTransformerRow&)
-{ 
-  // see header file for class documentation
-  std::cerr << "AliHLTTPCHoughTransformerRow assignment operator untested" << std::endl;
-  return *this;
-}
-
 AliHLTTPCHoughTransformerRow::~AliHLTTPCHoughTransformerRow()
 {
   //Destructor
