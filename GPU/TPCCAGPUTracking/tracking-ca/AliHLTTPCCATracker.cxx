@@ -515,7 +515,7 @@ void AliHLTTPCCATracker::FitTrack( AliHLTTPCCATrack &track, Int_t nIter )
   t0[4]= c2.Y() - c1.Y();
   t0[5]= c2.Z() - c1.Z();
   Double_t tt = sqrt(t0[3]*t0[3]+t0[4]*t0[4]+t0[5]*t0[5]);
-  if( fabs(tt)>1.e-4 ){
+  if( TMath::Abs(tt)>1.e-4 ){
     t0[3]/=tt;
     t0[4]/=tt;
     t0[5]/=tt;

@@ -378,12 +378,12 @@ void AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrack &track, Int_t color )
     fLine.SetLineColor( color );
     fLine.SetLineWidth(3);
     
-    if( fabs(q)>.1 ){
+    if( TMath::Abs(q)>.1 ){
       Double_t qq = pt/q;
       
       Double_t xc = t.Par()[0] + qq*t.Par()[4]/pt/bc;
       Double_t yc = t.Par()[1] - qq*t.Par()[3]/pt/bc;
-      Double_t r = fabs(qq)/fabs(bc);
+      Double_t r = TMath::Abs(qq)/fabs(bc);
 	
       Double_t vx, vy;
       Sec2View( xc, yc, &vx, &vy );
