@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTHistogram.cxx,v 1.1 2006/11/30 17:45:42 hristov Exp 
+// $Id$
 // origin: hough/AliL3Histogram.cxx,v 1.31 Thu Jun 23 17:46:54 2005 UTC by hristov
 
 // Author: Anders Vestbo <mailto:vestbo@fi.uib.no>

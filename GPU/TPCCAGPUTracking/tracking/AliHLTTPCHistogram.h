@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTHistogram.h,v 1.1 2006/11/30 17:45:43 hristov Exp
+// $Id$
 // origin: hough/AliL3Histogram.h,v 1.28 Wed Sep 29 12:01:17 2004 UTC by cvetan
 
 #ifndef ALIHLTTPCHISTOGRAM_H
