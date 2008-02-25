@@ -25,7 +25,9 @@
 #include "TMath.h"
 //#include "Riostream.h"
 #include <vector>
+#ifndef __SUNPRO_CC
 #include <algo.h>
+#endif
 
 //#define DRAW
 
@@ -56,6 +58,7 @@ AliHLTTPCCATracker::AliHLTTPCCATracker( const AliHLTTPCCATracker& )
 AliHLTTPCCATracker &AliHLTTPCCATracker::operator=( const AliHLTTPCCATracker& )
 {
   // dummy
+  return *this;
 }
 
 AliHLTTPCCATracker::~AliHLTTPCCATracker()
@@ -290,7 +293,7 @@ void AliHLTTPCCATracker::FindTracks()
   fNTracks = 0;
   vTrackCells.clear();
  
-  Int_t vMatchedTracks[nTracks];
+  Int_t * vMatchedTracks = new Int_t[nTracks];
   for( Int_t itr=0; itr<nTracks; itr++ ){
     AliHLTTPCCATrack &iTrack = vTracks[itr];
     if( iTrack.Used() ) continue;    
@@ -451,7 +454,7 @@ void AliHLTTPCCATracker::FindTracks()
     fTracks[fNTracks++] = iTrack;  
     nOutTrackHits+= nHits;  
   }
-
+  delete [] vMatchedTracks;
 
   //fTrackCells = new Int_t[vTrackCells.size()];
   for( UInt_t i=0; i<vTrackCells.size(); i++ ) fTrackCells[i] = vTrackCells[i];

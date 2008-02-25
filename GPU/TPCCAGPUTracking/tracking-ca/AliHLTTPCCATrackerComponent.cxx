@@ -355,9 +355,9 @@ int AliHLTTPCCATrackerComponent::DoEvent
   
   fTracker->StartEvent();
 
-  AliHLTTPCCAHit vHits[nHitsTotal]; // CA hit array
-  Double_t vHitStoreX[nHitsTotal];       // hit X coordinates
-  Int_t vHitStoreID[nHitsTotal];            // hit ID's
+  AliHLTTPCCAHit * vHits = new AliHLTTPCCAHit[nHitsTotal]; // CA hit array
+  Double_t * vHitStoreX = new Double_t[nHitsTotal];       // hit X coordinates
+  Int_t * vHitStoreID = new Int_t[nHitsTotal];            // hit ID's
 
   Int_t nHits = 0;
  
@@ -516,6 +516,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
   outputBlocks.push_back( bd );
   
   size = mySize;
+
+  delete [] vHits;
+  delete [] vHitStoreX;
+  delete [] vHitStoreID;
   
   return ret;
 
