@@ -8,16 +8,20 @@
 #ifndef ALIHLTTPCCAHIT_H
 #define ALIHLTTPCCAHIT_H
 
-
 #include "Rtypes.h"
 
 /**
  * @class AliHLTTPCCAHit
+ *
+ * The AliHLTTPCCAHit class is the internal representation
+ * of the TPC clusters for the AliHLTTPCCATracker algorithm.
+ *
  */
 class AliHLTTPCCAHit
 {
  public:
   AliHLTTPCCAHit(): fY(0),fZ(0),fErrY(0),fErrZ(0),fID(0){;}
+  virtual ~AliHLTTPCCAHit(){}
 
   Float_t &Y(){ return fY; }
   Float_t &Z(){ return fZ; }
@@ -29,16 +33,31 @@ class AliHLTTPCCAHit
   void Set( Int_t ID, Double_t Y, Double_t Z, 
 	    Double_t ErrY, Double_t ErrZ  );
 
-
  protected:
+
   Float_t fY, fZ;       // Y and Z position of the TPC cluster
   Float_t fErrY, fErrZ; // position errors
-  Int_t fID;            // external ID of this hit, 
+  Int_t fID;            // external unique ID of this hit, 
                         // used as cluster index in track->hit reference array
-  
+ private:
+
+  void Dummy(); // to make rulechecker happy by having something in .cxx file
 
   ClassDef(AliHLTTPCCAHit,1);
 };
+
+
+
+inline void AliHLTTPCCAHit::Set( Int_t ID, Double_t Y, Double_t Z, 
+				 Double_t ErrY, Double_t ErrZ  )
+{
+  //* set parameters
+  fID = ID;
+  fY = Y;
+  fZ = Z;
+  fErrY = ErrY;
+  fErrZ = ErrZ;
+}
 
 
 #endif

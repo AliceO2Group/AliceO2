@@ -1,9 +1,14 @@
 //-*- Mode: C++ -*-
 // @(#) $Id$
 
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+//* This file is property of and copyright by the ALICE HLT Project         * 
+//* ALICE Experiment at CERN, All rights reserved.                          *
+//* See cxx source for full Copyright notice                                *
+
+//*                                                                         *
+//*  AliHLTTPCCADisplay class is a debug utility.                           *
+//*  It is not used in the normal data processing.                          *
+//*                                                                         *
 
 #ifndef ALIHLTTPCCADISPLAY_H
 #define ALIHLTTPCCADISPLAY_H
@@ -12,7 +17,7 @@ class AliHLTTPCCATracker;
 class AliHLTTPCCACell;
 class AliHLTTPCCATrack;
 
-#include "TCanvas.h"
+class TCanvas;
 #include "TArc.h"
 #include "TLine.h"
 #include "TPolyLine.h"
@@ -62,7 +67,7 @@ class AliHLTTPCCADisplay
 
  protected:
 
-  TCanvas *fXY, *fZY;               // two views
+  TCanvas *fYX, *fZX;               // two views
   Bool_t fAsk;                      // flag to ask for the pressing key
   Bool_t fSectorView;               // switch between sector/TPC zoomv
   AliHLTTPCCATracker *fSector;      // current CA tracker, includes sector geometry
@@ -76,6 +81,22 @@ class AliHLTTPCCADisplay
   TBox fBox;       //!
   TCrown fCrown;   //!
   TLatex fLatex;   //!
+
+  class AliHLTTPCCADisplayTmpCell{  
+  public:
+    Int_t &Index(){ return fIndex; }
+    Double_t &S(){ return fS; }
+
+    static Bool_t CompareCellDS( const AliHLTTPCCADisplayTmpCell &a, 
+				 const AliHLTTPCCADisplayTmpCell  &b )
+    {    
+      return (a.fS < b.fS);
+    }
+  protected:
+    Int_t fIndex; // cell index
+    Double_t fS;  // cell position on the track
+  };
+
 
   ClassDef(AliHLTTPCCADisplay,1);
 

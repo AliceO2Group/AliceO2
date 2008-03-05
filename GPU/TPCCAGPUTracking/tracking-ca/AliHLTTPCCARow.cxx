@@ -19,7 +19,7 @@
 #include "AliHLTTPCCARow.h"
 
 
-ClassImp(AliHLTTPCCARow);
+ClassImp(AliHLTTPCCARow)
 
 AliHLTTPCCARow::AliHLTTPCCARow() :fHits(0),fCells(0),fCellHitPointers(0),fNHits(0),fNCells(0),fX(0)
 {
@@ -48,7 +48,6 @@ void AliHLTTPCCARow::Clear()
   // clear memory
   delete[] fHits;
   delete[] fCells;
-  delete[] fCellHitPointers;
   fHits = 0;
   fCells = 0;
   fCellHitPointers = 0;    

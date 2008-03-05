@@ -25,24 +25,20 @@
 #include "TMath.h"
 //#include "Riostream.h"
 #include <vector>
-#ifndef __SUNPRO_CC
 #include <algo.h>
-#endif
-
+#include "TStopwatch.h"
 //#define DRAW
 
 #ifdef DRAW
 #include "AliHLTTPCCADisplay.h"
 #include "TApplication.h"
-#include "TROOT.h"
-#include "TSystem.h"
 #endif //DRAW
 
-ClassImp(AliHLTTPCCATracker);
+ClassImp(AliHLTTPCCATracker)
 
 
 AliHLTTPCCATracker::AliHLTTPCCATracker()
-  :fParam(),fRows(0),fOutTrackHits(0),fNOutTrackHits(0),fOutTracks(0),fNOutTracks(0),fTrackCells(0),fNHitsTotal(0),fTracks(0),fNTracks(0)
+  :fParam(),fRows(0),fOutTrackHits(0),fNOutTrackHits(0),fOutTracks(0),fNOutTracks(0),fTrackCells(0),fNHitsTotal(0),fTracks(0),fNTracks(0),fCellHitPointers(0)
 {
   // constructor
   fRows = new AliHLTTPCCARow[fParam.NRows()];
@@ -50,7 +46,7 @@ AliHLTTPCCATracker::AliHLTTPCCATracker()
 }
 
 AliHLTTPCCATracker::AliHLTTPCCATracker( const AliHLTTPCCATracker& )
-  :fParam(),fRows(0),fOutTrackHits(0),fNOutTrackHits(0),fOutTracks(0),fNOutTracks(0),fTrackCells(0),fNHitsTotal(0),fTracks(0),fNTracks(0)
+  :fParam(),fRows(0),fOutTrackHits(0),fNOutTrackHits(0),fOutTracks(0),fNOutTracks(0),fTrackCells(0),fNHitsTotal(0),fTracks(0),fNTracks(0),fCellHitPointers(0)
 {
   // dummy
 }
@@ -58,6 +54,11 @@ AliHLTTPCCATracker::AliHLTTPCCATracker( const AliHLTTPCCATracker& )
 AliHLTTPCCATracker &AliHLTTPCCATracker::operator=( const AliHLTTPCCATracker& )
 {
   // dummy
+  fRows=0;
+  fOutTrackHits=0;
+  fOutTracks=0;
+  fNOutTracks=0;
+  fTrackCells=0;
   return *this;
 }
 
@@ -79,7 +80,7 @@ void AliHLTTPCCATracker::Initialize( AliHLTTPCCAParam &param )
   fParam.Update();
   fRows = new AliHLTTPCCARow[fParam.NRows()];
   for( Int_t irow=0; irow<fParam.NRows(); irow++ ){
-    fRows[irow].X() = fParam.RowXFirst() + irow*fParam.RowXStep();
+    fRows[irow].X() = fParam.RowX(irow);
   }
   StartEvent();
 }
@@ -91,6 +92,7 @@ void AliHLTTPCCATracker::StartEvent()
   delete[] fTrackCells;
   delete[] fOutTrackHits;
   delete[] fOutTracks;
+  delete[] fCellHitPointers;
   fTracks = 0;
   fTrackCells = 0;
   fOutTrackHits = 0;
@@ -122,29 +124,42 @@ void AliHLTTPCCATracker::ReadHitRow( Int_t iRow, AliHLTTPCCAHit *Row, Int_t NHit
 void AliHLTTPCCATracker::Reconstruct()
 {
   // reconstruction of event
+  fTimers[0] = 0;
+  fTimers[1] = 0;
+  fTimers[2] = 0;
+  fTimers[3] = 0;
+  //cout<<"Find Cells..."<<endl;
   FindCells();
-  FindTracks();
-}
+  //cout<<"Find Tracks..."<<endl;
+   FindTracks();
+   //cout<<"Find Tracks OK"<<endl;
+ }
 
 
 void AliHLTTPCCATracker::FindCells()
 {
   // cell finder - neighbouring hits are grouped to cells
 
+  TStopwatch timer;
+  Bool_t *vUsed = new Bool_t [fNHitsTotal];
+  fCellHitPointers = new Int_t [fNHitsTotal];
+  AliHLTTPCCACell *vCells = new AliHLTTPCCACell[fNHitsTotal]; 
+
+  Int_t lastCellHitPointer = 0;
   for( Int_t irow=0; irow<fParam.NRows(); irow++ ){
     AliHLTTPCCARow &row=fRows[irow];
     Int_t nHits = row.NHits();
     if( nHits<1 ) continue;
-    row.CellHitPointers() = new Int_t[ nHits ];
+    row.CellHitPointers() = fCellHitPointers + lastCellHitPointer;
     Int_t nPointers = 0;
-    std::vector<AliHLTTPCCACell> vCells; 
-    Bool_t vUsed[10000];
+    Int_t nCells = 0;
+
     for (Int_t ih = 0; ih<nHits; ih++) vUsed[ih] = 0;
-  
+    
     for (Int_t ih = 0; ih<nHits; ih++){    
       if( vUsed[ih] ) continue;
       // cell start
-      AliHLTTPCCACell cell;
+      AliHLTTPCCACell &cell = vCells[nCells++];
       cell.FirstHitRef() = nPointers;
       cell.NHits() = 1;
       cell.IDown() = -1;
@@ -161,9 +176,9 @@ void AliHLTTPCCATracker::FindCells()
 	  if( vUsed[j] ) continue;
 	  AliHLTTPCCAHit &h1  = row.Hits()[j];
 	  Double_t dy = TMath::Abs(h.Y() - h1.Y() );
-	  if( dy>(h.ErrY()+h1.ErrY())*4. ) break;
+	  if( dy>(h.ErrY()+h1.ErrY())*3.5*2 ) break;
 	  Double_t dz = TMath::Abs(h.Z() - h1.Z() );
-	  if( dz>(h.ErrZ()+h1.ErrZ())*4. ) continue;
+	  if( dz>(h.ErrZ()+h1.ErrZ())*3.5*2 ) continue;
 	  Double_t d2 = dz*dz+dy*dy;
 	  if( d2<d2min ){
 	    d2min = d2;
@@ -184,13 +199,17 @@ void AliHLTTPCCATracker::FindCells()
       cell.Z() = .5*(h.Z() + h1.Z());
       cell.ErrY() = .5*(TMath::Abs(h.Y() - h1.Y())/3 + h.ErrY() + h1.ErrY());
       cell.ErrZ() = .5*(TMath::Abs(h.Z() - h1.Z())/3 + h.ErrZ() + h1.ErrZ());
-      vCells.push_back(cell);
     }
     
-    row.Cells() = new AliHLTTPCCACell[vCells.size()];
-    row.NCells() = vCells.size();
-    for( Int_t i=0; i<vCells.size(); i++ ) row.Cells()[i]=vCells[i];  
+    row.Cells() = new AliHLTTPCCACell[nCells];
+    row.NCells() = nCells;
+    lastCellHitPointer += nPointers;
+    for( Int_t i=0; i<nCells; i++ ) row.Cells()[i]=vCells[i];  
   }
+  delete[] vUsed;
+  delete[] vCells;
+  timer.Stop();
+  fTimers[0] = timer.CpuTime();
 }
 
 
@@ -203,25 +222,31 @@ void AliHLTTPCCATracker::FindTracks()
 #ifdef DRAW
   if( !gApplication ){
     TApplication *myapp = new TApplication("myapp",0,0);
-  }
+  }    
+  //AliHLTTPCCADisplay::Instance().Init();
   AliHLTTPCCADisplay::Instance().SetCurrentSector( this );
   AliHLTTPCCADisplay::Instance().DrawSector( this );
-  //for (Int_t i = 0; i<fHits.size(); i++) AliHLTTPCCADisplay::Instance().DrawHit( i );
-  //cout<<"hits"<<endl;
-  //AliHLTTPCCADisplay::Instance().Ask();
-  //AliHLTTPCCADisplay::Instance().Clear();
-  //AliHLTTPCCADisplay::Instance().DrawSector( this );
+  for( Int_t iRow=0; iRow<fParam.NRows(); iRow++ )
+    for (Int_t i = 0; i<fRows[iRow].NHits(); i++) 
+      AliHLTTPCCADisplay::Instance().DrawHit( iRow, i );
+  cout<<"hits"<<endl;
+  AliHLTTPCCADisplay::Instance().Ask();
+  AliHLTTPCCADisplay::Instance().Clear();
+  AliHLTTPCCADisplay::Instance().DrawSector( this );
   for( Int_t iRow=0; iRow<fParam.NRows(); iRow++ )
     for (Int_t i = 0; i<fRows[iRow].NCells(); i++) 
       AliHLTTPCCADisplay::Instance().DrawCell( iRow, i );
-  //cout<<"cells"<<endl;
-  AliHLTTPCCADisplay::Instance().Ask();
+  cout<<"cells"<<endl;
+  AliHLTTPCCADisplay::Instance().Ask();  
   Int_t nConnectedCells = 0;
 #endif 
 
   std::vector<AliHLTTPCCATrack> vTracks; 
   std::vector<Int_t> vTrackCells; 
   fTrackCells = new Int_t[2*fNHitsTotal];
+
+  TStopwatch timer1;
+  Double_t factor2 = 3.5*fParam.CellConnectionFactor()*3.5*fParam.CellConnectionFactor();
 
   for( Int_t iRow1=0; iRow1<fParam.NRows()-1; iRow1++ ){
     AliHLTTPCCARow &row1 = fRows[iRow1];
@@ -237,11 +262,14 @@ void AliHLTTPCCATracker::FindTracks()
 	for (Int_t i2 = 0; i2<row2.NCells(); i2++){
 	  AliHLTTPCCACell *c2  = &(row2.Cells()[i2]);
 	  Double_t sy2 = c2->ErrY()*c2->ErrY();
+	  Double_t dy = c1->Y()-c2->Y();
+	  if( dy*dy>factor2*(sy1+sy2) ){
+	    if( dy>0 ) continue;
+	    else break;
+	  }
 	  Double_t sz2 = c2->ErrZ()*c2->ErrZ();
-	  Double_t dist1 = sqrt( (c1->Y()-c2->Y())*(c1->Y()-c2->Y())/(sy1+sy2) );
-	  Double_t dist2 = sqrt( (c1->Z()-c2->Z())*(c1->Z()-c2->Z())/(sz1+sz2) );
-	  if( dist1>3.5*fParam.CellConnectionFactor() ) continue;
-	  if( dist2>3.5*fParam.CellConnectionFactor() ) continue;
+	  Double_t dz = c1->Z()-c2->Z();
+	  if( dz*dz>factor2*(sz1+sz2) ) continue;
 	  if( c1->IUp() ==-1 ) c1->IUp() = (i2<<8)+iRow2;
 	  else c1->IUp() = -2;
 	  if( c2->IDown() ==-1 ) c2->IDown() = (i1<<8)+iRow1;
@@ -251,13 +279,18 @@ void AliHLTTPCCATracker::FindTracks()
     }
   }
 
+  timer1.Stop();
+  fTimers[1] = timer1.CpuTime();
+
+  TStopwatch timer2;
+
   Int_t nOutTrackHits = 0;
   Int_t nTrackCells = 0;
   for( Int_t iRow1=0; iRow1<fParam.NRows(); iRow1++ ){
-    AliHLTTPCCARow &row1 = fRows[iRow1];
+    AliHLTTPCCARow &row1 = fRows[iRow1];    
     for (Int_t i1 = 0; i1<row1.NCells(); i1++){ 
       AliHLTTPCCACell *c1  = &(row1.Cells()[i1]);
-      if( c1->IDown()==-2 || c1->IUp()==-2 ) continue;
+      //if( c1->IDown()==-2 || c1->IUp()==-2 ) continue;
       if( c1->IUsed()>0 ) continue;
       c1->IUsed() = 1;
       AliHLTTPCCATrack track;
@@ -273,7 +306,7 @@ void AliHLTTPCCATracker::FindTracks()
 	AliHLTTPCCACell *next = &(row2.Cells()[last->IUp()>>8]);
 	if( next->IDown()==-2 || next->IUp()==-2 ) break;
 #ifdef DRAW
-	AliHLTTPCCADisplay::Instance().ConnectCells( lastRow,*last,iRow2,*next );
+ 	AliHLTTPCCADisplay::Instance().ConnectCells( lastRow,*last,iRow2,*next );
 	nConnectedCells++;
 #endif 
 	next->IUsed() = 1;      
@@ -285,32 +318,54 @@ void AliHLTTPCCATracker::FindTracks()
       vTracks.push_back(track);
     }
   }
+
+  timer2.Stop();
+  fTimers[2] = timer2.CpuTime();
   
   Int_t nTracks = vTracks.size();
   std::sort( vTracks.begin(), vTracks.end(), AliHLTTPCCATrack::CompareSize);
+
+#ifdef DRAW
+  if( nConnectedCells>0 ) AliHLTTPCCADisplay::Instance().Ask();  
+#endif 
+
   
   fTracks = new AliHLTTPCCATrack[nTracks];
   fNTracks = 0;
   vTrackCells.clear();
  
-  Int_t * vMatchedTracks = new Int_t[nTracks];
+  Int_t *vMatchedTracks = new Int_t[nTracks];
+
+  //cout<<"nTracks = "<<nTracks<<endl;
+  TStopwatch timer3;
+  
   for( Int_t itr=0; itr<nTracks; itr++ ){
     AliHLTTPCCATrack &iTrack = vTracks[itr];
-    if( iTrack.Used() ) continue;    
+    if( iTrack.NCells()<3 ) break;
+
+#ifdef DRAW
     FitTrack( iTrack );
-    if( iTrack.Param().Chi2() > fParam.TrackChi2Cut()*iTrack.Param().NDF() ) continue;    
+    //AliHLTTPCCADisplay::Instance().Ask();
+    AliHLTTPCCADisplay::Instance().DrawTrack( iTrack );
+    //AliHLTTPCCADisplay::Instance().Ask();
+#endif 
+    if( iTrack.Used() ) continue;    
+    
+   
+    FitTrack( iTrack, 1 );
+    if( iTrack.Param().Chi2() > fParam.TrackChi2Cut()*iTrack.Param().NDF() ) continue;
 
     Int_t iFirstRow =  GetTrackCellIRow( iTrack, 0);
     Int_t iLastRow  =  GetTrackCellIRow( iTrack, iTrack.NCells()-1);
     AliHLTTPCCACell *iFirstCell = &GetTrackCell( iTrack, 0);
-    AliHLTTPCCACell *iLastCell = &GetTrackCell( iTrack, iTrack.NCells()-1);
-    
+    AliHLTTPCCACell *iLastCell = &GetTrackCell( iTrack, iTrack.NCells()-1);   
     Bool_t updated = 1;
     Int_t nMatched = 0;
-    std::vector<Int_t> vMatchedCells;
+    std::vector<Int_t> vMatchedCellsFront;
+    std::vector<Int_t> vMatchedCellsBack;
     while( updated ){
       updated = 0;
-      for( Int_t jtr=1; jtr<nTracks; jtr++ ){
+      for( Int_t jtr=itr+1; jtr<nTracks; jtr++ ){
 	AliHLTTPCCATrack &jTrack = vTracks[jtr];
 	if( jTrack.Used() ) continue;
 	Int_t jFirstRow =  GetTrackCellIRow( jTrack, 0);
@@ -352,10 +407,10 @@ void AliHLTTPCCATracker::FindTracks()
 	  Double_t sz1 = iC->ErrZ()*iC->ErrZ();
 	  Double_t sy2 = jC->ErrY()*jC->ErrY();
 	  Double_t sz2 = jC->ErrZ()*jC->ErrZ();
-	  Double_t dist1 = sqrt( (dy)/(sy1+sy2) );
-	  Double_t dist2 = sqrt( (dz)/(sz1+sz2) );
-	  if( dist1>3.5*5*fParam.CellConnectionFactor() ) continue;
-	  if( dist2>3.5*5*fParam.CellConnectionFactor() ) continue;
+	  Double_t dist1 = sqrt( (dy*dy)/(sy1+sy2) );
+	  Double_t dist2 = sqrt( (dz*dz)/(sz1+sz2) );
+	  if( dist1>3.5*fParam.TrackConnectionFactor() ) continue;
+	  if( dist2>3.5*fParam.TrackConnectionFactor() ) continue;
 	}
 	AliHLTTPCCATrackPar t = iTrack.Param();
 	//t.Chi2() = 0;
@@ -377,21 +432,30 @@ void AliHLTTPCCATracker::FindTracks()
 	if( iCase==0 ){
 	  iFirstRow = jFirstRow;
 	  iFirstCell = jFirstCell;
+	  for( Int_t i=jTrack.NCells()-1; i>=0; i-- ){
+	    vMatchedCellsBack.push_back(fTrackCells[jTrack.IFirstCell()+i]);
+	  }
 	}else if( iCase ==1 ){
 	  iFirstRow = jLastRow;
 	  iFirstCell = jLastCell;
+	  for( Int_t i=0; i<jTrack.NCells(); i++){
+	    vMatchedCellsBack.push_back(fTrackCells[jTrack.IFirstCell()+i]);
+	  }
 	}else if( iCase == 2 ){
 	  iLastRow = jFirstRow;
 	  iLastCell = jFirstCell;
+	  for( Int_t i=jTrack.NCells()-1; i>=0; i-- ){
+	    vMatchedCellsFront.push_back(fTrackCells[jTrack.IFirstCell()+i]);
+	  }
 	}else{
 	  iLastRow = jLastRow;
 	  iLastCell = jLastCell;
+	  for( Int_t i=0; i<jTrack.NCells(); i++){
+	    vMatchedCellsFront.push_back(fTrackCells[jTrack.IFirstCell()+i]);
+	  }
 	}
 	t.Normalize();
 
-	for( Int_t i=0; i<jTrack.NCells(); i++){
-	  vMatchedCells.push_back(fTrackCells[jTrack.IFirstCell()+i]);
-	}
 	//t.NDF()+= iTrack.Param().NDF();
 	//t.Chi2()+= iTrack.Param().Chi2();
 	iTrack.Param() = t;
@@ -400,7 +464,7 @@ void AliHLTTPCCATracker::FindTracks()
 	updated = 1;
 	break;
       }
-    }
+    }// while updated
 
     if(0){
       Double_t t0[7];
@@ -430,39 +494,58 @@ void AliHLTTPCCATracker::FindTracks()
       AliHLTTPCCACell &c = row.Cells()[ind>>8];
       nHits+=c.NHits();
     }
-    for( UInt_t i=0; i<vMatchedCells.size(); i++){
-      Int_t ind = vMatchedCells[i];
+    for( UInt_t i=0; i<vMatchedCellsBack.size(); i++){
+      Int_t ind = vMatchedCellsBack[i];
       AliHLTTPCCARow &row = fRows[ind%256];
       AliHLTTPCCACell &c = row.Cells()[ind>>8];
       nHits+=c.NHits();
     }
-
-    if( nHits<5 ){
+    for( UInt_t i=0; i<vMatchedCellsFront.size(); i++){
+      Int_t ind = vMatchedCellsFront[i];
+      AliHLTTPCCARow &row = fRows[ind%256];
+      AliHLTTPCCACell &c = row.Cells()[ind>>8];
+      nHits+=c.NHits();
+    }
+    Int_t nCells = iTrack.NCells()+vMatchedCellsBack.size()+vMatchedCellsFront.size();
+    if( nHits<5 || nCells<3){
       for( Int_t i=0; i<nMatched; i++ ) vTracks[vMatchedTracks[i]].Used()=0;
       continue;
     }
     iTrack.Used() = 1;
-    Int_t oldNCells = vTrackCells.size();
+
+    AliHLTTPCCATrack &mTrack = fTracks[fNTracks++];
+    mTrack = iTrack;
+    mTrack.IFirstCell() = vTrackCells.size();
+    mTrack.NCells() = 0;
+
+    for( Int_t i=vMatchedCellsBack.size()-1; i>=0; i-- ){
+      vTrackCells.push_back(vMatchedCellsBack[i]);
+      mTrack.NCells()++;
+    }
     for( Int_t i=0; i<iTrack.NCells() ; i++){
       vTrackCells.push_back(fTrackCells[iTrack.IFirstCell()+i]);
-    }      
-    iTrack.IFirstCell() = oldNCells;
-    for( UInt_t i=0; i<vMatchedCells.size(); i++){
-      vTrackCells.push_back(vMatchedCells[i]);
-      iTrack.NCells()++;
-    }      
-    fTracks[fNTracks++] = iTrack;  
+      mTrack.NCells()++;
+    }
+    for( UInt_t i=0; i<vMatchedCellsFront.size(); i++){
+      vTrackCells.push_back(vMatchedCellsFront[i]);
+      mTrack.NCells()++;
+    }     
     nOutTrackHits+= nHits;  
   }
-  delete [] vMatchedTracks;
+
+  timer3.Stop();
+  fTimers[3] = timer3.CpuTime();
+
+  delete[] vMatchedTracks;
 
   //fTrackCells = new Int_t[vTrackCells.size()];
   for( UInt_t i=0; i<vTrackCells.size(); i++ ) fTrackCells[i] = vTrackCells[i];
   
 #ifdef DRAW
-  if( nConnectedCells>0 ) AliHLTTPCCADisplay::Instance().Ask();
+  if( nTracks>0 ) AliHLTTPCCADisplay::Instance().Ask();
 #endif 
 
+  //cout<<"n out Tracks = "<<fNTracks<<endl;
 
   fOutTrackHits = new Int_t[nOutTrackHits];
   fNOutTrackHits = 0;
@@ -471,7 +554,8 @@ void AliHLTTPCCATracker::FindTracks()
   for( Int_t itr=0; itr<fNOutTracks; itr++ ){
     AliHLTTPCCATrack &t = fTracks[itr];
 #ifdef DRAW
-  AliHLTTPCCADisplay::Instance().DrawTrack( t );
+    AliHLTTPCCADisplay::Instance().DrawTrack( t );
+    //AliHLTTPCCADisplay::Instance().Ask();
 #endif 
     AliHLTTPCCAOutTrack &tmp = fOutTracks[itr];
     tmp.FirstHitRef() = fNOutTrackHits;
@@ -527,6 +611,8 @@ void AliHLTTPCCATracker::FitTrack( AliHLTTPCCATrack &track, Int_t nIter )
   }
   t0[6] = 0;
 
+  Int_t step = track.NCells()/3;
+
   for( Int_t iter=0; iter<nIter; iter++ ){
     t.Init();
     for( Int_t i=0; i<7; i++) t.Par()[i] = t0[i];
@@ -536,8 +622,10 @@ void AliHLTTPCCATracker::FitTrack( AliHLTTPCCATrack &track, Int_t nIter )
     }
     t.Init();
     for( Int_t i=0; i<7; i++ ) t.Par()[i] = t0[i];
-    
-    for( Int_t i=0; i<track.NCells() ; i++){
+
+    //AliHLTTPCCATrackPar tt = t;
+  
+    for( Int_t i=0; i<track.NCells() ; i+=step){
       AliHLTTPCCACell &c = GetTrackCell(track,i);
       AliHLTTPCCARow &row = GetTrackCellRow(track,i);
       for( Int_t j=0; j<c.NHits(); j++){
@@ -548,6 +636,9 @@ void AliHLTTPCCATracker::FitTrack( AliHLTTPCCATrack &track, Int_t nIter )
 	t.TransportBz(fParam.Bz(),m, t0);
 	t.GetConnectionMatrix(fParam.Bz(),m, mV1, t0);
 	t.Filter(m, mV, mV1);
+	//tt.TransportBz(fParam.Bz(),m, t0);
+	//tt.GetConnectionMatrix(fParam.Bz(),m, mV1, t0);
+	//tt.Filter(m, mV, mV1);
       }
     }
     t.Normalize();

@@ -20,21 +20,20 @@
 #include "TMath.h"
 
 
-ClassImp(AliHLTTPCCAParam);
+ClassImp(AliHLTTPCCAParam)
 
 AliHLTTPCCAParam::AliHLTTPCCAParam()
-  : fISec(0),fNRows(63),fRowXFirst(85.225), fRowXStep(0.75),fAlpha(0.174533), fDAlpha(0.349066),
+  : fISec(0),fNRows(63),fAlpha(0.174533), fDAlpha(0.349066),
     fCosAlpha(0), fSinAlpha(0), fAngleMin(0), fAngleMax(0), fRMin(83.65), fRMax(133.3),
     fZMin(0.0529937), fZMax(249.778), fErrZ(0.228808), fErrX(0), fErrY(0),fPadPitch(0.4),fBz(-5.), 
-    fCellConnectionFactor(5), fTrackChiCut(6), fTrackChi2Cut(0), fMaxTrackMatchDRow(3),
+    fCellConnectionFactor(3), fTrackConnectionFactor(5), fTrackChiCut(6), fTrackChi2Cut(0), fMaxTrackMatchDRow(4),
     fYErrorCorrection(0.33), fZErrorCorrection(0.45)
 {
   Update();
 }
 
 void AliHLTTPCCAParam::Initialize( Int_t iSec, 
-				   Int_t NRows, 
-				   Double_t RowXFirst, Double_t RowXStep,
+				   Int_t NRows, Double_t RowX[],
 				   Double_t Alpha, Double_t DAlpha,
 				   Double_t RMin, Double_t RMax,
 				   Double_t ZMin, Double_t ZMax,
@@ -55,8 +54,10 @@ void AliHLTTPCCAParam::Initialize( Int_t iSec,
   fErrZ = ZSigma;
   fBz = Bz;
   fNRows = NRows;
-  fRowXFirst = RowXFirst;
-  fRowXStep = RowXStep;
+  for( Int_t irow=0; irow<NRows; irow++ ){
+    fRowX[irow] = RowX[irow];
+  }
+
   Update();
 }
 
@@ -72,7 +73,7 @@ void AliHLTTPCCAParam::Update()
 }
 
 void AliHLTTPCCAParam::Sec2Global(   Double_t x, Double_t y,  Double_t z, 
-					 Double_t *X, Double_t *Y,  Double_t *Z ) const
+				     Double_t *X, Double_t *Y,  Double_t *Z ) const
 {  
   // conversion of coorinates sector->global
   *X = x*fCosAlpha - y*fSinAlpha;

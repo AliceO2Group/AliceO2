@@ -19,7 +19,7 @@
 #include "AliHLTTPCCATrackPar.h"
 #include "TMath.h"
 
-ClassImp(AliHLTTPCCATrackPar);
+ClassImp(AliHLTTPCCATrackPar)
 
 void AliHLTTPCCATrackPar::Init()
 {
@@ -27,8 +27,8 @@ void AliHLTTPCCATrackPar::Init()
 
   for( Int_t i=0; i<7; i++ ) fP[i] = 0;
   for( Int_t i=0; i<28; i++ ) fC[i] = 0;
-  fC[0] = fC[2] = fC[5] = 10000;
-  fC[9] = fC[14] = fC[20] = 10000.;
+  fC[0] = fC[2] = fC[5] = 100.;
+  fC[9] = fC[14] = fC[20] = 100.;
   fC[27] = 10.;
   fChi2 = 0;
   fNDF = -5;
@@ -37,7 +37,9 @@ void AliHLTTPCCATrackPar::Init()
 
 void AliHLTTPCCATrackPar::Normalize( Double_t Direction[3] )
 {
-  //* Normalize the track
+  //* Normalize the track directions
+  //* (Px,Py,Pz,qp)-> (Px,Py,Pz,qp)/sqrt(Px²+Py²+Pz²)
+  //* 
 
   Double_t p2 = fP[3]*fP[3] + fP[4]*fP[4] + fP[5]*fP[5];
   if( p2<1.e-4 ) return;
@@ -86,7 +88,9 @@ void AliHLTTPCCATrackPar::Normalize( Double_t Direction[3] )
 
 Double_t AliHLTTPCCATrackPar::GetDsToPointBz( Double_t Bz, const Double_t xyz[3], const Double_t *T0 ) const
 {
-  //* Get dS to a certain space point for Bz field
+  //* Get dS distance to the given space point for Bz field
+  //*
+
   const Double_t kCLight = 0.000299792458;
   Double_t bq = Bz*T0[6]*kCLight;
   Double_t pt2 = T0[3]*T0[3] + T0[4]*T0[4];
@@ -142,36 +146,75 @@ void AliHLTTPCCATrackPar::TransportBz( Double_t Bz, Double_t S, Double_t *T0 )
   T0[5] = T0[5];
   T0[6] = T0[6];
 
- 
-  Double_t mJ[7][7] = { {1,0,0,   sB, cB,  0,   dsB*px + dcB*py },
-                        {0,1,0,  -cB, sB,  0, - dcB*px + dsB*py },
-                        {0,0,1,    0,  0,  S,   0               },
-                        {0,0,0,    c,  s,  0,   (-s*px + c*py)*bs },
-                        {0,0,0,   -s,  c,  0,   (-c*px - s*py)*bs },
-                        {0,0,0,    0,  0,  1,   0                 },
-                        {0,0,0,    0,  0,  0,   1                 }  };
+  //* The Jacobian matrix is:
+  //* J[7][7] = { {1,0,0,   sB, cB,  0,   dsB*px + dcB*py },
+  //*             {0,1,0,  -cB, sB,  0, - dcB*px + dsB*py },
+  //*             {0,0,1,    0,  0,  S,   0               },
+  //*             {0,0,0,    c,  s,  0,   (-s*px + c*py)*bs },
+  //*             {0,0,0,   -s,  c,  0,   (-c*px - s*py)*bs },
+  //*             {0,0,0,    0,  0,  1,   0                 },
+  //*             {0,0,0,    0,  0,  0,   1                 }  };
+  //*
+  //* below the fP=T0+J*(fP-T0) and fC=J*fC*Jt operations are performed
+  //*
 
-  for( Int_t i=0; i<7; i++){
-    fP[i] = T0[i];
-    for( Int_t j=0; j<7; j++) fP[i] += mJ[i][j]*d[j];
-  }
+  Double_t h0 = dsB*px + dcB*py;
+  Double_t h1 = - dcB*px + dsB*py ;
+  Double_t h3 = (-s*px + c*py)*bs ;
+  Double_t h4 = (-c*px - s*py)*bs ;
 
-  Double_t mA[7][7];
-  for( Int_t k=0,i=0; i<7; i++)
-    for( Int_t j=0; j<=i; j++, k++ ) mA[i][j] = mA[j][i] = fC[k]; 
 
-  Double_t mJC[7][7];
-  for( Int_t i=0; i<7; i++ )
-    for( Int_t j=0; j<7; j++ ){
-      mJC[i][j]=0;
-      for( Int_t k=0; k<7; k++ ) mJC[i][j]+=mJ[i][k]*mA[k][j];
-    }
+  fP[0] = T0[0] + d[0] + sB*d[3] + cB*d[4] + h0*d[6];
+  fP[1] = T0[1] + d[1] - cB*d[3] + sB*d[4] + h1*d[6];
+  fP[2] = T0[2] + d[2] + S*d[5];
+  fP[3] = T0[3] + c*d[3] + s*d[4] + h3*d[6];
+  fP[4] = T0[4] - s*d[3] + c*d[4] + h4*d[6];
+  fP[5] = T0[5] + d[5];
+  fP[6] = T0[6] + d[6];
   
-  for( Int_t k=0,i=0; i<7; i++)
-    for( Int_t j=0; j<=i; j++, k++ ){
-      fC[k] = 0;
-      for( Int_t l=0; l<7; l++ ) fC[k]+=mJC[i][l]*mJ[j][l];
-    }
+
+  Double_t 
+    c00 = fC[ 0],
+    c01 = fC[ 1], c02 = fC[ 2],
+    c03 = fC[ 3], c04 = fC[ 4], c05 = fC[ 5],
+    c06 = fC[ 6], c07 = fC[ 7], c08 = fC[ 8], c09 = fC[ 9], 
+    c10 = fC[10], c11 = fC[11], c12 = fC[12], c13 = fC[13], c14 = fC[14], 
+    c15 = fC[15], c16 = fC[16], c17 = fC[17], c18 = fC[18], c19 = fC[19], c20 = fC[20], 
+    c21 = fC[21], c22 = fC[22], c23 = fC[23], c24 = fC[24], c25 = fC[25], c26 = fC[26], c27 = fC[27];
+
+  fC[ 0] = c00 + 2*c10*cB + c14*cB*cB + 2*c21*h0 + 2*c25*cB*h0 + c27*h0*h0 + 2*c06*sB + 2*c13*cB*sB + 2*c24*h0*sB + c09*sB*sB;
+  fC[ 1] = c01 - c06*cB + c21*h1 + c10*sB + sB*(c07 - c09*cB + c24*h1 + c13*sB) 
+    + cB*(c11 - c13*cB + c25*h1 + c14*sB) + h0*(c22 - c24*cB + c27*h1 + c25*sB);
+  fC[ 2] = c02 - 2*c07*cB + c09*cB*cB + 2*c22*h1 - 2*c24*cB*h1 + c27*h1*h1 
+    + 2*c11*sB - 2*c13*cB*sB + 2*c25*h1*sB + c14*sB*sB;
+  fC[ 3] = c03 + c12*cB + c23*h0 + c15*S + c19*cB*S + c26*h0*S + c08*sB + c18*S*sB;
+  fC[ 4] = c04 + c16*S  - cB*(c08 + c18*S) + h1*(c23 + c26*S) + (c12 + c19*S)*sB;
+  fC[ 5] = c05 + S*(2*c17 + c20*S);
+  fC[ 6] = c21*h3 + c25*cB*h3 + c27*h0*h3 + c10*s + c14*cB*s + c25*h0*s + c24*h3*sB + c13*s*sB + c*(c06 + c13*cB + c24*h0 + c09*sB);
+  fC[ 7] =  c*c07 + c22*h3 + c11*s - cB*(c*c09 + c24*h3 + c13*s) + 
+    h1*(c*c24 + c27*h3 + c25*s) + (c*c13 + c25*h3 + c14*s)*sB;
+  fC[ 8] = c23*h3 + c12*s + c26*h3*S + c19*s*S + c*(c08 + c18*S);
+  fC[ 9] = c*c*c09 + c27*h3*h3 + 2*c*(c24*h3 + c13*s) + s*(2*c25*h3 + c14*s);
+  fC[10] = c21*h4 + c25*cB*h4 + c27*h0*h4 - c06*s - c13*cB*s - c24*h0*s 
+    + c24*h4*sB - c09*s*sB + c*(c10 + c14*cB + c25*h0 + c13*sB);
+  fC[11] =  c22*h4 - c24*cB*h4 + c27*h1*h4 - c07*s + c09*cB*s - c24*h1*s + 
+    c25*h4*sB - c13*s*sB + c*(c11 - c13*cB + c25*h1 + c14*sB);
+  fC[12] =  c23*h4 - c08*s + c26*h4*S - c18*s*S + c*(c12 + c19*S);
+  fC[13] =  c*c*c13 + c27*h3*h4 - s*(c24*h3 - c25*h4 + c13*s) + c*(c25*h3 + c24*h4 - c09*s + c14*s);
+  fC[14] = c*c*c14 + 2*c*c25*h4 + c27*h4*h4 - 2*c*c13*s - 2*c24*h4*s + c09*s*s;
+  fC[15] = c15 + c19*cB + c26*h0 + c18*sB;
+  fC[16] = c16 - c18*cB + c26*h1 + c19*sB;
+  fC[17] = c17 + c20*S;
+  fC[18] = c*c18 + c26*h3 + c19*s;
+  fC[19] = c*c19 + c26*h4 - c18*s;
+  fC[20] = c20;
+  fC[21] = c21 + c25*cB + c27*h0 + c24*sB;
+  fC[22] = c22 - c24*cB + c27*h1 + c25*sB;
+  fC[23] = c23 + c26*S;
+  fC[24] = c*c24 + c27*h3 + c25*s;
+  fC[25] = c*c25 + c27*h4 - c24*s;
+  fC[26] = c26;
+  fC[27] = c27;
 }
 
 void AliHLTTPCCATrackPar::TransportBz( Double_t Bz, Double_t dS ) 
@@ -208,9 +251,14 @@ void AliHLTTPCCATrackPar::GetConnectionMatrix( Double_t B, const Double_t p[3], 
 }
 
 
-void AliHLTTPCCATrackPar::Filter( const Double_t m[3], const Double_t V[6], const Double_t V1[6] )
+void AliHLTTPCCATrackPar::Filter( const Double_t m[], const Double_t V[], const Double_t G[6] )
 {
-  //* !
+  //* Add the measurement m to the track using the Kalman Filter mathematics
+  //* m[3] is the measurement
+  //* V[6] is the low-triangular covariance matrix
+  //* G[6] is the track->measurement "connection matrix", additional to V[]
+  //*
+
   Double_t 
     c00 = fC[ 0],
     c10 = fC[ 1], c11 = fC[ 2],
@@ -220,13 +268,13 @@ void AliHLTTPCCATrackPar::Filter( const Double_t m[3], const Double_t V[6], cons
     c50 = fC[15], c51 = fC[16], c52 = fC[17],
     c60 = fC[21], c61 = fC[22], c62 = fC[23];
   
-  double
+  Double_t
     z0 = m[0]-fP[0],
     z1 = m[1]-fP[1],
     z2 = m[2]-fP[2];
   
-  Double_t mS[6] = { c00+V[0]+V1[0], c10+V[1]+V1[1], c11+V[2]+V1[2],
-		     c20+V[3]+V1[3], c21+V[4]+V1[4], c22+V[5]+V1[5] };
+  Double_t mS[6] = { c00+V[0]+G[0], c10+V[1]+G[1], c11+V[2]+G[2],
+		     c20+V[3]+G[3], c21+V[4]+G[4], c22+V[5]+G[5] };
   Double_t mSi[6];
   mSi[0] = mS[4]*mS[4] - mS[2]*mS[5];
   mSi[1] = mS[1]*mS[5] - mS[3]*mS[4];
@@ -322,7 +370,8 @@ void AliHLTTPCCATrackPar::Filter( const Double_t m[3], const Double_t V[6], cons
 
 void AliHLTTPCCATrackPar::Rotate( Double_t alpha )
 {
-  //* !
+  //* Rotate the track parameters on the alpha angle 
+
   Double_t cA = TMath::Cos( alpha );
   Double_t sA = TMath::Sin( alpha );
   Double_t x= fP[0], y= fP[1], px= fP[3], py= fP[4];
@@ -362,8 +411,14 @@ void AliHLTTPCCATrackPar::Rotate( Double_t alpha )
 
 
 void AliHLTTPCCATrackPar::ConvertTo5( Double_t alpha, Double_t T[], Double_t C[] )
-const {
-  //* !
+const 
+{
+  //* Convert the track parameterisation to {y,z,ty,tz,q/p,x}
+  //* The result is stored in T[], corresponding covariance matrix in C[]
+  //*
+  //* The method is used for debuging
+  //*
+
   AliHLTTPCCATrackPar t = *this;
   t.Rotate(alpha);
   Double_t 

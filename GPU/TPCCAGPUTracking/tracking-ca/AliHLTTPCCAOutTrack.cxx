@@ -19,4 +19,8 @@
 #include "AliHLTTPCCAOutTrack.h"
 
 
-ClassImp(AliHLTTPCCAOutTrack);
+ClassImp(AliHLTTPCCAOutTrack)
+
+void AliHLTTPCCAOutTrack::Dummy()
+{
+}

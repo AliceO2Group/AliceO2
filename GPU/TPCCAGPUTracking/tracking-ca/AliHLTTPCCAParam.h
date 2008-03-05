@@ -14,6 +14,9 @@
  * @class ALIHLTTPCCAParam
  * parameters of the CATracker, including geometry information
  * and some reconstructon constants.
+ *
+ * The class is under construction.
+ *
  */
 class AliHLTTPCCAParam
 {
@@ -22,7 +25,7 @@ class AliHLTTPCCAParam
   AliHLTTPCCAParam();
   virtual ~AliHLTTPCCAParam(){;}
 
-  void Initialize( Int_t iSec, Int_t NRows, Double_t RowXFirst, Double_t RowXStep,
+  void Initialize( Int_t iSec, Int_t NRows, Double_t RowX[],
 		   Double_t Alpha, Double_t DAlpha,
 		   Double_t RMin, Double_t RMax, Double_t ZMin, Double_t ZMax,
 		   Double_t PadPitch, Double_t ZSigma, Double_t Bz );
@@ -34,8 +37,8 @@ class AliHLTTPCCAParam
 		   Double_t *X, Double_t *Y,  Double_t *Z ) const;
   Int_t &ISec(){ return fISec;}
   Int_t &NRows(){ return fNRows;}
-  Double_t &RowXFirst(){ return fRowXFirst; }
-  Double_t &RowXStep(){ return fRowXStep; }
+
+  Double_t &RowX( Int_t iRow ){ return fRowX[iRow]; }
   
   Double_t &Alpha(){ return fAlpha;}
   Double_t &DAlpha(){ return fDAlpha;}
@@ -53,8 +56,9 @@ class AliHLTTPCCAParam
   Double_t &Bz(){ return fBz;}
 
   Double_t &CellConnectionFactor(){ return fCellConnectionFactor; }
+  Double_t &TrackConnectionFactor(){ return fTrackConnectionFactor; }
   Double_t &TrackChiCut() { return fTrackChiCut; }
-  Double_t  TrackChi2Cut(){ return fTrackChi2Cut; }
+  Double_t &TrackChi2Cut(){ return fTrackChi2Cut; }
   Int_t    &MaxTrackMatchDRow(){ return fMaxTrackMatchDRow; }
   Double_t &YErrorCorrection(){ return fYErrorCorrection; }
   Double_t &ZErrorCorrection(){ return fZErrorCorrection; }
@@ -63,7 +67,6 @@ class AliHLTTPCCAParam
 
   Int_t fISec; // sector number
   Int_t fNRows; // number of rows
-  Double_t fRowXFirst, fRowXStep; // X coordinate of the first row and step between rows
   Double_t fAlpha, fDAlpha; // sector angle and angular size
   Double_t fCosAlpha, fSinAlpha;// sign and cosine of the sector angle
   Double_t fAngleMin, fAngleMax; // minimal and maximal angle
@@ -74,11 +77,14 @@ class AliHLTTPCCAParam
   Double_t fBz;       // magnetic field value (only constant field can be used)
 
   Double_t fCellConnectionFactor; // allowed distance in Chi^2/3.5 for neighbouring cells
+  Double_t fTrackConnectionFactor; // allowed distance in Chi^2/3.5 for neighbouring tracks
   Double_t fTrackChiCut; // cut for track Sqrt(Chi2/NDF);
   Double_t fTrackChi2Cut;// cut for track Chi^2/NDF
   Int_t    fMaxTrackMatchDRow;// maximal jump in TPC row for connecting track segments
   Double_t fYErrorCorrection;// correction factor for Y error of input clusters
   Double_t fZErrorCorrection;// correction factor for Z error of input clusters
+
+  Double_t fRowX[200];// X-coordinate of rows
 
   ClassDef(AliHLTTPCCAParam,1);
 };

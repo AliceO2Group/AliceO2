@@ -19,14 +19,14 @@
 #include "AliHLTTPCCADisplay.h"
 
 #include "AliHLTTPCCATracker.h"
-#include "TString.h"
+  //#include "TString.h"
 #include "Riostream.h"
 #include "TMath.h"
 #include "TStyle.h"
 #include "TCanvas.h"
-#include <vector>
+#include <algorithm>
 
-ClassImp(AliHLTTPCCADisplay);
+ClassImp(AliHLTTPCCADisplay)
 
 AliHLTTPCCADisplay &AliHLTTPCCADisplay::Instance()
 {
@@ -35,7 +35,7 @@ AliHLTTPCCADisplay &AliHLTTPCCADisplay::Instance()
   return gAliHLTTPCCADisplay; 
 }
 
-AliHLTTPCCADisplay::AliHLTTPCCADisplay() : fXY(0), fZY(0), fAsk(1), fSectorView(1), fSector(0), 
+AliHLTTPCCADisplay::AliHLTTPCCADisplay() : fYX(0), fZX(0), fAsk(1), fSectorView(1), fSector(0), 
 					   fCos(1), fSin(0), fZMin(-250), fZMax(250),
 					   fRInnerMin(83.65), fRInnerMax(133.3), fROuterMin(133.5), fROuterMax(247.7),
 					   fTPCZMin(-250.), fTPCZMax(250), fArc(), fLine(), fPLine(), fMarker(), fBox(), fCrown(), fLatex()
@@ -44,7 +44,7 @@ AliHLTTPCCADisplay::AliHLTTPCCADisplay() : fXY(0), fZY(0), fAsk(1), fSectorView(
 }
 
 AliHLTTPCCADisplay::AliHLTTPCCADisplay( const AliHLTTPCCADisplay& ) 
-  : fXY(0), fZY(0), fAsk(1), fSectorView(1), fSector(0), 
+  : fYX(0), fZX(0), fAsk(1), fSectorView(1), fSector(0), 
     fCos(1), fSin(0), fZMin(-250), fZMax(250),
     fRInnerMin(83.65), fRInnerMax(133.3), fROuterMin(133.5), fROuterMax(247.7),
     fTPCZMin(-250.), fTPCZMax(250), fArc(), fLine(), fPLine(), fMarker(), fBox(), fCrown(), fLatex()
@@ -61,8 +61,8 @@ AliHLTTPCCADisplay& AliHLTTPCCADisplay::operator=( const AliHLTTPCCADisplay& )
 AliHLTTPCCADisplay::~AliHLTTPCCADisplay()
 {
   // destructor
-  delete fXY; 
-  delete fZY;
+  delete fYX; 
+  delete fZX;
 }
 
 void AliHLTTPCCADisplay::Init()
@@ -71,8 +71,8 @@ void AliHLTTPCCADisplay::Init()
   gStyle->SetCanvasBorderMode(0);
   gStyle->SetCanvasBorderSize(1);
   gStyle->SetCanvasColor(0);
-  fXY = new TCanvas ("XY", "XY window", -1, 0, 600, 600);
-  fZY = new TCanvas ("ZY", "ZY window", -610, 0, 590, 600);  
+  fYX = new TCanvas ("YX", "YX window", -1, 0, 600, 600);
+  fZX = new TCanvas ("ZX", "ZX window", -610, 0, 590, 600);  
   fMarker = TMarker(0.0, 0.0, 6);
 }
 
@@ -80,15 +80,15 @@ void AliHLTTPCCADisplay::Update()
 {
   // update windows
   if( !fAsk ) return;
-  fXY->Update();
-  fZY->Update();
+  fYX->Update();
+  fZX->Update();
 }
 
 void AliHLTTPCCADisplay::Clear()
 {
   // clear windows
-  fXY->Clear();
-  fZY->Clear();
+  fYX->Clear();
+  fZX->Clear();
 }
 
 void AliHLTTPCCADisplay::Ask()
@@ -97,9 +97,9 @@ void AliHLTTPCCADisplay::Ask()
   char symbol;
   if (fAsk){
     Update();
-    cout<<"ask> "<<endl;
+    std::cout<<"ask> "<<std::endl;
     do{
-      cin.get(symbol);
+      std::cin.get(symbol);
       if (symbol == 'r')
 	fAsk = false;
     } while (symbol != '\n');
@@ -138,10 +138,10 @@ void AliHLTTPCCADisplay::SetCurrentSector( AliHLTTPCCATracker *sec )
     Double_t cx = 0;
     Double_t cy = r0;
 
-    fXY->Range(cx-dr, cy-dr, cx+dr, cy+dr);
+    fYX->Range(cx-dr, cy-dr, cx+dr, cy+dr);
     Double_t cz = .5*(sec->Param().ZMax()+sec->Param().ZMin());
     Double_t dz = .5*(sec->Param().ZMax()-sec->Param().ZMin())*1.2;
-    fZY->Range(cz-dz, cy-dr, cz+dz, cy+dr);
+    fZX->Range(cz-dz, cy-dr, cz+dz, cy+dr);
   }
 }
 
@@ -149,13 +149,13 @@ Int_t AliHLTTPCCADisplay::GetColor( Double_t z ) const
 {
   // Get color with respect to Z coordinate
   const Color_t kMyColor[11] = { kGreen, kBlue, kYellow, kMagenta, kCyan, 
-				kOrange, kSpring, kTeal, kAzure, kViolet, kPink };
+				 kOrange, kSpring, kTeal, kAzure, kViolet, kPink };
 
   Double_t zz = (z-fZMin)/(fZMax-fZMin);    
   Int_t iz = (int) (zz*11);
   if( iz<0 ) iz = 0;
   if( iz>10 ) iz = 10;
-  return kMyColor[iz]-4;
+  return kMyColor[iz];
 }
 
 void AliHLTTPCCADisplay::Global2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const
@@ -178,12 +178,12 @@ void AliHLTTPCCADisplay::Sec2View( Double_t x, Double_t y, Double_t *xv, Double_
 void AliHLTTPCCADisplay::DrawTPC()
 {
   // schematically draw TPC detector
-  fXY->Range(-fROuterMax, -fROuterMax, fROuterMax, fROuterMax);
-  fXY->Clear();
+  fYX->Range(-fROuterMax, -fROuterMax, fROuterMax, fROuterMax);
+  fYX->Clear();
   {
     fArc.SetLineColor(kBlack);
     fArc.SetFillStyle(0);
-    fXY->cd();    
+    fYX->cd();    
     for( Int_t iSec=0; iSec<18; iSec++){
       fCrown.SetLineColor(kBlack);
       fCrown.SetFillStyle(0);
@@ -191,15 +191,15 @@ void AliHLTTPCCADisplay::DrawTPC()
       fCrown.DrawCrown(0,0,fROuterMin, fROuterMax, 360./18.*iSec, 360./18.*(iSec+1) );
     }
   }
-  fZY->cd();
-  fZY->Range( fTPCZMin, -fROuterMax, fTPCZMax, fROuterMax );
-  fZY->Clear();
+  fZX->cd();
+  fZX->Range( fTPCZMin, -fROuterMax, fTPCZMax, fROuterMax );
+  fZX->Clear();
 }
 
 void AliHLTTPCCADisplay::DrawSector( AliHLTTPCCATracker *sec )
 {     
   // draw current the TPC sector
-  fXY->cd();
+  fYX->cd();
   Double_t r0 = .5*(sec->Param().RMax()+sec->Param().RMin());
   Double_t dr = .5*(sec->Param().RMax()-sec->Param().RMin());
   Double_t cx = r0*sec->Param().CosAlpha();
@@ -221,7 +221,7 @@ void AliHLTTPCCADisplay::DrawSector( AliHLTTPCCATracker *sec )
 
   fLine.SetLineColor(kBlack);
  
-  fZY->cd();
+  fZX->cd();
 
   Double_t cz = .5*(sec->Param().ZMax()+sec->Param().ZMin());
   Double_t dz = .5*(sec->Param().ZMax()-sec->Param().ZMin())*1.2;
@@ -238,23 +238,23 @@ void AliHLTTPCCADisplay::DrawHit( Int_t iRow, Int_t iHit, Int_t color )
   AliHLTTPCCAHit *h = &(row.Hits()[iHit]);
   if( color<0 ) color = GetColor( h->Z() );
 
-  Double_t dgy = 3.*TMath::Abs(h->ErrY()*fSector->Param().CosAlpha() - fSector->Param().ErrX()*fSector->Param().SinAlpha() );
-  Double_t dx = fSector->Param().ErrX()*TMath::Sqrt(12.)/2.;
-  Double_t dy = h->ErrY()*3.;
-  Double_t dz = h->ErrZ()*3.;
+  //Double_t dgy = 3.*TMath::Abs(h->ErrY()*fSector->Param().CosAlpha() - fSector->Param().ErrX()*fSector->Param().SinAlpha() );
+  //Double_t dx = fSector->Param().ErrX()*TMath::Sqrt(12.)/2.;
+  //Double_t dy = h->ErrY()*3.;
+  //Double_t dz = h->ErrZ()*3.;
   fMarker.SetMarkerColor(color);
   fArc.SetLineColor(color);
   fArc.SetFillStyle(0);
   Double_t vx, vy;
   Sec2View( row.X(), h->Y(), &vx, &vy );
   
-  fXY->cd();
-  if( fSectorView ) fArc.DrawEllipse( vx, vy, dx, dy, 0,360, 90);
-  else  fArc.DrawEllipse( vx, vy, dx, dy, 0,360, fSector->Param().Alpha()*180./3.1415);
+  fYX->cd();
+  //if( fSectorView ) fArc.DrawEllipse( vx, vy, dx, dy, 0,360, 90);
+  //else  fArc.DrawEllipse( vx, vy, dx, dy, 0,360, fSector->Param().Alpha()*180./3.1415);
   fMarker.DrawMarker(vx, vy);
-  fZY->cd();
-  if( fSectorView ) fArc.DrawEllipse( h->Z(), vy, dz, dx, 0,360, 90 );
-  else fArc.DrawEllipse( h->Z(), vy, dz, dgy, 0,360, fSector->Param().Alpha()*180./3.1415);
+  fZX->cd();
+  //if( fSectorView ) fArc.DrawEllipse( h->Z(), vy, dz, dx, 0,360, 90 );
+  //else fArc.DrawEllipse( h->Z(), vy, dz, dgy, 0,360, fSector->Param().Alpha()*180./3.1415);
   fMarker.DrawMarker(h->Z(), vy); 
 }
 
@@ -268,9 +268,9 @@ void AliHLTTPCCADisplay::DrawCell( Int_t iRow, AliHLTTPCCACell &cell, Int_t widt
   if( color<0 ) color = GetColor(cell.Z());
   fLine.SetLineColor(color);
   fLine.SetLineWidth(width);
-  fXY->cd();
+  fYX->cd();
   fLine.DrawLine(vx-vdx,vy-vdy, vx+vdx, vy+vdy );
-  fZY->cd();
+  fZX->cd();
   fLine.DrawLine(cell.Z()-3*cell.ErrZ(),vy-vdy, cell.Z()+3*cell.ErrZ(), vy+vdy ); 
   fLine.SetLineWidth(1);
 }
@@ -324,39 +324,35 @@ void AliHLTTPCCADisplay::ConnectCells( Int_t iRow1, AliHLTTPCCACell &cell1,
   //fPLine.SetFillColor(color);
   fPLine.SetFillStyle(-1);
  
-  fXY->cd();
+  fYX->cd();
   fPLine.DrawPolyLine(5, lx, ly );
-  fZY->cd();
+  fZX->cd();
   fPLine.DrawPolyLine(5, lz, ly );   
   DrawCell( iRow1, cell1, 1, color );
   DrawCell( iRow2, cell2, 1, color );
 }
 
 
-Bool_t CompareCellDS( const pair<int,double> &a, const pair<int,double> &b )
-{
-  // function used to sort cells track along trajectory, pair<cell index, track length>
-  return (a.second<b.second);
-}
-
 void AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrack &track, Int_t color )
 {
   // draw track
-  if( track.NCells()<2 ) return;
 
+  if( track.NCells()<2 ) return;
+  int width = 3;
   Double_t b = -5;    
 
-  std::vector<pair<int,double> > vCells;
+  AliHLTTPCCADisplayTmpCell *vCells = new AliHLTTPCCADisplayTmpCell[track.NCells()];
+
   AliHLTTPCCATrackPar t = track.Param();
   for( Int_t iCell=0; iCell<track.NCells(); iCell++ ){
     AliHLTTPCCACell &c = fSector->GetTrackCell(track,iCell);
     AliHLTTPCCARow &row = fSector->GetTrackCellRow(track,iCell);
     Double_t xyz[3] = {row.X(), c.Y(), c.Z()};
-    if( iCell==0 ) t.TransportBz(-5, xyz);
-    pair<int,double> tmp(iCell, t.GetDsToPointBz(-5.,xyz));
-    vCells.push_back(tmp);
+    if( iCell==0 ) t.TransportBz(-5, xyz);    
+    vCells[iCell].Index() = iCell;
+    vCells[iCell].S() = t.GetDsToPointBz(-5.,xyz);
   }
-  sort(vCells.begin(), vCells.end(), CompareCellDS );
+  sort(vCells, vCells + track.NCells(), AliHLTTPCCADisplayTmpCell::CompareCellDS );
   t.Normalize();
   const Double_t kCLight = 0.000299792458;
   Double_t bc = b*kCLight;
@@ -366,17 +362,29 @@ void AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrack &track, Int_t color )
 
   //for( Int_t iCell=0; iCell<track.fNCells-1; iCell++ )
   {    
-    AliHLTTPCCACell &c1 = fSector->GetTrackCell(track,vCells[0].first);
-    AliHLTTPCCACell &c2 = fSector->GetTrackCell(track,vCells[track.NCells()-1].first);
-    AliHLTTPCCARow &row1 = fSector->GetTrackCellRow(track,vCells[0].first);
-    AliHLTTPCCARow &row2 = fSector->GetTrackCellRow(track,vCells[track.NCells()-1].first);
-    if( color<0 ) color = GetColor( (c1.Z()+c2.Z())/2. );
+    AliHLTTPCCACell &c1 = fSector->GetTrackCell(track,vCells[0].Index());
+    AliHLTTPCCACell &c2 = fSector->GetTrackCell(track,vCells[track.NCells()-1].Index());
+    AliHLTTPCCARow &row1 = fSector->GetTrackCellRow(track,vCells[0].Index());
+    AliHLTTPCCARow &row2 = fSector->GetTrackCellRow(track,vCells[track.NCells()-1].Index());
+    Double_t x1, y1, z1, x2, y2, z2;
+    {
+      Double_t xyz[3] = {row1.X(), c1.Y(), c1.Z()};
+      t.TransportBz(-5, xyz);
+      x1 = t.Par()[0]; y1 = t.Par()[1]; z1 = t.Par()[2];
+    }
+    {
+      Double_t xyz[3] = {row2.X(), c2.Y(), c2.Z()};
+      t.TransportBz(-5, xyz);
+      x2 = t.Par()[0]; y2 = t.Par()[1]; z2 = t.Par()[2];
+    }
+
+    if( color<0 ) color = GetColor( (z1+z2)/2. );
     Double_t vx1, vy1, vx2, vy2;
-    Sec2View(row1.X(), c1.Y(), &vx1, &vy1 );
-    Sec2View(row2.X(), c2.Y(), &vx2, &vy2 );
+    Sec2View(x1, y1, &vx1, &vy1 );
+    Sec2View(x2, y2, &vx2, &vy2 );
     
     fLine.SetLineColor( color );
-    fLine.SetLineWidth(3);
+    fLine.SetLineWidth( width );
     
     if( TMath::Abs(q)>.1 ){
       Double_t qq = pt/q;
@@ -396,23 +404,26 @@ void AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrack &track, Int_t color )
       a1 = a2-da;
       fArc.SetFillStyle(0);
       fArc.SetLineColor(color);    
-      fArc.SetLineWidth(3);        
+      fArc.SetLineWidth(width);        
       
-      fXY->cd();
+      fYX->cd();
       
       fArc.DrawArc(vx,vy,r, a1,a2,"only");
     } else {
-      fXY->cd();
+      fYX->cd();
       fLine.DrawLine(vx1,vy1, vx2, vy2 );
     }
+    
   }
 
   for( Int_t iCell=0; iCell<track.NCells()-1; iCell++ ){
     
-    AliHLTTPCCACell &c1 = fSector->GetTrackCell(track,vCells[iCell].first);
-    AliHLTTPCCACell &c2 = fSector->GetTrackCell(track,vCells[iCell+1].first);
-    AliHLTTPCCARow &row1 = fSector->GetTrackCellRow(track,vCells[iCell].first);
-    AliHLTTPCCARow &row2 = fSector->GetTrackCellRow(track,vCells[iCell+1].first);
+    AliHLTTPCCACell &c1 = fSector->GetTrackCell(track,vCells[iCell].Index());
+    AliHLTTPCCACell &c2 = fSector->GetTrackCell(track,vCells[iCell+1].Index());
+    AliHLTTPCCARow &row1 = fSector->GetTrackCellRow(track,vCells[iCell].Index());
+    AliHLTTPCCARow &row2 = fSector->GetTrackCellRow(track,vCells[iCell+1].Index());
+    ConnectCells( fSector->GetTrackCellIRow(track,vCells[iCell].Index()),c1,
+		  fSector->GetTrackCellIRow(track,vCells[iCell+1].Index()),c2, color );
     Double_t x1, y1, z1, x2, y2, z2;
     {
       Double_t xyz[3] = {row1.X(), c1.Y(), c1.Z()};
@@ -430,11 +441,12 @@ void AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrack &track, Int_t color )
     Sec2View(x2, y2, &vx2, &vy2 );
     
     fLine.SetLineColor(color);
-    fLine.SetLineWidth(1);
+    fLine.SetLineWidth(width);    
     
-    fZY->cd();
+    fZX->cd();
     fLine.DrawLine(z1,vy1, z2, vy2 ); 
   }
   fLine.SetLineWidth(1);     
+  delete[] vCells;
 }
 

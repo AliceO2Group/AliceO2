@@ -19,15 +19,9 @@
 #include "AliHLTTPCCAHit.h"
 
 
-ClassImp(AliHLTTPCCAHit);
+ClassImp(AliHLTTPCCAHit)
 
-void AliHLTTPCCAHit::Set( Int_t ID, Double_t Y, Double_t Z, 
-			  Double_t ErrY, Double_t ErrZ  )
+void AliHLTTPCCAHit::Dummy()
 {
-  // set parameters
-  fID = ID;
-  fY = Y;
-  fZ = Z;
-  fErrY = ErrY;
-  fErrZ = ErrZ;
+  // do nothing
 }

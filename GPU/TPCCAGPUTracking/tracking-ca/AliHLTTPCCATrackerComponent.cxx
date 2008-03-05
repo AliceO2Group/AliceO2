@@ -39,13 +39,8 @@ using namespace std;
 #include "AliHLTTPCTrackArray.h"
 #include "AliHLTTPCTrackletDataFormat.h"
 #include "AliHLTTPCDefinitions.h"
+#include "TStopwatch.h"
 #include "TMath.h"
-#include "AliTPC.h"
-#include "AliTPCParam.h"
-#include "AliRun.h"
-#include <stdlib.h>
-#include <iostream>
-#include <errno.h>
 
 
 // this is a global object used for automatic component registration, do not use this
@@ -185,6 +180,12 @@ int AliHLTTPCCATrackerComponent::DoEvent
  AliHLTUInt32_t& size, 
  vector<AliHLTComponentBlockData>& outputBlocks )
 {
+
+  AliHLTUInt32_t MaxBufferSize = size;
+  size = 0; // output size
+
+  TStopwatch timer;
+
   // Event reconstruction in one TPC slice with CA Tracker
 
   Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "DoEvent", "DoEvent()" );
@@ -212,6 +213,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       if ( iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType ) continue;
 
       slice = AliHLTTPCDefinitions::GetMinSliceNr( *iter );
+
       Bool_t found = 0;
       slCntIter = sliceCnts.begin();
       for( slIter = slices.begin(); slIter!=slices.end(); slIter++, slCntIter++ ){
@@ -278,47 +280,37 @@ int AliHLTTPCCATrackerComponent::DoEvent
     Double_t dalpha = 0.349066;
     Double_t alpha = 0.174533 + dalpha*iSec;
     
-    Bool_t zPlus = (iSec<18|| (iSec>=36&&iSec<54) );
-    Bool_t rInner = (iSec<36);
+    Bool_t zPlus = (iSec<18 );
     Double_t zMin =  zPlus ?plusZmin :minusZmin;
     Double_t zMax =  zPlus ?plusZmax :minusZmax;
-    Double_t rMin =  rInner ?inRmin :outRmin;
-    Double_t rMax =  rInner ?inRmax :outRmax;
-    Int_t inNRows = 63;
-    Int_t outNRows = 96;
-    Double_t inRowXFirst = 85.225;
-    Double_t outRowXFirst =135.1;
-    Double_t inRowXStep = 0.75;
-    Double_t outRowXStep = 1.;
-    Int_t nRows = rInner ?inNRows :outNRows;
-    Double_t rowXFirst = rInner ?inRowXFirst :outRowXFirst;
-    Double_t rowXStep = rInner ?inRowXStep :outRowXStep;
-    
-    Int_t nSectors = 72/2;
-    
+    //TPCZmin = -249.645, ZMax = 249.778    
+    Double_t rMin =  inRmin;
+    Double_t rMax =  outRmax;
+    Int_t NRows = AliHLTTPCTransform::GetNRows();
+        
     Double_t padPitch = 0.4;
     Double_t sigmaZ = 0.228808;
     
-    //TPCZmin = -249.645, ZMax = 249.778    
+     Double_t rowX[NRows];
+    for( Int_t irow=0; irow<NRows; irow++){
+      rowX[irow] = AliHLTTPCTransform::Row2X( irow );
+    }     
      
     AliHLTTPCCAParam param;
-    param.Initialize( iSec, inNRows+outNRows, inRowXFirst, inRowXStep,alpha, dalpha,
+    param.Initialize( iSec, NRows, rowX, alpha, dalpha,
 		      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, Bz );
-      
-    fTracker->Initialize( param );
+    param.YErrorCorrection() = 1;
+    param.ZErrorCorrection() = 2;
 
-    // recalculate outer rows -> necessary for a moment
+    fTracker->Initialize( param ); 
 
-    for( Int_t irow=0; irow<outNRows; irow++){
-      fTracker->Rows()[inNRows+irow].X() = outRowXFirst + irow*outRowXStep;
-    }     
   }
 
     
   // min and max patch numbers and row numbers
 
   Int_t row[2] = {0,0};
-  Int_t minPatch=INT_MAX, maxPatch = 0;
+  Int_t minPatch=INT_MAX, maxPatch = -1;
 
   // total n Hits
 
@@ -355,14 +347,17 @@ int AliHLTTPCCATrackerComponent::DoEvent
   
   fTracker->StartEvent();
 
-  AliHLTTPCCAHit * vHits = new AliHLTTPCCAHit[nHitsTotal]; // CA hit array
-  Double_t * vHitStoreX = new Double_t[nHitsTotal];       // hit X coordinates
-  Int_t * vHitStoreID = new Int_t[nHitsTotal];            // hit ID's
+  AliHLTTPCCAHit vHits[nHitsTotal]; // CA hit array
+  Double_t vHitStoreX[nHitsTotal];       // hit X coordinates
+  Int_t vHitStoreID[nHitsTotal];            // hit ID's
+  Int_t vHitRowID[nHitsTotal];            // hit ID's
 
   Int_t nHits = 0;
  
   Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
 	   "Total %d hits to read for slice %d", nHitsTotal, slice );
+
+  Int_t nClusters=0;
 
   for( std::vector<unsigned long>::iterator pIter = patchIndices.begin(); pIter!=patchIndices.end(); pIter++ ){
     ndx = *pIter;
@@ -382,8 +377,6 @@ int AliHLTTPCCATrackerComponent::DoEvent
     for (UInt_t i=0; i<inPtrSP->fSpacePointCnt; i++ ){	
       AliHLTTPCSpacePointData* pSP = &(inPtrSP->fSpacePoints[i]);
 
-      //Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits", "hit pad %d, xyz=%f,%f,%f, sy=%f, sz=%f,", pSP->fPadRow, pSP->fX, pSP->fY, pSP->fZ, TMath::Sqrt(pSP->fSigmaY2), TMath::Sqrt(pSP->fSigmaZ2) );
-
       if( pSP->fPadRow != oldRow ){
 	if( oldRow>=0 ) fTracker->ReadHitRow( oldRow, vHits+firstRowHit, nRowHits );
 	oldRow = pSP->fPadRow;
@@ -391,23 +384,34 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	nRowHits = 0;
       }
       AliHLTTPCCAHit &h = vHits[nHits];
+      if( TMath::Abs(pSP->fX- fTracker->Rows()[pSP->fPadRow].X() )>1.e-4 ) cout<<"row "<<(Int_t)pSP->fPadRow<<" "<<fTracker->Rows()[pSP->fPadRow].X()-pSP->fX <<endl;
+
       h.Y() = pSP->fY;
       h.Z() = pSP->fZ;
-      h.ErrY() = TMath::Sqrt(pSP->fSigmaY2);
-      h.ErrZ() = TMath::Sqrt(pSP->fSigmaZ2);  
+      h.ErrY() = TMath::Sqrt(TMath::Abs(pSP->fSigmaY2));
+      h.ErrZ() = TMath::Sqrt(TMath::Abs(pSP->fSigmaZ2));  
+      if( h.ErrY()<.1 ) h.ErrY() = .1;
+      if( h.ErrZ()<.1 ) h.ErrZ() = .1;
+      if( h.ErrY()>1. ) h.ErrY() = 1.;
+      if( h.ErrZ()>1. ) h.ErrZ() = 1.;
       h.ID() = nHits;
       vHitStoreX[nHits] = pSP->fX;
       vHitStoreID[nHits] = pSP->fID;
+      vHitRowID[nHits] = pSP->fPadRow;
       nHits++;	
       nRowHits++;
+      nClusters++;
     }	
     if( oldRow>=0 ) fTracker->ReadHitRow( oldRow, vHits+firstRowHit, nRowHits );
   }
 
-  
   // reconstruct the event  
 
+  TStopwatch timerReco;
+
   fTracker->Reconstruct();
+
+  timerReco.Stop();
 
   Int_t ret = 0;
 
@@ -436,8 +440,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
     UInt_t dSize = sizeof(AliHLTTPCTrackSegmentData) + t.NHits()*sizeof(UInt_t);
     
-    if( mySize + dSize >size ){
-      Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "Wrtite output","Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", size, mySize, ntracks-itr+1);
+    if( mySize + dSize > MaxBufferSize ){
+      Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "Wrtite output","Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", MaxBufferSize, mySize, ntracks-itr+1);
       ret = -ENOSPC;
       break;
     }
@@ -473,18 +477,25 @@ int AliHLTTPCCATrackerComponent::DoEvent
     currOutTracklet->fPterr = ( h3*h3*t.Param().Cov()[9] + h4*h4*t.Param().Cov()[14] + h6*h6*t.Param().Cov()[27] 
 				+ 2.*(h3*h4*t.Param().Cov()[13]+h3*h6*t.Param().Cov()[24]+h4*h6*t.Param().Cov()[25] )
 				);    
-   currOutTracklet->fPsi = TMath::ATan2(ey, ex);
+    currOutTracklet->fPsi = TMath::ATan2(ey, ex);
     
     h3 =  ex/(et*et);
     h4 = -ey/(et*et);
     currOutTracklet->fPsierr = h3*h3*t.Param().Cov()[9] + h4*h4*t.Param().Cov()[14] + 2.*h3*h4*t.Param().Cov()[13];
     
-    currOutTracklet->fTgl = TMath::Abs(ex)>1.e-5  ? ez/ex :1.e5;
+    currOutTracklet->fTgl = TMath::Abs(et)>1.e-5  ? ez/et :1.e5;
       
-    h3 = (TMath::Abs(ex) >1.e-5) ? -ez/ex/ex :0;
-    h5 = (TMath::Abs(ex) >1.e-5) ? 1./ex :0;
-    currOutTracklet->fTglerr =  h3*h3*t.Param().Cov()[9] + h5*h5*t.Param().Cov()[20] + 2.*h3*h5*t.Param().Cov()[18]; 
-    
+    if( TMath::Abs(et) >1.e-2 ){
+      h3 = -ez*ex/et/et;
+      h4 = -ez*ey/et/et;
+      h5 = 1.;
+      currOutTracklet->fTglerr =  ( h3*h3*t.Param().Cov()[9] + h4*h4*t.Param().Cov()[14] + h5*h5*t.Param().Cov()[20] 
+				    + 2.*(h3*h4*t.Param().Cov()[13]+h3*h5*t.Param().Cov()[18]+h4*h5*t.Param().Cov()[19] )
+				    )/et/et;
+    }else{
+      currOutTracklet->fTglerr =  1.e-2;
+    }
+
     currOutTracklet->fCharge = -currOutTracklet->fCharge;
     
     t.Param().TransportBz(Bz, vHitStoreX[iLastHit], lastHit.Y(), lastHit.Z() );
@@ -492,6 +503,17 @@ int AliHLTTPCCATrackerComponent::DoEvent
     currOutTracklet->fLastX = t.Param().Par()[0];
     currOutTracklet->fLastY = t.Param().Par()[1];
     currOutTracklet->fLastZ = t.Param().Par()[2];
+
+#ifdef INCLUDE_TPC_HOUGH
+#ifdef ROWHOUGHPARAMS
+    currOutTracklet->fTrackID = 0;
+    currOutTracklet->fRowRange1 = vHitRowID[iFirstHit];
+    currOutTracklet->fRowRange2 = vHitRowID[iLastHit];
+    currOutTracklet->fSector = slice;
+    currOutTracklet->fPID = 211;
+#endif
+#endif // INCLUDE_TPC_HOUGH
+
 
     currOutTracklet->fNPoints = t.NHits();
 
@@ -503,10 +525,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     mySize+=dSize;
     outPtr->fTrackletCnt++; 
   }
-    
-  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Tracks",
-	   "Input: Number of tracks: %d Slice/MinPatch/MaxPatch/RowMin/RowMax: %d/%d/%d/%d/%d.", 
-	   ntracks, slice, minPatch, maxPatch, row[0], row[1] );
+  
   
   AliHLTComponentBlockData bd;
   FillBlockData( bd );
@@ -516,11 +535,15 @@ int AliHLTTPCCATrackerComponent::DoEvent
   outputBlocks.push_back( bd );
   
   size = mySize;
-
-  delete [] vHits;
-  delete [] vHitStoreX;
-  delete [] vHitStoreID;
   
+  timerReco.Stop();
+
+  // Set log level to "Warning" for on-line system monitoring
+
+  Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "Tracks",
+ 	   "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d us", 
+	   slice, ntracks, nClusters, minPatch, maxPatch, row[0], row[1], (Int_t) (timer.RealTime()*1.e6), (Int_t) (timerReco.RealTime()*1.e6) );
+
   return ret;
 
 }

@@ -19,4 +19,8 @@
 #include "AliHLTTPCCACell.h"
 
 
-ClassImp(AliHLTTPCCACell);
+ClassImp(AliHLTTPCCACell)
+
+void AliHLTTPCCACell::Dummy()
+{
+}

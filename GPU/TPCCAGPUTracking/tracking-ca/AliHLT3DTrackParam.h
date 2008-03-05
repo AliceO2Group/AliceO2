@@ -1,9 +1,13 @@
 //-*- Mode: C++ -*-
 // @(#) $Id$
 
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+//* This file is property of and copyright by the ALICE HLT Project           * 
+//* ALICE Experiment at CERN, All rights reserved.                            *
+//* See cxx source for full Copyright notice                                  *
+
+//*                                                                           *
+//* AliHLT3DTrackParam class is under development and currently not in use    *
+//*                                                                           *
 
 #ifndef ALIHLT3DTRACKPARAM_H
 #define ALIHLT3DTRACKPARAM_H
@@ -45,9 +49,9 @@ class AliHLT3DTrackParam{
   Int_t    GetNDF()    const { return fNDF;   }
   Int_t    GetCharge() const { return fSignQ; }
   
-  Double_t GetParameter ( int i ) const ;
-  Double_t GetCovariance( int i ) const ;
-  Double_t GetCovariance( int i, int j ) const ;
+  Double_t GetParameter ( int i ) const { return fParam[i]; }
+  Double_t GetCovariance( int i ) const { return fCov[i]; }
+  Double_t GetCovariance( int i, int j ) const { return fCov[( j<=i ) ? i*(i+1)/2+j :j*(j+1)/2+i]; }
 
   //* Accessors with calculations( &value, &estimated sigma )
   //* error flag returned (0 means no error during calculations) 

@@ -21,6 +21,15 @@ class AliHLTTPCCAOutTrack;
 
 /**
  * @class AliHLTTPCCATracker
+ * 
+ * Slice tracker for ALICE HLT. 
+ * The class reconstructs tracks in one slice of TPC.
+ * The reconstruction algorithm is based on the Cellular Automaton method
+ *
+ * The CA tracker is designed stand-alone. 
+ * It is integrated to the HLT framework via AliHLTTPCCATrackerComponent interface.
+ * The class is under construction.
+ *
  */
 class AliHLTTPCCATracker
 {
@@ -29,13 +38,12 @@ class AliHLTTPCCATracker
   AliHLTTPCCATracker();
   AliHLTTPCCATracker( const AliHLTTPCCATracker& );
   AliHLTTPCCATracker &operator=( const AliHLTTPCCATracker& );
+
   virtual ~AliHLTTPCCATracker();
 
   void Initialize( AliHLTTPCCAParam &param );
 
   void StartEvent();
-  void ReadHit( Int_t iRow, Int_t index, Double_t x, Double_t y, Double_t z, 
-		 Double_t ErrY, Double_t ErrZ  ) const {;}
 
   void ReadHitRow( Int_t iRow, AliHLTTPCCAHit *Row, Int_t NHits );
 
@@ -57,6 +65,8 @@ class AliHLTTPCCATracker
   Int_t NTracks() const { return fNTracks; }
 
   Int_t *TrackCells(){ return  fTrackCells; }
+
+  Double_t *Timers(){ return fTimers; }
 
   AliHLTTPCCACell &GetTrackCell( AliHLTTPCCATrack &t, Int_t i ) const {
     Int_t ind = fTrackCells[t.IFirstCell()+i];
@@ -86,6 +96,9 @@ class AliHLTTPCCATracker
   Int_t fNHitsTotal;// total number of hits in event
   AliHLTTPCCATrack *fTracks;   // reconstructed tracks
   Int_t fNTracks;// number of reconstructed tracks
+  Int_t *fCellHitPointers;// global array of cell->hit pointers
+
+  Double_t fTimers[10]; // running CPU time for different parts of the algorithm
 
   ClassDef(AliHLTTPCCATracker,1);
 };

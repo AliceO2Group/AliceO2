@@ -19,7 +19,7 @@
 #include "AliHLT3DTrackParam.h"
 #include "TMath.h"
 
-ClassImp(AliHLT3DTrackParam);
+ClassImp(AliHLT3DTrackParam)
 
 //* Transport utilities
   

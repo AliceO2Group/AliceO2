@@ -16,7 +16,10 @@
 
 /**
  * @class ALIHLTTPCCARow
- * hit and cells container for one TPC row
+ *
+ * The ALIHLTTPCCARow class is a hit and cells container for one TPC row.
+ * It is the internal class of the AliHLTTPCCATracker algorithm.
+ *
  */
 class AliHLTTPCCARow
 {

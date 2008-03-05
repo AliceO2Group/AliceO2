@@ -19,4 +19,8 @@
 #include "AliHLTTPCCATrack.h"
 
 
-ClassImp(AliHLTTPCCATrack);
+ClassImp(AliHLTTPCCATrack)
+
+void AliHLTTPCCATrack::Dummy()
+{
+}
