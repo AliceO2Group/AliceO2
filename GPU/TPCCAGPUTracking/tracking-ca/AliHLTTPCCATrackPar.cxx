@@ -251,7 +251,7 @@ void AliHLTTPCCATrackPar::GetConnectionMatrix( Double_t B, const Double_t p[3], 
 }
 
 
-void AliHLTTPCCATrackPar::Filter( const Double_t m[], const Double_t V[], const Double_t G[6] )
+void AliHLTTPCCATrackPar::Filter( const Double_t m[3], const Double_t V[6], const Double_t G[6] )
 {
   //* Add the measurement m to the track using the Kalman Filter mathematics
   //* m[3] is the measurement
