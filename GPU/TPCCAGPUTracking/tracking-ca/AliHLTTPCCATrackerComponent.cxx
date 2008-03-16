@@ -62,6 +62,7 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
 
 AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent(const AliHLTTPCCATrackerComponent&)
   :
+  AliHLTProcessor(),
   fTracker(NULL),
   fBField(0)
 {
@@ -175,7 +176,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 ( 
  const AliHLTComponentEventData& evtData, 
  const AliHLTComponentBlockData* blocks, 
- AliHLTComponentTriggerData& trigData, 
+ AliHLTComponentTriggerData& /*trigData*/, 
  AliHLTUInt8_t* outputPtr, 
  AliHLTUInt32_t& size, 
  vector<AliHLTComponentBlockData>& outputBlocks )
@@ -270,8 +271,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
     if( !fTracker ) fTracker = new AliHLTTPCCATracker;
     Int_t iSec = slice;
     Double_t inRmin = 83.65; 
-    Double_t inRmax = 133.3;
-    Double_t outRmin = 133.5; 
+    //    Double_t inRmax = 133.3;
+    //    Double_t outRmin = 133.5; 
     Double_t outRmax = 247.7;
     Double_t plusZmin = 0.0529937; 
     Double_t plusZmax = 249.778; 
@@ -284,8 +285,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
     Double_t zMin =  zPlus ?plusZmin :minusZmin;
     Double_t zMax =  zPlus ?plusZmax :minusZmax;
     //TPCZmin = -249.645, ZMax = 249.778    
-    Double_t rMin =  inRmin;
-    Double_t rMax =  outRmax;
+    //    Double_t rMin =  inRmin;
+    //    Double_t rMax =  outRmax;
     Int_t NRows = AliHLTTPCTransform::GetNRows();
         
     Double_t padPitch = 0.4;

@@ -25,7 +25,7 @@
 #include "TMath.h"
 //#include "Riostream.h"
 #include <vector>
-#include <algo.h>
+#include <algorithm>
 #include "TStopwatch.h"
 //#define DRAW
 
