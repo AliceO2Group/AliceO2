@@ -42,10 +42,7 @@ using namespace std;
 #include "TStopwatch.h"
 #include "TMath.h"
 
-
-// this is a global object used for automatic component registration, do not use this
-AliHLTTPCCATrackerComponent gAliHLTTPCCATrackerComponent;
-
+/** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCCATrackerComponent)
 
 AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
