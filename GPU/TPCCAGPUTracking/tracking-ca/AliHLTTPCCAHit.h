@@ -30,8 +30,8 @@ class AliHLTTPCCAHit
   
   Int_t &ID(){ return fID; }
  
-  void Set( Int_t ID, Double_t Y, Double_t Z, 
-	    Double_t ErrY, Double_t ErrZ  );
+  void Set( Int_t HitID, Double_t HitY, Double_t HitZ, 
+	    Double_t HitErrY, Double_t HitErrZ  );
 
  protected:
 
@@ -48,15 +48,15 @@ class AliHLTTPCCAHit
 
 
 
-inline void AliHLTTPCCAHit::Set( Int_t ID, Double_t Y, Double_t Z, 
-				 Double_t ErrY, Double_t ErrZ  )
+inline void AliHLTTPCCAHit::Set( Int_t HitID, Double_t HitY, Double_t HitZ, 
+				 Double_t HitErrY, Double_t HitErrZ  )
 {
   //* set parameters
-  fID = ID;
-  fY = Y;
-  fZ = Z;
-  fErrY = ErrY;
-  fErrZ = ErrZ;
+  fID = HitID;
+  fY = HitY;
+  fZ = HitZ;
+  fErrY = HitErrY;
+  fErrZ = HitErrZ;
 }
 
 

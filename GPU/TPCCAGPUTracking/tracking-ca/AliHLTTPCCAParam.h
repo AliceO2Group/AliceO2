@@ -25,10 +25,11 @@ class AliHLTTPCCAParam
   AliHLTTPCCAParam();
   virtual ~AliHLTTPCCAParam(){;}
 
-  void Initialize( Int_t iSec, Int_t NRows, Double_t RowX[],
-		   Double_t Alpha, Double_t DAlpha,
-		   Double_t RMin, Double_t RMax, Double_t ZMin, Double_t ZMax,
-		   Double_t PadPitch, Double_t ZSigma, Double_t Bz );
+  void Initialize( Int_t ParISec, Int_t ParNRows, Double_t ParRowX[],
+		   Double_t ParAlpha, Double_t ParDAlpha,
+		   Double_t ParRMin, Double_t ParRMax, 
+		   Double_t ParZMin, Double_t ParZMax,
+		   Double_t ParPadPitch, Double_t ParZSigma, Double_t ParBz );
   void Update();
 
   void Sec2Global( Double_t x, Double_t y,  Double_t z, 

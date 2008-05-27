@@ -32,30 +32,30 @@ AliHLTTPCCAParam::AliHLTTPCCAParam()
   Update();
 }
 
-void AliHLTTPCCAParam::Initialize( Int_t iSec, 
-				   Int_t NRows, Double_t RowX[],
-				   Double_t Alpha, Double_t DAlpha,
-				   Double_t RMin, Double_t RMax,
-				   Double_t ZMin, Double_t ZMax,
-				   Double_t PadPitch, Double_t ZSigma,
-				   Double_t Bz
+void AliHLTTPCCAParam::Initialize( Int_t ParISec, 
+				   Int_t ParNRows, Double_t ParRowX[],
+				   Double_t ParAlpha, Double_t ParDAlpha,
+				   Double_t ParRMin, Double_t ParRMax,
+				   Double_t ParZMin, Double_t ParZMax,
+				   Double_t ParPadPitch, Double_t ParZSigma,
+				   Double_t ParBz
 				   )
 {
   // initialization 
-  fISec = iSec;
-  fAlpha = Alpha;
-  fDAlpha = DAlpha;
-  fRMin = RMin;
-  fRMax = RMax;
-  fZMin = ZMin;
-  fZMax = ZMax;
-  fPadPitch = PadPitch;
+  fISec = ParISec;
+  fAlpha = ParAlpha;
+  fDAlpha = ParDAlpha;
+  fRMin = ParRMin;
+  fRMax = ParRMax;
+  fZMin = ParZMin;
+  fZMax = ParZMax;
+  fPadPitch = ParPadPitch;
   fErrY = 1.; // not in use
-  fErrZ = ZSigma;
-  fBz = Bz;
-  fNRows = NRows;
-  for( Int_t irow=0; irow<NRows; irow++ ){
-    fRowX[irow] = RowX[irow];
+  fErrZ = ParZSigma;
+  fBz = ParBz;
+  fNRows = ParNRows;
+  for( Int_t irow=0; irow<ParNRows; irow++ ){
+    fRowX[irow] = ParRowX[irow];
   }
 
   Update();
