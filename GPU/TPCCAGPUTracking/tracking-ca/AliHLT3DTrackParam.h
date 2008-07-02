@@ -13,11 +13,13 @@
 #define ALIHLT3DTRACKPARAM_H
 
 #include "Rtypes.h"
+#include "TObject.h"
 
 /**
  * @class AliHLT3DTrackParam
  */
-class AliHLT3DTrackParam{
+class AliHLT3DTrackParam :public TObject
+{
  public:
 
   //*
@@ -119,7 +121,7 @@ class AliHLT3DTrackParam{
   Int_t    fNDF;      // Number of Degrees of Freedom
   Int_t    fSignQ;    // Charge
 
-  ClassDef(AliHLT3DTrackParam, 0);
+  ClassDef(AliHLT3DTrackParam, 1);
 
 };
 

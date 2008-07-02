@@ -73,7 +73,12 @@ private:
   
   /** magnetic field */
   Double_t fBField;                                            // see above
-  
+  Int_t fMinNTrackClusters; //* required min number of clusters on the track
+
+  Double_t fFullTime; //! total time for DoEvent() [s]
+  Double_t fRecoTime; //! total reconstruction time [s]
+  Long_t    fNEvents;  //! number of reconstructed events
+
   ClassDef(AliHLTTPCCATrackerComponent, 0);
   
 };

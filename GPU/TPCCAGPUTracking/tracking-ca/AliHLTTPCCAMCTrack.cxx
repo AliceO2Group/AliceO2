@@ -1,4 +1,4 @@
-// @(#) $Id$
+// $Id$
 //***************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -16,41 +16,45 @@
 // provided "as is" without express or implied warranty.                    *
 //***************************************************************************
 
-#include "AliHLTTPCCARow.h"
+#include "AliHLTTPCCAMCTrack.h"
+#include "TParticle.h"
+#include "TDatabasePDG.h"
+#include "TMath.h"
 
-ClassImp(AliHLTTPCCARow)
 
-  AliHLTTPCCARow::AliHLTTPCCARow() :fHits(0),fCells(0),fCellHitPointers(0),fEndPoints(0),fNHits(0),fNCells(0),fNEndPoints(0),fX(0),fMaxY(0),fDeltaY(0),fDeltaZ(0)
+AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack()
+  : fP(0), fPt(0), fNHits(0), fNReconstructed(0), fSet(0), fNTurns(0)
 {
-  //* constructor
+  //* Default constructor
 }
 
-AliHLTTPCCARow::AliHLTTPCCARow( const AliHLTTPCCARow &)
-  :fHits(0),fCells(0),fCellHitPointers(0),fEndPoints(0),fNHits(0),fNCells(0),fNEndPoints(0),fX(0),fMaxY(0),fDeltaY(0),fDeltaZ(0)
-{
-  //* dummy
-}
 
-AliHLTTPCCARow &AliHLTTPCCARow::operator=( const AliHLTTPCCARow &)
+AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack( const TParticle *part )
+  : fP(0), fPt(0), fNHits(0), fNReconstructed(0), fSet(0), fNTurns(0)
 {
-  //* dummy
-  fHits = 0;
-  fCells = 0;
-  fCellHitPointers = 0;
-  fEndPoints = 0;
-  fNHits = 0;
-  fNCells = 0;
-  fNEndPoints = 0;
-  return *this;
-}
+  //* Constructor from TParticle
 
-void AliHLTTPCCARow::Clear()
-{
-  //* clear memory
-  if(fHits) delete[] fHits;
-  fHits = 0;
-  fCells = 0;
-  fCellHitPointers = 0;    
-  fEndPoints = 0;
-  fNHits = fNCells = fNEndPoints = 0;
+  for( Int_t i=0; i<7; i++ ) fPar[i] = 0;
+  fP = 0;
+  fPt = 0;
+
+  if( !part ) return;
+  TLorentzVector mom, vtx;
+  part->ProductionVertex(vtx);
+  part->Momentum(mom);
+  fPar[0] = part->Vx();
+  fPar[1] = part->Vy();
+  fPar[2] = part->Vz();
+  fP = part->P();
+  fPt = part->Pt();
+  Double_t pi = ( fP >1.e-4 ) ?1./fP :0;
+  fPar[3] = part->Px()*pi;
+  fPar[4] = part->Py()*pi;
+  fPar[5] = part->Pz()*pi;
+  fPar[6] = 0;
+  Int_t pdg  = part->GetPdgCode();	  
+  if ( TMath::Abs(pdg) < 100000 ){
+    TParticlePDG *pPDG = TDatabasePDG::Instance()->GetParticle(pdg);
+    if( pPDG ) fPar[6] = pPDG->Charge()/3.0*pi;
+  }
 }

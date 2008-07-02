@@ -23,15 +23,15 @@ class AliHLTTPCCAHit
   AliHLTTPCCAHit(): fY(0),fZ(0),fErrY(0),fErrZ(0),fID(0){;}
   virtual ~AliHLTTPCCAHit(){}
 
-  Float_t &Y(){ return fY; }
-  Float_t &Z(){ return fZ; }
+  Float_t &Y()   { return fY;    }
+  Float_t &Z()   { return fZ;    }
   Float_t &ErrY(){ return fErrY; } 
   Float_t &ErrZ(){ return fErrZ; }
   
   Int_t &ID(){ return fID; }
  
-  void Set( Int_t HitID, Double_t HitY, Double_t HitZ, 
-	    Double_t HitErrY, Double_t HitErrZ  );
+  void Set( Int_t id, Float_t y, Float_t z, 
+	    Float_t errY, Float_t errZ  );
 
  protected:
 
@@ -42,21 +42,20 @@ class AliHLTTPCCAHit
  private:
 
   void Dummy(); // to make rulechecker happy by having something in .cxx file
-
-  ClassDef(AliHLTTPCCAHit,1);
+  
 };
 
 
 
-inline void AliHLTTPCCAHit::Set( Int_t HitID, Double_t HitY, Double_t HitZ, 
-				 Double_t HitErrY, Double_t HitErrZ  )
+inline void AliHLTTPCCAHit::Set( Int_t id, Float_t y, Float_t z, 
+				 Float_t errY, Float_t errZ  )
 {
   //* set parameters
-  fID = HitID;
-  fY = HitY;
-  fZ = HitZ;
-  fErrY = HitErrY;
-  fErrZ = HitErrZ;
+  fID = id;
+  fY = y;
+  fZ = z;
+  fErrY = errY;
+  fErrZ = errZ;
 }
 
 

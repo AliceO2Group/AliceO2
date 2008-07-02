@@ -1,20 +1,20 @@
 // @(#) $Id$
-/**************************************************************************
- * This file is property of and copyright by the ALICE HLT Project        * 
- * ALICE Experiment at CERN, All rights reserved.                         *
- *                                                                        *
- * Primary Authors: Jochen Thaeder <thaeder@kip.uni-heidelberg.de>        *
- *                  Ivan Kisel <kisel@kip.uni-heidelberg.de>              *
- *                  for The ALICE HLT Project.                            *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
+//***************************************************************************
+// This file is property of and copyright by the ALICE HLT Project          * 
+// ALICE Experiment at CERN, All rights reserved.                           *
+//                                                                          *
+// Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
+//                  Ivan Kisel <kisel@kip.uni-heidelberg.de>                *
+//                  for The ALICE HLT Project.                              *
+//                                                                          *
+// Permission to use, copy, modify and distribute this software and its     *
+// documentation strictly for non-commercial purposes is hereby granted     *
+// without fee, provided that the above copyright notice appears in all     *
+// copies and that both the copyright notice and this permission notice     *
+// appear in the supporting documentation. The authors make no claims       *
+// about the suitability of this software for any purpose. It is            *
+// provided "as is" without express or implied warranty.                    *
+//***************************************************************************
  
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -32,6 +32,7 @@ using namespace std;
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAHit.h"
 #include "AliHLTTPCCAOutTrack.h"
+#include "AliHLTTPCCAParam.h"
 
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCClusterDataFormat.h"
@@ -40,6 +41,7 @@ using namespace std;
 #include "AliHLTTPCTrackArray.h"
 #include "AliHLTTPCTrackletDataFormat.h"
 #include "AliHLTTPCDefinitions.h"
+#include "AliExternalTrackParam.h"
 #include "TStopwatch.h"
 #include "TMath.h"
 
@@ -49,7 +51,11 @@ ClassImp(AliHLTTPCCATrackerComponent)
 AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
   :
   fTracker(NULL),
-  fBField(0)
+  fBField(0),
+  fMinNTrackClusters(30),
+  fFullTime(0),
+  fRecoTime(0),
+  fNEvents(0)
 {
   // see header file for class documentation
   // or
@@ -62,7 +68,11 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent(const AliHLTTPCCATracke
   :
   AliHLTProcessor(),
   fTracker(NULL),
-  fBField(0)
+  fBField(0),
+  fMinNTrackClusters(30),
+  fFullTime(0),
+  fRecoTime(0),
+  fNEvents(0)
 {
   // see header file for class documentation
   HLTFatal("copy constructor untested");
@@ -127,7 +137,11 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
   //
 
   if ( fTracker ) return EINPROGRESS;
-  
+
+  fFullTime = 0;
+  fRecoTime = 0;
+  fNEvents = 0;
+
   fTracker = new AliHLTTPCCATracker();
   
   // read command line
@@ -148,8 +162,28 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 	  return EINVAL;
 	}
 
-      Logging( kHLTLogDebug, "HLT::TPCCATracker::DoInit", "Reading command line",
+      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
 	       "Magnetic field value is set to %f kG", fBField );
+
+      i += 2;
+      continue;
+    }
+
+    if ( !strcmp( argv[i], "MinNTrackClusters" ) ){
+      if ( i+1 >= argc )
+	{
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing MinNTrackClusters", "Missing MinNTrackClusters specifier." );
+	  return ENOTSUP;
+	}
+      fMinNTrackClusters = (Int_t ) strtod( argv[i+1], &cpErr );
+      if ( *cpErr )
+	{
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert MinNTrackClusters '%s'.", argv[i+1] );
+	  return EINVAL;
+	}
+
+      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
+	       "MinNTrackClusters is set to %i ", fMinNTrackClusters );
 
       i += 2;
       continue;
@@ -187,7 +221,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   // Event reconstruction in one TPC slice with CA Tracker
 
-  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "DoEvent", "DoEvent()" );
+  //Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "DoEvent", "CA::DoEvent()" );
   if ( evtData.fBlockCnt<=0 )
     {
       Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "DoEvent", "no blocks in event" );
@@ -256,7 +290,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   }
   
   if( slice<0 ){
-    Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "DoEvent", "no slices found in event" );
+    Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "DoEvent", "CA:: no slices found in event" );
     return 0;
   }
 
@@ -290,7 +324,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     Double_t padPitch = 0.4;
     Double_t sigmaZ = 0.228808;
     
-     Double_t rowX[NRows];
+    Double_t *rowX = new Double_t [NRows];
     for( Int_t irow=0; irow<NRows; irow++){
       rowX[irow] = AliHLTTPCTransform::Row2X( irow );
     }     
@@ -302,7 +336,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     param.ZErrorCorrection() = 2;
 
     fTracker->Initialize( param ); 
-
+    delete[] rowX;
   }
 
     
@@ -346,10 +380,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
   
   fTracker->StartEvent();
 
-  AliHLTTPCCAHit vHits[nHitsTotal]; // CA hit array
-  Double_t vHitStoreX[nHitsTotal];       // hit X coordinates
-  Int_t vHitStoreID[nHitsTotal];            // hit ID's
-  Int_t vHitRowID[nHitsTotal];            // hit ID's
+  AliHLTTPCCAHit *vHits = new AliHLTTPCCAHit [nHitsTotal]; // CA hit array
+  Double_t *vHitStoreX = new Double_t [nHitsTotal];       // hit X coordinates
+  Int_t *vHitStoreID = new Int_t [nHitsTotal];            // hit ID's
+  Int_t *vHitRowID = new Int_t [nHitsTotal];            // hit ID's
 
   Int_t nHits = 0;
  
@@ -387,6 +421,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
       h.Y() = pSP->fY;
       h.Z() = pSP->fZ;
+      if( TMath::Abs(h.Z())>230.) continue;
       h.ErrY() = TMath::Sqrt(TMath::Abs(pSP->fSigmaY2));
       h.ErrZ() = TMath::Sqrt(TMath::Abs(pSP->fSigmaZ2));  
       if( h.ErrY()<.1 ) h.ErrY() = .1;
@@ -435,6 +470,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
     //Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Wrtite output","track %d with %d hits", itr, t.NHits());
 
+    if( t.NHits()<fMinNTrackClusters ) continue;
+
     // calculate output track size
 
     UInt_t dSize = sizeof(AliHLTTPCTrackSegmentData) + t.NHits()*sizeof(UInt_t);
@@ -450,58 +487,33 @@ int AliHLTTPCCATrackerComponent::DoEvent
     Int_t iFirstHit = fTracker->OutTrackHits()[t.FirstHitRef()];
     Int_t iLastHit = fTracker->OutTrackHits()[t.FirstHitRef()+t.NHits()-1];
     
-    AliHLTTPCCAHit &firstHit = vHits[iFirstHit];
-    AliHLTTPCCAHit &lastHit = vHits[iLastHit];
-   
-    t.Param().TransportBz(Bz, vHitStoreX[iFirstHit], firstHit.Y(), firstHit.Z() );
+    AliHLTTPCCATrackParam par = t.StartPoint();
 
-    currOutTracklet->fX = t.Param().Par()[0];
-    currOutTracklet->fY = t.Param().Par()[1];
-    currOutTracklet->fZ = t.Param().Par()[2];
-    Double_t qp = t.Param().Par()[6];
-    Double_t p = TMath::Abs(qp)>1.e-5 ?1./TMath::Abs(qp) :1.e5;
-    Double_t ex = t.Param().Par()[3];
-    Double_t ey = t.Param().Par()[4];
-    Double_t ez = t.Param().Par()[5];
-    Double_t et = TMath::Sqrt( ex*ex + ey*ey );
-    
-    currOutTracklet->fCharge = (qp>0) ?+1 :(qp<0 ?-1 :0);
-    currOutTracklet->fPt = p*et;
+    par.TransportToX( vHitStoreX[iFirstHit] );
 
-    Double_t h3 =  TMath::Abs(ex) >1.e-5 ? p*ex/et :0;
-    Double_t h4 =  TMath::Abs(ey) >1.e-5 ? p*ey/et :0;
-    Double_t h5;
-    Double_t h6 =  - currOutTracklet->fCharge * p * currOutTracklet->fPt;
-  
-    currOutTracklet->fPterr = ( h3*h3*t.Param().Cov()[9] + h4*h4*t.Param().Cov()[14] + h6*h6*t.Param().Cov()[27] 
-				+ 2.*(h3*h4*t.Param().Cov()[13]+h3*h6*t.Param().Cov()[24]+h4*h6*t.Param().Cov()[25] )
-				);    
-    currOutTracklet->fPsi = TMath::ATan2(ey, ex);
-    
-    h3 =  ex/(et*et);
-    h4 = -ey/(et*et);
-    currOutTracklet->fPsierr = h3*h3*t.Param().Cov()[9] + h4*h4*t.Param().Cov()[14] + 2.*h3*h4*t.Param().Cov()[13];
-    
-    currOutTracklet->fTgl = TMath::Abs(et)>1.e-5  ? ez/et :1.e5;
-      
-    if( TMath::Abs(et) >1.e-2 ){
-      h3 = -ez*ex/et/et;
-      h4 = -ez*ey/et/et;
-      h5 = 1.;
-      currOutTracklet->fTglerr =  ( h3*h3*t.Param().Cov()[9] + h4*h4*t.Param().Cov()[14] + h5*h5*t.Param().Cov()[20] 
-				    + 2.*(h3*h4*t.Param().Cov()[13]+h3*h5*t.Param().Cov()[18]+h4*h5*t.Param().Cov()[19] )
-				    )/et/et;
-    }else{
-      currOutTracklet->fTglerr =  1.e-2;
-    }
+    AliExternalTrackParam tp;
+    par.GetExtParam( tp, 0, fBField );
 
-    currOutTracklet->fCharge = -currOutTracklet->fCharge;
-    
-    t.Param().TransportBz(Bz, vHitStoreX[iLastHit], lastHit.Y(), lastHit.Z() );
-     
-    currOutTracklet->fLastX = t.Param().Par()[0];
-    currOutTracklet->fLastY = t.Param().Par()[1];
-    currOutTracklet->fLastZ = t.Param().Par()[2];
+    currOutTracklet->fX = tp.GetX();
+    currOutTracklet->fY = tp.GetY();
+    currOutTracklet->fZ = tp.GetZ();
+    currOutTracklet->fCharge = (Int_t ) tp.GetSign();
+    currOutTracklet->fPt = TMath::Abs(tp.GetSignedPt());
+    Double_t snp =  tp.GetSnp() ;
+    if( snp>.999 ) snp=.999;
+    if( snp>-.999 ) snp=-.999;
+    currOutTracklet->fPsi = TMath::ASin( snp );
+    currOutTracklet->fTgl = tp.GetTgl();
+    Double_t h = -currOutTracklet->fPt*currOutTracklet->fPt;
+    currOutTracklet->fPterr = h*h*tp.GetSigma1Pt2();
+    h = 1./TMath::Sqrt(1-snp*snp);
+    currOutTracklet->fPsierr = h*h*tp.GetSigmaSnp2();
+    currOutTracklet->fTglerr = tp.GetSigmaTgl2();
+
+    par.TransportToX( vHitStoreX[iLastHit] );     
+    currOutTracklet->fLastX = par.GetX();
+    currOutTracklet->fLastY = par.GetY();
+    currOutTracklet->fLastZ = par.GetZ();
 
 #ifdef INCLUDE_TPC_HOUGH
 #ifdef ROWHOUGHPARAMS
@@ -524,7 +536,11 @@ int AliHLTTPCCATrackerComponent::DoEvent
     mySize+=dSize;
     outPtr->fTrackletCnt++; 
   }
-  
+
+  delete[] vHits;
+  delete[] vHitStoreX;
+  delete[] vHitStoreID;
+  delete[] vHitRowID;
   
   AliHLTComponentBlockData bd;
   FillBlockData( bd );
@@ -535,13 +551,17 @@ int AliHLTTPCCATrackerComponent::DoEvent
   
   size = mySize;
   
-  timerReco.Stop();
+  timer.Stop();
+
+  fFullTime+= timer.CpuTime();
+  fRecoTime+= timerReco.CpuTime();
+  fNEvents++;
 
   // Set log level to "Warning" for on-line system monitoring
 
-  Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "Tracks",
+  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Tracks",
  	   "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d us", 
-	   slice, ntracks, nClusters, minPatch, maxPatch, row[0], row[1], (Int_t) (timer.RealTime()*1.e6), (Int_t) (timerReco.RealTime()*1.e6) );
+	   slice, ntracks, nClusters, minPatch, maxPatch, row[0], row[1], (Int_t) (fFullTime/fNEvents*1.e6), (Int_t) (fRecoTime/fNEvents*1.e6) );
 
   return ret;
 

@@ -12,12 +12,13 @@
 #include "Rtypes.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCARow.h"
-#include "AliHLTTPCCATrack.h"
 
+class AliHLTTPCCATrack;
 class AliHLTTPCCAHit;
 class AliHLTTPCCACell;
 class AliHLTTPCCAOutTrack;
-
+class AliHLTTPCCATrackParam;
+class AliHLTTPCCAEndPoint;
 
 /**
  * @class AliHLTTPCCATracker
@@ -50,8 +51,8 @@ class AliHLTTPCCATracker
   void Reconstruct();
 
   void FindCells();
+  void MergeCells();
   void FindTracks();
-  void FitTrack( AliHLTTPCCATrack &track, Int_t nIter=2 );
 
   AliHLTTPCCAParam &Param(){ return fParam; }
   AliHLTTPCCARow *Rows(){ return fRows; }
@@ -64,24 +65,30 @@ class AliHLTTPCCATracker
   AliHLTTPCCATrack *Tracks(){ return  fTracks; }
   Int_t NTracks() const { return fNTracks; }
 
-  Int_t *TrackCells(){ return  fTrackCells; }
-
   Double_t *Timers(){ return fTimers; }
 
-  AliHLTTPCCACell &GetTrackCell( AliHLTTPCCATrack &t, Int_t i ) const {
-    Int_t ind = fTrackCells[t.IFirstCell()+i];
-    AliHLTTPCCARow &row = fRows[ind%256];
-    return row.Cells()[ind>>8];
+  static Int_t IRowICell2ID( Int_t iRow, Int_t iCell ){ 
+    return (iCell<<8)+iRow; 
   }
-  AliHLTTPCCARow &GetTrackCellRow( AliHLTTPCCATrack &t, Int_t i ) const {
-    Int_t ind = fTrackCells[t.IFirstCell()+i];
-    return fRows[ind%256];    
+  static Int_t ID2IRow( Int_t CellID ){ 
+    return ( CellID%256 ); 
   }
-  Int_t GetTrackCellIRow( AliHLTTPCCATrack &t, Int_t i ) const {
-    Int_t ind = fTrackCells[t.IFirstCell()+i];
-    return ind%256;    
+  static Int_t ID2ICell( Int_t CellID ){ 
+    return ( CellID>>8 ); 
+  }  
+  AliHLTTPCCACell &ID2Cell( Int_t CellID ) const{
+    return fRows[CellID%256].Cells()[CellID>>8];
   }
- 
+  AliHLTTPCCARow &ID2Row( Int_t CellID ) const{
+    return fRows[CellID%256];
+  }
+  
+  AliHLTTPCCAEndPoint &ID2Point( Int_t PointID ) const{
+    return fRows[PointID%256].EndPoints()[PointID>>8];
+  }
+
+  void FitTrack( AliHLTTPCCATrack &track, Float_t *t0 = 0 ) const;
+
  protected:
   
   AliHLTTPCCAParam fParam; // parameters
@@ -92,12 +99,13 @@ class AliHLTTPCCATracker
   Int_t fNOutTrackHits;  // number of hits in fOutTrackHits array
   AliHLTTPCCAOutTrack *fOutTracks; // output array of the reconstructed tracks
   Int_t fNOutTracks; // number of tracks in fOutTracks array
-  Int_t *fTrackCells; // indices of cells for reconstructed tracks
+
   Int_t fNHitsTotal;// total number of hits in event
   AliHLTTPCCATrack *fTracks;   // reconstructed tracks
   Int_t fNTracks;// number of reconstructed tracks
   Int_t *fCellHitPointers;// global array of cell->hit pointers
-
+  AliHLTTPCCACell *fCells;// global array of cells
+  AliHLTTPCCAEndPoint *fEndPoints;// global array of endpoints
   Double_t fTimers[10]; // running CPU time for different parts of the algorithm
 
   ClassDef(AliHLTTPCCATracker,1);

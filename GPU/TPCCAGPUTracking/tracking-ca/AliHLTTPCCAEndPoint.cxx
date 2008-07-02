@@ -1,4 +1,4 @@
-// @(#) $Id$
+// $Id$
 //***************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -16,41 +16,9 @@
 // provided "as is" without express or implied warranty.                    *
 //***************************************************************************
 
-#include "AliHLTTPCCARow.h"
+#include "AliHLTTPCCAEndPoint.h"
 
-ClassImp(AliHLTTPCCARow)
-
-  AliHLTTPCCARow::AliHLTTPCCARow() :fHits(0),fCells(0),fCellHitPointers(0),fEndPoints(0),fNHits(0),fNCells(0),fNEndPoints(0),fX(0),fMaxY(0),fDeltaY(0),fDeltaZ(0)
+void AliHLTTPCCAEndPoint::Dummy()
 {
-  //* constructor
-}
-
-AliHLTTPCCARow::AliHLTTPCCARow( const AliHLTTPCCARow &)
-  :fHits(0),fCells(0),fCellHitPointers(0),fEndPoints(0),fNHits(0),fNCells(0),fNEndPoints(0),fX(0),fMaxY(0),fDeltaY(0),fDeltaZ(0)
-{
-  //* dummy
-}
-
-AliHLTTPCCARow &AliHLTTPCCARow::operator=( const AliHLTTPCCARow &)
-{
-  //* dummy
-  fHits = 0;
-  fCells = 0;
-  fCellHitPointers = 0;
-  fEndPoints = 0;
-  fNHits = 0;
-  fNCells = 0;
-  fNEndPoints = 0;
-  return *this;
-}
-
-void AliHLTTPCCARow::Clear()
-{
-  //* clear memory
-  if(fHits) delete[] fHits;
-  fHits = 0;
-  fCells = 0;
-  fCellHitPointers = 0;    
-  fEndPoints = 0;
-  fNHits = fNCells = fNEndPoints = 0;
+  //* do nothing
 }

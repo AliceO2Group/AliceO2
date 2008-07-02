@@ -9,7 +9,7 @@
 #define ALIHLTTPCCAOUTTRACK_H
 
 #include "Rtypes.h"
-#include "AliHLTTPCCATrackPar.h"
+#include "AliHLTTPCCATrackParam.h"
 
 /**
  * @class AliHLTTPCCAOutTrack
@@ -24,18 +24,23 @@ class AliHLTTPCCAOutTrack
 {
  public:
 
-  AliHLTTPCCAOutTrack():fFirstHitRef(0),fNHits(0),fParam(){}
+  AliHLTTPCCAOutTrack():fFirstHitRef(0),fNHits(0),fStartPoint(),fEndPoint(),fOrigTrackID(0){}
   virtual ~AliHLTTPCCAOutTrack(){}
 
   Int_t &NHits()               { return fNHits; }
   Int_t &FirstHitRef()         { return fFirstHitRef; }
-  AliHLTTPCCATrackPar &Param() { return fParam; }
+
+  AliHLTTPCCATrackParam &StartPoint() { return fStartPoint; }
+  AliHLTTPCCATrackParam &EndPoint()   { return fEndPoint; }
+  Int_t &OrigTrackID()                { return fOrigTrackID; }
 
  protected:
   
-  Int_t fFirstHitRef;        // index of the first hit reference in track->hit reference array
-  Int_t fNHits;              // number of track hits
-  AliHLTTPCCATrackPar fParam;// fitted track parameters
+  Int_t fFirstHitRef;   //* index of the first hit reference in track->hit reference array
+  Int_t fNHits;         //* number of track hits
+  AliHLTTPCCATrackParam fStartPoint; //* fitted track parameters at the start point
+  AliHLTTPCCATrackParam fEndPoint;   //* fitted track parameters at the start point
+  Int_t fOrigTrackID;                //* index of the original slice track
 
  private:
 

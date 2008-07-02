@@ -1,4 +1,4 @@
-// @(#) $Id$
+// $Id$
 //***************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -16,41 +16,16 @@
 // provided "as is" without express or implied warranty.                    *
 //***************************************************************************
 
-#include "AliHLTTPCCARow.h"
+#include "AliHLTTPCCAGBHit.h"
 
-ClassImp(AliHLTTPCCARow)
+//ClassImp(AliHLTTPCCAGBHit)
 
-  AliHLTTPCCARow::AliHLTTPCCARow() :fHits(0),fCells(0),fCellHitPointers(0),fEndPoints(0),fNHits(0),fNCells(0),fNEndPoints(0),fX(0),fMaxY(0),fDeltaY(0),fDeltaZ(0)
+bool AliHLTTPCCAGBHit::Compare(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b)
 {
-  //* constructor
-}
-
-AliHLTTPCCARow::AliHLTTPCCARow( const AliHLTTPCCARow &)
-  :fHits(0),fCells(0),fCellHitPointers(0),fEndPoints(0),fNHits(0),fNCells(0),fNEndPoints(0),fX(0),fMaxY(0),fDeltaY(0),fDeltaZ(0)
-{
-  //* dummy
-}
-
-AliHLTTPCCARow &AliHLTTPCCARow::operator=( const AliHLTTPCCARow &)
-{
-  //* dummy
-  fHits = 0;
-  fCells = 0;
-  fCellHitPointers = 0;
-  fEndPoints = 0;
-  fNHits = 0;
-  fNCells = 0;
-  fNEndPoints = 0;
-  return *this;
-}
-
-void AliHLTTPCCARow::Clear()
-{
-  //* clear memory
-  if(fHits) delete[] fHits;
-  fHits = 0;
-  fCells = 0;
-  fCellHitPointers = 0;    
-  fEndPoints = 0;
-  fNHits = fNCells = fNEndPoints = 0;
+  //* Comparison function for sorting hits
+  if( a.fISlice<b.fISlice ) return 1;
+  if( a.fISlice>b.fISlice ) return 0;
+  if( a.fIRow<b.fIRow ) return 1;
+  if( a.fIRow>b.fIRow ) return 0;
+  return (a.fZ < b.fZ);
 }
