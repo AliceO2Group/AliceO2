@@ -394,7 +394,7 @@ void AliHLTTPCCATrackParam::GetExtParam( AliExternalTrackParam &T, Double_t alph
   if(par[2]<-.999 ) par[2]=-.999;
 
   const Double_t kCLight = 0.000299792458;  
-  Double_t c = 1./(Bz*kCLight);
+  Double_t c = (TMath::Abs(Bz)>1.e-4) ?1./(Bz*kCLight) :1./(5.*kCLight);
   { // kappa => 1/pt
     par[4] *= c;
     cov[10]*= c;

@@ -501,7 +501,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     currOutTracklet->fPt = TMath::Abs(tp.GetSignedPt());
     Double_t snp =  tp.GetSnp() ;
     if( snp>.999 ) snp=.999;
-    if( snp>-.999 ) snp=-.999;
+    if( snp<-.999 ) snp=-.999;
     currOutTracklet->fPsi = TMath::ASin( snp );
     currOutTracklet->fTgl = tp.GetTgl();
     Double_t h = -currOutTracklet->fPt*currOutTracklet->fPt;
