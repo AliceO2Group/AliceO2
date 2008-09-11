@@ -25,7 +25,6 @@
 #include "TMath.h"
 #include "TStopwatch.h"
 #include "Riostream.h"
-#include "TROOT.h"
 
 //#define DRAW
 
@@ -46,19 +45,11 @@ AliHLTTPCCAGBTracker::AliHLTTPCCAGBTracker()
     fTracks(0), 
     fNTracks(0),
     fSliceTrackInfos(0),
+    fTime(0),
     fStatNEvents(0)
 {
   //* constructor
-  fStatTime[0] = 0;
-  fStatTime[1] = 0;
-  fStatTime[2] = 0;
-  fStatTime[3] = 0;
-  fStatTime[4] = 0;
-  fStatTime[5] = 0;
-  fStatTime[6] = 0;
-  fStatTime[7] = 0;
-  fStatTime[8] = 0;
-  fStatTime[9] = 0;
+  for( Int_t i=0; i<20; i++ ) fStatTime[i] = 0;
 }
 
 AliHLTTPCCAGBTracker::AliHLTTPCCAGBTracker(const AliHLTTPCCAGBTracker&)
@@ -71,6 +62,7 @@ AliHLTTPCCAGBTracker::AliHLTTPCCAGBTracker(const AliHLTTPCCAGBTracker&)
     fTracks(0), 
     fNTracks(0),
     fSliceTrackInfos(0),
+    fTime(0),
     fStatNEvents(0)
 {
   //* dummy
@@ -139,8 +131,8 @@ void AliHLTTPCCAGBTracker::SetNHits( Int_t nHits )
   fNHits = 0;
 }  
 
-void AliHLTTPCCAGBTracker::ReadHit( Double_t x, Double_t y, Double_t z, 
-				    Double_t errY, Double_t errZ,
+void AliHLTTPCCAGBTracker::ReadHit( Float_t x, Float_t y, Float_t z, 
+				    Float_t errY, Float_t errZ, Float_t amp,
 				    Int_t ID, Int_t iSlice, Int_t iRow )
 {
   //* read the hit to local array
@@ -151,6 +143,7 @@ void AliHLTTPCCAGBTracker::ReadHit( Double_t x, Double_t y, Double_t z,
   hit.ErrX() = 1.e-4;//fSlices[iSlice].Param().ErrX();
   hit.ErrY() = errY;
   hit.ErrZ() = errZ;
+  hit.Amp() = amp;
   hit.ID() = ID;
   hit.ISlice()=iSlice;
   hit.IRow() = iRow;
@@ -167,7 +160,7 @@ void AliHLTTPCCAGBTracker::ReadHit( Double_t x, Double_t y, Double_t z,
 void AliHLTTPCCAGBTracker::FindTracks()
 {
   //* main tracking routine
-
+  fTime = 0;
   fStatNEvents++;
 
 #ifdef DRAW
@@ -222,6 +215,7 @@ void AliHLTTPCCAGBTracker::FindTracks()
     AliHLTTPCCATracker &slice = fSlices[iSlice];
     slice.Reconstruct();
     timer.Stop();
+    fTime = timer.CpuTime();
     fStatTime[0] += timer.CpuTime();
     fStatTime[1]+=slice.Timers()[0];
     fStatTime[2]+=slice.Timers()[1];
@@ -230,10 +224,7 @@ void AliHLTTPCCAGBTracker::FindTracks()
     fStatTime[5]+=slice.Timers()[4];
     fStatTime[6]+=slice.Timers()[5];
     fStatTime[7]+=slice.Timers()[6];
-#ifdef DRAW
-    //SlicePerformance( iSlice );
-    //if( slice.NTracks()>0 ) AliHLTTPCCADisplay::Instance().Ask();
-#endif 
+    fStatTime[8]+=slice.Timers()[7];
   }
   //cout<<"End CA reconstruction"<<endl;
   
@@ -254,7 +245,8 @@ void AliHLTTPCCAGBTracker::FindTracks()
   TStopwatch timerMerge;
   Merging();
   timerMerge.Stop();
-  fStatTime[8]+=timerMerge.CpuTime();
+  fStatTime[9]+=timerMerge.CpuTime();  
+  fTime+=timerMerge.CpuTime();
   //cout<<"End CA merging"<<endl;
 
 #ifdef DRAW
@@ -266,7 +258,19 @@ void AliHLTTPCCAGBTracker::Merging()
 {
   //* track merging between slices
 
-  Double_t dalpha = fSlices[1].Param().Alpha() - fSlices[0].Param().Alpha();
+  Float_t dalpha = fSlices[1].Param().Alpha() - fSlices[0].Param().Alpha();
+  Int_t nextSlice[100], prevSlice[100];
+  for( Int_t iSlice=0; iSlice<fNSlices; iSlice++ ){
+    nextSlice[iSlice] = iSlice + 1;
+    prevSlice[iSlice] = iSlice - 1;
+  }
+  nextSlice[ fNSlices/2 - 1 ] = 0;
+  prevSlice[ 0 ] = fNSlices/2 - 1;
+  nextSlice[ fNSlices - 1 ] = fNSlices/2;
+  prevSlice[ fNSlices/2 ] = fNSlices - 1;
+  
+  TStopwatch timerMerge1;
+
   Int_t maxNSliceTracks = 0;
   for( Int_t iSlice=0; iSlice<fNSlices; iSlice++ ){
     AliHLTTPCCATracker &iS = fSlices[iSlice];
@@ -285,10 +289,9 @@ void AliHLTTPCCAGBTracker::Merging()
   }
   
   for( Int_t iSlice=0; iSlice<fNSlices; iSlice++ ){
+    //cout<<"\nMerge slice "<<iSlice<<endl<<endl;
     AliHLTTPCCATracker &iS = fSlices[iSlice];
-    Int_t jSlice = iSlice+1;
-    if( iSlice==fNSlices/2-1 ) jSlice = 0;
-    else if( iSlice==fNSlices-1 ) jSlice = fNSlices/2;
+    Int_t jSlice = nextSlice[iSlice];
     AliHLTTPCCATracker &jS = fSlices[jSlice];    
     int iNTracks = iS.NOutTracks();
     int jNTracks = jS.NOutTracks();
@@ -299,7 +302,7 @@ void AliHLTTPCCAGBTracker::Merging()
     for (Int_t itr=0; itr<iNTracks; itr++) {      
       iOK[0][itr] = 0;
       iOK[1][itr] = 0;
-      if( iS.OutTracks()[itr].NHits()<30 ) continue;
+      if( iS.OutTracks()[itr].NHits()<10 ) continue;
       AliHLTTPCCATrackParam &iT1 = iTrParams[0][itr];
       AliHLTTPCCATrackParam &iT2 = iTrParams[1][itr];
       iT1 = iS.OutTracks()[itr].StartPoint();
@@ -320,7 +323,7 @@ void AliHLTTPCCAGBTracker::Merging()
     for (Int_t jtr=0; jtr<jNTracks; jtr++) {      
       jOK[0][jtr] = 0;
       jOK[1][jtr] = 0;
-      if( jS.OutTracks()[jtr].NHits()<30 ) continue;
+      if( jS.OutTracks()[jtr].NHits()<10 ) continue;
       AliHLTTPCCATrackParam &jT1 = jTrParams[0][jtr];
       AliHLTTPCCATrackParam &jT2 = jTrParams[1][jtr];
       jT1 = jS.OutTracks()[jtr].StartPoint();
@@ -338,7 +341,7 @@ void AliHLTTPCCAGBTracker::Merging()
     }
 
     //* start merging
-
+    //cout<<"Start slice merging.."<<endl;
     for (Int_t itr=0; itr<iNTracks; itr++) {      
       if( !iOK[0][itr] && !iOK[1][itr] ) continue;
       Int_t jBest = -1;
@@ -404,7 +407,7 @@ void AliHLTTPCCAGBTracker::Merging()
 	    fSliceTrackInfos[iSlice][oldi].fNextNeighbour = -1;
 	  } else continue;
 	}
-	
+	//SG!!!
 	fSliceTrackInfos[iSlice][itr].fNextNeighbour = jBest;
 	fSliceTrackInfos[jSlice][jBest].fPrevNeighbour = itr;	
       }    
@@ -417,6 +420,10 @@ void AliHLTTPCCAGBTracker::Merging()
     if( iOK[i] ) delete[] iOK[i];
     if( jOK[i] ) delete[] jOK[i];
   }
+  timerMerge1.Stop();
+  fStatTime[10]+=timerMerge1.CpuTime();
+
+  TStopwatch timerMerge2;
 
   Int_t nTracksTot = 0;
   for( Int_t iSlice = 0; iSlice<fNSlices; iSlice++ ){    
@@ -434,303 +441,352 @@ void AliHLTTPCCAGBTracker::Merging()
 
   Int_t nTrackHits = 0;
 
+  //cout<<"\nStart global track creation...\n"<<endl;  
+
+	  static int nRejected = 0;
+
+  Int_t maxNRows = fSlices[0].Param().NRows();
+  
   for( Int_t iSlice = 0; iSlice<fNSlices; iSlice++ ){
     
     AliHLTTPCCATracker &slice = fSlices[iSlice];
     for( Int_t itr=0; itr<slice.NOutTracks(); itr++ ){
       if( fSliceTrackInfos[iSlice][itr].fUsed ) continue;
-      fSliceTrackInfos[iSlice][itr].fUsed = 1;
+      //cout<<"\n slice "<<iSlice<<", track "<<itr<<"\n"<<endl;
       AliHLTTPCCAOutTrack &tCA = slice.OutTracks()[itr];
       AliHLTTPCCAGBTrack &t = fTracks[fNTracks];
-      t.Param() = tCA.StartPoint();
+      //t.Param() = tCA.StartPoint();
+       //t.Alpha() = slice.Param().Alpha();
       t.NHits() = 0;
       t.FirstHitRef() = nTrackHits;
-      t.Alpha() = slice.Param().Alpha();
-            
-      Int_t ihit = 0;
+
+      struct FitPoint{    
+	Int_t fISlice;
+	Int_t fHitID;
+	Float_t fX, fY, fZ, fErr2Y, fErr2Z, fAmp;
+      } fitPoints[300];
+      for( Int_t i=0; i<maxNRows; i++ ) fitPoints[i].fISlice = -1;
+     
+      Int_t nHits = 0;
       Int_t jSlice = iSlice;
       Int_t jtr = itr;
-      for( int jhit=0; jhit<tCA.NHits(); jhit++){
-	int index = slice.OutTrackHits()[tCA.FirstHitRef()+jhit];
-	fTrackHits[nTrackHits+ihit] = index;
-	ihit++;	    
-      }
-      while( fSliceTrackInfos[jSlice][jtr].fNextNeighbour >=0 ){
-	jtr = fSliceTrackInfos[jSlice][jtr].fNextNeighbour;
-	if( jSlice==fNSlices/2-1 ) jSlice = 0;
-	else if( jSlice==fNSlices-1 ) jSlice = fNSlices/2;
-	else jSlice = jSlice + 1;
+      do{ 
 	if( fSliceTrackInfos[jSlice][jtr].fUsed ) break;
 	fSliceTrackInfos[jSlice][jtr].fUsed = 1;
-	AliHLTTPCCAOutTrack &jTr = fSlices[jSlice].OutTracks()[jtr];
+	AliHLTTPCCATracker &jslice = fSlices[jSlice];
+	AliHLTTPCCAOutTrack &jTr = jslice.OutTracks()[jtr];
 	for( int jhit=0; jhit<jTr.NHits(); jhit++){
-	  int index = fSlices[jSlice].OutTrackHits()[jTr.FirstHitRef()+jhit];	  
-	  fTrackHits[nTrackHits+ihit] = index;
-	  ihit++;
+	  int id = jslice.OutTrackHits()[jTr.FirstHitRef()+jhit];	  
+	  AliHLTTPCCAGBHit &h = fHits[id];
+	  FitPoint &p =  fitPoints[h.IRow()];
+	  if( p.fISlice >=0 ) continue;
+	  p.fISlice = h.ISlice();
+	  p.fHitID = id;
+	  p.fX = jslice.Rows()[h.IRow()].X();
+	  p.fY = h.Y();
+	  p.fZ = h.Z();
+	  p.fErr2Y = h.ErrY()*h.ErrY();
+	  p.fErr2Z = h.ErrZ()*h.ErrZ();
+	  p.fAmp = h.Amp();
+	  nHits++;	    
 	}
+	jtr = fSliceTrackInfos[jSlice][jtr].fNextNeighbour;
+	jSlice = nextSlice[jSlice];	
+      } while( jtr >=0 ); 
+
+      if( nHits < 30 ) continue;     //SG!!!
+
+
+      Int_t firstRow = 0, lastRow = maxNRows-1;
+      for( firstRow=0; firstRow<maxNRows; firstRow++ ){
+	if( fitPoints[firstRow].fISlice>=0 ) break;
       }
-      t.NHits() = ihit;
-      if( t.NHits()<50 ) continue;
-      Int_t nHitsOld = t.NHits();
+      for( lastRow=maxNRows-1; lastRow>=0; lastRow-- ){
+	if( fitPoints[lastRow].fISlice>=0 ) break;
+      }
+      Int_t mmidRow = (firstRow + lastRow )/2;
+      Int_t midRow = firstRow;
+      for( Int_t i=firstRow+1; i<=lastRow; i++ ){
+	if( fitPoints[i].fISlice<0 ) continue;	
+	if( TMath::Abs(i-mmidRow)>=TMath::Abs(midRow-mmidRow) ) continue;
+	midRow = i;
+      }
+      if( midRow==firstRow || midRow==lastRow ) continue;
+  
+      Int_t searchRows[300];
+      Int_t nSearchRows = 0;
 
+      for( Int_t i=firstRow; i<=lastRow; i++ ) searchRows[nSearchRows++] = i;
+      for( Int_t i=lastRow+1; i<maxNRows; i++ ) searchRows[nSearchRows++] = i;
+      for( Int_t i=firstRow-1; i>=0; i-- ) searchRows[nSearchRows++] = i;
+      
       // refit 
-      {
-	if( t.NHits()<10 ) continue;
 
+      AliHLTTPCCATrackParam t0;
 
-	AliHLTTPCCAGBHit* *vhits = new AliHLTTPCCAGBHit*[nHitsOld];
-	
-	for( Int_t ih=0; ih<nHitsOld; ih++ ){
-	  vhits[ih] = &(fHits[fTrackHits[t.FirstHitRef() + ih]]);
-	}	
-	
-	sort(vhits, vhits+nHitsOld, AliHLTTPCCAGBHit::ComparePRowDown );
+      {	
 
-	AliHLTTPCCATrackParam t0;
-	
 	{	  
-	  AliHLTTPCCAGBHit &h0 = *(vhits[0]);
-	  AliHLTTPCCAGBHit &h1 = *(vhits[nHitsOld/2]);
-	  AliHLTTPCCAGBHit &h2 = *(vhits[nHitsOld-1]);
-	  if( h0.IRow()==h1.IRow() || h0.IRow()==h2.IRow() || h1.IRow()==h2.IRow() ) continue;
-	  Double_t x1,y1,z1, x2, y2, z2, x3, y3, z3;
-	  fSlices[h0.ISlice()].Param().Slice2Global(h0.X(), h0.Y(), h0.Z(), &x1,&y1,&z1);
-	  fSlices[h1.ISlice()].Param().Slice2Global(h1.X(), h1.Y(), h1.Z(), &x2,&y2,&z2);
-	  fSlices[h2.ISlice()].Param().Slice2Global(h2.X(), h2.Y(), h2.Z(), &x3,&y3,&z3);
-	  fSlices[h0.ISlice()].Param().Global2Slice(x1, y1, z1, &x1,&y1,&z1);
-	  fSlices[h0.ISlice()].Param().Global2Slice(x2, y2, z2, &x2,&y2,&z2);
-	  fSlices[h0.ISlice()].Param().Global2Slice(x3, y3, z3, &x3,&y3,&z3);
-	  Float_t sp0[5] = {x1, y1, z1, .5, .5 };	
-	  Float_t sp1[5] = {x2, y2, z2, .5, .5 };
-	  Float_t sp2[5] = {x3, y3, z3, .5, .5 };
+	  FitPoint &p0 =  fitPoints[firstRow];
+	  FitPoint &p1 =  fitPoints[midRow];
+	  FitPoint &p2 =  fitPoints[lastRow];
+	  Float_t x0=p0.fX, y0=p0.fY, z0=p0.fZ;
+	  Float_t x1=p1.fX, y1=p1.fY, z1=p1.fZ;
+	  Float_t x2=p2.fX, y2=p2.fY, z2=p2.fZ;
+	  if( p1.fISlice!=p0.fISlice ){
+	    Float_t dAlpha = fSlices[p0.fISlice].Param().Alpha() - fSlices[p1.fISlice].Param().Alpha();
+	    Float_t c = TMath::Cos(dAlpha);
+	    Float_t s = TMath::Sin(dAlpha);
+	    x1 = p1.fX*c + p1.fY*s;
+	    y1 = p1.fY*c - p1.fX*s;
+	  }
+	  if( p2.fISlice!=p0.fISlice ){
+	    Float_t dAlpha = fSlices[p0.fISlice].Param().Alpha() - fSlices[p2.fISlice].Param().Alpha();
+	    Float_t c = TMath::Cos(dAlpha);
+	    Float_t s = TMath::Sin(dAlpha);
+	    x2 = p2.fX*c + p2.fY*s;
+	    y2 = p2.fY*c - p2.fX*s;
+	  }
+
+	  Float_t sp0[5] = {x0, y0, z0, .5, .5 };	
+	  Float_t sp1[5] = {x1, y1, z1, .5, .5 };
+	  Float_t sp2[5] = {x2, y2, z2, .5, .5 };
 	  t0.ConstructXYZ3(sp0,sp1,sp2,1., 0);
-	}	      
+	}
+	
+	Int_t currslice = fitPoints[firstRow].fISlice;
 
-	Int_t currslice = vhits[0]->ISlice();
-	Int_t currrow = fSlices[currslice].Param().NRows()-1;
-	Double_t currd2 = 1.e10;
-	AliHLTTPCCAGBHit *currhit = 0;
+	for( Int_t rowID=0; rowID<nSearchRows; rowID++ ){
+	  Int_t iRow = searchRows[rowID];	  
+	  FitPoint &p =  fitPoints[iRow];
 
-	for( Int_t ih=0; ih<nHitsOld; ih++ ){
-	  Double_t y0 = t0.GetY();
-	  Double_t z0 = t0.GetZ();	
-	  AliHLTTPCCAGBHit &h = *(vhits[ih]);
-	  //cout<<"hit,slice,row="<<ih<<" "<<h.slice<<" "<<h.row<<endl;
-	  if( h.ISlice() == currslice && h.IRow() == currrow ){
-	    //* select the best hit in the row
-	    Double_t dy = h.Y() - y0;
-	    Double_t dz = h.Z() - z0;
-	    Double_t d2 = dy*dy + dz*dz;
-	    if( d2<currd2 ){
-	      currhit = &h;
-	      currd2 = d2;
+	  if( p.fISlice>=0 ){ 
+
+	    //* Existing hit
+
+	    //* Rotate to the new slice
+
+	    if( p.fISlice!=currslice ){ 
+	      if( !t0.Rotate( fSlices[p.fISlice].Param().Alpha() - fSlices[currslice].Param().Alpha() ) ) continue;	
+	      currslice = p.fISlice;
 	    }
-	    continue;
-	  }else{
-	    if( currhit != 0 ){ 
-	      //* update track	
-	      t0.Filter(currhit->Y(), currhit->Z(), currhit->ErrY(), currhit->ErrZ());
-	      currhit = 0;
-	    }
-	    if( h.ISlice() != currslice ){
+	    //* Transport to the new row
+	    
+	    if( !t0.TransportToX( p.fX ) ) continue;
+
+	    //* Calculate hit errors
+	    
+	    GetErrors2( p.fISlice, iRow, t0, p.fErr2Y, p.fErr2Z );
+
+	  } else { 
+	    //continue; //SG!!
+	    //* Search for the missed hit
+
+	    Float_t factor2 = 3.5*3.5;
+
+	    AliHLTTPCCATracker *cslice = &(fSlices[currslice]);
+	    AliHLTTPCCARow *row = &(cslice->Rows()[iRow]);
+	    if( !t0.TransportToX( row->X() ) ) continue;
+
+	    if( t0.GetY() > row->MaxY() ){ //next slice
+
+	      Int_t j = nextSlice[currslice];
+
 	      //* Rotate to the new slice
-	      currhit = 0;
-	      if( !t0.Rotate( -fSlices[currslice].Param().Alpha() +fSlices[h.ISlice()].Param().Alpha() ) ) break;	
-	      currslice = h.ISlice();
-	      //currrow = 300;
-	      currd2 = 1.e10;
+	      
+	      if( !t0.Rotate( -fSlices[currslice].Param().Alpha() +fSlices[j].Param().Alpha() ) ) continue;	      
+	      currslice = j;
+	      cslice = &(fSlices[currslice]);
+	      row = &(cslice->Rows()[iRow]);
+	      if( !t0.TransportToX( row->X() ) ) continue;
+	      if( TMath::Abs(t0.GetY()) > row->MaxY() ) continue;
+
+	    }else if( t0.GetY() < -row->MaxY() ){ //prev slice
+	      Int_t j = prevSlice[currslice];
+	      //* Rotate to the new slice
+	      if( !t0.Rotate( -fSlices[currslice].Param().Alpha() +fSlices[j].Param().Alpha() ) ) break;
+	      currslice = j;
+	      cslice = &(fSlices[currslice]);
+	      row = &(cslice->Rows()[iRow]);
+	      if( !t0.TransportToX( row->X() ) ) continue;		
+	      if( TMath::Abs(t0.GetY()) > row->MaxY() ) continue;
 	    }
-	    //* search for missed hits in rows
-	    {
-	      Double_t factor2 = 3.5*3.5;
-	      AliHLTTPCCATracker &cslice = fSlices[currslice];	      
-	      for( Int_t srow=currrow-1; srow>h.IRow(); srow--){
-		AliHLTTPCCARow &row = cslice.Rows()[srow];
-		if( !t0.TransportToX( row.X() ) ) continue;
-		Int_t bestsh = -1;
-		Double_t ds = 1.e10;
-		for( Int_t ish=0; ish<row.NHits(); ish++ ){
-		  AliHLTTPCCAHit &sh = row.Hits()[ish];
-		  Double_t dy = sh.Y() - t0.GetY();
-		  Double_t dz = sh.Z() - t0.GetZ();
-		  Double_t dds = dy*dy+dz*dz;
-		  if( dds<ds ){
-		    ds = dds;
-		    bestsh = ish;
-		  }
-		}
-		if( bestsh<0 ) continue;
-		AliHLTTPCCAHit &sh = row.Hits()[bestsh];
-		Double_t dy = sh.Y() - t0.GetY();
-		Double_t dz = sh.Z() - t0.GetZ();
-		Double_t s2z = /*t0.GetErr2Z() + */ sh.ErrZ()*sh.ErrZ();
-		if( dz*dz>factor2*s2z ) continue;		
-		Double_t s2y = /*t0.GetErr2Y() + */ sh.ErrY()*sh.ErrY();
-		if( dy*dy>factor2*s2y ) continue;
-		//* update track	  
-		t0.Filter(sh.Y(), sh.Z(), sh.ErrY()/.33, sh.ErrZ()/.33);
-		fTrackHits[nTrackHits+t.NHits()] = sh.ID();
-		t.NHits()++;
+	    
+	    Int_t bestsh = -1;
+	    Float_t ds = 1.e10;
+	    for( Int_t ish=0; ish<row->NHits(); ish++ ){
+	      AliHLTTPCCAHit &sh = row->Hits()[ish];
+	      Float_t dy = sh.Y() - t0.GetY();
+	      Float_t dz = sh.Z() - t0.GetZ();
+	      Float_t dds = dy*dy+dz*dz;
+	      if( dds<ds ){
+		ds = dds;
+		bestsh = ish;
 	      }
 	    }
-	    //* transport to the new row
-	    currrow = h.IRow();  
-	    Bool_t ok = t0.TransportToX( h.X() );	
-	    if( ok ){
-	      currrow = h.IRow();
-	      Double_t dy = h.Y() - t0.GetY();
-	      Double_t dz = h.Z() - t0.GetZ();
-	      currd2 = dy*dy + dz*dz;
-	      currhit = &h;
+	    if( bestsh<0 ) continue;
+
+	    //* Calculate hit errors
+	    
+	    GetErrors2( currslice, iRow, t0, p.fErr2Y, p.fErr2Z );
+
+	    AliHLTTPCCAHit &sh = row->Hits()[bestsh];
+	    Float_t dy = sh.Y() - t0.GetY();
+	    Float_t dz = sh.Z() - t0.GetZ();
+	    Float_t s2z = /*t0.GetErr2Z() + */ p.fErr2Z;
+	    if( dz*dz>factor2*s2z ) continue;		
+	    Float_t s2y = /*t0.GetErr2Y() + */ p.fErr2Y;
+	    if( dy*dy>factor2*s2y ) continue;
+
+	    p.fISlice = currslice;
+	    p.fHitID = sh.ID();
+	    p.fX = row->X();
+	    p.fY = sh.Y();
+	    p.fZ = sh.Z();
+	    p.fAmp = fHits[p.fHitID].Amp();
+	  }
+
+	  //* Update the track
+	  
+	  t0.Filter2( p.fY, p.fZ, p.fErr2Y, p.fErr2Z );	  
+	}
+
+	//* final refit, dE/dx calculation
+	//cout<<"\n\nstart refit..\n"<<endl;
+	{
+	  Double_t sumDeDx = 0;
+	  Int_t nDeDx = 0;
+	  t.NHits() = 0;
+	
+	  AliHLTTPCCATrackFitParam fitPar;
+	  t0.CalculateFitParameters( fitPar, fSlices[0].Param().Bz() );
+
+	  t0.Cov()[ 0] = .1;
+	  t0.Cov()[ 1] = 0;
+	  t0.Cov()[ 2] = .1;
+	  t0.Cov()[ 3] = 0;
+	  t0.Cov()[ 4] = 0;
+	  t0.Cov()[ 5] = .1;
+	  t0.Cov()[ 6] = 0;
+	  t0.Cov()[ 7] = 0;
+	  t0.Cov()[ 8] = 0;
+	  t0.Cov()[ 9] = .1;
+	  t0.Cov()[10] = 0;
+	  t0.Cov()[11] = 0;
+	  t0.Cov()[12] = 0;
+	  t0.Cov()[13] = 0;
+	  t0.Cov()[14] = .1;
+	  t0.Chi2() = 0;
+	  t0.NDF() = -5;	
+	  bool first = 1;
+	  for( Int_t iRow = maxNRows-1; iRow>=0; iRow-- ){
+	    FitPoint &p =  fitPoints[iRow];
+	    if( p.fISlice<0 ) continue;
+	    fTrackHits[nTrackHits+t.NHits()] = p.fHitID;
+	    t.NHits()++;
+	    
+	    //* Rotate to the new slice
+
+	    if( p.fISlice!=currslice ){ 
+	      //cout<<"rotate..."<<endl;
+	      //cout<<" before rotation:"<<endl;
+	      //t0.Print();
+	      if( !t0.Rotate( fSlices[p.fISlice].Param().Alpha() - fSlices[currslice].Param().Alpha() ) ) continue;	
+	      //cout<<" after rotation:"<<endl;
+	      //t0.Print();
+	      currslice = p.fISlice;
 	    }
+	    //* Transport to the new row
+	    
+	    //cout<<" before transport:"<<endl;
+	    //t0.Print();
+	    
+	    //if( !t0.TransportToX( p.fX ) ) continue;	    
+	    if( !t0.TransportToXWithMaterial( p.fX, fitPar ) ) continue;	    
+	    //if( !t0.TransportToX( p.fX ) ) continue;	    
+	    //cout<<" after transport:"<<endl;
+	    //t0.Print();
+
+	    //* Update the track
+	    
+	    if( first ){
+	      t0.Cov()[ 0] = .5*.5;
+	      t0.Cov()[ 1] = 0;
+	      t0.Cov()[ 2] = .5*.5;
+	      t0.Cov()[ 3] = 0;
+	      t0.Cov()[ 4] = 0;
+	      t0.Cov()[ 5] = .2*.2;
+	      t0.Cov()[ 6] = 0;
+	      t0.Cov()[ 7] = 0;
+	      t0.Cov()[ 8] = 0;
+	      t0.Cov()[ 9] = .2*.2;
+	      t0.Cov()[10] = 0;
+	      t0.Cov()[11] = 0;
+	      t0.Cov()[12] = 0;
+	      t0.Cov()[13] = 0;
+	      t0.Cov()[14] = .5*.5;
+	      t0.Chi2() = 0;
+	      t0.NDF() = -5;
+	    }
+
+	    //cout<<" before filtration:"<<endl;
+	    //t0.Print();
+
+	    if( !t0.Filter2( p.fY, p.fZ, p.fErr2Y, p.fErr2Z ) ) continue;	  
+	    //cout<<" after filtration:"<<endl;
+	    //t0.Print();
+	      first = 0;
+	    
+	    if( TMath::Abs( t0.CosPhi() )>1.e-4 ){
+	      Float_t dLdX = TMath::Sqrt(1.+t0.DzDs()*t0.DzDs())/TMath::Abs(t0.CosPhi());
+	      sumDeDx+=p.fAmp/dLdX;
+	      nDeDx++;
+	    } 
+	  }
+	  t.DeDx() = 0;
+	  if( nDeDx >0 ) t.DeDx() = sumDeDx/nDeDx;
+	  if( t0.GetErr2Y()<=0 ){
+	    cout<<"nhits = "<<t.NHits()<<", t0.GetErr2Y() = "<<t0.GetErr2Y()<<endl;
+	    t0.Print();
+	    //exit(1);
 	  }
 	}
-	if( currhit != 0 ){ // update track
-	  
-	  t0.Filter(currhit->Y(), currhit->Z(), currhit->ErrY(), currhit->ErrZ());
-	}
-	
-	//* search for missed hits in rows
-	{
-	  Double_t factor2 = 3.5*3.5;
-	  for( Int_t srow=currrow-1; srow>=0; srow--){
-	    AliHLTTPCCATracker *cslice = &(fSlices[currslice]);
-	    AliHLTTPCCARow *row = &(cslice->Rows()[srow]);
-	    if( !t0.TransportToX( row->X() ) ) continue;
-	    if( t0.GetY() > row->MaxY() ){ //next slice
-	      Int_t j = currslice+1;
-	      if( currslice==fNSlices/2-1 ) j = 0;
-	      else if( currslice==fNSlices-1 ) j = fNSlices/2;
-	      //* Rotate to the new slice
-	      if( !t0.Rotate( -fSlices[currslice].Param().Alpha() +fSlices[j].Param().Alpha() ) ) break;
-	      currslice = j;
-	      cslice = &(fSlices[currslice]);
-	      row = &(cslice->Rows()[srow]);
-	      if( !t0.TransportToX( row->X() ) ) continue;		
-	    }else if( t0.GetY() < -row->MaxY() ){ //prev slice
-	      Int_t j = currslice-1;
-	      if( currslice==0 ) j = fNSlices/2-1;
-	      else if( currslice==fNSlices/2 ) j = fNSlices-1;
-	      //* Rotate to the new slice
-	      if( !t0.Rotate( -fSlices[currslice].Param().Alpha() +fSlices[j].Param().Alpha() ) ) break;
-	      currslice = j;
-	      cslice = &(fSlices[currslice]);
-	      row = &(cslice->Rows()[srow]);
-	      if( !t0.TransportToX( row->X() ) ) continue;		
-	    }
-	    Int_t bestsh = -1;
-	    Double_t ds = 1.e10;
-	    for( Int_t ish=0; ish<row->NHits(); ish++ ){
-	      AliHLTTPCCAHit &sh = row->Hits()[ish];
-	      Double_t dy = sh.Y() - t0.GetY();
-	      Double_t dz = sh.Z() - t0.GetZ();
-	      Double_t dds = dy*dy+dz*dz;
-	      if( dds<ds ){
-		ds = dds;
-		bestsh = ish;
-	      }
-	    }
-	    if( bestsh<0 ) continue;
-	    AliHLTTPCCAHit &sh = row->Hits()[bestsh];
-	    Double_t dy = sh.Y() - t0.GetY();
-	    Double_t dz = sh.Z() - t0.GetZ();
-	    Double_t s2z = /*t0.GetErr2Z() + */ sh.ErrZ()*sh.ErrZ();
-	    if( dz*dz>factor2*s2z ) continue;		
-	    Double_t s2y = /*t0.GetErr2Y() + */ sh.ErrY()*sh.ErrY();
-	    if( dy*dy>factor2*s2y ) continue;
-	    //* update track	  
-	    t0.Filter(sh.Y(), sh.Z(), sh.ErrY()/.33, sh.ErrZ()/.33);
-	    fTrackHits[nTrackHits+t.NHits()] = sh.ID();
-	    t.NHits()++;
-	  }	
-	}
-	if( vhits ) delete[] vhits;
 
-	//* search for missed hits in rows
+	if( t.NHits()<30 ) continue;//SG!!
+
 	{
-	  Double_t factor2 = 3.5*3.5;	
-	  AliHLTTPCCAGBHit &h0 = fHits[fTrackHits[t.FirstHitRef()]];
+	  Bool_t ok=1;
 	  
-	  Bool_t ok = t0.Rotate( -fSlices[currslice].Param().Alpha() +fSlices[h0.ISlice()].Param().Alpha() );
-	  
-	  currslice = h0.ISlice();
-	  currrow = h0.IRow();
-	  
-	  for( Int_t srow=currrow+1; srow<fSlices[0].Param().NRows()&&ok; srow++){
-	    AliHLTTPCCATracker *cslice = &(fSlices[currslice]);
-	    AliHLTTPCCARow *row = &(cslice->Rows()[srow]);
-	    if( !t0.TransportToX( row->X() ) ) continue;
-	    if( t0.GetY() > row->MaxY() ){ //next slice
-	      Int_t j = currslice+1;
-	      if( currslice==fNSlices/2-1 ) j = 0;
-	      else if( currslice==fNSlices-1 ) j = fNSlices/2;
-	      //* Rotate to the new slice
-	      if( !t0.Rotate( -fSlices[currslice].Param().Alpha() +fSlices[j].Param().Alpha() ) ) break;
-	      currslice = j;
-	      cslice = &(fSlices[currslice]);
-	      row = &(cslice->Rows()[srow]);
-	      if( !t0.TransportToX( row->X() ) ) continue;		
-	    }else if( t0.GetY() < -row->MaxY() ){ //prev slice
-	      Int_t j = currslice-1;
-	      if( currslice==0 ) j = fNSlices/2-1;
-	      else if( currslice==fNSlices/2 ) j = fNSlices-1;
-	      //* Rotate to the new slice
-	      if( !t0.Rotate( -fSlices[currslice].Param().Alpha() +fSlices[j].Param().Alpha() ) ) break;
-	      currslice = j;
-	      cslice = &(fSlices[currslice]);
-	      row = &(cslice->Rows()[srow]);
-	      if( !t0.TransportToX( row->X() ) ) continue;		
-	    }
-	    Int_t bestsh = -1;
-	    Double_t ds = 1.e10;
-	    for( Int_t ish=0; ish<row->NHits(); ish++ ){
-	      AliHLTTPCCAHit &sh = row->Hits()[ish];
-	      Double_t dy = sh.Y() - t0.GetY();
-	      Double_t dz = sh.Z() - t0.GetZ();
-	      Double_t dds = dy*dy+dz*dz;
-	      if( dds<ds ){
-		ds = dds;
-		bestsh = ish;
-	      }
-	    }
-	    if( bestsh<0 ) continue;
-	    AliHLTTPCCAHit &sh = row->Hits()[bestsh];
-	    Double_t dy = sh.Y() - t0.GetY();
-	    Double_t dz = sh.Z() - t0.GetZ();
-	    Double_t s2z = /*t0.GetErr2Z() + */ sh.ErrZ()*sh.ErrZ();
-	    if( dz*dz>factor2*s2z ) continue;		
-	    Double_t s2y = /*t0.GetErr2Y() + */ sh.ErrY()*sh.ErrY();
-	    if( dy*dy>factor2*s2y ) continue;
-	    //* update track	  
-	    t0.Filter(sh.Y(), sh.Z(), sh.ErrY()/.33, sh.ErrZ()/.33);
-	    fTrackHits[nTrackHits+t.NHits()] = sh.ID();
-	    t.NHits()++;
-	  }	
-	}
-	
-	Bool_t ok=1;
-	{
-	  for( int i=0; i<15; i++ ) ok = ok && finite(t0.Cov()[i]);
+	  Float_t *c = t0.Cov();
+	  for( int i=0; i<15; i++ ) ok = ok && finite(c[i]);
 	  for( int i=0; i<5; i++ ) ok = ok && finite(t0.Par()[i]);
 	  ok = ok && (t0.GetX()>50);
-	}
-	if(!ok) continue;
-	if( TMath::Abs(t0.Kappa())<1.e-8 ) t0.Kappa() = 1.e-8;
-	if( nHitsOld != t.NHits() ){
-	  //cout<<"N matched hits = "<<(t.NHits() - nHitsOld )<<" / "<<nHitsOld<<endl;
+	  
+	  if( c[0]<=0 || c[2]<=0 || c[5]<=0 || c[9]<=0 || c[14]<=0 ) ok = 0;
+	  //if( c[0]>5. || c[2]>5. || c[5]>2. || c[9]>2 || c[14]>2 ) ok = 0;
+	  if(!ok){
+	    nRejected++;
+	    //cout<<"\n\nRejected: "<<nRejected<<"\n"<<endl;
+	    continue;
+	  }
 	}
 
+	if( TMath::Abs(t0.Kappa())<1.e-8 ) t0.Kappa() = 1.e-8;	
 	t.Param() = t0;
 	t.Alpha() = fSlices[currslice].Param().Alpha();
-	if( t.NHits()<50 ) continue;
 	nTrackHits+= t.NHits();
-	fNTracks++;      
+	fNTracks++;   
       }
     }
   }
-  
-  //* selection  
+  cout<<"\n\nRejected: "<<nRejected<<"\n"<<endl;
+  timerMerge2.Stop();
+  fStatTime[11]+=timerMerge2.CpuTime();
 
+  TStopwatch timerMerge3;
+
+  //* selection  
+  //cout<<"Selection..."<<endl;
   {
     AliHLTTPCCAGBTrack *vtracks = new AliHLTTPCCAGBTrack [fNTracks];
     Int_t *vhits = new Int_t [fNHits];
@@ -756,9 +812,10 @@ void AliHLTTPCCAGBTracker::Merging()
 	to.NHits()++;
 	h.IsUsed() = 1;
       }
-      if( to.NHits()<50 ) continue;
+      if( to.NHits()<30 ) continue;//SG!!!
       nHits+=to.NHits();
       nTracks++;
+      //cout<<to.Param().GetErr2Y()<<" "<<to.Param().GetErr2Z()<<endl;
     }
     fNTracks = nTracks;
     if( fTrackHits ) delete[] fTrackHits;
@@ -767,5 +824,152 @@ void AliHLTTPCCAGBTracker::Merging()
     fTracks = vtracks;
     delete[] vptracks;
   }
+  timerMerge3.Stop();
+  fStatTime[12]+=timerMerge3.CpuTime();
+}
 
+void AliHLTTPCCAGBTracker::GetErrors2( Int_t iSlice, Int_t iRow, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z )
+{
+  //
+  // Use calibrated cluster error from OCDB
+  //
+    
+  Float_t z = TMath::Abs((250.-0.275)-TMath::Abs(t.GetZ()));
+  Int_t    type = (iRow<63) ? 0: (iRow>126) ? 1:2;
+  Float_t cosPhiInv = TMath::Abs(t.GetCosPhi())>1.e-2 ?1./t.GetCosPhi() :0;
+  Float_t angleY = t.GetSinPhi()*cosPhiInv ;
+  Float_t angleZ = t.GetDzDs()*cosPhiInv ;
+
+  AliHLTTPCCATracker &slice = fSlices[iSlice];
+
+  Err2Y = slice.Param().GetClusterError2(0,type, z,angleY);  
+  Err2Z = slice.Param().GetClusterError2(1,type, z,angleZ);
+}
+
+
+void AliHLTTPCCAGBTracker::GetErrors2( AliHLTTPCCAGBHit &h, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z )
+{
+  //
+  // Use calibrated cluster error from OCDB
+  //
+
+  GetErrors2( h.ISlice(), h.IRow(), t, Err2Y, Err2Z );
+}
+
+void AliHLTTPCCAGBTracker::WriteSettings( ostream &out )
+{
+  out<< NSlices()<<endl;  
+  for( int iSlice=0; iSlice<NSlices(); iSlice++ ){    
+    fSlices[iSlice].Param().WriteSettings( out );
+  }
+}
+
+void AliHLTTPCCAGBTracker::ReadSettings( istream &in )
+{
+  Int_t nSlices=0;
+  in >> nSlices;
+  SetNSlices( nSlices );
+  for( int iSlice=0; iSlice<NSlices(); iSlice++ ){    
+    AliHLTTPCCAParam param;
+    param.ReadSettings ( in );
+    fSlices[iSlice].Initialize( param ); 
+  }
+}
+
+void AliHLTTPCCAGBTracker::WriteEvent( ostream &out )
+{
+  out<<NHits()<<endl;
+  for (Int_t ih=0; ih<NHits(); ih++) {
+    AliHLTTPCCAGBHit &h = fHits[ih];
+    out<<h.X()<<" ";
+    out<<h.Y()<<" ";
+    out<<h.Z()<<" ";
+    out<<h.ErrY()<<" ";
+    out<<h.ErrZ()<<" ";
+    out<<h.Amp()<<" ";
+    out<<h.ID()<<" ";
+    out<<h.ISlice()<<" ";
+    out<<h.IRow()<<endl;
+  }
+}
+
+void AliHLTTPCCAGBTracker::ReadEvent( istream &in )
+{
+  StartEvent();
+  Int_t nHits;
+  in >> nHits;
+  SetNHits(nHits);
+  for (Int_t i=0; i<nHits; i++) {
+    Float_t x, y, z, errY, errZ;
+    Float_t amp;
+    Int_t id, iSlice, iRow;
+    in>>x>>y>>z>>errY>>errZ>>amp>>id>>iSlice>>iRow;
+    ReadHit( x, y, z, errY, errZ, amp, id, iSlice, iRow );
+  }
+}
+
+void AliHLTTPCCAGBTracker::WriteTracks( ostream &out )
+{
+  out<<fTime<<endl;
+  Int_t nTrackHits = 0;
+  for( Int_t itr=0; itr<NTracks(); itr++ ){
+    AliHLTTPCCAGBTrack &t = Tracks()[itr];    
+    nTrackHits+=t.NHits();
+  }
+  out<<nTrackHits<<endl;
+  for( Int_t ih=0; ih<nTrackHits; ih++ ){
+    out<< TrackHits()[ih]<<" ";
+  }
+  out<<endl;
+  
+  out<<NTracks()<<endl;
+  for( Int_t itr=0; itr<NTracks(); itr++ ){
+    AliHLTTPCCAGBTrack &t = Tracks()[itr];    
+    AliHLTTPCCATrackParam &p = t.Param();	
+    out<< t.NHits()<<" ";
+    out<< t.FirstHitRef()<<" ";
+    out<< t.Alpha()<<" ";
+    out<< t.DeDx()<<endl;
+    out<< p.X()<<" ";
+    out<< p.CosPhi()<<" ";
+    out<< p.Chi2()<<" ";
+    out<< p.NDF()<<endl;
+    for( Int_t i=0; i<5; i++ ) out<<p.Par()[i]<<" ";
+    out<<endl;
+    for( Int_t i=0; i<15; i++ ) out<<p.Cov()[i]<<" ";
+    out<<endl;
+  }
+}
+
+void AliHLTTPCCAGBTracker::ReadTracks( istream &in )
+{
+  in>>fTime;
+  fStatTime[0]+=fTime;
+  fStatNEvents++;
+  if( fTrackHits ) delete[] fTrackHits;
+  fTrackHits = 0;  
+  Int_t nTrackHits = 0;
+  in >> nTrackHits;
+  fTrackHits = new Int_t [nTrackHits];
+  for( Int_t ih=0; ih<nTrackHits; ih++ ){
+    in >> TrackHits()[ih];
+  }
+  if( fTracks ) delete[] fTracks;
+  fTracks = 0;  
+  in >> fNTracks;
+  fTracks = new AliHLTTPCCAGBTrack[fNTracks];
+  for( Int_t itr=0; itr<NTracks(); itr++ ){
+    AliHLTTPCCAGBTrack &t = Tracks()[itr];    
+    AliHLTTPCCATrackParam &p = t.Param();	
+    in>> t.NHits();
+    in>> t.FirstHitRef();
+    in>> t.Alpha();
+    in>> t.DeDx();
+    in>> p.X();
+    in>> p.CosPhi();
+    in>> p.Chi2();
+    in>> p.NDF();
+    for( Int_t i=0; i<5; i++ ) in>>p.Par()[i];
+    for( Int_t i=0; i<15; i++ ) in>>p.Cov()[i];
+  }
 }

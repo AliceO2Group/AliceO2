@@ -27,20 +27,63 @@ AliHLTTPCCAParam::AliHLTTPCCAParam()
     fCosAlpha(0), fSinAlpha(0), fAngleMin(0), fAngleMax(0), fRMin(83.65), fRMax(133.3),
     fZMin(0.0529937), fZMax(249.778), fErrX(0), fErrY(0), fErrZ(0.228808),fPadPitch(0.4),fBz(-5.), 
     fYErrorCorrection(0.33), fZErrorCorrection(0.45),
-    fCellConnectionAngleXY(35./180.*TMath::Pi()), 
-    fCellConnectionAngleXZ(35./180.*TMath::Pi()),
+    fCellConnectionAngleXY(45./180.*TMath::Pi()), 
+    fCellConnectionAngleXZ(45./180.*TMath::Pi()),
     fMaxTrackMatchDRow(4), fTrackConnectionFactor(3.5), fTrackChiCut(3.5), fTrackChi2Cut(10)
 {
+  fParamS0Par[0][0][0] = 0.00047013;
+  fParamS0Par[0][0][1] = 2.00135e-05;
+  fParamS0Par[0][0][2] = 0.0106533;
+  fParamS0Par[0][0][3] = 5.27104e-08;
+  fParamS0Par[0][0][4] = 0.012829;
+  fParamS0Par[0][0][5] = 0.000147125;
+  fParamS0Par[0][0][6] = 4.99432;
+  fParamS0Par[0][1][0] = 0.000883342;
+  fParamS0Par[0][1][1] = 1.07011e-05;
+  fParamS0Par[0][1][2] = 0.0103187;
+  fParamS0Par[0][1][3] = 4.25141e-08;
+  fParamS0Par[0][1][4] = 0.0224292;
+  fParamS0Par[0][1][5] = 8.27274e-05;
+  fParamS0Par[0][1][6] = 4.17233;
+  fParamS0Par[0][2][0] = 0.000745399;
+  fParamS0Par[0][2][1] = 5.62408e-06;
+  fParamS0Par[0][2][2] = 0.0151562;
+  fParamS0Par[0][2][3] = 5.08757e-08;
+  fParamS0Par[0][2][4] = 0.0601004;
+  fParamS0Par[0][2][5] = 7.97129e-05;
+  fParamS0Par[0][2][6] = 4.84913;
+  fParamS0Par[1][0][0] = 0.00215126;
+  fParamS0Par[1][0][1] = 6.82233e-05;
+  fParamS0Par[1][0][2] = 0.0221867;
+  fParamS0Par[1][0][3] = -6.27825e-09;
+  fParamS0Par[1][0][4] = -0.00745378;
+  fParamS0Par[1][0][5] = 0.000172629;
+  fParamS0Par[1][0][6] = 6.24987;
+  fParamS0Par[1][1][0] = 0.00181667;
+  fParamS0Par[1][1][1] = -4.17772e-06;
+  fParamS0Par[1][1][2] = 0.0253429;
+  fParamS0Par[1][1][3] = 1.3011e-07;
+  fParamS0Par[1][1][4] = -0.00362827;
+  fParamS0Par[1][1][5] = 0.00030406;
+  fParamS0Par[1][1][6] = 17.7775;
+  fParamS0Par[1][2][0] = 0.00158251;
+  fParamS0Par[1][2][1] = -3.55911e-06;
+  fParamS0Par[1][2][2] = 0.0247899;
+  fParamS0Par[1][2][3] = 7.20604e-08;
+  fParamS0Par[1][2][4] = 0.0179946;
+  fParamS0Par[1][2][5] = 0.000425504;
+  fParamS0Par[1][2][6] = 20.9294;
+
   Update();
 }
 
 void AliHLTTPCCAParam::Initialize( Int_t iSlice, 
-				   Int_t nRows, Double_t rowX[],
-				   Double_t alpha, Double_t dAlpha,
-				   Double_t rMin, Double_t rMax,
-				   Double_t zMin, Double_t zMax,
-				   Double_t padPitch, Double_t zSigma,
-				   Double_t bz
+				   Int_t nRows, Float_t rowX[],
+				   Float_t alpha, Float_t dAlpha,
+				   Float_t rMin, Float_t rMax,
+				   Float_t zMin, Float_t zMax,
+				   Float_t padPitch, Float_t zSigma,
+				   Float_t bz
 				   )
 {
   // initialization 
@@ -74,8 +117,8 @@ void AliHLTTPCCAParam::Update()
   fTrackChi2Cut = fTrackChiCut * fTrackChiCut;
 }
 
-void AliHLTTPCCAParam::Slice2Global( Double_t x, Double_t y,  Double_t z, 
-				     Double_t *X, Double_t *Y,  Double_t *Z ) const
+void AliHLTTPCCAParam::Slice2Global( Float_t x, Float_t y,  Float_t z, 
+				     Float_t *X, Float_t *Y,  Float_t *Z ) const
 {  
   // conversion of coorinates sector->global
   *X = x*fCosAlpha - y*fSinAlpha;
@@ -83,11 +126,94 @@ void AliHLTTPCCAParam::Slice2Global( Double_t x, Double_t y,  Double_t z,
   *Z = z;
 }
  
-void AliHLTTPCCAParam::Global2Slice( Double_t X, Double_t Y,  Double_t Z, 
-				     Double_t *x, Double_t *y,  Double_t *z ) const
+void AliHLTTPCCAParam::Global2Slice( Float_t X, Float_t Y,  Float_t Z, 
+				     Float_t *x, Float_t *y,  Float_t *z ) const
 {
   // conversion of coorinates global->sector
   *x = X*fCosAlpha + Y*fSinAlpha;
   *y = Y*fCosAlpha - X*fSinAlpha;
   *z = Z;
+}
+
+Float_t AliHLTTPCCAParam::GetClusterError2( Int_t yz, Int_t type, Float_t z, Float_t angle )
+{
+  //* recalculate the cluster error wih respect to the track slope
+  Float_t angle2 = angle*angle;
+  Float_t *c = fParamS0Par[yz][type];
+  Float_t v = c[0] + z*(c[1] + c[3]*z) + angle2*(c[2] + angle2*c[4] + c[5]*z );
+  return TMath::Abs(v); 
+}
+
+void AliHLTTPCCAParam::WriteSettings( ostream &out )
+{
+  out << fISlice<<endl;
+  out << fNRows<<endl;
+  out << fAlpha<<endl;
+  out << fDAlpha<<endl;
+  out << fCosAlpha<<endl;
+  out << fSinAlpha<<endl;
+  out << fAngleMin<<endl;
+  out << fAngleMax<<endl;
+  out << fRMin<<endl;
+  out << fRMax<<endl;
+  out << fZMin<<endl;
+  out << fZMax<<endl;
+  out << fErrX<<endl;
+  out << fErrY<<endl;
+  out << fErrZ<<endl;
+  out << fPadPitch<<endl;
+  out << fBz<<endl;
+  out << fYErrorCorrection<<endl;
+  out << fZErrorCorrection<<endl;
+  out << fCellConnectionAngleXY<<endl;
+  out << fCellConnectionAngleXZ<<endl;
+  out << fMaxTrackMatchDRow<<endl;
+  out << fTrackConnectionFactor<<endl;
+  out << fTrackChiCut<<endl;
+  out << fTrackChi2Cut<<endl;
+  for( Int_t iRow = 0; iRow<fNRows; iRow++ ){
+    out << fRowX[iRow]<<endl;
+  }
+  out<<endl;
+  for( Int_t i=0; i<2; i++ )
+    for( Int_t j=0; j<3; j++ )
+      for( Int_t k=0; k<7; k++ )
+	out << fParamS0Par[i][j][k]<<endl;
+  out<<endl;
+}
+
+void AliHLTTPCCAParam::ReadSettings( istream &in )
+{
+  in >> fISlice;
+  in >> fNRows;
+  in >> fAlpha;
+  in >> fDAlpha;
+  in >> fCosAlpha;
+  in >> fSinAlpha;
+  in >> fAngleMin;
+  in >> fAngleMax;
+  in >> fRMin;
+  in >> fRMax;
+  in >> fZMin;
+  in >> fZMax;
+  in >> fErrX;
+  in >> fErrY;
+  in >> fErrZ;
+  in >> fPadPitch;
+  in >> fBz;
+  in >> fYErrorCorrection;
+  in >> fZErrorCorrection;
+  in >> fCellConnectionAngleXY;
+  in >> fCellConnectionAngleXZ;
+  in >> fMaxTrackMatchDRow;
+  in >> fTrackConnectionFactor;
+  in >> fTrackChiCut;
+  in >> fTrackChi2Cut;
+  for( Int_t iRow = 0; iRow<fNRows; iRow++ ){
+    in >> fRowX[iRow];
+  }
+  for( Int_t i=0; i<2; i++ )
+    for( Int_t j=0; j<3; j++ )
+      for( Int_t k=0; k<7; k++ )
+	in >> fParamS0Par[i][j][k];
 }

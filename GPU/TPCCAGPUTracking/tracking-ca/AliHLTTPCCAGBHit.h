@@ -22,7 +22,7 @@ class AliHLTTPCCAGBHit
 {
  public:
   AliHLTTPCCAGBHit()
-    :fX(0),fY(0),fZ(0),fErrX(0),fErrY(0),fErrZ(0),
+    :fX(0),fY(0),fZ(0),fErrX(0),fErrY(0),fErrZ(0),fAmp(0),
     fISlice(0), fIRow(0), fID(0), fIsUsed(0),fSliceHit(){}
 
   virtual ~AliHLTTPCCAGBHit(){}
@@ -34,6 +34,7 @@ class AliHLTTPCCAGBHit
   Float_t &ErrX(){ return fErrX; }
   Float_t &ErrY(){ return fErrY; }
   Float_t &ErrZ(){ return fErrZ; }
+  Float_t &Amp() { return fAmp; }
 
   Int_t &ISlice(){ return fISlice; }
   Int_t &IRow(){ return fIRow; }
@@ -62,6 +63,7 @@ class AliHLTTPCCAGBHit
   Float_t fErrY; //* Y position error
   Float_t fErrZ; //* Z position error
 
+  Float_t fAmp;   //* Maximal amplitude
   Int_t fISlice; //* slice number
   Int_t fIRow;   //* row number
   Int_t fID;     //* external ID (id of AliTPCcluster) 

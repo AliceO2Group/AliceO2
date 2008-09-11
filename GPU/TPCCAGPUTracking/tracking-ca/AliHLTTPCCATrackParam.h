@@ -11,6 +11,12 @@
 
 #include "Rtypes.h"
 
+class AliHLTTPCCATrackFitParam
+{
+public:
+  Float_t fBethe, fE,fTheta2, fEP2, fSigmadE2, fK22,fK33,fK43,fK44;
+};
+
 /**
  * @class AliHLTTPCCATrackParam
  *
@@ -18,8 +24,6 @@
  * which is used by the AliHLTTPCCATracker slice tracker.
  *
  */
-class AliExternalTrackParam;
-
 class AliHLTTPCCATrackParam
 {
  public:
@@ -62,6 +66,9 @@ class AliHLTTPCCATrackParam
   Float_t *Par(){ return fP; }
   Float_t *Cov(){ return fC; }
 
+  const Float_t *GetPar() const { return fP; }
+  const Float_t *GetCov() const { return fC; }
+
   void ConstructXY3( const Float_t x[3], const Float_t y[3], const Float_t sigmaY2[3], Float_t CosPhi0 );
 
   void ConstructXYZ3( const Float_t p0[5], const Float_t p1[5], const Float_t p2[5], 
@@ -73,11 +80,18 @@ class AliHLTTPCCATrackParam
 		    Float_t &px, Float_t &py, Float_t &pz ) const;
   
   Bool_t TransportToX( Float_t X );
+  Bool_t TransportToXWithMaterial( Float_t X, AliHLTTPCCATrackFitParam &par );
+  Bool_t TransportToXWithMaterial( Float_t X, Float_t Bz );
   Bool_t Rotate( Float_t alpha );
 
-  void GetExtParam( AliExternalTrackParam &T, Double_t alpha, Double_t Bz ) const;
-  void SetExtParam( const AliExternalTrackParam &T, Double_t Bz );
-  void Filter( Float_t y, Float_t z, Float_t erry, Float_t errz );
+  Bool_t Filter2( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z );
+  void FilterY( Float_t y, Float_t erry );
+  void FilterZ( Float_t z, Float_t errz );
+
+  static Float_t ApproximateBetheBloch( Float_t beta2 );
+  void CalculateFitParameters( AliHLTTPCCATrackFitParam &par, Float_t Bz, Float_t mass = 0.13957 );
+  Bool_t CorrectForMeanMaterial( Float_t xOverX0,  Float_t xTimesRho, AliHLTTPCCATrackFitParam &par );
+  void Print() const;
 
  private:
 

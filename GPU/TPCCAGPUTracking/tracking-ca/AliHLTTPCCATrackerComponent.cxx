@@ -33,6 +33,7 @@ using namespace std;
 #include "AliHLTTPCCAHit.h"
 #include "AliHLTTPCCAOutTrack.h"
 #include "AliHLTTPCCAParam.h"
+#include "AliHLTTPCCATrackConvertor.h"
 
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCClusterDataFormat.h"
@@ -51,8 +52,11 @@ ClassImp(AliHLTTPCCATrackerComponent)
 AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
   :
   fTracker(NULL),
-  fBField(0),
-  fMinNTrackClusters(30),
+  fSolenoidBz(0),
+  fMinNTrackClusters(0),
+  fCellConnectionAngleXY(45),
+  fCellConnectionAngleXZ(45),
+  fClusterZCut(500.),
   fFullTime(0),
   fRecoTime(0),
   fNEvents(0)
@@ -68,9 +72,12 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent(const AliHLTTPCCATracke
   :
   AliHLTProcessor(),
   fTracker(NULL),
-  fBField(0),
+  fSolenoidBz(0),
   fMinNTrackClusters(30),
-  fFullTime(0),
+  fCellConnectionAngleXY(35),
+  fCellConnectionAngleXZ(35),
+  fClusterZCut(500.),
+   fFullTime(0),
   fRecoTime(0),
   fNEvents(0)
 {
@@ -133,7 +140,8 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
   // Initialize the CA tracker component 
   //
   // arguments could be:
-  // bfield - the magnetic field value
+  // solenoidBz - the magnetic field value
+  // minNTrackClusters - required minimum of clusters on the track
   //
 
   if ( fTracker ) return EINPROGRESS;
@@ -149,46 +157,104 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
   int i = 0;
   char* cpErr;
   while ( i < argc ){
-    if ( !strcmp( argv[i], "bfield" ) ){
+    if ( !strcmp( argv[i], "solenoidBz" ) || !strcmp( argv[i], "-solenoidBz" ) ){
       if ( i+1 >= argc )
 	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing B-field", "Missing B-field specifier." );
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing solenoidBz", "Missing solenoidBz specifier." );
 	  return ENOTSUP;
 	}
-      fBField = strtod( argv[i+1], &cpErr );
+      fSolenoidBz = strtod( argv[i+1], &cpErr );
       if ( *cpErr )
 	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert B-field specifier '%s'.", argv[i+1] );
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert solenoidBz specifier '%s'.", argv[i+1] );
 	  return EINVAL;
 	}
 
       Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
-	       "Magnetic field value is set to %f kG", fBField );
+	       "Magnetic field value is set to %f kG", fSolenoidBz );
 
       i += 2;
       continue;
     }
 
-    if ( !strcmp( argv[i], "MinNTrackClusters" ) ){
+    if ( !strcmp( argv[i], "minNTrackClusters" ) || !strcmp( argv[i], "-minNTrackClusters" ) ){
       if ( i+1 >= argc )
 	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing MinNTrackClusters", "Missing MinNTrackClusters specifier." );
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing minNTrackClusters", "Missing minNTrackClusters specifier." );
 	  return ENOTSUP;
 	}
       fMinNTrackClusters = (Int_t ) strtod( argv[i+1], &cpErr );
       if ( *cpErr )
 	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert MinNTrackClusters '%s'.", argv[i+1] );
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert minNTrackClusters '%s'.", argv[i+1] );
 	  return EINVAL;
 	}
 
       Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
-	       "MinNTrackClusters is set to %i ", fMinNTrackClusters );
+	       "minNTrackClusters is set to %i ", fMinNTrackClusters );
 
       i += 2;
       continue;
     }
-    
+
+    if ( !strcmp( argv[i], "cellConnectionAngleXY" ) || !strcmp( argv[i], "-cellConnectionAngleXY" ) ){
+      if ( i+1 >= argc )
+	{
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing cellConnectionAngleXY", "Missing cellConnectionAngleXY specifier." );
+	  return ENOTSUP;
+	}
+      fCellConnectionAngleXY = strtod( argv[i+1], &cpErr );
+      if ( *cpErr )
+	{
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert cellConnectionAngleXY '%s'.", argv[i+1] );
+	  return EINVAL;
+	}
+
+      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
+	       "cellConnectionAngleXY is set to %f ", fCellConnectionAngleXY );
+
+      i += 2;
+      continue;
+    }
+     if ( !strcmp( argv[i], "cellConnectionAngleXZ" ) || !strcmp( argv[i], "-cellConnectionAngleXZ" ) ){
+      if ( i+1 >= argc )
+	{
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing cellConnectionAngleXZ", "Missing cellConnectionAngleXZ specifier." );
+	  return ENOTSUP;
+	}
+      fCellConnectionAngleXZ = strtod( argv[i+1], &cpErr );
+      if ( *cpErr )
+	{
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert cellConnectionAngleXZ '%s'.", argv[i+1] );
+	  return EINVAL;
+	}
+
+      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
+	       "cellConnectionAngleXZ is set to %f ", fCellConnectionAngleXZ );
+
+      i += 2;
+      continue;
+    }
+     if ( !strcmp( argv[i], "clusterZCut" ) || !strcmp( argv[i], "-clusterZCut" ) ){
+      if ( i+1 >= argc )
+	{
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing clusterZCut", "Missing clusterZCut specifier." );
+	  return ENOTSUP;
+	}
+      fClusterZCut = TMath::Abs(strtod( argv[i+1], &cpErr ));
+      if ( *cpErr )
+	{
+	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert clusterZCut '%s'.", argv[i+1] );
+	  return EINVAL;
+	}
+
+      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
+	       "clusterZCut is set to %f ", fClusterZCut );
+
+      i += 2;
+      continue;
+    }
+ 
     Logging(kHLTLogError, "HLT::TPCCATracker::DoInit", "Unknown Option", "Unknown option '%s'", argv[i] );
     return EINVAL;
   }
@@ -204,6 +270,14 @@ int AliHLTTPCCATrackerComponent::DoDeinit()
   return 0;
 }
 
+Bool_t AliHLTTPCCATrackerComponent::CompareClusters(AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b)
+{
+  //* Comparison function for sorting clusters
+  if( a->fPadRow<b->fPadRow ) return 1;
+  if( a->fPadRow>b->fPadRow ) return 0;
+  return (a->fZ < b->fZ);
+}
+
 int AliHLTTPCCATrackerComponent::DoEvent
 ( 
  const AliHLTComponentEventData& evtData, 
@@ -217,10 +291,14 @@ int AliHLTTPCCATrackerComponent::DoEvent
   AliHLTUInt32_t MaxBufferSize = size;
   size = 0; // output size
 
+  if(GetFirstInputBlock( kAliHLTDataTypeSOR ) || GetFirstInputBlock( kAliHLTDataTypeEOR )){    
+    return 0;
+  }
+
   TStopwatch timer;
 
   // Event reconstruction in one TPC slice with CA Tracker
-
+ 
   //Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "DoEvent", "CA::DoEvent()" );
   if ( evtData.fBlockCnt<=0 )
     {
@@ -297,34 +375,34 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   // Initialize the tracker
 
-  Double_t Bz = fBField;
+  Float_t Bz = fSolenoidBz;
   
   {
     if( !fTracker ) fTracker = new AliHLTTPCCATracker;
     Int_t iSec = slice;
-    Double_t inRmin = 83.65; 
-    //    Double_t inRmax = 133.3;
-    //    Double_t outRmin = 133.5; 
-    Double_t outRmax = 247.7;
-    Double_t plusZmin = 0.0529937; 
-    Double_t plusZmax = 249.778; 
-    Double_t minusZmin = -249.645; 
-    Double_t minusZmax = -0.0799937; 
-    Double_t dalpha = 0.349066;
-    Double_t alpha = 0.174533 + dalpha*iSec;
+    Float_t inRmin = 83.65; 
+    //    Float_t inRmax = 133.3;
+    //    Float_t outRmin = 133.5; 
+    Float_t outRmax = 247.7;
+    Float_t plusZmin = 0.0529937; 
+    Float_t plusZmax = 249.778; 
+    Float_t minusZmin = -249.645; 
+    Float_t minusZmax = -0.0799937; 
+    Float_t dalpha = 0.349066;
+    Float_t alpha = 0.174533 + dalpha*iSec;
     
     Bool_t zPlus = (iSec<18 );
-    Double_t zMin =  zPlus ?plusZmin :minusZmin;
-    Double_t zMax =  zPlus ?plusZmax :minusZmax;
+    Float_t zMin =  zPlus ?plusZmin :minusZmin;
+    Float_t zMax =  zPlus ?plusZmax :minusZmax;
     //TPCZmin = -249.645, ZMax = 249.778    
-    //    Double_t rMin =  inRmin;
-    //    Double_t rMax =  outRmax;
+    //    Float_t rMin =  inRmin;
+    //    Float_t rMax =  outRmax;
     Int_t NRows = AliHLTTPCTransform::GetNRows();
         
-    Double_t padPitch = 0.4;
-    Double_t sigmaZ = 0.228808;
+    Float_t padPitch = 0.4;
+    Float_t sigmaZ = 0.228808;
     
-    Double_t *rowX = new Double_t [NRows];
+    Float_t *rowX = new Float_t [NRows];
     for( Int_t irow=0; irow<NRows; irow++){
       rowX[irow] = AliHLTTPCTransform::Row2X( irow );
     }     
@@ -334,7 +412,9 @@ int AliHLTTPCCATrackerComponent::DoEvent
 		      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, Bz );
     param.YErrorCorrection() = 1;
     param.ZErrorCorrection() = 2;
-
+    param.CellConnectionAngleXY() = fCellConnectionAngleXY/180.*TMath::Pi();
+    param.CellConnectionAngleXZ() = fCellConnectionAngleXZ/180.*TMath::Pi();
+    param.Update();
     fTracker->Initialize( param ); 
     delete[] rowX;
   }
@@ -380,15 +460,11 @@ int AliHLTTPCCATrackerComponent::DoEvent
   
   fTracker->StartEvent();
 
-  AliHLTTPCCAHit *vHits = new AliHLTTPCCAHit [nHitsTotal]; // CA hit array
-  Double_t *vHitStoreX = new Double_t [nHitsTotal];       // hit X coordinates
-  Int_t *vHitStoreID = new Int_t [nHitsTotal];            // hit ID's
-  Int_t *vHitRowID = new Int_t [nHitsTotal];            // hit ID's
-
-  Int_t nHits = 0;
- 
   Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
 	   "Total %d hits to read for slice %d", nHitsTotal, slice );
+
+
+  AliHLTTPCSpacePointData** vOrigClusters = new AliHLTTPCSpacePointData* [ nHitsTotal];
 
   Int_t nClusters=0;
 
@@ -402,26 +478,47 @@ int AliHLTTPCCATrackerComponent::DoEvent
     Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
 	     "Reading %d hits for slice %d - patch %d", inPtrSP->fSpacePointCnt, slice, patch );
       
-    // Read patch hits, row by row
+    for (UInt_t i=0; i<inPtrSP->fSpacePointCnt; i++ ){	
+      vOrigClusters[nClusters++] = &(inPtrSP->fSpacePoints[i]);
+    }
+  }
 
+  // sort clusters since they are not sorted fore some reason
+
+  sort( vOrigClusters, vOrigClusters+nClusters, CompareClusters );
+
+  AliHLTTPCCAHit *vHits = new AliHLTTPCCAHit [nHitsTotal]; // CA hit array
+  Float_t *vHitStoreX = new Float_t [nHitsTotal];       // hit X coordinates
+  Float_t *vHitStoreY = new Float_t [nHitsTotal];       // hit Y coordinates
+  Float_t *vHitStoreZ = new Float_t [nHitsTotal];       // hit Z coordinates
+  Int_t *vHitStoreID = new Int_t [nHitsTotal];            // hit ID's
+  Int_t *vHitRowID = new Int_t [nHitsTotal];            // hit ID's
+
+  Int_t nHits = 0;
+ 
+  {
     Int_t oldRow = -1;
     Int_t nRowHits = 0;
     Int_t firstRowHit = 0;
-    for (UInt_t i=0; i<inPtrSP->fSpacePointCnt; i++ ){	
-      AliHLTTPCSpacePointData* pSP = &(inPtrSP->fSpacePoints[i]);
 
+    for (Int_t i=0; i<nClusters; i++ ){
+      AliHLTTPCSpacePointData* pSP = vOrigClusters[i];
       if( pSP->fPadRow != oldRow ){
-	if( oldRow>=0 ) fTracker->ReadHitRow( oldRow, vHits+firstRowHit, nRowHits );
+	if( oldRow>=0 ){
+	  if( fTracker->Rows()[oldRow].NHits()!=0 ) HLTError("CA: clusters from row %d are readed twice",oldRow);
+	  fTracker->ReadHitRow( oldRow, vHits+firstRowHit, nRowHits );
+	}
 	oldRow = pSP->fPadRow;
 	firstRowHit = nHits;
 	nRowHits = 0;
       }
       AliHLTTPCCAHit &h = vHits[nHits];
-      if( TMath::Abs(pSP->fX- fTracker->Rows()[pSP->fPadRow].X() )>1.e-4 ) cout<<"row "<<(Int_t)pSP->fPadRow<<" "<<fTracker->Rows()[pSP->fPadRow].X()-pSP->fX <<endl;
+      //if( TMath::Abs(pSP->fX- fTracker->Rows()[pSP->fPadRow].X() )>1.e-4 ) cout<<"row "<<(Int_t)pSP->fPadRow<<" "<<fTracker->Rows()[pSP->fPadRow].X()-pSP->fX <<endl;
+      if( TMath::Abs(pSP->fX- fTracker->Rows()[pSP->fPadRow].X() )>1.e-4 ) HLTError( "row %d, %f",(Int_t)pSP->fPadRow, fTracker->Rows()[pSP->fPadRow].X()-pSP->fX );
 
       h.Y() = pSP->fY;
       h.Z() = pSP->fZ;
-      if( TMath::Abs(h.Z())>230.) continue;
+      if( TMath::Abs(h.Z())>fClusterZCut) continue;
       h.ErrY() = TMath::Sqrt(TMath::Abs(pSP->fSigmaY2));
       h.ErrZ() = TMath::Sqrt(TMath::Abs(pSP->fSigmaZ2));  
       if( h.ErrY()<.1 ) h.ErrY() = .1;
@@ -429,15 +526,20 @@ int AliHLTTPCCATrackerComponent::DoEvent
       if( h.ErrY()>1. ) h.ErrY() = 1.;
       if( h.ErrZ()>1. ) h.ErrZ() = 1.;
       h.ID() = nHits;
-      vHitStoreX[nHits] = pSP->fX;
+      vHitStoreX[nHits] = pSP->fX;  
+      vHitStoreY[nHits] = h.Y();
+      vHitStoreZ[nHits] = h.Z();
       vHitStoreID[nHits] = pSP->fID;
       vHitRowID[nHits] = pSP->fPadRow;
       nHits++;	
       nRowHits++;
-      nClusters++;
     }	
-    if( oldRow>=0 ) fTracker->ReadHitRow( oldRow, vHits+firstRowHit, nRowHits );
+    if( oldRow>=0 ){
+      if( fTracker->Rows()[oldRow].NHits()!=0 ) HLTError("CA: clusters from row %d are readed twice",oldRow);
+      fTracker->ReadHitRow( oldRow, vHits+firstRowHit, nRowHits );
+    }
   }
+  if( vOrigClusters ) delete[] vOrigClusters;
 
   // reconstruct the event  
 
@@ -483,38 +585,57 @@ int AliHLTTPCCATrackerComponent::DoEvent
     }
     
     // convert CA track parameters to HLT Track Segment
-
+ 
+    Int_t iFirstRow = 1000;
+    Int_t iLastRow = -1;
     Int_t iFirstHit = fTracker->OutTrackHits()[t.FirstHitRef()];
-    Int_t iLastHit = fTracker->OutTrackHits()[t.FirstHitRef()+t.NHits()-1];
-    
+    Int_t iLastHit = iFirstHit;
+    for( Int_t ih=0; ih<t.NHits(); ih++ ){
+      Int_t hitID = fTracker->OutTrackHits()[t.FirstHitRef() + ih ];
+      Int_t iRow = vHitRowID[hitID];
+      if( iRow<iFirstRow ){  iFirstRow = iRow; iFirstHit = hitID; }
+      if( iRow>iLastRow ){ iLastRow = iRow; iLastHit = hitID; }
+    }   
+
     AliHLTTPCCATrackParam par = t.StartPoint();
 
     par.TransportToX( vHitStoreX[iFirstHit] );
 
     AliExternalTrackParam tp;
-    par.GetExtParam( tp, 0, fBField );
+    AliHLTTPCCATrackConvertor::GetExtParam( par, tp, 0, fSolenoidBz );
 
     currOutTracklet->fX = tp.GetX();
     currOutTracklet->fY = tp.GetY();
     currOutTracklet->fZ = tp.GetZ();
     currOutTracklet->fCharge = (Int_t ) tp.GetSign();
     currOutTracklet->fPt = TMath::Abs(tp.GetSignedPt());
-    Double_t snp =  tp.GetSnp() ;
+    Float_t snp =  tp.GetSnp() ;
     if( snp>.999 ) snp=.999;
     if( snp<-.999 ) snp=-.999;
     currOutTracklet->fPsi = TMath::ASin( snp );
     currOutTracklet->fTgl = tp.GetTgl();
-    Double_t h = -currOutTracklet->fPt*currOutTracklet->fPt;
+
+    currOutTracklet->fY0err = tp.GetSigmaY2();
+    currOutTracklet->fZ0err = tp.GetSigmaZ2();
+    Float_t h = -currOutTracklet->fPt*currOutTracklet->fPt;
     currOutTracklet->fPterr = h*h*tp.GetSigma1Pt2();
     h = 1./TMath::Sqrt(1-snp*snp);
     currOutTracklet->fPsierr = h*h*tp.GetSigmaSnp2();
     currOutTracklet->fTglerr = tp.GetSigmaTgl2();
-
-    par.TransportToX( vHitStoreX[iLastHit] );     
-    currOutTracklet->fLastX = par.GetX();
-    currOutTracklet->fLastY = par.GetY();
-    currOutTracklet->fLastZ = par.GetZ();
-
+    
+    if( par.TransportToX( vHitStoreX[iLastHit] ) ){     
+      currOutTracklet->fLastX = par.GetX();
+      currOutTracklet->fLastY = par.GetY();
+      currOutTracklet->fLastZ = par.GetZ();
+    } else {
+      currOutTracklet->fLastX = vHitStoreX[iLastHit];
+      currOutTracklet->fLastY = vHitStoreY[iLastHit];
+      currOutTracklet->fLastZ = vHitStoreZ[iLastHit];
+    }
+    //if( currOutTracklet->fLastX<10. ) {
+    //HLTError("CA last point: hitxyz=%f,%f,%f, track=%f,%f,%f, tracklet=%f,%f,%f, nhits=%d",vHitStoreX[iLastHit],vHitStoreY[iLastHit],vHitStoreZ[iLastHit],
+    //par.GetX(), par.GetY(),par.GetZ(),currOutTracklet->fLastX,currOutTracklet->fLastY ,currOutTracklet->fLastZ, t.NHits());
+    //}
 #ifdef INCLUDE_TPC_HOUGH
 #ifdef ROWHOUGHPARAMS
     currOutTracklet->fTrackID = 0;
@@ -537,10 +658,12 @@ int AliHLTTPCCATrackerComponent::DoEvent
     outPtr->fTrackletCnt++; 
   }
 
-  delete[] vHits;
-  delete[] vHitStoreX;
-  delete[] vHitStoreID;
-  delete[] vHitRowID;
+  if( vHits ) delete[] vHits;
+  if( vHitStoreX ) delete[] vHitStoreX;
+  if( vHitStoreY ) delete[] vHitStoreY;
+  if( vHitStoreZ ) delete[] vHitStoreZ;
+  if( vHitStoreID ) delete[] vHitStoreID;
+  if( vHitRowID ) delete[] vHitRowID;
   
   AliHLTComponentBlockData bd;
   FillBlockData( bd );
@@ -553,15 +676,16 @@ int AliHLTTPCCATrackerComponent::DoEvent
   
   timer.Stop();
 
-  fFullTime+= timer.CpuTime();
-  fRecoTime+= timerReco.CpuTime();
+  fFullTime+= timer.RealTime();
+  fRecoTime+= timerReco.RealTime();
   fNEvents++;
 
   // Set log level to "Warning" for on-line system monitoring
-
+  Int_t hz = (Int_t) (fFullTime>1.e-10 ?fNEvents/fFullTime :100000);
+  Int_t hz1 = (Int_t) (fRecoTime>1.e-10 ?fNEvents/fRecoTime :100000);
   Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Tracks",
- 	   "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d us", 
-	   slice, ntracks, nClusters, minPatch, maxPatch, row[0], row[1], (Int_t) (fFullTime/fNEvents*1.e6), (Int_t) (fRecoTime/fNEvents*1.e6) );
+ 	   "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d Hz", 
+	   slice, ntracks, nClusters, minPatch, maxPatch, row[0], row[1], hz, hz1 );
 
   return ret;
 

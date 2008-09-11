@@ -68,7 +68,7 @@ class AliHLTTPCCADisplay:public TObject
 
   void ConnectCells( Int_t iRow1, AliHLTTPCCACell &cell1, Int_t iRow2, AliHLTTPCCACell &cell2, Int_t color=-1 );
 
-  void DrawTrack1( AliHLTTPCCATrack &track, Int_t color=-1, Bool_t DrawCells=1 );
+  void DrawTrack( AliHLTTPCCATrack &track, Int_t color=-1, Bool_t DrawCells=1 );
   void DrawTrackletPoint( AliHLTTPCCATrackParam &t, Int_t color=-1 );
 
   void SetSliceTransform( Double_t alpha );

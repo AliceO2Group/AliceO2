@@ -15,7 +15,7 @@ class AliHLTTPCCAGBTrack;
 class AliHLTTPCCAGBHit;
 class TParticle;
 class TProfile;
-
+class AliHLTTPCCATrackParam;
 
 /**
  * @class AliHLTTPCCAGBTracker
@@ -46,9 +46,9 @@ public:
   void SetNSlices( Int_t N );
   void SetNHits( Int_t nHits );
 
-  void ReadHit( Double_t x, Double_t y, Double_t z, 
-		Double_t ErrY, Double_t ErrZ, Int_t ID, 
-		Int_t iSlice, Int_t iRow );
+  void ReadHit( Float_t x, Float_t y, Float_t z, 
+		Float_t ErrY, Float_t ErrZ, Float_t amp,
+		Int_t ID, Int_t iSlice, Int_t iRow );
 
   void FindTracks();
   void Merging();
@@ -56,11 +56,21 @@ public:
   AliHLTTPCCAGBHit *Hits(){ return fHits; }
   Int_t NHits() const { return fNHits; }
   Int_t NSlices() const { return fNSlices; }
+  Double_t Time() const { return fTime; }
   Double_t StatTime( Int_t iTimer ) const { return fStatTime[iTimer]; }
   Int_t StatNEvents() const { return fStatNEvents; }
   Int_t NTracks() const { return fNTracks; }
   AliHLTTPCCAGBTrack *Tracks(){ return fTracks; }
   Int_t *TrackHits() {return fTrackHits; }
+  void GetErrors2( AliHLTTPCCAGBHit &h, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
+  void GetErrors2( Int_t iSlice, Int_t iRow, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
+
+  void WriteSettings( ostream &out );
+  void ReadSettings( istream &in );
+  void WriteEvent( ostream &out );
+  void ReadEvent( istream &in );
+  void WriteTracks( ostream &out );
+  void ReadTracks( istream &in );
 
 protected:
 
@@ -79,8 +89,8 @@ protected:
   };
 
   AliHLTTPCCAGBSliceTrackInfo **fSliceTrackInfos; //* additional information for slice tracks
-
-  Double_t fStatTime[10]; //* time measured
+  Double_t fTime;
+  Double_t fStatTime[20]; //* timers 
   Int_t fStatNEvents;    //* n events proceed
 
   ClassDef(AliHLTTPCCAGBTracker,1) //Base class for conformal mapping tracking

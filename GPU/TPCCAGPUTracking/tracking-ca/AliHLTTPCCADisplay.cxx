@@ -142,10 +142,13 @@ void AliHLTTPCCADisplay::SetCurrentSlice( AliHLTTPCCATracker *slice )
     Double_t dr = .5*(slice->Param().RMax()-slice->Param().RMin());
     Double_t cx = 0;
     Double_t cy = r0;    
-    fYX->Range(cx-dr, cy-dr*1.05, cx+dr, cy+dr);
     Double_t cz = .5*(slice->Param().ZMax()+slice->Param().ZMin());
     Double_t dz = .5*(slice->Param().ZMax()-slice->Param().ZMin())*1.2;
-    fZX->Range(cz-dz, cy-dr*1.05, cz+dz, cy+dr);//+dr);
+    fYX->Range(cx-dr, cy-dr*1.05, cx+dr, cy+dr);
+    fZX->Range(cz-dz, cy-dr*1.05, cz+dz, cy+dr);
+
+    //fYX->Range(cx-dr/6, cy-dr, cx+dr/8, cy-dr + dr/8);
+    //fZX->Range(cz+dz/2+dz/6, cy-dr , cz+dz-dz/8, cy-dr + dr/8);
 
     //fYX->Range(cx-dr/3, cy-dr/3, cx+dr, cy+dr);
     //fZX->Range(cz-dz/3, cy-dr/3, cz+dz, cy+dr);//+dr);
@@ -414,14 +417,14 @@ void AliHLTTPCCADisplay::ConnectCells( Int_t iRow1, AliHLTTPCCACell &cell1,
   Double_t x12 = row1.X();
   Double_t y11 = h11.Y() - h11.ErrY()*3;
   Double_t y12 = h12.Y() + h12.ErrY()*3;
-  Double_t z11 = h11.Z();
-  Double_t z12 = h12.Z();
+  Double_t z11 = h11.Z() - h11.ErrZ()*3;
+  Double_t z12 = h12.Z() + h12.ErrZ()*3;
   Double_t x21 = row2.X();
   Double_t x22 = row2.X();
   Double_t y21 = h21.Y() - h21.ErrY()*3;
   Double_t y22 = h22.Y() + h22.ErrY()*3;
-  Double_t z21 = h21.Z();
-  Double_t z22 = h22.Z();
+  Double_t z21 = h21.Z() - h21.ErrZ()*3;
+  Double_t z22 = h22.Z() + h22.ErrZ()*3;
 
   Double_t vx11, vx12, vy11, vy12, vx21, vx22, vy21, vy22;
 
@@ -451,12 +454,12 @@ void AliHLTTPCCADisplay::ConnectCells( Int_t iRow1, AliHLTTPCCACell &cell1,
 
 
 
-void AliHLTTPCCADisplay::DrawTrack1( AliHLTTPCCATrack &track, Int_t color, Bool_t DrawCells )
+void AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrack &track, Int_t color, Bool_t DrawCells )
 {
   // draw track
 
   if( track.NCells()<2 ) return;
-  int width = 3;
+  int width = 1;
 
   AliHLTTPCCADisplayTmpCell *vCells = new AliHLTTPCCADisplayTmpCell[track.NCells()];
   AliHLTTPCCATrackParam &t = fSlice->ID2Point(track.PointID()[0]).Param();
@@ -585,6 +588,7 @@ void AliHLTTPCCADisplay::DrawTrack1( AliHLTTPCCATrack &track, Int_t color, Bool_
   fLine.SetLineWidth(1);     
   delete[] vCells;
 }
+
 
 void AliHLTTPCCADisplay::DrawTrackletPoint( AliHLTTPCCATrackParam &t, Int_t color )
 {

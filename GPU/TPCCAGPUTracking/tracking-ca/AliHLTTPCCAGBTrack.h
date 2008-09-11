@@ -21,14 +21,14 @@ class AliHLTTPCCAGBTrack
 {
  public:
 
-  AliHLTTPCCAGBTrack():fFirstHitRef(0),fNHits(0),fParam(),fAlpha(0){ ; }
+  AliHLTTPCCAGBTrack():fFirstHitRef(0),fNHits(0),fParam(),fAlpha(0),fDeDx(0){ ; }
   virtual ~AliHLTTPCCAGBTrack(){ ; }
 
   Int_t &NHits()               { return fNHits; }
   Int_t &FirstHitRef()         { return fFirstHitRef; }
   AliHLTTPCCATrackParam &Param() { return fParam; }
-  Double_t &Alpha()            { return fAlpha; }
-
+  Float_t &Alpha()            { return fAlpha; }
+  Float_t &DeDx()             { return fDeDx; } 
   static Bool_t ComparePNClusters( const AliHLTTPCCAGBTrack *a, const AliHLTTPCCAGBTrack *b){
     return (a->fNHits > b->fNHits);
   }
@@ -38,7 +38,8 @@ class AliHLTTPCCAGBTrack
   Int_t fFirstHitRef;        // index of the first hit reference in track->hit reference array
   Int_t fNHits;              // number of track hits
   AliHLTTPCCATrackParam fParam;// fitted track parameters
-  Double_t fAlpha;             //* Alpha angle of the parametrerisation
+  Float_t fAlpha;             //* Alpha angle of the parametrerisation
+  Float_t fDeDx;              //* DE/DX 
 
  private:
 

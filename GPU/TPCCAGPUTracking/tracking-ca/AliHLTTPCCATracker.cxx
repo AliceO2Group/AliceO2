@@ -145,19 +145,15 @@ void AliHLTTPCCATracker::Reconstruct()
   }
   //AliHLTTPCCADisplay::Instance().Init();
   
-  AliHLTTPCCADisplay::Instance().SetCurrentSector( this );
-  AliHLTTPCCADisplay::Instance().SetSectorView();
-  AliHLTTPCCADisplay::Instance().DrawSector( this );  
-  for( Int_t iRow=0; iRow<fParam.NRows(); iRow++ )
-    for (Int_t i = 0; i<fRows[iRow].NHits(); i++) 
-      AliHLTTPCCADisplay::Instance().DrawHit( iRow, i );
-  AliHLTTPCCADisplay::Instance().Ask();
+  AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
+  AliHLTTPCCADisplay::Instance().SetSliceView();
+  AliHLTTPCCADisplay::Instance().DrawSlice( this );  
+  //for( Int_t iRow=0; iRow<fParam.NRows(); iRow++ )
+  //for (Int_t i = 0; i<fRows[iRow].NHits(); i++) 
+  //AliHLTTPCCADisplay::Instance().DrawHit( iRow, i );
+  //AliHLTTPCCADisplay::Instance().Ask();
 #endif
 
-  //if( fParam.ISec()!=8 ) return;
-  //if( fParam.ISec()!=8 ) return;
-  //if( fParam.ISec()!=33 ) return;
-  //if( fParam.ISec()!=2 ) return;
   fTimers[0] = 0;
   fTimers[1] = 0;
   fTimers[2] = 0;
@@ -165,6 +161,7 @@ void AliHLTTPCCATracker::Reconstruct()
   fTimers[4] = 0;
   fTimers[5] = 0;
   fTimers[6] = 0;
+  fTimers[7] = 0;
   if( fNHitsTotal < 1 ) return;
 
   //cout<<"Find Cells..."<<endl;
@@ -388,7 +385,7 @@ void AliHLTTPCCATracker::MergeCells()
   //  cell.Track = -1
   //
 
-  TStopwatch timer1;
+  TStopwatch timer;
 
   Int_t nStartCells = 0;
   for( Int_t iRow1=0; iRow1<fParam.NRows(); iRow1++ ){
@@ -396,18 +393,24 @@ void AliHLTTPCCATracker::MergeCells()
       
     Float_t deltaY = row1.DeltaY();
     Float_t deltaZ = row1.DeltaZ();
-
+    Float_t xStep = 1;
+    if( iRow1 < fParam.NRows()-1 ) xStep = fParam.RowX(iRow1+1) - fParam.RowX(iRow1);
+    Float_t tx = xStep/row1.X();
+ 
     Int_t lastRow2 = iRow1+3;
     if( lastRow2>=fParam.NRows() ) lastRow2 = fParam.NRows()-1;
 
     for (Int_t i1 = 0; i1<row1.NCells(); i1++){
       AliHLTTPCCACell &c1  = row1.Cells()[i1];
       //cout<<"row, cell= "<<iRow1<<" "<<i1<<" "<<c1.Y()<<" "<<c1.ErrY()<<" "<<c1.Z()<<" "<<c1.ErrZ()<<endl;
-      //Float_t sy1 = c1.ErrY()*c1.ErrY();
-      Float_t yMin = c1.Y() - 3.5*c1.ErrY() - deltaY;
-      Float_t yMax = c1.Y() + 3.5*c1.ErrY() + deltaY;
-      Float_t zMin = c1.Z() - 3.5*c1.ErrZ() - deltaZ;
-      Float_t zMax = c1.Z() + 3.5*c1.ErrZ() + deltaZ;
+      //Float_t sy1 = c1.ErrY()*c1.ErrY();      
+      Float_t yy = c1.Y() +tx*c1.Y();
+      Float_t zz = c1.Z() +tx*c1.Z();
+      
+      Float_t yMin = yy - 3.5*c1.ErrY() - deltaY;
+      Float_t yMax = yy + 3.5*c1.ErrY() + deltaY;
+      Float_t zMin = zz - 3.5*c1.ErrZ() - deltaZ;
+      Float_t zMax = zz + 3.5*c1.ErrZ() + deltaZ;
       //Float_t sz1 = c1.ErrZ()*c1.ErrZ();
       if( c1.Status()<=0 ) nStartCells++;
 
@@ -449,8 +452,8 @@ void AliHLTTPCCATracker::MergeCells()
     }
   }//row1
 
-  timer1.Stop();
-  fTimers[1] = timer1.CpuTime();
+  timer.Stop();
+  fTimers[1] = timer.CpuTime();
   
   // Second step: create tracks 
   //  for each sequence of neighbouring Cells create Track object
@@ -553,8 +556,8 @@ void AliHLTTPCCATracker::FindTracks()
     AliHLTTPCCATrack &iTrack = fTracks[itr];
     //if( iTrack.NCells()<3 ) continue;
     //cout<<" fit track "<<itr<<", NCells="<<iTrack.NCells()<<endl;    
-    ID2Point(iTrack.PointID()[0]).Param().CosPhi() = -1;//[2] = -TMath::Pi();
-    ID2Point(iTrack.PointID()[1]).Param().CosPhi() = 1;//[2] = 0;   
+    ID2Point(iTrack.PointID()[0]).Param().CosPhi() = -1;
+    ID2Point(iTrack.PointID()[1]).Param().CosPhi() = 1;
     FitTrack( iTrack );
     //if( iTrack.Param().Chi2() > fParam.TrackChi2Cut()*iTrack.Param().NDF() ){
       //iTrack.Alive() = 0;
@@ -569,15 +572,15 @@ void AliHLTTPCCATracker::FindTracks()
   }    
   //AliHLTTPCCADisplay::Instance().Init();
   
-  AliHLTTPCCADisplay::Instance().SetCurrentSector( this );
-  AliHLTTPCCADisplay::Instance().DrawSector( this );
+  AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
+  AliHLTTPCCADisplay::Instance().DrawSlice( this );
   cout<<"draw hits..."<<endl;
   for( Int_t iRow=0; iRow<fParam.NRows(); iRow++ )
     for (Int_t i = 0; i<fRows[iRow].NHits(); i++) 
       AliHLTTPCCADisplay::Instance().DrawHit( iRow, i );
   AliHLTTPCCADisplay::Instance().Ask();
-  //AliHLTTPCCADisplay::Instance().Clear();
-  //AliHLTTPCCADisplay::Instance().DrawSector( this );
+  AliHLTTPCCADisplay::Instance().ClearView();
+  AliHLTTPCCADisplay::Instance().DrawSlice( this );
   cout<<"draw cells..."<<endl;
   for( Int_t iRow=0; iRow<fParam.NRows(); iRow++ )
     for (Int_t i = 0; i<fRows[iRow].NCells(); i++) 
@@ -602,20 +605,19 @@ void AliHLTTPCCATracker::FindTracks()
   }
 
   
-  AliHLTTPCCADisplay::Instance().Clear();
-  AliHLTTPCCADisplay::Instance().DrawSector( this );
+  AliHLTTPCCADisplay::Instance().ClearView();
+  AliHLTTPCCADisplay::Instance().DrawSlice( this );
   for( Int_t iRow=0; iRow<fParam.NRows(); iRow++ )
     for (Int_t i = 0; i<fRows[iRow].NCells(); i++) 
       AliHLTTPCCADisplay::Instance().DrawCell( iRow, i );  
-
+  
   cout<<"draw initial tracks"<<endl;
   
   for( Int_t itr=0; itr<fNTracks; itr++ ){
-    //if( itr!=58 ) continue;
     AliHLTTPCCATrack &iTrack = fTracks[itr];
     if( iTrack.NCells()<3 ) continue;
-    if( !iTrack.Alive() ) continue;    
-    AliHLTTPCCADisplay::Instance().DrawTrack1( iTrack );
+    if( !iTrack.Alive() ) continue;
+    AliHLTTPCCADisplay::Instance().DrawTrack( iTrack );
   }
   //if( fNTracks>0 ) 
   AliHLTTPCCADisplay::Instance().Ask();
@@ -623,7 +625,7 @@ void AliHLTTPCCATracker::FindTracks()
 
   TStopwatch timer4;
 
-  Bool_t doMerging=1;
+  Bool_t doMerging=1;//SG!!!
   
   Float_t factor2 = fParam.TrackConnectionFactor()*fParam.TrackConnectionFactor();
   Int_t *refEndPoints = new Int_t[fNHitsTotal];
@@ -720,7 +722,11 @@ void AliHLTTPCCATracker::FindTracks()
 
 	  Float_t dy2, dz2;
 	  AliHLTTPCCATrackParam &jPar = jp.Param();
-	  
+
+	  // check direction
+	  {
+	    if( jPar.GetCosPhi()*iPar.GetCosPhi()>=0 ) continue;
+	  }	  
 	  // check for neighbouring
 	  {
 	    float d = jPar.GetY() - iPar.GetY();
@@ -728,22 +734,27 @@ void AliHLTTPCCATracker::FindTracks()
 	    if( d*d>factor2*s2 ){
 	      continue;
 	    }
+	    //cout<<"\ndy="<<TMath::Sqrt(d*d)<<", err="<<TMath::Sqrt(factor2*s2)<<endl;
 	    d = jPar.GetZ() - iPar.GetZ();
 	    s2 = jPar.GetErr2Z() + iPar.GetErr2Z();
 	    if( d*d>factor2*s2 ){
 	      if( d>0 ) break;
 	      continue;
 	    }
+	    //cout<<"dz="<<TMath::Sqrt(d*d)<<", err="<<TMath::Sqrt(factor2*s2)<<endl;
 	    if( iTrack.NCells()>=3 && jTrack.NCells()>=3 ){
 	      d = jPar.GetSinPhi() + iPar.GetSinPhi(); //! phi sign is different
 	      s2 = jPar.GetErr2SinPhi() + iPar.GetErr2SinPhi();
 	      if( d*d>factor2*s2 ) continue;
+	      //cout<<"dphi="<<TMath::Sqrt(d*d)<<", err="<<TMath::Sqrt(factor2*s2)<<endl;
 	      d = jPar.GetKappa() + iPar.GetKappa(); // ! kappa sign iz different
 	      s2 = jPar.GetErr2Kappa() + iPar.GetErr2Kappa();
 	      if( d*d>factor2*s2 ) continue;
+	      //cout<<"dk="<<TMath::Sqrt(d*d)<<", err="<<TMath::Sqrt(factor2*s2)<<endl;
 	      d = jPar.GetDzDs() + iPar.GetDzDs(); // ! DzDs sign iz different
 	      s2 = jPar.GetErr2DzDs() + iPar.GetErr2DzDs();
 	      if( d*d>factor2*s2 ) continue;
+	      //cout<<"dlam="<<TMath::Sqrt(d*d)<<", err="<<TMath::Sqrt(factor2*s2)<<endl;
 	    }
 	  }
 	  
@@ -925,11 +936,11 @@ void AliHLTTPCCATracker::FindTracks()
       cout<<"merged points..."<<ipID<<"/"<<jpID<<endl;
       //AliHLTTPCCADisplay::Instance().ConnectCells( iRow,ic,ID2IRow(jcID),jc,kRed );
       AliHLTTPCCADisplay::Instance().ConnectEndPoints( ipID,jpID,1.,2,kRed );
-      //AliHLTTPCCADisplay::Instance().DrawEndPoint( ipID,1.,2,kRed );
-      //AliHLTTPCCADisplay::Instance().DrawEndPoint( jpID,1.,2,kRed );
+      AliHLTTPCCADisplay::Instance().DrawEndPoint( ipID,1.,2,kRed );
+      AliHLTTPCCADisplay::Instance().DrawEndPoint( jpID,1.,2,kRed );
       AliHLTTPCCADisplay::Instance().Ask();
       cout<<"merged track"<<endl;
-      AliHLTTPCCADisplay::Instance().DrawTrack1(iTrack);
+      AliHLTTPCCADisplay::Instance().DrawTrack(iTrack);
       AliHLTTPCCADisplay::Instance().Ask();
 #endif
       /*
@@ -956,15 +967,15 @@ void AliHLTTPCCATracker::FindTracks()
   fTimers[4] = timer4.CpuTime();
 
 #ifdef DRAW
-  if( fNTracks>0 ) AliHLTTPCCADisplay::Instance().Ask();
+  //if( fNTracks>0 ) AliHLTTPCCADisplay::Instance().Ask();
 #endif 
 
 
 
 
-#ifdef DRAW
-  AliHLTTPCCADisplay::Instance().Clear();
-  AliHLTTPCCADisplay::Instance().DrawSector( this );
+#ifdef DRAWXX
+  AliHLTTPCCADisplay::Instance().ClearView();
+  AliHLTTPCCADisplay::Instance().DrawSlice( this );
   for( Int_t iRow=0; iRow<fParam.NRows(); iRow++ )
     for (Int_t i = 0; i<fRows[iRow].NCells(); i++) 
       AliHLTTPCCADisplay::Instance().DrawCell( iRow, i );  
@@ -973,16 +984,29 @@ void AliHLTTPCCATracker::FindTracks()
   
   for( Int_t itr=0; itr<fNTracks; itr++ ){
     AliHLTTPCCATrack &iTrack = fTracks[itr];
-    //if( itr!=3 ) continue;
     if( iTrack.NCells()<3 ) continue;
     if( !iTrack.Alive() ) continue;
-    AliHLTTPCCADisplay::Instance().DrawTrack1( iTrack );
+    AliHLTTPCCADisplay::Instance().DrawTrack( iTrack );
+    cout<<"final track "<<itr<<", ncells="<<iTrack.NCells()<<endl;
+    AliHLTTPCCADisplay::Instance().Ask();
   }
   AliHLTTPCCADisplay::Instance().Ask();
 #endif
 
   // write output
+  TStopwatch timer7;
+
   //cout<<"write output"<<endl;
+#ifdef DRAW
+  AliHLTTPCCADisplay::Instance().ClearView();
+  AliHLTTPCCADisplay::Instance().DrawSlice( this );
+  for( Int_t iRow=0; iRow<fParam.NRows(); iRow++ )
+    for (Int_t i = 0; i<fRows[iRow].NCells(); i++) 
+      AliHLTTPCCADisplay::Instance().DrawCell( iRow, i );  
+  
+  cout<<"draw out tracks"<<endl;
+#endif
+
   fOutTrackHits = new Int_t[fNHitsTotal];
   fOutTracks = new AliHLTTPCCAOutTrack[fNTracks];
   fNOutTrackHits = 0;
@@ -1002,51 +1026,97 @@ void AliHLTTPCCATracker::FindTracks()
       out.StartPoint() = p0.Param();
       out.EndPoint() = p2.Param();
     }
-    AliHLTTPCCATrackParam t = out.StartPoint();
+    AliHLTTPCCATrackParam &t = out.StartPoint();//SG!!!
+    AliHLTTPCCATrackParam t0 = t;
+
+    t.Chi2() = 0;
+    t.NDF() = -5;	
+    Bool_t first = 1;
+
     Int_t iID = iTrack.FirstCellID();
     Int_t fNOutTrackHitsOld = fNOutTrackHits;
     for( AliHLTTPCCACell *ic = &ID2Cell(iID); ic->Link()>=0; iID = ic->Link(), ic = &ID2Cell(iID) ){
       //cout<<"itr="<<iTr<<", cell ="<<ID2IRow(iID)<<" "<<ID2ICell(iID)<<endl;
       AliHLTTPCCARow &row = ID2Row(iID);
+      if( !t0.TransportToX( row.X() ) ) continue;
+      Int_t jHit = -1;
+      Float_t dy, dz, d = 1.e10;
       for( Int_t iHit=0; iHit<ic->NHits(); iHit++ ){
 	AliHLTTPCCAHit &h = row.GetCellHit(*ic,iHit);
 
-	// check for wrong hits
-	
+	// check for wrong hits	
 	{
-	  if( !t.TransportToX( row.X() ) ) continue;
-	  Float_t dy = t.GetY() - h.Y();
-	  Float_t dz = t.GetZ() - h.Z();
-	  if( dy*dy > 3.5*3.5*(t.GetErr2Y() + h.ErrY()*h.ErrY() ) ) continue;
-	  if( dz*dz > 3.5*3.5*(t.GetErr2Z() + h.ErrZ()*h.ErrZ() ) ) continue;
-	  /*
-	    Float_t m[3] = {row.X(), h.Y(), h.Z() };
-	    Float_t mV[6] = {fParam.ErrX()*fParam.ErrX(), 0, h.ErrY()*h.ErrY(), 0, 0, h.ErrZ()*h.ErrZ() };
-	    Float_t mG[6];
-	    t.TransportBz(fParam.Bz(),m);
-	    t.GetConnectionMatrix(fParam.Bz(),m, mG);
-	    Float_t chi2 = t.GetChi2( m, mV, mG )/2.;
-	    if( chi2>10. ) continue;
-	  */
-	}	
-	
-	fOutTrackHits[fNOutTrackHits] = h.ID();
-	fNOutTrackHits++;
-	if( fNOutTrackHits>fNHitsTotal ){
-	  //cout<<"fNOutTrackHits>fNHitsTotal"<<endl;
-	  //exit(0);
-	  return;
+	  Float_t ddy = t0.GetY() - h.Y();
+	  Float_t ddz = t0.GetZ() - h.Z();
+	  Float_t dd = ddy*ddy+ddz*ddz;
+	  if( dd<d ){
+	    d = dd;
+	    dy = ddy;
+	    dz = ddz;
+	    jHit = iHit;
+	  }
 	}
-	out.NHits()++;
       }
+      if( jHit<0 ) continue;
+      AliHLTTPCCAHit &h = row.GetCellHit(*ic,jHit);
+      //if( dy*dy > 3.5*3.5*(/*t0.GetErr2Y() + */h.ErrY()*h.ErrY() ) ) continue;//SG!!!
+      //if( dz*dz > 3.5*3.5*(/*t0.GetErr2Z() + */h.ErrZ()*h.ErrZ() ) ) continue;
+      //if( !t0.Filter2( h.Y(), h.Z(), h.ErrY()*h.ErrY(), h.ErrZ()*h.ErrZ() ) ) continue;
+ 
+      
+      if( !t.TransportToX( row.X() ) ) continue;	    
+
+      //* Update the track
+	    
+	  if( first ){
+	    t.Cov()[ 0] = .5*.5;
+	    t.Cov()[ 1] = 0;
+	    t.Cov()[ 2] = .5*.5;
+	    t.Cov()[ 3] = 0;
+	    t.Cov()[ 4] = 0;
+	    t.Cov()[ 5] = .2*.2;
+	    t.Cov()[ 6] = 0;
+	    t.Cov()[ 7] = 0;
+	    t.Cov()[ 8] = 0;
+	    t.Cov()[ 9] = .2*.2;
+	    t.Cov()[10] = 0;
+	    t.Cov()[11] = 0;
+	    t.Cov()[12] = 0;
+	    t.Cov()[13] = 0;
+	    t.Cov()[14] = .2*.2;
+	    t.Chi2() = 0;
+	    t.NDF() = -5;
+	  }
+
+      if( t.Filter2( h.Y(), h.Z(), h.ErrY()*h.ErrY(), h.ErrZ()*h.ErrZ() ) ) first = 0;
+      else continue;
+
+      fOutTrackHits[fNOutTrackHits] = h.ID();
+      fNOutTrackHits++;
+      if( fNOutTrackHits>fNHitsTotal ){
+	cout<<"fNOutTrackHits>fNHitsTotal"<<endl;
+	exit(0);//SG!!!
+	return;
+      }
+      out.NHits()++;
     }
+    //cout<<fNOutTracks<<": itr = "<<iTr<<", n outhits = "<<out.NHits()<<endl;
     if( out.NHits() > 3 ){
       fNOutTracks++;
+#ifdef DRAW
+      AliHLTTPCCADisplay::Instance().DrawTrack( iTrack );
+      cout<<"out track "<<(fNOutTracks-1)<<", orig = "<<iTr<<", nhits="<<out.NHits()<<endl;
+      AliHLTTPCCADisplay::Instance().Ask();    
+#endif
+      
     }else {
       fNOutTrackHits = fNOutTrackHitsOld;
     }
   }
   //cout<<"end writing"<<endl;
+  timer7.Stop();  
+  fTimers[7] = timer7.CpuTime();
+
 #ifdef DRAW
   AliHLTTPCCADisplay::Instance().Ask();
   //AliHLTTPCCADisplay::Instance().DrawMCTracks(fParam.fISec);

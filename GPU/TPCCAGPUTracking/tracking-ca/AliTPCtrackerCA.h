@@ -43,6 +43,7 @@ public:
   void   UnloadClusters(){ return ; }
   AliCluster * GetCluster(Int_t index) const;
   Bool_t &DoHLTPerformance(){ return fDoHLTPerformance; }
+  Bool_t &DoHLTPerformanceClusters(){ return fDoHLTPerformanceClusters; }
   //
  protected:
 
@@ -52,6 +53,8 @@ public:
   AliHLTTPCCAGBTracker *fHLTTracker; //* pointer to the HLT tracker
   AliHLTTPCCAPerformance *fHLTPerformance; //* performance calculations
   Bool_t fDoHLTPerformance; //* flag for call AliHLTTPCCAPerformance
+  Bool_t fDoHLTPerformanceClusters; //* flag for call AliHLTTPCCAPerformance with cluster pulls (takes some time to load TPC MC points)
+  Int_t fStatNEvents; //* N of reconstructed events
 
   ClassDef(AliTPCtrackerCA,1) 
 };

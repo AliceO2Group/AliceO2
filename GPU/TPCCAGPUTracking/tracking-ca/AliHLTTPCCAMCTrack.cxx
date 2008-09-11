@@ -23,18 +23,19 @@
 
 
 AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack()
-  : fP(0), fPt(0), fNHits(0), fNReconstructed(0), fSet(0), fNTurns(0)
+  : fPDG(0), fP(0), fPt(0), fNHits(0), fNMCPoints(0), fFirstMCPointID(0), fNReconstructed(0), fSet(0), fNTurns(0)
 {
   //* Default constructor
 }
 
 
 AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack( const TParticle *part )
-  : fP(0), fPt(0), fNHits(0), fNReconstructed(0), fSet(0), fNTurns(0)
+  : fPDG(0), fP(0), fPt(0), fNHits(0), fNMCPoints(0), fFirstMCPointID(0), fNReconstructed(0), fSet(0), fNTurns(0)
 {
   //* Constructor from TParticle
 
   for( Int_t i=0; i<7; i++ ) fPar[i] = 0;
+  for( Int_t i=0; i<7; i++ ) fTPCPar[i] = 0;
   fP = 0;
   fPt = 0;
 
@@ -52,9 +53,31 @@ AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack( const TParticle *part )
   fPar[4] = part->Py()*pi;
   fPar[5] = part->Pz()*pi;
   fPar[6] = 0;
-  Int_t pdg  = part->GetPdgCode();	  
-  if ( TMath::Abs(pdg) < 100000 ){
-    TParticlePDG *pPDG = TDatabasePDG::Instance()->GetParticle(pdg);
+  fPDG  = part->GetPdgCode();	  
+  if ( TMath::Abs(fPDG) < 100000 ){
+    TParticlePDG *pPDG = TDatabasePDG::Instance()->GetParticle(fPDG);
     if( pPDG ) fPar[6] = pPDG->Charge()/3.0*pi;
+  }
+}
+
+void AliHLTTPCCAMCTrack::SetTPCPar( Float_t X, Float_t Y, Float_t Z,
+				    Float_t Px, Float_t Py, Float_t Pz )
+{
+  //* Set parameters at TPC entrance
+
+  for( Int_t i=0; i<7; i++ ) fTPCPar[i] = 0;
+
+  fTPCPar[0] = X;
+  fTPCPar[1] = Y;
+  fTPCPar[2] = Z;
+  Double_t p = TMath::Sqrt(Px*Px + Py*Py + Pz*Pz);
+  Double_t pi = ( p >1.e-4 ) ?1./p :0;
+  fTPCPar[3] = Px*pi;
+  fTPCPar[4] = Py*pi;
+  fTPCPar[5] = Pz*pi;
+  fTPCPar[6] = 0;
+  if ( TMath::Abs(fPDG) < 100000 ){
+    TParticlePDG *pPDG = TDatabasePDG::Instance()->GetParticle(fPDG);
+    if( pPDG ) fTPCPar[6] = pPDG->Charge()/3.0*pi;
   }
 }
