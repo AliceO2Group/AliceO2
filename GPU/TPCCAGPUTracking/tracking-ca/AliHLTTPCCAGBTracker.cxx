@@ -453,7 +453,7 @@ void AliHLTTPCCAGBTracker::Merging()
     for( Int_t itr=0; itr<slice.NOutTracks(); itr++ ){
       if( fSliceTrackInfos[iSlice][itr].fUsed ) continue;
       //cout<<"\n slice "<<iSlice<<", track "<<itr<<"\n"<<endl;
-      AliHLTTPCCAOutTrack &tCA = slice.OutTracks()[itr];
+      //AliHLTTPCCAOutTrack &tCA = slice.OutTracks()[itr];
       AliHLTTPCCAGBTrack &t = fTracks[fNTracks];
       //t.Param() = tCA.StartPoint();
        //t.Alpha() = slice.Param().Alpha();
