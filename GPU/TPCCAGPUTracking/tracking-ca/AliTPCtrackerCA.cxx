@@ -347,18 +347,18 @@ Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
       geo.close();
     }
 
-    fstream event;
+    fstream eventStream;
     char name[255];
     sprintf( name,"CAEvents/%i.event.dat",fStatNEvents ); 
-    event.open(name, ios::out);
-    if( event.is_open() ){
-      fHLTTracker->WriteEvent(event);	
+    eventStream.open(name, ios::out);
+    if( eventStream.is_open() ){
+      fHLTTracker->WriteEvent(eventStream);	
       fstream tracks;
       sprintf( name,"CAEvents/%i.tracks.dat",fStatNEvents ); 
       tracks.open(name, ios::out);
       fHLTTracker->WriteTracks(tracks);	
     }
-    event.close();   
+    eventStream.close();   
     if( fDoHLTPerformance ){
       fstream mcevent, mcpoints;
       char mcname[255];

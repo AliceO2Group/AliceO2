@@ -1031,7 +1031,7 @@ void AliHLTTPCCATracker::FindTracks()
 
     t.Chi2() = 0;
     t.NDF() = -5;	
-    Bool_t first = 1;
+    first = 1; // removed  bool in front  -> JT
 
     Int_t iID = iTrack.FirstCellID();
     Int_t fNOutTrackHitsOld = fNOutTrackHits;
