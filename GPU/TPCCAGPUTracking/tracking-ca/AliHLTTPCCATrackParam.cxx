@@ -339,11 +339,11 @@ Bool_t  AliHLTTPCCATrackParam::TransportToX( Float_t x )
   return ret;
 }
 
-Bool_t AliHLTTPCCATrackParam::TransportToXWithMaterial( Float_t X, Float_t Bz )
+Bool_t AliHLTTPCCATrackParam::TransportToXWithMaterial( Float_t x, Float_t Bz )
 {
   AliHLTTPCCATrackFitParam par;
   CalculateFitParameters( par, Bz );
-  return TransportToXWithMaterial(X, par );
+  return TransportToXWithMaterial(x, par );
 }
 
 
