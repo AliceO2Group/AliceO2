@@ -841,7 +841,7 @@ void AliHLTTPCCATracker::FindTracks()
       AliHLTTPCCACell &ic  = ID2Cell(icID);
       AliHLTTPCCACell &jc  = ID2Cell(jcID);
       
-      if( ic.Link()<0 && jc.Link()<0 || ic.Link()>=0 && jc.Link()>=0 ){
+      if( (ic.Link()<0 && jc.Link()<0) || (ic.Link()>=0 && jc.Link()>=0) ){
 
 	Int_t currID =  jTrack.CellID()[0];
 	jTrack.CellID()[0] = jTrack.CellID()[2];
