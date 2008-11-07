@@ -45,8 +45,8 @@ AliHLTTPCCATracker::AliHLTTPCCATracker()
   :fParam(),fRows(0),fOutTrackHits(0),fNOutTrackHits(0),fOutTracks(0),fNOutTracks(0),fNHitsTotal(0),fTracks(0),fNTracks(0),fCellHitPointers(0),fCells(0),fEndPoints(0)
 {
   // constructor
-  fRows = new AliHLTTPCCARow[fParam.NRows()];
-  Initialize( fParam );
+  //fRows = new AliHLTTPCCARow[fParam.NRows()];
+  //Initialize( fParam );
 }
 
 AliHLTTPCCATracker::AliHLTTPCCATracker( const AliHLTTPCCATracker& )
@@ -75,11 +75,11 @@ AliHLTTPCCATracker::~AliHLTTPCCATracker()
 // ----------------------------------------------------------------------------------
 void AliHLTTPCCATracker::Initialize( AliHLTTPCCAParam &param )
 {
-  // initialosation
+  // initialisation
   StartEvent();
   delete[] fRows;
   fRows = 0;
-  fParam = param;
+  fParam = param;  
   fParam.Update();
   fRows = new AliHLTTPCCARow[fParam.NRows()];
   Float_t xStep = 1;
@@ -115,8 +115,8 @@ void AliHLTTPCCATracker::StartEvent()
   fNOutTrackHits = 0;
   fNOutTracks = 0;
   fNHitsTotal = 0;
-  for( Int_t irow=0; irow<fParam.NRows(); irow++ ){
-    fRows[irow].Clear();
+  if( fRows ) {
+    for( Int_t irow=0; irow<fParam.NRows(); irow++ )  fRows[irow].Clear();
   }
 }
 
@@ -841,7 +841,7 @@ void AliHLTTPCCATracker::FindTracks()
       AliHLTTPCCACell &ic  = ID2Cell(icID);
       AliHLTTPCCACell &jc  = ID2Cell(jcID);
       
-      if( (ic.Link()<0 && jc.Link()<0) || (ic.Link()>=0 && jc.Link()>=0) ){
+      if( ( ic.Link()<0 && jc.Link()<0 ) || ( ic.Link()>=0 && jc.Link()>=0 ) ){
 
 	Int_t currID =  jTrack.CellID()[0];
 	jTrack.CellID()[0] = jTrack.CellID()[2];

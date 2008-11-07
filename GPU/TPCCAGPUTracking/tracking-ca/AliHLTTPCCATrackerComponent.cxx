@@ -148,10 +148,10 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 
   fFullTime = 0;
   fRecoTime = 0;
-  fNEvents = 0;
+  fNEvents = 0; 
 
   fTracker = new AliHLTTPCCATracker();
-  
+
   // read command line
 
   int i = 0;
@@ -607,7 +607,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     currOutTracklet->fX = tp.GetX();
     currOutTracklet->fY = tp.GetY();
     currOutTracklet->fZ = tp.GetZ();
-    currOutTracklet->fCharge = (Int_t ) tp.GetSign();
+    currOutTracklet->fCharge = -(Int_t ) tp.GetSign();
     currOutTracklet->fPt = TMath::Abs(tp.GetSignedPt());
     Float_t snp =  tp.GetSnp() ;
     if( snp>.999 ) snp=.999;
