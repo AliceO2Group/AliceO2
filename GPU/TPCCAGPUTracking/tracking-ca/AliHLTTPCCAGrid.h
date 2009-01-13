@@ -8,7 +8,7 @@
 #ifndef ALIHLTTPCCAGRID_H
 #define ALIHLTTPCCAGRID_H
 
-#include "Rtypes.h"
+#include "AliHLTTPCCADef.h"
 
 /**
  * @class AliHLTTPCCAGrid
@@ -21,51 +21,51 @@
 class AliHLTTPCCAGrid
 {
  public:
-  AliHLTTPCCAGrid():fGrid(0),fNy(0),fNz(0),fN(0),
-    fYMin(0),fYMax(0),fZMin(0),fZMax(0),fStepYInv(0),fStepZInv(0){}
-
-  AliHLTTPCCAGrid(const AliHLTTPCCAGrid&);
-  AliHLTTPCCAGrid &operator=(const AliHLTTPCCAGrid&);
-
-  virtual ~AliHLTTPCCAGrid(){ 
-    if( fGrid ) delete[] fGrid; 
+  
+  GPUd() void Create( Float_t yMin, Float_t yMax, Float_t zMin, Float_t zMax, UInt_t n );
+  GPUd() void Create( Float_t yMin, Float_t yMax, Float_t zMin, Float_t zMax, Float_t sy, Float_t sz  );
+  
+  GPUd() UInt_t GetBin( Float_t Y, Float_t Z ) const;
+  GPUd() void GetBin( Float_t Y, Float_t Z, UInt_t &bY, UInt_t &bZ ) const ;
+  
+  GPUd() UInt_t GetBinNoCheck( Float_t Y, Float_t Z ) const {
+    UInt_t bY = (UInt_t) ( (Y-fYMin)*fStepYInv );
+    UInt_t bZ = (UInt_t) ( (Z-fZMin)*fStepZInv );
+    return bZ*fNy + bY;
+  }
+  
+  GPUd() void GetBinNoCheck( Float_t Y, Float_t Z, UInt_t &bY, UInt_t &bZ ) const {
+    bY = (UInt_t) ( (Y-fYMin)*fStepYInv );
+    bZ = (UInt_t) ( (Z-fZMin)*fStepZInv );    
   }
 
-  void Create( Float_t yMin, Float_t yMax, Float_t zMin, Float_t zMax, Int_t n );
 
-  void **Get( Float_t Y, Float_t Z ) const;
+  GPUd() UInt_t  N()  const { return fN;  }
+  GPUd() UInt_t  Ny() const { return fNy; }
+  GPUd() UInt_t  Nz() const { return fNz; }
+  GPUd() Float_t YMin() const { return fYMin; }
+  GPUd() Float_t YMax() const { return fYMax; }
+  GPUd() Float_t ZMin() const { return fZMin; }
+  GPUd() Float_t ZMax() const { return fZMax; }
+  GPUd() Float_t StepYInv() const { return fStepYInv; }
+  GPUd() Float_t StepZInv() const { return fStepZInv; }
+  GPUhd() UInt_t &Content2() { return fContent2;}
+  GPUhd() UInt_t &Offset() { return fOffset;}    
 
-  void **GetNoCheck( Float_t Y, Float_t Z ) const {
-    Int_t yBin = (Int_t) ( (Y-fYMin)*fStepYInv );
-    Int_t zBin = (Int_t) ( (Z-fZMin)*fStepZInv );
-    return fGrid + zBin*fNy + yBin;
-  }
+  private:
 
-  Int_t N() const { return fN; }
-  Int_t Ny() const { return fNy; }
-  Int_t Nz() const { return fNz; }
-  Float_t YMin() const { return fYMin; }
-  Float_t YMax() const { return fYMax; }
-  Float_t ZMin() const { return fZMin; }
-  Float_t ZMax() const { return fZMax; }
-  Float_t StepYInv() const { return fStepYInv; }
-  Float_t StepZInv() const { return fStepZInv; }
-  void **Grid(){ return fGrid; }
-
- protected:
-
-  void **fGrid;      //* the grid as 1-d array
-  Int_t fNy;         //* N bins in Y
-  Int_t fNz;         //* N bins in Z
-  Int_t fN;          //* total N bins
+  UInt_t fNy;        //* N bins in Y
+  UInt_t fNz;        //* N bins in Z
+  UInt_t fN;         //* total N bins
   Float_t fYMin;     //* minimal Y value
   Float_t fYMax;     //* maximal Y value
   Float_t fZMin;     //* minimal Z value
   Float_t fZMax;     //* maximal Z value
   Float_t fStepYInv; //* inverse bin size in Y
   Float_t fStepZInv; //* inverse bin size in Z
-  
-};
 
+  UInt_t fContent2;  //* content of the fN/2 bin [4 bytes ]
+  UInt_t fOffset;    //* offset of this Grid content in the common content array
+};
 
 #endif

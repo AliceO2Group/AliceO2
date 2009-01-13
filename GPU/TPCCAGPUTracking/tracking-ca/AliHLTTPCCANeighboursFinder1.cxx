@@ -1,4 +1,4 @@
-// @(#) $Id$
+// @(#) $Id: AliHLTTPCCANeighboursFinder.cxx 27042 2008-07-02 12:06:02Z richterm $
 //***************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -16,10 +16,21 @@
 // provided "as is" without express or implied warranty.                    *
 //***************************************************************************
 
-#include "AliHLTTPCCAHit.h"
+#include "AliHLTTPCCANeighboursFinder1.h"
+#include "AliHLTTPCCATracker.h"
 
-
-void AliHLTTPCCAHit::Dummy()
+GPUd() void AliHLTTPCCANeighboursFinder1::Thread
+( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
+  SharedMemory &s, AliHLTTPCCATracker &tracker )
 {
-  //* do nothing
+  int nRows = 159;
+  int iRow = iBlock;
+  int first = tracker.Rows()[iRow].FirstHit();      
+  Short_t *hitLinkUp = tracker.HitLinkUp() + first;
+  Short_t *hitLinkDn = tracker.HitLinkDown() + first;
+  int NHits = tracker.Rows()[iRow].NHits();
+  for( int ih=iThread; ih<NHits; ih+=nThreads ){	
+    hitLinkUp[ih] = -1;
+    hitLinkDn[ih] = -1;	
+  }
 }

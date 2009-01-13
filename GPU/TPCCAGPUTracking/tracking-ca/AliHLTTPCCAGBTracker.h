@@ -8,7 +8,8 @@
 #ifndef ALIHLTTPCCAGBTRACKER_H
 #define ALIHLTTPCCAGBTRACKER_H
 
-#include "TObject.h"
+#include "AliHLTTPCCADef.h"
+#include <iostream.h>
 
 class AliHLTTPCCATracker;
 class AliHLTTPCCAGBTrack;
@@ -31,7 +32,7 @@ class AliHLTTPCCATrackParam;
  * The class is under construction.
  *
  */
-class AliHLTTPCCAGBTracker:public TObject
+class AliHLTTPCCAGBTracker
 {
 
 public:
@@ -40,7 +41,7 @@ public:
   AliHLTTPCCAGBTracker(const AliHLTTPCCAGBTracker&);
   AliHLTTPCCAGBTracker &operator=(const AliHLTTPCCAGBTracker&);
 
-  virtual ~AliHLTTPCCAGBTracker();
+  ~AliHLTTPCCAGBTracker();
 
   void StartEvent();
   void SetNSlices( Int_t N );
@@ -65,11 +66,11 @@ public:
   void GetErrors2( AliHLTTPCCAGBHit &h, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
   void GetErrors2( Int_t iSlice, Int_t iRow, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
 
-  void WriteSettings( ostream &out );
+  void WriteSettings( ostream &out ) const;
   void ReadSettings( istream &in );
-  void WriteEvent( ostream &out );
+  void WriteEvent( ostream &out ) const;
   void ReadEvent( istream &in );
-  void WriteTracks( ostream &out );
+  void WriteTracks( ostream &out ) const;
   void ReadTracks( istream &in );
 
 protected:
@@ -89,11 +90,11 @@ protected:
   };
 
   AliHLTTPCCAGBSliceTrackInfo **fSliceTrackInfos; //* additional information for slice tracks
-  Double_t fTime;
+  Double_t fTime; //* total time
   Double_t fStatTime[20]; //* timers 
   Int_t fStatNEvents;    //* n events proceed
+  Int_t fFirstSliceHit[100]; // hit array
 
-  ClassDef(AliHLTTPCCAGBTracker,1) //Base class for conformal mapping tracking
 };
 
 #endif

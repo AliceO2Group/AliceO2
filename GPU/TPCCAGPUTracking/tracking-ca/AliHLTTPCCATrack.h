@@ -8,7 +8,8 @@
 #ifndef ALIHLTTPCCATRACK_H
 #define ALIHLTTPCCATRACK_H
 
-#include "Rtypes.h"
+#include "AliHLTTPCCADef.h"
+#include "AliHLTTPCCATrackParam.h"
 
 /**
  * @class ALIHLTTPCCAtrack
@@ -20,27 +21,27 @@
 class AliHLTTPCCATrack
 {
  public:
-  AliHLTTPCCATrack():fAlive(0),fFirstCellID(0),fNCells(0){}
-  virtual ~AliHLTTPCCATrack(){}
+#if !defined(HLTCA_GPUCODE)
+  AliHLTTPCCATrack() :fAlive(0),fFirstHitID(0),fNHits(0), fParam(){}
+  ~AliHLTTPCCATrack(){}
+#endif
 
-  Bool_t &Alive()              { return fAlive; }
-  Int_t  &NCells()            { return fNCells; }
-  Int_t  *CellID()            { return fCellID; }
-  Int_t  &FirstCellID()        { return fFirstCellID; }
-  Int_t  *PointID()            { return fPointID; }
-
- private:
-
-  Bool_t fAlive;       // flag for mark tracks used by the track merger
-  Int_t  fFirstCellID; // index of the first track cell in the track->cell pointer array
-  Int_t  fNCells;      // number of track cells
-  Int_t  fCellID[3];   // ID of first,middle,last cell
-  Int_t  fPointID[2];  // ID of the track endpoints
+  GPUhd() Bool_t &Alive()               { return fAlive; }
+  GPUhd() Int_t  &NHits()               { return fNHits; }
+  GPUhd() Int_t  &FirstHitID()          { return fFirstHitID; }
+  GPUhd() AliHLTTPCCATrackParam &Param(){ return fParam; };
   
- private:
-  void Dummy(); // to make rulechecker happy by having something in .cxx file
+private:
+  
+  Bool_t fAlive;       // flag for mark tracks used by the track merger
+  Int_t  fFirstHitID; // index of the first track cell in the track->cell pointer array
+  Int_t  fNHits;      // number of track cells
+  AliHLTTPCCATrackParam fParam; // track parameters 
+  
+private:
+  //void Dummy(); // to make rulechecker happy by having something in .cxx file
 
-  //ClassDef(AliHLTTPCCATrack,1);
+  //ClassDef(AliHLTTPCCATrack,1)
 };
 
 #endif

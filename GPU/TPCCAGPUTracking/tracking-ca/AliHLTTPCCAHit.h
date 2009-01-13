@@ -8,7 +8,7 @@
 #ifndef ALIHLTTPCCAHIT_H
 #define ALIHLTTPCCAHIT_H
 
-#include "Rtypes.h"
+#include "AliHLTTPCCADef.h"
 
 /**
  * @class AliHLTTPCCAHit
@@ -19,44 +19,16 @@
  */
 class AliHLTTPCCAHit
 {
- public:
-  AliHLTTPCCAHit(): fY(0),fZ(0),fErrY(0),fErrZ(0),fID(0){;}
-  virtual ~AliHLTTPCCAHit(){}
-
-  Float_t &Y()   { return fY;    }
-  Float_t &Z()   { return fZ;    }
-  Float_t &ErrY(){ return fErrY; } 
-  Float_t &ErrZ(){ return fErrZ; }
+public:
   
-  Int_t &ID(){ return fID; }
- 
-  void Set( Int_t id, Float_t y, Float_t z, 
-	    Float_t errY, Float_t errZ  );
-
- protected:
-
+  GPUhd() Float_t &Y()   { return fY;    }
+  GPUhd() Float_t &Z()   { return fZ;    }
+  
+  //protected:
+  
   Float_t fY, fZ;       // Y and Z position of the TPC cluster
-  Float_t fErrY, fErrZ; // position errors
-  Int_t fID;            // external unique ID of this hit, 
-                        // used as cluster index in track->hit reference array
- private:
-
-  void Dummy(); // to make rulechecker happy by having something in .cxx file
   
 };
-
-
-
-inline void AliHLTTPCCAHit::Set( Int_t id, Float_t y, Float_t z, 
-				 Float_t errY, Float_t errZ  )
-{
-  //* set parameters
-  fID = id;
-  fY = y;
-  fZ = z;
-  fErrY = errY;
-  fErrZ = errZ;
-}
 
 
 #endif

@@ -8,9 +8,9 @@
 #ifndef ALIHLTTPCCAPERFORMANCE_H
 #define ALIHLTTPCCAPERFORMANCE_H
 
+#include "AliHLTTPCCADef.h"
 
-#include "TObject.h"
-
+class TObject;
 class TParticle;
 class AliHLTTPCCAMCTrack;
 class AliHLTTPCCAMCPoint;
@@ -28,7 +28,7 @@ class TProfile;
  * and for AliHLTTPCCAGBTracker global tracker
  *
  */
-class AliHLTTPCCAPerformance:public TObject
+class AliHLTTPCCAPerformance
 {
 
  public:
@@ -58,9 +58,9 @@ class AliHLTTPCCAPerformance:public TObject
   void SlicePerformance( Int_t iSlice, Bool_t PrintFlag  );
   void Performance();
 
-  void WriteMCEvent( ostream &out );
+  void WriteMCEvent( ostream &out ) const;
   void ReadMCEvent( istream &in );
-  void WriteMCPoints( ostream &out );
+  void WriteMCPoints( ostream &out ) const;
   void ReadMCPoints( istream &in );
   Bool_t& DoClusterPulls(){ return fDoClusterPulls; }
 
@@ -133,15 +133,27 @@ protected:
     *fhCellNHits//* cell n hits
     ;
 
-    TProfile 
-  *fhCellPurityVsN, //* cell purity vs N hits
-  *fhCellPurityVsPt,//* cell purity vs MC Pt
-      *fhEffVsP, //* reconstruction efficiency vs P plot
-      *fhGBEffVsP; //* global reconstruction efficiency vs P plot
+  TProfile 
+    *fhCellPurityVsN, //* cell purity vs N hits
+    *fhCellPurityVsPt,//* cell purity vs MC Pt
+    *fhEffVsP, //* reconstruction efficiency vs P plot
+    *fhGBEffVsP, //* global reconstruction efficiency vs P plot
+    *fhNeighQuality, // quality for neighbours finder 
+    *fhNeighEff,// efficiency for neighbours finder
+    *fhNeighQualityVsPt,// quality for neighbours finder vs track Pt
+    *fhNeighEffVsPt;// efficiency for neighbours finder vs track Pt
+  TH1D 
+  *fhNeighDy, // dy for neighbours
+    *fhNeighDz,// dz for neighbours
+    *fhNeighChi;// chi2^0.5 for neighbours
+  TH2D
+    *fhNeighDyVsPt, // dy for neighbours vs track Pt
+    *fhNeighDzVsPt,// dz for neighbours vs track Pt
+    *fhNeighChiVsPt, // chi2^0.5 for neighbours vs track Pt
+    *fhNeighNCombVsArea; // N neighbours in the search area
 
   static void WriteDir2Current( TObject *obj );
   
-  ClassDef(AliHLTTPCCAPerformance,1) 
 };
 
 #endif

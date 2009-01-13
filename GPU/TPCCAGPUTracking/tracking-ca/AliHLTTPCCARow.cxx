@@ -18,39 +18,16 @@
 
 #include "AliHLTTPCCARow.h"
 
-ClassImp(AliHLTTPCCARow)
 
-  AliHLTTPCCARow::AliHLTTPCCARow() :fHits(0),fCells(0),fCellHitPointers(0),fEndPoints(0),fNHits(0),fNCells(0),fNEndPoints(0),fX(0),fMaxY(0),fDeltaY(0),fDeltaZ(0)
+#if !defined(HLTCA_GPUCODE)
+AliHLTTPCCARow::AliHLTTPCCARow() 
+  :
+  fFirstHit(0), fNHits(0), fX(0), fMaxY(0), fGrid(),
+  fHy0(0),fHz0(0), fHstepY(0),fHstepZ(0), fHstepYi(0), fHstepZi(0),
+  fFullSize(0), fFullOffset(0), fFullGridOffset(0),fFullLinkOffset(0)
 {
-  //* constructor
+  // dummy constructor
 }
 
-AliHLTTPCCARow::AliHLTTPCCARow( const AliHLTTPCCARow &)
-  :fHits(0),fCells(0),fCellHitPointers(0),fEndPoints(0),fNHits(0),fNCells(0),fNEndPoints(0),fX(0),fMaxY(0),fDeltaY(0),fDeltaZ(0)
-{
-  //* dummy
-}
+#endif
 
-AliHLTTPCCARow &AliHLTTPCCARow::operator=( const AliHLTTPCCARow &)
-{
-  //* dummy
-  fHits = 0;
-  fCells = 0;
-  fCellHitPointers = 0;
-  fEndPoints = 0;
-  fNHits = 0;
-  fNCells = 0;
-  fNEndPoints = 0;
-  return *this;
-}
-
-void AliHLTTPCCARow::Clear()
-{
-  //* clear memory
-  if(fHits) delete[] fHits;
-  fHits = 0;
-  fCells = 0;
-  fCellHitPointers = 0;    
-  fEndPoints = 0;
-  fNHits = fNCells = fNEndPoints = 0;
-}

@@ -7,7 +7,8 @@
 
 #ifndef ALIHLTTPCCATRACKCONVERTOR_H
 #define ALIHLTTPCCATRACKCONVERTOR_H
-#include "Rtypes.h"
+
+#include "AliHLTTPCCADef.h"
 
 class AliExternalTrackParam;
 class AliHLTTPCCATrackParam;

@@ -7,7 +7,7 @@
 #ifndef ALIHLTTPCCAMCPOINT_H
 #define ALIHLTTPCCAMCPOINT_H
 
-#include "Rtypes.h"
+#include "AliHLTTPCCADef.h"
 
 
 /**

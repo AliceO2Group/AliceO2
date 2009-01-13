@@ -8,7 +8,6 @@
 #ifndef ALIHLTTPCCAOUTTRACK_H
 #define ALIHLTTPCCAOUTTRACK_H
 
-#include "Rtypes.h"
 #include "AliHLTTPCCATrackParam.h"
 
 /**
@@ -27,12 +26,12 @@ class AliHLTTPCCAOutTrack
   AliHLTTPCCAOutTrack():fFirstHitRef(0),fNHits(0),fStartPoint(),fEndPoint(),fOrigTrackID(0){}
   virtual ~AliHLTTPCCAOutTrack(){}
 
-  Int_t &NHits()               { return fNHits; }
-  Int_t &FirstHitRef()         { return fFirstHitRef; }
+  GPUhd() Int_t &NHits()               { return fNHits; }
+  GPUhd() Int_t &FirstHitRef()         { return fFirstHitRef; }
 
-  AliHLTTPCCATrackParam &StartPoint() { return fStartPoint; }
-  AliHLTTPCCATrackParam &EndPoint()   { return fEndPoint; }
-  Int_t &OrigTrackID()                { return fOrigTrackID; }
+  GPUhd() AliHLTTPCCATrackParam &StartPoint() { return fStartPoint; }
+  GPUhd() AliHLTTPCCATrackParam &EndPoint()   { return fEndPoint; }
+  GPUhd() Int_t &OrigTrackID()                { return fOrigTrackID; }
 
  protected:
   
@@ -46,7 +45,7 @@ class AliHLTTPCCAOutTrack
 
   void Dummy(); // to make rulechecker happy by having something in .cxx file
 
-  ClassDef(AliHLTTPCCAOutTrack,1);
+  ClassDef(AliHLTTPCCAOutTrack,1)
 };
 
 

@@ -8,11 +8,8 @@
 #ifndef ALIHLTTPCCAROW_H
 #define ALIHLTTPCCAROW_H
 
-#include "Rtypes.h"
-
-#include "AliHLTTPCCAHit.h"
-#include "AliHLTTPCCACell.h"
-#include "AliHLTTPCCAEndPoint.h"
+#include "AliHLTTPCCADef.h"
+#include "AliHLTTPCCAGrid.h"
 
 /**
  * @class ALIHLTTPCCARow
@@ -25,54 +22,40 @@ class AliHLTTPCCARow
 {
  public: 
 
-  AliHLTTPCCARow();
-  AliHLTTPCCARow ( const AliHLTTPCCARow &);
-  AliHLTTPCCARow &operator=( const AliHLTTPCCARow &);
+#if !defined(HLTCA_GPUCODE)
+  AliHLTTPCCARow();  
+#endif
 
-  virtual ~AliHLTTPCCARow(){ Clear(); }
+  //AliHLTTPCCARow &operator=( const AliHLTTPCCARow &);
 
-  AliHLTTPCCAHit  *&Hits() { return fHits; }
-  AliHLTTPCCACell *&Cells(){ return fCells;}
-  Int_t  *&CellHitPointers() { return fCellHitPointers; }
-  AliHLTTPCCAEndPoint *&EndPoints(){ return fEndPoints;}
- 
-  Int_t &NHits()  { return fNHits; }
-  Int_t &NCells() { return fNCells; }
-  Int_t &NEndPoints() { return fNEndPoints; }
-  Float_t &X() { return fX; }
-  Float_t &MaxY() { return fMaxY; }
-  Float_t &DeltaY() { return fDeltaY; }
-  Float_t &DeltaZ() { return fDeltaZ; }
+  GPUhd() Int_t   &FirstHit(){ return fFirstHit; }
+  GPUhd() Int_t   &NHits()   { return fNHits; }
+  GPUhd() Float_t &X()       { return fX; }
+  GPUhd() Float_t &MaxY()    { return fMaxY; }
+  GPUhd() AliHLTTPCCAGrid &Grid(){ return fGrid; }  
 
-  AliHLTTPCCAHit  &GetCellHit( AliHLTTPCCACell &c, Int_t i ){ 
-    //* get hit number i of the cell c
-    return fHits[fCellHitPointers[c.FirstHitRef()+i]]; 
-  }
-
-  void Clear();
-
-  static Bool_t CompareCellZMax( AliHLTTPCCACell&c, Double_t ZMax )
-  {
-    return (c.ZMax()<ZMax);
-  }
-  static Bool_t CompareEndPointZ( AliHLTTPCCAEndPoint &p, Double_t Z )
-  {
-    return (p.Param().GetZ()<Z);
-  }
+  GPUhd() float &Hy0() { return fHy0;}
+  GPUhd() float &Hz0() { return fHz0;}
+  GPUhd() float &HstepY() { return fHstepY;}
+  GPUhd() float &HstepZ() { return fHstepZ;}
+  GPUhd() float &HstepYi() { return fHstepYi;}
+  GPUhd() float &HstepZi() { return fHstepZi;}
+  GPUhd() int &FullSize() { return fFullSize;}
+  GPUhd() int &FullOffset() { return fFullOffset;}
+  GPUhd() int &FullGridOffset() { return fFullGridOffset;}
+  GPUhd() int &FullLinkOffset() { return fFullLinkOffset;}
 
 private:
 
-  AliHLTTPCCAHit *fHits;   // hit array
-  AliHLTTPCCACell *fCells; // cell array
-  Int_t *fCellHitPointers; // pointers cell->hits
-  AliHLTTPCCAEndPoint *fEndPoints; // array of track end points
-  Int_t fNHits, fNCells, fNEndPoints;   // number of hits and cells
+  Int_t fFirstHit;         // index of the first hit in the hit array
+  Int_t fNHits;            // number of hits 
   Float_t fX;              // X coordinate of the row
   Float_t fMaxY;           // maximal Y coordinate of the row
-  Float_t fDeltaY;         // allowed Y deviation to the next row
-  Float_t fDeltaZ;         // allowed Z deviation to the next row
+  AliHLTTPCCAGrid fGrid;   // grid of hits
 
-  ClassDef(AliHLTTPCCARow,1);
+  float fHy0,fHz0, fHstepY,fHstepZ, fHstepYi, fHstepZi; // temporary variables
+  int fFullSize, fFullOffset, fFullGridOffset,fFullLinkOffset; // temporary variables
+
 };
 
 #endif

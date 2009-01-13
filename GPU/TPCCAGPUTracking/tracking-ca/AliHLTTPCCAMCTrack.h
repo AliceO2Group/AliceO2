@@ -8,7 +8,7 @@
 #ifndef ALIHLTTPCCAMCTRACK_H
 #define ALIHLTTPCCAMCTRACK_H
 
-#include "Rtypes.h"
+#include "AliHLTTPCCADef.h"
 
 class TParticle;
 

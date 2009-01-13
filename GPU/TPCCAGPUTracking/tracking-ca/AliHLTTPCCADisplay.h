@@ -13,12 +13,12 @@
 #ifndef ALIHLTTPCCADISPLAY_H
 #define ALIHLTTPCCADISPLAY_H
 
+
+#ifdef XXXX
 class AliHLTTPCCATracker;
-class AliHLTTPCCACell;
 class AliHLTTPCCATrack;
 class AliHLTTPCCATrackParam;
 class TCanvas;
-#include "TObject.h"
 #include "TArc.h"
 #include "TLine.h"
 #include "TPolyLine.h"
@@ -26,15 +26,15 @@ class TCanvas;
 #include "TCrown.h"
 #include "TMarker.h"
 #include "TLatex.h"
-
+#endif
 
 /**
  * @class AliHLTTPCCADisplay
  */
-class AliHLTTPCCADisplay:public TObject
+class AliHLTTPCCADisplay
 {
  public:
-
+#ifdef XXXX
   static AliHLTTPCCADisplay &Instance();
   
   AliHLTTPCCADisplay();
@@ -60,13 +60,8 @@ class AliHLTTPCCADisplay:public TObject
   void DrawSlice( AliHLTTPCCATracker *slice ); 
 
   void DrawHit( Int_t iRow,Int_t iHit, Int_t color=-1 );
-  void DrawCell( Int_t iRow, AliHLTTPCCACell &cell, Int_t width=1, Int_t color=-1 );
-  void DrawCell( Int_t iRow, Int_t iCell, Int_t width=1, Int_t color=-1 );
 
-  void DrawEndPoint( Int_t ID, Float_t R, Int_t width=1, Int_t color=-1 );
-  void ConnectEndPoints( Int_t iID, Int_t jID, Float_t R, Int_t width=1, Int_t color=-1 );
-
-  void ConnectCells( Int_t iRow1, AliHLTTPCCACell &cell1, Int_t iRow2, AliHLTTPCCACell &cell2, Int_t color=-1 );
+  void DrawMergedHit( Int_t iRow, Int_t iHit, Int_t color=-1 );
 
   void DrawTrack( AliHLTTPCCATrack &track, Int_t color=-1, Bool_t DrawCells=1 );
   void DrawTrackletPoint( AliHLTTPCCATrackParam &t, Int_t color=-1 );
@@ -94,31 +89,30 @@ class AliHLTTPCCADisplay:public TObject
   TCrown fCrown;   //!
   TLatex fLatex;   //!
 
-  class AliHLTTPCCADisplayTmpCell{  
+  class AliHLTTPCCADisplayTmpHit{  
 
   public:
-    Int_t &ID(){ return fCellID; }
+    Int_t &ID(){ return fHitID; }
     Double_t &S(){ return fS; }
     Double_t &Z(){ return fZ; }
 
-    static Bool_t CompareCellDS( const AliHLTTPCCADisplayTmpCell &a, 
-				 const AliHLTTPCCADisplayTmpCell  &b )
+    static Bool_t CompareHitDS( const AliHLTTPCCADisplayTmpHit &a, 
+				 const AliHLTTPCCADisplayTmpHit  &b )
     {    
       return (a.fS < b.fS);
     }
-    static Bool_t CompareCellZ( const AliHLTTPCCADisplayTmpCell &a, 
-				 const AliHLTTPCCADisplayTmpCell  &b )
+    static Bool_t CompareHitZ( const AliHLTTPCCADisplayTmpHit &a, 
+				 const AliHLTTPCCADisplayTmpHit  &b )
     {    
       return (a.fZ < b.fZ);
     }
   protected:
-    Int_t fCellID; // cell ID
+    Int_t fHitID; // cell ID
     Double_t fS;  // cell position on the XY track curve 
     Double_t fZ;  // cell Z position
   };
 
-
-  ClassDef(AliHLTTPCCADisplay,1);
+#endif // XXXX
 
 };
 

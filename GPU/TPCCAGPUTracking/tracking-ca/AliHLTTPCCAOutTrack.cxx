@@ -21,7 +21,7 @@
 
 ClassImp(AliHLTTPCCAOutTrack)
 
-void AliHLTTPCCAOutTrack::Dummy()
+GPUh() void AliHLTTPCCAOutTrack::Dummy()
 {
   //* do nothing
 }

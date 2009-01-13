@@ -34,8 +34,8 @@ public:
   AliTPCtrackerCA & operator=(const AliTPCtrackerCA& );
   virtual ~AliTPCtrackerCA();
   //
-  Int_t RefitInward (AliESDEvent *);
-  Int_t PropagateBack(AliESDEvent *);
+  Int_t RefitInward (AliESDEvent *event);
+  Int_t PropagateBack(AliESDEvent *event);
   //
   Int_t Clusters2Tracks (AliESDEvent *esd);
 
