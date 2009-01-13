@@ -8,8 +8,9 @@
 #ifndef ALIHLTTPCCAPARAM_H
 #define ALIHLTTPCCAPARAM_H
 
-#include "Rtypes.h"
-#include "Riostream.h"
+#include "AliHLTTPCCADef.h"
+#include <iostream.h>
+
 
 /**
  * @class ALIHLTTPCCAParam
@@ -23,54 +24,57 @@ class AliHLTTPCCAParam
 {
  public:
 
-  AliHLTTPCCAParam();
-  virtual ~AliHLTTPCCAParam(){;}
+#if !defined(HLTCA_GPUCODE)  
+  GPUd() AliHLTTPCCAParam();
+#endif
 
-  void Initialize( Int_t iSlice, Int_t nRows, Float_t rowX[],
+  ~AliHLTTPCCAParam(){;}
+
+  GPUd() void Initialize( Int_t iSlice, Int_t nRows, Float_t rowX[],
 		   Float_t alpha, Float_t dAlpha,
 		   Float_t rMin, Float_t rMax, Float_t zMin, Float_t zMax,
 		   Float_t padPitch, Float_t zSigma, Float_t bz );
-  void Update();
+  GPUd() void Update();
   
-  void Slice2Global( Float_t x, Float_t y,  Float_t z, 
+  GPUd() void Slice2Global( Float_t x, Float_t y,  Float_t z, 
 		     Float_t *X, Float_t *Y,  Float_t *Z ) const;
-  void Global2Slice( Float_t x, Float_t y,  Float_t z, 
+  GPUd() GPUd() void Global2Slice( Float_t x, Float_t y,  Float_t z, 
 		     Float_t *X, Float_t *Y,  Float_t *Z ) const;
-  Int_t &ISlice(){ return fISlice;}
-  Int_t &NRows(){ return fNRows;}
+  GPUhd() Int_t &ISlice(){ return fISlice;}
+  GPUhd() Int_t &NRows(){ return fNRows;}
   
-  Float_t &RowX( Int_t iRow ){ return fRowX[iRow]; }
+  GPUhd() Float_t &RowX( Int_t iRow ){ return fRowX[iRow]; }
   
-  Float_t &Alpha(){ return fAlpha;}
-  Float_t &DAlpha(){ return fDAlpha;}
-  Float_t &CosAlpha(){ return fCosAlpha;}
-  Float_t &SinAlpha(){ return fSinAlpha;}
-  Float_t &AngleMin(){ return fAngleMin;}
-  Float_t &AngleMax(){ return fAngleMax;}
-  Float_t &RMin(){ return fRMin;}
-  Float_t &RMax(){ return fRMax;}
-  Float_t &ZMin(){ return fZMin;}
-  Float_t &ZMax(){ return fZMax;}
-  Float_t &ErrZ(){ return fErrZ;}
-  Float_t &ErrX(){ return fErrX;}
-  Float_t &ErrY(){ return fErrY;}
-  Float_t &Bz(){ return fBz;}
+  GPUd() Float_t &Alpha(){ return fAlpha;}
+  GPUd() Float_t &DAlpha(){ return fDAlpha;}
+  GPUd() Float_t &CosAlpha(){ return fCosAlpha;}
+  GPUd() Float_t &SinAlpha(){ return fSinAlpha;}
+  GPUd() Float_t &AngleMin(){ return fAngleMin;}
+  GPUd() Float_t &AngleMax(){ return fAngleMax;}
+  GPUd() Float_t &RMin(){ return fRMin;}
+  GPUd() GPUd() Float_t &RMax(){ return fRMax;}
+  GPUd() GPUd() Float_t &ZMin(){ return fZMin;}
+  GPUd() Float_t &ZMax(){ return fZMax;}
+  GPUd() Float_t &ErrZ(){ return fErrZ;}
+  GPUd() Float_t &ErrX(){ return fErrX;}
+  GPUd() Float_t &ErrY(){ return fErrY;}
+  GPUd() Float_t &Bz(){ return fBz;}
 
-  Float_t &TrackConnectionFactor(){ return fTrackConnectionFactor; }
-  Float_t &TrackChiCut() { return fTrackChiCut; }
-  Float_t &TrackChi2Cut(){ return fTrackChi2Cut; }
-  Int_t   &MaxTrackMatchDRow(){ return fMaxTrackMatchDRow; }
-  Float_t &YErrorCorrection(){ return fYErrorCorrection; }
-  Float_t &ZErrorCorrection(){ return fZErrorCorrection; }
-  Float_t &CellConnectionAngleXY(){ return fCellConnectionAngleXY; }
-  Float_t &CellConnectionAngleXZ(){ return fCellConnectionAngleXZ; }
+  GPUd() Float_t &TrackConnectionFactor(){ return fTrackConnectionFactor; }
+  GPUd() Float_t &TrackChiCut() { return fTrackChiCut; }
+  GPUd() Float_t &TrackChi2Cut(){ return fTrackChi2Cut; }
+  GPUd() Int_t   &MaxTrackMatchDRow(){ return fMaxTrackMatchDRow; }
+  GPUd() Float_t &YErrorCorrection(){ return fYErrorCorrection; }
+  GPUd() Float_t &ZErrorCorrection(){ return fZErrorCorrection; }
+  GPUd() Float_t &CellConnectionAngleXY(){ return fCellConnectionAngleXY; }
+  GPUd() Float_t &CellConnectionAngleXZ(){ return fCellConnectionAngleXZ; }
 
-  Float_t GetClusterError2(Int_t yz, Int_t type, Float_t z, Float_t angle );
+  GPUd() Float_t GetClusterError2(Int_t yz, Int_t type, Float_t z, Float_t angle ) const;
 
-  void WriteSettings( ostream &out );
-  void ReadSettings( istream &in );
+  void WriteSettings( std::ostream &out ) const;
+  void ReadSettings( std::istream &in );
 
- protected:
+  protected:
 
   Int_t fISlice; // slice number
   Int_t fNRows; // number of rows
@@ -97,7 +101,6 @@ class AliHLTTPCCAParam
   Float_t fRowX[200];// X-coordinate of rows
   Float_t fParamS0Par[2][3][7];    // cluster error parameterization coeficients
 
-  ClassDef(AliHLTTPCCAParam,1);
 };
 
 

@@ -26,11 +26,10 @@
 using namespace std;
 #endif
 
-#include <climits>
+//#include <climits>
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCTransform.h"
 #include "AliHLTTPCCATracker.h"
-#include "AliHLTTPCCAHit.h"
 #include "AliHLTTPCCAOutTrack.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackConvertor.h"
@@ -45,6 +44,13 @@ using namespace std;
 #include "AliExternalTrackParam.h"
 #include "TStopwatch.h"
 #include "TMath.h"
+
+/** global object for registration 
+ * Matthias 2009-01-13 temporarily using the global object approach again.
+ * CA cade had to be disabled because of various compilation problems, so
+ * the global object approach fits better for the moment.
+ */
+AliHLTTPCCATrackerComponent gAliHLTTPCCATrackerComponent;
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCCATrackerComponent)
@@ -148,10 +154,10 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 
   fFullTime = 0;
   fRecoTime = 0;
-  fNEvents = 0; 
+  fNEvents = 0;
 
   fTracker = new AliHLTTPCCATracker();
-
+  
   // read command line
 
   int i = 0;
@@ -287,8 +293,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
  AliHLTUInt32_t& size, 
  vector<AliHLTComponentBlockData>& outputBlocks )
 {
-
-  AliHLTUInt32_t MaxBufferSize = size;
+ //* process event
+  AliHLTUInt32_t maxBufferSize = size;
   size = 0; // output size
 
   if(GetFirstInputBlock( kAliHLTDataTypeSOR ) || GetFirstInputBlock( kAliHLTDataTypeEOR )){    
@@ -375,7 +381,6 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   // Initialize the tracker
 
-  Float_t Bz = fSolenoidBz;
   
   {
     if( !fTracker ) fTracker = new AliHLTTPCCATracker;
@@ -397,19 +402,19 @@ int AliHLTTPCCATrackerComponent::DoEvent
     //TPCZmin = -249.645, ZMax = 249.778    
     //    Float_t rMin =  inRmin;
     //    Float_t rMax =  outRmax;
-    Int_t NRows = AliHLTTPCTransform::GetNRows();
+    Int_t nRows = AliHLTTPCTransform::GetNRows();
         
     Float_t padPitch = 0.4;
     Float_t sigmaZ = 0.228808;
     
-    Float_t *rowX = new Float_t [NRows];
-    for( Int_t irow=0; irow<NRows; irow++){
+    Float_t *rowX = new Float_t [nRows];
+    for( Int_t irow=0; irow<nRows; irow++){
       rowX[irow] = AliHLTTPCTransform::Row2X( irow );
     }     
      
     AliHLTTPCCAParam param;
-    param.Initialize( iSec, NRows, rowX, alpha, dalpha,
-		      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, Bz );
+    param.Initialize( iSec, nRows, rowX, alpha, dalpha,
+		      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
     param.YErrorCorrection() = 1;
     param.ZErrorCorrection() = 2;
     param.CellConnectionAngleXY() = fCellConnectionAngleXY/180.*TMath::Pi();
@@ -487,58 +492,46 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   sort( vOrigClusters, vOrigClusters+nClusters, CompareClusters );
 
-  AliHLTTPCCAHit *vHits = new AliHLTTPCCAHit [nHitsTotal]; // CA hit array
   Float_t *vHitStoreX = new Float_t [nHitsTotal];       // hit X coordinates
   Float_t *vHitStoreY = new Float_t [nHitsTotal];       // hit Y coordinates
   Float_t *vHitStoreZ = new Float_t [nHitsTotal];       // hit Z coordinates
+  Int_t *vHitStoreIntID = new Int_t [nHitsTotal];            // hit ID's
   Int_t *vHitStoreID = new Int_t [nHitsTotal];            // hit ID's
   Int_t *vHitRowID = new Int_t [nHitsTotal];            // hit ID's
 
   Int_t nHits = 0;
- 
-  {
-    Int_t oldRow = -1;
-    Int_t nRowHits = 0;
-    Int_t firstRowHit = 0;
 
+  {
+    Int_t rowNHits[200];
+    Int_t rowFirstHits[200];
+    for( Int_t ir=0; ir<200; ir++ ) rowNHits[ir] = 0;
+    Int_t oldRow = -1;
     for (Int_t i=0; i<nClusters; i++ ){
       AliHLTTPCSpacePointData* pSP = vOrigClusters[i];
-      if( pSP->fPadRow != oldRow ){
-	if( oldRow>=0 ){
-	  if( fTracker->Rows()[oldRow].NHits()!=0 ) HLTError("CA: clusters from row %d are readed twice",oldRow);
-	  fTracker->ReadHitRow( oldRow, vHits+firstRowHit, nRowHits );
-	}
-	oldRow = pSP->fPadRow;
-	firstRowHit = nHits;
-	nRowHits = 0;
-      }
-      AliHLTTPCCAHit &h = vHits[nHits];
-      //if( TMath::Abs(pSP->fX- fTracker->Rows()[pSP->fPadRow].X() )>1.e-4 ) cout<<"row "<<(Int_t)pSP->fPadRow<<" "<<fTracker->Rows()[pSP->fPadRow].X()-pSP->fX <<endl;
-      if( TMath::Abs(pSP->fX- fTracker->Rows()[pSP->fPadRow].X() )>1.e-4 ) HLTError( "row %d, %f",(Int_t)pSP->fPadRow, fTracker->Rows()[pSP->fPadRow].X()-pSP->fX );
-
-      h.Y() = pSP->fY;
-      h.Z() = pSP->fZ;
-      if( TMath::Abs(h.Z())>fClusterZCut) continue;
-      h.ErrY() = TMath::Sqrt(TMath::Abs(pSP->fSigmaY2));
-      h.ErrZ() = TMath::Sqrt(TMath::Abs(pSP->fSigmaZ2));  
-      if( h.ErrY()<.1 ) h.ErrY() = .1;
-      if( h.ErrZ()<.1 ) h.ErrZ() = .1;
-      if( h.ErrY()>1. ) h.ErrY() = 1.;
-      if( h.ErrZ()>1. ) h.ErrZ() = 1.;
-      h.ID() = nHits;
+      if( oldRow>=0 && pSP->fPadRow < oldRow )
+	HLTError("CA: clusters from row %d are readed twice",oldRow);      
+      
+      if( TMath::Abs(pSP->fZ)>fClusterZCut) continue;
+      
       vHitStoreX[nHits] = pSP->fX;  
-      vHitStoreY[nHits] = h.Y();
-      vHitStoreZ[nHits] = h.Z();
+      vHitStoreY[nHits] = pSP->fY;
+      vHitStoreZ[nHits] = pSP->fZ;
+      vHitStoreIntID[nHits] = nHits;
       vHitStoreID[nHits] = pSP->fID;
       vHitRowID[nHits] = pSP->fPadRow;
       nHits++;	
-      nRowHits++;
+      rowNHits[pSP->fPadRow]++;
     }	
-    if( oldRow>=0 ){
-      if( fTracker->Rows()[oldRow].NHits()!=0 ) HLTError("CA: clusters from row %d are readed twice",oldRow);
-      fTracker->ReadHitRow( oldRow, vHits+firstRowHit, nRowHits );
+
+    Int_t firstRowHit = 0;
+    for( Int_t ir=0; ir<200; ir++ ){
+      rowFirstHits[ir] = firstRowHit;
+      firstRowHit+=rowNHits[ir];
     }
+
+    fTracker->ReadEvent( rowFirstHits, rowNHits, vHitStoreY, vHitStoreZ, nHits );
   }
+
   if( vOrigClusters ) delete[] vOrigClusters;
 
   // reconstruct the event  
@@ -578,8 +571,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
     UInt_t dSize = sizeof(AliHLTTPCTrackSegmentData) + t.NHits()*sizeof(UInt_t);
     
-    if( mySize + dSize > MaxBufferSize ){
-      Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "Wrtite output","Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", MaxBufferSize, mySize, ntracks-itr+1);
+    if( mySize + dSize > maxBufferSize ){
+      Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "Wrtite output","Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", maxBufferSize, mySize, ntracks-itr+1);
       ret = -ENOSPC;
       break;
     }
@@ -599,7 +592,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
     AliHLTTPCCATrackParam par = t.StartPoint();
 
-    par.TransportToX( vHitStoreX[iFirstHit] );
+    par.TransportToX( vHitStoreX[iFirstHit], .99 );
 
     AliExternalTrackParam tp;
     AliHLTTPCCATrackConvertor::GetExtParam( par, tp, 0, fSolenoidBz );
@@ -607,7 +600,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     currOutTracklet->fX = tp.GetX();
     currOutTracklet->fY = tp.GetY();
     currOutTracklet->fZ = tp.GetZ();
-    currOutTracklet->fCharge = -(Int_t ) tp.GetSign();
+    currOutTracklet->fCharge = (Int_t ) tp.GetSign();
     currOutTracklet->fPt = TMath::Abs(tp.GetSignedPt());
     Float_t snp =  tp.GetSnp() ;
     if( snp>.999 ) snp=.999;
@@ -623,7 +616,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     currOutTracklet->fPsierr = h*h*tp.GetSigmaSnp2();
     currOutTracklet->fTglerr = tp.GetSigmaTgl2();
     
-    if( par.TransportToX( vHitStoreX[iLastHit] ) ){     
+    if( par.TransportToX( vHitStoreX[iLastHit],.99 ) ){     
       currOutTracklet->fLastX = par.GetX();
       currOutTracklet->fLastY = par.GetY();
       currOutTracklet->fLastZ = par.GetZ();
@@ -658,10 +651,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
     outPtr->fTrackletCnt++; 
   }
 
-  if( vHits ) delete[] vHits;
   if( vHitStoreX ) delete[] vHitStoreX;
   if( vHitStoreY ) delete[] vHitStoreY;
   if( vHitStoreZ ) delete[] vHitStoreZ;
+  if( vHitStoreIntID ) delete[] vHitStoreIntID;
   if( vHitStoreID ) delete[] vHitStoreID;
   if( vHitRowID ) delete[] vHitRowID;
   
@@ -688,7 +681,6 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	   slice, ntracks, nClusters, minPatch, maxPatch, row[0], row[1], hz, hz1 );
 
   return ret;
-
 }
 
 	

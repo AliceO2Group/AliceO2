@@ -19,7 +19,7 @@
 #include "AliHLTTPCCATrackConvertor.h"
 #include "AliExternalTrackParam.h"
 #include "AliHLTTPCCATrackParam.h"
-#include "TMath.h"
+#include "AliHLTTPCCAMath.h"
 
 
 void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, Double_t alpha, Double_t Bz )
@@ -37,7 +37,7 @@ void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, Al
   { // kappa => 1/pt
     const Double_t kCLight = 0.000299792458;  
     Double_t c = 1.e4;
-    if( TMath::Abs(Bz)>1.e-4 ) c = 1./(Bz*kCLight);
+    if( CAMath::Abs(Bz)>1.e-4 ) c = 1./(Bz*kCLight);
     par[4] *= c;
     cov[10]*= c;
     cov[11]*= c;
@@ -56,7 +56,7 @@ void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, Al
     cov[10] = -cov[10];
     cov[11] = -cov[11];
   }
-  T2.Set((double)T1.GetX(),alpha,par,cov);
+  T2.Set(T1.GetX(),alpha,par,cov);
 }
 
 void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2, Double_t Bz )
@@ -68,7 +68,7 @@ void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const Al
   T1.X() = T2.GetX();
   if(T1.SinPhi()>.99 ) T1.SinPhi()=.99;
   if(T1.SinPhi()<-.99 ) T1.SinPhi()=-.99;
-  T1.CosPhi() = TMath::Sqrt(1.-T1.SinPhi()*T1.SinPhi());
+  T1.CosPhi() = CAMath::Sqrt(1.-T1.SinPhi()*T1.SinPhi());
   const Double_t kCLight = 0.000299792458;  
   Double_t c = Bz*kCLight;
   { // 1/pt -> kappa 

@@ -8,8 +8,7 @@
 #ifndef ALIHLTTPCCAGBHIT_H
 #define ALIHLTTPCCAGBHIT_H
 
-#include "Rtypes.h"
-#include "AliHLTTPCCAHit.h"
+#include "AliHLTTPCCADef.h"
 
 /**
  * @class AliHLTTPCCAGBHit
@@ -23,7 +22,7 @@ class AliHLTTPCCAGBHit
  public:
   AliHLTTPCCAGBHit()
     :fX(0),fY(0),fZ(0),fErrX(0),fErrY(0),fErrZ(0),fAmp(0),
-    fISlice(0), fIRow(0), fID(0), fIsUsed(0),fSliceHit(){}
+    fISlice(0), fIRow(0), fID(0), fIsUsed(0){}
 
   virtual ~AliHLTTPCCAGBHit(){}
 
@@ -40,8 +39,6 @@ class AliHLTTPCCAGBHit
   Int_t &IRow(){ return fIRow; }
   Int_t &ID(){ return fID; }
   Bool_t &IsUsed(){ return fIsUsed; };
-
-  AliHLTTPCCAHit &SliceHit(){ return fSliceHit; } 
 
 
   static bool Compare(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b);
@@ -68,8 +65,6 @@ class AliHLTTPCCAGBHit
   Int_t fIRow;   //* row number
   Int_t fID;     //* external ID (id of AliTPCcluster) 
   Bool_t fIsUsed; //* is used by GBTracks
-
-  AliHLTTPCCAHit fSliceHit; //* corresponding slice hit
 
   //ClassDef(AliHLTTPCCAGBHit,1);
 

@@ -8,8 +8,8 @@
 #ifndef ALIHLTTPCCAGBTRACK_H
 #define ALIHLTTPCCAGBTRACK_H
 
-#include "Rtypes.h"
 
+#include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATrackParam.h"
 
 /**
@@ -45,7 +45,7 @@ class AliHLTTPCCAGBTrack
 
   void Dummy(); // to make rulechecker happy by having something in .cxx file
 
-  ClassDef(AliHLTTPCCAGBTrack,1);
+  ClassDef(AliHLTTPCCAGBTrack,1)
 };
 
 

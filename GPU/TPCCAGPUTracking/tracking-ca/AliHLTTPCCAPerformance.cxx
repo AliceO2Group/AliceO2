@@ -35,127 +35,145 @@
 #include "TProfile.h"
 
 
-ClassImp(AliHLTTPCCAPerformance)
-
-
-
 AliHLTTPCCAPerformance::AliHLTTPCCAPerformance()
-  : TObject(),
-    fTracker(0),
-    fHitLabels(0), 
-    fNHits(0),
-    fMCTracks(0),
-    fNMCTracks(0),
-    fMCPoints(0),
-    fNMCPoints(0),
-    fDoClusterPulls(1),
-    fStatNEvents(0),
-    fStatNRecTot(0),
-    fStatNRecOut(0),
-    fStatNGhost(0),
-    fStatNMCAll(0),
-    fStatNRecAll(0),
-    fStatNClonesAll(0),
-    fStatNMCRef(0),
-    fStatNRecRef(0),
-    fStatNClonesRef(0),
-    fStatGBNRecTot(0),
-    fStatGBNRecOut(0),
-    fStatGBNGhost(0),
-    fStatGBNMCAll(0),
-    fStatGBNRecAll(0),
-    fStatGBNClonesAll(0),
-    fStatGBNMCRef(0),
-    fStatGBNRecRef(0),
-    fStatGBNClonesRef(0),
-    fHistoDir(0),
-    fhResY(0),
-    fhResZ(0),
-    fhResSinPhi(0),
-    fhResDzDs(0),
-    fhResPt(0),
-    fhPullY(0),
-    fhPullZ(0),
-    fhPullSinPhi(0),
-    fhPullDzDs(0),
-    fhPullQPt(0),
-    fhHitErrY(0),
-    fhHitErrZ(0),
-    fhHitResY(0),
-    fhHitResZ(0),
-    fhHitPullY(0),
-    fhHitPullZ(0),
-    fhHitResY1(0),
-    fhHitResZ1(0),
-    fhHitPullY1(0),
-    fhHitPullZ1(0),
-    fhCellPurity(0),
-    fhCellNHits(0),
-    fhCellPurityVsN(0), 
-    fhCellPurityVsPt(0),
-    fhEffVsP(0),
-    fhGBEffVsP(0)
+  : 
+  fTracker(0),
+  fHitLabels(0),
+  fNHits(0),                   
+  fMCTracks(0),  
+  fNMCTracks(0),               
+  fMCPoints(0),  
+  fNMCPoints(0),               
+  fDoClusterPulls(0),         
+  fStatNEvents(0),
+  fStatNRecTot(0),
+  fStatNRecOut(0),
+  fStatNGhost(0),
+  fStatNMCAll(0),
+  fStatNRecAll(0),
+  fStatNClonesAll(0),
+  fStatNMCRef(0), 
+  fStatNRecRef(0), 
+  fStatNClonesRef(0),  
+  fStatGBNRecTot(0), 
+  fStatGBNRecOut(0), 
+  fStatGBNGhost(0),
+  fStatGBNMCAll(0),
+  fStatGBNRecAll(0),
+  fStatGBNClonesAll(0),
+  fStatGBNMCRef(0), 
+  fStatGBNRecRef(0), 
+  fStatGBNClonesRef(0),  
+  fHistoDir(0), 
+  fhResY(0),       
+  fhResZ(0),       
+  fhResSinPhi(0),  
+  fhResDzDs(0),    
+  fhResPt(0),      
+  fhPullY(0),      
+  fhPullZ(0),      
+  fhPullSinPhi(0), 
+  fhPullDzDs(0),
+  fhPullQPt(0), 
+  fhHitErrY(0), 
+  fhHitErrZ(0),
+  fhHitResY(0),
+  fhHitResZ(0),
+  fhHitPullY(0),
+  fhHitPullZ(0),  
+  fhHitResY1(0),
+  fhHitResZ1(0),
+  fhHitPullY1(0),
+  fhHitPullZ1(0),
+  fhCellPurity(0),
+  fhCellNHits(0),
+  fhCellPurityVsN(0), 
+  fhCellPurityVsPt(0),
+  fhEffVsP(0), 
+  fhGBEffVsP(0),
+  fhNeighQuality(0),
+  fhNeighEff(0),
+  fhNeighQualityVsPt(0),
+  fhNeighEffVsPt(0),
+  fhNeighDy(0),
+  fhNeighDz(0),
+  fhNeighChi(0),
+  fhNeighDyVsPt(0),
+  fhNeighDzVsPt(0),
+  fhNeighChiVsPt(0), 
+  fhNeighNCombVsArea(0)
 {
   //* constructor
 }
 
 
 AliHLTTPCCAPerformance::AliHLTTPCCAPerformance(const AliHLTTPCCAPerformance&)
-  : TObject(),
-    fTracker(0),
-    fHitLabels(0), 
-    fNHits(0),
-    fMCTracks(0),
-    fNMCTracks(0),
-    fMCPoints(0),
-    fNMCPoints(0),
-    fDoClusterPulls(1),
-    fStatNEvents(0),
-    fStatNRecTot(0),
-    fStatNRecOut(0),
-    fStatNGhost(0),
-    fStatNMCAll(0),
-    fStatNRecAll(0),
-    fStatNClonesAll(0),
-    fStatNMCRef(0),
-    fStatNRecRef(0),
-    fStatNClonesRef(0),
-    fStatGBNRecTot(0),
-    fStatGBNRecOut(0),
-    fStatGBNGhost(0),
-    fStatGBNMCAll(0),
-    fStatGBNRecAll(0),
-    fStatGBNClonesAll(0),
-    fStatGBNMCRef(0),
-    fStatGBNRecRef(0),
-    fStatGBNClonesRef(0),
-    fHistoDir(0),
-    fhResY(0),
-    fhResZ(0),
-    fhResSinPhi(0),
-    fhResDzDs(0),
-    fhResPt(0),
-    fhPullY(0),
-    fhPullZ(0),
-    fhPullSinPhi(0),
-    fhPullDzDs(0),
-    fhPullQPt(0),
-    fhHitErrY(0),
-    fhHitErrZ(0),    
-    fhHitResY(0),
-    fhHitResZ(0),
-    fhHitPullY(0),
-    fhHitPullZ(0),
-    fhHitResY1(0),
-    fhHitResZ1(0),
-    fhHitPullY1(0),
-    fhHitPullZ1(0),
-    fhCellPurity(0),
-    fhCellNHits(0),
-    fhCellPurityVsN(0), 
-    fhCellPurityVsPt(0),
-    fhEffVsP(0),
-    fhGBEffVsP(0)
+  :
+  fTracker(0),
+  fHitLabels(0),
+  fNHits(0),                   
+  fMCTracks(0),  
+  fNMCTracks(0),               
+  fMCPoints(0),  
+  fNMCPoints(0),               
+  fDoClusterPulls(0),         
+  fStatNEvents(0),
+  fStatNRecTot(0),
+  fStatNRecOut(0),
+  fStatNGhost(0),
+  fStatNMCAll(0),
+  fStatNRecAll(0),
+  fStatNClonesAll(0),
+  fStatNMCRef(0), 
+  fStatNRecRef(0), 
+  fStatNClonesRef(0),  
+  fStatGBNRecTot(0), 
+  fStatGBNRecOut(0), 
+  fStatGBNGhost(0),
+  fStatGBNMCAll(0),
+  fStatGBNRecAll(0),
+  fStatGBNClonesAll(0),
+  fStatGBNMCRef(0), 
+  fStatGBNRecRef(0), 
+  fStatGBNClonesRef(0),  
+  fHistoDir(0), 
+  fhResY(0),       
+  fhResZ(0),       
+  fhResSinPhi(0),  
+  fhResDzDs(0),    
+  fhResPt(0),      
+  fhPullY(0),      
+  fhPullZ(0),      
+  fhPullSinPhi(0), 
+  fhPullDzDs(0),
+  fhPullQPt(0), 
+  fhHitErrY(0), 
+  fhHitErrZ(0),
+  fhHitResY(0),
+  fhHitResZ(0),
+  fhHitPullY(0),
+  fhHitPullZ(0),  
+  fhHitResY1(0),
+  fhHitResZ1(0),
+  fhHitPullY1(0),
+  fhHitPullZ1(0),
+  fhCellPurity(0),
+  fhCellNHits(0),
+  fhCellPurityVsN(0), 
+  fhCellPurityVsPt(0),
+  fhEffVsP(0), 
+  fhGBEffVsP(0),
+  fhNeighQuality(0),
+  fhNeighEff(0),
+  fhNeighQualityVsPt(0),
+  fhNeighEffVsPt(0),
+  fhNeighDy(0),
+  fhNeighDz(0),
+  fhNeighChi(0),
+  fhNeighDyVsPt(0),
+  fhNeighDzVsPt(0),
+  fhNeighChiVsPt(0), 
+  fhNeighNCombVsArea(0)
 {
   //* dummy
 }
@@ -265,6 +283,26 @@ void AliHLTTPCCAPerformance::CreateHistos()
   TDirectory *curdir = gDirectory;
   fHistoDir = gROOT->mkdir("HLTTPCCATrackerPerformance");
   fHistoDir->cd();
+
+  gDirectory->mkdir("Neighbours");
+  gDirectory->cd("Neighbours");  
+  
+  fhNeighQuality = new TProfile("NeighQuality", "Neighbours Quality vs row", 160, 0., 160.); 
+  fhNeighEff = new TProfile("NeighEff", "Neighbours Efficiency vs row", 160, 0., 160.); 
+  fhNeighQualityVsPt = new TProfile("NeighQualityVsPt", "Neighbours Quality vs Pt", 100, 0., 5.); 
+  fhNeighEffVsPt = new TProfile("NeighEffVsPt", "Neighbours Efficiency vs Pt", 100, 0., 5.); 
+  fhNeighDy = new TH1D("NeighDy","Neighbours dy",100,-10,10);
+  fhNeighDz =  new TH1D("NeighDz","Neighbours dz",100,-10,10);
+  fhNeighChi = new TH1D("NeighChi","Neighbours chi",100,0,20);
+
+  fhNeighDyVsPt = new TH2D("NeighDyVsPt","NeighDyVsPt", 100,0,5, 100, -20,20);
+  fhNeighDzVsPt = new TH2D("NeighDzVsPt","NeighDzVsPt", 100,0,5, 100, -20,20);
+  fhNeighChiVsPt = new TH2D("NeighChiVsPt","NeighChiVsPt", 100,0,5, 100, 0,40);
+  fhNeighNCombVsArea = new TH2D("NeighNCombVsArea","NeighNCombVsArea", 15,0,3, 40, 0,40);
+
+  gDirectory->cd(".."); 
+
+
   gDirectory->mkdir("TrackFit");
   gDirectory->cd("TrackFit");  
   
@@ -359,62 +397,279 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
   for( ; endSliceHit<fTracker->NHits(); endSliceHit++){
     if( fTracker->Hits()[endSliceHit].ISlice()!=iSlice ) break;
   }
+  
+  { // Efficiency and quality of found neighbours
+#ifdef XXX
+    for( Int_t iRow=1; iRow<slice.Param().NRows()-1; iRow++ ){      
+      AliHLTTPCCARow &row = slice.Rows()[iRow];
+      AliHLTTPCCARow &rowP = slice.Rows()[iRow-1];
+      AliHLTTPCCARow &rowN = slice.Rows()[iRow+1];      
 
-  { // Cell construction performance
+      Int_t nHitsRow[fNMCTracks][3];
+      Bool_t foundRow[fNMCTracks];
+      Bool_t isPrim[fNMCTracks];
+      for (Int_t imc=0; imc<fNMCTracks; imc++){ 
+	for( Int_t i=0; i<3; i++ )nHitsRow[imc][i]=0;
+	foundRow[imc]=0;
+	Float_t y = fMCTracks[imc].Par()[1];
+	Float_t z = fMCTracks[imc].Par()[2];
+	isPrim[imc] = (y*y + z*z < 100. );
+      }
     
-    for( Int_t iRow=0; iRow<slice.Param().NRows(); iRow++ ){
-      AliHLTTPCCARow &row = slice.Rows()[iRow];      
-      for (Int_t ic = 0; ic<row.NCells(); ic++){
-	AliHLTTPCCACell &c  = row.Cells()[ic];
-	Int_t *lb = new Int_t[c.NHits()*3];
-	Int_t nla = 0;	
-	for( Int_t j=0; j<c.NHits(); j++){
-	  AliHLTTPCCAHit &h = row.GetCellHit(c,j);
-	  //cout<<"hit ID="<<h.ID()<<" of"<<fTracker->NHits()<<endl;
-	  //cout<<"gb hit ID="<<fTracker->Hits()[h.ID()].ID()<<endl;
+      for( Int_t i=0; i<3; i++ ){
+	AliHLTTPCCARow &r = slice.Rows()[iRow-1+i];      
+	for (Int_t ih = 0; ih<r.NHits(); ih++){
+	  AliHLTTPCCAHit &h = r.Hits()[ih];
 	  AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[h.ID()].ID()];
-	  if( l.fLab[0]>=0 ) lb[nla++]= l.fLab[0];
-	  if( l.fLab[1]>=0 ) lb[nla++]= l.fLab[1];
-	  if( l.fLab[2]>=0 ) lb[nla++]= l.fLab[2];
+	  if( l.fLab[0] <0 || l.fLab[1]>=0 ) continue;
+	  nHitsRow[l.fLab[0]][i]++;
 	}
-	sort( lb, lb+nla );
-	Int_t labmax = -1, labcur=-1, lmax = 0, lcurr=0;	
-	for( Int_t i=0; i<nla; i++ ){
-	  if( lb[i]!=labcur ){
-	    if( labcur>=0 && lmax<lcurr ){
-	      lmax = lcurr;
-	      labmax = labcur;
-	    }
-	    labcur = lb[i];
-	    lcurr = 0;
+      }
+
+      for( Int_t it=0; it<row.NTriplets(); it++ ){
+	AliHLTTPCCATriplet &t = row.Triplets()[it];
+	if( !t.Alive() ) continue;
+	AliHLTTPCCAHit &h = row.Hits()[t.HitMid()];
+	AliHLTTPCCAHit &hP = rowP.Hits()[t.HitDown()];
+	AliHLTTPCCAHit &hN = rowN.Hits()[t.HitUp()];
+	AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[h.ID()].ID()];
+	AliHLTTPCCAHitLabel &lP = fHitLabels[fTracker->Hits()[hP.ID()].ID()];
+	AliHLTTPCCAHitLabel &lN = fHitLabels[fTracker->Hits()[hN.ID()].ID()];	
+	Bool_t found = ( l.fLab[0]>=0 && lP.fLab[0]==l.fLab[0] && lN.fLab[0]==l.fLab[0] );
+	if( found ) foundRow[l.fLab[0]] = 1;
+	Bool_t isGhost = 1;
+	for( Int_t il=0; il<3; il++ ){
+	  if( l.fLab[il]<0 ) continue;
+	  Bool_t okP=0, okN=0;
+	  for( Int_t jl=0; jl<3; jl++ ){
+	    if( lP.fLab[jl]==l.fLab[il] ) okP = 1;
+	    if( lN.fLab[jl]==l.fLab[il] ) okN = 1;
 	  }
-	  lcurr++;
+	  if( okP && okN ) isGhost = 0; 
 	}
-	if( labcur>=0 && lmax<lcurr ){
-	  lmax = lcurr;
-	  labmax = labcur;
-	}
-
-	Int_t label = labmax;
-	lmax = 0;
-	for( Int_t j=0; j<c.NHits(); j++){
-	  AliHLTTPCCAHit &h = row.GetCellHit(c,j);
-	  AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[h.ID()].ID()];
-	  if( l.fLab[0]==label || l.fLab[1]==label || l.fLab[2]==label ) lmax++;
-	}
-
-	nla = c.NHits();
-	if( nla>0 && label>=0 ){
-	  double purity = double(lmax)/double(nla);
-	  fhCellPurity->Fill(purity);
-	  fhCellPurityVsN->Fill(c.NHits(),purity);
-	  fhCellPurityVsPt->Fill(fMCTracks[label].Pt(),purity);
-	}
-	fhCellNHits->Fill(c.NHits());
-	if(lb) delete[] lb;
+	fhNeighQuality->Fill(iRow, !isGhost );
+	if( l.fLab[0]>=0 ) fhNeighQualityVsPt->Fill(fMCTracks[l.fLab[0]].Pt(), !isGhost );
+      }
+    
+      for (Int_t imc=0; imc<fNMCTracks; imc++){ 
+	if( nHitsRow[imc][0]<=0 || nHitsRow[imc][1]<=0 ||nHitsRow[imc][2]<=0 ) continue;
+	if( !isPrim[imc] ) continue;
+	if( fMCTracks[imc].Pt()>0.2 ) fhNeighEff->Fill(iRow, foundRow[imc] );	
+	fhNeighEffVsPt->Fill( fMCTracks[imc].Pt(), foundRow[imc] );	
       }
     }
+#endif    
+  } // efficiency and quality of found neighbours
+
+
+
+
+  if(0){ // Local efficiency of found neighbours
+#ifdef XXX    
+    for( Int_t iRow=1; iRow<slice.Param().NRows()-1; iRow++ ){
+      //cout<<"iRow="<<iRow<<endl;
+      AliHLTTPCCARow &row = slice.Rows()[iRow];      
+      AliHLTTPCCARow &rowP = slice.Rows()[iRow-1];      
+      AliHLTTPCCARow &rowN = slice.Rows()[iRow+1];      
+      Float_t xP = rowP.X() - row.X();
+      Float_t xN = rowN.X() - row.X();
+      Float_t tN = rowN.X()/row.X();
+      Float_t tP = rowP.X()/row.X();
+      Float_t chi2Cut = 2*3.*3.*(xN*xN+xP*xP);
+      for (Int_t ih = 0; ih<row.NHits(); ih++){
+	AliHLTTPCCAHit &h = row.Hits()[ih];
+	AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[h.ID()].ID()];
+	if( l.fLab[0] <0 || l.fLab[1]>=0 ) continue;
+	Float_t yyP = h.Y()*tP;
+	Float_t zzP = h.Z()*tP;
+	Float_t yyN = h.Y()*tN;
+	Float_t zzN = h.Z()*tN;
+	Float_t mcPt = fMCTracks[l.fLab[0]].Pt();
+	if(0){
+	  Int_t jhP=-1;
+	  Float_t bestDP = 1.e10;
+	  for (Int_t ihP = 0; ihP<rowP.NHits(); ihP++){
+	    AliHLTTPCCAHit &hP = rowP.Hits()[ihP];
+	    AliHLTTPCCAHitLabel &lP = fHitLabels[fTracker->Hits()[hP.ID()].ID()];
+	    Bool_t ok = 0;
+	    for( Int_t il=0; il<3; il++ ){
+	      if( lP.fLab[il]==l.fLab[0] ) ok = 1;
+	    }
+	    if( !ok ) continue;
+	    Float_t dy = hP.Y()-yyP;
+	    Float_t dz = hP.Z()-zzP;
+	    Float_t d = dy*dy + dz*dz;
+	    if( d<bestDP ){
+	      bestDP = d;
+	      jhP = ihP;
+	    }
+	  }
+
+	  Int_t jhN=-1;
+	  Float_t bestDN = 1.e10;
+	  for (Int_t ihN = 0; ihN<rowN.NHits(); ihN++){
+	    AliHLTTPCCAHit &hN = rowN.Hits()[ihN];
+	    AliHLTTPCCAHitLabel &lN = fHitLabels[fTracker->Hits()[hN.ID()].ID()];
+	    Bool_t ok = 0;
+	    for( Int_t il=0; il<3; il++ ){
+	      if( lN.fLab[il]==l.fLab[0] ) ok = 1;
+	    }
+	    if( !ok ) continue;
+	    Float_t dy = hN.Y()-yyN;
+	    Float_t dz = hN.Z()-zzN;
+	    Float_t d = dy*dy + dz*dz;
+	    if( d<bestDN ){
+	      bestDN = d;
+	      jhN = ihN;
+	    }
+	  }
+	  if( jhP>=0 && jhN>=0 ){
+	    AliHLTTPCCAHit &hP = rowP.Hits()[jhP];
+	    AliHLTTPCCAHit &hN = rowN.Hits()[jhN];
+	    fhNeighDyVsPt->Fill(mcPt, hP.Y()-yyP);
+	    fhNeighDyVsPt->Fill(mcPt, hN.Y()-yyN);
+	    fhNeighDzVsPt->Fill(mcPt, hP.Z()-zzP);
+	    fhNeighDzVsPt->Fill(mcPt, hN.Z()-zzN);
+	    Float_t dy = xP*(hN.Y()-h.Y()) - xN*(hP.Y()-h.Y());
+	    Float_t dz = xP*(hN.Z()-h.Z()) - xN*(hP.Z()-h.Z());
+	    Float_t chi2 = (dy*dy + dz*dz)/(xN*xN+xP*xP);
+	    fhNeighChiVsPt->Fill(mcPt, TMath::Sqrt(chi2/2));	    
+	  }
+	  {
+	    Float_t darea = .2;
+	    Int_t nAreas = 15;
+	    Int_t nComb[nAreas];
+	    for( int i=0; i<nAreas; i++ ) nComb[i]=0;
+	    for (Int_t ihP = 0; ihP<rowP.NHits(); ihP++){
+	      AliHLTTPCCAHit &hP = rowP.Hits()[ihP];
+	      Float_t yyy = -xP*h.Y() - xN*(hP.Y()-h.Y());
+	      Float_t zzz = -xP*h.Z() - xN*(hP.Z()-h.Z());
+	      for (Int_t ihN = 0; ihN<rowN.NHits(); ihN++){
+		AliHLTTPCCAHit &hN = rowN.Hits()[ihN];
+		Float_t dy = xP*hN.Y()+yyy;
+		Float_t dz = xP*hN.Z()+zzz;
+		Float_t chi2 = (dy*dy + dz*dz);
+		if( chi2 >chi2Cut ) continue;
+		Float_t D = TMath::Abs( hP.Y()-yyP );
+		Float_t d = TMath::Abs( hP.Z()-zzP );
+		if( d>D ) D = d;
+		d = TMath::Abs( hN.Y()-yyN );
+		if( d>D ) D = d;
+		d = TMath::Abs( hN.Z()-zzN );
+		if( d>D ) D = d;		
+		int ic = (int) (D/darea);
+		if( ic<nAreas ) nComb[ic]++;
+	      }
+	    }
+	    int j=0;
+	    for( int i=0; i<nAreas; i++ ){
+	      j+=nComb[i];
+	      if(j>0 ) fhNeighNCombVsArea->Fill(i*darea,j);
+	    }	  
+	  }
+	}
+
+	Float_t area = 5;
+	const Int_t maxN = 1000;
+	Int_t neighP[maxN];
+	Int_t neighN[maxN];
+	Float_t zP[maxN];
+	Float_t yP[maxN];
+	Float_t zN[maxN];
+	Float_t yN[maxN];
+	Int_t nNeighP = 0;
+	Int_t nNeighN = 0;     
+ 	
+	for (Int_t ihP = 0; ihP<rowP.NHits(); ihP++){
+	  AliHLTTPCCAHit &hP = rowP.Hits()[ihP];
+	  if( TMath::Abs(hP.Y()-yyP)>area || TMath::Abs(hP.Z()-zzP)>area ) continue;
+	  AliHLTTPCCAHitLabel &lP = fHitLabels[fTracker->Hits()[hP.ID()].ID()];
+	  Bool_t ok = 0;
+	  for( Int_t il=0; il<3; il++ ){
+	    if( lP.fLab[il]==l.fLab[0] ) ok = 1;
+	  }
+	  if( !ok ) continue;
+	  neighP[nNeighP] = ihP;
+	  zP[nNeighP] = xN*(hP.Z()-h.Z());
+	  yP[nNeighP] = xN*(hP.Y()-h.Y());
+	  nNeighP++;
+	  if( nNeighP>=maxN ) break;
+	}
+	for (Int_t ihN = 0; ihN<rowN.NHits(); ihN++){
+	  AliHLTTPCCAHit &hN = rowN.Hits()[ihN];
+	  if( TMath::Abs(hN.Y()-yyN)>area || TMath::Abs(hN.Z()-zzN)>area ) continue;
+	  AliHLTTPCCAHitLabel &lN = fHitLabels[fTracker->Hits()[hN.ID()].ID()];
+	  Bool_t ok = 0;
+	  for( Int_t il=0; il<3; il++ ){
+	    if( lN.fLab[il]==l.fLab[0] ) ok = 1;
+	  }
+	  if( !ok ) continue;
+	  neighN[nNeighN] = ihN;
+	  zN[nNeighN] = xP*(hN.Z()-h.Z());
+	  yN[nNeighN] = xP*(hN.Y()-h.Y());
+	  nNeighN++;
+	  if( nNeighN>=maxN ) break;
+	}
+
+	if( nNeighN<=0 || nNeighP<=0 ) continue;
+
+	{
+	  // neighbours found, look for the straight line connection
+	  Int_t bestP=-1, bestN=-1;
+	  Float_t bestD=1.e10;
+	  for( Int_t iP=0; iP<nNeighP; iP++ ){
+	    for( Int_t iN=0; iN<nNeighN; iN++ ){
+	      Float_t dy = yP[iP]-yN[iN];
+	      Float_t dz = zP[iP]-zN[iN];
+	      Float_t d = dy*dy + dz*dz;
+	      if( d<bestD){
+		bestD = d;
+		bestP = iP;
+		bestN = iN;
+	      }
+	    }	
+	  }
+	  if( bestP>=0 ){
+	    AliHLTTPCCAHit &hP = rowP.Hits()[neighP[bestP]];
+	    AliHLTTPCCAHit &hN = rowN.Hits()[neighN[bestN]];
+	    Float_t yP = hP.Y() - h.Y();
+	    Float_t zP = hP.Z() - h.Z();
+	    Float_t yN = hN.Y() - h.Y();
+	    Float_t zN = hN.Z() - h.Z();
+	    Float_t dy = yP+yN;//(xN*yP - xP*yN)/TMath::Sqrt(xN*xN+xP*xP);
+	    Float_t dz = zP+zN;//(xN*zP - xP*zN)/TMath::Sqrt(xN*xN+xP*xP);
+	    //if( fMCTracks[l.fLab[0]].Pt()>1 ){
+	    fhNeighChi->Fill(TMath::Sqrt(bestD/(xN*xN+xP*xP)/4.));
+	    fhNeighDy->Fill(dy);
+	    fhNeighDz->Fill(dz);	  
+	    //}
+	  }
+	}
+
+	Bool_t okP=0, okN=0;
+	if( h.FirstTriplet()>=0 ){
+	  for( int it=h.FirstTriplet(); it<row.NTriplets(); it++ ){
+	    AliHLTTPCCATriplet &t = row.Triplets()[it];
+	    if( t.HitMid()!=ih ) break;
+	    //if( !t.Alive() ) continue;
+	    AliHLTTPCCAHit &hP = rowP.Hits()[t.HitDown()];
+	    AliHLTTPCCAHit &hN = rowN.Hits()[t.HitUp()];
+	    AliHLTTPCCAHitLabel &lP = fHitLabels[fTracker->Hits()[hP.ID()].ID()];
+	    AliHLTTPCCAHitLabel &lN = fHitLabels[fTracker->Hits()[hN.ID()].ID()];
+	    for( Int_t jl=0; jl<3; jl++ ){
+	      if( lP.fLab[jl]==l.fLab[0] ) okP = 1;
+	      if( lN.fLab[jl]==l.fLab[0] ) okN = 1;
+	    }
+	  }	
+	}
+	//fhNeighEff->Fill(iRow, okP&&okN );	
+	//fhNeighEffVsPt->Fill( fMCTracks[l.fLab[0]].Pt(), okP&&okN );	
+      }
+    }
+#endif
   }
+  
+
 
   // Select reconstructable MC tracks
 
@@ -433,10 +688,10 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
       mc.Set() = 0;
       mc.NReconstructed() = 0;
       mc.NTurns() = 1;
-      if( mc.NHits() >=  10 && mc.P()>=.05 ){
+      if( mc.NHits() >=  30 && mc.P()>=.05 ){
 	mc.Set() = 1;
 	nMCAll++;
-	if( mc.P()>=1. ){
+	if( mc.NHits() >=  30 && mc.P()>=1. ){
 	  mc.Set() = 2;
 	  nMCRef++;
 	}
@@ -459,7 +714,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
       Int_t nla=0;
       //cout<<"\nHit labels:"<<endl;
       for( Int_t ihit=0; ihit<nhits; ihit++){
-	Int_t index = slice.OutTrackHits()[tCA.FirstHitRef()+ihit];
+	Int_t index = firstSliceHit + slice.OutTrackHits()[tCA.FirstHitRef()+ihit];
 	AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];
 	//cout<<l.fLab[0]<<" "<<l.fLab[1]<<" "<<l.fLab[2]<<endl;
 	if(l.fLab[0]>=0 ) lb[nla++]= l.fLab[0];
@@ -485,7 +740,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
       }
       lmax = 0;
       for( Int_t ihit=0; ihit<nhits; ihit++){
-	Int_t index = slice.OutTrackHits()[tCA.FirstHitRef()+ihit];
+	Int_t index = firstSliceHit + slice.OutTrackHits()[tCA.FirstHitRef()+ihit];
 	AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];
 	if( l.fLab[0] == labmax || l.fLab[1] == labmax || l.fLab[2] == labmax 
 	    ) lmax++;
@@ -604,9 +859,11 @@ void AliHLTTPCCAPerformance::Performance()
     fStatNClonesRef=0;
   */
   fStatNEvents++;
+
   for( Int_t islice=0; islice<fTracker->NSlices(); islice++){ 
     SlicePerformance(islice,0);
   }
+
 
   // global tracker performance
   {
@@ -926,9 +1183,9 @@ void AliHLTTPCCAPerformance::Performance()
 	<<fTracker->StatTime(2)/fTracker->StatNEvents()*1.e3<<" "
 	<<fTracker->StatTime(3)/fTracker->StatNEvents()*1.e3<<" "
 	<<fTracker->StatTime(4)/fTracker->StatNEvents()*1.e3<<" "
-	<<fTracker->StatTime(5)/fTracker->StatNEvents()*1.e3<<"["
-	<<fTracker->StatTime(6)/fTracker->StatNEvents()*1.e3<<"/"
-	<<fTracker->StatTime(7)/fTracker->StatNEvents()*1.e3<<"] "
+	<<fTracker->StatTime(5)/fTracker->StatNEvents()*1.e3<<" "
+	<<fTracker->StatTime(6)/fTracker->StatNEvents()*1.e3<<" "
+	<<fTracker->StatTime(7)/fTracker->StatNEvents()*1.e3<<" "
 	<<fTracker->StatTime(8)/fTracker->StatNEvents()*1.e3<<" "
 	<<" msec/event "<<endl;
   }
@@ -988,8 +1245,9 @@ void AliHLTTPCCAPerformance::Performance()
   WriteHistos();
 }
 
-void AliHLTTPCCAPerformance::WriteMCEvent( ostream &out )
+void AliHLTTPCCAPerformance::WriteMCEvent( ostream &out ) const
 {
+  // write MC information to the file
   out<<fNMCTracks<<endl;
   for( Int_t it=0; it<fNMCTracks; it++ ){
     AliHLTTPCCAMCTrack &t = fMCTracks[it];
@@ -1016,8 +1274,9 @@ void AliHLTTPCCAPerformance::WriteMCEvent( ostream &out )
   }
 }
 
-void AliHLTTPCCAPerformance::WriteMCPoints( ostream &out )
+void AliHLTTPCCAPerformance::WriteMCPoints( ostream &out ) const
 {  
+  // write Mc points to the file
   out<<fNMCPoints<<endl;
   for( Int_t ip=0; ip<fNMCPoints; ip++ ){
     AliHLTTPCCAMCPoint &p = fMCPoints[ip];
@@ -1035,6 +1294,7 @@ void AliHLTTPCCAPerformance::WriteMCPoints( ostream &out )
 
 void AliHLTTPCCAPerformance::ReadMCEvent( istream &in )
 {
+  // read mc info from the file
   StartEvent();
   if( fMCTracks ) delete[] fMCTracks;
   fMCTracks = 0;
@@ -1075,6 +1335,7 @@ void AliHLTTPCCAPerformance::ReadMCEvent( istream &in )
 
 void AliHLTTPCCAPerformance::ReadMCPoints( istream &in )
 {
+  // read mc points from the file
   if( fMCPoints ) delete[] fMCPoints;
   fMCPoints = 0;
   fNMCPoints = 0;

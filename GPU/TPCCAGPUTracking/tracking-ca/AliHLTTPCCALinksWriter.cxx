@@ -1,4 +1,4 @@
-// $Id$
+// @(#) $Id: AliHLTTPCCANeighboursCleaner.cxx 27042 2008-07-02 12:06:02Z richterm $
 //***************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -16,9 +16,28 @@
 // provided "as is" without express or implied warranty.                    *
 //***************************************************************************
 
-#include "AliHLTTPCCAEndPoint.h"
+#include "AliHLTTPCCALinksWriter.h"
+#include "AliHLTTPCCATracker.h"
 
-void AliHLTTPCCAEndPoint::Dummy()
+GPUd() void AliHLTTPCCALinksWriter::Thread
+( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
+  AliHLTTPCCASharedMemory &/*s*/, AliHLTTPCCATracker &tracker )
 {
-  //* do nothing
+  // copy constructed links to the new data scheme (temporary)
+
+  if( iSync==0 )
+    {
+      for( int irow=iBlock; irow<tracker.Param().NRows(); irow+=nBlocks ){
+	AliHLTTPCCARow &row = tracker.Rows()[irow];
+	Short_t *hitLinkUp = tracker.HitLinkUp() + row.FirstHit() ;
+	Short_t *hitLinkDown = tracker.HitLinkDown() + row.FirstHit();
+	Short_t *newUp = ((Short_t*)(tracker.TexHitsFullData() + row.FullOffset())) + row.FullLinkOffset();
+	Short_t *newDown = newUp + row.NHits();
+	
+	for( int ih=iThread; ih<row.NHits(); ih+=nThreads ){
+	  newUp[ih] = hitLinkUp[ih];
+	  newDown[ih] = hitLinkDown[ih];
+	}
+      }
+    }
 }

@@ -19,7 +19,7 @@
 #include "AliHLTTPCCAMCTrack.h"
 #include "TParticle.h"
 #include "TDatabasePDG.h"
-#include "TMath.h"
+#include "AliHLTTPCCAMath.h"
 
 
 AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack()
@@ -54,7 +54,7 @@ AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack( const TParticle *part )
   fPar[5] = part->Pz()*pi;
   fPar[6] = 0;
   fPDG  = part->GetPdgCode();	  
-  if ( TMath::Abs(fPDG) < 100000 ){
+  if ( CAMath::Abs(fPDG) < 100000 ){
     TParticlePDG *pPDG = TDatabasePDG::Instance()->GetParticle(fPDG);
     if( pPDG ) fPar[6] = pPDG->Charge()/3.0*pi;
   }
@@ -70,13 +70,13 @@ void AliHLTTPCCAMCTrack::SetTPCPar( Float_t X, Float_t Y, Float_t Z,
   fTPCPar[0] = X;
   fTPCPar[1] = Y;
   fTPCPar[2] = Z;
-  Double_t p = TMath::Sqrt(Px*Px + Py*Py + Pz*Pz);
+  Double_t p = CAMath::Sqrt(Px*Px + Py*Py + Pz*Pz);
   Double_t pi = ( p >1.e-4 ) ?1./p :0;
   fTPCPar[3] = Px*pi;
   fTPCPar[4] = Py*pi;
   fTPCPar[5] = Pz*pi;
   fTPCPar[6] = 0;
-  if ( TMath::Abs(fPDG) < 100000 ){
+  if ( CAMath::Abs(fPDG) < 100000 ){
     TParticlePDG *pPDG = TDatabasePDG::Instance()->GetParticle(fPDG);
     if( pPDG ) fTPCPar[6] = pPDG->Charge()/3.0*pi;
   }

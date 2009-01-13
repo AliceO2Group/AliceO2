@@ -17,20 +17,21 @@
 //***************************************************************************
 
 #include "AliHLTTPCCAParam.h"
-#include "TMath.h"
+#include "AliHLTTPCCAMath.h"
 
 
-ClassImp(AliHLTTPCCAParam)
-  
-AliHLTTPCCAParam::AliHLTTPCCAParam()
+#if !defined(HLTCA_GPUCODE)  
+
+GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
   : fISlice(0),fNRows(63),fAlpha(0.174533), fDAlpha(0.349066),
     fCosAlpha(0), fSinAlpha(0), fAngleMin(0), fAngleMax(0), fRMin(83.65), fRMax(133.3),
     fZMin(0.0529937), fZMax(249.778), fErrX(0), fErrY(0), fErrZ(0.228808),fPadPitch(0.4),fBz(-5.), 
     fYErrorCorrection(0.33), fZErrorCorrection(0.45),
-    fCellConnectionAngleXY(45./180.*TMath::Pi()), 
-    fCellConnectionAngleXZ(45./180.*TMath::Pi()),
+    fCellConnectionAngleXY(45./180.*CAMath::Pi()), 
+    fCellConnectionAngleXZ(45./180.*CAMath::Pi()),
     fMaxTrackMatchDRow(4), fTrackConnectionFactor(3.5), fTrackChiCut(3.5), fTrackChi2Cut(10)
 {
+  // constructor
   fParamS0Par[0][0][0] = 0.00047013;
   fParamS0Par[0][0][1] = 2.00135e-05;
   fParamS0Par[0][0][2] = 0.0106533;
@@ -76,8 +77,9 @@ AliHLTTPCCAParam::AliHLTTPCCAParam()
 
   Update();
 }
+#endif
 
-void AliHLTTPCCAParam::Initialize( Int_t iSlice, 
+GPUd() void AliHLTTPCCAParam::Initialize( Int_t iSlice, 
 				   Int_t nRows, Float_t rowX[],
 				   Float_t alpha, Float_t dAlpha,
 				   Float_t rMin, Float_t rMax,
@@ -106,18 +108,18 @@ void AliHLTTPCCAParam::Initialize( Int_t iSlice,
   Update();
 }
 
-void AliHLTTPCCAParam::Update()
+GPUd() void AliHLTTPCCAParam::Update()
 {
   // update of calculated values
-  fCosAlpha = TMath::Cos(fAlpha);
-  fSinAlpha = TMath::Sin(fAlpha);
+  fCosAlpha = CAMath::Cos(fAlpha);
+  fSinAlpha = CAMath::Sin(fAlpha);
   fAngleMin = fAlpha - fDAlpha/2.;
   fAngleMax = fAlpha + fDAlpha/2.;
-  fErrX = fPadPitch/TMath::Sqrt(12.);
+  fErrX = fPadPitch/CAMath::Sqrt(12.);
   fTrackChi2Cut = fTrackChiCut * fTrackChiCut;
 }
 
-void AliHLTTPCCAParam::Slice2Global( Float_t x, Float_t y,  Float_t z, 
+GPUd() void AliHLTTPCCAParam::Slice2Global( Float_t x, Float_t y,  Float_t z, 
 				     Float_t *X, Float_t *Y,  Float_t *Z ) const
 {  
   // conversion of coorinates sector->global
@@ -126,7 +128,7 @@ void AliHLTTPCCAParam::Slice2Global( Float_t x, Float_t y,  Float_t z,
   *Z = z;
 }
  
-void AliHLTTPCCAParam::Global2Slice( Float_t X, Float_t Y,  Float_t Z, 
+GPUd() void AliHLTTPCCAParam::Global2Slice( Float_t X, Float_t Y,  Float_t Z, 
 				     Float_t *x, Float_t *y,  Float_t *z ) const
 {
   // conversion of coorinates global->sector
@@ -135,17 +137,18 @@ void AliHLTTPCCAParam::Global2Slice( Float_t X, Float_t Y,  Float_t Z,
   *z = Z;
 }
 
-Float_t AliHLTTPCCAParam::GetClusterError2( Int_t yz, Int_t type, Float_t z, Float_t angle )
+GPUd() Float_t AliHLTTPCCAParam::GetClusterError2( Int_t yz, Int_t type, Float_t z, Float_t angle ) const
 {
   //* recalculate the cluster error wih respect to the track slope
   Float_t angle2 = angle*angle;
-  Float_t *c = fParamS0Par[yz][type];
+  const Float_t *c = fParamS0Par[yz][type];
   Float_t v = c[0] + z*(c[1] + c[3]*z) + angle2*(c[2] + angle2*c[4] + c[5]*z );
-  return TMath::Abs(v); 
+  return CAMath::Abs(v); 
 }
 
-void AliHLTTPCCAParam::WriteSettings( ostream &out )
+GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const 
 {
+  // write settings to the file
   out << fISlice<<endl;
   out << fNRows<<endl;
   out << fAlpha<<endl;
@@ -182,8 +185,10 @@ void AliHLTTPCCAParam::WriteSettings( ostream &out )
   out<<endl;
 }
 
-void AliHLTTPCCAParam::ReadSettings( istream &in )
+GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
 {
+  // Read settings from the file
+
   in >> fISlice;
   in >> fNRows;
   in >> fAlpha;
