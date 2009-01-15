@@ -21,7 +21,7 @@
 #include "AliHLTTPCCATracker.h"
 
 GPUd() void AliHLTTPCCANeighboursCleaner::Thread 
-( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
+( Int_t /*nBlocks*/, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
   AliHLTTPCCASharedMemory &s, AliHLTTPCCATracker &tracker )
 {
   // *
