@@ -43,7 +43,7 @@ class AliHLTTPCCANeighboursCleaner
 
   GPUd() static Int_t NThreadSyncPoints(){ return 1; }  
 
-  GPUd() static void Thread( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
+  GPUd() static void Thread( Int_t /*nBlocks*/, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
 			     AliHLTTPCCASharedMemory &smem, AliHLTTPCCATracker &tracker );
 };
 
