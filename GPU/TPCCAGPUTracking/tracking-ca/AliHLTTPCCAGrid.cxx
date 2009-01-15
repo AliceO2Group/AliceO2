@@ -39,7 +39,7 @@ GPUd() void AliHLTTPCCAGrid::Create( Float_t yMin, Float_t yMax, Float_t zMin, F
   fStepZInv =  ( fStepZInv>1.e-4 ) ?kz/fStepZInv :1;
 }
 
-GPUd() void AliHLTTPCCAGrid::Create( Float_t yMin, Float_t yMax, Float_t zMin, Float_t zMax, float_t sy, Float_t sz )
+GPUd() void AliHLTTPCCAGrid::Create( Float_t yMin, Float_t yMax, Float_t zMin, Float_t zMax, Float_t sy, Float_t sz )
 {
   //* Create the grid
   

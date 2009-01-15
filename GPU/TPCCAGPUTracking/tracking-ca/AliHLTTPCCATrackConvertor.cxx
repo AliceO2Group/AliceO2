@@ -56,7 +56,7 @@ void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, Al
     cov[10] = -cov[10];
     cov[11] = -cov[11];
   }
-  T2.Set(T1.GetX(),alpha,par,cov);
+  T2.Set( (Double_t) T1.GetX(),alpha,par,cov);
 }
 
 void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2, Double_t Bz )
