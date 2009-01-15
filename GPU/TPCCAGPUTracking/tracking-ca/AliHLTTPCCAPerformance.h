@@ -9,6 +9,7 @@
 #define ALIHLTTPCCAPERFORMANCE_H
 
 #include "AliHLTTPCCADef.h"
+#include "Riostream.h"
 
 class TObject;
 class TParticle;

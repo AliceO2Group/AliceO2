@@ -25,7 +25,6 @@
 
 #include "AliHLTTPCCAMath.h"
 #include "TStopwatch.h"
-#include <iostream.h>
 
 //#define DRAW
 
