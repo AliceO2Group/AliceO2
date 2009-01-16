@@ -26,7 +26,7 @@
 using namespace std;
 #endif
 
-//#include <climits>
+#include <climits>
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCTransform.h"
 #include "AliHLTTPCCATracker.h"
