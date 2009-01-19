@@ -98,18 +98,26 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step1
   tParam.Chi2() = 0;
   tParam.NDF() = -3;      
   
-  tParam.Cov()[1] = 0;
-  tParam.Cov()[4] = 0;
-  tParam.Cov()[8] = 0;
-  tParam.Cov()[13] = 0;
+  tParam.Cov()[0] = 1; 
+
+  tParam.Cov()[1] = 0; 
+  tParam.Cov()[2] = 1; 
+
+  tParam.Cov()[3] = 0; 
+  tParam.Cov()[4] = 0; 
+  tParam.Cov()[5] = 1.; 
+
+  tParam.Cov()[6] = 0; 
+  tParam.Cov()[7] = 0; 
+  tParam.Cov()[8] = 0; 
+  tParam.Cov()[9] = 1;
   
-  tParam.Cov()[3] = 0;
-  tParam.Cov()[5] = 1.;
-  tParam.Cov()[7] = 0;
-  tParam.Cov()[9] = 1.;
   tParam.Cov()[10] = 0;
+  tParam.Cov()[11] = 0;
   tParam.Cov()[12] = 0;
+  tParam.Cov()[13] = 0;
   tParam.Cov()[14] = 1.;
+
   r.fLastRow = r.fFirstRow;
 }
 

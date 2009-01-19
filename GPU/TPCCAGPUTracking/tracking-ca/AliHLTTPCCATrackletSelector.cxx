@@ -56,12 +56,16 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 	Int_t *hitstore = t + 5+ sizeof(AliHLTTPCCATrackParam)/4 ;    
 	Int_t w = (tNHits<<16)+itr;	
 	Int_t nRows = tracker.Param().NRows();
-	for( Int_t irow=0; irow<nRows; irow++ ){
+	Int_t gap = 0;
+ 	for( Int_t irow=0; irow<nRows; irow++ ){
 	  Int_t ih = hitstore[irow];
 	  if( ih<0 ) continue;
 	  AliHLTTPCCARow &row = tracker.Rows()[irow];
 	  Int_t ihTot = row.FirstHit()+ih;      
-	  if( tracker.HitIsUsed()[ihTot] > w ) continue;
+	  if( tracker.HitIsUsed()[ihTot] > w ){
+            if( ++gap>6){ tout.NHits()=0; break; }
+            continue;
+          }
 	  Int_t th = AliHLTTPCCATracker::IRowIHit2ID(irow,ih);
 	  trackHits[tout.NHits()] = th;
 	  tout.NHits()++;
