@@ -554,7 +554,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
  
     Int_t nTracklets = *fStartHits;
 
-    cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nTracklets<<" "<<*fNTracks<<endl;
+    //cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nTracklets<<" "<<*fNTracks<<endl;
    WriteOutput();      
   }
 
