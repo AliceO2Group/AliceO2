@@ -344,10 +344,10 @@ GPUd() void AliHLTTPCCATracker::ReadEvent( Int_t *RowFirstHit, Int_t *RowNHits, 
     for( Int_t i=0; i<n2; i++ ){
       Int_t v = c[i];
       if( v>=256 ){
-	cout<<" ERROR!!! "<<v<<endl;
+	//cout<<" ERROR!!! "<<v<<endl;
 	v = 255;
       }else if( v<0 ){
-	cout<<" ERROR!!! "<<v<<endl;
+	//cout<<" ERROR!!! "<<v<<endl;
 	v = 0;
       }	      
       cnew[i] = (UChar_t ) v;
@@ -355,10 +355,10 @@ GPUd() void AliHLTTPCCATracker::ReadEvent( Int_t *RowFirstHit, Int_t *RowNHits, 
     for( UInt_t i=n2; i<grid.N()+3; i++ ){
       Int_t v = c[i] - grid.Content2();
       if( v>=256 ){
-	cout<<" ERROR 1 !!! "<<v<<endl;
+	//cout<<" ERROR 1 !!! "<<v<<endl;
 	v = 255;
       }else if( v<0 ){
-	cout<<" ERROR 1 !!! "<<v<<endl;
+	//cout<<" ERROR 1 !!! "<<v<<endl;
 	v = 0;
       }
       cnew[i] = (UChar_t) v;	  
@@ -429,7 +429,7 @@ GPUd() void AliHLTTPCCATracker::ReadEvent( Int_t *RowFirstHit, Int_t *RowNHits, 
       for( Int_t i=0; i<n; i++ ){
 	p1[i] = c[i];
       }     
-      UShort_t a = c[n-1];
+      UShort_t a = c[n];
       Int_t nn = n+grid.Ny()+2;
       for( Int_t i=n; i<nn; i++ ) p1[i] = a;
 
@@ -551,11 +551,11 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
     //cudaMemcpy(cpuTrackerCopy.fTrackHits+1, gpuTrackerCopy.fTrackHits+1, size, cudaMemcpyDeviceToHost);
     //cout<<"Track hits size = "<<size<<endl;
     //cpuTrackerCopy.WriteOutput();
-    nStartHits = *fStartHits;
-    //cout<<"N tracklets constructed = "<<nStartHits<<endl;
-	
-    //cout<<"Selected NTracks = "<<*fNTracks<<endl;
-    WriteOutput();      
+ 
+    Int_t nTracklets = *fStartHits;
+
+    cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nTracklets<<" "<<*fNTracks<<endl;
+   WriteOutput();      
   }
 
 #endif
