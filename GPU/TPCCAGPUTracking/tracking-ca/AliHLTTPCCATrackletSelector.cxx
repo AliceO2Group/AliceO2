@@ -65,7 +65,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 	  if( tracker.HitIsUsed()[ihTot] > w ){
             if( ++gap>6){ tout.NHits()=0; break; }
             continue;
-          }
+          }else gap = 0;
 	  Int_t th = AliHLTTPCCATracker::IRowIHit2ID(irow,ih);
 	  trackHits[tout.NHits()] = th;
 	  tout.NHits()++;
