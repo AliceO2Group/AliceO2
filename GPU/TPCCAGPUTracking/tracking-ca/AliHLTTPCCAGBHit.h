@@ -41,12 +41,12 @@ class AliHLTTPCCAGBHit
   Bool_t &IsUsed(){ return fIsUsed; };
 
 
-  static bool Compare(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b);
+  static Bool_t Compare(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b);
 
-  static bool CompareRowDown(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b){
+  static Bool_t CompareRowDown(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b){
     return ( a.fIRow>b.fIRow );
   }
-  static bool ComparePRowDown(const AliHLTTPCCAGBHit *a, const AliHLTTPCCAGBHit *b){
+  static Bool_t ComparePRowDown(const AliHLTTPCCAGBHit *a, const AliHLTTPCCAGBHit *b){
     return ( a->fIRow>b->fIRow );
   }
 

@@ -29,27 +29,28 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread
   if( iSync==0 )
     {
       if( iThread==0 ){
-	Int_t *startHits = tracker.StartHits();
 	if( iBlock==0 ){
-	  CAMath::atomicExch(startHits,0); 
+	  CAMath::atomicExch( tracker.NTracklets(),0); 
 	}
 	s.fNRows = tracker.Param().NRows();
 	s.fIRow = iBlock+1;
 	s.fNRowStartHits = 0;
-	if( s.fIRow <= s.fNRows-4 ){
-	  int first = tracker.Rows()[s.fIRow].FirstHit();
+	if( s.fIRow <= s.fNRows-4 ){	  
 	  s.fNHits = tracker.Rows()[s.fIRow].NHits(); 
 	  if( s.fNHits>=1024 ) s.fNHits = 1023;
-	  s.fHitLinkUp = tracker.HitLinkUp() + first;
-	  s.fHitLinkDown = tracker.HitLinkDown() + first;
+
+	  AliHLTTPCCARow &row = tracker.Rows()[s.fIRow];
+	  s.fHitLinkUp = ((Short_t*)(tracker.RowData() + row.FullOffset())) + row.FullLinkOffset();
+	  s.fHitLinkDown = s.fHitLinkUp + row.NHits();
+
 	} else s.fNHits = -1;
       }
     } 
   else if( iSync==1 )
     {
-      for( int ih=iThread; ih<s.fNHits; ih+=nThreads ){      
+      for( Int_t ih=iThread; ih<s.fNHits; ih+=nThreads ){      
 	if( ( s.fHitLinkDown[ih]<0 ) && ( s.fHitLinkUp[ih]>=0 ) ){
-	  int oldNRowStartHits = CAMath::atomicAdd(&s.fNRowStartHits,1);
+	  Int_t oldNRowStartHits = CAMath::atomicAdd(&s.fNRowStartHits,1);
 	  s.fRowStartHits[oldNRowStartHits] = AliHLTTPCCATracker::IRowIHit2ID(s.fIRow, ih);
 	}
       }
@@ -57,15 +58,14 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread
   else if( iSync==2 )
     {
       if( iThread == 0 ){
-	Int_t *startHits = tracker.StartHits();
-	s.fNOldStartHits = CAMath::atomicAdd(startHits,s.fNRowStartHits);  
+	s.fNOldStartHits = CAMath::atomicAdd(tracker.NTracklets(),s.fNRowStartHits);  
       }
     }
   else if( iSync==3 )
     {
-      Int_t *startHits = tracker.StartHits();
-      for( int ish=iThread; ish<s.fNRowStartHits; ish+=nThreads ){    
-	startHits[1+s.fNOldStartHits+ish] = s.fRowStartHits[ish];
+      Int_t *startHits = tracker.TrackletStartHits();
+      for( Int_t ish=iThread; ish<s.fNRowStartHits; ish+=nThreads ){    
+	startHits[s.fNOldStartHits+ish] = s.fRowStartHits[ish];
       }
     }
 }

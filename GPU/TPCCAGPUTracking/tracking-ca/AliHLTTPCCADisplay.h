@@ -14,8 +14,8 @@
 #define ALIHLTTPCCADISPLAY_H
 
 
-#ifdef XXXX
 class AliHLTTPCCATracker;
+class AliHLTTPCCAGBTracker;
 class AliHLTTPCCATrack;
 class AliHLTTPCCATrackParam;
 class TCanvas;
@@ -26,7 +26,6 @@ class TCanvas;
 #include "TCrown.h"
 #include "TMarker.h"
 #include "TLatex.h"
-#endif
 
 /**
  * @class AliHLTTPCCADisplay
@@ -34,7 +33,6 @@ class TCanvas;
 class AliHLTTPCCADisplay
 {
  public:
-#ifdef XXXX
   static AliHLTTPCCADisplay &Instance();
   
   AliHLTTPCCADisplay();
@@ -53,23 +51,33 @@ class AliHLTTPCCADisplay
   void Set2Slices( AliHLTTPCCATracker *slice );
 
   Int_t GetColor( Double_t z ) const ;
+  Int_t GetColorY( Double_t y ) const ;
+  Int_t GetColorK( Double_t k ) const ;
   void Global2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const ;
   void Slice2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const ;
 
   void DrawTPC();
   void DrawSlice( AliHLTTPCCATracker *slice ); 
+  void DrawGBTrack( AliHLTTPCCAGBTracker &tracker, Int_t itr, Int_t color=-1 );
+  void DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, Int_t itr, Int_t color=-1 );
+
+  void DrawGBHit( AliHLTTPCCAGBTracker &tracker, Int_t iHit, Int_t color=-1 );
+
+#ifdef XXXX
 
   void DrawHit( Int_t iRow,Int_t iHit, Int_t color=-1 );
-
   void DrawMergedHit( Int_t iRow, Int_t iHit, Int_t color=-1 );
 
   void DrawTrack( AliHLTTPCCATrack &track, Int_t color=-1, Bool_t DrawCells=1 );
   void DrawTrackletPoint( AliHLTTPCCATrackParam &t, Int_t color=-1 );
+#endif // XXXX
 
   void SetSliceTransform( Double_t alpha );
 
   void SetSliceTransform( AliHLTTPCCATracker *slice );
 
+  TCanvas *CanvasYX(){ return fYX; }
+  TCanvas *CanvasZX(){ return fZX; }
 
  protected:
 
@@ -77,7 +85,7 @@ class AliHLTTPCCADisplay
   Bool_t fAsk;                      // flag to ask for the pressing key
   Bool_t fSliceView;               // switch between slice/TPC zoom
   AliHLTTPCCATracker *fSlice;      // current CA tracker, includes slice geometry
-  Double_t fCos, fSin, fZMin, fZMax;// view parameters
+  Double_t fCos, fSin, fZMin, fZMax, fYMin, fYMax;// view parameters
   Double_t fSliceCos, fSliceSin;        // current slice angle
   Double_t fRInnerMin, fRInnerMax, fROuterMin, fROuterMax,fTPCZMin, fTPCZMax; // view parameters
 
@@ -112,7 +120,6 @@ class AliHLTTPCCADisplay
     Double_t fZ;  // cell Z position
   };
 
-#endif // XXXX
 
 };
 

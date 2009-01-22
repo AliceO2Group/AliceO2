@@ -94,7 +94,7 @@ AliTPCtrackerCA::AliTPCtrackerCA(const AliTPCParam *par):
     fHLTPerformance->SetTracker( fHLTTracker );
   }
 
-  for( int iSlice=0; iSlice<fHLTTracker->NSlices(); iSlice++ ){
+  for( Int_t iSlice=0; iSlice<fHLTTracker->NSlices(); iSlice++ ){
   
     Float_t bz = AliTracker::GetBz();
 
@@ -258,12 +258,12 @@ Int_t AliTPCtrackerCA::LoadClusters (TTree * fromTree)
   fClusters = new AliTPCclusterMI [fNClusters];
   fHLTTracker->SetNHits( fNClusters );
   if( fDoHLTPerformance ) fHLTPerformance->SetNHits( fNClusters );
-  int ind=0;
+  Int_t ind=0;
   for (Int_t i=0; i<nEnt; i++) {
     br->GetEntry(i);
     Int_t sec,row;
     fParam->AdjustSectorRow(clrow->GetID(),sec,row);
-    int nClu = clrow->GetArray()->GetEntriesFast();
+    Int_t nClu = clrow->GetArray()->GetEntriesFast();
     Float_t x = fParam->GetPadRowRadii(sec,row);
     for (Int_t icl=0; icl<nClu; icl++){
       Int_t lab0 = -1;
@@ -393,7 +393,7 @@ Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
       tTPC.SetMass(0.13957);
       tTPC.SetdEdx( tCA.DeDx() );
       if( TMath::Abs(tTPC.GetSigned1Pt())>1./0.02 ) continue;
-      int nhits = tCA.NHits();
+      Int_t nhits = tCA.NHits();
       if( nhits>kMaxRow ) nhits = kMaxRow;
       tTPC.SetNumberOfClusters(nhits);      
       for( Int_t ih=0; ih<nhits; ih++ ){
@@ -426,7 +426,7 @@ Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
   }
   timer.Stop();
   static double time=0, time1 = 0;
-  static int ncalls = 0;
+  static Int_t ncalls = 0;
   time+=timer.CpuTime();
   time1+=timer.RealTime();
   ncalls++;

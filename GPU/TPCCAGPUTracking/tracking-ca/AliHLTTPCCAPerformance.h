@@ -9,7 +9,6 @@
 #define ALIHLTTPCCAPERFORMANCE_H
 
 #include "AliHLTTPCCADef.h"
-#include "Riostream.h"
 
 class TObject;
 class TParticle;
@@ -57,7 +56,7 @@ class AliHLTTPCCAPerformance
   void CreateHistos();
   void WriteHistos();
   void SlicePerformance( Int_t iSlice, Bool_t PrintFlag  );
-  void Performance();
+  void Performance( fstream *StatFile = 0);
 
   void WriteMCEvent( ostream &out ) const;
   void ReadMCEvent( istream &in );
@@ -81,6 +80,7 @@ protected:
   Int_t fNMCPoints;                //* number of MC points
   Bool_t fDoClusterPulls;          //* do cluster pulls (very slow)
   Int_t fStatNEvents; //* n of events proceed
+  Double_t fStatTime; //* reco time;
   Int_t fStatNRecTot; //* total n of reconstructed tracks 
   Int_t fStatNRecOut; //* n of reconstructed tracks in Out set
   Int_t fStatNGhost;//* n of reconstructed tracks in Ghost set
@@ -139,6 +139,7 @@ protected:
     *fhCellPurityVsPt,//* cell purity vs MC Pt
     *fhEffVsP, //* reconstruction efficiency vs P plot
     *fhGBEffVsP, //* global reconstruction efficiency vs P plot
+    *fhGBEffVsPt, //* global reconstruction efficiency vs P plot
     *fhNeighQuality, // quality for neighbours finder 
     *fhNeighEff,// efficiency for neighbours finder
     *fhNeighQualityVsPt,// quality for neighbours finder vs track Pt

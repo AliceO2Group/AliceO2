@@ -32,13 +32,12 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
     {
       if( iThread==0 ){
 	if(iBlock==0){
-	  CAMath::atomicExch(&(tracker.NTracks()),0);
-	  CAMath::atomicExch(tracker.TrackHits(),0);
+	  CAMath::atomicExch(tracker.NTracks(),0);
+	  CAMath::atomicExch(tracker.NTrackHits(),0);
 	}
-	s.fNTracklets = tracker.Tracklets()[0];
+	s.fNTracklets = *tracker.NTracklets();
 	s.fNThreadsTotal = nThreads*nBlocks;
-	s.fItr0 = nThreads*iBlock;
-	//if( iBlock==0 ) tracker.StartHits()[0] = 0;//SG!!!
+	s.fItr0 = nThreads*iBlock;	
       }
     }
   else if( iSync==1 )
@@ -47,11 +46,10 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
       Int_t trackHits[160];
 	
       for( Int_t itr= s.fItr0 + iThread; itr<s.fNTracklets; itr+=s.fNThreadsTotal ){    		
-	Int_t *t = tracker.Tracklets() + 1 + itr*(5+ sizeof(AliHLTTPCCATrackParam)/4 + 160 );	
+	Int_t *t = ((Int_t*)tracker.Tracklets()) + itr*(5+ sizeof(AliHLTTPCCATrackParam)/4 + 160 );	
 	Int_t tNHits = *t;
 	if( tNHits<=0 ) continue;
 	
-	CAMath::atomicAdd( tracker.StartHits(), 1);//SG!!!
 	tout.NHits() = 0;
 	Int_t *hitstore = t + 5+ sizeof(AliHLTTPCCATrackParam)/4 ;    
 	Int_t w = (tNHits<<16)+itr;	
@@ -62,17 +60,17 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 	  if( ih<0 ) continue;
 	  AliHLTTPCCARow &row = tracker.Rows()[irow];
 	  Int_t ihTot = row.FirstHit()+ih;      
-	  if( tracker.HitIsUsed()[ihTot] > w ){
+	  if( tracker.HitWeights()[ihTot] > w ){
             if( ++gap>6){ tout.NHits()=0; break; }
             continue;
-          }else gap = 0;
+          } else gap = 0;
 	  Int_t th = AliHLTTPCCATracker::IRowIHit2ID(irow,ih);
 	  trackHits[tout.NHits()] = th;
 	  tout.NHits()++;
 	}	
 	if( tout.NHits()<10 ) continue;//SG!!!
-	Int_t itrout = CAMath::atomicAdd(&(tracker.NTracks()),1);
-	tout.FirstHitID() = CAMath::atomicAdd( tracker.TrackHits(), tout.NHits() ) + 1;
+	Int_t itrout = CAMath::atomicAdd(tracker.NTracks(),1);
+	tout.FirstHitID() = CAMath::atomicAdd( tracker.NTrackHits(), tout.NHits() );
 	tout.Param() = *( (AliHLTTPCCATrackParam*)( t+5) );
 	tout.Alive() = 1;
 	tracker.Tracks()[itrout] = tout;

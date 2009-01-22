@@ -17,9 +17,9 @@
 //***************************************************************************
 
 #include "AliHLTTPCCAMCTrack.h"
+#include "AliHLTTPCCAMath.h"
 #include "TParticle.h"
 #include "TDatabasePDG.h"
-#include "AliHLTTPCCAMath.h"
 
 
 AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack()

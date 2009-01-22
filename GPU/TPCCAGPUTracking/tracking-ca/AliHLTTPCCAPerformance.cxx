@@ -28,6 +28,7 @@
 
 #include "TMath.h"
 #include "TROOT.h"
+#include "Riostream.h"
 #include "TFile.h"
 #include "TH1.h"
 #include "TH2.h"
@@ -45,6 +46,7 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance()
   fNMCPoints(0),               
   fDoClusterPulls(0),         
   fStatNEvents(0),
+  fStatTime(0),
   fStatNRecTot(0),
   fStatNRecOut(0),
   fStatNGhost(0),
@@ -90,6 +92,7 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance()
   fhCellPurityVsPt(0),
   fhEffVsP(0), 
   fhGBEffVsP(0),
+  fhGBEffVsPt(0),
   fhNeighQuality(0),
   fhNeighEff(0),
   fhNeighQualityVsPt(0),
@@ -117,6 +120,7 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance(const AliHLTTPCCAPerformance&)
   fNMCPoints(0),               
   fDoClusterPulls(0),         
   fStatNEvents(0),
+  fStatTime(0),
   fStatNRecTot(0),
   fStatNRecOut(0),
   fStatNGhost(0),
@@ -162,6 +166,7 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance(const AliHLTTPCCAPerformance&)
   fhCellPurityVsPt(0),
   fhEffVsP(0), 
   fhGBEffVsP(0),
+  fhGBEffVsPt(0),
   fhNeighQuality(0),
   fhNeighEff(0),
   fhNeighQualityVsPt(0),
@@ -320,6 +325,7 @@ void AliHLTTPCCAPerformance::CreateHistos()
 
   fhEffVsP = new TProfile("EffVsP", "Eff vs P", 100, 0., 5.);
   fhGBEffVsP = new TProfile("GBEffVsP", "Global tracker: Eff vs P", 100, 0., 5.);
+  fhGBEffVsPt = new TProfile("GBEffVsPt", "Global tracker: Eff vs Pt", 100, 0.2, 5.);
 
   gDirectory->mkdir("Clusters");
   gDirectory->cd("Clusters");  
@@ -538,7 +544,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
 	    Float_t darea = .2;
 	    Int_t nAreas = 15;
 	    Int_t nComb[nAreas];
-	    for( int i=0; i<nAreas; i++ ) nComb[i]=0;
+	    for( Int_t i=0; i<nAreas; i++ ) nComb[i]=0;
 	    for (Int_t ihP = 0; ihP<rowP.NHits(); ihP++){
 	      AliHLTTPCCAHit &hP = rowP.Hits()[ihP];
 	      Float_t yyy = -xP*h.Y() - xN*(hP.Y()-h.Y());
@@ -556,12 +562,12 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
 		if( d>D ) D = d;
 		d = TMath::Abs( hN.Z()-zzN );
 		if( d>D ) D = d;		
-		int ic = (int) (D/darea);
+		Int_t ic = (int) (D/darea);
 		if( ic<nAreas ) nComb[ic]++;
 	      }
 	    }
-	    int j=0;
-	    for( int i=0; i<nAreas; i++ ){
+	    Int_t j=0;
+	    for( Int_t i=0; i<nAreas; i++ ){
 	      j+=nComb[i];
 	      if(j>0 ) fhNeighNCombVsArea->Fill(i*darea,j);
 	    }	  
@@ -647,7 +653,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
 
 	Bool_t okP=0, okN=0;
 	if( h.FirstTriplet()>=0 ){
-	  for( int it=h.FirstTriplet(); it<row.NTriplets(); it++ ){
+	  for( Int_t it=h.FirstTriplet(); it<row.NTriplets(); it++ ){
 	    AliHLTTPCCATriplet &t = row.Triplets()[it];
 	    if( t.HitMid()!=ih ) break;
 	    //if( !t.Alive() ) continue;
@@ -669,14 +675,15 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
   }
   
 
-
   // Select reconstructable MC tracks
 
   {
     for (Int_t imc=0; imc<fNMCTracks; imc++) fMCTracks[imc].NHits() = 0;
-          
+        
     for( Int_t ih=firstSliceHit; ih<endSliceHit; ih++){
-      AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[ih].ID()];
+      Int_t id = fTracker->Hits()[ih].ID();
+      if( id<0 || id>fNHits ) break;
+      AliHLTTPCCAHitLabel &l = fHitLabels[id];
       if( l.fLab[0]>=0 ) fMCTracks[l.fLab[0]].NHits()++;
       if( l.fLab[1]>=0 ) fMCTracks[l.fLab[1]].NHits()++;
       if( l.fLab[2]>=0 ) fMCTracks[l.fLab[2]].NHits()++;
@@ -698,7 +705,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
     }
   }
 
-  Int_t traN = slice.NOutTracks();
+  Int_t traN = *slice.NOutTracks();
   Int_t *traLabels = 0; 
   Double_t *traPurity = 0;
   traLabels = new Int_t[traN];
@@ -841,7 +848,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( Int_t iSlice, Bool_t PrintFlag )
 }
 
 
-void AliHLTTPCCAPerformance::Performance()
+void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
 { 
   // main routine for performance calculation  
   //SG!!!
@@ -857,10 +864,9 @@ void AliHLTTPCCAPerformance::Performance()
     fStatNRecRef=0;
     fStatNClonesRef=0;
   */
-  fStatNEvents++;
-
+  fStatNEvents++;  
   for( Int_t islice=0; islice<fTracker->NSlices(); islice++){ 
-    SlicePerformance(islice,0);
+    SlicePerformance(islice,1);
   }
 
 
@@ -1024,6 +1030,7 @@ void AliHLTTPCCAPerformance::Performance()
       for (Int_t ipart=0; ipart<fNMCTracks; ipart++) {		
 	AliHLTTPCCAMCTrack &mc = fMCTracks[ipart];
 	if( mc.Set()>0 ) fhGBEffVsP->Fill(mc.P(), ( mc.NReconstructed()>0 ?1 :0));
+	if( mc.Set()>0 ) fhGBEffVsPt->Fill(mc.Pt(), ( mc.NReconstructed()>0 ?1 :0));
       }
 
       if( traLabels ) delete[] traLabels;
@@ -1239,9 +1246,61 @@ void AliHLTTPCCAPerformance::Performance()
 	<<fTracker->StatTime(11)/fTracker->StatNEvents()*1.e3<<", "
 	<<fTracker->StatTime(12)/fTracker->StatNEvents()*1.e3<<" "
 	<<" msec/event "<<endl;
+
+    if( StatFile && StatFile->is_open() ){
+      fstream &out = *StatFile;
+
+      //out<<"\nGlobal tracker performance for "<<fStatNEvents<<" events: \n"<<endl;
+      //out<<" N tracks : "
+      //<<fStatGBNMCAll/fStatNEvents<<" mc all, "
+      //<<fStatGBNMCRef/fStatNEvents<<" mc ref, "
+      // <<fStatGBNRecTot/fStatNEvents<<" rec total, "
+      // <<fStatGBNRecAll/fStatNEvents<<" rec all, "
+      // <<fStatGBNClonesAll/fStatNEvents<<" clones all, "
+      // <<fStatGBNRecRef/fStatNEvents<<" rec ref, "
+      // <<fStatGBNClonesRef/fStatNEvents<<" clones ref, "
+      // <<fStatGBNRecOut/fStatNEvents<<" out, "
+      // <<fStatGBNGhost/fStatNEvents<<" ghost"<<endl;
+      fStatTime+=fTracker->SliceTrackerTime();
+      double timeHz=0;
+      if( fStatTime>1.e-4 ) timeHz = 1./fStatTime*fStatNEvents;
+
+      out<<"<table border>"<<endl;
+      out<<"<tr>"<<endl; 
+      out<<"<td>      </td> <td align=center> RefSet </td> <td align=center> AllSet </td> <td align=center> ExtraSet </td>"<<endl;
+      out<<"</tr>"<<endl;
+      out<<"<tr>"<<endl;
+      out<<"<td>Efficiency</td> <td align=center>"<<fStatGBNRecRef/dMCRef
+	 <<"</td> <td align=center>"<<fStatGBNRecAll/dMCAll
+	 <<"</td> <td align=center>"<<nRecExtr/dMCExtr
+	 <<"</td>"<<endl;
+      out<<"</tr>"<<endl;
+      out<<"<tr> "<<endl;
+      out<<"<td>Clone</td>      <td align=center>"<<fStatGBNClonesRef/dRecRef
+	 <<"</td> <td align=center>"<<fStatGBNClonesAll/dRecAll
+	 <<"</td> <td align=center>"<<nClonesExtr/dRecExtr
+	 <<"</td>"<<endl;
+      out<<"</tr>"<<endl;
+      out<<"<tr> "<<endl;
+      out<<"<td>Ghost</td>      <td colspan=3 align=center>"<<fStatGBNGhost/dRecTot
+	 <<"</td>"<<endl;
+      out<<"</tr>"<<endl;
+      out<<"<tr> "<<endl;
+      out<<"<td>Time</td>      <td colspan=3 align=center>"<<timeHz 
+	 <<" ev/s</td>"<<endl;
+      out<<"</tr>"<<endl;
+      out<<"<tr> "<<endl;
+      out<<"<td>N Events</td>      <td colspan=3 align=center>"<<fStatNEvents
+	 <<"</td>"<<endl;
+      out<<"</tr>"<<endl;
+      out<<"</table>"<<endl;
+    }
+
   }
 
   WriteHistos();
+
+
 }
 
 void AliHLTTPCCAPerformance::WriteMCEvent( ostream &out ) const

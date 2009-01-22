@@ -20,7 +20,7 @@
 
 //ClassImp(AliHLTTPCCAGBHit)
 
-bool AliHLTTPCCAGBHit::Compare(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b)
+Bool_t AliHLTTPCCAGBHit::Compare(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b)
 {
   //* Comparison function for sorting hits
   if( a.fISlice<b.fISlice ) return 1;

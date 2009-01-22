@@ -98,8 +98,6 @@ typedef float          Size_t;      //Attribute size (float)
 #define GPUsync() __syncthreads()
 
 __constant__ float4 cTracker[30000/sizeof(float4)];
-texture<uchar1> texGrid;		
-texture<float2> texHits;	
 
 #else
 

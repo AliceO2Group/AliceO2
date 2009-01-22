@@ -323,6 +323,65 @@ GPUd() Int_t  AliHLTTPCCATrackParam::TransportToX( Float_t x, Float_t maxSinPhi 
   return 1;
 }
 
+GPUd() Int_t  AliHLTTPCCATrackParam::TransportToX0( Float_t x, Float_t /**/ )
+{
+  //* Transport the track parameters to X=x 
+
+  Float_t ex = fCosPhi;
+  if( CAMath::Abs(ex)<1.e-4 ) return 0;
+
+  Float_t ey = fP[2];
+  Float_t dx = x - fX;  
+  Float_t exi = 1./ex;
+  Float_t dS = dx*exi;
+  Float_t dy = dS*ey;
+  Float_t dz = dS*fP[3];
+  Float_t h2 = dS*exi*exi;
+  Float_t h4 = 0.5*dx*h2;
+  
+  fX = x;
+  fP[0]+= dy + h4*fP[4];
+  fP[1]+= dz;
+  fP[2]+= dx*fP[4];
+
+  //Float_t H0[5] = { 1,0, h2,  0, h4 };
+  //Float_t H1[5] = { 0, 1, 0, dS,  0 };
+  //Float_t H2[5] = { 0, 0, 1,  0, dx };
+  //Float_t H3[5] = { 0, 0, 0,  1,  0 };
+  //Float_t H4[5] = { 0, 0, 0,  0,  1 };
+
+
+  Float_t c00 = fC[0];
+  Float_t c11 = fC[2];
+  Float_t c20 = fC[3];
+  Float_t c22 = fC[5];
+  Float_t c31 = fC[7];
+  Float_t c33 = fC[9];
+  Float_t c40 = fC[10];
+  Float_t c42 = fC[12];
+  Float_t c44 = fC[14];
+
+  Float_t c40ph4c44 = c40 + h4*c44;
+  Float_t c20ph4c42 = c20 +  h4*c42;
+  Float_t c20ph2c22ph4c42 = h2*c22 + c20ph4c42;
+  Float_t fC10 = c40ph4c44 + h2*c42;
+  Float_t fC12 = c42 + dx*c44;
+  Float_t fC7 = c31 + dS*c33;
+
+  fC[10]= fC10;
+  fC[12]= fC12;
+  fC[7]= fC7;
+  fC[0]= c00  + h2*( c20ph2c22ph4c42 + c20ph4c42) + h4*(c40ph4c44 + c40 ) ; 
+  fC[3]= c20ph2c22ph4c42 + dx*fC10;
+  fC[5]= c22 + dx*( c42 + fC12 );
+  fC[2]= c11 + dS*(c31 + fC7);
+ 
+  return 1;
+}
+
+
+
+
 GPUd() Bool_t AliHLTTPCCATrackParam::TransportToXWithMaterial( Float_t Xto, Float_t Bz )
 {
   //* Transport the track parameters to X=Xto
@@ -751,6 +810,67 @@ GPUd() Bool_t AliHLTTPCCATrackParam::Filter2v1( Float_t y, Float_t z, Float_t er
   return 1;
 }
 
+GPUd() Bool_t AliHLTTPCCATrackParam::Filter20( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z, Float_t maxSinPhi )
+{
+  //* Add the y,z measurement with the Kalman filter 
+
+  Float_t 
+    c00 = fC[ 0],
+    c11 = fC[ 2],
+    c20 = fC[ 3],
+    c31 = fC[ 7],
+    c40 = fC[10];
+
+  err2Y+=c00;
+  err2Z+=c11;
+
+  Float_t
+    z0 = y-fP[0],
+    z1 = z-fP[1];
+  
+  if( err2Y < 1.e-8 || err2Z<1.e-8 ) return 0;
+
+  Float_t mS0 = 1./err2Y;
+  Float_t mS2 = 1./err2Z;
+ 
+  // K = CHtS
+  
+  Float_t k00, k11, k20, k31, k40;
+    
+  k00 = c00*mS0;
+  k20 = c20*mS0;
+  k40 = c40*mS0;
+
+  k11 = c11*mS2;
+  k31 = c31*mS2;
+
+  Float_t sinPhi = fP[2] + k20*z0  ;
+  if( CAMath::Abs(sinPhi)>= maxSinPhi ) return 0;
+
+  Float_t cosPhi = CAMath::Sqrt(1-sinPhi*sinPhi);
+  fNDF  += 2;
+  fChi2 += mS0*z0*z0 + mS2*z1*z1 ;
+
+  fP[ 0]+= k00*z0 ;
+  fP[ 1]+= k11*z1 ;
+  fP[ 2] = sinPhi ;
+  fP[ 3]+= k31*z1 ;
+  fP[ 4]+= k40*z0 ;
+    
+  fC[ 0]-= k00*c00 ;    
+  fC[ 3]-= k20*c00 ;
+  fC[ 5]-= k20*c20 ;
+  fC[10]-= k40*c00 ;
+  fC[12]-= k40*c20 ;
+  fC[14]-= k40*c40 ;
+ 
+  fC[ 2]-= k11*c11 ;
+  fC[ 7]-= k31*c11 ;
+  fC[ 9]-= k31*c31 ;
+   
+  fCosPhi = ( fCosPhi >=0 ) ?cosPhi :-cosPhi;
+  return 1;
+}
 
 
 
@@ -894,11 +1014,7 @@ GPUd() void AliHLTTPCCATrackParam::FilterZ( Float_t z, Float_t errz )
 }
 
 #if !defined(HLTCA_GPUCODE)
-#if defined( HLTCA_STANDALONE )
-#include <iostream.h>
-#else
-#include "Riostream.h"
-#endif
+#include <iostream>
 #endif
 
 GPUd() void AliHLTTPCCATrackParam::Print() const
@@ -906,7 +1022,7 @@ GPUd() void AliHLTTPCCATrackParam::Print() const
   //* print parameters
  
 #if !defined(HLTCA_GPUCODE)
-  cout<<"track: "<<GetX()<<" "<<GetY()<<" "<<GetZ()<<" "<<GetSinPhi()<<" "<<GetDzDs()<<" "<<GetKappa()<<endl;
-  cout<<"errs2: "<<GetErr2Y()<<" "<<GetErr2Z()<<" "<<GetErr2SinPhi()<<" "<<GetErr2DzDs()<<" "<<GetErr2Kappa()<<endl;
+  std::cout<<"track: "<<GetX()<<" "<<GetY()<<" "<<GetZ()<<" "<<GetSinPhi()<<" "<<GetDzDs()<<" "<<GetKappa()<<std::endl;
+  std::cout<<"errs2: "<<GetErr2Y()<<" "<<GetErr2Z()<<" "<<GetErr2SinPhi()<<" "<<GetErr2DzDs()<<" "<<GetErr2Kappa()<<std::endl;
 #endif
 }

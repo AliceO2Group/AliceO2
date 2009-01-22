@@ -10,10 +10,8 @@
 
 #include "AliHLTTPCCADef.h"
 
-#if defined( HLTCA_STANDALONE )
-#include <iostream.h>
-#else
-#include "Riostream.h"
+#if !defined(HLTCA_GPUCODE)
+#include <iostream>
 #endif
 
 class AliHLTTPCCATracker;
@@ -57,6 +55,12 @@ public:
 		Int_t ID, Int_t iSlice, Int_t iRow );
 
   void FindTracks();
+
+  void FindTracks0();
+  void FindTracks1();
+  void FindTracks2();
+
+
   void Merging();
   AliHLTTPCCATracker *Slices(){ return fSlices; }
   AliHLTTPCCAGBHit *Hits(){ return fHits; }
@@ -71,12 +75,14 @@ public:
   void GetErrors2( AliHLTTPCCAGBHit &h, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
   void GetErrors2( Int_t iSlice, Int_t iRow, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
 
-  void WriteSettings( ostream &out ) const;
-  void ReadSettings( istream &in );
-  void WriteEvent( ostream &out ) const;
-  void ReadEvent( istream &in );
-  void WriteTracks( ostream &out ) const;
-  void ReadTracks( istream &in );
+  void WriteSettings( std::ostream &out ) const;
+  void ReadSettings( std::istream &in );
+  void WriteEvent( std::ostream &out ) const;
+  void ReadEvent( std::istream &in );
+  void WriteTracks( std::ostream &out ) const;
+  void ReadTracks( std::istream &in );
+
+  Double_t &SliceTrackerTime(){ return fSliceTrackerTime; }
 
 protected:
 
@@ -99,6 +105,8 @@ protected:
   Double_t fStatTime[20]; //* timers 
   Int_t fStatNEvents;    //* n events proceed
   Int_t fFirstSliceHit[100]; // hit array
+
+  Double_t fSliceTrackerTime; // reco time of the slice tracker;
 
 };
 

@@ -33,18 +33,21 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 	s.fNRows = tracker.Param().NRows();
 	s.fIRow = iBlock;
 	if( s.fIRow < s.fNRows ){
-	  s.fFirst = tracker.Rows()[s.fIRow].FirstHit();      
-	  s.fHitLinkUp = tracker.HitLinkUp() + s.fFirst;
-	  s.fHitLinkDn = tracker.HitLinkDown() + s.fFirst;
-	  s.fNHits = tracker.Rows()[s.fIRow].NHits();
+	  AliHLTTPCCARow &row = tracker.Rows()[s.fIRow];
+	  s.fFirst = row.FirstHit();
+	  s.fNHits = row.NHits();
+
+	  s.fHitLinkUp = ((Short_t*)(tracker.RowData() + row.FullOffset())) + row.FullLinkOffset();
+	  s.fHitLinkDn = s.fHitLinkUp + row.NHits();
+
 	  if( (s.fIRow>0) && (s.fIRow<s.fNRows-1) ){
 	    s.fIRowUp = s.fIRow+1;
 	    s.fIRowDn = s.fIRow-1; 
 	    s.fFirstDn = tracker.Rows()[s.fIRowDn].FirstHit();
 	    s.fFirstUp = tracker.Rows()[s.fIRowUp].FirstHit();
-	    float xDn = tracker.Rows()[s.fIRowDn].X();
-	    float x = tracker.Rows()[s.fIRow].X();
-	    float xUp = tracker.Rows()[s.fIRowUp].X();
+	    Float_t xDn = tracker.Rows()[s.fIRowDn].X();
+	    Float_t x = tracker.Rows()[s.fIRow].X();
+	    Float_t xUp = tracker.Rows()[s.fIRowUp].X();
 	    s.fUpNHits = tracker.Rows()[s.fIRowUp].NHits();
 	    s.fDnNHits = s.fFirst - s.fFirstDn;
 	    s.fUpDx = xUp - x;
@@ -61,16 +64,21 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
     {
       if( s.fIRow < s.fNRows ){
 	if( (s.fIRow==0) || (s.fIRow==s.fNRows-1) ){
-	  for( int ih=iThread; ih<s.fNHits; ih+=nThreads ){
+	  for( Int_t ih=iThread; ih<s.fNHits; ih+=nThreads ){
 	    s.fHitLinkUp[ih] = -1;
 	    s.fHitLinkDn[ih] = -1;
 	  }
-	}else if(0){
-	  for( UInt_t ih=iThread; ih<s.fGridUp.N()+1; ih+=nThreads ){
-	    s.fGridContentUp[ih] = tracker.GetGridContent(s.fGridUp.Offset()+ih);
+	}else {
+	  AliHLTTPCCARow &rowUp = tracker.Rows()[s.fIRowUp];
+	  AliHLTTPCCARow &rowDn = tracker.Rows()[s.fIRowDn];
+	  UShort_t *gContentUp = (reinterpret_cast<UShort_t*>(tracker.RowData() + rowUp.FullOffset())) + rowUp.FullGridOffset();
+	  UShort_t *gContentDn = (reinterpret_cast<UShort_t*>(tracker.RowData() + rowDn.FullOffset())) + rowDn.FullGridOffset();
+
+	  for( UInt_t ih=iThread; ih<s.fGridUp.N()+s.fGridUp.Ny()+2; ih+=nThreads ){
+	    s.fGridContentUp[ih] = gContentUp[ih];
 	  }
-	  for( UInt_t ih=iThread; ih<s.fGridDn.N()+1; ih+=nThreads ){
-	    s.fGridContentDn[ih] = tracker.GetGridContent(s.fGridDn.Offset()+ih);
+	  for( UInt_t ih=iThread; ih<s.fGridDn.N()+s.fGridDn.Ny()+2; ih+=nThreads ){
+	    s.fGridContentDn[ih] = gContentDn[ih];
 	  }
 	}
       }
@@ -79,54 +87,75 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
     {
       if( (s.fIRow<=0) || (s.fIRow >= s.fNRows-1) ) return;
       
-      const float kAreaSize = 3;     
-      float chi2Cut = 3.*3.*4*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx );
+      const Float_t kAreaSize = 3;     
+      Float_t chi2Cut = 3.*3.*4*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx );
       const Int_t kMaxN = 5;
+      
+      AliHLTTPCCARow &row = tracker.Rows()[s.fIRow];
+      AliHLTTPCCARow &rowUp = tracker.Rows()[s.fIRowUp];
+      AliHLTTPCCARow &rowDn = tracker.Rows()[s.fIRowDn];
+      Float_t y0 = row.Grid().YMin();
+      Float_t z0 = row.Grid().ZMin();
+      Float_t stepY = row.HstepY();
+      Float_t stepZ = row.HstepZ();
+      uint4* tmpint4 = tracker.RowData() + row.FullOffset();
+      ushort2 *hits = reinterpret_cast<ushort2*>(tmpint4);
 
-      for( int ih=iThread; ih<s.fNHits; ih+=nThreads ){	
+
+      for( Int_t ih=iThread; ih<s.fNHits; ih+=nThreads ){	
 
 	UShort_t *neighUp = s.fB[iThread];
 	float2 *yzUp = s.fA[iThread];
+	//UShort_t neighUp[5];
+	//float2 yzUp[5];
 	
-	int linkUp = -1;
-	int linkDn = -1;
+	Int_t linkUp = -1;
+	Int_t linkDn = -1;
 	
 	if( s.fDnNHits>=1 && s.fUpNHits>=1 ){
 	  
-	  int nNeighUp = 0;
-	  AliHLTTPCCAHit h0 = tracker.GetHit( s.fFirst + ih );	  
-	  float y = h0.Y(); 
-	  float z = h0.Z(); 
+	  Int_t nNeighUp = 0;
+	  AliHLTTPCCAHit h0;
+	  {
+	    ushort2 hh = hits[ih];
+	    h0.Y() = y0 + hh.x*stepY;
+	    h0.Z() = z0 + hh.y*stepZ;
+	  }
+	  //h0 = tracker.Hits()[ s.fFirst + ih ];	  
+
+	  Float_t y = h0.Y(); 
+	  Float_t z = h0.Z(); 
+
 	  AliHLTTPCCAHitArea areaDn, areaUp;
-	  areaUp.Init( tracker, s.fGridUp,  s.fFirstUp, y*s.fUpTx, z*s.fUpTx, kAreaSize, kAreaSize );
-	  areaDn.Init(  tracker, s.fGridDn,  s.fFirstDn, y*s.fDnTx, z*s.fDnTx, kAreaSize, kAreaSize );      
+	  areaUp.Init( s.fGridUp,  s.fGridContentUp,s.fFirstUp, y*s.fUpTx, z*s.fUpTx, kAreaSize, kAreaSize );
+	  areaDn.Init( s.fGridDn,  s.fGridContentDn,s.fFirstDn, y*s.fDnTx, z*s.fDnTx, kAreaSize, kAreaSize );      
 	  do{
 	    AliHLTTPCCAHit h;
-	    Int_t i = areaUp.GetNext( tracker,h );
+	    Int_t i = areaUp.GetNext( tracker, rowUp,s.fGridContentUp, h );
 	    if( i<0 ) break;
 	    neighUp[nNeighUp] = (UShort_t) i;	    
 	    yzUp[nNeighUp] = make_float2( s.fDnDx*(h.Y()-y), s.fDnDx*(h.Z()-z) );
 	    if( ++nNeighUp>=kMaxN ) break;
 	  }while(1);
 
-	  int nNeighDn=0;
+	  Int_t nNeighDn=0;
 	  if( nNeighUp>0 ){
 
-	    int bestDn=-1, bestUp=-1;
-	    float bestD=1.e10;
+	    Int_t bestDn=-1, bestUp=-1;
+	    Float_t bestD=1.e10;
 
 	    do{
 	      AliHLTTPCCAHit h;
-	      Int_t i = areaDn.GetNext( tracker,h );
+	      Int_t i = areaDn.GetNext( tracker, rowDn,s.fGridContentDn,h );
 	      if( i<0 ) break;
 	      nNeighDn++;	      
 	      float2 yzdn = make_float2( s.fUpDx*(h.Y()-y), s.fUpDx*(h.Z()-z) );
 	      
-	      for( int iUp=0; iUp<nNeighUp; iUp++ ){
+	      for( Int_t iUp=0; iUp<nNeighUp; iUp++ ){
 		float2 yzup = yzUp[iUp];
-		float dy = yzdn.x - yzup.x;
-		float dz = yzdn.y - yzup.y;
-		float d = dy*dy + dz*dz;
+		Float_t dy = yzdn.x - yzup.x;
+		Float_t dz = yzdn.y - yzup.y;
+		Float_t d = dy*dy + dz*dz;
 		if( d<bestD ){
 		  bestD = d;
 		  bestDn = i;

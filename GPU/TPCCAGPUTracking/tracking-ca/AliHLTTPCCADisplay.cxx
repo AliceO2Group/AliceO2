@@ -17,19 +17,21 @@
 //***************************************************************************
 
 
-//#include "AliHLTTPCCADisplay.h"
+#include "AliHLTTPCCADisplay.h"
 
-#ifdef XXXX
 
-//#include "AliHLTTPCCATracker.h"
-//#include "AliHLTTPCCARow.h"
-//#include "AliHLTTPCCATrack.h"
+#include "AliHLTTPCCATracker.h"
+#include "AliHLTTPCCAGBTracker.h"
+#include "AliHLTTPCCARow.h"
+#include "AliHLTTPCCATrack.h"
+#include "AliHLTTPCCAGBTrack.h"
+#include "AliHLTTPCCAGBHit.h"
 
-//#include "TString.h"
-//#include "Riostream.h"
-//#include "TMath.h"
-//#include "TStyle.h"
-//#include "TCanvas.h"
+#include "TString.h"
+#include "Riostream.h"
+#include "TMath.h"
+#include "TStyle.h"
+#include "TCanvas.h"
 
 
 AliHLTTPCCADisplay &AliHLTTPCCADisplay::Instance()
@@ -39,8 +41,8 @@ AliHLTTPCCADisplay &AliHLTTPCCADisplay::Instance()
   return gAliHLTTPCCADisplay; 
 }
 
-AliHLTTPCCADisplay::AliHLTTPCCADisplay() : TObject(), fYX(0), fZX(0), fAsk(1), fSliceView(1), fSlice(0), 
-					   fCos(1), fSin(0), fZMin(-250), fZMax(250),fSliceCos(1), fSliceSin(0),
+AliHLTTPCCADisplay::AliHLTTPCCADisplay() : fYX(0), fZX(0), fAsk(1), fSliceView(1), fSlice(0), 
+					   fCos(1), fSin(0), fZMin(-250), fZMax(250),fYMin(-250), fYMax(250),fSliceCos(1), fSliceSin(0),
 					   fRInnerMin(83.65), fRInnerMax(133.3), fROuterMin(133.5), fROuterMax(247.7),
 					   fTPCZMin(-250.), fTPCZMax(250), fArc(), fLine(), fPLine(), fMarker(), fBox(), fCrown(), fLatex()
 {
@@ -49,8 +51,8 @@ AliHLTTPCCADisplay::AliHLTTPCCADisplay() : TObject(), fYX(0), fZX(0), fAsk(1), f
 
 
 AliHLTTPCCADisplay::AliHLTTPCCADisplay( const AliHLTTPCCADisplay& ) 
-  : TObject(), fYX(0), fZX(0), fAsk(1), fSliceView(1), fSlice(0), 
-    fCos(1), fSin(0), fZMin(-250), fZMax(250),fSliceCos(1), fSliceSin(0),
+  : fYX(0), fZX(0), fAsk(1), fSliceView(1), fSlice(0), 
+    fCos(1), fSin(0), fZMin(-250), fZMax(250), fYMin(-250), fYMax(250), fSliceCos(1), fSliceSin(0),
     fRInnerMin(83.65), fRInnerMax(133.3), fROuterMin(133.5), fROuterMax(247.7),
     fTPCZMin(-250.), fTPCZMax(250), fArc(), fLine(), fPLine(), fMarker(), fBox(), fCrown(), fLatex()
 {
@@ -126,6 +128,8 @@ void AliHLTTPCCADisplay::SetTPCView()
   fSin = 0;
   fZMin = fTPCZMin;
   fZMax = fTPCZMax;
+  fYMin = -fROuterMax;
+  fYMax = fROuterMax;
 }
 
 void AliHLTTPCCADisplay::SetCurrentSlice( AliHLTTPCCATracker *slice )
@@ -141,6 +145,8 @@ void AliHLTTPCCADisplay::SetCurrentSlice( AliHLTTPCCATracker *slice )
     ClearView();
     Double_t r0 = .5*(slice->Param().RMax()+slice->Param().RMin());
     Double_t dr = .5*(slice->Param().RMax()-slice->Param().RMin());
+    fYMin = -dr;
+    fYMax = dr;
     Double_t cx = 0;
     Double_t cy = r0;    
     Double_t cz = .5*(slice->Param().ZMax()+slice->Param().ZMin());
@@ -160,56 +166,6 @@ void AliHLTTPCCADisplay::SetCurrentSlice( AliHLTTPCCATracker *slice )
    }
 }
 
-void AliHLTTPCCADisplay::Set2Slices( AliHLTTPCCATracker *slice )
-{
-  //* Set view for two neighbouring slices
-
-  fSlice = slice;
-  fSliceView = 0;
-  fCos = TMath::Cos(TMath::Pi()/2 - (slice->Param().Alpha()+10./180.*TMath::Pi()));
-  fSin = TMath::Sin(TMath::Pi()/2 - (slice->Param().Alpha()+10./180.*TMath::Pi()));
-  fZMin = slice->Param().ZMin();
-  fZMax = slice->Param().ZMax();
-  ClearView();
-  Double_t r0 = .5*(slice->Param().RMax()+slice->Param().RMin());
-  Double_t dr = .5*(slice->Param().RMax()-slice->Param().RMin());
-  Double_t cx = 0;
-  Double_t cy = r0;    
-  fYX->Range(cx-1.3*dr, cy-1.1*dr, cx+1.3*dr, cy+1.1*dr);
-  fYX->cd();
-  Int_t islice = slice->Param().ISlice();
-  Int_t jslice = slice->Param().ISlice()+1;
-  if( islice==17 ) jslice = 0;
-  else if( islice==35 ) jslice = 18;
-  fLatex.DrawLatex(cx-1.3*dr+1.3*dr*.05,cy-dr+dr*.05, Form("YX, Slices %2i/%2i",islice,jslice));
-  Double_t cz = .5*(slice->Param().ZMax()+slice->Param().ZMin());
-  Double_t dz = .5*(slice->Param().ZMax()-slice->Param().ZMin())*1.2;
-  fZX->Range(cz-dz, cy-1.1*dr, cz+dz, cy+1.1*dr);//+dr);
-  fZX->cd();  
-  fLatex.DrawLatex(cz-dz+dz*.05,cy-dr+dr*.05, Form("ZX, Slices %2i/%2i",islice,jslice));
-}
-
-
-Int_t AliHLTTPCCADisplay::GetColor( Double_t z ) const 
-{
-  // Get color with respect to Z coordinate
-  const Color_t kMyColor[11] = { kGreen, kBlue, kYellow, kMagenta, kCyan, 
-				 kOrange, kSpring, kTeal, kAzure, kViolet, kPink };
-
-  Double_t zz = (z-fZMin)/(fZMax-fZMin);    
-  Int_t iz = (int) (zz*11);
-  if( iz<0 ) iz = 0;
-  if( iz>10 ) iz = 10;
-  return kMyColor[iz];
-}
-
-void AliHLTTPCCADisplay::Global2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const
-{
-  // convert coordinates global->view
-  *xv = x*fCos + y*fSin;
-  *yv = y*fCos - x*fSin;
-}
-
 void AliHLTTPCCADisplay::SetSliceTransform( Double_t alpha )
 {
   fSliceCos = TMath::Cos( alpha );
@@ -219,15 +175,6 @@ void AliHLTTPCCADisplay::SetSliceTransform( Double_t alpha )
 void AliHLTTPCCADisplay::SetSliceTransform( AliHLTTPCCATracker *slice )
 {
   SetSliceTransform(slice->Param().Alpha());
-}
-
-void AliHLTTPCCADisplay::Slice2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const
-{
-  // convert coordinates slice->view
-  Double_t xg = x*fSliceCos - y*fSliceSin;
-  Double_t yg = y*fSliceCos + x*fSliceSin;
-  *xv = xg*fCos - yg*fSin;
-  *yv = yg*fCos + xg*fSin;
 }
 
 
@@ -288,14 +235,404 @@ void AliHLTTPCCADisplay::DrawSlice( AliHLTTPCCATracker *slice )
 }
 
 
+void AliHLTTPCCADisplay::Set2Slices( AliHLTTPCCATracker *slice )
+{
+  //* Set view for two neighbouring slices
+
+  fSlice = slice;
+  fSliceView = 0;
+  fCos = TMath::Cos(TMath::Pi()/2 - (slice->Param().Alpha()+10./180.*TMath::Pi()));
+  fSin = TMath::Sin(TMath::Pi()/2 - (slice->Param().Alpha()+10./180.*TMath::Pi()));
+  fZMin = slice->Param().ZMin();
+  fZMax = slice->Param().ZMax();
+  ClearView();
+  Double_t r0 = .5*(slice->Param().RMax()+slice->Param().RMin());
+  Double_t dr = .5*(slice->Param().RMax()-slice->Param().RMin());
+  Double_t cx = 0;
+  Double_t cy = r0;    
+  fYX->Range(cx-1.3*dr, cy-1.1*dr, cx+1.3*dr, cy+1.1*dr);
+  fYX->cd();
+  Int_t islice = slice->Param().ISlice();
+  Int_t jslice = slice->Param().ISlice()+1;
+  if( islice==17 ) jslice = 0;
+  else if( islice==35 ) jslice = 18;
+  fLatex.DrawLatex(cx-1.3*dr+1.3*dr*.05,cy-dr+dr*.05, Form("YX, Slices %2i/%2i",islice,jslice));
+  Double_t cz = .5*(slice->Param().ZMax()+slice->Param().ZMin());
+  Double_t dz = .5*(slice->Param().ZMax()-slice->Param().ZMin())*1.2;
+  fZX->Range(cz-dz, cy-1.1*dr, cz+dz, cy+1.1*dr);//+dr);
+  fZX->cd();  
+  fLatex.DrawLatex(cz-dz+dz*.05,cy-dr+dr*.05, Form("ZX, Slices %2i/%2i",islice,jslice));
+}
+
+
+Int_t AliHLTTPCCADisplay::GetColor( Double_t z ) const 
+{
+  // Get color with respect to Z coordinate
+  const Color_t kMyColor[11] = { kGreen, kBlue, kYellow, kMagenta, kCyan, 
+				 kOrange, kSpring, kTeal, kAzure, kViolet, kPink };
+
+  Double_t zz = (z-fZMin)/(fZMax-fZMin);    
+  Int_t iz = (int) (zz*11);
+  if( iz<0 ) iz = 0;
+  if( iz>10 ) iz = 10;
+  return kMyColor[iz];
+}
+
+Int_t AliHLTTPCCADisplay::GetColorY( Double_t y ) const 
+{
+  // Get color with respect to Z coordinate
+  const Color_t kMyColor[11] = { kGreen, kBlue, kYellow, kMagenta, kCyan, 
+				 kOrange, kSpring, kTeal, kAzure, kViolet, kPink };
+
+  Double_t yy = (y-fYMin)/(fYMax-fYMin);    
+  Int_t iy = (int) (yy*11);
+  if( iy<0 ) iy = 0;
+  if( iy>10 ) iy = 10;
+  return kMyColor[iy];
+}
+
+Int_t AliHLTTPCCADisplay::GetColorK( Double_t k ) const 
+{
+  // Get color with respect to Z coordinate
+  const Color_t kMyColor[11] = { kRed, kBlue, kYellow, kMagenta, kCyan, 
+				 kOrange, kSpring, kTeal, kAzure, kViolet, kPink };
+  const Double_t kCLight = 0.000299792458;  
+  const Double_t kBz = 5;
+  Double_t k2QPt = 100;
+  if( TMath::Abs(kBz)>1.e-4 ) k2QPt= 1./(kBz*kCLight);
+  Double_t qPt = k*k2QPt;
+  Double_t pt = 100;
+  if( TMath::Abs(qPt) >1.e-4 ) pt = 1./TMath::Abs(qPt);
+  
+  Double_t yy = (pt-0.1)/(1.-0.1);
+  Int_t iy = (int) (yy*11);
+  if( iy<0 ) iy = 0;
+  if( iy>10 ) iy = 10;
+  return kMyColor[iy];
+}
+
+void AliHLTTPCCADisplay::Global2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const
+{
+  // convert coordinates global->view
+  *xv = x*fCos + y*fSin;
+  *yv = y*fCos - x*fSin;
+}
+
+
+void AliHLTTPCCADisplay::Slice2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const
+{
+  // convert coordinates slice->view
+  Double_t xg = x*fSliceCos - y*fSliceSin;
+  Double_t yg = y*fSliceCos + x*fSliceSin;
+  *xv = xg*fCos - yg*fSin;
+  *yv = yg*fCos + xg*fSin;
+}
+
+
+void AliHLTTPCCADisplay::DrawGBHit( AliHLTTPCCAGBTracker &tracker, Int_t iHit, Int_t color )
+{
+  // draw hit
+  AliHLTTPCCAGBHit &h = tracker.Hits()[iHit];
+  AliHLTTPCCATracker &slice = tracker.Slices()[h.ISlice()];
+  SetSliceTransform(&slice);
+
+  if( color<0 ) color = GetColor( h.Z() );
+  
+  fMarker.SetMarkerSize(.3);
+  fMarker.SetMarkerColor(color);
+  Double_t vx, vy;
+  Slice2View( h.X(), h.Y(), &vx, &vy );  
+  
+  fYX->cd();
+  fMarker.DrawMarker(vx, vy);
+  fZX->cd();  
+  fMarker.DrawMarker(h.Z(), vy); 
+}
+
+void AliHLTTPCCADisplay::DrawGBTrack( AliHLTTPCCAGBTracker &tracker, Int_t itr, Int_t color )
+{
+  // draw global track
+  
+  AliHLTTPCCAGBTrack &track = tracker.Tracks()[itr];
+  if( track.NHits()<2 ) return;
+  Int_t width = 1;
+
+  AliHLTTPCCADisplayTmpHit vHits[track.NHits()];
+  AliHLTTPCCATrackParam t = track.Param();
+  
+  for( Int_t ih=0; ih<track.NHits(); ih++ ){
+    Int_t i = tracker.TrackHits()[ track.FirstHitRef() + ih];
+    AliHLTTPCCAGBHit *h = &(tracker.Hits()[i]);
+    vHits[ih].ID() = i;
+    vHits[ih].S() = 0;
+    vHits[ih].Z() = h->Z();
+  }  
+  
+  //sort(vHits, vHits + track.NHits(), AliHLTTPCCADisplayTmpHit::CompareHitZ );
+  Int_t colorY = color;
+
+  {
+    AliHLTTPCCAGBHit &h1 = tracker.Hits()[ vHits[0].ID()];
+    AliHLTTPCCAGBHit &h2 = tracker.Hits()[ vHits[track.NHits()-1].ID()];
+    if( color<0 ) color = GetColor( (h1.Z()+h2.Z())/2. );
+    Double_t gx1, gy1, gx2, gy2;
+    Slice2View(h1.X(), h1.Y(), &gx1, &gy1 );
+    Slice2View(h2.X(), h2.Y(), &gx2, &gy2 );
+    if( colorY<0 ) colorY = GetColorY( (gy1+gy2)/2. );
+    color = colorY = GetColorK(t.GetKappa());
+  }
+
+  //fMarker.SetMarkerColor(color);//kBlue);
+  //fMarker.SetMarkerSize(1.);
+  fLine.SetLineColor(color);
+  fLine.SetLineWidth(width);    
+  fArc.SetFillStyle(0);
+  fArc.SetLineColor(color);    
+  fArc.SetLineWidth(width);        
+  TPolyLine pl;
+  pl.SetLineColor(color);
+  pl.SetLineWidth(width);
+  TPolyLine plZ;
+  plZ.SetLineColor(colorY);
+  plZ.SetLineWidth(width);
+
+  Int_t oldSlice = -1;
+  //Double_t alpha = track.Alpha();
+  Double_t px[track.NHits()], py[track.NHits()], pz[track.NHits()];
+
+  // YX
+  for( Int_t iHit=0; iHit<track.NHits()-1; iHit++ ){
+
+    AliHLTTPCCAGBHit &h1 = tracker.Hits()[vHits[iHit].ID()];
+    AliHLTTPCCAGBHit &h2 = tracker.Hits()[vHits[iHit+1].ID()];
+    Double_t vx1, vy1, vx2, vy2;
+    
+    if( h1.ISlice() != oldSlice ){
+      //t.Rotate( tracker.Slices()[h1.ISlice()].Param().Alpha() - alpha);
+      oldSlice = h1.ISlice();
+      //alpha = tracker.Slices()[h1.ISlice()].Param().Alpha();
+      SetSliceTransform( &(tracker.Slices()[oldSlice]) );
+    }
+    Float_t x1=h1.X(), y1=h1.Y(), z1=h1.Z();
+    //t.GetDCAPoint( x1, y1, z1, x1, y1, z1 );  
+    Slice2View(x1, y1, &vx1, &vy1 );
+    px[iHit] = vx1;
+    py[iHit] = vy1;
+    pz[iHit] = z1;
+
+    if( h2.ISlice() != oldSlice ){
+      //t.Rotate( tracker.Slices()[h2.ISlice()].Param().Alpha() - alpha);
+      oldSlice = h2.ISlice();
+      //alpha = tracker.Slices()[h2.ISlice()].Param().Alpha();
+      SetSliceTransform( &(tracker.Slices()[oldSlice]) );
+    }
+    Float_t x2=h2.X(), y2=h2.Y(), z2=h2.Z();
+    //t.GetDCAPoint( h2.X(), h2.Y(), h2.Z(), x2, y2, z2 );
+    Slice2View(x2, y2, &vx2, &vy2 );
+    px[iHit+1] = vx2;
+    py[iHit+1] = vy2;
+    pz[iHit+1] = z2;
+
+    continue;
+
+    Double_t x0 = t.GetX();
+    Double_t y0 = t.GetY();
+    Double_t sinPhi = t.GetSinPhi();
+    Double_t k = t.GetKappa();
+    Double_t ex = t.GetCosPhi();
+    Double_t ey = sinPhi;
+ 
+    if( TMath::Abs(k)>1.e-4 ){
+      
+      fYX->cd();
+
+      Double_t r = 1/TMath::Abs(k);
+      Double_t xc = x0 -ey*(1/k);
+      Double_t yc = y0 +ex*(1/k);
+     
+      Double_t vx, vy;
+      Slice2View( xc, yc, &vx, &vy );
+      
+      Double_t a1 = TMath::ATan2(vy1-vy, vx1-vx)/TMath::Pi()*180.;
+      Double_t a2 = TMath::ATan2(vy2-vy, vx2-vx)/TMath::Pi()*180.;
+      if( a1<0 ) a1+=360;
+      if( a2<0 ) a2+=360;
+      if( a2<a1 ) a2+=360;
+      Double_t da = TMath::Abs(a2-a1);
+      if( da>360 ) da-= 360;
+      if( da>180 ){
+	da = a1;
+	a1 = a2;
+	a2 = da;
+	if( a2<a1 ) a2+=360;	
+      }
+      fArc.DrawArc(vx,vy,r, a1,a2,"only");
+      //fArc.DrawArc(vx,vy,r, 0,360,"only");
+   } else {
+      fYX->cd();
+      fLine.DrawLine(vx1,vy1, vx2, vy2 );
+   }
+  }
+  
+  fYX->cd();
+  pl.DrawPolyLine(track.NHits(),px,py);    
+  fZX->cd();
+  plZ.DrawPolyLine(track.NHits(),pz,py);
+  
+  fLine.SetLineWidth(1);     
+}
+
+void AliHLTTPCCADisplay::DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, Int_t itr, Int_t color )
+{
+  // draw global track
+  
+  AliHLTTPCCAGBTrack &track = tracker.Tracks()[itr];
+  if( track.NHits()<2 ) return;
+  Int_t width = 1;
+
+  AliHLTTPCCADisplayTmpHit *vHits = new AliHLTTPCCADisplayTmpHit[track.NHits()];
+  AliHLTTPCCATrackParam &t = track.Param();
+  
+  for( Int_t ih=0; ih<track.NHits(); ih++ ){
+    Int_t i = tracker.TrackHits()[ track.FirstHitRef() + ih];
+    AliHLTTPCCAGBHit *h = &(tracker.Hits()[i]);
+    vHits[ih].ID() = i;
+    vHits[ih].S() = 0;
+    vHits[ih].Z() = h->Z();
+  }  
+
+  sort(vHits, vHits + track.NHits(), AliHLTTPCCADisplayTmpHit::CompareHitZ );
+  Int_t colorY = color;
+  {
+    AliHLTTPCCAGBHit &h1 = tracker.Hits()[ vHits[0].ID()];
+    AliHLTTPCCAGBHit &h2 = tracker.Hits()[ vHits[track.NHits()-1].ID()];
+    if( color<0 ) color = GetColor( (h1.Z()+h2.Z())/2. );
+    Double_t gx1, gy1, gx2, gy2;
+    Slice2View(h1.X(), h1.Y(), &gx1, &gy1 );
+    Slice2View(h2.X(), h2.Y(), &gx2, &gy2 );
+    if( colorY<0 ) colorY = GetColorY( (gy1+gy2)/2. );
+    color = colorY = GetColorK(t.GetKappa());
+  }
+
+  fMarker.SetMarkerColor(color);//kBlue);
+  fMarker.SetMarkerSize(1.);
+  fLine.SetLineColor(color);
+  fLine.SetLineWidth(width);    
+  fArc.SetFillStyle(0);
+  fArc.SetLineColor(color);    
+  fArc.SetLineWidth(width);        
+  TPolyLine pl;
+  pl.SetLineColor(colorY);
+  pl.SetLineWidth(width);
+
+  Int_t oldSlice = -1;
+  Double_t alpha = track.Alpha();
+  // YX
+  {
+
+    AliHLTTPCCAGBHit &h1 = tracker.Hits()[vHits[0].ID()];
+    AliHLTTPCCAGBHit &h2 = tracker.Hits()[vHits[track.NHits()-1].ID()];
+    Float_t x1, y1, z1, x2, y2, z2;
+    Double_t vx1, vy1, vx2, vy2;
+    
+    if( h1.ISlice() != oldSlice ){
+      t.Rotate( tracker.Slices()[h1.ISlice()].Param().Alpha() - alpha);
+      oldSlice = h1.ISlice();
+      alpha = tracker.Slices()[h1.ISlice()].Param().Alpha();
+      SetSliceTransform( &(tracker.Slices()[oldSlice]) );
+    }
+    t.GetDCAPoint( h1.X(), h1.Y(), h1.Z(), x1, y1, z1 );  
+    Slice2View(x1, y1, &vx1, &vy1 );
+
+    if( h2.ISlice() != oldSlice ){
+      t.Rotate( tracker.Slices()[h2.ISlice()].Param().Alpha() - alpha);
+      oldSlice = h2.ISlice();
+      alpha = tracker.Slices()[h2.ISlice()].Param().Alpha();
+      SetSliceTransform( &(tracker.Slices()[oldSlice]) );
+    }
+    t.GetDCAPoint( h2.X(), h2.Y(), h2.Z(), x2, y2, z2 );
+    Slice2View(x2, y2, &vx2, &vy2 );
+    
+    Double_t x0 = t.GetX();
+    Double_t y0 = t.GetY();
+    Double_t sinPhi = t.GetSinPhi();
+    Double_t k = t.GetKappa();
+    Double_t ex = t.GetCosPhi();
+    Double_t ey = sinPhi;
+ 
+    if( TMath::Abs(k)>1.e-4 ){
+      
+      fYX->cd();
+
+      Double_t r = 1/TMath::Abs(k);
+      Double_t xc = x0 -ey*(1/k);
+      Double_t yc = y0 +ex*(1/k);
+     
+      Double_t vx, vy;
+      Slice2View( xc, yc, &vx, &vy );
+      
+      Double_t a1 = TMath::ATan2(vy1-vy, vx1-vx)/TMath::Pi()*180.;
+      Double_t a2 = TMath::ATan2(vy2-vy, vx2-vx)/TMath::Pi()*180.;
+      if( a1<0 ) a1+=360;
+      if( a2<0 ) a2+=360;
+      if( a2<a1 ) a2+=360;
+      Double_t da = TMath::Abs(a2-a1);
+      if( da>360 ) da-= 360;
+      if( da>180 ){
+	da = a1;
+	a1 = a2;
+	a2 = da;
+	if( a2<a1 ) a2+=360;	
+      }
+      fArc.DrawArc(vx,vy,r, a1,a2,"only");
+      //fArc.DrawArc(vx,vy,r, 0,360,"only");
+   } else {
+      fYX->cd();
+      fLine.DrawLine(vx1,vy1, vx2, vy2 );
+    }
+  }
+
+  // ZX
+  Double_t py[track.NHits()], pz[track.NHits()];
+
+  for( Int_t iHit=0; iHit<track.NHits(); iHit++ ){
+
+    AliHLTTPCCAGBHit &h1 = tracker.Hits()[vHits[iHit].ID()];
+    Float_t x1, y1, z1;
+    Double_t vx1, vy1;    
+    if( h1.ISlice() != oldSlice ){
+      t.Rotate( tracker.Slices()[h1.ISlice()].Param().Alpha() - alpha);
+      oldSlice = h1.ISlice();
+      alpha = tracker.Slices()[h1.ISlice()].Param().Alpha();
+      SetSliceTransform( &(tracker.Slices()[oldSlice]) );
+    }
+    t.GetDCAPoint( h1.X(), h1.Y(), h1.Z(), x1, y1, z1 );  
+    Slice2View(x1, y1, &vx1, &vy1 );
+    py[iHit] = vy1;
+    pz[iHit] = z1;
+  }
+
+
+  fZX->cd();
+  pl.DrawPolyLine(track.NHits(),pz,py);    
+  
+  fLine.SetLineWidth(1);     
+  delete[] vHits;  
+}
+
+
+
+#ifdef XXXX
+
+
 void AliHLTTPCCADisplay::DrawHit( Int_t iRow, Int_t iHit, Int_t color )
 {
   // draw hit
   if( !fSlice ) return;
   AliHLTTPCCARow &row = fSlice->Rows()[iRow];
-  AliHLTTPCCAHit *h = &(row.Hits()[iHit]);
+  AliHLTTPCCAHit *h = &(fSlice->Hits()[row.FirstHit()+iHit]);
   if( color<0 ) color = GetColor( h->Z() );
-
+  
   //Double_t dgy = 3.5*TMath::Abs(h->ErrY()*fSlice->Param().CosAlpha() - fSlice->Param().ErrX()*fSlice->Param().SinAlpha() );
   Double_t dx = 0.1;//fSlice->Param().ErrX()*TMath::Sqrt(12.)/2.;
   Double_t dy = 0.35;//h->ErrY()*3.5;
@@ -312,11 +649,11 @@ void AliHLTTPCCADisplay::DrawHit( Int_t iRow, Int_t iHit, Int_t color )
   fYX->cd();
   //if( fSliceView ) fArc.DrawEllipse( vx, vy, dvx, dvy, 0,360, 0);
   //else  fArc.DrawEllipse( vx, vy, dx, dy, 0,360, fSlice->Param().Alpha()*180./3.1415);
-  fMarker.DrawMarker(vx, vy);
+  fMarker.DrawMarker(vy, vx);
   fZX->cd();
   //if( fSliceView ) fArc.DrawEllipse( h->Z(), vy, dz, dvy, 0,360, 0 );
   //else fArc.DrawEllipse( h->Z(), vy, dz, dgy, 0,360, fSlice->Param().Alpha()*180./3.1415);
-  fMarker.DrawMarker(h->Z(), vy); 
+  fMarker.DrawMarker(h->Z(), vx); 
 }
 
 
@@ -395,16 +732,16 @@ void AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrack &track, Int_t color, Bool_t
   // draw track
   
   if( track.NHits()<2 ) return;
-  int width = 2;
+  Int_t width = 2;
 
   AliHLTTPCCADisplayTmpHit *vHits = new AliHLTTPCCADisplayTmpHit[track.NHits()];
   AliHLTTPCCATrackParam &t = track.Param();
 
   Int_t iID = track.FirstHitID();
-  int nhits = 0;
+  Int_t nhits = 0;
   { 
     Int_t iHit = 0;
-    for( int ih=0; ih<track.NHits(); ih++ ){
+    for( Int_t ih=0; ih<track.NHits(); ih++ ){
       Int_t i = fSlice->TrackHits()[iID];
       AliHLTTPCCAHit *h = &(fSlice->ID2Hit( i )); 
       AliHLTTPCCARow &row = fSlice->ID2Row(i);
@@ -542,7 +879,7 @@ void AliHLTTPCCADisplay::DrawTrackletPoint( AliHLTTPCCATrackParam &t, Int_t colo
   Double_t ex = t.GetCosPhi();
   Double_t ey = sinPhi;
 
-  int width = 1;
+  Int_t width = 1;
 
   if( color<0 ) color = GetColor( t.GetZ() );
     

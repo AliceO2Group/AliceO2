@@ -26,7 +26,6 @@
 using namespace std;
 #endif
 
-#include <climits>
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCTransform.h"
 #include "AliHLTTPCCATracker.h"
@@ -141,7 +140,7 @@ AliHLTComponent* AliHLTTPCCATrackerComponent::Spawn()
   return new AliHLTTPCCATrackerComponent;
 }
 
-int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
+Int_t AliHLTTPCCATrackerComponent::DoInit( Int_t argc, const char** argv )
 {
   // Initialize the CA tracker component 
   //
@@ -160,7 +159,7 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
   
   // read command line
 
-  int i = 0;
+  Int_t i = 0;
   char* cpErr;
   while ( i < argc ){
     if ( !strcmp( argv[i], "solenoidBz" ) || !strcmp( argv[i], "-solenoidBz" ) ){
@@ -268,7 +267,7 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
   return 0;
 }
 
-int AliHLTTPCCATrackerComponent::DoDeinit()
+Int_t AliHLTTPCCATrackerComponent::DoDeinit()
 {
   // see header file for class documentation
   if ( fTracker ) delete fTracker;
@@ -284,7 +283,7 @@ Bool_t AliHLTTPCCATrackerComponent::CompareClusters(AliHLTTPCSpacePointData *a, 
   return (a->fZ < b->fZ);
 }
 
-int AliHLTTPCCATrackerComponent::DoEvent
+Int_t AliHLTTPCCATrackerComponent::DoEvent
 ( 
  const AliHLTComponentEventData& evtData, 
  const AliHLTComponentBlockData* blocks, 
@@ -428,7 +427,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   // min and max patch numbers and row numbers
 
   Int_t row[2] = {0,0};
-  Int_t minPatch=INT_MAX, maxPatch = -1;
+  Int_t minPatch=100, maxPatch = -1;
 
   // total n Hits
 
@@ -553,13 +552,13 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   AliHLTTPCTrackSegmentData* currOutTracklet = outPtr->fTracklets;
 
-  Int_t ntracks = fTracker->NOutTracks();
+  Int_t ntracks = *fTracker->NOutTracks();
 
   UInt_t mySize =   ((AliHLTUInt8_t *)currOutTracklet) -  ((AliHLTUInt8_t *)outputPtr);
 
   outPtr->fTrackletCnt = 0; 
 
-  for( int itr=0; itr<ntracks; itr++ ){
+  for( Int_t itr=0; itr<ntracks; itr++ ){
     
     AliHLTTPCCAOutTrack &t = fTracker->OutTracks()[itr];    
 

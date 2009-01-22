@@ -51,9 +51,9 @@ class AliHLT3DTrackParam :public TObject
   Int_t    GetNDF()    const { return fNDF;   }
   Int_t    GetCharge() const { return fSignQ; }
   
-  Double_t GetParameter ( int i ) const { return fParam[i]; }
-  Double_t GetCovariance( int i ) const { return fCov[i]; }
-  Double_t GetCovariance( int i, int j ) const { return fCov[( j<=i ) ? i*(i+1)/2+j :j*(j+1)/2+i]; }
+  Double_t GetParameter ( Int_t i ) const { return fParam[i]; }
+  Double_t GetCovariance( Int_t i ) const { return fCov[i]; }
+  Double_t GetCovariance( Int_t i, Int_t j ) const { return fCov[( j<=i ) ? i*(i+1)/2+j :j*(j+1)/2+i]; }
 
   //* Accessors with calculations( &value, &estimated sigma )
   //* error flag returned (0 means no error during calculations) 

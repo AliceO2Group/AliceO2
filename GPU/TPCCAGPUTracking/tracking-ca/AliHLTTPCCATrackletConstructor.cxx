@@ -18,39 +18,29 @@
 
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackParam.h"
-#include "AliHLTTPCCATrackParam1.h"
+#include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCAGrid.h"
 #include "AliHLTTPCCAHitArea.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATrackletConstructor.h"
 
-//GPUd() void myprintf1(int i, int j){
-  //printf("fwd: iS=%d, iRow=%d\n",i,j);
-//}
-//GPUd() void myprintf2(int i, int j){
-  //printf("bck: iS=%d, iRow=%d\n",i,j);
-//}
-
 
 GPUd() void AliHLTTPCCATrackletConstructor::Step0 
-( Int_t nBlocks, Int_t /*nThreads*/, Int_t iBlock, Int_t iThread, Int_t /*iSync*/,
-  AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &/*tParam*/ )
+( Int_t nBlocks, Int_t /*nThreads*/, Int_t iBlock, Int_t iThread,
+  AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &/*tParam*/ )
 {
   // reconstruction of tracklets, step 0
   
-  const Int_t kNMemThreads = 128;
-  
-  r.fIsMemThread = ( iThread<kNMemThreads );
-  if( iThread==0 ){	
-    int nTracks = tracker.StartHits()[0];
-    if(iBlock==0) *tracker.Tracklets() = nTracks;
-    int nTrPerBlock = nTracks/nBlocks+1;
+  r.fIsMemThread = ( iThread<NMemThreads() );
+  if( iThread==0 ){
+    Int_t nTracks = *tracker.NTracklets();
+    Int_t nTrPerBlock = nTracks/nBlocks+1;
     s.fNRows = tracker.Param().NRows();
     s.fItr0 = nTrPerBlock*iBlock;
     s.fItr1 = s.fItr0 + nTrPerBlock;
     if( s.fItr1> nTracks ) s.fItr1 = nTracks;
-    s.fUsedHits = tracker.HitIsUsed();
+    s.fUsedHits = tracker.HitWeights();
     s.fMinStartRow = 158;
     s.fMaxStartRow = 0;
   }
@@ -62,14 +52,12 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step0
 
 
 GPUd() void AliHLTTPCCATrackletConstructor::Step1 
-( Int_t /*nBlocks*/, Int_t /*nThreads*/, Int_t /*iBlock*/, Int_t iThread, Int_t /*iSync*/,
-  AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam )
+( Int_t /*nBlocks*/, Int_t /*nThreads*/, Int_t /*iBlock*/, Int_t iThread,
+  AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam )
 {
-  // reconstruction of tracklets, step 1
+  // reconstruction of tracklets, step 1  
 
-  const Int_t kNMemThreads = 128;
-
-  r.fItr= s.fItr0 + ( iThread - kNMemThreads ); 
+  r.fItr= s.fItr0 + ( iThread - NMemThreads() ); 
   r.fGo = (!r.fIsMemThread) && ( r.fItr<s.fItr1 );
   r.fSave = r.fGo;
   r.fNHits=0;
@@ -77,18 +65,19 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step1
   if( !r.fGo ) return;
   
   r.fStage = 0;
+  Int_t header = 5+ sizeof(AliHLTTPCCATrackParam)/sizeof(int);
+  r.fTrackStoreOffset = ( header + 160 )*r.fItr;  
+  r.fHitStoreOffset = r.fTrackStoreOffset + header;
   
-  r.fTrackStoreOffset = 1 + r.fItr*(5+ sizeof(AliHLTTPCCATrackParam)/4 + 160 );
-  r.fHitStoreOffset = r.fTrackStoreOffset + 5+ sizeof(AliHLTTPCCATrackParam)/4 ;
-  
-  int *hitstore = tracker.Tracklets() +r.fHitStoreOffset;
+  Int_t *hitstore = ((Int_t*) tracker.Tracklets()) +r.fHitStoreOffset;
   
   UInt_t kThread = iThread %32;//& 00000020;
-  if( SAVE() ) for( int i=0; i<160; i++ ) hitstore[i] = -1;
-  
-  int id = tracker.StartHits()[1 + r.fItr];
+  if( SAVE() ) for( Int_t i=0; i<160; i++ ) hitstore[i] = -1;
+    
+  Int_t id = tracker.TrackletStartHits()[r.fItr];
   r.fFirstRow = AliHLTTPCCATracker::ID2IRow(id);
   r.fCurrIH =  AliHLTTPCCATracker::ID2IHit(id);
+  
   CAMath::atomicMin( &s.fMinStartRow32[kThread], r.fFirstRow);    
   CAMath::atomicMax( &s.fMaxStartRow32[kThread], r.fFirstRow);    
   tParam.SinPhi() = 0;
@@ -118,76 +107,51 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step1
   tParam.Cov()[13] = 0;
   tParam.Cov()[14] = 1.;
 
-  r.fLastRow = r.fFirstRow;
+  r.fLastRow = r.fFirstRow;  
 }
 
 GPUd() void AliHLTTPCCATrackletConstructor::Step2 
-( Int_t /*nBlocks*/, Int_t /*nThreads*/, Int_t /*iBlock*/, Int_t iThread, Int_t /*iSync*/,
-  AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &/*r*/, AliHLTTPCCATracker &/*tracker*/, AliHLTTPCCATrackParam1 &/*tParam*/ )
+( Int_t /*nBlocks*/, Int_t nThreads, Int_t /*iBlock*/, Int_t iThread,
+  AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &/*r*/, AliHLTTPCCATracker &/*tracker*/, AliHLTTPCCATrackParam &/*tParam*/ )
 {  
   // reconstruction of tracklets, step 2
+  
   if( iThread==0 ){
     //CAMath::atomicMinGPU(&s.fMinRow, s.fMinRow32[iThread]);
-    int minStartRow = 158;
-    int maxStartRow = 0;
-    for( int i=0; i<32; i++ ){      
+    Int_t minStartRow = 158;
+    Int_t maxStartRow = 0;
+    Int_t n = (nThreads>32 ) ?32 :nThreads;
+    for( Int_t i=0; i<n; i++ ){      
       if( s.fMinStartRow32[i]<minStartRow ) minStartRow = s.fMinStartRow32[i];
       if( s.fMaxStartRow32[i]>maxStartRow ) maxStartRow = s.fMaxStartRow32[i];
     }   
     s.fMinStartRow = minStartRow;
     s.fMaxStartRow = maxStartRow;
-  }
+  } 
 }
 
 GPUd() void AliHLTTPCCATrackletConstructor::ReadData 
 ( Int_t iThread, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, Int_t iRow )
-{  
-
+{    
   // reconstruction of tracklets, read data step
-  const Int_t kNMemThreads = 128;
+
   if( r.fIsMemThread ){
     AliHLTTPCCARow &row = tracker.Rows()[iRow];
-    bool jr = !r.fCurrentData;
+    Bool_t jr = !r.fCurrentData;
     Int_t n = row.FullSize();
-    uint4* gMem = tracker.TexHitsFullData() + row.FullOffset();
+    uint4* gMem = tracker.RowData() + row.FullOffset();
     uint4 *sMem = s.fData[jr];
-    for( int i=iThread; i<n; i+=kNMemThreads ) sMem[i] = gMem[i];
-  }
-}
-
-
-GPUd() void AliHLTTPCCATrackletConstructor::UnpackGrid 
-( Int_t /*nBlocks*/, Int_t nThreads, Int_t /*iBlock*/, Int_t iThread, Int_t /*iSync*/,
-  AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &/*tParam*/,Int_t iRow )
-{
-  // reconstruction of tracklets, grid unpacking step
-
-  AliHLTTPCCARow &row = tracker.Rows()[iRow];
-  int n = row.Grid().N()+1;
-  int nY = row.Grid().Ny();
-  uint4 *tmpint4 = s.fData[r.fCurrentData];
-  UShort_t *sGridP = (reinterpret_cast<UShort_t*>(tmpint4)) + row.FullGridOffset();
-  
-  UInt_t *sGrid = s.fGridContent1;      
-
-  for( int i=iThread; i<n; i+=nThreads ){
-    UInt_t s0 = sGridP[i];
-    UInt_t e0 = sGridP[i+2];
-    UInt_t s1 = sGridP[i+nY];
-    UInt_t e1 = sGridP[i+nY+2];
-    UInt_t nh0 = e0-s0;
-    UInt_t nh1 = e1-s1;
-    sGrid[i] = (nh1<<26)+(s1<<16)+( nh0<<10 ) + s0;
-  }
+    for( Int_t i=iThread; i<n; i+=NMemThreads() ) sMem[i] = gMem[i];
+  } 
 }
 
 
 GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet 
-( Int_t /*nBlocks*/, Int_t /*nThreads*/, Int_t /*iBlock*/, Int_t /*iThread*/, Int_t /*iSync*/,
-  AliHLTTPCCASharedMemory &/*s*/, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam )
+( Int_t /*nBlocks*/, Int_t /*nThreads*/, Int_t /*iBlock*/, Int_t /*iThread*/,
+  AliHLTTPCCASharedMemory &/*s*/, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam )
 {    
   // reconstruction of tracklets, tracklet store step
-
+  
   if( !r.fSave ) return;
 
   do{ 
@@ -199,8 +163,8 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
     {  
       Bool_t ok=1;
       Float_t *c = tParam.Cov();
-      for( int i=0; i<15; i++ ) ok = ok && CAMath::Finite(c[i]);
-      for( int i=0; i<5; i++ ) ok = ok && CAMath::Finite(tParam.Par()[i]);
+      for( Int_t i=0; i<15; i++ ) ok = ok && CAMath::Finite(c[i]);
+      for( Int_t i=0; i<5; i++ ) ok = ok && CAMath::Finite(tParam.Par()[i]);
       ok = ok && (tParam.X()>50);
       
       if( c[0]<=0 || c[2]<=0 || c[5]<=0 || c[9]<=0 || c[14]<=0 ) ok = 0;      
@@ -214,46 +178,46 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
  
   if( !SAVE() ) return;
     
-  int *store = tracker.Tracklets() + r.fTrackStoreOffset;
-  int *hitstore = tracker.Tracklets() +r.fHitStoreOffset;
+  Int_t *store = ((Int_t*)tracker.Tracklets()) + r.fTrackStoreOffset;
+  Int_t *hitstore = ((Int_t*)tracker.Tracklets()) +r.fHitStoreOffset;
   store[0] = r.fNHits;
   
   if( r.fNHits>0 ){
     store[3] = r.fFirstRow;
     store[4] = r.fLastRow;   
     if( CAMath::Abs(tParam.Par()[4])<1.e-8 ) tParam.Par()[4] = 1.e-8;
-    *((AliHLTTPCCATrackParam1*)(store+5)) = tParam;
-    int w = (r.fNHits<<16)+r.fItr;
-    for( int iRow=0; iRow<160; iRow++ ){
+    *((AliHLTTPCCATrackParam*)(store+5)) = tParam;
+    Int_t w = (r.fNHits<<16)+r.fItr;
+    for( Int_t iRow=0; iRow<160; iRow++ ){
       Int_t ih = hitstore[iRow];
       if( ih>=0 ){
-	int ihTot = tracker.Rows()[iRow].FirstHit() + ih;
-	CAMath::atomicMax( tracker.HitIsUsed() + ihTot, w );
+	Int_t ihTot = tracker.Rows()[iRow].FirstHit() + ih;
+	CAMath::atomicMax( tracker.HitWeights() + ihTot, w );
       }
     }
   }  
 }
 
 GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
-( Int_t /*nBlocks*/, Int_t /*nThreads*/, Int_t /*iBlock*/, Int_t /*iThread*/, Int_t /*iSync*/,
-    AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam,Int_t iRow )
-{
+( Int_t /*nBlocks*/, Int_t /*nThreads*/, Int_t /*iBlock*/, Int_t /*iThread*/,
+    AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam,Int_t iRow )
+{  
   // reconstruction of tracklets, tracklets update step
 
   if( !r.fGo ) return;
 	  
   const Int_t kMaxRowGap = 5;	
   
-  int *hitstore = tracker.Tracklets() +r.fHitStoreOffset;
+  Int_t *hitstore = ((Int_t*) tracker.Tracklets()) +r.fHitStoreOffset;
   
   AliHLTTPCCARow &row = tracker.Rows()[iRow];
   
-  float y0 = row.Grid().YMin();
-  float stepY = row.HstepY();
-  float z0 = row.Grid().ZMin();
-  float stepZ = row.HstepZ();
-  float stepYi = row.HstepYi();
-  float stepZi = row.HstepZi();	  
+  Float_t y0 = row.Grid().YMin();
+  Float_t stepY = row.HstepY();
+  Float_t z0 = row.Grid().ZMin();
+  Float_t stepZ = row.HstepZ();
+  Float_t stepYi = row.HstepYi();
+  Float_t stepZi = row.HstepZi();	  
   
   if( r.fStage == 0 ){ // fitting part	    
     do{
@@ -266,15 +230,15 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       Int_t oldIH = r.fCurrIH;
       r.fCurrIH = reinterpret_cast<Short_t*>(tmpint4)[row.FullLinkOffset() + r.fCurrIH];	  
       
-      float x = row.X();
-      float y = y0 + hh.x*stepY;
-      float z = z0 + hh.y*stepZ;
+      Float_t x = row.X();
+      Float_t y = y0 + hh.x*stepY;
+      Float_t z = z0 + hh.y*stepZ;
      
       if( iRow==r.fFirstRow ){
 	tParam.X() = x;
 	tParam.Y() = y;
 	tParam.Z() = z;
-	float err2Y, err2Z;	  
+	Float_t err2Y, err2Z;	  
  	tracker.GetErrors2( iRow, tParam, err2Y, err2Z );
 	tParam.Cov()[0] = err2Y;
 	tParam.Cov()[2] = err2Z;
@@ -283,9 +247,9 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	  if( SAVE() ) hitstore[iRow] = -1; 
 	  break; 
 	}
-	float err2Y, err2Z;
+	Float_t err2Y, err2Z;
 	tracker.GetErrors2( iRow, *((AliHLTTPCCATrackParam*)&tParam), err2Y, err2Z );
-	if( !tParam.Filter2( y, z, err2Y, err2Z, .95 ) ) { 
+	if( !tParam.Filter20( y, z, err2Y, err2Z, .95 ) ) { 
 	  if( SAVE() ) hitstore[iRow] = -1; 
 	  break; 
 	}	   
@@ -311,16 +275,15 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	
 	r.fNMissed++;	
 	
-	float x = row.X();
-	float err2Y, err2Z;
+	Float_t x = row.X();
+	Float_t err2Y, err2Z;
 	if( !tParam.TransportToX0( x, .95 ) ) break;
 	uint4 *tmpint4 = s.fData[r.fCurrentData];   
 
 	ushort2 *hits = reinterpret_cast<ushort2*>(tmpint4);
-	UInt_t *gridContent1 = ((UInt_t*)(s.fGridContent1));
-	
-	float fY = tParam.GetY();
-	float fZ = tParam.GetZ();
+		
+	Float_t fY = tParam.GetY();
+	Float_t fZ = tParam.GetZ();
 	Int_t best = -1;		
 	
 	{ // search for the closest hit
@@ -335,12 +298,16 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	  UInt_t fHitYfst=1, fHitYlst=0, fHitYfst1=1, fHitYlst1=0;
 	  
 	  fIndYmin = row.Grid().GetBin( (float)(fY-1.), (float)(fZ-1.) );
-	  UInt_t c = gridContent1[fIndYmin];
-	  fHitYfst = c & 0x000003FF;
-	  fHitYlst = fHitYfst + ((c & 0x0000FC00)>>10);
-	  fHitYfst1 = ( c & 0x03FF0000 )>>16;
-	  fHitYlst1 = fHitYfst1 + ((c & 0xFC000000)>>26);	  
-	 
+
+	  {	  	    
+	    Int_t nY = row.Grid().Ny();
+	    UShort_t *sGridP = (reinterpret_cast<UShort_t*>(tmpint4)) + row.FullGridOffset();
+	    fHitYfst = sGridP[fIndYmin];
+	    fHitYlst = sGridP[fIndYmin+2];
+	    fHitYfst1 = sGridP[fIndYmin+nY];
+	    fHitYlst1 = sGridP[fIndYmin+nY+2];
+	  }
+	  
 	  for( UInt_t fIh = fHitYfst; fIh<fHitYlst; fIh++ ){
 	    ushort2 hh = hits[fIh];	  
 	    Int_t ddy = (Int_t)(hh.x) - fY0;
@@ -370,10 +337,10 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	
 	tracker.GetErrors2( iRow, *((AliHLTTPCCATrackParam*)&tParam), err2Y, err2Z );
 	
-	float y = y0 + hh.x*stepY;
-	float z = z0 + hh.y*stepZ;
-	float dy = y - fY;
-	float dz = z - fZ;	  
+	Float_t y = y0 + hh.x*stepY;
+	Float_t z = z0 + hh.y*stepZ;
+	Float_t dy = y - fY;
+	Float_t dz = z - fZ;	  
 	
 	const Float_t kFactor = 3.5*3.5;
 	Float_t sy2 = kFactor*( tParam.GetErr2Y() +  err2Y );
@@ -388,7 +355,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	
 	if( CAMath::fmul_rz(dy,dy)>sy2 || CAMath::fmul_rz(dz,dz)>sz2  ) break;
 	
-	if( !tParam.Filter2( y, z, err2Y, err2Z, .95 ) ) break;
+	if( !tParam.Filter20( y, z, err2Y, err2Z, .95 ) ) break;
 
 	if( SAVE() ) hitstore[ iRow ] = best;
 	r.fNHits++;          
@@ -401,21 +368,21 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
 GPUd() void AliHLTTPCCATrackletConstructor::Thread
 ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
-  AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam )
+  AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam )
 {    
 
   // reconstruction of tracklets
   if( iSync==0 )
     {  
-      Step0( nBlocks, nThreads, iBlock, iThread, iSync, s, r, tracker, tParam );
+      Step0( nBlocks, nThreads, iBlock, iThread, s, r, tracker, tParam );
     }
   else if( iSync==1 )
     { 
-      Step1( nBlocks, nThreads, iBlock, iThread, iSync, s, r, tracker, tParam );
+      Step1( nBlocks, nThreads, iBlock, iThread, s, r, tracker, tParam );
     }
   else if( iSync==2 )
     {
-      Step2( nBlocks, nThreads, iBlock, iThread, iSync, s, r, tracker, tParam );
+      Step2( nBlocks, nThreads, iBlock, iThread, s, r, tracker, tParam );
     }
   
   else if( iSync==3 )
@@ -426,8 +393,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
       r.fCurrentData = 0;
       r.fNMissed = 0;           
     }
-  else if( iSync==3+159*2+1 )//322
-    
+  else if( iSync==3+159 +1 )    
     {
       r.fCurrentData = 1;
       Int_t nextRow = s.fMaxStartRow-1;
@@ -438,42 +404,33 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
       r.fStage = 2;
     }
   
-  else if( iSync<=3+159*2+1+159*2+1 )
-    
+  else if( iSync<=3+159+1+159 )    
     {      
-      int iRow, nextRow;
-      if(  iSync<=3+159*2 ){
-	iRow = (iSync -4)/2;
-	//if( iBlock==0 && iThread==0 ) myprintf1(iSync,iRow);      
+      Int_t iRow, nextRow;
+      if(  iSync<=3+159 ){
+	iRow = iSync - 4;
 	if( iRow < s.fMinStartRow ) return;
 	nextRow = iRow+1;
 	if( nextRow>158 ) nextRow = 158;
       }else{
- 	iRow = 159 - (iSync - 4-159*2)/2;
-	//if( iBlock==0 && iThread==0 ) myprintf2(iSync,iRow);      
+ 	iRow = 158 - (iSync - 4-159-1);
 	if( iRow >= s.fMaxStartRow ) return;
 	nextRow = iRow-1;
  	if( nextRow<0 ) nextRow = 0;
       }
       
-      if( iSync%2==0 ){
-	UnpackGrid( nBlocks, nThreads, iBlock, iThread, iSync,
-		    s, r, tracker, tParam, iRow );    
-      }else{	
-	if( r.fIsMemThread ){
-	  ReadData( iThread, s, r, tracker, nextRow );  
-	}else{
-	  UpdateTracklet( nBlocks, nThreads, iBlock, iThread, iSync,
-			  s, r, tracker, tParam, iRow );
-	}
-	r.fCurrentData = !r.fCurrentData;
-      }      
+      if( r.fIsMemThread ){
+	ReadData( iThread, s, r, tracker, nextRow );  
+      }else{
+	UpdateTracklet( nBlocks, nThreads, iBlock, iThread,
+			s, r, tracker, tParam, iRow );
+      }
+      r.fCurrentData = !r.fCurrentData;          
     }    
   
-  else if( iSync== 4+159*4 +1+1+1 ) // 642
-    
+  else if( iSync== 4+159*2 +1+1 ) //     
     {
-      StoreTracklet( nBlocks, nThreads, iBlock, iThread, iSync, //SG!!!
+      StoreTracklet( nBlocks, nThreads, iBlock, iThread, 
 		     s, r, tracker, tParam );
     }
 }

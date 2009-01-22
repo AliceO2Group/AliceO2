@@ -14,6 +14,7 @@
 class AliHLTTPCCAHit;
 class AliHLTTPCCAGrid;
 class AliHLTTPCCATracker;
+class AliHLTTPCCARow;
 
 /**
  * @class ALIHLTTPCCAHitArea
@@ -23,9 +24,9 @@ class AliHLTTPCCAHitArea
 {
 public:
   
-  GPUd() void Init( AliHLTTPCCATracker &tracker, AliHLTTPCCAGrid &grid, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz );
-  GPUd() Int_t GetNext(AliHLTTPCCATracker &tracker, AliHLTTPCCAHit &h);
-  GPUd() Int_t GetBest(AliHLTTPCCATracker &tracker, AliHLTTPCCAHit &h );
+  GPUd() void Init( AliHLTTPCCAGrid &grid, UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz );
+  GPUd() Int_t GetNext(AliHLTTPCCATracker &tracker, AliHLTTPCCARow &row, UShort_t *content,AliHLTTPCCAHit &h);
+  GPUd() Int_t GetBest(AliHLTTPCCATracker &tracker, AliHLTTPCCARow &row, UShort_t *content,AliHLTTPCCAHit &h );
 
   GPUhd() Float_t& Y(){ return fY;}
   GPUhd() Float_t& Z(){ return fZ;}
@@ -41,14 +42,12 @@ public:
   GPUhd() UInt_t&  HitYlst(){ return fHitYlst;}
   GPUhd() UInt_t&  Ih(){ return fIh;}
   GPUhd() UInt_t&  Ny(){ return fNy;}
-  GPUhd() UInt_t&  N2(){ return fn2;}
-  GPUhd() UInt_t&  C2(){ return fc2;}
   GPUhd() UInt_t&  HitOffset(){ return fHitOffset;}
 
   protected:
 
   Float_t fY, fZ, fMinZ, fMaxZ, fMinY, fMaxY;    // search coordinates
-  UInt_t fBZmax, fBDY, fIndYmin, fIz, fHitYfst, fHitYlst, fIh, fNy, fn2, fc2; // !
+  UInt_t fBZmax, fBDY, fIndYmin, fIz, fHitYfst, fHitYlst, fIh, fNy; // !
   UInt_t fHitOffset; // global hit offset
 };
 

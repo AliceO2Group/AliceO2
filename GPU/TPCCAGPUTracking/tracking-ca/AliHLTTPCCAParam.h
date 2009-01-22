@@ -10,11 +10,7 @@
 
 #include "AliHLTTPCCADef.h"
 
-#if defined( HLTCA_STANDALONE )
-#include <iostream.h>
-#else
-#include "Riostream.h"
-#endif
+#include <iostream>
 
 
 /**
