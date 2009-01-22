@@ -75,7 +75,7 @@ class AliHLTTPCCATrackletConstructor
       Int_t fHitStoreOffset;   // offset in the global array
     };
 
-  GPUd() static Int_t NThreadSyncPoints(){ return 4+159*4 +1+1; }  
+  GPUd() static Int_t NThreadSyncPoints(){ return 4+159*4 +1+1+1; }  
 
   GPUd() static void Thread( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, 
 			     Int_t iSync, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, 
