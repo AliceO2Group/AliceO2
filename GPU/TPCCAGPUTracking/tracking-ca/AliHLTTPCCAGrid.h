@@ -49,8 +49,6 @@ class AliHLTTPCCAGrid
   GPUd() Float_t ZMax() const { return fZMax; }
   GPUd() Float_t StepYInv() const { return fStepYInv; }
   GPUd() Float_t StepZInv() const { return fStepZInv; }
-  GPUhd() UInt_t &Content2() { return fContent2;}
-  GPUhd() UInt_t &Offset() { return fOffset;}    
 
   private:
 
@@ -64,8 +62,6 @@ class AliHLTTPCCAGrid
   Float_t fStepYInv; //* inverse bin size in Y
   Float_t fStepZInv; //* inverse bin size in Z
 
-  UInt_t fContent2;  //* content of the fN/2 bin [4 bytes ]
-  UInt_t fOffset;    //* offset of this Grid content in the common content array
 };
 
 #endif

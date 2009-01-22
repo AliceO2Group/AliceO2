@@ -30,14 +30,14 @@ void AliHLTTPCCAUsedHitsInitialiser::Thread
     {
       if( iThread==0 ){
 	s.fNHits = tracker.NHitsTotal();
-	s.fUsedHits = tracker.HitIsUsed();
+	s.fUsedHits = tracker.HitWeights();
 	s.fNThreadsTotal = nThreads*nBlocks;
 	s.fIh0 = nThreads*iBlock;
       }
     } 
   else if( iSync==1 )
     {
-      for( int ih=s.fIh0 + iThread; ih<s.fNHits; ih+=s.fNThreadsTotal ) s.fUsedHits[ih] = 0;	      
+      for( Int_t ih=s.fIh0 + iThread; ih<s.fNHits; ih+=s.fNThreadsTotal ) s.fUsedHits[ih] = 0;	      
     }
 }
 

@@ -89,6 +89,10 @@ class AliHLTTPCCATrackParam
   GPUd() Bool_t Rotate( Float_t alpha );
 
   GPUd() Bool_t Filter2( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z, Float_t maxSinPhi=.99 );
+
+  GPUd() Int_t TransportToX0( Float_t X, Float_t /*maxSinPhi*/ );
+  GPUd() Bool_t Filter20( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z, Float_t maxSinPhi=.99 );
+
   GPUd() Bool_t Filter2v1( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z, Float_t maxSinPhi=.99 );
   GPUd() void FilterY( Float_t y, Float_t erry );
   GPUd() void FilterZ( Float_t z, Float_t errz );

@@ -34,16 +34,16 @@ class AliHLTTPCCARow
   GPUhd() Float_t &MaxY()    { return fMaxY; }
   GPUhd() AliHLTTPCCAGrid &Grid(){ return fGrid; }  
 
-  GPUhd() float &Hy0() { return fHy0;}
-  GPUhd() float &Hz0() { return fHz0;}
-  GPUhd() float &HstepY() { return fHstepY;}
-  GPUhd() float &HstepZ() { return fHstepZ;}
-  GPUhd() float &HstepYi() { return fHstepYi;}
-  GPUhd() float &HstepZi() { return fHstepZi;}
-  GPUhd() int &FullSize() { return fFullSize;}
-  GPUhd() int &FullOffset() { return fFullOffset;}
-  GPUhd() int &FullGridOffset() { return fFullGridOffset;}
-  GPUhd() int &FullLinkOffset() { return fFullLinkOffset;}
+  GPUhd() Float_t &Hy0() { return fHy0;}
+  GPUhd() Float_t &Hz0() { return fHz0;}
+  GPUhd() Float_t &HstepY() { return fHstepY;}
+  GPUhd() Float_t &HstepZ() { return fHstepZ;}
+  GPUhd() Float_t &HstepYi() { return fHstepYi;}
+  GPUhd() Float_t &HstepZi() { return fHstepZi;}
+  GPUhd() Int_t &FullSize() { return fFullSize;}
+  GPUhd() Int_t &FullOffset() { return fFullOffset;}
+  GPUhd() Int_t &FullGridOffset() { return fFullGridOffset;}
+  GPUhd() Int_t &FullLinkOffset() { return fFullLinkOffset;}
 
 private:
 
@@ -53,8 +53,8 @@ private:
   Float_t fMaxY;           // maximal Y coordinate of the row
   AliHLTTPCCAGrid fGrid;   // grid of hits
 
-  float fHy0,fHz0, fHstepY,fHstepZ, fHstepYi, fHstepZi; // temporary variables
-  int fFullSize, fFullOffset, fFullGridOffset,fFullLinkOffset; // temporary variables
+  Float_t fHy0,fHz0, fHstepY,fHstepZ, fHstepYi, fHstepZi; // temporary variables
+  Int_t fFullSize, fFullOffset, fFullGridOffset,fFullLinkOffset; // temporary variables
 
 };
 

@@ -34,15 +34,14 @@ class AliHLTTPCCATrackletConstructor
 #endif
     protected:
       uint4 fData[2][(500+500+500)/4]; // temp memory
-      UInt_t fGridContent1[600]; // grid1 content
-      int fItr0; // start track index
-      int fItr1; // end track index
-      int fNRows; // n rows
+      Int_t fItr0; // start track index
+      Int_t fItr1; // end track index
+      Int_t fNRows; // n rows
       Int_t *fUsedHits;   // array of used hits
-      int fMinStartRow; // min start row
-      int fMinStartRow32[32]; // min start row for each thread in warp
-      int fMaxStartRow; // max start row
-      int fMaxStartRow32[32];// max start row for each thread in warp
+      Int_t fMinStartRow; // min start row
+      Int_t fMinStartRow32[32]; // min start row for each thread in warp
+      Int_t fMaxStartRow; // max start row
+      Int_t fMaxStartRow32[32];// max start row for each thread in warp
     };
 
   class  AliHLTTPCCAThreadMemory
@@ -75,37 +74,39 @@ class AliHLTTPCCATrackletConstructor
       Int_t fHitStoreOffset;   // offset in the global array
     };
 
-  GPUd() static Int_t NThreadSyncPoints(){ return 4+159*4 +1+1+1; }  
+  GPUd() static Int_t NThreadSyncPoints(){ return 4+159*2 +1+1; }  
 
   GPUd() static void Thread( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, 
 			     Int_t iSync, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, 
-			     AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam );
+			     AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
   
   GPUd() static void Step0
-    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
-      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam );
+    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread,
+      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
   GPUd() static void Step1
-    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
-      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam );
+    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread,
+      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
   GPUd() static void Step2
-    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
-      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam );
+    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread,
+      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
 
   GPUd() static void ReadData( Int_t iThread, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, Int_t iRow );
 
   GPUd() static void UpdateTracklet
-    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
-      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam, Int_t iRow );
-
-  GPUd() static void UnpackGrid
-    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
-      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam, Int_t iRow );
+    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread,
+      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam, Int_t iRow );
 
   GPUd() static void StoreTracklet
-    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
-      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam1 &tParam);
+    ( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread,
+      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam);
 
-  static Bool_t SAVE(){ return 1; }
+  GPUd() static Bool_t SAVE(){ return 1; }
+ 
+#if defined(HLTCA_GPUCODE)
+  GPUhd() static Int_t NMemThreads(){ return 128; }
+#else
+  GPUhd() static Int_t NMemThreads(){ return 1; }
+#endif
 
 };
 

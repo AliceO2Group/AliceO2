@@ -149,40 +149,40 @@ GPUd() Float_t AliHLTTPCCAParam::GetClusterError2( Int_t yz, Int_t type, Float_t
 GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const 
 {
   // write settings to the file
-  out << fISlice<<endl;
-  out << fNRows<<endl;
-  out << fAlpha<<endl;
-  out << fDAlpha<<endl;
-  out << fCosAlpha<<endl;
-  out << fSinAlpha<<endl;
-  out << fAngleMin<<endl;
-  out << fAngleMax<<endl;
-  out << fRMin<<endl;
-  out << fRMax<<endl;
-  out << fZMin<<endl;
-  out << fZMax<<endl;
-  out << fErrX<<endl;
-  out << fErrY<<endl;
-  out << fErrZ<<endl;
-  out << fPadPitch<<endl;
-  out << fBz<<endl;
-  out << fYErrorCorrection<<endl;
-  out << fZErrorCorrection<<endl;
-  out << fCellConnectionAngleXY<<endl;
-  out << fCellConnectionAngleXZ<<endl;
-  out << fMaxTrackMatchDRow<<endl;
-  out << fTrackConnectionFactor<<endl;
-  out << fTrackChiCut<<endl;
-  out << fTrackChi2Cut<<endl;
+  out << fISlice<<std::endl;
+  out << fNRows<<std::endl;
+  out << fAlpha<<std::endl;
+  out << fDAlpha<<std::endl;
+  out << fCosAlpha<<std::endl;
+  out << fSinAlpha<<std::endl;
+  out << fAngleMin<<std::endl;
+  out << fAngleMax<<std::endl;
+  out << fRMin<<std::endl;
+  out << fRMax<<std::endl;
+  out << fZMin<<std::endl;
+  out << fZMax<<std::endl;
+  out << fErrX<<std::endl;
+  out << fErrY<<std::endl;
+  out << fErrZ<<std::endl;
+  out << fPadPitch<<std::endl;
+  out << fBz<<std::endl;
+  out << fYErrorCorrection<<std::endl;
+  out << fZErrorCorrection<<std::endl;
+  out << fCellConnectionAngleXY<<std::endl;
+  out << fCellConnectionAngleXZ<<std::endl;
+  out << fMaxTrackMatchDRow<<std::endl;
+  out << fTrackConnectionFactor<<std::endl;
+  out << fTrackChiCut<<std::endl;
+  out << fTrackChi2Cut<<std::endl;
   for( Int_t iRow = 0; iRow<fNRows; iRow++ ){
-    out << fRowX[iRow]<<endl;
+    out << fRowX[iRow]<<std::endl;
   }
-  out<<endl;
+  out<<std::endl;
   for( Int_t i=0; i<2; i++ )
     for( Int_t j=0; j<3; j++ )
       for( Int_t k=0; k<7; k++ )
-	out << fParamS0Par[i][j][k]<<endl;
-  out<<endl;
+	out << fParamS0Par[i][j][k]<<std::endl;
+  out<<std::endl;
 }
 
 GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )

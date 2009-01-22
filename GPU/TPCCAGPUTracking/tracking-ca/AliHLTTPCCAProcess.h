@@ -14,7 +14,7 @@
  */
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCATrackParam1.h"
+#include "AliHLTTPCCATrackParam.h"
 
 class AliHLTTPCCATracker;
 
@@ -39,7 +39,7 @@ GPUg() void AliHLTTPCCAProcess()
   GPUPROCESS(2)
   GPUPROCESS(3)
     
-    //for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
+    //for( Int_t iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
     //__syncthreads();
     //TProcess::ThreadGPU( gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, iSync, smem, tracker  ); 
     //}
@@ -70,13 +70,13 @@ template<typename TProcess>
 GPUg() void AliHLTTPCCAProcess1()
 {
   AliHLTTPCCATracker &tracker = *((AliHLTTPCCATracker*) cTracker);
-  AliHLTTPCCATrackParam1 tParam; 
+  AliHLTTPCCATrackParam tParam; 
   
   GPUshared() typename TProcess::AliHLTTPCCASharedMemory sMem;  
   
-  typename TProcess::ThreadMemory rMem;
+  typename TProcess::AliHLTTPCCAThreadMemory rMem;
 
-  for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
+  for( Int_t iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
     GPUsync(); 
     TProcess::Thread( gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, iSync, 
 		      sMem, rMem, tracker, tParam  ); 
@@ -91,7 +91,7 @@ GPUg() void AliHLTTPCCAProcess1( Int_t nBlocks, Int_t nThreads, AliHLTTPCCATrack
   for( Int_t iB=0; iB<nBlocks; iB++ ){
     typename TProcess::AliHLTTPCCASharedMemory smem;
     typename TProcess::AliHLTTPCCAThreadMemory rMem[nThreads];
-    AliHLTTPCCATrackParam1 tParam[nThreads];
+    AliHLTTPCCATrackParam tParam[nThreads];
     for( Int_t iS=0; iS<=TProcess::NThreadSyncPoints(); iS++){
       for( Int_t iT=0; iT<nThreads; iT++ )
 	TProcess::Thread( nBlocks, nThreads, iB, iT, iS, smem, rMem[iT], tracker, tParam[iT]  );

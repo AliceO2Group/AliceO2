@@ -57,13 +57,13 @@ protected:
   // capabilities of the component. 
   
   /** @see component interface @ref AliHLTComponent::DoInit */
-  int DoInit( int argc, const char** argv );
+  Int_t DoInit( Int_t argc, const char** argv );
   
   /** @see component interface @ref AliHLTComponent::DoDeinit */
-  int DoDeinit();
+  Int_t DoDeinit();
   
   /** @see component interface @ref AliHLTProcessor::DoEvent */
-  int DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
+  Int_t DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
 	       AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
 	       AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
   

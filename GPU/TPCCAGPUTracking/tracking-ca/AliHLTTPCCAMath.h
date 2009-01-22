@@ -66,7 +66,7 @@ typedef AliHLTTPCCAMath CAMath;
 GPUd() inline Int_t AliHLTTPCCAMath::Nint(Float_t x)
 {  
 #if defined(HLTCA_STANDALONE) || defined( HLTCA_GPUCODE )
-  int i;
+  Int_t i;
   if (x >= 0) {
     i = int(x + 0.5);
     if (x + 0.5 == Float_t(i) && i & 1) i--;

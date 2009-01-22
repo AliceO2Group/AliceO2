@@ -54,8 +54,8 @@ class AliHLTTPCCANeighboursFinder
       Short_t *fHitLinkDn; // links to the previous  row
       float2 fA[256][5]; // temp memory
       UShort_t fB[256][5]; // temp memory
-      UChar_t fGridContentUp[600]; // grid content for the next row
-      UChar_t fGridContentDn[600];// grid content for the previous row
+      UShort_t fGridContentUp[700]; // grid content for the next row
+      UShort_t fGridContentDn[700];// grid content for the previous row
     };
   
   GPUd() static Int_t NThreadSyncPoints(){ return 2; }  

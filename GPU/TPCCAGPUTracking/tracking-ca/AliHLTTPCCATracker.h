@@ -13,12 +13,12 @@
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCAHit.h"
+#include <iostream>
 
 class AliHLTTPCCATrack;
 class AliHLTTPCCAOutTrack;
 class AliHLTTPCCATrackParam;
-class AliHLTTPCCATrackParam1;
-
+class AliHLTTPCCATracklet;
 
 
 /**
@@ -51,28 +51,12 @@ class AliHLTTPCCATracker
 
   GPUd() void ReadEvent( Int_t *RowFirstHit, Int_t *RowNHits, Float_t *Y, Float_t *Z, Int_t NHits );
 
-  void Reconstruct();
+  GPUd() void SetupRowData();
 
+  void Reconstruct();
   void WriteOutput();
 
   GPUd() void GetErrors2( Int_t iRow,  const AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z ) const;
-  GPUd() void GetErrors2( Int_t iRow,  const AliHLTTPCCATrackParam1 &t, Float_t &Err2Y, Float_t &Err2Z ) const;
-
-  GPUhd() AliHLTTPCCAParam &Param(){ return fParam; }
-  GPUhd() AliHLTTPCCARow *Rows(){ return fRows; }
-
-  Int_t * HitsID(){ return fHitsID; }
-
-  Int_t *OutTrackHits(){ return  fOutTrackHits; }
-  Int_t NOutTrackHits() const { return  fNOutTrackHits; }
-  GPUd() AliHLTTPCCAOutTrack *OutTracks(){ return  fOutTracks; }
-  GPUd() Int_t NOutTracks() const { return  fNOutTracks; }
-  GPUhd() Int_t *TrackHits(){ return fTrackHits; }
-
-  GPUhd() AliHLTTPCCATrack *Tracks(){ return  fTracks; }
-  GPUhd() Int_t &NTracks()  { return *fNTracks; }
-
-  Double_t *Timers(){ return fTimers; }
 
   GPUhd() static Int_t IRowIHit2ID( Int_t iRow, Int_t iHit ){ 
     return (iHit<<8)+iRow; 
@@ -84,9 +68,9 @@ class AliHLTTPCCATracker
     return ( HitID>>8 ); 
   }  
 
-  GPUhd() AliHLTTPCCAHit &ID2Hit( Int_t HitID ) {
-    return fHits[fRows[HitID%256].FirstHit() + (HitID>>8)];
-  }
+  //GPUhd() AliHLTTPCCAHit &ID2Hit( Int_t HitID ) {
+  //return fHits[fRows[HitID%256].FirstHit() + (HitID>>8)];
+  //}
   GPUhd() AliHLTTPCCARow &ID2Row( Int_t HitID ) {
     return fRows[HitID%256];
   }
@@ -95,63 +79,82 @@ class AliHLTTPCCATracker
   void FitTrackFull( AliHLTTPCCATrack &track, Float_t *t0 = 0 ) const;
   GPUhd() void SetPointers();
 
-  GPUhd() Short_t *HitLinkUp(){ return fHitLinkUp;}
-  GPUhd() Short_t *HitLinkDown(){ return fHitLinkDown;}
-  GPUhd() Int_t  *StartHits(){ return fStartHits;}
-  GPUhd() Int_t  *Tracklets(){ return fTracklets;}
-  GPUhd() Int_t  *HitIsUsed(){ return fHitIsUsed;}
-  GPUhd() AliHLTTPCCAHit *Hits(){ return fHits;}
+#if !defined(HLTCA_GPUCODE)  
+  GPUh() void WriteEvent( std::ostream &out );
+  GPUh() void ReadEvent( std::istream &in );
+  GPUh() void WriteTracks( std::ostream &out ) ;
+  GPUh() void ReadTracks( std::istream &in );
+#endif
+
+  GPUhd() AliHLTTPCCAParam &Param(){ return fParam; }
+  GPUhd() AliHLTTPCCARow *Rows(){ return fRows; }
+  GPUhd()  Double_t *Timers(){ return fTimers; }
   GPUhd() Int_t &NHitsTotal(){ return fNHitsTotal;}
-  GPUhd() uint4 *&TexHitsFullData(){ return fTexHitsFullData;}
-  GPUhd() Int_t &TexHitsFullSize(){ return fTexHitsFullSize;}
 
-  GPUd() UChar_t GetGridContent( UInt_t i ) const; 
-  GPUd() AliHLTTPCCAHit GetHit( UInt_t i ) const;
+  GPUhd() Char_t *InputEvent()    { return fInputEvent; }
+  GPUhd() Int_t  &InputEventSize(){ return fInputEventSize; }
 
-  private:
+  GPUhd() uint4  *RowData()       { return fRowData; }
+  GPUhd() Int_t  &RowDataSize()  { return fRowDataSize; }
  
-  //  
+  GPUhd() Int_t * HitInputIDs(){ return fHitInputIDs; }
+  GPUhd() Int_t  *HitWeights(){ return fHitWeights; }  
+  
+  GPUhd() Int_t  *NTracklets(){ return fNTracklets; }
+  GPUhd() Int_t  *TrackletStartHits(){ return fTrackletStartHits; }
+  GPUhd() AliHLTTPCCATracklet  *Tracklets(){ return fTracklets;}
+  
+  GPUhd() Int_t *NTracks()  { return fNTracks; }
+  GPUhd() AliHLTTPCCATrack *Tracks(){ return  fTracks; }
+  GPUhd() Int_t *NTrackHits()  { return fNTrackHits; }
+  GPUhd() Int_t *TrackHits(){ return fTrackHits; }
+
+  GPUhd()  Int_t *NOutTracks() const { return  fNOutTracks; }
+  GPUhd()  AliHLTTPCCAOutTrack *OutTracks(){ return  fOutTracks; }
+  GPUhd()  Int_t *NOutTrackHits() const { return  fNOutTrackHits; }
+  GPUhd()  Int_t *OutTrackHits(){ return  fOutTrackHits; }
+ 
+  GPUh() void SetCommonMemory( Char_t *mem ){ fCommonMemory = mem; }
+
+  private:  
 
   AliHLTTPCCAParam fParam; // parameters
   AliHLTTPCCARow fRows[200];// array of hit rows
   Double_t fTimers[10]; // running CPU time for different parts of the algorithm
   
   // event
+
   Int_t fNHitsTotal;// total number of hits in event
-  Int_t fGridSizeTotal; // total grid size
-  Int_t fGrid1SizeTotal;// total grid1 size
-
-  AliHLTTPCCAHit *fHits; // hits
-  ushort2 *fHits1; // hits1
-  
-  UChar_t *fGridContents; // grid content
-  UInt_t *fGrid1Contents; // grid1 content
-  Int_t *fHitsID; // hit ID's
  
-  // temporary information
-  
-  Short_t *fHitLinkUp; // array of up links
-  Short_t *fHitLinkDown;// array of down links
-  Int_t *fHitIsUsed; // array of used flags
-  Int_t  *fStartHits;   // array of start hits
-  Int_t *fTracklets; // array of tracklets
+  Char_t *fCommonMemory; // common event memory
+  Int_t   fCommonMemorySize; // size of the event memory [bytes]
 
-  Int_t *fNTracks;// number of reconstructed tracks
-  AliHLTTPCCATrack *fTracks;   // reconstructed tracks
-  Int_t *fTrackHits; // array of track hit numbers
+  Char_t *fInputEvent;     // input event
+  Int_t   fInputEventSize; // size of the input event [bytes]
+
+  uint4  *fRowData;     // TPC rows: clusters, grid, links to neighbours
+  Int_t   fRowDataSize; // size of the row data
+ 
+  Int_t *fHitInputIDs; // cluster index in InputEvent  
+  Int_t *fHitWeights;  // the weight of the longest tracklet crossed the cluster
+  
+  Int_t *fNTracklets;     // number of tracklets 
+  Int_t *fTrackletStartHits;   // start hits for the tracklets
+  AliHLTTPCCATracklet *fTracklets; // tracklets
+
+  // 
+  Int_t *fNTracks;            // number of reconstructed tracks
+  AliHLTTPCCATrack *fTracks;  // reconstructed tracks
+  Int_t *fNTrackHits;           // number of track hits
+  Int_t *fTrackHits;          // array of track hit numbers
 
   // output
 
-  Int_t fNOutTracks; // number of tracks in fOutTracks array
-  Int_t fNOutTrackHits;  // number of hits in fOutTrackHits array
+  Int_t *fNOutTracks; // number of tracks in fOutTracks array
   AliHLTTPCCAOutTrack *fOutTracks; // output array of the reconstructed tracks
+  Int_t *fNOutTrackHits;  // number of hits in fOutTrackHits array
   Int_t *fOutTrackHits;  // output array of ID's of the reconstructed hits
 
-  char *fEventMemory; // common event memory
-  UInt_t fEventMemSize; // size of the event memory
-
-  uint4 *fTexHitsFullData; // CUDA texture for hits
-  Int_t fTexHitsFullSize; // size of the CUDA texture
 };
 
 

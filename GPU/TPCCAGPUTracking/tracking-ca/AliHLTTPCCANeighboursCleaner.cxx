@@ -34,27 +34,27 @@ GPUd() void AliHLTTPCCANeighboursCleaner::Thread
 	s.fNRows = tracker.Param().NRows();
 	s.fIRow = iBlock+1;
 	if( s.fIRow <= s.fNRows-2 ){
-	  int iRowUp = s.fIRow+1;
-	  int iRowDn = s.fIRow-1;  
-	  int firstDn = tracker.Rows()[iRowDn].FirstHit();
+	  Int_t iRowUp = s.fIRow+1;
+	  Int_t iRowDn = s.fIRow-1;  	  
 	  s.fFirstHit = tracker.Rows()[s.fIRow].FirstHit(); 
-	  int firstUp = tracker.Rows()[iRowUp].FirstHit();
-	  Short_t *hhitLinkUp = tracker.HitLinkUp();
-	  Short_t *hhitLinkDown = tracker.HitLinkDown();
-	  s.fHitLinkUp = hhitLinkUp + s.fFirstHit;
-	  s.fHitLinkDown = hhitLinkDown + s.fFirstHit;    
-	  s.fNHits = firstUp - s.fFirstHit;
-	  s.fUpHitLinkDown = hhitLinkDown + firstUp;
-	  s.fDnHitLinkUp   = hhitLinkUp + firstDn;
+	  AliHLTTPCCARow &row = tracker.Rows()[s.fIRow];
+	  AliHLTTPCCARow &rowUp = tracker.Rows()[iRowUp];
+	  AliHLTTPCCARow &rowDn = tracker.Rows()[iRowDn];
+	  s.fHitLinkUp = ((Short_t*)(tracker.RowData() + row.FullOffset())) + row.FullLinkOffset();
+	  s.fHitLinkDown = s.fHitLinkUp + row.NHits();
+	  s.fDnHitLinkUp = ((Short_t*)(tracker.RowData() + rowDn.FullOffset())) + rowDn.FullLinkOffset();
+	  s.fUpHitLinkDown = ((Short_t*)(tracker.RowData() + rowUp.FullOffset())) + rowUp.FullLinkOffset() + rowUp.NHits();
+
+	  s.fNHits = tracker.Rows()[s.fIRow].NHits();
 	}
       }
     } 
   else if( iSync==1 )
     {
       if( s.fIRow <= s.fNRows-2 ){
-	for( int ih=iThread; ih<s.fNHits; ih+=nThreads ){
-	  int up = s.fHitLinkUp[ih];
-	  int dn = s.fHitLinkDown[ih];
+	for( Int_t ih=iThread; ih<s.fNHits; ih+=nThreads ){
+	  Int_t up = s.fHitLinkUp[ih];
+	  Int_t dn = s.fHitLinkDown[ih];
 	  if( (up>=0) && ( s.fUpHitLinkDown[up] != ih) ){
 	    s.fHitLinkUp[ih]= -1;      
 	    //HLTCA_GPU_SUFFIX(CAMath::atomicExch)( tracker.HitLinkUp() + s.fFirstHit+ih, -1 );      
