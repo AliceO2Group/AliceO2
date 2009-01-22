@@ -438,7 +438,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
       r.fStage = 2;
     }
   
-  else if( iSync<=3+159*2+1+159*2 )
+  else if( iSync<=3+159*2+1+159*2+1 )
     
     {      
       int iRow, nextRow;
@@ -449,7 +449,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
 	nextRow = iRow+1;
 	if( nextRow>158 ) nextRow = 158;
       }else{
- 	iRow = 158 - (iSync - 4-159*2-1)/2;
+ 	iRow = 159 - (iSync - 4-159*2)/2;
 	//if( iBlock==0 && iThread==0 ) myprintf2(iSync,iRow);      
 	if( iRow >= s.fMaxStartRow ) return;
 	nextRow = iRow-1;
@@ -470,7 +470,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
       }      
     }    
   
-  else if( iSync== 4+159*4 +1+1 ) // 642
+  else if( iSync== 4+159*4 +1+1+1 ) // 642
     
     {
       StoreTracklet( nBlocks, nThreads, iBlock, iThread, iSync, //SG!!!
