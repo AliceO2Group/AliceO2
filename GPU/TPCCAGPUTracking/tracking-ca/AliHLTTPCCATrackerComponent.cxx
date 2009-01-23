@@ -43,6 +43,10 @@ using namespace std;
 #include "AliExternalTrackParam.h"
 #include "TStopwatch.h"
 #include "TMath.h"
+#include "AliCDBEntry.h"
+#include "AliCDBManager.h"
+#include "TObjString.h"
+#include "TObjArray.h"
 
 /** global object for registration 
  * Matthias 2009-01-13 temporarily using the global object approach again.
@@ -59,8 +63,6 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
   fTracker(NULL),
   fSolenoidBz(0),
   fMinNTrackClusters(0),
-  fCellConnectionAngleXY(45),
-  fCellConnectionAngleXZ(45),
   fClusterZCut(500.),
   fFullTime(0),
   fRecoTime(0),
@@ -79,10 +81,8 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent(const AliHLTTPCCATracke
   fTracker(NULL),
   fSolenoidBz(0),
   fMinNTrackClusters(30),
-  fCellConnectionAngleXY(35),
-  fCellConnectionAngleXZ(35),
   fClusterZCut(500.),
-   fFullTime(0),
+  fFullTime(0),
   fRecoTime(0),
   fNEvents(0)
 {
@@ -142,130 +142,34 @@ AliHLTComponent* AliHLTTPCCATrackerComponent::Spawn()
 
 Int_t AliHLTTPCCATrackerComponent::DoInit( Int_t argc, const char** argv )
 {
-  // Initialize the CA tracker component 
-  //
-  // arguments could be:
-  // solenoidBz - the magnetic field value
-  // minNTrackClusters - required minimum of clusters on the track
-  //
+  // Configure the CA tracker component 
 
-  if ( fTracker ) return EINPROGRESS;
-
+  fSolenoidBz = 5;
+  fMinNTrackClusters = 0;
+  fClusterZCut = 500.;
   fFullTime = 0;
   fRecoTime = 0;
   fNEvents = 0;
 
+  if ( fTracker ) return EINPROGRESS;
   fTracker = new AliHLTTPCCATracker();
-  
-  // read command line
 
-  Int_t i = 0;
-  char* cpErr;
-  while ( i < argc ){
-    if ( !strcmp( argv[i], "solenoidBz" ) || !strcmp( argv[i], "-solenoidBz" ) ){
-      if ( i+1 >= argc )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing solenoidBz", "Missing solenoidBz specifier." );
-	  return ENOTSUP;
-	}
-      fSolenoidBz = strtod( argv[i+1], &cpErr );
-      if ( *cpErr )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert solenoidBz specifier '%s'.", argv[i+1] );
-	  return EINVAL;
-	}
+  Int_t iResult = EINVAL;
 
-      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
-	       "Magnetic field value is set to %f kG", fSolenoidBz );
-
-      i += 2;
-      continue;
-    }
-
-    if ( !strcmp( argv[i], "minNTrackClusters" ) || !strcmp( argv[i], "-minNTrackClusters" ) ){
-      if ( i+1 >= argc )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing minNTrackClusters", "Missing minNTrackClusters specifier." );
-	  return ENOTSUP;
-	}
-      fMinNTrackClusters = (Int_t ) strtod( argv[i+1], &cpErr );
-      if ( *cpErr )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert minNTrackClusters '%s'.", argv[i+1] );
-	  return EINVAL;
-	}
-
-      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
-	       "minNTrackClusters is set to %i ", fMinNTrackClusters );
-
-      i += 2;
-      continue;
-    }
-
-    if ( !strcmp( argv[i], "cellConnectionAngleXY" ) || !strcmp( argv[i], "-cellConnectionAngleXY" ) ){
-      if ( i+1 >= argc )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing cellConnectionAngleXY", "Missing cellConnectionAngleXY specifier." );
-	  return ENOTSUP;
-	}
-      fCellConnectionAngleXY = strtod( argv[i+1], &cpErr );
-      if ( *cpErr )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert cellConnectionAngleXY '%s'.", argv[i+1] );
-	  return EINVAL;
-	}
-
-      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
-	       "cellConnectionAngleXY is set to %f ", fCellConnectionAngleXY );
-
-      i += 2;
-      continue;
-    }
-     if ( !strcmp( argv[i], "cellConnectionAngleXZ" ) || !strcmp( argv[i], "-cellConnectionAngleXZ" ) ){
-      if ( i+1 >= argc )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing cellConnectionAngleXZ", "Missing cellConnectionAngleXZ specifier." );
-	  return ENOTSUP;
-	}
-      fCellConnectionAngleXZ = strtod( argv[i+1], &cpErr );
-      if ( *cpErr )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert cellConnectionAngleXZ '%s'.", argv[i+1] );
-	  return EINVAL;
-	}
-
-      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
-	       "cellConnectionAngleXZ is set to %f ", fCellConnectionAngleXZ );
-
-      i += 2;
-      continue;
-    }
-     if ( !strcmp( argv[i], "clusterZCut" ) || !strcmp( argv[i], "-clusterZCut" ) ){
-      if ( i+1 >= argc )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing clusterZCut", "Missing clusterZCut specifier." );
-	  return ENOTSUP;
-	}
-      fClusterZCut = TMath::Abs(strtod( argv[i+1], &cpErr ));
-      if ( *cpErr )
-	{
-	  Logging( kHLTLogError, "HLT::TPCCATracker::DoInit", "Missing multiplicity", "Cannot convert clusterZCut '%s'.", argv[i+1] );
-	  return EINVAL;
-	}
-
-      Logging( kHLTLogInfo, "HLT::TPCCATracker::DoInit", "Reading command line",
-	       "clusterZCut is set to %f ", fClusterZCut );
-
-      i += 2;
-      continue;
-    }
- 
-    Logging(kHLTLogError, "HLT::TPCCATracker::DoInit", "Unknown Option", "Unknown option '%s'", argv[i] );
-    return EINVAL;
+  TString arguments=""; 
+  for (int i=0; i<argc; i++) {
+    TString argument=argv[i];
+    if (!arguments.IsNull()) arguments+=" ";
+    arguments+=argument;
   }
-  
-  return 0;
+  if (!arguments.IsNull()) {
+    iResult=Configure(arguments.Data());
+  } else {
+    iResult=Reconfigure(NULL, NULL);
+  }  
+  return iResult;
 }
+
 
 Int_t AliHLTTPCCATrackerComponent::DoDeinit()
 {
@@ -275,6 +179,54 @@ Int_t AliHLTTPCCATrackerComponent::DoDeinit()
   return 0;
 }
 
+Int_t AliHLTTPCCATrackerComponent::Reconfigure(const char* cdbEntry, const char* chainId)
+{
+  // see header file for class documentation
+
+  Int_t iResult=EINVAL;
+  const char* path="HLT/ConfigTPC/TPCCATracker";
+  const char* defaultNotify="";
+  if (cdbEntry) {
+    path=cdbEntry;
+    defaultNotify=" (default)";
+  }
+  if (path) {
+    HLTInfo("reconfigure from entry %s%s, chain id %s", path, defaultNotify,(chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
+    AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(path/*,GetRunNo()*/);
+    if (pEntry) {
+      TObjString* pString=dynamic_cast<TObjString*>(pEntry->GetObject());
+      if (pString) {
+	HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
+	iResult=Configure(pString->GetString().Data());
+      } else {
+	HLTError("configuration object \"%s\" has wrong type, required TObjString", path);
+      }
+    } else {
+      HLTError("cannot fetch object \"%s\" from CDB", path);
+    }
+  }
+  
+  const char* pathBField=kAliHLTCDBSolenoidBz;
+  
+  if (pathBField) {
+    HLTInfo("reconfigure B-Field from entry %s, chain id %s", path,(chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
+    AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(pathBField/*,GetRunNo()*/);
+    if (pEntry) {
+      TObjString* pString=dynamic_cast<TObjString*>(pEntry->GetObject());
+      if (pString) {
+	HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
+	iResult=Configure(pString->GetString().Data());
+      } else {
+	HLTError("configuration object \"%s\" has wrong type, required TObjString", path);
+      }
+    } else {
+      HLTError("cannot fetch object \"%s\" from CDB", path);
+    }
+  }  
+  return iResult;  
+}
+
+
 Bool_t AliHLTTPCCATrackerComponent::CompareClusters(AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b)
 {
   //* Comparison function for sorting clusters
@@ -282,6 +234,60 @@ Bool_t AliHLTTPCCATrackerComponent::CompareClusters(AliHLTTPCSpacePointData *a, 
   if( a->fPadRow>b->fPadRow ) return 0;
   return (a->fZ < b->fZ);
 }
+
+
+Int_t AliHLTTPCCATrackerComponent::Configure( const char* arguments )
+{
+  //* Set parameters
+
+  Int_t iResult=EINVAL;
+  if (!arguments) return iResult;
+  
+  TString allArgs=arguments;
+  TString argument;
+  Int_t bMissingParam=0;
+  
+  TObjArray* pTokens=allArgs.Tokenize(" ");
+
+  Int_t nArgs =  pTokens ?pTokens->GetEntries() :0;
+
+  for (int i=0; i<nArgs; i++ ){
+    argument=((TObjString*)pTokens->At(i))->GetString();
+    if (argument.IsNull()){
+    }
+    else if (argument.CompareTo("-solenoidBz")==0 ){
+      if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;	
+      fSolenoidBz = ((TObjString*)pTokens->At(i))->GetString().Atof();
+      HLTInfo("Magnetic Field set to: %f", fSolenoidBz );
+    }
+    else if ( argument.CompareTo("-minNClustersOnTrack")==0 ||
+	      argument.CompareTo("-minNTrackClusters")==0 ){
+      if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;	
+      fMinNTrackClusters = ((TObjString*)pTokens->At(i))->GetString().Atoi();
+      HLTInfo("minNClustersOnTrack set to: %d", fMinNTrackClusters );
+    }
+    else if ( argument.CompareTo("-clusterZCut")==0 ){
+      if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;	
+      fClusterZCut = TMath::Abs( ((TObjString*)pTokens->At(i))->GetString().Atof());
+      HLTInfo("ClusterZCut set to: %f", fClusterZCut );
+    }
+    else {
+      HLTError("Unknown option %s ", argument.Data());
+      iResult=-EINVAL;
+    }
+  }
+  delete pTokens;
+
+  if (bMissingParam) {
+    HLTError("Specifier missed for %s", argument.Data());    
+    iResult=-EINVAL;
+  }
+
+  return iResult;
+}
+  
+
+
 
 Int_t AliHLTTPCCATrackerComponent::DoEvent
 ( 
@@ -416,8 +422,6 @@ Int_t AliHLTTPCCATrackerComponent::DoEvent
 		      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
     param.YErrorCorrection() = 1;
     param.ZErrorCorrection() = 2;
-    param.CellConnectionAngleXY() = fCellConnectionAngleXY/180.*TMath::Pi();
-    param.CellConnectionAngleXZ() = fCellConnectionAngleXZ/180.*TMath::Pi();
     param.Update();
     fTracker->Initialize( param ); 
     delete[] rowX;

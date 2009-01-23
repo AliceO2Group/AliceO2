@@ -61,7 +61,10 @@ protected:
   
   /** @see component interface @ref AliHLTComponent::DoDeinit */
   Int_t DoDeinit();
-  
+
+  /** reconfigure **/
+  Int_t Reconfigure(const char* cdbEntry, const char* chainId);
+
   /** @see component interface @ref AliHLTProcessor::DoEvent */
   Int_t DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
 	       AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
@@ -75,14 +78,15 @@ private:
   /** magnetic field */
   Double_t fSolenoidBz;                                            // see above
   Int_t fMinNTrackClusters; //* required min number of clusters on the track
-  Double_t fCellConnectionAngleXY; //* max phi angle between connected cells (deg)
-  Double_t fCellConnectionAngleXZ; //* max psi angle between connected cells (deg)
   Double_t fClusterZCut;  //* cut on cluster Z position (for noise rejection at the age of TPC)
   Double_t fFullTime; //* total time for DoEvent() [s]
   Double_t fRecoTime; //* total reconstruction time [s]
   Long_t    fNEvents;  //* number of reconstructed events
 
   static Bool_t CompareClusters(AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b);
+
+  /** set configuration parameters **/
+  Int_t Configure( const char* arguments );
 
   ClassDef(AliHLTTPCCATrackerComponent, 0);
   
