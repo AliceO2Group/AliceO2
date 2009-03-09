@@ -25,12 +25,20 @@ class AliHLTTPCCATracklet
   ~AliHLTTPCCATracklet(){}
 #endif
 
-  GPUhd() Int_t &StartHitID()           { return fStartHitID; }
-  GPUhd() Int_t  &NHits()               { return fNHits;      }
-  GPUhd() Int_t  &FirstRow()            { return fFirstRow;   }
-  GPUhd() Int_t  &LastRow()             { return fLastRow;    }
-  GPUhd() AliHLTTPCCATrackParam &Param(){ return fParam;      }
-  GPUhd() Int_t  *RowHits()             { return fRowHits;    }
+  GPUhd() Int_t StartHitID()            const { return fStartHitID; }
+  GPUhd() Int_t  NHits()                const { return fNHits;      }
+  GPUhd() Int_t  FirstRow()             const { return fFirstRow;   }
+  GPUhd() Int_t  LastRow()              const { return fLastRow;    }
+  GPUhd() const AliHLTTPCCATrackParam &Param() const { return fParam;      }
+  GPUhd() Int_t  RowHits(Int_t i)   const { return fRowHits[i];    }
+
+  GPUhd() void SetStartHitID( Int_t v )           { fStartHitID = v; }
+  GPUhd() void SetNHits( Int_t v )               {  fNHits = v;      }
+  GPUhd() void SetFirstRow( Int_t v )            {  fFirstRow = v;   }
+  GPUhd() void SetLastRow( Int_t v )             {  fLastRow = v;    }
+  GPUhd() void SetParam( const AliHLTTPCCATrackParam &v ){ fParam = v;      }
+  GPUhd() void SetRowHit( Int_t irow, Int_t ih)  { fRowHits[irow] = ih;    }
+
 
 private:
 

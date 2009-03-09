@@ -26,10 +26,15 @@ class AliHLTTPCCATrack
   ~AliHLTTPCCATrack(){}
 #endif
 
-  GPUhd() Bool_t &Alive()               { return fAlive; }
-  GPUhd() Int_t  &NHits()               { return fNHits; }
-  GPUhd() Int_t  &FirstHitID()          { return fFirstHitID; }
-  GPUhd() AliHLTTPCCATrackParam &Param(){ return fParam; };
+  GPUhd() Bool_t Alive()               const { return fAlive; }
+  GPUhd() Int_t  NHits()               const { return fNHits; }
+  GPUhd() Int_t  FirstHitID()          const { return fFirstHitID; }
+  GPUhd() const AliHLTTPCCATrackParam &Param() const { return fParam; };
+  
+  GPUhd() void SetAlive( Bool_t v )               { fAlive=v; }
+  GPUhd() void SetNHits( Int_t v )               { fNHits=v; }
+  GPUhd() void SetFirstHitID( Int_t v )          { fFirstHitID=v; }
+  GPUhd() void SetParam( AliHLTTPCCATrackParam v ){ fParam=v; };
   
 private:
   

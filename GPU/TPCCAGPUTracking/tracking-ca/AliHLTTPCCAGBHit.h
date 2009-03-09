@@ -26,20 +26,31 @@ class AliHLTTPCCAGBHit
 
   virtual ~AliHLTTPCCAGBHit(){}
 
-  Float_t &X(){ return fX; }
-  Float_t &Y(){ return fY; } 
-  Float_t &Z(){ return fZ; } 
+  Float_t X() const { return fX; }
+  Float_t Y() const { return fY; } 
+  Float_t Z() const { return fZ; } 
 
-  Float_t &ErrX(){ return fErrX; }
-  Float_t &ErrY(){ return fErrY; }
-  Float_t &ErrZ(){ return fErrZ; }
-  Float_t &Amp() { return fAmp; }
+  Float_t ErrX() const { return fErrX; }
+  Float_t ErrY() const { return fErrY; }
+  Float_t ErrZ() const { return fErrZ; }
+  Float_t Amp()  const { return fAmp; }
 
-  Int_t &ISlice(){ return fISlice; }
-  Int_t &IRow(){ return fIRow; }
-  Int_t &ID(){ return fID; }
-  Bool_t &IsUsed(){ return fIsUsed; };
+  Int_t ISlice() const { return fISlice; }
+  Int_t IRow() const { return fIRow; }
+  Int_t ID() const { return fID; }
+  Bool_t IsUsed() const { return fIsUsed; };
 
+  void SetX( Float_t v ){  fX = v; }
+  void SetY( Float_t v ){  fY = v; } 
+  void SetZ( Float_t v ){  fZ = v; } 
+  void SetErrX( Float_t v ){  fErrX = v; }
+  void SetErrY( Float_t v ){  fErrY = v; }
+  void SetErrZ( Float_t v ){  fErrZ = v; }
+  void SetAmp( Float_t v ) {  fAmp = v; }
+  void SetISlice( Int_t v ){  fISlice = v; }
+  void SetIRow( Int_t v ){  fIRow = v; }
+  void SetID( Int_t v ){  fID = v; }
+  void SetIsUsed( Bool_t v ){  fIsUsed = v; };
 
   static Bool_t Compare(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b);
 

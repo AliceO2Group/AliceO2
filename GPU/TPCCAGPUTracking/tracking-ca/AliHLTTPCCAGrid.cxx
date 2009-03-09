@@ -33,10 +33,10 @@ GPUd() void AliHLTTPCCAGrid::Create( Float_t yMin, Float_t yMax, Float_t zMin, F
   fN = fNy*fNz;
   fStepYInv = (fYMax - fYMin);
   fStepZInv = (fZMax - fZMin);
-  Int_t ky = (fNy>1) ?fNy-1 :1;
-  Int_t kz = (fNz>1) ?fNz-1 :1;
-  fStepYInv =  ( fStepYInv>1.e-4 ) ?ky/fStepYInv :1;
-  fStepZInv =  ( fStepZInv>1.e-4 ) ?kz/fStepZInv :1;
+  //Int_t ky = (fNy>1) ?fNy-1 :1;
+  //Int_t kz = (fNz>1) ?fNz-1 :1;
+  fStepYInv =  ( fStepYInv>1.e-4 ) ?fNy/fStepYInv :1;
+  fStepZInv =  ( fStepZInv>1.e-4 ) ?fNz/fStepZInv :1;
 }
 
 GPUd() void AliHLTTPCCAGrid::Create( Float_t yMin, Float_t yMax, Float_t zMin, Float_t zMax, Float_t sy, Float_t sz )

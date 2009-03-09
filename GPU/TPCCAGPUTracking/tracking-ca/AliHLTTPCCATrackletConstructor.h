@@ -50,11 +50,11 @@ class AliHLTTPCCATrackletConstructor
      public:
 #if !defined(HLTCA_GPUCODE)
       AliHLTTPCCAThreadMemory()
-	: fItr(0), fFirstRow(0), fLastRow(0), fCurrIH(0), fIsMemThread(0), fGo(0), fSave(0), fCurrentData(0), fStage(0), fNHits(0), fNMissed(0), fTrackStoreOffset(0), fHitStoreOffset(0) 
+	: fItr(0), fFirstRow(0), fLastRow(0), fCurrIH(0), fIsMemThread(0), fGo(0), fSave(0), fCurrentData(0), fStage(0), fNHits(0), fNMissed(0), fTrackStoreOffset(0), fHitStoreOffset(0), fLastY(0), fLastZ(0) 
       {}
 
       AliHLTTPCCAThreadMemory( const AliHLTTPCCAThreadMemory& /*dummy*/) 
-	: fItr(0), fFirstRow(0), fLastRow(0), fCurrIH(0), fIsMemThread(0), fGo(0), fSave(0), fCurrentData(0), fStage(0), fNHits(0), fNMissed(0), fTrackStoreOffset(0), fHitStoreOffset(0) 
+	: fItr(0), fFirstRow(0), fLastRow(0), fCurrIH(0), fIsMemThread(0), fGo(0), fSave(0), fCurrentData(0), fStage(0), fNHits(0), fNMissed(0), fTrackStoreOffset(0), fHitStoreOffset(0), fLastY(0), fLastZ(0)
       {}
       AliHLTTPCCAThreadMemory& operator=(const AliHLTTPCCAThreadMemory& /*dummy*/){ return *this; }
 #endif
@@ -72,6 +72,8 @@ class AliHLTTPCCATrackletConstructor
       Int_t fNMissed; // n missed hits during search
       Int_t fTrackStoreOffset; // offset in the global array
       Int_t fHitStoreOffset;   // offset in the global array
+      Float_t fLastY; // Y of the last fitted cluster
+      Float_t fLastZ; // Z of the last fitted cluster
     };
 
   GPUd() static Int_t NThreadSyncPoints(){ return 4+159*2 +1+1; }  

@@ -26,12 +26,19 @@ class AliHLTTPCCAOutTrack
   AliHLTTPCCAOutTrack():fFirstHitRef(0),fNHits(0),fStartPoint(),fEndPoint(),fOrigTrackID(0){}
   virtual ~AliHLTTPCCAOutTrack(){}
 
-  GPUhd() Int_t &NHits()               { return fNHits; }
-  GPUhd() Int_t &FirstHitRef()         { return fFirstHitRef; }
+  GPUhd() Int_t NHits()               const { return fNHits; }
+  GPUhd() Int_t FirstHitRef()         const { return fFirstHitRef; }
 
-  GPUhd() AliHLTTPCCATrackParam &StartPoint() { return fStartPoint; }
-  GPUhd() AliHLTTPCCATrackParam &EndPoint()   { return fEndPoint; }
-  GPUhd() Int_t &OrigTrackID()                { return fOrigTrackID; }
+  GPUhd() const AliHLTTPCCATrackParam &StartPoint() const { return fStartPoint; }
+  GPUhd() const AliHLTTPCCATrackParam &EndPoint()   const { return fEndPoint; }
+  GPUhd() Int_t OrigTrackID()                const { return fOrigTrackID; }
+
+  GPUhd() void SetNHits( Int_t v )               { fNHits = v; }
+  GPUhd() void SetFirstHitRef( Int_t v)         { fFirstHitRef = v; }
+
+  GPUhd() void SetStartPoint( const AliHLTTPCCATrackParam &v) { fStartPoint = v; }
+  GPUhd() void SetEndPoint( const AliHLTTPCCATrackParam &v)   { fEndPoint = v; }
+  GPUhd() void SetOrigTrackID( Int_t v)                { fOrigTrackID = v; }
 
  protected:
   

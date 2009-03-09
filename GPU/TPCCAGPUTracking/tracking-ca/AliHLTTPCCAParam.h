@@ -41,39 +41,68 @@ class AliHLTTPCCAParam
 		     Float_t *X, Float_t *Y,  Float_t *Z ) const;
   GPUd() GPUd() void Global2Slice( Float_t x, Float_t y,  Float_t z, 
 		     Float_t *X, Float_t *Y,  Float_t *Z ) const;
-  GPUhd() Int_t &ISlice(){ return fISlice;}
-  GPUhd() Int_t &NRows(){ return fNRows;}
-  
-  GPUhd() Float_t &RowX( Int_t iRow ){ return fRowX[iRow]; }
-  
-  GPUd() Float_t &Alpha(){ return fAlpha;}
-  GPUd() Float_t &DAlpha(){ return fDAlpha;}
-  GPUd() Float_t &CosAlpha(){ return fCosAlpha;}
-  GPUd() Float_t &SinAlpha(){ return fSinAlpha;}
-  GPUd() Float_t &AngleMin(){ return fAngleMin;}
-  GPUd() Float_t &AngleMax(){ return fAngleMax;}
-  GPUd() Float_t &RMin(){ return fRMin;}
-  GPUd() GPUd() Float_t &RMax(){ return fRMax;}
-  GPUd() GPUd() Float_t &ZMin(){ return fZMin;}
-  GPUd() Float_t &ZMax(){ return fZMax;}
-  GPUd() Float_t &ErrZ(){ return fErrZ;}
-  GPUd() Float_t &ErrX(){ return fErrX;}
-  GPUd() Float_t &ErrY(){ return fErrY;}
-  GPUd() Float_t &Bz(){ return fBz;}
 
-  GPUd() Float_t &TrackConnectionFactor(){ return fTrackConnectionFactor; }
-  GPUd() Float_t &TrackChiCut() { return fTrackChiCut; }
-  GPUd() Float_t &TrackChi2Cut(){ return fTrackChi2Cut; }
-  GPUd() Int_t   &MaxTrackMatchDRow(){ return fMaxTrackMatchDRow; }
-  GPUd() Float_t &YErrorCorrection(){ return fYErrorCorrection; }
-  GPUd() Float_t &ZErrorCorrection(){ return fZErrorCorrection; }
-  GPUd() Float_t &CellConnectionAngleXY(){ return fCellConnectionAngleXY; }
-  GPUd() Float_t &CellConnectionAngleXZ(){ return fCellConnectionAngleXZ; }
+
+  GPUhd() Int_t ISlice() const { return fISlice;}
+  GPUhd() Int_t NRows() const { return fNRows;}
+
+  GPUhd() Float_t RowX( Int_t iRow ) const { return fRowX[iRow]; }  
+
+  GPUd() Float_t Alpha() const { return fAlpha;}
+  GPUd() Float_t DAlpha() const { return fDAlpha;}
+  GPUd() Float_t CosAlpha() const { return fCosAlpha;}
+  GPUd() Float_t SinAlpha() const { return fSinAlpha;}
+  GPUd() Float_t AngleMin() const { return fAngleMin;}
+  GPUd() Float_t AngleMax() const { return fAngleMax;}
+  GPUd() Float_t RMin() const { return fRMin;}
+  GPUd() Float_t RMax() const { return fRMax;}
+  GPUd() Float_t ZMin() const { return fZMin;}
+  GPUd() Float_t ZMax() const { return fZMax;}
+  GPUd() Float_t ErrZ() const { return fErrZ;}
+  GPUd() Float_t ErrX() const { return fErrX;}
+  GPUd() Float_t ErrY() const { return fErrY;}
+  GPUd() Float_t Bz() const { return fBz;}
+
+  GPUd() Float_t TrackConnectionFactor() const { return fTrackConnectionFactor; }
+  GPUd() Float_t TrackChiCut()  const { return fTrackChiCut; }
+  GPUd() Float_t TrackChi2Cut() const { return fTrackChi2Cut; }
+  GPUd() Int_t   MaxTrackMatchDRow() const { return fMaxTrackMatchDRow; }
+  GPUd() Float_t HitPickUpFactor() const { return fHitPickUpFactor; }
+
+
+
+  GPUhd() void SetISlice( Int_t v ){  fISlice = v;}
+  GPUhd() void SetNRows( Int_t v ){  fNRows = v;}  
+  GPUhd() void SetRowX( Int_t iRow, Float_t v ){  fRowX[iRow] = v; }
+  GPUd() void SetAlpha( Float_t v ){  fAlpha = v;}
+  GPUd() void SetDAlpha( Float_t v ){  fDAlpha = v;}
+  GPUd() void SetCosAlpha( Float_t v ){  fCosAlpha = v;}
+  GPUd() void SetSinAlpha( Float_t v ){  fSinAlpha = v;}
+  GPUd() void SetAngleMin( Float_t v ){  fAngleMin = v;}
+  GPUd() void SetAngleMax( Float_t v ){  fAngleMax = v;}
+  GPUd() void SetRMin( Float_t v ){  fRMin = v;}
+  GPUd() void SetRMax( Float_t v ){  fRMax = v;}
+  GPUd() void SetZMin( Float_t v ){  fZMin = v;}
+  GPUd() void SetZMax( Float_t v ){  fZMax = v;}
+  GPUd() void SetErrZ( Float_t v ){  fErrZ = v;}
+  GPUd() void SetErrX( Float_t v ){  fErrX = v;}
+  GPUd() void SetErrY( Float_t v ){  fErrY = v;}
+  GPUd() void SetBz( Float_t v ){  fBz = v;}
+  GPUd() void SetTrackConnectionFactor( Float_t v ){ fTrackConnectionFactor = v;}
+  GPUd() void SetTrackChiCut( Float_t v ) {  fTrackChiCut = v; }
+  GPUd() void SetTrackChi2Cut( Float_t v ){  fTrackChi2Cut = v; }
+  GPUd() void SetMaxTrackMatchDRow( Int_t v ){  fMaxTrackMatchDRow = v; }
+  GPUd() void SetHitPickUpFactor( Float_t v ){  fHitPickUpFactor = v; }
+
 
   GPUd() Float_t GetClusterError2(Int_t yz, Int_t type, Float_t z, Float_t angle ) const;
 
   void WriteSettings( std::ostream &out ) const;
   void ReadSettings( std::istream &in );
+  
+  GPUd() void SetParamS0Par(Int_t i, Int_t j, Int_t k, Float_t val ){
+    fParamS0Par[i][j][k] = val;
+  }
 
   protected:
 
@@ -89,11 +118,8 @@ class AliHLTTPCCAParam
   Float_t fPadPitch; // pad pitch 
   Float_t fBz;       // magnetic field value (only constant field can be used)
 
-  Float_t fYErrorCorrection;// correction factor for Y error of input clusters
-  Float_t fZErrorCorrection;// correction factor for Z error of input clusters
+  Float_t fHitPickUpFactor;// multiplier for the chi2 window for hit pick up procedure
 
-  Float_t fCellConnectionAngleXY; // max phi angle between connected cells
-  Float_t fCellConnectionAngleXZ; // max psi angle between connected cells
   Int_t   fMaxTrackMatchDRow;// maximal jump in TPC row for connecting track segments
   Float_t fTrackConnectionFactor; // allowed distance in Chi^2/3.5 for neighbouring tracks
   Float_t fTrackChiCut; // cut for track Sqrt(Chi2/NDF);

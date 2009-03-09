@@ -63,21 +63,21 @@ void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const Al
 {
   //* Convert from AliExternalTrackParam parameterisation
   
-  for( Int_t i=0; i<5; i++ ) T1.Par()[i] = T2.GetParameter()[i];
-  for( Int_t i=0; i<15; i++ ) T1.Cov()[i] = T2.GetCovariance()[i];
-  T1.X() = T2.GetX();
-  if(T1.SinPhi()>.99 ) T1.SinPhi()=.99;
-  if(T1.SinPhi()<-.99 ) T1.SinPhi()=-.99;
-  T1.CosPhi() = CAMath::Sqrt(1.-T1.SinPhi()*T1.SinPhi());
+  for( Int_t i=0; i<5; i++ ) T1.SetPar( i, T2.GetParameter()[i] );
+  for( Int_t i=0; i<15; i++ ) T1.SetCov( i, T2.GetCovariance()[i] );
+  T1.SetX( T2.GetX() );
+  if(T1.SinPhi()>.99 ) T1.SetSinPhi( .99 );
+  if(T1.SinPhi()<-.99 ) T1.SetSinPhi( -.99 );
+  T1.SetCosPhi( CAMath::Sqrt(1.-T1.SinPhi()*T1.SinPhi()));
   const Double_t kCLight = 0.000299792458;  
   Double_t c = Bz*kCLight;
   { // 1/pt -> kappa 
-    T1.Par()[4] *= c;
-    T1.Cov()[10]*= c;
-    T1.Cov()[11]*= c;
-    T1.Cov()[12]*= c;
-    T1.Cov()[13]*= c;
-    T1.Cov()[14]*= c*c;
+    T1.SetPar( 4, T1.Par()[4]*c );
+    T1.SetCov( 10, T1.Cov()[10]*c );
+    T1.SetCov( 11, T1.Cov()[10]*c );
+    T1.SetCov( 12, T1.Cov()[10]*c );
+    T1.SetCov( 13, T1.Cov()[10]*c );
+    T1.SetCov( 14, T1.Cov()[10]*c*c );
   }
 }
 

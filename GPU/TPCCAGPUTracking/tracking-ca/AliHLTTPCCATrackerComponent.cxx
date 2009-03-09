@@ -420,8 +420,7 @@ Int_t AliHLTTPCCATrackerComponent::DoEvent
     AliHLTTPCCAParam param;
     param.Initialize( iSec, nRows, rowX, alpha, dalpha,
 		      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
-    param.YErrorCorrection() = 1;
-    param.ZErrorCorrection() = 2;
+    param.SetHitPickUpFactor( 2 );
     param.Update();
     fTracker->Initialize( param ); 
     delete[] rowX;

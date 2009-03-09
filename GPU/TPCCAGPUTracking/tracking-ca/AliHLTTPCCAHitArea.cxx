@@ -21,7 +21,7 @@
 #include "AliHLTTPCCAHit.h"
 #include "AliHLTTPCCARow.h"
 
-
+/*
 GPUd() void AliHLTTPCCAHitAreaInit( AliHLTTPCCAHitArea &a,  AliHLTTPCCAGrid &grid, UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz )
 { 
   // initialisation
@@ -44,23 +44,42 @@ GPUd() void AliHLTTPCCAHitAreaInit( AliHLTTPCCAHitArea &a,  AliHLTTPCCAGrid &gri
   a.HitYlst() = content[a.IndYmin() + a.BDY()];    
   a.Ih() = a.HitYfst(); 
 }
+*/
 
 
-GPUd() void AliHLTTPCCAHitArea::Init( AliHLTTPCCAGrid &grid, UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz )
+GPUd() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCAGrid &grid, UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz )
 { 
   //initialisation
-  AliHLTTPCCAHitAreaInit(*this, grid, content, hitoffset, y, z, dy, dz);
+
+  fHitOffset = hitoffset;
+  fY = y;
+  fZ = z;
+  fMinZ = z-dz; 
+  fMaxZ = z+dz;
+  fMinY = y-dy;
+  fMaxY = y+dy;
+  UInt_t bYmin, bZmin, bYmax;  
+  grid.GetBin( fMinY, fMinZ, bYmin, bZmin);
+  grid.GetBin( fMaxY, fMaxZ, bYmax, fBZmax);  
+  fBDY = bYmax - bYmin + 1;
+  fNy = grid.Ny();
+  fIndYmin = bZmin*fNy + bYmin;
+  fIz = bZmin;
+  fHitYfst = content[fIndYmin];
+  fHitYlst = content[fIndYmin + fBDY];    
+  fIh = fHitYfst; 
 }
 
-GPUd() Int_t AliHLTTPCCAHitArea::GetNext(AliHLTTPCCATracker &tracker, AliHLTTPCCARow &row, UShort_t *content, AliHLTTPCCAHit &h)
+
+GPUd() Int_t AliHLTTPCCAHitArea::GetNext(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, UShort_t *content, AliHLTTPCCAHit &h)
 {    
   // get next hit index
   Float_t y0 = row.Grid().YMin();
   Float_t z0 = row.Grid().ZMin();
   Float_t stepY = row.HstepY();
   Float_t stepZ = row.HstepZ();
-  uint4* tmpint4 = tracker.RowData() + row.FullOffset();
-  ushort2 *hits = reinterpret_cast<ushort2*>(tmpint4);
+  const uint4* tmpint4 = tracker.RowData() + row.FullOffset();
+  const ushort2 *hits = reinterpret_cast<const ushort2*>(tmpint4);
 
   Int_t ret = -1;
   do{
@@ -75,12 +94,12 @@ GPUd() Int_t AliHLTTPCCAHitArea::GetNext(AliHLTTPCCATracker &tracker, AliHLTTPCC
 
     {
       ushort2 hh = hits[fIh];
-      h.Y() = y0 + hh.x*stepY;
-      h.Z() = z0 + hh.y*stepZ;
+      h.SetY( y0 + hh.x*stepY );
+      h.SetZ( z0 + hh.y*stepZ );
     }
     //h = tracker.Hits()[ fHitOffset + fIh ];    
     
-    if( h.fZ>fMaxZ || h.fZ<fMinZ || h.fY<fMinY || h.fY>fMaxY ){
+    if( 0 && (h.Z()>fMaxZ || h.Z()<fMinZ || h.Y()<fMinY || h.Y()>fMaxY )){ //SG!!!
       fIh++;
       continue;
     }
@@ -93,7 +112,7 @@ GPUd() Int_t AliHLTTPCCAHitArea::GetNext(AliHLTTPCCATracker &tracker, AliHLTTPCC
 
 
 
-GPUd() Int_t AliHLTTPCCAHitArea::GetBest(AliHLTTPCCATracker &tracker, AliHLTTPCCARow &row, UShort_t *content, AliHLTTPCCAHit &h)
+GPUd() Int_t AliHLTTPCCAHitArea::GetBest(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, UShort_t *content, AliHLTTPCCAHit &h)
 {
   // get closest hit in the area
   Int_t best = -1;
@@ -102,8 +121,8 @@ GPUd() Int_t AliHLTTPCCAHitArea::GetBest(AliHLTTPCCATracker &tracker, AliHLTTPCC
     AliHLTTPCCAHit hh;
     Int_t ih=GetNext( tracker, row, content, hh ); 
     if( ih<0 ) break;
-    Float_t dy = hh.fY - fY;
-    Float_t dz = hh.fZ - fZ;
+    Float_t dy = hh.Y() - fY;
+    Float_t dz = hh.Z() - fZ;
     Float_t dds = dy*dy+dz*dz;
     if( dds<ds ){
       ds = dds;

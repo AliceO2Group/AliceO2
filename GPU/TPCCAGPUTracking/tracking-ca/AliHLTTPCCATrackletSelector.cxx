@@ -49,33 +49,44 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 	Int_t *t = ((Int_t*)tracker.Tracklets()) + itr*(5+ sizeof(AliHLTTPCCATrackParam)/4 + 160 );	
 	Int_t tNHits = *t;
 	if( tNHits<=0 ) continue;
-	
-	tout.NHits() = 0;
+
+	const Int_t kMaxRowGap = 4;
+	Int_t firstRow = t[3];
+	Int_t lastRow = t[4];
+
+	tout.SetNHits( 0 );
 	Int_t *hitstore = t + 5+ sizeof(AliHLTTPCCATrackParam)/4 ;    
 	Int_t w = (tNHits<<16)+itr;	
-	Int_t nRows = tracker.Param().NRows();
+	//Int_t nRows = tracker.Param().NRows();
 	Int_t gap = 0;
- 	for( Int_t irow=0; irow<nRows; irow++ ){
+
+	//std::cout<<" store tracklet: "<<firstRow<<" "<<lastRow<<std::endl;
+ 	for( Int_t irow=firstRow; irow<=lastRow; irow++ ){
+	  gap++;
 	  Int_t ih = hitstore[irow];
-	  if( ih<0 ) continue;
-	  AliHLTTPCCARow &row = tracker.Rows()[irow];
-	  Int_t ihTot = row.FirstHit()+ih;      
-	  if( tracker.HitWeights()[ihTot] > w ){
-            if( ++gap>6){ tout.NHits()=0; break; }
-            continue;
-          } else gap = 0;
-	  Int_t th = AliHLTTPCCATracker::IRowIHit2ID(irow,ih);
-	  trackHits[tout.NHits()] = th;
-	  tout.NHits()++;
-	}	
-	if( tout.NHits()<10 ) continue;//SG!!!
-	Int_t itrout = CAMath::atomicAdd(tracker.NTracks(),1);
-	tout.FirstHitID() = CAMath::atomicAdd( tracker.NTrackHits(), tout.NHits() );
-	tout.Param() = *( (AliHLTTPCCATrackParam*)( t+5) );
-	tout.Alive() = 1;
-	tracker.Tracks()[itrout] = tout;
-	for( Int_t ih=0; ih<tout.NHits(); ih++ ){//SG
-	  tracker.TrackHits()[tout.FirstHitID() + ih] = trackHits[ih];
+	  if( ih>=0 ){
+	    Int_t ihTot = tracker.Row(irow).FirstHit()+ih;
+	    if( tracker.HitWeights()[ihTot] <= w ){
+	      gap = 0;
+	      Int_t th = AliHLTTPCCATracker::IRowIHit2ID(irow,ih);
+	      trackHits[tout.NHits()] = th;
+	      tout.SetNHits( tout.NHits() + 1 );
+	    }
+	  }
+	  if( gap>kMaxRowGap || irow==lastRow ){ // store 
+	    if( tout.NHits()>=10 ){ //SG!!!
+	      Int_t itrout = CAMath::atomicAdd(tracker.NTracks(),1);
+	      tout.SetFirstHitID( CAMath::atomicAdd( tracker.NTrackHits(), tout.NHits() ));
+	      tout.SetParam( *( (AliHLTTPCCATrackParam*)( t+5) ));
+	      tout.SetAlive( 1 );
+	      tracker.Tracks()[itrout] = tout;
+	      for( Int_t jh=0; jh<tout.NHits(); jh++ ){
+		tracker.TrackHits()[tout.FirstHitID() + jh] = trackHits[jh];
+	      }
+	    }
+	    tout.SetNHits( 0 ); 
+	    gap = 0;
+	  }
 	}
       }
     }

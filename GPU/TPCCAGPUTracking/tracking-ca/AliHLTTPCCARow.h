@@ -26,24 +26,40 @@ class AliHLTTPCCARow
   AliHLTTPCCARow();  
 #endif
 
-  //AliHLTTPCCARow &operator=( const AliHLTTPCCARow &);
+  GPUhd() Int_t   FirstHit() const { return fFirstHit; }
+  GPUhd() Int_t   NHits()    const { return fNHits; }
+  GPUhd() Float_t X()        const { return fX; }
+  GPUhd() Float_t MaxY()     const { return fMaxY; }
+  GPUhd() const AliHLTTPCCAGrid &Grid() const { return fGrid; }  
 
-  GPUhd() Int_t   &FirstHit(){ return fFirstHit; }
-  GPUhd() Int_t   &NHits()   { return fNHits; }
-  GPUhd() Float_t &X()       { return fX; }
-  GPUhd() Float_t &MaxY()    { return fMaxY; }
-  GPUhd() AliHLTTPCCAGrid &Grid(){ return fGrid; }  
+  GPUhd() Float_t Hy0()      const { return fHy0;}
+  GPUhd() Float_t Hz0()      const { return fHz0;}
+  GPUhd() Float_t HstepY()   const { return fHstepY;}
+  GPUhd() Float_t HstepZ()   const { return fHstepZ;}
+  GPUhd() Float_t HstepYi()  const { return fHstepYi;}
+  GPUhd() Float_t HstepZi()  const { return fHstepZi;}
+  GPUhd() Int_t   FullSize()    const { return fFullSize;}
+  GPUhd() Int_t   FullOffset()  const { return fFullOffset;}
+  GPUhd() Int_t   FullGridOffset()  const { return fFullGridOffset;}
+  GPUhd() Int_t   FullLinkOffset()  const { return fFullLinkOffset;}
 
-  GPUhd() Float_t &Hy0() { return fHy0;}
-  GPUhd() Float_t &Hz0() { return fHz0;}
-  GPUhd() Float_t &HstepY() { return fHstepY;}
-  GPUhd() Float_t &HstepZ() { return fHstepZ;}
-  GPUhd() Float_t &HstepYi() { return fHstepYi;}
-  GPUhd() Float_t &HstepZi() { return fHstepZi;}
-  GPUhd() Int_t &FullSize() { return fFullSize;}
-  GPUhd() Int_t &FullOffset() { return fFullOffset;}
-  GPUhd() Int_t &FullGridOffset() { return fFullGridOffset;}
-  GPUhd() Int_t &FullLinkOffset() { return fFullLinkOffset;}
+
+  GPUhd() void SetFirstHit( Int_t v ){ fFirstHit = v; }
+  GPUhd() void SetNHits( Int_t v )   { fNHits = v; }
+  GPUhd() void SetX( Float_t v )       { fX = v; }
+  GPUhd() void SetMaxY( Float_t v )    { fMaxY = v; }
+  GPUhd() void SetGrid( const AliHLTTPCCAGrid &v ){ fGrid = v; }  
+
+  GPUhd() void SetHy0( Float_t v ) { fHy0 = v;}
+  GPUhd() void SetHz0( Float_t v ) { fHz0 = v;}
+  GPUhd() void SetHstepY( Float_t v ) { fHstepY = v;}
+  GPUhd() void SetHstepZ( Float_t v ) { fHstepZ = v;}
+  GPUhd() void SetHstepYi( Float_t v ) { fHstepYi = v;}
+  GPUhd() void SetHstepZi( Float_t v ) { fHstepZi = v;}
+  GPUhd() void SetFullSize( Int_t v ) { fFullSize = v;}
+  GPUhd() void SetFullOffset( Int_t v ) { fFullOffset = v;}
+  GPUhd() void SetFullGridOffset( Int_t v ) { fFullGridOffset = v;}
+  GPUhd() void SetFullLinkOffset( Int_t v ) { fFullLinkOffset = v;}
 
 private:
 

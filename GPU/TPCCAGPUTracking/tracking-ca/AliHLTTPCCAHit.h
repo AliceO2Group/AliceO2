@@ -21,10 +21,13 @@ class AliHLTTPCCAHit
 {
 public:
   
-  GPUhd() Float_t &Y()   { return fY;    }
-  GPUhd() Float_t &Z()   { return fZ;    }
+  GPUhd() Float_t Y() const   { return fY;    }
+  GPUhd() Float_t Z() const  { return fZ;    }
+
+  GPUhd() void SetY( Float_t v ){ fY = v;    }
+  GPUhd() void SetZ( Float_t v ){ fZ = v;    }
   
-  //protected:
+protected:
   
   Float_t fY, fZ;       // Y and Z position of the TPC cluster
   

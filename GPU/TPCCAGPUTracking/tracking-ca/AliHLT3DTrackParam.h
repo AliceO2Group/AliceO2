@@ -55,6 +55,22 @@ class AliHLT3DTrackParam :public TObject
   Double_t GetCovariance( Int_t i ) const { return fCov[i]; }
   Double_t GetCovariance( Int_t i, Int_t j ) const { return fCov[( j<=i ) ? i*(i+1)/2+j :j*(j+1)/2+i]; }
 
+  //*
+  //* Accessors
+  //*
+  
+  const Double_t *Param()  const { return fParam; }
+  const Double_t *Cov() const   { return fCov;   }
+  Double_t X()      const  { return fParam[0]; }
+  Double_t Y()      const  { return fParam[1]; }
+  Double_t Z()      const  { return fParam[2]; }
+  Double_t Px()     const  { return fParam[3]; }
+  Double_t Py()     const  { return fParam[4]; }
+  Double_t Pz()     const  { return fParam[5]; }
+  Double_t Chi2()   const  { return fChi2;  }
+  Int_t    NDF()    const  { return fNDF;   }
+  Int_t    Charge()  const { return fSignQ; }
+
   //* Accessors with calculations( &value, &estimated sigma )
   //* error flag returned (0 means no error during calculations) 
 
@@ -63,18 +79,18 @@ class AliHLT3DTrackParam :public TObject
   //*  MODIFIERS
   //*
   
-  Double_t *Param()  { return fParam; }
-  Double_t *Cov()    { return fCov;   }
-  Double_t &X()      { return fParam[0]; }
-  Double_t &Y()      { return fParam[1]; }
-  Double_t &Z()      { return fParam[2]; }
-  Double_t &Px()     { return fParam[3]; }
-  Double_t &Py()     { return fParam[4]; }
-  Double_t &Pz()     { return fParam[5]; }
-  Double_t &Chi2()   { return fChi2;  }
-  Int_t    &NDF()    { return fNDF;   }
-  Int_t    &Charge() { return fSignQ; }
-
+  void SetParam( Int_t i, Double_t v )  { fParam[i] = v; }
+  void SetCov( Int_t i, Double_t v ){ fCov[i] = v;   }
+  void SetX( Double_t v )      { fParam[0] = v; }
+  void SetY( Double_t v )      { fParam[1] = v; }
+  void SetZ( Double_t v )      { fParam[2] = v; }
+  void SetPx( Double_t v )     { fParam[3] = v; }
+  void SetPy( Double_t v )     { fParam[4] = v; }
+  void SetPz( Double_t v )     { fParam[5] = v; }
+  void SetChi2( Double_t v )   { fChi2 = v;  }
+  void SetNDF( Int_t v )       { fNDF = v;   }
+  void SetCharge( Int_t v )    { fSignQ = v; }
+  
 
   //*
   //*  UTILITIES
