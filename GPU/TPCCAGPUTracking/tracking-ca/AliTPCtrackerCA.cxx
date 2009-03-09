@@ -453,7 +453,7 @@ Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
       Float_t sdedx = tTPC.GetSDEDX(0);
       Float_t dedx  = tTPC.GetdEdx();
       tESD.SetTPCsignal(dedx, sdedx, ndedx); 
-      tESD.myTPC = tTPC;            
+      //tESD.myTPC = tTPC;            
 
       event->AddTrack(&tESD);
     }
