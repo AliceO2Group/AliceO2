@@ -24,6 +24,14 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATrackletConstructor.h"
+//#include "AliHLTTPCCAPerformance.h"
+//#include "TH1D.h"
+
+//#define DRAW
+
+#ifdef DRAW
+#include "AliHLTTPCCADisplay.h"
+#endif
 
 
 GPUd() void AliHLTTPCCATrackletConstructor::Step0 
@@ -80,32 +88,27 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step1
   
   CAMath::atomicMin( &s.fMinStartRow32[kThread], r.fFirstRow);    
   CAMath::atomicMax( &s.fMaxStartRow32[kThread], r.fFirstRow);    
-  tParam.SinPhi() = 0;
-  tParam.DzDs() = 0; 
-  tParam.Kappa() = 0;
-  tParam.CosPhi() = 1;
-  tParam.Chi2() = 0;
-  tParam.NDF() = -3;      
-  
-  tParam.Cov()[0] = 1; 
-
-  tParam.Cov()[1] = 0; 
-  tParam.Cov()[2] = 1; 
-
-  tParam.Cov()[3] = 0; 
-  tParam.Cov()[4] = 0; 
-  tParam.Cov()[5] = 1.; 
-
-  tParam.Cov()[6] = 0; 
-  tParam.Cov()[7] = 0; 
-  tParam.Cov()[8] = 0; 
-  tParam.Cov()[9] = 1;
-  
-  tParam.Cov()[10] = 0;
-  tParam.Cov()[11] = 0;
-  tParam.Cov()[12] = 0;
-  tParam.Cov()[13] = 0;
-  tParam.Cov()[14] = 1.;
+  tParam.SetSinPhi(0);
+  tParam.SetDzDs(0);
+  tParam.SetKappa(0);
+  tParam.SetCosPhi(1);
+  tParam.SetChi2(0);
+  tParam.SetNDF(-3);
+  tParam.SetCov( 0,1); 
+  tParam.SetCov( 1,0); 
+  tParam.SetCov( 2,1);
+  tParam.SetCov( 3,0);
+  tParam.SetCov( 4,0);
+  tParam.SetCov( 5,1);
+  tParam.SetCov( 6,0); 
+  tParam.SetCov( 7,0); 
+  tParam.SetCov( 8,0); 
+  tParam.SetCov( 9,1);
+  tParam.SetCov(10,0); 
+  tParam.SetCov(11,0); 
+  tParam.SetCov(12,0); 
+  tParam.SetCov(13,0); 
+  tParam.SetCov(14,1);     
 
   r.fLastRow = r.fFirstRow;  
 }
@@ -136,10 +139,10 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
   // reconstruction of tracklets, read data step
 
   if( r.fIsMemThread ){
-    AliHLTTPCCARow &row = tracker.Rows()[iRow];
+    const AliHLTTPCCARow &row = tracker.Row(iRow);
     Bool_t jr = !r.fCurrentData;
     Int_t n = row.FullSize();
-    uint4* gMem = tracker.RowData() + row.FullOffset();
+    const uint4* gMem = tracker.RowData() + row.FullOffset();
     uint4 *sMem = s.fData[jr];
     for( Int_t i=iThread; i<n; i+=NMemThreads() ) sMem[i] = gMem[i];
   } 
@@ -154,15 +157,21 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
   
   if( !r.fSave ) return;
 
+  //AliHLTTPCCAPerformance::Instance().HNHitsPerTrackCand()->Fill(r.fNHits);
+
   do{ 
-    if( r.fNHits<10 ){ 
+    {
+      //std::cout<<"tracklet to store: "<<r.fItr<<", nhits = "<<r.fNHits<<std::endl;
+    }
+
+    if( r.fNHits<5 ){ 
       r.fNHits = 0;
       break;
     }
     
     {  
       Bool_t ok=1;
-      Float_t *c = tParam.Cov();
+      const Float_t *c = tParam.Cov();
       for( Int_t i=0; i<15; i++ ) ok = ok && CAMath::Finite(c[i]);
       for( Int_t i=0; i<5; i++ ) ok = ok && CAMath::Finite(tParam.Par()[i]);
       ok = ok && (tParam.X()>50);
@@ -183,15 +192,23 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
   store[0] = r.fNHits;
   
   if( r.fNHits>0 ){
+#ifdef DRAW
+    if(0){
+      std::cout<<"store tracklet "<<r.fItr<<", nhits = "<<r.fNHits<<std::endl;
+      if( AliHLTTPCCADisplay::Instance().DrawTracklet(tParam, hitstore, kBlue,1.) ){  
+	AliHLTTPCCADisplay::Instance().Ask();
+      }
+    }
+#endif
     store[3] = r.fFirstRow;
-    store[4] = r.fLastRow;   
-    if( CAMath::Abs(tParam.Par()[4])<1.e-8 ) tParam.Par()[4] = 1.e-8;
+    store[4] = r.fLastRow;
+    if( CAMath::Abs(tParam.Par()[4])<1.e-8 ) tParam.SetPar( 4, 1.e-8);
     *((AliHLTTPCCATrackParam*)(store+5)) = tParam;
     Int_t w = (r.fNHits<<16)+r.fItr;
     for( Int_t iRow=0; iRow<160; iRow++ ){
       Int_t ih = hitstore[iRow];
       if( ih>=0 ){
-	Int_t ihTot = tracker.Rows()[iRow].FirstHit() + ih;
+	Int_t ihTot = tracker.Row(iRow).FirstHit() + ih;
 	CAMath::atomicMax( tracker.HitWeights() + ihTot, w );
       }
     }
@@ -204,13 +221,18 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 {  
   // reconstruction of tracklets, tracklets update step
 
+  //std::cout<<"Update tracklet: "<<r.fItr<<" "<<r.fGo<<" "<<r.fStage<<" "<<iRow<<std::endl;
+  Bool_t drawSearch = 0;//r.fItr==356;
+  Bool_t drawFit = 0;//r.fItr==356;
+  Bool_t drawFitted = drawFit ;//|| 1;//r.fItr==16;
+
   if( !r.fGo ) return;
-	  
-  const Int_t kMaxRowGap = 5;	
+
+  const Int_t kMaxRowGap = 4;	
   
   Int_t *hitstore = ((Int_t*) tracker.Tracklets()) +r.fHitStoreOffset;
   
-  AliHLTTPCCARow &row = tracker.Rows()[iRow];
+  const AliHLTTPCCARow &row = tracker.Row(iRow);
   
   Float_t y0 = row.Grid().YMin();
   Float_t stepY = row.HstepY();
@@ -233,51 +255,162 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       Float_t x = row.X();
       Float_t y = y0 + hh.x*stepY;
       Float_t z = z0 + hh.y*stepZ;
-     
+      if( drawFit ) std::cout<<" fit tracklet: new hit "<<oldIH<<", xyz="<<x<<" "<<y<<" "<<z<<std::endl;
+    
       if( iRow==r.fFirstRow ){
-	tParam.X() = x;
-	tParam.Y() = y;
-	tParam.Z() = z;
-	Float_t err2Y, err2Z;	  
- 	tracker.GetErrors2( iRow, tParam, err2Y, err2Z );
-	tParam.Cov()[0] = err2Y;
-	tParam.Cov()[2] = err2Z;
+	tParam.SetX( x );
+	tParam.SetY( y );
+	tParam.SetZ( z );
+	r.fLastY = y;
+	r.fLastZ = z;
+	//#ifdef DRAW
+	if( drawFit ) std::cout<<" fit tracklet "<<r.fItr<<", row "<<iRow<<" first row"<<std::endl;
+	//#endif
       }else{	    
-	if( !tParam.TransportToX0( x, .95 ) ){ 
+
+	Float_t err2Y, err2Z;
+	Float_t dx = x - tParam.X();
+	Float_t dy = y - r.fLastY;//tParam.Y();
+	Float_t dz = z - r.fLastZ;//tParam.Z();
+	r.fLastY = y;
+	r.fLastZ = z;
+
+	Float_t ri = 1./CAMath::Sqrt(dx*dx+dy*dy);
+	if( iRow==r.fFirstRow+1 ){
+	  tParam.SetSinPhi( dy*ri );
+	  tParam.SetCosPhi( dx*ri );
+	  tParam.SetDzDs( dz*ri );
+	  tracker.GetErrors2( iRow, tParam, err2Y, err2Z );
+	  tParam.SetCov( 0, err2Y );
+	  tParam.SetCov( 2, err2Z );
+	}
+	if( drawFit ){
+	  //#ifdef DRAW
+	  std::cout<<" fit tracklet "<<r.fItr<<", row "<<iRow<<" transporting.."<<std::endl;
+	  std::cout<<" params before transport="<<std::endl;
+	  tParam.Print();
+	  //#endif
+	}
+	Float_t sinPhi, cosPhi;
+	if( r.fNHits>=10 && CAMath::Abs(tParam.SinPhi())<.99 ){
+	  sinPhi = tParam.SinPhi();
+	  cosPhi = CAMath::Sqrt(1-sinPhi*sinPhi);
+	}else{
+	  sinPhi = dy*ri;
+	  cosPhi = dx*ri;
+	}
+	//#ifdef DRAW
+	if( drawFit ) std::cout<<"sinPhi0 = "<<sinPhi<<", cosPhi0 = "<<cosPhi<<std::endl;
+	//#endif
+	if( !tParam.TransportToX0( x, sinPhi, cosPhi ) ){ 
+	  //#ifdef DRAW
+	  if( drawFit ) std::cout<<" tracklet "<<r.fItr<<", row "<<iRow<<": can not transport!!"<<std::endl;
+//#endif
 	  if( SAVE() ) hitstore[iRow] = -1; 
 	  break; 
 	}
-	Float_t err2Y, err2Z;
-	tracker.GetErrors2( iRow, *((AliHLTTPCCATrackParam*)&tParam), err2Y, err2Z );
-	if( !tParam.Filter20( y, z, err2Y, err2Z, .95 ) ) { 
+		
+	tracker.GetErrors2( iRow, tParam.GetZ(), sinPhi, cosPhi, tParam.GetDzDs(), err2Y, err2Z );
+	
+	if( drawFit ){
+	  //#ifdef DRAW
+	  std::cout<<" params after transport="<<std::endl;
+	  tParam.Print();	
+	  std::cout<<"fit tracklet before filter: "<<r.fItr<<", row "<<iRow<<" errs="<<err2Y<<" "<<err2Z<<std::endl;
+	  //#endif
+#ifdef DRAW
+	  AliHLTTPCCADisplay::Instance().DrawTracklet(tParam, hitstore, kBlue, 2.,1);  
+	  AliHLTTPCCADisplay::Instance().Ask();
+#endif
+	}
+	if( !tParam.Filter200( y, z, err2Y, err2Z ) ) { 
+	  //#ifdef DRAW
+	  if( drawFit ) std::cout<<" tracklet "<<r.fItr<<", row "<<iRow<<": can not filter!!"<<std::endl;
+	  //#endif
 	  if( SAVE() ) hitstore[iRow] = -1; 
 	  break; 
 	}	   
       }
       if( SAVE() ) hitstore[iRow] = oldIH; 
+      if( drawFit ){
+	//#ifdef DRAW
+	std::cout<<"fit tracklet after filter "<<r.fItr<<", row "<<iRow<<std::endl;
+	tParam.Print();
+	//#endif
+#ifdef DRAW
+	AliHLTTPCCADisplay::Instance().DrawTracklet(tParam, hitstore, kGreen,2.);  
+	AliHLTTPCCADisplay::Instance().Ask();
+#endif
+      }
       r.fNHits++;
       r.fLastRow = iRow;
-      if( r.fCurrIH<0 ){
-	r.fStage = 1;	 
-	if( r.fNHits<3 ){ r.fNHits=0; r.fGo = 0;}
-      } 
       break;
     } while(0);
+    
+    if( r.fCurrIH<0 ){
+      //#ifdef DRAW
+      if( drawFitted ) std::cout<<"fitted tracklet "<<r.fItr<<", nhits="<<r.fNHits<<std::endl;
+      //#endif
+      r.fStage = 1;
+      //AliHLTTPCCAPerformance::Instance().HNHitsPerSeed()->Fill(r.fNHits);
+      if( r.fNHits<5 ){ r.fNHits=0; r.fGo = 0;}//SG!!!
+      if( CAMath::Abs(tParam.SinPhi())>.999 ){
+	//#ifdef DRAW
+	if( drawFitted ) std::cout<<" fitted tracklet  error: sinPhi="<<tParam.SinPhi()<<std::endl;
+	//#endif
+	r.fNHits=0; r.fGo = 0;
+      }else{
+	tParam.SetCosPhi( CAMath::Sqrt(1-tParam.SinPhi()*tParam.SinPhi()) );
+      }
+      if( drawFitted ){
+	//#ifdef DRAW
+	std::cout<<"fitted tracklet "<<r.fItr<<" miss="<<r.fNMissed<<" go="<<r.fGo<<std::endl;
+	tParam.Print();
+#ifdef DRAW
+	AliHLTTPCCADisplay::Instance().DrawTracklet(tParam, hitstore, kBlue);  
+	AliHLTTPCCADisplay::Instance().Ask();
+#endif
+      }
+    } 
   }
   else // forward/backward searching part
-    {	        
+    {	             
       do{ 
+	if( drawSearch ){
+	  //#ifdef DRAW
+	  std::cout<<"search tracklet "<<r.fItr<<" row "<<iRow<<" miss="<<r.fNMissed<<" go="<<r.fGo<<" stage="<<r.fStage<<std::endl;
+	  //#endif
+	}
 	if( r.fStage == 2 && iRow>=r.fFirstRow ) break; 
-	if( r.fNMissed>kMaxRowGap  ){ 
-	  r.fGo = 0; 
+	if( r.fNMissed>kMaxRowGap  ){ 	  
 	  break;
 	}
-	
+
 	r.fNMissed++;	
-	
+
 	Float_t x = row.X();
 	Float_t err2Y, err2Z;
-	if( !tParam.TransportToX0( x, .95 ) ) break;
+	if( drawSearch ){
+	  //#ifdef DRAW
+	  std::cout<<"tracklet "<<r.fItr<<" before transport to row "<<iRow<<" : "<<std::endl;
+	  tParam.Print();
+	  //#endif
+	}
+	if( !tParam.TransportToX0( x, .999 ) ){
+	  //#ifdef DRAW
+	  if( drawSearch ) std::cout<<" tracklet "<<r.fItr<<", row "<<iRow<<": can not transport!!"<<std::endl;
+	  //#endif
+	  break;
+	}
+	if( drawSearch ){
+	  //#ifdef DRAW
+	  std::cout<<"tracklet "<<r.fItr<<" after transport to row "<<iRow<<" : "<<std::endl;
+	  tParam.Print();
+#ifdef DRAW
+	  AliHLTTPCCADisplay::Instance().DrawTracklet(tParam, hitstore, kBlue,2.,1);  
+	  AliHLTTPCCADisplay::Instance().Ask();
+#endif
+	}
 	uint4 *tmpint4 = s.fData[r.fCurrentData];   
 
 	ushort2 *hits = reinterpret_cast<ushort2*>(tmpint4);
@@ -298,21 +431,60 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	  UInt_t fHitYfst=1, fHitYlst=0, fHitYfst1=1, fHitYlst1=0;
 	  
 	  fIndYmin = row.Grid().GetBin( (float)(fY-1.), (float)(fZ-1.) );
-
+	  if( drawSearch ){
+#ifdef DRAW
+	    std::cout<<" tracklet "<<r.fItr<<", row "<<iRow<<": grid N="<<row.Grid().N() <<std::endl;
+	    std::cout<<" tracklet "<<r.fItr<<", row "<<iRow<<": minbin="<<fIndYmin <<std::endl;
+#endif
+	  }
 	  {	  	    
 	    Int_t nY = row.Grid().Ny();
+	    
 	    UShort_t *sGridP = (reinterpret_cast<UShort_t*>(tmpint4)) + row.FullGridOffset();
 	    fHitYfst = sGridP[fIndYmin];
 	    fHitYlst = sGridP[fIndYmin+2];
 	    fHitYfst1 = sGridP[fIndYmin+nY];
 	    fHitYlst1 = sGridP[fIndYmin+nY+2];
+	    if( drawSearch ){
+#ifdef DRAW
+	      std::cout<<" Grid, row "<<iRow<<": nHits="<<row.NHits()<<", grid n="<<row.Grid().N()<<", c[n]="<<sGridP[row.Grid().N()]<<std::endl;
+	      std::cout<<"hit steps = "<<stepY<<" "<<stepZ<<std::endl;
+	      std::cout<<" Grid bins:"<<std::endl;
+	      for( unsigned int i=0; i<row.Grid().N(); i++ ){
+		std::cout<<" bin "<<i<<": ";
+		for( int j=sGridP[i]; j<sGridP[i+1]; j++){
+		  ushort2 hh = hits[j];
+		  Float_t y = y0 + hh.x*stepY;
+		  Float_t z = z0 + hh.y*stepZ;
+		  std::cout<<"["<<j<<"|"<<y<<","<<z<<"] ";
+		}
+		std::cout<<std::endl;
+	      }
+#endif
+	    }
+	    if( sGridP[row.Grid().N()]!=row.NHits() ){
+#ifdef DRAW
+	      std::cout<<" grid, row "<<iRow<<": nHits="<<row.NHits()<<", grid n="<<row.Grid().N()<<", c[n]="<<sGridP[row.Grid().N()]<<std::endl;
+	      //exit(0);
+#endif
+	    }
 	  }
-	  
+	  if( drawSearch ){
+	    //#ifdef DRAW
+	    std::cout<<" tracklet "<<r.fItr<<", row "<<iRow<<", yz= "<<fY<<","<<fZ<<": search hits="<<fHitYfst<<" "<<fHitYlst<<" / "<< fHitYfst1<<" "<<fHitYlst1<<std::endl;
+	    std::cout<<" hit search :"<<std::endl;
+	    //#endif
+	  }
 	  for( UInt_t fIh = fHitYfst; fIh<fHitYlst; fIh++ ){
 	    ushort2 hh = hits[fIh];	  
 	    Int_t ddy = (Int_t)(hh.x) - fY0;
 	    Int_t ddz = (Int_t)(hh.y) - fZ0;
-	    Int_t dds = CAMath::mul24(ddy,ddy) + CAMath::mul24(ddz,ddz);
+	    Int_t dds = CAMath::Abs(ddy) + CAMath::Abs(ddz);
+	    if( drawSearch ){
+	      //#ifdef DRAW
+	      std::cout<<fIh<<": hityz= "<<hh.x<<" "<<hh.y<<"("<<hh.x*stepY<<" "<<hh.y*stepZ<<"), trackyz="<<fY0<<" "<<fZ0<<"("<<fY0*stepY<<" "<<fZ0*stepZ<<"), dy,dz,ds= "<<ddy<<" "<<ddz<<" "<<dds<<"("<<ddy*stepY<<" "<<ddz*stepZ<<std::endl;
+	      //#endif
+	    }
 	    if( dds<ds ){
 	      ds = dds;
 	      best = fIh;
@@ -323,7 +495,12 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	    ushort2 hh = hits[fIh];
 	    Int_t ddy = (Int_t)(hh.x) - fY0;
 	    Int_t ddz = (Int_t)(hh.y) - fZ0;
-	    Int_t dds = CAMath::mul24(ddy,ddy) + CAMath::mul24(ddz,ddz);
+	    Int_t dds = CAMath::Abs(ddy) + CAMath::Abs(ddz);
+	    if( drawSearch ){
+	      //#ifdef DRAW
+	      std::cout<<fIh<<": hityz= "<<hh.x<<" "<<hh.y<<"("<<hh.x*stepY<<" "<<hh.y*stepZ<<"), trackyz="<<fY0<<" "<<fZ0<<"("<<fY0*stepY<<" "<<fZ0*stepZ<<"), dy,dz,ds= "<<ddy<<" "<<ddz<<" "<<dds<<"("<<ddy*stepY<<" "<<ddz*stepZ<<std::endl;
+	      //#endif
+	    }
 	    if( dds<ds ){
 	      ds = dds;
 	      best = fIh;
@@ -332,7 +509,17 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	}// end of search for the closest hit
 	
 	if( best<0 ) break;	
-	
+	if( drawSearch ){
+	  //#ifdef DRAW
+	  std::cout<<"hit search "<<r.fItr<<", row "<<iRow<<" hit "<<best<<" found"<<std::endl;
+#ifdef DRAW
+	  AliHLTTPCCADisplay::Instance().DrawSliceHit( iRow, best, kRed, 1. );
+	  AliHLTTPCCADisplay::Instance().Ask();
+	  AliHLTTPCCADisplay::Instance().DrawSliceHit( iRow, best, kWhite, 1 );
+	  AliHLTTPCCADisplay::Instance().DrawSliceHit( iRow, best );
+#endif
+	}
+
 	ushort2 hh = hits[best];
 	
 	tracker.GetErrors2( iRow, *((AliHLTTPCCATrackParam*)&tParam), err2Y, err2Z );
@@ -342,24 +529,59 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 	Float_t dy = y - fY;
 	Float_t dz = z - fZ;	  
 	
-	const Float_t kFactor = 3.5*3.5;
+	//const Float_t kFactor = tracker.Param().HitPickUpFactor()*tracker.Param().HitPickUpFactor()*3.5*3.5;
+	const Float_t kFactor = 3.5*3.5;//SG!!!
 	Float_t sy2 = kFactor*( tParam.GetErr2Y() +  err2Y );
 	Float_t sz2 = kFactor*( tParam.GetErr2Z() +  err2Z );
-	if( sy2 > 1. ) sy2 = 1.;
-	if( sz2 > 1. ) sz2 = 1.;
+	if( sy2 > 2. ) sy2 = 2.;//SG
+	if( sz2 > 2. ) sz2 = 2.;
 	if( iRow==63 || iRow==64 || iRow==65 ){
-	  if( sy2 < 4. ) sy2 = 4.;
-	  if( sz2 < 4. ) sz2 = 4.;
+	  //if( sy2 < 4. ) sy2 = 4.; //SG!!!
+	  //if( sz2 < 4. ) sz2 = 4.;
 	}
-	
-	
-	if( CAMath::fmul_rz(dy,dy)>sy2 || CAMath::fmul_rz(dz,dz)>sz2  ) break;
-	
-	if( !tParam.Filter20( y, z, err2Y, err2Z, .95 ) ) break;
+	if( drawSearch ){
+	  //#ifdef DRAW
+	  std::cout<<"dy,sy= "<< dy <<" "<<CAMath::Sqrt(sy2)<<", dz,sz= "<< dz<<" "<<CAMath::Sqrt(sz2)<<std::endl;
+	  std::cout<<"dy,dz= "<< dy <<" "<<dz<<", sy,sz= "<<CAMath::Sqrt(sy2)<<" "<<CAMath::Sqrt(sz2)<<", sy,sz= "<<CAMath::Sqrt(kFactor*( tParam.GetErr2Y() +  err2Y ))<<" "<<CAMath::Sqrt(kFactor*( tParam.GetErr2Z() +  err2Z ))<<std::endl;
+	  //#endif
+	}
+	if( CAMath::fmul_rz(dy,dy)>sy2 || CAMath::fmul_rz(dz,dz)>sz2  ){
+	  if( drawSearch ){
+	    //#ifdef DRAW
 
+	    std::cout<<"found hit is out of the chi2 window\n "<<std::endl;
+	    //#endif
+	  }
+	  break; 
+	}	
+#ifdef DRAW
+	//if( SAVE() ) hitstore[ iRow ] = best;
+	//std::cout<<"hit search before filter: "<<r.fItr<<", row "<<iRow<<std::endl;
+	//AliHLTTPCCADisplay::Instance().DrawTracklet(tParam, hitstore, kBlue);  
+	//AliHLTTPCCADisplay::Instance().Ask();
+#endif
+	if( !tParam.Filter2( y, z, err2Y, err2Z, .999 ) ){
+	  if( drawSearch ){
+	    //#ifdef DRAW
+	    std::cout<<"tracklet "<<r.fItr<<" at row "<<iRow<<" : can not filter!!!! "<<std::endl;
+	    //#endif
+	  }
+	  break;
+	}
 	if( SAVE() ) hitstore[ iRow ] = best;
-	r.fNHits++;          
+	if( drawSearch ){
+	  //#ifdef DRAW
+	  std::cout<<"tracklet "<<r.fItr<<" after filter at row "<<iRow<<" : "<<std::endl;
+	  tParam.Print();
+#ifdef DRAW
+	  AliHLTTPCCADisplay::Instance().DrawTracklet(tParam, hitstore, kRed);  
+	  AliHLTTPCCADisplay::Instance().Ask();
+#endif
+	}
+	r.fNHits++;
 	r.fNMissed=0;		
+	if( r.fStage ==1 ) r.fLastRow = iRow;
+	else r.fFirstRow = iRow;
       }while(0);
     }
 }
@@ -402,6 +624,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
       r.fCurrentData = 0;
       r.fNMissed = 0;           
       r.fStage = 2;
+      if( r.fGo ){
+	const AliHLTTPCCARow &row = tracker.Row(r.fFirstRow);   	
+	Float_t x = row.X();
+	if( !tParam.TransportToX( x, .999 ) ) r.fGo = 0;
+      }
     }
   
   else if( iSync<=3+159+1+159 )    

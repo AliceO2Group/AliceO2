@@ -35,21 +35,21 @@ class AliHLTTPCCATrackParam
   ~AliHLTTPCCATrackParam(){}
 #endif
 
-  GPUd() Float_t &X()     { return fX;    }
-  GPUd() Float_t &Y()     { return fP[0]; }
-  GPUd() Float_t &Z()     { return fP[1]; }
-  GPUd() Float_t &SinPhi(){ return fP[2]; }
-  GPUd() Float_t &DzDs()  { return fP[3]; }
-  GPUd() Float_t &Kappa() { return fP[4]; }
-  GPUd() Float_t &CosPhi(){ return fCosPhi; }
-  GPUd() Float_t &Chi2()  { return fChi2; }
-  GPUd() Int_t   &NDF()   { return fNDF; }
+  GPUd() Float_t X()     const { return fX;    }
+  GPUd() Float_t Y()     const { return fP[0]; }
+  GPUd() Float_t Z()     const { return fP[1]; }
+  GPUd() Float_t SinPhi()const { return fP[2]; }
+  GPUd() Float_t DzDs()  const { return fP[3]; }
+  GPUd() Float_t Kappa() const { return fP[4]; }
+  GPUd() Float_t CosPhi()const { return fCosPhi; }
+  GPUd() Float_t Chi2()  const { return fChi2; }
+  GPUd() Int_t   NDF()   const { return fNDF; }
 
-  Float_t &Err2Y()      { return fC[0]; }
-  Float_t &Err2Z()      { return fC[2]; }
-  Float_t &Err2SinPhi() { return fC[5]; }
-  Float_t &Err2DzDs()   { return fC[9]; }
-  Float_t &Err2Kappa()  { return fC[14]; }
+  Float_t Err2Y()      const { return fC[0]; }
+  Float_t Err2Z()      const { return fC[2]; }
+  Float_t Err2SinPhi() const { return fC[5]; }
+  Float_t Err2DzDs()   const { return fC[9]; }
+  Float_t Err2Kappa()  const { return fC[14]; }
 
   GPUd() Float_t GetX()      const { return fX; }
   GPUd() Float_t GetY()      const { return fP[0]; }
@@ -67,11 +67,28 @@ class AliHLTTPCCATrackParam
   GPUd() Float_t GetErr2DzDs()   const { return fC[9]; }
   GPUd() Float_t GetErr2Kappa()  const { return fC[14]; }
 
-  GPUhd() Float_t *Par(){ return fP; }
-  GPUhd() Float_t *Cov(){ return fC; }
+  GPUhd() const Float_t *Par() const { return fP; }
+  GPUhd() const Float_t *Cov() const { return fC; }
 
   const Float_t *GetPar() const { return fP; }
   const Float_t *GetCov() const { return fC; }
+
+  GPUhd() void SetPar( Int_t i, Float_t v ){ fP[i] = v; }
+  GPUhd() void SetCov( Int_t i, Float_t v ){ fC[i] = v; }
+
+  GPUd() void SetX( Float_t v )     {  fX = v;    }
+  GPUd() void SetY( Float_t v )     {  fP[0] = v; }
+  GPUd() void SetZ( Float_t v )     {  fP[1] = v; }
+  GPUd() void SetSinPhi( Float_t v ){  fP[2] = v; }
+  GPUd() void SetDzDs( Float_t v )  {  fP[3] = v; }
+  GPUd() void SetKappa( Float_t v ) {  fP[4] = v; }
+  GPUd() void SetCosPhi( Float_t v ){  fCosPhi = v; }
+  GPUd() void SetChi2( Float_t v )  {  fChi2 = v; }
+  GPUd() void SetNDF( Int_t v )   { fNDF = v; }  
+
+
+  GPUd() Float_t GetDist2( const AliHLTTPCCATrackParam &t ) const;
+  GPUd() Float_t GetDistXZ2( const AliHLTTPCCATrackParam &t ) const;
 
   GPUd() void ConstructXY3( const Float_t x[3], const Float_t y[3], const Float_t sigmaY2[3], Float_t CosPhi0 );
 
@@ -84,14 +101,21 @@ class AliHLTTPCCATrackParam
 			   Float_t &px, Float_t &py, Float_t &pz ) const;
   
   GPUd() Int_t TransportToX( Float_t X, Float_t maxSinPhi );
+  GPUd() Int_t TransportToX( Float_t X, AliHLTTPCCATrackParam &t0, Float_t maxSinPhi );
+
   GPUd() Bool_t TransportToXWithMaterial( Float_t X, AliHLTTPCCATrackFitParam &par );
+  GPUd() Bool_t TransportToXWithMaterial( Float_t X, AliHLTTPCCATrackParam &t0, AliHLTTPCCATrackFitParam &par );
   GPUd() Bool_t TransportToXWithMaterial( Float_t X, Float_t Bz );
-  GPUd() Bool_t Rotate( Float_t alpha );
+  GPUd() Bool_t Rotate( Float_t alpha, Float_t maxSinPhi=.99 );
+  GPUd() Bool_t RotateNoCos( Float_t alpha, AliHLTTPCCATrackParam &t0, Float_t maxSinPhi=.99 );
 
   GPUd() Bool_t Filter2( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z, Float_t maxSinPhi=.99 );
+  GPUd() Bool_t Filter2NoCos( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z );
 
-  GPUd() Int_t TransportToX0( Float_t X, Float_t /*maxSinPhi*/ );
+  GPUd() Int_t TransportToX0( Float_t X, Float_t sinPhi, Float_t cosPhi );
+  GPUd() Int_t TransportToX0( Float_t X, Float_t maxSinPhi );
   GPUd() Bool_t Filter20( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z, Float_t maxSinPhi=.99 );
+  GPUd() Bool_t Filter200( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z );
 
   GPUd() Bool_t Filter2v1( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z, Float_t maxSinPhi=.99 );
   GPUd() void FilterY( Float_t y, Float_t erry );

@@ -26,9 +26,7 @@ GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
   : fISlice(0),fNRows(63),fAlpha(0.174533), fDAlpha(0.349066),
     fCosAlpha(0), fSinAlpha(0), fAngleMin(0), fAngleMax(0), fRMin(83.65), fRMax(133.3),
     fZMin(0.0529937), fZMax(249.778), fErrX(0), fErrY(0), fErrZ(0.228808),fPadPitch(0.4),fBz(-5.), 
-    fYErrorCorrection(0.33), fZErrorCorrection(0.45),
-    fCellConnectionAngleXY(45./180.*CAMath::Pi()), 
-    fCellConnectionAngleXZ(45./180.*CAMath::Pi()),
+    fHitPickUpFactor(2.),
     fMaxTrackMatchDRow(4), fTrackConnectionFactor(3.5), fTrackChiCut(3.5), fTrackChi2Cut(10)
 {
   // constructor
@@ -166,10 +164,7 @@ GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const
   out << fErrZ<<std::endl;
   out << fPadPitch<<std::endl;
   out << fBz<<std::endl;
-  out << fYErrorCorrection<<std::endl;
-  out << fZErrorCorrection<<std::endl;
-  out << fCellConnectionAngleXY<<std::endl;
-  out << fCellConnectionAngleXZ<<std::endl;
+  out << fHitPickUpFactor<<std::endl;
   out << fMaxTrackMatchDRow<<std::endl;
   out << fTrackConnectionFactor<<std::endl;
   out << fTrackChiCut<<std::endl;
@@ -206,10 +201,7 @@ GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
   in >> fErrZ;
   in >> fPadPitch;
   in >> fBz;
-  in >> fYErrorCorrection;
-  in >> fZErrorCorrection;
-  in >> fCellConnectionAngleXY;
-  in >> fCellConnectionAngleXZ;
+  in >> fHitPickUpFactor;
   in >> fMaxTrackMatchDRow;
   in >> fTrackConnectionFactor;
   in >> fTrackChiCut;

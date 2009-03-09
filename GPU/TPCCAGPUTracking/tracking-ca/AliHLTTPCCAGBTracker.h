@@ -9,6 +9,7 @@
 #define ALIHLTTPCCAGBTRACKER_H
 
 #include "AliHLTTPCCADef.h"
+#include "AliHLTTPCCATrackParam.h"
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
@@ -61,7 +62,27 @@ public:
   void FindTracks2();
 
 
+  void Refit();
+
+  struct AliHLTTPCCABorderTrack{
+    AliHLTTPCCABorderTrack(): fParam(), fITrack(0), fIRow(0), fNHits(0), fX(0), fOK(0){};
+    AliHLTTPCCATrackParam fParam; // track parameters at the border
+    Int_t fITrack;               // track index
+    Int_t fIRow;                 // row number of the closest cluster
+    Int_t fNHits;                // n hits
+    Float_t fX;                  // X coordinate of the closest cluster
+    Bool_t fOK;                  // is the trak rotated and extrapolated correctly
+  };
+  
+  void MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLTTPCCABorderTrack B[], Int_t &nB);
+  void SplitBorderTracks( Int_t iSlice1, AliHLTTPCCABorderTrack B1[], Int_t N1,
+			  Int_t iSlice2, AliHLTTPCCABorderTrack B2[], Int_t N2, 
+			  Float_t Alpha =-1 );
+  Float_t GetChi2( Float_t x1, Float_t y1, Float_t a00, Float_t a10, Float_t a11, 
+		   Float_t x2, Float_t y2, Float_t b00, Float_t b10, Float_t b11  );
+
   void Merging();
+
   AliHLTTPCCATracker *Slices(){ return fSlices; }
   AliHLTTPCCAGBHit *Hits(){ return fHits; }
   Int_t NHits() const { return fNHits; }
@@ -82,7 +103,12 @@ public:
   void WriteTracks( std::ostream &out ) const;
   void ReadTracks( std::istream &in );
 
-  Double_t &SliceTrackerTime(){ return fSliceTrackerTime; }
+  Double_t SliceTrackerTime() const { return fSliceTrackerTime; }
+  void SetSliceTrackerTime( Double_t v ){ fSliceTrackerTime = v; }
+  const Int_t *FirstSliceHit() const { return fFirstSliceHit; }
+  Bool_t FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrackParam t0, 
+		   Float_t &Alpha, Int_t hits[], Int_t &NHits, 
+		   Float_t &DeDx, Bool_t dir=0 );
 
 protected:
 

@@ -24,25 +24,27 @@ class AliHLTTPCCAHitArea
 {
 public:
   
-  GPUd() void Init( AliHLTTPCCAGrid &grid, UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz );
-  GPUd() Int_t GetNext(AliHLTTPCCATracker &tracker, AliHLTTPCCARow &row, UShort_t *content,AliHLTTPCCAHit &h);
-  GPUd() Int_t GetBest(AliHLTTPCCATracker &tracker, AliHLTTPCCARow &row, UShort_t *content,AliHLTTPCCAHit &h );
+  GPUd() void Init( const AliHLTTPCCAGrid &grid, UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz );
 
-  GPUhd() Float_t& Y(){ return fY;}
-  GPUhd() Float_t& Z(){ return fZ;}
-  GPUhd() Float_t& MinZ(){ return fMinZ;}
-  GPUhd() Float_t& MaxZ(){ return fMaxZ;}
-  GPUhd() Float_t& MinY(){ return fMinY;}
-  GPUhd() Float_t& MaxY(){ return fMaxY;}
-  GPUhd() UInt_t&  BZmax(){ return fBZmax;}
-  GPUhd() UInt_t&  BDY(){ return fBDY;}
-  GPUhd() UInt_t&  IndYmin(){ return fIndYmin;}
-  GPUhd() UInt_t&  Iz(){ return fIz;}
-  GPUhd() UInt_t&  HitYfst(){ return fHitYfst;}
-  GPUhd() UInt_t&  HitYlst(){ return fHitYlst;}
-  GPUhd() UInt_t&  Ih(){ return fIh;}
-  GPUhd() UInt_t&  Ny(){ return fNy;}
-  GPUhd() UInt_t&  HitOffset(){ return fHitOffset;}
+  GPUd() Int_t GetNext(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, UShort_t *content,AliHLTTPCCAHit &h);
+
+  GPUd() Int_t GetBest(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, UShort_t *content,AliHLTTPCCAHit &h );
+
+  GPUhd() Float_t Y() const { return fY;}
+  GPUhd() Float_t Z() const { return fZ;}
+  GPUhd() Float_t MinZ() const { return fMinZ;}
+  GPUhd() Float_t MaxZ() const { return fMaxZ;}
+  GPUhd() Float_t MinY() const { return fMinY;}
+  GPUhd() Float_t MaxY() const { return fMaxY;}
+  GPUhd() UInt_t  BZmax() const { return fBZmax;}
+  GPUhd() UInt_t  BDY() const { return fBDY;}
+  GPUhd() UInt_t  IndYmin() const { return fIndYmin;}
+  GPUhd() UInt_t  Iz() const { return fIz;}
+  GPUhd() UInt_t  HitYfst() const { return fHitYfst;}
+  GPUhd() UInt_t  HitYlst() const { return fHitYlst;}
+  GPUhd() UInt_t  Ih() const { return fIh;}
+  GPUhd() UInt_t  Ny() const { return fNy;}
+  GPUhd() UInt_t  HitOffset() const { return fHitOffset;}
 
   protected:
 

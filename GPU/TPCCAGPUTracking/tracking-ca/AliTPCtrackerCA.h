@@ -14,7 +14,6 @@ class AliTPCParam;
 class AliESD;   
 class TTree;
 class AliHLTTPCCAGBTracker;
-class AliHLTTPCCAPerformance;
 class AliTPCclusterMI;
 class AliTPCtrack;
 
@@ -42,8 +41,8 @@ public:
   Int_t LoadClusters (TTree * tree);
   void   UnloadClusters(){ return ; }
   AliCluster * GetCluster(Int_t index) const;
-  Bool_t &DoHLTPerformance(){ return fDoHLTPerformance; }
-  Bool_t &DoHLTPerformanceClusters(){ return fDoHLTPerformanceClusters; }
+  Bool_t DoHLTPerformance() const { return fDoHLTPerformance; }
+  Bool_t DoHLTPerformanceClusters() const { return fDoHLTPerformanceClusters; }
   //
  protected:
 
@@ -51,7 +50,6 @@ public:
   AliTPCclusterMI *fClusters; //* array of clusters
   Int_t fNClusters;           //* N clusters
   AliHLTTPCCAGBTracker *fHLTTracker; //* pointer to the HLT tracker
-  AliHLTTPCCAPerformance *fHLTPerformance; //* performance calculations
   Bool_t fDoHLTPerformance; //* flag for call AliHLTTPCCAPerformance
   Bool_t fDoHLTPerformanceClusters; //* flag for call AliHLTTPCCAPerformance with cluster pulls (takes some time to load TPC MC points)
   Int_t fStatNEvents; //* N of reconstructed events

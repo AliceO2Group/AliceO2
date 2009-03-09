@@ -36,10 +36,10 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread
 	s.fIRow = iBlock+1;
 	s.fNRowStartHits = 0;
 	if( s.fIRow <= s.fNRows-4 ){	  
-	  s.fNHits = tracker.Rows()[s.fIRow].NHits(); 
+	  s.fNHits = tracker.Row(s.fIRow).NHits(); 
 	  if( s.fNHits>=1024 ) s.fNHits = 1023;
 
-	  AliHLTTPCCARow &row = tracker.Rows()[s.fIRow];
+	  const AliHLTTPCCARow &row = tracker.Row(s.fIRow);
 	  s.fHitLinkUp = ((Short_t*)(tracker.RowData() + row.FullOffset())) + row.FullLinkOffset();
 	  s.fHitLinkDown = s.fHitLinkUp + row.NHits();
 

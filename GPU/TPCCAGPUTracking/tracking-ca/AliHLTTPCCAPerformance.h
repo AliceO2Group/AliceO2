@@ -33,11 +33,17 @@ class AliHLTTPCCAPerformance
 
  public:
 
+  struct AliHLTTPCCAHitLabel{
+    Int_t fLab[3]; //* array of 3 MC labels
+  };
+
   AliHLTTPCCAPerformance();
   AliHLTTPCCAPerformance(const AliHLTTPCCAPerformance&);
   AliHLTTPCCAPerformance &operator=(const AliHLTTPCCAPerformance&);
 
   virtual ~AliHLTTPCCAPerformance();
+
+  static AliHLTTPCCAPerformance &Instance();
 
   void SetTracker( AliHLTTPCCAGBTracker *Tracker );
   void StartEvent();
@@ -62,15 +68,19 @@ class AliHLTTPCCAPerformance
   void ReadMCEvent( istream &in );
   void WriteMCPoints( ostream &out ) const;
   void ReadMCPoints( istream &in );
-  Bool_t& DoClusterPulls(){ return fDoClusterPulls; }
+  Bool_t DoClusterPulls() const { return fDoClusterPulls; }
+  void SetDoClusterPulls( Bool_t v ) { fDoClusterPulls = v; }
+  AliHLTTPCCAHitLabel *HitLabels(){ return fHitLabels;}
+  AliHLTTPCCAMCTrack *MCTracks(){ return fMCTracks; }
+  Int_t NMCTracks() const { return fNMCTracks; }
+
+  TH1D *HNHitsPerSeed() const { return fhNHitsPerSeed;}
+  TH1D *HNHitsPerTrackCand() const { return fhNHitsPerTrackCand; }
 
 protected:
 
   AliHLTTPCCAGBTracker *fTracker; //* pointer to the tracker
   
-  struct AliHLTTPCCAHitLabel{
-    Int_t fLab[3]; //* array of 3 MC labels
-  };
 
   AliHLTTPCCAHitLabel *fHitLabels; //* array of hit MC labels
   Int_t fNHits;                    //* number of hits
@@ -113,7 +123,9 @@ protected:
   *fhPullZ,      //* track Z pull at the TPC entrance
   *fhPullSinPhi, //* track SinPhi pull at the TPC entrance
   *fhPullDzDs, //* track DzDs pull at the TPC entrance
-  *fhPullQPt;    //* track Q/Pt pull at the TPC entrance
+  *fhPullQPt,    //* track Q/Pt pull at the TPC entrance
+  *fhPullYS,       //* sqrt(chi2/ndf) deviation of the track parameters Y and SinPhi at the TPC entrance
+  *fhPullZT;      //* sqrt(chi2/ndf) deviation of the track parameters Z and DzDs at the TPC entrance
 
   TH1D 
   *fhHitErrY, //* hit error in Y
@@ -153,6 +165,29 @@ protected:
     *fhNeighDzVsPt,// dz for neighbours vs track Pt
     *fhNeighChiVsPt, // chi2^0.5 for neighbours vs track Pt
     *fhNeighNCombVsArea; // N neighbours in the search area
+
+  TH1D 
+    *fhNHitsPerSeed, // n hits per track seed
+    *fhNHitsPerTrackCand; // n hits per track candidate
+
+  TH1D 
+    *fhTrackLengthRef, // reconstructed track length, %
+    *fhRefRecoX,// parameters of non-reconstructed ref. mc track
+    *fhRefRecoY,// parameters of non-reconstructed ref. mc track
+    *fhRefRecoZ,// parameters of non-reconstructed ref. mc track
+    *fhRefRecoP, // parameters of non-reconstructed ref. mc track
+    *fhRefRecoPt,// parameters of non-reconstructed ref. mc track
+    *fhRefRecoAngleY,// parameters of non-reconstructed ref. mc track
+    *fhRefRecoAngleZ,// parameters of non-reconstructed ref. mc track
+    *fhRefRecoNHits,// parameters of non-reconstructed ref. mc track
+    *fhRefNotRecoX,// parameters of non-reconstructed ref. mc track
+    *fhRefNotRecoY,// parameters of non-reconstructed ref. mc track
+    *fhRefNotRecoZ,// parameters of non-reconstructed ref. mc track
+    *fhRefNotRecoP, // parameters of non-reconstructed ref. mc track
+    *fhRefNotRecoPt,// parameters of non-reconstructed ref. mc track
+    *fhRefNotRecoAngleY,// parameters of non-reconstructed ref. mc track
+    *fhRefNotRecoAngleZ,// parameters of non-reconstructed ref. mc track
+    *fhRefNotRecoNHits;// parameters of non-reconstructed ref. mc track
 
   static void WriteDir2Current( TObject *obj );
   

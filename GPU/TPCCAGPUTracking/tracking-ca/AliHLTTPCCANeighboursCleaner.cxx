@@ -36,16 +36,16 @@ GPUd() void AliHLTTPCCANeighboursCleaner::Thread
 	if( s.fIRow <= s.fNRows-2 ){
 	  Int_t iRowUp = s.fIRow+1;
 	  Int_t iRowDn = s.fIRow-1;  	  
-	  s.fFirstHit = tracker.Rows()[s.fIRow].FirstHit(); 
-	  AliHLTTPCCARow &row = tracker.Rows()[s.fIRow];
-	  AliHLTTPCCARow &rowUp = tracker.Rows()[iRowUp];
-	  AliHLTTPCCARow &rowDn = tracker.Rows()[iRowDn];
+	  s.fFirstHit = tracker.Row(s.fIRow).FirstHit(); 
+	  const AliHLTTPCCARow &row = tracker.Row(s.fIRow);
+	  const AliHLTTPCCARow &rowUp = tracker.Row(iRowUp);
+	  const AliHLTTPCCARow &rowDn = tracker.Row(iRowDn);
 	  s.fHitLinkUp = ((Short_t*)(tracker.RowData() + row.FullOffset())) + row.FullLinkOffset();
 	  s.fHitLinkDown = s.fHitLinkUp + row.NHits();
 	  s.fDnHitLinkUp = ((Short_t*)(tracker.RowData() + rowDn.FullOffset())) + rowDn.FullLinkOffset();
 	  s.fUpHitLinkDown = ((Short_t*)(tracker.RowData() + rowUp.FullOffset())) + rowUp.FullLinkOffset() + rowUp.NHits();
 
-	  s.fNHits = tracker.Rows()[s.fIRow].NHits();
+	  s.fNHits = tracker.Row(s.fIRow).NHits();
 	}
       }
     } 

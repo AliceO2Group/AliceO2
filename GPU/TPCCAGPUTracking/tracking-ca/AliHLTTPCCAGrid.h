@@ -40,17 +40,17 @@ class AliHLTTPCCAGrid
   }
 
 
-  GPUd() UInt_t  N()  const { return fN;  }
-  GPUd() UInt_t  Ny() const { return fNy; }
-  GPUd() UInt_t  Nz() const { return fNz; }
-  GPUd() Float_t YMin() const { return fYMin; }
-  GPUd() Float_t YMax() const { return fYMax; }
-  GPUd() Float_t ZMin() const { return fZMin; }
-  GPUd() Float_t ZMax() const { return fZMax; }
+  GPUd() UInt_t  N()        const { return fN;  }
+  GPUd() UInt_t  Ny()       const { return fNy; }
+  GPUd() UInt_t  Nz()       const { return fNz; }
+  GPUd() Float_t YMin()     const { return fYMin; }
+  GPUd() Float_t YMax()     const { return fYMax; }
+  GPUd() Float_t ZMin()     const { return fZMin; }
+  GPUd() Float_t ZMax()     const { return fZMax; }
   GPUd() Float_t StepYInv() const { return fStepYInv; }
   GPUd() Float_t StepZInv() const { return fStepZInv; }
 
-  private:
+private:
 
   UInt_t fNy;        //* N bins in Y
   UInt_t fNz;        //* N bins in Z

@@ -57,6 +57,7 @@ class AliHLTTPCCATracker
   void WriteOutput();
 
   GPUd() void GetErrors2( Int_t iRow,  const AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z ) const;
+  GPUd() void GetErrors2( Int_t iRow, Float_t z, Float_t sinPhi, Float_t cosPhi, Float_t DzDs, Float_t &Err2Y, Float_t &Err2Z ) const;
 
   GPUhd() static Int_t IRowIHit2ID( Int_t iRow, Int_t iHit ){ 
     return (iHit<<8)+iRow; 
@@ -71,7 +72,7 @@ class AliHLTTPCCATracker
   //GPUhd() AliHLTTPCCAHit &ID2Hit( Int_t HitID ) {
   //return fHits[fRows[HitID%256].FirstHit() + (HitID>>8)];
   //}
-  GPUhd() AliHLTTPCCARow &ID2Row( Int_t HitID ) {
+  GPUhd() const AliHLTTPCCARow &ID2Row( Int_t HitID ) const {
     return fRows[HitID%256];
   }
   
@@ -86,33 +87,37 @@ class AliHLTTPCCATracker
   GPUh() void ReadTracks( std::istream &in );
 #endif
 
-  GPUhd() AliHLTTPCCAParam &Param(){ return fParam; }
-  GPUhd() AliHLTTPCCARow *Rows(){ return fRows; }
-  GPUhd()  Double_t *Timers(){ return fTimers; }
-  GPUhd() Int_t &NHitsTotal(){ return fNHitsTotal;}
+  GPUhd() const AliHLTTPCCAParam &Param() const { return fParam; }
+  GPUhd() void SetParam( const AliHLTTPCCAParam &v ){ fParam = v; }
 
-  GPUhd() Char_t *InputEvent()    { return fInputEvent; }
-  GPUhd() Int_t  &InputEventSize(){ return fInputEventSize; }
+  GPUhd() const AliHLTTPCCARow &Row(Int_t i){ return fRows[i]; }
+  GPUhd() Double_t Timer(Int_t i) const { return fTimers[i]; }
+  GPUhd() void SetTimer(Int_t i, Double_t v ){ fTimers[i] = v; }
 
-  GPUhd() uint4  *RowData()       { return fRowData; }
-  GPUhd() Int_t  &RowDataSize()  { return fRowDataSize; }
+  GPUhd() Int_t NHitsTotal() const { return fNHitsTotal;}
+
+  GPUhd() const Char_t *InputEvent()    const { return fInputEvent; }
+  GPUhd() Int_t  InputEventSize() const { return fInputEventSize; }
+
+  GPUhd() const uint4  *RowData()    const   { return fRowData; }
+  GPUhd() Int_t  RowDataSize()  const { return fRowDataSize; }
  
-  GPUhd() Int_t * HitInputIDs(){ return fHitInputIDs; }
-  GPUhd() Int_t  *HitWeights(){ return fHitWeights; }  
+  GPUhd() Int_t *HitInputIDs() const { return fHitInputIDs; }
+  GPUhd() Int_t  *HitWeights() const { return fHitWeights; }  
   
-  GPUhd() Int_t  *NTracklets(){ return fNTracklets; }
-  GPUhd() Int_t  *TrackletStartHits(){ return fTrackletStartHits; }
-  GPUhd() AliHLTTPCCATracklet  *Tracklets(){ return fTracklets;}
+  GPUhd() Int_t  *NTracklets() const { return fNTracklets; }
+  GPUhd() Int_t  *TrackletStartHits() const { return fTrackletStartHits; }
+  GPUhd() AliHLTTPCCATracklet  *Tracklets() const { return fTracklets;}
   
-  GPUhd() Int_t *NTracks()  { return fNTracks; }
-  GPUhd() AliHLTTPCCATrack *Tracks(){ return  fTracks; }
-  GPUhd() Int_t *NTrackHits()  { return fNTrackHits; }
-  GPUhd() Int_t *TrackHits(){ return fTrackHits; }
+  GPUhd() Int_t *NTracks()  const { return fNTracks; }
+  GPUhd() AliHLTTPCCATrack *Tracks() const { return  fTracks; }
+  GPUhd() Int_t *NTrackHits()  const { return fNTrackHits; }
+  GPUhd() Int_t *TrackHits() const { return fTrackHits; }
 
   GPUhd()  Int_t *NOutTracks() const { return  fNOutTracks; }
-  GPUhd()  AliHLTTPCCAOutTrack *OutTracks(){ return  fOutTracks; }
+  GPUhd()  AliHLTTPCCAOutTrack *OutTracks() const { return  fOutTracks; }
   GPUhd()  Int_t *NOutTrackHits() const { return  fNOutTrackHits; }
-  GPUhd()  Int_t *OutTrackHits(){ return  fOutTrackHits; }
+  GPUhd()  Int_t *OutTrackHits() const { return  fOutTrackHits; }
  
   GPUh() void SetCommonMemory( Char_t *mem ){ fCommonMemory = mem; }
 
@@ -154,6 +159,10 @@ class AliHLTTPCCATracker
   AliHLTTPCCAOutTrack *fOutTracks; // output array of the reconstructed tracks
   Int_t *fNOutTrackHits;  // number of hits in fOutTrackHits array
   Int_t *fOutTrackHits;  // output array of ID's of the reconstructed hits
+  
+  //temporary
+  
+  Int_t *fTmpHitInputIDs; // temporary step
 
 };
 

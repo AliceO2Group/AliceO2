@@ -23,6 +23,8 @@
 //#include "AliCluster.h"
 #include "AliTPCClustersRow.h"
 #include "AliTPCParam.h"
+#include "AliTPCClusterParam.h"
+
 #include "AliRun.h"
 #include "AliRunLoader.h"
 #include "AliStack.h"
@@ -42,6 +44,7 @@
 #include "AliTPCTransform.h"
 #include "AliTPCcalibDB.h"
 #include "AliTPCtrack.h"
+#include "AliTPCseed.h"
 #include "AliESDtrack.h"
 #include "AliESDEvent.h"
 #include "AliTrackReference.h"
@@ -52,13 +55,13 @@
 ClassImp(AliTPCtrackerCA)
 
 AliTPCtrackerCA::AliTPCtrackerCA()
-  :AliTracker(),fParam(0), fClusters(0), fNClusters(0), fHLTTracker(0),fHLTPerformance(0),fDoHLTPerformance(0),fDoHLTPerformanceClusters(0),fStatNEvents(0)
+  :AliTracker(),fParam(0), fClusters(0), fNClusters(0), fHLTTracker(0),fDoHLTPerformance(0),fDoHLTPerformanceClusters(0),fStatNEvents(0)
 {
   //* default constructor
 }
 
 AliTPCtrackerCA::AliTPCtrackerCA(const AliTPCtrackerCA &):
-  AliTracker(),fParam(0), fClusters(0), fNClusters(0), fHLTTracker(0),fHLTPerformance(0),fDoHLTPerformance(0),fDoHLTPerformanceClusters(0),fStatNEvents(0)
+  AliTracker(),fParam(0), fClusters(0), fNClusters(0), fHLTTracker(0),fDoHLTPerformance(0),fDoHLTPerformanceClusters(0),fStatNEvents(0)
 {
   //* dummy
 }
@@ -75,23 +78,23 @@ AliTPCtrackerCA::~AliTPCtrackerCA()
   //* destructor
   if( fClusters ) delete[] fClusters;
   if( fHLTTracker ) delete fHLTTracker;
-  if( fHLTPerformance ) delete fHLTPerformance;
 }
 
+//#include "AliHLTTPCCADisplay.h"
+
 AliTPCtrackerCA::AliTPCtrackerCA(const AliTPCParam *par): 
-  AliTracker(),fParam(par), fClusters(0), fNClusters(0), fHLTTracker(0), fHLTPerformance(0),fDoHLTPerformance(0),fDoHLTPerformanceClusters(0),fStatNEvents(0)
+  AliTracker(),fParam(par), fClusters(0), fNClusters(0), fHLTTracker(0),fDoHLTPerformance(0),fDoHLTPerformanceClusters(0),fStatNEvents(0)
 {
   //* constructor
  
-  DoHLTPerformance() = 1;
-  DoHLTPerformanceClusters() = 0;
+  fDoHLTPerformance = 0;
+  fDoHLTPerformanceClusters = 0;
 
   fHLTTracker = new AliHLTTPCCAGBTracker;
   fHLTTracker->SetNSlices( fParam->GetNSector()/2 );
 
   if( fDoHLTPerformance ){
-    fHLTPerformance = new AliHLTTPCCAPerformance;
-    fHLTPerformance->SetTracker( fHLTTracker );
+    AliHLTTPCCAPerformance::Instance().SetTracker( fHLTTracker );
   }
 
   for( Int_t iSlice=0; iSlice<fHLTTracker->NSlices(); iSlice++ ){
@@ -130,10 +133,20 @@ AliTPCtrackerCA::AliTPCtrackerCA(const AliTPCParam *par):
     AliHLTTPCCAParam param;
     param.Initialize( iSlice, nRows, rowX, alpha, dalpha,
 		      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, bz );
-    param.YErrorCorrection() = 1.;// .33;
-    param.ZErrorCorrection() = 1.;//.33;
-    param.MaxTrackMatchDRow() = 5;
-    param.TrackConnectionFactor() = 3.5;
+    param.SetHitPickUpFactor( 3. );
+    param.SetMaxTrackMatchDRow( 5 );
+    param.SetTrackConnectionFactor( 3.5 );
+
+    AliTPCClusterParam * clparam = AliTPCcalibDB::Instance()->GetClusterParam();
+    for( Int_t iRow=0; iRow<nRows; iRow++ ){
+      Int_t    type = (iRow<63) ? 0: ( (iRow>126) ? 1:2 );
+      for( int iyz=0; iyz<2; iyz++ ){
+	for( int k=0; k<7; k++ ){
+	  //std::cout<<param.fParamS0Par[iyz][type][k]<<" "<<clparam->fParamS0Par[iyz][type][k] - param.fParamS0Par[iyz][type][k]<<std::endl;
+	  param.SetParamS0Par(iyz,type,k,clparam->fParamS0Par[iyz][type][k]);
+	}
+      }
+    }
     fHLTTracker->Slices()[iSlice].Initialize( param ); 
   }
 }
@@ -147,7 +160,7 @@ Int_t AliTPCtrackerCA::LoadClusters (TTree * fromTree)
   if( fClusters ) delete[] fClusters;
 
   fHLTTracker->StartEvent();
-  if( fDoHLTPerformance ) fHLTPerformance->StartEvent();
+  if( fDoHLTPerformance ) AliHLTTPCCAPerformance::Instance().StartEvent();
 
   if( !fParam ) return 1;
 
@@ -160,14 +173,15 @@ Int_t AliTPCtrackerCA::LoadClusters (TTree * fromTree)
     AliStack *stack = rl->Stack();
     if( !stack ) break;
 
-    fHLTPerformance->SetNMCTracks( stack->GetNtrack() );
+    AliHLTTPCCAPerformance::Instance().SetNMCTracks( stack->GetNtrack() );
     
     for( Int_t itr=0; itr<stack->GetNtrack(); itr++ ){
       TParticle *part = stack->Particle(itr);
-      fHLTPerformance->ReadMCTrack( itr, part );
+      AliHLTTPCCAPerformance::Instance().ReadMCTrack( itr, part );
     }
 
     { // check for MC tracks at the TPC entrance
+
       Bool_t *isTPC = 0;
       isTPC = new Bool_t [stack->GetNtrack()];
       for( Int_t i=0; i<stack->GetNtrack(); i++ ) isTPC[i] = 0;
@@ -193,7 +207,7 @@ Int_t AliTPCtrackerCA::LoadClusters (TTree * fromTree)
 
 	if( isTPC[tpcRef->Label()] ) continue;	
 
-	fHLTPerformance->ReadMCTPCTrack(tpcRef->Label(),
+	AliHLTTPCCAPerformance::Instance().ReadMCTPCTrack(tpcRef->Label(),
 					tpcRef->X(),tpcRef->Y(),tpcRef->Z(),
 					tpcRef->Px(),tpcRef->Py(),tpcRef->Pz() );
 	isTPC[tpcRef->Label()] = 1;
@@ -219,14 +233,14 @@ Int_t AliTPCtrackerCA::LoadClusters (TTree * fromTree)
 	AliTPChit *phit = (AliTPChit*)tpc->FirstHit(-1);
 	for ( ; phit; phit=(AliTPChit*)tpc->NextHit() ) nPoints++;
       }
-      fHLTPerformance->SetNMCPoints( nPoints );
+      AliHLTTPCCAPerformance::Instance().SetNMCPoints( nPoints );
 
       for (Int_t iEnt=0; iEnt<nEnt; iEnt++) {    
 	tpc->ResetHits();
 	tpcl->TreeH()->GetEvent(iEnt);
 	AliTPChit *phit = (AliTPChit*)tpc->FirstHit(-1);
 	for ( ; phit; phit=(AliTPChit*)tpc->NextHit() ){
-	  fHLTPerformance->ReadMCPoint( phit->GetTrack(),phit->X(), phit->Y(),phit->Z(),phit->Time(), phit->fSector%36);
+	  AliHLTTPCCAPerformance::Instance().ReadMCPoint( phit->GetTrack(),phit->X(), phit->Y(),phit->Z(),phit->Time(), phit->fSector%36);
 	}      
       }
       break;
@@ -257,7 +271,7 @@ Int_t AliTPCtrackerCA::LoadClusters (TTree * fromTree)
 
   fClusters = new AliTPCclusterMI [fNClusters];
   fHLTTracker->SetNHits( fNClusters );
-  if( fDoHLTPerformance ) fHLTPerformance->SetNHits( fNClusters );
+  if( fDoHLTPerformance ) AliHLTTPCCAPerformance::Instance().SetNHits( fNClusters );
   Int_t ind=0;
   for (Int_t i=0; i<nEnt; i++) {
     br->GetEntry(i);
@@ -316,7 +330,7 @@ Int_t AliTPCtrackerCA::LoadClusters (TTree * fromTree)
       fHLTTracker->ReadHit( x, y, z, 
 			    TMath::Sqrt(cluster->GetSigmaY2()), TMath::Sqrt(cluster->GetSigmaZ2()),			    
 			    cluster->GetMax(), index, sec, row );
-      if( fDoHLTPerformance ) fHLTPerformance->ReadHitLabel(index, lab0, lab1, lab2 );
+      if( fDoHLTPerformance ) AliHLTTPCCAPerformance::Instance().ReadHitLabel(index, lab0, lab1, lab2 );
     }
   }
   delete clrow;
@@ -331,12 +345,12 @@ AliCluster * AliTPCtrackerCA::GetCluster(Int_t index) const
 Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
 {
   // reconstruction
-  cout<<"Start of AliTPCtrackerCA"<<endl;
+  //cout<<"Start of AliTPCtrackerCA"<<endl;
   TStopwatch timer;
 
   fHLTTracker->FindTracks();
-  cout<<"Do performance.."<<endl;
-  if( fDoHLTPerformance ) fHLTPerformance->Performance();
+  //cout<<"Do performance.."<<endl;
+  if( fDoHLTPerformance ) AliHLTTPCCAPerformance::Instance().Performance();
 
   if( 0 ) {// Write Event    
     if( fStatNEvents == 0 ){
@@ -366,13 +380,13 @@ Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
       sprintf( mcname,"CAEvents/%i.mcevent.dat",fStatNEvents ); 
       mcevent.open(mcname, ios::out);
       if( mcevent.is_open() ){      
-	fHLTPerformance->WriteMCEvent(mcevent);
+	AliHLTTPCCAPerformance::Instance().WriteMCEvent(mcevent);
       }
       if(1 && fDoHLTPerformanceClusters ){
 	sprintf( mcname,"CAEvents/%i.mcpoints.dat",fStatNEvents ); 
 	mcpoints.open(mcname, ios::out);
 	if( mcpoints.is_open() ){      
-	  fHLTPerformance->WriteMCPoints(mcpoints);
+	  AliHLTTPCCAPerformance::Instance().WriteMCPoints(mcpoints);
 	}
 	mcpoints.close();
       }
@@ -386,41 +400,61 @@ Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
     Float_t bz = fHLTTracker->Slices()[0].Param().Bz();
 
     for( Int_t itr=0; itr<fHLTTracker->NTracks(); itr++ ){
-      AliTPCtrack tTPC;
+      //AliTPCtrack tTPC;
+      AliTPCseed tTPC;
       AliHLTTPCCAGBTrack &tCA = fHLTTracker->Tracks()[itr];
-      AliHLTTPCCATrackParam &par = tCA.Param();	
+      AliHLTTPCCATrackParam par = tCA.Param();	
       AliHLTTPCCATrackConvertor::GetExtParam( par, tTPC, tCA.Alpha(), bz );
       tTPC.SetMass(0.13957);
       tTPC.SetdEdx( tCA.DeDx() );
       if( TMath::Abs(tTPC.GetSigned1Pt())>1./0.02 ) continue;
       Int_t nhits = tCA.NHits();
-      if( nhits>kMaxRow ) nhits = kMaxRow;
-      tTPC.SetNumberOfClusters(nhits);      
+      if( nhits>199 ) nhits=199;// kMaxRow ) nhits = kMaxRow;
+      tTPC.SetNumberOfClusters(nhits);
+ 
+      Float_t alpha = tCA.Alpha();      
+      AliHLTTPCCATrackParam t0 = par;
       for( Int_t ih=0; ih<nhits; ih++ ){
 	Int_t index = fHLTTracker->TrackHits()[tCA.FirstHitRef()+ih];
-	Int_t extIndex = fHLTTracker->Hits()[index].ID();
+	AliHLTTPCCAGBHit &h = fHLTTracker->Hits()[index];
+	Int_t extIndex = h.ID();
 	tTPC.SetClusterIndex(ih, extIndex);
-      }
-      CookLabel(&tTPC,0.1);	      
-      if(0){
-	Double_t xTPC=fParam->GetInnerRadiusLow();
-	Double_t dAlpha = fParam->GetInnerAngle()/180.*TMath::Pi();
-	if (tTPC.AliExternalTrackParam::PropagateTo(xTPC,bz)) {	  
-	  Double_t y=tTPC.GetY();
-	  Double_t ymax=xTPC*TMath::Tan(dAlpha/2.); 
-	  if (y > ymax) {
-	    if (tTPC.Rotate(dAlpha)) tTPC.AliExternalTrackParam::PropagateTo(xTPC,bz);
-	  } else if (y <-ymax) {
-	    if (tTPC.Rotate(-dAlpha)) tTPC.AliExternalTrackParam::PropagateTo(xTPC,bz);
-	  }	    
+		
+	  AliTPCclusterMI *c = &(fClusters[extIndex]);
+	  tTPC.SetClusterPointer(h.IRow(), c );
+	  AliTPCTrackerPoint &point = *(tTPC.GetTrackPoint(h.IRow()));
+	  {
+	    Int_t iSlice = h.ISlice();
+	    AliHLTTPCCATracker &slice = fHLTTracker->Slices()[iSlice];
+	    if( slice.Param().Alpha()!=alpha ){
+	      if( ! t0.Rotate(  slice.Param().Alpha() - alpha, .999 ) ) continue;
+	      alpha = slice.Param().Alpha();
+	    }
+	    Float_t x = slice.Row(h.IRow()).X();
+	    if( !t0.TransportToX( x, .999 ) ) continue;
+	    Float_t sy2, sz2;
+	    slice.GetErrors2( h.IRow(), t0, sy2, sz2 );
+	    point.SetSigmaY(c->GetSigmaY2()/sy2);
+	    point.SetSigmaZ(c->GetSigmaZ2()/sz2);
+	    point.SetAngleY(TMath::Abs(t0.GetSinPhi()/t0.GetCosPhi()));
+	    point.SetAngleZ(TMath::Abs(t0.GetDzDs()));	
+	  }
+	
 	}
-      }
+      tTPC.CookdEdx(0.02,0.6);
+
+      CookLabel(&tTPC,0.1);	      
 
       AliESDtrack tESD;
       tESD.UpdateTrackParams( &(tTPC),AliESDtrack::kTPCin);
       //tESD.SetStatus( AliESDtrack::kTPCrefit );
       //tESD.SetTPCPoints(tTPC.GetPoints());
-      //tESD.myTPC = tTPC;            
+      Int_t   ndedx = tTPC.GetNCDEDX(0);
+      Float_t sdedx = tTPC.GetSDEDX(0);
+      Float_t dedx  = tTPC.GetdEdx();
+      tESD.SetTPCsignal(dedx, sdedx, ndedx); 
+      tESD.myTPC = tTPC;            
+
       event->AddTrack(&tESD);
     }
   }
@@ -430,7 +464,7 @@ Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
   time+=timer.CpuTime();
   time1+=timer.RealTime();
   ncalls++;
-  cout<<"\n\nCA tracker speed: cpu = "<<time/ncalls*1.e3<<" [ms/ev], real = "<<time1/ncalls*1.e3<<" [ms/ev], n calls = "<<ncalls<<endl<<endl;
+  //cout<<"\n\nCA tracker speed: cpu = "<<time/ncalls*1.e3<<" [ms/ev], real = "<<time1/ncalls*1.e3<<" [ms/ev], n calls = "<<ncalls<<endl<<endl;
 
   //cout<<"End of AliTPCtrackerCA"<<endl;
   return 0;

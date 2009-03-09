@@ -20,15 +20,25 @@ class AliHLTTPCCAMCPoint
 
   AliHLTTPCCAMCPoint();
 
-  Float_t  &X()           { return fX; }
-  Float_t  &Y()           { return fY; }
-  Float_t  &Z()           { return fZ; }
-  Float_t  &Sx()          { return fSx; }
-  Float_t  &Sy()          { return fSy; }
-  Float_t  &Sz()          { return fSz; }
-  Float_t  &Time()        { return fTime; }
-  Int_t    &ISlice()      { return fISlice; }
-  Int_t    &TrackID()     { return fTrackID; }
+  Float_t  X()           const { return fX; }
+  Float_t  Y()           const { return fY; }
+  Float_t  Z()           const { return fZ; }
+  Float_t  Sx()          const { return fSx; }
+  Float_t  Sy()          const { return fSy; }
+  Float_t  Sz()          const { return fSz; }
+  Float_t  Time()        const { return fTime; }
+  Int_t    ISlice()      const { return fISlice; }
+  Int_t    TrackID()     const { return fTrackID; }
+
+  void SetX( Float_t v )           { fX=v; }
+  void SetY( Float_t v )           { fY=v; }
+  void SetZ( Float_t v )           { fZ=v; }
+  void SetSx( Float_t v )          { fSx=v; }
+  void SetSy( Float_t v )          { fSy=v; }
+  void SetSz( Float_t v )          { fSz=v; }
+  void SetTime( Float_t v )        { fTime=v; }
+  void SetISlice( Int_t v )      { fISlice=v; }
+  void SetTrackID( Int_t v )     { fTrackID=v; }
 
   static Bool_t Compare( const AliHLTTPCCAMCPoint &p1, const AliHLTTPCCAMCPoint &p2 )
     {

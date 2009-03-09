@@ -24,11 +24,20 @@ class AliHLTTPCCAGBTrack
   AliHLTTPCCAGBTrack():fFirstHitRef(0),fNHits(0),fParam(),fAlpha(0),fDeDx(0){ ; }
   virtual ~AliHLTTPCCAGBTrack(){ ; }
 
-  Int_t &NHits()               { return fNHits; }
-  Int_t &FirstHitRef()         { return fFirstHitRef; }
-  AliHLTTPCCATrackParam &Param() { return fParam; }
-  Float_t &Alpha()            { return fAlpha; }
-  Float_t &DeDx()             { return fDeDx; } 
+  Int_t NHits()               const { return fNHits; }
+  Int_t FirstHitRef()         const { return fFirstHitRef; }
+  const AliHLTTPCCATrackParam &Param() const { return fParam; }
+  Float_t Alpha()            const { return fAlpha; }
+  Float_t DeDx()             const { return fDeDx; } 
+
+
+  void SetNHits( Int_t v )                 {  fNHits = v; }
+  void SetFirstHitRef( Int_t v )           {  fFirstHitRef = v; }
+  void SetParam( const AliHLTTPCCATrackParam &v ) {  fParam = v; }
+  void SetAlpha( Float_t v )               {  fAlpha = v; }
+  void SetDeDx( Float_t v )                {  fDeDx = v; } 
+
+
   static Bool_t ComparePNClusters( const AliHLTTPCCAGBTrack *a, const AliHLTTPCCAGBTrack *b){
     return (a->fNHits > b->fNHits);
   }
