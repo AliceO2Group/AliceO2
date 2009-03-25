@@ -1,5 +1,5 @@
 // $Id$
-//***************************************************************************
+// **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
@@ -14,7 +14,9 @@
 // appear in the supporting documentation. The authors make no claims       *
 // about the suitability of this software for any purpose. It is            *
 // provided "as is" without express or implied warranty.                    *
+//                                                                          *
 //***************************************************************************
+
 
 #include "AliHLTTPCCAGBTracker.h"
 #include "AliHLTTPCCAGBHit.h"
@@ -31,7 +33,6 @@
 
 #ifdef DRAW
 #include "AliHLTTPCCADisplay.h"
-#include "TApplication.h"
 #endif //DRAW
 
 
@@ -40,6 +41,7 @@ AliHLTTPCCAGBTracker::AliHLTTPCCAGBTracker()
     fSlices(0), 
     fNSlices(0), 
     fHits(0),
+    fExt2IntHitID(0),
     fNHits(0),
     fTrackHits(0), 
     fTracks(0), 
@@ -58,6 +60,7 @@ AliHLTTPCCAGBTracker::AliHLTTPCCAGBTracker(const AliHLTTPCCAGBTracker&)
     fSlices(0), 
     fNSlices(0), 
     fHits(0),
+    fExt2IntHitID(0),
     fNHits(0),
     fTrackHits(0), 
     fTracks(0), 
@@ -70,7 +73,7 @@ AliHLTTPCCAGBTracker::AliHLTTPCCAGBTracker(const AliHLTTPCCAGBTracker&)
   //* dummy
 }
 
-AliHLTTPCCAGBTracker &AliHLTTPCCAGBTracker::operator=(const AliHLTTPCCAGBTracker&)
+const AliHLTTPCCAGBTracker &AliHLTTPCCAGBTracker::operator=(const AliHLTTPCCAGBTracker&) const
 {
   //* dummy
   return *this;
@@ -129,6 +132,8 @@ void AliHLTTPCCAGBTracker::StartEvent()
   fTracks = 0;
   if( fHits ) delete[] fHits;
   fHits=0;
+  if( fExt2IntHitID ) delete[] fExt2IntHitID;
+  fExt2IntHitID = 0;
   fNHits = 0;
   fNTracks = 0;
   for( Int_t i=0; i<fNSlices; i++) fSlices[i].StartEvent();
@@ -140,7 +145,10 @@ void AliHLTTPCCAGBTracker::SetNHits( Int_t nHits )
   //* set the number of hits
   if( fHits ) delete[] fHits;
   fHits = 0;
+  if( fExt2IntHitID ) delete[] fExt2IntHitID;
+  fExt2IntHitID = 0;
   fHits = new AliHLTTPCCAGBHit[ nHits ];
+  fExt2IntHitID = new Int_t[ nHits ];
   fNHits = 0;
 }  
 
@@ -161,7 +169,7 @@ void AliHLTTPCCAGBTracker::ReadHit( Float_t x, Float_t y, Float_t z,
   hit.SetISlice( iSlice );
   hit.SetIRow( iRow );
   hit.SetIsUsed( 0 );
-  fNHits++;
+  fNHits++;  
 }
 
 void AliHLTTPCCAGBTracker::FindTracks()
@@ -171,21 +179,16 @@ void AliHLTTPCCAGBTracker::FindTracks()
   fStatNEvents++;  
 
 #ifdef DRAW
-  if( fStatNEvents<=1 ){
-    if( !gApplication ){
-      TApplication *myapp = new TApplication("myapp",0,0);
-    }    
-    AliHLTTPCCADisplay::Instance().Init();
-  }
   AliHLTTPCCADisplay::Instance().SetGB(this);
   AliHLTTPCCADisplay::Instance().SetTPCView();
   AliHLTTPCCADisplay::Instance().DrawTPC();
   AliHLTTPCCADisplay::Instance().Ask();
 #endif //DRAW  
 
-  if( fNHits<=0 ) return;
   
   std::sort(fHits,fHits+fNHits, AliHLTTPCCAGBHit::Compare );  
+
+  for( Int_t i=0; i<fNHits; i++ )  fExt2IntHitID[fHits[i].ID()] = i;
 
   // Read hits, row by row
 
@@ -234,6 +237,8 @@ void AliHLTTPCCAGBTracker::FindTracks()
   hitY=0;
   if( hitZ ) delete[] hitZ;
   hitZ=0;
+ 
+  if( fNHits<=0 ) return;
 
   TStopwatch timer1;
   TStopwatch timer2;
@@ -305,12 +310,6 @@ void AliHLTTPCCAGBTracker::FindTracks0()
   fTime = 0;
   fStatNEvents++;  
 #ifdef DRAW
-  if( fStatNEvents<=1 ){
-    if( !gApplication ){
-      TApplication *myapp = new TApplication("myapp",0,0);
-    }    
-    AliHLTTPCCADisplay::Instance().Init();
-  }
   AliHLTTPCCADisplay::Instance().SetTPCView();
   AliHLTTPCCADisplay::Instance().DrawTPC();
 #endif //DRAW  
@@ -446,7 +445,7 @@ void AliHLTTPCCAGBTracker::Refit()
     for( Int_t itr=0; itr<*slice.NOutTracks(); itr++ ){
 
       AliHLTTPCCAOutTrack &iTr = slice.OutTracks()[itr];
-      
+
       struct FitPoint{    
 	Int_t fISlice;
 	Int_t fHitID;
@@ -469,7 +468,7 @@ void AliHLTTPCCAGBTracker::Refit()
 	p.fAmp = h.Amp();
 	nHits++;	    
       }
-      
+     
       //if( nHits < 10 ) continue; SG!!!
 
       Int_t firstRow = 0, lastRow = maxNRows-1;
@@ -494,7 +493,8 @@ void AliHLTTPCCAGBTracker::Refit()
       for( Int_t i=firstRow; i<=lastRow; i++ ) searchRows[nSearchRows++] = i;
       
       //std::cout<<"\nRefit slice "<<iSlice<<" track "<<itr<<": "<<std::endl;
-      // refit down 
+
+     // refit down 
       {
 	AliHLTTPCCATrackParam t0 = iTr.StartPoint();
 	/*
@@ -722,6 +722,7 @@ void AliHLTTPCCAGBTracker::Refit()
 	if( CAMath::Abs(t0.Kappa())<1.e-8 ) t0.SetKappa( 1.e-8 );	
 	t0.TransportToX( slice.Row(lastRow).X(), .99 );
 	iTr.SetEndPoint( t0 );		
+
       }
     }
   }
@@ -751,7 +752,7 @@ Bool_t AliHLTTPCCAGBTracker::FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrac
     Int_t iSlice = h.ISlice();
     AliHLTTPCCATracker &slice = fSlices[iSlice];
 
-    if( slice.Param().Alpha()!=Alpha ){
+    if( CAMath::Abs( slice.Param().Alpha()-Alpha)>1.e-4 ){
       if( ! t.RotateNoCos(  slice.Param().Alpha() - Alpha, t0, .999 ) ) continue;
       Alpha = slice.Param().Alpha();
     }
@@ -808,7 +809,7 @@ Bool_t AliHLTTPCCAGBTracker::FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrac
   ok = ok && (t.GetX()>50);
   
   if( c[0]<=0 || c[2]<=0 || c[5]<=0 || c[9]<=0 || c[14]<=0 ) ok = 0;
-  //if( c[0]>5. || c[2]>5. || c[5]>2. || c[9]>2 || c[14]>2 ) ok = 0;
+  if( c[0]>5. || c[2]>5. || c[5]>2. || c[9]>2 || c[14]>2 ) ok = 0;
   
   if( CAMath::Abs(t.SinPhi())>.99 ) ok = 0;
   else if( t0.CosPhi()>=0 ) t.SetCosPhi( CAMath::Sqrt(1.-t.SinPhi()*t.SinPhi()) );
@@ -858,7 +859,7 @@ void AliHLTTPCCAGBTracker::MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLT
   if( iBorder==0 ){
     dAlpha = dAlpha - CAMath::Pi()/2 ;
   } else if( iBorder==1 ){
-    dAlpha = -dAlpha - CAMath::Pi()/2 ;    
+    dAlpha = -dAlpha - CAMath::Pi()/2 ;  
   } else if( iBorder==2 ){
     dAlpha = dAlpha;
     x0 = slice.Row(63).X();
@@ -870,13 +871,17 @@ void AliHLTTPCCAGBTracker::MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLT
     x0 = slice.Row(63).X();
   }
 
-  for (Int_t itr=0; itr<*slice.NOutTracks(); itr++) {      
+  for (Int_t itr=0; itr<*slice.NOutTracks(); itr++) {
     AliHLTTPCCAOutTrack &t = slice.OutTracks()[itr];
-    
+
     AliHLTTPCCATrackParam t0 = t.StartPoint();
     AliHLTTPCCATrackParam t1 = t.EndPoint();
-    Bool_t ok0 = t0.Rotate( dAlpha,.9 );    
-    Bool_t ok1 = t1.Rotate( dAlpha,.9 );
+    //const Float_t maxSin = .9;
+
+    const Float_t maxSin = CAMath::Sin(60./180.*CAMath::Pi());
+
+    Bool_t ok0 = t0.Rotate( dAlpha, maxSin );
+    Bool_t ok1 = t1.Rotate( dAlpha, maxSin );
 
     Bool_t do0 = ok0;
     Bool_t do1 = ok1 && ( !ok0 || t1.CosPhi()*t0.CosPhi()<0 );
@@ -894,7 +899,7 @@ void AliHLTTPCCAGBTracker::MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLT
       b.fIRow = fHits[ fFirstSliceHit[iSlice] + slice.OutTrackHits()[t.FirstHitRef()+0]].IRow();
       b.fParam = t0;
       b.fX = t0.GetX();
-      if( b.fParam.TransportToX( x0, .9 ) ) nB++;
+      if( b.fParam.TransportToX( x0, maxSin ) ) nB++;
       //else std::cout<<"0: can not transport to x="<<x0<<std::endl;
 
     }
@@ -906,7 +911,7 @@ void AliHLTTPCCAGBTracker::MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLT
       b.fIRow = fHits[ fFirstSliceHit[iSlice] + slice.OutTrackHits()[t.FirstHitRef()+t.NHits()-1]].IRow();
       b.fParam = t1;    
       b.fX = t0.GetX();
-      if( b.fParam.TransportToX( x0, .9 ) ) nB++;
+      if( b.fParam.TransportToX( x0, maxSin ) ) nB++;
       //else std::cout<<"1: can not transport to x="<<x0<<std::endl;
     }
     if( do0 || do1 ) statOK++;
@@ -923,13 +928,14 @@ void AliHLTTPCCAGBTracker::SplitBorderTracks( Int_t iSlice1, AliHLTTPCCABorderTr
 {
   //* split two sets of tracks
 
-  Float_t factor2y = 2.6;
-  Float_t factor2z = 4.0;
-  Float_t factor2s = 2.6;
-  Float_t factor2t = 2.0;
-  Float_t factor2k = 2.2;
-  Float_t factor2ys = 1.5;
-  Float_t factor2zt = 1.5;
+  Float_t factor2y = 10;//2.6;
+  Float_t factor2z = 10;//4.0;
+  Float_t factor2s = 10;//2.6;
+  Float_t factor2t = 10;//2.0;
+  Float_t factor2k = 2.0;//2.2;
+
+  Float_t factor2ys = 1.;//1.5;//SG!!!
+  Float_t factor2zt = 1.;//1.5;//SG!!!
 
   AliHLTTPCCATracker &slice1 = fSlices[iSlice1];
   AliHLTTPCCATracker &slice2 = fSlices[iSlice2];
@@ -1216,6 +1222,7 @@ void AliHLTTPCCAGBTracker::Merging()
       *iS.NOutTrackHits() = nH;
       for( Int_t itr=0; itr<nTr; itr++ ) iS.OutTracks()[itr] = tmpT[itr];
       for( Int_t ih=0; ih<nH; ih++ ) iS.OutTrackHits()[ih] = tmpH[ih];
+      //std::cout<<"\nMerge tracks withing slice "<<iSlice<<" ok\n"<<std::endl;
 
 #ifdef DRAW
   if(0){
@@ -1263,10 +1270,14 @@ void AliHLTTPCCAGBTracker::Merging()
       
   //* arrays for the rotated track parameters
 
-  AliHLTTPCCABorderTrack bCurr0[maxNSliceTracks*10], bNext0[maxNSliceTracks*10];
-  AliHLTTPCCABorderTrack bCurr[maxNSliceTracks*10], bNext[maxNSliceTracks*10];
 
-  for( Int_t iSlice=0; iSlice<fNSlices; iSlice++ ){
+    AliHLTTPCCABorderTrack 
+      *bCurr0 = new AliHLTTPCCABorderTrack[maxNSliceTracks*10], 
+      *bNext0 = new AliHLTTPCCABorderTrack[maxNSliceTracks*10],
+      *bCurr = new AliHLTTPCCABorderTrack[maxNSliceTracks*10], 
+      *bNext = new AliHLTTPCCABorderTrack[maxNSliceTracks*10];
+
+    for( Int_t iSlice=0; iSlice<fNSlices; iSlice++ ){
     
     Int_t jSlice = nextSlice[iSlice];
 
@@ -1289,13 +1300,18 @@ void AliHLTTPCCAGBTracker::Merging()
 #endif
     Float_t alph = -1;//iS.Param().Alpha() + ( fSlices[1].Param().Alpha() - fSlices[0].Param().Alpha() )/2;
     Float_t alph1 = -1;//alph - CAMath::Pi()/2;
-    SplitBorderTracks( iSlice, bCurr0, nCurr0, jSlice, bNext0, nNext0, alph );   
+    SplitBorderTracks( iSlice, bCurr0, nCurr0, jSlice, bNext0, nNext0, alph );   //SG!!!
 #ifdef DRAW
     std::cout<<"\nMerge1 tracks :\n"<<std::endl;
 #endif
-    SplitBorderTracks( iSlice, bCurr, nCurr, jSlice, bNext, nNext, alph1 );    
-  }
-  
+    SplitBorderTracks( iSlice, bCurr, nCurr, jSlice, bNext, nNext, alph1 );    //SG!!!
+    }
+
+    if( bCurr0 ) delete[] bCurr0;
+    if( bNext0 ) delete[] bNext0;
+    if( bCurr  ) delete[] bCurr;
+    if( bNext  ) delete[] bNext;
+
   TStopwatch timerMerge2;
 
   Int_t nTracksTot = 0;
@@ -1308,7 +1324,7 @@ void AliHLTTPCCAGBTracker::Merging()
   fTrackHits = 0;
   if(fTracks ) delete[] fTracks;
   fTracks = 0;
-  fTrackHits = new Int_t [fNHits*10];
+  fTrackHits = new Int_t [fNHits*100];//SG!!!
   fTracks = new AliHLTTPCCAGBTrack[nTracksTot];
   fNTracks = 0;
 
@@ -1401,7 +1417,7 @@ void AliHLTTPCCAGBTracker::Merging()
       if( nHits < 30 ) continue;     //SG!!!
 
       // refit 
-      Float_t dEdX;
+      Float_t dEdX=0;
       if( !FitTrack( endPoint, startPoint, startAlpha, hits+firstHit, nHits, dEdX, 0 ) ) continue;
       endAlpha = startAlpha;
       if( !FitTrack( startPoint, endPoint, startAlpha, hits+firstHit, nHits, dEdX, 1 ) ) continue;
@@ -1447,7 +1463,7 @@ void AliHLTTPCCAGBTracker::Merging()
 	ok = ok && (p.GetX()>50);
 	
 	if( c[0]<=0 || c[2]<=0 || c[5]<=0 || c[9]<=0 || c[14]<=0 ) ok = 0;
-	//if( c[0]>5. || c[2]>5. || c[5]>2. || c[9]>2 || c[14]>2 ) ok = 0;
+	if( c[0]>5. || c[2]>5. || c[5]>2. || c[9]>2 || c[14]>2 ) ok = 0;
 	if(!ok) continue;	
       }
       t.SetParam( p );

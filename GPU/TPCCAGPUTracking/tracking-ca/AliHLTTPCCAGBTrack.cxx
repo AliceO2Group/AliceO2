@@ -1,5 +1,5 @@
 // $Id$
-//***************************************************************************
+// **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
@@ -14,13 +14,16 @@
 // appear in the supporting documentation. The authors make no claims       *
 // about the suitability of this software for any purpose. It is            *
 // provided "as is" without express or implied warranty.                    *
+//                                                                          *
 //***************************************************************************
+
+
 
 #include "AliHLTTPCCAGBTrack.h"
 
 ClassImp(AliHLTTPCCAGBTrack)
  
-void AliHLTTPCCAGBTrack::Dummy()
+void AliHLTTPCCAGBTrack::Dummy() const
 { 
   //* do nothing
 }

@@ -1,9 +1,10 @@
 //-*- Mode: C++ -*-
-// $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCAMCTRACK_H
 #define ALIHLTTPCCAMCTRACK_H
@@ -23,21 +24,34 @@ class AliHLTTPCCAMCTrack
 
   AliHLTTPCCAMCTrack();
   AliHLTTPCCAMCTrack( const TParticle *part );
+
   void SetTPCPar( Float_t X, Float_t Y, Float_t Z, Float_t Px, Float_t Py, Float_t Pz );
 
-  Int_t    &PDG()           { return fPDG;}
-  Double_t *Par()           { return fPar; }
-  Double_t *TPCPar()        { return fTPCPar; }
-  Double_t &P()             { return fP; }
-  Double_t &Pt()            { return fPt; }
+  Int_t     PDG()            const { return fPDG;}
+  const Double_t *Par()            const { return fPar; }
+  const Double_t *TPCPar()         const { return fTPCPar; }
+  Double_t  P()              const { return fP; }
+  Double_t  Pt()             const { return fPt; }
   
-  Int_t    &NHits()         { return fNHits;}
-  Int_t    &NMCPoints()     { return fNMCPoints;}
-  Int_t    &FirstMCPointID(){ return fFirstMCPointID;}
-  Int_t    &NReconstructed(){ return fNReconstructed; }
-  Int_t    &Set()           { return fSet; }
-  Int_t    &NTurns()        { return fNTurns; }
+  Int_t     NHits()          const { return fNHits;}
+  Int_t     NMCPoints()      const { return fNMCPoints;}
+  Int_t     FirstMCPointID() const { return fFirstMCPointID;}
+  Int_t     NReconstructed() const { return fNReconstructed; }
+  Int_t     Set()            const { return fSet; }
+  Int_t     NTurns()         const { return fNTurns; }
 
+  void SetP ( Float_t v )          { fP = v; }
+  void SetPt( Float_t v )          { fPt = v; }
+  void SetPDG( Int_t v )         { fPDG = v; }
+  void SetPar( Int_t i, Double_t v)             { fPar[i] = v; }
+  void SetTPCPar( Int_t i, Double_t v)          { fTPCPar[i] = v; }
+  void SetNHits( Int_t v )         { fNHits = v; }
+  void SetNMCPoints( Int_t v)      { fNMCPoints = v; }
+  void SetFirstMCPointID( Int_t v ){ fFirstMCPointID = v;}
+  void SetNReconstructed( Int_t v ){ fNReconstructed = v; }
+  void SetSet( Int_t v )           { fSet = v; }
+  void SetNTurns( Int_t v )        { fNTurns = v; }
+  
  protected:
 
   Int_t    fPDG;            //* particle pdg code

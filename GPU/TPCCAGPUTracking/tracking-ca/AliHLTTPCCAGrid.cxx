@@ -1,5 +1,5 @@
 // $Id$
-//***************************************************************************
+// **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
@@ -14,7 +14,10 @@
 // appear in the supporting documentation. The authors make no claims       *
 // about the suitability of this software for any purpose. It is            *
 // provided "as is" without express or implied warranty.                    *
+//                                                                          *
 //***************************************************************************
+
+
 
 #include "AliHLTTPCCAGrid.h"
 #include "AliHLTTPCCAMath.h"
@@ -61,11 +64,13 @@ GPUd() UInt_t AliHLTTPCCAGrid::GetBin( Float_t Y, Float_t Z ) const
 {
   //* get the bin pointer
   
-  Int_t yBin = (Int_t) CAMath::fmul_rz( Y-fYMin, fStepYInv );
-  Int_t zBin = (Int_t) CAMath::fmul_rz( Z-fZMin, fStepZInv );
-  Int_t bin = CAMath::mul24(zBin,fNy) + yBin;    
-  if( bin<0 ) return 0;
-  if( bin>=(Int_t) fN ) return fN - 1;  
+  Int_t bbY = (Int_t) CAMath::FMulRZ( Y-fYMin, fStepYInv );
+  Int_t bbZ = (Int_t) CAMath::FMulRZ( Z-fZMin, fStepZInv );
+  if( bbY<0 ) bbY = 0;
+  else if( bbY>=(Int_t)fNy ) bbY = fNy - 1;  
+  if( bbZ<0 ) bbZ = 0;
+  else if( bbZ>=(Int_t)fNz ) bbZ = fNz - 1;
+  Int_t bin = CAMath::Mul24(bbZ,fNy) + bbY;    
   return (UInt_t) bin;
 }
 

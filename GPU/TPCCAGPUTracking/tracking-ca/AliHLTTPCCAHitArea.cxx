@@ -1,4 +1,4 @@
-//***************************************************************************
+// **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
@@ -13,16 +13,15 @@
 // appear in the supporting documentation. The authors make no claims       *
 // about the suitability of this software for any purpose. It is            *
 // provided "as is" without express or implied warranty.                    *
+//                                                                          *
 //***************************************************************************
 
 #include "AliHLTTPCCAHitArea.h"
 #include "AliHLTTPCCATracker.h"
-#include "AliHLTTPCCAGrid.h"
 #include "AliHLTTPCCAHit.h"
-#include "AliHLTTPCCARow.h"
 
 /*
-GPUd() void AliHLTTPCCAHitAreaInit( AliHLTTPCCAHitArea &a,  AliHLTTPCCAGrid &grid, UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz )
+GPUd() void AliHLTTPCCAHitAreaInit( AliHLTTPCCAHitArea &a,  AliHLTTPCCAGrid &grid, const UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz )
 { 
   // initialisation
 
@@ -47,7 +46,7 @@ GPUd() void AliHLTTPCCAHitAreaInit( AliHLTTPCCAHitArea &a,  AliHLTTPCCAGrid &gri
 */
 
 
-GPUd() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCAGrid &grid, UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz )
+GPUd() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCAGrid &grid, const UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz )
 { 
   //initialisation
 
@@ -71,7 +70,7 @@ GPUd() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCAGrid &grid, UShort_t *con
 }
 
 
-GPUd() Int_t AliHLTTPCCAHitArea::GetNext(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, UShort_t *content, AliHLTTPCCAHit &h)
+GPUd() Int_t AliHLTTPCCAHitArea::GetNext(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const UShort_t *content, AliHLTTPCCAHit &h)
 {    
   // get next hit index
   Float_t y0 = row.Grid().YMin();
@@ -99,7 +98,7 @@ GPUd() Int_t AliHLTTPCCAHitArea::GetNext(AliHLTTPCCATracker &tracker, const AliH
     }
     //h = tracker.Hits()[ fHitOffset + fIh ];    
     
-    if( 0 && (h.Z()>fMaxZ || h.Z()<fMinZ || h.Y()<fMinY || h.Y()>fMaxY )){ //SG!!!
+    if( 1 && (h.Z()>fMaxZ || h.Z()<fMinZ || h.Y()<fMinY || h.Y()>fMaxY )){ //SG!!!
       fIh++;
       continue;
     }
@@ -112,7 +111,7 @@ GPUd() Int_t AliHLTTPCCAHitArea::GetNext(AliHLTTPCCATracker &tracker, const AliH
 
 
 
-GPUd() Int_t AliHLTTPCCAHitArea::GetBest(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, UShort_t *content, AliHLTTPCCAHit &h)
+GPUd() Int_t AliHLTTPCCAHitArea::GetBest(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const UShort_t *content, AliHLTTPCCAHit &h)
 {
   // get closest hit in the area
   Int_t best = -1;

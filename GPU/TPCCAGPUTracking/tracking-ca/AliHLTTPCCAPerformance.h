@@ -1,14 +1,17 @@
 //-*- Mode: C++ -*-
 // $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCAPERFORMANCE_H
 #define ALIHLTTPCCAPERFORMANCE_H
 
 #include "AliHLTTPCCADef.h"
+#include "Riostream.h"
 
 class TObject;
 class TParticle;
@@ -39,13 +42,13 @@ class AliHLTTPCCAPerformance
 
   AliHLTTPCCAPerformance();
   AliHLTTPCCAPerformance(const AliHLTTPCCAPerformance&);
-  AliHLTTPCCAPerformance &operator=(const AliHLTTPCCAPerformance&);
+  const AliHLTTPCCAPerformance &operator=(const AliHLTTPCCAPerformance&) const;
 
   virtual ~AliHLTTPCCAPerformance();
 
   static AliHLTTPCCAPerformance &Instance();
 
-  void SetTracker( AliHLTTPCCAGBTracker *Tracker );
+  void SetTracker( AliHLTTPCCAGBTracker * const Tracker );
   void StartEvent();
   void SetNHits( Int_t NHits );
   void SetNMCTracks( Int_t NMCTracks );
@@ -62,6 +65,9 @@ class AliHLTTPCCAPerformance
   void CreateHistos();
   void WriteHistos();
   void SlicePerformance( Int_t iSlice, Bool_t PrintFlag  );
+  void SliceTrackletPerformance( Int_t iSlice, Bool_t PrintFlag );
+  void SliceTrackCandPerformance( Int_t iSlice, Bool_t PrintFlag );
+
   void Performance( fstream *StatFile = 0);
 
   void WriteMCEvent( ostream &out ) const;
@@ -70,12 +76,17 @@ class AliHLTTPCCAPerformance
   void ReadMCPoints( istream &in );
   Bool_t DoClusterPulls() const { return fDoClusterPulls; }
   void SetDoClusterPulls( Bool_t v ) { fDoClusterPulls = v; }
-  AliHLTTPCCAHitLabel *HitLabels(){ return fHitLabels;}
-  AliHLTTPCCAMCTrack *MCTracks(){ return fMCTracks; }
+  AliHLTTPCCAHitLabel *HitLabels() const { return fHitLabels;}
+  AliHLTTPCCAMCTrack *MCTracks() const { return fMCTracks; }
   Int_t NMCTracks() const { return fNMCTracks; }
 
   TH1D *HNHitsPerSeed() const { return fhNHitsPerSeed;}
   TH1D *HNHitsPerTrackCand() const { return fhNHitsPerTrackCand; }
+
+  TH1D *LinkChiRight( int i ) const { return fhLinkChiRight[i]; }
+  TH1D *LinkChiWrong( int i ) const { return fhLinkChiWrong[i]; }
+
+  void LinkPerformance( Int_t iSlice );
 
 protected:
 
@@ -91,6 +102,27 @@ protected:
   Bool_t fDoClusterPulls;          //* do cluster pulls (very slow)
   Int_t fStatNEvents; //* n of events proceed
   Double_t fStatTime; //* reco time;
+
+  Int_t fStatSeedNRecTot; //* total n of reconstructed tracks 
+  Int_t fStatSeedNRecOut; //* n of reconstructed tracks in Out set
+  Int_t fStatSeedNGhost;//* n of reconstructed tracks in Ghost set
+  Int_t fStatSeedNMCAll;//* n of MC tracks 
+  Int_t fStatSeedNRecAll; //* n of reconstructed tracks in All set
+  Int_t fStatSeedNClonesAll;//* total n of reconstructed tracks in Clone set
+  Int_t fStatSeedNMCRef; //* n of MC reference tracks 
+  Int_t fStatSeedNRecRef; //* n of reconstructed tracks in Ref set
+  Int_t fStatSeedNClonesRef; //* n of reconstructed clones in Ref set
+
+  Int_t fStatCandNRecTot; //* total n of reconstructed tracks 
+  Int_t fStatCandNRecOut; //* n of reconstructed tracks in Out set
+  Int_t fStatCandNGhost;//* n of reconstructed tracks in Ghost set
+  Int_t fStatCandNMCAll;//* n of MC tracks 
+  Int_t fStatCandNRecAll; //* n of reconstructed tracks in All set
+  Int_t fStatCandNClonesAll;//* total n of reconstructed tracks in Clone set
+  Int_t fStatCandNMCRef; //* n of MC reference tracks 
+  Int_t fStatCandNRecRef; //* n of reconstructed tracks in Ref set
+  Int_t fStatCandNClonesRef; //* n of reconstructed clones in Ref set
+
   Int_t fStatNRecTot; //* total n of reconstructed tracks 
   Int_t fStatNRecOut; //* n of reconstructed tracks in Out set
   Int_t fStatNGhost;//* n of reconstructed tracks in Ghost set
@@ -134,6 +166,7 @@ protected:
     *fhHitResZ,//* hit resolution Z
     *fhHitPullY,//* hit  pull Y
     *fhHitPullZ;//* hit  pull Z
+  TProfile *fhHitShared; //* ratio of the shared clusters
 
   TH1D 
     *fhHitResY1,//* hit resolution Y, pt>1GeV
@@ -150,6 +183,8 @@ protected:
     *fhCellPurityVsN, //* cell purity vs N hits
     *fhCellPurityVsPt,//* cell purity vs MC Pt
     *fhEffVsP, //* reconstruction efficiency vs P plot
+    *fhSeedEffVsP, //* reconstruction efficiency vs P plot
+    *fhCandEffVsP, //* reconstruction efficiency vs P plot
     *fhGBEffVsP, //* global reconstruction efficiency vs P plot
     *fhGBEffVsPt, //* global reconstruction efficiency vs P plot
     *fhNeighQuality, // quality for neighbours finder 
@@ -188,6 +223,12 @@ protected:
     *fhRefNotRecoAngleY,// parameters of non-reconstructed ref. mc track
     *fhRefNotRecoAngleZ,// parameters of non-reconstructed ref. mc track
     *fhRefNotRecoNHits;// parameters of non-reconstructed ref. mc track
+
+  TProfile * fhLinkEff[4]; // link efficiency
+  TH1D *fhLinkAreaY[4]; // area in Y for the link finder
+  TH1D *fhLinkAreaZ[4]; // area in Z for the link finder
+  TH1D *fhLinkChiRight[4]; // sqrt(chi^2) for right neighbours
+  TH1D *fhLinkChiWrong[4]; // sqrt(chi^2) for wrong neighbours
 
   static void WriteDir2Current( TObject *obj );
   

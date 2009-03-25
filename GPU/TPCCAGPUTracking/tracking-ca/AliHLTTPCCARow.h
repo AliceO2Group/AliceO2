@@ -1,9 +1,11 @@
 //-*- Mode: C++ -*-
 // @(#) $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCAROW_H
 #define ALIHLTTPCCAROW_H
@@ -42,7 +44,6 @@ class AliHLTTPCCARow
   GPUhd() Int_t   FullOffset()  const { return fFullOffset;}
   GPUhd() Int_t   FullGridOffset()  const { return fFullGridOffset;}
   GPUhd() Int_t   FullLinkOffset()  const { return fFullLinkOffset;}
-
 
   GPUhd() void SetFirstHit( Int_t v ){ fFirstHit = v; }
   GPUhd() void SetNHits( Int_t v )   { fNHits = v; }

@@ -1,8 +1,10 @@
 //-*- Mode: C++ -*-
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCANEIGHBOURSFINDER_H
 #define ALIHLTTPCCANEIGHBOURSFINDER_H
@@ -52,17 +54,17 @@ class AliHLTTPCCANeighboursFinder
       Int_t fNRows; // number of rows
       Short_t *fHitLinkUp; // links to the next row
       Short_t *fHitLinkDn; // links to the previous  row
-      float2 fA[256][5]; // temp memory
-      UShort_t fB[256][5]; // temp memory
-      UShort_t fGridContentUp[700]; // grid content for the next row
-      UShort_t fGridContentDn[700];// grid content for the previous row
+      float2 fA[256][20]; // temp memory
+      UShort_t fB[256][20]; // temp memory
+      UShort_t fGridContentUp[7000]; // grid content for the next row
+      UShort_t fGridContentDn[7000];// grid content for the previous row
     };
   
   GPUd() static Int_t NThreadSyncPoints(){ return 2; }  
 
   GPUd() static void Thread( Int_t nBlocks, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
 			     AliHLTTPCCASharedMemory &smem, AliHLTTPCCATracker &tracker );
-  
+
 };
 
 

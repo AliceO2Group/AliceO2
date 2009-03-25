@@ -1,9 +1,10 @@
 //-*- Mode: C++ -*-
-// $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCAGBTRACKER_H
 #define ALIHLTTPCCAGBTRACKER_H
@@ -43,7 +44,7 @@ public:
 
   AliHLTTPCCAGBTracker();
   AliHLTTPCCAGBTracker(const AliHLTTPCCAGBTracker&);
-  AliHLTTPCCAGBTracker &operator=(const AliHLTTPCCAGBTracker&);
+  const AliHLTTPCCAGBTracker &operator=(const AliHLTTPCCAGBTracker&) const;
 
   ~AliHLTTPCCAGBTracker();
 
@@ -78,21 +79,24 @@ public:
   void SplitBorderTracks( Int_t iSlice1, AliHLTTPCCABorderTrack B1[], Int_t N1,
 			  Int_t iSlice2, AliHLTTPCCABorderTrack B2[], Int_t N2, 
 			  Float_t Alpha =-1 );
-  Float_t GetChi2( Float_t x1, Float_t y1, Float_t a00, Float_t a10, Float_t a11, 
-		   Float_t x2, Float_t y2, Float_t b00, Float_t b10, Float_t b11  );
+
+  static Float_t GetChi2( Float_t x1, Float_t y1, Float_t a00, Float_t a10, Float_t a11, 
+			  Float_t x2, Float_t y2, Float_t b00, Float_t b10, Float_t b11  );
 
   void Merging();
 
-  AliHLTTPCCATracker *Slices(){ return fSlices; }
-  AliHLTTPCCAGBHit *Hits(){ return fHits; }
+  AliHLTTPCCATracker *Slices() const { return fSlices; }
+  AliHLTTPCCAGBHit *Hits() const { return fHits; }
+  Int_t Ext2IntHitID( Int_t i ) const { return fExt2IntHitID[i]; }
+
   Int_t NHits() const { return fNHits; }
   Int_t NSlices() const { return fNSlices; }
   Double_t Time() const { return fTime; }
   Double_t StatTime( Int_t iTimer ) const { return fStatTime[iTimer]; }
   Int_t StatNEvents() const { return fStatNEvents; }
   Int_t NTracks() const { return fNTracks; }
-  AliHLTTPCCAGBTrack *Tracks(){ return fTracks; }
-  Int_t *TrackHits() {return fTrackHits; }
+  AliHLTTPCCAGBTrack *Tracks() const { return fTracks; }
+  Int_t *TrackHits() const { return fTrackHits; }
   void GetErrors2( AliHLTTPCCAGBHit &h, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
   void GetErrors2( Int_t iSlice, Int_t iRow, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
 
@@ -106,6 +110,7 @@ public:
   Double_t SliceTrackerTime() const { return fSliceTrackerTime; }
   void SetSliceTrackerTime( Double_t v ){ fSliceTrackerTime = v; }
   const Int_t *FirstSliceHit() const { return fFirstSliceHit; }
+
   Bool_t FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrackParam t0, 
 		   Float_t &Alpha, Int_t hits[], Int_t &NHits, 
 		   Float_t &DeDx, Bool_t dir=0 );
@@ -115,6 +120,7 @@ protected:
   AliHLTTPCCATracker *fSlices; //* array of slice trackers
   Int_t fNSlices;              //* N slices
   AliHLTTPCCAGBHit *fHits;     //* hit array
+  Int_t *fExt2IntHitID;        //* array of internal hit indices
   Int_t fNHits;                //* N hits in event
   Int_t *fTrackHits;           //* track->hits reference array
   AliHLTTPCCAGBTrack *fTracks; //* array of tracks

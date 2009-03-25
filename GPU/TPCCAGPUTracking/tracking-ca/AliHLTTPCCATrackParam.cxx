@@ -1,5 +1,5 @@
 // $Id$
-//***************************************************************************
+// **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
@@ -14,7 +14,9 @@
 // appear in the supporting documentation. The authors make no claims       *
 // about the suitability of this software for any purpose. It is            *
 // provided "as is" without express or implied warranty.                    *
+//                                                                          *
 //***************************************************************************
+
 
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCAMath.h"
@@ -934,7 +936,7 @@ GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitPa
 }
 
 
-GPUd() Bool_t AliHLTTPCCATrackParam::CorrectForMeanMaterial( Float_t xOverX0,  Float_t xTimesRho, AliHLTTPCCATrackFitParam &par )
+GPUd() Bool_t AliHLTTPCCATrackParam::CorrectForMeanMaterial( Float_t xOverX0,  Float_t xTimesRho, const AliHLTTPCCATrackFitParam &par )
 {
   //------------------------------------------------------------------
   // This function corrects the track parameters for the crossed material.
@@ -1170,8 +1172,9 @@ GPUd() Bool_t AliHLTTPCCATrackParam::Filter2NoCos( Float_t y, Float_t z, Float_t
 
   Float_t mSi[3];
   Float_t det = (mS[0]*mS[2] - mS[1]*mS[1]);
-
-  if( det < 1.e-8 ) return 0;
+  
+  if( !finite(det) || det > 1.e15 ) return 0;
+  if( det < 1.e-8  ) return 0;
   det = 1./det;
   mSi[0] = mS[2]*det;
   mSi[1] = -mS[1]*det;

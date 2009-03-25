@@ -1,8 +1,10 @@
 //-*- Mode: C++ -*-
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCASTARTHITSFINDER_H
 #define ALIHLTTPCCASTARTHITSFINDER_H
@@ -38,7 +40,7 @@ class AliHLTTPCCAStartHitsFinder
       Int_t fNHits; // n hits in the row
       Short_t *fHitLinkDown; // pointer to down link array
       Short_t *fHitLinkUp; // pointer to the up link array
-      Int_t fRowStartHits[1024]; // temp. array for the start hits
+      Int_t fRowStartHits[10240]; // temp. array for the start hits
       Int_t fNOldStartHits; // n start hits from other jobs
       Int_t fNRowStartHits; // n start hits for this row
    };

@@ -1,9 +1,11 @@
 //-*- Mode: C++ -*-
 // @(#) $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCATRACKER_H
 #define ALIHLTTPCCATRACKER_H
@@ -45,11 +47,11 @@ class AliHLTTPCCATracker
   GPUd() ~AliHLTTPCCATracker();
 #endif
 
-  GPUd() void Initialize( AliHLTTPCCAParam &param );
+  GPUd() void Initialize( const AliHLTTPCCAParam &param );
 
   GPUd() void StartEvent();
 
-  GPUd() void ReadEvent( Int_t *RowFirstHit, Int_t *RowNHits, Float_t *Y, Float_t *Z, Int_t NHits );
+  GPUd() void ReadEvent( const Int_t *RowFirstHit, const Int_t *RowNHits, const Float_t *Y, const Float_t *Z, Int_t NHits );
 
   GPUd() void SetupRowData();
 
@@ -90,7 +92,7 @@ class AliHLTTPCCATracker
   GPUhd() const AliHLTTPCCAParam &Param() const { return fParam; }
   GPUhd() void SetParam( const AliHLTTPCCAParam &v ){ fParam = v; }
 
-  GPUhd() const AliHLTTPCCARow &Row(Int_t i){ return fRows[i]; }
+  GPUhd() const AliHLTTPCCARow &Row(Int_t i) const { return fRows[i]; }
   GPUhd() Double_t Timer(Int_t i) const { return fTimers[i]; }
   GPUhd() void SetTimer(Int_t i, Double_t v ){ fTimers[i] = v; }
 
@@ -119,7 +121,7 @@ class AliHLTTPCCATracker
   GPUhd()  Int_t *NOutTrackHits() const { return  fNOutTrackHits; }
   GPUhd()  Int_t *OutTrackHits() const { return  fOutTrackHits; }
  
-  GPUh() void SetCommonMemory( Char_t *mem ){ fCommonMemory = mem; }
+  GPUh() void SetCommonMemory( Char_t * const mem ){ fCommonMemory = mem; }
 
   private:  
 

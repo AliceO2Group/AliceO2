@@ -1,4 +1,3 @@
-// @(#) $Id$
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -18,12 +17,10 @@
 //***************************************************************************
 
 
-#include "AliHLTTPCCAOutTrack.h"
+#include "AliHLTTPCCATracklet.h"
 
-
-ClassImp(AliHLTTPCCAOutTrack)
-
-GPUh() void AliHLTTPCCAOutTrack::Dummy() const 
+#if !defined(HLTCA_GPUCODE)  
+void AliHLTTPCCATracklet::Dummy() const 
 {
-  //* do nothing
 }
+#endif

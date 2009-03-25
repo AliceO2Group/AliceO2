@@ -1,5 +1,5 @@
 // @(#) $Id: AliHLTTPCCATrackletSelector.cxx 27042 2008-07-02 12:06:02Z richterm $
-//***************************************************************************
+// **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
@@ -14,12 +14,15 @@
 // appear in the supporting documentation. The authors make no claims       *
 // about the suitability of this software for any purpose. It is            *
 // provided "as is" without express or implied warranty.                    *
+//                                                                          *
 //***************************************************************************
+
 
 #include "AliHLTTPCCATrackletSelector.h"
 #include "AliHLTTPCCATrack.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackParam.h"
+#include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCAMath.h"
 
 GPUd() void AliHLTTPCCATrackletSelector::Thread
@@ -32,8 +35,8 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
     {
       if( iThread==0 ){
 	if(iBlock==0){
-	  CAMath::atomicExch(tracker.NTracks(),0);
-	  CAMath::atomicExch(tracker.NTrackHits(),0);
+	  CAMath::AtomicExch(tracker.NTracks(),0);
+	  CAMath::AtomicExch(tracker.NTrackHits(),0);
 	}
 	s.fNTracklets = *tracker.NTracklets();
 	s.fNThreadsTotal = nThreads*nBlocks;
@@ -46,38 +49,60 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
       Int_t trackHits[160];
 	
       for( Int_t itr= s.fItr0 + iThread; itr<s.fNTracklets; itr+=s.fNThreadsTotal ){    		
-	Int_t *t = ((Int_t*)tracker.Tracklets()) + itr*(5+ sizeof(AliHLTTPCCATrackParam)/4 + 160 );	
-	Int_t tNHits = *t;
+
+	AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[itr];
+
+	Int_t tNHits = tracklet.NHits();
 	if( tNHits<=0 ) continue;
 
 	const Int_t kMaxRowGap = 4;
-	Int_t firstRow = t[3];
-	Int_t lastRow = t[4];
+	const Float_t kMaxShared = .1;
+
+	Int_t firstRow = tracklet.FirstRow();
+	Int_t lastRow = tracklet.LastRow();
 
 	tout.SetNHits( 0 );
-	Int_t *hitstore = t + 5+ sizeof(AliHLTTPCCATrackParam)/4 ;    
-	Int_t w = (tNHits<<16)+itr;	
+	Int_t kind = 0;
+	if(0){ // kappa => 1/pt
+	  const AliHLTTPCCATrackParam &tParam = tracklet.Param();
+	  const Double_t kCLight = 0.000299792458;  
+	  Double_t bz = tracker.Param().Bz();
+	  Double_t c = 1.e4;
+	  if( CAMath::Abs(bz)>1.e-4 ) c = 1./(bz*kCLight);
+	  Double_t pti = tParam.Kappa()*c;
+	  if( tNHits>=10 && 1./.5 >= CAMath::Abs(pti) ){ //SG!!!
+	    kind = 1;
+	  }    
+	}
+
+	Int_t w = (kind<<29) + (tNHits<<16)+itr;
+
+	//Int_t w = (tNHits<<16)+itr;	
 	//Int_t nRows = tracker.Param().NRows();
 	Int_t gap = 0;
-
+	Int_t nShared = 0;
 	//std::cout<<" store tracklet: "<<firstRow<<" "<<lastRow<<std::endl;
  	for( Int_t irow=firstRow; irow<=lastRow; irow++ ){
 	  gap++;
-	  Int_t ih = hitstore[irow];
+	  Int_t ih = tracklet.RowHit(irow);
 	  if( ih>=0 ){
 	    Int_t ihTot = tracker.Row(irow).FirstHit()+ih;
-	    if( tracker.HitWeights()[ihTot] <= w ){
+	    Bool_t own = ( tracker.HitWeights()[ihTot] <= w );
+	    Bool_t sharedOK = ( (tout.NHits()<0) || (nShared<tout.NHits()*kMaxShared) );
+	    if( own || sharedOK ){//SG!!!
 	      gap = 0;
 	      Int_t th = AliHLTTPCCATracker::IRowIHit2ID(irow,ih);
 	      trackHits[tout.NHits()] = th;
 	      tout.SetNHits( tout.NHits() + 1 );
+	      if( !own ) nShared++;
 	    }
 	  }
+	  
 	  if( gap>kMaxRowGap || irow==lastRow ){ // store 
 	    if( tout.NHits()>=10 ){ //SG!!!
-	      Int_t itrout = CAMath::atomicAdd(tracker.NTracks(),1);
-	      tout.SetFirstHitID( CAMath::atomicAdd( tracker.NTrackHits(), tout.NHits() ));
-	      tout.SetParam( *( (AliHLTTPCCATrackParam*)( t+5) ));
+	      Int_t itrout = CAMath::AtomicAdd(tracker.NTracks(),1);
+	      tout.SetFirstHitID( CAMath::AtomicAdd( tracker.NTrackHits(), tout.NHits() ));
+	      tout.SetParam( tracklet.Param() );
 	      tout.SetAlive( 1 );
 	      tracker.Tracks()[itrout] = tout;
 	      for( Int_t jh=0; jh<tout.NHits(); jh++ ){
@@ -86,6 +111,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 	    }
 	    tout.SetNHits( 0 ); 
 	    gap = 0;
+	    nShared = 0;
 	  }
 	}
       }
