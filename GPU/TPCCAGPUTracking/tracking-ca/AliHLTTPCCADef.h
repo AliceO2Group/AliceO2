@@ -86,7 +86,6 @@ typedef float          Size_t;      //Attribute size (float)
 #endif
 
 
-
 #ifdef HLTCA_GPUCODE
 
 #define GPUd() __device__ 
