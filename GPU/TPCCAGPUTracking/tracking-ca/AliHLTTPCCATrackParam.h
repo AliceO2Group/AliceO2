@@ -1,9 +1,11 @@
 //-*- Mode: C++ -*-
 // $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project           * 
-//* ALICE Experiment at CERN, All rights reserved.                            *
-//* See cxx source for full Copyright notice                                  *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 
 #ifndef ALIHLTTPCCATRACKPARAM_H
@@ -23,11 +25,9 @@ class AliHLTTPCCATrackParam
 {
  public:
 
-  class AliHLTTPCCATrackFitParam
+  struct AliHLTTPCCATrackFitParam
   {
-  public:
-    Float_t 
-    fBethe, fE,fTheta2, fEP2, fSigmadE2, fK22,fK33,fK43,fK44;// parameters
+    Float_t fBethe, fE,fTheta2, fEP2, fSigmadE2, fK22,fK33,fK43,fK44;// parameters
   };
 
 #if !defined(HLTCA_GPUCODE)
@@ -121,9 +121,9 @@ class AliHLTTPCCATrackParam
   GPUd() void FilterY( Float_t y, Float_t erry );
   GPUd() void FilterZ( Float_t z, Float_t errz );
 
-  GPUd() GPUd() static Float_t ApproximateBetheBloch( Float_t beta2 );
+  GPUd() static Float_t ApproximateBetheBloch( Float_t beta2 );
   GPUd() void CalculateFitParameters( AliHLTTPCCATrackFitParam &par, Float_t Bz, Float_t mass = 0.13957 );
-  GPUd() GPUd() Bool_t CorrectForMeanMaterial( Float_t xOverX0,  Float_t xTimesRho, AliHLTTPCCATrackFitParam &par );
+  GPUd() Bool_t CorrectForMeanMaterial( Float_t xOverX0,  Float_t xTimesRho, const AliHLTTPCCATrackFitParam &par );
   GPUd() void Print() const;
 
 private:

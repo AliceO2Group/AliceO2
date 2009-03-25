@@ -14,6 +14,7 @@
  */  
  
 //#define HLTCA_STANDALONE // compilation w/o root
+#define HLTCA_INTERNAL_PERFORMANCE
 
 #ifdef __CUDACC__
 
@@ -23,7 +24,7 @@
 
 #if defined(HLTCA_STANDALONE) || defined(HLTCA_GPUCODE)
 
-class TObject{};
+// class TObject{};
 
 #define ClassDef(name,id)
 #define ClassImp(name)
@@ -81,7 +82,6 @@ typedef float          Size_t;      //Attribute size (float)
 #else 
 
 #include "Rtypes.h"
-#include "TObject.h"
 
 #endif
 
@@ -97,7 +97,7 @@ typedef float          Size_t;      //Attribute size (float)
 #define GPUshared() __shared__ 
 #define GPUsync() __syncthreads()
 
-__constant__ float4 cTracker[30000/sizeof(float4)];
+__constant__ float4 gAliHLTTPCCATracker[30000/sizeof(float4)];
 
 #else
 
@@ -113,11 +113,6 @@ struct uchar2{ unsigned char x; unsigned char y; };
 struct ushort2{ unsigned short x; unsigned short y; };
 struct uint1{ unsigned int x; };
 struct uint4{ unsigned int x,y,z,w; };
-
-float2 inline make_float2(float x, float y ){
-  float2 ret = {x,y};
-  return ret;
-}
 
 #endif
 

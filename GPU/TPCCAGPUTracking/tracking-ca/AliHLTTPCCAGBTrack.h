@@ -1,9 +1,11 @@
 //-*- Mode: C++ -*-
 // $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCAGBTRACK_H
 #define ALIHLTTPCCAGBTRACK_H
@@ -52,7 +54,7 @@ class AliHLTTPCCAGBTrack
 
  private:
 
-  void Dummy(); // to make rulechecker happy by having something in .cxx file
+  void Dummy() const; // to make rulechecker happy by having something in .cxx file
 
   ClassDef(AliHLTTPCCAGBTrack,1)
 };

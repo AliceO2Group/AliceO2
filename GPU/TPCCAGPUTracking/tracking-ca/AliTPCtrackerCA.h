@@ -1,9 +1,11 @@
 //-*- Mode: C++ -*-
 // $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALITPCTRACKERCA_H
 #define ALITPCTRACKERCA_H
@@ -30,7 +32,7 @@ public:
   AliTPCtrackerCA();
   AliTPCtrackerCA(const AliTPCParam *par); 
   AliTPCtrackerCA(const AliTPCtrackerCA &);
-  AliTPCtrackerCA & operator=(const AliTPCtrackerCA& );
+  const AliTPCtrackerCA & operator=(const AliTPCtrackerCA& ) const;
   virtual ~AliTPCtrackerCA();
   //
   Int_t RefitInward (AliESDEvent *event);
@@ -46,7 +48,7 @@ public:
   //
  protected:
 
-  const AliTPCParam *fParam;  //* TPC parameters
+  const AliTPCParam *fkParam;  //* TPC parameters
   AliTPCclusterMI *fClusters; //* array of clusters
   Int_t fNClusters;           //* N clusters
   AliHLTTPCCAGBTracker *fHLTTracker; //* pointer to the HLT tracker

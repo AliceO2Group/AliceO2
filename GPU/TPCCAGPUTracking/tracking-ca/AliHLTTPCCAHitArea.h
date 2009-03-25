@@ -1,9 +1,11 @@
 //-*- Mode: C++ -*-
 // @(#) $Id: AliHLTTPCCARow.h 27042 2008-07-02 12:06:02Z richterm $
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCAHITAREA_H
 #define ALIHLTTPCCAHITAREA_H
@@ -24,11 +26,11 @@ class AliHLTTPCCAHitArea
 {
 public:
   
-  GPUd() void Init( const AliHLTTPCCAGrid &grid, UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz );
+  GPUd() void Init( const AliHLTTPCCAGrid &grid, const UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz );
 
-  GPUd() Int_t GetNext(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, UShort_t *content,AliHLTTPCCAHit &h);
+  GPUd() Int_t GetNext(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const UShort_t *content,AliHLTTPCCAHit &h);
 
-  GPUd() Int_t GetBest(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, UShort_t *content,AliHLTTPCCAHit &h );
+  GPUd() Int_t GetBest(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const UShort_t *content,AliHLTTPCCAHit &h );
 
   GPUhd() Float_t Y() const { return fY;}
   GPUhd() Float_t Z() const { return fZ;}

@@ -1,5 +1,5 @@
-// @(#) $Id: AliHLTTPCCANeighboursFinder.cxx 27042 2008-07-02 12:06:02Z richterm $
-//***************************************************************************
+// @(#) $Id: AliHLTTPCCANeighboursFinder1.cxx 27042 2008-07-02 12:06:02Z richterm $
+// **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          * 
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
@@ -14,12 +14,19 @@
 // appear in the supporting documentation. The authors make no claims       *
 // about the suitability of this software for any purpose. It is            *
 // provided "as is" without express or implied warranty.                    *
+//                                                                          *
 //***************************************************************************
 
 #include "AliHLTTPCCANeighboursFinder.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAHitArea.h"
 #include "AliHLTTPCCATracker.h"
+
+//#define DRAW
+
+#ifdef DRAW
+#include "AliHLTTPCCADisplay.h"
+#endif
 
 GPUd() void AliHLTTPCCANeighboursFinder::Thread
 ( Int_t /*nBlocks*/, Int_t nThreads, Int_t iBlock, Int_t iThread, Int_t iSync,
@@ -40,14 +47,14 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 	  s.fHitLinkUp = ((Short_t*)(tracker.RowData() + row.FullOffset())) + row.FullLinkOffset();
 	  s.fHitLinkDn = s.fHitLinkUp + row.NHits();
 
-	  if( (s.fIRow>0) && (s.fIRow<s.fNRows-1) ){
-	    s.fIRowUp = s.fIRow+1;
-	    s.fIRowDn = s.fIRow-1; 
+	  if( (s.fIRow>=2) && (s.fIRow<=s.fNRows-3) ){
+	    s.fIRowUp = s.fIRow+2;
+	    s.fIRowDn = s.fIRow-2; 
 	    s.fFirstDn = tracker.Row(s.fIRowDn).FirstHit();
 	    s.fFirstUp = tracker.Row(s.fIRowUp).FirstHit();
-	    Float_t xDn = tracker.Row(s.fIRowDn).X();
-	    Float_t x = tracker.Row(s.fIRow).X();
-	    Float_t xUp = tracker.Row(s.fIRowUp).X();
+	    float xDn = tracker.Row(s.fIRowDn).X();
+	    float x = tracker.Row(s.fIRow).X();
+	    float xUp = tracker.Row(s.fIRowUp).X();
 	    s.fUpNHits = tracker.Row(s.fIRowUp).NHits();
 	    s.fDnNHits = s.fFirst - s.fFirstDn;
 	    s.fUpDx = xUp - x;
@@ -63,7 +70,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
   else if( iSync==1 )
     {
       if( s.fIRow < s.fNRows ){
-	if( (s.fIRow==0) || (s.fIRow==s.fNRows-1) ){
+	if( (s.fIRow==0) || (s.fIRow==s.fNRows-1) || (s.fIRow==1) || (s.fIRow==s.fNRows-2) ){
 	  for( Int_t ih=iThread; ih<s.fNHits; ih+=nThreads ){
 	    s.fHitLinkUp[ih] = -1;
 	    s.fHitLinkDn[ih] = -1;
@@ -85,21 +92,21 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
     }
   else if( iSync==2 )
     {
-      if( (s.fIRow<=0) || (s.fIRow >= s.fNRows-1) ) return;
+      if( (s.fIRow<=1) || (s.fIRow >= s.fNRows-2) ) return;
  
-      const Float_t kAreaSize = 3;     
-      Float_t chi2Cut = 3.*3.*4*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx );
-      //const Float_t kAreaSize = 3;     
-      //Float_t chi2Cut = 3.*3.*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx ); //SG
-     const Int_t kMaxN = 5;
+      //const float kAreaSize = 3;     
+      float chi2Cut = 3.*3.*4*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx );
+      const float kAreaSize = 3;     
+      //float chi2Cut = 3.*3.*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx ); //SG
+      const Int_t kMaxN = 20;
       
       const AliHLTTPCCARow &row = tracker.Row(s.fIRow);
       const AliHLTTPCCARow &rowUp = tracker.Row(s.fIRowUp);
       const AliHLTTPCCARow &rowDn = tracker.Row(s.fIRowDn);
-      Float_t y0 = row.Grid().YMin();
-      Float_t z0 = row.Grid().ZMin();
-      Float_t stepY = row.HstepY();
-      Float_t stepZ = row.HstepZ();
+      float y0 = row.Grid().YMin();
+      float z0 = row.Grid().ZMin();
+      float stepY = row.HstepY();
+      float stepZ = row.HstepZ();
       const uint4* tmpint4 = tracker.RowData() + row.FullOffset();
       const ushort2 *hits = reinterpret_cast<const ushort2*>(tmpint4);
 
@@ -109,11 +116,11 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 	float2 *yzUp = s.fA[iThread];
 	//UShort_t neighUp[5];
 	//float2 yzUp[5];
-	
+
 	Int_t linkUp = -1;
 	Int_t linkDn = -1;
 	
-	if( s.fDnNHits>=1 && s.fUpNHits>=1 ){
+	if( s.fDnNHits>0 && s.fUpNHits>0 ){
 	  
 	  Int_t nNeighUp = 0;
 	  AliHLTTPCCAHit h0;
@@ -124,56 +131,117 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 	  }
 	  //h0 = tracker.Hits()[ s.fFirst + ih ];	  
 
-	  Float_t y = h0.Y(); 
-	  Float_t z = h0.Z(); 
+	  float y = h0.Y(); 
+	  float z = h0.Z(); 
 
 	  AliHLTTPCCAHitArea areaDn, areaUp;
 	  areaUp.Init( s.fGridUp,  s.fGridContentUp,s.fFirstUp, y*s.fUpTx, z*s.fUpTx, kAreaSize, kAreaSize );
-	  areaDn.Init( s.fGridDn,  s.fGridContentDn,s.fFirstDn, y*s.fDnTx, z*s.fDnTx, kAreaSize, kAreaSize );      
-	  do{
+	  areaDn.Init( s.fGridDn,  s.fGridContentDn,s.fFirstDn, y*s.fDnTx, z*s.fDnTx, kAreaSize, kAreaSize );
+	 
+	  if( linkUp>=0 ){
 	    AliHLTTPCCAHit h;
-	    Int_t i = areaUp.GetNext( tracker, rowUp,s.fGridContentUp, h );
-	    if( i<0 ) break;
-	    neighUp[nNeighUp] = (UShort_t) i;	    
-	    yzUp[nNeighUp] = make_float2( s.fDnDx*(h.Y()-y), s.fDnDx*(h.Z()-z) );
-	    if( ++nNeighUp>=kMaxN ) break;
-	  }while(1);
-
+	    float y0Up = rowUp.Grid().YMin();
+	    float z0Up = rowUp.Grid().ZMin();
+	    float stepYUp  = rowUp.HstepY();
+	    float stepZUp  = rowUp.HstepZ();
+	    const uint4* tmpint4Up  = tracker.RowData() + rowUp.FullOffset();
+	    const ushort2 *hitsUp  = reinterpret_cast<const ushort2*>(tmpint4Up );
+	    ushort2 hh = hitsUp[linkUp];
+	    h.SetY( y0Up  + hh.x*stepYUp  );
+	    h.SetZ( z0Up  + hh.y*stepZUp  );    
+	    neighUp[0] = linkUp;    
+	    yzUp[0] = CAMath::MakeFloat2( s.fDnDx*(h.Y()-y), s.fDnDx*(h.Z()-z) );	    
+	    nNeighUp = 1;
+	  } else {
+	    do{
+	      AliHLTTPCCAHit h;
+	      Int_t i = areaUp.GetNext( tracker, rowUp,s.fGridContentUp, h );
+	      if( i<0 ) break;	      
+	      neighUp[nNeighUp] = (UShort_t) i;
+	      yzUp[nNeighUp] = CAMath::MakeFloat2( s.fDnDx*(h.Y()-y), s.fDnDx*(h.Z()-z) );
+	      if( ++nNeighUp>=kMaxN ) break;
+	    }while(1);
+	  }
+	  
 	  Int_t nNeighDn=0;
+	  
 	  if( nNeighUp>0 ){
 
 	    Int_t bestDn=-1, bestUp=-1;
-	    Float_t bestD=1.e10;
+	    float bestD=1.e10;
 
-	    do{
+	    if( linkDn>=0 ){
 	      AliHLTTPCCAHit h;
-	      Int_t i = areaDn.GetNext( tracker, rowDn,s.fGridContentDn,h );
-	      if( i<0 ) break;
-	      nNeighDn++;
-	      float2 yzdn = make_float2( s.fUpDx*(h.Y()-y), s.fUpDx*(h.Z()-z) );
+	      float y0Dn = rowDn.Grid().YMin();
+	      float z0Dn  = rowDn.Grid().ZMin();
+	      float stepYDn  = rowDn.HstepY();
+	      float stepZDn  = rowDn.HstepZ();
+	      const uint4* tmpint4Dn  = tracker.RowData() + rowDn.FullOffset();
+	      const ushort2 *hitsDn  = reinterpret_cast<const ushort2*>(tmpint4Dn );
+	      ushort2 hh = hitsDn [linkDn];
+	      h.SetY( y0Dn  + hh.x*stepYDn  );
+	      h.SetZ( z0Dn  + hh.y*stepZDn  );
+	      
+	      nNeighDn = 1;
+	      
+	      float2 yzdn = CAMath::MakeFloat2( s.fUpDx*(h.Y()-y), s.fUpDx*(h.Z()-z) );
 
 	      for( Int_t iUp=0; iUp<nNeighUp; iUp++ ){
 		float2 yzup = yzUp[iUp];
-		Float_t dy = yzdn.x - yzup.x;
-		Float_t dz = yzdn.y - yzup.y;
-		Float_t d = dy*dy + dz*dz;
+		float dy = yzdn.x - yzup.x;
+		float dz = yzdn.y - yzup.y;
+		float d = dy*dy + dz*dz;
 		if( d<bestD ){
 		  bestD = d;
-		  bestDn = i;
+		  bestDn = linkDn;
 		  bestUp = iUp;
-		}		
+		}
 	      }
-	    }while(1);	 
-	  
+	    } else {
+	      do{
+		AliHLTTPCCAHit h;
+		Int_t i = areaDn.GetNext( tracker, rowDn,s.fGridContentDn,h );
+		if( i<0 ) break;
+
+		nNeighDn++;
+		float2 yzdn = CAMath::MakeFloat2( s.fUpDx*(h.Y()-y), s.fUpDx*(h.Z()-z) );
+
+		for( Int_t iUp=0; iUp<nNeighUp; iUp++ ){
+		  float2 yzup = yzUp[iUp];
+		  float dy = yzdn.x - yzup.x;
+		  float dz = yzdn.y - yzup.y;
+		  float d = dy*dy + dz*dz;
+		  if( d<bestD ){
+		    bestD = d;
+		    bestDn = i;
+		    bestUp = iUp;
+		  }		
+		}
+	      }while(1);	 
+	    }
+
 	    if( bestD <= chi2Cut ){      
 	      linkUp = neighUp[bestUp];
 	      linkDn = bestDn;      
 	    }
 	  }
+#ifdef DRAW
+	  std::cout<<"n NeighUp = "<<nNeighUp<<", n NeighDn = "<<nNeighDn<<std::endl;
+#endif	  
+
 	}
 	
 	s.fHitLinkUp[ih] = linkUp;
 	s.fHitLinkDn[ih] = linkDn;
+#ifdef DRAW
+	std::cout<<"Links for row "<<s.fIRow<<", hit "<<ih<<": "<<linkUp<<" "<<linkDn<<std::endl;
+	if( s.fIRow==22 && ih==5 )
+	  {
+	  AliHLTTPCCADisplay::Instance().DrawSliceLink(s.fIRow, ih, -1, -1, 1);  
+	  AliHLTTPCCADisplay::Instance().DrawSliceHit(s.fIRow, ih, kBlue, 1.);
+	  AliHLTTPCCADisplay::Instance().Ask();
+	}
+#endif
       }
     }
 }

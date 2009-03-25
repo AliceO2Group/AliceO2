@@ -1,9 +1,11 @@
 //-*- Mode: C++ -*-
 // @(#) $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project        * 
-//* ALICE Experiment at CERN, All rights reserved.                         *
-//* See cxx source for full Copyright notice                               *
+// ************************************************************************
+// This file is property of and copyright by the ALICE HLT Project        * 
+// ALICE Experiment at CERN, All rights reserved.                         *
+// See cxx source for full Copyright notice                               *
+//                                                                        *
+//*************************************************************************
 
 #ifndef ALIHLTTPCCAPARAM_H
 #define ALIHLTTPCCAPARAM_H
@@ -32,15 +34,16 @@ class AliHLTTPCCAParam
   ~AliHLTTPCCAParam(){;}
 
   GPUd() void Initialize( Int_t iSlice, Int_t nRows, Float_t rowX[],
-		   Float_t alpha, Float_t dAlpha,
-		   Float_t rMin, Float_t rMax, Float_t zMin, Float_t zMax,
-		   Float_t padPitch, Float_t zSigma, Float_t bz );
+			  Float_t alpha, Float_t dAlpha,
+			  Float_t rMin, Float_t rMax, Float_t zMin, Float_t zMax,
+			  Float_t padPitch, Float_t zSigma, Float_t bz );
   GPUd() void Update();
   
   GPUd() void Slice2Global( Float_t x, Float_t y,  Float_t z, 
-		     Float_t *X, Float_t *Y,  Float_t *Z ) const;
-  GPUd() GPUd() void Global2Slice( Float_t x, Float_t y,  Float_t z, 
-		     Float_t *X, Float_t *Y,  Float_t *Z ) const;
+			    Float_t *X, Float_t *Y,  Float_t *Z ) const;
+
+  GPUd() void Global2Slice( Float_t x, Float_t y,  Float_t z, 
+			    Float_t *X, Float_t *Y,  Float_t *Z ) const;
 
 
   GPUhd() Int_t ISlice() const { return fISlice;}

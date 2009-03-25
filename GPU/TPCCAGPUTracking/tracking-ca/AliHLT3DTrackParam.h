@@ -1,18 +1,17 @@
 //-*- Mode: C++ -*-
 // @(#) $Id$
-
-//* This file is property of and copyright by the ALICE HLT Project           * 
-//* ALICE Experiment at CERN, All rights reserved.                            *
-//* See cxx source for full Copyright notice                                  *
-
-//*                                                                           *
-//* AliHLT3DTrackParam class is under development and currently not in use    *
-//*                                                                           *
+// ***************************************************************************
+// This file is property of and copyright by the ALICE HLT Project           * 
+// ALICE Experiment at CERN, All rights reserved.                            *
+// See cxx source for full Copyright notice                                  *
+//                                                                           *
+// AliHLT3DTrackParam class is under development and currently not in use    *
+//                                                                           *
+//****************************************************************************
 
 #ifndef ALIHLT3DTRACKPARAM_H
 #define ALIHLT3DTRACKPARAM_H
 
-#include "Rtypes.h"
 #include "TObject.h"
 
 /**
@@ -107,7 +106,7 @@ class AliHLT3DTrackParam :public TObject
       TransportToDS( Bz,GetDStoPoint(Bz, xyz, T0), T0 ) ; 
     }
 
-  void TransportToPoint( Double_t Bz, Double_t x, Double_t y, Double_t z, Double_t *T0=0 )
+  void TransportToPoint( Double_t Bz, Double_t x, Double_t y, Double_t z, const Double_t *T0=0 )
     { 
       Double_t xyz[3] = {x,y,z};
       TransportToPoint( Bz, xyz, T0 );
