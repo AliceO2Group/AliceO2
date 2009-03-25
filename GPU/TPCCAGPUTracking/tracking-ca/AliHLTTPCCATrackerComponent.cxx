@@ -186,7 +186,7 @@ Int_t AliHLTTPCCATrackerComponent::Reconfigure(const char* cdbEntry, const char*
   // see header file for class documentation
 
   Int_t iResult=EINVAL;
-  const char* path="HLT/ConfigTPC/TPCCATracker";
+  const char* path="HLT/ConfigTPC/TPCCATrackerComponent";
   const char* defaultNotify="";
   if (cdbEntry) {
     path=cdbEntry;
