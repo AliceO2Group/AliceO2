@@ -80,7 +80,9 @@ class AliHLTTPCCATracker
   
   void FitTrack( AliHLTTPCCATrack &track, Float_t *t0 = 0 ) const;
   void FitTrackFull( AliHLTTPCCATrack &track, Float_t *t0 = 0 ) const;
-  GPUhd() void SetPointers();
+  GPUhd() void SetPointersCommon();
+  GPUhd() void SetPointersHits( Int_t MaxNHits );
+  GPUhd() void SetPointersTracks( Int_t MaxNTracks );
 
 #if !defined(HLTCA_GPUCODE)  
   GPUh() void WriteEvent( std::ostream &out );
@@ -135,6 +137,12 @@ class AliHLTTPCCATracker
  
   Char_t *fCommonMemory; // common event memory
   Int_t   fCommonMemorySize; // size of the event memory [bytes]
+
+  Char_t *fHitMemory; // event memory for hits
+  Int_t   fHitMemorySize; // size of the event memory [bytes]
+
+  Char_t *fTrackMemory; // event memory for tracks
+  Int_t   fTrackMemorySize; // size of the event memory [bytes]
 
   Char_t *fInputEvent;     // input event
   Int_t   fInputEventSize; // size of the input event [bytes]
