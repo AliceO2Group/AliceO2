@@ -52,6 +52,7 @@ class AliHLTTPCCAParam
   GPUhd() Float_t RowX( Int_t iRow ) const { return fRowX[iRow]; }  
 
   GPUd() Float_t Alpha() const { return fAlpha;}
+  GPUd() Float_t Alpha( Int_t iSlice ) const { return 0.174533 + DAlpha()*iSlice;}
   GPUd() Float_t DAlpha() const { return fDAlpha;}
   GPUd() Float_t CosAlpha() const { return fCosAlpha;}
   GPUd() Float_t SinAlpha() const { return fSinAlpha;}
@@ -99,6 +100,7 @@ class AliHLTTPCCAParam
 
 
   GPUd() Float_t GetClusterError2(Int_t yz, Int_t type, Float_t z, Float_t angle ) const;
+  GPUd() void GetClusterErrors2( Int_t iRow, Float_t z, Float_t sinPhi, Float_t cosPhi, Float_t DzDs, Float_t &Err2Y, Float_t &Err2Z ) const;
 
   void WriteSettings( std::ostream &out ) const;
   void ReadSettings( std::istream &in );

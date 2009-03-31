@@ -668,11 +668,12 @@ Bool_t AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrackParam t, Double_t Alpha, c
       if( mc.P()>=1. ) color = kRed;	
     }  
   }
-
+  std::cout<<"mark 1"<<std::endl;
   if( t.SinPhi()>.999 )  t.SetSinPhi( .999 );
   else if( t.SinPhi()<-.999 )  t.SetSinPhi( -.999 );
   if( t.CosPhi()>=0 ) t.SetCosPhi( TMath::Sqrt(1-t.SinPhi()*t.SinPhi() ));
   else t.SetCosPhi( -TMath::Sqrt(1-t.SinPhi()*t.SinPhi() ));
+  std::cout<<"mark 2"<<std::endl;
 
   //  Int_t iSlice = fSlice->Param().ISlice();
 
@@ -712,8 +713,10 @@ Bool_t AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrackParam t, Double_t Alpha, c
     SetSliceTransform( alpha );
 
     //t.GetDCAPoint( x1, y1, z1, x1, y1, z1 );      
+  std::cout<<"mark 3"<<std::endl;
     Bool_t ok = tt.TransportToX(x1,.999);
-    if( 0&&ok ){    
+  std::cout<<"mark 4"<<std::endl;
+  if( 1||ok ){    
       x1 = tt.X();
       y1 = tt.Y();
       z1 = tt.Z();
@@ -728,14 +731,13 @@ Bool_t AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrackParam t, Double_t Alpha, c
       x0=h.X()+j; y0=h.Y(); z1=h.Z();
       x1 = x0*hCos + y0*hSin;
       y1 = y0*hCos - x0*hSin;
-
       ok = tt.TransportToX(x1,.999);
-      if( 1||ok ){    
+      if( ok ){    
 	x1 = tt.X();
 	y1 = tt.Y();
 	z1 = tt.Z();
       }
-
+      
       Slice2View(x1, y1, &x1, &y1 );
       vx[mHits] = x1;
       vy[mHits] = y1;

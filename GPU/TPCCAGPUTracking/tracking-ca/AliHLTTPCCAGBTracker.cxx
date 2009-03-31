@@ -24,8 +24,9 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAGBTrack.h"
 #include "AliHLTTPCCATrackParam.h"
-//#include "AliHLTTPCCAEventHeader.h"
-
+#include "AliHLTTPCCAMerger.h"
+#include "AliHLTTPCCAMergerOutput.h"
+#include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAMath.h"
 #include "TStopwatch.h"
 
@@ -289,7 +290,8 @@ void AliHLTTPCCAGBTracker::FindTracks()
   //std::cout<<"Refit time = "<<timerM.CpuTime()*1.e3<<"ms"<<std::endl;
 
   TStopwatch timerMerge;
-  Merging();
+  //Merging(); 
+  Merging1(); 
   timerMerge.Stop();
   fStatTime[9]+=timerMerge.CpuTime();  
   //fTime+=timerMerge.CpuTime();
@@ -302,6 +304,86 @@ void AliHLTTPCCAGBTracker::FindTracks()
   AliHLTTPCCADisplay::Instance().Ask();
 #endif //DRAW
 }
+
+void AliHLTTPCCAGBTracker::Merging1()
+{
+  // test 
+
+#ifdef DRAW
+  AliHLTTPCCADisplay &disp = AliHLTTPCCADisplay::Instance();
+  AliHLTTPCCADisplay::Instance().SetTPCView();
+  AliHLTTPCCADisplay::Instance().DrawTPC();
+  AliHLTTPCCADisplay::Instance().DrawGBHits( *this );
+  disp.Ask(); 
+  std::cout<<"Slice tracks:"<<std::endl;
+  for( Int_t iSlice=0; iSlice<fNSlices; iSlice++ ){
+    AliHLTTPCCATracker &slice = fSlices[iSlice];
+    disp.SetCurrentSlice(&slice);    
+    for( Int_t itr=0; itr<*slice.NOutTracks(); itr++ ){
+      disp.DrawSliceOutTrack( itr, kBlue, 2. );
+    }
+  }
+  //AliHLTTPCCADisplay::Instance().DrawGBHits( *this );
+  disp.Ask(); 
+#endif //DRAW  
+
+
+  AliHLTTPCCAMerger merger;
+  merger.SetSliceParam( fSlices[0].Param() );
+  const AliHLTTPCCASliceOutput * sliceOutput[fNSlices];
+  for( Int_t i=0; i<fNSlices; i++ ) sliceOutput[i] = fSlices[i].Output();  
+  merger.Reconstruct( sliceOutput );  
+  
+  const AliHLTTPCCAMergerOutput &out = *(merger.Output());
+  
+  
+  if( fTrackHits ) delete[] fTrackHits;
+  fTrackHits = 0;
+  if(fTracks ) delete[] fTracks;
+  fTracks = 0;
+  fTrackHits = new Int_t [out.NTrackClusters()];
+  fTracks = new AliHLTTPCCAGBTrack[out.NTracks()];  
+  fNTracks = 0;
+
+  Int_t nTrackHits = 0;
+  
+  for( Int_t itr=0; itr<out.NTracks(); itr++ ){
+    const AliHLTTPCCAMergedTrack &track = out.Track( itr );
+
+    AliHLTTPCCAGBTrack &trackGB = fTracks[fNTracks];
+    trackGB.SetFirstHitRef( nTrackHits );
+    trackGB.SetNHits( track.NClusters() );
+    trackGB.SetParam( track.InnerParam() );
+    trackGB.SetAlpha( track.InnerAlpha() );
+    trackGB.SetDeDx( 0 );
+
+    for( Int_t icl=0; icl<track.NClusters(); icl++ ){
+      UInt_t  iDsrc = out.ClusterIDsrc( track.FirstClusterRef() + icl );
+      UInt_t iSlice = AliHLTTPCCADataCompressor::IDsrc2ISlice( iDsrc );
+      UInt_t iRow   = AliHLTTPCCADataCompressor::IDsrc2IRow( iDsrc );
+      UInt_t iClu   = AliHLTTPCCADataCompressor::IDsrc2IClu( iDsrc );    
+      fTrackHits[nTrackHits+icl] = fFirstSliceHit[iSlice] + fSlices[iSlice].Row(iRow).FirstHit() + iClu;
+    }	            
+    nTrackHits+= track.NClusters();
+    fNTracks++;
+  }
+
+#ifdef DRAW
+  std::cout<<"Global tracks: "<<std::endl;
+  AliHLTTPCCADisplay::Instance().ClearView();
+  AliHLTTPCCADisplay::Instance().SetTPCView();
+  AliHLTTPCCADisplay::Instance().DrawTPC();
+  AliHLTTPCCADisplay::Instance().DrawGBHits( *this );
+  for( Int_t itr=0; itr<fNTracks; itr++ ){
+    std::cout<<itr<<" nhits= "<<fTracks[itr].NHits()<<std::endl;
+    AliHLTTPCCADisplay::Instance().DrawGBTrack( itr, kBlue, 2. );    
+    //AliHLTTPCCADisplay::Instance().Ask();
+  }
+  AliHLTTPCCADisplay::Instance().Ask();
+#endif
+
+}
+
 
 
 void AliHLTTPCCAGBTracker::FindTracks0()

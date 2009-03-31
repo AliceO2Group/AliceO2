@@ -30,11 +30,6 @@ class AliHLTTPCCATrackParam
     Float_t fBethe, fE,fTheta2, fEP2, fSigmadE2, fK22,fK33,fK43,fK44;// parameters
   };
 
-#if !defined(HLTCA_GPUCODE)
-  AliHLTTPCCATrackParam(): fX(0),fCosPhi(1),fChi2(0), fNDF(0){}
-  ~AliHLTTPCCATrackParam(){}
-#endif
-
   GPUd() Float_t X()     const { return fX;    }
   GPUd() Float_t Y()     const { return fP[0]; }
   GPUd() Float_t Z()     const { return fP[1]; }
@@ -134,7 +129,6 @@ private:
   Float_t fC[15];  // the covariance matrix for Y,Z,SinPhi,..
   Float_t fChi2;   // the chi^2 value
   Int_t   fNDF;    // the Number of Degrees of Freedom
-
 };
 
 

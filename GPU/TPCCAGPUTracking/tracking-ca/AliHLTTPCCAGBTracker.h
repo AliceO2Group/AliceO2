@@ -84,6 +84,7 @@ public:
 			  Float_t x2, Float_t y2, Float_t b00, Float_t b10, Float_t b11  );
 
   void Merging();
+  void Merging1();
 
   AliHLTTPCCATracker *Slices() const { return fSlices; }
   AliHLTTPCCAGBHit *Hits() const { return fHits; }

@@ -35,6 +35,9 @@
 #include "AliHLTTPCCATrackletSelector.h"
 #include "AliHLTTPCCAProcess.h"
 #include "AliHLTTPCCAUsedHitsInitialiser.h"
+#include "AliHLTTPCCASliceTrack.h"
+#include "AliHLTTPCCASliceOutput.h"
+#include "AliHLTTPCCADataCompressor.h"
 
 #include "AliHLTTPCCATrackParam.h"
 
@@ -80,6 +83,7 @@ AliHLTTPCCATracker::AliHLTTPCCATracker()
   fTracks(0), 
   fNTrackHits(0),
   fTrackHits(0),
+  fOutput(0),
   fNOutTracks(0),
   fOutTracks(0), 
   fNOutTrackHits(0),
@@ -112,6 +116,7 @@ AliHLTTPCCATracker::AliHLTTPCCATracker( const AliHLTTPCCATracker& )
   fTracks(0), 
   fNTrackHits(0),
   fTrackHits(0),
+  fOutput(0),
   fNOutTracks(0),
   fOutTracks(0), 
   fNOutTrackHits(0),
@@ -180,86 +185,6 @@ GPUd() void AliHLTTPCCATracker::StartEvent()
   fTmpHitInputIDs = 0;
 }
 
-
-/*
-GPUhd() void  AliHLTTPCCATracker::SetPointers()
-{
-  // set all pointers to the event memory
-
-  Int_t gridSizeTotal = 2*(2*fNHitsTotal + 10*Param().NRows());
-  gridSizeTotal *=100;//SG!!!
-  ULong_t mem = (ULong_t) fCommonMemory;  
-  UInt_t sI = sizeof(Int_t);
-  UInt_t sF = sizeof(Float_t);
-  UInt_t sS = sizeof(Short_t);
-  UInt_t s4 = sizeof(uint4);
-
-  fInputEvent = (Char_t*) mem;  
-  fInputEventSize = (1+fParam.NRows()*2 + 1)*sI + (fNHitsTotal*2)*sF;
-  mem+= fInputEventSize;
-
-  mem = ( mem/s4 + 1 )*s4;
-  fRowData = (uint4*) mem;
-  fRowDataSize = ( 2*fNHitsTotal*sS +  //  yz
-		   gridSizeTotal*sS + // grid
-		   2*fNHitsTotal*sS +  // link up,link down
-		   fParam.NRows()*s4   // row alignment
-		   );
-  mem += fRowDataSize;
-
-  mem = ( mem/sI + 1 )*sI;
-
-  fHitInputIDs = (Int_t*) mem;
-  mem+= fNHitsTotal*sI;
-
-  fHitWeights = (Int_t*) mem;
-  mem+=  fNHitsTotal*sI;
-
-  fNTracklets = (Int_t*) mem;
-  mem+= sI;
-
-  fTrackletStartHits = (Int_t*) mem;
-  mem+= fNHitsTotal*sI;
-
-  mem = ( mem/sizeof(AliHLTTPCCATracklet) + 1 )*sizeof(AliHLTTPCCATracklet);
-
-  fTracklets = (AliHLTTPCCATracklet *) mem;
-  mem+= fNHitsTotal*sizeof(AliHLTTPCCATracklet);
-  
-  mem = ( mem/sI + 1 )*sI;
-
-  fNTracks = (Int_t*) mem;
-  mem+= sI;
-
-  mem = ( mem/sizeof(AliHLTTPCCATrack) + 1 )*sizeof(AliHLTTPCCATrack);
-
-  fTracks = (AliHLTTPCCATrack*) mem;
-  mem+= fNHitsTotal*sizeof(AliHLTTPCCATrack);
-  
-  mem = ( mem/sI + 1 )*sI;
-  fNTrackHits = (Int_t*) mem;
-  mem+= sI;
-
-  fTrackHits = (Int_t*) mem;
-  mem+= 100*fNHitsTotal*sI;//SG!!!
-
-  fNOutTracks = (Int_t*) mem;
-  mem+= sI;
-
-  mem = ( mem/sizeof(AliHLTTPCCAOutTrack) + 1 )*sizeof(AliHLTTPCCAOutTrack);
-  
-  fOutTracks = (AliHLTTPCCAOutTrack*) mem;
-  mem+= fNHitsTotal*sizeof(AliHLTTPCCAOutTrack);
-
-  mem = ( mem/sI + 1 )*sI;
-  fNOutTrackHits = (Int_t*) mem;
-  mem+= sI;
-  fOutTrackHits = (Int_t*) mem;
-  mem+= 100*fNHitsTotal*sI; //SG!!!
-
-  fCommonMemorySize = mem - (ULong_t) fCommonMemory;
-}
-*/
 
 
 GPUhd() void  AliHLTTPCCATracker::SetPointersCommon()
@@ -346,7 +271,7 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersHits( Int_t MaxNHits )
 }
 
 
-GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( Int_t MaxNTracks )
+GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( Int_t MaxNTracks, Int_t MaxNHits )
 {
   // set all pointers to the tracks memory
 
@@ -364,12 +289,18 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( Int_t MaxNTracks )
   fTracks = (AliHLTTPCCATrack*) mem;
   mem+= MaxNTracks*sizeof(AliHLTTPCCATrack);  
   
+  // memory for output
+
+  mem = ( mem/sizeof(AliHLTTPCCASliceOutput) + 1 )*sizeof(AliHLTTPCCASliceOutput);
+  fOutput = (AliHLTTPCCASliceOutput*) mem;
+  mem+= AliHLTTPCCASliceOutput::EstimateSize(MaxNTracks, MaxNHits);
+  
   // memory for output tracks
 
   mem = ( mem/sizeof(AliHLTTPCCAOutTrack) + 1 )*sizeof(AliHLTTPCCAOutTrack);
   
   fOutTracks = (AliHLTTPCCAOutTrack*) mem;
-  mem+= fNHitsTotal*sizeof(AliHLTTPCCAOutTrack);  
+  mem+= MaxNTracks*sizeof(AliHLTTPCCAOutTrack);  
 
   // calculate the size
 
@@ -625,8 +556,17 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   TStopwatch timer0;
 
   //SetupRowData();
-  if( fNHitsTotal < 1 ) return;
+  if( fNHitsTotal < 1 ){
+    {
+      SetPointersTracks(1, 1); // to calculate the size
+      fTrackMemory = reinterpret_cast<Char_t*> ( new uint4 [ fTrackMemorySize/sizeof(uint4) + 100] );   
+      SetPointersTracks(1, 1); // set pointers for tracks
+      fOutput->SetNTracks(0);
+      fOutput->SetNTrackClusters(0);
+    }
 
+    return;
+  }
 #ifdef DRAW
 
   AliHLTTPCCADisplay::Instance().ClearView();  
@@ -680,9 +620,9 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 
   {
-    SetPointersTracks(nStartHits); // to calculate the size
+    SetPointersTracks(nStartHits, fNHitsTotal); // to calculate the size
     fTrackMemory = reinterpret_cast<Char_t*> ( new uint4 [ fTrackMemorySize/sizeof(uint4) + 100] );   
-    SetPointersTracks(nStartHits); // set pointers for hits
+    SetPointersTracks(nStartHits, fNHitsTotal); // set pointers for hits
   }
 
   Int_t nMemThreads = AliHLTTPCCATrackletConstructor::NMemThreads();
@@ -768,11 +708,68 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
   // write output
 
   TStopwatch timer;
+
+  //cout<<"output: nTracks = "<<*fNTracks<<", nHitsTotal="<<fNHitsTotal<<std::endl;  
+
+  
+  fOutput->SetNTracks( *fNTracks );
+  fOutput->SetNTrackClusters( *fNTrackHits );
+  fOutput->SetPointers();
+
+  Int_t nStoredHits = 0;
+
+  for( Int_t iTr=0; iTr<*fNTracks; iTr++){
+    AliHLTTPCCATrack &iTrack = fTracks[iTr];       
  
+    AliHLTTPCCASliceTrack out;
+    out.SetFirstClusterRef( nStoredHits );
+    out.SetNClusters( iTrack.NHits() );    
+    out.SetParam( iTrack.Param() );
+
+    fOutput->SetTrack( iTr, out );
+
+    Int_t iID = iTrack.FirstHitID();
+    for( Int_t ith=0; ith<iTrack.NHits(); ith++ ){
+      Int_t ic = (fTrackHits[iID+ith]);
+      Int_t iRow = ID2IRow(ic);
+      Int_t ih = ID2IHit(ic);
+      const AliHLTTPCCARow &row = fRows[iRow];      
+  
+      Float_t y0 = row.Grid().YMin();
+      Float_t z0 = row.Grid().ZMin();
+      Float_t stepY = row.HstepY();
+      Float_t stepZ = row.HstepZ();      
+      //Float_t x = row.X();
+
+      const uint4 *tmpint4 = RowData() + row.FullOffset();
+      const ushort2 *hits = reinterpret_cast<const ushort2*>(tmpint4);
+      ushort2 hh = hits[ih];
+
+      Float_t y = y0 + hh.x*stepY;
+      Float_t z = z0 + hh.y*stepZ;
+
+      Int_t inpIDtot = fHitInputIDs[row.FirstHit()+ih];
+      Int_t inpID = inpIDtot - row.FirstHit();
+
+      UInt_t hIDrc = AliHLTTPCCADataCompressor::IRowIClu2IDrc(iRow,inpID);
+      UShort_t hPackedYZ = 0;
+      UChar_t hPackedAmp = 0;
+      float2 hUnpackedYZ = CAMath::MakeFloat2(y,z);
+      
+      fOutput->SetClusterIDrc( nStoredHits, hIDrc  );
+      fOutput->SetClusterPackedYZ( nStoredHits, hPackedYZ );
+      fOutput->SetClusterPackedAmp( nStoredHits, hPackedAmp);
+      fOutput->SetClusterUnpackedYZ( nStoredHits, hUnpackedYZ );
+      nStoredHits++;
+    }
+  }
+  
+ 
+  // old stuff 
+
   *fNOutTrackHits = 0;
   *fNOutTracks = 0;
 
-  //cout<<"output: nTracks = "<<*fNTracks<<", nHitsTotal="<<fNHitsTotal<<std::endl;  
 
   for( Int_t iTr=0; iTr<*fNTracks; iTr++){
 
@@ -812,6 +809,8 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
       (*fNOutTrackHits) = nOutTrackHitsOld;
     }
   }
+
+
   timer.Stop();
   fTimers[5]+=timer.CpuTime();
 }
@@ -946,14 +945,7 @@ GPUd() void AliHLTTPCCATracker::GetErrors2( Int_t iRow, Float_t z, Float_t sinPh
   // Use calibrated cluster error from OCDB
   //
 
-  z = CAMath::Abs((250.-0.275)-CAMath::Abs(z));
-  Int_t    type = (iRow<63) ? 0: ( (iRow>126) ? 1:2 );
-  Float_t cosPhiInv = CAMath::Abs(cosPhi)>1.e-2 ?1./cosPhi :0;
-  Float_t angleY = sinPhi*cosPhiInv ;
-  Float_t angleZ = DzDs*cosPhiInv ; // SG was bug??? 
-
-  Err2Y = fParam.GetClusterError2(0,type, z,angleY);  
-  Err2Z = fParam.GetClusterError2(1,type, z,angleZ);
+  fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
 }
 
 GPUd() void AliHLTTPCCATracker::GetErrors2( Int_t iRow, const AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z ) const
@@ -962,14 +954,7 @@ GPUd() void AliHLTTPCCATracker::GetErrors2( Int_t iRow, const AliHLTTPCCATrackPa
   // Use calibrated cluster error from OCDB
   //
 
-  Float_t z = CAMath::Abs((250.-0.275)-CAMath::Abs(t.GetZ()));
-  Int_t    type = (iRow<63) ? 0: ( (iRow>126) ? 1:2 );
-  Float_t cosPhiInv = CAMath::Abs(t.GetCosPhi())>1.e-2 ?1./t.GetCosPhi() :0;
-  Float_t angleY = t.GetSinPhi()*cosPhiInv ;
-  Float_t angleZ = t.GetDzDs()*cosPhiInv ; // SG was bug??? 
-
-  Err2Y = fParam.GetClusterError2(0,type, z,angleY);  
-  Err2Z = fParam.GetClusterError2(1,type, z,angleZ);
+  fParam.GetClusterErrors2( iRow, t.GetZ(), t.SinPhi(), t.CosPhi(), t.DzDs(), Err2Y, Err2Z );
 }
 
 

@@ -146,6 +146,23 @@ GPUd() Float_t AliHLTTPCCAParam::GetClusterError2( Int_t yz, Int_t type, Float_t
   return CAMath::Abs(v); 
 }
 
+GPUd() void AliHLTTPCCAParam::GetClusterErrors2( Int_t iRow, Float_t z, Float_t sinPhi, Float_t cosPhi, Float_t DzDs, Float_t &Err2Y, Float_t &Err2Z ) const
+{
+  //
+  // Use calibrated cluster error from OCDB
+  //
+
+  z = CAMath::Abs((250.-0.275)-CAMath::Abs(z));
+  Int_t    type = (iRow<63) ? 0: ( (iRow>126) ? 1:2 );
+  Float_t cosPhiInv = CAMath::Abs(cosPhi)>1.e-2 ?1./cosPhi :0;
+  Float_t angleY = sinPhi*cosPhiInv ;
+  Float_t angleZ = DzDs*cosPhiInv ; // SG was bug??? 
+
+  Err2Y = GetClusterError2(0,type, z,angleY);  
+  Err2Z = GetClusterError2(1,type, z,angleZ);
+}
+
+
 GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const 
 {
   // write settings to the file

@@ -21,7 +21,7 @@ class AliHLTTPCCATrack;
 class AliHLTTPCCAOutTrack;
 class AliHLTTPCCATrackParam;
 class AliHLTTPCCATracklet;
-
+class AliHLTTPCCASliceOutput;
 
 /**
  * @class AliHLTTPCCATracker
@@ -82,7 +82,7 @@ class AliHLTTPCCATracker
   void FitTrackFull( AliHLTTPCCATrack &track, Float_t *t0 = 0 ) const;
   GPUhd() void SetPointersCommon();
   GPUhd() void SetPointersHits( Int_t MaxNHits );
-  GPUhd() void SetPointersTracks( Int_t MaxNTracks );
+  GPUhd() void SetPointersTracks( Int_t MaxNTracks, Int_t MaxNHits );
 
 #if !defined(HLTCA_GPUCODE)  
   GPUh() void WriteEvent( std::ostream &out );
@@ -117,6 +117,8 @@ class AliHLTTPCCATracker
   GPUhd() AliHLTTPCCATrack *Tracks() const { return  fTracks; }
   GPUhd() Int_t *NTrackHits()  const { return fNTrackHits; }
   GPUhd() Int_t *TrackHits() const { return fTrackHits; }
+
+  GPUhd() const AliHLTTPCCASliceOutput * Output() const { return fOutput; }
 
   GPUhd()  Int_t *NOutTracks() const { return  fNOutTracks; }
   GPUhd()  AliHLTTPCCAOutTrack *OutTracks() const { return  fOutTracks; }
@@ -164,6 +166,10 @@ class AliHLTTPCCATracker
   Int_t *fTrackHits;          // array of track hit numbers
 
   // output
+
+  AliHLTTPCCASliceOutput *fOutput;
+
+  // obsolete output
 
   Int_t *fNOutTracks; // number of tracks in fOutTracks array
   AliHLTTPCCAOutTrack *fOutTracks; // output array of the reconstructed tracks
