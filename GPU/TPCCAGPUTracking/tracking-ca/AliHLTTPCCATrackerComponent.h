@@ -84,6 +84,7 @@ private:
   Double_t fFullTime; //* total time for DoEvent() [s]
   Double_t fRecoTime; //* total reconstruction time [s]
   Long_t    fNEvents;  //* number of reconstructed events
+  Bool_t fNewOutputType; //* use new type of output (temporary flag)
 
   static Bool_t CompareClusters(AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b);
 

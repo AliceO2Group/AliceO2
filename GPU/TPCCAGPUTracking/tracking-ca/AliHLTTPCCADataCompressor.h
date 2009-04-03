@@ -60,9 +60,7 @@ GPUhd() inline UShort_t AliHLTTPCCADataCompressor::YZ2UShort( Float_t Y, Float_t
   else if( Y>255. ) Y = 255.;
   if( Z<0. ) Z = 0.;
   else if( Z>255. ) Z = 255.;
-  UInt_t iY = static_cast<UInt_t>( Y );
-  UInt_t iZ = static_cast<UInt_t>( Z );
-  return static_cast<UShort_t>( (iY<<8) + iZ );
+  return static_cast<UShort_t>( ( static_cast<UInt_t>( Y )<<8) + static_cast<UInt_t>( Z ) );
 }  
 
 GPUhd() inline Float_t AliHLTTPCCADataCompressor::UShort2Y( UShort_t iYZ )
@@ -70,8 +68,7 @@ GPUhd() inline Float_t AliHLTTPCCADataCompressor::UShort2Y( UShort_t iYZ )
   // extract Y coordinate from the compressed 16bits format to [-3.,3.]
 
   const Float_t kMult = 6./255.; 
-  Float_t y = (iYZ >> 8);
-  return y*kMult - 3.;
+  return (iYZ >> 8)*kMult - 3.;
 }  
 
 GPUhd() inline Float_t AliHLTTPCCADataCompressor::UShort2Z( UShort_t iYZ )
@@ -79,8 +76,7 @@ GPUhd() inline Float_t AliHLTTPCCADataCompressor::UShort2Z( UShort_t iYZ )
   // extract Z coordinate from the compressed 16bits format to [-3.,3.]
 
   const Float_t kMult = 6./255.; 
-  Float_t z = (iYZ % 256);
-  return z*kMult - 3.;
+  return (iYZ % 256)*kMult - 3.;
 }
 
 #endif

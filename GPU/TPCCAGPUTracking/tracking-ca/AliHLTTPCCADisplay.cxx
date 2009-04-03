@@ -39,6 +39,39 @@
 #include "TApplication.h"
 
 
+class AliHLTTPCCADisplay::AliHLTTPCCADisplayTmpHit
+{
+
+public:
+
+  Int_t ID() const { return fHitID; }
+  Double_t S() const { return fS; }
+  Double_t Z() const { return fZ; }
+  
+  void SetID( Int_t v ){ fHitID = v; }    
+  void SetS( Double_t v){ fS = v; }
+  void SetZ( Double_t v){ fZ = v; }
+  
+  static Bool_t CompareHitDS( const AliHLTTPCCADisplayTmpHit &a, 
+			      const AliHLTTPCCADisplayTmpHit  &b )
+  {    
+    return (a.fS < b.fS);
+  }
+
+  static Bool_t CompareHitZ( const AliHLTTPCCADisplayTmpHit &a, 
+			     const AliHLTTPCCADisplayTmpHit  &b )
+  {    
+    return (a.fZ < b.fZ);
+  }
+
+private:
+
+  Int_t fHitID; // hit ID
+  Double_t fS;  // hit position on the XY track curve 
+  Double_t fZ;  // hit Z position
+
+};
+
 
 
 AliHLTTPCCADisplay &AliHLTTPCCADisplay::Instance()
@@ -373,7 +406,7 @@ Int_t AliHLTTPCCADisplay::GetColorK( Double_t k ) const
   return kMyColor[iy];
 }
 
-void AliHLTTPCCADisplay::Global2View( Double_t x, Double_t y, Double_t *xv, Double_t * yv ) const
+void AliHLTTPCCADisplay::Global2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const
 {
   // convert coordinates global->view
   *xv = x*fCos + y*fSin;
