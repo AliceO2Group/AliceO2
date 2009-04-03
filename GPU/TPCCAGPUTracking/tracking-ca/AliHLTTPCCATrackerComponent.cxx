@@ -164,7 +164,7 @@ Int_t AliHLTTPCCATrackerComponent::DoInit( Int_t argc, const char** argv )
   if ( fTracker ) return EINPROGRESS;
   fTracker = new AliHLTTPCCATracker();
 
-  Int_t iResult = EINVAL;
+  Int_t iResult = 0;
 
   TString arguments=""; 
   for (int i=0; i<argc; i++) {
@@ -193,13 +193,13 @@ Int_t AliHLTTPCCATrackerComponent::Reconfigure(const char* /*cdbEntry*/, const c
 {
   // see header file for class documentation
  
-  HLTWarning("dummy Reconfigure() method called" );
+  HLTWarning("TODO: dummy Reconfigure() method" );
 
-  return EINVAL;
+  return 0;
 
   /*
   
-  Int_t iResult=EINVAL;
+  Int_t iResult=0;
   const char* path="HLT/ConfigTPC/CATrackerComponent";
   const char* defaultNotify="";
   if (cdbEntry) {
@@ -257,7 +257,7 @@ Int_t AliHLTTPCCATrackerComponent::Configure( const char* arguments )
 {
   //* Set parameters
 
-  Int_t iResult=EINVAL;
+  Int_t iResult=0;
   if (!arguments) return iResult;
   
   TString allArgs=arguments;
