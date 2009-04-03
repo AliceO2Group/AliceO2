@@ -12,7 +12,7 @@
 
 #include "AliHLTTPCCADef.h"
 
-class AliHLTTPCCASliceTrack;
+#include "AliHLTTPCCASliceTrack.h"
 
 /**
  * @class AliHLTTPCCASliceOutput
@@ -51,7 +51,12 @@ class AliHLTTPCCASliceOutput
   GPUhd() void SetClusterUnpackedYZ( Int_t i, float2 v ) {  fClusterUnpackedYZ[i] = v; }
 
  private:
-  
+
+  AliHLTTPCCASliceOutput( const AliHLTTPCCASliceOutput& )
+    : fNTracks(0),fNTrackClusters(0),fTracks(0),fClusterIDrc(0), fClusterPackedYZ(0),fClusterUnpackedYZ(0),fClusterPackedAmp(0){}
+
+  const AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) const { return *this; }
+
   Int_t fNTracks;                 // number of reconstructed tracks
   Int_t fNTrackClusters;          // total number of track clusters
   AliHLTTPCCASliceTrack *fTracks; // pointer to reconstructed tracks

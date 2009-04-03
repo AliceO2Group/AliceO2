@@ -438,7 +438,8 @@ GPUd() void AliHLTTPCCATracker::SetupRowData()
     row.SetGrid( grid );
   }
 
-  AliHLTTPCCAHit ffHits[fNHitsTotal];
+ 
+  AliHLTTPCCAHit *ffHits = new AliHLTTPCCAHit[ fNHitsTotal ];
 
   Int_t rowDataOffset = 0;
 
@@ -446,10 +447,10 @@ GPUd() void AliHLTTPCCATracker::SetupRowData()
 
     AliHLTTPCCARow &row = fRows[iRow];
     const AliHLTTPCCAGrid &grid = row.Grid();
-
-    Int_t c[grid.N()+3+10];
-    Int_t bins[row.NHits()];
-    Int_t filled[ row.Grid().N() +3+10 ];
+    
+    Int_t *c = new Int_t [grid.N() + 3 + 10];
+    Int_t *bins = new Int_t [row.NHits()];
+    Int_t *filled = new Int_t [row.Grid().N() + 3 + 10 ];
 
     for( UInt_t bin=0; bin<row.Grid().N()+3; bin++ ) filled[bin] = 0;  
 
@@ -532,8 +533,12 @@ GPUd() void AliHLTTPCCATracker::SetupRowData()
       //cout<<iRow<<", "<<row.fNHits<<"= "<<size*16<<"b: "<<row.fFullOffset<<" "<<row.fFullSize<<" "<<row.fFullGridOffset<<" "<<row.fFullLinkOffset<<std::endl;
 
       rowDataOffset+=size;
-    }  
-  } 
+    }
+    if( c ) delete[] c;
+    if( bins ) delete[] bins;
+    if( filled ) delete[] filled;
+  }
+  delete[] ffHits;
 }
 
 
@@ -967,9 +972,10 @@ GPUh() void AliHLTTPCCATracker::WriteEvent( std::ostream &out )
     out<<fRows[iRow].FirstHit()<<" "<<fRows[iRow].NHits()<<std::endl;
   } 
   out<<fNHitsTotal<<std::endl;
+  
+  Float_t *y = new Float_t [fNHitsTotal];
+  Float_t *z = new Float_t [fNHitsTotal];
 
-  Float_t y[fNHitsTotal], z[fNHitsTotal];
- 
   for( Int_t iRow=0; iRow<fParam.NRows(); iRow++){
     AliHLTTPCCARow &row = fRows[iRow];
     Float_t y0 = row.Grid().YMin();
@@ -989,23 +995,33 @@ GPUh() void AliHLTTPCCATracker::WriteEvent( std::ostream &out )
   for( Int_t ih=0; ih<fNHitsTotal; ih++ ){
     out<<y[ih]<<" "<<z[ih]<<std::endl;
   }
+  delete[] y;
+  delete[] z;
 }
 
 GPUh() void AliHLTTPCCATracker::ReadEvent( std::istream &in ) 
 {
   //* Read event from file 
+  
+  Int_t *rowFirstHit = new Int_t[ Param().NRows()];
+  Int_t *rowNHits = new Int_t [ Param().NRows()];
 
-  Int_t rowFirstHit[Param().NRows()], rowNHits[Param().NRows()];  
   for( Int_t iRow=0; iRow<Param().NRows(); iRow++ ){
     in>>rowFirstHit[iRow]>>rowNHits[iRow];
   }
   Int_t nHits;
   in >> nHits;
-  Float_t y[nHits], z[nHits];
+
+  Float_t *y = new Float_t[ nHits ];
+  Float_t *z = new Float_t[ nHits ];
   for( Int_t ih=0; ih<nHits; ih++ ){
     in>>y[ih]>>z[ih];
   }
   ReadEvent( rowFirstHit, rowNHits, y, z, nHits );
+  if( rowFirstHit ) delete[] rowFirstHit;
+  if( rowNHits )delete[] rowNHits;
+  if( y )delete[] y;
+  if( z )delete[] z;
 } 
 
 GPUh() void AliHLTTPCCATracker::WriteTracks( std::ostream &out ) 

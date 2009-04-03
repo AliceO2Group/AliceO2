@@ -58,10 +58,6 @@ public:
 
   void FindTracks();
 
-  void FindTracks0();
-  void FindTracks1();
-  void FindTracks2();
-
 
   void Refit();
 

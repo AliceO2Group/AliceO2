@@ -37,10 +37,118 @@
 #include "AliHLTTPCCAParam.h"
 
 
+
+class AliHLTTPCCAMerger::AliHLTTPCCAClusterInfo
+{
+  
+public:
+  
+  UInt_t  ISlice()    const { return fISlice;    }
+  UInt_t  IRow()      const { return fIRow;      }
+  UInt_t  IClu()      const { return fIClu;      }
+  UChar_t PackedAmp() const { return fPackedAmp; }
+  Float_t Y()         const { return fY;         }
+  Float_t Z()         const { return fZ;         }
+  Float_t Err2Y()     const { return fErr2Y;     }
+  Float_t Err2Z()     const { return fErr2Z;     }
+    
+  void SetISlice    ( UInt_t v  ) { fISlice    = v; }
+  void SetIRow      ( UInt_t v  ) { fIRow      = v; }
+  void SetIClu      ( UInt_t v  ) { fIClu      = v; }
+  void SetPackedAmp ( UChar_t v ) { fPackedAmp = v; }
+  void SetY         ( Float_t v ) { fY         = v; } 
+  void SetZ         ( Float_t v ) { fZ         = v; } 
+  void SetErr2Y     ( Float_t v ) { fErr2Y     = v; } 
+  void SetErr2Z     ( Float_t v ) { fErr2Z     = v; } 
+  
+private:
+  
+  UInt_t fISlice;            // slice number
+  UInt_t fIRow;              // row number
+  UInt_t fIClu;              // cluster number
+  UChar_t fPackedAmp; // packed cluster amplitude
+  Float_t fY;                // y position (slice coord.system)
+  Float_t fZ;                // z position (slice coord.system)
+  Float_t fErr2Y;            // Squared measurement error of y position
+  Float_t fErr2Z;            // Squared measurement error of z position
+};
+
+
+class AliHLTTPCCAMerger::AliHLTTPCCASliceTrackInfo
+{
+
+public:
+
+  const AliHLTTPCCATrackParam &InnerParam() const { return fInnerParam;      }
+  const AliHLTTPCCATrackParam &OuterParam() const { return fOuterParam;      }  
+  Float_t InnerAlpha()                      const { return fInnerAlpha;      }
+  Float_t OuterAlpha()                      const { return fOuterAlpha;      }
+  Int_t   NClusters()                       const { return fNClusters;       }
+  Int_t   FirstClusterRef()                 const { return fFirstClusterRef; }
+  Int_t   PrevNeighbour()                   const { return fPrevNeighbour;   }
+  Int_t   NextNeighbour()                   const { return fNextNeighbour;   }
+  Bool_t  Used()                            const { return fUsed;            }
+  
+  void SetInnerParam( const AliHLTTPCCATrackParam &v ) { fInnerParam = v;      }
+  void SetOuterParam( const AliHLTTPCCATrackParam &v ) { fOuterParam = v;      }
+  void SetInnerAlpha( Float_t v )                      { fInnerAlpha = v;      }
+  void SetOuterAlpha( Float_t v )                      { fOuterAlpha = v;      }
+  void SetNClusters ( Int_t v )                        { fNClusters = v;       }
+  void SetFirstClusterRef( Int_t v )                   { fFirstClusterRef = v; }
+  void SetPrevNeighbour( Int_t v )                     { fPrevNeighbour = v;   }
+  void SetNextNeighbour( Int_t v )                     { fNextNeighbour = v;   }
+  void SetUsed( Bool_t v )                             { fUsed = v;            }
+
+private:
+
+  AliHLTTPCCATrackParam fInnerParam; // inner parameters
+  AliHLTTPCCATrackParam fOuterParam; // outer parameters
+  Float_t fInnerAlpha;               // alpha angle for inner parameters
+  Float_t fOuterAlpha;               // alpha angle for outer parameters
+  Int_t fNClusters;                  // N clusters
+  Int_t fFirstClusterRef;  // index of the first track cluster in the global cluster array
+  Int_t fPrevNeighbour;    // neighbour in the previous slise
+  Int_t fNextNeighbour;    // neighbour in the next slise
+  Bool_t fUsed;            // is the slice track already merged
+
+};
+
+
+class AliHLTTPCCAMerger::AliHLTTPCCABorderTrack
+{
+
+public:
+ 
+  const AliHLTTPCCATrackParam &Param() const { return fParam;     }
+  Int_t   TrackID()                    const { return fTrackID;   }
+  Int_t   NClusters()                  const { return fNClusters; }
+  Int_t   IRow()                       const { return fIRow;      }
+  Float_t X()                          const { return fX;         }
+  Bool_t  OK()                         const { return fOK;        }
+  
+  void SetParam     ( const AliHLTTPCCATrackParam &v ) { fParam     = v; }
+  void SetTrackID   ( Int_t v )                        { fTrackID   = v; }
+  void SetNClusters ( Int_t v )                        { fNClusters = v; }
+  void SetIRow      ( Int_t v )                        { fIRow      = v; }
+  void SetX         ( Float_t v )                      { fX         = v; }
+  void SetOK        ( Bool_t v )                       { fOK        = v; }
+
+private:
+
+  AliHLTTPCCATrackParam fParam;  // track parameters at the border
+  Int_t   fTrackID;              // track index
+  Int_t   fNClusters;            // n clusters
+  Int_t   fIRow;                 // row number of the closest cluster
+  Float_t fX;                    // X coordinate of the closest cluster
+  Bool_t  fOK;                   // is the track rotated and extrapolated correctly
+
+};
+
+
+
 AliHLTTPCCAMerger::AliHLTTPCCAMerger()
   :
   fSliceParam(),
-  fkSlices(0),
   fOutput(0),  
   fTrackInfos(0),
   fMaxTrackInfos(0),
@@ -48,9 +156,10 @@ AliHLTTPCCAMerger::AliHLTTPCCAMerger()
   fMaxClusterInfos(0)
 {
   //* constructor
+  Clear();
 }
 
-
+/*
 AliHLTTPCCAMerger::AliHLTTPCCAMerger(const AliHLTTPCCAMerger&)
   : 
   fSliceParam(),
@@ -61,14 +170,13 @@ AliHLTTPCCAMerger::AliHLTTPCCAMerger(const AliHLTTPCCAMerger&)
   fClusterInfos(0),
   fMaxClusterInfos(0)
 {
-  //* dummy
 }
 
 const AliHLTTPCCAMerger &AliHLTTPCCAMerger::operator=(const AliHLTTPCCAMerger&) const
 {
-  //* dummy
   return *this;
 }
+*/
 
 AliHLTTPCCAMerger::~AliHLTTPCCAMerger()
 {
@@ -78,12 +186,23 @@ AliHLTTPCCAMerger::~AliHLTTPCCAMerger()
   if( fOutput ) delete[] ((char*)(fOutput));
 }
 
+void AliHLTTPCCAMerger::Clear()
+{
+  for ( int i = 0; i < fgkNSlices; ++i ) {
+    fkSlices[i] = 0;
+  }
+}
 
-void AliHLTTPCCAMerger::Reconstruct( const AliHLTTPCCASliceOutput **SliceOutput )
+
+void AliHLTTPCCAMerger::SetSliceData( int index, const AliHLTTPCCASliceOutput *SliceData )
+{
+  fkSlices[index] = SliceData;
+}
+
+void AliHLTTPCCAMerger::Reconstruct()
 {
   //* main merging routine
 
-  fkSlices = SliceOutput;
   UnpackSlices();
   Merging();
 }
@@ -97,6 +216,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
   Int_t nTracksTotal=0;
   Int_t nTrackClustersTotal=0;
   for( Int_t iSlice=0; iSlice<fgkNSlices; iSlice++ ){
+    if( !fkSlices[iSlice] ) continue;
     nTracksTotal+=fkSlices[iSlice]->NTracks();
     nTrackClustersTotal+=fkSlices[iSlice]->NTrackClusters();    
   }
@@ -127,9 +247,12 @@ void AliHLTTPCCAMerger::UnpackSlices()
 
   for( Int_t iSlice=0; iSlice<fgkNSlices; iSlice++ ){
 
-    const AliHLTTPCCASliceOutput &slice = *(fkSlices[iSlice]);
     fSliceTrackInfoStart[ iSlice ] = nTracksCurrent;
     fSliceNTrackInfos[ iSlice ] = 0;
+ 
+    if( !fkSlices[iSlice] ) continue;
+
+    const AliHLTTPCCASliceOutput &slice = *(fkSlices[iSlice]);
 
     for( Int_t itr=0; itr<slice.NTracks(); itr++ ){
   
@@ -138,9 +261,9 @@ void AliHLTTPCCAMerger::UnpackSlices()
       Int_t nCluNew = 0;
       
       for( Int_t iTrClu=0; iTrClu<sTrack.NClusters(); iTrClu++ ){
-	
+
 	// unpack cluster information
-	
+
 	AliHLTTPCCAClusterInfo &clu = fClusterInfos[nClustersCurrent + nCluNew];
 	Int_t ic = sTrack.FirstClusterRef() + iTrClu;
 
@@ -153,6 +276,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
 	clu.SetZ( yz.y );
 
 	if( !t0.TransportToX( fSliceParam.RowX( clu.IRow() ), .999 ) ) continue;
+	
 	Float_t err2Y, err2Z;
 	fSliceParam.GetClusterErrors2( clu.IRow(), clu.Z(), t0.SinPhi(), t0.CosPhi(), t0.DzDs(), err2Y, err2Z );
 	
@@ -160,6 +284,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
 	clu.SetErr2Z( err2Z );
 	nCluNew++ ;
       }
+
       if( nCluNew<.8*sTrack.NClusters() ) continue;
       
       // refit the track 
@@ -174,24 +299,26 @@ void AliHLTTPCCAMerger::UnpackSlices()
       Float_t endAlpha = startAlpha;
       
       if( !FitTrack( endPoint, endAlpha, startPoint, startAlpha, hits, nHits, 0 ) ) continue;
+      
       startPoint = endPoint;
       startAlpha = endAlpha;
       if( !FitTrack( startPoint, startAlpha, endPoint, endAlpha, hits, nHits, 1 ) ) continue;
- 
+      
       if( nHits<.8*sTrack.NClusters() ) continue;
 
       // store the track
       
       AliHLTTPCCASliceTrackInfo &track = fTrackInfos[nTracksCurrent];      
-      track.fInnerParam = startPoint;
-      track.fInnerAlpha = startAlpha;
-      track.fOuterParam = endPoint;
-      track.fOuterAlpha = endAlpha;
-      track.fFirstClusterRef = nClustersCurrent;
-      track.fNClusters = nHits;
-      track.fPrevNeighbour = -1;
-      track.fNextNeighbour = -1;
-      track.fUsed = 0;
+
+      track.SetInnerParam( startPoint );
+      track.SetInnerAlpha( startAlpha );
+      track.SetOuterParam( endPoint );
+      track.SetOuterAlpha( endAlpha );
+      track.SetFirstClusterRef( nClustersCurrent );
+      track.SetNClusters( nHits );
+      track.SetPrevNeighbour( -1 );
+      track.SetNextNeighbour( -1 );
+      track.SetUsed( 0 );
       
       for( Int_t i=0; i<nHits; i++ ) 
 	fClusterInfos[nClustersCurrent + i] = fClusterInfos[hits[i]];
@@ -221,8 +348,10 @@ Bool_t AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, Float_t &Alpha,
   Int_t nHitsNew = 0;
 
   for( Int_t ihit=0; ihit<NTrackHits; ihit++){
+    
     Int_t jhit = dir ?(NTrackHits-1-ihit) :ihit;
     AliHLTTPCCAClusterInfo &h = fClusterInfos[hits[jhit]];
+
     Int_t iSlice = h.ISlice();
 
     Float_t sliceAlpha =  fSliceParam.Alpha( iSlice );
@@ -235,7 +364,7 @@ Bool_t AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, Float_t &Alpha,
     Float_t x = fSliceParam.RowX( h.IRow() );
     
     if( !t.TransportToXWithMaterial( x, t0, fitPar ) ) continue;
-
+    
     if( first ){
       t.SetCov( 0, 10 );
       t.SetCov( 1,  0 );
@@ -258,12 +387,12 @@ Bool_t AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, Float_t &Alpha,
     }
   
     if( !t.Filter2NoCos( h.Y(), h.Z(), h.Err2Y(), h.Err2Z() ) ) continue;	  	    
+    
     first = 0;
 
     hitsNew[nHitsNew++] = hits[jhit];
   }
   
-
   if( CAMath::Abs(t.Kappa())<1.e-8 ) t.SetKappa( 1.e-8 );
   
   Bool_t ok=1;
@@ -342,10 +471,10 @@ void AliHLTTPCCAMerger::MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLTTPC
 
   for (Int_t itr=0; itr<fSliceNTrackInfos[iSlice]; itr++) {
 
-    AliHLTTPCCASliceTrackInfo &track = fTrackInfos[ fSliceTrackInfoStart[iSlice] + itr ];
+    const AliHLTTPCCASliceTrackInfo &track = fTrackInfos[ fSliceTrackInfoStart[iSlice] + itr ];
 
-    AliHLTTPCCATrackParam t0 = track.fInnerParam;
-    AliHLTTPCCATrackParam t1 = track.fOuterParam;
+    AliHLTTPCCATrackParam t0 = track.InnerParam();
+    AliHLTTPCCATrackParam t1 = track.OuterParam();
 
     const Float_t maxSin = CAMath::Sin(60./180.*CAMath::Pi());
 
@@ -362,23 +491,27 @@ void AliHLTTPCCAMerger::MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLTTPC
 
     if( do0 ){
       AliHLTTPCCABorderTrack &b = B[nB];
-      b.fOK = 1;
-      b.fITrack = itr;
-      b.fNHits = track.fNClusters;
-      b.fIRow = fClusterInfos[ track.fFirstClusterRef + 0 ].IRow();
-      b.fParam = t0;
-      b.fX = t0.GetX();
-      if( b.fParam.TransportToX( x0, maxSin ) ) nB++;
+      b.SetX( t0.GetX() );
+      if( t0.TransportToX( x0, maxSin ) ){
+	b.SetOK( 1 );
+	b.SetTrackID( itr );
+	b.SetNClusters( track.NClusters() );
+	b.SetIRow( fClusterInfos[ track.FirstClusterRef() + 0 ].IRow() );
+	b.SetParam( t0 );
+ 	nB++;
+      }
     }
     if( do1 ){
       AliHLTTPCCABorderTrack &b = B[nB];
-      b.fOK = 1;
-      b.fITrack = itr;
-      b.fNHits = track.fNClusters;
-      b.fIRow = fClusterInfos[ track.fFirstClusterRef + track.fNClusters-1 ].IRow();
-      b.fParam = t1;    
-      b.fX = t0.GetX();
-      if( b.fParam.TransportToX( x0, maxSin ) ) nB++;
+      b.SetX( t1.GetX() );
+      if( t1.TransportToX( x0, maxSin ) ){
+	b.SetOK( 1 );
+	b.SetTrackID( itr );
+	b.SetNClusters( track.NClusters() );
+	b.SetIRow( fClusterInfos[ track.FirstClusterRef() + track.NClusters()-1 ].IRow() );
+	b.SetParam( t1 );  
+	nB++;
+      }
     }
     if( do0 || do1 ) statOK++;
     statAll++;
@@ -408,22 +541,22 @@ void AliHLTTPCCAMerger::SplitBorderTracks( Int_t iSlice1, AliHLTTPCCABorderTrack
 
   for (Int_t i1=0; i1<N1; i1++) {      
     AliHLTTPCCABorderTrack &b1 = B1[i1];
-    if( !b1.fOK ) continue;
-    if( b1.fNHits < minNPartHits ) continue;
-    AliHLTTPCCATrackParam &t1 = b1.fParam;
+    if( !b1.OK() ) continue;
+    if( b1.NClusters() < minNPartHits ) continue;
+    const AliHLTTPCCATrackParam &t1 = b1.Param();
     Int_t iBest2 = -1;
     Int_t lBest2 = 0;
     Int_t start2 = (iSlice1!=iSlice2) ?0 :i1+1;
     for (Int_t i2=start2; i2<N2; i2++) {
       AliHLTTPCCABorderTrack &b2 = B2[i2];
-      if( !b2.fOK ) continue;
-      if( b2.fNHits < minNPartHits ) continue;
-      if( b2.fNHits < lBest2 ) continue;
-      if( b1.fNHits + b2.fNHits < minNTotalHits ) continue;
+      if( !b2.OK() ) continue;
+      if( b2.NClusters() < minNPartHits ) continue;
+      if( b2.NClusters() < lBest2 ) continue;
+      if( b1.NClusters() + b2.NClusters() < minNTotalHits ) continue;
 
       //if( TMath::Abs(b1.fX - b2.fX)>maxDX ) continue;
 
-      AliHLTTPCCATrackParam &t2 = b2.fParam;
+      const AliHLTTPCCATrackParam &t2 = b2.Param();
 
       Float_t c= t2.CosPhi()*t1.CosPhi()>=0 ?1 :-1;
       Float_t dk = t2.Kappa() - c*t1.Kappa(); 
@@ -442,34 +575,33 @@ void AliHLTTPCCAMerger::SplitBorderTracks( Int_t iSlice1, AliHLTTPCCABorderTrack
             
       if( chi2zt>factor2zt ) continue;
       
-      lBest2 = b2.fNHits;
-      iBest2 = b2.fITrack;
+      lBest2 = b2.NClusters();
+      iBest2 = b2.TrackID();
     }
       
     if( iBest2 <0 ) continue;
 
-    AliHLTTPCCASliceTrackInfo &newTrack1 = fTrackInfos[fSliceTrackInfoStart[iSlice1]+b1.fITrack ];
-    
+    AliHLTTPCCASliceTrackInfo &newTrack1 = fTrackInfos[fSliceTrackInfoStart[iSlice1]+b1.TrackID() ];    
     AliHLTTPCCASliceTrackInfo &newTrack2 = fTrackInfos[fSliceTrackInfoStart[iSlice2]+iBest2 ];
 
-    Int_t old1 = newTrack2.fPrevNeighbour;
+    Int_t old1 = newTrack2.PrevNeighbour();
   
     if( old1 >= 0 ){
       AliHLTTPCCASliceTrackInfo &oldTrack1 = fTrackInfos[fSliceTrackInfoStart[iSlice1]+old1];
-      if( oldTrack1.fNClusters  < newTrack1.fNClusters ){
-	newTrack2.fPrevNeighbour = -1;
-	oldTrack1.fNextNeighbour = -1;	
+      if( oldTrack1.NClusters()  < newTrack1.NClusters() ){
+	newTrack2.SetPrevNeighbour(-1);
+	oldTrack1.SetNextNeighbour(-1);	
       } else continue;
     }
-    Int_t old2 = newTrack1.fNextNeighbour;
+    Int_t old2 = newTrack1.NextNeighbour();
     if( old2 >= 0 ){
       AliHLTTPCCASliceTrackInfo &oldTrack2 = fTrackInfos[fSliceTrackInfoStart[iSlice2]+old2];
-      if( oldTrack2.fNClusters < newTrack2.fNClusters ){
-	oldTrack2.fPrevNeighbour = -1;
+      if( oldTrack2.NClusters() < newTrack2.NClusters() ){
+	oldTrack2.SetPrevNeighbour(-1);
       } else continue;
     }
-    newTrack1.fNextNeighbour = iBest2; 
-    newTrack2.fPrevNeighbour = b1.fITrack;	
+    newTrack1.SetNextNeighbour(iBest2); 
+    newTrack2.SetPrevNeighbour(b1.TrackID());	
   }  
   
 }
@@ -478,6 +610,10 @@ void AliHLTTPCCAMerger::SplitBorderTracks( Int_t iSlice1, AliHLTTPCCABorderTrack
 void AliHLTTPCCAMerger::Merging()
 {
   //* track merging between slices
+
+  fOutput->SetNTracks( 0 );
+  fOutput->SetNTrackClusters( 0 );
+  fOutput->SetPointers();
 
 
   // for each slice set number of the next neighbouring slice
@@ -509,7 +645,7 @@ void AliHLTTPCCAMerger::Merging()
     AliHLTTPCCASliceTrackInfo *tmpT = new AliHLTTPCCASliceTrackInfo[maxNSliceTracks];
     AliHLTTPCCAClusterInfo *tmpH = new AliHLTTPCCAClusterInfo[fMaxClusterInfos];
 
-    for( Int_t iSlice=0; iSlice<fgkNSlices; iSlice++ ){         
+    for( Int_t iSlice=0; iSlice<fgkNSlices; iSlice++ ){
 
       Int_t nBord=0;
       MakeBorderTracks( iSlice, 4, bord, nBord );   
@@ -519,36 +655,36 @@ void AliHLTTPCCAMerger::Merging()
       Int_t sliceFirstClusterRef = 0;
       for( Int_t itr=0; itr<fSliceNTrackInfos[iSlice]; itr++ ){
 	AliHLTTPCCASliceTrackInfo &track = fTrackInfos[ fSliceTrackInfoStart[iSlice]+itr];
-	if( itr==0 ) sliceFirstClusterRef = track.fFirstClusterRef;
-	track.fPrevNeighbour = -1;
-	if( track.fNextNeighbour == -2 ){
-	  track.fNextNeighbour = -1;
+	if( itr==0 ) sliceFirstClusterRef = track.FirstClusterRef();
+	track.SetPrevNeighbour( -1 );
+	if( track.NextNeighbour() == -2 ){
+	  track.SetNextNeighbour( -1 );
 	  continue;
 	}
 	AliHLTTPCCASliceTrackInfo &trackNew = tmpT[nTr];
 	trackNew = track;
-	trackNew.fFirstClusterRef = sliceFirstClusterRef + nH;
+	trackNew.SetFirstClusterRef( sliceFirstClusterRef + nH);
 
-	for( Int_t ih=0; ih<track.fNClusters; ih++ ) tmpH[nH+ih] = fClusterInfos[track.fFirstClusterRef+ih];
+	for( Int_t ih=0; ih<track.NClusters(); ih++ ) tmpH[nH+ih] = fClusterInfos[track.FirstClusterRef()+ih];
 	nTr++;
-	nH+=track.fNClusters;
+	nH+=track.NClusters();
 
-	int jtr =  track.fNextNeighbour;
+	int jtr =  track.NextNeighbour();
 
 	if( jtr<0 ) continue;
 	AliHLTTPCCASliceTrackInfo &neighTrack = fTrackInfos[ fSliceTrackInfoStart[iSlice]+jtr];
 	
-	track.fNextNeighbour = -1;
-	neighTrack.fNextNeighbour = -2;
+	track.SetNextNeighbour(-1);
+	neighTrack.SetNextNeighbour(-2);
 
-	for( Int_t ih=0; ih<neighTrack.fNClusters; ih++ ) 
-	  tmpH[nH+ih] = fClusterInfos[neighTrack.fFirstClusterRef+ih];
+	for( Int_t ih=0; ih<neighTrack.NClusters(); ih++ ) 
+	  tmpH[nH+ih] = fClusterInfos[neighTrack.FirstClusterRef()+ih];
 
-	trackNew.fNClusters += neighTrack.fNClusters;
-	trackNew.fNextNeighbour = -1;
-	nH+=neighTrack.fNClusters;
-	if( neighTrack.fInnerParam.X() < track.fInnerParam.X() ) trackNew.fInnerParam = neighTrack.fInnerParam;
-	if( neighTrack.fOuterParam.X() > track.fOuterParam.X() ) trackNew.fOuterParam = neighTrack.fOuterParam;
+	trackNew.SetNClusters( trackNew.NClusters() + neighTrack.NClusters() );
+	trackNew.SetNextNeighbour( -1 );
+	nH+=neighTrack.NClusters();
+	if( neighTrack.InnerParam().X() < track.InnerParam().X() ) trackNew.SetInnerParam( neighTrack.InnerParam());
+	if( neighTrack.OuterParam().X() > track.OuterParam().X() ) trackNew.SetOuterParam( neighTrack.OuterParam());
       }
       
       fSliceNTrackInfos[iSlice] = nTr;
@@ -609,11 +745,11 @@ void AliHLTTPCCAMerger::Merging()
 
       AliHLTTPCCASliceTrackInfo &track = fTrackInfos[fSliceTrackInfoStart[iSlice]+itr];
 
-      if( track.fUsed ) continue;
-      if( track.fPrevNeighbour>=0 ) continue;
+      if( track.Used() ) continue;
+      if( track.PrevNeighbour()>=0 ) continue;
 
-      AliHLTTPCCATrackParam startPoint = track.fInnerParam, endPoint = track.fOuterParam;
-      Float_t startAlpha = track.fInnerAlpha, endAlpha = track.fOuterAlpha;      
+      AliHLTTPCCATrackParam startPoint = track.InnerParam(), endPoint = track.OuterParam();
+      Float_t startAlpha = track.InnerAlpha(), endAlpha = track.OuterAlpha();      
 
       Int_t hits[2000];
       Int_t firstHit = 1000;
@@ -622,54 +758,54 @@ void AliHLTTPCCAMerger::Merging()
       Int_t jtr = itr;
 
       {
-	track.fUsed = 1;
-	for( Int_t jhit=0; jhit<track.fNClusters; jhit++){
-	  Int_t id = track.fFirstClusterRef + jhit;
+	track.SetUsed( 1 );
+	for( Int_t jhit=0; jhit<track.NClusters(); jhit++){
+	  Int_t id = track.FirstClusterRef() + jhit;
 	  hits[firstHit+jhit] = id;
 	}
-	nHits=track.fNClusters;
-	jtr = track.fNextNeighbour;
+	nHits=track.NClusters();
+	jtr = track.NextNeighbour();
 	jSlice = nextSlice[iSlice];			
       }
 
       while( jtr >=0 ){
 	AliHLTTPCCASliceTrackInfo &segment = fTrackInfos[fSliceTrackInfoStart[jSlice]+jtr];
-	if( segment.fUsed ) break;
-	segment.fUsed = 1;
+	if( segment.Used() ) break;
+	segment.SetUsed( 1 );
 	Bool_t dir = 0;
 	Int_t startHit = firstHit+ nHits;
-	Float_t d00 = startPoint.GetDistXZ2(segment.fInnerParam );
-	Float_t d01 = startPoint.GetDistXZ2(segment.fOuterParam );
-	Float_t d10 = endPoint.GetDistXZ2(segment.fInnerParam);
-	Float_t d11 = endPoint.GetDistXZ2(segment.fOuterParam );
+	Float_t d00 = startPoint.GetDistXZ2(segment.InnerParam() );
+	Float_t d01 = startPoint.GetDistXZ2(segment.OuterParam() );
+	Float_t d10 = endPoint.GetDistXZ2(segment.InnerParam() );
+	Float_t d11 = endPoint.GetDistXZ2(segment.OuterParam() );
 	if( d00<=d01 && d00<=d10 && d00<=d11 ){
-	  startPoint = segment.fOuterParam;
-	  startAlpha = segment.fOuterAlpha;
+	  startPoint = segment.OuterParam();
+	  startAlpha = segment.OuterAlpha();
 	  dir = 1;
-	  firstHit -= segment.fNClusters;
+	  firstHit -= segment.NClusters();
 	  startHit = firstHit;
 	}else if( d01<=d10 && d01<=d11 ){
-	  startPoint = segment.fInnerParam;
-	  startAlpha = segment.fInnerAlpha;
+	  startPoint = segment.InnerParam();
+	  startAlpha = segment.InnerAlpha();
 	  dir = 0;
-	  firstHit -= segment.fNClusters;
+	  firstHit -= segment.NClusters();
 	  startHit = firstHit;
 	}else if( d10<=d11 ){
-	  endPoint = segment.fOuterParam;
-	  endAlpha = segment.fOuterAlpha;
+	  endPoint = segment.OuterParam();
+	  endAlpha = segment.OuterAlpha();
 	  dir = 0;
 	}else{
-	  endPoint = segment.fInnerParam;
-	  endAlpha = segment.fInnerAlpha;
+	  endPoint = segment.InnerParam();
+	  endAlpha = segment.InnerAlpha();
 	  dir = 1;
 	}
 	
-	for( Int_t jhit=0; jhit<segment.fNClusters; jhit++){
-	  Int_t id = segment.fFirstClusterRef + jhit;
-	  hits[startHit+(dir ?(segment.fNClusters-1-jhit) :jhit)] = id;
+	for( Int_t jhit=0; jhit<segment.NClusters(); jhit++){
+	  Int_t id = segment.FirstClusterRef() + jhit;
+	  hits[startHit+(dir ?(segment.NClusters()-1-jhit) :jhit)] = id;
 	}
-	nHits+=segment.fNClusters;
-	jtr = segment.fNextNeighbour;
+	nHits+=segment.NClusters();
+	jtr = segment.NextNeighbour();
 	jSlice = nextSlice[jSlice];			
       }
 

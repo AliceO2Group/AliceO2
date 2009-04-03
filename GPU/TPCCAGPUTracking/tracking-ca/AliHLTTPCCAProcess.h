@@ -93,12 +93,14 @@ GPUg() void AliHLTTPCCAProcess1( Int_t nBlocks, Int_t nThreads, AliHLTTPCCATrack
 {
   for( Int_t iB=0; iB<nBlocks; iB++ ){
     typename TProcess::AliHLTTPCCASharedMemory smem;
-    typename TProcess::AliHLTTPCCAThreadMemory rMem[nThreads];
-    AliHLTTPCCATrackParam tParam[nThreads];
+    typename TProcess::AliHLTTPCCAThreadMemory *rMem = new typename TProcess::AliHLTTPCCAThreadMemory[nThreads];
+    AliHLTTPCCATrackParam *tParam = new AliHLTTPCCATrackParam[ nThreads ];
     for( Int_t iS=0; iS<=TProcess::NThreadSyncPoints(); iS++){
       for( Int_t iT=0; iT<nThreads; iT++ )
 	TProcess::Thread( nBlocks, nThreads, iB, iT, iS, smem, rMem[iT], tracker, tParam[iT]  );
     }
+    delete[] rMem;
+    delete[] tParam;
   }
 }
 

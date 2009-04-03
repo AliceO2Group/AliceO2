@@ -29,6 +29,7 @@ class TCanvas;
 #include "TLatex.h"
 
 
+
 /**
  * @class AliHLTTPCCADisplay
  */
@@ -37,32 +38,7 @@ class AliHLTTPCCADisplay
 
  public:
   
-  class AliHLTTPCCADisplayTmpHit{  
-
-  public:
-    Int_t ID() const { return fHitID; }
-    Double_t S() const { return fS; }
-    Double_t Z() const { return fZ; }
-
-    void SetID( Int_t v ){ this->fHitID = v; }    
-    void SetS( Double_t v){ this->fS = v; }
-    void SetZ( Double_t v){ this->fZ = v; }
-
-    static Bool_t CompareHitDS( const AliHLTTPCCADisplayTmpHit &a, 
-				 const AliHLTTPCCADisplayTmpHit  &b )
-    {    
-      return (a.fS < b.fS);
-    }
-    static Bool_t CompareHitZ( const AliHLTTPCCADisplayTmpHit &a, 
-				 const AliHLTTPCCADisplayTmpHit  &b )
-    {    
-      return (a.fZ < b.fZ);
-    }
-  private:
-    Int_t fHitID; // hit ID
-    Double_t fS;  // hit position on the XY track curve 
-    Double_t fZ;  // hit Z position
-  };
+  class AliHLTTPCCADisplayTmpHit;
 
   static AliHLTTPCCADisplay &Instance();
   
