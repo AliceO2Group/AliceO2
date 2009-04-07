@@ -41,6 +41,7 @@ using namespace std;
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCCATrackConvertor.h"
+#include "AliHLTTPCCASliceOutput.h"
 
 #include "AliCDBEntry.h"
 #include "AliCDBManager.h"
@@ -210,8 +211,9 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       HLTWarning("specification 0x%08lx indicates multiple slices in data block %s: never used before, please audit the code",
           block->fSpecification, DataType2Text(block->fDataType).c_str());
     }
-
-    fGlobalMerger->SetSliceData( slice, reinterpret_cast<AliHLTTPCCASliceOutput *>( block->fPtr ) );
+    AliHLTTPCCASliceOutput *sliceOut =  reinterpret_cast<AliHLTTPCCASliceOutput *>( block->fPtr );
+    sliceOut->SetPointers();
+    fGlobalMerger->SetSliceData( slice, sliceOut );
   }
   fGlobalMerger->Reconstruct();
 
