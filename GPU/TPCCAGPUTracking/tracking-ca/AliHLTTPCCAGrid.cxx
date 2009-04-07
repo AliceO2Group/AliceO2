@@ -21,15 +21,16 @@
 
 #include "AliHLTTPCCAGrid.h"
 #include "AliHLTTPCCAMath.h"
+#include <iostream>
 
 GPUd() void AliHLTTPCCAGrid::Create( Float_t yMin, Float_t yMax, Float_t zMin, Float_t zMax, UInt_t n )
 {
   //* Create the grid
   
   fYMin = CAMath::Min(yMin,yMax);
-  fYMax = CAMath::Max(yMin,yMax);
+  fYMax = CAMath::Max(yMin,yMax)+.1;
   fZMin = CAMath::Min(zMin,zMax);
-  fZMax = CAMath::Max(zMin,zMax);
+  fZMax = CAMath::Max(zMin,zMax)+.1;
   fNy = (UInt_t) CAMath::Sqrt( CAMath::Abs( (Float_t) n ) );
   fNy = CAMath::Max(fNy,1);
   fNz = fNy;
@@ -47,9 +48,9 @@ GPUd() void AliHLTTPCCAGrid::Create( Float_t yMin, Float_t yMax, Float_t zMin, F
   //* Create the grid
   
   fYMin = CAMath::Min(yMin,yMax);
-  fYMax = CAMath::Max(yMin,yMax);
+  fYMax = CAMath::Max(yMin,yMax)+.1;
   fZMin = CAMath::Min(zMin,zMax);
-  fZMax = CAMath::Max(zMin,zMax);
+  fZMax = CAMath::Max(zMin,zMax)+.1;
   fStepYInv = 1./sy;
   fStepZInv = 1./sz;
 
