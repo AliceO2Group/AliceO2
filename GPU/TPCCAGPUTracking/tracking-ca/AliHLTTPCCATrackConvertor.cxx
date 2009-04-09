@@ -76,10 +76,10 @@ void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const Al
   { // 1/pt -> kappa 
     T1.SetPar( 4, T1.Par()[4]*c );
     T1.SetCov( 10, T1.Cov()[10]*c );
-    T1.SetCov( 11, T1.Cov()[10]*c );
-    T1.SetCov( 12, T1.Cov()[10]*c );
-    T1.SetCov( 13, T1.Cov()[10]*c );
-    T1.SetCov( 14, T1.Cov()[10]*c*c );
+    T1.SetCov( 11, T1.Cov()[11]*c );
+    T1.SetCov( 12, T1.Cov()[12]*c );
+    T1.SetCov( 13, T1.Cov()[13]*c );
+    T1.SetCov( 14, T1.Cov()[14]*c*c );
   }
 }
 
