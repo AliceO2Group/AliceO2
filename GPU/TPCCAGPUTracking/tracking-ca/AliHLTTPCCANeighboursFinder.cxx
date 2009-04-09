@@ -137,31 +137,15 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 	  AliHLTTPCCAHitArea areaDn, areaUp;
 	  areaUp.Init( s.fGridUp,  s.fGridContentUp,s.fFirstUp, y*s.fUpTx, z*s.fUpTx, kAreaSize, kAreaSize );
 	  areaDn.Init( s.fGridDn,  s.fGridContentDn,s.fFirstDn, y*s.fDnTx, z*s.fDnTx, kAreaSize, kAreaSize );
-	 
-	  if( linkUp>=0 ){
+	  
+	  do{
 	    AliHLTTPCCAHit h;
-	    float y0Up = rowUp.Grid().YMin();
-	    float z0Up = rowUp.Grid().ZMin();
-	    float stepYUp  = rowUp.HstepY();
-	    float stepZUp  = rowUp.HstepZ();
-	    const uint4* tmpint4Up  = tracker.RowData() + rowUp.FullOffset();
-	    const ushort2 *hitsUp  = reinterpret_cast<const ushort2*>(tmpint4Up );
-	    ushort2 hh = hitsUp[linkUp];
-	    h.SetY( y0Up  + hh.x*stepYUp  );
-	    h.SetZ( z0Up  + hh.y*stepZUp  );    
-	    neighUp[0] = linkUp;    
-	    yzUp[0] = CAMath::MakeFloat2( s.fDnDx*(h.Y()-y), s.fDnDx*(h.Z()-z) );	    
-	    nNeighUp = 1;
-	  } else {
-	    do{
-	      AliHLTTPCCAHit h;
-	      Int_t i = areaUp.GetNext( tracker, rowUp,s.fGridContentUp, h );
-	      if( i<0 ) break;	      
-	      neighUp[nNeighUp] = (UShort_t) i;
-	      yzUp[nNeighUp] = CAMath::MakeFloat2( s.fDnDx*(h.Y()-y), s.fDnDx*(h.Z()-z) );
-	      if( ++nNeighUp>=kMaxN ) break;
-	    }while(1);
-	  }
+	    Int_t i = areaUp.GetNext( tracker, rowUp,s.fGridContentUp, h );
+	    if( i<0 ) break;	      
+	    neighUp[nNeighUp] = (UShort_t) i;
+	    yzUp[nNeighUp] = CAMath::MakeFloat2( s.fDnDx*(h.Y()-y), s.fDnDx*(h.Z()-z) );
+	    if( ++nNeighUp>=kMaxN ) break;
+	  }while(1);
 	  
 	  Int_t nNeighDn=0;
 	  
@@ -170,22 +154,14 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 	    Int_t bestDn=-1, bestUp=-1;
 	    float bestD=1.e10;
 
-	    if( linkDn>=0 ){
+	    do{
 	      AliHLTTPCCAHit h;
-	      float y0Dn = rowDn.Grid().YMin();
-	      float z0Dn  = rowDn.Grid().ZMin();
-	      float stepYDn  = rowDn.HstepY();
-	      float stepZDn  = rowDn.HstepZ();
-	      const uint4* tmpint4Dn  = tracker.RowData() + rowDn.FullOffset();
-	      const ushort2 *hitsDn  = reinterpret_cast<const ushort2*>(tmpint4Dn );
-	      ushort2 hh = hitsDn [linkDn];
-	      h.SetY( y0Dn  + hh.x*stepYDn  );
-	      h.SetZ( z0Dn  + hh.y*stepZDn  );
+	      Int_t i = areaDn.GetNext( tracker, rowDn,s.fGridContentDn,h );
+	      if( i<0 ) break;
 	      
-	      nNeighDn = 1;
-	      
+	      nNeighDn++;
 	      float2 yzdn = CAMath::MakeFloat2( s.fUpDx*(h.Y()-y), s.fUpDx*(h.Z()-z) );
-
+	      
 	      for( Int_t iUp=0; iUp<nNeighUp; iUp++ ){
 		float2 yzup = yzUp[iUp];
 		float dy = yzdn.x - yzup.x;
@@ -193,32 +169,11 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 		float d = dy*dy + dz*dz;
 		if( d<bestD ){
 		  bestD = d;
-		  bestDn = linkDn;
+		  bestDn = i;
 		  bestUp = iUp;
-		}
+		}		
 	      }
-	    } else {
-	      do{
-		AliHLTTPCCAHit h;
-		Int_t i = areaDn.GetNext( tracker, rowDn,s.fGridContentDn,h );
-		if( i<0 ) break;
-
-		nNeighDn++;
-		float2 yzdn = CAMath::MakeFloat2( s.fUpDx*(h.Y()-y), s.fUpDx*(h.Z()-z) );
-
-		for( Int_t iUp=0; iUp<nNeighUp; iUp++ ){
-		  float2 yzup = yzUp[iUp];
-		  float dy = yzdn.x - yzup.x;
-		  float dz = yzdn.y - yzup.y;
-		  float d = dy*dy + dz*dz;
-		  if( d<bestD ){
-		    bestD = d;
-		    bestDn = i;
-		    bestUp = iUp;
-		  }		
-		}
-	      }while(1);	 
-	    }
+	    }while(1);	 	  
 
 	    if( bestD <= chi2Cut ){      
 	      linkUp = neighUp[bestUp];
