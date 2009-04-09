@@ -491,57 +491,55 @@ void AliHLTTPCCADisplay::DrawSliceHit( Int_t iRow, Int_t iHit, Int_t color, Size
 {
   // draw hit
   if( !fSlice ) return;
-  AliHLTTPCCAGBTracker &tracker = *fGB;
-  const AliHLTTPCCARow &row = fSlice->Row(iRow);
-  Int_t id = tracker.FirstSliceHit()[fSlice->Param().ISlice()]+fSlice->HitInputIDs()[row.FirstHit()+iHit];
-  DrawGBHit(  tracker, id, color, width );
+  const AliHLTTPCCARow &row = fSlice->Row(iRow);        
+  float y0 = row.Grid().YMin();
+  float z0 = row.Grid().ZMin();
+  float stepY = row.HstepY();
+  float stepZ = row.HstepZ();
+  const uint4* tmpint4 = fSlice->RowData() + row.FullOffset();
+  const ushort2 *hits = reinterpret_cast<const ushort2*>(tmpint4);
+  ushort2 hh = hits[iHit];
+  Float_t x = row.X();
+  Float_t y = y0 + hh.x*stepY;
+  Float_t z = z0 + hh.y*stepZ;
+
+  SetSliceTransform(fSlice);
+  
+  if( color<0 ){
+    if( fPerf && fGB ){
+      Int_t id = fGB->FirstSliceHit()[fSlice->Param().ISlice()]+fSlice->HitInputIDs()[row.FirstHit()+iHit];
+      AliHLTTPCCAGBHit &h = fGB->Hits()[id];
+      Int_t lab = fPerf->HitLabels()[h.ID()].fLab[0];
+      color = GetColor(lab+1);
+      if( lab>=0 ){
+	AliHLTTPCCAMCTrack &mc = fPerf->MCTracks()[lab];
+	if( mc.P()>=1. ) color = kRed;	
+	else if(fDrawOnlyRef) return;
+      }
+    }else color=GetColorZ( z );
+  }
+  if( width>0 )fMarker.SetMarkerSize(width);
+  else fMarker.SetMarkerSize(.3);
+  fMarker.SetMarkerColor(color);
+  Double_t vx, vy;
+  Slice2View( x, y, &vx, &vy );    
+  fYX->cd();
+  fMarker.DrawMarker(vx, vy);
+  fZX->cd();  
+  fMarker.DrawMarker(z, vy); 
 }
 
 void AliHLTTPCCADisplay::DrawSliceHits( Int_t color, Size_t width )
 {
+
   // draw hits 
 
-  if( !fPerf || !fGB) return;
-  AliHLTTPCCAGBTracker &tracker = *fGB;
-  if( width<0 ) width = .3;
-
-  for( Int_t imc=-3; imc<fPerf->NMCTracks(); imc++ ){
-    Int_t nh=0;
-    AliHLTTPCCAMCTrack *mc = (imc>=0) ?&(fPerf->MCTracks()[imc]) :0;
- 
-    if(fDrawOnlyRef && (!mc || (mc->P()<1))) continue;
-  
-    Int_t col = color;
-    if( color<0 ){
-      col = GetColor(imc+1);
-      if( imc>=0 ){
-	if( mc&&(mc->P()>=1.) ) col = kRed;	
-      }
+  for( Int_t iRow=0; iRow<fSlice->Param().NRows(); iRow++ ){
+    const AliHLTTPCCARow &row = fSlice->Row(iRow);
+    for( Int_t ih=0; ih<row.NHits(); ih++ ){
+      DrawSliceHit( iRow, ih, color, width );     
     }
-
-    for( Int_t ih=0; ih<fSlice->NHitsTotal(); ih++ ){   
-       Int_t id = fSlice->HitInputIDs()[ih];
-      AliHLTTPCCAGBHit &h = tracker.Hits()[tracker.FirstSliceHit()[fSlice->Param().ISlice()]+id];
-      if( fPerf->HitLabels()[h.ID()].fLab[0] != imc ) continue;
-      nh++;
-      //AliHLTTPCCATracker &slice = tracker.Slices()[h.ISlice()];
-      //SetSliceTransform(&slice);
-      
-      fMarker.SetMarkerSize(width);
-      fMarker.SetMarkerColor(col);
-      Double_t vx, vy;
-      Slice2View( h.X(), h.Y(), &vx, &vy );  
-      
-      fYX->cd();
-      fMarker.DrawMarker(vx, vy);
-      fZX->cd();  
-      fMarker.DrawMarker(h.Z(), vy);     
-    }
-    //if( nh<=0 ) continue;
-    //float p = mc ? mc->P() :0;  
-    //std::cout<<"lab,nhits,color= "<<imc<<" "<<nh<<" "<<col<<std::endl;
-    //Ask();
-  }
+  }  
 }
 
 
