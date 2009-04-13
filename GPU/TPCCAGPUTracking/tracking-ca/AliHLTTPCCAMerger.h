@@ -42,6 +42,9 @@ public:
 
   const AliHLTTPCCAMergerOutput * Output() const { return fOutput; }
   
+  Bool_t FitTrack( AliHLTTPCCATrackParam &T, Float_t &Alpha, 
+		   AliHLTTPCCATrackParam t0, Float_t Alpha0, Int_t hits[], Int_t &NHits,  Bool_t dir=0 );
+
  private:
 
   AliHLTTPCCAMerger(const AliHLTTPCCAMerger&);
@@ -61,8 +64,7 @@ public:
   void UnpackSlices();
   void Merging();
    
-  Bool_t FitTrack( AliHLTTPCCATrackParam &T, Float_t &Alpha, 
-		   AliHLTTPCCATrackParam t0, Float_t Alpha0, Int_t hits[], Int_t &NHits,  Bool_t dir=0 );
+
   
   static const Int_t fgkNSlices = 36;       //* N slices 
   AliHLTTPCCAParam fSliceParam;           //* slice parameters (geometry, calibr, etc.)

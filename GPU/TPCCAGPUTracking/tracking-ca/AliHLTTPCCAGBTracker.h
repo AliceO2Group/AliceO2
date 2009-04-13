@@ -22,6 +22,7 @@ class AliHLTTPCCAGBHit;
 class TParticle;
 class TProfile;
 class AliHLTTPCCATrackParam;
+class  AliHLTTPCCAMerger;
 
 /**
  * @class AliHLTTPCCAGBTracker
@@ -58,29 +59,7 @@ public:
 
   void FindTracks();
 
-
-  void Refit();
-
-  struct AliHLTTPCCABorderTrack{
-    AliHLTTPCCABorderTrack(): fParam(), fITrack(0), fIRow(0), fNHits(0), fX(0), fOK(0){};
-    AliHLTTPCCATrackParam fParam; // track parameters at the border
-    Int_t fITrack;               // track index
-    Int_t fIRow;                 // row number of the closest cluster
-    Int_t fNHits;                // n hits
-    Float_t fX;                  // X coordinate of the closest cluster
-    Bool_t fOK;                  // is the trak rotated and extrapolated correctly
-  };
-  
-  void MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLTTPCCABorderTrack B[], Int_t &nB);
-  void SplitBorderTracks( Int_t iSlice1, AliHLTTPCCABorderTrack B1[], Int_t N1,
-			  Int_t iSlice2, AliHLTTPCCABorderTrack B2[], Int_t N2, 
-			  Float_t Alpha =-1 );
-
-  static Float_t GetChi2( Float_t x1, Float_t y1, Float_t a00, Float_t a10, Float_t a11, 
-			  Float_t x2, Float_t y2, Float_t b00, Float_t b10, Float_t b11  );
-
-  void Merging();
-  void Merging1();
+  void Merge();
 
   AliHLTTPCCATracker *Slices() const { return fSlices; }
   AliHLTTPCCAGBHit *Hits() const { return fHits; }
@@ -94,8 +73,10 @@ public:
   Int_t NTracks() const { return fNTracks; }
   AliHLTTPCCAGBTrack *Tracks() const { return fTracks; }
   Int_t *TrackHits() const { return fTrackHits; }
-  void GetErrors2( AliHLTTPCCAGBHit &h, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
-  void GetErrors2( Int_t iSlice, Int_t iRow, AliHLTTPCCATrackParam &t, Float_t &Err2Y, Float_t &Err2Z );
+
+  Bool_t FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrackParam t0, 
+		   Float_t &Alpha, Int_t hits[], Int_t &NTrackHits, 
+		   Bool_t dir );
 
   void WriteSettings( std::ostream &out ) const;
   void ReadSettings( std::istream &in );
@@ -108,9 +89,6 @@ public:
   void SetSliceTrackerTime( Double_t v ){ fSliceTrackerTime = v; }
   const Int_t *FirstSliceHit() const { return fFirstSliceHit; }
 
-  Bool_t FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrackParam t0, 
-		   Float_t &Alpha, Int_t hits[], Int_t &NHits, 
-		   Float_t &DeDx, Bool_t dir=0 );
 
 protected:
 
@@ -122,14 +100,8 @@ protected:
   Int_t *fTrackHits;           //* track->hits reference array
   AliHLTTPCCAGBTrack *fTracks; //* array of tracks
   Int_t fNTracks;              //* N tracks
+  AliHLTTPCCAMerger *fMerger;  //* global merger
 
-  struct AliHLTTPCCAGBSliceTrackInfo{
-    Int_t fPrevNeighbour; //* neighbour in the previous slide
-    Int_t fNextNeighbour; //* neighbour in the next slide
-    Bool_t fUsed;         //* is the slice track used by global tracks
-  };
-
-  AliHLTTPCCAGBSliceTrackInfo **fSliceTrackInfos; //* additional information for slice tracks
   Double_t fTime; //* total time
   Double_t fStatTime[20]; //* timers 
   Int_t fStatNEvents;    //* n events proceed

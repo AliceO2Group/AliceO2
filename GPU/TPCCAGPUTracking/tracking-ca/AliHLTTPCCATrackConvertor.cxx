@@ -24,7 +24,7 @@
 #include "AliHLTTPCCAMath.h"
 
 
-void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, Double_t alpha, Double_t Bz )
+void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, Double_t alpha )
 {
   //* Convert from AliHLTTPCCATrackParam to AliExternalTrackParam parameterisation, 
   //* the angle alpha is the global angle of the local X axis 
@@ -36,18 +36,7 @@ void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, Al
   if(par[2]>.99 ) par[2]=.99;
   if(par[2]<-.99 ) par[2]=-.99;
 
-  { // kappa => 1/pt
-    const Double_t kCLight = 0.000299792458;  
-    Double_t c = 1.e4;
-    if( CAMath::Abs(Bz)>1.e-4 ) c = 1./(Bz*kCLight);
-    par[4] *= c;
-    cov[10]*= c;
-    cov[11]*= c;
-    cov[12]*= c;
-    cov[13]*= c;
-    cov[14]*= c*c;
-  }
-  if( T1.GetCosPhi()<0 ){ // change direction
+  if( T1.GetSignCosPhi()<0 ){ // change direction
     par[2] = -par[2]; // sin phi
     par[3] = -par[3]; // DzDs
     par[4] = -par[4]; // kappa
@@ -61,7 +50,7 @@ void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, Al
   T2.Set( (Double_t) T1.GetX(),alpha,par,cov);
 }
 
-void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2, Double_t Bz )
+void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2 )
 {
   //* Convert from AliExternalTrackParam parameterisation
   
@@ -70,16 +59,6 @@ void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const Al
   T1.SetX( T2.GetX() );
   if(T1.SinPhi()>.99 ) T1.SetSinPhi( .99 );
   if(T1.SinPhi()<-.99 ) T1.SetSinPhi( -.99 );
-  T1.SetCosPhi( CAMath::Sqrt(1.-T1.SinPhi()*T1.SinPhi()));
-  const Double_t kCLight = 0.000299792458;  
-  Double_t c = Bz*kCLight;
-  { // 1/pt -> kappa 
-    T1.SetPar( 4, T1.Par()[4]*c );
-    T1.SetCov( 10, T1.Cov()[10]*c );
-    T1.SetCov( 11, T1.Cov()[11]*c );
-    T1.SetCov( 12, T1.Cov()[12]*c );
-    T1.SetCov( 13, T1.Cov()[13]*c );
-    T1.SetCov( 14, T1.Cov()[14]*c*c );
-  }
+  T1.SetSignCosPhi( 1 );
 }
 

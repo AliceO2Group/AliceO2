@@ -11,6 +11,8 @@
 #define ALIHLTTPCCAPARAM_H
 
 #include "AliHLTTPCCADef.h"
+#include "AliHLTTPCCAMath.h"
+#include "AliHLTTPCCATrackParam.h"
 
 #include <iostream>
 
@@ -109,6 +111,10 @@ class AliHLTTPCCAParam
     fParamS0Par[i][j][k] = val;
   }
 
+  GPUd() Float_t GetBz() const { return fBz;}
+  GPUd() Float_t GetBz( float x, float y, float z ) const;
+  GPUd()  Float_t GetBz( const AliHLTTPCCATrackParam &t ) const;
+
   protected:
 
   Int_t fISlice; // slice number
@@ -132,8 +138,23 @@ class AliHLTTPCCAParam
 
   Float_t fRowX[200];// X-coordinate of rows
   Float_t fParamS0Par[2][3][7];    // cluster error parameterization coeficients
+  Float_t fPolinomialFieldBz[6];   // field coefficients
 
 };
 
+
+
+GPUd() inline Float_t AliHLTTPCCAParam::GetBz( float x, float y, float z ) const
+{
+  float r2 = x*x+y*y;
+  float r  = CAMath::Sqrt( r2 );
+  const float *c = fPolinomialFieldBz;
+  return ( c[0] + c[1]*z  + c[2]*r  + c[3]*z*z + c[4]*z*r + c[5]*r2 );
+}
+
+GPUd() inline Float_t AliHLTTPCCAParam::GetBz( const AliHLTTPCCATrackParam &t ) const
+{
+  return GetBz( t.X(), t.Y(), t.Z() );
+}
 
 #endif

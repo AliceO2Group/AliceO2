@@ -82,7 +82,6 @@ typedef float          Size_t;      //Attribute size (float)
 #else 
 
 #include "Rtypes.h"
-
 #include "AliHLTDataTypes.h"
 
 namespace AliHLTTPCCADefinitions

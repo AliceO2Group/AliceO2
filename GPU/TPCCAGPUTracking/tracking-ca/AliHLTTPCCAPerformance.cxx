@@ -1490,7 +1490,7 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
 	  const Double_t kCLight = 0.000299792458;  
 	  Double_t k2QPt = 100;
 	  if( TMath::Abs(bz)>1.e-4 ) k2QPt= 1./(bz*kCLight);
-	  Double_t qPt = p.GetKappa()*k2QPt;
+	  Double_t qPt = p.GetKappa(bz)*k2QPt;
 	  Double_t pt = 100;
 	  if( TMath::Abs(qPt) >1.e-4 ) pt = 1./TMath::Abs(qPt);
 	  
@@ -1505,11 +1505,11 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
 
 	  if( p.GetErr2SinPhi()>0 ) fhPullSinPhi->Fill( (p.GetSinPhi() - mcSinPhi)/TMath::Sqrt(p.GetErr2SinPhi()) ); 
 	  if( p.GetErr2DzDs()>0 ) fhPullDzDs->Fill( (p.DzDs() - mcDzDs)/TMath::Sqrt(p.GetErr2DzDs()) ); 
-	  if( p.GetErr2Kappa()>0 ) fhPullQPt->Fill( (qPt - mcQPt)/TMath::Sqrt(p.GetErr2Kappa()*k2QPt*k2QPt) ); 
-	  fhPullYS->Fill( TMath::Sqrt(fTracker->GetChi2( p.GetY(), p.GetSinPhi(), p.GetCov()[0], p.GetCov()[3], p.GetCov()[5], 
-					     mcY, mcSinPhi, 0,0,0 )));
-	  fhPullZT->Fill( TMath::Sqrt(fTracker->GetChi2( p.GetZ(), p.GetDzDs(), p.GetCov()[2], p.GetCov()[7], p.GetCov()[9], 
-			  mcZ, mcDzDs, 0,0,0 ) ));
+	  //if( p.GetErr2Kappa()>0 ) fhPullQPt->Fill( (qPt - mcQPt)/TMath::Sqrt(p.GetErr2Kappa()*k2QPt*k2QPt) ); 
+	  //fhPullYS->Fill( TMath::Sqrt(fTracker->GetChi2( p.GetY(), p.GetSinPhi(), p.GetCov()[0], p.GetCov()[3], p.GetCov()[5], 
+	  //				     mcY, mcSinPhi, 0,0,0 )));
+  //fhPullZT->Fill( TMath::Sqrt(fTracker->GetChi2( p.GetZ(), p.GetDzDs(), p.GetCov()[2], p.GetCov()[7], p.GetCov()[9], 
+	  //	  mcZ, mcDzDs, 0,0,0 ) ));
 
 	  break;
 	}
@@ -1656,21 +1656,21 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
       Double_t dz = p2.Sz() - p1.Sz();
       if( TMath::Abs(dx)>1.e-8 && TMath::Abs(p1.Sx()-hit.X())<2. && TMath::Abs(p2.Sx()-hit.X())<2.  ){
         Double_t sx = hit.X();
-        Double_t sy = p1.Sy() + dy/dx*(sx-p1.Sx());
+        //Double_t sy = p1.Sy() + dy/dx*(sx-p1.Sx());
         Double_t sz = p1.Sz() + dz/dx*(sx-p1.Sx());
 	
-	Float_t errY, errZ;
+	//Float_t errY, errZ;
 	{
 	  AliHLTTPCCATrackParam t;
 	  t.SetZ( sz );
 	  t.SetSinPhi( dy/TMath::Sqrt(dx*dx+dy*dy) );
-	  t.SetCosPhi( dx/TMath::Sqrt(dx*dx+dy*dy) );
+	  t.SetSignCosPhi( dx );
 	  t.SetDzDs( dz/TMath::Sqrt(dx*dx+dy*dy) );
-	  fTracker->GetErrors2(hit,t,errY, errZ );
-	  errY = TMath::Sqrt(errY);
-	  errZ = TMath::Sqrt(errZ);
+	  //fTracker->GetErrors2(hit,t,errY, errZ );
+	  //errY = TMath::Sqrt(errY);
+	  //errZ = TMath::Sqrt(errZ);
 	} 
-             
+	/*             
 	fhHitResY->Fill((hit.Y()-sy));
 	fhHitResZ->Fill((hit.Z()-sz));
 	fhHitPullY->Fill((hit.Y()-sy)/errY);
@@ -1681,6 +1681,7 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
 	  fhHitPullY1->Fill((hit.Y()-sy)/errY);
 	  fhHitPullZ1->Fill((hit.Z()-sz)/errZ);
 	}
+	*/
       }
     }   
   }

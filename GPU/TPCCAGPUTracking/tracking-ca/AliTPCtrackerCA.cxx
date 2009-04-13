@@ -50,6 +50,7 @@
 #include "AliESDEvent.h"
 #include "AliTrackReference.h"
 #include "TStopwatch.h"
+#include "AliTPCReconstructor.h"
 
 //#include <fstream.h>
 
@@ -99,8 +100,10 @@ AliTPCtrackerCA::AliTPCtrackerCA(const AliTPCParam *par):
   }
 
   for( Int_t iSlice=0; iSlice<fHLTTracker->NSlices(); iSlice++ ){
-  
-    Float_t bz = AliTracker::GetBz();
+
+    const Double_t kCLight = 0.000299792458;
+
+    Float_t bz = AliTracker::GetBz()*kCLight;
 
     Float_t inRmin = fkParam->GetInnerRadiusLow();
     //Float_t inRmax = fkParam->GetInnerRadiusUp();
@@ -318,6 +321,7 @@ Int_t AliTPCtrackerCA::LoadClusters (TTree * fromTree)
       cluster->SetY(posC[1]);
       cluster->SetZ(posC[2]);
 
+      x = cluster->GetX();
       Float_t y = cluster->GetY();
       Float_t z = cluster->GetZ();        
 
@@ -398,14 +402,12 @@ Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
 
   if( event ){
    
-    Float_t bz = fHLTTracker->Slices()[0].Param().Bz();
-
     for( Int_t itr=0; itr<fHLTTracker->NTracks(); itr++ ){
       //AliTPCtrack tTPC;
       AliTPCseed tTPC;
       AliHLTTPCCAGBTrack &tCA = fHLTTracker->Tracks()[itr];
       AliHLTTPCCATrackParam par = tCA.Param();	
-      AliHLTTPCCATrackConvertor::GetExtParam( par, tTPC, tCA.Alpha(), bz );
+      AliHLTTPCCATrackConvertor::GetExtParam( par, tTPC, tCA.Alpha() );
       tTPC.SetMass(0.13957);
       tTPC.SetdEdx( tCA.DeDx() );
       if( TMath::Abs(tTPC.GetSigned1Pt())>1./0.02 ) continue;
@@ -426,30 +428,43 @@ Int_t AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
 	Int_t extIndex = h.ID();
 	tTPC.SetClusterIndex(ih, extIndex);
 		
-	  AliTPCclusterMI *c = &(fClusters[extIndex]);
-	  tTPC.SetClusterPointer(h.IRow(), c );
-	  AliTPCTrackerPoint &point = *(tTPC.GetTrackPoint(h.IRow()));
-	  {
-	    Int_t iSlice = h.ISlice();
-	    AliHLTTPCCATracker &slice = fHLTTracker->Slices()[iSlice];
-	    if( slice.Param().Alpha()!=alpha ){
-	      if( ! t0.Rotate(  slice.Param().Alpha() - alpha, .999 ) ) continue;
-	      alpha = slice.Param().Alpha();
-	    }
-	    Float_t x = slice.Row(h.IRow()).X();
-	    if( !t0.TransportToX( x, .999 ) ) continue;
-	    Float_t sy2, sz2;
-	    slice.GetErrors2( h.IRow(), t0, sy2, sz2 );
-	    point.SetSigmaY(c->GetSigmaY2()/sy2);
-	    point.SetSigmaZ(c->GetSigmaZ2()/sz2);
-	    point.SetAngleY(TMath::Abs(t0.GetSinPhi()/t0.GetCosPhi()));
-	    point.SetAngleZ(TMath::Abs(t0.GetDzDs()));	
+	AliTPCclusterMI *c = &(fClusters[extIndex]);
+	tTPC.SetClusterPointer(h.IRow(), c );
+	AliTPCTrackerPoint &point = *(tTPC.GetTrackPoint(h.IRow()));
+	{
+	  Int_t iSlice = h.ISlice();
+	  AliHLTTPCCATracker &slice = fHLTTracker->Slices()[iSlice];
+	  if( slice.Param().Alpha()!=alpha ){
+	    if( ! t0.Rotate(  slice.Param().Alpha() - alpha, .999 ) ) continue;
+	    alpha = slice.Param().Alpha();
 	  }
-	
-	}
+	  Float_t x = slice.Row(h.IRow()).X();
+	  if( !t0.TransportToX( x, fHLTTracker->Slices()[0].Param().GetBz(t0),.999 ) ) continue;
+	  Float_t sy2, sz2;
+	  slice.GetErrors2( h.IRow(), t0, sy2, sz2 );
+	  point.SetSigmaY(c->GetSigmaY2()/sy2);
+	  point.SetSigmaZ(c->GetSigmaZ2()/sz2);
+	  point.SetAngleY(TMath::Abs(t0.GetSinPhi()/t0.GetCosPhi()));
+	  point.SetAngleZ(TMath::Abs(t0.GetDzDs()));	
+	}	
+      }
       tTPC.CookdEdx(0.02,0.6);
 
       CookLabel(&tTPC,0.1);	      
+
+      if(1){ // correction like in off-line --- Adding systematic error
+
+	const Double_t *param = AliTPCReconstructor::GetRecoParam()->GetSystematicError();
+	Double_t covar[15];
+	for (Int_t i=0;i<15;i++) covar[i]=0;
+	covar[0] = param[0]*param[0];
+	covar[2] = param[1]*param[1];
+	covar[5] = param[2]*param[2];
+	covar[9] = param[3]*param[3];
+	Double_t facC =  AliTracker::GetBz()*kB2C;
+	covar[14]= param[4]*param[4]*facC*facC;
+	tTPC.AddCovariance(covar);       
+      }
 
       AliESDtrack tESD;
       tESD.UpdateTrackParams( &(tTPC),AliESDtrack::kTPCin);
@@ -481,7 +496,7 @@ Int_t AliTPCtrackerCA::RefitInward (AliESDEvent *event)
 { 
   //* forward propagation of ESD tracks 
 
-  Float_t bz = fHLTTracker->Slices()[0].Param().Bz();
+  //Float_t bz = fHLTTracker->Slices()[0].Param().Bz();
   Float_t xTPC = fkParam->GetInnerRadiusLow();
   Float_t dAlpha = fkParam->GetInnerAngle()/180.*TMath::Pi();
   Float_t yMax = xTPC*TMath::Tan(dAlpha/2.); 
@@ -493,10 +508,10 @@ Int_t AliTPCtrackerCA::RefitInward (AliESDEvent *event)
     ULong_t status=esd->GetStatus(); 
     if (!(status&AliESDtrack::kTPCin)) continue;
     AliHLTTPCCATrackParam t0;
-    AliHLTTPCCATrackConvertor::SetExtParam(t0,*esd, bz );
+    AliHLTTPCCATrackConvertor::SetExtParam(t0,*esd );
     AliHLTTPCCATrackParam t = t0;
     Float_t alpha = esd->GetAlpha();
-    Float_t dEdX=0;    
+    //Float_t dEdX=0;    
     Int_t hits[1000];
     Int_t nHits = esd->GetTPCclusters(hits);
     
@@ -504,24 +519,24 @@ Int_t AliTPCtrackerCA::RefitInward (AliESDEvent *event)
 
     for( Int_t i=0; i<nHits; i++ ) hits[i] = fHLTTracker->Ext2IntHitID(hits[i]);
    
-    Bool_t ok = fHLTTracker->FitTrack( t, t0, alpha, hits, nHits, dEdX, 0 );
+    Bool_t ok = fHLTTracker->FitTrack( t, t0, alpha, hits, nHits, 0 );
     if( ok &&  nHits>15){
-      if( t.TransportToXWithMaterial( xTPC, bz) ){
+      if( t.TransportToXWithMaterial( xTPC, fHLTTracker->Slices()[0].Param().GetBz(t)) ){
 	if (t.GetY() > yMax) {
 	  if (t.Rotate(dAlpha)){ 
 	    alpha+=dAlpha;  
-	    t.TransportToXWithMaterial( xTPC, bz);
+	    t.TransportToXWithMaterial( xTPC, fHLTTracker->Slices()[0].Param().GetBz(t));
 	  }
 	} else if (t.GetY() <-yMax) {
 	  if (t.Rotate(-dAlpha)){
 	    alpha+=-dAlpha;
-	    t.TransportToXWithMaterial( xTPC, bz);
+	    t.TransportToXWithMaterial( xTPC, fHLTTracker->Slices()[0].Param().GetBz(t));
 	  }
 	}    
       }
     
       AliTPCtrack tt(*esd);
-      AliHLTTPCCATrackConvertor::GetExtParam(t,tt,alpha,bz);
+      AliHLTTPCCATrackConvertor::GetExtParam(t,tt,alpha );
       esd->UpdateTrackParams( &tt,AliESDtrack::kTPCrefit); 
     }
   }
@@ -533,7 +548,7 @@ Int_t AliTPCtrackerCA::PropagateBack(AliESDEvent *event)
 
   //* backward propagation of ESD tracks 
 
-  Float_t bz = fHLTTracker->Slices()[0].Param().Bz();
+  //Float_t bz = fHLTTracker->Slices()[0].Param().Bz();
   Int_t nentr=event->GetNumberOfTracks();
      
   for (Int_t itr=0; itr<nentr; itr++) {
@@ -543,10 +558,10 @@ Int_t AliTPCtrackerCA::PropagateBack(AliESDEvent *event)
     if (!(status&AliESDtrack::kTPCin)) continue;
 
     AliHLTTPCCATrackParam t0;
-    AliHLTTPCCATrackConvertor::SetExtParam(t0,*esd, bz );
+    AliHLTTPCCATrackConvertor::SetExtParam(t0,*esd  );
     AliHLTTPCCATrackParam t = t0;
     Float_t alpha = esd->GetAlpha();
-    Float_t dEdX=0;    
+    //Float_t dEdX=0;    
     Int_t hits[1000];
     Int_t nHits = esd->GetTPCclusters(hits);
     
@@ -554,10 +569,10 @@ Int_t AliTPCtrackerCA::PropagateBack(AliESDEvent *event)
 
     for( Int_t i=0; i<nHits; i++ ) hits[i] = fHLTTracker->Ext2IntHitID(hits[i]);
    
-    Bool_t ok = fHLTTracker->FitTrack( t, t0, alpha, hits, nHits, dEdX, 1 );
+    Bool_t ok = fHLTTracker->FitTrack( t, t0, alpha, hits, nHits, 1 );
     if( ok &&  nHits>15){
       AliTPCtrack tt(*esd);
-      AliHLTTPCCATrackConvertor::GetExtParam(t,tt,alpha,bz);
+      AliHLTTPCCATrackConvertor::GetExtParam(t,tt,alpha );
       esd->UpdateTrackParams( &tt,AliESDtrack::kTPCout); 
     }
   }

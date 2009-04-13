@@ -27,8 +27,8 @@ class AliHLTTPCCATrackConvertor
 
   AliHLTTPCCATrackConvertor(){}
 
-  static void GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, Double_t alpha, Double_t Bz );
-  static void SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2, Double_t Bz );
+  static void GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, Double_t alpha );
+  static void SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2 );
 
 };
 

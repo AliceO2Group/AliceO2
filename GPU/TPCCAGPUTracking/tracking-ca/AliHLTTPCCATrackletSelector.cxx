@@ -63,14 +63,8 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 
 	tout.SetNHits( 0 );
 	Int_t kind = 0;
-	if(0){ // kappa => 1/pt
-	  const AliHLTTPCCATrackParam &tParam = tracklet.Param();
-	  const Double_t kCLight = 0.000299792458;  
-	  Double_t bz = tracker.Param().Bz();
-	  Double_t c = 1.e4;
-	  if( CAMath::Abs(bz)>1.e-4 ) c = 1./(bz*kCLight);
-	  Double_t pti = tParam.Kappa()*c;
-	  if( tNHits>=10 && 1./.5 >= CAMath::Abs(pti) ){ //SG!!!
+	if(0){ 
+	  if( tNHits>=10 && 1./.5 >= CAMath::Abs(tracklet.Param().QPt()) ){ //SG!!!
 	    kind = 1;
 	  }    
 	}
