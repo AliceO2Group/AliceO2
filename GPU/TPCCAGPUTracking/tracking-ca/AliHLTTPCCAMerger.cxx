@@ -35,7 +35,7 @@
 #include "AliHLTTPCCAMergerOutput.h"
 #include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAParam.h"
-
+#include "AliHLTTPCCATrackLinearisation.h"
 
 
 class AliHLTTPCCAMerger::AliHLTTPCCAClusterInfo
@@ -47,6 +47,7 @@ public:
   UInt_t  IRow()      const { return fIRow;      }
   UInt_t  IClu()      const { return fIClu;      }
   UChar_t PackedAmp() const { return fPackedAmp; }
+  Float_t X()         const { return fX;         }
   Float_t Y()         const { return fY;         }
   Float_t Z()         const { return fZ;         }
   Float_t Err2Y()     const { return fErr2Y;     }
@@ -56,6 +57,7 @@ public:
   void SetIRow      ( UInt_t v  ) { fIRow      = v; }
   void SetIClu      ( UInt_t v  ) { fIClu      = v; }
   void SetPackedAmp ( UChar_t v ) { fPackedAmp = v; }
+  void SetX         ( Float_t v ) { fX         = v; } 
   void SetY         ( Float_t v ) { fY         = v; } 
   void SetZ         ( Float_t v ) { fZ         = v; } 
   void SetErr2Y     ( Float_t v ) { fErr2Y     = v; } 
@@ -67,6 +69,7 @@ private:
   UInt_t fIRow;              // row number
   UInt_t fIClu;              // cluster number
   UChar_t fPackedAmp; // packed cluster amplitude
+  Float_t fX;                // x position (slice coord.system)
   Float_t fY;                // y position (slice coord.system)
   Float_t fZ;                // z position (slice coord.system)
   Float_t fErr2Y;            // Squared measurement error of y position
@@ -255,7 +258,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
     const AliHLTTPCCASliceOutput &slice = *(fkSlices[iSlice]);
 
     for( Int_t itr=0; itr<slice.NTracks(); itr++ ){
-  
+
       const AliHLTTPCCASliceTrack &sTrack = slice.Track( itr );
       AliHLTTPCCATrackParam t0 = sTrack.Param();
       Int_t nCluNew = 0;
@@ -272,13 +275,14 @@ void AliHLTTPCCAMerger::UnpackSlices()
 	clu.SetIClu( AliHLTTPCCADataCompressor::IDrc2IClu( slice.ClusterIDrc( ic ) ) );	
 	clu.SetPackedAmp( slice.ClusterPackedAmp( ic ) );
 	float2 yz = slice.ClusterUnpackedYZ( ic );
+	clu.SetX( slice.ClusterUnpackedX( ic ) );
 	clu.SetY( yz.x );
 	clu.SetZ( yz.y );
 
-	if( !t0.TransportToX( fSliceParam.RowX( clu.IRow() ), .999 ) ) continue;
-	
+	if( !t0.TransportToX( fSliceParam.RowX( clu.IRow() ), fSliceParam.GetBz(t0), .999 ) ) continue;
+
 	Float_t err2Y, err2Z;
-	fSliceParam.GetClusterErrors2( clu.IRow(), clu.Z(), t0.SinPhi(), t0.CosPhi(), t0.DzDs(), err2Y, err2Z );
+	fSliceParam.GetClusterErrors2( clu.IRow(), clu.Z(), t0.SinPhi(), t0.GetCosPhi(), t0.DzDs(), err2Y, err2Z );
 	
 	clu.SetErr2Y( err2Y );
 	clu.SetErr2Z( err2Z );
@@ -297,13 +301,13 @@ void AliHLTTPCCAMerger::UnpackSlices()
       AliHLTTPCCATrackParam endPoint = startPoint;
       Float_t startAlpha = fSliceParam.Alpha( iSlice );
       Float_t endAlpha = startAlpha;
-      
+ 
       if( !FitTrack( endPoint, endAlpha, startPoint, startAlpha, hits, nHits, 0 ) ) continue;
-      
+
       startPoint = endPoint;
       startAlpha = endAlpha;
       if( !FitTrack( startPoint, startAlpha, endPoint, endAlpha, hits, nHits, 1 ) ) continue;
-      
+
       if( nHits<.8*sTrack.NClusters() ) continue;
 
       // store the track
@@ -326,6 +330,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
       fSliceNTrackInfos[ iSlice ]++;
       nClustersCurrent+=nHits;      
     }
+    //std::cout<<"Unpack slice "<<iSlice<<": ntracks "<<slice.NTracks()<<"/"<<fSliceNTrackInfos[iSlice]<<std::endl;
   }
 }
 
@@ -339,10 +344,11 @@ Bool_t AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, Float_t &Alpha,
 
   AliHLTTPCCATrackParam::AliHLTTPCCATrackFitParam fitPar;
   AliHLTTPCCATrackParam t = t0;
-  
+  AliHLTTPCCATrackLinearisation l(t0);
+
   Bool_t first = 1;
  
-  t0.CalculateFitParameters( fitPar, fSliceParam.Bz() );
+  t.CalculateFitParameters( fitPar );
 
   Int_t hitsNew[1000];
   Int_t nHitsNew = 0;
@@ -357,13 +363,14 @@ Bool_t AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, Float_t &Alpha,
     Float_t sliceAlpha =  fSliceParam.Alpha( iSlice );
 
     if( CAMath::Abs( sliceAlpha - Alpha0)>1.e-4 ){
-      if( ! t.RotateNoCos(  sliceAlpha - Alpha0, t0, .999 ) ) continue;
+      if( ! t.Rotate(  sliceAlpha - Alpha0, l, .999 ) ) continue;
       Alpha0 = sliceAlpha;
     }
 
-    Float_t x = fSliceParam.RowX( h.IRow() );
+    //Float_t x = fSliceParam.RowX( h.IRow() );
+    Float_t x = h.X();
     
-    if( !t.TransportToXWithMaterial( x, t0, fitPar ) ) continue;
+    if( !t.TransportToXWithMaterial( x, l, fitPar, fSliceParam.GetBz(t) ) ) continue;
     
     if( first ){
       t.SetCov( 0, 10 );
@@ -380,20 +387,20 @@ Bool_t AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, Float_t &Alpha,
       t.SetCov(11,  0 );
       t.SetCov(12,  0 );
       t.SetCov(13,  0 );
-      t.SetCov(14,  1 );
+      t.SetCov(14,  10 );
       t.SetChi2( 0 );
       t.SetNDF( -5 );
-      t0.CalculateFitParameters( fitPar, fSliceParam.Bz() );
+      t.CalculateFitParameters( fitPar );
     }
   
-    if( !t.Filter2NoCos( h.Y(), h.Z(), h.Err2Y(), h.Err2Z() ) ) continue;	  	    
-    
+    if( !t.Filter( h.Y(), h.Z(), h.Err2Y(), h.Err2Z() ) ) continue;	  	    
+
     first = 0;
 
     hitsNew[nHitsNew++] = hits[jhit];
   }
   
-  if( CAMath::Abs(t.Kappa())<1.e-8 ) t.SetKappa( 1.e-8 );
+  if( CAMath::Abs(t.QPt())<1.e-8 ) t.SetQPt( 1.e-8 );
   
   Bool_t ok=1;
   
@@ -403,11 +410,11 @@ Bool_t AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, Float_t &Alpha,
   ok = ok && (t.GetX()>50);
   
   if( c[0]<=0 || c[2]<=0 || c[5]<=0 || c[9]<=0 || c[14]<=0 ) ok = 0;
-  if( c[0]>5. || c[2]>5. || c[5]>2. || c[9]>2 || c[14]>2 ) ok = 0;
+  if( c[0]>5. || c[2]>5. || c[5]>2. || c[9]>2 || c[14]>2. ) ok = 0;
   
   if( CAMath::Abs(t.SinPhi())>.99 ) ok = 0;
-  else if( t0.CosPhi()>=0 ) t.SetCosPhi( CAMath::Sqrt(1.-t.SinPhi()*t.SinPhi()) );
-  else t.SetCosPhi( -CAMath::Sqrt(1.-t.SinPhi()*t.SinPhi()) );
+  else if( l.CosPhi()>=0 ) t.SetSignCosPhi( 1 );
+  else t.SetSignCosPhi( -1 );
 
   if( ok ){
     T = t;
@@ -482,7 +489,7 @@ void AliHLTTPCCAMerger::MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLTTPC
     Bool_t ok1 = t1.Rotate( dAlpha, maxSin );
     
     Bool_t do0 = ok0;
-    Bool_t do1 = ok1 && ( !ok0 || t1.CosPhi()*t0.CosPhi()<0 );
+    Bool_t do1 = ok1 && ( !ok0 || t1.SignCosPhi()*t0.SignCosPhi()<0 );
     
     if( ok0 && !do1 && ok1 && (t1.X() < t0.X()) ){
       do0 = 0;
@@ -492,7 +499,7 @@ void AliHLTTPCCAMerger::MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLTTPC
     if( do0 ){
       AliHLTTPCCABorderTrack &b = B[nB];
       b.SetX( t0.GetX() );
-      if( t0.TransportToX( x0, maxSin ) ){
+      if( t0.TransportToX( x0, fSliceParam.GetBz(t0), maxSin ) ){
 	b.SetOK( 1 );
 	b.SetTrackID( itr );
 	b.SetNClusters( track.NClusters() );
@@ -504,7 +511,7 @@ void AliHLTTPCCAMerger::MakeBorderTracks( Int_t iSlice, Int_t iBorder, AliHLTTPC
     if( do1 ){
       AliHLTTPCCABorderTrack &b = B[nB];
       b.SetX( t1.GetX() );
-      if( t1.TransportToX( x0, maxSin ) ){
+      if( t1.TransportToX( x0, fSliceParam.GetBz(t1), maxSin ) ){
 	b.SetOK( 1 );
 	b.SetTrackID( itr );
 	b.SetNClusters( track.NClusters() );
@@ -558,9 +565,9 @@ void AliHLTTPCCAMerger::SplitBorderTracks( Int_t iSlice1, AliHLTTPCCABorderTrack
 
       const AliHLTTPCCATrackParam &t2 = b2.Param();
 
-      Float_t c= t2.CosPhi()*t1.CosPhi()>=0 ?1 :-1;
-      Float_t dk = t2.Kappa() - c*t1.Kappa(); 
-      Float_t s2k = t2.Err2Kappa() + t1.Err2Kappa();
+      Float_t c= t2.SignCosPhi()*t1.SignCosPhi()>=0 ?1 :-1;
+      Float_t dk = t2.QPt() - c*t1.QPt(); 
+      Float_t s2k = t2.Err2QPt() + t1.Err2QPt();
       
       if( dk*dk>factor2k*s2k ) continue;     
 
@@ -827,20 +834,20 @@ void AliHLTTPCCAMerger::Merging()
       if( nHits < 30 ) continue;     //SG!!!    
       
       AliHLTTPCCATrackParam &p = startPoint;
-      AliHLTTPCCATrackParam::AliHLTTPCCATrackFitParam fitPar;
-      p.CalculateFitParameters( fitPar, fSliceParam.Bz() );
       
       {
 	Double_t xTPC=83.65; //SG!!!
 	Double_t dAlpha = 0.00609235;
+	AliHLTTPCCATrackParam::AliHLTTPCCATrackFitParam fitPar;
+	p.CalculateFitParameters( fitPar );
 	
-	if( p.TransportToXWithMaterial( xTPC, fitPar ) ){
+	if( p.TransportToXWithMaterial( xTPC, fitPar, fSliceParam.GetBz( p ) ) ){
 	  Double_t y=p.GetY();
 	  Double_t ymax=xTPC*CAMath::Tan(dAlpha/2.); 
 	  if (y > ymax) {
-	    if( p.Rotate( dAlpha ) ){ startAlpha+=dAlpha;  p.TransportToXWithMaterial( xTPC, fitPar ); }
+	    if( p.Rotate( dAlpha ) ){ startAlpha+=dAlpha;  p.TransportToXWithMaterial( xTPC, fitPar, fSliceParam.GetBz(p) ); }
 	  } else if (y <-ymax) {
-	    if( p.Rotate( -dAlpha ) ){  startAlpha-=dAlpha; p.TransportToXWithMaterial( xTPC, fitPar );}
+	    if( p.Rotate( -dAlpha ) ){  startAlpha-=dAlpha; p.TransportToXWithMaterial( xTPC, fitPar, fSliceParam.GetBz(p) );}
 	  }
 	}
       }

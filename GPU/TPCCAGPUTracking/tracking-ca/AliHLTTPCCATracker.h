@@ -51,7 +51,7 @@ class AliHLTTPCCATracker
 
   GPUd() void StartEvent();
 
-  GPUd() void ReadEvent( const Int_t *RowFirstHit, const Int_t *RowNHits, const Float_t *Y, const Float_t *Z, Int_t NHits );
+  GPUd() void ReadEvent( const Int_t *RowFirstHit, const Int_t *RowNHits, const Float_t *X, const Float_t *Y, const Float_t *Z, Int_t NHits );
 
   GPUd() void SetupRowData();
 

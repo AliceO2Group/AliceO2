@@ -242,8 +242,8 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       // first convert to AliExternalTrackParam ( Kappa to Pt )
 
       AliExternalTrackParam tp, tpEnd;
-      AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp, 0, fSolenoidBz );      
-      AliHLTTPCCATrackConvertor::GetExtParam( track.OuterParam(), tpEnd, 0, fSolenoidBz );      
+      AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp, 0 );      
+      AliHLTTPCCATrackConvertor::GetExtParam( track.OuterParam(), tpEnd, 0 );      
 
       // set parameters, with rotation to global coordinates
       

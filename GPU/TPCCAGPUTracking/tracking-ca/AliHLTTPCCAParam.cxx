@@ -75,6 +75,15 @@ GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
   fParamS0Par[1][2][5] = 0.000425504;
   fParamS0Par[1][2][6] = 20.9294;
 
+  const Double_t kCLight = 0.000299792458;
+  
+  fPolinomialFieldBz[0] = kCLight* 4.99643;
+  fPolinomialFieldBz[1] = kCLight* -2.27193e-06;
+  fPolinomialFieldBz[2] = kCLight* 0.000116475; 
+  fPolinomialFieldBz[3] = kCLight* -1.49956e-06; 
+  fPolinomialFieldBz[4] = kCLight* -1.01721e-07; 
+  fPolinomialFieldBz[5] = kCLight* 4.85701e-07; 
+
   Update();
 }
 #endif

@@ -536,13 +536,13 @@ Int_t AliHLTTPCCATrackerComponent::DoEvent
       
       if( TMath::Abs(pSP->fZ)>fClusterZCut) continue;
       
-      vHitStoreX[nHits] = pSP->fX;  
+      vHitStoreX[nHits] = pSP->fX;
       vHitStoreY[nHits] = pSP->fY;
       vHitStoreZ[nHits] = pSP->fZ;
       vHitStoreIntID[nHits] = nHits;
       vHitStoreID[nHits] = pSP->fID;
       vHitRowID[nHits] = pSP->fPadRow;
-      nHits++;	
+      nHits++;
       rowNHits[pSP->fPadRow]++;
     }	
 
@@ -552,7 +552,7 @@ Int_t AliHLTTPCCATrackerComponent::DoEvent
       firstRowHit+=rowNHits[ir];
     }
 
-    fTracker->ReadEvent( rowFirstHits, rowNHits, vHitStoreY, vHitStoreZ, nHits );
+    fTracker->ReadEvent( rowFirstHits, rowNHits, vHitStoreX, vHitStoreY, vHitStoreZ, nHits );
   }
 
   if( vOrigClusters ) delete[] vOrigClusters;
@@ -623,7 +623,7 @@ Int_t AliHLTTPCCATrackerComponent::DoEvent
       par.TransportToX( vHitStoreX[iFirstHit], .99 );
       
       AliExternalTrackParam tp;
-      AliHLTTPCCATrackConvertor::GetExtParam( par, tp, 0, fSolenoidBz );
+      AliHLTTPCCATrackConvertor::GetExtParam( par, tp, 0 );
       
       currOutTracklet->fX = tp.GetX();
       currOutTracklet->fY = tp.GetY();
@@ -718,7 +718,7 @@ Int_t AliHLTTPCCATrackerComponent::DoEvent
   // Set log level to "Warning" for on-line system monitoring
   Int_t hz = (Int_t) (fFullTime>1.e-10 ?fNEvents/fFullTime :100000);
   Int_t hz1 = (Int_t) (fRecoTime>1.e-10 ?fNEvents/fRecoTime :100000);
-  HLTInfo( "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d Hz", 
+  HLTWarning( "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d Hz", 
 	    slice, ntracks, nClusters, minPatch, maxPatch, row[0], row[1], hz, hz1 );
 
   return ret;

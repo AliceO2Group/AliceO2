@@ -699,12 +699,9 @@ Bool_t AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrackParam t, Double_t Alpha, c
       if( mc.P()>=1. ) color = kRed;	
     }  
   }
-  std::cout<<"mark 1"<<std::endl;
+
   if( t.SinPhi()>.999 )  t.SetSinPhi( .999 );
   else if( t.SinPhi()<-.999 )  t.SetSinPhi( -.999 );
-  if( t.CosPhi()>=0 ) t.SetCosPhi( TMath::Sqrt(1-t.SinPhi()*t.SinPhi() ));
-  else t.SetCosPhi( -TMath::Sqrt(1-t.SinPhi()*t.SinPhi() ));
-  std::cout<<"mark 2"<<std::endl;
 
   //  Int_t iSlice = fSlice->Param().ISlice();
 
@@ -983,7 +980,7 @@ void AliHLTTPCCADisplay::DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, Int_t i
     Slice2View(h1.X(), h1.Y(), &gx1, &gy1 );
     Slice2View(h2.X(), h2.Y(), &gx2, &gy2 );
     if( colorY<0 ) colorY = GetColorY( (gy1+gy2)/2. );
-    color = colorY = GetColorK(t.GetKappa());
+    color = colorY = GetColorK(t.GetQPt());
   }
 
   fMarker.SetMarkerColor(color);//kBlue);
@@ -1013,7 +1010,7 @@ void AliHLTTPCCADisplay::DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, Int_t i
       alpha = tracker.Slices()[h1.ISlice()].Param().Alpha();
       SetSliceTransform( &(tracker.Slices()[oldSlice]) );
     }
-    t.GetDCAPoint( h1.X(), h1.Y(), h1.Z(), x1, y1, z1 );  
+    t.GetDCAPoint( h1.X(), h1.Y(), h1.Z(), x1, y1, z1, fSlice->Param().Bz()  );  
     Slice2View(x1, y1, &vx1, &vy1 );
 
     if( h2.ISlice() != oldSlice ){
@@ -1022,13 +1019,13 @@ void AliHLTTPCCADisplay::DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, Int_t i
       alpha = tracker.Slices()[h2.ISlice()].Param().Alpha();
       SetSliceTransform( &(tracker.Slices()[oldSlice]) );
     }
-    t.GetDCAPoint( h2.X(), h2.Y(), h2.Z(), x2, y2, z2 );
+    t.GetDCAPoint( h2.X(), h2.Y(), h2.Z(), x2, y2, z2, fSlice->Param().Bz()  );
     Slice2View(x2, y2, &vx2, &vy2 );
     
     Double_t x0 = t.GetX();
     Double_t y0 = t.GetY();
     Double_t sinPhi = t.GetSinPhi();
-    Double_t k = t.GetKappa();
+    Double_t k = t.GetKappa( fSlice->Param().Bz() );
     Double_t ex = t.GetCosPhi();
     Double_t ey = sinPhi;
  
@@ -1078,7 +1075,7 @@ void AliHLTTPCCADisplay::DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, Int_t i
       alpha = tracker.Slices()[h1.ISlice()].Param().Alpha();
       SetSliceTransform( &(tracker.Slices()[oldSlice]) );
     }
-    t.GetDCAPoint( h1.X(), h1.Y(), h1.Z(), x1, y1, z1 );  
+    t.GetDCAPoint( h1.X(), h1.Y(), h1.Z(), x1, y1, z1, fSlice->Param().Bz()  );  
     Slice2View(x1, y1, &vx1, &vy1 );
     py[iHit] = vy1;
     pz[iHit] = z1;
@@ -1224,8 +1221,8 @@ void AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrack &track, Int_t color, Bool_t
     AliHLTTPCCARow &row1 = fSlice->ID2Row(vHits[iHit].ID());
     AliHLTTPCCARow &row2 = fSlice->ID2Row(vHits[iHit+1].ID());
     Float_t x1, y1, z1, x2, y2, z2;    
-    t.GetDCAPoint( row1.X(), c1.Y(), c1.Z(), x1, y1, z1 );
-    t.GetDCAPoint( row2.X(), c2.Y(), c2.Z(), x2, y2, z2 );
+    t.GetDCAPoint( row1.X(), c1.Y(), c1.Z(), x1, y1, z1,fSlice->Param().Bz()  );
+    t.GetDCAPoint( row2.X(), c2.Y(), c2.Z(), x2, y2, z2,fSlice->Param().Bz()  );
 
     //if( color<0 ) color = GetColorZ( (z1+z2)/2. );
     Double_t vx1, vy1, vx2, vy2;
@@ -1287,8 +1284,8 @@ void AliHLTTPCCADisplay::DrawTrack( AliHLTTPCCATrack &track, Int_t color, Bool_t
     //if( DrawHits ) ConnectHits( fSlice->ID2IRow(vHits[iHit].ID()),c1,
     //fSlice->ID2IRow(vHits[iHit+1].ID()),c2, color );
     Float_t x1, y1, z1, x2, y2, z2;
-    t.GetDCAPoint( row1.X(), c1.Y(), c1.Z(), x1, y1, z1 );
-    t.GetDCAPoint( row2.X(), c2.Y(), c2.Z(), x2, y2, z2 );
+    t.GetDCAPoint( row1.X(), c1.Y(), c1.Z(), x1, y1, z1,fSlice->Param().Bz()  );
+    t.GetDCAPoint( row2.X(), c2.Y(), c2.Z(), x2, y2, z2,fSlice->Param().Bz()  );
 
     Double_t vx1, vy1, vx2, vy2;
     Slice2View(x1, y1, &vx1, &vy1 );
