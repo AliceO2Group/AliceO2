@@ -1,6 +1,6 @@
 // $Id: AliHLTTPCCAMCPoint.cxx 27042 2008-07-02 12:06:02Z richterm $
 // **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          * 
+// This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
@@ -21,7 +21,7 @@
 
 
 AliHLTTPCCAMCPoint::AliHLTTPCCAMCPoint()
-  : fX(0), fY(0), fZ(0), fSx(0), fSy(0), fSz(0), fTime(0), fISlice(0), fTrackID(0)
+    : fX( 0 ), fY( 0 ), fZ( 0 ), fSx( 0 ), fSy( 0 ), fSz( 0 ), fTime( 0 ), fISlice( 0 ), fTrackID( 0 )
 {
   //* Default constructor
 }

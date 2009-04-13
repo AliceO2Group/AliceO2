@@ -1,7 +1,7 @@
 //-*- Mode: C++ -*-
 // @(#) $Id$
 // ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        * 
+// This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
@@ -21,18 +21,18 @@
  */
 class AliHLTTPCCAHit
 {
-public:
-  
-  GPUhd() Float_t Y() const   { return fY;    }
-  GPUhd() Float_t Z() const  { return fZ;    }
+  public:
 
-  GPUhd() void SetY( Float_t v ){ fY = v;    }
-  GPUhd() void SetZ( Float_t v ){ fZ = v;    }
-  
-protected:
-  
-  Float_t fY, fZ;       // Y and Z position of the TPC cluster
-  
+    GPUhd() float Y() const   { return fY;    }
+    GPUhd() float Z() const  { return fZ;    }
+
+    GPUhd() void SetY( float v ) { fY = v;    }
+    GPUhd() void SetZ( float v ) { fZ = v;    }
+
+  protected:
+
+    float fY, fZ;       // Y and Z position of the TPC cluster
+
 };
 
 

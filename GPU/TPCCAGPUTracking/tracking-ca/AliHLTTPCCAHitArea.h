@@ -1,7 +1,7 @@
 //-*- Mode: C++ -*-
 // @(#) $Id: AliHLTTPCCARow.h 27042 2008-07-02 12:06:02Z richterm $
 // ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        * 
+// This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
@@ -24,35 +24,35 @@ class AliHLTTPCCARow;
  */
 class AliHLTTPCCAHitArea
 {
-public:
-  
-  GPUd() void Init( const AliHLTTPCCAGrid &grid, const UShort_t *content, UInt_t hitoffset, Float_t y, Float_t z, Float_t dy, Float_t dz );
+  public:
 
-  GPUd() Int_t GetNext(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const UShort_t *content,AliHLTTPCCAHit &h);
+    GPUd() void Init( const AliHLTTPCCAGrid &grid, const unsigned short *content, unsigned int hitoffset, float y, float z, float dy, float dz );
 
-  GPUd() Int_t GetBest(AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const UShort_t *content,AliHLTTPCCAHit &h );
+    GPUd() int GetNext( AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const unsigned short *content, AliHLTTPCCAHit &h );
 
-  GPUhd() Float_t Y() const { return fY;}
-  GPUhd() Float_t Z() const { return fZ;}
-  GPUhd() Float_t MinZ() const { return fMinZ;}
-  GPUhd() Float_t MaxZ() const { return fMaxZ;}
-  GPUhd() Float_t MinY() const { return fMinY;}
-  GPUhd() Float_t MaxY() const { return fMaxY;}
-  GPUhd() UInt_t  BZmax() const { return fBZmax;}
-  GPUhd() UInt_t  BDY() const { return fBDY;}
-  GPUhd() UInt_t  IndYmin() const { return fIndYmin;}
-  GPUhd() UInt_t  Iz() const { return fIz;}
-  GPUhd() UInt_t  HitYfst() const { return fHitYfst;}
-  GPUhd() UInt_t  HitYlst() const { return fHitYlst;}
-  GPUhd() UInt_t  Ih() const { return fIh;}
-  GPUhd() UInt_t  Ny() const { return fNy;}
-  GPUhd() UInt_t  HitOffset() const { return fHitOffset;}
+    GPUd() int GetBest( AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const unsigned short *content, AliHLTTPCCAHit &h );
+
+    GPUhd() float Y() const { return fY;}
+    GPUhd() float Z() const { return fZ;}
+    GPUhd() float MinZ() const { return fMinZ;}
+    GPUhd() float MaxZ() const { return fMaxZ;}
+    GPUhd() float MinY() const { return fMinY;}
+    GPUhd() float MaxY() const { return fMaxY;}
+    GPUhd() unsigned int  BZmax() const { return fBZmax;}
+    GPUhd() unsigned int  BDY() const { return fBDY;}
+    GPUhd() unsigned int  IndYmin() const { return fIndYmin;}
+    GPUhd() unsigned int  Iz() const { return fIz;}
+    GPUhd() unsigned int  HitYfst() const { return fHitYfst;}
+    GPUhd() unsigned int  HitYlst() const { return fHitYlst;}
+    GPUhd() unsigned int  Ih() const { return fIh;}
+    GPUhd() unsigned int  Ny() const { return fNy;}
+    GPUhd() unsigned int  HitOffset() const { return fHitOffset;}
 
   protected:
 
-  Float_t fY, fZ, fMinZ, fMaxZ, fMinY, fMaxY;    // search coordinates
-  UInt_t fBZmax, fBDY, fIndYmin, fIz, fHitYfst, fHitYlst, fIh, fNy; // !
-  UInt_t fHitOffset; // global hit offset
+    float fY, fZ, fMinZ, fMaxZ, fMinY, fMaxY;    // search coordinates
+    unsigned int fBZmax, fBDY, fIndYmin, fIz, fHitYfst, fHitYlst, fIh, fNy; // !
+    unsigned int fHitOffset; // global hit offset
 };
 
 #endif

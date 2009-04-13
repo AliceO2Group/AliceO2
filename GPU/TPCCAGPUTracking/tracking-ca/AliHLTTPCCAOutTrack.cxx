@@ -1,6 +1,6 @@
 // @(#) $Id$
 // **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          * 
+// This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
@@ -21,9 +21,9 @@
 #include "AliHLTTPCCAOutTrack.h"
 
 
-ClassImp(AliHLTTPCCAOutTrack)
+ClassImp( AliHLTTPCCAOutTrack )
 
-GPUh() void AliHLTTPCCAOutTrack::Dummy() const 
+GPUh() void AliHLTTPCCAOutTrack::Dummy() const
 {
   //* do nothing
 }

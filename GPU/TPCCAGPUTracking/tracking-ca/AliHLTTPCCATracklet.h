@@ -1,6 +1,6 @@
 //-*- Mode: C++ -*-
 // ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        * 
+// This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
@@ -20,37 +20,37 @@
  */
 class AliHLTTPCCATracklet
 {
- public:
+  public:
 
 #if !defined(HLTCA_GPUCODE)
-  AliHLTTPCCATracklet() : fStartHitID(0), fNHits(0), fFirstRow(0), fLastRow(0), fParam(){};
-  void Dummy() const ;
-  ~AliHLTTPCCATracklet(){}
+    AliHLTTPCCATracklet() : fStartHitID( 0 ), fNHits( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fParam() {};
+    void Dummy() const ;
+    ~AliHLTTPCCATracklet() {}
 #endif
 
-  GPUhd() Int_t StartHitID()            const { return fStartHitID; }
-  GPUhd() Int_t  NHits()                const { return fNHits;      }
-  GPUhd() Int_t  FirstRow()             const { return fFirstRow;   }
-  GPUhd() Int_t  LastRow()              const { return fLastRow;    }
-  GPUhd() const AliHLTTPCCATrackParam &Param() const { return fParam;      }
-  GPUhd() Int_t  RowHit(Int_t i)   const { return fRowHits[i];    }
+    GPUhd() int StartHitID()            const { return fStartHitID; }
+    GPUhd() int  NHits()                const { return fNHits;      }
+    GPUhd() int  FirstRow()             const { return fFirstRow;   }
+    GPUhd() int  LastRow()              const { return fLastRow;    }
+    GPUhd() const AliHLTTPCCATrackParam &Param() const { return fParam;      }
+    GPUhd() int  RowHit( int i )   const { return fRowHits[i];    }
 
-  GPUhd() void SetStartHitID( Int_t v )           { fStartHitID = v; }
-  GPUhd() void SetNHits( Int_t v )               {  fNHits = v;      }
-  GPUhd() void SetFirstRow( Int_t v )            {  fFirstRow = v;   }
-  GPUhd() void SetLastRow( Int_t v )             {  fLastRow = v;    }
-  GPUhd() void SetParam( const AliHLTTPCCATrackParam &v ){ fParam = v;      }
-  GPUhd() void SetRowHit( Int_t irow, Int_t ih)  { fRowHits[irow] = ih;    }
+    GPUhd() void SetStartHitID( int v )           { fStartHitID = v; }
+    GPUhd() void SetNHits( int v )               {  fNHits = v;      }
+    GPUhd() void SetFirstRow( int v )            {  fFirstRow = v;   }
+    GPUhd() void SetLastRow( int v )             {  fLastRow = v;    }
+    GPUhd() void SetParam( const AliHLTTPCCATrackParam &v ) { fParam = v;      }
+    GPUhd() void SetRowHit( int irow, int ih )  { fRowHits[irow] = ih;    }
 
 
-private:
+  private:
 
-  Int_t fStartHitID;            // ID of the starting hit
-  Int_t fNHits;                 // N hits
-  Int_t fFirstRow;              // first TPC row
-  Int_t fLastRow;               // last TPC row
-  AliHLTTPCCATrackParam fParam; // tracklet parameters
-  Int_t fRowHits[160];          // hit index for each TPC row  
+    int fStartHitID;            // ID of the starting hit
+    int fNHits;                 // N hits
+    int fFirstRow;              // first TPC row
+    int fLastRow;               // last TPC row
+    AliHLTTPCCATrackParam fParam; // tracklet parameters
+    int fRowHits[160];          // hit index for each TPC row
 };
 
 #endif

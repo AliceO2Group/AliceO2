@@ -1,6 +1,6 @@
 // $Id: AliHLTTPCCATrackConvertor.cxx 27042 2008-07-02 12:06:02Z richterm $
 // **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          * 
+// This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
@@ -24,19 +24,19 @@
 #include "AliHLTTPCCAMath.h"
 
 
-void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, Double_t alpha )
+void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, double alpha )
 {
-  //* Convert from AliHLTTPCCATrackParam to AliExternalTrackParam parameterisation, 
-  //* the angle alpha is the global angle of the local X axis 
+  //* Convert from AliHLTTPCCATrackParam to AliExternalTrackParam parameterisation,
+  //* the angle alpha is the global angle of the local X axis
 
-  Double_t par[5], cov[15];
-  for( Int_t i=0; i<5; i++ ) par[i] = T1.GetPar()[i];
-  for( Int_t i=0; i<15; i++ ) cov[i] = T1.GetCov()[i];
+  double par[5], cov[15];
+  for ( int i = 0; i < 5; i++ ) par[i] = T1.GetPar()[i];
+  for ( int i = 0; i < 15; i++ ) cov[i] = T1.GetCov()[i];
 
-  if(par[2]>.99 ) par[2]=.99;
-  if(par[2]<-.99 ) par[2]=-.99;
+  if ( par[2] > .99 ) par[2] = .99;
+  if ( par[2] < -.99 ) par[2] = -.99;
 
-  if( T1.GetSignCosPhi()<0 ){ // change direction
+  if ( T1.GetSignCosPhi() < 0 ) { // change direction
     par[2] = -par[2]; // sin phi
     par[3] = -par[3]; // DzDs
     par[4] = -par[4]; // kappa
@@ -47,18 +47,18 @@ void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, Al
     cov[10] = -cov[10];
     cov[11] = -cov[11];
   }
-  T2.Set( (Double_t) T1.GetX(),alpha,par,cov);
+  T2.Set( ( double ) T1.GetX(), alpha, par, cov );
 }
 
 void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2 )
 {
   //* Convert from AliExternalTrackParam parameterisation
-  
-  for( Int_t i=0; i<5; i++ ) T1.SetPar( i, T2.GetParameter()[i] );
-  for( Int_t i=0; i<15; i++ ) T1.SetCov( i, T2.GetCovariance()[i] );
+
+  for ( int i = 0; i < 5; i++ ) T1.SetPar( i, T2.GetParameter()[i] );
+  for ( int i = 0; i < 15; i++ ) T1.SetCov( i, T2.GetCovariance()[i] );
   T1.SetX( T2.GetX() );
-  if(T1.SinPhi()>.99 ) T1.SetSinPhi( .99 );
-  if(T1.SinPhi()<-.99 ) T1.SetSinPhi( -.99 );
+  if ( T1.SinPhi() > .99 ) T1.SetSinPhi( .99 );
+  if ( T1.SinPhi() < -.99 ) T1.SetSinPhi( -.99 );
   T1.SetSignCosPhi( 1 );
 }
 

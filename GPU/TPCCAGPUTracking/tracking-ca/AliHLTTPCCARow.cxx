@@ -1,6 +1,6 @@
 // @(#) $Id$
 // **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          * 
+// This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
@@ -21,11 +21,11 @@
 
 
 #if !defined(HLTCA_GPUCODE)
-AliHLTTPCCARow::AliHLTTPCCARow() 
-  :
-  fFirstHit(0), fNHits(0), fX(0), fMaxY(0), fGrid(),
-  fHy0(0),fHz0(0), fHstepY(0),fHstepZ(0), fHstepYi(0), fHstepZi(0),
-  fFullSize(0), fFullOffset(0), fFullGridOffset(0),fFullLinkOffset(0)
+AliHLTTPCCARow::AliHLTTPCCARow()
+    :
+    fFirstHit( 0 ), fNHits( 0 ), fX( 0 ), fMaxY( 0 ), fGrid(),
+    fHy0( 0 ), fHz0( 0 ), fHstepY( 0 ), fHstepZ( 0 ), fHstepYi( 0 ), fHstepZi( 0 ),
+    fFullSize( 0 ), fFullOffset( 0 ), fFullGridOffset( 0 ), fFullLinkOffset( 0 )
 {
   // dummy constructor
 }

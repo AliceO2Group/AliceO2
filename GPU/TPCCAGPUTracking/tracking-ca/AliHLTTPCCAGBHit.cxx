@@ -1,6 +1,6 @@
 // $Id$
 // **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          * 
+// This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
@@ -21,12 +21,12 @@
 
 //ClassImp(AliHLTTPCCAGBHit)
 
-Bool_t AliHLTTPCCAGBHit::Compare(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b)
+bool AliHLTTPCCAGBHit::Compare( const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b )
 {
   //* Comparison function for sorting hits
-  if( a.fISlice<b.fISlice ) return 1;
-  if( a.fISlice>b.fISlice ) return 0;
-  if( a.fIRow<b.fIRow ) return 1;
-  if( a.fIRow>b.fIRow ) return 0;
-  return (a.fZ < b.fZ);
+  if ( a.fISlice < b.fISlice ) return 1;
+  if ( a.fISlice > b.fISlice ) return 0;
+  if ( a.fIRow < b.fIRow ) return 1;
+  if ( a.fIRow > b.fIRow ) return 0;
+  return ( a.fZ < b.fZ );
 }

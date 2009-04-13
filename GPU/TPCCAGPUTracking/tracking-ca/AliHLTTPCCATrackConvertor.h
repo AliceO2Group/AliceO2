@@ -1,6 +1,6 @@
 //-*- Mode: C++ -*-
 // ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        * 
+// This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
@@ -23,12 +23,12 @@ class AliHLTTPCCATrackParam;
  */
 class AliHLTTPCCATrackConvertor
 {
- public:
+  public:
 
-  AliHLTTPCCATrackConvertor(){}
+    AliHLTTPCCATrackConvertor() {}
 
-  static void GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, Double_t alpha );
-  static void SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2 );
+    static void GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, double alpha );
+    static void SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2 );
 
 };
 
