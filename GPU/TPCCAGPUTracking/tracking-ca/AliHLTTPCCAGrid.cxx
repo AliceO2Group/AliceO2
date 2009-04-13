@@ -1,6 +1,6 @@
 // $Id$
 // **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          * 
+// This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
@@ -23,69 +23,69 @@
 #include "AliHLTTPCCAMath.h"
 #include <iostream>
 
-GPUd() void AliHLTTPCCAGrid::Create( Float_t yMin, Float_t yMax, Float_t zMin, Float_t zMax, UInt_t n )
+GPUd() void AliHLTTPCCAGrid::Create( float yMin, float yMax, float zMin, float zMax, unsigned int n )
 {
   //* Create the grid
-  
-  fYMin = CAMath::Min(yMin,yMax);
-  fYMax = CAMath::Max(yMin,yMax)+.1;
-  fZMin = CAMath::Min(zMin,zMax);
-  fZMax = CAMath::Max(zMin,zMax)+.1;
-  fNy = (UInt_t) CAMath::Sqrt( CAMath::Abs( (Float_t) n ) );
-  fNy = CAMath::Max(fNy,1);
+
+  fYMin = CAMath::Min( yMin, yMax );
+  fYMax = CAMath::Max( yMin, yMax ) + .1;
+  fZMin = CAMath::Min( zMin, zMax );
+  fZMax = CAMath::Max( zMin, zMax ) + .1;
+  fNy = ( unsigned int ) CAMath::Sqrt( CAMath::Abs( ( float ) n ) );
+  fNy = CAMath::Max( fNy, 1 );
   fNz = fNy;
-  fN = fNy*fNz;
-  fStepYInv = (fYMax - fYMin);
-  fStepZInv = (fZMax - fZMin);
-  //Int_t ky = (fNy>1) ?fNy-1 :1;
-  //Int_t kz = (fNz>1) ?fNz-1 :1;
-  fStepYInv =  ( fStepYInv>1.e-4 ) ?fNy/fStepYInv :1;
-  fStepZInv =  ( fStepZInv>1.e-4 ) ?fNz/fStepZInv :1;
+  fN = fNy * fNz;
+  fStepYInv = ( fYMax - fYMin );
+  fStepZInv = ( fZMax - fZMin );
+  //int ky = (fNy>1) ?fNy-1 :1;
+  //int kz = (fNz>1) ?fNz-1 :1;
+  fStepYInv =  ( fStepYInv > 1.e-4 ) ? fNy / fStepYInv : 1;
+  fStepZInv =  ( fStepZInv > 1.e-4 ) ? fNz / fStepZInv : 1;
 }
 
-GPUd() void AliHLTTPCCAGrid::Create( Float_t yMin, Float_t yMax, Float_t zMin, Float_t zMax, Float_t sy, Float_t sz )
+GPUd() void AliHLTTPCCAGrid::Create( float yMin, float yMax, float zMin, float zMax, float sy, float sz )
 {
   //* Create the grid
-  
-  fYMin = CAMath::Min(yMin,yMax);
-  fYMax = CAMath::Max(yMin,yMax)+.1;
-  fZMin = CAMath::Min(zMin,zMax);
-  fZMax = CAMath::Max(zMin,zMax)+.1;
-  fStepYInv = 1./sy;
-  fStepZInv = 1./sz;
 
-  fNy = (UInt_t) ( (fYMax - fYMin)*fStepYInv + 1 );
-  fNz = (UInt_t) ( (fZMax - fZMin)*fStepZInv + 1 );
-  fYMax = fYMin + fNy*sy; 
-  fZMax = fZMin + fNz*sz; 
-  fN = fNy*fNz;
+  fYMin = CAMath::Min( yMin, yMax );
+  fYMax = CAMath::Max( yMin, yMax ) + .1;
+  fZMin = CAMath::Min( zMin, zMax );
+  fZMax = CAMath::Max( zMin, zMax ) + .1;
+  fStepYInv = 1. / sy;
+  fStepZInv = 1. / sz;
+
+  fNy = ( unsigned int ) ( ( fYMax - fYMin ) * fStepYInv + 1 );
+  fNz = ( unsigned int ) ( ( fZMax - fZMin ) * fStepZInv + 1 );
+  fYMax = fYMin + fNy * sy;
+  fZMax = fZMin + fNz * sz;
+  fN = fNy * fNz;
 }
 
-GPUd() UInt_t AliHLTTPCCAGrid::GetBin( Float_t Y, Float_t Z ) const
-{
-  //* get the bin pointer
-  
-  Int_t bbY = (Int_t) CAMath::FMulRZ( Y-fYMin, fStepYInv );
-  Int_t bbZ = (Int_t) CAMath::FMulRZ( Z-fZMin, fStepZInv );
-  if( bbY<0 ) bbY = 0;
-  else if( bbY>=(Int_t)fNy ) bbY = fNy - 1;  
-  if( bbZ<0 ) bbZ = 0;
-  else if( bbZ>=(Int_t)fNz ) bbZ = fNz - 1;
-  Int_t bin = CAMath::Mul24(bbZ,fNy) + bbY;    
-  return (UInt_t) bin;
-}
-
-GPUd() void AliHLTTPCCAGrid::GetBin( Float_t Y, Float_t Z, UInt_t &bY, UInt_t &bZ ) const
+GPUd() unsigned int AliHLTTPCCAGrid::GetBin( float Y, float Z ) const
 {
   //* get the bin pointer
 
-  Int_t bbY = (Int_t) ( (Y-fYMin)*fStepYInv );
-  Int_t bbZ = (Int_t) ( (Z-fZMin)*fStepZInv );  
-  
-  if( bbY<0 ) bbY = 0;
-  else if( bbY>=(Int_t)fNy ) bbY = fNy - 1;  
-  if( bbZ<0 ) bbZ = 0;
-  else if( bbZ>=(Int_t)fNz ) bbZ = fNz - 1;
-  bY = (UInt_t) bbY;
-  bZ = (UInt_t) bbZ;
+  int bbY = ( int ) CAMath::FMulRZ( Y - fYMin, fStepYInv );
+  int bbZ = ( int ) CAMath::FMulRZ( Z - fZMin, fStepZInv );
+  if ( bbY < 0 ) bbY = 0;
+  else if ( bbY >= ( int )fNy ) bbY = fNy - 1;
+  if ( bbZ < 0 ) bbZ = 0;
+  else if ( bbZ >= ( int )fNz ) bbZ = fNz - 1;
+  int bin = CAMath::Mul24( bbZ, fNy ) + bbY;
+  return ( unsigned int ) bin;
+}
+
+GPUd() void AliHLTTPCCAGrid::GetBin( float Y, float Z, unsigned int &bY, unsigned int &bZ ) const
+{
+  //* get the bin pointer
+
+  int bbY = ( int ) ( ( Y - fYMin ) * fStepYInv );
+  int bbZ = ( int ) ( ( Z - fZMin ) * fStepZInv );
+
+  if ( bbY < 0 ) bbY = 0;
+  else if ( bbY >= ( int )fNy ) bbY = fNy - 1;
+  if ( bbZ < 0 ) bbZ = 0;
+  else if ( bbZ >= ( int )fNz ) bbZ = fNz - 1;
+  bY = ( unsigned int ) bbY;
+  bZ = ( unsigned int ) bbZ;
 }

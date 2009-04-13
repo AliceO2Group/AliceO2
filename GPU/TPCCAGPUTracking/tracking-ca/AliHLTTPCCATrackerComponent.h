@@ -1,7 +1,7 @@
 //-*- Mode: C++ -*-
 // @(#) $Id$
 // ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        * 
+// This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
@@ -21,77 +21,77 @@ class AliHLTTPCSpacePointData;
  */
 class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 {
-public:
-  /** standard constructor */
-  AliHLTTPCCATrackerComponent();
-  
-  /** dummy copy constructor, defined according to effective C++ style */
-  AliHLTTPCCATrackerComponent(const AliHLTTPCCATrackerComponent&);
-  
-  /** dummy assignment op, but defined according to effective C++ style */
-  AliHLTTPCCATrackerComponent& operator=(const AliHLTTPCCATrackerComponent&);
+  public:
+    /** standard constructor */
+    AliHLTTPCCATrackerComponent();
 
-  /** standard destructor */
-  virtual ~AliHLTTPCCATrackerComponent();
-      
-  // Public functions to implement AliHLTComponent's interface.
-  // These functions are required for the registration process
-  
-  /** @see component interface @ref AliHLTComponent::GetComponentID */
-  const char* GetComponentID() ;
-  
-  /** @see component interface @ref AliHLTComponent::GetInputDataTypes */
-  void GetInputDataTypes( vector<AliHLTComponentDataType>& list)  ;
-  
-  /** @see component interface @ref AliHLTComponent::GetOutputDataType */
-  AliHLTComponentDataType GetOutputDataType() ;
+    /** dummy copy constructor, defined according to effective C++ style */
+    AliHLTTPCCATrackerComponent( const AliHLTTPCCATrackerComponent& );
 
-  /** @see component interface @ref AliHLTComponent::GetOutputDataSize */
-  virtual void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier ) ;
+    /** dummy assignment op, but defined according to effective C++ style */
+    AliHLTTPCCATrackerComponent& operator=( const AliHLTTPCCATrackerComponent& );
 
-  /** @see component interface @ref AliHLTComponent::Spawn */
-  AliHLTComponent* Spawn() ;
+    /** standard destructor */
+    virtual ~AliHLTTPCCATrackerComponent();
 
-protected:
+    // Public functions to implement AliHLTComponent's interface.
+    // These functions are required for the registration process
 
-  // Protected functions to implement AliHLTComponent's interface.
-  // These functions provide initialization as well as the actual processing
-  // capabilities of the component. 
-  
-  /** @see component interface @ref AliHLTComponent::DoInit */
-  Int_t DoInit( Int_t argc, const char** argv );
-  
-  /** @see component interface @ref AliHLTComponent::DoDeinit */
-  Int_t DoDeinit();
+    /** @see component interface @ref AliHLTComponent::GetComponentID */ 
+    const char* GetComponentID() ;
 
-  /** reconfigure **/
-  Int_t Reconfigure(const char* cdbEntry, const char* chainId);
+    /** @see component interface @ref AliHLTComponent::GetInputDataTypes */
+    void GetInputDataTypes( vector<AliHLTComponentDataType>& list )  ;
 
-  /** @see component interface @ref AliHLTProcessor::DoEvent */
-  Int_t DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
-	       AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
-	       AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
-  
-private:
-  
-  /** the tracker object */
-  AliHLTTPCCATracker* fTracker;                                //! transient
-  
-  /** magnetic field */
-  Double_t fSolenoidBz;                                            // see above
-  Int_t fMinNTrackClusters; //* required min number of clusters on the track
-  Double_t fClusterZCut;  //* cut on cluster Z position (for noise rejection at the age of TPC)
-  Double_t fFullTime; //* total time for DoEvent() [s]
-  Double_t fRecoTime; //* total reconstruction time [s]
-  Long_t    fNEvents;  //* number of reconstructed events
-  Bool_t fNewOutputType; //* use new type of output (temporary flag)
+    /** @see component interface @ref AliHLTComponent::GetOutputDataType */
+    AliHLTComponentDataType GetOutputDataType() ;
 
-  static Bool_t CompareClusters(AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b);
+    /** @see component interface @ref AliHLTComponent::GetOutputDataSize */
+    virtual void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier ) ;
 
-  /** set configuration parameters **/
-  Int_t Configure( const char* arguments );
+    /** @see component interface @ref AliHLTComponent::Spawn */
+    AliHLTComponent* Spawn() ;
 
-  ClassDef(AliHLTTPCCATrackerComponent, 0);
-  
+  protected:
+
+    // Protected functions to implement AliHLTComponent's interface.
+    // These functions provide initialization as well as the actual processing
+    // capabilities of the component.
+
+    /** @see component interface @ref AliHLTComponent::DoInit */
+    int DoInit( int argc, const char** argv );
+
+    /** @see component interface @ref AliHLTComponent::DoDeinit */
+    int DoDeinit();
+
+    /** reconfigure **/
+    int Reconfigure( const char* cdbEntry, const char* chainId );
+
+    /** @see component interface @ref AliHLTProcessor::DoEvent */
+    int DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks,
+                   AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr,
+                   AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
+
+  private:
+
+    /** the tracker object */
+    AliHLTTPCCATracker* fTracker;                                //! transient
+
+    /** magnetic field */
+    double fSolenoidBz;                                            // see above
+    int fMinNTrackClusters; //* required min number of clusters on the track
+    double fClusterZCut;  //* cut on cluster Z position (for noise rejection at the age of TPC)
+    double fFullTime; //* total time for DoEvent() [s]
+    double fRecoTime; //* total reconstruction time [s]
+    Long_t    fNEvents;  //* number of reconstructed events
+    bool fNewOutputType; //* use new type of output (temporary flag)
+
+    static bool CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b );
+
+    /** set configuration parameters **/
+    int Configure( const char* arguments );
+
+    ClassDef( AliHLTTPCCATrackerComponent, 0 );
+
 };
 #endif

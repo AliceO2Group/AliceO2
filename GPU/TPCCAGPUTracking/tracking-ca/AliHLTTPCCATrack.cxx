@@ -1,6 +1,6 @@
 // @(#) $Id$
 // **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          * 
+// This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *

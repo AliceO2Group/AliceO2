@@ -1,5 +1,5 @@
 // ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        * 
+// This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
@@ -84,19 +84,19 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     int DoDeinit();
 
     /** reconfigure **/
-    Int_t Reconfigure(const char* cdbEntry, const char* chainId);
+    int Reconfigure( const char* cdbEntry, const char* chainId );
 
     /**
      * @copydoc @ref AliHLTProcessor::DoEvent
      */
     int DoEvent( const AliHLTComponentEventData &evtData, const AliHLTComponentBlockData *blocks,
-        AliHLTComponentTriggerData &trigData, AliHLTUInt8_t *outputPtr,
-        AliHLTUInt32_t &size, AliHLTComponentBlockDataList &outputBlocks );
+                 AliHLTComponentTriggerData &trigData, AliHLTUInt8_t *outputPtr,
+                 AliHLTUInt32_t &size, AliHLTComponentBlockDataList &outputBlocks );
 
     using AliHLTProcessor::DoEvent;
 
   private:
-    
+
     static AliHLTTPCCAGlobalMergerComponent fgAliHLTTPCCAGlobalMergerComponent;
 
     // disable copy
@@ -104,12 +104,12 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     AliHLTTPCCAGlobalMergerComponent &operator=( const AliHLTTPCCAGlobalMergerComponent & );
 
     /** set configuration parameters **/
-    Int_t Configure( const char* arguments );
+    int Configure( const char* arguments );
 
     /** the global merger object */
     AliHLTTPCCAMerger *fGlobalMerger; //!
 
-    Double_t fSolenoidBz;  // magnetic field  
+    double fSolenoidBz;  // magnetic field
 
     ClassDef( AliHLTTPCCAGlobalMergerComponent, 0 )
 };

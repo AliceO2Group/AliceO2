@@ -1,7 +1,7 @@
 //-*- Mode: C++ -*-
 // @(#) $Id$
 //  *************************************************************************
-//  This file is property of and copyright by the ALICE HLT Project         * 
+//  This file is property of and copyright by the ALICE HLT Project         *
 //  ALICE Experiment at CERN, All rights reserved.                          *
 //  See cxx source for full Copyright notice                                *
 //                                                                          *
@@ -36,92 +36,92 @@ class TCanvas;
 class AliHLTTPCCADisplay
 {
 
- public:
-  
-  class AliHLTTPCCADisplayTmpHit;
+  public:
 
-  static AliHLTTPCCADisplay &Instance();
-  
-  AliHLTTPCCADisplay();
-  AliHLTTPCCADisplay( const AliHLTTPCCADisplay& );
-  const AliHLTTPCCADisplay& operator=(const AliHLTTPCCADisplay&) const ;
+    class AliHLTTPCCADisplayTmpHit;
 
-  virtual ~AliHLTTPCCADisplay();
+    static AliHLTTPCCADisplay &Instance();
 
-  void Init();
-  void Update();
-  void ClearView();
-  void Ask();
-  void SetSliceView();
-  void SetTPCView();
-  void SetCurrentSlice( AliHLTTPCCATracker *slice ); 
-  void SetGB( AliHLTTPCCAGBTracker * const GBTracker );   
-  void Set2Slices( AliHLTTPCCATracker * const slice );
+    AliHLTTPCCADisplay();
+    AliHLTTPCCADisplay( const AliHLTTPCCADisplay& );
+    const AliHLTTPCCADisplay& operator=( const AliHLTTPCCADisplay& ) const ;
 
-  Int_t GetColor( Int_t i ) const;
-  Int_t GetColorZ( Double_t z ) const ;
-  Int_t GetColorY( Double_t y ) const ;
-  Int_t GetColorK( Double_t k ) const ;
-  void Global2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const ;
-  void Slice2View( Double_t x, Double_t y, Double_t *xv, Double_t *yv ) const ;
-  Int_t GetTrackMC( const AliHLTTPCCADisplayTmpHit *vHits, Int_t NHits );
+    virtual ~AliHLTTPCCADisplay();
 
-  void DrawTPC();
-  void DrawSlice( AliHLTTPCCATracker *slice, Bool_t DrawRows=0 ); 
-  void DrawSliceOutTrack( Int_t itr, Int_t color=-1, Int_t width = -1  );
-  void DrawSliceOutTrack( AliHLTTPCCATrackParam &t, Double_t Alpha, Int_t itr, Int_t color=-1, Int_t width = -1  );
-  void DrawSliceTrack( Int_t itr, Int_t color=-1);
-  Bool_t DrawTrack( AliHLTTPCCATrackParam t, Double_t Alpha, const AliHLTTPCCADisplayTmpHit *vHits, 
-		    Int_t NHits, Int_t color=-1, Int_t width=-1, Bool_t pPoint=0 );
+    void Init();
+    void Update();
+    void ClearView();
+    void Ask();
+    void SetSliceView();
+    void SetTPCView();
+    void SetCurrentSlice( AliHLTTPCCATracker *slice );
+    void SetGB( AliHLTTPCCAGBTracker * const GBTracker );
+    void Set2Slices( AliHLTTPCCATracker * const slice );
 
-  void DrawGBTrack( Int_t itr, Int_t color=-1, Int_t width=-1 );
-  void DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, Int_t itr, Int_t color=-1 );
-  Bool_t DrawTracklet( AliHLTTPCCATrackParam &track, const Int_t *hitstore, Int_t color=-1, Int_t width=-1, Bool_t pPoint=0 );
- 
-  void DrawGBHit( AliHLTTPCCAGBTracker &tracker, Int_t iHit, Int_t color=-1, Size_t width =-1 );
-  void DrawGBHits( AliHLTTPCCAGBTracker &tracker, Int_t color=-1, Size_t width =-1 );
+    int GetColor( int i ) const;
+    int GetColorZ( double z ) const ;
+    int GetColorY( double y ) const ;
+    int GetColorK( double k ) const ;
+    void Global2View( double x, double y, double *xv, double *yv ) const ;
+    void Slice2View( double x, double y, double *xv, double *yv ) const ;
+    int GetTrackMC( const AliHLTTPCCADisplayTmpHit *vHits, int NHits );
 
-  void DrawSliceHit( Int_t iRow,Int_t iHit, Int_t color=-1, Size_t width=-1 );
-  void DrawSliceHits(Int_t color=-1, Size_t width=-1 );
-  void DrawSliceLinks(Int_t colorUp=-1, Int_t colorDn=-1,Int_t width=-1 );
-  void DrawSliceLink(Int_t iRow, Int_t iHit, Int_t colorUp=-1, Int_t colorDn=-1,Int_t width=-1 );
+    void DrawTPC();
+    void DrawSlice( AliHLTTPCCATracker *slice, bool DrawRows = 0 );
+    void DrawSliceOutTrack( int itr, int color = -1, int width = -1  );
+    void DrawSliceOutTrack( AliHLTTPCCATrackParam &t, double Alpha, int itr, int color = -1, int width = -1  );
+    void DrawSliceTrack( int itr, int color = -1 );
+    bool DrawTrack( AliHLTTPCCATrackParam t, double Alpha, const AliHLTTPCCADisplayTmpHit *vHits,
+                      int NHits, int color = -1, int width = -1, bool pPoint = 0 );
+
+    void DrawGBTrack( int itr, int color = -1, int width = -1 );
+    void DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, int itr, int color = -1 );
+    bool DrawTracklet( AliHLTTPCCATrackParam &track, const int *hitstore, int color = -1, int width = -1, bool pPoint = 0 );
+
+    void DrawGBHit( AliHLTTPCCAGBTracker &tracker, int iHit, int color = -1, Size_t width = -1 );
+    void DrawGBHits( AliHLTTPCCAGBTracker &tracker, int color = -1, Size_t width = -1 );
+
+    void DrawSliceHit( int iRow, int iHit, int color = -1, Size_t width = -1 );
+    void DrawSliceHits( int color = -1, Size_t width = -1 );
+    void DrawSliceLinks( int colorUp = -1, int colorDn = -1, int width = -1 );
+    void DrawSliceLink( int iRow, int iHit, int colorUp = -1, int colorDn = -1, int width = -1 );
 
 #ifdef XXXX
 
-  void DrawMergedHit( Int_t iRow, Int_t iHit, Int_t color=-1 );
+    void DrawMergedHit( int iRow, int iHit, int color = -1 );
 
-  void DrawTrack( AliHLTTPCCATrack &track, Int_t color=-1, Bool_t DrawCells=1 );
-  void DrawTrackletPoint( AliHLTTPCCATrackParam &t, Int_t color=-1 );
+    void DrawTrack( AliHLTTPCCATrack &track, int color = -1, bool DrawCells = 1 );
+    void DrawTrackletPoint( AliHLTTPCCATrackParam &t, int color = -1 );
 #endif // XXXX
 
-  void SetSliceTransform( Double_t alpha );
+    void SetSliceTransform( double alpha );
 
-  void SetSliceTransform( AliHLTTPCCATracker *slice );
+    void SetSliceTransform( AliHLTTPCCATracker *slice );
 
-  TCanvas *CanvasYX() const { return fYX; }
-  TCanvas *CanvasZX() const { return fZX; }
+    TCanvas *CanvasYX() const { return fYX; }
+    TCanvas *CanvasZX() const { return fZX; }
 
- protected:
+  protected:
 
-  TCanvas *fYX, *fZX;               // two views
-  Bool_t fAsk;                      // flag to ask for the pressing key
-  Bool_t fSliceView;               // switch between slice/TPC zoom
-  AliHLTTPCCATracker *fSlice;      // current CA tracker, includes slice geometry
-  AliHLTTPCCAGBTracker *fGB;      // the global tracker
-  AliHLTTPCCAPerformance *fPerf; // Performance class (mc labels etc)
-  Double_t fCos, fSin, fZMin, fZMax, fYMin, fYMax;// view parameters
-  Double_t fSliceCos, fSliceSin;        // current slice angle
-  Double_t fRInnerMin, fRInnerMax, fROuterMin, fROuterMax,fTPCZMin, fTPCZMax; // view parameters
+    TCanvas *fYX, *fZX;               // two views
+    bool fAsk;                      // flag to ask for the pressing key
+    bool fSliceView;               // switch between slice/TPC zoom
+    AliHLTTPCCATracker *fSlice;      // current CA tracker, includes slice geometry
+    AliHLTTPCCAGBTracker *fGB;      // the global tracker
+    AliHLTTPCCAPerformance *fPerf; // Performance class (mc labels etc)
+    double fCos, fSin, fZMin, fZMax, fYMin, fYMax;// view parameters
+    double fSliceCos, fSliceSin;        // current slice angle
+    double fRInnerMin, fRInnerMax, fROuterMin, fROuterMax, fTPCZMin, fTPCZMax; // view parameters
 
-  TArc fArc;       // parameters of drawing objects are copied from this members
-  TLine fLine;     //!
-  TPolyLine fPLine;//!
-  TMarker fMarker; //!
-  TBox fBox;       //!
-  TCrown fCrown;   //!
-  TLatex fLatex;   //!
+    TArc fArc;       // parameters of drawing objects are copied from this members
+    TLine fLine;     //!
+    TPolyLine fPLine;//!
+    TMarker fMarker; //!
+    TBox fBox;       //!
+    TCrown fCrown;   //!
+    TLatex fLatex;   //!
 
-  Bool_t fDrawOnlyRef; // draw only clusters from ref. mc tracks
+    bool fDrawOnlyRef; // draw only clusters from ref. mc tracks
 
 };
 

@@ -1,6 +1,6 @@
 // @(#) $Id$
 // **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          * 
+// This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
@@ -22,14 +22,14 @@
 #include "AliHLTTPCCAMath.h"
 
 
-#if !defined(HLTCA_GPUCODE)  
+#if !defined(HLTCA_GPUCODE)
 
 GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
-  : fISlice(0),fNRows(63),fAlpha(0.174533), fDAlpha(0.349066),
-    fCosAlpha(0), fSinAlpha(0), fAngleMin(0), fAngleMax(0), fRMin(83.65), fRMax(133.3),
-    fZMin(0.0529937), fZMax(249.778), fErrX(0), fErrY(0), fErrZ(0.228808),fPadPitch(0.4),fBz(-5.), 
-    fHitPickUpFactor(1.),
-    fMaxTrackMatchDRow(4), fTrackConnectionFactor(3.5), fTrackChiCut(3.5), fTrackChi2Cut(10)
+    : fISlice( 0 ), fNRows( 63 ), fAlpha( 0.174533 ), fDAlpha( 0.349066 ),
+    fCosAlpha( 0 ), fSinAlpha( 0 ), fAngleMin( 0 ), fAngleMax( 0 ), fRMin( 83.65 ), fRMax( 133.3 ),
+    fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBz( -5. ),
+    fHitPickUpFactor( 1. ),
+    fMaxTrackMatchDRow( 4 ), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 )
 {
   // constructor
   fParamS0Par[0][0][0] = 0.00047013;
@@ -75,29 +75,29 @@ GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
   fParamS0Par[1][2][5] = 0.000425504;
   fParamS0Par[1][2][6] = 20.9294;
 
-  const Double_t kCLight = 0.000299792458;
-  
-  fPolinomialFieldBz[0] = kCLight* 4.99643;
-  fPolinomialFieldBz[1] = kCLight* -2.27193e-06;
-  fPolinomialFieldBz[2] = kCLight* 0.000116475; 
-  fPolinomialFieldBz[3] = kCLight* -1.49956e-06; 
-  fPolinomialFieldBz[4] = kCLight* -1.01721e-07; 
-  fPolinomialFieldBz[5] = kCLight* 4.85701e-07; 
+  const double kCLight = 0.000299792458;
+
+  fPolinomialFieldBz[0] = kCLight * 4.99643;
+  fPolinomialFieldBz[1] = kCLight * -2.27193e-06;
+  fPolinomialFieldBz[2] = kCLight * 0.000116475;
+  fPolinomialFieldBz[3] = kCLight * -1.49956e-06;
+  fPolinomialFieldBz[4] = kCLight * -1.01721e-07;
+  fPolinomialFieldBz[5] = kCLight * 4.85701e-07;
 
   Update();
 }
 #endif
 
-GPUd() void AliHLTTPCCAParam::Initialize( Int_t iSlice, 
-				   Int_t nRows, Float_t rowX[],
-				   Float_t alpha, Float_t dAlpha,
-				   Float_t rMin, Float_t rMax,
-				   Float_t zMin, Float_t zMax,
-				   Float_t padPitch, Float_t zSigma,
-				   Float_t bz
-				   )
+GPUd() void AliHLTTPCCAParam::Initialize( int iSlice,
+    int nRows, float rowX[],
+    float alpha, float dAlpha,
+    float rMin, float rMax,
+    float zMin, float zMax,
+    float padPitch, float zSigma,
+    float bz
+                                        )
 {
-  // initialization 
+  // initialization
   fISlice = iSlice;
   fAlpha = alpha;
   fDAlpha = dAlpha;
@@ -110,7 +110,7 @@ GPUd() void AliHLTTPCCAParam::Initialize( Int_t iSlice,
   fErrZ = zSigma;
   fBz = bz;
   fNRows = nRows;
-  for( Int_t irow=0; irow<nRows; irow++ ){
+  for ( int irow = 0; irow < nRows; irow++ ) {
     fRowX[irow] = rowX[irow];
   }
 
@@ -120,92 +120,92 @@ GPUd() void AliHLTTPCCAParam::Initialize( Int_t iSlice,
 GPUd() void AliHLTTPCCAParam::Update()
 {
   // update of calculated values
-  fCosAlpha = CAMath::Cos(fAlpha);
-  fSinAlpha = CAMath::Sin(fAlpha);
-  fAngleMin = fAlpha - fDAlpha/2.;
-  fAngleMax = fAlpha + fDAlpha/2.;
-  fErrX = fPadPitch/CAMath::Sqrt(12.);
+  fCosAlpha = CAMath::Cos( fAlpha );
+  fSinAlpha = CAMath::Sin( fAlpha );
+  fAngleMin = fAlpha - fDAlpha / 2.;
+  fAngleMax = fAlpha + fDAlpha / 2.;
+  fErrX = fPadPitch / CAMath::Sqrt( 12. );
   fTrackChi2Cut = fTrackChiCut * fTrackChiCut;
 }
 
-GPUd() void AliHLTTPCCAParam::Slice2Global( Float_t x, Float_t y,  Float_t z, 
-				     Float_t *X, Float_t *Y,  Float_t *Z ) const
-{  
+GPUd() void AliHLTTPCCAParam::Slice2Global( float x, float y,  float z,
+    float *X, float *Y,  float *Z ) const
+{
   // conversion of coorinates sector->global
-  *X = x*fCosAlpha - y*fSinAlpha;
-  *Y = y*fCosAlpha + x*fSinAlpha;
+  *X = x * fCosAlpha - y * fSinAlpha;
+  *Y = y * fCosAlpha + x * fSinAlpha;
   *Z = z;
 }
- 
-GPUd() void AliHLTTPCCAParam::Global2Slice( Float_t X, Float_t Y,  Float_t Z, 
-				     Float_t *x, Float_t *y,  Float_t *z ) const
+
+GPUd() void AliHLTTPCCAParam::Global2Slice( float X, float Y,  float Z,
+    float *x, float *y,  float *z ) const
 {
   // conversion of coorinates global->sector
-  *x = X*fCosAlpha + Y*fSinAlpha;
-  *y = Y*fCosAlpha - X*fSinAlpha;
+  *x = X * fCosAlpha + Y * fSinAlpha;
+  *y = Y * fCosAlpha - X * fSinAlpha;
   *z = Z;
 }
 
-GPUd() Float_t AliHLTTPCCAParam::GetClusterError2( Int_t yz, Int_t type, Float_t z, Float_t angle ) const
+GPUd() float AliHLTTPCCAParam::GetClusterError2( int yz, int type, float z, float angle ) const
 {
   //* recalculate the cluster error wih respect to the track slope
-  Float_t angle2 = angle*angle;
-  const Float_t *c = fParamS0Par[yz][type];
-  Float_t v = c[0] + z*(c[1] + c[3]*z) + angle2*(c[2] + angle2*c[4] + c[5]*z );
-  return CAMath::Abs(v); 
+  float angle2 = angle * angle;
+  const float *c = fParamS0Par[yz][type];
+  float v = c[0] + z * ( c[1] + c[3] * z ) + angle2 * ( c[2] + angle2 * c[4] + c[5] * z );
+  return CAMath::Abs( v );
 }
 
-GPUd() void AliHLTTPCCAParam::GetClusterErrors2( Int_t iRow, Float_t z, Float_t sinPhi, Float_t cosPhi, Float_t DzDs, Float_t &Err2Y, Float_t &Err2Z ) const
+GPUd() void AliHLTTPCCAParam::GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
 {
   //
   // Use calibrated cluster error from OCDB
   //
 
-  z = CAMath::Abs((250.-0.275)-CAMath::Abs(z));
-  Int_t    type = (iRow<63) ? 0: ( (iRow>126) ? 1:2 );
-  Float_t cosPhiInv = CAMath::Abs(cosPhi)>1.e-2 ?1./cosPhi :0;
-  Float_t angleY = sinPhi*cosPhiInv ;
-  Float_t angleZ = DzDs*cosPhiInv ; // SG was bug??? 
+  z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );
+  int    type = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );
+  float cosPhiInv = CAMath::Abs( cosPhi ) > 1.e-2 ? 1. / cosPhi : 0;
+  float angleY = sinPhi * cosPhiInv ;
+  float angleZ = DzDs * cosPhiInv ; // SG was bug???
 
-  Err2Y = GetClusterError2(0,type, z,angleY);  
-  Err2Z = GetClusterError2(1,type, z,angleZ);
+  Err2Y = GetClusterError2( 0, type, z, angleY );
+  Err2Z = GetClusterError2( 1, type, z, angleZ );
 }
 
 
-GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const 
+GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const
 {
   // write settings to the file
-  out << fISlice<<std::endl;
-  out << fNRows<<std::endl;
-  out << fAlpha<<std::endl;
-  out << fDAlpha<<std::endl;
-  out << fCosAlpha<<std::endl;
-  out << fSinAlpha<<std::endl;
-  out << fAngleMin<<std::endl;
-  out << fAngleMax<<std::endl;
-  out << fRMin<<std::endl;
-  out << fRMax<<std::endl;
-  out << fZMin<<std::endl;
-  out << fZMax<<std::endl;
-  out << fErrX<<std::endl;
-  out << fErrY<<std::endl;
-  out << fErrZ<<std::endl;
-  out << fPadPitch<<std::endl;
-  out << fBz<<std::endl;
-  out << fHitPickUpFactor<<std::endl;
-  out << fMaxTrackMatchDRow<<std::endl;
-  out << fTrackConnectionFactor<<std::endl;
-  out << fTrackChiCut<<std::endl;
-  out << fTrackChi2Cut<<std::endl;
-  for( Int_t iRow = 0; iRow<fNRows; iRow++ ){
-    out << fRowX[iRow]<<std::endl;
+  out << fISlice << std::endl;
+  out << fNRows << std::endl;
+  out << fAlpha << std::endl;
+  out << fDAlpha << std::endl;
+  out << fCosAlpha << std::endl;
+  out << fSinAlpha << std::endl;
+  out << fAngleMin << std::endl;
+  out << fAngleMax << std::endl;
+  out << fRMin << std::endl;
+  out << fRMax << std::endl;
+  out << fZMin << std::endl;
+  out << fZMax << std::endl;
+  out << fErrX << std::endl;
+  out << fErrY << std::endl;
+  out << fErrZ << std::endl;
+  out << fPadPitch << std::endl;
+  out << fBz << std::endl;
+  out << fHitPickUpFactor << std::endl;
+  out << fMaxTrackMatchDRow << std::endl;
+  out << fTrackConnectionFactor << std::endl;
+  out << fTrackChiCut << std::endl;
+  out << fTrackChi2Cut << std::endl;
+  for ( int iRow = 0; iRow < fNRows; iRow++ ) {
+    out << fRowX[iRow] << std::endl;
   }
-  out<<std::endl;
-  for( Int_t i=0; i<2; i++ )
-    for( Int_t j=0; j<3; j++ )
-      for( Int_t k=0; k<7; k++ )
-	out << fParamS0Par[i][j][k]<<std::endl;
-  out<<std::endl;
+  out << std::endl;
+  for ( int i = 0; i < 2; i++ )
+    for ( int j = 0; j < 3; j++ )
+      for ( int k = 0; k < 7; k++ )
+        out << fParamS0Par[i][j][k] << std::endl;
+  out << std::endl;
 }
 
 GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
@@ -234,11 +234,11 @@ GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
   in >> fTrackConnectionFactor;
   in >> fTrackChiCut;
   in >> fTrackChi2Cut;
-  for( Int_t iRow = 0; iRow<fNRows; iRow++ ){
+  for ( int iRow = 0; iRow < fNRows; iRow++ ) {
     in >> fRowX[iRow];
   }
-  for( Int_t i=0; i<2; i++ )
-    for( Int_t j=0; j<3; j++ )
-      for( Int_t k=0; k<7; k++ )
-	in >> fParamS0Par[i][j][k];
+  for ( int i = 0; i < 2; i++ )
+    for ( int j = 0; j < 3; j++ )
+      for ( int k = 0; k < 7; k++ )
+        in >> fParamS0Par[i][j][k];
 }

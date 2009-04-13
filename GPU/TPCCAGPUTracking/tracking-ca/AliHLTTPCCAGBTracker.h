@@ -1,6 +1,6 @@
 //-*- Mode: C++ -*-
 // ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        * 
+// This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
@@ -26,13 +26,13 @@ class  AliHLTTPCCAMerger;
 
 /**
  * @class AliHLTTPCCAGBTracker
- * 
+ *
  * Global Cellular Automaton-based HLT tracker for TPC detector
  * The class reconstructs tracks in the whole TPC
- * It calls the AliHLTTPCCATracker slice tracker and constructs 
- * the global TPC tracks by merging the slice tracks 
+ * It calls the AliHLTTPCCATracker slice tracker and constructs
+ * the global TPC tracks by merging the slice tracks
  *
- * The tracker is designed stand-alone. 
+ * The tracker is designed stand-alone.
  * It will be integrated to the HLT framework via AliHLTTPCCAGBTrackerComponent interface,
  * and to off-line framework via TPC/AliTPCtrackerCA class
  * The class is under construction.
@@ -41,73 +41,73 @@ class  AliHLTTPCCAMerger;
 class AliHLTTPCCAGBTracker
 {
 
-public:
+  public:
 
-  AliHLTTPCCAGBTracker();
-  AliHLTTPCCAGBTracker(const AliHLTTPCCAGBTracker&);
-  const AliHLTTPCCAGBTracker &operator=(const AliHLTTPCCAGBTracker&) const;
+    AliHLTTPCCAGBTracker();
+    AliHLTTPCCAGBTracker( const AliHLTTPCCAGBTracker& );
+    const AliHLTTPCCAGBTracker &operator=( const AliHLTTPCCAGBTracker& ) const;
 
-  ~AliHLTTPCCAGBTracker();
+    ~AliHLTTPCCAGBTracker();
 
-  void StartEvent();
-  void SetNSlices( Int_t N );
-  void SetNHits( Int_t nHits );
+    void StartEvent();
+    void SetNSlices( int N );
+    void SetNHits( int nHits );
 
-  void ReadHit( Float_t x, Float_t y, Float_t z, 
-		Float_t ErrY, Float_t ErrZ, Float_t amp,
-		Int_t ID, Int_t iSlice, Int_t iRow );
+    void ReadHit( float x, float y, float z,
+                  float ErrY, float ErrZ, float amp,
+                  int ID, int iSlice, int iRow );
 
-  void FindTracks();
+    void FindTracks();
 
-  void Merge();
+    void Merge();
 
-  AliHLTTPCCATracker *Slices() const { return fSlices; }
-  AliHLTTPCCAGBHit *Hits() const { return fHits; }
-  Int_t Ext2IntHitID( Int_t i ) const { return fExt2IntHitID[i]; }
+    AliHLTTPCCATracker *Slices() const { return fSlices; }
+    AliHLTTPCCAGBHit *Hits() const { return fHits; }
+    int Ext2IntHitID( int i ) const { return fExt2IntHitID[i]; }
 
-  Int_t NHits() const { return fNHits; }
-  Int_t NSlices() const { return fNSlices; }
-  Double_t Time() const { return fTime; }
-  Double_t StatTime( Int_t iTimer ) const { return fStatTime[iTimer]; }
-  Int_t StatNEvents() const { return fStatNEvents; }
-  Int_t NTracks() const { return fNTracks; }
-  AliHLTTPCCAGBTrack *Tracks() const { return fTracks; }
-  Int_t *TrackHits() const { return fTrackHits; }
+    int NHits() const { return fNHits; }
+    int NSlices() const { return fNSlices; }
+    double Time() const { return fTime; }
+    double StatTime( int iTimer ) const { return fStatTime[iTimer]; }
+    int StatNEvents() const { return fStatNEvents; }
+    int NTracks() const { return fNTracks; }
+    AliHLTTPCCAGBTrack *Tracks() const { return fTracks; }
+    int *TrackHits() const { return fTrackHits; }
 
-  Bool_t FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrackParam t0, 
-		   Float_t &Alpha, Int_t hits[], Int_t &NTrackHits, 
-		   Bool_t dir );
+    bool FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrackParam t0,
+                     float &Alpha, int hits[], int &NTrackHits,
+                     bool dir );
 
-  void WriteSettings( std::ostream &out ) const;
-  void ReadSettings( std::istream &in );
-  void WriteEvent( std::ostream &out ) const;
-  void ReadEvent( std::istream &in );
-  void WriteTracks( std::ostream &out ) const;
-  void ReadTracks( std::istream &in );
+    void WriteSettings( std::ostream &out ) const;
+    void ReadSettings( std::istream &in );
+    void WriteEvent( std::ostream &out ) const;
+    void ReadEvent( std::istream &in );
+    void WriteTracks( std::ostream &out ) const;
+    void ReadTracks( std::istream &in );
 
-  Double_t SliceTrackerTime() const { return fSliceTrackerTime; }
-  void SetSliceTrackerTime( Double_t v ){ fSliceTrackerTime = v; }
-  const Int_t *FirstSliceHit() const { return fFirstSliceHit; }
+    double SliceTrackerTime() const { return fSliceTrackerTime; }
+    void SetSliceTrackerTime( double v ) { fSliceTrackerTime = v; }
+    const int *FirstSliceHit() const { return fFirstSliceHit; }
 
 
-protected:
+  protected:
 
-  AliHLTTPCCATracker *fSlices; //* array of slice trackers
-  Int_t fNSlices;              //* N slices
-  AliHLTTPCCAGBHit *fHits;     //* hit array
-  Int_t *fExt2IntHitID;        //* array of internal hit indices
-  Int_t fNHits;                //* N hits in event
-  Int_t *fTrackHits;           //* track->hits reference array
-  AliHLTTPCCAGBTrack *fTracks; //* array of tracks
-  Int_t fNTracks;              //* N tracks
-  AliHLTTPCCAMerger *fMerger;  //* global merger
+    AliHLTTPCCATracker *fSlices; //* array of slice trackers
+    int fNSlices;              //* N slices
+    AliHLTTPCCAGBHit *fHits;     //* hit array
+    int *fExt2IntHitID;        //* array of internal hit indices
+    int fNHits;                //* N hits in event
+    int *fTrackHits;           //* track->hits reference array
+    AliHLTTPCCAGBTrack *fTracks; //* array of tracks
+    int fNTracks;              //* N tracks
+    AliHLTTPCCAMerger *fMerger;  //* global merger
 
-  Double_t fTime; //* total time
-  Double_t fStatTime[20]; //* timers 
-  Int_t fStatNEvents;    //* n events proceed
-  Int_t fFirstSliceHit[100]; // hit array
+    double fTime; //* total time
+    double fStatTime[20]; //* timers
+    int fStatNEvents;    //* n events proceed
+    int fFirstSliceHit[100]; // hit array
 
-  Double_t fSliceTrackerTime; // reco time of the slice tracker;
+    double fSliceTrackerTime; // reco time of the slice tracker;
 
 };
 

@@ -1,7 +1,7 @@
 //-*- Mode: C++ -*-
 // $Id$
 // ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        * 
+// This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
@@ -21,65 +21,65 @@
  */
 class AliHLTTPCCAGBHit
 {
- public:
-  AliHLTTPCCAGBHit()
-    :fX(0),fY(0),fZ(0),fErrX(0),fErrY(0),fErrZ(0),fAmp(0),
-    fISlice(0), fIRow(0), fID(0), fIsUsed(0){}
+  public:
+    AliHLTTPCCAGBHit()
+        : fX( 0 ), fY( 0 ), fZ( 0 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0 ), fAmp( 0 ),
+        fISlice( 0 ), fIRow( 0 ), fID( 0 ), fIsUsed( 0 ) {}
 
-  virtual ~AliHLTTPCCAGBHit(){}
+    virtual ~AliHLTTPCCAGBHit() {}
 
-  Float_t X() const { return fX; }
-  Float_t Y() const { return fY; } 
-  Float_t Z() const { return fZ; } 
+    float X() const { return fX; }
+    float Y() const { return fY; }
+    float Z() const { return fZ; }
 
-  Float_t ErrX() const { return fErrX; }
-  Float_t ErrY() const { return fErrY; }
-  Float_t ErrZ() const { return fErrZ; }
-  Float_t Amp()  const { return fAmp; }
+    float ErrX() const { return fErrX; }
+    float ErrY() const { return fErrY; }
+    float ErrZ() const { return fErrZ; }
+    float Amp()  const { return fAmp; }
 
-  Int_t ISlice() const { return fISlice; }
-  Int_t IRow() const { return fIRow; }
-  Int_t ID() const { return fID; }
-  Bool_t IsUsed() const { return fIsUsed; };
+    int ISlice() const { return fISlice; }
+    int IRow() const { return fIRow; }
+    int ID() const { return fID; }
+    bool IsUsed() const { return fIsUsed; };
 
-  void SetX( Float_t v ){  fX = v; }
-  void SetY( Float_t v ){  fY = v; } 
-  void SetZ( Float_t v ){  fZ = v; } 
-  void SetErrX( Float_t v ){  fErrX = v; }
-  void SetErrY( Float_t v ){  fErrY = v; }
-  void SetErrZ( Float_t v ){  fErrZ = v; }
-  void SetAmp( Float_t v ) {  fAmp = v; }
-  void SetISlice( Int_t v ){  fISlice = v; }
-  void SetIRow( Int_t v ){  fIRow = v; }
-  void SetID( Int_t v ){  fID = v; }
-  void SetIsUsed( Bool_t v ){  fIsUsed = v; };
+    void SetX( float v ) {  fX = v; }
+    void SetY( float v ) {  fY = v; }
+    void SetZ( float v ) {  fZ = v; }
+    void SetErrX( float v ) {  fErrX = v; }
+    void SetErrY( float v ) {  fErrY = v; }
+    void SetErrZ( float v ) {  fErrZ = v; }
+    void SetAmp( float v ) {  fAmp = v; }
+    void SetISlice( int v ) {  fISlice = v; }
+    void SetIRow( int v ) {  fIRow = v; }
+    void SetID( int v ) {  fID = v; }
+    void SetIsUsed( bool v ) {  fIsUsed = v; };
 
-  static Bool_t Compare(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b);
+    static bool Compare( const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b );
 
-  static Bool_t CompareRowDown(const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b){
-    return ( a.fIRow>b.fIRow );
-  }
-  static Bool_t ComparePRowDown(const AliHLTTPCCAGBHit *a, const AliHLTTPCCAGBHit *b){
-    return ( a->fIRow>b->fIRow );
-  }
+    static bool CompareRowDown( const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b ) {
+      return ( a.fIRow > b.fIRow );
+    }
+    static bool ComparePRowDown( const AliHLTTPCCAGBHit *a, const AliHLTTPCCAGBHit *b ) {
+      return ( a->fIRow > b->fIRow );
+    }
 
- protected:
+  protected:
 
-  Float_t fX; //* X position
-  Float_t fY; //* Y position
-  Float_t fZ; //* Z position
+    float fX; //* X position
+    float fY; //* Y position
+    float fZ; //* Z position
 
-  Float_t fErrX; //* X position error
-  Float_t fErrY; //* Y position error
-  Float_t fErrZ; //* Z position error
+    float fErrX; //* X position error
+    float fErrY; //* Y position error
+    float fErrZ; //* Z position error
 
-  Float_t fAmp;   //* Maximal amplitude
-  Int_t fISlice; //* slice number
-  Int_t fIRow;   //* row number
-  Int_t fID;     //* external ID (id of AliTPCcluster) 
-  Bool_t fIsUsed; //* is used by GBTracks
+    float fAmp;   //* Maximal amplitude
+    int fISlice; //* slice number
+    int fIRow;   //* row number
+    int fID;     //* external ID (id of AliTPCcluster)
+    bool fIsUsed; //* is used by GBTracks
 
-  //ClassDef(AliHLTTPCCAGBHit,1);
+    //ClassDef(AliHLTTPCCAGBHit,1);
 
 };
 

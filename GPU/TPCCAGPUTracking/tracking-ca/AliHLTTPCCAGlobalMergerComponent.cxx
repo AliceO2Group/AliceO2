@@ -1,5 +1,5 @@
 // **************************************************************************
-// This file is property of and copyright by the ALICE HLT Project          * 
+// This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
@@ -61,7 +61,7 @@ ClassImp( AliHLTTPCCAGlobalMergerComponent )
 AliHLTTPCCAGlobalMergerComponent AliHLTTPCCAGlobalMergerComponent::fgAliHLTTPCCAGlobalMergerComponent;
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-  : fGlobalMerger( 0 ), fSolenoidBz(5)
+    : fGlobalMerger( 0 ), fSolenoidBz( 5 )
 {
   // see header file for class documentation
 }
@@ -116,50 +116,50 @@ int AliHLTTPCCAGlobalMergerComponent::DoInit( int argc, const char** argv )
   fGlobalMerger = new AliHLTTPCCAMerger();
 
   AliHLTTPCCAParam param;
-  
+
   {
     // get gemetry
-    Int_t iSec = 0;
-    Float_t inRmin = 83.65; 
-    Float_t outRmax = 247.7;
-    Float_t plusZmin = 0.0529937; 
-    Float_t plusZmax = 249.778; 
-    Float_t minusZmin = -249.645; 
-    Float_t minusZmax = -0.0799937; 
-    Float_t dalpha = 0.349066;
-    Float_t alpha = 0.174533 + dalpha*iSec;    
-    Bool_t zPlus = (iSec<18 );
-    Float_t zMin =  zPlus ?plusZmin :minusZmin;
-    Float_t zMax =  zPlus ?plusZmax :minusZmax;
-    Int_t nRows = AliHLTTPCTransform::GetNRows();        
-    Float_t padPitch = 0.4;
-    Float_t sigmaZ = 0.228808;    
-    Float_t *rowX = new Float_t [nRows];
-    for( Int_t irow=0; irow<nRows; irow++){
+    int iSec = 0;
+    float inRmin = 83.65;
+    float outRmax = 247.7;
+    float plusZmin = 0.0529937;
+    float plusZmax = 249.778;
+    float minusZmin = -249.645;
+    float minusZmax = -0.0799937;
+    float dalpha = 0.349066;
+    float alpha = 0.174533 + dalpha * iSec;
+    bool zPlus = ( iSec < 18 );
+    float zMin =  zPlus ? plusZmin : minusZmin;
+    float zMax =  zPlus ? plusZmax : minusZmax;
+    int nRows = AliHLTTPCTransform::GetNRows();
+    float padPitch = 0.4;
+    float sigmaZ = 0.228808;
+    float *rowX = new float [nRows];
+    for ( int irow = 0; irow < nRows; irow++ ) {
       rowX[irow] = AliHLTTPCTransform::Row2X( irow );
     }
-     
+
     param.Initialize( iSec, nRows, rowX, alpha, dalpha,
-		      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );    
+                      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
     delete[] rowX;
   }
 
 
   fGlobalMerger->SetSliceParam( param );
 
-  Int_t iResult = 0;
+  int iResult = 0;
 
-  TString arguments=""; 
-  for (int i=0; i<argc; i++) {
-    TString argument=argv[i];
-    if (!arguments.IsNull()) arguments+=" ";
-    arguments+=argument;
+  TString arguments = "";
+  for ( int i = 0; i < argc; i++ ) {
+    TString argument = argv[i];
+    if ( !arguments.IsNull() ) arguments += " ";
+    arguments += argument;
   }
-  if (!arguments.IsNull()) {
-    iResult=Configure(arguments.Data());
+  if ( !arguments.IsNull() ) {
+    iResult = Configure( arguments.Data() );
   } else {
-    iResult=Reconfigure(NULL, NULL);
-  }  
+    iResult = Reconfigure( NULL, NULL );
+  }
   return iResult;
 }
 
@@ -173,17 +173,17 @@ int AliHLTTPCCAGlobalMergerComponent::DoDeinit()
 }
 
 int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &evtData,
-					       const AliHLTComponentBlockData *blocks, AliHLTComponentTriggerData &/*trigData*/,
+    const AliHLTComponentBlockData *blocks, AliHLTComponentTriggerData &/*trigData*/,
     AliHLTUInt8_t *outputPtr, AliHLTUInt32_t &size, AliHLTComponentBlockDataList &outputBlocks )
 {
   // see header file for class documentation
   int iResult = 0;
-  UInt_t maxBufferSize = size;
+  unsigned int maxBufferSize = size;
 
   size = 0;
 
   if ( !outputPtr ) {
-      return -ENOSPC;
+    return -ENOSPC;
   }
   if ( !IsDataEvent() ) {
     return 0;
@@ -200,7 +200,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
     int slice = AliHLTTPCDefinitions::GetMinSliceNr( *block );
     if ( slice < 0 || slice >= AliHLTTPCTransform::GetNSlice() ) {
       HLTError( "invalid slice number %d extracted from specification 0x%08lx,  skipping block of type %s",
-          slice, block->fSpecification, DataType2Text(block->fDataType).c_str() );
+                slice, block->fSpecification, DataType2Text( block->fDataType ).c_str() );
       // just remember the error, if there are other valid blocks ignore the error, return code otherwise
       iResult = -EBADF;
       continue;
@@ -208,8 +208,8 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 
     if ( slice != AliHLTTPCDefinitions::GetMaxSliceNr( *block ) ) {
       // the code was not written for/ never used with multiple slices in one data block/ specification
-      HLTWarning("specification 0x%08lx indicates multiple slices in data block %s: never used before, please audit the code",
-          block->fSpecification, DataType2Text(block->fDataType).c_str());
+      HLTWarning( "specification 0x%08lx indicates multiple slices in data block %s: never used before, please audit the code",
+                  block->fSpecification, DataType2Text( block->fDataType ).c_str() );
     }
     AliHLTTPCCASliceOutput *sliceOut =  reinterpret_cast<AliHLTTPCCASliceOutput *>( block->fPtr );
     sliceOut->SetPointers();
@@ -222,18 +222,18 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 
   // Fill output tracks
 
-  UInt_t mySize = 0;
+  unsigned int mySize = 0;
 
   {
     // check if there was enough space in the output buffer
 
-    Int_t nTracks = mergerOutput->NTracks();
+    int nTracks = mergerOutput->NTracks();
 
     AliHLTTPCTrackArray array( nTracks );
 
-    Int_t nClusters=0;
-    for( Int_t itr=0; itr<nTracks; itr++){
- 
+    int nClusters = 0;
+    for ( int itr = 0; itr < nTracks; itr++ ) {
+
       // convert AliHLTTPCCAMergedTrack to AliHLTTPCTrack
 
       const AliHLTTPCCAMergedTrack &track = mergerOutput->Track( itr );
@@ -242,70 +242,70 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       // first convert to AliExternalTrackParam ( Kappa to Pt )
 
       AliExternalTrackParam tp, tpEnd;
-      AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp, 0 );      
-      AliHLTTPCCATrackConvertor::GetExtParam( track.OuterParam(), tpEnd, 0 );      
+      AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp, 0 );
+      AliHLTTPCCATrackConvertor::GetExtParam( track.OuterParam(), tpEnd, 0 );
 
       // set parameters, with rotation to global coordinates
-      
-      out.SetCharge((Int_t ) tp.GetSign());
-      out.SetPt( TMath::Abs(tp.GetSignedPt()) );
-      out.SetPsi( fmod( TMath::ASin( tp.GetSnp() ) + track.InnerAlpha() ,2*TMath::Pi() ) );
+
+      out.SetCharge( ( int ) tp.GetSign() );
+      out.SetPt( TMath::Abs( tp.GetSignedPt() ) );
+      out.SetPsi( fmod( TMath::ASin( tp.GetSnp() ) + track.InnerAlpha() , 2*TMath::Pi() ) );
       out.SetTgl( tp.GetTgl() );
       {
-	Float_t sinA = TMath::Sin( track.InnerAlpha() );
-	Float_t cosA = TMath::Cos( track.InnerAlpha() );
-	
-	out.SetFirstPoint( tp.GetX()*cosA - tp.GetY()*sinA,
-			   tp.GetX()*sinA + tp.GetY()*cosA, 
-			   tp.GetZ() );
+        float sinA = TMath::Sin( track.InnerAlpha() );
+        float cosA = TMath::Cos( track.InnerAlpha() );
+
+        out.SetFirstPoint( tp.GetX()*cosA - tp.GetY()*sinA,
+                           tp.GetX()*sinA + tp.GetY()*cosA,
+                           tp.GetZ() );
       }
-      
+
       {
-	Float_t sinA = TMath::Sin( track.OuterAlpha() );
-	Float_t cosA = TMath::Cos( track.OuterAlpha() );
-	
-	out.SetLastPoint( tpEnd.GetX()*cosA - tpEnd.GetY()*sinA,
-			  tpEnd.GetX()*sinA + tpEnd.GetY()*cosA, 
-			  tpEnd.GetZ() );
+        float sinA = TMath::Sin( track.OuterAlpha() );
+        float cosA = TMath::Cos( track.OuterAlpha() );
+
+        out.SetLastPoint( tpEnd.GetX()*cosA - tpEnd.GetY()*sinA,
+                          tpEnd.GetX()*sinA + tpEnd.GetY()*cosA,
+                          tpEnd.GetZ() );
       }
 
       // set parameter errors w/o rotation, as it is done in AliHLTTPCTrackArray
 
-      out.SetY0err(tp.GetSigmaY2());
-      out.SetZ0err(tp.GetSigmaZ2());
-      Float_t h = -out.GetPt()*out.GetPt();
+      out.SetY0err( tp.GetSigmaY2() );
+      out.SetZ0err( tp.GetSigmaZ2() );
+      float h = -out.GetPt() * out.GetPt();
       out.SetPterr( h*h*tp.GetSigma1Pt2() );
-      h = 1./TMath::Sqrt(1-out.GetSnp()*out.GetSnp());
-      out.SetPsierr(h*h*tp.GetSigmaSnp2());
-      out.SetTglerr(tp.GetSigmaTgl2());  
- 
+      h = 1. / TMath::Sqrt( 1 - out.GetSnp() * out.GetSnp() );
+      out.SetPsierr( h*h*tp.GetSigmaSnp2() );
+      out.SetTglerr( tp.GetSigmaTgl2() );
+
       // set cluster ID's
 
-      UInt_t hitID[1000];
-      for( Int_t i=0; i<track.NClusters(); i++ ) hitID[i] = mergerOutput->ClusterIDsrc(track.FirstClusterRef()+i);
+      unsigned int hitID[1000];
+      for ( int i = 0; i < track.NClusters(); i++ ) hitID[i] = mergerOutput->ClusterIDsrc( track.FirstClusterRef() + i );
 
       out.SetNHits( track.NClusters() );
       out.SetHits( track.NClusters(), hitID );
-      
-      out.SetSector(-1);
+
+      out.SetSector( -1 );
       out.CalculateHelix();
-      if( !out.CheckConsistency() )  *(array.NextTrack()) = out;      
-      nClusters+=track.NClusters();
+      if ( !out.CheckConsistency() )  *( array.NextTrack() ) = out;
+      nClusters += track.NClusters();
     }
 
-    
-    if ( sizeof(AliHLTTPCTrackletData) + nTracks*sizeof(AliHLTTPCTrackSegmentData) + nClusters*sizeof(UInt_t)
-	 > maxBufferSize ){
+
+    if ( sizeof( AliHLTTPCTrackletData ) + nTracks*sizeof( AliHLTTPCTrackSegmentData ) + nClusters*sizeof( unsigned int )
+         > maxBufferSize ) {
       iResult = -ENOSPC;
     } else {
-      AliHLTTPCTrackletData *outPtr = (AliHLTTPCTrackletData*)(outputPtr);
-      UInt_t nOutTracks = 0;
+      AliHLTTPCTrackletData *outPtr = ( AliHLTTPCTrackletData* )( outputPtr );
+      unsigned int nOutTracks = 0;
       mySize = array.WriteTracks( nOutTracks, outPtr->fTracklets );
-      mySize += sizeof(AliHLTTPCTrackletData);
+      mySize += sizeof( AliHLTTPCTrackletData );
       outPtr->fTrackletCnt = nOutTracks;
     }
   }
-  
+
   AliHLTComponentBlockData resultData;
   FillBlockData( resultData );
   resultData.fOffset = 0;
@@ -321,74 +321,72 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 
 
 
-Int_t AliHLTTPCCAGlobalMergerComponent::Reconfigure(const char* /*cdbEntry*/, const char* /*chainId*/)
+int AliHLTTPCCAGlobalMergerComponent::Reconfigure( const char* /*cdbEntry*/, const char* /*chainId*/ )
 {
   // see header file for class documentation
 
 
-  HLTWarning("TODO: dummy Reconfigure() method" );
+  HLTWarning( "TODO: dummy Reconfigure() method" );
   return 0;
   /*
 
-  Int_t iResult=0;
+  int iResult=0;
   const char* pathBField=kAliHLTCDBSolenoidBz;
-  
+
   if (pathBField) {
     HLTInfo("reconfigure B-Field from entry %s, chain id %s", pathBField,(chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
     AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(pathBField);//,GetRunNo());
     if (pEntry) {
       TObjString* pString=dynamic_cast<TObjString*>(pEntry->GetObject());
       if (pString) {
-	HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
-	iResult=Configure(pString->GetString().Data());
+  HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
+  iResult=Configure(pString->GetString().Data());
       } else {
-	HLTError("configuration object \"%s\" has wrong type, required TObjString", pathBField);
+  HLTError("configuration object \"%s\" has wrong type, required TObjString", pathBField);
       }
     } else {
       HLTError("cannot fetch object \"%s\" from CDB", pathBField);
     }
-  }  
-  return iResult;  
-*/
+  }
+  return iResult;
+  */
 }
 
 
-Int_t AliHLTTPCCAGlobalMergerComponent::Configure( const char* arguments )
+int AliHLTTPCCAGlobalMergerComponent::Configure( const char* arguments )
 {
   //* Set parameters
 
-  Int_t iResult=0;
-  if (!arguments) return iResult;
-  
-  TString allArgs=arguments;
+  int iResult = 0;
+  if ( !arguments ) return iResult;
+
+  TString allArgs = arguments;
   TString argument;
-  Int_t bMissingParam=0;
-  
-  TObjArray* pTokens=allArgs.Tokenize(" ");
+  int bMissingParam = 0;
 
-  Int_t nArgs =  pTokens ?pTokens->GetEntries() :0;
+  TObjArray* pTokens = allArgs.Tokenize( " " );
 
-  for (int i=0; i<nArgs; i++ ){
-    argument=((TObjString*)pTokens->At(i))->GetString();
-    if (argument.IsNull()){
-    }
-    else if (argument.CompareTo("-solenoidBz")==0 ){
-      if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;	
-      fSolenoidBz = ((TObjString*)pTokens->At(i))->GetString().Atof();
-      HLTInfo("Magnetic Field set to: %f", fSolenoidBz );
-    }
-    else {
-      HLTError("Unknown option %s ", argument.Data());
-      iResult=-EINVAL;
+  int nArgs =  pTokens ? pTokens->GetEntries() : 0;
+
+  for ( int i = 0; i < nArgs; i++ ) {
+    argument = ( ( TObjString* )pTokens->At( i ) )->GetString();
+    if ( argument.IsNull() ) {
+    } else if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
+    } else {
+      HLTError( "Unknown option %s ", argument.Data() );
+      iResult = -EINVAL;
     }
   }
   delete pTokens;
 
-  if (bMissingParam) {
-    HLTError("Specifier missed for %s", argument.Data());    
-    iResult=-EINVAL;
+  if ( bMissingParam ) {
+    HLTError( "Specifier missed for %s", argument.Data() );
+    iResult = -EINVAL;
   }
 
   return iResult;
 }
-  
+

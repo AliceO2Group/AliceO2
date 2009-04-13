@@ -1,7 +1,7 @@
 //-*- Mode: C++ -*-
 // $Id$
 // ************************************************************************
-// This file is property of and copyright by the ALICE HLT Project        * 
+// This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
@@ -25,125 +25,124 @@ class AliHLTTPCCATrackLinearisation;
  */
 class AliHLTTPCCATrackParam
 {
- public:
+  public:
 
-  struct AliHLTTPCCATrackFitParam
-  {
-    Float_t fBethe, fE,fTheta2, fEP2, fSigmadE2, fK22,fK33,fK43,fK44;// parameters
-  };
+    struct AliHLTTPCCATrackFitParam {
+      float fBethe, fE, fTheta2, fEP2, fSigmadE2, fK22, fK33, fK43, fK44;// parameters
+    };
 
-  GPUd() Float_t X()      const { return fX;    }
-  GPUd() Float_t Y()      const { return fP[0]; }
-  GPUd() Float_t Z()      const { return fP[1]; }
-  GPUd() Float_t SinPhi() const { return fP[2]; }
-  GPUd() Float_t DzDs()   const { return fP[3]; }
-  GPUd() Float_t QPt()    const { return fP[4]; }
-  GPUd() Float_t SignCosPhi() const { return fSignCosPhi; }
-  GPUd() Float_t Chi2()  const { return fChi2; }
-  GPUd() Int_t   NDF()   const { return fNDF; }
+    GPUd() float X()      const { return fX;    }
+    GPUd() float Y()      const { return fP[0]; }
+    GPUd() float Z()      const { return fP[1]; }
+    GPUd() float SinPhi() const { return fP[2]; }
+    GPUd() float DzDs()   const { return fP[3]; }
+    GPUd() float QPt()    const { return fP[4]; }
+    GPUd() float SignCosPhi() const { return fSignCosPhi; }
+    GPUd() float Chi2()  const { return fChi2; }
+    GPUd() int   NDF()   const { return fNDF; }
 
-  Float_t Err2Y()      const { return fC[0]; }
-  Float_t Err2Z()      const { return fC[2]; }
-  Float_t Err2SinPhi() const { return fC[5]; }
-  Float_t Err2DzDs()   const { return fC[9]; }
-  Float_t Err2QPt()    const { return fC[14]; }
+    float Err2Y()      const { return fC[0]; }
+    float Err2Z()      const { return fC[2]; }
+    float Err2SinPhi() const { return fC[5]; }
+    float Err2DzDs()   const { return fC[9]; }
+    float Err2QPt()    const { return fC[14]; }
 
-  GPUd() Float_t GetX()      const { return fX; }
-  GPUd() Float_t GetY()      const { return fP[0]; }
-  GPUd() Float_t GetZ()      const { return fP[1]; }
-  GPUd() Float_t GetSinPhi() const { return fP[2]; }
-  GPUd() Float_t GetDzDs()   const { return fP[3]; }
-  GPUd() Float_t GetQPt()    const { return fP[4]; }
-  GPUd() Float_t GetSignCosPhi() const { return fSignCosPhi; }
-  GPUd() Float_t GetChi2()   const { return fChi2; }
-  GPUd() Int_t   GetNDF()    const { return fNDF; }
+    GPUd() float GetX()      const { return fX; }
+    GPUd() float GetY()      const { return fP[0]; }
+    GPUd() float GetZ()      const { return fP[1]; }
+    GPUd() float GetSinPhi() const { return fP[2]; }
+    GPUd() float GetDzDs()   const { return fP[3]; }
+    GPUd() float GetQPt()    const { return fP[4]; }
+    GPUd() float GetSignCosPhi() const { return fSignCosPhi; }
+    GPUd() float GetChi2()   const { return fChi2; }
+    GPUd() int   GetNDF()    const { return fNDF; }
 
-  GPUd() Float_t GetKappa( Float_t Bz ) const { return fP[4]*Bz; }
-  GPUd() Float_t GetCosPhi() const { return fSignCosPhi*CAMath::Sqrt(1-SinPhi()*SinPhi()); }
+    GPUd() float GetKappa( float Bz ) const { return fP[4]*Bz; }
+    GPUd() float GetCosPhi() const { return fSignCosPhi*CAMath::Sqrt( 1 - SinPhi()*SinPhi() ); }
 
-  GPUd() Float_t GetErr2Y()      const { return fC[0]; }
-  GPUd() Float_t GetErr2Z()      const { return fC[2]; }
-  GPUd() Float_t GetErr2SinPhi() const { return fC[5]; }
-  GPUd() Float_t GetErr2DzDs()   const { return fC[9]; }
-  GPUd() Float_t GetErr2QPt()    const { return fC[14]; }
+    GPUd() float GetErr2Y()      const { return fC[0]; }
+    GPUd() float GetErr2Z()      const { return fC[2]; }
+    GPUd() float GetErr2SinPhi() const { return fC[5]; }
+    GPUd() float GetErr2DzDs()   const { return fC[9]; }
+    GPUd() float GetErr2QPt()    const { return fC[14]; }
 
-  GPUhd() const Float_t *Par() const { return fP; }
-  GPUhd() const Float_t *Cov() const { return fC; }
+    GPUhd() const float *Par() const { return fP; }
+    GPUhd() const float *Cov() const { return fC; }
 
-  const Float_t *GetPar() const { return fP; }
-  const Float_t *GetCov() const { return fC; }
+    const float *GetPar() const { return fP; }
+    const float *GetCov() const { return fC; }
 
-  GPUhd() void SetPar( Int_t i, Float_t v ){ fP[i] = v; }
-  GPUhd() void SetCov( Int_t i, Float_t v ){ fC[i] = v; }
+    GPUhd() void SetPar( int i, float v ) { fP[i] = v; }
+    GPUhd() void SetCov( int i, float v ) { fC[i] = v; }
 
-  GPUd() void SetX( Float_t v )     {  fX = v;    }
-  GPUd() void SetY( Float_t v )     {  fP[0] = v; }
-  GPUd() void SetZ( Float_t v )     {  fP[1] = v; }
-  GPUd() void SetSinPhi( Float_t v ){  fP[2] = v; }
-  GPUd() void SetDzDs( Float_t v )  {  fP[3] = v; }
-  GPUd() void SetQPt( Float_t v )   {  fP[4] = v; }
-  GPUd() void SetSignCosPhi( Float_t v ){  fSignCosPhi = v; }
-  GPUd() void SetChi2( Float_t v )  {  fChi2 = v; }
-  GPUd() void SetNDF( Int_t v )   { fNDF = v; }  
-
-
-  GPUd() Float_t GetDist2( const AliHLTTPCCATrackParam &t ) const;
-  GPUd() Float_t GetDistXZ2( const AliHLTTPCCATrackParam &t ) const;
+    GPUd() void SetX( float v )     {  fX = v;    }
+    GPUd() void SetY( float v )     {  fP[0] = v; }
+    GPUd() void SetZ( float v )     {  fP[1] = v; }
+    GPUd() void SetSinPhi( float v ) {  fP[2] = v; }
+    GPUd() void SetDzDs( float v )  {  fP[3] = v; }
+    GPUd() void SetQPt( float v )   {  fP[4] = v; }
+    GPUd() void SetSignCosPhi( float v ) {  fSignCosPhi = v; }
+    GPUd() void SetChi2( float v )  {  fChi2 = v; }
+    GPUd() void SetNDF( int v )   { fNDF = v; }
 
 
-  GPUd() Float_t GetS( Float_t x, Float_t y, Float_t Bz  ) const;
-
-  GPUd() void GetDCAPoint( Float_t x, Float_t y, Float_t z,
-			   Float_t &px, Float_t &py, Float_t &pz, Float_t Bz  ) const;
-
-  
-  GPUd() Bool_t TransportToX( Float_t x, Float_t Bz, Float_t maxSinPhi=.999 );
-  GPUd() Bool_t TransportToXWithMaterial( Float_t x, Float_t Bz, Float_t maxSinPhi=.999 );
-
-  GPUd() Bool_t  TransportToX( Float_t x, AliHLTTPCCATrackLinearisation &t0, 
-			       Float_t Bz,  Float_t maxSinPhi=.999, Float_t *DL=0 ); 
-
-  GPUd() Bool_t  TransportToX( Float_t x, Float_t sinPhi0, Float_t cosPhi0,  Float_t Bz, Float_t maxSinPhi=.999 );
-
- 
-  GPUd() Bool_t  TransportToXWithMaterial( Float_t x,  AliHLTTPCCATrackLinearisation &t0, 
-					   AliHLTTPCCATrackFitParam &par, Float_t Bz, Float_t maxSinPhi=.999 );
-
-  GPUd() Bool_t  TransportToXWithMaterial( Float_t x, 
-					   AliHLTTPCCATrackFitParam &par, Float_t Bz, Float_t maxSinPhi=.999 );
+    GPUd() float GetDist2( const AliHLTTPCCATrackParam &t ) const;
+    GPUd() float GetDistXZ2( const AliHLTTPCCATrackParam &t ) const;
 
 
+    GPUd() float GetS( float x, float y, float Bz  ) const;
 
-  GPUd() static Float_t ApproximateBetheBloch( Float_t beta2 );
-  GPUd() static Float_t BetheBlochGeant(Float_t bg,
-					Float_t kp0=2.33,
-					Float_t kp1=0.20,
-					Float_t kp2=3.00,
-					Float_t kp3=173e-9,
-					Float_t kp4=0.49848
-					);    
-  GPUd() static Float_t BetheBlochSolid(Float_t bg);
-  GPUd() static Float_t BetheBlochGas(Float_t bg);
+    GPUd() void GetDCAPoint( float x, float y, float z,
+                             float &px, float &py, float &pz, float Bz  ) const;
 
 
-  GPUd() void CalculateFitParameters( AliHLTTPCCATrackFitParam &par, Float_t mass= 0.13957 );
-  GPUd() Bool_t CorrectForMeanMaterial( Float_t xOverX0,  Float_t xTimesRho, const AliHLTTPCCATrackFitParam &par );
+    GPUd() bool TransportToX( float x, float Bz, float maxSinPhi = .999 );
+    GPUd() bool TransportToXWithMaterial( float x, float Bz, float maxSinPhi = .999 );
 
-  GPUd() Bool_t Rotate( Float_t alpha, Float_t maxSinPhi = .999 );
-  GPUd() Bool_t Rotate( Float_t alpha, AliHLTTPCCATrackLinearisation &t0, Float_t maxSinPhi=.999 );
-  GPUd() Bool_t Filter( Float_t y, Float_t z, Float_t err2Y, Float_t err2Z, Float_t maxSinPhi=.999 );
+    GPUd() bool  TransportToX( float x, AliHLTTPCCATrackLinearisation &t0,
+                                 float Bz,  float maxSinPhi = .999, float *DL = 0 );
+
+    GPUd() bool  TransportToX( float x, float sinPhi0, float cosPhi0,  float Bz, float maxSinPhi = .999 );
 
 
-  GPUd() void Print() const;
+    GPUd() bool  TransportToXWithMaterial( float x,  AliHLTTPCCATrackLinearisation &t0,
+        AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = .999 );
 
-private:
+    GPUd() bool  TransportToXWithMaterial( float x,
+        AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = .999 );
 
-  Float_t fX;      // x position
-  Float_t fSignCosPhi; // sign of cosPhi
-  Float_t fP[5];   // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
-  Float_t fC[15];  // the covariance matrix for Y,Z,SinPhi,..
-  Float_t fChi2;   // the chi^2 value
-  Int_t   fNDF;    // the Number of Degrees of Freedom
+
+
+    GPUd() static float ApproximateBetheBloch( float beta2 );
+    GPUd() static float BetheBlochGeant( float bg,
+                                           float kp0 = 2.33,
+                                           float kp1 = 0.20,
+                                           float kp2 = 3.00,
+                                           float kp3 = 173e-9,
+                                           float kp4 = 0.49848
+                                         );
+    GPUd() static float BetheBlochSolid( float bg );
+    GPUd() static float BetheBlochGas( float bg );
+
+
+    GPUd() void CalculateFitParameters( AliHLTTPCCATrackFitParam &par, float mass = 0.13957 );
+    GPUd() bool CorrectForMeanMaterial( float xOverX0,  float xTimesRho, const AliHLTTPCCATrackFitParam &par );
+
+    GPUd() bool Rotate( float alpha, float maxSinPhi = .999 );
+    GPUd() bool Rotate( float alpha, AliHLTTPCCATrackLinearisation &t0, float maxSinPhi = .999 );
+    GPUd() bool Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi = .999 );
+
+
+    GPUd() void Print() const;
+
+  private:
+
+    float fX;      // x position
+    float fSignCosPhi; // sign of cosPhi
+    float fP[5];   // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
+    float fC[15];  // the covariance matrix for Y,Z,SinPhi,..
+    float fChi2;   // the chi^2 value
+    int   fNDF;    // the Number of Degrees of Freedom
 };
 
 #endif
