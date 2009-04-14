@@ -153,7 +153,8 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 {
   // Configure the CA tracker component
 
-  fSolenoidBz = 5;
+  const double kCLight = 0.000299792458;
+  fSolenoidBz = 5.*kCLight;
   fMinNTrackClusters = 0;
   fClusterZCut = 500.;
   fFullTime = 0;
@@ -257,6 +258,8 @@ int AliHLTTPCCATrackerComponent::Configure( const char* arguments )
 {
   //* Set parameters
 
+  const double kCLight = 0.000299792458;
+
   int iResult = 0;
   if ( !arguments ) return iResult;
 
@@ -273,7 +276,7 @@ int AliHLTTPCCATrackerComponent::Configure( const char* arguments )
     if ( argument.IsNull() ) {
     } else if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      fSolenoidBz =  kCLight * ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
       HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
     } else if ( argument.CompareTo( "-minNClustersOnTrack" ) == 0 ||
                 argument.CompareTo( "-minNTrackClusters" ) == 0 ) {
