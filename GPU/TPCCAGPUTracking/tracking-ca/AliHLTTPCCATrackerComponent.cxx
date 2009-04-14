@@ -342,8 +342,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
   {
     std::vector<int> slices;
     std::vector<int>::iterator slIter;
-    std::vector<unsigned> sliceCnts;
-    std::vector<unsigned>::iterator slCntIter;
+    std::vector<unsigned int> sliceCnts;
+    std::vector<unsigned int>::iterator slCntIter;
 
     for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
       iter = blocks + ndx;
@@ -371,7 +371,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       Logging( kHLTLogError, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
                "Multiple slice numbers found in event 0x%08lX (%lu). Determining maximum occuring slice number...",
                evtData.fEventID, evtData.fEventID );
-      unsigned maxCntSlice = 0;
+      unsigned int maxCntSlice = 0;
       slCntIter = sliceCnts.begin();
       for ( slIter = slices.begin(); slIter != slices.end(); slIter++, slCntIter++ ) {
         Logging( kHLTLogError, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
