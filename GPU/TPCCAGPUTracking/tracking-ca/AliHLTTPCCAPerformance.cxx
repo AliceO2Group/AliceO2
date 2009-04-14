@@ -105,17 +105,29 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance()
     fhPullQPt( 0 ),
     fhPullYS( 0 ),
     fhPullZT( 0 ),
-    fhHitErrY( 0 ),
-    fhHitErrZ( 0 ),
-    fhHitResY( 0 ),
-    fhHitResZ( 0 ),
-    fhHitPullY( 0 ),
-    fhHitPullZ( 0 ),
-    fhHitShared( 0 ),
-    fhHitResY1( 0 ),
-    fhHitResZ1( 0 ),
-    fhHitPullY1( 0 ),
-    fhHitPullZ1( 0 ),
+    fhCluShared( 0 ),
+    fhCluResY( 0 ),
+    fhCluResZ( 0 ),
+    fhCluErrY( 0 ),
+    fhCluErrZ( 0 ),
+    fhCluPullY( 0 ),
+    fhCluPullZ( 0 ),
+    fhCluResY1( 0 ),
+    fhCluResZ1( 0 ),
+    fhCluErrY1( 0 ),
+    fhCluErrZ1( 0 ),
+    fhCluPullY1( 0 ),
+    fhCluPullZ1( 0 ),
+    fhCluOrigErrY( 0 ),
+    fhCluOrigErrZ( 0 ),
+    fhCluOrigPullY( 0 ),
+    fhCluOrigPullZ( 0 ),
+    fhCluOrigResY1( 0 ),
+    fhCluOrigResZ1( 0 ),
+    fhCluOrigErrY1( 0 ),
+    fhCluOrigErrZ1( 0 ),
+    fhCluOrigPullY1( 0 ),
+    fhCluOrigPullZ1( 0 ),
     fhCellPurity( 0 ),
     fhCellNHits( 0 ),
     fhCellPurityVsN( 0 ),
@@ -221,17 +233,29 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance( const AliHLTTPCCAPerformance& )
     fhPullQPt( 0 ),
     fhPullYS( 0 ),
     fhPullZT( 0 ),
-    fhHitErrY( 0 ),
-    fhHitErrZ( 0 ),
-    fhHitResY( 0 ),
-    fhHitResZ( 0 ),
-    fhHitPullY( 0 ),
-    fhHitPullZ( 0 ),
-    fhHitShared( 0 ),
-    fhHitResY1( 0 ),
-    fhHitResZ1( 0 ),
-    fhHitPullY1( 0 ),
-    fhHitPullZ1( 0 ),
+    fhCluShared( 0 ),
+    fhCluResY( 0 ),
+    fhCluResZ( 0 ),
+    fhCluErrY( 0 ),
+    fhCluErrZ( 0 ),
+    fhCluPullY( 0 ),
+    fhCluPullZ( 0 ),
+    fhCluResY1( 0 ),
+    fhCluResZ1( 0 ),
+    fhCluErrY1( 0 ),
+    fhCluErrZ1( 0 ),
+    fhCluPullY1( 0 ),
+    fhCluPullZ1( 0 ),
+    fhCluOrigErrY( 0 ),
+    fhCluOrigErrZ( 0 ),
+    fhCluOrigPullY( 0 ),
+    fhCluOrigPullZ( 0 ),
+    fhCluOrigResY1( 0 ),
+    fhCluOrigResZ1( 0 ),
+    fhCluOrigErrY1( 0 ),
+    fhCluOrigErrZ1( 0 ),
+    fhCluOrigPullY1( 0 ),
+    fhCluOrigPullZ1( 0 ),
     fhCellPurity( 0 ),
     fhCellNHits( 0 ),
     fhCellPurityVsN( 0 ),
@@ -498,21 +522,35 @@ void AliHLTTPCCAPerformance::CreateHistos()
   gDirectory->mkdir( "Clusters" );
   gDirectory->cd( "Clusters" );
 
-  fhHitShared = new TProfile( "fhHitSharedf", "fhHitShared vs row", 160, 0., 160. );
+  fhCluShared = new TProfile( "fhCluSharedf", "% of shared Clusters vs row", 160, 0., 160. );
 
-  fhHitResY = new TH1D( "resHitY", "Y cluster resoltion [cm]", 100, -2., 2. );
-  fhHitResZ = new TH1D( "resHitZ", "Z cluster resoltion [cm]", 100, -2., 2. );
-  fhHitPullY = new TH1D( "pullHitY", "Y cluster pull", 50, -10., 10. );
-  fhHitPullZ = new TH1D( "pullHitZ", "Z cluster pull", 50, -10., 10. );
+  fhCluResY  = new TH1D( "resCluY", "Y cluster resoltion [cm]", 100, -2., 2. );
+  fhCluResZ  = new TH1D( "resCluZ", "Z cluster resoltion [cm]", 100, -2., 2. );
+  fhCluErrY = new TH1D( "errCluY", "Y cluster error [cm]", 100, 0., 1. );
+  fhCluErrZ = new TH1D( "errCluZ", "Z cluster error [cm]", 100, 0., 1. );
+  fhCluPullY = new TH1D( "pullCluY", "Y cluster pull", 50, -10., 10. );
+  fhCluPullZ = new TH1D( "pullCluZ", "Z cluster pull", 50, -10., 10. );
 
-  fhHitResY1 = new TH1D( "resHitY1", "Y cluster resoltion [cm]", 100, -2., 2. );
-  fhHitResZ1 = new TH1D( "resHitZ1", "Z cluster resoltion [cm]", 100, -2., 2. );
-  fhHitPullY1 = new TH1D( "pullHitY1", "Y cluster pull", 50, -10., 10. );
-  fhHitPullZ1 = new TH1D( "pullHitZ1", "Z cluster pull", 50, -10., 10. );
+  fhCluResY1  = new TH1D( "mcFast_resCluY", "Y cluster resoltion [cm], Pt>1", 100, -2., 2. );
+  fhCluResZ1  = new TH1D( "mcFast_resCluZ", "Z cluster resoltion [cm], Pt>1", 100, -2., 2. );
+  fhCluErrY1  = new TH1D( "mcFast_errCluY", "Y cluster error [cm], Pt>1", 100, 0., 1. );
+  fhCluErrZ1  = new TH1D( "mcFast_errCluZ", "Z cluster error [cm], Pt>1", 100, 0., 1. );
+  fhCluPullY1 = new TH1D( "mcFast_pullCluY", "Y cluster pull, Pt>1", 50, -10., 10. );
+  fhCluPullZ1 = new TH1D( "mcFast_pullCluZ", "Z cluster pull, Pt>1", 50, -10., 10. );
 
-  fhHitErrY = new TH1D( "HitErrY", "Y cluster error [cm]", 100, 0., 1. );
-  fhHitErrZ = new TH1D( "HitErrZ", "Z cluster error [cm]", 100, 0., 1. );
+  gDirectory->mkdir( "OriginalErrors" );
+  gDirectory->cd( "OriginalErrors" );
 
+  fhCluOrigErrY = new TH1D( "orig_errCluY", "original Y cluster error [cm]", 100, 0., 1. );
+  fhCluOrigErrZ = new TH1D( "orig_errCluZ", "original Z cluster error [cm]", 100, 0., 1. );
+  fhCluOrigPullY = new TH1D( "orig_pullCluY", "original Y cluster pull", 50, -10., 10. );
+  fhCluOrigPullZ = new TH1D( "orig_pullCluZ", "original Z cluster pull", 50, -10., 10. );
+  fhCluOrigErrY1  = new TH1D( "orig_mcFast_errCluY", "original Y cluster error [cm], Pt>1", 100, 0., 1. );
+  fhCluOrigErrZ1  = new TH1D( "orig_mcFast_errCluZ", "original Z cluster error [cm], Pt>1", 100, 0., 1. );
+  fhCluOrigPullY1 = new TH1D( "orig_mcFast_pullCluY", "original Y cluster pull, Pt>1", 50, -10., 10. );
+  fhCluOrigPullZ1 = new TH1D( "orig_mcFast_pullCluZ", "original Z cluster pull, Pt>1", 50, -10., 10. );
+
+  gDirectory->cd( ".." );
   gDirectory->cd( ".." );
 
   gDirectory->mkdir( "Cells" );
@@ -1585,12 +1623,18 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
     for ( int ih = 0; ih < nHits; ih++ ) {
       AliHLTTPCCAGBHit &hit = fTracker->Hits()[ih];
       AliHLTTPCCAHitLabel &l = fHitLabels[hit.ID()];
-      fhHitErrY->Fill( hit.ErrY() );
-      fhHitErrZ->Fill( hit.ErrZ() );
+      fhCluOrigErrY->Fill( hit.ErrY() );
+      fhCluOrigErrZ->Fill( hit.ErrZ() );
       int nmc = 0;
       for ( int il = 0; il < 3; il++ ) if ( l.fLab[il] >= 0 ) nmc++;
-      if ( nmc == 1 ) fhHitShared->Fill( hit.IRow(), 0 );
-      else if ( nmc > 1 ) fhHitShared->Fill( hit.IRow(), 1 );
+      if ( nmc == 1 ) {
+        fhCluShared->Fill( hit.IRow(), 0 );
+        AliHLTTPCCAMCTrack &track = fMCTracks[l.fLab[0]];
+        if ( track.Pt() >= 1 ) {
+          fhCluOrigErrY1->Fill( hit.ErrY() );
+          fhCluOrigErrZ1->Fill( hit.ErrZ() );
+        }
+      } else if ( nmc > 1 ) fhCluShared->Fill( hit.IRow(), 1 );
     }
   }
 
@@ -1656,32 +1700,40 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
       double dz = p2.Sz() - p1.Sz();
       if ( TMath::Abs( dx ) > 1.e-8 && TMath::Abs( p1.Sx() - hit.X() ) < 2. && TMath::Abs( p2.Sx() - hit.X() ) < 2.  ) {
         double sx = hit.X();
-        //double sy = p1.Sy() + dy/dx*(sx-p1.Sx());
+        double sy = p1.Sy() + dy / dx * ( sx - p1.Sx() );
         double sz = p1.Sz() + dz / dx * ( sx - p1.Sx() );
 
-        //float errY, errZ;
+        float errY, errZ;
         {
-          AliHLTTPCCATrackParam t;
-          t.SetZ( sz );
-          t.SetSinPhi( dy / TMath::Sqrt( dx*dx + dy*dy ) );
-          t.SetSignCosPhi( dx );
-          t.SetDzDs( dz / TMath::Sqrt( dx*dx + dy*dy ) );
-          //fTracker->GetErrors2(hit,t,errY, errZ );
-          //errY = TMath::Sqrt(errY);
-          //errZ = TMath::Sqrt(errZ);
+          float sinPhi = dy / TMath::Sqrt( dx * dx + dy * dy );
+          float cosPhi = dx / TMath::Sqrt( dx * dx + dy * dy );
+          float dzDs   = dz / TMath::Sqrt( dx * dx + dy * dy );
+          fTracker->Slices()[hit.ISlice()].Param().GetClusterErrors2( hit.IRow(), sz, sinPhi, cosPhi, dzDs, errY, errZ );
+          errY = TMath::Sqrt( errY );
+          errZ = TMath::Sqrt( errZ );
         }
-        /*
-        fhHitResY->Fill((hit.Y()-sy));
-        fhHitResZ->Fill((hit.Z()-sz));
-        fhHitPullY->Fill((hit.Y()-sy)/errY);
-        fhHitPullZ->Fill((hit.Z()-sz)/errZ);
-        if( track.Pt()>=1. ){
-          fhHitResY1->Fill((hit.Y()-sy));
-          fhHitResZ1->Fill((hit.Z()-sz));
-          fhHitPullY1->Fill((hit.Y()-sy)/errY);
-          fhHitPullZ1->Fill((hit.Z()-sz)/errZ);
+
+        float oErrY = hit.ErrY();
+        float oErrZ = hit.ErrZ();
+
+        fhCluErrY->Fill( errY );
+        fhCluErrZ->Fill( errZ );
+        fhCluResY->Fill( ( hit.Y() - sy ) );
+        fhCluResZ->Fill( ( hit.Z() - sz ) );
+        fhCluPullY->Fill( ( hit.Y() - sy ) / errY );
+        fhCluPullZ->Fill( ( hit.Z() - sz ) / errZ );
+        fhCluOrigPullY->Fill( ( hit.Y() - sy ) / oErrY );
+        fhCluOrigPullZ->Fill( ( hit.Z() - sz ) / oErrZ );
+        if ( track.Pt() >= 1. ) {
+          fhCluErrY1->Fill( errY );
+          fhCluErrZ1->Fill( errZ );
+          fhCluResY1->Fill( ( hit.Y() - sy ) );
+          fhCluResZ1->Fill( ( hit.Z() - sz ) );
+          fhCluPullY1->Fill( ( hit.Y() - sy ) / errY );
+          fhCluPullZ1->Fill( ( hit.Z() - sz ) / errZ );
+          fhCluOrigPullY1->Fill( ( hit.Y() - sy ) / oErrY );
+          fhCluOrigPullZ1->Fill( ( hit.Z() - sz ) / oErrZ );
         }
-        */
       }
     }
   }
