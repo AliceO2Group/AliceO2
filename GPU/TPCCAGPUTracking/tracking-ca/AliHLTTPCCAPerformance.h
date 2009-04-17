@@ -159,32 +159,20 @@ class AliHLTTPCCAPerformance
     *fhPullYS,       //* sqrt(chi2/ndf) deviation of the track parameters Y and SinPhi at the TPC entrance
     *fhPullZT;      //* sqrt(chi2/ndf) deviation of the track parameters Z and DzDs at the TPC entrance
 
-    TProfile *fhCluShared; //* ratio of the shared clusters
+    TH1D
+    *fhHitErrY, //* hit error in Y
+    *fhHitErrZ,//* hit error in Z
+    *fhHitResY,//* hit resolution Y
+    *fhHitResZ,//* hit resolution Z
+    *fhHitPullY,//* hit  pull Y
+    *fhHitPullZ;//* hit  pull Z
+    TProfile *fhHitShared; //* ratio of the shared clusters
 
     TH1D
-    *fhCluResY,  //* cluster resolution Y
-    *fhCluResZ,  //* cluster resolution Z
-    *fhCluErrY,  //* cluster error in Y
-    *fhCluErrZ,  //* cluster error in Z
-    *fhCluPullY, //* cluster  pull Y
-    *fhCluPullZ, //* cluster  pull Z
-    *fhCluResY1, //* cluster resolution Y, Pt>1
-    *fhCluResZ1, //* cluster resolution Z, Pt>1
-    *fhCluErrY1, //* cluster error in Y, Pt>1
-    *fhCluErrZ1, //* cluster error in Z, Pt>1
-    *fhCluPullY1,//* cluster  pull Y, Pt>1
-    *fhCluPullZ1,//* cluster  pull Z, Pt>1
-    *fhCluOrigErrY,  //* cluster original error in Y
-    *fhCluOrigErrZ,  //* cluster original error in Z
-    *fhCluOrigPullY, //* cluster original  pull Y
-    *fhCluOrigPullZ, //* cluster original  pull Z
-    *fhCluOrigResY1, //* cluster original resolution Y, Pt>1
-    *fhCluOrigResZ1, //* cluster original resolution Z, Pt>1
-    *fhCluOrigErrY1, //* cluster original error in Y, Pt>1
-    *fhCluOrigErrZ1, //* cluster original error in Z, Pt>1
-    *fhCluOrigPullY1,//* cluster  original pull Y, Pt>1
-    *fhCluOrigPullZ1;//* cluster  original pull Z, Pt>1
-
+    *fhHitResY1,//* hit resolution Y, pt>1GeV
+    *fhHitResZ1,//* hit resolution Z, pt>1GeV
+    *fhHitPullY1,//* hit  pull Y, pt>1GeV
+    *fhHitPullZ1;//* hit  pull Z, pt>1GeV
 
     TH1D
     *fhCellPurity,//* cell purity

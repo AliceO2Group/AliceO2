@@ -337,8 +337,8 @@ void AliHLTTPCCAMerger::UnpackSlices()
 
 
 bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
-                                    AliHLTTPCCATrackParam t0, float Alpha0,
-                                    int hits[], int &NTrackHits, bool dir )
+                                  AliHLTTPCCATrackParam t0, float Alpha0,
+                                  int hits[], int &NTrackHits, bool dir )
 {
   // Fit the track
 
@@ -429,7 +429,7 @@ bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
 
 
 float AliHLTTPCCAMerger::GetChi2( float x1, float y1, float a00, float a10, float a11,
-                                    float x2, float y2, float b00, float b10, float b11  )
+                                  float x2, float y2, float b00, float b10, float b11  )
 {
   //* Calculate Chi2/ndf deviation
 
@@ -573,12 +573,12 @@ void AliHLTTPCCAMerger::SplitBorderTracks( int iSlice1, AliHLTTPCCABorderTrack B
 
 
       float chi2ys = GetChi2( t1.Y(), c * t1.SinPhi(), t1.Cov()[0], c * t1.Cov()[3], t1.Cov()[5],
-                                t2.Y(),  t2.SinPhi(), t2.Cov()[0],  t2.Cov()[3], t2.Cov()[5] );
+                              t2.Y(),  t2.SinPhi(), t2.Cov()[0],  t2.Cov()[3], t2.Cov()[5] );
 
       if ( chi2ys > factor2ys ) continue;
 
       float chi2zt = GetChi2( t1.Z(), c * t1.DzDs(), t1.Cov()[2], c * t1.Cov()[7], t1.Cov()[9],
-                                t2.Z(),  t2.DzDs(), t2.Cov()[2],  t2.Cov()[7], t2.Cov()[9] );
+                              t2.Z(),  t2.DzDs(), t2.Cov()[2],  t2.Cov()[7], t2.Cov()[9] );
 
       if ( chi2zt > factor2zt ) continue;
 
@@ -647,7 +647,7 @@ void AliHLTTPCCAMerger::Merging()
 
   if ( 1 ) {// merging track segments withing one slice
 
-    AliHLTTPCCABorderTrack bord[maxNSliceTracks*10];
+    AliHLTResizableArray<AliHLTTPCCABorderTrack> bord( maxNSliceTracks*10 );
 
     AliHLTTPCCASliceTrackInfo *tmpT = new AliHLTTPCCASliceTrackInfo[maxNSliceTracks];
     AliHLTTPCCAClusterInfo *tmpH = new AliHLTTPCCAClusterInfo[fMaxClusterInfos];
@@ -655,8 +655,8 @@ void AliHLTTPCCAMerger::Merging()
     for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
 
       int nBord = 0;
-      MakeBorderTracks( iSlice, 4, bord, nBord );
-      SplitBorderTracks( iSlice, bord, nBord, iSlice, bord, nBord );
+      MakeBorderTracks( iSlice, 4, bord.Data(), nBord );
+      SplitBorderTracks( iSlice, bord.Data(), nBord, iSlice, bord.Data(), nBord );
 
       int nTr = 0, nH = 0;
       int sliceFirstClusterRef = 0;

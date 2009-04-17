@@ -29,6 +29,7 @@
 #include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCATrackLinearisation.h"
+#include "AliHLTTPCCAClusterData.h"
 #include "TStopwatch.h"
 
 //#define DRAW
@@ -163,70 +164,35 @@ void AliHLTTPCCAGBTracker::FindTracks()
   AliHLTTPCCADisplay::Instance().Ask();
 #endif //DRAW  
 
+  if ( fNHits <= 0 ) return;
 
   std::sort( fHits, fHits + fNHits, AliHLTTPCCAGBHit::Compare );
 
   for ( int i = 0; i < fNHits; i++ )  fExt2IntHitID[fHits[i].ID()] = i;
 
-  // Read hits, row by row
+  AliHLTResizableArray<ClusterData> clusterData( fNSlices );
+  {
+    int offset = 0;
+    int nextSlice = 0;
+    int numberOfUsedSlices = 0;
+    do {
+      fFirstSliceHit[nextSlice] = offset;
+      AliHLTTPCCAClusterData &data = clusterData[numberOfUsedSlices++];
+      data.readEvent( fHits, &offset, fNHits );
 
-  int nHitsTotal = fNHits;
-  float *hitX = new float [nHitsTotal];
-  float *hitY = new float [nHitsTotal];
-  float *hitZ = new float [nHitsTotal];
-
-  int *sliceNHits = new int[ fNSlices ];
-  int **rowNHits = new int* [fNSlices];
-  for ( int i = 0; i < fNSlices; i++ ) rowNHits[i] = new int[200];
-
-  for ( int is = 0; is < fNSlices; is++ ) {
-    sliceNHits[is] = 0;
-    for ( int ir = 0; ir < 200; ir++ ) rowNHits[is][ir] = 0;
-  }
-
-  for ( int ih = 0; ih < nHitsTotal; ih++ ) {
-    AliHLTTPCCAGBHit &h = fHits[ih];
-    sliceNHits[h.ISlice()]++;
-    rowNHits[h.ISlice()][h.IRow()]++;
-  }
-
-  int firstSliceHit = 0;
-  for ( int is = 0; is < fNSlices; is++ ) {
-    fFirstSliceHit[is] = firstSliceHit;
-    int rowFirstHits[200];
-    int firstRowHit = 0;
-    for ( int ir = 0; ir < 200; ir++ ) {
-      rowFirstHits[ir] = firstRowHit;
-      for ( int ih = 0; ih < rowNHits[is][ir]; ih++ ) {
-        AliHLTTPCCAGBHit &h = fHits[firstSliceHit + firstRowHit + ih];
-        hitX[firstRowHit + ih] = h.X();
-        hitY[firstRowHit + ih] = h.Y();
-        hitZ[firstRowHit + ih] = h.Z();
+      while ( nextSlice < data.Slice() ) {
+        fSlices[nextSlice++].StartEvent();
+        fFirstSliceHit[nextSlice] = fFirstSliceHit[nextSlice - 1];
       }
-      firstRowHit += rowNHits[is][ir];
+      ++nextSlice;
+      // give the data to the slice tracker
+      fSlices[data.Slice()].ReadEvent( &data );
+    } while ( offset < fNHits );
+    while ( nextSlice < fNSlices ) {
+      fFirstSliceHit[nextSlice] = offset;
+      fSlices[nextSlice++].StartEvent();
     }
-    fSlices[is].ReadEvent( rowFirstHits, &*rowNHits[is], hitX, hitY, hitZ, sliceNHits[is] );
-
-    //int data[ rowNHits[is]]
-    //AliHLTTPCCAEventHeader event;
-
-    firstSliceHit += sliceNHits[is];
   }
-
-  if ( sliceNHits ) delete[] sliceNHits;
-  if ( rowNHits ) {
-    for ( int i = 0; i < fNSlices; i++ ) delete[] rowNHits[i];
-    delete[] rowNHits;
-  }
-
-  delete[] hitX;
-  hitX = 0;
-  if ( hitY ) delete[] hitY;
-  hitY = 0;
-  if ( hitZ ) delete[] hitZ;
-  hitZ = 0;
-
-  if ( fNHits <= 0 ) return;
 
   TStopwatch timer1;
   TStopwatch timer2;
@@ -333,9 +299,8 @@ void AliHLTTPCCAGBTracker::Merge()
       unsigned int iSlice = AliHLTTPCCADataCompressor::IDsrc2ISlice( iDsrc );
       unsigned int iRow   = AliHLTTPCCADataCompressor::IDsrc2IRow( iDsrc );
       unsigned int iClu   = AliHLTTPCCADataCompressor::IDsrc2IClu( iDsrc );
-      fTrackHits[nTrackHits+icl] = fFirstSliceHit[iSlice] + fSlices[iSlice].Row( iRow ).FirstHit() + iClu;
+      fTrackHits[nTrackHits++] = fFirstSliceHit[iSlice] + fSlices[iSlice].Row( iRow ).HitNumberOffset() + iClu;
     }
-    nTrackHits += track.NClusters();
     fNTracks++;
   }
 
@@ -358,8 +323,8 @@ void AliHLTTPCCAGBTracker::Merge()
 
 
 bool AliHLTTPCCAGBTracker::FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrackParam t0,
-                                       float &Alpha, int hits[], int &NTrackHits,
-                                       bool dir )
+                                     float &Alpha, int hits[], int &NTrackHits,
+                                     bool dir )
 {
   // Fit the track
 
@@ -485,7 +450,7 @@ void AliHLTTPCCAGBTracker::WriteEvent( std::ostream &out ) const
 
   out << NHits() << std::endl;
   for ( int ih = 0; ih < NHits(); ih++ ) {
-    AliHLTTPCCAGBHit &h = fHits[ih];
+    const AliHLTTPCCAGBHit &h = fHits[ih];
     out << h.X() << " ";
     out << h.Y() << " ";
     out << h.Z() << " ";
@@ -557,7 +522,7 @@ void AliHLTTPCCAGBTracker::ReadTracks( std::istream &in )
   fSliceTrackerTime = fTime;
   fStatTime[0] += fTime;
   fStatNEvents++;
-  if ( fTrackHits ) delete[] fTrackHits;
+  delete[] fTrackHits;
   fTrackHits = 0;
   int nTrackHits = 0;
   in >> nTrackHits;
@@ -565,7 +530,7 @@ void AliHLTTPCCAGBTracker::ReadTracks( std::istream &in )
   for ( int ih = 0; ih < nTrackHits; ih++ ) {
     in >> TrackHits()[ih];
   }
-  if ( fTracks ) delete[] fTracks;
+  delete[] fTracks;
   fTracks = 0;
   in >> fNTracks;
   fTracks = new AliHLTTPCCAGBTrack[fNTracks];

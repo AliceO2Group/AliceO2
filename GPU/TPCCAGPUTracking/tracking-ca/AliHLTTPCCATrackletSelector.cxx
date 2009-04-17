@@ -43,7 +43,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
     }
   } else if ( iSync == 1 ) {
     AliHLTTPCCATrack tout;
-    int trackHits[160];
+    AliHLTTPCCAHitId trackHits[160];
 
     for ( int itr = s.fItr0 + iThread; itr < s.fNTracklets; itr += s.fNThreadsTotal ) {
 
@@ -77,13 +77,12 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
         gap++;
         int ih = tracklet.RowHit( irow );
         if ( ih >= 0 ) {
-          int ihTot = tracker.Row( irow ).FirstHit() + ih;
-          bool own = ( tracker.HitWeights()[ihTot] <= w );
+          const AliHLTTPCCARow &row = tracker.Row( irow );
+          bool own = ( tracker.HitWeight( row, ih ) <= w );
           bool sharedOK = ( ( tout.NHits() < 0 ) || ( nShared < tout.NHits() * kMaxShared ) );
           if ( own || sharedOK ) {//SG!!!
             gap = 0;
-            int th = AliHLTTPCCATracker::IRowIHit2ID( irow, ih );
-            trackHits[tout.NHits()] = th;
+            trackHits[tout.NHits()].Set( irow, ih );
             tout.SetNHits( tout.NHits() + 1 );
             if ( !own ) nShared++;
           }

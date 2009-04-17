@@ -24,10 +24,12 @@
 #include "AliHLTTPCCAMath.h"
 
 
-void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, double alpha )
+bool AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, double alpha )
 {
   //* Convert from AliHLTTPCCATrackParam to AliExternalTrackParam parameterisation,
   //* the angle alpha is the global angle of the local X axis
+
+  bool ok = T1.CheckNumericalQuality();
 
   double par[5], cov[15];
   for ( int i = 0; i < 5; i++ ) par[i] = T1.GetPar()[i];
@@ -47,7 +49,13 @@ void AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, Al
     cov[10] = -cov[10];
     cov[11] = -cov[11];
   }
+
+  if ( CAMath::Abs( par[4] ) < 1.e-5 ) par[4] = 1.e-5; // some other software will crash if q/Pt==0
+  if ( CAMath::Abs( par[4] ) > 0.08 ) ok = 0; // some other software will crash if q/Pt is too big
+
   T2.Set( ( double ) T1.GetX(), alpha, par, cov );
+
+  return ok;
 }
 
 void AliHLTTPCCATrackConvertor::SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2 )

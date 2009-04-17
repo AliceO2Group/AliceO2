@@ -27,10 +27,10 @@ class AliHLTTPCCANeighboursFinder
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fGridUp(), fGridDn(), fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fFirst( 0 ), fFirstDn( 0 ), fFirstUp( 0 ), fNRows( 0 ), fHitLinkUp( 0 ), fHitLinkDn( 0 ) {}
+            : fGridUp(), fGridDn(), fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ) {}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fGridUp(), fGridDn(), fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fFirst( 0 ), fFirstDn( 0 ), fFirstUp( 0 ), fNRows( 0 ), fHitLinkUp( 0 ), fHitLinkDn( 0 ) {}
+            : fGridUp(), fGridDn(), fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
       protected:
@@ -46,12 +46,7 @@ class AliHLTTPCCANeighboursFinder
         int fIRow; // row number
         int fIRowUp; // next row number
         int fIRowDn;// previous row number
-        int fFirst; // index of the first hit
-        int fFirstDn; // index of the first hit in the next row
-        int fFirstUp;// index of the first hit in the previous row
         int fNRows; // number of rows
-        short *fHitLinkUp; // links to the next row
-        short *fHitLinkDn; // links to the previous  row
         float2 fA[256][20]; // temp memory
         unsigned short fB[256][20]; // temp memory
         unsigned short fGridContentUp[7000]; // grid content for the next row

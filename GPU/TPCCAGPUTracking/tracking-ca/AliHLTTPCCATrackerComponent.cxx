@@ -34,6 +34,7 @@ using namespace std;
 #include "AliHLTTPCCAOutTrack.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackConvertor.h"
+#include "AliHLTArray.h"
 
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCClusterDataFormat.h"
@@ -50,6 +51,7 @@ using namespace std;
 #include "TObjString.h"
 #include "TObjArray.h"
 #include "AliHLTTPCCASliceOutput.h"
+#include "AliHLTTPCCAClusterData.h"
 
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkTrackletsDataType = AliHLTComponentDataTypeInitializer( "CATRACKL", kAliHLTDataOriginTPC );
 
@@ -153,8 +155,7 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 {
   // Configure the CA tracker component
 
-  const double kCLight = 0.000299792458;
-  fSolenoidBz = 5.*kCLight;
+  fSolenoidBz = 5;
   fMinNTrackClusters = 0;
   fClusterZCut = 500.;
   fFullTime = 0;
@@ -258,8 +259,6 @@ int AliHLTTPCCATrackerComponent::Configure( const char* arguments )
 {
   //* Set parameters
 
-  const double kCLight = 0.000299792458;
-
   int iResult = 0;
   if ( !arguments ) return iResult;
 
@@ -276,7 +275,7 @@ int AliHLTTPCCATrackerComponent::Configure( const char* arguments )
     if ( argument.IsNull() ) {
     } else if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fSolenoidBz =  kCLight * ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
       HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
     } else if ( argument.CompareTo( "-minNClustersOnTrack" ) == 0 ||
                 argument.CompareTo( "-minNTrackClusters" ) == 0 ) {
@@ -345,8 +344,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
   {
     std::vector<int> slices;
     std::vector<int>::iterator slIter;
-    std::vector<unsigned int> sliceCnts;
-    std::vector<unsigned int>::iterator slCntIter;
+    std::vector<unsigned> sliceCnts;
+    std::vector<unsigned>::iterator slCntIter;
 
     for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
       iter = blocks + ndx;
@@ -374,7 +373,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       Logging( kHLTLogError, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
                "Multiple slice numbers found in event 0x%08lX (%lu). Determining maximum occuring slice number...",
                evtData.fEventID, evtData.fEventID );
-      unsigned int maxCntSlice = 0;
+      unsigned maxCntSlice = 0;
       slCntIter = sliceCnts.begin();
       for ( slIter = slices.begin(); slIter != slices.end(); slIter++, slCntIter++ ) {
         Logging( kHLTLogError, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
@@ -484,7 +483,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
            "Total %d hits to read for slice %d", nHitsTotal, slice );
 
 
-  AliHLTTPCSpacePointData** vOrigClusters = new AliHLTTPCSpacePointData* [ nHitsTotal];
+  AliHLTResizableArray<AliHLTTPCSpacePointData *> vOrigClusters( nHitsTotal );
 
   int nClusters = 0;
 
@@ -503,51 +502,13 @@ int AliHLTTPCCATrackerComponent::DoEvent
     }
   }
 
-  // sort clusters since they are not sorted fore some reason
+  // sort clusters since they are not sorted for some reason
 
-  sort( vOrigClusters, vOrigClusters + nClusters, CompareClusters );
+  // candidate for parallelization should this become an issue, can use tbb::parallel_sort
+  sort( vOrigClusters.Data(), ( vOrigClusters + nClusters ).Data(), CompareClusters );
 
-  float *vHitStoreX = new float [nHitsTotal];       // hit X coordinates
-  float *vHitStoreY = new float [nHitsTotal];       // hit Y coordinates
-  float *vHitStoreZ = new float [nHitsTotal];       // hit Z coordinates
-  int *vHitStoreIntID = new int [nHitsTotal];            // hit ID's
-  int *vHitStoreID = new int [nHitsTotal];            // hit ID's
-  int *vHitRowID = new int [nHitsTotal];            // hit ID's
-
-  int nHits = 0;
-
-  {
-    int rowNHits[200];
-    int rowFirstHits[200];
-    for ( int ir = 0; ir < 200; ir++ ) rowNHits[ir] = 0;
-    int oldRow = -1;
-    for ( int i = 0; i < nClusters; i++ ) {
-      AliHLTTPCSpacePointData* pSP = vOrigClusters[i];
-      if ( oldRow >= 0 && pSP->fPadRow < oldRow )
-        HLTError( "CA: clusters from row %d are readed twice", oldRow );
-
-      if ( TMath::Abs( pSP->fZ ) > fClusterZCut ) continue;
-
-      vHitStoreX[nHits] = pSP->fX;
-      vHitStoreY[nHits] = pSP->fY;
-      vHitStoreZ[nHits] = pSP->fZ;
-      vHitStoreIntID[nHits] = nHits;
-      vHitStoreID[nHits] = pSP->fID;
-      vHitRowID[nHits] = pSP->fPadRow;
-      nHits++;
-      rowNHits[pSP->fPadRow]++;
-    }
-
-    int firstRowHit = 0;
-    for ( int ir = 0; ir < 200; ir++ ) {
-      rowFirstHits[ir] = firstRowHit;
-      firstRowHit += rowNHits[ir];
-    }
-
-    fTracker->ReadEvent( rowFirstHits, rowNHits, vHitStoreX, vHitStoreY, vHitStoreZ, nHits );
-  }
-
-  if ( vOrigClusters ) delete[] vOrigClusters;
+  ClusterData clusterData( vOrigClusters, nClusters, fClusterZCut );
+  fTracker->ReadEvent( &clusterData );
 
   // reconstruct the event
 
@@ -605,14 +566,14 @@ int AliHLTTPCCATrackerComponent::DoEvent
       int iLastHit = iFirstHit;
       for ( int ih = 0; ih < t.NHits(); ih++ ) {
         int hitID = fTracker->OutTrackHits()[t.FirstHitRef() + ih ];
-        int iRow = vHitRowID[hitID];
+        int iRow = clusterData.RowNumber( hitID );
         if ( iRow < iFirstRow ) {  iFirstRow = iRow; iFirstHit = hitID; }
         if ( iRow > iLastRow ) { iLastRow = iRow; iLastHit = hitID; }
       }
 
       AliHLTTPCCATrackParam par = t.StartPoint();
 
-      par.TransportToX( vHitStoreX[iFirstHit], .99 );
+      par.TransportToX( clusterData.X( iFirstHit ), .99 );
 
       AliExternalTrackParam tp;
       AliHLTTPCCATrackConvertor::GetExtParam( par, tp, 0 );
@@ -636,24 +597,24 @@ int AliHLTTPCCATrackerComponent::DoEvent
       currOutTracklet->fPsierr = h * h * tp.GetSigmaSnp2();
       currOutTracklet->fTglerr = tp.GetSigmaTgl2();
 
-      if ( par.TransportToX( vHitStoreX[iLastHit], .99 ) ) {
+      if ( par.TransportToX( clusterData.X( iLastHit ), .99 ) ) {
         currOutTracklet->fLastX = par.GetX();
         currOutTracklet->fLastY = par.GetY();
         currOutTracklet->fLastZ = par.GetZ();
       } else {
-        currOutTracklet->fLastX = vHitStoreX[iLastHit];
-        currOutTracklet->fLastY = vHitStoreY[iLastHit];
-        currOutTracklet->fLastZ = vHitStoreZ[iLastHit];
+        currOutTracklet->fLastX = clusterData.X( iLastHit );
+        currOutTracklet->fLastY = clusterData.Y( iLastHit );
+        currOutTracklet->fLastZ = clusterData.Z( iLastHit );
       }
       //if( currOutTracklet->fLastX<10. ) {
-      //HLTError("CA last point: hitxyz=%f,%f,%f, track=%f,%f,%f, tracklet=%f,%f,%f, nhits=%d",vHitStoreX[iLastHit],vHitStoreY[iLastHit],vHitStoreZ[iLastHit],
+      //HLTError("CA last point: hitxyz=%f,%f,%f, track=%f,%f,%f, tracklet=%f,%f,%f, nhits=%d",clusterData.X( iLastHit ),clusterData.Y( iLastHit],clusterData.Z( iLastHit],
       //par.GetX(), par.GetY(),par.GetZ(),currOutTracklet->fLastX,currOutTracklet->fLastY ,currOutTracklet->fLastZ, t.NHits());
       //}
 #ifdef INCLUDE_TPC_HOUGH
 #ifdef ROWHOUGHPARAMS
       currOutTracklet->fTrackID = 0;
-      currOutTracklet->fRowRange1 = vHitRowID[iFirstHit];
-      currOutTracklet->fRowRange2 = vHitRowID[iLastHit];
+      currOutTracklet->fRowRange1 = clusterData.RowNumber( iFirstHit );
+      currOutTracklet->fRowRange2 = clusterData.RowNumber( iLastHit );
       currOutTracklet->fSector = slice;
       currOutTracklet->fPID = 211;
 #endif
@@ -663,7 +624,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       currOutTracklet->fNPoints = t.NHits();
 
       for ( int i = 0; i < t.NHits(); i++ ) {
-        currOutTracklet->fPointIDs[i] = vHitStoreID[fTracker->OutTrackHits()[t.FirstHitRef()+i]];
+        currOutTracklet->fPointIDs[i] = clusterData.Id( fTracker->OutTrackHits()[t.FirstHitRef()+i] );
       }
 
       currOutTracklet = ( AliHLTTPCTrackSegmentData* )( ( Byte_t * )currOutTracklet + dSize );
@@ -683,13 +644,6 @@ int AliHLTTPCCATrackerComponent::DoEvent
       ret = -ENOSPC;
     }
   }
-
-  if ( vHitStoreX ) delete[] vHitStoreX;
-  if ( vHitStoreY ) delete[] vHitStoreY;
-  if ( vHitStoreZ ) delete[] vHitStoreZ;
-  if ( vHitStoreIntID ) delete[] vHitStoreIntID;
-  if ( vHitStoreID ) delete[] vHitStoreID;
-  if ( vHitRowID ) delete[] vHitRowID;
 
   if ( mySize > 0 ) {
     AliHLTComponentBlockData bd;

@@ -78,8 +78,8 @@ void AliHLT3DTrackParam::TransportToDS( double Bz, double DS, double *T0 )
   double pz = T0[5];
 
   double d[6] = { fParam[0] - T0[0], fParam[1] - T0[1], fParam[2] - T0[2],
-                    fParam[3] - T0[3], fParam[4] - T0[4], fParam[5] - T0[5]
-                  };
+                  fParam[3] - T0[3], fParam[4] - T0[4], fParam[5] - T0[5]
+                };
 
   T0[0] = T0[0] + sB * px + cB * py;
   T0[1] = T0[1] - cB * px + sB * py;
@@ -173,8 +173,8 @@ void AliHLT3DTrackParam::Filter( const double m[3], const double V[6], const dou
             z2 = m[2] - fParam[2];
 
   double mS[6] = { c00 + V[0] + G[0], c10 + V[1] + G[1], c11 + V[2] + G[2],
-                     c20 + V[3] + G[3], c21 + V[4] + G[4], c22 + V[5] + G[5]
-                   };
+                   c20 + V[3] + G[3], c21 + V[4] + G[4], c22 + V[5] + G[5]
+                 };
   double mSi[6];
   mSi[0] = mS[4] * mS[4] - mS[2] * mS[5];
   mSi[1] = mS[1] * mS[5] - mS[3] * mS[4];

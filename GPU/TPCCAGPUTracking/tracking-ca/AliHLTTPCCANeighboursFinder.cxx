@@ -40,26 +40,33 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
       s.fIRow = iBlock;
       if ( s.fIRow < s.fNRows ) {
         const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
-        s.fFirst = row.FirstHit();
         s.fNHits = row.NHits();
-
-        s.fHitLinkUp = ( ( short* )( tracker.RowData() + row.FullOffset() ) ) + row.FullLinkOffset();
-        s.fHitLinkDn = s.fHitLinkUp + row.NHits();
 
         if ( ( s.fIRow >= 2 ) && ( s.fIRow <= s.fNRows - 3 ) ) {
           s.fIRowUp = s.fIRow + 2;
           s.fIRowDn = s.fIRow - 2;
-          s.fFirstDn = tracker.Row( s.fIRowDn ).FirstHit();
-          s.fFirstUp = tracker.Row( s.fIRowUp ).FirstHit();
-          float xDn = tracker.Row( s.fIRowDn ).X();
-          float x = tracker.Row( s.fIRow ).X();
-          float xUp = tracker.Row( s.fIRowUp ).X();
+
+          // references to the rows above and below
+          const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
+          const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
+
+          // the axis perpendicular to the rows
+          const float xDn = rowDn.X();
+          const float x   = row.X();
+          const float xUp = rowUp.X();
+
+          // number of hits in rows above and below
           s.fUpNHits = tracker.Row( s.fIRowUp ).NHits();
-          s.fDnNHits = s.fFirst - s.fFirstDn;
+          s.fDnNHits = tracker.Row( s.fIRowDn ).NHits();
+
+          // distance of the rows (absolute and relative)
           s.fUpDx = xUp - x;
           s.fDnDx = xDn - x;
           s.fUpTx = xUp / x;
           s.fDnTx = xDn / x;
+          // UpTx/DnTx is used to move the HitArea such that central events are preferred (i.e. vertices
+          // coming from y = 0, z = 0).
+
           s.fGridUp = tracker.Row( s.fIRowUp ).Grid();
           s.fGridDn = tracker.Row( s.fIRowDn ).Grid();
         }
@@ -68,21 +75,20 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
   } else if ( iSync == 1 ) {
     if ( s.fIRow < s.fNRows ) {
       if ( ( s.fIRow == 0 ) || ( s.fIRow == s.fNRows - 1 ) || ( s.fIRow == 1 ) || ( s.fIRow == s.fNRows - 2 ) ) {
+        const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
         for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
-          s.fHitLinkUp[ih] = -1;
-          s.fHitLinkDn[ih] = -1;
+          tracker.SetHitLinkUpData( row, ih, -1 );
+          tracker.SetHitLinkDownData( row, ih, -1 );
         }
       } else {
         const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
         const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
-        const unsigned short *gContentUp = ( reinterpret_cast<const unsigned short*>( tracker.RowData() + rowUp.FullOffset() ) ) + rowUp.FullGridOffset();
-        const unsigned short *gContentDn = ( reinterpret_cast<const unsigned short*>( tracker.RowData() + rowDn.FullOffset() ) ) + rowDn.FullGridOffset();
 
         for ( unsigned int ih = iThread; ih < s.fGridUp.N() + s.fGridUp.Ny() + 2; ih += nThreads ) {
-          s.fGridContentUp[ih] = gContentUp[ih];
+          s.fGridContentUp[ih] = tracker.FirstHitInBin( rowUp, ih );
         }
         for ( unsigned int ih = iThread; ih < s.fGridDn.N() + s.fGridDn.Ny() + 2; ih += nThreads ) {
-          s.fGridContentDn[ih] = gContentDn[ih];
+          s.fGridContentDn[ih] = tracker.FirstHitInBin( rowDn, ih );
         }
       }
     }
@@ -98,12 +104,10 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
     const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
     const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
     const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
-    float y0 = row.Grid().YMin();
-    float z0 = row.Grid().ZMin();
-    float stepY = row.HstepY();
-    float stepZ = row.HstepZ();
-    const uint4* tmpint4 = tracker.RowData() + row.FullOffset();
-    const ushort2 *hits = reinterpret_cast<const ushort2*>( tmpint4 );
+    const float y0 = row.Grid().YMin();
+    const float z0 = row.Grid().ZMin();
+    const float stepY = row.HstepY();
+    const float stepZ = row.HstepZ();
 
     for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
 
@@ -118,24 +122,19 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
       if ( s.fDnNHits > 0 && s.fUpNHits > 0 ) {
 
         int nNeighUp = 0;
-        AliHLTTPCCAHit h0;
-        {
-          ushort2 hh = hits[ih];
-          h0.SetY( y0 + hh.x*stepY );
-          h0.SetZ( z0 + hh.y*stepZ );
-        }
-        //h0 = tracker.Hits()[ s.fFirst + ih ];
 
-        float y = h0.Y();
-        float z = h0.Z();
+        // coordinates of the hit in the current row
+        const float y = y0 + tracker.HitDataY( row, ih ) * stepY;
+        const float z = z0 + tracker.HitDataZ( row, ih ) * stepZ;
 
         AliHLTTPCCAHitArea areaDn, areaUp;
-        areaUp.Init( s.fGridUp,  s.fGridContentUp, s.fFirstUp, y*s.fUpTx, z*s.fUpTx, kAreaSize, kAreaSize );
-        areaDn.Init( s.fGridDn,  s.fGridContentDn, s.fFirstDn, y*s.fDnTx, z*s.fDnTx, kAreaSize, kAreaSize );
+        // TODO: for NVIDIA GPUs it should use the GridContentUp/-Dn that got copied into shared mem
+        areaUp.Init( rowUp, tracker.Data(), y*s.fUpTx, z*s.fUpTx, kAreaSize, kAreaSize );
+        areaDn.Init( rowDn, tracker.Data(), y*s.fDnTx, z*s.fDnTx, kAreaSize, kAreaSize );
 
         do {
           AliHLTTPCCAHit h;
-          int i = areaUp.GetNext( tracker, rowUp, s.fGridContentUp, h );
+          int i = areaUp.GetNext( tracker, rowUp, tracker.Data(), &h );
           if ( i < 0 ) break;
           neighUp[nNeighUp] = ( unsigned short ) i;
           yzUp[nNeighUp] = CAMath::MakeFloat2( s.fDnDx * ( h.Y() - y ), s.fDnDx * ( h.Z() - z ) );
@@ -151,7 +150,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 
           do {
             AliHLTTPCCAHit h;
-            int i = areaDn.GetNext( tracker, rowDn, s.fGridContentDn, h );
+            int i = areaDn.GetNext( tracker, rowDn, tracker.Data(), &h );
             if ( i < 0 ) break;
 
             nNeighDn++;
@@ -181,8 +180,8 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 
       }
 
-      s.fHitLinkUp[ih] = linkUp;
-      s.fHitLinkDn[ih] = linkDn;
+      tracker.SetHitLinkUpData( row, ih, linkUp );
+      tracker.SetHitLinkDownData( row, ih, linkDn );
 #ifdef DRAW
       std::cout << "Links for row " << s.fIRow << ", hit " << ih << ": " << linkUp << " " << linkDn << std::endl;
       if ( s.fIRow == 22 && ih == 5 ) {

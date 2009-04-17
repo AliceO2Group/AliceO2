@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCAUsedHitsInitialiser.cxx 27042 2008-07-02 12:06:02Z richterm $
+// @(#) $Id$
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -17,25 +17,28 @@
 //                                                                          *
 //***************************************************************************
 
-#include "AliHLTTPCCAUsedHitsInitialiser.h"
-#include "AliHLTTPCCATracker.h"
+#include "AliHLTTPCCASliceOutput.h"
+#include "MemoryAssignmentHelpers.h"
 
-
-void AliHLTTPCCAUsedHitsInitialiser::Thread
-( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-  AliHLTTPCCASharedMemory &s, AliHLTTPCCATracker &tracker )
+GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClusters )
 {
-  // initialise used hit flags with 0
+  // calculate the amount of memory [bytes] needed for the event
 
-  if ( iSync == 0 ) {
-    if ( iThread == 0 ) {
-      s.fNHits = tracker.NHitsTotal();
-      s.fUsedHits = tracker.HitWeights();
-      s.fNThreadsTotal = nThreads * nBlocks;
-      s.fIh0 = nThreads * iBlock;
-    }
-  } else if ( iSync == 1 ) {
-    for ( int ih = s.fIh0 + iThread; ih < s.fNHits; ih += s.fNThreadsTotal ) s.fUsedHits[ih] = 0;
-  }
+  const int kClusterDataSize = sizeof( unsigned int ) + sizeof( unsigned short ) + sizeof( float2 ) + sizeof( float ) + sizeof( UChar_t );
+
+  return sizeof( AliHLTTPCCASliceOutput ) + sizeof( AliHLTTPCCASliceTrack )*nOfTracks + kClusterDataSize*nOfTrackClusters;
+}
+
+GPUhd() void AliHLTTPCCASliceOutput::SetPointers()
+{
+  // set all pointers
+
+  char *mem = &fMemory[0];
+  AssignMemory( fTracks,            mem, fNTracks );
+  AssignMemory( fClusterUnpackedYZ, mem, fNTrackClusters );
+  AssignMemory( fClusterUnpackedX,  mem, fNTrackClusters );
+  AssignMemory( fClusterIDrc,       mem, fNTrackClusters );
+  AssignMemory( fClusterPackedYZ,   mem, fNTrackClusters );
+  AssignMemory( fClusterPackedAmp,  mem, fNTrackClusters );
 }
 

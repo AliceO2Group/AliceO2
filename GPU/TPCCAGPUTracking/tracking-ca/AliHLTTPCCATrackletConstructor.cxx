@@ -51,7 +51,6 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step0
     s.fItr0 = nTrPerBlock * iBlock;
     s.fItr1 = s.fItr0 + nTrPerBlock;
     if ( s.fItr1 > nTracks ) s.fItr1 = nTracks;
-    s.fUsedHits = tracker.HitWeights();
     s.fMinStartRow = 158;
     s.fMaxStartRow = 0;
   }
@@ -82,12 +81,12 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step1
   unsigned int kThread = iThread % 32;//& 00000020;
   if ( SAVE() ) for ( int i = 0; i < 160; i++ ) tracklet.SetRowHit( i, -1 );
 
-  int id = tracker.TrackletStartHits()[r.fItr];
-  r.fStartRow = AliHLTTPCCATracker::ID2IRow( id );
+  AliHLTTPCCAHitId id = tracker.TrackletStartHits()[r.fItr];
+  r.fStartRow = id.RowIndex();
   r.fEndRow = r.fStartRow;
   r.fFirstRow = r.fStartRow;
   r.fLastRow = r.fFirstRow;
-  r.fCurrIH =  AliHLTTPCCATracker::ID2IHit( id );
+  r.fCurrIH =  id.HitIndex();
 
   CAMath::AtomicMin( &s.fMinStartRow32[kThread], r.fStartRow );
   CAMath::AtomicMax( &s.fMaxStartRow32[kThread], r.fStartRow );
@@ -143,10 +142,26 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
   if ( r.fIsMemThread ) {
     const AliHLTTPCCARow &row = tracker.Row( iRow );
     bool jr = !r.fCurrentData;
-    int n = row.FullSize();
-    const uint4* gMem = tracker.RowData() + row.FullOffset();
-    uint4 *sMem = s.fData[jr];
-    for ( int i = iThread; i < n; i += NMemThreads() ) sMem[i] = gMem[i];
+
+    // copy hits, grid content and links
+
+    // FIXME: inefficient copy
+    const int numberOfHits = row.NHits();
+    ushort2 *sMem1 = reinterpret_cast<ushort2 *>( s.fData[jr] );
+    for ( int i = iThread; i < numberOfHits; i += NMemThreads() ) {
+      sMem1[i].x = tracker.HitDataY( row, i );
+      sMem1[i].y = tracker.HitDataZ( row, i );
+    }
+    short *sMem2 = reinterpret_cast<short *>( s.fData[jr] ) + 2 * numberOfHits;
+    for ( int i = iThread; i < numberOfHits; i += NMemThreads() ) {
+      sMem2[i] = tracker.HitLinkUpData( row, i );
+    }
+
+    unsigned short *sMem3 = reinterpret_cast<unsigned short *>( s.fData[jr] ) + 3 * numberOfHits;
+    const int n = row.FullSize(); // + grid content size
+    for ( int i = iThread; i < n; i += NMemThreads() ) {
+      sMem3[i] = tracker.FirstHitInBin( row, i );
+    }
   }
 }
 
@@ -217,8 +232,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
     for ( int iRow = 0; iRow < 160; iRow++ ) {
       int ih = tracklet.RowHit( iRow );
       if ( ih >= 0 ) {
-        int ihTot = tracker.Row( iRow ).FirstHit() + ih;
-        CAMath::AtomicMax( tracker.HitWeights() + ihTot, w );
+        tracker.MaximizeHitWeight( tracker.Row( iRow ), ih, w );
       }
     }
   }
@@ -261,7 +275,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       ushort2 hh = reinterpret_cast<ushort2*>( tmpint4 )[r.fCurrIH];
 
       int oldIH = r.fCurrIH;
-      r.fCurrIH = reinterpret_cast<short*>( tmpint4 )[row.FullLinkOffset() + r.fCurrIH];
+      r.fCurrIH = reinterpret_cast<short*>( tmpint4 )[2 * row.NHits() + r.fCurrIH]; // read from linkup data
 
       float x = row.X();
       float y = y0 + hh.x * stepY;
@@ -291,9 +305,9 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           tParam.SetSinPhi( dy*ri );
           tParam.SetSignCosPhi( dx );
           tParam.SetDzDs( dz*ri );
-          std::cout << "Init. errors... " << r.fItr << std::endl;
+          //std::cout << "Init. errors... " << r.fItr << std::endl;
           tracker.GetErrors2( iRow, tParam, err2Y, err2Z );
-          std::cout << "Init. errors = " << err2Y << " " << err2Z << std::endl;
+          //std::cout << "Init. errors = " << err2Y << " " << err2Z << std::endl;
           tParam.SetCov( 0, err2Y );
           tParam.SetCov( 2, err2Z );
         }
@@ -419,6 +433,10 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         //#endif
         break;
       }
+      if ( row.NHits() < 1 ) {
+        // skip empty row
+        break;
+      }
       if ( drawSearch ) {
         //#ifdef DRAW
         std::cout << "tracklet " << r.fItr << " after transport to row " << iRow << " : " << std::endl;
@@ -437,6 +455,8 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       int best = -1;
 
       { // search for the closest hit
+        const int fIndYmin = row.Grid().GetBinBounded( fY - 1.f, fZ - 1.f );
+        assert( fIndYmin >= 0 );
 
         int ds;
         int fY0 = ( int ) ( ( fY - y0 ) * stepYi );
@@ -444,10 +464,8 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         int ds0 = ( ( ( int )1 ) << 30 );
         ds = ds0;
 
-        unsigned int fIndYmin;
         unsigned int fHitYfst = 1, fHitYlst = 0, fHitYfst1 = 1, fHitYlst1 = 0;
 
-        fIndYmin = row.Grid().GetBin( ( float )( fY - 1. ), ( float )( fZ - 1. ) );
         if ( drawSearch ) {
 #ifdef DRAW
           std::cout << " tracklet " << r.fItr << ", row " << iRow << ": grid N=" << row.Grid().N() << std::endl;
@@ -457,11 +475,15 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         {
           int nY = row.Grid().Ny();
 
-          unsigned short *sGridP = ( reinterpret_cast<unsigned short*>( tmpint4 ) ) + row.FullGridOffset();
+          unsigned short *sGridP = ( reinterpret_cast<unsigned short*>( tmpint4 ) ) + 3 * row.NHits();
           fHitYfst = sGridP[fIndYmin];
           fHitYlst = sGridP[fIndYmin+2];
           fHitYfst1 = sGridP[fIndYmin+nY];
           fHitYlst1 = sGridP[fIndYmin+nY+2];
+          assert( fHitYfst <= row.NHits() );
+          assert( fHitYlst <= row.NHits() );
+          assert( fHitYfst1 <= row.NHits() );
+          assert( fHitYlst1 <= row.NHits() );
           if ( drawSearch ) {
 #ifdef DRAW
             std::cout << " Grid, row " << iRow << ": nHits=" << row.NHits() << ", grid n=" << row.Grid().N() << ", c[n]=" << sGridP[row.Grid().N()] << std::endl;
@@ -493,6 +515,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           //#endif
         }
         for ( unsigned int fIh = fHitYfst; fIh < fHitYlst; fIh++ ) {
+          assert( fIh < row.NHits() );
           ushort2 hh = hits[fIh];
           int ddy = ( int )( hh.x ) - fY0;
           int ddz = ( int )( hh.y ) - fZ0;

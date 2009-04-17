@@ -37,31 +37,29 @@ GPUd() void AliHLTTPCCANeighboursCleaner::Thread
       if ( s.fIRow <= s.fNRows - 3 ) {
         s.fIRowUp = s.fIRow + 2;
         s.fIRowDn = s.fIRow - 2;
-        s.fFirstHit = tracker.Row( s.fIRow ).FirstHit();
-        const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
-        const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
-        const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
-        s.fHitLinkUp = ( ( short* )( tracker.RowData() + row.FullOffset() ) ) + row.FullLinkOffset();
-        s.fHitLinkDn = s.fHitLinkUp + row.NHits();
-        s.fDnHitLinkUp = ( ( short* )( tracker.RowData() + rowDn.FullOffset() ) ) + rowDn.FullLinkOffset();
-        s.fUpHitLinkDn = ( ( short* )( tracker.RowData() + rowUp.FullOffset() ) ) + rowUp.FullLinkOffset() + rowUp.NHits();
-
         s.fNHits = tracker.Row( s.fIRow ).NHits();
       }
     }
   } else if ( iSync == 1 ) {
     if ( s.fIRow <= s.fNRows - 3 ) {
+      const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
+      const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
+      const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
 
+      // - look at up link, if it's valid but the down link in the row above doesn't link to us remove
+      //   the link
+      // - look at down link, if it's valid but the up link in the row below doesn't link to us remove
+      //   the link
       for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
-        int up = s.fHitLinkUp[ih];
+        int up = tracker.HitLinkUpData( row, ih );
         if ( up >= 0 ) {
-          short upDn = s.fUpHitLinkDn[up];
-          if ( ( upDn != ih ) ) s.fHitLinkUp[ih] = -1;
+          short upDn = tracker.HitLinkDownData( rowUp, up );
+          if ( ( upDn != ih ) ) tracker.SetHitLinkUpData( row, ih, -1 );
         }
-        int dn = s.fHitLinkDn[ih];
+        int dn = tracker.HitLinkDownData( row, ih );
         if ( dn >= 0 ) {
-          short dnUp = s.fDnHitLinkUp[dn];
-          if ( dnUp != ih ) s.fHitLinkDn[ih] = -1;
+          short dnUp = tracker.HitLinkUpData( rowDn, dn );
+          if ( dnUp != ih ) tracker.SetHitLinkDownData( row, ih, -1 );
         }
       }
     }

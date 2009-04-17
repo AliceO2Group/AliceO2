@@ -17,42 +17,64 @@ class AliHLTTPCCAHit;
 class AliHLTTPCCAGrid;
 class AliHLTTPCCATracker;
 class AliHLTTPCCARow;
+class AliHLTTPCCASliceData;
 
 /**
  * @class ALIHLTTPCCAHitArea
  *
+ * This class is used to _iterate_ over the hit data via GetNext
  */
 class AliHLTTPCCAHitArea
 {
   public:
+    GPUd() void Init( const AliHLTTPCCARow &row, const AliHLTTPCCASliceData &slice, float y, float z, float dy, float dz );
 
-    GPUd() void Init( const AliHLTTPCCAGrid &grid, const unsigned short *content, unsigned int hitoffset, float y, float z, float dy, float dz );
+    /**
+     * look up the next hit in the requested area.
+     * Sets h to the coordinates and returns the index for the hit data
+     */
+    int GetNext( const AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row,
+                 const AliHLTTPCCASliceData &slice, AliHLTTPCCAHit *h );
+    /**
+     * look up the best hit in the next hits in the requested area.
+     * Sets h to the coordinates and returns the index for the hit data
+     *
+    int GetBest( const AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row,
+        const int *content, AliHLTTPCCAHit *h);
+     */
 
-    GPUd() int GetNext( AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const unsigned short *content, AliHLTTPCCAHit &h );
-
-    GPUd() int GetBest( AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row, const unsigned short *content, AliHLTTPCCAHit &h );
-
-    GPUhd() float Y() const { return fY;}
-    GPUhd() float Z() const { return fZ;}
-    GPUhd() float MinZ() const { return fMinZ;}
-    GPUhd() float MaxZ() const { return fMaxZ;}
-    GPUhd() float MinY() const { return fMinY;}
-    GPUhd() float MaxY() const { return fMaxY;}
-    GPUhd() unsigned int  BZmax() const { return fBZmax;}
-    GPUhd() unsigned int  BDY() const { return fBDY;}
-    GPUhd() unsigned int  IndYmin() const { return fIndYmin;}
-    GPUhd() unsigned int  Iz() const { return fIz;}
-    GPUhd() unsigned int  HitYfst() const { return fHitYfst;}
-    GPUhd() unsigned int  HitYlst() const { return fHitYlst;}
-    GPUhd() unsigned int  Ih() const { return fIh;}
-    GPUhd() unsigned int  Ny() const { return fNy;}
-    GPUhd() unsigned int  HitOffset() const { return fHitOffset;}
+    float Y() const { return fY; }
+    float Z() const { return fZ; }
+    float MinZ() const { return fMinZ; }
+    float MaxZ() const { return fMaxZ; }
+    float MinY() const { return fMinY; }
+    float MaxY() const { return fMaxY; }
+    int  BZmax() const { return fBZmax; }
+    int  BDY() const { return fBDY; }
+    int  IndYmin() const { return fIndYmin; }
+    int  Iz() const { return fIz; }
+    int  HitYfst() const { return fHitYfst; }
+    int  HitYlst() const { return fHitYlst; }
+    int  Ih() const { return fIh; }
+    int  Ny() const { return fNy; }
+    int  HitOffset() const { return fHitOffset; }
 
   protected:
-
-    float fY, fZ, fMinZ, fMaxZ, fMinY, fMaxY;    // search coordinates
-    unsigned int fBZmax, fBDY, fIndYmin, fIz, fHitYfst, fHitYlst, fIh, fNy; // !
-    unsigned int fHitOffset; // global hit offset
+    float fY;      // search coordinates
+    float fZ;      // search coordinates
+    float fMinZ;   // search coordinates
+    float fMaxZ;   // search coordinates
+    float fMinY;   // search coordinates
+    float fMaxY;   // search coordinates
+    int fBZmax;   // maximal Z bin index
+    int fBDY;     // Y distance of bin indexes
+    int fIndYmin; // minimum index for
+    int fIz;      // current Z bin index (incremented while iterating)
+    int fHitYfst; //
+    int fHitYlst; //
+    int fIh;      // some XXX index in the hit data
+    int fNy;      // Number of bins in Y direction
+    int fHitOffset; // global hit offset XXX what's that?
 };
 
 #endif

@@ -100,27 +100,27 @@ class AliHLTTPCCATrackParam
     GPUd() bool TransportToXWithMaterial( float x, float Bz, float maxSinPhi = .999 );
 
     GPUd() bool  TransportToX( float x, AliHLTTPCCATrackLinearisation &t0,
-                                 float Bz,  float maxSinPhi = .999, float *DL = 0 );
+                               float Bz,  float maxSinPhi = .999, float *DL = 0 );
 
     GPUd() bool  TransportToX( float x, float sinPhi0, float cosPhi0,  float Bz, float maxSinPhi = .999 );
 
 
     GPUd() bool  TransportToXWithMaterial( float x,  AliHLTTPCCATrackLinearisation &t0,
-        AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = .999 );
+                                           AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = .999 );
 
     GPUd() bool  TransportToXWithMaterial( float x,
-        AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = .999 );
+                                           AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi = .999 );
 
 
 
     GPUd() static float ApproximateBetheBloch( float beta2 );
     GPUd() static float BetheBlochGeant( float bg,
-                                           float kp0 = 2.33,
-                                           float kp1 = 0.20,
-                                           float kp2 = 3.00,
-                                           float kp3 = 173e-9,
-                                           float kp4 = 0.49848
-                                         );
+                                         float kp0 = 2.33,
+                                         float kp1 = 0.20,
+                                         float kp2 = 3.00,
+                                         float kp3 = 173e-9,
+                                         float kp4 = 0.49848
+                                       );
     GPUd() static float BetheBlochSolid( float bg );
     GPUd() static float BetheBlochGas( float bg );
 
@@ -132,6 +132,7 @@ class AliHLTTPCCATrackParam
     GPUd() bool Rotate( float alpha, AliHLTTPCCATrackLinearisation &t0, float maxSinPhi = .999 );
     GPUd() bool Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi = .999 );
 
+    GPUd() bool CheckNumericalQuality() const;
 
     GPUd() void Print() const;
 
