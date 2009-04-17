@@ -10,6 +10,7 @@
 #define ALIHLTTPCCASTARTHITSFINDER_H
 
 #include "AliHLTTPCCADef.h"
+#include "AliHLTTPCCAHitId.h"
 
 class AliHLTTPCCATracker;
 
@@ -26,19 +27,17 @@ class AliHLTTPCCAStartHitsFinder
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fHitLinkDown( 0 ), fHitLinkUp( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
+            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fHitLinkDown( 0 ), fHitLinkUp( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
+            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
       protected:
         int fIRow; // row index
         int fNRows; // n rows
         int fNHits; // n hits in the row
-        short *fHitLinkDown; // pointer to down link array
-        short *fHitLinkUp; // pointer to the up link array
-        int fRowStartHits[10240]; // temp. array for the start hits
+        AliHLTTPCCAHitId fRowStartHits[10240]; // temp. array for the start hits
         int fNOldStartHits; // n start hits from other jobs
         int fNRowStartHits; // n start hits for this row
     };

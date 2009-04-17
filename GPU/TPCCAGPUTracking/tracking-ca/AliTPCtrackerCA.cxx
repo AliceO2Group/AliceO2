@@ -424,7 +424,7 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
       AliHLTTPCCATrackParam t0 = par;
       for ( int ih = 0; ih < nhits; ih++ ) {
         int index = fHLTTracker->TrackHits()[tCA.FirstHitRef()+firstHit+ih];
-        AliHLTTPCCAGBHit &h = fHLTTracker->Hits()[index];
+        const AliHLTTPCCAGBHit &h = fHLTTracker->Hits()[index];
         int extIndex = h.ID();
         tTPC.SetClusterIndex( ih, extIndex );
 
@@ -536,8 +536,9 @@ int AliTPCtrackerCA::RefitInward ( AliESDEvent *event )
       }
 
       AliTPCtrack tt( *esd );
-      AliHLTTPCCATrackConvertor::GetExtParam( t, tt, alpha );
-      esd->UpdateTrackParams( &tt, AliESDtrack::kTPCrefit );
+      if ( AliHLTTPCCATrackConvertor::GetExtParam( t, tt, alpha ) ) {
+        if ( t.X() > 50 ) esd->UpdateTrackParams( &tt, AliESDtrack::kTPCrefit );
+      }
     }
   }
   return 0;
@@ -572,8 +573,9 @@ int AliTPCtrackerCA::PropagateBack( AliESDEvent *event )
     bool ok = fHLTTracker->FitTrack( t, t0, alpha, hits, nHits, 1 );
     if ( ok &&  nHits > 15 ) {
       AliTPCtrack tt( *esd );
-      AliHLTTPCCATrackConvertor::GetExtParam( t, tt, alpha );
-      esd->UpdateTrackParams( &tt, AliESDtrack::kTPCout );
+      if ( AliHLTTPCCATrackConvertor::GetExtParam( t, tt, alpha ) ) {
+        if ( t.X() > 50 ) esd->UpdateTrackParams( &tt, AliESDtrack::kTPCout );
+      }
     }
   }
   return 0;

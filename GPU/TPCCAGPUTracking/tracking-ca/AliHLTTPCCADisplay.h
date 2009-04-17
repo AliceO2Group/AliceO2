@@ -72,7 +72,7 @@ class AliHLTTPCCADisplay
     void DrawSliceOutTrack( AliHLTTPCCATrackParam &t, double Alpha, int itr, int color = -1, int width = -1  );
     void DrawSliceTrack( int itr, int color = -1 );
     bool DrawTrack( AliHLTTPCCATrackParam t, double Alpha, const AliHLTTPCCADisplayTmpHit *vHits,
-                      int NHits, int color = -1, int width = -1, bool pPoint = 0 );
+                    int NHits, int color = -1, int width = -1, bool pPoint = 0 );
 
     void DrawGBTrack( int itr, int color = -1, int width = -1 );
     void DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, int itr, int color = -1 );

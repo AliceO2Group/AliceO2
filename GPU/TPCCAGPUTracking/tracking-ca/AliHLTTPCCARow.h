@@ -22,57 +22,46 @@
  */
 class AliHLTTPCCARow
 {
+    friend class AliHLTTPCCASliceData;
   public:
 
 #if !defined(HLTCA_GPUCODE)
     AliHLTTPCCARow();
 #endif
 
-    GPUhd() int   FirstHit() const { return fFirstHit; }
     GPUhd() int   NHits()    const { return fNHits; }
     GPUhd() float X()        const { return fX; }
     GPUhd() float MaxY()     const { return fMaxY; }
     GPUhd() const AliHLTTPCCAGrid &Grid() const { return fGrid; }
 
-    GPUhd() float Hy0()      const { return fHy0;}
-    GPUhd() float Hz0()      const { return fHz0;}
-    GPUhd() float HstepY()   const { return fHstepY;}
-    GPUhd() float HstepZ()   const { return fHstepZ;}
-    GPUhd() float HstepYi()  const { return fHstepYi;}
-    GPUhd() float HstepZi()  const { return fHstepZi;}
-    GPUhd() int   FullSize()    const { return fFullSize;}
-    GPUhd() int   FullOffset()  const { return fFullOffset;}
-    GPUhd() int   FullGridOffset()  const { return fFullGridOffset;}
-    GPUhd() int   FullLinkOffset()  const { return fFullLinkOffset;}
-
-    GPUhd() void SetFirstHit( int v ) { fFirstHit = v; }
-    GPUhd() void SetNHits( int v )   { fNHits = v; }
-    GPUhd() void SetX( float v )       { fX = v; }
-    GPUhd() void SetMaxY( float v )    { fMaxY = v; }
-    GPUhd() void SetGrid( const AliHLTTPCCAGrid &v ) { fGrid = v; }
-
-    GPUhd() void SetHy0( float v ) { fHy0 = v;}
-    GPUhd() void SetHz0( float v ) { fHz0 = v;}
-    GPUhd() void SetHstepY( float v ) { fHstepY = v;}
-    GPUhd() void SetHstepZ( float v ) { fHstepZ = v;}
-    GPUhd() void SetHstepYi( float v ) { fHstepYi = v;}
-    GPUhd() void SetHstepZi( float v ) { fHstepZi = v;}
-    GPUhd() void SetFullSize( int v ) { fFullSize = v;}
-    GPUhd() void SetFullOffset( int v ) { fFullOffset = v;}
-    GPUhd() void SetFullGridOffset( int v ) { fFullGridOffset = v;}
-    GPUhd() void SetFullLinkOffset( int v ) { fFullLinkOffset = v;}
+    GPUhd() float Hy0()      const { return fHy0; }
+    GPUhd() float Hz0()      const { return fHz0; }
+    GPUhd() float HstepY()   const { return fHstepY; }
+    GPUhd() float HstepZ()   const { return fHstepZ; }
+    GPUhd() float HstepYi()  const { return fHstepYi; }
+    GPUhd() float HstepZi()  const { return fHstepZi; }
+    GPUhd() int   FullSize() const { return fFullSize; }
+    GPUhd() int   HitNumberOffset() const { return fHitNumberOffset; }
+    GPUhd() unsigned int FirstHitInBinOffset() const { return fFirstHitInBinOffset; }
 
   private:
-
-    int fFirstHit;         // index of the first hit in the hit array
     int fNHits;            // number of hits
     float fX;              // X coordinate of the row
     float fMaxY;           // maximal Y coordinate of the row
     AliHLTTPCCAGrid fGrid;   // grid of hits
 
-    float fHy0, fHz0, fHstepY, fHstepZ, fHstepYi, fHstepZi; // temporary variables
-    int fFullSize, fFullOffset, fFullGridOffset, fFullLinkOffset; // temporary variables
+    // hit packing:
+    float fHy0;          // offset
+    float fHz0;          // offset
+    float fHstepY;       // step size
+    float fHstepZ;       // step size
+    float fHstepYi;      // inverse step size
+    float fHstepZi;      // inverse step size
 
+    int fFullSize;       // size of this row in Tracker::fRowData
+    int fHitNumberOffset;  // index of the first hit in the hit array, used as
+    // offset in AliHLTTPCCASliceData::LinkUp/DownData/HitDataY/...
+    unsigned int fFirstHitInBinOffset; // offset in Tracker::fRowData to find the FirstHitInBin
 };
 
 #endif

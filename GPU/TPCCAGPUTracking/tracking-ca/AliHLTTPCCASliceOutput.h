@@ -67,31 +67,7 @@ class AliHLTTPCCASliceOutput
     float2   *fClusterUnpackedYZ;   // pointer to cluster coordinates (temporary data, for debug proposes)
     float    *fClusterUnpackedX;   // pointer to cluster coordinates (temporary data, for debug proposes)
     UChar_t  *fClusterPackedAmp;    // pointer to packed cluster amplitudes
-
+    char fMemory[1]; // the memory where the pointers above point into
 };
-
-
-
-GPUhd() inline int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClusters )
-{
-  // calculate the amount of memory [bytes] needed for the event
-
-  const int kClusterDataSize = sizeof( unsigned int ) + sizeof( unsigned short ) + sizeof( float2 ) + sizeof( float ) + sizeof( UChar_t );
-
-  return sizeof( AliHLTTPCCASliceOutput ) + sizeof( AliHLTTPCCASliceTrack )*nOfTracks + kClusterDataSize*nOfTrackClusters;
-}
-
-
-GPUhd() inline void AliHLTTPCCASliceOutput::SetPointers()
-{
-  // set all pointers
-
-  fTracks            = ( AliHLTTPCCASliceTrack* )( ( &fClusterPackedAmp ) + 1 );
-  fClusterUnpackedYZ = ( float2* )  ( fTracks   + fNTracks );
-  fClusterUnpackedX  = ( float* )   ( fClusterUnpackedYZ + fNTrackClusters );
-  fClusterIDrc       = ( unsigned int* )  ( fClusterUnpackedX  + fNTrackClusters );
-  fClusterPackedYZ   = ( unsigned short* )( fClusterIDrc       + fNTrackClusters );
-  fClusterPackedAmp  = ( UChar_t* ) ( fClusterPackedYZ + fNTrackClusters );
-}
 
 #endif

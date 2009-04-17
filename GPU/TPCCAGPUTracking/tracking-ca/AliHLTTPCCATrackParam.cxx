@@ -149,11 +149,11 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinea
   float ex1i = 1. / ex1;
 
   float d[5] = { 0,
-                   0,
-                   fP[2] - t0.SinPhi(),
-                   fP[3] - t0.DzDs(),
-                   fP[4] - t0.QPt()
-                 };
+                 0,
+                 fP[2] - t0.SinPhi(),
+                 fP[3] - t0.DzDs(),
+                 fP[4] - t0.QPt()
+               };
 
   //float H0[5] = { 1,0, h2,  0, h4 };
   //float H1[5] = { 0, 1, 0, dS,  0 };
@@ -604,7 +604,6 @@ GPUd() bool AliHLTTPCCATrackParam::Rotate( float alpha, AliHLTTPCCATrackLinearis
   return 1;
 }
 
-
 GPUd() bool AliHLTTPCCATrackParam::Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi )
 {
   //* Add the y,z measurement with the Kalman filter
@@ -666,7 +665,24 @@ GPUd() bool AliHLTTPCCATrackParam::Filter( float y, float z, float err2Y, float 
   return 1;
 }
 
+GPUd() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
+{
+  //* Check that the track parameters and covariance matrix are reasonable
 
+  bool ok = finite( fX ) && finite( fSignCosPhi ) && finite( fChi2 ) && finite( fNDF );
+
+  const float *c = Cov();
+  for ( int i = 0; i < 15; i++ ) ok = ok && finite( c[i] );
+  for ( int i = 0; i < 5; i++ ) ok = ok && finite( Par()[i] );
+
+  if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
+  if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2 || c[14] > 2. ) ok = 0;
+
+  if ( CAMath::Abs( SinPhi() ) > .99 ) ok = 0;
+  if ( CAMath::Abs( QPt() ) > 1. / 0.05 ) ok = 0;
+
+  return ok;
+}
 
 
 #if !defined(HLTCA_GPUCODE)

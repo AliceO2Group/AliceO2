@@ -29,17 +29,7 @@
 #define ClassDef(name,id)
 #define ClassImp(name)
 
-typedef char           char;      //Signed Character 1 byte (char)
 typedef unsigned char  UChar_t;     //Unsigned Character 1 byte (unsigned char)
-typedef short          short;     //Signed Short integer 2 bytes (short)
-typedef unsigned short unsigned short;    //Unsigned Short integer 2 bytes (unsigned short)
-#ifdef R__INT16
-typedef long           int;       //Signed integer 4 bytes
-typedef unsigned long  unsigned int;      //Unsigned integer 4 bytes
-#else
-typedef int            int;       //Signed integer 4 bytes (int)
-typedef unsigned int   unsigned int;      //Unsigned integer 4 bytes (unsigned int)
-#endif
 #ifdef R__B64    // Note: Long_t and ULong_t are currently not portable types
 typedef int            Seek_t;      //File pointer (int)
 typedef long           Long_t;      //Signed long integer 8 bytes (long)
@@ -49,12 +39,9 @@ typedef int            Seek_t;      //File pointer (int)
 typedef long           Long_t;      //Signed long integer 4 bytes (long)
 typedef unsigned long  ULong_t;     //Unsigned long integer 4 bytes (unsigned long)
 #endif
-typedef float          float;     //Float 4 bytes (float)
 typedef float          Float16_t;   //Float 4 bytes written with a truncated mantissa
-typedef double         double;    //Double 8 bytes
 typedef double         Double32_t;  //Double 8 bytes in memory, written as a 4 bytes float
 typedef char           Text_t;      //General string (char)
-typedef bool           bool;      //Boolean (0=false, 1=true) (bool)
 typedef unsigned char  Byte_t;      //Byte (8 bits) (unsigned char)
 typedef short          Version_t;   //Class version identifier (short)
 typedef const char     Option_t;    //Option string (const char)
@@ -121,5 +108,42 @@ struct uint4 { unsigned int x, y, z, w; };
 
 #endif
 
+/*
+ * Helper for compile-time verification of correct API usage
+ */
+namespace
+{
+  template<bool> struct HLTTPCCA_STATIC_ASSERT_FAILURE;
+  template<> struct HLTTPCCA_STATIC_ASSERT_FAILURE<true> {};
+}
+
+#define HLTTPCCA_STATIC_ASSERT_CONCAT_HELPER(a, b) a##b
+#define HLTTPCCA_STATIC_ASSERT_CONCAT(a, b) HLTTPCCA_STATIC_ASSERT_CONCAT_HELPER(a, b)
+#define STATIC_ASSERT(cond, msg) \
+  typedef HLTTPCCA_STATIC_ASSERT_FAILURE<cond> HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__); \
+  HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__) Error_##msg; \
+  (void) Error_##msg
+
+namespace
+{
+  template<typename T1>
+  void UNUSED_PARAM1( const T1 & ) {}
+  template<typename T1, typename T2>
+  void UNUSED_PARAM2( const T1 &, const T2 & ) {}
+  template<typename T1, typename T2, typename T3>
+  void UNUSED_PARAM3( const T1 &, const T2 &, const T3 & ) {}
+  template<typename T1, typename T2, typename T3, typename T4>
+  void UNUSED_PARAM4( const T1 &, const T2 &, const T3 &, const T4 & ) {}
+  template<typename T1, typename T2, typename T3, typename T4, typename T5>
+  void UNUSED_PARAM5( const T1 &, const T2 &, const T3 &, const T4 &, const T5 & ) {}
+  template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
+  void UNUSED_PARAM6( const T1 &, const T2 &, const T3 &, const T4 &, const T5 &, const T6 & ) {}
+  template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
+  void UNUSED_PARAM7( const T1 &, const T2 &, const T3 &, const T4 &, const T5 &, const T6 &, const T7 & ) {}
+  template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
+  void UNUSED_PARAM8( const T1 &, const T2 &, const T3 &, const T4 &, const T5 &, const T6 &, const T7 &, const T8 & ) {}
+  template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
+  void UNUSED_PARAM9( const T1 &, const T2 &, const T3 &, const T4 &, const T5 &, const T6 &, const T7 &, const T8 &, const T9 & ) {}
+}
 
 #endif

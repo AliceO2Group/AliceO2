@@ -37,7 +37,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     // Public functions to implement AliHLTComponent's interface.
     // These functions are required for the registration process
 
-    /** @see component interface @ref AliHLTComponent::GetComponentID */ 
+    /** @see component interface @ref AliHLTComponent::GetComponentID */
     const char* GetComponentID() ;
 
     /** @see component interface @ref AliHLTComponent::GetInputDataTypes */
@@ -69,8 +69,8 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 
     /** @see component interface @ref AliHLTProcessor::DoEvent */
     int DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks,
-                   AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr,
-                   AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
+                 AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr,
+                 AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
 
   private:
 

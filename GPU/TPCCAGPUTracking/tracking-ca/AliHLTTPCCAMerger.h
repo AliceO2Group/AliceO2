@@ -43,7 +43,7 @@ class AliHLTTPCCAMerger
     const AliHLTTPCCAMergerOutput * Output() const { return fOutput; }
 
     bool FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
-                     AliHLTTPCCATrackParam t0, float Alpha0, int hits[], int &NHits,  bool dir = 0 );
+                   AliHLTTPCCATrackParam t0, float Alpha0, int hits[], int &NHits,  bool dir = 0 );
 
   private:
 
@@ -59,7 +59,7 @@ class AliHLTTPCCAMerger
                             int iSlice2, AliHLTTPCCABorderTrack B2[], int N2 );
 
     static float GetChi2( float x1, float y1, float a00, float a10, float a11,
-                            float x2, float y2, float b00, float b10, float b11  );
+                          float x2, float y2, float b00, float b10, float b11  );
 
     void UnpackSlices();
     void Merging();

@@ -105,29 +105,17 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance()
     fhPullQPt( 0 ),
     fhPullYS( 0 ),
     fhPullZT( 0 ),
-    fhCluShared( 0 ),
-    fhCluResY( 0 ),
-    fhCluResZ( 0 ),
-    fhCluErrY( 0 ),
-    fhCluErrZ( 0 ),
-    fhCluPullY( 0 ),
-    fhCluPullZ( 0 ),
-    fhCluResY1( 0 ),
-    fhCluResZ1( 0 ),
-    fhCluErrY1( 0 ),
-    fhCluErrZ1( 0 ),
-    fhCluPullY1( 0 ),
-    fhCluPullZ1( 0 ),
-    fhCluOrigErrY( 0 ),
-    fhCluOrigErrZ( 0 ),
-    fhCluOrigPullY( 0 ),
-    fhCluOrigPullZ( 0 ),
-    fhCluOrigResY1( 0 ),
-    fhCluOrigResZ1( 0 ),
-    fhCluOrigErrY1( 0 ),
-    fhCluOrigErrZ1( 0 ),
-    fhCluOrigPullY1( 0 ),
-    fhCluOrigPullZ1( 0 ),
+    fhHitErrY( 0 ),
+    fhHitErrZ( 0 ),
+    fhHitResY( 0 ),
+    fhHitResZ( 0 ),
+    fhHitPullY( 0 ),
+    fhHitPullZ( 0 ),
+    fhHitShared( 0 ),
+    fhHitResY1( 0 ),
+    fhHitResZ1( 0 ),
+    fhHitPullY1( 0 ),
+    fhHitPullZ1( 0 ),
     fhCellPurity( 0 ),
     fhCellNHits( 0 ),
     fhCellPurityVsN( 0 ),
@@ -233,29 +221,17 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance( const AliHLTTPCCAPerformance& )
     fhPullQPt( 0 ),
     fhPullYS( 0 ),
     fhPullZT( 0 ),
-    fhCluShared( 0 ),
-    fhCluResY( 0 ),
-    fhCluResZ( 0 ),
-    fhCluErrY( 0 ),
-    fhCluErrZ( 0 ),
-    fhCluPullY( 0 ),
-    fhCluPullZ( 0 ),
-    fhCluResY1( 0 ),
-    fhCluResZ1( 0 ),
-    fhCluErrY1( 0 ),
-    fhCluErrZ1( 0 ),
-    fhCluPullY1( 0 ),
-    fhCluPullZ1( 0 ),
-    fhCluOrigErrY( 0 ),
-    fhCluOrigErrZ( 0 ),
-    fhCluOrigPullY( 0 ),
-    fhCluOrigPullZ( 0 ),
-    fhCluOrigResY1( 0 ),
-    fhCluOrigResZ1( 0 ),
-    fhCluOrigErrY1( 0 ),
-    fhCluOrigErrZ1( 0 ),
-    fhCluOrigPullY1( 0 ),
-    fhCluOrigPullZ1( 0 ),
+    fhHitErrY( 0 ),
+    fhHitErrZ( 0 ),
+    fhHitResY( 0 ),
+    fhHitResZ( 0 ),
+    fhHitPullY( 0 ),
+    fhHitPullZ( 0 ),
+    fhHitShared( 0 ),
+    fhHitResY1( 0 ),
+    fhHitResZ1( 0 ),
+    fhHitPullY1( 0 ),
+    fhHitPullZ1( 0 ),
     fhCellPurity( 0 ),
     fhCellNHits( 0 ),
     fhCellPurityVsN( 0 ),
@@ -394,7 +370,7 @@ void AliHLTTPCCAPerformance::ReadMCPoint( int TrackID, float X, float Y, float Z
   p.SetTime( Time );
   p.SetISlice( iSlice );
   float sx, sy, sz;
-  fTracker->Slices()[iSlice].Param().Global2Slice( X, Y, Z, &sx, &sy, &sz );
+  fTracker->Slice( iSlice ).Param().Global2Slice( X, Y, Z, &sx, &sy, &sz );
   p.SetSx( sx );
   p.SetSy( sy );
   p.SetSz( sz );
@@ -522,35 +498,21 @@ void AliHLTTPCCAPerformance::CreateHistos()
   gDirectory->mkdir( "Clusters" );
   gDirectory->cd( "Clusters" );
 
-  fhCluShared = new TProfile( "fhCluSharedf", "% of shared Clusters vs row", 160, 0., 160. );
+  fhHitShared = new TProfile( "fhHitSharedf", "fhHitShared vs row", 160, 0., 160. );
 
-  fhCluResY  = new TH1D( "resCluY", "Y cluster resoltion [cm]", 100, -2., 2. );
-  fhCluResZ  = new TH1D( "resCluZ", "Z cluster resoltion [cm]", 100, -2., 2. );
-  fhCluErrY = new TH1D( "errCluY", "Y cluster error [cm]", 100, 0., 1. );
-  fhCluErrZ = new TH1D( "errCluZ", "Z cluster error [cm]", 100, 0., 1. );
-  fhCluPullY = new TH1D( "pullCluY", "Y cluster pull", 50, -10., 10. );
-  fhCluPullZ = new TH1D( "pullCluZ", "Z cluster pull", 50, -10., 10. );
+  fhHitResY = new TH1D( "resHitY", "Y cluster resoltion [cm]", 100, -2., 2. );
+  fhHitResZ = new TH1D( "resHitZ", "Z cluster resoltion [cm]", 100, -2., 2. );
+  fhHitPullY = new TH1D( "pullHitY", "Y cluster pull", 50, -10., 10. );
+  fhHitPullZ = new TH1D( "pullHitZ", "Z cluster pull", 50, -10., 10. );
 
-  fhCluResY1  = new TH1D( "mcFast_resCluY", "Y cluster resoltion [cm], Pt>1", 100, -2., 2. );
-  fhCluResZ1  = new TH1D( "mcFast_resCluZ", "Z cluster resoltion [cm], Pt>1", 100, -2., 2. );
-  fhCluErrY1  = new TH1D( "mcFast_errCluY", "Y cluster error [cm], Pt>1", 100, 0., 1. );
-  fhCluErrZ1  = new TH1D( "mcFast_errCluZ", "Z cluster error [cm], Pt>1", 100, 0., 1. );
-  fhCluPullY1 = new TH1D( "mcFast_pullCluY", "Y cluster pull, Pt>1", 50, -10., 10. );
-  fhCluPullZ1 = new TH1D( "mcFast_pullCluZ", "Z cluster pull, Pt>1", 50, -10., 10. );
+  fhHitResY1 = new TH1D( "resHitY1", "Y cluster resoltion [cm]", 100, -2., 2. );
+  fhHitResZ1 = new TH1D( "resHitZ1", "Z cluster resoltion [cm]", 100, -2., 2. );
+  fhHitPullY1 = new TH1D( "pullHitY1", "Y cluster pull", 50, -10., 10. );
+  fhHitPullZ1 = new TH1D( "pullHitZ1", "Z cluster pull", 50, -10., 10. );
 
-  gDirectory->mkdir( "OriginalErrors" );
-  gDirectory->cd( "OriginalErrors" );
+  fhHitErrY = new TH1D( "HitErrY", "Y cluster error [cm]", 100, 0., 1. );
+  fhHitErrZ = new TH1D( "HitErrZ", "Z cluster error [cm]", 100, 0., 1. );
 
-  fhCluOrigErrY = new TH1D( "orig_errCluY", "original Y cluster error [cm]", 100, 0., 1. );
-  fhCluOrigErrZ = new TH1D( "orig_errCluZ", "original Z cluster error [cm]", 100, 0., 1. );
-  fhCluOrigPullY = new TH1D( "orig_pullCluY", "original Y cluster pull", 50, -10., 10. );
-  fhCluOrigPullZ = new TH1D( "orig_pullCluZ", "original Z cluster pull", 50, -10., 10. );
-  fhCluOrigErrY1  = new TH1D( "orig_mcFast_errCluY", "original Y cluster error [cm], Pt>1", 100, 0., 1. );
-  fhCluOrigErrZ1  = new TH1D( "orig_mcFast_errCluZ", "original Z cluster error [cm], Pt>1", 100, 0., 1. );
-  fhCluOrigPullY1 = new TH1D( "orig_mcFast_pullCluY", "original Y cluster pull, Pt>1", 50, -10., 10. );
-  fhCluOrigPullZ1 = new TH1D( "orig_mcFast_pullCluZ", "original Z cluster pull, Pt>1", 50, -10., 10. );
-
-  gDirectory->cd( ".." );
   gDirectory->cd( ".." );
 
   gDirectory->mkdir( "Cells" );
@@ -597,11 +559,9 @@ void AliHLTTPCCAPerformance::LinkPerformance( int iSlice )
   // Efficiency and quality of the found neighbours
   std::cout << "Link performance..." << std::endl;
   if ( !fTracker ) return;
-  AliHLTTPCCATracker &slice = fTracker->Slices()[iSlice];
+  const AliHLTTPCCATracker &slice = fTracker->Slice( iSlice );
 
-  const int *id = slice.HitInputIDs();
-
-  int mcType[fNMCTracks];
+  AliHLTResizableArray<int> mcType( fNMCTracks );
 
   for ( int imc = 0; imc < fNMCTracks; imc++ ) {
     if ( fMCTracks[imc].P() < .2 ) {  mcType[imc] = -1; continue; }
@@ -630,13 +590,13 @@ void AliHLTTPCCAPerformance::LinkPerformance( int iSlice )
     const AliHLTTPCCARow &rowUp = slice.Row( iRow + 2 );
     const AliHLTTPCCARow &rowDn = slice.Row( iRow - 2 );
 
-    int gbHits  [row.NHits()];
-    int gbHitsUp[rowUp.NHits()];
-    int gbHitsDn[rowDn.NHits()];
+    AliHLTResizableArray<int> gbHits  ( row.NHits() );
+    AliHLTResizableArray<int> gbHitsUp( rowUp.NHits() );
+    AliHLTResizableArray<int> gbHitsDn( rowDn.NHits() );
 
-    for ( int ih = 0; ih < row.NHits()  ; ih++ ) gbHits  [ih] = fTracker->FirstSliceHit()[iSlice] + id[row  .FirstHit()+ih];
-    for ( int ih = 0; ih < rowUp.NHits(); ih++ ) gbHitsUp[ih] = fTracker->FirstSliceHit()[iSlice] + id[rowUp.FirstHit()+ih];
-    for ( int ih = 0; ih < rowDn.NHits(); ih++ ) gbHitsDn[ih] = fTracker->FirstSliceHit()[iSlice] + id[rowDn.FirstHit()+ih];
+    for ( int ih = 0; ih < row.NHits()  ; ih++ ) gbHits  [ih] = fTracker->FirstSliceHit()[iSlice] + slice.HitInputID( row  , ih );
+    for ( int ih = 0; ih < rowUp.NHits(); ih++ ) gbHitsUp[ih] = fTracker->FirstSliceHit()[iSlice] + slice.HitInputID( rowUp, ih );
+    for ( int ih = 0; ih < rowDn.NHits(); ih++ ) gbHitsDn[ih] = fTracker->FirstSliceHit()[iSlice] + slice.HitInputID( rowDn, ih );
 
     for ( int imc = 0; imc < fNMCTracks; imc++ ) {
       mcGbHitsUp[imc].fNHits = 0;
@@ -667,9 +627,6 @@ void AliHLTTPCCAPerformance::LinkPerformance( int iSlice )
       }
     }
 
-    short *linkUp = ( ( short* )( slice.RowData() + row.FullOffset() ) ) + row.FullLinkOffset();
-    short *linkDn = linkUp + row.NHits();
-
     //float dxUp = rowUp.X() - row.X();
     //float dxDn = row.X() - rowDn.X();
     float tUp = rowUp.X() / row.X();
@@ -677,10 +634,10 @@ void AliHLTTPCCAPerformance::LinkPerformance( int iSlice )
 
     for ( int ih = 0; ih < row.NHits(); ih++ ) {
 
-      int up = linkUp[ih];
-      int dn = linkDn[ih];
+      int up = slice.HitLinkUpData( row, ih );
+      int dn = slice.HitLinkDownData( row, ih );
 
-      AliHLTTPCCAGBHit &h = fTracker->Hits()[gbHits[ih]];
+      const AliHLTTPCCAGBHit &h = fTracker->Hits()[gbHits[ih]];
       AliHLTTPCCAHitLabel &l = fHitLabels[h.ID()];
 
       int isMC = -1;
@@ -697,7 +654,7 @@ void AliHLTTPCCAPerformance::LinkPerformance( int iSlice )
 
         float dyMin = 1.e8, dzMin = 1.e8;
         for ( int i = 0; i < mcGbHitsUp[imc].fNHits; i++ ) {
-          AliHLTTPCCAGBHit &h1 = fTracker->Hits()[mcGbHitsUp[imc].fID[i]];
+          const AliHLTTPCCAGBHit &h1 = fTracker->Hits()[mcGbHitsUp[imc].fID[i]];
           float dy = TMath::Abs( h1.Y() - yUp );
           float dz = TMath::Abs( h1.Z() - zUp );
           if ( dy*dy + dz*dz < dyMin*dyMin + dzMin*dzMin ) {
@@ -715,7 +672,7 @@ void AliHLTTPCCAPerformance::LinkPerformance( int iSlice )
         dyMin = 1.e8;
         dzMin = 1.e8;
         for ( int i = 0; i < mcGbHitsDn[imc].fNHits; i++ ) {
-          AliHLTTPCCAGBHit &h1 = fTracker->Hits()[mcGbHitsDn[imc].fID[i]];
+          const AliHLTTPCCAGBHit &h1 = fTracker->Hits()[mcGbHitsDn[imc].fID[i]];
           float dy = TMath::Abs( h1.Y() - yDn );
           float dz = TMath::Abs( h1.Z() - zDn );
           if ( dy*dy + dz*dz < dyMin*dyMin + dzMin*dzMin ) {
@@ -736,8 +693,8 @@ void AliHLTTPCCAPerformance::LinkPerformance( int iSlice )
         bool found = 0;
         if ( up >= 0 && dn >= 0 ) {
           //std::cout<<"row, ih, mc, up, dn = "<<iRow<<" "<<ih<<" "<<imc<<" "<<up<<" "<<dn<<std::endl;
-          AliHLTTPCCAGBHit &hUp = fTracker->Hits()[gbHitsUp[up]];
-          AliHLTTPCCAGBHit &hDn = fTracker->Hits()[gbHitsDn[dn]];
+          const AliHLTTPCCAGBHit &hUp = fTracker->Hits()[gbHitsUp[up]];
+          const AliHLTTPCCAGBHit &hDn = fTracker->Hits()[gbHitsDn[dn]];
           AliHLTTPCCAHitLabel &lUp = fHitLabels[hUp.ID()];
           AliHLTTPCCAHitLabel &lDn = fHitLabels[hDn.ID()];
           bool foundUp = 0, foundDn = 0;
@@ -774,7 +731,7 @@ void AliHLTTPCCAPerformance::SliceTrackletPerformance( int iSlice, bool PrintFla
   int nRecTot = 0, nGhost = 0, nRecOut = 0;
   int nMCAll = 0, nRecAll = 0, nClonesAll = 0;
   int nMCRef = 0, nRecRef = 0, nClonesRef = 0;
-  AliHLTTPCCATracker &slice = fTracker->Slices()[iSlice];
+  const AliHLTTPCCATracker &slice = fTracker->Slice( iSlice );
 
   int firstSliceHit = fTracker->FirstSliceHit()[iSlice];
   int endSliceHit = fTracker->NHits();
@@ -811,7 +768,7 @@ void AliHLTTPCCAPerformance::SliceTrackletPerformance( int iSlice, bool PrintFla
   }
 
 
-  int traN = *slice.NTracklets();
+  int traN = slice.NTracklets();
   int *traLabels = 0;
   double *traPurity = 0;
 
@@ -826,16 +783,15 @@ void AliHLTTPCCAPerformance::SliceTrackletPerformance( int iSlice, bool PrintFla
       int nHits = 0;
 
       {
-        int id = slice.TrackletStartHits()[itr];
-        int iRow = AliHLTTPCCATracker::ID2IRow( id );
-        int ih =  AliHLTTPCCATracker::ID2IHit( id );
+        const AliHLTTPCCAHitId &id = slice.TrackletStartHit( itr );
+        int iRow = id.RowIndex();
+        int ih =  id.HitIndex();
 
         while ( ih >= 0 ) {
           const AliHLTTPCCARow &row = slice.Row( iRow );
-          hits[nHits] = firstSliceHit + slice.HitInputIDs()[row.FirstHit()+ih];
+          hits[nHits] = firstSliceHit + slice.HitInputID( row, ih );
           nHits++;
-          short *linkUp = ( ( short* )( slice.RowData() + row.FullOffset() ) ) + row.FullLinkOffset();
-          ih = linkUp[ih];
+          ih = slice.HitLinkUpData( row, ih );
           iRow++;
         }
       }
@@ -980,7 +936,7 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int iSlice, bool PrintFl
   int nRecTot = 0, nGhost = 0, nRecOut = 0;
   int nMCAll = 0, nRecAll = 0, nClonesAll = 0;
   int nMCRef = 0, nRecRef = 0, nClonesRef = 0;
-  AliHLTTPCCATracker &slice = fTracker->Slices()[iSlice];
+  const AliHLTTPCCATracker &slice = fTracker->Slice( iSlice );
 
   int firstSliceHit = fTracker->FirstSliceHit()[iSlice];
   int endSliceHit = fTracker->NHits();
@@ -1016,7 +972,7 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int iSlice, bool PrintFl
     }
   }
 
-  int traN = *slice.NTracklets();
+  int traN = slice.NTracklets();
   int *traLabels = 0;
   double *traPurity = 0;
   traLabels = new int[traN];
@@ -1026,7 +982,7 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int iSlice, bool PrintFl
       traLabels[itr] = -1;
       traPurity[itr] = 0;
 
-      AliHLTTPCCATracklet &t = slice.Tracklets()[itr];
+      const AliHLTTPCCATracklet &t = slice.Tracklet( itr );
 
       int nHits = t.NHits();
       if ( nHits < 10 ) continue;
@@ -1040,7 +996,7 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int iSlice, bool PrintFl
       for ( int irow = firstRow; irow <= lastRow; irow++ ) {
         int ih = t.RowHit( irow );
         if ( ih < 0 ) continue;
-        int index = firstSliceHit + slice.HitInputIDs()[slice.Row( irow ).FirstHit()+ih];
+        int index = firstSliceHit + slice.HitInputID( slice.Row( irow ), ih );
         AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];
         if ( l.fLab[0] >= 0 ) lb[nla++] = l.fLab[0];
         if ( l.fLab[1] >= 0 ) lb[nla++] = l.fLab[1];
@@ -1070,7 +1026,7 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int iSlice, bool PrintFl
       for ( int irow = firstRow; irow <= lastRow; irow++ ) {
         int ih = t.RowHit( irow );
         if ( ih < 0 ) continue;
-        int index = firstSliceHit + slice.HitInputIDs()[slice.Row( irow ).FirstHit()+ih];
+        int index = firstSliceHit + slice.HitInputID( slice.Row( irow ), ih );
         AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];
         if ( l.fLab[0] == labmax || l.fLab[1] == labmax || l.fLab[2] == labmax
            ) lmax++;
@@ -1179,16 +1135,16 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
   int nRecTot = 0, nGhost = 0, nRecOut = 0;
   int nMCAll = 0, nRecAll = 0, nClonesAll = 0;
   int nMCRef = 0, nRecRef = 0, nClonesRef = 0;
-  AliHLTTPCCATracker &slice = fTracker->Slices()[iSlice];
+  const AliHLTTPCCATracker &slice = fTracker->Slice( iSlice );
 
   int firstSliceHit = 0;
   for ( ; firstSliceHit < fTracker->NHits(); firstSliceHit++ ) {
-    if ( fTracker->Hits()[firstSliceHit].ISlice() == iSlice ) break;
+    if ( fTracker->Hit( firstSliceHit ).ISlice() == iSlice ) break;
   }
   int endSliceHit = firstSliceHit;
 
   for ( ; endSliceHit < fTracker->NHits(); endSliceHit++ ) {
-    if ( fTracker->Hits()[endSliceHit].ISlice() != iSlice ) break;
+    if ( fTracker->Hit( endSliceHit ).ISlice() != iSlice ) break;
   }
 
 
@@ -1198,7 +1154,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
     for ( int imc = 0; imc < fNMCTracks; imc++ ) fMCTracks[imc].SetNHits( 0 );
 
     for ( int ih = firstSliceHit; ih < endSliceHit; ih++ ) {
-      int id = fTracker->Hits()[ih].ID();
+      int id = fTracker->Hit( ih ).ID();
       if ( id < 0 || id > fNHits ) break;
       AliHLTTPCCAHitLabel &l = fHitLabels[id];
       if ( l.fLab[0] >= 0 ) fMCTracks[l.fLab[0]].SetNHits( fMCTracks[l.fLab[0]].NHits() + 1 );
@@ -1231,14 +1187,14 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
     for ( int itr = 0; itr < traN; itr++ ) {
       traLabels[itr] = -1;
       traPurity[itr] = 0;
-      AliHLTTPCCAOutTrack &tCA = slice.OutTracks()[itr];
+      const AliHLTTPCCAOutTrack &tCA = slice.OutTrack( itr );
       int nhits = tCA.NHits();
       int *lb = new int[nhits*3];
       int nla = 0;
       //cout<<"\nHit labels:"<<endl;
       for ( int ihit = 0; ihit < nhits; ihit++ ) {
-        int index = firstSliceHit + slice.OutTrackHits()[tCA.FirstHitRef()+ihit];
-        AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];
+        const int index = firstSliceHit + slice.OutTrackHit( tCA.FirstHitRef() + ihit );
+        const AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hit( index ).ID()];
         //cout<<l.fLab[0]<<" "<<l.fLab[1]<<" "<<l.fLab[2]<<endl;
         if ( l.fLab[0] >= 0 ) lb[nla++] = l.fLab[0];
         if ( l.fLab[1] >= 0 ) lb[nla++] = l.fLab[1];
@@ -1263,8 +1219,8 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
       }
       lmax = 0;
       for ( int ihit = 0; ihit < nhits; ihit++ ) {
-        int index = firstSliceHit + slice.OutTrackHits()[tCA.FirstHitRef()+ihit];
-        AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];
+        const int index = firstSliceHit + slice.OutTrackHit( tCA.FirstHitRef() + ihit );
+        const AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hit( index ).ID()];
         if ( l.fLab[0] == labmax || l.fLab[1] == labmax || l.fLab[2] == labmax
            ) lmax++;
       }
@@ -1434,13 +1390,13 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
       for ( int itr = 0; itr < traN; itr++ ) {
         traLabels[itr] = -1;
         traPurity[itr] = 0;
-        AliHLTTPCCAGBTrack &tCA = fTracker->Tracks()[itr];
-        int nhits = tCA.NHits();
+        const AliHLTTPCCAGBTrack &tCA = fTracker->Track( itr );
+        const int nhits = tCA.NHits();
         int *lb = new int[nhits*3];
         int nla = 0;
         for ( int ihit = 0; ihit < nhits; ihit++ ) {
-          int index = fTracker->TrackHits()[tCA.FirstHitRef()+ihit];
-          AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];
+          const int index = fTracker->TrackHit( tCA.FirstHitRef() + ihit );
+          const AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hit( index ).ID()];
           if ( l.fLab[0] >= 0 ) lb[nla++] = l.fLab[0];
           if ( l.fLab[1] >= 0 ) lb[nla++] = l.fLab[1];
           if ( l.fLab[2] >= 0 ) lb[nla++] = l.fLab[2];
@@ -1464,8 +1420,8 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
         }
         lmax = 0;
         for ( int ihit = 0; ihit < nhits; ihit++ ) {
-          int index = fTracker->TrackHits()[tCA.FirstHitRef()+ihit];
-          AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];
+          const int index = fTracker->TrackHit( tCA.FirstHitRef() + ihit );
+          const AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hit( index ).ID()];
           if ( l.fLab[0] == labmax || l.fLab[1] == labmax || l.fLab[2] == labmax
              ) lmax++;
         }
@@ -1481,7 +1437,7 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
         nGhost++;
         continue;
       }
-      AliHLTTPCCAGBTrack &tCA = fTracker->Tracks()[itr];
+      const AliHLTTPCCAGBTrack &tCA = fTracker->Track( itr );
       AliHLTTPCCAMCTrack &mc = fMCTracks[traLabels[itr]];
 
       mc.SetNReconstructed( mc.NReconstructed() + 1 );
@@ -1499,7 +1455,7 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
       // track resolutions
       while ( mc.Set() == 2 && TMath::Abs( mc.TPCPar()[0] ) + TMath::Abs( mc.TPCPar()[1] ) > 1 ) {
         if ( traPurity[itr] < .90 ) break;
-        AliHLTTPCCAGBTrack &t = fTracker->Tracks()[itr];
+        const AliHLTTPCCAGBTrack &t = fTracker->Track( itr );
         AliHLTTPCCATrackParam p = t.Param();
         double cosA = TMath::Cos( t.Alpha() );
         double sinA = TMath::Sin( t.Alpha() );
@@ -1518,7 +1474,7 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
         double mcPt = 1. / TMath::Abs( mcQPt );
         if ( mcPt < 1. ) break;
         if ( t.NHits() <  50 ) break;
-        double bz = fTracker->Slices()[0].Param().Bz();
+        double bz = fTracker->Slice( 0 ).Param().Bz();
         if ( !p.TransportToXWithMaterial( mcX, bz ) ) break;
         if ( p.GetCosPhi()*mcEx < 0 ) { // change direction
           mcSinPhi = -mcSinPhi;
@@ -1621,20 +1577,14 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
   {
     int nHits = fTracker->NHits();
     for ( int ih = 0; ih < nHits; ih++ ) {
-      AliHLTTPCCAGBHit &hit = fTracker->Hits()[ih];
+      const AliHLTTPCCAGBHit &hit = fTracker->Hit( ih );
       AliHLTTPCCAHitLabel &l = fHitLabels[hit.ID()];
-      fhCluOrigErrY->Fill( hit.ErrY() );
-      fhCluOrigErrZ->Fill( hit.ErrZ() );
+      fhHitErrY->Fill( hit.ErrY() );
+      fhHitErrZ->Fill( hit.ErrZ() );
       int nmc = 0;
       for ( int il = 0; il < 3; il++ ) if ( l.fLab[il] >= 0 ) nmc++;
-      if ( nmc == 1 ) {
-        fhCluShared->Fill( hit.IRow(), 0 );
-        AliHLTTPCCAMCTrack &track = fMCTracks[l.fLab[0]];
-        if ( track.Pt() >= 1 ) {
-          fhCluOrigErrY1->Fill( hit.ErrY() );
-          fhCluOrigErrZ1->Fill( hit.ErrZ() );
-        }
-      } else if ( nmc > 1 ) fhCluShared->Fill( hit.IRow(), 1 );
+      if ( nmc == 1 ) fhHitShared->Fill( hit.IRow(), 0 );
+      else if ( nmc > 1 ) fhHitShared->Fill( hit.IRow(), 1 );
     }
   }
 
@@ -1659,8 +1609,8 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
 
     for ( int ih = 0; ih < fNHits; ih++ ) {
 
-      AliHLTTPCCAGBHit &hit = fTracker->Hits()[ih];
-      AliHLTTPCCAHitLabel &l = fHitLabels[ih];
+      const AliHLTTPCCAGBHit &hit = fTracker->Hit( ih );
+      const AliHLTTPCCAHitLabel &l = fHitLabels[ih];
 
       if ( l.fLab[0] < 0 || l.fLab[0] >= fNMCTracks
            || l.fLab[1] >= 0 || l.fLab[2] >= 0       ) continue;
@@ -1700,40 +1650,32 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
       double dz = p2.Sz() - p1.Sz();
       if ( TMath::Abs( dx ) > 1.e-8 && TMath::Abs( p1.Sx() - hit.X() ) < 2. && TMath::Abs( p2.Sx() - hit.X() ) < 2.  ) {
         double sx = hit.X();
-        double sy = p1.Sy() + dy / dx * ( sx - p1.Sx() );
+        //double sy = p1.Sy() + dy/dx*(sx-p1.Sx());
         double sz = p1.Sz() + dz / dx * ( sx - p1.Sx() );
 
-        float errY, errZ;
+        //float errY, errZ;
         {
-          float sinPhi = dy / TMath::Sqrt( dx * dx + dy * dy );
-          float cosPhi = dx / TMath::Sqrt( dx * dx + dy * dy );
-          float dzDs   = dz / TMath::Sqrt( dx * dx + dy * dy );
-          fTracker->Slices()[hit.ISlice()].Param().GetClusterErrors2( hit.IRow(), sz, sinPhi, cosPhi, dzDs, errY, errZ );
-          errY = TMath::Sqrt( errY );
-          errZ = TMath::Sqrt( errZ );
+          AliHLTTPCCATrackParam t;
+          t.SetZ( sz );
+          t.SetSinPhi( dy / TMath::Sqrt( dx*dx + dy*dy ) );
+          t.SetSignCosPhi( dx );
+          t.SetDzDs( dz / TMath::Sqrt( dx*dx + dy*dy ) );
+          //fTracker->GetErrors2(hit,t,errY, errZ );
+          //errY = TMath::Sqrt(errY);
+          //errZ = TMath::Sqrt(errZ);
         }
-
-        float oErrY = hit.ErrY();
-        float oErrZ = hit.ErrZ();
-
-        fhCluErrY->Fill( errY );
-        fhCluErrZ->Fill( errZ );
-        fhCluResY->Fill( ( hit.Y() - sy ) );
-        fhCluResZ->Fill( ( hit.Z() - sz ) );
-        fhCluPullY->Fill( ( hit.Y() - sy ) / errY );
-        fhCluPullZ->Fill( ( hit.Z() - sz ) / errZ );
-        fhCluOrigPullY->Fill( ( hit.Y() - sy ) / oErrY );
-        fhCluOrigPullZ->Fill( ( hit.Z() - sz ) / oErrZ );
-        if ( track.Pt() >= 1. ) {
-          fhCluErrY1->Fill( errY );
-          fhCluErrZ1->Fill( errZ );
-          fhCluResY1->Fill( ( hit.Y() - sy ) );
-          fhCluResZ1->Fill( ( hit.Z() - sz ) );
-          fhCluPullY1->Fill( ( hit.Y() - sy ) / errY );
-          fhCluPullZ1->Fill( ( hit.Z() - sz ) / errZ );
-          fhCluOrigPullY1->Fill( ( hit.Y() - sy ) / oErrY );
-          fhCluOrigPullZ1->Fill( ( hit.Z() - sz ) / oErrZ );
+        /*
+        fhHitResY->Fill((hit.Y()-sy));
+        fhHitResZ->Fill((hit.Z()-sz));
+        fhHitPullY->Fill((hit.Y()-sy)/errY);
+        fhHitPullZ->Fill((hit.Z()-sz)/errZ);
+        if( track.Pt()>=1. ){
+          fhHitResY1->Fill((hit.Y()-sy));
+          fhHitResZ1->Fill((hit.Z()-sz));
+          fhHitPullY1->Fill((hit.Y()-sy)/errY);
+          fhHitPullZ1->Fill((hit.Z()-sz)/errZ);
         }
+        */
       }
     }
   }

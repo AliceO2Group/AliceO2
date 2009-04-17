@@ -38,18 +38,14 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread
       if ( s.fIRow <= s.fNRows - 4 ) {
         s.fNHits = tracker.Row( s.fIRow ).NHits();
         if ( s.fNHits >= 10240 ) s.fNHits = 10230;
-
-        const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
-        s.fHitLinkUp = ( ( short* )( tracker.RowData() + row.FullOffset() ) ) + row.FullLinkOffset();
-        s.fHitLinkDown = s.fHitLinkUp + row.NHits();
-
       } else s.fNHits = -1;
     }
   } else if ( iSync == 1 ) {
+    const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
     for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
-      if ( ( s.fHitLinkDown[ih] < 0 ) && ( s.fHitLinkUp[ih] >= 0 ) ) {
+      if ( ( tracker.HitLinkDownData( row, ih ) < 0 ) && ( tracker.HitLinkUpData( row, ih ) >= 0 ) ) {
         int oldNRowStartHits = CAMath::AtomicAdd( &s.fNRowStartHits, 1 );
-        s.fRowStartHits[oldNRowStartHits] = AliHLTTPCCATracker::IRowIHit2ID( s.fIRow, ih );
+        s.fRowStartHits[oldNRowStartHits].Set( s.fIRow, ih );
       }
     }
   } else if ( iSync == 2 ) {
@@ -57,7 +53,7 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread
       s.fNOldStartHits = CAMath::AtomicAdd( tracker.NTracklets(), s.fNRowStartHits );
     }
   } else if ( iSync == 3 ) {
-    int *startHits = tracker.TrackletStartHits();
+    AliHLTTPCCAHitId *const startHits = tracker.TrackletStartHits();
     for ( int ish = iThread; ish < s.fNRowStartHits; ish += nThreads ) {
       startHits[s.fNOldStartHits+ish] = s.fRowStartHits[ish];
     }

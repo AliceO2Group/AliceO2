@@ -26,10 +26,10 @@ class AliHLTTPCCATrackletConstructor
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fUsedHits( 0 ), fMinStartRow( 0 ), fMaxStartRow( 0 ) {}
+            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fMinStartRow( 0 ), fMaxStartRow( 0 ) {}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fUsedHits( 0 ), fMinStartRow( 0 ), fMaxStartRow( 0 ) {}
+            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fMinStartRow( 0 ), fMaxStartRow( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
       protected:
@@ -37,7 +37,6 @@ class AliHLTTPCCATrackletConstructor
         int fItr0; // start track index
         int fItr1; // end track index
         int fNRows; // n rows
-        int *fUsedHits;   // array of used hits
         int fMinStartRow; // min start row
         int fMinStartRow32[32]; // min start row for each thread in warp
         int fMaxStartRow; // max start row

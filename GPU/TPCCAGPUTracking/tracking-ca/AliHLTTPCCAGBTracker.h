@@ -11,14 +11,14 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATrackParam.h"
+#include "AliHLTTPCCATracker.h"
+#include "AliHLTTPCCAGBHit.h"
+#include "AliHLTTPCCAGBTrack.h"
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
 #endif
 
-class AliHLTTPCCATracker;
-class AliHLTTPCCAGBTrack;
-class AliHLTTPCCAGBHit;
 class TParticle;
 class TProfile;
 class AliHLTTPCCATrackParam;
@@ -62,21 +62,24 @@ class AliHLTTPCCAGBTracker
     void Merge();
 
     AliHLTTPCCATracker *Slices() const { return fSlices; }
-    AliHLTTPCCAGBHit *Hits() const { return fHits; }
+    const AliHLTTPCCATracker &Slice( int index ) const { return fSlices[index]; }
+    const AliHLTTPCCAGBHit *Hits() const { return fHits; }
+    const AliHLTTPCCAGBHit &Hit( int index ) const { return fHits[index]; }
     int Ext2IntHitID( int i ) const { return fExt2IntHitID[i]; }
-
     int NHits() const { return fNHits; }
     int NSlices() const { return fNSlices; }
     double Time() const { return fTime; }
     double StatTime( int iTimer ) const { return fStatTime[iTimer]; }
     int StatNEvents() const { return fStatNEvents; }
     int NTracks() const { return fNTracks; }
-    AliHLTTPCCAGBTrack *Tracks() const { return fTracks; }
-    int *TrackHits() const { return fTrackHits; }
+    AliHLTTPCCAGBTrack *Tracks() { return fTracks; }
+    const AliHLTTPCCAGBTrack &Track( int i ) const { return fTracks[i]; }
+    int *TrackHits() { return fTrackHits; }
+    int TrackHit( int i ) const { return fTrackHits[i]; }
 
     bool FitTrack( AliHLTTPCCATrackParam &T, AliHLTTPCCATrackParam t0,
-                     float &Alpha, int hits[], int &NTrackHits,
-                     bool dir );
+                   float &Alpha, int hits[], int &NTrackHits,
+                   bool dir );
 
     void WriteSettings( std::ostream &out ) const;
     void ReadSettings( std::istream &in );

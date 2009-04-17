@@ -27,9 +27,9 @@ class AliHLTTPCCANeighboursCleaner
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fNHits( 0 ), fHitLinkDn( 0 ), fHitLinkUp( 0 ), fUpHitLinkDn( 0 ), fDnHitLinkUp( 0 ), fFirstHit( 0 ) {}
+            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fNHits( 0 ) {}
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fNHits( 0 ), fHitLinkDn( 0 ), fHitLinkUp( 0 ), fUpHitLinkDn( 0 ), fDnHitLinkUp( 0 ), fFirstHit( 0 ) {}
+            : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fNHits( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
       protected:
@@ -38,11 +38,6 @@ class AliHLTTPCCANeighboursCleaner
         int fIRowDn; // current row index
         int fNRows; // number of rows
         int fNHits; // number of hits
-        short *fHitLinkDn; // links to the previous row
-        short *fHitLinkUp; // links to the next row
-        short *fUpHitLinkDn; // links from next row
-        short *fDnHitLinkUp; // links from previous row
-        int fFirstHit; // index of the first row hit in global arrays
     };
 
     GPUd() static int NThreadSyncPoints() { return 1; }
