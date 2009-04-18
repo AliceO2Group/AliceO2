@@ -1,22 +1,18 @@
-/*
-    Copyright (C) 2009 Matthias Kretz <kretz@kde.org>
-
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) version 3.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Library General Public License for more details.
-
-    You should have received a copy of the GNU Library General Public License
-    along with this library; see the file COPYING.LIB.  If not, write to
-    the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-    Boston, MA 02110-1301, USA.
-
-*/
+/**************************************************************************
+ * This file is property of and copyright by the ALICE HLT Project        *
+ * All rights reserved.                                                   *
+ *                                                                        *
+ * Primary Authors:                                                       *
+ *     Copyright 2009       Matthias Kretz <kretz@kde.org>                *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
 
 #ifndef ALIHLTTPCCAHITID_H
 #define ALIHLTTPCCAHITID_H
