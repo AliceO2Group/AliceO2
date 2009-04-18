@@ -57,13 +57,13 @@
 ClassImp( AliTPCtrackerCA )
 
 AliTPCtrackerCA::AliTPCtrackerCA()
-    : AliTracker(), fkParam( 0 ), fClusters( 0 ), fNClusters( 0 ), fHLTTracker( 0 ), fDoHLTPerformance( 0 ), fDoHLTPerformanceClusters( 0 ), fStatNEvents( 0 )
+    : AliTracker(), fkParam( 0 ), fClusters( 0 ), fNClusters( 0 ), fHLTTracker( 0 ), fDoHLTPerformance( 0 ), fDoHLTPerformanceClusters( 0 ), fStatCPUTime( 0 ), fStatRealTime( 0 ), fStatNEvents( 0 )
 {
   //* default constructor
 }
 
 AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCtrackerCA & ):
-    AliTracker(), fkParam( 0 ), fClusters( 0 ), fNClusters( 0 ), fHLTTracker( 0 ), fDoHLTPerformance( 0 ), fDoHLTPerformanceClusters( 0 ), fStatNEvents( 0 )
+    AliTracker(), fkParam( 0 ), fClusters( 0 ), fNClusters( 0 ), fHLTTracker( 0 ), fDoHLTPerformance( 0 ), fDoHLTPerformanceClusters( 0 ), fStatCPUTime( 0 ), fStatRealTime( 0 ), fStatNEvents( 0 )
 {
   //* dummy
 }
@@ -85,7 +85,7 @@ AliTPCtrackerCA::~AliTPCtrackerCA()
 //#include "AliHLTTPCCADisplay.h"
 
 AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
-    AliTracker(), fkParam( par ), fClusters( 0 ), fNClusters( 0 ), fHLTTracker( 0 ), fDoHLTPerformance( 0 ), fDoHLTPerformanceClusters( 0 ), fStatNEvents( 0 )
+    AliTracker(), fkParam( par ), fClusters( 0 ), fNClusters( 0 ), fHLTTracker( 0 ), fDoHLTPerformance( 0 ), fDoHLTPerformanceClusters( 0 ), fStatCPUTime( 0 ), fStatRealTime( 0 ), fStatNEvents( 0 )
 {
   //* constructor
 
@@ -354,51 +354,6 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
   TStopwatch timer;
 
   fHLTTracker->FindTracks();
-  //cout<<"Do performance.."<<endl;
-  if ( fDoHLTPerformance ) AliHLTTPCCAPerformance::Instance().Performance();
-
-  if ( 0 ) {// Write Event
-    if ( fStatNEvents == 0 ) {
-      fstream geo;
-      geo.open( "CAEvents/settings.dat", ios::out );
-      if ( geo.is_open() ) {
-        fHLTTracker->WriteSettings( geo );
-      }
-      geo.close();
-    }
-
-    fstream hits;
-    char name[255];
-    sprintf( name, "CAEvents/%i.event.dat", fStatNEvents );
-    hits.open( name, ios::out );
-    if ( hits.is_open() ) {
-      fHLTTracker->WriteEvent( hits );
-      fstream tracks;
-      sprintf( name, "CAEvents/%i.tracks.dat", fStatNEvents );
-      tracks.open( name, ios::out );
-      fHLTTracker->WriteTracks( tracks );
-    }
-    hits.close();
-    if ( fDoHLTPerformance ) {
-      fstream mcevent, mcpoints;
-      char mcname[255];
-      sprintf( mcname, "CAEvents/%i.mcevent.dat", fStatNEvents );
-      mcevent.open( mcname, ios::out );
-      if ( mcevent.is_open() ) {
-        AliHLTTPCCAPerformance::Instance().WriteMCEvent( mcevent );
-      }
-      if ( 1 && fDoHLTPerformanceClusters ) {
-        sprintf( mcname, "CAEvents/%i.mcpoints.dat", fStatNEvents );
-        mcpoints.open( mcname, ios::out );
-        if ( mcpoints.is_open() ) {
-          AliHLTTPCCAPerformance::Instance().WriteMCPoints( mcpoints );
-        }
-        mcpoints.close();
-      }
-      mcevent.close();
-    }
-  }
-  fStatNEvents++;
 
   if ( event ) {
 
@@ -480,12 +435,61 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
     }
   }
   timer.Stop();
-  static double time = 0, time1 = 0;
-  static int ncalls = 0;
-  time += timer.CpuTime();
-  time1 += timer.RealTime();
-  ncalls++;
-  //cout<<"\n\nCA tracker speed: cpu = "<<time/ncalls*1.e3<<" [ms/ev], real = "<<time1/ncalls*1.e3<<" [ms/ev], n calls = "<<ncalls<<endl<<endl;
+
+  fStatCPUTime += timer.CpuTime();
+  fStatRealTime += timer.RealTime();
+
+  //cout << "\n\nCA tracker speed: cpu = " << fStatCPUTime / ( fStatNEvents + 1 )*1.e3 << " [ms/ev], real = " << fStatRealTime / ( fStatNEvents + 1 )*1.e3 << " [ms/ev], n calls = " << ( fStatNEvents + 1 ) << endl << endl;
+
+
+  //cout<<"Do performance.."<<endl;
+
+  if ( fDoHLTPerformance ) AliHLTTPCCAPerformance::Instance().Performance();
+
+  if ( 0 ) {// Write Event
+    if ( fStatNEvents == 0 ) {
+      fstream geo;
+      geo.open( "CAEvents/settings.dat", ios::out );
+      if ( geo.is_open() ) {
+        fHLTTracker->WriteSettings( geo );
+      }
+      geo.close();
+    }
+
+    fstream hits;
+    char name[255];
+    sprintf( name, "CAEvents/%i.event.dat", fStatNEvents );
+    hits.open( name, ios::out );
+    if ( hits.is_open() ) {
+      fHLTTracker->WriteEvent( hits );
+      fstream tracks;
+      sprintf( name, "CAEvents/%i.tracks.dat", fStatNEvents );
+      tracks.open( name, ios::out );
+      fHLTTracker->WriteTracks( tracks );
+    }
+    hits.close();
+    if ( fDoHLTPerformance ) {
+      fstream mcevent, mcpoints;
+      char mcname[255];
+      sprintf( mcname, "CAEvents/%i.mcevent.dat", fStatNEvents );
+      mcevent.open( mcname, ios::out );
+      if ( mcevent.is_open() ) {
+        AliHLTTPCCAPerformance::Instance().WriteMCEvent( mcevent );
+      }
+      if ( 1 && fDoHLTPerformanceClusters ) {
+        sprintf( mcname, "CAEvents/%i.mcpoints.dat", fStatNEvents );
+        mcpoints.open( mcname, ios::out );
+        if ( mcpoints.is_open() ) {
+          AliHLTTPCCAPerformance::Instance().WriteMCPoints( mcpoints );
+        }
+        mcpoints.close();
+      }
+      mcevent.close();
+    }
+  }
+
+  fStatNEvents++;
+
 
   //cout<<"End of AliTPCtrackerCA"<<endl;
   return 0;
