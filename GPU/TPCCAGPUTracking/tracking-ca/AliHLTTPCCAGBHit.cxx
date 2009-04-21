@@ -19,8 +19,6 @@
 
 #include "AliHLTTPCCAGBHit.h"
 
-//ClassImp(AliHLTTPCCAGBHit)
-
 bool AliHLTTPCCAGBHit::Compare( const AliHLTTPCCAGBHit &a, const AliHLTTPCCAGBHit &b )
 {
   //* Comparison function for sorting hits

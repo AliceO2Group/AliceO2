@@ -26,8 +26,6 @@ class AliHLTTPCCAGBHit
         : fX( 0 ), fY( 0 ), fZ( 0 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0 ), fAmp( 0 ),
         fISlice( 0 ), fIRow( 0 ), fID( 0 ), fIsUsed( 0 ) {}
 
-    virtual ~AliHLTTPCCAGBHit() {}
-
     float X() const { return fX; }
     float Y() const { return fY; }
     float Z() const { return fZ; }
@@ -78,8 +76,6 @@ class AliHLTTPCCAGBHit
     int fIRow;   //* row number
     int fID;     //* external ID (id of AliTPCcluster)
     bool fIsUsed; //* is used by GBTracks
-
-    //ClassDef(AliHLTTPCCAGBHit,1);
 
 };
 
