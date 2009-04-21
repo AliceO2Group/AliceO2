@@ -429,9 +429,12 @@ int AliHLTTPCCATrackerComponent::DoEvent
       rowX[irow] = AliHLTTPCTransform::Row2X( irow );
     }
 
+    const double kCLight = 0.000299792458;
+
     AliHLTTPCCAParam param;
+    
     param.Initialize( iSec, nRows, rowX, alpha, dalpha,
-                      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
+                      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz*kCLight );
     param.SetHitPickUpFactor( 2 );
     param.Update();
     fTracker->Initialize( param );
