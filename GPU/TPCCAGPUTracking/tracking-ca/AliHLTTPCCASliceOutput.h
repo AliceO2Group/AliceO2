@@ -34,6 +34,7 @@ class AliHLTTPCCASliceOutput
 
     GPUhd() const AliHLTTPCCASliceTrack &Track( int i ) const { return fTracks[i]; }
     GPUhd() unsigned int   ClusterIDrc     ( int i )  const { return fClusterIDrc[i]; }
+    GPUhd()  int   ClusterHltID     ( int i )  const { return fClusterHltID[i]; }
     GPUhd() unsigned short ClusterPackedYZ ( int i )  const { return fClusterPackedYZ[i]; }
     GPUhd() UChar_t  ClusterPackedAmp( int i )  const { return fClusterPackedAmp[i]; }
     GPUhd() float2   ClusterUnpackedYZ ( int i )  const { return fClusterUnpackedYZ[i]; }
@@ -47,6 +48,7 @@ class AliHLTTPCCASliceOutput
 
     GPUhd() void SetTrack( int i, const AliHLTTPCCASliceTrack &v ) {  fTracks[i] = v; }
     GPUhd() void SetClusterIDrc( int i, unsigned int v ) {  fClusterIDrc[i] = v; }
+    GPUhd() void SetClusterHltID( int i, int v ) {  fClusterHltID[i] = v; }
     GPUhd() void SetClusterPackedYZ( int i, unsigned short v ) {  fClusterPackedYZ[i] = v; }
     GPUhd() void SetClusterPackedAmp( int i, UChar_t v ) {  fClusterPackedAmp[i] = v; }
     GPUhd() void SetClusterUnpackedYZ( int i, float2 v ) {  fClusterUnpackedYZ[i] = v; }
@@ -55,7 +57,7 @@ class AliHLTTPCCASliceOutput
   private:
 
     AliHLTTPCCASliceOutput( const AliHLTTPCCASliceOutput& )
-        : fNTracks( 0 ), fNTrackClusters( 0 ), fTracks( 0 ), fClusterIDrc( 0 ), fClusterPackedYZ( 0 ), fClusterUnpackedYZ( 0 ), fClusterUnpackedX( 0 ), fClusterPackedAmp( 0 ) {}
+        : fNTracks( 0 ), fNTrackClusters( 0 ), fTracks( 0 ), fClusterIDrc( 0 ), fClusterHltID( 0 ), fClusterPackedYZ( 0 ), fClusterUnpackedYZ( 0 ), fClusterUnpackedX( 0 ), fClusterPackedAmp( 0 ) {}
 
     const AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) const { return *this; }
 
@@ -63,6 +65,7 @@ class AliHLTTPCCASliceOutput
     int fNTrackClusters;          // total number of track clusters
     AliHLTTPCCASliceTrack *fTracks; // pointer to reconstructed tracks
     unsigned int   *fClusterIDrc;         // pointer to cluster IDs ( packed IRow and ICluster)
+    int   *fClusterHltID;         // pointer to cluster IDs ( packed slice, patch, cluster )
     unsigned short *fClusterPackedYZ;     // pointer to packed cluster YZ coordinates
     float2   *fClusterUnpackedYZ;   // pointer to cluster coordinates (temporary data, for debug proposes)
     float    *fClusterUnpackedX;   // pointer to cluster coordinates (temporary data, for debug proposes)

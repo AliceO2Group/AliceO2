@@ -14,11 +14,10 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-#ifndef CLUSTERDATA_H
-#define CLUSTERDATA_H
+#ifndef ALIHLTTPCCACLUSTERDATA_H
+#define ALIHLTTPCCACLUSTERDATA_H
 
 #include <vector>
-#include "AliHLTTPCCAGBHit.h"
 #include "AliHLTArray.h"
 
 class AliHLTTPCSpacePointData;
@@ -36,23 +35,33 @@ class AliHLTTPCCAClusterData
      */
     AliHLTTPCCAClusterData( const AliHLTArray<AliHLTTPCSpacePointData *> &clusters,
                             int numberOfClusters, double ClusterZCut )
-        : fSlice( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fNumberOfClusters(), fRowOffset(), fData()
+        : fSliceIndex( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fNumberOfClusters(), fRowOffset(), fData()
     { readEvent( clusters, numberOfClusters, ClusterZCut ); }
 
 
-    /**
-     * Construct AliHLTTPCCAClusterData object from GBHit array.
-     */
-    AliHLTTPCCAClusterData( const AliHLTTPCCAGBHit *hits, int *offset, int numberOfClusters )
-        : fSlice( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fNumberOfClusters(), fRowOffset(), fData() {
-      readEvent( hits, offset, numberOfClusters );
-    }
-
-    AliHLTTPCCAClusterData(): fSlice( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fNumberOfClusters(), fRowOffset(), fData() {}
+    AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fNumberOfClusters(), fRowOffset(), fData() {}
 
     void readEvent( const AliHLTArray<AliHLTTPCSpacePointData *> &clusters,
                     int numberOfClusters, double ClusterZCut );
-    void readEvent( const AliHLTTPCCAGBHit *hits, int *offset, int numberOfClusters );
+
+    /**
+     * prepare for the reading of event
+     */
+    void StartReading( int sliceIndex, int guessForNumberOfClusters = 256 );
+
+    /**
+     *  read next cluster
+     */
+    void ReadCluster( int id, int iRow, float X, float Y, float Z, float Amp ) {
+      Data d = { id, iRow, X, Y, Z, Amp};
+      fData.push_back( d );
+    }
+
+    /**
+     * finish the reading of event
+     */
+    void FinishReading();
+
 
     /**
      * "remove" one cluster and "add" two new ones, keeping history.
@@ -64,7 +73,7 @@ class AliHLTTPCCAClusterData
     /**
      * The slice index this data belongs to
      */
-    int Slice() const { return fSlice; }
+    int SliceIndex() const { return fSliceIndex; }
 
     /**
      * The first row index that contains a cluster.
@@ -117,6 +126,11 @@ class AliHLTTPCCAClusterData
     float Z( int index ) const { return fData[index].fZ; }
 
     /**
+     * Return the amplitude of the given cluster.
+     */
+    float Amp( int index ) const { return fData[index].fAmp; }
+
+    /**
      * Return the global ID of the given cluster.
      */
     int Id( int index ) const { return fData[index].fId; }
@@ -133,14 +147,17 @@ class AliHLTTPCCAClusterData
     void Merge( int index1, int index2 );
 
     struct Data {
+      int fId;
+      int fRow;
       float fX;
       float fY;
       float fZ;
-      int fId;
-      int fRow;
+      float fAmp;
     };
 
-    int fSlice;    // the slice index this data belongs to
+    static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow < b.fRow ); }
+
+    int fSliceIndex;  // the slice index this data belongs to
     int fFirstRow; // see FirstRow()
     int fLastRow;  // see LastRow()
     std::vector<int> fNumberOfClusters; // list of NumberOfClusters per row for NumberOfClusters(int)

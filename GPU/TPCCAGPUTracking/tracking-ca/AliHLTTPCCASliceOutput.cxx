@@ -24,7 +24,7 @@ GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClu
 {
   // calculate the amount of memory [bytes] needed for the event
 
-  const int kClusterDataSize = sizeof( unsigned int ) + sizeof( unsigned short ) + sizeof( float2 ) + sizeof( float ) + sizeof( UChar_t );
+  const int kClusterDataSize = sizeof( unsigned int ) + sizeof(  int ) + sizeof( unsigned short ) + sizeof( float2 ) + sizeof( float ) + sizeof( UChar_t );
 
   return sizeof( AliHLTTPCCASliceOutput ) + sizeof( AliHLTTPCCASliceTrack )*nOfTracks + kClusterDataSize*nOfTrackClusters;
 }
@@ -38,6 +38,7 @@ GPUhd() void AliHLTTPCCASliceOutput::SetPointers()
   AssignMemory( fClusterUnpackedYZ, mem, fNTrackClusters );
   AssignMemory( fClusterUnpackedX,  mem, fNTrackClusters );
   AssignMemory( fClusterIDrc,       mem, fNTrackClusters );
+  AssignMemory( fClusterHltID,      mem, fNTrackClusters );
   AssignMemory( fClusterPackedYZ,   mem, fNTrackClusters );
   AssignMemory( fClusterPackedAmp,  mem, fNTrackClusters );
 }

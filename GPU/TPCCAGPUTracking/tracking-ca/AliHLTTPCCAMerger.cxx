@@ -46,6 +46,7 @@ class AliHLTTPCCAMerger::AliHLTTPCCAClusterInfo
     unsigned int  ISlice()    const { return fISlice;    }
     unsigned int  IRow()      const { return fIRow;      }
     unsigned int  IClu()      const { return fIClu;      }
+    int  HltID()      const { return fHltID;      }
     UChar_t PackedAmp() const { return fPackedAmp; }
     float X()         const { return fX;         }
     float Y()         const { return fY;         }
@@ -56,6 +57,7 @@ class AliHLTTPCCAMerger::AliHLTTPCCAClusterInfo
     void SetISlice    ( unsigned int v  ) { fISlice    = v; }
     void SetIRow      ( unsigned int v  ) { fIRow      = v; }
     void SetIClu      ( unsigned int v  ) { fIClu      = v; }
+    void SetHltID      (  int v  ) { fHltID      = v; }
     void SetPackedAmp ( UChar_t v ) { fPackedAmp = v; }
     void SetX         ( float v ) { fX         = v; }
     void SetY         ( float v ) { fY         = v; }
@@ -68,6 +70,7 @@ class AliHLTTPCCAMerger::AliHLTTPCCAClusterInfo
     unsigned int fISlice;            // slice number
     unsigned int fIRow;              // row number
     unsigned int fIClu;              // cluster number
+    int fHltID;              // cluster hlt number
     UChar_t fPackedAmp; // packed cluster amplitude
     float fX;                // x position (slice coord.system)
     float fY;                // y position (slice coord.system)
@@ -273,6 +276,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
         clu.SetISlice( iSlice );
         clu.SetIRow( AliHLTTPCCADataCompressor::IDrc2IRow( slice.ClusterIDrc( ic ) ) );
         clu.SetIClu( AliHLTTPCCADataCompressor::IDrc2IClu( slice.ClusterIDrc( ic ) ) );
+        clu.SetHltID( slice.ClusterHltID( ic ) );
         clu.SetPackedAmp( slice.ClusterPackedAmp( ic ) );
         float2 yz = slice.ClusterUnpackedYZ( ic );
         clu.SetX( slice.ClusterUnpackedX( ic ) );
@@ -744,6 +748,7 @@ void AliHLTTPCCAMerger::Merging()
 
   AliHLTTPCCAMergedTrack *outTracks = new AliHLTTPCCAMergedTrack[fMaxTrackInfos];
   unsigned int   *outClusterIDsrc = new unsigned int [fMaxClusterInfos];
+  unsigned int   *outClusterHltID = new unsigned int [fMaxClusterInfos];
   UChar_t  *outClusterPackedAmp = new UChar_t [fMaxClusterInfos];
 
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
@@ -877,6 +882,7 @@ void AliHLTTPCCAMerger::Merging()
         AliHLTTPCCAClusterInfo &clu = fClusterInfos[hits[firstHit+i]];
         outClusterIDsrc[nOutTrackClusters+i] =
           AliHLTTPCCADataCompressor::ISliceIRowIClu2IDsrc( clu.ISlice(), clu.IRow(), clu.IClu() );
+        outClusterHltID[nOutTrackClusters+i] = clu.HltID();
         outClusterPackedAmp[nOutTrackClusters+i] = clu.PackedAmp();
       }
 
@@ -893,10 +899,12 @@ void AliHLTTPCCAMerger::Merging()
 
   for ( int ic = 0; ic < nOutTrackClusters; ic++ ) {
     fOutput->SetClusterIDsrc( ic, outClusterIDsrc[ic] );
+    fOutput->SetClusterHltID( ic, outClusterHltID[ic] );
     fOutput->SetClusterPackedAmp( ic, outClusterPackedAmp[ic] );
   }
 
   delete[] outTracks;
   delete[] outClusterIDsrc;
+  delete[] outClusterHltID;
   delete[] outClusterPackedAmp;
 }

@@ -171,26 +171,25 @@ void AliHLTTPCCAGBTracker::FindTracks()
   for ( int i = 0; i < fNHits; i++ )  fExt2IntHitID[fHits[i].ID()] = i;
 
   AliHLTResizableArray<ClusterData> clusterData( fNSlices );
-  {
-    int offset = 0;
-    int nextSlice = 0;
-    int numberOfUsedSlices = 0;
-    do {
-      fFirstSliceHit[nextSlice] = offset;
-      AliHLTTPCCAClusterData &data = clusterData[numberOfUsedSlices++];
-      data.readEvent( fHits, &offset, fNHits );
 
-      while ( nextSlice < data.Slice() ) {
-        fSlices[nextSlice++].StartEvent();
-        fFirstSliceHit[nextSlice] = fFirstSliceHit[nextSlice - 1];
-      }
-      ++nextSlice;
+  {
+    for ( int i = 0; i < fNSlices; i++ ) {
+      clusterData[i].StartReading( i, CAMath::Max( 64, fNHits / 36 ) );
+    }
+    for ( int i = 0; i < fNHits; i++ ) {
+      AliHLTTPCCAGBHit &h = fHits[i];
+      clusterData[h.ISlice()].ReadCluster( i, h.IRow(), h.X(), h.Y(), h.Z(), h.Amp() );
+    }
+    for ( int i = 0; i < fNSlices; i++ ) {
+      clusterData[i].FinishReading();
+    }
+    int offset = 0;
+    for ( int i = 0; i < fNSlices; i++ ) {
+      fFirstSliceHit[i] = offset;
+      offset += clusterData[i].NumberOfClusters();
       // give the data to the slice tracker
-      fSlices[data.Slice()].ReadEvent( &data );
-    } while ( offset < fNHits );
-    while ( nextSlice < fNSlices ) {
-      fFirstSliceHit[nextSlice] = offset;
-      fSlices[nextSlice++].StartEvent();
+      fSlices[i].StartEvent();
+      fSlices[i].ReadEvent( &( clusterData[i] ) );
     }
   }
 
@@ -295,11 +294,13 @@ void AliHLTTPCCAGBTracker::Merge()
     trackGB.SetDeDx( 0 );
 
     for ( int icl = 0; icl < track.NClusters(); icl++ ) {
-      unsigned int  iDsrc = out.ClusterIDsrc( track.FirstClusterRef() + icl );
-      unsigned int iSlice = AliHLTTPCCADataCompressor::IDsrc2ISlice( iDsrc );
-      unsigned int iRow   = AliHLTTPCCADataCompressor::IDsrc2IRow( iDsrc );
-      unsigned int iClu   = AliHLTTPCCADataCompressor::IDsrc2IClu( iDsrc );
-      fTrackHits[nTrackHits++] = fFirstSliceHit[iSlice] + fSlices[iSlice].Row( iRow ).HitNumberOffset() + iClu;
+      int  id = out.ClusterHltID( track.FirstClusterRef() + icl );
+      fTrackHits[nTrackHits++] = id;
+      //unsigned int  iDsrc = out.ClusterIDsrc( track.FirstClusterRef() + icl );
+      //unsigned int iSlice = AliHLTTPCCADataCompressor::IDsrc2ISlice( iDsrc );
+      //unsigned int iRow   = AliHLTTPCCADataCompressor::IDsrc2IRow( iDsrc );
+      //unsigned int iClu   = AliHLTTPCCADataCompressor::IDsrc2IClu( iDsrc );
+      //fTrackHits[nTrackHits++] = fFirstSliceHit[iSlice] + fSlices[iSlice].Row( iRow ).HitNumberOffset() + iClu;
     }
     fNTracks++;
   }
