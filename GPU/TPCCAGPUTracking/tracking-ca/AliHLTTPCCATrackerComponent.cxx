@@ -432,7 +432,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     const double kCLight = 0.000299792458;
 
     AliHLTTPCCAParam param;
-    
+
     param.Initialize( iSec, nRows, rowX, alpha, dalpha,
                       inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz*kCLight );
     param.SetHitPickUpFactor( 2 );
