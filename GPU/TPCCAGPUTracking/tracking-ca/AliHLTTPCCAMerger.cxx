@@ -20,7 +20,6 @@
 
 #include "AliHLTTPCCASliceTrack.h"
 #include "AliHLTTPCCATracker.h"
-#include "AliHLTTPCCAGBTrack.h"
 #include "AliHLTTPCCATrackParam.h"
 
 #include "AliHLTTPCCAMerger.h"
@@ -36,48 +35,6 @@
 #include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackLinearisation.h"
-
-
-class AliHLTTPCCAMerger::AliHLTTPCCAClusterInfo
-{
-
-  public:
-
-    unsigned int  ISlice()    const { return fISlice;    }
-    unsigned int  IRow()      const { return fIRow;      }
-    unsigned int  IClu()      const { return fIClu;      }
-    int  HltID()      const { return fHltID;      }
-    UChar_t PackedAmp() const { return fPackedAmp; }
-    float X()         const { return fX;         }
-    float Y()         const { return fY;         }
-    float Z()         const { return fZ;         }
-    float Err2Y()     const { return fErr2Y;     }
-    float Err2Z()     const { return fErr2Z;     }
-
-    void SetISlice    ( unsigned int v  ) { fISlice    = v; }
-    void SetIRow      ( unsigned int v  ) { fIRow      = v; }
-    void SetIClu      ( unsigned int v  ) { fIClu      = v; }
-    void SetHltID      (  int v  ) { fHltID      = v; }
-    void SetPackedAmp ( UChar_t v ) { fPackedAmp = v; }
-    void SetX         ( float v ) { fX         = v; }
-    void SetY         ( float v ) { fY         = v; }
-    void SetZ         ( float v ) { fZ         = v; }
-    void SetErr2Y     ( float v ) { fErr2Y     = v; }
-    void SetErr2Z     ( float v ) { fErr2Z     = v; }
-
-  private:
-
-    unsigned int fISlice;            // slice number
-    unsigned int fIRow;              // row number
-    unsigned int fIClu;              // cluster number
-    int fHltID;              // cluster hlt number
-    UChar_t fPackedAmp; // packed cluster amplitude
-    float fX;                // x position (slice coord.system)
-    float fY;                // y position (slice coord.system)
-    float fZ;                // z position (slice coord.system)
-    float fErr2Y;            // Squared measurement error of y position
-    float fErr2Z;            // Squared measurement error of z position
-};
 
 
 class AliHLTTPCCAMerger::AliHLTTPCCASliceTrackInfo
@@ -274,16 +231,15 @@ void AliHLTTPCCAMerger::UnpackSlices()
         int ic = sTrack.FirstClusterRef() + iTrClu;
 
         clu.SetISlice( iSlice );
-        clu.SetIRow( AliHLTTPCCADataCompressor::IDrc2IRow( slice.ClusterIDrc( ic ) ) );
-        clu.SetIClu( AliHLTTPCCADataCompressor::IDrc2IClu( slice.ClusterIDrc( ic ) ) );
-        clu.SetHltID( slice.ClusterHltID( ic ) );
+        clu.SetIRow( slice.ClusterRow( ic ) );
+        clu.SetId( slice.ClusterId( ic ) );
         clu.SetPackedAmp( slice.ClusterPackedAmp( ic ) );
         float2 yz = slice.ClusterUnpackedYZ( ic );
         clu.SetX( slice.ClusterUnpackedX( ic ) );
         clu.SetY( yz.x );
         clu.SetZ( yz.y );
 
-        if ( !t0.TransportToX( fSliceParam.RowX( clu.IRow() ), fSliceParam.GetBz( t0 ), .999 ) ) continue;
+        if ( !t0.TransportToX( clu.X(), fSliceParam.GetBz( t0 ), .999 ) ) continue;
 
         float err2Y, err2Z;
         fSliceParam.GetClusterErrors2( clu.IRow(), clu.Z(), t0.SinPhi(), t0.GetCosPhi(), t0.DzDs(), err2Y, err2Z );
@@ -342,7 +298,8 @@ void AliHLTTPCCAMerger::UnpackSlices()
 
 bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
                                   AliHLTTPCCATrackParam t0, float Alpha0,
-                                  int hits[], int &NTrackHits, bool dir )
+                                  int hits[], int &NTrackHits, bool dir,
+				  AliHLTTPCCAClusterInfo *infoArray )
 {
   // Fit the track
 
@@ -350,7 +307,12 @@ bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
   AliHLTTPCCATrackParam t = t0;
   AliHLTTPCCATrackLinearisation l( t0 );
 
-  bool first = 1;
+  bool first = 1;  
+  bool doErrors = 1;
+  if( !infoArray ){
+    infoArray = fClusterInfos;
+    doErrors = 0;
+  }
 
   t.CalculateFitParameters( fitPar );
 
@@ -360,7 +322,7 @@ bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
   for ( int ihit = 0; ihit < NTrackHits; ihit++ ) {
 
     int jhit = dir ? ( NTrackHits - 1 - ihit ) : ihit;
-    AliHLTTPCCAClusterInfo &h = fClusterInfos[hits[jhit]];
+    AliHLTTPCCAClusterInfo &h = infoArray[hits[jhit]];
 
     int iSlice = h.ISlice();
 
@@ -397,7 +359,10 @@ bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
       t.CalculateFitParameters( fitPar );
     }
 
-    if ( !t.Filter( h.Y(), h.Z(), h.Err2Y(), h.Err2Z() ) ) continue;
+    float err2Y = h.Err2Y();
+    float err2Z = h.Err2Z();
+    if( doErrors ) fSliceParam.GetClusterErrors2( h.IRow(), h.Z(), l.SinPhi(), l.CosPhi(), l.DzDs(), err2Y, err2Z );
+    if ( !t.Filter( h.Y(), h.Z(),err2Y, err2Z ) ) continue;
 
     first = 0;
 
@@ -747,8 +712,7 @@ void AliHLTTPCCAMerger::Merging()
   int nOutTrackClusters = 0;
 
   AliHLTTPCCAMergedTrack *outTracks = new AliHLTTPCCAMergedTrack[fMaxTrackInfos];
-  unsigned int   *outClusterIDsrc = new unsigned int [fMaxClusterInfos];
-  unsigned int   *outClusterHltID = new unsigned int [fMaxClusterInfos];
+  unsigned int   *outClusterId = new unsigned int [fMaxClusterInfos];
   UChar_t  *outClusterPackedAmp = new UChar_t [fMaxClusterInfos];
 
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
@@ -880,9 +844,7 @@ void AliHLTTPCCAMerger::Merging()
 
       for ( int i = 0; i < nHits; i++ ) {
         AliHLTTPCCAClusterInfo &clu = fClusterInfos[hits[firstHit+i]];
-        outClusterIDsrc[nOutTrackClusters+i] =
-          AliHLTTPCCADataCompressor::ISliceIRowIClu2IDsrc( clu.ISlice(), clu.IRow(), clu.IClu() );
-        outClusterHltID[nOutTrackClusters+i] = clu.HltID();
+        outClusterId[nOutTrackClusters+i] = clu.Id();
         outClusterPackedAmp[nOutTrackClusters+i] = clu.PackedAmp();
       }
 
@@ -898,13 +860,11 @@ void AliHLTTPCCAMerger::Merging()
   for ( int itr = 0; itr < nOutTracks; itr++ ) fOutput->SetTrack( itr, outTracks[itr] );
 
   for ( int ic = 0; ic < nOutTrackClusters; ic++ ) {
-    fOutput->SetClusterIDsrc( ic, outClusterIDsrc[ic] );
-    fOutput->SetClusterHltID( ic, outClusterHltID[ic] );
+    fOutput->SetClusterId( ic, outClusterId[ic] );
     fOutput->SetClusterPackedAmp( ic, outClusterPackedAmp[ic] );
   }
 
   delete[] outTracks;
-  delete[] outClusterIDsrc;
-  delete[] outClusterHltID;
+  delete[] outClusterId;
   delete[] outClusterPackedAmp;
 }

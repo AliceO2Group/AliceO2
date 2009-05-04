@@ -1,18 +1,18 @@
-/**************************************************************************
- * This file is property of and copyright by the ALICE HLT Project        *
- * All rights reserved.                                                   *
- *                                                                        *
- * Primary Authors:                                                       *
- *     Copyright 2009       Matthias Kretz <kretz@kde.org>                *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
+// **************************************************************************
+// * This file is property of and copyright by the ALICE HLT Project        *
+// * All rights reserved.                                                   *
+// *                                                                        *
+// * Primary Authors:                                                       *
+// *     Copyright 2009       Matthias Kretz <kretz@kde.org>                *
+// *                                                                        *
+// * Permission to use, copy, modify and distribute this software and its   *
+// * documentation strictly for non-commercial purposes is hereby granted   *
+// * without fee, provided that the above copyright notice appears in all   *
+// * copies and that both the copyright notice and this permission notice   *
+// * appear in the supporting documentation. The authors make no claims     *
+// * about the suitability of this software for any purpose. It is          *
+// * provided "as is" without express or implied warranty.                  *
+// **************************************************************************
 
 #include "AliHLTTPCCASliceData.h"
 #include "AliHLTTPCCAClusterData.h"
@@ -27,6 +27,8 @@
 // Google for 0x5f3759df :)
 static inline float fastInvSqrt( float _x )
 {
+  // the function calculates fast inverse sqrt
+
   union { float f; int i; } x = { _x };
   const float xhalf = 0.5f * x.f;
   x.i = 0x5f3759df - ( x.i >> 1 );
@@ -34,8 +36,10 @@ static inline float fastInvSqrt( float _x )
   return x.f;
 }
 
-inline void AliHLTTPCCASliceData::createGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data )
+inline void AliHLTTPCCASliceData::CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data )
 {
+  // grid creation
+
   if ( row->NHits() <= 0 ) { // no hits or invalid data
     // grid coordinates don't matter, since there are no hits
     row->fGrid.CreateEmpty();
@@ -63,6 +67,8 @@ inline void AliHLTTPCCASliceData::createGrid( AliHLTTPCCARow *row, const AliHLTT
 
 inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit> &binSortedHits )
 {
+  // hit data packing
+
   static const float shortPackingConstant = 1.f / 65535.f;
   const float y0 = row->fGrid.YMin();
   const float z0 = row->fGrid.ZMin();
@@ -100,6 +106,8 @@ void AliHLTTPCCASliceData::Clear()
 
 void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 {
+  // initialisation of rows
+
   for ( int i = 0; i < p.NRows(); ++i ) {
     fRows[i].fX = p.RowX( i );
     fRows[i].fMaxY = CAMath::Tan( p.DAlpha() / 2. ) * fRows[i].fX;
@@ -108,10 +116,12 @@ void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 
 void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &data )
 {
+  // initialisation from cluster data
+
   ////////////////////////////////////
   // 1. prepare arrays
   ////////////////////////////////////
-
+ 
   fNumberOfHits = data.NumberOfClusters();
 
   /* TODO Vectorization
@@ -121,20 +131,20 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   const int memorySize = fNumberOfHits * sizeof( short_v::Type )
   */
   const int numberOfRows = data.LastRow() - data.FirstRow();
-  enum { VectorAlignment = sizeof( int ) };
-  const int numberOfHitsPlusAlignment = NextMultipleOf < VectorAlignment / sizeof( int ) > ( fNumberOfHits );
+  enum { kVectorAlignment = sizeof( int ) };
+  const int numberOfHitsPlusAlignment = NextMultipleOf < kVectorAlignment / sizeof( int ) > ( fNumberOfHits );
   const int memorySize =
     // LinkData, HitData
     numberOfHitsPlusAlignment * 4 * sizeof( short ) +
     // FirstHitInBin
-    NextMultipleOf<VectorAlignment>( ( 23 * numberOfRows + 4 * fNumberOfHits ) * sizeof( int ) ) +
+    NextMultipleOf<kVectorAlignment>( ( 23 * numberOfRows + 4 * fNumberOfHits +3) * sizeof( int ) ) +
     // HitWeights, ClusterDataIndex
     numberOfHitsPlusAlignment * 2 * sizeof( int );
 
   if ( fMemorySize < memorySize ) {
     fMemorySize = memorySize;
     delete[] fMemory;
-    fMemory = new char[fMemorySize + 4];// VectorAlignment];
+    fMemory = new char[fMemorySize + 4];// kVectorAlignment];
   }
 
   char *mem = fMemory;
@@ -142,14 +152,14 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   AssignMemory( fLinkDownData, mem, numberOfHitsPlusAlignment );
   AssignMemory( fHitDataY,     mem, numberOfHitsPlusAlignment );
   AssignMemory( fHitDataZ,     mem, numberOfHitsPlusAlignment );
-  AssignMemory( fFirstHitInBin,  mem, 23 * numberOfRows + 4 * fNumberOfHits );
+  AssignMemory( fFirstHitInBin,  mem, 23 * numberOfRows + 4 * fNumberOfHits + 3 );
   AssignMemory( fHitWeights,   mem, numberOfHitsPlusAlignment );
   AssignMemory( fClusterDataIndex, mem, numberOfHitsPlusAlignment );
 
   ////////////////////////////////////
   // 2. fill HitData and FirstHitInBin
   ////////////////////////////////////
-
+  
   for ( int rowIndex = 0; rowIndex < data.FirstRow(); ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
     row.fGrid.CreateEmpty();
@@ -181,6 +191,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     row.fHstepZi = 1.f;
   }
 
+
   AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits( fNumberOfHits );
 
   int gridContentOffset = 0;
@@ -190,13 +201,12 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 
   for ( int rowIndex = data.FirstRow(); rowIndex <= data.LastRow(); ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
-
     row.fNHits = data.NumberOfClusters( rowIndex );
     assert( row.fNHits < ( 1 << sizeof( unsigned short ) * 8 ) );
     row.fHitNumberOffset = data.RowOffset( rowIndex );
     row.fFirstHitInBinOffset = gridContentOffset;
 
-    createGrid( &row, data );
+    CreateGrid( &row, data );
     const AliHLTTPCCAGrid &grid = row.fGrid;
     const int numberOfBins = grid.N();
 
@@ -205,7 +215,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
       binCreationMemorySize = binCreationMemorySizeNew;
       binCreationMemory.Resize( binCreationMemorySize );
     }
-
+ 
     AliHLTArray<unsigned short> c = binCreationMemory;           // number of hits in all previous bins
     AliHLTArray<unsigned short> bins = c + ( numberOfBins + 3 ); // cache for the bin index for every hit in this row
     AliHLTArray<unsigned short> filled = bins + row.fNHits;      // counts how many hits there are per bin
@@ -213,7 +223,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     for ( unsigned int bin = 0; bin < row.fGrid.N() + 3; ++bin ) {
       filled[bin] = 0; // initialize filled[] to 0
     }
-
+ 
     for ( int hitIndex = 0; hitIndex < row.fNHits; ++hitIndex ) {
       const int globalHitIndex = row.fHitNumberOffset + hitIndex;
       const unsigned short bin = row.fGrid.GetBin( data.Y( globalHitIndex ), data.Z( globalHitIndex ) );
@@ -247,9 +257,9 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     }
     const unsigned short a = c[numberOfBins];
     // grid.N is <= row.fNHits
-    const int nn = numberOfBins + grid.Ny() + 3;
+    const int nn = numberOfBins + grid.Ny() + 3;   
     for ( int i = numberOfBins; i < nn; ++i ) {
-      assert( row.fFirstHitInBinOffset + i < 23 * numberOfRows + 4 * fNumberOfHits );
+      assert( row.fFirstHitInBinOffset + i < 23 * numberOfRows + 4 * fNumberOfHits + 3 );
       fFirstHitInBin[row.fFirstHitInBinOffset + i] = a;
     }
 
@@ -314,6 +324,8 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 
 void AliHLTTPCCASliceData::ClearHitWeights()
 {
+  // clear hit weights
+
 #ifdef ENABLE_VECTORIZATION
   const int_v v0( Zero );
   const int *const end = fHitWeights + fNumberOfHits;
@@ -329,6 +341,8 @@ void AliHLTTPCCASliceData::ClearHitWeights()
 
 void AliHLTTPCCASliceData::ClearLinks()
 {
+  // link cleaning
+
 #ifdef ENABLE_VECTORIZATION
   const short_v v0( -1 );
   const short *const end1 = fLinkUpData + fNumberOfHits;
