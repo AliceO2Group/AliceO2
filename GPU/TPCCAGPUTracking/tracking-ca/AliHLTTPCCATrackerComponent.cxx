@@ -506,7 +506,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   }
 
   clusterData.FinishReading();
-  
+
   // reconstruct the event
 
   TStopwatch timerReco;
@@ -633,7 +633,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   } else { // new output type
 
     mySize = fTracker->Output()->EstimateSize( fTracker->Output()->NTracks(),
-					       fTracker->Output()->NTrackClusters() );
+             fTracker->Output()->NTrackClusters() );
     if ( mySize <= maxBufferSize ) {
       const AliHLTUInt8_t* outputevent = reinterpret_cast<const AliHLTUInt8_t*>( fTracker->Output() );
       for ( unsigned int i = 0; i < mySize; i++ ) outputPtr[i] = outputevent[i];

@@ -122,15 +122,15 @@ class AliHLTTPCCASliceData
 
   private:
 
-    AliHLTTPCCASliceData( const AliHLTTPCCASliceData &)
-      : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),
-      fLinkDownData( 0 ), fHitDataY( 0 ), fHitDataZ( 0 ), fClusterDataIndex( 0 ),
-      fFirstHitInBin( 0 ), fHitWeights( 0 ) {}
+    AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
+        : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),
+        fLinkDownData( 0 ), fHitDataY( 0 ), fHitDataZ( 0 ), fClusterDataIndex( 0 ),
+        fFirstHitInBin( 0 ), fHitWeights( 0 ) {}
 
-    AliHLTTPCCASliceData& operator=( const AliHLTTPCCASliceData &){
+    AliHLTTPCCASliceData& operator=( const AliHLTTPCCASliceData & ) {
       return *this;
     }
-    
+
     void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data );
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 

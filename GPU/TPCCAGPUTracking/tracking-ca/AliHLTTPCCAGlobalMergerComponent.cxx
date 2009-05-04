@@ -314,7 +314,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   outputBlocks.push_back( resultData );
   size = resultData.fSize;
 
-  HLTWarning("CAGlobalMerger:: output %d tracks",mergerOutput->NTracks());
+  HLTWarning( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
 
   return iResult;
 }

@@ -19,7 +19,7 @@
  * @class AliHLTTPCCAStandaloneFramework
  *
  * The class to run the HLT TPC reconstruction (36 CA slice trackers + CA merger )
- * in a stand-alone mode. 
+ * in a stand-alone mode.
  * Used by AliTPCtrackerCA, the CA event display, CA performance.
  *
  */
@@ -33,9 +33,9 @@ class AliHLTTPCCAStandaloneFramework
 
     static AliHLTTPCCAStandaloneFramework &Instance();
 
-  AliHLTTPCCATracker &SliceTracker( int iSlice )  { return fSliceTrackers[iSlice]; }
-     AliHLTTPCCAMerger  &Merger()  { return fMerger; }
-   AliHLTTPCCAClusterData &ClusterData( int iSlice ) { return fClusterData[iSlice]; }
+    AliHLTTPCCATracker &SliceTracker( int iSlice )  { return fSliceTrackers[iSlice]; }
+    AliHLTTPCCAMerger  &Merger()  { return fMerger; }
+    AliHLTTPCCAClusterData &ClusterData( int iSlice ) { return fClusterData[iSlice]; }
 
     /**
      * prepare for reading of the event
@@ -45,7 +45,7 @@ class AliHLTTPCCAStandaloneFramework
     /**
      *  read next cluster
      */
-    void ReadCluster( int id, int iSlice, int iRow, float X, float Y, float Z, float Amp ){
+    void ReadCluster( int id, int iSlice, int iRow, float X, float Y, float Z, float Amp ) {
       fClusterData[iSlice].ReadCluster( id, iRow, X, Y, Z, Amp );
     }
 
@@ -65,11 +65,11 @@ class AliHLTTPCCAStandaloneFramework
     double LastTime( int iTimer ) const { return fLastTime[iTimer]; }
     double StatTime( int iTimer ) const { return fStatTime[iTimer]; }
     int StatNEvents() const { return fStatNEvents; }
-    
+
     void WriteSettings( std::ostream &out ) const;
     void WriteEvent( std::ostream &out ) const;
     void WriteTracks( std::ostream &out ) const;
-    
+
     void ReadSettings( std::istream &in );
     void ReadEvent( std::istream &in ) const;
     void ReadTracks( std::istream &in );

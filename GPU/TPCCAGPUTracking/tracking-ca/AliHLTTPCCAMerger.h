@@ -31,43 +31,43 @@ class AliHLTTPCCAMerger
 
   public:
 
-  class AliHLTTPCCAClusterInfo
-  {
-    
-  public:
-    
-    unsigned char  ISlice()    const { return fISlice;    }
-    unsigned char  IRow()    const { return fIRow;    }
-    int  Id()      const { return fId;      }
-    UChar_t PackedAmp() const { return fPackedAmp; }
-    float X()         const { return fX;         }
-    float Y()         const { return fY;         }
-    float Z()         const { return fZ;         }
-    float Err2Y()     const { return fErr2Y;     }
-    float Err2Z()     const { return fErr2Z;     }
+    class AliHLTTPCCAClusterInfo
+    {
 
-    void SetISlice    ( unsigned char v  ) { fISlice    = v; }
-    void SetIRow    ( unsigned char v  ) { fIRow    = v; }
-    void SetId      (  int v  ) { fId      = v; }
-    void SetPackedAmp ( UChar_t v ) { fPackedAmp = v; }
-    void SetX         ( float v ) { fX         = v; }
-    void SetY         ( float v ) { fY         = v; }
-    void SetZ         ( float v ) { fZ         = v; }
-    void SetErr2Y     ( float v ) { fErr2Y     = v; }
-    void SetErr2Z     ( float v ) { fErr2Z     = v; }
+      public:
 
-  private:
+        unsigned char  ISlice()    const { return fISlice;    }
+        unsigned char  IRow()    const { return fIRow;    }
+        int  Id()      const { return fId;      }
+        UChar_t PackedAmp() const { return fPackedAmp; }
+        float X()         const { return fX;         }
+        float Y()         const { return fY;         }
+        float Z()         const { return fZ;         }
+        float Err2Y()     const { return fErr2Y;     }
+        float Err2Z()     const { return fErr2Z;     }
 
-    unsigned char fISlice;            // slice number
-    unsigned char fIRow;            // row number
-    int fId;                 // cluster hlt number
-    UChar_t fPackedAmp; // packed cluster amplitude
-    float fX;                // x position (slice coord.system)
-    float fY;                // y position (slice coord.system)
-    float fZ;                // z position (slice coord.system)
-    float fErr2Y;            // Squared measurement error of y position
-    float fErr2Z;            // Squared measurement error of z position
-  };
+        void SetISlice    ( unsigned char v  ) { fISlice    = v; }
+        void SetIRow    ( unsigned char v  ) { fIRow    = v; }
+        void SetId      (  int v  ) { fId      = v; }
+        void SetPackedAmp ( UChar_t v ) { fPackedAmp = v; }
+        void SetX         ( float v ) { fX         = v; }
+        void SetY         ( float v ) { fY         = v; }
+        void SetZ         ( float v ) { fZ         = v; }
+        void SetErr2Y     ( float v ) { fErr2Y     = v; }
+        void SetErr2Z     ( float v ) { fErr2Z     = v; }
+
+      private:
+
+        unsigned char fISlice;            // slice number
+        unsigned char fIRow;            // row number
+        int fId;                 // cluster hlt number
+        UChar_t fPackedAmp; // packed cluster amplitude
+        float fX;                // x position (slice coord.system)
+        float fY;                // y position (slice coord.system)
+        float fZ;                // z position (slice coord.system)
+        float fErr2Y;            // Squared measurement error of y position
+        float fErr2Z;            // Squared measurement error of z position
+    };
 
     AliHLTTPCCAMerger();
     ~AliHLTTPCCAMerger();
@@ -80,20 +80,20 @@ class AliHLTTPCCAMerger
 
     const AliHLTTPCCAMergerOutput * Output() const { return fOutput; }
 
-  bool FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
-		 AliHLTTPCCATrackParam t0, float Alpha0, int hits[], int &NHits,  bool dir,
-		 AliHLTTPCCAClusterInfo *infoArray = 0 );
+    bool FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
+                   AliHLTTPCCATrackParam t0, float Alpha0, int hits[], int &NHits,  bool dir,
+                   AliHLTTPCCAClusterInfo *infoArray = 0 );
 
-  const AliHLTTPCCAParam &SliceParam() const { return fSliceParam; }
+    const AliHLTTPCCAParam &SliceParam() const { return fSliceParam; }
 
-  static float GetChi2( float x1, float y1, float a00, float a10, float a11,
-			float x2, float y2, float b00, float b10, float b11  );
+    static float GetChi2( float x1, float y1, float a00, float a10, float a11,
+                          float x2, float y2, float b00, float b10, float b11  );
 
   private:
 
     AliHLTTPCCAMerger( const AliHLTTPCCAMerger& );
     const AliHLTTPCCAMerger &operator=( const AliHLTTPCCAMerger& ) const;
-  
+
     class AliHLTTPCCASliceTrackInfo;
     class AliHLTTPCCABorderTrack;
 

@@ -364,7 +364,7 @@ void AliHLTTPCCAPerformance::ReadMCPoint( int TrackID, float X, float Y, float Z
   p.SetTime( Time );
   p.SetISlice( iSlice );
   float sx, sy, sz;
-  AliHLTTPCCAStandaloneFramework::Instance().SliceTracker(iSlice).Param().Global2Slice( X, Y, Z, &sx, &sy, &sz );
+  AliHLTTPCCAStandaloneFramework::Instance().SliceTracker( iSlice ).Param().Global2Slice( X, Y, Z, &sx, &sy, &sz );
   p.SetSx( sx );
   p.SetSy( sy );
   p.SetSz( sz );
@@ -553,7 +553,7 @@ void AliHLTTPCCAPerformance::WriteHistos()
 void AliHLTTPCCAPerformance::GetMCLabel( std::vector<int> &ClusterIDs, int &Label, float &Purity )
 {
   // find MC label for the track
- 
+
   Label = -1;
   Purity = 0;
   int nClusters = ClusterIDs.size();
@@ -566,26 +566,26 @@ void AliHLTTPCCAPerformance::GetMCLabel( std::vector<int> &ClusterIDs, int &Labe
   }
   sort( labels.begin(), labels.end() );
   int nMax = 0, labCur = -1, nCur = 0;
-  
+
   for ( unsigned int i = 0; i < labels.size(); i++ ) {
     if ( labels[i] != labCur ) {
       if ( nMax < nCur ) {
-	nMax = nCur;
-	Label = labCur;
+        nMax = nCur;
+        Label = labCur;
       }
       labCur = labels[i];
       nCur = 0;
     }
     nCur++;
   }
-  if ( nMax < nCur ) Label = labCur;  
+  if ( nMax < nCur ) Label = labCur;
 
   nMax = 0;
   for ( int i = 0; i < nClusters; i++ ) {
     const AliHLTTPCCAHitLabel &l = fHitLabels[ClusterIDs[i]];
     if ( l.fLab[0] == Label || l.fLab[1] == Label || l.fLab[2] == Label ) nMax++;
   }
-  Purity = ( nClusters > 0 ) ? ( (double) nMax ) / nClusters : 0 ;
+  Purity = ( nClusters > 0 ) ? ( ( double ) nMax ) / nClusters : 0 ;
 }
 
 
@@ -1171,7 +1171,7 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int /*iSlice*/, bool /*P
 void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
 {
   //* calculate slice tracker performance
- 
+
   AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 
   int nRecTot = 0, nGhost = 0, nRecOut = 0;
@@ -1183,7 +1183,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
 
   {
     for ( int imc = 0; imc < fNMCTracks; imc++ ) fMCTracks[imc].SetNHits( 0 );
-    
+
     for ( int ih = 0; ih < tracker.ClusterData()->NumberOfClusters(); ih++ ) {
       int id = tracker.ClusterData()->Id( ih );
       if ( id < 0 || id > fNHits ) break;
@@ -1208,22 +1208,22 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
       }
     }
   }
-  
-  if( !tracker.Output() ) return;
+
+  if ( !tracker.Output() ) return;
 
   const AliHLTTPCCASliceOutput &output = *tracker.Output();
 
   int traN = output.NTracks();
 
   nRecTot += traN;
-  
+
   for ( int itr = 0; itr < traN; itr++ ) {
 
     const AliHLTTPCCASliceTrack &tCA = output.Track( itr );
     std::vector<int> clusterIDs;
     for ( int i = 0; i < tCA.NClusters(); i++ ) {
-      clusterIDs.push_back(output.ClusterId(tCA.FirstClusterRef() + i ));
-    }     
+      clusterIDs.push_back( output.ClusterId( tCA.FirstClusterRef() + i ) );
+    }
     int label;
     float purity;
     GetMCLabel( clusterIDs, label, purity );
@@ -1232,7 +1232,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
       nGhost++;
       continue;
     }
-    
+
     AliHLTTPCCAMCTrack &mc = fMCTracks[label];
     mc.SetNReconstructed( mc.NReconstructed() + 1 );
     if ( mc.Set() == 0 ) nRecOut++;
@@ -1323,7 +1323,7 @@ void AliHLTTPCCAPerformance::MergerPerformance()
   int nRecTot = 0, nGhost = 0, nRecOut = 0;
   int nMCAll = 0, nRecAll = 0, nClonesAll = 0;
   int nMCRef = 0, nRecRef = 0, nClonesRef = 0;
-  
+
   // Select reconstructable MC tracks
 
   {
@@ -1342,33 +1342,33 @@ void AliHLTTPCCAPerformance::MergerPerformance()
       mc.SetNReconstructed( 0 );
       mc.SetNTurns( 1 );
       if ( mc.NHits() >=  50 && mc.P() >= .05 ) {
-	mc.SetSet( 1 );
-	nMCAll++;
-	if ( mc.P() >= 1. ) {
-	  mc.SetSet( 2 );
-	  nMCRef++;
-	}
+        mc.SetSet( 1 );
+        nMCAll++;
+        if ( mc.P() >= 1. ) {
+          mc.SetSet( 2 );
+          nMCRef++;
+        }
       }
     }
   }
 
   AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 
-  if( !hlt.Merger().Output() ) return;
+  if ( !hlt.Merger().Output() ) return;
 
-  const AliHLTTPCCAMergerOutput &output = *(hlt.Merger().Output());
+  const AliHLTTPCCAMergerOutput &output = *( hlt.Merger().Output() );
 
   int traN = output.NTracks();
 
   nRecTot += traN;
-  
+
   for ( int itr = 0; itr < traN; itr++ ) {
 
     const AliHLTTPCCAMergedTrack &tCA = output.Track( itr );
     std::vector<int> clusterIDs;
     for ( int i = 0; i < tCA.NClusters(); i++ ) {
-      clusterIDs.push_back(output.ClusterId(tCA.FirstClusterRef() + i ));
-    }     
+      clusterIDs.push_back( output.ClusterId( tCA.FirstClusterRef() + i ) );
+    }
     int label;
     float purity;
     GetMCLabel( clusterIDs, label, purity );
@@ -1377,7 +1377,7 @@ void AliHLTTPCCAPerformance::MergerPerformance()
       nGhost++;
       continue;
     }
-    
+
     AliHLTTPCCAMCTrack &mc = fMCTracks[label];
     mc.SetNReconstructed( mc.NReconstructed() + 1 );
     if ( mc.Set() == 0 ) nRecOut++;
@@ -1387,10 +1387,10 @@ void AliHLTTPCCAPerformance::MergerPerformance()
       if ( mc.Set() == 2 ) {
         if ( mc.NReconstructed() == 1 ) nRecRef++;
         else if ( mc.NReconstructed() > mc.NTurns() ) nClonesRef++;
-	fhTrackLengthRef->Fill( tCA.NClusters() / ( ( double ) mc.NHits() ) );
+        fhTrackLengthRef->Fill( tCA.NClusters() / ( ( double ) mc.NHits() ) );
       }
     }
-  
+
     // track resolutions
     while ( mc.Set() == 2 && TMath::Abs( mc.TPCPar()[0] ) + TMath::Abs( mc.TPCPar()[1] ) > 1 ) {
 
@@ -1417,15 +1417,15 @@ void AliHLTTPCCAPerformance::MergerPerformance()
       if ( tCA.NClusters() <  50 ) break;
       if ( !p.TransportToXWithMaterial( mcX, hlt.Merger().SliceParam().GetBz( p ) ) ) break;
       if ( p.GetCosPhi()*mcEx < 0 ) { // change direction
-	mcSinPhi = -mcSinPhi;
-	mcDzDs = -mcDzDs;
-	mcQPt = -mcQPt;
+        mcSinPhi = -mcSinPhi;
+        mcDzDs = -mcDzDs;
+        mcQPt = -mcQPt;
       }
-      
+
       double qPt = p.GetQPt();
       double pt = 100;
       if ( TMath::Abs( qPt ) > 1.e-4 ) pt = 1. / TMath::Abs( qPt );
-      
+
       fhResY->Fill( p.GetY() - mcY );
       fhResZ->Fill( p.GetZ() - mcZ );
       fhResSinPhi->Fill( p.GetSinPhi() - mcSinPhi );
@@ -1434,13 +1434,13 @@ void AliHLTTPCCAPerformance::MergerPerformance()
 
       if ( p.GetErr2Y() > 0 ) fhPullY->Fill( ( p.GetY() - mcY ) / TMath::Sqrt( p.GetErr2Y() ) );
       if ( p.GetErr2Z() > 0 ) fhPullZ->Fill( ( p.GetZ() - mcZ ) / TMath::Sqrt( p.GetErr2Z() ) );
-      
+
       if ( p.GetErr2SinPhi() > 0 ) fhPullSinPhi->Fill( ( p.GetSinPhi() - mcSinPhi ) / TMath::Sqrt( p.GetErr2SinPhi() ) );
       if ( p.GetErr2DzDs() > 0 ) fhPullDzDs->Fill( ( p.DzDs() - mcDzDs ) / TMath::Sqrt( p.GetErr2DzDs() ) );
-      if( p.GetErr2QPt()>0 ) fhPullQPt->Fill( (qPt - mcQPt)/TMath::Sqrt(p.GetErr2QPt()) );
-      fhPullYS->Fill( TMath::Sqrt(hlt.Merger().GetChi2( p.GetY(), p.GetSinPhi(), p.GetCov()[0], p.GetCov()[3], p.GetCov()[5], mcY, mcSinPhi, 0,0,0 )));
-      fhPullZT->Fill( TMath::Sqrt(hlt.Merger().GetChi2( p.GetZ(), p.GetDzDs(), p.GetCov()[2], p.GetCov()[7], p.GetCov()[9], mcZ, mcDzDs, 0,0,0 ) ));
-      
+      if ( p.GetErr2QPt() > 0 ) fhPullQPt->Fill( ( qPt - mcQPt ) / TMath::Sqrt( p.GetErr2QPt() ) );
+      fhPullYS->Fill( TMath::Sqrt( hlt.Merger().GetChi2( p.GetY(), p.GetSinPhi(), p.GetCov()[0], p.GetCov()[3], p.GetCov()[5], mcY, mcSinPhi, 0, 0, 0 ) ) );
+      fhPullZT->Fill( TMath::Sqrt( hlt.Merger().GetChi2( p.GetZ(), p.GetDzDs(), p.GetCov()[2], p.GetCov()[7], p.GetCov()[9], mcZ, mcDzDs, 0, 0, 0 ) ) );
+
       break;
     } // end resolutions
 
@@ -1462,7 +1462,7 @@ void AliHLTTPCCAPerformance::MergerPerformance()
       double alpha =  TMath::Pi() * ( 20 * ( ( ( ( int )( phipos * 180 / TMath::Pi() ) ) / 20 ) ) + 10 ) / 180.;
       cosA = TMath::Cos( alpha );
       sinA = TMath::Sin( alpha );
-      
+
       double mcX =  p[0] * cosA + p[1] * sinA;
       double mcY = -p[0] * sinA + p[1] * cosA;
       double mcZ =  p[2];
@@ -1472,29 +1472,29 @@ void AliHLTTPCCAPerformance::MergerPerformance()
       //double mcEt = TMath::Sqrt(mcEx*mcEx + mcEy*mcEy);
       double angleY = TMath::ATan2( mcEy, mcEx ) * 180. / TMath::Pi();
       double angleZ = TMath::ATan2( mcEz, mcEx ) * 180. / TMath::Pi();
-      
+
       if ( mc.NReconstructed() > 0 ) {
-	fhRefRecoX->Fill( mcX );
-	fhRefRecoY->Fill( mcY );
-	fhRefRecoZ->Fill( mcZ );
-	fhRefRecoP->Fill( mc.P() );
-	fhRefRecoPt->Fill( mc.Pt() );
-	fhRefRecoAngleY->Fill( angleY );
-	fhRefRecoAngleZ->Fill( angleZ );
-	fhRefRecoNHits->Fill( mc.NHits() );
+        fhRefRecoX->Fill( mcX );
+        fhRefRecoY->Fill( mcY );
+        fhRefRecoZ->Fill( mcZ );
+        fhRefRecoP->Fill( mc.P() );
+        fhRefRecoPt->Fill( mc.Pt() );
+        fhRefRecoAngleY->Fill( angleY );
+        fhRefRecoAngleZ->Fill( angleZ );
+        fhRefRecoNHits->Fill( mc.NHits() );
       } else {
-	fhRefNotRecoX->Fill( mcX );
-	fhRefNotRecoY->Fill( mcY );
-	fhRefNotRecoZ->Fill( mcZ );
-	fhRefNotRecoP->Fill( mc.P() );
-	fhRefNotRecoPt->Fill( mc.Pt() );
-	fhRefNotRecoAngleY->Fill( angleY );
-	fhRefNotRecoAngleZ->Fill( angleZ );
-	fhRefNotRecoNHits->Fill( mc.NHits() );
+        fhRefNotRecoX->Fill( mcX );
+        fhRefNotRecoY->Fill( mcY );
+        fhRefNotRecoZ->Fill( mcZ );
+        fhRefNotRecoP->Fill( mc.P() );
+        fhRefNotRecoPt->Fill( mc.Pt() );
+        fhRefNotRecoAngleY->Fill( angleY );
+        fhRefNotRecoAngleZ->Fill( angleZ );
+        fhRefNotRecoNHits->Fill( mc.NHits() );
       }
     }
   }
-   
+
   fStatGBNRecTot += nRecTot;
   fStatGBNRecOut += nRecOut;
   fStatGBNGhost  += nGhost;
@@ -1513,17 +1513,17 @@ void AliHLTTPCCAPerformance::ClusterPerformance()
   // performance calculation for input clusters
 
   AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
-  
+
   // distribution of cluster errors
 
-  for( int iSlice=0; iSlice<hlt.NSlices(); iSlice++ ){
+  for ( int iSlice = 0; iSlice < hlt.NSlices(); iSlice++ ) {
     const AliHLTTPCCAClusterData &data = hlt.ClusterData( iSlice );
-    for ( int i = 0; i < data.NumberOfClusters(); i++ ){
-      AliHLTTPCCAHitLabel &l = fHitLabels[data.Id(i)];
+    for ( int i = 0; i < data.NumberOfClusters(); i++ ) {
+      AliHLTTPCCAHitLabel &l = fHitLabels[data.Id( i )];
       int nmc = 0;
       for ( int il = 0; il < 3; il++ ) if ( l.fLab[il] >= 0 ) nmc++;
-      if ( nmc == 1 ) fhHitShared->Fill( data.RowNumber(i), 0 );
-      else if ( nmc > 1 ) fhHitShared->Fill( data.RowNumber(i), 1 );
+      if ( nmc == 1 ) fhHitShared->Fill( data.RowNumber( i ), 0 );
+      else if ( nmc > 1 ) fhHitShared->Fill( data.RowNumber( i ), 1 );
     }
   }
 
@@ -1532,13 +1532,13 @@ void AliHLTTPCCAPerformance::ClusterPerformance()
   if ( !fDoClusterPulls || fNMCPoints <= 0 ) return;
 
   // sort mc points
-  if(1){
+  if ( 1 ) {
     for ( int ipart = 0; ipart < fNMCTracks; ipart++ ) {
       AliHLTTPCCAMCTrack &mc = fMCTracks[ipart];
       mc.SetNMCPoints( 0 );
     }
     sort( fMCPoints, fMCPoints + fNMCPoints, AliHLTTPCCAMCPoint::Compare );
-    
+
     for ( int ip = 0; ip < fNMCPoints; ip++ ) {
       AliHLTTPCCAMCPoint &p = fMCPoints[ip];
       AliHLTTPCCAMCTrack &t = fMCTracks[p.TrackID()];
@@ -1546,60 +1546,60 @@ void AliHLTTPCCAPerformance::ClusterPerformance()
       t.SetNMCPoints( t.NMCPoints() + 1 );
     }
   }
-      
-  for( int iSlice=0; iSlice<hlt.NSlices(); iSlice++ ){
-    
+
+  for ( int iSlice = 0; iSlice < hlt.NSlices(); iSlice++ ) {
+
     const AliHLTTPCCAClusterData &data = hlt.ClusterData( iSlice );
 
-    for ( int ic = 0; ic < data.NumberOfClusters(); ic++ ){
+    for ( int ic = 0; ic < data.NumberOfClusters(); ic++ ) {
 
-      const AliHLTTPCCAHitLabel &l = fHitLabels[data.Id(ic)];
+      const AliHLTTPCCAHitLabel &l = fHitLabels[data.Id( ic )];
 
       if ( l.fLab[0] < 0 || l.fLab[0] >= fNMCTracks
            || l.fLab[1] >= 0 || l.fLab[2] >= 0       ) continue;
 
       int lab = l.fLab[0];
-      
+
       AliHLTTPCCAMCTrack &mc = fMCTracks[lab];
 
-      double x0 = data.X(ic);
-      double y0 = data.Y(ic);
-      double z0 = data.Z(ic);
+      double x0 = data.X( ic );
+      double y0 = data.Y( ic );
+      double z0 = data.Z( ic );
 
-      if( fabs(x0) < 1.e-4 ) continue;
-      if( mc.Pt()<.05 ) continue;
-      
+      if ( fabs( x0 ) < 1.e-4 ) continue;
+      if ( mc.Pt() < .05 ) continue;
+
       int ip1 = -1, ip2 = -1;
       double d1 = 1.e20, d2 = 1.e20;
 
-      AliHLTTPCCAMCPoint *pStart = lower_bound( fMCPoints+mc.FirstMCPointID(), fMCPoints+mc.FirstMCPointID() + mc.NMCPoints(), iSlice,  AliHLTTPCCAMCPoint::CompareSlice );
+      AliHLTTPCCAMCPoint *pStart = lower_bound( fMCPoints + mc.FirstMCPointID(), fMCPoints + mc.FirstMCPointID() + mc.NMCPoints(), iSlice,  AliHLTTPCCAMCPoint::CompareSlice );
 
-      pStart = lower_bound( pStart, fMCPoints+mc.FirstMCPointID() + mc.NMCPoints(), x0-2.,  AliHLTTPCCAMCPoint::CompareX );
-      
-      for ( int ip = (pStart-fMCPoints)-mc.FirstMCPointID(); ip < mc.NMCPoints(); ip++ ) {
+      pStart = lower_bound( pStart, fMCPoints + mc.FirstMCPointID() + mc.NMCPoints(), x0 - 2.,  AliHLTTPCCAMCPoint::CompareX );
+
+      for ( int ip = ( pStart - fMCPoints ) - mc.FirstMCPointID(); ip < mc.NMCPoints(); ip++ ) {
         AliHLTTPCCAMCPoint &p = fMCPoints[mc.FirstMCPointID() + ip];
         if ( p.ISlice() != iSlice ) break;
         double dx = p.Sx() - x0;
         double dy = p.Sy() - y0;
         double dz = p.Sz() - z0;
-        double d = dx * dx + dy * dy + dz * dz;	
-	if( d>9. ) continue;
-        if ( dx <= 0  && dx>-2.) {
-          if ( fabs(dx) < d1 ) {
-            d1 = fabs(dx);
+        double d = dx * dx + dy * dy + dz * dz;
+        if ( d > 9. ) continue;
+        if ( dx <= 0  && dx > -2. ) {
+          if ( fabs( dx ) < d1 ) {
+            d1 = fabs( dx );
             ip1 = ip;
           }
-        } else if( dx>.2 ){
-	  if( dx>=2.) break;
-          if ( fabs(dx) < d2 ) {
-            d2 = fabs(dx);
+        } else if ( dx > .2 ) {
+          if ( dx >= 2. ) break;
+          if ( fabs( dx ) < d2 ) {
+            d2 = fabs( dx );
             ip2 = ip;
           }
         }
       }
-      
+
       if ( ip1 < 0 || ip2 < 0 ) continue;
-      
+
       AliHLTTPCCAMCPoint &p1 = fMCPoints[mc.FirstMCPointID() + ip1];
       AliHLTTPCCAMCPoint &p2 = fMCPoints[mc.FirstMCPointID() + ip2];
       double dx = p2.Sx() - p1.Sx();
@@ -1611,28 +1611,28 @@ void AliHLTTPCCAPerformance::ClusterPerformance()
 
       float errY, errZ;
       {
-	AliHLTTPCCATrackParam t;
-	double s = 1./TMath::Sqrt( dx*dx + dy*dy );
-	t.SetZ( sz );
-	t.SetSinPhi( dy * s );
-	t.SetSignCosPhi( dx );
-	t.SetDzDs( dz * s );
-	hlt.SliceTracker(0).GetErrors2( data.RowNumber(ic), t, errY, errZ );
-	errY = TMath::Sqrt(errY);
-	errZ = TMath::Sqrt(errZ);
+        AliHLTTPCCATrackParam t;
+        double s = 1. / TMath::Sqrt( dx * dx + dy * dy );
+        t.SetZ( sz );
+        t.SetSinPhi( dy * s );
+        t.SetSignCosPhi( dx );
+        t.SetDzDs( dz * s );
+        hlt.SliceTracker( 0 ).GetErrors2( data.RowNumber( ic ), t, errY, errZ );
+        errY = TMath::Sqrt( errY );
+        errZ = TMath::Sqrt( errZ );
       }
       fhHitErrY->Fill( errY );
       fhHitErrZ->Fill( errZ );
       fhHitResY->Fill( y0 - sy );
       fhHitResZ->Fill( z0 - sz );
-      fhHitPullY->Fill((y0-sy)/errY);
-      fhHitPullZ->Fill((z0-sz)/errZ);
-      if( mc.Pt()>=1. ){
-	fhHitResY1->Fill( y0 - sy );
-	fhHitResZ1->Fill( z0 - sz );
-	fhHitPullY1->Fill((y0-sy)/errY);
-	fhHitPullZ1->Fill((z0-sz)/errZ);
-      }        
+      fhHitPullY->Fill( ( y0 - sy ) / errY );
+      fhHitPullZ->Fill( ( z0 - sz ) / errZ );
+      if ( mc.Pt() >= 1. ) {
+        fhHitResY1->Fill( y0 - sy );
+        fhHitResZ1->Fill( z0 - sz );
+        fhHitPullY1->Fill( ( y0 - sy ) / errY );
+        fhHitPullZ1->Fill( ( z0 - sz ) / errZ );
+      }
     }
   }
 }
@@ -1643,7 +1643,7 @@ void AliHLTTPCCAPerformance::SmearClustersMC()
   // smear clusters with gaussian using MC info
 
   AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
-  
+
   // cluster pulls
 
   if ( fNMCPoints <= 0 ) return;
@@ -1655,7 +1655,7 @@ void AliHLTTPCCAPerformance::SmearClustersMC()
       mc.SetNMCPoints( 0 );
     }
     sort( fMCPoints, fMCPoints + fNMCPoints, AliHLTTPCCAMCPoint::Compare );
-    
+
     for ( int ip = 0; ip < fNMCPoints; ip++ ) {
       AliHLTTPCCAMCPoint &p = fMCPoints[ip];
       AliHLTTPCCAMCTrack &t = fMCTracks[p.TrackID()];
@@ -1663,62 +1663,62 @@ void AliHLTTPCCAPerformance::SmearClustersMC()
       t.SetNMCPoints( t.NMCPoints() + 1 );
     }
   }
-      
-  for( int iSlice=0; iSlice<hlt.NSlices(); iSlice++ ){
-    
+
+  for ( int iSlice = 0; iSlice < hlt.NSlices(); iSlice++ ) {
+
     AliHLTTPCCAClusterData &data = hlt.ClusterData( iSlice );
 
-    for ( int ic = 0; ic < data.NumberOfClusters(); ic++ ){
+    for ( int ic = 0; ic < data.NumberOfClusters(); ic++ ) {
 
-      double x0 = data.X(ic);
-      double y0 = data.Y(ic);
-      double z0 = data.Z(ic);
-      int row0 = data.RowNumber(ic);
+      double x0 = data.X( ic );
+      double y0 = data.Y( ic );
+      double z0 = data.Z( ic );
+      int row0 = data.RowNumber( ic );
 
       AliHLTTPCCAClusterData::Data *cdata = data.GetClusterData( ic );
       cdata->fX = 0;
       cdata->fY = 0;
       cdata->fZ = 0;
 
-      const AliHLTTPCCAHitLabel &l = fHitLabels[data.Id(ic)];
+      const AliHLTTPCCAHitLabel &l = fHitLabels[data.Id( ic )];
 
       if ( l.fLab[0] < 0 || l.fLab[0] >= fNMCTracks ) continue;
 
       int lab = l.fLab[0];
-      
+
       AliHLTTPCCAMCTrack &mc = fMCTracks[lab];
-      
+
       int ip1 = -1, ip2 = -1;
       double d1 = 1.e20, d2 = 1.e20;
 
-      AliHLTTPCCAMCPoint *pStart = lower_bound( fMCPoints+mc.FirstMCPointID(), fMCPoints+mc.FirstMCPointID() + mc.NMCPoints(), iSlice,  AliHLTTPCCAMCPoint::CompareSlice );
+      AliHLTTPCCAMCPoint *pStart = lower_bound( fMCPoints + mc.FirstMCPointID(), fMCPoints + mc.FirstMCPointID() + mc.NMCPoints(), iSlice,  AliHLTTPCCAMCPoint::CompareSlice );
 
-      pStart = lower_bound( pStart, fMCPoints+mc.FirstMCPointID() + mc.NMCPoints(), x0-2.,  AliHLTTPCCAMCPoint::CompareX );
-       
-      for ( int ip = (pStart-fMCPoints)-mc.FirstMCPointID(); ip < mc.NMCPoints(); ip++ ) {
+      pStart = lower_bound( pStart, fMCPoints + mc.FirstMCPointID() + mc.NMCPoints(), x0 - 2.,  AliHLTTPCCAMCPoint::CompareX );
+
+      for ( int ip = ( pStart - fMCPoints ) - mc.FirstMCPointID(); ip < mc.NMCPoints(); ip++ ) {
         AliHLTTPCCAMCPoint &p = fMCPoints[mc.FirstMCPointID() + ip];
         if ( p.ISlice() != iSlice ) break;
         double dx = p.Sx() - x0;
         double dy = p.Sy() - y0;
         double dz = p.Sz() - z0;
-        double d = dx * dx + dy * dy + dz * dz;	
-	if( d>9. ) continue;
-        if ( dx <= 0  && dx>-2.) {
-          if ( fabs(dx) < d1 ) {
-            d1 = fabs(dx);
+        double d = dx * dx + dy * dy + dz * dz;
+        if ( d > 9. ) continue;
+        if ( dx <= 0  && dx > -2. ) {
+          if ( fabs( dx ) < d1 ) {
+            d1 = fabs( dx );
             ip1 = ip;
           }
-        } else if( dx>.2 ){
-	  if( dx>=2.) break;
-          if ( fabs(dx) < d2 ) {
-            d2 = fabs(dx);
+        } else if ( dx > .2 ) {
+          if ( dx >= 2. ) break;
+          if ( fabs( dx ) < d2 ) {
+            d2 = fabs( dx );
             ip2 = ip;
           }
         }
       }
-      
+
       if ( ip1 < 0 || ip2 < 0 ) continue;
-      
+
       AliHLTTPCCAMCPoint &p1 = fMCPoints[mc.FirstMCPointID() + ip1];
       AliHLTTPCCAMCPoint &p2 = fMCPoints[mc.FirstMCPointID() + ip2];
       double dx = p2.Sx() - p1.Sx();
@@ -1730,15 +1730,15 @@ void AliHLTTPCCAPerformance::SmearClustersMC()
 
       float errY, errZ;
       {
-	AliHLTTPCCATrackParam t;
-	double s = 1./TMath::Sqrt( dx*dx + dy*dy );
-	t.SetZ( sz );
-	t.SetSinPhi( dy * s );
-	t.SetSignCosPhi( dx );
-	t.SetDzDs( dz * s );
-	hlt.SliceTracker(0).GetErrors2( row0, t, errY, errZ );
-	errY = TMath::Sqrt(errY);
-	errZ = TMath::Sqrt(errZ);
+        AliHLTTPCCATrackParam t;
+        double s = 1. / TMath::Sqrt( dx * dx + dy * dy );
+        t.SetZ( sz );
+        t.SetSinPhi( dy * s );
+        t.SetSignCosPhi( dx );
+        t.SetDzDs( dz * s );
+        hlt.SliceTracker( 0 ).GetErrors2( row0, t, errY, errZ );
+        errY = TMath::Sqrt( errY );
+        errZ = TMath::Sqrt( errZ );
       }
 
       cdata->fX = x0;
@@ -1770,11 +1770,11 @@ void AliHLTTPCCAPerformance::Performance( fstream *StatFile )
   */
   fStatNEvents++;
   for ( int islice = 0; islice < hlt.NSlices(); islice++ ) {
-    SliceTrackletPerformance( islice,0 );
+    SliceTrackletPerformance( islice, 0 );
     SliceTrackCandPerformance( islice, 0 );
     SlicePerformance( islice, 0 );
   }
-  
+
   MergerPerformance();
   //ClusterPerformance();
 

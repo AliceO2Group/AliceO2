@@ -54,11 +54,11 @@ class AliHLTTPCCAMergerOutput
   private:
 
     AliHLTTPCCAMergerOutput( const AliHLTTPCCAMergerOutput & )
-      : fNTracks( 0 ), fNTrackClusters( 0 ), fTracks( 0 ), fClusterId( 0 ), fClusterPackedAmp( 0 ) {}
+        : fNTracks( 0 ), fNTrackClusters( 0 ), fTracks( 0 ), fClusterId( 0 ), fClusterPackedAmp( 0 ) {}
 
-     const AliHLTTPCCAMergerOutput& operator=( const AliHLTTPCCAMergerOutput &/*v*/ ) const {
+    const AliHLTTPCCAMergerOutput& operator=( const AliHLTTPCCAMergerOutput &/*v*/ ) const {
       return *this;
-     }
+    }
 
     int fNTracks;                 // number of reconstructed tracks
     int fNTrackClusters;          // total number of track clusters

@@ -33,20 +33,20 @@ AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
   static AliHLTTPCCAStandaloneFramework gAliHLTTPCCAStandaloneFramework;
   return gAliHLTTPCCAStandaloneFramework;
 }
-  
+
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
-  : fMerger(), fStatNEvents( 0 )
+    : fMerger(), fStatNEvents( 0 )
 {
   //* constructor
 
-  for ( int i = 0; i < 20; i++ ){
+  for ( int i = 0; i < 20; i++ ) {
     fLastTime[i] = 0;
     fStatTime[i] = 0;
   }
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-  : fMerger(), fStatNEvents( 0 )
+    : fMerger(), fStatNEvents( 0 )
 {
   //* dummy
 }
@@ -59,7 +59,7 @@ const AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::operator=(
 
 AliHLTTPCCAStandaloneFramework::~AliHLTTPCCAStandaloneFramework()
 {
-  //* destructor 
+  //* destructor
 }
 
 
@@ -67,9 +67,9 @@ void AliHLTTPCCAStandaloneFramework::StartDataReading( int guessForNumberOfClust
 {
   //prepare for reading of the event
 
-  int sliceGuess = 2*guessForNumberOfClusters/fgkNSlices;
+  int sliceGuess = 2 * guessForNumberOfClusters / fgkNSlices;
 
-  for ( int i = 0; i < fgkNSlices; i++ ){
+  for ( int i = 0; i < fgkNSlices; i++ ) {
     fClusterData[i].StartReading( i, sliceGuess );
   }
 }
@@ -78,7 +78,7 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
 {
   // finish reading of the event
 
-  for ( int i = 0; i < fgkNSlices; i++ ){
+  for ( int i = 0; i < fgkNSlices; i++ ) {
     fClusterData[i].FinishReading();
   }
 }
@@ -93,15 +93,15 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent()
   TStopwatch timer0;
   TStopwatch timer1;
 
-  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {     
-    fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );    
+  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
+    fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
     fSliceTrackers[iSlice].Reconstruct();
   }
 
   timer1.Stop();
   TStopwatch timer2;
 
-  fMerger.Clear();  
+  fMerger.Clear();
   fMerger.SetSliceParam( fSliceTrackers[0].Param() );
 
   for ( int i = 0; i < fgkNSlices; i++ ) {
@@ -117,7 +117,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent()
   fLastTime[1] = timer1.CpuTime();
   fLastTime[2] = timer2.CpuTime();
 
-  for( int i=0; i<3; i++ ) fStatTime[i]+=fLastTime[i];
+  for ( int i = 0; i < 3; i++ ) fStatTime[i] += fLastTime[i];
 }
 
 
@@ -145,7 +145,7 @@ void AliHLTTPCCAStandaloneFramework::ReadSettings( std::istream &in )
 void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &/*out*/ ) const
 {
   // write event to the file
-  for( int iSlice=0; iSlice<fgkNSlices; iSlice++ ){
+  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
     //fClusterData[i].WriteEvent( out );
   }
 }
@@ -154,7 +154,7 @@ void AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &/*in*/ ) const
 {
   //* Read event from file
 
-  for( int iSlice=0; iSlice<fgkNSlices; iSlice++ ){
+  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
     //fClusterData[i].ReadEvent( in );
   }
 }
@@ -163,7 +163,7 @@ void AliHLTTPCCAStandaloneFramework::WriteTracks( std::ostream &out ) const
 {
   //* Write tracks to file
 
-  for( int i=0; i<20; i++ ) out<<fLastTime[i]<<std::endl;
+  for ( int i = 0; i < 20; i++ ) out << fLastTime[i] << std::endl;
   //fMerger.Output()->Write( out );
 }
 
@@ -171,9 +171,9 @@ void AliHLTTPCCAStandaloneFramework::ReadTracks( std::istream &in )
 {
   //* Read tracks  from file
 
-  for( int i=0; i<20; i++ ){
-    in>>fLastTime[i];
-    fStatTime[i]+=fLastTime[i];
+  for ( int i = 0; i < 20; i++ ) {
+    in >> fLastTime[i];
+    fStatTime[i] += fLastTime[i];
   }
   //fMerger.Output()->Read( in );
 }

@@ -121,7 +121,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   ////////////////////////////////////
   // 1. prepare arrays
   ////////////////////////////////////
- 
+
   fNumberOfHits = data.NumberOfClusters();
 
   /* TODO Vectorization
@@ -137,7 +137,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     // LinkData, HitData
     numberOfHitsPlusAlignment * 4 * sizeof( short ) +
     // FirstHitInBin
-    NextMultipleOf<kVectorAlignment>( ( 23 * numberOfRows + 4 * fNumberOfHits +3) * sizeof( int ) ) +
+    NextMultipleOf<kVectorAlignment>( ( 23 * numberOfRows + 4 * fNumberOfHits + 3 ) * sizeof( int ) ) +
     // HitWeights, ClusterDataIndex
     numberOfHitsPlusAlignment * 2 * sizeof( int );
 
@@ -159,7 +159,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   ////////////////////////////////////
   // 2. fill HitData and FirstHitInBin
   ////////////////////////////////////
-  
+
   for ( int rowIndex = 0; rowIndex < data.FirstRow(); ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
     row.fGrid.CreateEmpty();
@@ -215,7 +215,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
       binCreationMemorySize = binCreationMemorySizeNew;
       binCreationMemory.Resize( binCreationMemorySize );
     }
- 
+
     AliHLTArray<unsigned short> c = binCreationMemory;           // number of hits in all previous bins
     AliHLTArray<unsigned short> bins = c + ( numberOfBins + 3 ); // cache for the bin index for every hit in this row
     AliHLTArray<unsigned short> filled = bins + row.fNHits;      // counts how many hits there are per bin
@@ -223,7 +223,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     for ( unsigned int bin = 0; bin < row.fGrid.N() + 3; ++bin ) {
       filled[bin] = 0; // initialize filled[] to 0
     }
- 
+
     for ( int hitIndex = 0; hitIndex < row.fNHits; ++hitIndex ) {
       const int globalHitIndex = row.fHitNumberOffset + hitIndex;
       const unsigned short bin = row.fGrid.GetBin( data.Y( globalHitIndex ), data.Z( globalHitIndex ) );
@@ -257,7 +257,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     }
     const unsigned short a = c[numberOfBins];
     // grid.N is <= row.fNHits
-    const int nn = numberOfBins + grid.Ny() + 3;   
+    const int nn = numberOfBins + grid.Ny() + 3;
     for ( int i = numberOfBins; i < nn; ++i ) {
       assert( row.fFirstHitInBinOffset + i < 23 * numberOfRows + 4 * fNumberOfHits + 3 );
       fFirstHitInBin[row.fFirstHitInBinOffset + i] = a;

@@ -54,7 +54,7 @@ class AliHLTTPCCADisplay
     void Ask();
     void SetSliceView();
     void SetTPCView();
-    void SetCurrentSlice( AliHLTTPCCATracker *slice );    
+    void SetCurrentSlice( AliHLTTPCCATracker *slice );
     void Set2Slices( AliHLTTPCCATracker * const slice );
 
     int GetColor( int i ) const;
@@ -93,7 +93,7 @@ class AliHLTTPCCADisplay
     TCanvas *fYX, *fZX;               // two views
     bool fAsk;                      // flag to ask for the pressing key
     bool fSliceView;               // switch between slice/TPC zoom
-    AliHLTTPCCATracker *fSlice;      // current CA tracker, includes slice geometry    
+    AliHLTTPCCATracker *fSlice;      // current CA tracker, includes slice geometry
     AliHLTTPCCAPerformance *fPerf; // Performance class (mc labels etc)
     double fCos, fSin, fZMin, fZMax, fYMin, fYMax;// view parameters
     double fSliceCos, fSliceSin;        // current slice angle

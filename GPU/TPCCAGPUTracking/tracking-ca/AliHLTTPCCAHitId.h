@@ -20,9 +20,9 @@
 class AliHLTTPCCAHitId
 {
   public:
-  void Set( int row, int hit ) { fId = ( hit << 8 ) | row; }
-  int RowIndex() const { return fId & 0xff; }
-  int HitIndex() const { return fId >> 8; }
+    void Set( int row, int hit ) { fId = ( hit << 8 ) | row; }
+    int RowIndex() const { return fId & 0xff; }
+    int HitIndex() const { return fId >> 8; }
 
   private:
     int fId;

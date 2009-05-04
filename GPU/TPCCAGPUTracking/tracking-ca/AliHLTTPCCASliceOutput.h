@@ -47,8 +47,8 @@ class AliHLTTPCCASliceOutput
     GPUhd() void SetNTrackClusters( int v )  { fNTrackClusters = v; }
 
     GPUhd() void SetTrack( int i, const AliHLTTPCCASliceTrack &v ) {  fTracks[i] = v; }
-  GPUhd() void SetClusterRow( int i, unsigned char v ) {  fClusterRow[i] = v; }
-  GPUhd() void SetClusterId( int i, int v ) {  fClusterId[i] = v; }
+    GPUhd() void SetClusterRow( int i, unsigned char v ) {  fClusterRow[i] = v; }
+    GPUhd() void SetClusterId( int i, int v ) {  fClusterId[i] = v; }
     GPUhd() void SetClusterPackedYZ( int i, unsigned short v ) {  fClusterPackedYZ[i] = v; }
     GPUhd() void SetClusterPackedAmp( int i, UChar_t v ) {  fClusterPackedAmp[i] = v; }
     GPUhd() void SetClusterUnpackedYZ( int i, float2 v ) {  fClusterUnpackedYZ[i] = v; }
