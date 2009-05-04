@@ -88,8 +88,8 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
 {
   //* constructor
 
-  fDoHLTPerformance = 1;
-  fDoHLTPerformanceClusters = 1;
+  fDoHLTPerformance = 0;
+  fDoHLTPerformanceClusters = 0;
 
   AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 
