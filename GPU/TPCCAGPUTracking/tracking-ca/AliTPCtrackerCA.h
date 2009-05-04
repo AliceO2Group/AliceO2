@@ -49,9 +49,9 @@ class AliTPCtrackerCA : public AliTracker
 
     const AliTPCParam *fkParam;  //* TPC parameters
     AliTPCclusterMI *fClusters; //* array of clusters
-  UInt_t *fClusterSliceRow;  //* slice and row number for clusters
-   int fNClusters;           //* N clusters
-    
+    unsigned int *fClusterSliceRow;  //* slice and row number for clusters
+    int fNClusters;           //* N clusters
+
     bool fDoHLTPerformance; //* flag for call AliHLTTPCCAPerformance
     bool fDoHLTPerformanceClusters; //* flag for call AliHLTTPCCAPerformance with cluster pulls (takes some time to load TPC MC points)
     double fStatCPUTime; //* Total reconstruction time

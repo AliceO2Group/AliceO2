@@ -47,7 +47,7 @@ class AliHLTTPCCAPerformance
     virtual ~AliHLTTPCCAPerformance();
 
     static AliHLTTPCCAPerformance &Instance();
-  
+
     void StartEvent();
     void SetNHits( int NHits );
     void SetNMCTracks( int NMCTracks );
@@ -63,7 +63,7 @@ class AliHLTTPCCAPerformance
 
     void CreateHistos();
     void WriteHistos();
-  void GetMCLabel( std::vector<int> &ClusterIDs, int &Label, float &Purity );
+    void GetMCLabel( std::vector<int> &ClusterIDs, int &Label, float &Purity );
     void SlicePerformance( int iSlice, bool PrintFlag  );
     void SliceTrackletPerformance( int iSlice, bool PrintFlag );
     void SliceTrackCandPerformance( int iSlice, bool PrintFlag );
@@ -89,7 +89,7 @@ class AliHLTTPCCAPerformance
     TH1D *LinkChiWrong( int i ) const { return fhLinkChiWrong[i]; }
 
     void LinkPerformance( int iSlice );
-  void SmearClustersMC();
+    void SmearClustersMC();
 
   protected:
 

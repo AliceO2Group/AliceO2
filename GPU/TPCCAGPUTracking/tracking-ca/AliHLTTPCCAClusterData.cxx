@@ -27,7 +27,7 @@ void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfC
   fData.clear();
   fNumberOfClusters.reserve( 160 );
   fRowOffset.reserve( 160 );
-  fData.reserve( CAMath::Max(64, guessForNumberOfClusters) );
+  fData.reserve( CAMath::Max( 64, guessForNumberOfClusters ) );
 }
 
 

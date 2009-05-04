@@ -299,7 +299,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
 bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
                                   AliHLTTPCCATrackParam t0, float Alpha0,
                                   int hits[], int &NTrackHits, bool dir,
-				  AliHLTTPCCAClusterInfo *infoArray )
+                                  AliHLTTPCCAClusterInfo *infoArray )
 {
   // Fit the track
 
@@ -307,9 +307,9 @@ bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
   AliHLTTPCCATrackParam t = t0;
   AliHLTTPCCATrackLinearisation l( t0 );
 
-  bool first = 1;  
+  bool first = 1;
   bool doErrors = 1;
-  if( !infoArray ){
+  if ( !infoArray ) {
     infoArray = fClusterInfos;
     doErrors = 0;
   }
@@ -361,8 +361,8 @@ bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
 
     float err2Y = h.Err2Y();
     float err2Z = h.Err2Z();
-    if( doErrors ) fSliceParam.GetClusterErrors2( h.IRow(), h.Z(), l.SinPhi(), l.CosPhi(), l.DzDs(), err2Y, err2Z );
-    if ( !t.Filter( h.Y(), h.Z(),err2Y, err2Z ) ) continue;
+    if ( doErrors ) fSliceParam.GetClusterErrors2( h.IRow(), h.Z(), l.SinPhi(), l.CosPhi(), l.DzDs(), err2Y, err2Z );
+    if ( !t.Filter( h.Y(), h.Z(), err2Y, err2Z ) ) continue;
 
     first = 0;
 

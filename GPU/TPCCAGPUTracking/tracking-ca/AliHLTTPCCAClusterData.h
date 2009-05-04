@@ -135,7 +135,7 @@ class AliHLTTPCCAClusterData
       float fAmp;
     };
 
-    Data *GetClusterData( int index ) { return &(fData[index]); }
+    Data *GetClusterData( int index ) { return &( fData[index] ); }
 
   private:
     /** TODO

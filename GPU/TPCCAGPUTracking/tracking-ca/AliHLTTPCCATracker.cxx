@@ -475,7 +475,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
       float hUnpackedX = origX;
 
       fOutput->SetClusterId( nStoredHits, id  );
-      fOutput->SetClusterRow( nStoredHits, (unsigned char) iRow  );
+      fOutput->SetClusterRow( nStoredHits, ( unsigned char ) iRow  );
       fOutput->SetClusterPackedYZ( nStoredHits, hPackedYZ );
       fOutput->SetClusterPackedAmp( nStoredHits, hPackedAmp );
       fOutput->SetClusterUnpackedYZ( nStoredHits, hUnpackedYZ );
