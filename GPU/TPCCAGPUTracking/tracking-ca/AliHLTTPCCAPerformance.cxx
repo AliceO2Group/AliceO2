@@ -38,6 +38,7 @@
 #include "TH2.h"
 #include "TProfile.h"
 #include "TRandom.h"
+#include <cmath>
 
 AliHLTTPCCAPerformance &AliHLTTPCCAPerformance::Instance()
 {
