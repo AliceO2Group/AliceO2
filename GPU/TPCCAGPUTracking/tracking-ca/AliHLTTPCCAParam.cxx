@@ -112,7 +112,7 @@ GPUd() void AliHLTTPCCAParam::Initialize( int iSlice,
   fNRows = nRows;
   for ( int irow = 0; irow < nRows; irow++ ) {
     fRowX[irow] = rowX[irow];
-    std::cout << " row " << irow << " x= " << rowX[irow] << std::endl;
+    //std::cout << " row " << irow << " x= " << rowX[irow] << std::endl;
   }
 
   Update();
