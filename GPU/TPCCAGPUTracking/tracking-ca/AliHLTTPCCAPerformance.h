@@ -12,12 +12,12 @@
 
 #include "AliHLTTPCCADef.h"
 #include "Riostream.h"
+#include <vector>
 
 class TObject;
 class TParticle;
 class AliHLTTPCCAMCTrack;
 class AliHLTTPCCAMCPoint;
-class AliHLTTPCCAGBTracker;
 class TDirectory;
 class TH1D;
 class TH2D;
@@ -47,8 +47,7 @@ class AliHLTTPCCAPerformance
     virtual ~AliHLTTPCCAPerformance();
 
     static AliHLTTPCCAPerformance &Instance();
-
-    void SetTracker( AliHLTTPCCAGBTracker * const Tracker );
+  
     void StartEvent();
     void SetNHits( int NHits );
     void SetNMCTracks( int NMCTracks );
@@ -64,9 +63,12 @@ class AliHLTTPCCAPerformance
 
     void CreateHistos();
     void WriteHistos();
+  void GetMCLabel( std::vector<int> &ClusterIDs, int &Label, float &Purity );
     void SlicePerformance( int iSlice, bool PrintFlag  );
     void SliceTrackletPerformance( int iSlice, bool PrintFlag );
     void SliceTrackCandPerformance( int iSlice, bool PrintFlag );
+    void ClusterPerformance();
+    void MergerPerformance();
 
     void Performance( fstream *StatFile = 0 );
 
@@ -87,10 +89,9 @@ class AliHLTTPCCAPerformance
     TH1D *LinkChiWrong( int i ) const { return fhLinkChiWrong[i]; }
 
     void LinkPerformance( int iSlice );
+  void SmearClustersMC();
 
   protected:
-
-    AliHLTTPCCAGBTracker *fTracker; //* pointer to the tracker
 
 
     AliHLTTPCCAHitLabel *fHitLabels; //* array of hit MC labels

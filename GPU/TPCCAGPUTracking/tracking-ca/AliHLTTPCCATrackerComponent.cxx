@@ -449,7 +449,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   // total n Hits
 
-  int nHitsTotal = 0;
+  int nClustersTotal = 0;
 
   // sort patches
 
@@ -460,7 +460,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     if ( iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType ) continue;
     if ( slice != AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ) continue;
     inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
-    nHitsTotal += inPtrSP->fSpacePointCnt;
+    nClustersTotal += inPtrSP->fSpacePointCnt;
     int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
     if ( minPatch > patch ) {
       minPatch = patch;
@@ -480,15 +480,13 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   // pass event to CA Tracker
 
-  fTracker->StartEvent();
 
   Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
-           "Total %d hits to read for slice %d", nHitsTotal, slice );
+           "Total %d hits to read for slice %d", nClustersTotal, slice );
 
 
-  AliHLTResizableArray<AliHLTTPCSpacePointData *> vOrigClusters( nHitsTotal );
-
-  int nClusters = 0;
+  AliHLTTPCCAClusterData clusterData;
+  clusterData.StartReading( slice, nClustersTotal );
 
   for ( std::vector<unsigned long>::iterator pIter = patchIndices.begin(); pIter != patchIndices.end(); pIter++ ) {
     ndx = *pIter;
@@ -501,21 +499,19 @@ int AliHLTTPCCATrackerComponent::DoEvent
              "Reading %d hits for slice %d - patch %d", inPtrSP->fSpacePointCnt, slice, patch );
 
     for ( unsigned int i = 0; i < inPtrSP->fSpacePointCnt; i++ ) {
-      vOrigClusters[nClusters++] = &( inPtrSP->fSpacePoints[i] );
+      AliHLTTPCSpacePointData *c = &( inPtrSP->fSpacePoints[i] );
+      if ( CAMath::Abs( c->fZ ) > fClusterZCut ) continue;
+      clusterData.ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
     }
   }
 
-  // sort clusters since they are not sorted for some reason
-
-  // candidate for parallelization should this become an issue, can use tbb::parallel_sort
-  sort( vOrigClusters.Data(), ( vOrigClusters + nClusters ).Data(), CompareClusters );
-
-  ClusterData clusterData( vOrigClusters, nClusters, fClusterZCut );
-  fTracker->ReadEvent( &clusterData );
-
+  clusterData.FinishReading();
+  
   // reconstruct the event
 
   TStopwatch timerReco;
+
+  fTracker->ReadEvent( &clusterData );
 
   fTracker->Reconstruct();
 
@@ -637,7 +633,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   } else { // new output type
 
     mySize = fTracker->Output()->EstimateSize( fTracker->Output()->NTracks(),
-             fTracker->Output()->NTrackClusters() );
+					       fTracker->Output()->NTrackClusters() );
     if ( mySize <= maxBufferSize ) {
       const AliHLTUInt8_t* outputevent = reinterpret_cast<const AliHLTUInt8_t*>( fTracker->Output() );
       for ( unsigned int i = 0; i < mySize; i++ ) outputPtr[i] = outputevent[i];
@@ -668,7 +664,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   int hz = ( int ) ( fFullTime > 1.e-10 ? fNEvents / fFullTime : 100000 );
   int hz1 = ( int ) ( fRecoTime > 1.e-10 ? fNEvents / fRecoTime : 100000 );
   HLTWarning( "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d Hz",
-              slice, ntracks, nClusters, minPatch, maxPatch, row[0], row[1], hz, hz1 );
+              slice, ntracks, nClustersTotal, minPatch, maxPatch, row[0], row[1], hz, hz1 );
 
   return ret;
 }

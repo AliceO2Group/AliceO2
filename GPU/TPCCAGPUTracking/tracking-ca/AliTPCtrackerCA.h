@@ -15,7 +15,6 @@
 class AliTPCParam;
 class AliESD;
 class TTree;
-class AliHLTTPCCAGBTracker;
 class AliTPCclusterMI;
 class AliTPCtrack;
 
@@ -50,8 +49,9 @@ class AliTPCtrackerCA : public AliTracker
 
     const AliTPCParam *fkParam;  //* TPC parameters
     AliTPCclusterMI *fClusters; //* array of clusters
-    int fNClusters;           //* N clusters
-    AliHLTTPCCAGBTracker *fHLTTracker; //* pointer to the HLT tracker
+  UInt_t *fClusterSliceRow;  //* slice and row number for clusters
+   int fNClusters;           //* N clusters
+    
     bool fDoHLTPerformance; //* flag for call AliHLTTPCCAPerformance
     bool fDoHLTPerformanceClusters; //* flag for call AliHLTTPCCAPerformance with cluster pulls (takes some time to load TPC MC points)
     double fStatCPUTime; //* Total reconstruction time

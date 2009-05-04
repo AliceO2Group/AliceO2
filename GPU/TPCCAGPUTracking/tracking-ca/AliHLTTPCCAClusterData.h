@@ -1,26 +1,23 @@
-/**************************************************************************
- * This file is property of and copyright by the ALICE HLT Project        *
- * All rights reserved.                                                   *
- *                                                                        *
- * Primary Authors:                                                       *
- *     Copyright 2009       Matthias Kretz <kretz@kde.org>                *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
+// **************************************************************************
+// * This file is property of and copyright by the ALICE HLT Project        *
+// * All rights reserved.                                                   *
+// *                                                                        *
+// * Primary Authors:                                                       *
+// *     Copyright 2009       Matthias Kretz <kretz@kde.org>                *
+// *                                                                        *
+// * Permission to use, copy, modify and distribute this software and its   *
+// * documentation strictly for non-commercial purposes is hereby granted   *
+// * without fee, provided that the above copyright notice appears in all   *
+// * copies and that both the copyright notice and this permission notice   *
+// * appear in the supporting documentation. The authors make no claims     *
+// * about the suitability of this software for any purpose. It is          *
+// * provided "as is" without express or implied warranty.                  *
+// **************************************************************************
 
 #ifndef ALIHLTTPCCACLUSTERDATA_H
 #define ALIHLTTPCCACLUSTERDATA_H
 
 #include <vector>
-#include "AliHLTArray.h"
-
-class AliHLTTPCSpacePointData;
 
 /**
  * Cluster data which keeps history about changes
@@ -30,19 +27,8 @@ class AliHLTTPCSpacePointData;
 class AliHLTTPCCAClusterData
 {
   public:
-    /**
-     * Construct AliHLTTPCCAClusterData object from AliHLTTPCSpacePointData array.
-     */
-    AliHLTTPCCAClusterData( const AliHLTArray<AliHLTTPCSpacePointData *> &clusters,
-                            int numberOfClusters, double ClusterZCut )
-        : fSliceIndex( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fNumberOfClusters(), fRowOffset(), fData()
-    { readEvent( clusters, numberOfClusters, ClusterZCut ); }
-
 
     AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fNumberOfClusters(), fRowOffset(), fData() {}
-
-    void readEvent( const AliHLTArray<AliHLTTPCSpacePointData *> &clusters,
-                    int numberOfClusters, double ClusterZCut );
 
     /**
      * prepare for the reading of event
@@ -52,8 +38,8 @@ class AliHLTTPCCAClusterData
     /**
      *  read next cluster
      */
-    void ReadCluster( int id, int iRow, float X, float Y, float Z, float Amp ) {
-      Data d = { id, iRow, X, Y, Z, Amp};
+    void ReadCluster( int id, int iRow, float x, float y, float z, float amp ) {
+      Data d = { id, iRow, x, y, z, amp};
       fData.push_back( d );
     }
 
@@ -140,12 +126,6 @@ class AliHLTTPCCAClusterData
      */
     int RowNumber( int index ) const { return fData[index].fRow; }
 
-  private:
-    /** TODO
-     * "remove" two clusters and "add" a new one, keeping history.
-     */
-    void Merge( int index1, int index2 );
-
     struct Data {
       int fId;
       int fRow;
@@ -154,6 +134,15 @@ class AliHLTTPCCAClusterData
       float fZ;
       float fAmp;
     };
+
+    Data *GetClusterData( int index ) { return &(fData[index]); }
+
+  private:
+    /** TODO
+     * "remove" two clusters and "add" a new one, keeping history.
+     */
+    void Merge( int index1, int index2 );
+
 
     static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow < b.fRow ); }
 

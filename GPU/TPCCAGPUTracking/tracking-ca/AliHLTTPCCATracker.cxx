@@ -46,9 +46,9 @@
 #include <iostream>
 #endif
 
-//#define DRAW
+//#define DRAW1
 
-#ifdef DRAW
+#ifdef DRAW1
 #include "AliHLTTPCCADisplay.h"
 #endif //DRAW
 
@@ -120,6 +120,8 @@ GPUd() void AliHLTTPCCATracker::StartEvent()
 
 void  AliHLTTPCCATracker::SetupCommonMemory()
 {
+  // set up common memory
+
   if ( !fCommonMemory ) {
     SetPointersCommon(); // just to calculate the size
     // the 1600 extra bytes are not used unless fCommonMemorySize increases with a later event
@@ -211,6 +213,8 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHit
 
 void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 {
+  // read event
+
   fClusterData = clusterData;
 
   StartEvent();
@@ -258,8 +262,8 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
     return;
   }
-#ifdef DRAW
-
+#ifdef DRAW1
+  //if( fParam.ISlice()==15){
   AliHLTTPCCADisplay::Instance().ClearView();
   AliHLTTPCCADisplay::Instance().SetSliceView();
   AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
@@ -268,6 +272,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
     AliHLTTPCCADisplay::Instance().DrawSliceHits( kRed, .5 );
     AliHLTTPCCADisplay::Instance().Ask();
   }
+  //}
 #endif
 
   *fNTracks = 0;
@@ -460,9 +465,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
       float origZ = fClusterData->Z( clusterIndex );
 
 
-      unsigned int hIDrc = AliHLTTPCCADataCompressor::IRowIClu2IDrc( iRow, clusterRowIndex );
-
-      int hltID = fClusterData->Id( clusterIndex );
+      int id = fClusterData->Id( clusterIndex );
 
       unsigned short hPackedYZ = 0;
       UChar_t hPackedAmp = 0;
@@ -471,8 +474,8 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
       hUnpackedYZ.y = origZ;
       float hUnpackedX = origX;
 
-      fOutput->SetClusterIDrc( nStoredHits, hIDrc  );
-      fOutput->SetClusterHltID( nStoredHits, hltID  );
+      fOutput->SetClusterId( nStoredHits, id  );
+      fOutput->SetClusterRow( nStoredHits, (unsigned char) iRow  );
       fOutput->SetClusterPackedYZ( nStoredHits, hPackedYZ );
       fOutput->SetClusterPackedAmp( nStoredHits, hPackedAmp );
       fOutput->SetClusterUnpackedYZ( nStoredHits, hUnpackedYZ );

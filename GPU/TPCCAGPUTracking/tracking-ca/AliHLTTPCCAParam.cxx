@@ -112,6 +112,7 @@ GPUd() void AliHLTTPCCAParam::Initialize( int iSlice,
   fNRows = nRows;
   for ( int irow = 0; irow < nRows; irow++ ) {
     fRowX[irow] = rowX[irow];
+    std::cout<<" row "<<irow<<" x= "<<rowX[irow]<<std::endl;
   }
 
   Update();
@@ -149,6 +150,7 @@ GPUd() void AliHLTTPCCAParam::Global2Slice( float X, float Y,  float Z,
 GPUd() float AliHLTTPCCAParam::GetClusterError2( int yz, int type, float z, float angle ) const
 {
   //* recalculate the cluster error wih respect to the track slope
+
   float angle2 = angle * angle;
   const float *c = fParamS0Par[yz][type];
   float v = c[0] + z * ( c[1] + c[3] * z ) + angle2 * ( c[2] + angle2 * c[4] + c[5] * z );
@@ -164,8 +166,8 @@ GPUd() void AliHLTTPCCAParam::GetClusterErrors2( int iRow, float z, float sinPhi
   z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );
   int    type = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );
   float cosPhiInv = CAMath::Abs( cosPhi ) > 1.e-2 ? 1. / cosPhi : 0;
-  float angleY = sinPhi * cosPhiInv ;
-  float angleZ = DzDs * cosPhiInv ; // SG was bug???
+  float angleY = sinPhi * cosPhiInv ; // dy/dx
+  float angleZ = DzDs * cosPhiInv ; // dz/dx
 
   Err2Y = GetClusterError2( 0, type, z, angleY );
   Err2Z = GetClusterError2( 1, type, z, angleZ );

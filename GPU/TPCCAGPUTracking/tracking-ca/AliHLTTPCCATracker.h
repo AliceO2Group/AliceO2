@@ -77,7 +77,8 @@ class AliHLTTPCCATracker
     GPUhd() const AliHLTTPCCAParam &Param() const { return fParam; }
     GPUhd() void SetParam( const AliHLTTPCCAParam &v ) { fParam = v; }
 
-    GPUhd() const SliceData &Data() const { return fData; }
+    GPUhd() const AliHLTTPCCAClusterData *ClusterData() const { return fClusterData; }
+    GPUhd() const AliHLTTPCCASliceData &Data() const { return fData; }
     GPUhd() const AliHLTTPCCARow &Row( int rowIndex ) const { return fData.Row( rowIndex ); }
     GPUhd() const AliHLTTPCCARow &Row( const AliHLTTPCCAHitId &HitId ) const { return fData.Row( HitId.RowIndex() ); }
 
@@ -86,17 +87,17 @@ class AliHLTTPCCATracker
 
     GPUhd() int NHitsTotal() const { return fData.NumberOfHits(); }
 
-    inline void SetHitLinkUpData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkUpData( row, hitIndex, v ); }
-    inline void SetHitLinkDownData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkDownData( row, hitIndex, v ); }
-    inline short HitLinkUpData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkUpData( row, hitIndex ); }
-    inline short HitLinkDownData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkDownData( row, hitIndex ); }
+   void SetHitLinkUpData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkUpData( row, hitIndex, v ); }
+     void SetHitLinkDownData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkDownData( row, hitIndex, v ); }
+     short HitLinkUpData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkUpData( row, hitIndex ); }
+    short HitLinkDownData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkDownData( row, hitIndex ); }
 
-    inline int FirstHitInBin( const AliHLTTPCCARow &row, int binIndex ) const { return fData.FirstHitInBin( row, binIndex ); }
+     int FirstHitInBin( const AliHLTTPCCARow &row, int binIndex ) const { return fData.FirstHitInBin( row, binIndex ); }
 
-    inline unsigned short HitDataY( const AliHLTTPCCARow &row, int hitIndex ) const {
+     unsigned short HitDataY( const AliHLTTPCCARow &row, int hitIndex ) const {
       return fData.HitDataY( row, hitIndex );
     }
-    inline unsigned short HitDataZ( const AliHLTTPCCARow &row, int hitIndex ) const {
+     unsigned short HitDataZ( const AliHLTTPCCARow &row, int hitIndex ) const {
       return fData.HitDataZ( row, hitIndex );
     }
 
@@ -110,17 +111,17 @@ class AliHLTTPCCATracker
      * only one. So a unique number (row index is good) is added in the least significant part of
      * the weight
      */
-    static inline int CalculateHitWeight( int NHits, int unique ) {
+    static int CalculateHitWeight( int NHits, int unique ) {
       return ( NHits << 16 ) + unique;
     }
-    inline void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
+     void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
       fData.MaximizeHitWeight( row, hitIndex, weight );
     }
-    inline int HitWeight( const AliHLTTPCCARow &row, int hitIndex ) const {
+    int HitWeight( const AliHLTTPCCARow &row, int hitIndex ) const {
       return fData.HitWeight( row, hitIndex );
     }
 
-    GPUhd() int NTracklets() const { return *fNTracklets; }
+  GPUhd() int NTracklets() const { return *fNTracklets; }
     GPUhd() int  *NTracklets() { return fNTracklets; }
 
     GPUhd() const AliHLTTPCCAHitId &TrackletStartHit( int i ) const { return fTrackletStartHits[i]; }

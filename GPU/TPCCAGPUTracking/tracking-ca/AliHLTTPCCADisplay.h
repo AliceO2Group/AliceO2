@@ -15,10 +15,10 @@
 
 
 class AliHLTTPCCATracker;
-class AliHLTTPCCAGBTracker;
 class AliHLTTPCCATrack;
 class AliHLTTPCCATrackParam;
 class AliHLTTPCCAPerformance;
+
 class TCanvas;
 #include "TArc.h"
 #include "TLine.h"
@@ -54,8 +54,7 @@ class AliHLTTPCCADisplay
     void Ask();
     void SetSliceView();
     void SetTPCView();
-    void SetCurrentSlice( AliHLTTPCCATracker *slice );
-    void SetGB( AliHLTTPCCAGBTracker * const GBTracker );
+    void SetCurrentSlice( AliHLTTPCCATracker *slice );    
     void Set2Slices( AliHLTTPCCATracker * const slice );
 
     int GetColor( int i ) const;
@@ -74,25 +73,13 @@ class AliHLTTPCCADisplay
     bool DrawTrack( AliHLTTPCCATrackParam t, double Alpha, const AliHLTTPCCADisplayTmpHit *vHits,
                     int NHits, int color = -1, int width = -1, bool pPoint = 0 );
 
-    void DrawGBTrack( int itr, int color = -1, int width = -1 );
-    void DrawGBTrackFast( AliHLTTPCCAGBTracker &tracker, int itr, int color = -1 );
     bool DrawTracklet( AliHLTTPCCATrackParam &track, const int *hitstore, int color = -1, int width = -1, bool pPoint = 0 );
-
-    void DrawGBHit( AliHLTTPCCAGBTracker &tracker, int iHit, int color = -1, Size_t width = -1 );
-    void DrawGBHits( AliHLTTPCCAGBTracker &tracker, int color = -1, Size_t width = -1 );
 
     void DrawSliceHit( int iRow, int iHit, int color = -1, Size_t width = -1 );
     void DrawSliceHits( int color = -1, Size_t width = -1 );
     void DrawSliceLinks( int colorUp = -1, int colorDn = -1, int width = -1 );
     void DrawSliceLink( int iRow, int iHit, int colorUp = -1, int colorDn = -1, int width = -1 );
 
-#ifdef XXXX
-
-    void DrawMergedHit( int iRow, int iHit, int color = -1 );
-
-    void DrawTrack( AliHLTTPCCATrack &track, int color = -1, bool DrawCells = 1 );
-    void DrawTrackletPoint( AliHLTTPCCATrackParam &t, int color = -1 );
-#endif // XXXX
 
     void SetSliceTransform( double alpha );
 
@@ -106,8 +93,7 @@ class AliHLTTPCCADisplay
     TCanvas *fYX, *fZX;               // two views
     bool fAsk;                      // flag to ask for the pressing key
     bool fSliceView;               // switch between slice/TPC zoom
-    AliHLTTPCCATracker *fSlice;      // current CA tracker, includes slice geometry
-    AliHLTTPCCAGBTracker *fGB;      // the global tracker
+    AliHLTTPCCATracker *fSlice;      // current CA tracker, includes slice geometry    
     AliHLTTPCCAPerformance *fPerf; // Performance class (mc labels etc)
     double fCos, fSin, fZMin, fZMax, fYMin, fYMax;// view parameters
     double fSliceCos, fSliceSin;        // current slice angle

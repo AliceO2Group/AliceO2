@@ -1,21 +1,21 @@
-/**************************************************************************
- * This file is property of and copyright by the ALICE HLT Project        *
- * All rights reserved.                                                   *
- *                                                                        *
- * Primary Authors:                                                       *
- *     Copyright 2009       Matthias Kretz <kretz@kde.org>                *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
+// **************************************************************************
+// * This file is property of and copyright by the ALICE HLT Project        *
+// * All rights reserved.                                                   *
+// *                                                                        *
+// * Primary Authors:                                                       *
+// *     Copyright 2009       Matthias Kretz <kretz@kde.org>                *
+// *                                                                        *
+// * Permission to use, copy, modify and distribute this software and its   *
+// * documentation strictly for non-commercial purposes is hereby granted   *
+// * without fee, provided that the above copyright notice appears in all   *
+// * copies and that both the copyright notice and this permission notice   *
+// * appear in the supporting documentation. The authors make no claims     *
+// * about the suitability of this software for any purpose. It is          *
+// * provided "as is" without express or implied warranty.                  *
+// **************************************************************************
 
-#ifndef SLICEDATA_H
-#define SLICEDATA_H
+#ifndef ALIHLTTPCCASLICEDATA_H
+#define ALIHLTTPCCASLICEDATA_H
 
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCAMath.h"
@@ -121,7 +121,17 @@ class AliHLTTPCCASliceData
     const AliHLTTPCCARow &Row( int rowIndex ) const;
 
   private:
-    void createGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data );
+
+    AliHLTTPCCASliceData( const AliHLTTPCCASliceData &)
+      : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),
+      fLinkDownData( 0 ), fHitDataY( 0 ), fHitDataZ( 0 ), fClusterDataIndex( 0 ),
+      fFirstHitInBin( 0 ), fHitWeights( 0 ) {}
+
+    AliHLTTPCCASliceData& operator=( const AliHLTTPCCASliceData &){
+      return *this;
+    }
+    
+    void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data );
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
     AliHLTTPCCARow fRows[200]; // The row objects needed for most accessor functions

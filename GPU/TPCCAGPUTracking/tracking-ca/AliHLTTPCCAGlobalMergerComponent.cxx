@@ -282,7 +282,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       // set cluster ID's
 
       unsigned int hitID[1000];
-      for ( int i = 0; i < track.NClusters(); i++ ) hitID[i] = mergerOutput->ClusterIDsrc( track.FirstClusterRef() + i );
+      for ( int i = 0; i < track.NClusters(); i++ ) hitID[i] = mergerOutput->ClusterId( track.FirstClusterRef() + i );
 
       out.SetNHits( track.NClusters() );
       out.SetHits( track.NClusters(), hitID );
@@ -314,7 +314,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   outputBlocks.push_back( resultData );
   size = resultData.fSize;
 
-  //HLTWarning("CAGlobalMerger:: output %d tracks",mergerOutput->NTracks());
+  HLTWarning("CAGlobalMerger:: output %d tracks",mergerOutput->NTracks());
 
   return iResult;
 }

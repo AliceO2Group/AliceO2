@@ -43,8 +43,18 @@ class AliHLTTPCCAMCPoint
     void SetTrackID( int v )     { fTrackID = v; }
 
     static bool Compare( const AliHLTTPCCAMCPoint &p1, const AliHLTTPCCAMCPoint &p2 ) {
-      return ( p1.fTrackID < p2.fTrackID );
+      if( p1.fTrackID != p2.fTrackID ) return (p1.fTrackID < p2.fTrackID);
+      if( p1.fISlice != p2.fISlice ) return ( p1.fISlice < p2.fISlice );
+      return ( p1.Sx() < p2.Sx() );
     }
+
+  static bool CompareSlice( const AliHLTTPCCAMCPoint &p, int slice ){
+    return ( p.ISlice() < slice );
+  }
+
+  static bool CompareX( const AliHLTTPCCAMCPoint &p, float X ){
+    return ( p.Sx() < X );
+  }
 
   protected:
 
