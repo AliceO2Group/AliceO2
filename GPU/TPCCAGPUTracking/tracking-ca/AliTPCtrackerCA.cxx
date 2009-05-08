@@ -175,7 +175,7 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
     AliRunLoader *rl = AliRunLoader::Instance();//gAlice->GetRunLoader();
 #else
     // the old way before rev 30859
-    AliRunLoader *rl = gAlice->GetRunLoader();
+    AliRunLoader *rl = AliRunLoader::GetRunLoader();
 #endif
     if ( !rl ) break;
     rl->LoadKinematics();
