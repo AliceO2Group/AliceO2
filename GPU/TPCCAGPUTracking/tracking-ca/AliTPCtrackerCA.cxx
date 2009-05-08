@@ -171,7 +171,12 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
   // load mc tracks
   while ( fDoHLTPerformance ) {
     if ( !gAlice ) break;
+#ifndef HAVE_NOT_ALIRUNLOADER30859
     AliRunLoader *rl = AliRunLoader::Instance();//gAlice->GetRunLoader();
+#else
+    // the old way before rev 30859
+    AliRunLoader *rl = gAlice->GetRunLoader();
+#endif
     if ( !rl ) break;
     rl->LoadKinematics();
     AliStack *stack = rl->Stack();
