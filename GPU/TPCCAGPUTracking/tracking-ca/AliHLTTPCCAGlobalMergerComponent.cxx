@@ -314,7 +314,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   outputBlocks.push_back( resultData );
   size = resultData.fSize;
 
-  HLTWarning( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
+  HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
 
   return iResult;
 }
@@ -326,7 +326,7 @@ int AliHLTTPCCAGlobalMergerComponent::Reconfigure( const char* /*cdbEntry*/, con
   // see header file for class documentation
 
 
-  HLTWarning( "TODO: dummy Reconfigure() method" );
+  HLTInfo( "TODO: dummy Reconfigure() method" );
   return 0;
   /*
 
