@@ -195,7 +195,7 @@ int AliHLTTPCCATrackerComponent::Reconfigure( const char* /*cdbEntry*/, const ch
 {
   // see header file for class documentation
 
-  HLTWarning( "TODO: dummy Reconfigure() method" );
+  HLTInfo( "TODO: dummy Reconfigure() method" );
 
   return 0;
 
@@ -663,7 +663,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   // Set log level to "Warning" for on-line system monitoring
   int hz = ( int ) ( fFullTime > 1.e-10 ? fNEvents / fFullTime : 100000 );
   int hz1 = ( int ) ( fRecoTime > 1.e-10 ? fNEvents / fRecoTime : 100000 );
-  HLTWarning( "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d Hz",
+  HLTInfo( "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d Hz",
               slice, ntracks, nClustersTotal, minPatch, maxPatch, row[0], row[1], hz, hz1 );
 
   return ret;
