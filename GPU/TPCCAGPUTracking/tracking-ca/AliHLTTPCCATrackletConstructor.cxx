@@ -301,7 +301,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         r.fLastZ = z;
 
         float ri = 1. / CAMath::Sqrt( dx * dx + dy * dy );
-        if ( iRow == r.fStartRow + 1 ) {
+        if ( iRow == r.fStartRow + 2 ) { //SG!!! important - thanks to Matthias
           tParam.SetSinPhi( dy*ri );
           tParam.SetSignCosPhi( dx );
           tParam.SetDzDs( dz*ri );
