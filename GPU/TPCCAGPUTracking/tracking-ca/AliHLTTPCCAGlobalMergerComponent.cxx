@@ -57,9 +57,6 @@ using namespace std;
 ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
 
-// global object for registration
-AliHLTTPCCAGlobalMergerComponent AliHLTTPCCAGlobalMergerComponent::fgAliHLTTPCCAGlobalMergerComponent;
-
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
     : fGlobalMerger( 0 ), fSolenoidBz( 5 )
 {

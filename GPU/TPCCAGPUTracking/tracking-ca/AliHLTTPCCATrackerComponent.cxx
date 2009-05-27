@@ -58,14 +58,6 @@ const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkTrackletsDataType = Ali
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp( AliHLTTPCCATrackerComponent )
 
-/** global object for registration
- * Matthias 2009-01-13 temporarily using the global object approach again.
- * CA cade had to be disabled because of various compilation problems, so
- * the global object approach fits better for the moment.
- */
-
-AliHLTTPCCATrackerComponent gAliHLTTPCCATrackerComponent;
-
 AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     :
     fTracker( NULL ),
