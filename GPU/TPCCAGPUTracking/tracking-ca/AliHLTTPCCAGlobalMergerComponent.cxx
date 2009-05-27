@@ -273,10 +273,8 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 
       out.SetY0err( tp.GetSigmaY2() );
       out.SetZ0err( tp.GetSigmaZ2() );
-      float h = -out.GetPt() * out.GetPt();
-      out.SetPterr( h*h*tp.GetSigma1Pt2() );
-      h = 1. / TMath::Sqrt( 1 - out.GetSnp() * out.GetSnp() );
-      out.SetPsierr( h*h*tp.GetSigmaSnp2() );
+      out.SetPterr( tp.GetSigma1Pt2() );      
+      out.SetPsierr( tp.GetSigmaSnp2() );
       out.SetTglerr( tp.GetSigmaTgl2() );
 
       // set cluster ID's
