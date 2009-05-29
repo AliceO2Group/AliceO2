@@ -546,6 +546,8 @@ int AliTPCtrackerCA::RefitInward ( AliESDEvent *event )
       hits1[i] = i;
       int index = hits[i];
       infos[i].SetISlice( fClusterSliceRow[index] >> 8 );
+      infos[i].SetIRow( fClusterSliceRow[index] & 0xff );
+      infos[i].SetId( index );
       infos[i].SetX( fClusters[index].GetX() );
       infos[i].SetY( fClusters[index].GetY() );
       infos[i].SetZ( fClusters[index].GetZ() );
@@ -604,6 +606,8 @@ int AliTPCtrackerCA::PropagateBack( AliESDEvent *event )
       hits1[i] = i;
       int index = hits[i];
       infos[i].SetISlice( fClusterSliceRow[index] >> 8 );
+      infos[i].SetIRow( fClusterSliceRow[index] & 0xff );
+      infos[i].SetId( index );
       infos[i].SetX( fClusters[index].GetX() );
       infos[i].SetY( fClusters[index].GetY() );
       infos[i].SetZ( fClusters[index].GetZ() );
