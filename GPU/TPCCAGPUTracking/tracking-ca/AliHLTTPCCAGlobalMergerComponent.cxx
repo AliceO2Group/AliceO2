@@ -58,7 +58,7 @@ ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-    : fGlobalMerger( 0 ), fSolenoidBz( 5 )
+    : fGlobalMerger( 0 ), fSolenoidBz( 0 )
 {
   // see header file for class documentation
 }
@@ -360,9 +360,10 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       // convert AliHLTTPCCAMergedTrack to AliHLTTPCTrack
 
       const AliHLTTPCCAMergedTrack &track = mergerOutput->Track( itr );
+
       AliHLTTPCTrack out;
 
-      // first convert to AliExternalTrackParam ( Kappa to Pt )
+      // first convert to AliExternalTrackParam 
 
       AliExternalTrackParam tp, tpEnd;
       AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp, 0 );
