@@ -96,9 +96,7 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
 
   for ( int iSlice = 0; iSlice < hlt.NSlices(); iSlice++ ) {
 
-    const double kCLight = 0.000299792458;
-
-    float bz = AliTracker::GetBz() * kCLight;
+    float bz = AliTracker::GetBz();
 
     float inRmin = fkParam->GetInnerRadiusLow();
     //float inRmax = fkParam->GetInnerRadiusUp();

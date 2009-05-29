@@ -224,7 +224,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
       }
     }
 #endif
-    if ( CAMath::Abs( tParam.Par()[4] ) < 1.e-8 ) tParam.SetPar( 4, 1.e-8 );
+    if ( CAMath::Abs( tParam.Par()[4] ) < 1.e-4 ) tParam.SetPar( 4, 1.e-4 );
     tracklet.SetFirstRow( r.fFirstRow );
     tracklet.SetLastRow( r.fLastRow );
     tracklet.SetParam( tParam );
@@ -329,7 +329,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         //#ifdef DRAW
         if ( drawFit ) std::cout << "sinPhi0 = " << sinPhi << ", cosPhi0 = " << cosPhi << std::endl;
         //#endif
-        if ( !tParam.TransportToX( x, sinPhi, cosPhi, tracker.Param().Bz(), -1 ) ) {
+        if ( !tParam.TransportToX( x, sinPhi, cosPhi, tracker.Param().ConstBz(), -1 ) ) {
           //#ifdef DRAW
           if ( drawFit ) std::cout << " tracklet " << r.fItr << ", row " << iRow << ": can not transport!!" << std::endl;
 //#endif
@@ -427,7 +427,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         tParam.Print();
         //#endif
       }
-      if ( !tParam.TransportToX( x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().Bz(), .99 ) ) {
+      if ( !tParam.TransportToX( x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().ConstBz(), .99 ) ) {
         //#ifdef DRAW
         if ( drawSearch ) std::cout << " tracklet " << r.fItr << ", row " << iRow << ": can not transport!!" << std::endl;
         //#endif
@@ -659,7 +659,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
     if ( r.fGo ) {
       const AliHLTTPCCARow &row = tracker.Row( r.fEndRow );
       float x = row.X();
-      if ( !tParam.TransportToX( x, tracker.Param().Bz(), .999 ) ) r.fGo = 0;
+      if ( !tParam.TransportToX( x, tracker.Param().ConstBz(), .999 ) ) r.fGo = 0;
     }
   }
 
