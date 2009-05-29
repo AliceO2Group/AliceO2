@@ -317,9 +317,9 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 
   {
-    SetPointersTracks( nStartHits, NHitsTotal() ); // to calculate the size
+    SetPointersTracks( nStartHits*2, NHitsTotal() ); // to calculate the size
     fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
-    SetPointersTracks( nStartHits, NHitsTotal() ); // set pointers for hits
+    SetPointersTracks( nStartHits*2, NHitsTotal() ); // set pointers for hits
   }
 
   int nMemThreads = AliHLTTPCCATrackletConstructor::NMemThreads();
