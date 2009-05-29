@@ -92,6 +92,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     void SetDefaultConfiguration();
     int ReadConfigurationString(  const char* arguments );
     int ReadCDBEntry( const char* cdbEntry, const char* chainId );
+    int Configure( const char* cdbEntry, const char* chainId, const char *commandLine  );
 
     ClassDef( AliHLTTPCCATrackerComponent, 0 );
 

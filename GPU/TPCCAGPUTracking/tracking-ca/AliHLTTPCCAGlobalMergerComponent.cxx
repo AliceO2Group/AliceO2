@@ -101,16 +101,124 @@ AliHLTComponent *AliHLTTPCCAGlobalMergerComponent::Spawn()
   return new AliHLTTPCCAGlobalMergerComponent;
 }
 
-int AliHLTTPCCAGlobalMergerComponent::DoInit( int argc, const char** argv )
+
+
+
+void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
+{
+  // Set default configuration for the CA merger component 
+  // Some parameters can be later overwritten from the OCDB
+
+  fSolenoidBz = 5.;
+}
+
+int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* arguments )
+{
+  // Set configuration parameters for the CA merger component from the string
+
+  int iResult = 0;
+  if ( !arguments ) return iResult;
+  
+  TString allArgs = arguments;
+  TString argument;
+  int bMissingParam = 0;
+
+  TObjArray* pTokens = allArgs.Tokenize( " " );
+
+  int nArgs =  pTokens ? pTokens->GetEntries() : 0;
+  
+  for ( int i = 0; i < nArgs; i++ ) {
+    argument = ( ( TObjString* )pTokens->At( i ) )->GetString();
+    if ( argument.IsNull() ) continue;
+    
+    if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
+      continue;
+    }  
+
+    HLTError( "Unknown option \"%s\"", argument.Data() );
+    iResult = -EINVAL;
+  }
+  delete pTokens;
+
+  if ( bMissingParam ) {
+    HLTError( "Specifier missed for parameter \"%s\"", argument.Data() );
+    iResult = -EINVAL;
+  }
+  
+  return iResult;
+}
+
+
+int AliHLTTPCCAGlobalMergerComponent::ReadCDBEntry( const char* cdbEntry, const char* chainId )
 {
   // see header file for class documentation
-  if ( fGlobalMerger ) {
-    return EINPROGRESS;
+
+  const char* defaultNotify="";
+
+  if (!cdbEntry) {
+    cdbEntry="HLT/ConfigTPC/TPCCAGlobalMerger";
+    defaultNotify=" (default)";
+    chainId = 0;
   }
 
-  // Initialize the merger
+  HLTInfo("configure from entry \"%s\"%s, chain id %s", cdbEntry, defaultNotify,(chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
+  AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(cdbEntry);//,GetRunNo());
 
-  fGlobalMerger = new AliHLTTPCCAMerger();
+  if( !pEntry ) {
+    HLTError("cannot fetch object \"%s\" from CDB", cdbEntry);
+    return -EINVAL;    
+  }
+
+  TObjString* pString=dynamic_cast<TObjString*>(pEntry->GetObject());
+
+  if( !pString ) {
+    HLTError("configuration object \"%s\" has wrong type, required TObjString", cdbEntry);
+    return -EINVAL;        
+  }
+
+  HLTInfo("received configuration object string: \"%s\"", pString->GetString().Data());
+
+  return  ReadConfigurationString( pString->GetString().Data() );
+}
+
+
+
+int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const char* chainId, const char *commandLine )
+{
+  // Configure the component 
+  // There are few levels of configuration, 
+  // parameters which are set on one step can be overwritten on the next step
+  
+  //* read hard-coded values
+
+  SetDefaultConfiguration(); 
+
+  //* read the default CDB entry
+  
+  int iResult1 = ReadCDBEntry( NULL, chainId );
+  
+  //* read magnetic field
+  
+  int iResult2 = ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId ); 
+  
+  //* read the actual CDB entry if required
+  
+  int iResult3 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) :0; 
+  
+  //* read extra parameters from input (if they are)
+
+  int iResult4 = 0;
+  
+  if( commandLine && commandLine[0]!='\0' ){
+    HLTInfo("received configuration string from HLT framework: \"%s\"", commandLine );  
+    iResult4 = ReadConfigurationString( commandLine ); 
+  }
+
+  
+  // Initialize the merger
 
   AliHLTTPCCAParam param;
 
@@ -140,25 +248,43 @@ int AliHLTTPCCAGlobalMergerComponent::DoInit( int argc, const char** argv )
                       inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
     delete[] rowX;
   }
-
+  
 
   fGlobalMerger->SetSliceParam( param );
 
-  int iResult = 0;
+  return iResult1 ? iResult1 :(iResult2 ? iResult2 :( iResult3 ? iResult3 :iResult4 ) );
+}
+
+
+
+
+int AliHLTTPCCAGlobalMergerComponent::DoInit( int argc, const char** argv )
+{
+  // see header file for class documentation
+ 
+  if ( fGlobalMerger ) {
+    return EINPROGRESS;
+  }
+
+  fGlobalMerger = new AliHLTTPCCAMerger();
 
   TString arguments = "";
   for ( int i = 0; i < argc; i++ ) {
-    TString argument = argv[i];
     if ( !arguments.IsNull() ) arguments += " ";
-    arguments += argument;
+    arguments += argv[i];
   }
-  if ( !arguments.IsNull() ) {
-    iResult = Configure( arguments.Data() );
-  } else {
-    iResult = Reconfigure( NULL, NULL );
-  }
-  return iResult;
+  
+  return Configure( NULL, NULL, arguments.Data()  ); 
 }
+
+int AliHLTTPCCAGlobalMergerComponent::Reconfigure( const char* cdbEntry, const char* chainId )
+{  
+  // Reconfigure the component from OCDB 
+
+  return Configure( cdbEntry, chainId, NULL );
+}
+
+
 
 int AliHLTTPCCAGlobalMergerComponent::DoDeinit()
 {
@@ -310,77 +436,6 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   size = resultData.fSize;
 
   HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
-
-  return iResult;
-}
-
-
-
-int AliHLTTPCCAGlobalMergerComponent::Reconfigure( const char* /*cdbEntry*/, const char* /*chainId*/ )
-{
-  // see header file for class documentation
-
-
-  HLTInfo( "TODO: dummy Reconfigure() method" );
-  return 0;
-  /*
-
-  int iResult=0;
-  const char* pathBField=kAliHLTCDBSolenoidBz;
-
-  if (pathBField) {
-    HLTInfo("reconfigure B-Field from entry %s, chain id %s", pathBField,(chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
-    AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(pathBField);//,GetRunNo());
-    if (pEntry) {
-      TObjString* pString=dynamic_cast<TObjString*>(pEntry->GetObject());
-      if (pString) {
-  HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
-  iResult=Configure(pString->GetString().Data());
-      } else {
-  HLTError("configuration object \"%s\" has wrong type, required TObjString", pathBField);
-      }
-    } else {
-      HLTError("cannot fetch object \"%s\" from CDB", pathBField);
-    }
-  }
-  return iResult;
-  */
-}
-
-
-int AliHLTTPCCAGlobalMergerComponent::Configure( const char* arguments )
-{
-  //* Set parameters
-
-  int iResult = 0;
-  if ( !arguments ) return iResult;
-
-  TString allArgs = arguments;
-  TString argument;
-  int bMissingParam = 0;
-
-  TObjArray* pTokens = allArgs.Tokenize( " " );
-
-  int nArgs =  pTokens ? pTokens->GetEntries() : 0;
-
-  for ( int i = 0; i < nArgs; i++ ) {
-    argument = ( ( TObjString* )pTokens->At( i ) )->GetString();
-    if ( argument.IsNull() ) {
-    } else if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-      HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
-    } else {
-      HLTError( "Unknown option %s ", argument.Data() );
-      iResult = -EINVAL;
-    }
-  }
-  delete pTokens;
-
-  if ( bMissingParam ) {
-    HLTError( "Specifier missed for %s", argument.Data() );
-    iResult = -EINVAL;
-  }
 
   return iResult;
 }

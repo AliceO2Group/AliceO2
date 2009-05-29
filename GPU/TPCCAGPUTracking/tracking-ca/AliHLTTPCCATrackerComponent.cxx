@@ -250,6 +250,44 @@ int AliHLTTPCCATrackerComponent::ReadCDBEntry( const char* cdbEntry, const char*
 }
 
 
+int AliHLTTPCCATrackerComponent::Configure( const char* cdbEntry, const char* chainId, const char *commandLine )
+{
+  // Configure the component 
+  // There are few levels of configuration, 
+  // parameters which are set on one step can be overwritten on the next step
+  
+  //* read hard-coded values
+
+  SetDefaultConfiguration(); 
+
+  //* read the default CDB entry
+  
+  int iResult1 = ReadCDBEntry( NULL, chainId );
+  
+  //* read magnetic field
+  
+  int iResult2 = ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId ); 
+  
+  //* read the actual CDB entry if required
+  
+  int iResult3 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) :0; 
+  
+  //* read extra parameters from input (if they are)
+
+  int iResult4 = 0;
+  
+  if( commandLine && commandLine[0]!='\0' ){
+    HLTInfo("received configuration string from HLT framework: \"%s\"", commandLine );  
+    iResult4 = ReadConfigurationString( commandLine ); 
+  }
+
+  // Initialise the tracker here
+  
+  return iResult1 ? iResult1 :(iResult2 ? iResult2 :( iResult3 ? iResult3 :iResult4 ) );
+}
+
+
+
 int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 {
   // Configure the CA tracker component
@@ -264,17 +302,7 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     arguments += argv[i];
   }
   
-  //* set default parameters from OCDB and the magnetic field
-
-  int iResult1 = Reconfigure( NULL, NULL ); 
-
-  //* read extra parameters from input (if they are)
-
-  if( !arguments.IsNull() )   HLTInfo("received configuration string from HLT framework: \"%s\"", arguments.Data());
-  
-  int iResult2 = ReadConfigurationString( arguments.Data() ); 
-  
-  return iResult1 ?iResult1 :iResult2;
+  return Configure( NULL, NULL,arguments.Data() );
 }
 
 
@@ -290,27 +318,9 @@ int AliHLTTPCCATrackerComponent::DoDeinit()
 
 int AliHLTTPCCATrackerComponent::Reconfigure( const char* cdbEntry, const char* chainId )
 {
-  // (re)configure the component from OCDB 
-  // There are few levels of configuration, 
-  // parameters which are set on one step can be overwritten on the next step
+  // Reconfigure the component from OCDB .
 
-  //* read hard-coded values
-
-  SetDefaultConfiguration(); 
-
-  //* read the default CDB entry
-  
-  int iResult1 = ReadCDBEntry( NULL, chainId );
-
-  //* read magnetic field
-
-  int iResult2 = ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId ); 
-
-  //* read the actual CDB entry if required
-
-  int iResult3 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) :0; 
-
-  return iResult1 ? iResult1 :(iResult2 ? iResult2 :iResult3 );
+  return Configure( cdbEntry, chainId, NULL );
 }
 
 
@@ -520,6 +530,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
     for ( unsigned int i = 0; i < inPtrSP->fSpacePointCnt; i++ ) {
       AliHLTTPCSpacePointData *c = &( inPtrSP->fSpacePoints[i] );
       if ( CAMath::Abs( c->fZ ) > fClusterZCut ) continue;
+      if( c->fPadRow <0 || c->fPadRow>159 ){
+	HLTError("Wrong TPC cluster with row number %d received",c->fPadRow);
+	continue;
+      }
       clusterData.ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
     }
   }
