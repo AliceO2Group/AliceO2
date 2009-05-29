@@ -84,12 +84,14 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     double fFullTime; //* total time for DoEvent() [s]
     double fRecoTime; //* total reconstruction time [s]
     Long_t    fNEvents;  //* number of reconstructed events
-    bool fNewOutputType; //* use new type of output (temporary flag)
+    bool fOutputTRAKSEGS; //* use old type of output 
 
     static bool CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b );
 
     /** set configuration parameters **/
-    int Configure( const char* arguments );
+    void SetDefaultConfiguration();
+    int ReadConfigurationString(  const char* arguments );
+    int ReadCDBEntry( const char* cdbEntry, const char* chainId );
 
     ClassDef( AliHLTTPCCATrackerComponent, 0 );
 
