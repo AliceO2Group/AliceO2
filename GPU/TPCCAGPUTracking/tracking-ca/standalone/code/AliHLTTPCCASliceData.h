@@ -126,7 +126,9 @@ class AliHLTTPCCASliceData
      */
     const AliHLTTPCCARow &Row( int rowIndex ) const;
 
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
 
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
         : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),

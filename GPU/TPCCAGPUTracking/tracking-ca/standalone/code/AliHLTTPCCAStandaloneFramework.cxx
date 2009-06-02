@@ -123,18 +123,23 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent()
   TStopwatch timer0;
   TStopwatch timer1;
 
-  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
-    fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
-	if (UseGPUTracker)
-	{
-		if (GPUTracker.Reconstruct(&fSliceTrackers[iSlice])) return 1;
+  if (!UseGPUTracker || GPUDebugLevel >= 3)
+  {
+	for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
+	  fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
+      fSliceTrackers[iSlice].Reconstruct();
 	}
-	else
-	{
-		fSliceTrackers[iSlice].Reconstruct();
-	}
+	if (GPUDebugLevel >= 2) printf("\n");
   }
-  if (GPUDebugLevel >= 2) printf("\n");
+
+  if (UseGPUTracker)
+  {
+	  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
+	    fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
+		if (GPUTracker.Reconstruct(&fSliceTrackers[iSlice])) return 1;
+	  }
+	  if (GPUDebugLevel >= 2) printf("\n");
+  }
 
   timer1.Stop();
   TStopwatch timer2;
@@ -231,8 +236,12 @@ int AliHLTTPCCAStandaloneFramework::ExitGPU()
 	return(GPUTracker.ExitGPU());
 }
 
-void AliHLTTPCCAStandaloneFramework::SetGPUDebugLevel(int Level)
+void AliHLTTPCCAStandaloneFramework::SetGPUDebugLevel(int Level, std::ostream *OutFile, std::ostream *GPUOutFile)
 {
-	GPUTracker.SetDebugLevel(Level);
+	GPUTracker.SetDebugLevel(Level, GPUOutFile);
 	GPUDebugLevel = Level;
+	for (int i = 0;i < fgkNSlices;i++)
+	{
+		fSliceTrackers[i].SetGPUDebugLevel(Level, OutFile);
+	}
 }

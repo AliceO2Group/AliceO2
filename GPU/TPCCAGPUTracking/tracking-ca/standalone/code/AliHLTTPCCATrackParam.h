@@ -136,7 +136,9 @@ class AliHLTTPCCATrackParam
 
     GPUd() void Print() const;
 
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
 
     float fX;      // x position
     float fSignCosPhi; // sign of cosPhi

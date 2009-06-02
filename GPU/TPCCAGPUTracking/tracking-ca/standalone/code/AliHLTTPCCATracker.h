@@ -58,10 +58,19 @@ class AliHLTTPCCATracker
     void Reconstruct();
 #endif
 
+	//GPU Tracker Interface
 	void SetGPUTracker();
+	void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {GPUDebugLevel = Level;if (NewDebugOut) GPUDebugOut = NewDebugOut;}
+
 	char* SetGPUTrackerCommonMemory(char* pGPUMemory);
 	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits );
 	char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits );
+
+	//Debugging Stuff
+	void DumpLinks(std::ostream &out);		//Dump all links to file (for comparison after NeighboursFinder/Cleaner)
+	void DumpStartHits(std::ostream &out);	//Same for Start Hits
+	void DumpTrackHits(std::ostream &out);	//Same for Track Hits
+	void DumpTrackletHits(std::ostream &out);	//Same for Track Hits
 
     GPUd() void GetErrors2( int iRow,  const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const;
     GPUd() void GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
@@ -150,8 +159,10 @@ class AliHLTTPCCATracker
     GPUhd()  int *OutTrackHits() const { return  fOutTrackHits; }
     GPUhd()  int OutTrackHit( int i ) const { return  fOutTrackHits[i]; }
 
-
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
+
     void SetupCommonMemory();
 
     AliHLTTPCCAParam fParam; // parameters
@@ -164,6 +175,8 @@ class AliHLTTPCCATracker
 
 	//Will this tracker run on GPU?
 	bool IsGPUTracker;
+	int GPUDebugLevel;
+	std::ostream *GPUDebugOut;
 
     // event
 

@@ -33,7 +33,11 @@ class AliHLTTPCCAStartHitsFinder
             : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
+
+#ifndef CUDA_DEVICE_EMULATION
       protected:
+#endif
+
         int fIRow; // row index
         int fNRows; // n rows
         int fNHits; // n hits in the row

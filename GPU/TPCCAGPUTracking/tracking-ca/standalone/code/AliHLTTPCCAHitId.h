@@ -24,7 +24,9 @@ class AliHLTTPCCAHitId
     GPUhd() int RowIndex() const { return fId & 0xff; }
     GPUhd() int HitIndex() const { return fId >> 8; }
 
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
     int fId;
 };
 

@@ -38,7 +38,9 @@ class AliHLTTPCCATrack
     GPUhd() void SetFirstHitID( int v )          { fFirstHitID = v; }
     GPUhd() void SetParam( AliHLTTPCCATrackParam v ) { fParam = v; };
 
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
 
     bool fAlive;       // flag for mark tracks used by the track merger
     int  fFirstHitID; // index of the first track cell in the track->cell pointer array

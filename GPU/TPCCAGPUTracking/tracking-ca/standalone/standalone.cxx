@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 	
 	if ( !strcmp( argv[i], "-DEBUG" ) && argc >= i)
 	{
-		hlt.SetGPUDebugLevel(atoi(argv[i + 1]));
+		DebugLevel = atoi(argv[i + 1]);
 	}
 	
 	if ( !strcmp( argv[i], "-N" ) && argc >= i)
@@ -68,6 +68,15 @@ int main(int argc, char** argv)
 	hlt.ReadSettings(in);
 	in.close();
 
+	std::ofstream CPUOut, GPUOut;
+
+	if (DebugLevel >= 3)
+	{
+		CPUOut.open("CPU.out");
+		GPUOut.open("GPU.out");
+	}
+	hlt.SetGPUDebugLevel(DebugLevel, &CPUOut, &GPUOut);
+
 	for (i = StartEvent;i < NEvents;i++)
 	{
 		char filename[256];
@@ -92,6 +101,12 @@ int main(int argc, char** argv)
 			getchar();
 			break;
 		}
+	}
+
+	if (DebugLevel >= 3)
+	{
+		CPUOut.close();
+		GPUOut.close();
 	}
 
 	hlt.ExitGPU();
