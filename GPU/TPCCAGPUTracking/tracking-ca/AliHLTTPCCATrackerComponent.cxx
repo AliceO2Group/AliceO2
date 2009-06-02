@@ -528,7 +528,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     for ( unsigned int i = 0; i < inPtrSP->fSpacePointCnt; i++ ) {
       AliHLTTPCSpacePointData *c = &( inPtrSP->fSpacePoints[i] );
       if ( CAMath::Abs( c->fZ ) > fClusterZCut ) continue;
-      if( c->fPadRow <0 || c->fPadRow>159 ){
+      if( c->fPadRow>159 ){
 	HLTError("Wrong TPC cluster with row number %d received",c->fPadRow);
 	continue;
       }
