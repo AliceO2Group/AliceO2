@@ -31,8 +31,8 @@ GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClu
 template<typename T> inline void AssignNoAlignment( T *&dst, char *&mem, int count )
 {
   // assign memory to the pointer dst
-  dst = (T*) mem;
-  mem = (char *)(dst + count);
+  dst = ( T* ) mem;
+  mem = ( char * )( dst + count );
 }
 
 GPUhd() void AliHLTTPCCASliceOutput::SetPointers()
