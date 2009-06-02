@@ -108,7 +108,7 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     int ReadConfigurationString(  const char* arguments );
     int ReadCDBEntry( const char* cdbEntry, const char* chainId );
     int Configure( const char* cdbEntry, const char* chainId, const char *commandLine );
-      
+
     /** the global merger object */
     AliHLTTPCCAMerger *fGlobalMerger; //!
 

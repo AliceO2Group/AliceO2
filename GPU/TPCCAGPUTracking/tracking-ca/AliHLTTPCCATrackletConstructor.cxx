@@ -52,11 +52,10 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step0
     s.fItr1 = s.fItr0 + nTrPerBlock;
     if ( s.fItr1 > nTracks ) s.fItr1 = nTracks;
     s.fMinStartRow = 158;
-    s.fMaxStartRow = 0;
+    s.fMaxEndRow = 0;
   }
   if ( iThread < 32 ) {
     s.fMinStartRow32[iThread] = 158;
-    s.fMaxStartRow32[iThread] = 0;
   }
 }
 
@@ -89,7 +88,6 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step1
   r.fCurrIH =  id.HitIndex();
 
   CAMath::AtomicMin( &s.fMinStartRow32[kThread], r.fStartRow );
-  CAMath::AtomicMax( &s.fMaxStartRow32[kThread], r.fStartRow );
   tParam.SetSinPhi( 0 );
   tParam.SetDzDs( 0 );
   tParam.SetQPt( 0 );
@@ -123,14 +121,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step2
   if ( iThread == 0 ) {
     //CAMath::AtomicMinGPU(&s.fMinRow, s.fMinRow32[iThread]);
     int minStartRow = 158;
-    int maxStartRow = 0;
     int n = ( nThreads > 32 ) ? 32 : nThreads;
     for ( int i = 0; i < n; i++ ) {
       if ( s.fMinStartRow32[i] < minStartRow ) minStartRow = s.fMinStartRow32[i];
-      if ( s.fMaxStartRow32[i] > maxStartRow ) maxStartRow = s.fMaxStartRow32[i];
     }
     s.fMinStartRow = minStartRow;
-    s.fMaxStartRow = maxStartRow;
   }
 }
 
@@ -401,6 +396,9 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         AliHLTTPCCADisplay::Instance().Ask();
 #endif
       }
+      if ( r.fGo ) {
+        CAMath::AtomicMax( &s.fMaxEndRow, r.fEndRow - 1 );
+      }
     }
   } else { // forward/backward searching part
     do {
@@ -650,7 +648,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
     r.fNMissed = 0;
   } else if ( iSync == 3 + 159 + 1 ) {
     r.fCurrentData = 1;
-    int nextRow = s.fMaxStartRow - 1;
+    int nextRow = s.fMaxEndRow;
     if ( nextRow < 0 ) nextRow = 0;
     ReadData( iThread, s, r, tracker, nextRow );
     r.fCurrentData = 0;
@@ -672,7 +670,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
       if ( nextRow > 158 ) nextRow = 158;
     } else {
       iRow = 158 - ( iSync - 4 - 159 - 1 );
-      if ( iRow >= s.fMaxStartRow ) return;
+      if ( iRow > s.fMaxEndRow ) return;
       nextRow = iRow - 1;
       if ( nextRow < 0 ) nextRow = 0;
     }

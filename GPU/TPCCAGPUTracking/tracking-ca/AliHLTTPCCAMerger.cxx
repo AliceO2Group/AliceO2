@@ -813,7 +813,7 @@ void AliHLTTPCCAMerger::Merging()
         }
       }
 
-      if ( !p.CheckNumericalQuality() ) continue;      
+      if ( !p.CheckNumericalQuality() ) continue;
 
       AliHLTTPCCAMergedTrack &mergedTrack = outTracks[nOutTracks];
       mergedTrack.SetNClusters( nHits );
