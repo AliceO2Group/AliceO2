@@ -78,7 +78,7 @@ class AliHLTTPCCAStandaloneFramework
 
 	int InitGPU();
 	int ExitGPU();
-	void SetGPUDebugLevel(int Level);
+	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
 
   private:
 

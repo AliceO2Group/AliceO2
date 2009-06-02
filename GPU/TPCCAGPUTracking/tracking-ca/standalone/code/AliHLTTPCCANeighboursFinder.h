@@ -33,7 +33,10 @@ class AliHLTTPCCANeighboursFinder
             : fGridUp(), fGridDn(), fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
+
+#ifndef CUDA_DEVICE_EMULATION
       protected:
+#endif
         AliHLTTPCCAGrid fGridUp; // grid for the next row
         AliHLTTPCCAGrid fGridDn; // grid for the previous row
         int fNHits; // n hits

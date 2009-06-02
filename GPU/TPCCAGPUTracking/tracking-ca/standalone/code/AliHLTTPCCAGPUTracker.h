@@ -11,7 +11,7 @@ public:
 	int Reconstruct(AliHLTTPCCATracker* tracker);
 	int ExitGPU();
 
-	void SetDebugLevel(int dwLevel);
+	void SetDebugLevel(int dwLevel, std::ostream *NewOutFile = NULL);
 
 private:
 	AliHLTTPCCATracker gpuTracker;
@@ -21,6 +21,7 @@ private:
 	template <class T> T* alignPointer(T* ptr, int alignment);
 
 	int DebugLevel;
+	std::ostream *OutFile;
 	int GPUMemSize;
 #ifdef HLTCA_GPUCODE
 	bool CUDA_FAILED_MSG(cudaError_t error);
