@@ -59,6 +59,12 @@ class AliHLTTPCCATracker
 #endif
 
 	//GPU Tracker Interface
+	void RunNeighboursFinder();
+	void RunNeighboursCleaner();
+	void RunStartHitsFinder();
+	void RunTrackletConstructor();
+	void RunTrackletSelector();
+
 	void SetGPUTracker();
 	void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {GPUDebugLevel = Level;if (NewDebugOut) GPUDebugOut = NewDebugOut;}
 
