@@ -47,6 +47,7 @@ using namespace std;
 #include "AliCDBManager.h"
 #include "TObjString.h"
 #include "TObjArray.h"
+#include "AliHLTExternalTrackParam.h"
 
 #include <climits>
 #include <cstdlib>
@@ -84,7 +85,8 @@ void AliHLTTPCCAGlobalMergerComponent::GetInputDataTypes( AliHLTComponentDataTyp
 AliHLTComponentDataType AliHLTTPCCAGlobalMergerComponent::GetOutputDataType()
 {
   // see header file for class documentation
-  return AliHLTTPCDefinitions::fgkTracksDataType;
+  //return AliHLTTPCDefinitions::fgkTracksDataType; // old
+  return kAliHLTDataTypeTrack|kAliHLTDataOriginTPC;
 }
 
 void AliHLTTPCCAGlobalMergerComponent::GetOutputDataSize( unsigned long &constBase, double &inputMultiplier )
@@ -346,7 +348,77 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   // Fill output tracks
 
   unsigned int mySize = 0;
+  {
+    AliHLTTracksData* outPtr = ( AliHLTTracksData* )( outputPtr );
 
+    AliHLTExternalTrackParam* currOutTrack = outPtr->fTracklets;
+
+    mySize =   ( ( AliHLTUInt8_t * )currOutTrack ) -  ( ( AliHLTUInt8_t * )outputPtr );
+
+    outPtr->fCount = 0;
+   
+    int nTracks = mergerOutput->NTracks();
+
+    for ( int itr = 0; itr < nTracks; itr++ ) {
+
+      // convert AliHLTTPCCAMergedTrack to AliHLTTrack
+
+      const AliHLTTPCCAMergedTrack &track = mergerOutput->Track( itr );
+
+      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + track.NClusters() * sizeof( unsigned int );
+
+      if ( mySize + dSize > maxBufferSize ) {
+        HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", maxBufferSize, mySize, nTracks - itr + 1 );
+        iResult = -ENOSPC;
+        break;
+      }
+
+      // first convert to AliExternalTrackParam
+
+      AliExternalTrackParam tp, tpEnd;
+      AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp,  track.InnerAlpha() );
+      AliHLTTPCCATrackConvertor::GetExtParam( track.OuterParam(), tpEnd, track.OuterAlpha() );
+      
+      currOutTrack->fAlpha = tp.GetAlpha();
+      currOutTrack->fX = tp.GetX();
+      currOutTrack->fY = tp.GetY();
+      currOutTrack->fZ = tp.GetZ();      
+      {
+        float sinA = TMath::Sin( track.OuterAlpha() - track.InnerAlpha());
+        float cosA = TMath::Cos( track.OuterAlpha() - track.InnerAlpha());
+	currOutTrack->fLastX = tpEnd.GetX()*cosA - tpEnd.GetY()*sinA;
+	currOutTrack->fLastY = tpEnd.GetX()*sinA + tpEnd.GetY()*cosA;
+	currOutTrack->fLastZ = tpEnd.GetZ();
+      }
+      currOutTrack->fq1Pt = tp.GetSigned1Pt();
+      currOutTrack->fSinPsi = tp.GetSnp();
+      currOutTrack->fTgl = tp.GetTgl();
+      for( int i=0; i<15; i++ ) currOutTrack->fC[i] = tp.GetCovariance()[i];
+      currOutTrack->fTrackID = itr;
+      currOutTrack->fFlags = 0;
+      currOutTrack->fNPoints = track.NClusters();    
+      for ( int i = 0; i < track.NClusters(); i++ ) currOutTrack->fPointIDs[i] = mergerOutput->ClusterId( track.FirstClusterRef() + i );
+
+      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
+      mySize += dSize;
+      outPtr->fCount++;
+    }
+  
+
+    AliHLTComponentBlockData resultData;
+    FillBlockData( resultData );
+    resultData.fOffset = 0;
+    resultData.fSize = mySize;
+    resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginTPC;
+    resultData.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( 0, 35, 0, 5 );
+    outputBlocks.push_back( resultData );
+    size = resultData.fSize;
+  }
+
+  HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
+
+
+  /* old format
   {
     // check if there was enough space in the output buffer
 
@@ -435,8 +507,8 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   resultData.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( 0, 35, 0, 5 );
   outputBlocks.push_back( resultData );
   size = resultData.fSize;
+  */
 
-  HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
 
   return iResult;
 }
