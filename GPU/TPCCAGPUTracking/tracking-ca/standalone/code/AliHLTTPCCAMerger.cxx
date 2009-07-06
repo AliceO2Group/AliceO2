@@ -369,17 +369,9 @@ bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
     hitsNew[nHitsNew++] = hits[jhit];
   }
 
-  if ( CAMath::Abs( t.QPt() ) < 1.e-8 ) t.SetQPt( 1.e-8 );
+  if ( CAMath::Abs( t.QPt() ) < 1.e-4 ) t.SetQPt( 1.e-4 );
 
-  bool ok = 1;
-
-  const float *c = t.Cov();
-  for ( int i = 0; i < 15; i++ ) ok = ok && finite( c[i] );
-  for ( int i = 0; i < 5; i++ ) ok = ok && finite( t.Par()[i] );
-  ok = ok && ( t.GetX() > 50 );
-
-  if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
-  if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2 || c[14] > 2. ) ok = 0;
+  bool ok = t.CheckNumericalQuality();
 
   if ( CAMath::Abs( t.SinPhi() ) > .99 ) ok = 0;
   else if ( l.CosPhi() >= 0 ) t.SetSignCosPhi( 1 );
@@ -821,18 +813,7 @@ void AliHLTTPCCAMerger::Merging()
         }
       }
 
-      {
-        bool ok = 1;
-
-        const float *c = p.Cov();
-        for ( int i = 0; i < 15; i++ ) ok = ok && finite( c[i] );
-        for ( int i = 0; i < 5; i++ ) ok = ok && finite( p.Par()[i] );
-        ok = ok && ( p.GetX() > 50 );
-
-        if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
-        if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2 || c[14] > 2 ) ok = 0;
-        if ( !ok ) continue;
-      }
+      if ( !p.CheckNumericalQuality() ) continue;
 
       AliHLTTPCCAMergedTrack &mergedTrack = outTracks[nOutTracks];
       mergedTrack.SetNClusters( nHits );

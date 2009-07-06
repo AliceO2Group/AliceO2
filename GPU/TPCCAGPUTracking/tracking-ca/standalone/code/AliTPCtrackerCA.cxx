@@ -1,4 +1,4 @@
-// $Id: AliTPCtrackerCA.cxx 32268 2009-05-08 14:30:11Z richterm $
+// $Id: AliTPCtrackerCA.cxx 32628 2009-05-29 22:11:36Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -96,9 +96,7 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
 
   for ( int iSlice = 0; iSlice < hlt.NSlices(); iSlice++ ) {
 
-    const double kCLight = 0.000299792458;
-
-    float bz = AliTracker::GetBz() * kCLight;
+    float bz = AliTracker::GetBz();
 
     float inRmin = fkParam->GetInnerRadiusLow();
     //float inRmax = fkParam->GetInnerRadiusUp();
@@ -548,6 +546,8 @@ int AliTPCtrackerCA::RefitInward ( AliESDEvent *event )
       hits1[i] = i;
       int index = hits[i];
       infos[i].SetISlice( fClusterSliceRow[index] >> 8 );
+      infos[i].SetIRow( fClusterSliceRow[index] & 0xff );
+      infos[i].SetId( index );
       infos[i].SetX( fClusters[index].GetX() );
       infos[i].SetY( fClusters[index].GetY() );
       infos[i].SetZ( fClusters[index].GetZ() );
@@ -606,6 +606,8 @@ int AliTPCtrackerCA::PropagateBack( AliESDEvent *event )
       hits1[i] = i;
       int index = hits[i];
       infos[i].SetISlice( fClusterSliceRow[index] >> 8 );
+      infos[i].SetIRow( fClusterSliceRow[index] & 0xff );
+      infos[i].SetId( index );
       infos[i].SetX( fClusters[index].GetX() );
       infos[i].SetY( fClusters[index].GetY() );
       infos[i].SetZ( fClusters[index].GetZ() );
