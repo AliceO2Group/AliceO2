@@ -47,6 +47,7 @@ using namespace std;
 #include "AliCDBManager.h"
 #include "TObjString.h"
 #include "TObjArray.h"
+#include "AliHLTExternalTrackParam.h"
 
 #include <climits>
 #include <cstdlib>
@@ -57,11 +58,8 @@ using namespace std;
 ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
 
-// global object for registration
-AliHLTTPCCAGlobalMergerComponent AliHLTTPCCAGlobalMergerComponent::fgAliHLTTPCCAGlobalMergerComponent;
-
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-    : fGlobalMerger( 0 ), fSolenoidBz( 5 )
+    : fGlobalMerger( 0 ), fSolenoidBz( 0 )
 {
   // see header file for class documentation
 }
@@ -87,7 +85,8 @@ void AliHLTTPCCAGlobalMergerComponent::GetInputDataTypes( AliHLTComponentDataTyp
 AliHLTComponentDataType AliHLTTPCCAGlobalMergerComponent::GetOutputDataType()
 {
   // see header file for class documentation
-  return AliHLTTPCDefinitions::fgkTracksDataType;
+  //return AliHLTTPCDefinitions::fgkTracksDataType; // old
+  return kAliHLTDataTypeTrack|kAliHLTDataOriginTPC;
 }
 
 void AliHLTTPCCAGlobalMergerComponent::GetOutputDataSize( unsigned long &constBase, double &inputMultiplier )
@@ -104,16 +103,124 @@ AliHLTComponent *AliHLTTPCCAGlobalMergerComponent::Spawn()
   return new AliHLTTPCCAGlobalMergerComponent;
 }
 
-int AliHLTTPCCAGlobalMergerComponent::DoInit( int argc, const char** argv )
+
+
+
+void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
 {
-  // see header file for class documentation
-  if ( fGlobalMerger ) {
-    return EINPROGRESS;
+  // Set default configuration for the CA merger component
+  // Some parameters can be later overwritten from the OCDB
+
+  fSolenoidBz = 5.;
+}
+
+int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* arguments )
+{
+  // Set configuration parameters for the CA merger component from the string
+
+  int iResult = 0;
+  if ( !arguments ) return iResult;
+
+  TString allArgs = arguments;
+  TString argument;
+  int bMissingParam = 0;
+
+  TObjArray* pTokens = allArgs.Tokenize( " " );
+
+  int nArgs =  pTokens ? pTokens->GetEntries() : 0;
+
+  for ( int i = 0; i < nArgs; i++ ) {
+    argument = ( ( TObjString* )pTokens->At( i ) )->GetString();
+    if ( argument.IsNull() ) continue;
+
+    if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
+      continue;
+    }
+
+    HLTError( "Unknown option \"%s\"", argument.Data() );
+    iResult = -EINVAL;
+  }
+  delete pTokens;
+
+  if ( bMissingParam ) {
+    HLTError( "Specifier missed for parameter \"%s\"", argument.Data() );
+    iResult = -EINVAL;
   }
 
-  // Initialize the merger
+  return iResult;
+}
 
-  fGlobalMerger = new AliHLTTPCCAMerger();
+
+int AliHLTTPCCAGlobalMergerComponent::ReadCDBEntry( const char* cdbEntry, const char* chainId )
+{
+  // see header file for class documentation
+
+  const char* defaultNotify = "";
+
+  if ( !cdbEntry ) {
+    cdbEntry = "HLT/ConfigTPC/TPCCAGlobalMerger";
+    defaultNotify = " (default)";
+    chainId = 0;
+  }
+
+  HLTInfo( "configure from entry \"%s\"%s, chain id %s", cdbEntry, defaultNotify, ( chainId != NULL && chainId[0] != 0 ) ? chainId : "<none>" );
+  AliCDBEntry *pEntry = AliCDBManager::Instance()->Get( cdbEntry );//,GetRunNo());
+
+  if ( !pEntry ) {
+    HLTError( "cannot fetch object \"%s\" from CDB", cdbEntry );
+    return -EINVAL;
+  }
+
+  TObjString* pString = dynamic_cast<TObjString*>( pEntry->GetObject() );
+
+  if ( !pString ) {
+    HLTError( "configuration object \"%s\" has wrong type, required TObjString", cdbEntry );
+    return -EINVAL;
+  }
+
+  HLTInfo( "received configuration object string: \"%s\"", pString->GetString().Data() );
+
+  return  ReadConfigurationString( pString->GetString().Data() );
+}
+
+
+
+int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const char* chainId, const char *commandLine )
+{
+  // Configure the component
+  // There are few levels of configuration,
+  // parameters which are set on one step can be overwritten on the next step
+
+  //* read hard-coded values
+
+  SetDefaultConfiguration();
+
+  //* read the default CDB entry
+
+  int iResult1 = ReadCDBEntry( NULL, chainId );
+
+  //* read magnetic field
+
+  int iResult2 = ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+
+  //* read the actual CDB entry if required
+
+  int iResult3 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) : 0;
+
+  //* read extra parameters from input (if they are)
+
+  int iResult4 = 0;
+
+  if ( commandLine && commandLine[0] != '\0' ) {
+    HLTInfo( "received configuration string from HLT framework: \"%s\"", commandLine );
+    iResult4 = ReadConfigurationString( commandLine );
+  }
+
+
+  // Initialize the merger
 
   AliHLTTPCCAParam param;
 
@@ -147,21 +254,39 @@ int AliHLTTPCCAGlobalMergerComponent::DoInit( int argc, const char** argv )
 
   fGlobalMerger->SetSliceParam( param );
 
-  int iResult = 0;
+  return iResult1 ? iResult1 : ( iResult2 ? iResult2 : ( iResult3 ? iResult3 : iResult4 ) );
+}
+
+
+
+
+int AliHLTTPCCAGlobalMergerComponent::DoInit( int argc, const char** argv )
+{
+  // see header file for class documentation
+
+  if ( fGlobalMerger ) {
+    return EINPROGRESS;
+  }
+
+  fGlobalMerger = new AliHLTTPCCAMerger();
 
   TString arguments = "";
   for ( int i = 0; i < argc; i++ ) {
-    TString argument = argv[i];
     if ( !arguments.IsNull() ) arguments += " ";
-    arguments += argument;
+    arguments += argv[i];
   }
-  if ( !arguments.IsNull() ) {
-    iResult = Configure( arguments.Data() );
-  } else {
-    iResult = Reconfigure( NULL, NULL );
-  }
-  return iResult;
+
+  return Configure( NULL, NULL, arguments.Data()  );
 }
+
+int AliHLTTPCCAGlobalMergerComponent::Reconfigure( const char* cdbEntry, const char* chainId )
+{
+  // Reconfigure the component from OCDB
+
+  return Configure( cdbEntry, chainId, NULL );
+}
+
+
 
 int AliHLTTPCCAGlobalMergerComponent::DoDeinit()
 {
@@ -223,7 +348,77 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   // Fill output tracks
 
   unsigned int mySize = 0;
+  {
+    AliHLTTracksData* outPtr = ( AliHLTTracksData* )( outputPtr );
 
+    AliHLTExternalTrackParam* currOutTrack = outPtr->fTracklets;
+
+    mySize =   ( ( AliHLTUInt8_t * )currOutTrack ) -  ( ( AliHLTUInt8_t * )outputPtr );
+
+    outPtr->fCount = 0;
+   
+    int nTracks = mergerOutput->NTracks();
+
+    for ( int itr = 0; itr < nTracks; itr++ ) {
+
+      // convert AliHLTTPCCAMergedTrack to AliHLTTrack
+
+      const AliHLTTPCCAMergedTrack &track = mergerOutput->Track( itr );
+
+      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + track.NClusters() * sizeof( unsigned int );
+
+      if ( mySize + dSize > maxBufferSize ) {
+        HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", maxBufferSize, mySize, nTracks - itr + 1 );
+        iResult = -ENOSPC;
+        break;
+      }
+
+      // first convert to AliExternalTrackParam
+
+      AliExternalTrackParam tp, tpEnd;
+      AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp,  track.InnerAlpha() );
+      AliHLTTPCCATrackConvertor::GetExtParam( track.OuterParam(), tpEnd, track.OuterAlpha() );
+      
+      currOutTrack->fAlpha = tp.GetAlpha();
+      currOutTrack->fX = tp.GetX();
+      currOutTrack->fY = tp.GetY();
+      currOutTrack->fZ = tp.GetZ();      
+      {
+        float sinA = TMath::Sin( track.OuterAlpha() - track.InnerAlpha());
+        float cosA = TMath::Cos( track.OuterAlpha() - track.InnerAlpha());
+	currOutTrack->fLastX = tpEnd.GetX()*cosA - tpEnd.GetY()*sinA;
+	currOutTrack->fLastY = tpEnd.GetX()*sinA + tpEnd.GetY()*cosA;
+	currOutTrack->fLastZ = tpEnd.GetZ();
+      }
+      currOutTrack->fq1Pt = tp.GetSigned1Pt();
+      currOutTrack->fSinPsi = tp.GetSnp();
+      currOutTrack->fTgl = tp.GetTgl();
+      for( int i=0; i<15; i++ ) currOutTrack->fC[i] = tp.GetCovariance()[i];
+      currOutTrack->fTrackID = itr;
+      currOutTrack->fFlags = 0;
+      currOutTrack->fNPoints = track.NClusters();    
+      for ( int i = 0; i < track.NClusters(); i++ ) currOutTrack->fPointIDs[i] = mergerOutput->ClusterId( track.FirstClusterRef() + i );
+
+      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
+      mySize += dSize;
+      outPtr->fCount++;
+    }
+  
+
+    AliHLTComponentBlockData resultData;
+    FillBlockData( resultData );
+    resultData.fOffset = 0;
+    resultData.fSize = mySize;
+    resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginTPC;
+    resultData.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( 0, 35, 0, 5 );
+    outputBlocks.push_back( resultData );
+    size = resultData.fSize;
+  }
+
+  HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
+
+
+  /* old format
   {
     // check if there was enough space in the output buffer
 
@@ -237,9 +432,10 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       // convert AliHLTTPCCAMergedTrack to AliHLTTPCTrack
 
       const AliHLTTPCCAMergedTrack &track = mergerOutput->Track( itr );
+
       AliHLTTPCTrack out;
 
-      // first convert to AliExternalTrackParam ( Kappa to Pt )
+      // first convert to AliExternalTrackParam
 
       AliExternalTrackParam tp, tpEnd;
       AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp, 0 );
@@ -273,10 +469,8 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 
       out.SetY0err( tp.GetSigmaY2() );
       out.SetZ0err( tp.GetSigmaZ2() );
-      float h = -out.GetPt() * out.GetPt();
-      out.SetPterr( h*h*tp.GetSigma1Pt2() );
-      h = 1. / TMath::Sqrt( 1 - out.GetSnp() * out.GetSnp() );
-      out.SetPsierr( h*h*tp.GetSigmaSnp2() );
+      out.SetPterr( tp.GetSigma1Pt2() );
+      out.SetPsierr( tp.GetSigmaSnp2() );
       out.SetTglerr( tp.GetSigmaTgl2() );
 
       // set cluster ID's
@@ -315,78 +509,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   size = resultData.fSize;
 
   HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
-
-  return iResult;
-}
-
-
-
-int AliHLTTPCCAGlobalMergerComponent::Reconfigure( const char* /*cdbEntry*/, const char* /*chainId*/ )
-{
-  // see header file for class documentation
-
-
-  HLTInfo( "TODO: dummy Reconfigure() method" );
-  return 0;
-  /*
-
-  int iResult=0;
-  const char* pathBField=kAliHLTCDBSolenoidBz;
-
-  if (pathBField) {
-    HLTInfo("reconfigure B-Field from entry %s, chain id %s", pathBField,(chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
-    AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(pathBField);//,GetRunNo());
-    if (pEntry) {
-      TObjString* pString=dynamic_cast<TObjString*>(pEntry->GetObject());
-      if (pString) {
-  HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
-  iResult=Configure(pString->GetString().Data());
-      } else {
-  HLTError("configuration object \"%s\" has wrong type, required TObjString", pathBField);
-      }
-    } else {
-      HLTError("cannot fetch object \"%s\" from CDB", pathBField);
-    }
-  }
-  return iResult;
   */
-}
-
-
-int AliHLTTPCCAGlobalMergerComponent::Configure( const char* arguments )
-{
-  //* Set parameters
-
-  int iResult = 0;
-  if ( !arguments ) return iResult;
-
-  TString allArgs = arguments;
-  TString argument;
-  int bMissingParam = 0;
-
-  TObjArray* pTokens = allArgs.Tokenize( " " );
-
-  int nArgs =  pTokens ? pTokens->GetEntries() : 0;
-
-  for ( int i = 0; i < nArgs; i++ ) {
-    argument = ( ( TObjString* )pTokens->At( i ) )->GetString();
-    if ( argument.IsNull() ) {
-    } else if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-      HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
-    } else {
-      HLTError( "Unknown option %s ", argument.Data() );
-      iResult = -EINVAL;
-    }
-  }
-  delete pTokens;
-
-  if ( bMissingParam ) {
-    HLTError( "Specifier missed for %s", argument.Data() );
-    iResult = -EINVAL;
-  }
-
   return iResult;
 }
 

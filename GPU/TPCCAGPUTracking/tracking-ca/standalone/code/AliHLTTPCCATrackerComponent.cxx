@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 32330 2009-05-12 20:10:11Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 32659 2009-06-02 16:08:40Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -58,14 +58,6 @@ const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkTrackletsDataType = Ali
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp( AliHLTTPCCATrackerComponent )
 
-/** global object for registration
- * Matthias 2009-01-13 temporarily using the global object approach again.
- * CA cade had to be disabled because of various compilation problems, so
- * the global object approach fits better for the moment.
- */
-
-AliHLTTPCCATrackerComponent gAliHLTTPCCATrackerComponent;
-
 AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     :
     fTracker( NULL ),
@@ -75,7 +67,7 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     fFullTime( 0 ),
     fRecoTime( 0 ),
     fNEvents( 0 ),
-    fNewOutputType( 0 )
+    fOutputTRAKSEGS( 0 )
 {
   // see header file for class documentation
   // or
@@ -94,7 +86,7 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrack
     fFullTime( 0 ),
     fRecoTime( 0 ),
     fNEvents( 0 ),
-    fNewOutputType( 0 )
+    fOutputTRAKSEGS( 0 )
 {
   // see header file for class documentation
   HLTFatal( "copy constructor untested" );
@@ -134,8 +126,8 @@ void AliHLTTPCCATrackerComponent::GetInputDataTypes( vector<AliHLTComponentDataT
 AliHLTComponentDataType AliHLTTPCCATrackerComponent::GetOutputDataType()
 {
   // see header file for class documentation
-  if ( fNewOutputType ) return AliHLTTPCCADefinitions::fgkTrackletsDataType;
-  else return AliHLTTPCDefinitions::fgkTrackSegmentsDataType;
+  if ( fOutputTRAKSEGS ) return AliHLTTPCDefinitions::fgkTrackSegmentsDataType;
+  else return AliHLTTPCCADefinitions::fgkTrackletsDataType;
 }
 
 void AliHLTTPCCATrackerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier )
@@ -151,113 +143,23 @@ AliHLTComponent* AliHLTTPCCATrackerComponent::Spawn()
   return new AliHLTTPCCATrackerComponent;
 }
 
-int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
+void AliHLTTPCCATrackerComponent::SetDefaultConfiguration()
 {
-  // Configure the CA tracker component
+  // Set default configuration for the CA tracker component
+  // Some parameters can be later overwritten from the OCDB
 
-  fSolenoidBz = 5;
+  fSolenoidBz = 5.;
   fMinNTrackClusters = 0;
   fClusterZCut = 500.;
+  fOutputTRAKSEGS = 0;
   fFullTime = 0;
   fRecoTime = 0;
   fNEvents = 0;
-  fNewOutputType = 0;
-
-  if ( fTracker ) return EINPROGRESS;
-  fTracker = new AliHLTTPCCATracker();
-
-  int iResult = 0;
-
-  TString arguments = "";
-  for ( int i = 0; i < argc; i++ ) {
-    TString argument = argv[i];
-    if ( !arguments.IsNull() ) arguments += " ";
-    arguments += argument;
-  }
-  if ( !arguments.IsNull() ) {
-    iResult = Configure( arguments.Data() );
-  } else {
-    iResult = Reconfigure( NULL, NULL );
-  }
-  return iResult;
 }
 
-
-int AliHLTTPCCATrackerComponent::DoDeinit()
+int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments )
 {
-  // see header file for class documentation
-  if ( fTracker ) delete fTracker;
-  fTracker = NULL;
-  return 0;
-}
-
-int AliHLTTPCCATrackerComponent::Reconfigure( const char* /*cdbEntry*/, const char* /*chainId*/ )
-{
-  // see header file for class documentation
-
-  HLTInfo( "TODO: dummy Reconfigure() method" );
-
-  return 0;
-
-  /*
-
-  int iResult=0;
-  const char* path="HLT/ConfigTPC/CATrackerComponent";
-  const char* defaultNotify="";
-  if (cdbEntry) {
-    path=cdbEntry;
-    defaultNotify=" (default)";
-  }
-  if (path) {
-    HLTInfo("reconfigure from entry %s%s, chain id %s", path, defaultNotify,(chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
-    AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(path);//,GetRunNo());
-    if (pEntry) {
-      TObjString* pString=dynamic_cast<TObjString*>(pEntry->GetObject());
-      if (pString) {
-  HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
-  iResult=Configure(pString->GetString().Data());
-      } else {
-  HLTError("configuration object \"%s\" has wrong type, required TObjString", path);
-      }
-    } else {
-      HLTError("cannot fetch object \"%s\" from CDB", path);
-    }
-  }
-
-  const char* pathBField=kAliHLTCDBSolenoidBz;
-
-  if (pathBField) {
-    HLTInfo("reconfigure B-Field from entry %s, chain id %s", path,(chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
-    AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(pathBField);//,GetRunNo());
-    if (pEntry) {
-      TObjString* pString=dynamic_cast<TObjString*>(pEntry->GetObject());
-      if (pString) {
-  HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
-  iResult=Configure(pString->GetString().Data());
-      } else {
-  HLTError("configuration object \"%s\" has wrong type, required TObjString", path);
-      }
-    } else {
-      HLTError("cannot fetch object \"%s\" from CDB", path);
-    }
-  }
-  return iResult;
-  */
-}
-
-
-bool AliHLTTPCCATrackerComponent::CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b )
-{
-  //* Comparison function for sorting clusters
-  if ( a->fPadRow < b->fPadRow ) return 1;
-  if ( a->fPadRow > b->fPadRow ) return 0;
-  return ( a->fZ < b->fZ );
-}
-
-
-int AliHLTTPCCATrackerComponent::Configure( const char* arguments )
-{
-  //* Set parameters
+  // Set configuration parameters for the CA tracker component from the string
 
   int iResult = 0;
   if ( !arguments ) return iResult;
@@ -272,38 +174,164 @@ int AliHLTTPCCATrackerComponent::Configure( const char* arguments )
 
   for ( int i = 0; i < nArgs; i++ ) {
     argument = ( ( TObjString* )pTokens->At( i ) )->GetString();
-    if ( argument.IsNull() ) {
-    } else if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
+    if ( argument.IsNull() ) continue;
+
+    if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
       HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
-    } else if ( argument.CompareTo( "-minNClustersOnTrack" ) == 0 ||
-                argument.CompareTo( "-minNTrackClusters" ) == 0 ) {
+      continue;
+    }
+
+    if ( argument.CompareTo( "-minNClustersOnTrack" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fMinNTrackClusters = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
       HLTInfo( "minNClustersOnTrack set to: %d", fMinNTrackClusters );
-    } else if ( argument.CompareTo( "-clusterZCut" ) == 0 ) {
+      continue;
+    }
+
+    if ( argument.CompareTo( "-clusterZCut" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fClusterZCut = TMath::Abs( ( ( TObjString* )pTokens->At( i ) )->GetString().Atof() );
       HLTInfo( "ClusterZCut set to: %f", fClusterZCut );
-    } else if ( argument.CompareTo( "-newOutputType" ) == 0 ) {
-      fNewOutputType = 1;
-      HLTInfo( "NewOutputType is set" );
-    } else {
-      HLTError( "Unknown option %s ", argument.Data() );
-      iResult = -EINVAL;
+      continue;
     }
+
+    if ( argument.CompareTo( "-outputTRAKSEGS" ) == 0 ) {
+      fOutputTRAKSEGS = 1;
+      HLTInfo( "The special output type \"TRAKSEGS\" is set" );
+      continue;
+    }
+
+    HLTError( "Unknown option \"%s\"", argument.Data() );
+    iResult = -EINVAL;
   }
   delete pTokens;
 
   if ( bMissingParam ) {
-    HLTError( "Specifier missed for %s", argument.Data() );
+    HLTError( "Specifier missed for parameter \"%s\"", argument.Data() );
     iResult = -EINVAL;
   }
 
   return iResult;
 }
 
+
+int AliHLTTPCCATrackerComponent::ReadCDBEntry( const char* cdbEntry, const char* chainId )
+{
+  // see header file for class documentation
+
+  const char* defaultNotify = "";
+
+  if ( !cdbEntry ) {
+    cdbEntry = "HLT/ConfigTPC/TPCCATracker";
+    defaultNotify = " (default)";
+    chainId = 0;
+  }
+
+  HLTInfo( "configure from entry \"%s\"%s, chain id %s", cdbEntry, defaultNotify, ( chainId != NULL && chainId[0] != 0 ) ? chainId : "<none>" );
+  AliCDBEntry *pEntry = AliCDBManager::Instance()->Get( cdbEntry );//,GetRunNo());
+
+  if ( !pEntry ) {
+    HLTError( "cannot fetch object \"%s\" from CDB", cdbEntry );
+    return -EINVAL;
+  }
+
+  TObjString* pString = dynamic_cast<TObjString*>( pEntry->GetObject() );
+
+  if ( !pString ) {
+    HLTError( "configuration object \"%s\" has wrong type, required TObjString", cdbEntry );
+    return -EINVAL;
+  }
+
+  HLTInfo( "received configuration object string: \"%s\"", pString->GetString().Data() );
+
+  return  ReadConfigurationString( pString->GetString().Data() );
+}
+
+
+int AliHLTTPCCATrackerComponent::Configure( const char* cdbEntry, const char* chainId, const char *commandLine )
+{
+  // Configure the component
+  // There are few levels of configuration,
+  // parameters which are set on one step can be overwritten on the next step
+
+  //* read hard-coded values
+
+  SetDefaultConfiguration();
+
+  //* read the default CDB entry
+
+  int iResult1 = ReadCDBEntry( NULL, chainId );
+
+  //* read magnetic field
+
+  int iResult2 = ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+
+  //* read the actual CDB entry if required
+
+  int iResult3 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) : 0;
+
+  //* read extra parameters from input (if they are)
+
+  int iResult4 = 0;
+
+  if ( commandLine && commandLine[0] != '\0' ) {
+    HLTInfo( "received configuration string from HLT framework: \"%s\"", commandLine );
+    iResult4 = ReadConfigurationString( commandLine );
+  }
+
+  // Initialise the tracker here
+
+  return iResult1 ? iResult1 : ( iResult2 ? iResult2 : ( iResult3 ? iResult3 : iResult4 ) );
+}
+
+
+
+int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
+{
+  // Configure the CA tracker component
+
+  if ( fTracker ) return EINPROGRESS;
+
+  fTracker = new AliHLTTPCCATracker();
+
+  TString arguments = "";
+  for ( int i = 0; i < argc; i++ ) {
+    if ( !arguments.IsNull() ) arguments += " ";
+    arguments += argv[i];
+  }
+
+  return Configure( NULL, NULL, arguments.Data() );
+}
+
+
+int AliHLTTPCCATrackerComponent::DoDeinit()
+{
+  // see header file for class documentation
+  delete fTracker;
+  fTracker = NULL;
+  return 0;
+}
+
+
+
+int AliHLTTPCCATrackerComponent::Reconfigure( const char* cdbEntry, const char* chainId )
+{
+  // Reconfigure the component from OCDB .
+
+  return Configure( cdbEntry, chainId, NULL );
+}
+
+
+bool AliHLTTPCCATrackerComponent::CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b )
+{
+  //* Comparison function for sort clusters
+
+  if ( a->fPadRow < b->fPadRow ) return 1;
+  if ( a->fPadRow > b->fPadRow ) return 0;
+  return ( a->fZ < b->fZ );
+}
 
 
 
@@ -316,7 +344,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
   AliHLTUInt32_t& size,
   vector<AliHLTComponentBlockData>& outputBlocks )
 {
-//* process event
+  //* process event
+
   AliHLTUInt32_t maxBufferSize = size;
   size = 0; // output size
 
@@ -429,12 +458,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
       rowX[irow] = AliHLTTPCTransform::Row2X( irow );
     }
 
-    const double kCLight = 0.000299792458;
-
     AliHLTTPCCAParam param;
 
     param.Initialize( iSec, nRows, rowX, alpha, dalpha,
-                      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz*kCLight );
+                      inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
     param.SetHitPickUpFactor( 2 );
     param.Update();
     fTracker->Initialize( param );
@@ -501,6 +528,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
     for ( unsigned int i = 0; i < inPtrSP->fSpacePointCnt; i++ ) {
       AliHLTTPCSpacePointData *c = &( inPtrSP->fSpacePoints[i] );
       if ( CAMath::Abs( c->fZ ) > fClusterZCut ) continue;
+      if ( c->fPadRow > 159 ) {
+        HLTError( "Wrong TPC cluster with row number %d received", c->fPadRow );
+        continue;
+      }
       clusterData.ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
     }
   }
@@ -529,7 +560,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   int ntracks = *fTracker->NOutTracks();
 
 
-  if ( !fNewOutputType ) {
+  if ( fOutputTRAKSEGS ) {
 
     AliHLTTPCTrackletData* outPtr = ( AliHLTTPCTrackletData* )( outputPtr );
 
@@ -630,7 +661,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
       mySize += dSize;
       outPtr->fTrackletCnt++;
     }
-  } else { // new output type
+
+  } else { // default output type
 
     mySize = fTracker->Output()->EstimateSize( fTracker->Output()->NTracks(),
              fTracker->Output()->NTrackClusters() );
@@ -650,6 +682,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     bd.fOffset = 0;
     bd.fSize = mySize;
     bd.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( slice, slice, minPatch, maxPatch );
+    bd.fDataType = GetOutputDataType();
     outputBlocks.push_back( bd );
   }
   size = mySize;
@@ -663,8 +696,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
   // Set log level to "Warning" for on-line system monitoring
   int hz = ( int ) ( fFullTime > 1.e-10 ? fNEvents / fFullTime : 100000 );
   int hz1 = ( int ) ( fRecoTime > 1.e-10 ? fNEvents / fRecoTime : 100000 );
-  HLTInfo( "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; reco time %d/%d Hz",
-              slice, ntracks, nClustersTotal, minPatch, maxPatch, row[0], row[1], hz, hz1 );
+  HLTInfo( "CATracker slice %d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; time: full %d / reco %d Hz",
+           slice, ntracks, nClustersTotal, minPatch, maxPatch, row[0], row[1], hz, hz1 );
 
   return ret;
 }

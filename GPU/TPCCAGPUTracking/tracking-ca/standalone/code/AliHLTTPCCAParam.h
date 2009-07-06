@@ -68,7 +68,8 @@ class AliHLTTPCCAParam
     GPUd() float ErrZ() const { return fErrZ;}
     GPUd() float ErrX() const { return fErrX;}
     GPUd() float ErrY() const { return fErrY;}
-    GPUd() float Bz() const { return fBz;}
+    GPUd() float BzkG() const { return fBzkG;}
+    GPUd() float ConstBz() const { return fConstBz;}
 
     GPUd() float TrackConnectionFactor() const { return fTrackConnectionFactor; }
     GPUd() float TrackChiCut()  const { return fTrackChiCut; }
@@ -94,7 +95,7 @@ class AliHLTTPCCAParam
     GPUd() void SetErrZ( float v ) {  fErrZ = v;}
     GPUd() void SetErrX( float v ) {  fErrX = v;}
     GPUd() void SetErrY( float v ) {  fErrY = v;}
-    GPUd() void SetBz( float v ) {  fBz = v;}
+    GPUd() void SetBzkG( float v ) {  fBzkG = v;}
     GPUd() void SetTrackConnectionFactor( float v ) { fTrackConnectionFactor = v;}
     GPUd() void SetTrackChiCut( float v ) {  fTrackChiCut = v; }
     GPUd() void SetTrackChi2Cut( float v ) {  fTrackChi2Cut = v; }
@@ -112,7 +113,8 @@ class AliHLTTPCCAParam
       fParamS0Par[i][j][k] = val;
     }
 
-    GPUd() float GetBz() const { return fBz;}
+    GPUd() float GetBzkG() const { return fBzkG;}
+    GPUd() float GetConstBz() const { return fConstBz;}
     GPUd() float GetBz( float x, float y, float z ) const;
     GPUd()  float GetBz( const AliHLTTPCCATrackParam &t ) const;
 
@@ -130,7 +132,8 @@ class AliHLTTPCCAParam
     float fZMin, fZMax;// slice Z range
     float fErrX, fErrY, fErrZ;// default cluster errors
     float fPadPitch; // pad pitch
-    float fBz;       // magnetic field value (only constant field can be used)
+    float fBzkG;       // constant magnetic field value in kG
+    float fConstBz;       // constant magnetic field value in kG*clight
 
     float fHitPickUpFactor;// multiplier for the chi2 window for hit pick up procedure
 

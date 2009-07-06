@@ -1,5 +1,5 @@
 #include <cutil.h>
-#include <cutil_inline.h>
+#include <cutil_inline_runtime.h>
 #include <sm_11_atomic_functions.h>
 #include <sm_12_atomic_functions.h>
 
@@ -226,9 +226,14 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	tracker->fTrackMemory = reinterpret_cast<char*> ( new uint4 [ gpuTracker.fTrackMemorySize/sizeof( uint4 ) + 100] );
     tracker->SetPointersTracks( *tracker->NTracklets(), tracker->NHitsTotal() );
 
-	tracker->RunTrackletConstructor();
-	tracker->RunTrackletSelector();
-	/*int nMemThreads = AliHLTTPCCATrackletConstructor::NMemThreads();
+/*	tracker->RunTrackletConstructor();
+	if (DebugLevel >= 3)
+	{
+		*OutFile << "Tracklet Hits:" << endl;
+		tracker->DumpTrackletHits(*OutFile);
+	}*/
+
+	int nMemThreads = TRACKLET_CONSTRUCTOR_NMEMTHREDS;
     nThreads = 256;//96;
     nBlocks = *tracker->NTracklets()/nThreads + 1;
     if( nBlocks<30 ){
@@ -237,7 +242,9 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 		if( nThreads%32 ) nThreads = (nThreads/32+1)*32;
 	}
 	if (DebugLevel >= 4) printf("Running GPU Tracklet Constructor\n");
-	AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor> <<<nBlocks, nMemThreads+nThreads>>>(); 
+
+	//AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor> <<<nBlocks, nMemThreads+nThreads>>>(); 
+	AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor> <<<1, TRACKLET_CONSTRUCTOR_NMEMTHREDS + *tracker->fNTracklets>>>();
 	if (CUDASync()) return 1;
 
 	if (DebugLevel >= 3)
@@ -248,6 +255,9 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 		tracker->DumpTrackletHits(*OutFile);
     }
 
+	//tracker->RunTrackletSelector();
+	
+
 	nThreads = 128;
 	nBlocks = *tracker->NTracklets()/nThreads + 1;
 	if( nBlocks<30 ){
@@ -257,6 +267,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	}
 	if (DebugLevel >= 4) printf("Running GPU Tracklet Selector\n");
 	AliHLTTPCCAProcess<AliHLTTPCCATrackletSelector><<<nBlocks, nThreads>>>();
+	//AliHLTTPCCAProcess<AliHLTTPCCATrackletSelector><<<1, *tracker->fNTracklets>>>();
 	if (CUDASync()) return 1;
 
 	if (DebugLevel >= 4) printf("Transfering Tracks from GPU to Host ");
@@ -270,7 +281,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	{
 		printf("CUDA Error during Reconstruction\n");
 		return(1);
-	}*/
+	}
 
 	if (DebugLevel >= 3)
 	{

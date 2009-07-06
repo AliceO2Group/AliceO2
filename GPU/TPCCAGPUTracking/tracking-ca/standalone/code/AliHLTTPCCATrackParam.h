@@ -81,7 +81,7 @@ class AliHLTTPCCATrackParam
     GPUd() void SetSinPhi( float v ) {  fP[2] = v; }
     GPUd() void SetDzDs( float v )  {  fP[3] = v; }
     GPUd() void SetQPt( float v )   {  fP[4] = v; }
-    GPUd() void SetSignCosPhi( float v ) {  fSignCosPhi = v; }
+    GPUd() void SetSignCosPhi( float v ) {  fSignCosPhi = v >= 0 ? 1 : -1; }
     GPUd() void SetChi2( float v )  {  fChi2 = v; }
     GPUd() void SetNDF( int v )   { fNDF = v; }
 

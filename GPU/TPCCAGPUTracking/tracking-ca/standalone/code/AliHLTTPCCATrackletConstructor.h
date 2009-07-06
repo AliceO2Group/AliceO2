@@ -26,10 +26,10 @@ class AliHLTTPCCATrackletConstructor
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fMinStartRow( 0 ), fMaxStartRow( 0 ) {}
+            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fMinStartRow( 0 ), fMaxEndRow( 0 ) {}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fMinStartRow( 0 ), fMaxStartRow( 0 ) {}
+            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fMinStartRow( 0 ), fMaxEndRow( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
 
@@ -43,8 +43,7 @@ class AliHLTTPCCATrackletConstructor
         int fNRows; // n rows
         int fMinStartRow; // min start row
         int fMinStartRow32[32]; // min start row for each thread in warp
-        int fMaxStartRow; // max start row
-        int fMaxStartRow32[32];// max start row for each thread in warp
+        int fMaxEndRow; // max start row
     };
 
     class  AliHLTTPCCAThreadMemory
@@ -109,9 +108,11 @@ class AliHLTTPCCATrackletConstructor
     GPUd() static bool SAVE() { return 1; }
 
 #if defined(HLTCA_GPUCODE)
-    GPUhd() static int NMemThreads() { return 128; }
+    //GPUhd() inline int NMemThreads() { return 128; }
+#define TRACKLET_CONSTRUCTOR_NMEMTHREDS 128
 #else
-    GPUhd() static int NMemThreads() { return 1; }
+    //GPUhd() inline int NMemThreads() { return 1; }
+#define TRACKLET_CONSTRUCTOR_NMEMTHREDS 1
 #endif
 
 };

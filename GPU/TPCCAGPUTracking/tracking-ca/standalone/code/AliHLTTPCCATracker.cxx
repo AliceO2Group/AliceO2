@@ -215,7 +215,7 @@ int trackletSortComparison(const void* a, const void* b)
 
 void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 {
-	//qsort(Tracklets(), *NTracklets(), sizeof(AliHLTTPCCATracklet), trackletSortComparison);
+	qsort(Tracklets(), *NTracklets(), sizeof(AliHLTTPCCATracklet), trackletSortComparison);
 	for (int k = 0;k < Param().NRows();k++)
 	{
 		for (int j = 0;j < *NTracklets();j++)
@@ -390,7 +390,7 @@ void AliHLTTPCCATracker::RunStartHitsFinder()
 
 void AliHLTTPCCATracker::RunTrackletConstructor()
 {
-  AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor>( 1, AliHLTTPCCATrackletConstructor::NMemThreads() + *fNTracklets, *this );
+  AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor>( 1, TRACKLET_CONSTRUCTOR_NMEMTHREDS + *fNTracklets, *this );
 }
 
 void AliHLTTPCCATracker::RunTrackletSelector()
@@ -480,9 +480,9 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   fData.ClearHitWeights();
 
-  SetPointersTracks( *fNTracklets, NHitsTotal() ); // to calculate the size
+  SetPointersTracks( *fNTracklets * 2, NHitsTotal() ); // to calculate the size
   fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
-  SetPointersTracks( *fNTracklets, NHitsTotal() ); // set pointers for hits
+  SetPointersTracks( *fNTracklets * 2, NHitsTotal() ); // set pointers for hits
 
   RunTrackletConstructor();
 

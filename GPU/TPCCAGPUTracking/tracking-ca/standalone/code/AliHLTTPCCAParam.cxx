@@ -27,8 +27,8 @@
 GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
     : fISlice( 0 ), fNRows( 63 ), fAlpha( 0.174533 ), fDAlpha( 0.349066 ),
     fCosAlpha( 0 ), fSinAlpha( 0 ), fAngleMin( 0 ), fAngleMax( 0 ), fRMin( 83.65 ), fRMax( 133.3 ),
-    fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBz( -5. ),
-    fHitPickUpFactor( 1. ),
+    fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBzkG( 5. ),
+    fConstBz( 5.*0.000299792458 ), fHitPickUpFactor( 1. ),
     fMaxTrackMatchDRow( 4 ), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 )
 {
   // constructor
@@ -75,14 +75,6 @@ GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
   fParamS0Par[1][2][5] = 0.000425504;
   fParamS0Par[1][2][6] = 20.9294;
 
-  const double kCLight = 0.000299792458;
-
-  fPolinomialFieldBz[0] = kCLight * 4.99643;
-  fPolinomialFieldBz[1] = kCLight * -2.27193e-06;
-  fPolinomialFieldBz[2] = kCLight * 0.000116475;
-  fPolinomialFieldBz[3] = kCLight * -1.49956e-06;
-  fPolinomialFieldBz[4] = kCLight * -1.01721e-07;
-  fPolinomialFieldBz[5] = kCLight * 4.85701e-07;
 
   Update();
 }
@@ -107,7 +99,7 @@ void AliHLTTPCCAParam::Initialize( int iSlice,
   fPadPitch = padPitch;
   fErrY = 1.; // not in use
   fErrZ = zSigma;
-  fBz = bz;
+  fBzkG = bz;
   fNRows = nRows;
   for ( int irow = 0; irow < nRows; irow++ ) {
     fRowX[irow] = rowX[irow];
@@ -120,6 +112,17 @@ void AliHLTTPCCAParam::Initialize( int iSlice,
 void AliHLTTPCCAParam::Update()
 {
   // update of calculated values
+
+  const double kCLight = 0.000299792458;
+  fConstBz = fBzkG * kCLight;
+
+  fPolinomialFieldBz[0] = fConstBz * (  0.999286   );
+  fPolinomialFieldBz[1] = fConstBz * ( -4.54386e-7 );
+  fPolinomialFieldBz[2] = fConstBz * (  2.32950e-5 );
+  fPolinomialFieldBz[3] = fConstBz * ( -2.99912e-7 );
+  fPolinomialFieldBz[4] = fConstBz * ( -2.03442e-8 );
+  fPolinomialFieldBz[5] = fConstBz * (  9.71402e-8 );
+
   fCosAlpha = CAMath::Cos( fAlpha );
   fSinAlpha = CAMath::Sin( fAlpha );
   fAngleMin = fAlpha - fDAlpha / 2.f;
@@ -195,7 +198,7 @@ GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const
   out << fErrY << std::endl;
   out << fErrZ << std::endl;
   out << fPadPitch << std::endl;
-  out << fBz << std::endl;
+  out << fBzkG << std::endl;
   out << fHitPickUpFactor << std::endl;
   out << fMaxTrackMatchDRow << std::endl;
   out << fTrackConnectionFactor << std::endl;
@@ -232,7 +235,7 @@ GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
   in >> fErrY;
   in >> fErrZ;
   in >> fPadPitch;
-  in >> fBz;
+  in >> fBzkG;
   in >> fHitPickUpFactor;
   in >> fMaxTrackMatchDRow;
   in >> fTrackConnectionFactor;
