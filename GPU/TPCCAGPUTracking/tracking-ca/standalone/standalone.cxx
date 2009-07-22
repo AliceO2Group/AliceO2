@@ -94,13 +94,14 @@ int main(int argc, char** argv)
 		hlt.FinishDataReading();
 		in.close();
 		printf("Processing Event %d\n", i);
-		if (hlt.ProcessEvent())
+		hlt.ProcessEvent();
+		/*if (hlt.ProcessEvent())
 		{
 			printf("Error occured\n");
 			printf("Press a key to exit!\n");
 			getchar();
 			break;
-		}
+		}*/
 	}
 
 	if (DebugLevel >= 3)
