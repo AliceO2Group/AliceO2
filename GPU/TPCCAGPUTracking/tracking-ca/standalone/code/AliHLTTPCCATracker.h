@@ -44,7 +44,33 @@ class AliHLTTPCCATracker
 	friend class AliHLTTPCCAGPUTracker;
   public:
 
-    AliHLTTPCCATracker();
+	AliHLTTPCCATracker()
+		:
+		fParam(),
+		fClusterData( 0 ),
+		fData(),
+		fCommonMemory( 0 ),
+		fCommonMemorySize( 0 ),
+		fHitMemory( 0 ),
+		fHitMemorySize( 0 ),
+		fTrackMemory( 0 ),
+		fTrackMemorySize( 0 ),
+		fNTracklets( 0 ),
+		fTrackletStartHits( 0 ),
+		fTracklets( 0 ),
+		fNTracks( 0 ),
+		fTracks( 0 ),
+		fNTrackHits( 0 ),
+		fTrackHits( 0 ),
+		fOutput( 0 ),
+		fNOutTracks( 0 ),
+		fOutTracks( 0 ),
+		fNOutTrackHits( 0 ),
+		fOutTrackHits( 0 ),
+		IsGPUTracker( false )
+	{
+	  // constructor
+	}
     GPUd() ~AliHLTTPCCATracker();
 
     void Initialize( const AliHLTTPCCAParam &param );

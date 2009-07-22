@@ -26,6 +26,17 @@
 #include "AliHLTTPCCAClusterData.h"
 #include "TStopwatch.h"
 
+#ifndef HLTCA_STANDALONE
+AliHLTTPCCAGPUTracker::AliHLTTPCCAGPUTracker() : gpuTracker(), DebugLevel(0) {}
+AliHLTTPCCAGPUTracker::~AliHLTTPCCAGPUTracker() {}
+int AliHLTTPCCAGPUTracker::InitGPU() {return(0);}
+//template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment) {return(NULL);}
+//bool AliHLTTPCCAGPUTracker::CUDA_FAILED_MSG(cudaError_t error) {return(true);}
+//int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
+//void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile) {};
+int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker) {return(1);}
+int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
+#endif
 
 AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 {
@@ -78,10 +89,10 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
 {
   // finish reading of the event
 
-  static int event_number = 0;
+  /*static int event_number = 0;
   char filename[256];
 
-  /*sprintf(filename, "events/event.%d.dump", event_number);
+  sprintf(filename, "events/event.%d.dump", event_number);
   printf("Dumping event into file %s\n", filename);
   std::ofstream outfile(filename, std::ofstream::binary);
   if (outfile.fail())
@@ -95,16 +106,16 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
     printf("Error writing event dump file\n");
     exit(1);
   }
-  outfile.close();*/
+  outfile.close();
 
-  /*sprintf(filename, "events/settings.%d.dump", event_number);
+  sprintf(filename, "events/settings.%d.dump", event_number);
   outfile.open(filename);
   WriteSettings(outfile);
-  outfile.close();*/
+  outfile.close();
 
   event_number++;
   
-  /*std::ifstream infile(filename, std::ifstream::binary);
+  std::ifstream infile(filename, std::ifstream::binary);
   ReadEvent(infile);
   infile.close();*/
 
@@ -114,7 +125,8 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
 }
 
 
-int AliHLTTPCCAStandaloneFramework::ProcessEvent()
+//int
+void AliHLTTPCCAStandaloneFramework::ProcessEvent()
 {
   // perform the event reconstruction
 
@@ -136,7 +148,11 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent()
   {
 	  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
 	    fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
-		if (GPUTracker.Reconstruct(&fSliceTrackers[iSlice])) return 1;
+		if (GPUTracker.Reconstruct(&fSliceTrackers[iSlice]))
+		{
+			printf("Error during GPU Reconstruction!!!\n");
+			//return(1);
+		}
 	  }
 	  if (GPUDebugLevel >= 2) printf("\n");
   }
@@ -162,7 +178,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent()
 
   for ( int i = 0; i < 3; i++ ) fStatTime[i] += fLastTime[i];
 
-  return 0;
+  //return(0);
 }
 
 
