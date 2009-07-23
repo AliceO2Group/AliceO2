@@ -32,8 +32,12 @@ class AliHLTTPCCATrackletConstructor
             : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fMinStartRow( 0 ), fMaxEndRow( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
+
+#ifndef CUDA_DEVICE_EMULATION
       protected:
-        uint4 fData[2][( 5000+5000+5000 )/4]; // temp memory
+#endif
+
+        uint4 fData[2][( ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM+ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM+ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM )/4]; // temp memory
         int fItr0; // start track index
         int fItr1; // end track index
         int fNRows; // n rows
@@ -54,7 +58,10 @@ class AliHLTTPCCATrackletConstructor
             : fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fIsMemThread( 0 ), fGo( 0 ), fSave( 0 ), fCurrentData( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 ) {}
         AliHLTTPCCAThreadMemory& operator=( const AliHLTTPCCAThreadMemory& /*dummy*/ ) { return *this; }
 #endif
+
+#ifndef CUDA_DEVICE_EMULATION
       protected:
+#endif
         int fItr; // track index
         int fFirstRow;  // first row index
         int fLastRow; // last row index
@@ -101,9 +108,11 @@ class AliHLTTPCCATrackletConstructor
     GPUd() static bool SAVE() { return 1; }
 
 #if defined(HLTCA_GPUCODE)
-    GPUhd() static int NMemThreads() { return 128; }
+    //GPUhd() inline int NMemThreads() { return 128; }
+#define TRACKLET_CONSTRUCTOR_NMEMTHREDS 128
 #else
-    GPUhd() static int NMemThreads() { return 1; }
+    //GPUhd() inline int NMemThreads() { return 1; }
+#define TRACKLET_CONSTRUCTOR_NMEMTHREDS 1
 #endif
 
 };

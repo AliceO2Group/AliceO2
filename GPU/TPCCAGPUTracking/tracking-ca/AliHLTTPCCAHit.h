@@ -29,7 +29,9 @@ class AliHLTTPCCAHit
     GPUhd() void SetY( float v ) { fY = v;    }
     GPUhd() void SetZ( float v ) { fZ = v;    }
 
+#ifndef CUDA_DEVICE_EMULATION
   protected:
+#endif
 
     float fY, fZ;       // Y and Z position of the TPC cluster
 

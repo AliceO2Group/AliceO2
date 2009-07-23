@@ -17,13 +17,15 @@
 #ifndef MEMORYASSIGNMENTHELPERS_H
 #define MEMORYASSIGNMENTHELPERS_H
 
+#ifndef assert
 #include <assert.h>
+#endif
 
 template<unsigned int X>
-static inline void AlignTo( char *&mem )
+GPUhd() static inline void AlignTo( char *&mem )
 {
   STATIC_ASSERT( ( X & ( X - 1 ) ) == 0, X_needs_to_be_a_multiple_of_2 );
-  const int offset = reinterpret_cast<unsigned long>( mem ) & ( X - 1 );
+  const int offset = reinterpret_cast<unsigned long long>( mem ) & ( X - 1 );
   if ( offset > 0 ) {
     mem += ( X - offset );
   }
@@ -56,7 +58,7 @@ template<typename T, unsigned int Alignment> static inline T *AssignMemory( char
   return AssignMemory<T, Alignment>( mem, stride * count );
 }
 
-template<typename T, unsigned int Alignment> static T *_assignMemory( char *&mem, unsigned int size )
+template<typename T, unsigned int Alignment> GPUhd() static T *_assignMemory( char *&mem, unsigned int size )
 {
   STATIC_ASSERT( ( Alignment & ( Alignment - 1 ) ) == 0, Alignment_needs_to_be_a_multiple_of_2 );
   AlignTo<Alignment>( mem );
@@ -65,7 +67,7 @@ template<typename T, unsigned int Alignment> static T *_assignMemory( char *&mem
   return r;
 }
 
-template<typename T> static inline void AssignMemory( T *&dst, char *&mem, int count )
+template<typename T> GPUhd() static inline void AssignMemory( T *&dst, char *&mem, int count )
 {
   dst = _assignMemory < T, ( sizeof( T ) & ( sizeof( T ) - 1 ) ) == 0 && sizeof( T ) <= 16 ? sizeof( T ) : sizeof( void * ) > ( mem, count );
 }

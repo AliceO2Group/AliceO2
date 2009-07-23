@@ -114,23 +114,15 @@ void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
   }
 }
 
-void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &data )
+GPUh() char* AliHLTTPCCASliceData::SetGPUSliceDataMemory(char* pGPUMemory, const AliHLTTPCCAClusterData *data)
 {
-  // initialisation from cluster data
+	fMemory = (char*) pGPUMemory;
+	return(pGPUMemory + SetPointers(data, false));
+}
 
-  ////////////////////////////////////
-  // 1. prepare arrays
-  ////////////////////////////////////
-
-  fNumberOfHits = data.NumberOfClusters();
-
-  /* TODO Vectorization
-  for ( int rowIndex = data.FirstRow(); rowIndex <= data.LastRow(); ++rowIndex ) {
-    int NumberOfClusters( int rowIndex ) const;
-  }
-  const int memorySize = fNumberOfHits * sizeof( short_v::Type )
-  */
-  const int numberOfRows = data.LastRow() - data.FirstRow();
+size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, bool allocate)
+{
+  const int numberOfRows = data->LastRow() - data->FirstRow();
   enum { kVectorAlignment = sizeof( int ) };
   const int numberOfHitsPlusAlignment = NextMultipleOf < kVectorAlignment / sizeof( int ) > ( fNumberOfHits );
   const int memorySize =
@@ -142,9 +134,12 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     numberOfHitsPlusAlignment * 2 * sizeof( int );
 
   if ( fMemorySize < memorySize ) {
-    fMemorySize = memorySize;
-    delete[] fMemory;
-    fMemory = new char[fMemorySize + 4];// kVectorAlignment];
+	fMemorySize = memorySize;
+	if (allocate)
+	{
+	  delete[] fMemory;
+	  fMemory = new char[fMemorySize + 4];// kVectorAlignment];
+	}
   }
 
   char *mem = fMemory;
@@ -155,6 +150,27 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   AssignMemory( fFirstHitInBin,  mem, 23 * numberOfRows + 4 * fNumberOfHits + 3 );
   AssignMemory( fHitWeights,   mem, numberOfHitsPlusAlignment );
   AssignMemory( fClusterDataIndex, mem, numberOfHitsPlusAlignment );
+  return(mem - fMemory);
+}
+
+void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &data )
+{
+  // initialisation from cluster data
+
+  ////////////////////////////////////
+  // 1. prepare arrays
+  ////////////////////////////////////
+
+  const int numberOfRows = data.LastRow() - data.FirstRow();
+  fNumberOfHits = data.NumberOfClusters();
+
+  /* TODO Vectorization
+  for ( int rowIndex = data.FirstRow(); rowIndex <= data.LastRow(); ++rowIndex ) {
+    int NumberOfClusters( int rowIndex ) const;
+  }
+  const int memorySize = fNumberOfHits * sizeof( short_v::Type )
+  */
+  SetPointers(&data, true);
 
   ////////////////////////////////////
   // 2. fill HitData and FirstHitInBin

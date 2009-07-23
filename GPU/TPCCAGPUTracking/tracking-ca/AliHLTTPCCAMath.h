@@ -46,6 +46,8 @@ class AliHLTTPCCAMath
     GPUd() static int Nint( float x );
     GPUd() static bool Finite( float x );
 
+	GPUd() static float Log(float x);
+
     GPUd()  static int AtomicExch( int *addr, int val );
     GPUd()  static int AtomicAdd ( int *addr, int val );
     GPUd()  static int AtomicMax ( int *addr, int val );
@@ -115,62 +117,62 @@ GPUd() inline float AliHLTTPCCAMath::Copysign( float x, float y )
 }
 
 
-GPUd() inline float AliHLTTPCCAMath::Sin( float x )
+GPUhd() inline float AliHLTTPCCAMath::Sin( float x )
 {
   return choice( sinf( x ), sin( x ), TMath::Sin( x ) );
 }
 
-GPUd() inline float AliHLTTPCCAMath::Cos( float x )
+GPUhd() inline float AliHLTTPCCAMath::Cos( float x )
 {
   return choice( cosf( x ), cos( x ), TMath::Cos( x ) );
 }
 
-GPUd() inline float AliHLTTPCCAMath::Tan( float x )
+GPUhd() inline float AliHLTTPCCAMath::Tan( float x )
 {
   return choice( tanf( x ), tan( x ), TMath::Tan( x ) );
 }
 
-GPUd() inline float AliHLTTPCCAMath::Min( float x, float y )
+GPUhd() inline float AliHLTTPCCAMath::Min( float x, float y )
 {
   return choice( fminf( x, y ),  ( x < y ? x : y ), TMath::Min( x, y ) );
 }
 
-GPUd() inline float AliHLTTPCCAMath::Max( float x, float y )
+GPUhd() inline float AliHLTTPCCAMath::Max( float x, float y )
 {
   return choice( fmaxf( x, y ),  ( x > y ? x : y ), TMath::Max( x, y ) );
 }
 
-GPUd() inline int AliHLTTPCCAMath::Min( int x, int y )
+GPUhd() inline int AliHLTTPCCAMath::Min( int x, int y )
 {
   return choice( min( x, y ),  ( x < y ? x : y ), TMath::Min( x, y ) );
 }
 
-GPUd() inline int AliHLTTPCCAMath::Max( int x, int y )
+GPUhd() inline int AliHLTTPCCAMath::Max( int x, int y )
 {
   return choice( max( x, y ),  ( x > y ? x : y ), TMath::Max( x, y ) );
 }
 
-GPUd() inline float AliHLTTPCCAMath::Sqrt( float x )
+GPUhd() inline float AliHLTTPCCAMath::Sqrt( float x )
 {
   return choice( sqrtf( x ), sqrt( x ), TMath::Sqrt( x ) );
 }
 
-GPUd() inline float AliHLTTPCCAMath::Abs( float x )
+GPUhd() inline float AliHLTTPCCAMath::Abs( float x )
 {
   return choice( fabsf( x ), fabs( x ), TMath::Abs( x ) );
 }
 
-GPUd() inline double AliHLTTPCCAMath::Abs( double x )
+GPUhd() inline double AliHLTTPCCAMath::Abs( double x )
 {
   return choice( fabs( x ), fabs( x ), TMath::Abs( x ) );
 }
 
-GPUd() inline int AliHLTTPCCAMath::Abs( int x )
+GPUhd() inline int AliHLTTPCCAMath::Abs( int x )
 {
   return choice( abs( x ), ( x >= 0 ? x : -x ), TMath::Abs( x ) );
 }
 
-GPUd() inline float AliHLTTPCCAMath::ASin( float x )
+GPUhd() inline float AliHLTTPCCAMath::ASin( float x )
 {
   return choice( asinf( x ), asin( x ), TMath::ASin( x ) );
 }
@@ -184,6 +186,11 @@ GPUd() inline int AliHLTTPCCAMath::Mul24( int a, int b )
 GPUd() inline float AliHLTTPCCAMath::FMulRZ( float a, float b )
 {
   return choice( __fmul_rz( a, b ), a*b, a*b );
+}
+
+GPUhd() inline float AliHLTTPCCAMath::Log(float x)
+{
+	return choice( Log(x), Log(x), TMath::Log(x));
 }
 
 

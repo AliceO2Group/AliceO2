@@ -41,22 +41,71 @@ class AliHLTTPCCASliceOutput;
  */
 class AliHLTTPCCATracker
 {
+	friend class AliHLTTPCCAGPUTracker;
   public:
 
-#if !defined(HLTCA_GPUCODE)
-    AliHLTTPCCATracker();
-
+	AliHLTTPCCATracker()
+		:
+		fParam(),
+		fClusterData( 0 ),
+		fData(),
+		fIsGPUTracker( false ),
+		fGPUDebugLevel( 0 ),
+		fGPUDebugOut( 0 ),
+		fCommonMemory( 0 ),
+		fCommonMemorySize( 0 ),
+		fHitMemory( 0 ),
+		fHitMemorySize( 0 ),
+		fTrackMemory( 0 ),
+		fTrackMemorySize( 0 ),
+		fNTracklets( 0 ),
+		fTrackletStartHits( 0 ),
+		fTracklets( 0 ),
+		fNTracks( 0 ),
+		fTracks( 0 ),
+		fNTrackHits( 0 ),
+		fTrackHits( 0 ),
+		fOutput( 0 ),
+		fNOutTracks( 0 ),
+		fOutTracks( 0 ),
+		fNOutTrackHits( 0 ),
+		fOutTrackHits( 0 )
+	{
+	  // constructor
+	}
     GPUd() ~AliHLTTPCCATracker();
+
+    void Initialize( const AliHLTTPCCAParam &param );
+
+    void StartEvent();
+
+	int CheckEmptySlice();
+	void WriteOutput();
+
+#if !defined(HLTCA_GPUCODE)
+    void Reconstruct();
 #endif
 
-    GPUd() void Initialize( const AliHLTTPCCAParam &param );
+	//Make Reconstruction steps directly callable (Used for GPU debugging)
+	void RunNeighboursFinder();
+	void RunNeighboursCleaner();
+	void RunStartHitsFinder();
+	void RunTrackletConstructor();
+	void RunTrackletSelector();
 
-    GPUd() void StartEvent();
+	//GPU Tracker Interface
+	void SetGPUTracker();
+	void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {fGPUDebugLevel = Level;if (NewDebugOut) fGPUDebugOut = NewDebugOut;}
 
-    void ReadEvent( AliHLTTPCCAClusterData *clusterData );
+	char* SetGPUTrackerCommonMemory(char* pGPUMemory);
+	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits );
+	char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits );
 
-    void Reconstruct();
-    void WriteOutput();
+	//Debugging Stuff
+	void DumpLinks(std::ostream &out);		//Dump all links to file (for comparison after NeighboursFinder/Cleaner)
+	void DumpStartHits(std::ostream &out);	//Same for Start Hits
+	void DumpTrackHits(std::ostream &out);	//Same for Track Hits
+	void DumpTrackletHits(std::ostream &out);	//Same for Track Hits
 
     GPUd() void GetErrors2( int iRow,  const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const;
     GPUd() void GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
@@ -64,11 +113,13 @@ class AliHLTTPCCATracker
     void FitTrack( const AliHLTTPCCATrack &track, float *t0 = 0 ) const;
     void FitTrackFull( const AliHLTTPCCATrack &track, float *t0 = 0 ) const;
 
-    GPUhd() void SetPointersCommon();
-    GPUhd() void SetPointersHits( int MaxNHits );
-    GPUhd() void SetPointersTracks( int MaxNTracks, int MaxNHits );
+	void SetPointersCommon();
+    void SetPointersHits( int MaxNHits );
+    void SetPointersTracks( int MaxNTracks, int MaxNHits );
 
 #if !defined(HLTCA_GPUCODE)
+    void ReadEvent( AliHLTTPCCAClusterData *clusterData );
+
     GPUh() void WriteEvent( std::ostream &out );
     GPUh() void WriteTracks( std::ostream &out ) ;
     GPUh() void ReadTracks( std::istream &in );
@@ -80,28 +131,28 @@ class AliHLTTPCCATracker
     GPUhd() const AliHLTTPCCAClusterData *ClusterData() const { return fClusterData; }
     GPUhd() const AliHLTTPCCASliceData &Data() const { return fData; }
     GPUhd() const AliHLTTPCCARow &Row( int rowIndex ) const { return fData.Row( rowIndex ); }
-    GPUhd() const AliHLTTPCCARow &Row( const AliHLTTPCCAHitId &HitId ) const { return fData.Row( HitId.RowIndex() ); }
+    GPUh() const AliHLTTPCCARow &Row( const AliHLTTPCCAHitId &HitId ) const { return fData.Row( HitId.RowIndex() ); }
 
     GPUhd() double Timer( int i ) const { return fTimers[i]; }
     GPUhd() void SetTimer( int i, double v ) { fTimers[i] = v; }
 
     GPUhd() int NHitsTotal() const { return fData.NumberOfHits(); }
 
-    void SetHitLinkUpData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkUpData( row, hitIndex, v ); }
-    void SetHitLinkDownData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkDownData( row, hitIndex, v ); }
-    short HitLinkUpData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkUpData( row, hitIndex ); }
-    short HitLinkDownData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkDownData( row, hitIndex ); }
+    GPUd() void SetHitLinkUpData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkUpData( row, hitIndex, v ); }
+    GPUd() void SetHitLinkDownData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkDownData( row, hitIndex, v ); }
+    GPUd() short HitLinkUpData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkUpData( row, hitIndex ); }
+    GPUd() short HitLinkDownData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkDownData( row, hitIndex ); }
 
-    int FirstHitInBin( const AliHLTTPCCARow &row, int binIndex ) const { return fData.FirstHitInBin( row, binIndex ); }
+    GPUd() int FirstHitInBin( const AliHLTTPCCARow &row, int binIndex ) const { return fData.FirstHitInBin( row, binIndex ); }
 
-    unsigned short HitDataY( const AliHLTTPCCARow &row, int hitIndex ) const {
+    GPUd() unsigned short HitDataY( const AliHLTTPCCARow &row, int hitIndex ) const {
       return fData.HitDataY( row, hitIndex );
     }
-    unsigned short HitDataZ( const AliHLTTPCCARow &row, int hitIndex ) const {
+    GPUd() unsigned short HitDataZ( const AliHLTTPCCARow &row, int hitIndex ) const {
       return fData.HitDataZ( row, hitIndex );
     }
 
-    int HitInputID( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.ClusterDataIndex( row, hitIndex ); }
+    GPUhd() int HitInputID( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.ClusterDataIndex( row, hitIndex ); }
 
     /**
      * The hit weight is used to determine whether a hit belongs to a certain tracklet or another one
@@ -114,10 +165,10 @@ class AliHLTTPCCATracker
     static int CalculateHitWeight( int NHits, int unique ) {
       return ( NHits << 16 ) + unique;
     }
-    void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
+    GPUd() void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
       fData.MaximizeHitWeight( row, hitIndex, weight );
     }
-    int HitWeight( const AliHLTTPCCARow &row, int hitIndex ) const {
+    GPUd() int HitWeight( const AliHLTTPCCARow &row, int hitIndex ) const {
       return fData.HitWeight( row, hitIndex );
     }
 
@@ -143,8 +194,10 @@ class AliHLTTPCCATracker
     GPUhd()  int *OutTrackHits() const { return  fOutTrackHits; }
     GPUhd()  int OutTrackHit( int i ) const { return  fOutTrackHits[i]; }
 
-
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
+
     void SetupCommonMemory();
 
     AliHLTTPCCAParam fParam; // parameters
@@ -155,16 +208,21 @@ class AliHLTTPCCATracker
     AliHLTTPCCAClusterData *fClusterData; // ^
     AliHLTTPCCASliceData fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
 
+  //Will this tracker run on GPU?
+  bool fIsGPUTracker; // is it GPU tracker
+  int fGPUDebugLevel; // debug level
+  std::ostream *fGPUDebugOut; // debug stream
+
     // event
 
     char *fCommonMemory; // common event memory
-    int   fCommonMemorySize; // size of the event memory [bytes]
+    size_t   fCommonMemorySize; // size of the event memory [bytes]
 
     char *fHitMemory; // event memory for hits
-    int   fHitMemorySize; // size of the event memory [bytes]
+    size_t   fHitMemorySize; // size of the event memory [bytes]
 
     char *fTrackMemory; // event memory for tracks
-    int   fTrackMemorySize; // size of the event memory [bytes]
+    size_t   fTrackMemorySize; // size of the event memory [bytes]
 
 
     int *fNTracklets;     // number of tracklets

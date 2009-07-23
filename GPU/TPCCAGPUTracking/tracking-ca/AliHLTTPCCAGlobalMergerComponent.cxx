@@ -507,9 +507,9 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   resultData.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( 0, 35, 0, 5 );
   outputBlocks.push_back( resultData );
   size = resultData.fSize;
+
+  HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
   */
-
-
   return iResult;
 }
 

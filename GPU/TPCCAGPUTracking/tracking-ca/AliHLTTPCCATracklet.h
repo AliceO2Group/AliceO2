@@ -42,8 +42,9 @@ class AliHLTTPCCATracklet
     GPUhd() void SetParam( const AliHLTTPCCATrackParam &v ) { fParam = v;      }
     GPUhd() void SetRowHit( int irow, int ih )  { fRowHits[irow] = ih;    }
 
-
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
 
     int fStartHitID;            // ID of the starting hit
     int fNHits;                 // N hits

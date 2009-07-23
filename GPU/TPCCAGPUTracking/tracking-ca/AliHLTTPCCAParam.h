@@ -31,17 +31,18 @@ class AliHLTTPCCAParam
 
 #if !defined(HLTCA_GPUCODE)
     GPUd() AliHLTTPCCAParam();
-#endif
 
     ~AliHLTTPCCAParam() {;}
 
-    GPUd() void Initialize( int iSlice, int nRows, float rowX[],
+    void Initialize( int iSlice, int nRows, float rowX[],
                             float alpha, float dAlpha,
                             float rMin, float rMax, float zMin, float zMax,
                             float padPitch, float zSigma, float bz );
-    GPUd() void Update();
+    void Update();
 
-    GPUd() void Slice2Global( float x, float y,  float z,
+#endif
+
+	GPUd() void Slice2Global( float x, float y,  float z,
                               float *X, float *Y,  float *Z ) const;
 
     GPUd() void Global2Slice( float x, float y,  float z,
@@ -117,7 +118,9 @@ class AliHLTTPCCAParam
     GPUd() float GetBz( float x, float y, float z ) const;
     GPUd()  float GetBz( const AliHLTTPCCATrackParam &t ) const;
 
+#ifndef CUDA_DEVICE_EMULATION
   protected:
+#endif
 
     int fISlice; // slice number
     int fNRows; // number of rows

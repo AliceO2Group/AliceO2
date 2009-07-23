@@ -41,7 +41,9 @@ class AliHLTTPCCASliceOutput
     GPUhd() float    ClusterUnpackedX  ( int i )  const { return fClusterUnpackedX[i]; }
 
     GPUhd() static int EstimateSize( int nOfTracks, int nOfTrackClusters );
+#ifndef HLTCA_GPUCODE
     GPUhd() void SetPointers();
+#endif
 
     GPUhd() void SetNTracks       ( int v )  { fNTracks = v;        }
     GPUhd() void SetNTrackClusters( int v )  { fNTrackClusters = v; }

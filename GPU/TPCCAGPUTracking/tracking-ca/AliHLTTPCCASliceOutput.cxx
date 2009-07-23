@@ -28,6 +28,7 @@ GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClu
   return sizeof( AliHLTTPCCASliceOutput ) + sizeof( AliHLTTPCCASliceTrack )*nOfTracks + kClusterDataSize*nOfTrackClusters;
 }
 
+#ifndef HLTCA_GPUCODE
 template<typename T> inline void AssignNoAlignment( T *&dst, char *&mem, int count )
 {
   // assign memory to the pointer dst
@@ -49,4 +50,4 @@ GPUhd() void AliHLTTPCCASliceOutput::SetPointers()
   AssignNoAlignment( fClusterPackedAmp,  mem, fNTrackClusters );
 
 }
-
+#endif

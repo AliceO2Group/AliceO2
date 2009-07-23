@@ -28,6 +28,7 @@
  */
 class AliHLTTPCCATrackLinearisation
 {
+
   public:
 
     AliHLTTPCCATrackLinearisation()
@@ -56,7 +57,9 @@ class AliHLTTPCCATrackLinearisation
     GPUd() void SetDzDs( float v )  {  fDzDs   = v; }
     GPUd() void SetQPt( float v )   {  fQPt = v; }
 
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
 
     float fSinPhi; // SinPhi
     float fCosPhi; // CosPhi
@@ -65,7 +68,7 @@ class AliHLTTPCCATrackLinearisation
 };
 
 
-inline AliHLTTPCCATrackLinearisation::AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam &t )
+GPUd() inline AliHLTTPCCATrackLinearisation::AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam &t )
     : fSinPhi( t.SinPhi() ), fCosPhi( 0 ), fDzDs( t.DzDs() ), fQPt( t.QPt() )
 {
   if ( fSinPhi > .999 ) fSinPhi = .999;

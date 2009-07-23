@@ -17,9 +17,27 @@
 #define HLTCA_INTERNAL_PERFORMANCE
 
 #ifdef __CUDACC__
-
 #define HLTCA_GPUCODE
+#endif
 
+#ifdef WIN32
+#ifndef R__WIN32
+#define R__WIN32
+#endif
+#endif
+
+#if defined(R__WIN32)
+#ifdef INTEL_RUNTIME
+#pragma warning(disable : 1786)
+#pragma warning(disable : 1478)
+#pragma warning(disable : 161)
+#endif
+
+#ifdef VSNET_RUNTIME
+#pragma warning(disable : 4616)
+#pragma warning(disable : 4996)
+#pragma warning(disable : 1684)
+#endif
 #endif
 
 #if defined(HLTCA_STANDALONE) || defined(HLTCA_GPUCODE)
@@ -78,6 +96,17 @@ namespace AliHLTTPCCADefinitions
 
 #endif
 
+#ifdef HLTCA_GPUCODE
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 5
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 700
+#define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 3500
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 650
+#else
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 20
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 7000
+#define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 10000
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 5000
+#endif
 
 #ifdef HLTCA_GPUCODE
 
@@ -105,6 +134,15 @@ struct uchar2 { unsigned char x; unsigned char y; };
 struct ushort2 { unsigned short x; unsigned short y; };
 struct uint1 { unsigned int x; };
 struct uint4 { unsigned int x, y, z, w; };
+
+#ifdef R__WIN32
+#include <float.h>
+
+inline bool finite(float x)
+{
+	return(x <= FLT_MAX);
+}
+#endif
 
 #endif
 

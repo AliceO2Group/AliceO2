@@ -16,6 +16,8 @@
 
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCAMath.h"
+#include <algorithm>
+#include "AliHLTArray.h"
 
 void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfClusters )
 {
@@ -59,4 +61,41 @@ void AliHLTTPCCAClusterData::FinishReading()
   fLastRow = row; // the last seen row is the last row in this slice
 }
 
+template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const std::vector<T> &data, std::ostream &out) const
+{
+	AliHLTResizableArray<T> tmpData(data.size());
+	unsigned i;
+	for (i = 0;i < data.size();i++)
+	{
+		tmpData[i] = data[i];
+	}
+	i = data.size();
+	out.write((char*) &i, sizeof(i));
+	out.write((char*) &tmpData[0], i * sizeof(T));
+}
+
+template <class T> void AliHLTTPCCAClusterData::ReadEventVector(std::vector<T> &data, std::istream &in, int MinSize)
+{
+	int i;
+	in.read((char*) &i, sizeof(i));
+	data.reserve(AliHLTTPCCAMath::Max(MinSize, i));
+	data.resize(i);
+	AliHLTResizableArray<T> tmpData(i);
+	in.read((char*) &tmpData[0], i * sizeof(T));
+	for (int j = 0;j < i;j++)
+	{
+		data[j] = tmpData[j];
+	}
+}
+
+void AliHLTTPCCAClusterData::WriteEvent(std::ostream &out) const
+{
+	WriteEventVector<Data>(fData, out);
+}
+
+void AliHLTTPCCAClusterData::ReadEvent(std::istream &in)
+{
+    fData.clear();
+	ReadEventVector<Data>(fData, in, 64);
+}
 

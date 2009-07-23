@@ -33,7 +33,10 @@ class AliHLTTPCCANeighboursFinder
             : fGridUp(), fGridDn(), fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
+
+#ifndef CUDA_DEVICE_EMULATION
       protected:
+#endif
         AliHLTTPCCAGrid fGridUp; // grid for the next row
         AliHLTTPCCAGrid fGridDn; // grid for the previous row
         int fNHits; // n hits
@@ -47,10 +50,10 @@ class AliHLTTPCCANeighboursFinder
         int fIRowUp; // next row number
         int fIRowDn;// previous row number
         int fNRows; // number of rows
-        float2 fA[256][20]; // temp memory
-        unsigned short fB[256][20]; // temp memory
-        unsigned short fGridContentUp[7000]; // grid content for the next row
-        unsigned short fGridContentDn[7000];// grid content for the previous row
+        float2 fA[256][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+        unsigned short fB[256][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+        unsigned short fGridContentUp[ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN]; // grid content for the next row
+        unsigned short fGridContentDn[ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN];// grid content for the previous row
     };
 
     GPUd() static int NThreadSyncPoints() { return 2; }

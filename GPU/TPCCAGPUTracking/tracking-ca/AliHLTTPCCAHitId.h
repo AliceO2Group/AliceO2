@@ -20,11 +20,13 @@
 class AliHLTTPCCAHitId
 {
   public:
-    void Set( int row, int hit ) { fId = ( hit << 8 ) | row; }
-    int RowIndex() const { return fId & 0xff; }
-    int HitIndex() const { return fId >> 8; }
+    GPUhd() void Set( int row, int hit ) { fId = ( hit << 8 ) | row; }
+    GPUhd() int RowIndex() const { return fId & 0xff; }
+    GPUhd() int HitIndex() const { return fId >> 8; }
 
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
     int fId;
 };
 

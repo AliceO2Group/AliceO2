@@ -95,7 +95,6 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
   } else if ( iSync == 2 ) {
     if ( ( s.fIRow <= 1 ) || ( s.fIRow >= s.fNRows - 2 ) ) return;
 
-    //const float kAreaSize = 3;
     float chi2Cut = 3.*3.*4 * ( s.fUpDx * s.fUpDx + s.fDnDx * s.fDnDx );
     const float kAreaSize = 3;
     //float chi2Cut = 3.*3.*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx ); //SG

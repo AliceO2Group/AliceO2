@@ -378,8 +378,8 @@ float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
 
   //*** Density effect
   float d2 = 0.;
-  const float x = 0.5 * TMath::Log( bg2 );
-  const float lhwI = TMath::Log( 28.816 * 1e-9 * TMath::Sqrt( rho * mZA ) / mI );
+  const float x = 0.5 * AliHLTTPCCAMath::Log( bg2 );
+  const float lhwI = AliHLTTPCCAMath::Log( 28.816 * 1e-9 * AliHLTTPCCAMath::Sqrt( rho * mZA ) / mI );
   if ( x > x1 ) {
     d2 = lhwI + x - 0.5;
   } else if ( x > x0 ) {
@@ -387,7 +387,7 @@ float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
     d2 = lhwI + x - 0.5 + ( 0.5 - lhwI - x0 ) * r * r * r;
   }
 
-  return mK*mZA*( 1 + bg2 ) / bg2*( 0.5*TMath::Log( 2*me*bg2*maxT / ( mI*mI ) ) - bg2 / ( 1 + bg2 ) - d2 );
+  return mK*mZA*( 1 + bg2 ) / bg2*( 0.5*AliHLTTPCCAMath::Log( 2*me*bg2*maxT / ( mI*mI ) ) - bg2 / ( 1 + bg2 ) - d2 );
 }
 
 float AliHLTTPCCATrackParam::BetheBlochSolid( float bg )
@@ -669,11 +669,11 @@ GPUd() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
 {
   //* Check that the track parameters and covariance matrix are reasonable
 
-  bool ok = finite( fX ) && finite( fSignCosPhi ) && finite( fChi2 ) && finite( fNDF );
+  bool ok = AliHLTTPCCAMath::Finite( fX ) && AliHLTTPCCAMath::Finite( fSignCosPhi ) && AliHLTTPCCAMath::Finite( fChi2 ) && AliHLTTPCCAMath::Finite( fNDF );
 
   const float *c = Cov();
-  for ( int i = 0; i < 15; i++ ) ok = ok && finite( c[i] );
-  for ( int i = 0; i < 5; i++ ) ok = ok && finite( Par()[i] );
+  for ( int i = 0; i < 15; i++ ) ok = ok && AliHLTTPCCAMath::Finite( c[i] );
+  for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( Par()[i] );
 
   if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
   if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2 || ( CAMath::Abs( QPt() ) > 1.e-4 && c[14] > 2. ) ) ok = 0;
