@@ -1,3 +1,22 @@
+// **************************************************************************
+// This file is property of and copyright by the ALICE HLT Project          *
+// ALICE Experiment at CERN, All rights reserved.                           *
+//                                                                          *
+// Primary Authors: Sergey Gorbunov <sergey.gorbunov@kip.uni-heidelberg.de> *
+//                  Ivan Kisel <kisel@kip.uni-heidelberg.de>                *
+//					David Rohr <drohr@kip.uni-heidelberg.de>				*
+//                  for The ALICE HLT Project.                              *
+//                                                                          *
+// Permission to use, copy, modify and distribute this software and its     *
+// documentation strictly for non-commercial purposes is hereby granted     *
+// without fee, provided that the above copyright notice appears in all     *
+// copies and that both the copyright notice and this permission notice     *
+// appear in the supporting documentation. The authors make no claims       *
+// about the suitability of this software for any purpose. It is            *
+// provided "as is" without express or implied warranty.                    *
+//                                                                          *
+//***************************************************************************
+
 #include <cutil.h>
 #include <cutil_inline_runtime.h>
 #include <sm_11_atomic_functions.h>
@@ -5,6 +24,7 @@
 
 #include <iostream>
 
+//Disable assertions since they produce errors in GPU Code
 #ifdef assert
 #undef assert
 #endif
@@ -14,6 +34,7 @@
 
 #ifdef BUILD_GPU
 
+//Include CXX Files, GPUd() macro will then produce CUDA device code out of the tracker source code
 #include "AliHLTTPCCATrackParam.cxx"
 #include "AliHLTTPCCATrack.cxx" 
 
@@ -38,14 +59,10 @@
 
 #endif
 
-AliHLTTPCCAGPUTracker::AliHLTTPCCAGPUTracker() : gpuTracker(), DebugLevel(0)
-{
-}
+AliHLTTPCCAGPUTracker::AliHLTTPCCAGPUTracker() : gpuTracker(), DebugLevel(0) {}
+AliHLTTPCCAGPUTracker::~AliHLTTPCCAGPUTracker() {}
 
-AliHLTTPCCAGPUTracker::~AliHLTTPCCAGPUTracker()
-{
-}
-
+//Find best CUDA device, initialize and allocate memory
 int AliHLTTPCCAGPUTracker::InitGPU()
 {
 #ifdef BUILD_GPU
@@ -82,6 +99,9 @@ int AliHLTTPCCAGPUTracker::InitGPU()
 	return(0);
 }
 
+//Macro to align Pointers.
+//Will align to start at 1 MB segments, this should be consistent with every alignment in the tracker
+//(As long as every single data structure is <= 1 MB)
 template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment)
 {
 	size_t adr = (size_t) ptr;
@@ -92,6 +112,7 @@ template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int ali
 	return((T*) adr);
 }
 
+//Check for CUDA Error and in the case of an error display the corresponding error string
 bool AliHLTTPCCAGPUTracker::CUDA_FAILED_MSG(cudaError_t error)
 {
 	if (error == cudaSuccess) return(false);
@@ -99,6 +120,7 @@ bool AliHLTTPCCAGPUTracker::CUDA_FAILED_MSG(cudaError_t error)
 	return(true);
 }
 
+//Wait for CUDA-Kernel to finish and check for CUDA errors afterwards
 int AliHLTTPCCAGPUTracker::CUDASync()
 {
 	if (DebugLevel == 0) return(0);
@@ -124,6 +146,7 @@ void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile)
 	if (NewOutFile) OutFile = NewOutFile;
 }
 
+//Primary reconstruction function
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 {
     int nThreads;

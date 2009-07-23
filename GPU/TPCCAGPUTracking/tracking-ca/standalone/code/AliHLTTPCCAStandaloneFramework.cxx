@@ -26,7 +26,8 @@
 #include "AliHLTTPCCAClusterData.h"
 #include "TStopwatch.h"
 
-#ifndef HLTCA_STANDALONE
+//If not building GPU Code then build dummy functions to link against
+#ifndef BUILD_GPU
 AliHLTTPCCAGPUTracker::AliHLTTPCCAGPUTracker() : gpuTracker(), DebugLevel(0) {}
 AliHLTTPCCAGPUTracker::~AliHLTTPCCAGPUTracker() {}
 int AliHLTTPCCAGPUTracker::InitGPU() {return(0);}
