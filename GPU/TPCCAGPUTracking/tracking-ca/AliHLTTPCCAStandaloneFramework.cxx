@@ -34,7 +34,7 @@ int AliHLTTPCCAGPUTracker::InitGPU() {return(0);}
 //template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment) {return(NULL);}
 //bool AliHLTTPCCAGPUTracker::CUDA_FAILED_MSG(cudaError_t error) {return(true);}
 //int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
-//void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile) {};
+void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile) {};
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker) {return(1);}
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
 #endif
