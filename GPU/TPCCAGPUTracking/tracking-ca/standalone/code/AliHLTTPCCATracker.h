@@ -84,13 +84,14 @@ class AliHLTTPCCATracker
     void Reconstruct();
 #endif
 
-	//GPU Tracker Interface
+	//Make Reconstruction steps directly callable (Used for GPU debugging)
 	void RunNeighboursFinder();
 	void RunNeighboursCleaner();
 	void RunStartHitsFinder();
 	void RunTrackletConstructor();
 	void RunTrackletSelector();
 
+	//GPU Tracker Interface
 	void SetGPUTracker();
 	void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {GPUDebugLevel = Level;if (NewDebugOut) GPUDebugOut = NewDebugOut;}
 

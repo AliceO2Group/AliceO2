@@ -835,7 +835,9 @@ void AliHLTTPCCAMerger::Merging()
   }
 
   fOutput->SetNTracks( nOutTracks );
+#ifdef HLTCA_STANDALONE
   printf("Tracks Output: %d\n", nOutTracks);
+#endif
   fOutput->SetNTrackClusters( nOutTrackClusters );
   fOutput->SetPointers();
 
