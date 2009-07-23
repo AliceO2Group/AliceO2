@@ -17,7 +17,7 @@
 //                                                                          *
 //***************************************************************************
 
-
+#include <stdio.h>
 #include "AliHLTTPCCASliceTrack.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackParam.h"
@@ -404,7 +404,7 @@ float AliHLTTPCCAMerger::GetChi2( float x1, float y1, float a00, float a10, floa
 
   float mS[3] = { mSi[2], -mSi[1], mSi[0] };
 
-  return TMath::Abs( ( ( mS[0]*d[0] + mS[1]*d[1] )*d[0]
+  return AliHLTTPCCAMath::Abs( ( ( mS[0]*d[0] + mS[1]*d[1] )*d[0]
                        + ( mS[1]*d[0] + mS[2]*d[1] )*d[1] ) / s / 2 );
 
 }
@@ -835,6 +835,9 @@ void AliHLTTPCCAMerger::Merging()
   }
 
   fOutput->SetNTracks( nOutTracks );
+#ifdef HLTCA_STANDALONE
+  printf("Tracks Output: %d\n", nOutTracks);
+#endif
   fOutput->SetNTrackClusters( nOutTrackClusters );
   fOutput->SetPointers();
 

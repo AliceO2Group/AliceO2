@@ -21,7 +21,11 @@
 
 #include "AliHLTTPCCAGrid.h"
 #include "AliHLTTPCCAMath.h"
+
+#ifndef assert
 #include <assert.h>
+#endif
+
 #include <iostream>
 
 GPUd() void AliHLTTPCCAGrid::CreateEmpty()
@@ -65,8 +69,10 @@ GPUd() int AliHLTTPCCAGrid::GetBin( float Y, float Z ) const
   const int yBin = static_cast<int>( CAMath::FMulRZ( Y - fYMin, fStepYInv ) );
   const int zBin = static_cast<int>( CAMath::FMulRZ( Z - fZMin, fStepZInv ) );
   const int bin = CAMath::Mul24( zBin, fNy ) + yBin;
+#ifndef HLTCA_GPUCODE
   assert( bin >= 0 );
   assert( bin < static_cast<int>( fN ) );
+#endif
   return bin;
 }
 

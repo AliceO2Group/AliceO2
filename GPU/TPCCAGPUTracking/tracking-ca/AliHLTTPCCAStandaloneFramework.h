@@ -13,7 +13,9 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAMerger.h"
 #include "AliHLTTPCCAClusterData.h"
+#include "AliHLTTPCCAGPUTracker.h"
 #include <iostream>
+#include <fstream>
 
 /**
  * @class AliHLTTPCCAStandaloneFramework
@@ -71,8 +73,12 @@ class AliHLTTPCCAStandaloneFramework
     void WriteTracks( std::ostream &out ) const;
 
     void ReadSettings( std::istream &in );
-    void ReadEvent( std::istream &in ) const;
+    void ReadEvent( std::istream &in );
     void ReadTracks( std::istream &in );
+
+	int InitGPU();
+	int ExitGPU();
+	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
 
   private:
 
@@ -85,9 +91,14 @@ class AliHLTTPCCAStandaloneFramework
     AliHLTTPCCAMerger fMerger;  //* global merger
     AliHLTTPCCAClusterData fClusterData[fgkNSlices];
 
+  AliHLTTPCCAGPUTracker fGPUTracker;
+
     double fLastTime[20]; //* timers
     double fStatTime[20]; //* timers
     int fStatNEvents;    //* n events proceed
+
+  bool fUseGPUTracker; // use the GPU tracker 
+  int fGPUDebugLevel;  // debug level for the GPU code
 };
 
 #endif

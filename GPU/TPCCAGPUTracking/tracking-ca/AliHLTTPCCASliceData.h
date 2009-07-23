@@ -17,8 +17,10 @@
 #ifndef ALIHLTTPCCASLICEDATA_H
 #define ALIHLTTPCCASLICEDATA_H
 
+#include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCAMath.h"
+#include "AliHLTArray.h"
 
 typedef int int_v;
 typedef unsigned int uint_v;
@@ -39,6 +41,7 @@ class AliHLTTPCCAParam;
  */
 class AliHLTTPCCASliceData
 {
+	friend class AliHLTTPCCAGPUTracker;
   public:
     AliHLTTPCCASliceData()
         : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),
@@ -51,6 +54,9 @@ class AliHLTTPCCASliceData
      * (Re)Create the data that is tuned for optimal performance of the algorithm from the cluster
      * data.
      */
+
+	char* SetGPUSliceDataMemory(char* pGPUMemory, const AliHLTTPCCAClusterData *data);
+	size_t SetPointers(const AliHLTTPCCAClusterData *data, bool allocate = false);
     void InitFromClusterData( const AliHLTTPCCAClusterData &data );
 
     /**
@@ -61,7 +67,7 @@ class AliHLTTPCCASliceData
     /**
      * Return the number of hits in this slice.
      */
-    int NumberOfHits() const { return fNumberOfHits; }
+    GPUhd() int NumberOfHits() const { return fNumberOfHits; }
 
     /**
      * Access to the hit links.
@@ -120,7 +126,9 @@ class AliHLTTPCCASliceData
      */
     const AliHLTTPCCARow &Row( int rowIndex ) const;
 
+#ifndef CUDA_DEVICE_EMULATION
   private:
+#endif
 
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
         : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),
@@ -158,57 +166,57 @@ class AliHLTTPCCASliceData
 
 };
 
-inline short_v AliHLTTPCCASliceData::HitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex ) const
+GPUd() inline short_v AliHLTTPCCASliceData::HitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex ) const
 {
   return fLinkUpData[row.fHitNumberOffset + hitIndex];
 }
 
-inline short_v AliHLTTPCCASliceData::HitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex ) const
+GPUd() inline short_v AliHLTTPCCASliceData::HitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex ) const
 {
   return fLinkDownData[row.fHitNumberOffset + hitIndex];
 }
 
-inline void AliHLTTPCCASliceData::SetHitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex, const short_v &value )
+GPUd() inline void AliHLTTPCCASliceData::SetHitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex, const short_v &value )
 {
   fLinkUpData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-inline void AliHLTTPCCASliceData::SetHitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex, const short_v &value )
+GPUd() inline void AliHLTTPCCASliceData::SetHitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex, const short_v &value )
 {
   fLinkDownData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-inline short_v AliHLTTPCCASliceData::HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
+GPUd() inline short_v AliHLTTPCCASliceData::HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
 {
   return fHitDataY[row.fHitNumberOffset + hitIndex];
 }
 
-inline short_v AliHLTTPCCASliceData::HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
+GPUd() inline short_v AliHLTTPCCASliceData::HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
 {
   return fHitDataZ[row.fHitNumberOffset + hitIndex];
 }
 
-inline ushort_v AliHLTTPCCASliceData::FirstHitInBin( const AliHLTTPCCARow &row, ushort_v binIndexes ) const
+GPUd() inline ushort_v AliHLTTPCCASliceData::FirstHitInBin( const AliHLTTPCCARow &row, ushort_v binIndexes ) const
 {
   return fFirstHitInBin[row.fFirstHitInBinOffset + binIndexes];
 }
 
-inline int_v AliHLTTPCCASliceData::ClusterDataIndex( const AliHLTTPCCARow &row, uint_v hitIndex ) const
+GPUhd() inline int_v AliHLTTPCCASliceData::ClusterDataIndex( const AliHLTTPCCARow &row, uint_v hitIndex ) const
 {
   return fClusterDataIndex[row.fHitNumberOffset + hitIndex];
 }
 
-inline const AliHLTTPCCARow &AliHLTTPCCASliceData::Row( int rowIndex ) const
+GPUhd() inline const AliHLTTPCCARow &AliHLTTPCCASliceData::Row( int rowIndex ) const
 {
   return fRows[rowIndex];
 }
 
-inline void AliHLTTPCCASliceData::MaximizeHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int_v weight )
+GPUd() inline void AliHLTTPCCASliceData::MaximizeHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int_v weight )
 {
   CAMath::AtomicMax( &fHitWeights[row.fHitNumberOffset + hitIndex], weight );
 }
 
-inline int_v AliHLTTPCCASliceData::HitWeight( const AliHLTTPCCARow &row, uint_v hitIndex ) const
+GPUd() inline int_v AliHLTTPCCASliceData::HitWeight( const AliHLTTPCCARow &row, uint_v hitIndex ) const
 {
   return fHitWeights[row.fHitNumberOffset + hitIndex];
 }

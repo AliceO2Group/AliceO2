@@ -17,6 +17,7 @@
 #ifndef ALIHLTTPCCACLUSTERDATA_H
 #define ALIHLTTPCCACLUSTERDATA_H
 
+#include <iostream>
 #include <vector>
 
 /**
@@ -48,6 +49,13 @@ class AliHLTTPCCAClusterData
      */
     void FinishReading();
 
+    /**
+     * Read/Write Events from/to file
+     */
+    void ReadEvent(std::istream &in);
+    void WriteEvent(std::ostream &out) const;
+	template <class T> void ReadEventVector(std::vector<T> &data, std::istream &in, int MinSize = 0);
+    template <class T> void WriteEventVector(const std::vector<T> &data, std::ostream &out) const;
 
     /**
      * "remove" one cluster and "add" two new ones, keeping history.
@@ -74,7 +82,7 @@ class AliHLTTPCCAClusterData
     /**
      * Return the number of clusters in this slice.
      */
-    int NumberOfClusters() const { return fData.size(); }
+    int NumberOfClusters() const { return (int) fData.size(); }
 
     /**
      * Return the number of clusters in the given row, for this slice.
@@ -94,7 +102,7 @@ class AliHLTTPCCAClusterData
      * for ( int hitIndex = cd.RowOffset( rowIndex ); hitIndex < lastClusterIndex; ++hitIndex )
      * \endcode
      */
-    int RowOffset( unsigned int rowIndex ) const { return rowIndex < fRowOffset.size() ? fRowOffset[rowIndex] : fData.size(); }
+    int RowOffset( unsigned int rowIndex ) const { return rowIndex < fRowOffset.size() ? fRowOffset[rowIndex] : (int) fData.size(); }
 
     /**
      * Return the x coordinate of the given cluster.

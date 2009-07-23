@@ -78,9 +78,8 @@ GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
 
   Update();
 }
-#endif
 
-GPUd() void AliHLTTPCCAParam::Initialize( int iSlice,
+void AliHLTTPCCAParam::Initialize( int iSlice,
     int nRows, float rowX[],
     float alpha, float dAlpha,
     float rMin, float rMax,
@@ -110,7 +109,7 @@ GPUd() void AliHLTTPCCAParam::Initialize( int iSlice,
   Update();
 }
 
-GPUd() void AliHLTTPCCAParam::Update()
+void AliHLTTPCCAParam::Update()
 {
   // update of calculated values
 
@@ -126,11 +125,14 @@ GPUd() void AliHLTTPCCAParam::Update()
 
   fCosAlpha = CAMath::Cos( fAlpha );
   fSinAlpha = CAMath::Sin( fAlpha );
-  fAngleMin = fAlpha - fDAlpha / 2.;
-  fAngleMax = fAlpha + fDAlpha / 2.;
+  fAngleMin = fAlpha - fDAlpha / 2.f;
+  fAngleMax = fAlpha + fDAlpha / 2.f;
   fErrX = fPadPitch / CAMath::Sqrt( 12. );
   fTrackChi2Cut = fTrackChiCut * fTrackChiCut;
 }
+
+#endif
+
 
 GPUd() void AliHLTTPCCAParam::Slice2Global( float x, float y,  float z,
     float *X, float *Y,  float *Z ) const

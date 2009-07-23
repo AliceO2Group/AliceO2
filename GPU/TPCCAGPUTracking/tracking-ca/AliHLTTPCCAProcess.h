@@ -25,7 +25,7 @@ class AliHLTTPCCATracker;
 template<class TProcess>
 GPUg() void AliHLTTPCCAProcess()
 {
-  AliHLTTPCCATracker &tracker = *( ( AliHLTTPCCATracker* ) cTracker );
+  AliHLTTPCCATracker &tracker = *( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker );
 
   GPUshared() typename TProcess::AliHLTTPCCASharedMemory smem;
 
@@ -72,7 +72,7 @@ GPUg() void AliHLTTPCCAProcess( int nBlocks, int nThreads, AliHLTTPCCATracker &t
 template<typename TProcess>
 GPUg() void AliHLTTPCCAProcess1()
 {
-  AliHLTTPCCATracker &tracker = *( ( AliHLTTPCCATracker* ) cTracker );
+  AliHLTTPCCATracker &tracker = *( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker );
   AliHLTTPCCATrackParam tParam;
 
   GPUshared() typename TProcess::AliHLTTPCCASharedMemory sMem;
