@@ -41,7 +41,7 @@ class AliHLTTPCCAParam;
  */
 class AliHLTTPCCASliceData
 {
-	friend class AliHLTTPCCAGPUTracker;
+	//friend class AliHLTTPCCAGPUTracker;
   public:
     AliHLTTPCCASliceData()
         : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),
@@ -125,6 +125,10 @@ class AliHLTTPCCASliceData
      * Return the row object for the given row index.
      */
     const AliHLTTPCCARow &Row( int rowIndex ) const;
+
+	GPUh() char *Memory() {return(fMemory); }
+	GPUh() size_t MemorySize() const {return(fMemorySize); }
+	GPUh() int* HitWeights() {return(fHitWeights); }
 
 #ifndef CUDA_DEVICE_EMULATION
   private:

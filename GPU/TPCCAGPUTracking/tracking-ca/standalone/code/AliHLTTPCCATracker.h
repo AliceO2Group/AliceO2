@@ -39,6 +39,9 @@ class AliHLTTPCCASliceOutput;
  * The class is under construction.
  *
  */
+
+class AliHLTTPCCAClusterData;
+
 class AliHLTTPCCATracker
 {
 	//friend class AliHLTTPCCAGPUTracker;
@@ -101,6 +104,8 @@ class AliHLTTPCCATracker
 	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits );
 	char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits );
 
+	char* SetGPUSliceDataMemory(char* pGPUMemory, const AliHLTTPCCAClusterData *data) {return(fData.SetGPUSliceDataMemory(pGPUMemory, data));}
+
 	//Debugging Stuff
 	void DumpLinks(std::ostream &out);		//Dump all links to file (for comparison after NeighboursFinder/Cleaner)
 	void DumpStartHits(std::ostream &out);	//Same for Start Hits
@@ -130,6 +135,9 @@ class AliHLTTPCCATracker
 
     GPUhd() const AliHLTTPCCAClusterData *ClusterData() const { return fClusterData; }
     GPUhd() const AliHLTTPCCASliceData &Data() const { return fData; }
+
+	GPUh() void ClearSliceDataHitWeights() {fData.ClearHitWeights();}
+
     GPUhd() const AliHLTTPCCARow &Row( int rowIndex ) const { return fData.Row( rowIndex ); }
     GPUh() const AliHLTTPCCARow &Row( const AliHLTTPCCAHitId &HitId ) const { return fData.Row( HitId.RowIndex() ); }
 
@@ -193,6 +201,16 @@ class AliHLTTPCCATracker
     GPUhd()  int *NOutTrackHits() const { return  fNOutTrackHits; }
     GPUhd()  int *OutTrackHits() const { return  fOutTrackHits; }
     GPUhd()  int OutTrackHit( int i ) const { return  fOutTrackHits[i]; }
+
+	GPUh() char *CommonMemory() {return(fCommonMemory); }
+	GPUh() size_t CommonMemorySize() const {return(fCommonMemorySize); }
+	GPUh() char *HitMemory() {return(fHitMemory); }
+	GPUh() size_t HitMemorySize() const {return(fHitMemorySize); }
+	GPUh() char* &TrackMemory() {return(fTrackMemory); }
+	GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
+	GPUh() char *SliceDataMemory() {return(fData.Memory()); }
+	GPUh() size_t SliceDataMemorySize() const {return(fData.MemorySize()); }
+	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
 
 #ifndef CUDA_DEVICE_EMULATION
   private:
