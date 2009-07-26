@@ -275,7 +275,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     // grid.N is <= row.fNHits
     const int nn = numberOfBins + grid.Ny() + 3;
     for ( int i = numberOfBins; i < nn; ++i ) {
-      assert( row.fFirstHitInBinOffset + i < 23 * numberOfRows + 4 * fNumberOfHits + 3 );
+      assert( (signed) row.fFirstHitInBinOffset + i < 23 * numberOfRows + 4 * fNumberOfHits + 3 );
       fFirstHitInBin[row.fFirstHitInBinOffset + i] = a;
     }
 

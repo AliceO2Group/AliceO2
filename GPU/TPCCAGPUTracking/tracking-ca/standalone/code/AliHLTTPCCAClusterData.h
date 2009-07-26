@@ -19,11 +19,6 @@
 
 #include <iostream>
 #include <vector>
-#include <algorithm>
-
-#include "AliHLTTPCCARow.h"
-#include "AliHLTTPCCAMath.h"
-#include "AliHLTArray.h"
 
 /**
  * Cluster data which keeps history about changes

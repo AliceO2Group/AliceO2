@@ -16,6 +16,8 @@
 
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCAMath.h"
+#include <algorithm>
+#include "AliHLTArray.h"
 
 void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfClusters )
 {
@@ -62,7 +64,7 @@ void AliHLTTPCCAClusterData::FinishReading()
 template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const std::vector<T> &data, std::ostream &out) const
 {
 	AliHLTResizableArray<T> tmpData(data.size());
-	int i;
+	unsigned i;
 	for (i = 0;i < data.size();i++)
 	{
 		tmpData[i] = data[i];
