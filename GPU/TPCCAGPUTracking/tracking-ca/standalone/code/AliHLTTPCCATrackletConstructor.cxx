@@ -473,10 +473,10 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           fHitYlst = sGridP[fIndYmin+2];
           fHitYfst1 = sGridP[fIndYmin+nY];
           fHitYlst1 = sGridP[fIndYmin+nY+2];
-          assert( fHitYfst <= row.NHits() );
-          assert( fHitYlst <= row.NHits() );
-          assert( fHitYfst1 <= row.NHits() );
-          assert( fHitYlst1 <= row.NHits() );
+          assert( (signed) fHitYfst <= row.NHits() );
+          assert( (signed) fHitYlst <= row.NHits() );
+          assert( (signed) fHitYfst1 <= row.NHits() );
+          assert( (signed) fHitYlst1 <= row.NHits() );
           if ( drawSearch ) {
 #ifdef DRAW
             std::cout << " Grid, row " << iRow << ": nHits=" << row.NHits() << ", grid n=" << row.Grid().N() << ", c[n]=" << sGridP[row.Grid().N()] << std::endl;
@@ -508,7 +508,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           #endif
         }
         for ( unsigned int fIh = fHitYfst; fIh < fHitYlst; fIh++ ) {
-          assert( fIh < row.NHits() );
+          assert( (signed) fIh < row.NHits() );
           ushort2 hh = hits[fIh];
           int ddy = ( int )( hh.x ) - fY0;
           int ddz = ( int )( hh.y ) - fZ0;

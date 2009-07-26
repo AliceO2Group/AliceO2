@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATracker.cxx 32166 2009-05-04 08:30:29Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATracker.cxx 33907 2009-07-23 13:52:49Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -62,7 +62,7 @@ ClassImp( AliHLTTPCCATracker )
 GPUd() AliHLTTPCCATracker::~AliHLTTPCCATracker()
 {
   // destructor
-	if (!IsGPUTracker)
+	if (!fIsGPUTracker)
 	{
 		delete[] fCommonMemory;
 		delete[] fHitMemory;
@@ -93,7 +93,7 @@ void AliHLTTPCCATracker::StartEvent()
 
 void AliHLTTPCCATracker::SetGPUTracker()
 {
-	IsGPUTracker = true;
+	fIsGPUTracker = true;
 }
 
 char* AliHLTTPCCATracker::SetGPUTrackerCommonMemory(char* pGPUMemory)
@@ -215,7 +215,7 @@ void  AliHLTTPCCATracker::SetupCommonMemory()
 {
   // set up common memory
 
-  if (!IsGPUTracker)
+  if (!fIsGPUTracker)
   {
     if ( !fCommonMemory ) {
       SetPointersCommon(); // just to calculate the size
@@ -407,17 +407,17 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 #if !defined(HLTCA_GPUCODE)
 
-  if (GPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 3)
   {
-	  *GPUDebugOut << endl << endl << "Slice: " << Param().ISlice() << endl;
+	  *fGPUDebugOut << endl << endl << "Slice: " << Param().ISlice() << endl;
   }
 
   RunNeighboursFinder();
 
-  if (GPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 3)
   {
-	  *GPUDebugOut << "Neighbours Finder:" << endl;
-	  DumpLinks(*GPUDebugOut);
+	  *fGPUDebugOut << "Neighbours Finder:" << endl;
+	  DumpLinks(*fGPUDebugOut);
   }
 #ifdef HLTCA_INTERNAL_PERFORMANCE
   //if( Param().ISlice()<=2 )
@@ -434,21 +434,21 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   RunNeighboursCleaner();
 
-  if (GPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 3)
   {
-	  *GPUDebugOut << "Neighbours Cleaner:" << endl;
-	  DumpLinks(*GPUDebugOut);
+	  *fGPUDebugOut << "Neighbours Cleaner:" << endl;
+	  DumpLinks(*fGPUDebugOut);
   }
 
   RunStartHitsFinder();
 
-  if (GPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 3)
   {
-	  *GPUDebugOut << "Start Hits: (" << *fNTracklets << ")" << endl;
-	  DumpStartHits(*GPUDebugOut);
+	  *fGPUDebugOut << "Start Hits: (" << *fNTracklets << ")" << endl;
+	  DumpStartHits(*fGPUDebugOut);
   }
-
-  if (GPUDebugLevel >= 2) printf("%3d ", *fNTracklets);
+  
+  if (fGPUDebugLevel >= 2) printf("%3d ", *fNTracklets);
 
   fData.ClearHitWeights();
 
@@ -458,10 +458,10 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   RunTrackletConstructor();
 
-  if (GPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 3)
   {
-	  *GPUDebugOut << "Tracklet Hits:" << endl;
-	  DumpTrackletHits(*GPUDebugOut);
+	  *fGPUDebugOut << "Tracklet Hits:" << endl;
+	  DumpTrackletHits(*fGPUDebugOut);
   }
 
   //std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
@@ -470,10 +470,10 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   //std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
-  if (GPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 3)
   {
-	  *GPUDebugOut << "Track Hits: (" << *NTracks() << ")" << endl;
-	  DumpTrackHits(*GPUDebugOut);
+	  *fGPUDebugOut << "Track Hits: (" << *NTracks() << ")" << endl;
+	  DumpTrackHits(*fGPUDebugOut);
   }
 
   //std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;

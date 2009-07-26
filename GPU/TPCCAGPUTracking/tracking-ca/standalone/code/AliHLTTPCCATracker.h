@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCATracker.h 32166 2009-05-04 08:30:29Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATracker.h 33907 2009-07-23 13:52:49Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -41,7 +41,7 @@ class AliHLTTPCCASliceOutput;
  */
 class AliHLTTPCCATracker
 {
-	friend class AliHLTTPCCAGPUTracker;
+	//friend class AliHLTTPCCAGPUTracker;
   public:
 
 	AliHLTTPCCATracker()
@@ -49,6 +49,9 @@ class AliHLTTPCCATracker
 		fParam(),
 		fClusterData( 0 ),
 		fData(),
+		fIsGPUTracker( false ),
+		fGPUDebugLevel( 0 ),
+		fGPUDebugOut( 0 ),
 		fCommonMemory( 0 ),
 		fCommonMemorySize( 0 ),
 		fHitMemory( 0 ),
@@ -66,8 +69,7 @@ class AliHLTTPCCATracker
 		fNOutTracks( 0 ),
 		fOutTracks( 0 ),
 		fNOutTrackHits( 0 ),
-		fOutTrackHits( 0 ),
-		IsGPUTracker( false )
+		fOutTrackHits( 0 )
 	{
 	  // constructor
 	}
@@ -93,7 +95,7 @@ class AliHLTTPCCATracker
 
 	//GPU Tracker Interface
 	void SetGPUTracker();
-	void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {GPUDebugLevel = Level;if (NewDebugOut) GPUDebugOut = NewDebugOut;}
+	void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {fGPUDebugLevel = Level;if (NewDebugOut) fGPUDebugOut = NewDebugOut;}
 
 	char* SetGPUTrackerCommonMemory(char* pGPUMemory);
 	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits );
@@ -206,10 +208,10 @@ class AliHLTTPCCATracker
     AliHLTTPCCAClusterData *fClusterData; // ^
     AliHLTTPCCASliceData fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
 
-	//Will this tracker run on GPU?
-	bool IsGPUTracker;
-	int GPUDebugLevel;
-	std::ostream *GPUDebugOut;
+  //Will this tracker run on GPU?
+  bool fIsGPUTracker; // is it GPU tracker
+  int fGPUDebugLevel; // debug level
+  std::ostream *fGPUDebugOut; // debug stream
 
     // event
 
