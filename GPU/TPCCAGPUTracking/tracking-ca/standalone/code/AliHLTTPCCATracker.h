@@ -212,6 +212,10 @@ class AliHLTTPCCATracker
 	GPUh() size_t SliceDataMemorySize() const {return(fData.MemorySize()); }
 	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
 
+	GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
+	void StandaloneQueryTime(unsigned long long int *i);
+	void StandaloneQueryFreq(unsigned long long int *i);
+
 #ifndef CUDA_DEVICE_EMULATION
   private:
 #endif
@@ -219,7 +223,9 @@ class AliHLTTPCCATracker
     void SetupCommonMemory();
 
     AliHLTTPCCAParam fParam; // parameters
-    double fTimers[10]; // running CPU time for different parts of the algorithm
+	double fTimers[10];
+    unsigned long long int fPerfTimers[10]; // running CPU time for different parts of the algorithm
+	void StandalonePerfTime(int i);
 
     /** A pointer to the ClusterData object that the SliceData was created from. This can be used to
      * merge clusters from inside the SliceTracker code and recreate the SliceData. */

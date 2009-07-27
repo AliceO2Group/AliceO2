@@ -370,6 +370,36 @@ void AliHLTTPCCATracker::RunTrackletSelector()
   AliHLTTPCCAProcess<AliHLTTPCCATrackletSelector>( 1, *fNTracklets, *this );
 }
 
+void AliHLTTPCCATracker::StandaloneQueryTime(unsigned long long int *i)
+{
+#ifdef R__WIN32
+	  QueryPerformanceCounter((LARGE_INTEGER*) i);
+#else
+	  timespec t;
+	  clock_gettime(CLOCK_REALTIME, &t);
+	  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
+#endif
+}
+
+void AliHLTTPCCATracker::StandaloneQueryFreq(unsigned long long int *i)
+{
+#ifdef R__WIN32
+	  QueryPerformanceFrequency((LARGE_INTEGER*) i);
+#else
+	*i = 1000000000;
+#endif
+}
+
+void AliHLTTPCCATracker::StandalonePerfTime(int i)
+{
+#ifdef HLTCA_STANDALONE
+  if (fGPUDebugLevel >= 2)
+  {
+	  StandaloneQueryTime(&fPerfTimers[i]);
+  }
+#endif
+}
+
 GPUh() void AliHLTTPCCATracker::Reconstruct()
 {
   //* reconstruction of event
@@ -387,6 +417,9 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   //if( fParam.ISlice()<1 ) return; //SG!!!
 
   TStopwatch timer0;
+
+  StandalonePerfTime(0);
+
   if (CheckEmptySlice()) return;
 
 #ifdef DRAW1
@@ -412,7 +445,11 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 	  *fGPUDebugOut << endl << endl << "Slice: " << Param().ISlice() << endl;
   }
 
+  StandalonePerfTime(1);
+
   RunNeighboursFinder();
+
+  StandalonePerfTime(2);
 
   if (fGPUDebugLevel >= 3)
   {
@@ -434,6 +471,8 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   RunNeighboursCleaner();
 
+  StandalonePerfTime(3);
+
   if (fGPUDebugLevel >= 3)
   {
 	  *fGPUDebugOut << "Neighbours Cleaner:" << endl;
@@ -441,6 +480,8 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   }
 
   RunStartHitsFinder();
+
+  StandalonePerfTime(4);
 
   if (fGPUDebugLevel >= 3)
   {
@@ -456,7 +497,11 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
   SetPointersTracks( *fNTracklets * 2, NHitsTotal() ); // set pointers for hits
 
+  StandalonePerfTime(5);
+
   RunTrackletConstructor();
+
+  StandalonePerfTime(6);
 
   if (fGPUDebugLevel >= 3)
   {
@@ -467,6 +512,8 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   //std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
 
   RunTrackletSelector();
+
+  StandalonePerfTime(7);
 
   //std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
@@ -479,6 +526,8 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   //std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
 
   WriteOutput();
+
+  StandalonePerfTime(8);
 
 #endif
 

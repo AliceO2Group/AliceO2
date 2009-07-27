@@ -28,14 +28,13 @@
 
 //If not building GPU Code then build dummy functions to link against
 #ifndef BUILD_GPU
-AliHLTTPCCAGPUTracker::AliHLTTPCCAGPUTracker() : gpuTracker(), fDebugLevel(0) {}
-AliHLTTPCCAGPUTracker::~AliHLTTPCCAGPUTracker() {}
 int AliHLTTPCCAGPUTracker::InitGPU() {return(0);}
+void StandalonePerfTime(int i) {}
 //template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment) {return(NULL);}
 //bool AliHLTTPCCAGPUTracker::CUDA_FAILED_MSG(cudaError_t error) {return(true);}
 //int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
-void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile) {};
-int SetGPUTrackerOption(char* OptionName, int OptionValue) {};
+void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile) {}
+int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(1);}
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker) {return(1);}
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
 #endif
@@ -48,7 +47,7 @@ AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
-    : fMerger(), fStatNEvents( 0 ), fUseGPUTracker(false), fGPUDebugLevel(0)
+    : fMerger(), fGPUTracker(), fStatNEvents( 0 ), fUseGPUTracker(false), fGPUDebugLevel(0)
 {
   //* constructor
 
@@ -59,7 +58,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-    : fMerger(), fStatNEvents( 0 )
+    : fMerger(), fGPUTracker(), fStatNEvents( 0 ), fUseGPUTracker(false), fGPUDebugLevel(0)
 {
   //* dummy
 }
@@ -137,6 +136,13 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent()
   TStopwatch timer0;
   TStopwatch timer1;
 
+#ifdef HLTCA_STANDALONE
+  unsigned long long int sliceTimers[fgkNSlices][10], startTime, endTime, checkTime;
+  unsigned long long int cpuTimers[10], gpuTimers[10], tmpFreq;
+  fSliceTrackers[0].StandaloneQueryFreq(&tmpFreq);
+  fSliceTrackers[0].StandaloneQueryTime(&startTime);
+#endif
+
   if (!fUseGPUTracker || fGPUDebugLevel >= 3)
   {
 #ifdef HLTCA_STANDALONE
@@ -158,9 +164,51 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent()
 			printf("Error during GPU Reconstruction!!!\n");
 			//return(1);
 		}
+#ifdef HLTCA_STANDALONE
+		if (fGPUDebugLevel >= 2)
+		{
+			for ( int i = 0;i < 10;i++)
+				sliceTimers[iSlice][i] = *fGPUTracker.PerfTimer(i);
+		}
+#endif
 	  }
 	  if (fGPUDebugLevel >= 2) printf("\n");
   }
+
+#ifdef HLTCA_STANDALONE
+  fSliceTrackers[0].StandaloneQueryTime(&endTime);
+  fSliceTrackers[0].StandaloneQueryTime(&checkTime);
+
+  printf("Tracking Time: %lld\nTime uncertainty: %lld\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000 / tmpFreq);
+
+  if (fGPUDebugLevel >= 2)
+  {
+		const char* tmpNames[10] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Weight Cleaner", "Tracklet Constructor", "Tracklet Selector", "Write Output", "Unused", "Unused"};
+
+		for (int i = 0;i < 9;i++)
+		{
+			cpuTimers[i] = gpuTimers[i] = 0;
+			for ( int iSlice = 0; iSlice < fgkNSlices;iSlice++)
+			{
+				cpuTimers[i] += *fSliceTrackers[iSlice].PerfTimer(i + 1) - *fSliceTrackers[iSlice].PerfTimer(i);
+				gpuTimers[i] += sliceTimers[iSlice][i + 1] - sliceTimers[iSlice][i];
+			}
+			cpuTimers[i] /= fgkNSlices;
+			gpuTimers[i] /= fgkNSlices;
+			cpuTimers[i] *= 1000000;
+			gpuTimers[i] *= 1000000;
+			cpuTimers[i] /= tmpFreq;
+			gpuTimers[i] /= tmpFreq;
+
+			printf("Execution Time: Task: %20s ", tmpNames[i]);
+			if (!fUseGPUTracker || fGPUDebugLevel >= 3)
+				printf("CPU: %15lld ", cpuTimers[i]);
+			if (fUseGPUTracker)
+				printf("GPU: %15lld ", gpuTimers[i]);
+			printf("\n");
+		}
+  }
+#endif
 
   timer1.Stop();
   TStopwatch timer2;

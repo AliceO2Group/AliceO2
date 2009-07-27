@@ -11,8 +11,15 @@
 class AliHLTTPCCAGPUTracker
 {
 public:
-	AliHLTTPCCAGPUTracker();
-	~AliHLTTPCCAGPUTracker();
+	AliHLTTPCCAGPUTracker() :
+	  fGpuTracker(),
+	  fGPUMemory(NULL),
+	  fDebugLevel(0),
+	  fOutFile(NULL),
+	  fGPUMemSize(0),
+	  fOptionSingleBlock(0)
+	  {};
+	  ~AliHLTTPCCAGPUTracker() {};
 
 	int InitGPU();
 	int Reconstruct(AliHLTTPCCATracker* tracker);
@@ -21,12 +28,16 @@ public:
 	void SetDebugLevel(int dwLevel, std::ostream *NewOutFile = NULL);
 	int SetGPUTrackerOption(char* OptionName, int OptionValue);
 
+	unsigned long long int* PerfTimer(unsigned int i) {return fGpuTracker.PerfTimer(i); }
+
 private:
-	AliHLTTPCCATracker gpuTracker;
-	void* GPUMemory;
+	AliHLTTPCCATracker fGpuTracker;
+	void* fGPUMemory;
 
 	int CUDASync();
 	template <class T> T* alignPointer(T* ptr, int alignment);
+
+	void StandalonePerfTime(int i);
 
 	int fDebugLevel;			//Debug Level for GPU Tracker
 	std::ostream *fOutFile;		//Debug Output Stream Pointer
