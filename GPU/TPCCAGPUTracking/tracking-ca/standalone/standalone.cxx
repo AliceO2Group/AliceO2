@@ -6,12 +6,14 @@
 #include <fstream>
 #include <stdio.h>
 #include <string.h>
+#include <omp.h>
 
 int main(int argc, char** argv)
 {
 	int i;
 	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = 100, StartEvent = 0;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
+	char EventsDir[256] = "";
 
   for( int i=0; i < argc; i++ ){
     if ( !strcmp( argv[i], "-CPU" ) ) 
@@ -39,7 +41,6 @@ int main(int argc, char** argv)
 	
 	if ( !strcmp( argv[i], "-N" ) && argc >= i)
 	{
-		if (atoi(argv[i + 1]) < 100)
 		NEvents = atoi(argv[i + 1]);
 	}
 
@@ -47,6 +48,18 @@ int main(int argc, char** argv)
 	{
 		if (atoi(argv[i + 1]) > 0)
 		StartEvent = atoi(argv[i + 1]);
+	}
+
+	if ( !strcmp( argv[i], "-EVENTS" ) && argc >= i)
+	{
+		printf("Reading events from Directory events%s\n", argv[i + 1]);
+		strcpy(EventsDir, argv[i + 1]);
+	}
+
+	if ( !strcmp( argv[i], "-OMP" ) && argc >= i)
+	{
+		printf("Using %s OpenMP Threads\n", argv[i + 1]);
+		omp_set_num_threads(atoi(argv[i + 1]));
 	}
   }	
 
@@ -77,10 +90,19 @@ int main(int argc, char** argv)
 	}
 	hlt.SetGPUDebugLevel(DebugLevel, &CPUOut, &GPUOut);
 
+ for( int i=0; i < argc; i++ ){
+    if ( !strcmp( argv[i], "-GPUOPT" ) && argc >= i + 1 ) 
+    {
+		int tmpOption = atoi(argv[i + 2]);
+		printf("Setting GPU Option %s to %d\n", argv[i + 1], tmpOption);
+		hlt.SetGPUTrackerOption(argv[i + 1], tmpOption);
+    }
+ }
+
 	for (i = StartEvent;i < NEvents;i++)
 	{
 		char filename[256];
-		sprintf(filename, "events/event.%d.dump", i);
+		sprintf(filename, "events%s/event.%d.dump", EventsDir, i);
 		in.open(filename, std::ifstream::binary);
 		if (in.fail())
 		{
