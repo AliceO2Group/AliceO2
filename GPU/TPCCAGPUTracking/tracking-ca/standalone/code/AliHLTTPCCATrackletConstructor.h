@@ -37,7 +37,7 @@ class AliHLTTPCCATrackletConstructor
       protected:
 #endif
 
-        uint4 fData[2][( ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM+ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM+ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM )/4]; // temp memory
+        uint4 fData[2][3 * ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4]; // temp memory
         int fItr0; // start track index
         int fItr1; // end track index
         int fNRows; // n rows
@@ -109,7 +109,7 @@ class AliHLTTPCCATrackletConstructor
 
 #if defined(HLTCA_GPUCODE)
     //GPUhd() inline int NMemThreads() { return 128; }
-#define TRACKLET_CONSTRUCTOR_NMEMTHREDS 128
+#define TRACKLET_CONSTRUCTOR_NMEMTHREDS 32
 #else
     //GPUhd() inline int NMemThreads() { return 1; }
 #define TRACKLET_CONSTRUCTOR_NMEMTHREDS 1

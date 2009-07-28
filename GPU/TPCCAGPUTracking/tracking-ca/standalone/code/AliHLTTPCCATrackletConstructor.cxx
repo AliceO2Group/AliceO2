@@ -26,6 +26,8 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCATrackletConstructor.h"
+#include "MemoryAssignmentHelpers.h"
+
 //#include "AliHLTTPCCAPerformance.h"
 //#include "TH1D.h"
 
@@ -140,22 +142,64 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
     // copy hits, grid content and links
 
     // FIXME: inefficient copy
-    const int numberOfHits = row.NHits();
-    ushort2 *sMem1 = reinterpret_cast<ushort2 *>( s.fData[jr] );
-    for ( int i = iThread; i < numberOfHits; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
+    const int numberOfHitsAligned = NextMultipleOf<8>(row.NHits());
+    /*ushort2 *sMem1 = reinterpret_cast<ushort2 *>( s.fData[jr] );
+    for ( int i = iThread; i < numberOfHitsAligned; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
       sMem1[i].x = tracker.HitDataY( row, i );
       sMem1[i].y = tracker.HitDataZ( row, i );
-    }
-    short *sMem2 = reinterpret_cast<short *>( s.fData[jr] ) + 2 * numberOfHits;
-    for ( int i = iThread; i < numberOfHits; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
-      sMem2[i] = tracker.HitLinkUpData( row, i );
+    }*/
+
+    ushort_v *sMem1 = reinterpret_cast<ushort_v *>( s.fData[jr] );
+    for ( int i = iThread; i < numberOfHitsAligned; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
+      sMem1[i] = tracker.HitDataY( row, i );
     }
 
-    unsigned short *sMem3 = reinterpret_cast<unsigned short *>( s.fData[jr] ) + 3 * numberOfHits;
+    ushort_v *sMem1a = reinterpret_cast<ushort_v *>( s.fData[jr] ) + numberOfHitsAligned;
+    for ( int i = iThread; i < numberOfHitsAligned; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
+      sMem1a[i] = tracker.HitDataZ( row, i );
+    }
+
+    short *sMem2 = reinterpret_cast<short *>( s.fData[jr] ) + 2 * numberOfHitsAligned;
+    for ( int i = iThread; i < numberOfHitsAligned; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
+      sMem2[i] = tracker.HitLinkUpData( row, i );
+    }
+	
+    unsigned short *sMem3 = reinterpret_cast<unsigned short *>( s.fData[jr] ) + 3 * numberOfHitsAligned;
     const int n = row.FullSize(); // + grid content size
     for ( int i = iThread; i < n; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
       sMem3[i] = tracker.FirstHitInBin( row, i );
     }
+
+	/*for (int k = 0;k < 4;k++)		//Copy FirstHitInBint (k = 1, HitLinkUpData (k = 0) to shared memory
+	{
+		int* const sMem2 = reinterpret_cast<int *> (reinterpret_cast<short *>( s.fData[jr] ) + k * numberOfHitsAligned);
+		const int* sourceMem;
+		int copyCount;
+		switch (k)
+		{
+		case 0:
+			sourceMem = (int*) tracker.HitDataY(row);
+			copyCount = numberOfHitsAligned * sizeof(short) / sizeof(*sMem2);
+			break;
+		case 1:
+			sourceMem = (int*) tracker.HitDataZ(row);
+			copyCount = numberOfHitsAligned * sizeof(short) / sizeof(*sMem2);			
+			break;
+		case 2:
+			sourceMem = (int*) tracker.HitLinkUpData(row);
+			copyCount = numberOfHitsAligned * sizeof(short) / sizeof(*sMem2);
+			break;
+		case 3:
+			sourceMem = (int*) tracker.FirstHitInBin(row);
+			copyCount = NextMultipleOf<8>(row.FullSize());
+			break;
+		}
+		for (int i = iThread;i < copyCount;i += TRACKLET_CONSTRUCTOR_NMEMTHREDS)
+		{
+			sMem2[i] = sourceMem[i];
+		}
+	}*/
+
   }
 }
 
@@ -266,10 +310,12 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       if ( ( iRow - r.fStartRow ) % 2 != 0 ) break; // SG!!! - jump over the row
 
       uint4 *tmpint4 = s.fData[r.fCurrentData];
-      ushort2 hh = reinterpret_cast<ushort2*>( tmpint4 )[r.fCurrIH];
+      ushort2 hh;// = reinterpret_cast<ushort2*>( tmpint4 )[r.fCurrIH];
+	  hh.x = reinterpret_cast<ushort_v*>( tmpint4 )[r.fCurrIH];
+	  hh.y = reinterpret_cast<ushort_v*>( tmpint4 )[NextMultipleOf<8>(row.NHits()) + r.fCurrIH];
 
       int oldIH = r.fCurrIH;
-      r.fCurrIH = reinterpret_cast<short*>( tmpint4 )[2 * row.NHits() + r.fCurrIH]; // read from linkup data
+      r.fCurrIH = reinterpret_cast<short*>( tmpint4 )[2 * NextMultipleOf<8>(row.NHits()) + r.fCurrIH]; // read from linkup data
 
       float x = row.X();
       float y = y0 + hh.x * stepY;
@@ -441,7 +487,9 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       }
       uint4 *tmpint4 = s.fData[r.fCurrentData];
 
-      ushort2 *hits = reinterpret_cast<ushort2*>( tmpint4 );
+      //ushort2 *hits = reinterpret_cast<ushort2*>( tmpint4 );
+	  ushort_v *hitsx = reinterpret_cast<ushort_v*>( tmpint4 );
+	  ushort_v *hitsy = reinterpret_cast<ushort_v*>( tmpint4 ) + NextMultipleOf<8>(row.NHits());
 
       float fY = tParam.GetY();
       float fZ = tParam.GetZ();
@@ -468,7 +516,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         {
           int nY = row.Grid().Ny();
 
-          unsigned short *sGridP = ( reinterpret_cast<unsigned short*>( tmpint4 ) ) + 3 * row.NHits();
+          unsigned short *sGridP = ( reinterpret_cast<unsigned short*>( tmpint4 ) ) + 3 * NextMultipleOf<8>(row.NHits());
           fHitYfst = sGridP[fIndYmin];
           fHitYlst = sGridP[fIndYmin+2];
           fHitYfst1 = sGridP[fIndYmin+nY];
@@ -509,7 +557,9 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         }
         for ( unsigned int fIh = fHitYfst; fIh < fHitYlst; fIh++ ) {
           assert( (signed) fIh < row.NHits() );
-          ushort2 hh = hits[fIh];
+          ushort2 hh;// = hits[fIh];
+		  hh.x = hitsx[fIh];
+		  hh.y = hitsy[fIh];
           int ddy = ( int )( hh.x ) - fY0;
           int ddz = ( int )( hh.y ) - fZ0;
           int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
@@ -525,7 +575,9 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         }
 
         for ( unsigned int fIh = fHitYfst1; fIh < fHitYlst1; fIh++ ) {
-          ushort2 hh = hits[fIh];
+          ushort2 hh;// = hits[fIh];
+		  hh.x = hitsx[fIh];
+		  hh.y = hitsy[fIh];
           int ddy = ( int )( hh.x ) - fY0;
           int ddz = ( int )( hh.y ) - fZ0;
           int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
@@ -552,7 +604,9 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 		#endif
       }
 
-      ushort2 hh = hits[best];
+      ushort2 hh;// = hits[best];
+	  hh.x = hitsx[best];
+	  hh.y = hitsy[best];
 
       //std::cout<<"mark 3, "<<r.fItr<<std::endl;
       //tParam.Print();
@@ -670,8 +724,8 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
     if ( r.fIsMemThread ) {
       ReadData( iThread, s, r, tracker, nextRow );
     } else {
-      UpdateTracklet( nBlocks, nThreads, iBlock, iThread,
-                      s, r, tracker, tParam, iRow );
+      /*UpdateTracklet( nBlocks, nThreads, iBlock, iThread,
+                      s, r, tracker, tParam, iRow );*/
     }
     r.fCurrentData = !r.fCurrentData;
   }

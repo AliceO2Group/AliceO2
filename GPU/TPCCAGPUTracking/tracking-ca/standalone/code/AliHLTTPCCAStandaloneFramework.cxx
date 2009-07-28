@@ -34,7 +34,7 @@ void StandalonePerfTime(int i) {}
 //bool AliHLTTPCCAGPUTracker::CUDA_FAILED_MSG(cudaError_t error) {return(true);}
 //int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
 void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile) {}
-int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(1);}
+int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* OptionName, int OptionValue) {return(1);}
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker) {return(1);}
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
 #endif
@@ -162,6 +162,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent()
 		if (fGPUTracker.Reconstruct(&fSliceTrackers[iSlice]))
 		{
 			printf("Error during GPU Reconstruction!!!\n");
+			return;
 			//return(1);
 		}
 #ifdef HLTCA_STANDALONE

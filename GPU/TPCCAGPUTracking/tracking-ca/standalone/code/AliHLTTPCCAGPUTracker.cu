@@ -17,6 +17,8 @@
 //                                                                          *
 //***************************************************************************
 
+#include "AliHLTTPCCAGPUConfig.h"
+
 #include <cutil.h>
 #include <cutil_inline_runtime.h>
 #include <sm_11_atomic_functions.h>
@@ -65,26 +67,37 @@ int AliHLTTPCCAGPUTracker::InitGPU()
 #ifdef BUILD_GPU
 	int cudaDevice = cutGetMaxGflopsDeviceId();
 	cudaSetDevice(cudaDevice);
+	cudaDeviceProp fCudaDeviceProp;
 
-  cudaDeviceProp prop;
-  cudaGetDeviceProperties(&prop ,0 ); 
-  std::cout<<"CUDA Device Properties: "<<std::endl;
-  std::cout<<"name = "<<prop.name<<std::endl;
-  std::cout<<"totalGlobalMem = "<<prop.totalGlobalMem<<std::endl;
-  std::cout<<"sharedMemPerBlock = "<<prop.sharedMemPerBlock<<std::endl;
-  std::cout<<"regsPerBlock = "<<prop.regsPerBlock<<std::endl;
-  std::cout<<"warpSize = "<<prop.warpSize<<std::endl;
-  std::cout<<"memPitch = "<<prop.memPitch<<std::endl;
-  std::cout<<"maxThreadsPerBlock = "<<prop.maxThreadsPerBlock<<std::endl;
-  std::cout<<"maxThreadsDim = "<<prop.maxThreadsDim[0]<<" "<<prop.maxThreadsDim[1]<<" "<<prop.maxThreadsDim[2]<<std::endl;
-  std::cout<<"maxGridSize = "  <<prop.maxGridSize[0]<<" "<<prop.maxGridSize[1]<<" "<<prop.maxGridSize[2]<<std::endl;
-  std::cout<<"totalConstMem = "<<prop.totalConstMem<<std::endl;
-  std::cout<<"major = "<<prop.major<<std::endl;
-  std::cout<<"minor = "<<prop.minor<<std::endl;
-  std::cout<<"clockRate = "<<prop.clockRate<<std::endl;
-  std::cout<<"textureAlignment = "<<prop.textureAlignment<<std::endl;
+  cudaGetDeviceProperties(&fCudaDeviceProp ,cudaDevice ); 
 
-  fGPUMemSize = (int) prop.totalGlobalMem - 400 * 1024 * 1024;
+  if (fDebugLevel >= 1)
+  {
+	  std::cout<<"CUDA Device Properties: "<<std::endl;
+	  std::cout<<"name = "<<fCudaDeviceProp.name<<std::endl;
+	  std::cout<<"totalGlobalMem = "<<fCudaDeviceProp.totalGlobalMem<<std::endl;
+	  std::cout<<"sharedMemPerBlock = "<<fCudaDeviceProp.sharedMemPerBlock<<std::endl;
+	  std::cout<<"regsPerBlock = "<<fCudaDeviceProp.regsPerBlock<<std::endl;
+	  std::cout<<"warpSize = "<<fCudaDeviceProp.warpSize<<std::endl;
+	  std::cout<<"memPitch = "<<fCudaDeviceProp.memPitch<<std::endl;
+	  std::cout<<"maxThreadsPerBlock = "<<fCudaDeviceProp.maxThreadsPerBlock<<std::endl;
+	  std::cout<<"maxThreadsDim = "<<fCudaDeviceProp.maxThreadsDim[0]<<" "<<fCudaDeviceProp.maxThreadsDim[1]<<" "<<fCudaDeviceProp.maxThreadsDim[2]<<std::endl;
+	  std::cout<<"maxGridSize = "  <<fCudaDeviceProp.maxGridSize[0]<<" "<<fCudaDeviceProp.maxGridSize[1]<<" "<<fCudaDeviceProp.maxGridSize[2]<<std::endl;
+	  std::cout<<"totalConstMem = "<<fCudaDeviceProp.totalConstMem<<std::endl;
+	  std::cout<<"major = "<<fCudaDeviceProp.major<<std::endl;
+	  std::cout<<"minor = "<<fCudaDeviceProp.minor<<std::endl;
+	  std::cout<<"clockRate = "<<fCudaDeviceProp.clockRate<<std::endl;
+	  std::cout<<"textureAlignment = "<<fCudaDeviceProp.textureAlignment<<std::endl;
+  }
+
+  if (fCudaDeviceProp.major < 1 || (fCudaDeviceProp.major == 1 && fCudaDeviceProp.minor < 2))
+  {
+	  std::cout << "Unsupported CUDA Device\n";
+	  return(1);
+  }
+
+  fGPUMemSize = (long long int) fCudaDeviceProp.totalGlobalMem - 400 * 1024 * 1024;
+  if (fGPUMemSize > 1024 * 1024 * 1024) fGPUMemSize = 1024 * 1024 * 1024;
   if (CUDA_FAILED_MSG(cudaMalloc(&fGPUMemory, (size_t) fGPUMemSize)))
   {
 	  std::cout << "CUDA Memory Allocation Error\n";
@@ -173,6 +186,12 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
     int nThreads;
     int nBlocks;
 	int size;
+
+	int cudaDevice;
+	cudaDeviceProp fCudaDeviceProp;
+	cudaGetDevice(&cudaDevice);
+	cudaGetDeviceProperties(&fCudaDeviceProp, cudaDevice);
+	
 
 	StandalonePerfTime(0);
 
@@ -293,12 +312,17 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
     nThreads = 256;//96;
     nBlocks = *tracker->NTracklets()/nThreads + 1;
     if( nBlocks<30 ){
-		nBlocks = 30;
+		nBlocks = HLTCA_GPU_BLOCK_COUNT;
 		nThreads = (*tracker->NTracklets())/nBlocks+1;
 		if( nThreads%32 ) nThreads = (nThreads/32+1)*32;
 	}
-	if (fDebugLevel >= 4) printf("Running GPU Tracklet Constructor\n");
+	if (nThreads + nMemThreads > fCudaDeviceProp.maxThreadsPerBlock || (nThreads + nMemThreads) * HLTCA_GPU_REGS > fCudaDeviceProp.regsPerBlock)
+	{
+		printf("Invalid CUDA Kernel Configuration %d blocks %d threads %d memthreads\n", nBlocks, nThreads, nMemThreads);
+		return(1);
+	}
 
+	if (fDebugLevel >= 4) printf("Running GPU Tracklet Constructor\n");
 	if (!fOptionSingleBlock)
 	{
 		AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor> <<<nBlocks, nMemThreads+nThreads>>>(); 
@@ -325,10 +349,16 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	nThreads = 128;
 	nBlocks = *tracker->NTracklets()/nThreads + 1;
 	if( nBlocks<30 ){
-	  nBlocks = 30;  
+	  nBlocks = HLTCA_GPU_BLOCK_COUNT;  
 	  nThreads = *tracker->NTracklets()/nBlocks+1;
 	  nThreads = (nThreads/32+1)*32;
 	}
+	if (nThreads > fCudaDeviceProp.maxThreadsPerBlock || (nThreads) * HLTCA_GPU_REGS > fCudaDeviceProp.regsPerBlock)
+	{
+		printf("Invalid CUDA Kernel Configuration %d blocks %d threads\n", nBlocks, nThreads);
+		return(1);
+	}
+
 	if (fDebugLevel >= 4) printf("Running GPU Tracklet Selector\n");
 	if (!fOptionSingleBlock)
 	{

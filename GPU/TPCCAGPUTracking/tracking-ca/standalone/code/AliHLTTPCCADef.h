@@ -100,7 +100,7 @@ namespace AliHLTTPCCADefinitions
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 5
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 700
 #define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 3500
-#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 650
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 656					//Max amount of hits in a row that can be stored in shared memory, make sure this is divisible by 4
 #else
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 20
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 7000
@@ -149,6 +149,8 @@ inline bool finite(float x)
 /*
  * Helper for compile-time verification of correct API usage
  */
+
+#ifndef HLTCA_GPUCODE
 namespace
 {
   template<bool> struct HLTTPCCA_STATIC_ASSERT_FAILURE;
@@ -161,6 +163,9 @@ namespace
   typedef HLTTPCCA_STATIC_ASSERT_FAILURE<cond> HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__); \
   HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__) Error_##msg; \
   (void) Error_##msg
+#else
+#define STATIC_ASSERT(a, b)
+#endif
 
 namespace
 {
