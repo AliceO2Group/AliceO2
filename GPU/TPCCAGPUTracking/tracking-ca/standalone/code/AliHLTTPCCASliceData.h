@@ -76,6 +76,13 @@ class AliHLTTPCCASliceData
      */
     short_v HitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
     short_v HitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
+    
+	GPUd() const ushort_v *HitDataY( const AliHLTTPCCARow &row ) const;
+    GPUd() const ushort_v *HitDataZ( const AliHLTTPCCARow &row ) const;
+    GPUd() const short_v *HitLinkUpData  ( const AliHLTTPCCARow &row ) const;
+    GPUd() const short_v *HitLinkDownData( const AliHLTTPCCARow &row ) const;
+    GPUd() const ushort_v *FirstHitInBin( const AliHLTTPCCARow &row ) const;
+
     void SetHitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex,
                              const short_v &value );
     void SetHitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex,
@@ -90,8 +97,8 @@ class AliHLTTPCCASliceData
      * Return the y and z coordinate(s) of the given hit(s).
      */
     // TODO return float_v
-    short_v HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
-    short_v HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
+    ushort_v HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
+    ushort_v HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
 
     /**
      * For a given bin index, content tells how many hits there are in the preceding bins. This maps
@@ -143,7 +150,7 @@ class AliHLTTPCCASliceData
       return *this;
     }
 
-    void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data );
+    void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data, int ClusterDataHitNumberOffset );
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
     AliHLTTPCCARow fRows[200]; // The row objects needed for most accessor functions
@@ -180,6 +187,31 @@ GPUd() inline short_v AliHLTTPCCASliceData::HitLinkDownData( const AliHLTTPCCARo
   return fLinkDownData[row.fHitNumberOffset + hitIndex];
 }
 
+GPUd() inline const ushort_v *AliHLTTPCCASliceData::FirstHitInBin( const AliHLTTPCCARow &row ) const
+{
+  return &fFirstHitInBin[row.fFirstHitInBinOffset];
+}
+
+GPUd() inline const short_v *AliHLTTPCCASliceData::HitLinkUpData  ( const AliHLTTPCCARow &row ) const
+{
+  return &fLinkUpData[row.fHitNumberOffset];
+}
+
+GPUd() inline const short_v *AliHLTTPCCASliceData::HitLinkDownData( const AliHLTTPCCARow &row ) const
+{
+  return &fLinkDownData[row.fHitNumberOffset];
+}
+
+GPUd() inline const ushort_v *AliHLTTPCCASliceData::HitDataY( const AliHLTTPCCARow &row ) const
+{
+  return &fHitDataY[row.fHitNumberOffset];
+}
+
+GPUd() inline const ushort_v *AliHLTTPCCASliceData::HitDataZ( const AliHLTTPCCARow &row ) const
+{
+  return &fHitDataZ[row.fHitNumberOffset];
+}
+
 GPUd() inline void AliHLTTPCCASliceData::SetHitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex, const short_v &value )
 {
   fLinkUpData[row.fHitNumberOffset + hitIndex] = value;
@@ -190,12 +222,12 @@ GPUd() inline void AliHLTTPCCASliceData::SetHitLinkDownData( const AliHLTTPCCARo
   fLinkDownData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-GPUd() inline short_v AliHLTTPCCASliceData::HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
+GPUd() inline ushort_v AliHLTTPCCASliceData::HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
 {
   return fHitDataY[row.fHitNumberOffset + hitIndex];
 }
 
-GPUd() inline short_v AliHLTTPCCASliceData::HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
+GPUd() inline ushort_v AliHLTTPCCASliceData::HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
 {
   return fHitDataZ[row.fHitNumberOffset + hitIndex];
 }

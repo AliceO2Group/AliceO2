@@ -151,7 +151,13 @@ class AliHLTTPCCATracker
     GPUd() short HitLinkUpData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkUpData( row, hitIndex ); }
     GPUd() short HitLinkDownData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkDownData( row, hitIndex ); }
 
-    GPUd() int FirstHitInBin( const AliHLTTPCCARow &row, int binIndex ) const { return fData.FirstHitInBin( row, binIndex ); }
+	GPUd() const ushort_v *HitDataY( const AliHLTTPCCARow &row ) const { return fData.HitDataY(row); }
+	GPUd() const ushort_v *HitDataZ( const AliHLTTPCCARow &row ) const { return fData.HitDataZ(row); }
+	GPUd() const short_v *HitLinkUpData  ( const AliHLTTPCCARow &row ) const { return fData.HitLinkUpData(row); }
+	GPUd() const short_v *HitLinkDownData( const AliHLTTPCCARow &row ) const { return fData.HitLinkDownData(row); }
+	GPUd() const ushort_v *FirstHitInBin( const AliHLTTPCCARow &row ) const { return fData.FirstHitInBin(row); }
+	
+	GPUd() int FirstHitInBin( const AliHLTTPCCARow &row, int binIndex ) const { return fData.FirstHitInBin( row, binIndex ); }
 
     GPUd() unsigned short HitDataY( const AliHLTTPCCARow &row, int hitIndex ) const {
       return fData.HitDataY( row, hitIndex );

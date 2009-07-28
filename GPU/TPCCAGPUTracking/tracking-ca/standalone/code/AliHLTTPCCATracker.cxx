@@ -372,6 +372,7 @@ void AliHLTTPCCATracker::RunTrackletSelector()
 
 void AliHLTTPCCATracker::StandaloneQueryTime(unsigned long long int *i)
 {
+#ifdef HLTCA_STANDALONE
 #ifdef R__WIN32
 	  QueryPerformanceCounter((LARGE_INTEGER*) i);
 #else
@@ -379,14 +380,17 @@ void AliHLTTPCCATracker::StandaloneQueryTime(unsigned long long int *i)
 	  clock_gettime(CLOCK_REALTIME, &t);
 	  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
 #endif
+#endif
 }
 
 void AliHLTTPCCATracker::StandaloneQueryFreq(unsigned long long int *i)
 {
+#ifdef HLTCA_STANDALONE
 #ifdef R__WIN32
 	  QueryPerformanceFrequency((LARGE_INTEGER*) i);
 #else
 	*i = 1000000000;
+#endif
 #endif
 }
 

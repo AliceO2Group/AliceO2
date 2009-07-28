@@ -33,7 +33,7 @@ GPUhd() static inline void AlignTo( char *&mem )
 }
 
 template<unsigned int X>
-static inline unsigned int NextMultipleOf( unsigned int value )
+GPUhd() static inline unsigned int NextMultipleOf( unsigned int value )
 {
   STATIC_ASSERT( ( X & ( X - 1 ) ) == 0, X_needs_to_be_a_multiple_of_2 );
   const int offset = value & ( X - 1 );

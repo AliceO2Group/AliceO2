@@ -11,7 +11,7 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = 100, StartEvent = 0;
+	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = 100, StartEvent = 0, noprompt = 0;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
 
@@ -26,6 +26,11 @@ int main(int argc, char** argv)
     {
 	printf("GPU enabled\n");
 	RUNGPU=1;        
+    }
+
+	if ( !strcmp( argv[i], "-NOPROMPT" ) ) 
+    {
+	noprompt=1;        
     }
     
 	if ( !strcmp( argv[i], "-SAVE" ) ) 
@@ -134,7 +139,10 @@ int main(int argc, char** argv)
 
 	hlt.ExitGPU();
 
-	printf("Press a key to exit!\n");
-	getchar();
+	if (!noprompt)
+	{
+		printf("Press a key to exit!\n");
+		getchar();
+	}
 	return(0);
 }
