@@ -132,7 +132,7 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
 
   const int numberOfRows = data->LastRow() - data->FirstRow();
   enum { kVectorAlignment = sizeof( int ) };
-  const int numberOfHitsPlusAlignment = NextMultipleOf < kVectorAlignment / sizeof( int ) > ( HitMemCount );
+  const int numberOfHitsPlusAlignment = NextMultipleOf < (kVectorAlignment > sizeof(HLTCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(HLTCA_GPU_ROWALIGNMENT)) / sizeof( int ) > ( HitMemCount );
   const int firstHitInBinSize = (23 + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int)) * numberOfRows + 4 * fNumberOfHits + 3;
   //FIXME: sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int) is way to big and only to ensure to reserve enough memory for GPU Alignment.
   //Might be replaced by correct value

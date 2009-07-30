@@ -11,6 +11,7 @@
 
 
 #include "AliHLTTPCCADef.h"
+#include "AliHLTTPCCAGPUConfig.h"
 
 /**
  * @class AliHLTTPCCATrackletConstructor
@@ -109,7 +110,7 @@ class AliHLTTPCCATrackletConstructor
 
 #if defined(HLTCA_GPUCODE)
     //GPUhd() inline int NMemThreads() { return 128; }
-#define TRACKLET_CONSTRUCTOR_NMEMTHREDS 32
+#define TRACKLET_CONSTRUCTOR_NMEMTHREDS HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS
 #else
     //GPUhd() inline int NMemThreads() { return 1; }
 #define TRACKLET_CONSTRUCTOR_NMEMTHREDS 1
