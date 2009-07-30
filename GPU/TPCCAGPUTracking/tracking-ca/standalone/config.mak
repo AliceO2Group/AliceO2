@@ -1,7 +1,7 @@
 #Architecture Settings
 INTELARCH					= SSE4.2
 CUDAVERSION					= 13
-CUDAREGS					= 32
+CUDAREGS					= 64
 
 TARGET						= ca
 

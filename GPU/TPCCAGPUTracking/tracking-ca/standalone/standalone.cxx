@@ -67,7 +67,15 @@ int main(int argc, char** argv)
 		omp_set_num_threads(atoi(argv[i + 1]));
 	}
   }	
+	std::ofstream CPUOut, GPUOut;
 
+	if (DebugLevel >= 3)
+	{
+		CPUOut.open("CPU.out");
+		GPUOut.open("GPU.out");
+	}
+
+    hlt.SetGPUDebugLevel(DebugLevel, &CPUOut, &GPUOut);
 	if (RUNGPU)
 		printf("Standalone Test Framework for CA Tracker - Using GPU\n");
 	else
@@ -85,15 +93,6 @@ int main(int argc, char** argv)
 	std::ifstream in("events/settings.dump");
 	hlt.ReadSettings(in);
 	in.close();
-
-	std::ofstream CPUOut, GPUOut;
-
-	if (DebugLevel >= 3)
-	{
-		CPUOut.open("CPU.out");
-		GPUOut.open("GPU.out");
-	}
-	hlt.SetGPUDebugLevel(DebugLevel, &CPUOut, &GPUOut);
 
  for( int i=0; i < argc; i++ ){
     if ( !strcmp( argv[i], "-GPUOPT" ) && argc >= i + 1 ) 
