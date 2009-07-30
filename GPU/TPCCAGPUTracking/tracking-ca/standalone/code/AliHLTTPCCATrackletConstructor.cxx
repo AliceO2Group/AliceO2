@@ -144,7 +144,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
     // FIXME: inefficient copy
     const int numberOfHitsAligned = NextMultipleOf<8>(row.NHits());
 
-	/*
+/*	
 #ifdef HLTCA_GPU_REORDERHITDATA
     ushort2 *sMem1 = reinterpret_cast<ushort2 *>( s.fData[jr] );
     for ( int i = iThread; i < numberOfHitsAligned; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
@@ -174,58 +174,33 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
       sMem3[i] = tracker.FirstHitInBin( row, i );
     }*/
 
-    HLTCA_GPU_ROWCOPY* const sMem1 = reinterpret_cast<HLTCA_GPU_ROWCOPY* const> (reinterpret_cast<ushort_v* const>( s.fData[jr] ));
-	const HLTCA_GPU_ROWCOPY* const sourceMem1 = reinterpret_cast<const HLTCA_GPU_ROWCOPY* const>( tracker.HitDataY(row) );
-    for ( int i = iThread; i < numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY); i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
-      sMem1[i] = sourceMem1[i];
-    }
-
-    HLTCA_GPU_ROWCOPY* const sMem1a = reinterpret_cast<HLTCA_GPU_ROWCOPY* const> (reinterpret_cast<ushort_v* const>( s.fData[jr] ) + numberOfHitsAligned);
-	const HLTCA_GPU_ROWCOPY* const sourceMem1a = reinterpret_cast<const HLTCA_GPU_ROWCOPY* const>( tracker.HitDataY(row) );
-    for ( int i = iThread; i < numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY); i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
-      sMem1a[i] = sourceMem1a[i];
-    }
-
-    HLTCA_GPU_ROWCOPY* const sMem2 = reinterpret_cast<HLTCA_GPU_ROWCOPY* const> (reinterpret_cast<short_v* const>( s.fData[jr] ) + 2 * numberOfHitsAligned);
-	const HLTCA_GPU_ROWCOPY* const sourceMem2 = reinterpret_cast<const HLTCA_GPU_ROWCOPY* const>( tracker.HitLinkUpData(row) );
-    for ( int i = iThread; i < numberOfHitsAligned * sizeof(short_v) / sizeof(HLTCA_GPU_ROWCOPY); i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
-      sMem2[i] = sourceMem2[i];
-    }
-	
-    HLTCA_GPU_ROWCOPY* const sMem3 = reinterpret_cast<HLTCA_GPU_ROWCOPY* const> (reinterpret_cast<ushort_v* const>( s.fData[jr] ) + 3 * numberOfHitsAligned);
-	const HLTCA_GPU_ROWCOPY* const sourceMem3 = reinterpret_cast<const HLTCA_GPU_ROWCOPY* const>( tracker.FirstHitInBin(row) );
-    const int n = NextMultipleOf<8>(row.FullSize()); // + grid content size
-    for ( int i = iThread; i < n * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY); i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
-      sMem3[i] = sourceMem3[i];
-    }
-
 	for (int k = 0;k < 4;k++)		//Copy HitData (k = 0, 1), FirstHitInBint (k = 3), HitLinkUpData (k = 2) to shared memory
 	{
-		int* const sMem2 = reinterpret_cast<int *> (reinterpret_cast<short *>( s.fData[jr] ) + k * numberOfHitsAligned);
-		const int* sourceMem;
+		HLTCA_GPU_ROWCOPY* const sharedMem = reinterpret_cast<HLTCA_GPU_ROWCOPY *> (reinterpret_cast<ushort_v *>( s.fData[jr] ) + k * numberOfHitsAligned);
+		const HLTCA_GPU_ROWCOPY* sourceMem;
 		int copyCount;
 		switch (k)
 		{
 		case 0:
-			sourceMem = (int*) tracker.HitDataY(row);
-			copyCount = numberOfHitsAligned * sizeof(short) / sizeof(*sMem2);
+			sourceMem = reinterpret_cast<const HLTCA_GPU_ROWCOPY *>( tracker.HitDataY(row) );
+			copyCount = numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);
 			break;
 		case 1:
-			sourceMem = (int*) tracker.HitDataZ(row);
-			copyCount = numberOfHitsAligned * sizeof(short) / sizeof(*sMem2);			
+			sourceMem = reinterpret_cast<const HLTCA_GPU_ROWCOPY *>( tracker.HitDataZ(row) );
+			copyCount = numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);			
 			break;
 		case 2:
-			sourceMem = (int*) tracker.HitLinkUpData(row);
-			copyCount = numberOfHitsAligned * sizeof(short) / sizeof(*sMem2);
+			sourceMem = reinterpret_cast<const HLTCA_GPU_ROWCOPY *>( tracker.HitLinkUpData(row) );
+			copyCount = numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);
 			break;
 		case 3:
-			sourceMem = (int*) tracker.FirstHitInBin(row);
-			copyCount = NextMultipleOf<8>(row.FullSize()) * sizeof(short) / sizeof(*sMem2);
+			sourceMem = reinterpret_cast<const HLTCA_GPU_ROWCOPY *>( tracker.FirstHitInBin(row) );
+			copyCount = NextMultipleOf<8>(row.FullSize()) * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);
 			break;
 		}
 		for (int i = iThread;i < copyCount;i += TRACKLET_CONSTRUCTOR_NMEMTHREDS)
 		{
-			sMem2[i] = sourceMem[i];
+			sharedMem[i] = sourceMem[i];
 		}
 	}
 
