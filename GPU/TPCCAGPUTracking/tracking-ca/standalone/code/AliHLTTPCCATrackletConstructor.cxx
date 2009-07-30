@@ -143,12 +143,15 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
 
     // FIXME: inefficient copy
     const int numberOfHitsAligned = NextMultipleOf<8>(row.NHits());
-    /*ushort2 *sMem1 = reinterpret_cast<ushort2 *>( s.fData[jr] );
+
+	/*
+#ifdef HLTCA_GPU_REORDERHITDATA
+    ushort2 *sMem1 = reinterpret_cast<ushort2 *>( s.fData[jr] );
     for ( int i = iThread; i < numberOfHitsAligned; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
       sMem1[i].x = tracker.HitDataY( row, i );
       sMem1[i].y = tracker.HitDataZ( row, i );
-    }*/
-
+    }
+#else
     ushort_v *sMem1 = reinterpret_cast<ushort_v *>( s.fData[jr] );
     for ( int i = iThread; i < numberOfHitsAligned; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
       sMem1[i] = tracker.HitDataY( row, i );
@@ -158,6 +161,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
     for ( int i = iThread; i < numberOfHitsAligned; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
       sMem1a[i] = tracker.HitDataZ( row, i );
     }
+#endif
 
     short *sMem2 = reinterpret_cast<short *>( s.fData[jr] ) + 2 * numberOfHitsAligned;
     for ( int i = iThread; i < numberOfHitsAligned; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
@@ -168,9 +172,34 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
     const int n = row.FullSize(); // + grid content size
     for ( int i = iThread; i < n; i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
       sMem3[i] = tracker.FirstHitInBin( row, i );
+    }*/
+
+    HLTCA_GPU_ROWCOPY* const sMem1 = reinterpret_cast<HLTCA_GPU_ROWCOPY* const> (reinterpret_cast<ushort_v* const>( s.fData[jr] ));
+	const HLTCA_GPU_ROWCOPY* const sourceMem1 = reinterpret_cast<const HLTCA_GPU_ROWCOPY* const>( tracker.HitDataY(row) );
+    for ( int i = iThread; i < numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY); i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
+      sMem1[i] = sourceMem1[i];
     }
 
-	/*for (int k = 0;k < 4;k++)		//Copy FirstHitInBint (k = 1, HitLinkUpData (k = 0) to shared memory
+    HLTCA_GPU_ROWCOPY* const sMem1a = reinterpret_cast<HLTCA_GPU_ROWCOPY* const> (reinterpret_cast<ushort_v* const>( s.fData[jr] ) + numberOfHitsAligned);
+	const HLTCA_GPU_ROWCOPY* const sourceMem1a = reinterpret_cast<const HLTCA_GPU_ROWCOPY* const>( tracker.HitDataY(row) );
+    for ( int i = iThread; i < numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY); i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
+      sMem1a[i] = sourceMem1a[i];
+    }
+
+    HLTCA_GPU_ROWCOPY* const sMem2 = reinterpret_cast<HLTCA_GPU_ROWCOPY* const> (reinterpret_cast<short_v* const>( s.fData[jr] ) + 2 * numberOfHitsAligned);
+	const HLTCA_GPU_ROWCOPY* const sourceMem2 = reinterpret_cast<const HLTCA_GPU_ROWCOPY* const>( tracker.HitLinkUpData(row) );
+    for ( int i = iThread; i < numberOfHitsAligned * sizeof(short_v) / sizeof(HLTCA_GPU_ROWCOPY); i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
+      sMem2[i] = sourceMem2[i];
+    }
+	
+    HLTCA_GPU_ROWCOPY* const sMem3 = reinterpret_cast<HLTCA_GPU_ROWCOPY* const> (reinterpret_cast<ushort_v* const>( s.fData[jr] ) + 3 * numberOfHitsAligned);
+	const HLTCA_GPU_ROWCOPY* const sourceMem3 = reinterpret_cast<const HLTCA_GPU_ROWCOPY* const>( tracker.FirstHitInBin(row) );
+    const int n = NextMultipleOf<8>(row.FullSize()); // + grid content size
+    for ( int i = iThread; i < n * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY); i += TRACKLET_CONSTRUCTOR_NMEMTHREDS ) {
+      sMem3[i] = sourceMem3[i];
+    }
+
+	for (int k = 0;k < 4;k++)		//Copy HitData (k = 0, 1), FirstHitInBint (k = 3), HitLinkUpData (k = 2) to shared memory
 	{
 		int* const sMem2 = reinterpret_cast<int *> (reinterpret_cast<short *>( s.fData[jr] ) + k * numberOfHitsAligned);
 		const int* sourceMem;
@@ -191,14 +220,14 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
 			break;
 		case 3:
 			sourceMem = (int*) tracker.FirstHitInBin(row);
-			copyCount = NextMultipleOf<8>(row.FullSize());
+			copyCount = NextMultipleOf<8>(row.FullSize()) * sizeof(short) / sizeof(*sMem2);
 			break;
 		}
 		for (int i = iThread;i < copyCount;i += TRACKLET_CONSTRUCTOR_NMEMTHREDS)
 		{
 			sMem2[i] = sourceMem[i];
 		}
-	}*/
+	}
 
   }
 }
@@ -274,6 +303,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
       }
     }
   }
+
 }
 
 GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
@@ -310,9 +340,13 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       if ( ( iRow - r.fStartRow ) % 2 != 0 ) break; // SG!!! - jump over the row
 
       uint4 *tmpint4 = s.fData[r.fCurrentData];
-      ushort2 hh;// = reinterpret_cast<ushort2*>( tmpint4 )[r.fCurrIH];
+	  ushort2 hh;
+#ifdef HLTCA_GPU_REORDERHITDATA
+      hh = reinterpret_cast<ushort2*>( tmpint4 )[r.fCurrIH];
+#else
 	  hh.x = reinterpret_cast<ushort_v*>( tmpint4 )[r.fCurrIH];
 	  hh.y = reinterpret_cast<ushort_v*>( tmpint4 )[NextMultipleOf<8>(row.NHits()) + r.fCurrIH];
+#endif
 
       int oldIH = r.fCurrIH;
       r.fCurrIH = reinterpret_cast<short*>( tmpint4 )[2 * NextMultipleOf<8>(row.NHits()) + r.fCurrIH]; // read from linkup data
@@ -487,9 +521,12 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       }
       uint4 *tmpint4 = s.fData[r.fCurrentData];
 
-      //ushort2 *hits = reinterpret_cast<ushort2*>( tmpint4 );
+#ifdef HLTCA_GPU_REORDERHITDATA
+      ushort2 *hits = reinterpret_cast<ushort2*>( tmpint4 );
+#else
 	  ushort_v *hitsx = reinterpret_cast<ushort_v*>( tmpint4 );
 	  ushort_v *hitsy = reinterpret_cast<ushort_v*>( tmpint4 ) + NextMultipleOf<8>(row.NHits());
+#endif
 
       float fY = tParam.GetY();
       float fZ = tParam.GetZ();
@@ -557,9 +594,13 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         }
         for ( unsigned int fIh = fHitYfst; fIh < fHitYlst; fIh++ ) {
           assert( (signed) fIh < row.NHits() );
-          ushort2 hh;// = hits[fIh];
+          ushort2 hh;
+#ifdef HLTCA_GPU_REORDERHITDATA
+		  hh = hits[fIh];
+#else
 		  hh.x = hitsx[fIh];
 		  hh.y = hitsy[fIh];
+#endif
           int ddy = ( int )( hh.x ) - fY0;
           int ddz = ( int )( hh.y ) - fZ0;
           int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
@@ -575,9 +616,13 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         }
 
         for ( unsigned int fIh = fHitYfst1; fIh < fHitYlst1; fIh++ ) {
-          ushort2 hh;// = hits[fIh];
+          ushort2 hh;
+#ifdef HLTCA_GPU_REORDERHITDATA
+		  hh = hits[fIh];
+#else
 		  hh.x = hitsx[fIh];
 		  hh.y = hitsy[fIh];
+#endif
           int ddy = ( int )( hh.x ) - fY0;
           int ddz = ( int )( hh.y ) - fZ0;
           int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
@@ -604,9 +649,13 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 		#endif
       }
 
-      ushort2 hh;// = hits[best];
+      ushort2 hh;
+#ifdef HLTCA_GPU_REORDERHITDATA
+	  hh = hits[best];
+#else
 	  hh.x = hitsx[best];
 	  hh.y = hitsy[best];
+#endif
 
       //std::cout<<"mark 3, "<<r.fItr<<std::endl;
       //tParam.Print();
@@ -724,8 +773,8 @@ GPUd() void AliHLTTPCCATrackletConstructor::Thread
     if ( r.fIsMemThread ) {
       ReadData( iThread, s, r, tracker, nextRow );
     } else {
-      /*UpdateTracklet( nBlocks, nThreads, iBlock, iThread,
-                      s, r, tracker, tParam, iRow );*/
+      UpdateTracklet( nBlocks, nThreads, iBlock, iThread,
+                      s, r, tracker, tParam, iRow );
     }
     r.fCurrentData = !r.fCurrentData;
   }
