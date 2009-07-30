@@ -62,12 +62,30 @@
 #endif
 
 //Find best CUDA device, initialize and allocate memory
-int AliHLTTPCCAGPUTracker::InitGPU()
+int AliHLTTPCCAGPUTracker::InitGPU(int forceDeviceID)
 {
 #ifdef BUILD_GPU
-	int cudaDevice = cutGetMaxGflopsDeviceId();
-	cudaSetDevice(cudaDevice);
-	cudaDeviceProp fCudaDeviceProp;
+  cudaDeviceProp fCudaDeviceProp;
+
+  if (fDebugLevel >= 2)
+  {
+	int count;
+	cudaGetDeviceCount(&count);
+	std::cout << "Available CUDA devices: ";
+	for (int i = 0;i < count;i++)
+	{
+		cudaGetDeviceProperties(&fCudaDeviceProp, i);
+		std::cout << fCudaDeviceProp.name << " (" << i << ")     ";
+	}
+	std::cout << std::endl;
+  }
+
+  int cudaDevice;
+  if (forceDeviceID == -1)
+	  cudaDevice = cutGetMaxGflopsDeviceId();
+  else
+	  cudaDevice = forceDeviceID;
+  cudaSetDevice(cudaDevice);
 
   cudaGetDeviceProperties(&fCudaDeviceProp ,cudaDevice ); 
 

@@ -21,7 +21,7 @@ public:
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
 
-	int InitGPU();
+	int InitGPU(int forceDeviceID = -1);
 	int Reconstruct(AliHLTTPCCATracker* tracker);
 	int ExitGPU();
 

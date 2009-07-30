@@ -76,7 +76,7 @@ class AliHLTTPCCAStandaloneFramework
     void ReadEvent( std::istream &in );
     void ReadTracks( std::istream &in );
 
-	int InitGPU();
+	int InitGPU(int forceDeviceID = -1);
 	int ExitGPU();
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
 	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fGPUTracker.SetGPUTrackerOption(OptionName, OptionValue));}
