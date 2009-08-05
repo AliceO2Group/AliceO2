@@ -9,6 +9,11 @@
 #ifndef ALIHLTTPCCATRACKLETCONSTRUCTOR_H
 #define ALIHLTTPCCATRACKLETCONSTRUCTOR_H
 
+#ifdef HLTCA_GPUCODE
+#define HLTCA_GPU_USE_INT short
+#else
+#define HLTCA_GPU_USE_INT int
+#endif
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
@@ -38,7 +43,10 @@ class AliHLTTPCCATrackletConstructor
       protected:
 #endif
 
-        uint4 fData[2][3 * ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4]; // temp memory
+#ifdef HLTCA_GPU_PREFETCHDATA
+        uint4 fData[2][ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4]; // temp memory
+		AliHLTTPCCARow fRow[2]; // row
+#endif
         int fItr0; // start track index
         int fItr1; // end track index
         int fNRows; // n rows

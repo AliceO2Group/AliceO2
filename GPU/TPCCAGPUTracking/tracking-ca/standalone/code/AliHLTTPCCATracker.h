@@ -191,6 +191,7 @@ class AliHLTTPCCATracker
 
     GPUhd() const AliHLTTPCCAHitId &TrackletStartHit( int i ) const { return fTrackletStartHits[i]; }
     GPUhd() AliHLTTPCCAHitId *TrackletStartHits() const { return fTrackletStartHits; }
+    GPUhd() AliHLTTPCCAHitId *TrackletTmpStartHits() const { return fTrackletTmpStartHits; }
     GPUhd() const AliHLTTPCCATracklet &Tracklet( int i ) const { return fTracklets[i]; }
     GPUhd() AliHLTTPCCATracklet  *Tracklets() const { return fTracklets;}
 
@@ -217,6 +218,8 @@ class AliHLTTPCCATracker
 	GPUh() char *SliceDataMemory() {return(fData.Memory()); }
 	GPUh() size_t SliceDataMemorySize() const {return(fData.MemorySize()); }
 	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
+
+	GPUhd() uint2* RowStartHitCountOffset() {return(fRowStartHitCountOffset);}
 
 	GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
 	void StandaloneQueryTime(unsigned long long int *i);
@@ -253,6 +256,10 @@ class AliHLTTPCCATracker
 
     char *fTrackMemory; // event memory for tracks
     size_t   fTrackMemorySize; // size of the event memory [bytes]
+
+	//GPU Temp Arrays
+	uint2* fRowStartHitCountOffset;				//Offset and length of start hits in row
+	AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
 
 
     int *fNTracklets;     // number of tracklets

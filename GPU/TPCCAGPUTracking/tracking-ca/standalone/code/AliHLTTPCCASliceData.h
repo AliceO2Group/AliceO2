@@ -137,6 +137,8 @@ class AliHLTTPCCASliceData
 	GPUh() size_t MemorySize() const {return(fMemorySize); }
 	GPUh() int* HitWeights() {return(fHitWeights); }
 
+	GPUh() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
+
 #ifndef CUDA_DEVICE_EMULATION
   private:
 #endif
@@ -154,6 +156,8 @@ class AliHLTTPCCASliceData
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
     AliHLTTPCCARow fRows[200]; // The row objects needed for most accessor functions
+
+	int fGPUSharedDataReq;		//Size of shared memory required for GPU Reconstruction
 
     int fNumberOfHits;         // the number of hits in this slice
     int fMemorySize;           // size of the allocated memory in bytes

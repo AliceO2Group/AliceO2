@@ -42,6 +42,8 @@
 
 #include "AliHLTTPCCATrackParam.h"
 
+#include "AliHLTTPCCAGPUConfig.h"
+
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
 #endif
@@ -108,7 +110,11 @@ char* AliHLTTPCCATracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits
 {
 	fHitMemory = (char*) pGPUMemory;
 	SetPointersHits(MaxNHits);
-	return(pGPUMemory + fHitMemorySize);
+	pGPUMemory += fHitMemorySize;
+	AssignMemory(fTrackletTmpStartHits, pGPUMemory, NHitsTotal());
+	AssignMemory(fRowStartHitCountOffset, pGPUMemory, Param().NRows());
+
+	return(pGPUMemory);
 }
 
 
@@ -134,34 +140,48 @@ void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
 
 void AliHLTTPCCATracker::DumpStartHits(std::ostream &out)
 {
+#ifdef HLTCA_GPU_SORT_DUMPDATA
 	for (int j = 0;j < Param().NRows();j++)
 	{
+#endif
 		for (int i = 0;i < *NTracklets();i++)
 		{
+#ifdef HLTCA_GPU_SORT_DUMPDATA
 			if (TrackletStartHit(i).RowIndex() == j)
+#endif
 				out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << endl;
 		}
+#ifdef HLTCA_GPU_SORT_DUMPDATA
 	}
+#endif
 	out << endl;
 }
 
 void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 {
+#ifdef HLTCA_GPU_SORT_DUMPDATA
 	for (int k = 0;k < Param().NRows();k++)
 	{
+#endif
 		for (int j = 0;j < *NTracks();j++)
 		{
 			if (Tracks()[j].NHits() == 0 || !Tracks()[j].Alive()) continue;
+#ifdef HLTCA_GPU_SORT_DUMPDATA
 			if (TrackHits()[Tracks()[j].FirstHitID()].RowIndex() == k)
 			{
+#endif
 				for (int i = 0;i < Tracks()[j].NHits();i++)
 				{
 					out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
 				}
 				out << "(Track: " << j << ")" << endl;
+#ifdef HLTCA_GPU_SORT_DUMPDATA
 			}
+#endif
 		}
+#ifdef HLTCA_GPU_SORT_DUMPDATA
 	}
+#endif
 }
 
 int trackletSortComparison(const void* a, const void* b)
@@ -187,7 +207,9 @@ int trackletSortComparison(const void* a, const void* b)
 
 void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 {
+#ifdef HLTCA_GPU_SORT_DUMPDATA
 	qsort(Tracklets(), *NTracklets(), sizeof(AliHLTTPCCATracklet), trackletSortComparison);
+#endif
 	for (int k = 0;k < Param().NRows();k++)
 	{
 		for (int j = 0;j < *NTracklets();j++)
@@ -286,7 +308,11 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersHits( int MaxNHits )
 
   // extra arrays for tpc clusters
 
+#ifdef HLTCA_GPU_SORT_STARTHITS_2
   AssignMemory( fTrackletStartHits, mem, MaxNHits );
+#else
+  AssignMemory( fTrackletStartHits, mem, MaxNHits + 32 );
+#endif
 
   // arrays for track hits
 
@@ -397,7 +423,7 @@ void AliHLTTPCCATracker::StandaloneQueryFreq(unsigned long long int *i)
 void AliHLTTPCCATracker::StandalonePerfTime(int i)
 {
 #ifdef HLTCA_STANDALONE
-  if (fGPUDebugLevel >= 2)
+  if (fGPUDebugLevel >= 1)
   {
 	  StandaloneQueryTime(&fPerfTimers[i]);
   }
@@ -486,6 +512,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   RunStartHitsFinder();
 
   StandalonePerfTime(4);
+  StandalonePerfTime(5);
 
   if (fGPUDebugLevel >= 3)
   {
@@ -501,11 +528,11 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
   SetPointersTracks( *fNTracklets * 2, NHitsTotal() ); // set pointers for hits
 
-  StandalonePerfTime(5);
+  StandalonePerfTime(6);
 
   RunTrackletConstructor();
 
-  StandalonePerfTime(6);
+  StandalonePerfTime(7);
 
   if (fGPUDebugLevel >= 3)
   {
@@ -517,7 +544,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   RunTrackletSelector();
 
-  StandalonePerfTime(7);
+  StandalonePerfTime(8);
 
   //std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
@@ -531,7 +558,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   WriteOutput();
 
-  StandalonePerfTime(8);
+  StandalonePerfTime(9);
 
 #endif
 
