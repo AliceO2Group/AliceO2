@@ -47,7 +47,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step0
   r.fIsMemThread = ( iThread < TRACKLET_CONSTRUCTOR_NMEMTHREDS );
   if ( iThread == 0 ) {
     int nTracks = *tracker.NTracklets();
-    int nTrPerBlock = nTracks / nBlocks + 1;
+#ifdef HLTCA_GPUCODE
+    int nTrPerBlock = blockDim.x;
+#else
+	int nTrPerBlock = nTracks / nBlocks + 1;
+#endif
     s.fNRows = tracker.Param().NRows();
     s.fItr0 = nTrPerBlock * iBlock;
     s.fItr1 = s.fItr0 + nTrPerBlock;
@@ -69,6 +73,10 @@ GPUd() void AliHLTTPCCATrackletConstructor::Step1
 
   r.fItr = s.fItr0 + ( iThread - TRACKLET_CONSTRUCTOR_NMEMTHREDS );
   r.fGo = ( !r.fIsMemThread ) && ( r.fItr < s.fItr1 );
+#ifdef HLTCA_GPU_SORT_STARTHITS_2
+  if (r.fGo)
+	r.fGo &= tracker.TrackletStartHit(r.fItr).RowIndex() != 0;
+#endif
   r.fSave = r.fGo;
   r.fNHits = 0;
 
@@ -134,7 +142,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
 ( int iThread, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, int iRow )
 {
   // reconstruction of tracklets, read data step
-
+#ifdef HLTCA_GPU_PREFETCHDATA
   if ( r.fIsMemThread ) {
     const AliHLTTPCCARow &row = tracker.Row( iRow );
     bool jr = !r.fCurrentData;
@@ -142,7 +150,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
     // copy hits, grid content and links
 
     // FIXME: inefficient copy
-    const int numberOfHitsAligned = NextMultipleOf<8>(row.NHits());
+    const int numberOfHitsAligned = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.NHits());
 
 /*	
 #ifdef HLTCA_GPU_REORDERHITDATA
@@ -176,26 +184,30 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
 
 	for (int k = 0;k < 4;k++)		//Copy HitData (k = 0, 1), FirstHitInBint (k = 3), HitLinkUpData (k = 2) to shared memory
 	{
-		HLTCA_GPU_ROWCOPY* const sharedMem = reinterpret_cast<HLTCA_GPU_ROWCOPY *> (reinterpret_cast<ushort_v *>( s.fData[jr] ) + k * numberOfHitsAligned);
+		HLTCA_GPU_ROWCOPY* sharedMem;
 		const HLTCA_GPU_ROWCOPY* sourceMem;
 		int copyCount;
 		switch (k)
 		{
 		case 0:
 			sourceMem = reinterpret_cast<const HLTCA_GPU_ROWCOPY *>( tracker.HitDataY(row) );
+			sharedMem = reinterpret_cast<HLTCA_GPU_ROWCOPY *> (reinterpret_cast<ushort_v *>( s.fData[jr] ) + k * numberOfHitsAligned);
 			copyCount = numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);
 			break;
 		case 1:
 			sourceMem = reinterpret_cast<const HLTCA_GPU_ROWCOPY *>( tracker.HitDataZ(row) );
-			copyCount = numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);			
+			sharedMem = reinterpret_cast<HLTCA_GPU_ROWCOPY *> (reinterpret_cast<ushort_v *>( s.fData[jr] ) + k * numberOfHitsAligned);
+			copyCount = numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);
 			break;
 		case 2:
 			sourceMem = reinterpret_cast<const HLTCA_GPU_ROWCOPY *>( tracker.HitLinkUpData(row) );
+			sharedMem = reinterpret_cast<HLTCA_GPU_ROWCOPY *> (reinterpret_cast<ushort_v *>( s.fData[jr] ) + k * numberOfHitsAligned);
 			copyCount = numberOfHitsAligned * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);
 			break;
 		case 3:
 			sourceMem = reinterpret_cast<const HLTCA_GPU_ROWCOPY *>( tracker.FirstHitInBin(row) );
-			copyCount = NextMultipleOf<8>(row.FullSize()) * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);
+			sharedMem = reinterpret_cast<HLTCA_GPU_ROWCOPY *> (reinterpret_cast<ushort_v *>( s.fData[jr] ) + k * numberOfHitsAligned);
+			copyCount = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.FullSize()) * sizeof(ushort_v) / sizeof(HLTCA_GPU_ROWCOPY);
 			break;
 		}
 		for (int i = iThread;i < copyCount;i += TRACKLET_CONSTRUCTOR_NMEMTHREDS)
@@ -204,7 +216,19 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
 		}
 	}
 
+	const AliHLTTPCCASliceData &tmpData = tracker.Data();
+	const AliHLTTPCCARow &tmpRow = tmpData.Row( iRow );
+	const AliHLTTPCCARow* pTmpRow = &tmpRow;
+	const HLTCA_GPU_ROWCOPY* const sourceMem = (const HLTCA_GPU_ROWCOPY *) pTmpRow;
+	HLTCA_GPU_ROWCOPY* const sharedMem = reinterpret_cast<HLTCA_GPU_ROWCOPY *> ( &s.fRow[jr] );
+	const int copyCount = NextMultipleOf<sizeof(HLTCA_GPU_ROWCOPY)>(sizeof(AliHLTTPCCARow)) / sizeof(HLTCA_GPU_ROWCOPY);
+	for (int i = iThread;i < copyCount;i += TRACKLET_CONSTRUCTOR_NMEMTHREDS)
+	{
+		sharedMem[i] = sourceMem[i];
+	}
+
   }
+#endif
 }
 
 
@@ -298,7 +322,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
   AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[r.fItr];
 
+#ifdef HLTCA_GPU_PREFETCHDATA
+  const AliHLTTPCCARow &row = s.fRow[r.fCurrentData];
+#else
   const AliHLTTPCCARow &row = tracker.Row( iRow );
+#endif
 
   float y0 = row.Grid().YMin();
   float stepY = row.HstepY();
@@ -314,17 +342,28 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
       if ( ( iRow - r.fStartRow ) % 2 != 0 ) break; // SG!!! - jump over the row
 
+#ifdef HLTCA_GPU_PREFETCHDATA
       uint4 *tmpint4 = s.fData[r.fCurrentData];
+#endif
 	  ushort2 hh;
 #ifdef HLTCA_GPU_REORDERHITDATA
       hh = reinterpret_cast<ushort2*>( tmpint4 )[r.fCurrIH];
 #else
+#ifdef HLTCA_GPU_PREFETCHDATA
 	  hh.x = reinterpret_cast<ushort_v*>( tmpint4 )[r.fCurrIH];
-	  hh.y = reinterpret_cast<ushort_v*>( tmpint4 )[NextMultipleOf<8>(row.NHits()) + r.fCurrIH];
+	  hh.y = reinterpret_cast<ushort_v*>( tmpint4 )[NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.NHits()) + r.fCurrIH];
+#else
+	  hh.x = tracker.HitDataY(tracker.Row(iRow))[r.fCurrIH];
+	  hh.y = tracker.HitDataZ(tracker.Row(iRow))[r.fCurrIH];
+#endif
 #endif
 
       int oldIH = r.fCurrIH;
-      r.fCurrIH = reinterpret_cast<short*>( tmpint4 )[2 * NextMultipleOf<8>(row.NHits()) + r.fCurrIH]; // read from linkup data
+#ifdef HLTCA_GPU_PREFETCHDATA
+      r.fCurrIH = reinterpret_cast<short*>( tmpint4 )[2 * NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.NHits()) + r.fCurrIH]; // read from linkup data
+#else
+	  r.fCurrIH = tracker.HitLinkUpData(tracker.Row(iRow))[r.fCurrIH]; // read from linkup data
+#endif
 
       float x = row.X();
       float y = y0 + hh.x * stepY;
@@ -494,13 +533,20 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         AliHLTTPCCADisplay::Instance().Ask();
 		#endif
       }
+#ifdef HLTCA_GPU_PREFETCHDATA
       uint4 *tmpint4 = s.fData[r.fCurrentData];
+#endif
 
 #ifdef HLTCA_GPU_REORDERHITDATA
-      ushort2 *hits = reinterpret_cast<ushort2*>( tmpint4 );
+      const ushort2 *hits = reinterpret_cast<ushort2*>( tmpint4 );
 #else
-	  ushort_v *hitsx = reinterpret_cast<ushort_v*>( tmpint4 );
-	  ushort_v *hitsy = reinterpret_cast<ushort_v*>( tmpint4 ) + NextMultipleOf<8>(row.NHits());
+#ifdef HLTCA_GPU_PREFETCHDATA
+	  const ushort_v *hitsx = reinterpret_cast<ushort_v*>( tmpint4 );
+	  const ushort_v *hitsy = reinterpret_cast<ushort_v*>( tmpint4 ) + NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.NHits());
+#else
+	  const ushort_v *hitsx = tracker.HitDataY(tracker.Row(iRow));
+	  const ushort_v *hitsy = tracker.HitDataZ(tracker.Row(iRow));
+#endif
 #endif
 
       float fY = tParam.GetY();
@@ -528,7 +574,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         {
           int nY = row.Grid().Ny();
 
-          unsigned short *sGridP = ( reinterpret_cast<unsigned short*>( tmpint4 ) ) + 3 * NextMultipleOf<8>(row.NHits());
+#ifdef HLTCA_GPU_PREFETCHDATA
+		  const unsigned short *sGridP = ( reinterpret_cast<unsigned short*>( tmpint4 ) ) + 3 * NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.NHits());
+#else
+		  const unsigned short *sGridP = tracker.FirstHitInBin(tracker.Row(iRow));
+#endif
           fHitYfst = sGridP[fIndYmin];
           fHitYlst = sGridP[fIndYmin+2];
           fHitYfst1 = sGridP[fIndYmin+nY];

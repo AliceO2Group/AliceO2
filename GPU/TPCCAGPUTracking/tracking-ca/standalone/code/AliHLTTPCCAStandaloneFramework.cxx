@@ -127,7 +127,7 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
 
 
 //int
-void AliHLTTPCCAStandaloneFramework::ProcessEvent()
+void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 {
   // perform the event reconstruction
 
@@ -149,8 +149,11 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent()
 #pragma omp parallel for
 #endif
 	for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
-	  fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
-      fSliceTrackers[iSlice].Reconstruct();
+	  if (forceSingleSlice == -1 || iSlice == forceSingleSlice)
+	  {
+		fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
+		fSliceTrackers[iSlice].Reconstruct();
+	  }
 	}
 	if (fGPUDebugLevel >= 2) printf("\n");
   }
@@ -158,6 +161,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent()
   if (fUseGPUTracker)
   {
 	  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
+		if (forceSingleSlice != -1) iSlice = forceSingleSlice;
 	    fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
 		if (fGPUTracker.Reconstruct(&fSliceTrackers[iSlice]))
 		{
@@ -166,12 +170,13 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent()
 			//return(1);
 		}
 #ifdef HLTCA_STANDALONE
-		if (fGPUDebugLevel >= 2)
+		if (fGPUDebugLevel >= 1)
 		{
 			for ( int i = 0;i < 10;i++)
 				sliceTimers[iSlice][i] = *fGPUTracker.PerfTimer(i);
 		}
 #endif
+		if (forceSingleSlice != -1) break;
 	  }
 	  if (fGPUDebugLevel >= 2) printf("\n");
   }
@@ -182,20 +187,25 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent()
 
   printf("Tracking Time: %lld\nTime uncertainty: %lld\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000 / tmpFreq);
 
-  if (fGPUDebugLevel >= 2)
+  if (fGPUDebugLevel >= 1)
   {
-		const char* tmpNames[10] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Weight Cleaner", "Tracklet Constructor", "Tracklet Selector", "Write Output", "Unused", "Unused"};
+		const char* tmpNames[10] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Constructor", "Tracklet Selector", "Write Output", "Unused"};
 
 		for (int i = 0;i < 9;i++)
 		{
 			cpuTimers[i] = gpuTimers[i] = 0;
 			for ( int iSlice = 0; iSlice < fgkNSlices;iSlice++)
 			{
+				if (forceSingleSlice != -1) iSlice = forceSingleSlice;
 				cpuTimers[i] += *fSliceTrackers[iSlice].PerfTimer(i + 1) - *fSliceTrackers[iSlice].PerfTimer(i);
 				gpuTimers[i] += sliceTimers[iSlice][i + 1] - sliceTimers[iSlice][i];
+				if (forceSingleSlice != -1) break;
 			}
-			cpuTimers[i] /= fgkNSlices;
-			gpuTimers[i] /= fgkNSlices;
+			if (forceSingleSlice == -1)
+			{
+				cpuTimers[i] /= fgkNSlices;
+				gpuTimers[i] /= fgkNSlices;
+			}
 			cpuTimers[i] *= 1000000;
 			gpuTimers[i] *= 1000000;
 			cpuTimers[i] /= tmpFreq;

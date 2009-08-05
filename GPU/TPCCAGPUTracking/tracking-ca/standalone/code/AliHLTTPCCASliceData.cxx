@@ -220,13 +220,15 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   }
 
 
-  AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits( fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) * numberOfRows / sizeof(int) + 1);
+  AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits( fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) * numberOfRows + 1);
 
   int gridContentOffset = 0;
   int hitOffset = 0;
 
   int binCreationMemorySize = 103 * 2 + fNumberOfHits;
   AliHLTResizableArray<unsigned short> binCreationMemory( binCreationMemorySize );
+
+  unsigned int GPUSharedMemMaxSize = 0;
 
   for ( int rowIndex = data.FirstRow(); rowIndex <= data.LastRow(); ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
@@ -242,7 +244,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     const int numberOfBins = grid.N();
 
     int binCreationMemorySizeNew;
-    if ( ( binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(HLTCA_GPU_ROWALIGNMENT) * numberOfRows / sizeof(int) + 1) > binCreationMemorySize ) {
+    if ( ( binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.fNHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(unsigned short) * numberOfRows + 1) > binCreationMemorySize ) {
       binCreationMemorySize = binCreationMemorySizeNew;
       binCreationMemory.Resize( binCreationMemorySize );
     }
@@ -297,9 +299,14 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     row.fFullSize = nn;
     gridContentOffset += nn;
 
+	if (3 * NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn > GPUSharedMemMaxSize)
+		GPUSharedMemMaxSize = 3 * NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn;
+
 	//Make pointer aligned
 	gridContentOffset = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(gridContentOffset);
   }
+
+  fGPUSharedDataReq = GPUSharedMemMaxSize;
 
 #if 0
   //SG cell finder - test code

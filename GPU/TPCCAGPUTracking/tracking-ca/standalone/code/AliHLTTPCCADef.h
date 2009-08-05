@@ -100,12 +100,12 @@ namespace AliHLTTPCCADefinitions
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 5
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 700
 #define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 3500
-#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 656					//Max amount of hits in a row that can be stored in shared memory, make sure this is divisible by 4
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 1968					//Max amount of hits in a row that can be stored in shared memory, make sure this is divisible by ROW ALIGNMENT
 #else
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 20
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 7000
 #define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 10000
-#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 5000
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 15000
 #endif
 
 #ifdef HLTCA_GPUCODE
@@ -133,6 +133,7 @@ struct float2 { float x; float y; };
 struct uchar2 { unsigned char x; unsigned char y; };
 struct ushort2 { unsigned short x; unsigned short y; };
 struct uint1 { unsigned int x; };
+struct uint2 { unsigned int x; unsigned int y; };
 struct uint4 { unsigned int x, y, z, w; };
 
 #ifdef R__WIN32
