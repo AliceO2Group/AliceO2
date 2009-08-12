@@ -122,7 +122,11 @@ char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTr
 {
 	fTrackMemory = (char*) pGPUMemory;
 	SetPointersTracks(MaxNTracks, MaxNHits);
-	return(pGPUMemory + fTrackMemorySize);
+	pGPUMemory += fTrackMemorySize;
+	AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
+	AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * ((Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1));
+	AssignMemory(fRowBlockPos, pGPUMemory, MaxNTracks * 2 * ((Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1));
+	return(pGPUMemory);
 }
 
 void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
@@ -471,7 +475,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 #if !defined(HLTCA_GPUCODE)
 
-  if (fGPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << endl << endl << "Slice: " << Param().ISlice() << endl;
   }
@@ -482,7 +486,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(2);
 
-  if (fGPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Neighbours Finder:" << endl;
 	  DumpLinks(*fGPUDebugOut);
@@ -504,7 +508,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(3);
 
-  if (fGPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Neighbours Cleaner:" << endl;
 	  DumpLinks(*fGPUDebugOut);
@@ -515,7 +519,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   StandalonePerfTime(4);
   StandalonePerfTime(5);
 
-  if (fGPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Start Hits: (" << *fNTracklets << ")" << endl;
 	  DumpStartHits(*fGPUDebugOut);
@@ -535,7 +539,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(7);
 
-  if (fGPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Tracklet Hits:" << endl;
 	  DumpTrackletHits(*fGPUDebugOut);
@@ -549,7 +553,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   //std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
-  if (fGPUDebugLevel >= 3)
+  if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Track Hits: (" << *NTracks() << ")" << endl;
 	  DumpTrackHits(*fGPUDebugOut);

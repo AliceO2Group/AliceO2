@@ -169,7 +169,7 @@ int AliHLTTPCCAGPUTracker::CUDASync(char* state)
 		printf("CUDA Error while synchronizing (%s)\n", state);
 		return(1);
 	}
-	if (fDebugLevel >= 4) printf("CUDA Sync Done\n");
+	if (fDebugLevel >= 5) printf("CUDA Sync Done\n");
 	return(0);
 }
 
@@ -221,16 +221,16 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	
 	if (tracker->CheckEmptySlice())
 	{
-		if (fDebugLevel >= 4) printf("Slice Empty, not running GPU Tracker\n");
+		if (fDebugLevel >= 5) printf("Slice Empty, not running GPU Tracker\n");
 		return(0);
 	}
 
-	if (fDebugLevel >= 3)
+	if (fDebugLevel >= 4)
 	{
 		*fOutFile << endl << endl << "Slice: " << tracker->Param().ISlice() << endl;
 	}
 
-	if (fDebugLevel >= 4) printf("\n\nInitialising GPU Tracker\n");
+	if (fDebugLevel >= 5) printf("\n\nInitialising GPU Tracker\n");
 	memcpy(&fGpuTracker, tracker, sizeof(AliHLTTPCCATracker));
 
 	StandalonePerfTime(0);
@@ -238,16 +238,25 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	char* tmpMem = alignPointer((char*) fGPUMemory, 1024 * 1024);
 	fGpuTracker.SetGPUTracker();
 
-	if (fDebugLevel >= 4) printf("Initialising GPU Common Memory\n");
+	if (fDebugLevel >= 5) printf("Initialising GPU Common Memory\n");
 	tmpMem = fGpuTracker.SetGPUTrackerCommonMemory(tmpMem);
 	tmpMem = alignPointer(tmpMem, 1024 * 1024);
 
-	if (fDebugLevel >= 4) printf("Initialising GPU Hits Memory\n");
+	if (fDebugLevel >= 5) printf("Initialising GPU Hits Memory\n");
 	tmpMem = fGpuTracker.SetGPUTrackerHitsMemory(tmpMem, tracker->NHitsTotal());
 	tmpMem = alignPointer(tmpMem, 1024 * 1024);
 
-	if (fDebugLevel >= 4) printf("Initialising GPU Slice Data Memory\n");
+	if (fDebugLevel >= 5) printf("Initialising GPU Slice Data Memory\n");
 	tmpMem = fGpuTracker.SetGPUSliceDataMemory(tmpMem, fGpuTracker.ClusterData());
+	tmpMem = alignPointer(tmpMem, 1024 * 1024);
+	if (tmpMem - (char*) fGPUMemory > fGPUMemSize)
+	{
+		printf("Out of CUDA Memory\n");
+		return(1);
+	}
+
+	if (fDebugLevel >= 5) printf("Initialising GPU Track Memory\n");
+	tmpMem = fGpuTracker.SetGPUTrackerTracksMemory(tmpMem, HLTCA_GPU_MAX_TRACKLETS /**tracker->NTracklets()*/, tracker->NHitsTotal());
 	tmpMem = alignPointer(tmpMem, 1024 * 1024);
 	if (tmpMem - (char*) fGPUMemory > fGPUMemSize)
 	{
@@ -261,54 +270,53 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 
 	StandalonePerfTime(1);
 
-	if (fDebugLevel >= 4) printf("Running GPU Neighbours Finder\n");
+	if (fDebugLevel >= 5) printf("Running GPU Neighbours Finder\n");
 	AliHLTTPCCAProcess<AliHLTTPCCANeighboursFinder> <<<fGpuTracker.Param().NRows(), 256>>>();
 	if (CUDASync("Neighbours finder")) return 1;
 
 	StandalonePerfTime(2);
 
-	if (fDebugLevel >= 3)
+	if (fDebugLevel >= 4)
 	{
 		*fOutFile << "Neighbours Finder:" << endl;
 		CUDA_FAILED_MSG(cudaMemcpy(tracker->SliceDataMemory(), fGpuTracker.SliceDataMemory(), tracker->SliceDataMemorySize(), cudaMemcpyDeviceToHost));
 		tracker->DumpLinks(*fOutFile);
     }
 
-	if (fDebugLevel >= 4) printf("Running GPU Neighbours Cleaner\n");
+	if (fDebugLevel >= 5) printf("Running GPU Neighbours Cleaner\n");
 	AliHLTTPCCAProcess<AliHLTTPCCANeighboursCleaner> <<<fGpuTracker.Param().NRows()-2, 256>>>();
 	if (CUDASync("Neighbours Cleaner")) return 1;
 
 	StandalonePerfTime(3);
 
-	if (fDebugLevel >= 3)
+	if (fDebugLevel >= 4)
 	{
 		*fOutFile << "Neighbours Cleaner:" << endl;
 		CUDA_FAILED_MSG(cudaMemcpy(tracker->SliceDataMemory(), fGpuTracker.SliceDataMemory(), tracker->SliceDataMemorySize(), cudaMemcpyDeviceToHost));
 		tracker->DumpLinks(*fOutFile);
     }
 
-	if (fDebugLevel >= 4) printf("Running GPU Start Hits Finder\n");
+	if (fDebugLevel >= 5) printf("Running GPU Start Hits Finder\n");
 	AliHLTTPCCAProcess<AliHLTTPCCAStartHitsFinder> <<<fGpuTracker.Param().NRows()-4, 256>>>();
 	if (CUDASync("Start Hits Finder")) return 1;
 
 	StandalonePerfTime(4);
 
 #ifdef HLTCA_GPU_SORT_STARTHITS
-	if (fDebugLevel >= 4) printf("Running GPU Start Hits Sorter\n");
+	if (fDebugLevel >= 5) printf("Running GPU Start Hits Sorter\n");
 	AliHLTTPCCAProcess<AliHLTTPCCAStartHitsSorter> <<<30, 256>>>();
 	if (CUDASync("Start Hits Sorter")) return 1;
 #endif
 
 	StandalonePerfTime(5);
 
-
-	if (fDebugLevel >= 4) printf("Obtaining Number of Start Hits from GPU: ");
+	if (fDebugLevel >= 5) printf("Obtaining Number of Start Hits from GPU: ");
 	CUDA_FAILED_MSG(cudaMemcpy(tracker->CommonMemory(), fGpuTracker.CommonMemory(), tracker->CommonMemorySize(), cudaMemcpyDeviceToHost));
-	if (fDebugLevel >= 4) printf("%d\n", *tracker->NTracklets());
+	if (fDebugLevel >= 5) printf("%d\n", *tracker->NTracklets());
 	else if (fDebugLevel >= 2) printf("%3d ", *tracker->NTracklets());
 
 #ifdef HLTCA_GPU_SORT_STARTHITS
-	if (fDebugLevel >= 3)
+	if (fDebugLevel >= 4)
 	{
 		*fOutFile << "Start Hits Tmp: (" << *tracker->NTracklets() << ")" << endl;
 		CUDA_FAILED_MSG(cudaMemcpy(tracker->TrackletStartHits(), fGpuTracker.TrackletTmpStartHits(), tracker->NHitsTotal() * sizeof(AliHLTTPCCAHit), cudaMemcpyDeviceToHost));
@@ -324,7 +332,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
     }
 #endif
 
-	if (fDebugLevel >= 3)
+	if (fDebugLevel >= 4)
 	{
 		*fOutFile << "Start Hits: (" << *tracker->NTracklets() << ")" << endl;
 		CUDA_FAILED_MSG(cudaMemcpy(tracker->HitMemory(), fGpuTracker.HitMemory(), tracker->HitMemorySize(), cudaMemcpyDeviceToHost));
@@ -335,25 +343,22 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	tracker->RunNeighboursCleaner();
 	tracker->RunStartHitsFinder();*/
 
-	if (fDebugLevel >= 4) printf("Initialising GPU Track Memory\n");
-	tmpMem = fGpuTracker.SetGPUTrackerTracksMemory(tmpMem, *tracker->NTracklets(), tracker->NHitsTotal());
-	tmpMem = alignPointer(tmpMem, 1024 * 1024);
-	if (tmpMem - (char*) fGPUMemory > fGPUMemSize)
+	if (*tracker->NTracklets() > HLTCA_GPU_MAX_TRACKLETS)
 	{
-		printf("Out of CUDA Memory\n");
+		printf("HLTCA_GPU_MAX_TRACKLETS constant insuffisant\n");
 		return(1);
 	}
 
-	tracker->ClearSliceDataHitWeights();
-	CUDA_FAILED_MSG(cudaMemcpy(fGpuTracker.SliceDataHitWeights(), tracker->SliceDataHitWeights(), tracker->NHitsTotal() * sizeof(int), cudaMemcpyHostToDevice));
-	CUDA_FAILED_MSG(cudaMemcpyToSymbol(gAliHLTTPCCATracker, &fGpuTracker, sizeof(AliHLTTPCCATracker)));
+	CUDA_FAILED_MSG(cudaMemset(fGpuTracker.SliceDataHitWeights(), 0, tracker->NHitsTotal() * sizeof(int)));
+	//tracker->ClearSliceDataHitWeights();
+	//CUDA_FAILED_MSG(cudaMemcpy(fGpuTracker.SliceDataHitWeights(), tracker->SliceDataHitWeights(), tracker->NHitsTotal() * sizeof(int), cudaMemcpyHostToDevice));
 
-	if (fDebugLevel >= 4) printf("Initialising Slice Tracker (CPU) Track Memory\n");
+	if (fDebugLevel >= 5) printf("Initialising Slice Tracker (CPU) Track Memory\n");
 	tracker->TrackMemory() = reinterpret_cast<char*> ( new uint4 [ fGpuTracker.TrackMemorySize()/sizeof( uint4 ) + 100] );
     tracker->SetPointersTracks( *tracker->NTracklets(), tracker->NHitsTotal() );
 
 /*	tracker->RunTrackletConstructor();
-	if (fDebugLevel >= 3)
+	if (fDebugLevel >= 4)
 	{
 		*fOutFile << "Tracklet Hits:" << endl;
 		tracker->DumpTrackletHits(*fOutFile);
@@ -370,7 +375,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 #endif
 
 	int nMemThreads = TRACKLET_CONSTRUCTOR_NMEMTHREDS;
-    nThreads = 256 - nMemThreads;//96;
+    nThreads = HLTCA_GPU_THREAD_COUNT - nMemThreads;//96;
     nBlocks = *tracker->NTracklets()/nThreads + 1;
     if( nBlocks<30 ){
 		nBlocks = HLTCA_GPU_BLOCK_COUNT;
@@ -395,11 +400,12 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	CUDA_FAILED_MSG(cudaMemcpyToSymbol(gAliHLTTPCCATracker, &fGpuTracker, sizeof(AliHLTTPCCATracker)));
 #endif
 
-	if (fDebugLevel >= 4) printf("Running GPU Tracklet Constructor\n");
+	if (fDebugLevel >= 5) printf("Running GPU Tracklet Constructor\n");
 
 	if (fOptionAdaptiveSched)
 	{
-		AliHLTTPCCATrackletConstructorNew<<<30, 256>>>();
+		AliHLTTPCCATrackletConstructorInit<<<*tracker->NTracklets() / HLTCA_GPU_THREAD_COUNT + 1, HLTCA_GPU_THREAD_COUNT>>>();
+		AliHLTTPCCATrackletConstructorNew<<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT>>>();
 	}
 	else if (!fOptionSingleBlock)
 	{
@@ -481,7 +487,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 
 	StandalonePerfTime(7);
 
-	if (fDebugLevel >= 3)
+	if (fDebugLevel >= 4)
 	{
 		*fOutFile << "Tracklet Hits:" << endl;
 		CUDA_FAILED_MSG(cudaMemcpy(tracker->NTracklets(), fGpuTracker.NTracklets(), sizeof(int), cudaMemcpyDeviceToHost));
@@ -492,7 +498,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	//tracker->RunTrackletSelector();
 	
 
-	nThreads = 256;
+	nThreads = HLTCA_GPU_THREAD_COUNT;
 	nBlocks = *tracker->NTracklets()/nThreads + 1;
 	if( nBlocks<30 ){
 	  nBlocks = HLTCA_GPU_BLOCK_COUNT;  
@@ -505,7 +511,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 		return(1);
 	}
 
-	if (fDebugLevel >= 4) printf("Running GPU Tracklet Selector\n");
+	if (fDebugLevel >= 5) printf("Running GPU Tracklet Selector\n");
 	if (!fOptionSingleBlock)
 	{
 		AliHLTTPCCAProcess<AliHLTTPCCATrackletSelector><<<nBlocks, nThreads>>>();
@@ -518,10 +524,9 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 
 	StandalonePerfTime(8);
 
-	if (fDebugLevel >= 4) printf("Transfering Tracks from GPU to Host ");
-	CUDA_FAILED_MSG(cudaMemcpy(tracker->NTracks(), fGpuTracker.NTracks(), sizeof(int), cudaMemcpyDeviceToHost));
-	CUDA_FAILED_MSG(cudaMemcpy(tracker->NTrackHits(), fGpuTracker.NTrackHits(), sizeof(int), cudaMemcpyDeviceToHost));
-	if (fDebugLevel >= 4) printf("%d / %d\n", *tracker->NTracks(), *tracker->NTrackHits());
+	if (fDebugLevel >= 5) printf("Transfering Tracks from GPU to Host ");
+	CUDA_FAILED_MSG(cudaMemcpy(tracker->CommonMemory(), fGpuTracker.CommonMemory(), tracker->CommonMemorySize(), cudaMemcpyDeviceToHost));
+	if (fDebugLevel >= 5) printf("%d / %d\n", *tracker->NTracks(), *tracker->NTrackHits());
 	size = sizeof(AliHLTTPCCATrack) * *tracker->NTracks();
 	CUDA_FAILED_MSG(cudaMemcpy(tracker->Tracks(), fGpuTracker.Tracks(), size, cudaMemcpyDeviceToHost));
 	size = sizeof(AliHLTTPCCAHitId) * *tracker->NTrackHits();
@@ -531,18 +536,18 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 		return(1);
 	}
 
-	if (fDebugLevel >= 3)
+	if (fDebugLevel >= 4)
 	{
 		*fOutFile << "Track Hits: (" << *tracker->NTracks() << ")" << endl;
 		tracker->DumpTrackHits(*fOutFile);
     }
 
-	if (fDebugLevel >= 4) printf("Running WriteOutput\n");
+	if (fDebugLevel >= 5) printf("Running WriteOutput\n");
 	tracker->WriteOutput();
 
 	StandalonePerfTime(9);
 
-	if (fDebugLevel >= 4) printf("GPU Reconstruction finished\n");
+	if (fDebugLevel >= 5) printf("GPU Reconstruction finished\n");
 	
 	return(0);
 }

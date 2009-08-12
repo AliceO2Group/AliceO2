@@ -22,6 +22,7 @@
 #include "AliHLTTPCCASliceData.h"
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCAOutTrack.h"
+#include "AliHLTTPCCATrackletConstructor.h"
 
 class AliHLTTPCCATrack;
 class AliHLTTPCCATrackParam;
@@ -222,6 +223,9 @@ class AliHLTTPCCATracker
 	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
 
 	GPUhd() uint2* RowStartHitCountOffset() {return(fRowStartHitCountOffset);}
+	GPUhd() AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory* GPUTrackletTemp() {return(fGPUTrackletTemp);}
+	GPUhd() int* RowBlockTracklets(int reverse, int iRowBlock) {return(&fRowBlockTracklets[(reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock) * *fNTracklets]);}
+	GPUhd() uint2* RowBlockPos(int reverse, int iRowBlock) {return(&fRowBlockPos[(reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock) * *fNTracklets]);}
 
 	GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
 	void StandaloneQueryTime(unsigned long long int *i);
@@ -267,6 +271,9 @@ class AliHLTTPCCATracker
 	//GPU Temp Arrays
 	uint2* fRowStartHitCountOffset;				//Offset and length of start hits in row
 	AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
+	AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory *fGPUTrackletTemp;	//Temp Memory for GPU Tracklet Constructor
+	int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
+	uint2* fRowBlockPos;						//x is last tracklet to be processed, y is last tracklet already processed
 
 	int *fNextTracklet;
     int *fNTracklets;     // number of tracklets
