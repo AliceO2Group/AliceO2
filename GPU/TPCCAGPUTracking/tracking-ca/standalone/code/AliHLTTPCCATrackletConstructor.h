@@ -53,6 +53,7 @@ class AliHLTTPCCATrackletConstructor
         int fMinStartRow; // min start row
         int fMinStartRow32[32]; // min start row for each thread in warp
         int fMaxEndRow; // max start row
+		int fNextTracklet[(HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS) / HLTCA_GPU_WARP_SIZE];
     };
 
     class  AliHLTTPCCAThreadMemory
@@ -94,6 +95,8 @@ class AliHLTTPCCATrackletConstructor
                                int iSync, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r,
                                AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
 
+	GPUd() static void InitTracklet	( AliHLTTPCCATrackParam &tParam );
+
     GPUd() static void Step0
     ( int nBlocks, int nThreads, int iBlock, int iThread,
       AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
@@ -113,6 +116,10 @@ class AliHLTTPCCATrackletConstructor
     GPUd() static void StoreTracklet
     ( int nBlocks, int nThreads, int iBlock, int iThread,
       AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
+
+#ifdef HLTCA_GPUCODE
+	GPUd() static void AliHLTTPCCATrackletConstructorNew();
+#endif
 
     GPUd() static bool SAVE() { return 1; }
 

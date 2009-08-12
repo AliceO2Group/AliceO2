@@ -17,7 +17,8 @@ public:
 	  fDebugLevel(0),
 	  fOutFile(NULL),
 	  fGPUMemSize(0),
-	  fOptionSingleBlock(0)
+	  fOptionSingleBlock(0),
+	  fOptionAdaptiveSched(0)
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
 
@@ -34,7 +35,7 @@ private:
 	AliHLTTPCCATracker fGpuTracker;
 	void* fGPUMemory;
 
-	int CUDASync();
+	int CUDASync(char* state = "UNKNOWN");
 	template <class T> T* alignPointer(T* ptr, int alignment);
 
 	void StandalonePerfTime(int i);
@@ -44,6 +45,7 @@ private:
 	long long int fGPUMemSize;	//Memory Size to allocate on GPU
 
 	int fOptionSingleBlock;		//Use only one single Multiprocessor on GPU to check for problems related to multi processing
+	int fOptionAdaptiveSched;	//Adaptive shedule track/thread assignments
 #ifdef HLTCA_GPUCODE
 	bool CUDA_FAILED_MSG(cudaError_t error);
 #endif

@@ -22,6 +22,7 @@
 
 #include <cutil.h>
 #include <cutil_inline_runtime.h>
+//#include <cutil_inline.h>
 #include <sm_11_atomic_functions.h>
 #include <sm_12_atomic_functions.h>
 
@@ -153,19 +154,19 @@ bool AliHLTTPCCAGPUTracker::CUDA_FAILED_MSG(cudaError_t error)
 }
 
 //Wait for CUDA-Kernel to finish and check for CUDA errors afterwards
-int AliHLTTPCCAGPUTracker::CUDASync()
+int AliHLTTPCCAGPUTracker::CUDASync(char* state)
 {
 	if (fDebugLevel == 0) return(0);
 	cudaError cuErr;
 	cuErr = cudaGetLastError();
 	if (cuErr != cudaSuccess)
 	{
-		printf("Cuda Error %s while invoking kernel\n", cudaGetErrorString(cuErr));
+		printf("Cuda Error %s while invoking kernel (%s)\n", cudaGetErrorString(cuErr), state);
 		return(1);
 	}
 	if (CUDA_FAILED_MSG(cudaThreadSynchronize()))
 	{
-		printf("CUDA Error while synchronizing\n");
+		printf("CUDA Error while synchronizing (%s)\n", state);
 		return(1);
 	}
 	if (fDebugLevel >= 4) printf("CUDA Sync Done\n");
@@ -183,6 +184,10 @@ int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* OptionName, int OptionValue
 	if (strcmp(OptionName, "SingleBlock") == 0)
 	{
 		fOptionSingleBlock = OptionValue;
+	}
+	else if (strcmp(OptionName, "AdaptSched") == 0)
+	{
+		fOptionAdaptiveSched = OptionValue;
 	}
 	else
 	{
@@ -258,7 +263,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 
 	if (fDebugLevel >= 4) printf("Running GPU Neighbours Finder\n");
 	AliHLTTPCCAProcess<AliHLTTPCCANeighboursFinder> <<<fGpuTracker.Param().NRows(), 256>>>();
-	if (CUDASync()) return 1;
+	if (CUDASync("Neighbours finder")) return 1;
 
 	StandalonePerfTime(2);
 
@@ -271,7 +276,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 
 	if (fDebugLevel >= 4) printf("Running GPU Neighbours Cleaner\n");
 	AliHLTTPCCAProcess<AliHLTTPCCANeighboursCleaner> <<<fGpuTracker.Param().NRows()-2, 256>>>();
-	if (CUDASync()) return 1;
+	if (CUDASync("Neighbours Cleaner")) return 1;
 
 	StandalonePerfTime(3);
 
@@ -284,14 +289,14 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 
 	if (fDebugLevel >= 4) printf("Running GPU Start Hits Finder\n");
 	AliHLTTPCCAProcess<AliHLTTPCCAStartHitsFinder> <<<fGpuTracker.Param().NRows()-4, 256>>>();
-	if (CUDASync()) return 1;
+	if (CUDASync("Start Hits Finder")) return 1;
 
 	StandalonePerfTime(4);
 
 #ifdef HLTCA_GPU_SORT_STARTHITS
 	if (fDebugLevel >= 4) printf("Running GPU Start Hits Sorter\n");
 	AliHLTTPCCAProcess<AliHLTTPCCAStartHitsSorter> <<<30, 256>>>();
-	if (CUDASync()) return 1;
+	if (CUDASync("Start Hits Sorter")) return 1;
 #endif
 
 	StandalonePerfTime(5);
@@ -378,8 +383,25 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 		return(1);
 	}
 
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+	if (CUDA_FAILED_MSG(cudaMalloc((void**) &fGpuTracker.fStageAtSync, nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * sizeof(int))) ||
+		CUDA_FAILED_MSG(cudaMalloc((void**) &fGpuTracker.fThreadTimes, 30 * 256 * sizeof(int))))
+	{
+		return(1);
+	}
+	CUDA_FAILED_MSG(cudaMemset(fGpuTracker.fStageAtSync, 0, nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * sizeof(int)));
+	int* StageAtSync = (int*) malloc(nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * sizeof(int));
+	int* ThreadTimes = (int*) malloc(30 * 256 * sizeof(int));
+	CUDA_FAILED_MSG(cudaMemcpyToSymbol(gAliHLTTPCCATracker, &fGpuTracker, sizeof(AliHLTTPCCATracker)));
+#endif
+
 	if (fDebugLevel >= 4) printf("Running GPU Tracklet Constructor\n");
-	if (!fOptionSingleBlock)
+
+	if (fOptionAdaptiveSched)
+	{
+		AliHLTTPCCATrackletConstructorNew<<<30, 256>>>();
+	}
+	else if (!fOptionSingleBlock)
 	{
 		AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor> <<<nBlocks, nMemThreads+nThreads>>>(); 
 	}
@@ -387,7 +409,75 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	{
 		AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor> <<<1, TRACKLET_CONSTRUCTOR_NMEMTHREDS + *tracker->NTracklets()>>>();
 	}
-	if (CUDASync()) return 1;
+	if (CUDASync("Tracklet Constructor")) return 1;
+
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+	printf("Saving Profile\n");
+	CUDA_FAILED_MSG(cudaMemcpy(StageAtSync, fGpuTracker.fStageAtSync, nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * sizeof(int), cudaMemcpyDeviceToHost));
+	CUDA_FAILED_MSG(cudaMemcpy(ThreadTimes, fGpuTracker.fThreadTimes, 30 * 256 * sizeof(int), cudaMemcpyDeviceToHost));
+
+	FILE *fp = fopen("profile.txt", "w+"), *fp2 = fopen("profile.bmp", "w+b"), *fp3 = fopen("times.txt", "w+");
+	if (fp == NULL || fp2 == NULL || fp3 == NULL)
+	{
+		printf("Error opening Profile File\n");
+		return(1);
+	}
+	BITMAPFILEHEADER bmpFH;
+	BITMAPINFOHEADER bmpIH;
+	ZeroMemory(&bmpFH, sizeof(bmpFH));
+	ZeroMemory(&bmpIH, sizeof(bmpIH));
+	
+	bmpFH.bfType = 19778; //"BM"
+	bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * 4;
+	bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
+
+	bmpIH.biSize = sizeof(bmpIH);
+	bmpIH.biWidth = nBlocks * nThreads + nBlocks * nThreads / 32;
+	if (nBlocks * nThreads % 32 == 0) bmpIH.biWidth--;
+	bmpIH.biHeight = 4 + 159*2 + 1 + 1 + 1;
+	bmpIH.biPlanes = 1;
+	bmpIH.biBitCount = 32;
+
+	fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
+	fwrite(&bmpIH, 1, sizeof(bmpIH), fp2);
+
+	for (int i = 0;i < 4 + 159*2 + 1 + 1 + 1;i++)
+	{
+		for (int j = 0;j < nBlocks * nThreads;j++)
+		{
+			fprintf(fp, "%d\t", StageAtSync[i * nBlocks * nThreads + j]);
+			int color = 0;
+			if (StageAtSync[i * nBlocks * nThreads + j] == 1) color = RGB(255, 0, 0);
+			if (StageAtSync[i * nBlocks * nThreads + j] == 2) color = RGB(0, 255, 0);
+			if (StageAtSync[i * nBlocks * nThreads + j] == 3) color = RGB(0, 0, 255);
+			if (StageAtSync[i * nBlocks * nThreads + j] == 4) color = RGB(255, 255, 0);
+			fwrite(&color, 1, 4, fp2);
+			if (j > 0 && j % 32 == 0)
+			{
+				color = RGB(255, 255, 255);
+				fwrite(&color, 1, 4, fp2);
+			}
+		}
+		fprintf(fp, "\n");
+	}
+
+	for (int i = 0;i < 30;i++)
+	{
+		for (int j = 0;j < 256;j++)
+		{
+			fprintf(fp3, "%d\t", ThreadTimes[i * 256 + j]);
+		}
+		fprintf(fp3, "\n");
+	}
+	fclose(fp);
+	fclose(fp2);
+	fclose(fp3);
+
+	cudaFree(fGpuTracker.fStageAtSync);
+	cudaFree(fGpuTracker.fThreadTimes);
+	free(StageAtSync);
+	free(ThreadTimes);
+#endif
 
 	StandalonePerfTime(7);
 
@@ -424,7 +514,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 	{
 		AliHLTTPCCAProcess<AliHLTTPCCATrackletSelector><<<1, *tracker->NTracklets()>>>();
 	}
-	if (CUDASync()) return 1;
+	if (CUDASync("Tracklet Selector")) return 1;
 
 	StandalonePerfTime(8);
 

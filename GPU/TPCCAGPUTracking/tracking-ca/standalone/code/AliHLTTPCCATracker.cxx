@@ -289,6 +289,7 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersCommon()
 
   char *mem = fCommonMemory;
   AssignMemory( fNTracklets, mem, 1 );
+  AssignMemory( fNextTracklet, mem, 1 );
   AssignMemory( fNTracks, mem, 1 );
   AssignMemory( fNTrackHits, mem, 1 );
   AssignMemory( fNOutTracks, mem, 1 );
