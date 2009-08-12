@@ -71,6 +71,7 @@ class AliHLTTPCCATrackParam
 
     const float *GetPar() const { return fP; }
     const float *GetCov() const { return fC; }
+	GPUd() float GetCov(int i) {return fC[i]; }
 
     GPUhd() void SetPar( int i, float v ) { fP[i] = v; }
     GPUhd() void SetCov( int i, float v ) { fC[i] = v; }
@@ -140,6 +141,9 @@ class AliHLTTPCCATrackParam
   private:
 #endif
 
+	//WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
+	//This is neccessary for performance reasons!!!
+	//Changes to Elements of this class therefore must also be applied to TrackletConstructor!!!
     float fX;      // x position
     float fSignCosPhi; // sign of cosPhi
     float fP[5];   // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt

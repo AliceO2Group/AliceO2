@@ -17,11 +17,14 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
+#include "AliHLTTPCCATrackParam.h"
 
 /**
  * @class AliHLTTPCCATrackletConstructor
  *
  */
+class AliHLTTPCCATracker;
+
 class AliHLTTPCCATrackletConstructor
 {
   public:
@@ -89,6 +92,12 @@ class AliHLTTPCCATrackletConstructor
         float fLastZ; // Z of the last fitted cluster
     };
 
+	struct AliHLTTPCCAGPUTempMemory
+	{
+		AliHLTTPCCAThreadMemory fThreadMem;
+		AliHLTTPCCATrackParam fParam;
+	};
+
     GPUd() static int NThreadSyncPoints() { return 4 + 159*2 + 1 + 1; }
 
     GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread,
@@ -96,6 +105,7 @@ class AliHLTTPCCATrackletConstructor
                                AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
 
 	GPUd() static void InitTracklet	( AliHLTTPCCATrackParam &tParam );
+	GPUd() static void CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam &tParamSrc, AliHLTTPCCATrackParam &tParamDst);
 
     GPUd() static void Step0
     ( int nBlocks, int nThreads, int iBlock, int iThread,
@@ -119,6 +129,7 @@ class AliHLTTPCCATrackletConstructor
 
 #ifdef HLTCA_GPUCODE
 	GPUd() static void AliHLTTPCCATrackletConstructorNew();
+	GPUd() static void AliHLTTPCCATrackletConstructorInit(int iTracklet, AliHLTTPCCATracker &tracke);
 #endif
 
     GPUd() static bool SAVE() { return 1; }
@@ -132,6 +143,7 @@ class AliHLTTPCCATrackletConstructor
 #endif
 
 };
+
 
 
 #endif

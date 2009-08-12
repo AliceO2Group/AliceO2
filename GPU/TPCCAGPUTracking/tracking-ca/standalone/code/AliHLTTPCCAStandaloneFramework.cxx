@@ -184,8 +184,29 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #ifdef HLTCA_STANDALONE
   fSliceTrackers[0].StandaloneQueryTime(&endTime);
   fSliceTrackers[0].StandaloneQueryTime(&checkTime);
+#endif
 
-  printf("Tracking Time: %lld\nTime uncertainty: %lld\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000 / tmpFreq);
+  timer1.Stop();
+  TStopwatch timer2;
+
+  fMerger.Clear();
+  fMerger.SetSliceParam( fSliceTrackers[0].Param() );
+
+  for ( int i = 0; i < fgkNSlices; i++ ) {
+    fMerger.SetSliceData( i, fSliceTrackers[i].Output() );
+  }
+
+  fMerger.Reconstruct();
+
+  timer2.Stop();
+  timer0.Stop();
+
+  fLastTime[0] = timer0.CpuTime();
+  fLastTime[1] = timer1.CpuTime();
+  fLastTime[2] = timer2.CpuTime();
+
+#ifdef HLTCA_STANDALONE
+  printf("Tracking Time: %lld us\nTime uncertainty: %lld ns\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000000 / tmpFreq);
 
   if (fGPUDebugLevel >= 1)
   {
@@ -213,32 +234,16 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
 			printf("Execution Time: Task: %20s ", tmpNames[i]);
 			if (!fUseGPUTracker || fGPUDebugLevel >= 3)
-				printf("CPU: %15lld ", cpuTimers[i]);
+				printf("CPU: %15lld\t\t", cpuTimers[i]);
 			if (fUseGPUTracker)
-				printf("GPU: %15lld ", gpuTimers[i]);
+				printf("GPU: %15lld\t\t", gpuTimers[i]);
+			if (fGPUDebugLevel >= 3 && fUseGPUTracker)
+				printf("Speedup: %4lld%%", cpuTimers[i] * 100 / gpuTimers[i]);
 			printf("\n");
 		}
+		printf("Execution Time: Task: %20s CPU: %15lld\n", "Merger", (long long int) (timer2.CpuTime() * 1000000));
   }
 #endif
-
-  timer1.Stop();
-  TStopwatch timer2;
-
-  fMerger.Clear();
-  fMerger.SetSliceParam( fSliceTrackers[0].Param() );
-
-  for ( int i = 0; i < fgkNSlices; i++ ) {
-    fMerger.SetSliceData( i, fSliceTrackers[i].Output() );
-  }
-
-  fMerger.Reconstruct();
-
-  timer2.Stop();
-  timer0.Stop();
-
-  fLastTime[0] = timer0.CpuTime();
-  fLastTime[1] = timer1.CpuTime();
-  fLastTime[2] = timer2.CpuTime();
 
   for ( int i = 0; i < 3; i++ ) fStatTime[i] += fLastTime[i];
 
