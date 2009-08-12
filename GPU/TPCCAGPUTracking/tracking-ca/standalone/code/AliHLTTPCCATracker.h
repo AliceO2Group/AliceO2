@@ -12,6 +12,7 @@
 
 
 #include "AliHLTTPCCADef.h"
+#include "AliHLTTPCCAGPUConfig.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCAHit.h"
@@ -188,6 +189,7 @@ class AliHLTTPCCATracker
 
     GPUhd() int NTracklets() const { return *fNTracklets; }
     GPUhd() int  *NTracklets() { return fNTracklets; }
+	GPUhd() int  *NextTracklet() { return fNextTracklet; }
 
     GPUhd() const AliHLTTPCCAHitId &TrackletStartHit( int i ) const { return fTrackletStartHits[i]; }
     GPUhd() AliHLTTPCCAHitId *TrackletStartHits() const { return fTrackletStartHits; }
@@ -225,6 +227,11 @@ class AliHLTTPCCATracker
 	void StandaloneQueryTime(unsigned long long int *i);
 	void StandaloneQueryFreq(unsigned long long int *i);
 
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+	int* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
+	int* fThreadTimes;
+#endif
+
 #ifndef CUDA_DEVICE_EMULATION
   private:
 #endif
@@ -261,7 +268,7 @@ class AliHLTTPCCATracker
 	uint2* fRowStartHitCountOffset;				//Offset and length of start hits in row
 	AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
 
-
+	int *fNextTracklet;
     int *fNTracklets;     // number of tracklets
     AliHLTTPCCAHitId *fTrackletStartHits;   // start hits for the tracklets
     AliHLTTPCCATracklet *fTracklets; // tracklets
