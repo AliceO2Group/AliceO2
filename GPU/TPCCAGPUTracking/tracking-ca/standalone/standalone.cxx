@@ -79,7 +79,7 @@ int main(int argc, char** argv)
   }	
 	std::ofstream CPUOut, GPUOut;
 
-	if (DebugLevel >= 3)
+	if (DebugLevel >= 4)
 	{
 		CPUOut.open("CPU.out");
 		GPUOut.open("GPU.out");
@@ -121,7 +121,7 @@ int main(int argc, char** argv)
 		in.open(filename, std::ifstream::binary);
 		if (in.fail())
 		{
-			printf("Error opening file\n");
+			printf("Error opening file %s\n", filename);
 			getchar();
 			return(1);
 		}
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
 		}*/
 	}
 
-	if (DebugLevel >= 3)
+	if (DebugLevel >= 4)
 	{
 		CPUOut.close();
 		GPUOut.close();
