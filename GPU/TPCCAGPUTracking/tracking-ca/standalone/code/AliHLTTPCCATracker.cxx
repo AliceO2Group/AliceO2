@@ -124,8 +124,8 @@ char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTr
 	SetPointersTracks(MaxNTracks, MaxNHits);
 	pGPUMemory += fTrackMemorySize;
 	AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
-	AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * ((Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1));
-	AssignMemory(fRowBlockPos, pGPUMemory, MaxNTracks * 2 * ((Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1));
+	AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
+	AssignMemory(fRowBlockPos, pGPUMemory, 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
 	return(pGPUMemory);
 }
 
@@ -293,11 +293,11 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersCommon()
 
   char *mem = fCommonMemory;
   AssignMemory( fNTracklets, mem, 1 );
-  AssignMemory( fNextTracklet, mem, 1 );
   AssignMemory( fNTracks, mem, 1 );
   AssignMemory( fNTrackHits, mem, 1 );
   AssignMemory( fNOutTracks, mem, 1 );
   AssignMemory( fNOutTrackHits, mem, 1 );
+  AssignMemory( fGPUError, mem, 1);
 
   // calculate the size
 
@@ -534,10 +534,11 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   SetPointersTracks( *fNTracklets * 2, NHitsTotal() ); // set pointers for hits
 
   StandalonePerfTime(6);
+  StandalonePerfTime(7);
 
   RunTrackletConstructor();
 
-  StandalonePerfTime(7);
+  StandalonePerfTime(8);
 
   if (fGPUDebugLevel >= 4)
   {
@@ -549,7 +550,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   RunTrackletSelector();
 
-  StandalonePerfTime(8);
+  StandalonePerfTime(9);
 
   //std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
@@ -563,7 +564,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   WriteOutput();
 
-  StandalonePerfTime(9);
+  StandalonePerfTime(10);
 
 #endif
 

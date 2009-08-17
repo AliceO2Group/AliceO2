@@ -29,10 +29,6 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread
 
   if ( iSync == 0 ) {
     if ( iThread == 0 ) {
-      if ( iBlock == 0 ) {
-        CAMath::AtomicExch( tracker.NTracklets(), 0 );
-		*tracker.NextTracklet() = HLTCA_GPU_BLOCK_COUNT * (HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS);
-      }
       s.fNRows = tracker.Param().NRows();
       s.fIRow = iBlock + 1;
       s.fNRowStartHits = 0;
