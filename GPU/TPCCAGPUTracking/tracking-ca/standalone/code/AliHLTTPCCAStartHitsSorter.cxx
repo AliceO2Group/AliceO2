@@ -70,7 +70,7 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 		const int tmpLen = tracker.RowStartHitCountOffset()[ir + s.fStartRow].x;			//Length of hits in row stored by StartHitsFinder
 		const int tmpOffset = tracker.RowStartHitCountOffset()[ir + s.fStartRow].y;			//Offset of first hit in row of unsorted array by StartHitsFinder
 		if (iThread == 0)
-			tracker.RowStartHitCountOffset()[ir + s.fStartRow].y = StartOffset;				//Store New Offset Value of sorted array
+			tracker.RowStartHitCountOffset()[ir + s.fStartRow].z = StartOffset;				//Store New Offset Value of sorted array
 
 		for (int j = iThread;j < tmpLen;j += nThreads)
 		{

@@ -165,7 +165,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 	    fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
 		if (fGPUTracker.Reconstruct(&fSliceTrackers[iSlice]))
 		{
-			printf("Error during GPU Reconstruction!!!\n");
+			printf("Error during GPU Reconstruction (Slice %d)!!!\n", iSlice);
 			return;
 			//return(1);
 		}
@@ -210,9 +210,9 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   if (fGPUDebugLevel >= 1)
   {
-		const char* tmpNames[10] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Constructor", "Tracklet Selector", "Write Output", "Unused"};
+		const char* tmpNames[16] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Initializer", "Tracklet Constructor", "Tracklet Selector", "Write Output", "Unused", "Unused", "Unused", "Unused", "Unused", "Unused"};
 
-		for (int i = 0;i < 9;i++)
+		for (int i = 0;i < 10;i++)
 		{
 			cpuTimers[i] = gpuTimers[i] = 0;
 			for ( int iSlice = 0; iSlice < fgkNSlices;iSlice++)
@@ -237,7 +237,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 				printf("CPU: %15lld\t\t", cpuTimers[i]);
 			if (fUseGPUTracker)
 				printf("GPU: %15lld\t\t", gpuTimers[i]);
-			if (fGPUDebugLevel >= 3 && fUseGPUTracker)
+			if (fGPUDebugLevel >= 3 && fUseGPUTracker && gpuTimers[i])
 				printf("Speedup: %4lld%%", cpuTimers[i] * 100 / gpuTimers[i]);
 			printf("\n");
 		}

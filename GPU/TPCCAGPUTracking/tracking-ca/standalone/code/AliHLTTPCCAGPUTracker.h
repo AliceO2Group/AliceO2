@@ -32,6 +32,8 @@ public:
 	unsigned long long int* PerfTimer(unsigned int i) {return fGpuTracker.PerfTimer(i); }
 
 private:
+	void DumpRowBlocks(AliHLTTPCCATracker* tracker, bool check = true);
+
 	AliHLTTPCCATracker fGpuTracker;
 	void* fGPUMemory;
 

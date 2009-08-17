@@ -56,7 +56,10 @@ class AliHLTTPCCATrackletConstructor
         int fMinStartRow; // min start row
         int fMinStartRow32[32]; // min start row for each thread in warp
         int fMaxEndRow; // max start row
-		int fNextTracklet[(HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS) / HLTCA_GPU_WARP_SIZE];
+		int fNextTrackletFirst;
+		int fNextTrackletCount;
+		int fNextTrackletNoDummy;
+		int fNextTrackletStupidDummy;
     };
 
     class  AliHLTTPCCAThreadMemory
@@ -129,6 +132,7 @@ class AliHLTTPCCATrackletConstructor
 
 #ifdef HLTCA_GPUCODE
 	GPUd() static void AliHLTTPCCATrackletConstructorNew();
+	GPUd() static int FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, int Reverse, int RowBlock);
 	GPUd() static void AliHLTTPCCATrackletConstructorInit(int iTracklet, AliHLTTPCCATracker &tracke);
 #endif
 

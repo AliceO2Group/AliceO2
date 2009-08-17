@@ -133,7 +133,9 @@ struct float2 { float x; float y; };
 struct uchar2 { unsigned char x; unsigned char y; };
 struct ushort2 { unsigned short x; unsigned short y; };
 struct uint1 { unsigned int x; };
+struct int2 { int x, y; };
 struct uint2 { unsigned int x; unsigned int y; };
+struct uint3 { unsigned int x, y, z; };
 struct uint4 { unsigned int x, y, z, w; };
 
 #ifdef R__WIN32
