@@ -60,6 +60,7 @@ class AliHLTTPCCATrackletConstructor
 		int fNextTrackletCount;
 		int fNextTrackletNoDummy;
 		int fNextTrackletStupidDummy;
+		int fNextTrackletFirstRun;
     };
 
     class  AliHLTTPCCAThreadMemory
