@@ -227,8 +227,11 @@ class AliHLTTPCCATracker
 	GPUhd() int* RowBlockTracklets() {return(fRowBlockTracklets);}
 	GPUhd() int2* RowBlockPos(int reverse, int iRowBlock) {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
 	GPUhd() int2* RowBlockPos() {return(fRowBlockPos);}
+	GPUhd() uint2* BlockStartingThread() {return(fBlockStartingThread);}
+	GPUhd() int* ScheduleFirstDynamicTracklet() {return(fScheduleFirstDynamicTracklet);}
 	GPUhd() int* GPUError() {return(fGPUError);}
-
+	GPUhd() int* GPUStatusData() {return(fGPUStatusData);}
+	
 	GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
 	void StandaloneQueryTime(unsigned long long int *i);
 	void StandaloneQueryFreq(unsigned long long int *i);
@@ -261,6 +264,7 @@ class AliHLTTPCCATracker
 	int fGPUDebugLevel; // debug level
 	std::ostream *fGPUDebugOut; // debug stream
 	int *fGPUError;
+	int* fGPUStatusData;
 
 	//GPU Temp Arrays
 	uint3* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
@@ -268,6 +272,8 @@ class AliHLTTPCCATracker
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory *fGPUTrackletTemp;	//Temp Memory for GPU Tracklet Constructor
 	int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
 	int2* fRowBlockPos;						//x is last tracklet to be processed, y is last tracklet already processed
+	uint2* fBlockStartingThread;
+	int* fScheduleFirstDynamicTracklet;			//Last Tracklet with fixed position in sheduling
 
 	// event
 

@@ -298,9 +298,11 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersCommon()
   AssignMemory( fNOutTracks, mem, 1 );
   AssignMemory( fNOutTrackHits, mem, 1 );
   AssignMemory( fGPUError, mem, 1);
+  AssignMemory( fGPUStatusData, mem, 16);
+  AssignMemory( fBlockStartingThread, mem, HLTCA_GPU_BLOCK_COUNT);
+  AssignMemory( fScheduleFirstDynamicTracklet, mem, 1);
 
   // calculate the size
-
   fCommonMemorySize = mem - fCommonMemory;
 }
 

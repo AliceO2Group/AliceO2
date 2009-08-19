@@ -137,8 +137,8 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   TStopwatch timer1;
 
 #ifdef HLTCA_STANDALONE
-  unsigned long long int sliceTimers[fgkNSlices][10], startTime, endTime, checkTime;
-  unsigned long long int cpuTimers[10], gpuTimers[10], tmpFreq;
+  unsigned long long int sliceTimers[fgkNSlices][16], startTime, endTime, checkTime;
+  unsigned long long int cpuTimers[16], gpuTimers[16], tmpFreq;
   fSliceTrackers[0].StandaloneQueryFreq(&tmpFreq);
   fSliceTrackers[0].StandaloneQueryTime(&startTime);
 #endif
@@ -172,7 +172,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #ifdef HLTCA_STANDALONE
 		if (fGPUDebugLevel >= 1)
 		{
-			for ( int i = 0;i < 10;i++)
+			for ( int i = 0;i < 16;i++)
 				sliceTimers[iSlice][i] = *fGPUTracker.PerfTimer(i);
 		}
 #endif

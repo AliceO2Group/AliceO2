@@ -218,10 +218,13 @@ void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, bool chec
 	
 		uint2* RowBlockPos = (uint2*) malloc(sizeof(uint2) * (tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2);
 		int* RowBlockTracklets = (int*) malloc(sizeof(int) * (tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * HLTCA_GPU_MAX_TRACKLETS * 2);
+		uint2* BlockStartingThread = (uint2*) malloc(sizeof(uint2) * HLTCA_GPU_BLOCK_COUNT);
 		CUDA_FAILED_MSG(cudaMemcpy(RowBlockPos, fGpuTracker.RowBlockPos(), sizeof(uint2) * (tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2, cudaMemcpyDeviceToHost));
 		CUDA_FAILED_MSG(cudaMemcpy(RowBlockTracklets, fGpuTracker.RowBlockTracklets(), sizeof(int) * (tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * HLTCA_GPU_MAX_TRACKLETS * 2, cudaMemcpyDeviceToHost));
+		CUDA_FAILED_MSG(cudaMemcpy(BlockStartingThread, fGpuTracker.BlockStartingThread(), sizeof(uint2) * HLTCA_GPU_BLOCK_COUNT, cudaMemcpyDeviceToHost));
+		CUDA_FAILED_MSG(cudaMemcpy(tracker->CommonMemory(), fGpuTracker.CommonMemory(), tracker->CommonMemorySize(), cudaMemcpyDeviceToHost));
 
-		int k = 0;
+		int k = *tracker->ScheduleFirstDynamicTracklet();
 		for (int i = 0; i < tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1;i++)
 		{
 			*fOutFile << "Rowblock: " << i << ", up " << RowBlockPos[i].y << "/" << RowBlockPos[i].x << ", down " << 
@@ -248,8 +251,18 @@ void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, bool chec
 			*fOutFile << endl;
 		}
 
+		if (check)
+		{
+			*fOutFile << "Starting Threads: (First Dynamic: " << *tracker->ScheduleFirstDynamicTracklet() << ")" << std::endl;
+			for (int i = 0;i < HLTCA_GPU_BLOCK_COUNT;i++)
+			{
+				*fOutFile << i << ": " << BlockStartingThread[i].x << " - " << BlockStartingThread[i].y << std::endl;
+			}
+		}
+
 		free(RowBlockPos);
 		free(RowBlockTracklets);
+		free(BlockStartingThread);
 	}
 }
 
@@ -322,8 +335,17 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 		return(1);
 	}
 
+	if (fDebugLevel >= 1)
+	{
+		static int showMemInfo = true;
+		if (showMemInfo)
+			printf("GPU Memory used: %d bytes\n", (int) (tmpMem - (char*) fGPUMemory));
+		showMemInfo = false;
+	}
+
 	*tracker->GPUError() = 0;
 	*tracker->NTracklets() = 0;
+	memset(tracker->GPUStatusData(), 0, sizeof(int) * 16);
 
 	CUDA_FAILED_MSG(cudaMemcpy(fGpuTracker.CommonMemory(), tracker->CommonMemory(), tracker->CommonMemorySize(), cudaMemcpyHostToDevice));
 	CUDA_FAILED_MSG(cudaMemcpy(fGpuTracker.SliceDataMemory(), tracker->SliceDataMemory(), tracker->SliceDataMemorySize(), cudaMemcpyHostToDevice));
@@ -601,6 +623,8 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 		printf("GPU Tracker returned Error Code %d\n", *tracker->GPUError());
 		return(1);
 	}
+	if (*tracker->GPUStatusData())
+		printf("Collisions: %d\n", *tracker->GPUStatusData());
 	if (fDebugLevel >= 5) printf("%d / %d\n", *tracker->NTracks(), *tracker->NTrackHits());
 	size = sizeof(AliHLTTPCCATrack) * *tracker->NTracks();
 	CUDA_FAILED_MSG(cudaMemcpy(tracker->Tracks(), fGpuTracker.Tracks(), size, cudaMemcpyDeviceToHost));
