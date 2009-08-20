@@ -219,7 +219,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
     }
 #endif
     if ( CAMath::Abs( tParam.Par()[4] ) < 1.e-4 ) tParam.SetPar( 4, 1.e-4 );
-    tracklet.SetFirstRow( r.fFirstRow );
+    tracklet.SetFirstRow( CAMath::Min(r.fFirstRow, r.fStartRow ) );
     tracklet.SetLastRow( r.fLastRow );
     tracklet.SetParam( tParam );
     int w = ( r.fNHits << 16 ) + r.fItr;
