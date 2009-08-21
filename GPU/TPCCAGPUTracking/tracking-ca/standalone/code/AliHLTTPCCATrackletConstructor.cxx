@@ -1005,6 +1005,13 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorNew()
 			int StorePosition;
 			while ((i = FetchTracklet(tracker, sMem, iReverse, iRowBlock)) != -2)
 			{
+				if (threadIdx.x - TRACKLET_CONSTRUCTOR_NMEMTHREDS < 2 * (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1))
+				{
+					const int nReverse = (threadIdx.x - TRACKLET_CONSTRUCTOR_NMEMTHREDS) / (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1);
+					const int nRowBlock = (threadIdx.x - TRACKLET_CONSTRUCTOR_NMEMTHREDS) % (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1);
+					sMem.fTrackletStoreCount[nReverse][nRowBlock] = 0;
+				}
+				__syncthreads();
 				if (i >= 0)
 				{
 #ifdef HLTCA_GPU_EMULATION_DEBUG_TRACKLET
@@ -1109,13 +1116,6 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorNew()
 				if (i >= 0 && rMem.fGo && (iRowBlock != tracker.Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP || iReverse == 0))
 				{
 					tracker.RowBlockTracklets(StoreToRowBlock.y, StoreToRowBlock.x)[sMem.fTrackletStoreCount[StoreToRowBlock.y][StoreToRowBlock.x] + StorePosition] = i;
-				}
-				__syncthreads();
-				if (threadIdx.x - TRACKLET_CONSTRUCTOR_NMEMTHREDS < 2 * (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1))
-				{
-					const int nReverse = (threadIdx.x - TRACKLET_CONSTRUCTOR_NMEMTHREDS) / (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1);
-					const int nRowBlock = (threadIdx.x - TRACKLET_CONSTRUCTOR_NMEMTHREDS) % (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1);
-					sMem.fTrackletStoreCount[nReverse][nRowBlock] = 0;
 				}
 				__syncthreads();
 			}
