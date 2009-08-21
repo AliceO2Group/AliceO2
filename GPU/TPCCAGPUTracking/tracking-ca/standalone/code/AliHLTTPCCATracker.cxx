@@ -126,6 +126,8 @@ char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTr
 	AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
 	AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
 	AssignMemory(fRowBlockPos, pGPUMemory, 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
+	AssignMemory( fBlockStartingTracklet, pGPUMemory, HLTCA_GPU_BLOCK_COUNT);
+
 	return(pGPUMemory);
 }
 
@@ -295,10 +297,7 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersCommon()
   AssignMemory( fNTrackHits, mem, 1 );
   AssignMemory( fNOutTracks, mem, 1 );
   AssignMemory( fNOutTrackHits, mem, 1 );
-  AssignMemory( fGPUError, mem, 1);
-  AssignMemory( fGPUStatusData, mem, 16);
-  AssignMemory( fBlockStartingThread, mem, HLTCA_GPU_BLOCK_COUNT);
-  AssignMemory( fScheduleFirstDynamicTracklet, mem, 1);
+  AssignMemory( fGPUParameters, mem, 1);
 
   // calculate the size
   fCommonMemorySize = mem - fCommonMemory;

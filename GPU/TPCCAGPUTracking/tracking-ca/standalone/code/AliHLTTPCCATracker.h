@@ -80,6 +80,14 @@ class AliHLTTPCCATracker
 	}
     GPUd() ~AliHLTTPCCATracker();
 
+	struct StructGPUParameters
+	{
+		int fScheduleFirstDynamicTracklet;		//Last Tracklet with fixed position in sheduling
+		int fStaticStartingTracklets;			//Start using fBlockStartingTracklet instead of fetching from RowBlockTracklets
+		int fGPUError;
+		int fGPUSchedCollisions;
+	};
+
     void Initialize( const AliHLTTPCCAParam &param );
 
     void StartEvent();
@@ -225,12 +233,10 @@ class AliHLTTPCCATracker
 	GPUhd() AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory* GPUTrackletTemp() {return(fGPUTrackletTemp);}
 	GPUhd() int* RowBlockTracklets(int reverse, int iRowBlock) {return(&fRowBlockTracklets[(reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock) * *fNTracklets]);}
 	GPUhd() int* RowBlockTracklets() {return(fRowBlockTracklets);}
-	GPUhd() int2* RowBlockPos(int reverse, int iRowBlock) {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
-	GPUhd() int2* RowBlockPos() {return(fRowBlockPos);}
-	GPUhd() uint2* BlockStartingThread() {return(fBlockStartingThread);}
-	GPUhd() int* ScheduleFirstDynamicTracklet() {return(fScheduleFirstDynamicTracklet);}
-	GPUhd() int* GPUError() {return(fGPUError);}
-	GPUhd() int* GPUStatusData() {return(fGPUStatusData);}
+	GPUhd() int3* RowBlockPos(int reverse, int iRowBlock) {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
+	GPUhd() int3* RowBlockPos() {return(fRowBlockPos);}
+	GPUhd() uint2* BlockStartingTracklet() {return(fBlockStartingTracklet);}
+	GPUhd() StructGPUParameters* GPUParameters() {return(fGPUParameters);}
 	
 	GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
 	void StandaloneQueryTime(unsigned long long int *i);
@@ -263,17 +269,16 @@ class AliHLTTPCCATracker
 	bool fIsGPUTracker; // is it GPU tracker
 	int fGPUDebugLevel; // debug level
 	std::ostream *fGPUDebugOut; // debug stream
-	int *fGPUError;
-	int* fGPUStatusData;
 
 	//GPU Temp Arrays
 	uint3* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
 	AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory *fGPUTrackletTemp;	//Temp Memory for GPU Tracklet Constructor
 	int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
-	int2* fRowBlockPos;						//x is last tracklet to be processed, y is last tracklet already processed
-	uint2* fBlockStartingThread;
-	int* fScheduleFirstDynamicTracklet;			//Last Tracklet with fixed position in sheduling
+	int3* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration
+	uint2* fBlockStartingTracklet;
+
+	StructGPUParameters* fGPUParameters;			
 
 	// event
 
