@@ -66,7 +66,7 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 				{
 					tracker.BlockStartingThread()[nCurrentBlock].x = LastBlockEndTracklet;
 					tracker.BlockStartingThread()[nCurrentBlock++].y = HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS;
-					LastBlockEndTracklet = i / (HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS) * (HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS);
+					LastBlockEndTracklet += HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS;
 					if (nCurrentBlock == HLTCA_GPU_BLOCK_COUNT)
 					{
 						break;

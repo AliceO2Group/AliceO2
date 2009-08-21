@@ -131,6 +131,7 @@ __constant__ float4 gAliHLTTPCCATracker[30000/sizeof( float4 )];
 
 struct float2 { float x; float y; };
 struct uchar2 { unsigned char x; unsigned char y; };
+struct short2 { short x, y; };
 struct ushort2 { unsigned short x; unsigned short y; };
 struct uint1 { unsigned int x; };
 struct int2 { int x, y; };
