@@ -228,7 +228,7 @@ void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, bool chec
 		for (int i = 0; i < tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1;i++)
 		{
 			*fOutFile << "Rowblock: " << i << ", up " << RowBlockPos[i].y << "/" << RowBlockPos[i].x << ", down " << 
-				RowBlockPos[tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].y << "/" << RowBlockPos[tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].x << endl;
+				RowBlockPos[tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].y << "/" << RowBlockPos[tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].x << endl << "Phase 1: ";
 			for (unsigned int j = 0;j < RowBlockPos[i].x;j++)
 			{
 				//Use Tracker Object to calculate Offset instead of fGpuTracker, since *fNTracklets of fGpuTracker points to GPU Mem!
@@ -240,11 +240,11 @@ void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, bool chec
 				k++;
 				if (RowBlockTracklets[(tracker->RowBlockTracklets(0, i) - tracker->RowBlockTracklets(0, 0)) + j] == -1)
 				{
-					printf("Error, -1 Tracklet found");
+					printf("Error, -1 Tracklet found\n");
 				}
 			}
-			*fOutFile << endl;
-			for (unsigned int j = RowBlockPos[tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].y;j < RowBlockPos[tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].x;j++)
+			*fOutFile << endl << "Phase 2: ";
+			for (unsigned int j = 0;j < RowBlockPos[tracker->Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].x;j++)
 			{
 				*fOutFile << RowBlockTracklets[(tracker->RowBlockTracklets(1, i) - tracker->RowBlockTracklets(0, 0)) + j] << ", ";
 			}
@@ -654,18 +654,6 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker)
 		std::ofstream tmpout("tmpdebug.out");
 		int* GPUDebug = (int*) malloc(100 * 1024 * 1024);
 		CUDA_FAILED_MSG(cudaMemcpy(GPUDebug, fGpuTracker.fGPUDebugMem, 100 * 1024 * 1024, cudaMemcpyDeviceToHost));
-		/*for (int i = 0;i < 10 * 1024;i++)
-		{
-			*fOutFile << i << ": (Row " << GPUDebug[2 * i + 1] << ") " << GPUDebug[2 * i] <<" - " << (i == 0 ? 0 : (GPUDebug[2 * i] - GPUDebug[2 * (i - 1)])) << endl;
-		}*/
-		for (int i = 0;i < GPUDebug[0];i++)
-		{
-			tmpout << i << ": (Block " << GPUDebug[1 + 4 * i] << ") Use: " << GPUDebug[1 + 4 * i + 1] << ", Fetch: " << GPUDebug[1 + 4 * i + 2] << ", Last: " << GPUDebug[1 + 4 * i + 3] << endl;
-		}
-		for (int i = 0;i < *tracker->NTracklets();i++)
-		{
-			tmpout << i << ": " << GPUDebug[10000 + i] << endl;
-		}
 		free(GPUDebug);
 		cudaFree(fGpuTracker.fGPUDebugMem);
 		tmpout.close();

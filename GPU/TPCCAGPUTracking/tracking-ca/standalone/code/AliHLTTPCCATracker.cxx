@@ -214,25 +214,23 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	qsort(Tracklets(), *NTracklets(), sizeof(AliHLTTPCCATracklet), trackletSortComparison);
 #endif
-	for (int k = 0;k < Param().NRows();k++)
+	for (int j = 0;j < *NTracklets();j++)
 	{
-		for (int j = 0;j < *NTracklets();j++)
+		out << "Tracklet " << j << " (Hits: " << setw(3) << Tracklets()[j].NHits() << ", Start: " << setw(3) << TrackletStartHit(j).RowIndex() << "-" << setw(3) << TrackletStartHit(j).HitIndex() << ") ";
+		if (Tracklets()[j].NHits() == 0);
+		else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= Param().NRows() || Tracklets()[j].LastRow() >= Param().NRows()))
 		{
-			if (Tracklets()[j].NHits() == 0) continue;
-			if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= Param().NRows() || Tracklets()[j].LastRow() >= Param().NRows()))
+			printf("\nError: First %d Last %d Num %d", Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
+		}
+		else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() > Tracklets()[j].FirstRow())
+		{
+			for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
 			{
-				printf("\nError: First %d Last %d Num %d", Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
-			}
-			else if (Tracklets()[j].NHits() && Tracklets()[j].FirstRow() == k && Tracklets()[j].LastRow() > Tracklets()[j].FirstRow())
-			{
-				for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
-				{
-					if (Tracklets()[j].RowHit(i) != -1)
-						out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
-				}
-				out << endl;
+				if (Tracklets()[j].RowHit(i) != -1)
+					out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
 			}
 		}
+		out << endl;
 	}
 }
 
