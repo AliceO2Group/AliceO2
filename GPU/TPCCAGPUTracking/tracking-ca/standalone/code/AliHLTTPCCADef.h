@@ -130,12 +130,13 @@ __constant__ float4 gAliHLTTPCCATracker[30000/sizeof( float4 )];
 #define GPUsync()
 
 struct float2 { float x; float y; };
-struct uchar2 { unsigned char x; unsigned char y; };
+struct uchar2 { unsigned char x, y; };
 struct short2 { short x, y; };
-struct ushort2 { unsigned short x; unsigned short y; };
-struct uint1 { unsigned int x; };
+struct ushort2 { unsigned short x, y; };
 struct int2 { int x, y; };
-struct uint2 { unsigned int x; unsigned int y; };
+struct int3 { int x, y, z; };
+struct uint1 { unsigned int x; };
+struct uint2 { unsigned int x, y; };
 struct uint3 { unsigned int x, y, z; };
 struct uint4 { unsigned int x, y, z, w; };
 

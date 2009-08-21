@@ -11,6 +11,7 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCATrackParam.cxx \
 								code/AliHLTTPCCATracklet.cxx \
 								code/AliHLTTPCCAStartHitsFinder.cxx \
+								code/AliHLTTPCCAStartHitsSorter.cxx \
 								code/AliHLTTPCCANeighboursCleaner.cxx \
 								code/AliHLTTPCCAParam.cxx \
 								code/AliHLTTPCCAOutTrack.cxx \

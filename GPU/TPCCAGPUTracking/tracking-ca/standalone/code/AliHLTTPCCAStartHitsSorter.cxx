@@ -64,8 +64,8 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 			{
 				if (LastBlockEndTracklet / (HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS) != i / (HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS))
 				{
-					tracker.BlockStartingThread()[nCurrentBlock].x = LastBlockEndTracklet;
-					tracker.BlockStartingThread()[nCurrentBlock++].y = HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS;
+					tracker.BlockStartingTracklet()[nCurrentBlock].x = LastBlockEndTracklet;
+					tracker.BlockStartingTracklet()[nCurrentBlock++].y = HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS;
 					LastBlockEndTracklet += HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS;
 					if (nCurrentBlock == HLTCA_GPU_BLOCK_COUNT)
 					{
@@ -77,14 +77,14 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 			{
 				if (LastBlockEndTracklet != StartOffset)
 				{
-					tracker.BlockStartingThread()[nCurrentBlock].x = LastBlockEndTracklet;
-					tracker.BlockStartingThread()[nCurrentBlock++].y = StartOffset - LastBlockEndTracklet;
+					tracker.BlockStartingTracklet()[nCurrentBlock].x = LastBlockEndTracklet;
+					tracker.BlockStartingTracklet()[nCurrentBlock++].y = StartOffset - LastBlockEndTracklet;
 					LastBlockEndTracklet = StartOffset;
 				}
 			}
 			if (nCurrentBlock == HLTCA_GPU_BLOCK_COUNT)
 			{
-				*tracker.ScheduleFirstDynamicTracklet() = LastBlockEndTracklet;
+				tracker.GPUParameters()->fScheduleFirstDynamicTracklet = LastBlockEndTracklet;
 			}
 		}
 	  }
@@ -92,8 +92,8 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 	  {
 		for (int i = nCurrentBlock;i < HLTCA_GPU_BLOCK_COUNT;i++)
 		{
-			tracker.BlockStartingThread()[i].x = 0;
-			tracker.BlockStartingThread()[i].y = 0;			
+			tracker.BlockStartingTracklet()[i].x = 0;
+			tracker.BlockStartingTracklet()[i].y = 0;			
 		}
 	  }
 #endif

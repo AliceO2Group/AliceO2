@@ -25,6 +25,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAClusterData.h"
 #include "TStopwatch.h"
+#include <omp.h>
 
 //If not building GPU Code then build dummy functions to link against
 #ifndef BUILD_GPU
@@ -231,6 +232,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 			gpuTimers[i] *= 1000000;
 			cpuTimers[i] /= tmpFreq;
 			gpuTimers[i] /= tmpFreq;
+			cpuTimers[i] /= omp_get_num_threads();
 
 			printf("Execution Time: Task: %20s ", tmpNames[i]);
 			if (!fUseGPUTracker || fGPUDebugLevel >= 3)
