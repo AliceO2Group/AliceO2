@@ -76,7 +76,7 @@ class AliHLTTPCCAStandaloneFramework
     void ReadEvent( std::istream &in );
     void ReadTracks( std::istream &in );
 
-	int InitGPU(int forceDeviceID = -1);
+	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
 	int ExitGPU();
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
 	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fGPUTracker.SetGPUTrackerOption(OptionName, OptionValue));}
@@ -100,6 +100,7 @@ class AliHLTTPCCAStandaloneFramework
 
   bool fUseGPUTracker; // use the GPU tracker 
   int fGPUDebugLevel;  // debug level for the GPU code
+  int fGPUSliceCount;	//How many slices to process parallel
 };
 
 #endif

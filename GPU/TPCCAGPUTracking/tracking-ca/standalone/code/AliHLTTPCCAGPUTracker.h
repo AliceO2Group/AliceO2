@@ -12,29 +12,30 @@ class AliHLTTPCCAGPUTracker
 {
 public:
 	AliHLTTPCCAGPUTracker() :
-	  fGpuTracker(),
+	  fGpuTracker(NULL),
 	  fGPUMemory(NULL),
 	  fDebugLevel(0),
 	  fOutFile(NULL),
 	  fGPUMemSize(0),
 	  fOptionSingleBlock(0),
-	  fOptionAdaptiveSched(0)
+	  fOptionAdaptiveSched(1),
+	  fSliceCount(0)
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
 
-	int InitGPU(int forceDeviceID = -1);
-	int Reconstruct(AliHLTTPCCATracker* tracker);
+	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
+	int Reconstruct(AliHLTTPCCATracker* tracker, int fSliceCount = -1);
 	int ExitGPU();
 
 	void SetDebugLevel(int dwLevel, std::ostream *NewOutFile = NULL);
 	int SetGPUTrackerOption(char* OptionName, int OptionValue);
 
-	unsigned long long int* PerfTimer(unsigned int i) {return fGpuTracker.PerfTimer(i); }
+	unsigned long long int* PerfTimer(unsigned int i) {return(fGpuTracker ? fGpuTracker[0].PerfTimer(i) : NULL); }
 
 private:
-	void DumpRowBlocks(AliHLTTPCCATracker* tracker, bool check = true);
+	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 
-	AliHLTTPCCATracker fGpuTracker;
+	AliHLTTPCCATracker *fGpuTracker;
 	void* fGPUMemory;
 
 	int CUDASync(char* state = "UNKNOWN");
@@ -48,6 +49,8 @@ private:
 
 	int fOptionSingleBlock;		//Use only one single Multiprocessor on GPU to check for problems related to multi processing
 	int fOptionAdaptiveSched;	//Adaptive shedule track/thread assignments
+
+	int fSliceCount;
 #ifdef HLTCA_GPUCODE
 	bool CUDA_FAILED_MSG(cudaError_t error);
 #endif

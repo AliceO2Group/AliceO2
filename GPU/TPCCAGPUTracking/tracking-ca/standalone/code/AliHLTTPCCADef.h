@@ -118,8 +118,6 @@ namespace AliHLTTPCCADefinitions
 #define GPUshared() __shared__
 #define GPUsync() __syncthreads()
 
-__constant__ float4 gAliHLTTPCCATracker[30000/sizeof( float4 )];
-
 #else
 
 #define GPUd()

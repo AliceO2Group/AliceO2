@@ -134,7 +134,7 @@ class AliHLTTPCCATrackletConstructor
       AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
 
 #ifdef HLTCA_GPUCODE
-	GPUd() static void AliHLTTPCCATrackletConstructorNew();
+	GPUd() static void AliHLTTPCCATrackletConstructorNew(AliHLTTPCCATracker *pTracker);
 	GPUd() static int FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, int Reverse, int RowBlock);
 	GPUd() static void AliHLTTPCCATrackletConstructorInit(int iTracklet, AliHLTTPCCATracker &tracke);
 #endif

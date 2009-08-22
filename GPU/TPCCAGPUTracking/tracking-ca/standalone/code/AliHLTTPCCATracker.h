@@ -84,8 +84,15 @@ class AliHLTTPCCATracker
 	{
 		int fScheduleFirstDynamicTracklet;		//Last Tracklet with fixed position in sheduling
 		int fStaticStartingTracklets;			//Start using fBlockStartingTracklet instead of fetching from RowBlockTracklets
-		int fGPUError;
-		int fGPUSchedCollisions;
+		int fGPUError;							//Signalizes error on GPU during GPU Reconstruction, kind of return value
+		int fGPUSchedCollisions;				//Count of unsolveable schedule collisions
+	};
+
+	struct StructGPUParametersConst
+	{
+		int fGPUFixedBlockCount;				//Count of blocks that is used for this tracker in fixed schedule situations
+		int fGPUiSlice;
+		int fGPUnSlices;
 	};
 
     void Initialize( const AliHLTTPCCAParam &param );
@@ -229,14 +236,15 @@ class AliHLTTPCCATracker
 	GPUh() size_t SliceDataMemorySize() const {return(fData.MemorySize()); }
 	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
 
-	GPUhd() uint3* RowStartHitCountOffset() {return(fRowStartHitCountOffset);}
-	GPUhd() AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory* GPUTrackletTemp() {return(fGPUTrackletTemp);}
-	GPUhd() int* RowBlockTracklets(int reverse, int iRowBlock) {return(&fRowBlockTracklets[(reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock) * *fNTracklets]);}
-	GPUhd() int* RowBlockTracklets() {return(fRowBlockTracklets);}
-	GPUhd() int3* RowBlockPos(int reverse, int iRowBlock) {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
-	GPUhd() int3* RowBlockPos() {return(fRowBlockPos);}
-	GPUhd() uint2* BlockStartingTracklet() {return(fBlockStartingTracklet);}
-	GPUhd() StructGPUParameters* GPUParameters() {return(fGPUParameters);}
+	GPUhd() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
+	GPUhd() AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory* GPUTrackletTemp() const {return(fGPUTrackletTemp);}
+	GPUhd() int* RowBlockTracklets(int reverse, int iRowBlock) const {return(&fRowBlockTracklets[(reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock) * *fNTracklets]);}
+	GPUhd() int* RowBlockTracklets() const {return(fRowBlockTracklets);}
+	GPUhd() int3* RowBlockPos(int reverse, int iRowBlock) const {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
+	GPUhd() int3* RowBlockPos() const {return(fRowBlockPos);}
+	GPUhd() uint2* BlockStartingTracklet() const {return(fBlockStartingTracklet);}
+	GPUhd() StructGPUParameters* GPUParameters() const {return(fGPUParameters);}
+	GPUhd() StructGPUParametersConst* GPUParametersConst() {return(&fGPUParametersConst);}
 	
 	GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
 	void StandaloneQueryTime(unsigned long long int *i);
@@ -278,7 +286,8 @@ class AliHLTTPCCATracker
 	int3* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration
 	uint2* fBlockStartingTracklet;
 
-	StructGPUParameters* fGPUParameters;			
+	StructGPUParameters* fGPUParameters;
+	StructGPUParametersConst fGPUParametersConst;
 
 	// event
 
