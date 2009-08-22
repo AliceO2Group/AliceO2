@@ -64,12 +64,14 @@ ClassImp( AliHLTTPCCATracker )
 GPUd() AliHLTTPCCATracker::~AliHLTTPCCATracker()
 {
   // destructor
+#ifndef CUDA_DEVICE_EMULATION
 	if (!fIsGPUTracker)
 	{
 		delete[] fCommonMemory;
 		delete[] fHitMemory;
 		delete[] fTrackMemory;
 	}
+#endif
 }
 
 #if !defined(HLTCA_GPUCODE)
@@ -488,7 +490,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Neighbours Finder:" << endl;
-	  DumpLinks(*fGPUDebugOut);
+	  //DumpLinks(*fGPUDebugOut);
   }
 #ifdef HLTCA_INTERNAL_PERFORMANCE
   //if( Param().ISlice()<=2 )
@@ -510,7 +512,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Neighbours Cleaner:" << endl;
-	  DumpLinks(*fGPUDebugOut);
+	  //DumpLinks(*fGPUDebugOut);
   }
 
   RunStartHitsFinder();
@@ -521,7 +523,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Start Hits: (" << *fNTracklets << ")" << endl;
-	  DumpStartHits(*fGPUDebugOut);
+	  //DumpStartHits(*fGPUDebugOut);
   }
   
   if (fGPUDebugLevel >= 2) printf("%3d ", *fNTracklets);
@@ -542,7 +544,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Tracklet Hits:" << endl;
-	  DumpTrackletHits(*fGPUDebugOut);
+	  //DumpTrackletHits(*fGPUDebugOut);
   }
 
   //std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
@@ -556,7 +558,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   if (fGPUDebugLevel >= 4)
   {
 	  *fGPUDebugOut << "Track Hits: (" << *NTracks() << ")" << endl;
-	  DumpTrackHits(*fGPUDebugOut);
+	  //DumpTrackHits(*fGPUDebugOut);
   }
 
   //std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;

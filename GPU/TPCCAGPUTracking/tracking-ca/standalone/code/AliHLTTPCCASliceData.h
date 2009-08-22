@@ -155,7 +155,7 @@ class AliHLTTPCCASliceData
     void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data, int ClusterDataHitNumberOffset );
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
-    AliHLTTPCCARow fRows[200]; // The row objects needed for most accessor functions
+    AliHLTTPCCARow fRows[160]; // The row objects needed for most accessor functions
 
 	int fGPUSharedDataReq;		//Size of shared memory required for GPU Reconstruction
 

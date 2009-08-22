@@ -23,9 +23,9 @@ class AliHLTTPCCATracker;
 #if defined(HLTCA_GPUCODE)
 
 template<class TProcess>
-GPUg() void AliHLTTPCCAProcess()
+GPUg() void AliHLTTPCCAProcess(int iSlice)
 {
-  AliHLTTPCCATracker &tracker = *( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker );
+  AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[iSlice];
 
   GPUshared() typename TProcess::AliHLTTPCCASharedMemory smem;
 

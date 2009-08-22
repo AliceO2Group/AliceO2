@@ -161,10 +161,11 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   if (fUseGPUTracker)
   {
-	  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
+	  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice += fGPUSliceCount ) {
 		if (forceSingleSlice != -1) iSlice = forceSingleSlice;
-	    fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
-		if (fGPUTracker.Reconstruct(&fSliceTrackers[iSlice]))
+		for (int iSliceA = iSlice;iSliceA < iSlice + (forceSingleSlice != -1 ? 1 : CAMath::Min(fGPUSliceCount, fgkNSlices - iSlice));iSliceA++)
+			fSliceTrackers[iSliceA].ReadEvent( &( fClusterData[iSliceA] ) );
+		if (fGPUTracker.Reconstruct(&fSliceTrackers[iSlice], forceSingleSlice != -1 ? 1 : CAMath::Min(fGPUSliceCount, fgkNSlices - iSlice)))
 		{
 			printf("Error during GPU Reconstruction (Slice %d)!!!\n", iSlice);
 			return;
@@ -220,7 +221,8 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 			{
 				if (forceSingleSlice != -1) iSlice = forceSingleSlice;
 				cpuTimers[i] += *fSliceTrackers[iSlice].PerfTimer(i + 1) - *fSliceTrackers[iSlice].PerfTimer(i);
-				gpuTimers[i] += sliceTimers[iSlice][i + 1] - sliceTimers[iSlice][i];
+				if (forceSingleSlice != -1 || iSlice % fGPUSliceCount == 0)
+					gpuTimers[i] += sliceTimers[iSlice][i + 1] - sliceTimers[iSlice][i];
 				if (forceSingleSlice != -1) break;
 			}
 			if (forceSingleSlice == -1)
@@ -309,11 +311,12 @@ void AliHLTTPCCAStandaloneFramework::ReadTracks( std::istream &in )
   //fMerger.Output()->Read( in );
 }
 
-int AliHLTTPCCAStandaloneFramework::InitGPU(int forceDeviceID)
+int AliHLTTPCCAStandaloneFramework::InitGPU(int sliceCount, int forceDeviceID)
 {
 	if (fUseGPUTracker) return(1);
-	int retVal = fGPUTracker.InitGPU(forceDeviceID);
+	int retVal = fGPUTracker.InitGPU(sliceCount, forceDeviceID);
 	fUseGPUTracker = retVal == 0;
+	fGPUSliceCount = sliceCount;
 	return(retVal);
 }
 
