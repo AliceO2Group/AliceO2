@@ -108,7 +108,9 @@ void AliHLTTPCCASliceData::Clear()
 void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 {
   // initialisation of rows
-
+#ifdef SLICE_DATA_EXTERN_ROWS
+	fRows = new AliHLTTPCCARow[160];
+#endif
   for ( int i = 0; i < p.NRows(); ++i ) {
     fRows[i].fX = p.RowX( i );
     fRows[i].fMaxY = CAMath::Tan( p.DAlpha() / 2. ) * fRows[i].fX;
@@ -118,7 +120,11 @@ void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 GPUh() char* AliHLTTPCCASliceData::SetGPUSliceDataMemory(char* pGPUMemory, const AliHLTTPCCAClusterData *data)
 {
 	fMemory = (char*) pGPUMemory;
-	return(pGPUMemory + SetPointers(data, false));
+	pGPUMemory += SetPointers(data, false);
+#ifdef SLICE_DATA_EXTERN_ROWS
+	AssignMemory( fRows, pGPUMemory, 160 );
+#endif
+	return(pGPUMemory);
 }
 
 size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, bool allocate)
@@ -299,8 +305,8 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     row.fFullSize = nn;
     gridContentOffset += nn;
 
-	if (3 * NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn > GPUSharedMemMaxSize)
-		GPUSharedMemMaxSize = 3 * NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn;
+	if (NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn > GPUSharedMemMaxSize)
+		GPUSharedMemMaxSize = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn;
 
 	//Make pointer aligned
 	gridContentOffset = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(gridContentOffset);

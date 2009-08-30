@@ -34,11 +34,9 @@ class AliHLTTPCCATrackletConstructor
         friend class AliHLTTPCCATrackletConstructor;
       public:
 #if !defined(HLTCA_GPUCODE)
-        AliHLTTPCCASharedMemory()
-            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fMinStartRow( 0 ), fMaxEndRow( 0 ) {}
+        AliHLTTPCCASharedMemory() {}
 
-        AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fItr0( 0 ), fItr1( 0 ), fNRows( 0 ), fMinStartRow( 0 ), fMaxEndRow( 0 ) {}
+        AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
 
@@ -46,16 +44,8 @@ class AliHLTTPCCATrackletConstructor
       protected:
 #endif
 
-#ifdef HLTCA_GPU_PREFETCHDATA
         uint4 fData[2][ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4]; // temp memory
 		AliHLTTPCCARow fRow[2]; // row
-#endif
-        int fItr0; // start track index
-        int fItr1; // end track index
-        int fNRows; // n rows
-        int fMinStartRow; // min start row
-        int fMinStartRow32[32]; // min start row for each thread in warp
-        int fMaxEndRow; // max start row
 		int fNextTrackletFirst;
 		int fNextTrackletCount;
 		int fNextTrackletNoDummy;
@@ -71,10 +61,10 @@ class AliHLTTPCCATrackletConstructor
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCAThreadMemory()
-            : fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fIsMemThread( 0 ), fGo( 0 ), fSave( 0 ), fCurrentData( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 ) {}
+            : fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fCurrentData( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 ) {}
 
         AliHLTTPCCAThreadMemory( const AliHLTTPCCAThreadMemory& /*dummy*/ )
-            : fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fIsMemThread( 0 ), fGo( 0 ), fSave( 0 ), fCurrentData( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 ) {}
+            : fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fCurrentData( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 ) {}
         AliHLTTPCCAThreadMemory& operator=( const AliHLTTPCCAThreadMemory& /*dummy*/ ) { return *this; }
 #endif
 
@@ -87,9 +77,7 @@ class AliHLTTPCCATrackletConstructor
         int fStartRow;  // first row index
         int fEndRow;  // first row index
         int fCurrIH; // indef of the current hit
-        bool fIsMemThread; // is the thread used for memory taken
         bool fGo; // do fit/searching flag
-        bool fSave; // save flag
         bool fCurrentData; // index of the current memory array
         int fStage; // reco stage
         int fNHits; // n track hits
@@ -104,24 +92,8 @@ class AliHLTTPCCATrackletConstructor
 		AliHLTTPCCATrackParam fParam;
 	};
 
-    GPUd() static int NThreadSyncPoints() { return 4 + 159*2 + 1 + 1; }
-
-    GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread,
-                               int iSync, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r,
-                               AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
-
 	GPUd() static void InitTracklet	( AliHLTTPCCATrackParam &tParam );
 	GPUd() static void CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam &tParamSrc, AliHLTTPCCATrackParam &tParamDst);
-
-    GPUd() static void Step0
-    ( int nBlocks, int nThreads, int iBlock, int iThread,
-      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
-    GPUd() static void Step1
-    ( int nBlocks, int nThreads, int iBlock, int iThread,
-      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
-    GPUd() static void Step2
-    ( int nBlocks, int nThreads, int iBlock, int iThread,
-      AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
 
     GPUd() static void ReadData( int iThread, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, int iRow );
 
@@ -134,9 +106,11 @@ class AliHLTTPCCATrackletConstructor
       AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
 
 #ifdef HLTCA_GPUCODE
-	GPUd() static void AliHLTTPCCATrackletConstructorNew(AliHLTTPCCATracker *pTracker);
-	GPUd() static int FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, int Reverse, int RowBlock);
+	GPUd() static void AliHLTTPCCATrackletConstructorNewGPU(AliHLTTPCCATracker *pTracker);
+	GPUd() static int FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, int Reverse, int RowBlock, int &mustInit);
 	GPUd() static void AliHLTTPCCATrackletConstructorInit(int iTracklet, AliHLTTPCCATracker &tracke);
+#else
+	GPUd() static void AliHLTTPCCATrackletConstructorNewCPU(AliHLTTPCCATracker &tracker);
 #endif
 
     GPUd() static bool SAVE() { return 1; }

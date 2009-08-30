@@ -132,7 +132,7 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
   }
   if (fDebugLevel >= 1)
   {
-	  CUDA_FAILED_MSG(cudaMemset(fGPUMemory, 255, (size_t) fGPUMemSize));
+	  CUDA_FAILED_MSG(cudaMemset(fGPUMemory, 143, (size_t) fGPUMemSize));
   }
   std::cout << "CUDA Initialisation successfull\n";
 
@@ -199,10 +199,6 @@ int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* OptionName, int OptionValue
 	{
 		fOptionSingleBlock = OptionValue;
 	}
-	else if (strcmp(OptionName, "AdaptSched") == 0)
-	{
-		fOptionAdaptiveSched = OptionValue;
-	}
 	else
 	{
 		printf("Unknown Option: %s\n", OptionName);
@@ -227,10 +223,10 @@ void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlic
 	{
 		*fOutFile << "RowBlock Tracklets" << std::endl;
 	
-		int3* RowBlockPos = (int3*) malloc(sizeof(int3) * (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2);
+		int4* RowBlockPos = (int4*) malloc(sizeof(int4) * (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2);
 		int* RowBlockTracklets = (int*) malloc(sizeof(int) * (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * HLTCA_GPU_MAX_TRACKLETS * 2);
 		uint2* BlockStartingTracklet = (uint2*) malloc(sizeof(uint2) * HLTCA_GPU_BLOCK_COUNT);
-		CUDA_FAILED_MSG(cudaMemcpy(RowBlockPos, fGpuTracker[iSlice].RowBlockPos(), sizeof(int3) * (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2, cudaMemcpyDeviceToHost));
+		CUDA_FAILED_MSG(cudaMemcpy(RowBlockPos, fGpuTracker[iSlice].RowBlockPos(), sizeof(int4) * (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2, cudaMemcpyDeviceToHost));
 		CUDA_FAILED_MSG(cudaMemcpy(RowBlockTracklets, fGpuTracker[iSlice].RowBlockTracklets(), sizeof(int) * (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * HLTCA_GPU_MAX_TRACKLETS * 2, cudaMemcpyDeviceToHost));
 		CUDA_FAILED_MSG(cudaMemcpy(BlockStartingTracklet, fGpuTracker[iSlice].BlockStartingTracklet(), sizeof(uint2) * HLTCA_GPU_BLOCK_COUNT, cudaMemcpyDeviceToHost));
 		CUDA_FAILED_MSG(cudaMemcpy(tracker[iSlice].CommonMemory(), fGpuTracker[iSlice].CommonMemory(), tracker[iSlice].CommonMemorySize(), cudaMemcpyDeviceToHost));
@@ -381,7 +377,10 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker, int fSliceCo
 
 		CUDA_FAILED_MSG(cudaMemcpy(fGpuTracker[iSlice].CommonMemory(), tracker[iSlice].CommonMemory(), tracker[iSlice].CommonMemorySize(), cudaMemcpyHostToDevice));
 		CUDA_FAILED_MSG(cudaMemcpy(fGpuTracker[iSlice].SliceDataMemory(), tracker[iSlice].SliceDataMemory(), tracker[iSlice].SliceDataMemorySize(), cudaMemcpyHostToDevice));
-		CUDA_FAILED_MSG(cudaMemset(fGpuTracker[iSlice].RowBlockPos(), 0, sizeof(int3) * 2 * (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1)));
+#ifdef SLICE_DATA_EXTERN_ROWS
+		CUDA_FAILED_MSG(cudaMemcpy(fGpuTracker[iSlice].SliceDataRows(), tracker[iSlice].SliceDataRows(), HLTCA_ROW_COUNT * sizeof(AliHLTTPCCARow), cudaMemcpyHostToDevice));
+#endif
+		CUDA_FAILED_MSG(cudaMemset(fGpuTracker[iSlice].RowBlockPos(), 0, sizeof(int4) * 2 * (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1)));
 		CUDA_FAILED_MSG(cudaMemset(fGpuTracker[iSlice].RowBlockTracklets(), -1, sizeof(int) * (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * HLTCA_GPU_MAX_TRACKLETS * 2));
 	}
 	CUDA_FAILED_MSG(cudaMemcpyToSymbol(gAliHLTTPCCATracker, fGpuTracker, sizeof(AliHLTTPCCATracker) * fSliceCount));
@@ -393,6 +392,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker, int fSliceCo
 		showMemInfo = false;
 	}
 
+	CUDASync("Initialization");
 	StandalonePerfTime(1);
 
 	if (fDebugLevel >= 5) printf("Running GPU Neighbours Finder\n");
@@ -514,153 +514,49 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker, int fSliceCo
 			printf("Insufficiant GPU shared Memory, required: %d, available %d\n", tracker[iSlice].Data().GPUSharedDataReq() * sizeof(ushort_v), ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4 * sizeof(uint4));
 			return(1);
 		}
+		if (fDebugLevel >= 1)
+		{
+			static int infoShown = 0;
+			if (!infoShown)
+			{
+				printf("GPU Shared Memory Cache Size: %d\n", 2 * tracker[iSlice].Data().GPUSharedDataReq() * sizeof(ushort_v));
+				infoShown = 1;
+			}
+		}
 	}
 #endif
 
 	if (fDebugLevel >= 5) printf("Running GPU Tracklet Constructor\n");
 
-	if (fOptionAdaptiveSched)
+	for (int iSlice = 0;iSlice < fSliceCount;iSlice++)
 	{
-		for (int iSlice = 0;iSlice < fSliceCount;iSlice++)
-		{
-			AliHLTTPCCATrackletConstructorInit<<<*tracker[iSlice].NTracklets() / HLTCA_GPU_THREAD_COUNT + 1, HLTCA_GPU_THREAD_COUNT>>>(iSlice);
-			if (CUDASync("Tracklet Initializer")) return 1;
-			DumpRowBlocks(tracker, iSlice);
-		}
-		StandalonePerfTime(7);
+		AliHLTTPCCATrackletConstructorInit<<<*tracker[iSlice].NTracklets() / HLTCA_GPU_THREAD_COUNT + 1, HLTCA_GPU_THREAD_COUNT>>>(iSlice);
+		if (CUDASync("Tracklet Initializer")) return 1;
+		DumpRowBlocks(tracker, iSlice);
+	}
+	StandalonePerfTime(7);
 
 #ifdef HLTCA_GPU_SCHED_HOST_SYNC
-		for (int i = 0;i < (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2;i++)
-		{
-			if (fDebugLevel >= 4) *fOutFile << "Scheduled Tracklet Constructor Iteration " << i << std::endl;
-			AliHLTTPCCATrackletConstructorNew<<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT>>>();
-			if (CUDASync("Tracklet Constructor (new)")) return 1;
-			for (int iSlice = 0;iSlice < fSliceCount;iSlice++)
-			{
-				AliHLTTPCCATrackletConstructorUpdateRowBlockPos<<<HLTCA_GPU_BLOCK_COUNT, (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2 / HLTCA_GPU_BLOCK_COUNT + 1>>>(iSlice);
-				if (CUDASync("Tracklet Constructor (update)")) return 1;
-				DumpRowBlocks(tracker, iSlice, false);
-			}
-		}
-#else
-		AliHLTTPCCATrackletConstructorNew<<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT>>>();
+	for (int i = 0;i < (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2;i++)
+	{
+		if (fDebugLevel >= 4) *fOutFile << "Scheduled Tracklet Constructor Iteration " << i << std::endl;
+		AliHLTTPCCATrackletConstructorNewGPU<<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT>>>();
 		if (CUDASync("Tracklet Constructor (new)")) return 1;
 		for (int iSlice = 0;iSlice < fSliceCount;iSlice++)
 		{
+			AliHLTTPCCATrackletConstructorUpdateRowBlockPos<<<HLTCA_GPU_BLOCK_COUNT, (tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1) * 2 / HLTCA_GPU_BLOCK_COUNT + 1>>>(iSlice);
+			if (CUDASync("Tracklet Constructor (update)")) return 1;
 			DumpRowBlocks(tracker, iSlice, false);
 		}
-#endif
 	}
-	else
+#else
+	AliHLTTPCCATrackletConstructorNewGPU<<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT>>>();
+	if (CUDASync("Tracklet Constructor (new)")) return 1;
+	for (int iSlice = 0;iSlice < fSliceCount;iSlice++)
 	{
-		StandalonePerfTime(7);
-		for (int iSlice = 0;iSlice < fSliceCount;iSlice++)
-		{
-			int nMemThreads = TRACKLET_CONSTRUCTOR_NMEMTHREDS;
-			nThreads = HLTCA_GPU_THREAD_COUNT - nMemThreads;//96;
-			nBlocks = *tracker[iSlice].NTracklets()/nThreads + 1;
-			if( nBlocks<30 ){
-				nBlocks = HLTCA_GPU_BLOCK_COUNT;
-				nThreads = (*tracker[iSlice].NTracklets())/nBlocks+1;
-				if( nThreads%32 ) nThreads = (nThreads/32+1)*32;
-			}
-			if (nThreads + nMemThreads > fCudaDeviceProp.maxThreadsPerBlock || (nThreads + nMemThreads) * HLTCA_GPU_REGS > fCudaDeviceProp.regsPerBlock)
-			{
-				printf("Invalid CUDA Kernel Configuration %d blocks %d threads %d memthreads\n", nBlocks, nThreads, nMemThreads);
-				return(1);
-			}
-
-#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-			if (CUDA_FAILED_MSG(cudaMalloc((void**) &fGpuTracker[iSlice].fStageAtSync, nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * sizeof(int))) ||
-				CUDA_FAILED_MSG(cudaMalloc((void**) &fGpuTracker[iSlice].fThreadTimes, 30 * 256 * sizeof(int))))
-			{
-				return(1);
-			}
-			CUDA_FAILED_MSG(cudaMemset(fGpuTracker[iSlice].fStageAtSync, 0, nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * sizeof(int)));
-			int* StageAtSync = (int*) malloc(nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * sizeof(int));
-			int* ThreadTimes = (int*) malloc(30 * 256 * sizeof(int));
-			CUDA_FAILED_MSG(cudaMemcpyToSymbol(gAliHLTTPCCATracker, fGpuTracker, sizeof(AliHLTTPCCATracker * fSliceCount)));
-#endif
-
-			if (!fOptionSingleBlock)
-			{
-				//AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor> <<<nBlocks, nMemThreads+nThreads>>>(iSlice); 
-			}
-			else
-			{
-				//AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor> <<<1, TRACKLET_CONSTRUCTOR_NMEMTHREDS + *tracker[iSlice].NTracklets()>>>(iSlice);
-			}
-			if (CUDASync("Tracklet Constructor")) return 1;
-
-#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-			printf("Saving Profile\n");
-			CUDA_FAILED_MSG(cudaMemcpy(StageAtSync, fGpuTracker[iSlice].fStageAtSync, nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * sizeof(int), cudaMemcpyDeviceToHost));
-			CUDA_FAILED_MSG(cudaMemcpy(ThreadTimes, fGpuTracker[iSlice].fThreadTimes, 30 * 256 * sizeof(int), cudaMemcpyDeviceToHost));
-
-			FILE *fp = fopen("profile.txt", "w+"), *fp2 = fopen("profile.bmp", "w+b"), *fp3 = fopen("times.txt", "w+");
-			if (fp == NULL || fp2 == NULL || fp3 == NULL)
-			{
-				printf("Error opening Profile File\n");
-				return(1);
-			}
-			BITMAPFILEHEADER bmpFH;
-			BITMAPINFOHEADER bmpIH;
-			ZeroMemory(&bmpFH, sizeof(bmpFH));
-			ZeroMemory(&bmpIH, sizeof(bmpIH));
-			
-			bmpFH.bfType = 19778; //"BM"
-			bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + nBlocks * nThreads * (4 + 159*2 + 1 + 1 + 1) * 4;
-			bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
-
-			bmpIH.biSize = sizeof(bmpIH);
-			bmpIH.biWidth = nBlocks * nThreads + nBlocks * nThreads / 32;
-			if (nBlocks * nThreads % 32 == 0) bmpIH.biWidth--;
-			bmpIH.biHeight = 4 + 159*2 + 1 + 1 + 1;
-			bmpIH.biPlanes = 1;
-			bmpIH.biBitCount = 32;
-
-			fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
-			fwrite(&bmpIH, 1, sizeof(bmpIH), fp2);
-
-			for (int i = 0;i < 4 + 159*2 + 1 + 1 + 1;i++)
-			{
-				for (int j = 0;j < nBlocks * nThreads;j++)
-				{
-					fprintf(fp, "%d\t", StageAtSync[i * nBlocks * nThreads + j]);
-					int color = 0;
-					if (StageAtSync[i * nBlocks * nThreads + j] == 1) color = RGB(255, 0, 0);
-					if (StageAtSync[i * nBlocks * nThreads + j] == 2) color = RGB(0, 255, 0);
-					if (StageAtSync[i * nBlocks * nThreads + j] == 3) color = RGB(0, 0, 255);
-					if (StageAtSync[i * nBlocks * nThreads + j] == 4) color = RGB(255, 255, 0);
-					fwrite(&color, 1, 4, fp2);
-					if (j > 0 && j % 32 == 0)
-					{
-						color = RGB(255, 255, 255);
-						fwrite(&color, 1, 4, fp2);
-					}
-				}
-				fprintf(fp, "\n");
-			}
-
-			for (int i = 0;i < 30;i++)
-			{
-				for (int j = 0;j < 256;j++)
-				{
-					fprintf(fp3, "%d\t", ThreadTimes[i * 256 + j]);
-				}
-				fprintf(fp3, "\n");
-			}
-			fclose(fp);
-			fclose(fp2);
-			fclose(fp3);
-
-			cudaFree(fGpuTracker[iSlice].fStageAtSync);
-			cudaFree(fGpuTracker[iSlice].fThreadTimes);
-			free(StageAtSync);
-			free(ThreadTimes);
-#endif
-		}
+		DumpRowBlocks(tracker, iSlice, false);
 	}
+#endif
 	
 	StandalonePerfTime(8);
 

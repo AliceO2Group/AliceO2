@@ -42,10 +42,18 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
       s.fItr0 = nThreads * iBlock;
     }
   } else if ( iSync == 1 ) {
-    AliHLTTPCCATrack tout;
-    AliHLTTPCCAHitId trackHits[160];
+	int nHits, nFirstTrackHit;
+	AliHLTTPCCAHitId trackHits[160 - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
 
     for ( int itr = s.fItr0 + iThread; itr < s.fNTracklets; itr += s.fNThreadsTotal ) {
+
+#ifdef HLTCA_GPU_EMULATION_DEBUG_TRACKLET
+	if (itr == HLTCA_GPU_EMULATION_DEBUG_TRACKLET)
+	{
+		tracker.GPUParameters()->fGPUSchedCollisions += 1;
+	}
+#endif
+
 
       AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[itr];
 
@@ -58,7 +66,6 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
       int firstRow = tracklet.FirstRow();
       int lastRow = tracklet.LastRow();
 
-      tout.SetNHits( 0 );
       int kind = 0;
       if ( 0 ) {
         if ( tNHits >= 10 && 1. / .5 >= CAMath::Abs( tracklet.Param().QPt() ) ) { //SG!!!
@@ -70,40 +77,62 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 
       //int w = (tNHits<<16)+itr;
       //int nRows = tracker.Param().NRows();
+	  const int nhits = tracklet.NHits();
+      //std::cout<<" store tracklet: "<<firstRow<<" "<<lastRow<<std::endl;
+
+	  int irow = firstRow;
+
       int gap = 0;
       int nShared = 0;
-      //std::cout<<" store tracklet: "<<firstRow<<" "<<lastRow<<std::endl;
-      for ( int irow = firstRow; irow <= lastRow; irow++ ) {
+	  nHits = 0;
+
+	  for (irow = firstRow; irow <= lastRow; irow++ ) {
         gap++;
         int ih = tracklet.RowHit( irow );
         if ( ih >= 0 ) {
           const AliHLTTPCCARow &row = tracker.Row( irow );
           bool own = ( tracker.HitWeight( row, ih ) <= w );
-          bool sharedOK = ( ( tout.NHits() < 0 ) || ( nShared < tout.NHits() * kMaxShared ) );
+          bool sharedOK = ( ( nShared < nHits * kMaxShared ) );
           if ( own || sharedOK ) {//SG!!!
             gap = 0;
-            trackHits[tout.NHits()].Set( irow, ih );
-            tout.SetNHits( tout.NHits() + 1 );
+#if HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+			if (nHits < HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
+				s.fHits[iThread][nHits].Set( irow, ih );
+			else
+#endif
+				trackHits[nHits - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE].Set( irow, ih );
+            nHits++;
             if ( !own ) nShared++;
           }
         }
 
         if ( gap > kMaxRowGap || irow == lastRow ) { // store
-          if ( tout.NHits() >= 10 ) { //SG!!!
+          if ( nHits >= 10 ) { //SG!!!
             int itrout = CAMath::AtomicAdd( tracker.NTracks(), 1 );
-            tout.SetFirstHitID( CAMath::AtomicAdd( tracker.NTrackHits(), tout.NHits() ) );
-            tout.SetParam( tracklet.Param() );
+            nFirstTrackHit = CAMath::AtomicAdd( tracker.NTrackHits(), nHits );
+            /*tout.SetParam( tracklet.Param() );
             tout.SetAlive( 1 );
-            tracker.Tracks()[itrout] = tout;
-            for ( int jh = 0; jh < tout.NHits(); jh++ ) {
-              tracker.TrackHits()[tout.FirstHitID() + jh] = trackHits[jh];
+            tracker.Tracks()[itrout] = tout;*/
+			tracker.Tracks()[itrout].SetAlive(1);
+			tracker.Tracks()[itrout].SetParam(tracklet.Param());
+			tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);
+			tracker.Tracks()[itrout].SetNHits(nHits);
+            for ( int jh = 0; jh < nHits; jh++ ) {
+#if HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
+				if (jh < HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
+					tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
+				else
+#endif
+					tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
             }
           }
-          tout.SetNHits( 0 );
+          nHits = 0;
           gap = 0;
           nShared = 0;
         }
       }
+
+
     }
   }
 }

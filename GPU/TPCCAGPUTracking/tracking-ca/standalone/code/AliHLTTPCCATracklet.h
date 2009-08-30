@@ -34,6 +34,7 @@ class AliHLTTPCCATracklet
     GPUhd() int  LastRow()              const { return fLastRow;    }
     GPUhd() const AliHLTTPCCATrackParam &Param() const { return fParam;      }
     GPUhd() int  RowHit( int i )   const { return fRowHits[i];    }
+	GPUhd() int* RowHits()				{ return(fRowHits); }
 
     GPUhd() void SetStartHitID( int v )           { fStartHitID = v; }
     GPUhd() void SetNHits( int v )               {  fNHits = v;      }

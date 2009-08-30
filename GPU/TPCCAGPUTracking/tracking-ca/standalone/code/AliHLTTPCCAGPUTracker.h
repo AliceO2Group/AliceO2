@@ -18,7 +18,6 @@ public:
 	  fOutFile(NULL),
 	  fGPUMemSize(0),
 	  fOptionSingleBlock(0),
-	  fOptionAdaptiveSched(1),
 	  fSliceCount(0)
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
@@ -48,7 +47,6 @@ private:
 	long long int fGPUMemSize;	//Memory Size to allocate on GPU
 
 	int fOptionSingleBlock;		//Use only one single Multiprocessor on GPU to check for problems related to multi processing
-	int fOptionAdaptiveSched;	//Adaptive shedule track/thread assignments
 
 	int fSliceCount;
 #ifdef HLTCA_GPUCODE
