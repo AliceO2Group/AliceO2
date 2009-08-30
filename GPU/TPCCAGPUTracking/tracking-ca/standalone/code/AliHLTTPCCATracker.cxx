@@ -230,7 +230,7 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 		{
 			for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
 			{
-				if (Tracklets()[j].RowHit(i) != -1)
+				//if (Tracklets()[j].RowHit(i) != -1)
 					out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
 			}
 		}
@@ -394,7 +394,7 @@ void AliHLTTPCCATracker::RunStartHitsFinder()
 
 void AliHLTTPCCATracker::RunTrackletConstructor()
 {
-  AliHLTTPCCAProcess1<AliHLTTPCCATrackletConstructor>( 1, TRACKLET_CONSTRUCTOR_NMEMTHREDS + *fNTracklets, *this );
+    AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorNewCPU(*this);
 }
 
 void AliHLTTPCCATracker::RunTrackletSelector()

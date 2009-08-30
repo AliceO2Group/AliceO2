@@ -96,11 +96,14 @@ namespace AliHLTTPCCADefinitions
 
 #endif
 
+//#define SLICE_DATA_EXTERN_ROWS
+//#define PREINIT_ROWS
+
 #ifdef HLTCA_GPUCODE
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 5
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 700
 #define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 3500
-#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 1968					//Max amount of hits in a row that can be stored in shared memory, make sure this is divisible by ROW ALIGNMENT
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 1536					//Max amount of hits in a row that can be stored in shared memory, make sure this is divisible by ROW ALIGNMENT
 #else
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 20
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 7000
@@ -133,6 +136,7 @@ struct short2 { short x, y; };
 struct ushort2 { unsigned short x, y; };
 struct int2 { int x, y; };
 struct int3 { int x, y, z; };
+struct int4 { int x, y, z, w; };
 struct uint1 { unsigned int x; };
 struct uint2 { unsigned int x, y; };
 struct uint3 { unsigned int x, y, z; };
@@ -191,5 +195,11 @@ namespace
   template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
   void UNUSED_PARAM9( const T1 &, const T2 &, const T3 &, const T4 &, const T5 &, const T6 &, const T7 &, const T8 &, const T9 & ) {}
 }
+
+#define UNROLL2(var, code) code;var++;code;var++;
+#define UNROLL4(var, code) UNROLL2(var, code) UNROLL2(var, code)
+#define UNROLL8(var, code) UNROLL4(var, code) UNROLL4(var, code)
+#define UNROLL16(var, code) UNROLL8(var, code) UNROLL8(var, code)
+#define UNROLL32(var, code) UNROLL16(var, code) UNROLL16(var, code)
 
 #endif

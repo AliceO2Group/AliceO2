@@ -221,7 +221,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 			{
 				if (forceSingleSlice != -1) iSlice = forceSingleSlice;
 				cpuTimers[i] += *fSliceTrackers[iSlice].PerfTimer(i + 1) - *fSliceTrackers[iSlice].PerfTimer(i);
-				if (forceSingleSlice != -1 || iSlice % fGPUSliceCount == 0)
+				if (forceSingleSlice != -1 || (fGPUSliceCount && iSlice % fGPUSliceCount == 0))
 					gpuTimers[i] += sliceTimers[iSlice][i + 1] - sliceTimers[iSlice][i];
 				if (forceSingleSlice != -1) break;
 			}
@@ -234,7 +234,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 			gpuTimers[i] *= 1000000;
 			cpuTimers[i] /= tmpFreq;
 			gpuTimers[i] /= tmpFreq;
-			cpuTimers[i] /= omp_get_num_threads();
+			cpuTimers[i] /= omp_get_max_threads();
 
 			printf("Execution Time: Task: %20s ", tmpNames[i]);
 			if (!fUseGPUTracker || fGPUDebugLevel >= 3)

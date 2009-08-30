@@ -46,7 +46,25 @@ class AliHLTTPCCASliceData
     AliHLTTPCCASliceData()
         : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),
         fLinkDownData( 0 ), fHitDataY( 0 ), fHitDataZ( 0 ), fClusterDataIndex( 0 ),
-        fFirstHitInBin( 0 ), fHitWeights( 0 ) {}
+        fFirstHitInBin( 0 ), fHitWeights( 0 )
+#ifdef SLICE_DATA_EXTERN_ROWS
+		,fRows( NULL )
+#endif
+	{
+	}
+
+#ifndef HLTCA_GPUCODE
+	~AliHLTTPCCASliceData()
+	{
+#ifdef SLICE_DATA_EXTERN_ROWS
+		if (fRows)
+		{
+			delete[] fRows;
+			fRows = NULL;
+		}
+#endif
+	}
+#endif
 
     void InitializeRows( const AliHLTTPCCAParam &parameters );
 
@@ -132,6 +150,7 @@ class AliHLTTPCCASliceData
      * Return the row object for the given row index.
      */
     const AliHLTTPCCARow &Row( int rowIndex ) const;
+	AliHLTTPCCARow* Rows() {return fRows;}
 
 	GPUh() char *Memory() {return(fMemory); }
 	GPUh() size_t MemorySize() const {return(fMemorySize); }
@@ -155,7 +174,6 @@ class AliHLTTPCCASliceData
     void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data, int ClusterDataHitNumberOffset );
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
-    AliHLTTPCCARow fRows[160]; // The row objects needed for most accessor functions
 
 	int fGPUSharedDataReq;		//Size of shared memory required for GPU Reconstruction
 
@@ -163,6 +181,11 @@ class AliHLTTPCCASliceData
     int fMemorySize;           // size of the allocated memory in bytes
     char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
 
+#ifdef SLICE_DATA_EXTERN_ROWS
+    AliHLTTPCCARow *fRows; // The row objects needed for most accessor functions
+#else
+	AliHLTTPCCARow fRows[160]; // The row objects needed for most accessor functions
+#endif
     short *fLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
     short *fLinkDownData;      // hit index in the row below which is linked to the given (global) hit index
 

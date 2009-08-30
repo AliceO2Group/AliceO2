@@ -235,13 +235,14 @@ class AliHLTTPCCATracker
 	GPUh() char *SliceDataMemory() {return(fData.Memory()); }
 	GPUh() size_t SliceDataMemorySize() const {return(fData.MemorySize()); }
 	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
+	GPUh() AliHLTTPCCARow* SliceDataRows() {return(fData.Rows()); }
 
 	GPUhd() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
 	GPUhd() AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory* GPUTrackletTemp() const {return(fGPUTrackletTemp);}
 	GPUhd() int* RowBlockTracklets(int reverse, int iRowBlock) const {return(&fRowBlockTracklets[(reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock) * *fNTracklets]);}
 	GPUhd() int* RowBlockTracklets() const {return(fRowBlockTracklets);}
-	GPUhd() int3* RowBlockPos(int reverse, int iRowBlock) const {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
-	GPUhd() int3* RowBlockPos() const {return(fRowBlockPos);}
+	GPUhd() int4* RowBlockPos(int reverse, int iRowBlock) const {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
+	GPUhd() int4* RowBlockPos() const {return(fRowBlockPos);}
 	GPUhd() uint2* BlockStartingTracklet() const {return(fBlockStartingTracklet);}
 	GPUhd() StructGPUParameters* GPUParameters() const {return(fGPUParameters);}
 	GPUhd() StructGPUParametersConst* GPUParametersConst() {return(&fGPUParametersConst);}
@@ -283,7 +284,7 @@ class AliHLTTPCCATracker
 	AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory *fGPUTrackletTemp;	//Temp Memory for GPU Tracklet Constructor
 	int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
-	int3* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration
+	int4* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration, w is initial x value to check if tracklet must be initialized
 	uint2* fBlockStartingTracklet;
 
 	StructGPUParameters* fGPUParameters;
