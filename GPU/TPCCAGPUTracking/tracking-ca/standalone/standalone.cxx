@@ -11,15 +11,16 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = 100, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1;
+	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = 100, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = 1;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
 
   for( int i=0; i < argc; i++ ){
     if ( !strcmp( argv[i], "-CPU" ) ) 
     {
-	printf("CPU enabled\n");
-	RUNGPU=0;        
+		printf("CPU enabled\n");
+		hlt.ExitGPU();
+		RUNGPU=0;        
     }
     
 	if ( !strcmp( argv[i], "-GPU" ) ) 
@@ -42,6 +43,11 @@ int main(int argc, char** argv)
 	if ( !strcmp( argv[i], "-DEBUG" ) && argc > i + 1)
 	{
 		DebugLevel = atoi(argv[i + 1]);
+	}
+
+	if ( !strcmp( argv[i], "-SLICECOUNT" ) && argc > i + 1)
+	{
+		sliceCount = atoi(argv[i + 1]);
 	}
 
 	if ( !strcmp( argv[i], "-SLICE" ) && argc > i + 1)
@@ -92,7 +98,7 @@ int main(int argc, char** argv)
 	else
 		printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 
-	if (RUNGPU && hlt.InitGPU(cudaDevice))
+	if (RUNGPU && hlt.InitGPU(sliceCount, cudaDevice))
 	{
 		printf("Error Initialising GPU\n");
 		printf("Press a key to exit!\n");

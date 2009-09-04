@@ -95,8 +95,8 @@ inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow *row, const AliHLT
       std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " " << std::endl;
     }
     // HitData is bin sorted
-    fHitDataY[row->fHitNumberOffset + hitIndex] = xx;
-    fHitDataZ[row->fHitNumberOffset + hitIndex] = yy;
+    fHitData[row->fHitNumberOffset + hitIndex].x = xx;
+    fHitData[row->fHitNumberOffset + hitIndex].y = yy;
   }
 }
 
@@ -163,8 +163,7 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
   char *mem = fMemory;
   AssignMemory( fLinkUpData,   mem, numberOfHitsPlusAlignment );
   AssignMemory( fLinkDownData, mem, numberOfHitsPlusAlignment );
-  AssignMemory( fHitDataY,     mem, numberOfHitsPlusAlignment );
-  AssignMemory( fHitDataZ,     mem, numberOfHitsPlusAlignment );
+  AssignMemory( fHitData,     mem, numberOfHitsPlusAlignment );
   AssignMemory( fFirstHitInBin,  mem, firstHitInBinSize );
   AssignMemory( fHitWeights,   mem, numberOfHitsPlusAlignment );
   AssignMemory( fClusterDataIndex, mem, numberOfHitsPlusAlignment );

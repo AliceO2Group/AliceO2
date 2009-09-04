@@ -108,27 +108,37 @@ char* AliHLTTPCCATracker::SetGPUTrackerCommonMemory(char* pGPUMemory)
 }
 
 
-char* AliHLTTPCCATracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits )
+char* AliHLTTPCCATracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits, int fOptionSimpleSched )
 {
 	fHitMemory = (char*) pGPUMemory;
 	SetPointersHits(MaxNHits);
 	pGPUMemory += fHitMemorySize;
-	AssignMemory(fTrackletTmpStartHits, pGPUMemory, NHitsTotal());
+	if (fOptionSimpleSched)
+	{
+		fTrackletTmpStartHits = fTrackletStartHits;
+	}
+	else
+	{
+		AssignMemory(fTrackletTmpStartHits, pGPUMemory, NHitsTotal());
+	}
 	AssignMemory(fRowStartHitCountOffset, pGPUMemory, Param().NRows());
 
 	return(pGPUMemory);
 }
 
 
-char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits )
+char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits, int fOptionSimpleSched )
 {
 	fTrackMemory = (char*) pGPUMemory;
 	SetPointersTracks(MaxNTracks, MaxNHits);
 	pGPUMemory += fTrackMemorySize;
-	AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
-	AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
-	AssignMemory(fRowBlockPos, pGPUMemory, 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
-	AssignMemory( fBlockStartingTracklet, pGPUMemory, HLTCA_GPU_BLOCK_COUNT);
+	if (!fOptionSimpleSched)
+	{
+		AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
+		AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
+		AssignMemory(fRowBlockPos, pGPUMemory, 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
+		AssignMemory(fBlockStartingTracklet, pGPUMemory, HLTCA_GPU_BLOCK_COUNT);
+	}
 
 	return(pGPUMemory);
 }
@@ -402,9 +412,9 @@ void AliHLTTPCCATracker::RunTrackletSelector()
   AliHLTTPCCAProcess<AliHLTTPCCATrackletSelector>( 1, *fNTracklets, *this );
 }
 
+#ifdef HLTCA_STANDALONE
 void AliHLTTPCCATracker::StandaloneQueryTime(unsigned long long int *i)
 {
-#ifdef HLTCA_STANDALONE
 #ifdef R__WIN32
 	  QueryPerformanceCounter((LARGE_INTEGER*) i);
 #else
@@ -412,29 +422,29 @@ void AliHLTTPCCATracker::StandaloneQueryTime(unsigned long long int *i)
 	  clock_gettime(CLOCK_REALTIME, &t);
 	  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
 #endif
-#endif
 }
 
 void AliHLTTPCCATracker::StandaloneQueryFreq(unsigned long long int *i)
 {
-#ifdef HLTCA_STANDALONE
 #ifdef R__WIN32
 	  QueryPerformanceFrequency((LARGE_INTEGER*) i);
 #else
 	*i = 1000000000;
 #endif
-#endif
 }
 
 void AliHLTTPCCATracker::StandalonePerfTime(int i)
 {
-#ifdef HLTCA_STANDALONE
   if (fGPUDebugLevel >= 1)
   {
 	  StandaloneQueryTime(&fPerfTimers[i]);
   }
-#endif
 }
+#else
+void AliHLTTPCCATracker::StandaloneQueryTime(unsigned long long int* /*i*/) {}
+void AliHLTTPCCATracker::StandaloneQueryFreq(unsigned long long int* /*i*/) {}
+void AliHLTTPCCATracker::StandalonePerfTime(int /*i*/) {}
+#endif
 
 GPUh() void AliHLTTPCCATracker::Reconstruct()
 {
@@ -473,6 +483,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   *fNTracks = 0;
   *fNTracklets = 0;
+  *fNTrackHits = 0;
 
 #if !defined(HLTCA_GPUCODE)
 

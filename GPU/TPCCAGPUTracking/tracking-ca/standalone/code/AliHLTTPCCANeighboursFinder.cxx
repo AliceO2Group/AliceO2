@@ -35,11 +35,27 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
   //* find neighbours
 
   if ( iSync == 0 ) {
+#ifdef HLTCA_GPUCODE
+	for (int i = iThread;i < sizeof(AliHLTTPCCARow) / sizeof(int);i += nThreads)
+	{
+		reinterpret_cast<int*>(&s.fRow)[i] = reinterpret_cast<int*>(&tracker.SliceDataRows()[iBlock])[i];
+		if (iBlock >= 2 && iBlock <= tracker.Param().NRows() - 3)
+		{
+			reinterpret_cast<int*>(&s.fRowUp)[i] = reinterpret_cast<int*>(&tracker.SliceDataRows()[iBlock + 2])[i];
+			reinterpret_cast<int*>(&s.fRowDown)[i] = reinterpret_cast<int*>(&tracker.SliceDataRows()[iBlock - 2])[i];
+		}
+	}
+	__syncthreads();
+#endif
     if ( iThread == 0 ) {
       s.fNRows = tracker.Param().NRows();
       s.fIRow = iBlock;
       if ( s.fIRow < s.fNRows ) {
-        const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
+#ifdef HLTCA_GPUCODE
+		const AliHLTTPCCARow &row = s.fRow;
+#else
+		const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
+#endif
         s.fNHits = row.NHits();
 
         if ( ( s.fIRow >= 2 ) && ( s.fIRow <= s.fNRows - 3 ) ) {
@@ -47,9 +63,14 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
           s.fIRowDn = s.fIRow - 2;
 
           // references to the rows above and below
+
+#ifdef HLTCA_GPUCODE
+          const AliHLTTPCCARow &rowUp = s.fRowUp;
+          const AliHLTTPCCARow &rowDn = s.fRowDown;
+#else
           const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
           const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
-
+#endif
           // the axis perpendicular to the rows
           const float xDn = rowDn.X();
           const float x   = row.X();
@@ -67,29 +88,38 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
           // UpTx/DnTx is used to move the HitArea such that central events are preferred (i.e. vertices
           // coming from y = 0, z = 0).
 
-          s.fGridUp = tracker.Row( s.fIRowUp ).Grid();
-          s.fGridDn = tracker.Row( s.fIRowDn ).Grid();
+          //s.fGridUp = tracker.Row( s.fIRowUp ).Grid();
+          //s.fGridDn = tracker.Row( s.fIRowDn ).Grid();
         }
       }
     }
   } else if ( iSync == 1 ) {
     if ( s.fIRow < s.fNRows ) {
-      if ( ( s.fIRow == 0 ) || ( s.fIRow == s.fNRows - 1 ) || ( s.fIRow == 1 ) || ( s.fIRow == s.fNRows - 2 ) ) {
-        const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
+      if ( ( s.fIRow <= 1 ) || ( s.fIRow >= s.fNRows - 2 ) ) {
+#ifdef HLTCA_GPUCODE
+		const AliHLTTPCCARow &row = s.fRow;
+#else
+		const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
+#endif
         for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
           tracker.SetHitLinkUpData( row, ih, -1 );
           tracker.SetHitLinkDownData( row, ih, -1 );
         }
       } else {
-        const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
-        const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
+/*#ifdef HLTCA_GPUCODE
+          const AliHLTTPCCARow &rowUp = s.fRowUp;
+          const AliHLTTPCCARow &rowDn = s.fRowDown;
+#else
+          const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
+          const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
+#endif
 
         for ( unsigned int ih = iThread; ih < s.fGridUp.N() + s.fGridUp.Ny() + 2; ih += nThreads ) {
           s.fGridContentUp[ih] = tracker.FirstHitInBin( rowUp, ih );
         }
         for ( unsigned int ih = iThread; ih < s.fGridDn.N() + s.fGridDn.Ny() + 2; ih += nThreads ) {
           s.fGridContentDn[ih] = tracker.FirstHitInBin( rowDn, ih );
-        }
+        }*/
       }
     }
   } else if ( iSync == 2 ) {
@@ -100,18 +130,28 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
     //float chi2Cut = 3.*3.*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx ); //SG
     const int kMaxN = 20;
 
-    const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
-    const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
-    const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
+#ifdef HLTCA_GPUCODE
+		  const AliHLTTPCCARow &row = s.fRow;
+          const AliHLTTPCCARow &rowUp = s.fRowUp;
+          const AliHLTTPCCARow &rowDn = s.fRowDown;
+#else
+		  const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
+		  const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
+          const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
+#endif
     const float y0 = row.Grid().YMin();
     const float z0 = row.Grid().ZMin();
     const float stepY = row.HstepY();
     const float stepZ = row.HstepZ();
 
-    for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
+	for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
 
       unsigned short *neighUp = s.fB[iThread];
       float2 *yzUp = s.fA[iThread];
+#ifdef HLTCA_GPUCODE
+	  unsigned short neighUp2[kMaxN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
+	  float2 yzUp2[kMaxN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
+#endif
       //unsigned short neighUp[5];
       //float2 yzUp[5];
 
@@ -135,8 +175,18 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
           AliHLTTPCCAHit h;
           int i = areaUp.GetNext( tracker, rowUp, tracker.Data(), &h );
           if ( i < 0 ) break;
-          neighUp[nNeighUp] = ( unsigned short ) i;
-          yzUp[nNeighUp] = CAMath::MakeFloat2( s.fDnDx * ( h.Y() - y ), s.fDnDx * ( h.Z() - z ) );
+#ifdef HLTCA_GPUCODE
+		  if (nNeighUp >= ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP)
+		  {
+			neighUp2[nNeighUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] = ( unsigned short ) i;
+			yzUp2[nNeighUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] = CAMath::MakeFloat2( s.fDnDx * ( h.Y() - y ), s.fDnDx * ( h.Z() - z ) );
+		  }
+		  else
+#endif
+		  {
+			neighUp[nNeighUp] = ( unsigned short ) i;
+			yzUp[nNeighUp] = CAMath::MakeFloat2( s.fDnDx * ( h.Y() - y ), s.fDnDx * ( h.Z() - z ) );
+		  }
           if ( ++nNeighUp >= kMaxN ) break;
         } while ( 1 );
 
@@ -156,7 +206,11 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
             float2 yzdn = CAMath::MakeFloat2( s.fUpDx * ( h.Y() - y ), s.fUpDx * ( h.Z() - z ) );
 
             for ( int iUp = 0; iUp < nNeighUp; iUp++ ) {
+#ifdef HLTCA_GPUCODE
+			  float2 yzup = iUp >= ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP ? yzUp2[iUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] : yzUp[iUp];
+#else
               float2 yzup = yzUp[iUp];
+#endif
               float dy = yzdn.x - yzup.x;
               float dz = yzdn.y - yzup.y;
               float d = dy * dy + dz * dz;
@@ -169,7 +223,11 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
           } while ( 1 );
 
           if ( bestD <= chi2Cut ) {
+#ifdef HLTCA_GPUCODE
+			linkUp = bestUp >= ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP ? neighUp2[bestUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] : neighUp[bestUp];
+#else
             linkUp = neighUp[bestUp];
+#endif
             linkDn = bestDn;
           }
         }

@@ -34,9 +34,11 @@ class AliHLTTPCCATrackletConstructor
         friend class AliHLTTPCCATrackletConstructor;
       public:
 #if !defined(HLTCA_GPUCODE)
-        AliHLTTPCCASharedMemory() {}
+        AliHLTTPCCASharedMemory()
+			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletNoDummy(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0), fSliceDone(0) {}
 
-        AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ ) {}
+        AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
+			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletNoDummy(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0), fSliceDone(0) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
 
@@ -44,13 +46,19 @@ class AliHLTTPCCATrackletConstructor
       protected:
 #endif
 
+#ifdef HLTCA_GPU_PREFETCHDATA
         uint4 fData[2][ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4]; // temp memory
 		AliHLTTPCCARow fRow[2]; // row
+#else
+		AliHLTTPCCARow fRows[HLTCA_ROW_COUNT];
+#endif
 		int fNextTrackletFirst;
 		int fNextTrackletCount;
 		int fNextTrackletNoDummy;
 		int fNextTrackletStupidDummy;
 		int fNextTrackletFirstRun;
+		int fNTracklets;
+		int fSliceDone;
 
 		int fTrackletStoreCount[2][HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1];
     };
@@ -93,7 +101,6 @@ class AliHLTTPCCATrackletConstructor
 	};
 
 	GPUd() static void InitTracklet	( AliHLTTPCCATrackParam &tParam );
-	GPUd() static void CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam &tParamSrc, AliHLTTPCCATrackParam &tParamDst);
 
     GPUd() static void ReadData( int iThread, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, int iRow );
 
@@ -107,8 +114,10 @@ class AliHLTTPCCATrackletConstructor
 
 #ifdef HLTCA_GPUCODE
 	GPUd() static void AliHLTTPCCATrackletConstructorNewGPU(AliHLTTPCCATracker *pTracker);
+	GPUd() static void AliHLTTPCCATrackletConstructorNewGPUSimple(AliHLTTPCCATracker *pTracker);
 	GPUd() static int FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, int Reverse, int RowBlock, int &mustInit);
 	GPUd() static void AliHLTTPCCATrackletConstructorInit(int iTracklet, AliHLTTPCCATracker &tracke);
+	GPUd() static void CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam &tParamSrc, AliHLTTPCCATrackParam &tParamDst);
 #else
 	GPUd() static void AliHLTTPCCATrackletConstructorNewCPU(AliHLTTPCCATracker &tracker);
 #endif

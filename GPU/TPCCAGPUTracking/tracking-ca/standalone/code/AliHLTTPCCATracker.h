@@ -51,12 +51,23 @@ class AliHLTTPCCATracker
 
 	AliHLTTPCCATracker()
 		:
+#ifdef HLTCA_STANDALONE
+		fGPUDebugMem( NULL ),
+#endif
 		fParam(),
 		fClusterData( 0 ),
 		fData(),
 		fIsGPUTracker( false ),
 		fGPUDebugLevel( 0 ),
 		fGPUDebugOut( 0 ),
+		fRowStartHitCountOffset( NULL ),
+		fTrackletTmpStartHits( NULL ),
+		fGPUTrackletTemp( NULL ),
+		fRowBlockTracklets( NULL ),
+		fRowBlockPos( NULL ),
+		fBlockStartingTracklet( NULL ),
+		fGPUParameters( NULL ),
+		fGPUParametersConst(),
 		fCommonMemory( 0 ),
 		fCommonMemorySize( 0 ),
 		fHitMemory( 0 ),
@@ -86,6 +97,7 @@ class AliHLTTPCCATracker
 		int fStaticStartingTracklets;			//Start using fBlockStartingTracklet instead of fetching from RowBlockTracklets
 		int fGPUError;							//Signalizes error on GPU during GPU Reconstruction, kind of return value
 		int fGPUSchedCollisions;				//Count of unsolveable schedule collisions
+		int fNextTracklet;						//Next Tracklet for simple scheduler
 	};
 
 	struct StructGPUParametersConst
@@ -118,8 +130,8 @@ class AliHLTTPCCATracker
 	void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {fGPUDebugLevel = Level;if (NewDebugOut) fGPUDebugOut = NewDebugOut;}
 
 	char* SetGPUTrackerCommonMemory(char* pGPUMemory);
-	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits );
-	char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits );
+	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits, int fOptionSimpleSched );
+	char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits, int fOptionSimpleSched );
 
 	char* SetGPUSliceDataMemory(char* pGPUMemory, const AliHLTTPCCAClusterData *data) {return(fData.SetGPUSliceDataMemory(pGPUMemory, data));}
 
@@ -168,8 +180,7 @@ class AliHLTTPCCATracker
     GPUd() short HitLinkUpData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkUpData( row, hitIndex ); }
     GPUd() short HitLinkDownData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkDownData( row, hitIndex ); }
 
-	GPUd() const ushort_v *HitDataY( const AliHLTTPCCARow &row ) const { return fData.HitDataY(row); }
-	GPUd() const ushort_v *HitDataZ( const AliHLTTPCCARow &row ) const { return fData.HitDataZ(row); }
+	GPUd() const ushort2 *HitData( const AliHLTTPCCARow &row ) const { return fData.HitData(row); }
 	GPUd() const short_v *HitLinkUpData  ( const AliHLTTPCCARow &row ) const { return fData.HitLinkUpData(row); }
 	GPUd() const short_v *HitLinkDownData( const AliHLTTPCCARow &row ) const { return fData.HitLinkDownData(row); }
 	GPUd() const ushort_v *FirstHitInBin( const AliHLTTPCCARow &row ) const { return fData.FirstHitInBin(row); }
@@ -181,6 +192,9 @@ class AliHLTTPCCATracker
     }
     GPUd() unsigned short HitDataZ( const AliHLTTPCCARow &row, int hitIndex ) const {
       return fData.HitDataZ( row, hitIndex );
+    }
+    GPUd() ushort2 HitData( const AliHLTTPCCARow &row, int hitIndex ) const {
+      return fData.HitData( row, hitIndex );
     }
 
     GPUhd() int HitInputID( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.ClusterDataIndex( row, hitIndex ); }
@@ -235,7 +249,7 @@ class AliHLTTPCCATracker
 	GPUh() char *SliceDataMemory() {return(fData.Memory()); }
 	GPUh() size_t SliceDataMemorySize() const {return(fData.MemorySize()); }
 	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
-	GPUh() AliHLTTPCCARow* SliceDataRows() {return(fData.Rows()); }
+	GPUhd() AliHLTTPCCARow* SliceDataRows() {return(fData.Rows()); }
 
 	GPUhd() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
 	GPUhd() AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory* GPUTrackletTemp() const {return(fGPUTrackletTemp);}

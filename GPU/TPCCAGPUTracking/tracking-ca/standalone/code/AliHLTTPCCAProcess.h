@@ -26,27 +26,28 @@ template<class TProcess>
 GPUg() void AliHLTTPCCAProcess(int iSlice)
 {
   AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[iSlice];
-
   GPUshared() typename TProcess::AliHLTTPCCASharedMemory smem;
 
-  TProcess::Thread( gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, 0, smem, tracker  );
-
-#define GPUPROCESS(iSync) \
-  if( TProcess::NThreadSyncPoints()>=iSync ){ \
-    GPUsync(); \
-    TProcess::Thread( gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, iSync, smem, tracker  ); \
+  for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
+    __syncthreads();
+    TProcess::Thread( gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, iSync, smem, tracker  );
   }
+}
 
-  GPUPROCESS( 1 )
-  GPUPROCESS( 2 )
-  GPUPROCESS( 3 )
+template<class TProcess>
+GPUg() void AliHLTTPCCAProcessMulti(int nSliceCount)
+{
+  const int iSlice = nSliceCount * (blockIdx.x + (gridDim.x % nSliceCount != 0 && nSliceCount * (blockIdx.x + 1) % gridDim.x != 0)) / gridDim.x;
+  const int nSliceBlockOffset = gridDim.x * iSlice / nSliceCount;
+  const int sliceBlockId = blockIdx.x - nSliceBlockOffset;
+  const int sliceGridDim = gridDim.x * (iSlice + 1) / nSliceCount - gridDim.x * (iSlice) / nSliceCount;
+  AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[iSlice];
+  GPUshared() typename TProcess::AliHLTTPCCASharedMemory smem;
 
-  //for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
-  //__syncthreads();
-  //TProcess::ThreadGPU( gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, iSync, smem, tracker  );
-  //}
-
-#undef GPUPROCESS
+  for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
+    __syncthreads();
+    TProcess::Thread( sliceGridDim, blockDim.x, sliceBlockId, threadIdx.x, iSync, smem, tracker  );
+  }
 }
 
 #else
