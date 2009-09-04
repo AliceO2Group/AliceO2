@@ -81,6 +81,10 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     double fSolenoidBz;                                            // see above
     int fMinNTrackClusters; //* required min number of clusters on the track
     double fClusterZCut;  //* cut on cluster Z position (for noise rejection at the age of TPC)
+  double fNeighboursSearchArea; //* area in cm for the neighbour search algorithm
+    double fClusterErrorCorrectionY; // correction for the cluster errors
+    double fClusterErrorCorrectionZ; // correction for the cluster errors
+
     double fFullTime; //* total time for DoEvent() [s]
     double fRecoTime; //* total reconstruction time [s]
     Long_t    fNEvents;  //* number of reconstructed events

@@ -29,7 +29,7 @@ GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
     fCosAlpha( 0 ), fSinAlpha( 0 ), fAngleMin( 0 ), fAngleMax( 0 ), fRMin( 83.65 ), fRMax( 133.3 ),
     fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBzkG( 5. ),
     fConstBz( 5.*0.000299792458 ), fHitPickUpFactor( 1. ),
-    fMaxTrackMatchDRow( 4 ), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 )
+      fMaxTrackMatchDRow( 4 ), fNeighboursSearchArea(3.), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 ), fClusterError2CorrectionY(1.), fClusterError2CorrectionZ(1.)
 {
   // constructor
   fParamS0Par[0][0][0] = 0.00047013;

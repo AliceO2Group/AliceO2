@@ -79,6 +79,7 @@ class AliHLTTPCCADisplay
     void DrawSliceHits( int color = -1, Size_t width = -1 );
     void DrawSliceLinks( int colorUp = -1, int colorDn = -1, int width = -1 );
     void DrawSliceLink( int iRow, int iHit, int colorUp = -1, int colorDn = -1, int width = -1 );
+    void SliceHitXYZ(int iRow, int iHit, double &x, double &y, double &z );
 
 
     void SetSliceTransform( double alpha );
