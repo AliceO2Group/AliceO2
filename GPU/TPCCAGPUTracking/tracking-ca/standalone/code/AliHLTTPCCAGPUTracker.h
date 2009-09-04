@@ -5,6 +5,9 @@
 //                                                                        *
 //*************************************************************************
 
+#ifndef ALIHLTTPCCAGPUTRACKER_H
+#define ALIHLTTPCCAGPUTRACKER_H
+
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracker.h"
 
@@ -18,6 +21,7 @@ public:
 	  fOutFile(NULL),
 	  fGPUMemSize(0),
 	  fOptionSingleBlock(0),
+	  fOptionSimpleSched(0),
 	  fSliceCount(0)
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
@@ -47,6 +51,7 @@ private:
 	long long int fGPUMemSize;	//Memory Size to allocate on GPU
 
 	int fOptionSingleBlock;		//Use only one single Multiprocessor on GPU to check for problems related to multi processing
+	int fOptionSimpleSched;		//Simple scheduler not row based
 
 	int fSliceCount;
 #ifdef HLTCA_GPUCODE
@@ -58,3 +63,5 @@ private:
 	AliHLTTPCCAGPUTracker &operator=( const AliHLTTPCCAGPUTracker& );
 
 };
+
+#endif

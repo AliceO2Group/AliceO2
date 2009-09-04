@@ -33,10 +33,6 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 
   if ( iSync == 0 ) {
     if ( iThread == 0 ) {
-      if ( iBlock == 0 ) {
-        CAMath::AtomicExch( tracker.NTracks(), 0 );
-        CAMath::AtomicExch( tracker.NTrackHits(), 0 );
-      }
       s.fNTracklets = *tracker.NTracklets();
       s.fNThreadsTotal = nThreads * nBlocks;
       s.fItr0 = nThreads * iBlock;
@@ -54,11 +50,14 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 	}
 #endif
 
+	  while (tracker.Tracklets()[itr].NHits() == 0)
+	  {
+		  itr += s.fNThreadsTotal;
+		  if (itr >= s.fNTracklets) return;
+	  }
 
-      AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[itr];
-
-      int tNHits = tracklet.NHits();
-      if ( tNHits <= 0 ) continue;
+	  AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[itr];
+      const int tNHits = tracklet.NHits();
 
       const int kMaxRowGap = 4;
       const float kMaxShared = .1;
@@ -77,7 +76,6 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 
       //int w = (tNHits<<16)+itr;
       //int nRows = tracker.Param().NRows();
-	  const int nhits = tracklet.NHits();
       //std::cout<<" store tracklet: "<<firstRow<<" "<<lastRow<<std::endl;
 
 	  int irow = firstRow;
@@ -86,7 +84,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
       int nShared = 0;
 	  nHits = 0;
 
-	  for (irow = firstRow; irow <= lastRow; irow++ ) {
+	  for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= TRACKLET_SELECTOR_MIN_HITS; irow++ ) {
         gap++;
         int ih = tracklet.RowHit( irow );
         if ( ih >= 0 ) {
@@ -107,7 +105,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
         }
 
         if ( gap > kMaxRowGap || irow == lastRow ) { // store
-          if ( nHits >= 10 ) { //SG!!!
+          if ( nHits >= TRACKLET_SELECTOR_MIN_HITS ) { //SG!!!
             int itrout = CAMath::AtomicAdd( tracker.NTracks(), 1 );
             nFirstTrackHit = CAMath::AtomicAdd( tracker.NTrackHits(), nHits );
             /*tout.SetParam( tracklet.Param() );

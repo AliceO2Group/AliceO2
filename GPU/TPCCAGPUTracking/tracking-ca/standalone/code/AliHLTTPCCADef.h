@@ -44,6 +44,14 @@
 
 // class TObject{};
 
+#ifdef ClassDef
+#undef ClassDef
+#endif
+
+#ifdef ClassTmp
+#undef ClassTmp
+#endif
+
 #define ClassDef(name,id)
 #define ClassImp(name)
 
@@ -96,12 +104,13 @@ namespace AliHLTTPCCADefinitions
 
 #endif
 
-//#define SLICE_DATA_EXTERN_ROWS
+#define SLICE_DATA_EXTERN_ROWS
 //#define PREINIT_ROWS
+#define TRACKLET_SELECTOR_MIN_HITS 10
 
 #ifdef HLTCA_GPUCODE
-#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 5
-#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 700
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 1000
 #define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 3500
 #define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 1536					//Max amount of hits in a row that can be stored in shared memory, make sure this is divisible by ROW ALIGNMENT
 #else
