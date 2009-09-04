@@ -298,7 +298,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
 
 bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
                                   AliHLTTPCCATrackParam t0, float Alpha0,
-                                  int hits[], int &NTrackHits, bool dir,
+                                  int hits[], int &NTrackHits, bool dir, bool final,
                                   AliHLTTPCCAClusterInfo *infoArray )
 {
   // Fit the track
@@ -362,6 +362,11 @@ bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
     float err2Y = h.Err2Y();
     float err2Z = h.Err2Z();
     if ( doErrors ) fSliceParam.GetClusterErrors2( h.IRow(), h.Z(), l.SinPhi(), l.CosPhi(), l.DzDs(), err2Y, err2Z );
+    if( !final ){
+      err2Y*= fSliceParam.ClusterError2CorrectionY();
+      err2Z*= fSliceParam.ClusterError2CorrectionZ();
+    }
+
     if ( !t.Filter( h.Y(), h.Z(), err2Y, err2Z ) ) continue;
 
     first = 0;
@@ -460,6 +465,7 @@ void AliHLTTPCCAMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCCABo
     if ( do0 ) {
       AliHLTTPCCABorderTrack &b = B[nB];
       b.SetX( t0.GetX() );
+      
       if ( t0.TransportToX( x0, fSliceParam.GetBz( t0 ), maxSin ) ) {
         b.SetOK( 1 );
         b.SetTrackID( itr );
@@ -472,6 +478,7 @@ void AliHLTTPCCAMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCCABo
     if ( do1 ) {
       AliHLTTPCCABorderTrack &b = B[nB];
       b.SetX( t1.GetX() );
+      
       if ( t1.TransportToX( x0, fSliceParam.GetBz( t1 ), maxSin ) ) {
         b.SetOK( 1 );
         b.SetTrackID( itr );
@@ -488,12 +495,14 @@ void AliHLTTPCCAMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCCABo
 
 
 
-void AliHLTTPCCAMerger::SplitBorderTracks( int iSlice1, AliHLTTPCCABorderTrack B1[], int N1,
+void AliHLTTPCCAMerger::MergeBorderTracks( int iSlice1, AliHLTTPCCABorderTrack B1[], int N1,
     int iSlice2, AliHLTTPCCABorderTrack B2[], int N2
                                          )
 {
-  //* split two sets of tracks
+  //* merge two sets of tracks
 
+  //std::cout<<" Merge slices "<<iSlice1<<"+"<<iSlice2<<": tracks "<<N1<<"+"<<N2<<std::endl;
+  
   float factor2ys = 1.;//1.5;//SG!!!
   float factor2zt = 1.;//1.5;//SG!!!
   float factor2k = 2.0;//2.2;
@@ -529,18 +538,21 @@ void AliHLTTPCCAMerger::SplitBorderTracks( int iSlice1, AliHLTTPCCABorderTrack B
       float c = t2.SignCosPhi() * t1.SignCosPhi() >= 0 ? 1 : -1;
       float dk = t2.QPt() - c * t1.QPt();
       float s2k = t2.Err2QPt() + t1.Err2QPt();
-
+      //std::cout<<" check 1.. "<<dk/sqrt(factor2k)<<std::endl;
       if ( dk*dk > factor2k*s2k ) continue;
 
 
       float chi2ys = GetChi2( t1.Y(), c * t1.SinPhi(), t1.Cov()[0], c * t1.Cov()[3], t1.Cov()[5],
                               t2.Y(),  t2.SinPhi(), t2.Cov()[0],  t2.Cov()[3], t2.Cov()[5] );
 
+      //std::cout<<" check 2.. "<<sqrt(chi2ys/factor2ys)<<std::endl;
       if ( chi2ys > factor2ys ) continue;
+      
 
       float chi2zt = GetChi2( t1.Z(), c * t1.DzDs(), t1.Cov()[2], c * t1.Cov()[7], t1.Cov()[9],
                               t2.Z(),  t2.DzDs(), t2.Cov()[2],  t2.Cov()[7], t2.Cov()[9] );
 
+      //std::cout<<" check 3.. "<<sqrt(chi2zt/factor2zt)<<std::endl;
       if ( chi2zt > factor2zt ) continue;
 
       lBest2 = b2.NClusters();
@@ -549,6 +561,7 @@ void AliHLTTPCCAMerger::SplitBorderTracks( int iSlice1, AliHLTTPCCABorderTrack B
 
     if ( iBest2 < 0 ) continue;
 
+    //std::cout<<"Neighbour found for "<<i1<<": "<<iBest2<<std::endl;
     AliHLTTPCCASliceTrackInfo &newTrack1 = fTrackInfos[fSliceTrackInfoStart[iSlice1] + b1.TrackID() ];
     AliHLTTPCCASliceTrackInfo &newTrack2 = fTrackInfos[fSliceTrackInfoStart[iSlice2] + iBest2 ];
 
@@ -570,6 +583,7 @@ void AliHLTTPCCAMerger::SplitBorderTracks( int iSlice1, AliHLTTPCCABorderTrack B
     }
     newTrack1.SetNextNeighbour( iBest2 );
     newTrack2.SetPrevNeighbour( b1.TrackID() );
+    //std::cout<<"Neighbourhood is set"<<std::endl;
   }
 
 }
@@ -617,7 +631,7 @@ void AliHLTTPCCAMerger::Merging()
 
       int nBord = 0;
       MakeBorderTracks( iSlice, 4, bord.Data(), nBord );
-      SplitBorderTracks( iSlice, bord.Data(), nBord, iSlice, bord.Data(), nBord );
+      MergeBorderTracks( iSlice, bord.Data(), nBord, iSlice, bord.Data(), nBord );
 
       int nTr = 0, nH = 0;
       int sliceFirstClusterRef = 0;
@@ -688,8 +702,8 @@ void AliHLTTPCCAMerger::Merging()
     MakeBorderTracks( iSlice, 2, bCurr0, nCurr0 );
     MakeBorderTracks( jSlice, 3, bNext0, nNext0 );
 
-    SplitBorderTracks( iSlice, bCurr0, nCurr0, jSlice, bNext0, nNext0 );
-    SplitBorderTracks( iSlice, bCurr, nCurr, jSlice, bNext, nNext );
+    MergeBorderTracks( iSlice, bCurr0, nCurr0, jSlice, bNext0, nNext0 );
+    MergeBorderTracks( iSlice, bCurr, nCurr, jSlice, bNext, nNext );
   }
 
   if ( bCurr0 ) delete[] bCurr0;
@@ -715,7 +729,7 @@ void AliHLTTPCCAMerger::Merging()
 
       if ( track.Used() ) continue;
       if ( track.PrevNeighbour() >= 0 ) continue;
-
+      //std::cout<<"Merged track candidate, nhits "<<track.NClusters()<<std::endl;
       AliHLTTPCCATrackParam startPoint = track.InnerParam(), endPoint = track.OuterParam();
       float startAlpha = track.InnerAlpha(), endAlpha = track.OuterAlpha();
 
@@ -789,12 +803,12 @@ void AliHLTTPCCAMerger::Merging()
       // need best t0!!!SG
 
       endPoint = startPoint;
-      if ( !FitTrack( endPoint, endAlpha, startPoint, startAlpha, hits + firstHit, nHits, 0 ) ) continue;
-      if ( !FitTrack( startPoint, startAlpha, endPoint, endAlpha, hits + firstHit, nHits, 1 ) ) continue;
 
+      if ( !FitTrack( endPoint, endAlpha, startPoint, startAlpha, hits + firstHit, nHits, 0,1 ) ) continue;
+      if ( !FitTrack( startPoint, startAlpha, endPoint, endAlpha, hits + firstHit, nHits, 1,1 ) ) continue;
       if ( nHits < 30 ) continue;    //SG!!!
 
-      AliHLTTPCCATrackParam &p = startPoint;
+      AliHLTTPCCATrackParam p = startPoint;
 
       {
         double xTPC = 83.65; //SG!!!
@@ -804,16 +818,14 @@ void AliHLTTPCCAMerger::Merging()
 
         if ( p.TransportToXWithMaterial( xTPC, fitPar, fSliceParam.GetBz( p ) ) ) {
           double y = p.GetY();
-          double ymax = xTPC * CAMath::Tan( dAlpha / 2. );
-          if ( y > ymax ) {
-            if ( p.Rotate( dAlpha ) ) { startAlpha += dAlpha;  p.TransportToXWithMaterial( xTPC, fitPar, fSliceParam.GetBz( p ) ); }
-          } else if ( y < -ymax ) {
-            if ( p.Rotate( -dAlpha ) ) {  startAlpha -= dAlpha; p.TransportToXWithMaterial( xTPC, fitPar, fSliceParam.GetBz( p ) );}
-          }
+          double ymax = 2.* xTPC * CAMath::Tan( dAlpha / 2. );
+          if ( -ymax <= y && y <= ymax && p.CheckNumericalQuality() ){
+	    startPoint = p;
+	  }
         }
       }
 
-      if ( !p.CheckNumericalQuality() ) continue;
+      if ( !startPoint.CheckNumericalQuality() ) continue;
 
       AliHLTTPCCAMergedTrack &mergedTrack = outTracks[nOutTracks];
       mergedTrack.SetNClusters( nHits );

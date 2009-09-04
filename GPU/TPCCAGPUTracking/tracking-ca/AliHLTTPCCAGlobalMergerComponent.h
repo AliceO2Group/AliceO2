@@ -113,6 +113,8 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     AliHLTTPCCAMerger *fGlobalMerger; //!
 
     double fSolenoidBz;  // magnetic field
+    double fClusterErrorCorrectionY; // correction for the cluster error during pre-fit
+    double fClusterErrorCorrectionZ; // correction for the cluster error during pre-fit
 
     ClassDef( AliHLTTPCCAGlobalMergerComponent, 0 )
 };

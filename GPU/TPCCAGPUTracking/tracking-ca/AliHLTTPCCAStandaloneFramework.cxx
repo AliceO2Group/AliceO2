@@ -28,14 +28,14 @@
 
 //If not building GPU Code then build dummy functions to link against
 #ifndef BUILD_GPU
-AliHLTTPCCAGPUTracker::AliHLTTPCCAGPUTracker() : gpuTracker(), DebugLevel(0) {}
+AliHLTTPCCAGPUTracker::AliHLTTPCCAGPUTracker() : gpuTracker(),GPUMemory(0), DebugLevel(0), OutFile(0), GPUMemSize(0) {}
 AliHLTTPCCAGPUTracker::~AliHLTTPCCAGPUTracker() {}
 int AliHLTTPCCAGPUTracker::InitGPU() {return(0);}
 //template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment) {return(NULL);}
 //bool AliHLTTPCCAGPUTracker::CUDA_FAILED_MSG(cudaError_t error) {return(true);}
 //int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
-void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile) {};
-int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker) {return(1);}
+void AliHLTTPCCAGPUTracker::SetDebugLevel(int /*dwLevel*/, std::ostream * /*NewOutFile*/) {};
+int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* /*tracker*/) {return(1);}
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
 #endif
 
@@ -47,7 +47,7 @@ AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
-    : fMerger(), fStatNEvents( 0 ), fUseGPUTracker(false), fGPUDebugLevel(0)
+    :  fMerger(), fGPUTracker(), fStatNEvents( 0 ), fUseGPUTracker(false), fGPUDebugLevel(0)
 {
   //* constructor
 
@@ -58,7 +58,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-    : fMerger(), fStatNEvents( 0 )
+    :  fMerger(), fGPUTracker(), fStatNEvents( 0 ), fUseGPUTracker(false), fGPUDebugLevel(0)
 {
   //* dummy
 }
