@@ -161,7 +161,9 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   // 1. prepare arrays
   ////////////////////////////////////
 
-  //const int numberOfRows = data.LastRow() - data.FirstRow();
+#ifdef DEBUG
+  const int numberOfRows = data.LastRow() - data.FirstRow();
+#endif //DEBUG
   fNumberOfHits = data.NumberOfClusters();
 
   /* TODO Vectorization
