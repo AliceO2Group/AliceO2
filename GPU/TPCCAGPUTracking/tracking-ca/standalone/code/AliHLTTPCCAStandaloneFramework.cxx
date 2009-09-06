@@ -126,6 +126,15 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   TStopwatch timer1;
 
 #ifdef HLTCA_STANDALONE
+  //Do one initial run for the GPU to be initialized during benchmarks
+#ifndef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+  if (fUseGPUTracker && fGPUDebugLevel < 2)
+  {
+	fSliceTrackers[0].ReadEvent( &( fClusterData[0] ) );
+	fGPUTracker.Reconstruct(&fSliceTrackers[0], 1);
+  }
+#endif
+
   unsigned long long int sliceTimers[fgkNSlices][16], startTime, endTime, checkTime;
   unsigned long long int cpuTimers[16], gpuTimers[16], tmpFreq;
   unsigned long long int sliceDataStart, sliceDataEnd, sliceDataSumCPU = 0, sliceDataSumGPU = 0;
@@ -133,7 +142,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   fSliceTrackers[0].StandaloneQueryTime(&startTime);
 #endif
 
-  if (!fUseGPUTracker || fGPUDebugLevel >= 3)
+  if (!fUseGPUTracker || fGPUDebugLevel >= 6)
   {
 #ifdef HLTCA_STANDALONE
 #pragma omp parallel for
@@ -161,21 +170,24 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   if (fUseGPUTracker)
   {
-	  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice += fGPUSliceCount ) {
-		if (forceSingleSlice != -1) iSlice = forceSingleSlice;
 #ifdef HLTCA_STANDALONE
 		if (fGPUDebugLevel >= 1)
 			fSliceTrackers[0].StandaloneQueryTime(&sliceDataStart);
 #endif
-		for (int iSliceA = iSlice;iSliceA < iSlice + (forceSingleSlice != -1 ? 1 : CAMath::Min(fGPUSliceCount, fgkNSlices - iSlice));iSliceA++)
-			fSliceTrackers[iSliceA].ReadEvent( &( fClusterData[iSliceA] ) );
+#ifdef HLTCA_STANDALONE
+#pragma omp parallel for
+#endif
+		for (int iSlice = 0;iSlice  < fgkNSlices; iSlice++)
+			fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
 #ifdef HLTCA_STANDALONE
 		if (fGPUDebugLevel >= 1)
 		{
 			fSliceTrackers[0].StandaloneQueryTime(&sliceDataEnd);
-			sliceDataSumGPU += sliceDataEnd - sliceDataStart;
+			sliceDataSumGPU = sliceDataEnd - sliceDataStart;
 		}
 #endif	
+	  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice += fGPUSliceCount ) {
+		if (forceSingleSlice != -1) iSlice = forceSingleSlice;
 		if (fGPUTracker.Reconstruct(&fSliceTrackers[iSlice], forceSingleSlice != -1 ? 1 : CAMath::Min(fGPUSliceCount, fgkNSlices - iSlice)))
 		{
 			printf("Error during GPU Reconstruction (Slice %d)!!!\n", iSlice);
@@ -190,6 +202,9 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 		}
 #endif
 		if (forceSingleSlice != -1) break;
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+		break;
+#endif
 	  }
 	  if (fGPUDebugLevel >= 2) printf("\n");
   }
@@ -248,11 +263,11 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 			cpuTimers[i] /= omp_get_max_threads();
 
 			printf("Execution Time: Task: %20s ", tmpNames[i]);
-			if (!fUseGPUTracker || fGPUDebugLevel >= 3)
+			if (!fUseGPUTracker || fGPUDebugLevel >= 6)
 				printf("CPU: %15lld\t\t", cpuTimers[i]);
 			if (fUseGPUTracker)
 				printf("GPU: %15lld\t\t", gpuTimers[i]);
-			if (fGPUDebugLevel >= 3 && fUseGPUTracker && gpuTimers[i])
+			if (fGPUDebugLevel >=6 && fUseGPUTracker && gpuTimers[i])
 				printf("Speedup: %4lld%%", cpuTimers[i] * 100 / gpuTimers[i]);
 			printf("\n");
 		}
@@ -264,7 +279,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 		}
 		sliceDataSumCPU /= omp_get_max_threads();
 		printf("Execution Time: Task: %20s ", "Grid");
-		if (!fUseGPUTracker || fGPUDebugLevel >= 3)
+		if (!fUseGPUTracker || fGPUDebugLevel >= 6)
 			printf("CPU: %15lld\t\t", sliceDataSumCPU * 1000000 / tmpFreq);
 		if (fUseGPUTracker)
 			printf("GPU: %15lld\t\t", sliceDataSumGPU * 1000000 / tmpFreq);
