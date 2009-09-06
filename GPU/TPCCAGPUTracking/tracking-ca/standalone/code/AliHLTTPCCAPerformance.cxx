@@ -1035,7 +1035,7 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int /*iSlice*/, bool /*P
       int nla = 0;
 
       for ( int irow = firstRow; irow <= lastRow; irow++ ) {
-        int ih = t.RowHit( irow );
+        int ih = slice.TrackletRowHits[iRow * *slice.NTracklets() + itr];//t.RowHit( irow );
         if ( ih < 0 ) continue;
         int index = firstSliceHit + slice.HitInputID( slice.Row( irow ), ih );
         AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];
@@ -1065,7 +1065,7 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int /*iSlice*/, bool /*P
       }
       lmax = 0;
       for ( int irow = firstRow; irow <= lastRow; irow++ ) {
-        int ih = t.RowHit( irow );
+        int ih = slice.TrackletRowHits[iRow * *slice.NTracklets() + itr];//t.RowHit( irow );
         if ( ih < 0 ) continue;
         int index = firstSliceHit + slice.HitInputID( slice.Row( irow ), ih );
         AliHLTTPCCAHitLabel &l = fHitLabels[fTracker->Hits()[index].ID()];

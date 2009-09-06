@@ -27,3 +27,11 @@ void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile)
 int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* OptionName, int OptionValue) {return(1);}
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker, int fSliceCount) {return(1);}
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
+void* AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(size_t size)
+{
+	return(malloc(size));
+}
+void AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(void* ptr)
+{
+	free(ptr);
+}

@@ -18,6 +18,7 @@
 #include "AliHLTTPCCAMath.h"
 #include <algorithm>
 #include "AliHLTArray.h"
+#include "AliHLTTPCCAGPUConfig.h"
 
 void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfClusters )
 {
@@ -27,8 +28,8 @@ void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfC
   fFirstRow = 0;
   fLastRow = 0;
   fData.clear();
-  fNumberOfClusters.reserve( 160 );
-  fRowOffset.reserve( 160 );
+  fNumberOfClusters.reserve( HLTCA_ROW_COUNT + 1 );
+  fRowOffset.reserve( HLTCA_ROW_COUNT + 1 );
   fData.reserve( CAMath::Max( 64, guessForNumberOfClusters ) );
 }
 
