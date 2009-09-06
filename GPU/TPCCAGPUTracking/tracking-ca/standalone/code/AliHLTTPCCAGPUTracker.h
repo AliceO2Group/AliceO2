@@ -22,6 +22,7 @@ public:
 	  fGPUMemSize(0),
 	  fOptionSingleBlock(0),
 	  fOptionSimpleSched(0),
+	  pCudaStreams(NULL),
 	  fSliceCount(0)
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
@@ -34,6 +35,9 @@ public:
 	int SetGPUTrackerOption(char* OptionName, int OptionValue);
 
 	unsigned long long int* PerfTimer(unsigned int i) {return(fGpuTracker ? fGpuTracker[0].PerfTimer(i) : NULL); }
+
+	static void* gpuHostMallocPageLocked(size_t size);
+	static void gpuHostFreePageLocked(void* ptr);
 
 private:
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
@@ -52,6 +56,8 @@ private:
 
 	int fOptionSingleBlock;		//Use only one single Multiprocessor on GPU to check for problems related to multi processing
 	int fOptionSimpleSched;		//Simple scheduler not row based
+
+	void* pCudaStreams;
 
 	int fSliceCount;
 #ifdef HLTCA_GPUCODE

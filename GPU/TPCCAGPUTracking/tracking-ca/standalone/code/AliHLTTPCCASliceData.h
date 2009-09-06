@@ -21,6 +21,7 @@
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTArray.h"
+#include "AliHLTTPCCAGPUConfig.h"
 
 typedef int int_v;
 typedef unsigned int uint_v;
@@ -45,7 +46,7 @@ class AliHLTTPCCASliceData
   public:
     AliHLTTPCCASliceData()
         : 
-		fGPUSharedDataReq(0), fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 )
+		fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif
@@ -55,16 +56,7 @@ class AliHLTTPCCASliceData
 	}
 
 #ifndef HLTCA_GPUCODE
-	~AliHLTTPCCASliceData()
-	{
-#ifdef SLICE_DATA_EXTERN_ROWS
-		if (fRows)
-		{
-			delete[] fRows;
-			fRows = NULL;
-		}
-#endif
-	}
+	~AliHLTTPCCASliceData();
 #endif
 
     void InitializeRows( const AliHLTTPCCAParam &parameters );
@@ -87,6 +79,7 @@ class AliHLTTPCCASliceData
      * Return the number of hits in this slice.
      */
     GPUhd() int NumberOfHits() const { return fNumberOfHits; }
+	GPUhd() int NumberOfHitsPlusAlign() const { return fNumberOfHitsPlusAlign; }
 
     /**
      * Access to the hit links.
@@ -184,13 +177,14 @@ class AliHLTTPCCASliceData
 	int fGPUSharedDataReq;		//Size of shared memory required for GPU Reconstruction
 
     int fNumberOfHits;         // the number of hits in this slice
+	int fNumberOfHitsPlusAlign;
     int fMemorySize;           // size of the allocated memory in bytes
     char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
 
 #ifdef SLICE_DATA_EXTERN_ROWS
     AliHLTTPCCARow *fRows; // The row objects needed for most accessor functions
 #else
-	AliHLTTPCCARow fRows[160]; // The row objects needed for most accessor functions
+	AliHLTTPCCARow fRows[HLTCA_ROW_COUNT + 1]; // The row objects needed for most accessor functions
 #endif
     short *fLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
     short *fLinkDownData;      // hit index in the row below which is linked to the given (global) hit index

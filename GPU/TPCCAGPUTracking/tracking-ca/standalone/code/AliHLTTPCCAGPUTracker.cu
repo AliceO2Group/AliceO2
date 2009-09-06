@@ -296,6 +296,19 @@ void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlic
 	}
 }
 
+
+void* AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(size_t size)
+{
+	void* ptr;
+	if (cudaMallocHost(&ptr, size)) ptr = 0;
+	return(ptr);
+}
+
+void AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(void* ptr)
+{
+	cudaFreeHost(ptr);
+}
+
 //Primary reconstruction function
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker, int fSliceCountLocal)
 {

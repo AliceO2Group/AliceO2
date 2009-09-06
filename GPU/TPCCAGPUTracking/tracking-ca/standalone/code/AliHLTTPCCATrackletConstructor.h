@@ -60,6 +60,10 @@ class AliHLTTPCCATrackletConstructor
 		int fNTracklets;
 		int fSliceDone;
 
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+		int fMaxSync;
+#endif
+
 		int fTrackletStoreCount[2][HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1];
     };
 

@@ -77,6 +77,7 @@ class AliHLTTPCCATracker
 		fNTracklets( 0 ),
 		fTrackletStartHits( 0 ),
 		fTracklets( 0 ),
+		fTrackletRowHits( NULL ),
 		fNTracks( 0 ),
 		fTracks( 0 ),
 		fNTrackHits( 0 ),
@@ -89,7 +90,7 @@ class AliHLTTPCCATracker
 	{
 	  // constructor
 	}
-    GPUd() ~AliHLTTPCCATracker();
+    ~AliHLTTPCCATracker();
 
 	struct StructGPUParameters
 	{
@@ -225,6 +226,7 @@ class AliHLTTPCCATracker
     GPUhd() AliHLTTPCCAHitId *TrackletTmpStartHits() const { return fTrackletTmpStartHits; }
     GPUhd() const AliHLTTPCCATracklet &Tracklet( int i ) const { return fTracklets[i]; }
     GPUhd() AliHLTTPCCATracklet  *Tracklets() const { return fTracklets;}
+	GPUhd() int* TrackletRowHits() { return fTrackletRowHits; }
 
     GPUhd() int *NTracks()  const { return fNTracks; }
     GPUhd() AliHLTTPCCATrack *Tracks() const { return  fTracks; }
@@ -266,7 +268,7 @@ class AliHLTTPCCATracker
 	void StandaloneQueryFreq(unsigned long long int *i);
 
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-	int* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
+	char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
 	int* fThreadTimes;
 #endif
 #ifdef HLTCA_STANDALONE
@@ -318,6 +320,7 @@ class AliHLTTPCCATracker
     int *fNTracklets;     // number of tracklets
     AliHLTTPCCAHitId *fTrackletStartHits;   // start hits for the tracklets
     AliHLTTPCCATracklet *fTracklets; // tracklets
+	int *fTrackletRowHits;
 
     //
     int *fNTracks;            // number of reconstructed tracks
