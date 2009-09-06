@@ -1023,7 +1023,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorNewGPU
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 				CAMath::AtomicMax(&sMem.fMaxSync, threadSync);
 				__syncthreads();
-				threadSync = CAMath::Max(sMem.fMaxSync, 100000000 / blockDim.x / gridDim.x);
+				threadSync = CAMath::Min(sMem.fMaxSync, 100000000 / blockDim.x / gridDim.x);
 #endif
 				while ((iTracklet = FetchTracklet(tracker, sMem, iReverse, iRowBlock, mustInit)) != -2)
 				{

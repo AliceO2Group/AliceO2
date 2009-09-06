@@ -43,6 +43,7 @@
 #include "AliHLTTPCCATrackParam.h"
 
 #include "AliHLTTPCCAGPUConfig.h"
+#include "AliHLTTPCCAGPUTracker.h"
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
@@ -61,21 +62,28 @@
 
 ClassImp( AliHLTTPCCATracker )
 
-GPUd() AliHLTTPCCATracker::~AliHLTTPCCATracker()
+
+#if !defined(HLTCA_GPUCODE)
+
+AliHLTTPCCATracker::~AliHLTTPCCATracker()
 {
   // destructor
 #ifndef CUDA_DEVICE_EMULATION
 	if (!fIsGPUTracker)
 	{
-		delete[] fCommonMemory;
-		delete[] fHitMemory;
-		delete[] fTrackMemory;
+		//delete[] fCommonMemory;
+		//delete[] fHitMemory;
+		//delete[] fTrackMemory;
+		if (fCommonMemory)
+			AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fCommonMemory);
+		if (fHitMemory)
+			AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fHitMemory);
+		if (fTrackMemory)
+			AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fTrackMemory);
+		fCommonMemory = fHitMemory = fTrackMemory = NULL;
 	}
 #endif
 }
-
-#if !defined(HLTCA_GPUCODE)
-
 
 // ----------------------------------------------------------------------------------
 void AliHLTTPCCATracker::Initialize( const AliHLTTPCCAParam &param )
@@ -215,10 +223,12 @@ int trackletSortComparison(const void* a, const void* b)
 	for (int i = aa->FirstRow();i <= aa->LastRow();i++)
 	{
 		if (i >= bb->LastRow()) return(-1);
-		/*if (aa->RowHit(i) != bb->RowHit(i))
+#ifndef EXTERN_ROW_HITS
+		if (aa->RowHit(i) != bb->RowHit(i))
 		{
 			return(aa->RowHit(i) - bb->RowHit(i));
-		}*/
+		}
+#endif
 	}
 	return(0);
 }
@@ -241,7 +251,11 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 			for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
 			{
 				//if (Tracklets()[j].RowHit(i) != -1)
-					//out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+#ifdef EXTERN_ROW_HITS
+					out << i << "-" << fTrackletRowHits[i * *fNTracklets + j] << ", ";
+#else
+					out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+#endif
 			}
 		}
 		out << endl;
@@ -258,14 +272,23 @@ void  AliHLTTPCCATracker::SetupCommonMemory()
     if ( !fCommonMemory ) {
       SetPointersCommon(); // just to calculate the size
       // the 1600 extra bytes are not used unless fCommonMemorySize increases with a later event
-      fCommonMemory = reinterpret_cast<char*> ( new uint4 [ fCommonMemorySize/sizeof( uint4 ) + 100] );
+      //fCommonMemory = reinterpret_cast<char*> ( new uint4 [ fCommonMemorySize/sizeof( uint4 ) + 100] );
+	  fCommonMemory = (char*) AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(fCommonMemorySize + 100 * sizeof(uint4));
       SetPointersCommon();// set pointers
     }
 
-    delete[] fHitMemory;
-    delete[] fTrackMemory;
-    fHitMemory = 0;
-    fTrackMemory = 0;
+    //delete[] fHitMemory;
+    //delete[] fTrackMemory;
+	if (fHitMemory)
+	{
+		AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fHitMemory);
+		fHitMemory = 0;
+	}
+	if (fTrackMemory)
+	{
+		AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fTrackMemory);
+		fTrackMemory = 0;
+	}
   }
 
   fData.Clear();
@@ -289,7 +312,8 @@ void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 
   {
     SetPointersHits( fData.NumberOfHits() ); // to calculate the size
-    fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
+    //fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
+	fHitMemory = (char*) AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(fHitMemorySize + 100 * sizeof(uint4));
     SetPointersHits( fData.NumberOfHits() ); // set pointers for hits
     *fNTracklets = 0;
     *fNTracks = 0 ;
@@ -325,9 +349,9 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersHits( int MaxNHits )
   // extra arrays for tpc clusters
 
 #ifdef HLTCA_GPU_SORT_STARTHITS_2
-  AssignMemory( fTrackletStartHits, mem, MaxNHits );
+  AssignMemory( fTrackletStartHits, mem, MaxNHits + 32);
 #else
-  AssignMemory( fTrackletStartHits, mem, MaxNHits + 32 );
+  AssignMemory( fTrackletStartHits, mem, MaxNHits);
 #endif
 
   // arrays for track hits
@@ -352,7 +376,7 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHit
 
   AssignMemory( fTracklets, mem, MaxNTracks );
 #ifdef EXTERN_ROW_HITS
-  AssignMemory( fTrackletRowHits, mem, MaxNTracks * (HLTCA_ROW_COUNT + 1));
+  AssignMemory( fTrackletRowHits, mem, MaxNTracks * Param().NRows());
 #endif
 
   // memory for selected tracks
@@ -379,7 +403,8 @@ GPUh() int AliHLTTPCCATracker::CheckEmptySlice()
   if ( NHitsTotal() < 1 ) {
     {
       SetPointersTracks( 1, 1 ); // to calculate the size
-      fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
+      //fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
+	  fTrackMemory = (char*) AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(fTrackMemorySize + 100 * sizeof(uint4));
       SetPointersTracks( 1, 1 ); // set pointers for tracks
       fOutput->SetNTracks( 0 );
       fOutput->SetNTrackClusters( 0 );
@@ -545,7 +570,8 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   fData.ClearHitWeights();
 
   SetPointersTracks( *fNTracklets * 2, NHitsTotal() ); // to calculate the size
-  fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
+  //fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
+  fTrackMemory = (char*) AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(fTrackMemorySize + 100 * sizeof(uint4));
   SetPointersTracks( *fNTracklets * 2, NHitsTotal() ); // set pointers for hits
 
   StandalonePerfTime(6);
