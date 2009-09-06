@@ -86,7 +86,11 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 
 	  for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= TRACKLET_SELECTOR_MIN_HITS; irow++ ) {
         gap++;
-        int ih = tracklet.RowHit( irow );
+#ifdef EXTERN_ROW_HITS
+        int ih = tracker.TrackletRowHits()[irow * s.fNTracklets + itr];
+#else
+		int ih = tracklet.RowHit( irow );
+#endif
         if ( ih >= 0 ) {
           const AliHLTTPCCARow &row = tracker.Row( irow );
           bool own = ( tracker.HitWeight( row, ih ) <= w );
