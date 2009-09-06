@@ -215,10 +215,10 @@ int trackletSortComparison(const void* a, const void* b)
 	for (int i = aa->FirstRow();i <= aa->LastRow();i++)
 	{
 		if (i >= bb->LastRow()) return(-1);
-		if (aa->RowHit(i) != bb->RowHit(i))
+		/*if (aa->RowHit(i) != bb->RowHit(i))
 		{
 			return(aa->RowHit(i) - bb->RowHit(i));
-		}
+		}*/
 	}
 	return(0);
 }
@@ -241,7 +241,7 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 			for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
 			{
 				//if (Tracklets()[j].RowHit(i) != -1)
-					out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+					//out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
 			}
 		}
 		out << endl;
@@ -351,6 +351,9 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHit
   // memory for tracklets
 
   AssignMemory( fTracklets, mem, MaxNTracks );
+#ifdef EXTERN_ROW_HITS
+  AssignMemory( fTrackletRowHits, mem, MaxNTracks * (HLTCA_ROW_COUNT + 1));
+#endif
 
   // memory for selected tracks
 
