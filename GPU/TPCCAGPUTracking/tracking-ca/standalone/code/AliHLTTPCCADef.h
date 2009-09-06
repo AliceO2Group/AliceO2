@@ -105,7 +105,7 @@ namespace AliHLTTPCCADefinitions
 #endif
 
 #define SLICE_DATA_EXTERN_ROWS
-//#define EXTERN_ROW_HITS
+#define EXTERN_ROW_HITS
 //#define PREINIT_ROWS
 #define TRACKLET_SELECTOR_MIN_HITS 10
 
