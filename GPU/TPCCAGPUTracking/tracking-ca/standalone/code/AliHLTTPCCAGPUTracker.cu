@@ -258,14 +258,22 @@ void AliHLTTPCCAGPUTracker::StandalonePerfTime(int /*i*/) {}
 
 void* AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(size_t size)
 {
+#ifdef PAGE_LOCKED_MEM
 	void* ptr;
 	if (cudaMallocHost(&ptr, size)) ptr = 0;
 	return(ptr);
+#else
+	return(malloc(size));
+#endif
 }
 
 void AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(void* ptr)
 {
+#ifdef PAGE_LOCKED_MEM
 	cudaFreeHost(ptr);
+#else
+	free(ptr);
+#endif
 }
 
 void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check)
@@ -736,23 +744,55 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker, int fSliceCo
 	cudaFree(fGpuTracker[0].fStageAtSync);
 
 	FILE* fp = fopen("profile.txt", "w+");
+	FILE* fp2 = fopen("profile.bmp", "w+b");
 	int nEmptySync = 0, fEmpty;
 
-	for (int i = 0;i < 100000000 / HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT;i += HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT)
+	const int bmpheight = 3000;
+	BITMAPFILEHEADER bmpFH;
+	BITMAPINFOHEADER bmpIH;
+	ZeroMemory(&bmpFH, sizeof(bmpFH));
+	ZeroMemory(&bmpIH, sizeof(bmpIH));
+	
+	bmpFH.bfType = 19778; //"BM"
+	bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + (HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT / 32 * 33 - 1) * bmpheight ;
+	bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
+
+	bmpIH.biSize = sizeof(bmpIH);
+	bmpIH.biWidth = HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT / 32 * 33 - 1;
+	bmpIH.biHeight = bmpheight;
+	bmpIH.biPlanes = 1;
+	bmpIH.biBitCount = 32;
+
+	fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
+	fwrite(&bmpIH, 1, sizeof(bmpIH), fp2); 	
+
+	for (int i = 0;i < bmpheight * HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT;i += HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT)
 	{
 		fEmpty = 1;
 		for (int j = 0;j < HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT;j++)
 		{
 			fprintf(fp, "%d\t", stageAtSync[i + j]);
+			int color = 0;
+			if (stageAtSync[i + j] == 1) color = RGB(255, 0, 0);
+			if (stageAtSync[i + j] == 2) color = RGB(0, 255, 0);
+			if (stageAtSync[i + j] == 3) color = RGB(0, 0, 255);
+			if (stageAtSync[i + j] == 4) color = RGB(255, 255, 0);
+			fwrite(&color, 1, sizeof(int), fp2);
+			if (j > 0 && j % 32 == 0)
+			{
+				color = RGB(255, 255, 255);
+				fwrite(&color, 1, 4, fp2);
+			}
 			if (stageAtSync[i + j]) fEmpty = 0;
 		}
 		fprintf(fp, "\n");
 		if (fEmpty) nEmptySync++;
 		else nEmptySync = 0;
-		if (nEmptySync == HLTCA_GPU_SCHED_ROW_STEP + 2) break;
+		//if (nEmptySync == HLTCA_GPU_SCHED_ROW_STEP + 2) break;
 	}
 
 	fclose(fp);
+	fclose(fp2);
 	free(stageAtSync);
 #endif
 
