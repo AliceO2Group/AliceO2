@@ -130,8 +130,8 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #ifndef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
   if (fUseGPUTracker && fGPUDebugLevel < 2)
   {
-	//fSliceTrackers[0].ReadEvent( &( fClusterData[0] ) );
-	//fGPUTracker.Reconstruct(&fSliceTrackers[0], 1);
+	fSliceTrackers[0].ReadEvent( &( fClusterData[0] ) );
+	fGPUTracker.Reconstruct(&fSliceTrackers[0], 1);
   }
 #endif
 
