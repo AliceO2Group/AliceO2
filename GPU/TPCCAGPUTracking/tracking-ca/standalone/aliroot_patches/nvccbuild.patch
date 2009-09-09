@@ -1,0 +1,97 @@
+Index: build/module.tpl
+===================================================================
+--- build/module.tpl	(revision 34701)
++++ build/module.tpl	(working copy)
+@@ -80,6 +80,11 @@
+ @PACKAGE@CS:=$(patsubst %,$(MODDIR)/%,$(CSRCS))
+ @PACKAGE@CH:=$(patsubst %,$(MODDIR)/%,$(CHDRS))
+ 
++#CUDA sources and headers
++
++@PACKAGE@CUS:=$(patsubst %,$(MODDIR)/%,$(CUSRCS))
++@PACKAGE@CUH:=$(patsubst %,$(MODDIR)/%,$(CUHDRS))
++
+ #Fortran sources 
+ @PACKAGE@FS:=$(patsubst %,$(MODDIR)/%,$(FSRCS))
+ 
+@@ -115,10 +120,11 @@
+ #All objects
+ @PACKAGE@CXXO:=$(patsubst %,$(MODDIRO)/%, $(SRCS:.cxx=.o))
+ @PACKAGE@CO:=$(patsubst %,$(MODDIRO)/%, $(CSRCS:.c=.o))
++@PACKAGE@CUO:=$(patsubst %,$(MODDIRO)/%, $(CUSRCS:.cu=.o))
+ @PACKAGE@SMALLFO:=$(patsubst %.f,$(MODDIRO)/%.o, $(filter %.f, $(FSRCS)))
+ @PACKAGE@CAPITFO:=$(patsubst %.F,$(MODDIRO)/%.o, $(filter %.F, $(FSRCS)))
+ @PACKAGE@FO:=$(@PACKAGE@SMALLFO) $(@PACKAGE@CAPITFO)
+-@PACKAGE@O:= $(@PACKAGE@CXXO) $(@PACKAGE@FO) $(@PACKAGE@CO)
++@PACKAGE@O:= $(@PACKAGE@CXXO) $(@PACKAGE@FO) $(@PACKAGE@CO) $(@PACKAGE@CUO)
+ @PACKAGE@CHV:=$(patsubst %,$(MODDIRC)/%, $(SRCS:.cxx=.viol))
+ @PACKAGE@SML:=$(sort $(patsubst %,$(MODDIRZ)/%, $(filter $(SRCS:.cxx=.smell),$(HDRS:.h=.smell))))
+ 
+@@ -327,6 +333,17 @@
+ 	@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
+ 	$(MUTE)$(CC) $(@PACKAGE@DEFINE) -c  $(@PACKAGE@INC)  $< -o $@   $(@PACKAGE@CFLAGS)
+ 
++$(@PACKAGE@CUO): $(MODDIRO)/%.o: $(MODDIR)/%.cu $(MODDIRO)/%.d 
++ifndef ALIQUIET
++	@echo "***** Compiling $< *****";
++endif
++	@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
++	$(MUTE)$(NVCC) $(CUFLAGS) --compiler-options "$(@PACKAGE@DEFINE) $(@PACKAGE@INC) $(@PACKAGE@CXXFLAGS)" --cuda $< -o $@.cxx
++	if [ -e "$<.patch" ]; then patch -s --no-backup-if-mismatch -i $<.patch $@.cxx; fi
++	$(CXX) $(@PACKAGE@DEFINE) -c $(@PACKAGE@INC) $@.cxx -o $@ $(@PACKAGE@CXXFLAGS)
++	rm $@.cxx
++
++
+ $(@PACKAGE@DDEP): $(@PACKAGE@DS)
+ ifndef ALIQUIET
+ 		@echo "***** Making dependences for $< *****";
+@@ -362,8 +379,16 @@
+ 		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
+ 		@share/alibtool depend "$(@PACKAGE@DEFINE) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC) $<" > $@
+ 
++$(@PACKAGE@CUO:.o=.d): $(MODDIRO)/%.d: $(MODDIRS)/%.cu
++ifndef ALIQUIET
++		@echo "***** Making dependences for $< *****";
++endif
++		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
++		@share/alibtool depend "$(@PACKAGE@DEFINE) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC) $<" > $@
++
+ .PRECIOUS: $(patsubst %.cxx,$(MODDIRO)/%.d,$(SRCS))
+ .PRECIOUS: $(patsubst %.c,$(MODDIRO)/%.d,$(CSRCS))
++.PRECIOUS: $(patsubst %.c,$(MODDIRO)/%.d,$(CUSRCS))
+ .PRECIOUS: $(patsubst %.F,$(MODDIRO)/%.d,$(patsubst %.f,$(MODDIRO)/%.d,$(FSRCS)))
+ 
+ check-@MODULE@: $(@PACKAGE@CHV)
+Index: build/header.tpl
+===================================================================
+--- build/header.tpl	(revision 34701)
++++ build/header.tpl	(working copy)
+@@ -21,6 +21,8 @@
+ DHDR:=
+ CSRCS:=
+ CHDRS:=
++CUSRCS:=
++CUHDRS:=
+ EINCLUDE:=
+ EDEFINE:=
+ ELIBS:=
+Index: build/Makefile.linuxx8664gcc
+===================================================================
+--- build/Makefile.linuxx8664gcc	(revision 34701)
++++ build/Makefile.linuxx8664gcc	(working copy)
+@@ -11,6 +11,7 @@
+ CCMAJORV      = $(shell $(CC) -dumpversion | cut -d. -f1)
+ CCMINORV      = $(shell $(CC) -dumpversion | cut -d. -f2)
+ F77	      = $(shell root-config --f77)
++NVCC	      = nvcc
+ 
+ # Global optimisation
+ OPT           = -O -g
+@@ -47,6 +48,7 @@
+ endif
+ CFLAGS	       = $(OPT) -Wall -Werror -fPIC -pipe -Wno-long-long -pedantic-errors -ansi -m64 
+ FFLAGS         = $(CLIBFOPT) $(FOPT) -fno-second-underscore -fPIC -fno-f2c -m64
++CUFLAGS	       = -O4 -Xptxas -O4 --use_fast_math --maxrregcount 64 -arch=sm_12
+ 
+ ifeq (g95,$(F77))
+ FFLAGS	      +=-DFORTRAN_G95
