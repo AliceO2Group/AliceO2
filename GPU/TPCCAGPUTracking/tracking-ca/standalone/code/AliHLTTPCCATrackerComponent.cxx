@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 32659 2009-06-02 16:08:40Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 34611 2009-09-04 00:22:05Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -64,6 +64,9 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     fSolenoidBz( 0 ),
     fMinNTrackClusters( 0 ),
     fClusterZCut( 500. ),
+    fNeighboursSearchArea( 0 ), 
+    fClusterErrorCorrectionY(0), 
+    fClusterErrorCorrectionZ(0),
     fFullTime( 0 ),
     fRecoTime( 0 ),
     fNEvents( 0 ),
@@ -83,6 +86,9 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrack
     fSolenoidBz( 0 ),
     fMinNTrackClusters( 30 ),
     fClusterZCut( 500. ),
+    fNeighboursSearchArea(0),
+    fClusterErrorCorrectionY(0), 
+    fClusterErrorCorrectionZ(0),
     fFullTime( 0 ),
     fRecoTime( 0 ),
     fNEvents( 0 ),
@@ -151,6 +157,9 @@ void AliHLTTPCCATrackerComponent::SetDefaultConfiguration()
   fSolenoidBz = 5.;
   fMinNTrackClusters = 0;
   fClusterZCut = 500.;
+  fNeighboursSearchArea = 0;
+  fClusterErrorCorrectionY = 0;
+  fClusterErrorCorrectionZ = 0;
   fOutputTRAKSEGS = 0;
   fFullTime = 0;
   fRecoTime = 0;
@@ -196,8 +205,29 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       HLTInfo( "ClusterZCut set to: %f", fClusterZCut );
       continue;
     }
+ 
+   if ( argument.CompareTo( "-neighboursSearchArea" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fNeighboursSearchArea = TMath::Abs( ( ( TObjString* )pTokens->At( i ) )->GetString().Atof() );
+      HLTInfo( "NeighboursSearchArea set to: %f", fNeighboursSearchArea );
+      continue;
+    }
 
-    if ( argument.CompareTo( "-outputTRAKSEGS" ) == 0 ) {
+   if ( argument.CompareTo( "-errorCorrectionY" ) == 0 ) {
+     if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+     fClusterErrorCorrectionY = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+     HLTInfo( "Cluster Y error correction factor set to: %f", fClusterErrorCorrectionY );
+     continue;
+   }
+   
+   if ( argument.CompareTo( "-errorCorrectionZ" ) == 0 ) {
+     if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+     fClusterErrorCorrectionZ = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+     HLTInfo( "Cluster Z error correction factor set to: %f", fClusterErrorCorrectionZ );
+     continue;
+   }
+
+   if ( argument.CompareTo( "-outputTRAKSEGS" ) == 0 ) {
       fOutputTRAKSEGS = 1;
       HLTInfo( "The special output type \"TRAKSEGS\" is set" );
       continue;
@@ -463,6 +493,9 @@ int AliHLTTPCCATrackerComponent::DoEvent
     param.Initialize( iSec, nRows, rowX, alpha, dalpha,
                       inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
     param.SetHitPickUpFactor( 2 );
+    if( fNeighboursSearchArea>0 ) param.SetNeighboursSearchArea( fNeighboursSearchArea );
+    if( fClusterErrorCorrectionY>1.e-4 ) param.SetClusterError2CorrectionY( fClusterErrorCorrectionY*fClusterErrorCorrectionY );
+    if( fClusterErrorCorrectionZ>1.e-4 ) param.SetClusterError2CorrectionZ( fClusterErrorCorrectionZ*fClusterErrorCorrectionZ );
     param.Update();
     fTracker->Initialize( param );
     delete[] rowX;

@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCADisplay.cxx 32165 2009-05-04 08:27:44Z sgorbuno $
+// $Id: AliHLTTPCCADisplay.cxx 34611 2009-09-04 00:22:05Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -418,19 +418,28 @@ void AliHLTTPCCADisplay::Slice2View( double x, double y, double *xv, double *yv 
   *yv = yg * fCos + xg * fSin;
 }
 
-
-void AliHLTTPCCADisplay::DrawSliceHit( int iRow, int iHit, int color, Size_t width )
+void AliHLTTPCCADisplay::SliceHitXYZ(int iRow, int iHit, double &x, double &y, double &z )
 {
-  // draw hit
+  // get xyz of the hit
+
   if ( !fSlice ) return;
   const AliHLTTPCCARow &row = fSlice->Row( iRow );
   float y0 = row.Grid().YMin();
   float z0 = row.Grid().ZMin();
   float stepY = row.HstepY();
   float stepZ = row.HstepZ();
-  float x = row.X();
-  float y = y0 + fSlice->HitDataY( row, iHit ) * stepY;
-  float z = z0 + fSlice->HitDataZ( row, iHit ) * stepZ;
+  x = row.X();
+  y = y0 + fSlice->HitDataY( row, iHit ) * stepY;
+  z = z0 + fSlice->HitDataZ( row, iHit ) * stepZ;
+}
+
+void AliHLTTPCCADisplay::DrawSliceHit( int iRow, int iHit, int color, Size_t width )
+{
+  // draw hit
+  if ( !fSlice ) return;
+
+  double x,y,z;
+  SliceHitXYZ( iRow, iHit, x, y, z );
 
   SetSliceTransform( fSlice );
 
@@ -471,52 +480,49 @@ void AliHLTTPCCADisplay::DrawSliceHits( int color, Size_t width )
 }
 
 
-void AliHLTTPCCADisplay::DrawSliceLink( int /*iRow*/, int /*iHit*/, int /*colorUp*/, int /*colorDn*/, int /*width*/ )
+void AliHLTTPCCADisplay::DrawSliceLink( int iRow, int iHit, int colorUp, int colorDn, int width )
 {
   // draw link between clusters
-#ifdef XXX
-  if ( !fPerf || !fGB ) return;
-  AliHLTTPCCAGBTracker &tracker = *fGB;
+
+  //if ( !fPerf ) return;
+  //AliHLTTPCCAGBTracker &tracker = *fGB;
   if ( width < 0 ) width = 1.;
   fLine.SetLineWidth( width );
   int colUp = colorUp >= 0 ? colorUp : kMagenta;
   int colDn = colorDn >= 0 ? colorDn : kBlack;
   if ( iRow < 2 || iRow >= fSlice->Param().NRows() - 2 ) return;
 
-  const AliHLTTPCCARow& row = fSlice->Row( iRow );
-  const AliHLTTPCCARow& rowUp = fSlice->Row( iRow + 2 );
-  const AliHLTTPCCARow& rowDn = fSlice->Row( iRow - 2 );
+  const AliHLTTPCCARow& row = fSlice->Data().Row( iRow );
 
-  int id = fSlice->HitInputID( row, iHit );
-  const AliHLTTPCCAGBHit &h = tracker.Hits()[tracker.FirstSliceHit()[fSlice->Param().ISlice()] + id];
   short iUp = fSlice->HitLinkUpData( row, iHit );
   short iDn = fSlice->HitLinkDownData( row, iHit );
 
+
+  double p1[3], p2[3], p3[3];
+  SliceHitXYZ( iRow,  iHit, p1[0],p1[1],p1[2]);
+
+  double vx, vy, vx1, vy1;
+  Slice2View( p1[0], p1[1], &vx, &vy );
+
   if ( iUp >= 0 ) {
-    int id1 = fSlice->HitInputID( rowUp, iUp );
-    const AliHLTTPCCAGBHit &h1 = tracker.Hits()[tracker.FirstSliceHit()[fSlice->Param().ISlice()] + id1];
-    double vx, vy, vx1, vy1;
-    Slice2View( h.X(), h.Y(), &vx, &vy );
-    Slice2View( h1.X(), h1.Y(), &vx1, &vy1 );
+    SliceHitXYZ( iRow+2, iUp, p2[0],p2[1],p2[2]);
+    Slice2View( p2[0], p2[1], &vx1, &vy1 );
     fLine.SetLineColor( colUp );
     fYX->cd();
     fLine.DrawLine( vx - .1, vy, vx1 - .1, vy1 );
     fZX->cd();
-    fLine.DrawLine( h.Z() - 1., vy, h1.Z() - 1., vy1 );
+    fLine.DrawLine( p1[2] - 1., vy, p2[2] - 1., vy1 );
   }
-  if ( iDn >= 0 ) {
-    int id1 = fSlice->HitInputID( rowDn, iDn );
-    const AliHLTTPCCAGBHit &h1 = tracker.Hits()[tracker.FirstSliceHit()[fSlice->Param().ISlice()] + id1];
-    double vx, vy, vx1, vy1;
-    Slice2View( h.X(), h.Y(), &vx, &vy );
-    Slice2View( h1.X(), h1.Y(), &vx1, &vy1 );
+  if ( iDn >= 0 ) {   
+    SliceHitXYZ( iRow-2, iDn, p3[0],p3[1],p3[2]);
+    Slice2View( p3[0], p3[1], &vx1, &vy1 );
     fLine.SetLineColor( colDn );
     fYX->cd();
     fLine.DrawLine( vx + .1, vy, vx1 + .1, vy1 );
     fZX->cd();
-    fLine.DrawLine( h.Z() + 1., vy, h1.Z() + 1., vy1 );
+    fLine.DrawLine( p1[2] + 1., vy, p3[2] + 1., vy1 );
   }
-#endif
+
 }
 
 

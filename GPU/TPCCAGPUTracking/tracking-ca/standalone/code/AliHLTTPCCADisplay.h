@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCADisplay.h 32166 2009-05-04 08:30:29Z sgorbuno $
+// @(#) $Id: AliHLTTPCCADisplay.h 34611 2009-09-04 00:22:05Z sgorbuno $
 //  *************************************************************************
 //  This file is property of and copyright by the ALICE HLT Project         *
 //  ALICE Experiment at CERN, All rights reserved.                          *
@@ -79,6 +79,7 @@ class AliHLTTPCCADisplay
     void DrawSliceHits( int color = -1, Size_t width = -1 );
     void DrawSliceLinks( int colorUp = -1, int colorDn = -1, int width = -1 );
     void DrawSliceLink( int iRow, int iHit, int colorUp = -1, int colorDn = -1, int width = -1 );
+    void SliceHitXYZ(int iRow, int iHit, double &x, double &y, double &z );
 
 
     void SetSliceTransform( double alpha );

@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATracker.cxx 33907 2009-07-23 13:52:49Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATracker.cxx 34611 2009-09-04 00:22:05Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -512,7 +512,8 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   if (CheckEmptySlice()) return;
 
 #ifdef DRAW1
-  //if( fParam.ISlice()==15){
+  //if( fParam.ISlice()==2 || fParam.ISlice()==3)
+    {
   AliHLTTPCCADisplay::Instance().ClearView();
   AliHLTTPCCADisplay::Instance().SetSliceView();
   AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
@@ -521,7 +522,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
     AliHLTTPCCADisplay::Instance().DrawSliceHits( kRed, .5 );
     AliHLTTPCCADisplay::Instance().Ask();
   }
-  //}
+  }
 #endif
 
   *fNTracks = 0;
@@ -554,7 +555,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 #endif
 
 
-#ifdef DRAW
+#ifdef DRAW1
   if ( NHitsTotal() > 0 ) {
     AliHLTTPCCADisplay::Instance().DrawSliceLinks( -1, -1, 1 );
     AliHLTTPCCADisplay::Instance().Ask();
@@ -627,18 +628,19 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 #endif
 
-#ifdef DRAW
+#ifdef DRAW1
   {
     AliHLTTPCCADisplay &disp = AliHLTTPCCADisplay::Instance();
     AliHLTTPCCATracker &slice = *this;
     std::cout << "N out tracks = " << *slice.NOutTracks() << std::endl;
-    //disp.Ask();
+    AliHLTTPCCADisplay::Instance().SetSliceView();
     AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
     AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
-    disp.DrawSliceHits( -1, .5 );
+    disp.DrawSliceHits( kRed, .5 );
+    disp.Ask();
     for ( int itr = 0; itr < *slice.NOutTracks(); itr++ ) {
       std::cout << "track N " << itr << ", nhits=" << slice.OutTracks()[itr].NHits() << std::endl;
-      disp.DrawSliceOutTrack( itr, kBlue );
+      disp.DrawSliceOutTrack( itr, kBlue );      
       //disp.Ask();
       //int id = slice.OutTracks()[itr].OrigTrackID();
       //AliHLTTPCCATrack &tr = Tracks()[id];
@@ -925,6 +927,8 @@ GPUd() void AliHLTTPCCATracker::GetErrors2( int iRow, float z, float sinPhi, flo
   //
 
   fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
+  Err2Y*=fParam.ClusterError2CorrectionY();
+  Err2Z*=fParam.ClusterError2CorrectionZ();
 }
 
 GPUd() void AliHLTTPCCATracker::GetErrors2( int iRow, const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const

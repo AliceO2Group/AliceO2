@@ -82,6 +82,7 @@ class AliHLTTPCCAMerger
 
     bool FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
                    AliHLTTPCCATrackParam t0, float Alpha0, int hits[], int &NHits,  bool dir,
+		   bool final = 0, 
                    AliHLTTPCCAClusterInfo *infoArray = 0 );
 
     const AliHLTTPCCAParam &SliceParam() const { return fSliceParam; }
@@ -98,7 +99,7 @@ class AliHLTTPCCAMerger
     class AliHLTTPCCABorderTrack;
 
     void MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCCABorderTrack B[], int &nB );
-    void SplitBorderTracks( int iSlice1, AliHLTTPCCABorderTrack B1[], int N1,
+    void MergeBorderTracks( int iSlice1, AliHLTTPCCABorderTrack B1[], int N1,
                             int iSlice2, AliHLTTPCCABorderTrack B2[], int N2 );
 
 

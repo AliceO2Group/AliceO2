@@ -1035,7 +1035,7 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int /*iSlice*/, bool /*P
       int nla = 0;
 
       for ( int irow = firstRow; irow <= lastRow; irow++ ) {
-#ifdefn EXTERN_ROW_HITS
+#ifdef EXTERN_ROW_HITS
         int ih = slice.TrackletRowHits[iRow * *slice.NTracklets() + itr];
 #else
 		int ih = t.RowHit( irow );

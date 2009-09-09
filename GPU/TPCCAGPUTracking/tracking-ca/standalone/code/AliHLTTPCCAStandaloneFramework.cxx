@@ -25,7 +25,10 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAClusterData.h"
 #include "TStopwatch.h"
+
+#ifdef HLTCA_STANDALONE
 #include <omp.h>
+#endif
 
 AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 {
