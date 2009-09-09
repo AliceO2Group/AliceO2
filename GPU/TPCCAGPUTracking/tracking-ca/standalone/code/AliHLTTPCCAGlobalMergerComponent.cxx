@@ -59,7 +59,7 @@ ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-    : fGlobalMerger( 0 ), fSolenoidBz( 0 )
+  : fGlobalMerger( 0 ), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0)
 {
   // see header file for class documentation
 }
@@ -112,6 +112,8 @@ void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
   // Some parameters can be later overwritten from the OCDB
 
   fSolenoidBz = 5.;
+  fClusterErrorCorrectionY = 0;
+  fClusterErrorCorrectionZ = 1.1;
 }
 
 int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* arguments )
@@ -137,6 +139,20 @@ int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* argu
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
       HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-errorCorrectionY" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fClusterErrorCorrectionY = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      HLTInfo( "Cluster Y error correction factor set to: %f", fClusterErrorCorrectionY );
+      continue;
+    }
+
+   if ( argument.CompareTo( "-errorCorrectionZ" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fClusterErrorCorrectionZ = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      HLTInfo( "Cluster Z error correction factor set to: %f", fClusterErrorCorrectionZ );
       continue;
     }
 
@@ -248,6 +264,11 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
     param.Initialize( iSec, nRows, rowX, alpha, dalpha,
                       inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
+
+    if( fClusterErrorCorrectionY>1.e-4 ) param.SetClusterError2CorrectionY( fClusterErrorCorrectionY*fClusterErrorCorrectionY );
+    if( fClusterErrorCorrectionZ>1.e-4 ) param.SetClusterError2CorrectionZ( fClusterErrorCorrectionZ*fClusterErrorCorrectionZ );
+    param.Update();
+
     delete[] rowX;
   }
 

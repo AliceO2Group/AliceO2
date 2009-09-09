@@ -126,7 +126,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
     if ( ( s.fIRow <= 1 ) || ( s.fIRow >= s.fNRows - 2 ) ) return;
 
     float chi2Cut = 3.*3.*4 * ( s.fUpDx * s.fUpDx + s.fDnDx * s.fDnDx );
-    const float kAreaSize = 3;
+    const float kAreaSize = tracker.Param().NeighboursSearchArea();
     //float chi2Cut = 3.*3.*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx ); //SG
 #define kMaxN 20
 

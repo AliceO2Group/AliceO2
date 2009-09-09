@@ -231,7 +231,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     row.fHstepYi = 1.f;
     row.fHstepZi = 1.f;
   }
-  for ( int rowIndex = data.LastRow() + 1; rowIndex < HLTCA_ROW_COUNT; ++rowIndex ) {
+  for ( int rowIndex = data.LastRow() + 1; rowIndex < HLTCA_ROW_COUNT + 1; ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
     row.fGrid.CreateEmpty();
     row.fNHits = 0;

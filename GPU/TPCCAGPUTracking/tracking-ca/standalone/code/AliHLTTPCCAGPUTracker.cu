@@ -392,7 +392,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker, int fSliceCo
 		}
 	}
 
-	if (fDebugLevel >= 5) printf("\n\nInitialising GPU Tracker\n");
+	if (fDebugLevel >= 5) printf("\n\nInitialising GPU Tracker (Slice %d)\n", tracker[0].Param().ISlice());
 	memcpy(fGpuTracker, tracker, sizeof(AliHLTTPCCATracker) * fSliceCountLocal);
 
 	StandalonePerfTime(0);

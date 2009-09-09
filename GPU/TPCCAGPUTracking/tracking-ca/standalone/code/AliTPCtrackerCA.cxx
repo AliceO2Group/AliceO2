@@ -1,4 +1,4 @@
-// $Id: AliTPCtrackerCA.cxx 32628 2009-05-29 22:11:36Z sgorbuno $
+// $Id: AliTPCtrackerCA.cxx 34611 2009-09-04 00:22:05Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -553,7 +553,7 @@ int AliTPCtrackerCA::RefitInward ( AliESDEvent *event )
       infos[i].SetZ( fClusters[index].GetZ() );
     }
 
-    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 0, infos );
+    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 0, 0,infos );
 
     if ( ok &&  nHits > 15 ) {
       if ( t.TransportToXWithMaterial( xTPC, hlt.Merger().SliceParam().GetBz( t ) ) ) {
@@ -613,7 +613,7 @@ int AliTPCtrackerCA::PropagateBack( AliESDEvent *event )
       infos[i].SetZ( fClusters[index].GetZ() );
     }
 
-    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 1, infos );
+    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 1, 0, infos );
 
     if ( ok &&  nHits > 15 ) {
       AliTPCtrack tt( *esd );

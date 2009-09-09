@@ -45,7 +45,7 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 		  StartOffset += tracker.RowStartHitCountOffset()[ir].x;
 	  }
 #else
-	  const int tmpNRows = tracker.Param().NRows() - 4;
+	  const int tmpNRows = tracker.Param().NRows() - 6;
 	  int nRows = iBlock == 29 ? (tmpNRows - (tmpNRows / 30) * 29) : (tmpNRows / 30);
 	  int nStartRow = (tmpNRows / 30) * iBlock + 1;
       int StartOffset = 0;
@@ -53,7 +53,7 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 	  int LastBlockEndTracklet = 0;
 	  int nCurrentBlock = 0;
 
-      for (int ir = 1;ir < tracker.Param().NRows() - 3;ir++)
+      for (int ir = 1;ir < tracker.Param().NRows() - 5;ir++)
 	  {
 	    if (ir < nStartRow)
 			StartOffset2 += tracker.RowStartHitCountOffset()[ir].x;
