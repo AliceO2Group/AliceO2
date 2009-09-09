@@ -158,7 +158,7 @@ class AliHLTTPCCASliceData
 
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
         : 
-		fGPUSharedDataReq(0), fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 )
+		fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif

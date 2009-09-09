@@ -137,6 +137,7 @@ class AliHLTTPCCATracker
 	char* SetGPUSliceDataMemory(char* pGPUMemory, const AliHLTTPCCAClusterData *data) {return(fData.SetGPUSliceDataMemory(pGPUMemory, data));}
 
 	//Debugging Stuff
+	void DumpSliceData(std::ostream &out);	//Dump Input Slice Data
 	void DumpLinks(std::ostream &out);		//Dump all links to file (for comparison after NeighboursFinder/Cleaner)
 	void DumpStartHits(std::ostream &out);	//Same for Start Hits
 	void DumpTrackHits(std::ostream &out);	//Same for Track Hits

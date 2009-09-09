@@ -39,8 +39,9 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread
     }
   } else if ( iSync == 1 ) {
     const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
+	const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRow + 2 );
     for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
-      if ( ( tracker.HitLinkDownData( row, ih ) < 0 ) && ( tracker.HitLinkUpData( row, ih ) >= 0 ) ) {
+      if (tracker.HitLinkDownData(row, ih) < 0 && tracker.HitLinkUpData(row, ih) >= 0 && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) >= 0) {
         int oldNRowStartHits = CAMath::AtomicAdd( &s.fNRowStartHits, 1 );
         s.fRowStartHits[oldNRowStartHits].Set( s.fIRow, ih );
       }
