@@ -128,7 +128,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
     float chi2Cut = 3.*3.*4 * ( s.fUpDx * s.fUpDx + s.fDnDx * s.fDnDx );
     const float kAreaSize = 3;
     //float chi2Cut = 3.*3.*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx ); //SG
-    const int kMaxN = 20;
+#define kMaxN 20
 
 #ifdef HLTCA_GPUCODE
 		  const AliHLTTPCCARow &row = s.fRow;
@@ -148,7 +148,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 
       unsigned short *neighUp = s.fB[iThread];
       float2 *yzUp = s.fA[iThread];
-#ifdef HLTCA_GPUCODE
+#if defined(HLTCA_GPUCODE) & kMaxN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP
 	  unsigned short neighUp2[kMaxN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
 	  float2 yzUp2[kMaxN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
 #endif
@@ -175,7 +175,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
           AliHLTTPCCAHit h;
           int i = areaUp.GetNext( tracker, rowUp, tracker.Data(), &h );
           if ( i < 0 ) break;
-#ifdef HLTCA_GPUCODE
+#if defined(HLTCA_GPUCODE) & kMaxN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP
 		  if (nNeighUp >= ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP)
 		  {
 			neighUp2[nNeighUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] = ( unsigned short ) i;
@@ -206,11 +206,12 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
             float2 yzdn = CAMath::MakeFloat2( s.fUpDx * ( h.Y() - y ), s.fUpDx * ( h.Z() - z ) );
 
             for ( int iUp = 0; iUp < nNeighUp; iUp++ ) {
-#ifdef HLTCA_GPUCODE
+#if defined(HLTCA_GPUCODE) & kMaxN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP
 			  float2 yzup = iUp >= ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP ? yzUp2[iUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] : yzUp[iUp];
 #else
               float2 yzup = yzUp[iUp];
 #endif
+
               float dy = yzdn.x - yzup.x;
               float dz = yzdn.y - yzup.y;
               float d = dy * dy + dz * dz;
@@ -223,7 +224,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
           } while ( 1 );
 
           if ( bestD <= chi2Cut ) {
-#ifdef HLTCA_GPUCODE
+#if defined(HLTCA_GPUCODE) & kMaxN > ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP
 			linkUp = bestUp >= ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP ? neighUp2[bestUp - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP] : neighUp[bestUp];
 #else
             linkUp = neighUp[bestUp];

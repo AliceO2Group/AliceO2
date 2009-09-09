@@ -72,14 +72,12 @@ AliHLTTPCCATracker::~AliHLTTPCCATracker()
 	if (!fIsGPUTracker)
 	{
 		//delete[] fCommonMemory;
-		//delete[] fHitMemory;
-		//delete[] fTrackMemory;
 		if (fCommonMemory)
 			AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fCommonMemory);
 		if (fHitMemory)
-			AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fHitMemory);
+			delete[] fHitMemory;
 		if (fTrackMemory)
-			AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fTrackMemory);
+			delete[] fTrackMemory;
 		fCommonMemory = fHitMemory = fTrackMemory = NULL;
 	}
 #endif
@@ -149,6 +147,20 @@ char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTr
 	}
 
 	return(pGPUMemory);
+}
+
+void AliHLTTPCCATracker::DumpSliceData(std::ostream &out)
+{
+	for (int i = 0;i < Param().NRows();i++)
+	{
+		out << "Row: " << i << endl;
+		for (int j = 0;j < Row(i).NHits();j++)
+		{
+			if (j && j % 16 == 0) out << std::endl;
+			out << j << '-' << Data().HitDataY(Row(i), j) << '-' << Data().HitDataZ(Row(i), j) << ", ";
+		}
+		out << endl;
+	}
 }
 
 void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
@@ -277,16 +289,14 @@ void  AliHLTTPCCATracker::SetupCommonMemory()
       SetPointersCommon();// set pointers
     }
 
-    //delete[] fHitMemory;
-    //delete[] fTrackMemory;
 	if (fHitMemory)
 	{
-		AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fHitMemory);
+		delete[] fHitMemory;
 		fHitMemory = 0;
 	}
 	if (fTrackMemory)
 	{
-		AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(fTrackMemory);
+		delete[] fTrackMemory;
 		fTrackMemory = 0;
 	}
   }
@@ -297,6 +307,13 @@ void  AliHLTTPCCATracker::SetupCommonMemory()
   *fNTrackHits = 0;
   *fNOutTracks = 0;
   *fNOutTrackHits = 0;
+
+
+    fOutput = NULL;
+    *fNOutTracks = 0; 
+    fOutTracks = NULL;
+    *fNOutTrackHits = 0;
+    fOutTrackHits = NULL;
 }
 
 void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
@@ -312,8 +329,7 @@ void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 
   {
     SetPointersHits( fData.NumberOfHits() ); // to calculate the size
-    //fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
-	fHitMemory = (char*) AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(fHitMemorySize + 100 * sizeof(uint4));
+    fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
     SetPointersHits( fData.NumberOfHits() ); // set pointers for hits
     *fNTracklets = 0;
     *fNTracks = 0 ;
@@ -403,8 +419,7 @@ GPUh() int AliHLTTPCCATracker::CheckEmptySlice()
   if ( NHitsTotal() < 1 ) {
     {
       SetPointersTracks( 1, 1 ); // to calculate the size
-      //fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
-	  fTrackMemory = (char*) AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(fTrackMemorySize + 100 * sizeof(uint4));
+      fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
       SetPointersTracks( 1, 1 ); // set pointers for tracks
       fOutput->SetNTracks( 0 );
       fOutput->SetNTrackClusters( 0 );
@@ -515,9 +530,11 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 #if !defined(HLTCA_GPUCODE)
 
-  if (fGPUDebugLevel >= 4)
+  if (fGPUDebugLevel >= 6)
   {
 	  *fGPUDebugOut << endl << endl << "Slice: " << Param().ISlice() << endl;
+	  *fGPUDebugOut << "Slice Data:" << endl;
+	  DumpSliceData(*fGPUDebugOut);
   }
 
   StandalonePerfTime(1);
@@ -526,10 +543,10 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(2);
 
-  if (fGPUDebugLevel >= 4)
+  if (fGPUDebugLevel >= 6)
   {
 	  *fGPUDebugOut << "Neighbours Finder:" << endl;
-	  //DumpLinks(*fGPUDebugOut);
+	  DumpLinks(*fGPUDebugOut);
   }
 #ifdef HLTCA_INTERNAL_PERFORMANCE
   //if( Param().ISlice()<=2 )
@@ -548,10 +565,10 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(3);
 
-  if (fGPUDebugLevel >= 4)
+  if (fGPUDebugLevel >= 6)
   {
 	  *fGPUDebugOut << "Neighbours Cleaner:" << endl;
-	  //DumpLinks(*fGPUDebugOut);
+	  DumpLinks(*fGPUDebugOut);
   }
 
   RunStartHitsFinder();
@@ -559,10 +576,10 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   StandalonePerfTime(4);
   StandalonePerfTime(5);
 
-  if (fGPUDebugLevel >= 4)
+  if (fGPUDebugLevel >= 6)
   {
 	  *fGPUDebugOut << "Start Hits: (" << *fNTracklets << ")" << endl;
-	  //DumpStartHits(*fGPUDebugOut);
+	  DumpStartHits(*fGPUDebugOut);
   }
   
   if (fGPUDebugLevel >= 2) printf("%3d ", *fNTracklets);
@@ -570,8 +587,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   fData.ClearHitWeights();
 
   SetPointersTracks( *fNTracklets * 2, NHitsTotal() ); // to calculate the size
-  //fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
-  fTrackMemory = (char*) AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(fTrackMemorySize + 100 * sizeof(uint4));
+  fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
   SetPointersTracks( *fNTracklets * 2, NHitsTotal() ); // set pointers for hits
 
   StandalonePerfTime(6);
@@ -581,10 +597,10 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(8);
 
-  if (fGPUDebugLevel >= 4)
+  if (fGPUDebugLevel >= 6)
   {
 	  *fGPUDebugOut << "Tracklet Hits:" << endl;
-	  //DumpTrackletHits(*fGPUDebugOut);
+	  DumpTrackletHits(*fGPUDebugOut);
   }
 
   //std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
@@ -595,17 +611,19 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   //std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
-  if (fGPUDebugLevel >= 4)
+  if (fGPUDebugLevel >= 6)
   {
 	  *fGPUDebugOut << "Track Hits: (" << *NTracks() << ")" << endl;
-	  //DumpTrackHits(*fGPUDebugOut);
+	  DumpTrackHits(*fGPUDebugOut);
   }
 
   //std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
 
+  StandalonePerfTime(10);
+
   WriteOutput();
 
-  StandalonePerfTime(10);
+  StandalonePerfTime(11);
 
 #endif
 

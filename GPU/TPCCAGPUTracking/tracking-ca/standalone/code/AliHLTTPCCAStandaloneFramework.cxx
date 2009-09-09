@@ -137,7 +137,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   unsigned long long int sliceTimers[fgkNSlices][16], startTime, endTime, checkTime;
   unsigned long long int cpuTimers[16], gpuTimers[16], tmpFreq;
-  unsigned long long int sliceDataStart, sliceDataEnd, sliceDataSumCPU = 0, sliceDataSumGPU = 0;
+  unsigned long long int sliceDataStart, sliceDataEnd, sliceDataSumCPU = 0, sliceDataSumGPU = 0, writeoutstart, writeoutend;
   fSliceTrackers[0].StandaloneQueryFreq(&tmpFreq);
   fSliceTrackers[0].StandaloneQueryTime(&startTime);
 #endif
@@ -178,7 +178,9 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #pragma omp parallel for
 #endif
 		for (int iSlice = 0;iSlice  < fgkNSlices; iSlice++)
+		{
 			fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
+		}
 #ifdef HLTCA_STANDALONE
 		if (fGPUDebugLevel >= 1)
 		{
@@ -206,6 +208,25 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 		break;
 #endif
 	  }
+
+#ifdef HLTCA_STANDALONE
+		if (fGPUDebugLevel >= 1)
+		{
+			fSliceTrackers[0].StandaloneQueryTime(&writeoutstart);
+		}
+#pragma omp parallel for
+#endif
+		for (int iSlice = 0;iSlice  < fgkNSlices; iSlice++)
+		{
+			if (forceSingleSlice == -1 || forceSingleSlice == iSlice) fSliceTrackers[iSlice].WriteOutput();
+		}
+#ifdef HLTCA_STANDALONE
+		if (fGPUDebugLevel >= 1)
+		{
+			fSliceTrackers[0].StandaloneQueryTime(&writeoutend);
+		}
+#endif
+
 	  if (fGPUDebugLevel >= 2) printf("\n");
   }
 
@@ -238,9 +259,9 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   if (fGPUDebugLevel >= 1)
   {
-		const char* tmpNames[16] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Initializer", "Tracklet Constructor", "Tracklet Selector", "Write Output", "Unused", "Unused", "Unused", "Unused", "Unused", "Unused"};
+		const char* tmpNames[16] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Initializer", "Tracklet Constructor", "Tracklet Selector", "Read Out", "Write Output", "Unused", "Unused", "Unused", "Unused", "Unused"};
 
-		for (int i = 0;i < 10;i++)
+		for (int i = 0;i < 11;i++)
 		{
 			cpuTimers[i] = gpuTimers[i] = 0;
 			for ( int iSlice = 0; iSlice < fgkNSlices;iSlice++)
@@ -251,6 +272,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 					gpuTimers[i] += sliceTimers[iSlice][i + 1] - sliceTimers[iSlice][i];
 				if (forceSingleSlice != -1) break;
 			}
+			if (i == 10) gpuTimers[i] = writeoutend - writeoutstart;
 			if (forceSingleSlice == -1)
 			{
 				cpuTimers[i] /= fgkNSlices;

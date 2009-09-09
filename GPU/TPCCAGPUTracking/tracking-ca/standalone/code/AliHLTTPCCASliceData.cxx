@@ -288,6 +288,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     for ( int hitIndex = 0; hitIndex < row.fNHits; ++hitIndex ) {
       const int globalHitIndex = data.RowOffset( rowIndex ) + hitIndex;
       const unsigned short bin = row.fGrid.GetBin( data.Y( globalHitIndex ), data.Z( globalHitIndex ) );
+
       bins[hitIndex] = bin;
       ++filled[bin];
     }

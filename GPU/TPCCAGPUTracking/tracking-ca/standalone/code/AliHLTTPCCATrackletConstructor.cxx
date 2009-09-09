@@ -249,7 +249,9 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
   if ( !r.fGo ) return;
 
+#ifndef EXTERN_ROW_HITS
   AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[r.fItr];
+#endif
 
 #ifdef HLTCA_GPU_PREFETCHDATA
   const AliHLTTPCCARow &row = s.fRow[r.fCurrentData];
@@ -602,7 +604,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           }
         }
 
-        for ( unsigned int fIh = fHitYfst1; fIh < fHitYlst1; fIh++ ) {
+		for ( unsigned int fIh = fHitYfst1; fIh < fHitYlst1; fIh++ ) {
           ushort2 hh;
 		  hh = hits[fIh];
           int ddy = ( int )( hh.x ) - fY0;
@@ -1055,7 +1057,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorNewGPU
 #endif
 #ifdef HLTCA_GPU_RESCHED
 					short2 StoreToRowBlock;
-					int StorePosition;
+					int StorePosition = 0;
 					if (threadIdx.x - TRACKLET_CONSTRUCTOR_NMEMTHREDS < 2 * (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1))
 					{
 						const int nReverse = (threadIdx.x - TRACKLET_CONSTRUCTOR_NMEMTHREDS) / (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1);
