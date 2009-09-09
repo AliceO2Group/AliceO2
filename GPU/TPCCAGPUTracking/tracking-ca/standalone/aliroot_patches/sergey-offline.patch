@@ -1,0 +1,35 @@
+Index: TPC/AliTPCReconstructor.cxx
+===================================================================
+--- TPC/AliTPCReconstructor.cxx	(revision 32286)
++++ TPC/AliTPCReconstructor.cxx	(working copy)
+@@ -34,6 +34,7 @@
+ #include "AliTPCcalibDB.h"
+ #include "AliTracker.h"
+ #include "AliMagF.h"
++#include "AliTPCtrackerCA.h"
+ 
+ ClassImp(AliTPCReconstructor)
+ 
+@@ -112,7 +113,8 @@
+     param = new AliTPCParamSR;
+   }
+   param->ReadGeoMatrices();
+-  return new AliTPCtrackerMI(param);
++  //return new AliTPCtrackerMI(param);
++  return new AliTPCtrackerCA(param);
+ }
+ 
+ //_____________________________________________________________________________
+Index: TPC/libTPCrec.pkg
+===================================================================
+--- TPC/libTPCrec.pkg	(revision 32286)
++++ TPC/libTPCrec.pkg	(working copy)
+@@ -18,7 +18,7 @@
+ 
+ DHDR:= TPCrecLinkDef.h
+ 
+-EINCLUDE:= RAW
++EINCLUDE:= RAW HLT/TPCLib/tracking-ca
+ 
+ ifeq (win32gcc,$(ALICE_TARGET))
+ PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \

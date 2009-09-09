@@ -1,0 +1,46 @@
+Index: HLT/libAliHLTTPC.pkg
+===================================================================
+--- HLT/libAliHLTTPC.pkg	(revision 34701)
++++ HLT/libAliHLTTPC.pkg	(working copy)
+@@ -121,7 +121,7 @@
+ # 		tracking/AliHLTTPCHistogram1D.h \
+ # 		tracking/AliHLTTPCHistogramAdaptive.h
+ 
+-MODULE_SRCS= 	$(CLASS_HDRS:.h=.cxx) \
++MODULE_SRCS:= 	$(CLASS_HDRS:.h=.cxx) \
+ 		AliHLTTPCLog.cxx
+ 
+ MODULE_HDRS:= 	$(CLASS_HDRS) \
+@@ -150,6 +150,21 @@
+ 		   RAW \
+ 		   STEER 
+ 
++#GPU Tracker Interface		   
++CLASS_HDRS	+= tracking-ca/AliHLTTPCCAGPUTracker.h
++
++#GPU Tracker Build enabled
++ELIBS		:= cudart
++ELIBSDIR	:= /opt/cuda/lib64
++EDEFINE		:= BUILD_GPU
++MODULE_CUHDRS	+= $(TRACKING_CA) tracking-ca/AliHLTTPCCAGPUTracker.h
++MODULE_CUSRCS	+= tracking-ca/AliHLTTPCCAGPUTracker.cu
++
++#GPU Tracker Build disabled
++#MODULE_SRCS	+= tracking-ca/AliHLTTPCCAGPUTrackerDummy.cxx
++
++		
++
+ LIBRARY_DEP := -lHLTbase -lAliHLTRCU -lAliHLTUtil \
+                -lCDB -lESD -lSTEER -lSTEERBase -lTPCrec -lTPCcalib -lTPCbase \
+                -lRAWDatarec -lRAWDatabase \
+@@ -162,8 +177,10 @@
+ include $(MODDIR)/hlt.conf
+ 
+ SRCS:=$(patsubst %,TPCLib/%,$(MODULE_SRCS))
++CUSRCS:=$(patsubst %,TPCLib/%,$(MODULE_CUSRCS))
+ CINTHDRS:=$(patsubst %,TPCLib/%,$(CLASS_HDRS))
+ HDRS:=$(patsubst %,TPCLib/%,$(MODULE_HDRS))
++CUHDRS:=$(patsubst %,TPCLib/%,$(MODULE_CUHDRS))
+ DHDR:=$(patsubst %,TPCLib/%,$(MODULE_DHDR))
+ CINTAUTOLINK:= $(shell test "x$(MODULE_DHDR)" = "x" && echo 1)
+ 

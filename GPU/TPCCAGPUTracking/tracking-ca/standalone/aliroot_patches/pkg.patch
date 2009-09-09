@@ -1,0 +1,147 @@
+Index: ALIROOT/binaliroot.pkg
+===================================================================
+--- ALIROOT/binaliroot.pkg	(revision 31924)
++++ ALIROOT/binaliroot.pkg	(working copy)
+@@ -21,6 +21,7 @@
+         FASTSIM microcern \
+ 	RAWDatabase RAWDatarec RAWDatasim \
+ 	HLTbase MUONevaluation \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT 
+ #       THbtp TEPEMGEN \
+ #	THerwig herwig TPHIC
+ 
+Index: ANALYSIS/binaliengui.pkg
+===================================================================
+--- ANALYSIS/binaliengui.pkg	(revision 31924)
++++ ANALYSIS/binaliengui.pkg	(working copy)
+@@ -19,7 +19,8 @@
+   FASTSIM microcern \
+   RAWDatabase RAWDatarec RAWDatasim \
+   HLTbase \
+-  ANALYSIS ANALYSISalice
++  ANALYSIS ANALYSISalice \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT 
+ 
+ CHECKXML = $(shell root-config --has-xml)
+ ifeq (yes,$(CHECKXML))
+Index: EVE/binalieve.pkg
+===================================================================
+--- EVE/binalieve.pkg	(revision 31924)
++++ EVE/binalieve.pkg	(working copy)
+@@ -25,7 +25,8 @@
+   hijing THbtp TEPEMGEN \
+   FASTSIM microcern \
+   RAWDatabase RAWDatarec RAWDatasim \
+-  HLTbase XMLParser
++  HLTbase XMLParser \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT 
+ 
+ PACKBLIBS := $(ROOTCLIBS) $(ROOTPLIBS) -lTreePlayer -lGeomPainter -lGed -lRGL -lEve $(SYSLIBS)
+ 
+Index: HLT/libAliHLTTPC.pkg
+===================================================================
+--- HLT/libAliHLTTPC.pkg	(revision 32017)
++++ HLT/libAliHLTTPC.pkg	(working copy)
+@@ -173,3 +173,4 @@
+ PACKCFLAGS   := ${HLTCLFAGS}
+ PACKDCXXFLAGS:= ${HLTDCXXFLAGS}
+ PACKSOFLAGS  := $(HLTSOFLAGS)
++PACKFILTER   := 2>&1 | HLT/filterFalseWarnings.sh
+Index: MONITOR/binderoot.pkg
+===================================================================
+--- MONITOR/binderoot.pkg	(revision 31924)
++++ MONITOR/binderoot.pkg	(working copy)
+@@ -8,7 +8,8 @@
+ 
+ SRCS += root2date.cxx
+ ELIBSDIR:=
+-ELIBS:=STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore
++ELIBS:=STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT 
+ 
+ ifneq (,$(findstring macosx,$(ALICE_TARGET)))
+ PACKLDFLAGS:=$(LDFLAGS) $(ELIBS:%=-Wl,-u,_G__cpp_setupG__%)
+Index: RAW/binalimdc.pkg
+===================================================================
+--- RAW/binalimdc.pkg	(revision 31924)
++++ RAW/binalimdc.pkg	(working copy)
+@@ -7,7 +7,8 @@
+ 
+ PACKBLIBS := $(ROOTCLIBS) $(SYSLIBS)
+ 
+-ELIBS:=STEERBase ESD AOD RAWDatabase RAWDatarec RAWDatasim MDC MDCFilter CDB STEER TPCbase TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONevaluation MUONsim MUONrec MUONbase MUONtrigger MUONgeometry MUONraw MUONcalib MUONmapping MUONcore
++ELIBS:=STEERBase ESD AOD RAWDatabase RAWDatarec RAWDatasim MDC MDCFilter CDB STEER TPCbase TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONevaluation MUONsim MUONrec MUONbase MUONtrigger MUONgeometry MUONraw MUONcalib MUONmapping MUONcore \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT 
+ 
+ ifneq (,$(findstring macosx,$(ALICE_TARGET)))
+ PACKLDFLAGS:=$(LDFLAGS) $(@PACKAGE@LIBSINIT:%=-Wl,-u,_G__cpp_setupG__%)
+Index: RAW/bindateStream.pkg
+===================================================================
+--- RAW/bindateStream.pkg	(revision 31924)
++++ RAW/bindateStream.pkg	(working copy)
+@@ -6,7 +6,8 @@
+ 
+ PACKBLIBS := $(ROOTCLIBS) $(SYSLIBS)
+ 
+-ELIBS:=STEERBase ESD AOD RAWDatabase RAWDatarec RAWDatasim MDC MDCFilter CDB STEER TPCbase TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONevaluation MUONsim MUONrec MUONbase MUONtrigger MUONgeometry MUONraw MUONcalib MUONmapping MUONcore
++ELIBS:=STEERBase ESD AOD RAWDatabase RAWDatarec RAWDatasim MDC MDCFilter CDB STEER TPCbase TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONevaluation MUONsim MUONrec MUONbase MUONtrigger MUONgeometry MUONraw MUONcalib MUONmapping MUONcore \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT 
+ 
+ ifneq (,$(findstring macosx,$(ALICE_TARGET)))
+ PACKLDFLAGS:=$(LDFLAGS) $(@PACKAGE@LIBSINIT:%=-Wl,-u,_G__cpp_setupG__%)
+Index: MONITOR/binmonitorGDC.pkg
+===================================================================
+--- MONITOR/binmonitorGDC.pkg	(revision 34701)
++++ MONITOR/binmonitorGDC.pkg	(working copy)
+@@ -7,7 +7,8 @@
+ 
+ PACKBLIBS := $(ROOTCLIBS) $(SYSLIBS)
+ 
+-ELIBS:= MONITOR STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore
++ELIBS:= MONITOR STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT
+ 
+ ifdef DATE_ROOT
+ 
+Index: MONITOR/binalitestproc.pkg
+===================================================================
+--- MONITOR/binalitestproc.pkg	(revision 34701)
++++ MONITOR/binalitestproc.pkg	(working copy)
+@@ -6,7 +6,8 @@
+ 
+ PACKBLIBS := $(ROOTCLIBS) $(SYSLIBS)
+ 
+-ELIBS:= MONITOR STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec ITSbase ITSsim ITSrec HLTbase MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore
++ELIBS:= MONITOR STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec ITSbase ITSsim ITSrec HLTbase MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT
+ 
+ ifdef DATE_ROOT
+ 
+Index: MONITOR/binalionlinemonitor.pkg
+===================================================================
+--- MONITOR/binalionlinemonitor.pkg	(revision 34701)
++++ MONITOR/binalionlinemonitor.pkg	(working copy)
+@@ -6,7 +6,8 @@
+ 
+ PACKBLIBS := $(ROOTCLIBS) $(SYSLIBS)
+ 
+-ELIBS:= MONITOR STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec ITSbase ITSsim ITSrec HLTbase MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore
++ELIBS:= MONITOR STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec ITSbase ITSsim ITSrec HLTbase MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT
+ 
+ ifdef DATE_ROOT
+ 
+Index: MONITOR/binmonitorCheck.pkg
+===================================================================
+--- MONITOR/binmonitorCheck.pkg	(revision 34701)
++++ MONITOR/binmonitorCheck.pkg	(working copy)
+@@ -7,7 +7,8 @@
+ 
+ PACKBLIBS := $(ROOTCLIBS) $(SYSLIBS)
+ 
+-ELIBS:= MONITOR STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec ITSbase ITSsim ITSrec HLTbase MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore
++ELIBS:= MONITOR STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase TPCsim TPCrec ITSbase ITSsim ITSrec HLTbase MUONsim MUONrec MUONbase MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation MUONcore \
++	AliHLTTPC HLTbase AliHLTRCU AliHLTUtil CDB ESD STEER STEERBase TPCrec TPCbase TPCcalib ANALYSIS RAWDatarec RAWDatabase  STAT
+ 
+ ifdef DATE_ROOT
+ 
