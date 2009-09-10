@@ -91,6 +91,12 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 	  }
 	  if (iBlock == nBlocks - 1)
 	  {
+	    if (nCurrentBlock < GPUFixedBlockCount)
+		{
+			tracker.BlockStartingTracklet()[nCurrentBlock].x = LastBlockEndTracklet;
+			tracker.BlockStartingTracklet()[nCurrentBlock++].y = StartOffset - LastBlockEndTracklet;
+			tracker.GPUParameters()->fScheduleFirstDynamicTracklet = StartOffset;
+		}
 		for (int i = nCurrentBlock;i < HLTCA_GPU_BLOCK_COUNT;i++)
 		{
 			tracker.BlockStartingTracklet()[i].x = 0;
