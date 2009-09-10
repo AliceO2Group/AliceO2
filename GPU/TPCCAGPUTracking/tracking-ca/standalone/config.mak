@@ -11,7 +11,6 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCATrackParam.cxx \
 								code/AliHLTTPCCATracklet.cxx \
 								code/AliHLTTPCCAStartHitsFinder.cxx \
-								code/AliHLTTPCCAStartHitsSorter.cxx \
 								code/AliHLTTPCCANeighboursCleaner.cxx \
 								code/AliHLTTPCCAParam.cxx \
 								code/AliHLTTPCCAOutTrack.cxx \
@@ -32,9 +31,11 @@ CUFILES						= code/AliHLTTPCCAGPUTracker.cu
 ASMFILES					= 
 
 INCLUDEPATHS				= code base include
-DEFINES						= HLTCA_STANDALONE BUILD_GPU
+DEFINES						= HLTCA_STANDALONE
 
-INTELFLAGSUSE				= $(INTELFLAGSDBG)
-VSNETFLAGSUSE				= $(VSNETFLAGSDBG)
+EXTRAFLAGSGCC				= -Weffc++
+
+INTELFLAGSUSE				= $(INTELFLAGSOPT)
+VSNETFLAGSUSE				= $(VSNETFLAGSOPT)
 GCCFLAGSUSE					= $(GCCFLAGSOPT)
-NVCCFLAGSUSE				= $(NVCCFLAGSDBG)
+NVCCFLAGSUSE				= $(NVCCFLAGSOPT)
