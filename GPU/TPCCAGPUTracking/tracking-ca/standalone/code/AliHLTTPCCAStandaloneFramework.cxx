@@ -129,18 +129,9 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   TStopwatch timer1;
 
 #ifdef HLTCA_STANDALONE
-  //Do one initial run for the GPU to be initialized during benchmarks
-#ifndef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-  if (fUseGPUTracker && fGPUDebugLevel < 2)
-  {
-	fSliceTrackers[0].ReadEvent( &( fClusterData[0] ) );
-	fGPUTracker.Reconstruct(&fSliceTrackers[0], 1);
-  }
-#endif
-
-  unsigned long long int sliceTimers[fgkNSlices][16], startTime, endTime, checkTime;
+  unsigned long long int startTime, endTime, checkTime;
   unsigned long long int cpuTimers[16], gpuTimers[16], tmpFreq;
-  unsigned long long int sliceDataStart, sliceDataEnd, sliceDataSumCPU = 0, sliceDataSumGPU = 0, writeoutstart, writeoutend;
+  unsigned long long int sliceDataStart, sliceDataEnd, sliceDataSumCPU = 0, sliceDataSumGPU = 0;
   fSliceTrackers[0].StandaloneQueryFreq(&tmpFreq);
   fSliceTrackers[0].StandaloneQueryTime(&startTime);
 #endif
@@ -173,63 +164,19 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   if (fUseGPUTracker)
   {
-#ifdef HLTCA_STANDALONE
-		if (fGPUDebugLevel >= 1)
-			fSliceTrackers[0].StandaloneQueryTime(&sliceDataStart);
-#endif
-#ifdef HLTCA_STANDALONE
-#pragma omp parallel for
-#endif
-		for (int iSlice = 0;iSlice  < fgkNSlices; iSlice++)
-		{
-			fSliceTrackers[iSlice].ReadEvent( &( fClusterData[iSlice] ) );
-		}
-#ifdef HLTCA_STANDALONE
-		if (fGPUDebugLevel >= 1)
-		{
-			fSliceTrackers[0].StandaloneQueryTime(&sliceDataEnd);
-			sliceDataSumGPU = sliceDataEnd - sliceDataStart;
-		}
-#endif	
 	  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice += fGPUSliceCount ) {
 		if (forceSingleSlice != -1) iSlice = forceSingleSlice;
-		if (fGPUTracker.Reconstruct(&fSliceTrackers[iSlice], forceSingleSlice != -1 ? 1 : CAMath::Min(fGPUSliceCount, fgkNSlices - iSlice)))
+		if (fGPUTracker.Reconstruct(&fSliceTrackers[iSlice], &fClusterData[iSlice], iSlice, forceSingleSlice != -1 ? 1 : CAMath::Min(fGPUSliceCount, fgkNSlices - iSlice)))
 		{
 			printf("Error during GPU Reconstruction (Slice %d)!!!\n", iSlice);
 			return;
 			//return(1);
 		}
-#ifdef HLTCA_STANDALONE
-		if (fGPUDebugLevel >= 1)
-		{
-			for ( int i = 0;i < 16;i++)
-				sliceTimers[iSlice][i] = *fGPUTracker.PerfTimer(i);
-		}
-#endif
 		if (forceSingleSlice != -1) break;
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 		break;
 #endif
 	  }
-
-#ifdef HLTCA_STANDALONE
-		if (fGPUDebugLevel >= 1)
-		{
-			fSliceTrackers[0].StandaloneQueryTime(&writeoutstart);
-		}
-#pragma omp parallel for
-#endif
-		for (int iSlice = 0;iSlice  < fgkNSlices; iSlice++)
-		{
-			if (forceSingleSlice == -1 || forceSingleSlice == iSlice) fSliceTrackers[iSlice].WriteOutput();
-		}
-#ifdef HLTCA_STANDALONE
-		if (fGPUDebugLevel >= 1)
-		{
-			fSliceTrackers[0].StandaloneQueryTime(&writeoutend);
-		}
-#endif
-
 	  if (fGPUDebugLevel >= 2) printf("\n");
   }
 
@@ -271,11 +218,10 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 			{
 				if (forceSingleSlice != -1) iSlice = forceSingleSlice;
 				cpuTimers[i] += *fSliceTrackers[iSlice].PerfTimer(i + 1) - *fSliceTrackers[iSlice].PerfTimer(i);
-				if (forceSingleSlice != -1 || (fGPUSliceCount && iSlice % fGPUSliceCount == 0))
-					gpuTimers[i] += sliceTimers[iSlice][i + 1] - sliceTimers[iSlice][i];
+				if (forceSingleSlice != -1 || (fGPUSliceCount && (iSlice % fGPUSliceCount == 0 || i <= 5)))
+					gpuTimers[i] += *fGPUTracker.PerfTimer(iSlice, i + 1) - *fGPUTracker.PerfTimer(iSlice, i);
 				if (forceSingleSlice != -1) break;
 			}
-			if (i == 10) gpuTimers[i] = writeoutend - writeoutstart;
 			if (forceSingleSlice == -1)
 			{
 				cpuTimers[i] /= fgkNSlices;
@@ -336,6 +282,10 @@ void AliHLTTPCCAStandaloneFramework::ReadSettings( std::istream &in )
     AliHLTTPCCAParam param;
     param.ReadSettings ( in );
     fSliceTrackers[iSlice].Initialize( param );
+	if (fUseGPUTracker)
+	{
+		fGPUTracker.InitializeSliceParam(iSlice, param);
+	}
   }
 }
 

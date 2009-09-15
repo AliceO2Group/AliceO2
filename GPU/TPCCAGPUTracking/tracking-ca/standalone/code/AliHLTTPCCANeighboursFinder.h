@@ -35,9 +35,7 @@ class AliHLTTPCCANeighboursFinder
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
 
-#ifndef CUDA_DEVICE_EMULATION
       protected:
-#endif
         //AliHLTTPCCAGrid fGridUp; // grid for the next row
         //AliHLTTPCCAGrid fGridDn; // grid for the previous row
         int fNHits; // n hits

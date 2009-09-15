@@ -137,10 +137,7 @@ class AliHLTTPCCATrackParam
 
     GPUd() void Print() const;
 
-#ifndef CUDA_DEVICE_EMULATION
   private:
-#endif
-
 	//WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
 	//This is neccessary for performance reasons!!!
 	//Changes to Elements of this class therefore must also be applied to TrackletConstructor!!!

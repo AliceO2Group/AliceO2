@@ -44,10 +44,7 @@ class AliHLTTPCCARow
     GPUhd() int   HitNumberOffset() const { return fHitNumberOffset; }
     GPUhd() unsigned int FirstHitInBinOffset() const { return fFirstHitInBinOffset; }
 
-#ifndef CUDA_DEVICE_EMULATION
   private:
-#endif
-
     int fNHits;            // number of hits
     float fX;              // X coordinate of the row
     float fMaxY;           // maximal Y coordinate of the row

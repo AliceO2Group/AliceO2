@@ -34,10 +34,7 @@ class AliHLTTPCCAStartHitsSorter
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
 
-#ifndef CUDA_DEVICE_EMULATION
       protected:
-#endif
-
         int fStartRow;		// start row index
         int fNRows;			// number of rows to process
 		int fStartOffset;	//start offset for hits sorted by this block

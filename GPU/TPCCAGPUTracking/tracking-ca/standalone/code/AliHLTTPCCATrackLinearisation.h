@@ -57,10 +57,7 @@ class AliHLTTPCCATrackLinearisation
     GPUd() void SetDzDs( float v )  {  fDzDs   = v; }
     GPUd() void SetQPt( float v )   {  fQPt = v; }
 
-#ifndef CUDA_DEVICE_EMULATION
   private:
-#endif
-
     float fSinPhi; // SinPhi
     float fCosPhi; // CosPhi
     float fDzDs;   // DzDs

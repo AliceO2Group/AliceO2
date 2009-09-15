@@ -33,10 +33,7 @@ class AliHLTTPCCANeighboursCleaner
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
 
-#ifndef CUDA_DEVICE_EMULATION
       protected:
-#endif
-
         int fIRow; // current row index
         int fIRowUp; // current row index
         int fIRowDn; // current row index
