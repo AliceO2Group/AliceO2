@@ -25,11 +25,8 @@ class AliHLTTPCCATrackletSelector
     class AliHLTTPCCASharedMemory
     {
         friend class AliHLTTPCCATrackletSelector;
-#ifndef CUDA_DEVICE_EMULATION
-      protected:
-#else
-	  public:
-#endif
+
+	protected:
         int fItr0; // index of the first track in the block
         int fNThreadsTotal; // total n threads
         int fNTracklets; // n of tracklets

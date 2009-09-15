@@ -42,10 +42,7 @@ class AliHLTTPCCATrackletConstructor
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
 
-#ifndef CUDA_DEVICE_EMULATION
       protected:
-#endif
-
 #ifdef HLTCA_GPU_PREFETCHDATA
         uint4 fData[2][ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4]; // temp memory
 		AliHLTTPCCARow fRow[2]; // row
@@ -80,9 +77,7 @@ class AliHLTTPCCATrackletConstructor
         AliHLTTPCCAThreadMemory& operator=( const AliHLTTPCCAThreadMemory& /*dummy*/ ) { return *this; }
 #endif
 
-#ifndef CUDA_DEVICE_EMULATION
       protected:
-#endif
         int fItr; // track index
         int fFirstRow;  // first row index
         int fLastRow; // last row index

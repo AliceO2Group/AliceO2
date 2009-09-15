@@ -36,11 +36,11 @@ template<typename T> inline void AssignNoAlignment( T *&dst, char *&mem, int cou
   mem = ( char * )( dst + count );
 }
 
-GPUhd() void AliHLTTPCCASliceOutput::SetPointers()
+void AliHLTTPCCASliceOutput::SetPointers()
 {
   // set all pointers
 
-  char *mem = &fMemory[0];
+  char *mem = fMemory;
   AssignNoAlignment( fTracks,            mem, fNTracks );
   AssignNoAlignment( fClusterUnpackedYZ, mem, fNTrackClusters );
   AssignNoAlignment( fClusterUnpackedX,  mem, fNTrackClusters );
@@ -49,5 +49,6 @@ GPUhd() void AliHLTTPCCASliceOutput::SetPointers()
   AssignNoAlignment( fClusterRow,        mem, fNTrackClusters );
   AssignNoAlignment( fClusterPackedAmp,  mem, fNTrackClusters );
 
+  fMemorySize = (mem - fMemory);
 }
 #endif

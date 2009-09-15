@@ -46,7 +46,7 @@ class AliHLTTPCCASliceData
   public:
     AliHLTTPCCASliceData()
         : 
-		fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif
@@ -66,7 +66,7 @@ class AliHLTTPCCASliceData
      * data.
      */
 
-	char* SetGPUSliceDataMemory(char* pGPUMemory, const AliHLTTPCCAClusterData *data);
+	void SetGPUSliceDataMemory(void* pSliceMemory, void* pRowMemory);
 	size_t SetPointers(const AliHLTTPCCAClusterData *data, bool allocate = false);
     void InitFromClusterData( const AliHLTTPCCAClusterData &data );
 
@@ -152,13 +152,12 @@ class AliHLTTPCCASliceData
 
 	GPUh() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
 
-#ifndef CUDA_DEVICE_EMULATION
-  private:
-#endif
+	void SetGpuSliceData() { fIsGpuSliceData = 1; }
 
+  private:
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
         : 
-		fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif
@@ -173,7 +172,7 @@ class AliHLTTPCCASliceData
     void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data, int ClusterDataHitNumberOffset );
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
-
+	int fIsGpuSliceData;		//Slice Data for GPU Tracker?
 	int fGPUSharedDataReq;		//Size of shared memory required for GPU Reconstruction
 
     int fNumberOfHits;         // the number of hits in this slice

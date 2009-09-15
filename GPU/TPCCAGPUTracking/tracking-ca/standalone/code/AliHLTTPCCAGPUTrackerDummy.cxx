@@ -18,20 +18,13 @@
 //***************************************************************************
 
 //If not building GPU Code then build dummy functions to link against
-int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID) {return(0);}
-void StandalonePerfTime(int i) {}
+int AliHLTTPCCAGPUTracker::InitGPU(int /*sliceCount*/, int /*forceDeviceID*/) {return(0);}
+void StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
 //template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment) {return(NULL);}
 //bool AliHLTTPCCAGPUTracker::CUDA_FAILED_MSG(cudaError_t error) {return(true);}
 //int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
-void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile) {}
-int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* OptionName, int OptionValue) {return(1);}
-int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* tracker, int fSliceCount) {return(1);}
+void AliHLTTPCCAGPUTracker::SetDebugLevel(int /*dwLevel*/, std::ostream* /*NewOutFile*/) {}
+int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* /*OptionName*/, int /*OptionValue*/) {return(1);}
+int Reconstruct(AliHLTTPCCATracker* /*pTracker*/, AliHLTTPCCAClusterData* /*pClusterData*/, int /*fFirstSlice*/, int /*fSliceCount*/) {return(1);}
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
-void* AliHLTTPCCAGPUTracker::gpuHostMallocPageLocked(size_t size)
-{
-	return(malloc(size));
-}
-void AliHLTTPCCAGPUTracker::gpuHostFreePageLocked(void* ptr)
-{
-	free(ptr);
-}
+void AliHLTTPCCAGPUTracker::InitializeSliceParam(int /*iSlice*/, AliHLTTPCCAParam& /*param*/) {}

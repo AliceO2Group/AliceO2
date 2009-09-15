@@ -11,7 +11,7 @@
 #define ALIHLTTPCCASLICEOUTPUT_H
 
 #include "AliHLTTPCCADef.h"
-
+#include <cstdlib>
 #include "AliHLTTPCCASliceTrack.h"
 
 /**
@@ -41,9 +41,7 @@ class AliHLTTPCCASliceOutput
     GPUhd() float    ClusterUnpackedX  ( int i )  const { return fClusterUnpackedX[i]; }
 
     GPUhd() static int EstimateSize( int nOfTracks, int nOfTrackClusters );
-#ifndef HLTCA_GPUCODE
-    GPUhd() void SetPointers();
-#endif
+    void SetPointers();
 
     GPUhd() void SetNTracks       ( int v )  { fNTracks = v;        }
     GPUhd() void SetNTrackClusters( int v )  { fNTrackClusters = v; }
@@ -56,10 +54,12 @@ class AliHLTTPCCASliceOutput
     GPUhd() void SetClusterUnpackedYZ( int i, float2 v ) {  fClusterUnpackedYZ[i] = v; }
     GPUhd() void SetClusterUnpackedX( int i, float v ) {  fClusterUnpackedX[i] = v; }
 
+	size_t MemorySize() { return(fMemorySize); }
+
   private:
 
     AliHLTTPCCASliceOutput( const AliHLTTPCCASliceOutput& )
-        : fNTracks( 0 ), fNTrackClusters( 0 ), fTracks( 0 ),  fClusterId( 0 ), fClusterRow( 0 ), fClusterPackedYZ( 0 ), fClusterUnpackedYZ( 0 ), fClusterUnpackedX( 0 ), fClusterPackedAmp( 0 ) {}
+        : fNTracks( 0 ), fNTrackClusters( 0 ), fTracks( 0 ),  fClusterId( 0 ), fClusterRow( 0 ), fClusterPackedYZ( 0 ), fClusterUnpackedYZ( 0 ), fClusterUnpackedX( 0 ), fClusterPackedAmp( 0 ), fMemorySize( 0 ) {}
 
     const AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) const { return *this; }
 
@@ -72,6 +72,9 @@ class AliHLTTPCCASliceOutput
     float2   *fClusterUnpackedYZ;    // pointer to cluster coordinates (temporary data, for debug proposes)
     float    *fClusterUnpackedX;     // pointer to cluster coordinates (temporary data, for debug proposes)
     UChar_t  *fClusterPackedAmp;     // pointer to packed cluster amplitudes
+	size_t fMemorySize;				// Amount of memory really used
+
+	//Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
     char fMemory[1]; // the memory where the pointers above point into
 };
 

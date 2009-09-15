@@ -43,10 +43,7 @@ class AliHLTTPCCAGrid
     GPUd() float StepYInv() const { return fStepYInv; }
     GPUd() float StepZInv() const { return fStepZInv; }
 
-#ifndef CUDA_DEVICE_EMULATION
   private:
-#endif
-
     unsigned int fNy;        //* N bins in Y
     unsigned int fNz;        //* N bins in Z
     unsigned int fN;         //* total N bins

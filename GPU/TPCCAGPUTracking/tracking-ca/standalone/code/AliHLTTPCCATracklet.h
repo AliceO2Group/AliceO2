@@ -48,10 +48,7 @@ class AliHLTTPCCATracklet
     GPUhd() void SetRowHit( int irow, int ih )  { fRowHits[irow] = ih;    }
 #endif
 
-#ifndef CUDA_DEVICE_EMULATION
   private:
-#endif
-
     int fStartHitID;            // ID of the starting hit
     int fNHits;                 // N hits
     int fFirstRow;              // first TPC row
