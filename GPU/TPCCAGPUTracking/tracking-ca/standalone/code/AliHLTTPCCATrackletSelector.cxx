@@ -46,7 +46,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 #ifdef HLTCA_GPU_EMULATION_DEBUG_TRACKLET
 	if (itr == HLTCA_GPU_EMULATION_DEBUG_TRACKLET)
 	{
-		tracker.GPUParameters()->fGPUSchedCollisions += 1;
+		tracker.GPUParameters()->fGPUError = 1;
 	}
 #endif
 
@@ -111,10 +111,10 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
         if ( gap > kMaxRowGap || irow == lastRow ) { // store
           if ( nHits >= TRACKLET_SELECTOR_MIN_HITS ) { //SG!!!
             int itrout = CAMath::AtomicAdd( tracker.NTracks(), 1 );
+#ifdef HLTCA_GPUCODE
+			if (itrout >= HLTCA_GPU_MAX_TRACKS) tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_TRACK_OVERFLOW;
+#endif
             nFirstTrackHit = CAMath::AtomicAdd( tracker.NTrackHits(), nHits );
-            /*tout.SetParam( tracklet.Param() );
-            tout.SetAlive( 1 );
-            tracker.Tracks()[itrout] = tout;*/
 			tracker.Tracks()[itrout].SetAlive(1);
 			tracker.Tracks()[itrout].SetParam(tracklet.Param());
 			tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);

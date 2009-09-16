@@ -70,12 +70,11 @@ AliHLTTPCCATracker::~AliHLTTPCCATracker()
   // destructor
 	if (!fIsGPUTracker)
 	{
-		if (fCommonMem)
-			delete fCommonMem;
-		if (fHitMemory)
-			delete[] fHitMemory;
-		if (fTrackMemory)
-			delete[] fTrackMemory;
+		if (fCommonMem) delete fCommonMem;
+		if (fHitMemory) delete[] fHitMemory;
+		if (fTrackletMemory) delete[] fTrackletMemory;
+		if (fTrackMemory) delete[] fTrackMemory;
+		if (fOutputMemory) delete[] fOutputMemory;
 		fCommonMem = NULL;
 		fHitMemory = fTrackMemory = NULL;
 	}
@@ -130,12 +129,11 @@ char* AliHLTTPCCATracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits
 	return(pGPUMemory);
 }
 
-
-char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits, int fOptionSimpleSched )
+char* AliHLTTPCCATracker::SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracks, int fOptionSimpleSched )
 {
-	fTrackMemory = (char*) pGPUMemory;
-	SetPointersTracks(MaxNTracks, MaxNHits);
-	pGPUMemory += fTrackMemorySize;
+	fTrackletMemory = (char*) pGPUMemory;
+	SetPointersTracklets(MaxNTracks);
+	pGPUMemory += fTrackletMemorySize;
 	if (!fOptionSimpleSched)
 	{
 		AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
@@ -143,6 +141,15 @@ char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTr
 		AssignMemory(fRowBlockPos, pGPUMemory, 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
 		AssignMemory(fBlockStartingTracklet, pGPUMemory, HLTCA_GPU_BLOCK_COUNT);
 	}
+
+	return(pGPUMemory);
+}
+
+char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits )
+{
+	fTrackMemory = (char*) pGPUMemory;
+	SetPointersTracks(MaxNTracks, MaxNHits);
+	pGPUMemory += fTrackMemorySize;
 
 	return(pGPUMemory);
 }
@@ -285,16 +292,12 @@ void AliHLTTPCCATracker::SetupCommonMemory()
 	  fCommonMem = new commonMemoryStruct;
     }
 
-	if (fHitMemory)
-	{
-		delete[] fHitMemory;
-	}
-	if (fTrackMemory)
-	{
-		delete[] fTrackMemory;
-	}
+	if (fHitMemory)	delete[] fHitMemory;
+	if (fTrackletMemory) delete[] fTrackletMemory;
+	if (fTrackMemory) delete[] fTrackMemory;
+	if (fOutputMemory) delete[] fOutputMemory;
   }
-  fHitMemory = fTrackMemory = 0;
+  fHitMemory = fTrackletMemory = fTrackMemory = fOutputMemory = 0;
 
   fData.Clear();
   fCommonMem->fNTracklets = 0;
@@ -319,8 +322,11 @@ void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
   //* Convert input hits, create grids, etc.
   fData.InitFromClusterData( *clusterData );
   {
-    SetPointersHits( fData.NumberOfHits() ); // to calculate the size
-    fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
+    if (!fIsGPUTracker)
+	{
+		SetPointersHits( fData.NumberOfHits() ); // to calculate the size
+		fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
+	}
     SetPointersHits( fData.NumberOfHits() ); // set pointers for hits
   }
 }
@@ -344,24 +350,40 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersHits( int MaxNHits )
   fHitMemorySize = mem - fHitMemory;
 }
 
+GPUhd() void  AliHLTTPCCATracker::SetPointersTracklets( int MaxNTracklets )
+{
+  // set all pointers to the tracklets memory
+  char *mem = fTrackletMemory;
+
+  // memory for tracklets
+
+  AssignMemory( fTracklets, mem, MaxNTracklets );
+#ifdef EXTERN_ROW_HITS
+  AssignMemory( fTrackletRowHits, mem, MaxNTracklets * Param().NRows());
+#endif
+
+  fTrackletMemorySize = mem - fTrackletMemory;
+}
+
 
 GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHits )
 {
   // set all pointers to the tracks memory
-
   char *mem = fTrackMemory;
-
-  // memory for tracklets
-
-  AssignMemory( fTracklets, mem, MaxNTracks );
-#ifdef EXTERN_ROW_HITS
-  AssignMemory( fTrackletRowHits, mem, MaxNTracks * Param().NRows());
-#endif
 
   // memory for selected tracks
 
   AssignMemory( fTracks, mem, MaxNTracks );
+  AssignMemory( fTrackHits, mem, 2 * MaxNHits );
 
+  // calculate the size
+
+  fTrackMemorySize = mem - fTrackMemory;
+}
+
+GPUhd() void  AliHLTTPCCATracker::SetPointersOutput( int MaxNTracks, int MaxNHits )
+{
+	char *mem = fOutputMemory;
   // memory for output
 
   AlignTo < sizeof( void * ) > ( mem );
@@ -374,14 +396,9 @@ GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHit
 
   // arrays for track hits
 
-  AssignMemory( fTrackHits, mem, 10 * MaxNHits );
+  AssignMemory( fOutTrackHits, mem, 2 * MaxNHits );
 
-  AssignMemory( fOutTrackHits, mem, 10 * MaxNHits );
-
-
-  // calculate the size
-
-  fTrackMemorySize = mem - fTrackMemory;
+	fOutputMemorySize = mem - fOutputMemory;
 }
 
 GPUh() int AliHLTTPCCATracker::CheckEmptySlice()
@@ -555,9 +572,17 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   fData.ClearHitWeights();
 
+  SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
+  fTrackletMemory = reinterpret_cast<char*> ( new uint4 [ fTrackletMemorySize/sizeof( uint4 ) + 100] );
+  SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // set pointers for hits
+
   SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // to calculate the size
   fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
   SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // set pointers for hits
+
+  SetPointersOutput( fCommonMem->fNTracklets * 2, NHitsTotal() ); // to calculate the size
+  fOutputMemory = reinterpret_cast<char*> ( new uint4 [ fOutputMemorySize/sizeof( uint4 ) + 100] );
+  SetPointersOutput( fCommonMem->fNTracklets * 2, NHitsTotal() ); // set pointers for hits
 
   StandalonePerfTime(6);
   StandalonePerfTime(7);
@@ -588,11 +613,9 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   //std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
 
-  StandalonePerfTime(10);
-
   WriteOutput();
 
-  StandalonePerfTime(11);
+  StandalonePerfTime(10);
 
 #endif
 
