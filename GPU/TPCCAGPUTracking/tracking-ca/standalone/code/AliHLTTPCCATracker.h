@@ -50,11 +50,7 @@ class AliHLTTPCCATracker
   public:
 
 	AliHLTTPCCATracker()
-		:
-#ifdef HLTCA_STANDALONE
-		fGPUDebugMem( NULL ),
-#endif
-		fParam(),
+		: fParam(),
 		fClusterData( 0 ),
 		fData(),
 		fIsGPUTracker( false ),
@@ -70,8 +66,12 @@ class AliHLTTPCCATracker
 		fCommonMem( 0 ),
 		fHitMemory( 0 ),
 		fHitMemorySize( 0 ),
+		fTrackletMemory( 0 ),
+		fTrackletMemorySize( 0 ),
 		fTrackMemory( 0 ),
 		fTrackMemorySize( 0 ),
+		fOutputMemory( 0 ),
+		fOutputMemorySize( 0 ),
 		fTrackletStartHits( 0 ),
 		fTracklets( 0 ),
 		fTrackletRowHits( NULL ),
@@ -88,9 +88,7 @@ class AliHLTTPCCATracker
 	struct StructGPUParameters
 	{
 		int fScheduleFirstDynamicTracklet;		//Last Tracklet with fixed position in sheduling
-		int fStaticStartingTracklets;			//Start using fBlockStartingTracklet instead of fetching from RowBlockTracklets
 		int fGPUError;							//Signalizes error on GPU during GPU Reconstruction, kind of return value
-		int fGPUSchedCollisions;				//Count of unsolveable schedule collisions
 		int fNextTracklet;						//Next Tracklet for simple scheduler
 	};
 
@@ -135,7 +133,8 @@ class AliHLTTPCCATracker
 
 	char* SetGPUTrackerCommonMemory(char* pGPUMemory);
 	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits, int fOptionSimpleSched );
-	char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits, int fOptionSimpleSched );
+	char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets, int fOptionSimpleSched );
+	char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits );
 
 	//Debugging Stuff
 	void DumpSliceData(std::ostream &out);	//Dump Input Slice Data
@@ -152,7 +151,9 @@ class AliHLTTPCCATracker
 
     void SetupCommonMemory();
     void SetPointersHits( int MaxNHits );
+	void SetPointersTracklets ( int MaxNTracklets );
     void SetPointersTracks( int MaxNTracks, int MaxNHits );
+	void SetPointersOutput( int MaxNTracks, int MaxNHits );
 
     void ReadEvent( AliHLTTPCCAClusterData *clusterData );
 
@@ -249,8 +250,12 @@ class AliHLTTPCCATracker
 	static GPUh() size_t CommonMemorySize() { return(sizeof(AliHLTTPCCATracker::commonMemoryStruct)); }
 	GPUh() char* &HitMemory() {return(fHitMemory); }
 	GPUh() size_t HitMemorySize() const {return(fHitMemorySize); }
+	GPUh() char* &TrackletMemory() {return(fTrackletMemory); }
+	GPUh() size_t TrackletMemorySize() const {return(fTrackletMemorySize); }
 	GPUh() char* &TrackMemory() {return(fTrackMemory); }
 	GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
+	GPUh() char* &OutputMemory() {return(fOutputMemory); }
+	GPUh() size_t OutputMemorySize() const {return(fOutputMemorySize); }
 	GPUh() char *SliceDataMemory() {return(fData.Memory()); }
 	GPUh() size_t SliceDataMemorySize() const {return(fData.MemorySize()); }
 	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
@@ -273,9 +278,6 @@ class AliHLTTPCCATracker
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
 	int* fThreadTimes;
-#endif
-#ifdef HLTCA_STANDALONE
-	int* fGPUDebugMem;				//Temp GPU Memory for Debugging purpose
 #endif
 
   private:
@@ -310,8 +312,14 @@ class AliHLTTPCCATracker
     char *fHitMemory; // event memory for hits
     size_t   fHitMemorySize; // size of the event memory [bytes]
 
+	char *fTrackletMemory;
+	size_t fTrackletMemorySize;
+
     char *fTrackMemory; // event memory for tracks
     size_t   fTrackMemorySize; // size of the event memory [bytes]
+
+	char *fOutputMemory;
+	size_t fOutputMemorySize;
 
     AliHLTTPCCAHitId *fTrackletStartHits;   // start hits for the tracklets
     AliHLTTPCCATracklet *fTracklets; // tracklets

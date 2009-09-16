@@ -26,25 +26,6 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
   if ( iSync == 0 ) {
     if ( iThread == 0 ) {
 		const int GPUFixedBlockCount = tracker.GPUParametersConst()->fGPUFixedBlockCount;
-#ifdef HLTCA_GPU_SORT_STARTHITS_2
-	  const int tmpNRowsEvenBlock = (tracker.Param().NRows() - 4) / 2;
-	  const int tmpNRows = (tracker.Param().NRows() - 4 + (iBlock & 1)) / 2;
-	  int nRows = (iBlock / 2 == 14 ? (tmpNRows - (tmpNRows / 15) * 14) : (tmpNRows / 15)) * 2;
-	  int nStartRow = (tmpNRows / 15) * (iBlock / 2) * 2 + 1 + (iBlock & 1);
-	  int StartOffset = 0;
-	  if (iBlock & 1)
-	  {
-		for (int ir = 1;ir < tracker.Param().NRows() - 3;ir+=2) StartOffset += tracker.RowStartHitCountOffset()[ir].x;
-		if (iBlock == 1) *tracker.NTracklets() += NextMultipleOf<32>(StartOffset) - StartOffset;
-		for (int i = StartOffset;i < NextMultipleOf<32>(StartOffset);i++)
-			tracker.TrackletStartHits()[i].Set(0, 0);
-		StartOffset = NextMultipleOf<32>(StartOffset);
-	  }
-	  for (int ir = 1 + (iBlock & 1);ir < nStartRow;ir += 2)
-	  {
-		  StartOffset += tracker.RowStartHitCountOffset()[ir].x;
-	  }
-#else
 	  const int tmpNRows = tracker.Param().NRows() - 6;
 	  int nRows = iBlock == 29 ? (tmpNRows - (tmpNRows / 30) * 29) : (tmpNRows / 30);
 	  int nStartRow = (tmpNRows / 30) * iBlock + 1;
@@ -103,18 +84,13 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 			tracker.BlockStartingTracklet()[i].y = 0;			
 		}
 	  }
-#endif
 	  s.fStartOffset = StartOffset2;
 	  s.fNRows = nRows;
       s.fStartRow = nStartRow;
     }
   } else if ( iSync == 1 ) {
 	int StartOffset = s.fStartOffset;
-#ifdef HLTCA_GPU_SORT_STARTHITS_2
-    for (int ir = 0;ir < s.fNRows;ir+=2)
-#else
     for (int ir = 0;ir < s.fNRows;ir++)
-#endif
 	{
 		AliHLTTPCCAHitId *const startHits = tracker.TrackletStartHits();
 		AliHLTTPCCAHitId *const tmpStartHits = tracker.TrackletTmpStartHits();

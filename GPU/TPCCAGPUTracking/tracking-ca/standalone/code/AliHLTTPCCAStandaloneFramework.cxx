@@ -209,10 +209,11 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   if (fGPUDebugLevel >= 1)
   {
-		const char* tmpNames[16] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Tracklet Initializer", "Tracklet Constructor", "Tracklet Selector", "Read Out", "Write Output", "Unused", "Unused", "Unused", "Unused", "Unused"};
+		const char* tmpNames[16] = {"Initialisation", "Neighbours Finder", "Neighbours Cleaner", "Starts Hits Finder", "Start Hits Sorter", "Weight Cleaner", "Reserved", "Tracklet Constructor", "Tracklet Selector", "Write Output", "Unused", "Unused", "Unused", "Unused", "Unused", "Unused"};
 
-		for (int i = 0;i < 11;i++)
+		for (int i = 0;i < 10;i++)
 		{
+			if (i == 6) continue;
 			cpuTimers[i] = gpuTimers[i] = 0;
 			for ( int iSlice = 0; iSlice < fgkNSlices;iSlice++)
 			{

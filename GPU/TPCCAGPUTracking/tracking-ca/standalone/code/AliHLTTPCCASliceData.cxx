@@ -127,6 +127,12 @@ void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 			if (!fIsGpuSliceData) delete[] fRows;
 			fRows = NULL;
 		}
+		if (fMemory)
+		{
+			if (!fIsGpuSliceData) delete[] fMemory;
+			fMemory = NULL;
+		}
+
 #endif
 	}
 #endif
