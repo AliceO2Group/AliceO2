@@ -80,6 +80,7 @@ class AliHLTTPCCAStandaloneFramework
 	int ExitGPU();
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
 	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fGPUTracker.SetGPUTrackerOption(OptionName, OptionValue));}
+	int SetGPUTracker(bool enable);
 
   private:
 
@@ -92,15 +93,15 @@ class AliHLTTPCCAStandaloneFramework
     AliHLTTPCCAMerger fMerger;  //* global merger
     AliHLTTPCCAClusterData fClusterData[fgkNSlices];
 
-	AliHLTTPCCAGPUTracker fGPUTracker;
-
     double fLastTime[20]; //* timers
     double fStatTime[20]; //* timers
     int fStatNEvents;    //* n events proceed
 
+  bool fGPUTrackerAvailable; // Is the GPU Tracker Available?
   bool fUseGPUTracker; // use the GPU tracker 
   int fGPUDebugLevel;  // debug level for the GPU code
   int fGPUSliceCount;	//How many slices to process parallel
+  AliHLTTPCCAGPUTracker fGPUTracker;
 };
 
 #endif

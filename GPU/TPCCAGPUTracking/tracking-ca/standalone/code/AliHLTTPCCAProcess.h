@@ -35,13 +35,13 @@ GPUg() void AliHLTTPCCAProcess(int iSlice)
 }
 
 template<class TProcess>
-GPUg() void AliHLTTPCCAProcessMulti(int nSliceCount)
+GPUg() void AliHLTTPCCAProcessMulti(int firstSlice, int nSliceCount)
 {
   const int iSlice = nSliceCount * (blockIdx.x + (gridDim.x % nSliceCount != 0 && nSliceCount * (blockIdx.x + 1) % gridDim.x != 0)) / gridDim.x;
   const int nSliceBlockOffset = gridDim.x * iSlice / nSliceCount;
   const int sliceBlockId = blockIdx.x - nSliceBlockOffset;
   const int sliceGridDim = gridDim.x * (iSlice + 1) / nSliceCount - gridDim.x * (iSlice) / nSliceCount;
-  AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[iSlice];
+  AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[firstSlice + iSlice];
   GPUshared() typename TProcess::AliHLTTPCCASharedMemory smem;
 
   for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
