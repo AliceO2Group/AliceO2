@@ -737,7 +737,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 
   // old stuff
-
+#ifndef HLTCA_STANDALONE
   fCommonMem->fNOutTrackHits = 0;
   fCommonMem->fNOutTracks = 0;
 
@@ -780,7 +780,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
       ( fCommonMem->fNOutTrackHits ) = nOutTrackHitsOld;
     }
   }
-
+#endif
 
   timer.Stop();
   fTimers[5] += timer.CpuTime();

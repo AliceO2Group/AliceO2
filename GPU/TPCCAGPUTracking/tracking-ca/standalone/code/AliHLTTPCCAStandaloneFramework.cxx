@@ -330,7 +330,7 @@ int AliHLTTPCCAStandaloneFramework::InitGPU(int sliceCount, int forceDeviceID)
 	int retVal;
 	if (fUseGPUTracker && (retVal = ExitGPU())) return(retVal);
 	retVal = fGPUTracker.InitGPU(sliceCount, forceDeviceID);
-	fUseGPUTracker = retVal == 0;
+	fGPUTrackerAvailable = retVal == 0;
 	fGPUSliceCount = sliceCount;
 	return(retVal);
 }
@@ -338,7 +338,8 @@ int AliHLTTPCCAStandaloneFramework::InitGPU(int sliceCount, int forceDeviceID)
 int AliHLTTPCCAStandaloneFramework::ExitGPU()
 {
 	if (!fUseGPUTracker) return(0);
-	fUseGPUTracker = 0;
+	fUseGPUTracker = false;
+	fGPUTrackerAvailable = false;
 	return(fGPUTracker.ExitGPU());
 }
 
@@ -350,4 +351,15 @@ void AliHLTTPCCAStandaloneFramework::SetGPUDebugLevel(int Level, std::ostream *O
 	{
 		fSliceTrackers[i].SetGPUDebugLevel(Level, OutFile);
 	}
+}
+
+int AliHLTTPCCAStandaloneFramework::SetGPUTracker(bool enable)
+{
+	if (enable && !fGPUTrackerAvailable)
+	{
+		fUseGPUTracker = false;
+		return(1);
+	}
+	fUseGPUTracker = enable;
+	return(0);
 }
