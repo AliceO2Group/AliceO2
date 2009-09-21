@@ -22,7 +22,7 @@
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
-#define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 2
+#define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 2		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
 //#define HLTCA_GPU_SORT_DUMPDATA
 

@@ -18,6 +18,8 @@
 //***************************************************************************
 
 //If not building GPU Code then build dummy functions to link against
+#include "AliHLTTPCCAGPUTracker.h"
+
 int AliHLTTPCCAGPUTracker::InitGPU(int /*sliceCount*/, int /*forceDeviceID*/) {return(0);}
 void StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
 //template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment) {return(NULL);}
@@ -25,6 +27,6 @@ void StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
 //int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
 void AliHLTTPCCAGPUTracker::SetDebugLevel(int /*dwLevel*/, std::ostream* /*NewOutFile*/) {}
 int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* /*OptionName*/, int /*OptionValue*/) {return(1);}
-int Reconstruct(AliHLTTPCCATracker* /*pTracker*/, AliHLTTPCCAClusterData* /*pClusterData*/, int /*fFirstSlice*/, int /*fSliceCount*/) {return(1);}
+int Reconstruct(AliHLTTPCCASliceOutput* /*pTracker*/, AliHLTTPCCAClusterData* /*pClusterData*/, int /*fFirstSlice*/, int /*fSliceCount*/) {return(1);}
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
 void AliHLTTPCCAGPUTracker::InitializeSliceParam(int /*iSlice*/, AliHLTTPCCAParam& /*param*/) {}

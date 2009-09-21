@@ -18,6 +18,8 @@
 //***************************************************************************
 
 #include "AliHLTTPCCASliceOutput.h"
+#include "MemoryAssignmentHelpers.h"
+
 
 GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClusters )
 {
@@ -29,6 +31,17 @@ GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClu
 }
 
 #ifndef HLTCA_GPUCODE
+
+void AliHLTTPCCASliceOutput::Clear()
+{
+	if (fMemory) delete[] fMemory;
+	fMemory = NULL;
+	fNOutTracks = 0;
+	fNOutTrackHits = 0;
+	fNTracks = 0;
+	fNTrackClusters = 0;
+}
+
 template<typename T> inline void AssignNoAlignment( T *&dst, char *&mem, int count )
 {
   // assign memory to the pointer dst
@@ -49,6 +62,22 @@ void AliHLTTPCCASliceOutput::SetPointers()
   AssignNoAlignment( fClusterRow,        mem, fNTrackClusters );
   AssignNoAlignment( fClusterPackedAmp,  mem, fNTrackClusters );
 
+  // memory for output tracks
+
+  AssignMemory( fOutTracks, mem, fNTracks );
+
+  // arrays for track hits
+
+  AssignMemory( fOutTrackHits, mem, fNTrackClusters );
+
+
   fMemorySize = (mem - fMemory);
+}
+
+void AliHLTTPCCASliceOutput::Allocate()
+{
+  SetPointers(); // to calculate the size
+  fMemory = reinterpret_cast<char*> ( new uint4 [ fMemorySize/sizeof( uint4 ) + 100] );
+  SetPointers(); // set pointers
 }
 #endif

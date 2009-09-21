@@ -10,12 +10,12 @@
 #define ALIHLTTPCCASTANDALONEFRAMEWORK_H
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAMerger.h"
 #include "AliHLTTPCCAClusterData.h"
-#include "AliHLTTPCCAGPUTracker.h"
+#include "AliHLTTPCCATrackerFramework.h"
 #include <iostream>
 #include <fstream>
+#include "TStopwatch.h"
 
 /**
  * @class AliHLTTPCCAStandaloneFramework
@@ -35,7 +35,9 @@ class AliHLTTPCCAStandaloneFramework
 
     static AliHLTTPCCAStandaloneFramework &Instance();
 
-    AliHLTTPCCATracker &SliceTracker( int iSlice )  { return fSliceTrackers[iSlice]; }
+	const AliHLTTPCCAParam &Param ( int iSlice ) const { return(fTracker.Param(iSlice)); }
+	const AliHLTTPCCARow &Row ( int iSlice, int iRow ) const { return(fTracker.Row(iSlice, iRow)); }
+    AliHLTTPCCASliceOutput &Output( int iSlice )  { return fSliceOutput[iSlice]; }
     AliHLTTPCCAMerger  &Merger()  { return fMerger; }
     AliHLTTPCCAClusterData &ClusterData( int iSlice ) { return fClusterData[iSlice]; }
 
@@ -76,11 +78,35 @@ class AliHLTTPCCAStandaloneFramework
     void ReadEvent( std::istream &in );
     void ReadTracks( std::istream &in );
 
-	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
-	int ExitGPU();
-	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
-	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fGPUTracker.SetGPUTrackerOption(OptionName, OptionValue));}
-	int SetGPUTracker(bool enable);
+	int InitGPU(int sliceCount = 1, int forceDeviceID = -1) { return(fTracker.InitGPU(sliceCount, forceDeviceID)); }
+	int ExitGPU() { return(fTracker.ExitGPU()); }
+	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL) { fDebugLevel = Level; fTracker.SetGPUDebugLevel(Level, OutFile, GPUOutFile); }
+	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fTracker.SetGPUTrackerOption(OptionName, OptionValue));}
+	int SetGPUTracker(bool enable) { return(fTracker.SetGPUTracker(enable)); }
+
+	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
+
+#ifdef HLTCA_STANDALONE
+	static void StandaloneQueryTime(unsigned long long int *i)
+	{
+	#ifdef R__WIN32
+		  QueryPerformanceCounter((LARGE_INTEGER*) i);
+	#else
+		  timespec t;
+		  clock_gettime(CLOCK_REALTIME, &t);
+		  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
+	#endif
+	}
+
+	static void StandaloneQueryFreq(unsigned long long int *i)
+	{
+	#ifdef R__WIN32
+		  QueryPerformanceFrequency((LARGE_INTEGER*) i);
+	#else
+		*i = 1000000000;
+	#endif
+	}
+#endif
 
   private:
 
@@ -89,19 +115,17 @@ class AliHLTTPCCAStandaloneFramework
     AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& );
     const AliHLTTPCCAStandaloneFramework &operator=( const AliHLTTPCCAStandaloneFramework& ) const;
 
-    AliHLTTPCCATracker fSliceTrackers[fgkNSlices]; //* array of slice trackers
     AliHLTTPCCAMerger fMerger;  //* global merger
     AliHLTTPCCAClusterData fClusterData[fgkNSlices];
+	AliHLTTPCCASliceOutput fSliceOutput[fgkNSlices];
+
+	AliHLTTPCCATrackerFramework fTracker;
 
     double fLastTime[20]; //* timers
     double fStatTime[20]; //* timers
     int fStatNEvents;    //* n events proceed
 
-  bool fGPUTrackerAvailable; // Is the GPU Tracker Available?
-  bool fUseGPUTracker; // use the GPU tracker 
-  int fGPUDebugLevel;  // debug level for the GPU code
-  int fGPUSliceCount;	//How many slices to process parallel
-  AliHLTTPCCAGPUTracker fGPUTracker;
+	int fDebugLevel;
 };
 
 #endif

@@ -365,7 +365,7 @@ void AliHLTTPCCAPerformance::ReadMCPoint( int TrackID, float X, float Y, float Z
   p.SetTime( Time );
   p.SetISlice( iSlice );
   float sx, sy, sz;
-  AliHLTTPCCAStandaloneFramework::Instance().SliceTracker( iSlice ).Param().Global2Slice( X, Y, Z, &sx, &sy, &sz );
+  AliHLTTPCCAStandaloneFramework::Instance().Param( iSlice ).Global2Slice( X, Y, Z, &sx, &sy, &sz );
   p.SetSx( sx );
   p.SetSy( sy );
   p.SetSz( sz );
@@ -1186,15 +1186,16 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
   int nRecTot = 0, nGhost = 0, nRecOut = 0;
   int nMCAll = 0, nRecAll = 0, nClonesAll = 0;
   int nMCRef = 0, nRecRef = 0, nClonesRef = 0;
-  const AliHLTTPCCATracker &tracker = hlt.SliceTracker( iSlice );
+  //const AliHLTTPCCATracker &tracker = hlt.SliceTracker( iSlice );
+  const AliHLTTPCCAClusterData &clusterdata = hlt.ClusterData(iSlice);
 
   // Select reconstructable MC tracks
 
   {
     for ( int imc = 0; imc < fNMCTracks; imc++ ) fMCTracks[imc].SetNHits( 0 );
 
-    for ( int ih = 0; ih < tracker.ClusterData()->NumberOfClusters(); ih++ ) {
-      int id = tracker.ClusterData()->Id( ih );
+    for ( int ih = 0; ih < clusterdata.NumberOfClusters(); ih++ ) {
+      int id = clusterdata.Id( ih );
       if ( id < 0 || id > fNHits ) break;
       AliHLTTPCCAHitLabel &l = fHitLabels[id];
       if ( l.fLab[0] >= 0 ) fMCTracks[l.fLab[0]].SetNHits( fMCTracks[l.fLab[0]].NHits() + 1 );
@@ -1218,9 +1219,9 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
     }
   }
 
-  if ( !tracker.Output() ) return;
+  //if ( !tracker.Output() ) return;
 
-  const AliHLTTPCCASliceOutput &output = *tracker.Output();
+  const AliHLTTPCCASliceOutput &output = hlt.Output(iSlice);
 
   int traN = output.NTracks();
 
@@ -1626,7 +1627,8 @@ void AliHLTTPCCAPerformance::ClusterPerformance()
         t.SetSinPhi( dy * s );
         t.SetSignCosPhi( dx );
         t.SetDzDs( dz * s );
-        hlt.SliceTracker( 0 ).GetErrors2( data.RowNumber( ic ), t, errY, errZ );
+        //hlt.SliceTracker( 0 ).GetErrors2( data.RowNumber( ic ), t, errY, errZ );
+		hlt.Param(0).GetClusterErrors2( data.RowNumber( ic ), t.GetZ(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), errY, errZ );
         errY = TMath::Sqrt( errY );
         errZ = TMath::Sqrt( errZ );
       }
@@ -1745,7 +1747,8 @@ void AliHLTTPCCAPerformance::SmearClustersMC()
         t.SetSinPhi( dy * s );
         t.SetSignCosPhi( dx );
         t.SetDzDs( dz * s );
-        hlt.SliceTracker( 0 ).GetErrors2( row0, t, errY, errZ );
+        //hlt.SliceTracker( 0 ).GetErrors2( row0, t, errY, errZ );
+		hlt.Param(0).GetClusterErrors2( row0, t.GetZ(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), errY, errZ );
         errY = TMath::Sqrt( errY );
         errZ = TMath::Sqrt( errZ );
       }

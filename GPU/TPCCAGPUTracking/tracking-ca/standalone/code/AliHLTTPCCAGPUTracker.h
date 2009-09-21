@@ -22,7 +22,6 @@ public:
 	  fDebugLevel(0),
 	  fOutFile(NULL),
 	  fGPUMemSize(0),
-	  fOptionSingleBlock(0),
 	  fOptionSimpleSched(0),
 	  pCudaStreams(NULL),
 	  fSliceCount(0)
@@ -30,7 +29,7 @@ public:
 	  ~AliHLTTPCCAGPUTracker() {};
 
 	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
-	int Reconstruct(AliHLTTPCCATracker* pTracker, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
+	int Reconstruct(AliHLTTPCCASliceOutput* pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	int ExitGPU();
 
 	void SetDebugLevel(int dwLevel, std::ostream *NewOutFile = NULL);
@@ -63,7 +62,6 @@ private:
 	std::ostream *fOutFile;		//Debug Output Stream Pointer
 	unsigned long long int fGPUMemSize;	//Memory Size to allocate on GPU
 
-	int fOptionSingleBlock;		//Use only one single Multiprocessor on GPU to check for problems related to multi processing
 	int fOptionSimpleSched;		//Simple scheduler not row based
 
 	void* pCudaStreams;

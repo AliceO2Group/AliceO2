@@ -22,12 +22,12 @@
 #include "AliHLTTPCCASliceData.h"
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCAOutTrack.h"
+#include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCATrackletConstructor.h"
 
 class AliHLTTPCCATrack;
 class AliHLTTPCCATrackParam;
 class AliHLTTPCCAClusterData;
-class AliHLTTPCCASliceOutput;
 
 /**
  * @class AliHLTTPCCATracker
@@ -46,7 +46,6 @@ class AliHLTTPCCAClusterData;
 
 class AliHLTTPCCATracker
 {
-	//friend class AliHLTTPCCAGPUTracker;
   public:
 
 	AliHLTTPCCATracker()
@@ -70,16 +69,12 @@ class AliHLTTPCCATracker
 		fTrackletMemorySize( 0 ),
 		fTrackMemory( 0 ),
 		fTrackMemorySize( 0 ),
-		fOutputMemory( 0 ),
-		fOutputMemorySize( 0 ),
 		fTrackletStartHits( 0 ),
 		fTracklets( 0 ),
 		fTrackletRowHits( NULL ),
 		fTracks( 0 ),
 		fTrackHits( 0 ),
-		fOutput( 0 ),
-		fOutTracks( 0 ),
-		fOutTrackHits( 0 )
+		fOutput( 0 )
 	{
 	  // constructor
 	}
@@ -104,8 +99,6 @@ class AliHLTTPCCATracker
 	    int fNTracklets;     // number of tracklets
 	    int fNTracks;            // number of reconstructed tracks
 	    int fNTrackHits;           // number of track hits
-	    int fNOutTracks; // number of tracks in fOutTracks array
-	    int fNOutTrackHits;  // number of hits in fOutTrackHits array
 		StructGPUParameters fGPUParameters;
 	};
 
@@ -153,7 +146,8 @@ class AliHLTTPCCATracker
     void SetPointersHits( int MaxNHits );
 	void SetPointersTracklets ( int MaxNTracklets );
     void SetPointersTracks( int MaxNTracks, int MaxNHits );
-	void SetPointersOutput( int MaxNTracks, int MaxNHits );
+
+	void SetOutput( AliHLTTPCCASliceOutput* out ) { fOutput = out; }
 
     void ReadEvent( AliHLTTPCCAClusterData *clusterData );
 
@@ -239,13 +233,6 @@ class AliHLTTPCCATracker
 
     GPUhd() AliHLTTPCCASliceOutput * Output() const { return fOutput; }
 
-    GPUhd()  int *NOutTracks() const { return  &fCommonMem->fNOutTracks; }
-    GPUhd()  AliHLTTPCCAOutTrack *OutTracks() const { return  fOutTracks; }
-    GPUhd()  const AliHLTTPCCAOutTrack &OutTrack( int index ) const { return fOutTracks[index]; }
-    GPUhd()  int *NOutTrackHits() const { return  &fCommonMem->fNOutTrackHits; }
-    GPUhd()  int *OutTrackHits() const { return  fOutTrackHits; }
-    GPUhd()  int OutTrackHit( int i ) const { return  fOutTrackHits[i]; }
-
 	GPUh() commonMemoryStruct *CommonMemory() {return(fCommonMem); }
 	static GPUh() size_t CommonMemorySize() { return(sizeof(AliHLTTPCCATracker::commonMemoryStruct)); }
 	GPUh() char* &HitMemory() {return(fHitMemory); }
@@ -254,8 +241,8 @@ class AliHLTTPCCATracker
 	GPUh() size_t TrackletMemorySize() const {return(fTrackletMemorySize); }
 	GPUh() char* &TrackMemory() {return(fTrackMemory); }
 	GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
-	GPUh() char* &OutputMemory() {return(fOutputMemory); }
-	GPUh() size_t OutputMemorySize() const {return(fOutputMemorySize); }
+	GPUh() char* &OutputMemory() {return(fOutput->Memory()); }
+	GPUh() size_t OutputMemorySize() const {return(fOutput->MemorySize()); }
 	GPUh() char *SliceDataMemory() {return(fData.Memory()); }
 	GPUh() size_t SliceDataMemorySize() const {return(fData.MemorySize()); }
 	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
@@ -272,8 +259,6 @@ class AliHLTTPCCATracker
 	GPUhd() StructGPUParametersConst* GPUParametersConst() {return(&fGPUParametersConst);}
 	
 	GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
-	void StandaloneQueryTime(unsigned long long int *i);
-	void StandaloneQueryFreq(unsigned long long int *i);
 
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
@@ -318,9 +303,6 @@ class AliHLTTPCCATracker
     char *fTrackMemory; // event memory for tracks
     size_t   fTrackMemorySize; // size of the event memory [bytes]
 
-	char *fOutputMemory;
-	size_t fOutputMemorySize;
-
     AliHLTTPCCAHitId *fTrackletStartHits;   // start hits for the tracklets
     AliHLTTPCCATracklet *fTracklets; // tracklets
 	int *fTrackletRowHits;
@@ -332,11 +314,6 @@ class AliHLTTPCCATracker
     // output
 
     AliHLTTPCCASliceOutput *fOutput;
-
-    // obsolete output
-
-    AliHLTTPCCAOutTrack *fOutTracks; // output array of the reconstructed tracks
-    int *fOutTrackHits;  // output array of ID's of the reconstructed hits
 
     // disable copy
     AliHLTTPCCATracker( const AliHLTTPCCATracker& );

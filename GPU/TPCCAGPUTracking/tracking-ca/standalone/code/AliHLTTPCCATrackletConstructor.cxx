@@ -65,9 +65,12 @@ GPUd() void AliHLTTPCCATrackletConstructor::InitTracklet( AliHLTTPCCATrackParam 
 }
 
 GPUd() void AliHLTTPCCATrackletConstructor::ReadData
-( int iThread, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, int iRow )
+#ifndef HLTCA_GPU_PREFETCHDATA
+( int /*iThread*/, AliHLTTPCCASharedMemory& /*s*/, AliHLTTPCCAThreadMemory& /*r*/, AliHLTTPCCATracker& /*tracker*/, int /*iRow*/ )
 {
-#ifdef HLTCA_GPU_PREFETCHDATA
+#else
+( int iThread, AliHLTTPCCASharedMemory& s, AliHLTTPCCAThreadMemory& r, AliHLTTPCCATracker& tracker, int iRow )
+{
   // reconstruction of tracklets, read data step
     const AliHLTTPCCARow &row = tracker.Row( iRow );
     //bool jr = !r.fCurrentData;
