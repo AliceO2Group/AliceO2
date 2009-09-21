@@ -205,16 +205,14 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
   if (fDebugLevel < 2)
   {
 	  //Do one initial run for Benchmark reasons
-	  int useDebugLevel = fDebugLevel;
+	  const int useDebugLevel = fDebugLevel;
 	  fDebugLevel = 0;
 	  AliHLTTPCCAClusterData tmpCluster;
-	  AliHLTTPCCATracker tmpTracker;
+	  AliHLTTPCCASliceOutput tmpOutput;
 	  AliHLTTPCCAParam tmpParam;
 	  tmpParam.SetNRows(HLTCA_ROW_COUNT);
-	  tmpTracker.SetParam(tmpParam);
 	  fSlaveTrackers[0].SetParam(tmpParam);
-	  tmpTracker.SetupCommonMemory();
-	  Reconstruct(&tmpTracker, &tmpCluster, 0, 1);
+	  Reconstruct(&tmpOutput, &tmpCluster, 0, 1);
 	  fDebugLevel = useDebugLevel;
   }
   return(0);
@@ -269,11 +267,7 @@ void AliHLTTPCCAGPUTracker::SetDebugLevel(int dwLevel, std::ostream *NewOutFile)
 
 int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* OptionName, int OptionValue)
 {
-	if (strcmp(OptionName, "SingleBlock") == 0)
-	{
-		fOptionSingleBlock = OptionValue;
-	}
-	else if (strcmp(OptionName, "SimpleSched") == 0)
+	if (strcmp(OptionName, "SimpleSched") == 0)
 	{
 		fOptionSimpleSched = OptionValue;
 	}
@@ -290,7 +284,7 @@ void AliHLTTPCCAGPUTracker::StandalonePerfTime(int iSlice, int i)
 {
   if (fDebugLevel >= 1)
   {
-	  fSlaveTrackers[iSlice].StandaloneQueryTime( fSlaveTrackers[iSlice].PerfTimer(i));
+	  AliHLTTPCCAStandaloneFramework::StandaloneQueryTime( fSlaveTrackers[iSlice].PerfTimer(i));
   }
 }
 #else
@@ -370,7 +364,7 @@ __global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTra
 }
 
 //Primary reconstruction function
-int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* pTracker, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
+int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput* pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
 	cudaStream_t* const cudaStreams = (cudaStream_t*) pCudaStreams;
 
@@ -477,9 +471,6 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* pTracker, AliHLTTPCCA
 		}*/
 
 		if (fDebugLevel >= 5) printf("Initialising Slice Tracker (CPU) Output Memory\n");
-		pTracker[iSlice].SetPointersOutput( HLTCA_GPU_MAX_TRACKLETS /* *fSlaveTrackers[firstSlice + iSlice].NTracklets()*/, pClusterData[iSlice].NumberOfClusters() );
-		pTracker[iSlice].OutputMemory() = reinterpret_cast<char*> ( new uint4 [ pTracker[iSlice].OutputMemorySize() / sizeof( uint4 ) + 100] );
-		pTracker[iSlice].SetPointersOutput( HLTCA_GPU_MAX_TRACKLETS /* *fSlaveTrackers[firstSlice + iSlice].NTracklets()*/, pClusterData[iSlice].NumberOfClusters() );
 
 		if (fDebugLevel >= 4)
 		{
@@ -686,8 +677,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCATracker* pTracker, AliHLTTPCCA
 			}
 			if (fDebugLevel >= 5) printf("%d / %d\n", *fSlaveTrackers[firstSlice + iSlice].NTracks(), *fSlaveTrackers[firstSlice + iSlice].NTrackHits());
 
-			fSlaveTrackers[firstSlice + iSlice].OutputMemory() = pTracker[iSlice].OutputMemory();
-			fSlaveTrackers[firstSlice + iSlice].SetPointersOutput( HLTCA_GPU_MAX_TRACKLETS /* *fSlaveTrackers[firstSlice + iSlice].NTracklets()*/, pClusterData[iSlice].NumberOfClusters() );
+			fSlaveTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 			fSlaveTrackers[firstSlice + iSlice].WriteOutput();
 
 			if (fDebugLevel >= 4)
@@ -776,6 +766,7 @@ int AliHLTTPCCAGPUTracker::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &pa
 
 int AliHLTTPCCAGPUTracker::ExitGPU()
 {
+	cudaThreadSynchronize();
 	if (fGPUMemory)
 	{
 		cudaFree(fGPUMemory);
@@ -791,6 +782,12 @@ int AliHLTTPCCAGPUTracker::ExitGPU()
 		fGpuTracker = NULL;
 		cudaFreeHost(fHostLockedMemory);
 	}
-	cudaThreadExit();
+
+	if (CUDA_FAILED_MSG(cudaThreadExit()))
+	{
+		printf("Could not uninitialize GPU\n");
+		return(1);
+	}
+	printf("CUDA Uninitialized\n");
 	return(0);
 }

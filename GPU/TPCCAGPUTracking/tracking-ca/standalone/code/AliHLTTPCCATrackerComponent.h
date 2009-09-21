@@ -13,6 +13,7 @@
 #include "AliHLTProcessor.h"
 
 class AliHLTTPCCATracker;
+class AliHLTTPCCASliceOutput;
 class AliHLTTPCSpacePointData;
 
 /**
@@ -76,6 +77,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 
     /** the tracker object */
     AliHLTTPCCATracker* fTracker;                                //! transient
+	AliHLTTPCCASliceOutput* fOutput;
 
     /** magnetic field */
     double fSolenoidBz;                                            // see above
