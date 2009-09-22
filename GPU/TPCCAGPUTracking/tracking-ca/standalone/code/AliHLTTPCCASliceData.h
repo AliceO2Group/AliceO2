@@ -46,7 +46,7 @@ class AliHLTTPCCASliceData
   public:
     AliHLTTPCCASliceData()
         : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxHitsInRow(0), fConstantRowSize(0), fMemorySize( 0 ), fMemory( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif
@@ -89,7 +89,8 @@ class AliHLTTPCCASliceData
     short_v HitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
     short_v HitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
     
-	GPUd() const ushort2 *HitData( const AliHLTTPCCARow &row ) const;
+	GPUhd() const ushort2 *HitData( const AliHLTTPCCARow &row ) const;
+	GPUhd() const ushort2 *HitData() const { return(fHitData); }
     GPUd() const short_v *HitLinkUpData  ( const AliHLTTPCCARow &row ) const;
     GPUd() const short_v *HitLinkDownData( const AliHLTTPCCARow &row ) const;
     GPUd() const ushort_v *FirstHitInBin( const AliHLTTPCCARow &row ) const;
@@ -150,6 +151,9 @@ class AliHLTTPCCASliceData
 	GPUh() size_t MemorySize() const {return(fMemorySize); }
 	GPUh() int* HitWeights() {return(fHitWeights); }
 
+	GPUh() int* ConstantRowSize() {return(&fConstantRowSize); }
+	GPUh() const unsigned int* MaxHitsInRow() const {return(&fMaxHitsInRow); }
+
 	GPUh() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
 
 	void SetGpuSliceData() { fIsGpuSliceData = 1; }
@@ -157,7 +161,7 @@ class AliHLTTPCCASliceData
   private:
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
         : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxHitsInRow(0), fConstantRowSize(0), fMemorySize( 0 ), fMemory( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif
@@ -177,6 +181,9 @@ class AliHLTTPCCASliceData
 
     int fNumberOfHits;         // the number of hits in this slice
 	int fNumberOfHitsPlusAlign;
+	unsigned int fMaxHitsInRow;
+	int fConstantRowSize;
+
     int fMemorySize;           // size of the allocated memory in bytes
     char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
 
@@ -227,7 +234,7 @@ GPUd() inline const short_v *AliHLTTPCCASliceData::HitLinkDownData( const AliHLT
   return &fLinkDownData[row.fHitNumberOffset];
 }
 
-GPUd() inline const ushort2 *AliHLTTPCCASliceData::HitData( const AliHLTTPCCARow &row ) const
+GPUhd() inline const ushort2 *AliHLTTPCCASliceData::HitData( const AliHLTTPCCARow &row ) const
 {
   return &fHitData[row.fHitNumberOffset];
 }

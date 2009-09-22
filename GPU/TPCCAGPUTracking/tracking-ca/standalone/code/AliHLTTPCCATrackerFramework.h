@@ -21,7 +21,9 @@ class AliHLTTPCCATrackerFramework
 public:
 	AliHLTTPCCATrackerFramework() :
 	  fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(), fCPUSliceCount(fgkNSlices)
-	  {}
+	  {
+		  fGPUTrackerAvailable = fGPUSliceCount = fGPUTracker.InitGPU(1, -1) == 0;
+	  }
     ~AliHLTTPCCATrackerFramework()
 	  {}
 
@@ -37,6 +39,7 @@ public:
 	unsigned long long int* PerfTimer(int GPU, int iSlice, int iTimer);
 
 	int MaxSliceCount() { return(fUseGPUTracker ? fGPUSliceCount : fCPUSliceCount); }
+	int GetGPUStatus() { return(fGPUTrackerAvailable + fUseGPUTracker); }
 
 	const AliHLTTPCCAParam& Param(int iSlice) const { return(fCPUTrackers[iSlice].Param()); }
 	const AliHLTTPCCARow& Row(int iSlice, int iRow) const { return(fCPUTrackers[iSlice].Row(iRow)); }  //TODO: Should be changed to return only row parameters

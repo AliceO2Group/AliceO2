@@ -74,7 +74,7 @@ const double gTicks = 1.0e-7;
 #endif
 
 
-inline TStopwatch::TStopwatch()
+inline TStopwatch::TStopwatch() : fStartRealTime(0), fStopRealTime(0), fStartCpuTime(0), fStopCpuTime(0), fTotalCpuTime(0), fTotalRealTime(0), fState(kUndefined), fCounter(0)
 {
    // Create a stopwatch and start it.
 

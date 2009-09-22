@@ -163,8 +163,14 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
         int nNeighUp = 0;
 
         // coordinates of the hit in the current row
+#ifdef HLTCA_GPU_TEXTURE_FETCH
+		ushort2 tmpval = tex2D(texRef, ih, s.fIRow);
+        const float y = y0 + tmpval.x * stepY;
+        const float z = z0 + tmpval.y * stepZ;
+#else
         const float y = y0 + tracker.HitDataY( row, ih ) * stepY;
         const float z = z0 + tracker.HitDataZ( row, ih ) * stepZ;
+#endif
 
         AliHLTTPCCAHitArea areaDn, areaUp;
         // TODO: for NVIDIA GPUs it should use the GridContentUp/-Dn that got copied into shared mem

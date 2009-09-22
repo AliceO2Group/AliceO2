@@ -2,7 +2,15 @@ Index: HLT/libAliHLTTPC.pkg
 ===================================================================
 --- HLT/libAliHLTTPC.pkg	(revision 34701)
 +++ HLT/libAliHLTTPC.pkg	(working copy)
-@@ -121,7 +121,7 @@
+@@ -4,6 +4,7 @@
+ TRACKING_CA:=	tracking-ca/AliHLTTPCCATrack.h \
+ 		tracking-ca/AliHLTTPCCATracklet.h \
+ 		tracking-ca/AliHLTTPCCATracker.h \
++		tracking-ca/AliHLTTPCCATrackerFramework.h \
+ 		tracking-ca/AliHLTTPCCAOutTrack.h  \
+ 		tracking-ca/AliHLTTPCCATrackParam.h \
+ 		tracking-ca/AliHLTTPCCATrackConvertor.h \
+@@ -121,7 +122,7 @@
  # 		tracking/AliHLTTPCHistogram1D.h \
  # 		tracking/AliHLTTPCHistogramAdaptive.h
  
@@ -11,7 +19,7 @@ Index: HLT/libAliHLTTPC.pkg
  		AliHLTTPCLog.cxx
  
  MODULE_HDRS:= 	$(CLASS_HDRS) \
-@@ -150,6 +150,21 @@
+@@ -150,6 +151,21 @@
  		   RAW \
  		   STEER 
  
@@ -33,7 +41,7 @@ Index: HLT/libAliHLTTPC.pkg
  LIBRARY_DEP := -lHLTbase -lAliHLTRCU -lAliHLTUtil \
                 -lCDB -lESD -lSTEER -lSTEERBase -lTPCrec -lTPCcalib -lTPCbase \
                 -lRAWDatarec -lRAWDatabase \
-@@ -162,8 +177,10 @@
+@@ -162,8 +178,10 @@
  include $(MODDIR)/hlt.conf
  
  SRCS:=$(patsubst %,TPCLib/%,$(MODULE_SRCS))
@@ -44,3 +52,16 @@ Index: HLT/libAliHLTTPC.pkg
  DHDR:=$(patsubst %,TPCLib/%,$(MODULE_DHDR))
  CINTAUTOLINK:= $(shell test "x$(MODULE_DHDR)" = "x" && echo 1)
  
+Index: HLT/CMake_libAliHLTTPC.txt
+===================================================================
+--- HLT/CMake_libAliHLTTPC.txt	(revision 34701)
++++ HLT/CMake_libAliHLTTPC.txt	(working copy)
+@@ -80,6 +80,8 @@
+ TPCLib/tracking-ca/AliHLTTPCCATrack.cxx
+ TPCLib/tracking-ca/AliHLTTPCCATracklet.cxx
+ TPCLib/tracking-ca/AliHLTTPCCATracker.cxx
++TPCLib/tracking-ca/AliHLTTPCCATrackerFramework.cxx
++TPCLib/tracking-ca/AliHLTTPCCAGPUTracker.cxx
+ TPCLib/tracking-ca/AliHLTTPCCAOutTrack.cxx
+ TPCLib/tracking-ca/AliHLTTPCCATrackParam.cxx
+ TPCLib/tracking-ca/AliHLTTPCCATrackConvertor.cxx

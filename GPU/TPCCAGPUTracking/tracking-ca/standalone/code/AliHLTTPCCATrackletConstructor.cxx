@@ -299,7 +299,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 //	  hh.x = reinterpret_cast<ushort_v*>( tmpint4 )[r.fCurrIH];
 //	  hh.y = reinterpret_cast<ushort_v*>( tmpint4 )[NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.NHits()) + r.fCurrIH];
 //#else
+#ifdef HLTCA_GPU_TEXTURE_FETCH
+	  hh = tex2D(texRef, r.fCurrIH, iRow);
+#else
 	  hh = tracker.HitData(row)[r.fCurrIH];
+#endif
 //#endif
 //#endif
 
@@ -517,7 +521,9 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 //	  const ushort_v *hitsx = reinterpret_cast<ushort_v*>( tmpint4 );
 //	  const ushort_v *hitsy = reinterpret_cast<ushort_v*>( tmpint4 ) + NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.NHits());
 //#else
+#ifndef HLTCA_GPU_TEXTURE_FETCH
 	  const ushort2 *hits = tracker.HitData(row);
+#endif
 //#endif
 //#endif
 
@@ -592,7 +598,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         for ( unsigned int fIh = fHitYfst; fIh < fHitYlst; fIh++ ) {
           assert( (signed) fIh < row.NHits() );
           ushort2 hh;
+#ifdef HLTCA_GPU_TEXTURE_FETCH
+		  hh = tex2D(texRef, fIh, iRow);
+#else
 		  hh = hits[fIh];
+#endif
           int ddy = ( int )( hh.x ) - fY0;
           int ddz = ( int )( hh.y ) - fZ0;
           int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
@@ -609,7 +619,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
 		for ( unsigned int fIh = fHitYfst1; fIh < fHitYlst1; fIh++ ) {
           ushort2 hh;
+#ifdef HLTCA_GPU_TEXTURE_FETCH
+		  hh = tex2D(texRef, fIh, iRow);
+#else
 		  hh = hits[fIh];
+#endif
           int ddy = ( int )( hh.x ) - fY0;
           int ddz = ( int )( hh.y ) - fZ0;
           int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
@@ -647,7 +661,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       }
 
       ushort2 hh;
-	  hh = hits[best];
+#ifdef HLTCA_GPU_TEXTURE_FETCH
+		  hh = tex2D(texRef, best, iRow);
+#else
+		  hh = hits[best];
+#endif
 
       //std::cout<<"mark 3, "<<r.fItr<<std::endl;
       //tParam.Print();
