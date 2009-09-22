@@ -15,6 +15,7 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCAParam.cxx \
 								code/AliHLTTPCCAOutTrack.cxx \
 								code/AliHLTTPCCATracker.cxx \
+								code/AliHLTTPCCATrackerFramework.cxx \
 								code/AliHLTTPCCASliceData.cxx \
 								code/AliHLTTPCCASliceOutput.cxx \
 								code/AliHLTTPCCAStandaloneFramework.cxx \

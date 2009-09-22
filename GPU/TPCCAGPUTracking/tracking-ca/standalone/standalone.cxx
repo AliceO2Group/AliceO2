@@ -15,6 +15,12 @@ int main(int argc, char** argv)
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
 
+	if (hlt.GetGPUStatus() == 0)
+	{
+		printf("No GPU Available, restricting to CPU\n");
+		RUNGPU = 0;
+	}
+
   for( int i=0; i < argc; i++ ){
     if ( !strcmp( argv[i], "-CPU" ) ) 
     {
@@ -98,13 +104,14 @@ int main(int argc, char** argv)
 	else
 		printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 
-	if (RUNGPU && hlt.SetGPUTracker(true))
+	if (RUNGPU && (cudaDevice != -1 || sliceCount != 1) && (hlt.InitGPU(sliceCount, cudaDevice)))
 	{
 		printf("Error Initialising GPU\n");
 		printf("Press a key to exit!\n");
 		getchar();
 		return(1);
 	}
+	hlt.SetGPUTracker(RUNGPU);
 
 	printf("Reading Settings\n");
 	std::ifstream in("events/settings.dump");
