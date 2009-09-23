@@ -255,9 +255,12 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 			{
 				memcpy(&Tracklets()[j], &tmpTracklets[i], sizeof(AliHLTTPCCATracklet));
 #ifdef EXTERN_ROW_HITS
-				for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++)
+				if (tmpTracklets[i].NHits())
 				{
-					fTrackletRowHits[k * *NTracklets() + j] = tmpHits[k * *NTracklets() + i];
+					for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++)
+					{
+						fTrackletRowHits[k * *NTracklets() + j] = tmpHits[k * *NTracklets() + i];
+					}
 				}
 #endif
 				break;
