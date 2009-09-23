@@ -46,7 +46,7 @@ class AliHLTTPCCASliceData
   public:
     AliHLTTPCCASliceData()
         : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxHitsInRow(0), fConstantRowSize(0), fMemorySize( 0 ), fMemory( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif
@@ -151,8 +151,8 @@ class AliHLTTPCCASliceData
 	GPUh() size_t MemorySize() const {return(fMemorySize); }
 	GPUh() int* HitWeights() {return(fHitWeights); }
 
-	GPUh() int* ConstantRowSize() {return(&fConstantRowSize); }
-	GPUh() const unsigned int* MaxHitsInRow() const {return(&fMaxHitsInRow); }
+	GPUhd() char* &GPUTextureBase() { return(fGPUTextureBase); }
+	GPUhd() char* GPUTextureBaseConst() const { return(fGPUTextureBase); }
 
 	GPUh() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
 
@@ -161,7 +161,7 @@ class AliHLTTPCCASliceData
   private:
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
         : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMaxHitsInRow(0), fConstantRowSize(0), fMemorySize( 0 ), fMemory( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif
@@ -181,11 +181,10 @@ class AliHLTTPCCASliceData
 
     int fNumberOfHits;         // the number of hits in this slice
 	int fNumberOfHitsPlusAlign;
-	unsigned int fMaxHitsInRow;
-	int fConstantRowSize;
 
     int fMemorySize;           // size of the allocated memory in bytes
     char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
+	char *fGPUTextureBase;		// pointer to start of GPU texture
 
 #ifdef SLICE_DATA_EXTERN_ROWS
     AliHLTTPCCARow *fRows; // The row objects needed for most accessor functions

@@ -21,7 +21,6 @@
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCAGrid.h"
-#include "AliHLTTPCCAHitArea.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracklet.h"
@@ -299,8 +298,8 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 //	  hh.x = reinterpret_cast<ushort_v*>( tmpint4 )[r.fCurrIH];
 //	  hh.y = reinterpret_cast<ushort_v*>( tmpint4 )[NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.NHits()) + r.fCurrIH];
 //#else
-#ifdef HLTCA_GPU_TEXTURE_FETCH
-	  hh = tex2D(texRef, r.fCurrIH, iRow);
+#if defined(HLTCA_GPU_TEXTURE_FETCH)
+	  hh = tex1Dfetch(texRefu2, ((char*) tracker.Data().HitData() - tracker.pData()->GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + r.fCurrIH);
 #else
 	  hh = tracker.HitData(row)[r.fCurrIH];
 #endif
@@ -311,7 +310,11 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 //#ifdef HLTCA_GPU_PREFETCHDATA
 //      r.fCurrIH = reinterpret_cast<short*>( tmpint4 )[2 * NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.NHits()) + r.fCurrIH]; // read from linkup data
 //#else
+#if defined(HLTCA_GPU_TEXTURE_FETCH)
+	  r.fCurrIH = tex1Dfetch(texRefs, ((char*) tracker.Data().HitLinkUpData(row) - tracker.pData()->GPUTextureBase()) / sizeof(unsigned short) + r.fCurrIH);
+#else
 	  r.fCurrIH = tracker.HitLinkUpData(row)[r.fCurrIH]; // read from linkup data
+#endif
 //#endif
 
       float x = row.X();
@@ -552,15 +555,25 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         {
           int nY = row.Grid().Ny();
 
-#ifdef HLTCA_GPU_PREFETCHDATA
-		  const unsigned short *sGridP = ( reinterpret_cast<unsigned short*>( tmpint4 ) );
-#else
+//#ifdef HLTCA_GPU_PREFETCHDATA
+//		  const unsigned short *sGridP = ( reinterpret_cast<unsigned short*>( tmpint4 ) );
+//#else
+#ifndef HLTCA_GPU_TEXTURE_FETCH
 		  const unsigned short *sGridP = tracker.FirstHitInBin(row);
 #endif
+//#endif
+
+#ifdef HLTCA_GPU_TEXTURE_FETCH
+		  fHitYfst = tex1Dfetch(texRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.pData()->GPUTextureBase()) / sizeof(unsigned short) + fIndYmin);
+		  fHitYlst = tex1Dfetch(texRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.pData()->GPUTextureBase()) / sizeof(unsigned short) + fIndYmin+2);
+		  fHitYfst1 = tex1Dfetch(texRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.pData()->GPUTextureBase()) / sizeof(unsigned short) + fIndYmin+nY);
+		  fHitYlst1 = tex1Dfetch(texRefu, ((char*) tracker.Data().FirstHitInBin(row) - tracker.pData()->GPUTextureBase()) / sizeof(unsigned short) + fIndYmin+nY+2);
+#else
           fHitYfst = sGridP[fIndYmin];
           fHitYlst = sGridP[fIndYmin+2];
           fHitYfst1 = sGridP[fIndYmin+nY];
           fHitYlst1 = sGridP[fIndYmin+nY+2];
+#endif
           assert( (signed) fHitYfst <= row.NHits() );
           assert( (signed) fHitYlst <= row.NHits() );
           assert( (signed) fHitYfst1 <= row.NHits() );
@@ -582,24 +595,24 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
             }
 #endif
           }
-          if ( sGridP[row.Grid().N()] != row.NHits() ) {
 #ifdef DRAW
+          if ( sGridP[row.Grid().N()] != row.NHits() ) {
             std::cout << " grid, row " << iRow << ": nHits=" << row.NHits() << ", grid n=" << row.Grid().N() << ", c[n]=" << sGridP[row.Grid().N()] << std::endl;
             //exit(0);
-#endif
           }
+#endif
         }
+#ifdef DRAW
         if ( drawSearch ) {
-          #ifdef DRAW
           std::cout << " tracklet " << r.fItr << ", row " << iRow << ", yz= " << fY << "," << fZ << ": search hits=" << fHitYfst << " " << fHitYlst << " / " << fHitYfst1 << " " << fHitYlst1 << std::endl;
           std::cout << " hit search :" << std::endl;
-          #endif
         }
+#endif
         for ( unsigned int fIh = fHitYfst; fIh < fHitYlst; fIh++ ) {
           assert( (signed) fIh < row.NHits() );
           ushort2 hh;
-#ifdef HLTCA_GPU_TEXTURE_FETCH
-		  hh = tex2D(texRef, fIh, iRow);
+#if defined(HLTCA_GPU_TEXTURE_FETCH)
+		 hh = tex1Dfetch(texRefu2, ((char*) tracker.Data().HitData() - tracker.pData()->GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + fIh);
 #else
 		  hh = hits[fIh];
 #endif
@@ -619,8 +632,8 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
 		for ( unsigned int fIh = fHitYfst1; fIh < fHitYlst1; fIh++ ) {
           ushort2 hh;
-#ifdef HLTCA_GPU_TEXTURE_FETCH
-		  hh = tex2D(texRef, fIh, iRow);
+#if defined(HLTCA_GPU_TEXTURE_FETCH)
+		  hh = tex1Dfetch(texRefu2, ((char*) tracker.Data().HitData() - tracker.pData()->GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + fIh);
 #else
 		  hh = hits[fIh];
 #endif
@@ -661,8 +674,8 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       }
 
       ushort2 hh;
-#ifdef HLTCA_GPU_TEXTURE_FETCH
-		  hh = tex2D(texRef, best, iRow);
+#if defined(HLTCA_GPU_TEXTURE_FETCH)
+		 hh = tex1Dfetch(texRefu2, ((char*) tracker.Data().HitData() - tracker.pData()->GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + best);
 #else
 		  hh = hits[best];
 #endif

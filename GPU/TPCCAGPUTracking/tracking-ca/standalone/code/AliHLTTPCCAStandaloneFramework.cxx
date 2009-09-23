@@ -136,13 +136,13 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   if (forceSingleSlice != -1)
   {
-	fTracker.ProcessSlices(forceSingleSlice, 1, &fClusterData[forceSingleSlice], &fSliceOutput[forceSingleSlice]);
+	if (fTracker.ProcessSlices(forceSingleSlice, 1, &fClusterData[forceSingleSlice], &fSliceOutput[forceSingleSlice])) return;
   }
   else
   {
 	for (int iSlice = 0;iSlice < fgkNSlices;iSlice += fTracker.MaxSliceCount())
 	{
-		if (fTracker.ProcessSlices(iSlice, fTracker.MaxSliceCount(), &fClusterData[iSlice], &fSliceOutput[iSlice])) break;
+		if (fTracker.ProcessSlices(iSlice, fTracker.MaxSliceCount(), &fClusterData[iSlice], &fSliceOutput[iSlice])) return;
 	}
   }
 
