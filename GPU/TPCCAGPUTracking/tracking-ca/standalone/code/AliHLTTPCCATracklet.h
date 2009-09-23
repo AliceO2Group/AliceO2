@@ -24,12 +24,11 @@ class AliHLTTPCCATracklet
   public:
 
 #if !defined(HLTCA_GPUCODE)
-    AliHLTTPCCATracklet() : fStartHitID( 0 ), fNHits( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fParam() {};
+    AliHLTTPCCATracklet() : fNHits( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fParam() {};
     void Dummy() const ;
     ~AliHLTTPCCATracklet() {}
 #endif
 
-    GPUhd() int StartHitID()            const { return fStartHitID; }
     GPUhd() int  NHits()                const { return fNHits;      }
     GPUhd() int  FirstRow()             const { return fFirstRow;   }
     GPUhd() int  LastRow()              const { return fLastRow;    }
@@ -39,7 +38,6 @@ class AliHLTTPCCATracklet
 	GPUhd() int* RowHits()				{ return(fRowHits); }
 #endif
 
-    GPUhd() void SetStartHitID( int v )           { fStartHitID = v; }
     GPUhd() void SetNHits( int v )               {  fNHits = v;      }
     GPUhd() void SetFirstRow( int v )            {  fFirstRow = v;   }
     GPUhd() void SetLastRow( int v )             {  fLastRow = v;    }
@@ -49,7 +47,6 @@ class AliHLTTPCCATracklet
 #endif
 
   private:
-    int fStartHitID;            // ID of the starting hit
     int fNHits;                 // N hits
     int fFirstRow;              // first TPC row
     int fLastRow;               // last TPC row

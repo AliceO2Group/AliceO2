@@ -318,6 +318,8 @@ class AliHLTTPCCATracker
     // disable copy
     AliHLTTPCCATracker( const AliHLTTPCCATracker& );
     AliHLTTPCCATracker &operator=( const AliHLTTPCCATracker& );
+
+	static int starthitSortComparison(const void*a, const void* b);
 };
 
 

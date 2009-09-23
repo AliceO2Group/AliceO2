@@ -183,22 +183,24 @@ void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
 	}
 }
 
+int AliHLTTPCCATracker::starthitSortComparison(const void*a, const void* b)
+{
+	AliHLTTPCCAHitId* aa = (AliHLTTPCCAHitId*) a;
+	AliHLTTPCCAHitId* bb = (AliHLTTPCCAHitId*) b;
+
+	if (aa->RowIndex() != bb->RowIndex()) return(aa->RowIndex() - bb->RowIndex());
+	return(aa->HitIndex() - bb->HitIndex());
+}
+
 void AliHLTTPCCATracker::DumpStartHits(std::ostream &out)
 {
 #ifdef HLTCA_GPU_SORT_DUMPDATA
-	for (int j = 0;j < Param().NRows();j++)
+	qsort(TrackletStartHits(), *NTracklets(), sizeof(AliHLTTPCCAHitId), starthitSortComparison);
+#endif
+	for (int i = 0;i < *NTracklets();i++)
 	{
-#endif
-		for (int i = 0;i < *NTracklets();i++)
-		{
-#ifdef HLTCA_GPU_SORT_DUMPDATA
-			if (TrackletStartHit(i).RowIndex() == j)
-#endif
-				out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << endl;
-		}
-#ifdef HLTCA_GPU_SORT_DUMPDATA
+		out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << endl;
 	}
-#endif
 	out << endl;
 }
 
@@ -207,55 +209,65 @@ void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	for (int k = 0;k < Param().NRows();k++)
 	{
-#endif
-		for (int j = 0;j < *NTracks();j++)
+		for (int l = 0;l < Row(k).NHits();l++)
 		{
-			if (Tracks()[j].NHits() == 0 || !Tracks()[j].Alive()) continue;
-#ifdef HLTCA_GPU_SORT_DUMPDATA
-			if (TrackHits()[Tracks()[j].FirstHitID()].RowIndex() == k)
+#endif
+			for (int j = 0;j < *NTracks();j++)
 			{
-#endif
-				for (int i = 0;i < Tracks()[j].NHits();i++)
+				if (Tracks()[j].NHits() == 0 || !Tracks()[j].Alive()) continue;
+#ifdef HLTCA_GPU_SORT_DUMPDATA
+				if (TrackHits()[Tracks()[j].FirstHitID()].RowIndex() == k && TrackHits()[Tracks()[j].FirstHitID()].HitIndex() == l)
 				{
-					out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
+#endif
+					for (int i = 0;i < Tracks()[j].NHits();i++)
+					{
+						out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
+					}
+					out << "(Track: " << j << ")" << endl;
+#ifdef HLTCA_GPU_SORT_DUMPDATA
 				}
-				out << "(Track: " << j << ")" << endl;
-#ifdef HLTCA_GPU_SORT_DUMPDATA
-			}
+			}	
 #endif
-		}
+		}	
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	}
 #endif
-}
-
-int trackletSortComparison(const void* a, const void* b)
-{
-	const AliHLTTPCCATracklet* aa = (AliHLTTPCCATracklet*) a;
-	const AliHLTTPCCATracklet* bb = (AliHLTTPCCATracklet*) b;
-	if (aa->NHits() == 0) return(-1);
-	if (bb->NHits() == 0) return(1);
-	if (aa->FirstRow() != bb->FirstRow())
-	{
-		return(aa->FirstRow() - bb->FirstRow());
-	}
-	for (int i = aa->FirstRow();i <= aa->LastRow();i++)
-	{
-		if (i >= bb->LastRow()) return(-1);
-#ifndef EXTERN_ROW_HITS
-		if (aa->RowHit(i) != bb->RowHit(i))
-		{
-			return(aa->RowHit(i) - bb->RowHit(i));
-		}
-#endif
-	}
-	return(0);
 }
 
 void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 {
 #ifdef HLTCA_GPU_SORT_DUMPDATA
-	qsort(Tracklets(), *NTracklets(), sizeof(AliHLTTPCCATracklet), trackletSortComparison);
+	AliHLTTPCCAHitId* tmpIds = new AliHLTTPCCAHitId[*NTracklets()];
+	AliHLTTPCCATracklet* tmpTracklets = new AliHLTTPCCATracklet[*NTracklets()];
+	memcpy(tmpIds, TrackletStartHits(), *NTracklets() * sizeof(AliHLTTPCCAHitId));
+	memcpy(tmpTracklets, Tracklets(), *NTracklets() * sizeof(AliHLTTPCCATracklet));
+#ifdef EXTERN_ROW_HITS
+	int* tmpHits = new int[*NTracklets() * Param().NRows()];
+	memcpy(tmpHits, TrackletRowHits(), *NTracklets() * Param().NRows() * sizeof(int));
+#endif
+	qsort(TrackletStartHits(), *NTracklets(), sizeof(AliHLTTPCCAHitId), starthitSortComparison);
+	for (int i = 0;i < *NTracklets();i++)
+	{
+		for (int j = 0;j < *NTracklets();j++)
+		{
+			if (tmpIds[i].RowIndex() == TrackletStartHit(j).RowIndex() && tmpIds[i].HitIndex() == TrackletStartHit(j).HitIndex())
+			{
+				memcpy(&Tracklets()[j], &tmpTracklets[i], sizeof(AliHLTTPCCATracklet));
+#ifdef EXTERN_ROW_HITS
+				for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++)
+				{
+					fTrackletRowHits[k * *NTracklets() + j] = tmpHits[k * *NTracklets() + i];
+				}
+#endif
+				break;
+			}
+		}
+	}
+	delete[] tmpIds;
+	delete[] tmpTracklets;
+#ifdef EXTERN_ROW_HITS
+	delete[] tmpHits;
+#endif
 #endif
 	for (int j = 0;j < *NTracklets();j++)
 	{
@@ -472,12 +484,12 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 #if !defined(HLTCA_GPUCODE)
 
-  if (fGPUDebugLevel >= 6)
+  /*if (fGPUDebugLevel >= 6)
   {
 	  *fGPUDebugOut << endl << endl << "Slice: " << Param().ISlice() << endl;
 	  *fGPUDebugOut << "Slice Data:" << endl;
 	  DumpSliceData(*fGPUDebugOut);
-  }
+  }*/
 
   StandalonePerfTime(1);
 

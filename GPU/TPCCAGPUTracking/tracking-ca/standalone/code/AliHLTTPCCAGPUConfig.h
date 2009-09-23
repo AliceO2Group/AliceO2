@@ -26,7 +26,7 @@
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 3		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
-//#define HLTCA_GPU_SORT_DUMPDATA
+#define HLTCA_GPU_SORT_DUMPDATA
 
 #define HLTCA_GPU_MAX_TRACKLETS 12288					//Should be divisible by 16 at least
 #define HLTCA_GPU_MAX_TRACKS 3072
