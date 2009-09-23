@@ -15,6 +15,7 @@
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCAParam.h"
+#include <iostream>
 
 class AliHLTTPCCATrackerFramework
 {
@@ -22,7 +23,7 @@ public:
 	AliHLTTPCCATrackerFramework() :
 	  fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(), fCPUSliceCount(fgkNSlices)
 	  {
-		  fGPUTrackerAvailable = fGPUSliceCount = fGPUTracker.InitGPU(1, -1) == 0;
+		  fGPUTrackerAvailable = fGPUSliceCount = (fGPUTracker.InitGPU(1, -1) == 0);
 	  }
     ~AliHLTTPCCATrackerFramework()
 	  {}

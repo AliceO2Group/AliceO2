@@ -45,8 +45,13 @@ GPUd() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCARow &row, const AliHLTTPC
   fIz = bZmin;
 
   // for given fIz (which is min atm.) get
+#ifdef HLTCA_GPU_TEXTURE_FETCHa
+  fHitYfst = tex1Dfetch(texRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin);
+  fHitYlst = tex1Dfetch(texRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin + fBDY);
+#else
   fHitYfst = slice.FirstHitInBin( row, fIndYmin ); // first and
   fHitYlst = slice.FirstHitInBin( row, fIndYmin + fBDY ); // last hit index in the bin
+#endif
   fIh = fHitYfst;
 }
 
@@ -72,13 +77,24 @@ GPUd() int AliHLTTPCCAHitArea::GetNext( const AliHLTTPCCATracker &tracker, const
       // go to next z and start y from the min again
       ++fIz;
       fIndYmin += fNy;
+#ifdef HLTCA_GPU_TEXTURE_FETCHa
+	  fHitYfst = tex1Dfetch(texRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin);
+	  fHitYlst = tex1Dfetch(texRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin + fBDY);
+#else
       fHitYfst = slice.FirstHitInBin( row, fIndYmin );
       fHitYlst = slice.FirstHitInBin( row, fIndYmin + fBDY );
+#endif
       fIh = fHitYfst;
     }
 
-    h->SetY( y0 + tracker.HitDataY( row, fIh ) * stepY );
+#ifdef HLTCA_GPU_TEXTURE_FETCHa
+	ushort2 tmpval = tex1Dfetch(texRefu2, ((char*) slice.HitData(row) - slice.GPUTextureBaseConst()) / sizeof(ushort2) + fIh);;
+	h->SetY( y0 + tmpval.x * stepY );
+    h->SetZ( z0 + tmpval.y * stepZ );
+#else
+	h->SetY( y0 + tracker.HitDataY( row, fIh ) * stepY );
     h->SetZ( z0 + tracker.HitDataZ( row, fIh ) * stepZ );
+#endif
 
     if ( 1 && ( h->Z() > fMaxZ || h->Z() < fMinZ || h->Y() < fMinY || h->Y() > fMaxY ) ) { //SG!!!
       fIh++;

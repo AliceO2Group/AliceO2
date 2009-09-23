@@ -128,7 +128,7 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
     float chi2Cut = 3.*3.*4 * ( s.fUpDx * s.fUpDx + s.fDnDx * s.fDnDx );
     const float kAreaSize = tracker.Param().NeighboursSearchArea();
     //float chi2Cut = 3.*3.*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx ); //SG
-#define kMaxN 20
+#define kMaxN 6
 
 #ifdef HLTCA_GPUCODE
 		  const AliHLTTPCCARow &row = s.fRow;
@@ -163,8 +163,8 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
         int nNeighUp = 0;
 
         // coordinates of the hit in the current row
-#ifdef HLTCA_GPU_TEXTURE_FETCH
-		ushort2 tmpval = tex2D(texRef, ih, s.fIRow);
+#if defined(HLTCA_GPU_TEXTURE_FETCHa)
+		ushort2 tmpval = tex1Dfetch(texRefu2, ((char*) tracker.Data().HitData() - tracker.pData()->GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + ih);
         const float y = y0 + tmpval.x * stepY;
         const float z = z0 + tmpval.y * stepZ;
 #else

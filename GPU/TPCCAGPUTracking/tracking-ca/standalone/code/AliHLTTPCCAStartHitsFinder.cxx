@@ -50,7 +50,12 @@ GPUd() void AliHLTTPCCAStartHitsFinder::Thread
     if ( iThread == 0 ) {
 	  int nOffset = CAMath::AtomicAdd( tracker.NTracklets(), s.fNRowStartHits );
 #ifdef HLTCA_GPUCODE
-	  if (nOffset >= HLTCA_GPU_MAX_TRACKLETS) tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_TRACKLET_OVERFLOW;
+	  if (nOffset + s.fNRowStartHits >= HLTCA_GPU_MAX_TRACKLETS)
+	  {
+		tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_TRACKLET_OVERFLOW;
+		CAMath::AtomicExch( tracker.NTracklets(), 0 );
+		nOffset = 0;
+	  }
 #endif
       s.fNOldStartHits = nOffset;
 #ifdef HLTCA_GPU_SORT_STARTHITS

@@ -19,18 +19,17 @@
 //#define HLTCA_GPU_SCHED_FIXED_SLICE
 #define HLTCA_GPU_RESCHED
 
-//#define HLTCA_GPU_TEXTURE_FETCH
+#define HLTCA_GPU_TEXTURE_FETCH
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
-#define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 2		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
+#define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 3		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
 //#define HLTCA_GPU_SORT_DUMPDATA
 
-#define HLTCA_GPU_MAX_TRACKLETS 10240					//Should be divisible by 16 at least
-#define HLTCA_GPU_MAX_TRACKS 2048
-
+#define HLTCA_GPU_MAX_TRACKLETS 12288					//Should be divisible by 16 at least
+#define HLTCA_GPU_MAX_TRACKS 3072
 
 //#define HLTCA_GPU_EMULATION_SINGLE_TRACKLET 1313
 //#define HLTCA_GPU_EMULATION_DEBUG_TRACKLET 1313
@@ -40,8 +39,8 @@
 #define HLTCA_GPU_TRACKER_OBJECT_MEMORY 1024 * 1024
 #define HLTCA_GPU_ROWS_MEMORY 1024 * 1024
 #define HLTCA_GPU_COMMON_MEMORY 1024 * 1024
-#define HLTCA_GPU_SLICE_DATA_MEMORY 6 * 1024 * 1024
-#define HLTCA_GPU_GLOBAL_MEMORY 16 * 1024 * 1024
+#define HLTCA_GPU_SLICE_DATA_MEMORY 7 * 1024 * 1024
+#define HLTCA_GPU_GLOBAL_MEMORY 20 * 1024 * 1024
 #define HLTCA_GPU_TRACKS_MEMORY 2 * 1024 * 1024
 
 #ifndef HLTCA_GPUCODE
