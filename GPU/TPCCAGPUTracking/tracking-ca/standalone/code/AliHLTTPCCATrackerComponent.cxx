@@ -30,7 +30,7 @@ using namespace std;
 
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCTransform.h"
-#include "AliHLTTPCCATracker.h"
+#include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCCAOutTrack.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackConvertor.h"
@@ -328,7 +328,7 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
   if ( fTracker || fOutput ) return EINPROGRESS;
 
 
-  fTracker = new AliHLTTPCCATracker();
+  fTracker = new AliHLTTPCCATrackerFramework();
   fOutput = new AliHLTTPCCASliceOutput();
 
   TString arguments = "";
@@ -466,7 +466,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
 
   {
-    if ( !fTracker ) fTracker = new AliHLTTPCCATracker;
+    if ( !fTracker ) fTracker = new AliHLTTPCCATrackerFramework;
 	if ( !fOutput ) fOutput = new AliHLTTPCCASliceOutput;
     int iSec = slice;
     float inRmin = 83.65;
@@ -505,7 +505,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     if( fClusterErrorCorrectionY>1.e-4 ) param.SetClusterError2CorrectionY( fClusterErrorCorrectionY*fClusterErrorCorrectionY );
     if( fClusterErrorCorrectionZ>1.e-4 ) param.SetClusterError2CorrectionZ( fClusterErrorCorrectionZ*fClusterErrorCorrectionZ );
     param.Update();
-    fTracker->Initialize( param );
+    fTracker->InitializeSliceParam( slice, param );
     delete[] rowX;
   }
 
@@ -583,9 +583,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   TStopwatch timerReco;
 
-  fTracker->ReadEvent( &clusterData );
-  fTracker->SetOutput( fOutput );
-  fTracker->Reconstruct();
+  fTracker->ProcessSlices(slice, 1, &clusterData, fOutput);
 
   timerReco.Stop();
 

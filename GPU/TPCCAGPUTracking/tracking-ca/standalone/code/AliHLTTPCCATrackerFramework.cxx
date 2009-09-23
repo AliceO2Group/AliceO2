@@ -71,7 +71,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 {
 	if (fUseGPUTracker)
 	{
-		return(fGPUTracker.Reconstruct(pOutput, pClusterData, firstSlice, CAMath::Min(sliceCount, fgkNSlices - firstSlice)));
+		if (fGPUTracker.Reconstruct(pOutput, pClusterData, firstSlice, CAMath::Min(sliceCount, fgkNSlices - firstSlice))) return(1);
 	}
 	else
 	{
@@ -85,8 +85,10 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 			fCPUTrackers[firstSlice + iSlice].Reconstruct();
 			fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();
 		}
-		return(0);
 	}
+
+	//printf("Slice Tracks Output: %d\n", pOutput[0].NTracks());
+	return(0);
 }
 
 unsigned long long int* AliHLTTPCCATrackerFramework::PerfTimer(int GPU, int iSlice, int iTimer)
