@@ -47,6 +47,7 @@
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
+#include <string.h>
 #endif
 
 //#define DRAW1
