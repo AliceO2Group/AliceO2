@@ -453,19 +453,19 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput* pOutput, AliHLTTP
 //		if (pClusterData[iSlice].NumberOfClusters() && (CUDA_FAILED_MSG(cudaBindTexture(&offset, &texRef, fGpuTracker[iSlice].pData()->HitData(), &channelDesc, fGpuTracker[iSlice].Data().NumberOfHitsPlusAlign() * sizeof(ushort2))) || offset))
 		if (CUDA_FAILED_MSG(cudaBindTexture(&offset, &texRefu2, fGpuTracker[0].SliceDataMemory(), &channelDescu2, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset)
 		{
-			printf("Error binding CUDA Texture (Offset %d)\n", (size_t) offset);
+			printf("Error binding CUDA Texture (Offset %d)\n", (int) offset);
 			return(1);
 		}
 		cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<unsigned short>();
 		if (CUDA_FAILED_MSG(cudaBindTexture(&offset, &texRefu, fGpuTracker[0].SliceDataMemory(), &channelDescu, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset)
 		{
-			printf("Error binding CUDA Texture (Offset %d)\n", (size_t) offset);
+			printf("Error binding CUDA Texture (Offset %d)\n", (int) offset);
 			return(1);
 		}
 		cudaChannelFormatDesc channelDescs = cudaCreateChannelDesc<signed short>();
 		if (CUDA_FAILED_MSG(cudaBindTexture(&offset, &texRefs, fGpuTracker[0].SliceDataMemory(), &channelDescs, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset)
 		{
-			printf("Error binding CUDA Texture (Offset %d)\n", (size_t) offset);
+			printf("Error binding CUDA Texture (Offset %d)\n", (int) offset);
 			return(1);
 		}
 #endif
