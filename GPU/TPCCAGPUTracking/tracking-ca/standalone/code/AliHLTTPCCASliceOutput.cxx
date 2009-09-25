@@ -76,6 +76,7 @@ void AliHLTTPCCASliceOutput::SetPointers()
 
 void AliHLTTPCCASliceOutput::Allocate()
 {
+  if (fMemory) delete[] fMemory;
   SetPointers(); // to calculate the size
   fMemory = reinterpret_cast<char*> ( new uint4 [ fMemorySize/sizeof( uint4 ) + 100] );
   SetPointers(); // set pointers

@@ -228,7 +228,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
 #endif
       if ( ih >= 0 ) {
 #if defined(HLTCA_GPUCODE) & !defined(HLTCA_GPU_PREFETCHDATA) & defined(SLICE_DATA_EXTERN_ROWS) & !defined(HLTCA_GPU_PREFETCH_ROWBLOCK_ONLY)
-		tracker.MaximizeHitWeight( s.fRows[ iRow ], ih, w );
+    	    tracker.MaximizeHitWeight( s.fRows[ iRow ], ih, w );
 #else
 	    tracker.MaximizeHitWeight( tracker.Row( iRow ), ih, w );
 #endif

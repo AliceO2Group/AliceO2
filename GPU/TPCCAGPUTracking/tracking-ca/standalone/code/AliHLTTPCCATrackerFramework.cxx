@@ -86,6 +86,13 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 			fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();
 		}
 	}
+	
+	if (fGPUDebugLevel >= 6 && fUseGPUTracker)
+	{
+	    fUseGPUTracker = 0;
+	    ProcessSlices(firstSlice, sliceCount, pClusterData, pOutput);
+	    fUseGPUTracker = 1;
+	}
 
 	//printf("Slice Tracks Output: %d\n", pOutput[0].NTracks());
 	return(0);
