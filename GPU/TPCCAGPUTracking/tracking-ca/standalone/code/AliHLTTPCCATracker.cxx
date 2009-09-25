@@ -159,6 +159,7 @@ char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTr
 
 void AliHLTTPCCATracker::DumpSliceData(std::ostream &out)
 {
+	out << "Slice Data:" << endl;
 	for (int i = 0;i < Param().NRows();i++)
 	{
 		out << "Row: " << i << endl;
@@ -173,15 +174,32 @@ void AliHLTTPCCATracker::DumpSliceData(std::ostream &out)
 
 void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
 {
+	out << "Hit Links:" << endl;
 	for (int i = 0;i < Param().NRows();i++)
 	{
 		out << "Row: " << i << endl;
 		for (int j = 0;j < Row(i).NHits();j++)
 		{
-			out << HitLinkUpData(Row(i), j) << ", ";
+	    		if (j && j % 32 == 0) out << endl;
+			out << HitLinkUpData(Row(i), j) << "/" << HitLinkDownData(Row(i), j) << ", ";
 		}
 		out << endl;
 	}
+}
+
+void AliHLTTPCCATracker::DumpHitWeights(std::ostream &out)
+{
+    out << "Hit Weights:" << endl;
+    for (int i = 0;i < Param().NRows();i++)
+    {
+	out << "Row: " << i << ":" << endl;
+	for (int j = 0;j < Row(i).NHits();j++)
+	{
+	    if (j && j % 32 == 0) out << endl;
+	    out << HitWeight(Row(i), j) << ", ";
+	}
+	out << endl;
+    }
 }
 
 int AliHLTTPCCATracker::starthitSortComparison(const void*a, const void* b)
@@ -195,6 +213,7 @@ int AliHLTTPCCATracker::starthitSortComparison(const void*a, const void* b)
 
 void AliHLTTPCCATracker::DumpStartHits(std::ostream &out)
 {
+	out << "Start Hits: (" << *NTracklets() << ")" << endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	qsort(TrackletStartHits(), *NTracklets(), sizeof(AliHLTTPCCAHitId), starthitSortComparison);
 #endif
@@ -207,6 +226,7 @@ void AliHLTTPCCATracker::DumpStartHits(std::ostream &out)
 
 void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 {
+	out << "Tracks: (" << *NTracks() << ")" << endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	for (int k = 0;k < Param().NRows();k++)
 	{
@@ -237,6 +257,7 @@ void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 
 void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 {
+	out << "Tracklets: (" << *NTracklets() << ")" << endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	AliHLTTPCCAHitId* tmpIds = new AliHLTTPCCAHitId[*NTracklets()];
 	AliHLTTPCCATracklet* tmpTracklets = new AliHLTTPCCATracklet[*NTracklets()];
@@ -279,7 +300,9 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 		if (Tracklets()[j].NHits() == 0);
 		else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= Param().NRows() || Tracklets()[j].LastRow() >= Param().NRows()))
 		{
+#ifdef HLTCA_STANDALONE
 			printf("\nError: First %d Last %d Num %d", Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
+#endif
 		}
 		else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() > Tracklets()[j].FirstRow())
 		{
@@ -501,11 +524,8 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(2);
 
-  if (fGPUDebugLevel >= 6)
-  {
-	  *fGPUDebugOut << "Neighbours Finder:" << endl;
-	  DumpLinks(*fGPUDebugOut);
-  }
+  if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
+  
 #ifdef HLTCA_INTERNAL_PERFORMANCE
   //if( Param().ISlice()<=2 )
   //AliHLTTPCCAPerformance::Instance().LinkPerformance( Param().ISlice() );
@@ -523,25 +543,15 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(3);
 
-  if (fGPUDebugLevel >= 6)
-  {
-	  *fGPUDebugOut << "Neighbours Cleaner:" << endl;
-	  DumpLinks(*fGPUDebugOut);
-  }
+  if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
   RunStartHitsFinder();
 
   StandalonePerfTime(4);
   StandalonePerfTime(5);
 
-  if (fGPUDebugLevel >= 6)
-  {
-	  *fGPUDebugOut << "Start Hits: (" << fCommonMem->fNTracklets << ")" << endl;
-	  DumpStartHits(*fGPUDebugOut);
-  }
+  if (fGPUDebugLevel >= 6) DumpStartHits(*fGPUDebugOut);
   
-  if (fGPUDebugLevel >= 2) printf("%3d ", fCommonMem->fNTracklets);
-
   fData.ClearHitWeights();
 
   SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
@@ -559,11 +569,8 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(8);
 
-  if (fGPUDebugLevel >= 6)
-  {
-	  *fGPUDebugOut << "Tracklet Hits:" << endl;
-	  DumpTrackletHits(*fGPUDebugOut);
-  }
+  if (fGPUDebugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
+  if (fGPUDebugLevel >= 6) DumpHitWeights(*fGPUDebugOut);
 
   //std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
 
@@ -573,11 +580,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   //std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
-  if (fGPUDebugLevel >= 6)
-  {
-	  *fGPUDebugOut << "Track Hits: (" << *NTracks() << ")" << endl;
-	  DumpTrackHits(*fGPUDebugOut);
-  }
+  if (fGPUDebugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
 
   //std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
 

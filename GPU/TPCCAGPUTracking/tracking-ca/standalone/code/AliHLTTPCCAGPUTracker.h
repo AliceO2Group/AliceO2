@@ -11,8 +11,9 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCARow.h"
+#include "AliHLTLogging.h"
 
-class AliHLTTPCCAGPUTracker
+class AliHLTTPCCAGPUTracker : AliHLTLogging
 {
 public:
 	AliHLTTPCCAGPUTracker() :
@@ -78,6 +79,7 @@ private:
 	AliHLTTPCCAGPUTracker( const AliHLTTPCCAGPUTracker& );
 	AliHLTTPCCAGPUTracker &operator=( const AliHLTTPCCAGPUTracker& );
 
+	ClassDef( AliHLTTPCCAGPUTracker, 0 )
 };
 
 #endif
