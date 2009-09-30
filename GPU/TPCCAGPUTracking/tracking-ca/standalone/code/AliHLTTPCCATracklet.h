@@ -35,7 +35,7 @@ class AliHLTTPCCATracklet
     GPUhd() const AliHLTTPCCATrackParam &Param() const { return fParam; }
 #ifndef EXTERN_ROW_HITS
     GPUhd() int  RowHit( int i )   const { return fRowHits[i];    }
-	GPUhd() int* RowHits()				{ return(fRowHits); }
+	GPUhd() const int* RowHits()	const			{ return(fRowHits); }
 #endif
 
     GPUhd() void SetNHits( int v )               {  fNHits = v;      }

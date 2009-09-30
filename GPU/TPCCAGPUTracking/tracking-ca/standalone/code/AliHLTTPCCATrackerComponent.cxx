@@ -596,7 +596,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   // write reconstructed tracks
 
   unsigned int mySize = 0;
-  int ntracks = *fOutput->NOutTracks();
+  int ntracks = fOutput->NOutTracks();
 
 
   if ( fOutputTRAKSEGS ) {

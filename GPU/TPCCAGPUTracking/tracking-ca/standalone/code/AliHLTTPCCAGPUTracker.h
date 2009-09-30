@@ -70,7 +70,7 @@ private:
 	static const int fgkNSlices = 36;
 	AliHLTTPCCATracker fSlaveTrackers[fgkNSlices];
 #ifdef HLTCA_GPUCODE
-	bool CUDA_FAILED_MSG(cudaError_t error);
+	bool CudaFailedMsg(cudaError_t error);
 #endif
 
 	// disable copy

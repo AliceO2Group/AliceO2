@@ -109,9 +109,7 @@ void AliHLTTPCCASliceData::Clear()
 void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 {
   // initialisation of rows
-#ifdef SLICE_DATA_EXTERN_ROWS
 	if (!fRows) fRows = new AliHLTTPCCARow[HLTCA_ROW_COUNT + 1];
-#endif
   for ( int i = 0; i < p.NRows(); ++i ) {
     fRows[i].fX = p.RowX( i );
     fRows[i].fMaxY = CAMath::Tan( p.DAlpha() / 2. ) * fRows[i].fX;
@@ -122,7 +120,6 @@ void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 	AliHLTTPCCASliceData::~AliHLTTPCCASliceData()
 	{
 		//Standard Destrcutor
-#ifdef SLICE_DATA_EXTERN_ROWS
 		if (fRows)
 		{
 			if (!fIsGpuSliceData) delete[] fRows;
@@ -134,17 +131,14 @@ void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 			fMemory = NULL;
 		}
 
-#endif
 	}
 #endif
 
-GPUh() void AliHLTTPCCASliceData::SetGPUSliceDataMemory(void* pSliceMemory, void* pRowMemory)
+GPUh() void AliHLTTPCCASliceData::SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory)
 {
 	//Set Pointer to slice data memory to external memory
 	fMemory = (char*) pSliceMemory;
-#ifdef SLICE_DATA_EXTERN_ROWS
 	fRows = (AliHLTTPCCARow*) pRowMemory;
-#endif
 }
 
 size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, bool allocate)
@@ -261,7 +255,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   int binCreationMemorySize = 103 * 2 + fNumberOfHits;
   AliHLTResizableArray<unsigned short> binCreationMemory( binCreationMemorySize );
 
-  unsigned int GPUSharedMemMaxSize = 0;
+  fGPUSharedDataReq = 0;
 
   for ( int rowIndex = data.FirstRow(); rowIndex <= data.LastRow(); ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
@@ -333,14 +327,12 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     row.fFullSize = nn;
     gridContentOffset += nn;
 
-	if (NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn > GPUSharedMemMaxSize)
-		GPUSharedMemMaxSize = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn;
+	if (NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn > (unsigned) fGPUSharedDataReq)
+		fGPUSharedDataReq = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(row.fNHits) + nn;
 
 	//Make pointer aligned
 	gridContentOffset = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(gridContentOffset);
   }
-
-  fGPUSharedDataReq = GPUSharedMemMaxSize;
 
 #if 0
   //SG cell finder - test code

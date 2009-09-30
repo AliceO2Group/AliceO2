@@ -67,16 +67,17 @@ class AliHLTTPCCASliceOutput
     GPUhd() void SetClusterUnpackedX( int i, float v ) {  fClusterUnpackedX[i] = v; }
 
 	char* Memory() const { return(fMemory); }
-	size_t MemorySize() { return(fMemorySize); }
+	size_t MemorySize() const { return(fMemorySize); }
 
 	void Clear();
 
 	//Obsolete Output
 
-    GPUhd()  int* NOutTracks() { return(&fNOutTracks); }
+    GPUhd()  int NOutTracks() const { return(fNOutTracks); }
+	GPUhd()  void SetNOutTracks(int val) { fNOutTracks = val; }
     GPUhd()  AliHLTTPCCAOutTrack *OutTracks() const { return  fOutTracks; }
     GPUhd()  const AliHLTTPCCAOutTrack &OutTrack( int index ) const { return fOutTracks[index]; }
-    GPUhd()  int NOutTrackHits() { return  fNOutTrackHits; }
+    GPUhd()  int NOutTrackHits() const { return  fNOutTrackHits; }
 	GPUhd()  void SetNOutTrackHits(int val) { fNOutTrackHits = val; }
     GPUhd()  void SetOutTrackHit(int n, int val) { fOutTrackHits[n] = val; }
     GPUhd()  int OutTrackHit( int i ) const { return  fOutTrackHits[i]; }
