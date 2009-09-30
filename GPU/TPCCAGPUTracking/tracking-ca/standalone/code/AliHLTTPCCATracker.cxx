@@ -114,36 +114,26 @@ char* AliHLTTPCCATracker::SetGPUTrackerCommonMemory(char* pGPUMemory)
 }
 
 
-char* AliHLTTPCCATracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits, int fOptionSimpleSched )
+char* AliHLTTPCCATracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits)
 {
 	fHitMemory = (char*) pGPUMemory;
 	SetPointersHits(MaxNHits);
 	pGPUMemory += fHitMemorySize;
-	if (fOptionSimpleSched)
-	{
-		fTrackletTmpStartHits = fTrackletStartHits;
-	}
-	else
-	{
-		AssignMemory(fTrackletTmpStartHits, pGPUMemory, NHitsTotal());
-	}
+	AssignMemory(fTrackletTmpStartHits, pGPUMemory, NHitsTotal());
 	AssignMemory(fRowStartHitCountOffset, pGPUMemory, Param().NRows());
 
 	return(pGPUMemory);
 }
 
-char* AliHLTTPCCATracker::SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracks, int fOptionSimpleSched )
+char* AliHLTTPCCATracker::SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracks)
 {
 	fTrackletMemory = (char*) pGPUMemory;
 	SetPointersTracklets(MaxNTracks);
 	pGPUMemory += fTrackletMemorySize;
-	if (!fOptionSimpleSched)
-	{
-		AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
-		AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
-		AssignMemory(fRowBlockPos, pGPUMemory, 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
-		AssignMemory(fBlockStartingTracklet, pGPUMemory, HLTCA_GPU_BLOCK_COUNT);
-	}
+	AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
+	AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
+	AssignMemory(fRowBlockPos, pGPUMemory, 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
+	AssignMemory(fBlockStartingTracklet, pGPUMemory, HLTCA_GPU_BLOCK_COUNT);
 
 	return(pGPUMemory);
 }
@@ -709,7 +699,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
   // old stuff
 #ifndef HLTCA_STANDALONE
-  *fOutput->NOutTrackHits() = 0;
+  fOutput->SetNOutTrackHits(0);
   *fOutput->NOutTracks() = 0;
 
 
@@ -722,23 +712,23 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
     //if( !iTrack.Alive() ) continue;
     if ( iTrack.NHits() < 3 ) continue;
     AliHLTTPCCAOutTrack &out = fOutput->OutTracks()[*fOutput->NOutTracks()];
-    out.SetFirstHitRef( *fOutput->NOutTrackHits() );
+    out.SetFirstHitRef( fOutput->NOutTrackHits() );
     out.SetNHits( 0 );
     out.SetOrigTrackID( iTr );
     out.SetStartPoint( iTrack.Param() );
     out.SetEndPoint( iTrack.Param() );
 
     int iID = iTrack.FirstHitID();
-    int nOutTrackHitsOld = *fOutput->NOutTrackHits();
+    int nOutTrackHitsOld = fOutput->NOutTrackHits();
 
     for ( int ith = 0; ith < iTrack.NHits(); ith++ ) {
       const AliHLTTPCCAHitId &ic = fTrackHits[iID + ith];
       const AliHLTTPCCARow &row = Row( ic );
       int ih = ic.HitIndex();
-      fOutput->OutTrackHits()[*fOutput->NOutTrackHits()] = HitInputID( row, ih );
-      ( *fOutput->NOutTrackHits() )++;
+      fOutput->SetOutTrackHit(fOutput->NOutTrackHits(), HitInputID( row, ih ));
+      fOutput->SetNOutTrackHits(fOutput->NOutTrackHits() + 1 );
       //std::cout<<"write i,row,hit,id="<<ith<<", "<<ID2IRow(ic)<<", "<<ih<<", "<<HitInputID( row, ih )<<std::endl;
-      if ( *fOutput->NOutTrackHits() >= 10*NHitsTotal() ) {
+      if ( fOutput->NOutTrackHits() >= 10*NHitsTotal() ) {
         std::cout << "fNOutTrackHits>NHitsTotal()" << std::endl;
         //exit(0);
         return;//SG!!!
@@ -748,7 +738,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
     if ( out.NHits() >= 2 ) {
       ( *fOutput->NOutTracks() )++;
     } else {
-      ( *fOutput->NOutTrackHits() ) = nOutTrackHitsOld;
+      fOutput->SetNOutTrackHits(nOutTrackHitsOld);
     }
   }
 #endif
@@ -937,9 +927,9 @@ GPUh() void AliHLTTPCCATracker::WriteTracks( std::ostream &out )
   //* Write tracks to file
 
   out << fTimers[0] << std::endl;
-  out << *fOutput->NOutTrackHits() << std::endl;
-  for ( int ih = 0; ih < *fOutput->NOutTrackHits(); ih++ ) {
-    out << fOutput->NOutTrackHits()[ih] << " ";
+  out << fOutput->NOutTrackHits() << std::endl;
+  for ( int ih = 0; ih < fOutput->NOutTrackHits(); ih++ ) {
+    out << fOutput->OutTrackHit(ih) << " ";
   }
   out << std::endl;
 
@@ -975,11 +965,14 @@ GPUh() void AliHLTTPCCATracker::WriteTracks( std::ostream &out )
 GPUh() void AliHLTTPCCATracker::ReadTracks( std::istream &in )
 {
   //* Read tracks  from file
+	int tmpval;
   in >> fTimers[0];
-  in >> *fOutput->NOutTrackHits();
+  in >> tmpval;
+  fOutput->SetNOutTrackHits(tmpval);
 
-  for ( int ih = 0; ih < *fOutput->NOutTrackHits(); ih++ ) {
-    in >> fOutput->NOutTrackHits()[ih];
+  for ( int ih = 0; ih < fOutput->NOutTrackHits(); ih++ ) {
+    in >> tmpval;
+	fOutput->SetOutTrackHit(ih, tmpval);
   }
   in >> *fOutput->NOutTracks();
 

@@ -813,7 +813,7 @@ void AliHLTTPCCADisplay::DrawSliceOutTrack( AliHLTTPCCATrackParam &/*t*/, double
   AliHLTTPCCADisplayTmpHit vHits[200];
 
   for ( int ih = 0; ih < track.NHits(); ih++ ) {
-    int id = tracker.FirstSliceHit()[fSlice->Param().ISlice()] + fSlice->OutTrackHits()[track.FirstHitRef()+ih];
+    int id = tracker.FirstSliceHit()[fSlice->Param().ISlice()] + fSlice->OutTrackHit(track.FirstHitRef()+ih);
     const AliHLTTPCCAGBHit &h = tracker.Hits()[id];
     vHits[ih].SetID( id );
     vHits[ih].SetS( 0 );
@@ -835,7 +835,7 @@ void AliHLTTPCCADisplay::DrawSliceOutTrack( int /*itr*/, int /*color*/, int /*wi
   AliHLTTPCCADisplayTmpHit vHits[200];
 
   for ( int ih = 0; ih < track.NHits(); ih++ ) {
-    int id = tracker.FirstSliceHit()[fSlice->Param().ISlice()] + fSlice->OutTrackHits()[track.FirstHitRef()+ih];
+    int id = tracker.FirstSliceHit()[fSlice->Param().ISlice()] + fSlice->OutTrackHit(track.FirstHitRef()+ih);
     const AliHLTTPCCAGBHit &h = tracker.Hits()[id];
     vHits[ih].SetID( id );
     vHits[ih].SetS( 0 );

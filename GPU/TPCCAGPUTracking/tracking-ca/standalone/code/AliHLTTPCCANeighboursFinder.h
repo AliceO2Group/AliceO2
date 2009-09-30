@@ -11,7 +11,6 @@
 
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCAGrid.h"
 #include "AliHLTTPCCARow.h"
 class AliHLTTPCCATracker;
 
@@ -36,8 +35,6 @@ class AliHLTTPCCANeighboursFinder
 #endif
 
       protected:
-        //AliHLTTPCCAGrid fGridUp; // grid for the next row
-        //AliHLTTPCCAGrid fGridDn; // grid for the previous row
         int fNHits; // n hits
         int fUpNHits; // n hits in the next row
         int fDnNHits; // n hits in the prev row
@@ -51,8 +48,6 @@ class AliHLTTPCCANeighboursFinder
         int fNRows; // number of rows
         float2 fA[256][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
         unsigned short fB[256][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
-        //unsigned short fGridContentUp[ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN]; // grid content for the next row
-        //unsigned short fGridContentDn[ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN];// grid content for the previous row
 		AliHLTTPCCARow fRow, fRowUp, fRowDown;
     };
 

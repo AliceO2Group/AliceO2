@@ -10,8 +10,9 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracker.h"
-#include "AliHLTTPCCARow.h"
 #include "AliHLTLogging.h"
+
+class AliHLTTPCCARow;
 
 class AliHLTTPCCAGPUTracker : AliHLTLogging
 {
@@ -23,8 +24,7 @@ public:
 	  fDebugLevel(0),
 	  fOutFile(NULL),
 	  fGPUMemSize(0),
-	  fOptionSimpleSched(0),
-	  pCudaStreams(NULL),
+	  fpCudaStreams(NULL),
 	  fSliceCount(0)
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
@@ -33,7 +33,7 @@ public:
 	int Reconstruct(AliHLTTPCCASliceOutput* pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	int ExitGPU();
 
-	void SetDebugLevel(int dwLevel, std::ostream *NewOutFile = NULL);
+	void SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile = NULL);
 	int SetGPUTrackerOption(char* OptionName, int OptionValue);
 
 	unsigned long long int* PerfTimer(int iSlice, unsigned int i) {return(fSlaveTrackers ? fSlaveTrackers[iSlice].PerfTimer(i) : NULL); }
@@ -41,12 +41,12 @@ public:
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
 
 private:
-	static void* RowMemory(void* BaseMemory, int iSlice) { return( ((char*) BaseMemory) + iSlice * sizeof(AliHLTTPCCARow) * (HLTCA_ROW_COUNT + 1) ); }
-	static void* CommonMemory(void* BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + iSlice * AliHLTTPCCATracker::CommonMemorySize() ); }
-	static void* SliceDataMemory(void* BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + iSlice * HLTCA_GPU_SLICE_DATA_MEMORY ); }
-	void* GlobalMemory(void* BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_GLOBAL_MEMORY ); }
-	void* TracksMemory(void* BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_TRACKS_MEMORY ); }
-	void* TrackerMemory(void* BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
+	static void* RowMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + iSlice * sizeof(AliHLTTPCCARow) * (HLTCA_ROW_COUNT + 1) ); }
+	static void* CommonMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + iSlice * AliHLTTPCCATracker::CommonMemorySize() ); }
+	static void* SliceDataMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + iSlice * HLTCA_GPU_SLICE_DATA_MEMORY ); }
+	void* GlobalMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_GLOBAL_MEMORY ); }
+	void* TracksMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_TRACKS_MEMORY ); }
+	void* TrackerMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
 
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 
@@ -60,12 +60,10 @@ private:
 	void StandalonePerfTime(int iSlice, int i);
 
 	int fDebugLevel;			//Debug Level for GPU Tracker
-	std::ostream *fOutFile;		//Debug Output Stream Pointer
+	std::ostream* fOutFile;		//Debug Output Stream Pointer
 	unsigned long long int fGPUMemSize;	//Memory Size to allocate on GPU
 
-	int fOptionSimpleSched;		//Simple scheduler not row based
-
-	void* pCudaStreams;
+	void* fpCudaStreams;
 
 	int fSliceCount;
 

@@ -12,10 +12,11 @@
 
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAGPUTracker.h"
-#include "AliHLTTPCCASliceOutput.h"
-#include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCAParam.h"
 #include <iostream>
+
+class AliHLTTPCCASliceOutput;
+class AliHLTTPCCAClusterData;
 
 class AliHLTTPCCATrackerFramework
 {
@@ -23,7 +24,7 @@ public:
 	AliHLTTPCCATrackerFramework() :
 	  fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(), fCPUSliceCount(fgkNSlices)
 	  {
-		  fGPUTrackerAvailable = fGPUSliceCount = (fGPUTracker.InitGPU(1, -1) == 0);
+		  fGPUTrackerAvailable = (fGPUSliceCount = (fGPUTracker.InitGPU(1, -1) == 0));
 	  }
     ~AliHLTTPCCATrackerFramework()
 	  {}
@@ -39,8 +40,8 @@ public:
 	int ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput* pOutput);
 	unsigned long long int* PerfTimer(int GPU, int iSlice, int iTimer);
 
-	int MaxSliceCount() { return(fUseGPUTracker ? fGPUSliceCount : fCPUSliceCount); }
-	int GetGPUStatus() { return(fGPUTrackerAvailable + fUseGPUTracker); }
+	int MaxSliceCount() const { return(fUseGPUTracker ? fGPUSliceCount : fCPUSliceCount); }
+	int GetGPUStatus() const { return(fGPUTrackerAvailable + fUseGPUTracker); }
 
 	const AliHLTTPCCAParam& Param(int iSlice) const { return(fCPUTrackers[iSlice].Param()); }
 	const AliHLTTPCCARow& Row(int iSlice, int iRow) const { return(fCPUTrackers[iSlice].Row(iRow)); }  //TODO: Should be changed to return only row parameters

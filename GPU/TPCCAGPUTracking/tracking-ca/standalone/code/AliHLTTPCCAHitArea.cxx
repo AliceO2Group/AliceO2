@@ -20,7 +20,7 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAGrid.h"
 #include "AliHLTTPCCAHit.h"
-#include "AliHLTTPCCARow.h"
+class AliHLTTPCCARow;
 
 
 GPUd() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCARow &row, const AliHLTTPCCASliceData &slice, float y, float z,
@@ -46,8 +46,8 @@ GPUd() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCARow &row, const AliHLTTPC
 
   // for given fIz (which is min atm.) get
 #ifdef HLTCA_GPU_TEXTURE_FETCHa
-  fHitYfst = tex1Dfetch(texRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin);
-  fHitYlst = tex1Dfetch(texRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin + fBDY);
+  fHitYfst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin);
+  fHitYlst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin + fBDY);
 #else
   fHitYfst = slice.FirstHitInBin( row, fIndYmin ); // first and
   fHitYlst = slice.FirstHitInBin( row, fIndYmin + fBDY ); // last hit index in the bin
@@ -78,8 +78,8 @@ GPUd() int AliHLTTPCCAHitArea::GetNext( const AliHLTTPCCATracker &tracker, const
       ++fIz;
       fIndYmin += fNy;
 #ifdef HLTCA_GPU_TEXTURE_FETCHa
-	  fHitYfst = tex1Dfetch(texRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin);
-	  fHitYlst = tex1Dfetch(texRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin + fBDY);
+	  fHitYfst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin);
+	  fHitYlst = tex1Dfetch(gAliTexRefu, ((char*) slice.FirstHitInBin(row) - slice.GPUTextureBaseConst()) / sizeof(unsigned short) + fIndYmin + fBDY);
 #else
       fHitYfst = slice.FirstHitInBin( row, fIndYmin );
       fHitYlst = slice.FirstHitInBin( row, fIndYmin + fBDY );
@@ -88,7 +88,7 @@ GPUd() int AliHLTTPCCAHitArea::GetNext( const AliHLTTPCCATracker &tracker, const
     }
 
 #ifdef HLTCA_GPU_TEXTURE_FETCHa
-	ushort2 tmpval = tex1Dfetch(texRefu2, ((char*) slice.HitData(row) - slice.GPUTextureBaseConst()) / sizeof(ushort2) + fIh);;
+	ushort2 tmpval = tex1Dfetch(gAliTexRefu2, ((char*) slice.HitData(row) - slice.GPUTextureBaseConst()) / sizeof(ushort2) + fIh);;
 	h->SetY( y0 + tmpval.x * stepY );
     h->SetZ( z0 + tmpval.y * stepZ );
 #else

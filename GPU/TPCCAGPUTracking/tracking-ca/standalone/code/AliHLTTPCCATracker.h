@@ -84,7 +84,6 @@ class AliHLTTPCCATracker
 	{
 		int fScheduleFirstDynamicTracklet;		//Last Tracklet with fixed position in sheduling
 		int fGPUError;							//Signalizes error on GPU during GPU Reconstruction, kind of return value
-		int fNextTracklet;						//Next Tracklet for simple scheduler
 	};
 
 	struct StructGPUParametersConst
@@ -125,8 +124,8 @@ class AliHLTTPCCATracker
 	void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {fGPUDebugLevel = Level;if (NewDebugOut) fGPUDebugOut = NewDebugOut;}
 
 	char* SetGPUTrackerCommonMemory(char* pGPUMemory);
-	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits, int fOptionSimpleSched );
-	char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets, int fOptionSimpleSched );
+	char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits);
+	char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets);
 	char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits );
 
 	//Debugging Stuff
@@ -242,11 +241,8 @@ class AliHLTTPCCATracker
 	GPUh() size_t TrackletMemorySize() const {return(fTrackletMemorySize); }
 	GPUh() char* &TrackMemory() {return(fTrackMemory); }
 	GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
-	GPUh() char* &OutputMemory() {return(fOutput->Memory()); }
+	GPUh() char* OutputMemory() const {return(fOutput->Memory()); }
 	GPUh() size_t OutputMemorySize() const {return(fOutput->MemorySize()); }
-	GPUh() char *SliceDataMemory() {return(fData.Memory()); }
-	GPUh() size_t SliceDataMemorySize() const {return(fData.MemorySize()); }
-	GPUh() int* SliceDataHitWeights() {return(fData.HitWeights()); }
 	GPUhd() AliHLTTPCCARow* SliceDataRows() {return(fData.Rows()); }
 
 	GPUhd() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}

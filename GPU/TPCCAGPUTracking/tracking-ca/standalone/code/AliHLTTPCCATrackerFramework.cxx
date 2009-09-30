@@ -23,6 +23,7 @@
 #include "AliHLTTPCCAGPUTracker.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAMath.h"
+#include "AliHLTTPCCAClusterData.h"
 
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
@@ -30,6 +31,7 @@
 
 int AliHLTTPCCATrackerFramework::InitGPU(int sliceCount, int forceDeviceID)
 {
+	//Initialize GPU Tracker and determine if GPU available
 	int retVal;
 	if (fGPUTrackerAvailable && (retVal = ExitGPU())) return(retVal);
 	retVal = fGPUTracker.InitGPU(sliceCount, forceDeviceID);
@@ -40,6 +42,7 @@ int AliHLTTPCCATrackerFramework::InitGPU(int sliceCount, int forceDeviceID)
 
 int AliHLTTPCCATrackerFramework::ExitGPU()
 {
+	//Uninitialize GPU Tracker
 	if (!fGPUTrackerAvailable) return(0);
 	fUseGPUTracker = false;
 	fGPUTrackerAvailable = false;
@@ -48,6 +51,7 @@ int AliHLTTPCCATrackerFramework::ExitGPU()
 
 void AliHLTTPCCATrackerFramework::SetGPUDebugLevel(int Level, std::ostream *OutFile, std::ostream *GPUOutFile)
 {
+	//Set Debug Level for GPU Tracker and also for CPU Tracker for comparison reasons
 	fGPUTracker.SetDebugLevel(Level, GPUOutFile);
 	fGPUDebugLevel = Level;
 	for (int i = 0;i < fgkNSlices;i++)
@@ -58,6 +62,7 @@ void AliHLTTPCCATrackerFramework::SetGPUDebugLevel(int Level, std::ostream *OutF
 
 int AliHLTTPCCATrackerFramework::SetGPUTracker(bool enable)
 {
+	//Enable / disable GPU Tracker
 	if (enable && !fGPUTrackerAvailable)
 	{
 		fUseGPUTracker = false;
@@ -69,6 +74,7 @@ int AliHLTTPCCATrackerFramework::SetGPUTracker(bool enable)
 
 int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput* pOutput)
 {
+	//Process sliceCount slices starting from firstslice, in is pClusterData array, out pOutput array
 	if (fUseGPUTracker)
 	{
 		if (fGPUTracker.Reconstruct(pOutput, pClusterData, firstSlice, CAMath::Min(sliceCount, fgkNSlices - firstSlice))) return(1);
@@ -100,11 +106,13 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 
 unsigned long long int* AliHLTTPCCATrackerFramework::PerfTimer(int GPU, int iSlice, int iTimer)
 {
+	//Performance information for slice trackers
 	return(GPU ? fGPUTracker.PerfTimer(iSlice, iTimer) : fCPUTrackers[iSlice].PerfTimer(iTimer));
 }
 
 int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param)
 {
+	//Initialize Tracker Parameters for a slice
 	if (fGPUTrackerAvailable && fGPUTracker.InitializeSliceParam(iSlice, param)) return(1);
 	fCPUTrackers[iSlice].Initialize(param);
 	return(0);

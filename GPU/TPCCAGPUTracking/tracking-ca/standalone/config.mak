@@ -27,11 +27,13 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCAMCPoint.cxx \
 								code/AliHLTTPCCAMerger.cxx \
 								code/AliHLTTPCCAClusterData.cxx \
-								code/AliHLTTPCCARow.cxx
+								code/AliHLTTPCCARow.cxx \
+								standalone/AliHLTLogging.cxx
+								
 CUFILES						= code/AliHLTTPCCAGPUTracker.cu
 ASMFILES					= 
 
-INCLUDEPATHS				= code base include
+INCLUDEPATHS				= include code base
 DEFINES						= HLTCA_STANDALONE
 
 EXTRAFLAGSGCC				= -Weffc++

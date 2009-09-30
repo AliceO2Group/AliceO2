@@ -37,7 +37,7 @@ class AliHLTTPCCAStandaloneFramework
 
 	const AliHLTTPCCAParam &Param ( int iSlice ) const { return(fTracker.Param(iSlice)); }
 	const AliHLTTPCCARow &Row ( int iSlice, int iRow ) const { return(fTracker.Row(iSlice, iRow)); }
-    AliHLTTPCCASliceOutput &Output( int iSlice )  { return fSliceOutput[iSlice]; }
+    const AliHLTTPCCASliceOutput &Output( int iSlice ) const { return fSliceOutput[iSlice]; }
     AliHLTTPCCAMerger  &Merger()  { return fMerger; }
     AliHLTTPCCAClusterData &ClusterData( int iSlice ) { return fClusterData[iSlice]; }
 

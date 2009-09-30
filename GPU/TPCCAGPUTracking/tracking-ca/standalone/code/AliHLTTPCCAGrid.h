@@ -31,7 +31,7 @@ class AliHLTTPCCAGrid
      * returns -1 if the row is empty == no hits
      */
     GPUd() int GetBinBounded( float Y, float Z ) const;
-    GPUd() void GetBin( float Y, float Z, int *bY, int *bZ ) const;
+    GPUd() void GetBin( float Y, float Z, int* const bY, int* const bZ ) const;
 
     GPUd() unsigned int  N()        const { return fN;  }
     GPUd() unsigned int  Ny()       const { return fNy; }
