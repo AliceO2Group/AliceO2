@@ -584,13 +584,13 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   {
     AliHLTTPCCADisplay &disp = AliHLTTPCCADisplay::Instance();
     AliHLTTPCCATracker &slice = *this;
-    std::cout << "N out tracks = " << *slice.NOutTracks() << std::endl;
+    std::cout << "N out tracks = " << slice.NOutTracks() << std::endl;
     AliHLTTPCCADisplay::Instance().SetSliceView();
     AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
     AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
     disp.DrawSliceHits( kRed, .5 );
     disp.Ask();
-    for ( int itr = 0; itr < *slice.NOutTracks(); itr++ ) {
+    for ( int itr = 0; itr < slice.NOutTracks(); itr++ ) {
       std::cout << "track N " << itr << ", nhits=" << slice.OutTracks()[itr].NHits() << std::endl;
       disp.DrawSliceOutTrack( itr, kBlue );      
       //disp.Ask();
@@ -700,7 +700,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
   // old stuff
 #ifndef HLTCA_STANDALONE
   fOutput->SetNOutTrackHits(0);
-  *fOutput->NOutTracks() = 0;
+  fOutput->SetNOutTracks(0);
 
 
   for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
@@ -711,7 +711,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
     //if( !iTrack.Alive() ) continue;
     if ( iTrack.NHits() < 3 ) continue;
-    AliHLTTPCCAOutTrack &out = fOutput->OutTracks()[*fOutput->NOutTracks()];
+    AliHLTTPCCAOutTrack &out = fOutput->OutTracks()[fOutput->NOutTracks()];
     out.SetFirstHitRef( fOutput->NOutTrackHits() );
     out.SetNHits( 0 );
     out.SetOrigTrackID( iTr );
@@ -736,7 +736,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
       out.SetNHits( out.NHits() + 1 );
     }
     if ( out.NHits() >= 2 ) {
-      ( *fOutput->NOutTracks() )++;
+      fOutput->SetNOutTracks(fOutput->NOutTracks() + 1);
     } else {
       fOutput->SetNOutTrackHits(nOutTrackHitsOld);
     }
@@ -933,9 +933,9 @@ GPUh() void AliHLTTPCCATracker::WriteTracks( std::ostream &out )
   }
   out << std::endl;
 
-  out << *fOutput->NOutTracks() << std::endl;
+  out << fOutput->NOutTracks() << std::endl;
 
-  for ( int itr = 0; itr < *fOutput->NOutTracks(); itr++ ) {
+  for ( int itr = 0; itr < fOutput->NOutTracks(); itr++ ) {
     const AliHLTTPCCAOutTrack &t = fOutput->OutTrack(itr);
     AliHLTTPCCATrackParam p1 = t.StartPoint();
     AliHLTTPCCATrackParam p2 = t.EndPoint();
@@ -974,9 +974,10 @@ GPUh() void AliHLTTPCCATracker::ReadTracks( std::istream &in )
     in >> tmpval;
 	fOutput->SetOutTrackHit(ih, tmpval);
   }
-  in >> *fOutput->NOutTracks();
+  in >> tmpval;
+  fOutput->SetNOutTracks(tmpval);
 
-  for ( int itr = 0; itr < *fOutput->NOutTracks(); itr++ ) {
+  for ( int itr = 0; itr < fOutput->NOutTracks(); itr++ ) {
     AliHLTTPCCAOutTrack &t = fOutput->OutTracks()[itr];
     AliHLTTPCCATrackParam p1, p2;
     int i;

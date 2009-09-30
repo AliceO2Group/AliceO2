@@ -88,25 +88,8 @@ class AliHLTTPCCAStandaloneFramework
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
 
 #ifdef HLTCA_STANDALONE
-	static void StandaloneQueryTime(unsigned long long int *i)
-	{
-	#ifdef R__WIN32
-		  QueryPerformanceCounter((LARGE_INTEGER*) i);
-	#else
-		  timespec t;
-		  clock_gettime(CLOCK_REALTIME, &t);
-		  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
-	#endif
-	}
-
-	static void StandaloneQueryFreq(unsigned long long int *i)
-	{
-	#ifdef R__WIN32
-		  QueryPerformanceFrequency((LARGE_INTEGER*) i);
-	#else
-		*i = 1000000000;
-	#endif
-	}
+	static inline void StandaloneQueryTime(unsigned long long int *i);
+	static inline void StandaloneQueryFreq(unsigned long long int *i);
 #endif
 
   private:
@@ -128,5 +111,27 @@ class AliHLTTPCCAStandaloneFramework
 
 	int fDebugLevel;
 };
+
+#ifdef HLTCA_STANDALONE
+	void AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(unsigned long long int *i)
+	{
+	#ifdef R__WIN32
+		  QueryPerformanceCounter((LARGE_INTEGER*) i);
+	#else
+		  timespec t;
+		  clock_gettime(CLOCK_REALTIME, &t);
+		  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
+	#endif
+	}
+
+	void AliHLTTPCCAStandaloneFramework::StandaloneQueryFreq(unsigned long long int *i)
+	{
+	#ifdef R__WIN32
+		  QueryPerformanceFrequency((LARGE_INTEGER*) i);
+	#else
+		*i = 1000000000;
+	#endif
+	}
+#endif
 
 #endif
