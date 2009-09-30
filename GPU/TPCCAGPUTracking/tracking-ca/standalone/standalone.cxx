@@ -31,8 +31,15 @@ int main(int argc, char** argv)
     
 	if ( !strcmp( argv[i], "-GPU" ) ) 
     {
-	printf("GPU enabled\n");
-	RUNGPU=1;        
+		if (hlt.GetGPUStatus())
+		{
+			printf("GPU enabled\n");
+			RUNGPU=1;
+		}
+		else
+		{
+			printf("Cannot enable GPU\n");
+		}
     }
 
 	if ( !strcmp( argv[i], "-NOPROMPT" ) ) 

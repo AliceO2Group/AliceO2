@@ -42,11 +42,10 @@ class AliHLTTPCCAParam;
  */
 class AliHLTTPCCASliceData
 {
-	//friend class AliHLTTPCCAGPUTracker;
   public:
     AliHLTTPCCASliceData()
         : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif
@@ -147,9 +146,10 @@ class AliHLTTPCCASliceData
     const AliHLTTPCCARow &Row( int rowIndex ) const;
 	GPUhd() AliHLTTPCCARow* Rows() {return fRows;}
 
-	GPUh() char *Memory() {return(fMemory); }
+	GPUh() char *Memory() const {return(fMemory); }
 	GPUh() size_t MemorySize() const {return(fMemorySize); }
-	GPUh() int* HitWeights() {return(fHitWeights); }
+	GPUh() size_t GpuMemorySize() const {return(fGpuMemorySize); }
+	GPUh() int* HitWeights() const {return(fHitWeights); }
 
 	GPUhd() char* &GPUTextureBase() { return(fGPUTextureBase); }
 	GPUhd() char* GPUTextureBaseConst() const { return(fGPUTextureBase); }
@@ -161,7 +161,7 @@ class AliHLTTPCCASliceData
   private:
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
         : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
 #ifdef SLICE_DATA_EXTERN_ROWS
 		,fRows( NULL )
 #endif
@@ -183,6 +183,7 @@ class AliHLTTPCCASliceData
 	int fNumberOfHitsPlusAlign;
 
     int fMemorySize;           // size of the allocated memory in bytes
+	int fGpuMemorySize;		   // size of Memory needed to be transfered to GPU
     char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
 	char *fGPUTextureBase;		// pointer to start of GPU texture
 

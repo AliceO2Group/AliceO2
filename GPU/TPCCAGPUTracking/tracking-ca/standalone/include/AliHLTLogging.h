@@ -3,7 +3,8 @@
 
 class AliHLTLogging
 {
-
+public:
+	virtual ~AliHLTLogging();
 };
 
 #define HLTError(...) {printf(__VA_ARGS__);printf("\n");}

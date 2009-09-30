@@ -121,6 +121,7 @@ void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 #ifndef HLTCA_GPUCODE
 	AliHLTTPCCASliceData::~AliHLTTPCCASliceData()
 	{
+		//Standard Destrcutor
 #ifdef SLICE_DATA_EXTERN_ROWS
 		if (fRows)
 		{
@@ -139,6 +140,7 @@ void AliHLTTPCCASliceData::InitializeRows( const AliHLTTPCCAParam &p )
 
 GPUh() void AliHLTTPCCASliceData::SetGPUSliceDataMemory(void* pSliceMemory, void* pRowMemory)
 {
+	//Set Pointer to slice data memory to external memory
 	fMemory = (char*) pSliceMemory;
 #ifdef SLICE_DATA_EXTERN_ROWS
 	fRows = (AliHLTTPCCARow*) pRowMemory;
@@ -147,16 +149,17 @@ GPUh() void AliHLTTPCCASliceData::SetGPUSliceDataMemory(void* pSliceMemory, void
 
 size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, bool allocate)
 {
-  int HitMemCount = 0;
+	//Set slice data internal pointers
+  int hitMemCount = 0;
   for ( int rowIndex = data->FirstRow(); rowIndex <= data->LastRow(); ++rowIndex )
   {
-	HitMemCount += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(data->NumberOfClusters( rowIndex ));
+	hitMemCount += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(data->NumberOfClusters( rowIndex ));
   }
 	//Calculate Memory needed to store hits in rows
 
   const int numberOfRows = data->LastRow() - data->FirstRow() + 1;
   enum { kVectorAlignment = 256 /*sizeof( uint4 )*/ };
-  fNumberOfHitsPlusAlign = NextMultipleOf < (kVectorAlignment > sizeof(HLTCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(HLTCA_GPU_ROWALIGNMENT)) / sizeof( int ) > ( HitMemCount );
+  fNumberOfHitsPlusAlign = NextMultipleOf < (kVectorAlignment > sizeof(HLTCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(HLTCA_GPU_ROWALIGNMENT)) / sizeof( int ) > ( hitMemCount );
   fNumberOfHits = data->NumberOfClusters();
   const int firstHitInBinSize = (23 + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int)) * numberOfRows + 4 * fNumberOfHits + 3;
   //FIXME: sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int) * numberOfRows is way to big and only to ensure to reserve enough memory for GPU Alignment.
@@ -187,6 +190,9 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
   AssignMemory( fLinkDownData, mem, fNumberOfHitsPlusAlign );
   AssignMemory( fHitData,     mem, fNumberOfHitsPlusAlign );
   AssignMemory( fFirstHitInBin,  mem, firstHitInBinSize );
+  fGpuMemorySize = mem - fMemory;
+
+  //Memory Allocated below will not be copied to GPU but instead be initialized on the gpu itself. Therefore it must not be copied to GPU!
   AssignMemory( fHitWeights,   mem, fNumberOfHitsPlusAlign );
   AssignMemory( fClusterDataIndex, mem, fNumberOfHitsPlusAlign );
   return(mem - fMemory);

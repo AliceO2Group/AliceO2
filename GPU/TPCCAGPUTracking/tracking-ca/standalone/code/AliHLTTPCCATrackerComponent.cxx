@@ -631,10 +631,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
       int iFirstRow = 1000;
       int iLastRow = -1;
-      int iFirstHit = fOutput->OutTrackHits()[t.FirstHitRef()];
+      int iFirstHit = fOutput->OutTrackHit(t.FirstHitRef());
       int iLastHit = iFirstHit;
       for ( int ih = 0; ih < t.NHits(); ih++ ) {
-        int hitID = fOutput->OutTrackHits()[t.FirstHitRef() + ih ];
+        int hitID = fOutput->OutTrackHit(t.FirstHitRef() + ih);
         int iRow = clusterData.RowNumber( hitID );
         if ( iRow < iFirstRow ) {  iFirstRow = iRow; iFirstHit = hitID; }
         if ( iRow > iLastRow ) { iLastRow = iRow; iLastHit = hitID; }
@@ -693,7 +693,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       currOutTracklet->fNPoints = t.NHits();
 
       for ( int i = 0; i < t.NHits(); i++ ) {
-        currOutTracklet->fPointIDs[i] = clusterData.Id( fOutput->OutTrackHits()[t.FirstHitRef()+i] );
+        currOutTracklet->fPointIDs[i] = clusterData.Id( fOutput->OutTrackHit(t.FirstHitRef()+i) );
       }
 
       currOutTracklet = ( AliHLTTPCTrackSegmentData* )( ( Byte_t * )currOutTracklet + dSize );

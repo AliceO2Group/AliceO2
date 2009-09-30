@@ -34,6 +34,7 @@ GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClu
 
 void AliHLTTPCCASliceOutput::Clear()
 {
+	//Clear Slice Output and free Memory
 	if (fMemory) delete[] fMemory;
 	fMemory = NULL;
 	fNOutTracks = 0;
@@ -76,6 +77,7 @@ void AliHLTTPCCASliceOutput::SetPointers()
 
 void AliHLTTPCCASliceOutput::Allocate()
 {
+	//Allocate All memory needed for slice output
   if (fMemory) delete[] fMemory;
   SetPointers(); // to calculate the size
   fMemory = reinterpret_cast<char*> ( new uint4 [ fMemorySize/sizeof( uint4 ) + 100] );

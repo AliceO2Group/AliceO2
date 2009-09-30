@@ -30,6 +30,7 @@
 
 GPUd() void AliHLTTPCCAGrid::CreateEmpty()
 {
+  //Create an empty grid
   fYMin = 0.f;
   fYMax = 1.f;
   fZMin = 0.f;
@@ -87,7 +88,7 @@ int AliHLTTPCCAGrid::GetBinBounded( float Y, float Z ) const
   return bin;
 }
 
-GPUd() void AliHLTTPCCAGrid::GetBin( float Y, float Z, int *bY, int *bZ ) const
+GPUd() void AliHLTTPCCAGrid::GetBin( float Y, float Z, int* const bY, int* const bZ ) const
 {
   //* get the bin pointer
 
