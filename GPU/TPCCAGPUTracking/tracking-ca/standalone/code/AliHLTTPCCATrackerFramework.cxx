@@ -72,7 +72,7 @@ int AliHLTTPCCATrackerFramework::SetGPUTracker(bool enable)
 	return(0);
 }
 
-int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput* pOutput)
+int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput)
 {
 	//Process sliceCount slices starting from firstslice, in is pClusterData array, out pOutput array
 	if (fUseGPUTracker)

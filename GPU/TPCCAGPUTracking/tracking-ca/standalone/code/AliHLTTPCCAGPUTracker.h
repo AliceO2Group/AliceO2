@@ -30,7 +30,7 @@ public:
 	  ~AliHLTTPCCAGPUTracker() {};
 
 	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
-	int Reconstruct(AliHLTTPCCASliceOutput* pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
+	int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	int ExitGPU();
 
 	void SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile = NULL);

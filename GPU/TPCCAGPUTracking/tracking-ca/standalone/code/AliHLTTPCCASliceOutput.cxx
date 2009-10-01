@@ -32,17 +32,6 @@ GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClu
 
 #ifndef HLTCA_GPUCODE
 
-void AliHLTTPCCASliceOutput::Clear()
-{
-	//Clear Slice Output and free Memory
-	if (fMemory) delete[] fMemory;
-	fMemory = NULL;
-	fNOutTracks = 0;
-	fNOutTrackHits = 0;
-	fNTracks = 0;
-	fNTrackClusters = 0;
-}
-
 template<typename T> inline void AssignNoAlignment( T *&dst, char *&mem, int count )
 {
   // assign memory to the pointer dst
@@ -50,37 +39,38 @@ template<typename T> inline void AssignNoAlignment( T *&dst, char *&mem, int cou
   mem = ( char * )( dst + count );
 }
 
-void AliHLTTPCCASliceOutput::SetPointers()
+void AliHLTTPCCASliceOutput::SetPointers(int nTracks, int nTrackClusters)
 {
   // set all pointers
+	if (nTracks == -1) nTracks = fNTracks;
+	if (nTrackClusters == -1) nTrackClusters == fNTrackClusters;
 
   char *mem = fMemory;
-  AssignNoAlignment( fTracks,            mem, fNTracks );
-  AssignNoAlignment( fClusterUnpackedYZ, mem, fNTrackClusters );
-  AssignNoAlignment( fClusterUnpackedX,  mem, fNTrackClusters );
-  AssignNoAlignment( fClusterId,         mem, fNTrackClusters );
-  AssignNoAlignment( fClusterPackedYZ,   mem, fNTrackClusters );
-  AssignNoAlignment( fClusterRow,        mem, fNTrackClusters );
-  AssignNoAlignment( fClusterPackedAmp,  mem, fNTrackClusters );
+  AssignNoAlignment( fTracks,            mem, nTracks );
+  AssignNoAlignment( fClusterUnpackedYZ, mem, nTrackClusters );
+  AssignNoAlignment( fClusterUnpackedX,  mem, nTrackClusters );
+  AssignNoAlignment( fClusterId,         mem, nTrackClusters );
+  AssignNoAlignment( fClusterPackedYZ,   mem, nTrackClusters );
+  AssignNoAlignment( fClusterRow,        mem, nTrackClusters );
+  AssignNoAlignment( fClusterPackedAmp,  mem, nTrackClusters );
 
   // memory for output tracks
 
-  AssignMemory( fOutTracks, mem, fNTracks );
+  AssignMemory( fOutTracks, mem, nTracks );
 
   // arrays for track hits
 
-  AssignMemory( fOutTrackHits, mem, fNTrackClusters );
+  AssignMemory( fOutTrackHits, mem, nTrackClusters );
 
 
   fMemorySize = (mem - fMemory);
 }
 
-void AliHLTTPCCASliceOutput::Allocate()
+void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits)
 {
 	//Allocate All memory needed for slice output
-  if (fMemory) delete[] fMemory;
-  SetPointers(); // to calculate the size
-  fMemory = reinterpret_cast<char*> ( new uint4 [ fMemorySize/sizeof( uint4 ) + 100] );
-  SetPointers(); // set pointers
+  if (ptrOutput) free(ptrOutput);
+  ptrOutput = (AliHLTTPCCASliceOutput*) malloc(EstimateSize(nTracks, nTrackHits) + nTracks * sizeof(AliHLTTPCCAOutTrack) + nTrackHits * sizeof(int) + 1024);
+  ptrOutput->SetPointers(nTracks, nTrackHits); // set pointers
 }
 #endif
