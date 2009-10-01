@@ -1,0 +1,11 @@
+--- AliHLTTPCCAGPUTracker.cucpp	2009-05-28 12:14:09.000000000 +0200
++++ release/x86_64-pc-linux-gnu/code/AliHLTTPCCAGPUTracker.cucpp	2009-05-28 12:10:25.000000000 +0200
+@@ -23186,7 +23186,7 @@
+ static T2 *Alloc(int s) { auto T2 *p = (reinterpret_cast< T2 *>(_mm_malloc(s * sizeof(CacheLineSizeHelper< T> ), 128))); return new (p) T2 [s]; }
+ static void Free(T2 *const p, int size) {
+ for (int i = 0; i < size; ++i) {
+-((p[i]).~CacheLineSizeHelper());
++((p[i]).~T2());
+ }
+ _mm_free(p);
+ }

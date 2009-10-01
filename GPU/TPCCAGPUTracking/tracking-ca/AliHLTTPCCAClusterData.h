@@ -17,6 +17,7 @@
 #ifndef ALIHLTTPCCACLUSTERDATA_H
 #define ALIHLTTPCCACLUSTERDATA_H
 
+#include "AliHLTTPCCADef.h"
 #include <iostream>
 #include <vector>
 
@@ -29,7 +30,7 @@ class AliHLTTPCCAClusterData
 {
   public:
 
-    AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fNumberOfClusters(), fRowOffset(), fData() {}
+    AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fFirstRow( 0 ), fLastRow( -1 ), fNumberOfClusters(), fRowOffset(), fData() {}
 
     /**
      * prepare for the reading of event
@@ -151,8 +152,11 @@ class AliHLTTPCCAClusterData
      */
     void Merge( int index1, int index2 );
 
-
-    static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow < b.fRow ); }
+#ifdef REPRODUCIBLE_CLUSTER_SORTING
+	static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow >= b.fRow ? (a.fId < b.fId) : (a.fRow < b.fRow) ); }
+#else
+	static bool CompareClusters( const Data &a, const Data &b ) { return ( (a.fRow < b.fRow) ); }
+#endif
 
     int fSliceIndex;  // the slice index this data belongs to
     int fFirstRow; // see FirstRow()

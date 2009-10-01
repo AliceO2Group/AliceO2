@@ -59,10 +59,7 @@ class AliHLTTPCCAHitArea
     int  Ny() const { return fNy; }
     int  HitOffset() const { return fHitOffset; }
 
-#ifndef CUDA_DEVICE_EMULATION
   protected:
-#endif
-
     float fY;      // search coordinates
     float fZ;      // search coordinates
     float fMinZ;   // search coordinates

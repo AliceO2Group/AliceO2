@@ -21,6 +21,7 @@
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTArray.h"
+#include "AliHLTTPCCAGPUConfig.h"
 
 typedef int int_v;
 typedef unsigned int uint_v;
@@ -41,12 +42,18 @@ class AliHLTTPCCAParam;
  */
 class AliHLTTPCCASliceData
 {
-	friend class AliHLTTPCCAGPUTracker;
   public:
     AliHLTTPCCASliceData()
-        : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),
-        fLinkDownData( 0 ), fHitDataY( 0 ), fHitDataZ( 0 ), fClusterDataIndex( 0 ),
-        fFirstHitInBin( 0 ), fHitWeights( 0 ) {}
+        : 
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
+        , fFirstHitInBin( 0 ), fHitWeights( 0 )
+	{
+	}
+
+#ifndef HLTCA_GPUCODE
+	~AliHLTTPCCASliceData();
+#endif
 
     void InitializeRows( const AliHLTTPCCAParam &parameters );
 
@@ -55,7 +62,7 @@ class AliHLTTPCCASliceData
      * data.
      */
 
-	char* SetGPUSliceDataMemory(char* pGPUMemory, const AliHLTTPCCAClusterData *data);
+	void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory);
 	size_t SetPointers(const AliHLTTPCCAClusterData *data, bool allocate = false);
     void InitFromClusterData( const AliHLTTPCCAClusterData &data );
 
@@ -68,6 +75,7 @@ class AliHLTTPCCASliceData
      * Return the number of hits in this slice.
      */
     GPUhd() int NumberOfHits() const { return fNumberOfHits; }
+	GPUhd() int NumberOfHitsPlusAlign() const { return fNumberOfHitsPlusAlign; }
 
     /**
      * Access to the hit links.
@@ -76,6 +84,13 @@ class AliHLTTPCCASliceData
      */
     short_v HitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
     short_v HitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
+    
+	GPUhd() const ushort2 *HitData( const AliHLTTPCCARow &row ) const;
+	GPUhd() const ushort2 *HitData() const { return(fHitData); }
+    GPUd() const short_v *HitLinkUpData  ( const AliHLTTPCCARow &row ) const;
+    GPUd() const short_v *HitLinkDownData( const AliHLTTPCCARow &row ) const;
+    GPUd() const ushort_v *FirstHitInBin( const AliHLTTPCCARow &row ) const;
+
     void SetHitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex,
                              const short_v &value );
     void SetHitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex,
@@ -90,8 +105,9 @@ class AliHLTTPCCASliceData
      * Return the y and z coordinate(s) of the given hit(s).
      */
     // TODO return float_v
-    short_v HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
-    short_v HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
+    ushort_v HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
+    ushort_v HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
+	ushort2 HitData( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
 
     /**
      * For a given bin index, content tells how many hits there are in the preceding bins. This maps
@@ -125,34 +141,53 @@ class AliHLTTPCCASliceData
      * Return the row object for the given row index.
      */
     const AliHLTTPCCARow &Row( int rowIndex ) const;
+	GPUhd() AliHLTTPCCARow* Rows() const {return fRows;}
 
-#ifndef CUDA_DEVICE_EMULATION
+	GPUh() char *Memory() const {return(fMemory); }
+	GPUh() size_t MemorySize() const {return(fMemorySize); }
+	GPUh() size_t GpuMemorySize() const {return(fGpuMemorySize); }
+	GPUh() int* HitWeights() const {return(fHitWeights); }
+
+	GPUhd() void SetGPUTextureBase(char* val) {fGPUTextureBase = val;}
+	GPUhd() char* GPUTextureBase() const { return(fGPUTextureBase); }
+	GPUhd() char* GPUTextureBaseConst() const { return(fGPUTextureBase); }
+
+	GPUh() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
+
+	void SetGpuSliceData() { fIsGpuSliceData = 1; }
+
   private:
-#endif
-
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
-        : fNumberOfHits( 0 ), fMemorySize( 0 ), fMemory( 0 ), fLinkUpData( 0 ),
-        fLinkDownData( 0 ), fHitDataY( 0 ), fHitDataZ( 0 ), fClusterDataIndex( 0 ),
-        fFirstHitInBin( 0 ), fHitWeights( 0 ) {}
-
+        : 
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
+        , fFirstHitInBin( 0 ), fHitWeights( 0 )
+	{
+	}
     AliHLTTPCCASliceData& operator=( const AliHLTTPCCASliceData & ) {
       return *this;
     }
 
-    void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data );
+    void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data, int ClusterDataHitNumberOffset );
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
-    AliHLTTPCCARow fRows[200]; // The row objects needed for most accessor functions
+	int fIsGpuSliceData;		//Slice Data for GPU Tracker?
+	int fGPUSharedDataReq;		//Size of shared memory required for GPU Reconstruction
 
     int fNumberOfHits;         // the number of hits in this slice
-    int fMemorySize;           // size of the allocated memory in bytes
-    char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
+	int fNumberOfHitsPlusAlign;
 
-    short *fLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
+    int fMemorySize;           // size of the allocated memory in bytes
+	int fGpuMemorySize;		   // size of Memory needed to be transfered to GPU
+    char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
+	char *fGPUTextureBase;		// pointer to start of GPU texture
+
+    AliHLTTPCCARow *fRows; // The row objects needed for most accessor functions
+
+	short *fLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
     short *fLinkDownData;      // hit index in the row below which is linked to the given (global) hit index
 
-    unsigned short *fHitDataY;         // packed y coordinate of the given (global) hit index
-    unsigned short *fHitDataZ;         // packed z coordinate of the given (global) hit index
+    ushort2 *fHitData;         // packed y,z coordinate of the given (global) hit index
 
     int *fClusterDataIndex;    // see ClusterDataIndex()
 
@@ -176,6 +211,26 @@ GPUd() inline short_v AliHLTTPCCASliceData::HitLinkDownData( const AliHLTTPCCARo
   return fLinkDownData[row.fHitNumberOffset + hitIndex];
 }
 
+GPUd() inline const ushort_v *AliHLTTPCCASliceData::FirstHitInBin( const AliHLTTPCCARow &row ) const
+{
+  return &fFirstHitInBin[row.fFirstHitInBinOffset];
+}
+
+GPUd() inline const short_v *AliHLTTPCCASliceData::HitLinkUpData  ( const AliHLTTPCCARow &row ) const
+{
+  return &fLinkUpData[row.fHitNumberOffset];
+}
+
+GPUd() inline const short_v *AliHLTTPCCASliceData::HitLinkDownData( const AliHLTTPCCARow &row ) const
+{
+  return &fLinkDownData[row.fHitNumberOffset];
+}
+
+GPUhd() inline const ushort2 *AliHLTTPCCASliceData::HitData( const AliHLTTPCCARow &row ) const
+{
+  return &fHitData[row.fHitNumberOffset];
+}
+
 GPUd() inline void AliHLTTPCCASliceData::SetHitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex, const short_v &value )
 {
   fLinkUpData[row.fHitNumberOffset + hitIndex] = value;
@@ -186,14 +241,19 @@ GPUd() inline void AliHLTTPCCASliceData::SetHitLinkDownData( const AliHLTTPCCARo
   fLinkDownData[row.fHitNumberOffset + hitIndex] = value;
 }
 
-GPUd() inline short_v AliHLTTPCCASliceData::HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
+GPUd() inline ushort_v AliHLTTPCCASliceData::HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
 {
-  return fHitDataY[row.fHitNumberOffset + hitIndex];
+  return fHitData[row.fHitNumberOffset + hitIndex].x;
 }
 
-GPUd() inline short_v AliHLTTPCCASliceData::HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
+GPUd() inline ushort_v AliHLTTPCCASliceData::HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
 {
-  return fHitDataZ[row.fHitNumberOffset + hitIndex];
+  return fHitData[row.fHitNumberOffset + hitIndex].y;
+}
+
+GPUd() inline ushort2 AliHLTTPCCASliceData::HitData( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const
+{
+  return fHitData[row.fHitNumberOffset + hitIndex];
 }
 
 GPUd() inline ushort_v AliHLTTPCCASliceData::FirstHitInBin( const AliHLTTPCCARow &row, ushort_v binIndexes ) const
