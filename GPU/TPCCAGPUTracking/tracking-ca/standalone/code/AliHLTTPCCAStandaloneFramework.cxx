@@ -46,6 +46,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
     fLastTime[i] = 0;
     fStatTime[i] = 0;
   }
+  for ( int i = 0;i < fgkNSlices;i++) fSliceOutput[i] = NULL;
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
@@ -62,6 +63,7 @@ const AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::operator=(
 
 AliHLTTPCCAStandaloneFramework::~AliHLTTPCCAStandaloneFramework()
 {
+	for (int i = 0;i < fgkNSlices;i++) if (fSliceOutput[i]) free(fSliceOutput[i]);
   //* destructor
 }
 
@@ -158,7 +160,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   fMerger.SetSliceParam( fTracker.Param(0) );
 
   for ( int i = 0; i < fgkNSlices; i++ ) {
-    fMerger.SetSliceData( i, &fSliceOutput[i] );
+    fMerger.SetSliceData( i, fSliceOutput[i] );
   }
 
   fMerger.Reconstruct();

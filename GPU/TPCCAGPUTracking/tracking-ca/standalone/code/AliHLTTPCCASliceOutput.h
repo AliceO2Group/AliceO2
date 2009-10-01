@@ -30,16 +30,6 @@
 class AliHLTTPCCASliceOutput
 {
   public:
-
-    AliHLTTPCCASliceOutput()
-        : fNTracks( 0 ), fNTrackClusters( 0 ), fTracks( 0 ),  fClusterId( 0 ), fClusterRow( 0 ), fClusterPackedYZ( 0 ), fClusterUnpackedYZ( 0 ), fClusterUnpackedX( 0 ), fClusterPackedAmp( 0 ),
-		fMemorySize( 0 ), fNOutTracks(0), fNOutTrackHits(0), fOutTracks(0), fOutTrackHits(0), fMemory(NULL) {}
-
-	~AliHLTTPCCASliceOutput()
-	{
-		if (fMemory) delete[] fMemory;
-	}
-
     GPUhd() int NTracks()                    const { return fNTracks;              }
     GPUhd() int NTrackClusters()             const { return fNTrackClusters;       }
 
@@ -52,8 +42,8 @@ class AliHLTTPCCASliceOutput
     GPUhd() float    ClusterUnpackedX  ( int i )  const { return fClusterUnpackedX[i]; }
 
     GPUhd() static int EstimateSize( int nOfTracks, int nOfTrackClusters );
-    void SetPointers();
-	void Allocate();
+    void SetPointers(int nTracks = -1, int nTrackClusters = -1);
+	static void Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits);
 
     GPUhd() void SetNTracks       ( int v )  { fNTracks = v;        }
     GPUhd() void SetNTrackClusters( int v )  { fNTrackClusters = v; }
@@ -65,11 +55,6 @@ class AliHLTTPCCASliceOutput
     GPUhd() void SetClusterPackedAmp( int i, UChar_t v ) {  fClusterPackedAmp[i] = v; }
     GPUhd() void SetClusterUnpackedYZ( int i, float2 v ) {  fClusterUnpackedYZ[i] = v; }
     GPUhd() void SetClusterUnpackedX( int i, float v ) {  fClusterUnpackedX[i] = v; }
-
-	char* Memory() const { return(fMemory); }
-	size_t MemorySize() const { return(fMemorySize); }
-
-	void Clear();
 
 	//Obsolete Output
 
@@ -83,7 +68,11 @@ class AliHLTTPCCASliceOutput
     GPUhd()  int OutTrackHit( int i ) const { return  fOutTrackHits[i]; }
 
   private:
+    AliHLTTPCCASliceOutput()
+        : fNTracks( 0 ), fNTrackClusters( 0 ), fTracks( 0 ),  fClusterId( 0 ), fClusterRow( 0 ), fClusterPackedYZ( 0 ), fClusterUnpackedYZ( 0 ), fClusterUnpackedX( 0 ), fClusterPackedAmp( 0 ),
+		fMemorySize( 0 ), fNOutTracks(0), fNOutTrackHits(0), fOutTracks(0), fOutTrackHits(0) {}
 
+	~AliHLTTPCCASliceOutput() {}
     const AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) const { return *this; }
     AliHLTTPCCASliceOutput( const AliHLTTPCCASliceOutput& );
 
@@ -106,7 +95,8 @@ class AliHLTTPCCASliceOutput
     int *fOutTrackHits;  // output array of ID's of the reconstructed hits
 
 	//Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
-    char* fMemory; // the memory where the pointers above point into
+	//This way the whole Slice Output is one consecutive Memory Segment
+    char fMemory[1]; // the memory where the pointers above point into
 
 };
 

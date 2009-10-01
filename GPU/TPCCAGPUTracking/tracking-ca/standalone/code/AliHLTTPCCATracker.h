@@ -147,7 +147,7 @@ class AliHLTTPCCATracker
 	void SetPointersTracklets ( int MaxNTracklets );
     void SetPointersTracks( int MaxNTracks, int MaxNHits );
 
-	void SetOutput( AliHLTTPCCASliceOutput* out ) { fOutput = out; }
+	void SetOutput( AliHLTTPCCASliceOutput** out ) { fOutput = out; }
 
     void ReadEvent( AliHLTTPCCAClusterData *clusterData );
 
@@ -231,7 +231,7 @@ class AliHLTTPCCATracker
     GPUhd() int *NTrackHits()  const { return &fCommonMem->fNTrackHits; }
     GPUhd() AliHLTTPCCAHitId *TrackHits() const { return fTrackHits; }
 
-    GPUhd() AliHLTTPCCASliceOutput * Output() const { return fOutput; }
+    GPUhd() AliHLTTPCCASliceOutput** Output() const { return fOutput; }
 
 	GPUh() commonMemoryStruct *CommonMemory() {return(fCommonMem); }
 	static GPUh() size_t CommonMemorySize() { return(sizeof(AliHLTTPCCATracker::commonMemoryStruct)); }
@@ -241,8 +241,6 @@ class AliHLTTPCCATracker
 	GPUh() size_t TrackletMemorySize() const {return(fTrackletMemorySize); }
 	GPUh() char* &TrackMemory() {return(fTrackMemory); }
 	GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
-	GPUh() char* OutputMemory() const {return(fOutput->Memory()); }
-	GPUh() size_t OutputMemorySize() const {return(fOutput->MemorySize()); }
 	GPUhd() AliHLTTPCCARow* SliceDataRows() {return(fData.Rows()); }
 
 	GPUhd() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
@@ -310,7 +308,7 @@ class AliHLTTPCCATracker
 
     // output
 
-    AliHLTTPCCASliceOutput *fOutput;
+    AliHLTTPCCASliceOutput **fOutput;
 
     // disable copy
     AliHLTTPCCATracker( const AliHLTTPCCATracker& );

@@ -24,7 +24,9 @@ public:
 	AliHLTTPCCATrackerFramework() :
 	  fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(), fCPUSliceCount(fgkNSlices)
 	  {
-		  fGPUTrackerAvailable = (fGPUSliceCount = (fGPUTracker.InitGPU(1, -1) == 0));
+		  fGPUTrackerAvailable= (fGPUTracker.InitGPU(1, -1) == 0);
+		  fGPUSliceCount = fGPUTrackerAvailable;
+		  fUseGPUTracker = fGPUTrackerAvailable;
 	  }
     ~AliHLTTPCCATrackerFramework()
 	  {}
@@ -37,7 +39,7 @@ public:
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
 
-	int ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput* pOutput);
+	int ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput);
 	unsigned long long int* PerfTimer(int GPU, int iSlice, int iTimer);
 
 	int MaxSliceCount() const { return(fUseGPUTracker ? fGPUSliceCount : fCPUSliceCount); }
