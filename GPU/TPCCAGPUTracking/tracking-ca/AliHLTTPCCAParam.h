@@ -125,10 +125,7 @@ class AliHLTTPCCAParam
     GPUd() float GetBz( float x, float y, float z ) const;
     GPUd()  float GetBz( const AliHLTTPCCATrackParam &t ) const;
 
-#ifndef CUDA_DEVICE_EMULATION
   protected:
-#endif
-
     int fISlice; // slice number
     int fNRows; // number of rows
 

@@ -144,7 +144,8 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
         }
       }
     }
-    hlt.SliceTracker( iSlice ).Initialize( param );
+    //hlt.SliceTracker( iSlice ).Initialize( param );
+	hlt.InitializeSliceParam(iSlice, param);
   }
 }
 
@@ -408,15 +409,16 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
         tTPC.SetClusterPointer( row, c );
         AliTPCTrackerPoint &point = *( tTPC.GetTrackPoint( row ) );
         {
-          AliHLTTPCCATracker &slice = hlt.SliceTracker( iSlice );
-          if ( slice.Param().Alpha() != alpha ) {
-            if ( ! t0.Rotate(  slice.Param().Alpha() - alpha, .999 ) ) continue;
-            alpha = slice.Param().Alpha();
+          //AliHLTTPCCATracker &slice = hlt.SliceTracker( iSlice );
+          if ( hlt.Param(iSlice).Alpha() != alpha ) {
+            if ( ! t0.Rotate(  hlt.Param(iSlice).Alpha() - alpha, .999 ) ) continue;
+            alpha = hlt.Param(iSlice).Alpha();
           }
-          float x = slice.Row( row ).X();
-          if ( !t0.TransportToX( x, slice.Param().GetBz( t0 ), .999 ) ) continue;
+          float x = hlt.Row(iSlice, row).X();
+          if ( !t0.TransportToX( x, hlt.Param(iSlice).GetBz( t0 ), .999 ) ) continue;
           float sy2, sz2;
-          slice.GetErrors2( row, t0, sy2, sz2 );
+          //slice.GetErrors2( row, t0, sy2, sz2 );
+		  hlt.Param(iSlice).GetClusterErrors2( row, t0.GetZ(), t0.SinPhi(), t0.GetCosPhi(), t0.DzDs(), sy2, sz2 );
           point.SetSigmaY( c->GetSigmaY2() / sy2 );
           point.SetSigmaZ( c->GetSigmaZ2() / sz2 );
           point.SetAngleY( TMath::Abs( t0.GetSinPhi() / t0.GetCosPhi() ) );

@@ -6,8 +6,8 @@
 //                                                                        *
 //*************************************************************************
 
-#ifndef ALIHLTTPCCASTARTHITSFINDER_H
-#define ALIHLTTPCCASTARTHITSFINDER_H
+#ifndef ALIHLTTPCCASTARTHITSSORTER_H
+#define ALIHLTTPCCASTARTHITSSORTER_H
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAHitId.h"
@@ -15,35 +15,32 @@
 class AliHLTTPCCATracker;
 
 /**
- * @class AliHLTTPCCAStartHitsFinder
+ * @class AliHLTTPCCAStartHitsSorter
  *
  */
-class AliHLTTPCCAStartHitsFinder
+class AliHLTTPCCAStartHitsSorter
 {
   public:
     class AliHLTTPCCASharedMemory
     {
-        friend class AliHLTTPCCAStartHitsFinder;
+        friend class AliHLTTPCCAStartHitsSorter;
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
+            : fStartRow( 0 ), fNRows( 0 ), fStartOffset( 0 ) {}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
+            : fStartRow( 0 ), fNRows( 0 ), fStartOffset( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif
 
       protected:
-        int fIRow; // row index
-        int fNRows; // n rows
-        int fNHits; // n hits in the row
-        AliHLTTPCCAHitId fRowStartHits[ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS]; // temp. array for the start hits
-        int fNOldStartHits; // n start hits from other jobs
-        int fNRowStartHits; // n start hits for this row
+        int fStartRow;		// start row index
+        int fNRows;			// number of rows to process
+		int fStartOffset;	//start offset for hits sorted by this block
     };
 
-    GPUd() static int NThreadSyncPoints() { return 3; }
+    GPUd() static int NThreadSyncPoints() { return 1; }
 
     GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
                                AliHLTTPCCASharedMemory &smem, AliHLTTPCCATracker &tracker );

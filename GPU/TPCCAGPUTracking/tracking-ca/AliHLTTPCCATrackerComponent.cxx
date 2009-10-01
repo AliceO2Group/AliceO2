@@ -30,7 +30,7 @@ using namespace std;
 
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCTransform.h"
-#include "AliHLTTPCCATracker.h"
+#include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCCAOutTrack.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackConvertor.h"
@@ -61,6 +61,7 @@ ClassImp( AliHLTTPCCATrackerComponent )
 AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     :
     fTracker( NULL ),
+	fOutput( NULL ),
     fSolenoidBz( 0 ),
     fMinNTrackClusters( 0 ),
     fClusterZCut( 500. ),
@@ -83,6 +84,7 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrack
     :
     AliHLTProcessor(),
     fTracker( NULL ),
+	fOutput( NULL),
     fSolenoidBz( 0 ),
     fMinNTrackClusters( 30 ),
     fClusterZCut( 500. ),
@@ -109,6 +111,7 @@ AliHLTTPCCATrackerComponent::~AliHLTTPCCATrackerComponent()
 {
   // see header file for class documentation
   delete fTracker;
+  delete fOutput;
 }
 
 //
@@ -322,9 +325,11 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 {
   // Configure the CA tracker component
 
-  if ( fTracker ) return EINPROGRESS;
+  if ( fTracker || fOutput ) return EINPROGRESS;
 
-  fTracker = new AliHLTTPCCATracker();
+
+  fTracker = new AliHLTTPCCATrackerFramework();
+  fOutput = new AliHLTTPCCASliceOutput();
 
   TString arguments = "";
   for ( int i = 0; i < argc; i++ ) {
@@ -341,6 +346,8 @@ int AliHLTTPCCATrackerComponent::DoDeinit()
   // see header file for class documentation
   delete fTracker;
   fTracker = NULL;
+  delete fOutput;
+  fOutput = NULL;
   return 0;
 }
 
@@ -459,7 +466,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
 
   {
-    if ( !fTracker ) fTracker = new AliHLTTPCCATracker;
+    if ( !fTracker ) fTracker = new AliHLTTPCCATrackerFramework;
+	if ( !fOutput ) fOutput = new AliHLTTPCCASliceOutput;
     int iSec = slice;
     float inRmin = 83.65;
     //    float inRmax = 133.3;
@@ -497,7 +505,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     if( fClusterErrorCorrectionY>1.e-4 ) param.SetClusterError2CorrectionY( fClusterErrorCorrectionY*fClusterErrorCorrectionY );
     if( fClusterErrorCorrectionZ>1.e-4 ) param.SetClusterError2CorrectionZ( fClusterErrorCorrectionZ*fClusterErrorCorrectionZ );
     param.Update();
-    fTracker->Initialize( param );
+    fTracker->InitializeSliceParam( slice, param );
     delete[] rowX;
   }
 
@@ -575,22 +583,20 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   TStopwatch timerReco;
 
-  fTracker->ReadEvent( &clusterData );
-
-  fTracker->Reconstruct();
+  fTracker->ProcessSlices(slice, 1, &clusterData, fOutput);
 
   timerReco.Stop();
 
   int ret = 0;
 
   Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct",
-           "%d tracks found for slice %d", fTracker->NOutTracks(), slice );
+           "%d tracks found for slice %d", fOutput->NOutTracks(), slice );
 
 
   // write reconstructed tracks
 
   unsigned int mySize = 0;
-  int ntracks = *fTracker->NOutTracks();
+  int ntracks = fOutput->NOutTracks();
 
 
   if ( fOutputTRAKSEGS ) {
@@ -605,7 +611,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
     for ( int itr = 0; itr < ntracks; itr++ ) {
 
-      AliHLTTPCCAOutTrack &t = fTracker->OutTracks()[itr];
+      AliHLTTPCCAOutTrack &t = fOutput->OutTracks()[itr];
 
       //Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Wrtite output","track %d with %d hits", itr, t.NHits());
 
@@ -625,10 +631,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
       int iFirstRow = 1000;
       int iLastRow = -1;
-      int iFirstHit = fTracker->OutTrackHits()[t.FirstHitRef()];
+      int iFirstHit = fOutput->OutTrackHit(t.FirstHitRef());
       int iLastHit = iFirstHit;
       for ( int ih = 0; ih < t.NHits(); ih++ ) {
-        int hitID = fTracker->OutTrackHits()[t.FirstHitRef() + ih ];
+        int hitID = fOutput->OutTrackHit(t.FirstHitRef() + ih);
         int iRow = clusterData.RowNumber( hitID );
         if ( iRow < iFirstRow ) {  iFirstRow = iRow; iFirstHit = hitID; }
         if ( iRow > iLastRow ) { iLastRow = iRow; iLastHit = hitID; }
@@ -687,7 +693,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       currOutTracklet->fNPoints = t.NHits();
 
       for ( int i = 0; i < t.NHits(); i++ ) {
-        currOutTracklet->fPointIDs[i] = clusterData.Id( fTracker->OutTrackHits()[t.FirstHitRef()+i] );
+        currOutTracklet->fPointIDs[i] = clusterData.Id( fOutput->OutTrackHit(t.FirstHitRef()+i) );
       }
 
       currOutTracklet = ( AliHLTTPCTrackSegmentData* )( ( Byte_t * )currOutTracklet + dSize );
@@ -697,10 +703,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   } else { // default output type
 
-    mySize = fTracker->Output()->EstimateSize( fTracker->Output()->NTracks(),
-             fTracker->Output()->NTrackClusters() );
+    mySize = fOutput->EstimateSize( fOutput->NTracks(),
+             fOutput->NTrackClusters() );
     if ( mySize <= maxBufferSize ) {
-      const AliHLTUInt8_t* outputevent = reinterpret_cast<const AliHLTUInt8_t*>( fTracker->Output() );
+      const AliHLTUInt8_t* outputevent = reinterpret_cast<const AliHLTUInt8_t*>( fOutput );
       for ( unsigned int i = 0; i < mySize; i++ ) outputPtr[i] = outputevent[i];
     } else {
       HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), tracks are not stored", maxBufferSize, mySize );

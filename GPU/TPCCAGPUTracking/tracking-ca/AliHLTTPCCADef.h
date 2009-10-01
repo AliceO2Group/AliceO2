@@ -40,9 +40,17 @@
 #endif
 #endif
 
-#if defined(HLTCA_STANDALONE) || defined(HLTCA_GPUCODE)
+#if defined(HLTCA_STANDALONE)
 
 // class TObject{};
+
+#ifdef ClassDef
+#undef ClassDef
+#endif
+
+#ifdef ClassTmp
+#undef ClassTmp
+#endif
 
 #define ClassDef(name,id)
 #define ClassImp(name)
@@ -96,16 +104,20 @@ namespace AliHLTTPCCADefinitions
 
 #endif
 
+//#define EXTERN_ROW_HITS
+#define TRACKLET_SELECTOR_MIN_HITS 10
+#define REPRODUCIBLE_CLUSTER_SORTING
+
 #ifdef HLTCA_GPUCODE
-#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 5
-#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 700
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 1000
 #define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 3500
-#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 650
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 1536					//Max amount of hits in a row that can be stored in shared memory, make sure this is divisible by ROW ALIGNMENT
 #else
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 20
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 7000
 #define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 10000
-#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 5000
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 15000
 #endif
 
 #ifdef HLTCA_GPUCODE
@@ -118,8 +130,6 @@ namespace AliHLTTPCCADefinitions
 #define GPUshared() __shared__
 #define GPUsync() __syncthreads()
 
-__constant__ float4 gAliHLTTPCCATracker[30000/sizeof( float4 )];
-
 #else
 
 #define GPUd()
@@ -130,9 +140,15 @@ __constant__ float4 gAliHLTTPCCATracker[30000/sizeof( float4 )];
 #define GPUsync()
 
 struct float2 { float x; float y; };
-struct uchar2 { unsigned char x; unsigned char y; };
-struct ushort2 { unsigned short x; unsigned short y; };
+struct uchar2 { unsigned char x, y; };
+struct short2 { short x, y; };
+struct ushort2 { unsigned short x, y; };
+struct int2 { int x, y; };
+struct int3 { int x, y, z; };
+struct int4 { int x, y, z, w; };
 struct uint1 { unsigned int x; };
+struct uint2 { unsigned int x, y; };
+struct uint3 { unsigned int x, y, z; };
 struct uint4 { unsigned int x, y, z, w; };
 
 #ifdef R__WIN32
@@ -149,6 +165,8 @@ inline bool finite(float x)
 /*
  * Helper for compile-time verification of correct API usage
  */
+
+#ifndef HLTCA_GPUCODE
 namespace
 {
   template<bool> struct HLTTPCCA_STATIC_ASSERT_FAILURE;
@@ -161,6 +179,9 @@ namespace
   typedef HLTTPCCA_STATIC_ASSERT_FAILURE<cond> HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__); \
   HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__) Error_##msg; \
   (void) Error_##msg
+#else
+#define STATIC_ASSERT(a, b)
+#endif
 
 namespace
 {
@@ -183,5 +204,11 @@ namespace
   template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
   void UNUSED_PARAM9( const T1 &, const T2 &, const T3 &, const T4 &, const T5 &, const T6 &, const T7 &, const T8 &, const T9 & ) {}
 }
+
+#define UNROLL2(var, code) code;var++;code;var++;
+#define UNROLL4(var, code) UNROLL2(var, code) UNROLL2(var, code)
+#define UNROLL8(var, code) UNROLL4(var, code) UNROLL4(var, code)
+#define UNROLL16(var, code) UNROLL8(var, code) UNROLL8(var, code)
+#define UNROLL32(var, code) UNROLL16(var, code) UNROLL16(var, code)
 
 #endif
