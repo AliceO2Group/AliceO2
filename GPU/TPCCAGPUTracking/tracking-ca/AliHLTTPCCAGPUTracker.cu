@@ -221,11 +221,12 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 	  const int useDebugLevel = fDebugLevel;
 	  fDebugLevel = 0;
 	  AliHLTTPCCAClusterData tmpCluster;
-	  AliHLTTPCCASliceOutput tmpOutput;
+	  AliHLTTPCCASliceOutput *tmpOutput = NULL;
 	  AliHLTTPCCAParam tmpParam;
 	  tmpParam.SetNRows(HLTCA_ROW_COUNT);
 	  fSlaveTrackers[0].SetParam(tmpParam);
 	  Reconstruct(&tmpOutput, &tmpCluster, 0, 1);
+	  free(tmpOutput);
 	  fDebugLevel = useDebugLevel;
   }
 #endif
@@ -380,7 +381,7 @@ __global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTra
 		sliceDataHitWeights4[i] = i0;
 }
 
-int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput* pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
+int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
 	//Primary reconstruction function
 	cudaStream_t* const cudaStreams = (cudaStream_t*) fpCudaStreams;

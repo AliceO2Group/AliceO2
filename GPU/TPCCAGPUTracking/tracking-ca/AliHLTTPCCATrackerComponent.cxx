@@ -111,7 +111,7 @@ AliHLTTPCCATrackerComponent::~AliHLTTPCCATrackerComponent()
 {
   // see header file for class documentation
   delete fTracker;
-  delete fOutput;
+  if (fOutput) free(fOutput);
 }
 
 //
@@ -329,7 +329,6 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 
 
   fTracker = new AliHLTTPCCATrackerFramework();
-  fOutput = new AliHLTTPCCASliceOutput();
 
   TString arguments = "";
   for ( int i = 0; i < argc; i++ ) {
@@ -346,7 +345,7 @@ int AliHLTTPCCATrackerComponent::DoDeinit()
   // see header file for class documentation
   delete fTracker;
   fTracker = NULL;
-  delete fOutput;
+  free(fOutput);
   fOutput = NULL;
   return 0;
 }
@@ -467,7 +466,6 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   {
     if ( !fTracker ) fTracker = new AliHLTTPCCATrackerFramework;
-	if ( !fOutput ) fOutput = new AliHLTTPCCASliceOutput;
     int iSec = slice;
     float inRmin = 83.65;
     //    float inRmax = 133.3;
@@ -583,7 +581,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   TStopwatch timerReco;
 
-  fTracker->ProcessSlices(slice, 1, &clusterData, fOutput);
+  fTracker->ProcessSlices(slice, 1, &clusterData, &fOutput);
 
   timerReco.Stop();
 
