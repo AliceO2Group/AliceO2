@@ -43,7 +43,7 @@ void AliHLTTPCCASliceOutput::SetPointers(int nTracks, int nTrackClusters)
 {
   // set all pointers
 	if (nTracks == -1) nTracks = fNTracks;
-	if (nTrackClusters == -1) nTrackClusters == fNTrackClusters;
+	if (nTrackClusters == -1) nTrackClusters = fNTrackClusters;
 
   char *mem = fMemory;
   AssignNoAlignment( fTracks,            mem, nTracks );
