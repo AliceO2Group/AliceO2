@@ -72,6 +72,16 @@ int AliHLTTPCCATrackerFramework::SetGPUTracker(bool enable)
 	return(0);
 }
 
+GPUhd() void AliHLTTPCCATrackerFramework::SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val)
+{
+	fOutputControl = val;
+	fGPUTracker.SetOutputControl(val);
+	for (int i = 0;i < fgkNSlices;i++)
+	{
+		fCPUTrackers[i].SetOutputControl(val);
+	}
+}
+
 int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput)
 {
 	//Process sliceCount slices starting from firstslice, in is pClusterData array, out pOutput array
@@ -82,6 +92,12 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 	else
 	{
 #ifdef HLTCA_STANDALONE
+		if (fOutputControl->fOutputPtr && omp_get_max_threads() > 1)
+		{
+			printf("fOutputPtr must not be used with OpenMP\n");
+			return(1);
+		}
+
 #pragma omp parallel for
 #endif
 		for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)

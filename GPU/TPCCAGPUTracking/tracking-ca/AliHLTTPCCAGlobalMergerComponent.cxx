@@ -360,6 +360,13 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
     AliHLTTPCCASliceOutput *sliceOut =  reinterpret_cast<AliHLTTPCCASliceOutput *>( block->fPtr );
     sliceOut->SetPointers();
     fGlobalMerger->SetSliceData( slice, sliceOut );
+
+	/*char filename[256];
+	sprintf(filename, "debug%d.out", slice);
+	FILE* fp = fopen(filename, "w+b");
+	if (fp == NULL) printf("Error!!!\n");
+	fwrite(sliceOut, 1, sliceOut->EstimateSize(sliceOut->NTracks(), sliceOut->NTrackClusters()), fp);
+	fclose(fp);*/
   }
   fGlobalMerger->Reconstruct();
 

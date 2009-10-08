@@ -20,6 +20,7 @@
 //If not building GPU Code then build dummy functions to link against
 #include "AliHLTTPCCAGPUTracker.h"
 
+#ifndef BUILD_GPU
 int AliHLTTPCCAGPUTracker::InitGPU(int /*sliceCount*/, int /*forceDeviceID*/)
 {
     //Dummy init function if CUDA is not available
@@ -35,4 +36,5 @@ int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* /*OptionName*/, int /*Optio
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** /*pTracker*/, AliHLTTPCCAClusterData* /*pClusterData*/, int /*fFirstSlice*/, int /*fSliceCount*/) {return(1);}
 int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
 int AliHLTTPCCAGPUTracker::InitializeSliceParam(int /*iSlice*/, AliHLTTPCCAParam& /*param*/) {}
-
+void AliHLTTPCCAGPUTracker::SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* /*val*/) {};
+#endif
