@@ -77,7 +77,6 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 
     /** the tracker object */
     AliHLTTPCCATrackerFramework* fTracker;                                //! transient
-	AliHLTTPCCASliceOutput* fOutput;
 
     /** magnetic field */
     double fSolenoidBz;                                            // see above
