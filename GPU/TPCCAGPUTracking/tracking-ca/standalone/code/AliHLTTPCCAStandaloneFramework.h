@@ -83,7 +83,8 @@ class AliHLTTPCCAStandaloneFramework
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL) { fDebugLevel = Level; fTracker.SetGPUDebugLevel(Level, OutFile, GPUOutFile); }
 	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fTracker.SetGPUTrackerOption(OptionName, OptionValue));}
 	int SetGPUTracker(bool enable) { return(fTracker.SetGPUTracker(enable)); }
-	int GetGPUStatus() { return(fTracker.GetGPUStatus()); }
+	int GetGPUStatus() const { return(fTracker.GetGPUStatus()); }
+	int GetGPUMaxSliceCount() const { return(fTracker.MaxSliceCount()); }
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
 
@@ -102,6 +103,7 @@ class AliHLTTPCCAStandaloneFramework
     AliHLTTPCCAMerger fMerger;  //* global merger
     AliHLTTPCCAClusterData fClusterData[fgkNSlices];
 	AliHLTTPCCASliceOutput* fSliceOutput[fgkNSlices];
+	AliHLTTPCCASliceOutput::outputControlStruct fOutputControl;
 
 	AliHLTTPCCATrackerFramework fTracker;
 

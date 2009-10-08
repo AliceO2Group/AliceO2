@@ -30,6 +30,16 @@
 class AliHLTTPCCASliceOutput
 {
   public:
+
+	struct outputControlStruct
+	{
+		outputControlStruct() : fObsoleteOutput( 1 ), fDefaultOutput( 1 ), fOutputPtr( NULL ), fOutputMaxSize ( 0 ) {}
+		int fObsoleteOutput;	//Enable Obsolete Output
+		int fDefaultOutput;		//Enable Default Output
+		char* fOutputPtr;		//Pointer to Output Space, NULL to allocate output space
+		int fOutputMaxSize;		//Max Size of Output Data if Pointer to output space is given
+	};
+
     GPUhd() int NTracks()                    const { return fNTracks;              }
     GPUhd() int NTrackClusters()             const { return fNTrackClusters;       }
 
@@ -42,8 +52,8 @@ class AliHLTTPCCASliceOutput
     GPUhd() float    ClusterUnpackedX  ( int i )  const { return fClusterUnpackedX[i]; }
 
     GPUhd() static int EstimateSize( int nOfTracks, int nOfTrackClusters );
-    void SetPointers(int nTracks = -1, int nTrackClusters = -1);
-	static void Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits);
+    void SetPointers(int nTracks = -1, int nTrackClusters = -1, const outputControlStruct* outputControl = NULL);
+	static void Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl);
 
     GPUhd() void SetNTracks       ( int v )  { fNTracks = v;        }
     GPUhd() void SetNTrackClusters( int v )  { fNTrackClusters = v; }
@@ -55,6 +65,8 @@ class AliHLTTPCCASliceOutput
     GPUhd() void SetClusterPackedAmp( int i, UChar_t v ) {  fClusterPackedAmp[i] = v; }
     GPUhd() void SetClusterUnpackedYZ( int i, float2 v ) {  fClusterUnpackedYZ[i] = v; }
     GPUhd() void SetClusterUnpackedX( int i, float v ) {  fClusterUnpackedX[i] = v; }
+
+	GPUhd() size_t OutputMemorySize() const { return(fMemorySize); }
 
 	//Obsolete Output
 
@@ -75,6 +87,8 @@ class AliHLTTPCCASliceOutput
 	~AliHLTTPCCASliceOutput() {}
     const AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) const { return *this; }
     AliHLTTPCCASliceOutput( const AliHLTTPCCASliceOutput& );
+
+	GPUh() void SetMemorySize(size_t val) { fMemorySize = val; }
 
     int fNTracks;                   // number of reconstructed tracks
     int fNTrackClusters;            // total number of track clusters

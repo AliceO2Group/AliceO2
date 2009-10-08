@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTDataTypes.h 31779 2009-04-01 19:34:11Z jthaeder $
+// @(#) $Id: AliHLTDataTypes.h 34546 2009-09-02 14:00:57Z odjuvsla $
 
 #ifndef ALIHLTDATATYPES_H
 #define ALIHLTDATATYPES_H
@@ -51,8 +51,16 @@
  *           kAliHLTDataOriginHLT added
  *  11       extended AliHLTComponentStatistics: one more member to store the
  *           cycle time between events per component.
+ *  12       added common data type id 'CLUSTERS'
+ *           added data type 'ECSPARAM' for the full ECS parameter string to
+ *           be sebt during SOR
+ *           added kAliHLTDataTypeTrackMC (TRACK_MC) data type
+ *           added data types (note: interface version stays the same
+ *                 kAliHLTDataTypeDAQRDOUT (DAQRDOUT)
+ *                 kAliHLTDataTypeTriggerDecision (TRIG_DEC)
+ *                 kAliHLTDataTypeGlobalTrigger (GLOBTRIG)
  */
-#define ALIHLT_DATA_TYPES_VERSION 11
+#define ALIHLT_DATA_TYPES_VERSION 12
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -194,6 +202,13 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 # define kAliHLTDDLRawDataTypeID   {'D','D','L','_','R','A','W',' '}
 
+/** CLUSTERS data
+ * Common data type for the output of cluster finders, the exact
+ * format depends on the origin (detector)
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTClustersDataTypeID {'C','L','U','S','T','E','R','S'}
+
 /** calibration data for file exchange subscriber 
  * @ingroup alihlt_component_datatypes
  */
@@ -223,11 +238,23 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 # define kAliHLTDDLDataTypeID      {'D','D','L','L','I','S','T',' '}
 
+/** DAQ readout list 
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTDAQRDOUTDataTypeID "DAQRDOUT"
+
 /** EventType event 
  * - empty payload, specification gives eventType
  * @ingroup alihlt_component_datatypes
  */
 # define kAliHLTEventDataTypeID    {'E','V','E','N','T','T','Y','P'}
+
+/** ECS parameter event 
+ * - sent during the SOR event by the framework
+ * - contains the full ECS parameter string
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTECSParamDataTypeID {'E','C','S','P','A','R','A','M'}
 
 /** ComponentConfiguration event
  * - payload contains the CDB path as string
@@ -308,6 +335,18 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 # define kAliHLTRunSummaryDataTypeID          {'R','U','N','S','U','M','M','A'}
 
+/** Trigger decision
+ * - origin : kAliHLTDataOriginOut ( HLT )
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTTriggerDecisionDataTypeID     {'T','R','I','G','_','D','E','C'}
+
+/** Global trigger decision
+ * - origin : kAliHLTDataOriginOut ( HLT )
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTGlobalTriggerDataTypeID       {'G','L','O','B','T','R','I','G'}
+
 /** Block Statistics
  * - small block statistics info added to the data stream by
  *   the component base class
@@ -365,6 +404,11 @@ const int kAliHLTComponentDataTypefIDsize=8;
  * @ingroup alihlt_component_datatypes
  */
 #define kAliHLTTrackDataTypeID                {'H','L','T','T','R','A','C','K'}
+
+/** Track Monte Carlo information
+ * @ingroup alihlt_component_datatypes
+ */
+#define kAliHLTTrackMCDataTypeID              {'T','R','A','C','K','_','M','C'}
 
 /** TClonesArray of AliExternalTrackParam
  * @ingroup alihlt_component_datatypes
@@ -780,6 +824,18 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeDDL;
 
+  /** DAQ readout list 
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeDAQRDOUT;
+
+  /** CLUSTERS data
+   * Common data type for the output of cluster finders, the exact
+   * format depends on the origin (detector)
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeClusters;
+
   /** SOR data type 
    * @ingroup alihlt_component_datatypes
    */
@@ -799,6 +855,13 @@ extern "C" {
    * @ingroup alihlt_component_datatypes
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeEvent;
+
+  /** ECS parameter event 
+   * - sent during the SOR event by the framework
+   * - contains the full ECS parameter string
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeECSParam; // {ECSPARAM:PRIV}
 
   /** Configuration event data type 
    * @ingroup alihlt_component_datatypes
@@ -860,10 +923,22 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeRunStatistics;
 
-  /** Event summary 
+  /** Run summary 
    * @ingroup alihlt_component_datatypes
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeRunSummary;
+
+  /** Trigger decision
+   * - origin : kAliHLTDataOriginOut ( HLT )
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeTriggerDecision;   // {TRIG_DEC:HLT }
+
+  /** Global trigger decision
+   * - origin : kAliHLTDataOriginOut ( HLT )
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeGlobalTrigger;     // {GLOBTRIG:HLT }
 
   /** Component block statistics
    * @ingroup alihlt_component_datatypes
@@ -917,6 +992,10 @@ extern "C" {
    */	
   extern const AliHLTComponentDataType kAliHLTDataTypeTrack;              // {HLTTRACK,"***"}
 
+  /** Track Monte Carlo information
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeTrackMC;            // {TRACK_MC,"***"}
+
   /** TClonesArray of AliExternalTrackParam
    * @ingroup alihlt_component_datatypes
    */	
@@ -927,6 +1006,16 @@ extern "C" {
    * @ingroup alihlt_component_datatypes
    */	
   extern const AliHLTComponentDataType kAliHLTDataTypeJet;                // {HLTJETV0,"***"}
+  
+  /** Container of ITS tracks
+   * @ingroup alihlt_component_datatypes
+   */	
+  extern const AliHLTComponentDataType fgkITSTracksDataType;
+
+  /** Container of calorimeter clusters
+   * @ingroup alihlt_component_datatypes
+   */	
+  extern const AliHLTComponentDataType kAliHLTDataTypeCaloCluster; 
 
   //////////////////////////////////////////////////////////////////////////
   //
@@ -1159,7 +1248,7 @@ inline AliHLTComponentDataType AliHLTComponentDataTypeInitializer(const char id[
 {
   AliHLTComponentDataType dt=kAliHLTVoidDataType;
   int i=0;
-  for (i = 0; i < kAliHLTComponentDataTypefIDsize; i++)
+  for (i = 0; i < kAliHLTComponentDataTypefIDsize && id[i]!=0; i++)
     dt.fID[i]=id[i];
   for (i = 0; i < kAliHLTComponentDataTypefOriginSize && origin[i]!=0; i++ )
     dt.fOrigin[i]=origin[i];

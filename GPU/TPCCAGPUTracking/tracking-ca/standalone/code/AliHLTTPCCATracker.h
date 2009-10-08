@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCATracker.h 33907 2009-07-23 13:52:49Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATracker.h 35348 2009-10-08 12:04:48Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -50,6 +50,7 @@ class AliHLTTPCCATracker
 
 	AliHLTTPCCATracker()
 		: fParam(),
+		fOutputControl(),
 		fClusterData( 0 ),
 		fData(),
 		fIsGPUTracker( false ),
@@ -82,12 +83,14 @@ class AliHLTTPCCATracker
 
 	struct StructGPUParameters
 	{
+		StructGPUParameters() : fScheduleFirstDynamicTracklet( 0 ), fGPUError( 0 ) {}
 		int fScheduleFirstDynamicTracklet;		//Last Tracklet with fixed position in sheduling
 		int fGPUError;							//Signalizes error on GPU during GPU Reconstruction, kind of return value
 	};
 
 	struct StructGPUParametersConst
 	{
+		StructGPUParametersConst() : fGPUFixedBlockCount( 0 ), fGPUiSlice( 0 ), fGPUnSlices( 0 ) {}
 		int fGPUFixedBlockCount;				//Count of blocks that is used for this tracker in fixed schedule situations
 		int fGPUiSlice;
 		int fGPUnSlices;
@@ -95,6 +98,7 @@ class AliHLTTPCCATracker
 
 	struct commonMemoryStruct
 	{
+		commonMemoryStruct() : fNTracklets( 0 ), fNTracks( 0 ), fNTrackHits( 0 ), fGPUParameters() {}
 	    int fNTracklets;     // number of tracklets
 	    int fNTracks;            // number of reconstructed tracks
 	    int fNTrackHits;           // number of track hits
@@ -159,6 +163,9 @@ class AliHLTTPCCATracker
 
     GPUhd() const AliHLTTPCCAParam &Param() const { return fParam; }
     GPUhd() void SetParam( const AliHLTTPCCAParam &v ) { fParam = v; }
+
+	GPUhd() const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
+	GPUh() void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val)	{ fOutputControl = val;	}
 
     GPUhd() AliHLTTPCCAClusterData *ClusterData() const { return fClusterData; }
     GPUhd() const AliHLTTPCCASliceData &Data() const { return fData; }
@@ -265,6 +272,8 @@ class AliHLTTPCCATracker
 	double fTimers[10];
     unsigned long long int fPerfTimers[16]; // running CPU time for different parts of the algorithm
 	void StandalonePerfTime(int i);
+
+	AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 
     /** A pointer to the ClusterData object that the SliceData was created from. This can be used to
      * merge clusters from inside the SliceTracker code and recreate the SliceData. */

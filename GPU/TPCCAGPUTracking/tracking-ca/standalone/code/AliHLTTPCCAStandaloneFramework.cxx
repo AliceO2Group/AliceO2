@@ -38,7 +38,7 @@ AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
-    : fMerger(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0)
+    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0)
 {
   //* constructor
 
@@ -47,10 +47,11 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
     fStatTime[i] = 0;
   }
   for ( int i = 0;i < fgkNSlices;i++) fSliceOutput[i] = NULL;
+  fTracker.SetOutputControl(&fOutputControl);
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-    : fMerger(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0)
+    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0)
 {
   //* dummy
 }
@@ -134,6 +135,8 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   unsigned long long int cpuTimers[16], gpuTimers[16], tmpFreq;
   StandaloneQueryFreq(&tmpFreq);
   StandaloneQueryTime(&startTime);
+
+  fOutputControl.fObsoleteOutput = 0;
 #endif
 
   if (forceSingleSlice != -1)
@@ -160,6 +163,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   fMerger.SetSliceParam( fTracker.Param(0) );
 
   for ( int i = 0; i < fgkNSlices; i++ ) {
+	//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), fSliceOutput[i]->NTracks());
     fMerger.SetSliceData( i, fSliceOutput[i] );
   }
 
