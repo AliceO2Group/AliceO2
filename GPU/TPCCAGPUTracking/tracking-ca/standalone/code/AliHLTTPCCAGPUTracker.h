@@ -11,6 +11,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTLogging.h"
+#include "AliHLTTPCCASliceOutput.h"
 
 class AliHLTTPCCARow;
 
@@ -25,11 +26,12 @@ public:
 	  fOutFile(NULL),
 	  fGPUMemSize(0),
 	  fpCudaStreams(NULL),
-	  fSliceCount(0)
+	  fSliceCount(0),
+	  fOutputControl(NULL)
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
 
-	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
+	int InitGPU(int sliceCount = 12, int forceDeviceID = -1);
 	int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	int ExitGPU();
 
@@ -39,6 +41,11 @@ public:
 	unsigned long long int* PerfTimer(int iSlice, unsigned int i) {return(fSlaveTrackers ? fSlaveTrackers[iSlice].PerfTimer(i) : NULL); }
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
+
+	const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
+	void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
+	
+	int GetSliceCount() const { return(fSliceCount); }
 
 private:
 	static void* RowMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + iSlice * sizeof(AliHLTTPCCARow) * (HLTCA_ROW_COUNT + 1) ); }
@@ -72,6 +79,10 @@ private:
 #ifdef HLTCA_GPUCODE
 	bool CudaFailedMsg(cudaError_t error);
 #endif
+
+	AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
+	
+	static bool fgGPUUsed;
 
 	// disable copy
 	AliHLTTPCCAGPUTracker( const AliHLTTPCCAGPUTracker& );

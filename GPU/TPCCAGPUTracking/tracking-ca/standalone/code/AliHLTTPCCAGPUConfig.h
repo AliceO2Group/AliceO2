@@ -22,6 +22,7 @@
 #define HLTCA_GPU_TEXTURE_FETCH
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+//#define HLTCA_GPU_TIME_PROFILE
 
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 3		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results

@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATracker.cxx 34611 2009-09-04 00:22:05Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATracker.cxx 35348 2009-10-08 12:04:48Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -410,8 +410,9 @@ GPUh() int AliHLTTPCCATracker::CheckEmptySlice()
 {
   if ( NHitsTotal() < 1 ) {
     {
-	  AliHLTTPCCASliceOutput::Allocate(*fOutput, 0, 0);
+	  AliHLTTPCCASliceOutput::Allocate(*fOutput, 0, 0, fOutputControl);
 	  AliHLTTPCCASliceOutput* useOutput = *fOutput;
+	  if (fOutput == NULL) return(1);
       useOutput->SetNTracks( 0 );
       useOutput->SetNTrackClusters( 0 );
 	  useOutput->SetNOutTracks(0);
@@ -619,130 +620,136 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
   //cout<<"output: nTracks = "<<*fNTracks<<", nHitsTotal="<<NHitsTotal()<<std::endl;
 
-  AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits);
+  if (fOutputControl == NULL) fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
+  AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
   AliHLTTPCCASliceOutput* useOutput = *fOutput;
+  if (useOutput == NULL) return;
 
-  useOutput->SetNTracks( fCommonMem->fNTracks );
-  useOutput->SetNTrackClusters( fCommonMem->fNTrackHits );
+  if (fOutputControl->fDefaultOutput)
+  {
+	  useOutput->SetNTracks( fCommonMem->fNTracks );
+	  useOutput->SetNTrackClusters( fCommonMem->fNTrackHits );
 
-  int nStoredHits = 0;
+	  int nStoredHits = 0;
 
-  for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
-    AliHLTTPCCATrack &iTrack = fTracks[iTr];
+	  for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
+		AliHLTTPCCATrack &iTrack = fTracks[iTr];
 
-    AliHLTTPCCASliceTrack out;
-    out.SetFirstClusterRef( nStoredHits );
-    out.SetNClusters( iTrack.NHits() );
-    out.SetParam( iTrack.Param() );
+		AliHLTTPCCASliceTrack out;
+		out.SetFirstClusterRef( nStoredHits );
+		out.SetNClusters( iTrack.NHits() );
+		out.SetParam( iTrack.Param() );
 
-    useOutput->SetTrack( iTr, out );
+		useOutput->SetTrack( iTr, out );
 
-    int iID = iTrack.FirstHitID();
-    for ( int ith = 0; ith < iTrack.NHits(); ith++ ) {
-      const AliHLTTPCCAHitId &ic = fTrackHits[iID + ith];
-      int iRow = ic.RowIndex();
-      int ih = ic.HitIndex();
+		int iID = iTrack.FirstHitID();
+		for ( int ith = 0; ith < iTrack.NHits(); ith++ ) {
+		  const AliHLTTPCCAHitId &ic = fTrackHits[iID + ith];
+		  int iRow = ic.RowIndex();
+		  int ih = ic.HitIndex();
 
-      const AliHLTTPCCARow &row = fData.Row( iRow );
+		  const AliHLTTPCCARow &row = fData.Row( iRow );
 
-      //float y0 = row.Grid().YMin();
-      //float z0 = row.Grid().ZMin();
-      //float stepY = row.HstepY();
-      //float stepZ = row.HstepZ();
-      //float x = row.X();
+		  //float y0 = row.Grid().YMin();
+		  //float z0 = row.Grid().ZMin();
+		  //float stepY = row.HstepY();
+		  //float stepZ = row.HstepZ();
+		  //float x = row.X();
 
-      //const uint4 *tmpint4 = RowData() + row.FullOffset();
-      //const ushort2 *hits = reinterpret_cast<const ushort2*>(tmpint4);
-      //ushort2 hh = hits[ih];
-      //float y = y0 + hh.x*stepY;
-      //float z = z0 + hh.y*stepZ;
+		  //const uint4 *tmpint4 = RowData() + row.FullOffset();
+		  //const ushort2 *hits = reinterpret_cast<const ushort2*>(tmpint4);
+		  //ushort2 hh = hits[ih];
+		  //float y = y0 + hh.x*stepY;
+		  //float z = z0 + hh.y*stepZ;
 
-      int clusterIndex = fData.ClusterDataIndex( row, ih );
-      int clusterRowIndex = clusterIndex - fClusterData->RowOffset( iRow );
+		  int clusterIndex = fData.ClusterDataIndex( row, ih );
+		  int clusterRowIndex = clusterIndex - fClusterData->RowOffset( iRow );
 
-      if ( clusterIndex < 0 || clusterIndex >= fClusterData->NumberOfClusters() ) {
-        //std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
-        //<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
-        //abort();
-        continue;
-      }
-      if ( clusterRowIndex < 0 || clusterRowIndex >= fClusterData->NumberOfClusters( iRow ) ) {
-        //std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
-        //<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
-        //abort();
-        continue;
-      }
+		  if ( clusterIndex < 0 || clusterIndex >= fClusterData->NumberOfClusters() ) {
+			//std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
+			//<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
+			//abort();
+			continue;
+		  }
+		  if ( clusterRowIndex < 0 || clusterRowIndex >= fClusterData->NumberOfClusters( iRow ) ) {
+			//std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
+			//<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
+			//abort();
+			continue;
+		  }
 
-      float origX = fClusterData->X( clusterIndex );
-      float origY = fClusterData->Y( clusterIndex );
-      float origZ = fClusterData->Z( clusterIndex );
+		  float origX = fClusterData->X( clusterIndex );
+		  float origY = fClusterData->Y( clusterIndex );
+		  float origZ = fClusterData->Z( clusterIndex );
 
 
-      int id = fClusterData->Id( clusterIndex );
+		  int id = fClusterData->Id( clusterIndex );
 
-      unsigned short hPackedYZ = 0;
-      UChar_t hPackedAmp = 0;
-      float2 hUnpackedYZ;
-      hUnpackedYZ.x = origY;
-      hUnpackedYZ.y = origZ;
-      float hUnpackedX = origX;
+		  unsigned short hPackedYZ = 0;
+		  UChar_t hPackedAmp = 0;
+		  float2 hUnpackedYZ;
+		  hUnpackedYZ.x = origY;
+		  hUnpackedYZ.y = origZ;
+		  float hUnpackedX = origX;
 
-      useOutput->SetClusterId( nStoredHits, id  );
-      useOutput->SetClusterRow( nStoredHits, ( unsigned char ) iRow  );
-      useOutput->SetClusterPackedYZ( nStoredHits, hPackedYZ );
-      useOutput->SetClusterPackedAmp( nStoredHits, hPackedAmp );
-      useOutput->SetClusterUnpackedYZ( nStoredHits, hUnpackedYZ );
-      useOutput->SetClusterUnpackedX( nStoredHits, hUnpackedX );
-      nStoredHits++;
-    }
+		  useOutput->SetClusterId( nStoredHits, id  );
+		  useOutput->SetClusterRow( nStoredHits, ( unsigned char ) iRow  );
+		  useOutput->SetClusterPackedYZ( nStoredHits, hPackedYZ );
+		  useOutput->SetClusterPackedAmp( nStoredHits, hPackedAmp );
+		  useOutput->SetClusterUnpackedYZ( nStoredHits, hUnpackedYZ );
+		  useOutput->SetClusterUnpackedX( nStoredHits, hUnpackedX );
+		  nStoredHits++;
+		}
+	  }
   }
 
 
   // old stuff
-#ifndef HLTCA_STANDALONE
-  useOutput->SetNOutTrackHits(0);
-  useOutput->SetNOutTracks(0);
+  if (fOutputControl->fObsoleteOutput)
+  {
+	  useOutput->SetNOutTrackHits(0);
+	  useOutput->SetNOutTracks(0);
 
 
-  for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
+	  for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
 
-    const AliHLTTPCCATrack &iTrack = fTracks[iTr];
+		const AliHLTTPCCATrack &iTrack = fTracks[iTr];
 
-    //std::cout<<"iTr = "<<iTr<<", nHits="<<iTrack.NHits()<<std::endl;
+		//std::cout<<"iTr = "<<iTr<<", nHits="<<iTrack.NHits()<<std::endl;
 
-    //if( !iTrack.Alive() ) continue;
-    if ( iTrack.NHits() < 3 ) continue;
-    AliHLTTPCCAOutTrack &out = useOutput->OutTracks()[useOutput->NOutTracks()];
-    out.SetFirstHitRef( useOutput->NOutTrackHits() );
-    out.SetNHits( 0 );
-    out.SetOrigTrackID( iTr );
-    out.SetStartPoint( iTrack.Param() );
-    out.SetEndPoint( iTrack.Param() );
+		//if( !iTrack.Alive() ) continue;
+		if ( iTrack.NHits() < 3 ) continue;
+		AliHLTTPCCAOutTrack &out = useOutput->OutTracks()[useOutput->NOutTracks()];
+		out.SetFirstHitRef( useOutput->NOutTrackHits() );
+		out.SetNHits( 0 );
+		out.SetOrigTrackID( iTr );
+		out.SetStartPoint( iTrack.Param() );
+		out.SetEndPoint( iTrack.Param() );
 
-    int iID = iTrack.FirstHitID();
-    int nOutTrackHitsOld = useOutput->NOutTrackHits();
+		int iID = iTrack.FirstHitID();
+		int nOutTrackHitsOld = useOutput->NOutTrackHits();
 
-    for ( int ith = 0; ith < iTrack.NHits(); ith++ ) {
-      const AliHLTTPCCAHitId &ic = fTrackHits[iID + ith];
-      const AliHLTTPCCARow &row = Row( ic );
-      int ih = ic.HitIndex();
-      useOutput->SetOutTrackHit(useOutput->NOutTrackHits(), HitInputID( row, ih ));
-      useOutput->SetNOutTrackHits(useOutput->NOutTrackHits() + 1 );
-      //std::cout<<"write i,row,hit,id="<<ith<<", "<<ID2IRow(ic)<<", "<<ih<<", "<<HitInputID( row, ih )<<std::endl;
-      if ( useOutput->NOutTrackHits() >= 10*NHitsTotal() ) {
-        std::cout << "fNOutTrackHits>NHitsTotal()" << std::endl;
-        //exit(0);
-        return;//SG!!!
-      }
-      out.SetNHits( out.NHits() + 1 );
-    }
-    if ( out.NHits() >= 2 ) {
-      useOutput->SetNOutTracks(useOutput->NOutTracks() + 1);
-    } else {
-      useOutput->SetNOutTrackHits(nOutTrackHitsOld);
-    }
+		for ( int ith = 0; ith < iTrack.NHits(); ith++ ) {
+		  const AliHLTTPCCAHitId &ic = fTrackHits[iID + ith];
+		  const AliHLTTPCCARow &row = Row( ic );
+		  int ih = ic.HitIndex();
+		  useOutput->SetOutTrackHit(useOutput->NOutTrackHits(), HitInputID( row, ih ));
+		  useOutput->SetNOutTrackHits(useOutput->NOutTrackHits() + 1 );
+		  //std::cout<<"write i,row,hit,id="<<ith<<", "<<ID2IRow(ic)<<", "<<ih<<", "<<HitInputID( row, ih )<<std::endl;
+		  if ( useOutput->NOutTrackHits() >= 10*NHitsTotal() ) {
+			std::cout << "fNOutTrackHits>NHitsTotal()" << std::endl;
+			//exit(0);
+			return;//SG!!!
+		  }
+		  out.SetNHits( out.NHits() + 1 );
+		}
+		if ( out.NHits() >= 2 ) {
+		  useOutput->SetNOutTracks(useOutput->NOutTracks() + 1);
+		} else {
+		  useOutput->SetNOutTrackHits(nOutTrackHitsOld);
+		}
+	  }
   }
-#endif
 
   timer.Stop();
   fTimers[5] += timer.CpuTime();
@@ -967,7 +974,7 @@ GPUh() void AliHLTTPCCATracker::WriteTracks( std::ostream &out )
 GPUh() void AliHLTTPCCATracker::ReadTracks( std::istream &in )
 {
   //* Read tracks  from file
-  AliHLTTPCCASliceOutput::Allocate(*fOutput, 4096, 16384);//Just some max values
+  AliHLTTPCCASliceOutput::Allocate(*fOutput, 4096, 16384, fOutputControl);//Just some max values
   AliHLTTPCCASliceOutput* useOutput = *fOutput;
 
   int tmpval;

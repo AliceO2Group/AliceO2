@@ -1,6 +1,6 @@
 Index: build/module.tpl
 ===================================================================
---- build/module.tpl	(revision 34701)
+--- build/module.tpl	(revision 35363)
 +++ build/module.tpl	(working copy)
 @@ -80,6 +80,11 @@
  @PACKAGE@CS:=$(patsubst %,$(MODDIR)/%,$(CSRCS))
@@ -64,7 +64,7 @@ Index: build/module.tpl
  check-@MODULE@: $(@PACKAGE@CHV)
 Index: build/header.tpl
 ===================================================================
---- build/header.tpl	(revision 34701)
+--- build/header.tpl	(revision 35363)
 +++ build/header.tpl	(working copy)
 @@ -21,6 +21,8 @@
  DHDR:=
@@ -77,20 +77,12 @@ Index: build/header.tpl
  ELIBS:=
 Index: build/Makefile.linuxx8664gcc
 ===================================================================
---- build/Makefile.linuxx8664gcc	(revision 34701)
+--- build/Makefile.linuxx8664gcc	(revision 35363)
 +++ build/Makefile.linuxx8664gcc	(working copy)
-@@ -11,6 +11,7 @@
- CCMAJORV      = $(shell $(CC) -dumpversion | cut -d. -f1)
- CCMINORV      = $(shell $(CC) -dumpversion | cut -d. -f2)
- F77	      = $(shell root-config --f77)
-+NVCC	      = nvcc
- 
- # Global optimisation
- OPT           = -O -g
-@@ -47,6 +48,7 @@
+@@ -43,6 +43,7 @@
  endif
- CFLAGS	       = $(OPT) -Wall -Werror -fPIC -pipe -Wno-long-long -pedantic-errors -ansi -m64 
- FFLAGS         = $(CLIBFOPT) $(FOPT) -fno-second-underscore -fPIC -fno-f2c -m64
+ CFLAGS	       = $(OPT) -Wall -Werror -fPIC -pipe -Wno-long-long -pedantic-errors -ansi
+ FFLAGS         = $(CLIBFOPT) $(FOPT) -fno-second-underscore -fPIC -fno-f2c
 +CUFLAGS	       = -O4 -Xptxas -O4 --use_fast_math --maxrregcount 64 -arch=sm_12
  
  ifeq (g95,$(F77))

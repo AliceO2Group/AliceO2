@@ -13,6 +13,7 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAGPUTracker.h"
 #include "AliHLTTPCCAParam.h"
+#include "AliHLTTPCCASliceOutput.h"
 #include <iostream>
 
 class AliHLTTPCCASliceOutput;
@@ -22,13 +23,12 @@ class AliHLTTPCCATrackerFramework
 {
 public:
 	AliHLTTPCCATrackerFramework() :
-	  fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(), fCPUSliceCount(fgkNSlices)
+	  fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(), fOutputControl( NULL ), fCPUSliceCount(fgkNSlices)
 	  {
-		  fGPUTrackerAvailable= (fGPUTracker.InitGPU(1, -1) == 0);
-		  fGPUSliceCount = fGPUTrackerAvailable;
-		  fUseGPUTracker = fGPUTrackerAvailable;
+		  fUseGPUTracker = (fGPUTrackerAvailable= (fGPUTracker.InitGPU() == 0));
+		  fGPUSliceCount = fGPUTrackerAvailable ? fGPUTracker.GetSliceCount() : 0;
 	  }
-    ~AliHLTTPCCATrackerFramework()
+	~AliHLTTPCCATrackerFramework()
 	  {}
 
 	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
@@ -38,6 +38,9 @@ public:
 	int SetGPUTracker(bool enable);
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
+
+	GPUhd() const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
+	GPUhd() void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
 
 	int ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput);
 	unsigned long long int* PerfTimer(int GPU, int iSlice, int iTimer);
@@ -56,6 +59,8 @@ private:
   int fGPUDebugLevel;  // debug level for the GPU code
   int fGPUSliceCount;	//How many slices to process parallel
   AliHLTTPCCAGPUTracker fGPUTracker;
+
+  AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 
   AliHLTTPCCATracker fCPUTrackers[fgkNSlices];
   int fCPUSliceCount;

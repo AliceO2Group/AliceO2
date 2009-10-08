@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCATrackerComponent.h 34611 2009-09-04 00:22:05Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATrackerComponent.h 35348 2009-10-08 12:04:48Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -77,7 +77,6 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 
     /** the tracker object */
     AliHLTTPCCATrackerFramework* fTracker;                                //! transient
-	AliHLTTPCCASliceOutput* fOutput;
 
     /** magnetic field */
     double fSolenoidBz;                                            // see above
