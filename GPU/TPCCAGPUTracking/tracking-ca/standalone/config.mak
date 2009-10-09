@@ -2,8 +2,12 @@
 INTELARCH					= SSE4.2
 CUDAVERSION					= 13
 CUDAREGS					= 64
+ARCHBITS					= 64
 
 TARGET						= ca
+
+CC_x86_64-pc-linux-gnu		= GCC
+CC_i686-pc-cygwin			= ICC
 
 CPPFILES					= 
 CXXFILES					= standalone.cxx \
@@ -28,13 +32,14 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCAMerger.cxx \
 								code/AliHLTTPCCAClusterData.cxx \
 								code/AliHLTTPCCARow.cxx \
+								code/AliHLTTPCCAGPUTracker.cxx \
 								standalone/AliHLTLogging.cxx
 								
-CUFILES						= code/AliHLTTPCCAGPUTracker.cu
+CUFILES						= code/AliHLTTPCCAGPUTrackerNVCC.cu
 ASMFILES					= 
 
 INCLUDEPATHS				= include code base
-DEFINES						= HLTCA_STANDALONE
+DEFINES						= HLTCA_STANDALONE BUILD_GPU
 
 EXTRAFLAGSGCC				= -Weffc++
 
