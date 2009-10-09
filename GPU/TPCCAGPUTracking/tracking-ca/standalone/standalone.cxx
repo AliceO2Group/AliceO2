@@ -111,7 +111,7 @@ int main(int argc, char** argv)
 	else
 		printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 
-	if (RUNGPU && (cudaDevice != -1 || sliceCount != 1) && (hlt.InitGPU(sliceCount, cudaDevice)))
+	if (RUNGPU && (cudaDevice != -1 || sliceCount != hlt.GetGPUMaxSliceCount()) && (hlt.InitGPU(sliceCount, cudaDevice)))
 	{
 		printf("Error Initialising GPU\n");
 		printf("Press a key to exit!\n");
