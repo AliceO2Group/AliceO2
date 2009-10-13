@@ -57,7 +57,7 @@ class AliHLTTPCCATrackParam
     GPUd() float GetChi2()   const { return fChi2; }
     GPUd() int   GetNDF()    const { return fNDF; }
 
-    GPUd() float GetKappa( float Bz ) const { return fP[4]*Bz; }
+    GPUd() float GetKappa( float Bz ) const { return -fP[4]*Bz; }
     GPUd() float GetCosPhi() const { return fSignCosPhi*CAMath::Sqrt( 1 - SinPhi()*SinPhi() ); }
 
     GPUd() float GetErr2Y()      const { return fC[0]; }

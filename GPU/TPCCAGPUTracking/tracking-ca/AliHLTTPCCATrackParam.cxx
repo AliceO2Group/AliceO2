@@ -27,7 +27,7 @@
 // Circle in XY:
 //
 // kCLight = 0.000299792458;
-// Kappa = Bz*kCLight*QPt;
+// Kappa = -Bz*kCLight*QPt;
 // R  = 1/TMath::Abs(Kappa);
 // Xc = X - sin(Phi)/Kappa;
 // Yc = Y + cos(Phi)/Kappa;
@@ -111,7 +111,7 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinea
 
   float ex = t0.CosPhi();
   float ey = t0.SinPhi();
-  float k   = t0.QPt() * Bz;
+  float k  =-t0.QPt() * Bz;
   float dx = x - X();
 
   float ey1 = k * dx + ey;
@@ -162,8 +162,8 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinea
   //float H4[5] = { 0, 0, 0,  0,  1 };
 
   float h2 = dx * ( 1 + ey * ey1 + ex * ex1 ) * exi * ex1i * cci;
-  float h4 = dx2 * ( cc + ss * ey1 * ex1i ) * cci * cci * Bz;
-  float dxBz = dx * Bz;
+  float h4 = dx2 * ( cc + ss * ey1 * ex1i ) * cci * cci * (-Bz);
+  float dxBz = dx * (-Bz);
 
   t0.SetCosPhi( ex1 );
   t0.SetSinPhi( ey1 );
@@ -230,7 +230,7 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, float sinPhi0, float 
   if ( CAMath::Abs( ex ) < 1.e-4 ) return 0;
   float exi = 1. / ex;
 
-  float dxBz = dx * Bz;
+  float dxBz = dx * (-Bz);
   float dS = dx * exi;
   float h2 = dS * exi * exi;
   float h4 = .5 * h2 * dxBz;
