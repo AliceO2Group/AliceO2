@@ -310,17 +310,14 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
       lab2 = cluster->GetLabel( 2 );
 
       AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
+      transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
+
       if ( !transform ) {
         AliFatal( "Tranformations not in calibDB" );
       }
       double xx[3] = {cluster->GetRow(), cluster->GetPad(), cluster->GetTimeBin()};
       int id[1] = {cluster->GetDetector()};
       transform->Transform( xx, id, 0, 1 );
-      //if (!AliTPCReconstructor::GetRecoParam()->GetBYMirror()){
-      //if (cluster->GetDetector()%36>17){
-      //xx[1]*=-1;
-      //}
-      //}
 
       cluster->SetX( xx[0] );
       cluster->SetY( xx[1] );
