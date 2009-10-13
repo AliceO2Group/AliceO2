@@ -154,7 +154,7 @@ void AliHLTTPCCATrackerComponent::SetDefaultConfiguration()
   // Set default configuration for the CA tracker component
   // Some parameters can be later overwritten from the OCDB
 
-  fSolenoidBz = 5.;
+  fSolenoidBz = -5.00668;
   fMinNTrackClusters = 0;
   fClusterZCut = 500.;
   fNeighboursSearchArea = 0;
