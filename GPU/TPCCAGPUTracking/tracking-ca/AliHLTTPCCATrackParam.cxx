@@ -442,8 +442,11 @@ GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitPa
 {
   //*!
 
+  float qpt = fP[4];
+  if( fC[14]>=1. ) qpt = 1./0.35;
+
   float p2 = ( 1. + fP[3] * fP[3] );
-  float k2 = fP[4] * fP[4];
+  float k2 = qpt * qpt;
   float mass2 = mass * mass;
   float beta2 = p2 / ( p2 + mass2 * k2 );
 
@@ -458,13 +461,13 @@ GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitPa
   // Approximate energy loss fluctuation (M.Ivanov)
 
   const float knst = 0.07; // To be tuned.
-  par.fSigmadE2 = knst * par.fEP2 * fP[4];
+  par.fSigmadE2 = knst * par.fEP2 * qpt;
   par.fSigmadE2 = par.fSigmadE2 * par.fSigmadE2;
 
   par.fK22 = ( 1. + fP[3] * fP[3] );
   par.fK33 = par.fK22 * par.fK22;
-  par.fK43 = fP[3] * fP[4] * par.fK22;
-  par.fK44 = fP[3] * fP[3] * fP[4] * fP[4];
+  par.fK43 = fP[3] * qpt * par.fK22;
+  par.fK44 = fP[3] * fP[3] * k2;
 
 }
 
