@@ -51,7 +51,7 @@ bool AliHLTTPCCATrackConvertor::GetExtParam( const AliHLTTPCCATrackParam &T1, Al
   }
 
   if ( CAMath::Abs( par[4] ) < 1.e-5 ) par[4] = 1.e-5; // some other software will crash if q/Pt==0
-  if ( CAMath::Abs( par[4] ) > 0.08 ) ok = 0; // some other software will crash if q/Pt is too big
+  if ( CAMath::Abs( par[4] ) > 1./0.08 ) ok = 0; // some other software will crash if q/Pt is too big
 
   T2.Set( ( double ) T1.GetX(), alpha, par, cov );
 
