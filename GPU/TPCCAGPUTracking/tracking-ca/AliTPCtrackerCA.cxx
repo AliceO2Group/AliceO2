@@ -552,7 +552,7 @@ int AliTPCtrackerCA::RefitInward ( AliESDEvent *event )
       infos[i].SetZ( fClusters[index].GetZ() );
     }
 
-    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 0, 0,infos );
+    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 0, 1,infos );
 
     if ( ok &&  nHits > 15 ) {
       if ( t.TransportToXWithMaterial( xTPC, hlt.Merger().SliceParam().GetBz( t ) ) ) {
@@ -612,7 +612,7 @@ int AliTPCtrackerCA::PropagateBack( AliESDEvent *event )
       infos[i].SetZ( fClusters[index].GetZ() );
     }
 
-    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 1, 0, infos );
+    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 1, 1, infos );
 
     if ( ok &&  nHits > 15 ) {
       AliTPCtrack tt( *esd );
