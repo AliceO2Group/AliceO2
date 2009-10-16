@@ -642,7 +642,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   
   int ret = 0;
   unsigned int mySize = 0;
-  int ntracks;
+  int ntracks = 0;
   int error = 0;
 
   for (int islice = 0;islice < slicecount;islice++)

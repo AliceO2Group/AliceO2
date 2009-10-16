@@ -72,3 +72,4 @@
 #define HLTCA_GPU_ERROR_SCHEDULE_COLLISION 4
 
 #endif
+
