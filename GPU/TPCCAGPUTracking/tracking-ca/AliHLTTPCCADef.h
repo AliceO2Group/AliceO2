@@ -100,6 +100,7 @@ typedef float          Size_t;      //Attribute size (float)
 namespace AliHLTTPCCADefinitions
 {
   extern const AliHLTComponentDataType fgkTrackletsDataType;
+  extern const AliHLTComponentDataType fgkCompressedInputDataType;
 }
 
 #endif
