@@ -38,6 +38,7 @@ using namespace std;
 
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCClusterDataFormat.h"
+#include "AliHLTTPCCACompressedInputData.h"
 #include "AliHLTTPCTransform.h"
 #include "AliHLTTPCTrackSegmentData.h"
 #include "AliHLTTPCTrackArray.h"
@@ -127,6 +128,7 @@ void AliHLTTPCCATrackerComponent::GetInputDataTypes( vector<AliHLTComponentDataT
   // see header file for class documentation
   list.clear();
   list.push_back( AliHLTTPCDefinitions::fgkClustersDataType );
+  list.push_back( AliHLTTPCCADefinitions::fgkCompressedInputDataType );
 }
 
 AliHLTComponentDataType AliHLTTPCCATrackerComponent::GetOutputDataType()
@@ -140,7 +142,7 @@ void AliHLTTPCCATrackerComponent::GetOutputDataSize( unsigned long& constBase, d
 {
   // define guess for the output data size
   constBase = 200;       // minimum size
-  inputMultiplier = 0.5; // size relative to input
+  inputMultiplier = 3.; // size relative to input
 }
 
 AliHLTComponent* AliHLTTPCCATrackerComponent::Spawn()
@@ -396,7 +398,6 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   const AliHLTComponentBlockData* iter = NULL;
   unsigned long ndx;
-  AliHLTTPCClusterData* inPtrSP;
 
   // Determine the slice number
 
@@ -411,7 +412,9 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
     for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
       iter = blocks + ndx;
-      if ( iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType ) continue;
+      if ( iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType
+	   && iter->fDataType != AliHLTTPCCADefinitions::fgkCompressedInputDataType
+	   ) continue;
 
       slice = AliHLTTPCDefinitions::GetMinSliceNr( *iter );
 	  if (slice < minslice || minslice == -1) minslice = slice;
@@ -566,10 +569,21 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
 	  for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
 		iter = blocks + ndx;
-		if ( iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType ) continue;
 		if ( slice != AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ) continue;
-		inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
-		nClustersTotal += inPtrSP->fSpacePointCnt;
+		if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
+		  AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
+		  nClustersTotal += inPtrSP->fSpacePointCnt;
+		} 
+		else if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
+		  const AliHLTUInt8_t * inPtr =  (const AliHLTUInt8_t *)iter->fPtr;
+		  while( inPtr< ((const AliHLTUInt8_t *) iter->fPtr) + iter->fSize ){
+		    AliHLTTPCCACompressedClusterRow *row = (AliHLTTPCCACompressedClusterRow*)inPtr;
+		    nClustersTotal+= row->fNClusters;	  
+		    inPtr = (const AliHLTUInt8_t *)(row->fClusters+row->fNClusters);
+		  }
+		}
+		else continue;
+
 		int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
 		if ( sliceminPatch[islice] > patch ) {
 		  sliceminPatch[islice] = patch;
@@ -599,22 +613,61 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	  for ( std::vector<unsigned long>::iterator pIter = patchIndices.begin(); pIter != patchIndices.end(); pIter++ ) {
 		ndx = *pIter;
 		iter = blocks + ndx;
-
 		int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
-		inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
-
-		Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
-				 "Reading %d hits for slice %d - patch %d", inPtrSP->fSpacePointCnt, slice, patch );
-
-		for ( unsigned int i = 0; i < inPtrSP->fSpacePointCnt; i++ ) {
-		  AliHLTTPCSpacePointData *c = &( inPtrSP->fSpacePoints[i] );
-		  if ( CAMath::Abs( c->fZ ) > fClusterZCut ) continue;
-		  if ( c->fPadRow > 159 ) {
-			HLTError( "Wrong TPC cluster with row number %d received", c->fPadRow );
-			continue;
+		int nPatchClust = 0;
+		if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
+		  AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
+		  nPatchClust = inPtrSP->fSpacePointCnt;
+		  for ( unsigned int i = 0; i < inPtrSP->fSpacePointCnt; i++ ) {
+		    AliHLTTPCSpacePointData *c = &( inPtrSP->fSpacePoints[i] );
+		    if ( CAMath::Abs( c->fZ ) > fClusterZCut ) continue;
+		    if ( c->fPadRow > 159 ) {
+		      HLTError( "Wrong TPC cluster with row number %d received", c->fPadRow );
+		      continue;
+		    }
+		    clusterData[islice].ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
+		  }	      
+		} 
+		else if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
+		  const AliHLTUInt8_t * inPtr = (const AliHLTUInt8_t *)iter->fPtr;
+		  nPatchClust=0;
+		  while( inPtr< ((const AliHLTUInt8_t *)iter->fPtr) + iter->fSize ){
+		    AliHLTTPCCACompressedClusterRow *row = (AliHLTTPCCACompressedClusterRow*)inPtr;
+		    UInt_t id = row->fSlicePatchRowID;
+		    UInt_t jslice = id>>10;	  
+		    UInt_t jpatch = (id>>6) & 0x7;
+		    UInt_t jrow   =  id     & 0x3F;     
+		    jrow+= AliHLTTPCTransform::GetFirstRow( jpatch );
+		    Double_t rowX = AliHLTTPCTransform::Row2X( jrow );
+		    //cout<<"Read row: s "<<jslice<<" p "<<jpatch<<" r "<<jrow<<" x "<<row->fX<<" nclu "<<row->fNClusters<<" :"<<endl;
+		    if( jrow > 159 ) {
+		      HLTError( "Wrong TPC cluster with row number %d received", jrow );
+		      continue;
+		    }
+		    for ( unsigned int i = 0; i < row->fNClusters; i++ ) {
+		      AliHLTTPCCACompressedCluster *c = &( row->fClusters[i] );
+		      
+		      UInt_t ix0 = c->fP0 >>24;
+		      UInt_t ix1 = c->fP1 >>24;
+		      Double_t x = (ix1<<8) + ix0;
+		      Double_t y = c->fP0 & 0x00FFFFFF;
+		      Double_t z = c->fP1 & 0x00FFFFFF;
+		      x = (x - 32768.)*1.e-4 + rowX;
+		      y = (y - 8388608.)*1.e-4;
+		      z = (z - 8388608.)*1.e-4;
+		      
+		      UInt_t cluId = nPatchClust + ((jslice&0x7f)<<25)+((jpatch&0x7)<<22);
+		      //cout<<"clu "<<i<<": "<<x<<" "<<y<<" "<<z<<" "<<cluId<<endl;
+		      if ( CAMath::Abs( z ) <= fClusterZCut ){
+			clusterData[islice].ReadCluster( cluId, jrow, x, y, z, 0 );
+		      }
+		      nPatchClust++;		  
+		    }
+		    inPtr = (const AliHLTUInt8_t *)(row->fClusters+row->fNClusters);
 		  }
-		  clusterData[islice].ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
 		}
+		Logging( kHLTLogInfo, "HLT::TPCCATracker::DoEvent", "Reading hits",
+			 "Read %d hits for slice %d - patch %d", nPatchClust, slice, patch );
 	  }
 
 	  clusterData[islice].FinishReading();
