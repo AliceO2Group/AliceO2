@@ -445,7 +445,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 	if (fDebugLevel >= 3) HLTInfo("Allocating GPU Tracker memory and initializing constants");
 
 #ifdef HLTCA_GPU_TIME_PROFILE
-	__int64 a, b, c, d;
+	unsigned __int64 a, b, c, d;
 	AliHLTTPCCAStandaloneFramework::StandaloneQueryFreq(&c);
 	AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&d);
 #endif
@@ -698,10 +698,12 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 		}
 	}
 
-	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice += HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT)
+	int runSlices = 0;
+	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice += runSlices)
 	{
-		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Slice %d to %d)", iSlice, iSlice + HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT);
-		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[iSlice]>>>(iSlice, CAMath::Min(HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT, sliceCountLocal - iSlice));
+		if (runSlices < HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
+		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Slice %d to %d)", iSlice, iSlice + runSlices);
+		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[iSlice]>>>(iSlice, CAMath::Min(runSlices, sliceCountLocal - iSlice));
 	}
 	if (CUDASync("Tracklet Selector")) return 1;
 	StandalonePerfTime(firstSlice, 9);
