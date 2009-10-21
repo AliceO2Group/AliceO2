@@ -651,13 +651,12 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
 	  if (sliceOutput[islice])
 	  {
-		  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct",
-				   "%d tracks found for slice %d", sliceOutput[islice]->NOutTracks(), slice );
-
-
 		  // write reconstructed tracks
 
 		  if ( fOutputTRAKSEGS ) {
+
+		  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct",
+				   "%d tracks found for slice %d", sliceOutput[islice]->NOutTracks(), slice );
 
 			ntracks = sliceOutput[islice]->NOutTracks();
 
@@ -763,6 +762,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
 			}
 
 		  } else { // default output type
+
+		  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct",
+				   "%d tracks found for slice %d", sliceOutput[islice]->NTracks(), slice );
+
 			  mySize += sliceOutput[islice]->OutputMemorySize();
 			  ntracks += sliceOutput[islice]->NTracks();
 		  }

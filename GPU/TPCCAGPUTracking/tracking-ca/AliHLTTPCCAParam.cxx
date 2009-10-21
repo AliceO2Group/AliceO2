@@ -178,6 +178,7 @@ GPUd() void AliHLTTPCCAParam::GetClusterErrors2( int iRow, float z, float sinPhi
   Err2Z = GetClusterError2( 1, type, z, angleZ );
 }
 
+#ifndef HLTCA_GPUCODE
 GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const
 {
   // write settings to the file
@@ -248,3 +249,4 @@ GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
       for ( int k = 0; k < 7; k++ )
         in >> fParamS0Par[i][j][k];
 }
+#endif
