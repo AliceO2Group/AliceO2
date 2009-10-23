@@ -466,7 +466,7 @@ GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitPa
 
   par.fK22 = ( 1. + fP[3] * fP[3] );
   par.fK33 = par.fK22 * par.fK22;
-  par.fK43 = fP[3] * qpt * par.fK22;
+  par.fK43 = 0;
   par.fK44 = fP[3] * fP[3] * k2;
 
 }
