@@ -1,10 +1,13 @@
-// @(#) $Id$
+//-*- Mode: C++ -*-
+// $Id$
 // origin hough/AliL3Hough.h,v 1.31 Fri Feb 25 07:32:13 2005 UTC by cvetan
+
 #ifndef ALIHLTTPCHOUGH_H
 #define ALIHLTTPCHOUGH_H
 
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
+//* This file is property of and copyright by the ALICE HLT Project        * 
+//* ALICE Experiment at CERN, All rights reserved.                         *
+//* See cxx source for full Copyright notice                               *
 
 /** @file   AliHLTTPCHough.h
     @author Anders Vestbo, Cvetan Cheshkov
@@ -103,23 +106,28 @@ class AliHLTTPCHough {
   void SetPeakParameters(Int_t kspread,Float_t pratio) {fKappaSpread=kspread; fPeakRatio=pratio;}
   
   //Getters
-  AliHLTTPCHoughTransformer *GetTransformer(Int_t i) {if(!fHoughTransformer[i]) return 0; return fHoughTransformer[i];}
-  AliHLTTPCTrackArray *GetTracks(Int_t i) {if(!fTracks[i]) return 0; return fTracks[i];}
-  AliHLTTPCHoughEval *GetEval(Int_t i) {if(!fEval[i]) return 0; return fEval[i];}
-  AliHLTTPCHoughMerger *GetMerger() {if(!fMerger) return 0; return fMerger;}
-  AliHLTTPCHoughIntMerger *GetInterMerger() {if(!fInterMerger) return 0; return fInterMerger;}
-  AliHLTTPCMemHandler *GetMemHandler(Int_t i) {if(!fMemHandler[i]) return 0; return fMemHandler[i];}
-  AliHLTTPCHoughMaxFinder *GetMaxFinder() {return fPeakFinder;}
+  AliHLTTPCHoughTransformer *GetTransformer(Int_t i) const {if(!fHoughTransformer[i]) return 0; return fHoughTransformer[i];}
+  AliHLTTPCTrackArray *GetTracks(Int_t i) const {if(!fTracks[i]) return 0; return fTracks[i];}
+  AliHLTTPCHoughEval *GetEval(Int_t i) const {if(!fEval[i]) return 0; return fEval[i];}
+  AliHLTTPCHoughMerger *GetMerger() const{if(!fMerger) return 0; return fMerger;}
+  AliHLTTPCHoughIntMerger *GetInterMerger() const {if(!fInterMerger) return 0; return fInterMerger;}
+  AliHLTTPCMemHandler *GetMemHandler(Int_t i) const {if(!fMemHandler[i]) return 0; return fMemHandler[i];}
+  AliHLTTPCHoughMaxFinder *GetMaxFinder() const {return fPeakFinder;}
 
   //Special methods for executing Hough Transform as a thread
   static void *ProcessInThread(void *args);
   void StartProcessInThread(Int_t minslice,Int_t maxslice);
   Int_t WaitForThreadFinish();
   void SetMinMaxSlices(Int_t minslice,Int_t maxslice) {fMinSlice = minslice; fMaxSlice = maxslice;} 
-  Int_t GetMinSlice() {return fMinSlice;}
-  Int_t GetMaxSlice() {return fMaxSlice;}
+  Int_t GetMinSlice() const {return fMinSlice;}
+  Int_t GetMaxSlice() const {return fMaxSlice;}
   
  private:
+  /// copy constructor not permitted
+  AliHLTTPCHough(const AliHLTTPCHough);
+  /// assignment operator not permitted
+  AliHLTTPCHough& operator=(const AliHLTTPCHough);
+  
   Char_t *fInputFile;//!
   Char_t *fInputPtr;//!
   AliRawEvent *fRawEvent;//!
