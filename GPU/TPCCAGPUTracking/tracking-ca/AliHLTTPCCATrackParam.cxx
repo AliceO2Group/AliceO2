@@ -683,7 +683,19 @@ GPUd() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
 
   if ( CAMath::Abs( SinPhi() ) > .99 ) ok = 0;
   if ( CAMath::Abs( QPt() ) > 1. / 0.05 ) ok = 0;
-
+  if( ok ){
+    ok = ok 
+      && ( c[1]*c[1]<=c[2]*c[0] )
+      && ( c[3]*c[3]<=c[5]*c[0] )
+      && ( c[4]*c[4]<=c[5]*c[2] )
+      && ( c[6]*c[6]<=c[9]*c[0] )
+      && ( c[7]*c[7]<=c[9]*c[2] )
+      && ( c[8]*c[8]<=c[9]*c[5] )
+      && ( c[10]*c[10]<=c[14]*c[0] )
+      && ( c[11]*c[11]<=c[14]*c[2] )
+      && ( c[12]*c[12]<=c[14]*c[5] )
+      && ( c[13]*c[13]<=c[14]*c[9] );      
+  }
   return ok;
 }
 
