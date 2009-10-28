@@ -109,7 +109,7 @@ AliHLTTPCCATrackerComponent& AliHLTTPCCATrackerComponent::operator=( const AliHL
 AliHLTTPCCATrackerComponent::~AliHLTTPCCATrackerComponent()
 {
   // see header file for class documentation
-  delete fTracker;
+  if (fTracker) delete fTracker;
 }
 
 //
@@ -327,7 +327,8 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
   if ( fTracker ) return EINPROGRESS;
 
 
-  fTracker = new AliHLTTPCCATrackerFramework();
+  //fTracker = new AliHLTTPCCATrackerFramework();
+  //Do not initialize the TrackerFramework here since the CUDA framework is thread local and DoInit is called from different thread than DoEvent
 
   TString arguments = "";
   for ( int i = 0; i < argc; i++ ) {
@@ -342,7 +343,7 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 int AliHLTTPCCATrackerComponent::DoDeinit()
 {
   // see header file for class documentation
-  delete fTracker;
+  if (fTracker) delete fTracker;
   fTracker = NULL;
   return 0;
 }
@@ -492,6 +493,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   }
 
   if ( !fTracker ) fTracker = new AliHLTTPCCATrackerFramework;
+
   int slicecount = maxslice + 1 - minslice;
   if (slicecount > fTracker->MaxSliceCount())
   {

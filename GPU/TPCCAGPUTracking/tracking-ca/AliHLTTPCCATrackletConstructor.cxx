@@ -881,10 +881,10 @@ GPUd() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tra
 		int nTryCount = 0;
 		while ((nTracklet = *ptrTracklet) == -1)
 		{
-			for (int i = 0;i < 10000;i++)
+			for (int i = 0;i < 20000;i++)
 				sMem.fNextTrackletStupidDummy++;
 			nTryCount++;
-			if (nTryCount > 20)
+			if (nTryCount > 30)
 			{
 				tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_SCHEDULE_COLLISION;
 				return(-1);
