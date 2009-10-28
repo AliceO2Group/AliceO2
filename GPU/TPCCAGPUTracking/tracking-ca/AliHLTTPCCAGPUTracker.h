@@ -27,7 +27,9 @@ public:
 	  fGPUMemSize(0),
 	  fpCudaStreams(NULL),
 	  fSliceCount(0),
-	  fOutputControl(NULL)
+	  fOutputControl(NULL),
+	  fThreadId(0),
+	  fCudaInitialized(0)
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
 
@@ -83,6 +85,8 @@ private:
 	AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 	
 	static bool fgGPUUsed;
+	int fThreadId;
+	int fCudaInitialized;
 
 	// disable copy
 	AliHLTTPCCAGPUTracker( const AliHLTTPCCAGPUTracker& );
