@@ -121,7 +121,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 #endif
             nFirstTrackHit = CAMath::AtomicAdd( tracker.NTrackHits(), nHits );
 			tracker.Tracks()[itrout].SetAlive(1);
-			tracker.Tracks()[itrout].SetParam(tracklet.Param());
+			tracker.Tracks()[itrout].SetParam(tracklet.Param().GetParam());
 			tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);
 			tracker.Tracks()[itrout].SetNHits(nHits);
             for ( int jh = 0; jh < nHits; jh++ ) {
