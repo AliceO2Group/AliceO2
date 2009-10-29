@@ -41,7 +41,27 @@
 GPUd() void AliHLTTPCCATrackletConstructor::InitTracklet( AliHLTTPCCATrackParam &tParam )
 {
   //Initialize Tracklet Parameters using default values
-  tParam.InitParam();
+  tParam.SetSinPhi( 0 );
+  tParam.SetDzDs( 0 );
+  tParam.SetQPt( 0 );
+  tParam.SetSignCosPhi( 1 );
+  tParam.SetChi2( 0 );
+  tParam.SetNDF( -3 );
+  tParam.SetCov( 0, 1 );
+  tParam.SetCov( 1, 0 );
+  tParam.SetCov( 2, 1 );
+  tParam.SetCov( 3, 0 );
+  tParam.SetCov( 4, 0 );
+  tParam.SetCov( 5, 1 );
+  tParam.SetCov( 6, 0 );
+  tParam.SetCov( 7, 0 );
+  tParam.SetCov( 8, 0 );
+  tParam.SetCov( 9, 1 );
+  tParam.SetCov( 10, 0 );
+  tParam.SetCov( 11, 0 );
+  tParam.SetCov( 12, 0 );
+  tParam.SetCov( 13, 0 );
+  tParam.SetCov( 14, 10. );
 }
 
 GPUd() void AliHLTTPCCATrackletConstructor::ReadData
@@ -206,7 +226,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
 	if (r.fStartRow < r.fFirstRow) r.fFirstRow = r.fStartRow;
 	tracklet.SetFirstRow( r.fFirstRow );
     tracklet.SetLastRow( r.fLastRow );
-    tracklet.SetParam( tParam.GetParam() );
+    tracklet.SetParam( tParam );
     int w = ( r.fNHits << 16 ) + r.fItr;
     for ( int iRow = r.fFirstRow; iRow <= r.fLastRow; iRow++ ) {
 #ifdef EXTERN_ROW_HITS
