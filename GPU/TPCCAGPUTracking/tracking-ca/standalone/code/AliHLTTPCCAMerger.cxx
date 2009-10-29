@@ -220,7 +220,9 @@ void AliHLTTPCCAMerger::UnpackSlices()
     for ( int itr = 0; itr < slice.NTracks(); itr++ ) {
 
       const AliHLTTPCCASliceTrack &sTrack = slice.Track( itr );
-      AliHLTTPCCATrackParam t0 = sTrack.Param();
+      AliHLTTPCCATrackParam t0;
+	  t0.InitParam();
+	  t0.SetParam(sTrack.Param());
       int nCluNew = 0;
 
       for ( int iTrClu = 0; iTrClu < sTrack.NClusters(); iTrClu++ ) {
@@ -257,7 +259,9 @@ void AliHLTTPCCAMerger::UnpackSlices()
       int nHits = nCluNew;
       for ( int i = 0; i < nHits; i++ ) hits[i] = nClustersCurrent + i;
 
-      AliHLTTPCCATrackParam startPoint = sTrack.Param();
+      AliHLTTPCCATrackParam startPoint;
+	  startPoint.InitParam();
+	  startPoint.SetParam(sTrack.Param());
       AliHLTTPCCATrackParam endPoint = startPoint;
       float startAlpha = fSliceParam.Alpha( iSlice );
       float endAlpha = startAlpha;

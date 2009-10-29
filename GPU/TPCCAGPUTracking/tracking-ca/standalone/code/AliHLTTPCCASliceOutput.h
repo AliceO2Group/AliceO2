@@ -95,10 +95,8 @@ class AliHLTTPCCASliceOutput
     AliHLTTPCCASliceTrack *fTracks; // pointer to reconstructed tracks
     int   *fClusterId;              // pointer to cluster Id's ( packed slice, patch, cluster )
     UChar_t  *fClusterRow;     // pointer to cluster row numbers
-    unsigned short *fClusterPackedYZ;     // pointer to packed cluster YZ coordinates
     float2   *fClusterUnpackedYZ;    // pointer to cluster coordinates (temporary data, for debug proposes)
     float    *fClusterUnpackedX;     // pointer to cluster coordinates (temporary data, for debug proposes)
-    UChar_t  *fClusterPackedAmp;     // pointer to packed cluster amplitudes
 	size_t fMemorySize;				// Amount of memory really used
 
     // obsolete output

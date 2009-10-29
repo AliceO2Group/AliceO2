@@ -150,9 +150,9 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinea
 
   float d[5] = { 0,
                  0,
-                 fP[2] - t0.SinPhi(),
-                 fP[3] - t0.DzDs(),
-                 fP[4] - t0.QPt()
+                 GetPar(2) - t0.SinPhi(),
+                 GetPar(3) - t0.DzDs(),
+                 GetPar(4) - t0.QPt()
                };
 
   //float H0[5] = { 1,0, h2,  0, h4 };
@@ -168,10 +168,10 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinea
   t0.SetCosPhi( ex1 );
   t0.SetSinPhi( ey1 );
 
-  fX    = X() + dx;
-  fP[0] = Y() + dy     + h2 * d[2]           +   h4 * d[4];
-  fP[1] = Z() + dz               + dS * d[3];
-  fP[2] = t0.SinPhi() +     d[2]           + dxBz * d[4];
+  SetX(X() + dx);
+  SetPar(0, Y() + dy     + h2 * d[2]           +   h4 * d[4]);
+  SetPar(1, Z() + dz               + dS * d[3]);
+  SetPar(2, t0.SinPhi() +     d[2]           + dxBz * d[4]);
 
   float c00 = fC[0];
   float c10 = fC[1];
@@ -244,10 +244,10 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, float sinPhi0, float 
   float sinPhi = SinPhi() + dxBz * QPt();
   if ( maxSinPhi > 0 && CAMath::Abs( sinPhi ) > maxSinPhi ) return 0;
 
-  fX    = X() + dx;
-  fP[0] += dS * ey + h2 * ( SinPhi() - ey )  +   h4 * QPt();
-  fP[1] += dS * DzDs();
-  fP[2] = sinPhi;
+  SetX(X() + dx);
+  SetPar(0, GetPar(0) + dS * ey + h2 * ( SinPhi() - ey )  +   h4 * QPt());
+  SetPar(1, GetPar(1) + dS * DzDs());
+  SetPar(2, sinPhi);
 
 
   float c00 = fC[0];
@@ -442,8 +442,8 @@ GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitPa
 {
   //*!
 
-  float p2 = ( 1. + fP[3] * fP[3] );
-  float k2 = fP[4] * fP[4];
+  float p2 = ( 1. + GetPar(3) * GetPar(3) );
+  float k2 = GetPar(4) * GetPar(4);
   float mass2 = mass * mass;
   float beta2 = p2 / ( p2 + mass2 * k2 );
 
@@ -458,13 +458,13 @@ GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitPa
   // Approximate energy loss fluctuation (M.Ivanov)
 
   const float knst = 0.07; // To be tuned.
-  par.fSigmadE2 = knst * par.fEP2 * fP[4];
+  par.fSigmadE2 = knst * par.fEP2 * GetPar(4);
   par.fSigmadE2 = par.fSigmadE2 * par.fSigmadE2;
 
-  par.fK22 = ( 1. + fP[3] * fP[3] );
+  par.fK22 = ( 1. + GetPar(3) * GetPar(3) );
   par.fK33 = par.fK22 * par.fK22;
-  par.fK43 = fP[3] * fP[4] * par.fK22;
-  par.fK44 = fP[3] * fP[3] * fP[4] * fP[4];
+  par.fK43 = GetPar(3) * GetPar(4) * par.fK22;
+  par.fK44 = GetPar(3) * GetPar(3) * GetPar(4) * GetPar(4);
 
 }
 
@@ -492,7 +492,7 @@ GPUd() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  float
   float corr = ( 1. - par.fEP2 * dE );
   if ( corr < 0.3 || corr > 1.3 ) return 0;
 
-  fP[4] *= corr;
+  SetPar(4, GetPar(4) * corr);
   fC40 *= corr;
   fC41 *= corr;
   fC42 *= corr;
@@ -503,7 +503,7 @@ GPUd() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  float
   //Multiple scattering******************
 
   float theta2 = par.fTheta2 * CAMath::Abs( xOverX0 );
-  fC22 += theta2 * par.fK22 * ( 1. - fP[2] * fP[2] );
+  fC22 += theta2 * par.fK22 * ( 1. - GetPar(2) * GetPar(2) );
   fC33 += theta2 * par.fK33;
   fC43 += theta2 * par.fK43;
   fC44 += theta2 * par.fK44;
@@ -619,8 +619,8 @@ GPUd() bool AliHLTTPCCATrackParam::Filter( float y, float z, float err2Y, float 
   err2Z += c11;
 
   float
-  z0 = y - fP[0],
-       z1 = z - fP[1];
+  z0 = y - GetPar(0),
+       z1 = z - GetPar(1);
 
   if ( err2Y < 1.e-8 || err2Z < 1.e-8 ) return 0;
 
@@ -638,18 +638,18 @@ GPUd() bool AliHLTTPCCATrackParam::Filter( float y, float z, float err2Y, float 
   k11 = c11 * mS2;
   k31 = c31 * mS2;
 
-  float sinPhi = fP[2] + k20 * z0  ;
+  float sinPhi = GetPar(2) + k20 * z0  ;
 
   if ( maxSinPhi > 0 && CAMath::Abs( sinPhi ) >= maxSinPhi ) return 0;
 
   fNDF  += 2;
   fChi2 += mS0 * z0 * z0 + mS2 * z1 * z1 ;
 
-  fP[ 0] += k00 * z0 ;
-  fP[ 1] += k11 * z1 ;
-  fP[ 2] = sinPhi ;
-  fP[ 3] += k31 * z1 ;
-  fP[ 4] += k40 * z0 ;
+  SetPar(0, GetPar(0) + k00 * z0);
+  SetPar(1, GetPar(1) + k11 * z1);
+  SetPar(2, sinPhi);
+  SetPar(3, GetPar(3) + k31 * z1);
+  SetPar(4, GetPar(4) + k40 * z0);
 
   fC[ 0] -= k00 * c00 ;
   fC[ 3] -= k20 * c00 ;
@@ -669,7 +669,7 @@ GPUd() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
 {
   //* Check that the track parameters and covariance matrix are reasonable
 
-  bool ok = AliHLTTPCCAMath::Finite( fX ) && AliHLTTPCCAMath::Finite( fSignCosPhi ) && AliHLTTPCCAMath::Finite( fChi2 ) && AliHLTTPCCAMath::Finite( fNDF );
+  bool ok = AliHLTTPCCAMath::Finite( GetX() ) && AliHLTTPCCAMath::Finite( fSignCosPhi ) && AliHLTTPCCAMath::Finite( fChi2 ) && AliHLTTPCCAMath::Finite( fNDF );
 
   const float *c = Cov();
   for ( int i = 0; i < 15; i++ ) ok = ok && AliHLTTPCCAMath::Finite( c[i] );

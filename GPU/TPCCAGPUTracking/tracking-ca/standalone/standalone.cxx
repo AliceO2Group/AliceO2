@@ -11,7 +11,7 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = 100, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = 1;
+	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = 100, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
 
@@ -111,13 +111,14 @@ int main(int argc, char** argv)
 	else
 		printf("Standalone Test Framework for CA Tracker - Using CPU\n");
 
-	if (RUNGPU && (cudaDevice != -1 || sliceCount != hlt.GetGPUMaxSliceCount()) && (hlt.InitGPU(sliceCount, cudaDevice)))
+	if (RUNGPU && (cudaDevice != -1 || (sliceCount != -1 && sliceCount != hlt.GetGPUMaxSliceCount())) && (hlt.InitGPU(sliceCount, cudaDevice)))
 	{
 		printf("Error Initialising GPU\n");
 		printf("Press a key to exit!\n");
 		getchar();
 		return(1);
 	}
+	sliceCount = hlt.GetGPUMaxSliceCount();
 	hlt.SetGPUTracker(RUNGPU);
 
 	printf("Reading Settings\n");
