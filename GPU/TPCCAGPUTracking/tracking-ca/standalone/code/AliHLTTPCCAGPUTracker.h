@@ -27,7 +27,9 @@ public:
 	  fGPUMemSize(0),
 	  fpCudaStreams(NULL),
 	  fSliceCount(0),
-	  fOutputControl(NULL)
+	  fOutputControl(NULL),
+	  fThreadId(0),
+	  fCudaInitialized(0)
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
 
@@ -56,6 +58,7 @@ private:
 	void* TrackerMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
 
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
+	int GetThread();
 
 	AliHLTTPCCATracker *fGpuTracker;
 	void* fGPUMemory;
@@ -83,6 +86,8 @@ private:
 	AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 	
 	static bool fgGPUUsed;
+	int fThreadId;
+	int fCudaInitialized;
 
 	// disable copy
 	AliHLTTPCCAGPUTracker( const AliHLTTPCCAGPUTracker& );

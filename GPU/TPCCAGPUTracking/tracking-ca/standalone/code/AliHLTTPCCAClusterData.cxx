@@ -85,6 +85,13 @@ template <class T> void AliHLTTPCCAClusterData::ReadEventVector(std::vector<T> &
 	in.read((char*) &tmpData[0], i * sizeof(T));
 	for (int j = 0;j < i;j++)
 	{
+#ifdef HLTCA_STANDALONE
+		if (tmpData[j].fRow < 0 || tmpData[j].fRow >= HLTCA_ROW_COUNT)
+		{
+			printf("Invalid Row Read %d at Cluster %d\n", tmpData[j].fRow, j);
+			exit(1);
+		}
+#endif
 		data[j] = tmpData[j];
 	}
 }

@@ -816,17 +816,29 @@ void AliHLTTPCCAMerger::Merging()
 
       {
         double xTPC = 83.65; //SG!!!
-        double dAlpha = 0.00609235;
-        AliHLTTPCCATrackParam::AliHLTTPCCATrackFitParam fitPar;
-        p.CalculateFitParameters( fitPar );
-
-        if ( p.TransportToXWithMaterial( xTPC, fitPar, fSliceParam.GetBz( p ) ) ) {
+        double dAlpha = 0.349066;
+	double ymax = 2.* xTPC * CAMath::Tan( dAlpha / 2. );
+        
+        double dRot = 0;
+        if ( p.TransportToXWithMaterial( xTPC, fSliceParam.GetBz( p ) ) ) {
           double y = p.GetY();
-          double ymax = 2.* xTPC * CAMath::Tan( dAlpha / 2. );
-          if ( -ymax <= y && y <= ymax && p.CheckNumericalQuality() ){
-	    startPoint = p;
-	  }
+          if ( y > ymax ) {         
+            if ( p.Rotate( dAlpha ) ){
+              dRot = dAlpha;
+              p.TransportToXWithMaterial( xTPC, fSliceParam.GetBz( p ) );
+            }
+          } else if( y< -ymax ){
+            if ( p.Rotate( -dAlpha ) ){
+              dRot = -dAlpha;
+              p.TransportToXWithMaterial( xTPC, fSliceParam.GetBz( p ) );
+            }
+          }
         }
+        
+        if ( -ymax <= p.GetY() && p.GetY() <= ymax && p.CheckNumericalQuality() ){
+          startPoint = p;
+          startAlpha+=dRot;
+        }     
       }
 
       if ( !startPoint.CheckNumericalQuality() ) continue;

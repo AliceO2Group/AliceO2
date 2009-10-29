@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCAParam.h 35151 2009-10-01 13:35:10Z sgorbuno $
+// @(#) $Id: AliHLTTPCCAParam.h 35757 2009-10-21 20:58:33Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -28,18 +28,15 @@
 class AliHLTTPCCAParam
 {
   public:
+	AliHLTTPCCAParam();
+    ~AliHLTTPCCAParam() {}
 
 #if !defined(HLTCA_GPUCODE)
-    GPUd() AliHLTTPCCAParam();
-
-    ~AliHLTTPCCAParam() {;}
-
     void Initialize( int iSlice, int nRows, float rowX[],
                             float alpha, float dAlpha,
                             float rMin, float rMax, float zMin, float zMax,
                             float padPitch, float zSigma, float bz );
     void Update();
-
 #endif
 
 	GPUd() void Slice2Global( float x, float y,  float z,
