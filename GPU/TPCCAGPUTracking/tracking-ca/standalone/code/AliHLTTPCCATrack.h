@@ -11,7 +11,7 @@
 #define ALIHLTTPCCATRACK_H
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCATrackParam.h"
+#include "AliHLTTPCCATrackParam2.h"
 
 /**
  * @class ALIHLTTPCCAtrack
@@ -31,18 +31,18 @@ class AliHLTTPCCATrack
     GPUhd() bool Alive()               const { return fAlive; }
     GPUhd() int  NHits()               const { return fNHits; }
     GPUhd() int  FirstHitID()          const { return fFirstHitID; }
-    GPUhd() const AliHLTTPCCATrackParam &Param() const { return fParam; };
+    GPUhd() const AliHLTTPCCATrackParam2 &Param() const { return fParam; };
 
     GPUhd() void SetAlive( bool v )               { fAlive = v; }
     GPUhd() void SetNHits( int v )               { fNHits = v; }
     GPUhd() void SetFirstHitID( int v )          { fFirstHitID = v; }
-    GPUhd() void SetParam( AliHLTTPCCATrackParam v ) { fParam = v; };
+    GPUhd() void SetParam( AliHLTTPCCATrackParam2 v ) { fParam = v; };
 
   private:
     bool fAlive;       // flag for mark tracks used by the track merger
     int  fFirstHitID; // index of the first track cell in the track->cell pointer array
     int  fNHits;      // number of track cells
-    AliHLTTPCCATrackParam fParam; // track parameters
+    AliHLTTPCCATrackParam2 fParam; // track parameters
 
   private:
     //void Dummy(); // to make rulechecker happy by having something in .cxx file

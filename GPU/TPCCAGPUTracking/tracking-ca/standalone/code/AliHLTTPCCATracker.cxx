@@ -685,8 +685,6 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 		  int id = fClusterData->Id( clusterIndex );
 
-		  unsigned short hPackedYZ = 0;
-		  UChar_t hPackedAmp = 0;
 		  float2 hUnpackedYZ;
 		  hUnpackedYZ.x = origY;
 		  hUnpackedYZ.y = origZ;
@@ -694,8 +692,6 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 		  useOutput->SetClusterId( nStoredHits, id  );
 		  useOutput->SetClusterRow( nStoredHits, ( unsigned char ) iRow  );
-		  useOutput->SetClusterPackedYZ( nStoredHits, hPackedYZ );
-		  useOutput->SetClusterPackedAmp( nStoredHits, hPackedAmp );
 		  useOutput->SetClusterUnpackedYZ( nStoredHits, hUnpackedYZ );
 		  useOutput->SetClusterUnpackedX( nStoredHits, hUnpackedX );
 		  nStoredHits++;
@@ -723,8 +719,11 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		out.SetFirstHitRef( useOutput->NOutTrackHits() );
 		out.SetNHits( 0 );
 		out.SetOrigTrackID( iTr );
-		out.SetStartPoint( iTrack.Param() );
-		out.SetEndPoint( iTrack.Param() );
+		AliHLTTPCCATrackParam tmpParam;
+		tmpParam.InitParam();
+		tmpParam.SetParam(iTrack.Param());
+		out.SetStartPoint( tmpParam );
+		out.SetEndPoint( tmpParam );
 
 		int iID = iTrack.FirstHitID();
 		int nOutTrackHitsOld = useOutput->NOutTrackHits();

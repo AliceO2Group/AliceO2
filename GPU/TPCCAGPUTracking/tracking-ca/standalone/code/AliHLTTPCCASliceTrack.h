@@ -10,7 +10,7 @@
 #ifndef ALIHLTTPCCASLICETRACK_H
 #define ALIHLTTPCCASLICETRACK_H
 
-#include "AliHLTTPCCATrackParam.h"
+#include "AliHLTTPCCATrackParam2.h"
 
 /**
  * @class AliHLTTPCCASliceTrack
@@ -31,15 +31,15 @@ class AliHLTTPCCASliceTrack
 
     GPUhd() int NClusters()                    const { return fNClusters;       }
     GPUhd() int FirstClusterRef()              const { return fFirstClusterRef; }
-    GPUhd() const AliHLTTPCCATrackParam &Param() const { return fParam;           }
+    GPUhd() const AliHLTTPCCATrackParam2 &Param() const { return fParam;           }
 
     GPUhd() void SetNClusters( int v )                   { fNClusters = v;       }
     GPUhd() void SetFirstClusterRef( int v )              { fFirstClusterRef = v; }
-    GPUhd() void SetParam( const AliHLTTPCCATrackParam &v ) { fParam = v;           }
+    GPUhd() void SetParam( const AliHLTTPCCATrackParam2 &v ) { fParam = v;           }
 
   private:
 
-    AliHLTTPCCATrackParam fParam; //* fitted track parameters at its innermost cluster
+    AliHLTTPCCATrackParam2 fParam; //* fitted track parameters at its innermost cluster
     int fFirstClusterRef;       //* index of the index of the first track cluster in corresponding cluster arrays
     int fNClusters;             //* number of track clusters
 
