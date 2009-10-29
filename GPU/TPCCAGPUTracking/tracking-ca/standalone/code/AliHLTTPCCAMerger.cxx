@@ -235,7 +235,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
         clu.SetISlice( iSlice );
         clu.SetIRow( slice.ClusterRow( ic ) );
         clu.SetId( slice.ClusterId( ic ) );
-        clu.SetPackedAmp( slice.ClusterPackedAmp( ic ) );
+        clu.SetPackedAmp( 0 );
         float2 yz = slice.ClusterUnpackedYZ( ic );
         clu.SetX( slice.ClusterUnpackedX( ic ) );
         clu.SetY( yz.x );

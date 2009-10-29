@@ -53,9 +53,7 @@ void AliHLTTPCCASliceOutput::SetPointers(int nTracks, int nTrackClusters, const 
 	  AssignNoAlignment( fClusterUnpackedYZ, mem, nTrackClusters );
 	  AssignNoAlignment( fClusterUnpackedX,  mem, nTrackClusters );
 	  AssignNoAlignment( fClusterId,         mem, nTrackClusters );
-	  AssignNoAlignment( fClusterPackedYZ,   mem, nTrackClusters );
 	  AssignNoAlignment( fClusterRow,        mem, nTrackClusters );
-	  AssignNoAlignment( fClusterPackedAmp,  mem, nTrackClusters );
   }
 
   if (outputControl == NULL || outputControl->fObsoleteOutput)
