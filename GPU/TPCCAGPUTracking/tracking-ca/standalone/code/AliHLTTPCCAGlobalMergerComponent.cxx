@@ -111,7 +111,7 @@ void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
   // Set default configuration for the CA merger component
   // Some parameters can be later overwritten from the OCDB
 
-  fSolenoidBz = 5.;
+  fSolenoidBz = -5.00668;
   fClusterErrorCorrectionY = 0;
   fClusterErrorCorrectionZ = 1.1;
 }

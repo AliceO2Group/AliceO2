@@ -21,6 +21,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAHitArea.h"
 #include "AliHLTTPCCATracker.h"
+#include "AliHLTTPCCAHit.h"
 
 //#define DRAW
 

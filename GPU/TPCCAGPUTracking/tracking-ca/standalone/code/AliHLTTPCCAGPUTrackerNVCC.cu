@@ -21,6 +21,13 @@
 
 #ifdef BUILD_GPU
 
+#include <cuda.h>
+#ifdef R__WIN32
+
+#else
+#include <sys/syscall.h>
+#endif
+
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
@@ -42,13 +49,9 @@ texture<unsigned short, 1, cudaReadModeElementType> gAliTexRefu;
 texture<signed short, 1, cudaReadModeElementType> gAliTexRefs;
 #endif
 
-#include "AliHLTTPCCAHit.h"
-
 //Include CXX Files, GPUd() macro will then produce CUDA device code out of the tracker source code
 #include "AliHLTTPCCATrackParam.cxx"
 #include "AliHLTTPCCATrack.cxx" 
-
-#include "AliHLTTPCCATrackletSelector.cxx"
 
 #include "AliHLTTPCCAHitArea.cxx"
 #include "AliHLTTPCCAGrid.cxx"
@@ -56,12 +59,10 @@ texture<signed short, 1, cudaReadModeElementType> gAliTexRefs;
 #include "AliHLTTPCCAParam.cxx"
 #include "AliHLTTPCCATracker.cxx"
 
-#include "AliHLTTPCCAOutTrack.cxx"
-
 #include "AliHLTTPCCAProcess.h"
 
+#include "AliHLTTPCCATrackletSelector.cxx"
 #include "AliHLTTPCCANeighboursFinder.cxx"
-
 #include "AliHLTTPCCANeighboursCleaner.cxx"
 #include "AliHLTTPCCAStartHitsFinder.cxx"
 #include "AliHLTTPCCAStartHitsSorter.cxx"
@@ -88,32 +89,49 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 	    HLTWarning("CUDA already used by another AliHLTTPCCAGPUTracker running in same process");
 	    return(1);
 	}
+	fgGPUUsed = 1;
+	fThreadId = GetThread();
 
 	cudaDeviceProp fCudaDeviceProp;
 
+	fGPUMemSize = HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + sliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_GLOBAL_MEMORY);
+
 #ifndef CUDA_DEVICE_EMULATION
-	int count, bestDevice = -1, bestDeviceSpeed = 0;
+	int count, bestDevice = -1;
+	long long int bestDeviceSpeed = 0, deviceSpeed;
 	if (CudaFailedMsg(cudaGetDeviceCount(&count)))
 	{
 		HLTError("Error getting CUDA Device Count");
+		fgGPUUsed = 0;
 		return(1);
 	}
-	if (fDebugLevel >= 2) std::cout << "Available CUDA devices: ";
+	if (fDebugLevel >= 2) HLTInfo("Available CUDA devices:");
 	for (int i = 0;i < count;i++)
 	{
-		cudaGetDeviceProperties(&fCudaDeviceProp, i);
-		if (fDebugLevel >= 2) std::cout << fCudaDeviceProp.name << " (" << i << ")     ";
-		if (fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < 1 || (fCudaDeviceProp.major == 1 && fCudaDeviceProp.minor < 2)) && fCudaDeviceProp.multiProcessorCount * fCudaDeviceProp.clockRate > bestDeviceSpeed)
+		unsigned int free, total;
+		cuInit(0);
+		CUdevice tmpDevice;
+		cuDeviceGet(&tmpDevice, i);
+		CUcontext tmpContext;
+		cuCtxCreate(&tmpContext, 0, tmpDevice);
+		if(cuMemGetInfo(&free, &total)) std::cout << "Error\n";
+		cuCtxDestroy(tmpContext);
+		CudaFailedMsg(cudaGetDeviceProperties(&fCudaDeviceProp, i));
+
+		int deviceOK = fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < 1 || (fCudaDeviceProp.major == 1 && fCudaDeviceProp.minor < 2)) && free >= fGPUMemSize;
+
+		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %d / %d)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, free, fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
+		deviceSpeed = (long long int) fCudaDeviceProp.multiProcessorCount * (long long int) fCudaDeviceProp.clockRate * (long long int) fCudaDeviceProp.warpSize * (long long int) free;
+		if (deviceOK && deviceSpeed > bestDeviceSpeed)
 		{
 			bestDevice = i;
-			bestDeviceSpeed = fCudaDeviceProp.multiProcessorCount * fCudaDeviceProp.clockRate;
+			bestDeviceSpeed = deviceSpeed;
 		}
 	}
-	if (fDebugLevel >= 2) std::cout << std::endl;
-
 	if (bestDevice == -1)
 	{
 		HLTWarning("No CUDA Device available, aborting CUDA Initialisation");
+		fgGPUUsed = 0;
 		return(1);
 	}
 
@@ -130,32 +148,40 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 
   if (fDebugLevel >= 1)
   {
-	  std::cout<<"CUDA Device Properties: "<<std::endl;
-	  std::cout<<"name = "<<fCudaDeviceProp.name<<std::endl;
-	  std::cout<<"totalGlobalMem = "<<fCudaDeviceProp.totalGlobalMem<<std::endl;
-	  std::cout<<"sharedMemPerBlock = "<<fCudaDeviceProp.sharedMemPerBlock<<std::endl;
-	  std::cout<<"regsPerBlock = "<<fCudaDeviceProp.regsPerBlock<<std::endl;
-	  std::cout<<"warpSize = "<<fCudaDeviceProp.warpSize<<std::endl;
-	  std::cout<<"memPitch = "<<fCudaDeviceProp.memPitch<<std::endl;
-	  std::cout<<"maxThreadsPerBlock = "<<fCudaDeviceProp.maxThreadsPerBlock<<std::endl;
-	  std::cout<<"maxThreadsDim = "<<fCudaDeviceProp.maxThreadsDim[0]<<" "<<fCudaDeviceProp.maxThreadsDim[1]<<" "<<fCudaDeviceProp.maxThreadsDim[2]<<std::endl;
-	  std::cout<<"maxGridSize = "  <<fCudaDeviceProp.maxGridSize[0]<<" "<<fCudaDeviceProp.maxGridSize[1]<<" "<<fCudaDeviceProp.maxGridSize[2]<<std::endl;
-	  std::cout<<"totalConstMem = "<<fCudaDeviceProp.totalConstMem<<std::endl;
-	  std::cout<<"major = "<<fCudaDeviceProp.major<<std::endl;
-	  std::cout<<"minor = "<<fCudaDeviceProp.minor<<std::endl;
-	  std::cout<<"clockRate = "<<fCudaDeviceProp.clockRate<<std::endl;
-	  std::cout<<"textureAlignment = "<<fCudaDeviceProp.textureAlignment<<std::endl;
+	  HLTInfo("Using CUDA Device %s with Properties:", fCudaDeviceProp.name);
+	  HLTInfo("totalGlobalMem = %d", fCudaDeviceProp.totalGlobalMem);
+	  HLTInfo("sharedMemPerBlock = %d", fCudaDeviceProp.sharedMemPerBlock);
+	  HLTInfo("regsPerBlock = %d", fCudaDeviceProp.regsPerBlock);
+	  HLTInfo("warpSize = %d", fCudaDeviceProp.warpSize);
+	  HLTInfo("memPitch = %d", fCudaDeviceProp.memPitch);
+	  HLTInfo("maxThreadsPerBlock = %d", fCudaDeviceProp.maxThreadsPerBlock);
+	  HLTInfo("maxThreadsDim = %d %d %d", fCudaDeviceProp.maxThreadsDim[0], fCudaDeviceProp.maxThreadsDim[1], fCudaDeviceProp.maxThreadsDim[2]);
+	  HLTInfo("maxGridSize = %d %d %d", fCudaDeviceProp.maxGridSize[0], fCudaDeviceProp.maxGridSize[1], fCudaDeviceProp.maxGridSize[2]);
+	  HLTInfo("totalConstMem = %d", fCudaDeviceProp.totalConstMem);
+	  HLTInfo("major = %d", fCudaDeviceProp.major);
+	  HLTInfo("minor = %d", fCudaDeviceProp.minor);
+	  HLTInfo("clockRate %d= ", fCudaDeviceProp.clockRate);
+	  HLTInfo("textureAlignment %d= ", fCudaDeviceProp.textureAlignment);
   }
 
   if (fCudaDeviceProp.major < 1 || (fCudaDeviceProp.major == 1 && fCudaDeviceProp.minor < 2))
   {
 	HLTError( "Unsupported CUDA Device" );
-	  return(1);
+	fgGPUUsed = 0;
+	return(1);
   }
 
+  if (sizeof(AliHLTTPCCATracker) * sliceCount > HLTCA_GPU_TRACKER_OBJECT_MEMORY)
+  {
+	  HLTError("Insufficiant Tracker Object Memory");
+	  fgGPUUsed = 0;
+	  return(1);
+  }
+  
   if (CudaFailedMsg(cudaSetDevice(cudaDevice)))
   {
 	  HLTError("Could not set CUDA Device!");
+	  fgGPUUsed = 0;
 	  return(1);
   }
 
@@ -163,6 +189,7 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
   {
 	  HLTError("Insufficiant Common Memory");
 	  cudaThreadExit();
+	  fgGPUUsed = 0;
 	  return(1);
   }
 
@@ -170,14 +197,15 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
   {
 	  HLTError("Insufficiant Row Memory");
 	  cudaThreadExit();
+	  fgGPUUsed = 0;
 	  return(1);
   }
 
-  fGPUMemSize = HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + sliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_GLOBAL_MEMORY);
   if (fGPUMemSize > fCudaDeviceProp.totalGlobalMem || CudaFailedMsg(cudaMalloc(&fGPUMemory, (size_t) fGPUMemSize)))
   {
 	  HLTError("CUDA Memory Allocation Error");
 	  cudaThreadExit();
+	  fgGPUUsed = 0;
 	  return(1);
   }
   if (fDebugLevel >= 1) HLTInfo("GPU Memory used: %d", (int) fGPUMemSize);
@@ -187,6 +215,7 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 	  cudaFree(fGPUMemory);
 	  cudaThreadExit();
 	  HLTError("Error allocating Page Locked Host Memory");
+	  fgGPUUsed = 0;
 	  return(1);
   }
   if (fDebugLevel >= 1) HLTInfo("Host Memory used: %d", hostMemSize);
@@ -195,22 +224,16 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
   {
 	  CudaFailedMsg(cudaMemset(fGPUMemory, 143, (size_t) fGPUMemSize));
   }
-  HLTInfo("CUDA Initialisation successfull");
 
-  //Don't run constructor / destructor here, this will be just local memcopy of Tracker in GPU Memory
-  if (sizeof(AliHLTTPCCATracker) * sliceCount > HLTCA_GPU_TRACKER_OBJECT_MEMORY)
-  {
-	  HLTError("Insufficiant Tracker Object Memory");
-	  return(1);
-  }
   fSliceCount = sliceCount;
+  //Don't run constructor / destructor here, this will be just local memcopy of Tracker in GPU Memory
   fGpuTracker = (AliHLTTPCCATracker*) TrackerMemory(fHostLockedMemory, 0);
 
   for (int i = 0;i < fgkNSlices;i++)
   {
     fSlaveTrackers[i].SetGPUTracker();
 	fSlaveTrackers[i].SetGPUTrackerCommonMemory((char*) CommonMemory(fHostLockedMemory, i));
-	fSlaveTrackers[i].pData()->SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, i), RowMemory(fHostLockedMemory, i));
+	fSlaveTrackers[i].SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, i), RowMemory(fHostLockedMemory, i));
   }
 
   fpCudaStreams = malloc(CAMath::Max(3, fSliceCount) * sizeof(cudaStream_t));
@@ -219,10 +242,17 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
   {
 	if (CudaFailedMsg(cudaStreamCreate(&cudaStreams[i])))
 	{
-		HLTError("Error creating CUDA Stream");
-		return(1);
+	    cudaFree(fGPUMemory);
+	    cudaFreeHost(fHostLockedMemory);
+	    cudaThreadExit();
+	    HLTError("Error creating CUDA Stream");
+	    fgGPUUsed = 0;
+	    return(1);
 	}
   }
+
+  fCudaInitialized = 1;
+  HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %dd)", cudaDevice, fCudaDeviceProp.name, fThreadId);
 
 #if defined(HLTCA_STANDALONE) & !defined(CUDA_DEVICE_EMULATION)
   if (fDebugLevel < 2)
@@ -230,27 +260,48 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 	  //Do one initial run for Benchmark reasons
 	  const int useDebugLevel = fDebugLevel;
 	  fDebugLevel = 0;
-	  AliHLTTPCCAClusterData tmpCluster;
+	  AliHLTTPCCAClusterData* tmpCluster = new AliHLTTPCCAClusterData[sliceCount];
 
 	  std::ifstream fin;
-	  fin.open("events/event.0.dump");
-	  tmpCluster.ReadEvent(fin);
-	  fin.close();
 
-	  AliHLTTPCCASliceOutput *tmpOutput = NULL;
 	  AliHLTTPCCAParam tmpParam;
 	  AliHLTTPCCASliceOutput::outputControlStruct tmpOutputControl;
-	  fSlaveTrackers[0].SetOutputControl(&tmpOutputControl);
-	  tmpParam.SetNRows(HLTCA_ROW_COUNT);
-	  fSlaveTrackers[0].SetParam(tmpParam);
-	  Reconstruct(&tmpOutput, &tmpCluster, 0, 1);
-	  free(tmpOutput);
-	  tmpOutput = NULL;
-	  fSlaveTrackers[0].SetOutputControl(NULL);
+
+	  fin.open("events/settings.dump");
+	  int tmpCount;
+	  fin >> tmpCount;
+	  for (int i = 0;i < sliceCount;i++)
+	  {
+		fSlaveTrackers[i].SetOutputControl(&tmpOutputControl);
+		tmpParam.ReadSettings(fin);
+		InitializeSliceParam(i, tmpParam);
+	  }
+	  fin.close();
+
+	  fin.open("eventspbpbc/event.0.dump", std::ifstream::binary);
+	  for (int i = 0;i < sliceCount;i++)
+	  {
+		tmpCluster[i].StartReading(i, 0);
+		tmpCluster[i].ReadEvent(fin);
+		tmpCluster[i].FinishReading();
+	  }
+	  fin.close();
+
+	  AliHLTTPCCASliceOutput **tmpOutput = new AliHLTTPCCASliceOutput*[sliceCount];
+	  memset(tmpOutput, 0, sliceCount * sizeof(AliHLTTPCCASliceOutput*));
+
+	  Reconstruct(tmpOutput, tmpCluster, 0, sliceCount);
+	  for (int i = 0;i < sliceCount;i++)
+	  {
+		  free(tmpOutput[i]);
+		  tmpOutput[i] = NULL;
+	  	  fSlaveTrackers[i].SetOutputControl(NULL);
+	  }
+	  delete[] tmpOutput;
+	  delete[] tmpCluster;
 	  fDebugLevel = useDebugLevel;
   }
 #endif
-    fgGPUUsed = true;
   return(0);
 }
 
@@ -347,7 +398,7 @@ void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlic
 		for (int i = 0; i < tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1;i++)
 		{
 			*fOutFile << "Rowblock: " << i << ", up " << rowBlockPos[i].y << "/" << rowBlockPos[i].x << ", down " << 
-				rowBlockPos[tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].y << "/" << rowBlockPos[tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].x << endl << "Phase 1: ";
+				rowBlockPos[tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].y << "/" << rowBlockPos[tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].x << std::endl << "Phase 1: ";
 			for (int j = 0;j < rowBlockPos[i].x;j++)
 			{
 				//Use Tracker Object to calculate Offset instead of fGpuTracker, since *fNTracklets of fGpuTracker points to GPU Mem!
@@ -362,12 +413,12 @@ void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlic
 					HLTError("Error, -1 Tracklet found");
 				}
 			}
-			*fOutFile << endl << "Phase 2: ";
+			*fOutFile << std::endl << "Phase 2: ";
 			for (int j = 0;j < rowBlockPos[tracker[iSlice].Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1 + i].x;j++)
 			{
 				*fOutFile << rowBlockTracklets[(tracker[iSlice].RowBlockTracklets(1, i) - tracker[iSlice].RowBlockTracklets(0, 0)) + j] << ", ";
 			}
-			*fOutFile << endl;
+			*fOutFile << std::endl;
 		}
 
 		if (check)
@@ -407,7 +458,25 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 	//Primary reconstruction function
 	cudaStream_t* const cudaStreams = (cudaStream_t*) fpCudaStreams;
 
-	if (sliceCountLocal == -1) sliceCountLocal = this->fSliceCount;
+	if (sliceCountLocal == -1) sliceCountLocal = fSliceCount;
+	
+	if (!fCudaInitialized)
+	{
+	    HLTError("GPUTracker not initialized");
+	    return(1);
+	}
+	if (sliceCountLocal > fSliceCount)
+	{
+	    HLTError("GPU Tracker was initialized to run with %d slices but was called to process %d slices", fSliceCount, sliceCountLocal);
+	    return(1);
+	}
+	if (fThreadId != GetThread())
+	{
+	    HLTError("GPUTracker context was initialized by different thread, Initializing Thread: %d, Processing Thread: %d", fThreadId, GetThread());
+	    return(1);
+	}
+
+	if (fDebugLevel >= 2) HLTInfo("Running GPU Tracker (Slices %d to %d)", fSlaveTrackers[firstSlice].Param().ISlice(), fSlaveTrackers[firstSlice].Param().ISlice() + sliceCountLocal);
 
 	if (sliceCountLocal * sizeof(AliHLTTPCCATracker) > HLTCA_GPU_TRACKER_CONSTANT_MEM)
 	{
@@ -419,19 +488,18 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 	{
 		for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 		{
-			*fOutFile << endl << endl << "Slice: " << fSlaveTrackers[firstSlice + iSlice].Param().ISlice() << endl;
+			*fOutFile << std::endl << std::endl << "Slice: " << fSlaveTrackers[firstSlice + iSlice].Param().ISlice() << std::endl;
 		}
 	}
 
 	memcpy(fGpuTracker, &fSlaveTrackers[firstSlice], sizeof(AliHLTTPCCATracker) * sliceCountLocal);
 
-	if (fDebugLevel >= 2) HLTInfo("Running GPU Tracker (Slices %d to %d)", fSlaveTrackers[firstSlice].Param().ISlice(), fSlaveTrackers[firstSlice + sliceCountLocal].Param().ISlice());
 	if (fDebugLevel >= 3) HLTInfo("Allocating GPU Tracker memory and initializing constants");
 
 #ifdef HLTCA_GPU_TIME_PROFILE
-	__int64 a, b, c, d;
-	QueryPerformanceFrequency((LARGE_INTEGER*) &c);
-	QueryPerformanceCounter((LARGE_INTEGER*) &d);
+	unsigned __int64 a, b, c, d;
+	AliHLTTPCCAStandaloneFramework::StandaloneQueryFreq(&c);
+	AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&d);
 #endif
 	
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
@@ -439,8 +507,8 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 		//Make this a GPU Tracker
 		fGpuTracker[iSlice].SetGPUTracker();
 		fGpuTracker[iSlice].SetGPUTrackerCommonMemory((char*) CommonMemory(fGPUMemory, iSlice));
-		fGpuTracker[iSlice].pData()->SetGPUSliceDataMemory(SliceDataMemory(fGPUMemory, iSlice), RowMemory(fGPUMemory, iSlice));
-		fGpuTracker[iSlice].pData()->SetPointers(&pClusterData[iSlice], false);
+		fGpuTracker[iSlice].SetGPUSliceDataMemory(SliceDataMemory(fGPUMemory, iSlice), RowMemory(fGPUMemory, iSlice));
+		fGpuTracker[iSlice].SetPointersSliceData(&pClusterData[iSlice], false);
 
 		//Set Pointers to GPU Memory
 		char* tmpMem = (char*) GlobalMemory(fGPUMemory, iSlice);
@@ -478,7 +546,7 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUnSlices = sliceCountLocal;
 		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError = 0;
-		fGpuTracker[iSlice].pData()->SetGPUTextureBase(fGpuTracker[0].Data().Memory());
+		fGpuTracker[iSlice].SetGPUTextureBase(fGpuTracker[0].Data().Memory());
 	}
 
 #ifdef HLTCA_GPU_TEXTURE_FETCH
@@ -486,19 +554,19 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 		size_t offset;
 		if (CudaFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, fGpuTracker[0].Data().Memory(), &channelDescu2, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset)
 		{
-			HLTError("Error binding CUDA Texture (Offset %d)", (int) offset);
+			HLTError("Error binding CUDA Texture ushort2 (Offset %d)", (int) offset);
 			return(1);
 		}
 		cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<unsigned short>();
 		if (CudaFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, fGpuTracker[0].Data().Memory(), &channelDescu, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset)
 		{
-			HLTError("Error binding CUDA Texture (Offset %d)", (int) offset);
+			HLTError("Error binding CUDA Texture ushort (Offset %d)", (int) offset);
 			return(1);
 		}
 		cudaChannelFormatDesc channelDescs = cudaCreateChannelDesc<signed short>();
 		if (CudaFailedMsg(cudaBindTexture(&offset, &gAliTexRefs, fGpuTracker[0].Data().Memory(), &channelDescs, sliceCountLocal * HLTCA_GPU_SLICE_DATA_MEMORY)) || offset)
 		{
-			HLTError("Error binding CUDA Texture (Offset %d)", (int) offset);
+			HLTError("Error binding CUDA Texture short (Offset %d)", (int) offset);
 			return(1);
 		}
 #endif
@@ -517,13 +585,13 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 
 		//Initialize GPU Slave Tracker
 		if (fDebugLevel >= 3) HLTInfo("Creating Slice Data");
-		fSlaveTrackers[firstSlice + iSlice].pData()->SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, iSlice), RowMemory(fHostLockedMemory, firstSlice + iSlice));
+		fSlaveTrackers[firstSlice + iSlice].SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, iSlice), RowMemory(fHostLockedMemory, firstSlice + iSlice));
 #ifdef HLTCA_GPU_TIME_PROFILE
-		QueryPerformanceCounter((LARGE_INTEGER*) &a);
+			AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&a);
 #endif
 		fSlaveTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
 #ifdef HLTCA_GPU_TIME_PROFILE
-		QueryPerformanceCounter((LARGE_INTEGER*) &b);
+			AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&b);
 		printf("Read %f %f\n", ((double) b - (double) a) / (double) c, ((double) a - (double) d) / (double) c);
 #endif
 		if (fSlaveTrackers[firstSlice + iSlice].Data().MemorySize() > HLTCA_GPU_SLICE_DATA_MEMORY)
@@ -652,6 +720,9 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 	}
 #endif
 
+	int nHardCollisions = 0;
+
+RestartTrackletConstructor:
 	if (fDebugLevel >= 3) HLTInfo("Initialising Tracklet Constructor Scheduler");
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 	{
@@ -682,10 +753,12 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 		}
 	}
 
-	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice += HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT)
+	int runSlices = 0;
+	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice += runSlices)
 	{
-		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Slice %d to %d)", iSlice, iSlice + HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT);
-		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[iSlice]>>>(iSlice, CAMath::Min(HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT, sliceCountLocal - iSlice));
+		if (runSlices < HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
+		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Slice %d to %d)", iSlice, iSlice + runSlices);
+		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[iSlice]>>>(iSlice, CAMath::Min(runSlices, sliceCountLocal - iSlice));
 	}
 	if (CUDASync("Tracklet Selector")) return 1;
 	StandalonePerfTime(firstSlice, 9);
@@ -718,6 +791,21 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 
 			if (fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError)
 			{
+				if (fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError == HLTCA_GPU_ERROR_SCHEDULE_COLLISION && nHardCollisions++ < 10)
+				{
+					HLTWarning("Hard scheduling collision occured, rerunning Tracklet Constructor");
+					for (int i = 0;i < sliceCountLocal;i++)
+					{
+						cudaThreadSynchronize();
+						CudaFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + i].CommonMemory(), fGpuTracker[i].CommonMemory(), fGpuTracker[i].CommonMemorySize(), cudaMemcpyDeviceToHost));
+						*fSlaveTrackers[firstSlice + i].NTracks() = 0;
+						*fSlaveTrackers[firstSlice + i].NTrackHits() = 0;
+						fSlaveTrackers[firstSlice + i].GPUParameters()->fGPUError = HLTCA_GPU_ERROR_NONE;
+						CudaFailedMsg(cudaMemcpy(fGpuTracker[i].CommonMemory(), fSlaveTrackers[firstSlice + i].CommonMemory(), fGpuTracker[i].CommonMemorySize(), cudaMemcpyHostToDevice));
+						PreInitRowBlocks<<<30, 256>>>(fGpuTracker[i].RowBlockPos(), fGpuTracker[i].RowBlockTracklets(), fGpuTracker[i].Data().HitWeights(), fSlaveTrackers[firstSlice + i].Data().NumberOfHitsPlusAlign());
+					}
+					goto RestartTrackletConstructor;
+				}
 				HLTError("GPU Tracker returned Error Code %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError);
 				return(1);
 			}
@@ -725,11 +813,11 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 
 			fSlaveTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 #ifdef HLTCA_GPU_TIME_PROFILE
-			QueryPerformanceCounter((LARGE_INTEGER*) &a);
+			AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&a);
 #endif
 			fSlaveTrackers[firstSlice + iSlice].WriteOutput();
 #ifdef HLTCA_GPU_TIME_PROFILE
-			QueryPerformanceCounter((LARGE_INTEGER*) &b);
+			AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&b);
 			printf("Write %f %f\n", ((double) b - (double) a) / (double) c, ((double) a - (double) d) / (double) c);
 #endif
 
@@ -845,6 +933,7 @@ int AliHLTTPCCAGPUTracker::ExitGPU()
 	}
 	HLTInfo("CUDA Uninitialized");
 	fgGPUUsed = false;
+	fCudaInitialized = 0;
 	return(0);
 }
 
@@ -855,6 +944,15 @@ void AliHLTTPCCAGPUTracker::SetOutputControl( AliHLTTPCCASliceOutput::outputCont
 	{
 		fSlaveTrackers[i].SetOutputControl(val);
 	}
+}
+
+int AliHLTTPCCAGPUTracker::GetThread()
+{
+#ifdef R__WIN32
+	return((int) (size_t) GetCurrentThread());
+#else
+	return((int) syscall (SYS_gettid));
+#endif
 }
 
 #endif

@@ -1,4 +1,4 @@
-// $Id: AliTPCtrackerCA.cxx 35151 2009-10-01 13:35:10Z sgorbuno $
+// $Id: AliTPCtrackerCA.cxx 35611 2009-10-16 02:49:04Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -310,17 +310,14 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
       lab2 = cluster->GetLabel( 2 );
 
       AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
+      transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
+
       if ( !transform ) {
         AliFatal( "Tranformations not in calibDB" );
       }
       double xx[3] = {cluster->GetRow(), cluster->GetPad(), cluster->GetTimeBin()};
       int id[1] = {cluster->GetDetector()};
       transform->Transform( xx, id, 0, 1 );
-      //if (!AliTPCReconstructor::GetRecoParam()->GetBYMirror()){
-      //if (cluster->GetDetector()%36>17){
-      //xx[1]*=-1;
-      //}
-      //}
 
       cluster->SetX( xx[0] );
       cluster->SetY( xx[1] );
@@ -555,7 +552,7 @@ int AliTPCtrackerCA::RefitInward ( AliESDEvent *event )
       infos[i].SetZ( fClusters[index].GetZ() );
     }
 
-    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 0, 0,infos );
+    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 0, 1,infos );
 
     if ( ok &&  nHits > 15 ) {
       if ( t.TransportToXWithMaterial( xTPC, hlt.Merger().SliceParam().GetBz( t ) ) ) {
@@ -615,7 +612,7 @@ int AliTPCtrackerCA::PropagateBack( AliESDEvent *event )
       infos[i].SetZ( fClusters[index].GetZ() );
     }
 
-    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 1, 0, infos );
+    bool ok = hlt.Merger().FitTrack( t, alpha, t0, alpha, hits1, nHits, 1, 1, infos );
 
     if ( ok &&  nHits > 15 ) {
       AliTPCtrack tt( *esd );

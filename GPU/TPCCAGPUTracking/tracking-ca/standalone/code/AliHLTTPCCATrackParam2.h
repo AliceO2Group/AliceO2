@@ -45,7 +45,7 @@ class AliHLTTPCCATrackParam2
     GPUd() float GetDzDs()   const { return fP[3]; }
     GPUd() float GetQPt()    const { return fP[4]; }
 
-    GPUd() float GetKappa( float Bz ) const { return fP[4]*Bz; }
+    GPUd() float GetKappa( float Bz ) const { return -fP[4]*Bz; }
 
     GPUhd() const float *Par() const { return fP; }
     GPUd() const float *GetPar() const { return fP; }

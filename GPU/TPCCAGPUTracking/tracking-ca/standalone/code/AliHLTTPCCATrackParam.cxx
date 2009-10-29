@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCATrackParam.cxx 33907 2009-07-23 13:52:49Z sgorbuno $
+// $Id: AliHLTTPCCATrackParam.cxx 35816 2009-10-23 05:52:59Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -27,7 +27,7 @@
 // Circle in XY:
 //
 // kCLight = 0.000299792458;
-// Kappa = Bz*kCLight*QPt;
+// Kappa = -Bz*kCLight*QPt;
 // R  = 1/TMath::Abs(Kappa);
 // Xc = X - sin(Phi)/Kappa;
 // Yc = Y + cos(Phi)/Kappa;
@@ -111,7 +111,7 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinea
 
   float ex = t0.CosPhi();
   float ey = t0.SinPhi();
-  float k   = t0.QPt() * Bz;
+  float k  =-t0.QPt() * Bz;
   float dx = x - X();
 
   float ey1 = k * dx + ey;
@@ -162,8 +162,8 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinea
   //float H4[5] = { 0, 0, 0,  0,  1 };
 
   float h2 = dx * ( 1 + ey * ey1 + ex * ex1 ) * exi * ex1i * cci;
-  float h4 = dx2 * ( cc + ss * ey1 * ex1i ) * cci * cci * Bz;
-  float dxBz = dx * Bz;
+  float h4 = dx2 * ( cc + ss * ey1 * ex1i ) * cci * cci * (-Bz);
+  float dxBz = dx * (-Bz);
 
   t0.SetCosPhi( ex1 );
   t0.SetSinPhi( ey1 );
@@ -230,7 +230,7 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, float sinPhi0, float 
   if ( CAMath::Abs( ex ) < 1.e-4 ) return 0;
   float exi = 1. / ex;
 
-  float dxBz = dx * Bz;
+  float dxBz = dx * (-Bz);
   float dS = dx * exi;
   float h2 = dS * exi * exi;
   float h4 = .5 * h2 * dxBz;
@@ -442,8 +442,11 @@ GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitPa
 {
   //*!
 
+  float qpt = GetPar(4);
+  if( fC[14]>=1. ) qpt = 1./0.35;
+
   float p2 = ( 1. + GetPar(3) * GetPar(3) );
-  float k2 = GetPar(4) * GetPar(4);
+  float k2 = qpt * qpt;
   float mass2 = mass * mass;
   float beta2 = p2 / ( p2 + mass2 * k2 );
 
@@ -458,13 +461,13 @@ GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitPa
   // Approximate energy loss fluctuation (M.Ivanov)
 
   const float knst = 0.07; // To be tuned.
-  par.fSigmadE2 = knst * par.fEP2 * GetPar(4);
+  par.fSigmadE2 = knst * par.fEP2 * qpt;
   par.fSigmadE2 = par.fSigmadE2 * par.fSigmadE2;
 
   par.fK22 = ( 1. + GetPar(3) * GetPar(3) );
   par.fK33 = par.fK22 * par.fK22;
-  par.fK43 = GetPar(3) * GetPar(4) * par.fK22;
-  par.fK44 = GetPar(3) * GetPar(3) * GetPar(4) * GetPar(4);
+  par.fK43 = 0;
+  par.fK44 = GetPar(3) * GetPar(3) * k2;
 
 }
 
@@ -676,11 +679,23 @@ GPUd() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
   for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( Par()[i] );
 
   if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
-  if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2 || ( CAMath::Abs( QPt() ) > 1.e-4 && c[14] > 2. ) ) ok = 0;
+  if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2 || ( CAMath::Abs( QPt() ) > 1.e-2 && c[14] > 2. ) ) ok = 0;
 
   if ( CAMath::Abs( SinPhi() ) > .99 ) ok = 0;
   if ( CAMath::Abs( QPt() ) > 1. / 0.05 ) ok = 0;
-
+  if( ok ){
+    ok = ok 
+      && ( c[1]*c[1]<=c[2]*c[0] )
+      && ( c[3]*c[3]<=c[5]*c[0] )
+      && ( c[4]*c[4]<=c[5]*c[2] )
+      && ( c[6]*c[6]<=c[9]*c[0] )
+      && ( c[7]*c[7]<=c[9]*c[2] )
+      && ( c[8]*c[8]<=c[9]*c[5] )
+      && ( c[10]*c[10]<=c[14]*c[0] )
+      && ( c[11]*c[11]<=c[14]*c[2] )
+      && ( c[12]*c[12]<=c[14]*c[5] )
+      && ( c[13]*c[13]<=c[14]*c[9] );      
+  }
   return ok;
 }
 
