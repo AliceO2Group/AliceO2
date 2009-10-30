@@ -10,7 +10,7 @@
 #define ALIHLTTPCCATRACKLET_H
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCATrackParam.h"
+#include "AliHLTTPCCATrackParam2.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
 /**
@@ -32,7 +32,7 @@ class AliHLTTPCCATracklet
     GPUhd() int  NHits()                const { return fNHits;      }
     GPUhd() int  FirstRow()             const { return fFirstRow;   }
     GPUhd() int  LastRow()              const { return fLastRow;    }
-    GPUhd() const AliHLTTPCCATrackParam &Param() const { return fParam; }
+    GPUhd() const AliHLTTPCCATrackParam2 &Param() const { return fParam; }
 #ifndef EXTERN_ROW_HITS
     GPUhd() int  RowHit( int i )   const { return fRowHits[i];    }
 	GPUhd() const int* RowHits()	const			{ return(fRowHits); }
@@ -41,7 +41,7 @@ class AliHLTTPCCATracklet
     GPUhd() void SetNHits( int v )               {  fNHits = v;      }
     GPUhd() void SetFirstRow( int v )            {  fFirstRow = v;   }
     GPUhd() void SetLastRow( int v )             {  fLastRow = v;    }
-    GPUhd() void SetParam( const AliHLTTPCCATrackParam &v ) { fParam.SetParam(v);      }
+    GPUhd() void SetParam( const AliHLTTPCCATrackParam2 &v ) { fParam = v;      }
 #ifndef EXTERN_ROW_HITS
     GPUhd() void SetRowHit( int irow, int ih )  { fRowHits[irow] = ih;    }
 #endif
@@ -50,7 +50,7 @@ class AliHLTTPCCATracklet
     int fNHits;                 // N hits
     int fFirstRow;              // first TPC row
     int fLastRow;               // last TPC row
-    AliHLTTPCCATrackParam fParam; // tracklet parameters
+    AliHLTTPCCATrackParam2 fParam; // tracklet parameters
 #ifndef EXTERN_ROW_HITS
     int fRowHits[HLTCA_ROW_COUNT + 1];          // hit index for each TPC row
 #endif
