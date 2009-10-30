@@ -22,7 +22,11 @@
 #ifdef BUILD_GPU
 
 #include <cuda.h>
+#ifdef R__WIN32
+
+#else
 #include <sys/syscall.h>
+#endif
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
@@ -86,7 +90,7 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 	    return(1);
 	}
 	fgGPUUsed = 1;
-	fThreadId = (int) syscall (SYS_gettid);
+	fThreadId = GetThread();
 
 	cudaDeviceProp fCudaDeviceProp;
 
@@ -466,9 +470,9 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 	    HLTError("GPU Tracker was initialized to run with %d slices but was called to process %d slices", fSliceCount, sliceCountLocal);
 	    return(1);
 	}
-	if (fThreadId != (int) syscall (SYS_gettid))
+	if (fThreadId != GetThread())
 	{
-	    HLTError("GPUTracker context was initialized by different thread, Initializing Thread: %d, Processing Thread: %d", fThreadId, (int) syscall (SYS_gettid));
+	    HLTError("GPUTracker context was initialized by different thread, Initializing Thread: %d, Processing Thread: %d", fThreadId, GetThread());
 	    return(1);
 	}
 
@@ -940,6 +944,15 @@ void AliHLTTPCCAGPUTracker::SetOutputControl( AliHLTTPCCASliceOutput::outputCont
 	{
 		fSlaveTrackers[i].SetOutputControl(val);
 	}
+}
+
+int AliHLTTPCCAGPUTracker::GetThread()
+{
+#ifdef R__WIN32
+	return((int) (size_t) GetCurrentThread());
+#else
+	return((int) syscall (SYS_gettid));
+#endif
 }
 
 #endif
