@@ -12,7 +12,6 @@
 #define ALIHLTTPCCATRACKPARAM2_H
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCAMath.h"
 
 class AliHLTTPCCATrackLinearisation;
 
@@ -26,10 +25,6 @@ class AliHLTTPCCATrackLinearisation;
 class AliHLTTPCCATrackParam2
 {
   public:
-
-    struct AliHLTTPCCATrackFitParam {
-      float fBethe, fE, fTheta2, fEP2, fSigmadE2, fK22, fK33, fK43, fK44;// parameters
-    };
 
     GPUd() float X()      const { return fX;    }
     GPUd() float Y()      const { return fP[0]; }

@@ -206,12 +206,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
 	if (r.fStartRow < r.fFirstRow) r.fFirstRow = r.fStartRow;
 	tracklet.SetFirstRow( r.fFirstRow );
     tracklet.SetLastRow( r.fLastRow );
-#ifdef HLTCA_GPUCODE
-	//GPU Tracker has problems arranging registers efficiently when accessing through inline function
     tracklet.SetParam( tParam.fParam );
-#else
-	tracklet.SetParam( tParam.GetParam() );
-#endif
     int w = ( r.fNHits << 16 ) + r.fItr;
     for ( int iRow = r.fFirstRow; iRow <= r.fLastRow; iRow++ ) {
 #ifdef EXTERN_ROW_HITS

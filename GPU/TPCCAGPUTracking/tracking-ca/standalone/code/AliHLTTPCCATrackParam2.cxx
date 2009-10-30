@@ -16,3 +16,5 @@
 // provided "as is" without express or implied warranty.                    *
 //                                                                          *
 //***************************************************************************
+
+#include "AliHLTTPCCATrackParam2.h"
