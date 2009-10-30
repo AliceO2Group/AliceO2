@@ -137,6 +137,8 @@ class AliHLTTPCCATrackParam
 
     GPUd() void Print() const;
 
+	AliHLTTPCCATrackParam2 fParam; // Track Parameters
+
   private:
 	//WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
 	//This is neccessary for performance reasons!!!
@@ -145,8 +147,6 @@ class AliHLTTPCCATrackParam
     float fSignCosPhi; // sign of cosPhi
     float fChi2;   // the chi^2 value
     int   fNDF;    // the Number of Degrees of Freedom
-
-	AliHLTTPCCATrackParam2 fParam; // Track Parameters
 };
 
 GPUd() inline void AliHLTTPCCATrackParam::InitParam()
