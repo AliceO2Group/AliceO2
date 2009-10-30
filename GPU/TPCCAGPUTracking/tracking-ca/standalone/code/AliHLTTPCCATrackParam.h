@@ -137,15 +137,18 @@ class AliHLTTPCCATrackParam
 
     GPUd() void Print() const;
 
-	AliHLTTPCCATrackParam2 fParam; // Track Parameters
-
+#ifndef HLTCA_GPUCODE
   private:
+#endif
+	//At the moment not private for GPU Tracker for performance reasons
+
 	//WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
 	//This is neccessary for performance reasons!!!
 	//Changes to Elements of this class therefore must also be applied to TrackletConstructor!!!
     float fC[15];  // the covariance matrix for Y,Z,SinPhi,..
     float fSignCosPhi; // sign of cosPhi
     float fChi2;   // the chi^2 value
+	AliHLTTPCCATrackParam2 fParam; // Track Parameters
     int   fNDF;    // the Number of Degrees of Freedom
 };
 
