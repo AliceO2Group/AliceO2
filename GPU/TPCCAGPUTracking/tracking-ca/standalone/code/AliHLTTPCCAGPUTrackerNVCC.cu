@@ -26,6 +26,7 @@
 #else
 #include <sys/syscall.h>
 #include <semaphore.h>
+#include <fcntl.h>
 #endif
 
 #include "AliHLTTPCCADef.h"
@@ -80,6 +81,8 @@ ClassImp( AliHLTTPCCAGPUTracker )
 
 bool AliHLTTPCCAGPUTracker::fgGPUUsed = false;
 
+#define SemLockName "AliceHLTTPCCAGPUTrackerInitLockSem"
+
 void AliHLTTPCCAGPUTracker::ReleaseGlobalLock(void* sem)
 {
 #ifdef R__WIN32
@@ -90,7 +93,7 @@ void AliHLTTPCCAGPUTracker::ReleaseGlobalLock(void* sem)
 #else
 	sem_t* pSem = (sem_t*) sem;
 	sem_post(pSem);
-	sem_unlink("AliceHLTTPCCAGPUTrackerInitLock");
+	sem_unlink(SemLockName);
 #endif
 }
 
@@ -124,16 +127,27 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 
 #ifdef R__WIN32
 	HANDLE* semLock = new HANDLE;
-	*semLock = CreateSemaphore(NULL, 0, 1, "AliceHLTTPCCAGPUTrackerInitLock");
+	*semLock = CreateSemaphore(NULL, 1, 1, SemLockName);
+	if (*semLock == NULL)
+	{
+		HLTError("Error creating GPUInit Semaphore");
+		return(1);
+	}
 	WaitForSingleObject(*semLock, INFINITE);
 #else
-	sem_t* semLock = sem_open("AliceHLTTPCCAGPUTrackerInitLock", O_CREAT);
+	sem_t* semLock = sem_open(SemLockName, O_CREAT, 0x01B6, 1);
+	if (semLock == SEM_FAILED)
+	{
+		HLTError("Error creating GPUInit Semaphore");
+		return(1);
+	}
 	sem_wait(semLock);
 #endif
 
 	if (fgGPUUsed)
 	{
 	    HLTWarning("CUDA already used by another AliHLTTPCCAGPUTracker running in same process");
+		ReleaseGlobalLock(semLock);
 	    return(1);
 	}
 	fgGPUUsed = 1;
@@ -150,6 +164,7 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 	{
 		HLTError("Error getting CUDA Device Count");
 		fgGPUUsed = 0;
+		ReleaseGlobalLock(semLock);
 		return(1);
 	}
 	if (fDebugLevel >= 2) HLTInfo("Available CUDA devices:");
