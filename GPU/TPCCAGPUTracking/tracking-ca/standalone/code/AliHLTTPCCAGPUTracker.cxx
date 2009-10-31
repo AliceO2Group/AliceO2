@@ -29,8 +29,8 @@ int AliHLTTPCCAGPUTracker::InitGPU(int /*sliceCount*/, int /*forceDeviceID*/)
 }
 void AliHLTTPCCAGPUTracker::StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
 template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment) {return(NULL);}
-bool AliHLTTPCCAGPUTracker::CudaFailedMsg(cudaError_t error) {return(true);}
-int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
+//bool AliHLTTPCCAGPUTracker::CudaFailedMsg(cudaError_t error) {return(true);}
+int AliHLTTPCCAGPUTracker::CUDASync(char* /*text*/) {return(1);}
 void AliHLTTPCCAGPUTracker::SetDebugLevel(int /*dwLevel*/, std::ostream* /*NewOutFile*/) {}
 int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* /*OptionName*/, int /*OptionValue*/) {return(1);}
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** /*pTracker*/, AliHLTTPCCAClusterData* /*pClusterData*/, int /*fFirstSlice*/, int /*fSliceCount*/) {return(1);}
