@@ -67,7 +67,7 @@ inline void AliHLTTPCCASliceData::CreateGrid( AliHLTTPCCARow *row, const AliHLTT
                      CAMath::Max( ( zMax - zMin ) * norm, 2.f ) );
 }
 
-inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit> &binSortedHits )
+inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const AliHLTArray<AliHLTTPCCAHit> &binSortedHits )
 {
   // hit data packing
 

@@ -220,15 +220,14 @@ class AliHLTTPCCATracker
     return fData.HitWeight( row, hitIndex );
   }
   
-  GPUhd() int NTracklets() const { return fCommonMem->fNTracklets; }
-  GPUhd() int  *NTracklets() { return &fCommonMem->fNTracklets; }
+  GPUhd() int *NTracklets() const { return &fCommonMem->fNTracklets; }
   
   GPUhd() const AliHLTTPCCAHitId &TrackletStartHit( int i ) const { return fTrackletStartHits[i]; }
   GPUhd() AliHLTTPCCAHitId *TrackletStartHits() const { return fTrackletStartHits; }
   GPUhd() AliHLTTPCCAHitId *TrackletTmpStartHits() const { return fTrackletTmpStartHits; }
   GPUhd() const AliHLTTPCCATracklet &Tracklet( int i ) const { return fTracklets[i]; }
   GPUhd() AliHLTTPCCATracklet  *Tracklets() const { return fTracklets;}
-  GPUhd() int* TrackletRowHits() { return fTrackletRowHits; }
+  GPUhd() int* TrackletRowHits() const { return fTrackletRowHits; }
 
   GPUhd() int *NTracks()  const { return &fCommonMem->fNTracks; }
   GPUhd() AliHLTTPCCATrack *Tracks() const { return  fTracks; }
@@ -237,15 +236,15 @@ class AliHLTTPCCATracker
   
   GPUhd() AliHLTTPCCASliceOutput** Output() const { return fOutput; }
   
-  GPUh() commonMemoryStruct *CommonMemory() {return(fCommonMem); }
+  GPUh() commonMemoryStruct *CommonMemory() const {return(fCommonMem); }
   GPUh() static  size_t CommonMemorySize() { return(sizeof(AliHLTTPCCATracker::commonMemoryStruct)); }
-  GPUh() char* &HitMemory() {return(fHitMemory); }
+  GPUh() char* HitMemory() const {return(fHitMemory); }
   GPUh() size_t HitMemorySize() const {return(fHitMemorySize); }
-  GPUh() char* &TrackletMemory() {return(fTrackletMemory); }
+  GPUh() char* TrackletMemory() {return(fTrackletMemory); }
   GPUh() size_t TrackletMemorySize() const {return(fTrackletMemorySize); }
-  GPUh() char* &TrackMemory() {return(fTrackMemory); }
+  GPUh() char* TrackMemory() {return(fTrackMemory); }
   GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
-  GPUhd() AliHLTTPCCARow* SliceDataRows() {return(fData.Rows()); }
+  GPUhd() AliHLTTPCCARow* SliceDataRows() const {return(fData.Rows()); }
   
   GPUhd() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
   GPUhd() AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory* GPUTrackletTemp() const {return(fGPUTrackletTemp);}

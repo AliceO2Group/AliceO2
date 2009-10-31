@@ -77,7 +77,7 @@ class AliHLTTPCCATrackParam
     GPUd() const float *GetPar() const { return fParam.GetPar(); }
 	GPUd() float GetPar(int i) const { return(fParam.GetPar(i)); }
     GPUd() const float *GetCov() const { return fC; }
-	GPUd() float GetCov(int i) {return fC[i]; }
+	GPUd() float GetCov(int i) const {return fC[i]; }
 
     GPUhd() void SetPar( int i, float v ) { fParam.SetPar(i, v); }
     GPUhd() void SetCov( int i, float v ) { fC[i] = v; }
@@ -137,6 +137,9 @@ class AliHLTTPCCATrackParam
 
     GPUd() void Print() const;
 
+#ifndef HLTCA_GPUCODE
+  private:
+#endif
 	AliHLTTPCCATrackParam2 fParam; // Track Parameters
 
   private:
