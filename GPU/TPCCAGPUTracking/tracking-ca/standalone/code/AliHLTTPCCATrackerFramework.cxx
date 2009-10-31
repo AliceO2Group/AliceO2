@@ -74,6 +74,7 @@ int AliHLTTPCCATrackerFramework::SetGPUTracker(bool enable)
 
 GPUhd() void AliHLTTPCCATrackerFramework::SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val)
 {
+	//Set Output Control Pointers
 	fOutputControl = val;
 	fGPUTracker.SetOutputControl(val);
 	for (int i = 0;i < fgkNSlices;i++)
