@@ -13,12 +13,6 @@
 #include "AliHLTLogging.h"
 #include "AliHLTTPCCASliceOutput.h"
 
-#ifdef HLTCA_STANDALONE
-#define CONST_STANDALONE
-#else
-#define CONST_STANDALONE const
-#endif
-
 class AliHLTTPCCARow;
 
 class AliHLTTPCCAGPUTracker : AliHLTLogging
@@ -39,19 +33,19 @@ public:
 	  {};
 	  ~AliHLTTPCCAGPUTracker() {};
 
-	int InitGPU(int sliceCount = 12, int forceDeviceID = -1) CONST_STANDALONE;
-	int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1) CONST_STANDALONE;
-	int ExitGPU() CONST_STANDALONE;
+	int InitGPU(int sliceCount = 12, int forceDeviceID = -1);
+	int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
+	int ExitGPU();
 
-	void SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile = NULL) CONST_STANDALONE;
-	int SetGPUTrackerOption(char* OptionName, int OptionValue) CONST_STANDALONE;
+	void SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile = NULL);
+	int SetGPUTrackerOption(char* OptionName, int OptionValue);
 
-	unsigned long long int* PerfTimer(int iSlice, unsigned int i) CONST_STANDALONE {return(fSlaveTrackers ? fSlaveTrackers[iSlice].PerfTimer(i) : NULL); }
+	unsigned long long int* PerfTimer(int iSlice, unsigned int i) {return(fSlaveTrackers ? fSlaveTrackers[iSlice].PerfTimer(i) : NULL); }
 
-	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param) CONST_STANDALONE;
+	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
 
 	const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }
-	void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val) CONST_STANDALONE;
+	void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val);
 	
 	int GetSliceCount() const { return(fSliceCount); }
 
@@ -63,10 +57,10 @@ private:
 	void* TracksMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_TRACKS_MEMORY ); }
 	void* TrackerMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
 
-	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true) CONST_STANDALONE;
-	int GetThread() CONST_STANDALONE;
-	void ReleaseGlobalLock(void* sem) CONST_STANDALONE;
-	int CheckMemorySizes(int sliceCount) CONST_STANDALONE;
+	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
+	int GetThread();
+	void ReleaseGlobalLock(void* sem);
+	int CheckMemorySizes(int sliceCount);
 
 	AliHLTTPCCATracker *fGpuTracker;
 	void* fGPUMemory;

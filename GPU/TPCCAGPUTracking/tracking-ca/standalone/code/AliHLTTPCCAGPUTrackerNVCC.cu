@@ -422,7 +422,7 @@ void AliHLTTPCCAGPUTracker::StandalonePerfTime(int iSlice, int i)
   }
 }
 #else
-void AliHLTTPCCAGPUTracker::StandalonePerfTime(int /*iSlice*/, int /*i*/) const {}
+void AliHLTTPCCAGPUTracker::StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
 #endif
 
 void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check)
