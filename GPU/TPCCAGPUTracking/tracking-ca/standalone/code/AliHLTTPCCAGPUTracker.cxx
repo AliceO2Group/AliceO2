@@ -28,9 +28,9 @@ int AliHLTTPCCAGPUTracker::InitGPU(int /*sliceCount*/, int /*forceDeviceID*/)
     return(1);
 }
 void AliHLTTPCCAGPUTracker::StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
-//template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment) {return(NULL);}
-//bool AliHLTTPCCAGPUTracker::CudaFailedMsg(cudaError_t error) {return(true);}
-//int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
+template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment) {return(NULL);}
+bool AliHLTTPCCAGPUTracker::CudaFailedMsg(cudaError_t error) {return(true);}
+int AliHLTTPCCAGPUTracker::CUDASync() {return(1);}
 void AliHLTTPCCAGPUTracker::SetDebugLevel(int /*dwLevel*/, std::ostream* /*NewOutFile*/) {}
 int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* /*OptionName*/, int /*OptionValue*/) {return(1);}
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** /*pTracker*/, AliHLTTPCCAClusterData* /*pClusterData*/, int /*fFirstSlice*/, int /*fSliceCount*/) {return(1);}
@@ -38,4 +38,6 @@ int AliHLTTPCCAGPUTracker::ExitGPU() {return(0);}
 int AliHLTTPCCAGPUTracker::InitializeSliceParam(int /*iSlice*/, AliHLTTPCCAParam& /*param*/) { return 1; }
 void AliHLTTPCCAGPUTracker::SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* /*val*/) {};
 int AliHLTTPCCAGPUTracker::GetThread(){ return 0; }
+void AliHLTTPCCAGPUTracker::ReleaseGlobalLock(void* /*sem*/) {};
+int AliHLTTPCCAGPUTracker::CheckMemorySizes(int /*sliceCount*/){ return(1); }
 #endif

@@ -174,7 +174,6 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 #endif
 
         AliHLTTPCCAHitArea areaDn, areaUp;
-        // TODO: for NVIDIA GPUs it should use the GridContentUp/-Dn that got copied into shared mem
         areaUp.Init( rowUp, tracker.Data(), y*s.fUpTx, z*s.fUpTx, kAreaSize, kAreaSize );
         areaDn.Init( rowDn, tracker.Data(), y*s.fDnTx, z*s.fDnTx, kAreaSize, kAreaSize );
 
