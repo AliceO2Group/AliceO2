@@ -23,9 +23,9 @@
 
 #include <cuda.h>
 #ifdef R__WIN32
-
 #else
 #include <sys/syscall.h>
+#include <semaphore.h>
 #endif
 
 #include "AliHLTTPCCADef.h"
@@ -80,10 +80,57 @@ ClassImp( AliHLTTPCCAGPUTracker )
 
 bool AliHLTTPCCAGPUTracker::fgGPUUsed = false;
 
+void AliHLTTPCCAGPUTracker::ReleaseGlobalLock(void* sem)
+{
+#ifdef R__WIN32
+	HANDLE* h = (HANDLE*) sem;
+	ReleaseSemaphore(*h, 1, NULL);
+	CloseHandle(*h);
+	delete h;
+#else
+	sem_t* pSem = (sem_t*) sem;
+	sem_post(pSem);
+	sem_unlink("AliceHLTTPCCAGPUTrackerInitLock");
+#endif
+}
+
+int AliHLTTPCCAGPUTracker::CheckMemorySizes(int sliceCount)
+{
+  if (sizeof(AliHLTTPCCATracker) * sliceCount > HLTCA_GPU_TRACKER_OBJECT_MEMORY)
+  {
+	  HLTError("Insufficiant Tracker Object Memory");
+	  return(1);
+  }
+
+  if (fgkNSlices * AliHLTTPCCATracker::CommonMemorySize() > HLTCA_GPU_COMMON_MEMORY)
+  {
+	  HLTError("Insufficiant Common Memory");
+	  return(1);
+  }
+
+  if (fgkNSlices * (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow) > HLTCA_GPU_ROWS_MEMORY)
+  {
+	  HLTError("Insufficiant Row Memory");
+	  return(1);
+  }
+  return(0);
+}
+
 int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 {
 	//Find best CUDA device, initialize and allocate memory
-	
+
+	if (CheckMemorySizes(sliceCount)) return(1);
+
+#ifdef R__WIN32
+	HANDLE* semLock = new HANDLE;
+	*semLock = CreateSemaphore(NULL, 0, 1, "AliceHLTTPCCAGPUTrackerInitLock");
+	WaitForSingleObject(*semLock, INFINITE);
+#else
+	sem_t* semLock = sem_open("AliceHLTTPCCAGPUTrackerInitLock", O_CREAT);
+	sem_wait(semLock);
+#endif
+
 	if (fgGPUUsed)
 	{
 	    HLTWarning("CUDA already used by another AliHLTTPCCAGPUTracker running in same process");
@@ -132,6 +179,7 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 	{
 		HLTWarning("No CUDA Device available, aborting CUDA Initialisation");
 		fgGPUUsed = 0;
+		ReleaseGlobalLock(semLock);
 		return(1);
 	}
 
@@ -168,36 +216,15 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
   {
 	HLTError( "Unsupported CUDA Device" );
 	fgGPUUsed = 0;
+	ReleaseGlobalLock(semLock);
 	return(1);
   }
 
-  if (sizeof(AliHLTTPCCATracker) * sliceCount > HLTCA_GPU_TRACKER_OBJECT_MEMORY)
-  {
-	  HLTError("Insufficiant Tracker Object Memory");
-	  fgGPUUsed = 0;
-	  return(1);
-  }
-  
   if (CudaFailedMsg(cudaSetDevice(cudaDevice)))
   {
 	  HLTError("Could not set CUDA Device!");
 	  fgGPUUsed = 0;
-	  return(1);
-  }
-
-  if (fgkNSlices * AliHLTTPCCATracker::CommonMemorySize() > HLTCA_GPU_COMMON_MEMORY)
-  {
-	  HLTError("Insufficiant Common Memory");
-	  cudaThreadExit();
-	  fgGPUUsed = 0;
-	  return(1);
-  }
-
-  if (fgkNSlices * (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow) > HLTCA_GPU_ROWS_MEMORY)
-  {
-	  HLTError("Insufficiant Row Memory");
-	  cudaThreadExit();
-	  fgGPUUsed = 0;
+	  ReleaseGlobalLock(semLock);
 	  return(1);
   }
 
@@ -206,8 +233,10 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
 	  HLTError("CUDA Memory Allocation Error");
 	  cudaThreadExit();
 	  fgGPUUsed = 0;
+	  ReleaseGlobalLock(semLock);
 	  return(1);
   }
+  ReleaseGlobalLock(semLock);
   if (fDebugLevel >= 1) HLTInfo("GPU Memory used: %d", (int) fGPUMemSize);
   int hostMemSize = HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + sliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + HLTCA_GPU_TRACKER_OBJECT_MEMORY;
   if (CudaFailedMsg(cudaMallocHost(&fHostLockedMemory, hostMemSize)))

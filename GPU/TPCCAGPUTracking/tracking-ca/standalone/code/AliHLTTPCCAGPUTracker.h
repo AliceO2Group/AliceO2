@@ -59,6 +59,8 @@ private:
 
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 	int GetThread();
+	void ReleaseGlobalLock(void* sem);
+	int CheckMemorySizes(int sliceCount);
 
 	AliHLTTPCCATracker *fGpuTracker;
 	void* fGPUMemory;
