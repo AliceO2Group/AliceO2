@@ -88,4 +88,4 @@ GPUhd() inline void AliHLTTPCCAMergerOutput::SetPointers()
   fClusterPackedAmp  = ( UChar_t* ) ( fClusterId + fNTrackClusters );
 }
 
-#endif
+#endif //ALIHLTTPCCAMERGEROUTPUT_H

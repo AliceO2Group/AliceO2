@@ -32,7 +32,7 @@ class AliHLTTPCCATrackletSelector
         int fNTracklets; // n of tracklets
 #if HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 		AliHLTTPCCAHitId fHits[HLTCA_GPU_THREAD_COUNT][HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
-#endif
+#endif //HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 	};
 
     GPUd() static int NThreadSyncPoints() { return 1; }
@@ -43,4 +43,4 @@ class AliHLTTPCCATrackletSelector
 };
 
 
-#endif
+#endif //ALIHLTTPCCATRACKLETSELECTOR_H

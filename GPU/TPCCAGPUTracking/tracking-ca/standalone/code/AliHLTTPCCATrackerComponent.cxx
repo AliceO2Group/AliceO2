@@ -71,7 +71,8 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     fFullTime( 0 ),
     fRecoTime( 0 ),
     fNEvents( 0 ),
-    fOutputTRAKSEGS( 0 )
+    fOutputTRAKSEGS( 0 ),
+    fAllowGPU( 0)
 {
   // see header file for class documentation
   // or
@@ -93,7 +94,8 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrack
     fFullTime( 0 ),
     fRecoTime( 0 ),
     fNEvents( 0 ),
-    fOutputTRAKSEGS( 0 )
+    fOutputTRAKSEGS( 0 ),
+    fAllowGPU( 0)
 {
   // see header file for class documentation
   HLTFatal( "copy constructor untested" );
@@ -232,6 +234,12 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
    if ( argument.CompareTo( "-outputTRAKSEGS" ) == 0 ) {
       fOutputTRAKSEGS = 1;
       HLTInfo( "The special output type \"TRAKSEGS\" is set" );
+      continue;
+    }
+
+    if (argument.CompareTo( "-allowGPU" ) == 0) {
+      fAllowGPU = 1;
+      HLTImportant( "Will try to run tracker on GPU" );
       continue;
     }
 
@@ -492,7 +500,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	 }
   }
 
-  if ( !fTracker ) fTracker = new AliHLTTPCCATrackerFramework;
+  if ( !fTracker ) fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
 
   int slicecount = maxslice + 1 - minslice;
   if (slicecount > fTracker->MaxSliceCount())

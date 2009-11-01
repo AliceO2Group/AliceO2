@@ -13,7 +13,7 @@
 #define HLTCA_GPU_USE_INT short
 #else
 #define HLTCA_GPU_USE_INT int
-#endif
+#endif //HLTCA_GPUCODE
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
@@ -40,7 +40,7 @@ class AliHLTTPCCATrackletConstructor
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
 			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletNoDummy(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0), fSliceDone(0) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
-#endif
+#endif //HLTCA_GPUCODE
 
       protected:
 #ifdef HLTCA_GPU_PREFETCHDATA
@@ -48,7 +48,7 @@ class AliHLTTPCCATrackletConstructor
 		AliHLTTPCCARow fRow[2]; // row
 #else
 		AliHLTTPCCARow fRows[HLTCA_ROW_COUNT];
-#endif
+#endif //HLTCA_GPU_PREFETCHDATA
 		int fNextTrackletFirst;
 		int fNextTrackletCount;
 		int fNextTrackletNoDummy;
@@ -59,7 +59,7 @@ class AliHLTTPCCATrackletConstructor
 
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 		int fMaxSync;
-#endif
+#endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 
 		int fTrackletStoreCount[2][HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1];
     };
@@ -75,7 +75,7 @@ class AliHLTTPCCATrackletConstructor
         AliHLTTPCCAThreadMemory( const AliHLTTPCCAThreadMemory& /*dummy*/ )
             : fItr( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fStartRow( 0 ), fEndRow( 0 ), fCurrIH( 0 ), fGo( 0 ), fCurrentData( 0 ), fStage( 0 ), fNHits( 0 ), fNMissed( 0 ), fLastY( 0 ), fLastZ( 0 ) {}
         AliHLTTPCCAThreadMemory& operator=( const AliHLTTPCCAThreadMemory& /*dummy*/ ) { return *this; }
-#endif
+#endif //!HLTCA_GPUCODE
 
       protected:
         int fItr; // track index
@@ -118,7 +118,7 @@ class AliHLTTPCCATrackletConstructor
 	GPUd() static void CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam &tParamSrc, AliHLTTPCCATrackParam &tParamDst);
 #else
 	GPUd() static void AliHLTTPCCATrackletConstructorNewCPU(AliHLTTPCCATracker &tracker);
-#endif
+#endif //HLTCA_GPUCODE
 
     GPUd() static bool SAVE() { return 1; }
 
@@ -128,10 +128,8 @@ class AliHLTTPCCATrackletConstructor
 #else
     //GPUhd() inline int NMemThreads() { return 1; }
 #define TRACKLET_CONSTRUCTOR_NMEMTHREDS 1
-#endif
+#endif //!HLTCA_GPUCODE
 
 };
 
-
-
-#endif
+#endif //ALIHLTTPCCATRACKLETCONSTRUCTOR_H

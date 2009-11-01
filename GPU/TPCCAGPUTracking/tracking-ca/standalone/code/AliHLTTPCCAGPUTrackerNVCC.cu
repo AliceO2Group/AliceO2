@@ -17,7 +17,7 @@
 //                                                                          *
 //***************************************************************************
 
-#include "AliHLTTPCCAGPUTracker.h"
+#include "AliHLTTPCCAGPUTrackerNVCC.h"
 
 #ifdef BUILD_GPU
 
@@ -77,13 +77,29 @@ texture<signed short, 1, cudaReadModeElementType> gAliTexRefs;
 #include "AliHLTSystem.h"
 #endif
 
-ClassImp( AliHLTTPCCAGPUTracker )
+ClassImp( AliHLTTPCCAGPUTrackerNVCC )
 
-bool AliHLTTPCCAGPUTracker::fgGPUUsed = false;
+bool AliHLTTPCCAGPUTrackerNVCC::fgGPUUsed = false;
 
 #define SemLockName "AliceHLTTPCCAGPUTrackerInitLockSem"
 
-void AliHLTTPCCAGPUTracker::ReleaseGlobalLock(void* sem)
+AliHLTTPCCAGPUTrackerNVCC::AliHLTTPCCAGPUTrackerNVCC() :
+	fGpuTracker(NULL),
+	fGPUMemory(NULL),
+	fHostLockedMemory(NULL),
+	fDebugLevel(0),
+	fOutFile(NULL),
+	fGPUMemSize(0),
+	fpCudaStreams(NULL),
+	fSliceCount(0),
+	fOutputControl(NULL),
+	fThreadId(0),
+	fCudaInitialized(0)
+	{};
+
+AliHLTTPCCAGPUTrackerNVCC::~AliHLTTPCCAGPUTrackerNVCC() {};
+
+void AliHLTTPCCAGPUTrackerNVCC::ReleaseGlobalLock(void* sem)
 {
 	//Release the global named semaphore that locks GPU Initialization
 #ifdef R__WIN32
@@ -98,7 +114,7 @@ void AliHLTTPCCAGPUTracker::ReleaseGlobalLock(void* sem)
 #endif
 }
 
-int AliHLTTPCCAGPUTracker::CheckMemorySizes(int sliceCount)
+int AliHLTTPCCAGPUTrackerNVCC::CheckMemorySizes(int sliceCount)
 {
 	//Check constants for correct memory sizes
   if (sizeof(AliHLTTPCCATracker) * sliceCount > HLTCA_GPU_TRACKER_OBJECT_MEMORY)
@@ -121,7 +137,7 @@ int AliHLTTPCCAGPUTracker::CheckMemorySizes(int sliceCount)
   return(0);
 }
 
-int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
+int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 {
 	//Find best CUDA device, initialize and allocate memory
 
@@ -351,7 +367,7 @@ int AliHLTTPCCAGPUTracker::InitGPU(int sliceCount, int forceDeviceID)
   return(0);
 }
 
-template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int alignment)
+template <class T> inline T* AliHLTTPCCAGPUTrackerNVCC::alignPointer(T* ptr, int alignment)
 {
 	//Macro to align Pointers.
 	//Will align to start at 1 MB segments, this should be consistent with every alignment in the tracker
@@ -365,7 +381,7 @@ template <class T> inline T* AliHLTTPCCAGPUTracker::alignPointer(T* ptr, int ali
 	return((T*) adr);
 }
 
-bool AliHLTTPCCAGPUTracker::CudaFailedMsg(cudaError_t error)
+bool AliHLTTPCCAGPUTrackerNVCC::CudaFailedMsg(cudaError_t error)
 {
 	//Check for CUDA Error and in the case of an error display the corresponding error string
 	if (error == cudaSuccess) return(false);
@@ -373,7 +389,7 @@ bool AliHLTTPCCAGPUTracker::CudaFailedMsg(cudaError_t error)
 	return(true);
 }
 
-int AliHLTTPCCAGPUTracker::CUDASync(char* state)
+int AliHLTTPCCAGPUTrackerNVCC::CUDASync(char* state)
 {
 	//Wait for CUDA-Kernel to finish and check for CUDA errors afterwards
 
@@ -394,14 +410,14 @@ int AliHLTTPCCAGPUTracker::CUDASync(char* state)
 	return(0);
 }
 
-void AliHLTTPCCAGPUTracker::SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile)
+void AliHLTTPCCAGPUTrackerNVCC::SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile)
 {
 	//Set Debug Level and Debug output File if applicable
 	fDebugLevel = dwLevel;
 	if (NewOutFile) fOutFile = NewOutFile;
 }
 
-int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* OptionName, int /*OptionValue*/)
+int AliHLTTPCCAGPUTrackerNVCC::SetGPUTrackerOption(char* OptionName, int /*OptionValue*/)
 {
 	//Set a specific GPU Tracker Option
 	{
@@ -413,7 +429,7 @@ int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* OptionName, int /*OptionVal
 }
 
 #ifdef HLTCA_STANDALONE
-void AliHLTTPCCAGPUTracker::StandalonePerfTime(int iSlice, int i)
+void AliHLTTPCCAGPUTrackerNVCC::StandalonePerfTime(int iSlice, int i)
 {
   //Run Performance Query for timer i of slice iSlice
   if (fDebugLevel >= 1)
@@ -422,10 +438,10 @@ void AliHLTTPCCAGPUTracker::StandalonePerfTime(int iSlice, int i)
   }
 }
 #else
-void AliHLTTPCCAGPUTracker::StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
+void AliHLTTPCCAGPUTrackerNVCC::StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
 #endif
 
-void AliHLTTPCCAGPUTracker::DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check)
+void AliHLTTPCCAGPUTrackerNVCC::DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check)
 {
 	//Dump Rowblocks to File
 	if (fDebugLevel >= 4)
@@ -499,7 +515,7 @@ __global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTra
 		sliceDataHitWeights4[i] = i0;
 }
 
-int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
+int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
 	//Primary reconstruction function
 	cudaStream_t* const cudaStreams = (cudaStream_t*) fpCudaStreams;
@@ -636,6 +652,14 @@ int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTT
 			AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&a);
 #endif
 		fSlaveTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
+
+		  if (fDebugLevel >= 4)
+		  {
+			  *fOutFile << std::endl << std::endl << "Slice: " << fSlaveTrackers[firstSlice + iSlice].Param().ISlice() << std::endl;
+			  *fOutFile << "Slice Data:" << std::endl;
+			  fSlaveTrackers[firstSlice + iSlice].DumpSliceData(*fOutFile);
+		  }
+
 #ifdef HLTCA_GPU_TIME_PROFILE
 			AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&b);
 		printf("Read %f %f\n", ((double) b - (double) a) / (double) c, ((double) a - (double) d) / (double) c);
@@ -938,7 +962,7 @@ RestartTrackletConstructor:
 	return(0);
 }
 
-int AliHLTTPCCAGPUTracker::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param)
+int AliHLTTPCCAGPUTrackerNVCC::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param)
 {
 	//Initialize Slice Tracker Parameter for a slave tracker
 	fSlaveTrackers[iSlice].Initialize(param);
@@ -950,7 +974,7 @@ int AliHLTTPCCAGPUTracker::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &pa
 	return(0);
 }
 
-int AliHLTTPCCAGPUTracker::ExitGPU()
+int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 {
 	//Uninitialize CUDA
 	cudaThreadSynchronize();
@@ -981,7 +1005,7 @@ int AliHLTTPCCAGPUTracker::ExitGPU()
 	return(0);
 }
 
-void AliHLTTPCCAGPUTracker::SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val)
+void AliHLTTPCCAGPUTrackerNVCC::SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* val)
 {
 	//Set Output Control Pointers
 	fOutputControl = val;
@@ -991,7 +1015,7 @@ void AliHLTTPCCAGPUTracker::SetOutputControl( AliHLTTPCCASliceOutput::outputCont
 	}
 }
 
-int AliHLTTPCCAGPUTracker::GetThread()
+int AliHLTTPCCAGPUTrackerNVCC::GetThread()
 {
 	//Get Thread ID
 #ifdef R__WIN32
@@ -999,6 +1023,33 @@ int AliHLTTPCCAGPUTracker::GetThread()
 #else
 	return((int) syscall (SYS_gettid));
 #endif
+}
+
+unsigned long long int* AliHLTTPCCAGPUTrackerNVCC::PerfTimer(int iSlice, unsigned int i)
+{
+	//Returns pointer to PerfTimer i of slice iSlice
+	return(fSlaveTrackers ? fSlaveTrackers[iSlice].PerfTimer(i) : NULL);
+}
+
+const AliHLTTPCCASliceOutput::outputControlStruct* AliHLTTPCCAGPUTrackerNVCC::OutputControl() const
+{
+	//Return Pointer to Output Control Structure
+	return fOutputControl;
+}
+
+int AliHLTTPCCAGPUTrackerNVCC::GetSliceCount() const
+{
+	//Return max slice count processable
+	return(fSliceCount);
+}
+
+AliHLTTPCCAGPUTracker* AliHLTTPCCAGPUTrackerNVCCCreate()
+{
+	return new AliHLTTPCCAGPUTrackerNVCC;
+}
+void AliHLTTPCCAGPUTrackerNVCCDestroy(AliHLTTPCCAGPUTracker* ptr)
+{
+	delete ptr;
 }
 
 #endif

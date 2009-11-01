@@ -48,7 +48,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 	{
 		tracker.GPUParameters()->fGPUError = 1;
 	}
-#endif
+#endif //HLTCA_GPU_EMULATION_DEBUG_TRACKLET
 
 	  while (tracker.Tracklets()[itr].NHits() == 0)
 	  {
@@ -90,7 +90,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
         int ih = tracker.TrackletRowHits()[irow * s.fNTracklets + itr];
 #else
 		int ih = tracklet.RowHit( irow );
-#endif
+#endif //EXTERN_ROW_HITS
         if ( ih >= 0 ) {
           const AliHLTTPCCARow &row = tracker.Row( irow );
           bool own = ( tracker.HitWeight( row, ih ) <= w );
@@ -101,7 +101,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 			if (nHits < HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
 				s.fHits[iThread][nHits].Set( irow, ih );
 			else
-#endif
+#endif //HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 				trackHits[nHits - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE].Set( irow, ih );
             nHits++;
             if ( !own ) nShared++;
@@ -118,7 +118,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 				CAMath::AtomicExch( tracker.NTracks(), 0 );
 				return;
 			}
-#endif
+#endif //HLTCA_GPUCODE
             nFirstTrackHit = CAMath::AtomicAdd( tracker.NTrackHits(), nHits );
 			tracker.Tracks()[itrout].SetAlive(1);
 			tracker.Tracks()[itrout].SetParam(tracklet.Param());
@@ -129,7 +129,7 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 				if (jh < HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE)
 					tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
 				else
-#endif
+#endif //HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
 					tracker.TrackHits()[nFirstTrackHit + jh] = trackHits[jh - HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE];
             }
           }

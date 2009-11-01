@@ -111,7 +111,7 @@ class AliHLTTPCCATracker
   
 #if !defined(HLTCA_GPUCODE)
   void Reconstruct();
-#endif
+#endif //!HLTCA_GPUCODE
   
   //Make Reconstruction steps directly callable (Used for GPU debugging)
   void RunNeighboursFinder();
@@ -157,7 +157,7 @@ class AliHLTTPCCATracker
   GPUh() void WriteEvent( std::ostream &out );
   GPUh() void WriteTracks( std::ostream &out ) ;
   GPUh() void ReadTracks( std::istream &in );
-#endif
+#endif //!HLTCA_GPUCODE
   
   GPUhd() const AliHLTTPCCAParam &Param() const { return fParam; }
   GPUhd() void SetParam( const AliHLTTPCCAParam &v ) { fParam = v; }
@@ -264,7 +264,7 @@ private:
   
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
-#endif
+#endif HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
   
   AliHLTTPCCAParam fParam; // parameters
   double fTimers[10]; // timers
@@ -325,4 +325,4 @@ private:
 };
 
 
-#endif
+#endif //ALIHLTTPCCATRACKER_H

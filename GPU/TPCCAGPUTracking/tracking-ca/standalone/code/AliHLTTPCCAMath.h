@@ -15,7 +15,7 @@
 #include <math.h>
 #else
 #include "TMath.h"
-#endif
+#endif //HLTCA_STANDALONE | HLTCA_GPUCODE
 
 /**
  * @class ALIHLTTPCCAMath
@@ -65,7 +65,7 @@ typedef AliHLTTPCCAMath CAMath;
 #define choice(c1,c2,c3) c2
 #else
 #define choice(c1,c2,c3) c3
-#endif
+#endif //HLTCA_GPUCODE
 
 GPUd() inline float2 AliHLTTPCCAMath::MakeFloat2( float x, float y )
 {
@@ -74,7 +74,7 @@ GPUd() inline float2 AliHLTTPCCAMath::MakeFloat2( float x, float y )
   return ret;
 #else
   return make_float2( x, y );
-#endif
+#endif //HLTCA_GPUCODE
 }
 
 
@@ -92,7 +92,7 @@ GPUd() inline int AliHLTTPCCAMath::Nint( float x )
   return i;
 #else
   return TMath::Nint( x );
-#endif
+#endif //HLTCA_STANDALONE | HLTCA_GPUCODE
 }
 
 GPUd() inline bool AliHLTTPCCAMath::Finite( float x )
@@ -113,7 +113,7 @@ GPUd() inline float AliHLTTPCCAMath::Copysign( float x, float y )
 #else
   x = CAMath::Abs( x );
   return ( y >= 0 ) ? x : -x;
-#endif
+#endif //HLTCA_GPUCODE
 }
 
 
@@ -202,7 +202,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicExch( int *addr, int val )
   int old = *addr;
   *addr = val;
   return old;
-#endif
+#endif //HLTCA_GPUCODE
 }
 
 GPUd()  inline int AliHLTTPCCAMath::AtomicAdd ( int *addr, int val )
@@ -213,7 +213,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicAdd ( int *addr, int val )
   int old = *addr;
   *addr += val;
   return old;
-#endif
+#endif //HLTCA_GPUCODE
 }
 
 GPUd()  inline int AliHLTTPCCAMath::AtomicMax ( int *addr, int val )
@@ -224,7 +224,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicMax ( int *addr, int val )
   int old = *addr;
   if ( *addr < val ) *addr = val;
   return old;
-#endif
+#endif //HLTCA_GPUCODE
 }
 
 GPUd()  inline int AliHLTTPCCAMath::AtomicMin ( int *addr, int val )
@@ -235,9 +235,9 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicMin ( int *addr, int val )
   int old = *addr;
   if ( *addr > val ) *addr = val;
   return old;
-#endif
+#endif //HLTCA_GPUCODE
 }
 
 #undef CHOICE
 
-#endif
+#endif //ALIHLTTPCCAMATH_H

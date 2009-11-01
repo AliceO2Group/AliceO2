@@ -21,7 +21,7 @@
 
 #ifndef ROOT_RVersion
 #include "RVersion.h"
-#endif
+#endif //!ROOT_RVersion
 
 
 /*---- new C++ features ------------------------------------------------------*/
@@ -41,7 +41,7 @@
 #   ifdef R__HPUX10
 #      define NEED_SNPRINTF
 #   endif
-#endif
+#endif //__hpux
 
 #ifdef _AIX
 #   define R__AIX
@@ -51,13 +51,13 @@
 #   define R__PLACEMENTINLINE /* placement new/delete is inline in <new> */
 #   define NEED_STRCASECMP
 #   define R__ANSISTREAM      /* ANSI C++ Standard Library conformant */
-#endif
+#endif //_AIX
 
 #ifdef __linux
 #   ifndef linux
 #      define linux
 #   endif
-#endif
+#endif //__linux
 
 #if defined(__CYGWIN__) && defined(__GNUC__)
 #   ifndef linux
@@ -66,7 +66,7 @@
 #   ifndef R__WINGCC
 #      define R__WINGCC
 #   endif
-#endif
+#endif //__CYGWIN__ & __GNUC__
 
 #if defined(__alpha) && !defined(linux)
 #   include <standards.h>
@@ -79,13 +79,13 @@
 #   ifdef _XOPEN_SOURCE
 #      if _XOPEN_SOURCE+0 > 0
 #         define R__TRUE64
-#      endif
+#      endif //_XOPEN_SOURCE+0 > 0
 #   endif
 #   define R__ALPHA
 #   define ANSICPP
 #   ifndef R__TRUE64
 #      define NEED_SNPRINTF
-#   endif
+#   endif //!R__TRUE64
 #   ifndef __VMS
 #      define R__UNIX
 #      define R__B64
@@ -95,20 +95,20 @@
 #         define R__PLACEMENTDELETE /* supports overloading placement delete */
 #         define R__PLACEMENTINLINE /* placement new/delete is inline in <new> */
 #         define R__THROWNEWDELETE  /* new/delete throw exceptions */
-#      endif
+#      endif //__DECCXX_VER >= 60060002
 #      if defined __GNUC__
 #         define R__NAMESPACE_TEMPLATE_IMP_BUG
 #         define R__PLACEMENTINLINE /* placement new/delete is inline in <new> */
 #      else
 #         define R__TEMPLATE_OVERLOAD_BUG
-#      endif
+#      endif //__GNUC__
 #   else
 #      define R__VMS
 #      define cxxbug
 #      define NEED_STRCASECMP
 #      define R__NONSCALARFPOS
-#   endif
-#endif
+#   endif //!__VMS
+#endif //__alpha & linux
 
 #if defined(__sun) && !(defined(linux) || defined(__FCC_VERSION))
 #   ifdef __SVR4

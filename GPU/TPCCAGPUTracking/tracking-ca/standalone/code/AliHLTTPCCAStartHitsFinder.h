@@ -32,7 +32,7 @@ class AliHLTTPCCAStartHitsFinder
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
             : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
-#endif
+#endif //!HLTCA_GPUCODE
 
       protected:
         int fIRow; // row index
@@ -50,4 +50,4 @@ class AliHLTTPCCAStartHitsFinder
 };
 
 
-#endif
+#endif //ALIHLTTPCCASTARTHITSFINDER_H

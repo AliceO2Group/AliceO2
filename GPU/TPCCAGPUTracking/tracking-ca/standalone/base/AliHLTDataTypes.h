@@ -1082,7 +1082,7 @@ extern "C" {
   // IMPORTANT: don not just remove the defines as this breaks the binary
   // compatibility
   int (*fAllocShmMemoryFunc)( void* param, unsigned long size, AliHLTComponentBlockData* blockLocation );
-#endif
+#endif //0
 
   /**
    * @struct AliHLTComponentEnvironment
@@ -1268,4 +1268,4 @@ inline AliHLTComponentDataType AliHLTComponentDataTypeInitializer(const AliHLTCo
   return AliHLTComponentDataTypeInitializer(src.fID, origin);
 }
 
-#endif 
+#endif //ALIHLTDATATYPES_H
