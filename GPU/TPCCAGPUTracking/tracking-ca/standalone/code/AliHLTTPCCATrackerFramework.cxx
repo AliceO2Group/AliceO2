@@ -36,13 +36,15 @@
 #include <omp.h>
 #endif
 
+ClassImp( AliHLTTPCCATrackerFramework )
+
 int AliHLTTPCCATrackerFramework::InitGPU(int sliceCount, int forceDeviceID)
 {
 	//Initialize GPU Tracker and determine if GPU available
 	int retVal;
 	if (!fGPULibAvailable)
 	{
-		printf("GPU Library not loaded\n");
+		HLTError("GPU Library not loaded\n");
 		return(1);
 	}
 	if (fGPUTrackerAvailable && (retVal = ExitGPU())) return(retVal);
@@ -107,7 +109,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 #ifdef HLTCA_STANDALONE
 		if (fOutputControl->fOutputPtr && omp_get_max_threads() > 1)
 		{
-			printf("fOutputPtr must not be used with OpenMP\n");
+			HLTError("fOutputPtr must not be used with OpenMP\n");
 			return(1);
 		}
 
@@ -157,11 +159,18 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 #endif
 	if (hGPULib == NULL)
 	{
-		printf("Error Opening cagpu library\n");
-		fGPUTracker = new AliHLTTPCCAGPUTracker;
 #ifndef R__WIN32
 		printf("%s\n", dlerror());
 #endif
+		if (allowGPU)
+		{
+			HLTError("Error Opening cagpu library for GPU Tracker, will fallback to CPU\n");
+		}
+		else
+		{
+			HLTInfo("Cagpu library was not found, Tracking on GPU will not be available");
+		}
+		fGPUTracker = new AliHLTTPCCAGPUTracker;
 	}
 	else
 	{
@@ -172,7 +181,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 #endif
 		if (createFunc == NULL)
 		{
-			printf("Error Creating GPU Tracker\n");
+			HLTError("Error Creating GPU Tracker\n");
 #ifdef R__WIN32
 			FreeLibrary(hGPULib);
 #else
@@ -212,7 +221,10 @@ AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
 #else
 			void* destroyFunc = (void*) dlsym(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
 #endif
-			if (destroyFunc == NULL) printf("Error Freeing GPU Tracker\n");
+			if (destroyFunc == NULL)
+			{
+				HLTError("Error Freeing GPU Tracker\n");
+			}
 			else
 			{
 				void (*tmp)(AliHLTTPCCAGPUTracker*) =  (void (*)(AliHLTTPCCAGPUTracker*)) destroyFunc;
