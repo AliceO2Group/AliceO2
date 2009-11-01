@@ -25,8 +25,12 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAClusterData.h"
 
+#ifdef R__WIN32
 #include <windows.h>
 #include <winbase.h>
+#else
+#include <dlfcn.h>
+#endif
 
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
@@ -146,7 +150,11 @@ int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAPar
 AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fCPUSliceCount(fgkNSlices)
 {
 	//Constructor
+#ifdef R__WIN32
 	HMODULE hGPULib = LoadLibraryEx("cagpu.dll", NULL, NULL);
+#else
+	void* hGPULib = dlopen("cagpu.so", RTLD_NOW);
+#endif
 	if (hGPULib == NULL)
 	{
 		printf("Error Opening cagpu library\n");
@@ -154,11 +162,19 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 	}
 	else
 	{
+#ifdef R__WIN32
 		FARPROC createFunc = GetProcAddress(hGPULib, "AliHLTTPCCAGPUTrackerNVCCCreate");
+#else
+		void* createFunc = (void*) dlsym(hGPULib, "AliHLTTPCCAGPUTrackerNVCCCreate");
+#endif
 		if (createFunc == NULL)
 		{
 			printf("Error Creating GPU Tracker\n");
+#ifdef R__WIN32
 			FreeLibrary(hGPULib);
+#else
+			dlclose(hGPULib);
+#endif
 			fGPUTracker = new AliHLTTPCCAGPUTracker;
 		}
 		else
@@ -179,12 +195,20 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 
 AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
 {
+#ifdef R__WIN32
 	HMODULE hGPULib = (HMODULE) (size_t) fGPULib;
+#else
+	void* hGPULib = fGPULib;
+#endif
 	if (fGPULib)
 	{
 		if (fGPUTracker)
 		{
+#ifdef R__WIN32
 			FARPROC destroyFunc = GetProcAddress(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
+#else
+			void* destroyFunc = (void*) dlsym(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
+#endif
 			if (destroyFunc == NULL) printf("Error Freeing GPU Tracker\n");
 			else
 			{
@@ -193,7 +217,11 @@ AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
 			}
 		}
 
+#ifdef R__WIN32
 		FreeLibrary(hGPULib);
+#else
+		dlclose(hGPULib);
+#endif
 	}
 	else if (fGPUTracker)
 	{
