@@ -86,7 +86,13 @@ private:
 	ClassDef( AliHLTTPCCAGPUTrackerNVCC, 0 )
 };
 
-extern "C" __declspec(dllexport) AliHLTTPCCAGPUTracker* AliHLTTPCCAGPUTrackerNVCCCreate();
-extern "C" __declspec(dllexport) void AliHLTTPCCAGPUTrackerNVCCDestroy(AliHLTTPCCAGPUTracker* ptr);
+#ifdef R__WIN32
+#define DLL_EXPORT __declspec(dllexport)
+#else
+#define DLL_EXPORT
+#endif
+
+extern "C" DLL_EXPORT AliHLTTPCCAGPUTracker* AliHLTTPCCAGPUTrackerNVCCCreate();
+extern "C" DLL_EXPORT void AliHLTTPCCAGPUTrackerNVCCDestroy(AliHLTTPCCAGPUTracker* ptr);
 
 #endif //ALIHLTTPCCAGPUTRACKER_H
