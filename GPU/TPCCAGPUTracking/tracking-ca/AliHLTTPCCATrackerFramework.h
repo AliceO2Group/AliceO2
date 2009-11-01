@@ -22,11 +22,14 @@ class AliHLTTPCCAClusterData;
 class AliHLTTPCCATrackerFramework
 {
 public:
-	AliHLTTPCCATrackerFramework() :
+	AliHLTTPCCATrackerFramework(int autoTryGPU = 1) :
 	  fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(), fOutputControl( NULL ), fCPUSliceCount(fgkNSlices)
 	  {
+		if (autoTryGPU)
+		{
 		  fUseGPUTracker = (fGPUTrackerAvailable= (fGPUTracker.InitGPU() == 0));
 		  fGPUSliceCount = fGPUTrackerAvailable ? fGPUTracker.GetSliceCount() : 0;
+		}
 	  }
 	~AliHLTTPCCATrackerFramework()
 	  {}
