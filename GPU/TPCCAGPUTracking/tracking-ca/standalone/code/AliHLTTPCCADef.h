@@ -18,39 +18,39 @@
 
 #ifdef __CUDACC__
 #define HLTCA_GPUCODE
-#endif
+#endif //__CUDACC__
 
 #ifdef WIN32
 #ifndef R__WIN32
 #define R__WIN32
-#endif
-#endif
+#endif //!R__WIN32
+#endif //WIN32
 
-#if defined(R__WIN32)
+#ifdef R__WIN32
 #ifdef INTEL_RUNTIME
 #pragma warning(disable : 1786)
 #pragma warning(disable : 1478)
 #pragma warning(disable : 161)
-#endif
+#endif //INTEL_RUNTIME
 
 #ifdef VSNET_RUNTIME
 #pragma warning(disable : 4616)
 #pragma warning(disable : 4996)
 #pragma warning(disable : 1684)
-#endif
-#endif
+#endif //VSNET_RUNTIME
+#endif //R__WIN32
 
-#if defined(HLTCA_STANDALONE)
+#ifdef HLTCA_STANDALONE
 
 // class TObject{};
 
 #ifdef ClassDef
 #undef ClassDef
-#endif
+#endif //ClassDef
 
 #ifdef ClassTmp
 #undef ClassTmp
-#endif
+#endif //ClassTmp
 
 #define ClassDef(name,id)
 #define ClassImp(name)
@@ -64,7 +64,7 @@ typedef unsigned long  ULong_t;     //Unsigned long integer 8 bytes (unsigned lo
 typedef int            Seek_t;      //File pointer (int)
 typedef long           Long_t;      //Signed long integer 4 bytes (long)
 typedef unsigned long  ULong_t;     //Unsigned long integer 4 bytes (unsigned long)
-#endif
+#endif //R__B64
 typedef float          Float16_t;   //Float 4 bytes written with a truncated mantissa
 typedef double         Double32_t;  //Double 8 bytes in memory, written as a 4 bytes float
 typedef char           Text_t;      //General string (char)
@@ -79,7 +79,7 @@ typedef unsigned __int64 ULong64_t; //Portable unsigned long integer 8 bytes
 #else
 typedef long long          Long64_t; //Portable signed long integer 8 bytes
 typedef unsigned long long ULong64_t;//Portable unsigned long integer 8 bytes
-#endif
+#endif //R__WIN32 && !__CINT__
 typedef double         Axis_t;      //Axis values type (double)
 typedef double         Stat_t;      //Statistics type (double)
 typedef short          Font_t;      //Font number (short)
@@ -103,11 +103,12 @@ namespace AliHLTTPCCADefinitions
   extern const AliHLTComponentDataType fgkCompressedInputDataType;
 }
 
-#endif
+#endif //HLTCA_STANDALONE
 
 //#define EXTERN_ROW_HITS
 #define TRACKLET_SELECTOR_MIN_HITS 10
 #define REPRODUCIBLE_CLUSTER_SORTING
+//#define FAST_NEIGHBOURS_FINDER
 
 #ifdef HLTCA_GPUCODE
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6
@@ -119,7 +120,7 @@ namespace AliHLTTPCCADefinitions
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 7000
 #define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 10000
 #define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 15000
-#endif
+#endif //HLTCA_GPUCODE
 
 #ifdef HLTCA_GPUCODE
 
@@ -159,9 +160,9 @@ inline bool finite(float x)
 {
 	return(x <= FLT_MAX);
 }
-#endif
+#endif //R__WIN32
 
-#endif
+#endif //HLTCA_GPUCODE
 
 /*
  * Helper for compile-time verification of correct API usage
@@ -182,7 +183,7 @@ namespace
   (void) Error_##msg
 #else
 #define STATIC_ASSERT(a, b)
-#endif
+#endif //!HLTCA_GPUCODE
 
 namespace
 {
@@ -212,4 +213,4 @@ namespace
 #define UNROLL16(var, code) UNROLL8(var, code) UNROLL8(var, code)
 #define UNROLL32(var, code) UNROLL16(var, code) UNROLL16(var, code)
 
-#endif
+#endif //ALIHLTTPCCADEF_H

@@ -84,4 +84,4 @@ GPUd() inline void AliHLTTPCCATrackLinearisation::Set( float SinPhi1, float CosP
   SetQPt( QPt1 );
 }
 
-#endif
+#endif //ALIHLTTPCCATRACKLINEARISATION_H

@@ -32,7 +32,7 @@ class AliHLTTPCCAStartHitsSorter
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
             : fStartRow( 0 ), fNRows( 0 ), fStartOffset( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
-#endif
+#endif //!HLTCA_GPUCODE
 
       protected:
         int fStartRow;		// start row index
@@ -47,4 +47,4 @@ class AliHLTTPCCAStartHitsSorter
 };
 
 
-#endif
+#endif //ALIHLTTPCCASTARTHITSSORTER_H

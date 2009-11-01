@@ -35,7 +35,6 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCAGPUTracker.cxx \
 								standalone/AliHLTLogging.cxx
 								
-CUFILES						= code/AliHLTTPCCAGPUTrackerNVCC.cu
 ASMFILES					= 
 
 INCLUDEPATHS				= include code base
@@ -43,7 +42,7 @@ DEFINES						= HLTCA_STANDALONE BUILD_GPU
 
 EXTRAFLAGSGCC				= -Weffc++
 
-INTELFLAGSUSE				= $(INTELFLAGSOPT)
-VSNETFLAGSUSE				= $(VSNETFLAGSOPT)
+INTELFLAGSUSE				= $(INTELFLAGSDBG)
+VSNETFLAGSUSE				= $(VSNETFLAGSDBG)
 GCCFLAGSUSE					= $(GCCFLAGSOPT)
 NVCCFLAGSUSE				= $(NVCCFLAGSOPT)

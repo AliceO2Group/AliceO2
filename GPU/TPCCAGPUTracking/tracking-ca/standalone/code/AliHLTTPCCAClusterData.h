@@ -152,11 +152,7 @@ class AliHLTTPCCAClusterData
      */
     void Merge( int index1, int index2 );
 
-#ifdef REPRODUCIBLE_CLUSTER_SORTING
-	static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow >= b.fRow ? (a.fId < b.fId) : (a.fRow < b.fRow) ); }
-#else
-	static bool CompareClusters( const Data &a, const Data &b ) { return ( (a.fRow < b.fRow) ); }
-#endif
+	static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow == b.fRow ? (a.fY < b.fY) : (a.fRow < b.fRow) ); }
 
     int fSliceIndex;  // the slice index this data belongs to
     int fFirstRow; // see FirstRow()

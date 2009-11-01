@@ -12,4 +12,4 @@ public:
 #define HLTInfo(...) {printf(__VA_ARGS__);printf("\n");}
 #define HLTImportant(...) {printf(__VA_ARGS__);printf("\n");}
 
-#endif
+#endif //ALIHLTLOGGING_H

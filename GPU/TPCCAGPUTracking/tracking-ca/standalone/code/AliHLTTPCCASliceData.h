@@ -53,7 +53,7 @@ class AliHLTTPCCASliceData
 
 #ifndef HLTCA_GPUCODE
 	~AliHLTTPCCASliceData();
-#endif
+#endif //!HLTCA_GPUCODE
 
     void InitializeRows( const AliHLTTPCCAParam &parameters );
 
@@ -283,4 +283,4 @@ GPUd() inline int_v AliHLTTPCCASliceData::HitWeight( const AliHLTTPCCARow &row, 
 
 typedef AliHLTTPCCASliceData SliceData;
 
-#endif // SLICEDATA_H
+#endif // ALIHLTTPCCASLICEDATA_H

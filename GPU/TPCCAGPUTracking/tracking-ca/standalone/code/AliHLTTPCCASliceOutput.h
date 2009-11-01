@@ -108,4 +108,4 @@ class AliHLTTPCCASliceOutput
 
 };
 
-#endif
+#endif //ALIHLTTPCCASLICEOUTPUT_H

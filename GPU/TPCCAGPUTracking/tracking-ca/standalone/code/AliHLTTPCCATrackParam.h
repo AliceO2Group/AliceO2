@@ -139,7 +139,7 @@ class AliHLTTPCCATrackParam
 
 #ifndef HLTCA_GPUCODE
   private:
-#endif
+#endif //!HLTCA_GPUCODE
 	AliHLTTPCCATrackParam2 fParam; // Track Parameters
 
   private:
@@ -178,4 +178,4 @@ GPUd() inline void AliHLTTPCCATrackParam::InitParam()
   SetCov( 14, 10. );
 }
 
-#endif
+#endif //ALIHLTTPCCATRACKPARAM_H

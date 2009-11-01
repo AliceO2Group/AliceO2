@@ -54,4 +54,4 @@ class AliHLTTPCCAMergedTrack
 };
 
 
-#endif
+#endif //ALIHLTTPCCAMERGEDTRACK_H
