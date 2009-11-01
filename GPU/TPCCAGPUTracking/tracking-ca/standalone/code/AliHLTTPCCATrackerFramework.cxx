@@ -160,7 +160,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 		printf("Error Opening cagpu library\n");
 		fGPUTracker = new AliHLTTPCCAGPUTracker;
 #ifndef R__WIN32
-		printf("%d\n", dlerror());
+		printf("%s\n", dlerror());
 #endif
 	}
 	else
