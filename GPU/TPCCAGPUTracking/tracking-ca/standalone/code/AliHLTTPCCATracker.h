@@ -264,7 +264,7 @@ private:
   
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
-#endif HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+#endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
   
   AliHLTTPCCAParam fParam; // parameters
   double fTimers[10]; // timers
