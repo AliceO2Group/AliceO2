@@ -16,7 +16,7 @@
 
 class AliHLTTPCCARow;
 
-class AliHLTTPCCAGPUTrackerNVCC : public AliHLTTPCCAGPUTracker
+class AliHLTTPCCAGPUTrackerNVCC : public AliHLTTPCCAGPUTracker, public AliHLTLogging
 {
 public:
 	AliHLTTPCCAGPUTrackerNVCC();

@@ -160,7 +160,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 	if (hGPULib == NULL)
 	{
 #ifndef R__WIN32
-		printf("%s\n", dlerror());
+		HLTInfo("%s\n", dlerror());
 #endif
 		if (allowGPU)
 		{
