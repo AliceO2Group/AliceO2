@@ -157,7 +157,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 #ifdef R__WIN32
 	HMODULE hGPULib = LoadLibraryEx(GPULIBNAME ".dll", NULL, NULL);
 #else
-	void* hGPULib = dlopen(GPULIBNAME ".so", RTLD_LAZY);
+	void* hGPULib = dlopen(GPULIBNAME ".so", RTLD_NOW);
 #endif
 	if (hGPULib == NULL)
 	{
@@ -205,7 +205,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 	{
 		fUseGPUTracker = (fGPUTrackerAvailable= (fGPUTracker->InitGPU() == 0));
 		fGPUSliceCount = fGPUTrackerAvailable ? fGPUTracker->GetSliceCount() : 0;
-		HLTImportant("GPU Tracker Initialized");
+		HLTInfo("GPU Tracker Initialized and available in framework");
 	}
 }
 
