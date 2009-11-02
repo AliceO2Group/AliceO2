@@ -28,6 +28,10 @@
 
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
+#include "include.h"
+#ifdef R__WIN32
+#include <conio.h>
+#endif
 #endif
 
 AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
@@ -137,6 +141,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   StandaloneQueryTime(&startTime);
 
   fOutputControl.fObsoleteOutput = 0;
+  fTracker.SetKeepData(1);
 #endif
 
   if (forceSingleSlice != -1)
@@ -177,6 +182,39 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   fLastTime[2] = timer2.CpuTime();
 
 #ifdef HLTCA_STANDALONE
+#ifdef R__WIN32
+    static int displayActive = 0;
+	if (!displayActive)
+	{
+		semLockDisplay = CreateSemaphore(0, 1, 1, 0);
+		HANDLE hThread;
+		if ((hThread = CreateThread(NULL, NULL, &OpenGLMain, NULL, NULL, NULL)) == NULL)
+		{
+			printf("Coult not Create GL Thread...\nExiting...\n");
+		}
+		displayActive = 1;
+	}
+	else
+	{
+		ReleaseSemaphore(semLockDisplay, 1, NULL);
+	}
+
+	while (kbhit()) getch();
+	printf("Press key for next event!\n");
+
+	int iKey;
+	do
+	{
+		Sleep(10);
+		iKey = kbhit() ? getch() : 0;
+		if (iKey == 'q') exit(0);
+	} while (iKey != 'n' && buttonPressed == 0);
+	buttonPressed = 0;
+	printf("Loading next event\n");
+
+	WaitForSingleObject(semLockDisplay, INFINITE);
+#endif
+
   printf("Tracking Time: %lld us\nTime uncertainty: %lld ns\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000000 / tmpFreq);
 
   if (fDebugLevel >= 1)

@@ -9,7 +9,7 @@ TARGET						= ca
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
-CPPFILES					= 
+CPPFILES					= display/opengl.cpp
 CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCATrack.cxx \
 								code/AliHLTTPCCATrackParam.cxx \
