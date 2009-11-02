@@ -530,6 +530,12 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   StandalonePerfTime(2);
 
+#ifdef TRACKER_KEEP_TEMPDATA
+  if (fHitTmpMemory) delete[] fHitTmpMemory;
+  fHitTmpMemory = new char[fData.MemorySize()];
+  memcpy(fHitTmpMemory, fData.Memory(), fData.MemorySize());
+#endif
+
   if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
   
 #ifdef HLTCA_INTERNAL_PERFORMANCE
@@ -552,6 +558,12 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
   RunStartHitsFinder();
+
+#ifdef TRACKER_KEEP_TEMPDATA
+  if (fTrackletTmpMemory) delete[] fTrackletTmpMemory;
+  fTrackletTmpMemory = new char[fTrackletMemorySize];
+  memcpy(fTrackletTmpMemory, fTracklets, fTrackletMemorySize);
+#endif
 
   StandalonePerfTime(4);
   StandalonePerfTime(5);
