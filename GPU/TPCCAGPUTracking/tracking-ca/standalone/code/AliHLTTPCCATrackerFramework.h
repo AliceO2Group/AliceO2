@@ -22,6 +22,10 @@ class AliHLTTPCCAClusterData;
 
 class AliHLTTPCCATrackerFramework : AliHLTLogging
 {
+#ifdef HLTCA_STANDALONE
+	friend int DrawGLScene();
+#endif
+
 public:
 	AliHLTTPCCATrackerFramework(int allowGPU = 1);
 	~AliHLTTPCCATrackerFramework();
@@ -46,6 +50,8 @@ public:
 	const AliHLTTPCCAParam& Param(int iSlice) const { return(fCPUTrackers[iSlice].Param()); }
 	const AliHLTTPCCARow& Row(int iSlice, int iRow) const { return(fCPUTrackers[iSlice].Row(iRow)); }  //TODO: Should be changed to return only row parameters
 
+	void SetKeepData(int v) {fKeepData = v;}
+
 private:
   static const int fgkNSlices = 36;       //* N slices
 
@@ -54,8 +60,9 @@ private:
   bool fUseGPUTracker; // use the GPU tracker 
   int fGPUDebugLevel;  // debug level for the GPU code
   int fGPUSliceCount;	//How many slices to process parallel
-  AliHLTTPCCAGPUTracker* fGPUTracker;
-  void* fGPULib;
+  AliHLTTPCCAGPUTracker* fGPUTracker;	//Pointer to GPU Tracker Object
+  void* fGPULib;		//Pointer to GPU Library
+  bool fKeepData;		//Keep temporary data and do not free memory imediately
 
   AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 

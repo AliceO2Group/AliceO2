@@ -1,0 +1,50 @@
+#-*- Mode: Makefile -*-
+# $Id: libAliHLTTPCCAGPU.pkg 36149 2009-10-30 17:26:00Z sgorbuno $
+
+CLASS_HDRS      :=
+
+MODULE_CUSRCS   := tracking-ca/AliHLTTPCCAGPUTrackerNVCC.cu
+MODULE_CUHDRS   := tracking-ca/AliHLTTPCCAGPUTrackerNVCC.h
+
+MODULE_SRCS     =
+MODULE_HDRS     := tracking-ca/AliHLTTPCCAGPUTrackerNVCC.h
+
+MODULE_DHDR:=
+
+EINCLUDE        := HLT/TPCLib \
+                   HLT/TPCLib/tracking \
+                   HLT/TPCLib/comp \
+                   HLT/TPCLib/tracking-ca \
+                   HLT/TPCLib/offline \
+                   HLT/BASE \
+                   HLT/BASE/util \
+                   HLT/RCU \
+                   TPC \
+                   RAW \
+                   STEER \
+                   /usr/local/cuda/include
+
+ELIBS           := cuda cudart
+ELIBSDIR        := /usr/local/cuda/lib64
+
+LIBRARY_DEP := -lAliHLTTPC -lHLTbase -lAliHLTUtil
+
+###############################################################################
+#
+# do not change anything below this line
+#
+include $(MODDIR)/hlt.conf
+
+SRCS:=$(patsubst %,TPCLib/%,$(MODULE_SRCS))
+CUSRCS:=$(patsubst %,TPCLib/%,$(MODULE_CUSRCS))
+CINTHDRS:=$(patsubst %,TPCLib/%,$(CLASS_HDRS))
+HDRS:=$(patsubst %,TPCLib/%,$(MODULE_HDRS))
+CUHDRS:=$(patsubst %,TPCLib/%,$(MODULE_CUHDRS))
+DHDR:=$(patsubst %,TPCLib/%,$(MODULE_DHDR))
+CINTAUTOLINK:= $(shell test "x$(MODULE_DHDR)" = "x" && echo 1)
+
+EDEFINE      = ${HLTDEFS} -DBUILD_GPU
+PACKCXXFLAGS := ${HLTCXXFLAGS} -Wshadow
+PACKCFLAGS   := ${HLTCLFAGS}
+PACKDCXXFLAGS:= ${HLTDCXXFLAGS}
+PACKSOFLAGS  := $(HLTSOFLAGS)

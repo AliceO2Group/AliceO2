@@ -120,7 +120,10 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 			fCPUTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
 			fCPUTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 			fCPUTrackers[firstSlice + iSlice].Reconstruct();
-			fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();
+			if (!fKeepData)
+			{
+				fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();
+			}
 		}
 	}
 	
@@ -151,7 +154,7 @@ int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAPar
 
 #define GPULIBNAME "libAliHLTTPCCAGPU"
 
-AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fCPUSliceCount(fgkNSlices)
+AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fCPUSliceCount(fgkNSlices), fKeepData(false)
 {
 	//Constructor
 #ifdef R__WIN32
@@ -162,11 +165,11 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 	if (hGPULib == NULL)
 	{
 #ifndef R__WIN32
-		HLTInfo("%s\n", dlerror());
+		HLTInfo("%s", dlerror());
 #endif
 		if (allowGPU)
 		{
-			HLTError("Error Opening cagpu library for GPU Tracker, will fallback to CPU\n");
+			HLTError("Error Opening cagpu library for GPU Tracker, will fallback to CPU");
 		}
 		else
 		{

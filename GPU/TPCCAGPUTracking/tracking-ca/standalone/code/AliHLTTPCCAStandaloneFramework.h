@@ -27,6 +27,9 @@
  */
 class AliHLTTPCCAStandaloneFramework
 {
+#ifdef HLTCA_STANDALONE
+	friend int DrawGLScene();
+#endif
 
   public:
 
