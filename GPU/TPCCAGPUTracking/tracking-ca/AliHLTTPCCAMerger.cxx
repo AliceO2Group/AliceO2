@@ -813,8 +813,8 @@ void AliHLTTPCCAMerger::Merging()
       if ( nHits < 30 ) continue;    //SG!!!
 
       AliHLTTPCCATrackParam p = startPoint;
-
-      {
+      
+      if(0){
         double xTPC = 83.65; //SG!!!
         double dAlpha = 0.349066;
 	double ymax = 2.* xTPC * CAMath::Tan( dAlpha / 2. );
