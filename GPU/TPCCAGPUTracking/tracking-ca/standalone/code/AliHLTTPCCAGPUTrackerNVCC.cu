@@ -201,7 +201,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 
 		int deviceOK = fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < 1 || (fCudaDeviceProp.major == 1 && fCudaDeviceProp.minor < 2)) && free >= fGPUMemSize;
 
-		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %d / %d)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, free, fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
+		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %d / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
 		deviceSpeed = (long long int) fCudaDeviceProp.multiProcessorCount * (long long int) fCudaDeviceProp.clockRate * (long long int) fCudaDeviceProp.warpSize * (long long int) free;
 		if (deviceOK && deviceSpeed > bestDeviceSpeed)
 		{
@@ -231,19 +231,19 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
   if (fDebugLevel >= 1)
   {
 	  HLTInfo("Using CUDA Device %s with Properties:", fCudaDeviceProp.name);
-	  HLTInfo("totalGlobalMem = %d", fCudaDeviceProp.totalGlobalMem);
-	  HLTInfo("sharedMemPerBlock = %d", fCudaDeviceProp.sharedMemPerBlock);
+	  HLTInfo("totalGlobalMem = %lld", (unsigned long long int) fCudaDeviceProp.totalGlobalMem);
+	  HLTInfo("sharedMemPerBlock = %lld", (unsigned long long int) fCudaDeviceProp.sharedMemPerBlock);
 	  HLTInfo("regsPerBlock = %d", fCudaDeviceProp.regsPerBlock);
 	  HLTInfo("warpSize = %d", fCudaDeviceProp.warpSize);
-	  HLTInfo("memPitch = %d", fCudaDeviceProp.memPitch);
+	  HLTInfo("memPitch = %lld", (unsigned long long int) fCudaDeviceProp.memPitch);
 	  HLTInfo("maxThreadsPerBlock = %d", fCudaDeviceProp.maxThreadsPerBlock);
 	  HLTInfo("maxThreadsDim = %d %d %d", fCudaDeviceProp.maxThreadsDim[0], fCudaDeviceProp.maxThreadsDim[1], fCudaDeviceProp.maxThreadsDim[2]);
 	  HLTInfo("maxGridSize = %d %d %d", fCudaDeviceProp.maxGridSize[0], fCudaDeviceProp.maxGridSize[1], fCudaDeviceProp.maxGridSize[2]);
-	  HLTInfo("totalConstMem = %d", fCudaDeviceProp.totalConstMem);
+	  HLTInfo("totalConstMem = %lld", (unsigned long long int) fCudaDeviceProp.totalConstMem);
 	  HLTInfo("major = %d", fCudaDeviceProp.major);
 	  HLTInfo("minor = %d", fCudaDeviceProp.minor);
 	  HLTInfo("clockRate %d= ", fCudaDeviceProp.clockRate);
-	  HLTInfo("textureAlignment %d= ", fCudaDeviceProp.textureAlignment);
+	  HLTInfo("textureAlignment %lld= ", (unsigned long long int) fCudaDeviceProp.textureAlignment);
   }
 
   if (fCudaDeviceProp.major < 1 || (fCudaDeviceProp.major == 1 && fCudaDeviceProp.minor < 2))
@@ -315,7 +315,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
   }
 
   fCudaInitialized = 1;
-  HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %dd)", cudaDevice, fCudaDeviceProp.name, fThreadId);
+  HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %d)", cudaDevice, fCudaDeviceProp.name, fThreadId);
 
 #if defined(HLTCA_STANDALONE) & !defined(CUDA_DEVICE_EMULATION)
   if (fDebugLevel < 2)
