@@ -91,7 +91,7 @@ class AliHLTTPCCAStandaloneFramework
 #ifdef HLTCA_STANDALONE
 	static inline void StandaloneQueryTime(unsigned long long int *i);
 	static inline void StandaloneQueryFreq(unsigned long long int *i);
-#endif
+#endif //HLTCA_STANDALONE
 
   private:
 
@@ -123,7 +123,7 @@ class AliHLTTPCCAStandaloneFramework
 		  timespec t;
 		  clock_gettime(CLOCK_REALTIME, &t);
 		  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
-	#endif
+	#endif //R__WIN32
 	}
 
 	void AliHLTTPCCAStandaloneFramework::StandaloneQueryFreq(unsigned long long int *i)
@@ -132,8 +132,8 @@ class AliHLTTPCCAStandaloneFramework
 		  QueryPerformanceFrequency((LARGE_INTEGER*) i);
 	#else
 		*i = 1000000000;
-	#endif
+	#endif //R__WIN32
 	}
-#endif
+#endif //HLTCA_STANDALONE
 
-#endif
+#endif //ALIHLTTPCCASTANDALONEFRAMEWORK_H

@@ -235,4 +235,4 @@ class AliHLTTPCCAPerformance
 
 };
 
-#endif
+#endif //ALIHLTTPCCAPERFORMANCE_H

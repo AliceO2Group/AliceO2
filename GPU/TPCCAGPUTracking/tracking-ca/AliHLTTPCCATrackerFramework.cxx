@@ -25,16 +25,30 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAClusterData.h"
 
+#ifdef R__WIN32
+#include <windows.h>
+#include <winbase.h>
+#else
+#include <dlfcn.h>
+#endif
+
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
 #endif
+
+ClassImp( AliHLTTPCCATrackerFramework )
 
 int AliHLTTPCCATrackerFramework::InitGPU(int sliceCount, int forceDeviceID)
 {
 	//Initialize GPU Tracker and determine if GPU available
 	int retVal;
+	if (!fGPULibAvailable)
+	{
+		HLTError("GPU Library not loaded\n");
+		return(1);
+	}
 	if (fGPUTrackerAvailable && (retVal = ExitGPU())) return(retVal);
-	retVal = fGPUTracker.InitGPU(sliceCount, forceDeviceID);
+	retVal = fGPUTracker->InitGPU(sliceCount, forceDeviceID);
 	fUseGPUTracker = fGPUTrackerAvailable = retVal == 0;
 	fGPUSliceCount = sliceCount;
 	return(retVal);
@@ -46,13 +60,13 @@ int AliHLTTPCCATrackerFramework::ExitGPU()
 	if (!fGPUTrackerAvailable) return(0);
 	fUseGPUTracker = false;
 	fGPUTrackerAvailable = false;
-	return(fGPUTracker.ExitGPU());
+	return(fGPUTracker->ExitGPU());
 }
 
 void AliHLTTPCCATrackerFramework::SetGPUDebugLevel(int Level, std::ostream *OutFile, std::ostream *GPUOutFile)
 {
 	//Set Debug Level for GPU Tracker and also for CPU Tracker for comparison reasons
-	fGPUTracker.SetDebugLevel(Level, GPUOutFile);
+	fGPUTracker->SetDebugLevel(Level, GPUOutFile);
 	fGPUDebugLevel = Level;
 	for (int i = 0;i < fgkNSlices;i++)
 	{
@@ -76,7 +90,7 @@ GPUhd() void AliHLTTPCCATrackerFramework::SetOutputControl( AliHLTTPCCASliceOutp
 {
 	//Set Output Control Pointers
 	fOutputControl = val;
-	fGPUTracker.SetOutputControl(val);
+	fGPUTracker->SetOutputControl(val);
 	for (int i = 0;i < fgkNSlices;i++)
 	{
 		fCPUTrackers[i].SetOutputControl(val);
@@ -88,14 +102,14 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 	//Process sliceCount slices starting from firstslice, in is pClusterData array, out pOutput array
 	if (fUseGPUTracker)
 	{
-		if (fGPUTracker.Reconstruct(pOutput, pClusterData, firstSlice, CAMath::Min(sliceCount, fgkNSlices - firstSlice))) return(1);
+		if (fGPUTracker->Reconstruct(pOutput, pClusterData, firstSlice, CAMath::Min(sliceCount, fgkNSlices - firstSlice))) return(1);
 	}
 	else
 	{
 #ifdef HLTCA_STANDALONE
 		if (fOutputControl->fOutputPtr && omp_get_max_threads() > 1)
 		{
-			printf("fOutputPtr must not be used with OpenMP\n");
+			HLTError("fOutputPtr must not be used with OpenMP\n");
 			return(1);
 		}
 
@@ -124,13 +138,114 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 unsigned long long int* AliHLTTPCCATrackerFramework::PerfTimer(int GPU, int iSlice, int iTimer)
 {
 	//Performance information for slice trackers
-	return(GPU ? fGPUTracker.PerfTimer(iSlice, iTimer) : fCPUTrackers[iSlice].PerfTimer(iTimer));
+	return(GPU ? fGPUTracker->PerfTimer(iSlice, iTimer) : fCPUTrackers[iSlice].PerfTimer(iTimer));
 }
 
 int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param)
 {
 	//Initialize Tracker Parameters for a slice
-	if (fGPUTrackerAvailable && fGPUTracker.InitializeSliceParam(iSlice, param)) return(1);
+	if (fGPUTrackerAvailable && fGPUTracker->InitializeSliceParam(iSlice, param)) return(1);
 	fCPUTrackers[iSlice].Initialize(param);
 	return(0);
+}
+
+#define GPULIBNAME "libAliHLTTPCCAGPU"
+
+AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fCPUSliceCount(fgkNSlices)
+{
+	//Constructor
+#ifdef R__WIN32
+	HMODULE hGPULib = LoadLibraryEx(GPULIBNAME ".dll", NULL, NULL);
+#else
+	void* hGPULib = dlopen(GPULIBNAME ".so", RTLD_NOW);
+#endif
+	if (hGPULib == NULL)
+	{
+#ifndef R__WIN32
+		HLTInfo("%s\n", dlerror());
+#endif
+		if (allowGPU)
+		{
+			HLTError("Error Opening cagpu library for GPU Tracker, will fallback to CPU\n");
+		}
+		else
+		{
+			HLTInfo("Cagpu library was not found, Tracking on GPU will not be available");
+		}
+		fGPUTracker = new AliHLTTPCCAGPUTracker;
+	}
+	else
+	{
+#ifdef R__WIN32
+		FARPROC createFunc = GetProcAddress(hGPULib, "AliHLTTPCCAGPUTrackerNVCCCreate");
+#else
+		void* createFunc = (void*) dlsym(hGPULib, "AliHLTTPCCAGPUTrackerNVCCCreate");
+#endif
+		if (createFunc == NULL)
+		{
+			HLTError("Error Creating GPU Tracker\n");
+#ifdef R__WIN32
+			FreeLibrary(hGPULib);
+#else
+			dlclose(hGPULib);
+#endif
+			fGPUTracker = new AliHLTTPCCAGPUTracker;
+		}
+		else
+		{
+			AliHLTTPCCAGPUTracker* (*tmp)() = (AliHLTTPCCAGPUTracker* (*)()) createFunc;
+			fGPUTracker = tmp();
+			fGPULibAvailable = true;
+			fGPULib = (void*) (size_t) hGPULib;
+			HLTImportant("GPU Tracker Created by Wrapper library");
+		}
+	}
+
+	if (allowGPU && fGPULibAvailable)
+	{
+		fUseGPUTracker = (fGPUTrackerAvailable= (fGPUTracker->InitGPU() == 0));
+		fGPUSliceCount = fGPUTrackerAvailable ? fGPUTracker->GetSliceCount() : 0;
+		HLTInfo("GPU Tracker Initialized and available in framework");
+	}
+}
+
+AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
+{
+#ifdef R__WIN32
+	HMODULE hGPULib = (HMODULE) (size_t) fGPULib;
+#else
+	void* hGPULib = fGPULib;
+#endif
+	if (fGPULib)
+	{
+		if (fGPUTracker)
+		{
+#ifdef R__WIN32
+			FARPROC destroyFunc = GetProcAddress(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
+#else
+			void* destroyFunc = (void*) dlsym(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
+#endif
+			if (destroyFunc == NULL)
+			{
+				HLTError("Error Freeing GPU Tracker\n");
+			}
+			else
+			{
+				void (*tmp)(AliHLTTPCCAGPUTracker*) =  (void (*)(AliHLTTPCCAGPUTracker*)) destroyFunc;
+				tmp(fGPUTracker);
+			}
+		}
+
+#ifdef R__WIN32
+		FreeLibrary(hGPULib);
+#else
+		dlclose(hGPULib);
+#endif
+	}
+	else if (fGPUTracker)
+	{
+		delete fGPUTracker;
+	}
+	fGPULib = NULL;
+	fGPUTracker = NULL;
 }

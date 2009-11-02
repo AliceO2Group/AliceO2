@@ -26,7 +26,7 @@ class AliHLTTPCCATrack
 #if !defined(HLTCA_GPUCODE)
     AliHLTTPCCATrack() : fAlive( 0 ), fFirstHitID( 0 ), fNHits( 0 ), fParam() {}
     ~AliHLTTPCCATrack() {}
-#endif
+#endif //!HLTCA_GPUCODE
 
     GPUhd() bool Alive()               const { return fAlive; }
     GPUhd() int  NHits()               const { return fNHits; }
@@ -50,4 +50,4 @@ class AliHLTTPCCATrack
     //ClassDef(AliHLTTPCCATrack,1)
 };
 
-#endif
+#endif //ALIHLTTPCCATRACK_H

@@ -79,4 +79,4 @@ GPUhd() inline float AliHLTTPCCADataCompressor::UShort2Z( unsigned short iYZ )
   return ( iYZ % 256 )*kMult - 3.f;
 }
 
-#endif
+#endif //ALIHLTTPCCADATACOMPRESSOR_H

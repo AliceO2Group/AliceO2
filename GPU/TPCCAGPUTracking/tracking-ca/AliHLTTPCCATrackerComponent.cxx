@@ -236,7 +236,7 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       HLTInfo( "The special output type \"TRAKSEGS\" is set" );
       continue;
     }
-    
+
     if (argument.CompareTo( "-allowGPU" ) == 0) {
       fAllowGPU = 1;
       HLTImportant( "Will try to run tracker on GPU" );

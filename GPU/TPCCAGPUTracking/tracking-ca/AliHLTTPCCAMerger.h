@@ -15,7 +15,7 @@
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
-#endif
+#endif //HLTCA_GPUCODE
 
 class AliHLTTPCCASliceTrack;
 class AliHLTTPCCASliceOutput;
@@ -120,4 +120,4 @@ class AliHLTTPCCAMerger
     int fSliceNTrackInfos[fgkNSlices];                //* N of slice track infos in fTrackInfos array;
 };
 
-#endif
+#endif //ALIHLTTPCCAMERGER_H
