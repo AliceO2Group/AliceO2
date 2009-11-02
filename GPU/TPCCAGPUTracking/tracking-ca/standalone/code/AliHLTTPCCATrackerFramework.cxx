@@ -149,13 +149,15 @@ int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAPar
 	return(0);
 }
 
+#define GPULIBNAME "libAliHLTTPCCAGPU"
+
 AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fCPUSliceCount(fgkNSlices)
 {
 	//Constructor
 #ifdef R__WIN32
-	HMODULE hGPULib = LoadLibraryEx("cagpu.dll", NULL, NULL);
+	HMODULE hGPULib = LoadLibraryEx(GPULIBNAME ".dll", NULL, NULL);
 #else
-	void* hGPULib = dlopen("cagpu.so", RTLD_NOW);
+	void* hGPULib = dlopen(GPULIBNAME ".so", RTLD_LAZY);
 #endif
 	if (hGPULib == NULL)
 	{
@@ -195,6 +197,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 			fGPUTracker = tmp();
 			fGPULibAvailable = true;
 			fGPULib = (void*) (size_t) hGPULib;
+			HLTImportant("GPU Tracker Created by Wrapper library");
 		}
 	}
 
@@ -202,6 +205,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) :	fGPULib
 	{
 		fUseGPUTracker = (fGPUTrackerAvailable= (fGPUTracker->InitGPU() == 0));
 		fGPUSliceCount = fGPUTrackerAvailable ? fGPUTracker->GetSliceCount() : 0;
+		HLTImportant("GPU Tracker Initialized");
 	}
 }
 

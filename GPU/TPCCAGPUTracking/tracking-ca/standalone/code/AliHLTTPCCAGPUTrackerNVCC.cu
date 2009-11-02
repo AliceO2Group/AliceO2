@@ -19,9 +19,12 @@
 
 #include "AliHLTTPCCAGPUTrackerNVCC.h"
 
-#ifdef BUILD_GPU
-
+#ifdef HLTCA_GPUCODE
 #include <cuda.h>
+#include <sm_11_atomic_functions.h>
+#include <sm_12_atomic_functions.h>
+#endif
+
 #ifdef R__WIN32
 #else
 #include <sys/syscall.h>
@@ -32,8 +35,6 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
-#include <sm_11_atomic_functions.h>
-#include <sm_12_atomic_functions.h>
 
 #include <iostream>
 
@@ -1052,4 +1053,3 @@ void AliHLTTPCCAGPUTrackerNVCCDestroy(AliHLTTPCCAGPUTracker* ptr)
 	delete ptr;
 }
 
-#endif

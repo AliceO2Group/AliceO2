@@ -22,13 +22,7 @@
 
 AliHLTTPCCAGPUTracker::AliHLTTPCCAGPUTracker() {}
 AliHLTTPCCAGPUTracker::~AliHLTTPCCAGPUTracker() {}
-int AliHLTTPCCAGPUTracker::InitGPU(int /*sliceCount*/, int /*forceDeviceID*/)
-{
-    //Dummy init function if CUDA is not available
-    HLTInfo("GPUTracker Library not loaded, ommiting CUDA initialization");
-    return(1);
-}
-
+int AliHLTTPCCAGPUTracker::InitGPU(int /*sliceCount*/, int /*forceDeviceID*/) { return(1); }
 void AliHLTTPCCAGPUTracker::SetDebugLevel(int /*dwLevel*/, std::ostream* /*NewOutFile*/) {}
 int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* /*OptionName*/, int /*OptionValue*/) {return(1);}
 int AliHLTTPCCAGPUTracker::Reconstruct(AliHLTTPCCASliceOutput** /*pTracker*/, AliHLTTPCCAClusterData* /*pClusterData*/, int /*fFirstSlice*/, int /*fSliceCount*/) {return(1);}

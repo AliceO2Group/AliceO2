@@ -20,7 +20,7 @@ class AliHLTTPCCAGPUTrackerNVCC : public AliHLTTPCCAGPUTracker, public AliHLTLog
 {
 public:
 	AliHLTTPCCAGPUTrackerNVCC();
-	~AliHLTTPCCAGPUTrackerNVCC();
+	virtual ~AliHLTTPCCAGPUTrackerNVCC();
 
 	virtual int InitGPU(int sliceCount = 12, int forceDeviceID = -1);
 	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
