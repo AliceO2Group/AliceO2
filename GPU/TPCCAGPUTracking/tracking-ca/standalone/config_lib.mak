@@ -4,7 +4,7 @@ CUDAVERSION					= 13
 CUDAREGS					= 64
 ARCHBITS					= 64
 
-TARGET						= cagpu
+TARGET						= libAliHLTTPCCAGPU
 TARGETTYPE					= LIB
 
 CC_x86_64-pc-linux-gnu		= GCC

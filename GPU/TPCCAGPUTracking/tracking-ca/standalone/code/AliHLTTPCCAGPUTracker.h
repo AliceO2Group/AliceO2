@@ -9,7 +9,6 @@
 #define ALIHLTTPCCAGPUTRACKER_H
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTLogging.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include <iostream>
 
@@ -21,7 +20,7 @@ class AliHLTTPCCAGPUTracker
 {
 public:
 	AliHLTTPCCAGPUTracker();
-	~AliHLTTPCCAGPUTracker();
+	virtual ~AliHLTTPCCAGPUTracker();
 
 	virtual int InitGPU(int sliceCount = 12, int forceDeviceID = -1);
 	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
