@@ -17,7 +17,7 @@ class AliHLTTPCCAClusterData;
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAParam;
 
-class AliHLTTPCCAGPUTracker : AliHLTLogging
+class AliHLTTPCCAGPUTracker
 {
 public:
 	AliHLTTPCCAGPUTracker();
@@ -42,8 +42,6 @@ private:
 	// disable copy
 	AliHLTTPCCAGPUTracker( const AliHLTTPCCAGPUTracker& );
 	AliHLTTPCCAGPUTracker &operator=( const AliHLTTPCCAGPUTracker& );
-
-	ClassDef( AliHLTTPCCAGPUTracker, 0 )
 };
 
 #endif //ALIHLTTPCCAGPUTRACKER_H
