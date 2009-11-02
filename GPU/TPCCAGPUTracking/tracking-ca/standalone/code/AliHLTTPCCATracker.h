@@ -73,6 +73,11 @@ class AliHLTTPCCATracker
       fTracks( 0 ),
       fTrackHits( 0 ),
       fOutput( 0 )
+#ifdef TRACKER_KEEP_TEMPDATA
+	  ,fHitTmpMemory( NULL )
+	  ,fTrackletTmpMemory( NULL )
+#endif
+
   {
     // constructor
   }
@@ -317,6 +322,11 @@ private:
   
   AliHLTTPCCASliceOutput **fOutput;		//address of pointer pointing to SliceOutput Object
   
+#ifdef TRACKER_KEEP_TEMPDATA
+  char *fHitTmpMemory;	//tmp memory for hits after neighbours finder
+  char *fTrackletTmpMemory //same for tracklets after starthitfinder
+#endif
+
   // disable copy
   AliHLTTPCCATracker( const AliHLTTPCCATracker& );
   AliHLTTPCCATracker &operator=( const AliHLTTPCCATracker& );
