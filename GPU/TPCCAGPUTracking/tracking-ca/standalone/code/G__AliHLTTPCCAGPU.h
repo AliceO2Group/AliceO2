@@ -30,7 +30,7 @@ extern void G__set_cpp_environmentG__AliHLTTPCCAGPU();
 
 #include "TObject.h"
 #include "TMemberInspector.h"
-#include "HLT/TPCLib/tracking-ca/AliHLTTPCCAGPUTrackerNVCC.h"
+#include "AliHLTTPCCAGPUTrackerNVCC.h"
 #include <algorithm>
 namespace std { }
 using namespace std;
