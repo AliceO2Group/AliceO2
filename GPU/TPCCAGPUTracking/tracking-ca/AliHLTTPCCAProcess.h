@@ -64,7 +64,7 @@ GPUg() void AliHLTTPCCAProcess( int nBlocks, int nThreads, AliHLTTPCCATracker &t
   }
 }
 
-#endif
+#endif //HLTCA_GPUCODE
 
 
 
@@ -105,6 +105,6 @@ GPUg() void AliHLTTPCCAProcess1( int nBlocks, int nThreads, AliHLTTPCCATracker &
   }
 }
 
-#endif
+#endif //HLTCA_GPUCODE
 
-#endif
+#endif //ALIHLTTPCCAPROCESS_H

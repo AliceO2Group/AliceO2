@@ -119,4 +119,4 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     ClassDef( AliHLTTPCCAGlobalMergerComponent, 0 )
 };
 
-#endif
+#endif //ALIHLTTPCCAGLOBALMERGERCOMPONENT_H

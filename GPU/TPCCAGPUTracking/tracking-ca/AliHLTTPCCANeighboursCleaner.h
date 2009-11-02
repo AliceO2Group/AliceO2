@@ -31,7 +31,7 @@ class AliHLTTPCCANeighboursCleaner
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
             : fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fNHits( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
-#endif
+#endif //!HLTCA_GPUCODE
 
       protected:
         int fIRow; // current row index
@@ -48,4 +48,4 @@ class AliHLTTPCCANeighboursCleaner
 };
 
 
-#endif
+#endif //ALIHLTTPCCANEIGHBOURSCLEANER_H

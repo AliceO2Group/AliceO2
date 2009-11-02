@@ -51,7 +51,7 @@
 
 #ifdef DRAW1
 #include "AliHLTTPCCADisplay.h"
-#endif //DRAW
+#endif //DRAW1
 
 #ifdef HLTCA_INTERNAL_PERFORMANCE
 //#include "AliHLTTPCCAPerformance.h"
@@ -511,18 +511,18 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
     AliHLTTPCCADisplay::Instance().Ask();
   }
   }
-#endif
+#endif //DRAW1
 
 	fCommonMem->fNTracklets = fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
 
 #if !defined(HLTCA_GPUCODE)
 
-  /*if (fGPUDebugLevel >= 6)
+  if (fGPUDebugLevel >= 6)
   {
-	  *fGPUDebugOut << endl << endl << "Slice: " << Param().ISlice() << endl;
-	  *fGPUDebugOut << "Slice Data:" << endl;
+	  *fGPUDebugOut << std::endl << std::endl << "Slice: " << Param().ISlice() << std::endl;
+	  *fGPUDebugOut << "Slice Data:" << std::endl;
 	  DumpSliceData(*fGPUDebugOut);
-  }*/
+  }
 
   StandalonePerfTime(1);
 
@@ -543,7 +543,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
     AliHLTTPCCADisplay::Instance().DrawSliceLinks( -1, -1, 1 );
     AliHLTTPCCADisplay::Instance().Ask();
   }
-#endif
+#endif //DRAW1
 
   RunNeighboursCleaner();
 
@@ -621,7 +621,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
     }
     disp.Ask();
   }
-#endif
+#endif //DRAW1
 
   timer0.Stop();
   fTimers[0] = timer0.CpuTime() / 100.;

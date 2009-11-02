@@ -14,30 +14,22 @@
 #include "AliHLTTPCCAGPUTracker.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCASliceOutput.h"
+#include "AliHLTLogging.h"
 #include <iostream>
 
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAClusterData;
 
-class AliHLTTPCCATrackerFramework
+class AliHLTTPCCATrackerFramework : AliHLTLogging
 {
 public:
-	AliHLTTPCCATrackerFramework(int autoTryGPU = 1) :
-	  fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(), fOutputControl( NULL ), fCPUSliceCount(fgkNSlices)
-	  {
-		if (autoTryGPU)
-		{
-		  fUseGPUTracker = (fGPUTrackerAvailable= (fGPUTracker.InitGPU() == 0));
-		  fGPUSliceCount = fGPUTrackerAvailable ? fGPUTracker.GetSliceCount() : 0;
-		}
-	  }
-	~AliHLTTPCCATrackerFramework()
-	  {}
+	AliHLTTPCCATrackerFramework(int allowGPU = 1);
+	~AliHLTTPCCATrackerFramework();
 
 	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
 	int ExitGPU();
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
-	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fGPUTracker.SetGPUTrackerOption(OptionName, OptionValue));}
+	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fGPUTracker->SetGPUTrackerOption(OptionName, OptionValue));}
 	int SetGPUTracker(bool enable);
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
@@ -57,11 +49,13 @@ public:
 private:
   static const int fgkNSlices = 36;       //* N slices
 
+  bool fGPULibAvailable;	//Is the Library with the GPU code available at all?
   bool fGPUTrackerAvailable; // Is the GPU Tracker Available?
   bool fUseGPUTracker; // use the GPU tracker 
   int fGPUDebugLevel;  // debug level for the GPU code
   int fGPUSliceCount;	//How many slices to process parallel
-  AliHLTTPCCAGPUTracker fGPUTracker;
+  AliHLTTPCCAGPUTracker* fGPUTracker;
+  void* fGPULib;
 
   AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 
@@ -71,6 +65,8 @@ private:
   AliHLTTPCCATrackerFramework( const AliHLTTPCCATrackerFramework& );
   AliHLTTPCCATrackerFramework &operator=( const AliHLTTPCCATrackerFramework& );
 
+  ClassDef( AliHLTTPCCATrackerFramework, 0 )
+
 };
 
-#endif
+#endif //ALIHLTTPCCATRACKERFRAMEWORK_H

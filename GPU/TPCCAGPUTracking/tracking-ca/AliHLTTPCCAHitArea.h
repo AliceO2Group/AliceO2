@@ -77,4 +77,4 @@ class AliHLTTPCCAHitArea
     int fHitOffset; // global hit offset XXX what's that?
 };
 
-#endif
+#endif //ALIHLTTPCCAHITAREA_H

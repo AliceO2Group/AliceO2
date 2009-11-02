@@ -19,7 +19,7 @@
 
 #ifndef assert
 #include <assert.h>
-#endif
+#endif //!assert
 
 template<unsigned int X>
 GPUhd() static inline void AlignTo( char *&mem )

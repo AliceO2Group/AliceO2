@@ -27,7 +27,7 @@ class AliHLTTPCCARow
 
 #if !defined(HLTCA_GPUCODE)
     AliHLTTPCCARow();
-#endif
+#endif //!HLTCA_GPUCODE
 
     GPUhd() int   NHits()    const { return fNHits; }
     GPUhd() float X()        const { return fX; }
@@ -64,4 +64,4 @@ class AliHLTTPCCARow
     unsigned int fFirstHitInBinOffset; // offset in Tracker::fRowData to find the FirstHitInBin
 };
 
-#endif
+#endif //ALIHLTTPCCAROW_H

@@ -69,4 +69,4 @@ class AliHLTTPCCAMCPoint
     int   fTrackID;   //* mc track number
 };
 
-#endif
+#endif //ALIHLTTPCCAMCPOINT_H

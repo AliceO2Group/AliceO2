@@ -37,7 +37,7 @@ class AliHLTTPCCAParam
                             float rMin, float rMax, float zMin, float zMax,
                             float padPitch, float zSigma, float bz );
     void Update();
-#endif
+#endif //!HLTCA_GPUCODE
 
 	GPUd() void Slice2Global( float x, float y,  float z,
                               float *X, float *Y,  float *Z ) const;
@@ -168,4 +168,4 @@ GPUd() inline float AliHLTTPCCAParam::GetBz( const AliHLTTPCCATrackParam &t ) co
   return GetBz( t.X(), t.Y(), t.Z() );
 }
 
-#endif
+#endif //ALIHLTTPCCAPARAM_H

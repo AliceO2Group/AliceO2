@@ -32,7 +32,7 @@ class AliHLTTPCCANeighboursFinder
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
             : fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fRow(), fRowUp(), fRowDown() {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
-#endif
+#endif //!HLTCA_GPUCODE
 
       protected:
         int fNHits; // n hits
@@ -59,4 +59,4 @@ class AliHLTTPCCANeighboursFinder
 };
 
 
-#endif
+#endif //ALIHLTTPCCANEIGHBOURSFINDER_H
