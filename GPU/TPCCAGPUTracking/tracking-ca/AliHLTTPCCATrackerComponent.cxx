@@ -866,6 +866,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
   }
 
   //No longer needed
+
+  delete[] slicerow;
+  delete[] sliceminPatch;
+  delete[] slicemaxPatch;
   delete[] clusterData;
   //These are only temporary pointers to the output and no longer needed
   delete[] sliceOutput;
