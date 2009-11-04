@@ -407,7 +407,9 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp,  track.InnerAlpha() );
       AliHLTTPCCATrackConvertor::GetExtParam( track.OuterParam(), tpEnd, track.OuterAlpha() );
       
-      currOutTrack->fAlpha = tp.GetAlpha();
+      // normalize the angle to +-Pi
+	      
+      currOutTrack->fAlpha = tp.GetAlpha() - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();      
       currOutTrack->fX = tp.GetX();
       currOutTrack->fY = tp.GetY();
       currOutTrack->fZ = tp.GetZ();      
