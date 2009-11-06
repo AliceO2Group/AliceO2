@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 36071 2009-10-28 18:05:14Z sgorbuno $
+// @(#) $Id$
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *

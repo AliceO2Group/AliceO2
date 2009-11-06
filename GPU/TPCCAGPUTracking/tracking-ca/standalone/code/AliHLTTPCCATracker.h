@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCATracker.h 36155 2009-10-31 07:29:40Z sgorbuno $
+// @(#) $Id$
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -74,8 +74,7 @@ class AliHLTTPCCATracker
       fTrackHits( 0 ),
       fOutput( 0 )
 #ifdef TRACKER_KEEP_TEMPDATA
-	  ,fHitTmpMemory( NULL )
-	  ,fTrackletTmpMemory( NULL )
+	  ,fLinkTmpMemory( NULL )
 #endif
 
   {
@@ -264,13 +263,17 @@ class AliHLTTPCCATracker
   GPUh() void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory) { fData.SetGPUSliceDataMemory(pSliceMemory, pRowMemory); }
 
   GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
-  
-private:
-  
+
+//Temporary Variables for Standalone measurements, public for easier access
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
 #endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+
+#ifdef TRACKER_KEEP_TEMPDATA
+  char *fLinkTmpMemory;	//tmp memory for hits after neighbours finder
+#endif
   
+private:
   AliHLTTPCCAParam fParam; // parameters
   double fTimers[10]; // timers
   unsigned long long int fPerfTimers[16]; // running CPU time for different parts of the algorithm
@@ -322,11 +325,6 @@ private:
   
   AliHLTTPCCASliceOutput **fOutput;		//address of pointer pointing to SliceOutput Object
   
-#ifdef TRACKER_KEEP_TEMPDATA
-  char *fHitTmpMemory;	//tmp memory for hits after neighbours finder
-  char *fTrackletTmpMemory //same for tracklets after starthitfinder
-#endif
-
   // disable copy
   AliHLTTPCCATracker( const AliHLTTPCCATracker& );
   AliHLTTPCCATracker &operator=( const AliHLTTPCCATracker& );

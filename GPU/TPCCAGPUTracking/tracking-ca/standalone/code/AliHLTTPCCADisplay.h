@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCADisplay.h 34611 2009-09-04 00:22:05Z sgorbuno $
+// @(#) $Id$
 //  *************************************************************************
 //  This file is property of and copyright by the ALICE HLT Project         *
 //  ALICE Experiment at CERN, All rights reserved.                          *

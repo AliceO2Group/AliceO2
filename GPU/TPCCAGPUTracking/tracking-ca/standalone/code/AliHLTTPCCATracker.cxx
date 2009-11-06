@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATracker.cxx 36149 2009-10-30 17:26:00Z sgorbuno $
+// @(#) $Id$
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -531,9 +531,9 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   StandalonePerfTime(2);
 
 #ifdef TRACKER_KEEP_TEMPDATA
-  if (fHitTmpMemory) delete[] fHitTmpMemory;
-  fHitTmpMemory = new char[fData.MemorySize()];
-  memcpy(fHitTmpMemory, fData.Memory(), fData.MemorySize());
+  if (fLinkTmpMemory) delete[] fLinkTmpMemory;
+  fLinkTmpMemory = new char[fData.MemorySize()];
+  memcpy(fLinkTmpMemory, fData.Memory(), fData.MemorySize());
 #endif
 
   if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
@@ -558,12 +558,6 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
   RunStartHitsFinder();
-
-#ifdef TRACKER_KEEP_TEMPDATA
-  if (fTrackletTmpMemory) delete[] fTrackletTmpMemory;
-  fTrackletTmpMemory = new char[fTrackletMemorySize];
-  memcpy(fTrackletTmpMemory, fTracklets, fTrackletMemorySize);
-#endif
 
   StandalonePerfTime(4);
   StandalonePerfTime(5);

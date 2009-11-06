@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCAParam.cxx 35757 2009-10-21 20:58:33Z sgorbuno $
+// @(#) $Id$
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *

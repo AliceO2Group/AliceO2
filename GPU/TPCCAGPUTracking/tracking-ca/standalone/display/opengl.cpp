@@ -16,7 +16,11 @@
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCASliceData.h"
+#include "AliHLTTPCCATrack.h"
+#include "AliHLTTPCCAMergerOutput.h"
 #include "include.h"
+
+#define fgkNSlices 36
 
 
 HDC			hDC=NULL;		// Private GDI Device Context
@@ -44,6 +48,29 @@ GLfloat currentMatrice[16];
 int drawClusters = true;
 int drawLinks = false;
 int drawSeeds = false;
+int drawInitLinks = false;
+int drawTracklets = false;
+int drawTracks = false;
+int drawFinal = false;
+
+float4* globalPos = NULL;
+int maxClusters = 0;
+int currentClusters = 0;
+
+volatile int displayEventNr = 0;
+int currentEventNr = -1;
+
+int glDLrecent = 0;
+
+volatile int resetScene = 0;
+
+inline void SetColorClusters() {glColor3f(0, 0.7, 1.0);}
+inline void SetColorInitLinks() {glColor3f(0.5, 0.5, 0.5);}
+inline void SetColorLinks() {glColor3f(1, 0.3, 0.3);}
+inline void SetColorSeeds() {glColor3f(1.0, 0.4, 0);}
+inline void SetColorTracklets() {glColor3f(0, 0.8, 0.2);}
+inline void SetColorTracks() {glColor3f(0.6, 1, 0);}
+inline void SetColorFinal() {glColor3f(1, 1, 1);}
 
 void __cdecl ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
 {
@@ -69,7 +96,7 @@ void __cdecl ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initial
 
 	if (init)
 	{
-		glTranslatef(0, 0, -10);
+		glTranslatef(0, 0, -16);
 		init = 0;
 	}
 	else
@@ -91,174 +118,400 @@ int InitGL()										// All Setup For OpenGL Goes Here
 	return TRUE;										// Initialization Went OK
 }
 
+inline void drawPointLinestrip(int cid, int id)
+{
+	glVertex3f(globalPos[cid].x, globalPos[cid].y, globalPos[cid].z);
+	globalPos[cid].w = id;
+}
+
+void DrawClusters(AliHLTTPCCAStandaloneFramework& hlt, int id)
+{
+	glBegin(GL_POINTS);
+	for (int i = 0;i < currentClusters;i++)
+	{
+		if (globalPos[i].w == id)
+		{
+			glVertex3f(globalPos[i].x, globalPos[i].y, globalPos[i].z);
+		}
+	}
+	glEnd();
+}
+
+void DrawLinks(AliHLTTPCCAStandaloneFramework& hlt, int id)
+{
+	glBegin(GL_LINES);
+	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+	{
+		AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
+		for (int i = 0;i < tracker.Param().NRows() - 2;i++)
+		{
+			const AliHLTTPCCARow &row = tracker.Data().Row(i);
+			const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
+			for (int j = 0;j < row.NHits();j++)
+			{
+				if (tracker.Data().HitLinkUpData(row, j) != -1)
+				{
+					const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
+					const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
+					drawPointLinestrip(cid1, id);
+					drawPointLinestrip(cid2, id);
+				}
+			}
+		}
+	}
+	glEnd();
+}
+
+void DrawSeeds(AliHLTTPCCAStandaloneFramework& hlt)
+{
+	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+	{
+		AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
+		for (int i = 0;i < *tracker.NTracklets();i++)
+		{
+			const AliHLTTPCCAHitId &hit = tracker.TrackletStartHit(i);
+			glBegin(GL_LINE_STRIP);
+			int ir = hit.RowIndex();
+			int ih = hit.HitIndex();
+			do
+			{
+				const AliHLTTPCCARow &row = tracker.Data().Row(ir);
+				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, ih));
+				drawPointLinestrip(cid, 3);
+				ir += 2;
+				ih = tracker.Data().HitLinkUpData(row, ih);
+			} while (ih != -1);
+			glEnd();
+		}
+	}
+}
+
+void DrawTracklets(AliHLTTPCCAStandaloneFramework& hlt)
+{
+	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+	{
+		AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
+		for (int i = 0;i < *tracker.NTracklets();i++)
+		{
+			const AliHLTTPCCATracklet &tracklet = tracker.Tracklet(i);
+			if (tracklet.NHits() == 0) continue;
+			glBegin(GL_LINE_STRIP);
+			for (int j = tracklet.FirstRow();j <= tracklet.LastRow();j++)
+			{
+				if (tracklet.RowHit(j) != -1)
+				{
+					const AliHLTTPCCARow &row = tracker.Data().Row(j);
+					const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, tracklet.RowHit(j)));
+					drawPointLinestrip(cid, 4);
+				}
+			}
+			glEnd();
+		}
+	}
+}
+
+void DrawTracks(AliHLTTPCCAStandaloneFramework& hlt)
+{
+	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+	{
+		AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];	
+		for (int i = 0;i < *tracker.NTracks();i++)
+		{
+			AliHLTTPCCATrack &track = tracker.Tracks()[i];
+			glBegin(GL_LINE_STRIP);
+			for (int j = 0;j < track.NHits();j++)
+			{
+				const AliHLTTPCCAHitId &hit = tracker.TrackHits()[track.FirstHitID() + j];
+				const AliHLTTPCCARow &row = tracker.Data().Row(hit.RowIndex());
+				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
+				drawPointLinestrip(cid, 5);
+			}
+			glEnd();
+		}
+	}
+}
+
+void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
+{
+	const AliHLTTPCCAMerger &merger = hlt.Merger();
+	const AliHLTTPCCAMergerOutput &mergerOut = *merger.Output();
+	for (int i = 0;i < mergerOut.NTracks();i++)
+	{
+		const AliHLTTPCCAMergedTrack &track = mergerOut.Track(i);
+		glBegin(GL_LINE_STRIP);
+		for (int j = 0;j < track.NClusters();j++)
+		{
+			int cid = mergerOut.ClusterId(track.FirstClusterRef() + j);
+			drawPointLinestrip(cid, 6);
+		}
+		glEnd();
+	}
+}
+
 int DrawGLScene()									// Here's Where We Do All The Drawing
 {
-	static const int fgkNSlices = 36;
+	static float fpsscale = 1;
 
-	static GLfloat	rtri;				// Angle For The Triangle ( NEW )
-	static GLfloat	rquad;				// Angle For The Quad ( NEW )
+	static int framesDone = 0;
+	static __int64 startTime, displayFpsTime, timeFreq;
 
-	if (keys['1'])
-	{
-		keys['1'] = 0;
-		drawClusters ^= 1;
-	}
+	static float pointSize = 2.0;
 
-	if (keys['2'])
-	{
-		keys['2'] = 0;
-		drawLinks ^= 1;
-	}
-
-	if (keys['3'])
-	{
-		keys['3'] = 0;
-		drawSeeds ^= 1;
-	}
+	static GLuint glDLlines[6];
+	static GLuint glDLpoints[7];
+	static int glDLcreated = 0;
 
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 
+	//Initialize
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear Screen And Depth Buffer
 	glLoadIdentity();									// Reset The Current Modelview Matrix
 
 	int mouseWheelTmp = mouseWheel;
 	mouseWheel = 0;
 
+	//Calculate rotation / translation scaling factors
 	float scalefactor = keys[16] ? 0.2 : 1.0;
 
-	float moveZ = scalefactor * ((float) mouseWheelTmp / 200 + keys['W'] * 0.2 - keys['S'] * 0.2);
-	float moveX = scalefactor * ((float) keys['A'] * 0.2 - (float) keys['D'] * 0.2);
+	float sqrdist = sqrt(sqrt(currentMatrice[12] * currentMatrice[12] + currentMatrice[13] * currentMatrice[13] + currentMatrice[14] * currentMatrice[14]) / 50) * 0.8;
+	if (sqrdist < 0.2) sqrdist = 0.2;
+	if (sqrdist > 5) sqrdist = 5;
+	scalefactor *= sqrdist;
+
+	//Perform new rotation / translation
+	float moveZ = scalefactor * ((float) mouseWheelTmp / 150 + (float) (keys['W'] - keys['S']) * 0.2 * fpsscale);
+	float moveX = scalefactor * ((float) (keys['A'] - keys['D']) * 0.2 * fpsscale);
 
 	glTranslatef(moveX, 0, moveZ);
 
 	if (mouseDnR && mouseDn)
 	{
 		glTranslatef(0, 0, -scalefactor * ((float) mouseMvY - (float)mouseDnY) / 4);
+		glRotatef(scalefactor * ((float)mouseMvX - (float)mouseDnX), 0, 0, 1);
 	}
 	else if (mouseDnR)
 	{
-		glTranslatef(-scalefactor * ((float) mouseDnX - (float)mouseMvX) / 4, -scalefactor * ((float) mouseMvY - (float)mouseDnY) / 4, 0);
+		glTranslatef(-scalefactor * 0.5 * ((float) mouseDnX - (float)mouseMvX) / 4, -scalefactor * 0.5 * ((float) mouseMvY - (float)mouseDnY) / 4, 0);
 	}
 	else if (mouseDn)
 	{
-		glRotatef(scalefactor * ((float)mouseMvX - (float)mouseDnX), 0, 1, 0);
-		glRotatef(scalefactor * ((float)mouseMvY - (float)mouseDnY), 1, 0, 0);
+		glRotatef(scalefactor * 0.5 * ((float)mouseMvX - (float)mouseDnX), 0, 1, 0);
+		glRotatef(scalefactor * 0.5 * ((float)mouseMvY - (float)mouseDnY), 1, 0, 0);
+	}
+	if (keys['E'] ^ keys['F'])
+	{
+		glRotatef(scalefactor * fpsscale * 2, 0, 0, keys['E'] - keys['F']);
 	}
 	mouseDnX = mouseMvX;
 	mouseDnY = mouseMvY;
 
+	//Apply standard translation / rotation
 	glMultMatrixf(currentMatrice);
 
-	if (keys['R'])
+	//Grafichs Options
+	pointSize += (float) (keys[107] - keys[109] + keys[187] - keys[189]) * fpsscale * 0.05;
+	if (pointSize <= 0.01) pointSize = 0.01;
+
+	//Reset position
+	if (resetScene)
 	{
 		glLoadIdentity();
-		glTranslatef(0, 0, -10);
+		glTranslatef(0, 0, -16);
+
+		QueryPerformanceCounter((LARGE_INTEGER*) &startTime);
+		displayFpsTime = startTime;
+		framesDone = 0;
+
+		pointSize = 2.0;
+
+		resetScene = 0;
 	}
 
+	//Store position
 	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
 
+	//Make sure event gets not overwritten during display
 	WaitForSingleObject(semLockDisplay, INFINITE);
 
+	//Open GL Default Values
 	glEnable(GL_POINT_SMOOTH);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glPointSize(2.0);
-	glLineWidth(2.0);
+	glPointSize(pointSize);
+	glLineWidth(1.5);
 
-	if (drawClusters)
+	//Extract global cluster information
+	if (displayEventNr != currentEventNr)
 	{
-		glBegin(GL_POINTS);
+		currentClusters = 0;
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
-			AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
-			for (int i = 0;i < tracker.Param().NRows() - 2;i++)
-			{
-				const AliHLTTPCCARow &row = tracker.Data().Row(i);
-				for (int j = 0;j < row.NHits();j++)
-				{
-					float x, y, z;
-					if (drawLinks && ((tracker.Data().HitLinkUpData(row, j) != -1) ^ (tracker.Data().HitLinkDownData(row, j) != -1)))
-					{
-						glColor3f(1.0, 0.5, 0.5);
-					}
-					else
-					{
-						glColor3f(0, 0.75, 1);
-					}
-					tracker.Param().Slice2Global(tracker.ClusterData()->X(tracker.Data().ClusterDataIndex(row, j)),
-						tracker.ClusterData()->Y(tracker.Data().ClusterDataIndex(row, j)), tracker.ClusterData()->Z(tracker.Data().ClusterDataIndex(row, j)), &x, &y, &z);
-					glVertex3f(x / 50, y / 50, z / 50);
-				}
-			}
+			currentClusters += hlt.fTracker.fCPUTrackers[iSlice].NHitsTotal();
 		}
-		glEnd();
-	}
 
-	if (drawLinks)
-	{
-		glBegin(GL_LINES);
-		glColor3f(1, 0.3, 0.3);
+		if (maxClusters < currentClusters)
+		{
+			if (globalPos) delete[] globalPos;
+			maxClusters = currentClusters;
+			globalPos = new float4[maxClusters];
+		}
+
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
-			AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
-			for (int i = 0;i < tracker.Param().NRows() - 2;i++)
+			const AliHLTTPCCAClusterData &cdata = hlt.fClusterData[iSlice];
+			for (int i = 0;i < cdata.NumberOfClusters();i++)
 			{
-				const AliHLTTPCCARow &row = tracker.Data().Row(i);
-				const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
-				for (int j = 0;j < row.NHits();j++)
+				const int cid = cdata.Id(i);
+				if (cid >= maxClusters)
 				{
-					if (tracker.Data().HitLinkUpData(row, j) != -1)
-					{
-						float x1, x2, y1, y2, z1, z2;
-						tracker.Param().Slice2Global(tracker.ClusterData()->X(tracker.Data().ClusterDataIndex(row, j)),
-							tracker.ClusterData()->Y(tracker.Data().ClusterDataIndex(row, j)), tracker.ClusterData()->Z(tracker.Data().ClusterDataIndex(row, j)), &x1, &y1, &z1);
-						tracker.Param().Slice2Global(tracker.ClusterData()->X(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j))),
-							tracker.ClusterData()->Y(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j))),
-							tracker.ClusterData()->Z(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j))), &x2, &y2, &z2);
-						glVertex3f(x1 / 50, y1 / 50, z1 / 50);
-						glVertex3f(x2 / 50, y2 / 50, z2 / 50);
-					}
+					printf("Cluster Buffer Size exceeded\n");
+					exit(1);
 				}
+				float4 *ptr = &globalPos[cid];
+				hlt.fTracker.fCPUTrackers[iSlice].Param().Slice2Global(cdata.X(i), cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
+				ptr->x /= 50;
+				ptr->y /= 50;
+				ptr->z /= 50;
+				ptr->w = 1;
 			}
 		}
-		glEnd();
+
+		currentEventNr = displayEventNr;
+
+		QueryPerformanceFrequency((LARGE_INTEGER*) &timeFreq);
+		QueryPerformanceCounter((LARGE_INTEGER*) &startTime);
+		displayFpsTime = startTime;
+		framesDone = 0;
+		glDLrecent = 0;
 	}
 
-	if (drawSeeds)
+	//Prepare Event
+	if (!glDLrecent)
 	{
-		glColor3f(0, 1.0, 0.3);
-		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+		if (glDLcreated)
 		{
-			AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
-			for (int i = 0;i < *tracker.NTracklets();i++)
+			for (int i = 0;i < 6;i++) glDeleteLists(glDLlines[i], 1);
+			for (int i = 0;i < 7;i++) glDeleteLists(glDLpoints[i], 1);
+		}
+		else
+		{
+			for (int i = 0;i < 6;i++) glDLlines[i] = glGenLists(1);
+			for (int i = 0;i < 7;i++) glDLpoints[i] = glGenLists(1);
+		}
+
+		for (int i = 0;i < currentClusters;i++) globalPos[i].w = 0;
+
+		glNewList(glDLlines[0], GL_COMPILE);
+		if (drawInitLinks)
+		{
+			char* tmpMem[fgkNSlices];
+			for (int i = 0;i < fgkNSlices;i++)
 			{
-				const AliHLTTPCCATracklet &tracklet = tracker.Tracklet(i);
-				if (tracklet.NHits() == 0) continue;
-				for (int k = 0;k < 2;k++)
-				{
-					glBegin(k ? GL_POINTS : GL_LINE_STRIP);
-					for (int j = tracklet.FirstRow();j < tracklet.LastRow();j++)
-					{
-						if (tracklet.RowHit(j) != -1)
-						{
-							float x, y, z;
-							const AliHLTTPCCARow &row = tracker.Data().Row(j);
-							tracker.Param().Slice2Global(tracker.ClusterData()->X(tracker.Data().ClusterDataIndex(row, tracklet.RowHit(j))),
-								tracker.ClusterData()->Y(tracker.Data().ClusterDataIndex(row, tracklet.RowHit(j))),
-								tracker.ClusterData()->Z(tracker.Data().ClusterDataIndex(row, tracklet.RowHit(j))), &x, &y, &z);
-							glVertex3f(x / 50, y / 50, z / 50);
-						}
-					}
-					glEnd();
-				}
+				AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[i];
+				tmpMem[i] = tracker.Data().Memory();
+				tracker.SetGPUSliceDataMemory(tracker.fLinkTmpMemory, tracker.Data().Rows());
+				tracker.SetPointersSliceData(tracker.ClusterData());
 			}
+			DrawLinks(hlt, 1);
+			for (int i = 0;i < fgkNSlices;i++)
+			{
+				AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[i];
+				tracker.SetGPUSliceDataMemory(tmpMem[i], tracker.Data().Rows());
+				tracker.SetPointersSliceData(tracker.ClusterData());
+			}
+		}
+		glEndList();
+		
+		glNewList(glDLlines[1], GL_COMPILE);
+		DrawLinks(hlt, 2);
+		glEndList();
+		
+		glNewList(glDLlines[2], GL_COMPILE);
+		DrawSeeds(hlt);
+		glEndList();
+		
+		glNewList(glDLlines[3], GL_COMPILE);
+		DrawTracklets(hlt);
+		glEndList();
+		
+		glNewList(glDLlines[4], GL_COMPILE);
+		DrawTracks(hlt);
+		glEndList();
+		
+		glNewList(glDLlines[5], GL_COMPILE);
+		DrawFinal(hlt);
+		glEndList();
+
+		for (int i = 0;i < 7;i++)
+		{
+			glNewList(glDLpoints[i], GL_COMPILE);
+			DrawClusters(hlt, i);
+			glEndList();
+		}
+
+		int errCode;
+		if ((errCode = glGetError()) != GL_NO_ERROR)
+		{
+			printf("Error creating OpenGL display list: %s\n", gluErrorString(errCode));
+			resetScene = 1;
+		}
+		else
+		{
+			glDLrecent = 1;
 		}
 	}
 
+	++framesDone;
+	__int64 tmpTime;
+	QueryPerformanceCounter((LARGE_INTEGER*) &tmpTime);
+	if (tmpTime - displayFpsTime > timeFreq)
+	{
+		displayFpsTime = tmpTime;
+		float fps = (double) framesDone * (double) timeFreq / (double) (tmpTime - startTime);
+		printf("FPS: %f (%d frames, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:Merger %d)\n", fps, framesDone, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawFinal);
+		fpsscale = 60 / fps;
+	}
+
+	//Draw Event
+	if (glDLrecent)
+	{
+		
+		if (drawClusters)
+		{
+			SetColorClusters();
+			glCallList(glDLpoints[0]);
+
+			if (drawInitLinks) SetColorInitLinks();
+			glCallList(glDLpoints[1]);
+
+			if (drawLinks) SetColorLinks();
+			glCallList(glDLpoints[2]);
+
+			if (drawSeeds) SetColorSeeds();
+			glCallList(glDLpoints[3]);
+
+			glColor3f(0, 0.7, 1.0);
+			if (drawTracklets) SetColorTracklets();
+			glCallList(glDLpoints[4]);
+
+			if (drawTracks) SetColorTracks();
+			glCallList(glDLpoints[5]);
+
+			if (drawFinal) SetColorFinal();
+			glCallList(glDLpoints[6]);
+		}
+
+		if (drawInitLinks) {SetColorInitLinks();glCallList(glDLlines[0]);}
+		if (drawLinks) {SetColorLinks();glCallList(glDLlines[1]);}
+		if (drawSeeds) {SetColorSeeds();glCallList(glDLlines[2]);}
+		if (drawTracklets) {SetColorTracklets();glCallList(glDLlines[3]);}
+		if (drawTracks) {SetColorTracks();glCallList(glDLlines[4]);}
+		if (drawFinal) {SetColorFinal();glCallList(glDLlines[5]);}
+	}
+
+	//Free event
 	ReleaseSemaphore(semLockDisplay, 1, NULL);
 
-	rtri+=0.2f;											// Increase The Rotation Variable For The Triangle ( NEW )
-	rquad-=0.15f;										// Decrease The Rotation Variable For The Quad ( NEW )
 	return TRUE;										// Keep Going
 }
 
@@ -522,11 +775,20 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 		case WM_KEYUP:								// Has A Key Been Released?
 		{
 			keys[wParam] = FALSE;					// If So, Mark It As FALSE
-			if (wParam == 13 || wParam == 'N')
-			{
-				buttonPressed = 1;
-			}
+
+			if (wParam == 13 || wParam == 'N') buttonPressed = 1;
 			if (wParam == 'Q') exit(0);
+			if (wParam == 'R') resetScene = 1;
+
+			if (wParam == '1') drawClusters ^= 1;
+			else if (wParam == '2') drawInitLinks ^= 1; 
+			else if (wParam == '3') drawLinks ^= 1;
+			else if (wParam == '4') drawSeeds ^= 1;
+			else if (wParam == '5') drawTracklets ^= 1;
+			else if (wParam == '6') drawTracks ^= 1;
+			else if (wParam == '7') drawFinal ^= 1;
+
+			//printf("Key: %d\n", wParam);
 			return 0;								// Jump Back
 		}
 

@@ -164,16 +164,16 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) : fGPULib
 #endif
 	if (hGPULib == NULL)
 	{
-#ifndef R__WIN32
-		HLTInfo("%s", dlerror());
-#endif
 		if (allowGPU)
 		{
+			#ifndef R__WIN32
+				HLTInfo("The following error occured during dlopen: %s", dlerror());
+			#endif
 			HLTError("Error Opening cagpu library for GPU Tracker, will fallback to CPU");
 		}
 		else
 		{
-			HLTInfo("Cagpu library was not found, Tracking on GPU will not be available");
+			HLTDebug("Cagpu library was not found, Tracking on GPU will not be available");
 		}
 		fGPUTracker = new AliHLTTPCCAGPUTracker;
 	}
