@@ -142,6 +142,7 @@ namespace AliHLTTPCCADefinitions
 #define GPUshared()
 #define GPUsync()
 
+struct float4 { float x, y, z, w; };
 struct float2 { float x; float y; };
 struct uchar2 { unsigned char x, y; };
 struct short2 { short x, y; };

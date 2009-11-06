@@ -213,6 +213,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 	printf("Loading next event\n");
 
 	WaitForSingleObject(semLockDisplay, INFINITE);
+	displayEventNr++;
 #endif
 
   printf("Tracking Time: %lld us\nTime uncertainty: %lld ns\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000000 / tmpFreq);
