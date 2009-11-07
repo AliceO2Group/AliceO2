@@ -167,7 +167,7 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
     // HitWeights, ClusterDataIndex
     fNumberOfHitsPlusAlign * 2 * sizeof( int );
 
-  if ( fMemorySize < memorySize ) {
+  if ( 1||fMemorySize < memorySize ) { // release the memory on CPU
 	fMemorySize = memorySize;
 	if (allocate && !fIsGpuSliceData)
 	{
