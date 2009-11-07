@@ -867,11 +867,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   //No longer needed
 
-  delete[] slicerow;
-  delete[] sliceminPatch;
-  delete[] slicemaxPatch;
   delete[] clusterData;
-  //These are only temporary pointers to the output and no longer needed
   delete[] sliceOutput;
 
   timer.Stop();
@@ -886,6 +882,12 @@ int AliHLTTPCCATrackerComponent::DoEvent
   //Min and Max Patch are taken for first slice processed...
   HLTInfo( "CATracker slices %d-%d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; time: full %d / reco %d Hz",
            minslice, maxslice, ntracks, nClustersTotalSum, sliceminPatch[0], slicemaxPatch[0], slicerow[0], slicerow[1], hz, hz1 );
+
+  //No longer needed
+
+  delete[] slicerow;
+  delete[] sliceminPatch;
+  delete[] slicemaxPatch;
 
   return ret;
 }
