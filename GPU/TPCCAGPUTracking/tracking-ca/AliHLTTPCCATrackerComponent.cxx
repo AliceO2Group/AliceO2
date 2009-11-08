@@ -305,7 +305,7 @@ int AliHLTTPCCATrackerComponent::Configure( const char* cdbEntry, const char* ch
 
   //* read magnetic field
 
-  int iResult2 = true; //ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  int iResult2 = 0; //ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
   fSolenoidBz = GetBz();
 
   //* read the actual CDB entry if required
