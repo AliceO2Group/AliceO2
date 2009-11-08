@@ -79,6 +79,7 @@ void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nT
   {
 	  if (outputControl->fOutputMaxSize < memsize)
 	  {
+                  outputControl->fEndOfSpace = 1;
 		  ptrOutput = NULL;
 		  return;
 	  }
