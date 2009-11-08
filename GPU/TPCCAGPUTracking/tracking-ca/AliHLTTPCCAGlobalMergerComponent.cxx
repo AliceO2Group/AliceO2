@@ -219,7 +219,7 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
   //* read magnetic field
 
-  int iResult2 = true;//ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  int iResult2 = 0;//ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
   fSolenoidBz = GetBz();
 
   //* read the actual CDB entry if required
