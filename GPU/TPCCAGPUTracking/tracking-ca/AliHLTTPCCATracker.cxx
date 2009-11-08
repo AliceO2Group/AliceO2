@@ -422,7 +422,7 @@ GPUh() int AliHLTTPCCATracker::CheckEmptySlice() const
     {
       AliHLTTPCCASliceOutput::Allocate(*fOutput, 0, 0, fOutputControl);
       AliHLTTPCCASliceOutput* useOutput = *fOutput;
-      if (fOutput == NULL) return(1);
+      if (useOutput == NULL) return(1);
       useOutput->SetNTracks( 0 );
       useOutput->SetNTrackClusters( 0 );
       useOutput->SetNOutTracks(0);

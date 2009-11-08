@@ -440,7 +440,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       if ( !found ) {
         slices.push_back( slice );
         sliceCnts.push_back( 1 );
-      } else *slCntIter++;
+      } else (*slCntIter)++;
     }
 
 	  if ( slices.size() == 0 ) {
@@ -505,7 +505,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   int slicecount = maxslice + 1 - minslice;
   if (slicecount > fTracker->MaxSliceCount())
   {
-	maxslice = minslice + (slicecount = fTracker->MaxSliceCount());
+	maxslice = minslice + (slicecount = fTracker->MaxSliceCount()) - 1;
   }
   int nClustersTotalSum = 0;
   AliHLTTPCCAClusterData* clusterData = new AliHLTTPCCAClusterData[slicecount];
@@ -687,6 +687,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   //Prepare Output
   AliHLTTPCCASliceOutput::outputControlStruct outputControl;
   //Set tracker output so tracker does not have to output both formats!
+  outputControl.fEndOfSpace = 0;
   outputControl.fObsoleteOutput = fOutputTRAKSEGS;
   outputControl.fDefaultOutput = !fOutputTRAKSEGS;
 
@@ -710,6 +711,12 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   for (int islice = 0;islice < slicecount;islice++)
   {
+    if( outputControl.fEndOfSpace ){
+      HLTWarning( "Output buffer size exceed, tracks are not stored" );
+      ret = -ENOSPC;
+      error = 1;
+      break;     
+    }
 	  slice = minslice + islice;
 
 	  if (sliceOutput[islice])

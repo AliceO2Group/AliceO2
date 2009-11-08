@@ -33,11 +33,12 @@ class AliHLTTPCCASliceOutput
 
 	struct outputControlStruct
 	{
-		outputControlStruct() : fObsoleteOutput( 1 ), fDefaultOutput( 1 ), fOutputPtr( NULL ), fOutputMaxSize ( 0 ) {}
+		outputControlStruct() : fObsoleteOutput( 1 ), fDefaultOutput( 1 ), fOutputPtr( NULL ), fOutputMaxSize ( 0 ), fEndOfSpace(0) {}
 		int fObsoleteOutput;	//Enable Obsolete Output
 		int fDefaultOutput;		//Enable Default Output
 		char* fOutputPtr;		//Pointer to Output Space, NULL to allocate output space
-		int fOutputMaxSize;		//Max Size of Output Data if Pointer to output space is given
+	        int fOutputMaxSize;		//Max Size of Output Data if Pointer to output space is given
+   	        bool fEndOfSpace; // end of space flag 
 	};
 
     GPUhd() int NTracks()                    const { return fNTracks;              }
