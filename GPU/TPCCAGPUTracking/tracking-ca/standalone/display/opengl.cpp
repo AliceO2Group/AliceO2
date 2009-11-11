@@ -942,6 +942,39 @@ DWORD WINAPI OpenGLMain(LPVOID tmp)
 void render(void);
 void init(void);
 
+int GetKey(int key)
+{
+    int wParam = 0;
+    switch(key)
+    {
+	case 50: wParam = 16;break;
+	case 10: wParam = '1';break;
+	case 11: wParam = '2';break;
+	case 12: wParam = '3';break;
+	case 13: wParam = '4';break;
+	case 14: wParam = '5';break;
+	case 15: wParam = '6';break;
+	case 16: wParam = '7';break;
+	case 17: wParam = '8';break;
+	case 57: wParam = 'N';break;
+	case 24: wParam = 'Q';break;
+	case 27: wParam = 'R';break;
+	case 65: wParam = 13;break;
+	case 25: wParam = 'W';break;
+	case 38: wParam = 'A';break;
+	case 39: wParam = 'S';break;
+	case 40: wParam = 'D';break;
+	case 26: wParam = 'E';break;
+	case 41: wParam = 'F';break;
+	case 35:
+	case 86: wParam = 107;break;
+	case 61:
+	case 82: wParam = 109;break;
+    }
+    return(wParam);
+}
+
+
 void* OpenGLMain( void* ptr )
 {
     XSetWindowAttributes windowAttributes;
@@ -1047,8 +1080,8 @@ void* OpenGLMain( void* ptr )
 
     XSetStandardProperties( g_pDisplay,
                             g_window,
-                            "GLX Sample",
-                            "GLX Sample",
+                            "AliHLTTPCCA Online Event Display",
+                            "AliHLTTPCCA Online Event Display",
                             None,
                             NULL,
                             0,
@@ -1079,43 +1112,65 @@ void* OpenGLMain( void* ptr )
                 case ButtonPress:
                 {
             	    if( event.xbutton.button == 1 )
-            		{
-						g_nLastMousePositX = event.xmotion.x;
-				        g_nLastMousePositY = event.xmotion.y;
-						g_bMousing = true;
-					}
+            	    {
+			mouseDn = true;
+		    }
+            	    if( event.xbutton.button != 1 )
+            	    {
+			mouseDnR = true;
+		    }
+		    mouseDnX = event.xmotion.x;
+		    mouseDnY = event.xmotion.y;
                 }
                 break;
 
                 case ButtonRelease:
                 {
-                	if( event.xbutton.button == 1 )
-                		g_bMousing = false;
+            	    if( event.xbutton.button == 1 )
+            	    {
+			mouseDn = false;
+		    }
+            	    if( event.xbutton.button != 1 )
+            	    {
+			mouseDnR = false;
+		    }
                 }
                 break;
                 
                 case KeyPress:
                 {
-                    fprintf( stderr, "KeyPress event\n" );
+                    fprintf( stderr, "KeyPress event %d\n", event.xkey.keycode );
+		    int wParam = GetKey(event.xkey.keycode);
+		    keys[wParam] = true;
                 }
                 break;
 
                 case KeyRelease:
                 {
-                    fprintf( stderr, "KeyRelease event\n" );
+                    fprintf( stderr, "KeyRelease event %d\n", event.xkey.keycode );
+
+                    int wParam = GetKey(event.xkey.keycode);
+
+		    keys[wParam] = false;
+
+		    if (wParam == 13 || wParam == 'N') buttonPressed = 1;
+		    if (wParam == 'Q') exit(0);
+		    if (wParam == 'R') resetScene = 1;
+
+		    if (wParam == '1') drawClusters ^= 1;
+		    else if (wParam == '2') drawInitLinks ^= 1; 
+		    else if (wParam == '3') drawLinks ^= 1;
+		    else if (wParam == '4') drawSeeds ^= 1;
+		    else if (wParam == '5') drawTracklets ^= 1;
+		    else if (wParam == '6') drawTracks ^= 1;
+		    else if (wParam == '7') drawFinal ^= 1;
                 }
                 break;
 
                 case MotionNotify:
                 {
-                    if( g_bMousing )
-                    {
-	                    g_fSpinX -= (event.xmotion.x - g_nLastMousePositX);
-						g_fSpinY -= (event.xmotion.y - g_nLastMousePositY);
-					
-						g_nLastMousePositX = event.xmotion.x;
-					    g_nLastMousePositY = event.xmotion.y;
-                    }
+		    mouseMvX = event.xmotion.x;
+		    mouseMvY = event.xmotion.y;
                 }
                 break;
 
@@ -1128,6 +1183,7 @@ void* OpenGLMain( void* ptr )
                 case ConfigureNotify:
                 {
                     glViewport( 0, 0, event.xconfigure.width, event.xconfigure.height );
+		    ReSizeGLScene(event.xconfigure.width, event.xconfigure.height);
                 }
             }
         }
@@ -1149,6 +1205,8 @@ void init( void )
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluPerspective( 45.0f, 640.0f / 480.0f, 0.1f, 100.0f);
+
+	ReSizeGLScene(1024, 768);
 }
 
 //-----------------------------------------------------------------------------
@@ -1161,6 +1219,7 @@ void render( void )
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	
 	
+    DrawGLScene();
 
     if( g_bDoubleBuffered )
         glXSwapBuffers( g_pDisplay, g_window ); // Buffer swap does implicit glFlush
