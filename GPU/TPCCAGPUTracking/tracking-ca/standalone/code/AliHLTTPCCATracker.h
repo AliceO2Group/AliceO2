@@ -46,7 +46,11 @@ class AliHLTTPCCATracker
   public:
 
   AliHLTTPCCATracker()
-    : fParam(),
+    :
+#ifdef TRACKER_KEEP_TEMPDATA
+	  fLinkTmpMemory( NULL ),
+#endif
+	  fParam(),
       fOutputControl(),
       fClusterData( 0 ),
       fData(),
@@ -73,10 +77,6 @@ class AliHLTTPCCATracker
       fTracks( 0 ),
       fTrackHits( 0 ),
       fOutput( 0 )
-#ifdef TRACKER_KEEP_TEMPDATA
-	  ,fLinkTmpMemory( NULL )
-#endif
-
   {
     // constructor
   }

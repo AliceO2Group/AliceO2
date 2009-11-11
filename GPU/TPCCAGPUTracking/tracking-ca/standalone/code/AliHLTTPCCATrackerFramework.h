@@ -56,7 +56,7 @@ public:
 	const AliHLTTPCCAParam& Param(int iSlice) const { return(fCPUTrackers[iSlice].Param()); }
 	const AliHLTTPCCARow& Row(int iSlice, int iRow) const { return(fCPUTrackers[iSlice].Row(iRow)); }  //TODO: Should be changed to return only row parameters
 
-	void SetKeepData(int v) {fKeepData = v;}
+	void SetKeepData(bool v) {fKeepData = v;}
 
 private:
   static const int fgkNSlices = 36;       //* N slices
@@ -68,12 +68,13 @@ private:
   int fGPUSliceCount;	//How many slices to process parallel
   AliHLTTPCCAGPUTracker* fGPUTracker;	//Pointer to GPU Tracker Object
   void* fGPULib;		//Pointer to GPU Library
-  bool fKeepData;		//Keep temporary data and do not free memory imediately
 
   AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 
   AliHLTTPCCATracker fCPUTrackers[fgkNSlices];
   int fCPUSliceCount;
+
+  bool fKeepData;		//Keep temporary data and do not free memory imediately, used for Standalone Debug Event Display
 
   AliHLTTPCCATrackerFramework( const AliHLTTPCCATrackerFramework& );
   AliHLTTPCCATrackerFramework &operator=( const AliHLTTPCCATrackerFramework& );

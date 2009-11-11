@@ -191,8 +191,7 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
 
     if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-      HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
+      HLTWarning("argument -solenoidBz is deprecated, magnetic field set up globally (%f)", GetBz());
       continue;
     }
 
@@ -306,7 +305,8 @@ int AliHLTTPCCATrackerComponent::Configure( const char* cdbEntry, const char* ch
 
   //* read magnetic field
 
-  int iResult2 = ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  int iResult2 = 0; //ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  fSolenoidBz = GetBz();
 
   //* read the actual CDB entry if required
 
@@ -440,7 +440,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       if ( !found ) {
         slices.push_back( slice );
         sliceCnts.push_back( 1 );
-      } else *slCntIter++;
+      } else (*slCntIter)++;
     }
 
 	  if ( slices.size() == 0 ) {
@@ -505,7 +505,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   int slicecount = maxslice + 1 - minslice;
   if (slicecount > fTracker->MaxSliceCount())
   {
-	maxslice = minslice + (slicecount = fTracker->MaxSliceCount());
+	maxslice = minslice + (slicecount = fTracker->MaxSliceCount()) - 1;
   }
   int nClustersTotalSum = 0;
   AliHLTTPCCAClusterData* clusterData = new AliHLTTPCCAClusterData[slicecount];
@@ -687,6 +687,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   //Prepare Output
   AliHLTTPCCASliceOutput::outputControlStruct outputControl;
   //Set tracker output so tracker does not have to output both formats!
+  outputControl.fEndOfSpace = 0;
   outputControl.fObsoleteOutput = fOutputTRAKSEGS;
   outputControl.fDefaultOutput = !fOutputTRAKSEGS;
 
@@ -710,6 +711,12 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   for (int islice = 0;islice < slicecount;islice++)
   {
+    if( outputControl.fEndOfSpace ){
+      HLTWarning( "Output buffer size exceed, tracks are not stored" );
+      ret = -ENOSPC;
+      error = 1;
+      break;     
+    }
 	  slice = minslice + islice;
 
 	  if (sliceOutput[islice])
@@ -866,8 +873,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
   }
 
   //No longer needed
+
   delete[] clusterData;
-  //These are only temporary pointers to the output and no longer needed
   delete[] sliceOutput;
 
   timer.Stop();
@@ -882,6 +889,12 @@ int AliHLTTPCCATrackerComponent::DoEvent
   //Min and Max Patch are taken for first slice processed...
   HLTInfo( "CATracker slices %d-%d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; time: full %d / reco %d Hz",
            minslice, maxslice, ntracks, nClustersTotalSum, sliceminPatch[0], slicemaxPatch[0], slicerow[0], slicerow[1], hz, hz1 );
+
+  //No longer needed
+
+  delete[] slicerow;
+  delete[] sliceminPatch;
+  delete[] slicemaxPatch;
 
   return ret;
 }

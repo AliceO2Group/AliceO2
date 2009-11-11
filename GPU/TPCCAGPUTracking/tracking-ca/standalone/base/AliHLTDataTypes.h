@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTDataTypes.h 34546 2009-09-02 14:00:57Z odjuvsla $
+// @(#) $Id: AliHLTDataTypes.h 36598 2009-11-10 09:54:45Z aszostak $
 
 #ifndef ALIHLTDATATYPES_H
 #define ALIHLTDATATYPES_H
@@ -59,6 +59,7 @@
  *                 kAliHLTDataTypeDAQRDOUT (DAQRDOUT)
  *                 kAliHLTDataTypeTriggerDecision (TRIG_DEC)
  *                 kAliHLTDataTypeGlobalTrigger (GLOBTRIG)
+ *                 kAliHLTDataTypeStreamerInfo (ROOTSTRI)
  */
 #define ALIHLT_DATA_TYPES_VERSION 12
 
@@ -144,6 +145,11 @@ extern const char kAliHLTDataOriginTRD[kAliHLTComponentDataTypefOriginSize];
  * @ingroup alihlt_component_datatypes
  */
 extern const char kAliHLTDataOriginITS[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin ITSOut 
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginITSOut[kAliHLTComponentDataTypefOriginSize];
 
 /** Data origin ITS SPD
  * @ingroup alihlt_component_datatypes
@@ -243,6 +249,11 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 # define kAliHLTDAQRDOUTDataTypeID "DAQRDOUT"
 
+/** HLT readout list.
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTReadoutListDataTypeID {'H','L','T','R','D','L','S','T'}
+
 /** EventType event 
  * - empty payload, specification gives eventType
  * @ingroup alihlt_component_datatypes
@@ -274,6 +285,13 @@ const int kAliHLTComponentDataTypefIDsize=8;
  * @ingroup alihlt_component_datatypes
  */
 # define kAliHLTMCObjectDataTypeID    {'A','L','I','M','C','_','V','0'}
+
+/** ESDVertex data block
+ * an AliESDVertex object of varying origin
+ * The 'V0' at the end allows a versioning
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTESDVertexDataTypeID    {'E','S','D','V','T','X','V','0'}
 
 /** ESD data block
  * an AliESD object of varying origin
@@ -369,6 +387,13 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 #define kAliHLTTObjectDataTypeID              {'R','O','O','T','T','O','B','J'}
 
+/** ROOT streamer info
+ * - used for the transmission of streamer info for objects in the HLTOUT
+ * - origin kAliHLTDataOriginOut ( HLT )
+ * @ingroup alihlt_component_datatypes
+ */
+#define kAliHLTStreamerInfoDataTypeID         {'R','O','O','T','S','T','R','I'}
+
 /** ROOT TObjArray
  * - a TObjArray exported from the HLT analysis
  * - varying origin
@@ -421,6 +446,13 @@ const int kAliHLTComponentDataTypefIDsize=8;
  * @ingroup alihlt_component_datatypes
  */
 #define kAliHLTJetDataTypeID                  {'H','L','T','J','E','T','V','0'}
+
+/** dEdx  data
+ * Common data type for the dEdx 
+ * format depends on the origin (detector)
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTdEdxDataTypeID {'D','E','D','X',' ',' ',' ',' '}
 
 using namespace std;
 
@@ -883,6 +915,11 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeMCObject;
 
+  /** ESD vertex object data specification, origin is 'any' 
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeESDVertex;
+
   /** ESD object data specification, origin is 'any' 
    * @ingroup alihlt_component_datatypes
    */
@@ -934,6 +971,12 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeTriggerDecision;   // {TRIG_DEC:HLT }
 
+  /** Trigger decision
+   * - origin : kAliHLTDataOriginOut ( HLT )
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeReadoutList;   // {HLTRDLST:HLT }
+
   /** Global trigger decision
    * - origin : kAliHLTDataOriginOut ( HLT )
    * @ingroup alihlt_component_datatypes
@@ -962,6 +1005,11 @@ extern "C" {
    * @ingroup alihlt_component_datatypes
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeTObject;            // {ROOTTOBJ,"***"}
+
+  /** ROOT streamer info
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeStreamerInfo;       // {ROOTSTRI,HLT }
 									  		
   /** ROOT TObjArray 
    * @ingroup alihlt_component_datatypes
@@ -1016,6 +1064,11 @@ extern "C" {
    * @ingroup alihlt_component_datatypes
    */	
   extern const AliHLTComponentDataType kAliHLTDataTypeCaloCluster; 
+
+  /** Container of dEdx
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypedEdx;
 
   //////////////////////////////////////////////////////////////////////////
   //
@@ -1082,7 +1135,7 @@ extern "C" {
   // IMPORTANT: don not just remove the defines as this breaks the binary
   // compatibility
   int (*fAllocShmMemoryFunc)( void* param, unsigned long size, AliHLTComponentBlockData* blockLocation );
-#endif //0
+#endif
 
   /**
    * @struct AliHLTComponentEnvironment
@@ -1268,4 +1321,4 @@ inline AliHLTComponentDataType AliHLTComponentDataTypeInitializer(const AliHLTCo
   return AliHLTComponentDataTypeInitializer(src.fID, origin);
 }
 
-#endif //ALIHLTDATATYPES_H
+#endif 
