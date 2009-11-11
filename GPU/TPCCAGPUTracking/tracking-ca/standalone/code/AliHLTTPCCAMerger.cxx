@@ -626,7 +626,7 @@ void AliHLTTPCCAMerger::Merging()
 
   if ( 1 ) {// merging track segments withing one slice
 
-    AliHLTResizableArray<AliHLTTPCCABorderTrack> bord( maxNSliceTracks*10 );
+    AliHLTResizableArray<AliHLTTPCCABorderTrack> bord( maxNSliceTracks*2 );
 
     AliHLTTPCCASliceTrackInfo *tmpT = new AliHLTTPCCASliceTrackInfo[maxNSliceTracks];
     AliHLTTPCCAClusterInfo *tmpH = new AliHLTTPCCAClusterInfo[fMaxClusterInfos];
@@ -689,10 +689,10 @@ void AliHLTTPCCAMerger::Merging()
   // arrays for the rotated track parameters
 
   AliHLTTPCCABorderTrack
-  *bCurr0 = new AliHLTTPCCABorderTrack[maxNSliceTracks*10],
-  *bNext0 = new AliHLTTPCCABorderTrack[maxNSliceTracks*10],
-  *bCurr = new AliHLTTPCCABorderTrack[maxNSliceTracks*10],
-  *bNext = new AliHLTTPCCABorderTrack[maxNSliceTracks*10];
+  *bCurr0 = new AliHLTTPCCABorderTrack[maxNSliceTracks*2],
+  *bNext0 = new AliHLTTPCCABorderTrack[maxNSliceTracks*2],
+  *bCurr = new AliHLTTPCCABorderTrack[maxNSliceTracks*2],
+  *bNext = new AliHLTTPCCABorderTrack[maxNSliceTracks*2];
 
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
 
@@ -813,8 +813,8 @@ void AliHLTTPCCAMerger::Merging()
       if ( nHits < 30 ) continue;    //SG!!!
 
       AliHLTTPCCATrackParam p = startPoint;
-
-      {
+      
+      if(0){
         double xTPC = 83.65; //SG!!!
         double dAlpha = 0.349066;
 	double ymax = 2.* xTPC * CAMath::Tan( dAlpha / 2. );

@@ -6,11 +6,42 @@
  *		Visit My Site At nehe.gamedev.net
  */
 
+#include "AliHLTTPCCADef.h"
+
+#ifdef R__WIN32
 #include <windows.h>		// Header File For Windows
 #include <winbase.h>
 #include <windowsx.h>
-#include <gl\gl.h>			// Header File For The OpenGL32 Library
-#include <gl\glu.h>			// Header File For The GLu32 Library
+
+HDC			hDC=NULL;		// Private GDI Device Context
+HGLRC		hRC=NULL;		// Permanent Rendering Context
+HWND		hWnd=NULL;		// Holds Our Window Handle
+HINSTANCE	hInstance;		// Holds The Instance Of The Application
+LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
+
+bool	active=TRUE;		// Window Active Flag Set To TRUE By Default
+bool	fullscreen=TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
+
+HANDLE semLockDisplay = NULL;
+#else
+#include <GL/glx.h> // This includes the necessary X headers
+#include <pthread.h>
+
+Display *g_pDisplay = NULL;
+Window   g_window;
+bool     g_bDoubleBuffered = GL_TRUE;
+GLuint   g_textureID = 0;
+
+float g_fSpinX           = 0.0f;
+float g_fSpinY           = 0.0f;
+int   g_nLastMousePositX = 0;
+int   g_nLastMousePositY = 0;
+bool  g_bMousing         = false;
+
+pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
+#endif
+#include <GL/gl.h>			// Header File For The OpenGL32 Library
+#include <GL/glu.h>			// Header File For The GLu32 Library
 
 #include "AliHLTTPCCAStandaloneFramework.h"
 #include "AliHLTTPCCATrackerFramework.h"
@@ -22,17 +53,7 @@
 
 #define fgkNSlices 36
 
-
-HDC			hDC=NULL;		// Private GDI Device Context
-HGLRC		hRC=NULL;		// Permanent Rendering Context
-HWND		hWnd=NULL;		// Holds Our Window Handle
-HINSTANCE	hInstance;		// Holds The Instance Of The Application
-
 bool	keys[256];			// Array Used For The Keyboard Routine
-bool	active=TRUE;		// Window Active Flag Set To TRUE By Default
-bool	fullscreen=TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
-
-LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
 
 float rotateX = 0, rotateY = 0;
 float mouseDnX, mouseDnY;
@@ -41,7 +62,6 @@ bool mouseDn = false;
 bool mouseDnR = false;
 int mouseWheel = 0;
 volatile int buttonPressed = 0;
-HANDLE semLockDisplay = NULL;
 
 GLfloat currentMatrice[16];
 
@@ -72,7 +92,7 @@ inline void SetColorTracklets() {glColor3f(0, 0.8, 0.2);}
 inline void SetColorTracks() {glColor3f(0.6, 1, 0);}
 inline void SetColorFinal() {glColor3f(1, 1, 1);}
 
-void __cdecl ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
+void ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
 {
 	if (height==0)										// Prevent A Divide By Zero By
 	{
@@ -115,7 +135,7 @@ int InitGL()										// All Setup For OpenGL Goes Here
 	glEnable(GL_DEPTH_TEST);							// Enables Depth Testing
 	glDepthFunc(GL_LEQUAL);								// The Type Of Depth Testing To Do
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Really Nice Perspective Calculations
-	return TRUE;										// Initialization Went OK
+	return(true);										// Initialization Went OK
 }
 
 inline void drawPointLinestrip(int cid, int id)
@@ -253,7 +273,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	static float fpsscale = 1;
 
 	static int framesDone = 0;
-	static __int64 startTime, displayFpsTime, timeFreq;
+	static unsigned long long int startTime, displayFpsTime, timeFreq;
 
 	static float pointSize = 2.0;
 
@@ -318,7 +338,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 		glLoadIdentity();
 		glTranslatef(0, 0, -16);
 
-		QueryPerformanceCounter((LARGE_INTEGER*) &startTime);
+		AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&startTime);
 		displayFpsTime = startTime;
 		framesDone = 0;
 
@@ -331,7 +351,11 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
 
 	//Make sure event gets not overwritten during display
+#ifdef R__WIN32
 	WaitForSingleObject(semLockDisplay, INFINITE);
+#else
+	pthread_mutex_lock( &semLockDisplay );
+#endif
 
 	//Open GL Default Values
 	glEnable(GL_POINT_SMOOTH);
@@ -378,8 +402,8 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 
 		currentEventNr = displayEventNr;
 
-		QueryPerformanceFrequency((LARGE_INTEGER*) &timeFreq);
-		QueryPerformanceCounter((LARGE_INTEGER*) &startTime);
+		AliHLTTPCCAStandaloneFramework::StandaloneQueryFreq(&timeFreq);
+		AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&startTime);
 		displayFpsTime = startTime;
 		framesDone = 0;
 		glDLrecent = 0;
@@ -462,8 +486,8 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	}
 
 	++framesDone;
-	__int64 tmpTime;
-	QueryPerformanceCounter((LARGE_INTEGER*) &tmpTime);
+	unsigned long long int tmpTime;
+	AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&tmpTime);
 	if (tmpTime - displayFpsTime > timeFreq)
 	{
 		displayFpsTime = tmpTime;
@@ -510,10 +534,16 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	}
 
 	//Free event
+#ifdef R__WIN32
 	ReleaseSemaphore(semLockDisplay, 1, NULL);
+#else
+	pthread_mutex_unlock( &semLockDisplay );
+#endif
 
-	return TRUE;										// Keep Going
+	return true;										// Keep Going
 }
+
+#ifdef R__WIN32
 
 void KillGLWindow()										// Properly Kill The Window
 {
@@ -906,3 +936,238 @@ DWORD WINAPI OpenGLMain(LPVOID tmp)
 	KillGLWindow();									// Kill The Window
 	return (msg.wParam);							// Exit The Program
 }
+
+#else
+
+void render(void);
+void init(void);
+
+void* OpenGLMain( void* ptr )
+{
+    XSetWindowAttributes windowAttributes;
+    XVisualInfo *visualInfo = NULL;
+    XEvent event;
+    Colormap colorMap;
+    GLXContext glxContext;
+    int errorBase;
+	int eventBase;
+
+    // Open a connection to the X server
+    g_pDisplay = XOpenDisplay( NULL );
+
+    if( g_pDisplay == NULL )
+    {
+        fprintf(stderr, "glxsimple: %s\n", "could not open display");
+        exit(1);
+    }
+
+    // Make sure OpenGL's GLX extension supported
+    if( !glXQueryExtension( g_pDisplay, &errorBase, &eventBase ) )
+    {
+        fprintf(stderr, "glxsimple: %s\n", "X server has no OpenGL GLX extension");
+        exit(1);
+    }
+
+    // Find an appropriate visual
+
+    int doubleBufferVisual[]  =
+    {
+        GLX_RGBA,           // Needs to support OpenGL
+        GLX_DEPTH_SIZE, 16, // Needs to support a 16 bit depth buffer
+        GLX_DOUBLEBUFFER,   // Needs to support double-buffering
+        None                // end of list
+    };
+
+    int singleBufferVisual[] =
+    {
+        GLX_RGBA,           // Needs to support OpenGL
+        GLX_DEPTH_SIZE, 16, // Needs to support a 16 bit depth buffer
+        None                // end of list
+    };
+
+    // Try for the double-bufferd visual first
+    visualInfo = glXChooseVisual( g_pDisplay, DefaultScreen(g_pDisplay), doubleBufferVisual );
+
+    if( visualInfo == NULL )
+    {
+    	// If we can't find a double-bufferd visual, try for a single-buffered visual...
+        visualInfo = glXChooseVisual( g_pDisplay, DefaultScreen(g_pDisplay), singleBufferVisual );
+
+        if( visualInfo == NULL )
+        {
+            fprintf(stderr, "glxsimple: %s\n", "no RGB visual with depth buffer");
+            exit(1);
+        }
+
+        g_bDoubleBuffered = false;
+    }
+
+    // Create an OpenGL rendering context
+    glxContext = glXCreateContext( g_pDisplay, 
+                                   visualInfo, 
+                                   NULL,      // No sharing of display lists
+                                   GL_TRUE ); // Direct rendering if possible
+                           
+    if( glxContext == NULL )
+    {
+        fprintf(stderr, "glxsimple: %s\n", "could not create rendering context");
+        exit(1);
+    }
+
+    // Create an X colormap since we're probably not using the default visual 
+    colorMap = XCreateColormap( g_pDisplay, 
+                                RootWindow(g_pDisplay, visualInfo->screen), 
+                                visualInfo->visual, 
+                                AllocNone );
+
+    windowAttributes.colormap     = colorMap;
+    windowAttributes.border_pixel = 0;
+    windowAttributes.event_mask   = ExposureMask           |
+                                    VisibilityChangeMask   |
+                                    KeyPressMask           |
+                                    KeyReleaseMask         |
+                                    ButtonPressMask        |
+                                    ButtonReleaseMask      |
+                                    PointerMotionMask      |
+                                    StructureNotifyMask    |
+                                    SubstructureNotifyMask |
+                                    FocusChangeMask;
+    
+    // Create an X window with the selected visual
+    g_window = XCreateWindow( g_pDisplay, 
+                              RootWindow(g_pDisplay, visualInfo->screen), 
+                              0, 0,     // x/y position of top-left outside corner of the window
+                              640, 480, // Width and height of window
+                              0,        // Border width
+                              visualInfo->depth,
+                              InputOutput,
+                              visualInfo->visual,
+                              CWBorderPixel | CWColormap | CWEventMask,
+                              &windowAttributes );
+
+    XSetStandardProperties( g_pDisplay,
+                            g_window,
+                            "GLX Sample",
+                            "GLX Sample",
+                            None,
+                            NULL,
+                            0,
+                            NULL );
+
+    // Bind the rendering context to the window
+    glXMakeCurrent( g_pDisplay, g_window, glxContext );
+
+    // Request the X window to be displayed on the screen
+    XMapWindow( g_pDisplay, g_window );
+
+    // Init OpenGL...
+    init();
+ 
+    //
+    // Enter the render loop and don't forget to dispatch X events as
+    // they occur.
+    //
+
+    while(1)
+    {
+        do
+        {
+            XNextEvent( g_pDisplay, &event );
+
+            switch( event.type )
+            {
+                case ButtonPress:
+                {
+            	    if( event.xbutton.button == 1 )
+            		{
+						g_nLastMousePositX = event.xmotion.x;
+				        g_nLastMousePositY = event.xmotion.y;
+						g_bMousing = true;
+					}
+                }
+                break;
+
+                case ButtonRelease:
+                {
+                	if( event.xbutton.button == 1 )
+                		g_bMousing = false;
+                }
+                break;
+                
+                case KeyPress:
+                {
+                    fprintf( stderr, "KeyPress event\n" );
+                }
+                break;
+
+                case KeyRelease:
+                {
+                    fprintf( stderr, "KeyRelease event\n" );
+                }
+                break;
+
+                case MotionNotify:
+                {
+                    if( g_bMousing )
+                    {
+	                    g_fSpinX -= (event.xmotion.x - g_nLastMousePositX);
+						g_fSpinY -= (event.xmotion.y - g_nLastMousePositY);
+					
+						g_nLastMousePositX = event.xmotion.x;
+					    g_nLastMousePositY = event.xmotion.y;
+                    }
+                }
+                break;
+
+                case Expose:
+                {
+                    fprintf( stderr, "Expose event\n" );
+                }
+                break;
+
+                case ConfigureNotify:
+                {
+                    glViewport( 0, 0, event.xconfigure.width, event.xconfigure.height );
+                }
+            }
+        }
+        while( XPending(g_pDisplay) ); // Loop to compress events
+
+        render();
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Name: init()
+// Desc: Init OpenGL context for rendering
+//-----------------------------------------------------------------------------
+void init( void )
+{
+	glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+	glEnable( GL_TEXTURE_2D );
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective( 45.0f, 640.0f / 480.0f, 0.1f, 100.0f);
+}
+
+//-----------------------------------------------------------------------------
+// Name: getBitmapImageData()
+// Desc: Simply image loader for 24 bit BMP files.
+//-----------------------------------------------------------------------------
+
+void render( void )
+{
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	
+	
+
+    if( g_bDoubleBuffered )
+        glXSwapBuffers( g_pDisplay, g_window ); // Buffer swap does implicit glFlush
+    else
+        glFlush(); // Explicit flush for single buffered case 
+}
+
+
+
+#endif

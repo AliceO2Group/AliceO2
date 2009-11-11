@@ -31,6 +31,8 @@
 #include "include.h"
 #ifdef R__WIN32
 #include <conio.h>
+#else
+#include <pthread.h>
 #endif
 #endif
 
@@ -182,13 +184,17 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   fLastTime[2] = timer2.CpuTime();
 
 #ifdef HLTCA_STANDALONE
-#ifdef R__WIN32
     static int displayActive = 0;
 	if (!displayActive)
 	{
+#ifdef R__WIN32
 		semLockDisplay = CreateSemaphore(0, 1, 1, 0);
 		HANDLE hThread;
 		if ((hThread = CreateThread(NULL, NULL, &OpenGLMain, NULL, NULL, NULL)) == NULL)
+#else
+		static pthread_t hThread;
+		if (pthread_create(&hThread, NULL, OpenGLMain, NULL))
+#endif
 		{
 			printf("Coult not Create GL Thread...\nExiting...\n");
 		}
@@ -196,25 +202,39 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 	}
 	else
 	{
+#ifdef R__WIN32
 		ReleaseSemaphore(semLockDisplay, 1, NULL);
+#else
+		pthread_mutex_unlock(&semLockDisplay);
+#endif
 	}
 
+#ifdef R__WIN32
 	while (kbhit()) getch();
+#endif
 	printf("Press key for next event!\n");
 
 	int iKey;
 	do
 	{
+#ifdef R__WIN32
 		Sleep(10);
 		iKey = kbhit() ? getch() : 0;
+#else
+		iKey = getchar();
+#endif
 		if (iKey == 'q') exit(0);
 	} while (iKey != 'n' && buttonPressed == 0);
 	buttonPressed = 0;
 	printf("Loading next event\n");
 
+#ifdef R__WIN32
 	WaitForSingleObject(semLockDisplay, INFINITE);
-	displayEventNr++;
+#else
+	pthread_mutex_lock(&semLockDisplay);
 #endif
+
+	displayEventNr++;
 
   printf("Tracking Time: %lld us\nTime uncertainty: %lld ns\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000000 / tmpFreq);
 

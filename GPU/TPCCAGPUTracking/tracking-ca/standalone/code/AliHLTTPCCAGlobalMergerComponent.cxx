@@ -137,8 +137,7 @@ int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* argu
 
     if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-      HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
+      HLTWarning("argument -solenoidBz is deprecated, magnetic field set up globally (%f)", GetBz());
       continue;
     }
 
@@ -220,7 +219,8 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
   //* read magnetic field
 
-  int iResult2 = ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  int iResult2 = 0;//ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  fSolenoidBz = GetBz();
 
   //* read the actual CDB entry if required
 
@@ -407,7 +407,9 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp,  track.InnerAlpha() );
       AliHLTTPCCATrackConvertor::GetExtParam( track.OuterParam(), tpEnd, track.OuterAlpha() );
       
-      currOutTrack->fAlpha = tp.GetAlpha();
+      // normalize the angle to +-Pi
+	      
+      currOutTrack->fAlpha = tp.GetAlpha() - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();      
       currOutTrack->fX = tp.GetX();
       currOutTrack->fY = tp.GetY();
       currOutTrack->fZ = tp.GetZ();      
