@@ -792,7 +792,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 			  currOutTracklet->fZ0err = tp.GetSigmaZ2();
 			  float h = -currOutTracklet->fPt * currOutTracklet->fPt;
 			  currOutTracklet->fPterr = h * h * tp.GetSigma1Pt2();
-			  h = 1. / TMath::Sqrt( 1 - snp * snp );
+			  h = 1. / TMath::Sqrt((1.-snp)*(1.+snp));
 			  currOutTracklet->fPsierr = h * h * tp.GetSigmaSnp2();
 			  currOutTracklet->fTglerr = tp.GetSigmaTgl2();
 
