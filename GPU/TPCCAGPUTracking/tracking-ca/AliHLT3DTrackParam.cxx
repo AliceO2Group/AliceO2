@@ -69,7 +69,8 @@ void AliHLT3DTrackParam::TransportToDS( double Bz, double DS, double *T0 )
     sB = s / Bz;
     cB = ( 1 - c ) / Bz;
   } else {
-    sB = ( 1. - bs * bs / 6. ) * DS;
+    const Double_t kOvSqr6=1./TMath::Sqrt(6.);
+    sB = (1.-bs*kOvSqr6)*(1.+bs*kOvSqr6) * DS;
     cB = .5 * sB * bs;
   }
 

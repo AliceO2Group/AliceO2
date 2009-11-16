@@ -506,7 +506,7 @@ GPUd() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  float
   //Multiple scattering******************
 
   float theta2 = par.fTheta2 * CAMath::Abs( xOverX0 );
-  fC22 += theta2 * par.fK22 * ( 1. - GetPar(2) * GetPar(2) );
+  fC22 += theta2 * par.fK22 * (1.-GetPar(2))*(1.+GetPar(2));
   fC33 += theta2 * par.fK33;
   fC43 += theta2 * par.fK43;
   fC44 += theta2 * par.fK44;
