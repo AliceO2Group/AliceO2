@@ -445,8 +445,10 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
     size = resultData.fSize;
   }
 
+
   HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
 
+  fGlobalMerger->Clear();
 
   /* old format
   {
