@@ -358,7 +358,7 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
                   block->fSpecification, DataType2Text( block->fDataType ).c_str() );
     }
     AliHLTTPCCASliceOutput *sliceOut =  reinterpret_cast<AliHLTTPCCASliceOutput *>( block->fPtr );
-    sliceOut->SetPointers();
+    //sliceOut->SetPointers();
     fGlobalMerger->SetSliceData( slice, sliceOut );
 
 	/*char filename[256];
