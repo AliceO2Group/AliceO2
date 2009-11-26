@@ -50,11 +50,11 @@ void AliHLTTPCCASliceOutput::SetPointers(int nTracks, int nTrackClusters, const 
   if (outputControl == NULL || outputControl->fDefaultOutput)
   {
     AssignNoAlignment( fTracksOffset,            size, nTracks*sizeof(AliHLTTPCCASliceTrack) );
-    AssignNoAlignment( fClusterUnpackedYZOffset, size, nTrackClusters*sizeof(int) );
-    AssignNoAlignment( fClusterUnpackedXOffset,  size, nTrackClusters*sizeof(UChar_t) );
-    AssignNoAlignment( fClusterIdOffset,         size, nTrackClusters*sizeof(float2) );
+    AssignNoAlignment( fClusterIdOffset,         size, nTrackClusters*sizeof(int) );
     AssignNoAlignment( fClusterRowOffset,        size, nTrackClusters*sizeof(float) );
-  }
+    AssignNoAlignment( fClusterUnpackedYZOffset, size, nTrackClusters*sizeof(float2) );
+    AssignNoAlignment( fClusterUnpackedXOffset,  size, nTrackClusters*sizeof(UChar_t) );
+   }
 
   char *mem = fMemory + size;
 
