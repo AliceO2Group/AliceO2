@@ -44,7 +44,7 @@ AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
-    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0)
+    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0)
 {
   //* constructor
 
@@ -57,7 +57,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0)
+    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0)
 {
   //* dummy
 }
@@ -70,7 +70,9 @@ const AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::operator=(
 
 AliHLTTPCCAStandaloneFramework::~AliHLTTPCCAStandaloneFramework()
 {
+#ifndef HLTCA_STANDALONE
 	for (int i = 0;i < fgkNSlices;i++) if (fSliceOutput[i]) free(fSliceOutput[i]);
+#endif
   //* destructor
 }
 
@@ -143,7 +145,11 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   StandaloneQueryTime(&startTime);
 
   fOutputControl.fObsoleteOutput = 0;
-  fTracker.SetKeepData(1);
+
+  if (fEventDisplay)
+  {
+	fTracker.SetKeepData(1);
+  }
 #endif
 
   if (forceSingleSlice != -1)
@@ -184,6 +190,8 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   fLastTime[2] = timer2.CpuTime();
 
 #ifdef HLTCA_STANDALONE
+  if (fEventDisplay)
+  {
     static int displayActive = 0;
 	if (!displayActive)
 	{
@@ -235,6 +243,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #endif
 
 	displayEventNr++;
+  }
 
   printf("Tracking Time: %lld us\nTime uncertainty: %lld ns\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000000 / tmpFreq);
 

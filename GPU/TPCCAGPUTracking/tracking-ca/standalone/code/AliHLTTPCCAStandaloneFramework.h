@@ -29,11 +29,6 @@ class AliHLTTPCCAStandaloneFramework
 {
 #ifdef HLTCA_STANDALONE
 	friend int DrawGLScene();
-	friend void DrawClusters(AliHLTTPCCAStandaloneFramework&, int id);
-	friend void DrawLinks(AliHLTTPCCAStandaloneFramework&, int id);
-	friend void DrawSeeds(AliHLTTPCCAStandaloneFramework&);
-	friend void DrawTracklets(AliHLTTPCCAStandaloneFramework&);
-	friend void DrawTracks(AliHLTTPCCAStandaloneFramework&);
 #endif
 
   public:
@@ -93,6 +88,7 @@ class AliHLTTPCCAStandaloneFramework
 	int SetGPUTracker(bool enable) { return(fTracker.SetGPUTracker(enable)); }
 	int GetGPUStatus() const { return(fTracker.GetGPUStatus()); }
 	int GetGPUMaxSliceCount() const { return(fTracker.MaxSliceCount()); }
+	void SetEventDisplay(int v) {fEventDisplay = v;}
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
 
@@ -119,7 +115,8 @@ class AliHLTTPCCAStandaloneFramework
     double fStatTime[20]; //* timers
     int fStatNEvents;    //* n events proceed
 
-	int fDebugLevel;
+	int fDebugLevel;	//Tracker Framework Debug Level
+	int fEventDisplay;	//Display event in Standalone Event Display
 };
 
 #ifdef HLTCA_STANDALONE
