@@ -143,7 +143,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
 GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
   AliHLTTPCCASharedMemory
-#ifdef HLTCA_GPUCODE
+#if defined(HLTCA_GPUCODE) | defined(EXTERN_ROW_HITS)
   &s
 #else
   &/*s*/
@@ -233,7 +233,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
 GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
   AliHLTTPCCASharedMemory 
-#ifdef HLTCA_GPUCODE
+#if defined(HLTCA_GPUCODE) | defined(EXTERN_ROW_HITS)
   &s
 #else
   &/*s*/

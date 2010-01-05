@@ -25,11 +25,6 @@ class AliHLTTPCCATrackerFramework : AliHLTLogging
 {
 #ifdef HLTCA_STANDALONE
 	friend int DrawGLScene();
-	friend void DrawClusters(AliHLTTPCCAStandaloneFramework&, int id);
-	friend void DrawLinks(AliHLTTPCCAStandaloneFramework&, int id);
-	friend void DrawSeeds(AliHLTTPCCAStandaloneFramework&);
-	friend void DrawTracklets(AliHLTTPCCAStandaloneFramework&);
-	friend void DrawTracks(AliHLTTPCCAStandaloneFramework&);
 #endif
 
 public:

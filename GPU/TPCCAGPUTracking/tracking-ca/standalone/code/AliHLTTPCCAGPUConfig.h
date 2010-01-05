@@ -24,6 +24,7 @@
 #define HLTCA_GPU_RESCHED								//Use dynamic tracklet scheduling
 
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
+#define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define HLTCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
@@ -54,6 +55,9 @@
 //No texture fetch for CPU Tracker
 #ifdef HLTCA_GPU_TEXTURE_FETCH
 #undef HLTCA_GPU_TEXTURE_FETCH
+#endif
+#ifdef HLTCA_GPU_TEXTURE_FETCHa
+#undef HLTCA_GPU_TEXTURE_FETCHa
 #endif
 //No Shared memory cache for CPU Tracker
 #ifdef HLTCA_GPU_PREFETCHDATA
