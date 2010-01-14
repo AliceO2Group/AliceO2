@@ -914,7 +914,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorNewGPU
 		for (int iRowBlock = 0;iRowBlock < HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1;iRowBlock++)
 		{
 #ifdef HLTCA_GPU_SCHED_FIXED_SLICE
-			int iSlice = tracker.GPUParametersConst()->fGPUnSlices * (blockIdx.x + (HLTCA_GPU_BLOCK_COUNT % tracker.GPUParametersConst()->fGPUnSlices != 0 && tracker.GPUParametersConst()->fGPUnSlices * (blockIdx.x + 1) % HLTCA_GPU_BLOCK_COUNT != 0)) / HLTCA_GPU_BLOCK_COUNT;
+			int iSlice = pTracker[0].GPUParametersConst()->fGPUnSlices * (blockIdx.x + (HLTCA_GPU_BLOCK_COUNT % pTracker[0].GPUParametersConst()->fGPUnSlices != 0 && pTracker[0].GPUParametersConst()->fGPUnSlices * (blockIdx.x + 1) % HLTCA_GPU_BLOCK_COUNT != 0)) / HLTCA_GPU_BLOCK_COUNT;
 #else
 			for (int iSlice = 0;iSlice < pTracker[0].GPUParametersConst()->fGPUnSlices;iSlice++)
 #endif //HLTCA_GPU_SCHED_FIXED_SLICE
@@ -1176,7 +1176,12 @@ AliHLTTPCCAHitId id = tracker.TrackletStartHits()[iTracklet];
 	if (iTracklet >= firstDynamicTracklet)
 #endif //HLTCA_GPU_SCHED_FIXED_START
 	{
+#ifdef HLTCA_GPU_SCHED_FIXED_START
 		const int firstTrackletInRowBlock = CAMath::Max(firstDynamicTracklet, tracker.RowStartHitCountOffset()[CAMath::Max(id.RowIndex() / HLTCA_GPU_SCHED_ROW_STEP * HLTCA_GPU_SCHED_ROW_STEP, 1)].z);
+#else
+		const int firstTrackletInRowBlock = tracker.RowStartHitCountOffset()[CAMath::Max(id.RowIndex() / HLTCA_GPU_SCHED_ROW_STEP * HLTCA_GPU_SCHED_ROW_STEP, 1)].z;
+#endif //HLTCA_GPU_SCHED_FIXED_START
+
 		if (iTracklet == firstTrackletInRowBlock)
 		{
 			const int firstRowInNextBlock = (id.RowIndex() / HLTCA_GPU_SCHED_ROW_STEP + 1) * HLTCA_GPU_SCHED_ROW_STEP;
@@ -1184,7 +1189,11 @@ AliHLTTPCCAHitId id = tracker.TrackletStartHits()[iTracklet];
 			if (firstRowInNextBlock >= HLTCA_ROW_COUNT - 3)
 				trackletsInRowBlock = *tracker.NTracklets() - firstTrackletInRowBlock;
 			else
+#ifdef HLTCA_GPU_SCHED_FIXED_START
 				trackletsInRowBlock = CAMath::Max(firstDynamicTracklet, tracker.RowStartHitCountOffset()[firstRowInNextBlock].z) - firstTrackletInRowBlock;
+#else
+				trackletsInRowBlock = tracker.RowStartHitCountOffset()[firstRowInNextBlock].z - firstTrackletInRowBlock;
+#endif //HLTCA_GPU_SCHED_FIXED_START
 
 			tracker.RowBlockPos(0, id.RowIndex() / HLTCA_GPU_SCHED_ROW_STEP)->x = trackletsInRowBlock;
 			tracker.RowBlockPos(0, id.RowIndex() / HLTCA_GPU_SCHED_ROW_STEP)->w = trackletsInRowBlock;
