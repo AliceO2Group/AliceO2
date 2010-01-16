@@ -160,7 +160,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   {
 	for (int iSlice = 0;iSlice < fgkNSlices;iSlice += fTracker.MaxSliceCount())
 	{
-		if (fTracker.ProcessSlices(iSlice, fTracker.MaxSliceCount(), &fClusterData[iSlice], &fSliceOutput[iSlice])) return;
+		if (fTracker.ProcessSlices(iSlice, CAMath::Min(fTracker.MaxSliceCount(), fgkNSlices - iSlice), &fClusterData[iSlice], &fSliceOutput[iSlice])) return;
 	}
   }
 

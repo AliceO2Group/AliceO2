@@ -455,7 +455,7 @@ void AliHLTTPCCATracker::RunStartHitsFinder()
 void AliHLTTPCCATracker::RunTrackletConstructor()
 {
 	//Run CPU Tracklet Constructor
-  AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorNewCPU(*this);
+  AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorCPU(*this);
 }
 
 void AliHLTTPCCATracker::RunTrackletSelector()

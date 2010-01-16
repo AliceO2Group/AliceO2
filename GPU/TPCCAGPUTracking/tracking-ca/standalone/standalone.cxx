@@ -11,7 +11,7 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1;
+	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
 
@@ -84,6 +84,11 @@ int main(int argc, char** argv)
 		StartEvent = atoi(argv[i + 1]);
 	}
 
+	if ( !strcmp( argv[i], "-MERGER" ) && argc > i + 1)
+	{
+		merger = atoi(argv[i + 1]);
+	}
+
 	if ( !strcmp( argv[i], "-RUNS" ) && argc > i + 1)
 	{
 		if (atoi(argv[i + 1]) > 0)
@@ -121,6 +126,7 @@ int main(int argc, char** argv)
 
     hlt.SetGPUDebugLevel(DebugLevel, &CPUOut, &GPUOut);
 	hlt.SetEventDisplay(eventDisplay);
+	hlt.SetRunMerger(merger);
 	if (RUNGPU)
 		printf("Standalone Test Framework for CA Tracker - Using GPU\n");
 	else

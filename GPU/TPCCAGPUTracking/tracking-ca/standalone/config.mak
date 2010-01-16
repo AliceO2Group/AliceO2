@@ -1,13 +1,6 @@
-#Architecture Settings
-INTELARCH					= SSE4.2
-CUDAVERSION					= 13
-CUDAREGS					= 64
-ARCHBITS					= 64
+include						config_common.mak
 
 TARGET						= ca
-
-CC_x86_64-pc-linux-gnu		= GCC
-CC_i686-pc-cygwin			= ICC
 
 CPPFILES					= display/opengl.cpp
 CXXFILES					= standalone.cxx \
@@ -33,16 +26,7 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCAClusterData.cxx \
 								code/AliHLTTPCCARow.cxx \
 								code/AliHLTTPCCAGPUTracker.cxx \
-								standalone/AliHLTLogging.cxx
-								
+								standalone/AliHLTLogging.cxx								
 ASMFILES					= 
 
-INCLUDEPATHS				= include code base
-DEFINES						= HLTCA_STANDALONE BUILD_GPU
 
-EXTRAFLAGSGCC				= -Weffc++
-
-INTELFLAGSUSE				= $(INTELFLAGSOPT)
-VSNETFLAGSUSE				= $(VSNETFLAGSOPT)
-GCCFLAGSUSE					= $(GCCFLAGSOPT)
-NVCCFLAGSUSE				= $(NVCCFLAGSOPT)

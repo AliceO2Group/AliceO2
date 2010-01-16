@@ -1,14 +1,8 @@
-#Architecture Settings
-INTELARCH					= SSE4.2
-CUDAVERSION					= 13
-CUDAREGS					= 64
-ARCHBITS					= 64
+include						config_common.mak
 
-TARGET						= libAliHLTTPCCAGPU
+TARGET						= libAliHLTTPCCAGPUSA
 TARGETTYPE					= LIB
-
-CC_x86_64-pc-linux-gnu		= GCC
-CC_i686-pc-cygwin			= ICC
+WORKPATHSUFFIX				= $(TARGETTYPE)
 
 CPPFILES					= 
 CXXFILES					= code/AliHLTTPCCATracker.cxx \
@@ -31,15 +25,3 @@ CXXFILES					= code/AliHLTTPCCATracker.cxx \
 							  
 CUFILES						= code/AliHLTTPCCAGPUTrackerNVCC.cu
 ASMFILES					= 
-
-INCLUDEPATHS				= include code base
-DEFINES						= HLTCA_STANDALONE BUILD_GPU
-
-EXTRAFLAGSGCC				= -Weffc++
-
-INTELFLAGSUSE				= $(INTELFLAGSOPT)
-VSNETFLAGSUSE				= $(VSNETFLAGSOPT)
-GCCFLAGSUSE					= $(GCCFLAGSOPT)
-NVCCFLAGSUSE				= $(NVCCFLAGSOPT)
-
-WORKPATHSUFFIX				= $(TARGETTYPE)
