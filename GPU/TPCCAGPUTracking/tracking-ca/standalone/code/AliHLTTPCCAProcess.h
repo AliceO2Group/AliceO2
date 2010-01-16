@@ -34,6 +34,23 @@ GPUg() void AliHLTTPCCAProcess(int iSlice)
   }
 }
 
+template <class TProcess>
+GPUg() void AliHLTTPCCAProcessMultiA(int firstSlice, int nSliceCount, int nVirtualBlocks)
+{
+	if (blockIdx.x >= nSliceCount) return;
+	AliHLTTPCCATracker &tracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker )[firstSlice + blockIdx.x];
+
+	GPUshared() typename TProcess::AliHLTTPCCASharedMemory smem;
+
+	for (int i = 0;i < nVirtualBlocks;i++)
+	{
+		for( int iSync=0; iSync<=TProcess::NThreadSyncPoints(); iSync++){
+			__syncthreads();
+			TProcess::Thread( nVirtualBlocks, blockDim.x, i, threadIdx.x, iSync, smem, tracker  );
+		}		
+	}
+}
+
 template<class TProcess>
 GPUg() void AliHLTTPCCAProcessMulti(int firstSlice, int nSliceCount)
 {
