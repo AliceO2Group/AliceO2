@@ -44,7 +44,7 @@ AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
-    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0)
+    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
 {
   //* constructor
 
@@ -57,7 +57,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0)
+    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
 {
   //* dummy
 }
@@ -172,15 +172,18 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   timer1.Stop();
   TStopwatch timer2;
 
-  fMerger.Clear();
-  fMerger.SetSliceParam( fTracker.Param(0) );
+  if (fRunMerger)
+  {
+	  fMerger.Clear();
+	  fMerger.SetSliceParam( fTracker.Param(0) );
 
-  for ( int i = 0; i < fgkNSlices; i++ ) {
-	//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), fSliceOutput[i]->NTracks());
-    fMerger.SetSliceData( i, fSliceOutput[i] );
+	  for ( int i = 0; i < fgkNSlices; i++ ) {
+		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), fSliceOutput[i]->NTracks());
+		fMerger.SetSliceData( i, fSliceOutput[i] );
+	  }
+
+	  fMerger.Reconstruct();
   }
-
-  fMerger.Reconstruct();
 
   timer2.Stop();
   timer0.Stop();
@@ -323,9 +326,14 @@ void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &out ) const
 void AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in )
 {
   //* Read event from file
+  int nClusters = 0;
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
     fClusterData[iSlice].ReadEvent( in );
+	nClusters += fClusterData[iSlice].NumberOfClusters();
   }
+#ifdef HLTCA_STANDALONE
+  printf("Read %d Clusters\n", nClusters);
+#endif
 }
 
 void AliHLTTPCCAStandaloneFramework::WriteTracks( std::ostream &out ) const

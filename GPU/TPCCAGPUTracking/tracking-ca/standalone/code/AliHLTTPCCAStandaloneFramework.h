@@ -89,6 +89,7 @@ class AliHLTTPCCAStandaloneFramework
 	int GetGPUStatus() const { return(fTracker.GetGPUStatus()); }
 	int GetGPUMaxSliceCount() const { return(fTracker.MaxSliceCount()); }
 	void SetEventDisplay(int v) {fEventDisplay = v;}
+	void SetRunMerger(int v) {fRunMerger = v;}
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
 
@@ -117,6 +118,7 @@ class AliHLTTPCCAStandaloneFramework
 
 	int fDebugLevel;	//Tracker Framework Debug Level
 	int fEventDisplay;	//Display event in Standalone Event Display
+	int fRunMerger;		//Run Track Merger
 };
 
 #ifdef HLTCA_STANDALONE

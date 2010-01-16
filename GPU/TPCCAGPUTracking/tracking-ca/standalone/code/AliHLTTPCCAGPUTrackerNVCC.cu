@@ -639,8 +639,10 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	//Copy Tracker Object to GPU Memory
 	if (fDebugLevel >= 3) HLTInfo("Copying Tracker objects to GPU");
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-	if (CudaFailedMsg(cudaMalloc(&fGpuTracker[0].fStageAtSync, 100000000))) return(1);
-	CudaFailedMsg(cudaMemset(fGpuTracker[0].fStageAtSync, 0, 100000000));
+	char* tmpMem;
+	if (CudaFailedMsg(cudaMalloc(&tmpMem, 100000000))) return(1);
+	fGpuTracker[0].fStageAtSync = tmpMem;
+	CudaFailedMsg(cudaMemset(fGpuTracker[0].StageAtSync(), 0, 100000000));
 #endif
 	CudaFailedMsg(cudaMemcpyToSymbolAsync(gAliHLTTPCCATracker, fGpuTracker, sizeof(AliHLTTPCCATracker) * sliceCountLocal, 0, cudaMemcpyHostToDevice, cudaStreams[0]));
 
@@ -906,8 +908,8 @@ RestartTrackletConstructor:
 
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	char* stageAtSync = (char*) malloc(100000000);
-	CudaFailedMsg(cudaMemcpy(stageAtSync, fGpuTracker[0].fStageAtSync, 100 * 1000 * 1000, cudaMemcpyDeviceToHost));
-	cudaFree(fGpuTracker[0].fStageAtSync);
+	CudaFailedMsg(cudaMemcpy(stageAtSync, fGpuTracker[0].StageAtSync(), 100 * 1000 * 1000, cudaMemcpyDeviceToHost));
+	cudaFree(fGpuTracker[0].StageAtSync());
 
 	FILE* fp = fopen("profile.txt", "w+");
 	FILE* fp2 = fopen("profile.bmp", "w+b");

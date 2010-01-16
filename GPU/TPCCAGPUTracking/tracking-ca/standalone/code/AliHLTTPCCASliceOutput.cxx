@@ -32,11 +32,11 @@ GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClu
 
 #ifndef HLTCA_GPUCODE
 
-template<typename T> inline void AssignNoAlignment( T *&dst, char *&mem, int count )
+inline void AssignNoAlignment( int &dst, int &size, int count )
 {
   // assign memory to the pointer dst
-  dst = ( T* ) mem;
-  mem = ( char * )( dst + count );
+  dst = size;
+  size = dst + count ;
 }
 
 void AliHLTTPCCASliceOutput::SetPointers(int nTracks, int nTrackClusters, const outputControlStruct* outputControl)
@@ -45,16 +45,18 @@ void AliHLTTPCCASliceOutput::SetPointers(int nTracks, int nTrackClusters, const 
 	if (nTracks == -1) nTracks = fNTracks;
 	if (nTrackClusters == -1) nTrackClusters = fNTrackClusters;
 
-  char *mem = fMemory;
+  int size = 0;
 
   if (outputControl == NULL || outputControl->fDefaultOutput)
   {
-	  AssignNoAlignment( fTracks,            mem, nTracks );
-	  AssignNoAlignment( fClusterUnpackedYZ, mem, nTrackClusters );
-	  AssignNoAlignment( fClusterUnpackedX,  mem, nTrackClusters );
-	  AssignNoAlignment( fClusterId,         mem, nTrackClusters );
-	  AssignNoAlignment( fClusterRow,        mem, nTrackClusters );
-  }
+    AssignNoAlignment( fTracksOffset,            size, nTracks*sizeof(AliHLTTPCCASliceTrack) );
+    AssignNoAlignment( fClusterIdOffset,         size, nTrackClusters*sizeof(int) );
+    AssignNoAlignment( fClusterRowOffset,        size, nTrackClusters*sizeof(float) );
+    AssignNoAlignment( fClusterUnpackedYZOffset, size, nTrackClusters*sizeof(float2) );
+    AssignNoAlignment( fClusterUnpackedXOffset,  size, nTrackClusters*sizeof(float) );
+   }
+
+  char *mem = fMemory + size;
 
   if (outputControl == NULL || outputControl->fObsoleteOutput)
   {
