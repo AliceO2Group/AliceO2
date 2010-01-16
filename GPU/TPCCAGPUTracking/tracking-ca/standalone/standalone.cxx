@@ -11,7 +11,7 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = 100, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1;
+	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
 
@@ -84,6 +84,12 @@ int main(int argc, char** argv)
 		StartEvent = atoi(argv[i + 1]);
 	}
 
+	if ( !strcmp( argv[i], "-RUNS" ) && argc > i + 1)
+	{
+		if (atoi(argv[i + 1]) > 0)
+		runs = atoi(argv[i + 1]);
+	}
+
 	if ( !strcmp( argv[i], "-EVENTS" ) && argc > i + 1)
 	{
 		printf("Reading events from Directory events%s\n", argv[i + 1]);
@@ -95,6 +101,14 @@ int main(int argc, char** argv)
 		printf("Using %s OpenMP Threads\n", argv[i + 1]);
 		omp_set_num_threads(atoi(argv[i + 1]));
 	}
+
+    if ( !strcmp( argv[i], "-DISPLAY" ) ) 
+    {
+		printf("Event Display enabled\n");
+		hlt.ExitGPU();
+		RUNGPU=1;
+		eventDisplay = 1;
+    }
   }	
 	std::ofstream CPUOut, GPUOut;
 
@@ -106,6 +120,7 @@ int main(int argc, char** argv)
 	}
 
     hlt.SetGPUDebugLevel(DebugLevel, &CPUOut, &GPUOut);
+	hlt.SetEventDisplay(eventDisplay);
 	if (RUNGPU)
 		printf("Standalone Test Framework for CA Tracker - Using GPU\n");
 	else
@@ -135,13 +150,14 @@ int main(int argc, char** argv)
     }
  }
 
-	for (i = StartEvent;i < NEvents;i++)
+	for (i = StartEvent;i < NEvents || NEvents == -1;i++)
 	{
 		char filename[256];
 		sprintf(filename, "events%s/event.%d.dump", EventsDir, i);
 		in.open(filename, std::ifstream::binary);
 		if (in.fail())
 		{
+			if (NEvents == -1) break;
 			printf("Error opening file %s\n", filename);
 			getchar();
 			return(1);
@@ -152,7 +168,11 @@ int main(int argc, char** argv)
 		hlt.FinishDataReading();
 		in.close();
 		printf("Processing Event %d\n", i);
-		hlt.ProcessEvent(forceSlice);
+		for (int j = 0;j < runs;j++)
+		{
+			if (runs > 1) printf("Run %d\n", j + 1);
+			hlt.ProcessEvent(forceSlice);
+		}
 		/*if (hlt.ProcessEvent())
 		{
 			printf("Error occured\n");

@@ -146,14 +146,24 @@ AliHLTTPCCAMerger::~AliHLTTPCCAMerger()
   //* destructor
   if ( fTrackInfos ) delete[] fTrackInfos;
   if ( fClusterInfos ) delete[] fClusterInfos;
-  if ( fOutput ) delete[] ( ( char* )( fOutput ) );
+  if ( fOutput ) delete[] ( ( float2* )( fOutput ) );
 }
 
 void AliHLTTPCCAMerger::Clear()
 {
   for ( int i = 0; i < fgkNSlices; ++i ) {
     fkSlices[i] = 0;
+    fSliceNTrackInfos[ i ] = 0;
+    fSliceTrackInfoStart[ i ] = 0;
   }
+  if ( fOutput ) delete[] ( ( float2* )( fOutput ) );
+  if ( fTrackInfos ) delete[] fTrackInfos;
+  if ( fClusterInfos ) delete[] fClusterInfos;
+  fOutput = 0;
+  fTrackInfos = 0;
+  fClusterInfos = 0;
+  fMaxTrackInfos = 0;
+  fMaxClusterInfos = 0;
 }
 
 
@@ -198,7 +208,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
       fClusterInfos = new AliHLTTPCCAClusterInfo [fMaxClusterInfos];
     }
 
-    if ( fOutput ) delete[] ( ( char* )( fOutput ) );
+    if ( fOutput ) delete[] ( ( float2* )( fOutput ) );
     int size = fOutput->EstimateSize( nTracksTotal, nTrackClustersTotal );
     fOutput = ( AliHLTTPCCAMergerOutput* )( new float2[size/sizeof( float2 )+1] );
   }

@@ -264,7 +264,15 @@ class AliHLTTPCCATracker
 
   GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
 
-//Temporary Variables for Standalone measurements, public for easier access
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+  GPUhd() char* StageAtSync() {return(fStageAtSync);}
+#endif
+#ifdef TRACKER_KEEP_TEMPDATA
+  GPUh() const char* LinkTmpMemory() const {return(fLinkTmpMemory);}
+#endif
+
+private:
+//Temporary Variables for Standalone measurements
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
 #endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
@@ -273,7 +281,6 @@ class AliHLTTPCCATracker
   char *fLinkTmpMemory;	//tmp memory for hits after neighbours finder
 #endif
   
-private:
   AliHLTTPCCAParam fParam; // parameters
   double fTimers[10]; // timers
   unsigned long long int fPerfTimers[16]; // running CPU time for different parts of the algorithm

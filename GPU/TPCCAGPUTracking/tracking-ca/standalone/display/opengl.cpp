@@ -23,6 +23,10 @@ bool	active=TRUE;		// Window Active Flag Set To TRUE By Default
 bool	fullscreen=TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
 
 HANDLE semLockDisplay = NULL;
+
+POINT mouseCursorPos;
+
+volatile int mouseReset = false;
 #else
 #include <GL/glx.h> // This includes the necessary X headers
 #include <pthread.h>
@@ -73,6 +77,11 @@ int drawTracklets = false;
 int drawTracks = false;
 int drawFinal = false;
 
+int drawSlice = -1;
+int drawGrid = 0;
+
+float Xscale = 1;
+
 float4* globalPos = NULL;
 int maxClusters = 0;
 int currentClusters = 0;
@@ -81,6 +90,7 @@ volatile int displayEventNr = 0;
 int currentEventNr = -1;
 
 int glDLrecent = 0;
+int updateDLList = 0;
 
 volatile int resetScene = 0;
 
@@ -88,9 +98,10 @@ inline void SetColorClusters() {glColor3f(0, 0.7, 1.0);}
 inline void SetColorInitLinks() {glColor3f(0.5, 0.5, 0.5);}
 inline void SetColorLinks() {glColor3f(1, 0.3, 0.3);}
 inline void SetColorSeeds() {glColor3f(1.0, 0.4, 0);}
-inline void SetColorTracklets() {glColor3f(0, 0.8, 0.2);}
+inline void SetColorTracklets() {glColor3f(1, 1, 1);}
 inline void SetColorTracks() {glColor3f(0.6, 1, 0);}
-inline void SetColorFinal() {glColor3f(1, 1, 1);}
+inline void SetColorFinal() {glColor3f(0, 0.8, 0.2);}
+inline void SetColorGrid() {glColor3f(0.3, 0.5, 0.7);}
 
 void ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
 {
@@ -144,110 +155,108 @@ inline void drawPointLinestrip(int cid, int id)
 	globalPos[cid].w = id;
 }
 
-void DrawClusters(AliHLTTPCCAStandaloneFramework& hlt, int id)
+void DrawClusters(AliHLTTPCCATracker& tracker, int id)
 {
 	glBegin(GL_POINTS);
-	for (int i = 0;i < currentClusters;i++)
+	for (int i = 0;i < tracker.Param().NRows();i++)
 	{
-		if (globalPos[i].w == id)
+		const AliHLTTPCCARow &row = tracker.Data().Row(i);
+		for (int j = 0;j < row.NHits();j++)
 		{
-			glVertex3f(globalPos[i].x, globalPos[i].y, globalPos[i].z);
+			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
+			if (globalPos[cid].w == id)
+			{
+				glVertex3f(globalPos[cid].x, globalPos[cid].y, globalPos[cid].z);
+			}
 		}
 	}
 	glEnd();
 }
 
-void DrawLinks(AliHLTTPCCAStandaloneFramework& hlt, int id)
+void DrawLinks(AliHLTTPCCATracker& tracker, int id)
 {
 	glBegin(GL_LINES);
-	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+	for (int i = 0;i < tracker.Param().NRows() - 2;i++)
 	{
-		AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
-		for (int i = 0;i < tracker.Param().NRows() - 2;i++)
+		const AliHLTTPCCARow &row = tracker.Data().Row(i);
+		const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
+		for (int j = 0;j < row.NHits();j++)
 		{
-			const AliHLTTPCCARow &row = tracker.Data().Row(i);
-			const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
-			for (int j = 0;j < row.NHits();j++)
+			if (tracker.Data().HitLinkUpData(row, j) != -1)
 			{
-				if (tracker.Data().HitLinkUpData(row, j) != -1)
-				{
-					const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
-					const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
-					drawPointLinestrip(cid1, id);
-					drawPointLinestrip(cid2, id);
-				}
+				const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
+				const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
+				drawPointLinestrip(cid1, id);
+				drawPointLinestrip(cid2, id);
 			}
 		}
 	}
 	glEnd();
 }
 
-void DrawSeeds(AliHLTTPCCAStandaloneFramework& hlt)
+void DrawSeeds(AliHLTTPCCATracker& tracker)
 {
-	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+	for (int i = 0;i < *tracker.NTracklets();i++)
 	{
-		AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
-		for (int i = 0;i < *tracker.NTracklets();i++)
+		const AliHLTTPCCAHitId &hit = tracker.TrackletStartHit(i);
+		glBegin(GL_LINE_STRIP);
+		int ir = hit.RowIndex();
+		int ih = hit.HitIndex();
+		do
 		{
-			const AliHLTTPCCAHitId &hit = tracker.TrackletStartHit(i);
-			glBegin(GL_LINE_STRIP);
-			int ir = hit.RowIndex();
-			int ih = hit.HitIndex();
-			do
-			{
-				const AliHLTTPCCARow &row = tracker.Data().Row(ir);
-				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, ih));
-				drawPointLinestrip(cid, 3);
-				ir += 2;
-				ih = tracker.Data().HitLinkUpData(row, ih);
-			} while (ih != -1);
-			glEnd();
-		}
+			const AliHLTTPCCARow &row = tracker.Data().Row(ir);
+			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, ih));
+			drawPointLinestrip(cid, 3);
+			ir += 2;
+			ih = tracker.Data().HitLinkUpData(row, ih);
+		} while (ih != -1);
+		glEnd();
 	}
 }
 
-void DrawTracklets(AliHLTTPCCAStandaloneFramework& hlt)
+void DrawTracklets(AliHLTTPCCATracker& tracker)
 {
-	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+	for (int i = 0;i < *tracker.NTracklets();i++)
 	{
-		AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
-		for (int i = 0;i < *tracker.NTracklets();i++)
+		const AliHLTTPCCATracklet &tracklet = tracker.Tracklet(i);
+		if (tracklet.NHits() == 0) continue;
+		glBegin(GL_LINE_STRIP);
+		for (int j = tracklet.FirstRow();j <= tracklet.LastRow();j++)
 		{
-			const AliHLTTPCCATracklet &tracklet = tracker.Tracklet(i);
-			if (tracklet.NHits() == 0) continue;
-			glBegin(GL_LINE_STRIP);
-			for (int j = tracklet.FirstRow();j <= tracklet.LastRow();j++)
+#ifdef EXTERN_ROW_HITS
+			if (tracker.TrackletRowHits()[j * *tracker.NTracklets() + i] != -1)
 			{
-				if (tracklet.RowHit(j) != -1)
-				{
-					const AliHLTTPCCARow &row = tracker.Data().Row(j);
-					const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, tracklet.RowHit(j)));
-					drawPointLinestrip(cid, 4);
-				}
+				const AliHLTTPCCARow &row = tracker.Data().Row(j);
+				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, tracker.TrackletRowHits()[j * *tracker.NTracklets() + i]));
+				drawPointLinestrip(cid, 4);
 			}
-			glEnd();
+#else
+			if (tracklet.RowHit(j) != -1)
+			{
+				const AliHLTTPCCARow &row = tracker.Data().Row(j);
+				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, tracklet.RowHit(j)));
+				drawPointLinestrip(cid, 4);
+			}
+#endif
 		}
+		glEnd();
 	}
 }
 
-void DrawTracks(AliHLTTPCCAStandaloneFramework& hlt)
+void DrawTracks(AliHLTTPCCATracker& tracker)
 {
-	for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+	for (int i = 0;i < *tracker.NTracks();i++)
 	{
-		AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];	
-		for (int i = 0;i < *tracker.NTracks();i++)
+		AliHLTTPCCATrack &track = tracker.Tracks()[i];
+		glBegin(GL_LINE_STRIP);
+		for (int j = 0;j < track.NHits();j++)
 		{
-			AliHLTTPCCATrack &track = tracker.Tracks()[i];
-			glBegin(GL_LINE_STRIP);
-			for (int j = 0;j < track.NHits();j++)
-			{
-				const AliHLTTPCCAHitId &hit = tracker.TrackHits()[track.FirstHitID() + j];
-				const AliHLTTPCCARow &row = tracker.Data().Row(hit.RowIndex());
-				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
-				drawPointLinestrip(cid, 5);
-			}
-			glEnd();
+			const AliHLTTPCCAHitId &hit = tracker.TrackHits()[track.FirstHitID() + j];
+			const AliHLTTPCCARow &row = tracker.Data().Row(hit.RowIndex());
+			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
+			drawPointLinestrip(cid, 5);
 		}
+		glEnd();
 	}
 }
 
@@ -268,6 +277,40 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
 	}
 }
 
+void DrawGrid(AliHLTTPCCATracker& tracker)
+{
+	glBegin(GL_LINES);
+	for (int i = 0;i < tracker.Param().NRows();i++)
+	{
+		const AliHLTTPCCARow& row = tracker.Data().Row(i);
+		for (int j = 0;j <= row.Grid().Ny();j++)
+		{
+			float z1 = row.Grid().ZMin();
+			float z2 = row.Grid().ZMax();
+			float x = row.X() * Xscale;
+			float y = row.Grid().YMin() + (float) j / row.Grid().StepYInv();
+			float zz1, zz2, yy1, yy2, xx1, xx2;
+			tracker.Param().Slice2Global(x, y, z1, &xx1, &yy1, &zz1);
+			tracker.Param().Slice2Global(x, y, z2, &xx2, &yy2, &zz2);
+			glVertex3f(xx1 / 50, yy1 / 50, zz1 / 50);
+			glVertex3f(xx2 / 50, yy2 / 50, zz2 / 50);
+		}
+		for (int j = 0;j <= row.Grid().Nz();j++)
+		{
+			float y1 = row.Grid().YMin();
+			float y2 = row.Grid().YMax();
+			float x = row.X() * Xscale;
+			float z = row.Grid().ZMin() + (float) j / row.Grid().StepZInv();
+			float zz1, zz2, yy1, yy2, xx1, xx2;
+			tracker.Param().Slice2Global(x, y1, z, &xx1, &yy1, &zz1);
+			tracker.Param().Slice2Global(x, y2, z, &xx2, &yy2, &zz2);
+			glVertex3f(xx1 / 50, yy1 / 50, zz1 / 50);
+			glVertex3f(xx2 / 50, yy2 / 50, zz2 / 50);
+		}
+	}
+	glEnd();
+}
+
 int DrawGLScene()									// Here's Where We Do All The Drawing
 {
 	static float fpsscale = 1;
@@ -277,8 +320,10 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 
 	static float pointSize = 2.0;
 
-	static GLuint glDLlines[6];
-	static GLuint glDLpoints[7];
+	static GLuint glDLlines[fgkNSlices][5];
+	static GLuint glDLlinesFinal;
+	static GLuint glDLpoints[fgkNSlices][7];
+	static GLuint glDLgrid[fgkNSlices];
 	static int glDLcreated = 0;
 
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
@@ -292,11 +337,17 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 
 	//Calculate rotation / translation scaling factors
 	float scalefactor = keys[16] ? 0.2 : 1.0;
+	float rotatescalefactor = 1;
 
 	float sqrdist = sqrt(sqrt(currentMatrice[12] * currentMatrice[12] + currentMatrice[13] * currentMatrice[13] + currentMatrice[14] * currentMatrice[14]) / 50) * 0.8;
 	if (sqrdist < 0.2) sqrdist = 0.2;
 	if (sqrdist > 5) sqrdist = 5;
 	scalefactor *= sqrdist;
+	if (drawSlice != -1)
+	{
+		scalefactor /= 5;
+		rotatescalefactor = 3;
+	}
 
 	//Perform new rotation / translation
 	float moveZ = scalefactor * ((float) mouseWheelTmp / 150 + (float) (keys['W'] - keys['S']) * 0.2 * fpsscale);
@@ -315,15 +366,24 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	}
 	else if (mouseDn)
 	{
-		glRotatef(scalefactor * 0.5 * ((float)mouseMvX - (float)mouseDnX), 0, 1, 0);
-		glRotatef(scalefactor * 0.5 * ((float)mouseMvY - (float)mouseDnY), 1, 0, 0);
+		glRotatef(scalefactor * rotatescalefactor * ((float)mouseMvX - (float)mouseDnX), 0, 1, 0);
+		glRotatef(scalefactor * rotatescalefactor * ((float)mouseMvY - (float)mouseDnY), 1, 0, 0);
 	}
 	if (keys['E'] ^ keys['F'])
 	{
 		glRotatef(scalefactor * fpsscale * 2, 0, 0, keys['E'] - keys['F']);
 	}
-	mouseDnX = mouseMvX;
-	mouseDnY = mouseMvY;
+
+	if (mouseDn || mouseDnR)
+	{
+#ifdef R__WIN32a
+		mouseReset = true;
+		SetCursorPos(mouseCursorPos.x, mouseCursorPos.y);
+#else
+		mouseDnX = mouseMvX;
+		mouseDnY = mouseMvY;
+#endif
+	}
 
 	//Apply standard translation / rotation
 	glMultMatrixf(currentMatrice);
@@ -343,6 +403,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 		framesDone = 0;
 
 		pointSize = 2.0;
+		drawSlice = -1;
 
 		resetScene = 0;
 	}
@@ -365,7 +426,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	glLineWidth(1.5);
 
 	//Extract global cluster information
-	if (displayEventNr != currentEventNr)
+	if (updateDLList || displayEventNr != currentEventNr)
 	{
 		currentClusters = 0;
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
@@ -392,7 +453,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 					exit(1);
 				}
 				float4 *ptr = &globalPos[cid];
-				hlt.fTracker.fCPUTrackers[iSlice].Param().Slice2Global(cdata.X(i), cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
+				hlt.fTracker.fCPUTrackers[iSlice].Param().Slice2Global(cdata.X(i) * Xscale, cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
 				ptr->x /= 50;
 				ptr->y /= 50;
 				ptr->z /= 50;
@@ -407,70 +468,96 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 		displayFpsTime = startTime;
 		framesDone = 0;
 		glDLrecent = 0;
+		updateDLList = 0;
 	}
 
 	//Prepare Event
 	if (!glDLrecent)
 	{
+		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+		{
+			if (glDLcreated)
+			{
+				for (int i = 0;i < 5;i++) glDeleteLists(glDLlines[iSlice][i], 1);
+				for (int i = 0;i < 7;i++) glDeleteLists(glDLpoints[iSlice][i], 1);
+				glDeleteLists(glDLgrid[iSlice], 1);
+			}
+			else
+			{
+				for (int i = 0;i < 5;i++) glDLlines[iSlice][i] = glGenLists(1);
+				for (int i = 0;i < 7;i++) glDLpoints[iSlice][i] = glGenLists(1);
+				glDLgrid[iSlice] = glGenLists(1);
+			}
+		}
 		if (glDLcreated)
 		{
-			for (int i = 0;i < 6;i++) glDeleteLists(glDLlines[i], 1);
-			for (int i = 0;i < 7;i++) glDeleteLists(glDLpoints[i], 1);
+			glDeleteLists(glDLlinesFinal, 1);
 		}
 		else
 		{
-			for (int i = 0;i < 6;i++) glDLlines[i] = glGenLists(1);
-			for (int i = 0;i < 7;i++) glDLpoints[i] = glGenLists(1);
+			glDLlinesFinal = glGenLists(1);
 		}
 
 		for (int i = 0;i < currentClusters;i++) globalPos[i].w = 0;
 
-		glNewList(glDLlines[0], GL_COMPILE);
-		if (drawInitLinks)
+		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
-			char* tmpMem[fgkNSlices];
-			for (int i = 0;i < fgkNSlices;i++)
+			AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
+			glNewList(glDLlines[iSlice][0], GL_COMPILE);
+			if (drawInitLinks)
 			{
-				AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[i];
-				tmpMem[i] = tracker.Data().Memory();
-				tracker.SetGPUSliceDataMemory(tracker.fLinkTmpMemory, tracker.Data().Rows());
-				tracker.SetPointersSliceData(tracker.ClusterData());
+				char* tmpMem[fgkNSlices];
+				for (int i = 0;i < fgkNSlices;i++)
+				{
+					AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[i];
+					tmpMem[i] = tracker.Data().Memory();
+					tracker.SetGPUSliceDataMemory((void*) tracker.LinkTmpMemory(), tracker.Data().Rows());
+					tracker.SetPointersSliceData(tracker.ClusterData());
+				}
+				DrawLinks(tracker, 1);
+				for (int i = 0;i < fgkNSlices;i++)
+				{
+					AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[i];
+					tracker.SetGPUSliceDataMemory(tmpMem[i], tracker.Data().Rows());
+					tracker.SetPointersSliceData(tracker.ClusterData());
+				}
 			}
-			DrawLinks(hlt, 1);
-			for (int i = 0;i < fgkNSlices;i++)
-			{
-				AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[i];
-				tracker.SetGPUSliceDataMemory(tmpMem[i], tracker.Data().Rows());
-				tracker.SetPointersSliceData(tracker.ClusterData());
-			}
+			glEndList();
+			
+			glNewList(glDLlines[iSlice][1], GL_COMPILE);
+			DrawLinks(tracker, 2);
+			glEndList();
+			
+			glNewList(glDLlines[iSlice][2], GL_COMPILE);
+			DrawSeeds(tracker);
+			glEndList();
+			
+			glNewList(glDLlines[iSlice][3], GL_COMPILE);
+			DrawTracklets(tracker);
+			glEndList();
+			
+			glNewList(glDLlines[iSlice][4], GL_COMPILE);
+			DrawTracks(tracker);
+			glEndList();
+
+			glNewList(glDLgrid[iSlice], GL_COMPILE);
+			DrawGrid(tracker);
+			glEndList();
 		}
-		glEndList();
 		
-		glNewList(glDLlines[1], GL_COMPILE);
-		DrawLinks(hlt, 2);
-		glEndList();
-		
-		glNewList(glDLlines[2], GL_COMPILE);
-		DrawSeeds(hlt);
-		glEndList();
-		
-		glNewList(glDLlines[3], GL_COMPILE);
-		DrawTracklets(hlt);
-		glEndList();
-		
-		glNewList(glDLlines[4], GL_COMPILE);
-		DrawTracks(hlt);
-		glEndList();
-		
-		glNewList(glDLlines[5], GL_COMPILE);
+		glNewList(glDLlinesFinal, GL_COMPILE);
 		DrawFinal(hlt);
 		glEndList();
 
-		for (int i = 0;i < 7;i++)
+		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
-			glNewList(glDLpoints[i], GL_COMPILE);
-			DrawClusters(hlt, i);
-			glEndList();
+			AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
+			for (int i = 0;i < 7;i++)
+			{
+				glNewList(glDLpoints[iSlice][i], GL_COMPILE);
+				DrawClusters(tracker, i);
+				glEndList();
+			}
 		}
 
 		int errCode;
@@ -492,45 +579,80 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	{
 		displayFpsTime = tmpTime;
 		float fps = (double) framesDone * (double) timeFreq / (double) (tmpTime - startTime);
-		printf("FPS: %f (%d frames, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:Merger %d)\n", fps, framesDone, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawFinal);
+		printf("FPS: %f (%d frames, Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:Merger %d)\n", fps, framesDone, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawFinal);
 		fpsscale = 60 / fps;
 	}
 
 	//Draw Event
 	if (glDLrecent)
 	{
-		
-		if (drawClusters)
+		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
-			SetColorClusters();
-			glCallList(glDLpoints[0]);
+			if (drawSlice != -1 && drawSlice != iSlice) continue;
 
-			if (drawInitLinks) SetColorInitLinks();
-			glCallList(glDLpoints[1]);
+			if (drawGrid)
+			{
+				SetColorGrid();
+				glCallList(glDLgrid[iSlice]);
+			}
 
-			if (drawLinks) SetColorLinks();
-			glCallList(glDLpoints[2]);
+			if (drawClusters)
+			{
+				SetColorClusters();
+				glCallList(glDLpoints[iSlice][0]);
 
-			if (drawSeeds) SetColorSeeds();
-			glCallList(glDLpoints[3]);
+				if (drawInitLinks) SetColorInitLinks();
+				glCallList(glDLpoints[iSlice][1]);
 
-			glColor3f(0, 0.7, 1.0);
-			if (drawTracklets) SetColorTracklets();
-			glCallList(glDLpoints[4]);
+				if (drawLinks) SetColorLinks();
+				glCallList(glDLpoints[iSlice][2]);
 
-			if (drawTracks) SetColorTracks();
-			glCallList(glDLpoints[5]);
+				if (drawSeeds) SetColorSeeds();
+				glCallList(glDLpoints[iSlice][3]);
 
-			if (drawFinal) SetColorFinal();
-			glCallList(glDLpoints[6]);
+				glColor3f(0, 0.7, 1.0);
+				if (drawTracklets) SetColorTracklets();
+				glCallList(glDLpoints[iSlice][4]);
+
+				if (drawTracks) SetColorTracks();
+				glCallList(glDLpoints[iSlice][5]);
+
+				if (drawFinal) SetColorFinal();
+				glCallList(glDLpoints[iSlice][6]);
+			}
+
+			if (drawInitLinks) {
+				SetColorInitLinks();
+				glCallList(glDLlines[iSlice][0]);
+			}
+			if (drawLinks) {
+				SetColorLinks();
+				glCallList(glDLlines[iSlice][1]);
+			}
+			if (drawSeeds) {
+				SetColorSeeds();
+				glCallList(glDLlines[iSlice][2]);
+			}
+			if (drawTracklets) {
+				SetColorTracklets();
+				glCallList(glDLlines[iSlice][3]);
+			}
+			if (drawTracks) {
+				SetColorTracks();
+				glCallList(glDLlines[iSlice][4]);
+			}
 		}
-
-		if (drawInitLinks) {SetColorInitLinks();glCallList(glDLlines[0]);}
-		if (drawLinks) {SetColorLinks();glCallList(glDLlines[1]);}
-		if (drawSeeds) {SetColorSeeds();glCallList(glDLlines[2]);}
-		if (drawTracklets) {SetColorTracklets();glCallList(glDLlines[3]);}
-		if (drawTracks) {SetColorTracks();glCallList(glDLlines[4]);}
-		if (drawFinal) {SetColorFinal();glCallList(glDLlines[5]);}
+		if (drawFinal) {
+			SetColorFinal();
+			if (!drawClusters)
+			{
+				for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+				{
+					glCallList(glDLpoints[iSlice][6]);
+				}
+			}
+			glCallList(glDLlinesFinal);	
+		}
 	}
 
 	//Free event
@@ -541,6 +663,41 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 #endif
 
 	return true;										// Keep Going
+}
+
+void HandleKeyRelease(int wParam)
+{
+	keys[wParam] = false;
+
+	if (wParam == 13 || wParam == 'N') buttonPressed = 1;
+	if (wParam == 'Q') exit(0);
+	if (wParam == 'R') resetScene = 1;
+
+	if (wParam == 'L')
+	{
+		if (drawSlice == fgkNSlices - 1) drawSlice = -1;
+		else drawSlice++;
+	}
+	if (wParam == 'K')
+	{
+		if (drawSlice == -1) drawSlice = fgkNSlices - 1;
+		else drawSlice--;
+	}
+	if (wParam == 'Z')
+	{
+		updateDLList = true;
+		Xscale++;
+	}
+
+	if (wParam == 'G') drawGrid ^= 1;
+
+	if (wParam == '1') drawClusters ^= 1;
+	else if (wParam == '2') drawInitLinks ^= 1; 
+	else if (wParam == '3') drawLinks ^= 1;
+	else if (wParam == '4') drawSeeds ^= 1;
+	else if (wParam == '5') drawTracklets ^= 1;
+	else if (wParam == '6') drawTracks ^= 1;
+	else if (wParam == '7') drawFinal ^= 1;
 }
 
 #ifdef R__WIN32
@@ -804,19 +961,7 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 
 		case WM_KEYUP:								// Has A Key Been Released?
 		{
-			keys[wParam] = FALSE;					// If So, Mark It As FALSE
-
-			if (wParam == 13 || wParam == 'N') buttonPressed = 1;
-			if (wParam == 'Q') exit(0);
-			if (wParam == 'R') resetScene = 1;
-
-			if (wParam == '1') drawClusters ^= 1;
-			else if (wParam == '2') drawInitLinks ^= 1; 
-			else if (wParam == '3') drawLinks ^= 1;
-			else if (wParam == '4') drawSeeds ^= 1;
-			else if (wParam == '5') drawTracklets ^= 1;
-			else if (wParam == '6') drawTracks ^= 1;
-			else if (wParam == '7') drawFinal ^= 1;
+			HandleKeyRelease(wParam);
 
 			//printf("Key: %d\n", wParam);
 			return 0;								// Jump Back
@@ -833,12 +978,15 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 			mouseDnX = GET_X_LPARAM(lParam); 
 			mouseDnY = GET_Y_LPARAM(lParam);
 			mouseDn = true;
+			GetCursorPos(&mouseCursorPos);
+			//ShowCursor(false);
 			return 0;
 		}
 
 		case WM_LBUTTONUP:
 		{
 			mouseDn = false;
+			//ShowCursor(true);
 			return 0;
 		}
 
@@ -847,17 +995,26 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 			mouseDnX = GET_X_LPARAM(lParam); 
 			mouseDnY = GET_Y_LPARAM(lParam);
 			mouseDnR = true;
+			GetCursorPos(&mouseCursorPos);
+			//ShowCursor(false);
 			return 0;
 		}
 
 		case WM_RBUTTONUP:
 		{
 			mouseDnR = false;
+			//ShowCursor(true);
 			return 0;
 		}
 
 		case WM_MOUSEMOVE:
 		{
+			if (mouseReset)
+			{
+				mouseDnX = GET_X_LPARAM(lParam); 
+				mouseDnY = GET_Y_LPARAM(lParam);
+				mouseReset = 0;
+			}
 			mouseMvX = GET_X_LPARAM(lParam); 
 			mouseMvY = GET_Y_LPARAM(lParam);
 			return 0;
@@ -1151,19 +1308,7 @@ void* OpenGLMain( void* ptr )
 
                     int wParam = GetKey(event.xkey.keycode);
 
-		    keys[wParam] = false;
-
-		    if (wParam == 13 || wParam == 'N') buttonPressed = 1;
-		    if (wParam == 'Q') exit(0);
-		    if (wParam == 'R') resetScene = 1;
-
-		    if (wParam == '1') drawClusters ^= 1;
-		    else if (wParam == '2') drawInitLinks ^= 1; 
-		    else if (wParam == '3') drawLinks ^= 1;
-		    else if (wParam == '4') drawSeeds ^= 1;
-		    else if (wParam == '5') drawTracklets ^= 1;
-		    else if (wParam == '6') drawTracks ^= 1;
-		    else if (wParam == '7') drawFinal ^= 1;
+					HandleKeyRelease(wParam);
                 }
                 break;
 
