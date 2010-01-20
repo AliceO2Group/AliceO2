@@ -64,7 +64,7 @@ class AliHLTTPCCAStandaloneFramework
     /**
      *  perform event reconstruction
      */
-    void ProcessEvent(int forceSingleSlice = -1);
+    int ProcessEvent(int forceSingleSlice = -1);
 
 
     int NSlices() const { return fgkNSlices; }
@@ -100,7 +100,7 @@ class AliHLTTPCCAStandaloneFramework
 
   private:
 
-    static const int fgkNSlices = 30;       //* N slices
+    static const int fgkNSlices = 36;       //* N slices
 
     AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& );
     const AliHLTTPCCAStandaloneFramework &operator=( const AliHLTTPCCAStandaloneFramework& ) const;

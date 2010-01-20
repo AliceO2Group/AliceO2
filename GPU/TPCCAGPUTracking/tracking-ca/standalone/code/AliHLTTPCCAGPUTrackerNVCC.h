@@ -55,12 +55,13 @@ private:
 	void* fGPUMemory;
 	void* fHostLockedMemory;
 
-	int CUDASync(char* state = "UNKNOWN");
+	int CUDASync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
 	template <class T> T* alignPointer(T* ptr, int alignment);
 
 	void StandalonePerfTime(int iSlice, int i);
 
 	int fDebugLevel;			//Debug Level for GPU Tracker
+	unsigned int fDebugMask;	//Mask which Debug Data is written to file
 	std::ostream* fOutFile;		//Debug Output Stream Pointer
 	unsigned long long int fGPUMemSize;	//Memory Size to allocate on GPU
 

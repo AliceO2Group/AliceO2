@@ -128,8 +128,7 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
 }
 
 
-//int
-void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
+int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 {
   // perform the event reconstruction
 
@@ -154,13 +153,13 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   if (forceSingleSlice != -1)
   {
-	if (fTracker.ProcessSlices(forceSingleSlice, 1, &fClusterData[forceSingleSlice], &fSliceOutput[forceSingleSlice])) return;
+	if (fTracker.ProcessSlices(forceSingleSlice, 1, &fClusterData[forceSingleSlice], &fSliceOutput[forceSingleSlice])) return (1);
   }
   else
   {
 	for (int iSlice = 0;iSlice < fgkNSlices;iSlice += fTracker.MaxSliceCount())
 	{
-		if (fTracker.ProcessSlices(iSlice, CAMath::Min(fTracker.MaxSliceCount(), fgkNSlices - iSlice), &fClusterData[iSlice], &fSliceOutput[iSlice])) return;
+		if (fTracker.ProcessSlices(iSlice, CAMath::Min(fTracker.MaxSliceCount(), fgkNSlices - iSlice), &fClusterData[iSlice], &fSliceOutput[iSlice])) return (1);
 	}
   }
 
@@ -290,7 +289,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   for ( int i = 0; i < 3; i++ ) fStatTime[i] += fLastTime[i];
 
-  //return(0);
+  return(0);
 }
 
 
