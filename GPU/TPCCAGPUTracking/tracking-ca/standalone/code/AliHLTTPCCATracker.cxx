@@ -152,7 +152,7 @@ char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTr
 void AliHLTTPCCATracker::DumpSliceData(std::ostream &out)
 {
 	//Dump Slice Input Data to File
-	out << "Slice Data:" << std::endl;
+	out << "Slice Data (Slice" << Param().ISlice() << "):" << std::endl;
 	for (int i = 0;i < Param().NRows();i++)
 	{
 		out << "Row: " << i << std::endl;
@@ -168,7 +168,7 @@ void AliHLTTPCCATracker::DumpSliceData(std::ostream &out)
 void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
 {
 	//Dump Links (after Neighbours Finder / Cleaner) to file
-	out << "Hit Links:" << std::endl;
+	out << "Hit Links(Slice" << Param().ISlice() << "):" << std::endl;
 	for (int i = 0;i < Param().NRows();i++)
 	{
 		out << "Row: " << i << std::endl;
@@ -184,7 +184,7 @@ void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
 void AliHLTTPCCATracker::DumpHitWeights(std::ostream &out)
 {
 	//dump hit weights to file
-    out << "Hit Weights:" << std::endl;
+    out << "Hit Weights(Slice" << Param().ISlice() << "):" << std::endl;
     for (int i = 0;i < Param().NRows();i++)
     {
 	out << "Row: " << i << ":" << std::endl;
@@ -210,7 +210,7 @@ int AliHLTTPCCATracker::StarthitSortComparison(const void*a, const void* b)
 void AliHLTTPCCATracker::DumpStartHits(std::ostream &out)
 {
 	//sort start hits and dump to file
-	out << "Start Hits: (" << *NTracklets() << ")" << std::endl;
+	out << "Start Hits: (Slice" << Param().ISlice() << ") (" << *NTracklets() << ")" << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	qsort(TrackletStartHits(), *NTracklets(), sizeof(AliHLTTPCCAHitId), StarthitSortComparison);
 #endif
@@ -224,7 +224,7 @@ void AliHLTTPCCATracker::DumpStartHits(std::ostream &out)
 void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 {
 	//dump tracks to file
-	out << "Tracks: (" << *NTracks() << ")" << std::endl;
+	out << "Tracks: (Slice" << Param().ISlice() << ") (" << *NTracks() << ")" << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	for (int k = 0;k < Param().NRows();k++)
 	{
@@ -256,7 +256,7 @@ void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 {
 	//dump tracklets to file
-	out << "Tracklets: (" << *NTracklets() << ")" << std::endl;
+	out << "Tracklets: (Slice" << Param().ISlice() << ") (" << *NTracklets() << ")" << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 	AliHLTTPCCAHitId* tmpIds = new AliHLTTPCCAHitId[*NTracklets()];
 	AliHLTTPCCATracklet* tmpTracklets = new AliHLTTPCCATracklet[*NTracklets()];
@@ -295,12 +295,22 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 #endif
 	for (int j = 0;j < *NTracklets();j++)
 	{
-		out << "Tracklet " << j << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Start: " << std::setw(3) << TrackletStartHit(j).RowIndex() << "-" << std::setw(3) << TrackletStartHit(j).HitIndex() << ") ";
+		out << "Tracklet " << std::setw(4) << j << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Start: " << std::setw(3) << TrackletStartHit(j).RowIndex() << "-" << std::setw(3) << TrackletStartHit(j).HitIndex() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1) << " - " << (Tracklets()[j].NHits() ? Tracklets()[j].LastRow() : -1) << ") ";
 		if (Tracklets()[j].NHits() == 0);
 		else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= Param().NRows() || Tracklets()[j].LastRow() >= Param().NRows()))
 		{
 #ifdef HLTCA_STANDALONE
-			printf("\nError: First %d Last %d Num %d", Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
+			printf("\nError: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
+			out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
+			for (int i = 0;i < Param().NRows();i++)
+			{
+				//if (Tracklets()[j].RowHit(i) != -1)
+#ifdef EXTERN_ROW_HITS
+					out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
+#else
+					out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+#endif
+			}
 #endif
 		}
 		else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() > Tracklets()[j].FirstRow())

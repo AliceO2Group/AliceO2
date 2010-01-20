@@ -11,7 +11,7 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1;
+	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
 
@@ -56,6 +56,11 @@ int main(int argc, char** argv)
 	if ( !strcmp( argv[i], "-DEBUG" ) && argc > i + 1)
 	{
 		DebugLevel = atoi(argv[i + 1]);
+	}
+
+	if ( !strcmp( argv[i], "-CLEARDEBUG" ) && argc > i + 1)
+	{
+		cleardebugout = atoi(argv[i + 1]);
 	}
 
 	if ( !strcmp( argv[i], "-SLICECOUNT" ) && argc > i + 1)
@@ -117,7 +122,7 @@ int main(int argc, char** argv)
   }	
 	std::ofstream CPUOut, GPUOut;
 
-	if (DebugLevel >= 4)
+	if (DebugLevel >= 5)
 	{
 		CPUOut.open("CPU.out");
 		GPUOut.open("GPU.out");
@@ -177,18 +182,24 @@ int main(int argc, char** argv)
 		for (int j = 0;j < runs;j++)
 		{
 			if (runs > 1) printf("Run %d\n", j + 1);
-			hlt.ProcessEvent(forceSlice);
+			
+			if (DebugLevel >= 5 && cleardebugout)
+			{
+				GPUOut.close();
+				GPUOut.open("GPU.out");
+				CPUOut.close();
+				CPUOut.open("GPU.out");
+			}
+			if (hlt.ProcessEvent(forceSlice))
+			{
+				printf("Error occured\n");
+				goto breakrun;
+			}
 		}
-		/*if (hlt.ProcessEvent())
-		{
-			printf("Error occured\n");
-			printf("Press a key to exit!\n");
-			getchar();
-			break;
-		}*/
 	}
+breakrun:
 
-	if (DebugLevel >= 4)
+	if (DebugLevel >= 5)
 	{
 		CPUOut.close();
 		GPUOut.close();
