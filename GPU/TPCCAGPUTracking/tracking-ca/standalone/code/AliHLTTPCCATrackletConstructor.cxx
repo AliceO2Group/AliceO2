@@ -1095,7 +1095,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(Al
 								for (int l = rMem.fStartRow + 1;l < rMem.fEndRow;l += 2)
 								{
 #ifndef EXTERN_ROW_HITS
-									tracklet.SetRowHit(iRow, -1);
+									tracker.Tracklets()[rMem.fItr].SetRowHit(l, -1);
 #else
 									tracker.TrackletRowHits()[l * sMem.fNTracklets + rMem.fItr] = -1;
 #endif //EXTERN_ROW_HITS
