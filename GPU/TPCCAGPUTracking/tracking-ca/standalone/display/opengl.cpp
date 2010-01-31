@@ -81,6 +81,7 @@ int drawSlice = -1;
 int drawGrid = 0;
 
 float Xscale = 1;
+float Zadd = 0;
 
 float4* globalPos = NULL;
 int maxClusters = 0;
@@ -101,7 +102,7 @@ inline void SetColorSeeds() {glColor3f(1.0, 0.4, 0);}
 inline void SetColorTracklets() {glColor3f(1, 1, 1);}
 inline void SetColorTracks() {glColor3f(0.6, 1, 0);}
 inline void SetColorFinal() {glColor3f(0, 0.8, 0.2);}
-inline void SetColorGrid() {glColor3f(0.3, 0.5, 0.7);}
+inline void SetColorGrid() {glColor3f(0.7, 0.7, 0.0);}
 
 void ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
 {
@@ -173,21 +174,40 @@ void DrawClusters(AliHLTTPCCATracker& tracker, int id)
 	glEnd();
 }
 
-void DrawLinks(AliHLTTPCCATracker& tracker, int id)
+void DrawLinks(AliHLTTPCCATracker& tracker, int id, bool dodown = false)
 {
 	glBegin(GL_LINES);
-	for (int i = 0;i < tracker.Param().NRows() - 2;i++)
+	for (int i = 0;i < tracker.Param().NRows();i++)
 	{
 		const AliHLTTPCCARow &row = tracker.Data().Row(i);
-		const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
-		for (int j = 0;j < row.NHits();j++)
+
+		if (i < tracker.Param().NRows() - 2)
 		{
-			if (tracker.Data().HitLinkUpData(row, j) != -1)
+			const AliHLTTPCCARow &rowUp = tracker.Data().Row(i + 2);
+			for (int j = 0;j < row.NHits();j++)
 			{
-				const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
-				const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
-				drawPointLinestrip(cid1, id);
-				drawPointLinestrip(cid2, id);
+				if (tracker.Data().HitLinkUpData(row, j) != -1)
+				{
+					const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
+					const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
+					drawPointLinestrip(cid1, id);
+					drawPointLinestrip(cid2, id);
+				}
+			}
+		}
+
+		if (dodown && i >= 2)
+		{
+			const AliHLTTPCCARow &rowDown = tracker.Data().Row(i - 2);
+			for (int j = 0;j < row.NHits();j++)
+			{
+				if (tracker.Data().HitLinkDownData(row, j) != -1)
+				{
+					const int cid1 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
+					const int cid2 = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(rowDown, tracker.Data().HitLinkDownData(row, j)));
+					drawPointLinestrip(cid1, id);
+					drawPointLinestrip(cid2, id);
+				}
 			}
 		}
 	}
@@ -292,6 +312,16 @@ void DrawGrid(AliHLTTPCCATracker& tracker)
 			float zz1, zz2, yy1, yy2, xx1, xx2;
 			tracker.Param().Slice2Global(x, y, z1, &xx1, &yy1, &zz1);
 			tracker.Param().Slice2Global(x, y, z2, &xx2, &yy2, &zz2);
+			if (zz1 >= 0)
+			{
+				zz1 += Zadd;
+				zz2 += Zadd;
+			}
+			else
+			{
+				zz1 -= Zadd;
+				zz2 -= Zadd;
+			}
 			glVertex3f(xx1 / 50, yy1 / 50, zz1 / 50);
 			glVertex3f(xx2 / 50, yy2 / 50, zz2 / 50);
 		}
@@ -304,6 +334,16 @@ void DrawGrid(AliHLTTPCCATracker& tracker)
 			float zz1, zz2, yy1, yy2, xx1, xx2;
 			tracker.Param().Slice2Global(x, y1, z, &xx1, &yy1, &zz1);
 			tracker.Param().Slice2Global(x, y2, z, &xx2, &yy2, &zz2);
+			if (zz1 >= 0)
+			{
+				zz1 += Zadd;
+				zz2 += Zadd;
+			}
+			else
+			{
+				zz1 -= Zadd;
+				zz2 -= Zadd;
+			}
 			glVertex3f(xx1 / 50, yy1 / 50, zz1 / 50);
 			glVertex3f(xx2 / 50, yy2 / 50, zz2 / 50);
 		}
@@ -454,6 +494,17 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 				}
 				float4 *ptr = &globalPos[cid];
 				hlt.fTracker.fCPUTrackers[iSlice].Param().Slice2Global(cdata.X(i) * Xscale, cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
+				if (ptr->z >= 0)
+				{
+					ptr->z += Zadd;
+					ptr->z += Zadd;
+				}
+				else
+				{
+					ptr->z -= Zadd;
+					ptr->z -= Zadd;
+				}
+
 				ptr->x /= 50;
 				ptr->y /= 50;
 				ptr->z /= 50;
@@ -514,7 +565,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 					tracker.SetGPUSliceDataMemory((void*) tracker.LinkTmpMemory(), tracker.Data().Rows());
 					tracker.SetPointersSliceData(tracker.ClusterData());
 				}
-				DrawLinks(tracker, 1);
+				DrawLinks(tracker, 1, true);
 				for (int i = 0;i < fgkNSlices;i++)
 				{
 					AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[i];
@@ -687,6 +738,7 @@ void HandleKeyRelease(int wParam)
 	{
 		updateDLList = true;
 		Xscale++;
+		Zadd += 60;
 	}
 
 	if (wParam == 'G') drawGrid ^= 1;
