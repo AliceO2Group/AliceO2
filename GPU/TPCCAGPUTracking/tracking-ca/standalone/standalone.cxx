@@ -8,6 +8,17 @@
 #include <string.h>
 #include <omp.h>
 
+#ifndef _WIN32
+#include <unistd.h>
+#include <sched.h>
+#include <signal.h>
+#include <cstdio>
+#include <cstring>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/select.h>
+#endif
+
 int main(int argc, char** argv)
 {
 	int i;
@@ -119,10 +130,35 @@ int main(int argc, char** argv)
 		RUNGPU=1;
 		eventDisplay = 1;
     }
+
+#ifndef _WIN32
+	if ( !strcmp( argv[i], "-AFFINITY") && argc > i + 1)
+	{
+		cpu_set_t mask;
+		CPU_ZERO(&mask);
+		CPU_SET(atoi(argv[i + 1]), &mask);
+		
+		printf("Setting affinitiy to restrict on CPU %d\n", atoi(argv[i + 1]));
+		if (0 != sched_setaffinity(0, sizeof(mask), &mask))
+		{
+			printf("Error setting CPU affinity\n");
+			return(1);
+		}
+		
+		printf("Setting FIFO scheduler\n");
+		sched_param param;
+		sched_getparam( 0, &param );
+		param.sched_priority = 1;
+		if ( 0 != sched_setscheduler( 0, SCHED_FIFO, &param ) ) {
+			printf("Error setting scheduler\n");
+			return(1);
+		}
+	}
+#endif
   }	
 	std::ofstream CPUOut, GPUOut;
 
-	if (DebugLevel >= 5)
+	if (DebugLevel >= 4)
 	{
 		CPUOut.open("CPU.out");
 		GPUOut.open("GPU.out");
@@ -183,7 +219,7 @@ int main(int argc, char** argv)
 		{
 			if (runs > 1) printf("Run %d\n", j + 1);
 			
-			if (DebugLevel >= 5 && cleardebugout)
+			if (DebugLevel >= 4 && cleardebugout)
 			{
 				GPUOut.close();
 				GPUOut.open("GPU.out");
@@ -199,7 +235,7 @@ int main(int argc, char** argv)
 	}
 breakrun:
 
-	if (DebugLevel >= 5)
+	if (DebugLevel >= 4)
 	{
 		CPUOut.close();
 		GPUOut.close();
