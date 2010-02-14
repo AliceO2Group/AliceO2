@@ -35,7 +35,7 @@
 #include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackLinearisation.h"
-
+#include "AliHLTTPCCADataCompressor.h"
 
 class AliHLTTPCCAMerger::AliHLTTPCCASliceTrackInfo
 {
@@ -246,10 +246,12 @@ void AliHLTTPCCAMerger::UnpackSlices()
         clu.SetIRow( slice.ClusterRow( ic ) );
         clu.SetId( slice.ClusterId( ic ) );
         clu.SetPackedAmp( 0 );
-        float2 yz = slice.ClusterUnpackedYZ( ic );
-        clu.SetX( slice.ClusterUnpackedX( ic ) );
-        clu.SetY( yz.x );
-        clu.SetZ( yz.y );
+	float x,y,z;
+	AliHLTTPCCADataCompressor::UnpackXYZ( clu.IRow(), slice.ClusterPackedXYZ(ic), x, y, z );
+        
+        clu.SetX( x );
+        clu.SetY( y );
+        clu.SetZ( z );
 
         if ( !t0.TransportToX( clu.X(), fSliceParam.GetBz( t0 ), .999 ) ) continue;
 
