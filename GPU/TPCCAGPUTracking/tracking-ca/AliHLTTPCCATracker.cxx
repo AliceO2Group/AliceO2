@@ -36,6 +36,7 @@
 #include "AliHLTTPCCASliceTrack.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAClusterData.h"
+#include "AliHLTTPCCADataCompressor.h"
 
 #include "AliHLTTPCCATrackParam.h"
 
@@ -700,16 +701,16 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 
 		  int id = fClusterData->Id( clusterIndex );
+		  AliHLTTPCCACompressedCluster cXYZ = AliHLTTPCCADataCompressor::PackXYZ( iRow, origX, origY, origZ );
 
-		  float2 hUnpackedYZ;
-		  hUnpackedYZ.x = origY;
-		  hUnpackedYZ.y = origZ;
-		  float hUnpackedX = origX;
+		  //float2 hUnpackedYZ;
+		  //hUnpackedYZ.x = origY;
+		  //hUnpackedYZ.y = origZ;
+		  //float hUnpackedX = origX;
 
 		  useOutput->SetClusterId( nStoredHits, id  );
 		  useOutput->SetClusterRow( nStoredHits, ( unsigned char ) iRow  );
-		  useOutput->SetClusterUnpackedYZ( nStoredHits, hUnpackedYZ );
-		  useOutput->SetClusterUnpackedX( nStoredHits, hUnpackedX );
+		  useOutput->SetClusterPackedXYZ( nStoredHits, cXYZ );
 		  nStoredHits++;
 		}
 	  }
