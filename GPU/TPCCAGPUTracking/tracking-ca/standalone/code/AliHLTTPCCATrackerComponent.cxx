@@ -505,6 +505,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   int slicecount = maxslice + 1 - minslice;
   if (slicecount > fTracker->MaxSliceCount())
   {
+	HLTError("Some slices are dropped as tracker framework can only process %d slices in parallel, but input data contains %d slices", fTracker->MaxSliceCount(), slicecount);
 	maxslice = minslice + (slicecount = fTracker->MaxSliceCount()) - 1;
   }
   int nClustersTotalSum = 0;
