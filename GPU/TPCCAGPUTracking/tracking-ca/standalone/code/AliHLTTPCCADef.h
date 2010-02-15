@@ -153,6 +153,7 @@ struct uint1 { unsigned int x; };
 struct uint2 { unsigned int x, y; };
 struct uint3 { unsigned int x, y, z; };
 struct uint4 { unsigned int x, y, z, w; };
+struct uint16 { unsigned int x[16]; };
 
 #ifdef R__WIN32
 #include <float.h>

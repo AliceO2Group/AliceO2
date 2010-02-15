@@ -16,7 +16,6 @@
 #define HLTCA_GPU_ROWCOPY int							//must not be bigger than row alignment!!!
 #define HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS 32	//Amound of threads to reserve for memory copy
 //#define HLTCA_GPU_PREFETCHDATA						//Fetch Row Data (Hits / Grid) into shared memory during Tracklet Construction
-//#define HLTCA_GPU_PREFETCH_ROWBLOCK_ONLY				//Prefetch only row parameters for current block during tracklet construction, faster for UpdateTracklet but shared cache can not be used for StoreTracklet then
 
 #define HLTCA_GPU_SCHED_ROW_STEP 32						//Amount of Rows to process in one step before rescheduling
 #define HLTCA_GPU_SCHED_FIXED_START						//Assign each GPU thread a start tracklet to start with instead of using the scheduler to obtain start tracklet
