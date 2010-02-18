@@ -24,7 +24,7 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCAStandaloneFramework.h"
-#include "AliHLTTPCCASliceTrack.h"
+#include "AliHLTTPCCASliceOutTrack.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAMergerOutput.h"
 #include "AliHLTTPCCAMergedTrack.h"
@@ -1226,13 +1226,18 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
 
   nRecTot += traN;
 
-  for ( int itr = 0; itr < traN; itr++ ) {
+  const AliHLTTPCCASliceOutTrack *tCA = output.GetFirstTrack();
 
-    const AliHLTTPCCASliceTrack &tCA = output.Track( itr );
+  for ( int itr = 0; itr < traN; itr++ ) {
+    
     std::vector<int> clusterIDs;
-    for ( int i = 0; i < tCA.NClusters(); i++ ) {
-      clusterIDs.push_back( output.ClusterId( tCA.FirstClusterRef() + i ) );
+    for ( int i = 0; i < tCA->NClusters(); i++ ) {
+      int id, row;
+      float x,y,z;
+      tCA->Cluster(i).Get(id,row,x,y,z);
+      clusterIDs.push_back( id );
     }
+    tCA = tCA->GetNextTrack();
     int label;
     float purity;
     GetMCLabel( clusterIDs, label, purity );

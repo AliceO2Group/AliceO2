@@ -443,7 +443,6 @@ int AliHLTTPCCATrackerComponent::DoEvent
       Logging( kHLTLogDebug, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
                "Multiple slice numbers found in event 0x%08lX (%lu). Determining maximum occuring slice number...",
                evtData.fEventID, evtData.fEventID );
-      unsigned maxCntSlice = 0;
       slCntIter = sliceCnts.begin();
       for ( slIter = slices.begin(); slIter != slices.end(); slIter++, slCntIter++ ) {
         Logging( kHLTLogDebug, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
@@ -696,7 +695,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct",
 		 "%d tracks found for slice %d", sliceOutput[islice]->NTracks(), slice );
 	
-	mySize += sliceOutput[islice]->OutputMemorySize();
+	mySize += sliceOutput[islice]->Size();
 	ntracks += sliceOutput[islice]->NTracks();	  
       }
     else
@@ -716,7 +715,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
     for (int islice = 0;islice < slicecount;islice++)
       {
 	slice = minslice + islice;
-	mySize = sliceOutput[islice]->OutputMemorySize();
+	mySize = sliceOutput[islice]->Size();
 	if (mySize > 0)
 	  {
 	    AliHLTComponentBlockData bd;

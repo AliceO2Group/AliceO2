@@ -32,7 +32,7 @@
 #include "AliHLTTPCCATrackletConstructor.h"
 #include "AliHLTTPCCATrackletSelector.h"
 #include "AliHLTTPCCAProcess.h"
-#include "AliHLTTPCCASliceTrack.h"
+#include "AliHLTTPCCASliceOutTrack.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCADataCompressor.h"
@@ -643,35 +643,22 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
   useOutput->SetNTrackClusters( fCommonMem->fNTrackHits );
 
   int nStoredHits = 0;
+  
+  AliHLTTPCCASliceOutTrack *out = useOutput->FirstTrack();
 
   for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
-    AliHLTTPCCATrack &iTrack = fTracks[iTr];
-    AliHLTTPCCASliceTrack out;
-    out.SetFirstClusterRef( nStoredHits );
-    out.SetNClusters( iTrack.NHits() );
-    out.SetParam( iTrack.Param() );
-   
-    useOutput->SetTrack( iTr, out );
-   
+    AliHLTTPCCATrack &iTrack = fTracks[iTr];    
+
+    out->SetParam( iTrack.Param() );
+    int nClu = 0;
     int iID = iTrack.FirstHitID();
+
     for ( int ith = 0; ith < iTrack.NHits(); ith++ ) {
       const AliHLTTPCCAHitId &ic = fTrackHits[iID + ith];
       int iRow = ic.RowIndex();
       int ih = ic.HitIndex();
       
       const AliHLTTPCCARow &row = fData.Row( iRow );
-      
-      //float y0 = row.Grid().YMin();
-      //float z0 = row.Grid().ZMin();
-      //float stepY = row.HstepY();
-      //float stepZ = row.HstepZ();
-      //float x = row.X();
-      
-      //const uint4 *tmpint4 = RowData() + row.FullOffset();
-      //const ushort2 *hits = reinterpret_cast<const ushort2*>(tmpint4);
-      //ushort2 hh = hits[ih];
-      //float y = y0 + hh.x*stepY;
-      //float z = z0 + hh.y*stepZ;
       
       int clusterIndex = fData.ClusterDataIndex( row, ih );
       int clusterRowIndex = clusterIndex - fClusterData->RowOffset( iRow );
@@ -691,21 +678,17 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
       
       float origX = fClusterData->X( clusterIndex );
       float origY = fClusterData->Y( clusterIndex );
-      float origZ = fClusterData->Z( clusterIndex );
-      
+      float origZ = fClusterData->Z( clusterIndex );      
       int id = fClusterData->Id( clusterIndex );
-      AliHLTTPCCACompressedCluster cXYZ = AliHLTTPCCADataCompressor::PackXYZ( iRow, origX, origY, origZ );
-      
-      //float2 hUnpackedYZ;
-      //hUnpackedYZ.x = origY;
-      //hUnpackedYZ.y = origZ;
-      //float hUnpackedX = origX;
-      
-      useOutput->SetClusterId( nStoredHits, id  );
-      useOutput->SetClusterRow( nStoredHits, ( unsigned char ) iRow  );
-      useOutput->SetClusterPackedXYZ( nStoredHits, cXYZ );
+      AliHLTTPCCASliceOutCluster c;
+      c.Set( id, iRow, origX, origY, origZ );
+      out->SetCluster( nClu, c );
+      nClu++;
       nStoredHits++;
     }
+
+    out->SetNClusters( nClu );
+    out = out->NextTrack();    
   }
 
   timer.Stop();
