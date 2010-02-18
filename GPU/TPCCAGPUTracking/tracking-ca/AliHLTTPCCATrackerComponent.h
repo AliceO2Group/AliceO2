@@ -89,7 +89,6 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     double fFullTime; //* total time for DoEvent() [s]
     double fRecoTime; //* total reconstruction time [s]
     Long_t    fNEvents;  //* number of reconstructed events
-    bool fOutputTRAKSEGS; //* use old type of output
     bool fAllowGPU;    //* Allow this tracker to run on GPU
 
     static bool CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b );

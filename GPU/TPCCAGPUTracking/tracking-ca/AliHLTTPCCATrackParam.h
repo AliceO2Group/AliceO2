@@ -13,7 +13,7 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAMath.h"
-#include "AliHLTTPCCATrackParam2.h"
+#include "AliHLTTPCCABaseTrackParam.h"
 
 class AliHLTTPCCATrackLinearisation;
 
@@ -32,8 +32,8 @@ class AliHLTTPCCATrackParam
       float fBethe, fE, fTheta2, fEP2, fSigmadE2, fK22, fK33, fK43, fK44;// parameters
     };
 
-	GPUd() const AliHLTTPCCATrackParam2& GetParam() const { return fParam; }
-	GPUd() void SetParam(const AliHLTTPCCATrackParam2& v) { fParam = v; }
+	GPUd() const AliHLTTPCCABaseTrackParam& GetParam() const { return fParam; }
+	GPUd() void SetParam(const AliHLTTPCCABaseTrackParam& v) { fParam = v; }
 	GPUd() void InitParam();
 
     GPUd() float X()      const { return fParam.X();    }
@@ -140,7 +140,7 @@ class AliHLTTPCCATrackParam
 #ifndef HLTCA_GPUCODE
   private:
 #endif //!HLTCA_GPUCODE
-	AliHLTTPCCATrackParam2 fParam; // Track Parameters
+	AliHLTTPCCABaseTrackParam fParam; // Track Parameters
 
   private:
 	//WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!

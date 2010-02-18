@@ -27,7 +27,6 @@
 #include "AliHLTTPCCATrack.h"
 #include "AliHLTTPCCAPerformance.h"
 #include "AliHLTTPCCAMCTrack.h"
-#include "AliHLTTPCCAOutTrack.h"
 
 #include "TString.h"
 #include "Riostream.h"
