@@ -21,7 +21,6 @@
 #include "AliHLTTPCCAPerformance.h"
 #include "AliHLTTPCCAMCTrack.h"
 #include "AliHLTTPCCAMCPoint.h"
-#include "AliHLTTPCCAOutTrack.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCAStandaloneFramework.h"

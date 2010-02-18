@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// $Id: AliHLTTPCCATrackParam2.h 35151 2009-10-01 13:35:10Z sgorbuno $
+// $Id: AliHLTTPCCABaseTrackParam.h 35151 2009-10-01 13:35:10Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -8,21 +8,20 @@
 //*************************************************************************
 
 
-#ifndef ALIHLTTPCCATRACKPARAM2_H
-#define ALIHLTTPCCATRACKPARAM2_H
+#ifndef ALIHLTTPCCABASETRACKPARAM_H
+#define ALIHLTTPCCABASETRACKPARAM_H
 
 #include "AliHLTTPCCADef.h"
-
-class AliHLTTPCCATrackLinearisation;
+class AliHLTTPCCATrackParam;
 
 /**
- * @class AliHLTTPCCATrackParam
+ * @class AliHLTTPCCABaseTrackParam
  *
- * AliHLTTPCCATrackParam class describes the track parametrisation
- * which is used by the AliHLTTPCCATracker slice tracker.
+ * AliHLTTPCCABaseTrackParam class contains track parameters 
+ * used in output of the AliHLTTPCCATracker slice tracker.
  * This class is used for transfer between tracker and merger and does not contain the covariance matrice
  */
-class AliHLTTPCCATrackParam2
+class AliHLTTPCCABaseTrackParam
 {
   public:
 
@@ -63,4 +62,4 @@ class AliHLTTPCCATrackParam2
     float fP[5];   // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
 };
 
-#endif //ALIHLTTPCCATRACKPARAM2_H
+#endif 

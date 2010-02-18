@@ -31,7 +31,6 @@ using namespace std;
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCTransform.h"
 #include "AliHLTTPCCATrackerFramework.h"
-#include "AliHLTTPCCAOutTrack.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackConvertor.h"
 #include "AliHLTArray.h"
@@ -70,8 +69,7 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     fClusterErrorCorrectionZ(0),
     fFullTime( 0 ),
     fRecoTime( 0 ),
-    fNEvents( 0 ),
-    fOutputTRAKSEGS( 0 ),
+    fNEvents( 0 ),    
     fAllowGPU( 0)
 {
   // see header file for class documentation
@@ -94,7 +92,6 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrack
     fFullTime( 0 ),
     fRecoTime( 0 ),
     fNEvents( 0 ),
-    fOutputTRAKSEGS( 0 ),
     fAllowGPU( 0)
 {
   // see header file for class documentation
@@ -136,8 +133,7 @@ void AliHLTTPCCATrackerComponent::GetInputDataTypes( vector<AliHLTComponentDataT
 AliHLTComponentDataType AliHLTTPCCATrackerComponent::GetOutputDataType()
 {
   // see header file for class documentation
-  if ( fOutputTRAKSEGS ) return AliHLTTPCDefinitions::fgkTrackSegmentsDataType;
-  else return AliHLTTPCCADefinitions::fgkTrackletsDataType;
+  return AliHLTTPCCADefinitions::fgkTrackletsDataType;
 }
 
 void AliHLTTPCCATrackerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier )
@@ -164,7 +160,6 @@ void AliHLTTPCCATrackerComponent::SetDefaultConfiguration()
   fNeighboursSearchArea = 0;
   fClusterErrorCorrectionY = 0;
   fClusterErrorCorrectionZ = 0;
-  fOutputTRAKSEGS = 0;
   fFullTime = 0;
   fRecoTime = 0;
   fNEvents = 0;
@@ -229,12 +224,6 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
      HLTInfo( "Cluster Z error correction factor set to: %f", fClusterErrorCorrectionZ );
      continue;
    }
-
-   if ( argument.CompareTo( "-outputTRAKSEGS" ) == 0 ) {
-      fOutputTRAKSEGS = 1;
-      HLTInfo( "The special output type \"TRAKSEGS\" is set" );
-      continue;
-    }
 
     if (argument.CompareTo( "-allowGPU" ) == 0) {
       fAllowGPU = 1;
@@ -451,53 +440,37 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
     // Determine slice number to really use. (for obsolete output)
     if ( slices.size() > 1 ) {
-		Logging( fOutputTRAKSEGS ? kHLTLogError : kHLTLogDebug, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
+      Logging( kHLTLogDebug, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
                "Multiple slice numbers found in event 0x%08lX (%lu). Determining maximum occuring slice number...",
                evtData.fEventID, evtData.fEventID );
       unsigned maxCntSlice = 0;
       slCntIter = sliceCnts.begin();
       for ( slIter = slices.begin(); slIter != slices.end(); slIter++, slCntIter++ ) {
-        Logging( fOutputTRAKSEGS ? kHLTLogError : kHLTLogDebug, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
+        Logging( kHLTLogDebug, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
                  "Slice %lu found %lu times.", *slIter, *slCntIter );
-        if ( fOutputTRAKSEGS && maxCntSlice < *slCntIter ) {
-          maxCntSlice = *slCntIter;
-          slice = *slIter;
-        }
       }
-      if (fOutputTRAKSEGS)
-      {
-	    Logging( kHLTLogError, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
-               "Using slice %lu.", slice );
-	}
     } else if ( slices.size() > 0 ) {
       slice = *( slices.begin() );
     }
 
 
-	  if (fOutputTRAKSEGS)
+    for (int islice = minslice;islice <= maxslice;islice++)
+      {
+	bool found = false;
+	for(slIter = slices.begin(); slIter != slices.end();slIter++)
 	  {
-		  minslice = maxslice = slice;
+	    if (*slIter == islice)
+	      {
+		found = true;
+		break;
+	      }
 	  }
-	  else
+	if (!found)
 	  {
-		  for (int islice = minslice;islice <= maxslice;islice++)
-		  {
-			  bool found = false;
-			  for(slIter = slices.begin(); slIter != slices.end();slIter++)
-			  {
-				  if (*slIter == islice)
-				  {
-					  found = true;
-					  break;
-				  }
-			  }
-			  if (!found)
-			  {
-				  maxslice = islice - 1;
-				  break;
-			  }
-		  }
-	 }
+	    maxslice = islice - 1;
+	    break;
+	  }
+      }
   }
 
   if ( !fTracker ) fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
@@ -688,11 +661,9 @@ int AliHLTTPCCATrackerComponent::DoEvent
   AliHLTTPCCASliceOutput::outputControlStruct outputControl;
   //Set tracker output so tracker does not have to output both formats!
   outputControl.fEndOfSpace = 0;
-  outputControl.fObsoleteOutput = fOutputTRAKSEGS;
-  outputControl.fDefaultOutput = !fOutputTRAKSEGS;
 
   //For new output we can write directly to output buffer
-  outputControl.fOutputPtr = fOutputTRAKSEGS ? NULL : (char*) outputPtr;
+  outputControl.fOutputPtr =  (char*) outputPtr;
   outputControl.fOutputMaxSize = maxBufferSize;
 
   AliHLTTPCCASliceOutput** sliceOutput = new AliHLTTPCCASliceOutput*[slicecount];
@@ -717,159 +688,47 @@ int AliHLTTPCCATrackerComponent::DoEvent
       error = 1;
       break;     
     }
-	  slice = minslice + islice;
-
-	  if (sliceOutput[islice])
-	  {
-		  // write reconstructed tracks
-
-		  if ( fOutputTRAKSEGS ) {
-
-		  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct",
-				   "%d tracks found for slice %d", sliceOutput[islice]->NOutTracks(), slice );
-
-			ntracks = sliceOutput[islice]->NOutTracks();
-
-			AliHLTTPCTrackletData* outPtr = ( AliHLTTPCTrackletData* )( outputPtr );
-
-			AliHLTTPCTrackSegmentData* currOutTracklet = outPtr->fTracklets;
-
-			mySize =   ( ( AliHLTUInt8_t * )currOutTracklet ) -  ( ( AliHLTUInt8_t * )outputPtr );
-
-			outPtr->fTrackletCnt = 0;
-
-			for ( int itr = 0; itr < ntracks; itr++ ) {
-
-			  AliHLTTPCCAOutTrack &t = sliceOutput[islice]->OutTracks()[itr];
-
-			  //Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Wrtite output","track %d with %d hits", itr, t.NHits());
-
-			  if ( t.NHits() < fMinNTrackClusters ) continue;
-
-			  // calculate output track size
-
-			  unsigned int dSize = sizeof( AliHLTTPCTrackSegmentData ) + t.NHits() * sizeof( unsigned int );
-
-			  if ( mySize + dSize > maxBufferSize ) {
-				HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", maxBufferSize, mySize, ntracks - itr + 1 );
-				ret = -ENOSPC;
-				error = 1;
-				break;
-			  }
-
-			  // convert CA track parameters to HLT Track Segment
-
-			  int iFirstRow = 1000;
-			  int iLastRow = -1;
-			  int iFirstHit = sliceOutput[islice]->OutTrackHit(t.FirstHitRef());
-			  int iLastHit = iFirstHit;
-			  for ( int ih = 0; ih < t.NHits(); ih++ ) {
-				int hitID = sliceOutput[islice]->OutTrackHit(t.FirstHitRef() + ih);
-				int iRow = clusterData[islice].RowNumber( hitID );
-				if ( iRow < iFirstRow ) {  iFirstRow = iRow; iFirstHit = hitID; }
-				if ( iRow > iLastRow ) { iLastRow = iRow; iLastHit = hitID; }
-			  }
-
-			  AliHLTTPCCATrackParam par = t.StartPoint();
-
-			  par.TransportToX( clusterData[islice].X( iFirstHit ), .99 );
-
-			  AliExternalTrackParam tp;
-			  AliHLTTPCCATrackConvertor::GetExtParam( par, tp, 0 );
-
-			  currOutTracklet->fX = tp.GetX();
-			  currOutTracklet->fY = tp.GetY();
-			  currOutTracklet->fZ = tp.GetZ();
-			  currOutTracklet->fCharge = ( int ) tp.GetSign();
-			  currOutTracklet->fPt = TMath::Abs( tp.GetSignedPt() );
-			  float snp =  tp.GetSnp() ;
-			  if ( snp > .999 ) snp = .999;
-			  if ( snp < -.999 ) snp = -.999;
-			  currOutTracklet->fPsi = TMath::ASin( snp );
-			  currOutTracklet->fTgl = tp.GetTgl();
-
-			  currOutTracklet->fY0err = tp.GetSigmaY2();
-			  currOutTracklet->fZ0err = tp.GetSigmaZ2();
-			  float h = -currOutTracklet->fPt * currOutTracklet->fPt;
-			  currOutTracklet->fPterr = h * h * tp.GetSigma1Pt2();
-			  h = 1. / TMath::Sqrt((1.-snp)*(1.+snp));
-			  currOutTracklet->fPsierr = h * h * tp.GetSigmaSnp2();
-			  currOutTracklet->fTglerr = tp.GetSigmaTgl2();
-
-			  if ( par.TransportToX( clusterData[islice].X( iLastHit ), .99 ) ) {
-				currOutTracklet->fLastX = par.GetX();
-				currOutTracklet->fLastY = par.GetY();
-				currOutTracklet->fLastZ = par.GetZ();
-			  } else {
-				currOutTracklet->fLastX = clusterData[islice].X( iLastHit );
-				currOutTracklet->fLastY = clusterData[islice].Y( iLastHit );
-				currOutTracklet->fLastZ = clusterData[islice].Z( iLastHit );
-			  }
-			  //if( currOutTracklet->fLastX<10. ) {
-			  //HLTError("CA last point: hitxyz=%f,%f,%f, track=%f,%f,%f, tracklet=%f,%f,%f, nhits=%d",clusterData[islice].X( iLastHit ),clusterData[islice].Y( iLastHit],clusterData[islice].Z( iLastHit],
-			  //par.GetX(), par.GetY(),par.GetZ(),currOutTracklet->fLastX,currOutTracklet->fLastY ,currOutTracklet->fLastZ, t.NHits());
-			  //}
-		#ifdef INCLUDE_TPC_HOUGH
-		#ifdef ROWHOUGHPARAMS
-			  currOutTracklet->fTrackID = 0;
-			  currOutTracklet->fRowRange1 = clusterData[islice].RowNumber( iFirstHit );
-			  currOutTracklet->fRowRange2 = clusterData[islice].RowNumber( iLastHit );
-			  currOutTracklet->fSector = slice;
-			  currOutTracklet->fPID = 211;
-		#endif
-		#endif // INCLUDE_TPC_HOUGH
-
-
-			  currOutTracklet->fNPoints = t.NHits();
-
-			  for ( int i = 0; i < t.NHits(); i++ ) {
-				currOutTracklet->fPointIDs[i] = clusterData[islice].Id( sliceOutput[islice]->OutTrackHit(t.FirstHitRef()+i) );
-			  }
-
-			  currOutTracklet = ( AliHLTTPCTrackSegmentData* )( ( Byte_t * )currOutTracklet + dSize );
-			  mySize += dSize;
-			  outPtr->fTrackletCnt++;
-			}
-
-		  } else { // default output type
-
-		  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct",
-				   "%d tracks found for slice %d", sliceOutput[islice]->NTracks(), slice );
-
-			  mySize += sliceOutput[islice]->OutputMemorySize();
-			  ntracks += sliceOutput[islice]->NTracks();
-		  }
-	  }
-	  else
-	  {
-		  HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), tracks are not stored", maxBufferSize, mySize );
-		  mySize = 0;
-		  ret = -ENOSPC;
-		  ntracks = 0;
-		  error = 1;
-		  break;
-	  }
+    slice = minslice + islice;
+    
+    if (sliceOutput[islice])
+      {
+	// write reconstructed tracks
+	Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct",
+		 "%d tracks found for slice %d", sliceOutput[islice]->NTracks(), slice );
+	
+	mySize += sliceOutput[islice]->OutputMemorySize();
+	ntracks += sliceOutput[islice]->NTracks();	  
+      }
+    else
+      {
+	HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), tracks are not stored", maxBufferSize, mySize );
+	mySize = 0;
+	ret = -ENOSPC;
+	ntracks = 0;
+	error = 1;
+	break;
+      }
   }
-
+  
   size = 0;
   if (error == 0)
   {
-	  for (int islice = 0;islice < slicecount;islice++)
+    for (int islice = 0;islice < slicecount;islice++)
+      {
+	slice = minslice + islice;
+	mySize = sliceOutput[islice]->OutputMemorySize();
+	if (mySize > 0)
 	  {
-		  slice = minslice + islice;
-		  if (!fOutputTRAKSEGS) mySize = sliceOutput[islice]->OutputMemorySize();
-		  if (mySize > 0)
-		  {
-			AliHLTComponentBlockData bd;
-			FillBlockData( bd );
-			bd.fOffset = fOutputTRAKSEGS ? 0 : ((char*) sliceOutput[islice] - (char*) outputPtr);
-			bd.fSize = mySize;
-			bd.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( slice, slice, sliceminPatch[islice], slicemaxPatch[islice] );
-			bd.fDataType = GetOutputDataType();
-			outputBlocks.push_back( bd );
-			size += mySize;
-		  }
+	    AliHLTComponentBlockData bd;
+	    FillBlockData( bd );
+	    bd.fOffset = ((char*) sliceOutput[islice] - (char*) outputPtr);
+	    bd.fSize = mySize;
+	    bd.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( slice, slice, sliceminPatch[islice], slicemaxPatch[islice] );
+	    bd.fDataType = GetOutputDataType();
+	    outputBlocks.push_back( bd );
+	    size += mySize;
 	  }
+      }
   }
 
   //No longer needed
