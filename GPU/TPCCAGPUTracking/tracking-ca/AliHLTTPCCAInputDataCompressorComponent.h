@@ -10,6 +10,7 @@
 #define ALIHLTTPCCAINPUTDATACOMPRESSORCOMPONENT_H
 
 #include "AliHLTProcessor.h"
+class AliHLTTPCClusterData;
 
 /**
  * @class AliHLTTPCCAInputDataCompressorComponent
@@ -52,6 +53,12 @@ class AliHLTTPCCAInputDataCompressorComponent : public AliHLTProcessor
 
     /** @see component interface @ref AliHLTComponent::Spawn */
     AliHLTComponent* Spawn() ;
+
+  static int Compress( AliHLTTPCClusterData* inputPtr,
+		       AliHLTUInt32_t maxBufferSize,
+		       AliHLTUInt8_t* outputPtr,
+		       AliHLTUInt32_t& outputSize
+		       );
 
   protected:
 

@@ -126,7 +126,7 @@ void AliHLTTPCCATrackerComponent::GetInputDataTypes( vector<AliHLTComponentDataT
 {
   // see header file for class documentation
   list.clear();
-  list.push_back( AliHLTTPCDefinitions::fgkClustersDataType );
+  //list.push_back( AliHLTTPCDefinitions::fgkClustersDataType );
   list.push_back( AliHLTTPCCADefinitions::fgkCompressedInputDataType );
 }
 
@@ -410,8 +410,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
     for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
       iter = blocks + ndx;
-      if ( iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType
-	   && iter->fDataType != AliHLTTPCCADefinitions::fgkCompressedInputDataType
+      if ( // iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType &&
+	   iter->fDataType != AliHLTTPCCADefinitions::fgkCompressedInputDataType
 	   ) continue;
 
       slice = AliHLTTPCDefinitions::GetMinSliceNr( *iter );
@@ -552,11 +552,11 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	  for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
 		iter = blocks + ndx;
 		if ( slice != AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ) continue;
-		if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
-		  AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
-		  nClustersTotal += inPtrSP->fSpacePointCnt;
-		} 
-		else if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
+		//if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
+		//AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
+		//nClustersTotal += inPtrSP->fSpacePointCnt;
+		//} else 
+		if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
 		  const AliHLTUInt8_t * inPtr =  (const AliHLTUInt8_t *)iter->fPtr;
 		  while( inPtr< ((const AliHLTUInt8_t *) iter->fPtr) + iter->fSize ){
 		    AliHLTTPCCACompressedClusterRow *row = (AliHLTTPCCACompressedClusterRow*)inPtr;
@@ -597,6 +597,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 		iter = blocks + ndx;
 		int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
 		int nPatchClust = 0;
+		/*
 		if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
 		  AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
 		  nPatchClust = inPtrSP->fSpacePointCnt;
@@ -609,8 +610,9 @@ int AliHLTTPCCATrackerComponent::DoEvent
 		    }
 		    clusterData[islice].ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
 		  }	      
-		} 
-		else if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
+		} else 
+		*/
+		if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
 		  const AliHLTUInt8_t * inPtr = (const AliHLTUInt8_t *)iter->fPtr;
 		  nPatchClust=0;
 		  while( inPtr< ((const AliHLTUInt8_t *)iter->fPtr) + iter->fSize ){
