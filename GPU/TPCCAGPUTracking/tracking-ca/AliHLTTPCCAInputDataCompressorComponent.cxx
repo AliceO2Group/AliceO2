@@ -265,7 +265,7 @@ int AliHLTTPCCAInputDataCompressorComponent::Compress( AliHLTTPCClusterData* inp
       outRow = (AliHLTTPCCACompressedClusterRow*) outCluster;
       outCluster = outRow->fClusters;  
       outputSize+= ( ( AliHLTUInt8_t * )outCluster ) -  (( AliHLTUInt8_t * )outRow);
-      if ( outputSize > (int) maxBufferSize ){
+      if ( outputSize >  maxBufferSize ){
 	ret = -ENOSPC;
  	outputSize=0;
 	break;
@@ -295,7 +295,7 @@ int AliHLTTPCCAInputDataCompressorComponent::Compress( AliHLTTPCClusterData* inp
       UInt_t iz = ( (UInt_t) z )&0x00FFFFFF;
       
       outputSize+= sizeof( AliHLTTPCCACompressedCluster );
-      if ( outputSize > (int) maxBufferSize ){
+      if ( outputSize > maxBufferSize ){
 	outputSize = 0;
 	ret = -ENOSPC;
 	break;      
