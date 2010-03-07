@@ -34,7 +34,6 @@ using namespace std;
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCCADef.h"
-#include "TStopwatch.h"
 
 
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkCompressedInputDataType = AliHLTComponentDataTypeInitializer( "CAINPACK", kAliHLTDataOriginTPC );
@@ -45,10 +44,7 @@ ClassImp( AliHLTTPCCAInputDataCompressorComponent )
 AliHLTTPCCAInputDataCompressorComponent::AliHLTTPCCAInputDataCompressorComponent()
   :
   AliHLTProcessor(),
-  fTotalTime( 0 ),
-  fTotalInputSize( 0 ),
-  fTotalOutputSize( 0 ),
-  fNEvents( 0 )
+  fBenchmark("CAInputCompressor")
 {
   // see header file for class documentation
   // or
@@ -60,10 +56,7 @@ AliHLTTPCCAInputDataCompressorComponent::AliHLTTPCCAInputDataCompressorComponent
 AliHLTTPCCAInputDataCompressorComponent::AliHLTTPCCAInputDataCompressorComponent( const AliHLTTPCCAInputDataCompressorComponent& )
   :
   AliHLTProcessor(),
-  fTotalTime( 0 ),
-  fTotalInputSize( 0 ),
-  fTotalOutputSize( 0 ),
-  fNEvents( 0 )
+  fBenchmark("CAInputCompressor")
 {
   // see header file for class documentation
   HLTFatal( "copy constructor untested" );
@@ -124,10 +117,9 @@ AliHLTComponent* AliHLTTPCCAInputDataCompressorComponent::Spawn()
 int AliHLTTPCCAInputDataCompressorComponent::DoInit( int /*argc*/, const char** /*argv*/ )
 {
   // Configure the CA tracker component
-  fTotalTime = 0;
-  fTotalInputSize = 0;
-  fTotalOutputSize = 0; 
-  fNEvents = 0;
+  fBenchmark.Reset();
+  fBenchmark.SetTimer(0,"total");
+  fBenchmark.SetTimer(1,"reco");
   return 0;
 }
 
@@ -166,7 +158,8 @@ int AliHLTTPCCAInputDataCompressorComponent::DoEvent
     return 0;
   }
 
-  TStopwatch timer;
+  fBenchmark.StartNewEvent();
+  fBenchmark.Start(0);
 
   // Preprocess the data for CA Slice Tracker
 
@@ -177,7 +170,6 @@ int AliHLTTPCCAInputDataCompressorComponent::DoEvent
 
   Int_t ret = 0;
 
-  Int_t inTotalSize = 0;    
   Int_t outTotalSize = 0;
   Int_t minSlice = 100;
   Int_t maxSlice = -1;
@@ -186,17 +178,21 @@ int AliHLTTPCCAInputDataCompressorComponent::DoEvent
     const AliHLTComponentBlockData* iter = blocks + ndx;
     if ( iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType ) continue;    
 
+    fBenchmark.AddInput(iter->fSize);
+
     if( minSlice>AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ) minSlice = AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ;
     if( maxSlice<AliHLTTPCDefinitions::GetMaxSliceNr( *iter ) ) maxSlice = AliHLTTPCDefinitions::GetMaxSliceNr( *iter ) ;
       
-    inTotalSize += iter->fSize;
 
     AliHLTUInt32_t dSize = 0;
-   
+
+    fBenchmark.Start(1);
+  
     ret = Compress( ( AliHLTTPCClusterData* )( iter->fPtr ), maxBufferSize - outTotalSize,
 		    outputPtr+outTotalSize,
 		    dSize );
-    
+    fBenchmark.Stop(1);
+
     if ( ret!=0 ){
       HLTWarning( "Output buffer size exceed (buffer size %d, current size %d)", maxBufferSize );     
       break;
@@ -210,26 +206,21 @@ int AliHLTTPCCAInputDataCompressorComponent::DoEvent
     bd.fDataType = GetOutputDataType();
     outputBlocks.push_back( bd );
     outTotalSize+=dSize;      
+    fBenchmark.AddOutput(bd.fSize);
   }
 
   size = outTotalSize;
   
-  timer.Stop();
+  fBenchmark.Stop(0);
   
-  fTotalTime += timer.RealTime();
-  fTotalInputSize+= inTotalSize;
-  fTotalOutputSize+= outTotalSize;
-  fNEvents++;
-
   if( maxSlice<0 ) minSlice = -1;
-  Int_t hz = ( int ) ( fTotalTime > 1.e-10 ? fNEvents / fTotalTime : 100000 );
-  Float_t ratio = 0;
-  if( fTotalOutputSize>0 ) ratio = (Float_t ) (fTotalInputSize/fTotalOutputSize);
 
-  // Set log level to "Warning" for on-line system monitoring
-  
-  HLTInfo( "CAInputDataCompressor, slices %d-%d: speed %d Hz, ratio %f, %d events", minSlice, maxSlice, hz, ratio, fNEvents );
+  // Set log level to "Warning" for on-line system monitorin  
 
+  if( minSlice!=maxSlice ) fBenchmark.SetName(Form("CAInputDataCompressor, slices %d-%d", minSlice, maxSlice));
+  else fBenchmark.SetName(Form("CAInputDataCompressor, slice %d", minSlice));
+ 
+  HLTInfo( fBenchmark.GetStatistics());
   return ret;
 }
 

@@ -11,6 +11,7 @@
 #define ALIHLTTPCCATRACKERCOMPONENT_H
 
 #include "AliHLTProcessor.h"
+#include "AliHLTComponentBenchmark.h"
 
 class AliHLTTPCCATrackerFramework;
 class AliHLTTPCCASliceOutput;
@@ -86,9 +87,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     double fClusterErrorCorrectionY; // correction for the cluster errors
     double fClusterErrorCorrectionZ; // correction for the cluster errors
 
-    double fFullTime; //* total time for DoEvent() [s]
-    double fRecoTime; //* total reconstruction time [s]
-    Long_t    fNEvents;  //* number of reconstructed events
+    AliHLTComponentBenchmark fBenchmark; // benchmarks
     bool fAllowGPU;    //* Allow this tracker to run on GPU
 
     static bool CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b );

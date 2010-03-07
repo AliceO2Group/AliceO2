@@ -44,7 +44,6 @@ using namespace std;
 #include "AliHLTTPCTrackletDataFormat.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliExternalTrackParam.h"
-#include "TStopwatch.h"
 #include "TMath.h"
 #include "AliCDBEntry.h"
 #include "AliCDBManager.h"
@@ -67,9 +66,7 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     fNeighboursSearchArea( 0 ), 
     fClusterErrorCorrectionY(0), 
     fClusterErrorCorrectionZ(0),
-    fFullTime( 0 ),
-    fRecoTime( 0 ),
-    fNEvents( 0 ),    
+    fBenchmark("CATracker"), 
     fAllowGPU( 0)
 {
   // see header file for class documentation
@@ -89,9 +86,7 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrack
     fNeighboursSearchArea(0),
     fClusterErrorCorrectionY(0), 
     fClusterErrorCorrectionZ(0),
-    fFullTime( 0 ),
-    fRecoTime( 0 ),
-    fNEvents( 0 ),
+    fBenchmark("CATracker"),
     fAllowGPU( 0)
 {
   // see header file for class documentation
@@ -160,9 +155,9 @@ void AliHLTTPCCATrackerComponent::SetDefaultConfiguration()
   fNeighboursSearchArea = 0;
   fClusterErrorCorrectionY = 0;
   fClusterErrorCorrectionZ = 0;
-  fFullTime = 0;
-  fRecoTime = 0;
-  fNEvents = 0;
+  fBenchmark.Reset();
+  fBenchmark.SetTimer(0,"total");
+  fBenchmark.SetTimer(1,"reco");
 }
 
 int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments )
@@ -384,7 +379,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
     return 0;
   }
 
-  TStopwatch timer;
+  fBenchmark.StartNewEvent();
+  fBenchmark.Start(0);
 
   // Event reconstruction in one TPC slice with CA Tracker
 
@@ -555,8 +551,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
 		if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
 		  AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
 		  nClustersTotal += inPtrSP->fSpacePointCnt;
+		  fBenchmark.AddInput(iter->fSize);
 		} else 
 		if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
+		  fBenchmark.AddInput(iter->fSize);
 		  const AliHLTUInt8_t * inPtr =  (const AliHLTUInt8_t *)iter->fPtr;
 		  while( inPtr< ((const AliHLTUInt8_t *) iter->fPtr) + iter->fSize ){
 		    AliHLTTPCCACompressedClusterRow *row = (AliHLTTPCCACompressedClusterRow*)inPtr;
@@ -670,10 +668,11 @@ int AliHLTTPCCATrackerComponent::DoEvent
   memset(sliceOutput, 0, slicecount * sizeof(AliHLTTPCCASliceOutput*));
 
   // reconstruct the event
-  TStopwatch timerReco;
+
+  fBenchmark.Start(1);
   fTracker->SetOutputControl(&outputControl);
   fTracker->ProcessSlices(minslice, slicecount, clusterData, sliceOutput);
-  timerReco.Stop();
+  fBenchmark.Stop(1);
   
   int ret = 0;
   unsigned int mySize = 0;
@@ -727,28 +726,27 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	    bd.fDataType = GetOutputDataType();
 	    outputBlocks.push_back( bd );
 	    size += mySize;
+	    fBenchmark.AddOutput(bd.fSize);
 	  }
       }
   }
+
 
   //No longer needed
 
   delete[] clusterData;
   delete[] sliceOutput;
 
-  timer.Stop();
-
-  fFullTime += timer.RealTime();
-  fRecoTime += timerReco.RealTime();
-  fNEvents++;
+  fBenchmark.Stop(0);
 
   // Set log level to "Warning" for on-line system monitoring
-  int hz = ( int ) ( fFullTime > 1.e-10 ? fNEvents / fFullTime : 100000 );
-  int hz1 = ( int ) ( fRecoTime > 1.e-10 ? fNEvents / fRecoTime : 100000 );
-  //Min and Max Patch are taken for first slice processed...
-  HLTInfo( "CATracker slices %d-%d: output %d tracks;  input %d clusters, patches %d..%d, rows %d..%d; time: full %d / reco %d Hz",
-           minslice, maxslice, ntracks, nClustersTotalSum, sliceminPatch[0], slicemaxPatch[0], slicerow[0], slicerow[1], hz, hz1 );
 
+  //Min and Max Patch are taken for first slice processed...
+
+  if( minslice==maxslice ) fBenchmark.SetName(Form("CATracker slice %d",minslice));
+  else fBenchmark.SetName(Form("CATracker slices %d-%d",minslice,maxslice));
+
+  HLTInfo(fBenchmark.GetStatistics());
   //No longer needed
 
   delete[] slicerow;
