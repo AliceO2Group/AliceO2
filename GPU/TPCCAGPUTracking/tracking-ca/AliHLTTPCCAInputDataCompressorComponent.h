@@ -10,6 +10,8 @@
 #define ALIHLTTPCCAINPUTDATACOMPRESSORCOMPONENT_H
 
 #include "AliHLTProcessor.h"
+#include "AliHLTComponentBenchmark.h"
+
 class AliHLTTPCClusterData;
 
 /**
@@ -82,10 +84,7 @@ class AliHLTTPCCAInputDataCompressorComponent : public AliHLTProcessor
 
   private:
 
-    double fTotalTime; //* total time for DoEvent() [s]
-    double fTotalInputSize; //* total input size in [bytes]
-    double fTotalOutputSize; //* total output size in [bytes]
-    Long_t fNEvents;  //* number of reconstructed events
+  AliHLTComponentBenchmark fBenchmark; // benchmarks
 
     ClassDef( AliHLTTPCCAInputDataCompressorComponent, 0 );
 };
