@@ -1,9 +1,18 @@
+//-*- Mode: C++ -*-
+// $Id$
+
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
 // See cxx source for full Copyright notice                               *
 //                                                                        *
 //*************************************************************************
+
+//  @file   AliHLTTPCCAGPUTrackerNVCC.h
+//  @author David Rohr, Sergey Gorbunov
+//  @date   
+//  @brief  TPC CA Tracker for the NVIDIA GPU
+//  @note 
 
 #ifndef ALIHLTTPCCAGPUTRACKERNVCC_H
 #define ALIHLTTPCCAGPUTRACKERNVCC_H
@@ -50,9 +59,9 @@ private:
 	void ReleaseGlobalLock(void* sem);
 	int CheckMemorySizes(int sliceCount);
 
-	AliHLTTPCCATracker *fGpuTracker;
-	void* fGPUMemory;
-	void* fHostLockedMemory;
+	AliHLTTPCCATracker *fGpuTracker; //!
+	void* fGPUMemory; //!
+	void* fHostLockedMemory; //!
 
 	int CUDASync(char* state = "UNKNOWN");
 	template <class T> T* alignPointer(T* ptr, int alignment);
@@ -63,21 +72,21 @@ private:
 	std::ostream* fOutFile;		//Debug Output Stream Pointer
 	unsigned long long int fGPUMemSize;	//Memory Size to allocate on GPU
 
-	void* fpCudaStreams;
+	void* fpCudaStreams; //!
 
-	int fSliceCount;
+	int fSliceCount; //!
 
-	static const int fgkNSlices = 36;
-	AliHLTTPCCATracker fSlaveTrackers[fgkNSlices];
+	static const int fgkNSlices = 36; //!
+	AliHLTTPCCATracker fSlaveTrackers[fgkNSlices]; //!
 #ifdef HLTCA_GPUCODE
 	bool CudaFailedMsg(cudaError_t error);
 #endif //HLTCA_GPUCODE
 
 	AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 	
-	static bool fgGPUUsed;
-	int fThreadId;
-	int fCudaInitialized;
+	static bool fgGPUUsed; //!
+	int fThreadId; //!
+	int fCudaInitialized; //!
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );
