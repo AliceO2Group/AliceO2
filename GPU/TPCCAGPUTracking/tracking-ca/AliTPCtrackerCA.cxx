@@ -140,7 +140,7 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
       for ( int iyz = 0; iyz < 2; iyz++ ) {
         for ( int k = 0; k < 7; k++ ) {
           //std::cout<<param.fParamS0Par[iyz][type][k]<<" "<<clparam->fParamS0Par[iyz][type][k] - param.fParamS0Par[iyz][type][k]<<std::endl;
-          param.SetParamS0Par( iyz, type, k, clparam->ParamS0Par(iyz, type, k));
+          param.SetParamS0Par( iyz, type, k, clparam->fParamS0Par[iyz][type][k] );
         }
       }
     }
