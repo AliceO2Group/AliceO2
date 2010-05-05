@@ -593,15 +593,15 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		if (fDebugLevel >= 3) HLTInfo("Initialising GPU Hits Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerHitsMemory(tmpMem, pClusterData[iSlice].NumberOfClusters());
-		tmpMem = alignPointer(tmpMem, 64 * 1024);
+		tmpMem = alignPointer(tmpMem, 1024 * 1024);
 
 		if (fDebugLevel >= 3) HLTInfo("Initialising GPU Tracklet Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTrackletsMemory(tmpMem, HLTCA_GPU_MAX_TRACKLETS /* *fSlaveTrackers[firstSlice + iSlice].NTracklets()*/);
-		tmpMem = alignPointer(tmpMem, 64 * 1024);
+		tmpMem = alignPointer(tmpMem, 1024 * 1024);
 
 		if (fDebugLevel >= 3) HLTInfo("Initialising GPU Track Memory");
 		tmpMem = fGpuTracker[iSlice].SetGPUTrackerTracksMemory(tmpMem, HLTCA_GPU_MAX_TRACKS /* *fSlaveTrackers[firstSlice + iSlice].NTracklets()*/, pClusterData[iSlice].NumberOfClusters());
-		tmpMem = alignPointer(tmpMem, 64 * 1024);
+		tmpMem = alignPointer(tmpMem, 1024 * 1024);
 
 		if (fGpuTracker[iSlice].TrackMemorySize() >= HLTCA_GPU_TRACKS_MEMORY)
 		{
