@@ -103,12 +103,13 @@ namespace AliHLTTPCCADefinitions
   extern const AliHLTComponentDataType fgkCompressedInputDataType;
 }
 
+#define TRACKER_KEEP_TEMPDATA
+
 #endif //HLTCA_STANDALONE
 
 #define EXTERN_ROW_HITS
 #define TRACKLET_SELECTOR_MIN_HITS 10
 #define REPRODUCIBLE_CLUSTER_SORTING
-#define TRACKER_KEEP_TEMPDATA
 
 #ifdef HLTCA_GPUCODE
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6

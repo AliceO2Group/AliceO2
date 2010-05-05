@@ -272,7 +272,16 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
     do {
 
       if ( iRow < r.fStartRow || r.fCurrIH < 0  ) break;
-      if ( ( iRow - r.fStartRow ) % 2 != 0 ) break; // SG!!! - jump over the row
+      if ( ( iRow - r.fStartRow ) % 2 != 0 )
+	  {
+#ifndef EXTERN_ROW_HITS
+		  tracklet.SetRowHit(iRow, -1);
+#else
+		  tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = -1;
+#endif //EXTERN_ROW_HITS
+		  break; // SG!!! - jump over the row
+	  }
+
 
 //#ifdef HLTCA_GPU_PREFETCHDATA
 //      uint4 *tmpint4 = s.fData[r.fCurrentData];
@@ -1073,17 +1082,8 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(Al
 							if ( !tParam.TransportToX( tracker.Row( rMem.fEndRow ).X(), tracker.Param().ConstBz(), .999 ) )
 #else
 							if ( !tParam.TransportToX( sMem.fRows[ rMem.fEndRow ].X(), tracker.Param().ConstBz(), .999 ) )
-#endif //HLTCA_GPU_PREFETCHDATA | !HLTCA_GPU_PREFETCH_ROWBLOCK_ONLY
+#endif //HLTCA_GPU_PREFETCHDATA
 							{
-								for (int l = rMem.fStartRow + 1;l < rMem.fEndRow;l += 2)
-								{
-#ifndef EXTERN_ROW_HITS
-									tracker.Tracklets()[rMem.fItr].SetRowHit(l, -1);
-#else
-									tracker.TrackletRowHits()[l * sMem.fNTracklets + rMem.fItr] = -1;
-#endif //EXTERN_ROW_HITS
-								}
-
 								rMem.fGo = 0;
 							}
 							else
@@ -1235,7 +1235,7 @@ GPUg() void AliHLTTPCCATrackletConstructorGPUPP(int firstSlice, int sliceCount)
 
 GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPUPP(AliHLTTPCCATracker *tracker)
 {
-	GPUshared() AliHLTTPCCASharedMemory sMem;
+/*	GPUshared() AliHLTTPCCASharedMemory sMem;
 	sMem.fNTracklets = *tracker->NTracklets();
 
 	for (int i = threadIdx.x;i < HLTCA_ROW_COUNT * sizeof(AliHLTTPCCARow) / sizeof(int);i += blockDim.x)
@@ -1302,7 +1302,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPUPP(
 			}
 			StoreTracklet( gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, sMem, rMem, *tracker, tParam );
 		}
-	}
+	}*/
 }
 
 #else //HLTCA_GPUCODE
