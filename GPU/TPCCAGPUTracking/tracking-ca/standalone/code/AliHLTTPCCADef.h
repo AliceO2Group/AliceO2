@@ -31,6 +31,8 @@
 #pragma warning(disable : 1786)
 #pragma warning(disable : 1478)
 #pragma warning(disable : 161)
+#pragma warning(disable : 94)
+#pragma warning(disable : 1229)
 #endif //INTEL_RUNTIME
 
 #ifdef VSNET_RUNTIME

@@ -47,7 +47,8 @@ class AliHLTTPCCATracker
 
   AliHLTTPCCATracker()
     :
-#ifdef TRACKER_KEEP_TEMPDATA
+#ifdef HLTCA_STANDALONE
+      fStageAtSync( NULL ),
 	  fLinkTmpMemory( NULL ),
 #endif
 	  fParam(),
@@ -264,20 +265,15 @@ class AliHLTTPCCATracker
 
   GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
 
-#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+#ifdef HLTCA_STANDALONE
   GPUhd() char* StageAtSync() {return(fStageAtSync);}
-#endif
-#ifdef TRACKER_KEEP_TEMPDATA
   GPUh() const char* LinkTmpMemory() const {return(fLinkTmpMemory);}
 #endif
 
 private:
-//Temporary Variables for Standalone measurements
-#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+	//Temporary Variables for Standalone measurements
+#ifdef HLTCA_STANDALONE
   char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
-#endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-
-#ifdef TRACKER_KEEP_TEMPDATA
   char *fLinkTmpMemory;	//tmp memory for hits after neighbours finder
 #endif
   

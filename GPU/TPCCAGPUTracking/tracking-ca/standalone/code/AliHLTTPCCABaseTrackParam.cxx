@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCATrackParam.cxx 33907 2009-07-23 13:52:49Z sgorbuno $
+// $Id: AliHLTTPCCABaseTrackParam.cxx 33907 2009-07-23 13:52:49Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -17,4 +17,4 @@
 //                                                                          *
 //***************************************************************************
 
-#include "AliHLTTPCCATrackParam2.h"
+#include "AliHLTTPCCABaseTrackParam.h"

@@ -16,6 +16,7 @@
 */
 
 #include "AliHLTProcessor.h"
+#include "AliHLTComponentBenchmark.h"
 
 class AliHLTTPCCAMerger;
 class AliHLTTPCVertex;
@@ -115,6 +116,7 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     double fSolenoidBz;  // magnetic field
     double fClusterErrorCorrectionY; // correction for the cluster error during pre-fit
     double fClusterErrorCorrectionZ; // correction for the cluster error during pre-fit
+    AliHLTComponentBenchmark fBenchmark;// benchmark
 
     ClassDef( AliHLTTPCCAGlobalMergerComponent, 0 )
 };

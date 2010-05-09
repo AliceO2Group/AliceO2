@@ -12,9 +12,12 @@
 
 #include "AliHLTTPCCADef.h"
 #include <cstdlib>
-#include "AliHLTTPCCASliceTrack.h"
-//Obsolete
-#include "AliHLTTPCCAOutTrack.h"
+#ifndef HLTCA_GPUCODE
+#include "AliHLTTPCCASliceOutTrack.h"
+#else
+class AliHLTTPCCASliceOutTrack;
+#endif
+
 
 /**
  * @class AliHLTTPCCASliceOutput
@@ -31,88 +34,50 @@ class AliHLTTPCCASliceOutput
 {
   public:
 
-	struct outputControlStruct
-	{
-		outputControlStruct() : fObsoleteOutput( 1 ), fDefaultOutput( 1 ), fOutputPtr( NULL ), fOutputMaxSize ( 0 ), fEndOfSpace(0) {}
-		int fObsoleteOutput;	//Enable Obsolete Output
-		int fDefaultOutput;		//Enable Default Output
-		char* fOutputPtr;		//Pointer to Output Space, NULL to allocate output space
-	        int fOutputMaxSize;		//Max Size of Output Data if Pointer to output space is given
-   	        bool fEndOfSpace; // end of space flag 
-	};
+  struct outputControlStruct
+  {
+    outputControlStruct() :  fOutputPtr( NULL ), fOutputMaxSize ( 0 ), fEndOfSpace(0) {}
+    char* fOutputPtr;		//Pointer to Output Space, NULL to allocate output space
+    int fOutputMaxSize;		//Max Size of Output Data if Pointer to output space is given
+    bool fEndOfSpace; // end of space flag 
+  };
 
-    GPUhd() int NTracks()                    const { return fNTracks;              }
-    GPUhd() int NTrackClusters()             const { return fNTrackClusters;       }
+  GPUhd() int NTracks()                    const { return fNTracks;              }
+  GPUhd() int NTrackClusters()             const { return fNTrackClusters;       }  
+#ifndef HLTCA_GPUCODE
+  GPUhd() const AliHLTTPCCASliceOutTrack *GetFirstTrack() const { return fMemory; }
+  GPUhd() AliHLTTPCCASliceOutTrack *FirstTrack(){ return fMemory; }
+#endif
+  GPUhd() size_t Size() const { return(fMemorySize); }
 
-    GPUhd() const AliHLTTPCCASliceTrack &Track( int i ) const { return TracksP()[i]; }
-    GPUhd() unsigned char   ClusterRow     ( int i )  const { return ClusterRowP()[i]; }
-    GPUhd()  int   ClusterId     ( int i )  const { return ClusterIdP()[i]; }
-    GPUhd() float2   ClusterUnpackedYZ ( int i )  const { return ClusterUnpackedYZP()[i]; }
-    GPUhd() float    ClusterUnpackedX  ( int i )  const { return ClusterUnpackedXP()[i]; }
+  static int EstimateSize( int nOfTracks, int nOfTrackClusters );
+  static void Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl);
 
-    GPUhd() static int EstimateSize( int nOfTracks, int nOfTrackClusters );
-    void SetPointers(int nTracks = -1, int nTrackClusters = -1, const outputControlStruct* outputControl = NULL);
-	static void Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl);
-
-    GPUhd() void SetNTracks       ( int v )  { fNTracks = v;        }
-    GPUhd() void SetNTrackClusters( int v )  { fNTrackClusters = v; }
-
-    GPUhd() void SetTrack( int i, const AliHLTTPCCASliceTrack &v ) {  TracksP()[i] = v; }
-    GPUhd() void SetClusterRow( int i, unsigned char v ) {  ClusterRowP()[i] = v; }
-    GPUhd() void SetClusterId( int i, int v ) {  ClusterIdP()[i] = v; }
-    GPUhd() void SetClusterUnpackedYZ( int i, float2 v ) {  ClusterUnpackedYZP()[i] = v; }
-    GPUhd() void SetClusterUnpackedX( int i, float v ) {  ClusterUnpackedXP()[i] = v; }
-
-	GPUhd() size_t OutputMemorySize() const { return(fMemorySize); }
-
-	//Obsolete Output
-
-    GPUhd()  int NOutTracks() const { return(fNOutTracks); }
-	GPUhd()  void SetNOutTracks(int val) { fNOutTracks = val; }
-    GPUhd()  AliHLTTPCCAOutTrack *OutTracks() const { return  fOutTracks; }
-    GPUhd()  const AliHLTTPCCAOutTrack &OutTrack( int index ) const { return fOutTracks[index]; }
-    GPUhd()  int NOutTrackHits() const { return  fNOutTrackHits; }
-	GPUhd()  void SetNOutTrackHits(int val) { fNOutTrackHits = val; }
-    GPUhd()  void SetOutTrackHit(int n, int val) { fOutTrackHits[n] = val; }
-    GPUhd()  int OutTrackHit( int i ) const { return  fOutTrackHits[i]; }
+  GPUhd() void SetNTracks       ( int v )  { fNTracks = v;        }
+  GPUhd() void SetNTrackClusters( int v )  { fNTrackClusters = v; }
 
   private:
-    AliHLTTPCCASliceOutput()
-        : fNTracks( 0 ), fNTrackClusters( 0 ), fTracksOffset( 0 ),  fClusterIdOffset( 0 ), fClusterRowOffset( 0 ), fClusterUnpackedYZOffset( 0 ), fClusterUnpackedXOffset( 0 ),
-		fMemorySize( 0 ), fNOutTracks(0), fNOutTrackHits(0), fOutTracks(0), fOutTrackHits(0) {}
 
-	~AliHLTTPCCASliceOutput() {}
-    const AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) const { return *this; }
-    AliHLTTPCCASliceOutput( const AliHLTTPCCASliceOutput& );
+  AliHLTTPCCASliceOutput()
+    : fNTracks( 0 ), fNTrackClusters( 0 ), fMemorySize( 0 ){}
+  
+  ~AliHLTTPCCASliceOutput() {}
+  const AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) const { return *this; }
+  AliHLTTPCCASliceOutput( const AliHLTTPCCASliceOutput& );
 
-	GPUh() void SetMemorySize(size_t val) { fMemorySize = val; }
+  GPUh() void SetMemorySize(size_t val) { fMemorySize = val; }
 
-  GPUhd() AliHLTTPCCASliceTrack *TracksP() const { return (AliHLTTPCCASliceTrack*)(fMemory+fTracksOffset); }
-  GPUhd() int *ClusterIdP() const { return (int*)(fMemory+fClusterIdOffset); }
-  GPUhd() UChar_t *ClusterRowP() const { return (UChar_t *)(fMemory+fClusterRowOffset); }
-  GPUhd() float2 *ClusterUnpackedYZP() const { return (float2 *)(fMemory+fClusterUnpackedYZOffset); }
-  GPUhd() float *ClusterUnpackedXP() const { return (float *)(fMemory+fClusterUnpackedXOffset); }
+  int fNTracks;                   // number of reconstructed tracks
+  int fNTrackClusters;            // total number of track clusters
+  size_t fMemorySize;	       	// Amount of memory really used
 
-    int fNTracks;                   // number of reconstructed tracks
-    int fNTrackClusters;            // total number of track clusters
-    int fTracksOffset; // pointer to reconstructed tracks
-    int fClusterIdOffset;              // pointer to cluster Id's ( packed slice, patch, cluster )
-    int fClusterRowOffset;     // pointer to cluster row numbers
-    int fClusterUnpackedYZOffset;    // pointer to cluster coordinates (temporary data, for debug proposes)
-    int fClusterUnpackedXOffset;     // pointer to cluster coordinates (temporary data, for debug proposes)
-	size_t fMemorySize;				// Amount of memory really used
+  //Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
+  //This way the whole Slice Output is one consecutive Memory Segment
 
-    // obsolete output
-
-	int fNOutTracks;
-	int fNOutTrackHits;
-    AliHLTTPCCAOutTrack *fOutTracks; // output array of the reconstructed tracks
-    int *fOutTrackHits;  // output array of ID's of the reconstructed hits
-
-	//Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
-	//This way the whole Slice Output is one consecutive Memory Segment
-    char fMemory[1]; // the memory where the pointers above point into
+#ifndef HLTCA_GPUCODE
+  AliHLTTPCCASliceOutTrack fMemory[0]; // the memory where the pointers above point into
+#endif
 
 };
 
-#endif //ALIHLTTPCCASLICEOUTPUT_H
+#endif 

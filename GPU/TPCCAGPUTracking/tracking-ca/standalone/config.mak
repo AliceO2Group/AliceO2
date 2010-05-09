@@ -10,7 +10,6 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCAStartHitsFinder.cxx \
 								code/AliHLTTPCCANeighboursCleaner.cxx \
 								code/AliHLTTPCCAParam.cxx \
-								code/AliHLTTPCCAOutTrack.cxx \
 								code/AliHLTTPCCATracker.cxx \
 								code/AliHLTTPCCATrackerFramework.cxx \
 								code/AliHLTTPCCASliceData.cxx \
@@ -26,7 +25,8 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCAClusterData.cxx \
 								code/AliHLTTPCCARow.cxx \
 								code/AliHLTTPCCAGPUTracker.cxx \
-								standalone/AliHLTLogging.cxx								
+								standalone/AliHLTLogging.cxx \
+								standalone/AliHLTTPCTransform.cxx
 ASMFILES					= 
 
 

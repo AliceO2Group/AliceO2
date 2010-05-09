@@ -19,7 +19,6 @@
 
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAClusterData;
-class AliHLTTPCCAStandaloneFramework;
 
 class AliHLTTPCCATrackerFramework : AliHLTLogging
 {

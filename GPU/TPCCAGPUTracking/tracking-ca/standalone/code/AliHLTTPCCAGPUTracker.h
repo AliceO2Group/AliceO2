@@ -16,6 +16,7 @@ class AliHLTTPCCAClusterData;
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAParam;
 
+//Abstract Interface for GPU Tracker class
 class AliHLTTPCCAGPUTracker
 {
 public:
