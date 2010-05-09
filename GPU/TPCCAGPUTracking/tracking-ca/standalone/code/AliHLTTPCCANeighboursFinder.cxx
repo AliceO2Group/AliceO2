@@ -172,8 +172,8 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
 	  float2 yzUp2[kMaxN - ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP];
 #endif
 #else
-      unsigned short neighUp[5];
-      float2 yzUp[5];
+      unsigned short neighUp[kMaxN];
+      float2 yzUp[kMaxN];
 #endif //ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 
 		int nNeighUp = 0;

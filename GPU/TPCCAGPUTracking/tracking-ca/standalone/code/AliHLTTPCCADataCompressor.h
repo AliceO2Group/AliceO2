@@ -10,6 +10,8 @@
 #define ALIHLTTPCCADATACOMPRESSOR_H
 
 #include "AliHLTTPCCADef.h"
+#include "AliHLTTPCCACompressedInputData.h"
+#include "AliHLTTPCTransform.h"
 
 /**
  * @class AliHLTTPCCADataCompressor
@@ -42,6 +44,48 @@ class AliHLTTPCCADataCompressor
     GPUhd() static unsigned short YZ2UShort( float Y, float Z );
     GPUhd() static float  UShort2Y ( unsigned short iYZ );
     GPUhd() static float  UShort2Z ( unsigned short iYZ );
+
+  static AliHLTTPCCACompressedCluster PackXYZ( int iRow, float X, float Y, float Z )
+  {
+    // pack the cluster
+
+    // get coordinates in [um]
+
+    Double_t rowX = AliHLTTPCTransform::Row2X( iRow );
+	
+    Double_t x = (X - rowX )*1.e4 + 32768.;
+    Double_t y = Y*1.e4 + 8388608.;
+    Double_t z = Z*1.e4 + 8388608.;
+	
+    // truncate if necessary
+    if( x<0 ) x = 0; else if( x > 0x0000FFFF ) x = 0x0000FFFF;
+    if( y<0 ) y = 0; else if( y > 0x00FFFFFF ) y = 0x00FFFFFF;
+    if( z<0 ) z = 0; else if( z > 0x00FFFFFF ) z = 0x00FFFFFF;
+	
+    UInt_t ix0 =  ( (UInt_t) x )&0x000000FF;
+    UInt_t ix1 = (( (UInt_t) x )&0x0000FF00 )>>8;
+    UInt_t iy = ( (UInt_t) y )&0x00FFFFFF;
+    UInt_t iz = ( (UInt_t) z )&0x00FFFFFF;
+	
+    AliHLTTPCCACompressedCluster ret;
+    ret.fP0 = (ix0<<24) + iy;
+    ret.fP1 = (ix1<<24) + iz;      
+    return ret;
+  }
+
+  static  void UnpackXYZ( int iRow, AliHLTTPCCACompressedCluster C, float &X, float &Y, float &Z  )
+  {
+    Double_t rowX = AliHLTTPCTransform::Row2X( iRow );
+
+    UInt_t ix0 = C.fP0 >>24;
+    UInt_t ix1 = C.fP1 >>24;
+    X = (ix1<<8) + ix0;
+    Y = C.fP0 & 0x00FFFFFF;
+    Z = C.fP1 & 0x00FFFFFF;
+    X = (X - 32768.)*1.e-4 + rowX;
+    Y = (Y - 8388608.)*1.e-4;
+    Z = (Z - 8388608.)*1.e-4;
+  }
 
 };
 

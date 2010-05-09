@@ -143,8 +143,6 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   StandaloneQueryFreq(&tmpFreq);
   StandaloneQueryTime(&startTime);
 
-  fOutputControl.fObsoleteOutput = 0;
-
   if (fEventDisplay)
   {
 	fTracker.SetKeepData(1);

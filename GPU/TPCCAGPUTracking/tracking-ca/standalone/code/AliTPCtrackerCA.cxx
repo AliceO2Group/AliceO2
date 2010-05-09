@@ -1,4 +1,4 @@
-// $Id: AliTPCtrackerCA.cxx 35611 2009-10-16 02:49:04Z sgorbuno $
+// $Id: AliTPCtrackerCA.cxx 40271 2010-04-08 23:19:32Z richterm $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -140,7 +140,11 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
       for ( int iyz = 0; iyz < 2; iyz++ ) {
         for ( int k = 0; k < 7; k++ ) {
           //std::cout<<param.fParamS0Par[iyz][type][k]<<" "<<clparam->fParamS0Par[iyz][type][k] - param.fParamS0Par[iyz][type][k]<<std::endl;
+#ifndef HAVE_NOT_ALITPCCLUSTERPARAM_r40128
+          param.SetParamS0Par( iyz, type, k, clparam->ParamS0Par(iyz, type, k));
+#else
           param.SetParamS0Par( iyz, type, k, clparam->fParamS0Par[iyz][type][k] );
+#endif //HAVE_NOT_ALITPCCLUSTERPARAM_r40128
         }
       }
     }

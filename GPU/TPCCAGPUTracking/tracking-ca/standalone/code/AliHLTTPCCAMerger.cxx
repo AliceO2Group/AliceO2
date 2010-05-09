@@ -18,7 +18,7 @@
 //***************************************************************************
 
 #include <stdio.h>
-#include "AliHLTTPCCASliceTrack.h"
+#include "AliHLTTPCCASliceOutTrack.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackParam.h"
 
@@ -28,14 +28,13 @@
 #include "TStopwatch.h"
 
 #include "AliHLTTPCCATrackParam.h"
-#include "AliHLTTPCCASliceTrack.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAMergedTrack.h"
 #include "AliHLTTPCCAMergerOutput.h"
 #include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackLinearisation.h"
-
+#include "AliHLTTPCCADataCompressor.h"
 
 class AliHLTTPCCAMerger::AliHLTTPCCASliceTrackInfo
 {
@@ -227,29 +226,31 @@ void AliHLTTPCCAMerger::UnpackSlices()
 
     const AliHLTTPCCASliceOutput &slice = *( fkSlices[iSlice] );
 
+    const AliHLTTPCCASliceOutTrack *sliceTr = slice.GetFirstTrack();
+    
     for ( int itr = 0; itr < slice.NTracks(); itr++ ) {
 
-      const AliHLTTPCCASliceTrack &sTrack = slice.Track( itr );
       AliHLTTPCCATrackParam t0;
-	  t0.InitParam();
-	  t0.SetParam(sTrack.Param());
+      t0.InitParam();
+      t0.SetParam(sliceTr->Param());
       int nCluNew = 0;
-
-      for ( int iTrClu = 0; iTrClu < sTrack.NClusters(); iTrClu++ ) {
-
+      int nCluOld = sliceTr->NClusters();
+      for ( int iTrClu = 0; iTrClu < nCluOld; iTrClu++ ) {
+	
         // unpack cluster information
 
         AliHLTTPCCAClusterInfo &clu = fClusterInfos[nClustersCurrent + nCluNew];
-        int ic = sTrack.FirstClusterRef() + iTrClu;
-
+	int id, row;
+	float x,y,z;
+	sliceTr->Cluster( iTrClu ).Get(id,row,x,y,z);
+	
         clu.SetISlice( iSlice );
-        clu.SetIRow( slice.ClusterRow( ic ) );
-        clu.SetId( slice.ClusterId( ic ) );
+        clu.SetIRow( row );
+        clu.SetId( id );
         clu.SetPackedAmp( 0 );
-        float2 yz = slice.ClusterUnpackedYZ( ic );
-        clu.SetX( slice.ClusterUnpackedX( ic ) );
-        clu.SetY( yz.x );
-        clu.SetZ( yz.y );
+        clu.SetX( x );
+        clu.SetY( y );
+        clu.SetZ( z );
 
         if ( !t0.TransportToX( clu.X(), fSliceParam.GetBz( t0 ), .999 ) ) continue;
 
@@ -261,8 +262,6 @@ void AliHLTTPCCAMerger::UnpackSlices()
         nCluNew++ ;
       }
 
-      if ( nCluNew < .8*sTrack.NClusters() ) continue;
-
       // refit the track
 
       int hits[1000];
@@ -270,11 +269,15 @@ void AliHLTTPCCAMerger::UnpackSlices()
       for ( int i = 0; i < nHits; i++ ) hits[i] = nClustersCurrent + i;
 
       AliHLTTPCCATrackParam startPoint;
-	  startPoint.InitParam();
-	  startPoint.SetParam(sTrack.Param());
+      startPoint.InitParam();
+      startPoint.SetParam(sliceTr->Param());
       AliHLTTPCCATrackParam endPoint = startPoint;
       float startAlpha = fSliceParam.Alpha( iSlice );
       float endAlpha = startAlpha;
+  
+      sliceTr = sliceTr->GetNextTrack();
+      
+      if ( nCluNew < .8*nCluOld ) continue;
 
       if ( !FitTrack( endPoint, endAlpha, startPoint, startAlpha, hits, nHits, 0 ) ) continue;
 
@@ -282,7 +285,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
       startAlpha = endAlpha;
       if ( !FitTrack( startPoint, startAlpha, endPoint, endAlpha, hits, nHits, 1 ) ) continue;
 
-      if ( nHits < .8*sTrack.NClusters() ) continue;
+      if ( nHits < .8*nCluOld ) continue;
 
       // store the track
 
@@ -795,6 +798,12 @@ void AliHLTTPCCAMerger::Merging()
           endAlpha = segment.InnerAlpha();
           dir = 1;
         }
+		if (firstHit < 0)
+		{
+			//Buffer too small!!!
+			firstHit = 200;
+			break;
+		}
 
         for ( int jhit = 0; jhit < segment.NClusters(); jhit++ ) {
           int id = segment.FirstClusterRef() + jhit;

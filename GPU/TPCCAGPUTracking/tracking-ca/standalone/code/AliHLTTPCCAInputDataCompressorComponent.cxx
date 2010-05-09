@@ -34,7 +34,6 @@ using namespace std;
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCCADef.h"
-#include "TStopwatch.h"
 
 
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkCompressedInputDataType = AliHLTComponentDataTypeInitializer( "CAINPACK", kAliHLTDataOriginTPC );
@@ -45,10 +44,7 @@ ClassImp( AliHLTTPCCAInputDataCompressorComponent )
 AliHLTTPCCAInputDataCompressorComponent::AliHLTTPCCAInputDataCompressorComponent()
   :
   AliHLTProcessor(),
-  fTotalTime( 0 ),
-  fTotalInputSize( 0 ),
-  fTotalOutputSize( 0 ),
-  fNEvents( 0 )
+  fBenchmark("CAInputCompressor")
 {
   // see header file for class documentation
   // or
@@ -60,10 +56,7 @@ AliHLTTPCCAInputDataCompressorComponent::AliHLTTPCCAInputDataCompressorComponent
 AliHLTTPCCAInputDataCompressorComponent::AliHLTTPCCAInputDataCompressorComponent( const AliHLTTPCCAInputDataCompressorComponent& )
   :
   AliHLTProcessor(),
-  fTotalTime( 0 ),
-  fTotalInputSize( 0 ),
-  fTotalOutputSize( 0 ),
-  fNEvents( 0 )
+  fBenchmark("CAInputCompressor")
 {
   // see header file for class documentation
   HLTFatal( "copy constructor untested" );
@@ -124,10 +117,9 @@ AliHLTComponent* AliHLTTPCCAInputDataCompressorComponent::Spawn()
 int AliHLTTPCCAInputDataCompressorComponent::DoInit( int /*argc*/, const char** /*argv*/ )
 {
   // Configure the CA tracker component
-  fTotalTime = 0;
-  fTotalInputSize = 0;
-  fTotalOutputSize = 0; 
-  fNEvents = 0;
+  fBenchmark.Reset();
+  fBenchmark.SetTimer(0,"total");
+  fBenchmark.SetTimer(1,"reco");
   return 0;
 }
 
@@ -166,7 +158,8 @@ int AliHLTTPCCAInputDataCompressorComponent::DoEvent
     return 0;
   }
 
-  TStopwatch timer;
+  fBenchmark.StartNewEvent();
+  fBenchmark.Start(0);
 
   // Preprocess the data for CA Slice Tracker
 
@@ -177,7 +170,6 @@ int AliHLTTPCCAInputDataCompressorComponent::DoEvent
 
   Int_t ret = 0;
 
-  Int_t inTotalSize = 0;    
   Int_t outTotalSize = 0;
   Int_t minSlice = 100;
   Int_t maxSlice = -1;
@@ -186,73 +178,26 @@ int AliHLTTPCCAInputDataCompressorComponent::DoEvent
     const AliHLTComponentBlockData* iter = blocks + ndx;
     if ( iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType ) continue;    
 
+    fBenchmark.AddInput(iter->fSize);
+
     if( minSlice>AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ) minSlice = AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ;
     if( maxSlice<AliHLTTPCDefinitions::GetMaxSliceNr( *iter ) ) maxSlice = AliHLTTPCDefinitions::GetMaxSliceNr( *iter ) ;
-   
-   
-    inTotalSize += iter->fSize;
+      
 
-    AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );    
+    AliHLTUInt32_t dSize = 0;
 
-    AliHLTTPCCACompressedCluster *outCluster = (AliHLTTPCCACompressedCluster*)( outputPtr+outTotalSize );
-    AliHLTTPCCACompressedClusterRow *outRow = 0;
+    fBenchmark.Start(1);
+  
+    ret = Compress( ( AliHLTTPCClusterData* )( iter->fPtr ), maxBufferSize - outTotalSize,
+		    outputPtr+outTotalSize,
+		    dSize );
+    fBenchmark.Stop(1);
 
-    Int_t dSize = 0;
-    UShort_t oldId = 0;
-    for ( unsigned int i = 0; i < inPtrSP->fSpacePointCnt; i++ ){ 
-      AliHLTTPCSpacePointData *cluster = &( inPtrSP->fSpacePoints[i] );
-      UInt_t origId = cluster->fID;
-      UInt_t patch = (origId>>22)&0x7;
-      UInt_t slice = origId>>25;
-      UInt_t row = cluster->fPadRow;
-      Double_t rowX = AliHLTTPCTransform::Row2X( row );
-      row = row - AliHLTTPCTransform::GetFirstRow( patch );
-      UShort_t id = (UShort_t)( (slice<<10) +(patch<<6) + row );
-      if( i==0 || id!= oldId ){ 
-	// fill new row header	
-	outRow = (AliHLTTPCCACompressedClusterRow*) outCluster;
-	outCluster = outRow->fClusters;  
-	dSize+= ( ( AliHLTUInt8_t * )outCluster ) -  (( AliHLTUInt8_t * )outRow);
-	if ( outTotalSize + dSize > (int) maxBufferSize ) break;
-	outRow->fSlicePatchRowID = id;	
-	outRow->fNClusters = 0;
-	oldId = id;
-	//cout<<"Fill row: s "<<slice<<" p "<<patch<<" r "<<row<<" x "<<outRow->fX<<":"<<endl;
-      }
-    
-      // pack the cluster
-      {
-	// get coordinates in [um]
-	
-	Double_t x = (cluster->fX - rowX )*1.e4 + 32768.;
-	Double_t y = (cluster->fY)*1.e4 + 8388608.;
-	Double_t z = (cluster->fZ)*1.e4 + 8388608.;
-	
-	// truncate if necessary
-	if( x<0 ) x = 0; else if( x > 0x0000FFFF ) x = 0x0000FFFF;
-	if( y<0 ) y = 0; else if( y > 0x00FFFFFF ) y = 0x00FFFFFF;
-	if( z<0 ) z = 0; else if( z > 0x00FFFFFF ) z = 0x00FFFFFF;
-	
-	UInt_t ix0 =  ( (UInt_t) x )&0x000000FF;
-	UInt_t ix1 = (( (UInt_t) x )&0x0000FF00 )>>8;
-	UInt_t iy = ( (UInt_t) y )&0x00FFFFFF;
-	UInt_t iz = ( (UInt_t) z )&0x00FFFFFF;
-	
-	dSize+= sizeof( AliHLTTPCCACompressedCluster );
-	if ( outTotalSize + dSize > (int) maxBufferSize ) break;      
-	outCluster->fP0 = (ix0<<24) + iy;
-	outCluster->fP1 = (ix1<<24) + iz;      
-	outCluster++;
-	outRow->fNClusters++;
-	//cout<<"clu "<<outRow->fNClusters-1<<": "<<cluster->fX<<" "<<cluster->fY<<" "<<cluster->fZ<<" "<<cluster->fID<<endl;
-      }
-    }
-    
-    if ( outTotalSize + dSize > (int) maxBufferSize ) {
-      HLTWarning( "Output buffer size exceed (buffer size %d, current size %d)", maxBufferSize, outTotalSize+ dSize );
-      ret = -ENOSPC;
+    if ( ret!=0 ){
+      HLTWarning( "Output buffer size exceed (buffer size %d, current size %d)", maxBufferSize );     
       break;
     }    
+   
     AliHLTComponentBlockData bd;
     FillBlockData( bd );
     bd.fOffset = outTotalSize;
@@ -260,28 +205,99 @@ int AliHLTTPCCAInputDataCompressorComponent::DoEvent
     bd.fSpecification = iter->fSpecification;
     bd.fDataType = GetOutputDataType();
     outputBlocks.push_back( bd );
-    outTotalSize+=dSize;    
+    outTotalSize+=dSize;      
+    fBenchmark.AddOutput(bd.fSize);
   }
 
   size = outTotalSize;
   
-  timer.Stop();
+  fBenchmark.Stop(0);
   
-  fTotalTime += timer.RealTime();
-  fTotalInputSize+= inTotalSize;
-  fTotalOutputSize+= outTotalSize;
-  fNEvents++;
-
   if( maxSlice<0 ) minSlice = -1;
-  Int_t hz = ( int ) ( fTotalTime > 1.e-10 ? fNEvents / fTotalTime : 100000 );
-  Float_t ratio = 0;
-  if( fTotalOutputSize>0 ) ratio = (Float_t ) (fTotalInputSize/fTotalOutputSize);
 
-  // Set log level to "Warning" for on-line system monitoring
-  
-  HLTInfo( "CAInputDataCompressor, slices %d-%d: speed %d Hz, ratio %f, %d events", minSlice, maxSlice, hz, ratio, fNEvents );
+  // Set log level to "Warning" for on-line system monitorin  
 
+  if( minSlice!=maxSlice ) fBenchmark.SetName(Form("CAInputDataCompressor, slices %d-%d", minSlice, maxSlice));
+  else fBenchmark.SetName(Form("CAInputDataCompressor, slice %d", minSlice));
+ 
+  HLTInfo( fBenchmark.GetStatistics());
   return ret;
 }
 
 
+
+int AliHLTTPCCAInputDataCompressorComponent::Compress( AliHLTTPCClusterData* inputPtr,
+						       AliHLTUInt32_t maxBufferSize,
+						       AliHLTUInt8_t* outputPtr,
+						       AliHLTUInt32_t& outputSize
+						       )
+{
+  // Preprocess the data for CA Slice Tracker
+
+  Int_t ret = 0;
+  outputSize = 0;
+
+  AliHLTTPCCACompressedCluster *outCluster = (AliHLTTPCCACompressedCluster*)( outputPtr );
+  AliHLTTPCCACompressedClusterRow *outRow = 0;
+
+  UShort_t oldId = 0;
+
+  for ( unsigned int i = 0; i < inputPtr->fSpacePointCnt; i++ ){ 
+    AliHLTTPCSpacePointData *cluster = &( inputPtr->fSpacePoints[i] );
+    UInt_t origId = cluster->fID;
+    UInt_t patch = (origId>>22)&0x7;
+    UInt_t slice = origId>>25;
+    UInt_t row = cluster->fPadRow;
+    Double_t rowX = AliHLTTPCTransform::Row2X( row );
+    row = row - AliHLTTPCTransform::GetFirstRow( patch );
+    UShort_t id = (UShort_t)( (slice<<10) +(patch<<6) + row );
+    if( i==0 || id!= oldId ){ 
+      // fill new row header	
+      outRow = (AliHLTTPCCACompressedClusterRow*) outCluster;
+      outCluster = outRow->fClusters;  
+      outputSize+= ( ( AliHLTUInt8_t * )outCluster ) -  (( AliHLTUInt8_t * )outRow);
+      if ( outputSize >  maxBufferSize ){
+	ret = -ENOSPC;
+ 	outputSize=0;
+	break;
+      }
+      outRow->fSlicePatchRowID = id;	
+      outRow->fNClusters = 0;
+      oldId = id;
+      //cout<<"Fill row: s "<<slice<<" p "<<patch<<" r "<<row<<" x "<<outRow->fX<<":"<<endl;
+    }
+    
+    // pack the cluster
+    {
+      // get coordinates in [um]
+	
+      Double_t x = (cluster->fX - rowX )*1.e4 + 32768.;
+      Double_t y = (cluster->fY)*1.e4 + 8388608.;
+      Double_t z = (cluster->fZ)*1.e4 + 8388608.;
+      
+      // truncate if necessary
+      if( x<0 ) x = 0; else if( x > 0x0000FFFF ) x = 0x0000FFFF;
+      if( y<0 ) y = 0; else if( y > 0x00FFFFFF ) y = 0x00FFFFFF;
+      if( z<0 ) z = 0; else if( z > 0x00FFFFFF ) z = 0x00FFFFFF;
+      
+      UInt_t ix0 =  ( (UInt_t) x )&0x000000FF;
+      UInt_t ix1 = (( (UInt_t) x )&0x0000FF00 )>>8;
+      UInt_t iy = ( (UInt_t) y )&0x00FFFFFF;
+      UInt_t iz = ( (UInt_t) z )&0x00FFFFFF;
+      
+      outputSize+= sizeof( AliHLTTPCCACompressedCluster );
+      if ( outputSize > maxBufferSize ){
+	outputSize = 0;
+	ret = -ENOSPC;
+	break;      
+      }
+      outCluster->fP0 = (ix0<<24) + iy;
+      outCluster->fP1 = (ix1<<24) + iz;      
+      outCluster++;
+      outRow->fNClusters++;
+      //cout<<"clu "<<outRow->fNClusters-1<<": "<<cluster->fX<<" "<<cluster->fY<<" "<<cluster->fZ<<" "<<cluster->fID<<endl;
+    }
+  }
+    
+  return ret;
+}

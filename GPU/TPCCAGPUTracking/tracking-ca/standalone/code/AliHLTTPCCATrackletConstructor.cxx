@@ -458,14 +458,6 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
                               ( iRow >= r.fStartRow && ( iRow - r.fStartRow ) % 2 == 0 )
                             ) ) break;
       if ( r.fNMissed > kMaxRowGap  ) {
-		if (iRow >= r.fStartRow)
-		{
-#ifndef EXTERN_ROW_HITS
-		  tracklet.SetRowHit(iRow, -1);
-#else
-		  tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = -1;
-#endif //EXTERN_ROW_HITS
-		}
         break;
       }
 

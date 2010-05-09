@@ -59,7 +59,7 @@ ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-  : fGlobalMerger( 0 ), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0)
+: fGlobalMerger( 0 ), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fBenchmark("GlobalMerger")
 {
   // see header file for class documentation
 }
@@ -114,6 +114,9 @@ void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
   fSolenoidBz = -5.00668;
   fClusterErrorCorrectionY = 0;
   fClusterErrorCorrectionZ = 1.1;
+  fBenchmark.Reset();
+  fBenchmark.SetTimer(0,"total");
+  fBenchmark.SetTimer(1,"reco");    
 }
 
 int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* arguments )
@@ -334,6 +337,8 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   if ( !IsDataEvent() ) {
     return 0;
   }
+  fBenchmark.StartNewEvent();
+  fBenchmark.Start(0);
 
   fGlobalMerger->Clear();
 
@@ -342,6 +347,8 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
     if ( block->fDataType != AliHLTTPCCADefinitions::fgkTrackletsDataType ) {
       continue;
     }
+
+    fBenchmark.AddInput(block->fSize);
 
     int slice = AliHLTTPCDefinitions::GetMinSliceNr( *block );
     if ( slice < 0 || slice >= AliHLTTPCTransform::GetNSlice() ) {
@@ -368,7 +375,9 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 	fwrite(sliceOut, 1, sliceOut->EstimateSize(sliceOut->NTracks(), sliceOut->NTrackClusters()), fp);
 	fclose(fp);*/
   }
+  fBenchmark.Start(1);
   fGlobalMerger->Reconstruct();
+  fBenchmark.Stop(1);
 
   const AliHLTTPCCAMergerOutput *mergerOutput = fGlobalMerger->Output();
 
@@ -442,6 +451,8 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
     resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginTPC;
     resultData.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( 0, 35, 0, 5 );
     outputBlocks.push_back( resultData );
+    fBenchmark.AddOutput(resultData.fSize);
+
     size = resultData.fSize;
   }
 
@@ -542,6 +553,8 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
 
   HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
   */
+  fBenchmark.Stop(0);
+  HLTInfo( fBenchmark.GetStatistics() );
   return iResult;
 }
 

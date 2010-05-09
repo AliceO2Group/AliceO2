@@ -69,7 +69,6 @@ texture<signed short, 1, cudaReadModeElementType> gAliTexRefs;
 #include "AliHLTTPCCAStartHitsFinder.cxx"
 #include "AliHLTTPCCAStartHitsSorter.cxx"
 #include "AliHLTTPCCATrackletConstructor.cxx"
-#include "AliHLTTPCCASliceOutput.cxx"
 
 #include "MemoryAssignmentHelpers.h"
 
@@ -1296,6 +1295,7 @@ AliHLTTPCCAGPUTracker* AliHLTTPCCAGPUTrackerNVCCCreate()
 {
 	return new AliHLTTPCCAGPUTrackerNVCC;
 }
+
 void AliHLTTPCCAGPUTrackerNVCCDestroy(AliHLTTPCCAGPUTracker* ptr)
 {
 	delete ptr;
