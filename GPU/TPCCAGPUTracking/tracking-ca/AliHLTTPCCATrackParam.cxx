@@ -21,7 +21,6 @@
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCATrackLinearisation.h"
-#include <iostream>
 
 //
 // Circle in XY:
