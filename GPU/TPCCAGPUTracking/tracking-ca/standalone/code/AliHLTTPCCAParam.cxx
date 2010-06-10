@@ -24,7 +24,7 @@
 
 #if !defined(HLTCA_GPUCODE)
 
-GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
+GPUdi() AliHLTTPCCAParam::AliHLTTPCCAParam()
     : fISlice( 0 ), fNRows( 63 ), fAlpha( 0.174533 ), fDAlpha( 0.349066 ),
     fCosAlpha( 0 ), fSinAlpha( 0 ), fAngleMin( 0 ), fAngleMax( 0 ), fRMin( 83.65 ), fRMax( 133.3 ),
     fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBzkG( -5.00668 ),
@@ -134,7 +134,7 @@ void AliHLTTPCCAParam::Update()
 #endif
 
 
-GPUd() void AliHLTTPCCAParam::Slice2Global( float x, float y,  float z,
+GPUdi() void AliHLTTPCCAParam::Slice2Global( float x, float y,  float z,
     float *X, float *Y,  float *Z ) const
 {
   // conversion of coorinates sector->global
@@ -143,7 +143,7 @@ GPUd() void AliHLTTPCCAParam::Slice2Global( float x, float y,  float z,
   *Z = z;
 }
 
-GPUd() void AliHLTTPCCAParam::Global2Slice( float X, float Y,  float Z,
+GPUdi() void AliHLTTPCCAParam::Global2Slice( float X, float Y,  float Z,
     float *x, float *y,  float *z ) const
 {
   // conversion of coorinates global->sector
@@ -152,7 +152,7 @@ GPUd() void AliHLTTPCCAParam::Global2Slice( float X, float Y,  float Z,
   *z = Z;
 }
 
-GPUd() float AliHLTTPCCAParam::GetClusterError2( int yz, int type, float z, float angle ) const
+GPUdi() float AliHLTTPCCAParam::GetClusterError2( int yz, int type, float z, float angle ) const
 {
   //* recalculate the cluster error wih respect to the track slope
 
@@ -162,7 +162,7 @@ GPUd() float AliHLTTPCCAParam::GetClusterError2( int yz, int type, float z, floa
   return CAMath::Abs( v );
 }
 
-GPUd() void AliHLTTPCCAParam::GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
+GPUdi() void AliHLTTPCCAParam::GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
 {
   //
   // Use calibrated cluster error from OCDB

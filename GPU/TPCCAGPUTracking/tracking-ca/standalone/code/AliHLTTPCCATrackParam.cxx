@@ -33,7 +33,7 @@
 // Yc = Y + cos(Phi)/Kappa;
 //
 
-GPUd() float AliHLTTPCCATrackParam::GetDist2( const AliHLTTPCCATrackParam &t ) const
+GPUdi() float AliHLTTPCCATrackParam::GetDist2( const AliHLTTPCCATrackParam &t ) const
 {
   // get squared distance between tracks
 
@@ -43,7 +43,7 @@ GPUd() float AliHLTTPCCATrackParam::GetDist2( const AliHLTTPCCATrackParam &t ) c
   return dx*dx + dy*dy + dz*dz;
 }
 
-GPUd() float AliHLTTPCCATrackParam::GetDistXZ2( const AliHLTTPCCATrackParam &t ) const
+GPUdi() float AliHLTTPCCATrackParam::GetDistXZ2( const AliHLTTPCCATrackParam &t ) const
 {
   // get squared distance between tracks in X&Z
 
@@ -53,7 +53,7 @@ GPUd() float AliHLTTPCCATrackParam::GetDistXZ2( const AliHLTTPCCATrackParam &t )
 }
 
 
-GPUd() float  AliHLTTPCCATrackParam::GetS( float x, float y, float Bz ) const
+GPUdi() float  AliHLTTPCCATrackParam::GetS( float x, float y, float Bz ) const
 {
   //* Get XY path length to the given point
 
@@ -67,7 +67,7 @@ GPUd() float  AliHLTTPCCATrackParam::GetS( float x, float y, float Bz ) const
   return dS;
 }
 
-GPUd() void  AliHLTTPCCATrackParam::GetDCAPoint( float x, float y, float z,
+GPUdi() void  AliHLTTPCCATrackParam::GetDCAPoint( float x, float y, float z,
     float &xp, float &yp, float &zp,
     float Bz ) const
 {
@@ -101,7 +101,7 @@ GPUd() void  AliHLTTPCCATrackParam::GetDCAPoint( float x, float y, float z,
 //*
 
 
-GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinearisation &t0, float Bz,  float maxSinPhi, float *DL )
+GPUdi() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinearisation &t0, float Bz,  float maxSinPhi, float *DL )
 {
   //* Transport the track parameters to X=x, using linearization at t0, and the field value Bz
   //* maxSinPhi is the max. allowed value for |t0.SinPhi()|
@@ -214,7 +214,7 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinea
 }
 
 
-GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, float sinPhi0, float cosPhi0,  float Bz, float maxSinPhi )
+GPUdi() bool  AliHLTTPCCATrackParam::TransportToX( float x, float sinPhi0, float cosPhi0,  float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x, using linearization at phi0 with 0 curvature,
   //* and the field value Bz
@@ -296,7 +296,7 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, float sinPhi0, float 
 
 
 
-GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, float Bz, float maxSinPhi )
+GPUdi() bool  AliHLTTPCCATrackParam::TransportToX( float x, float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x
 
@@ -307,7 +307,7 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToX( float x, float Bz, float maxSi
 
 
 
-GPUd() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTTPCCATrackLinearisation &t0, AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi )
+GPUdi() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTTPCCATrackLinearisation &t0, AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x  taking into account material budget
 
@@ -323,7 +323,7 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTTP
 }
 
 
-GPUd() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi )
+GPUdi() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x  taking into account material budget
 
@@ -331,7 +331,7 @@ GPUd() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTTP
   return TransportToXWithMaterial( x, t0, par, Bz, maxSinPhi );
 }
 
-GPUd() bool AliHLTTPCCATrackParam::TransportToXWithMaterial( float x, float Bz, float maxSinPhi )
+GPUdi() bool AliHLTTPCCATrackParam::TransportToXWithMaterial( float x, float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x taking into account material budget
 
@@ -346,7 +346,7 @@ GPUd() bool AliHLTTPCCATrackParam::TransportToXWithMaterial( float x, float Bz, 
 //*
 
 
-float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
+GPUi() float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
     float kp0,
     float kp1,
     float kp2,
@@ -390,7 +390,7 @@ float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
   return mK*mZA*( 1 + bg2 ) / bg2*( 0.5*AliHLTTPCCAMath::Log( 2*me*bg2*maxT / ( mI*mI ) ) - bg2 / ( 1 + bg2 ) - d2 );
 }
 
-float AliHLTTPCCATrackParam::BetheBlochSolid( float bg )
+GPUi() float AliHLTTPCCATrackParam::BetheBlochSolid( float bg )
 {
   //------------------------------------------------------------------
   // This is an approximation of the Bethe-Bloch formula,
@@ -402,7 +402,7 @@ float AliHLTTPCCATrackParam::BetheBlochSolid( float bg )
   return BetheBlochGeant( bg );
 }
 
-float AliHLTTPCCATrackParam::BetheBlochGas( float bg )
+GPUi() float AliHLTTPCCATrackParam::BetheBlochGas( float bg )
 {
   //------------------------------------------------------------------
   // This is an approximation of the Bethe-Bloch formula,
@@ -423,7 +423,7 @@ float AliHLTTPCCATrackParam::BetheBlochGas( float bg )
 
 
 
-GPUd() float AliHLTTPCCATrackParam::ApproximateBetheBloch( float beta2 )
+GPUdi() float AliHLTTPCCATrackParam::ApproximateBetheBloch( float beta2 )
 {
   //------------------------------------------------------------------
   // This is an approximation of the Bethe-Bloch formula with
@@ -438,7 +438,7 @@ GPUd() float AliHLTTPCCATrackParam::ApproximateBetheBloch( float beta2 )
 }
 
 
-GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitParam &par, float mass )
+GPUdi() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitParam &par, float mass )
 {
   //*!
 
@@ -472,7 +472,7 @@ GPUd() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitPa
 }
 
 
-GPUd() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  float xTimesRho, const AliHLTTPCCATrackFitParam &par )
+GPUdi() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  float xTimesRho, const AliHLTTPCCATrackFitParam &par )
 {
   //------------------------------------------------------------------
   // This function corrects the track parameters for the crossed material.
@@ -520,7 +520,7 @@ GPUd() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  float
 //*
 
 
-GPUd() bool AliHLTTPCCATrackParam::Rotate( float alpha, float maxSinPhi )
+GPUdi() bool AliHLTTPCCATrackParam::Rotate( float alpha, float maxSinPhi )
 {
   //* Rotate the coordinate system in XY on the angle alpha
 
@@ -563,7 +563,7 @@ GPUd() bool AliHLTTPCCATrackParam::Rotate( float alpha, float maxSinPhi )
   return 1;
 }
 
-GPUd() bool AliHLTTPCCATrackParam::Rotate( float alpha, AliHLTTPCCATrackLinearisation &t0, float maxSinPhi )
+GPUdi() bool AliHLTTPCCATrackParam::Rotate( float alpha, AliHLTTPCCATrackLinearisation &t0, float maxSinPhi )
 {
   //* Rotate the coordinate system in XY on the angle alpha
 
@@ -607,7 +607,7 @@ GPUd() bool AliHLTTPCCATrackParam::Rotate( float alpha, AliHLTTPCCATrackLinearis
   return 1;
 }
 
-GPUd() bool AliHLTTPCCATrackParam::Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi )
+GPUdi() bool AliHLTTPCCATrackParam::Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi )
 {
   //* Add the y,z measurement with the Kalman filter
 
@@ -668,7 +668,7 @@ GPUd() bool AliHLTTPCCATrackParam::Filter( float y, float z, float err2Y, float 
   return 1;
 }
 
-GPUd() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
+GPUdi() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
 {
   //* Check that the track parameters and covariance matrix are reasonable
 
@@ -706,7 +706,7 @@ GPUd() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
 #include <iostream>
 #endif
 
-GPUd() void AliHLTTPCCATrackParam::Print() const
+GPUdi() void AliHLTTPCCATrackParam::Print() const
 {
   //* print parameters
 

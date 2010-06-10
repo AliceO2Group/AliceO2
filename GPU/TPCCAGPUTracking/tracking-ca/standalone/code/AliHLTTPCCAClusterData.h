@@ -31,6 +31,7 @@ class AliHLTTPCCAClusterData
   public:
 
     AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fFirstRow( 0 ), fLastRow( -1 ), fNumberOfClusters(), fRowOffset(), fData() {}
+    ~AliHLTTPCCAClusterData() { }
 
     /**
      * prepare for the reading of event

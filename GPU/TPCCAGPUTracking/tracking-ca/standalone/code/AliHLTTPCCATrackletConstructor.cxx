@@ -38,13 +38,13 @@
 
 #define kMaxRowGap 4
 
-GPUd() void AliHLTTPCCATrackletConstructor::InitTracklet( AliHLTTPCCATrackParam &tParam )
+GPUdi() void AliHLTTPCCATrackletConstructor::InitTracklet( AliHLTTPCCATrackParam &tParam )
 {
   //Initialize Tracklet Parameters using default values
   tParam.InitParam();
 }
 
-GPUd() void AliHLTTPCCATrackletConstructor::ReadData
+GPUdi() void AliHLTTPCCATrackletConstructor::ReadData
 #ifndef HLTCA_GPU_PREFETCHDATA
 ( int /*iThread*/, AliHLTTPCCASharedMemory& /*s*/, AliHLTTPCCAThreadMemory& /*r*/, AliHLTTPCCATracker& /*tracker*/, int /*iRow*/ )
 {
@@ -140,7 +140,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::ReadData
 }
 
 
-GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
+GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
   AliHLTTPCCASharedMemory
 #if defined(HLTCA_GPUCODE) | defined(EXTERN_ROW_HITS)
@@ -230,7 +230,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::StoreTracklet
 
 }
 
-GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
+GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
   AliHLTTPCCASharedMemory 
 #if defined(HLTCA_GPUCODE) | defined(EXTERN_ROW_HITS)
@@ -735,7 +735,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 }
 
 #ifdef HLTCA_GPUCODE
-GPUd() void AliHLTTPCCATrackletConstructor::CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam &tParamSrc, AliHLTTPCCATrackParam &tParamDst)
+GPUdi() void AliHLTTPCCATrackletConstructor::CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam &tParamSrc, AliHLTTPCCATrackParam &tParamDst)
 {
 	//Copy Temporary Tracklet data from registers to global mem and vice versa
 	rMemDst.fStartRow = rMemSrc.fStartRow;
@@ -776,7 +776,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::CopyTrackletTempData( AliHLTTPCCAThr
 	tParamDst.SetZ( tParamSrc.GetZ() );
 }
 
-GPUd() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, int Reverse, int RowBlock, int &mustInit)
+GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, int Reverse, int RowBlock, int &mustInit)
 {
 	//Fetch a new trackled to be processed by this thread
 	__syncthreads();
@@ -877,7 +877,7 @@ GPUd() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tra
 	}
 }
 
-GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(AliHLTTPCCATracker *pTracker)
+GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(AliHLTTPCCATracker *pTracker)
 {
 	//Main Tracklet construction function that calls the scheduled (FetchTracklet) and then Processes the tracklet (mainly UpdataTracklet) and at the end stores the tracklet.
 	//Can also dispatch a tracklet to be rescheduled
@@ -910,7 +910,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(Al
 
 	for (int iReverse = 0;iReverse < 2;iReverse++)
 	{
-		for (int iRowBlock = 0;iRowBlock < HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1;iRowBlock++)
+		for (volatile int iRowBlock = 0;iRowBlock < HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1;iRowBlock++)
 		{
 #ifdef HLTCA_GPU_SCHED_FIXED_SLICE
 			int iSlice = pTracker[0].GPUParametersConst()->fGPUnSlices * (blockIdx.x + (HLTCA_GPU_BLOCK_COUNT % pTracker[0].GPUParametersConst()->fGPUnSlices != 0 && pTracker[0].GPUParametersConst()->fGPUnSlices * (blockIdx.x + 1) % HLTCA_GPU_BLOCK_COUNT != 0)) / HLTCA_GPU_BLOCK_COUNT;
@@ -1164,7 +1164,7 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(Al
 	}
 }
 
-GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorInit(int iTracklet, AliHLTTPCCATracker &tracker)
+GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorInit(int iTracklet, AliHLTTPCCATracker &tracker)
 {
 	//Initialize Row Blocks
 
@@ -1227,7 +1227,7 @@ GPUg() void AliHLTTPCCATrackletConstructorGPUPP(int firstSlice, int sliceCount)
 
 GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPUPP(AliHLTTPCCATracker *tracker)
 {
-/*	GPUshared() AliHLTTPCCASharedMemory sMem;
+	GPUshared() AliHLTTPCCASharedMemory sMem;
 	sMem.fNTracklets = *tracker->NTracklets();
 
 	for (int i = threadIdx.x;i < HLTCA_ROW_COUNT * sizeof(AliHLTTPCCARow) / sizeof(int);i += blockDim.x)
@@ -1294,12 +1294,12 @@ GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPUPP(
 			}
 			StoreTracklet( gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, sMem, rMem, *tracker, tParam );
 		}
-	}*/
+	}
 }
 
 #else //HLTCA_GPUCODE
 
-GPUd() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorCPU(AliHLTTPCCATracker &tracker)
+GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorCPU(AliHLTTPCCATracker &tracker)
 {
 	//Tracklet constructor simple CPU Function that does not neew a scheduler
 	GPUshared() AliHLTTPCCASharedMemory sMem;
