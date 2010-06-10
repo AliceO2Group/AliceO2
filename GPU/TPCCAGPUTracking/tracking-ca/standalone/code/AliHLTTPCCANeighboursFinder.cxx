@@ -29,7 +29,7 @@
 #include "AliHLTTPCCADisplay.h"
 #endif //DRAW
 
-GPUd() void AliHLTTPCCANeighboursFinder::Thread
+GPUdi() void AliHLTTPCCANeighboursFinder::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
   AliHLTTPCCASharedMemory &s, AliHLTTPCCATracker &tracker )
 {
@@ -124,7 +124,12 @@ GPUd() void AliHLTTPCCANeighboursFinder::Thread
       }
     }
   } else if ( iSync == 2 ) {
+
+#ifdef HLTCA_GPUCODE
+    if ( ( iBlock <= 1 ) || ( iBlock >= s.fNRows - 2 ) ) return;
+#else
     if ( ( s.fIRow <= 1 ) || ( s.fIRow >= s.fNRows - 2 ) ) return;
+#endif
 
     float chi2Cut = 3.*3.*4 * ( s.fUpDx * s.fUpDx + s.fDnDx * s.fDnDx );
     const float kAreaSize = tracker.Param().NeighboursSearchArea();

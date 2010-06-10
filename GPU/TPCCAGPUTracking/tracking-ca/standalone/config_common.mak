@@ -1,6 +1,6 @@
 #Architecture Settings
 INTELARCH					= SSE4.2
-CUDAVERSION					= 13
+CUDAVERSION					= 13 20
 CUDAREGS					= 64
 ARCHBITS					= 64
 

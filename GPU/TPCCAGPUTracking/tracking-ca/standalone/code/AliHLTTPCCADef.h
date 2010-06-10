@@ -126,8 +126,10 @@ namespace AliHLTTPCCADefinitions
 #endif //HLTCA_GPUCODE
 
 #ifdef HLTCA_GPUCODE
-
+#define GPUdi() __device__ inline
+#define GPUhdi() __host__ __device__ inline
 #define GPUd() __device__
+#define GPUi() inline
 #define GPUhd() __host__ __device__
 #define GPUh() __host__ inline
 #define GPUg() __global__
@@ -136,8 +138,11 @@ namespace AliHLTTPCCADefinitions
 #define GPUsync() __syncthreads()
 
 #else
+#define GPUdi()
+#define GPUhdi()
 
 #define GPUd()
+#define GPUi()
 #define GPUhd()
 #define GPUg()
 #define GPUh()

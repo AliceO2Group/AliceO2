@@ -28,7 +28,7 @@
 
 #include <iostream>
 
-GPUd() void AliHLTTPCCAGrid::CreateEmpty()
+GPUdi() void AliHLTTPCCAGrid::CreateEmpty()
 {
   //Create an empty grid
   fYMin = 0.f;
@@ -45,7 +45,7 @@ GPUd() void AliHLTTPCCAGrid::CreateEmpty()
 }
 
 
-GPUd() void AliHLTTPCCAGrid::Create( float yMin, float yMax, float zMin, float zMax, float sy, float sz )
+GPUdi() void AliHLTTPCCAGrid::Create( float yMin, float yMax, float zMin, float zMax, float sy, float sz )
 {
   //* Create the grid
   fYMin = yMin;
@@ -64,7 +64,7 @@ GPUd() void AliHLTTPCCAGrid::Create( float yMin, float yMax, float zMin, float z
 }
 
 
-GPUd() int AliHLTTPCCAGrid::GetBin( float Y, float Z ) const
+GPUdi() int AliHLTTPCCAGrid::GetBin( float Y, float Z ) const
 {
   //* get the bin pointer
   const int yBin = static_cast<int>( CAMath::FMulRZ( Y - fYMin, fStepYInv ) );
@@ -77,7 +77,7 @@ GPUd() int AliHLTTPCCAGrid::GetBin( float Y, float Z ) const
   return bin;
 }
 
-int AliHLTTPCCAGrid::GetBinBounded( float Y, float Z ) const
+GPUi() int AliHLTTPCCAGrid::GetBinBounded( float Y, float Z ) const
 {
   //* get the bin pointer
   const int yBin = static_cast<int>( CAMath::FMulRZ( Y - fYMin, fStepYInv ) );
@@ -88,7 +88,7 @@ int AliHLTTPCCAGrid::GetBinBounded( float Y, float Z ) const
   return bin;
 }
 
-GPUd() void AliHLTTPCCAGrid::GetBin( float Y, float Z, int* const bY, int* const bZ ) const
+GPUdi() void AliHLTTPCCAGrid::GetBin( float Y, float Z, int* const bY, int* const bZ ) const
 {
   //* get the bin pointer
 

@@ -833,7 +833,7 @@ GPUh() void AliHLTTPCCATracker::FitTrack( const AliHLTTPCCATrack &/*track*/, flo
 }
 
 
-GPUd() void AliHLTTPCCATracker::GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
+GPUdi() void AliHLTTPCCATracker::GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
 {
   //
   // Use calibrated cluster error from OCDB
@@ -844,7 +844,7 @@ GPUd() void AliHLTTPCCATracker::GetErrors2( int iRow, float z, float sinPhi, flo
   Err2Z*=fParam.ClusterError2CorrectionZ();
 }
 
-GPUd() void AliHLTTPCCATracker::GetErrors2( int iRow, const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const
+GPUdi() void AliHLTTPCCATracker::GetErrors2( int iRow, const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const
 {
   //
   // Use calibrated cluster error from OCDB

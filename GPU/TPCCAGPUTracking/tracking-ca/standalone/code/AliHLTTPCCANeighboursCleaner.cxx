@@ -22,7 +22,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCATracker.h"
 
-GPUd() void AliHLTTPCCANeighboursCleaner::Thread
+GPUdi() void AliHLTTPCCANeighboursCleaner::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
   AliHLTTPCCASharedMemory &s, AliHLTTPCCATracker &tracker )
 {
@@ -42,9 +42,17 @@ GPUd() void AliHLTTPCCANeighboursCleaner::Thread
     }
   } else if ( iSync == 1 ) {
     if ( s.fIRow <= s.fNRows - 3 ) {
+#ifdef HLTCA_GPUCODE
+      int Up = s.fIRowUp;
+      int Dn = s.fIRowDn;
+      const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
+      const AliHLTTPCCARow &rowUp = tracker.Row( Up );
+      const AliHLTTPCCARow &rowDn = tracker.Row( Dn );
+#else
       const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
       const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );
       const AliHLTTPCCARow &rowDn = tracker.Row( s.fIRowDn );
+#endif
 
       // - look at up link, if it's valid but the down link in the row above doesn't link to us remove
       //   the link
