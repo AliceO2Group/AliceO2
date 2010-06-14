@@ -94,6 +94,8 @@ typedef double         Coord_t;     //Pad world coordinates (double)
 typedef float          Angle_t;     //Graphics angle (float)
 typedef float          Size_t;      //Attribute size (float)
 
+#define TRACKER_KEEP_TEMPDATA
+
 #else
 
 #include "Rtypes.h"
@@ -104,8 +106,6 @@ namespace AliHLTTPCCADefinitions
   extern const AliHLTComponentDataType fgkTrackletsDataType;
   extern const AliHLTComponentDataType fgkCompressedInputDataType;
 }
-
-#define TRACKER_KEEP_TEMPDATA
 
 #endif //HLTCA_STANDALONE
 
