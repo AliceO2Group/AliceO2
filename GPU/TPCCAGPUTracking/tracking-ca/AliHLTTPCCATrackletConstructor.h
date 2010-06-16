@@ -57,6 +57,9 @@ class AliHLTTPCCATrackletConstructor
 		int fNTracklets;
 		int fSliceDone;
 
+		int fStartRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1];
+		int fEndRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1];
+
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 		int fMaxSync;
 #endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
@@ -112,12 +115,13 @@ class AliHLTTPCCATrackletConstructor
       AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
 
 #ifdef HLTCA_GPUCODE
-	GPUd() static void AliHLTTPCCATrackletConstructorNewGPU(AliHLTTPCCATracker *pTracker);
+	GPUd() static void AliHLTTPCCATrackletConstructorGPU(AliHLTTPCCATracker *pTracker);
+	GPUd() static void AliHLTTPCCATrackletConstructorGPUPP(AliHLTTPCCATracker *pTracker);
 	GPUd() static int FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, int Reverse, int RowBlock, int &mustInit);
 	GPUd() static void AliHLTTPCCATrackletConstructorInit(int iTracklet, AliHLTTPCCATracker &tracke);
 	GPUd() static void CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam &tParamSrc, AliHLTTPCCATrackParam &tParamDst);
 #else
-	GPUd() static void AliHLTTPCCATrackletConstructorNewCPU(AliHLTTPCCATracker &tracker);
+	GPUd() static void AliHLTTPCCATrackletConstructorCPU(AliHLTTPCCATracker &tracker);
 #endif //HLTCA_GPUCODE
 
     GPUd() static bool SAVE() { return 1; }

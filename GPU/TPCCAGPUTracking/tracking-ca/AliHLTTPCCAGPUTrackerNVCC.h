@@ -14,6 +14,7 @@
 //  @brief  TPC CA Tracker for the NVIDIA GPU
 //  @note 
 
+
 #ifndef ALIHLTTPCCAGPUTRACKERNVCC_H
 #define ALIHLTTPCCAGPUTRACKERNVCC_H
 
@@ -33,6 +34,7 @@ public:
 
 	virtual int InitGPU(int sliceCount = 12, int forceDeviceID = -1);
 	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
+	virtual int ReconstructPP(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	virtual int ExitGPU();
 
 	virtual void SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile = NULL);
@@ -59,34 +61,35 @@ private:
 	void ReleaseGlobalLock(void* sem);
 	int CheckMemorySizes(int sliceCount);
 
-	AliHLTTPCCATracker *fGpuTracker; //!
-	void* fGPUMemory; //!
-	void* fHostLockedMemory; //!
-
-	int CUDASync(char* state = "UNKNOWN");
+	int CUDASync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
 	template <class T> T* alignPointer(T* ptr, int alignment);
-
 	void StandalonePerfTime(int iSlice, int i);
-
-	int fDebugLevel;			//Debug Level for GPU Tracker
-	std::ostream* fOutFile;		//Debug Output Stream Pointer
-	unsigned long long int fGPUMemSize;	//Memory Size to allocate on GPU
-
-	void* fpCudaStreams; //!
-
-	int fSliceCount; //!
-
-	static const int fgkNSlices = 36; //!
-	AliHLTTPCCATracker fSlaveTrackers[fgkNSlices]; //!
 #ifdef HLTCA_GPUCODE
 	bool CudaFailedMsg(cudaError_t error);
 #endif //HLTCA_GPUCODE
 
-	AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
+	AliHLTTPCCATracker *fGpuTracker; //Tracker Objects that will be used on the GPU
+	void* fGPUMemory; //Pointer to GPU Memory Base Adress
+	void* fHostLockedMemory; //Pointer to Base Adress of Page Locked Host Memory for DMA Transfer
+
+	int fDebugLevel;			//Debug Level for GPU Tracker
+	unsigned int fDebugMask;	//Mask which Debug Data is written to file
+	std::ostream* fOutFile;		//Debug Output Stream Pointer
+	unsigned long long int fGPUMemSize;	//Memory Size to allocate on GPU
+
+	void* fpCudaStreams; //Pointer to array of CUDA Streams
+	int fSliceCount; //Maximum Number of Slices this GPU tracker can process in parallel
+
+	static const int fgkNSlices = 36; //Number of Slices in Alice
+	AliHLTTPCCATracker fSlaveTrackers[fgkNSlices]; //CPU Slave Trackers for Initialization and Output
+
+	AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl; //Output Control Structure
 	
-	static bool fgGPUUsed; //!
-	int fThreadId; //!
-	int fCudaInitialized; //!
+	static bool fgGPUUsed; //Flag signaling that a GPU tracker is initialized in a process
+	int fThreadId; //Thread ID that is valid for the local CUDA context
+	int fCudaInitialized; //Flag if CUDA is initialized
+
+	int fPPMode; //Flag if GPU tracker runs in PP Mode
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );

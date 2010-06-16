@@ -28,6 +28,12 @@
 
 #ifdef HLTCA_STANDALONE
 #include <omp.h>
+#include "include.h"
+#ifdef R__WIN32
+#include <conio.h>
+#else
+#include <pthread.h>
+#endif
 #endif
 
 AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
@@ -38,7 +44,7 @@ AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
-    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0)
+    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
 {
   //* constructor
 
@@ -51,7 +57,7 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0)
+    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
 {
   //* dummy
 }
@@ -64,7 +70,9 @@ const AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::operator=(
 
 AliHLTTPCCAStandaloneFramework::~AliHLTTPCCAStandaloneFramework()
 {
+#ifndef HLTCA_STANDALONE
 	for (int i = 0;i < fgkNSlices;i++) if (fSliceOutput[i]) free(fSliceOutput[i]);
+#endif
   //* destructor
 }
 
@@ -120,8 +128,7 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
 }
 
 
-//int
-void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
+int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 {
   // perform the event reconstruction
 
@@ -136,18 +143,21 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   StandaloneQueryFreq(&tmpFreq);
   StandaloneQueryTime(&startTime);
 
-  fOutputControl.fObsoleteOutput = 0;
+  if (fEventDisplay)
+  {
+	fTracker.SetKeepData(1);
+  }
 #endif
 
   if (forceSingleSlice != -1)
   {
-	if (fTracker.ProcessSlices(forceSingleSlice, 1, &fClusterData[forceSingleSlice], &fSliceOutput[forceSingleSlice])) return;
+	if (fTracker.ProcessSlices(forceSingleSlice, 1, &fClusterData[forceSingleSlice], &fSliceOutput[forceSingleSlice])) return (1);
   }
   else
   {
 	for (int iSlice = 0;iSlice < fgkNSlices;iSlice += fTracker.MaxSliceCount())
 	{
-		if (fTracker.ProcessSlices(iSlice, fTracker.MaxSliceCount(), &fClusterData[iSlice], &fSliceOutput[iSlice])) return;
+		if (fTracker.ProcessSlices(iSlice, CAMath::Min(fTracker.MaxSliceCount(), fgkNSlices - iSlice), &fClusterData[iSlice], &fSliceOutput[iSlice])) return (1);
 	}
   }
 
@@ -159,15 +169,18 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   timer1.Stop();
   TStopwatch timer2;
 
-  fMerger.Clear();
-  fMerger.SetSliceParam( fTracker.Param(0) );
+  if (fRunMerger)
+  {
+	  fMerger.Clear();
+	  fMerger.SetSliceParam( fTracker.Param(0) );
 
-  for ( int i = 0; i < fgkNSlices; i++ ) {
-	//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), fSliceOutput[i]->NTracks());
-    fMerger.SetSliceData( i, fSliceOutput[i] );
+	  for ( int i = 0; i < fgkNSlices; i++ ) {
+		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), fSliceOutput[i]->NTracks());
+		fMerger.SetSliceData( i, fSliceOutput[i] );
+	  }
+
+	  fMerger.Reconstruct();
   }
-
-  fMerger.Reconstruct();
 
   timer2.Stop();
   timer0.Stop();
@@ -177,6 +190,61 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   fLastTime[2] = timer2.CpuTime();
 
 #ifdef HLTCA_STANDALONE
+  if (fEventDisplay)
+  {
+    static int displayActive = 0;
+	if (!displayActive)
+	{
+#ifdef R__WIN32
+		semLockDisplay = CreateSemaphore(0, 1, 1, 0);
+		HANDLE hThread;
+		if ((hThread = CreateThread(NULL, NULL, &OpenGLMain, NULL, NULL, NULL)) == NULL)
+#else
+		static pthread_t hThread;
+		if (pthread_create(&hThread, NULL, OpenGLMain, NULL))
+#endif
+		{
+			printf("Coult not Create GL Thread...\nExiting...\n");
+		}
+		displayActive = 1;
+	}
+	else
+	{
+#ifdef R__WIN32
+		ReleaseSemaphore(semLockDisplay, 1, NULL);
+#else
+		pthread_mutex_unlock(&semLockDisplay);
+#endif
+	}
+
+#ifdef R__WIN32
+	while (kbhit()) getch();
+#endif
+	printf("Press key for next event!\n");
+
+	int iKey;
+	do
+	{
+#ifdef R__WIN32
+		Sleep(10);
+		iKey = kbhit() ? getch() : 0;
+#else
+		iKey = getchar();
+#endif
+		if (iKey == 'q') exit(0);
+	} while (iKey != 'n' && buttonPressed == 0);
+	buttonPressed = 0;
+	printf("Loading next event\n");
+
+#ifdef R__WIN32
+	WaitForSingleObject(semLockDisplay, INFINITE);
+#else
+	pthread_mutex_lock(&semLockDisplay);
+#endif
+
+	displayEventNr++;
+  }
+
   printf("Tracking Time: %lld us\nTime uncertainty: %lld ns\n", (endTime - startTime) * 1000000 / tmpFreq, (checkTime - endTime) * 1000000000 / tmpFreq);
 
   if (fDebugLevel >= 1)
@@ -219,7 +287,7 @@ void AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   for ( int i = 0; i < 3; i++ ) fStatTime[i] += fLastTime[i];
 
-  //return(0);
+  return(0);
 }
 
 
@@ -255,9 +323,14 @@ void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &out ) const
 void AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in )
 {
   //* Read event from file
+  int nClusters = 0;
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
     fClusterData[iSlice].ReadEvent( in );
+	nClusters += fClusterData[iSlice].NumberOfClusters();
   }
+#ifdef HLTCA_STANDALONE
+  printf("Read %d Clusters\n", nClusters);
+#endif
 }
 
 void AliHLTTPCCAStandaloneFramework::WriteTracks( std::ostream &out ) const

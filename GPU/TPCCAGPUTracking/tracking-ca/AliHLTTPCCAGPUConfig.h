@@ -16,7 +16,6 @@
 #define HLTCA_GPU_ROWCOPY int							//must not be bigger than row alignment!!!
 #define HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS 32	//Amound of threads to reserve for memory copy
 //#define HLTCA_GPU_PREFETCHDATA						//Fetch Row Data (Hits / Grid) into shared memory during Tracklet Construction
-//#define HLTCA_GPU_PREFETCH_ROWBLOCK_ONLY				//Prefetch only row parameters for current block during tracklet construction, faster for UpdateTracklet but shared cache can not be used for StoreTracklet then
 
 #define HLTCA_GPU_SCHED_ROW_STEP 32						//Amount of Rows to process in one step before rescheduling
 #define HLTCA_GPU_SCHED_FIXED_START						//Assign each GPU thread a start tracklet to start with instead of using the scheduler to obtain start tracklet
@@ -24,6 +23,7 @@
 #define HLTCA_GPU_RESCHED								//Use dynamic tracklet scheduling
 
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
+#define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define HLTCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
@@ -45,8 +45,8 @@
 #define HLTCA_GPU_ROWS_MEMORY 1024 * 1024				//Total amount of Memory to reserve for GPU Row Parameters
 #define HLTCA_GPU_COMMON_MEMORY 1024 * 1024				//Total amount of Memory to reserve for CommomMemoryStruct on GPU
 #define HLTCA_GPU_SLICE_DATA_MEMORY 7 * 1024 * 1024		//Amount of Slice Data Memory to reserve per Slice on GPU
-#define HLTCA_GPU_GLOBAL_MEMORY 20 * 1024 * 1024		//Amount of global temporary Memory to reserve per Slice on GPU
-#define HLTCA_GPU_TRACKS_MEMORY 2 * 1024 * 1024			//Amount of Memory to reserve for Final Tracks per Slice on GPU
+#define HLTCA_GPU_GLOBAL_MEMORY 16 * 1024 * 1024		//Amount of global temporary Memory to reserve per Slice on GPU
+#define HLTCA_GPU_TRACKS_MEMORY 2 * 1024 * 1024			//Amount of Memory to reserve for Final Tracks per Slice on Host as Page Locked Memory
 
 //Make sure options do not interfere
 
@@ -54,6 +54,9 @@
 //No texture fetch for CPU Tracker
 #ifdef HLTCA_GPU_TEXTURE_FETCH
 #undef HLTCA_GPU_TEXTURE_FETCH
+#endif
+#ifdef HLTCA_GPU_TEXTURE_FETCHa
+#undef HLTCA_GPU_TEXTURE_FETCHa
 #endif
 //No Shared memory cache for CPU Tracker
 #ifdef HLTCA_GPU_PREFETCHDATA
@@ -79,6 +82,7 @@
 #define HLTCA_GPU_ERROR_TRACKLET_OVERFLOW 2
 #define HLTCA_GPU_ERROR_TRACK_OVERFLOW 3
 #define HLTCA_GPU_ERROR_SCHEDULE_COLLISION 4
+#define HLTCA_GPU_ERROR_WRONG_ROW 5
 
 #endif
 

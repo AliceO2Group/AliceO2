@@ -46,8 +46,10 @@ class AliHLTTPCCANeighboursFinder
         int fIRowUp; // next row number
         int fIRowDn;// previous row number
         int fNRows; // number of rows
+#if ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
         float2 fA[256][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
         unsigned short fB[256][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+#endif //ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 		AliHLTTPCCARow fRow, fRowUp, fRowDown;
     };
 

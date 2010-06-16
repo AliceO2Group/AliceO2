@@ -798,6 +798,12 @@ void AliHLTTPCCAMerger::Merging()
           endAlpha = segment.InnerAlpha();
           dir = 1;
         }
+		if (firstHit < 0)
+		{
+			//Buffer too small!!!
+			firstHit = 200;
+			break;
+		}
 
         for ( int jhit = 0; jhit < segment.NClusters(); jhit++ ) {
           int id = segment.FirstClusterRef() + jhit;

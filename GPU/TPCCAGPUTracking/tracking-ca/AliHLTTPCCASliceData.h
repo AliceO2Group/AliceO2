@@ -146,7 +146,7 @@ class AliHLTTPCCASliceData
 	GPUh() char *Memory() const {return(fMemory); }
 	GPUh() size_t MemorySize() const {return(fMemorySize); }
 	GPUh() size_t GpuMemorySize() const {return(fGpuMemorySize); }
-	GPUh() int* HitWeights() const {return(fHitWeights); }
+	GPUhd() int* HitWeights() const {return(fHitWeights); }
 
 	GPUhd() void SetGPUTextureBase(char* const val) {fGPUTextureBase = val;}
 	GPUhd() char* GPUTextureBase() const { return(fGPUTextureBase); }
