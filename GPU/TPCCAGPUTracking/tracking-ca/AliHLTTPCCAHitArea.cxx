@@ -23,7 +23,7 @@
 class AliHLTTPCCARow;
 
 
-GPUd() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCARow &row, const AliHLTTPCCASliceData &slice, float y, float z,
+GPUdi() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCARow &row, const AliHLTTPCCASliceData &slice, float y, float z,
                                       float dy, float dz )
 {
   //initialisation
@@ -55,7 +55,7 @@ GPUd() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCARow &row, const AliHLTTPC
   fIh = fHitYfst;
 }
 
-GPUd() int AliHLTTPCCAHitArea::GetNext( const AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row,
+GPUdi() int AliHLTTPCCAHitArea::GetNext( const AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row,
                                         const AliHLTTPCCASliceData &slice, AliHLTTPCCAHit *h )
 {
   // get next hit index

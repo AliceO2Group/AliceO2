@@ -31,6 +31,8 @@
 #pragma warning(disable : 1786)
 #pragma warning(disable : 1478)
 #pragma warning(disable : 161)
+#pragma warning(disable : 94)
+#pragma warning(disable : 1229)
 #endif //INTEL_RUNTIME
 
 #ifdef VSNET_RUNTIME
@@ -92,6 +94,8 @@ typedef double         Coord_t;     //Pad world coordinates (double)
 typedef float          Angle_t;     //Graphics angle (float)
 typedef float          Size_t;      //Attribute size (float)
 
+#define TRACKER_KEEP_TEMPDATA
+
 #else
 
 #include "Rtypes.h"
@@ -105,10 +109,9 @@ namespace AliHLTTPCCADefinitions
 
 #endif //HLTCA_STANDALONE
 
-//#define EXTERN_ROW_HITS
+#define EXTERN_ROW_HITS
 #define TRACKLET_SELECTOR_MIN_HITS 10
 #define REPRODUCIBLE_CLUSTER_SORTING
-//#define FAST_NEIGHBOURS_FINDER
 
 #ifdef HLTCA_GPUCODE
 #define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6
@@ -123,8 +126,10 @@ namespace AliHLTTPCCADefinitions
 #endif //HLTCA_GPUCODE
 
 #ifdef HLTCA_GPUCODE
-
+#define GPUdi() __device__ inline
+#define GPUhdi() __host__ __device__ inline
 #define GPUd() __device__
+#define GPUi() inline
 #define GPUhd() __host__ __device__
 #define GPUh() __host__ inline
 #define GPUg() __global__
@@ -133,14 +138,18 @@ namespace AliHLTTPCCADefinitions
 #define GPUsync() __syncthreads()
 
 #else
+#define GPUdi()
+#define GPUhdi()
 
 #define GPUd()
+#define GPUi()
 #define GPUhd()
 #define GPUg()
 #define GPUh()
 #define GPUshared()
 #define GPUsync()
 
+struct float4 { float x, y, z, w; };
 struct float2 { float x; float y; };
 struct uchar2 { unsigned char x, y; };
 struct short2 { short x, y; };
@@ -152,6 +161,7 @@ struct uint1 { unsigned int x; };
 struct uint2 { unsigned int x, y; };
 struct uint3 { unsigned int x, y, z; };
 struct uint4 { unsigned int x, y, z, w; };
+struct uint16 { unsigned int x[16]; };
 
 #ifdef R__WIN32
 #include <float.h>

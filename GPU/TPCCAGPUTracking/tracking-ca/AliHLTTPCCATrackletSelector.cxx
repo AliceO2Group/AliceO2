@@ -25,7 +25,7 @@
 #include "AliHLTTPCCATracklet.h"
 #include "AliHLTTPCCAMath.h"
 
-GPUd() void AliHLTTPCCATrackletSelector::Thread
+GPUdi() void AliHLTTPCCATrackletSelector::Thread
 ( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
   AliHLTTPCCASharedMemory &s, AliHLTTPCCATracker &tracker )
 {
@@ -64,6 +64,11 @@ GPUd() void AliHLTTPCCATrackletSelector::Thread
 
       int firstRow = tracklet.FirstRow();
       int lastRow = tracklet.LastRow();
+	  if (lastRow > tracker.Param().NRows())
+	  {
+			tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_WRONG_ROW;
+			return;
+	  }
 
       int kind = 0;
       if ( 0 ) {

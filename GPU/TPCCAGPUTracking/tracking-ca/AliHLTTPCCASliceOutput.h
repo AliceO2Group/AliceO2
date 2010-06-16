@@ -12,7 +12,11 @@
 
 #include "AliHLTTPCCADef.h"
 #include <cstdlib>
+#ifndef HLTCA_GPUCODE
 #include "AliHLTTPCCASliceOutTrack.h"
+#else
+class AliHLTTPCCASliceOutTrack;
+#endif
 
 
 /**
@@ -40,11 +44,13 @@ class AliHLTTPCCASliceOutput
 
   GPUhd() int NTracks()                    const { return fNTracks;              }
   GPUhd() int NTrackClusters()             const { return fNTrackClusters;       }  
+#ifndef HLTCA_GPUCODE
   GPUhd() const AliHLTTPCCASliceOutTrack *GetFirstTrack() const { return fMemory; }
   GPUhd() AliHLTTPCCASliceOutTrack *FirstTrack(){ return fMemory; }
+#endif
   GPUhd() size_t Size() const { return(fMemorySize); }
 
-  GPUhd() static int EstimateSize( int nOfTracks, int nOfTrackClusters );
+  static int EstimateSize( int nOfTracks, int nOfTrackClusters );
   static void Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl);
 
   GPUhd() void SetNTracks       ( int v )  { fNTracks = v;        }
@@ -68,7 +74,9 @@ class AliHLTTPCCASliceOutput
   //Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
   //This way the whole Slice Output is one consecutive Memory Segment
 
+#ifndef HLTCA_GPUCODE
   AliHLTTPCCASliceOutTrack fMemory[0]; // the memory where the pointers above point into
+#endif
 
 };
 

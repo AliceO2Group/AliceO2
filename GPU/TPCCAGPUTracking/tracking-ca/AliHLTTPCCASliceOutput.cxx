@@ -21,7 +21,7 @@
 #include "MemoryAssignmentHelpers.h"
 
 
-GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClusters )
+int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClusters )
 {
   // calculate the amount of memory [bytes] needed for the event
 

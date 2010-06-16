@@ -22,12 +22,12 @@ class AliHLTTPCCASliceOutCluster
 {
   public:
 
-  GPUhd() void Set( int Id, int row, float x, float y, float z ){
+  GPUh() void Set( int Id, int row, float x, float y, float z ){
     fId = Id;  fRow = (UChar_t) row; 
     fXYZp = AliHLTTPCCADataCompressor::PackXYZ( row, x, y, z );
   }
 
-  GPUhd() void Get( int &Id, int &row, float &x, float &y, float &z ) const{
+  GPUh() void Get( int &Id, int &row, float &x, float &y, float &z ) const{
     Id = fId;  row = fRow;
     AliHLTTPCCADataCompressor::UnpackXYZ( fRow, fXYZp, x, y, z  );
   }  
