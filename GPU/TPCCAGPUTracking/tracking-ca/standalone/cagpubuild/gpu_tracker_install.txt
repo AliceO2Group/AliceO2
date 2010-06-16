@@ -1,0 +1,26 @@
+The GPU Tracker is contained in an extra library AliHLTTPCCAGPU that must be build in addition to the HLT libraries
+The HLT Tracker Framework will automatically try to load AliHLTTPCCAGPU from LD_LIBRARY_PATH
+AliHLTTPCCAGPU will further try to load the CUDA runtime library which needs to be installed and pointed to by LD_LIBRARY_PATH
+If the -allowGPU option for the AliHLTTPCCATrackerComponent is set, the tracker framework will automatically try run the GPU tracker.
+If the GPU tracker is not available (because no GPU is present, or because all the GPU memory is used by other processes) the framework will automatically fall back to the CPU tracker
+
+Therefore to use the GPU tracker the following steps are needed:
+- The NVIDIA Driver must be installed and the kernel modules loaded
+- The CUDA Toolkit must be installed in /usr/local/cuda and the LD_LIBRARY_PATH must point to it
+- The library AliHLTTPCCAGPU must be compiled and LD_LIBRARY_PATH point to it
+- the -allowGPU option must be set for the TrackerComponent in the HLT configuration
+
+How to build the library AliHLTTPCCAGPU:
+The library is not build automatically by the AliROOT or HLT standalone build
+The script cagpubuild.sh can be used the library
+As the ROOT CINT interpreter is unable to process the CUDA file directly, preprocessed CINT files are distributed with the build script
+These files must be modified manually if the class structure of the GPU tracker is changed
+The Variables ROOTSYS AND ALICE_ROOT must be set for the script to operate
+Because of an incompatibility between CUDA and GCC a patch is applied to an intermediate file. The patch is contained in AliHLTTPCCAGPUTrackerNVCC.cu.x86_64-pc-linux-gnu.patch
+The script builds the library and stores the shared object file in the current directory
+
+To run the script the following is needed:
+- Place the script in a directory together with the preprocessed CINT files G__AliHLTTPCCAGPU.cxx/h and the patch file AliHLTTPCCAGPUTrackerNVCC.cu.x86_64-pc-linux-gnu.patch
+- Make sure the environment variables ALICE_ROOT and ROOTSYS are set
+- The CUDA compiler must be installed in /usr/local/cuda and available in the PATH variable
+- execute cagpubuild.sh
