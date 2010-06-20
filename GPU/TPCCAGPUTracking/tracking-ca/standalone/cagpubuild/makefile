@@ -5,7 +5,7 @@ clean:
 
 
 libAliHLTTPCCAGPU.so:			AliHLTTPCCAGPUTrackerNVCC.o G__AliHLTTPCCAGPU.o
-					c++ -shared AliHLTTPCCAGPUTrackerNVCC.o G__AliHLTTPCCAGPU.o -L/usr/local/cuda/lib64 -L${ALIHLT_TOPDIR}/build-prod/lib -lcuda -lcudart -lAliHLTTPC -o libAliHLTTPCCAGPU.so 
+					c++ -shared AliHLTTPCCAGPUTrackerNVCC.o G__AliHLTTPCCAGPU.o -L/usr/local/cuda/lib64 -L/opt/cuda/lib64 -L${ALIHLT_TOPDIR}/build-prod/lib -lcuda -lcudart -lAliHLTTPC -o libAliHLTTPCCAGPU.so 
 
 
 AliHLTTPCCAGPUTrackerNVCC.o:		AliHLTTPCCAGPUTrackerNVCC.cu.cxx
