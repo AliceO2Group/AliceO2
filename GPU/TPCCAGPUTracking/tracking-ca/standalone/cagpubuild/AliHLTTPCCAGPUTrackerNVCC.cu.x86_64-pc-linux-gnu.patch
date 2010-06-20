@@ -1,5 +1,116 @@
 --- AliHLTTPCCAGPUTracker.cucpp	2009-05-28 12:14:09.000000000 +0200 
 +++ release/x86_64-pc-linux-gnu/code/AliHLTTPCCAGPUTracker.cucpp 2009-05-28 12:10:25.000000000 +0200
+@@ -1530,10 +1530,10 @@
+ extern "C" { extern int getdate_err; }
+ extern "C" tm *getdate(const char *);
+ extern "C" int getdate_r(const char *__restrict__, tm *__restrict__);
+-extern "C" { extern inline __attribute__((__weak__)) void *memcpy(void *__restrict__, const void *__restrict__, size_t) throw() __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))) __attribute__((nonnull(2))); }
++extern "C" { extern inline void *memcpy(void *__restrict__, const void *__restrict__, size_t) throw() __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))) __attribute__((nonnull(2))); }
+ extern "C" { extern inline void *memmove(void *, const void *, size_t) throw() __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))) __attribute__((nonnull(2))); }
+ extern "C" void *memccpy(void *__restrict__, const void *__restrict__, int, size_t) throw() __attribute__((nonnull(1))) __attribute__((nonnull(2)));
+-extern "C" { extern inline __attribute__((__weak__)) void *memset(void *, int, size_t) throw() __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))); }
++extern "C" { extern inline void *memset(void *, int, size_t) throw() __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))); }
+ extern "C" int memcmp(const void *, const void *, size_t) throw() __attribute__((__pure__)) __attribute__((nonnull(1))) __attribute__((nonnull(2)));
+ extern inline void *memchr(void *, int, size_t) throw() __asm__("memchr") __attribute__((__pure__)) __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1)));
+ extern inline const void *memchr(const void *, int, size_t) throw() __asm__("memchr") __attribute__((__pure__)) __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1)));
+@@ -1661,7 +1661,7 @@
+ char *basename(char *) throw() __asm__("basename") __attribute__((nonnull(1)));
+ const char *basename(const char *) throw() __asm__("basename") __attribute__((nonnull(1)));
+ extern "C" void __warn_memset_zero_len();
+-extern "C" { inline __attribute__((__weak__)) __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))) __attribute__((nonnull(2))) void *memcpy(void *__restrict__ __dest, const void *__restrict__ __src, size_t __len) throw()
++extern "C" { inline __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))) __attribute__((nonnull(2))) void *memcpy(void *__restrict__ __dest, const void *__restrict__ __src, size_t __len) throw()
+ {
+ return __builtin___memcpy_chk(__dest, __src, __len, __builtin_object_size(__dest, 0));
+ } }
+@@ -1673,7 +1673,7 @@
+ {
+ return __builtin___mempcpy_chk(__dest, __src, __len, __builtin_object_size(__dest, 0));
+ } }
+-extern "C" { inline __attribute__((__weak__)) __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))) void *memset(void *__dest, int __ch, size_t __len) throw()
++extern "C" { inline __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))) void *memset(void *__dest, int __ch, size_t __len) throw()
+ {
+ if (((0) && (__len == (0))) && ((!(0)) || (__ch != 0)))
+ {
+@@ -1719,8 +1719,6 @@
+ return __builtin___strncat_chk(__dest, __src, __len, __builtin_object_size(__dest, 2 > 1));
+ } }
+ extern "C" __attribute__((__weak__)) clock_t clock() throw();
+-extern "C" { extern inline __attribute__((__weak__)) void *memset(void *, int, size_t) throw() __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))); }
+-extern "C" { extern inline __attribute__((__weak__)) void *memcpy(void *, const void *, size_t) throw() __attribute__((__gnu_inline__)) __attribute__((__always_inline__)) __attribute__((nonnull(1))) __attribute__((nonnull(2))); }
+ extern "C" __attribute__((__weak__)) int abs(int) throw() __attribute__((__warn_unused_result__)) __attribute__((__const__));
+ extern "C" __attribute__((__weak__)) long labs(long) throw() __attribute__((__warn_unused_result__)) __attribute__((__const__));
+ extern "C" __attribute__((__weak__)) long long llabs(long long) throw() __attribute__((__warn_unused_result__)) __attribute__((__const__));
+@@ -1862,11 +1860,8 @@
+ extern "C" __attribute__((__weak__)) int __isnanf(float) throw() __attribute__((__const__));
+ extern "C" __attribute__((__weak__)) int __finite(double) throw() __attribute__((__const__));
+ extern "C" __attribute__((__weak__)) int __finitef(float) throw() __attribute__((__const__));
+-extern "C" { extern inline __attribute__((__weak__)) int __signbit(double) throw() __attribute__((__gnu_inline__)) __attribute__((__const__)); }
+-extern "C" { extern inline __attribute__((__weak__)) int __signbitf(float) throw() __attribute__((__gnu_inline__)) __attribute__((__const__)); }
+ extern "C" __attribute__((__weak__)) double fma(double, double, double) throw();
+ extern "C" __attribute__((__weak__)) float fmaf(float, float, float) throw();
+-extern "C" { extern inline __attribute__((__weak__)) int __signbitl(long double) throw() __attribute__((__gnu_inline__)) __attribute__((__const__)); }
+ extern "C" __attribute__((__weak__)) int __isinfl(long double) throw() __attribute__((__const__));
+ extern "C" __attribute__((__weak__)) int __isnanl(long double) throw() __attribute__((__const__));
+ extern "C" __attribute__((__weak__)) int __finitel(long double) throw() __attribute__((__const__));
+@@ -1948,7 +1943,7 @@
+ extern "C" __attribute__((__weak__)) double fmax(double, double) throw(); extern "C" double __fmax(double, double) throw();
+ extern "C" __attribute__((__weak__)) double fmin(double, double) throw(); extern "C" double __fmin(double, double) throw();
+ extern "C" int __fpclassify(double) throw() __attribute__((__const__));
+-extern "C" { extern inline __attribute__((__weak__)) int __signbit(double) throw() __attribute__((__gnu_inline__)) __attribute__((__const__)); }
++extern "C" { extern inline int __signbit(double) throw() __attribute__((__gnu_inline__)) __attribute__((__const__)); }
+ extern "C" __attribute__((__weak__)) double fma(double, double, double) throw(); extern "C" double __fma(double, double, double) throw();
+ extern "C" double scalb(double, double) throw(); extern "C" double __scalb(double, double) throw();
+ extern "C" __attribute__((__weak__)) float acosf(float) throw(); extern "C" float __acosf(float) throw();
+@@ -2027,7 +2022,7 @@
+ extern "C" __attribute__((__weak__)) float fmaxf(float, float) throw(); extern "C" float __fmaxf(float, float) throw();
+ extern "C" __attribute__((__weak__)) float fminf(float, float) throw(); extern "C" float __fminf(float, float) throw();
+ extern "C" int __fpclassifyf(float) throw() __attribute__((__const__));
+-extern "C" { extern inline __attribute__((__weak__)) int __signbitf(float) throw() __attribute__((__gnu_inline__)) __attribute__((__const__)); }
++extern "C" { extern inline int __signbitf(float) throw() __attribute__((__gnu_inline__)) __attribute__((__const__)); }
+ extern "C" __attribute__((__weak__)) float fmaf(float, float, float) throw(); extern "C" float __fmaf(float, float, float) throw();
+ extern "C" float scalbf(float, float) throw(); extern "C" float __scalbf(float, float) throw();
+ extern "C" long double acosl(long double) throw(); extern "C" long double __acosl(long double) throw();
+@@ -2106,7 +2101,7 @@
+ extern "C" long double fmaxl(long double, long double) throw(); extern "C" long double __fmaxl(long double, long double) throw();
+ extern "C" long double fminl(long double, long double) throw(); extern "C" long double __fminl(long double, long double) throw();
+ extern "C" int __fpclassifyl(long double) throw() __attribute__((__const__));
+-extern "C" { extern inline __attribute__((__weak__)) int __signbitl(long double) throw() __attribute__((__gnu_inline__)) __attribute__((__const__)); }
++extern "C" { extern inline int __signbitl(long double) throw() __attribute__((__gnu_inline__)) __attribute__((__const__)); }
+ extern "C" long double fmal(long double, long double, long double) throw(); extern "C" long double __fmal(long double, long double, long double) throw();
+ extern "C" long double scalbl(long double, long double) throw(); extern "C" long double __scalbl(long double, long double) throw();
+ extern "C" { extern int signgam; }
+@@ -2134,19 +2129,19 @@
+ double retval;
+ }; }
+ extern "C" int matherr(__exception *) throw();
+-extern "C" { inline __attribute__((__weak__)) __attribute__((__gnu_inline__)) __attribute__((__const__)) int __signbitf(float __x) throw()
++extern "C" { inline __attribute__((__gnu_inline__)) __attribute__((__const__)) int __signbitf(float __x) throw()
+ {
+ int __m;
+ __asm__("pmovmskb %1, %0" : "=r" (__m) : "x" (__x));
+ return __m & 8;
+ } }
+-extern "C" { inline __attribute__((__weak__)) __attribute__((__gnu_inline__)) __attribute__((__const__)) int __signbit(double __x) throw()
++extern "C" { inline __attribute__((__gnu_inline__)) __attribute__((__const__)) int __signbit(double __x) throw()
+ {
+ int __m;
+ __asm__("pmovmskb %1, %0" : "=r" (__m) : "x" (__x));
+ return __m & 128;
+ } }
+-extern "C" { inline __attribute__((__weak__)) __attribute__((__gnu_inline__)) __attribute__((__const__)) int __signbitl(long double __x) throw()
++extern "C" { inline __attribute__((__gnu_inline__)) __attribute__((__const__)) int __signbitl(long double __x) throw()
+ {
+ union { long double __l; int __i[3]; } __u = {__l: __x};
+ return (((__u.__i)[2]) & 32768) != 0;
+@@ -9864,7 +9859,7 @@
+ {
+ __c_locale __old = __gnu_cxx::__uselocale(__cloc);
+ __builtin_va_list __args;
+-__builtin_stdarg_start(__args,__fmt);
++__builtin_va_start(__args,__fmt);
+ const int __ret = __builtin_vsnprintf(__out, __size, __fmt, __args);
+ __builtin_va_end(__args);
+ __gnu_cxx::__uselocale(__old);
 @@ -23186,7 +23186,7 @@
  static T2 *Alloc(int s) { auto T2 *p = (reinterpret_cast< T2 *>(_mm_malloc(s * sizeof(CacheLineSizeHelper< T> ), 128))); return new (p) T2 [s]; }
  static void Free(T2 *const p, int size) {
