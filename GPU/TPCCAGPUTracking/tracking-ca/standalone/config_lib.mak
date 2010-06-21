@@ -24,5 +24,5 @@ CXXFILES					= code/AliHLTTPCCATracker.cxx \
 							  standalone/AliHLTLogging.cxx \
 							  standalone/AliHLTTPCTransform.cxx							  
 							  
-CUFILES						= code/AliHLTTPCCAGPUTrackerNVCC.cu
+CUFILES						= cagpubuild/AliHLTTPCCAGPUTrackerNVCC.cu
 ASMFILES					= 
