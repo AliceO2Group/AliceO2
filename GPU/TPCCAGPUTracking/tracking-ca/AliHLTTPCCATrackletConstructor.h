@@ -31,7 +31,7 @@ class AliHLTTPCCATrackletConstructor
 
     class   AliHLTTPCCASharedMemory
     {
-        friend class AliHLTTPCCATrackletConstructor;
+      friend class AliHLTTPCCATrackletConstructor; // friend class
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
@@ -45,31 +45,31 @@ class AliHLTTPCCATrackletConstructor
       protected:
 #ifdef HLTCA_GPU_PREFETCHDATA
         uint4 fData[2][ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4]; // temp memory
-		AliHLTTPCCARow fRow[2]; // row
+		AliHLTTPCCARow fRow[2]; // rows
 #else
-		AliHLTTPCCARow fRows[HLTCA_ROW_COUNT];
+      AliHLTTPCCARow fRows[HLTCA_ROW_COUNT]; // rows
 #endif //HLTCA_GPU_PREFETCHDATA
-		int fNextTrackletFirst;
-		int fNextTrackletCount;
-		int fNextTrackletNoDummy;
-		int fNextTrackletStupidDummy;
-		int fNextTrackletFirstRun;
-		int fNTracklets;
-		int fSliceDone;
+      int fNextTrackletFirst; //! to be commented by D.Rohr
+      int fNextTrackletCount; //! to be commented by D.Rohr
+      int fNextTrackletNoDummy; //! to be commented by D.Rohr
+      int fNextTrackletStupidDummy; //! to be commented by D.Rohr
+      int fNextTrackletFirstRun; //! to be commented by D.Rohr
+      int fNTracklets; // n tracklets
+      int fSliceDone; //! to be commented by D.Rohr
 
-		int fStartRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1];
-		int fEndRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1];
+      int fStartRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1]; // start rows
+      int fEndRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1]; // end rows
 
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-		int fMaxSync;
+      int fMaxSync; //! to be commented by D.Rohr
 #endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 
-		int fTrackletStoreCount[2][HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1];
+      int fTrackletStoreCount[2][HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1];//! to be commented by D.Rohr
     };
 
     class  AliHLTTPCCAThreadMemory
     {
-        friend class AliHLTTPCCATrackletConstructor;
+      friend class AliHLTTPCCATrackletConstructor; //! friend class
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCAThreadMemory()
@@ -98,8 +98,8 @@ class AliHLTTPCCATrackletConstructor
 
 	struct AliHLTTPCCAGPUTempMemory
 	{
-		AliHLTTPCCAThreadMemory fThreadMem;
-		AliHLTTPCCATrackParam fParam;
+	  AliHLTTPCCAThreadMemory fThreadMem;// thread memory
+	  AliHLTTPCCATrackParam fParam;// parameters
 	};
 
 	GPUd() static void InitTracklet	( AliHLTTPCCATrackParam &tParam );
