@@ -303,7 +303,7 @@ void DrawGrid(AliHLTTPCCATracker& tracker)
 	for (int i = 0;i < tracker.Param().NRows();i++)
 	{
 		const AliHLTTPCCARow& row = tracker.Data().Row(i);
-		for (int j = 0;j <= row.Grid().Ny();j++)
+		for (int j = 0;j <= (signed) row.Grid().Ny();j++)
 		{
 			float z1 = row.Grid().ZMin();
 			float z2 = row.Grid().ZMax();
@@ -325,7 +325,7 @@ void DrawGrid(AliHLTTPCCATracker& tracker)
 			glVertex3f(xx1 / 50, yy1 / 50, zz1 / 50);
 			glVertex3f(xx2 / 50, yy2 / 50, zz2 / 50);
 		}
-		for (int j = 0;j <= row.Grid().Nz();j++)
+		for (int j = 0;j <= (signed) row.Grid().Nz();j++)
 		{
 			float y1 = row.Grid().YMin();
 			float y2 = row.Grid().YMax();
