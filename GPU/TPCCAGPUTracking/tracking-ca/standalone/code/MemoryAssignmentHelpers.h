@@ -61,7 +61,7 @@ template<typename T, unsigned int Alignment> static inline T *AssignMemory( char
 template<typename T, unsigned int Alignment> GPUhd() static T *_assignMemory( char *&mem, unsigned int size )
 {
   STATIC_ASSERT( ( Alignment & ( Alignment - 1 ) ) == 0, Alignment_needs_to_be_a_multiple_of_2 );
-  AlignTo<Alignment>( mem );
+  AlignTo<Alignment < sizeof( HLTCA_GPU_ROWALIGNMENT ) ? sizeof( HLTCA_GPU_ROWALIGNMENT ) : Alignment>( mem );
   T *r = reinterpret_cast<T *>( mem );
   mem += size * sizeof( T );
   return r;
@@ -69,7 +69,7 @@ template<typename T, unsigned int Alignment> GPUhd() static T *_assignMemory( ch
 
 template<typename T> GPUhd() static inline void AssignMemory( T *&dst, char *&mem, int count )
 {
-  dst = _assignMemory < T, ( sizeof( T ) & ( sizeof( T ) - 1 ) ) == 0 && sizeof( T ) <= 16 ? sizeof( T ) : sizeof( void * ) > ( mem, count );
+	dst = _assignMemory < T, ( sizeof( T ) & ( sizeof( T ) - 1 ) ) == 0 && sizeof( T ) <= 16 ? sizeof( T ) : sizeof( void * ) > ( mem, count );
 }
 
 #endif // MEMORYASSIGNMENTHELPERS_H

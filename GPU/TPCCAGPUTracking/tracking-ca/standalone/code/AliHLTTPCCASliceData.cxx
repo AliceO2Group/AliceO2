@@ -20,9 +20,9 @@
 #include "AliHLTArray.h"
 #include "AliHLTTPCCAHit.h"
 #include "AliHLTTPCCAParam.h"
-#include "MemoryAssignmentHelpers.h"
 #include "AliHLTTPCCAGPUConfig.h"
 #include "AliHLTTPCCAGPUTracker.h"
+#include "MemoryAssignmentHelpers.h"
 #include <iostream>
 
 // calculates an approximation for 1/sqrt(x)
