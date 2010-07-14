@@ -18,8 +18,6 @@
 //***************************************************************************
 
 #include "AliHLTTPCCASliceOutput.h"
-#include "MemoryAssignmentHelpers.h"
-
 
 int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClusters )
 {

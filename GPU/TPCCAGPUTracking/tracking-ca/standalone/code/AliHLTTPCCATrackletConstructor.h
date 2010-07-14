@@ -31,45 +31,38 @@ class AliHLTTPCCATrackletConstructor
 
     class   AliHLTTPCCASharedMemory
     {
-        friend class AliHLTTPCCATrackletConstructor;
+      friend class AliHLTTPCCATrackletConstructor; // friend class
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletNoDummy(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0), fSliceDone(0) {}
+			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0) {}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletNoDummy(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0), fSliceDone(0) {}
+			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif //HLTCA_GPUCODE
 
       protected:
-#ifdef HLTCA_GPU_PREFETCHDATA
-        uint4 fData[2][ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4]; // temp memory
-		AliHLTTPCCARow fRow[2]; // row
-#else
-		AliHLTTPCCARow fRows[HLTCA_ROW_COUNT];
-#endif //HLTCA_GPU_PREFETCHDATA
-		int fNextTrackletFirst;
-		int fNextTrackletCount;
-		int fNextTrackletNoDummy;
-		int fNextTrackletStupidDummy;
-		int fNextTrackletFirstRun;
-		int fNTracklets;
-		int fSliceDone;
+      AliHLTTPCCARow fRows[HLTCA_ROW_COUNT]; // rows
+      int fNextTrackletFirst; //First tracklet to be processed by CUDA block during next iteration
+      int fNextTrackletCount; //Number of Tracklets to be processed by CUDA block during next iteration
+      int fNextTrackletStupidDummy; //Shared Dummy variable to access
+      int fNextTrackletFirstRun; //First run for dynamic scheduler?
+      int fNTracklets; // Total number of tracklets
 
-		int fStartRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1];
-		int fEndRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1];
+      int fStartRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1]; // start rows
+      int fEndRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1]; // end rows
 
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
-		int fMaxSync;
+      int fMaxSync; //! to be commented by D.Rohr
 #endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 
-		int fTrackletStoreCount[2][HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1];
+      int fTrackletStoreCount[2][HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1];//Number of tracklets to store in tracklet pool for rescheduling
     };
 
     class  AliHLTTPCCAThreadMemory
     {
-        friend class AliHLTTPCCATrackletConstructor;
+      friend class AliHLTTPCCATrackletConstructor; //! friend class
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCAThreadMemory()
@@ -96,15 +89,14 @@ class AliHLTTPCCATrackletConstructor
         float fLastZ; // Z of the last fitted cluster
     };
 
+	//Structure to store track parameters and temporary thread variables in global memory when rescheduling
 	struct AliHLTTPCCAGPUTempMemory
 	{
-		AliHLTTPCCAThreadMemory fThreadMem;
-		AliHLTTPCCATrackParam fParam;
+	  AliHLTTPCCAThreadMemory fThreadMem;// thread memory
+	  AliHLTTPCCATrackParam fParam;// parameters
 	};
 
 	GPUd() static void InitTracklet	( AliHLTTPCCATrackParam &tParam );
-
-    GPUd() static void ReadData( int iThread, AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, int iRow );
 
     GPUd() static void UpdateTracklet
     ( int nBlocks, int nThreads, int iBlock, int iThread,
@@ -125,15 +117,6 @@ class AliHLTTPCCATrackletConstructor
 #endif //HLTCA_GPUCODE
 
     GPUd() static bool SAVE() { return 1; }
-
-#if defined(HLTCA_GPUCODE)
-    //GPUhd() inline int NMemThreads() { return 128; }
-#define TRACKLET_CONSTRUCTOR_NMEMTHREDS HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS
-#else
-    //GPUhd() inline int NMemThreads() { return 1; }
-#define TRACKLET_CONSTRUCTOR_NMEMTHREDS 1
-#endif //!HLTCA_GPUCODE
-
 };
 
 #endif //ALIHLTTPCCATRACKLETCONSTRUCTOR_H
