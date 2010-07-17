@@ -224,16 +224,15 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		return(1);
 	}
 
-  int cudaDevice;
   if (forceDeviceID == -1)
-	  cudaDevice = bestDevice;
+	  fCudaDevice = bestDevice;
   else
-	  cudaDevice = forceDeviceID;
+	  fCudaDevice = forceDeviceID;
 #else
-	int cudaDevice = 0;
+	fCudaDevice = 0;
 #endif
 
-  cudaGetDeviceProperties(&fCudaDeviceProp ,cudaDevice ); 
+  cudaGetDeviceProperties(&fCudaDeviceProp ,fCudaDevice ); 
 
   if (fDebugLevel >= 1)
   {
@@ -262,7 +261,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	return(1);
   }
 
-  if (CudaFailedMsg(cudaSetDevice(cudaDevice)))
+  if (CudaFailedMsg(cudaSetDevice(fCudaDevice)))
   {
 	  HLTError("Could not set CUDA Device!");
 	  fgGPUUsed = 0;
@@ -323,7 +322,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
   }
 
   fCudaInitialized = 1;
-  HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d)", cudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount);
+  HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount);
 
 #if defined(HLTCA_STANDALONE) & !defined(CUDA_DEVICE_EMULATION)
   if (fDebugLevel < 2)
@@ -534,6 +533,20 @@ __global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTra
 		rowBlockTracklets4[i] = i1;
 	for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < nSliceDataHits * sizeof(int) / sizeof(int4);i += stride)
 		sliceDataHitWeights4[i] = i0;
+}
+
+int AliHLTTPCCAGPUTrackerNVCC::SelfHealReconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
+{
+	HLTError("Unsolvable CUDA error occured, trying to reinitialize GPU");
+	ExitGPU();
+	if (InitGPU(fSliceCount, fCudaDevice))
+	{
+		HLTError("Could not reinitialize CUDA device, disabling GPU tracker");
+		ExitGPU();
+		return(1);
+	}
+	HLTInfo("GPU tracker successfully reinitialized, restarting tracking");
+	return(Reconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
 }
 
 int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
@@ -796,25 +809,6 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	}
 
 	StandalonePerfTime(firstSlice, 7);
-#ifdef HLTCA_GPU_PREFETCHDATA
-	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
-	{
-		if (fSlaveTrackers[firstSlice + iSlice].Data().GPUSharedDataReq() * sizeof(ushort_v) > ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4 * sizeof(uint4))
-		{
-			HLTError("Insufficiant GPU shared Memory, required: %d, available %d", fSlaveTrackers[firstSlice + iSlice].Data().GPUSharedDataReq() * sizeof(ushort_v), ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM / 4 * sizeof(uint4));
-			return(1);
-		}
-		if (fDebugLevel >= 1)
-		{
-			static int infoShown = 0;
-			if (!infoShown)
-			{
-				HLTInfo("GPU Shared Memory Cache Size: %d", 2 * fSlaveTrackers[firstSlice + iSlice].Data().GPUSharedDataReq() * sizeof(ushort_v));
-				infoShown = 1;
-			}
-		}
-	}
-#endif
 
 	int nHardCollisions = 0;
 
@@ -866,7 +860,10 @@ RestartTrackletConstructor:
 
 		while(tmpSlice < sliceCountLocal && (tmpSlice == iSlice || cudaStreamQuery(cudaStreams[tmpSlice]) == CUDA_SUCCESS))
 		{
-			if (CudaFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice].CommonMemory(), fGpuTracker[tmpSlice].CommonMemory(), fGpuTracker[tmpSlice].CommonMemorySize(), cudaMemcpyDeviceToHost, cudaStreams[tmpSlice]))) return(1);
+			if (CudaFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice].CommonMemory(), fGpuTracker[tmpSlice].CommonMemory(), fGpuTracker[tmpSlice].CommonMemorySize(), cudaMemcpyDeviceToHost, cudaStreams[tmpSlice])))
+			{
+				return(SelfHealReconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
+			}
 			tmpSlice++;
 		}
 
@@ -877,7 +874,10 @@ RestartTrackletConstructor:
 			tmpSlice2++;
 		}
 
-		cudaStreamSynchronize(cudaStreams[iSlice]);
+		if (CudaFailedMsg(cudaStreamSynchronize(cudaStreams[iSlice])))
+		{
+			return(SelfHealReconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
+		}
 
 		if (fDebugLevel >= 4)
 		{
