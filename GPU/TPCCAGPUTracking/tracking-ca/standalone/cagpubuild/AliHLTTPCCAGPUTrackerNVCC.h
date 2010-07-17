@@ -34,7 +34,8 @@ public:
 
 	virtual int InitGPU(int sliceCount = 12, int forceDeviceID = -1);
 	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
-	virtual int ReconstructPP(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
+	int ReconstructPP(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
+	int SelfHealReconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	virtual int ExitGPU();
 
 	virtual void SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile = NULL);
@@ -79,6 +80,7 @@ private:
 
 	void* fpCudaStreams; //Pointer to array of CUDA Streams
 	int fSliceCount; //Maximum Number of Slices this GPU tracker can process in parallel
+	int fCudaDevice; //CUDA device used by GPU tracker
 
 	static const int fgkNSlices = 36; //Number of Slices in Alice
 	AliHLTTPCCATracker fSlaveTrackers[fgkNSlices]; //CPU Slave Trackers for Initialization and Output
