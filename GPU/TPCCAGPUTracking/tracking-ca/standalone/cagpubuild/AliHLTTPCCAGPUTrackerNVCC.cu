@@ -121,7 +121,7 @@ int AliHLTTPCCAGPUTrackerNVCC::CheckMemorySizes(int sliceCount)
 	//Check constants for correct memory sizes
   if (sizeof(AliHLTTPCCATracker) * sliceCount > HLTCA_GPU_TRACKER_OBJECT_MEMORY)
   {
-	  HLTError("Insufficiant Tracker Object Memory");
+	  HLTError("Insufficiant Tracker Object Memory for %d slices", sliceCOunt);
 	  return(1);
   }
 
