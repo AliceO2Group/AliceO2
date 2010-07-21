@@ -1,7 +1,7 @@
 all:					libAliHLTTPCCAGPU.so
 
 clean:
-					rm -f libAliHLTTPCCAGPU.so AliHLTTPCCAGPUTrackerNVCC.o G__AliHLTTPCCAGPU.o AliHLTTPCCAGPUTrackerNVCC.cu.tmp.cxx AliHLTTPCCAGPUTrackerNVCC.cu.cxx
+					rm -f libAliHLTTPCCAGPU.so AliHLTTPCCAGPUTrackerNVCC.o G__AliHLTTPCCAGPU.o AliHLTTPCCAGPUTrackerNVCC.cu.tmp.cxx AliHLTTPCCAGPUTrackerNVCC.cu.cxx G__AliHLTTPCCAGPUAutoLinkDef.h G__AliHLTTPCCAGPU.h G__AliHLTTPCCAGPU.cxx
 
 
 libAliHLTTPCCAGPU.so:			AliHLTTPCCAGPUTrackerNVCC.o G__AliHLTTPCCAGPU.o
