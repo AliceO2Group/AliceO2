@@ -531,6 +531,7 @@ void AliHLTTPCCAGPUTrackerNVCC::DumpRowBlocks(AliHLTTPCCATracker* tracker, int i
 __global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTracklets, int* const SliceDataHitWeights, int nSliceDataHits)
 {
 	//Initialize GPU RowBlocks and HitWeights
+	if (blockIdx.x >= HLTCA_GPU_BLOCK_COUNT || threadIdx.x >= HLTCA_GPU_THREAD_COUNT) return;
 	int4* const rowBlockTracklets4 = (int4*) RowBlockTracklets;
 	int4* const sliceDataHitWeights4 = (int4*) SliceDataHitWeights;
 	const int stride = blockDim.x * gridDim.x;
