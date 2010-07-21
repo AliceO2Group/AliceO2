@@ -50,7 +50,6 @@ int AliHLTTPCCATrackerFramework::InitGPU(int sliceCount, int forceDeviceID)
 	if (fGPUTrackerAvailable && (retVal = ExitGPU())) return(retVal);
 	retVal = fGPUTracker->InitGPU(sliceCount, forceDeviceID);
 	fUseGPUTracker = fGPUTrackerAvailable = retVal == 0;
-	fGPUSliceCount = sliceCount;
 	return(retVal);
 }
 
@@ -158,7 +157,7 @@ int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAPar
 #define GPULIBNAME "libAliHLTTPCCAGPU"
 #endif
 
-AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUSliceCount(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fCPUSliceCount(fgkNSlices), fKeepData(false)
+AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false)
 {
 	//Constructor
 #ifdef R__WIN32
@@ -211,7 +210,6 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) : fGPULib
 	if (allowGPU && fGPULibAvailable)
 	{
 		fUseGPUTracker = (fGPUTrackerAvailable= (fGPUTracker->InitGPU() == 0));
-		fGPUSliceCount = fGPUTrackerAvailable ? fGPUTracker->GetSliceCount() : 0;
 		HLTInfo("GPU Tracker Initialized and available in framework");
 	}
 }
