@@ -228,7 +228,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	if (bestDevice == -1)
 	{
 		HLTWarning("No CUDA Device available, aborting CUDA Initialisation");
-		HLTInfo("Requiring Revision 1.3, Mem: %d", fGPUMemSize);
+		HLTInfo("Requiring Revision 1.3, Mem: %d, Multiprocessort: %d", fGPUMemSize, sliceCount);
 		fgGPUUsed = 0;
 		ReleaseGlobalLock(semLock);
 		return(1);
@@ -548,7 +548,17 @@ __global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTra
 
 int AliHLTTPCCAGPUTrackerNVCC::SelfHealReconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
-	HLTError("Unsolvable CUDA error occured, trying to reinitialize GPU");
+	static bool selfHealing = false;
+	if (selfHealing)
+	{
+		HLTError("Selfhealing failed, giving up");
+		return(1);
+	}
+	else
+	{
+		HLTError("Unsolvable CUDA error occured, trying to reinitialize GPU");
+	}			
+	selfHealing = true;
 	ExitGPU();
 	if (InitGPU(fSliceCount, fCudaDevice))
 	{
@@ -557,7 +567,9 @@ int AliHLTTPCCAGPUTrackerNVCC::SelfHealReconstruct(AliHLTTPCCASliceOutput** pOut
 		return(1);
 	}
 	HLTInfo("GPU tracker successfully reinitialized, restarting tracking");
-	return(Reconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
+	int retVal = Reconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal);
+	selfHealing = false;
+	return(retVal);
 }
 
 int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
