@@ -173,7 +173,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	{
 		HLTError("Global Lock for GPU initialisation was not released for 10 seconds, assuming another thread died");
 		HLTWarning("Resetting the global lock");
-		sem_post(&semLock);
+		sem_post(semLock);
 	}
 #endif
 
