@@ -59,7 +59,6 @@ private:
   bool fGPUTrackerAvailable; // Is the GPU Tracker Available?
   bool fUseGPUTracker; // use the GPU tracker 
   int fGPUDebugLevel;  // debug level for the GPU code
-  int fGPUSliceCount;	//How many slices to process parallel
   AliHLTTPCCAGPUTracker* fGPUTracker;	//Pointer to GPU Tracker Object
   void* fGPULib;		//Pointer to GPU Library
 
