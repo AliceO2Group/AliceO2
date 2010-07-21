@@ -44,7 +44,7 @@ public:
 	int ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput);
 	unsigned long long int* PerfTimer(int GPU, int iSlice, int iTimer);
 
-	int MaxSliceCount() const { return(fUseGPUTracker ? fGPUSliceCount : fCPUSliceCount); }
+	int MaxSliceCount() const { return(fUseGPUTracker ? (fGPUTrackerAvailable ? fGPUTracker->GetSliceCount() : 0) : fCPUSliceCount); }
 	int GetGPUStatus() const { return(fGPUTrackerAvailable + fUseGPUTracker); }
 
 	const AliHLTTPCCAParam& Param(int iSlice) const { return(fCPUTrackers[iSlice].Param()); }
@@ -66,7 +66,7 @@ private:
   AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 
   AliHLTTPCCATracker fCPUTrackers[fgkNSlices];
-  int fCPUSliceCount;
+  static const int fCPUSliceCount = fgkNSlices;
 
   bool fKeepData;		//Keep temporary data and do not free memory imediately, used for Standalone Debug Event Display
 
