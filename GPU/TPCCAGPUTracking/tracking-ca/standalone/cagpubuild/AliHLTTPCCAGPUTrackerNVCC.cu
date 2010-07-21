@@ -205,6 +205,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	if (fDebugLevel >= 2) HLTInfo("Available CUDA devices:");
 	for (int i = 0;i < count;i++)
 	{
+		if (fDebugLevel >= 4) printf("Examining device %d\n", i);
 		unsigned int free, total;
 		cuInit(0);
 		CUdevice tmpDevice;
@@ -213,8 +214,9 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		cuCtxCreate(&tmpContext, 0, tmpDevice);
 		if(cuMemGetInfo(&free, &total)) std::cout << "Error\n";
 		cuCtxDestroy(tmpContext);
+		if (fDebugLevel >= 4) printf("Obtained current memory usage for device %d\n", i);
 		if (CudaFailedMsg(cudaGetDeviceProperties(&fCudaDeviceProp, i))) continue;
-
+		if (fDebugLevel >= 4) printf("Obtained device properties for device %d\n", i);
 		int deviceOK = sliceCount <= fCudaDeviceProp.multiProcessorCount && fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < 1 || (fCudaDeviceProp.major == 1 && fCudaDeviceProp.minor < 2)) && free >= fGPUMemSize;
 
 		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %d / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
