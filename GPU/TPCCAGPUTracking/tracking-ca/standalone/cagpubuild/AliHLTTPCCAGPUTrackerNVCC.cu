@@ -92,7 +92,7 @@ AliHLTTPCCAGPUTrackerNVCC::AliHLTTPCCAGPUTrackerNVCC() :
 	fOutFile(NULL),
 	fGPUMemSize(0),
 	fpCudaStreams(NULL),
-	fSliceCount(0),
+	fSliceCount(HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT),
 	fOutputControl(NULL),
 	fThreadId(0),
 	fCudaInitialized(0),
@@ -147,6 +147,8 @@ int AliHLTTPCCAGPUTrackerNVCC::CheckMemorySizes(int sliceCount)
 int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 {
 	//Find best CUDA device, initialize and allocate memory
+
+	if (sliceCount == -1) sliceCount = fSliceCount;
 
 	if (CheckMemorySizes(sliceCount)) return(1);
 
