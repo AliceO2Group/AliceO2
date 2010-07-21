@@ -166,7 +166,15 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		HLTError("Error creating GPUInit Semaphore");
 		return(1);
 	}
-	sem_wait(semLock);
+	timespec semtime;
+	clock_gettime(CLOCK_REALTIME, &semtime);
+	semtime.tv_sec += 10;
+	while (sem_timedwait(semLock, &semtime) != 0)
+	{
+		HLTError("Global Lock for GPU initialisation was not released for 10 seconds, assuming another thread died");
+		HLTWarning("Resetting the global lock");
+		sem_post(&semLock);
+	}
 #endif
 
 	if (fgGPUUsed)
