@@ -322,8 +322,8 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     arguments += argv[i];
   }
 
-  int retVal Configure( NULL, NULL, arguments.Data() );
-  if (retVal == 0) fTracker = new AliHLTTPCCATrackerFramework(fAllowGpu);
+  int retVal = Configure( NULL, NULL, arguments.Data() );
+  if (retVal == 0) fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
   return(retVal);
 }
 
