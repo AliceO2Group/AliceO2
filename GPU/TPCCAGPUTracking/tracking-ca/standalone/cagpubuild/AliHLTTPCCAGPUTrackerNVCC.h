@@ -23,6 +23,7 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTLogging.h"
 #include "AliHLTTPCCASliceOutput.h"
+#include <cuda.h>
 
 class AliHLTTPCCARow;
 
@@ -87,11 +88,12 @@ private:
 
 	AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl; //Output Control Structure
 	
-	static bool fgGPUUsed; //Flag signaling that a GPU tracker is initialized in a process
 	int fThreadId; //Thread ID that is valid for the local CUDA context
 	int fCudaInitialized; //Flag if CUDA is initialized
 
 	int fPPMode; //Flag if GPU tracker runs in PP Mode
+
+	CUcontext fCudaContext;
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );
