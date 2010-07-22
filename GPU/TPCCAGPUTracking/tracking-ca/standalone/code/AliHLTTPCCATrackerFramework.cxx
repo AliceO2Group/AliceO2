@@ -203,13 +203,13 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) : fGPULib
 			fGPUTracker = tmp();
 			fGPULibAvailable = true;
 			fGPULib = (void*) (size_t) hGPULib;
-			HLTImportant("GPU Tracker Created by Wrapper library");
+			HLTImportant("GPU Tracker library loaded and GPU tracker object created sucessfully (%sactive)", allowGPU ? "" : "in");
 		}
 	}
 
 	if (allowGPU && fGPULibAvailable)
 	{
-		fUseGPUTracker = (fGPUTrackerAvailable= (fGPUTracker->InitGPU() == 0));
+		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU() == 0));
 		HLTInfo("GPU Tracker Initialized and available in framework");
 	}
 }
