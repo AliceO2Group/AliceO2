@@ -65,7 +65,7 @@ private:
   AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl;
 
   AliHLTTPCCATracker fCPUTrackers[fgkNSlices];
-  static const int fCPUSliceCount = fgkNSlices;
+  static const int fCPUSliceCount = 36;
 
   bool fKeepData;		//Keep temporary data and do not free memory imediately, used for Standalone Debug Event Display
 
