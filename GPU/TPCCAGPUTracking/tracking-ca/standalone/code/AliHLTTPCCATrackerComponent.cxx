@@ -316,15 +316,15 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 
   if ( fTracker ) return EINPROGRESS;
 
-  fTracker = new AliHLTTPCCATrackerFramework();
-
   TString arguments = "";
   for ( int i = 0; i < argc; i++ ) {
     if ( !arguments.IsNull() ) arguments += " ";
     arguments += argv[i];
   }
 
-  return Configure( NULL, NULL, arguments.Data() );
+  int retVal Configure( NULL, NULL, arguments.Data() );
+  if (retVal == 0) fTracker = new AliHLTTPCCATrackerFramework(fAllowGpu);
+  return(retVal);
 }
 
 int AliHLTTPCCATrackerComponent::DoDeinit()
