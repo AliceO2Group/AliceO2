@@ -23,7 +23,6 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTLogging.h"
 #include "AliHLTTPCCASliceOutput.h"
-#include <cuda.h>
 
 class AliHLTTPCCARow;
 
@@ -93,7 +92,7 @@ private:
 
 	int fPPMode; //Flag if GPU tracker runs in PP Mode
 
-	CUcontext fCudaContext;
+	void* fCudaContext;
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );
