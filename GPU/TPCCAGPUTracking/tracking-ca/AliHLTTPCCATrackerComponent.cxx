@@ -310,17 +310,11 @@ int AliHLTTPCCATrackerComponent::Configure( const char* cdbEntry, const char* ch
   return iResult1 ? iResult1 : ( iResult2 ? iResult2 : ( iResult3 ? iResult3 : iResult4 ) );
 }
 
-
-
 int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 {
   // Configure the CA tracker component
 
   if ( fTracker ) return EINPROGRESS;
-
-
-  //fTracker = new AliHLTTPCCATrackerFramework();
-  //Do not initialize the TrackerFramework here since the CUDA framework is thread local and DoInit is called from different thread than DoEvent
 
   TString arguments = "";
   for ( int i = 0; i < argc; i++ ) {
@@ -328,9 +322,10 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     arguments += argv[i];
   }
 
-  return Configure( NULL, NULL, arguments.Data() );
+  int retVal = Configure( NULL, NULL, arguments.Data() );
+  if (retVal == 0) fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
+  return(retVal);
 }
-
 
 int AliHLTTPCCATrackerComponent::DoDeinit()
 {
@@ -340,15 +335,12 @@ int AliHLTTPCCATrackerComponent::DoDeinit()
   return 0;
 }
 
-
-
 int AliHLTTPCCATrackerComponent::Reconfigure( const char* cdbEntry, const char* chainId )
 {
   // Reconfigure the component from OCDB .
 
   return Configure( cdbEntry, chainId, NULL );
 }
-
 
 bool AliHLTTPCCATrackerComponent::CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b )
 {

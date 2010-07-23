@@ -43,13 +43,13 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 		if (iBlock == nBlocks - 1 && nCurrentBlock < gpuFixedBlockCount)
 		{
 			startOffset += tracker.RowStartHitCountOffset()[ir].x;
-			for (int i = previousBlockEndTracklet + HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS;i <= startOffset;i += HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS)
+			for (int i = previousBlockEndTracklet + HLTCA_GPU_THREAD_COUNT;i <= startOffset;i += HLTCA_GPU_THREAD_COUNT)
 			{
-				if (previousBlockEndTracklet / (HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS) != i / (HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS))
+				if (previousBlockEndTracklet / HLTCA_GPU_THREAD_COUNT != i / HLTCA_GPU_THREAD_COUNT)
 				{
 					tracker.BlockStartingTracklet()[nCurrentBlock].x = previousBlockEndTracklet;
-					tracker.BlockStartingTracklet()[nCurrentBlock++].y = HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS;
-					previousBlockEndTracklet += HLTCA_GPU_THREAD_COUNT - HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS;
+					tracker.BlockStartingTracklet()[nCurrentBlock++].y = HLTCA_GPU_THREAD_COUNT;
+					previousBlockEndTracklet += HLTCA_GPU_THREAD_COUNT;
 					if (nCurrentBlock == gpuFixedBlockCount)
 					{
 						break;
