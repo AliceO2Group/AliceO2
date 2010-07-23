@@ -12,15 +12,12 @@ Therefore to use the GPU tracker the following steps are needed:
 
 How to build the library AliHLTTPCCAGPU:
 The library is not build automatically by the AliROOT or HLT standalone build
-The script cagpubuild.sh can be used the library
-As the ROOT CINT interpreter is unable to process the CUDA file directly, preprocessed CINT files are distributed with the build script
-These files must be modified manually if the class structure of the GPU tracker is changed
-The Variables ROOTSYS AND ALICE_ROOT must be set for the script to operate
-Because of an incompatibility between CUDA and GCC a patch is applied to an intermediate file. The patch is contained in AliHLTTPCCAGPUTrackerNVCC.cu.x86_64-pc-linux-gnu.patch
-The script builds the library and stores the shared object file in the current directory
+It can be found at via svn at https://qon.zapto.org/var/svn/catracker/catracker/standalone/cagpubuild
+The Variables ROOTSYS AND ALIHLT_TOPDIR must be set for the makefile to work, the cuda compiler nvcc must be present in the PATH variable
+The makefile builds the library and stores the shared object file in the current directory
 
-To run the script the following is needed:
-- Place the script in a directory together with the preprocessed CINT files G__AliHLTTPCCAGPU.cxx/h and the patch file AliHLTTPCCAGPUTrackerNVCC.cu.x86_64-pc-linux-gnu.patch
-- Make sure the environment variables ALICE_ROOT and ROOTSYS are set
-- The CUDA compiler must be installed in /usr/local/cuda and available in the PATH variable
-- execute cagpubuild.sh
+To build the library the following is needed
+- Checkout the library from svn
+- Make sure the environment variables ALIHLT_TOPDIR and ROOTSYS are set
+- The CUDA compiler must be installed in /usr/local/cuda and available in the PATH variable (you can change the path in the makefile)
+- run make
