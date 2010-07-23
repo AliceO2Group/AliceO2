@@ -2,7 +2,7 @@
 #define ALIHLTTPCCAGPUCONFIG_H
 
 //GPU Run Configuration
-#define HLTCA_GPU_BLOCK_COUNT 30
+#define HLTCA_GPU_BLOCK_COUNT 15
 #define HLTCA_GPU_THREAD_COUNT 256
 
 //GPU Parameters
@@ -14,8 +14,6 @@
 
 #define HLTCA_GPU_ROWALIGNMENT uint4					//Align Row Hits and Grid
 #define HLTCA_GPU_ROWCOPY int							//must not be bigger than row alignment!!!
-#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS 32	//Amound of threads to reserve for memory copy
-//#define HLTCA_GPU_PREFETCHDATA						//Fetch Row Data (Hits / Grid) into shared memory during Tracklet Construction
 
 #define HLTCA_GPU_SCHED_ROW_STEP 32						//Amount of Rows to process in one step before rescheduling
 #define HLTCA_GPU_SCHED_FIXED_START						//Assign each GPU thread a start tracklet to start with instead of using the scheduler to obtain start tracklet
@@ -39,6 +37,8 @@
 //#define HLTCA_GPU_EMULATION_SINGLE_TRACKLET 1313		//Run Tracklet constructor on on single Tracklet in Device Emulation Mode
 //#define HLTCA_GPU_EMULATION_DEBUG_TRACKLET 1313
 
+#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
+
 #define HLTCA_GPU_TRACKER_CONSTANT_MEM 65000			//Amount of Constant Memory to reserve
 
 #define HLTCA_GPU_TRACKER_OBJECT_MEMORY 1024 * 1024		//Total amount of Memory to reserve for GPU Tracker Objects
@@ -58,22 +58,13 @@
 #ifdef HLTCA_GPU_TEXTURE_FETCHa
 #undef HLTCA_GPU_TEXTURE_FETCHa
 #endif
-//No Shared memory cache for CPU Tracker
-#ifdef HLTCA_GPU_PREFETCHDATA
-#undef HLTCA_GPU_PREFETCHDATA
-#endif
+
 //Do not cache Row Hits during Tracklet selection in Registers for CPU Tracker
 #undef HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 0
 #else
 //Sort start hits for GPU tracker
 #define HLTCA_GPU_SORT_STARTHITS
-#endif
-
-//If not using Row Based schreduling or not using shared memory cache do not reserve threads for shared memory copy
-#if !defined(HLTCA_GPU_PREFETCHDATA) | !defined(HLTCA_GPU_RESCHED)
-#undef HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS
-#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_NMEMTHREDS 0
 #endif
 
 //Error Codes for GPU Tracker
