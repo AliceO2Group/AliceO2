@@ -2,10 +2,20 @@
 #define ALIHLTTPCCAGPUCONFIG_H
 
 //GPU Run Configuration
+
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 200
 #define HLTCA_GPU_BLOCK_COUNT 15
-#define HLTCA_GPU_THREAD_COUNT 384
+#define HLTCA_GPU_THREAD_COUNT 256
+#define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 384
 #define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
 #define HLTCA_GPU_THREAD_COUNT_FINDER 256
+#else
+#define HLTCA_GPU_BLOCK_COUNT 30
+#define HLTCA_GPU_THREAD_COUNT 256
+#define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 256
+#define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
+#define HLTCA_GPU_THREAD_COUNT_FINDER 256
+#endif
 
 //GPU Parameters
 #define HLTCA_GPU_WARP_SIZE 32
@@ -23,12 +33,18 @@
 #define HLTCA_GPU_RESCHED								//Use dynamic tracklet scheduling
 
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ < 200
 #define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
+#endif
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define HLTCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
 
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 200
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 46
+#else
+#define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
+#endif
 #define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 3		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
 #define HLTCA_GPU_SORT_DUMPDATA							//Sort Start Hits etc before dumping to file
