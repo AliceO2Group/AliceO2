@@ -12,6 +12,7 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCARow.h"
+#include "AliHLTTPCCAGPUConfig.h"
 class AliHLTTPCCATracker;
 
 /**
