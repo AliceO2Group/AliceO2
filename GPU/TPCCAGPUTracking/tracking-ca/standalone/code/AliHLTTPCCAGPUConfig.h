@@ -6,13 +6,15 @@
 //#define FERMI
 
 #ifdef FERMI
-#define HLTCA_GPU_BLOCK_COUNT 15
+#define HLTCA_GPU_BLOCK_COUNT 30
+#define HLTCA_GPU_BLOCK_COUNT_SELECTOR 45
 #define HLTCA_GPU_THREAD_COUNT 256
-#define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 384
+#define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 256
 #define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
 #define HLTCA_GPU_THREAD_COUNT_FINDER 256
 #else
 #define HLTCA_GPU_BLOCK_COUNT 30
+#define HLTCA_GPU_BLOCK_COUNT_SELECTOR 30
 #define HLTCA_GPU_THREAD_COUNT 256
 #define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 256
 #define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
@@ -42,11 +44,7 @@
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define HLTCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
 
-#ifdef FERMI
-#define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 46
-#else
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
-#endif
 #define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 3		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
 #define HLTCA_GPU_SORT_DUMPDATA							//Sort Start Hits etc before dumping to file
