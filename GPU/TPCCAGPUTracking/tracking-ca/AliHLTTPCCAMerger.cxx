@@ -166,9 +166,9 @@ void AliHLTTPCCAMerger::Clear()
 }
 
 
-void AliHLTTPCCAMerger::SetSliceData( int index, const AliHLTTPCCASliceOutput *SliceData )
+void AliHLTTPCCAMerger::SetSliceData( int index, const AliHLTTPCCASliceOutput *sliceData )
 {
-  fkSlices[index] = SliceData;
+  fkSlices[index] = sliceData;
 }
 
 void AliHLTTPCCAMerger::Reconstruct()
@@ -617,20 +617,21 @@ void AliHLTTPCCAMerger::Merging()
 
   // for each slice set number of the next neighbouring slice
 
-  int nextSlice[100], prevSlice[100];
+  int nextSlice[100];
+  //int prevSlice[100];
 
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
     nextSlice[iSlice] = iSlice + 1;
-    prevSlice[iSlice] = iSlice - 1;
+    //prevSlice[iSlice] = iSlice - 1;
   }
   int mid = fgkNSlices / 2 - 1 ;
   int last = fgkNSlices - 1 ;
   if ( mid < 0 ) mid = 0; // to avoid compiler warning
   if ( last < 0 ) last = 0; //
   nextSlice[ mid ] = 0;
-  prevSlice[ 0 ] = mid;
+  //prevSlice[ 0 ] = mid;
   nextSlice[ last ] = fgkNSlices / 2;
-  prevSlice[ fgkNSlices/2 ] = last;
+  //prevSlice[ fgkNSlices/2 ] = last;
 
   int maxNSliceTracks = 0;
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
