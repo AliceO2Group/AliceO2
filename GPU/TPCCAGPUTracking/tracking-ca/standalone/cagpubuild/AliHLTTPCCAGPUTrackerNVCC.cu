@@ -918,7 +918,7 @@ RestartTrackletConstructor:
 	{
 		if (runSlices < HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT) runSlices++;
 		if (fDebugLevel >= 3) HLTInfo("Running HLT Tracklet selector (Slice %d to %d)", iSlice, iSlice + runSlices);
-		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT_SELECTOR, 0, cudaStreams[iSlice]>>>(iSlice, CAMath::Min(runSlices, sliceCountLocal - iSlice));
+		AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<HLTCA_GPU_BLOCK_COUNT_SELECTOR, HLTCA_GPU_THREAD_COUNT_SELECTOR, 0, cudaStreams[iSlice]>>>(iSlice, CAMath::Min(runSlices, sliceCountLocal - iSlice));
 		if (CUDASync("Tracklet Selector", iSlice, iSlice + firstSlice))
 		{
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
@@ -1250,7 +1250,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 	
 	StandalonePerfTime(firstSlice, 8);
 
-	AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT_SELECTOR>>>(0, sliceCountLocal);
+	AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<HLTCA_GPU_BLOCK_COUNT_SELECTOR, HLTCA_GPU_THREAD_COUNT_SELECTOR>>>(0, sliceCountLocal);
 	if (CUDASync("Tracklet Selector", 0, firstSlice)) return 1;
 	StandalonePerfTime(firstSlice, 9);
 
