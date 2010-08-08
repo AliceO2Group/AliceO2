@@ -888,7 +888,7 @@ RestartTrackletConstructor:
 	}
 
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Tracklet Constructor");
-	AliHLTTPCCATrackletConstructorGPU<<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT>>>();
+	AliHLTTPCCATrackletConstructorGPU<<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR>>>();
 	if (CUDASync("Tracklet Constructor", 0, firstSlice))
 	{
 		cuCtxPopCurrent((CUcontext*) fCudaContext);
@@ -1027,11 +1027,11 @@ RestartTrackletConstructor:
 	ZeroMemory(&bmpIH, sizeof(bmpIH));
 	
 	bmpFH.bfType = 19778; //"BM"
-	bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + (HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT / 32 * 33 - 1) * bmpheight ;
+	bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + (HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / 32 * 33 - 1) * bmpheight ;
 	bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
 
 	bmpIH.biSize = sizeof(bmpIH);
-	bmpIH.biWidth = HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT / 32 * 33 - 1;
+	bmpIH.biWidth = HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / 32 * 33 - 1;
 	bmpIH.biHeight = bmpheight;
 	bmpIH.biPlanes = 1;
 	bmpIH.biBitCount = 32;
@@ -1039,10 +1039,10 @@ RestartTrackletConstructor:
 	fwrite(&bmpFH, 1, sizeof(bmpFH), fp2);
 	fwrite(&bmpIH, 1, sizeof(bmpIH), fp2); 	
 
-	for (int i = 0;i < bmpheight * HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT;i += HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT)
+	for (int i = 0;i < bmpheight * HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR;i += HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR)
 	{
 		fEmpty = 1;
-		for (int j = 0;j < HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT;j++)
+		for (int j = 0;j < HLTCA_GPU_BLOCK_COUNT * HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR;j++)
 		{
 			fprintf(fp, "%d\t", stageAtSync[i + j]);
 			int color = 0;
@@ -1245,7 +1245,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 	StandalonePerfTime(firstSlice, 7);
 
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Tracklet Constructor");
-	AliHLTTPCCATrackletConstructorGPUPP<<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT>>>(0, sliceCountLocal);
+	AliHLTTPCCATrackletConstructorGPUPP<<<HLTCA_GPU_BLOCK_COUNT, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR>>>(0, sliceCountLocal);
 	if (CUDASync("Tracklet Constructor PP", 0, firstSlice)) return 1;
 	
 	StandalonePerfTime(firstSlice, 8);
