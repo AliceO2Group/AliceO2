@@ -34,7 +34,7 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
-
+#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
 
 #include <iostream>
 
@@ -212,7 +212,14 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		if (fDebugLevel >= 4) printf("Obtained current memory usage for device %d\n", i);
 		if (CudaFailedMsg(cudaGetDeviceProperties(&fCudaDeviceProp, i))) continue;
 		if (fDebugLevel >= 4) printf("Obtained device properties for device %d\n", i);
-		int deviceOK = sliceCount <= fCudaDeviceProp.multiProcessorCount && fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < 1 || (fCudaDeviceProp.major == 1 && fCudaDeviceProp.minor < 2)) && free >= fGPUMemSize;
+#ifdef FERMI
+        const int reqVerMaj = 2;
+        const int reqVerMin = 0;
+#else
+        const int reqVerMaj = 1;
+        const int reqVerMin = 2;
+#endif
+        int deviceOK = /* sliceCount <= fCudaDeviceProp.multiProcessorCount && */ fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < reqVerMaj || (fCudaDeviceProp.major == reqVerMaj && fCudaDeviceProp.minor < reqVerMin)) && free >= fGPUMemSize;
 
 		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %d / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
 		deviceSpeed = (long long int) fCudaDeviceProp.multiProcessorCount * (long long int) fCudaDeviceProp.clockRate * (long long int) fCudaDeviceProp.warpSize * (long long int) free * (long long int) fCudaDeviceProp.major * (long long int) fCudaDeviceProp.major;
