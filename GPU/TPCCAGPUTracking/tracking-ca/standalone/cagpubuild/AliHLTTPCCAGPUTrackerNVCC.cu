@@ -32,9 +32,10 @@
 #include <fcntl.h>
 #endif
 
+#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
+#define FERMI
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
-#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
 
 #include <iostream>
 
