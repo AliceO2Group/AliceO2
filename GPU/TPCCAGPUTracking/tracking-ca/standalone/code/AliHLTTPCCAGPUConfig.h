@@ -55,7 +55,7 @@
 //#define HLTCA_GPU_EMULATION_SINGLE_TRACKLET 1313		//Run Tracklet constructor on on single Tracklet in Device Emulation Mode
 //#define HLTCA_GPU_EMULATION_DEBUG_TRACKLET 1313
 
-#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
+//#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
 
 #define HLTCA_GPU_TRACKER_CONSTANT_MEM 65000			//Amount of Constant Memory to reserve
 
