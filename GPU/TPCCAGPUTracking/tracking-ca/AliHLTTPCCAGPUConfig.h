@@ -2,8 +2,24 @@
 #define ALIHLTTPCCAGPUCONFIG_H
 
 //GPU Run Configuration
-#define HLTCA_GPU_BLOCK_COUNT 15
+
+//#define FERMI
+
+#ifdef FERMI
+#define HLTCA_GPU_BLOCK_COUNT 30
+#define HLTCA_GPU_BLOCK_COUNT_SELECTOR 45
 #define HLTCA_GPU_THREAD_COUNT 256
+#define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 256
+#define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
+#define HLTCA_GPU_THREAD_COUNT_FINDER 256
+#else
+#define HLTCA_GPU_BLOCK_COUNT 30
+#define HLTCA_GPU_BLOCK_COUNT_SELECTOR 30
+#define HLTCA_GPU_THREAD_COUNT 256
+#define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 256
+#define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
+#define HLTCA_GPU_THREAD_COUNT_FINDER 256
+#endif
 
 //GPU Parameters
 #define HLTCA_GPU_WARP_SIZE 32
@@ -21,7 +37,9 @@
 #define HLTCA_GPU_RESCHED								//Use dynamic tracklet scheduling
 
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
+#ifndef FERMI
 #define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
+#endif
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define HLTCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
@@ -37,7 +55,7 @@
 //#define HLTCA_GPU_EMULATION_SINGLE_TRACKLET 1313		//Run Tracklet constructor on on single Tracklet in Device Emulation Mode
 //#define HLTCA_GPU_EMULATION_DEBUG_TRACKLET 1313
 
-#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
+//#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
 
 #define HLTCA_GPU_TRACKER_CONSTANT_MEM 65000			//Amount of Constant Memory to reserve
 
