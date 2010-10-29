@@ -402,6 +402,7 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
       AliHLTTPCCATrackParam t0 = par;
       for ( int ih = 0; ih < nhits; ih++ ) {
         int index = hltOut.ClusterId( tCA.FirstClusterRef() + firstHit + ih );
+	index = index&0xffffff;
         tTPC.SetClusterIndex( ih, index );
         AliTPCclusterMI *c = &( fClusters[index] );
         int iSlice = fClusterSliceRow[index] >> 8;

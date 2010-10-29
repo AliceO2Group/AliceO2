@@ -1232,9 +1232,9 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
     
     std::vector<int> clusterIDs;
     for ( int i = 0; i < tCA->NClusters(); i++ ) {
-      int id, row;
+      UInt_t id, row;
       float x,y,z;
-      tCA->Cluster(i).Get(id,row,x,y,z);
+      tCA->Cluster(i).Get(iSlice,id,row,x,y,z);
       clusterIDs.push_back( id );
     }
     tCA = tCA->GetNextTrack();
