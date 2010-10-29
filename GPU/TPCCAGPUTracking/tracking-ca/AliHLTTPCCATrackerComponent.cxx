@@ -135,7 +135,7 @@ void AliHLTTPCCATrackerComponent::GetOutputDataSize( unsigned long& constBase, d
 {
   // define guess for the output data size
   constBase = 200;       // minimum size
-  inputMultiplier = 3.; // size relative to input
+  inputMultiplier = 0.6; // size relative to input
 }
 
 AliHLTComponent* AliHLTTPCCATrackerComponent::Spawn()
