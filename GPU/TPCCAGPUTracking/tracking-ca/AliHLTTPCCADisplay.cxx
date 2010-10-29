@@ -485,7 +485,7 @@ void AliHLTTPCCADisplay::DrawSliceLink( int iRow, int iHit, int colorUp, int col
 
   //if ( !fPerf ) return;
   //AliHLTTPCCAGBTracker &tracker = *fGB;
-  if ( width < 0 ) width = 1.;
+  if ( width < 0 ) width = 1;
   fLine.SetLineWidth( width );
   int colUp = colorUp >= 0 ? colorUp : kMagenta;
   int colDn = colorDn >= 0 ? colorDn : kBlack;
