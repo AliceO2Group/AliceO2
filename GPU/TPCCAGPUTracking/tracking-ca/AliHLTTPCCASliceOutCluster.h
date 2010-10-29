@@ -22,19 +22,19 @@ class AliHLTTPCCASliceOutCluster
 {
   public:
 
-  GPUh() void Set( int Id, int row, float x, float y, float z ){
-    fId = Id;  fRow = (UChar_t) row; 
+  GPUh() void Set( UInt_t Id, UInt_t row, float x, float y, float z ){
+    fId = (Id&0xffffff)+(row<<25);
     fXYZp = AliHLTTPCCADataCompressor::PackXYZ( row, x, y, z );
   }
 
-  GPUh() void Get( int &Id, int &row, float &x, float &y, float &z ) const{
-    Id = fId;  row = fRow;
-    AliHLTTPCCADataCompressor::UnpackXYZ( fRow, fXYZp, x, y, z  );
+  GPUh() void Get( int iSlice, UInt_t &Id, UInt_t &row, float &x, float &y, float &z ) const{
+    Id = (fId&0xffffff) + iSlice<<25;  
+    row = fId>>25;
+    AliHLTTPCCADataCompressor::UnpackXYZ( row, fXYZp, x, y, z  );
   }  
-    
+  
   private:
-    Int_t fId; // Id ( slice, patch, cluster )
-    UChar_t fRow; // row number
+    UInt_t fId; // Id ( row, patch, cluster )
     AliHLTTPCCACompressedCluster fXYZp;// packed coordinates
 };
 

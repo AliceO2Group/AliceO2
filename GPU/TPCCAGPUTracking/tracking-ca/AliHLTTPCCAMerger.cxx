@@ -240,9 +240,9 @@ void AliHLTTPCCAMerger::UnpackSlices()
         // unpack cluster information
 
         AliHLTTPCCAClusterInfo &clu = fClusterInfos[nClustersCurrent + nCluNew];
-	int id, row;
+	UInt_t id, row;
 	float x,y,z;
-	sliceTr->Cluster( iTrClu ).Get(id,row,x,y,z);
+	sliceTr->Cluster( iTrClu ).Get(iSlice,id,row,x,y,z);
 	
         clu.SetISlice( iSlice );
         clu.SetIRow( row );

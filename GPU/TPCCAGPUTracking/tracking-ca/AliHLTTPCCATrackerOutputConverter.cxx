@@ -327,9 +327,9 @@ int AliHLTTPCCATrackerOutputConverter::DoEvent( const AliHLTComponentEventData &
       currOutTrack->fFlags = 0;
       currOutTrack->fNPoints = nClu;    
       for( int i = 0; i< nClu; i++ ) {	
-	int id, row;
+	UInt_t id, row;
 	float x,y,z;
-	sliceTr->Cluster( i ).Get(id,row,x,y,z);      
+	sliceTr->Cluster( i ).Get(slice,id,row,x,y,z);      
 	currOutTrack->fPointIDs[i] = id;
 	if( i == nClu-1 ){
 	  currOutTrack->fLastX = x;
