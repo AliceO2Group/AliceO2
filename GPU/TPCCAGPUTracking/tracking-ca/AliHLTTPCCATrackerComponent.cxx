@@ -629,7 +629,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 		      y = (y - 8388608.)*1.e-4;
 		      z = (z - 8388608.)*1.e-4;
 		      
-		      UInt_t cluId = nPatchClust + ((jslice&0x7f)<<25)+((jpatch&0x7)<<22);
+		      UInt_t cluId = AliHLTTPCSpacePointData::GetID( jslice, jpatch, nPatchClust );
 		      //cout<<"clu "<<i<<": "<<x<<" "<<y<<" "<<z<<" "<<cluId<<endl;
 		      if ( CAMath::Abs( z ) <= fClusterZCut ){
 			clusterData[islice].ReadCluster( cluId, jrow, x, y, z, 0 );
