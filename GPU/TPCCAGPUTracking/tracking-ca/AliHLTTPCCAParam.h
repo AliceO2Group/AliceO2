@@ -76,6 +76,8 @@ class AliHLTTPCCAParam
     GPUd() float HitPickUpFactor() const { return fHitPickUpFactor; }
   GPUd() float ClusterError2CorrectionY() const { return fClusterError2CorrectionY; }
   GPUd() float ClusterError2CorrectionZ() const { return fClusterError2CorrectionZ; }
+  GPUd() int MinNTrackClusters() const { return fMinNTrackClusters; }
+  GPUd() float MaxTrackQPt() const { return fMaxTrackQPt; }
 
 
 
@@ -106,6 +108,8 @@ class AliHLTTPCCAParam
     GPUd() void SetClusterError2CorrectionY( float v ) { fClusterError2CorrectionY = v; }
     GPUd() void SetClusterError2CorrectionZ( float v ) { fClusterError2CorrectionZ = v; }
 
+  GPUd() void SetMinNTrackClusters( int v ){ fMinNTrackClusters = v; }
+  GPUd() void SetMinTrackPt( float v ){ fMaxTrackQPt = 1./CAMath::Abs(v); }
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle ) const;
     GPUd() void GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
@@ -147,6 +151,9 @@ class AliHLTTPCCAParam
     float fTrackChi2Cut;// cut for track Chi^2/NDF
   float fClusterError2CorrectionY; // correction for the squared cluster error during tracking
   float fClusterError2CorrectionZ; // correction for the squared cluster error during tracking
+    int fMinNTrackClusters; //* required min number of clusters on the track
+    float fMaxTrackQPt;    //* required max Q/Pt (==min Pt) of tracks
+
     float fRowX[200];// X-coordinate of rows
     float fParamS0Par[2][3][7];    // cluster error parameterization coeficients
     float fPolinomialFieldBz[6];   // field coefficients

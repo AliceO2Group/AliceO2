@@ -82,6 +82,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     /** magnetic field */
     double fSolenoidBz;                                            // see above
     int fMinNTrackClusters; //* required min number of clusters on the track
+    double fMinTrackPt;    //* required min Pt of tracks
     double fClusterZCut;  //* cut on cluster Z position (for noise rejection at the age of TPC)
 	double fNeighboursSearchArea; //* area in cm for the neighbour search algorithm
     double fClusterErrorCorrectionY; // correction for the cluster errors

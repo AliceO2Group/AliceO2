@@ -61,7 +61,8 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     :
     fTracker( NULL ),
     fSolenoidBz( 0 ),
-    fMinNTrackClusters( 0 ),
+    fMinNTrackClusters( 30 ),
+    fMinTrackPt(0.2),
     fClusterZCut( 500. ),
     fNeighboursSearchArea( 0 ), 
     fClusterErrorCorrectionY(0), 
@@ -82,6 +83,7 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrack
     fTracker( NULL ),
     fSolenoidBz( 0 ),
     fMinNTrackClusters( 30 ),
+    fMinTrackPt( 0.2 ),
     fClusterZCut( 500. ),
     fNeighboursSearchArea(0),
     fClusterErrorCorrectionY(0), 
@@ -150,7 +152,8 @@ void AliHLTTPCCATrackerComponent::SetDefaultConfiguration()
   // Some parameters can be later overwritten from the OCDB
 
   fSolenoidBz = -5.00668;
-  fMinNTrackClusters = 0;
+  fMinNTrackClusters = 30;
+  fMinTrackPt = 0.2;
   fClusterZCut = 500.;
   fNeighboursSearchArea = 0;
   fClusterErrorCorrectionY = 0;
@@ -189,6 +192,13 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fMinNTrackClusters = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
       HLTInfo( "minNClustersOnTrack set to: %d", fMinNTrackClusters );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-minTrackPt" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fMinTrackPt = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      HLTInfo( "minTrackPt set to: %f", fMinTrackPt );
       continue;
     }
 
@@ -526,6 +536,9 @@ int AliHLTTPCCATrackerComponent::DoEvent
 		if( fNeighboursSearchArea>0 ) param.SetNeighboursSearchArea( fNeighboursSearchArea );
 		if( fClusterErrorCorrectionY>1.e-4 ) param.SetClusterError2CorrectionY( fClusterErrorCorrectionY*fClusterErrorCorrectionY );
 		if( fClusterErrorCorrectionZ>1.e-4 ) param.SetClusterError2CorrectionZ( fClusterErrorCorrectionZ*fClusterErrorCorrectionZ );
+		param.SetMinNTrackClusters( fMinNTrackClusters );
+		param.SetMinTrackPt( fMinTrackPt );
+
 		param.Update();
 		fTracker->InitializeSliceParam( slice, param );
 		delete[] rowX;
