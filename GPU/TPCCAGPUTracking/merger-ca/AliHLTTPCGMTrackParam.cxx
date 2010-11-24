@@ -23,6 +23,7 @@
 #include "Riostream.h"
 #include "AliExternalTrackParam.h"
 #include "AliHLTTPCCAParam.h"
+#include <cmath>
 
 
 float AliHLTTPCGMTrackParam::fPolinomialFieldBz[6];   // field coefficients
