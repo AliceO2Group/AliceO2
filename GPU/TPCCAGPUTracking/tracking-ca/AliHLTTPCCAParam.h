@@ -112,7 +112,8 @@ class AliHLTTPCCAParam
   GPUd() void SetMinTrackPt( float v ){ fMaxTrackQPt = 1./CAMath::Abs(v); }
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle ) const;
-    GPUd() void GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
+    GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
+    GPUd() void GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
 
     void WriteSettings( std::ostream &out ) const;
     void ReadSettings( std::istream &in );
@@ -120,7 +121,9 @@ class AliHLTTPCCAParam
     GPUd() void SetParamS0Par( int i, int j, int k, float val ) {
       fParamS0Par[i][j][k] = val;
     }
-
+  
+    GPUd() const float *GetParamS0Par(int i, int j) const { return fParamS0Par[i][j]; }
+ 
     GPUd() float GetBzkG() const { return fBzkG;}
     GPUd() float GetConstBz() const { return fConstBz;}
     GPUd() float GetBz( float x, float y, float z ) const;
