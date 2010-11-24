@@ -37,7 +37,7 @@ class AliHLTTPCCAMerger
       public:
 
         unsigned char  ISlice()    const { return fISlice;    }
-        unsigned char  IRow()    const { return fIRow;    }
+        unsigned char  RowType()    const { return fRowType;    }
         int  Id()      const { return fId;      }
         UChar_t PackedAmp() const { return fPackedAmp; }
         float X()         const { return fX;         }
@@ -47,7 +47,7 @@ class AliHLTTPCCAMerger
         float Err2Z()     const { return fErr2Z;     }
 
         void SetISlice    ( unsigned char v  ) { fISlice    = v; }
-        void SetIRow    ( unsigned char v  ) { fIRow    = v; }
+        void SetRowType    ( unsigned char v  ) { fRowType    = v; }
         void SetId      (  int v  ) { fId      = v; }
         void SetPackedAmp ( UChar_t v ) { fPackedAmp = v; }
         void SetX         ( float v ) { fX         = v; }
@@ -59,7 +59,7 @@ class AliHLTTPCCAMerger
       private:
 
         unsigned char fISlice;            // slice number
-        unsigned char fIRow;            // row number
+        unsigned char fRowType;            // row type
         int fId;                 // cluster hlt number
         UChar_t fPackedAmp; // packed cluster amplitude
         float fX;                // x position (slice coord.system)

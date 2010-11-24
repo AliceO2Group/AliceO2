@@ -32,9 +32,9 @@
 
 #include "AliHLTTPCCAPerformance.h"
 #include "AliHLTTPCCAParam.h"
-#include "AliHLTTPCCATrackConvertor.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAStandaloneFramework.h"
+#include "AliHLTTPCGMMergedTrack.h"
 
 #include "TMath.h"
 #include "AliTPCLoader.h"
@@ -49,7 +49,6 @@
 #include "AliTrackReference.h"
 #include "TStopwatch.h"
 #include "AliTPCReconstructor.h"
-#include "AliHLTTPCCAMergerOutput.h"
 
 //#include <fstream.h>
 
@@ -134,7 +133,7 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
     param.SetMaxTrackMatchDRow( 5 );
     param.SetTrackConnectionFactor( 3.5 );
     param.SetMinNTrackClusters( 30 );
-    param.SetMinTrackPt(0.3);
+    param.SetMinTrackPt(0.2);
     AliTPCClusterParam * clparam = AliTPCcalibDB::Instance()->GetClusterParam();
     for ( int iRow = 0; iRow < nRows; iRow++ ) {
       int    type = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );
@@ -378,18 +377,16 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
 
   hlt.ProcessEvent();
 
-  if ( event ) {
+  if ( event ) {  
 
-    const AliHLTTPCCAMergerOutput &hltOut = *( hlt.Merger().Output() );
-
-    for ( int itr = 0; itr < hltOut.NTracks(); itr++ ) {
+    for ( int itr = 0; itr < hlt.Merger().NOutputTracks(); itr++ ) {
 
       AliTPCseed tTPC;
 
-      const AliHLTTPCCAMergedTrack &tCA = hltOut.Track( itr );
+      const AliHLTTPCGMMergedTrack &tCA = hlt.Merger().OutputTracks()[itr];
 
-      AliHLTTPCCATrackParam par = tCA.InnerParam();
-      AliHLTTPCCATrackConvertor::GetExtParam( par, tTPC, tCA.InnerAlpha() );
+      AliHLTTPCGMTrackParam par = tCA.GetParam();      
+      par.GetExtParam( tTPC, tCA.GetAlpha() );
       tTPC.SetMass( 0.13957 );
       if ( TMath::Abs( tTPC.GetSigned1Pt() ) > 1. / 0.02 ) continue;
       int nhits = tCA.NClusters();
@@ -399,17 +396,17 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
         nhits = 160;
       }
       tTPC.SetNumberOfClusters( nhits );
-      float alpha = tCA.InnerAlpha();
-      AliHLTTPCCATrackParam t0 = par;
+      //float alpha = tCA.GetAlpha();
+      AliHLTTPCGMTrackParam t0 = par;
       for ( int ih = 0; ih < nhits; ih++ ) {
-        int index = hltOut.ClusterId( tCA.FirstClusterRef() + firstHit + ih );
-	index = index&0xffffff;
+        int index = hlt.Merger().OutputClusterIds()[ tCA.FirstClusterRef() + firstHit + ih ];
         tTPC.SetClusterIndex( ih, index );
         AliTPCclusterMI *c = &( fClusters[index] );
-        int iSlice = fClusterSliceRow[index] >> 8;
+        //int iSlice = fClusterSliceRow[index] >> 8;
         int row = fClusterSliceRow[index] & 0xff;
 
         tTPC.SetClusterPointer( row, c );
+	/*
         AliTPCTrackerPoint &point = *( tTPC.GetTrackPoint( row ) );
         {
           //AliHLTTPCCATracker &slice = hlt.SliceTracker( iSlice );
@@ -427,11 +424,12 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
           point.SetAngleY( TMath::Abs( t0.GetSinPhi() / t0.GetCosPhi() ) );
           point.SetAngleZ( TMath::Abs( t0.GetDzDs() ) );
         }
+	*/
       }
-      tTPC.CookdEdx( 0.02, 0.6 );
+      //tTPC.CookdEdx( 0.02, 0.6 );
 
       CookLabel( &tTPC, 0.1 );
-
+      
       if ( 1 ) { // correction like in off-line --- Adding systematic error
 
         const double *param = AliTPCReconstructor::GetRecoParam()->GetSystematicError();
@@ -523,10 +521,10 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
 }
 
 
-int AliTPCtrackerCA::RefitInward ( AliESDEvent *event )
+int AliTPCtrackerCA::RefitInward ( AliESDEvent * /*event*/ )
 {
   //* forward propagation of ESD tracks
-
+#ifdef XXX
   float xTPC = fkParam->GetInnerRadiusLow();
   float dAlpha = fkParam->GetInnerAngle() / 180.*TMath::Pi();
   float yMax = xTPC * TMath::Tan( dAlpha / 2. );
@@ -551,7 +549,9 @@ int AliTPCtrackerCA::RefitInward ( AliESDEvent *event )
       hits1[i] = i;
       int index = hits[i];
       infos[i].SetISlice( fClusterSliceRow[index] >> 8 );
-      infos[i].SetIRow( fClusterSliceRow[index] & 0xff );
+      int row = fClusterSliceRow[index] & 0xff;
+      int type = ( row < 63 ) ? 0 : ( ( row > 126 ) ? 1 : 2 );
+      infos[i].SetRowType( type );
       infos[i].SetId( index );
       infos[i].SetX( fClusters[index].GetX() );
       infos[i].SetY( fClusters[index].GetY() );
@@ -581,13 +581,14 @@ int AliTPCtrackerCA::RefitInward ( AliESDEvent *event )
       }
     }
   }
+#endif
   return 0;
 }
 
-int AliTPCtrackerCA::PropagateBack( AliESDEvent *event )
+int AliTPCtrackerCA::PropagateBack( AliESDEvent * /*event*/ )
 {
-
   //* backward propagation of ESD tracks
+#ifdef XXX
 
   AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 
@@ -611,7 +612,9 @@ int AliTPCtrackerCA::PropagateBack( AliESDEvent *event )
       hits1[i] = i;
       int index = hits[i];
       infos[i].SetISlice( fClusterSliceRow[index] >> 8 );
-      infos[i].SetIRow( fClusterSliceRow[index] & 0xff );
+      int row = fClusterSliceRow[index] & 0xff;
+      int type = ( row < 63 ) ? 0 : ( ( row > 126 ) ? 1 : 2 );
+      infos[i].SetRowType( type );
       infos[i].SetId( index );
       infos[i].SetX( fClusters[index].GetX() );
       infos[i].SetY( fClusters[index].GetY() );
@@ -627,5 +630,6 @@ int AliTPCtrackerCA::PropagateBack( AliESDEvent *event )
       }
     }
   }
+#endif
   return 0;
 }

@@ -19,8 +19,6 @@
 
 #include "AliHLTTPCCAStandaloneFramework.h"
 #include "AliHLTTPCCATrackParam.h"
-#include "AliHLTTPCCAMerger.h"
-#include "AliHLTTPCCAMergerOutput.h"
 #include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAClusterData.h"

@@ -10,7 +10,7 @@
 #define ALIHLTTPCCASTANDALONEFRAMEWORK_H
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCAMerger.h"
+#include "AliHLTTPCGMMerger.h"
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCATrackerFramework.h"
 #include <iostream>
@@ -41,7 +41,7 @@ class AliHLTTPCCAStandaloneFramework
 	const AliHLTTPCCAParam &Param ( int iSlice ) const { return(fTracker.Param(iSlice)); }
 	const AliHLTTPCCARow &Row ( int iSlice, int iRow ) const { return(fTracker.Row(iSlice, iRow)); }
     const AliHLTTPCCASliceOutput &Output( int iSlice ) const { return *fSliceOutput[iSlice]; }
-    AliHLTTPCCAMerger  &Merger()  { return fMerger; }
+    AliHLTTPCGMMerger  &Merger()  { return fMerger; }
     AliHLTTPCCAClusterData &ClusterData( int iSlice ) { return fClusterData[iSlice]; }
 
     /**
@@ -105,7 +105,7 @@ class AliHLTTPCCAStandaloneFramework
     AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& );
     const AliHLTTPCCAStandaloneFramework &operator=( const AliHLTTPCCAStandaloneFramework& ) const;
 
-    AliHLTTPCCAMerger fMerger;  //* global merger
+    AliHLTTPCGMMerger fMerger;  //* global merger
     AliHLTTPCCAClusterData fClusterData[fgkNSlices];
 	AliHLTTPCCASliceOutput* fSliceOutput[fgkNSlices];
 	AliHLTTPCCASliceOutput::outputControlStruct fOutputControl;

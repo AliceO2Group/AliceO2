@@ -180,6 +180,21 @@ GPUdi() void AliHLTTPCCAParam::GetClusterErrors2( int iRow, float z, float sinPh
   Err2Z = GetClusterError2( 1, type, z, angleZ );
 }
 
+GPUdi() void AliHLTTPCCAParam::GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
+{
+  //
+  // Use calibrated cluster error from OCDB
+  //
+
+  z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );
+  float cosPhiInv = CAMath::Abs( cosPhi ) > 1.e-2 ? 1. / cosPhi : 0;
+  float angleY = sinPhi * cosPhiInv ; // dy/dx
+  float angleZ = DzDs * cosPhiInv ; // dz/dx
+
+  Err2Y = GetClusterError2( 0, rowType, z, angleY );
+  Err2Z = GetClusterError2( 1, rowType, z, angleZ );
+}
+
 #ifndef HLTCA_GPUCODE
 GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const
 {
