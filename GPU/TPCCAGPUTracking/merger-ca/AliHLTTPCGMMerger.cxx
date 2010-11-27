@@ -171,9 +171,9 @@ bool AliHLTTPCGMMerger::Reconstruct()
     AliHLTTPCGMTrackParam::fPolinomialFieldBz[5] = constBz * (  9.71402e-8 );    
   }
   
-  int nIter = 100;
+  int nIter = 1;
   TStopwatch timer;
-  cout<<"Merger..."<<endl;
+  //cout<<"Merger..."<<endl;
   for( int iter=0; iter<nIter; iter++ ){
     if( !AllocateMemory() ) return 0;
     UnpackSlices();
@@ -183,7 +183,7 @@ bool AliHLTTPCGMMerger::Reconstruct()
     Refit();
   }  
   timer.Stop();  
-  cout<<"\nMerger time = "<<timer.CpuTime()*1.e3/nIter<<" ms\n"<<endl;
+  //cout<<"\nMerger time = "<<timer.CpuTime()*1.e3/nIter<<" ms\n"<<endl;
 
   return 1;
 }
