@@ -19,7 +19,7 @@
 #include "AliHLTComponentBenchmark.h"
 
 class AliHLTTPCCAMerger;
-class AliHLTTPCVertex;
+class AliHLTTPCGMMerger;
 
 /**
  * @class AliHLTTPCCAGlobalMergerComponent
@@ -111,7 +111,11 @@ class AliHLTTPCCAGlobalMergerComponent : public AliHLTProcessor
     int Configure( const char* cdbEntry, const char* chainId, const char *commandLine );
 
     /** the global merger object */
-    AliHLTTPCCAMerger *fGlobalMerger; //!
+
+    Int_t fVersion; // which version of global merger to use
+
+    AliHLTTPCCAMerger *fGlobalMergerVersion0; //!
+    AliHLTTPCGMMerger *fGlobalMerger; //!
 
     double fSolenoidBz;  // magnetic field
     double fClusterErrorCorrectionY; // correction for the cluster error during pre-fit
