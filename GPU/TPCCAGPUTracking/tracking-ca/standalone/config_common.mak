@@ -7,7 +7,7 @@ ARCHBITS					= 64
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
-INCLUDEPATHS				= include code base
+INCLUDEPATHS				= include code base merger-ca
 DEFINES						= HLTCA_STANDALONE BUILD_GPU
 
 EXTRAFLAGSGCC				= -Weffc++
