@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCAPerformance.cxx 39016 2010-02-18 19:19:02Z sgorbuno $
+// $Id: AliHLTTPCCAPerformance.cxx 45665 2010-11-24 15:54:05Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -1176,10 +1176,10 @@ void AliHLTTPCCAPerformance::SliceTrackCandPerformance( int /*iSlice*/, bool /*P
 
 
 
-void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
+void AliHLTTPCCAPerformance::SlicePerformance( int /*iSlice*/, bool /*PrintFlag*/ )
 {
   //* calculate slice tracker performance
-
+#ifdef XXX
   AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 
   int nRecTot = 0, nGhost = 0, nRecOut = 0;
@@ -1232,9 +1232,9 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
     
     std::vector<int> clusterIDs;
     for ( int i = 0; i < tCA->NClusters(); i++ ) {
-      int id, row;
+      UInt_t id, row;
       float x,y,z;
-      tCA->Cluster(i).Get(id,row,x,y,z);
+      tCA->Cluster(i).Get(iSlice,id,row,x,y,z);
       clusterIDs.push_back( id );
     }
     tCA = tCA->GetNextTrack();
@@ -1326,6 +1326,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
     if ( nRecTot > 0 ) cout << nGhost / dRecTot; else cout << "_";
     cout << endl;
   }
+#endif
 }
 
 
@@ -1333,7 +1334,7 @@ void AliHLTTPCCAPerformance::SlicePerformance( int iSlice, bool PrintFlag )
 void AliHLTTPCCAPerformance::MergerPerformance()
 {
   // performance calculation for merged tracks
-
+#ifdef XXX
   int nRecTot = 0, nGhost = 0, nRecOut = 0;
   int nMCAll = 0, nRecAll = 0, nClonesAll = 0;
   int nMCRef = 0, nRecRef = 0, nClonesRef = 0;
@@ -1518,6 +1519,7 @@ void AliHLTTPCCAPerformance::MergerPerformance()
   fStatGBNMCRef  += nMCRef;
   fStatGBNRecRef  += nRecRef;
   fStatGBNClonesRef  += nClonesRef;
+#endif
 }
 
 

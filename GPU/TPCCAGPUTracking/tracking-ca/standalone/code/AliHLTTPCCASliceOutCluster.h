@@ -22,20 +22,33 @@ class AliHLTTPCCASliceOutCluster
 {
   public:
 
-  GPUh() void Set( int Id, int row, float x, float y, float z ){
-    fId = Id;  fRow = (UChar_t) row; 
-    fXYZp = AliHLTTPCCADataCompressor::PackXYZ( row, x, y, z );
+  GPUh() void Set( UInt_t id, UInt_t row, float x, float y, float z ){
+    UInt_t rowtype;
+    //if( row<64 ) rowtype = 0;
+    //else if( row<128 ) rowtype = (UInt_t(2)<<30);
+    //else rowtype = (1<<30);
+    //fId = id|rowtype;
+    if( row<64 ) rowtype = 0;
+    else if( row<128 ) rowtype = 2;
+    else rowtype = 1;
+    fRowType = rowtype;
+    fId = id;
+    fX = x; fY = y; fZ = z;
   }
 
-  GPUh() void Get( int &Id, int &row, float &x, float &y, float &z ) const{
-    Id = fId;  row = fRow;
-    AliHLTTPCCADataCompressor::UnpackXYZ( fRow, fXYZp, x, y, z  );
-  }  
-    
+  GPUh() float GetX() const {return fX;}
+  GPUh() float GetY() const {return fY;}
+  GPUh() float GetZ() const {return fZ;}
+  GPUh() UInt_t GetId() const {return fId; } //fId & 0x3FFFFFFF;}
+  GPUh() UInt_t GetRowType() const {return fRowType; }//fId>>30;}
+
   private:
-    Int_t fId; // Id ( slice, patch, cluster )
-    UChar_t fRow; // row number
-    AliHLTTPCCACompressedCluster fXYZp;// packed coordinates
+
+  UInt_t  fId; // Id ( slice, patch, cluster )    
+  UInt_t  fRowType; // row type
+  Float_t fX;// coordinates
+  Float_t fY;// coordinates
+  Float_t fZ;// coordinates
 };
 
 #endif 

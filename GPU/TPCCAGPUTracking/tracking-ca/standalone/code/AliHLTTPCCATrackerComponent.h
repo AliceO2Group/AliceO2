@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCATrackerComponent.h 39418 2010-03-07 00:47:05Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATrackerComponent.h 45450 2010-11-14 23:49:30Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -82,6 +82,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     /** magnetic field */
     double fSolenoidBz;                                            // see above
     int fMinNTrackClusters; //* required min number of clusters on the track
+    double fMinTrackPt;    //* required min Pt of tracks
     double fClusterZCut;  //* cut on cluster Z position (for noise rejection at the age of TPC)
 	double fNeighboursSearchArea; //* area in cm for the neighbour search algorithm
     double fClusterErrorCorrectionY; // correction for the cluster errors

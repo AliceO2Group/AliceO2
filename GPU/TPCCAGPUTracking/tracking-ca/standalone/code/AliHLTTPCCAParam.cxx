@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCAParam.cxx 35757 2009-10-21 20:58:33Z sgorbuno $
+// @(#) $Id: AliHLTTPCCAParam.cxx 45665 2010-11-24 15:54:05Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -29,7 +29,9 @@ GPUdi() AliHLTTPCCAParam::AliHLTTPCCAParam()
     fCosAlpha( 0 ), fSinAlpha( 0 ), fAngleMin( 0 ), fAngleMax( 0 ), fRMin( 83.65 ), fRMax( 133.3 ),
     fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBzkG( -5.00668 ),
     fConstBz( -5.00668*0.000299792458 ), fHitPickUpFactor( 1. ),
-      fMaxTrackMatchDRow( 4 ), fNeighboursSearchArea(3.), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 ), fClusterError2CorrectionY(1.), fClusterError2CorrectionZ(1.)
+      fMaxTrackMatchDRow( 4 ), fNeighboursSearchArea(3.), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 ), fClusterError2CorrectionY(1.), fClusterError2CorrectionZ(1.),
+      fMinNTrackClusters( 30 ),
+      fMaxTrackQPt(1./0.1)
 {
   // constructor
   fParamS0Par[0][0][0] = 0.00047013;
@@ -176,6 +178,21 @@ GPUdi() void AliHLTTPCCAParam::GetClusterErrors2( int iRow, float z, float sinPh
 
   Err2Y = GetClusterError2( 0, type, z, angleY );
   Err2Z = GetClusterError2( 1, type, z, angleZ );
+}
+
+GPUdi() void AliHLTTPCCAParam::GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
+{
+  //
+  // Use calibrated cluster error from OCDB
+  //
+
+  z = CAMath::Abs( ( 250. - 0.275 ) - CAMath::Abs( z ) );
+  float cosPhiInv = CAMath::Abs( cosPhi ) > 1.e-2 ? 1. / cosPhi : 0;
+  float angleY = sinPhi * cosPhiInv ; // dy/dx
+  float angleZ = DzDs * cosPhiInv ; // dz/dx
+
+  Err2Y = GetClusterError2( 0, rowType, z, angleY );
+  Err2Z = GetClusterError2( 1, rowType, z, angleZ );
 }
 
 #ifndef HLTCA_GPUCODE

@@ -327,14 +327,11 @@ int AliHLTTPCCATrackerOutputConverter::DoEvent( const AliHLTComponentEventData &
       currOutTrack->fFlags = 0;
       currOutTrack->fNPoints = nClu;    
       for( int i = 0; i< nClu; i++ ) {	
-	int id, row;
-	float x,y,z;
-	sliceTr->Cluster( i ).Get(id,row,x,y,z);      
-	currOutTrack->fPointIDs[i] = id;
+	currOutTrack->fPointIDs[i] = sliceTr->Cluster( i ).GetId();
 	if( i == nClu-1 ){
-	  currOutTrack->fLastX = x;
-	  currOutTrack->fLastY = y;
-	  currOutTrack->fLastZ = z;
+	  currOutTrack->fLastX = sliceTr->Cluster( i ).GetX();
+	  currOutTrack->fLastY = sliceTr->Cluster( i ).GetY();
+	  currOutTrack->fLastZ = sliceTr->Cluster( i ).GetZ();
 	}
       }
       currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );

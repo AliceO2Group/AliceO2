@@ -96,8 +96,8 @@ inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const 
       std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " " << std::endl;
     }
     // HitData is bin sorted
-    fHitData[row->fHitNumberOffset + hitIndex].x = xx;
-    fHitData[row->fHitNumberOffset + hitIndex].y = yy;
+    fHitData[row->fHitNumberOffset + hitIndex].x = (unsigned short) xx;
+    fHitData[row->fHitNumberOffset + hitIndex].y = (unsigned short) yy;
   }
 }
 
