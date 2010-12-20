@@ -36,8 +36,8 @@
 //#define HLTCA_GPU_SCHED_FIXED_SLICE					//Make each Multiprocessor on GPU work only on a single slice during tracklet construction
 #define HLTCA_GPU_RESCHED								//Use dynamic tracklet scheduling
 
-#define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
 #ifndef FERMI
+#define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
 #define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
 #endif
 

@@ -17,6 +17,8 @@
 //                                                                          *
 //***************************************************************************
 
+#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
+#define FERMI
 #include "AliHLTTPCCAGPUTrackerNVCC.h"
 
 #ifdef HLTCA_GPUCODE
@@ -32,8 +34,6 @@
 #include <fcntl.h>
 #endif
 
-#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
-#define FERMI
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
@@ -202,7 +202,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	for (int i = 0;i < count;i++)
 	{
 		if (fDebugLevel >= 4) printf("Examining device %d\n", i);
-		unsigned int free, total;
+		size_t free, total;
 		cuInit(0);
 		CUdevice tmpDevice;
 		cuDeviceGet(&tmpDevice, i);

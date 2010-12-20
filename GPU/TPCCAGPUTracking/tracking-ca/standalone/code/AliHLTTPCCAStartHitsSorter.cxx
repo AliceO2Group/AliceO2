@@ -28,8 +28,8 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
     if ( iThread == 0 ) {
 		const int gpuFixedBlockCount = tracker.GPUParametersConst()->fGPUFixedBlockCount;
 	  const int tmpNRows = tracker.Param().NRows() - 6;
-	  int nRows = iBlock == 29 ? (tmpNRows - (tmpNRows / 30) * 29) : (tmpNRows / 30);
-	  int nStartRow = (tmpNRows / 30) * iBlock + 1;
+	  int nRows = iBlock == (HLTCA_GPU_BLOCK_COUNT - 1) ? (tmpNRows - (tmpNRows / HLTCA_GPU_BLOCK_COUNT) * (HLTCA_GPU_BLOCK_COUNT - 1)) : (tmpNRows / HLTCA_GPU_BLOCK_COUNT);
+	  int nStartRow = (tmpNRows / HLTCA_GPU_BLOCK_COUNT) * iBlock + 1;
       int startOffset = 0;
 	  int startOffset2 = 0;
 	  int previousBlockEndTracklet = 0;
