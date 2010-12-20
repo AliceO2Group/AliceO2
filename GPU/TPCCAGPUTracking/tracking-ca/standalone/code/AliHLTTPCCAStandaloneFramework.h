@@ -10,7 +10,12 @@
 #define ALIHLTTPCCASTANDALONEFRAMEWORK_H
 
 #include "AliHLTTPCCADef.h"
+#ifdef HLTCA_STANDALONE
+#include "AliHLTTPCCAMerger.h"
+#define AliHLTTPCGMMerger AliHLTTPCCAMerger
+#else
 #include "AliHLTTPCGMMerger.h"
+#endif
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCATrackerFramework.h"
 #include <iostream>
