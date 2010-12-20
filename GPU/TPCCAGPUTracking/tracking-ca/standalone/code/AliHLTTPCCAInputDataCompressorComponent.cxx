@@ -244,9 +244,8 @@ int AliHLTTPCCAInputDataCompressorComponent::Compress( AliHLTTPCClusterData* inp
 
   for ( unsigned int i = 0; i < inputPtr->fSpacePointCnt; i++ ){ 
     AliHLTTPCSpacePointData *cluster = &( inputPtr->fSpacePoints[i] );
-    UInt_t origId = cluster->fID;
-    UInt_t patch = (origId>>22)&0x7;
-    UInt_t slice = origId>>25;
+    UInt_t patch = cluster->GetPatch();
+    UInt_t slice = cluster->GetSlice();
     UInt_t row = cluster->fPadRow;
     Double_t rowX = AliHLTTPCTransform::Row2X( row );
     row = row - AliHLTTPCTransform::GetFirstRow( patch );

@@ -84,14 +84,12 @@ class AliHLTTPCCAMerger::AliHLTTPCCABorderTrack
     const AliHLTTPCCATrackParam &Param() const { return fParam;     }
     int   TrackID()                    const { return fTrackID;   }
     int   NClusters()                  const { return fNClusters; }
-    int   IRow()                       const { return fIRow;      }
     float X()                          const { return fX;         }
     bool  OK()                         const { return fOK;        }
 
     void SetParam     ( const AliHLTTPCCATrackParam &v ) { fParam     = v; }
     void SetTrackID   ( int v )                        { fTrackID   = v; }
     void SetNClusters ( int v )                        { fNClusters = v; }
-    void SetIRow      ( int v )                        { fIRow      = v; }
     void SetX         ( float v )                      { fX         = v; }
     void SetOK        ( bool v )                       { fOK        = v; }
 
@@ -100,7 +98,6 @@ class AliHLTTPCCAMerger::AliHLTTPCCABorderTrack
     AliHLTTPCCATrackParam fParam;  // track parameters at the border
     int   fTrackID;              // track index
     int   fNClusters;            // n clusters
-    int   fIRow;                 // row number of the closest cluster
     float fX;                    // X coordinate of the closest cluster
     bool  fOK;                   // is the track rotated and extrapolated correctly
 
@@ -240,22 +237,20 @@ void AliHLTTPCCAMerger::UnpackSlices()
         // unpack cluster information
 
         AliHLTTPCCAClusterInfo &clu = fClusterInfos[nClustersCurrent + nCluNew];
-	int id, row;
-	float x,y,z;
-	sliceTr->Cluster( iTrClu ).Get(id,row,x,y,z);
+	const AliHLTTPCCASliceOutCluster &c = sliceTr->Cluster( iTrClu );
 	
         clu.SetISlice( iSlice );
-        clu.SetIRow( row );
-        clu.SetId( id );
+        clu.SetRowType( c.GetRowType() );
+        clu.SetId( c.GetId() );
         clu.SetPackedAmp( 0 );
-        clu.SetX( x );
-        clu.SetY( y );
-        clu.SetZ( z );
+        clu.SetX( c.GetX() );
+        clu.SetY( c.GetY() );
+        clu.SetZ( c.GetZ() );
 
         if ( !t0.TransportToX( clu.X(), fSliceParam.GetBz( t0 ), .999 ) ) continue;
 
         float err2Y, err2Z;
-        fSliceParam.GetClusterErrors2( clu.IRow(), clu.Z(), t0.SinPhi(), t0.GetCosPhi(), t0.DzDs(), err2Y, err2Z );
+        fSliceParam.GetClusterErrors2v1( clu.RowType(), clu.Z(), t0.SinPhi(), t0.GetCosPhi(), t0.DzDs(), err2Y, err2Z );
 
         clu.SetErr2Y( err2Y );
         clu.SetErr2Z( err2Z );
@@ -378,7 +373,7 @@ bool AliHLTTPCCAMerger::FitTrack( AliHLTTPCCATrackParam &T, float &Alpha,
 
     float err2Y = h.Err2Y();
     float err2Z = h.Err2Z();
-    if ( doErrors ) fSliceParam.GetClusterErrors2( h.IRow(), h.Z(), l.SinPhi(), l.CosPhi(), l.DzDs(), err2Y, err2Z );
+    if ( doErrors ) fSliceParam.GetClusterErrors2v1( h.RowType(), h.Z(), l.SinPhi(), l.CosPhi(), l.DzDs(), err2Y, err2Z );
     if( !final ){
       err2Y*= fSliceParam.ClusterError2CorrectionY();
       err2Z*= fSliceParam.ClusterError2CorrectionZ();
@@ -486,8 +481,7 @@ void AliHLTTPCCAMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCCABo
       if ( t0.TransportToX( x0, fSliceParam.GetBz( t0 ), maxSin ) ) {
         b.SetOK( 1 );
         b.SetTrackID( itr );
-        b.SetNClusters( track.NClusters() );
-        b.SetIRow( fClusterInfos[ track.FirstClusterRef() + 0 ].IRow() );
+        b.SetNClusters( track.NClusters() );        
         b.SetParam( t0 );
         nB++;
       }
@@ -500,7 +494,6 @@ void AliHLTTPCCAMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCCABo
         b.SetOK( 1 );
         b.SetTrackID( itr );
         b.SetNClusters( track.NClusters() );
-        b.SetIRow( fClusterInfos[ track.FirstClusterRef() + track.NClusters()-1 ].IRow() );
         b.SetParam( t1 );
         nB++;
       }

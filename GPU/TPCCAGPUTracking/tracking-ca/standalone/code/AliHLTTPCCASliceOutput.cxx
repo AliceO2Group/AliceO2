@@ -35,28 +35,29 @@ inline void AssignNoAlignment( int &dst, int &size, int count )
   size = dst + count ;
 }
 
+
 void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl)
 {
 	//Allocate All memory needed for slice output
-	const int memsize =  EstimateSize(nTracks, nTrackHits);
+  const int memsize =  EstimateSize(nTracks, nTrackHits);
 
-	if (outputControl->fOutputPtr)
-	{
-		if (outputControl->fOutputMaxSize < memsize)
-		{
-			outputControl->fEndOfSpace = 1;
-			ptrOutput = NULL;
-			return;
-		}
-		ptrOutput = (AliHLTTPCCASliceOutput*) outputControl->fOutputPtr;
-		outputControl->fOutputPtr += memsize;
-		outputControl->fOutputMaxSize -= memsize;
-	}
-	else
-	{
-		if (ptrOutput) free(ptrOutput);
-		ptrOutput = (AliHLTTPCCASliceOutput*) malloc(memsize);
-	}
-	ptrOutput->SetMemorySize(memsize);
+  if (outputControl->fOutputPtr)
+  {
+    if (outputControl->fOutputMaxSize < memsize)
+      {
+	outputControl->fEndOfSpace = 1;
+	ptrOutput = NULL;
+	return;
+      }
+    ptrOutput = (AliHLTTPCCASliceOutput*) outputControl->fOutputPtr;
+    outputControl->fOutputPtr += memsize;
+    outputControl->fOutputMaxSize -= memsize;
+  }
+  else
+    {
+      if (ptrOutput) free(ptrOutput);
+      ptrOutput = (AliHLTTPCCASliceOutput*) malloc(memsize);
+    }
+  ptrOutput->SetMemorySize(memsize);
 }
 #endif

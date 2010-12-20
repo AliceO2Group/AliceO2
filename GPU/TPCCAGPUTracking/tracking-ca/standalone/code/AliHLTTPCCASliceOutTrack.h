@@ -33,6 +33,7 @@ class AliHLTTPCCASliceOutTrack
     GPUhd() int NClusters()                    const { return fNClusters;       }
     GPUhd() const AliHLTTPCCABaseTrackParam &Param() const { return fParam;           }
     GPUhd() const AliHLTTPCCASliceOutCluster &Cluster( int i ) const { return fClusters[i];           }
+    GPUhd() const AliHLTTPCCASliceOutCluster* Clusters() const { return fClusters;           }
 
     GPUhd() void SetNClusters( int v )                   { fNClusters = v;       }
     GPUhd() void SetParam( const AliHLTTPCCABaseTrackParam &v ) { fParam = v;           }

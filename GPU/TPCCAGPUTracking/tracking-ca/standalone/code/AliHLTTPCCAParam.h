@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCAParam.h 36185 2009-11-02 07:19:00Z sgorbuno $
+// @(#) $Id: AliHLTTPCCAParam.h 45665 2010-11-24 15:54:05Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -76,6 +76,8 @@ class AliHLTTPCCAParam
     GPUd() float HitPickUpFactor() const { return fHitPickUpFactor; }
   GPUd() float ClusterError2CorrectionY() const { return fClusterError2CorrectionY; }
   GPUd() float ClusterError2CorrectionZ() const { return fClusterError2CorrectionZ; }
+  GPUd() int MinNTrackClusters() const { return fMinNTrackClusters; }
+  GPUd() float MaxTrackQPt() const { return fMaxTrackQPt; }
 
 
 
@@ -106,9 +108,12 @@ class AliHLTTPCCAParam
     GPUd() void SetClusterError2CorrectionY( float v ) { fClusterError2CorrectionY = v; }
     GPUd() void SetClusterError2CorrectionZ( float v ) { fClusterError2CorrectionZ = v; }
 
+  GPUd() void SetMinNTrackClusters( int v ){ fMinNTrackClusters = v; }
+  GPUd() void SetMinTrackPt( float v ){ fMaxTrackQPt = 1./CAMath::Abs(v); }
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle ) const;
-    GPUd() void GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
+    GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
+    GPUd() void GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
 
     void WriteSettings( std::ostream &out ) const;
     void ReadSettings( std::istream &in );
@@ -116,7 +121,9 @@ class AliHLTTPCCAParam
     GPUd() void SetParamS0Par( int i, int j, int k, float val ) {
       fParamS0Par[i][j][k] = val;
     }
-
+  
+    GPUd() const float *GetParamS0Par(int i, int j) const { return fParamS0Par[i][j]; }
+ 
     GPUd() float GetBzkG() const { return fBzkG;}
     GPUd() float GetConstBz() const { return fConstBz;}
     GPUd() float GetBz( float x, float y, float z ) const;
@@ -147,6 +154,9 @@ class AliHLTTPCCAParam
     float fTrackChi2Cut;// cut for track Chi^2/NDF
   float fClusterError2CorrectionY; // correction for the squared cluster error during tracking
   float fClusterError2CorrectionZ; // correction for the squared cluster error during tracking
+    int fMinNTrackClusters; //* required min number of clusters on the track
+    float fMaxTrackQPt;    //* required max Q/Pt (==min Pt) of tracks
+
     float fRowX[200];// X-coordinate of rows
     float fParamS0Par[2][3][7];    // cluster error parameterization coeficients
     float fPolinomialFieldBz[6];   // field coefficients

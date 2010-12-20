@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATracker.cxx 36519 2009-11-08 01:46:59Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATracker.cxx 45450 2010-11-14 23:49:30Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -652,15 +652,19 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
   AliHLTTPCCASliceOutput* useOutput = *fOutput;
   if (useOutput == NULL) return;
 
-  useOutput->SetNTracks( fCommonMem->fNTracks );
-  useOutput->SetNTrackClusters( fCommonMem->fNTrackHits );
+  useOutput->SetNTracks( 0 );
+  useOutput->SetNTrackClusters( 0 );
 
   int nStoredHits = 0;
-  
+  int nStoredTracks = 0;
+
   AliHLTTPCCASliceOutTrack *out = useOutput->FirstTrack();
 
   for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
     AliHLTTPCCATrack &iTrack = fTracks[iTr];    
+    
+    if( iTrack.NHits() < fParam.MinNTrackClusters() ) continue;
+    if( CAMath::Abs(iTrack.Param().GetQPt())> fParam.MaxTrackQPt() ) continue;
 
     out->SetParam( iTrack.Param() );
     int nClu = 0;
@@ -697,12 +701,16 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
       c.Set( id, iRow, origX, origY, origZ );
       out->SetCluster( nClu, c );
       nClu++;
-      nStoredHits++;
     }
 
+    nStoredTracks++;
+    nStoredHits+=nClu; 
     out->SetNClusters( nClu );
     out = out->NextTrack();    
   }
+
+  useOutput->SetNTracks( nStoredTracks );
+  useOutput->SetNTrackClusters( nStoredHits );
 
   timer.Stop();
   fTimers[5] += timer.CpuTime();

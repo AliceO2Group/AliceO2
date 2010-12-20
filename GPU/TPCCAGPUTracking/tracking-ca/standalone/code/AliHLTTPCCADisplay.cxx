@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCADisplay.cxx 39008 2010-02-18 17:33:32Z sgorbuno $
+// $Id: AliHLTTPCCADisplay.cxx 44760 2010-10-29 23:49:06Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -485,7 +485,7 @@ void AliHLTTPCCADisplay::DrawSliceLink( int iRow, int iHit, int colorUp, int col
 
   //if ( !fPerf ) return;
   //AliHLTTPCCAGBTracker &tracker = *fGB;
-  if ( width < 0 ) width = 1.;
+  if ( width < 0 ) width = 1;
   fLine.SetLineWidth( width );
   int colUp = colorUp >= 0 ? colorUp : kMagenta;
   int colDn = colorDn >= 0 ? colorDn : kBlack;
