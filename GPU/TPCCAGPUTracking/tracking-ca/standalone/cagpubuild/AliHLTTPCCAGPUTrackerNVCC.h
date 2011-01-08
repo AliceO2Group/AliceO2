@@ -24,10 +24,13 @@
 #include "AliHLTLogging.h"
 #include "AliHLTTPCCASliceOutput.h"
 
+#include <pthread.h>
+
 class AliHLTTPCCARow;
 
 class AliHLTTPCCAGPUTrackerNVCC : public AliHLTTPCCAGPUTracker, public AliHLTLogging
 {
+	friend void* helperWrapper(void*);
 public:
 	AliHLTTPCCAGPUTrackerNVCC();
 	virtual ~AliHLTTPCCAGPUTrackerNVCC();
@@ -56,6 +59,9 @@ private:
 	void* GlobalMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_GLOBAL_MEMORY ); }
 	void* TracksMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_TRACKS_MEMORY ); }
 	void* TrackerMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
+	
+	void ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice);
+	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice);
 
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 	int GetThread();
@@ -65,9 +71,7 @@ private:
 	int CUDASync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
 	template <class T> T* alignPointer(T* ptr, int alignment);
 	void StandalonePerfTime(int iSlice, int i);
-#ifdef HLTCA_GPUCODE
 	bool CudaFailedMsg(cudaError_t error);
-#endif //HLTCA_GPUCODE
 
 	AliHLTTPCCATracker *fGpuTracker; //Tracker Objects that will be used on the GPU
 	void* fGPUMemory; //Pointer to GPU Memory Base Adress
@@ -91,8 +95,28 @@ private:
 	int fCudaInitialized; //Flag if CUDA is initialized
 
 	int fPPMode; //Flag if GPU tracker runs in PP Mode
+	
+#ifdef HLTCA_GPU_TIME_PROFILE
+	unsigned long long int fProfTimeC, fProfTimeD;
+#endif
 
 	void* fCudaContext;
+	
+	struct helperParam
+	{
+		AliHLTTPCCAGPUTrackerNVCC* fCls;
+		int fNum;
+		int fSliceCount;
+		AliHLTTPCCAClusterData* pClusterData;
+		AliHLTTPCCASliceOutput** pOutput;
+		int fFirstSlice;
+		pthread_mutex_t fMutex[2];
+		bool fTerminate;
+		int fPhase;
+		volatile int fDone;
+	};
+	static const int fNHelperThreads = 2;
+	helperParam fHelperParams[fNHelperThreads];
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );
