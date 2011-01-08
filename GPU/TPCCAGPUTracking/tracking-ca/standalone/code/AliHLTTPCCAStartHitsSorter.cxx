@@ -28,8 +28,8 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
     if ( iThread == 0 ) {
 		const int gpuFixedBlockCount = tracker.GPUParametersConst()->fGPUFixedBlockCount;
 	  const int tmpNRows = tracker.Param().NRows() - 6;
-	  int nRows = iBlock == (HLTCA_GPU_BLOCK_COUNT - 1) ? (tmpNRows - (tmpNRows / HLTCA_GPU_BLOCK_COUNT) * (HLTCA_GPU_BLOCK_COUNT - 1)) : (tmpNRows / HLTCA_GPU_BLOCK_COUNT);
-	  int nStartRow = (tmpNRows / HLTCA_GPU_BLOCK_COUNT) * iBlock + 1;
+	  int nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
+	  int nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
       int startOffset = 0;
 	  int startOffset2 = 0;
 	  int previousBlockEndTracklet = 0;
@@ -79,7 +79,7 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 			tracker.BlockStartingTracklet()[nCurrentBlock++].y = startOffset - previousBlockEndTracklet;
 			tracker.GPUParameters()->fScheduleFirstDynamicTracklet = startOffset;
 		}
-		for (int i = nCurrentBlock;i < HLTCA_GPU_BLOCK_COUNT;i++)
+		for (int i = nCurrentBlock;i < nBlocks;i++)
 		{
 			tracker.BlockStartingTracklet()[i].x = 0;
 			tracker.BlockStartingTracklet()[i].y = 0;			
