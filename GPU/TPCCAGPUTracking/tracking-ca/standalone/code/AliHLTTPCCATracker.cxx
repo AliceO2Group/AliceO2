@@ -131,7 +131,7 @@ char* AliHLTTPCCATracker::SetGPUTrackerTrackletsMemory(char* pGPUMemory, int Max
 	AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
 	AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
 	AssignMemory(fRowBlockPos, pGPUMemory, 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
-	AssignMemory(fBlockStartingTracklet, pGPUMemory, HLTCA_GPU_BLOCK_COUNT);
+	AssignMemory(fBlockStartingTracklet, pGPUMemory, constructorBlockCount);
 
 	return(pGPUMemory);
 }
