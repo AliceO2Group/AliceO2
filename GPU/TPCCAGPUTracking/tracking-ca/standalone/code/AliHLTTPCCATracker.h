@@ -131,7 +131,7 @@ class AliHLTTPCCATracker
   
   char* SetGPUTrackerCommonMemory(char* const pGPUMemory);
   char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits);
-  char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets);
+  char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets, int constructorBlockCount);
   char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits );
   
   //Debugging Stuff

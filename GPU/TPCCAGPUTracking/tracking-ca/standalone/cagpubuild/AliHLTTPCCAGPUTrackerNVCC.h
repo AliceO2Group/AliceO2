@@ -95,6 +95,9 @@ private:
 	int fCudaInitialized; //Flag if CUDA is initialized
 
 	int fPPMode; //Flag if GPU tracker runs in PP Mode
+
+	int constructorBlockCount;
+	int selectorBlockCount;
 	
 #ifdef HLTCA_GPU_TIME_PROFILE
 	unsigned long long int fProfTimeC, fProfTimeD;
