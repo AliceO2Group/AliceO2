@@ -24,7 +24,11 @@
 #include "AliHLTLogging.h"
 #include "AliHLTTPCCASliceOutput.h"
 
+#ifdef R__WIN32
+#include "pthread_mutex_win32_wrapper.h"
+#else
 #include <pthread.h>
+#endif
 
 class AliHLTTPCCARow;
 
@@ -118,7 +122,7 @@ private:
 		int fPhase;
 		volatile int fDone;
 	};
-	static const int fNHelperThreads = 2;
+	static const int fNHelperThreads = 0;
 	helperParam fHelperParams[fNHelperThreads];
 
 	// disable copy
