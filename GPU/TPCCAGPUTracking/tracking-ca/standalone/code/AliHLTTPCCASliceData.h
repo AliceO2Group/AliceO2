@@ -120,12 +120,12 @@ class AliHLTTPCCASliceData
     /**
      * If the given weight is higher than what is currently stored replace with the new weight.
      */
-    void MaximizeHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int_v weight );
+    void MaximizeHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int weight );
 
     /**
      * Return the maximal weight the given hit got from one tracklet
      */
-    int_v HitWeight( const AliHLTTPCCARow &row, uint_v hitIndex ) const;
+    int HitWeight( const AliHLTTPCCARow &row, uint_v hitIndex ) const;
 
     /**
      * Reset all hit weights to 0.
@@ -271,12 +271,12 @@ GPUhd() inline const AliHLTTPCCARow &AliHLTTPCCASliceData::Row( int rowIndex ) c
   return fRows[rowIndex];
 }
 
-GPUd() inline void AliHLTTPCCASliceData::MaximizeHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int_v weight )
+GPUd() inline void AliHLTTPCCASliceData::MaximizeHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int weight )
 {
   CAMath::AtomicMax( &fHitWeights[row.fHitNumberOffset + hitIndex], weight );
 }
 
-GPUd() inline int_v AliHLTTPCCASliceData::HitWeight( const AliHLTTPCCARow &row, uint_v hitIndex ) const
+GPUd() inline int AliHLTTPCCASliceData::HitWeight( const AliHLTTPCCARow &row, uint_v hitIndex ) const
 {
   return fHitWeights[row.fHitNumberOffset + hitIndex];
 }

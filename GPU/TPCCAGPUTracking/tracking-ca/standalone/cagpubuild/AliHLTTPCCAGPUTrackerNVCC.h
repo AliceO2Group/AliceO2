@@ -122,7 +122,7 @@ private:
 		int fPhase;
 		volatile int fDone;
 	};
-	static const int fNHelperThreads = 0;
+	static const int fNHelperThreads = 2;
 	helperParam fHelperParams[fNHelperThreads];
 
 	// disable copy

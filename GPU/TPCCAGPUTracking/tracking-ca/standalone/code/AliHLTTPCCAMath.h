@@ -180,7 +180,11 @@ GPUhd() inline float AliHLTTPCCAMath::ASin( float x )
 
 GPUd() inline int AliHLTTPCCAMath::Mul24( int a, int b )
 {
+#ifdef FERMI
+  return(a * b);
+#else
   return choice( __mul24( a, b ), a*b, a*b );
+#endif
 }
 
 GPUd() inline float AliHLTTPCCAMath::FMulRZ( float a, float b )

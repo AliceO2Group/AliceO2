@@ -123,9 +123,13 @@ AliHLTTPCCAGPUTrackerNVCC::AliHLTTPCCAGPUTrackerNVCC() :
 	fGPUMemSize(0),
 	fpCudaStreams(NULL),
 	fSliceCount(HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT),
+	fCudaDevice(0),
 	fOutputControl(NULL),
+	fThreadId(0),
 	fCudaInitialized(0),
 	fPPMode(0),
+	constructorBlockCount(30),
+	selectorBlockCount(30),
 	fCudaContext(NULL)
 	{
 		fCudaContext = (void*) new CUcontext;
@@ -174,7 +178,7 @@ int AliHLTTPCCAGPUTrackerNVCC::CheckMemorySizes(int sliceCount)
 
   if (fDebugLevel >= 3)
   {
-	  HLTInfo("Memory usage: Tracker Object %d / %d, Common Memory %d / %d, Row Memory %d / %d", sizeof(AliHLTTPCCATracker) * sliceCount, HLTCA_GPU_TRACKER_OBJECT_MEMORY, fgkNSlices * AliHLTTPCCATracker::CommonMemorySize(), HLTCA_GPU_COMMON_MEMORY, fgkNSlices * (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow), HLTCA_GPU_ROWS_MEMORY);
+	  HLTInfo("Memory usage: Tracker Object %d / %d, Common Memory %d / %d, Row Memory %d / %d", (int) sizeof(AliHLTTPCCATracker) * sliceCount, HLTCA_GPU_TRACKER_OBJECT_MEMORY, (int) (fgkNSlices * AliHLTTPCCATracker::CommonMemorySize()), HLTCA_GPU_COMMON_MEMORY, (int) (fgkNSlices * (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow)), HLTCA_GPU_ROWS_MEMORY);
   }
   return(0);
 }
@@ -253,7 +257,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 #endif
         int deviceOK = /* sliceCount <= fCudaDeviceProp.multiProcessorCount && */ fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < reqVerMaj || (fCudaDeviceProp.major == reqVerMaj && fCudaDeviceProp.minor < reqVerMin)) && free >= fGPUMemSize;
 
-		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %d / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
+		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, (long long int) free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
 		deviceSpeed = (long long int) fCudaDeviceProp.multiProcessorCount * (long long int) fCudaDeviceProp.clockRate * (long long int) fCudaDeviceProp.warpSize * (long long int) free * (long long int) fCudaDeviceProp.major * (long long int) fCudaDeviceProp.major;
 		if (deviceOK && deviceSpeed > bestDeviceSpeed)
 		{
@@ -264,7 +268,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	if (bestDevice == -1)
 	{
 		HLTWarning("No %sCUDA Device available, aborting CUDA Initialisation", count ? "appropriate " : "");
-		HLTInfo("Requiring Revision 1.3, Mem: %d, Multiprocessors: %d", fGPUMemSize, sliceCount);
+		HLTInfo("Requiring Revision 1.3, Mem: %lld, Multiprocessors: %d", fGPUMemSize, sliceCount);
 		ReleaseGlobalLock(semLock);
 		return(1);
 	}
@@ -736,7 +740,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		if (fDebugLevel >= 3)
 		{
-			HLTInfo("GPU Global Memory Used: %d/%d, Page Locked Tracks Memory used: %d / %d", tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice), HLTCA_GPU_GLOBAL_MEMORY, fGpuTracker[iSlice].TrackMemorySize(), HLTCA_GPU_TRACKS_MEMORY);
+			HLTInfo("GPU Global Memory Used: %d/%d, Page Locked Tracks Memory used: %d / %d", (int) (tmpMem - (char*) GlobalMemory(fGPUMemory, iSlice)), HLTCA_GPU_GLOBAL_MEMORY, (int) fGpuTracker[iSlice].TrackMemorySize(), HLTCA_GPU_TRACKS_MEMORY);
 		}
 
 		//Initialize Startup Constants
@@ -837,7 +841,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		if (fDebugLevel >= 3)
 		{
-			HLTInfo("GPU Slice Data Memory Used: %d/%d", fSlaveTrackers[firstSlice + iSlice].Data().MemorySize(), HLTCA_GPU_SLICE_DATA_MEMORY);
+			HLTInfo("GPU Slice Data Memory Used: %d/%d", (int) fSlaveTrackers[firstSlice + iSlice].Data().MemorySize(), HLTCA_GPU_SLICE_DATA_MEMORY);
 		}
 
 		//Initialize temporary memory where needed
