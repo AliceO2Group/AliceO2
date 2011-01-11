@@ -24,7 +24,7 @@ class AliHLTTPCCATracklet
   public:
 
 #if !defined(HLTCA_GPUCODE)
-    AliHLTTPCCATracklet() : fNHits( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fParam() {};
+    AliHLTTPCCATracklet() : fNHits( 0 ), fFirstRow( 0 ), fLastRow( 0 ), fParam(), fHitWeight(0) {};
     void Dummy() const ;
     ~AliHLTTPCCATracklet() {}
 #endif //!HLTCA_GPUCODE
@@ -32,6 +32,7 @@ class AliHLTTPCCATracklet
     GPUhd() int  NHits()                const { return fNHits;      }
     GPUhd() int  FirstRow()             const { return fFirstRow;   }
     GPUhd() int  LastRow()              const { return fLastRow;    }
+    GPUhd() int  HitWeight()            const { return fHitWeight;  }
     GPUhd() const AliHLTTPCCABaseTrackParam &Param() const { return fParam; }
 #ifndef EXTERN_ROW_HITS
     GPUhd() int  RowHit( int i )   const { return fRowHits[i];    }
@@ -43,6 +44,7 @@ class AliHLTTPCCATracklet
     GPUhd() void SetFirstRow( int v )            {  fFirstRow = v;   }
     GPUhd() void SetLastRow( int v )             {  fLastRow = v;    }
     GPUhd() void SetParam( const AliHLTTPCCABaseTrackParam &v ) { fParam = v;      }
+    GPUhd() void SetHitWeight( const float w)    {  fHitWeight = w;  }
 
   private:
     int fNHits;                 // N hits
@@ -52,6 +54,7 @@ class AliHLTTPCCATracklet
 #ifndef EXTERN_ROW_HITS
     int fRowHits[HLTCA_ROW_COUNT + 1];          // hit index for each TPC row
 #endif //EXTERN_ROW_HITS
+    float fHitWeight;		//Hit Weight of Tracklet
 };
 
 #endif //ALIHLTTPCCATRACKLET_H

@@ -57,8 +57,6 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 	  }
 
 	  AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[itr];
-      const int tNHits = tracklet.NHits();
-
       const int kMaxRowGap = 4;
       const float kMaxShared = .1;
 
@@ -70,14 +68,7 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 			return;
 	  }
 
-      int kind = 0;
-      if ( 0 ) {
-        if ( tNHits >= 10 && 1. / .5 >= CAMath::Abs( tracklet.Param().QPt() ) ) { //SG!!!
-          kind = 1;
-        }
-      }
-
-      int w = ( kind << 29 ) + ( tNHits << 16 ) + itr;
+      const int w = tracklet.HitWeight();
 
       //int w = (tNHits<<16)+itr;
       //int nRows = tracker.Param().NRows();

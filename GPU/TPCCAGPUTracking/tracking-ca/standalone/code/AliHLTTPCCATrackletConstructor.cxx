@@ -92,7 +92,8 @@ GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 #else
     tracklet.SetParam( tParam.GetParam() );
 #endif //HLTCA_GPUCODE
-    int w = ( r.fNHits << 16 ) + r.fItr;
+    int w = tracker.CalculateHitWeight(r.fNHits, tParam.GetChi2(), r.fItr);
+    tracklet.SetHitWeight(w);
     for ( int iRow = r.fFirstRow; iRow <= r.fLastRow; iRow++ ) {
 #ifdef EXTERN_ROW_HITS
       int ih = tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr];
