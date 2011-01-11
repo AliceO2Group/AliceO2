@@ -33,7 +33,6 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #endif
-
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
@@ -78,18 +77,24 @@ texture<signed short, 1, cudaReadModeElementType> gAliTexRefs;
 #include "AliHLTSystem.h"
 #endif
 
-void* helperWrapper(void* arg)
+ClassImp( AliHLTTPCCAGPUTrackerNVCC )
+
+void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 {
 	AliHLTTPCCAGPUTrackerNVCC::helperParam* par = (AliHLTTPCCAGPUTrackerNVCC::helperParam*) arg;
 	AliHLTTPCCAGPUTrackerNVCC* cls = par->fCls;
 	
+#ifdef HLTCA_STANDALONE
 	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d starting", par->fNum);
+#endif
 	
-	while(pthread_mutex_lock(&par->fMutex[0]) == 0 && par->fTerminate == false)
+	while(pthread_mutex_lock(&((pthread_mutex_t*) par->fMutex)[0]) == 0 && par->fTerminate == false)
 	{
 		for (int i = par->fNum + 1;i < par->fSliceCount;i += cls->fNHelperThreads + 1)
 		{
+#ifdef HLTCA_STANDALONE
 			if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
+#endif
 			if (par->fPhase)
 			{
 				while (par->fDone < i);
@@ -100,16 +105,18 @@ void* helperWrapper(void* arg)
 				cls->ReadEvent(par->pClusterData, par->fFirstSlice, i);
 				par->fDone = i + 1;
 			}
+#ifdef HLTCA_STANDALONE
 			if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
+#endif
 		}
-		pthread_mutex_unlock(&par->fMutex[1]);
+		pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 	}
-	pthread_mutex_unlock(&par->fMutex[1]);
+	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
+#ifdef HLTCA_STANDALONE
 	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d terminating", par->fNum);
+#endif
 	return(NULL);
 }
-
-ClassImp( AliHLTTPCCAGPUTrackerNVCC )
 
 #define SemLockName "AliceHLTTPCCAGPUTrackerInitLockSem"
 
@@ -374,8 +381,8 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	fHelperParams[i].fNum = i;
 	for (int j = 0;j < 2;j++)
 	{
-		pthread_mutex_init(&fHelperParams[i].fMutex[j], NULL);
-		pthread_mutex_lock(&fHelperParams[i].fMutex[j]);
+		pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], NULL);
+		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
 	}
 	pthread_t thr;
 	pthread_create(&thr, NULL, helperWrapper, &fHelperParams[i]);
@@ -807,7 +814,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		fHelperParams[i].pClusterData = pClusterData;
 		fHelperParams[i].fSliceCount = sliceCountLocal;
 		fHelperParams[i].fFirstSlice = firstSlice;
-		pthread_mutex_unlock(&fHelperParams[i].fMutex[0]);
+		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
 	}
 
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
@@ -968,7 +975,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	
 	for (int i = 0;i < fNHelperThreads;i++)
 	{
-		pthread_mutex_lock(&fHelperParams[i].fMutex[1]);
+		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
 	}
 
 	StandalonePerfTime(firstSlice, 7);
@@ -1033,7 +1040,7 @@ RestartTrackletConstructor:
 		fHelperParams[i].fPhase = 1;
 		fHelperParams[i].pOutput = pOutput;
 		fHelperParams[i].fDone = 0;
-		pthread_mutex_unlock(&fHelperParams[i].fMutex[0]);
+		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
 	}
 
 	int tmpSlice = 0, tmpSlice2 = 0;
@@ -1118,7 +1125,7 @@ RestartTrackletConstructor:
 	
 	for (int i = 0;i < fNHelperThreads;i++)
 	{
-		pthread_mutex_lock(&fHelperParams[i].fMutex[1]);
+		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
 	}
 
 	StandalonePerfTime(firstSlice, 10);
@@ -1424,12 +1431,12 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 	for (int i = 0;i < fNHelperThreads;i++)
 	{
 		fHelperParams[i].fTerminate = true;
-		pthread_mutex_unlock(&fHelperParams[i].fMutex[0]);
-		pthread_mutex_lock(&fHelperParams[i].fMutex[1]);
+		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
+		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
 		for (int j = 0;j < 2;j++)
 		{
-			pthread_mutex_unlock(&fHelperParams[i].fMutex[j]);
-			pthread_mutex_destroy(&fHelperParams[i].fMutex[j]);
+			pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
+			pthread_mutex_destroy(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
 		}
 	}
 	

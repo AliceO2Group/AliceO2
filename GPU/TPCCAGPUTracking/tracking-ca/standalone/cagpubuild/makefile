@@ -25,7 +25,7 @@ G__AliHLTTPCCAGPUAtoLinkDef.h:	AliHLTTPCCAGPUTrackerNVCC.h AliHLTTPCCAGPUTracker
 					echo '#endif' >> G__AliHLTTPCCAGPUAutoLinkDef.h
 
 G__AliHLTTPCCAGPU.o:			G__AliHLTTPCCAGPU.cxx
-					g++ -Duse_aliroot -Duse_root -DROWHOUGHPARAMS -Duse_reconstruction -Duse_newio -DROOTVERSION=\"unchecked\" -DALIROOTVERSION=\"unchecked\" -D__ROOT__ -DUSE_ALILOG -DLINUX -DNDEBUG -DBUILD_GPU -D_MODULE_=\"HLT\" -I${ALIHLT_TOPDIR}/TPCLib -I${ALIHLT_TOPDIR}/TPCLib/tracking-ca -I${ALIHLT_TOPDIR}/BASE -c G__AliHLTTPCCAGPU.cxx -o G__AliHLTTPCCAGPU.o -O -g -W -Wall -Weffc++ -fPIC -pipe -fmessage-length=0 -Wno-long-long -ansi -Dlinux -D`uname` -DDATE_SYS=`uname` -Dlong32='int' -Dlong64='long long' -DdatePointer='long' -I${ROOTSYS}/include -pthread -m64 -D__PHOSUTIL__ -D__EMCALUTIL__
+					g++ -DcudaError_t=int -Duse_aliroot -Duse_root -DROWHOUGHPARAMS -Duse_reconstruction -Duse_newio -DROOTVERSION=\"unchecked\" -DALIROOTVERSION=\"unchecked\" -D__ROOT__ -DUSE_ALILOG -DLINUX -DNDEBUG -DBUILD_GPU -D_MODULE_=\"HLT\" -I${ALIHLT_TOPDIR}/TPCLib -I${ALIHLT_TOPDIR}/TPCLib/tracking-ca -I${ALIHLT_TOPDIR}/BASE -c G__AliHLTTPCCAGPU.cxx -o G__AliHLTTPCCAGPU.o -O -g -W -Wall -Weffc++ -fPIC -pipe -fmessage-length=0 -Wno-long-long -ansi -Dlinux -D`uname` -DDATE_SYS=`uname` -Dlong32='int' -Dlong64='long long' -DdatePointer='long' -I${ROOTSYS}/include -pthread -m64 -D__PHOSUTIL__ -D__EMCALUTIL__
 
 AliHLTTPCCAGPUTrackerNVCC.cu.cxx:	AliHLTTPCCAGPUTrackerNVCC.cu.tmp.cxx
 					cat AliHLTTPCCAGPUTrackerNVCC.cu.tmp.cxx | grep -v "^#" > AliHLTTPCCAGPUTrackerNVCC.cu.cxx

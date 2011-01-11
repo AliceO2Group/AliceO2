@@ -24,7 +24,9 @@
 #include "AliHLTLogging.h"
 #include "AliHLTTPCCASliceOutput.h"
 
-#ifdef R__WIN32
+#ifdef __CINT__
+typedef int cudaError_t
+#elif defined(R__WIN32)
 #include "pthread_mutex_win32_wrapper.h"
 #else
 #include <pthread.h>
@@ -76,6 +78,8 @@ private:
 	template <class T> T* alignPointer(T* ptr, int alignment);
 	void StandalonePerfTime(int iSlice, int i);
 	bool CudaFailedMsg(cudaError_t error);
+	
+	static void* helperWrapper(void*);
 
 	AliHLTTPCCATracker *fGpuTracker; //Tracker Objects that will be used on the GPU
 	void* fGPUMemory; //Pointer to GPU Memory Base Adress
@@ -117,7 +121,7 @@ private:
 		AliHLTTPCCAClusterData* pClusterData;
 		AliHLTTPCCASliceOutput** pOutput;
 		int fFirstSlice;
-		pthread_mutex_t fMutex[2];
+		void* fMutex;
 		bool fTerminate;
 		int fPhase;
 		volatile int fDone;
