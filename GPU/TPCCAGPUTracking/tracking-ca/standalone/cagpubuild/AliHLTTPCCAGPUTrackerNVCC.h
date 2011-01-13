@@ -127,7 +127,7 @@ private:
 		int fPhase;
 		volatile int fDone;
 	};
-	static const int fNHelperThreads = 2; //Number of helper threads for post/preprocessing
+	static const int fNHelperThreads = 0; //Number of helper threads for post/preprocessing
 	helperParam fHelperParams[fNHelperThreads]; //Control Struct for helper threads
 
 	// disable copy
