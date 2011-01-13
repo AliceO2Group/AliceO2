@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTDataTypes.h 36598 2009-11-10 09:54:45Z aszostak $
+// @(#) $Id: AliHLTDataTypes.h 45376 2010-11-12 01:02:55Z aszostak $
 
 #ifndef ALIHLTDATATYPES_H
 #define ALIHLTDATATYPES_H
@@ -60,8 +60,15 @@
  *                 kAliHLTDataTypeTriggerDecision (TRIG_DEC)
  *                 kAliHLTDataTypeGlobalTrigger (GLOBTRIG)
  *                 kAliHLTDataTypeStreamerInfo (ROOTSTRI)
+ *  13       Changed AliHLTEventDDL to now contain 31 words. The extra word is
+ *           for the EMCAL detector, which needs 46 DDLs after DCAL was added.
+ *  14       Adding new data block type for HLT global trigger counters.
+ *           Adding data block type for ESD content
+ *           Adding data block type for forwarded component table blocks
+ *           Adding new event type for software triggers.
+ *  15       Modifying data block types for trigger counter blocks.
  */
-#define ALIHLT_DATA_TYPES_VERSION 12
+#define ALIHLT_DATA_TYPES_VERSION 15
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -175,6 +182,52 @@ extern const char kAliHLTDataOriginSample[kAliHLTComponentDataTypefOriginSize];
  * @ingroup alihlt_component_datatypes
  */
 extern const char kAliHLTDataOriginEMCAL[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin TOF
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginTOF[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin HMPID
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginHMPID[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin CPV
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginCPV[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin PMD
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginPMD[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin T0
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginT0[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin VZERO
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginVZERO[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin ZDC
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginZDC[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin ACORDE
+ * @ingroup alihlt_component_datatypes
+ */
+
+extern const char kAliHLTDataOriginACORDE[kAliHLTComponentDataTypefOriginSize];
+
+/** Data origin TRG
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginTRG[kAliHLTComponentDataTypefOriginSize];
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -293,12 +346,24 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 # define kAliHLTESDVertexDataTypeID    {'E','S','D','V','T','X','V','0'}
 
+/** output of the GlobalVertexer data block
+ * The 'V0' at the end allows a versioning
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTDataTypeGlobalVertexerID    {'G','L','B','V','T','X','V','0'}
+
 /** ESD data block
  * an AliESD object of varying origin
  * The 'V0' at the end allows a versioning
  * @ingroup alihlt_component_datatypes
  */
 # define kAliHLTESDObjectDataTypeID    {'A','L','I','E','S','D','V','0'}
+
+/** ESD 
+ * data blocks designated for the ESD
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTESDContentDataTypeID   {'E','S','D','_','C','O','N','T'}
 
 /** ESD tree data block
  * TTree with an AliESD object of varying origin
@@ -380,6 +445,11 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 # define kAliHLTComponentTableDataTypeID      {'C','O','M','P','T','A','B','L'}
 
+/** Forwarded component table
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTComponentFwdTableDataTypeID   {'C','O','M','P','T','A','B','F'}
+
 /** general ROOT TObject
  * - a general TObject exported from the HLT analysis
  * - varying origin
@@ -453,6 +523,22 @@ const int kAliHLTComponentDataTypefIDsize=8;
  * @ingroup alihlt_component_datatypes
  */
 # define kAliHLTdEdxDataTypeID {'D','E','D','X',' ',' ',' ',' '}
+
+/** dNdPt  data
+ * Common data type for the dNdPt output object
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTdNdPtDataTypeID {'D','N','D','P','T',' ',' ',' '}
+
+/** Global input trigger counters data block type.
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTInputTriggerCountersDataTypeID      {'I','N','T','R','G','C','N','T'}
+
+/** Global output trigger counters data block type.
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTOutputTriggerCountersDataTypeID     {'O','T','T','R','G','C','N','T'}
 
 using namespace std;
 
@@ -667,26 +753,33 @@ extern "C" {
 
   /**
    * @struct AliHLTComponentTableEntry
-   * Structure to be send on SOR event through the chain. Each component
-   * adds its chain id and component arguments to the list.
+   * Structure to be send on SOR event through the chain.
    * The 'length' of the structure is variable and depends on the length
-   * of the strings in the buffer at the end.
+   * of the buffer at the end.
    *
-   * ComponentTableEntries are identified by a 32bit Id generated by a CRC
+   * ComponentTableEntries are sent with data type @ref kAliHLTDataTypeComponentTable
+   * and are identified by a 32bit Id specification generated by a CRC
    * algorithm from the chain Id of the component. This is not a 100% unique
    * id but with a high probability. This approach accounts for the fact
-   * that all components are separated processes.
+   * that all components are separated processes. 
+   *
+   * The buffer consists of an array of 32bit Ids containing the Ids of
+   * all direct parents taken from the specification of the data blocks.
+   * The number of parents is stored in fNofParents. Each component forwards the
+   * incoming component table entries with data type @ref kAliHLTDataTypeComponentFwdTable
+   * by that the direct parents can be identified.
+   *
+   * Following this array a description string contains the chain id, component args, and
+   * maybe more properties in the future. The current format is
+   * 'chain_id{component_id:component args}' e.g. TPC-CF_00_0{TPCClusterFinder32Bit:-deconvolute-time}
    */
   struct AliHLTComponentTableEntry
   {
-    /** Size of this structure in bytes. */
-    AliHLTUInt32_t fStructSize;
-    /** size of the array of parent ids */
-    AliHLTUInt16_t fNofParents;
-    /** size of the description string in the appended buffer */
-    AliHLTUInt8_t  fSizeDescription;
-    /** the strings: chain id, component args, reserved */
-    AliHLTUInt8_t  fBuffer[1];
+    AliHLTUInt32_t fStructSize;           /// Size of this structure in bytes.
+    AliHLTUInt32_t fLevel;                /// Indicates from which processing stage this information is from.
+    AliHLTUInt16_t fNofParents;           /// size of the array of parent ids
+    AliHLTUInt8_t  fSizeDescription;      /// size of the description string in the appended buffer
+    AliHLTUInt8_t  fBuffer[1];            /// the strings: chain id, component args, reserved
   };
 
   //////////////////////////////////////////////////////////////////////////
@@ -701,25 +794,47 @@ extern "C" {
   /** field size of fCommonHeader */
   const int gkAliHLTCommonHeaderCount = 8;
 
+  /** size of the DDL list first version */
+  const int gkAliHLTDDLListSizeV0 = 30;
+
+  /** size of the DDL list after DCAL added to EMCAL */
+  const int gkAliHLTDDLListSizeV1 = 31;
+
   /** size of the DDL list */
-  const int gkAliHLTDDLListSize = 30;
+  const int gkAliHLTDDLListSize = gkAliHLTDDLListSizeV1;
 
   /** Number of Trigger Classes of CTP in CDH */
   const int gkNCTPTriggerClasses = 50;
 
   /**
-   * @struct AliHLTEventDDL
-   * DDL list event.
+   * @struct AliHLTEventDDLV0
+   * First version of the DDL list event.
    * The struct is send with the DDLLIST event.
    * Used in the trigger structure for internal apperance of 
    * the DLLs as well as for the HLT readout list send to DAQ 
    * ( as DataType : kAliHLTDataTypeDDL )
    */
-  struct AliHLTEventDDL
+  struct AliHLTEventDDLV0
   {
     AliHLTUInt32_t fCount;                       /// Indicates the number of words in fList.
-    AliHLTUInt32_t fList[gkAliHLTDDLListSize];   /// The list of DDL enable/disable bits.
+    AliHLTUInt32_t fList[gkAliHLTDDLListSizeV0];   /// The list of DDL enable/disable bits.
   };
+
+  /**
+   * @struct AliHLTEventDDLV1
+   * DDL list event structure with extra word for DCAL bits.
+   */
+  struct AliHLTEventDDLV1
+  {
+    AliHLTUInt32_t fCount;                       /// Indicates the number of words in fList.
+    AliHLTUInt32_t fList[gkAliHLTDDLListSizeV1];   /// The list of DDL enable/disable bits.
+  };
+  
+  /**
+   * @typedef AliHLTEventDDL
+   * Current used default version of the AliHLTEventDDL structure.
+   */
+  typedef AliHLTEventDDLV1 AliHLTEventDDL;
 
   /**
    * @struct AliHLTEventTriggerData
@@ -730,7 +845,12 @@ extern "C" {
     AliHLTUInt64_t fHLTStatus; /// Bit field 
     AliHLTUInt32_t fCommonHeaderWordCnt;  /// Number of words in fCommonHeader.
     AliHLTUInt32_t fCommonHeader[gkAliHLTCommonHeaderCount];  /// The common header words.
-    AliHLTEventDDL fReadoutList;   /// The readout list structure.
+    union
+    {
+      AliHLTEventDDL fReadoutList;   /// The default readout list structure.
+      AliHLTEventDDLV0 fReadoutListV0;   /// Access to the old version of the readout list structure.
+      AliHLTEventDDLV1 fReadoutListV1;   /// Access to the readout list structure with DCAL included.
+    };
   };
 
   /**
@@ -762,6 +882,8 @@ extern "C" {
   const AliHLTUInt32_t gkAliEventTypeCorruptID=8;
   /** Calibration eventType specification */ 
   const AliHLTUInt32_t gkAliEventTypeCalibration=16;
+  /** Software eventType specification */ 
+  const AliHLTUInt32_t gkAliEventTypeSoftware=24;
   /** DataReplay eventType specification */
   const AliHLTUInt32_t gkAliEventTypeDataReplay=32;
   /** Configuration eventType specification */
@@ -920,10 +1042,20 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeESDVertex;
 
+  /** global vertexer data specification, origin is 'any' 
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeGlobalVertexer;
+
   /** ESD object data specification, origin is 'any' 
    * @ingroup alihlt_component_datatypes
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeESDObject;
+
+  /** ESD content data specification, origin is 'any' 
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeESDContent;
 
   /** ESD Tree data specification, origin is 'any' 
    * @ingroup alihlt_component_datatypes
@@ -995,6 +1127,14 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeComponentTable;
 
+  /** Forwarded component table
+   * To be sent on SOR event, each component forwards blocks of type
+   * @ref kAliHLTDataTypeComponentTable was kAliHLTDataTypeComponentFwdTable
+   * after adding the parent ids to its own table struct.
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeComponentFwdTable;
+
   //////////////////////////////////////////////////////////////////////////
   //
   // Data Types for Monitoring objects
@@ -1030,6 +1170,18 @@ extern "C" {
    * @ingroup alihlt_component_datatypes
    */							  		
   extern const AliHLTComponentDataType kAliHLTDataTypeTNtuple;		  // {ROOTTUPL,"***"}
+
+  /** Global input trigger counters.
+   * - origin : kAliHLTDataOriginOut ( HLT )
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeInputTriggerCounters;     // {INTRGCNT:HLT }
+
+  /** Global output trigger counters.
+   * - origin : kAliHLTDataOriginOut ( HLT )
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeOutputTriggerCounters;     // {OTTRGCNT:HLT }
 
   /** General track array for the barrel tracks based on AliExternalTrackParam
    * Data format defined by AliHLTTracksData
@@ -1070,6 +1222,11 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypedEdx;
 
+  /** Container of dNdPt
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypedNdPt;
+
   //////////////////////////////////////////////////////////////////////////
   //
   // FXS subscriber meta information
@@ -1095,6 +1252,9 @@ extern "C" {
   // Component running environment
   //
   //////////////////////////////////////////////////////////////////////////
+
+  /** definition of a void fct pointer */
+  typedef void (*AliHLTfctVoid)();
 
   /** logging function */
   typedef int (*AliHLTfctLogging)( void* param, 

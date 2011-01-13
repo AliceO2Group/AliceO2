@@ -1,3 +1,6 @@
+//-*- Mode: C++ -*-
+// $Id: AliHLTArray.h 42754 2010-08-06 21:53:10Z aszostak $
+
 // ****************************************************************************
 // * This file is property of and copyright by the ALICE HLT Project          *
 // * ALICE Experiment at CERN, All rights reserved.                           *
@@ -142,8 +145,8 @@ namespace AliHLTInternal
       }
 
     private:
-      int fStart;
-      int fEnd;
+      int fStart; // start
+      int fEnd;   // end
   };
 #define BOUNDS_CHECK(x, y) if (AliHLTInternal::ArrayBoundsCheck::IsInBounds(x)) {} else return y
 #endif
@@ -226,8 +229,8 @@ namespace AliHLTInternal
       inline const R &operator[]( int x ) const { BOUNDS_CHECK( x, fData[0] ); return fData[x]; }
 
     protected:
-      T *fData;
-      int fSize;
+      T *fData;  // actual data
+      int fSize; // data size
       inline void SetSize( int x, int, int ) { fSize = x; }
   };
 
@@ -262,9 +265,9 @@ namespace AliHLTInternal
       inline const AliHLTArray<T, 1> operator[]( int x ) const;
 
     protected:
-      T *fData;
-      int fSize;
-      int fStride;
+      T *fData;    // actual data
+      int fSize;   // data size
+      int fStride; // 
       inline void SetSize( int x, int y, int ) { fStride = y; fSize = x * y; }
   };
 
@@ -279,15 +282,16 @@ namespace AliHLTInternal
       ArrayBase() : fData( 0 ), fSize( 0 ), fStrideX( 0 ), fStrideY( 0 ) {} // XXX really shouldn't be done. But -Weffc++ wants it so
       ArrayBase( const ArrayBase &rhs ) : ArrayBoundsCheck( rhs ), fData( rhs.fData ), fSize( rhs.fSize ), fStrideX( rhs.fStrideX ), fStrideY( rhs.fStrideY ) {} // XXX
       ArrayBase &operator=( const ArrayBase &rhs ) { ArrayBoundsCheck::operator=( rhs ); fData = rhs.fData; fSize = rhs.fSize; fStrideX = rhs.fStrideX; fStrideY = rhs.fStrideY; return *this; } // XXX
-      typedef typename ReturnTypeHelper<T>::Type R;
+      // Stopped working on GCC 4.5.0
+      //typedef typename ReturnTypeHelper<T>::Type R;
       /**
        * return a reference to the value at the given indexes
        */
-      inline R &operator()( int x, int y, int z );
+      inline typename ReturnTypeHelper<T>::Type &operator()( int x, int y, int z );
       /**
        * return a const reference to the value at the given indexes
        */
-      inline const R &operator()( int x, int y, int z ) const;
+      inline const typename ReturnTypeHelper<T>::Type &operator()( int x, int y, int z ) const;
       /**
        * return a 2-dim array at the given index. This makes it behave like a 3-dim C-Array.
        */
@@ -298,10 +302,10 @@ namespace AliHLTInternal
       inline const AliHLTArray<T, 2> operator[]( int x ) const;
 
     protected:
-      T *fData;
-      int fSize;
-      int fStrideX;
-      int fStrideY;
+      T *fData;     // actual data
+      int fSize;    // data size
+      int fStrideX; //
+      int fStrideY; //
       inline void SetSize( int x, int y, int z ) { fStrideX = y * z; fStrideY = z; fSize = fStrideX * x; }
   };
 
@@ -327,14 +331,14 @@ namespace AliHLTInternal
       };
       ALIHLTARRAY_STATIC_ASSERT_NC( ( Alignment & ( Alignment - 1 ) ) == 0, alignment_needs_to_be_a_multiple_of_2 );
 
-      char fUnalignedArray[PaddedSize];
+      char fUnalignedArray[PaddedSize]; //
   };
   template<typename T, unsigned int Size> class AlignedData<T, Size, 0>
   {
     public:
       T *ConstructAlignedData() { return &fArray[0]; }
     private:
-      T fArray[Size];
+      T fArray[Size]; //
   };
 } // namespace AliHLTInternal
 
@@ -527,7 +531,7 @@ class AliHLTFixedArray : public AliHLTArray<typename AliHLTInternal::TypeForAlig
     }
 
   private:
-    AliHLTInternal::AlignedData<typename AliHLTInternal::TypeForAlignmentHelper<T, alignment>::Type, Size::Size, alignment> fFixedArray;
+    AliHLTInternal::AlignedData<typename AliHLTInternal::TypeForAlignmentHelper<T, alignment>::Type, Size::Size, alignment> fFixedArray; //
 
     // disable allocation on the heap
     void *operator new( size_t );
