@@ -379,6 +379,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	fHelperParams[i].fCls = this;
 	fHelperParams[i].fTerminate = false;
 	fHelperParams[i].fNum = i;
+	fHelperParams[i].fMutex = malloc(2 * sizeof(pthread_mutex_t));
 	for (int j = 0;j < 2;j++)
 	{
 		pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], NULL);
@@ -1438,6 +1439,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 			pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
 			pthread_mutex_destroy(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
 		}
+		free(fHelperParams[i].fMutex);
 	}
 	
 	HLTInfo("CUDA Uninitialized");
