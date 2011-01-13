@@ -215,8 +215,10 @@ class AliHLTTPCCATracker
    * only one. So a unique number (row index is good) is added in the least significant part of
    * the weight
    */
-  GPUd() static int CalculateHitWeight( int NHits, float chi2, int num ) {
-    return ( (int) (((float) NHits * (128.f - chi2 / 500.f)) * (1e9 / 128 / 160)) );
+  GPUd() static int CalculateHitWeight( int NHits, float chi2, int ) {
+    float weight = (((float) NHits * (128.f - chi2 / 500.f)) * (1e9 / 128. / 160.));
+    if (weight < 0 || weight > 2e9) weight = 0;
+    return ( weight );
     //return( (NHits << 16) + num);
   }
   GPUd() void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
