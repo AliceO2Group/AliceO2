@@ -103,15 +103,16 @@ private:
 	int fCudaInitialized; //Flag if CUDA is initialized
 
 	int fPPMode; //Flag if GPU tracker runs in PP Mode
+	int fSelfheal; //Reinitialize GPU on failure
 
-	int constructorBlockCount;
-	int selectorBlockCount;
+	int constructorBlockCount; //GPU blocks used in Tracklet Constructor
+	int selectorBlockCount; //GPU blocks used in Tracklet Selector
 	
 #ifdef HLTCA_GPU_TIME_PROFILE
-	unsigned long long int fProfTimeC, fProfTimeD;
+	unsigned long long int fProfTimeC, fProfTimeD; //Timing
 #endif
 
-	void* fCudaContext;
+	void* fCudaContext; //Pointer to CUDA context
 	
 	struct helperParam
 	{
@@ -126,8 +127,8 @@ private:
 		int fPhase;
 		volatile int fDone;
 	};
-	static const int fNHelperThreads = 2;
-	helperParam fHelperParams[fNHelperThreads];
+	static const int fNHelperThreads = 2; //Number of helper threads for post/preprocessing
+	helperParam fHelperParams[fNHelperThreads]; //Control Struct for helper threads
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );

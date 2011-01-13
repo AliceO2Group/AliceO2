@@ -135,6 +135,7 @@ AliHLTTPCCAGPUTrackerNVCC::AliHLTTPCCAGPUTrackerNVCC() :
 	fThreadId(0),
 	fCudaInitialized(0),
 	fPPMode(0),
+	fSelfheal(0),
 	constructorBlockCount(30),
 	selectorBlockCount(30),
 	fCudaContext(NULL)
@@ -606,6 +607,7 @@ __global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTra
 
 int AliHLTTPCCAGPUTrackerNVCC::SelfHealReconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
+	if (!fSelfheal) return(1);
 	static bool selfHealing = false;
 	if (selfHealing)
 	{
