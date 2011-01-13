@@ -30,7 +30,7 @@ inline int pthread_mutex_trylock(pthread_mutex_t *mutex)
 
 inline int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
-	return(ReleaseSemaphore(*mutex, 0, NULL) == 0);
+	return(ReleaseSemaphore(*mutex, 1, NULL) == 0);
 }
 
 inline int pthread_mutex_destroy(pthread_mutex_t *mutex)

@@ -245,7 +245,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	for (int i = 0;i < count;i++)
 	{
 		if (fDebugLevel >= 4) printf("Examining device %d\n", i);
-		size_t free, total;
+		unsigned int free, total;
 		cuInit(0);
 		CUdevice tmpDevice;
 		cuDeviceGet(&tmpDevice, i);
@@ -383,11 +383,25 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	fHelperParams[i].fMutex = malloc(2 * sizeof(pthread_mutex_t));
 	for (int j = 0;j < 2;j++)
 	{
-		pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], NULL);
+		if (pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], NULL))
+		{
+			HLTError("Error creating pthread mutex");
+			cudaFree(fGPUMemory);
+			cudaFreeHost(fHostLockedMemory);
+			cudaThreadExit();
+		}
+
 		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
 	}
 	pthread_t thr;
-	pthread_create(&thr, NULL, helperWrapper, &fHelperParams[i]);
+
+	if (pthread_create(&thr, NULL, helperWrapper, &fHelperParams[i]))
+	{
+		HLTError("Error starting slave thread");
+	    cudaFree(fGPUMemory);
+	    cudaFreeHost(fHostLockedMemory);
+	    cudaThreadExit();
+	}
   }
 
   cuCtxPopCurrent((CUcontext*) fCudaContext);
@@ -395,7 +409,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
   HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount);
 
 #if defined(HLTCA_STANDALONE) & !defined(CUDA_DEVICE_EMULATION)
-  if (fDebugLevel < 2)
+  if (fDebugLevel < 2 && 0)
   {
 	  //Do one initial run for Benchmark reasons
 	  const int useDebugLevel = fDebugLevel;
@@ -1144,7 +1158,7 @@ RestartTrackletConstructor:
 	FILE* fp2 = fopen("profile.bmp", "w+b");
 	int nEmptySync = 0, fEmpty;
 
-	const int bmpheight = 1000;
+	const int bmpheight = 2300;
 	BITMAPFILEHEADER bmpFH;
 	BITMAPINFOHEADER bmpIH;
 	ZeroMemory(&bmpFH, sizeof(bmpFH));
@@ -1434,11 +1448,23 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 	for (int i = 0;i < fNHelperThreads;i++)
 	{
 		fHelperParams[i].fTerminate = true;
-		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
-		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
+		if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]))
+		{
+			HLTError("Error unlocking mutex to terminate slave");
+			return(1);
+		}
+		if (pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]))
+		{
+			HLTError("Error locking mutex");
+			return(1);
+		}
 		for (int j = 0;j < 2;j++)
 		{
-			pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
+			if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]))
+			{
+				HLTError("Error unlocking mutex before destroying");
+				return(1);
+			}
 			pthread_mutex_destroy(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
 		}
 		free(fHelperParams[i].fMutex);
