@@ -66,8 +66,8 @@ private:
 	void* TracksMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY) + iSlice * HLTCA_GPU_TRACKS_MEMORY ); }
 	void* TrackerMemory(void* const BaseMemory, int iSlice) const { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + fSliceCount * (HLTCA_GPU_SLICE_DATA_MEMORY + HLTCA_GPU_TRACKS_MEMORY) + iSlice * sizeof(AliHLTTPCCATracker) ); }
 	
-	void ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice);
-	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice);
+	void ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId);
+	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId);
 
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 	int GetThread();
@@ -127,7 +127,7 @@ private:
 		int fPhase;
 		volatile int fDone;
 	};
-	static const int fNHelperThreads = 0; //Number of helper threads for post/preprocessing
+	static const int fNHelperThreads = 2; //Number of helper threads for post/preprocessing
 	helperParam fHelperParams[fNHelperThreads]; //Control Struct for helper threads
 
 	// disable copy
