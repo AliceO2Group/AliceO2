@@ -17,7 +17,7 @@
 //                                                                          *
 //***************************************************************************
 
-#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 12
+#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 18
 #define FERMI
 #include "AliHLTTPCCAGPUTrackerNVCC.h"
 
