@@ -225,7 +225,7 @@ class AliHLTTPCCATracker
   GPUd() void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
     fData.MaximizeHitWeight( row, hitIndex, weight );
   }
-  GPUd() float HitWeight( const AliHLTTPCCARow &row, int hitIndex ) const {
+  GPUd() int HitWeight( const AliHLTTPCCARow &row, int hitIndex ) const {
     return fData.HitWeight( row, hitIndex );
   }
   
