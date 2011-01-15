@@ -216,7 +216,8 @@ class AliHLTTPCCATracker
    * the weight
    */
   GPUd() static int CalculateHitWeight( int NHits, float chi2, int ) {
-    float weight = (((float) NHits * (128.f - chi2 / 500.f)) * (1e9 / 128. / 160.));
+    const float chi2_suppress = 32.f;
+    float weight = (((float) NHits * (chi2_suppress - chi2 / 500.f)) * (1e9 / chi2_suppress / 160.));
     if (weight < 0 || weight > 2e9) weight = 0;
     return ( weight );
     //return( (NHits << 16) + num);
