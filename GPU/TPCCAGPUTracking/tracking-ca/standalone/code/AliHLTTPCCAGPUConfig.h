@@ -43,11 +43,11 @@
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define HLTCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
+//#define BITWISE_COMPATIBLE_DEBUG_OUTPUT					//Make Debug Output of CPU and GPU bitwise compatible for comparison, also enable SORT_DUMPDATA!
+#define HLTCA_GPU_SORT_DUMPDATA							//Sort Start Hits etc before dumping to file
 
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 3		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
-
-#define HLTCA_GPU_SORT_DUMPDATA							//Sort Start Hits etc before dumping to file
 
 #define HLTCA_GPU_MAX_TRACKLETS 12288					//Max Number of Tracklets that can be processed by GPU Tracker, Should be divisible by 16 at least
 #define HLTCA_GPU_MAX_TRACKS 3072						//Max number of Tracks that can be processd by GPU Tracker
