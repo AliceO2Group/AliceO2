@@ -98,11 +98,11 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 			if (par->fPhase)
 			{
 				while (par->fDone < i);
-				cls->WriteOutput(par->pOutput, par->fFirstSlice, i);
+				cls->WriteOutput(par->pOutput, par->fFirstSlice, i, par->fNum + 1);
 			}
 			else
 			{
-				cls->ReadEvent(par->pClusterData, par->fFirstSlice, i);
+				cls->ReadEvent(par->pClusterData, par->fFirstSlice, i, par->fNum + 1);
 				par->fDone = i + 1;
 			}
 #ifdef HLTCA_STANDALONE
@@ -245,7 +245,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	for (int i = 0;i < count;i++)
 	{
 		if (fDebugLevel >= 4) printf("Examining device %d\n", i);
-		unsigned int free, total;
+		size_t free, total;
 		cuInit(0);
 		CUdevice tmpDevice;
 		cuDeviceGet(&tmpDevice, i);
@@ -651,7 +651,7 @@ int AliHLTTPCCAGPUTrackerNVCC::SelfHealReconstruct(AliHLTTPCCASliceOutput** pOut
 	return(retVal);
 }
 
-void AliHLTTPCCAGPUTrackerNVCC::ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice)
+void AliHLTTPCCAGPUTrackerNVCC::ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId)
 {
 	fSlaveTrackers[firstSlice + iSlice].SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, iSlice), RowMemory(fHostLockedMemory, firstSlice + iSlice));
 #ifdef HLTCA_GPU_TIME_PROFILE
@@ -660,12 +660,12 @@ void AliHLTTPCCAGPUTrackerNVCC::ReadEvent(AliHLTTPCCAClusterData* pClusterData, 
 #endif
 	fSlaveTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
 #ifdef HLTCA_GPU_TIME_PROFILE
-	liHLTTPCCAStandaloneFramework::StandaloneQueryTime(&b);
-	printf("Read %f %f\n", ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
+	AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&b);
+	printf("Read %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
 #endif
 }
 
-void AliHLTTPCCAGPUTrackerNVCC::WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice)
+void AliHLTTPCCAGPUTrackerNVCC::WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId)
 {
 	fSlaveTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 #ifdef HLTCA_GPU_TIME_PROFILE
@@ -675,7 +675,7 @@ void AliHLTTPCCAGPUTrackerNVCC::WriteOutput(AliHLTTPCCASliceOutput** pOutput, in
 	fSlaveTrackers[firstSlice + iSlice].WriteOutput();
 #ifdef HLTCA_GPU_TIME_PROFILE
 	AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&b);
-	printf("Write %f %f\n", ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
+	printf("Write %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
 #endif
 }
 
@@ -724,7 +724,6 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	if (fDebugLevel >= 3) HLTInfo("Allocating GPU Tracker memory and initializing constants");
 
 #ifdef HLTCA_GPU_TIME_PROFILE
-	unsigned long long int a, b;
 	AliHLTTPCCAStandaloneFramework::StandaloneQueryFreq(&fProfTimeC);
 	AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&fProfTimeD);
 #endif
@@ -846,7 +845,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		if (fDebugLevel >= 3) HLTInfo("Creating Slice Data (Slice %d)", iSlice);
 		if (iSlice % (fNHelperThreads + 1) == 0)
 		{
-			ReadEvent(pClusterData, firstSlice, iSlice);
+			ReadEvent(pClusterData, firstSlice, iSlice, 0);
 		}
 		else
 		{
@@ -1135,7 +1134,7 @@ RestartTrackletConstructor:
 
 		if (iSlice % (fNHelperThreads + 1) == 0)
 		{
-			WriteOutput(pOutput, firstSlice, iSlice);
+			WriteOutput(pOutput, firstSlice, iSlice, 0);
 		}
 		else
 		{
