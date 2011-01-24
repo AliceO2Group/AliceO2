@@ -395,8 +395,8 @@ void AliHLTTPCCASliceData::ClearHitWeights()
 
 #ifdef ENABLE_VECTORIZATION
   const int_v v0( Zero );
-  const float *const end = fHitWeights + fNumberOfHits;
-  for ( float *mem = fHitWeights; mem < end; mem += v0.Size ) {
+  const int *const end = fHitWeights + fNumberOfHits;
+  for ( int *mem = fHitWeights; mem < end; mem += v0.Size ) {
     v0.store( mem );
   }
 #else
