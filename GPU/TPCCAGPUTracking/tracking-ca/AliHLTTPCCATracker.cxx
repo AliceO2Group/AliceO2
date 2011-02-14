@@ -122,7 +122,7 @@ char* AliHLTTPCCATracker::SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits
 	return(pGPUMemory);
 }
 
-char* AliHLTTPCCATracker::SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracks)
+char* AliHLTTPCCATracker::SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracks, int constructorBlockCount)
 {
 	//Set up Tracklet Memory Pointers for GPU Tracker
 	fTrackletMemory = (char*) pGPUMemory;
@@ -131,7 +131,7 @@ char* AliHLTTPCCATracker::SetGPUTrackerTrackletsMemory(char* pGPUMemory, int Max
 	AssignMemory(fGPUTrackletTemp, pGPUMemory, MaxNTracks);
 	AssignMemory(fRowBlockTracklets, pGPUMemory, MaxNTracks * 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
 	AssignMemory(fRowBlockPos, pGPUMemory, 2 * (Param().NRows() / HLTCA_GPU_SCHED_ROW_STEP + 1));
-	AssignMemory(fBlockStartingTracklet, pGPUMemory, HLTCA_GPU_BLOCK_COUNT);
+	AssignMemory(fBlockStartingTracklet, pGPUMemory, constructorBlockCount);
 
 	return(pGPUMemory);
 }
@@ -239,7 +239,10 @@ void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 					{
 						out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
 					}
-					out << "(Track: " << j << ")" << std::endl;
+#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
+					out << "(Track: " << j << ")";
+#endif
+					out << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
 				}
 			}	
@@ -252,6 +255,7 @@ void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 
 void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 {
+	return;
 	//dump tracklets to file
 	out << "Tracklets: (Slice" << Param().ISlice() << ") (" << *NTracklets() << ")" << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
@@ -524,8 +528,10 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
   if (fGPUDebugLevel >= 6)
   {
+#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
 	  *fGPUDebugOut << std::endl << std::endl << "Slice: " << Param().ISlice() << std::endl;
 	  *fGPUDebugOut << "Slice Data:" << std::endl;
+#endif
 	  DumpSliceData(*fGPUDebugOut);
   }
 
@@ -587,7 +593,9 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
   StandalonePerfTime(8);
 
   if (fGPUDebugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
+#ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
   if (fGPUDebugLevel >= 6) DumpHitWeights(*fGPUDebugOut);
+#endif
 
   //std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
 

@@ -131,7 +131,7 @@ class AliHLTTPCCATracker
   
   char* SetGPUTrackerCommonMemory(char* const pGPUMemory);
   char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits);
-  char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets);
+  char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets, int constructorBlockCount);
   char* SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTracks, int MaxNHits );
   
   //Debugging Stuff
@@ -215,8 +215,12 @@ class AliHLTTPCCATracker
    * only one. So a unique number (row index is good) is added in the least significant part of
    * the weight
    */
-  static int CalculateHitWeight( int NHits, int unique ) {
-    return ( NHits << 16 ) + unique;
+  GPUd() static int CalculateHitWeight( int NHits, float chi2, int ) {
+    const float chi2_suppress = 6.f;
+    float weight = (((float) NHits * (chi2_suppress - chi2 / 500.f)) * (1e9 / chi2_suppress / 160.));
+    if (weight < 0 || weight > 2e9) weight = 0;
+    return ( (int) weight );
+    //return( (NHits << 16) + num);
   }
   GPUd() void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
     fData.MaximizeHitWeight( row, hitIndex, weight );
