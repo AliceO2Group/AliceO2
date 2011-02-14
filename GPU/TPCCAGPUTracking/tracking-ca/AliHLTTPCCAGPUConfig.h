@@ -6,15 +6,15 @@
 //#define FERMI
 
 #ifdef FERMI
-#define HLTCA_GPU_BLOCK_COUNT 30
-#define HLTCA_GPU_BLOCK_COUNT_SELECTOR 45
+#define HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER 2
+#define HLTCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER 3
 #define HLTCA_GPU_THREAD_COUNT 256
 #define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 256
 #define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
 #define HLTCA_GPU_THREAD_COUNT_FINDER 256
 #else
-#define HLTCA_GPU_BLOCK_COUNT 30
-#define HLTCA_GPU_BLOCK_COUNT_SELECTOR 30
+#define HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER 1
+#define HLTCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER 1
 #define HLTCA_GPU_THREAD_COUNT 256
 #define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 256
 #define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
@@ -36,18 +36,18 @@
 //#define HLTCA_GPU_SCHED_FIXED_SLICE					//Make each Multiprocessor on GPU work only on a single slice during tracklet construction
 #define HLTCA_GPU_RESCHED								//Use dynamic tracklet scheduling
 
-#define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
 #ifndef FERMI
+#define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
 #define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
 #endif
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define HLTCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
+//#define BITWISE_COMPATIBLE_DEBUG_OUTPUT					//Make Debug Output of CPU and GPU bitwise compatible for comparison, also enable SORT_DUMPDATA!
+#define HLTCA_GPU_SORT_DUMPDATA							//Sort Start Hits etc before dumping to file
 
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define HLTCA_GPU_TRACKLET_SELECTOR_SLICE_COUNT 3		//Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
-
-#define HLTCA_GPU_SORT_DUMPDATA							//Sort Start Hits etc before dumping to file
 
 #define HLTCA_GPU_MAX_TRACKLETS 12288					//Max Number of Tracklets that can be processed by GPU Tracker, Should be divisible by 16 at least
 #define HLTCA_GPU_MAX_TRACKS 3072						//Max number of Tracks that can be processd by GPU Tracker
