@@ -79,6 +79,7 @@ int drawFinal = false;
 
 int drawSlice = -1;
 int drawGrid = 0;
+int excludeClusters = 0;
 
 float Xscale = 1;
 float Zadd = 0;
@@ -652,48 +653,78 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 				SetColorClusters();
 				glCallList(glDLpoints[iSlice][0]);
 
-				if (drawInitLinks) SetColorInitLinks();
+				if (drawInitLinks)
+				{
+					if (excludeClusters) goto skip1;
+					SetColorInitLinks();
+				}
 				glCallList(glDLpoints[iSlice][1]);
 
-				if (drawLinks) SetColorLinks();
+				if (drawLinks)
+				{
+					if (excludeClusters) goto skip1;
+					SetColorLinks();
+				}
 				glCallList(glDLpoints[iSlice][2]);
 
-				if (drawSeeds) SetColorSeeds();
+				if (drawSeeds)
+				{
+					if (excludeClusters) goto skip1;
+					SetColorSeeds();
+				}
 				glCallList(glDLpoints[iSlice][3]);
 
+skip1:
 				glColor3f(0, 0.7, 1.0);
-				if (drawTracklets) SetColorTracklets();
+				if (drawTracklets)
+				{
+					if (excludeClusters) goto skip2;
+					SetColorTracklets();
+				}
 				glCallList(glDLpoints[iSlice][4]);
 
-				if (drawTracks) SetColorTracks();
+				if (drawTracks)
+				{
+					if (excludeClusters) goto skip2;
+					SetColorTracks();
+				}
 				glCallList(glDLpoints[iSlice][5]);
 
-				if (drawFinal) SetColorFinal();
+				if (drawFinal)
+				{
+					if (excludeClusters) goto skip2;
+					SetColorFinal();
+				}
 				glCallList(glDLpoints[iSlice][6]);
+skip2:
+				;
 			}
 
-			if (drawInitLinks) {
-				SetColorInitLinks();
-				glCallList(glDLlines[iSlice][0]);
-			}
-			if (drawLinks) {
-				SetColorLinks();
-				glCallList(glDLlines[iSlice][1]);
-			}
-			if (drawSeeds) {
-				SetColorSeeds();
-				glCallList(glDLlines[iSlice][2]);
-			}
-			if (drawTracklets) {
-				SetColorTracklets();
-				glCallList(glDLlines[iSlice][3]);
-			}
-			if (drawTracks) {
-				SetColorTracks();
-				glCallList(glDLlines[iSlice][4]);
+			if (!excludeClusters)
+			{
+				if (drawInitLinks) {
+					SetColorInitLinks();
+					glCallList(glDLlines[iSlice][0]);
+				}
+				if (drawLinks) {
+					SetColorLinks();
+					glCallList(glDLlines[iSlice][1]);
+				}
+				if (drawSeeds) {
+					SetColorSeeds();
+					glCallList(glDLlines[iSlice][2]);
+				}
+				if (drawTracklets) {
+					SetColorTracklets();
+					glCallList(glDLlines[iSlice][3]);
+				}
+				if (drawTracks) {
+					SetColorTracks();
+					glCallList(glDLlines[iSlice][4]);
+				}
 			}
 		}
-		if (drawFinal) {
+		if (!excludeClusters && drawFinal) {
 			SetColorFinal();
 			if (!drawClusters)
 			{
@@ -742,6 +773,7 @@ void HandleKeyRelease(int wParam)
 	}
 
 	if (wParam == 'G') drawGrid ^= 1;
+	if (wParam == 'X') excludeClusters ^= 1;
 
 	if (wParam == '1') drawClusters ^= 1;
 	else if (wParam == '2') drawInitLinks ^= 1; 
