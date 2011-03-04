@@ -30,4 +30,6 @@ CXXFILES					= standalone.cxx \
 								standalone/AliHLTTPCTransform.cxx
 ASMFILES					= 
 
+CONFIG_OPENGL				= 1
+
 

@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCATracker.h 41769 2010-06-16 13:58:00Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATracker.h 47379 2011-02-14 14:32:48Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -216,10 +216,10 @@ class AliHLTTPCCATracker
    * the weight
    */
   GPUd() static int CalculateHitWeight( int NHits, float chi2, int ) {
-    const float chi2_suppress = 32.f;
+    const float chi2_suppress = 6.f;
     float weight = (((float) NHits * (chi2_suppress - chi2 / 500.f)) * (1e9 / chi2_suppress / 160.));
     if (weight < 0 || weight > 2e9) weight = 0;
-    return ( weight );
+    return ( (int) weight );
     //return( (NHits << 16) + num);
   }
   GPUd() void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
