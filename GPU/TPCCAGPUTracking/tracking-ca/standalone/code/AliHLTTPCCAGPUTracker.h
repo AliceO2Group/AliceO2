@@ -15,6 +15,7 @@
 class AliHLTTPCCAClusterData;
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAParam;
+class AliHLTTPCGMMerger;
 
 //Abstract Interface for GPU Tracker class
 class AliHLTTPCCAGPUTracker
@@ -37,6 +38,10 @@ public:
 
 	virtual const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const;
 	virtual int GetSliceCount() const;
+
+	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger);
+
+	virtual char* MergerBaseMemory();
 
 private:
 	// disable copy

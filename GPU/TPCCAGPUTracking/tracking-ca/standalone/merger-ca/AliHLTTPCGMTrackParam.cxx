@@ -21,16 +21,15 @@
 #include "AliHLTTPCGMTrackLinearisation.h"
 #include "AliHLTTPCGMBorderTrack.h"
 #include "Riostream.h"
+#ifndef HLTCA_STANDALONE
 #include "AliExternalTrackParam.h"
+#endif
 #include "AliHLTTPCCAParam.h"
 #include <cmath>
 
-
-float AliHLTTPCGMTrackParam::fPolinomialFieldBz[6];   // field coefficients
-
-
-void AliHLTTPCGMTrackParam::Fit
+GPUd() void AliHLTTPCGMTrackParam::Fit
 (
+ float* PolinomialFieldBz,
  float x[], float y[], float z[], unsigned int rowType[], float alpha[], AliHLTTPCCAParam &param,
  int &N,
  float &Alpha, 
@@ -65,7 +64,7 @@ void AliHLTTPCGMTrackParam::Fit
     }
 
     float dL=0;    
-    float bz =  GetBz(x[ihit], y[ihit],z[ihit]);
+    float bz =  GetBz(x[ihit], y[ihit],z[ihit], PolinomialFieldBz);
         
     float err2Y, err2Z;
 
@@ -314,19 +313,15 @@ void AliHLTTPCGMTrackParam::Fit
   } 
 }
 
-
-
-
-
-bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
+GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
 {
   //* Check that the track parameters and covariance matrix are reasonable
 
-  bool ok = finite(fX) && finite( fChi2 ) && finite( fNDF );
+  bool ok = AliHLTTPCCAMath::Finite(fX) && AliHLTTPCCAMath::Finite( fChi2 ) && AliHLTTPCCAMath::Finite( fNDF );
 
   const float *c = fC;
-  for ( int i = 0; i < 15; i++ ) ok = ok && finite( c[i] );
-  for ( int i = 0; i < 5; i++ ) ok = ok && finite( fP[i] );
+  for ( int i = 0; i < 15; i++ ) ok = ok && AliHLTTPCCAMath::Finite( c[i] );
+  for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( fP[i] );
 
   if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
   if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2. 
@@ -351,14 +346,11 @@ bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
   return ok;
 }
 
-
-
-
 //*
 //*  Multiple scattering and energy losses
 //*
 
-float AliHLTTPCGMTrackParam::ApproximateBetheBloch( float beta2 )
+GPUd() float AliHLTTPCGMTrackParam::ApproximateBetheBloch( float beta2 )
 {
   //------------------------------------------------------------------
   // This is an approximation of the Bethe-Bloch formula with
@@ -387,8 +379,7 @@ float AliHLTTPCGMTrackParam::ApproximateBetheBloch( float beta2 )
   return ret;
 }
 
-
- void AliHLTTPCGMTrackParam::CalculateFitParameters( AliHLTTPCGMTrackFitParam &par, float RhoOverRadLen,  float Rho, bool NoField, float mass )
+ GPUd() void AliHLTTPCGMTrackParam::CalculateFitParameters( AliHLTTPCGMTrackFitParam &par, float RhoOverRadLen,  float Rho, bool NoField, float mass )
 {
   //*!
 
@@ -438,7 +429,7 @@ float AliHLTTPCGMTrackParam::ApproximateBetheBloch( float beta2 )
 //*
 
 
-bool AliHLTTPCGMTrackParam::Rotate( float alpha, AliHLTTPCGMTrackLinearisation &t0, float maxSinPhi )
+GPUd() bool AliHLTTPCGMTrackParam::Rotate( float alpha, AliHLTTPCGMTrackLinearisation &t0, float maxSinPhi )
 {
   //* Rotate the coordinate system in XY on the angle alpha
 
@@ -498,9 +489,7 @@ bool AliHLTTPCGMTrackParam::Rotate( float alpha, AliHLTTPCGMTrackLinearisation &
   return 1;
 }
 
-
-
-
+#if !defined(HLTCA_STANDALONE) & !defined(HLTCA_GPUCODE)
 bool AliHLTTPCGMTrackParam::GetExtParam( AliExternalTrackParam &T, double alpha ) const
 {
   //* Convert from AliHLTTPCGMTrackParam to AliExternalTrackParam parameterisation,
@@ -534,7 +523,59 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
   if ( fP[2] > .999 ) fP[2] = .999;
   if ( fP[2] < -.999 ) fP[2] = -.999;
 }
+#endif
 
+#ifdef HLTCA_GPUCODE
 
+#include "AliHLTTPCGMMergedTrack.h"
 
+GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, float* PolinomialFieldBz, float* x, float* y, float* z, unsigned int* rowType, float* alpha, AliHLTTPCCAParam* param)
+{
+	for (int i = blockDim.x * blockIdx.x + threadIdx.x;i < nTracks;i += blockDim.x * gridDim.x)
+	{
+		//This is in fact a copy of ReFit() in AliHLTTPCGMMerger.cxx
+		AliHLTTPCGMMergedTrack& track = tracks[i];
+		float Alpha = track.Alpha();
+		int N = track.NClusters();
+		AliHLTTPCGMTrackParam t = track.Param();
 
+		t.Fit(PolinomialFieldBz,
+			x+track.FirstClusterRef(),
+			y+track.FirstClusterRef(),
+			z+track.FirstClusterRef(),
+			rowType+track.FirstClusterRef(),
+			alpha+track.FirstClusterRef(),
+			*param,
+			N,
+			Alpha,
+			0
+			);
+
+		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
+		
+		bool ok = N >= 30 && t.CheckNumericalQuality() && fabs( t.SinPhi() ) <= .999;
+		track.SetOK(ok);
+		if( !ok ) continue;
+
+		if( 1 ){//SG!!!
+		  track.SetNClusters( N );
+		  track.Param() = t;
+		  track.Alpha() = Alpha;
+		}
+
+		{
+		  int ind = track.FirstClusterRef();
+		  float alphaalpha = alpha[ind];
+		  float xx = x[ind];
+		  float yy = y[ind];
+		  float zz = z[ind];
+		  float sinA = AliHLTTPCCAMath::Sin( alphaalpha - track.Alpha());
+		  float cosA = AliHLTTPCCAMath::Cos( alphaalpha - track.Alpha());
+		  track.SetLastX( xx*cosA - yy*sinA );
+		  track.SetLastY( xx*sinA + yy*cosA );
+		  track.SetLastZ( zz );
+		}
+	}
+}
+
+#endif

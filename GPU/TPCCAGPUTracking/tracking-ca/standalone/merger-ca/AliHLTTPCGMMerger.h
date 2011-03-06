@@ -13,6 +13,7 @@
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCGMBorderTrack.h"
 #include "AliHLTTPCGMSliceTrack.h"
+#include "AliHLTTPCCAGPUTracker.h"
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
@@ -46,8 +47,18 @@ public:
   const AliHLTTPCGMMergedTrack * OutputTracks() const { return fOutputTracks; }
   const UInt_t * OutputClusterIds() const { return fOutputClusterIds; }
    
-  
   const AliHLTTPCCAParam &SliceParam() const { return fSliceParam; }
+
+  void SetGPUTracker(AliHLTTPCCAGPUTracker* gpu) {fGPUTracker = gpu;}
+
+  float* PolinomialFieldBz() const {return((float*) fPolinomialFieldBz);}
+
+  int NClusters() const { return(fNClusters); }
+  float* ClusterX() const {return(fClusterX);}
+  float* ClusterY() const {return(fClusterY);}
+  float* ClusterZ() const {return(fClusterZ);}
+  float* ClusterAngle() const {return(fClusterAngle);}
+  UInt_t* ClusterRowType() const {return(fClusterRowType);}
   
 private:
   
@@ -94,6 +105,12 @@ private:
   float *fClusterAngle;     // angle    
   AliHLTTPCGMBorderTrack *fBorderMemory; // memory for border tracks
   AliHLTTPCGMBorderTrack::Range *fBorderRangeMemory; // memory for border tracks
+
+  AliHLTTPCCAGPUTracker* fGPUTracker;
+
+  int fNClusters;			//Total number of incoming clusters
+
+  float fPolinomialFieldBz[6];   // field coefficients
 };
 
 #endif //ALIHLTTPCCAMERGER_H

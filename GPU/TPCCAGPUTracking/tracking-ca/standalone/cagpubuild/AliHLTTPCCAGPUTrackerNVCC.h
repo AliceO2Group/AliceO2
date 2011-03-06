@@ -58,6 +58,9 @@ public:
 	virtual const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const;
 	virtual int GetSliceCount() const;
 
+	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger);
+	virtual char* MergerBaseMemory();
+
 private:
 	static void* RowMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + iSlice * sizeof(AliHLTTPCCARow) * (HLTCA_ROW_COUNT + 1) ); }
 	static void* CommonMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + iSlice * AliHLTTPCCATracker::CommonMemorySize() ); }
@@ -85,6 +88,10 @@ private:
 	void* fGPUMemory; //Pointer to GPU Memory Base Adress
 	void* fHostLockedMemory; //Pointer to Base Adress of Page Locked Host Memory for DMA Transfer
 
+	void* fGPUMergerMemory;
+	void* fGPUMergerHostMemory;
+	int fGPUMergerMaxMemory;
+
 	int fDebugLevel;			//Debug Level for GPU Tracker
 	unsigned int fDebugMask;	//Mask which Debug Data is written to file
 	std::ostream* fOutFile;		//Debug Output Stream Pointer
@@ -105,7 +112,7 @@ private:
 	int fPPMode; //Flag if GPU tracker runs in PP Mode
 	int fSelfheal; //Reinitialize GPU on failure
 
-	int constructorBlockCount; //GPU blocks used in Tracklet Constructor
+	int fConstructorBlockCount; //GPU blocks used in Tracklet Constructor
 	int selectorBlockCount; //GPU blocks used in Tracklet Selector
 	
 #ifdef HLTCA_GPU_TIME_PROFILE

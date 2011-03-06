@@ -10,7 +10,7 @@
 #define ALIHLTTPCCASTANDALONEFRAMEWORK_H
 
 #include "AliHLTTPCCADef.h"
-#ifdef HLTCA_STANDALONE
+#if defined(HLTCA_STANDALONE) & defined(HLTCA_STANDALONE_OLD_MERGER)
 #include "AliHLTTPCCAMerger.h"
 #define AliHLTTPCGMMerger AliHLTTPCCAMerger
 #else
@@ -20,7 +20,6 @@
 #include "AliHLTTPCCATrackerFramework.h"
 #include <iostream>
 #include <fstream>
-#include "TStopwatch.h"
 
 /**
  * @class AliHLTTPCCAStandaloneFramework
@@ -98,11 +97,6 @@ class AliHLTTPCCAStandaloneFramework
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
 
-#ifdef HLTCA_STANDALONE
-	static inline void StandaloneQueryTime(unsigned long long int *i);
-	static inline void StandaloneQueryFreq(unsigned long long int *i);
-#endif //HLTCA_STANDALONE
-
   private:
 
     static const int fgkNSlices = 36;       //* N slices
@@ -125,27 +119,5 @@ class AliHLTTPCCAStandaloneFramework
 	int fEventDisplay;	//Display event in Standalone Event Display
 	int fRunMerger;		//Run Track Merger
 };
-
-#ifdef HLTCA_STANDALONE
-	void AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(unsigned long long int *i)
-	{
-	#ifdef R__WIN32
-		  QueryPerformanceCounter((LARGE_INTEGER*) i);
-	#else
-		  timespec t;
-		  clock_gettime(CLOCK_REALTIME, &t);
-		  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
-	#endif //R__WIN32
-	}
-
-	void AliHLTTPCCAStandaloneFramework::StandaloneQueryFreq(unsigned long long int *i)
-	{
-	#ifdef R__WIN32
-		  QueryPerformanceFrequency((LARGE_INTEGER*) i);
-	#else
-		*i = 1000000000;
-	#endif //R__WIN32
-	}
-#endif //HLTCA_STANDALONE
 
 #endif //ALIHLTTPCCASTANDALONEFRAMEWORK_H

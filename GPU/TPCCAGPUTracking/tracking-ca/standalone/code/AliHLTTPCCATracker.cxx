@@ -54,12 +54,7 @@
 //#include "AliHLTTPCCAPerformance.h"
 #endif
 
-#ifdef HLTCA_STANDALONE
-#include "AliHLTTPCCAStandaloneFramework.h"
-#endif
-
 ClassImp( AliHLTTPCCATracker )
-
 
 #if !defined(HLTCA_GPUCODE)
 
@@ -479,7 +474,7 @@ void AliHLTTPCCATracker::StandalonePerfTime(int i)
   //Query Performance Timer for Standalone Version of Tracker
   if (fGPUDebugLevel >= 1)
   {
-    AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&fPerfTimers[i]);
+    StandaloneQueryTime(&fPerfTimers[i]);
   }
 }
 #else

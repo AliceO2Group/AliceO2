@@ -90,7 +90,6 @@ class AliHLTTPCCAMerger
     static float GetChi2( float x1, float y1, float a00, float a10, float a11,
                           float x2, float y2, float b00, float b10, float b11  );
 
-
   private:
 
     AliHLTTPCCAMerger( const AliHLTTPCCAMerger& );
