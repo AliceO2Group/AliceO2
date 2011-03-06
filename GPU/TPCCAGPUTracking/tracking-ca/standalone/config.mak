@@ -26,6 +26,9 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCAClusterData.cxx \
 								code/AliHLTTPCCARow.cxx \
 								code/AliHLTTPCCAGPUTracker.cxx \
+								merger-ca/AliHLTTPCGMMerger.cxx \
+								merger-ca/AliHLTTPCGMSliceTrack.cxx \
+								merger-ca/AliHLTTPCGMTrackParam.cxx \
 								standalone/AliHLTLogging.cxx \
 								standalone/AliHLTTPCTransform.cxx
 ASMFILES					= 

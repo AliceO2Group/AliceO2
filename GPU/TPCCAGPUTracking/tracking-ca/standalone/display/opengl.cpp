@@ -52,7 +52,9 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCASliceData.h"
 #include "AliHLTTPCCATrack.h"
+#ifdef HLTCA_STANDALONE_OLD_MERGER
 #include "AliHLTTPCCAMergerOutput.h"
+#endif
 #include "include.h"
 
 #define fgkNSlices 36
@@ -283,6 +285,7 @@ void DrawTracks(AliHLTTPCCATracker& tracker)
 
 void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
 {
+#ifdef HLTCA_STANDALONE_OLD_MERGER
 	const AliHLTTPCCAMerger &merger = hlt.Merger();
 	const AliHLTTPCCAMergerOutput &mergerOut = *merger.Output();
 	for (int i = 0;i < mergerOut.NTracks();i++)
@@ -296,6 +299,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
 		}
 		glEnd();
 	}
+#endif
 }
 
 void DrawGrid(AliHLTTPCCATracker& tracker)
@@ -439,7 +443,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 		glLoadIdentity();
 		glTranslatef(0, 0, -16);
 
-		AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&startTime);
+		AliHLTTPCCATracker::StandaloneQueryTime(&startTime);
 		displayFpsTime = startTime;
 		framesDone = 0;
 
@@ -515,8 +519,8 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 
 		currentEventNr = displayEventNr;
 
-		AliHLTTPCCAStandaloneFramework::StandaloneQueryFreq(&timeFreq);
-		AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&startTime);
+		AliHLTTPCCATracker::StandaloneQueryFreq(&timeFreq);
+		AliHLTTPCCATracker::StandaloneQueryTime(&startTime);
 		displayFpsTime = startTime;
 		framesDone = 0;
 		glDLrecent = 0;
@@ -626,7 +630,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 
 	++framesDone;
 	unsigned long long int tmpTime;
-	AliHLTTPCCAStandaloneFramework::StandaloneQueryTime(&tmpTime);
+	AliHLTTPCCATracker::StandaloneQueryTime(&tmpTime);
 	if (tmpTime - displayFpsTime > timeFreq)
 	{
 		displayFpsTime = tmpTime;

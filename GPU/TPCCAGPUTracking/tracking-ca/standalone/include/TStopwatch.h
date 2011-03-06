@@ -37,8 +37,12 @@ private:
    EState       fState;           //stopwatch state
    int        fCounter;         //number of times the stopwatch was started
 
-   inline static double GetRealTime();
-   inline static double GetCPUTime();
+   inline double GetRealTime();
+   inline double GetCPUTime();
+
+#ifdef WIN32
+   unsigned long long int fFrequency;	//Timer Frequency
+#endif
 
 public:
    inline TStopwatch();
@@ -81,6 +85,10 @@ inline TStopwatch::TStopwatch() : fStartRealTime(0), fStopRealTime(0), fStartCpu
 #ifdef R__UNIX
    if (!gTicks)
       gTicks = (double)sysconf(_SC_CLK_TCK);
+#endif
+
+#ifdef WIN32
+	QueryPerformanceFrequency((LARGE_INTEGER*) &fFrequency);
 #endif
 
    Start();
@@ -180,6 +188,10 @@ inline double TStopwatch::GetRealTime()
   struct timeval tp;
   gettimeofday(&tp, 0);
   return tp.tv_sec + (tp.tv_usec)*1.e-6;
+#elif defined(WIN32)
+  unsigned long long int a;
+  QueryPerformanceCounter((LARGE_INTEGER*) &a);
+  return((double) a / (double) fFrequency);
 #else
   return 0;
 #endif

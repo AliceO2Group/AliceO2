@@ -21,25 +21,25 @@ class AliHLTTPCGMMergedTrack
 {
  public:
 
-  int NClusters()                      const { return fNClusters;       }
-  int FirstClusterRef()                const { return fFirstClusterRef; }
-  const AliHLTTPCGMTrackParam &GetParam() const { return fParam;      }
-  float GetAlpha()                        const { return fAlpha;      }
-  AliHLTTPCGMTrackParam &Param() { return fParam;      }
-  float &Alpha()                 { return fAlpha;      }
-  float LastX()                        const { return fLastX; }
-  float LastY()                        const { return fLastY; }
-  float LastZ()                        const { return fLastZ; }
-  bool OK() const{ return fOK; }
+  GPUd() int NClusters()                      const { return fNClusters;       }
+  GPUd() int FirstClusterRef()                const { return fFirstClusterRef; }
+  GPUd() const AliHLTTPCGMTrackParam &GetParam() const { return fParam;      }
+  GPUd() float GetAlpha()                        const { return fAlpha;      }
+  GPUd() AliHLTTPCGMTrackParam &Param() { return fParam;      }
+  GPUd() float &Alpha()                 { return fAlpha;      }
+  GPUd() float LastX()                        const { return fLastX; }
+  GPUd() float LastY()                        const { return fLastY; }
+  GPUd() float LastZ()                        const { return fLastZ; }
+  GPUd() bool OK() const{ return fOK; }
 
-  void SetNClusters      ( int v )                { fNClusters = v;       }
-  void SetFirstClusterRef( int v )                { fFirstClusterRef = v; }
-  void SetParam( const AliHLTTPCGMTrackParam &v ) { fParam = v;      }     
-  void SetAlpha( float v )                        { fAlpha = v;      }  
-  void SetLastX( float v )                        { fLastX = v; }
-  void SetLastY( float v )                        { fLastY = v; }
-  void SetLastZ( float v )                        { fLastZ = v; }
-  void SetOK( bool v ) {fOK = v;}
+  GPUd() void SetNClusters      ( int v )                { fNClusters = v;       }
+  GPUd() void SetFirstClusterRef( int v )                { fFirstClusterRef = v; }
+  GPUd() void SetParam( const AliHLTTPCGMTrackParam &v ) { fParam = v;      }     
+  GPUd() void SetAlpha( float v )                        { fAlpha = v;      }  
+  GPUd() void SetLastX( float v )                        { fLastX = v; }
+  GPUd() void SetLastY( float v )                        { fLastY = v; }
+  GPUd() void SetLastZ( float v )                        { fLastZ = v; }
+  GPUd() void SetOK( bool v ) {fOK = v;}
  private:
 
   AliHLTTPCGMTrackParam fParam; //* fitted track parameters 
