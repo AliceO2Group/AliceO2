@@ -251,8 +251,6 @@ bool AliHLTTPCGMMerger::AllocateMemory()
 
   //cout<<"\nMerger: input "<<nTracks<<" tracks, "<<nClusters<<" clusters"<<endl;
 
-  printf("Alloc %d\n", fNClusters);
-  
   fOutputClusterIds = new UInt_t[fNClusters];
   fSliceTrackInfos = new AliHLTTPCGMSliceTrack[nTracks];
   if (fGPUTracker)
