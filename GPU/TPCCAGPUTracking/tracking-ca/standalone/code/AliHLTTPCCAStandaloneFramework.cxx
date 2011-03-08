@@ -177,7 +177,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 		fMerger.SetSliceData( i, fSliceOutput[i] );
 	  }
 
-	  fMerger.SetGPUTracker(fTracker.GetGPUTracker());
+	  //fMerger.SetGPUTracker(fTracker.GetGPUTracker());
 	  fMerger.Reconstruct();
   }
 
