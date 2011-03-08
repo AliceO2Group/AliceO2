@@ -61,7 +61,9 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fClusterRowType(0),
   fClusterAngle(0),
   fBorderMemory(0),
-  fBorderRangeMemory(0)
+  fBorderRangeMemory(0),
+  fGPUTracker(NULL),
+  fDebugLevel(0)
 {
   //* constructor
   
@@ -209,11 +211,14 @@ bool AliHLTTPCGMMerger::Reconstruct()
     Refit();
 #ifdef HLTCA_STANDALONE
 	AliHLTTPCCATracker::StandaloneQueryTime(&f);
-	printf("Merge Time:\tUnpack Slices:\t%lld us\n", (b - a) * 1000000 / g);
-	printf("\t\tMerge Within:\t%lld us\n", (c - b) * 1000000 / g);
-	printf("\t\tMerge Slices:\t%lld us\n", (d - c) * 1000000 / g);
-	printf("\t\tCollect:\t%lld us\n", (e - d) * 1000000 / g);
-	printf("\t\tRefit:\t\t%lld us\n", (f - e) * 1000000 / g);
+	if (fDebugLevel > 0)
+	{
+		printf("Merge Time:\tUnpack Slices:\t%lld us\n", (b - a) * 1000000 / g);
+		printf("\t\tMerge Within:\t%lld us\n", (c - b) * 1000000 / g);
+		printf("\t\tMerge Slices:\t%lld us\n", (d - c) * 1000000 / g);
+		printf("\t\tCollect:\t%lld us\n", (e - d) * 1000000 / g);
+		printf("\t\tRefit:\t\t%lld us\n", (f - e) * 1000000 / g);
+	}
 	int newTracks = 0;
 	for (int i = 0;i < fNOutputTracks;i++) if (fOutputTracks[i].OK()) newTracks++;
 	printf("Output Tracks: %d\n", newTracks);

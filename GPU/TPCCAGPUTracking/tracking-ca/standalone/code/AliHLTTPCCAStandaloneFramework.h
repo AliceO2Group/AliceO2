@@ -87,7 +87,7 @@ class AliHLTTPCCAStandaloneFramework
 
 	int InitGPU(int sliceCount = 1, int forceDeviceID = -1) { return(fTracker.InitGPU(sliceCount, forceDeviceID)); }
 	int ExitGPU() { return(fTracker.ExitGPU()); }
-	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL) { fDebugLevel = Level; fTracker.SetGPUDebugLevel(Level, OutFile, GPUOutFile); }
+	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL) { fDebugLevel = Level; fTracker.SetGPUDebugLevel(Level, OutFile, GPUOutFile); fMerger.SetDebugLevel(Level);}
 	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fTracker.SetGPUTrackerOption(OptionName, OptionValue));}
 	int SetGPUTracker(bool enable) { return(fTracker.SetGPUTracker(enable)); }
 	int GetGPUStatus() const { return(fTracker.GetGPUStatus()); }

@@ -1581,7 +1581,7 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 
 	cuCtxPushCurrent(*((CUcontext*) fCudaContext));
 
-	HLTInfo("Running GPU Merger");
+	if (fDebugLevel >= 2) HLTInfo("Running GPU Merger");
 	AliHLTTPCCATracker::StandaloneQueryTime(&a);
 	CudaFailedMsg(cudaMemcpy(X, Merger->ClusterX(), Merger->NClusters() * sizeof(float), cudaMemcpyHostToDevice));
 	CudaFailedMsg(cudaMemcpy(Y, Merger->ClusterY(), Merger->NClusters() * sizeof(float), cudaMemcpyHostToDevice));
@@ -1603,14 +1603,17 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 	CudaFailedMsg(cudaMemcpy((void*) Merger->OutputTracks(), tracks, Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack), cudaMemcpyDeviceToHost));
 	CudaFailedMsg(cudaThreadSynchronize());
 	AliHLTTPCCATracker::StandaloneQueryTime(&d);
-	HLTInfo("GPU Merger Finished");
+	if (fDebugLevel >= 2) HLTInfo("GPU Merger Finished");
 
-	int copysize = 4 * Merger->NClusters() * sizeof(float) + Merger->NClusters() * sizeof(unsigned int) + Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliHLTTPCCAParam);
-	double speed = (double) copysize * (double) e / (double) (b - a) / 1e9;
-	printf("GPU Fit:\tCopy To:\t%lld us (%lf GB/s)\n", (b - a) * 1000000 / e, speed);
-	printf("\t\tFit:\t%lld us\n", (c - b) * 1000000 / e);
-	speed = (double) copysize * (double) e / (double) (d - c) / 1e9;
-	printf("\t\tCopy From:\t%lld us (%lf GB/s)\n", (d - c) * 1000000 / e, speed);
+	if (fDebugLevel > 0)
+	{
+		int copysize = 4 * Merger->NClusters() * sizeof(float) + Merger->NClusters() * sizeof(unsigned int) + Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliHLTTPCCAParam);
+		double speed = (double) copysize * (double) e / (double) (b - a) / 1e9;
+		printf("GPU Fit:\tCopy To:\t%lld us (%lf GB/s)\n", (b - a) * 1000000 / e, speed);
+		printf("\t\tFit:\t%lld us\n", (c - b) * 1000000 / e);
+		speed = (double) copysize * (double) e / (double) (d - c) / 1e9;
+		printf("\t\tCopy From:\t%lld us (%lf GB/s)\n", (d - c) * 1000000 / e, speed);
+	}
 
 	cuCtxPopCurrent((CUcontext*) fCudaContext);
 
