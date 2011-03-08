@@ -50,6 +50,7 @@ public:
   const AliHLTTPCCAParam &SliceParam() const { return fSliceParam; }
 
   void SetGPUTracker(AliHLTTPCCAGPUTracker* gpu) {fGPUTracker = gpu;}
+  void SetDebugLevel(int debug) {fDebugLevel = debug;}
 
   float* PolinomialFieldBz() const {return((float*) fPolinomialFieldBz);}
 
@@ -107,6 +108,7 @@ private:
   AliHLTTPCGMBorderTrack::Range *fBorderRangeMemory; // memory for border tracks
 
   AliHLTTPCCAGPUTracker* fGPUTracker;
+  int fDebugLevel;
 
   int fNClusters;			//Total number of incoming clusters
 
