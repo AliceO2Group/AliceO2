@@ -443,7 +443,7 @@ void AliHLTTPCCADisplay::DrawSliceHit( int iRow, int iHit, int color, Size_t wid
   SetSliceTransform( fSlice );
 
   if ( color < 0 ) {
-    if ( 0 && fPerf ) {
+    //if ( 0 && fPerf ) {
       //AliHLTTPCCAPerformance::AliHLTTPCCAHitLabel lab
       //= fPerf->GetClusterLabel( fSlice->Param().ISlice(), fSlice->HitInputID( row, iHit ) );
       //color = GetColor( lab[0] + 1 );
@@ -452,7 +452,8 @@ void AliHLTTPCCADisplay::DrawSliceHit( int iRow, int iHit, int color, Size_t wid
       //if ( mc.P() >= 1. ) color = kRed;
       //else if ( fDrawOnlyRef ) return;
       //}
-    } else color = GetColorZ( z );
+    //}  else
+    color = GetColorZ( z );
   }
   if ( width > 0 )fMarker.SetMarkerSize( width );
   else fMarker.SetMarkerSize( .3 );

@@ -298,26 +298,25 @@ int AliHLTTPCCATrackerComponent::Configure( const char* cdbEntry, const char* ch
   int iResult1 = ReadCDBEntry( NULL, chainId );
 
   //* read magnetic field
-
-  int iResult2 = 0; //ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  
   fSolenoidBz = GetBz();
 
   //* read the actual CDB entry if required
 
-  int iResult3 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) : 0;
+  int iResult2 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) : 0;
 
   //* read extra parameters from input (if they are)
 
-  int iResult4 = 0;
+  int iResult3 = 0;
 
   if ( commandLine && commandLine[0] != '\0' ) {
     HLTInfo( "received configuration string from HLT framework: \"%s\"", commandLine );
-    iResult4 = ReadConfigurationString( commandLine );
+    iResult3 = ReadConfigurationString( commandLine );
   }
 
   // Initialise the tracker here
 
-  return iResult1 ? iResult1 : ( iResult2 ? iResult2 : ( iResult3 ? iResult3 : iResult4 ) );
+  return iResult1 ? iResult1 : ( iResult2 ? iResult2 :  iResult3  );
 }
 
 int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
