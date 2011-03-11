@@ -253,9 +253,9 @@ void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 #endif
 }
 
-void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
+void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &/*out*/)
 {
-	return;
+  /*
 	//dump tracklets to file
 	out << "Tracklets: (Slice" << Param().ISlice() << ") (" << *NTracklets() << ")" << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
@@ -328,6 +328,7 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 		}
 		out << std::endl;
 	}
+  */
 }
 
 

@@ -77,6 +77,7 @@ GPUdi() AliHLTTPCCAParam::AliHLTTPCCAParam()
   fParamS0Par[1][2][5] = 0.000425504;
   fParamS0Par[1][2][6] = 20.9294;
 
+  for( int i=0; i<200; i++ ) fRowX[i] = 0;
 
   Update();
 }
@@ -258,6 +259,9 @@ GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
   in >> fTrackConnectionFactor;
   in >> fTrackChiCut;
   in >> fTrackChi2Cut;
+
+  if( fNRows<0 || fNRows > 200 ) fNRows = 0;
+
   for ( int iRow = 0; iRow < fNRows; iRow++ ) {
     in >> fRowX[iRow];
   }

@@ -35,11 +35,18 @@ class AliHLTTPCCATrackletConstructor
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0) {}
+			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0) {
+	  for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
+	  for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
+	}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0) {}
-        AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
+	  : fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletStupidDummy(0), fNextTrackletFirstRun(0), fNTracklets(0) {
+	  for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
+	  for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
+	}
+
+      AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif //HLTCA_GPUCODE
 
       protected:

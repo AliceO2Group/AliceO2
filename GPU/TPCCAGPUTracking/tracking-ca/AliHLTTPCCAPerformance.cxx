@@ -158,6 +158,13 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance()
     fhRefNotRecoNHits( 0 )
 {
   //* constructor
+  for( int i=0; i<4; i++){
+    fhLinkEff[i] = 0;
+    fhLinkAreaY[i] = 0;
+    fhLinkAreaZ[i] = 0;
+    fhLinkChiRight[i] = 0;
+    fhLinkChiWrong[i] = 0;
+  }
 }
 
 
@@ -273,6 +280,13 @@ AliHLTTPCCAPerformance::AliHLTTPCCAPerformance( const AliHLTTPCCAPerformance& )
     fhRefNotRecoNHits( 0 )
 {
   //* dummy
+  for( int i=0; i<4; i++){
+    fhLinkEff[i] = 0;
+    fhLinkAreaY[i] = 0;
+    fhLinkAreaZ[i] = 0;
+    fhLinkChiRight[i] = 0;
+    fhLinkChiWrong[i] = 0;
+  }
 }
 
 const AliHLTTPCCAPerformance &AliHLTTPCCAPerformance::operator=( const AliHLTTPCCAPerformance& ) const
@@ -2091,6 +2105,7 @@ void AliHLTTPCCAPerformance::ReadMCEvent( istream &in )
   fNMCPoints = 0;
 
   in >> fNMCTracks;
+  if( fNMCTracks<0 || fNMCTracks>1000000 ) fNMCTracks = 0;
   fMCTracks = new AliHLTTPCCAMCTrack[fNMCTracks];
   for ( int it = 0; it < fNMCTracks; it++ ) {
     AliHLTTPCCAMCTrack &t = fMCTracks[it];
@@ -2111,6 +2126,7 @@ void AliHLTTPCCAPerformance::ReadMCEvent( istream &in )
   }
 
   in >> fNHits;
+  if( fNHits<0 || fNHits>10000000 ) fNHits = 0;
   fHitLabels = new AliHLTTPCCAHitLabel[fNHits];
   for ( int ih = 0; ih < fNHits; ih++ ) {
     AliHLTTPCCAHitLabel &l = fHitLabels[ih];
@@ -2126,6 +2142,9 @@ void AliHLTTPCCAPerformance::ReadMCPoints( istream &in )
   fNMCPoints = 0;
 
   in >> fNMCPoints;
+
+  if( fNMCPoints<0 || fNMCPoints>10000000 ){ fNMCPoints = 0; return; }
+
   fMCPoints = new AliHLTTPCCAMCPoint[fNMCPoints];
   for ( int ip = 0; ip < fNMCPoints; ip++ ) {
     AliHLTTPCCAMCPoint &p = fMCPoints[ip];
