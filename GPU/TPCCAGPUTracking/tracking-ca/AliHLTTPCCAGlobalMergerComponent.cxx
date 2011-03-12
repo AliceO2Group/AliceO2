@@ -269,11 +269,11 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
     float outRmax = 247.7;
     float plusZmin = 0.0529937;
     float plusZmax = 249.778;
-    float minusZmin = -249.645;
-    float minusZmax = -0.0799937;
+    //float minusZmin = -249.645;
+    //float minusZmax = -0.0799937;
     float dalpha = 0.349066;
     float alpha = 0.174533 + dalpha * iSec;
-    bool zPlus = 1;//( iSec < 18 );
+    //bool zPlus = ( iSec < 18 );
     float zMin =  plusZmin; //zPlus ? plusZmin : minusZmin;
     float zMax =  plusZmax; //zPlus ? plusZmax : minusZmax;
     int nRows = AliHLTTPCTransform::GetNRows();
