@@ -676,6 +676,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       nOutTrackClusters += nHits;
     }
   }
+  fNOutputTrackClusters = nOutTrackClusters;
 }
 
 void AliHLTTPCGMMerger::Refit()

@@ -1551,7 +1551,6 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 		HLTError("GPU Merger not initialized");
 		return(1);
 	}
-
 	unsigned long long int a, b, c, d, e;
 	AliHLTTPCCATracker::StandaloneQueryFreq(&e);
 
@@ -1581,13 +1580,13 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 
 	cuCtxPushCurrent(*((CUcontext*) fCudaContext));
 
-	if (fDebugLevel >= 2) HLTInfo("Running GPU Merger");
+	if (fDebugLevel >= 2) HLTInfo("Running GPU Merger (%d/%d)", Merger->NOutputTrackClusters(), Merger->NClusters());
 	AliHLTTPCCATracker::StandaloneQueryTime(&a);
-	CudaFailedMsg(cudaMemcpy(X, Merger->ClusterX(), Merger->NClusters() * sizeof(float), cudaMemcpyHostToDevice));
-	CudaFailedMsg(cudaMemcpy(Y, Merger->ClusterY(), Merger->NClusters() * sizeof(float), cudaMemcpyHostToDevice));
-	CudaFailedMsg(cudaMemcpy(Z, Merger->ClusterZ(), Merger->NClusters() * sizeof(float), cudaMemcpyHostToDevice));
-	CudaFailedMsg(cudaMemcpy(Angle, Merger->ClusterAngle(), Merger->NClusters() * sizeof(float), cudaMemcpyHostToDevice));
-	CudaFailedMsg(cudaMemcpy(RowType, Merger->ClusterRowType(), Merger->NClusters() * sizeof(unsigned int), cudaMemcpyHostToDevice));
+	CudaFailedMsg(cudaMemcpy(X, Merger->ClusterX(), Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyHostToDevice));
+	CudaFailedMsg(cudaMemcpy(Y, Merger->ClusterY(), Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyHostToDevice));
+	CudaFailedMsg(cudaMemcpy(Z, Merger->ClusterZ(), Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyHostToDevice));
+	CudaFailedMsg(cudaMemcpy(Angle, Merger->ClusterAngle(), Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyHostToDevice));
+	CudaFailedMsg(cudaMemcpy(RowType, Merger->ClusterRowType(), Merger->NOutputTrackClusters() * sizeof(unsigned int), cudaMemcpyHostToDevice));
 	CudaFailedMsg(cudaMemcpy(tracks, Merger->OutputTracks(), Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack), cudaMemcpyHostToDevice));
 	CudaFailedMsg(cudaMemcpy(field, Merger->PolinomialFieldBz(), 6 * sizeof(float), cudaMemcpyHostToDevice));
 	CudaFailedMsg(cudaMemcpy(param, fSlaveTrackers[0].pParam(), sizeof(AliHLTTPCCAParam), cudaMemcpyHostToDevice));
@@ -1595,11 +1594,11 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 	RefitTracks<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(tracks, Merger->NOutputTracks(), field, X, Y, Z, RowType, Angle, param);
 	CudaFailedMsg(cudaThreadSynchronize());
 	AliHLTTPCCATracker::StandaloneQueryTime(&c);
-	CudaFailedMsg(cudaMemcpy(Merger->ClusterX(), X, Merger->NClusters() * sizeof(float), cudaMemcpyDeviceToHost));
-	CudaFailedMsg(cudaMemcpy(Merger->ClusterY(), Y, Merger->NClusters() * sizeof(float), cudaMemcpyDeviceToHost));
-	CudaFailedMsg(cudaMemcpy(Merger->ClusterZ(), Z, Merger->NClusters() * sizeof(float), cudaMemcpyDeviceToHost));
-	CudaFailedMsg(cudaMemcpy(Merger->ClusterAngle(), Angle, Merger->NClusters() * sizeof(float), cudaMemcpyDeviceToHost));
-	CudaFailedMsg(cudaMemcpy(Merger->ClusterRowType(), RowType, Merger->NClusters() * sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	CudaFailedMsg(cudaMemcpy(Merger->ClusterX(), X, Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyDeviceToHost));
+	CudaFailedMsg(cudaMemcpy(Merger->ClusterY(), Y, Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyDeviceToHost));
+	CudaFailedMsg(cudaMemcpy(Merger->ClusterZ(), Z, Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyDeviceToHost));
+	CudaFailedMsg(cudaMemcpy(Merger->ClusterAngle(), Angle, Merger->NOutputTrackClusters() * sizeof(float), cudaMemcpyDeviceToHost));
+	CudaFailedMsg(cudaMemcpy(Merger->ClusterRowType(), RowType, Merger->NOutputTrackClusters() * sizeof(unsigned int), cudaMemcpyDeviceToHost));
 	CudaFailedMsg(cudaMemcpy((void*) Merger->OutputTracks(), tracks, Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack), cudaMemcpyDeviceToHost));
 	CudaFailedMsg(cudaThreadSynchronize());
 	AliHLTTPCCATracker::StandaloneQueryTime(&d);
@@ -1607,7 +1606,7 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 
 	if (fDebugLevel > 0)
 	{
-		int copysize = 4 * Merger->NClusters() * sizeof(float) + Merger->NClusters() * sizeof(unsigned int) + Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliHLTTPCCAParam);
+		int copysize = 4 * Merger->NOutputTrackClusters() * sizeof(float) + Merger->NOutputTrackClusters() * sizeof(unsigned int) + Merger->NOutputTracks() * sizeof(AliHLTTPCGMMergedTrack) + 6 * sizeof(float) + sizeof(AliHLTTPCCAParam);
 		double speed = (double) copysize * (double) e / (double) (b - a) / 1e9;
 		printf("GPU Fit:\tCopy To:\t%lld us (%lf GB/s)\n", (b - a) * 1000000 / e, speed);
 		printf("\t\tFit:\t%lld us\n", (c - b) * 1000000 / e);

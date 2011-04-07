@@ -55,6 +55,7 @@ public:
   float* PolinomialFieldBz() const {return((float*) fPolinomialFieldBz);}
 
   int NClusters() const { return(fNClusters); }
+  int NOutputTrackClusters() const { return(fNOutputTrackClusters); }
   float* ClusterX() const {return(fClusterX);}
   float* ClusterY() const {return(fClusterY);}
   float* ClusterZ() const {return(fClusterZ);}
@@ -92,6 +93,7 @@ private:
   const AliHLTTPCCASliceOutput *fkSlices[fgkNSlices]; //* array of input slice tracks
 
   Int_t fNOutputTracks;
+  Int_t fNOutputTrackClusters;
   AliHLTTPCGMMergedTrack *fOutputTracks;       //* array of output merged tracks
   UInt_t * fOutputClusterIds;
   
