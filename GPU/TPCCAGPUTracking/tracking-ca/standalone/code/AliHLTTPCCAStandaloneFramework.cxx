@@ -177,7 +177,9 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 		fMerger.SetSliceData( i, fSliceOutput[i] );
 	  }
 
-	  //fMerger.SetGPUTracker(fTracker.GetGPUTracker());
+#ifdef HLTCA_GPU_MERGER
+	  fMerger.SetGPUTracker(fTracker.GetGPUTracker());
+#endif
 	  fMerger.Reconstruct();
   }
 
