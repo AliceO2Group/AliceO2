@@ -266,7 +266,11 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	for (int i = 0;i < count;i++)
 	{
 		if (fDebugLevel >= 4) printf("Examining device %d\n", i);
+#if CUDA_VERSION > 3010
 		size_t free, total;
+#else
+		unsigned int free, total;
+#endif
 		cuInit(0);
 		CUdevice tmpDevice;
 		cuDeviceGet(&tmpDevice, i);
@@ -1060,6 +1064,11 @@ RestartTrackletConstructor:
 			}
 			CudaFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + iSlice].TrackletMemory(), fGpuTracker[iSlice].TrackletMemory(), fGpuTracker[iSlice].TrackletMemorySize(), cudaMemcpyDeviceToHost));
 			CudaFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + iSlice].HitMemory(), fGpuTracker[iSlice].HitMemory(), fGpuTracker[iSlice].HitMemorySize(), cudaMemcpyDeviceToHost));
+			if (fSlaveTrackers[firstSlice + iSlice].NTracklets() && fSlaveTrackers[firstSlice + iSlice].Tracklet(0).NHits() < 0)
+			{
+				printf("INTERNAL ERROR\n");
+				return(1);
+			}
 			if (fDebugMask & 128) fSlaveTrackers[firstSlice + iSlice].DumpTrackletHits(*fOutFile);
 		}
 	}
