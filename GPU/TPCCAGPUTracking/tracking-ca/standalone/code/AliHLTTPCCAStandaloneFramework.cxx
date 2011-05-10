@@ -58,6 +58,11 @@ AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCC
     : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
 {
   //* dummy
+  for ( int i = 0; i < 20; i++ ) {
+    fLastTime[i] = 0;
+    fStatTime[i] = 0;
+  }
+  for ( int i = 0;i < fgkNSlices;i++) fSliceOutput[i] = NULL;
 }
 
 const AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::operator=( const AliHLTTPCCAStandaloneFramework& ) const
@@ -306,10 +311,12 @@ void AliHLTTPCCAStandaloneFramework::ReadSettings( std::istream &in )
   //* Read settings from the file
   int nSlices = 0;
   in >> nSlices;
-  for ( int iSlice = 0; iSlice < nSlices; iSlice++ ) {
-    AliHLTTPCCAParam param;
-    param.ReadSettings ( in );
-	fTracker.InitializeSliceParam(iSlice, param);
+  if( nSlices>0 && nSlices<100 ){
+    for ( int iSlice = 0; iSlice < nSlices; iSlice++ ) {
+      AliHLTTPCCAParam param;
+      param.ReadSettings ( in );
+	  fTracker.InitializeSliceParam(iSlice, param);
+	}
   }
 }
 

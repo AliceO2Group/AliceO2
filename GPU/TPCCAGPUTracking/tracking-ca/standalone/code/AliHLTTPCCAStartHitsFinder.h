@@ -27,10 +27,18 @@ class AliHLTTPCCAStartHitsFinder
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
+            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {
+	  AliHLTTPCCAHitId tmp;
+	  tmp.Set(0,0);
+	  for( int i=0; i<ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS; i++)fRowStartHits[i] = tmp;
+}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
+	  : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {
+	  AliHLTTPCCAHitId tmp;
+	  tmp.Set(0,0);
+	  for( int i=0; i<ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS; i++)fRowStartHits[i] = tmp;
+	}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
 #endif //!HLTCA_GPUCODE
 

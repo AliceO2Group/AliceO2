@@ -74,8 +74,6 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   }
   int mid = fgkNSlices / 2 - 1 ;
   int last = fgkNSlices - 1 ;
-  if ( mid < 0 ) mid = 0; // to avoid compiler warning
-  if ( last < 0 ) last = 0; //
   fNextSliceInd[ mid ] = 0;
   fPrevSliceInd[ 0 ] = mid;  fNextSliceInd[ last ] = fgkNSlices / 2;
   fPrevSliceInd[ fgkNSlices/2 ] = last;
@@ -104,6 +102,11 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
   fNClusters(0)
 {
   //* dummy
+  for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
+    fNextSliceInd[iSlice] = 0;
+    fPrevSliceInd[iSlice] = 0;
+  }
+  Clear();
 }
 
 const AliHLTTPCGMMerger &AliHLTTPCGMMerger::operator=(const AliHLTTPCGMMerger&) const
