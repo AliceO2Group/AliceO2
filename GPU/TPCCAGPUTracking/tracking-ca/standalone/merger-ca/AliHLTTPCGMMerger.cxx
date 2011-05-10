@@ -51,6 +51,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   :
   fSliceParam(),
   fNOutputTracks( 0 ),
+  fNOutputTrackClusters( 0 ),
   fOutputTracks( 0 ),
   fOutputClusterIds(0),
   fSliceTrackInfos( 0 ),  
@@ -86,6 +87,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
   :
   fSliceParam(),
   fNOutputTracks( 0 ),
+  fNOutputTrackClusters( 0 ),
   fOutputTracks( 0 ),
   fOutputClusterIds(0),
   fSliceTrackInfos( 0 ),  
