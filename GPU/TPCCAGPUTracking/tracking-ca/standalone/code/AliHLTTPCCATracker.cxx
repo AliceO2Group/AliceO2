@@ -274,7 +274,14 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 				{
 					for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++)
 					{
-						fTrackletRowHits[k * *NTracklets() + j] = tmpHits[k * *NTracklets() + i];
+						const int pos = k * *NTracklets() + j;
+						if (pos < 0 || pos >= HLTCA_GPU_MAX_TRACKLETS * fParam.NRows())
+						{
+							printf("internal error\n");
+							return;
+						}
+
+						fTrackletRowHits[pos] = tmpHits[k * *NTracklets() + i];
 					}
 				}
 #endif
