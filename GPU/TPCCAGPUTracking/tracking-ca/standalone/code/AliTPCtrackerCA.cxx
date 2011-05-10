@@ -1,4 +1,4 @@
-// $Id: AliTPCtrackerCA.cxx 45665 2010-11-24 15:54:05Z sgorbuno $
+// $Id: AliTPCtrackerCA.cxx 48346 2011-03-11 23:34:21Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -184,19 +184,18 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
     rl->LoadKinematics();
     AliStack *stack = rl->Stack();
     if ( !stack ) break;
+    int nMCtracks = stack->GetNtrack();
+    if( nMCtracks<0 || nMCtracks>10000000 ) nMCtracks = 0;
 
-    AliHLTTPCCAPerformance::Instance().SetNMCTracks( stack->GetNtrack() );
+    AliHLTTPCCAPerformance::Instance().SetNMCTracks( nMCtracks );
 
-    for ( int itr = 0; itr < stack->GetNtrack(); itr++ ) {
+    for ( int itr = 0; itr < nMCtracks; itr++ ) {
       TParticle *part = stack->Particle( itr );
       AliHLTTPCCAPerformance::Instance().ReadMCTrack( itr, part );
     }
 
     { // check for MC tracks at the TPC entrance
 
-      bool *isTPC = 0;
-      isTPC = new bool [stack->GetNtrack()];
-      for ( int i = 0; i < stack->GetNtrack(); i++ ) isTPC[i] = 0;
       rl->LoadTrackRefs();
       TTree *mcTree = rl->TreeTR();
       if ( !mcTree ) break;
@@ -204,6 +203,10 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
       if ( !branch ) break;
       TClonesArray tpcdummy( "AliTrackReference", 1000 ), *tpcRefs = &tpcdummy;
       branch->SetAddress( &tpcRefs );
+
+      bool *isTPC = new bool [nMCtracks];
+      for ( int i = 0; i < nMCtracks; i++ ) isTPC[i] = 0;
+
       int nr = ( int )mcTree->GetEntries();
       for ( int r = 0; r < nr; r++ ) {
         mcTree->GetEvent( r );
@@ -225,7 +228,7 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
         isTPC[tpcRef->Label()] = 1;
         tpcRefs->Clear();
       }
-      if ( isTPC ) delete[] isTPC;
+      delete[] isTPC;
     }
 
     while ( fDoHLTPerformanceClusters ) {
@@ -313,12 +316,13 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
       lab1 = cluster->GetLabel( 1 );
       lab2 = cluster->GetLabel( 2 );
 
-      AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
-      transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
-
+      AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ; 
       if ( !transform ) {
         AliFatal( "Tranformations not in calibDB" );
+	break;
       }
+
+      transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
       double xx[3] = {cluster->GetRow(), cluster->GetPad(), cluster->GetTimeBin()};
       int id[1] = {cluster->GetDetector()};
       transform->Transform( xx, id, 0, 1 );

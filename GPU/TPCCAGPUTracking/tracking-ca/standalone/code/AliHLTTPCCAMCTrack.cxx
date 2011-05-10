@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCAMCTrack.cxx 31935 2009-04-13 20:57:12Z sgorbuno $
+// $Id: AliHLTTPCCAMCTrack.cxx 48349 2011-03-12 02:19:58Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -28,6 +28,10 @@ AliHLTTPCCAMCTrack::AliHLTTPCCAMCTrack()
     : fPDG( 0 ), fP( 0 ), fPt( 0 ), fNHits( 0 ), fNMCPoints( 0 ), fFirstMCPointID( 0 ), fNReconstructed( 0 ), fSet( 0 ), fNTurns( 0 )
 {
   //* Default constructor
+  for( int i=0;i<7; i++){     
+    fPar[i] = 0;
+    fTPCPar[i] = 0;
+  }  
 }
 
 

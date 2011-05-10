@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCAParam.h 45665 2010-11-24 15:54:05Z sgorbuno $
+// @(#) $Id: AliHLTTPCCAParam.h 49685 2011-05-04 09:08:19Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -109,7 +109,7 @@ class AliHLTTPCCAParam
     GPUd() void SetClusterError2CorrectionZ( float v ) { fClusterError2CorrectionZ = v; }
 
   GPUd() void SetMinNTrackClusters( int v ){ fMinNTrackClusters = v; }
-  GPUd() void SetMinTrackPt( float v ){ fMaxTrackQPt = 1./CAMath::Abs(v); }
+  GPUd() void SetMinTrackPt( float v ){ fMaxTrackQPt = CAMath::Abs(v)>0.02 ?1./CAMath::Abs(v) :1./0.02; }
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle ) const;
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;

@@ -242,20 +242,19 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
   //* read magnetic field
 
-  int iResult2 = 0;//ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
   fSolenoidBz = GetBz();
 
   //* read the actual CDB entry if required
 
-  int iResult3 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) : 0;
+  int iResult2 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) : 0;
 
   //* read extra parameters from input (if they are)
 
-  int iResult4 = 0;
+  int iResult3 = 0;
 
   if ( commandLine && commandLine[0] != '\0' ) {
     HLTInfo( "received configuration string from HLT framework: \"%s\"", commandLine );
-    iResult4 = ReadConfigurationString( commandLine );
+    iResult3 = ReadConfigurationString( commandLine );
   }
 
 
@@ -270,13 +269,13 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
     float outRmax = 247.7;
     float plusZmin = 0.0529937;
     float plusZmax = 249.778;
-    float minusZmin = -249.645;
-    float minusZmax = -0.0799937;
+    //float minusZmin = -249.645;
+    //float minusZmax = -0.0799937;
     float dalpha = 0.349066;
     float alpha = 0.174533 + dalpha * iSec;
-    bool zPlus = ( iSec < 18 );
-    float zMin =  zPlus ? plusZmin : minusZmin;
-    float zMax =  zPlus ? plusZmax : minusZmax;
+    //bool zPlus = ( iSec < 18 );
+    float zMin =  plusZmin; //zPlus ? plusZmin : minusZmin;
+    float zMax =  plusZmax; //zPlus ? plusZmax : minusZmax;
     int nRows = AliHLTTPCTransform::GetNRows();
     float padPitch = 0.4;
     float sigmaZ = 0.228808;
@@ -299,7 +298,7 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
   if( fVersion==0 ) fGlobalMergerVersion0->SetSliceParam( param );
   else fGlobalMerger->SetSliceParam( param );
 
-  return iResult1 ? iResult1 : ( iResult2 ? iResult2 : ( iResult3 ? iResult3 : iResult4 ) );
+  return iResult1 ? iResult1 : ( iResult2 ? iResult2 : iResult3 );
 }
 
 

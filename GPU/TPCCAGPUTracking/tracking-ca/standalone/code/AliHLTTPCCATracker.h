@@ -82,6 +82,8 @@ class AliHLTTPCCATracker
       fOutput( 0 )
   {
     // constructor
+    for( int i=0; i<10; i++ ) fTimers[i] = 0;
+    for( int i=0; i<16; i++ ) fPerfTimers[i] = 0;
   }
   ~AliHLTTPCCATracker();
   

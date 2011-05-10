@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTDataTypes.h 45376 2010-11-12 01:02:55Z aszostak $
+// @(#) $Id: AliHLTDataTypes.h 46538 2011-01-21 11:31:53Z richterm $
 
 #ifndef ALIHLTDATATYPES_H
 #define ALIHLTDATATYPES_H
@@ -346,11 +346,31 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 # define kAliHLTESDVertexDataTypeID    {'E','S','D','V','T','X','V','0'}
 
+/** KFVertex data block
+ * an AliKFVertex object of varying origin
+ * The 'V0' at the end allows a versioning
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTKFVertexDataTypeID    {'A','L','I','K','F','V','V','0'}
+
+
 /** output of the GlobalVertexer data block
  * The 'V0' at the end allows a versioning
  * @ingroup alihlt_component_datatypes
  */
 # define kAliHLTDataTypeGlobalVertexerID    {'G','L','B','V','T','X','V','0'}
+
+/** output of the PrimaryFinder data block
+ * The 'V0' at the end allows a versioning
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTDataTypePrimaryFinderID    {'P','R','I','V','T','X','V','0'}
+
+/** output of the V0Finder data block
+ * The 'V0' at the end allows a versioning
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTDataTypeV0FinderID    {'V','0','S','V','T','X','V','0'}
 
 /** ESD data block
  * an AliESD object of varying origin
@@ -1042,10 +1062,25 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeESDVertex;
 
-  /** global vertexer data specification, origin is 'any' 
+   /** KF vertex object data specification, origin is 'any'
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeKFVertex;
+
+  /** global vertexer data specification, origin is 'any'
    * @ingroup alihlt_component_datatypes
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeGlobalVertexer;
+
+  /** primary finder data specification, origin is 'any'
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypePrimaryFinder;
+
+  /** primary finder data specification, origin is 'any'
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeV0Finder;
 
   /** ESD object data specification, origin is 'any' 
    * @ingroup alihlt_component_datatypes

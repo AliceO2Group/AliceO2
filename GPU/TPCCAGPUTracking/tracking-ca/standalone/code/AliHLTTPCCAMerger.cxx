@@ -205,7 +205,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
     }
 
     if ( fOutput ) delete[] ( ( float2* )( fOutput ) );
-    int size = fOutput->EstimateSize( nTracksTotal, nTrackClustersTotal );
+    int size = AliHLTTPCCAMergerOutput::EstimateSize( nTracksTotal, nTrackClustersTotal );
     fOutput = ( AliHLTTPCCAMergerOutput* )( new float2[size/sizeof( float2 )+1] );
   }
 
@@ -654,9 +654,10 @@ void AliHLTTPCCAMerger::Merging()
           track.SetNextNeighbour( -1 );
           continue;
         }
+        tmpT[nTr] = track;
         AliHLTTPCCASliceTrackInfo &trackNew = tmpT[nTr];
-        trackNew = track;
-        trackNew.SetFirstClusterRef( sliceFirstClusterRef + nH );
+	trackNew.SetUsed(0);
+	trackNew.SetFirstClusterRef( sliceFirstClusterRef + nH );
 
         for ( int ih = 0; ih < track.NClusters(); ih++ ) tmpH[nH+ih] = fClusterInfos[track.FirstClusterRef()+ih];
         nTr++;
@@ -732,6 +733,9 @@ void AliHLTTPCCAMerger::Merging()
   unsigned int   *outClusterId = new unsigned int [fMaxClusterInfos];
   UChar_t  *outClusterPackedAmp = new UChar_t [fMaxClusterInfos];
 
+  int hits[2000];
+  for( int i=0; i<2000; i++ ) hits[i] = 0;
+
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
 
     for ( int itr = 0; itr < fSliceNTrackInfos[iSlice]; itr++ ) {
@@ -744,7 +748,6 @@ void AliHLTTPCCAMerger::Merging()
       AliHLTTPCCATrackParam startPoint = track.InnerParam(), endPoint = track.OuterParam();
       float startAlpha = track.InnerAlpha(), endAlpha = track.OuterAlpha();
 
-      int hits[2000];
       int firstHit = 1000;
       int nHits = 0;
       int jSlice = iSlice;
