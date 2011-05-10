@@ -71,8 +71,10 @@ texture<signed short, 1, cudaReadModeElementType> gAliTexRefs;
 #include "AliHLTTPCCAStartHitsSorter.cxx"
 #include "AliHLTTPCCATrackletConstructor.cxx"
 
+#ifdef HLTCA_GPU_MERGER
 #include "AliHLTTPCGMMerger.h"
 #include "AliHLTTPCGMTrackParam.cxx"
+#endif
 
 #include "MemoryAssignmentHelpers.h"
 
@@ -1546,6 +1548,10 @@ char* AliHLTTPCCAGPUTrackerNVCC::MergerBaseMemory()
 
 int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 {
+#ifndef HLTCA_GPU_MERGER
+	HLTError("HLTCA_GPU_MERGER compile flag not set");
+	return(1);
+#else
 	if (!fCudaInitialized)
 	{
 		HLTError("GPU Merger not initialized");
@@ -1615,8 +1621,8 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 	}
 
 	cuCtxPopCurrent((CUcontext*) fCudaContext);
-
 	return(0);
+#endif
 }
 
 AliHLTTPCCAGPUTracker* AliHLTTPCCAGPUTrackerNVCCCreate()
