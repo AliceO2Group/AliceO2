@@ -60,7 +60,7 @@ ClassImp( AliHLTTPCCATracker )
 
 AliHLTTPCCATracker::~AliHLTTPCCATracker()
 {
-  // destructor
+	// destructor
 	if (!fIsGPUTracker)
 	{
 		if (fCommonMem) delete fCommonMem;
@@ -75,19 +75,19 @@ AliHLTTPCCATracker::~AliHLTTPCCATracker()
 // ----------------------------------------------------------------------------------
 void AliHLTTPCCATracker::Initialize( const AliHLTTPCCAParam &param )
 {
-  // initialisation
-  fParam = param;
-  fParam.Update();
-  fData.InitializeRows( fParam );
+	// initialisation
+	fParam = param;
+	fParam.Update();
+	fData.InitializeRows( fParam );
 
-  StartEvent();
+	StartEvent();
 }
 
 void AliHLTTPCCATracker::StartEvent()
 {
-  // start new event and fresh the memory
+	// start new event and fresh the memory
 
-  SetupCommonMemory();
+	SetupCommonMemory();
 }
 
 void AliHLTTPCCATracker::SetGPUTracker()
@@ -100,8 +100,8 @@ void AliHLTTPCCATracker::SetGPUTracker()
 char* AliHLTTPCCATracker::SetGPUTrackerCommonMemory(char* const pGPUMemory)
 {
 	//Set up common Memory Pointer for GPU Tracker
-  fCommonMem = (commonMemoryStruct*) pGPUMemory;
-  return(pGPUMemory + sizeof(commonMemoryStruct));
+	fCommonMem = (commonMemoryStruct*) pGPUMemory;
+	return(pGPUMemory + sizeof(commonMemoryStruct));
 }
 
 
@@ -147,6 +147,7 @@ void AliHLTTPCCATracker::DumpSliceData(std::ostream &out)
 	out << "Slice Data (Slice" << Param().ISlice() << "):" << std::endl;
 	for (int i = 0;i < Param().NRows();i++)
 	{
+		if (Row(i).NHits() == 0) continue;
 		out << "Row: " << i << std::endl;
 		for (int j = 0;j < Row(i).NHits();j++)
 		{
@@ -163,10 +164,11 @@ void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
 	out << "Hit Links(Slice" << Param().ISlice() << "):" << std::endl;
 	for (int i = 0;i < Param().NRows();i++)
 	{
+		if (Row(i).NHits() == 0) continue;
 		out << "Row: " << i << std::endl;
 		for (int j = 0;j < Row(i).NHits();j++)
 		{
-	    		if (j && j % 32 == 0) out << std::endl;
+			if (j && j % 32 == 0) out << std::endl;
 			out << HitLinkUpData(Row(i), j) << "/" << HitLinkDownData(Row(i), j) << ", ";
 		}
 		out << std::endl;
@@ -176,17 +178,18 @@ void AliHLTTPCCATracker::DumpLinks(std::ostream &out)
 void AliHLTTPCCATracker::DumpHitWeights(std::ostream &out)
 {
 	//dump hit weights to file
-    out << "Hit Weights(Slice" << Param().ISlice() << "):" << std::endl;
-    for (int i = 0;i < Param().NRows();i++)
-    {
-	out << "Row: " << i << ":" << std::endl;
-	for (int j = 0;j < Row(i).NHits();j++)
+	out << "Hit Weights(Slice" << Param().ISlice() << "):" << std::endl;
+	for (int i = 0;i < Param().NRows();i++)
 	{
-	    if (j && j % 32 == 0) out << std::endl;
-	    out << HitWeight(Row(i), j) << ", ";
+		if (Row(i).NHits() == 0) continue;
+		out << "Row: " << i << ":" << std::endl;
+		for (int j = 0;j < Row(i).NHits();j++)
+		{
+			if (j && j % 32 == 0) out << std::endl;
+			out << HitWeight(Row(i), j) << ", ";
+		}
+		out << std::endl;
 	}
-	out << std::endl;
-    }
 }
 
 int AliHLTTPCCATracker::StarthitSortComparison(const void*a, const void* b)
@@ -308,9 +311,9 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 			{
 				//if (Tracklets()[j].RowHit(i) != -1)
 #ifdef EXTERN_ROW_HITS
-					out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
+				out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
 #else
-					out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+				out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
 #endif
 			}
 #endif
@@ -321,9 +324,9 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 			{
 				//if (Tracklets()[j].RowHit(i) != -1)
 #ifdef EXTERN_ROW_HITS
-					out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
+				out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
 #else
-					out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+				out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
 #endif
 			}
 		}
@@ -334,114 +337,114 @@ void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 
 void AliHLTTPCCATracker::SetupCommonMemory()
 {
-  // set up common memory
+	// set up common memory
 
-  if (!fIsGPUTracker)
-  {
-    if ( !fCommonMem ) {
-      // the 1600 extra bytes are not used unless fCommonMemorySize increases with a later event
-      //fCommonMemory = reinterpret_cast<char*> ( new uint4 [ fCommonMemorySize/sizeof( uint4 ) + 100] );
-	  fCommonMem = new commonMemoryStruct;
-    }
+	if (!fIsGPUTracker)
+	{
+		if ( !fCommonMem ) {
+			// the 1600 extra bytes are not used unless fCommonMemorySize increases with a later event
+			//fCommonMemory = reinterpret_cast<char*> ( new uint4 [ fCommonMemorySize/sizeof( uint4 ) + 100] );
+			fCommonMem = new commonMemoryStruct;
+		}
 
-	if (fHitMemory)	delete[] fHitMemory;
-	if (fTrackletMemory) delete[] fTrackletMemory;
-	if (fTrackMemory) delete[] fTrackMemory;
-  }
+		if (fHitMemory)	delete[] fHitMemory;
+		if (fTrackletMemory) delete[] fTrackletMemory;
+		if (fTrackMemory) delete[] fTrackMemory;
+	}
 
-  fHitMemory = fTrackletMemory = fTrackMemory = 0;
+	fHitMemory = fTrackletMemory = fTrackMemory = 0;
 
-  fData.Clear();
-  fCommonMem->fNTracklets = 0;
-  fCommonMem->fNTracks = 0 ;
-  fCommonMem->fNTrackHits = 0;
+	fData.Clear();
+	fCommonMem->fNTracklets = 0;
+	fCommonMem->fNTracks = 0 ;
+	fCommonMem->fNTrackHits = 0;
 }
 
 void AliHLTTPCCATracker::ReadEvent( AliHLTTPCCAClusterData *clusterData )
 {
-  // read event
+	// read event
 
-  fClusterData = clusterData;
+	fClusterData = clusterData;
 
-  StartEvent();
+	StartEvent();
 
-  //* Convert input hits, create grids, etc.
-  fData.InitFromClusterData( *clusterData );
-  {
-    if (!fIsGPUTracker)
+	//* Convert input hits, create grids, etc.
+	fData.InitFromClusterData( *clusterData );
 	{
-		SetPointersHits( fData.NumberOfHits() ); // to calculate the size
-		fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
+		if (!fIsGPUTracker)
+		{
+			SetPointersHits( fData.NumberOfHits() ); // to calculate the size
+			fHitMemory = reinterpret_cast<char*> ( new uint4 [ fHitMemorySize/sizeof( uint4 ) + 100] );
+		}
+		SetPointersHits( fData.NumberOfHits() ); // set pointers for hits
 	}
-    SetPointersHits( fData.NumberOfHits() ); // set pointers for hits
-  }
 }
 
 GPUhd() void  AliHLTTPCCATracker::SetPointersHits( int MaxNHits )
 {
-  // set all pointers to the event memory
+	// set all pointers to the event memory
 
-  char *mem = fHitMemory;
+	char *mem = fHitMemory;
 
-  // extra arrays for tpc clusters
+	// extra arrays for tpc clusters
 
 #ifdef HLTCA_GPU_SORT_STARTHITS_2
-  AssignMemory( fTrackletStartHits, mem, MaxNHits + 32);
+	AssignMemory( fTrackletStartHits, mem, MaxNHits + 32);
 #else
-  AssignMemory( fTrackletStartHits, mem, MaxNHits);
+	AssignMemory( fTrackletStartHits, mem, MaxNHits);
 #endif
 
-  // calculate the size
+	// calculate the size
 
-  fHitMemorySize = mem - fHitMemory;
+	fHitMemorySize = mem - fHitMemory;
 }
 
 GPUhd() void  AliHLTTPCCATracker::SetPointersTracklets( int MaxNTracklets )
 {
-  // set all pointers to the tracklets memory
-  char *mem = fTrackletMemory;
+	// set all pointers to the tracklets memory
+	char *mem = fTrackletMemory;
 
-  // memory for tracklets
+	// memory for tracklets
 
-  AssignMemory( fTracklets, mem, MaxNTracklets );
+	AssignMemory( fTracklets, mem, MaxNTracklets );
 #ifdef EXTERN_ROW_HITS
-  AssignMemory( fTrackletRowHits, mem, MaxNTracklets * Param().NRows());
+	AssignMemory( fTrackletRowHits, mem, MaxNTracklets * Param().NRows());
 #endif
 
-  fTrackletMemorySize = mem - fTrackletMemory;
+	fTrackletMemorySize = mem - fTrackletMemory;
 }
 
 
 GPUhd() void  AliHLTTPCCATracker::SetPointersTracks( int MaxNTracks, int MaxNHits )
 {
-  // set all pointers to the tracks memory
-  char *mem = fTrackMemory;
+	// set all pointers to the tracks memory
+	char *mem = fTrackMemory;
 
-  // memory for selected tracks
+	// memory for selected tracks
 
-  AssignMemory( fTracks, mem, MaxNTracks );
-  AssignMemory( fTrackHits, mem, 2 * MaxNHits );
+	AssignMemory( fTracks, mem, MaxNTracks );
+	AssignMemory( fTrackHits, mem, 2 * MaxNHits );
 
-  // calculate the size
+	// calculate the size
 
-  fTrackMemorySize = mem - fTrackMemory;
+	fTrackMemorySize = mem - fTrackMemory;
 }
 
 GPUh() int AliHLTTPCCATracker::CheckEmptySlice() const
 {
 	//Check if the Slice is empty, if so set the output apropriate and tell the reconstuct procesdure to terminate
-  if ( NHitsTotal() < 1 ) {
-    {
-      AliHLTTPCCASliceOutput::Allocate(*fOutput, 0, 0, fOutputControl);
-      AliHLTTPCCASliceOutput* useOutput = *fOutput;
-      if (useOutput == NULL) return(1);
-      useOutput->SetNTracks( 0 );
-      useOutput->SetNTrackClusters( 0 );
-    }
+	if ( NHitsTotal() < 1 ) {
+		{
+			AliHLTTPCCASliceOutput::Allocate(*fOutput, 0, 0, fOutputControl);
+			AliHLTTPCCASliceOutput* useOutput = *fOutput;
+			if (useOutput == NULL) return(1);
+			useOutput->SetNTracks( 0 );
+			useOutput->SetNTrackClusters( 0 );
+		}
 
-    return 1;
-  }
-  return 0;
+		return 1;
+	}
+	return 0;
 }
 
 void AliHLTTPCCATracker::RunNeighboursFinder()
@@ -465,23 +468,23 @@ void AliHLTTPCCATracker::RunStartHitsFinder()
 void AliHLTTPCCATracker::RunTrackletConstructor()
 {
 	//Run CPU Tracklet Constructor
-  AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorCPU(*this);
+	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorCPU(*this);
 }
 
 void AliHLTTPCCATracker::RunTrackletSelector()
 {
 	//Run CPU Tracklet Selector
-  AliHLTTPCCAProcess<AliHLTTPCCATrackletSelector>( 1, fCommonMem->fNTracklets, *this );
+	AliHLTTPCCAProcess<AliHLTTPCCATrackletSelector>( 1, fCommonMem->fNTracklets, *this );
 }
 
 #ifdef HLTCA_STANDALONE
 void AliHLTTPCCATracker::StandalonePerfTime(int i)
 {
-  //Query Performance Timer for Standalone Version of Tracker
-  if (fGPUDebugLevel >= 1)
-  {
-    StandaloneQueryTime(&fPerfTimers[i]);
-  }
+	//Query Performance Timer for Standalone Version of Tracker
+	if (fGPUDebugLevel >= 1)
+	{
+		StandaloneQueryTime(&fPerfTimers[i]);
+	}
 }
 #else
 void AliHLTTPCCATracker::StandalonePerfTime(int /*i*/) {}
@@ -489,385 +492,385 @@ void AliHLTTPCCATracker::StandalonePerfTime(int /*i*/) {}
 
 GPUh() void AliHLTTPCCATracker::Reconstruct()
 {
-  //* reconstruction of event
-  //std::cout<<"Reconstruct slice "<<fParam.ISlice()<<", nHits="<<NHitsTotal()<<std::endl;
+	//* reconstruction of event
+	//std::cout<<"Reconstruct slice "<<fParam.ISlice()<<", nHits="<<NHitsTotal()<<std::endl;
 
-  fTimers[0] = 0; // find neighbours
-  fTimers[1] = 0; // construct tracklets
-  fTimers[2] = 0; // fit tracklets
-  fTimers[3] = 0; // prolongation of tracklets
-  fTimers[4] = 0; // selection
-  fTimers[5] = 0; // write output
-  fTimers[6] = 0;
-  fTimers[7] = 0;
+	fTimers[0] = 0; // find neighbours
+	fTimers[1] = 0; // construct tracklets
+	fTimers[2] = 0; // fit tracklets
+	fTimers[3] = 0; // prolongation of tracklets
+	fTimers[4] = 0; // selection
+	fTimers[5] = 0; // write output
+	fTimers[6] = 0;
+	fTimers[7] = 0;
 
-  //if( fParam.ISlice()<1 ) return; //SG!!!
+	//if( fParam.ISlice()<1 ) return; //SG!!!
 
-  TStopwatch timer0;
+	TStopwatch timer0;
 
-  StandalonePerfTime(0);
+	StandalonePerfTime(0);
 
-  if (CheckEmptySlice()) return;
+	if (CheckEmptySlice()) return;
 
 #ifdef DRAW1
-  //if( fParam.ISlice()==2 || fParam.ISlice()==3)
-    {
-  AliHLTTPCCADisplay::Instance().ClearView();
-  AliHLTTPCCADisplay::Instance().SetSliceView();
-  AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
-  AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
-  if ( NHitsTotal() > 0 ) {
-    AliHLTTPCCADisplay::Instance().DrawSliceHits( kRed, .5 );
-    AliHLTTPCCADisplay::Instance().Ask();
-  }
-  }
+	//if( fParam.ISlice()==2 || fParam.ISlice()==3)
+	{
+		AliHLTTPCCADisplay::Instance().ClearView();
+		AliHLTTPCCADisplay::Instance().SetSliceView();
+		AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
+		AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
+		if ( NHitsTotal() > 0 ) {
+			AliHLTTPCCADisplay::Instance().DrawSliceHits( kRed, .5 );
+			AliHLTTPCCADisplay::Instance().Ask();
+		}
+	}
 #endif //DRAW1
 
 	fCommonMem->fNTracklets = fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
 
 #if !defined(HLTCA_GPUCODE)
 
-  if (fGPUDebugLevel >= 6)
-  {
+	if (fGPUDebugLevel >= 6)
+	{
 #ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-	  *fGPUDebugOut << std::endl << std::endl << "Slice: " << Param().ISlice() << std::endl;
-	  *fGPUDebugOut << "Slice Data:" << std::endl;
+		*fGPUDebugOut << std::endl << std::endl << "Slice: " << Param().ISlice() << std::endl;
+		*fGPUDebugOut << "Slice Data:" << std::endl;
 #endif
-	  DumpSliceData(*fGPUDebugOut);
-  }
+		DumpSliceData(*fGPUDebugOut);
+	}
 
-  StandalonePerfTime(1);
+	StandalonePerfTime(1);
 
-  RunNeighboursFinder();
+	RunNeighboursFinder();
 
-  StandalonePerfTime(2);
+	StandalonePerfTime(2);
 
 #ifdef TRACKER_KEEP_TEMPDATA
-  if (fLinkTmpMemory) delete[] fLinkTmpMemory;
-  fLinkTmpMemory = new char[fData.MemorySize()];
-  memcpy(fLinkTmpMemory, fData.Memory(), fData.MemorySize());
+	if (fLinkTmpMemory) delete[] fLinkTmpMemory;
+	fLinkTmpMemory = new char[fData.MemorySize()];
+	memcpy(fLinkTmpMemory, fData.Memory(), fData.MemorySize());
 #endif
 
-  if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
-  
+	if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
+
 #ifdef HLTCA_INTERNAL_PERFORMANCE
-  //if( Param().ISlice()<=2 )
-  //AliHLTTPCCAPerformance::Instance().LinkPerformance( Param().ISlice() );
+	//if( Param().ISlice()<=2 )
+	//AliHLTTPCCAPerformance::Instance().LinkPerformance( Param().ISlice() );
 #endif
 
 
 #ifdef DRAW1
-  if ( NHitsTotal() > 0 ) {
-    AliHLTTPCCADisplay::Instance().DrawSliceLinks( -1, -1, 1 );
-    AliHLTTPCCADisplay::Instance().Ask();
-  }
+	if ( NHitsTotal() > 0 ) {
+		AliHLTTPCCADisplay::Instance().DrawSliceLinks( -1, -1, 1 );
+		AliHLTTPCCADisplay::Instance().Ask();
+	}
 #endif //DRAW1
 
-  RunNeighboursCleaner();
+	RunNeighboursCleaner();
 
-  StandalonePerfTime(3);
+	StandalonePerfTime(3);
 
-  if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
+	if (fGPUDebugLevel >= 6) DumpLinks(*fGPUDebugOut);
 
-  RunStartHitsFinder();
+	RunStartHitsFinder();
 
-  StandalonePerfTime(4);
-  StandalonePerfTime(5);
+	StandalonePerfTime(4);
+	StandalonePerfTime(5);
 
-  if (fGPUDebugLevel >= 6) DumpStartHits(*fGPUDebugOut);
-  
-  fData.ClearHitWeights();
+	if (fGPUDebugLevel >= 6) DumpStartHits(*fGPUDebugOut);
 
-  SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
-  fTrackletMemory = reinterpret_cast<char*> ( new uint4 [ fTrackletMemorySize/sizeof( uint4 ) + 100] );
-  SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // set pointers for hits
+	fData.ClearHitWeights();
 
-  SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // to calculate the size
-  fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
-  SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // set pointers for hits
+	SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
+	fTrackletMemory = reinterpret_cast<char*> ( new uint4 [ fTrackletMemorySize/sizeof( uint4 ) + 100] );
+	SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // set pointers for hits
 
-  StandalonePerfTime(6);
-  StandalonePerfTime(7);
+	SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // to calculate the size
+	fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
+	SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // set pointers for hits
 
-  RunTrackletConstructor();
+	StandalonePerfTime(6);
+	StandalonePerfTime(7);
 
-  StandalonePerfTime(8);
+	RunTrackletConstructor();
 
-  if (fGPUDebugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
+	StandalonePerfTime(8);
+
+	if (fGPUDebugLevel >= 6) DumpTrackletHits(*fGPUDebugOut);
 #ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
-  if (fGPUDebugLevel >= 6) DumpHitWeights(*fGPUDebugOut);
+	if (fGPUDebugLevel >= 6) DumpHitWeights(*fGPUDebugOut);
 #endif
 
-  //std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
+	//std::cout<<"Slice "<<Param().ISlice()<<": NHits="<<NHitsTotal()<<", NTracklets="<<*NTracklets()<<std::endl;
 
-  RunTrackletSelector();
+	RunTrackletSelector();
 
-  StandalonePerfTime(9);
+	StandalonePerfTime(9);
 
-  //std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
+	//std::cout<<"Slice "<<Param().ISlice()<<": N start hits/tracklets/tracks = "<<nStartHits<<" "<<nStartHits<<" "<<*fNTracks<<std::endl;
 
-  if (fGPUDebugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
+	if (fGPUDebugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
 
-  //std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
+	//std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
 
-  WriteOutput();
+	WriteOutput();
 
-  StandalonePerfTime(10);
+	StandalonePerfTime(10);
 
 #endif
 
 #ifdef DRAW1
-  {
-    AliHLTTPCCADisplay &disp = AliHLTTPCCADisplay::Instance();
-    AliHLTTPCCATracker &slice = *this;
-    std::cout << "N out tracks = " << slice.NOutTracks() << std::endl;
-    AliHLTTPCCADisplay::Instance().SetSliceView();
-    AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
-    AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
-    disp.DrawSliceHits( kRed, .5 );
-    disp.Ask();
-    for ( int itr = 0; itr < slice.NOutTracks(); itr++ ) {
-      std::cout << "track N " << itr << ", nhits=" << slice.OutTracks()[itr].NHits() << std::endl;
-      disp.DrawSliceOutTrack( itr, kBlue );      
-      //disp.Ask();
-      //int id = slice.OutTracks()[itr].OrigTrackID();
-      //AliHLTTPCCATrack &tr = Tracks()[id];
-      //for( int ih=0; ih<tr.NHits(); ih++ ){
-      //int ic = (fTrackHits[tr.FirstHitID()+ih]);
-      //std::cout<<ih<<" "<<ID2IRow(ic)<<" "<<ID2IHit(ic)<<std::endl;
-      //}
-      //disp.DrawSliceTrack( id, kBlue );
-      //disp.Ask();
-    }
-    disp.Ask();
-  }
+	{
+		AliHLTTPCCADisplay &disp = AliHLTTPCCADisplay::Instance();
+		AliHLTTPCCATracker &slice = *this;
+		std::cout << "N out tracks = " << slice.NOutTracks() << std::endl;
+		AliHLTTPCCADisplay::Instance().SetSliceView();
+		AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
+		AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
+		disp.DrawSliceHits( kRed, .5 );
+		disp.Ask();
+		for ( int itr = 0; itr < slice.NOutTracks(); itr++ ) {
+			std::cout << "track N " << itr << ", nhits=" << slice.OutTracks()[itr].NHits() << std::endl;
+			disp.DrawSliceOutTrack( itr, kBlue );      
+			//disp.Ask();
+			//int id = slice.OutTracks()[itr].OrigTrackID();
+			//AliHLTTPCCATrack &tr = Tracks()[id];
+			//for( int ih=0; ih<tr.NHits(); ih++ ){
+			//int ic = (fTrackHits[tr.FirstHitID()+ih]);
+			//std::cout<<ih<<" "<<ID2IRow(ic)<<" "<<ID2IHit(ic)<<std::endl;
+			//}
+			//disp.DrawSliceTrack( id, kBlue );
+			//disp.Ask();
+		}
+		disp.Ask();
+	}
 #endif //DRAW1
 
-  timer0.Stop();
-  fTimers[0] = timer0.CpuTime() / 100.;
+	timer0.Stop();
+	fTimers[0] = timer0.CpuTime() / 100.;
 
 }
 
 GPUh() void AliHLTTPCCATracker::WriteOutput()
 {
-  // write output
+	// write output
 
-  TStopwatch timer;
+	TStopwatch timer;
 
-  //cout<<"output: nTracks = "<<*fNTracks<<", nHitsTotal="<<NHitsTotal()<<std::endl;
-  
-  if (fOutputControl == NULL) fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
-  AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
-  AliHLTTPCCASliceOutput* useOutput = *fOutput;
-  if (useOutput == NULL) return;
+	//cout<<"output: nTracks = "<<*fNTracks<<", nHitsTotal="<<NHitsTotal()<<std::endl;
 
-  useOutput->SetNTracks( 0 );
-  useOutput->SetNTrackClusters( 0 );
+	if (fOutputControl == NULL) fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
+	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
+	AliHLTTPCCASliceOutput* useOutput = *fOutput;
+	if (useOutput == NULL) return;
 
-  int nStoredHits = 0;
-  int nStoredTracks = 0;
+	useOutput->SetNTracks( 0 );
+	useOutput->SetNTrackClusters( 0 );
 
-  AliHLTTPCCASliceOutTrack *out = useOutput->FirstTrack();
+	int nStoredHits = 0;
+	int nStoredTracks = 0;
 
-  for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
-    AliHLTTPCCATrack &iTrack = fTracks[iTr];    
-    
-    if( iTrack.NHits() < fParam.MinNTrackClusters() ) continue;
-    if( CAMath::Abs(iTrack.Param().GetQPt())> fParam.MaxTrackQPt() ) continue;
+	AliHLTTPCCASliceOutTrack *out = useOutput->FirstTrack();
 
-    out->SetParam( iTrack.Param() );
-    int nClu = 0;
-    int iID = iTrack.FirstHitID();
+	for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
+		AliHLTTPCCATrack &iTrack = fTracks[iTr];    
 
-    for ( int ith = 0; ith < iTrack.NHits(); ith++ ) {
-      const AliHLTTPCCAHitId &ic = fTrackHits[iID + ith];
-      int iRow = ic.RowIndex();
-      int ih = ic.HitIndex();
-      
-      const AliHLTTPCCARow &row = fData.Row( iRow );
-      
-      int clusterIndex = fData.ClusterDataIndex( row, ih );
-      int clusterRowIndex = clusterIndex - fClusterData->RowOffset( iRow );
-      
-      if ( clusterIndex < 0 || clusterIndex >= fClusterData->NumberOfClusters() ) {
-	//std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
-	//<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
-	//abort();
-	continue;
-      }
-      if ( clusterRowIndex < 0 || clusterRowIndex >= fClusterData->NumberOfClusters( iRow ) ) {
-	//std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
-	//<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
-	//abort();
-	continue;
-      }
-      
-      float origX = fClusterData->X( clusterIndex );
-      float origY = fClusterData->Y( clusterIndex );
-      float origZ = fClusterData->Z( clusterIndex );      
-      int id = fClusterData->Id( clusterIndex );
-      AliHLTTPCCASliceOutCluster c;
-      c.Set( id, iRow, origX, origY, origZ );
-      out->SetCluster( nClu, c );
-      nClu++;
-    }
+		if( iTrack.NHits() < fParam.MinNTrackClusters() ) continue;
+		if( CAMath::Abs(iTrack.Param().GetQPt())> fParam.MaxTrackQPt() ) continue;
 
-    nStoredTracks++;
-    nStoredHits+=nClu; 
-    out->SetNClusters( nClu );
-    out = out->NextTrack();    
-  }
+		out->SetParam( iTrack.Param() );
+		int nClu = 0;
+		int iID = iTrack.FirstHitID();
 
-  useOutput->SetNTracks( nStoredTracks );
-  useOutput->SetNTrackClusters( nStoredHits );
+		for ( int ith = 0; ith < iTrack.NHits(); ith++ ) {
+			const AliHLTTPCCAHitId &ic = fTrackHits[iID + ith];
+			int iRow = ic.RowIndex();
+			int ih = ic.HitIndex();
 
-  timer.Stop();
-  fTimers[5] += timer.CpuTime();
+			const AliHLTTPCCARow &row = fData.Row( iRow );
+
+			int clusterIndex = fData.ClusterDataIndex( row, ih );
+			int clusterRowIndex = clusterIndex - fClusterData->RowOffset( iRow );
+
+			if ( clusterIndex < 0 || clusterIndex >= fClusterData->NumberOfClusters() ) {
+				//std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
+				//<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
+				//abort();
+				continue;
+			}
+			if ( clusterRowIndex < 0 || clusterRowIndex >= fClusterData->NumberOfClusters( iRow ) ) {
+				//std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
+				//<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
+				//abort();
+				continue;
+			}
+
+			float origX = fClusterData->X( clusterIndex );
+			float origY = fClusterData->Y( clusterIndex );
+			float origZ = fClusterData->Z( clusterIndex );      
+			int id = fClusterData->Id( clusterIndex );
+			AliHLTTPCCASliceOutCluster c;
+			c.Set( id, iRow, origX, origY, origZ );
+			out->SetCluster( nClu, c );
+			nClu++;
+		}
+
+		nStoredTracks++;
+		nStoredHits+=nClu; 
+		out->SetNClusters( nClu );
+		out = out->NextTrack();    
+	}
+
+	useOutput->SetNTracks( nStoredTracks );
+	useOutput->SetNTrackClusters( nStoredHits );
+
+	timer.Stop();
+	fTimers[5] += timer.CpuTime();
 }
 
 #endif
 
 GPUh() void AliHLTTPCCATracker::FitTrackFull( const AliHLTTPCCATrack &/**/, float * /**/ ) const
 {
-  // fit track with material
+	// fit track with material
 #ifdef XXX
-  //* Fit the track
-  FitTrack( iTrack, tt0 );
-  if ( iTrack.NHits() <= 3 ) return;
+	//* Fit the track
+	FitTrack( iTrack, tt0 );
+	if ( iTrack.NHits() <= 3 ) return;
 
-  AliHLTTPCCATrackParam &t = iTrack.Param();
-  AliHLTTPCCATrackParam t0 = t;
+	AliHLTTPCCATrackParam &t = iTrack.Param();
+	AliHLTTPCCATrackParam t0 = t;
 
-  t.Chi2() = 0;
-  t.NDF() = -5;
-  bool first = 1;
+	t.Chi2() = 0;
+	t.NDF() = -5;
+	bool first = 1;
 
-  int iID = iTrack.FirstHitID();
-  for ( int ih = 0; ih < iTrack.NHits(); ih++, iID++ ) {
-    const AliHLTTPCCAHitId &ic = fTrackHits[iID];
-    int iRow = ic.rowIndex();
-    const AliHLTTPCCARow &row = fData.Row( iRow );
-    if ( !t0.TransportToX( row.X() ) ) continue;
-    float dy, dz;
-    const AliHLTTPCCAHit &h = ic.hitIndex();
+	int iID = iTrack.FirstHitID();
+	for ( int ih = 0; ih < iTrack.NHits(); ih++, iID++ ) {
+		const AliHLTTPCCAHitId &ic = fTrackHits[iID];
+		int iRow = ic.rowIndex();
+		const AliHLTTPCCARow &row = fData.Row( iRow );
+		if ( !t0.TransportToX( row.X() ) ) continue;
+		float dy, dz;
+		const AliHLTTPCCAHit &h = ic.hitIndex();
 
-    // check for wrong hits
-    if ( 0 ) {
-      dy = t0.GetY() - h.Y();
-      dz = t0.GetZ() - h.Z();
+		// check for wrong hits
+		if ( 0 ) {
+			dy = t0.GetY() - h.Y();
+			dz = t0.GetZ() - h.Z();
 
-      //if( dy*dy > 3.5*3.5*(/*t0.GetErr2Y() + */h.ErrY()*h.ErrY() ) ) continue;//SG!!!
-      //if( dz*dz > 3.5*3.5*(/*t0.GetErr2Z() + */h.ErrZ()*h.ErrZ() ) ) continue;
-    }
+			//if( dy*dy > 3.5*3.5*(/*t0.GetErr2Y() + */h.ErrY()*h.ErrY() ) ) continue;//SG!!!
+			//if( dz*dz > 3.5*3.5*(/*t0.GetErr2Z() + */h.ErrZ()*h.ErrZ() ) ) continue;
+		}
 
-    if ( !t.TransportToX( row.X() ) ) continue;
+		if ( !t.TransportToX( row.X() ) ) continue;
 
-    //* Update the track
+		//* Update the track
 
-    if ( first ) {
-      t.Cov()[ 0] = .5 * .5;
-      t.Cov()[ 1] = 0;
-      t.Cov()[ 2] = .5 * .5;
-      t.Cov()[ 3] = 0;
-      t.Cov()[ 4] = 0;
-      t.Cov()[ 5] = .2 * .2;
-      t.Cov()[ 6] = 0;
-      t.Cov()[ 7] = 0;
-      t.Cov()[ 8] = 0;
-      t.Cov()[ 9] = .2 * .2;
-      t.Cov()[10] = 0;
-      t.Cov()[11] = 0;
-      t.Cov()[12] = 0;
-      t.Cov()[13] = 0;
-      t.Cov()[14] = .2 * .2;
-      t.Chi2() = 0;
-      t.NDF() = -5;
-    }
-    float err2Y, err2Z;
-    GetErrors2( iRow, t, err2Y, err2Z );
+		if ( first ) {
+			t.Cov()[ 0] = .5 * .5;
+			t.Cov()[ 1] = 0;
+			t.Cov()[ 2] = .5 * .5;
+			t.Cov()[ 3] = 0;
+			t.Cov()[ 4] = 0;
+			t.Cov()[ 5] = .2 * .2;
+			t.Cov()[ 6] = 0;
+			t.Cov()[ 7] = 0;
+			t.Cov()[ 8] = 0;
+			t.Cov()[ 9] = .2 * .2;
+			t.Cov()[10] = 0;
+			t.Cov()[11] = 0;
+			t.Cov()[12] = 0;
+			t.Cov()[13] = 0;
+			t.Cov()[14] = .2 * .2;
+			t.Chi2() = 0;
+			t.NDF() = -5;
+		}
+		float err2Y, err2Z;
+		GetErrors2( iRow, t, err2Y, err2Z );
 
-    if ( !t.Filter2( h.Y(), h.Z(), err2Y, err2Z ) ) continue;
+		if ( !t.Filter2( h.Y(), h.Z(), err2Y, err2Z ) ) continue;
 
-    first = 0;
-  }
-  /*
-  float cosPhi = iTrack.Param().GetCosPhi();
-  p0.Param().TransportToX(ID2Row( iTrack.PointID()[0] ).X());
-  p2.Param().TransportToX(ID2Row( iTrack.PointID()[1] ).X());
-  if( p0.Param().GetCosPhi()*cosPhi<0 ){ // change direction
-  float *par = p0.Param().Par();
-  float *cov = p0.Param().Cov();
-  par[2] = -par[2]; // sin phi
-  par[3] = -par[3]; // DzDs
-    par[4] = -par[4]; // kappa
-    cov[3] = -cov[3];
-    cov[4] = -cov[4];
-    cov[6] = -cov[6];
-    cov[7] = -cov[7];
-    cov[10] = -cov[10];
-    cov[11] = -cov[11];
-    p0.Param().CosPhi() = -p0.Param().GetCosPhi();
-  }
-  */
+		first = 0;
+	}
+	/*
+	float cosPhi = iTrack.Param().GetCosPhi();
+	p0.Param().TransportToX(ID2Row( iTrack.PointID()[0] ).X());
+	p2.Param().TransportToX(ID2Row( iTrack.PointID()[1] ).X());
+	if( p0.Param().GetCosPhi()*cosPhi<0 ){ // change direction
+	float *par = p0.Param().Par();
+	float *cov = p0.Param().Cov();
+	par[2] = -par[2]; // sin phi
+	par[3] = -par[3]; // DzDs
+	par[4] = -par[4]; // kappa
+	cov[3] = -cov[3];
+	cov[4] = -cov[4];
+	cov[6] = -cov[6];
+	cov[7] = -cov[7];
+	cov[10] = -cov[10];
+	cov[11] = -cov[11];
+	p0.Param().CosPhi() = -p0.Param().GetCosPhi();
+	}
+	*/
 #endif
 }
 
 GPUh() void AliHLTTPCCATracker::FitTrack( const AliHLTTPCCATrack &/*track*/, float * /*t0[]*/ ) const
 {
-  //* Fit the track
+	//* Fit the track
 #ifdef XXX
-  AliHLTTPCCAEndPoint &p2 = ID2Point( track.PointID()[1] );
-  const AliHLTTPCCAHit &c0 = ID2Hit( fTrackHits[p0.TrackHitID()].HitID() );
-  const AliHLTTPCCAHit &c1 = ID2Hit( fTrackHits[track.HitID()[1]].HitID() );
-  const AliHLTTPCCAHit &c2 = ID2Hit( fTrackHits[p2.TrackHitID()].HitID() );
-  const AliHLTTPCCARow &row0 = ID2Row( fTrackHits[p0.TrackHitID()].HitID() );
-  const AliHLTTPCCARow &row1 = ID2Row( fTrackHits[track.HitID()[1]].HitID() );
-  const AliHLTTPCCARow &row2 = ID2Row( fTrackHits[p2.TrackHitID()].HitID() );
-  float sp0[5] = {row0.X(), c0.Y(), c0.Z(), c0.ErrY(), c0.ErrZ() };
-  float sp1[5] = {row1.X(), c1.Y(), c1.Z(), c1.ErrY(), c1.ErrZ() };
-  float sp2[5] = {row2.X(), c2.Y(), c2.Z(), c2.ErrY(), c2.ErrZ() };
-  //std::cout<<"Fit track, points ="<<sp0[0]<<" "<<sp0[1]<<" / "<<sp1[0]<<" "<<sp1[1]<<" / "<<sp2[0]<<" "<<sp2[1]<<std::endl;
-  if ( track.NHits() >= 3 ) {
-    p0.Param().ConstructXYZ3( sp0, sp1, sp2, p0.Param().CosPhi(), t0 );
-    p2.Param().ConstructXYZ3( sp2, sp1, sp0, p2.Param().CosPhi(), t0 );
-    //p2.Param() = p0.Param();
-    //p2.Param().TransportToX(row2.X());
-    //p2.Param().Par()[1] = -p2.Param().Par()[1];
-    //p2.Param().Par()[4] = -p2.Param().Par()[4];
-  } else {
-    p0.Param().X() = row0.X();
-    p0.Param().Y() = c0.Y();
-    p0.Param().Z() = c0.Z();
-    p0.Param().Err2Y() = c0.ErrY() * c0.ErrY();
-    p0.Param().Err2Z() = c0.ErrZ() * c0.ErrZ();
-    p2.Param().X() = row2.X();
-    p2.Param().Y() = c2.Y();
-    p2.Param().Z() = c2.Z();
-    p2.Param().Err2Y() = c2.ErrY() * c2.ErrY();
-    p2.Param().Err2Z() = c2.ErrZ() * c2.ErrZ();
-  }
+	AliHLTTPCCAEndPoint &p2 = ID2Point( track.PointID()[1] );
+	const AliHLTTPCCAHit &c0 = ID2Hit( fTrackHits[p0.TrackHitID()].HitID() );
+	const AliHLTTPCCAHit &c1 = ID2Hit( fTrackHits[track.HitID()[1]].HitID() );
+	const AliHLTTPCCAHit &c2 = ID2Hit( fTrackHits[p2.TrackHitID()].HitID() );
+	const AliHLTTPCCARow &row0 = ID2Row( fTrackHits[p0.TrackHitID()].HitID() );
+	const AliHLTTPCCARow &row1 = ID2Row( fTrackHits[track.HitID()[1]].HitID() );
+	const AliHLTTPCCARow &row2 = ID2Row( fTrackHits[p2.TrackHitID()].HitID() );
+	float sp0[5] = {row0.X(), c0.Y(), c0.Z(), c0.ErrY(), c0.ErrZ() };
+	float sp1[5] = {row1.X(), c1.Y(), c1.Z(), c1.ErrY(), c1.ErrZ() };
+	float sp2[5] = {row2.X(), c2.Y(), c2.Z(), c2.ErrY(), c2.ErrZ() };
+	//std::cout<<"Fit track, points ="<<sp0[0]<<" "<<sp0[1]<<" / "<<sp1[0]<<" "<<sp1[1]<<" / "<<sp2[0]<<" "<<sp2[1]<<std::endl;
+	if ( track.NHits() >= 3 ) {
+		p0.Param().ConstructXYZ3( sp0, sp1, sp2, p0.Param().CosPhi(), t0 );
+		p2.Param().ConstructXYZ3( sp2, sp1, sp0, p2.Param().CosPhi(), t0 );
+		//p2.Param() = p0.Param();
+		//p2.Param().TransportToX(row2.X());
+		//p2.Param().Par()[1] = -p2.Param().Par()[1];
+		//p2.Param().Par()[4] = -p2.Param().Par()[4];
+	} else {
+		p0.Param().X() = row0.X();
+		p0.Param().Y() = c0.Y();
+		p0.Param().Z() = c0.Z();
+		p0.Param().Err2Y() = c0.ErrY() * c0.ErrY();
+		p0.Param().Err2Z() = c0.ErrZ() * c0.ErrZ();
+		p2.Param().X() = row2.X();
+		p2.Param().Y() = c2.Y();
+		p2.Param().Z() = c2.Z();
+		p2.Param().Err2Y() = c2.ErrY() * c2.ErrY();
+		p2.Param().Err2Z() = c2.ErrZ() * c2.ErrZ();
+	}
 #endif
 }
 
 
 GPUdi() void AliHLTTPCCATracker::GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
 {
-  //
-  // Use calibrated cluster error from OCDB
-  //
+	//
+	// Use calibrated cluster error from OCDB
+	//
 
-  fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
-  Err2Y*=fParam.ClusterError2CorrectionY();
-  Err2Z*=fParam.ClusterError2CorrectionZ();
+	fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
+	Err2Y*=fParam.ClusterError2CorrectionY();
+	Err2Z*=fParam.ClusterError2CorrectionZ();
 }
 
 GPUdi() void AliHLTTPCCATracker::GetErrors2( int iRow, const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const
 {
-  //
-  // Use calibrated cluster error from OCDB
-  //
+	//
+	// Use calibrated cluster error from OCDB
+	//
 
-  fParam.GetClusterErrors2( iRow, t.GetZ(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), Err2Y, Err2Z );
+	fParam.GetClusterErrors2( iRow, t.GetZ(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), Err2Y, Err2Z );
 }
 
 
@@ -875,38 +878,38 @@ GPUdi() void AliHLTTPCCATracker::GetErrors2( int iRow, const AliHLTTPCCATrackPar
 
 GPUh() void AliHLTTPCCATracker::WriteEvent( std::ostream &out )
 {
-  // write event to the file
-  for ( int iRow = 0; iRow < fParam.NRows(); iRow++ ) {
-    out << fData.Row( iRow ).HitNumberOffset() << " " << fData.Row( iRow ).NHits() << std::endl;
-  }
-  out << NHitsTotal() << std::endl;
+	// write event to the file
+	for ( int iRow = 0; iRow < fParam.NRows(); iRow++ ) {
+		out << fData.Row( iRow ).HitNumberOffset() << " " << fData.Row( iRow ).NHits() << std::endl;
+	}
+	out << NHitsTotal() << std::endl;
 
-  AliHLTResizableArray<float> y( NHitsTotal() ), z( NHitsTotal() );
+	AliHLTResizableArray<float> y( NHitsTotal() ), z( NHitsTotal() );
 
-  for ( int iRow = 0; iRow < fParam.NRows(); iRow++ ) {
-    const AliHLTTPCCARow &row = Row( iRow );
-    float y0 = row.Grid().YMin();
-    float z0 = row.Grid().ZMin();
-    float stepY = row.HstepY();
-    float stepZ = row.HstepZ();
-    for ( int ih = 0; ih < fData.Row( iRow ).NHits(); ih++ ) {
-      int id = HitInputID( row, ih );
-      y[id] = y0 + HitDataY( row, ih ) * stepY;
-      z[id] = z0 + HitDataZ( row, ih ) * stepZ;
-    }
-  }
-  for ( int ih = 0; ih < NHitsTotal(); ih++ ) {
-    out << y[ih] << " " << z[ih] << std::endl;
-  }
+	for ( int iRow = 0; iRow < fParam.NRows(); iRow++ ) {
+		const AliHLTTPCCARow &row = Row( iRow );
+		float y0 = row.Grid().YMin();
+		float z0 = row.Grid().ZMin();
+		float stepY = row.HstepY();
+		float stepZ = row.HstepZ();
+		for ( int ih = 0; ih < fData.Row( iRow ).NHits(); ih++ ) {
+			int id = HitInputID( row, ih );
+			y[id] = y0 + HitDataY( row, ih ) * stepY;
+			z[id] = z0 + HitDataZ( row, ih ) * stepZ;
+		}
+	}
+	for ( int ih = 0; ih < NHitsTotal(); ih++ ) {
+		out << y[ih] << " " << z[ih] << std::endl;
+	}
 }
 
 GPUh() void AliHLTTPCCATracker::WriteTracks( std::ostream &/*out*/ )
 {
-  //* Write tracks to file --- dummy
+	//* Write tracks to file --- dummy
 }
 
 GPUh() void AliHLTTPCCATracker::ReadTracks( std::istream &/*in*/ )
 {
-  //* Read tracks  from file -- dummy
+	//* Read tracks  from file -- dummy
 }
 #endif

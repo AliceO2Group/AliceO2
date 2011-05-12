@@ -90,6 +90,7 @@ class AliHLTTPCCATracker
   struct StructGPUParameters
   {
     StructGPUParameters() : fScheduleFirstDynamicTracklet( 0 ), fGPUError( 0 ) {}
+	int fNextTracklet;						//Next Tracklet to process
     int fScheduleFirstDynamicTracklet;		//Last Tracklet with fixed position in sheduling
     int fGPUError;							//Signalizes error on GPU during GPU Reconstruction, kind of return value
   };
