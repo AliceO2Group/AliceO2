@@ -17,7 +17,7 @@
 //                                                                          *
 //***************************************************************************
 
-#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 18
+#define HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT 36
 #define FERMI
 #include "AliHLTTPCCAGPUTrackerNVCC.h"
 
@@ -281,7 +281,10 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		if (fDebugLevel >= 4) printf("Obtained current memory usage for device %d\n", i);
 		if (CudaFailedMsg(cudaGetDeviceProperties(&fCudaDeviceProp, i))) continue;
 		if (fDebugLevel >= 4) printf("Obtained device properties for device %d\n", i);
-		int deviceOK = /* sliceCount <= fCudaDeviceProp.multiProcessorCount && */ fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < reqVerMaj || (fCudaDeviceProp.major == reqVerMaj && fCudaDeviceProp.minor < reqVerMin)) && free >= fGPUMemSize + 100 * 1024 + 1024;
+		int deviceOK = fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < reqVerMaj || (fCudaDeviceProp.major == reqVerMaj && fCudaDeviceProp.minor < reqVerMin)) && free >= fGPUMemSize + 100 * 1024 + 1024;
+#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
+		if (sliceCount > fCudaDeviceProp.multiProcessorCount * HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER) deviceOK = 0;
+#endif
 
 		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, (long long int) free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
 		deviceSpeed = (long long int) fCudaDeviceProp.multiProcessorCount * (long long int) fCudaDeviceProp.clockRate * (long long int) fCudaDeviceProp.warpSize * (long long int) free * (long long int) fCudaDeviceProp.major * (long long int) fCudaDeviceProp.major;
@@ -564,7 +567,7 @@ void AliHLTTPCCAGPUTrackerNVCC::StandalonePerfTime(int iSlice, int i)
 void AliHLTTPCCAGPUTrackerNVCC::StandalonePerfTime(int /*iSlice*/, int /*i*/) {}
 #endif
 
-#ifdef BITWISE_COMPATIBLE_DEBUG_OUTPUT
+#if defined(BITWISE_COMPATIBLE_DEBUG_OUTPUT) || defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER)
 void AliHLTTPCCAGPUTrackerNVCC::DumpRowBlocks(AliHLTTPCCATracker*, int, bool) {}
 #else
 void AliHLTTPCCAGPUTrackerNVCC::DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check)
@@ -572,7 +575,7 @@ void AliHLTTPCCAGPUTrackerNVCC::DumpRowBlocks(AliHLTTPCCATracker* tracker, int i
 	//Dump Rowblocks to File
 	if (fDebugLevel >= 4)
 	{
-		*fOutFile << "RowBlock Tracklets (Slice " << tracker[iSlice].Param().ISlice() << " (" << iSlice << " of reco))";
+		*fOutFile << "RowBlock Tracklets (Slice" << tracker[iSlice].Param().ISlice() << " (" << iSlice << " of reco))";
 		*fOutFile << " after Tracklet Reconstruction";
 		*fOutFile << std::endl;
 
@@ -615,7 +618,7 @@ void AliHLTTPCCAGPUTrackerNVCC::DumpRowBlocks(AliHLTTPCCATracker* tracker, int i
 
 		if (check)
 		{
-			*fOutFile << "Starting Threads: (First Dynamic: " << tracker[iSlice].GPUParameters()->fScheduleFirstDynamicTracklet << ")" << std::endl;
+			*fOutFile << "Starting Threads: (Slice" << tracker[iSlice].Param().ISlice() << ", First Dynamic: " << tracker[iSlice].GPUParameters()->fScheduleFirstDynamicTracklet << ")" << std::endl;
 			for (int i = 0;i < fConstructorBlockCount;i++)
 			{
 				*fOutFile << i << ": " << blockStartingTracklet[i].x << " - " << blockStartingTracklet[i].y << std::endl;
@@ -797,11 +800,12 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		*fSlaveTrackers[firstSlice + iSlice].NTracklets() = 0;
 		*fSlaveTrackers[firstSlice + iSlice].NTracks() = 0;
 		*fSlaveTrackers[firstSlice + iSlice].NTrackHits() = 0;
-		fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount = fConstructorBlockCount * (iSlice + 1) / sliceCountLocal - fConstructorBlockCount * (iSlice) / sliceCountLocal;
+		fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount = sliceCountLocal > fConstructorBlockCount ? (iSlice < fConstructorBlockCount) : fConstructorBlockCount * (iSlice + 1) / sliceCountLocal - fConstructorBlockCount * (iSlice) / sliceCountLocal;
 		if (fDebugLevel >= 3) HLTInfo("Blocks for Slice %d: %d", iSlice, fGpuTracker[iSlice].GPUParametersConst()->fGPUFixedBlockCount);
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUnSlices = sliceCountLocal;
 		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError = 0;
+		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fNextTracklet = 0;
 		fGpuTracker[iSlice].SetGPUTextureBase(fGpuTracker[0].Data().Memory());
 	}
 
@@ -989,7 +993,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 			}
 		}
 
-		if (fDebugLevel >= 4)
+		if (fDebugLevel >= 4 && *fSlaveTrackers[firstSlice + iSlice].NTracklets())
 		{
 #ifndef BITWISE_COMPATIBLE_DEBUG_OUTPUT
 			CudaFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + iSlice].TrackletStartHits(), fGpuTracker[iSlice].TrackletTmpStartHits(), pClusterData[iSlice].NumberOfClusters() * sizeof(AliHLTTPCCAHitId), cudaMemcpyDeviceToHost));
@@ -1003,7 +1007,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 			if (fDebugMask & 16)
 			{
 				*fOutFile << "Start Hits Sort Vector:" << std::endl;
-				for (int i = 0;i < fSlaveTrackers[firstSlice + iSlice].Param().NRows();i++)
+				for (int i = 1;i < fSlaveTrackers[firstSlice + iSlice].Param().NRows() - 5;i++)
 				{
 					*fOutFile << "Row: " << i << ", Len: " << tmpMemory[i].x << ", Offset: " << tmpMemory[i].y << ", New Offset: " << tmpMemory[i].z << std::endl;
 				}
@@ -1027,6 +1031,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 	StandalonePerfTime(firstSlice, 7);
 
+#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
 	int nHardCollisions = 0;
 
 RestartTrackletConstructor:
@@ -1041,6 +1046,7 @@ RestartTrackletConstructor:
 		}
 		if (fDebugMask & 64) DumpRowBlocks(&fSlaveTrackers[firstSlice], iSlice);
 	}
+#endif
 
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Tracklet Constructor");
 	AliHLTTPCCATrackletConstructorGPU<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR>>>();
@@ -1064,7 +1070,7 @@ RestartTrackletConstructor:
 			}
 			CudaFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + iSlice].TrackletMemory(), fGpuTracker[iSlice].TrackletMemory(), fGpuTracker[iSlice].TrackletMemorySize(), cudaMemcpyDeviceToHost));
 			CudaFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice + iSlice].HitMemory(), fGpuTracker[iSlice].HitMemory(), fGpuTracker[iSlice].HitMemorySize(), cudaMemcpyDeviceToHost));
-			if (fSlaveTrackers[firstSlice + iSlice].NTracklets() && fSlaveTrackers[firstSlice + iSlice].Tracklet(0).NHits() < 0)
+			if (0 && fSlaveTrackers[firstSlice + iSlice].NTracklets() && fSlaveTrackers[firstSlice + iSlice].Tracklet(0).NHits() < 0)
 			{
 				printf("INTERNAL ERROR\n");
 				return(1);
@@ -1132,16 +1138,18 @@ RestartTrackletConstructor:
 
 		if (fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError)
 		{
+#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
 			if ((fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError == HLTCA_GPU_ERROR_SCHEDULE_COLLISION || fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError == HLTCA_GPU_ERROR_WRONG_ROW)&& nHardCollisions++ < 10)
 			{
 				if (fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError == HLTCA_GPU_ERROR_SCHEDULE_COLLISION)
 				{
-					HLTWarning("Hard scheduling collision occured, rerunning Tracklet Constructor");
+					HLTWarning("Hard scheduling collision occured, rerunning Tracklet Constructor (Slice %d)", firstSlice + iSlice);
 				}
 				else
 				{
-					HLTWarning("Tracklet Constructor returned invalid row");
+					HLTWarning("Tracklet Constructor returned invalid row (Slice %d)", firstSlice + iSlice);
 				}
+				if (fDebugLevel >= 4) return(1);
 				for (int i = 0;i < sliceCountLocal;i++)
 				{
 					cudaThreadSynchronize();
@@ -1154,6 +1162,7 @@ RestartTrackletConstructor:
 				}
 				goto RestartTrackletConstructor;
 			}
+#endif
 			HLTError("GPU Tracker returned Error Code %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError);
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
 			return(1);

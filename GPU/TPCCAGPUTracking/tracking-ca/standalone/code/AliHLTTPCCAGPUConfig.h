@@ -21,6 +21,8 @@
 #define HLTCA_GPU_THREAD_COUNT_FINDER 256
 #endif
 
+#define GLTCA_GPU_HELPER_THREADS 0						//Number of helper threads to speed up initialization/output
+
 //GPU Parameters
 #define HLTCA_GPU_WARP_SIZE 32
 #define HLTCA_GPU_REGS 64
@@ -36,7 +38,9 @@
 #define HLTCA_GPU_SCHED_ROW_STEP 32						//Amount of Rows to process in one step before rescheduling
 #define HLTCA_GPU_SCHED_FIXED_START						//Assign each GPU thread a start tracklet to start with instead of using the scheduler to obtain start tracklet
 //#define HLTCA_GPU_SCHED_FIXED_SLICE					//Make each Multiprocessor on GPU work only on a single slice during tracklet construction
-#define HLTCA_GPU_RESCHED								//Use dynamic tracklet scheduling
+//#define HLTCA_GPU_RESCHED								//Use dynamic tracklet scheduling
+
+#define HLTCA_GPU_ALTERNATIVE_SCHEDULER					//Use alternative scheduling algorithm (makes upper 4 options obsolete)
 
 #ifndef FERMI
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
@@ -45,7 +49,7 @@
 
 //#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define HLTCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
-//#define BITWISE_COMPATIBLE_DEBUG_OUTPUT					//Make Debug Output of CPU and GPU bitwise compatible for comparison, also enable SORT_DUMPDATA!
+#define BITWISE_COMPATIBLE_DEBUG_OUTPUT					//Make Debug Output of CPU and GPU bitwise compatible for comparison, also enable SORT_DUMPDATA!
 #define HLTCA_GPU_SORT_DUMPDATA							//Sort Start Hits etc before dumping to file
 
 #define HLTCA_GPU_TRACKLET_SELECTOR_HITS_REG_SIZE 12
