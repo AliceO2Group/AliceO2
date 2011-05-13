@@ -1166,7 +1166,7 @@ RestartTrackletConstructor:
 				goto RestartTrackletConstructor;
 			}
 #endif
-			HLTError("GPU Tracker returned Error Code %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError);
+			HLTError("GPU Tracker returned Error Code %d in slice %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice);
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
 			return(1);
 		}
