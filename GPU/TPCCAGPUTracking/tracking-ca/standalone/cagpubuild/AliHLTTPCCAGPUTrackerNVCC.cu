@@ -635,16 +635,19 @@ void AliHLTTPCCAGPUTrackerNVCC::DumpRowBlocks(AliHLTTPCCATracker* tracker, int i
 __global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTracklets, int* const SliceDataHitWeights, int nSliceDataHits)
 {
 	//Initialize GPU RowBlocks and HitWeights
-	int4* const rowBlockTracklets4 = (int4*) RowBlockTracklets;
 	int4* const sliceDataHitWeights4 = (int4*) SliceDataHitWeights;
 	const int stride = blockDim.x * gridDim.x;
-	int4 i0, i1;
+	int4 i0;
 	i0.x = i0.y = i0.z = i0.w = 0;
+#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
+	int4* const rowBlockTracklets4 = (int4*) RowBlockTracklets;
+	int4 i1;
 	i1.x = i1.y = i1.z = i1.w = -1;
 	for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < sizeof(int4) * 2 * (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1) / sizeof(int4);i += stride)
 		RowBlockPos[i] = i0;
 	for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < sizeof(int) * (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1) * HLTCA_GPU_MAX_TRACKLETS * 2 / sizeof(int4);i += stride)
 		rowBlockTracklets4[i] = i1;
+#endif
 	for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < nSliceDataHits * sizeof(int) / sizeof(int4);i += stride)
 		sliceDataHitWeights4[i] = i0;
 }
@@ -805,7 +808,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUiSlice = iSlice;
 		fGpuTracker[iSlice].GPUParametersConst()->fGPUnSlices = sliceCountLocal;
 		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError = 0;
-		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fNextTracklet = 0;
+		fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fNextTracklet = (fConstructorBlockCount / sliceCountLocal + (fConstructorBlockCount % sliceCountLocal > iSlice)) * HLTCA_GPU_THREAD_COUNT;
 		fGpuTracker[iSlice].SetGPUTextureBase(fGpuTracker[0].Data().Memory());
 	}
 
