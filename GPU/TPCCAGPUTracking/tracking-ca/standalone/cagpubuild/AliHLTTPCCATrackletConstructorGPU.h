@@ -444,14 +444,26 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tr
 		{
 			if (tracker.GPUParameters()->fNextTracklet < nTracklets)
 			{
-				const int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->fNextTracklet, HLTCA_GPU_THREAD_COUNT);
+				const int firstTracklet = /*sMem.fNextTrackletCount != HLTCA_GPU_THREAD_COUNT ? -1 :*/ CAMath::AtomicAdd(&tracker.GPUParameters()->fNextTracklet, sMem.fNextTrackletCount);
 				if (firstTracklet < nTracklets) sMem.fNextTrackletFirst = firstTracklet;
-				else sMem.fNextTrackletFirst = -2;
+				else sMem.fNextTrackletFirst = -1;
 			}
 			else
 			{
-				sMem.fNextTrackletFirst = -2;
+				sMem.fNextTrackletFirst = -1;
 			}
+		}
+	}
+	if (threadIdx.x == 0)
+	{
+		if (sMem.fNextTrackletFirst == -1 && sMem.fNextTrackletCount == HLTCA_GPU_THREAD_COUNT)
+		{
+			sMem.fNextTrackletFirst = -2;
+			sMem.fNextTrackletCount = HLTCA_GPU_THREAD_COUNT;
+		}
+		else
+		{
+			sMem.fNextTrackletCount = 0;
 		}
 	}
 	__syncthreads();
@@ -485,7 +497,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 		AliHLTTPCCAThreadMemory rMem;
 
 		int tmpTracklet;
-		while (keepTracklet || (tmpTracklet = FetchTracklet(tracker, sMem)) != -2)
+		while ((tmpTracklet = FetchTracklet(tracker, sMem)) != -2)
 		{
 			if (!keepTracklet)
 			{
@@ -513,60 +525,64 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 				currentSlice = iSlice;
 			}
 
-			if (keepTracklet) {}
-			else if (iTracklet < sMem.fNTracklets)
+			if (iTracklet >= 0)
 			{
-				AliHLTTPCCAHitId id = tracker.TrackletStartHits()[iTracklet];
-
-				rMem.fStartRow = rMem.fEndRow = rMem.fFirstRow = rMem.fLastRow = id.RowIndex();
-				rMem.fCurrIH = id.HitIndex();
-				rMem.fStage = 0;
-				rMem.fNHits = 0;
-				rMem.fNMissed = 0;
-
-				AliHLTTPCCATrackletConstructor::InitTracklet(tParam);
-
-				rMem.fItr = iTracklet;
-				rMem.fGo = 1;
-
-				keepTracklet = 1;
-
-				iRowStart = rMem.fStartRow;
-				iRowEnd = tracker.Param().NRows();
-				iRowIncrement = 1;
-				iPhase = 0;
-			}
-			else
-			{
-				rMem.fGo = 0;
-				rMem.fStartRow = rMem.fEndRow = 0;
-				iRowStart = iRowEnd = 0;
-				keepTracklet = 1;////
-				iPhase = 0;////
-			}
-
-			for (int j = iRowStart;j != iRowEnd;j+=iRowIncrement)
-			{
-				UpdateTracklet(1, 1, 0, iTracklet, sMem, rMem, tracker, tParam, j);
-			}
-
-			if (iPhase)
-			{
-				if (iTracklet < sMem.fNTracklets)
+				if (keepTracklet) {}
+				else if (iTracklet < sMem.fNTracklets)
 				{
-					StoreTracklet( 1, 1, 0, iTracklet, sMem, rMem, tracker, tParam );
+					AliHLTTPCCAHitId id = tracker.TrackletStartHits()[iTracklet];
+
+					rMem.fStartRow = rMem.fEndRow = rMem.fFirstRow = rMem.fLastRow = id.RowIndex();
+					rMem.fCurrIH = id.HitIndex();
+					rMem.fStage = 0;
+					rMem.fNHits = 0;
+					rMem.fNMissed = 0;
+
+					AliHLTTPCCATrackletConstructor::InitTracklet(tParam);
+
+					rMem.fItr = iTracklet;
+					rMem.fGo = 1;
+
+					keepTracklet = 1;
+
+					iRowStart = rMem.fStartRow;
+					iRowEnd = tracker.Param().NRows();
+					iRowIncrement = 1;
+					iPhase = 0;
 				}
-				keepTracklet = 0;
+				else
+				{
+					rMem.fGo = 0;
+					rMem.fStartRow = rMem.fEndRow = 0;
+					iRowStart = iRowEnd = 0;
+				}
+
+				for (int j = iRowStart;j != iRowEnd;j+=iRowIncrement)
+				{
+					UpdateTracklet(1, 1, 0, iTracklet, sMem, rMem, tracker, tParam, j);
+				}
+
+				if (iPhase)
+				{
+					rMem.fGo = 0;
+				}
+				else
+				{
+					rMem.fNMissed = 0;
+					rMem.fStage = 2;
+					if (rMem.fGo) if (!tParam.TransportToX( tracker.Row( rMem.fEndRow ).X(), tracker.Param().ConstBz(), .999)) rMem.fGo = 0;
+					iRowStart = rMem.fEndRow;
+					iRowEnd = -1;
+					iRowIncrement = -1;
+					iPhase = 1;
+				}
 			}
-			else
+
+			if (!rMem.fGo)
 			{
-				rMem.fNMissed = 0;
-				rMem.fStage = 2;
-				if (rMem.fGo) if (!tParam.TransportToX( tracker.Row( rMem.fEndRow ).X(), tracker.Param().ConstBz(), .999)) rMem.fGo = 0;
-				iRowStart = rMem.fEndRow;
-				iRowEnd = -1;
-				iRowIncrement = -1;
-				iPhase = 1;
+				if (iTracklet < sMem.fNTracklets && iTracklet >= 0) StoreTracklet( 1, 1, 0, iTracklet, sMem, rMem, tracker, tParam );
+				keepTracklet = 0;
+				iNextLocalTracklet = CAMath::AtomicAdd(&sMem.fNextTrackletCount, 1);
 			}
 		}
 	}
