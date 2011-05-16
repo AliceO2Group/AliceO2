@@ -444,7 +444,7 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tr
 	{
 		if (threadIdx.x == 0)
 		{
-			if (tracker.GPUParameters()->fNextTracklet < nTracklets || sMem.fNextTrackletCount < HLTCA_GPU_THREAD_COUNT * HLTCA_GPU_ALTSCHED_MINRATIO)
+			if (tracker.GPUParameters()->fNextTracklet >= nTracklets || sMem.fNextTrackletCount < HLTCA_GPU_THREAD_COUNT * HLTCA_GPU_ALTSCHED_MINRATIO)
 			{
 				sMem.fNextTrackletFirst = -1;
 			}
