@@ -432,17 +432,15 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tr
 	const int nativeslice = blockIdx.x % tracker.GPUParametersConst()->fGPUnSlices;
 	const int nTracklets = *tracker.NTracklets();
 	__syncthreads();
-	if (sMem.fNextTrackletFirstRun == 1)
+	if (threadIdx.x == 0)
 	{
-		if (threadIdx.x == 0)
+		if (sMem.fNextTrackletFirstRun == 1)
 		{
 			sMem.fNextTrackletFirst = (blockIdx.x - nativeslice) / tracker.GPUParametersConst()->fGPUnSlices * HLTCA_GPU_THREAD_COUNT;
 			sMem.fNextTrackletFirstRun = 0;
+			sMem.fNextTrackletCount = HLTCA_GPU_THREAD_COUNT;
 		}
-	}
-	else
-	{
-		if (threadIdx.x == 0)
+		else
 		{
 			if (tracker.GPUParameters()->fNextTracklet >= nTracklets || sMem.fNextTrackletCount < HLTCA_GPU_THREAD_COUNT * HLTCA_GPU_ALTSCHED_MINRATIO)
 			{
@@ -461,17 +459,22 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tr
 				}
 			}
 		}
-	}
-	if (threadIdx.x == 0)
-	{
+
 		if (sMem.fNextTrackletFirst == -1 && sMem.fNextTrackletCount == HLTCA_GPU_THREAD_COUNT)
 		{
 			sMem.fNextTrackletFirst = -2;
 			sMem.fNextTrackletCount = HLTCA_GPU_THREAD_COUNT;
 		}
-		else
+		else if (sMem.fNextTrackletFirst >= 0)
 		{
-			sMem.fNextTrackletCount = 0;
+			if (sMem.fNextTrackletFirst + sMem.fNextTrackletCount >= nTracklets)
+			{
+				sMem.fNextTrackletCount = sMem.fNextTrackletFirst + sMem.fNextTrackletCount - nTracklets;
+			}
+			else
+			{
+				sMem.fNextTrackletCount = 0;
+			}
 		}
 	}
 	__syncthreads();
@@ -494,9 +497,6 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 	for (int iSlice = 0;iSlice < nSlices;iSlice++)
 	{
 		AliHLTTPCCATracker &tracker = pTracker[(nativeslice + iSlice) % nSlices];
-		int iTracklet;
-		int keepTracklet = 0;
-		int iPhase = 0;
 
 		int iRow, iRowEnd, iRowIncrement;
 
@@ -504,6 +504,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 
 		AliHLTTPCCATrackParam tParam;
 		AliHLTTPCCAThreadMemory rMem;
+		rMem.fItr = -1;
 
 		int tmpTracklet;
 		while ((tmpTracklet = FetchTracklet(tracker, sMem)) != -2)
@@ -520,17 +521,16 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 				__syncthreads();
 			}
 
-			if (!keepTracklet)
+			if (rMem.fItr < 0)
 			{
-				iTracklet = tmpTracklet >= 0 ? tmpTracklet + iNextLocalTracklet : -1;
-				if (iTracklet >= sMem.fNTracklets) iTracklet = -1;
-			}
-
-			if (iTracklet >= 0)
-			{
-				if (!keepTracklet)
+				rMem.fItr = tmpTracklet >= 0 ? tmpTracklet + iNextLocalTracklet : -1;
+				if (rMem.fItr >= sMem.fNTracklets)
 				{
-					AliHLTTPCCAHitId id = tracker.TrackletStartHits()[iTracklet];
+					rMem.fItr = -1;
+				}
+				else
+				{
+					AliHLTTPCCAHitId id = tracker.TrackletStartHits()[rMem.fItr];
 
 					rMem.fStartRow = rMem.fEndRow = rMem.fFirstRow = rMem.fLastRow = id.RowIndex();
 					rMem.fCurrIH = id.HitIndex();
@@ -540,50 +540,44 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 
 					AliHLTTPCCATrackletConstructor::InitTracklet(tParam);
 
-					rMem.fItr = iTracklet;
 					rMem.fGo = 1;
-
-					keepTracklet = 1;
 
 					iRow = rMem.fStartRow;
 					iRowEnd = tracker.Param().NRows();
 					iRowIncrement = 1;
-					iPhase = 0;
 				}
+			}
 
+			if (rMem.fItr >= 0)
+			{
 				for (int j = 0;j < HLTCA_GPU_ALTSCHED_STEPSIZE && iRow != iRowEnd;j++,iRow += iRowIncrement)
 				{
-					UpdateTracklet(1, 1, 0, iTracklet, sMem, rMem, tracker, tParam, iRow);
+					UpdateTracklet(gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, sMem, rMem, tracker, tParam, iRow);
 				}
 
 				if (iRow == iRowEnd)
 				{
-					if (iPhase)
+					if (rMem.fStage >= 2)
 					{
 						rMem.fGo = 0;
 					}
-					else
+					else if (rMem.fGo)
 					{
 						rMem.fNMissed = 0;
 						rMem.fStage = 2;
-						if (rMem.fGo) if (!tParam.TransportToX( tracker.Row( rMem.fEndRow ).X(), tracker.Param().ConstBz(), .999)) rMem.fGo = 0;
+						if (!tParam.TransportToX( tracker.Row( rMem.fEndRow ).X(), tracker.Param().ConstBz(), .999)) rMem.fGo = 0;
 						iRow = rMem.fEndRow;
 						iRowEnd = -1;
 						iRowIncrement = -1;
-						iPhase = 1;
 					}
 				}
-			}
-			else
-			{
-				rMem.fGo = 0;
-			}
 
-			if (!rMem.fGo)
-			{
-				if (iTracklet < sMem.fNTracklets && iTracklet >= 0) StoreTracklet( 1, 1, 0, iTracklet, sMem, rMem, tracker, tParam );
-				keepTracklet = 0;
-				iNextLocalTracklet = CAMath::AtomicAdd(&sMem.fNextTrackletCount, 1);
+				if (!rMem.fGo)
+				{
+					StoreTracklet( gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, sMem, rMem, tracker, tParam );
+					rMem.fItr = -1;
+					iNextLocalTracklet = CAMath::AtomicAdd(&sMem.fNextTrackletCount, 1);
+				}
 			}
 		}
 	}
