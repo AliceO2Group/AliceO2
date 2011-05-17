@@ -56,7 +56,7 @@ class AliHLTTPCCATrackletConstructor
         int fNMissed; // n missed hits during search
         float fLastY; // Y of the last fitted cluster
         float fLastZ; // Z of the last fitted cluster
-#ifdef HLTCA_GPU_ALTERNATIVE_SCHEDULER
+#if defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER)
 		int fIRow; //current row for alt sched
 		int fIRowEnd; //last row for current alt sched iteration
 #endif
