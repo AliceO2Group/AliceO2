@@ -43,6 +43,7 @@ class AliHLTTPCCATrackletConstructor
 #endif //!HLTCA_GPUCODE
 
       protected:
+		  //WARNING: This data is copied element by element in CopyTrackletTempData. Changes to members of this class must be reflected in CopyTrackletTempData!!!
         int fItr; // track index
         int fFirstRow;  // first row index
         int fLastRow; // last row index
@@ -75,14 +76,18 @@ class AliHLTTPCCATrackletConstructor
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
 			: fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletFirstRun(0), fNTracklets(0) {
+#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
 	  for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
 	  for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
+#endif
 	}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
 	  : fNextTrackletFirst(0), fNextTrackletCount(0), fNextTrackletFirstRun(0), fNTracklets(0) {
+#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
 	  for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
 	  for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
+#endif
 	}
 
       AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
@@ -99,11 +104,10 @@ class AliHLTTPCCATrackletConstructor
 	  AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory swapMemory[HLTCA_GPU_ALTSCHED_MIN_THREADS]; //temporary swap space for scheduling
 #elif defined(HLTCA_GPU_RESCHED)
       int fNextTrackletStupidDummy; //Shared Dummy variable to access
-#endif
-      int fNTracklets; // Total number of tracklets
-
       int fStartRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1]; // start rows
       int fEndRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1]; // end rows
+#endif
+      int fNTracklets; // Total number of tracklets
 
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
       int fMaxSync; //temporary shared variable during profile creation
