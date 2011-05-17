@@ -526,6 +526,14 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 		sMem.fNextTrackletFirstRun = 1;
 	}
 
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+	if (threadIdx.x == 0)
+	{
+		sMem.fMaxSync = 0;
+	}
+	int threadSync = 0;
+#endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+
 	for (int iSlice = 0;iSlice < nSlices;iSlice++)
 	{
 		AliHLTTPCCATracker &tracker = pTracker[(nativeslice + iSlice) % nSlices];
@@ -537,6 +545,13 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 		int tmpTracklet;
 		while ((tmpTracklet = FetchTracklet(tracker, sMem, rMem, tParam)) != -2)
 		{
+
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+					CAMath::AtomicMax(&sMem.fMaxSync, threadSync);
+					__syncthreads();
+					threadSync = CAMath::Min(sMem.fMaxSync, 100000000 / blockDim.x / gridDim.x);
+#endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+
 			if (iSlice != currentSlice)
 			{
 				if (threadIdx.x == 0) sMem.fNTracklets = *tracker.NTracklets();
@@ -579,10 +594,22 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 			{
 				for (int j = 0;j < HLTCA_GPU_ALTSCHED_STEPSIZE && rMem.fIRow != rMem.fIRowEnd;j++,rMem.fIRow += rMem.fStage == 2 ? -1 : 1)
 				{
+#ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
+					if (rMem.fStage == 2)
+					{
+						if (rMem.fNMissed <= kMaxRowGap && rMem.fGo && !(rMem.fIRow >= rMem.fEndRow || ( rMem.fIRow >= rMem.fStartRow && rMem.fIRow - rMem.fStartRow % 2 == 0)))
+							pTracker[0].StageAtSync()[threadSync++ * blockDim.x * gridDim.x + blockIdx.x * blockDim.x + threadIdx.x] = rMem.fStage + 1;
+					}
+					else
+					{
+						if (rMem.fNMissed <= kMaxRowGap && rMem.fGo && rMem.fIRow >= rMem.fStartRow && (rMem.fStage > 0 || rMem.fCurrIH >= 0 || (rMem.fIRow - rMem.fStartRow) % 2 == 0 ))
+							pTracker[0].StageAtSync()[threadSync++ * blockDim.x * gridDim.x + blockIdx.x * blockDim.x + threadIdx.x] = rMem.fStage + 1;
+					}
+#endif //HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 					UpdateTracklet(gridDim.x, blockDim.x, blockIdx.x, threadIdx.x, sMem, rMem, tracker, tParam, rMem.fIRow);
 				}
 
-				if (rMem.fIRow == rMem.fIRowEnd)
+				if (rMem.fIRow == rMem.fIRowEnd || rMem.fNMissed > kMaxRowGap)
 				{
 					if (rMem.fStage >= 2)
 					{

@@ -1207,7 +1207,7 @@ RestartTrackletConstructor:
 	FILE* fp2 = fopen("profile.bmp", "w+b");
 	int nEmptySync = 0, fEmpty;
 
-	const int bmpheight = 2300;
+	const int bmpheight = 8192;
 	BITMAPFILEHEADER bmpFH;
 	BITMAPINFOHEADER bmpIH;
 	ZeroMemory(&bmpFH, sizeof(bmpFH));
