@@ -288,8 +288,10 @@ class AliHLTTPCCATracker
 private:
 	//Temporary Variables for Standalone measurements
 #ifdef HLTCA_STANDALONE
+public:
   char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
   char *fLinkTmpMemory;	//tmp memory for hits after neighbours finder
+private:
 #endif
   
   AliHLTTPCCAParam fParam; // parameters
