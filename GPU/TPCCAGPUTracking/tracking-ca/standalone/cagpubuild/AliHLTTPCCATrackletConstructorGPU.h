@@ -429,6 +429,156 @@ GPUg() void AliHLTTPCCATrackletConstructorInit(int iSlice)
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorInit(i, tracker);
 }
 
+#elif defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE)
+
+GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, AliHLTTPCCAThreadMemory& /*rMem*/, AliHLTTPCCATrackParam& /*tParam*/)
+{
+	const int nativeslice = blockIdx.x % tracker.GPUParametersConst()->fGPUnSlices;
+	const int nTracklets = *tracker.NTracklets();
+	__syncthreads();
+	if (sMem.fNextTrackletFirstRun == 1)
+	{
+		if (threadIdx.x == 0)
+		{
+			sMem.fNextTrackletFirst = (blockIdx.x - nativeslice) / tracker.GPUParametersConst()->fGPUnSlices * HLTCA_GPU_THREAD_COUNT;
+			sMem.fNextTrackletFirstRun = 0;
+		}
+	}
+	else
+	{
+		if (threadIdx.x == 0)
+		{
+			if (tracker.GPUParameters()->fNextTracklet < nTracklets)
+			{
+				const int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->fNextTracklet, HLTCA_GPU_THREAD_COUNT);
+				if (firstTracklet < nTracklets) sMem.fNextTrackletFirst = firstTracklet;
+				else sMem.fNextTrackletFirst = -2;
+			}
+			else
+			{
+				sMem.fNextTrackletFirst = -2;
+			}
+		}
+	}
+	__syncthreads();
+	return (sMem.fNextTrackletFirst);
+}
+
+GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(AliHLTTPCCATracker *pTracker)
+{
+	const int nSlices = pTracker[0].GPUParametersConst()->fGPUnSlices;
+	const int nativeslice = blockIdx.x % nSlices;
+	GPUshared() AliHLTTPCCASharedMemory sMem;
+	int currentSlice = -1;
+
+	if (threadIdx.x)
+	{
+		sMem.fNextTrackletFirstRun = 1;
+	}
+
+	for (int iSlice = 0;iSlice < nSlices;iSlice++)
+	{
+		AliHLTTPCCATracker &tracker = pTracker[(nativeslice + iSlice) % nSlices];
+		int iTracklet;
+		int keepTracklet = 0;
+		int iPhase = 0;
+
+		int iRowStart, iRowEnd, iRowIncrement;
+
+		int iNextLocalTracklet = threadIdx.x;
+
+		AliHLTTPCCATrackParam tParam;
+		AliHLTTPCCAThreadMemory rMem;
+
+		int tmpTracklet;
+		while (keepTracklet || (tmpTracklet = FetchTracklet(tracker, sMem, rMem, tParam)) != -2)
+		{
+			if (!keepTracklet)
+			{
+				if (tmpTracklet >= 0)
+				{
+					iTracklet = tmpTracklet + iNextLocalTracklet;
+				}
+				else
+				{
+					iTracklet = -1;
+				}
+			}
+
+			if (iSlice != currentSlice)
+			{
+				if (threadIdx.x == 0)
+				{
+					sMem.fNTracklets = *tracker.NTracklets();
+				}
+
+				for (int i = threadIdx.x;i < HLTCA_ROW_COUNT * sizeof(AliHLTTPCCARow) / sizeof(int);i += blockDim.x)
+				{
+					reinterpret_cast<int*>(&sMem.fRows)[i] = reinterpret_cast<int*>(tracker.SliceDataRows())[i];
+				}
+				currentSlice = iSlice;
+			}
+
+			if (keepTracklet) {}
+			else if (iTracklet < sMem.fNTracklets)
+			{
+				AliHLTTPCCAHitId id = tracker.TrackletStartHits()[iTracklet];
+
+				rMem.fStartRow = rMem.fEndRow = rMem.fFirstRow = rMem.fLastRow = id.RowIndex();
+				rMem.fCurrIH = id.HitIndex();
+				rMem.fStage = 0;
+				rMem.fNHits = 0;
+				rMem.fNMissed = 0;
+
+				AliHLTTPCCATrackletConstructor::InitTracklet(tParam);
+
+				rMem.fItr = iTracklet;
+				rMem.fGo = 1;
+
+				keepTracklet = 1;
+
+				iRowStart = rMem.fStartRow;
+				iRowEnd = tracker.Param().NRows();
+				iRowIncrement = 1;
+				iPhase = 0;
+			}
+			else
+			{
+				rMem.fGo = 0;
+				rMem.fStartRow = rMem.fEndRow = 0;
+				iRowStart = iRowEnd = 0;
+				keepTracklet = 1;////
+				iPhase = 0;////
+			}
+
+			for (int j = iRowStart;j != iRowEnd;j+=iRowIncrement)
+			{
+				UpdateTracklet(1, 1, 0, iTracklet, sMem, rMem, tracker, tParam, j);
+			}
+
+			if (iPhase)
+			{
+				if (iTracklet < sMem.fNTracklets)
+				{
+					StoreTracklet( 1, 1, 0, iTracklet, sMem, rMem, tracker, tParam );
+				}
+				keepTracklet = 0;
+			}
+			else
+			{
+				rMem.fNMissed = 0;
+				rMem.fStage = 2;
+				if (rMem.fGo) if (!tParam.TransportToX( tracker.Row( rMem.fEndRow ).X(), tracker.Param().ConstBz(), .999)) rMem.fGo = 0;
+				iRowStart = rMem.fEndRow;
+				iRowEnd = -1;
+				iRowIncrement = -1;
+				iPhase = 1;
+			}
+		}
+	}
+}
+ 
+
 #else //HLTCA_GPU_ALTERNATIVE_SCHEDULER
 
 GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(AliHLTTPCCATracker &tracker, AliHLTTPCCASharedMemory &sMem, AliHLTTPCCAThreadMemory &rMem, AliHLTTPCCATrackParam &tParam)

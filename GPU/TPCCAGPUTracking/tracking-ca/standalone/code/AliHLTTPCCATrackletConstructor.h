@@ -100,8 +100,10 @@ class AliHLTTPCCATrackletConstructor
       int fNextTrackletFirstRun; //First run for dynamic scheduler?
 	  //Use IFDEF to save GPU shared memory
 #ifdef HLTCA_GPU_ALTERNATIVE_SCHEDULER
+#ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE
 	  int fTrackletStorePos; //position in temporary storage
 	  AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory swapMemory[HLTCA_GPU_ALTSCHED_MIN_THREADS]; //temporary swap space for scheduling
+#endif
 #elif defined(HLTCA_GPU_RESCHED)
       int fNextTrackletStupidDummy; //Shared Dummy variable to access
       int fStartRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1]; // start rows

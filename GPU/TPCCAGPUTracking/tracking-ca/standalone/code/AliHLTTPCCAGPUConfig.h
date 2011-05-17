@@ -43,13 +43,14 @@
 #define HLTCA_GPU_ALTERNATIVE_SCHEDULER					//Use alternative scheduling algorithm (makes upper 4 options obsolete)
 #define HLTCA_GPU_ALTSCHED_STEPSIZE 160					//Number of rows to process in between of rescheduling
 #define HLTCA_GPU_ALTSCHED_MIN_THREADS 1				//Reschedule if less than n threads are active
+#define HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE			//Use simple version of alternative scheduler
 
 #ifndef FERMI
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
 #define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
 #endif
 
-#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
+//#define HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE		//Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 //#define HLTCA_GPU_TIME_PROFILE						//Output Time Profiling Data for asynchronous DMA transfer
 #define BITWISE_COMPATIBLE_DEBUG_OUTPUT					//Make Debug Output of CPU and GPU bitwise compatible for comparison, also enable SORT_DUMPDATA!
 #define HLTCA_GPU_SORT_DUMPDATA							//Sort Start Hits etc before dumping to file
