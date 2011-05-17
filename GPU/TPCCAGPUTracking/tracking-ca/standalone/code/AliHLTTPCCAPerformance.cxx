@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCAPerformance.cxx 48343 2011-03-11 22:49:17Z sgorbuno $
+// $Id: AliHLTTPCCAPerformance.cxx 49841 2011-05-15 20:50:00Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -2105,6 +2105,7 @@ void AliHLTTPCCAPerformance::ReadMCEvent( istream &in )
   fNMCPoints = 0;
 
   in >> fNMCTracks;
+  if( fNMCTracks<0 || fNMCTracks>1000000 ) fNMCTracks = 0;
   fMCTracks = new AliHLTTPCCAMCTrack[fNMCTracks];
   for ( int it = 0; it < fNMCTracks; it++ ) {
     AliHLTTPCCAMCTrack &t = fMCTracks[it];
