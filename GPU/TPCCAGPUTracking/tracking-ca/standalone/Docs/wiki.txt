@@ -1,0 +1,88 @@
+== GPU Tracking Repository ==
+An SVN repository containing all GPU tracking related stuff can be found at https://qon.zapto.org/var/svn/catracker/catracker/standalone/
+Before continuing with driver or library installation you should check out the repository
+ svn co https://qon.zapto.org/var/svn/catracker/catracker/standalone/
+
+== Driver and Toolkit Installation ==
+For the GPU Tracker to operate the NVIDIA driver and the CUDA toolkit must be installed. Current versions of both can be found at the NVIDIA website:
+
+* NVIDIA Driver: http://www.nvidia.com/Download/index.aspx?lang=en-us
+* CUDA Toolkit: http://www.nvidia.com/getcuda
+
+The following versions or higher can be used:
+
+* NVIDIA Driver: 256.35
+* CUDA Toolkit: 3.1
+
+The NVIDIA CUDA SDK is NOT needed
+
+The GPU tracker needs the NVIDIA device nodes in the /dev directory. These nodes will be autocreated when the first GPU tracker is executed as root.
+To create the device nodes at boot time udev rules can be used. An example is provided in the /cuinstall directory of the repository.
+The repository also contains a cuinstall.sh script, that automatically installs the NVIDIA driver, the CUDA toolkit and the udev rules.
+Before running the script you must download the driver and toolkit installation files. (File names in cuinstall.sh must be changed for other versions than mentioned above).
+
+== GPU Tracker ==
+There are two versions of the GPU tracker, one for standalone tests, and a library that can be used from within AliRoot / HLT
+
+=== Standalone Tracker
+The standalone version can be used for tests. There is a bug in the SVN repository that downloads the makefiles to ./makefiles/makefiles instead of ./makefiles.
+To build the standalone version you must first copy all makefiles to the correct directory.
+
+ mv ./makefiles/makefiles/* ./makefiles
+
+Another prerequisite is the $ARCH environment variable, which must be set to x86_64-pc-linux-gnu. Otherwise the build system won't find the correct makefile.
+
+Then you can build the standalone tracker using.
+
+ make
+
+Afterwards you can run standalone tests using 
+
+ ./ca -OPTION1 -OPTION2
+
+Possible options are:
+* -CPU (run on the CPU)
+* -GPU (run on the GPU)
+* -SLICECOUNT [n] (process n slices in parallel)
+* -DEBUG [n] (produce debug output, use -DEBUG 1 for detailed timing statistics)
+* -MERGER [n] (1 to enable track merger, 0 to disable, disable will speed up the test but no tracks will be given back)
+* -NOPROMPT (Do not wait for pressing a button when finished)
+* -CUDA [n] (Use cuda device n]
+* -RUNS [n] (Do n runs for more statistics)
+* -OMP [n] (Use n omp threads)
+* -EVENTS [name] (Use events from directory ./events[name]
+
+Several event files are provided by the repository
+
+=== GPU Tracking library ===
+
+==== AliRoot / HLT Requirements ====
+The GPU Tracking library needs an AliRoot with HLT installed (and of course ROOT). The GPU library will link against libAliHLTTPC. 
+
+==== Installation of the GPU Tracking library ====
+The GPU Tracking library is build from the subdirectory cagpubuild. You can also checkout only the cagpubuild directory, this way you do not need to download all the event files.
+
+ svn co https://qon.zapto.org/var/svn/catracker/catracker/standalone/cagpubuild
+
+You need libAliHLTTPC to be installed in the system and present in $LD_LIBRARY_PATH. Further you need $ALIHLT_TOPDIR and $ROOTSYS point to the HLT / ROOT directories.
+Then you can compile the library using
+
+ make
+
+this will create the library libAliHLTTPCCAGPU.so
+
+== Running the GPU Tracker ==
+To run the GPU tracker the above library must be present in $LD_LIBRARY_PATH. You musst supply the allowGPU option to the AliHLTTPCCATrackerComponent to use the GPU tracker. The CA Tracker will then automatically try to load the library and use the GPU tracker. The GPU library itself will try to load the NVIDIA CUDA runtime library, which must also be present in $LD_LIBRARY_PATH. If one of these libraries cannot be loaded the tracker framework will automatically fallback to CPU.
+
+All Info / Warning / Error messages of the GPU Tracker either contain a "GPU" or a "CUDA" so you can grep for them.
+
+== Summary / Short Install Guide ==
+For installing the GPU Tracking library, Driver and Runtime from scratch do the following:
+ svn co https://qon.zapto.org/var/svn/catracker/catracker/standalone/
+ cd cuinstall
+ sudo ./cuinstall.sh
+ cd ../cagpubuild
+ export ALIHLT_TOPDIR=/.../AliRoot/HLT
+ export ROOTSYS=/.../ROOT
+ export LD_LIBRARY_PATH=/opt/cuda/lib64:/.../AliRoot/HLT/build-prob/:$LD_LIBRARY_PATH
+ make

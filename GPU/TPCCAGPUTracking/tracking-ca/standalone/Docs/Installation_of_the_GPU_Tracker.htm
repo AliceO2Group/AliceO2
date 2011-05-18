@@ -1,0 +1,303 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html dir="ltr" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml" lang="en"><head>
+
+	
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta name="generator" content="MediaWiki 1.13.3">
+		<meta name="keywords" content="Installation of the GPU Tracker">
+		<link rel="shortcut icon" href="https://wiki.kip.uni-heidelberg.de/favicon.ico">
+		<link rel="search" type="application/opensearchdescription+xml" href="https://wiki.kip.uni-heidelberg.de/ti/HLT/opensearch_desc.php" title="HLT (en)">
+		<link rel="alternate" type="application/rss+xml" title="HLT RSS Feed" href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Special:RecentChanges&amp;feed=rss">
+		<link rel="alternate" type="application/atom+xml" title="HLT Atom Feed" href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Special:RecentChanges&amp;feed=atom">
+		<title>Installation of the GPU Tracker - HLT</title>
+		<style type="text/css" media="screen, projection">/*<![CDATA[*/
+			@import "/ti/HLT/skins/common/shared.css?164";
+			@import "/ti/HLT/skins/monobook/main.css?164";
+		/*]]>*/</style>
+		<link rel="stylesheet" type="text/css" media="print" href="Installation_of_the_GPU_Tracker_files/commonPrint.css">
+		<!--[if lt IE 5.5000]><style type="text/css">@import "/ti/HLT/skins/monobook/IE50Fixes.css?164";</style><![endif]-->
+		<!--[if IE 5.5000]><style type="text/css">@import "/ti/HLT/skins/monobook/IE55Fixes.css?164";</style><![endif]-->
+		<!--[if IE 6]><style type="text/css">@import "/ti/HLT/skins/monobook/IE60Fixes.css?164";</style><![endif]-->
+		<!--[if IE 7]><style type="text/css">@import "/ti/HLT/skins/monobook/IE70Fixes.css?164";</style><![endif]-->
+		<!--[if lt IE 7]><script type="text/javascript" src="/ti/HLT/skins/common/IEFixes.js?164"></script>
+		<meta http-equiv="imagetoolbar" content="no" /><![endif]-->
+		
+		<script type="text/javascript">/*<![CDATA[*/
+var skin = "monobook";
+var stylepath = "/ti/HLT/skins";
+var wgArticlePath = "/ti/HLT/index.php/$1";
+var wgScriptPath = "/ti/HLT";
+var wgScript = "/ti/HLT/index.php";
+var wgVariantArticlePath = false;
+var wgActionPaths = [];
+var wgServer = "https://wiki.kip.uni-heidelberg.de";
+var wgCanonicalNamespace = "";
+var wgCanonicalSpecialPageName = false;
+var wgNamespaceNumber = 0;
+var wgPageName = "Installation_of_the_GPU_Tracker";
+var wgTitle = "Installation of the GPU Tracker";
+var wgAction = "view";
+var wgArticleId = "2351";
+var wgIsArticle = true;
+var wgUserName = "Drohr";
+var wgUserGroups = ["*", "user", "autoconfirmed"];
+var wgUserLanguage = "en";
+var wgContentLanguage = "en";
+var wgBreakFrames = false;
+var wgCurRevisionId = "6649";
+var wgVersion = "1.13.3";
+var wgEnableAPI = true;
+var wgEnableWriteAPI = false;
+var wgRestrictionEdit = [];
+var wgRestrictionMove = [];
+var wgAjaxWatch = {"watchMsg": "Watch", "unwatchMsg": "Unwatch", "watchingMsg": "Watching...", "unwatchingMsg": "Unwatching..."};
+/*]]>*/</script>
+                
+		<script type="text/javascript" src="Installation_of_the_GPU_Tracker_files/wikibits.js"><!-- wikibits js --></script>
+		<!-- Head Scripts -->
+		<script type="text/javascript" src="Installation_of_the_GPU_Tracker_files/ajax.js"></script>
+		<script type="text/javascript" src="Installation_of_the_GPU_Tracker_files/ajaxwatch.js"></script>
+		<script type="text/javascript" src="Installation_of_the_GPU_Tracker_files/index.php"><!-- site js --></script>
+		<style type="text/css">/*<![CDATA[*/
+@import "/ti/HLT/index.php?title=MediaWiki:Common.css&usemsgcache=yes&action=raw&ctype=text/css&smaxage=18000";
+@import "/ti/HLT/index.php?title=MediaWiki:Monobook.css&usemsgcache=yes&action=raw&ctype=text/css&smaxage=18000";
+@import "/ti/HLT/index.php?title=-&action=raw&gen=css&maxage=18000&smaxage=0&useskin=monobook";
+/*]]>*/</style>
+	</head><body class="mediawiki ns-0 ltr page-Installation_of_the_GPU_Tracker">
+	<div id="globalWrapper">
+		<div id="column-content">
+	<div id="content">
+		<a name="top" id="top"></a>
+				<h1 class="firstHeading">Installation of the GPU Tracker</h1>
+		<div id="bodyContent">
+			<h3 id="siteSub">From HLT</h3>
+			<div id="contentSub"></div>
+									<div id="jump-to-nav">Jump to: <a href="#column-one">navigation</a>, <a href="#searchInput">search</a></div>			<!-- start content -->
+			<table id="toc" class="toc" summary="Contents"><tbody><tr><td><div id="toctitle"><h2>Contents</h2> <span class="toctoggle">[<a href="javascript:toggleToc()" class="internal" id="togglelink">hide</a>]</span></div>
+<ul>
+<li class="toclevel-1"><a href="#GPU_Tracking_Repository"><span class="tocnumber">1</span> <span class="toctext">GPU Tracking Repository</span></a></li>
+<li class="toclevel-1"><a href="#Driver_and_Toolkit_Installation"><span class="tocnumber">2</span> <span class="toctext">Driver and Toolkit Installation</span></a></li>
+<li class="toclevel-1"><a href="#GPU_Tracker"><span class="tocnumber">3</span> <span class="toctext">GPU Tracker</span></a>
+<ul>
+<li class="toclevel-2"><a href="#GPU_Tracking_library"><span class="tocnumber">3.1</span> <span class="toctext">GPU Tracking library</span></a>
+<ul>
+<li class="toclevel-3"><a href="#AliRoot_.2F_HLT_Requirements"><span class="tocnumber">3.1.1</span> <span class="toctext">AliRoot / HLT Requirements</span></a></li>
+<li class="toclevel-3"><a href="#Installation_of_the_GPU_Tracking_library"><span class="tocnumber">3.1.2</span> <span class="toctext">Installation of the GPU Tracking library</span></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toclevel-1"><a href="#Running_the_GPU_Tracker"><span class="tocnumber">4</span> <span class="toctext">Running the GPU Tracker</span></a></li>
+<li class="toclevel-1"><a href="#Summary_.2F_Short_Install_Guide"><span class="tocnumber">5</span> <span class="toctext">Summary / Short Install Guide</span></a></li>
+</ul>
+</td></tr></tbody></table><script type="text/javascript"> if (window.showTocToggle) { var tocShowText = "show"; var tocHideText = "hide"; showTocToggle(); } </script>
+<a name="GPU_Tracking_Repository"></a><h2><span class="editsection">[<a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=edit&amp;section=1" title="Edit section: GPU Tracking Repository">edit</a>]</span> <span class="mw-headline"> GPU Tracking Repository </span></h2>
+<p>An SVN repository containing all GPU tracking related stuff can be found at <a href="https://qon.zapto.org/var/svn/catracker/catracker/standalone/" class="external free" title="https://qon.zapto.org/var/svn/catracker/catracker/standalone/" rel="nofollow">https://qon.zapto.org/var/svn/catracker/catracker/standalone/</a>
+Before continuing with driver or library installation you should check out the repository
+</p>
+<pre>svn co <a href="https://qon.zapto.org/var/svn/catracker/catracker/standalone/" class="external free" title="https://qon.zapto.org/var/svn/catracker/catracker/standalone/" rel="nofollow">https://qon.zapto.org/var/svn/catracker/catracker/standalone/</a>
+</pre>
+<a name="Driver_and_Toolkit_Installation"></a><h2><span class="editsection">[<a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=edit&amp;section=2" title="Edit section: Driver and Toolkit Installation">edit</a>]</span> <span class="mw-headline"> Driver and Toolkit Installation </span></h2>
+<p>For the GPU Tracker to operate the NVIDIA driver and the CUDA toolkit
+ must be installed. Current versions of both can be found at the NVIDIA 
+website:
+</p>
+<ul><li> NVIDIA Driver: <a href="http://www.nvidia.com/Download/index.aspx?lang=en-us" class="external free" title="http://www.nvidia.com/Download/index.aspx?lang=en-us" rel="nofollow">http://www.nvidia.com/Download/index.aspx?lang=en-us</a>
+</li><li> CUDA Toolkit: <a href="http://www.nvidia.com/getcuda" class="external free" title="http://www.nvidia.com/getcuda" rel="nofollow">http://www.nvidia.com/getcuda</a>
+</li></ul>
+<p>The following versions or higher can be used:
+</p>
+<ul><li> NVIDIA Driver: 256.35
+</li><li> CUDA Toolkit: 3.1
+</li></ul>
+<p>The NVIDIA CUDA SDK is NOT needed
+</p><p>The GPU tracker needs the NVIDIA device nodes in the /dev 
+directory. These nodes will be autocreated when the first GPU tracker is
+ executed as root.
+To create the device nodes at boot time udev rules can be used. An 
+example is provided in the /cuinstall directory of the repository.
+The repository also contains a cuinstall.sh script, that automatically 
+installs the NVIDIA driver, the CUDA toolkit and the udev rules.
+Before running the script you must download the driver and toolkit 
+installation files. (File names in cuinstall.sh must be changed for 
+other versions than mentioned above).
+</p>
+<a name="GPU_Tracker"></a><h2><span class="editsection">[<a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=edit&amp;section=3" title="Edit section: GPU Tracker">edit</a>]</span> <span class="mw-headline"> GPU Tracker </span></h2>
+<p>There are two versions of the GPU tracker, one for standalone tests, and a library that can be used from within AliRoot / HLT
+</p><p>=== Standalone Tracker
+The standalone version can be used for tests. There is a bug in the SVN 
+repository that downloads the makefiles to ./makefiles/makefiles instead
+ of ./makefiles.
+To build the standalone version you must first copy all makefiles to the
+ correct directory.
+</p>
+<pre>mv ./makefiles/makefiles/* ./makefiles
+</pre>
+<p>Another prerequisite is the $ARCH environment variable, which must be
+ set to x86_64-pc-linux-gnu. Otherwise the build system won't find the 
+correct makefile.
+</p><p>Then you can build the standalone tracker using.
+</p>
+<pre>make
+</pre>
+<p>Afterwards you can run standalone tests using 
+</p>
+<pre>./ca -OPTION1 -OPTION2
+</pre>
+<p>Possible options are:
+</p>
+<ul><li> -CPU (run on the CPU)
+</li><li> -GPU (run on the GPU)
+</li><li> -SLICECOUNT [n] (process n slices in parallel)
+</li><li> -DEBUG [n] (produce debug output, use -DEBUG 1 for detailed timing statistics)
+</li><li> -MERGER [n] (1 to enable track merger, 0 to disable, disable will speed up the test but no tracks will be given back)
+</li><li> -NOPROMPT (Do not wait for pressing a button when finished)
+</li><li> -CUDA [n] (Use cuda device n]
+</li><li> -RUNS [n] (Do n runs for more statistics)
+</li><li> -OMP [n] (Use n omp threads)
+</li><li> -EVENTS [name] (Use events from directory ./events[name]
+</li></ul>
+<p>Several event files are provided by the repository
+</p>
+<a name="GPU_Tracking_library"></a><h3><span class="editsection">[<a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=edit&amp;section=4" title="Edit section: GPU Tracking library">edit</a>]</span> <span class="mw-headline"> GPU Tracking library </span></h3>
+<a name="AliRoot_.2F_HLT_Requirements"></a><h4><span class="editsection">[<a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=edit&amp;section=5" title="Edit section: AliRoot / HLT Requirements">edit</a>]</span> <span class="mw-headline"> AliRoot / HLT Requirements </span></h4>
+<p>The GPU Tracking library needs an AliRoot with HLT installed (and of 
+course ROOT). The GPU library will link against libAliHLTTPC. 
+</p>
+<a name="Installation_of_the_GPU_Tracking_library"></a><h4><span class="editsection">[<a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=edit&amp;section=6" title="Edit section: Installation of the GPU Tracking library">edit</a>]</span> <span class="mw-headline"> Installation of the GPU Tracking library </span></h4>
+<p>The GPU Tracking library is build from the subdirectory cagpubuild. 
+You can also checkout only the cagpubuild directory, this way you do not
+ need to download all the event files.
+</p>
+<pre>svn co <a href="https://qon.zapto.org/var/svn/catracker/catracker/standalone/cagpubuild" class="external free" title="https://qon.zapto.org/var/svn/catracker/catracker/standalone/cagpubuild" rel="nofollow">https://qon.zapto.org/var/svn/catracker/catracker/standalone/cagpubuild</a>
+</pre>
+<p>You need libAliHLTTPC to be installed in the system and present in 
+$LD_LIBRARY_PATH. Further you need $ALIHLT_TOPDIR and $ROOTSYS point to 
+the HLT / ROOT directories.
+Then you can compile the library using
+</p>
+<pre>make
+</pre>
+<p>this will create the library libAliHLTTPCCAGPU.so
+</p>
+<a name="Running_the_GPU_Tracker"></a><h2><span class="editsection">[<a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=edit&amp;section=7" title="Edit section: Running the GPU Tracker">edit</a>]</span> <span class="mw-headline"> Running the GPU Tracker </span></h2>
+<p>To run the GPU tracker the above library must be present in 
+$LD_LIBRARY_PATH. You musst supply the allowGPU option to the 
+AliHLTTPCCATrackerComponent to use the GPU tracker. The CA Tracker will 
+then automatically try to load the library and use the GPU tracker. The 
+GPU library itself will try to load the NVIDIA CUDA runtime library, 
+which must also be present in $LD_LIBRARY_PATH. If one of these 
+libraries cannot be loaded the tracker framework will automatically 
+fallback to CPU.
+</p><p>All Info / Warning / Error messages of the GPU Tracker either contain a "GPU" or a "CUDA" so you can grep for them.
+</p>
+<a name="Summary_.2F_Short_Install_Guide"></a><h2><span class="editsection">[<a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=edit&amp;section=8" title="Edit section: Summary / Short Install Guide">edit</a>]</span> <span class="mw-headline"> Summary / Short Install Guide </span></h2>
+<p>For installing the GPU Tracking library, Driver and Runtime from scratch do the following:
+</p>
+<pre>svn co <a href="https://qon.zapto.org/var/svn/catracker/catracker/standalone/" class="external free" title="https://qon.zapto.org/var/svn/catracker/catracker/standalone/" rel="nofollow">https://qon.zapto.org/var/svn/catracker/catracker/standalone/</a>
+cd cuinstall
+sudo ./cuinstall.sh
+cd ../cagpubuild
+export ALIHLT_TOPDIR=/.../AliRoot/HLT
+export ROOTSYS=/.../ROOT
+export LD_LIBRARY_PATH=/opt/cuda/lib64:/.../AliRoot/HLT/build-prob/:$LD_LIBRARY_PATH
+make
+</pre>
+<!-- 
+NewPP limit report
+Preprocessor node count: 9/1000000
+Post-expand include size: 0/2097152 bytes
+Template argument size: 0/2097152 bytes
+Expensive parser function count: 0/100
+-->
+
+<!-- Saved in parser cache with key wiki_ti_HLTdb:pcache:idhash:2351-0!1!0!!en!2 and timestamp 20101019183624 -->
+<div class="printfooter">
+Retrieved from "<a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Installation_of_the_GPU_Tracker">https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Installation_of_the_GPU_Tracker</a>"</div>
+						<!-- end content -->
+			<div class="visualClear"></div>
+		</div>
+	</div>
+		</div>
+		<div id="column-one">
+	<div id="p-cactions" class="portlet">
+		<h5>Views</h5>
+		<div class="pBody">
+			<ul>
+	
+				 <li id="ca-nstab-main" class="selected"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Installation_of_the_GPU_Tracker" title="View the content page [alt-shift-c]" accesskey="c">Page</a></li>
+				 <li id="ca-talk" class="new"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Talk:Installation_of_the_GPU_Tracker&amp;action=edit" title="Discussion about the content page [alt-shift-t]" accesskey="t">Discussion</a></li>
+				 <li id="ca-edit"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=edit" title="You can edit this page.
+Please use the preview button before saving. [alt-shift-e]" accesskey="e">Edit</a></li>
+				 <li id="ca-history"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=history" title="Past versions of this page. [alt-shift-h]" accesskey="h">History</a></li>
+				 <li id="ca-move"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:MovePage/Installation_of_the_GPU_Tracker" title="Move this page [alt-shift-m]" accesskey="m">Move</a></li>
+				 <li id="ca-watch"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;action=watch" title="Add this page to your watchlist [alt-shift-w]" accesskey="w">Watch</a></li>			</ul>
+		</div>
+	</div>
+	<div class="portlet" id="p-personal">
+		<h5>Personal tools</h5>
+		<div class="pBody">
+			<ul>
+				<li id="pt-userpage"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/User:Drohr" title="My user page [alt-shift-.]" accesskey="." class="new">Drohr</a></li>
+				<li id="pt-mytalk"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/User_talk:Drohr" title="My talk page [alt-shift-n]" accesskey="n" class="new">My talk</a></li>
+				<li id="pt-preferences"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:Preferences" title="My preferences">My preferences</a></li>
+				<li id="pt-watchlist"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:Watchlist" title="The list of pages you're monitoring for changes [alt-shift-l]" accesskey="l">My watchlist</a></li>
+				<li id="pt-mycontris"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:Contributions/Drohr" title="List of my contributions [alt-shift-y]" accesskey="y">My contributions</a></li>
+				<li id="pt-logout"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Special:UserLogout&amp;returnto=Installation_of_the_GPU_Tracker" title="Log out">Log out</a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="portlet" id="p-logo">
+		<a style="background-image: url(&quot;/ti/HLT/skins/common/images/HLT-Logo-transparent4.png&quot;);" href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Main_Page" title="Visit the Main Page [alt-shift-z]" accesskey="z"></a>
+	</div>
+	<script type="text/javascript"> if (window.isMSIE55) fixalpha(); </script>
+	<div class="generated-sidebar portlet" id="p-navigation">
+		<h5>Navigation</h5>
+		<div class="pBody">
+			<ul>
+				<li id="n-mainpage-description"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Main_Page">Main Page</a></li>
+				<li id="n-portal"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/HLT:Community_Portal" title="About the project, what you can do, where to find things">Community portal</a></li>
+				<li id="n-currentevents"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/HLT:Current_events" title="Find background information on current events">Current events</a></li>
+				<li id="n-recentchanges"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:RecentChanges" title="The list of recent changes in the wiki. [alt-shift-r]" accesskey="r">Recent changes</a></li>
+				<li id="n-randompage"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:Random" title="Load a random page [alt-shift-x]" accesskey="x">Random page</a></li>
+				<li id="n-help"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Help:Contents" title="The place to find out.">Help</a></li>
+			</ul>
+		</div>
+	</div>
+	<div id="p-search" class="portlet">
+		<h5><label for="searchInput">Search</label></h5>
+		<div id="searchBody" class="pBody">
+			<form action="/ti/HLT/index.php/Special:Search" id="searchform"><div>
+				<input id="searchInput" name="search" title="Search HLT [alt-shift-f]" accesskey="f" type="text">
+				<input name="go" class="searchButton" id="searchGoButton" value="Go" title="Go to a page with this exact name if exists" type="submit">&nbsp;
+				<input name="fulltext" class="searchButton" id="mw-searchButton" value="Search" title="Search the pages for this text" type="submit">
+			</div></form>
+		</div>
+	</div>
+	<div class="portlet" id="p-tb">
+		<h5>Toolbox</h5>
+		<div class="pBody">
+			<ul>
+				<li id="t-whatlinkshere"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:WhatLinksHere/Installation_of_the_GPU_Tracker" title="List of all wiki pages that link here [alt-shift-j]" accesskey="j">What links here</a></li>
+				<li id="t-recentchangeslinked"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:RecentChangesLinked/Installation_of_the_GPU_Tracker" title="Recent changes in pages linked from this page [alt-shift-k]" accesskey="k">Related changes</a></li>
+<li id="t-upload"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:Upload" title="Upload files [alt-shift-u]" accesskey="u">Upload file</a></li>
+<li id="t-specialpages"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/Special:SpecialPages" title="List of all special pages [alt-shift-q]" accesskey="q">Special pages</a></li>
+				<li id="t-print"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;printable=yes" title="Printable version of this page [alt-shift-p]" accesskey="p">Printable version</a></li>				<li id="t-permalink"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php?title=Installation_of_the_GPU_Tracker&amp;oldid=6649" title="Permanent link to this version of the page">Permanent link</a></li>			</ul>
+		</div>
+	</div>
+		</div><!-- end of the left (by default at least) column -->
+			<div class="visualClear"></div>
+			<div id="footer">
+				<div id="f-poweredbyico"><a href="http://www.mediawiki.org/"><img src="Installation_of_the_GPU_Tracker_files/poweredby_mediawiki_88x31.png" alt="Powered by MediaWiki"></a></div>
+			<ul id="f-list">
+				<li id="lastmod"> This page was last modified on 19 October 2010, at 18:36.</li>
+				<li id="viewcount">This page has been accessed 7 times.</li>
+				<li id="privacy"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/HLT:Privacy_policy" title="HLT:Privacy policy">Privacy policy</a></li>
+				<li id="about"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/HLT:About" title="HLT:About">About HLT</a></li>
+				<li id="disclaimer"><a href="https://wiki.kip.uni-heidelberg.de/ti/HLT/index.php/HLT:General_disclaimer" title="HLT:General disclaimer">Disclaimers</a></li>
+			</ul>
+		</div>
+</div>
+
+		<script type="text/javascript">if (window.runOnloadHook) runOnloadHook();</script>
+<!-- Served in 0.505 secs. --></body></html>
