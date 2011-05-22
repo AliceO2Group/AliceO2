@@ -52,6 +52,8 @@ public:
 
 	void SetKeepData(bool v) {fKeepData = v;}
 
+	AliHLTTPCCAGPUTracker* GetGPUTracker() {return(fGPUTracker);}
+
 private:
   static const int fgkNSlices = 36;       //* N slices
 

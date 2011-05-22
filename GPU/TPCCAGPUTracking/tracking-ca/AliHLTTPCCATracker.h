@@ -26,6 +26,8 @@ class AliHLTTPCCATrackParam;
 class AliHLTTPCCAClusterData;
 class AliHLTTPCCARow;
 
+#include "TStopwatch.h"
+
 /**
  * @class AliHLTTPCCATracker
  *
@@ -87,7 +89,8 @@ class AliHLTTPCCATracker
   
   struct StructGPUParameters
   {
-    StructGPUParameters() : fScheduleFirstDynamicTracklet( 0 ), fGPUError( 0 ) {}
+    StructGPUParameters() : fNextTracklet(0), fScheduleFirstDynamicTracklet( 0 ), fGPUError( 0 ) {}
+	int fNextTracklet;						//Next Tracklet to process
     int fScheduleFirstDynamicTracklet;		//Last Tracklet with fixed position in sheduling
     int fGPUError;							//Signalizes error on GPU during GPU Reconstruction, kind of return value
   };
@@ -167,6 +170,7 @@ class AliHLTTPCCATracker
 #endif //!HLTCA_GPUCODE
   
   GPUhd() const AliHLTTPCCAParam &Param() const { return fParam; }
+  GPUhd() const AliHLTTPCCAParam *pParam() const { return &fParam; }
   GPUhd() void SetParam( const AliHLTTPCCAParam &v ) { fParam = v; }
   
   GPUhd() const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }  
@@ -276,11 +280,18 @@ class AliHLTTPCCATracker
   GPUh() const char* LinkTmpMemory() const {return(fLinkTmpMemory);}
 #endif
 
+#ifdef HLTCA_STANDALONE
+	static inline void StandaloneQueryTime(unsigned long long int *i);
+	static inline void StandaloneQueryFreq(unsigned long long int *i);
+#endif //HLTCA_STANDALONE
+
 private:
 	//Temporary Variables for Standalone measurements
 #ifdef HLTCA_STANDALONE
+public:
   char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
   char *fLinkTmpMemory;	//tmp memory for hits after neighbours finder
+private:
 #endif
   
   AliHLTTPCCAParam fParam; // parameters
@@ -341,5 +352,26 @@ private:
   static int StarthitSortComparison(const void*a, const void* b);
 };
 
+#ifdef HLTCA_STANDALONE
+	void AliHLTTPCCATracker::StandaloneQueryTime(unsigned long long int *i)
+	{
+	#ifdef R__WIN32
+		  QueryPerformanceCounter((LARGE_INTEGER*) i);
+	#else
+		  timespec t;
+		  clock_gettime(CLOCK_REALTIME, &t);
+		  *i = (unsigned long long int) t.tv_sec * (unsigned long long int) 1000000000 + (unsigned long long int) t.tv_nsec;
+	#endif //R__WIN32
+	}
+
+	void AliHLTTPCCATracker::StandaloneQueryFreq(unsigned long long int *i)
+	{
+	#ifdef R__WIN32
+		  QueryPerformanceFrequency((LARGE_INTEGER*) i);
+	#else
+		*i = 1000000000;
+	#endif //R__WIN32
+	}
+#endif //HLTCA_STANDALONE
 
 #endif //ALIHLTTPCCATRACKER_H

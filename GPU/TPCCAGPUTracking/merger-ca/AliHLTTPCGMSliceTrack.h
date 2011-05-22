@@ -10,7 +10,7 @@
 #ifndef ALIHLTTPCGMSLICETRACK_H
 #define ALIHLTTPCGMSLICETRACK_H
 
-#include "TMath.h"
+#include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCCASliceOutTrack.h"
 

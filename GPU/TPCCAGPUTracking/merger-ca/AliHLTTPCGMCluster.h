@@ -10,7 +10,7 @@
 
 #ifndef ALIHLTTPCGMCLUSTER_H
 #define ALIHLTTPCGMCLUSTER_H
-#include "TMath.h"
+#include "AliHLTTPCCAMath.h"
 /**
  * @class AliHLTTPCGMCluster
  *

@@ -10,7 +10,7 @@
 #ifndef ALIHLTTPCGMBORDERTRACK_H
 #define ALIHLTTPCGMBORDERTRACK_H
 
-#include "TMath.h"
+#include "AliHLTTPCCAMath.h"
 
 /**
  * @class AliHLTTPCGMBorderTrack
@@ -44,7 +44,7 @@ class AliHLTTPCGMBorderTrack
   void SetCov( int i, float x ) { fC[i] = x; }
   void SetCovD( int i, float x ) { fD[i] = x; }
  
-  static float CheckChi2( float x1, float y1, float cx1, float cxy1, float cy1,
+  static bool CheckChi2( float x1, float y1, float cx1, float cxy1, float cy1,
 			  float x2, float y2, float cx2, float cxy2, float cy2, float chi2cut  )
   {
     //* Calculate Chi2/ndf deviation
