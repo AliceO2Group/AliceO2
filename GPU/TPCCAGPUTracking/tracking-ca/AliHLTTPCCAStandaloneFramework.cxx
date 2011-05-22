@@ -143,8 +143,8 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #ifdef HLTCA_STANDALONE
   unsigned long long int startTime, endTime, checkTime;
   unsigned long long int cpuTimers[16], gpuTimers[16], tmpFreq;
-  StandaloneQueryFreq(&tmpFreq);
-  StandaloneQueryTime(&startTime);
+  AliHLTTPCCATracker::StandaloneQueryFreq(&tmpFreq);
+  AliHLTTPCCATracker::StandaloneQueryTime(&startTime);
 
   if (fEventDisplay)
   {
@@ -165,8 +165,8 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   }
 
 #ifdef HLTCA_STANDALONE
-  StandaloneQueryTime(&endTime);
-  StandaloneQueryTime(&checkTime);
+  AliHLTTPCCATracker::StandaloneQueryTime(&endTime);
+  AliHLTTPCCATracker::StandaloneQueryTime(&checkTime);
 #endif
 
   timer1.Stop();
@@ -182,6 +182,9 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 		fMerger.SetSliceData( i, fSliceOutput[i] );
 	  }
 
+#ifdef HLTCA_GPU_MERGER
+	  fMerger.SetGPUTracker(fTracker.GetGPUTracker());
+#endif
 	  fMerger.Reconstruct();
   }
 
@@ -284,7 +287,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 				printf("Speedup: %4lld%%", cpuTimers[i] * 100 / gpuTimers[i]);
 			printf("\n");
 		}
-		printf("Execution Time: Task: %20s CPU: %15lld\n", "Merger", (long long int) (timer2.CpuTime() * 1000000));
+		printf("Execution Time: Task: %20s CPU: %15lld\n", "Merger", (long long int) (timer2.RealTime() * 1000000));
   }
 #endif
 
@@ -312,8 +315,8 @@ void AliHLTTPCCAStandaloneFramework::ReadSettings( std::istream &in )
     for ( int iSlice = 0; iSlice < nSlices; iSlice++ ) {
       AliHLTTPCCAParam param;
       param.ReadSettings ( in );
-      fTracker.InitializeSliceParam(iSlice, param);
-    }
+	  fTracker.InitializeSliceParam(iSlice, param);
+	}
   }
 }
 

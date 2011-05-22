@@ -32,12 +32,12 @@ class AliHLTTPCCABaseTrackParam
     GPUd() float DzDs()   const { return fP[3]; }
     GPUd() float QPt()    const { return fP[4]; }
 
-    GPUd() float GetX()      const { return fX; }
-    GPUd() float GetY()      const { return fP[0]; }
-    GPUd() float GetZ()      const { return fP[1]; }
-    GPUd() float GetSinPhi() const { return fP[2]; }
-    GPUd() float GetDzDs()   const { return fP[3]; }
-    GPUd() float GetQPt()    const { return fP[4]; }
+    GPUhd() float GetX()      const { return fX; }
+    GPUhd() float GetY()      const { return fP[0]; }
+    GPUhd() float GetZ()      const { return fP[1]; }
+    GPUhd() float GetSinPhi() const { return fP[2]; }
+    GPUhd() float GetDzDs()   const { return fP[3]; }
+    GPUhd() float GetQPt()    const { return fP[4]; }
 
     GPUd() float GetKappa( float Bz ) const { return -fP[4]*Bz; }
 
