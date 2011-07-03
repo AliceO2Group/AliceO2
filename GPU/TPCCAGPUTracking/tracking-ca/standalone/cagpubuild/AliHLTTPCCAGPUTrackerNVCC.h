@@ -134,7 +134,7 @@ private:
 		int fPhase;
 		volatile int fDone;
 	};
-	static const int fNHelperThreads = GLTCA_GPU_HELPER_THREADS; //Number of helper threads for post/preprocessing
+	static const int fNHelperThreads = HLTCA_GPU_HELPER_THREADS; //Number of helper threads for post/preprocessing
 	helperParam fHelperParams[fNHelperThreads]; //Control Struct for helper threads
 
 	// disable copy

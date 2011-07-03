@@ -21,7 +21,7 @@
 #define HLTCA_GPU_THREAD_COUNT_FINDER 256
 #endif
 
-#define GLTCA_GPU_HELPER_THREADS 0						//Number of helper threads to speed up initialization/output
+#define HLTCA_GPU_HELPER_THREADS 2						//Number of helper threads to speed up initialization/output
 
 //GPU Parameters
 #define HLTCA_GPU_WARP_SIZE 32
