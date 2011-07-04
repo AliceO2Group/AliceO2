@@ -117,6 +117,7 @@ class AliHLTTPCCATracker
   void StartEvent();
   
   int CheckEmptySlice() const;
+  void WriteOutputPrepare();
   void WriteOutput();
   
 #if !defined(HLTCA_GPUCODE)

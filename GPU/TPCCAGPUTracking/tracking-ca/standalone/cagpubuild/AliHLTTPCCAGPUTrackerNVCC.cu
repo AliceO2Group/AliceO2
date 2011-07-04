@@ -147,7 +147,8 @@ fPPMode(0),
 fSelfheal(0),
 fConstructorBlockCount(30),
 selectorBlockCount(30),
-fCudaContext(NULL)
+fCudaContext(NULL),
+fHelperMemMutex(NULL)
 {
 	fCudaContext = (void*) new CUcontext;
 };
@@ -430,6 +431,9 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		}
 	}
 
+	fHelperMemMutex = malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init((pthread_mutex_t*) fHelperMemMutex, NULL);
+
 	cuCtxPopCurrent((CUcontext*) fCudaContext);
 	fCudaInitialized = 1;
 	HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount);
@@ -701,6 +705,9 @@ void AliHLTTPCCAGPUTrackerNVCC::WriteOutput(AliHLTTPCCASliceOutput** pOutput, in
 	unsigned long long int a, b;
 	AliHLTTPCCATracker::StandaloneQueryTime(&a);
 #endif
+	if (fNHelperThreads) pthread_mutex_lock((pthread_mutex_t*) fHelperMemMutex);
+	fSlaveTrackers[firstSlice + iSlice].WriteOutputPrepare();
+	if (fNHelperThreads) pthread_mutex_unlock((pthread_mutex_t*) fHelperMemMutex);
 	fSlaveTrackers[firstSlice + iSlice].WriteOutput();
 #ifdef HLTCA_GPU_TIME_PROFILE
 	AliHLTTPCCATracker::StandaloneQueryTime(&b);
@@ -1445,6 +1452,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 		if (fDebugLevel >= 3) HLTInfo("Tracks Transfered: %d / %d", *fSlaveTrackers[firstSlice + iSlice].NTracks(), *fSlaveTrackers[firstSlice + iSlice].NTrackHits());
 
 		fSlaveTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
+		fSlaveTrackers[firstSlice + iSlice].WriteOutputPrepare();
 		fSlaveTrackers[firstSlice + iSlice].WriteOutput();
 	}
 
@@ -1518,6 +1526,8 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 		}
 		free(fHelperParams[i].fMutex);
 	}
+	pthread_mutex_destroy((pthread_mutex_t*) fHelperMemMutex);
+	free(fHelperMemMutex);
 
 	HLTInfo("CUDA Uninitialized");
 	fCudaInitialized = 0;
