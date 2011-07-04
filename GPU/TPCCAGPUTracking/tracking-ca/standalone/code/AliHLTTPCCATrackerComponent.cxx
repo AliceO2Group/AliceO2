@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 48356 2011-03-12 03:02:21Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 50410 2011-07-04 17:12:44Z sgorbuno $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -344,7 +344,8 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
   if (retVal == 0) fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
   if (fGPUHelperThreads != -1)
   {
-	fTracker->SetGPUTrackerOption("HelperThreads", fGPUHelperThreads);
+    char cc[256] = "HelperThreads";
+	fTracker->SetGPUTrackerOption(cc, fGPUHelperThreads);
   }
   return(retVal);
 }
