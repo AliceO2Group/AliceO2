@@ -90,6 +90,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 
     AliHLTComponentBenchmark fBenchmark; // benchmarks
     bool fAllowGPU;    //* Allow this tracker to run on GPU
+	int fGPUHelperThreads		// Number of helper threads for GPU tracker, set to -1 to use default number
 
     static bool CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b );
 
