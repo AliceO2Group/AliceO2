@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 {
 	int i;
 	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0;
-	void* outputmemory;
+	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
 
