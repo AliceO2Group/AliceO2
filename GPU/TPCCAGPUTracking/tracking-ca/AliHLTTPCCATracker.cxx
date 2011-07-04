@@ -615,6 +615,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 	//std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
 
+	WriteOutputPrepare();
 	WriteOutput();
 
 	StandalonePerfTime(10);
@@ -653,17 +654,21 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 }
 
+GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
+{
+	if (fOutputControl == NULL) fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
+	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
+}
+
 GPUh() void AliHLTTPCCATracker::WriteOutput()
 {
 	// write output
+	AliHLTTPCCASliceOutput* useOutput = *fOutput;
 
 	TStopwatch timer;
 
 	//cout<<"output: nTracks = "<<*fNTracks<<", nHitsTotal="<<NHitsTotal()<<std::endl;
 
-	if (fOutputControl == NULL) fOutputControl = new AliHLTTPCCASliceOutput::outputControlStruct;
-	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
-	AliHLTTPCCASliceOutput* useOutput = *fOutput;
 	if (useOutput == NULL) return;
 
 	useOutput->SetNTracks( 0 );
