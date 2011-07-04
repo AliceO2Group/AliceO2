@@ -148,6 +148,8 @@ fSelfheal(0),
 fConstructorBlockCount(30),
 selectorBlockCount(30),
 fCudaContext(NULL),
+fNHelperThreads(HLTCA_GPU_MAX_HELPER_THREADS),
+fHelperParams(NULL),
 fHelperMemMutex(NULL)
 {
 	fCudaContext = (void*) new CUcontext;
@@ -402,12 +404,29 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		}
 	}
 
-	for (int i = 0;i < fNHelperThreads;i++)
+	fHelperParams = new helperParam[HLTCA_GPU_MAX_HELPER_THREADS];
+	if (fHelperParams == NULL)
+	{
+		HLTError("Memory allocation error");
+		cudaFree(fGPUMemory);
+		cudaFreeHost(fHostLockedMemory);
+		cudaThreadExit();
+		return(1);
+	}	
+	for (int i = 0;i < HLTCA_GPU_MAX_HELPER_THREADS;i++)
 	{
 		fHelperParams[i].fCls = this;
 		fHelperParams[i].fTerminate = false;
 		fHelperParams[i].fNum = i;
 		fHelperParams[i].fMutex = malloc(2 * sizeof(pthread_mutex_t));
+		if (fHelperParams[i].fMutex == NULL)
+		{
+			HLTError("Memory allocation error");
+			cudaFree(fGPUMemory);
+			cudaFreeHost(fHostLockedMemory);
+			cudaThreadExit();
+			return(1);
+		}
 		for (int j = 0;j < 2;j++)
 		{
 			if (pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], NULL))
@@ -416,6 +435,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 				cudaFree(fGPUMemory);
 				cudaFreeHost(fHostLockedMemory);
 				cudaThreadExit();
+				return(1);
 			}
 
 			pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
@@ -432,7 +452,22 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	}
 
 	fHelperMemMutex = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init((pthread_mutex_t*) fHelperMemMutex, NULL);
+	if (fHelperMemMutex == NULL)
+	{
+		HLTError("Memory allocation error");
+		cudaFree(fGPUMemory);
+		cudaFreeHost(fHostLockedMemory);
+		cudaThreadExit();
+		return(1);
+	}
+	if (pthread_mutex_init((pthread_mutex_t*) fHelperMemMutex, NULL))
+	{
+		HLTError("Error creating pthread mutex");
+		cudaFree(fGPUMemory);
+		cudaFreeHost(fHostLockedMemory);
+		cudaThreadExit();
+		return(1);
+	}
 
 	cuCtxPopCurrent((CUcontext*) fCudaContext);
 	fCudaInitialized = 1;
@@ -549,6 +584,17 @@ int AliHLTTPCCAGPUTrackerNVCC::SetGPUTrackerOption(char* OptionName, int OptionV
 	else if (strcmp(OptionName, "DebugMask") == 0)
 	{
 		fDebugMask = OptionValue;
+	}
+	else if (strcmp(OptionName, "HelperThreads") == 0)
+	{
+		if ((unsigned int) OptionValue > HLTCA_GPU_MAX_HELPER_THREADS)
+		{
+			HLTError("Number of helper threads exceeds HLTCA_GPU_MAX_HELPER_THREADS");
+		}
+		else
+		{
+			fNHelperThreads = OptionValue;
+		}
 	}
 	else
 	{
@@ -1502,7 +1548,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 		HLTError("Could not uninitialize GPU");
 		return(1);
 	}
-	for (int i = 0;i < fNHelperThreads;i++)
+	for (int i = 0;i < HLTCA_GPU_MAX_HELPER_THREADS;i++)
 	{
 		fHelperParams[i].fTerminate = true;
 		if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]))
@@ -1528,6 +1574,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 	}
 	pthread_mutex_destroy((pthread_mutex_t*) fHelperMemMutex);
 	free(fHelperMemMutex);
+	delete[] fHelperParams;
 
 	HLTInfo("CUDA Uninitialized");
 	fCudaInitialized = 0;
