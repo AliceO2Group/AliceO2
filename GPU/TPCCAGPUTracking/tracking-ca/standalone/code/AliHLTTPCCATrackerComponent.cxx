@@ -344,7 +344,7 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
   if (retVal == 0) fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
   if (fGPUHelperThreads != -1)
   {
-	fTracker.SetGPUTrackerOption("HelperThreads", fGPUHelperThreads);
+	fTracker->SetGPUTrackerOption("HelperThreads", fGPUHelperThreads);
   }
   return(retVal);
 }
