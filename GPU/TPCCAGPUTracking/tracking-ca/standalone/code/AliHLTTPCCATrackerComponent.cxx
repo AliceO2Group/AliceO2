@@ -68,7 +68,8 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     fClusterErrorCorrectionY(0), 
     fClusterErrorCorrectionZ(0),
     fBenchmark("CATracker"), 
-    fAllowGPU( 0)
+    fAllowGPU( 0),
+	fGPUHelperThreads(-1)
 {
   // see header file for class documentation
   // or
@@ -89,7 +90,8 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrack
     fClusterErrorCorrectionY(0), 
     fClusterErrorCorrectionZ(0),
     fBenchmark("CATracker"),
-    fAllowGPU( 0)
+    fAllowGPU( 0),
+	fGPUHelperThreads(-1)
 {
   // see header file for class documentation
   HLTFatal( "copy constructor untested" );
@@ -236,6 +238,13 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       continue;
     }
 
+    if ( argument.CompareTo( "-GPUHelperThreads" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fGPUHelperThreads = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Number of GPU Helper Threads set to: %d", fGPUHelperThreads );
+      continue;
+    }
+
     HLTError( "Unknown option \"%s\"", argument.Data() );
     iResult = -EINVAL;
   }
@@ -333,6 +342,10 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
 
   int retVal = Configure( NULL, NULL, arguments.Data() );
   if (retVal == 0) fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
+  if (fGPUHelperThreads != -1)
+  {
+	fTracker.SetGPUTrackerOption("HelperThreads", fGPUHelperThreads);
+  }
   return(retVal);
 }
 
