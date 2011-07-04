@@ -96,6 +96,7 @@ class AliHLTTPCCAStandaloneFramework
 	void SetRunMerger(int v) {fRunMerger = v;}
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
+	void SetOutputControl(char* ptr, size_t size) {fOutputControl.fOutputPtr = ptr;fOutputControl.fOutputMaxSize = size;}
 
   private:
 
