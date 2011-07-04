@@ -78,6 +78,17 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fNextSliceInd[ mid ] = 0;
   fPrevSliceInd[ 0 ] = mid;  fNextSliceInd[ last ] = fgkNSlices / 2;
   fPrevSliceInd[ fgkNSlices/2 ] = last;
+  {
+    const double kCLight = 0.000299792458;
+    double constBz = fSliceParam.BzkG() * kCLight;
+    
+    fPolinomialFieldBz[0] = constBz * (  0.999286   );
+    fPolinomialFieldBz[1] = constBz * ( -4.54386e-7 );
+    fPolinomialFieldBz[2] = constBz * (  2.32950e-5 );
+    fPolinomialFieldBz[3] = constBz * ( -2.99912e-7 );
+    fPolinomialFieldBz[4] = constBz * ( -2.03442e-8 );
+    fPolinomialFieldBz[5] = constBz * (  9.71402e-8 );    
+  }
   
   Clear();
 }
@@ -108,6 +119,17 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
     fNextSliceInd[iSlice] = 0;
     fPrevSliceInd[iSlice] = 0;
   }
+  {
+    const double kCLight = 0.000299792458;
+    double constBz = fSliceParam.BzkG() * kCLight;
+
+    fPolinomialFieldBz[0] = constBz * (  0.999286   );
+    fPolinomialFieldBz[1] = constBz * ( -4.54386e-7 );
+    fPolinomialFieldBz[2] = constBz * (  2.32950e-5 );
+    fPolinomialFieldBz[3] = constBz * ( -2.99912e-7 );
+    fPolinomialFieldBz[4] = constBz * ( -2.03442e-8 );
+    fPolinomialFieldBz[5] = constBz * (  9.71402e-8 );    
+  }  
   Clear();
 }
 
