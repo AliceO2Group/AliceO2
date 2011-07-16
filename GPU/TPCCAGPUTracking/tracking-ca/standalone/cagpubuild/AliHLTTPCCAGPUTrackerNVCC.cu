@@ -1294,7 +1294,7 @@ RestartTrackletConstructor:
 		}
 	}
 
-	for (int i = 0;i < fNHelperThreads;i++)
+	for (int i = 0;i < fNHelperThreads + fNCPUTrackers;i++)
 	{
 		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
 	}
