@@ -112,27 +112,33 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 			for (int i = 0;i < cls->fNSlicesPerCPUTracker;i++)
 			{
 				int myISlice = cls->fSliceCount - cls->fNCPUTrackers * cls->fNSlicesPerCPUTracker + (par->fNum - cls->fNHelperThreads) * cls->fNSlicesPerCPUTracker + i;
-	#ifdef HLTCA_STANDALONE
+#ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Doing full CPU tracking, Slice %d", par->fNum, myISlice);
-	#endif
+#endif
 				if (myISlice >= 0)
 				{
 					cls->ReadEvent(par->pClusterData, par->fFirstSlice, myISlice, par->fNum + 1);
+					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetPointersTracklets(HLTCA_GPU_MAX_TRACKLETS);
+					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetPointersHits(par->pClusterData[myISlice].NumberOfClusters());
+					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetPointersTracks(HLTCA_GPU_MAX_TRACKS, par->pClusterData[myISlice].NumberOfClusters());
+					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetGPUTrackerTrackletsMemory(reinterpret_cast<char*> ( new uint4 [ cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackletMemorySize()/sizeof( uint4 ) + 100] ), HLTCA_GPU_MAX_TRACKLETS, cls->fConstructorBlockCount);
+					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetGPUTrackerHitsMemory(reinterpret_cast<char*> ( new uint4 [ cls->fSlaveTrackers[par->fFirstSlice + myISlice].HitMemorySize()/sizeof( uint4 ) + 100]), par->pClusterData[myISlice].NumberOfClusters());
+					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetGPUTrackerTracksMemory(reinterpret_cast<char*> ( new uint4 [ cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackMemorySize()/sizeof( uint4 ) + 100]), HLTCA_GPU_MAX_TRACKS, par->pClusterData[myISlice].NumberOfClusters());
 					cls->fSlaveTrackers[par->fFirstSlice + myISlice].DoTracking();
 					cls->WriteOutput(par->pOutput, par->fFirstSlice, myISlice, par->fNum + 1);
 				}
-	#ifdef HLTCA_STANDALONE
+#ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d", par->fNum, myISlice);
-	#endif
+#endif
 			}
 		}
 		else
 		{
 			for (int i = par->fNum + 1;i < par->fSliceCount;i += cls->fNHelperThreads + 1)
 			{
-	#ifdef HLTCA_STANDALONE
+#ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
-	#endif
+#endif
 				if (par->fPhase)
 				{
 					while (par->fDone < i);
@@ -143,9 +149,9 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 					cls->ReadEvent(par->pClusterData, par->fFirstSlice, i, par->fNum + 1);
 					par->fDone = i + 1;
 				}
-	#ifdef HLTCA_STANDALONE
+#ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
-	#endif
+#endif
 			}
 		}
 		pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
