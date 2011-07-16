@@ -123,6 +123,7 @@ class AliHLTTPCCATracker
 #if !defined(HLTCA_GPUCODE)
   void Reconstruct();
 #endif //!HLTCA_GPUCODE
+  void DoTracking();
   
   //Make Reconstruction steps directly callable (Used for GPU debugging)
   void RunNeighboursFinder();

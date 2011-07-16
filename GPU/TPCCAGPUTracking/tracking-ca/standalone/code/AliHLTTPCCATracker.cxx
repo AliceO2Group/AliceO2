@@ -492,45 +492,9 @@ void AliHLTTPCCATracker::StandalonePerfTime(int i)
 void AliHLTTPCCATracker::StandalonePerfTime(int /*i*/) {}
 #endif
 
-GPUh() void AliHLTTPCCATracker::Reconstruct()
+GPUh() void AliHLTTPCCATracker::DoTracking()
 {
-	//* reconstruction of event
-	//std::cout<<"Reconstruct slice "<<fParam.ISlice()<<", nHits="<<NHitsTotal()<<std::endl;
-
-	fTimers[0] = 0; // find neighbours
-	fTimers[1] = 0; // construct tracklets
-	fTimers[2] = 0; // fit tracklets
-	fTimers[3] = 0; // prolongation of tracklets
-	fTimers[4] = 0; // selection
-	fTimers[5] = 0; // write output
-	fTimers[6] = 0;
-	fTimers[7] = 0;
-
-	//if( fParam.ISlice()<1 ) return; //SG!!!
-
-	TStopwatch timer0;
-
-	StandalonePerfTime(0);
-
-	if (CheckEmptySlice()) return;
-
-#ifdef DRAW1
-	//if( fParam.ISlice()==2 || fParam.ISlice()==3)
-	{
-		AliHLTTPCCADisplay::Instance().ClearView();
-		AliHLTTPCCADisplay::Instance().SetSliceView();
-		AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
-		AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
-		if ( NHitsTotal() > 0 ) {
-			AliHLTTPCCADisplay::Instance().DrawSliceHits( kRed, .5 );
-			AliHLTTPCCADisplay::Instance().Ask();
-		}
-	}
-#endif //DRAW1
-
 	fCommonMem->fNTracklets = fCommonMem->fNTracks = fCommonMem->fNTrackHits = 0;
-
-#if !defined(HLTCA_GPUCODE)
 
 	if (fGPUDebugLevel >= 6)
 	{
@@ -614,13 +578,50 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 	if (fGPUDebugLevel >= 6) DumpTrackHits(*fGPUDebugOut);
 
 	//std::cout<<"Memory used for slice "<<fParam.ISlice()<<" : "<<fCommonMemorySize/1024./1024.<<" + "<<fHitMemorySize/1024./1024.<<" + "<<fTrackMemorySize/1024./1024.<<" = "<<( fCommonMemorySize+fHitMemorySize+fTrackMemorySize )/1024./1024.<<" Mb "<<std::endl;
+}
+
+GPUh() void AliHLTTPCCATracker::Reconstruct()
+{
+	//* reconstruction of event
+	//std::cout<<"Reconstruct slice "<<fParam.ISlice()<<", nHits="<<NHitsTotal()<<std::endl;
+
+	fTimers[0] = 0; // find neighbours
+	fTimers[1] = 0; // construct tracklets
+	fTimers[2] = 0; // fit tracklets
+	fTimers[3] = 0; // prolongation of tracklets
+	fTimers[4] = 0; // selection
+	fTimers[5] = 0; // write output
+	fTimers[6] = 0;
+	fTimers[7] = 0;
+
+	//if( fParam.ISlice()<1 ) return; //SG!!!
+
+	TStopwatch timer0;
+
+	StandalonePerfTime(0);
+
+	if (CheckEmptySlice()) return;
+
+#ifdef DRAW1
+	//if( fParam.ISlice()==2 || fParam.ISlice()==3)
+	{
+		AliHLTTPCCADisplay::Instance().ClearView();
+		AliHLTTPCCADisplay::Instance().SetSliceView();
+		AliHLTTPCCADisplay::Instance().SetCurrentSlice( this );
+		AliHLTTPCCADisplay::Instance().DrawSlice( this, 1 );
+		if ( NHitsTotal() > 0 ) {
+			AliHLTTPCCADisplay::Instance().DrawSliceHits( kRed, .5 );
+			AliHLTTPCCADisplay::Instance().Ask();
+		}
+	}
+#endif //DRAW1
+
+	DoTracking();
 
 	WriteOutputPrepare();
 	WriteOutput();
 
 	StandalonePerfTime(10);
-
-#endif
 
 #ifdef DRAW1
 	{

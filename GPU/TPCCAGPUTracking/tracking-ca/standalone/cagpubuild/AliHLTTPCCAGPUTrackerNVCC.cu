@@ -96,24 +96,46 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 
 	while(pthread_mutex_lock(&((pthread_mutex_t*) par->fMutex)[0]) == 0 && par->fTerminate == false)
 	{
-		for (int i = par->fNum + 1;i < par->fSliceCount;i += cls->fNHelperThreads + 1)
+		if (par->CPUTracker)
 		{
-#ifdef HLTCA_STANDALONE
-			if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
-#endif
-			if (par->fPhase)
+			for (int i = 0;i < cls->fNSlicesPerCPUTracker;i++)
 			{
-				while (par->fDone < i);
-				cls->WriteOutput(par->pOutput, par->fFirstSlice, i, par->fNum + 1);
+				int myISlice = cls->fSliceCount - cls->fNCPUTrackers * cls->fNSlicesPerCPUTracker + (par->fNum - cls->fNHelperThreads) * cls->fNSlicesPerCPUTracker + i;
+	#ifdef HLTCA_STANDALONE
+				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Doing full CPU tracking, Slice %d", par->fNum, myISlice);
+	#endif
+				if (myISlice >= 0)
+				{
+					cls->ReadEvent(par->pClusterData, par->fFirstSlice, myISlice, par->fNum + 1);
+					cls->fSlaveTrackers[par->fFirstSlice + myISlice].DoTracking();
+					cls->WriteOutput(par->pOutput, par->fFirstSlice, myISlice, par->fNum + 1);
+				}
+	#ifdef HLTCA_STANDALONE
+				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d", par->fNum, myISlice);
+	#endif
 			}
-			else
+		}
+		else
+		{
+			for (int i = par->fNum + 1;i < par->fSliceCount;i += cls->fNHelperThreads + 1)
 			{
-				cls->ReadEvent(par->pClusterData, par->fFirstSlice, i, par->fNum + 1);
-				par->fDone = i + 1;
+	#ifdef HLTCA_STANDALONE
+				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d", par->fNum, par->fFirstSlice, i, par->fPhase);
+	#endif
+				if (par->fPhase)
+				{
+					while (par->fDone < i);
+					cls->WriteOutput(par->pOutput, par->fFirstSlice, i, par->fNum + 1);
+				}
+				else
+				{
+					cls->ReadEvent(par->pClusterData, par->fFirstSlice, i, par->fNum + 1);
+					par->fDone = i + 1;
+				}
+	#ifdef HLTCA_STANDALONE
+				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
+	#endif
 			}
-#ifdef HLTCA_STANDALONE
-			if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
-#endif
 		}
 		pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 	}
@@ -150,7 +172,9 @@ selectorBlockCount(30),
 fCudaContext(NULL),
 fNHelperThreads(HLTCA_GPU_MAX_HELPER_THREADS),
 fHelperParams(NULL),
-fHelperMemMutex(NULL)
+fHelperMemMutex(NULL),
+fNCPUTrackers(0),
+fNSlicesPerCPUTracker(0)
 {
 	fCudaContext = (void*) new CUcontext;
 };
@@ -587,7 +611,7 @@ int AliHLTTPCCAGPUTrackerNVCC::SetGPUTrackerOption(char* OptionName, int OptionV
 	}
 	else if (strcmp(OptionName, "HelperThreads") == 0)
 	{
-		if ((unsigned int) OptionValue > HLTCA_GPU_MAX_HELPER_THREADS)
+		if ((unsigned int) OptionValue + fNCPUTrackers > HLTCA_GPU_MAX_HELPER_THREADS)
 		{
 			HLTError("Number of helper threads exceeds HLTCA_GPU_MAX_HELPER_THREADS");
 		}
@@ -595,6 +619,21 @@ int AliHLTTPCCAGPUTrackerNVCC::SetGPUTrackerOption(char* OptionName, int OptionV
 		{
 			fNHelperThreads = OptionValue;
 		}
+	}
+	else if (strcmp(OptionName, "CPUTrackers") == 0)
+	{
+		if ((unsigned int) OptionValue + fNHelperThreads > HLTCA_GPU_MAX_HELPER_THREADS)
+		{
+			HLTError("Number of helper threads exceeds HLTCA_GPU_MAX_HELPER_THREADS");
+		}
+		else
+		{
+			fNCPUTrackers = OptionValue;
+		}
+	}
+	else if (strcmp(OptionName, "SlicesPerCPUTracker") == 0)
+	{
+		fNSlicesPerCPUTracker = OptionValue;
 	}
 	else
 	{
@@ -801,6 +840,18 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		return(retVal);
 	}
 
+	for (int i = fNHelperThreads;i < fNCPUTrackers + fNHelperThreads;i++)
+	{
+		fHelperParams[i].CPUTracker = 1;
+		fHelperParams[i].pClusterData = pClusterData;
+		fHelperParams[i].pOutput = pOutput;
+		fHelperParams[i].fSliceCount = sliceCountLocal;
+		fHelperParams[i].fFirstSlice = firstSlice;
+		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
+	}
+	sliceCountLocal -= fNCPUTrackers * fNSlicesPerCPUTracker;
+	if (sliceCountLocal < 0) sliceCountLocal = 0;
+
 	memcpy(fGpuTracker, &fSlaveTrackers[firstSlice], sizeof(AliHLTTPCCATracker) * sliceCountLocal);
 
 	if (fDebugLevel >= 3) HLTInfo("Allocating GPU Tracker memory and initializing constants");
@@ -912,6 +963,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 	for (int i = 0;i < fNHelperThreads;i++)
 	{
+		fHelperParams[i].CPUTracker = 0;
 		fHelperParams[i].fDone = 0;
 		fHelperParams[i].fPhase = 0;
 		fHelperParams[i].pClusterData = pClusterData;
