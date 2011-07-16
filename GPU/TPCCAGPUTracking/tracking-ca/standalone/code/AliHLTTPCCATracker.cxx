@@ -547,12 +547,15 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 
 	fData.ClearHitWeights();
 
-	SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
-	fTrackletMemory = reinterpret_cast<char*> ( new uint4 [ fTrackletMemorySize/sizeof( uint4 ) + 100] );
-	SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // set pointers for hits
+	if (!fIsGPUTracker)
+	{
+		SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
+		fTrackletMemory = reinterpret_cast<char*> ( new uint4 [ fTrackletMemorySize/sizeof( uint4 ) + 100] );
+		SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // to calculate the size
+		fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
+	}
 
-	SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // to calculate the size
-	fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
+	SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // set pointers for hits
 	SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // set pointers for hits
 
 	StandalonePerfTime(6);
