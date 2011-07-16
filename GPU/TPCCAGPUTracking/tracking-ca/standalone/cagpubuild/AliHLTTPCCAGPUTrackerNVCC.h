@@ -132,11 +132,15 @@ private:
 		void* fMutex;
 		bool fTerminate;
 		int fPhase;
+		int CPUTracker;
 		volatile int fDone;
 	};
 	int fNHelperThreads; //Number of helper threads for post/preprocessing
 	helperParam* fHelperParams; //Control Struct for helper threads
 	void* fHelperMemMutex;
+
+	int fNCPUTrackers; //Number of CPU trackers to use
+	int fNSlicesPerCPUTracker; //Number of slices processed by each CPU tracker
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );
