@@ -111,7 +111,7 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 					cls->WriteOutput(par->pOutput, par->fFirstSlice, myISlice, par->fNum + 1);
 				}
 	#ifdef HLTCA_STANDALONE
-				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d", par->fNum, myISlice);
+				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d", par->fNum, myISlice);
 	#endif
 			}
 		}
@@ -120,7 +120,7 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 			for (int i = par->fNum + 1;i < par->fSliceCount;i += cls->fNHelperThreads + 1)
 			{
 	#ifdef HLTCA_STANDALONE
-				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d", par->fNum, par->fFirstSlice, i, par->fPhase);
+				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
 	#endif
 				if (par->fPhase)
 				{
