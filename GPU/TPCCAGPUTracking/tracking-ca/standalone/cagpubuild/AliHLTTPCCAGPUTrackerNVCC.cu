@@ -94,6 +94,8 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 	AliHLTTPCCAGPUTrackerNVCC::helperParam* par = (AliHLTTPCCAGPUTrackerNVCC::helperParam*) arg;
 	AliHLTTPCCAGPUTrackerNVCC* cls = par->fCls;
 
+	AliHLTTPCCATracker tmpTracker;
+
 #ifdef HLTCA_STANDALONE
 	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d starting", par->fNum);
 #endif
@@ -117,7 +119,14 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 #endif
 				if (myISlice >= 0)
 				{
-					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetGPUSliceDataMemory((char*) new uint4[HLTCA_GPU_SLICE_DATA_MEMORY/sizeof(uint4)], (char*) new uint4[HLTCA_GPU_ROWS_MEMORY/sizeof(uint4)]);
+					tmpTracker.SetParam(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param());
+					tmpTracker.ReadEvent(&par->pClusterData[myISlice]);
+					tmpTracker.DoTracking();
+					tmpTracker.SetOutput(&par->pOutput[myISlice]);
+					tmpTracker.WriteOutputPrepare();
+					tmpTracker.WriteOutput();
+
+					/*cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetGPUSliceDataMemory((char*) new uint4[HLTCA_GPU_SLICE_DATA_MEMORY/sizeof(uint4)], (char*) new uint4[HLTCA_GPU_ROWS_MEMORY/sizeof(uint4)]);
 					cls->fSlaveTrackers[par->fFirstSlice + myISlice].ReadEvent(&par->pClusterData[myISlice]);
 					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetPointersTracklets(HLTCA_GPU_MAX_TRACKLETS);
 					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetPointersHits(par->pClusterData[myISlice].NumberOfClusters());
@@ -129,7 +138,7 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 					cls->WriteOutput(par->pOutput, par->fFirstSlice, myISlice, par->fNum + 1);
 					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].HitMemory();
 					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackletMemory();
-					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackMemory();
+					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackMemory();*/
 				}
 #ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d", par->fNum, myISlice);
