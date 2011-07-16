@@ -126,6 +126,9 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 					cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetGPUTrackerTracksMemory(reinterpret_cast<char*> ( new uint4 [ cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackMemorySize()/sizeof( uint4 ) + 100]), HLTCA_GPU_MAX_TRACKS, par->pClusterData[myISlice].NumberOfClusters());
 					cls->fSlaveTrackers[par->fFirstSlice + myISlice].DoTracking();
 					cls->WriteOutput(par->pOutput, par->fFirstSlice, myISlice, par->fNum + 1);
+					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].HitMemory();
+					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackletMemory();
+					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackMemory();
 				}
 #ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d", par->fNum, myISlice);
