@@ -36,6 +36,10 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
+#if defined(HLTCA_STANDALONE) & !defined(_WIN32)
+#include <sched.h>
+#endif
+
 #include <iostream>
 #include <fstream>
 
@@ -92,6 +96,13 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 
 #ifdef HLTCA_STANDALONE
 	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d starting", par->fNum);
+#endif
+
+#if defined(HLTCA_STANDALONE) & !defined(_WIN32)
+	cpu_set_t mask;
+	CPU_ZERO(&mask);
+	CPU_SET(par->fNum * 2 + 2, &mask);
+	sched_setaffinity(0, sizeof(mask), &mask);
 #endif
 
 	while(pthread_mutex_lock(&((pthread_mutex_t*) par->fMutex)[0]) == 0 && par->fTerminate == false)
@@ -230,6 +241,13 @@ int AliHLTTPCCAGPUTrackerNVCC::CheckMemorySizes(int sliceCount)
 int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 {
 	//Find best CUDA device, initialize and allocate memory
+
+#if defined(HLTCA_STANDALONE) & !defined(_WIN32)
+	cpu_set_t mask;
+	CPU_ZERO(&mask);
+	CPU_SET(0, &mask);
+	sched_setaffinity(0, sizeof(mask), &mask);
+#endif
 
 	if (sliceCount == -1) sliceCount = fSliceCount;
 
