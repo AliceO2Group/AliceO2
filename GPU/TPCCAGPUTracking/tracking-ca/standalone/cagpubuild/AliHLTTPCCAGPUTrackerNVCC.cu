@@ -119,7 +119,7 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 #endif
 				if (myISlice >= 0)
 				{
-					tmpTracker.SetParam(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param());
+					tmpTracker.Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param());
 					tmpTracker.ReadEvent(&par->pClusterData[myISlice]);
 					tmpTracker.DoTracking();
 					tmpTracker.SetOutput(&par->pOutput[myISlice]);
