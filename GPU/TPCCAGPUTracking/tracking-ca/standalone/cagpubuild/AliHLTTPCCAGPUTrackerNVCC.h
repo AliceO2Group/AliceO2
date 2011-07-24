@@ -73,6 +73,9 @@ private:
 	void ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId);
 	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId);
 
+	int StartHelperThreads();
+	int StopHelperThreads();
+
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 	int GetThread();
 	void ReleaseGlobalLock(void* sem);
@@ -142,6 +145,8 @@ private:
 
 	int fNCPUTrackers; //Number of CPU trackers to use
 	int fNSlicesPerCPUTracker; //Number of slices processed by each CPU tracker
+
+	int fNSlaveThreads;	//Number of slave threads currently active
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );

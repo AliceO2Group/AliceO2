@@ -204,11 +204,12 @@ fSelfheal(0),
 fConstructorBlockCount(30),
 selectorBlockCount(30),
 fCudaContext(NULL),
-fNHelperThreads(HLTCA_GPU_MAX_HELPER_THREADS),
+fNHelperThreads(HLTCA_GPU_DEFAULT_HELPER_THREADS),
 fHelperParams(NULL),
 fHelperMemMutex(NULL),
 fNCPUTrackers(0),
-fNSlicesPerCPUTracker(0)
+fNSlicesPerCPUTracker(0),
+fNSlaveThreads(0)
 {
 	fCudaContext = (void*) new CUcontext;
 };
@@ -469,52 +470,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		}
 	}
 
-	fHelperParams = new helperParam[HLTCA_GPU_MAX_HELPER_THREADS];
-	if (fHelperParams == NULL)
-	{
-		HLTError("Memory allocation error");
-		cudaFree(fGPUMemory);
-		cudaFreeHost(fHostLockedMemory);
-		cudaThreadExit();
-		return(1);
-	}	
-	for (int i = 0;i < HLTCA_GPU_MAX_HELPER_THREADS;i++)
-	{
-		fHelperParams[i].fCls = this;
-		fHelperParams[i].fTerminate = false;
-		fHelperParams[i].fNum = i;
-		fHelperParams[i].fMutex = malloc(2 * sizeof(pthread_mutex_t));
-		if (fHelperParams[i].fMutex == NULL)
-		{
-			HLTError("Memory allocation error");
-			cudaFree(fGPUMemory);
-			cudaFreeHost(fHostLockedMemory);
-			cudaThreadExit();
-			return(1);
-		}
-		for (int j = 0;j < 2;j++)
-		{
-			if (pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], NULL))
-			{
-				HLTError("Error creating pthread mutex");
-				cudaFree(fGPUMemory);
-				cudaFreeHost(fHostLockedMemory);
-				cudaThreadExit();
-				return(1);
-			}
-
-			pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
-		}
-		pthread_t thr;
-
-		if (pthread_create(&thr, NULL, helperWrapper, &fHelperParams[i]))
-		{
-			HLTError("Error starting slave thread");
-			cudaFree(fGPUMemory);
-			cudaFreeHost(fHostLockedMemory);
-			cudaThreadExit();
-		}
-	}
+	if (StartHelperThreads()) return(1);
 
 	fHelperMemMutex = malloc(sizeof(pthread_mutex_t));
 	if (fHelperMemMutex == NULL)
@@ -589,6 +545,62 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	return(0);
 }
 
+int AliHLTTPCCAGPUTrackerNVCC::StartHelperThreads()
+{
+	int nThreads = fNHelperThreads + fNCPUTrackers;
+	if (nThreads)
+	{
+		fHelperParams = new helperParam[nThreads];
+		if (fHelperParams == NULL)
+		{
+			HLTError("Memory allocation error");
+			cudaFree(fGPUMemory);
+			cudaFreeHost(fHostLockedMemory);
+			cudaThreadExit();
+			return(1);
+		}	
+		for (int i = 0;i < nThreads;i++)
+		{
+			fHelperParams[i].fCls = this;
+			fHelperParams[i].fTerminate = false;
+			fHelperParams[i].fNum = i;
+			fHelperParams[i].fMutex = malloc(2 * sizeof(pthread_mutex_t));
+			if (fHelperParams[i].fMutex == NULL)
+			{
+				HLTError("Memory allocation error");
+				cudaFree(fGPUMemory);
+				cudaFreeHost(fHostLockedMemory);
+				cudaThreadExit();
+				return(1);
+			}
+			for (int j = 0;j < 2;j++)
+			{
+				if (pthread_mutex_init(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j], NULL))
+				{
+					HLTError("Error creating pthread mutex");
+					cudaFree(fGPUMemory);
+					cudaFreeHost(fHostLockedMemory);
+					cudaThreadExit();
+					return(1);
+				}
+
+				pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
+			}
+			pthread_t thr;
+
+			if (pthread_create(&thr, NULL, helperWrapper, &fHelperParams[i]))
+			{
+				HLTError("Error starting slave thread");
+				cudaFree(fGPUMemory);
+				cudaFreeHost(fHostLockedMemory);
+				cudaThreadExit();
+			}
+		}
+	}
+	fNSlaveThreads = nThreads;
+	return(0);
+}
+
 template <class T> inline T* AliHLTTPCCAGPUTrackerNVCC::alignPointer(T* ptr, int alignment)
 {
 	//Macro to align Pointers.
@@ -652,25 +664,11 @@ int AliHLTTPCCAGPUTrackerNVCC::SetGPUTrackerOption(char* OptionName, int OptionV
 	}
 	else if (strcmp(OptionName, "HelperThreads") == 0)
 	{
-		if ((unsigned int) OptionValue + fNCPUTrackers > HLTCA_GPU_MAX_HELPER_THREADS)
-		{
-			HLTError("Number of helper threads exceeds HLTCA_GPU_MAX_HELPER_THREADS");
-		}
-		else
-		{
-			fNHelperThreads = OptionValue;
-		}
+		fNHelperThreads = OptionValue;
 	}
 	else if (strcmp(OptionName, "CPUTrackers") == 0)
 	{
-		if ((unsigned int) OptionValue + fNHelperThreads > HLTCA_GPU_MAX_HELPER_THREADS)
-		{
-			HLTError("Number of helper threads exceeds HLTCA_GPU_MAX_HELPER_THREADS");
-		}
-		else
-		{
-			fNCPUTrackers = OptionValue;
-		}
+		fNCPUTrackers = OptionValue;
 	}
 	else if (strcmp(OptionName, "SlicesPerCPUTracker") == 0)
 	{
@@ -681,6 +679,14 @@ int AliHLTTPCCAGPUTrackerNVCC::SetGPUTrackerOption(char* OptionName, int OptionV
 		HLTError("Unknown Option: %s", OptionName);
 		return(1);
 	}
+
+	if (fNHelperThreads + fNCPUTrackers > fNSlaveThreads)
+	{
+		HLTInfo("Insufficient Slave Threads available, creating additional Slave Threads\n");
+		StopHelperThreads();
+		StartHelperThreads();
+	}
+
 	return(0);
 }
 
@@ -1641,36 +1647,47 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 		HLTError("Could not uninitialize GPU");
 		return(1);
 	}
-	for (int i = 0;i < HLTCA_GPU_MAX_HELPER_THREADS;i++)
-	{
-		fHelperParams[i].fTerminate = true;
-		if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]))
-		{
-			HLTError("Error unlocking mutex to terminate slave");
-			return(1);
-		}
-		if (pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]))
-		{
-			HLTError("Error locking mutex");
-			return(1);
-		}
-		for (int j = 0;j < 2;j++)
-		{
-			if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]))
-			{
-				HLTError("Error unlocking mutex before destroying");
-				return(1);
-			}
-			pthread_mutex_destroy(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
-		}
-		free(fHelperParams[i].fMutex);
-	}
+
+	if (StopHelperThreads()) return(1);
 	pthread_mutex_destroy((pthread_mutex_t*) fHelperMemMutex);
 	free(fHelperMemMutex);
-	delete[] fHelperParams;
 
 	HLTInfo("CUDA Uninitialized");
 	fCudaInitialized = 0;
+	return(0);
+}
+
+int AliHLTTPCCAGPUTrackerNVCC::StopHelperThreads()
+{
+	if (fNSlaveThreads)
+	{
+		for (int i = 0;i < fNSlaveThreads;i++)
+		{
+			fHelperParams[i].fTerminate = true;
+			if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]))
+			{
+				HLTError("Error unlocking mutex to terminate slave");
+				return(1);
+			}
+			if (pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]))
+			{
+				HLTError("Error locking mutex");
+				return(1);
+			}
+			for (int j = 0;j < 2;j++)
+			{
+				if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]))
+				{
+					HLTError("Error unlocking mutex before destroying");
+					return(1);
+				}
+				pthread_mutex_destroy(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
+			}
+			free(fHelperParams[i].fMutex);
+		}
+		delete[] fHelperParams;
+	}
+	fNSlaveThreads = 0;
 	return(0);
 }
 
