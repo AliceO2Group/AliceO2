@@ -30,6 +30,7 @@ typedef int cudaError_t
 #include "pthread_mutex_win32_wrapper.h"
 #else
 #include <pthread.h>
+#include <errno.h>
 #endif
 
 class AliHLTTPCCARow;
