@@ -104,7 +104,7 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 	cpu_set_t mask;
 	CPU_ZERO(&mask);
 	CPU_SET(par->fNum * 2 + 2, &mask);
-	sched_setaffinity(0, sizeof(mask), &mask);
+	//sched_setaffinity(0, sizeof(mask), &mask);
 #endif
 
 	while(pthread_mutex_lock(&((pthread_mutex_t*) par->fMutex)[0]) == 0 && par->fTerminate == false)
@@ -265,7 +265,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 	cpu_set_t mask;
 	CPU_ZERO(&mask);
 	CPU_SET(0, &mask);
-	sched_setaffinity(0, sizeof(mask), &mask);
+	//sched_setaffinity(0, sizeof(mask), &mask);
 #endif
 
 	if (sliceCount == -1) sliceCount = fSliceCount;
