@@ -94,7 +94,7 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 	AliHLTTPCCAGPUTrackerNVCC::helperParam* par = (AliHLTTPCCAGPUTrackerNVCC::helperParam*) arg;
 	AliHLTTPCCAGPUTrackerNVCC* cls = par->fCls;
 
-	AliHLTTPCCATracker tmpTracker;
+	AliHLTTPCCATracker* tmpTracker = new AliHLTTPCCATracker;
 
 #ifdef HLTCA_STANDALONE
 	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d starting", par->fNum);
@@ -119,12 +119,14 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 #endif
 				if (myISlice >= 0)
 				{
-					tmpTracker.Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param());
-					tmpTracker.ReadEvent(&par->pClusterData[myISlice]);
-					tmpTracker.DoTracking();
-					tmpTracker.SetOutput(&par->pOutput[myISlice]);
-					tmpTracker.WriteOutputPrepare();
-					tmpTracker.WriteOutput();
+					tmpTracker->Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param());
+					tmpTracker->ReadEvent(&par->pClusterData[myISlice]);
+					tmpTracker->DoTracking();
+					tmpTracker->SetOutput(&par->pOutput[myISlice]);
+					pthread_mutex_lock((pthread_mutex_t*) cls->fHelperMemMutex);
+					tmpTracker->WriteOutputPrepare();
+					pthread_mutex_unlock((pthread_mutex_t*) cls->fHelperMemMutex);
+					tmpTracker->WriteOutput();
 
 					/*cls->fSlaveTrackers[par->fFirstSlice + myISlice].SetGPUSliceDataMemory((char*) new uint4[HLTCA_GPU_SLICE_DATA_MEMORY/sizeof(uint4)], (char*) new uint4[HLTCA_GPU_ROWS_MEMORY/sizeof(uint4)]);
 					cls->fSlaveTrackers[par->fFirstSlice + myISlice].ReadEvent(&par->pClusterData[myISlice]);
@@ -169,10 +171,12 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 		}
 		pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 	}
-	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 #ifdef HLTCA_STANDALONE
 	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d terminating", par->fNum);
 #endif
+	delete tmpTracker;
+	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
+	pthread_exit(NULL);
 	return(NULL);
 }
 
