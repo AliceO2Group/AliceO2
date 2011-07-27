@@ -286,6 +286,8 @@ class AliHLTTPCCATracker
 	static inline void StandaloneQueryTime(unsigned long long int *i);
 	static inline void StandaloneQueryFreq(unsigned long long int *i);
 #endif //HLTCA_STANDALONE
+  void StandalonePerfTime(int i);
+
 
 private:
 	//Temporary Variables for Standalone measurements
@@ -299,7 +301,6 @@ private:
   AliHLTTPCCAParam fParam; // parameters
   double fTimers[10]; // timers
   unsigned long long int fPerfTimers[16]; // running CPU time for different parts of the algorithm
-  void StandalonePerfTime(int i);
   
   AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl; // output control
   
