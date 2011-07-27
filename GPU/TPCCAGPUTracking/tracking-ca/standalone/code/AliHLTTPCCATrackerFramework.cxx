@@ -116,6 +116,9 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 #endif
 		for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
 		{
+#ifdef HLTCA_STANDALONE
+			fCPUTrackers[firstSlice + iSlice].StandalonePerfTime(0);
+#endif
 			fCPUTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
 			fCPUTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 			fCPUTrackers[firstSlice + iSlice].Reconstruct();

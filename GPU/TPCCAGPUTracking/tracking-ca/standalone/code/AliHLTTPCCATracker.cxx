@@ -601,8 +601,6 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 
 	TStopwatch timer0;
 
-	StandalonePerfTime(0);
-
 	if (CheckEmptySlice()) return;
 
 #ifdef DRAW1
