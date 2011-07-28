@@ -259,80 +259,92 @@ void AliHLTTPCCATracker::DumpTrackHits(std::ostream &out)
 
 void AliHLTTPCCATracker::DumpTrackletHits(std::ostream &out)
 {
-  //dump tracklets to file
-  int nTracklets = *NTracklets();
-  if( nTracklets<0 ) nTracklets = 0;
-  if( nTracklets>HLTCA_GPU_MAX_TRACKLETS ) nTracklets = HLTCA_GPU_MAX_TRACKLETS;
-  out << "Tracklets: (Slice" << Param().ISlice() << ") (" << nTracklets << ")" << std::endl;
+	//dump tracklets to file
+	int nTracklets = *NTracklets();
+	if( nTracklets<0 ) nTracklets = 0;
+	if( nTracklets>HLTCA_GPU_MAX_TRACKLETS ) nTracklets = HLTCA_GPU_MAX_TRACKLETS;
+	out << "Tracklets: (Slice" << Param().ISlice() << ") (" << nTracklets << ")" << std::endl;
 #ifdef HLTCA_GPU_SORT_DUMPDATA
-  AliHLTTPCCAHitId* tmpIds = new AliHLTTPCCAHitId[nTracklets];
-  AliHLTTPCCATracklet* tmpTracklets = new AliHLTTPCCATracklet[nTracklets];
-  memcpy(tmpIds, TrackletStartHits(), nTracklets * sizeof(AliHLTTPCCAHitId));
-  memcpy(tmpTracklets, Tracklets(), nTracklets * sizeof(AliHLTTPCCATracklet));
+	AliHLTTPCCAHitId* tmpIds = new AliHLTTPCCAHitId[nTracklets];
+	AliHLTTPCCATracklet* tmpTracklets = new AliHLTTPCCATracklet[nTracklets];
+	memcpy(tmpIds, TrackletStartHits(), nTracklets * sizeof(AliHLTTPCCAHitId));
+	memcpy(tmpTracklets, Tracklets(), nTracklets * sizeof(AliHLTTPCCATracklet));
 #ifdef EXTERN_ROW_HITS
-  int* tmpHits = new int[nTracklets * Param().NRows()];
-  memcpy(tmpHits, TrackletRowHits(), nTracklets * Param().NRows() * sizeof(int));
+	int* tmpHits = new int[nTracklets * Param().NRows()];
+	memcpy(tmpHits, TrackletRowHits(), nTracklets * Param().NRows() * sizeof(int));
 #endif
-  qsort(TrackletStartHits(), nTracklets, sizeof(AliHLTTPCCAHitId), StarthitSortComparison);
-  for (int i = 0;i < nTracklets; i++ ){
-    for (int j = 0;j < nTracklets; j++ ){
-      if (tmpIds[i].RowIndex() == TrackletStartHit(j).RowIndex() && tmpIds[i].HitIndex() == TrackletStartHit(j).HitIndex() ){
-	memcpy(&Tracklets()[j], &tmpTracklets[i], sizeof(AliHLTTPCCATracklet));
+	qsort(TrackletStartHits(), nTracklets, sizeof(AliHLTTPCCAHitId), StarthitSortComparison);
+	for (int i = 0;i < nTracklets; i++ ){
+		for (int j = 0;j < nTracklets; j++ ){
+			if (tmpIds[i].RowIndex() == TrackletStartHit(j).RowIndex() && tmpIds[i].HitIndex() == TrackletStartHit(j).HitIndex() ){
+				memcpy(&Tracklets()[j], &tmpTracklets[i], sizeof(AliHLTTPCCATracklet));
 #ifdef EXTERN_ROW_HITS
-	if (tmpTracklets[i].NHits() ){
-	  for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++){
-	    const int pos = k * nTracklets + j;
-	    if (pos < 0 || pos >= HLTCA_GPU_MAX_TRACKLETS * fParam.NRows()){
-	      printf("internal error\n");	      
-	    } else {
-	      fTrackletRowHits[pos] = tmpHits[k * nTracklets + i];
-	    }
-	  }
+				if (tmpTracklets[i].NHits() ){
+					for (int k = tmpTracklets[i].FirstRow();k <= tmpTracklets[i].LastRow();k++){
+						const int pos = k * nTracklets + j;
+						if (pos < 0 || pos >= HLTCA_GPU_MAX_TRACKLETS * fParam.NRows()){
+							printf("internal error\n");	      
+						} else {
+							fTrackletRowHits[pos] = tmpHits[k * nTracklets + i];
+						}
+					}
+				}
+#endif
+				break;
+			}
+		}
 	}
-#endif
-	break;
-      }
-    }
-  }
-  delete[] tmpIds;
-  delete[] tmpTracklets;
+	delete[] tmpIds;
+	delete[] tmpTracklets;
 #ifdef EXTERN_ROW_HITS
-  delete[] tmpHits;
+	delete[] tmpHits;
 #endif
 #endif
-  for (int j = 0;j < nTracklets; j++ )
+	for (int j = 0;j < nTracklets; j++ )
 	{
-	  out << "Tracklet " << std::setw(4) << j << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Start: " << std::setw(3) << TrackletStartHit(j).RowIndex() << "-" << std::setw(3) << TrackletStartHit(j).HitIndex() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1) << " - " << (Tracklets()[j].NHits() ? Tracklets()[j].LastRow() : -1) << ") ";
-	  if (Tracklets()[j].NHits() == 0);
-	  else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= Param().NRows() || Tracklets()[j].LastRow() >= Param().NRows()))
-	    {
+		out << "Tracklet " << std::setw(4) << j << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Start: " << std::setw(3) << TrackletStartHit(j).RowIndex() << "-" << std::setw(3) << TrackletStartHit(j).HitIndex() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1) << " - " << (Tracklets()[j].NHits() ? Tracklets()[j].LastRow() : -1) << ") ";
+		if (Tracklets()[j].NHits() == 0);
+		else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= Param().NRows() || Tracklets()[j].LastRow() >= Param().NRows()))
+		{
 #ifdef HLTCA_STANDALONE
-	      printf("\nError: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
-	      out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
-	      for (int i = 0;i < Param().NRows();i++)
-		{
-		  //if (Tracklets()[j].RowHit(i) != -1)
+			printf("\nError: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
+			out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
+			for (int i = 0;i < Param().NRows();i++)
+			{
+				//if (Tracklets()[j].RowHit(i) != -1)
 #ifdef EXTERN_ROW_HITS
-		  out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
+				out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
 #else
-		  out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+				out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+#endif
+			}
 #endif
 		}
-#endif
-	    }
-	  else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() > Tracklets()[j].FirstRow())
-	    {
-	      for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
+		else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() > Tracklets()[j].FirstRow())
 		{
-		  //if (Tracklets()[j].RowHit(i) != -1)
+			int nHits = 0;;
+			for (int i = Tracklets()[j].FirstRow();i <= Tracklets()[j].LastRow();i++)
+			{
 #ifdef EXTERN_ROW_HITS
-		  out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
+				if (fTrackletRowHits[i * fCommonMem->fNTracklets + j] != -1)
 #else
-		  out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+				if (Tracklets()[j].RowHit(i) != -1)
 #endif
+				{
+					nHits++;
+				}
+#ifdef EXTERN_ROW_HITS
+				out << i << "-" << fTrackletRowHits[i * fCommonMem->fNTracklets + j] << ", ";
+#else
+				out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
+#endif
+			}
+			if (nHits != Tracklets()[j].NHits())
+			{
+				out << std::endl << "Wrong NHits!: Expected " << Tracklets()[j].NHits() << ", fount " << nHits;
+			}
 		}
-	    }
-	  out << std::endl;
+		out << std::endl;
 	}
 }
 

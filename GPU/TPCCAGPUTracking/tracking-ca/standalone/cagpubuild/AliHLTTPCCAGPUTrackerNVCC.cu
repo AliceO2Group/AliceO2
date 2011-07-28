@@ -1350,6 +1350,17 @@ RestartTrackletConstructor:
 
 	if (fDebugLevel >= 3) HLTInfo("GPU Reconstruction finished");
 
+	/*static int runnum = 0;
+	std::ofstream tmpOut;
+	char buffer[1024];
+	sprintf(buffer, "GPUtracks%d.out", runnum++);
+	tmpOut.open(buffer);
+	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
+	{
+		fSlaveTrackers[firstSlice + iSlice].DumpTrackHits(tmpOut);
+	}
+	tmpOut.close();*/
+
 #ifdef HLTCA_GPU_TRACKLET_CONSTRUCTOR_DO_PROFILE
 	char* stageAtSync = (char*) malloc(100000000);
 	CudaFailedMsg(cudaMemcpy(stageAtSync, fGpuTracker[0].StageAtSync(), 100 * 1000 * 1000, cudaMemcpyDeviceToHost));

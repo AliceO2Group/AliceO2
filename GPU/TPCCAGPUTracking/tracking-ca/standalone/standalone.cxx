@@ -19,10 +19,12 @@
 #include <sys/select.h>
 #endif
 
+#include "AliHLTTPCGMMergedTrack.h"
+
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0;
+	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0;
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
@@ -89,6 +91,11 @@ int main(int argc, char** argv)
 		if ( !strcmp( argv[i], "-CUDA" ) && argc > i + 1)
 		{
 			cudaDevice = atoi(argv[i + 1]);
+		}
+
+		if ( !strcmp( argv[i], "-CLUSTERSTATS" ) && argc > i + 1)
+		{
+			clusterstats = atoi(argv[i + 1]);
 		}
 
 		if ( !strcmp( argv[i], "-N" ) && argc > i + 1)
@@ -214,6 +221,9 @@ int main(int argc, char** argv)
 		}
 	}
 
+	int ClusterStat[HLTCA_ROW_COUNT];
+	memset(ClusterStat, 0, HLTCA_ROW_COUNT * sizeof(int));
+
 	for (i = StartEvent;i < NEvents || NEvents == -1;i++)
 	{
 		char filename[256];
@@ -254,9 +264,26 @@ int main(int argc, char** argv)
 				printf("Error occured\n");
 				goto breakrun;
 			}
+			if (clusterstats)
+			{
+				const AliHLTTPCGMMerger& merger = hlt.Merger();
+				for (int i = 0;i < merger.NOutputTracks();i++)
+				{
+					const AliHLTTPCGMMergedTrack* tracks = merger.OutputTracks();
+					ClusterStat[tracks[i].NClusters()]++;
+				}
+			}
 		}
 	}
 breakrun:
+
+	if (clusterstats)
+	{
+		for (int i = 0;i < HLTCA_ROW_COUNT;i++)
+		{
+			printf("CLUSTER STATS: Clusters: %3d, Tracks: %5d\n", i, ClusterStat[i]);
+		}
+	}
 
 	if (DebugLevel >= 4)
 	{
