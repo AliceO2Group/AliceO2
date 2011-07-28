@@ -525,6 +525,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(A
 
 				rMem.fGo = 1;
 
+
 				iRow = rMem.fStartRow;
 				iRowEnd = tracker.Param().NRows();
 			}
