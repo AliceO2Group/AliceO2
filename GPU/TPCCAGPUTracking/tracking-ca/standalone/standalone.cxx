@@ -221,8 +221,8 @@ int main(int argc, char** argv)
 		}
 	}
 
-	int ClusterStat[HLTCA_ROW_COUNT];
-	memset(ClusterStat, 0, HLTCA_ROW_COUNT * sizeof(int));
+	int ClusterStat[HLTCA_ROW_COUNT + 1];
+	memset(ClusterStat, 0, (HLTCA_ROW_COUNT + 1) * sizeof(int));
 
 	for (i = StartEvent;i < NEvents || NEvents == -1;i++)
 	{
@@ -270,7 +270,17 @@ int main(int argc, char** argv)
 				for (int i = 0;i < merger.NOutputTracks();i++)
 				{
 					const AliHLTTPCGMMergedTrack* tracks = merger.OutputTracks();
-					ClusterStat[tracks[i].NClusters()]++;
+					int nCluster = tracks[i].NClusters();
+					if (nCluster < 0)
+					{
+						printf("Error in Merger: Track %d contains %d clusters\n", i, nCluster);
+						return(1);
+					}
+					else
+					{
+						if (nCluster >= HLTCA_ROW_COUNT) nCluster = HLTCA_ROW_COUNT;
+						ClusterStat[nCluster]++;
+					}
 				}
 			}
 		}
@@ -279,7 +289,7 @@ breakrun:
 
 	if (clusterstats)
 	{
-		for (int i = 0;i < HLTCA_ROW_COUNT;i++)
+		for (int i = 0;i < (HLTCA_ROW_COUNT + 1);i++)
 		{
 			printf("CLUSTER STATS: Clusters: %3d, Tracks: %5d\n", i, ClusterStat[i]);
 		}
