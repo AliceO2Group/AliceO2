@@ -288,6 +288,12 @@ class AliHLTTPCCATracker
 #endif //HLTCA_STANDALONE
   void StandalonePerfTime(int i);
 
+  struct trackSortData
+  {
+	int fTtrack;		//Track ID
+	float fSortVal;		//Value to sort for
+  };
+  GPUh() static int SortComparison(const void* a, const void* b);
 
 private:
 	//Temporary Variables for Standalone measurements
