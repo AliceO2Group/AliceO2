@@ -674,6 +674,11 @@ GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
 	AliHLTTPCCASliceOutput::Allocate(*fOutput, fCommonMem->fNTracks, fCommonMem->fNTrackHits, fOutputControl);
 }
 
+GPUh() int AliHLTTPCCATracker::SortComparison(const void* a, const void* b)
+{
+	return(((trackSortData*) a)->fSortVal < ((trackSortData*) b)->fSortVal ? 1 : -1);
+}
+
 GPUh() void AliHLTTPCCATracker::WriteOutput()
 {
 	// write output
@@ -693,7 +698,16 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 	AliHLTTPCCASliceOutTrack *out = useOutput->FirstTrack();
 
-	for ( int iTr = 0; iTr < fCommonMem->fNTracks; iTr++ ) {
+	trackSortData* trackOrder = new trackSortData[fCommonMem->fNTracks];
+	for (int i = 0;i < fCommonMem->fNTracks;i++)
+	{
+		trackOrder[i].fTtrack = i % fCommonMem->fNTracks;
+		trackOrder[i].fSortVal = fTracks[trackOrder[i].fTtrack].NHits() / 1000.f + fTracks[trackOrder[i].fTtrack].Param().GetZ() * 100.f + fTracks[trackOrder[i].fTtrack].Param().GetY();
+	}
+	qsort(trackOrder, fCommonMem->fNTracks, sizeof(trackSortData), SortComparison);
+
+	for ( int iTrTmp = 0; iTrTmp < fCommonMem->fNTracks; iTrTmp++ ) {
+		int iTr = trackOrder[iTrTmp].fTtrack;
 		AliHLTTPCCATrack &iTrack = fTracks[iTr];    
 
 		if( iTrack.NHits() < fParam.MinNTrackClusters() ) continue;
@@ -741,6 +755,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		out->SetNClusters( nClu );
 		out = out->NextTrack();    
 	}
+	delete[] trackOrder;
 
 	useOutput->SetNTracks( nStoredTracks );
 	useOutput->SetNTrackClusters( nStoredHits );
