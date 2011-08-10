@@ -519,6 +519,11 @@ GPUdi() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  floa
 //* Rotation
 //*
 
+#ifndef HLTCA_GPUCODE
+#include <stdio.h>
+#endif
+
+
 
 GPUdi() bool AliHLTTPCCATrackParam::Rotate( float alpha, float maxSinPhi )
 {
@@ -559,6 +564,20 @@ GPUdi() bool AliHLTTPCCATrackParam::Rotate( float alpha, float maxSinPhi )
   fC[5] *= j2 * j2;
   fC[8] *= j2;
   fC[12] *= j2;
+
+	if (cosPhi < 0)
+	{
+		SetSinPhi(-SinPhi());
+		SetDzDs(-DzDs());
+		SetQPt(-QPt());
+		fC[3] = - fC[3];
+		fC[4] = - fC[4];
+		fC[6] = - fC[6];
+		fC[7] = - fC[7];
+		fC[10] = -fC[10];
+		fC[11] = -fC[11];
+	}
+
   //cout<<"      "<<fC[0]<<" "<<fC[1]<<" "<<fC[6]<<" "<<fC[10]<<" "<<fC[4]<<" "<<fC[5]<<" "<<fC[8]<<" "<<fC[12]<<endl;
   return 1;
 }

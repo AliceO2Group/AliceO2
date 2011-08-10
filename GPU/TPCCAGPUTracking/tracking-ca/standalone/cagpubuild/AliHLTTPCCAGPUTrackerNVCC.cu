@@ -209,6 +209,7 @@ fHelperParams(NULL),
 fHelperMemMutex(NULL),
 fNCPUTrackers(0),
 fNSlicesPerCPUTracker(0),
+fGlobalTracking(0),
 fNSlaveThreads(0)
 {
 	fCudaContext = (void*) new CUcontext;
@@ -352,7 +353,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		if (fDebugLevel >= 4) printf("Obtained device properties for device %d\n", i);
 		int deviceOK = fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < reqVerMaj || (fCudaDeviceProp.major == reqVerMaj && fCudaDeviceProp.minor < reqVerMin)) && free >= fGPUMemSize + 100 * 1024 + 1024;
 #ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-		if (sliceCount > fCudaDeviceProp.multiProcessorCount * HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER) deviceOK = 0;
+		//if (sliceCount > fCudaDeviceProp.multiProcessorCount * HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER) deviceOK = 0;
 #endif
 
 		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, (long long int) free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
@@ -674,15 +675,19 @@ int AliHLTTPCCAGPUTrackerNVCC::SetGPUTrackerOption(char* OptionName, int OptionV
 	{
 		fNSlicesPerCPUTracker = OptionValue;
 	}
+	else if (strcmp(OptionName, "GlobalTracking") == 0)
+	{
+		fGlobalTracking = OptionValue;
+	}
 	else
 	{
 		HLTError("Unknown Option: %s", OptionName);
 		return(1);
 	}
 
-	if (fNHelperThreads + fNCPUTrackers > fNSlaveThreads)
+	if (fNHelperThreads + fNCPUTrackers > fNSlaveThreads && fCudaInitialized)
 	{
-		HLTInfo("Insufficient Slave Threads available, creating additional Slave Threads\n");
+		HLTInfo("Insufficient Slave Threads available (%d), creating additional Slave Threads (%d+%d)\n", fNSlaveThreads, fNHelperThreads, fNCPUTrackers);
 		StopHelperThreads();
 		StartHelperThreads();
 	}

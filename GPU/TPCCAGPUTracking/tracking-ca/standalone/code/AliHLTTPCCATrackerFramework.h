@@ -16,6 +16,7 @@
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTLogging.h"
 #include <iostream>
+#include <string.h>
 
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAClusterData;
@@ -33,7 +34,7 @@ public:
 	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
 	int ExitGPU();
 	void SetGPUDebugLevel(int Level, std::ostream *OutFile = NULL, std::ostream *GPUOutFile = NULL);
-	int SetGPUTrackerOption(char* OptionName, int OptionValue) {return(fGPUTracker->SetGPUTrackerOption(OptionName, OptionValue));}
+	int SetGPUTrackerOption(char* OptionName, int OptionValue) {if (strcmp(OptionName, "GlobalTracking") == 0) fGlobalTracking = OptionValue;return(fGPUTracker->SetGPUTrackerOption(OptionName, OptionValue));}
 	int SetGPUTracker(bool enable);
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param);
@@ -70,6 +71,7 @@ private:
   static const int fCPUSliceCount = 36;
 
   bool fKeepData;		//Keep temporary data and do not free memory imediately, used for Standalone Debug Event Display
+  bool fGlobalTracking;	//Use global tracking
 
   AliHLTTPCCATrackerFramework( const AliHLTTPCCATrackerFramework& );
   AliHLTTPCCATrackerFramework &operator=( const AliHLTTPCCATrackerFramework& );

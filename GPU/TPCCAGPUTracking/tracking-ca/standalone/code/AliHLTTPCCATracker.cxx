@@ -630,7 +630,12 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 #endif //DRAW1
 
 	DoTracking();
+	fTimers[0] = timer0.CpuTime() / 100.;
+}
 
+GPUh() void AliHLTTPCCATracker::ReconstructOutput()
+{
+	TStopwatch timer0;
 	WriteOutputPrepare();
 	WriteOutput();
 
@@ -664,8 +669,7 @@ GPUh() void AliHLTTPCCATracker::Reconstruct()
 #endif //DRAW1
 
 	timer0.Stop();
-	fTimers[0] = timer0.CpuTime() / 100.;
-
+	fTimers[0] += timer0.CpuTime() / 100.;
 }
 
 GPUh() void AliHLTTPCCATracker::WriteOutputPrepare()
@@ -710,7 +714,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		int iTr = trackOrder[iTrTmp].fTtrack;
 		AliHLTTPCCATrack &iTrack = fTracks[iTr];    
 
-		if( iTrack.NHits() < fParam.MinNTrackClusters() ) continue;
+		if( iTr < fCommonMem->fNLocalTracks && iTrack.NHits() < fParam.MinNTrackClusters() ) continue;
 		if( CAMath::Abs(iTrack.Param().GetQPt())> fParam.MaxTrackQPt() ) continue;
 
 		out->SetParam( iTrack.Param() );
@@ -948,4 +952,123 @@ GPUh() void AliHLTTPCCATracker::ReadTracks( std::istream &/*in*/ )
 {
 	//* Read tracks  from file -- dummy
 }
+
+GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction)
+{
+	/*for (int j = 0;j < fTracks[j].NHits();j++)
+	{
+		printf("Hit %3d: Row %3d: X %3.7lf Y %3.7lf\n", j, fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex(), Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()).X(),
+		(float) Data().HitDataY(Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()), fTrackHits[fTracks[iTrack].FirstHitID() + j].HitIndex()) * Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()).HstepY() + Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()).Grid().YMin());
+		}*/
+
+	AliHLTTPCCATrackParam Param;
+	Param.InitParam();
+
+	Param.SetParam(fTracks[iTrack].Param());
+
+	//printf("Parameters X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f\n", Param.X(), Param.Y(), Param.Z(), Param.SinPhi(), Param.DzDs(), Param.QPt(), Param.SignCosPhi());
+	if (!Param.Rotate(angle, .999)) return(0);
+	//printf("Rotated X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f\n", Param.X(), Param.Y(), Param.Z(), Param.SinPhi(), Param.DzDs(), Param.QPt(), Param.SignCosPhi());
+
+	int maxRowGap = 6;
+	do
+	{
+		rowIndex += direction;
+		if (!Param.TransportToX(sliceNeighbour.Row(rowIndex).X(), fParam.ConstBz(), .999)) {maxRowGap = 0;break;}
+		//printf("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)\n", Param.X(), Param.Y(), Param.Z(), Param.SinPhi(), Param.DzDs(), Param.QPt(), Param.SignCosPhi(), sliceNeighbour.Row(rowIndex).MaxY());
+	} while (fabs(Param.Y()) > sliceNeighbour.Row(rowIndex).MaxY() && --maxRowGap);
+	if (maxRowGap == 0) return(0);
+
+	int nHits = AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGlobalTracking(sliceNeighbour, Param, rowIndex, direction);
+	if (nHits >= GLOBAL_TRACKING_MIN_HITS)
+	{
+		//printf("%d hits found\n", nHits);
+		AliHLTTPCCATrack& track = sliceNeighbour.fTracks[sliceNeighbour.fCommonMem->fNTracks];
+		track.SetAlive(1);
+		track.SetParam(Param.GetParam());
+		track.SetNHits(nHits);
+		track.SetFirstHitID(sliceNeighbour.fCommonMem->fNTrackHits);
+		if (direction == 1)
+		{
+			int i = 0;
+			while (i < nHits)
+			{
+				if (sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets] != -1)
+				{
+					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
+					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
+					i++;
+				}
+				rowIndex ++;
+			}
+		}
+		else
+		{
+			int i = nHits - 1;
+			while (i >= 0)
+			{
+				if (sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets] != -1)
+				{
+					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
+					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
+					i--;
+				}
+				rowIndex--;
+			}
+		}
+		sliceNeighbour.fCommonMem->fNTracks++;
+		sliceNeighbour.fCommonMem->fNTrackHits += nHits;
+		return(1);
+	}
+	return(0);
+}
+
+GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight)
+{
+	int ul = 0, ur = 0, ll = 0, lr = 0;
+	for (int i = 0;i < fCommonMem->fNLocalTracks;i++)
+	{
+		{
+			const int tmpHit = fTracks[i].FirstHitID();
+			if (fTrackHits[tmpHit].RowIndex() >= GLOBAL_TRACKING_MIN_ROWS && fTrackHits[tmpHit].RowIndex() < GLOBAL_TRACKING_RANGE)
+			{
+				int rowIndex = fTrackHits[tmpHit].RowIndex();
+				const AliHLTTPCCARow& row = Row(rowIndex);
+				float Y = (float) Data().HitDataY(row, fTrackHits[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
+				if (Y < -row.MaxY() * GLOBAL_TRACKING_Y_RANGE_LOWER_LEFT)
+				{
+					//printf("Track %d, lower row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
+					ll += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam.DAlpha(), -1);
+				}
+				if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_LOWER_RIGHT)
+				{
+					//printf("Track %d, lower row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
+					lr += PerformGlobalTrackingRun(sliceRight, i, rowIndex, fParam.DAlpha(), -1);
+				}
+			}
+		}
+		
+		{
+			const int tmpHit = fTracks[i].FirstHitID() + fTracks[i].NHits() - 1;
+			if (fTrackHits[tmpHit].RowIndex() < HLTCA_ROW_COUNT - GLOBAL_TRACKING_MIN_ROWS && fTrackHits[tmpHit].RowIndex() >= HLTCA_ROW_COUNT - GLOBAL_TRACKING_RANGE)
+			{
+				int rowIndex = fTrackHits[tmpHit].RowIndex();
+				const AliHLTTPCCARow& row = Row(rowIndex);
+				float Y = (float) Data().HitDataY(row, fTrackHits[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
+				if (Y < -row.MaxY() * GLOBAL_TRACKING_Y_RANGE_UPPER_LEFT)
+				{
+					//printf("Track %d, upper row %d, left border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
+					ul += PerformGlobalTrackingRun(sliceLeft, i, rowIndex, -fParam.DAlpha(), 1);
+				}
+				if (Y > row.MaxY() * GLOBAL_TRACKING_Y_RANGE_UPPER_RIGHT)
+				{
+					//printf("Track %d, upper row %d, right border (%f of %f)\n", i, fTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
+					ur += PerformGlobalTrackingRun(sliceRight, i, rowIndex, fParam.DAlpha(), 1);
+				}
+			}
+		}
+	}
+	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", fParam.ISlice(), ll, lr, ul, ur);
+}
+
 #endif

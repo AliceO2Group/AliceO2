@@ -77,6 +77,7 @@ int drawSeeds = false;
 int drawInitLinks = false;
 int drawTracklets = false;
 int drawTracks = false;
+int drawGlobalTracks = false;
 int drawFinal = false;
 
 int drawSlice = -1;
@@ -104,6 +105,7 @@ inline void SetColorLinks() {glColor3f(1, 0.3, 0.3);}
 inline void SetColorSeeds() {glColor3f(1.0, 0.4, 0);}
 inline void SetColorTracklets() {glColor3f(1, 1, 1);}
 inline void SetColorTracks() {glColor3f(0.6, 1, 0);}
+inline void SetColorGlobalTracks() {glColor3f(0.6, 0.6, 0);}
 inline void SetColorFinal() {glColor3f(0, 0.8, 0.2);}
 inline void SetColorGrid() {glColor3f(0.7, 0.7, 0.0);}
 
@@ -266,9 +268,9 @@ void DrawTracklets(AliHLTTPCCATracker& tracker)
 	}
 }
 
-void DrawTracks(AliHLTTPCCATracker& tracker)
+void DrawTracks(AliHLTTPCCATracker& tracker, int global)
 {
-	for (int i = 0;i < *tracker.NTracks();i++)
+	for (int i = (global ? tracker.CommonMemory()->fNLocalTracks : 0);i < (global ? *tracker.NTracks() : tracker.CommonMemory()->fNLocalTracks);i++)
 	{
 		AliHLTTPCCATrack &track = tracker.Tracks()[i];
 		glBegin(GL_LINE_STRIP);
@@ -277,7 +279,7 @@ void DrawTracks(AliHLTTPCCATracker& tracker)
 			const AliHLTTPCCAHitId &hit = tracker.TrackHits()[track.FirstHitID() + j];
 			const AliHLTTPCCARow &row = tracker.Data().Row(hit.RowIndex());
 			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
-			drawPointLinestrip(cid, 5);
+			drawPointLinestrip(cid, 5 + global);
 		}
 		glEnd();
 	}
@@ -295,7 +297,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
 		for (int j = 0;j < track.NClusters();j++)
 		{
 			int cid = mergerOut.ClusterId(track.FirstClusterRef() + j);
-			drawPointLinestrip(cid, 6);
+			drawPointLinestrip(cid, 7);
 		}
 		glEnd();
 	}
@@ -365,9 +367,9 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 
 	static float pointSize = 2.0;
 
-	static GLuint glDLlines[fgkNSlices][5];
+	static GLuint glDLlines[fgkNSlices][6];
 	static GLuint glDLlinesFinal;
-	static GLuint glDLpoints[fgkNSlices][7];
+	static GLuint glDLpoints[fgkNSlices][8];
 	static GLuint glDLgrid[fgkNSlices];
 	static int glDLcreated = 0;
 
@@ -534,14 +536,14 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 		{
 			if (glDLcreated)
 			{
-				for (int i = 0;i < 5;i++) glDeleteLists(glDLlines[iSlice][i], 1);
-				for (int i = 0;i < 7;i++) glDeleteLists(glDLpoints[iSlice][i], 1);
+				for (int i = 0;i < 6;i++) glDeleteLists(glDLlines[iSlice][i], 1);
+				for (int i = 0;i < 8;i++) glDeleteLists(glDLpoints[iSlice][i], 1);
 				glDeleteLists(glDLgrid[iSlice], 1);
 			}
 			else
 			{
-				for (int i = 0;i < 5;i++) glDLlines[iSlice][i] = glGenLists(1);
-				for (int i = 0;i < 7;i++) glDLpoints[iSlice][i] = glGenLists(1);
+				for (int i = 0;i < 6;i++) glDLlines[iSlice][i] = glGenLists(1);
+				for (int i = 0;i < 8;i++) glDLpoints[iSlice][i] = glGenLists(1);
 				glDLgrid[iSlice] = glGenLists(1);
 			}
 		}
@@ -593,7 +595,11 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 			glEndList();
 			
 			glNewList(glDLlines[iSlice][4], GL_COMPILE);
-			DrawTracks(tracker);
+			DrawTracks(tracker, 0);
+			glEndList();
+
+			glNewList(glDLlines[iSlice][5], GL_COMPILE);
+			DrawTracks(tracker, 1);
 			glEndList();
 
 			glNewList(glDLgrid[iSlice], GL_COMPILE);
@@ -608,7 +614,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
 			AliHLTTPCCATracker& tracker = hlt.fTracker.fCPUTrackers[iSlice];
-			for (int i = 0;i < 7;i++)
+			for (int i = 0;i < 8;i++)
 			{
 				glNewList(glDLpoints[iSlice][i], GL_COMPILE);
 				DrawClusters(tracker, i);
@@ -635,7 +641,7 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	{
 		displayFpsTime = tmpTime;
 		float fps = (double) framesDone * (double) timeFreq / (double) (tmpTime - startTime);
-		printf("FPS: %f (%d frames, Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:Merger %d)\n", fps, framesDone, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawFinal);
+		printf("FPS: %f (%d frames, Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d)\n", fps, framesDone, drawSlice, drawClusters, drawInitLinks, drawLinks, drawSeeds, drawTracklets, drawTracks, drawGlobalTracks, drawFinal);
 		fpsscale = 60 / fps;
 	}
 
@@ -694,13 +700,21 @@ skip1:
 				}
 				glCallList(glDLpoints[iSlice][5]);
 
-				if (drawFinal)
+skip2:
+				if (drawGlobalTracks)
 				{
-					if (excludeClusters) goto skip2;
-					SetColorFinal();
+					if (excludeClusters) goto skip3;
+					SetColorGlobalTracks();
 				}
 				glCallList(glDLpoints[iSlice][6]);
-skip2:
+
+				if (drawFinal)
+				{
+					if (excludeClusters) goto skip3;
+					SetColorFinal();
+				}
+				glCallList(glDLpoints[iSlice][7]);
+skip3:
 				;
 			}
 
@@ -726,6 +740,10 @@ skip2:
 					SetColorTracks();
 					glCallList(glDLlines[iSlice][4]);
 				}
+				if (drawGlobalTracks) {
+					SetColorGlobalTracks();
+					glCallList(glDLlines[iSlice][5]);
+				}
 			}
 		}
 		if (!excludeClusters && drawFinal) {
@@ -734,7 +752,7 @@ skip2:
 			{
 				for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 				{
-					glCallList(glDLpoints[iSlice][6]);
+					glCallList(glDLpoints[iSlice][7]);
 				}
 			}
 			glCallList(glDLlinesFinal);	
@@ -785,7 +803,8 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == '4') drawSeeds ^= 1;
 	else if (wParam == '5') drawTracklets ^= 1;
 	else if (wParam == '6') drawTracks ^= 1;
-	else if (wParam == '7') drawFinal ^= 1;
+	else if (wParam == '7') drawGlobalTracks ^= 1;
+	else if (wParam == '8') drawFinal ^= 1;
 }
 
 #ifdef R__WIN32
@@ -1201,6 +1220,7 @@ int GetKey(int key)
 	case 15: wParam = '6';break;
 	case 16: wParam = '7';break;
 	case 17: wParam = '8';break;
+	case 18: wParam = '9';break;
 	case 57: wParam = 'N';break;
 	case 24: wParam = 'Q';break;
 	case 27: wParam = 'R';break;

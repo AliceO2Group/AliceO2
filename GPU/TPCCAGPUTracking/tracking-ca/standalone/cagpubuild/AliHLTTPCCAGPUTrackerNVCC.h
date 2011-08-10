@@ -146,6 +146,8 @@ private:
 	int fNCPUTrackers; //Number of CPU trackers to use
 	int fNSlicesPerCPUTracker; //Number of slices processed by each CPU tracker
 
+	int fGlobalTracking; //Use Global Tracking
+
 	int fNSlaveThreads;	//Number of slave threads currently active
 
 	// disable copy
