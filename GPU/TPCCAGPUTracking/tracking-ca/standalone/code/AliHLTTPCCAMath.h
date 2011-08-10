@@ -97,7 +97,7 @@ GPUd() inline int AliHLTTPCCAMath::Nint( float x )
 
 GPUd() inline bool AliHLTTPCCAMath::Finite( float x )
 {
-  return choice( isfinite( x ), finite( x ), finite( x ) );
+  return choice( 1 /*isfinite( x )*/, finite( x ), finite( x ) );
 }
 
 GPUd() inline float AliHLTTPCCAMath::ATan2( float y, float x )
