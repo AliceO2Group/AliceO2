@@ -105,10 +105,12 @@ class AliHLTTPCCATracker
   
   struct commonMemoryStruct
   {
-    commonMemoryStruct() : fNTracklets( 0 ), fNTracks( 0 ), fNTrackHits( 0 ), fGPUParameters() {}
+    commonMemoryStruct() : fNTracklets( 0 ), fNTracks( 0 ), fNLocalTracks( 0 ), fNTrackHits( 0 ), fNLocalTrackHits( 0 ), fGPUParameters() {}
     int fNTracklets;     // number of tracklets
     int fNTracks;            // number of reconstructed tracks
+	int fNLocalTracks;	 //number of reconstructed tracks before global tracking
     int fNTrackHits;           // number of track hits
+	int fNLocalTrackHits; //see above
     StructGPUParameters fGPUParameters; // GPU parameters
   };
   
@@ -122,6 +124,7 @@ class AliHLTTPCCATracker
   
 #if !defined(HLTCA_GPUCODE)
   void Reconstruct();
+  void ReconstructOutput();
 #endif //!HLTCA_GPUCODE
   void DoTracking();
   
@@ -233,6 +236,9 @@ class AliHLTTPCCATracker
   GPUd() void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
     fData.MaximizeHitWeight( row, hitIndex, weight );
   }
+  GPUd() void SetHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
+	fData.SetHitWeight( row, hitIndex, weight );
+  }
   GPUd() int HitWeight( const AliHLTTPCCARow &row, int hitIndex ) const {
     return fData.HitWeight( row, hitIndex );
   }
@@ -295,7 +301,11 @@ class AliHLTTPCCATracker
   };
   GPUh() static int SortComparison(const void* a, const void* b);
 
+  GPUh() void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight);
+
 private:
+  GPUh() int PerformGlobalTrackingRun(AliHLTTPCCATracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
+
 	//Temporary Variables for Standalone measurements
 #ifdef HLTCA_STANDALONE
 public:

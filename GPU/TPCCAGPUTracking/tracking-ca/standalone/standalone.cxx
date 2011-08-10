@@ -222,7 +222,10 @@ int main(int argc, char** argv)
 	}
 
 	int ClusterStat[HLTCA_ROW_COUNT + 1];
-	memset(ClusterStat, 0, (HLTCA_ROW_COUNT + 1) * sizeof(int));
+	if (clusterstats >= 2)
+	{
+		memset(ClusterStat, 0, (HLTCA_ROW_COUNT + 1) * sizeof(int));
+	}
 
 	for (i = StartEvent;i < NEvents || NEvents == -1;i++)
 	{
@@ -264,22 +267,55 @@ int main(int argc, char** argv)
 				printf("Error occured\n");
 				goto breakrun;
 			}
-			if (clusterstats)
+
+			if (merger)
 			{
 				const AliHLTTPCGMMerger& merger = hlt.Merger();
-				for (int i = 0;i < merger.NOutputTracks();i++)
+				if (clusterstats)
 				{
-					const AliHLTTPCGMMergedTrack* tracks = merger.OutputTracks();
-					int nCluster = tracks[i].NClusters();
-					if (nCluster < 0)
+					unsigned int minid = 2000000000, maxid = 0;
+					for (int i = 0;i < merger.NOutputTrackClusters();i++)
 					{
-						printf("Error in Merger: Track %d contains %d clusters\n", i, nCluster);
-						return(1);
+						if (merger.OutputClusterIds()[i] < minid) minid = merger.OutputClusterIds()[i];
+						if (merger.OutputClusterIds()[i] > maxid) maxid = merger.OutputClusterIds()[i];
 					}
-					else
+					printf("\nCluster id range: %d %d\n", minid, maxid);
+					char* idused = new char[maxid - minid + 1];
+					memset(idused, 0, maxid - minid);
+					for (int i = 0;i < merger.NOutputTrackClusters();i++)
 					{
-						if (nCluster >= HLTCA_ROW_COUNT) nCluster = HLTCA_ROW_COUNT;
-						ClusterStat[nCluster]++;
+						idused[merger.OutputClusterIds()[i] - minid] = 1;
+					}
+					int nClustersUsed = 0;
+					for (unsigned int i = 0;i < maxid - minid;i++)
+					{
+						nClustersUsed += idused[i];
+					}
+					delete[] idused;
+					int totalclusters = 0;
+					for (int i = 0;i < hlt.NSlices();i++)
+					{
+						totalclusters += hlt.ClusterData(i).NumberOfClusters();
+					}
+					printf("Clusters used: %d of %d, %4.2f%%\n", nClustersUsed, totalclusters, 100. * (float) nClustersUsed / (float) totalclusters);
+				}
+
+				if (clusterstats >= 2)
+				{
+					for (int i = 0;i < merger.NOutputTracks();i++)
+					{
+						const AliHLTTPCGMMergedTrack* tracks = merger.OutputTracks();
+						int nCluster = tracks[i].NClusters();
+						if (nCluster < 0)
+						{
+							printf("Error in Merger: Track %d contains %d clusters\n", i, nCluster);
+							return(1);
+						}
+						else
+						{
+							if (nCluster >= HLTCA_ROW_COUNT) nCluster = HLTCA_ROW_COUNT;
+							ClusterStat[nCluster]++;
+						}
 					}
 				}
 			}
@@ -287,7 +323,7 @@ int main(int argc, char** argv)
 	}
 breakrun:
 
-	if (clusterstats)
+	if (clusterstats >= 2)
 	{
 		for (int i = 0;i < (HLTCA_ROW_COUNT + 1);i++)
 		{

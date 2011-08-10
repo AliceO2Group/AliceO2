@@ -78,6 +78,12 @@ GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 
   if ( !SAVE() ) return;
 
+/*#ifndef HLTCA_GPUCODE
+  printf("Tracklet %d: Hits %3d NDF %3d Chi %8.4f Sign %f Cov: %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f\n", r.fItr, r.fNHits, tParam.GetNDF(), tParam.GetChi2(), tParam.GetSignCosPhi(),
+	  tParam.Cov()[0], tParam.Cov()[1], tParam.Cov()[2], tParam.Cov()[3], tParam.Cov()[4], tParam.Cov()[5], tParam.Cov()[6], tParam.Cov()[7], tParam.Cov()[8], tParam.Cov()[9], 
+	  tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);
+#endif*/
+
   AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[r.fItr];
 
   tracklet.SetNHits( r.fNHits );
@@ -326,17 +332,21 @@ GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 		for ( unsigned int fIh = fHitYfst; fIh < fHitYlst; fIh++ ) {
           assert( (signed) fIh < row.NHits() );
           ushort2 hh;
+		  if (r.fStage <= 2 || 1 || tracker.HitWeight(row, fIh) >= 0)
+		  {
+
 #if defined(HLTCA_GPU_TEXTURE_FETCH)
-		 hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + fIh);
+			hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + fIh);
 #else
-		  hh = hits[fIh];
+			hh = hits[fIh];
 #endif //HLTCA_GPU_TEXTURE_FETCH
-          int ddy = ( int )( hh.x ) - fY0;
-          int ddz = ( int )( hh.y ) - fZ0;
-          int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
-          if ( dds < ds ) {
-            ds = dds;
-            best = fIh;
+			int ddy = ( int )( hh.x ) - fY0;
+			int ddz = ( int )( hh.y ) - fZ0;
+			int dds = CAMath::Abs( ddy ) + CAMath::Abs( ddz );
+			if ( dds < ds ) {
+				ds = dds;
+				best = fIh;
+			}
           }
         }
 
@@ -395,9 +405,12 @@ GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 #endif //!EXTERN_ROW_HITS
         break;
       }
-      if ( !tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
-        break;
-      }
+#ifdef GLOBAL_TRACKING_EXTRAPOLATE_ONLY
+      if ( r.fStage <= 2)
+#endif
+		  if (!tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
+			break;
+		  }
 #ifndef EXTERN_ROW_HITS
 	  tracklet.SetRowHit( iRow, best );
 #else
@@ -462,4 +475,22 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorCPU(A
 		StoreTracklet( 1, 1, 0, iTracklet, sMem, rMem, tracker, tParam );
 	}
 }
+
+GPUdi() int AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGlobalTracking(AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam& tParam, int row, int increment)
+{
+	AliHLTTPCCAThreadMemory rMem;	
+	GPUshared() AliHLTTPCCASharedMemory sMem;
+	sMem.fNTracklets = *tracker.NTracklets();
+	rMem.fItr = 0;
+	rMem.fStage = 3;
+	rMem.fNHits = rMem.fNMissed = 0;
+	rMem.fGo = 1;
+	while (rMem.fGo && row >= 0 && row < tracker.Param().NRows())
+	{
+		UpdateTracklet(1, 1, 0, 0, sMem, rMem, tracker, tParam, row);
+		row += increment;
+	}
+	return(rMem.fNHits);
+}
+
 #endif //HLTCA_GPUCODE

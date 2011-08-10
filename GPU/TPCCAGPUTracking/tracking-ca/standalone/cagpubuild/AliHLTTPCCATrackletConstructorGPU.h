@@ -15,7 +15,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::CopyTrackletTempData( AliHLTTPCCATh
 	rMemDst.fLastY = rMemSrc.fLastY;
 	rMemDst.fLastZ = rMemSrc.fLastZ;
 
-#if defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER) & !defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER)
+#if defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER) & !defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE)
 	rMemDst.fItr = rMemSrc.fItr;
 	rMemDst.fIRow = rMemSrc.fIRow;
 	rMemDst.fIRowEnd = rMemSrc.fIRowEnd;

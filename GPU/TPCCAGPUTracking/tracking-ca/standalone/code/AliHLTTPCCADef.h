@@ -110,7 +110,18 @@ namespace AliHLTTPCCADefinitions
 #endif //HLTCA_STANDALONE
 
 #define EXTERN_ROW_HITS
-#define TRACKLET_SELECTOR_MIN_HITS 25
+#define TRACKLET_SELECTOR_MIN_HITS 29
+
+#define GLOBAL_TRACKING_RANGE 45					//Number of rows from the upped/lower limit to search for global track candidates in for
+#define GLOBAL_TRACKING_Y_RANGE_UPPER_LEFT 0.85		//Inner portion of y-range in slice that is not used in searching for global track candidates
+#define GLOBAL_TRACKING_Y_RANGE_LOWER_LEFT 0.85
+#define GLOBAL_TRACKING_Y_RANGE_UPPER_RIGHT 0.85
+#define GLOBAL_TRACKING_Y_RANGE_LOWER_RIGHT 0.85
+//#define GLOBAL_TRACKING_ONLY_UNASSIGNED_HITS		//Only use unassigned clusters in the global tracking step
+#define GLOBAL_TRACKING_EXTRAPOLATE_ONLY			//Do not update the track parameters with new hits from global tracing
+#define GLOBAL_TRACKING_MIN_ROWS 8					//Min num of rows an additional global track must span over
+#define GLOBAL_TRACKING_MIN_HITS 5					//Min num of hits for an additional global track
+
 #define REPRODUCIBLE_CLUSTER_SORTING
 
 #ifdef HLTCA_GPUCODE

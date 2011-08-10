@@ -98,6 +98,13 @@ GPUhd() void AliHLTTPCCATrackerFramework::SetOutputControl( AliHLTTPCCASliceOutp
 
 int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, AliHLTTPCCAClusterData* pClusterData, AliHLTTPCCASliceOutput** pOutput)
 {
+	int useGlobalTracking = fGlobalTracking;
+	if (fGlobalTracking && (firstSlice || sliceCount != fgkNSlices))
+	{
+		HLTWarning("Global Tracking only available if all slices are processed!");
+		useGlobalTracking = 0;
+	}
+
 	//Process sliceCount slices starting from firstslice, in is pClusterData array, out pOutput array
 	if (fUseGPUTracker)
 	{
@@ -111,6 +118,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 			HLTError("fOutputPtr must not be used with OpenMP\n");
 			return(1);
 		}
+		int nLocalTracks = 0, nGlobalTracks = 0, nOutputTracks = 0, nLocalHits = 0, nGlobalHits = 0;
 
 #pragma omp parallel for
 #endif
@@ -122,11 +130,55 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 			fCPUTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
 			fCPUTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 			fCPUTrackers[firstSlice + iSlice].Reconstruct();
-			if (!fKeepData)
+			if (!useGlobalTracking)
 			{
-				fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();
+				fCPUTrackers[firstSlice + iSlice].ReconstructOutput();
+#ifdef HLTCA_STANDALONE
+				nOutputTracks += (*fCPUTrackers[iSlice].Output())->NTracks();
+				nLocalTracks += fCPUTrackers[iSlice].CommonMemory()->fNTracks;
+#endif
+				if (!fKeepData)
+				{
+					fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();
+				}
+			}
+			fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTracks = fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNTracks;
+			fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTrackHits = fCPUTrackers[firstSlice + iSlice].CommonMemory()->fNTrackHits;
+		}
+
+		if (useGlobalTracking)
+		{
+			for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
+			{
+				int sliceLeft = (iSlice + (fgkNSlices / 2 - 1)) % (fgkNSlices / 2);
+				int sliceRight = (iSlice + 1) % (fgkNSlices / 2);
+				if (iSlice >= fgkNSlices / 2)
+				{
+					sliceLeft += fgkNSlices / 2;
+					sliceRight += fgkNSlices / 2;
+				}
+				fCPUTrackers[iSlice].PerformGlobalTracking(fCPUTrackers[sliceLeft], fCPUTrackers[sliceRight]);
+			}
+			for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
+			{
+				fCPUTrackers[firstSlice + iSlice].ReconstructOutput();
+#ifdef HLTCA_STANDALONE
+				//printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fCPUTrackers[iSlice].CommonMemory()->fNLocalTracks, fCPUTrackers[iSlice].CommonMemory()->fNTracks, fCPUTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fCPUTrackers[iSlice].CommonMemory()->fNTrackHits);
+				nLocalTracks += fCPUTrackers[iSlice].CommonMemory()->fNLocalTracks;
+				nGlobalTracks += fCPUTrackers[iSlice].CommonMemory()->fNTracks;
+				nLocalHits += fCPUTrackers[iSlice].CommonMemory()->fNLocalTrackHits;
+				nGlobalHits += fCPUTrackers[iSlice].CommonMemory()->fNTrackHits;
+				nOutputTracks += (*fCPUTrackers[iSlice].Output())->NTracks();
+#endif
+				if (!fKeepData)
+				{
+					fCPUTrackers[firstSlice + iSlice].SetupCommonMemory();
+				}
 			}
 		}
+#ifdef HLTCA_STANDALONE
+		printf("Slice Tracks Output %d: - Tracks: %d local, %d global -  Hits: %d local, %d global\n", nOutputTracks, nLocalTracks, nGlobalTracks, nLocalHits, nGlobalHits);
+#endif
 	}
 	
 	if (fGPUDebugLevel >= 6 && fUseGPUTracker)
@@ -136,7 +188,6 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 	    fUseGPUTracker = 1;
 	}
 
-	//printf("Slice Tracks Output: %d\n", pOutput[0].NTracks());
 	return(0);
 }
 
@@ -160,7 +211,7 @@ int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAPar
 #define GPULIBNAME "libAliHLTTPCCAGPU"
 #endif
 
-AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false)
+AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
 {
 	//Constructor
 #ifdef R__WIN32
