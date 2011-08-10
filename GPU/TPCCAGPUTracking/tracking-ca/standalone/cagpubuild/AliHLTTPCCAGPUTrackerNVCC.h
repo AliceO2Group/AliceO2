@@ -72,6 +72,7 @@ private:
 	
 	void ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId);
 	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId);
+	void GlobalTracking(int iSlice, int threadId);
 
 	int StartHelperThreads();
 	int StopHelperThreads();
@@ -142,11 +143,19 @@ private:
 	int fNHelperThreads; //Number of helper threads for post/preprocessing
 	helperParam* fHelperParams; //Control Struct for helper threads
 	void* fHelperMemMutex;
+	
+	volatile int fSliceOutputReady;
+	volatile char fSliceLeftGlobalReady[fgkNSlices];
+	volatile char fSliceRightGlobalReady[fgkNSlices];
+	void* fSliceGlobalMutexes;
+	char fGlobalTrackingDone[fgkNSlices];
+	char fWriteOutputDone[fgkNSlices];
 
 	int fNCPUTrackers; //Number of CPU trackers to use
 	int fNSlicesPerCPUTracker; //Number of slices processed by each CPU tracker
 
 	int fGlobalTracking; //Use Global Tracking
+	int fUseGlobalTracking; 
 
 	int fNSlaveThreads;	//Number of slave threads currently active
 

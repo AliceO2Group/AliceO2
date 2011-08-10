@@ -163,7 +163,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 			{
 				fCPUTrackers[firstSlice + iSlice].ReconstructOutput();
 #ifdef HLTCA_STANDALONE
-				//printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fCPUTrackers[iSlice].CommonMemory()->fNLocalTracks, fCPUTrackers[iSlice].CommonMemory()->fNTracks, fCPUTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fCPUTrackers[iSlice].CommonMemory()->fNTrackHits);
+				printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fCPUTrackers[iSlice].CommonMemory()->fNLocalTracks, fCPUTrackers[iSlice].CommonMemory()->fNTracks, fCPUTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fCPUTrackers[iSlice].CommonMemory()->fNTrackHits);
 				nLocalTracks += fCPUTrackers[iSlice].CommonMemory()->fNLocalTracks;
 				nGlobalTracks += fCPUTrackers[iSlice].CommonMemory()->fNTracks;
 				nLocalHits += fCPUTrackers[iSlice].CommonMemory()->fNLocalTrackHits;

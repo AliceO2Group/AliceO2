@@ -89,6 +89,30 @@ texture<signed short, 1, cudaReadModeElementType> gAliTexRefs;
 
 ClassImp( AliHLTTPCCAGPUTrackerNVCC )
 
+void AliHLTTPCCAGPUTrackerNVCC::GlobalTracking(int iSlice, int threadId)
+{
+	if (fDebugLevel >= 3) printf("GPU Tracker running Global Tracking for slice %d on thread %d\n", iSlice, threadId);
+
+	int sliceLeft = (iSlice + (fgkNSlices / 2 - 1)) % (fgkNSlices / 2);
+	int sliceRight = (iSlice + 1) % (fgkNSlices / 2);
+	if (iSlice >= fgkNSlices / 2)
+	{
+		sliceLeft += fgkNSlices / 2;
+		sliceRight += fgkNSlices / 2;
+	}
+	while (fSliceOutputReady < iSlice || fSliceOutputReady < sliceLeft || fSliceOutputReady < sliceRight);
+
+	pthread_mutex_lock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceLeft]);
+	pthread_mutex_lock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceRight]);
+	fSlaveTrackers[iSlice].PerformGlobalTracking(fSlaveTrackers[sliceLeft], fSlaveTrackers[sliceRight]);
+	pthread_mutex_unlock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceLeft]);
+	pthread_mutex_unlock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceRight]);
+
+	fSliceLeftGlobalReady[sliceLeft] = 1;
+	fSliceRightGlobalReady[sliceRight] = 1;
+	if (fDebugLevel >= 3) printf("GPU Tracker finished Global Tracking for slice %d on thread %d\n", iSlice, threadId);
+}
+
 void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 {
 	AliHLTTPCCAGPUTrackerNVCC::helperParam* par = (AliHLTTPCCAGPUTrackerNVCC::helperParam*) arg;
@@ -114,9 +138,7 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 			for (int i = 0;i < cls->fNSlicesPerCPUTracker;i++)
 			{
 				int myISlice = cls->fSliceCount - cls->fNCPUTrackers * cls->fNSlicesPerCPUTracker + (par->fNum - cls->fNHelperThreads) * cls->fNSlicesPerCPUTracker + i;
-#ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Doing full CPU tracking, Slice %d", par->fNum, myISlice);
-#endif
 				if (myISlice >= 0)
 				{
 					tmpTracker->Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param());
@@ -142,38 +164,46 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackletMemory();
 					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackMemory();*/
 				}
-#ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d", par->fNum, myISlice);
-#endif
 			}
 		}
 		else
 		{
 			for (int i = par->fNum + 1;i < par->fSliceCount;i += cls->fNHelperThreads + 1)
 			{
-#ifdef HLTCA_STANDALONE
-				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
-#endif
+				//if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
 				if (par->fPhase)
 				{
-					while (par->fDone < i);
-					cls->WriteOutput(par->pOutput, par->fFirstSlice, i, par->fNum + 1);
+					if (cls->fUseGlobalTracking)
+					{
+						int realSlice = i + 2;
+						if (realSlice % (fgkNSlices / 2) < 2) realSlice -= fgkNSlices / 2;
+
+						if (realSlice % (fgkNSlices / 2) != 2)
+						{
+							cls->GlobalTracking(realSlice, par->fNum + 1);
+						}
+
+						while (cls->fSliceLeftGlobalReady[realSlice] == 0 || cls->fSliceRightGlobalReady[realSlice] == 0);
+						cls->WriteOutput(par->pOutput, par->fFirstSlice, realSlice, par->fNum + 1);
+					}
+					else
+					{
+						while (cls->fSliceOutputReady < i);
+						cls->WriteOutput(par->pOutput, par->fFirstSlice, i, par->fNum + 1);
+					}
 				}
 				else
 				{
 					cls->ReadEvent(par->pClusterData, par->fFirstSlice, i, par->fNum + 1);
 					par->fDone = i + 1;
 				}
-#ifdef HLTCA_STANDALONE
-				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
-#endif
+				//if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
 			}
 		}
 		pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 	}
-#ifdef HLTCA_STANDALONE
 	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d terminating", par->fNum);
-#endif
 	delete tmpTracker;
 	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 	pthread_exit(NULL);
@@ -207,9 +237,11 @@ fCudaContext(NULL),
 fNHelperThreads(HLTCA_GPU_DEFAULT_HELPER_THREADS),
 fHelperParams(NULL),
 fHelperMemMutex(NULL),
+fSliceOutputReady(0),
 fNCPUTrackers(0),
 fNSlicesPerCPUTracker(0),
 fGlobalTracking(0),
+fUseGlobalTracking(0),
 fNSlaveThreads(0)
 {
 	fCudaContext = (void*) new CUcontext;
@@ -482,6 +514,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		cudaThreadExit();
 		return(1);
 	}
+
 	if (pthread_mutex_init((pthread_mutex_t*) fHelperMemMutex, NULL))
 	{
 		HLTError("Error creating pthread mutex");
@@ -489,6 +522,27 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		cudaFreeHost(fHostLockedMemory);
 		cudaThreadExit();
 		return(1);
+	}
+
+	fSliceGlobalMutexes = malloc(sizeof(pthread_mutex_t) * fgkNSlices);
+	if (fSliceGlobalMutexes == NULL)
+	{
+		HLTError("Memory allocation error");
+		cudaFree(fGPUMemory);
+		cudaFreeHost(fHostLockedMemory);
+		cudaThreadExit();
+		return(1);
+	}
+	for (int i = 0;i < fgkNSlices;i++)
+	{
+		if (pthread_mutex_init(&((pthread_mutex_t*) fSliceGlobalMutexes)[i], NULL))
+		{
+			HLTError("Error creating pthread mutex");
+			cudaFree(fGPUMemory);
+			cudaFreeHost(fHostLockedMemory);
+			cudaThreadExit();
+			return(1);
+		}
 	}
 
 	cuCtxPopCurrent((CUcontext*) fCudaContext);
@@ -837,6 +891,7 @@ void AliHLTTPCCAGPUTrackerNVCC::ReadEvent(AliHLTTPCCAClusterData* pClusterData, 
 
 void AliHLTTPCCAGPUTrackerNVCC::WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId)
 {
+	if (fDebugLevel >= 3) printf("GPU Tracker running WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);
 	fSlaveTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 #ifdef HLTCA_GPU_TIME_PROFILE
 	unsigned long long int a, b;
@@ -850,6 +905,7 @@ void AliHLTTPCCAGPUTrackerNVCC::WriteOutput(AliHLTTPCCASliceOutput** pOutput, in
 	AliHLTTPCCATracker::StandaloneQueryTime(&b);
 	printf("Write %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
 #endif
+	if (fDebugLevel >= 3) printf("GPU Tracker finished WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);
 }
 
 int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
@@ -903,6 +959,8 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	}
 	sliceCountLocal -= fNCPUTrackers * fNSlicesPerCPUTracker;
 	if (sliceCountLocal < 0) sliceCountLocal = 0;
+
+	fUseGlobalTracking = fGlobalTracking && sliceCountLocal == fgkNSlices;
 
 	memcpy(fGpuTracker, &fSlaveTrackers[firstSlice], sizeof(AliHLTTPCCATracker) * sliceCountLocal);
 
@@ -1253,11 +1311,34 @@ RestartTrackletConstructor:
 	}
 	StandalonePerfTime(firstSlice, 9);
 
+	char *tmpMemoryGlobalTracking;
+	fSliceOutputReady = 0;
+	if (fUseGlobalTracking)
+	{
+		int tmpmemSize = sizeof(AliHLTTPCCATracklet)
+#ifdef EXTERN_ROW_HITS
+		+ HLTCA_ROW_COUNT * sizeof(int)
+#endif
+		+ 16;
+		tmpMemoryGlobalTracking = (char*) malloc(tmpmemSize * fgkNSlices);
+		for (int i = 0;i < fgkNSlices;i++)
+		{
+			fSliceLeftGlobalReady[i] = 0;
+			fSliceRightGlobalReady[i] = 0;
+		}
+		memset(fGlobalTrackingDone, 0, fgkNSlices);
+		memset(fWriteOutputDone, 0, fgkNSlices);
+
+		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+		{
+			fSlaveTrackers[iSlice].SetGPUTrackerTrackletsMemory(tmpMemoryGlobalTracking + (tmpmemSize * iSlice), 1, fConstructorBlockCount);
+			fSlaveTrackers[iSlice].CommonMemory()->fNTracklets = 1;
+		}
+	}
 	for (int i = 0;i < fNHelperThreads;i++)
 	{
 		fHelperParams[i].fPhase = 1;
 		fHelperParams[i].pOutput = pOutput;
-		fHelperParams[i].fDone = 0;
 		pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[0]);
 	}
 
@@ -1329,14 +1410,55 @@ RestartTrackletConstructor:
 		}
 		if (fDebugLevel >= 3) HLTInfo("Tracks Transfered: %d / %d", *fSlaveTrackers[firstSlice + iSlice].NTracks(), *fSlaveTrackers[firstSlice + iSlice].NTrackHits());
 
-		if (iSlice % (fNHelperThreads + 1) == 0)
+		fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTracks = fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNTracks;
+		fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTrackHits = fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNTrackHits;
+		if (fUseGlobalTracking) fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNTracklets = 1;
+
+		if (fDebugLevel >= 3) HLTInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (fNHelperThreads + 1));
+		fSliceOutputReady = iSlice;
+
+		if (fUseGlobalTracking)
 		{
-			WriteOutput(pOutput, firstSlice, iSlice, 0);
+			if (iSlice % (fgkNSlices / 2) == 3)
+			{
+				int tmpId = iSlice % (fgkNSlices / 2) - 1;
+				if (iSlice >= fgkNSlices / 2) tmpId += fgkNSlices / 2;
+				GlobalTracking(tmpId, 0);
+				fGlobalTrackingDone[tmpId] = 1;
+			}
+			for (int tmpSlice3a = 0;tmpSlice3a < iSlice;tmpSlice3a += fNHelperThreads + 1)
+			{
+				int tmpSlice3 = tmpSlice3a + 2;
+				if (tmpSlice3 % (fgkNSlices / 2) < 2) tmpSlice3 -= (fgkNSlices / 2);
+				if (tmpSlice3 > iSlice) break;
+
+				int sliceLeft = (tmpSlice3 + (fgkNSlices / 2 - 1)) % (fgkNSlices / 2);
+				int sliceRight = (tmpSlice3 + 1) % (fgkNSlices / 2);
+				if (tmpSlice3 >= fgkNSlices / 2)
+				{
+					sliceLeft += fgkNSlices / 2;
+					sliceRight += fgkNSlices / 2;
+				}
+
+				if (tmpSlice3 % (fgkNSlices / 2) != 2 && fGlobalTrackingDone[tmpSlice3] == 0 && sliceLeft < iSlice && sliceRight < iSlice)
+				{
+					GlobalTracking(tmpSlice3, 0);
+					fGlobalTrackingDone[tmpSlice3] = 1;
+				}
+
+				if (fWriteOutputDone[tmpSlice3] == 0 && fSliceLeftGlobalReady[tmpSlice3] && fSliceRightGlobalReady[tmpSlice3])
+				{
+					WriteOutput(pOutput, firstSlice, tmpSlice3, 0);
+					fWriteOutputDone[tmpSlice3] = 1;
+				}
+			}
 		}
 		else
 		{
-			if (fDebugLevel >= 3) HLTInfo("Data ready for helper thread %d", iSlice % (fNHelperThreads + 1) - 1);
-			fHelperParams[iSlice % (fNHelperThreads + 1) - 1].fDone = iSlice;
+			if (iSlice % (fNHelperThreads + 1) == 0)
+			{
+				WriteOutput(pOutput, firstSlice, iSlice, 0);
+			}
 		}
 
 		if (fDebugLevel >= 4)
@@ -1346,9 +1468,39 @@ RestartTrackletConstructor:
 		}
 	}
 
+	if (fUseGlobalTracking)
+	{
+		for (int tmpSlice3a = 0;tmpSlice3a < fgkNSlices;tmpSlice3a += fNHelperThreads + 1)
+		{
+			int tmpSlice3 = (tmpSlice3a + 2) % fgkNSlices;
+			if (fGlobalTrackingDone[tmpSlice3] == 0) GlobalTracking(tmpSlice3, 0);
+		}
+		for (int tmpSlice3a = 0;tmpSlice3a < fgkNSlices;tmpSlice3a += fNHelperThreads + 1)
+		{
+			int tmpSlice3 = (tmpSlice3a + 2) % fgkNSlices;
+			if (fWriteOutputDone[tmpSlice3] == 0)
+			{
+				while (fSliceLeftGlobalReady[tmpSlice3] == 0 || fSliceLeftGlobalReady[tmpSlice3] == 0);
+				WriteOutput(pOutput, firstSlice, tmpSlice3, 0);
+			}
+		}
+	}
+
 	for (int i = 0;i < fNHelperThreads + fNCPUTrackers;i++)
 	{
 		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
+	}
+
+	if (fUseGlobalTracking)
+	{
+		free(tmpMemoryGlobalTracking);
+		if (fDebugLevel >= 3)
+		{
+			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
+			{
+				printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTracks, fSlaveTrackers[iSlice].CommonMemory()->fNTracks, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fSlaveTrackers[iSlice].CommonMemory()->fNTrackHits);
+			}
+		}
 	}
 
 	StandalonePerfTime(firstSlice, 10);
@@ -1611,7 +1763,48 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 			return(1);
 		}
 		if (fDebugLevel >= 3) HLTInfo("Tracks Transfered: %d / %d", *fSlaveTrackers[firstSlice + iSlice].NTracks(), *fSlaveTrackers[firstSlice + iSlice].NTrackHits());
+		fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTracks = fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNTracks;
+		fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNLocalTrackHits = fSlaveTrackers[firstSlice + iSlice].CommonMemory()->fNTrackHits;
+	}
 
+	if (fGlobalTracking && sliceCountLocal == fgkNSlices)
+	{
+		char tmpMemory[sizeof(AliHLTTPCCATracklet)
+#ifdef EXTERN_ROW_HITS
+		+ HLTCA_ROW_COUNT * sizeof(int)
+#endif
+		+ 16];
+
+		for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
+		{
+			if (fSlaveTrackers[iSlice].CommonMemory()->fNTracklets)
+			{
+				HLTError("Slave tracker tracklets found where none expected, memory not freed!\n");
+			}
+			fSlaveTrackers[iSlice].SetGPUTrackerTrackletsMemory(&tmpMemory[0], 1, fConstructorBlockCount);
+			fSlaveTrackers[iSlice].CommonMemory()->fNTracklets = 1;
+		}
+
+		for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
+		{
+			int sliceLeft = (iSlice + (fgkNSlices / 2 - 1)) % (fgkNSlices / 2);
+			int sliceRight = (iSlice + 1) % (fgkNSlices / 2);
+			if (iSlice >= fgkNSlices / 2)
+			{
+				sliceLeft += fgkNSlices / 2;
+				sliceRight += fgkNSlices / 2;
+			}
+			fSlaveTrackers[iSlice].PerformGlobalTracking(fSlaveTrackers[sliceLeft], fSlaveTrackers[sliceRight]);		
+		}
+
+		for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
+		{
+			printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTracks, fSlaveTrackers[iSlice].CommonMemory()->fNTracks, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fSlaveTrackers[iSlice].CommonMemory()->fNTrackHits);
+		}
+	}
+
+	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
+	{
 		fSlaveTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 		fSlaveTrackers[firstSlice + iSlice].WriteOutputPrepare();
 		fSlaveTrackers[firstSlice + iSlice].WriteOutput();
@@ -1667,6 +1860,9 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 	if (StopHelperThreads()) return(1);
 	pthread_mutex_destroy((pthread_mutex_t*) fHelperMemMutex);
 	free(fHelperMemMutex);
+
+	for (int i = 0;i < fgkNSlices;i++) pthread_mutex_destroy(&((pthread_mutex_t*) fSliceGlobalMutexes)[i]);
+	free(fSliceGlobalMutexes);
 
 	HLTInfo("CUDA Uninitialized");
 	fCudaInitialized = 0;
