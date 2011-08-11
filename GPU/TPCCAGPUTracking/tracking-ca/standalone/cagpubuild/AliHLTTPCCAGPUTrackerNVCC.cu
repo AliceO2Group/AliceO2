@@ -169,6 +169,7 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 		}
 		else
 		{
+			int mustRunSlice19 = 0;
 			for (int i = par->fNum + 1;i < par->fSliceCount;i += cls->fNHelperThreads + 1)
 			{
 				//if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
@@ -176,16 +177,23 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 				{
 					if (cls->fUseGlobalTracking)
 					{
-						int realSlice = i + 2;
-						if (realSlice % (fgkNSlices / 2) < 2) realSlice -= fgkNSlices / 2;
+						int realSlice = i + 1;
+						if (realSlice % (fgkNSlices / 2) < 1) realSlice -= fgkNSlices / 2;
 
-						if (realSlice % (fgkNSlices / 2) != 2)
+						if (realSlice % (fgkNSlices / 2) != 1)
 						{
 							cls->GlobalTracking(realSlice, par->fNum + 1);
 						}
 
-						while (cls->fSliceLeftGlobalReady[realSlice] == 0 || cls->fSliceRightGlobalReady[realSlice] == 0);
-						cls->WriteOutput(par->pOutput, par->fFirstSlice, realSlice, par->fNum + 1);
+						if (realSlice == 19)
+						{
+							mustRunSlice19 = 1;
+						}
+						else
+						{
+							while (cls->fSliceLeftGlobalReady[realSlice] == 0 || cls->fSliceRightGlobalReady[realSlice] == 0);
+							cls->WriteOutput(par->pOutput, par->fFirstSlice, realSlice, par->fNum + 1);
+						}
 					}
 					else
 					{
@@ -199,6 +207,11 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 					par->fDone = i + 1;
 				}
 				//if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->fNum, par->fFirstSlice, i, par->fPhase);
+			}
+			if (mustRunSlice19)
+			{
+				while (cls->fSliceLeftGlobalReady[19] == 0 || cls->fSliceRightGlobalReady[19] == 0);
+				cls->WriteOutput(par->pOutput, par->fFirstSlice, 19, par->fNum + 1);
 			}
 		}
 		pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
@@ -1419,7 +1432,7 @@ RestartTrackletConstructor:
 
 		if (fUseGlobalTracking)
 		{
-			if (iSlice % (fgkNSlices / 2) == 3)
+			if (iSlice % (fgkNSlices / 2) == 2)
 			{
 				int tmpId = iSlice % (fgkNSlices / 2) - 1;
 				if (iSlice >= fgkNSlices / 2) tmpId += fgkNSlices / 2;
@@ -1428,9 +1441,9 @@ RestartTrackletConstructor:
 			}
 			for (int tmpSlice3a = 0;tmpSlice3a < iSlice;tmpSlice3a += fNHelperThreads + 1)
 			{
-				int tmpSlice3 = tmpSlice3a + 2;
-				if (tmpSlice3 % (fgkNSlices / 2) < 2) tmpSlice3 -= (fgkNSlices / 2);
-				if (tmpSlice3 > iSlice) break;
+				int tmpSlice3 = tmpSlice3a + 1;
+				if (tmpSlice3 % (fgkNSlices / 2) < 1) tmpSlice3 -= (fgkNSlices / 2);
+				if (tmpSlice3 >= iSlice) break;
 
 				int sliceLeft = (tmpSlice3 + (fgkNSlices / 2 - 1)) % (fgkNSlices / 2);
 				int sliceRight = (tmpSlice3 + 1) % (fgkNSlices / 2);
@@ -1440,7 +1453,7 @@ RestartTrackletConstructor:
 					sliceRight += fgkNSlices / 2;
 				}
 
-				if (tmpSlice3 % (fgkNSlices / 2) != 2 && fGlobalTrackingDone[tmpSlice3] == 0 && sliceLeft < iSlice && sliceRight < iSlice)
+				if (tmpSlice3 % (fgkNSlices / 2) != 1 && fGlobalTrackingDone[tmpSlice3] == 0 && sliceLeft < iSlice && sliceRight < iSlice)
 				{
 					GlobalTracking(tmpSlice3, 0);
 					fGlobalTrackingDone[tmpSlice3] = 1;
@@ -1472,15 +1485,17 @@ RestartTrackletConstructor:
 	{
 		for (int tmpSlice3a = 0;tmpSlice3a < fgkNSlices;tmpSlice3a += fNHelperThreads + 1)
 		{
-			int tmpSlice3 = (tmpSlice3a + 2) % fgkNSlices;
+			int tmpSlice3 = (tmpSlice3a + 1);
+			if (tmpSlice3 % (fgkNSlices / 2) < 1) tmpSlice3 -= (fgkNSlices / 2);
 			if (fGlobalTrackingDone[tmpSlice3] == 0) GlobalTracking(tmpSlice3, 0);
 		}
 		for (int tmpSlice3a = 0;tmpSlice3a < fgkNSlices;tmpSlice3a += fNHelperThreads + 1)
 		{
-			int tmpSlice3 = (tmpSlice3a + 2) % fgkNSlices;
+			int tmpSlice3 = (tmpSlice3a + 1);
+			if (tmpSlice3 % (fgkNSlices / 2) < 1) tmpSlice3 -= (fgkNSlices / 2);
 			if (fWriteOutputDone[tmpSlice3] == 0)
 			{
-				while (fSliceLeftGlobalReady[tmpSlice3] == 0 || fSliceLeftGlobalReady[tmpSlice3] == 0);
+				while (fSliceLeftGlobalReady[tmpSlice3] == 0 || fSliceRightGlobalReady[tmpSlice3] == 0);
 				WriteOutput(pOutput, firstSlice, tmpSlice3, 0);
 			}
 		}
