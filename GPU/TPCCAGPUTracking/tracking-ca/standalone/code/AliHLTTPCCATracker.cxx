@@ -147,6 +147,23 @@ char* AliHLTTPCCATracker::SetGPUTrackerTracksMemory(char* pGPUMemory, int MaxNTr
 	return(pGPUMemory);
 }
 
+void AliHLTTPCCATracker::DumpOutput(FILE* out)
+{
+	fprintf(out, "Slice %d\n", fParam.ISlice());
+	const AliHLTTPCCASliceOutTrack* track = (*(Output()))->GetFirstTrack();
+	for (int j = 0;j < (*(Output()))->NTracks();j++)
+	{
+		fprintf(out, "Track %d (%d): ", j, track->NClusters());
+		for (int k = 0;k < track->NClusters();k++)
+		{
+			fprintf(out, "(%2.3f,%2.3f,%2.4f) ", track->Cluster(k).GetX(), track->Cluster(k).GetY(), track->Cluster(k).GetZ());
+		}
+		fprintf(out, " - (%8.5f %8.5f %8.5f %8.5f %8.5f)", track->Param().Y(), track->Param().Z(), track->Param().SinPhi(), track->Param().DzDs(), track->Param().QPt());
+		fprintf(out, "\n");
+		track = track->GetNextTrack();
+	}
+}
+
 void AliHLTTPCCATracker::DumpSliceData(std::ostream &out)
 {
 	//Dump Slice Input Data to File

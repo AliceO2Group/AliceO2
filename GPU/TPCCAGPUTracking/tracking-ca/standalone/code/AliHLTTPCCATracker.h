@@ -151,6 +151,7 @@ class AliHLTTPCCATracker
   void DumpHitWeights(std::ostream &out); //....
   void DumpTrackHits(std::ostream &out);	//Same for Track Hits
   void DumpTrackletHits(std::ostream &out);	//Same for Track Hits
+  void DumpOutput(FILE* out);	//Similar for output
   
   GPUd() void GetErrors2( int iRow,  const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const;
   GPUd() void GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
