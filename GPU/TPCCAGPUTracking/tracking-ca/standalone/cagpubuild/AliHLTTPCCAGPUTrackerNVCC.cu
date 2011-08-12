@@ -1522,6 +1522,11 @@ RestartTrackletConstructor:
 
 	if (fDebugLevel >= 3) HLTInfo("GPU Reconstruction finished");
 
+	/*for (int i = firstSlice;i < firstSlice + sliceCountLocal;i++)
+	{
+		fSlaveTrackers[i].DumpOutput(stdout);
+	}*/
+
 	/*static int runnum = 0;
 	std::ofstream tmpOut;
 	char buffer[1024];
