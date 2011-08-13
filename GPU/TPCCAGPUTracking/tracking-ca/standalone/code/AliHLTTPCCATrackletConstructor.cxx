@@ -337,7 +337,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 		for ( unsigned int fIh = fHitYfst; fIh < fHitYlst; fIh++ ) {
           assert( (signed) fIh < row.NHits() );
           ushort2 hh;
-		  if (r.fStage <= 2 || 1 || tracker.HitWeight(row, fIh) >= 0)
+		  if (r.fStage <= 2 || tracker.HitWeight(row, fIh) >= 0)
 		  {
 
 #if defined(HLTCA_GPU_TEXTURE_FETCH)
