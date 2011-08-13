@@ -54,6 +54,8 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #include "AliHLTTPCCATrack.h"
 #ifdef HLTCA_STANDALONE_OLD_MERGER
 #include "AliHLTTPCCAMergerOutput.h"
+#else
+#include "AliHLTTPCGMMergedTrack.h"
 #endif
 #include "include.h"
 
@@ -297,6 +299,19 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
 		for (int j = 0;j < track.NClusters();j++)
 		{
 			int cid = mergerOut.ClusterId(track.FirstClusterRef() + j);
+			drawPointLinestrip(cid, 7);
+		}
+		glEnd();
+	}
+#else
+	const AliHLTTPCGMMerger &merger = hlt.Merger();
+	for (int i = 0;i < merger.NOutputTracks();i++)
+	{
+		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
+		glBegin(GL_LINE_STRIP);
+		for (int j = 0;j < track.NClusters();j++)
+		{
+			int cid = merger.OutputClusterIds()[track.FirstClusterRef() + j];
 			drawPointLinestrip(cid, 7);
 		}
 		glEnd();

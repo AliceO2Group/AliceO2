@@ -1005,10 +1005,6 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 	{
 		//printf("%d hits found\n", nHits);
 		AliHLTTPCCATrack& track = sliceNeighbour.fTracks[sliceNeighbour.fCommonMem->fNTracks];
-		track.SetAlive(1);
-		track.SetParam(Param.GetParam());
-		track.SetNHits(nHits);
-		track.SetFirstHitID(sliceNeighbour.fCommonMem->fNTrackHits);
 		if (direction == 1)
 		{
 			int i = 0;
@@ -1018,6 +1014,7 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
 					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
+					if (i == 0) Param.TransportToX(sliceNeighbour.Row(rowIndex).X(), fParam.ConstBz(), .999);
 					i++;
 				}
 				rowIndex ++;
@@ -1037,6 +1034,10 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 				rowIndex--;
 			}
 		}
+		track.SetAlive(1);
+		track.SetParam(Param.GetParam());
+		track.SetNHits(nHits);
+		track.SetFirstHitID(sliceNeighbour.fCommonMem->fNTrackHits);
 		sliceNeighbour.fCommonMem->fNTracks++;
 		sliceNeighbour.fCommonMem->fNTrackHits += nHits;
 		return(1);
