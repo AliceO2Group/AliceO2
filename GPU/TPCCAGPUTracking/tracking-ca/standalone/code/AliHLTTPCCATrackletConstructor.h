@@ -136,6 +136,8 @@ class AliHLTTPCCATrackletConstructor
     ( int nBlocks, int nThreads, int iBlock, int iThread,
       AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
 
+	GPUd() static bool CheckCov(AliHLTTPCCATrackParam &tParam);
+
 #ifdef HLTCA_GPUCODE
 	GPUd() static void AliHLTTPCCATrackletConstructorGPU(AliHLTTPCCATracker *pTracker);
 	GPUd() static void AliHLTTPCCATrackletConstructorGPUPP(AliHLTTPCCATracker *pTracker);

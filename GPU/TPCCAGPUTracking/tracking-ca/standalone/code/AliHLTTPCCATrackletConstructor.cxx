@@ -34,6 +34,17 @@ GPUdi() void AliHLTTPCCATrackletConstructor::InitTracklet( AliHLTTPCCATrackParam
   tParam.InitParam();
 }
 
+GPUdi() bool AliHLTTPCCATrackletConstructor::CheckCov(AliHLTTPCCATrackParam &tParam)
+{
+      bool ok = 1;
+      const float *c = tParam.Cov();
+      for ( int i = 0; i < 15; i++ ) ok = ok && CAMath::Finite( c[i] );
+      for ( int i = 0; i < 5; i++ ) ok = ok && CAMath::Finite( tParam.Par()[i] );
+      ok = ok && ( tParam.X() > 50 );
+	  if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
+	  return(ok);
+}
+
 
 GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
@@ -61,13 +72,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
     }
 
     {
-      bool ok = 1;
-      const float *c = tParam.Cov();
-      for ( int i = 0; i < 15; i++ ) ok = ok && CAMath::Finite( c[i] );
-      for ( int i = 0; i < 5; i++ ) ok = ok && CAMath::Finite( tParam.Par()[i] );
-      ok = ok && ( tParam.X() > 50 );
-
-      if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
+	  bool ok = CheckCov(tParam);
 
       if ( !ok ) {
         r.fNHits = 0;
@@ -490,6 +495,7 @@ GPUdi() int AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGlobal
 		UpdateTracklet(1, 1, 0, 0, sMem, rMem, tracker, tParam, row);
 		row += increment;
 	}
+	if (!CheckCov(tParam)) rMem.fNHits = 0;
 	return(rMem.fNHits);
 }
 
