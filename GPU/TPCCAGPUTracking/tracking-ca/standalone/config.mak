@@ -34,5 +34,3 @@ CXXFILES					= standalone.cxx \
 ASMFILES					= 
 
 CONFIG_OPENGL				= 1
-
-

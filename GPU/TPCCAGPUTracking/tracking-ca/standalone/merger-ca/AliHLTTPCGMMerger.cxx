@@ -345,7 +345,7 @@ void AliHLTTPCGMMerger::UnpackSlices()
       track.SetPrevNeighbour( -1 );
       track.SetNextNeighbour( -1 );
       track.SetSliceNeighbour( -1 );
-      track.SetUsed( 0 );           
+      track.SetUsed( 0 );
       nTracksCurrent++;
       fSliceNTrackInfos[ iSlice ]++;
     }

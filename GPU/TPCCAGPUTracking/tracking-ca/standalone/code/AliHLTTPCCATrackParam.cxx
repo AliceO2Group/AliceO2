@@ -519,11 +519,6 @@ GPUdi() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  floa
 //* Rotation
 //*
 
-#ifndef HLTCA_GPUCODE
-#include <stdio.h>
-#endif
-
-
 
 GPUdi() bool AliHLTTPCCATrackParam::Rotate( float alpha, float maxSinPhi )
 {
