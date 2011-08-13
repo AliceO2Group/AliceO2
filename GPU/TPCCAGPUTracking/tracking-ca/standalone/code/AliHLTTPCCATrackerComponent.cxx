@@ -69,7 +69,9 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
     fClusterErrorCorrectionZ(0),
     fBenchmark("CATracker"), 
     fAllowGPU( 0),
-	fGPUHelperThreads(-1)
+	fGPUHelperThreads(-1),
+	fCPUTrackers(0),
+	fGlobalTracking(0)
 {
   // see header file for class documentation
   // or
@@ -91,7 +93,9 @@ AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrack
     fClusterErrorCorrectionZ(0),
     fBenchmark("CATracker"),
     fAllowGPU( 0),
-	fGPUHelperThreads(-1)
+	fGPUHelperThreads(-1),
+	fCPUTrackers(0),
+	fGlobalTracking(0)
 {
   // see header file for class documentation
   HLTFatal( "copy constructor untested" );
@@ -238,14 +242,27 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       continue;
     }
 
-    if ( argument.CompareTo( "-GPUHelperThreads" ) == 0 ) {
+    if (argument.CompareTo( "-GlobalTracking" ) == 0) {
+      fGlobalTracking = 1;
+      HLTImportant( "Global Tracking Activated" );
+      continue;
+    }
+	
+	if ( argument.CompareTo( "-GPUHelperThreads" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fGPUHelperThreads = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
       HLTInfo( "Number of GPU Helper Threads set to: %d", fGPUHelperThreads );
       continue;
     }
 
-    HLTError( "Unknown option \"%s\"", argument.Data() );
+    if ( argument.CompareTo( "-CPUTrackers" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fCPUTrackers = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Number of CPU Trackers set to: %d", fCPUTrackers );
+      continue;
+    }
+
+	HLTError( "Unknown option \"%s\"", argument.Data() );
     iResult = -EINVAL;
   }
   delete pTokens;
@@ -347,6 +364,18 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     char cc[256] = "HelperThreads";
 	fTracker->SetGPUTrackerOption(cc, fGPUHelperThreads);
   }
+  {
+    char cc[256] = "CPUTrackers";
+	fTracker->SetGPUTrackerOption(cc, fCPUTrackers);
+	char cc2[256] = "SlicesPerCPUTracker";
+	fTracker->SetGPUTrackerOption(cc2, 1);
+  }
+  if (fGlobalTracking)
+  {
+    char cc[256] = "GlobalTracking";
+	fTracker->SetGPUTrackerOption(cc, 1);
+  }
+
   return(retVal);
 }
 
