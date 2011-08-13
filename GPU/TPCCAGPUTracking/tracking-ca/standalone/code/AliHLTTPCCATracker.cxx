@@ -980,7 +980,11 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 
 	AliHLTTPCCATrackParam Param;
 	Param.InitParam();
-
+	Param.SetCov( 0, 0.05 );
+	Param.SetCov( 2, 0.05 );
+	Param.SetCov( 5, 0.001 );
+	Param.SetCov( 9, 0.001 );
+	Param.SetCov( 14, 0.05 );
 	Param.SetParam(fTracks[iTrack].Param());
 
 	//printf("Parameters X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f\n", Param.X(), Param.Y(), Param.Z(), Param.SinPhi(), Param.DzDs(), Param.QPt(), Param.SignCosPhi());
