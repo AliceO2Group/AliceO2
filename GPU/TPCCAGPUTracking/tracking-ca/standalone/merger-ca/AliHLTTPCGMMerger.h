@@ -63,6 +63,13 @@ public:
   UInt_t* ClusterRowType() const {return(fClusterRowType);}
   
 private:
+
+  struct AliHLTTPCCASliceOutClusterWithAngle
+  {
+	  AliHLTTPCCASliceOutCluster c;
+	  float angle;
+	  float r2;
+  };
   
   AliHLTTPCGMMerger( const AliHLTTPCGMMerger& );
 
@@ -75,6 +82,11 @@ private:
   
   static bool CompareTrackParts( const AliHLTTPCGMSliceTrack *t1, const AliHLTTPCGMSliceTrack *t2 ){
     return (t1->X() > t2->X() );
+  }
+
+  static int ClusterSortComparison(const void* a, const void* b)
+  {
+	  return(((AliHLTTPCCASliceOutClusterWithAngle*) a)->r2 < ((AliHLTTPCCASliceOutClusterWithAngle*) b)->r2 ? 1 : -1);
   }
 
   void ClearMemory();
