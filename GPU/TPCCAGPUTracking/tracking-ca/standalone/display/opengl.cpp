@@ -820,6 +820,33 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == '6') drawTracks ^= 1;
 	else if (wParam == '7') drawGlobalTracks ^= 1;
 	else if (wParam == '8') drawFinal ^= 1;
+
+	else if (wParam == 'O')
+	{
+		GLfloat tmp[16];
+		glGetFloatv(GL_MODELVIEW_MATRIX, tmp);
+		FILE* ftmp = fopen("glpos.tmp", "w+b");
+		if (ftmp)
+		{
+			fwrite(&tmp[0], sizeof(tmp[0]), 16, ftmp);
+			fclose(ftmp);
+			printf("Position stored to file\n");
+		}
+	}
+	else if (wParam == 'P')
+	{
+		GLfloat tmp[16];
+		FILE* ftmp = fopen("glpos.tmp", "rb");
+		if (ftmp)
+		{
+			fread(&tmp[0], sizeof(tmp[0]), 16, ftmp);
+			fclose(ftmp);
+			glLoadMatrixf(tmp);
+			glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
+			printf("Position read from file\n");
+		}
+
+	}
 }
 
 #ifdef R__WIN32

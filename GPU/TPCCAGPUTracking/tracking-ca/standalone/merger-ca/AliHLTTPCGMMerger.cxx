@@ -652,37 +652,139 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 
 			std::sort(trackParts, trackParts+nParts, CompareTrackParts );
 
-			AliHLTTPCCASliceOutCluster tmp[kMaxClusters];
-			int currCluster = nOutTrackClusters;
+			AliHLTTPCCASliceOutClusterWithAngle tmp[kMaxClusters];
 			int nHits = 0;
 			for( int ipart=0; ipart<nParts; ipart++ ){
 				const AliHLTTPCGMSliceTrack *t = trackParts[ipart];
 				int nTrackHits = t->NClusters();
 				if( nHits + nTrackHits >= kMaxClusters ) break;
 				const AliHLTTPCCASliceOutCluster *c= t->OrigTrack()->Clusters();
-				AliHLTTPCCASliceOutCluster *c2 = tmp+nHits + nTrackHits-1;
-				for( int i=0; i<nTrackHits; i++, c++, c2-- ) *c2 = *c;	
-				float alpha =  t->Alpha();
-				for( int i=0; i<nTrackHits; i++) fClusterAngle[currCluster++] = alpha;
+				AliHLTTPCCASliceOutClusterWithAngle *c2 = tmp+nHits + nTrackHits-1;
+				for( int i=0; i<nTrackHits; i++, c++, c2-- )
+				{
+					c2->c = *c;
+					c2->angle = t->Alpha();
+				}
 				nHits+=nTrackHits;
 			}
 
-			UInt_t *clId = fOutputClusterIds + nOutTrackClusters;      
-			for( int i=0; i<nHits; i++ ) clId[i] = tmp[i].GetId();      
-
-			UInt_t *clT  = fClusterRowType + nOutTrackClusters;
-			for( int i=0; i<nHits; i++ ) clT[i] = tmp[i].GetRowType();  
-
-			float *clX = fClusterX + nOutTrackClusters;
-			for( int i=0; i<nHits; i++ ) clX[i] = tmp[i].GetX();      
-
-			float *clY = fClusterY + nOutTrackClusters;
-			for( int i=0; i<nHits; i++ ) clY[i] = tmp[i].GetY();      
-
-			float *clZ = fClusterZ + nOutTrackClusters;
-			for( int i=0; i<nHits; i++ ) clZ[i] = tmp[i].GetZ();      
-
 			if ( nHits < 30 ) continue;   
+
+			int ordered = 1;
+			float *clX = fClusterX + nOutTrackClusters;
+			float *clA = fClusterAngle + nOutTrackClusters;
+			UInt_t *clId = fOutputClusterIds + nOutTrackClusters;
+			UInt_t *clT  = fClusterRowType + nOutTrackClusters;
+			float *clY = fClusterY + nOutTrackClusters;
+			float *clZ = fClusterZ + nOutTrackClusters;
+
+			clX[0] = tmp[0].c.GetX();
+			for( int i=1; i<nHits; i++ )
+			{
+				clX[i] = tmp[i].c.GetX();
+				if (tmp[i].c.GetX() >= tmp[i - 1].c.GetX())
+				{
+					ordered = 0;
+				}
+			}
+/*			if (ordered == 0)
+			{
+				bool goodIds[kMaxClusters];
+				for (int i = 0;i < nHits;i++)
+				{
+					tmp[i].r2 = tmp[i].c.GetX() * tmp[i].c.GetX() + tmp[i].c.GetY() * tmp[i].c.GetY();
+					//printf("%d: %f %f %f %f\n", i, tmp[i].c.GetX(), tmp[i].c.GetY(), tmp[i].c.GetZ(), (float) sqrt((double) tmp[i].r2));
+				}
+				printf("Unordered track\n");
+				qsort(tmp, nHits, sizeof(AliHLTTPCCASliceOutClusterWithAngle), ClusterSortComparison);
+
+				int nHitsGood = 1;
+				float lastAngle = tmp[0].angle;
+				float lastr = tmp[0].r2;
+				float lastX = tmp[0].c.GetX();
+				float lastY = tmp[0].c.GetY();
+				float lastZ = tmp[0].c.GetZ();
+				float lastId = tmp[0].c.GetId();
+				
+				goodIds[0] = true;
+				for (int i = 1;i < nHits;i++)
+				{
+					float newx, newy;
+					if (tmp[i].angle != lastAngle)
+					{
+						const float angle = - tmp[i].angle + lastAngle;
+						const float cA = CAMath::Cos( -angle );
+						const float sA = CAMath::Sin( -angle );
+						newx = lastX*cA + lastY*sA;
+						newy = -lastX*sA + lastY*cA;
+					}
+					else
+					{
+						newx = lastX;
+						newy = lastY;
+					}
+
+					//printf("%d: Angle %f LastAngle %f  - NewX %f NewY %f, OldX %f OldY %f - X %f Y %f - R %f LastR %f\n", i, tmp[i].angle, lastAngle, newx, newy, lastX, lastY, tmp[i].c.GetX(), tmp[i].c.GetY(), (float) sqrt((double) tmp[i].r2), (float) sqrt((double) lastr));
+
+					const float dy = tmp[i].c.GetY() - newy;
+					const float dz = tmp[i].c.GetZ() - lastZ;
+					const float dx = tmp[i].c.GetX() - newx;
+					const float dr = tmp[i].r2 - lastr;
+					if (tmp[i].c.GetId() != lastId && tmp[i].r2 <= lastr && fabs(dx) < 10 && fabs(dy) < 6. * fabs(dr))
+					{
+						goodIds[i] = true;
+						nHitsGood++;
+						lastAngle = tmp[i].angle;
+						lastr = tmp[i].r2;
+						lastX = tmp[i].c.GetX();
+						lastY = tmp[i].c.GetY();
+						lastZ = tmp[i].c.GetZ();
+						lastId = tmp[i].c.GetId();
+					}
+					else
+					{
+						goodIds[i] = false;
+					}
+				}
+
+				for (int i = 0;i < nHits;i++)
+				{
+					//printf("%d: %f %f %f\n", i, tmp[i].c.GetX(), tmp[i].c.GetY(), tmp[i].c.GetZ());
+				}
+
+				int iGood = 0, iBad = 0;
+				for( int i=0; i<nHits; i++ )
+				{
+					if (goodIds[i])
+					{
+						clX[iGood] = tmp[i].c.GetX();		//Copy X Coordinates again in correct order
+						clA[iGood] = tmp[i].angle; 
+						clId[iGood] = tmp[i].c.GetId();
+						clT[iGood] = tmp[i].c.GetRowType();
+						clY[iGood] = tmp[i].c.GetY();
+						clZ[iGood] = tmp[i].c.GetZ();
+						iGood++;
+					}
+					else
+					{
+						clX[nHitsGood + iBad] = tmp[i].c.GetX();		//Copy X Coordinates again in correct order
+						clA[nHitsGood + iBad] = tmp[i].angle; 
+						clId[nHitsGood + iBad] = tmp[i].c.GetId();
+						clT[nHitsGood + iBad] = tmp[i].c.GetRowType();
+						clY[nHitsGood + iBad] = tmp[i].c.GetY();
+						clZ[nHitsGood + iBad] = tmp[i].c.GetZ();
+						iBad++;
+					}
+				}
+			}
+			else*/
+			{
+				for( int i=0; i<nHits; i++ ) clA[i] = tmp[i].angle;      
+				for( int i=0; i<nHits; i++ ) clId[i] = tmp[i].c.GetId();      
+				for( int i=0; i<nHits; i++ ) clT[i] = tmp[i].c.GetRowType();  
+				for( int i=0; i<nHits; i++ ) clY[i] = tmp[i].c.GetY();      
+				for( int i=0; i<nHits; i++ ) clZ[i] = tmp[i].c.GetZ();
+			}
 
 			AliHLTTPCGMMergedTrack &mergedTrack = fOutputTracks[fNOutputTracks];
 			mergedTrack.SetOK(1);

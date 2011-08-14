@@ -215,7 +215,9 @@ bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinP
       && ( fC10*fC10<=fC14*fC0 )
       && ( fC12*fC12<=fC14*fC5 );
   }
- 
+
+  if (fC0 >= 1. || fC2 >= 1. || fC10 >= 1.) ok = 0;
+
   return ok;
 }
 

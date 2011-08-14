@@ -978,6 +978,8 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 		(float) Data().HitDataY(Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()), fTrackHits[fTracks[iTrack].FirstHitID() + j].HitIndex()) * Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()).HstepY() + Row(fTrackHits[fTracks[iTrack].FirstHitID() + j].RowIndex()).Grid().YMin());
 		}*/
 
+	if (sliceNeighbour.fCommonMem->fNTracklets == 0) return(0);
+
 	AliHLTTPCCATrackParam tParam;
 	tParam.InitParam();
 	tParam.SetCov( 0, 0.05 );
