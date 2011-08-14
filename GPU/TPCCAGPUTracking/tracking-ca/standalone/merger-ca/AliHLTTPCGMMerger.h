@@ -81,7 +81,9 @@ private:
 			  int iSlice2, AliHLTTPCGMBorderTrack B2[],  int N2 );
   
   static bool CompareTrackParts( const AliHLTTPCGMSliceTrack *t1, const AliHLTTPCGMSliceTrack *t2 ){
-    return (t1->X() > t2->X() );
+    //return (t1->X() > t2->X() );
+    return (fabs(t1->OrigTrack()->Cluster(0).GetX() - t2->OrigTrack()->Cluster(t2->NClusters() - 1).GetX()) < 
+		fabs(t2->OrigTrack()->Cluster(0).GetX() - t1->OrigTrack()->Cluster(t1->NClusters() - 1).GetX()));
   }
 
   static int ClusterSortComparison(const void* a, const void* b)

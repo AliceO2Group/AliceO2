@@ -399,8 +399,10 @@ void AliHLTTPCGMMerger::MakeBorderTracks( int iSlice, int iBorder, AliHLTTPCGMBo
     if(  track.TransportToXAlpha( x0, sinAlpha, cosAlpha, fieldBz, b, maxSin)){
       b.SetTrackID( itr );
       b.SetNClusters( track.NClusters() );
+	  for (int i = 0;i < 5;i++) if (fabs(b.Cov()[i]) >= 1.0) b.SetCov(i, 1.0);
       nB++; 
     }
+	//printf("MakeBorderTracks %d %d: %f %f %f %f %f\n", iSlice, itr, b.Cov()[0], b.Cov()[1], b.Cov()[2], b.Cov()[3], b.Cov()[4]);
   }
 }
 
@@ -475,7 +477,7 @@ void AliHLTTPCGMMerger::MergeBorderTracks ( int iSlice1, AliHLTTPCGMBorderTrack 
       // do check
       AliHLTTPCGMBorderTrack &b2 = B2[r2.fId];
       if ( b2.NClusters() < lBest2 ) continue;
-      
+
       if( !b1.CheckChi2Y(b2, factor2ys ) ) continue;
       //if( !b1.CheckChi2Z(b2, factor2zt ) ) continue;
       if( !b1.CheckChi2QPt(b2, factor2k ) ) continue;
@@ -687,6 +689,8 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 					ordered = 0;
 				}
 			}
+			
+			//if (ordered) continue;
 /*			if (ordered == 0)
 			{
 				bool goodIds[kMaxClusters];
