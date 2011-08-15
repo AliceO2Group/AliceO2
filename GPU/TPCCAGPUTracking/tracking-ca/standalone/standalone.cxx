@@ -282,9 +282,15 @@ int main(int argc, char** argv)
 					printf("\nCluster id range: %d %d\n", minid, maxid);
 					char* idused = new char[maxid - minid + 1];
 					memset(idused, 0, maxid - minid);
-					for (int i = 0;i < merger.NOutputTrackClusters();i++)
+					for (int itrack = 0;itrack < merger.NOutputTracks();itrack++)
 					{
-						idused[merger.OutputClusterIds()[i] - minid] = 1;
+						if (merger.OutputTracks()[itrack].OK())
+						{
+							for (int icluster = 0;icluster < merger.OutputTracks()[itrack].NClusters();icluster++)
+							{
+								idused[merger.OutputClusterIds()[merger.OutputTracks()[itrack].FirstClusterRef() + icluster] - minid] = 1;
+							}
+						}
 					}
 					int nClustersUsed = 0;
 					for (unsigned int i = 0;i < maxid - minid;i++)
@@ -342,6 +348,10 @@ breakrun:
 	if (outputcontrolmem)
 	{
 		free(outputmemory);
+	}
+	else
+	{
+
 	}
 
 	if (!noprompt)

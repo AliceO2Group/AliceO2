@@ -308,6 +308,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
 	for (int i = 0;i < merger.NOutputTracks();i++)
 	{
 		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
+		if (!track.OK()) continue;
 		glBegin(GL_LINE_STRIP);
 		for (int j = 0;j < track.NClusters();j++)
 		{

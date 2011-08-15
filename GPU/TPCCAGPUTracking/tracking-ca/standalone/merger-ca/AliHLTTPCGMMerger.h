@@ -63,13 +63,6 @@ public:
   UInt_t* ClusterRowType() const {return(fClusterRowType);}
   
 private:
-
-  struct AliHLTTPCCASliceOutClusterWithAngle
-  {
-	  AliHLTTPCCASliceOutCluster c;
-	  float angle;
-	  float r2;
-  };
   
   AliHLTTPCGMMerger( const AliHLTTPCGMMerger& );
 
@@ -82,13 +75,12 @@ private:
   
   static bool CompareTrackParts( const AliHLTTPCGMSliceTrack *t1, const AliHLTTPCGMSliceTrack *t2 ){
     //return (t1->X() > t2->X() );
-    return (fabs(t1->OrigTrack()->Cluster(0).GetX() - t2->OrigTrack()->Cluster(t2->NClusters() - 1).GetX()) < 
-		fabs(t2->OrigTrack()->Cluster(0).GetX() - t1->OrigTrack()->Cluster(t1->NClusters() - 1).GetX()));
+    return (fabs(t1->OrigTrack()->Cluster(0).GetX() - t2->OrigTrack()->Cluster(t2->NClusters() - 1).GetX()) <
+               fabs(t2->OrigTrack()->Cluster(0).GetX() - t1->OrigTrack()->Cluster(t1->NClusters() - 1).GetX()));
   }
 
-  static int ClusterSortComparison(const void* a, const void* b)
-  {
-	  return(((AliHLTTPCCASliceOutClusterWithAngle*) a)->r2 < ((AliHLTTPCCASliceOutClusterWithAngle*) b)->r2 ? 1 : -1);
+  static int CompareClusterIds(const void* a, const void* b) {
+	  return(((int2*)a)->y < ((int2*)b)->y ? 1 : -1);
   }
 
   void ClearMemory();
@@ -114,6 +106,8 @@ private:
   AliHLTTPCGMSliceTrack *fSliceTrackInfos; //* additional information for slice tracks
   int fSliceTrackInfoStart[fgkNSlices];   //* slice starting index in fTrackInfos array;
   int fSliceNTrackInfos[fgkNSlices];      //* N of slice track infos in fTrackInfos array;
+  int fSliceTrackGlobalInfoStart[fgkNSlices]; //* Same for global tracks
+  int fSliceNGlobalTrackInfos[fgkNSlices]; //* Same for global tracks
   int fMaxSliceTracks;      // max N tracks in one slice
   float *fClusterX;         // cluster X
   float *fClusterY;         // cluster Y

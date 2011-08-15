@@ -40,6 +40,12 @@ class AliHLTTPCGMSliceTrack
   float DzDs()                      const { return fDzDs;      }
   float QPt()                      const { return fQPt;      }
 
+  int  LocalTrackId()        const { return fLocalTrackId; }
+  void SetLocalTrackId( int v )        { fLocalTrackId = v; }
+  int  GlobalTrackId(int n)        const { return fGlobalTrackIds[n]; }
+  void SetGlobalTrackId( int n, int v )        { fGlobalTrackIds[n] = v; }
+
+
   void Set( const AliHLTTPCCASliceOutTrack *sliceTr, float alpha ){
     const AliHLTTPCCABaseTrackParam &t = sliceTr->Param();
     fOrigTrack = sliceTr;
@@ -85,7 +91,8 @@ class AliHLTTPCGMSliceTrack
   int fNextNeighbour;     // neighbour in the next slise
   int fSliceNeighbour;    // next neighbour withing the same slice;
   int fUsed;              // is the slice track already merged
-  
+  int fLocalTrackId;	  // Corrected local track id in terms of GMSliceTracks array
+  int fGlobalTrackIds[2]; // IDs of associated global tracks
 };
 
 #endif
