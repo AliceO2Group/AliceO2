@@ -70,6 +70,9 @@ AliHLTTPCCATracker::~AliHLTTPCCATracker()
 		fCommonMem = NULL;
 		fHitMemory = fTrackMemory = NULL;
 	}
+#ifdef HLTCA_STANDALONE
+	if (fLinkTmpMemory) delete[] fLinkTmpMemory;
+#endif
 }
 
 // ----------------------------------------------------------------------------------
@@ -716,6 +719,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 	int nStoredHits = 0;
 	int nStoredTracks = 0;
+	int nStoredLocalTracks = 0;
 
 	AliHLTTPCCASliceOutTrack *out = useOutput->FirstTrack();
 
@@ -725,7 +729,8 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		trackOrder[i].fTtrack = i % fCommonMem->fNTracks;
 		trackOrder[i].fSortVal = fTracks[trackOrder[i].fTtrack].NHits() / 1000.f + fTracks[trackOrder[i].fTtrack].Param().GetZ() * 100.f + fTracks[trackOrder[i].fTtrack].Param().GetY();
 	}
-	qsort(trackOrder, fCommonMem->fNTracks, sizeof(trackSortData), SortComparison);
+	qsort(trackOrder, fCommonMem->fNLocalTracks, sizeof(trackSortData), SortComparison);
+	qsort(trackOrder + fCommonMem->fNLocalTracks, fCommonMem->fNTracks - fCommonMem->fNLocalTracks, sizeof(trackSortData), SortComparison);
 
 	for ( int iTrTmp = 0; iTrTmp < fCommonMem->fNTracks; iTrTmp++ ) {
 		int iTr = trackOrder[iTrTmp].fTtrack;
@@ -735,6 +740,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		if( CAMath::Abs(iTrack.Param().GetQPt())> fParam.MaxTrackQPt() ) continue;
 
 		out->SetParam( iTrack.Param() );
+		out->SetLocalTrackId( iTrack.LocalTrackId() );
 		int nClu = 0;
 		int iID = iTrack.FirstHitID();
 
@@ -772,6 +778,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		}
 
 		nStoredTracks++;
+		if (iTr < fCommonMem->fNLocalTracks) nStoredLocalTracks++;
 		nStoredHits+=nClu; 
 		out->SetNClusters( nClu );
 		out = out->NextTrack();    
@@ -779,6 +786,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	delete[] trackOrder;
 
 	useOutput->SetNTracks( nStoredTracks );
+	useOutput->SetNLocalTracks( nStoredLocalTracks );
 	useOutput->SetNTrackClusters( nStoredHits );
 
 	timer.Stop();
@@ -1040,6 +1048,8 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 		track.SetParam(tParam.GetParam());
 		track.SetNHits(nHits);
 		track.SetFirstHitID(sliceNeighbour.fCommonMem->fNTrackHits);
+		const int kMaxTrackIdInSlice = AliHLTTPCCASliceOutTrack::MaxTrackId();
+		track.SetLocalTrackId(fParam.ISlice() * kMaxTrackIdInSlice + fTracks[iTrack].LocalTrackId());
 		sliceNeighbour.fCommonMem->fNTracks++;
 		sliceNeighbour.fCommonMem->fNTrackHits += nHits;
 		return(1);

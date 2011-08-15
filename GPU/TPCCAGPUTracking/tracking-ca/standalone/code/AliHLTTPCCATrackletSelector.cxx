@@ -126,6 +126,7 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 #endif //HLTCA_GPUCODE
 						nFirstTrackHit = CAMath::AtomicAdd( tracker.NTrackHits(), nHits );
 						tracker.Tracks()[itrout].SetAlive(1);
+						tracker.Tracks()[itrout].SetLocalTrackId(itrout);
 						tracker.Tracks()[itrout].SetParam(tracklet.Param());
 						tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);
 						tracker.Tracks()[itrout].SetNHits(nHits);

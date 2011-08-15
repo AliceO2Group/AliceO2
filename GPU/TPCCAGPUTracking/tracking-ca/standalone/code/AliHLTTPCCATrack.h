@@ -24,17 +24,19 @@ class AliHLTTPCCATrack
 {
   public:
 #if !defined(HLTCA_GPUCODE)
-    AliHLTTPCCATrack() : fAlive( 0 ), fFirstHitID( 0 ), fNHits( 0 ), fParam() {}
+    AliHLTTPCCATrack() : fAlive( 0 ), fFirstHitID( 0 ), fNHits( 0 ), fLocalTrackId( -1 ), fParam() {}
     ~AliHLTTPCCATrack() {}
 #endif //!HLTCA_GPUCODE
 
     GPUhd() bool Alive()               const { return fAlive; }
     GPUhd() int  NHits()               const { return fNHits; }
+	GPUhd() int  LocalTrackId()        const { return fLocalTrackId; }
     GPUhd() int  FirstHitID()          const { return fFirstHitID; }
     GPUhd() const AliHLTTPCCABaseTrackParam &Param() const { return fParam; };
 
-    GPUhd() void SetAlive( bool v )               { fAlive = v; }
+    GPUhd() void SetAlive( bool v )              { fAlive = v; }
     GPUhd() void SetNHits( int v )               { fNHits = v; }
+    GPUhd() void SetLocalTrackId( int v )        { fLocalTrackId = v; }
     GPUhd() void SetFirstHitID( int v )          { fFirstHitID = v; }
     GPUhd() void SetParam( AliHLTTPCCABaseTrackParam v ) { fParam = v; };
 
@@ -42,6 +44,7 @@ class AliHLTTPCCATrack
     bool fAlive;       // flag for mark tracks used by the track merger
     int  fFirstHitID; // index of the first track cell in the track->cell pointer array
     int  fNHits;      // number of track cells
+	int  fLocalTrackId; //Id of local track this global track belongs to, index of this track itself if it is a local track
     AliHLTTPCCABaseTrackParam fParam; // track parameters
 
   private:
