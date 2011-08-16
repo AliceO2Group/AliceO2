@@ -75,6 +75,8 @@ static double gTicks = 1000;
 const double gTicks = 1.0e-7;
 //#  include "Windows4Root.h"
 #include <windows.h>
+#else
+#include <time.h>
 #endif
 
 
@@ -193,7 +195,10 @@ inline double TStopwatch::GetRealTime()
   QueryPerformanceCounter((LARGE_INTEGER*) &a);
   return((double) a / (double) fFrequency);
 #else
-  return 0;
+  timespec t;
+  clock_gettime(CLOCK_REALTIME, &t);
+  return t.tv_sec + (t.tv_nsec)*1.e-9;
+  //return 0;
 #endif
 }
 

@@ -138,7 +138,9 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 			for (int i = 0;i < cls->fNSlicesPerCPUTracker;i++)
 			{
 				int myISlice = cls->fSliceCount - cls->fNCPUTrackers * cls->fNSlicesPerCPUTracker + (par->fNum - cls->fNHelperThreads) * cls->fNSlicesPerCPUTracker + i;
+#ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Doing full CPU tracking, Slice %d", par->fNum, myISlice);
+#endif
 				if (myISlice >= 0)
 				{
 					tmpTracker->Initialize(cls->fSlaveTrackers[par->fFirstSlice + myISlice].Param());
@@ -164,7 +166,9 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackletMemory();
 					delete[] cls->fSlaveTrackers[par->fFirstSlice + myISlice].TrackMemory();*/
 				}
+#ifdef HLTCA_STANDALONE
 				if (cls->fDebugLevel >= 3) HLTInfo("\tHelper Thread %d Finished, Slice %d", par->fNum, myISlice);
+#endif
 			}
 		}
 		else
@@ -216,7 +220,9 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 		}
 		pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 	}
+#ifdef HLTCA_STANDALONE
 	if (cls->fDebugLevel >= 2) HLTInfo("\tHelper thread %d terminating", par->fNum);
+#endif
 	delete tmpTracker;
 	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 	pthread_exit(NULL);
@@ -683,11 +689,11 @@ template <class T> inline T* AliHLTTPCCAGPUTrackerNVCC::alignPointer(T* ptr, int
 	return((T*) adr);
 }
 
-bool AliHLTTPCCAGPUTrackerNVCC::CudaFailedMsg(cudaError_t error)
+bool AliHLTTPCCAGPUTrackerNVCC::CudaFailedMsgA(cudaError_t error, const char* file, int line)
 {
 	//Check for CUDA Error and in the case of an error display the corresponding error string
 	if (error == cudaSuccess) return(false);
-	HLTWarning("CUDA Error: %d / %s", error, cudaGetErrorString(error));
+	HLTWarning("CUDA Error: %d / %s (%s:%d)", error, cudaGetErrorString(error), file, line);
 	return(true);
 }
 
@@ -1324,7 +1330,7 @@ RestartTrackletConstructor:
 	}
 	StandalonePerfTime(firstSlice, 9);
 
-	char *tmpMemoryGlobalTracking;
+	char *tmpMemoryGlobalTracking = NULL;
 	fSliceOutputReady = 0;
 	if (fUseGlobalTracking)
 	{

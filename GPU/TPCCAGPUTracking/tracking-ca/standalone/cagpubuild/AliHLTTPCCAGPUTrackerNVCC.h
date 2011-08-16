@@ -85,7 +85,8 @@ private:
 	int CUDASync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
 	template <class T> T* alignPointer(T* ptr, int alignment);
 	void StandalonePerfTime(int iSlice, int i);
-	bool CudaFailedMsg(cudaError_t error);
+#define CudaFailedMsg(x) CudaFailedMsgA(x, __FILE__, __LINE__)
+	bool CudaFailedMsgA(cudaError_t error, const char* file, int line);
 	
 	static void* helperWrapper(void*);
 
@@ -144,9 +145,15 @@ private:
 	helperParam* fHelperParams; //Control Struct for helper threads
 	void* fHelperMemMutex;
 	
+#ifdef __ROOT__
+#define volatile
+#endif
 	volatile int fSliceOutputReady;
 	volatile char fSliceLeftGlobalReady[fgkNSlices];
 	volatile char fSliceRightGlobalReady[fgkNSlices];
+#ifdef __ROOT__
+#undef volatile
+#endif
 	void* fSliceGlobalMutexes;
 	char fGlobalTrackingDone[fgkNSlices];
 	char fWriteOutputDone[fgkNSlices];
