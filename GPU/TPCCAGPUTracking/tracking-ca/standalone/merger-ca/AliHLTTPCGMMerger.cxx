@@ -852,6 +852,7 @@ void AliHLTTPCGMMerger::Refit()
 		bool ok = nTrackHits >= 30 && t.CheckNumericalQuality() && fabs( t.SinPhi() ) <= .999;
 
 		track.SetOK(ok);
+		if (!ok) continue;
 
 		if( 1 ){//SG!!!
 		  track.SetNClusters( nTrackHits );

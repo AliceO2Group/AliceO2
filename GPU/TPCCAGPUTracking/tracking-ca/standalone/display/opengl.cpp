@@ -107,7 +107,7 @@ inline void SetColorLinks() {glColor3f(1, 0.3, 0.3);}
 inline void SetColorSeeds() {glColor3f(1.0, 0.4, 0);}
 inline void SetColorTracklets() {glColor3f(1, 1, 1);}
 inline void SetColorTracks() {glColor3f(0.6, 1, 0);}
-inline void SetColorGlobalTracks() {glColor3f(0.6, 0.6, 0);}
+inline void SetColorGlobalTracks() {glColor3f(0.58, 0.1, 0.6);}
 inline void SetColorFinal() {glColor3f(0, 0.8, 0.2);}
 inline void SetColorGrid() {glColor3f(0.7, 0.7, 0.0);}
 
@@ -308,14 +308,55 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
 	for (int i = 0;i < merger.NOutputTracks();i++)
 	{
 		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
+		if (track.NClusters() == 0) continue;
+    	int* clusterused = new int[track.NClusters()];
+		for (int j = 0;j < track.NClusters();j++) clusterused[j] = 0;
 		if (!track.OK()) continue;
 		glBegin(GL_LINE_STRIP);
-		for (int j = 0;j < track.NClusters();j++)
+
+		float smallest = 1e20;
+		int bestk = 0;
+		for (int k = 0;k < track.NClusters();k++)
 		{
-			int cid = merger.OutputClusterIds()[track.FirstClusterRef() + j];
-			drawPointLinestrip(cid, 7);
+			int cid = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+			float dist = globalPos[cid].x * globalPos[cid].x + globalPos[cid].y * globalPos[cid].y + globalPos[cid].z * globalPos[cid].z;
+			if (dist < smallest)
+			{
+				smallest = dist;
+				bestk = k;
+			}
+		}
+
+		int lastcid = merger.OutputClusterIds()[track.FirstClusterRef() + bestk];
+		clusterused[bestk] = 1;
+
+		drawPointLinestrip(lastcid, 7);
+
+		for (int j = 1;j < track.NClusters();j++)
+		{
+			int bestcid = 0;
+			int bestk = 0;
+			float bestdist = 1e20;
+			for (int k = 0;k < track.NClusters();k++)
+			{
+				if (clusterused[k]) continue;
+				int cid = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+				float dist = (globalPos[cid].x - globalPos[lastcid].x) * (globalPos[cid].x - globalPos[lastcid].x) +
+					(globalPos[cid].y - globalPos[lastcid].y) * (globalPos[cid].y - globalPos[lastcid].y) +
+					(globalPos[cid].z - globalPos[lastcid].z) * (globalPos[cid].z - globalPos[lastcid].z);
+				if (dist < bestdist)
+				{
+					bestdist = dist;
+					bestcid = cid;
+					bestk = k;
+				}
+			}
+			drawPointLinestrip(bestcid, 7);
+			clusterused[bestk] = 1;
+			lastcid = bestcid;
 		}
 		glEnd();
+		delete[] clusterused;
 	}
 #endif
 }
