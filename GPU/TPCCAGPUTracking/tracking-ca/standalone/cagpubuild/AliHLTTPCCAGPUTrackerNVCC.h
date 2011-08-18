@@ -129,6 +129,7 @@ private:
 	
 	struct helperParam
 	{
+		void* fThreadId;
 		AliHLTTPCCAGPUTrackerNVCC* fCls;
 		int fNum;
 		int fSliceCount;
