@@ -48,4 +48,12 @@ static inline int pthread_exit(void* ret)
 	ExitThread((DWORD) (size_t) ret);
 }
 
+static inline int pthread_join(pthread_t thread, void** retval)
+{
+	static DWORD ExitCode;
+	while (GetExitCodeThread(thread, &ExitCode) == STILL_ACTIVE) Sleep(0);
+	if (retval != NULL) *retval = (void*) &ExitCode;
+	return(0);
+}
+
 #endif
