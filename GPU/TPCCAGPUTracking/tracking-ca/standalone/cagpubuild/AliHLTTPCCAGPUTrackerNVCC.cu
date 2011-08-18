@@ -257,6 +257,7 @@ fNHelperThreads(HLTCA_GPU_DEFAULT_HELPER_THREADS),
 fHelperParams(NULL),
 fHelperMemMutex(NULL),
 fSliceOutputReady(0),
+fSliceGlobalMutexes(NULL),
 fNCPUTrackers(0),
 fNSlicesPerCPUTracker(0),
 fGlobalTracking(0),
@@ -660,9 +661,9 @@ int AliHLTTPCCAGPUTrackerNVCC::StartHelperThreads()
 
 				pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]);
 			}
-			pthread_t thr;
+			fHelperParams[i].fThreadId = (void*) malloc(sizeof(pthread_t));
 
-			if (pthread_create(&thr, NULL, helperWrapper, &fHelperParams[i]))
+			if (pthread_create((pthread_t*) fHelperParams[i].fThreadId, NULL, helperWrapper, &fHelperParams[i]))
 			{
 				HLTError("Error starting slave thread");
 				cudaFree(fGPUMemory);
@@ -1912,6 +1913,12 @@ int AliHLTTPCCAGPUTrackerNVCC::StopHelperThreads()
 				HLTError("Error locking mutex");
 				return(1);
 			}
+			if (pthread_join( *((pthread_t*) fHelperParams[i].fThreadId), NULL))
+			{
+				HLTError("Error waiting for thread to terminate");
+				return(1);
+			}
+			free(fHelperParams[i].fThreadId);
 			for (int j = 0;j < 2;j++)
 			{
 				if (pthread_mutex_unlock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[j]))

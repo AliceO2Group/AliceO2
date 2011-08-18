@@ -870,9 +870,13 @@ void HandleKeyRelease(int wParam)
 		FILE* ftmp = fopen("glpos.tmp", "w+b");
 		if (ftmp)
 		{
-			fwrite(&tmp[0], sizeof(tmp[0]), 16, ftmp);
+			if (fwrite(&tmp[0], sizeof(tmp[0]), 16, ftmp) != 16 * sizeof(tmp[0])) printf("Error writing position to file\n");
+			else printf("Position stored to file\n");
 			fclose(ftmp);
-			printf("Position stored to file\n");
+		}
+		else
+		{
+			printf("Error opening file\n");
 		}
 	}
 	else if (wParam == 'P')
@@ -881,13 +885,22 @@ void HandleKeyRelease(int wParam)
 		FILE* ftmp = fopen("glpos.tmp", "rb");
 		if (ftmp)
 		{
-			fread(&tmp[0], sizeof(tmp[0]), 16, ftmp);
+			if (fread(&tmp[0], sizeof(tmp[0]), 16, ftmp) == 16 * sizeof(tmp[0]))
+			{
+				glLoadMatrixf(tmp);
+				glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
+				printf("Position read from file\n");
+			}
+			else
+			{
+				printf("Error reading position from file\n");
+			}
 			fclose(ftmp);
-			glLoadMatrixf(tmp);
-			glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
-			printf("Position read from file\n");
 		}
-
+		else
+		{
+			printf("Error opening file\n");
+		}
 	}
 }
 
