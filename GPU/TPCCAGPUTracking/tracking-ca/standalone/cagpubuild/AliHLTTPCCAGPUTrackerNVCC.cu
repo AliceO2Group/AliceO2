@@ -1383,7 +1383,6 @@ RestartTrackletConstructor:
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 		{
 			fSlaveTrackers[iSlice].SetGPUTrackerTrackletsMemory(tmpMemoryGlobalTracking + (tmpmemSize * iSlice), 1, fConstructorBlockCount);
-			fSlaveTrackers[iSlice].CommonMemory()->fNTracklets = 1;
 		}
 	}
 	for (int i = 0;i < fNHelperThreads;i++)
