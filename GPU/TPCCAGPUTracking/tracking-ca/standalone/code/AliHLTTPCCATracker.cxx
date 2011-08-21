@@ -1057,11 +1057,13 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 	return(0);
 }
 
-GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight)
+GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks)
 {
 	int ul = 0, ur = 0, ll = 0, lr = 0;
 	for (int i = 0;i < fCommonMem->fNLocalTracks;i++)
 	{
+		if (sliceLeft.fCommonMem->fNTracks >= MaxTracks || sliceRight.fCommonMem->fNTracks >= MaxTracks) return;
+
 		{
 			const int tmpHit = fTracks[i].FirstHitID();
 			if (fTrackHits[tmpHit].RowIndex() >= GLOBAL_TRACKING_MIN_ROWS && fTrackHits[tmpHit].RowIndex() < GLOBAL_TRACKING_RANGE)

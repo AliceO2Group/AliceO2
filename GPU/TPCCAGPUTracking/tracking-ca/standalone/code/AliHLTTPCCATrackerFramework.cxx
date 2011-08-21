@@ -157,7 +157,7 @@ int AliHLTTPCCATrackerFramework::ProcessSlices(int firstSlice, int sliceCount, A
 					sliceLeft += fgkNSlices / 2;
 					sliceRight += fgkNSlices / 2;
 				}
-				fCPUTrackers[iSlice].PerformGlobalTracking(fCPUTrackers[sliceLeft], fCPUTrackers[sliceRight]);
+				fCPUTrackers[iSlice].PerformGlobalTracking(fCPUTrackers[sliceLeft], fCPUTrackers[sliceRight], CAMath::Min(fCPUTrackers[sliceLeft].CommonMemory()->fNTracklets, fCPUTrackers[sliceRight].CommonMemory()->fNTracklets) * 2);
 			}
 			for (int iSlice = 0;iSlice < CAMath::Min(sliceCount, fgkNSlices - firstSlice);iSlice++)
 			{
