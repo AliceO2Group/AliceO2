@@ -190,7 +190,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 
   timer2.Stop();
   timer0.Stop();
-
+  
   fLastTime[0] = timer0.CpuTime();
   fLastTime[1] = timer1.CpuTime();
   fLastTime[2] = timer2.CpuTime();

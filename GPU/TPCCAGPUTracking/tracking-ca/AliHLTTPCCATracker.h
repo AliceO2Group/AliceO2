@@ -105,10 +105,12 @@ class AliHLTTPCCATracker
   
   struct commonMemoryStruct
   {
-    commonMemoryStruct() : fNTracklets( 0 ), fNTracks( 0 ), fNTrackHits( 0 ), fGPUParameters() {}
+    commonMemoryStruct() : fNTracklets( 0 ), fNTracks( 0 ), fNLocalTracks( 0 ), fNTrackHits( 0 ), fNLocalTrackHits( 0 ), fGPUParameters() {}
     int fNTracklets;     // number of tracklets
     int fNTracks;            // number of reconstructed tracks
+	int fNLocalTracks;	 //number of reconstructed tracks before global tracking
     int fNTrackHits;           // number of track hits
+	int fNLocalTrackHits; //see above
     StructGPUParameters fGPUParameters; // GPU parameters
   };
   
@@ -122,7 +124,9 @@ class AliHLTTPCCATracker
   
 #if !defined(HLTCA_GPUCODE)
   void Reconstruct();
+  void ReconstructOutput();
 #endif //!HLTCA_GPUCODE
+  void DoTracking();
   
   //Make Reconstruction steps directly callable (Used for GPU debugging)
   void RunNeighboursFinder();
@@ -147,6 +151,7 @@ class AliHLTTPCCATracker
   void DumpHitWeights(std::ostream &out); //....
   void DumpTrackHits(std::ostream &out);	//Same for Track Hits
   void DumpTrackletHits(std::ostream &out);	//Same for Track Hits
+  void DumpOutput(FILE* out);	//Similar for output
   
   GPUd() void GetErrors2( int iRow,  const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const;
   GPUd() void GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
@@ -232,6 +237,9 @@ class AliHLTTPCCATracker
   GPUd() void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
     fData.MaximizeHitWeight( row, hitIndex, weight );
   }
+  GPUd() void SetHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
+	fData.SetHitWeight( row, hitIndex, weight );
+  }
   GPUd() int HitWeight( const AliHLTTPCCARow &row, int hitIndex ) const {
     return fData.HitWeight( row, hitIndex );
   }
@@ -285,8 +293,20 @@ class AliHLTTPCCATracker
 	static inline void StandaloneQueryTime(unsigned long long int *i);
 	static inline void StandaloneQueryFreq(unsigned long long int *i);
 #endif //HLTCA_STANDALONE
+  void StandalonePerfTime(int i);
+
+  struct trackSortData
+  {
+	int fTtrack;		//Track ID
+	float fSortVal;		//Value to sort for
+  };
+  GPUh() static int SortComparison(const void* a, const void* b);
+
+  void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks);
 
 private:
+  GPUh() int PerformGlobalTrackingRun(AliHLTTPCCATracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
+
 	//Temporary Variables for Standalone measurements
 #ifdef HLTCA_STANDALONE
 public:
@@ -298,7 +318,6 @@ private:
   AliHLTTPCCAParam fParam; // parameters
   double fTimers[10]; // timers
   unsigned long long int fPerfTimers[16]; // running CPU time for different parts of the algorithm
-  void StandalonePerfTime(int i);
   
   AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl; // output control
   
