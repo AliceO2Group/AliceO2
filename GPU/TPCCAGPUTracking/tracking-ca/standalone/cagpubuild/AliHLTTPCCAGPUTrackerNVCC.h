@@ -63,6 +63,23 @@ public:
 	virtual char* MergerBaseMemory();
 
 private:
+	struct helperParam
+	{
+		void* fThreadId;
+		AliHLTTPCCAGPUTrackerNVCC* fCls;
+		int fNum;
+		int fSliceCount;
+		AliHLTTPCCAClusterData* pClusterData;
+		AliHLTTPCCASliceOutput** pOutput;
+		int fFirstSlice;
+		void* fMutex;
+		bool fTerminate;
+		int fPhase;
+		int CPUTracker;
+		volatile int fDone;
+		volatile bool fReset;
+	};
+
 	static void* RowMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + iSlice * sizeof(AliHLTTPCCARow) * (HLTCA_ROW_COUNT + 1) ); }
 	static void* CommonMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + iSlice * AliHLTTPCCATracker::CommonMemorySize() ); }
 	static void* SliceDataMemory(void* const BaseMemory, int iSlice) { return( ((char*) BaseMemory) + HLTCA_GPU_ROWS_MEMORY + HLTCA_GPU_COMMON_MEMORY + iSlice * HLTCA_GPU_SLICE_DATA_MEMORY ); }
@@ -72,10 +89,11 @@ private:
 	
 	void ReadEvent(AliHLTTPCCAClusterData* pClusterData, int firstSlice, int iSlice, int threadId);
 	void WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId);
-	void GlobalTracking(int iSlice, int threadId);
+	int GlobalTracking(int iSlice, int threadId, helperParam* hParam);
 
 	int StartHelperThreads();
 	int StopHelperThreads();
+	void ResetHelperThreads();
 
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 	int GetThread();
@@ -127,21 +145,6 @@ private:
 
 	void* fCudaContext; //Pointer to CUDA context
 	
-	struct helperParam
-	{
-		void* fThreadId;
-		AliHLTTPCCAGPUTrackerNVCC* fCls;
-		int fNum;
-		int fSliceCount;
-		AliHLTTPCCAClusterData* pClusterData;
-		AliHLTTPCCASliceOutput** pOutput;
-		int fFirstSlice;
-		void* fMutex;
-		bool fTerminate;
-		int fPhase;
-		int CPUTracker;
-		volatile int fDone;
-	};
 	int fNHelperThreads; //Number of helper threads for post/preprocessing
 	helperParam* fHelperParams; //Control Struct for helper threads
 	void* fHelperMemMutex;

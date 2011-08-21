@@ -89,7 +89,7 @@ texture<signed short, 1, cudaReadModeElementType> gAliTexRefs;
 
 ClassImp( AliHLTTPCCAGPUTrackerNVCC )
 
-void AliHLTTPCCAGPUTrackerNVCC::GlobalTracking(int iSlice, int threadId)
+int AliHLTTPCCAGPUTrackerNVCC::GlobalTracking(int iSlice, int threadId, AliHLTTPCCAGPUTrackerNVCC::helperParam* hParam)
 {
 	if (fDebugLevel >= 3) printf("GPU Tracker running Global Tracking for slice %d on thread %d\n", iSlice, threadId);
 
@@ -100,7 +100,10 @@ void AliHLTTPCCAGPUTrackerNVCC::GlobalTracking(int iSlice, int threadId)
 		sliceLeft += fgkNSlices / 2;
 		sliceRight += fgkNSlices / 2;
 	}
-	while (fSliceOutputReady < iSlice || fSliceOutputReady < sliceLeft || fSliceOutputReady < sliceRight);
+	while (fSliceOutputReady < iSlice || fSliceOutputReady < sliceLeft || fSliceOutputReady < sliceRight)
+	{
+		if (hParam != NULL && hParam->fReset) return(1);
+	}
 
 	pthread_mutex_lock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceLeft]);
 	pthread_mutex_lock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceRight]);
@@ -111,6 +114,7 @@ void AliHLTTPCCAGPUTrackerNVCC::GlobalTracking(int iSlice, int threadId)
 	fSliceLeftGlobalReady[sliceLeft] = 1;
 	fSliceRightGlobalReady[sliceRight] = 1;
 	if (fDebugLevel >= 3) printf("GPU Tracker finished Global Tracking for slice %d on thread %d\n", iSlice, threadId);
+	return(0);
 }
 
 void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
@@ -186,7 +190,7 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 
 						if (realSlice % (fgkNSlices / 2) != 1)
 						{
-							cls->GlobalTracking(realSlice, par->fNum + 1);
+							cls->GlobalTracking(realSlice, par->fNum + 1, par);
 						}
 
 						if (realSlice == 19)
@@ -195,13 +199,19 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 						}
 						else
 						{
-							while (cls->fSliceLeftGlobalReady[realSlice] == 0 || cls->fSliceRightGlobalReady[realSlice] == 0);
+							while (cls->fSliceLeftGlobalReady[realSlice] == 0 || cls->fSliceRightGlobalReady[realSlice] == 0)
+							{
+								if (par->fReset) goto ResetHelperThread;
+							}
 							cls->WriteOutput(par->pOutput, par->fFirstSlice, realSlice, par->fNum + 1);
 						}
 					}
 					else
 					{
-						while (cls->fSliceOutputReady < i);
+						while (cls->fSliceOutputReady < i)
+						{
+							if (par->fReset) goto ResetHelperThread;
+						}
 						cls->WriteOutput(par->pOutput, par->fFirstSlice, i, par->fNum + 1);
 					}
 				}
@@ -214,10 +224,15 @@ void* AliHLTTPCCAGPUTrackerNVCC::helperWrapper(void* arg)
 			}
 			if (mustRunSlice19)
 			{
-				while (cls->fSliceLeftGlobalReady[19] == 0 || cls->fSliceRightGlobalReady[19] == 0);
+				while (cls->fSliceLeftGlobalReady[19] == 0 || cls->fSliceRightGlobalReady[19] == 0)
+				{
+					if (par->fReset) goto ResetHelperThread;
+				}
 				cls->WriteOutput(par->pOutput, par->fFirstSlice, 19, par->fNum + 1);
 			}
 		}
+ResetHelperThread:
+		par->fReset = false;
 		pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 	}
 #ifdef HLTCA_STANDALONE
@@ -638,6 +653,7 @@ int AliHLTTPCCAGPUTrackerNVCC::StartHelperThreads()
 		{
 			fHelperParams[i].fCls = this;
 			fHelperParams[i].fTerminate = false;
+			fHelperParams[i].fReset = false;
 			fHelperParams[i].fNum = i;
 			fHelperParams[i].fMutex = malloc(2 * sizeof(pthread_mutex_t));
 			if (fHelperParams[i].fMutex == NULL)
@@ -1018,6 +1034,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		{
 			HLTError("Insufficiant Track Memory");
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 
@@ -1025,6 +1042,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		{
 			HLTError("Insufficiant Global Memory");
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 
@@ -1053,6 +1071,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	{
 		HLTError("Error binding CUDA Texture ushort2 (Offset %d)", (int) offset);
 		cuCtxPopCurrent((CUcontext*) fCudaContext);
+		ResetHelperThreads();
 		return(1);
 	}
 	cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<unsigned short>();
@@ -1060,6 +1079,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	{
 		HLTError("Error binding CUDA Texture ushort (Offset %d)", (int) offset);
 		cuCtxPopCurrent((CUcontext*) fCudaContext);
+		ResetHelperThreads();
 		return(1);
 	}
 	cudaChannelFormatDesc channelDescs = cudaCreateChannelDesc<signed short>();
@@ -1067,6 +1087,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	{
 		HLTError("Error binding CUDA Texture short (Offset %d)", (int) offset);
 		cuCtxPopCurrent((CUcontext*) fCudaContext);
+		ResetHelperThreads();
 		return(1);
 	}
 #endif
@@ -1079,6 +1100,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	{
 		HLTError("Error allocating CUDA profile memory");
 		cuCtxPopCurrent((CUcontext*) fCudaContext);
+		ResetHelperThreads();
 		return(1);
 	}
 	fGpuTracker[0].fStageAtSync = tmpMem;
@@ -1088,6 +1110,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 	if (CUDASync("Initialization (1)", 0, firstSlice))
 	{
 		cuCtxPopCurrent((CUcontext*) fCudaContext);
+		ResetHelperThreads();
 		return(1);
 	}
 
@@ -1130,6 +1153,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		{
 			HLTError("Insufficiant Slice Data Memory");
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 
@@ -1144,6 +1168,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		if (CUDASync("Initialization (2)", iSlice, iSlice + firstSlice))
 		{
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 
@@ -1162,6 +1187,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		if (CUDASync("Initialization (3)", iSlice, iSlice + firstSlice))
 		{
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 		StandalonePerfTime(firstSlice + iSlice, 1);
@@ -1172,6 +1198,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		if (CUDASync("Neighbours finder", iSlice, iSlice + firstSlice))
 		{
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 
@@ -1188,6 +1215,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		if (CUDASync("Neighbours Cleaner", iSlice, iSlice + firstSlice))
 		{
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 
@@ -1204,6 +1232,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		if (CUDASync("Start Hits Finder", iSlice, iSlice + firstSlice))
 		{
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 
@@ -1214,6 +1243,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		if (CUDASync("Start Hits Sorter", iSlice, iSlice + firstSlice))
 		{
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 
@@ -1227,6 +1257,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 			{
 				HLTError("HLTCA_GPU_MAX_TRACKLETS constant insuffisant");
 				cuCtxPopCurrent((CUcontext*) fCudaContext);
+				ResetHelperThreads();
 				return(1);
 			}
 		}
@@ -1371,6 +1402,7 @@ RestartTrackletConstructor:
 		{
 			if (CudaFailedMsg(cudaMemcpyAsync(fSlaveTrackers[firstSlice + tmpSlice].CommonMemory(), fGpuTracker[tmpSlice].CommonMemory(), fGpuTracker[tmpSlice].CommonMemorySize(), cudaMemcpyDeviceToHost, cudaStreams[tmpSlice])))
 			{
+				ResetHelperThreads();
 				return(SelfHealReconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
 			}
 			tmpSlice++;
@@ -1385,6 +1417,7 @@ RestartTrackletConstructor:
 
 		if (CudaFailedMsg(cudaStreamSynchronize(cudaStreams[iSlice])))
 		{
+			ResetHelperThreads();
 			return(SelfHealReconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
 		}
 
@@ -1410,7 +1443,12 @@ RestartTrackletConstructor:
 				{
 					HLTWarning("Tracklet Constructor returned invalid row (Slice %d)", firstSlice + iSlice);
 				}
-				if (fDebugLevel >= 4) return(1);
+				if (fDebugLevel >= 4)
+				{
+					ResetHelperThreads();
+					cuCtxPopCurrent((CUcontext*) fCudaContext);
+					return(1);
+				}
 				for (int i = 0;i < sliceCountLocal;i++)
 				{
 					cudaThreadSynchronize();
@@ -1426,6 +1464,7 @@ RestartTrackletConstructor:
 #endif
 			HLTError("GPU Tracker returned Error Code %d in slice %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice);
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
+			ResetHelperThreads();
 			return(1);
 		}
 		if (fDebugLevel >= 3) HLTInfo("Tracks Transfered: %d / %d", *fSlaveTrackers[firstSlice + iSlice].NTracks(), *fSlaveTrackers[firstSlice + iSlice].NTrackHits());
@@ -1443,7 +1482,7 @@ RestartTrackletConstructor:
 			{
 				int tmpId = iSlice % (fgkNSlices / 2) - 1;
 				if (iSlice >= fgkNSlices / 2) tmpId += fgkNSlices / 2;
-				GlobalTracking(tmpId, 0);
+				GlobalTracking(tmpId, 0, NULL);
 				fGlobalTrackingDone[tmpId] = 1;
 			}
 			for (int tmpSlice3a = 0;tmpSlice3a < iSlice;tmpSlice3a += fNHelperThreads + 1)
@@ -1462,7 +1501,7 @@ RestartTrackletConstructor:
 
 				if (tmpSlice3 % (fgkNSlices / 2) != 1 && fGlobalTrackingDone[tmpSlice3] == 0 && sliceLeft < iSlice && sliceRight < iSlice)
 				{
-					GlobalTracking(tmpSlice3, 0);
+					GlobalTracking(tmpSlice3, 0, NULL);
 					fGlobalTrackingDone[tmpSlice3] = 1;
 				}
 
@@ -1494,7 +1533,7 @@ RestartTrackletConstructor:
 		{
 			int tmpSlice3 = (tmpSlice3a + 1);
 			if (tmpSlice3 % (fgkNSlices / 2) < 1) tmpSlice3 -= (fgkNSlices / 2);
-			if (fGlobalTrackingDone[tmpSlice3] == 0) GlobalTracking(tmpSlice3, 0);
+			if (fGlobalTrackingDone[tmpSlice3] == 0) GlobalTracking(tmpSlice3, 0, NULL);
 		}
 		for (int tmpSlice3a = 0;tmpSlice3a < fgkNSlices;tmpSlice3a += fNHelperThreads + 1)
 		{
@@ -1894,6 +1933,18 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 	HLTInfo("CUDA Uninitialized");
 	fCudaInitialized = 0;
 	return(0);
+}
+
+void AliHLTTPCCAGPUTrackerNVCC::ResetHelperThreads()
+{
+	for (int i = 0;i < fNSlaveThreads;i++)
+	{
+		fHelperParams[i].fReset = true;
+	}
+	for (int i = 0;i < fNHelperThreads;i++)
+	{
+		pthread_mutex_lock(&((pthread_mutex_t*) fHelperParams[i].fMutex)[1]);
+	}
 }
 
 int AliHLTTPCCAGPUTrackerNVCC::StopHelperThreads()
