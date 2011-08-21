@@ -43,6 +43,7 @@ class AliHLTTPCCASliceOutput
   };
 
   GPUhd() int NTracks()                    const { return fNTracks;              }
+  GPUhd() int NLocalTracks()               const { return fNLocalTracks;         }
   GPUhd() int NTrackClusters()             const { return fNTrackClusters;       }  
 #ifndef HLTCA_GPUCODE
   GPUhd() const AliHLTTPCCASliceOutTrack *GetFirstTrack() const { return fMemory; }
@@ -54,12 +55,13 @@ class AliHLTTPCCASliceOutput
   static void Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl);
 
   GPUhd() void SetNTracks       ( int v )  { fNTracks = v;        }
+  GPUhd() void SetNLocalTracks  ( int v )  { fNLocalTracks = v;   }
   GPUhd() void SetNTrackClusters( int v )  { fNTrackClusters = v; }
 
   private:
 
   AliHLTTPCCASliceOutput()
-    : fNTracks( 0 ), fNTrackClusters( 0 ), fMemorySize( 0 ){}
+    : fNTracks( 0 ), fNLocalTracks( 0 ), fNTrackClusters( 0 ), fMemorySize( 0 ){}
   
   ~AliHLTTPCCASliceOutput() {}
   const AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) const { return *this; }
@@ -68,6 +70,7 @@ class AliHLTTPCCASliceOutput
   GPUh() void SetMemorySize(size_t val) { fMemorySize = val; }
 
   int fNTracks;                   // number of reconstructed tracks
+  int fNLocalTracks;
   int fNTrackClusters;            // total number of track clusters
   size_t fMemorySize;	       	// Amount of memory really used
 

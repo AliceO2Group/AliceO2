@@ -136,6 +136,8 @@ class AliHLTTPCCATrackletConstructor
     ( int nBlocks, int nThreads, int iBlock, int iThread,
       AliHLTTPCCASharedMemory &s, AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam );
 
+	GPUd() static bool CheckCov(AliHLTTPCCATrackParam &tParam);
+
 #ifdef HLTCA_GPUCODE
 	GPUd() static void AliHLTTPCCATrackletConstructorGPU(AliHLTTPCCATracker *pTracker);
 	GPUd() static void AliHLTTPCCATrackletConstructorGPUPP(AliHLTTPCCATracker *pTracker);
@@ -148,6 +150,7 @@ class AliHLTTPCCATrackletConstructor
 	GPUd() static void CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam &tParamSrc, AliHLTTPCCATrackParam &tParamDst);
 #else
 	GPUd() static void AliHLTTPCCATrackletConstructorCPU(AliHLTTPCCATracker &tracker);
+	GPUd() static int AliHLTTPCCATrackletConstructorGlobalTracking(AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam& tParam, int startrow, int increment);
 #endif //HLTCA_GPUCODE
 
     GPUd() static bool SAVE() { return 1; }
