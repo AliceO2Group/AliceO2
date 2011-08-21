@@ -302,7 +302,7 @@ class AliHLTTPCCATracker
   };
   GPUh() static int SortComparison(const void* a, const void* b);
 
-  void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight);
+  void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks);
 
 private:
   GPUh() int PerformGlobalTrackingRun(AliHLTTPCCATracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);

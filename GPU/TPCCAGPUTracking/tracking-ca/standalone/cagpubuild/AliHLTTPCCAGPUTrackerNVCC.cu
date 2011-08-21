@@ -107,7 +107,7 @@ int AliHLTTPCCAGPUTrackerNVCC::GlobalTracking(int iSlice, int threadId, AliHLTTP
 
 	pthread_mutex_lock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceLeft]);
 	pthread_mutex_lock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceRight]);
-	fSlaveTrackers[iSlice].PerformGlobalTracking(fSlaveTrackers[sliceLeft], fSlaveTrackers[sliceRight]);
+	fSlaveTrackers[iSlice].PerformGlobalTracking(fSlaveTrackers[sliceLeft], fSlaveTrackers[sliceRight], HLTCA_GPU_MAX_TRACKS);
 	pthread_mutex_unlock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceLeft]);
 	pthread_mutex_unlock(&((pthread_mutex_t*) fSliceGlobalMutexes)[sliceRight]);
 
@@ -1860,7 +1860,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 				sliceLeft += fgkNSlices / 2;
 				sliceRight += fgkNSlices / 2;
 			}
-			fSlaveTrackers[iSlice].PerformGlobalTracking(fSlaveTrackers[sliceLeft], fSlaveTrackers[sliceRight]);		
+			fSlaveTrackers[iSlice].PerformGlobalTracking(fSlaveTrackers[sliceLeft], fSlaveTrackers[sliceRight], HLTCA_GPU_MAX_TRACKS);		
 		}
 
 		for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
