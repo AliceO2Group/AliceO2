@@ -42,6 +42,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string.h>
+#include <cmath>
 #endif
 
 //#define DRAW1
