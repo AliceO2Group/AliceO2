@@ -15,10 +15,6 @@
  */
 struct AliHLTTPCClusterMCWeight
 {
-  //* constructor **/
-  AliHLTTPCClusterMCWeight(): fMCID(-1), fWeight(0)
-  {}
-
   AliHLTInt32_t  fMCID;     // MC track ID
   AliHLTFloat32_t fWeight; // weight of the track ID
 };  
