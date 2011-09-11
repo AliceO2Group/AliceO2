@@ -27,7 +27,7 @@
 #ifdef __CINT__
 typedef int cudaError_t
 #elif defined(R__WIN32)
-#include "pthread_mutex_win32_wrapper.h"
+#include "../cmodules/pthread_mutex_win32_wrapper.h"
 #else
 #include <pthread.h>
 #include <errno.h>
