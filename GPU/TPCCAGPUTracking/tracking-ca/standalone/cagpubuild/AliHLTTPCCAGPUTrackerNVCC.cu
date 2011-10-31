@@ -464,6 +464,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		HLTInfo("major = %d", fCudaDeviceProp.major);
 		HLTInfo("minor = %d", fCudaDeviceProp.minor);
 		HLTInfo("clockRate = %d", fCudaDeviceProp.clockRate);
+		HLTInfo("memoryClockRate = %d", fCudaDeviceProp.memoryClockRate);
 		HLTInfo("multiProcessorCount = %d", fCudaDeviceProp.multiProcessorCount);
 		HLTInfo("textureAlignment = %lld", (unsigned long long int) fCudaDeviceProp.textureAlignment);
 	}
