@@ -1930,6 +1930,10 @@ int AliHLTTPCCAGPUTrackerNVCC::ExitGPU()
 	for (int i = 0;i < fgkNSlices;i++) pthread_mutex_destroy(&((pthread_mutex_t*) fSliceGlobalMutexes)[i]);
 	free(fSliceGlobalMutexes);
 
+	cuCtxDestroy(*((CUcontext*) fCudaContext));
+
+	cudaDeviceReset();
+
 	HLTInfo("CUDA Uninitialized");
 	fCudaInitialized = 0;
 	return(0);
