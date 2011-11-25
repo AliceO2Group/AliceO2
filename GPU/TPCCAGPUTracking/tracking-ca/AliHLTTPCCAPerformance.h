@@ -41,8 +41,6 @@ class AliHLTTPCCAPerformance
     };
 
     AliHLTTPCCAPerformance();
-    AliHLTTPCCAPerformance( const AliHLTTPCCAPerformance& );
-    const AliHLTTPCCAPerformance &operator=( const AliHLTTPCCAPerformance& ) const;
 
     virtual ~AliHLTTPCCAPerformance();
 
@@ -232,6 +230,12 @@ class AliHLTTPCCAPerformance
     TH1D *fhLinkChiWrong[4]; // sqrt(chi^2) for wrong neighbours
 
     static void WriteDir2Current( TObject *obj );
+
+private:
+  /// copy constructor prohibited
+  AliHLTTPCCAPerformance( const AliHLTTPCCAPerformance& );
+  /// assignment operator prohibited
+  AliHLTTPCCAPerformance &operator=( const AliHLTTPCCAPerformance& ) const;
 
 };
 

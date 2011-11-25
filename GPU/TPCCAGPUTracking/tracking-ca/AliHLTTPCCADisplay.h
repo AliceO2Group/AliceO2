@@ -43,8 +43,6 @@ class AliHLTTPCCADisplay
     static AliHLTTPCCADisplay &Instance();
 
     AliHLTTPCCADisplay();
-    AliHLTTPCCADisplay( const AliHLTTPCCADisplay& );
-    const AliHLTTPCCADisplay& operator=( const AliHLTTPCCADisplay& ) const ;
 
     virtual ~AliHLTTPCCADisplay();
 
@@ -109,6 +107,12 @@ class AliHLTTPCCADisplay
     TLatex fLatex;   //!
 
     bool fDrawOnlyRef; // draw only clusters from ref. mc tracks
+
+private:
+  /// copy constructor prohibited
+  AliHLTTPCCADisplay( const AliHLTTPCCADisplay& );
+  /// assignment operator prohibited
+  AliHLTTPCCADisplay& operator=( const AliHLTTPCCADisplay& ) const ;
 
 };
 
