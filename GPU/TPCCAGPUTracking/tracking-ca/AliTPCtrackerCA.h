@@ -30,8 +30,6 @@ class AliTPCtrackerCA : public AliTracker
   public:
     AliTPCtrackerCA();
     AliTPCtrackerCA( const AliTPCParam *par );
-    AliTPCtrackerCA( const AliTPCtrackerCA & );
-    const AliTPCtrackerCA & operator=( const AliTPCtrackerCA& ) const;
     virtual ~AliTPCtrackerCA();
     //
     int RefitInward ( AliESDEvent *event );
@@ -57,6 +55,12 @@ class AliTPCtrackerCA : public AliTracker
     double fStatCPUTime; //* Total reconstruction time
     double fStatRealTime; //* Total reconstruction time
     int fStatNEvents; //* N of reconstructed events
+
+private:
+  /// copy constructor prohibited
+  AliTPCtrackerCA( const AliTPCtrackerCA & );
+  /// assignment operator prohibited
+  AliTPCtrackerCA & operator=( const AliTPCtrackerCA& ) const;
 
     ClassDef( AliTPCtrackerCA, 1 )
 };

@@ -49,6 +49,7 @@
 #include "AliTrackReference.h"
 #include "TStopwatch.h"
 #include "AliTPCReconstructor.h"
+#include <memory>
 
 //#include <fstream.h>
 
@@ -59,19 +60,6 @@ AliTPCtrackerCA::AliTPCtrackerCA()
 {
   //* default constructor
 }
-
-AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCtrackerCA & ):
-    AliTracker(), fkParam( 0 ), fClusters( 0 ), fClusterSliceRow( 0 ), fNClusters( 0 ), fDoHLTPerformance( 0 ), fDoHLTPerformanceClusters( 0 ), fStatCPUTime( 0 ), fStatRealTime( 0 ), fStatNEvents( 0 )
-{
-  //* dummy
-}
-
-const AliTPCtrackerCA & AliTPCtrackerCA::operator=( const AliTPCtrackerCA& ) const
-{
-  //* dummy
-  return *this;
-}
-
 
 AliTPCtrackerCA::~AliTPCtrackerCA()
 {
@@ -119,15 +107,16 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
     float sigmaZ = 0.228808;
 
     int nRows = fkParam->GetNRowLow() + fkParam->GetNRowUp();
-    float rowX[200];
+    int dimRowX=fkParam->GetNRowLow()+fkParam->GetNRowUp();
+    std::auto_ptr<float> rowX(new float[dimRowX]);
     for ( int irow = 0; irow < fkParam->GetNRowLow(); irow++ ) {
-      rowX[irow] = fkParam->GetPadRowRadiiLow( irow );
+      (rowX.get())[irow] = fkParam->GetPadRowRadiiLow( irow );
     }
     for ( int irow = 0; irow < fkParam->GetNRowUp(); irow++ ) {
-      rowX[fkParam->GetNRowLow()+irow] = fkParam->GetPadRowRadiiUp( irow );
+      (rowX.get())[fkParam->GetNRowLow()+irow] = fkParam->GetPadRowRadiiUp( irow );
     }
     AliHLTTPCCAParam param;
-    param.Initialize( iSlice, nRows, rowX, alpha, dalpha,
+    param.Initialize( iSlice, nRows, rowX.get(), alpha, dalpha,
                       inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, bz );
     param.SetHitPickUpFactor( 1. );
     param.SetMaxTrackMatchDRow( 5 );
