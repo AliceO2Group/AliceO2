@@ -26,3 +26,5 @@ CXXFILES					= code/AliHLTTPCCATracker.cxx \
 							  
 CUFILES						= cagpubuild/AliHLTTPCCAGPUTrackerNVCC.cu
 ASMFILES					= 
+
+ALLDEP						+= config_common.mak

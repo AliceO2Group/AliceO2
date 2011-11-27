@@ -34,3 +34,5 @@ CXXFILES					= standalone.cxx \
 ASMFILES					= 
 
 CONFIG_OPENGL				= 1
+
+ALLDEP						+= config_common.mak
