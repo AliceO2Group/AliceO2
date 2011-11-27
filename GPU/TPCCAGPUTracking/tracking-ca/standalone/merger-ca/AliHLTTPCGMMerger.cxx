@@ -330,6 +330,8 @@ void AliHLTTPCGMMerger::UnpackSlices()
 
   const AliHLTTPCCASliceOutTrack* firstGlobalTracks[fgkNSlices];
 
+  for( int i=0; i<fgkNSlices; i++) firstGlobalTracks[i] = 0;
+
 #ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
   const int kMaxTrackIdInSlice = AliHLTTPCCASliceOutTrack::MaxTrackId();
   int* TrackIds = (int*) malloc(kMaxTrackIdInSlice * fgkNSlices * sizeof(int));
@@ -369,10 +371,10 @@ void AliHLTTPCGMMerger::UnpackSlices()
 	  nTracksCurrent++;
       fSliceNTrackInfos[ iSlice ]++;
     }
-	firstGlobalTracks[iSlice] = sliceTr;
+    firstGlobalTracks[iSlice] = sliceTr;
    
     //std::cout<<"Unpack slice "<<iSlice<<": ntracks "<<slice.NTracks()<<"/"<<fSliceNTrackInfos[iSlice]<<std::endl;
-  } 
+    }
 #ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
   for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
   {

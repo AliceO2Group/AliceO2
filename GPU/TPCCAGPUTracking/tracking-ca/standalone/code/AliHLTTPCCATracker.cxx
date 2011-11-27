@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATracker.cxx 47379 2011-02-14 14:32:48Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATracker.cxx 51216 2011-08-22 09:44:39Z hristov $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -42,6 +42,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string.h>
+#include <cmath>
 #endif
 
 //#define DRAW1
