@@ -6,6 +6,8 @@ ARCHBITS					= 64
 
 HIDEECHO					= @
 
+CONFIG_OPENMP				= 1
+
 CC_x86_64-pc-linux-gnu		= GCC
 CC_i686-pc-cygwin			= ICC
 
