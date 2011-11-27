@@ -17,6 +17,7 @@
 
 #if !defined(HLTCA_GPUCODE)
 #include <iostream>
+#include <cmath>
 #endif //HLTCA_GPUCODE
 
 class AliHLTTPCCASliceTrack;
