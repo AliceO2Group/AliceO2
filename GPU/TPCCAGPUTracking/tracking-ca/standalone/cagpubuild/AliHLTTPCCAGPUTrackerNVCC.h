@@ -93,7 +93,8 @@ private:
 
 	int StartHelperThreads();
 	int StopHelperThreads();
-	void ResetHelperThreads();
+	void ResetHelperThreads(int helpers);
+	void ResetThisHelperThread(AliHLTTPCCAGPUTrackerNVCC::helperParam* par);
 
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 	int GetThread();
