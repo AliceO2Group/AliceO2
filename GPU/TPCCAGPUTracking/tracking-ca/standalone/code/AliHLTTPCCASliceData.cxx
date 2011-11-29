@@ -182,7 +182,7 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
 		}
 		else
 		{
-			if (fMemorySize + k > HLTCA_GPU_SLICE_DATA_MEMORY)
+			if (fMemorySize + 4 > HLTCA_GPU_SLICE_DATA_MEMORY)
 			{
 				return(0);
 			}
