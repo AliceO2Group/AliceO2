@@ -167,15 +167,26 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
     // HitWeights, ClusterDataIndex
     fNumberOfHitsPlusAlign * 2 * sizeof( int );
 
-  if ( 1 ){// fMemorySize < memorySize ) { // release the memory on CPU
+  if ( 1 )// fMemorySize < memorySize ) { // release the memory on CPU
+  {
 	fMemorySize = memorySize;
-	if (allocate && !fIsGpuSliceData)
+	if (allocate)
 	{
-		if (fMemory)
+		if (!fIsGpuSliceData)
 		{
-			delete[] fMemory;
+			if (fMemory)
+			{
+				delete[] fMemory;
+			}
+			fMemory = new char[fMemorySize + 4];// kVectorAlignment];
 		}
-	  fMemory = new char[fMemorySize + 4];// kVectorAlignment];
+		else
+		{
+			if (fMemorySize + k > HLTCA_GPU_SLICE_DATA_MEMORY)
+			{
+				return(0);
+			}
+		}
 	}
   }
 
@@ -209,7 +220,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   }
   const int memorySize = fNumberOfHits * sizeof( short_v::Type )
   */
-  SetPointers(&data, true);
+  if (SetPointers(&data, true) == 0) return;
 
   ////////////////////////////////////
   // 2. fill HitData and FirstHitInBin

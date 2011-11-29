@@ -245,8 +245,8 @@ ResetHelperThread:
 
 void AliHLTTPCCAGPUTrackerNVCC::ResetThisHelperThread(AliHLTTPCCAGPUTrackerNVCC::helperParam* par)
 {
+	if (par->fReset) HLTImportant("GPU Helper Thread %d reseting", par->fNum);
 	par->fReset = false;
-	HLTImportant("GPU Helper Thread %d reseting", par->fNum);
 	pthread_mutex_unlock(&((pthread_mutex_t*) par->fMutex)[1]);
 
 }
