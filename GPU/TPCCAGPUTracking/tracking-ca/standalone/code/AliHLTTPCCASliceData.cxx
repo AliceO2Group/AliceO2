@@ -169,7 +169,7 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
 
   if ( 1 )// fMemorySize < memorySize ) { // release the memory on CPU
   {
-	fMemorySize = memorySize;
+	fMemorySize = memorySize + 4;
 	if (allocate)
 	{
 		if (!fIsGpuSliceData)
@@ -178,11 +178,11 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
 			{
 				delete[] fMemory;
 			}
-			fMemory = new char[fMemorySize + 4];// kVectorAlignment];
+			fMemory = new char[fMemorySize];// kVectorAlignment];
 		}
 		else
 		{
-			if (fMemorySize + 4 > HLTCA_GPU_SLICE_DATA_MEMORY)
+			if (fMemorySize > HLTCA_GPU_SLICE_DATA_MEMORY)
 			{
 				return(0);
 			}
