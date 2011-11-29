@@ -21,10 +21,12 @@
 
 #include "AliHLTTPCGMMergedTrack.h"
 
+//#define BROKEN_EVENTS
+
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0;
+	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0;
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
@@ -60,6 +62,11 @@ int main(int argc, char** argv)
 		if ( !strcmp( argv[i], "-NOPROMPT" ) ) 
 		{
 			noprompt=1;        
+		}
+
+		if ( !strcmp( argv[i], "-CONTINUE" ) ) 
+		{
+			continueOnError=1;        
 		}
 
 		if ( !strcmp( argv[i], "-SAVE" ) ) 
@@ -242,13 +249,30 @@ int main(int argc, char** argv)
 		printf("Loading Event %d\n", i);
 		hlt.StartDataReading(0);
 		hlt.ReadEvent(in);
+		
+#ifdef BROKEN_EVENTS
+		int break_slices = rand() % 36;
+		for (int k = 0;k < 2;k++) if (rand() % 2) break_slices /= 2;
+		for (int j = 0;j < break_slices;j++)
+		{
+			int break_slice = rand() % 36;
+			int break_clusters = rand() % 500000;
+			for (int k = 0;k < 2;k++) if (rand() % 2) break_clusters /= 2;
+			//printf("Adding %d random clusters to slice %d\n", break_clusters, break_slice);
+			for (int k = 0;k < break_clusters;k++)
+			{
+				hlt.ReadCluster(rand() % 1000000000, break_slice, rand() % HLTCA_ROW_COUNT, (float) (rand() % 200) / 10, (float) (rand() % 200) / 10, (float) (rand() % 200) / 10, (float) (rand() % 200) / 10);
+			}
+		}
+#endif
+		
 		hlt.FinishDataReading();
 		in.close();
 		printf("Processing Event %d\n", i);
 		for (int j = 0;j < runs;j++)
 		{
 			if (runs > 1) printf("Run %d\n", j + 1);
-
+			
 			if (DebugLevel >= 4 && cleardebugout)
 			{
 				GPUOut.close();
@@ -262,7 +286,7 @@ int main(int argc, char** argv)
 				hlt.SetOutputControl((char*) outputmemory, outputcontrolmem);
 			}
 
-			if (hlt.ProcessEvent(forceSlice))
+			if (hlt.ProcessEvent(forceSlice) && !continueOnError)
 			{
 				printf("Error occured\n");
 				goto breakrun;

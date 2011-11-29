@@ -634,10 +634,10 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
 			   "Total %d hits to read for slice %d", nClustersTotal, slice );
 
-	  if (nClustersTotal > 150000)
+	  if (nClustersTotal > 500000)
 	  {
 		  HLTWarning( "Too many clusters in tracker input: Slice %d, Number of Clusters %d, some clusters are droped", slice, nClustersTotal );
-		  nClustersTotal = 150000;
+		  nClustersTotal = 500000;
 	  }
 
 
