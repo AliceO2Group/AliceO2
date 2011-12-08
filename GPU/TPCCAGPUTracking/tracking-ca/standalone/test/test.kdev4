@@ -1,0 +1,4 @@
+[Project]
+Name=test
+Manager=KDevCMakeManager
+VersionControl=kdevsubversion
