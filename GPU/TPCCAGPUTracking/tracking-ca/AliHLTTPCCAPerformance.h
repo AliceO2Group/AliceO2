@@ -235,7 +235,7 @@ private:
   /// copy constructor prohibited
   AliHLTTPCCAPerformance( const AliHLTTPCCAPerformance& );
   /// assignment operator prohibited
-  AliHLTTPCCAPerformance &operator=( const AliHLTTPCCAPerformance& ) const;
+  AliHLTTPCCAPerformance &operator=( const AliHLTTPCCAPerformance& );
 
 };
 

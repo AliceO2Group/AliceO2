@@ -112,7 +112,7 @@ private:
   /// copy constructor prohibited
   AliHLTTPCCADisplay( const AliHLTTPCCADisplay& );
   /// assignment operator prohibited
-  AliHLTTPCCADisplay& operator=( const AliHLTTPCCADisplay& ) const ;
+  AliHLTTPCCADisplay& operator=( const AliHLTTPCCADisplay& );
 
 };
 

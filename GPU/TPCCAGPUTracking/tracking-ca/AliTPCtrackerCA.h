@@ -60,7 +60,7 @@ private:
   /// copy constructor prohibited
   AliTPCtrackerCA( const AliTPCtrackerCA & );
   /// assignment operator prohibited
-  AliTPCtrackerCA & operator=( const AliTPCtrackerCA& ) const;
+  AliTPCtrackerCA & operator=( const AliTPCtrackerCA& );
 
     ClassDef( AliTPCtrackerCA, 1 )
 };
