@@ -64,8 +64,8 @@ class AliHLTTPCCASliceOutput
     : fNTracks( 0 ), fNLocalTracks( 0 ), fNTrackClusters( 0 ), fMemorySize( 0 ){}
   
   ~AliHLTTPCCASliceOutput() {}
-  const AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) const { return *this; }
   AliHLTTPCCASliceOutput( const AliHLTTPCCASliceOutput& );
+  AliHLTTPCCASliceOutput& operator=( const AliHLTTPCCASliceOutput& ) { return *this; }
 
   GPUh() void SetMemorySize(size_t val) { fMemorySize = val; }
 
