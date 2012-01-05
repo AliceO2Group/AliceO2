@@ -1,8 +1,8 @@
+// $Id$
 #ifndef ALIHLTTPCCACOMPRESSEDINPUTDATA_H
 #define ALIHLTTPCCACOMPRESSEDINPUTDATA_H
 
-#include "AliHLTTPCRootTypes.h"
-
+#include "Rtypes.h"
 
 /**
  * @struct AliHLTTPCCACompressedCluster
