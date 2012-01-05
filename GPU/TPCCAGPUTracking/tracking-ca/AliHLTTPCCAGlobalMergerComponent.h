@@ -1,3 +1,5 @@
+//-*- Mode: C++ -*-
+// $Id$
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -9,11 +11,11 @@
 #ifndef ALIHLTTPCCAGLOBALMERGERCOMPONENT_H
 #define ALIHLTTPCCAGLOBALMERGERCOMPONENT_H
 
-/** @file   AliHLTTPCCAGlobalMergerComponent.h
-    @author Matthias Kretz
-    @date
-    @brief  HLT TPC CA global merger component.
-*/
+/// @file   AliHLTTPCCAGlobalMergerComponent.h
+/// @author Matthias Kretz
+/// @date
+/// @brief  HLT TPC CA global merger component.
+///
 
 #include "AliHLTProcessor.h"
 #include "AliHLTComponentBenchmark.h"
