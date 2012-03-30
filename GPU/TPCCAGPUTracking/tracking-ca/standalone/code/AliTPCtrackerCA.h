@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// $Id: AliTPCtrackerCA.h 36185 2009-11-02 07:19:00Z sgorbuno $
+// $Id: AliTPCtrackerCA.h 53519 2011-12-11 11:47:40Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -30,8 +30,6 @@ class AliTPCtrackerCA : public AliTracker
   public:
     AliTPCtrackerCA();
     AliTPCtrackerCA( const AliTPCParam *par );
-    AliTPCtrackerCA( const AliTPCtrackerCA & );
-    const AliTPCtrackerCA & operator=( const AliTPCtrackerCA& ) const;
     virtual ~AliTPCtrackerCA();
     //
     int RefitInward ( AliESDEvent *event );
@@ -57,6 +55,12 @@ class AliTPCtrackerCA : public AliTracker
     double fStatCPUTime; //* Total reconstruction time
     double fStatRealTime; //* Total reconstruction time
     int fStatNEvents; //* N of reconstructed events
+
+private:
+  /// copy constructor prohibited
+  AliTPCtrackerCA( const AliTPCtrackerCA & );
+  /// assignment operator prohibited
+  AliTPCtrackerCA & operator=( const AliTPCtrackerCA& );
 
     ClassDef( AliTPCtrackerCA, 1 )
 };

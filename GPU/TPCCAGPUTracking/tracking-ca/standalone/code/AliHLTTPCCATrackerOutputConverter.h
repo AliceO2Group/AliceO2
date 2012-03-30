@@ -1,3 +1,5 @@
+//-*- Mode: C++ -*-
+// $Id: AliHLTTPCCATrackerOutputConverter.h 53812 2012-01-05 08:16:00Z richterm $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -9,11 +11,11 @@
 #ifndef ALIHLTTPCCATRACKEROUTPUTCONVERTER_H
 #define ALIHLTTPCCATRACKEROUTPUTCONVERTER_H
 
-/** @file   AliHLTTPCCATrackerOutputConverter.h
-    @author Matthias Kretz
-    @date
-    @brief  Converter of the AliHLTTPCCATracker output
-*/
+/// @file   AliHLTTPCCATrackerOutputConverter.h
+/// @author Sergey Gorbunov
+/// @date
+/// @brief  Converter of CA tracker output
+///
 
 #include "AliHLTProcessor.h"
 #include "AliHLTComponentBenchmark.h"

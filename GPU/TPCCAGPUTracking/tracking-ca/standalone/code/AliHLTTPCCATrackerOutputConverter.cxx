@@ -1,3 +1,4 @@
+// $Id: AliHLTTPCCATrackerOutputConverter.cxx 53812 2012-01-05 08:16:00Z richterm $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -17,27 +18,23 @@
 //                                                                          *
 //***************************************************************************
 
+/// @file   AliHLTTPCCATrackerOutputConverter.cxx
+/// @author Sergey Gorbunov
+/// @date
+/// @brief  Converter of CA tracker output
+///
 
-/** @file   AliHLTTPCCATrackerOutputConverter.cxx
-    @author Matthias Kretz
-    @date
-    @brief  HLT TPC CA global merger component.
-*/
-
-#if __GNUC__>= 3
 using namespace std;
-#endif
 
 #include "AliHLTTPCCATrackerOutputConverter.h"
 #include "AliHLTTPCTransform.h"
-#include "AliHLTTPCTrack.h"
-#include "AliHLTTPCTrackArray.h"
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCCATrackConvertor.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAParam.h"
 
+#include "AliExternalTrackParam.h"
 #include "AliCDBEntry.h"
 #include "AliCDBManager.h"
 #include "TObjString.h"

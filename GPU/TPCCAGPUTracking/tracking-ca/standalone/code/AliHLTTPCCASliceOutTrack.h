@@ -59,8 +59,11 @@ class AliHLTTPCCASliceOutTrack
     AliHLTTPCCABaseTrackParam fParam; //* fitted track parameters at its innermost cluster
     int fNClusters;             //* number of track clusters
 	int fLocalTrackId;			//See AliHLTPCCATrack.h
+#ifdef HLTCA_STANDALONE
+    AliHLTTPCCASliceOutCluster fClusters[1]; //* track clusters
+#else
     AliHLTTPCCASliceOutCluster fClusters[0]; //* track clusters
-
+#endif
 	static const int fgkMaxTrackIdInSlice = 4096;
 };
 

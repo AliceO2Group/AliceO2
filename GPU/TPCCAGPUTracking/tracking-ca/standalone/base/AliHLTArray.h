@@ -45,6 +45,10 @@
 #endif
 
 #ifdef USE_MM_MALLOC
+#undef USE_MM_MALLOC
+#endif
+
+#ifdef USE_MM_MALLOC
 #include <mm_malloc.h>
 #else
 #include <cstdlib>

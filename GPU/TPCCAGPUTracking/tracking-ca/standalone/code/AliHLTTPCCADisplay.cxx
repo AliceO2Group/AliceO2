@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCADisplay.cxx 48369 2011-03-12 10:55:31Z sgorbuno $
+// $Id: AliHLTTPCCADisplay.cxx 53176 2011-11-25 10:03:06Z richterm $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -89,22 +89,6 @@ AliHLTTPCCADisplay::AliHLTTPCCADisplay() : fYX( 0 ), fZX( 0 ), fAsk( 1 ), fSlice
 {
   fPerf = &( AliHLTTPCCAPerformance::Instance() );
   // constructor
-}
-
-
-AliHLTTPCCADisplay::AliHLTTPCCADisplay( const AliHLTTPCCADisplay& )
-    : fYX( 0 ), fZX( 0 ), fAsk( 1 ), fSliceView( 1 ), fSlice( 0 ), fPerf( 0 ),
-    fCos( 1 ), fSin( 0 ), fZMin( -250 ), fZMax( 250 ), fYMin( -250 ), fYMax( 250 ), fSliceCos( 1 ), fSliceSin( 0 ),
-    fRInnerMin( 83.65 ), fRInnerMax( 133.3 ), fROuterMin( 133.5 ), fROuterMax( 247.7 ),
-    fTPCZMin( -250. ), fTPCZMax( 250 ), fArc(), fLine(), fPLine(), fMarker(), fBox(), fCrown(), fLatex(), fDrawOnlyRef( 0 )
-{
-  // dummy
-}
-
-const AliHLTTPCCADisplay& AliHLTTPCCADisplay::operator=( const AliHLTTPCCADisplay& ) const
-{
-  // dummy
-  return *this;
 }
 
 AliHLTTPCCADisplay::~AliHLTTPCCADisplay()
