@@ -1,10 +1,4 @@
-/*
- *		This Code Was Created By Jeff Molofee 2000
- *		A HUGE Thanks To Fredric Echols For Cleaning Up
- *		And Optimizing This Code, Making It More Flexible!
- *		If You've Found This Code Useful, Please Let Me Know.
- *		Visit My Site At nehe.gamedev.net
- */
+//#define SEPERATE_GLOBAL_TRACKS
 
 #include "AliHLTTPCCADef.h"
 
@@ -99,6 +93,9 @@ int currentEventNr = -1;
 int glDLrecent = 0;
 int updateDLList = 0;
 
+float pointSize = 2.0;
+float lineWidth = 1.5;
+
 volatile int resetScene = 0;
 
 inline void SetColorClusters() {glColor3f(0, 0.7, 1.0);}
@@ -106,8 +103,13 @@ inline void SetColorInitLinks() {glColor3f(0.5, 0.5, 0.5);}
 inline void SetColorLinks() {glColor3f(1, 0.3, 0.3);}
 inline void SetColorSeeds() {glColor3f(1.0, 0.4, 0);}
 inline void SetColorTracklets() {glColor3f(1, 1, 1);}
-inline void SetColorTracks() {glColor3f(0.6, 1, 0);}
-inline void SetColorGlobalTracks() {glColor3f(0.58, 0.1, 0.6);}
+#ifdef SEPERATE_GLOBAL_TRACKSa
+inline void SetColorTracks() {glColor3f(1., 1., 0.15);}
+inline void SetColorGlobalTracks() {glColor3f(1., 0.15, 0.15);}
+#else
+inline void SetColorTracks() {glColor3f(0.4, 1, 0);}
+inline void SetColorGlobalTracks() {glColor3f(0.8, 0.1, 0.85);}
+#endif
 inline void SetColorFinal() {glColor3f(0, 0.8, 0.2);}
 inline void SetColorGrid() {glColor3f(0.7, 0.7, 0.0);}
 
@@ -422,8 +424,6 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	static int framesDone = 0;
 	static unsigned long long int startTime, displayFpsTime, timeFreq;
 
-	static float pointSize = 2.0;
-
 	static GLuint glDLlines[fgkNSlices][6];
 	static GLuint glDLlinesFinal;
 	static GLuint glDLpoints[fgkNSlices][8];
@@ -524,10 +524,11 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 
 	//Open GL Default Values
 	glEnable(GL_POINT_SMOOTH);
+	glEnable(GL_LINE_SMOOTH);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glPointSize(pointSize);
-	glLineWidth(1.5);
+	glLineWidth(lineWidth);
 
 	//Extract global cluster information
 	if (updateDLList || displayEventNr != currentEventNr)
@@ -665,7 +666,9 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 		}
 		
 		glNewList(glDLlinesFinal, GL_COMPILE);
+#ifndef SEPERATE_GLOBAL_TRACKS
 		DrawFinal(hlt);
+#endif
 		glEndList();
 
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
@@ -863,6 +866,79 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == '7') drawGlobalTracks ^= 1;
 	else if (wParam == '8') drawFinal ^= 1;
 
+	else if (wParam == 'T')
+	{
+		printf("Taking Screenshot\n");
+
+#define SCALE_X 2
+#define SCALE_Y SCALE_X
+
+		float tmpPointSize = pointSize;
+		float tmpLineWidth = lineWidth;
+		pointSize *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
+		lineWidth *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
+
+		GLint view[4], viewold[4];
+		glGetIntegerv(GL_VIEWPORT, viewold);
+		glGetIntegerv(GL_VIEWPORT, view);
+		view[2] *= SCALE_X;
+		view[3] *= SCALE_Y;
+		char* pixels = (char*) malloc(4 * view[2] * view[3]);
+		memset(pixels, 0, 4 * view[2] * view[3]);
+		char* pixels2 = (char*) malloc(4 * view[2] * view[3]);
+		for (int i = 0;i < SCALE_X;i++)
+		{
+			for (int j = 0;j < SCALE_Y;j++)
+			{
+				glViewport(-i * viewold[2], -j * viewold[3], view[2], view[3]);
+
+				DrawGLScene();
+				glPixelStorei(GL_PACK_ALIGNMENT, 1);
+				glReadBuffer(GL_BACK);
+				glReadPixels(0, 0, view[2], view[3], GL_RGBA, GL_UNSIGNED_BYTE, pixels2);
+				for (int k = 0;k < viewold[2];k++)
+				{
+					for (int l = 0;l < viewold[3];l++)
+					{
+						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4] = pixels2[(l * view[2] + k) * 4 + 2];
+						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 1] = pixels2[(l * view[2] + k) * 4 + 1];
+						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 2] = pixels2[(l * view[2] + k) * 4];
+						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 3] = 0;
+					}
+				}
+			}
+		}
+		free(pixels2);
+
+		FILE* fp = fopen("screenshot.bmp", "w+b");
+		int nEmptySync = 0, fEmpty;
+
+		BITMAPFILEHEADER bmpFH;
+		BITMAPINFOHEADER bmpIH;
+		ZeroMemory(&bmpFH, sizeof(bmpFH));
+		ZeroMemory(&bmpIH, sizeof(bmpIH));
+
+		bmpFH.bfType = 19778; //"BM"
+		bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + 3 * view[2] * view[3];
+		bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
+
+		bmpIH.biSize = sizeof(bmpIH);
+		bmpIH.biWidth = view[2];
+		bmpIH.biHeight = view[3];
+		bmpIH.biPlanes = 1;
+		bmpIH.biBitCount = 32;
+
+		fwrite(&bmpFH, 1, sizeof(bmpFH), fp);
+		fwrite(&bmpIH, 1, sizeof(bmpIH), fp); 	
+		fwrite(pixels, view[2] * view[3], 4, fp);
+		fclose(fp);
+		free(pixels);
+		glViewport(0, 0, viewold[2], viewold[3]);
+		pointSize = tmpPointSize;
+		lineWidth = tmpLineWidth;
+		DrawGLScene();
+	}
+
 	else if (wParam == 'O')
 	{
 		GLfloat tmp[16];
@@ -870,7 +946,8 @@ void HandleKeyRelease(int wParam)
 		FILE* ftmp = fopen("glpos.tmp", "w+b");
 		if (ftmp)
 		{
-			if (fwrite(&tmp[0], sizeof(tmp[0]), 16, ftmp) != 16 * sizeof(tmp[0])) printf("Error writing position to file\n");
+			int retval = fwrite(&tmp[0], sizeof(GLfloat), 16, ftmp);
+			if (retval != 16) printf("Error writing position to file\n");
 			else printf("Position stored to file\n");
 			fclose(ftmp);
 		}
@@ -885,7 +962,8 @@ void HandleKeyRelease(int wParam)
 		FILE* ftmp = fopen("glpos.tmp", "rb");
 		if (ftmp)
 		{
-			if (fread(&tmp[0], sizeof(tmp[0]), 16, ftmp) == 16 * sizeof(tmp[0]))
+			int retval = fread(&tmp[0], sizeof(GLfloat), 16, ftmp);
+			if (retval == 16)
 			{
 				glLoadMatrixf(tmp);
 				glGetFloatv(GL_MODELVIEW_MATRIX, currentMatrice);
@@ -1167,7 +1245,7 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 		{
 			HandleKeyRelease(wParam);
 
-			//printf("Key: %d\n", wParam);
+			printf("Key: %d\n", wParam);
 			return 0;								// Jump Back
 		}
 

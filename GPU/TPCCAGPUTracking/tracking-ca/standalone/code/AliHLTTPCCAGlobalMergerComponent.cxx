@@ -1,3 +1,4 @@
+// $Id: AliHLTTPCCAGlobalMergerComponent.cxx 53812 2012-01-05 08:16:00Z richterm $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -18,15 +19,13 @@
 //***************************************************************************
 
 
-/** @file   AliHLTTPCCAGlobalMergerComponent.cxx
-    @author Matthias Kretz
-    @date
-    @brief  HLT TPC CA global merger component.
-*/
+/// @file   AliHLTTPCCAGlobalMergerComponent.cxx
+/// @author Matthias Kretz
+/// @date
+/// @brief  HLT TPC CA global merger component.
+///
 
-#if __GNUC__>= 3
 using namespace std;
-#endif
 
 #include "AliHLTTPCCAGlobalMergerComponent.h"
 #include "AliHLTTPCCASliceOutput.h"
@@ -41,11 +40,8 @@ using namespace std;
 
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCTransform.h"
-#include "AliHLTTPCTrackSegmentData.h"
-#include "AliHLTTPCTrack.h"
-#include "AliHLTTPCTrackArray.h"
-#include "AliHLTTPCTrackletDataFormat.h"
 
+#include "AliExternalTrackParam.h"
 #include "AliCDBEntry.h"
 #include "AliCDBManager.h"
 #include "TObjString.h"

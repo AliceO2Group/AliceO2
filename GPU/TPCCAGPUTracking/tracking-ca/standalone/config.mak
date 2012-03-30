@@ -22,7 +22,6 @@ CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCATrackletSelector.cxx \
 								code/AliHLTTPCCAHitArea.cxx \
 								code/AliHLTTPCCAMCPoint.cxx \
-								code/AliHLTTPCCAMerger.cxx \
 								code/AliHLTTPCCAClusterData.cxx \
 								code/AliHLTTPCCARow.cxx \
 								code/AliHLTTPCCAGPUTracker.cxx \
@@ -31,6 +30,10 @@ CXXFILES					= standalone.cxx \
 								merger-ca/AliHLTTPCGMTrackParam.cxx \
 								standalone/AliHLTLogging.cxx \
 								standalone/AliHLTTPCTransform.cxx
+
+
+#								code/AliHLTTPCCAMerger.cxx \
+
 ASMFILES					= 
 
 CONFIG_OPENGL				= 1

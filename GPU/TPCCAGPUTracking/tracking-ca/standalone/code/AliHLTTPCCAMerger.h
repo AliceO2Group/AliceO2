@@ -94,7 +94,7 @@ class AliHLTTPCCAMerger
   private:
 
     AliHLTTPCCAMerger( const AliHLTTPCCAMerger& );
-    const AliHLTTPCCAMerger &operator=( const AliHLTTPCCAMerger& ) const;
+  AliHLTTPCCAMerger &operator=( const AliHLTTPCCAMerger& );
 
     class AliHLTTPCCASliceTrackInfo;
     class AliHLTTPCCABorderTrack;

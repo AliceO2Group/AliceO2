@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCADisplay.h 36185 2009-11-02 07:19:00Z sgorbuno $
+// @(#) $Id: AliHLTTPCCADisplay.h 53523 2011-12-11 11:53:14Z sgorbuno $
 //  *************************************************************************
 //  This file is property of and copyright by the ALICE HLT Project         *
 //  ALICE Experiment at CERN, All rights reserved.                          *
@@ -43,8 +43,6 @@ class AliHLTTPCCADisplay
     static AliHLTTPCCADisplay &Instance();
 
     AliHLTTPCCADisplay();
-    AliHLTTPCCADisplay( const AliHLTTPCCADisplay& );
-    const AliHLTTPCCADisplay& operator=( const AliHLTTPCCADisplay& ) const ;
 
     virtual ~AliHLTTPCCADisplay();
 
@@ -109,6 +107,12 @@ class AliHLTTPCCADisplay
     TLatex fLatex;   //!
 
     bool fDrawOnlyRef; // draw only clusters from ref. mc tracks
+
+private:
+  /// copy constructor prohibited
+  AliHLTTPCCADisplay( const AliHLTTPCCADisplay& );
+  /// assignment operator prohibited
+  AliHLTTPCCADisplay& operator=( const AliHLTTPCCADisplay& );
 
 };
 

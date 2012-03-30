@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// $Id: AliHLTTPCCAPerformance.h 36185 2009-11-02 07:19:00Z sgorbuno $
+// $Id: AliHLTTPCCAPerformance.h 53521 2011-12-11 11:50:56Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -41,8 +41,6 @@ class AliHLTTPCCAPerformance
     };
 
     AliHLTTPCCAPerformance();
-    AliHLTTPCCAPerformance( const AliHLTTPCCAPerformance& );
-    const AliHLTTPCCAPerformance &operator=( const AliHLTTPCCAPerformance& ) const;
 
     virtual ~AliHLTTPCCAPerformance();
 
@@ -232,6 +230,12 @@ class AliHLTTPCCAPerformance
     TH1D *fhLinkChiWrong[4]; // sqrt(chi^2) for wrong neighbours
 
     static void WriteDir2Current( TObject *obj );
+
+private:
+  /// copy constructor prohibited
+  AliHLTTPCCAPerformance( const AliHLTTPCCAPerformance& );
+  /// assignment operator prohibited
+  AliHLTTPCCAPerformance &operator=( const AliHLTTPCCAPerformance& );
 
 };
 

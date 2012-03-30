@@ -259,8 +259,8 @@ void AliHLTTPCCAMerger::UnpackSlices()
 
       // refit the track
 
-      int hits[1000];
       int nHits = nCluNew;
+      int hits[nHits];
       for ( int i = 0; i < nHits; i++ ) hits[i] = nClustersCurrent + i;
 
       AliHLTTPCCATrackParam startPoint;
