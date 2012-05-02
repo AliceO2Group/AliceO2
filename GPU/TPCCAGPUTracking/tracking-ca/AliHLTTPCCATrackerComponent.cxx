@@ -631,8 +631,15 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
 			   "Total %d hits to read for slice %d", nClustersTotal, slice );
 
+	  if (nClustersTotal > 500000)
+	  {
+		  HLTWarning( "Too many clusters in tracker input: Slice %d, Number of Clusters %d, some clusters are droped", slice, nClustersTotal );
+		  nClustersTotal = 500000;
+	  }
+
 
 	  clusterData[islice].StartReading( slice, nClustersTotal );
+	  int nSliceClust = 0;
 
 	  for ( std::vector<unsigned long>::iterator pIter = patchIndices.begin(); pIter != patchIndices.end(); pIter++ ) {
 		ndx = *pIter;
@@ -650,7 +657,11 @@ int AliHLTTPCCATrackerComponent::DoEvent
 		      HLTError( "Wrong TPC cluster with row number %d received", c->fPadRow );
 		      continue;
 		    }
-		    clusterData[islice].ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
+			if (nSliceClust < nClustersTotal)
+			{
+		      clusterData[islice].ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
+			  nSliceClust++;
+			}
 		  }	      
 		} else 	       
 		if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
@@ -683,8 +694,9 @@ int AliHLTTPCCATrackerComponent::DoEvent
 		      
 		      UInt_t cluId = AliHLTTPCSpacePointData::GetID( jslice, jpatch, nPatchClust );
 		      //cout<<"clu "<<i<<": "<<x<<" "<<y<<" "<<z<<" "<<cluId<<endl;
-		      if ( CAMath::Abs( z ) <= fClusterZCut ){
+		      if ( CAMath::Abs( z ) <= fClusterZCut && nSliceClust < nClustersTotal){
 			clusterData[islice].ReadCluster( cluId, jrow, x, y, z, 0 );
+			nSliceClust++;
 		      }
 		      nPatchClust++;		  
 		    }
@@ -726,7 +738,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   for (int islice = 0;islice < slicecount;islice++)
   {
     if( outputControl.fEndOfSpace ){
-      HLTWarning( "Output buffer size exceed, tracks are not stored" );
+      HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), tracks are not stored", maxBufferSize, mySize );
       ret = -ENOSPC;
       error = 1;
       break;     
@@ -744,7 +756,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       }
     else
       {
-	HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), tracks are not stored", maxBufferSize, mySize );
+	HLTWarning( "Error during Tracking, no tracks stored" );
 	mySize = 0;
 	ret = -ENOSPC;
 	ntracks = 0;
