@@ -283,6 +283,7 @@ AliHLTTPCCATrackerFramework::~AliHLTTPCCATrackerFramework()
 	{
 		if (fGPUTracker)
 		{
+			ExitGPU();
 #ifdef R__WIN32
 			FARPROC destroyFunc = GetProcAddress(hGPULib, "AliHLTTPCCAGPUTrackerNVCCDestroy");
 #else
