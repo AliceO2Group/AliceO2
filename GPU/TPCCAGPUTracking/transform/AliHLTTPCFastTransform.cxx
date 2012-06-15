@@ -191,7 +191,7 @@ Int_t AliHLTTPCFastTransform::GetSize() const
   for( Int_t i=0; i<72; i++ )
     for( Int_t j=0; j<100; j++ ) if( fRows[i][j] ){
 	s+= sizeof(AliHLTTPCFastTransform::AliRowTransform);
-	for( Int_t k=0; k<3; k++) fRows[i][j]->fSpline[i].GetMapSize();
+	for( Int_t k=0; k<3; k++) fRows[i][j]->fSpline[k].GetMapSize();
       }
   return s;
 }
