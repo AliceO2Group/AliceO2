@@ -22,6 +22,7 @@
 
 AliHLTTPCCAGPUTracker::AliHLTTPCCAGPUTracker() {}
 AliHLTTPCCAGPUTracker::~AliHLTTPCCAGPUTracker() {}
+int AliHLTTPCCAGPUTracker::IsInitialized() {return(0);}
 int AliHLTTPCCAGPUTracker::InitGPU(int /*sliceCount*/, int /*forceDeviceID*/) { return(1); }
 void AliHLTTPCCAGPUTracker::SetDebugLevel(int /*dwLevel*/, std::ostream* /*NewOutFile*/) {}
 int AliHLTTPCCAGPUTracker::SetGPUTrackerOption(char* /*OptionName*/, int /*OptionValue*/) {return(1);}

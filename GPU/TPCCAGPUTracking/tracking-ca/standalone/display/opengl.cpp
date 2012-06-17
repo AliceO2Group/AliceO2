@@ -865,7 +865,7 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == '6') drawTracks ^= 1;
 	else if (wParam == '7') drawGlobalTracks ^= 1;
 	else if (wParam == '8') drawFinal ^= 1;
-
+#ifdef _WIN32
 	else if (wParam == 'T')
 	{
 		printf("Taking Screenshot\n");
@@ -938,7 +938,7 @@ void HandleKeyRelease(int wParam)
 		lineWidth = tmpLineWidth;
 		DrawGLScene();
 	}
-
+#endif
 	else if (wParam == 'O')
 	{
 		GLfloat tmp[16];

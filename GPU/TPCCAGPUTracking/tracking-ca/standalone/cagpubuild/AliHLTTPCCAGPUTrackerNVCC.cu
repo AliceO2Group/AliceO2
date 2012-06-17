@@ -2150,6 +2150,11 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 #endif
 }
 
+int AliHLTTPCCAGPUTrackerNVCC::IsInitialized()
+{
+	return(fCudaInitialized);
+}
+
 AliHLTTPCCAGPUTracker* AliHLTTPCCAGPUTrackerNVCCCreate()
 {
 	return new AliHLTTPCCAGPUTrackerNVCC;
