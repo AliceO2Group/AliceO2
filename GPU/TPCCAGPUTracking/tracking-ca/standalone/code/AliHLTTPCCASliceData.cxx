@@ -67,40 +67,6 @@ inline void AliHLTTPCCASliceData::CreateGrid( AliHLTTPCCARow *row, const AliHLTT
                      CAMath::Max( ( zMax - zMin ) * norm, 2.f ) );
 }
 
-inline void AliHLTTPCCASliceData::PackHitData( AliHLTTPCCARow* const row, const AliHLTArray<AliHLTTPCCAHit> &binSortedHits )
-{
-  // hit data packing
-
-  static const float shortPackingConstant = 1.f / 65535.f;
-  const float y0 = row->fGrid.YMin();
-  const float z0 = row->fGrid.ZMin();
-  const float stepY = ( row->fGrid.YMax() - y0 ) * shortPackingConstant;
-  const float stepZ = ( row->fGrid.ZMax() - z0 ) * shortPackingConstant;
-  const float stepYi = 1.f / stepY;
-  const float stepZi = 1.f / stepZ;
-
-  row->fHy0 = y0;
-  row->fHz0 = z0;
-  row->fHstepY = stepY;
-  row->fHstepZ = stepZ;
-  row->fHstepYi = stepYi;
-  row->fHstepZi = stepZi;
-
-  for ( int hitIndex = 0; hitIndex < row->fNHits; ++hitIndex ) {
-    // bin sorted index!
-    const int globalHitIndex = row->fHitNumberOffset + hitIndex;
-    const AliHLTTPCCAHit &hh = binSortedHits[globalHitIndex];
-    const float xx = ( ( hh.Y() - y0 ) * stepYi ) + .5 ;
-    const float yy = ( ( hh.Z() - z0 ) * stepZi ) + .5 ;
-    if ( xx < 0 || yy < 0 || xx >= 65536  || yy >= 65536 ) {
-      std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " " << std::endl;
-    }
-    // HitData is bin sorted
-    fHitData[row->fHitNumberOffset + hitIndex].x = (unsigned short) xx;
-    fHitData[row->fHitNumberOffset + hitIndex].y = (unsigned short) yy;
-  }
-}
-
 void AliHLTTPCCASliceData::Clear()
 {
   fNumberOfHits = 0;
@@ -258,8 +224,6 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   }
 
 
-  AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits( fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) * numberOfRows + 1 );
-
   int gridContentOffset = 0;
   int hitOffset = 0;
 
@@ -309,20 +273,44 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
       n += filled[bin];
     }
 
-    for ( int hitIndex = 0; hitIndex < row.fNHits; ++hitIndex ) {
-      const unsigned short bin = bins[hitIndex];
-      --filled[bin];
-      const unsigned short ind = c[bin] + filled[bin]; // generate an index for this hit that is >= c[bin] and < c[bin + 1]
-      const int globalBinsortedIndex = row.fHitNumberOffset + ind;
-      const int globalHitIndex = data.RowOffset( rowIndex ) + hitIndex;
+	{
+		static const float shortPackingConstant = 1.f / 65535.f;
+		const float y0 = row.fGrid.YMin();
+		const float z0 = row.fGrid.ZMin();
+		const float stepY = ( row.fGrid.YMax() - y0 ) * shortPackingConstant;
+		const float stepZ = ( row.fGrid.ZMax() - z0 ) * shortPackingConstant;
+		const float stepYi = 1.f / stepY;
+		const float stepZi = 1.f / stepZ;
 
-      // allows to find the global hit index / coordinates from a global bin sorted hit index
-      fClusterDataIndex[globalBinsortedIndex] = globalHitIndex;
-      binSortedHits[globalBinsortedIndex].SetY( data.Y( globalHitIndex ) );
-      binSortedHits[globalBinsortedIndex].SetZ( data.Z( globalHitIndex ) );
-    }
+		row.fHy0 = y0;
+		row.fHz0 = z0;
+		row.fHstepY = stepY;
+		row.fHstepZ = stepZ;
+		row.fHstepYi = stepYi;
+		row.fHstepZi = stepZi;
 
-    PackHitData( &row, binSortedHits );
+		for ( int hitIndex = 0; hitIndex < row.fNHits; ++hitIndex ) {
+		  // bin sorted index!
+		  // generate an index for this hit that is >= c[bin] and < c[bin + 1]
+          const unsigned short bin = bins[hitIndex];
+          --filled[bin];
+          const unsigned short ind = c[bin] + filled[bin];
+		  const int globalBinsortedIndex = row.fHitNumberOffset + ind;
+		  const int globalHitIndex = data.RowOffset(rowIndex) + hitIndex;
+
+		  // allows to find the global hit index / coordinates from a global bin sorted hit index
+		  fClusterDataIndex[globalBinsortedIndex] = globalHitIndex;
+
+		  const float xx = ( ( data.Y( globalHitIndex ) - y0 ) * stepYi ) + .5 ;
+		  const float yy = ( ( data.Z( globalHitIndex ) - z0 ) * stepZi ) + .5 ;
+		  if ( xx < 0 || yy < 0 || xx >= 65536    || yy >= 65536 ) {
+			std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " " << std::endl;
+		  }
+		  // HitData is bin sorted
+		  fHitData[globalBinsortedIndex].x = (unsigned short) xx;
+		  fHitData[globalBinsortedIndex].y = (unsigned short) yy;
+		}
+	}
 
     for ( int i = 0; i < numberOfBins; ++i ) {
       fFirstHitInBin[row.fFirstHitInBinOffset + i] = c[i]; // global bin-sorted hit index
