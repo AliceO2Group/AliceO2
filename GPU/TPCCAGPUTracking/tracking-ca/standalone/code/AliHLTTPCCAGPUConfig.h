@@ -27,7 +27,9 @@
 #define HLTCA_GPU_WARP_SIZE 32
 #define HLTCA_GPU_REGS 64
 
-//#define HLTCA_GPU_MERGER								//Use GPU Merger
+#ifdef HLTCA_STANDALONE
+#define HLTCA_GPU_MERGER								//Use GPU Merger
+#endif
 
 //Detector Parameters
 #define HLTCA_ROW_COUNT 159

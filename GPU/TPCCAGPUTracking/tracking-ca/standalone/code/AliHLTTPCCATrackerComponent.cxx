@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 50410 2011-07-04 17:12:44Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 56404 2012-05-10 18:13:08Z hristov $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -49,66 +49,72 @@ using namespace std;
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAClusterData.h"
 
+#include <sys/time.h>
+
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkTrackletsDataType = AliHLTComponentDataTypeInitializer( "CATRACKL", kAliHLTDataOriginTPC );
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp( AliHLTTPCCATrackerComponent )
 
-AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
-    :
-    fTracker( NULL ),
-    fSolenoidBz( 0 ),
-    fMinNTrackClusters( 30 ),
-    fMinTrackPt(0.2),
-    fClusterZCut( 500. ),
-    fNeighboursSearchArea( 0 ), 
-    fClusterErrorCorrectionY(0), 
-    fClusterErrorCorrectionZ(0),
-    fBenchmark("CATracker"), 
-    fAllowGPU( 0),
+	AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent()
+	:
+	fTracker( NULL ),
+	fMinSlice( 0 ),
+	fSliceCount( fgkNSlices ),
+	fSolenoidBz( 0 ),
+	fMinNTrackClusters( 30 ),
+	fMinTrackPt(0.2),
+	fClusterZCut( 500. ),
+	fNeighboursSearchArea( 0 ), 
+	fClusterErrorCorrectionY(0), 
+	fClusterErrorCorrectionZ(0),
+	fBenchmark("CATracker"), 
+	fAllowGPU( 0),
 	fGPUHelperThreads(-1),
 	fCPUTrackers(0),
 	fGlobalTracking(0)
 {
-  // see header file for class documentation
-  // or
-  // refer to README to build package
-  // or
-  // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+	// see header file for class documentation
+	// or
+	// refer to README to build package
+	// or
+	// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 }
 
 AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrackerComponent& )
-    :
-    AliHLTProcessor(),
-    fTracker( NULL ),
-    fSolenoidBz( 0 ),
-    fMinNTrackClusters( 30 ),
-    fMinTrackPt( 0.2 ),
-    fClusterZCut( 500. ),
-    fNeighboursSearchArea(0),
-    fClusterErrorCorrectionY(0), 
-    fClusterErrorCorrectionZ(0),
-    fBenchmark("CATracker"),
-    fAllowGPU( 0),
+	:
+AliHLTProcessor(),
+	fTracker( NULL ),
+	fMinSlice( 0 ),
+	fSliceCount( fgkNSlices ),
+	fSolenoidBz( 0 ),
+	fMinNTrackClusters( 30 ),
+	fMinTrackPt( 0.2 ),
+	fClusterZCut( 500. ),
+	fNeighboursSearchArea(0),
+	fClusterErrorCorrectionY(0), 
+	fClusterErrorCorrectionZ(0),
+	fBenchmark("CATracker"),
+	fAllowGPU( 0),
 	fGPUHelperThreads(-1),
 	fCPUTrackers(0),
 	fGlobalTracking(0)
 {
-  // see header file for class documentation
-  HLTFatal( "copy constructor untested" );
+	// see header file for class documentation
+	HLTFatal( "copy constructor untested" );
 }
 
 AliHLTTPCCATrackerComponent& AliHLTTPCCATrackerComponent::operator=( const AliHLTTPCCATrackerComponent& )
 {
-  // see header file for class documentation
-  HLTFatal( "assignment operator untested" );
-  return *this;
+	// see header file for class documentation
+	HLTFatal( "assignment operator untested" );
+	return *this;
 }
 
 AliHLTTPCCATrackerComponent::~AliHLTTPCCATrackerComponent()
 {
-  // see header file for class documentation
-  if (fTracker) delete fTracker;
+	// see header file for class documentation
+	if (fTracker) delete fTracker;
 }
 
 //
@@ -118,427 +124,230 @@ AliHLTTPCCATrackerComponent::~AliHLTTPCCATrackerComponent()
 
 const char* AliHLTTPCCATrackerComponent::GetComponentID()
 {
-  // see header file for class documentation
-  return "TPCCATracker";
+	// see header file for class documentation
+	return "TPCCATracker";
 }
 
 void AliHLTTPCCATrackerComponent::GetInputDataTypes( vector<AliHLTComponentDataType>& list )
 {
-  // see header file for class documentation
-  list.clear();
-  list.push_back( AliHLTTPCDefinitions::fgkClustersDataType );
-  list.push_back( AliHLTTPCCADefinitions::fgkCompressedInputDataType );
+	// see header file for class documentation
+	list.clear();
+	list.push_back( AliHLTTPCDefinitions::fgkClustersDataType );
+	list.push_back( AliHLTTPCCADefinitions::fgkCompressedInputDataType );
 }
 
 AliHLTComponentDataType AliHLTTPCCATrackerComponent::GetOutputDataType()
 {
-  // see header file for class documentation
-  return AliHLTTPCCADefinitions::fgkTrackletsDataType;
+	// see header file for class documentation
+	return AliHLTTPCCADefinitions::fgkTrackletsDataType;
 }
 
 void AliHLTTPCCATrackerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier )
 {
-  // define guess for the output data size
-  constBase = 200;       // minimum size
-  inputMultiplier = 0.6; // size relative to input
+	// define guess for the output data size
+	constBase = 200;       // minimum size
+	inputMultiplier = 0.6; // size relative to input
 }
 
 AliHLTComponent* AliHLTTPCCATrackerComponent::Spawn()
 {
-  // see header file for class documentation
-  return new AliHLTTPCCATrackerComponent;
+	// see header file for class documentation
+	return new AliHLTTPCCATrackerComponent;
 }
 
 void AliHLTTPCCATrackerComponent::SetDefaultConfiguration()
 {
-  // Set default configuration for the CA tracker component
-  // Some parameters can be later overwritten from the OCDB
+	// Set default configuration for the CA tracker component
+	// Some parameters can be later overwritten from the OCDB
 
-  fSolenoidBz = -5.00668;
-  fMinNTrackClusters = 30;
-  fMinTrackPt = 0.2;
-  fClusterZCut = 500.;
-  fNeighboursSearchArea = 0;
-  fClusterErrorCorrectionY = 0;
-  fClusterErrorCorrectionZ = 0;
-  fBenchmark.Reset();
-  fBenchmark.SetTimer(0,"total");
-  fBenchmark.SetTimer(1,"reco");
+	fSolenoidBz = -5.00668;
+	fMinNTrackClusters = 30;
+	fMinTrackPt = 0.2;
+	fClusterZCut = 500.;
+	fNeighboursSearchArea = 0;
+	fClusterErrorCorrectionY = 0;
+	fClusterErrorCorrectionZ = 0;
+	fBenchmark.Reset();
+	fBenchmark.SetTimer(0,"total");
+	fBenchmark.SetTimer(1,"reco");
 }
 
 int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments )
 {
-  // Set configuration parameters for the CA tracker component from the string
+	// Set configuration parameters for the CA tracker component from the string
 
-  int iResult = 0;
-  if ( !arguments ) return iResult;
+	int iResult = 0;
+	if ( !arguments ) return iResult;
 
-  TString allArgs = arguments;
-  TString argument;
-  int bMissingParam = 0;
+	TString allArgs = arguments;
+	TString argument;
+	int bMissingParam = 0;
 
-  TObjArray* pTokens = allArgs.Tokenize( " " );
+	TObjArray* pTokens = allArgs.Tokenize( " " );
 
-  int nArgs =  pTokens ? pTokens->GetEntries() : 0;
+	int nArgs =  pTokens ? pTokens->GetEntries() : 0;
 
-  for ( int i = 0; i < nArgs; i++ ) {
-    argument = ( ( TObjString* )pTokens->At( i ) )->GetString();
-    if ( argument.IsNull() ) continue;
+	for ( int i = 0; i < nArgs; i++ ) {
+		argument = ( ( TObjString* )pTokens->At( i ) )->GetString();
+		if ( argument.IsNull() ) continue;
 
-    if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      HLTWarning("argument -solenoidBz is deprecated, magnetic field set up globally (%f)", GetBz());
-      continue;
-    }
+		if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
+			if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+			HLTWarning("argument -solenoidBz is deprecated, magnetic field set up globally (%f)", GetBz());
+			continue;
+		}
 
-    if ( argument.CompareTo( "-minNClustersOnTrack" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fMinNTrackClusters = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
-      HLTInfo( "minNClustersOnTrack set to: %d", fMinNTrackClusters );
-      continue;
-    }
+		if ( argument.CompareTo( "-minNClustersOnTrack" ) == 0 ) {
+			if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+			fMinNTrackClusters = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+			HLTInfo( "minNClustersOnTrack set to: %d", fMinNTrackClusters );
+			continue;
+		}
 
-    if ( argument.CompareTo( "-minTrackPt" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fMinTrackPt = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-      HLTInfo( "minTrackPt set to: %f", fMinTrackPt );
-      continue;
-    }
+		if ( argument.CompareTo( "-minTrackPt" ) == 0 ) {
+			if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+			fMinTrackPt = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+			HLTInfo( "minTrackPt set to: %f", fMinTrackPt );
+			continue;
+		}
 
-    if ( argument.CompareTo( "-clusterZCut" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fClusterZCut = TMath::Abs( ( ( TObjString* )pTokens->At( i ) )->GetString().Atof() );
-      HLTInfo( "ClusterZCut set to: %f", fClusterZCut );
-      continue;
-    }
- 
-   if ( argument.CompareTo( "-neighboursSearchArea" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fNeighboursSearchArea = TMath::Abs( ( ( TObjString* )pTokens->At( i ) )->GetString().Atof() );
-      HLTInfo( "NeighboursSearchArea set to: %f", fNeighboursSearchArea );
-      continue;
-    }
+		if ( argument.CompareTo( "-clusterZCut" ) == 0 ) {
+			if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+			fClusterZCut = TMath::Abs( ( ( TObjString* )pTokens->At( i ) )->GetString().Atof() );
+			HLTInfo( "ClusterZCut set to: %f", fClusterZCut );
+			continue;
+		}
 
-   if ( argument.CompareTo( "-errorCorrectionY" ) == 0 ) {
-     if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-     fClusterErrorCorrectionY = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-     HLTInfo( "Cluster Y error correction factor set to: %f", fClusterErrorCorrectionY );
-     continue;
-   }
-   
-   if ( argument.CompareTo( "-errorCorrectionZ" ) == 0 ) {
-     if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-     fClusterErrorCorrectionZ = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-     HLTInfo( "Cluster Z error correction factor set to: %f", fClusterErrorCorrectionZ );
-     continue;
-   }
+		if ( argument.CompareTo( "-neighboursSearchArea" ) == 0 ) {
+			if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+			fNeighboursSearchArea = TMath::Abs( ( ( TObjString* )pTokens->At( i ) )->GetString().Atof() );
+			HLTInfo( "NeighboursSearchArea set to: %f", fNeighboursSearchArea );
+			continue;
+		}
 
-    if (argument.CompareTo( "-allowGPU" ) == 0) {
-      fAllowGPU = 1;
-      HLTImportant( "Will try to run tracker on GPU" );
-      continue;
-    }
+		if ( argument.CompareTo( "-errorCorrectionY" ) == 0 ) {
+			if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+			fClusterErrorCorrectionY = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+			HLTInfo( "Cluster Y error correction factor set to: %f", fClusterErrorCorrectionY );
+			continue;
+		}
 
-    if (argument.CompareTo( "-GlobalTracking" ) == 0) {
-      fGlobalTracking = 1;
-      HLTImportant( "Global Tracking Activated" );
-      continue;
-    }
-	
-	if ( argument.CompareTo( "-GPUHelperThreads" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fGPUHelperThreads = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
-      HLTInfo( "Number of GPU Helper Threads set to: %d", fGPUHelperThreads );
-      continue;
-    }
+		if ( argument.CompareTo( "-errorCorrectionZ" ) == 0 ) {
+			if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+			fClusterErrorCorrectionZ = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+			HLTInfo( "Cluster Z error correction factor set to: %f", fClusterErrorCorrectionZ );
+			continue;
+		}
 
-    if ( argument.CompareTo( "-CPUTrackers" ) == 0 ) {
-      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fCPUTrackers = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
-      HLTInfo( "Number of CPU Trackers set to: %d", fCPUTrackers );
-      continue;
-    }
+		if (argument.CompareTo( "-allowGPU" ) == 0) {
+			fAllowGPU = 1;
+			HLTImportant( "Will try to run tracker on GPU" );
+			continue;
+		}
 
-	HLTError( "Unknown option \"%s\"", argument.Data() );
-    iResult = -EINVAL;
-  }
-  delete pTokens;
+		if (argument.CompareTo( "-GlobalTracking" ) == 0) {
+			fGlobalTracking = 1;
+			HLTImportant( "Global Tracking Activated" );
+			continue;
+		}
 
-  if ( bMissingParam ) {
-    HLTError( "Specifier missed for parameter \"%s\"", argument.Data() );
-    iResult = -EINVAL;
-  }
+		if ( argument.CompareTo( "-GPUHelperThreads" ) == 0 ) {
+			if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+			fGPUHelperThreads = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+			HLTInfo( "Number of GPU Helper Threads set to: %d", fGPUHelperThreads );
+			continue;
+		}
 
-  return iResult;
+		if ( argument.CompareTo( "-CPUTrackers" ) == 0 ) {
+			if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+			fCPUTrackers = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+			HLTInfo( "Number of CPU Trackers set to: %d", fCPUTrackers );
+			continue;
+		}
+
+		HLTError( "Unknown option \"%s\"", argument.Data() );
+		iResult = -EINVAL;
+	}
+	delete pTokens;
+
+	if ( bMissingParam ) {
+		HLTError( "Specifier missed for parameter \"%s\"", argument.Data() );
+		iResult = -EINVAL;
+	}
+
+	return iResult;
 }
 
 
 int AliHLTTPCCATrackerComponent::ReadCDBEntry( const char* cdbEntry, const char* chainId )
 {
-  // see header file for class documentation
+	// see header file for class documentation
 
-  const char* defaultNotify = "";
+	const char* defaultNotify = "";
 
-  if ( !cdbEntry ) {
-    cdbEntry = "HLT/ConfigTPC/TPCCATracker";
-    defaultNotify = " (default)";
-    chainId = 0;
-  }
+	if ( !cdbEntry ) {
+		cdbEntry = "HLT/ConfigTPC/TPCCATracker";
+		defaultNotify = " (default)";
+		chainId = 0;
+	}
 
-  HLTInfo( "configure from entry \"%s\"%s, chain id %s", cdbEntry, defaultNotify, ( chainId != NULL && chainId[0] != 0 ) ? chainId : "<none>" );
-  AliCDBEntry *pEntry = AliCDBManager::Instance()->Get( cdbEntry );//,GetRunNo());
+	HLTInfo( "configure from entry \"%s\"%s, chain id %s", cdbEntry, defaultNotify, ( chainId != NULL && chainId[0] != 0 ) ? chainId : "<none>" );
+	AliCDBEntry *pEntry = AliCDBManager::Instance()->Get( cdbEntry );//,GetRunNo());
 
-  if ( !pEntry ) {
-    HLTError( "cannot fetch object \"%s\" from CDB", cdbEntry );
-    return -EINVAL;
-  }
+	if ( !pEntry ) {
+		HLTError( "cannot fetch object \"%s\" from CDB", cdbEntry );
+		return -EINVAL;
+	}
 
-  TObjString* pString = dynamic_cast<TObjString*>( pEntry->GetObject() );
+	TObjString* pString = dynamic_cast<TObjString*>( pEntry->GetObject() );
 
-  if ( !pString ) {
-    HLTError( "configuration object \"%s\" has wrong type, required TObjString", cdbEntry );
-    return -EINVAL;
-  }
+	if ( !pString ) {
+		HLTError( "configuration object \"%s\" has wrong type, required TObjString", cdbEntry );
+		return -EINVAL;
+	}
 
-  HLTInfo( "received configuration object string: \"%s\"", pString->GetString().Data() );
+	HLTInfo( "received configuration object string: \"%s\"", pString->GetString().Data() );
 
-  return  ReadConfigurationString( pString->GetString().Data() );
+	return  ReadConfigurationString( pString->GetString().Data() );
 }
 
 
 int AliHLTTPCCATrackerComponent::Configure( const char* cdbEntry, const char* chainId, const char *commandLine )
 {
-  // Configure the component
-  // There are few levels of configuration,
-  // parameters which are set on one step can be overwritten on the next step
+	// Configure the component
+	// There are few levels of configuration,
+	// parameters which are set on one step can be overwritten on the next step
 
-  //* read hard-coded values
+	//* read hard-coded values
+	SetDefaultConfiguration();
 
-  SetDefaultConfiguration();
+	//* read the default CDB entry
+	int iResult1 = ReadCDBEntry( NULL, chainId );
 
-  //* read the default CDB entry
+	//* read magnetic field
+	fSolenoidBz = GetBz();
 
-  int iResult1 = ReadCDBEntry( NULL, chainId );
+	//* read the actual CDB entry if required
+	int iResult2 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) : 0;
 
-  //* read magnetic field
-  
-  fSolenoidBz = GetBz();
+	//* read extra parameters from input (if they are)
+	int iResult3 = 0;
 
-  //* read the actual CDB entry if required
+	if ( commandLine && commandLine[0] != '\0' ) {
+		HLTInfo( "received configuration string from HLT framework: \"%s\"", commandLine );
+		iResult3 = ReadConfigurationString( commandLine );
+	}
 
-  int iResult2 = ( cdbEntry ) ? ReadCDBEntry( cdbEntry, chainId ) : 0;
+	if (fTracker) ConfigureSlices();
 
-  //* read extra parameters from input (if they are)
-
-  int iResult3 = 0;
-
-  if ( commandLine && commandLine[0] != '\0' ) {
-    HLTInfo( "received configuration string from HLT framework: \"%s\"", commandLine );
-    iResult3 = ReadConfigurationString( commandLine );
-  }
-
-  // Initialise the tracker here
-
-  return iResult1 ? iResult1 : ( iResult2 ? iResult2 :  iResult3  );
+	return iResult1 ? iResult1 : ( iResult2 ? iResult2 :  iResult3  );
 }
 
-int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
+void AliHLTTPCCATrackerComponent::ConfigureSlices()
 {
-  // Configure the CA tracker component
-
-  if ( fTracker ) return EINPROGRESS;
-
-  TString arguments = "";
-  for ( int i = 0; i < argc; i++ ) {
-    if ( !arguments.IsNull() ) arguments += " ";
-    arguments += argv[i];
-  }
-
-  int retVal = Configure( NULL, NULL, arguments.Data() );
-  if (retVal == 0) fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
-  if (fGPUHelperThreads != -1)
-  {
-    char cc[256] = "HelperThreads";
-	fTracker->SetGPUTrackerOption(cc, fGPUHelperThreads);
-  }
-  {
-    char cc[256] = "CPUTrackers";
-	fTracker->SetGPUTrackerOption(cc, fCPUTrackers);
-	char cc2[256] = "SlicesPerCPUTracker";
-	fTracker->SetGPUTrackerOption(cc2, 1);
-  }
-  if (fGlobalTracking)
-  {
-    char cc[256] = "GlobalTracking";
-	fTracker->SetGPUTrackerOption(cc, 1);
-  }
-
-  return(retVal);
-}
-
-int AliHLTTPCCATrackerComponent::DoDeinit()
-{
-  // see header file for class documentation
-  if (fTracker) delete fTracker;
-  fTracker = NULL;
-  return 0;
-}
-
-int AliHLTTPCCATrackerComponent::Reconfigure( const char* cdbEntry, const char* chainId )
-{
-  // Reconfigure the component from OCDB .
-
-  return Configure( cdbEntry, chainId, NULL );
-}
-
-bool AliHLTTPCCATrackerComponent::CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b )
-{
-  //* Comparison function for sort clusters
-
-  if ( a->fPadRow < b->fPadRow ) return 1;
-  if ( a->fPadRow > b->fPadRow ) return 0;
-  return ( a->fZ < b->fZ );
-}
-
-
-
-int AliHLTTPCCATrackerComponent::DoEvent
-(
-  const AliHLTComponentEventData& evtData,
-  const AliHLTComponentBlockData* blocks,
-  AliHLTComponentTriggerData& /*trigData*/,
-  AliHLTUInt8_t* outputPtr,
-  AliHLTUInt32_t& size,
-  vector<AliHLTComponentBlockData>& outputBlocks )
-{
-  //* process event
-
-  AliHLTUInt32_t maxBufferSize = size;
-  size = 0; // output size
-
-  if ( GetFirstInputBlock( kAliHLTDataTypeSOR ) || GetFirstInputBlock( kAliHLTDataTypeEOR ) ) {
-    return 0;
-  }
-
-  fBenchmark.StartNewEvent();
-  fBenchmark.Start(0);
-
-  // Event reconstruction in one TPC slice with CA Tracker
-
-  //Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "DoEvent", "CA::DoEvent()" );
-  if ( evtData.fBlockCnt <= 0 ) {
-    HLTWarning( "no blocks in event" );
-    return 0;
-  }
-
-  const AliHLTComponentBlockData* iter = NULL;
-  unsigned long ndx;
-
-  // Determine the slice number
-
-  //Find min and max slice number with now slice missing in between (for default output)
-  int minslice = -1, maxslice = -1;
-  int slice = -1;
-  {
-    std::vector<int> slices;
-    std::vector<int>::iterator slIter;
-    std::vector<unsigned> sliceCnts;
-    std::vector<unsigned>::iterator slCntIter;
-
-    for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
-      iter = blocks + ndx;
-      if ( iter->fDataType != AliHLTTPCDefinitions::fgkClustersDataType &&
-	   iter->fDataType != AliHLTTPCCADefinitions::fgkCompressedInputDataType
-	   ) continue;
-
-      slice = AliHLTTPCDefinitions::GetMinSliceNr( *iter );
-	  if (slice < minslice || minslice == -1) minslice = slice;
-	  if (slice > maxslice) maxslice = slice;
-
-      bool found = 0;
-      slCntIter = sliceCnts.begin();
-      for ( slIter = slices.begin(); slIter != slices.end(); slIter++, slCntIter++ ) {
-        if ( *slIter == slice ) {
-          found = kTRUE;
-          break;
-        }
-      }
-      if ( !found ) {
-        slices.push_back( slice );
-        sliceCnts.push_back( 1 );
-      } else (*slCntIter)++;
-    }
-
-	  if ( slices.size() == 0 ) {
-		HLTWarning( "no slices found in event" );
-		return 0;
-	  }
-
-
-    // Determine slice number to really use. (for obsolete output)
-    if ( slices.size() > 1 ) {
-      Logging( kHLTLogDebug, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
-               "Multiple slice numbers found in event 0x%08lX (%lu). Determining maximum occuring slice number...",
-               evtData.fEventID, evtData.fEventID );
-      slCntIter = sliceCnts.begin();
-      for ( slIter = slices.begin(); slIter != slices.end(); slIter++, slCntIter++ ) {
-        Logging( kHLTLogDebug, "HLT::TPCSliceTracker::DoEvent", "Multiple slices found in event",
-                 "Slice %lu found %lu times.", *slIter, *slCntIter );
-      }
-    } else if ( slices.size() > 0 ) {
-      slice = *( slices.begin() );
-    }
-
-
-    for (int islice = minslice;islice <= maxslice;islice++)
-      {
-	bool found = false;
-	for(slIter = slices.begin(); slIter != slices.end();slIter++)
-	  {
-	    if (*slIter == islice)
-	      {
-		found = true;
-		break;
-	      }
-	  }
-	if (!found)
-	  {
-	    maxslice = islice - 1;
-	    break;
-	  }
-      }
-  }
-
-  if ( !fTracker ) fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
-
-  int slicecount = maxslice + 1 - minslice;
-  if (slicecount > fTracker->MaxSliceCount())
-  {
-	maxslice = minslice + (slicecount = fTracker->MaxSliceCount()) - 1;
-  }
-  int nClustersTotalSum = 0;
-  AliHLTTPCCAClusterData* clusterData = new AliHLTTPCCAClusterData[slicecount];
-
-
-  // min and max patch numbers and row numbers
-  int* slicerow = new int[slicecount * 2];
-  int* sliceminPatch = new int[slicecount];
-  int* slicemaxPatch = new int[slicecount];
-  memset(slicerow, 0, slicecount * 2 * sizeof(int));
-  for (int i = 0;i < slicecount;i++)
-  {
-	  sliceminPatch[i] = 100;
-	  slicemaxPatch[i] = -1;
-  }
-
-  //Prepare everything for all slices
-
-  for (int islice = 0;islice < slicecount;islice++)
-  {
-	  slice = minslice + islice;
-
-	  // Initialize the tracker slice
-	  {
+	// Initialize the tracker slices
+	for (int slice = 0;slice < fgkNSlices;slice++)
+	{
 		int iSec = slice;
 		float inRmin = 83.65;
 		//    float inRmax = 133.3;
@@ -564,13 +373,13 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
 		float *rowX = new float [nRows];
 		for ( int irow = 0; irow < nRows; irow++ ) {
-		  rowX[irow] = AliHLTTPCTransform::Row2X( irow );
+			rowX[irow] = AliHLTTPCTransform::Row2X( irow );
 		}
 
 		AliHLTTPCCAParam param;
 
 		param.Initialize( iSec, nRows, rowX, alpha, dalpha,
-						  inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
+			inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
 		param.SetHitPickUpFactor( 2 );
 		if( fNeighboursSearchArea>0 ) param.SetNeighboursSearchArea( fNeighboursSearchArea );
 		if( fClusterErrorCorrectionY>1.e-4 ) param.SetClusterError2CorrectionY( fClusterErrorCorrectionY*fClusterErrorCorrectionY );
@@ -581,235 +390,343 @@ int AliHLTTPCCATrackerComponent::DoEvent
 		param.Update();
 		fTracker->InitializeSliceParam( slice, param );
 		delete[] rowX;
-	  }
+	}
+}
 
-	  // total n Hits
-	  int nClustersTotal = 0;
+int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
+{
+	if ( fTracker ) return EINPROGRESS;
 
-	  // sort patches
-	  std::vector<unsigned long> patchIndices;
+	// Configure the CA tracker component
+	TString arguments = "";
+	for ( int i = 0; i < argc; i++ ) {
+		if ( !arguments.IsNull() ) arguments += " ";
+		arguments += argv[i];
+	}
 
-	  for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
-		iter = blocks + ndx;
-		if ( slice != AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ) continue;
-		if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
-		  AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
-		  nClustersTotal += inPtrSP->fSpacePointCnt;
-		  fBenchmark.AddInput(iter->fSize);
-		} else 
-		if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
-		  fBenchmark.AddInput(iter->fSize);
-		  const AliHLTUInt8_t * inPtr =  (const AliHLTUInt8_t *)iter->fPtr;
-		  while( inPtr< ((const AliHLTUInt8_t *) iter->fPtr) + iter->fSize ){
-		    AliHLTTPCCACompressedClusterRow *row = (AliHLTTPCCACompressedClusterRow*)inPtr;
-		    nClustersTotal+= row->fNClusters;	  
-		    inPtr = (const AliHLTUInt8_t *)(row->fClusters+row->fNClusters);
-		  }
+	int retVal = Configure( NULL, NULL, arguments.Data() );
+	if (retVal == 0)
+	{
+		fMinSlice = 0;
+		fSliceCount = fgkNSlices;
+		//Create tracker instance and set parameters
+		fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
+		if (fGPUHelperThreads != -1)
+		{
+			char cc[256] = "HelperThreads";
+			fTracker->SetGPUTrackerOption(cc, fGPUHelperThreads);
 		}
-		else continue;
-
-		int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
-		if ( sliceminPatch[islice] > patch ) {
-		  sliceminPatch[islice] = patch;
-		  slicerow[2 * islice + 0] = AliHLTTPCTransform::GetFirstRow( patch );
+		{
+			char cc[256] = "CPUTrackers";
+			fTracker->SetGPUTrackerOption(cc, fCPUTrackers);
+			char cc2[256] = "SlicesPerCPUTracker";
+			fTracker->SetGPUTrackerOption(cc2, 1);
 		}
-		if ( slicemaxPatch[islice] < patch ) {
-		  slicemaxPatch[islice] = patch;
-		  slicerow[2 * islice + 1] = AliHLTTPCTransform::GetLastRow( patch );
+		if (fGlobalTracking)
+		{
+			char cc[256] = "GlobalTracking";
+			fTracker->SetGPUTrackerOption(cc, 1);
 		}
-		std::vector<unsigned long>::iterator pIter = patchIndices.begin();
-		while ( pIter != patchIndices.end() && AliHLTTPCDefinitions::GetMinPatchNr( blocks[*pIter] ) < patch ) {
-		  pIter++;
+
+		ConfigureSlices();
+	}
+
+	return(retVal);
+}
+
+int AliHLTTPCCATrackerComponent::DoDeinit()
+{
+	// see header file for class documentation
+	if (fTracker) delete fTracker;
+	fTracker = NULL;
+	return 0;
+}
+
+int AliHLTTPCCATrackerComponent::Reconfigure( const char* cdbEntry, const char* chainId )
+{
+	// Reconfigure the component from OCDB .
+	return Configure( cdbEntry, chainId, NULL );
+}
+
+int AliHLTTPCCATrackerComponent::DoEvent
+	(
+	const AliHLTComponentEventData& evtData,
+	const AliHLTComponentBlockData* blocks,
+	AliHLTComponentTriggerData& /*trigData*/,
+	AliHLTUInt8_t* outputPtr,
+	AliHLTUInt32_t& size,
+	vector<AliHLTComponentBlockData>& outputBlocks )
+{
+	timeval t1, t2;
+
+	gettimeofday(&t1, NULL);
+
+	//* process event
+	if (!fTracker)
+	{
+		HLTError( "CATracker not initialized properly" );
+		return -ENOENT;
+	}
+
+	AliHLTUInt32_t maxBufferSize = size;
+	size = 0; // output size
+
+	if ( GetFirstInputBlock( kAliHLTDataTypeSOR ) || GetFirstInputBlock( kAliHLTDataTypeEOR ) ) {
+		return 0;
+	}
+
+	fBenchmark.StartNewEvent();
+	fBenchmark.Start(0);
+
+	//Logging( kHLTLogWarning, "HLT::TPCCATracker::DoEvent", "DoEvent", "CA::DoEvent()" );
+	if ( evtData.fBlockCnt <= 0 ) {
+		HLTWarning( "no blocks in event" );
+		return 0;
+	}
+
+	const AliHLTComponentBlockData* iter = NULL;
+	unsigned long ndx;
+
+	int nClustersTotalSum = 0;
+	AliHLTTPCCAClusterData* clusterData = new AliHLTTPCCAClusterData[fSliceCount];
+
+
+	// min and max patch numbers and row numbers
+	int sliceminPatch[fgkNSlices];
+	int slicemaxPatch[fgkNSlices];
+	for (int i = 0;i < fSliceCount;i++)
+	{
+		sliceminPatch[i] = 100;
+		slicemaxPatch[i] = -1;
+	}
+
+	//Prepare everything for all slices
+
+	for (int islice = 0;islice < fSliceCount;islice++)
+	{
+		int slice = fMinSlice + islice;
+
+		// total n Hits
+		int nClustersTotal = 0;
+
+		// sort patches
+		std::vector<unsigned long> patchIndices;
+
+		for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
+			iter = blocks + ndx;
+			if ( slice != AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ) continue;
+			if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
+				AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
+				nClustersTotal += inPtrSP->fSpacePointCnt;
+				fBenchmark.AddInput(iter->fSize);
+			} else 
+				if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
+					fBenchmark.AddInput(iter->fSize);
+					const AliHLTUInt8_t * inPtr =  (const AliHLTUInt8_t *)iter->fPtr;
+					while( inPtr< ((const AliHLTUInt8_t *) iter->fPtr) + iter->fSize ){
+						AliHLTTPCCACompressedClusterRow *row = (AliHLTTPCCACompressedClusterRow*)inPtr;
+						nClustersTotal+= row->fNClusters;	  
+						inPtr = (const AliHLTUInt8_t *)(row->fClusters+row->fNClusters);
+					}
+				}
+				else continue;
+
+				int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
+				if ( sliceminPatch[islice] > patch ) {
+					sliceminPatch[islice] = patch;
+				}
+				if ( slicemaxPatch[islice] < patch ) {
+					slicemaxPatch[islice] = patch;
+				}
+				std::vector<unsigned long>::iterator pIter = patchIndices.begin();
+				while ( pIter != patchIndices.end() && AliHLTTPCDefinitions::GetMinPatchNr( blocks[*pIter] ) < patch ) {
+					pIter++;
+				}
+				patchIndices.insert( pIter, ndx );
 		}
-		patchIndices.insert( pIter, ndx );
-	  }
 
 
-	  // pass event to CA Tracker
+		// pass event to CA Tracker
 
 
-	  Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
-			   "Total %d hits to read for slice %d", nClustersTotal, slice );
+		Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
+			"Total %d hits to read for slice %d", nClustersTotal, slice );
 
-	  if (nClustersTotal > 500000)
-	  {
-		  HLTWarning( "Too many clusters in tracker input: Slice %d, Number of Clusters %d, some clusters are droped", slice, nClustersTotal );
-		  nClustersTotal = 500000;
-	  }
+		if (nClustersTotal > 500000)
+		{
+			HLTWarning( "Too many clusters in tracker input: Slice %d, Number of Clusters %d, some clusters are droped", slice, nClustersTotal );
+			nClustersTotal = 500000;
+		}
 
+		clusterData[islice].StartReading( slice, nClustersTotal );
+		int nSliceClust = 0;
 
-	  clusterData[islice].StartReading( slice, nClustersTotal );
-	  int nSliceClust = 0;
+		for ( std::vector<unsigned long>::iterator pIter = patchIndices.begin(); pIter != patchIndices.end(); pIter++ ) {
+			ndx = *pIter;
+			iter = blocks + ndx;
+			int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
+			int nPatchClust = 0;
 
-	  for ( std::vector<unsigned long>::iterator pIter = patchIndices.begin(); pIter != patchIndices.end(); pIter++ ) {
-		ndx = *pIter;
-		iter = blocks + ndx;
-		int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
-		int nPatchClust = 0;
-	       
-		if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
-		  AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
-		  nPatchClust = inPtrSP->fSpacePointCnt;
-		  for ( unsigned int i = 0; i < inPtrSP->fSpacePointCnt; i++ ) {
-		    AliHLTTPCSpacePointData *c = &( inPtrSP->fSpacePoints[i] );
-		    if ( CAMath::Abs( c->fZ ) > fClusterZCut ) continue;
-		    if ( c->fPadRow > 159 ) {
-		      HLTError( "Wrong TPC cluster with row number %d received", c->fPadRow );
-		      continue;
-		    }
-			if (nSliceClust < nClustersTotal)
-			{
-		      clusterData[islice].ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
-			  nSliceClust++;
+			if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
+				AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
+				nPatchClust = inPtrSP->fSpacePointCnt;
+				for ( unsigned int i = 0; i < inPtrSP->fSpacePointCnt; i++ ) {
+					AliHLTTPCSpacePointData *c = &( inPtrSP->fSpacePoints[i] );
+					if ( CAMath::Abs( c->fZ ) > fClusterZCut ) continue;
+					if ( c->fPadRow > 159 ) {
+						HLTError( "Wrong TPC cluster with row number %d received", c->fPadRow );
+						continue;
+					}
+					if (nSliceClust < nClustersTotal)
+					{
+						clusterData[islice].ReadCluster( c->fID, c->fPadRow, c->fX, c->fY, c->fZ, c->fCharge );
+						nSliceClust++;
+					}
+				}	      
 			}
-		  }	      
-		} else 	       
-		if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType){
-		  const AliHLTUInt8_t * inPtr = (const AliHLTUInt8_t *)iter->fPtr;
-		  nPatchClust=0;
-		  while( inPtr< ((const AliHLTUInt8_t *)iter->fPtr) + iter->fSize ){
-		    AliHLTTPCCACompressedClusterRow *row = (AliHLTTPCCACompressedClusterRow*)inPtr;
-		    UInt_t id = row->fSlicePatchRowID;
-		    UInt_t jslice = id>>10;	  
-		    UInt_t jpatch = (id>>6) & 0x7;
-		    UInt_t jrow   =  id     & 0x3F;     
-		    jrow+= AliHLTTPCTransform::GetFirstRow( jpatch );
-		    Double_t rowX = AliHLTTPCTransform::Row2X( jrow );
-		    //cout<<"Read row: s "<<jslice<<" p "<<jpatch<<" r "<<jrow<<" x "<<row->fX<<" nclu "<<row->fNClusters<<" :"<<endl;
-		    if( jrow > 159 ) {
-		      HLTError( "Wrong TPC cluster with row number %d received", jrow );
-		      continue;
-		    }
-		    for ( unsigned int i = 0; i < row->fNClusters; i++ ) {
-		      AliHLTTPCCACompressedCluster *c = &( row->fClusters[i] );
-		      
-		      UInt_t ix0 = c->fP0 >>24;
-		      UInt_t ix1 = c->fP1 >>24;
-		      Double_t x = (ix1<<8) + ix0;
-		      Double_t y = c->fP0 & 0x00FFFFFF;
-		      Double_t z = c->fP1 & 0x00FFFFFF;
-		      x = (x - 32768.)*1.e-4 + rowX;
-		      y = (y - 8388608.)*1.e-4;
-		      z = (z - 8388608.)*1.e-4;
-		      
-		      UInt_t cluId = AliHLTTPCSpacePointData::GetID( jslice, jpatch, nPatchClust );
-		      //cout<<"clu "<<i<<": "<<x<<" "<<y<<" "<<z<<" "<<cluId<<endl;
-		      if ( CAMath::Abs( z ) <= fClusterZCut && nSliceClust < nClustersTotal){
-			clusterData[islice].ReadCluster( cluId, jrow, x, y, z, 0 );
-			nSliceClust++;
-		      }
-		      nPatchClust++;		  
-		    }
-		    inPtr = (const AliHLTUInt8_t *)(row->fClusters+row->fNClusters);
-		  }
+			else if ( iter->fDataType == AliHLTTPCCADefinitions::fgkCompressedInputDataType)
+			{
+				const AliHLTUInt8_t * inPtr = (const AliHLTUInt8_t *)iter->fPtr;
+				nPatchClust=0;
+				while( inPtr< ((const AliHLTUInt8_t *)iter->fPtr) + iter->fSize ){
+					AliHLTTPCCACompressedClusterRow *row = (AliHLTTPCCACompressedClusterRow*)inPtr;
+					UInt_t id = row->fSlicePatchRowID;
+					UInt_t jslice = id>>10;	  
+					UInt_t jpatch = (id>>6) & 0x7;
+					UInt_t jrow   =  id     & 0x3F;     
+					jrow+= AliHLTTPCTransform::GetFirstRow( jpatch );
+					Double_t rowX = AliHLTTPCTransform::Row2X( jrow );
+					//cout<<"Read row: s "<<jslice<<" p "<<jpatch<<" r "<<jrow<<" x "<<row->fX<<" nclu "<<row->fNClusters<<" :"<<endl;
+					if( jrow > 159 ) {
+						HLTError( "Wrong TPC cluster with row number %d received", jrow );
+						continue;
+					}
+					for ( unsigned int i = 0; i < row->fNClusters; i++ ) {
+						AliHLTTPCCACompressedCluster *c = &( row->fClusters[i] );
+
+						UInt_t ix0 = c->fP0 >>24;
+						UInt_t ix1 = c->fP1 >>24;
+						Double_t x = (ix1<<8) + ix0;
+						Double_t y = c->fP0 & 0x00FFFFFF;
+						Double_t z = c->fP1 & 0x00FFFFFF;
+						x = (x - 32768.)*1.e-4 + rowX;
+						y = (y - 8388608.)*1.e-4;
+						z = (z - 8388608.)*1.e-4;
+
+						UInt_t cluId = AliHLTTPCSpacePointData::GetID( jslice, jpatch, nPatchClust );
+						//cout<<"clu "<<i<<": "<<x<<" "<<y<<" "<<z<<" "<<cluId<<endl;
+						if ( CAMath::Abs( z ) <= fClusterZCut && nSliceClust < nClustersTotal){
+							clusterData[islice].ReadCluster( cluId, jrow, x, y, z, 0 );
+							nSliceClust++;
+						}
+						nPatchClust++;		  
+					}
+					inPtr = (const AliHLTUInt8_t *)(row->fClusters+row->fNClusters);
+				}
+			}
+			Logging( kHLTLogInfo, "HLT::TPCCATracker::DoEvent", "Reading hits",
+				"Read %d hits for slice %d - patch %d", nPatchClust, slice, patch );
 		}
-		Logging( kHLTLogInfo, "HLT::TPCCATracker::DoEvent", "Reading hits",
-			 "Read %d hits for slice %d - patch %d", nPatchClust, slice, patch );
-	  }
 
-	  clusterData[islice].FinishReading();
-	  nClustersTotalSum += nClustersTotal;
-  }
+		clusterData[islice].FinishReading();
+		nClustersTotalSum += nClustersTotal;
+	}
 
-  //Prepare Output
-  AliHLTTPCCASliceOutput::outputControlStruct outputControl;
-  //Set tracker output so tracker does not have to output both formats!
-  outputControl.fEndOfSpace = 0;
+	//Prepare Output
+	AliHLTTPCCASliceOutput::outputControlStruct outputControl;
+	outputControl.fEndOfSpace = 0;
+	outputControl.fOutputPtr =  (char*) outputPtr;
+	outputControl.fOutputMaxSize = maxBufferSize;
+	fTracker->SetOutputControl(&outputControl);
 
-  //For new output we can write directly to output buffer
-  outputControl.fOutputPtr =  (char*) outputPtr;
-  outputControl.fOutputMaxSize = maxBufferSize;
+	AliHLTTPCCASliceOutput** sliceOutput = new AliHLTTPCCASliceOutput*[fSliceCount];
+	memset(sliceOutput, 0, fSliceCount * sizeof(AliHLTTPCCASliceOutput*));
 
-  AliHLTTPCCASliceOutput** sliceOutput = new AliHLTTPCCASliceOutput*[slicecount];
-  memset(sliceOutput, 0, slicecount * sizeof(AliHLTTPCCASliceOutput*));
+	gettimeofday(&t2, NULL);
+	printf("Prepare time: %lf\n", (double) t2.tv_sec + (double) t2.tv_usec / 1000000. - (double) t1.tv_sec - (double) t1.tv_usec / 1000000.);
+	// reconstruct the event
+	fBenchmark.Start(1);
+	fTracker->ProcessSlices(fMinSlice, fSliceCount, clusterData, sliceOutput);
+	fBenchmark.Stop(1);
+	gettimeofday(&t1, NULL);
+	printf("Rec time: %lf\n", (double) t1.tv_sec + (double) t1.tv_usec / 1000000. - (double) t2.tv_sec - (double) t2.tv_usec / 1000000.);
 
-  // reconstruct the event
+	int ret = 0;
+	unsigned int mySize = 0;
+	int ntracks = 0;
+	int error = 0;
 
-  fBenchmark.Start(1);
-  fTracker->SetOutputControl(&outputControl);
-  fTracker->ProcessSlices(minslice, slicecount, clusterData, sliceOutput);
-  fBenchmark.Stop(1);
-  
-  int ret = 0;
-  unsigned int mySize = 0;
-  int ntracks = 0;
-  int error = 0;
+	for (int islice = 0;islice < fSliceCount;islice++)
+	{
+		if( outputControl.fEndOfSpace ){
+			HLTWarning( "Output buffer size exceeded (buffer size %d, required size %d), tracks are not stored", maxBufferSize, mySize );
+			ret = -ENOSPC;
+			error = 1;
+			break;     
+		}
+		int slice = fMinSlice + islice;
 
-  for (int islice = 0;islice < slicecount;islice++)
-  {
-    if( outputControl.fEndOfSpace ){
-      HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), tracks are not stored", maxBufferSize, mySize );
-      ret = -ENOSPC;
-      error = 1;
-      break;     
-    }
-    slice = minslice + islice;
-    
-    if (sliceOutput[islice])
-      {
-	// write reconstructed tracks
-	Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct",
-		 "%d tracks found for slice %d", sliceOutput[islice]->NTracks(), slice );
-	
-	mySize += sliceOutput[islice]->Size();
-	ntracks += sliceOutput[islice]->NTracks();	  
-      }
-    else
-      {
-	HLTWarning( "Error during Tracking, no tracks stored" );
-	mySize = 0;
-	ret = -ENOSPC;
-	ntracks = 0;
-	error = 1;
-	break;
-      }
-  }
-  
-  size = 0;
-  if (error == 0)
-  {
-    for (int islice = 0;islice < slicecount;islice++)
-      {
-	slice = minslice + islice;
-	mySize = sliceOutput[islice]->Size();
-	if (mySize > 0)
-	  {
-	    AliHLTComponentBlockData bd;
-	    FillBlockData( bd );
-	    bd.fOffset = ((char*) sliceOutput[islice] - (char*) outputPtr);
-	    bd.fSize = mySize;
-	    bd.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( slice, slice, sliceminPatch[islice], slicemaxPatch[islice] );
-	    bd.fDataType = GetOutputDataType();
-	    outputBlocks.push_back( bd );
-	    size += mySize;
-	    fBenchmark.AddOutput(bd.fSize);
-	  }
-      }
-  }
+		if (sliceOutput[islice])
+		{
+			// write reconstructed tracks
+			Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct", "%d tracks found for slice %d", sliceOutput[islice]->NTracks(), slice );
 
+			mySize += sliceOutput[islice]->Size();
+			ntracks += sliceOutput[islice]->NTracks();	  
+		}
+		else
+		{
+			HLTWarning( "Error during Tracking, no tracks stored" );
+			mySize = 0;
+			ret = -ENOSPC;
+			ntracks = 0;
+			error = 1;
+			break;
+		}
+	}
 
-  //No longer needed
+	size = 0;
+	if (error == 0)
+	{
+		for (int islice = 0;islice < fSliceCount;islice++)
+		{
+			int slice = fMinSlice + islice;
+			mySize = sliceOutput[islice]->Size();
+			if (mySize > 0)
+			{
+				AliHLTComponentBlockData bd;
+				FillBlockData( bd );
+				bd.fOffset = ((char*) sliceOutput[islice] - (char*) outputPtr);
+				bd.fSize = mySize;
+				bd.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( slice, slice, sliceminPatch[islice], slicemaxPatch[islice] );
+				bd.fDataType = GetOutputDataType();
+				outputBlocks.push_back( bd );
+				size += mySize;
+				fBenchmark.AddOutput(bd.fSize);
+			}
+		}
+	}
 
-  delete[] clusterData;
-  delete[] sliceOutput;
+	//No longer needed
 
-  fBenchmark.Stop(0);
+	delete[] clusterData;
+	delete[] sliceOutput;
 
-  // Set log level to "Warning" for on-line system monitoring
+	fBenchmark.Stop(0);
 
-  //Min and Max Patch are taken for first slice processed...
+	// Set log level to "Warning" for on-line system monitoring
 
-  if( minslice==maxslice ) fBenchmark.SetName(Form("CATracker slice %d",minslice));
-  else fBenchmark.SetName(Form("CATracker slices %d-%d",minslice,maxslice));
+	//Min and Max Patch are taken for first slice processed...
 
-  HLTInfo(fBenchmark.GetStatistics());
-  //No longer needed
+	fBenchmark.SetName(Form("CATracker"));
 
-  delete[] slicerow;
-  delete[] sliceminPatch;
-  delete[] slicemaxPatch;
+	HLTImportant(fBenchmark.GetStatistics());
+	//No longer needed
 
-  return ret;
+	gettimeofday(&t2, NULL);
+	printf("End time: %lf\n", (double) t2.tv_sec + (double) t2.tv_usec / 1000000. - (double) t1.tv_sec - (double) t1.tv_usec / 1000000.);
+
+	return ret;
 }
 
 

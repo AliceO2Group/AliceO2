@@ -43,6 +43,7 @@ public:
 	virtual ~AliHLTTPCCAGPUTrackerNVCC();
 
 	virtual int InitGPU(int sliceCount = -1, int forceDeviceID = -1);
+	virtual int IsInitialized();
 	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	int ReconstructPP(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	int SelfHealReconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);

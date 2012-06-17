@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCATrackerComponent.h 51203 2011-08-21 19:48:33Z sgorbuno $
+// @(#) $Id: AliHLTTPCCATrackerComponent.h 51262 2011-08-23 18:16:49Z hristov $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -79,6 +79,12 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     /** the tracker object */
     AliHLTTPCCATrackerFramework* fTracker;                                //! transient
 
+    static const int fgkNSlices = 36;       //* N slices
+	//The following parameters are maintained for compatibility to be able to change the component
+	//such to process less than all 36 slices. Currently, fMinSlice is always 0 and fSliceCount is 36
+	int fMinSlice;							//minimum slice number to be processed
+	int fSliceCount;						//Number of slices to be processed
+
     /** magnetic field */
     double fSolenoidBz;                                            // see above
     int fMinNTrackClusters; //* required min number of clusters on the track
@@ -94,13 +100,12 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 	int fCPUTrackers;  //Number of CPU trackers to run in addition to GPU tracker
 	bool fGlobalTracking;	//Activate global tracking feature
 
-    static bool CompareClusters( AliHLTTPCSpacePointData *a, AliHLTTPCSpacePointData *b );
-
     /** set configuration parameters **/
     void SetDefaultConfiguration();
     int ReadConfigurationString(  const char* arguments );
     int ReadCDBEntry( const char* cdbEntry, const char* chainId );
-    int Configure( const char* cdbEntry, const char* chainId, const char *commandLine  );
+    int Configure( const char* cdbEntry, const char* chainId, const char *commandLine );
+	void ConfigureSlices();
 
     ClassDef( AliHLTTPCCATrackerComponent, 0 );
 
