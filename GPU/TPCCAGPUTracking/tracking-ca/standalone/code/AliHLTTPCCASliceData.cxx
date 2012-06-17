@@ -24,6 +24,7 @@
 #include "AliHLTTPCCAGPUTracker.h"
 #include "MemoryAssignmentHelpers.h"
 #include <iostream>
+#include <string.h>
 
 // calculates an approximation for 1/sqrt(x)
 // Google for 0x5f3759df :)
@@ -226,6 +227,39 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   // 2. fill HitData and FirstHitInBin
   ////////////////////////////////////
 
+  float2* XYData = new float2[fNumberOfHits];
+  int RowOffset[HLTCA_ROW_COUNT];
+  int NumberOfClustersInRow[HLTCA_ROW_COUNT];
+  memset(NumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(int));
+  int FirstRow = HLTCA_ROW_COUNT;
+  int LastRow = -1;
+
+  for (int i = 0;i < fNumberOfHits;i++)
+  {
+    const int tmpRow = data.RowNumber(i);
+	NumberOfClustersInRow[tmpRow]++;
+	if (tmpRow > LastRow) LastRow = tmpRow;
+	if (tmpRow < FirstRow) FirstRow = tmpRow;
+  }
+  int tmpOffset = 0;
+  for (int i = FirstRow;i <= LastRow;i++)
+  {
+	  RowOffset[i] = tmpOffset;
+	  tmpOffset += NumberOfClustersInRow[i];
+  }
+  {
+	  int RowsFilled[HLTCA_ROW_COUNT];
+	  memset(RowsFilled, 0, HLTCA_ROW_COUNT * sizeof(int));
+	  for (int i = 0;i < fNumberOfHits;i++)
+	  {
+		float2 tmp;
+		tmp.x = data.Y(i);
+		tmp.y = data.Z(i);
+		int tmpRow = data.RowNumber(i);
+		XYData[RowOffset[tmpRow] + (RowsFilled[tmpRow])++] = tmp;
+	  }
+  }
+
   for ( int rowIndex = 0; rowIndex < data.FirstRow(); ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
     row.fGrid.CreateEmpty();
@@ -257,8 +291,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     row.fHstepZi = 1.f;
   }
 
-
-  AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits( fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) * numberOfRows + 1 );
+  AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits( fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v));
 
   int gridContentOffset = 0;
   int hitOffset = 0;
@@ -344,6 +377,8 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 	//Make pointer aligned
 	gridContentOffset = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(gridContentOffset);
   }
+
+  delete[] XYData;
 
 #if 0
   //SG cell finder - test code
