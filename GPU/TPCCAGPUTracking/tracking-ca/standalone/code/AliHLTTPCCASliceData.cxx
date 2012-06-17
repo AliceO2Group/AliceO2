@@ -145,7 +145,7 @@ GPUh() void AliHLTTPCCASliceData::SetGPUSliceDataMemory(void* const pSliceMemory
 size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, bool allocate)
 {
 	//Set slice data internal pointers
-  int hitMemCount = (fLastRow - fFirstRow + 1) * (sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) - 1) + fNumberOfHits;
+  int hitMemCount = (fLastRow - fFirstRow + 1) * (sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) - 1) + data->NumberOfClusters();
   
 	//Calculate Memory needed to store hits in rows
 
@@ -218,7 +218,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   int NumberOfClustersInRow[HLTCA_ROW_COUNT];
   memset(NumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(int));
   fFirstRow = HLTCA_ROW_COUNT;
-  fLastRow = -1;
+  fLastRow = 0;
 
   for (int i = 0;i < fNumberOfHits;i++)
   {
@@ -247,6 +247,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 		tmpHitIndex[newIndex] = i;
 	  }
   }
+  if (fFirstRow == HLTCA_ROW_COUNT) fFirstRow = 0;
 
   ////////////////////////////////////
   // 1. prepare arrays
