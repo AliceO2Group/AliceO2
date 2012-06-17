@@ -301,8 +301,12 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 		  // allows to find the global hit index / coordinates from a global bin sorted hit index
 		  fClusterDataIndex[globalBinsortedIndex] = globalHitIndex;
 
-		  const float xx = ( ( data.Y( globalHitIndex ) - y0 ) * stepYi ) + .5 ;
-		  const float yy = ( ( data.Z( globalHitIndex ) - z0 ) * stepZi ) + .5 ;
+		  AliHLTTPCCAHit tmph;
+		  tmph.SetY( data.Y( globalHitIndex ) );
+		  tmph.SetZ( data.Z( globalHitIndex ) );
+
+		  const float xx = ( ( tmph.Y() - y0 ) * stepYi ) + .5 ;
+		  const float yy = ( ( tmph.Z() - z0 ) * stepZi ) + .5 ;
 		  if ( xx < 0 || yy < 0 || xx >= 65536    || yy >= 65536 ) {
 			std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " " << std::endl;
 		  }
