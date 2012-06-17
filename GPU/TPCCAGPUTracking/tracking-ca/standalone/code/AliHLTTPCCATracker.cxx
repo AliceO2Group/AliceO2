@@ -753,20 +753,6 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 			const AliHLTTPCCARow &row = fData.Row( iRow );
 
 			int clusterIndex = fData.ClusterDataIndex( row, ih );
-			int clusterRowIndex = clusterIndex - fClusterData->RowOffset( iRow );
-
-			if ( clusterIndex < 0 || clusterIndex >= fClusterData->NumberOfClusters() ) {
-				//std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
-				//<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
-				//abort();
-				continue;
-			}
-			if ( clusterRowIndex < 0 || clusterRowIndex >= fClusterData->NumberOfClusters( iRow ) ) {
-				//std::cout << inpIDtot << ", " << fClusterData->NumberOfClusters()
-				//<< "; " << inpID << ", " << fClusterData->NumberOfClusters( iRow ) << std::endl;
-				//abort();
-				continue;
-			}
 
 			float origX = fClusterData->X( clusterIndex );
 			float origY = fClusterData->Y( clusterIndex );

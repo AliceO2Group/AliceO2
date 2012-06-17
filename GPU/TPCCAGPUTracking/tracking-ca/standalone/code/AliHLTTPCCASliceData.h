@@ -45,7 +45,7 @@ class AliHLTTPCCASliceData
   public:
     AliHLTTPCCASliceData()
         : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
 		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
         , fFirstHitInBin( 0 ), fHitWeights( 0 )
 	{
@@ -160,7 +160,7 @@ class AliHLTTPCCASliceData
   private:
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
         : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+		fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow(0), fLastRow(HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
 		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
         , fFirstHitInBin( 0 ), fHitWeights( 0 )
 	{
@@ -169,11 +169,15 @@ class AliHLTTPCCASliceData
       return *this;
     }
 
-    void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data, int ClusterDataHitNumberOffset );
+    void CreateGrid( AliHLTTPCCARow *row, const float2* data, int ClusterDataHitNumberOffset );
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
 	int fIsGpuSliceData;		//Slice Data for GPU Tracker?
 	int fGPUSharedDataReq;		//Size of shared memory required for GPU Reconstruction
+
+	int fFirstRow;				//First non-empty row
+	int fLastRow;				//Last non-empty row
+	int fNumberOfClustersInRow[HLTCA_ROW_COUNT];	//Number of clusters in rows
 
     int fNumberOfHits;         // the number of hits in this slice
 	int fNumberOfHitsPlusAlign;
