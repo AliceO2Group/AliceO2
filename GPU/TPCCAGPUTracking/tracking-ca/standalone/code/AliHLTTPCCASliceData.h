@@ -177,7 +177,6 @@ class AliHLTTPCCASliceData
 
 	int fFirstRow;				//First non-empty row
 	int fLastRow;				//Last non-empty row
-	int fNumberOfClustersInRow[HLTCA_ROW_COUNT];	//Number of clusters in rows
 
     int fNumberOfHits;         // the number of hits in this slice
 	int fNumberOfHitsPlusAlign;

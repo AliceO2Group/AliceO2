@@ -145,11 +145,8 @@ GPUh() void AliHLTTPCCASliceData::SetGPUSliceDataMemory(void* const pSliceMemory
 size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, bool allocate)
 {
 	//Set slice data internal pointers
-  int hitMemCount = 0;
-  for ( int rowIndex = fFirstRow; rowIndex <= fLastRow; ++rowIndex )
-  {
-	hitMemCount += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(fNumberOfClustersInRow[rowIndex]);
-  }
+  int hitMemCount = (fLastRow - fFirstRow + 1) * (sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) - 1) + fNumberOfHits;
+  
 	//Calculate Memory needed to store hits in rows
 
   const int numberOfRows = fLastRow - fFirstRow + 1;
@@ -218,14 +215,15 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   int* tmpHitIndex = new int[fNumberOfHits];
 
   int RowOffset[HLTCA_ROW_COUNT];
-  memset(fNumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(int));
+  int NumberOfClustersInRow[HLTCA_ROW_COUNT];
+  memset(NumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(int));
   fFirstRow = HLTCA_ROW_COUNT;
   fLastRow = -1;
 
   for (int i = 0;i < fNumberOfHits;i++)
   {
     const int tmpRow = data.RowNumber(i);
-	fNumberOfClustersInRow[tmpRow]++;
+	NumberOfClustersInRow[tmpRow]++;
 	if (tmpRow > fLastRow) fLastRow = tmpRow;
 	if (tmpRow < fFirstRow) fFirstRow = tmpRow;
   }
@@ -233,7 +231,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   for (int i = fFirstRow;i <= fLastRow;i++)
   {
 	  RowOffset[i] = tmpOffset;
-	  tmpOffset += fNumberOfClustersInRow[i];
+	  tmpOffset += NumberOfClustersInRow[i];
   }
   {
 	  int RowsFilled[HLTCA_ROW_COUNT];
@@ -305,10 +303,10 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 
   for ( int rowIndex = fFirstRow; rowIndex <= fLastRow; ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
-	row.fNHits = fNumberOfClustersInRow[rowIndex];
+	row.fNHits = NumberOfClustersInRow[rowIndex];
     assert( row.fNHits < ( 1 << sizeof( unsigned short ) * 8 ) );
 	row.fHitNumberOffset = hitOffset;
-	hitOffset += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(fNumberOfClustersInRow[rowIndex]);
+	hitOffset += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(NumberOfClustersInRow[rowIndex]);
 
     row.fFirstHitInBinOffset = gridContentOffset;
 
@@ -381,6 +379,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   }
 
   delete[] YZData;
+  delete[] tmpHitIndex;
 
 #if 0
   //SG cell finder - test code
