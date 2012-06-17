@@ -30,7 +30,7 @@ class AliHLTTPCCAClusterData
 {
   public:
 
-    AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fFirstRow( 0 ), fLastRow( -1 ), fNumberOfClusters(), fRowOffset(), fData() {}
+    AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fData() {}
     ~AliHLTTPCCAClusterData() { }
 
     /**
@@ -72,39 +72,9 @@ class AliHLTTPCCAClusterData
     int SliceIndex() const { return fSliceIndex; }
 
     /**
-     * The first row index that contains a cluster.
-     */
-    int FirstRow() const { return fFirstRow; }
-
-    /**
-     * The last row index that contains a cluster.
-     */
-    int LastRow() const { return fLastRow; }
-
-    /**
      * Return the number of clusters in this slice.
      */
     int NumberOfClusters() const { return (int) fData.size(); }
-
-    /**
-     * Return the number of clusters in the given row, for this slice.
-     */
-    int NumberOfClusters( unsigned int rowIndex ) const { return rowIndex < fNumberOfClusters.size() ? fNumberOfClusters[rowIndex] : 0; }
-
-    /**
-     * Return the index of the first cluster in the given row.
-     *
-     * Supports calls with rowIndex greater than the available number of rows. In that case it
-     * returns NumberOfClusters.
-     *
-     * To iterate over the clusters in one row do:
-     * \code
-     * AliHLTTPCCAClusterData cd;
-     * const int lastClusterIndex = cd.RowOffset( rowIndex + 1 );
-     * for ( int hitIndex = cd.RowOffset( rowIndex ); hitIndex < lastClusterIndex; ++hitIndex )
-     * \endcode
-     */
-    int RowOffset( unsigned int rowIndex ) const { return rowIndex < fRowOffset.size() ? fRowOffset[rowIndex] : (int) fData.size(); }
 
     /**
      * Return the x coordinate of the given cluster.
@@ -156,10 +126,6 @@ class AliHLTTPCCAClusterData
 	static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow == b.fRow ? (a.fY < b.fY) : (a.fRow < b.fRow) ); }
 
     int fSliceIndex;  // the slice index this data belongs to
-    int fFirstRow; // see FirstRow()
-    int fLastRow;  // see LastRow()
-    std::vector<int> fNumberOfClusters; // list of NumberOfClusters per row for NumberOfClusters(int)
-    std::vector<int> fRowOffset;        // see RowOffset()
     std::vector<Data> fData; // list of data of clusters
 };
 

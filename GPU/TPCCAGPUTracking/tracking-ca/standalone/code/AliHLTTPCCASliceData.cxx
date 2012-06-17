@@ -39,7 +39,7 @@ static inline float fastInvSqrt( float _x )
   return x.f;
 }
 
-inline void AliHLTTPCCASliceData::CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data, int ClusterDataHitNumberOffset )
+inline void AliHLTTPCCASliceData::CreateGrid( AliHLTTPCCARow *row, const float2* data, int ClusterDataHitNumberOffset )
 {
   // grid creation
 
@@ -54,8 +54,8 @@ inline void AliHLTTPCCASliceData::CreateGrid( AliHLTTPCCARow *row, const AliHLTT
   float zMin =  1.e3f;
   float zMax = -1.e3f;
   for ( int i = ClusterDataHitNumberOffset; i < ClusterDataHitNumberOffset + row->fNHits; ++i ) {
-    const float y = data.Y( i );
-    const float z = data.Z( i );
+    const float y = data[i].x;
+    const float z = data[i].y;
     if ( yMax < y ) yMax = y;
     if ( yMin > y ) yMin = y;
     if ( zMax < z ) zMax = z;
@@ -146,13 +146,13 @@ size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, boo
 {
 	//Set slice data internal pointers
   int hitMemCount = 0;
-  for ( int rowIndex = data->FirstRow(); rowIndex <= data->LastRow(); ++rowIndex )
+  for ( int rowIndex = fFirstRow; rowIndex <= fLastRow; ++rowIndex )
   {
-	hitMemCount += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(data->NumberOfClusters( rowIndex ));
+	hitMemCount += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(fNumberOfClustersInRow[rowIndex]);
   }
 	//Calculate Memory needed to store hits in rows
 
-  const int numberOfRows = data->LastRow() - data->FirstRow() + 1;
+  const int numberOfRows = fLastRow - fFirstRow + 1;
   const unsigned int kVectorAlignment = 256 /*sizeof( uint4 )*/ ;
   fNumberOfHitsPlusAlign = NextMultipleOf < ( kVectorAlignment > sizeof(HLTCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(HLTCA_GPU_ROWALIGNMENT)) / sizeof( int ) > ( hitMemCount );
   fNumberOfHits = data->NumberOfClusters();
@@ -209,43 +209,31 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
   // initialisation from cluster data
 
   ////////////////////////////////////
-  // 1. prepare arrays
+  // 0. sort rows
   ////////////////////////////////////
 
-  const int numberOfRows = data.LastRow() - data.FirstRow() + 1;
   fNumberOfHits = data.NumberOfClusters();
 
-  /* TODO Vectorization
-  for ( int rowIndex = data.FirstRow(); rowIndex <= data.LastRow(); ++rowIndex ) {
-    int NumberOfClusters( int rowIndex ) const;
-  }
-  const int memorySize = fNumberOfHits * sizeof( short_v::Type )
-  */
-  if (SetPointers(&data, true) == 0) return;
+  float2* YZData = new float2[fNumberOfHits];
+  int* tmpHitIndex = new int[fNumberOfHits];
 
-  ////////////////////////////////////
-  // 2. fill HitData and FirstHitInBin
-  ////////////////////////////////////
-
-  float2* XYData = new float2[fNumberOfHits];
   int RowOffset[HLTCA_ROW_COUNT];
-  int NumberOfClustersInRow[HLTCA_ROW_COUNT];
-  memset(NumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(int));
-  int FirstRow = HLTCA_ROW_COUNT;
-  int LastRow = -1;
+  memset(fNumberOfClustersInRow, 0, HLTCA_ROW_COUNT * sizeof(int));
+  fFirstRow = HLTCA_ROW_COUNT;
+  fLastRow = -1;
 
   for (int i = 0;i < fNumberOfHits;i++)
   {
     const int tmpRow = data.RowNumber(i);
-	NumberOfClustersInRow[tmpRow]++;
-	if (tmpRow > LastRow) LastRow = tmpRow;
-	if (tmpRow < FirstRow) FirstRow = tmpRow;
+	fNumberOfClustersInRow[tmpRow]++;
+	if (tmpRow > fLastRow) fLastRow = tmpRow;
+	if (tmpRow < fFirstRow) fFirstRow = tmpRow;
   }
   int tmpOffset = 0;
-  for (int i = FirstRow;i <= LastRow;i++)
+  for (int i = fFirstRow;i <= fLastRow;i++)
   {
 	  RowOffset[i] = tmpOffset;
-	  tmpOffset += NumberOfClustersInRow[i];
+	  tmpOffset += fNumberOfClustersInRow[i];
   }
   {
 	  int RowsFilled[HLTCA_ROW_COUNT];
@@ -256,11 +244,25 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 		tmp.x = data.Y(i);
 		tmp.y = data.Z(i);
 		int tmpRow = data.RowNumber(i);
-		XYData[RowOffset[tmpRow] + (RowsFilled[tmpRow])++] = tmp;
+		int newIndex = RowOffset[tmpRow] + (RowsFilled[tmpRow])++;
+		YZData[newIndex] = tmp;
+		tmpHitIndex[newIndex] = i;
 	  }
   }
 
-  for ( int rowIndex = 0; rowIndex < data.FirstRow(); ++rowIndex ) {
+  ////////////////////////////////////
+  // 1. prepare arrays
+  ////////////////////////////////////
+
+  const int numberOfRows = fLastRow - fFirstRow + 1;
+
+  if (SetPointers(&data, true) == 0) return;
+
+  ////////////////////////////////////
+  // 2. fill HitData and FirstHitInBin
+  ////////////////////////////////////
+
+  for ( int rowIndex = 0; rowIndex < fFirstRow; ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
     row.fGrid.CreateEmpty();
     row.fNHits = 0;
@@ -275,7 +277,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     row.fHstepYi = 1.f;
     row.fHstepZi = 1.f;
   }
-  for ( int rowIndex = data.LastRow() + 1; rowIndex < HLTCA_ROW_COUNT + 1; ++rowIndex ) {
+  for ( int rowIndex = fLastRow + 1; rowIndex < HLTCA_ROW_COUNT + 1; ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
     row.fGrid.CreateEmpty();
     row.fNHits = 0;
@@ -301,16 +303,16 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 
   fGPUSharedDataReq = 0;
 
-  for ( int rowIndex = data.FirstRow(); rowIndex <= data.LastRow(); ++rowIndex ) {
+  for ( int rowIndex = fFirstRow; rowIndex <= fLastRow; ++rowIndex ) {
     AliHLTTPCCARow &row = fRows[rowIndex];
-    row.fNHits = data.NumberOfClusters( rowIndex );
+	row.fNHits = fNumberOfClustersInRow[rowIndex];
     assert( row.fNHits < ( 1 << sizeof( unsigned short ) * 8 ) );
 	row.fHitNumberOffset = hitOffset;
-	hitOffset += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(data.NumberOfClusters( rowIndex ));
+	hitOffset += NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(fNumberOfClustersInRow[rowIndex]);
 
     row.fFirstHitInBinOffset = gridContentOffset;
 
-    CreateGrid( &row, data, data.RowOffset( rowIndex ) );
+    CreateGrid( &row, YZData, RowOffset[rowIndex] );
     const AliHLTTPCCAGrid &grid = row.fGrid;
     const int numberOfBins = grid.N();
 
@@ -329,8 +331,8 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     }
 
     for ( int hitIndex = 0; hitIndex < row.fNHits; ++hitIndex ) {
-      const int globalHitIndex = data.RowOffset( rowIndex ) + hitIndex;
-      const unsigned short bin = row.fGrid.GetBin( data.Y( globalHitIndex ), data.Z( globalHitIndex ) );
+      const int globalHitIndex = RowOffset[rowIndex] + hitIndex;
+      const unsigned short bin = row.fGrid.GetBin( YZData[globalHitIndex].x, YZData[globalHitIndex].y );
 
       bins[hitIndex] = bin;
       ++filled[bin];
@@ -347,12 +349,12 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
       --filled[bin];
       const unsigned short ind = c[bin] + filled[bin]; // generate an index for this hit that is >= c[bin] and < c[bin + 1]
       const int globalBinsortedIndex = row.fHitNumberOffset + ind;
-      const int globalHitIndex = data.RowOffset( rowIndex ) + hitIndex;
+      const int globalHitIndex = RowOffset[rowIndex] + hitIndex;
 
       // allows to find the global hit index / coordinates from a global bin sorted hit index
-      fClusterDataIndex[globalBinsortedIndex] = globalHitIndex;
-      binSortedHits[ind].SetY( data.Y( globalHitIndex ) );
-      binSortedHits[ind].SetZ( data.Z( globalHitIndex ) );
+      fClusterDataIndex[globalBinsortedIndex] = tmpHitIndex[globalHitIndex];
+      binSortedHits[ind].SetY( YZData[globalHitIndex].x );
+      binSortedHits[ind].SetZ( YZData[globalHitIndex].y );
     }
 
     PackHitData( &row, binSortedHits );
@@ -378,7 +380,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 	gridContentOffset = NextMultipleOf<sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v)>(gridContentOffset);
   }
 
-  delete[] XYData;
+  delete[] YZData;
 
 #if 0
   //SG cell finder - test code
