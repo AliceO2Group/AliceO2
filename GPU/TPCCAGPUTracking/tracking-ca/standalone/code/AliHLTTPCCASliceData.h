@@ -170,7 +170,6 @@ class AliHLTTPCCASliceData
     }
 
     void CreateGrid( AliHLTTPCCARow *row, const AliHLTTPCCAClusterData &data, int ClusterDataHitNumberOffset );
-    void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
 	int fIsGpuSliceData;		//Slice Data for GPU Tracker?
 	int fGPUSharedDataReq;		//Size of shared memory required for GPU Reconstruction
