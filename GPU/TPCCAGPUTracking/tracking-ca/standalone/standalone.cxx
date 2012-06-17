@@ -367,8 +367,8 @@ breakrun:
 		GPUOut.close();
 	}
 
-	hlt.Merger().SetGPUTracker(NULL);
 	hlt.Merger().Clear();
+	hlt.Merger().SetGPUTracker(NULL);
 
 	hlt.ExitGPU();
 
