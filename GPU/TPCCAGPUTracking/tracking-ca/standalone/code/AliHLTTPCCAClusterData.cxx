@@ -20,52 +20,34 @@
 #include "AliHLTArray.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
+AliHLTTPCCAClusterData::~AliHLTTPCCAClusterData()
+{
+	if(fAllocated) free(fData);
+}
+
 void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfClusters )
 {
   // Start reading of event - initialisation
-
   fSliceIndex = sliceIndex;
-  fData.clear();
-  fData.reserve( CAMath::Max( 64, guessForNumberOfClusters ) );
+  fNumberOfClusters = 0;
+  Allocate(CAMath::Max( 64, guessForNumberOfClusters ));
 }
 
-
-void AliHLTTPCCAClusterData::FinishReading()
+template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const T* const &data, std::ostream &out) const
 {
-
-}
-
-template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const std::vector<T> &data, std::ostream &out) const
-{
-	AliHLTResizableArray<T> tmpData(data.size());
 	unsigned i;
-	for (i = 0;i < data.size();i++)
-	{
-		tmpData[i] = data[i];
-	}
-	i = data.size();
+	i = fNumberOfClusters;
 	out.write((char*) &i, sizeof(i));
-	out.write((char*) &tmpData[0], i * sizeof(T));
+	out.write((char*) data, i * sizeof(T));
 }
 
-template <class T> void AliHLTTPCCAClusterData::ReadEventVector(std::vector<T> &data, std::istream &in, int MinSize)
+template <class T> void AliHLTTPCCAClusterData::ReadEventVector(T* &data, std::istream &in, int MinSize)
 {
 	int i;
 	in.read((char*) &i, sizeof(i));
-	data.reserve(AliHLTTPCCAMath::Max(MinSize, i));
-	data.resize(i);
-	AliHLTResizableArray<T> tmpData(i);
-	in.read((char*) &tmpData[0], i * sizeof(T));
-	for (int j = 0;j < i;j++)
-	{
-#ifdef HLTCA_STANDALONE
-		if (tmpData[j].fRow < 0 || tmpData[j].fRow >= HLTCA_ROW_COUNT)
-		{
-			exit(1);
-		}
-#endif
-		data[j] = tmpData[j];
-	}
+	fNumberOfClusters = i;
+	Allocate(CAMath::Max(MinSize, fNumberOfClusters));
+	in.read((char*) data, i * sizeof(T));
 }
 
 void AliHLTTPCCAClusterData::WriteEvent(std::ostream &out) const
@@ -75,7 +57,19 @@ void AliHLTTPCCAClusterData::WriteEvent(std::ostream &out) const
 
 void AliHLTTPCCAClusterData::ReadEvent(std::istream &in)
 {
-    fData.clear();
 	ReadEventVector<Data>(fData, in, 64);
 }
 
+void AliHLTTPCCAClusterData::Allocate(int number)
+{
+	if (fAllocated)
+	{
+		if (number < fAllocated) return;
+		fData = (Data*) realloc(fData, number * sizeof(Data));
+	}
+	else
+	{
+		fData = (Data*) malloc(number * sizeof(Data));
+	}
+	fAllocated = number;
+}

@@ -255,7 +255,12 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
 
   const int numberOfRows = fLastRow - fFirstRow + 1;
 
-  if (SetPointers(&data, true) == 0) return;
+  if (SetPointers(&data, true) == 0)
+  {
+	delete[] YZData;
+	delete[] tmpHitIndex;
+	return;
+  }
 
   ////////////////////////////////////
   // 2. fill HitData and FirstHitInBin
