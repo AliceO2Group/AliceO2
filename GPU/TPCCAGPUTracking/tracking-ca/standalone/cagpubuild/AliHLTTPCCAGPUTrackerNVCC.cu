@@ -623,7 +623,6 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU(int sliceCount, int forceDeviceID)
 		{
 			tmpCluster[i].StartReading(i, 0);
 			tmpCluster[i].ReadEvent(fin);
-			tmpCluster[i].FinishReading();
 		}
 		fin.close();
 

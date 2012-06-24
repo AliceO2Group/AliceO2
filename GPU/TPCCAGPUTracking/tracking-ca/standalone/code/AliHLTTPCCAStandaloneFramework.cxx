@@ -126,7 +126,7 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
   infile.close();*/
 
   for ( int i = 0; i < fgkNSlices; i++ ) {
-    fClusterData[i].FinishReading();
+    //fClusterData[i].FinishReading();			//No longer needed
   }
 }
 
