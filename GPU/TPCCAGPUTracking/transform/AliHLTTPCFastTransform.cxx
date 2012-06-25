@@ -94,6 +94,20 @@ Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Int_t TimeStamp
   }
 
   SetCurrentTimeStamp( TimeStamp );
+
+  // at the moment initialise all the rows
+
+  AliTPCcalibDB* pCalib=AliTPCcalibDB::Instance();  
+  if(!pCalib ) return 1;
+  AliTPCParam *par = pCalib->GetParameters(); 
+  if( !par ) return 1;
+  
+  for( int iSector=0; iSector<par->GetNSector(); iSector++ ){
+    for( int iRow=0; iRow<par->GetNRow(iSector); iRow++){
+      InitRow( iSector, iRow );
+    }
+  }
+  
   return 0;
 }
 
