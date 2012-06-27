@@ -145,16 +145,15 @@ GPUh() void AliHLTTPCCASliceData::SetGPUSliceDataMemory(void* const pSliceMemory
 size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, bool allocate)
 {
 	//Set slice data internal pointers
-  int hitMemCount = (fLastRow - fFirstRow + 1) * (sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) - 1) + data->NumberOfClusters();
+  int hitMemCount = HLTCA_ROW_COUNT * (sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) - 1) + data->NumberOfClusters();
   
 	//Calculate Memory needed to store hits in rows
 
-  const int numberOfRows = fLastRow - fFirstRow + 1;
   const unsigned int kVectorAlignment = 256 /*sizeof( uint4 )*/ ;
   fNumberOfHitsPlusAlign = NextMultipleOf < ( kVectorAlignment > sizeof(HLTCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(HLTCA_GPU_ROWALIGNMENT)) / sizeof( int ) > ( hitMemCount );
   fNumberOfHits = data->NumberOfClusters();
-  const int firstHitInBinSize = (23 + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int)) * numberOfRows + 4 * fNumberOfHits + 3;
-  //FIXME: sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int) * numberOfRows is way to big and only to ensure to reserve enough memory for GPU Alignment.
+  const int firstHitInBinSize = (23 + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int)) * HLTCA_ROW_COUNT + 4 * fNumberOfHits + 3;
+  //FIXME: sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(int) * HLTCA_ROW_COUNT is way to big and only to ensure to reserve enough memory for GPU Alignment.
   //Might be replaced by correct value
 
   const int memorySize =
