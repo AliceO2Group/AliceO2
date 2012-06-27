@@ -655,13 +655,15 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
 	for (int islice = 0;islice < fSliceCount;islice++)
 	{
+		if (slicemaxPatch[islice] == -1) continue;
+		int slice = fMinSlice + islice;
+
 		if( outputControl.fEndOfSpace ){
 			HLTWarning( "Output buffer size exceeded (buffer size %d, required size %d), tracks are not stored", maxBufferSize, mySize );
 			ret = -ENOSPC;
 			error = 1;
 			break;     
 		}
-		int slice = fMinSlice + islice;
 
 		if (fSliceOutput[islice])
 		{
@@ -687,7 +689,9 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	{
 		for (int islice = 0;islice < fSliceCount;islice++)
 		{
+			if (slicemaxPatch[islice] == -1) continue;
 			int slice = fMinSlice + islice;
+
 			mySize = fSliceOutput[islice]->Size();
 			if (mySize > 0)
 			{
