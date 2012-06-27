@@ -15,7 +15,6 @@
 
 class AliHLTTPCCATrackerFramework;
 class AliHLTTPCCASliceOutput;
-class AliHLTTPCCAClusterData;
 class AliHLTTPCSpacePointData;
 
 /**
@@ -77,13 +76,10 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 
   private:
 
-    static const int fgkNSlices = 36;       //* N slices
-
-	/** the tracker object */
+    /** the tracker object */
     AliHLTTPCCATrackerFramework* fTracker;                                //! transient
-	AliHLTTPCCAClusterData* fClusterData;								//Storage classes for cluser data in slice
-	AliHLTTPCCASliceOutput* fSliceOutput[fgkNSlices];					//Pointers to slice tracker output structures
 
+    static const int fgkNSlices = 36;       //* N slices
 	//The following parameters are maintained for compatibility to be able to change the component
 	//such to process less than all 36 slices. Currently, fMinSlice is always 0 and fSliceCount is 36
 	int fMinSlice;							//minimum slice number to be processed

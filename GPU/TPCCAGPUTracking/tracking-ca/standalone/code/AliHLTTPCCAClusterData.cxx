@@ -19,6 +19,7 @@
 #include <algorithm>
 #include "AliHLTArray.h"
 #include "AliHLTTPCCAGPUConfig.h"
+#include <stdio.h>
 
 AliHLTTPCCAClusterData::~AliHLTTPCCAClusterData()
 {
@@ -62,14 +63,22 @@ void AliHLTTPCCAClusterData::ReadEvent(std::istream &in)
 
 void AliHLTTPCCAClusterData::Allocate(int number)
 {
+	int newnumber;
 	if (fAllocated)
 	{
 		if (number < fAllocated) return;
-		fData = (Data*) realloc(fData, number * sizeof(Data));
+		newnumber = CAMath::Max(number, 2 * fAllocated);
+		fData = (Data*) realloc(fData, newnumber * sizeof(Data));
 	}
 	else
 	{
 		fData = (Data*) malloc(number * sizeof(Data));
+		newnumber = number;
 	}
-	fAllocated = number;
+	if (fData == NULL)
+	{
+		fprintf(stderr, "Memory allocation error\n");
+		exit(1);
+	}
+	fAllocated = newnumber;
 }
