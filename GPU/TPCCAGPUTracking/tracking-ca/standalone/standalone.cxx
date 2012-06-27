@@ -26,7 +26,7 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0;
+	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1;
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
@@ -78,6 +78,11 @@ int main(int argc, char** argv)
 		if ( !strcmp( argv[i], "-DEBUG" ) && argc > i + 1)
 		{
 			DebugLevel = atoi(argv[i + 1]);
+		}
+
+		if ( !strcmp( argv[i], "-SEED" ) && argc > i + 1)
+		{
+			seed = atoi(argv[i + 1]);
 		}
 
 		if ( !strcmp( argv[i], "-CLEARDEBUG" ) && argc > i + 1)
@@ -234,6 +239,8 @@ int main(int argc, char** argv)
 		memset(ClusterStat, 0, (HLTCA_ROW_COUNT + 1) * sizeof(int));
 	}
 
+	if (seed != -1) srand(seed);
+
 	for (i = StartEvent;i < NEvents || NEvents == -1;i++)
 	{
 		char filename[256];
@@ -247,12 +254,14 @@ int main(int argc, char** argv)
 			return(1);
 		}
 		printf("Loading Event %d\n", i);
+
 		hlt.StartDataReading(0);
 		hlt.ReadEvent(in);
 		
 #ifdef BROKEN_EVENTS
 		int break_slices = rand() % 36;
 		for (int k = 0;k < 2;k++) if (rand() % 2) break_slices /= 2;
+//		break_slices = 1;
 		for (int j = 0;j < break_slices;j++)
 		{
 			int break_slice = rand() % 36;
@@ -268,6 +277,7 @@ int main(int argc, char** argv)
 		
 		hlt.FinishDataReading();
 		in.close();
+
 		printf("Processing Event %d\n", i);
 		for (int j = 0;j < runs;j++)
 		{
@@ -289,6 +299,9 @@ int main(int argc, char** argv)
 			if (hlt.ProcessEvent(forceSlice) && !continueOnError)
 			{
 				printf("Error occured\n");
+#ifdef BROKEN_EVENTS
+				continue;
+#endif
 				goto breakrun;
 			}
 
