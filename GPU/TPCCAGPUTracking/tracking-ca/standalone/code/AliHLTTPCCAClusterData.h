@@ -51,20 +51,20 @@ class AliHLTTPCCAClusterData
      *  read next cluster
      */
     void ReadCluster( int id, int iRow, float x, float y, float z, float amp ) {
-	  if (fNumberOfClusters >= fAllocated) Allocate(fNumberOfClusters + 64);
+      if (fNumberOfClusters >= fAllocated) Allocate(fNumberOfClusters + 64);
       Data d = { id, iRow, x, y, z, amp};
       fData[fNumberOfClusters++] = d;
     }
 
-	Data* Clusters() { return(fData); }
-	void SetNumberOfClusters(int number) {fNumberOfClusters = number;}
+    Data* Clusters() { return(fData); }
+    void SetNumberOfClusters(int number) {fNumberOfClusters = number;}
 
     /**
      * Read/Write Events from/to file
      */
     void ReadEvent(std::istream &in);
     void WriteEvent(std::ostream &out) const;
-	template <class T> void ReadEventVector(T* &data, std::istream &in, int MinSize = 0);
+    template <class T> void ReadEventVector(T* &data, std::istream &in, int MinSize = 0);
     template <class T> void WriteEventVector(const T* const &data, std::ostream &out) const;
 
     /**
@@ -117,21 +117,21 @@ class AliHLTTPCCAClusterData
     Data *GetClusterData( int index ) { return &( fData[index] ); }
 
   private:
-	AliHLTTPCCAClusterData(AliHLTTPCCAClusterData&): fSliceIndex( 0 ), fData( NULL ), fNumberOfClusters(0), fAllocated(0) {}
-	AliHLTTPCCAClusterData& operator=( const AliHLTTPCCAClusterData& );
+    AliHLTTPCCAClusterData(AliHLTTPCCAClusterData&): fSliceIndex( 0 ), fData( NULL ), fNumberOfClusters(0), fAllocated(0) {}
+    AliHLTTPCCAClusterData& operator=( const AliHLTTPCCAClusterData& );
 
     /** TODO
      * "remove" two clusters and "add" a new one, keeping history.
      */
     void Merge( int index1, int index2 );
 
-	void Allocate( int number);
-	static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow == b.fRow ? (a.fY < b.fY) : (a.fRow < b.fRow) ); }
+    void Allocate( int number);
+    static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow == b.fRow ? (a.fY < b.fY) : (a.fRow < b.fRow) ); }
 
     int fSliceIndex;  // the slice index this data belongs to
     Data* fData; // list of data of clusters
-	int fNumberOfClusters;	//Current number of clusters stored in fData
-	int fAllocated; //Number of clusters that can be stored in fData
+    int fNumberOfClusters;	//Current number of clusters stored in fData
+    int fAllocated; //Number of clusters that can be stored in fData
 };
 
 typedef AliHLTTPCCAClusterData ClusterData;

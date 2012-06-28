@@ -79,37 +79,37 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 
     static const int fgkNSlices = 36;       //* N slices
 
-	/** the tracker object */
-    AliHLTTPCCATrackerFramework* fTracker;                                //! transient
-	AliHLTTPCCAClusterData* fClusterData;								//Storage classes for cluser data in slice
-	AliHLTTPCCASliceOutput* fSliceOutput[fgkNSlices];					//Pointers to slice tracker output structures
+    /** the tracker object */
+    AliHLTTPCCATrackerFramework* fTracker;                      //! transient
+    AliHLTTPCCAClusterData* fClusterData;                       //Storage classes for cluser data in slice
+    AliHLTTPCCASliceOutput* fSliceOutput[fgkNSlices];           //Pointers to slice tracker output structures
 
-	//The following parameters are maintained for compatibility to be able to change the component
-	//such to process less than all 36 slices. Currently, fMinSlice is always 0 and fSliceCount is 36
-	int fMinSlice;							//minimum slice number to be processed
-	int fSliceCount;						//Number of slices to be processed
+    //The following parameters are maintained for compatibility to be able to change the component
+    //such to process less than all 36 slices. Currently, fMinSlice is always 0 and fSliceCount is 36
+    int fMinSlice;                                              //minimum slice number to be processed
+    int fSliceCount;                                            //Number of slices to be processed
 
     /** magnetic field */
-    double fSolenoidBz;                                            // see above
-    int fMinNTrackClusters; //* required min number of clusters on the track
-    double fMinTrackPt;    //* required min Pt of tracks
-    double fClusterZCut;  //* cut on cluster Z position (for noise rejection at the age of TPC)
-	double fNeighboursSearchArea; //* area in cm for the neighbour search algorithm
-    double fClusterErrorCorrectionY; // correction for the cluster errors
-    double fClusterErrorCorrectionZ; // correction for the cluster errors
+    double fSolenoidBz;               // see above
+    int fMinNTrackClusters;           //* required min number of clusters on the track
+    double fMinTrackPt;               //* required min Pt of tracks
+    double fClusterZCut;              //* cut on cluster Z position (for noise rejection at the age of TPC)
+    double fNeighboursSearchArea;     //* area in cm for the neighbour search algorithm
+    double fClusterErrorCorrectionY;  // correction for the cluster errors
+    double fClusterErrorCorrectionZ;  // correction for the cluster errors
 
     AliHLTComponentBenchmark fBenchmark; // benchmarks
-    bool fAllowGPU;    //* Allow this tracker to run on GPU
-	int fGPUHelperThreads;		// Number of helper threads for GPU tracker, set to -1 to use default number
-	int fCPUTrackers;  //Number of CPU trackers to run in addition to GPU tracker
-	bool fGlobalTracking;	//Activate global tracking feature
+    bool fAllowGPU;                   //* Allow this tracker to run on GPU
+    int fGPUHelperThreads;            // Number of helper threads for GPU tracker, set to -1 to use default number
+    int fCPUTrackers;                 //Number of CPU trackers to run in addition to GPU tracker
+    bool fGlobalTracking;             //Activate global tracking feature
 
     /** set configuration parameters **/
     void SetDefaultConfiguration();
     int ReadConfigurationString(  const char* arguments );
     int ReadCDBEntry( const char* cdbEntry, const char* chainId );
     int Configure( const char* cdbEntry, const char* chainId, const char *commandLine );
-	void ConfigureSlices();
+    void ConfigureSlices();
 
     ClassDef( AliHLTTPCCATrackerComponent, 0 );
 
