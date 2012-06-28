@@ -74,10 +74,5 @@ void AliHLTTPCCAClusterData::Allocate(int number)
 		fData = (Data*) malloc(number * sizeof(Data));
 		newnumber = number;
 	}
-	if (fData == NULL)
-	{
-		fprintf(stderr, "Memory allocation error\n");
-		exit(1);
-	}
 	fAllocated = newnumber;
 }
