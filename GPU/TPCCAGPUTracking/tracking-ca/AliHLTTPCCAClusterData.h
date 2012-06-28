@@ -30,8 +30,17 @@ class AliHLTTPCCAClusterData
 {
   public:
 
-    AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fFirstRow( 0 ), fLastRow( -1 ), fNumberOfClusters(), fRowOffset(), fData() {}
-    ~AliHLTTPCCAClusterData() { }
+    AliHLTTPCCAClusterData(): fSliceIndex( 0 ), fData( NULL ), fNumberOfClusters(0), fAllocated(0) {}
+    ~AliHLTTPCCAClusterData();
+
+    struct Data {
+      int fId;
+      int fRow;
+      float fX;
+      float fY;
+      float fZ;
+      float fAmp;
+    };
 
     /**
      * prepare for the reading of event
@@ -42,22 +51,21 @@ class AliHLTTPCCAClusterData
      *  read next cluster
      */
     void ReadCluster( int id, int iRow, float x, float y, float z, float amp ) {
+      if (fNumberOfClusters >= fAllocated) Allocate(fNumberOfClusters + 64);
       Data d = { id, iRow, x, y, z, amp};
-      fData.push_back( d );
+      fData[fNumberOfClusters++] = d;
     }
 
-    /**
-     * finish the reading of event
-     */
-    void FinishReading();
+    Data* Clusters() { return(fData); }
+    void SetNumberOfClusters(int number) {fNumberOfClusters = number;}
 
     /**
      * Read/Write Events from/to file
      */
     void ReadEvent(std::istream &in);
     void WriteEvent(std::ostream &out) const;
-	template <class T> void ReadEventVector(std::vector<T> &data, std::istream &in, int MinSize = 0);
-    template <class T> void WriteEventVector(const std::vector<T> &data, std::ostream &out) const;
+    template <class T> void ReadEventVector(T* &data, std::istream &in, int MinSize = 0);
+    template <class T> void WriteEventVector(const T* const &data, std::ostream &out) const;
 
     /**
      * "remove" one cluster and "add" two new ones, keeping history.
@@ -72,39 +80,9 @@ class AliHLTTPCCAClusterData
     int SliceIndex() const { return fSliceIndex; }
 
     /**
-     * The first row index that contains a cluster.
-     */
-    int FirstRow() const { return fFirstRow; }
-
-    /**
-     * The last row index that contains a cluster.
-     */
-    int LastRow() const { return fLastRow; }
-
-    /**
      * Return the number of clusters in this slice.
      */
-    int NumberOfClusters() const { return (int) fData.size(); }
-
-    /**
-     * Return the number of clusters in the given row, for this slice.
-     */
-    int NumberOfClusters( unsigned int rowIndex ) const { return rowIndex < fNumberOfClusters.size() ? fNumberOfClusters[rowIndex] : 0; }
-
-    /**
-     * Return the index of the first cluster in the given row.
-     *
-     * Supports calls with rowIndex greater than the available number of rows. In that case it
-     * returns NumberOfClusters.
-     *
-     * To iterate over the clusters in one row do:
-     * \code
-     * AliHLTTPCCAClusterData cd;
-     * const int lastClusterIndex = cd.RowOffset( rowIndex + 1 );
-     * for ( int hitIndex = cd.RowOffset( rowIndex ); hitIndex < lastClusterIndex; ++hitIndex )
-     * \endcode
-     */
-    int RowOffset( unsigned int rowIndex ) const { return rowIndex < fRowOffset.size() ? fRowOffset[rowIndex] : (int) fData.size(); }
+    int NumberOfClusters() const { return (int) fNumberOfClusters; }
 
     /**
      * Return the x coordinate of the given cluster.
@@ -136,31 +114,24 @@ class AliHLTTPCCAClusterData
      */
     int RowNumber( int index ) const { return fData[index].fRow; }
 
-    struct Data {
-      int fId;
-      int fRow;
-      float fX;
-      float fY;
-      float fZ;
-      float fAmp;
-    };
-
     Data *GetClusterData( int index ) { return &( fData[index] ); }
 
   private:
+    AliHLTTPCCAClusterData(AliHLTTPCCAClusterData&): fSliceIndex( 0 ), fData( NULL ), fNumberOfClusters(0), fAllocated(0) {}
+    AliHLTTPCCAClusterData& operator=( const AliHLTTPCCAClusterData& );
+
     /** TODO
      * "remove" two clusters and "add" a new one, keeping history.
      */
     void Merge( int index1, int index2 );
 
-	static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow == b.fRow ? (a.fY < b.fY) : (a.fRow < b.fRow) ); }
+    void Allocate( int number);
+    static bool CompareClusters( const Data &a, const Data &b ) { return ( a.fRow == b.fRow ? (a.fY < b.fY) : (a.fRow < b.fRow) ); }
 
     int fSliceIndex;  // the slice index this data belongs to
-    int fFirstRow; // see FirstRow()
-    int fLastRow;  // see LastRow()
-    std::vector<int> fNumberOfClusters; // list of NumberOfClusters per row for NumberOfClusters(int)
-    std::vector<int> fRowOffset;        // see RowOffset()
-    std::vector<Data> fData; // list of data of clusters
+    Data* fData; // list of data of clusters
+    int fNumberOfClusters;	//Current number of clusters stored in fData
+    int fAllocated; //Number of clusters that can be stored in fData
 };
 
 typedef AliHLTTPCCAClusterData ClusterData;

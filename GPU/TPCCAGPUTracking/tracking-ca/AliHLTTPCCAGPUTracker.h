@@ -25,6 +25,7 @@ public:
 	virtual ~AliHLTTPCCAGPUTracker();
 
 	virtual int InitGPU(int sliceCount = -1, int forceDeviceID = -1);
+	virtual int IsInitialized();
 	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	virtual int ExitGPU();
 
@@ -40,7 +41,6 @@ public:
 	virtual int GetSliceCount() const;
 
 	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger);
-
 	virtual char* MergerBaseMemory();
 
 private:
