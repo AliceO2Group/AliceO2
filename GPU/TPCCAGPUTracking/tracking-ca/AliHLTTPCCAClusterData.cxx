@@ -20,79 +20,34 @@
 #include "AliHLTArray.h"
 #include "AliHLTTPCCAGPUConfig.h"
 
+AliHLTTPCCAClusterData::~AliHLTTPCCAClusterData()
+{
+	if(fAllocated) free(fData);
+}
+
 void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfClusters )
 {
   // Start reading of event - initialisation
-
   fSliceIndex = sliceIndex;
-  fFirstRow = 0;
-  fLastRow = 0;
-  fData.clear();
-  fNumberOfClusters.reserve( HLTCA_ROW_COUNT + 1 );
-  fRowOffset.reserve( HLTCA_ROW_COUNT + 1 );
-  fData.reserve( CAMath::Max( 64, guessForNumberOfClusters ) );
+  fNumberOfClusters = 0;
+  Allocate(CAMath::Max( 64, guessForNumberOfClusters ));
 }
 
-
-void AliHLTTPCCAClusterData::FinishReading()
+template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const T* const &data, std::ostream &out) const
 {
-  // finish event reading - data sorting, etc.
-
-  std::sort( fData.begin(), fData.end(), CompareClusters );
-  if ( fData.size() ) fFirstRow = fData[0].fRow;
-
-  fNumberOfClusters.clear();
-  fRowOffset.clear();
-
-  int row = fFirstRow;
-  for ( int i = 0; i < row; ++i ) {
-    fNumberOfClusters.push_back( 0 );
-    fRowOffset.push_back( 0 );
-  }
-  fRowOffset.push_back( 0 );
-  for ( unsigned int ic = 0; ic < fData.size(); ++ic ) {
-    Data &cluster = fData[ic];
-    while ( row < cluster.fRow ) {
-      fNumberOfClusters.push_back( ic - fRowOffset.back() );
-      fRowOffset.push_back( ic );
-      ++row;
-    }
-  }
-  fNumberOfClusters.push_back( fData.size() - fRowOffset.back() );
-  fLastRow = row; // the last seen row is the last row in this slice
-}
-
-template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const std::vector<T> &data, std::ostream &out) const
-{
-	AliHLTResizableArray<T> tmpData(data.size());
 	unsigned i;
-	for (i = 0;i < data.size();i++)
-	{
-		tmpData[i] = data[i];
-	}
-	i = data.size();
+	i = fNumberOfClusters;
 	out.write((char*) &i, sizeof(i));
-	out.write((char*) &tmpData[0], i * sizeof(T));
+	out.write((char*) data, i * sizeof(T));
 }
 
-template <class T> void AliHLTTPCCAClusterData::ReadEventVector(std::vector<T> &data, std::istream &in, int MinSize)
+template <class T> void AliHLTTPCCAClusterData::ReadEventVector(T* &data, std::istream &in, int MinSize)
 {
 	int i;
 	in.read((char*) &i, sizeof(i));
-	data.reserve(AliHLTTPCCAMath::Max(MinSize, i));
-	data.resize(i);
-	AliHLTResizableArray<T> tmpData(i);
-	in.read((char*) &tmpData[0], i * sizeof(T));
-	for (int j = 0;j < i;j++)
-	{
-#ifdef HLTCA_STANDALONE
-		if (tmpData[j].fRow < 0 || tmpData[j].fRow >= HLTCA_ROW_COUNT)
-		{
-			exit(1);
-		}
-#endif
-		data[j] = tmpData[j];
-	}
+	fNumberOfClusters = i;
+	Allocate(CAMath::Max(MinSize, fNumberOfClusters));
+	in.read((char*) data, i * sizeof(T));
 }
 
 void AliHLTTPCCAClusterData::WriteEvent(std::ostream &out) const
@@ -102,7 +57,22 @@ void AliHLTTPCCAClusterData::WriteEvent(std::ostream &out) const
 
 void AliHLTTPCCAClusterData::ReadEvent(std::istream &in)
 {
-    fData.clear();
 	ReadEventVector<Data>(fData, in, 64);
 }
 
+void AliHLTTPCCAClusterData::Allocate(int number)
+{
+	int newnumber;
+	if (fAllocated)
+	{
+		if (number < fAllocated) return;
+		newnumber = CAMath::Max(number, 2 * fAllocated);
+		fData = (Data*) realloc(fData, newnumber * sizeof(Data));
+	}
+	else
+	{
+		fData = (Data*) malloc(number * sizeof(Data));
+		newnumber = number;
+	}
+	fAllocated = newnumber;
+}
