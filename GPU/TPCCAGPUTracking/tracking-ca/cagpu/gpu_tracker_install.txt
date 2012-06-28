@@ -1,0 +1,23 @@
+The GPU Tracker is contained in an extra library AliHLTTPCCAGPU that must be build in addition to the HLT libraries
+The HLT Tracker Framework will automatically try to load AliHLTTPCCAGPU from LD_LIBRARY_PATH
+AliHLTTPCCAGPU will further try to load the CUDA runtime library which needs to be installed and pointed to by LD_LIBRARY_PATH
+If the -allowGPU option for the AliHLTTPCCATrackerComponent is set, the tracker framework will automatically try run the GPU tracker.
+If the GPU tracker is not available (because no GPU is present, or because all the GPU memory is used by other processes) the framework will automatically fall back to the CPU tracker
+
+Therefore to use the GPU tracker the following steps are needed:
+- The NVIDIA Driver must be installed and the kernel modules loaded
+- The CUDA Toolkit must be installed in /usr/local/cuda and the LD_LIBRARY_PATH must point to it
+- The library AliHLTTPCCAGPU must be compiled and LD_LIBRARY_PATH point to it
+- the -allowGPU option must be set for the TrackerComponent in the HLT configuration
+
+How to build the library AliHLTTPCCAGPU:
+The library is not build automatically by the AliROOT or HLT standalone build
+It can be found at via svn at https://qon.zapto.org/var/svn/catracker/catracker/standalone/cagpubuild
+The Variables ROOTSYS AND ALIHLT_TOPDIR must be set for the makefile to work, the cuda compiler nvcc must be present in the PATH variable
+The makefile builds the library and stores the shared object file in the current directory
+
+To build the library the following is needed
+- Checkout the library from svn
+- Make sure the environment variables ALIHLT_TOPDIR and ROOTSYS are set
+- The CUDA compiler must be installed in /usr/local/cuda and available in the PATH variable (you can change the path in the makefile)
+- run make
