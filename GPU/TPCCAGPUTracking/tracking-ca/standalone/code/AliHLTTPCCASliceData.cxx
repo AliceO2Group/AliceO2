@@ -144,10 +144,10 @@ GPUh() void AliHLTTPCCASliceData::SetGPUSliceDataMemory(void* const pSliceMemory
 
 size_t AliHLTTPCCASliceData::SetPointers(const AliHLTTPCCAClusterData *data, bool allocate)
 {
-	//Set slice data internal pointers
+  //Set slice data internal pointers
+
   int hitMemCount = HLTCA_ROW_COUNT * (sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v) - 1) + data->NumberOfClusters();
-  
-	//Calculate Memory needed to store hits in rows
+  //Calculate Memory needed to store hits in rows
 
   const unsigned int kVectorAlignment = 256 /*sizeof( uint4 )*/ ;
   fNumberOfHitsPlusAlign = NextMultipleOf < ( kVectorAlignment > sizeof(HLTCA_GPU_ROWALIGNMENT) ? kVectorAlignment : sizeof(HLTCA_GPU_ROWALIGNMENT)) / sizeof( int ) > ( hitMemCount );
@@ -295,6 +295,7 @@ void AliHLTTPCCASliceData::InitFromClusterData( const AliHLTTPCCAClusterData &da
     row.fHstepYi = 1.f;
     row.fHstepZi = 1.f;
   }
+
 
   AliHLTResizableArray<AliHLTTPCCAHit> binSortedHits( fNumberOfHits + sizeof(HLTCA_GPU_ROWALIGNMENT) / sizeof(ushort_v));
 

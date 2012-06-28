@@ -19,7 +19,6 @@
 #include <algorithm>
 #include "AliHLTArray.h"
 #include "AliHLTTPCCAGPUConfig.h"
-#include <stdio.h>
 
 AliHLTTPCCAClusterData::~AliHLTTPCCAClusterData()
 {

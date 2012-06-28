@@ -44,15 +44,15 @@ class AliHLTTPCCASliceData
 {
   public:
     AliHLTTPCCASliceData()
-        : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
-		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
-        , fFirstHitInBin( 0 ), fHitWeights( 0 )
-	{
-	}
+      : 
+      fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow( 0 ), fLastRow( HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+      ,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
+      , fFirstHitInBin( 0 ), fHitWeights( 0 )
+    {
+    }
 
 #ifndef HLTCA_GPUCODE
-	~AliHLTTPCCASliceData();
+    ~AliHLTTPCCASliceData();
 #endif //!HLTCA_GPUCODE
 
     void InitializeRows( const AliHLTTPCCAParam &parameters );
@@ -62,8 +62,8 @@ class AliHLTTPCCASliceData
      * data.
      */
 
-	void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory);
-	size_t SetPointers(const AliHLTTPCCAClusterData *data, bool allocate = false);
+    void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory);
+    size_t SetPointers(const AliHLTTPCCAClusterData *data, bool allocate = false);
     void InitFromClusterData( const AliHLTTPCCAClusterData &data );
 
     /**
@@ -75,7 +75,7 @@ class AliHLTTPCCASliceData
      * Return the number of hits in this slice.
      */
     GPUhd() int NumberOfHits() const { return fNumberOfHits; }
-	GPUhd() int NumberOfHitsPlusAlign() const { return fNumberOfHitsPlusAlign; }
+    GPUhd() int NumberOfHitsPlusAlign() const { return fNumberOfHitsPlusAlign; }
 
     /**
      * Access to the hit links.
@@ -84,9 +84,9 @@ class AliHLTTPCCASliceData
      */
     short_v HitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
     short_v HitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
-    
-	GPUhd() const ushort2 *HitData( const AliHLTTPCCARow &row ) const;
-	GPUhd() const ushort2 *HitData() const { return(fHitData); }
+
+    GPUhd() const ushort2 *HitData( const AliHLTTPCCARow &row ) const;
+    GPUhd() const ushort2 *HitData() const { return(fHitData); }
     GPUd() const short_v *HitLinkUpData  ( const AliHLTTPCCARow &row ) const;
     GPUd() const short_v *HitLinkDownData( const AliHLTTPCCARow &row ) const;
     GPUd() const ushort_v *FirstHitInBin( const AliHLTTPCCARow &row ) const;
@@ -107,7 +107,7 @@ class AliHLTTPCCASliceData
     // TODO return float_v
     ushort_v HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
     ushort_v HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
-	ushort2 HitData( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
+    ushort2 HitData( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
 
     /**
      * For a given bin index, content tells how many hits there are in the preceding bins. This maps
@@ -142,29 +142,29 @@ class AliHLTTPCCASliceData
      * Return the row object for the given row index.
      */
     const AliHLTTPCCARow &Row( int rowIndex ) const;
-	GPUhd() AliHLTTPCCARow* Rows() const {return fRows;}
+    GPUhd() AliHLTTPCCARow* Rows() const {return fRows;}
 
-	GPUh() char *Memory() const {return(fMemory); }
-	GPUh() size_t MemorySize() const {return(fMemorySize); }
-	GPUh() size_t GpuMemorySize() const {return(fGpuMemorySize); }
-	GPUhd() int* HitWeights() const {return(fHitWeights); }
+    GPUh() char *Memory() const {return(fMemory); }
+    GPUh() size_t MemorySize() const {return(fMemorySize); }
+    GPUh() size_t GpuMemorySize() const {return(fGpuMemorySize); }
+    GPUhd() int* HitWeights() const {return(fHitWeights); }
 
-	GPUhd() void SetGPUTextureBase(char* const val) {fGPUTextureBase = val;}
-	GPUhd() char* GPUTextureBase() const { return(fGPUTextureBase); }
-	GPUhd() char* GPUTextureBaseConst() const { return(fGPUTextureBase); }
+    GPUhd() void SetGPUTextureBase(char* const val) {fGPUTextureBase = val;}
+    GPUhd() char* GPUTextureBase() const { return(fGPUTextureBase); }
+    GPUhd() char* GPUTextureBaseConst() const { return(fGPUTextureBase); }
 
-	GPUh() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
+    GPUh() int GPUSharedDataReq() const { return fGPUSharedDataReq; }
 
-	void SetGpuSliceData() { fIsGpuSliceData = 1; }
+    void SetGpuSliceData() { fIsGpuSliceData = 1; }
 
   private:
     AliHLTTPCCASliceData( const AliHLTTPCCASliceData & )
-        : 
-		fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow(0), fLastRow(HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
-		,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
-        , fFirstHitInBin( 0 ), fHitWeights( 0 )
-	{
-	}
+      : 
+      fIsGpuSliceData(0), fGPUSharedDataReq(0), fFirstRow(0), fLastRow(HLTCA_ROW_COUNT - 1), fNumberOfHits( 0 ), fNumberOfHitsPlusAlign( 0 ), fMemorySize( 0 ), fGpuMemorySize( 0 ), fMemory( 0 ), fGPUTextureBase( 0 )
+      ,fRows( NULL ), fLinkUpData( 0 ), fLinkDownData( 0 ), fHitData( 0 ), fClusterDataIndex( 0 )
+      , fFirstHitInBin( 0 ), fHitWeights( 0 )
+    {
+    }
     AliHLTTPCCASliceData& operator=( const AliHLTTPCCASliceData & ) {
       return *this;
     }
@@ -172,23 +172,23 @@ class AliHLTTPCCASliceData
     void CreateGrid( AliHLTTPCCARow *row, const float2* data, int ClusterDataHitNumberOffset );
     void PackHitData( AliHLTTPCCARow *row, const AliHLTArray<AliHLTTPCCAHit, 1> &binSortedHits );
 
-	int fIsGpuSliceData;		//Slice Data for GPU Tracker?
-	int fGPUSharedDataReq;		//Size of shared memory required for GPU Reconstruction
+    int fIsGpuSliceData;       //Slice Data for GPU Tracker?
+    int fGPUSharedDataReq;     //Size of shared memory required for GPU Reconstruction
 
-	int fFirstRow;				//First non-empty row
-	int fLastRow;				//Last non-empty row
+    int fFirstRow;             //First non-empty row
+    int fLastRow;              //Last non-empty row
 
     int fNumberOfHits;         // the number of hits in this slice
-	int fNumberOfHitsPlusAlign;
+    int fNumberOfHitsPlusAlign;
 
     int fMemorySize;           // size of the allocated memory in bytes
-	int fGpuMemorySize;		   // size of Memory needed to be transfered to GPU
+    int fGpuMemorySize;        // size of Memory needed to be transfered to GPU
     char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
-	char *fGPUTextureBase;		// pointer to start of GPU texture
+    char *fGPUTextureBase;     // pointer to start of GPU texture
 
-    AliHLTTPCCARow *fRows; // The row objects needed for most accessor functions
+    AliHLTTPCCARow *fRows;     // The row objects needed for most accessor functions
 
-	short *fLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
+    short *fLinkUpData;        // hit index in the row above which is linked to the given (global) hit index
     short *fLinkDownData;      // hit index in the row below which is linked to the given (global) hit index
 
     ushort2 *fHitData;         // packed y,z coordinate of the given (global) hit index
