@@ -93,16 +93,14 @@ class AliHLTTPCFastTransform{
 };
 
 inline Int_t AliHLTTPCFastTransform::Transform( Int_t iSec, Int_t iRow, Float_t Pad, Float_t Time, Float_t XYZ[] ){
-  if( !fOrigTransform || iSec<0 || iSec>=72 || iRow<0 || iRow>=100 ) return 1;
-  if( !fRows[iSec][iRow] && InitRow(iSec, iRow) ) return 1;
+  if( iSec<0 || iSec>=72 || iRow<0 || iRow>=100 || !fRows[iSec][iRow] ) return 1;
   Int_t iTime = ( Time>=fTimeBorder2 ) ?2 :( ( Time>fTimeBorder1 ) ?1 :0 );
   fRows[iSec][iRow]->fSpline[iTime].GetValue(Pad, Time, XYZ);              
   return 0; 
 }
 
 inline Int_t  AliHLTTPCFastTransform::Transform( Int_t iSec, Int_t iRow, Float_t Pad, Float_t Time, Double_t XYZ[] ){
-  if( !fOrigTransform || iSec<0 || iSec>=72 || iRow<0 || iRow>=100 ) return 1;
-  if( !fRows[iSec][iRow] && InitRow(iSec, iRow) ) return 1;
+  if( iSec<0 || iSec>=72 || iRow<0 || iRow>=100 || !fRows[iSec][iRow] ) return 1;
   Int_t iTime = ( Time>=fTimeBorder2 ) ?2 :( ( Time>fTimeBorder1 ) ?1 :0 );
   fRows[iSec][iRow]->fSpline[iTime].GetValue(Pad, Time, XYZ);              
   return 0; 

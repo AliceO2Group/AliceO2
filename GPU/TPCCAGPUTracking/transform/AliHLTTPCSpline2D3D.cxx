@@ -25,13 +25,12 @@
 #include "AliTPCTransform.h"
 #include "AliTPCParam.h"
 #include "AliTPCcalibDB.h"
- 
+#include "Vc/Vc"
+  
 #include <iostream>
 #include <iomanip>
 
 using namespace std;
-
-
 
 
 
@@ -43,8 +42,8 @@ void AliHLTTPCSpline2D3D::Init(Float_t minA,Float_t  maxA, Int_t  nBinsA, Float_
 
   if( maxA<= minA ) maxA = minA+1;
   if( maxB<= minB ) maxB = minB+1;
-  if( nBinsA <3 ) nBinsA = 3;
-  if( nBinsB <3 ) nBinsB = 3;
+  if( nBinsA <4 ) nBinsA = 4;
+  if( nBinsB <4 ) nBinsB = 4;
 
   fNA = nBinsA;
   fNB = nBinsB;
@@ -57,34 +56,66 @@ void AliHLTTPCSpline2D3D::Init(Float_t minA,Float_t  maxA, Int_t  nBinsA, Float_
   fScaleA = 1./fStepA;
   fScaleB = 1./fStepB;
 
-  delete[] fX;
-  delete[] fY;
-  delete[] fZ;
-  fX = new Float_t [fN];
-  fY = new Float_t [fN];
-  fZ = new Float_t [fN];
-  memset ( fX, 0, fN*sizeof(Float_t) );
-  memset ( fY, 0, fN*sizeof(Float_t) );
-  memset ( fZ, 0, fN*sizeof(Float_t) );
+  delete[] fXYZ;
+  fXYZ = new Float_t [4*fN];
+  memset ( fXYZ, 0, fN*4*sizeof(Float_t) );
 }
 
-void AliHLTTPCSpline2D3D::Fill(void (*func)(Float_t a, Float_t b, Float_t xyz[]) )
+
+
+void AliHLTTPCSpline2D3D::Consolidate()
 {
   //
-  // Filling
+  // Consolidate the map
   //
-
-  for( Int_t i=0; i<GetNPoints(); i++){
-    Float_t a, b, xyz[3];
-    GetAB(i,a,b);
-    (*func)(a,b,xyz);
-    Fill(i,xyz);
+  
+  Float_t *m = fXYZ;
+  for( int iXYZ=0; iXYZ<3; iXYZ++ ){
+    for( int iA=0; iA<fNA; iA++){
+      {
+	int i0 = 4*iA*fNB + iXYZ;
+	int i1 = i0+4;
+	int i2 = i0+4*2;
+	int i3 = i0+4*3;
+	m[i0] = 0.5*( m[i3]+m[i0]+3*(m[i1]-m[i2]) );      
+      }
+      {
+	int i0 = 4*(iA*fNB+fNB-4) + iXYZ;
+	int i1 = i0+4;
+	int i2 = i0+4*2;
+	int i3 = i0+4*3;
+	m[i3] = 0.5*( m[i0]+m[i3]+3*(m[i2]-m[i1]) );
+      }
+    }
+    for( int iB=0; iB<fNB; iB++){
+      {
+	int i0 = 4*(0*fNB +iB) +iXYZ;
+	int i1 = i0+4*fNB;
+	int i2 = i1+4*fNB;
+	int i3 = i2+4*fNB;
+	m[i0] = 0.5*( m[i3]+m[i0]+3*(m[i1]-m[i2]) );
+      }
+      {
+	int i0 = 4*((fNA-4)*fNB +iB) +iXYZ;
+	int i1 = i0+4*fNB;
+	int i2 = i1+4*fNB;
+	int i3 = i2+4*fNB;
+	m[i3] = 0.5*( m[i0]+m[i3]+3*(m[i2]-m[i1]) );
+      }
+    }
   }
+ }
+
+
+
+inline Vc::float_v GetSpline3Vc(Vc::float_v v0, Vc::float_v v1, Vc::float_v v2, Vc::float_v v3, 
+				Vc::float_v x, Vc::float_v x2)
+{
+  Vc::float_v dv = v2-v1;  
+  Vc::float_v z0 = 0.5f*(v2-v0);
+  Vc::float_v z1 = 0.5f*(v3-v1);
+  return x2*( (z1-dv + z0-dv)*(x-1) - (z0-dv) ) + z0*x + v1; 
 }
-
-
-
-
 
 void AliHLTTPCSpline2D3D::GetValue(Float_t A, Float_t B, Float_t XYZ[] ) const
 {
@@ -92,45 +123,50 @@ void AliHLTTPCSpline2D3D::GetValue(Float_t A, Float_t B, Float_t XYZ[] ) const
   //  Get Interpolated value at A,B 
   //
 
-  Float_t lA = (A-fMinA)*fScaleA;
-  Int_t iA = ((int) lA)-1;
-  bool splineA3 = 0;
-  if( iA<0 ) iA=0;
-  else if( iA>fNA-4 ) iA = fNA-3;
-  else splineA3 = 1;
+  Float_t lA = (A-fMinA)*fScaleA-1.f;
+  Int_t iA = (int) lA;
+  if( lA<0 ) iA=0;
+  else if( iA>fNA-4 ) iA = fNA-4;
 
-  Float_t lB = (B-fMinB)*fScaleB;
-  Int_t iB = ((int) lB)-1;
-  bool splineB3 = 0;
-  if( iB<0 ) iB=0;
-  else if( iB>fNB-4 ) iB = fNB-3;
-  else splineB3 = 1;
+  Float_t lB = (B-fMinB)*fScaleB -1.f;
+  Int_t iB = (int) lB;
+  if( lB<0 ) iB=0;
+  else if( iB>fNB-4 ) iB = fNB-4;  
 
-  Float_t da = lA-iA-1;
-  Float_t db = lB-iB-1;
+  if( Vc::float_v::Size==4 ){
+    Vc::float_v da = lA-iA;
+    Vc::float_v db = lB-iB;
+    Vc::float_v db2=db*db;
+    
+    Vc::float_v v[4];
+    Int_t ind = iA*fNB  + iB;
+    const Vc::float_v *m = reinterpret_cast< const Vc::float_v *>(fXYZ);
 
-  
-  Float_t v[3][4];
-  Int_t ind = iA*fNB  + iB;
-  for( Int_t i=0; i<3+splineA3; i++ ){
-    if( splineB3 ){
-      v[0][i] = GetSpline3(fX+ind,db); 
-      v[1][i] = GetSpline3(fY+ind,db); 
-      v[2][i] = GetSpline3(fZ+ind,db); 
-    } else {
-      v[0][i] = GetSpline2(fX+ind,db); 
-      v[1][i] = GetSpline2(fY+ind,db); 
-      v[2][i] = GetSpline2(fZ+ind,db); 
+    for( Int_t i=0; i<4; i++ ){    
+      v[i] = GetSpline3Vc(m[ind+0],m[ind+1],m[ind+2],m[ind+3],db,db2); 
+      ind+=fNB;
     }
-    ind+=fNB;
-  } 
-  if( splineA3 ){
-    XYZ[0] =  GetSpline3(v[0],da);
-    XYZ[1] =  GetSpline3(v[1],da);
-    XYZ[2] =  GetSpline3(v[2],da);
+    Vc::float_v res=GetSpline3Vc(v[0],v[1],v[2],v[3],da,da*da);
+    XYZ[0] =  res[0];
+    XYZ[1] =  res[1];
+    XYZ[2] =  res[2];
   } else {
-    XYZ[0] =  GetSpline2(v[0],da);
-    XYZ[1] =  GetSpline2(v[1],da);
-    XYZ[2] =  GetSpline2(v[2],da);
+    Float_t da = lA-iA;
+    Float_t db = lB-iB;
+  
+    Float_t vx[4];
+    Float_t vy[4];
+    Float_t vz[4];
+    Int_t ind = iA*fNB  + iB;
+    for( Int_t i=0; i<4; i++ ){
+      int ind4 = ind*4;
+      vx[i] = GetSpline3(fXYZ[ind4+0],fXYZ[ind4+4],fXYZ[ind4 +8],fXYZ[ind4+12],db); 
+      vy[i] = GetSpline3(fXYZ[ind4+1],fXYZ[ind4+5],fXYZ[ind4 +9],fXYZ[ind4+13],db); 
+      vz[i] = GetSpline3(fXYZ[ind4+2],fXYZ[ind4+6],fXYZ[ind4+10],fXYZ[ind4+14],db); 
+      ind+=fNB;
+    }
+    XYZ[0] =  GetSpline3(vx,da);
+    XYZ[1] =  GetSpline3(vy,da);
+    XYZ[2] =  GetSpline3(vz,da);
   }
 }
