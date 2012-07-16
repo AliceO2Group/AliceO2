@@ -108,10 +108,6 @@ inline AliHLTTPCSpline2D3D::AliHLTTPCSpline2D3D(Float_t minA, Float_t  maxA, Int
   Init(minA, maxA, nBinsA, minB, maxB, nBinsB);
 }
 
-inline AliHLTTPCSpline2D3D::~AliHLTTPCSpline2D3D()
-{
-  delete[] fXYZ;
-}
 
 inline void AliHLTTPCSpline2D3D::Fill(Int_t ind, Float_t x, Float_t y, Float_t z)
 {

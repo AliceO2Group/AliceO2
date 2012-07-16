@@ -56,12 +56,15 @@ void AliHLTTPCSpline2D3D::Init(Float_t minA,Float_t  maxA, Int_t  nBinsA, Float_
   fScaleA = 1./fStepA;
   fScaleB = 1./fStepB;
 
-  delete[] fXYZ;
-  fXYZ = new Float_t [4*fN];
+  Vc::free( fXYZ );
+  fXYZ = Vc::malloc< float, Vc::AlignOnCacheline>( 4*fN );
   memset ( fXYZ, 0, fN*4*sizeof(Float_t) );
 }
 
-
+AliHLTTPCSpline2D3D::~AliHLTTPCSpline2D3D()
+{
+  Vc::free( fXYZ );
+}
 
 void AliHLTTPCSpline2D3D::Consolidate()
 {
