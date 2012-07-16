@@ -184,6 +184,7 @@ Int_t AliHLTTPCFastTransform::InitRow( Int_t iSector, Int_t iRow )
       fOrigTransform->Transform(xx,is,0,1);
       fRows[iSector][iRow]->fSpline[i].Fill(j,xx);    
     }
+    fRows[iSector][iRow]->fSpline[i].Consolidate();
   }
   return 0;
 }
