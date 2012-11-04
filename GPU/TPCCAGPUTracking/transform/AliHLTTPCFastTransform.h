@@ -45,6 +45,9 @@ class AliHLTTPCFastTransform{
   
   /** initialization */
   Int_t  Init( AliTPCTransform *transform=0, Int_t TimeStamp=-1 );
+ 
+  /** initialization */
+  Bool_t IsInitialised() const { return fOrigTransform!=NULL; }
   
   /** set the time stamp */
   void SetCurrentTimeStamp( Int_t TimeStamp );
