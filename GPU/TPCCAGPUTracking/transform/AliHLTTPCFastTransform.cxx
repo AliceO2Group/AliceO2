@@ -98,10 +98,13 @@ Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Int_t TimeStamp
 void AliHLTTPCFastTransform::SetCurrentTimeStamp( Int_t TimeStamp )
 {
   // Set the current time stamp
+  
+  if( !fOrigTransform ) Init(NULL,TimeStamp);
+  if( !fOrigTransform ) return;
+
   if( fLastTimeStamp>=0 && TMath::Abs(fLastTimeStamp - TimeStamp ) <60 ) return;
 
-  if( !fOrigTransform ) return;
-  
+   
   if( TimeStamp>=0 ){
     fOrigTransform->SetCurrentTimeStamp( TimeStamp );
     fLastTimeStamp = TimeStamp;
