@@ -37,7 +37,6 @@ class AliHLTTPCFastTransform{
  public:
 
   static AliHLTTPCFastTransform* Instance();
-  static void Terminate();
 
   /** standard constructor */    
   AliHLTTPCFastTransform();           
@@ -75,7 +74,7 @@ class AliHLTTPCFastTransform{
   /** assignment operator prohibited */
   AliHLTTPCFastTransform& operator=(const AliHLTTPCFastTransform&);
 
-  static AliHLTTPCFastTransform* fgInstance;  // singleton control
+  static AliHLTTPCFastTransform fgInstance;  // singleton control
 
   struct AliRowTransform{
     AliHLTTPCSpline2D3D fSpline[3];
@@ -107,9 +106,8 @@ inline Int_t  AliHLTTPCFastTransform::Transform( Int_t iSec, Int_t iRow, Float_t
 }
 
 
-inline AliHLTTPCFastTransform* AliHLTTPCFastTransform::Instance(){ // Singleton implementation
-  if( !fgInstance ) fgInstance = new AliHLTTPCFastTransform();  
-  return fgInstance;
+inline AliHLTTPCFastTransform* AliHLTTPCFastTransform::Instance(){ // Singleton implementation  
+  return &fgInstance;
 }
 
 #endif

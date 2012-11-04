@@ -33,22 +33,8 @@ using namespace std;
 
 ClassImp(AliHLTTPCFastTransform); //ROOT macro for the implementation of ROOT specific class methods
 
-AliHLTTPCFastTransform* AliHLTTPCFastTransform::fgInstance = 0;
+AliHLTTPCFastTransform AliHLTTPCFastTransform::fgInstance;
 
-
-void AliHLTTPCFastTransform::Terminate()
-{
-  //
-  // Singleton implementation
-  // Deletes the instance of this class and sets the terminated flag, instances cannot be requested anymore
-  // This function can be called several times.
-  //
-  
-  if( fgInstance ){
-    delete fgInstance;
-    fgInstance = 0;
-  }
-}
 
 AliHLTTPCFastTransform::AliHLTTPCFastTransform()
 :
@@ -65,7 +51,6 @@ AliHLTTPCFastTransform::AliHLTTPCFastTransform()
   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt    
   for( Int_t i=0; i<72; i++)
     for( Int_t j=0; j<100; j++ ) fRows[i][j] = 0;
-  Init();
 }
 
 AliHLTTPCFastTransform::~AliHLTTPCFastTransform() 
@@ -73,15 +58,13 @@ AliHLTTPCFastTransform::~AliHLTTPCFastTransform()
   // see header file for class documentation
   for( Int_t i=0; i<72; i++)
     for( Int_t j=0; j<100; j++ ) delete fRows[i][j]; 
-
-  if( fgInstance == this ) fgInstance = 0;
 }
 
 
 Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Int_t TimeStamp )
 {
   // Initialisation
-
+  
   if( !transform ){
     AliTPCcalibDB* pCalib=AliTPCcalibDB::Instance();  
     if(!pCalib ) return 1;
@@ -103,7 +86,7 @@ Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Int_t TimeStamp
   if( !par ) return 1;
   
   for( int iSector=0; iSector<par->GetNSector(); iSector++ ){
-    for( int iRow=0; iRow<par->GetNRow(iSector); iRow++){
+     for( int iRow=0; iRow<par->GetNRow(iSector); iRow++){
       InitRow( iSector, iRow );
     }
   }
@@ -149,8 +132,9 @@ void AliHLTTPCFastTransform::SetCurrentTimeStamp( Int_t TimeStamp )
   fTimeBorder1 = 60;
   fTimeBorder2 = fLastTimeBin - 100;
 
-  for( Int_t i=0; i<72; i++ )
+   for( Int_t i=0; i<72; i++ ){
     for( Int_t j=0; j<100; j++ ) if( fRows[i][j] ) InitRow(i,j);
+  }
 }
 
 Int_t AliHLTTPCFastTransform::InitRow( Int_t iSector, Int_t iRow )
