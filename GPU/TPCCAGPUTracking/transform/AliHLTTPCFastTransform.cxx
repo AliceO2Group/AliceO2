@@ -24,6 +24,7 @@
 #include "AliHLTTPCFastTransform.h"
 #include "AliTPCTransform.h"
 #include "AliTPCParam.h"
+#include "AliTPCRecoParam.h"
 #include "AliTPCcalibDB.h"
  
 #include <iostream>
