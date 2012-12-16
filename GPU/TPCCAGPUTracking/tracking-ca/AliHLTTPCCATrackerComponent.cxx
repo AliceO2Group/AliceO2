@@ -78,6 +78,9 @@ ClassImp( AliHLTTPCCATrackerComponent )
   // refer to README to build package
   // or
   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+  for( int i=0; i<fgkNSlices; i++ ){
+    fSliceOutput[i] = NULL;
+  }
 }
 
 AliHLTTPCCATrackerComponent::AliHLTTPCCATrackerComponent( const AliHLTTPCCATrackerComponent& )
@@ -101,12 +104,18 @@ AliHLTProcessor(),
   fGlobalTracking(0)
 {
   // see header file for class documentation
+  for( int i=0; i<fgkNSlices; i++ ){
+    fSliceOutput[i] = NULL;
+  }
   HLTFatal( "copy constructor untested" );
 }
 
 AliHLTTPCCATrackerComponent& AliHLTTPCCATrackerComponent::operator=( const AliHLTTPCCATrackerComponent& )
 {
   // see header file for class documentation
+  for( int i=0; i<fgkNSlices; i++ ){
+    fSliceOutput[i] = NULL;
+  }
   HLTFatal( "assignment operator untested" );
   return *this;
 }
