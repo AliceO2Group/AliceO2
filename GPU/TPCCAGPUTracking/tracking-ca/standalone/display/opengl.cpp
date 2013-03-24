@@ -1,4 +1,4 @@
-//#define SEPERATE_GLOBAL_TRACKS
+#define SEPERATE_GLOBAL_TRACKS
 
 #include "AliHLTTPCCADef.h"
 
@@ -57,6 +57,13 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 
 bool	keys[256];			// Array Used For The Keyboard Routine
 
+#ifdef SEPERATE_GLOBAL_TRACKS
+#define SEPERATE_GLOBAL_TRACKS_MAXID 5
+#else
+#define SEPERATE_GLOBAL_TRACKS_MAXID 100
+#endif
+#define SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES 6
+
 float rotateX = 0, rotateY = 0;
 float mouseDnX, mouseDnY;
 float mouseMvX, mouseMvY;
@@ -99,18 +106,18 @@ float lineWidth = 1.5;
 volatile int resetScene = 0;
 
 inline void SetColorClusters() {glColor3f(0, 0.7, 1.0);}
-inline void SetColorInitLinks() {glColor3f(0.5, 0.5, 0.5);}
-inline void SetColorLinks() {glColor3f(1, 0.3, 0.3);}
-inline void SetColorSeeds() {glColor3f(1.0, 0.4, 0);}
+inline void SetColorInitLinks() {glColor3f(0.62, 0.1, 0.1);}
+inline void SetColorLinks() {glColor3f(0.8, 0.2, 0.2);}
+inline void SetColorSeeds() {glColor3f(0.8, 0.1, 0.85);}
 inline void SetColorTracklets() {glColor3f(1, 1, 1);}
 #ifdef SEPERATE_GLOBAL_TRACKSa
 inline void SetColorTracks() {glColor3f(1., 1., 0.15);}
 inline void SetColorGlobalTracks() {glColor3f(1., 0.15, 0.15);}
 #else
 inline void SetColorTracks() {glColor3f(0.4, 1, 0);}
-inline void SetColorGlobalTracks() {glColor3f(0.8, 0.1, 0.85);}
+inline void SetColorGlobalTracks() {glColor3f(1.0, 0.4, 0);}
 #endif
-inline void SetColorFinal() {glColor3f(0, 0.8, 0.2);}
+inline void SetColorFinal() {glColor3f(0, 0.7, 0.2);}
 inline void SetColorGrid() {glColor3f(0.7, 0.7, 0.0);}
 
 void ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
@@ -159,10 +166,10 @@ int InitGL()										// All Setup For OpenGL Goes Here
 	return(true);										// Initialization Went OK
 }
 
-inline void drawPointLinestrip(int cid, int id)
+inline void drawPointLinestrip(int cid, int id, int id_limit = 100)
 {
 	glVertex3f(globalPos[cid].x, globalPos[cid].y, globalPos[cid].z);
-	globalPos[cid].w = id;
+	if (globalPos[cid].w < id_limit) globalPos[cid].w = id;
 }
 
 void DrawClusters(AliHLTTPCCATracker& tracker, int id)
@@ -332,7 +339,13 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
 		int lastcid = merger.OutputClusterIds()[track.FirstClusterRef() + bestk];
 		clusterused[bestk] = 1;
 
-		drawPointLinestrip(lastcid, 7);
+#ifdef SEPERATE_GLOBAL_TRACKS
+		bool linestarted = (globalPos[lastcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES);
+		if (linestarted)
+#endif
+		{
+			drawPointLinestrip(lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
+		}
 
 		for (int j = 1;j < track.NClusters();j++)
 		{
@@ -353,7 +366,20 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework& hlt)
 					bestk = k;
 				}
 			}
-			drawPointLinestrip(bestcid, 7);
+#ifdef SEPERATE_GLOBAL_TRACKS
+			if (!linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
+			{
+				drawPointLinestrip(lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
+				linestarted = true;
+			}
+			if (linestarted)
+#endif
+			{
+				drawPointLinestrip(bestcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
+			}
+#ifdef SEPERATE_GLOBAL_TRACKS
+			if (linestarted && !(globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)) linestarted = false;
+#endif
 			clusterused[bestk] = 1;
 			lastcid = bestcid;
 		}
@@ -666,9 +692,9 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 		}
 		
 		glNewList(glDLlinesFinal, GL_COMPILE);
-#ifndef SEPERATE_GLOBAL_TRACKS
+//#ifndef SEPERATE_GLOBAL_TRACKS
 		DrawFinal(hlt);
-#endif
+//#endif
 		glEndList();
 
 		for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
@@ -870,13 +896,14 @@ void HandleKeyRelease(int wParam)
 	{
 		printf("Taking Screenshot\n");
 
-#define SCALE_X 2
+#define SCALE_X 3
 #define SCALE_Y SCALE_X
 
 		float tmpPointSize = pointSize;
 		float tmpLineWidth = lineWidth;
-		pointSize *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
-		lineWidth *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
+		//pointSize *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
+		//lineWidth *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
+		pointSize *= 2;
 
 		GLint view[4], viewold[4];
 		glGetIntegerv(GL_VIEWPORT, viewold);
