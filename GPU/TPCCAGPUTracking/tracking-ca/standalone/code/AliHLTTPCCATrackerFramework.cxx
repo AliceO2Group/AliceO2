@@ -215,13 +215,14 @@ int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAPar
 #define GPULIBNAME "libAliHLTTPCCAGPU"
 #endif
 
-AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
+AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, char* GPU_Library) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
 {
 	//Constructor
+	if (GPU_Library && !GPU_Library[0]) GPU_Library = NULL;
 #ifdef R__WIN32
-	HMODULE hGPULib = LoadLibraryEx(GPULIBNAME ".dll", NULL, NULL);
+	HMODULE hGPULib = LoadLibraryEx(GPU_Library == NULL ? (GPULIBNAME ".dll") : GPU_Library, NULL, NULL);
 #else
-	void* hGPULib = dlopen(GPULIBNAME ".so", RTLD_NOW);
+	void* hGPULib = dlopen(GPU_Library == NULL ? (GPULIBNAME ".so") : GPU_Library, RTLD_NOW);
 #endif
 	if (hGPULib == NULL)
 	{

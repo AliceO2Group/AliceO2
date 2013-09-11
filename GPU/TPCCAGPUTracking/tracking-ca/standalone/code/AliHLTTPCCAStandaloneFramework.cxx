@@ -42,7 +42,7 @@ AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
-    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
+: fMerger(), fOutputControl(), fTracker(1, getenv("HLTCA_GPUTRACKER_LIBRARY")), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
 {
   //* constructor
 

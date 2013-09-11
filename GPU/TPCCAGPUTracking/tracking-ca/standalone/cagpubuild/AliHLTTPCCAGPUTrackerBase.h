@@ -117,10 +117,10 @@ protected:
 	void ReleaseGlobalLock(void* sem);
 	int CheckMemorySizes(int sliceCount);
 
-	virtual int CUDASync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0) = 0;
+	virtual int GPUSync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0) = 0;
 	template <class T> T* alignPointer(T* ptr, int alignment);
 	void StandalonePerfTime(int iSlice, int i);
-#define CudaFailedMsg(x) CudaFailedMsgA(x, __FILE__, __LINE__)
+#define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
 	
 	static void* helperWrapper(void*);
 
@@ -137,7 +137,6 @@ protected:
 	std::ostream* fOutFile;		//Debug Output Stream Pointer
 	unsigned long long int fGPUMemSize;	//Memory Size to allocate on GPU
 
-	void* fpCudaStreams; //Pointer to array of CUDA Streams
 	int fSliceCount; //Maximum Number of Slices this GPU tracker can process in parallel
 	int fCudaDevice; //CUDA device used by GPU tracker
 
@@ -190,6 +189,20 @@ protected:
 
 	ClassDef( AliHLTTPCCAGPUTrackerBase, 0 )
 };
+
+template <class T> inline T* AliHLTTPCCAGPUTrackerBase::alignPointer(T* ptr, int alignment)
+{
+	//Macro to align Pointers.
+	//Will align to start at 1 MB segments, this should be consistent with every alignment in the tracker
+	//(As long as every single data structure is <= 1 MB)
+
+	size_t adr = (size_t) ptr;
+	if (adr % alignment)
+	{
+		adr += alignment - (adr % alignment);
+	}
+	return((T*) adr);
+}
 
 //Disable assertions since they produce errors in GPU Code
 #ifdef assert
