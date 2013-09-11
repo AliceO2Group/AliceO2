@@ -9,14 +9,12 @@ HIDEECHO					= @
 CONFIG_OPENMP				= 1
 
 CC_x86_64-pc-linux-gnu		= GCC
-CC_i686-pc-cygwin			= MSCC
+CC_i686-pc-cygwin			= ICC
 
 INCLUDEPATHS				= include code base merger-ca cagpubuild
 DEFINES						= HLTCA_STANDALONE BUILD_GPU
 
 EXTRAFLAGSGCC				= -Weffc++
 
-INTELFLAGSUSE				= $(INTELFLAGSOPT)
-VSNETFLAGSUSE				= $(VSNETFLAGSOPT)
-GCCFLAGSUSE					= $(GCCFLAGSOPT)
-NVCCFLAGSUSE				= $(NVCCFLAGSOPT)
+COMPILER_FLAGS				= OPT
+CONFIG_LTO					= 1
