@@ -37,7 +37,7 @@ class AliHLTTPCCATrackLinearisation
     AliHLTTPCCATrackLinearisation( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 )
         : fSinPhi( SinPhi1 ), fCosPhi( CosPhi1 ), fDzDs( DzDs1 ), fQPt( QPt1 ) {}
 
-    AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam &t );
+    GPUd() AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam &t );
 
     GPUd() void Set( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 );
 

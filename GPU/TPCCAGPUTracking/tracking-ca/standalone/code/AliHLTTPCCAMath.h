@@ -27,26 +27,26 @@ class AliHLTTPCCAMath
   public:
     GPUd() static float2 MakeFloat2( float x, float y );
 
-    GPUd() static float Min( float x, float y );
-    GPUd() static float Max( float x, float y );
-    GPUd() static int Min( int x, int y );
-    GPUd() static int Max( int x, int y );
-    GPUd() static float Sqrt( float x );
-    GPUd() static float Abs( float x );
-    GPUd() static double Abs( double x );
-    GPUd() static int Abs( int x );
-    GPUd() static float ASin( float x );
+    GPUhd() static float Min( float x, float y );
+    GPUhd() static float Max( float x, float y );
+    GPUhd() static int Min( int x, int y );
+    GPUhd() static int Max( int x, int y );
+    GPUhd() static float Sqrt( float x );
+    GPUhd() static float Abs( float x );
+    GPUhd() static double Abs( double x );
+    GPUhd() static int Abs( int x );
+    GPUhd() static float ASin( float x );
     GPUd() static float ATan2( float y, float x );
-    GPUd() static float Sin( float x );
-    GPUd() static float Cos( float x );
-    GPUd() static float Tan( float x );
+    GPUhd() static float Sin( float x );
+    GPUhd() static float Cos( float x );
+    GPUhd() static float Tan( float x );
     GPUd() static float Copysign( float x, float y );
     GPUd() static float TwoPi() { return 6.28319; }
     GPUd() static float Pi() { return 3.1415926535897; }
     GPUd() static int Nint( float x );
     GPUd() static bool Finite( float x );
 
-	GPUd() static float Log(float x);
+	GPUhd() static float Log(float x);
 
     GPUd()  static int AtomicExch( int *addr, int val );
     GPUd()  static int AtomicAdd ( int *addr, int val );

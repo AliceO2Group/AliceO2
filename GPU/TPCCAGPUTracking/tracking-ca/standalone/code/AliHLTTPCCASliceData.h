@@ -82,8 +82,8 @@ class AliHLTTPCCASliceData
      *
      * The links values give the hit index in the row above/below. Or -1 if there is no link.
      */
-    short_v HitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
-    short_v HitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
+    GPUd() short_v HitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
+    GPUd() short_v HitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex ) const;
 
     GPUhd() const ushort2 *HitData( const AliHLTTPCCARow &row ) const;
     GPUhd() const ushort2 *HitData() const { return(fHitData); }
@@ -91,9 +91,9 @@ class AliHLTTPCCASliceData
     GPUd() const short_v *HitLinkDownData( const AliHLTTPCCARow &row ) const;
     GPUd() const ushort_v *FirstHitInBin( const AliHLTTPCCARow &row ) const;
 
-    void SetHitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex,
+    GPUd() void SetHitLinkUpData  ( const AliHLTTPCCARow &row, const short_v &hitIndex,
                              const short_v &value );
-    void SetHitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex,
+    GPUd() void SetHitLinkDownData( const AliHLTTPCCARow &row, const short_v &hitIndex,
                              const short_v &value );
 
     /**
@@ -105,9 +105,9 @@ class AliHLTTPCCASliceData
      * Return the y and z coordinate(s) of the given hit(s).
      */
     // TODO return float_v
-    ushort_v HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
-    ushort_v HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
-    ushort2 HitData( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
+    GPUd() ushort_v HitDataY( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
+    GPUd() ushort_v HitDataZ( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
+    GPUd() ushort2 HitData( const AliHLTTPCCARow &row, const uint_v &hitIndex ) const;
 
     /**
      * For a given bin index, content tells how many hits there are in the preceding bins. This maps
@@ -115,18 +115,18 @@ class AliHLTTPCCASliceData
      *
      * \param binIndexes in the range 0 to row.Grid.N + row.Grid.Ny + 3.
      */
-    ushort_v FirstHitInBin( const AliHLTTPCCARow &row, ushort_v binIndexes ) const;
+    GPUd() ushort_v FirstHitInBin( const AliHLTTPCCARow &row, ushort_v binIndexes ) const;
 
     /**
      * If the given weight is higher than what is currently stored replace with the new weight.
      */
-    void MaximizeHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int_v weight );
-	void SetHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int_v weight );
+    GPUd() void MaximizeHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int_v weight );
+	GPUd() void SetHitWeight( const AliHLTTPCCARow &row, uint_v hitIndex, int_v weight );
 
     /**
      * Return the maximal weight the given hit got from one tracklet
      */
-    int_v HitWeight( const AliHLTTPCCARow &row, uint_v hitIndex ) const;
+    GPUd() int_v HitWeight( const AliHLTTPCCARow &row, uint_v hitIndex ) const;
 
     /**
      * Reset all hit weights to 0.
@@ -136,12 +136,12 @@ class AliHLTTPCCASliceData
     /**
      * Returns the index in the original AliHLTTPCCAClusterData object of the given hit
      */
-    int_v ClusterDataIndex( const AliHLTTPCCARow &row, uint_v hitIndex ) const;
+    GPUhd() int_v ClusterDataIndex( const AliHLTTPCCARow &row, uint_v hitIndex ) const;
 
     /**
      * Return the row object for the given row index.
      */
-    const AliHLTTPCCARow &Row( int rowIndex ) const;
+    GPUhd() const AliHLTTPCCARow &Row( int rowIndex ) const;
     GPUhd() AliHLTTPCCARow* Rows() const {return fRows;}
 
     GPUh() char *Memory() const {return(fMemory); }

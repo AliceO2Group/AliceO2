@@ -727,7 +727,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	trackSortData* trackOrder = new trackSortData[fCommonMem->fNTracks];
 	for (int i = 0;i < fCommonMem->fNTracks;i++)
 	{
-		trackOrder[i].fTtrack = i % fCommonMem->fNTracks;
+		trackOrder[i].fTtrack = i;
 		trackOrder[i].fSortVal = fTracks[trackOrder[i].fTtrack].NHits() / 1000.f + fTracks[trackOrder[i].fTtrack].Param().GetZ() * 100.f + fTracks[trackOrder[i].fTtrack].Param().GetY();
 	}
 	qsort(trackOrder, fCommonMem->fNLocalTracks, sizeof(trackSortData), SortComparison);

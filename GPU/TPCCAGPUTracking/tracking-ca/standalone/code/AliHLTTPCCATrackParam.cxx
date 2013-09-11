@@ -346,7 +346,7 @@ GPUdi() bool AliHLTTPCCATrackParam::TransportToXWithMaterial( float x, float Bz,
 //*
 
 
-GPUi() float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
+GPUdi() float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
     float kp0,
     float kp1,
     float kp2,
@@ -390,7 +390,7 @@ GPUi() float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
   return mK*mZA*( 1 + bg2 ) / bg2*( 0.5*AliHLTTPCCAMath::Log( 2*me*bg2*maxT / ( mI*mI ) ) - bg2 / ( 1 + bg2 ) - d2 );
 }
 
-GPUi() float AliHLTTPCCATrackParam::BetheBlochSolid( float bg )
+GPUdi() float AliHLTTPCCATrackParam::BetheBlochSolid( float bg )
 {
   //------------------------------------------------------------------
   // This is an approximation of the Bethe-Bloch formula,
@@ -402,7 +402,7 @@ GPUi() float AliHLTTPCCATrackParam::BetheBlochSolid( float bg )
   return BetheBlochGeant( bg );
 }
 
-GPUi() float AliHLTTPCCATrackParam::BetheBlochGas( float bg )
+GPUdi() float AliHLTTPCCATrackParam::BetheBlochGas( float bg )
 {
   //------------------------------------------------------------------
   // This is an approximation of the Bethe-Bloch formula,

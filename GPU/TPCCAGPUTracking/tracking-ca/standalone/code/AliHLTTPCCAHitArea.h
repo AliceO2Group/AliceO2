@@ -33,7 +33,7 @@ class AliHLTTPCCAHitArea
      * look up the next hit in the requested area.
      * Sets h to the coordinates and returns the index for the hit data
      */
-    int GetNext( const AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row,
+    GPUd() int GetNext( const AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row,
                  const AliHLTTPCCASliceData &slice, AliHLTTPCCAHit *h );
     /**
      * look up the best hit in the next hits in the requested area.

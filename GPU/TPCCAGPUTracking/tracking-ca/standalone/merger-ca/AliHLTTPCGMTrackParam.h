@@ -106,8 +106,8 @@ public:
   
   GPUd() bool Rotate( float alpha, AliHLTTPCGMTrackLinearisation &t0, float maxSinPhi = .999 );
   
-  GPUd() static float GetBz( float x, float y, float z, float* PolinomialFieldBz );
-  GPUd() float GetBz(float* PolinomialFieldBz ) const{ return GetBz( fX, fP[0], fP[1], PolinomialFieldBz );}
+  GPUhd() static float GetBz( float x, float y, float z, float* PolinomialFieldBz );
+  GPUhd() float GetBz(float* PolinomialFieldBz ) const{ return GetBz( fX, fP[0], fP[1], PolinomialFieldBz );}
 
   GPUd() static float Reciprocal( float x ){ return 1./x; }
   GPUd() static void Assign( float &x, bool mask, float v ){
