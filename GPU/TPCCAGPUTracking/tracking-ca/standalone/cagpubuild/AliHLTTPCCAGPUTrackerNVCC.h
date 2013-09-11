@@ -35,6 +35,7 @@ public:
 protected:
 	virtual void ActivateThreadContext();
 	virtual void ReleaseThreadContext();
+	virtual void SynchronizeGPU();
 	virtual int CUDASync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
 
 private:

@@ -68,6 +68,7 @@ public:
 protected:
 	virtual void ActivateThreadContext() = 0;
 	virtual void ReleaseThreadContext() = 0;
+	virtual void SynchronizeGPU() = 0;
 
 	struct helperParam
 	{

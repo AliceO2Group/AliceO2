@@ -422,6 +422,8 @@ int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, AliHLTTPCCAParam
 void AliHLTTPCCAGPUTrackerBase::ResetHelperThreads(int helpers)
 {
 	HLTImportant("Error occurred, GPU tracker helper threads will be reset (Number of threads %d/%d)", fNHelperThreads, fNCPUTrackers);
+	SynchronizeGPU();
+	ReleaseThreadContext();
 	for (int i = 0;i < fNHelperThreads + fNCPUTrackers;i++)
 	{
 		fHelperParams[i].fReset = true;
@@ -619,10 +621,73 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 
 	int retVal = InitGPU_Runtime(sliceCount, forceDeviceID);
 	ReleaseGlobalLock(semLock);
+
+	if (retVal)
+	{
+		HLTImportant("GPU Tracker initialization failed");
+		return(1);
+	}
+
+	fSliceCount = sliceCount;
+	//Don't run constructor / destructor here, this will be just local memcopy of Tracker in GPU Memory
+	fGpuTracker = (AliHLTTPCCATracker*) TrackerMemory(fHostLockedMemory, 0);
+
+	for (int i = 0;i < fgkNSlices;i++)
+	{
+		fSlaveTrackers[i].SetGPUTracker();
+		fSlaveTrackers[i].SetGPUTrackerCommonMemory((char*) CommonMemory(fHostLockedMemory, i));
+		fSlaveTrackers[i].SetGPUSliceDataMemory(SliceDataMemory(fHostLockedMemory, i), RowMemory(fHostLockedMemory, i));
+	}
+
+	if (StartHelperThreads()) return(1);
+
+	fHelperMemMutex = malloc(sizeof(pthread_mutex_t));
+	if (fHelperMemMutex == NULL)
+	{
+		HLTError("Memory allocation error");
+		ExitGPU_Runtime();
+		return(1);
+	}
+
+	if (pthread_mutex_init((pthread_mutex_t*) fHelperMemMutex, NULL))
+	{
+		HLTError("Error creating pthread mutex");
+		ExitGPU_Runtime();
+		free(fHelperMemMutex);
+		return(1);
+	}
+
+	fSliceGlobalMutexes = malloc(sizeof(pthread_mutex_t) * fgkNSlices);
+	if (fSliceGlobalMutexes == NULL)
+	{
+		HLTError("Memory allocation error");
+		ExitGPU_Runtime();
+		return(1);
+	}
+	for (int i = 0;i < fgkNSlices;i++)
+	{
+		if (pthread_mutex_init(&((pthread_mutex_t*) fSliceGlobalMutexes)[i], NULL))
+		{
+			HLTError("Error creating pthread mutex");
+			ExitGPU_Runtime();
+			return(1);
+		}
+	}
+
+	fCudaInitialized = 1;
+	HLTImportant("GPU Tracker initialization successfull");
+
 	return(retVal);
 }
 
 int AliHLTTPCCAGPUTrackerBase::ExitGPU()
 {
+	if (StopHelperThreads()) return(1);
+	pthread_mutex_destroy((pthread_mutex_t*) fHelperMemMutex);
+	free(fHelperMemMutex);
+
+	for (int i = 0;i < fgkNSlices;i++) pthread_mutex_destroy(&((pthread_mutex_t*) fSliceGlobalMutexes)[i]);
+	free(fSliceGlobalMutexes);
+
 	return(ExitGPU_Runtime());
 }
