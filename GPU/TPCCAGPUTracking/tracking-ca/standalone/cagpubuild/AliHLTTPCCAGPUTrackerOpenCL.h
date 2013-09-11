@@ -20,6 +20,8 @@
 
 #include "AliHLTTPCCAGPUTrackerBase.h"
 
+struct AliHLTTPCCAGPUTrackerOpenCLInternals;
+
 class AliHLTTPCCAGPUTrackerOpenCL : public AliHLTTPCCAGPUTrackerBase
 {
 public:
@@ -36,12 +38,12 @@ protected:
 	virtual void ActivateThreadContext();
 	virtual void ReleaseThreadContext();
 	virtual void SynchronizeGPU();
-	virtual int CUDASync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
+	virtual int GPUSync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
 
 private:
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
-	void* fCudaContext; //Pointer to CUDA context
-	bool CudaFailedMsgA(cudaError_t error, const char* file, int line);
+	bool GPUFailedMsgA(int, const char* file, int line);
+	AliHLTTPCCAGPUTrackerOpenCLInternals* ocl;
 
 
 	// disable copy

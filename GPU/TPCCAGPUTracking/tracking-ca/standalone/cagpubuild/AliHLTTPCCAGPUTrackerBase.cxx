@@ -17,6 +17,10 @@
 //                                                                          *
 //***************************************************************************
 
+#include <string.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 #include "AliHLTTPCCAGPUTrackerBase.h"
 #include "AliHLTTPCCAClusterData.h"
 
@@ -196,7 +200,6 @@ fDebugLevel(0),
 fDebugMask(0xFFFFFFFF),
 fOutFile(NULL),
 fGPUMemSize(0),
-fpCudaStreams(NULL),
 fSliceCount(HLTCA_GPU_DEFAULT_MAX_SLICE_COUNT),
 fCudaDevice(0),
 fOutputControl(NULL),
@@ -263,20 +266,6 @@ int AliHLTTPCCAGPUTrackerBase::CheckMemorySizes(int sliceCount)
 		HLTInfo("Memory usage: Tracker Object %d / %d, Common Memory %d / %d, Row Memory %d / %d", (int) sizeof(AliHLTTPCCATracker) * sliceCount, HLTCA_GPU_TRACKER_OBJECT_MEMORY, (int) (fgkNSlices * AliHLTTPCCATracker::CommonMemorySize()), HLTCA_GPU_COMMON_MEMORY, (int) (fgkNSlices * (HLTCA_ROW_COUNT + 1) * sizeof(AliHLTTPCCARow)), HLTCA_GPU_ROWS_MEMORY);
 	}
 	return(0);
-}
-
-template <class T> inline T* AliHLTTPCCAGPUTrackerBase::alignPointer(T* ptr, int alignment)
-{
-	//Macro to align Pointers.
-	//Will align to start at 1 MB segments, this should be consistent with every alignment in the tracker
-	//(As long as every single data structure is <= 1 MB)
-
-	size_t adr = (size_t) ptr;
-	if (adr % alignment)
-	{
-		adr += alignment - (adr % alignment);
-	}
-	return((T*) adr);
 }
 
 void AliHLTTPCCAGPUTrackerBase::SetDebugLevel(const int dwLevel, std::ostream* const NewOutFile)

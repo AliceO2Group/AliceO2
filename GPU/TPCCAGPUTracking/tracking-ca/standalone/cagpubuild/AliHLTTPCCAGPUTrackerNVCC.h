@@ -36,13 +36,14 @@ protected:
 	virtual void ActivateThreadContext();
 	virtual void ReleaseThreadContext();
 	virtual void SynchronizeGPU();
-	virtual int CUDASync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
+	virtual int GPUSync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
 
 private:
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
 	void* fCudaContext; //Pointer to CUDA context
-	bool CudaFailedMsgA(cudaError_t error, const char* file, int line);
+	bool GPUFailedMsgA(cudaError_t error, const char* file, int line);
 
+	void* fpCudaStreams; //Pointer to array of CUDA Streams
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );

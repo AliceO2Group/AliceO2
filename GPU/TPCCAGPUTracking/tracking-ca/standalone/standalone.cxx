@@ -26,7 +26,7 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, SAVE = 0, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1;
+	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1;
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
@@ -67,12 +67,6 @@ int main(int argc, char** argv)
 		if ( !strcmp( argv[i], "-CONTINUE" ) ) 
 		{
 			continueOnError=1;        
-		}
-
-		if ( !strcmp( argv[i], "-SAVE" ) ) 
-		{
-			printf("Saving Tracks enabled\n");
-			SAVE=1;        
 		}
 
 		if ( !strcmp( argv[i], "-DEBUG" ) && argc > i + 1)
