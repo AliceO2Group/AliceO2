@@ -1,5 +1,7 @@
 #Architecture Settings
 INTELARCH					= Host
+GCCARCH						= native
+MSVCFAVOR					= INTEL64
 CUDAVERSION					= 20
 CUDAREGS					= 64
 ARCHBITS					= 64
