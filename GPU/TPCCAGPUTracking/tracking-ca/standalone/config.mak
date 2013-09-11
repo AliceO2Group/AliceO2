@@ -1,7 +1,7 @@
 include						config_common.mak
 
 TARGET						= ca
-SUBTARGETS					= libAliHLTTPCCAGPUSA
+SUBTARGETS					= libAliHLTTPCCAGPUSA libAliHLTTPCCAGPUSAOpenCL
 
 CPPFILES					= display/opengl.cpp
 CXXFILES					= standalone.cxx \
