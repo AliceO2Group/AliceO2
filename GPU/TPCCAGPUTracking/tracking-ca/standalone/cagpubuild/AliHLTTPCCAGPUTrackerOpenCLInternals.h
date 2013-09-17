@@ -29,6 +29,7 @@ struct AliHLTTPCCAGPUTrackerOpenCLInternals
 	cl_mem mem_gpu;
 	cl_mem mem_host;
 	void* mem_host_ptr;
+	cl_event* selector_events;
 };
 
 #endif
