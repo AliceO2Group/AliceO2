@@ -24,12 +24,14 @@
 struct AliHLTTPCCAGPUTrackerOpenCLInternals
 {
 	cl_device_id device;
+	cl_device_id* devices;
 	cl_context context;
 	cl_command_queue command_queue[36];
 	cl_mem mem_gpu;
 	cl_mem mem_host;
 	void* mem_host_ptr;
 	cl_event* selector_events;
+	cl_program program;
 };
 
 #endif
