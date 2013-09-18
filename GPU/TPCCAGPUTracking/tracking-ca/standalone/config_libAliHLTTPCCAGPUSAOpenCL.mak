@@ -26,6 +26,7 @@ CXXFILES					= code/AliHLTTPCCATracker.cxx \
 							  cagpubuild/AliHLTTPCCAGPUTrackerBase.cxx \
                               cagpubuild/AliHLTTPCCAGPUTrackerOpenCL.cxx
 ASMFILES					= 
+CLFILES						= cagpubuild/AliHLTTPCCAGPUTrackerOpenCL.cl
 
 CONFIG_OPENCL				= 1
 

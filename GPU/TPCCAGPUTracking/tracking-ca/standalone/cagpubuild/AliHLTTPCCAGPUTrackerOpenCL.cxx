@@ -42,6 +42,9 @@
 #include "AliHLTTPCCATrackletConstructor.h"
 #include "AliHLTTPCCAClusterData.h"
 
+#include "../makefiles/opencl_obtain_program.h"
+extern "C" char _makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl[];
+
 ClassImp( AliHLTTPCCAGPUTrackerOpenCL )
 
 AliHLTTPCCAGPUTrackerOpenCL::AliHLTTPCCAGPUTrackerOpenCL() : ocl(NULL)
@@ -53,6 +56,7 @@ AliHLTTPCCAGPUTrackerOpenCL::AliHLTTPCCAGPUTrackerOpenCL() : ocl(NULL)
 	}
 	ocl->mem_host_ptr = NULL;
 	ocl->selector_events = NULL;
+	ocl->devices = NULL;
 };
 
 AliHLTTPCCAGPUTrackerOpenCL::~AliHLTTPCCAGPUTrackerOpenCL()
@@ -70,7 +74,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	cl_uint num_platforms;
 	if (clGetPlatformIDs(0, NULL, &num_platforms) != CL_SUCCESS) quit("Error getting OpenCL Platform Count");
 	if (num_platforms == 0) quit("No OpenCL Platform found");
-	HLTInfo("%d OpenCL Platforms found\n", num_platforms);
+	HLTInfo("%d OpenCL Platforms found", num_platforms);
 	
 	//Query platforms
 	cl_platform_id* platforms = new cl_platform_id[num_platforms];
@@ -110,9 +114,9 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	}
 
 	//Query devices
-	cl_device_id* devices = new cl_device_id[count];
-	if (devices == NULL) quit("Memory allocation error");
-	if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, count, devices, NULL) != CL_SUCCESS) quit("Error getting OpenCL devices"); 
+	ocl->devices = new cl_device_id[count];
+	if (ocl->devices == NULL) quit("Memory allocation error");
+	if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, count, ocl->devices, NULL) != CL_SUCCESS) quit("Error getting OpenCL devices"); 
 
 	char device_vendor[64], device_name[64];
 	cl_device_type device_type;
@@ -124,12 +128,12 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		if (fDebugLevel >= 4) printf("Examining device %d\n", i);
 		cl_uint nbits;
 
-		clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 64, device_name, NULL);
-		clGetDeviceInfo(devices[i], CL_DEVICE_VENDOR, 64, device_vendor, NULL);
-		clGetDeviceInfo(devices[i], CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, NULL);
-		clGetDeviceInfo(devices[i], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, NULL);
-		clGetDeviceInfo(devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, NULL);
-		clGetDeviceInfo(devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(nbits), &nbits, NULL);
+		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_NAME, 64, device_name, NULL);
+		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_VENDOR, 64, device_vendor, NULL);
+		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, NULL);
+		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, NULL);
+		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, NULL);
+		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_ADDRESS_BITS, sizeof(nbits), &nbits, NULL);
 		//if (device_type & CL_DEVICE_TYPE_CPU) continue;
 		//if (!(device_type & CL_DEVICE_TYPE_GPU)) continue;
 		if (nbits / 8 != sizeof(void*)) continue;
@@ -149,7 +153,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	}
 
 	if (forceDeviceID > -1 && forceDeviceID < (signed) count) bestDevice = forceDeviceID;
-	ocl->device = devices[bestDevice];
+	ocl->device = ocl->devices[bestDevice];
 
 	clGetDeviceInfo(ocl->device, CL_DEVICE_NAME, 64, device_name, NULL);
 	clGetDeviceInfo(ocl->device, CL_DEVICE_VENDOR, 64, device_vendor, NULL);
@@ -160,14 +164,20 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	fConstructorBlockCount = 32;
 	selectorBlockCount = 32;
 
-	delete[] devices;
-
-	ocl->context = clCreateContext(NULL, 1, &ocl->device, NULL, NULL, &ocl_error);
+	ocl->context = clCreateContext(NULL, count, ocl->devices, NULL, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
 	{
 		HLTError("Could not create OPENCL Device Context!");
 		return(1);
 	}
+
+	if (_makefiles_opencl_obtain_program_helper(ocl->context, count, ocl->devices, &ocl->program, _makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl))
+	{
+		clReleaseContext(ocl->context);
+		HLTError("Could not obtain OpenCL progarm");
+		return(1);
+	}
+	HLTInfo("OpenCL program loaded successfully");
 
 	ocl->mem_gpu = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, fGPUMemSize, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
@@ -228,7 +238,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	if (fDebugLevel >= 1) HLTInfo("Host Memory used: %d", hostMemSize);
 	fGPUMergerHostMemory = ((char*) fHostLockedMemory) + hostMemSize - fGPUMergerMaxMemory;
 
-	HLTInfo("Obtained Pointer to GPU Memory: %p\n", *((void**) ocl->mem_host_ptr));
+	HLTInfo("Obtained Pointer to GPU Memory: %p", *((void**) ocl->mem_host_ptr));
 	fGPUMemory = *((void**) ocl->mem_host_ptr);
 
 	if (fDebugLevel >= 1)
@@ -238,7 +248,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 
 	ocl->selector_events = new cl_event[fSliceCount];
 
-	HLTImportant("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, Max slices: %d)\n", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, fSliceCount);
+	HLTImportant("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, Max slices: %d)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, fSliceCount);
 
 	return(0);
 }
@@ -508,7 +518,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		{
 			ResetHelperThreads(1);
 			ActivateThreadContext();
-			for (int iSlice2 = 0;iSlice2 = sliceCountLocal;iSlice2++) clReleaseEvent(ocl->selector_events[iSlice2]);
+			for (int iSlice2 = 0;iSlice2 < sliceCountLocal;iSlice2++) clReleaseEvent(ocl->selector_events[iSlice2]);
 			return(SelfHealReconstruct(pOutput, pClusterData, firstSlice, sliceCountLocal));
 		}
 
@@ -516,14 +526,14 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		{
 			HLTError("GPU Tracker returned Error Code %d in slice %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice);
 			ResetHelperThreads(1);
-			for (int iSlice2 = 0;iSlice2 = sliceCountLocal;iSlice2++) clReleaseEvent(ocl->selector_events[iSlice2]);
+			for (int iSlice2 = 0;iSlice2 < sliceCountLocal;iSlice2++) clReleaseEvent(ocl->selector_events[iSlice2]);
 			return(1);
 		}
 		if (fDebugLevel >= 3) HLTInfo("Tracks Transfered: %d / %d", *fSlaveTrackers[firstSlice + iSlice].NTracks(), *fSlaveTrackers[firstSlice + iSlice].NTrackHits());
 
 		if (Reconstruct_Base_FinishSlices(pOutput, iSlice, firstSlice)) return(1);
 	}
-	for (int iSlice2 = 0;iSlice2 = sliceCountLocal;iSlice2++) clReleaseEvent(ocl->selector_events[iSlice2]);
+	for (int iSlice2 = 0;iSlice2 < sliceCountLocal;iSlice2++) clReleaseEvent(ocl->selector_events[iSlice2]);
 
 	if (Reconstruct_Base_Finalize(pOutput, tmpMemoryGlobalTracking, firstSlice)) return(1);
 
@@ -563,9 +573,16 @@ int AliHLTTPCCAGPUTrackerOpenCL::ExitGPU_Runtime()
 
 	if (ocl->selector_events)
 	{
+		delete[] ocl->selector_events;
 		ocl->selector_events = NULL;
 	}
+	if (ocl->devices)
+	{
+		delete[] ocl->devices;
+		ocl->devices = NULL;
+	}
 
+	clReleaseProgram(ocl->program);
 	clReleaseContext(ocl->context);
 
 	HLTInfo("OPENCL Uninitialized");
