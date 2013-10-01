@@ -48,7 +48,7 @@ GPUdi() void AliHLTTPCCAStartHitsFinder::Thread
 #endif
     for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
       if (tracker.HitLinkDownData(row, ih) < 0 && tracker.HitLinkUpData(row, ih) >= 0 && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) >= 0) {
-        int oldNRowStartHits = CAMath::AtomicAdd( &s.fNRowStartHits, 1 );
+        int oldNRowStartHits = CAMath::AtomicAddShared( &s.fNRowStartHits, 1 );
 #ifdef HLTCA_GPUCODE
         s.fRowStartHits[oldNRowStartHits].Set( *xxx, ih );
 #else

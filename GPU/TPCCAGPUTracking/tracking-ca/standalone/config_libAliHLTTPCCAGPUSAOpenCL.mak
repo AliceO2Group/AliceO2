@@ -29,5 +29,6 @@ ASMFILES					=
 CLFILES						= cagpubuild/AliHLTTPCCAGPUTrackerOpenCL.cl
 
 CONFIG_OPENCL				= 1
+OPENCL_OPTIONS				= -x clc++
 
 ALLDEP						+= config_common.mak

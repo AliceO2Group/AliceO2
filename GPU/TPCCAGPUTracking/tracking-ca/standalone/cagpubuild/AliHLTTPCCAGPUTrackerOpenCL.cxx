@@ -17,11 +17,12 @@
 //                                                                          *
 //***************************************************************************
 
+#define __OPENCL__
+#define HLTCA_HOSTCODE
+
 #include <string.h>
 #include "AliHLTTPCCAGPUTrackerOpenCL.h"
 #include "AliHLTTPCCAGPUTrackerOpenCLInternals.h"
-
-//__constant__ float4 gAliHLTTPCCATracker[HLTCA_GPU_TRACKER_CONSTANT_MEM / sizeof( float4 )];
 
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCATrack.h" 
@@ -161,8 +162,11 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	clGetDeviceInfo(ocl->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, NULL);
 	clGetDeviceInfo(ocl->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, NULL);
 
-	fConstructorBlockCount = 32;
-	selectorBlockCount = 32;
+	cl_uint compute_units;
+	clGetDeviceInfo(ocl->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &compute_units, NULL);
+	
+	fConstructorBlockCount = compute_units * HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
+	selectorBlockCount = compute_units * HLTCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER;
 
 	ocl->context = clCreateContext(NULL, count, ocl->devices, NULL, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
@@ -183,6 +187,15 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	if (ocl_error != CL_SUCCESS)
 	{
 		HLTError("OPENCL Memory Allocation Error");
+		clReleaseContext(ocl->context);
+		return(1);
+	}
+
+	ocl->mem_constant = clCreateBuffer(ocl->context, CL_MEM_READ_ONLY, HLTCA_GPU_TRACKER_CONSTANT_MEM, NULL, &ocl_error);
+	if (ocl_error != CL_SUCCESS)
+	{
+		HLTError("OPENCL Constant Memory Allocation Error");
+		clReleaseMemObject(ocl->mem_gpu);
 		clReleaseContext(ocl->context);
 		return(1);
 	}
@@ -321,25 +334,13 @@ int AliHLTTPCCAGPUTrackerOpenCL::GPUSync(char* state, int sliceLocal, int slice)
 	//Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards
 
 	if (fDebugLevel == 0) return(0);
-	/*if (GPUFailedMsg(cudaThreadSynchronize()))
+	for (int i = 0;i < fSliceCount;i++)
 	{
-		HLTError("OPENCL Error while synchronizing (%s) (Slice %d; %d/%d)", state, sliceLocal, slice, fgkNSlices);
-		return(1);
-	}*/
+		clFinish(ocl->command_queue[i]);
+	}
 	if (fDebugLevel >= 3) HLTInfo("OPENCL Sync Done");
 	return(0);
 }
-
-/*__global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTracklets, int* const SliceDataHitWeights, int nSliceDataHits)
-{
-	//Initialize GPU RowBlocks and HitWeights
-	int4* const sliceDataHitWeights4 = (int4*) SliceDataHitWeights;
-	const int stride = blockDim.x * gridDim.x;
-	int4 i0;
-	i0.x = i0.y = i0.z = i0.w = 0;
-	for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < nSliceDataHits * sizeof(int) / sizeof(int4);i += stride)
-		sliceDataHitWeights4[i] = i0;
-}*/
 
 int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
@@ -350,7 +351,8 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 	//Copy Tracker Object to GPU Memory
 	if (fDebugLevel >= 3) HLTInfo("Copying Tracker objects to GPU");
 
-	//GPUFailedMsg(cudaMemcpyToSymbolAsync(gAliHLTTPCCATracker, fGpuTracker, sizeof(AliHLTTPCCATracker) * sliceCountLocal, 0, cudaMemcpyHostToDevice, cudaStreams[0]));
+	GPUFailedMsg(clEnqueueWriteBuffer(ocl->command_queue[0], ocl->mem_constant, CL_FALSE, 0, sizeof(AliHLTTPCCATracker) * sliceCountLocal, fGpuTracker, 0, NULL, NULL));
+
 	if (GPUSync("Initialization (1)", 0, firstSlice) RANDOM_ERROR)
 	{
 		ResetHelperThreads(0);
@@ -556,6 +558,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::ExitGPU_Runtime()
 	if (fGPUMemory)
 	{
 		clReleaseMemObject(ocl->mem_gpu);
+		clReleaseMemObject(ocl->mem_constant);
 		fGPUMemory = NULL;
 	}
 	if (fHostLockedMemory)
