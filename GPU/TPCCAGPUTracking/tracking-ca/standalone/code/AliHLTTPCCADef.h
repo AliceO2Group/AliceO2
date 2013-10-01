@@ -16,7 +16,7 @@
 //#define HLTCA_STANDALONE // compilation w/o root
 #define HLTCA_INTERNAL_PERFORMANCE
 
-#ifdef __CUDACC__
+#if defined(__CUDACC__) | defined(__OPENCL__)
 #define HLTCA_GPUCODE
 #endif //__CUDACC__
 
@@ -79,8 +79,13 @@ typedef float          Real_t;      //TVector and TMatrix element type (float)
 typedef __int64          Long64_t;  //Portable signed long integer 8 bytes
 typedef unsigned __int64 ULong64_t; //Portable unsigned long integer 8 bytes
 #else
+#if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
+typedef long Long64_t;
+typedef unsigned long ULong64_t;
+#else
 typedef long long          Long64_t; //Portable signed long integer 8 bytes
 typedef unsigned long long ULong64_t;//Portable unsigned long integer 8 bytes
+#endif
 #endif //R__WIN32 && !__CINT__
 typedef double         Axis_t;      //Axis values type (double)
 typedef double         Stat_t;      //Statistics type (double)
@@ -137,6 +142,49 @@ namespace AliHLTTPCCADefinitions
 #endif //HLTCA_GPUCODE
 
 #ifdef HLTCA_GPUCODE
+#ifdef __OPENCL__
+#ifdef HLTCA_HOSTCODE //HLTCA_GPUCODE & __OPENCL & HLTCA_HOSTCODE
+
+#define GPUdi() //TRIGGER_ERROR_NO_DEVICE_CODE
+#define GPUhdi() inline
+#define GPUd() //TRIGGER_ERROR_NO_DEVICE_CODE
+#define GPUi() inline
+#define GPUhd() 
+#define GPUh() 
+#define GPUg() TRIGGER_ERROR_NO_DEVICE_CODE
+#define GPUshared() 
+#define GPUsync() 
+
+struct float4 { float x, y, z, w; };
+struct float2 { float x; float y; };
+struct uchar2 { unsigned char x, y; };
+struct short2 { short x, y; };
+struct ushort2 { unsigned short x, y; };
+struct int2 { int x, y; };
+struct int3 { int x, y, z; };
+struct int4 { int x, y, z, w; };
+struct uint1 { unsigned int x; };
+struct uint2 { unsigned int x, y; };
+struct uint3 { unsigned int x, y, z; };
+struct uint4 { unsigned int x, y, z, w; };
+struct uint16 { unsigned int x[16]; };
+
+#else //HLTCA_HOSTCODE : HLTCA_GPUCODE & __OPENCL__ & !HLTCA_HOSTCODE
+
+#define GPUdi() inline
+#define GPUhdi() inline
+#define GPUd() 
+#define GPUi() inline
+#define GPUhd() 
+#define GPUh() TRIGGER_ERROR_NO_HOST_CODE
+#define GPUg() __kernel
+#define GPUshared() __shared
+#define GPUsync() barrier()
+
+#endif //HLTCA_HOSTCODE
+
+#else //__OPENCL__ : HLTCA_GPUCODE & !__OPENCL__
+
 #define GPUdi() __device__ inline
 #define GPUhdi() __host__ __device__ inline
 #define GPUd() __device__
@@ -144,14 +192,14 @@ namespace AliHLTTPCCADefinitions
 #define GPUhd() __host__ __device__
 #define GPUh() __host__ inline
 #define GPUg() __global__
-
 #define GPUshared() __shared__
 #define GPUsync() __syncthreads()
 
-#else
+#endif //__OPENCL
+#else //HLTCA_GPUCODE : !HLTCA_GPUCODE
+
 #define GPUdi()
 #define GPUhdi()
-
 #define GPUd()
 #define GPUi()
 #define GPUhd()
