@@ -160,7 +160,7 @@ MEM_CLASS_PRE GPUdi() float AliHLTTPCCAParam MEM_LG::GetClusterError2( int yz, i
   //* recalculate the cluster error wih respect to the track slope
 
   float angle2 = angle * angle;
-  const float *c = fParamS0Par[yz][type];
+  MakeType(const float*) c = fParamS0Par[yz][type];
   float v = c[0] + z * ( c[1] + c[3] * z ) + angle2 * ( c[2] + angle2 * c[4] + c[5] * z );
   return CAMath::Abs( v );
 }
