@@ -57,6 +57,8 @@
 
 ClassImp( AliHLTTPCCATracker )
 
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+
 #if !defined(HLTCA_GPUCODE)
 
 AliHLTTPCCATracker::~AliHLTTPCCATracker()
@@ -782,7 +784,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 #endif
 
-GPUh() void AliHLTTPCCATracker::FitTrackFull( const AliHLTTPCCATrack &/**/, float * /**/ ) const
+GPUh() void AliHLTTPCCATracker::FitTrackFull( const AliHLTTPCCATrack MEM_LG2 &/**/, float * /**/ ) const
 {
 	// fit track with material
 #ifdef XXX
@@ -1094,4 +1096,5 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", fParam.ISlice(), ll, lr, ul, ur);
 }
 
+#endif
 #endif

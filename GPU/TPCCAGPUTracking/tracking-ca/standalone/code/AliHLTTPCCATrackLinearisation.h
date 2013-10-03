@@ -37,7 +37,7 @@ class AliHLTTPCCATrackLinearisation
     AliHLTTPCCATrackLinearisation( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 )
         : fSinPhi( SinPhi1 ), fCosPhi( CosPhi1 ), fDzDs( DzDs1 ), fQPt( QPt1 ) {}
 
-    GPUd() AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam &t );
+    GPUd() MEM_CLASS_PRE2 AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam MEM_LG2 &t );
 
     GPUd() void Set( float SinPhi1, float CosPhi1, float DzDs1, float QPt1 );
 
@@ -65,7 +65,7 @@ class AliHLTTPCCATrackLinearisation
 };
 
 
-GPUd() inline AliHLTTPCCATrackLinearisation::AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam &t )
+GPUd() MEM_CLASS_PRE2 inline AliHLTTPCCATrackLinearisation::AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam MEM_LG2 &t )
     : fSinPhi( t.SinPhi() ), fCosPhi( 0 ), fDzDs( t.DzDs() ), fQPt( t.QPt() )
 {
   if ( fSinPhi > .999 ) fSinPhi = .999;

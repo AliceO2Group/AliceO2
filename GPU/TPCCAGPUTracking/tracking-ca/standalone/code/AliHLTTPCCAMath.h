@@ -50,14 +50,14 @@ class AliHLTTPCCAMath
 
 	GPUhd() static float Log(float x);
 
-    GPUd()  static int AtomicExch( int *addr, int val );
-    GPUd()  static int AtomicAdd ( int *addr, int val );
-    GPUd()  static int AtomicMax ( int *addr, int val );
-    GPUd()  static int AtomicMin ( int *addr, int val );
-    GPUd()  static int AtomicExchShared( int *addr, int val );
-    GPUd()  static int AtomicAddShared ( int *addr, int val );
-    GPUd()  static int AtomicMaxShared ( int *addr, int val );
-    GPUd()  static int AtomicMinShared ( int *addr, int val );
+    GPUd()  static int AtomicExch( GPUglobalref() int *addr, int val );
+    GPUd()  static int AtomicAdd ( GPUglobalref() int *addr, int val );
+    GPUd()  static int AtomicMax ( GPUglobalref() int *addr, int val );
+    GPUd()  static int AtomicMin ( GPUglobalref() int *addr, int val );
+    GPUd()  static int AtomicExchShared( GPUsharedref() int *addr, int val );
+    GPUd()  static int AtomicAddShared ( GPUsharedref() int *addr, int val );
+    GPUd()  static int AtomicMaxShared ( GPUsharedref() int *addr, int val );
+    GPUd()  static int AtomicMinShared ( GPUsharedref() int *addr, int val );
     GPUd()  static int Mul24( int a, int b );
     GPUd()  static float FMulRZ( float a, float b );
 };
@@ -221,10 +221,10 @@ GPUhd() inline float AliHLTTPCCAMath::Log(float x)
 }
 
 #if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
-GPUd()  inline int AliHLTTPCCAMath::AtomicExchShared( int *addr, int val ) {return ::atomic_xchg( (volatile __local int*) addr, val );}
-GPUd()  inline int AliHLTTPCCAMath::AtomicAddShared ( int *addr, int val ) {return ::atomic_add( (volatile __local int*) addr, val );}
-GPUd()  inline int AliHLTTPCCAMath::AtomicMaxShared ( int *addr, int val ) {return ::atomic_max( (volatile __local int*) addr, val );}
-GPUd()  inline int AliHLTTPCCAMath::AtomicMinShared ( int *addr, int val ) {return ::atomic_min( (volatile __local int*) addr, val );}
+GPUd()  inline int AliHLTTPCCAMath::AtomicExchShared( GPUsharedref() int *addr, int val ) {return ::atomic_xchg( (volatile __local int*) addr, val );}
+GPUd()  inline int AliHLTTPCCAMath::AtomicAddShared ( GPUsharedref() int *addr, int val ) {return ::atomic_add( (volatile __local int*) addr, val );}
+GPUd()  inline int AliHLTTPCCAMath::AtomicMaxShared ( GPUsharedref() int *addr, int val ) {return ::atomic_max( (volatile __local int*) addr, val );}
+GPUd()  inline int AliHLTTPCCAMath::AtomicMinShared ( GPUsharedref() int *addr, int val ) {return ::atomic_min( (volatile __local int*) addr, val );}
 
 #else
 GPUd()  inline int AliHLTTPCCAMath::AtomicExchShared( int *addr, int val ) {return(AliHLTTPCCAMath::AtomicExch(addr, val));}
@@ -234,7 +234,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicMinShared ( int *addr, int val ) {retu
 #endif
 
 
-GPUd()  inline int AliHLTTPCCAMath::AtomicExch( int *addr, int val )
+GPUd()  inline int AliHLTTPCCAMath::AtomicExch( GPUglobalref() int *addr, int val )
 {
 #if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
 #ifdef __OPENCL__
@@ -249,7 +249,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicExch( int *addr, int val )
 #endif //HLTCA_GPUCODE
 }
 
-GPUd()  inline int AliHLTTPCCAMath::AtomicAdd ( int *addr, int val )
+GPUd()  inline int AliHLTTPCCAMath::AtomicAdd ( GPUglobalref() int *addr, int val )
 {
 #if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
 #ifdef __OPENCL__
@@ -264,7 +264,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicAdd ( int *addr, int val )
 #endif //HLTCA_GPUCODE
 }
 
-GPUd()  inline int AliHLTTPCCAMath::AtomicMax ( int *addr, int val )
+GPUd()  inline int AliHLTTPCCAMath::AtomicMax ( GPUglobalref() int *addr, int val )
 {
 #if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
 #ifdef __OPENCL__
@@ -279,7 +279,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicMax ( int *addr, int val )
 #endif //HLTCA_GPUCODE
 }
 
-GPUd()  inline int AliHLTTPCCAMath::AtomicMin ( int *addr, int val )
+GPUd()  inline int AliHLTTPCCAMath::AtomicMin ( GPUglobalref() int *addr, int val )
 {
 #if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
 #ifdef __OPENCL__

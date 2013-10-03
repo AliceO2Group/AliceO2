@@ -35,7 +35,7 @@
 // Yc = Y + cos(Phi)/Kappa;
 //
 
-GPUdi() float AliHLTTPCCATrackParam::GetDist2( const AliHLTTPCCATrackParam &t ) const
+MEM_CLASS_PRE GPUdi() float AliHLTTPCCATrackParam MEM_LG::GetDist2( const AliHLTTPCCATrackParam MEM_LG &t ) const
 {
   // get squared distance between tracks
 
@@ -45,7 +45,7 @@ GPUdi() float AliHLTTPCCATrackParam::GetDist2( const AliHLTTPCCATrackParam &t ) 
   return dx*dx + dy*dy + dz*dz;
 }
 
-GPUdi() float AliHLTTPCCATrackParam::GetDistXZ2( const AliHLTTPCCATrackParam &t ) const
+MEM_CLASS_PRE GPUdi() float AliHLTTPCCATrackParam MEM_LG::GetDistXZ2( const AliHLTTPCCATrackParam MEM_LG &t ) const
 {
   // get squared distance between tracks in X&Z
 
@@ -55,7 +55,7 @@ GPUdi() float AliHLTTPCCATrackParam::GetDistXZ2( const AliHLTTPCCATrackParam &t 
 }
 
 
-GPUdi() float  AliHLTTPCCATrackParam::GetS( float x, float y, float Bz ) const
+MEM_CLASS_PRE GPUdi() float  AliHLTTPCCATrackParam MEM_LG::GetS( float x, float y, float Bz ) const
 {
   //* Get XY path length to the given point
 
@@ -69,7 +69,7 @@ GPUdi() float  AliHLTTPCCATrackParam::GetS( float x, float y, float Bz ) const
   return dS;
 }
 
-GPUdi() void  AliHLTTPCCATrackParam::GetDCAPoint( float x, float y, float z,
+MEM_CLASS_PRE GPUdi() void  AliHLTTPCCATrackParam MEM_LG::GetDCAPoint( float x, float y, float z,
     float &xp, float &yp, float &zp,
     float Bz ) const
 {
@@ -103,7 +103,7 @@ GPUdi() void  AliHLTTPCCATrackParam::GetDCAPoint( float x, float y, float z,
 //*
 
 
-GPUdi() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLinearisation &t0, float Bz,  float maxSinPhi, float *DL )
+MEM_CLASS_PRE GPUdi() bool  AliHLTTPCCATrackParam MEM_LG::TransportToX( float x, AliHLTTPCCATrackLinearisation &t0, float Bz,  float maxSinPhi, float *DL )
 {
   //* Transport the track parameters to X=x, using linearization at t0, and the field value Bz
   //* maxSinPhi is the max. allowed value for |t0.SinPhi()|
@@ -216,7 +216,7 @@ GPUdi() bool  AliHLTTPCCATrackParam::TransportToX( float x, AliHLTTPCCATrackLine
 }
 
 
-GPUdi() bool  AliHLTTPCCATrackParam::TransportToX( float x, float sinPhi0, float cosPhi0,  float Bz, float maxSinPhi )
+MEM_CLASS_PRE GPUdi() bool  AliHLTTPCCATrackParam MEM_LG::TransportToX( float x, float sinPhi0, float cosPhi0,  float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x, using linearization at phi0 with 0 curvature,
   //* and the field value Bz
@@ -298,7 +298,7 @@ GPUdi() bool  AliHLTTPCCATrackParam::TransportToX( float x, float sinPhi0, float
 
 
 
-GPUdi() bool  AliHLTTPCCATrackParam::TransportToX( float x, float Bz, float maxSinPhi )
+MEM_CLASS_PRE GPUdi() bool  AliHLTTPCCATrackParam MEM_LG::TransportToX( float x, float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x
 
@@ -309,7 +309,7 @@ GPUdi() bool  AliHLTTPCCATrackParam::TransportToX( float x, float Bz, float maxS
 
 
 
-GPUdi() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTTPCCATrackLinearisation &t0, AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi )
+MEM_CLASS_PRE GPUdi() bool  AliHLTTPCCATrackParam MEM_LG::TransportToXWithMaterial( float x,  AliHLTTPCCATrackLinearisation &t0, AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x  taking into account material budget
 
@@ -325,7 +325,7 @@ GPUdi() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTT
 }
 
 
-GPUdi() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi )
+MEM_CLASS_PRE GPUdi() bool  AliHLTTPCCATrackParam MEM_LG::TransportToXWithMaterial( float x,  AliHLTTPCCATrackFitParam &par, float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x  taking into account material budget
 
@@ -333,7 +333,7 @@ GPUdi() bool  AliHLTTPCCATrackParam::TransportToXWithMaterial( float x,  AliHLTT
   return TransportToXWithMaterial( x, t0, par, Bz, maxSinPhi );
 }
 
-GPUdi() bool AliHLTTPCCATrackParam::TransportToXWithMaterial( float x, float Bz, float maxSinPhi )
+MEM_CLASS_PRE GPUdi() bool AliHLTTPCCATrackParam MEM_LG::TransportToXWithMaterial( float x, float Bz, float maxSinPhi )
 {
   //* Transport the track parameters to X=x taking into account material budget
 
@@ -348,7 +348,7 @@ GPUdi() bool AliHLTTPCCATrackParam::TransportToXWithMaterial( float x, float Bz,
 //*
 
 
-GPUdi() float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
+MEM_CLASS_PRE GPUdi() float AliHLTTPCCATrackParam MEM_LG::BetheBlochGeant( float bg2,
     float kp0,
     float kp1,
     float kp2,
@@ -392,7 +392,7 @@ GPUdi() float AliHLTTPCCATrackParam::BetheBlochGeant( float bg2,
   return mK*mZA*( 1 + bg2 ) / bg2*( 0.5*AliHLTTPCCAMath::Log( 2*me*bg2*maxT / ( mI*mI ) ) - bg2 / ( 1 + bg2 ) - d2 );
 }
 
-GPUdi() float AliHLTTPCCATrackParam::BetheBlochSolid( float bg )
+MEM_CLASS_PRE GPUdi() float AliHLTTPCCATrackParam MEM_LG::BetheBlochSolid( float bg )
 {
   //------------------------------------------------------------------
   // This is an approximation of the Bethe-Bloch formula,
@@ -404,7 +404,7 @@ GPUdi() float AliHLTTPCCATrackParam::BetheBlochSolid( float bg )
   return BetheBlochGeant( bg );
 }
 
-GPUdi() float AliHLTTPCCATrackParam::BetheBlochGas( float bg )
+MEM_CLASS_PRE GPUdi() float AliHLTTPCCATrackParam MEM_LG::BetheBlochGas( float bg )
 {
   //------------------------------------------------------------------
   // This is an approximation of the Bethe-Bloch formula,
@@ -425,7 +425,7 @@ GPUdi() float AliHLTTPCCATrackParam::BetheBlochGas( float bg )
 
 
 
-GPUdi() float AliHLTTPCCATrackParam::ApproximateBetheBloch( float beta2 )
+MEM_CLASS_PRE GPUdi() float AliHLTTPCCATrackParam MEM_LG::ApproximateBetheBloch( float beta2 )
 {
   //------------------------------------------------------------------
   // This is an approximation of the Bethe-Bloch formula with
@@ -440,7 +440,7 @@ GPUdi() float AliHLTTPCCATrackParam::ApproximateBetheBloch( float beta2 )
 }
 
 
-GPUdi() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitParam &par, float mass )
+MEM_CLASS_PRE GPUdi() void AliHLTTPCCATrackParam MEM_LG::CalculateFitParameters( AliHLTTPCCATrackFitParam &par, float mass )
 {
   //*!
 
@@ -474,7 +474,7 @@ GPUdi() void AliHLTTPCCATrackParam::CalculateFitParameters( AliHLTTPCCATrackFitP
 }
 
 
-GPUdi() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  float xTimesRho, const AliHLTTPCCATrackFitParam &par )
+MEM_CLASS_PRE GPUdi() bool AliHLTTPCCATrackParam MEM_LG::CorrectForMeanMaterial( float xOverX0,  float xTimesRho, const AliHLTTPCCATrackFitParam &par )
 {
   //------------------------------------------------------------------
   // This function corrects the track parameters for the crossed material.
@@ -522,7 +522,7 @@ GPUdi() bool AliHLTTPCCATrackParam::CorrectForMeanMaterial( float xOverX0,  floa
 //*
 
 
-GPUdi() bool AliHLTTPCCATrackParam::Rotate( float alpha, float maxSinPhi )
+MEM_CLASS_PRE GPUdi() bool AliHLTTPCCATrackParam MEM_LG::Rotate( float alpha, float maxSinPhi )
 {
   //* Rotate the coordinate system in XY on the angle alpha
 
@@ -579,7 +579,7 @@ GPUdi() bool AliHLTTPCCATrackParam::Rotate( float alpha, float maxSinPhi )
   return 1;
 }
 
-GPUdi() bool AliHLTTPCCATrackParam::Rotate( float alpha, AliHLTTPCCATrackLinearisation &t0, float maxSinPhi )
+MEM_CLASS_PRE GPUdi() bool AliHLTTPCCATrackParam MEM_LG::Rotate( float alpha, AliHLTTPCCATrackLinearisation &t0, float maxSinPhi )
 {
   //* Rotate the coordinate system in XY on the angle alpha
 
@@ -623,7 +623,7 @@ GPUdi() bool AliHLTTPCCATrackParam::Rotate( float alpha, AliHLTTPCCATrackLineari
   return 1;
 }
 
-GPUdi() bool AliHLTTPCCATrackParam::Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi )
+MEM_CLASS_PRE GPUdi() bool AliHLTTPCCATrackParam MEM_LG::Filter( float y, float z, float err2Y, float err2Z, float maxSinPhi )
 {
   //* Add the y,z measurement with the Kalman filter
 
@@ -684,7 +684,7 @@ GPUdi() bool AliHLTTPCCATrackParam::Filter( float y, float z, float err2Y, float
   return 1;
 }
 
-GPUdi() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
+MEM_CLASS_PRE GPUdi() bool AliHLTTPCCATrackParam MEM_LG::CheckNumericalQuality() const
 {
   //* Check that the track parameters and covariance matrix are reasonable
 
@@ -722,7 +722,7 @@ GPUdi() bool AliHLTTPCCATrackParam::CheckNumericalQuality() const
 #include <iostream>
 #endif
 
-GPUdi() void AliHLTTPCCATrackParam::Print() const
+MEM_CLASS_PRE GPUdi() void AliHLTTPCCATrackParam MEM_LG::Print() const
 {
   //* print parameters
 

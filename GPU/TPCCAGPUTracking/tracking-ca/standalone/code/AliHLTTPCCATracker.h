@@ -13,18 +13,22 @@
 
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAGPUConfig.h"
-#include "AliHLTTPCCAParam.h"
+
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
 #include <iostream>
+#endif
+
+#include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCAHitId.h"
 #include "AliHLTTPCCASliceData.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCATrackletConstructor.h"
 #include "AliHLTTPCCATracklet.h"
 
-class AliHLTTPCCATrack;
-class AliHLTTPCCATrackParam;
+MEM_CLASS_PRE class AliHLTTPCCATrack;
+MEM_CLASS_PRE class AliHLTTPCCATrackParam;
 class AliHLTTPCCAClusterData;
-class AliHLTTPCCARow;
+MEM_CLASS_PRE class AliHLTTPCCARow;
 
 #include "TStopwatch.h"
 
@@ -43,7 +47,7 @@ class AliHLTTPCCARow;
 
 class AliHLTTPCCAClusterData;
 
-class AliHLTTPCCATracker
+MEM_CLASS_PRE class AliHLTTPCCATracker
 {
   public:
 
@@ -95,7 +99,7 @@ class AliHLTTPCCATracker
     int fGPUError;							//Signalizes error on GPU during GPU Reconstruction, kind of return value
   };
   
-  struct StructGPUParametersConst
+  MEM_CLASS_PRE2 struct StructGPUParametersConst
   {
     StructGPUParametersConst() : fGPUFixedBlockCount( 0 ), fGPUiSlice( 0 ), fGPUnSlices( 0 ) {}
     int fGPUFixedBlockCount;				//Count of blocks that is used for this tracker in fixed schedule situations
@@ -114,7 +118,7 @@ class AliHLTTPCCATracker
     StructGPUParameters fGPUParameters; // GPU parameters
   };
   
-  void Initialize( const AliHLTTPCCAParam &param );
+  MEM_CLASS_PRE2 void Initialize( const AliHLTTPCCAParam MEM_LG2 &param );
   
   void StartEvent();
   
@@ -137,8 +141,8 @@ class AliHLTTPCCATracker
   
   //GPU Tracker Interface
   void SetGPUTracker();
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
   void SetGPUDebugLevel(int Level, std::ostream *NewDebugOut = NULL) {fGPUDebugLevel = Level;if (NewDebugOut) fGPUDebugOut = NewDebugOut;}
-  
   char* SetGPUTrackerCommonMemory(char* const pGPUMemory);
   char* SetGPUTrackerHitsMemory(char* pGPUMemory, int MaxNHits);
   char* SetGPUTrackerTrackletsMemory(char* pGPUMemory, int MaxNTracklets, int constructorBlockCount);
@@ -152,72 +156,90 @@ class AliHLTTPCCATracker
   void DumpTrackHits(std::ostream &out);	//Same for Track Hits
   void DumpTrackletHits(std::ostream &out);	//Same for Track Hits
   void DumpOutput(FILE* out);	//Similar for output
+
+  void SetOutput( AliHLTTPCCASliceOutput** out ) { fOutput = out; }
+  void ReadEvent( AliHLTTPCCAClusterData *clusterData );
+
+  GPUhd() const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }  
+  GPUh() void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* const val)	{ fOutputControl = val;	}
+
+  GPUhd() AliHLTTPCCAClusterData *ClusterData() const { return fClusterData; }
+
+  GPUh() void ClearSliceDataHitWeights() {fData.ClearHitWeights();}
+  GPUh() MakeType(const AliHLTTPCCARow MEM_LG&) Row( const AliHLTTPCCAHitId &HitId ) const { return fData.Row( HitId.RowIndex() ); }
+
+  GPUhd() AliHLTTPCCASliceOutput** Output() const { return fOutput; }
+
+  GPUh() GPUglobalref() commonMemoryStruct *CommonMemory() const {return(fCommonMem); }
+  GPUh() static size_t CommonMemorySize() { return(sizeof(AliHLTTPCCATracker::commonMemoryStruct)); }
+  GPUh() GPUglobalref() char* HitMemory() const {return(fHitMemory); }
+  GPUh() size_t HitMemorySize() const {return(fHitMemorySize); }
+  GPUh() char* TrackletMemory() {return(fTrackletMemory); }
+  GPUh() size_t TrackletMemorySize() const {return(fTrackletMemorySize); }
+  GPUh() char* TrackMemory() {return(fTrackMemory); }
+  GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
+
+  GPUh() void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory) { fData.SetGPUSliceDataMemory(pSliceMemory, pRowMemory); }
+  GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
+
+  GPUh() static int SortComparison(const void* a, const void* b);
+#endif  
   
-  GPUd() void GetErrors2( int iRow,  const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const;
+  MEM_CLASS_PRE2 GPUd() void GetErrors2( int iRow,  const AliHLTTPCCATrackParam MEM_LG2 &t, float &Err2Y, float &Err2Z ) const;
   GPUd() void GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
   
-  void FitTrack( const AliHLTTPCCATrack &track, float *t0 = 0 ) const;
-  void FitTrackFull( const AliHLTTPCCATrack &track, float *t0 = 0 ) const;
+  MEM_CLASS_PRE2 void FitTrack( const AliHLTTPCCATrack MEM_LG2 &track, float *t0 = 0 ) const;
+  MEM_CLASS_PRE2 void FitTrackFull( const AliHLTTPCCATrack MEM_LG2 &track, float *t0 = 0 ) const;
   
   void SetupCommonMemory();
   void SetPointersHits( int MaxNHits );
   void SetPointersTracklets ( int MaxNTracklets );
   void SetPointersTracks( int MaxNTracks, int MaxNHits );
   size_t SetPointersSliceData(const AliHLTTPCCAClusterData *data, bool allocate = false) { return(fData.SetPointers(data, allocate)); }
-  
-  void SetOutput( AliHLTTPCCASliceOutput** out ) { fOutput = out; }
-  
-  void ReadEvent( AliHLTTPCCAClusterData *clusterData );
-  
+ 
 #if !defined(HLTCA_GPUCODE)
   GPUh() void WriteEvent( std::ostream &out );
   GPUh() void WriteTracks( std::ostream &out ) ;
   GPUh() void ReadTracks( std::istream &in );
 #endif //!HLTCA_GPUCODE
   
-  GPUhd() const AliHLTTPCCAParam &Param() const { return fParam; }
-  GPUhd() const AliHLTTPCCAParam *pParam() const { return &fParam; }
-  GPUhd() void SetParam( const AliHLTTPCCAParam &v ) { fParam = v; }
+  GPUhd() MakeType(const AliHLTTPCCAParam MEM_LG&) Param() const { return fParam; }
+  GPUhd() MakeType(const AliHLTTPCCAParam MEM_LG*) pParam() const { return &fParam; }
+  MEM_CLASS_PRE2 GPUhd() void SetParam( const AliHLTTPCCAParam MEM_LG2 &v ) { fParam = v; }
   
-  GPUhd() const AliHLTTPCCASliceOutput::outputControlStruct* OutputControl() const { return fOutputControl; }  
-  GPUh() void SetOutputControl( AliHLTTPCCASliceOutput::outputControlStruct* const val)	{ fOutputControl = val;	}
-
-  GPUhd() AliHLTTPCCAClusterData *ClusterData() const { return fClusterData; }
-  GPUhd() const AliHLTTPCCASliceData &Data() const { return fData; }
+  GPUhd() MakeType(const AliHLTTPCCASliceData MEM_LG&) Data() const { return fData; }
   
-  GPUh() void ClearSliceDataHitWeights() {fData.ClearHitWeights();}
-  
-  GPUhd() const AliHLTTPCCARow &Row( int rowIndex ) const { return fData.Row( rowIndex ); }
-  GPUh() const AliHLTTPCCARow &Row( const AliHLTTPCCAHitId &HitId ) const { return fData.Row( HitId.RowIndex() ); }
+  GPUhd() GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL& Row( int rowIndex ) const { return fData.Row( rowIndex ); }
   
   GPUhd() double Timer( int i ) const { return fTimers[i]; }
   GPUhd() void SetTimer( int i, double v ) { fTimers[i] = v; }
   
   GPUhd() int NHitsTotal() const { return fData.NumberOfHits(); }
   
-  GPUd() void SetHitLinkUpData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkUpData( row, hitIndex, v ); }
-  GPUd() void SetHitLinkDownData( const AliHLTTPCCARow &row, int hitIndex, short v ) { fData.SetHitLinkDownData( row, hitIndex, v ); }
-  GPUd() short HitLinkUpData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkUpData( row, hitIndex ); }
-  GPUd() short HitLinkDownData( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.HitLinkDownData( row, hitIndex ); }
+  MEM_TEMPLATE GPUd() void SetHitLinkUpData( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex, short v ) { fData.SetHitLinkUpData( row, hitIndex, v ); }
+  MEM_TEMPLATE GPUd() void SetHitLinkDownData( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex, short v ) { fData.SetHitLinkDownData( row, hitIndex, v ); }
+  MEM_TEMPLATE GPUd() short HitLinkUpData( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex ) const { return fData.HitLinkUpData( row, hitIndex ); }
+  MEM_TEMPLATE GPUd() short HitLinkDownData( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex ) const { return fData.HitLinkDownData( row, hitIndex ); }
   
-  GPUd() const ushort2 *HitData( const AliHLTTPCCARow &row ) const { return fData.HitData(row); }
-  GPUd() const short_v *HitLinkUpData  ( const AliHLTTPCCARow &row ) const { return fData.HitLinkUpData(row); }
-  GPUd() const short_v *HitLinkDownData( const AliHLTTPCCARow &row ) const { return fData.HitLinkDownData(row); }
-  GPUd() const ushort_v *FirstHitInBin( const AliHLTTPCCARow &row ) const { return fData.FirstHitInBin(row); }
+  //MEM_CLASS_PRE2 GPUd() GPUglobalref() const ushort2 *HitData( MEM_TYPE(const AliHLTTPCCARow)&row ) const { return fData.HitData(row); }
+  MEM_TEMPLATE GPUd() GPUglobalref() const ushort2 *HitData( MEM_TYPE(const AliHLTTPCCARow)& row ) const { return fData.HitData(row); }
+  MEM_TEMPLATE GPUd() GPUglobalref() const short_v *HitLinkUpData  ( MEM_TYPE(const AliHLTTPCCARow)&row ) const { return fData.HitLinkUpData(row); }
+  MEM_TEMPLATE GPUd() GPUglobalref() const short_v *HitLinkDownData( MEM_TYPE(const AliHLTTPCCARow)&row ) const { return fData.HitLinkDownData(row); }
+  MEM_TEMPLATE GPUd() GPUglobalref() const ushort_v *FirstHitInBin( MEM_TYPE(const AliHLTTPCCARow)&row ) const { return fData.FirstHitInBin(row); }
   
-  GPUd() int FirstHitInBin( const AliHLTTPCCARow &row, int binIndex ) const { return fData.FirstHitInBin( row, binIndex ); }
+  MEM_TEMPLATE GPUd() int FirstHitInBin( MEM_TYPE(const AliHLTTPCCARow)&row, int binIndex ) const { return fData.FirstHitInBin( row, binIndex ); }
   
-  GPUd() unsigned short HitDataY( const AliHLTTPCCARow &row, int hitIndex ) const {
+  MEM_TEMPLATE GPUd() unsigned short HitDataY( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex ) const {
     return fData.HitDataY( row, hitIndex );
   }
-  GPUd() unsigned short HitDataZ( const AliHLTTPCCARow &row, int hitIndex ) const {
+  MEM_TEMPLATE GPUd() unsigned short HitDataZ( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex ) const {
     return fData.HitDataZ( row, hitIndex );
   }
-  GPUd() ushort2 HitData( const AliHLTTPCCARow &row, int hitIndex ) const {
+  MEM_TEMPLATE GPUd() ushort2 HitData( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex ) const {
     return fData.HitData( row, hitIndex );
   }
   
-  GPUhd() int HitInputID( const AliHLTTPCCARow &row, int hitIndex ) const { return fData.ClusterDataIndex( row, hitIndex ); }
+  MEM_TEMPLATE GPUhd() int HitInputID( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex ) const { return fData.ClusterDataIndex( row, hitIndex ); }
   
   /**
    * The hit weight is used to determine whether a hit belongs to a certain tracklet or another one
@@ -234,64 +256,54 @@ class AliHLTTPCCATracker
     return ( (int) weight );
     //return( (NHits << 16) + num);
   }
-  GPUd() void MaximizeHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
+  MEM_TEMPLATE GPUd() void MaximizeHitWeight( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex, int weight ) {
     fData.MaximizeHitWeight( row, hitIndex, weight );
   }
-  GPUd() void SetHitWeight( const AliHLTTPCCARow &row, int hitIndex, int weight ) {
+  MEM_TEMPLATE GPUd() void SetHitWeight( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex, int weight ) {
 	fData.SetHitWeight( row, hitIndex, weight );
   }
-  GPUd() int HitWeight( const AliHLTTPCCARow &row, int hitIndex ) const {
+  MEM_TEMPLATE GPUd() int HitWeight( MEM_TYPE(const AliHLTTPCCARow)&row, int hitIndex ) const {
     return fData.HitWeight( row, hitIndex );
   }
   
-  GPUhd() int *NTracklets() const { return &fCommonMem->fNTracklets; }
+  GPUhd() GPUglobalref() int *NTracklets() const { return &fCommonMem->fNTracklets; }
   
   GPUhd() const AliHLTTPCCAHitId &TrackletStartHit( int i ) const { return fTrackletStartHits[i]; }
-  GPUhd() AliHLTTPCCAHitId *TrackletStartHits() const { return fTrackletStartHits; }
-  GPUhd() AliHLTTPCCAHitId *TrackletTmpStartHits() const { return fTrackletTmpStartHits; }
-  GPUhd() const AliHLTTPCCATracklet &Tracklet( int i ) const { return fTracklets[i]; }
-  GPUhd() AliHLTTPCCATracklet  *Tracklets() const { return fTracklets;}
-  GPUhd() int* TrackletRowHits() const { return fTrackletRowHits; }
+  GPUhd() GPUglobalref() AliHLTTPCCAHitId *TrackletStartHits() const { return fTrackletStartHits; }
+  GPUhd() GPUglobalref() AliHLTTPCCAHitId *TrackletTmpStartHits() const { return fTrackletTmpStartHits; }
+  MEM_CLASS_PRE2 GPUhd() const AliHLTTPCCATracklet MEM_LG2 &Tracklet( int i ) const { return fTracklets[i]; }
+  GPUhd() GPUglobalref() AliHLTTPCCATracklet MEM_GLOBAL *Tracklets() const { return fTracklets;}
+  GPUhd() GPUglobalref()int* TrackletRowHits() const { return fTrackletRowHits; }
 
-  GPUhd() int *NTracks()  const { return &fCommonMem->fNTracks; }
-  GPUhd() AliHLTTPCCATrack *Tracks() const { return  fTracks; }
-  GPUhd() int *NTrackHits()  const { return &fCommonMem->fNTrackHits; }
-  GPUhd() AliHLTTPCCAHitId *TrackHits() const { return fTrackHits; }
+  GPUhd() GPUglobalref() int *NTracks()  const { return &fCommonMem->fNTracks; }
+  GPUhd() GPUglobalref() AliHLTTPCCATrack MEM_GLOBAL *Tracks() const { return fTracks; }
+  GPUhd() GPUglobalref() int *NTrackHits()  const { return &fCommonMem->fNTrackHits; }
+  GPUhd() GPUglobalref() AliHLTTPCCAHitId *TrackHits() const { return fTrackHits; }
   
-  GPUhd() AliHLTTPCCASliceOutput** Output() const { return fOutput; }
+ 
+  GPUhd() GPUglobalref() AliHLTTPCCARow MEM_GLOBAL* SliceDataRows() const {return(fData.Rows()); }
   
-  GPUh() commonMemoryStruct *CommonMemory() const {return(fCommonMem); }
-  GPUh() static  size_t CommonMemorySize() { return(sizeof(AliHLTTPCCATracker::commonMemoryStruct)); }
-  GPUh() char* HitMemory() const {return(fHitMemory); }
-  GPUh() size_t HitMemorySize() const {return(fHitMemorySize); }
-  GPUh() char* TrackletMemory() {return(fTrackletMemory); }
-  GPUh() size_t TrackletMemorySize() const {return(fTrackletMemorySize); }
-  GPUh() char* TrackMemory() {return(fTrackMemory); }
-  GPUh() size_t TrackMemorySize() const {return(fTrackMemorySize); }
-  GPUhd() AliHLTTPCCARow* SliceDataRows() const {return(fData.Rows()); }
-  
-  GPUhd() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
-  GPUhd() AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory* GPUTrackletTemp() const {return(fGPUTrackletTemp);}
-  GPUhd() int* RowBlockTracklets(int reverse, int iRowBlock) const {return(&fRowBlockTracklets[(reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock) * fCommonMem->fNTracklets]);}
-  GPUhd() int* RowBlockTracklets() const {return(fRowBlockTracklets);}
-  GPUhd() int4* RowBlockPos(int reverse, int iRowBlock) const {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
-  GPUhd() int4* RowBlockPos() const {return(fRowBlockPos);}
-  GPUhd() uint2* BlockStartingTracklet() const {return(fBlockStartingTracklet);}
-  GPUhd() StructGPUParameters* GPUParameters() const {return(&fCommonMem->fGPUParameters);}
-  GPUhd() StructGPUParametersConst* GPUParametersConst() {return(&fGPUParametersConst);}
+  GPUhd() GPUglobalref() uint3* RowStartHitCountOffset() const {return(fRowStartHitCountOffset);}
+  MEM_CLASS_PRE2 GPUhd() AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory MEM_LG2* GPUTrackletTemp() const {return(fGPUTrackletTemp);}
+  GPUhd() GPUglobalref() int* RowBlockTracklets(int reverse, int iRowBlock) const {return(&fRowBlockTracklets[(reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock) * fCommonMem->fNTracklets]);}
+  GPUhd() GPUglobalref() int* RowBlockTracklets() const {return(fRowBlockTracklets);}
+  GPUhd() GPUglobalref() int4* RowBlockPos(int reverse, int iRowBlock) const {return(&fRowBlockPos[reverse * ((fParam.NRows() / HLTCA_GPU_SCHED_ROW_STEP) + 1) + iRowBlock]);}
+  GPUhd() GPUglobalref() int4* RowBlockPos() const {return(fRowBlockPos);}
+  GPUhd() GPUglobalref() uint2* BlockStartingTracklet() const {return(fBlockStartingTracklet);}
+  GPUhd() GPUglobalref() StructGPUParameters* GPUParameters() const {return(&fCommonMem->fGPUParameters);}
+  GPUhd() MakeType(StructGPUParametersConst MEM_LG*) GPUParametersConst() {return(&fGPUParametersConst);}
   GPUhd() void SetGPUTextureBase(char* val) { fData.SetGPUTextureBase(val); }
-  GPUh() void SetGPUSliceDataMemory(void* const pSliceMemory, void* const pRowMemory) { fData.SetGPUSliceDataMemory(pSliceMemory, pRowMemory); }
-
-  GPUh() unsigned long long int* PerfTimer(unsigned int i) {return &fPerfTimers[i]; }
 
 #ifdef HLTCA_STANDALONE
   GPUhd() char* StageAtSync() {return(fStageAtSync);}
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
   GPUh() const char* LinkTmpMemory() const {return(fLinkTmpMemory);}
+#endif
 #endif
 
 #ifdef HLTCA_STANDALONE
-	static inline void StandaloneQueryTime(unsigned long long int *i);
-	static inline void StandaloneQueryFreq(unsigned long long int *i);
+	static inline void StandaloneQueryTime(ULong64_t *i);
+	static inline void StandaloneQueryFreq(ULong64_t *i);
 #endif //HLTCA_STANDALONE
   void StandalonePerfTime(int i);
 
@@ -300,66 +312,72 @@ class AliHLTTPCCATracker
 	int fTtrack;		//Track ID
 	float fSortVal;		//Value to sort for
   };
-  GPUh() static int SortComparison(const void* a, const void* b);
 
   void PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks);
 
 private:
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
   GPUh() int PerformGlobalTrackingRun(AliHLTTPCCATracker& sliceNeighbour, int iTrack, int rowIndex, float angle, int direction);
+#endif
 
 	//Temporary Variables for Standalone measurements
 #ifdef HLTCA_STANDALONE
 public:
   char* fStageAtSync;				//Pointer to array storing current stage for every thread at every sync point
-  char *fLinkTmpMemory;	//tmp memory for hits after neighbours finder
+  char *fLinkTmpMemory;				//tmp memory for hits after neighbours finder
 private:
 #endif
   
-  AliHLTTPCCAParam fParam; // parameters
+  AliHLTTPCCAParam MEM_LG fParam; // parameters
   double fTimers[10]; // timers
-  unsigned long long int fPerfTimers[16]; // running CPU time for different parts of the algorithm
+  ULong64_t fPerfTimers[16]; // running CPU time for different parts of the algorithm
   
   AliHLTTPCCASliceOutput::outputControlStruct* fOutputControl; // output control
   
   /** A pointer to the ClusterData object that the SliceData was created from. This can be used to
    * merge clusters from inside the SliceTracker code and recreate the SliceData. */
   AliHLTTPCCAClusterData *fClusterData; // ^
-  AliHLTTPCCASliceData fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
+  AliHLTTPCCASliceData MEM_LG fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
   
   bool fIsGPUTracker; // is it GPU tracker object
   int fGPUDebugLevel; // debug level
+
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
   std::ostream *fGPUDebugOut; // debug stream
+#else
+  void* fGPUDebugOut; //No this is a hack, but I have no better idea.
+#endif
   
   //GPU Temp Arrays
-  uint3* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
-  AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
-  AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory *fGPUTrackletTemp;	//Temp Memory for GPU Tracklet Constructor
-  int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
-  int4* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration, w is initial x value to check if tracklet must be initialized  
-  uint2* fBlockStartingTracklet;			// First Tracklet that is to be processed by current GPU MP
+  GPUglobalref()uint3* fRowStartHitCountOffset;				//Offset, length and new offset of start hits in row
+  GPUglobalref()AliHLTTPCCAHitId *fTrackletTmpStartHits;	//Unsorted start hits
+  GPUglobalref()AliHLTTPCCATrackletConstructor::AliHLTTPCCAGPUTempMemory MEM_GLOBAL* fGPUTrackletTemp;	//Temp Memory for GPU Tracklet Constructor
+  GPUglobalref() int* fRowBlockTracklets;					//Reference which tracklet is processed in which rowblock next
+  GPUglobalref() int4* fRowBlockPos;							//x is last tracklet to be processed, y is last tracklet already processed, z is last tracklet to be processed in next iteration, w is initial x value to check if tracklet must be initialized  
+  GPUglobalref() uint2* fBlockStartingTracklet;			// First Tracklet that is to be processed by current GPU MP
 
-  StructGPUParametersConst fGPUParametersConst; // Parameters for GPU if this is a GPU tracker
+  StructGPUParametersConst MEM_LG fGPUParametersConst; // Parameters for GPU if this is a GPU tracker
 
   // event
   
-  commonMemoryStruct *fCommonMem; // common event memory
+  GPUglobalref() commonMemoryStruct *fCommonMem; // common event memory
   
-  char *fHitMemory; // event memory for hits
+  GPUglobalref() char *fHitMemory; // event memory for hits
   size_t   fHitMemorySize; // size of the event memory for hits [bytes]
 
-  char *fTrackletMemory;	//event memory for tracklets
+  GPUglobalref() char *fTrackletMemory;	//event memory for tracklets
   size_t fTrackletMemorySize; //size of the event memory for tracklets
 
-  char *fTrackMemory; // event memory for tracks
+  GPUglobalref() char *fTrackMemory; // event memory for tracks
   size_t   fTrackMemorySize; // size of the event memory for tracks [bytes]
 
-  AliHLTTPCCAHitId *fTrackletStartHits;   // start hits for the tracklets
-  AliHLTTPCCATracklet *fTracklets; // tracklets
-  int *fTrackletRowHits;			//Hits for each Tracklet in each row
+  GPUglobalref() AliHLTTPCCAHitId *fTrackletStartHits;   // start hits for the tracklets
+  GPUglobalref() AliHLTTPCCATracklet MEM_GLOBAL *fTracklets; // tracklets
+  GPUglobalref() int *fTrackletRowHits;			//Hits for each Tracklet in each row
 
   //
-  AliHLTTPCCATrack *fTracks;  // reconstructed tracks
-  AliHLTTPCCAHitId *fTrackHits;          // array of track hit numbers
+  GPUglobalref() AliHLTTPCCATrack MEM_GLOBAL *fTracks;  // reconstructed tracks
+  GPUglobalref() AliHLTTPCCAHitId *fTrackHits;          // array of track hit numbers
   
   // output
   
@@ -372,7 +390,7 @@ private:
   static int StarthitSortComparison(const void*a, const void* b);
 };
 
-#ifdef HLTCA_STANDALONE
+#if defined(HLTCA_STANDALONE) && (!defined(__OPENCL__) || defined(HLTCA_HOSTCODE))
 	void AliHLTTPCCATracker::StandaloneQueryTime(unsigned long long int *i)
 	{
 	#ifdef R__WIN32

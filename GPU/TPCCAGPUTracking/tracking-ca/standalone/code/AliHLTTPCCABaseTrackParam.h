@@ -12,7 +12,7 @@
 #define ALIHLTTPCCABASETRACKPARAM_H
 
 #include "AliHLTTPCCADef.h"
-class AliHLTTPCCATrackParam;
+MEM_CLASS_PRE class AliHLTTPCCATrackParam;
 
 /**
  * @class AliHLTTPCCABaseTrackParam
@@ -21,7 +21,7 @@ class AliHLTTPCCATrackParam;
  * used in output of the AliHLTTPCCATracker slice tracker.
  * This class is used for transfer between tracker and merger and does not contain the covariance matrice
  */
-class AliHLTTPCCABaseTrackParam
+MEM_CLASS_PRE class AliHLTTPCCABaseTrackParam
 {
   public:
 
@@ -41,8 +41,8 @@ class AliHLTTPCCABaseTrackParam
 
     GPUd() float GetKappa( float Bz ) const { return -fP[4]*Bz; }
 
-    GPUhd() const float *Par() const { return fP; }
-    GPUd() const float *GetPar() const { return fP; }
+    GPUhd() MakeType(const float*) Par() const { return fP; }
+    GPUd() const MakeType(float*) GetPar() const { return fP; }
 	GPUd() float GetPar(int i) const { return(fP[i]); }
 
     GPUhd() void SetPar( int i, float v ) { fP[i] = v; }

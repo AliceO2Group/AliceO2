@@ -20,14 +20,12 @@
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCAGrid.h"
 #include "AliHLTTPCCAHit.h"
-class AliHLTTPCCARow;
+MEM_CLASS_PRE class AliHLTTPCCARow;
 
-
-GPUdi() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCARow &row, const AliHLTTPCCASliceData &slice, float y, float z,
+MEM_TEMPLATE GPUdi() void AliHLTTPCCAHitArea::Init( MEM_TYPE(const AliHLTTPCCARow) &row, GPUglobalref() const AliHLTTPCCASliceData MEM_GLOBAL &slice, float y, float z,
                                       float dy, float dz )
 {
   //initialisation
-  const AliHLTTPCCAGrid &grid = row.Grid();
   fHitOffset = row.HitNumberOffset();
   fY = y;
   fZ = z;
@@ -36,10 +34,10 @@ GPUdi() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCARow &row, const AliHLTTP
   fMinY = y - dy;
   fMaxY = y + dy;
   int bYmin, bZmin, bYmax; // boundary bin indexes
-  grid.GetBin( fMinY, fMinZ, &bYmin, &bZmin );
-  grid.GetBin( fMaxY, fMaxZ, &bYmax, &fBZmax );
+  row.Grid().GetBin( fMinY, fMinZ, &bYmin, &bZmin );
+  row.Grid().GetBin( fMaxY, fMaxZ, &bYmax, &fBZmax );
   fBDY = bYmax - bYmin + 1; // bin index span in y direction
-  fNy = grid.Ny();
+  fNy = row.Grid().Ny();
   fIndYmin = bZmin * fNy + bYmin; // same as grid.GetBin(fMinY, fMinZ), i.e. the smallest bin index of interest
   // fIndYmin + fBDY then is the largest bin index of interest with the same Z
   fIz = bZmin;
@@ -55,8 +53,8 @@ GPUdi() void AliHLTTPCCAHitArea::Init( const AliHLTTPCCARow &row, const AliHLTTP
   fIh = fHitYfst;
 }
 
-GPUdi() int AliHLTTPCCAHitArea::GetNext( const AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row,
-                                        const AliHLTTPCCASliceData &slice, AliHLTTPCCAHit *h )
+MEM_TEMPLATE GPUdi() int AliHLTTPCCAHitArea::GetNext( GPUconstant() const AliHLTTPCCATracker MEM_CONSTANT &tracker, MEM_TYPE(const AliHLTTPCCARow) &row,
+                                        GPUglobalref() const AliHLTTPCCASliceData MEM_GLOBAL &slice, AliHLTTPCCAHit *h )
 {
   // get next hit index
 

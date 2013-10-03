@@ -13,7 +13,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAHitId.h"
 #include "AliHLTTPCCAGPUConfig.h"
-class AliHLTTPCCATracker;
+MEM_CLASS_PRE class AliHLTTPCCATracker;
 
 /**
  * @class AliHLTTPCCATrackletSelector
@@ -22,7 +22,7 @@ class AliHLTTPCCATracker;
 class AliHLTTPCCATrackletSelector
 {
   public:
-    class AliHLTTPCCASharedMemory
+    MEM_CLASS_PRE class AliHLTTPCCASharedMemory
     {
         friend class AliHLTTPCCATrackletSelector;
 
@@ -38,7 +38,7 @@ class AliHLTTPCCATrackletSelector
     GPUd() static int NThreadSyncPoints() { return 1; }
 
     GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-                               AliHLTTPCCASharedMemory &smem, AliHLTTPCCATracker &tracker );
+                               GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &smem, GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker );
 
 };
 
