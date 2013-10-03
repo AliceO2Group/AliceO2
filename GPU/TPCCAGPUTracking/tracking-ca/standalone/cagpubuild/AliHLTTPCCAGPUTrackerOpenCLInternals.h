@@ -33,6 +33,8 @@ struct AliHLTTPCCAGPUTrackerOpenCLInternals
 	void* mem_host_ptr;
 	cl_event* selector_events;
 	cl_program program;
+
+	cl_kernel kernel_neighbours_finder, kernel_neighbours_cleaner, kernel_start_hits_finder, kernel_start_hits_sorter, kernel_tracklet_constructor, kernel_tracklet_selector;
 };
 
 #endif

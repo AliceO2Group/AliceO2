@@ -14,8 +14,9 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCATrackParam.h"
 
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
 #include <iostream>
-
+#endif
 
 /**
  * @class ALIHLTTPCCAParam
@@ -25,7 +26,7 @@
  * The class is under construction.
  *
  */
-class AliHLTTPCCAParam
+MEM_CLASS_PRE class AliHLTTPCCAParam
 {
   public:
 	AliHLTTPCCAParam();
@@ -115,19 +116,21 @@ class AliHLTTPCCAParam
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
     GPUd() void GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
 
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
     void WriteSettings( std::ostream &out ) const;
     void ReadSettings( std::istream &in );
+#endif
 
     GPUd() void SetParamS0Par( int i, int j, int k, float val ) {
       fParamS0Par[i][j][k] = val;
     }
   
-    GPUd() const float *GetParamS0Par(int i, int j) const { return fParamS0Par[i][j]; }
+    GPUd() const MakeType(float*) GetParamS0Par(int i, int j) const { return fParamS0Par[i][j]; }
  
     GPUd() float GetBzkG() const { return fBzkG;}
     GPUd() float GetConstBz() const { return fConstBz;}
     GPUd() float GetBz( float x, float y, float z ) const;
-    GPUd()  float GetBz( const AliHLTTPCCATrackParam &t ) const;
+	MEM_CLASS_PRE2 GPUd() float GetBz( const AliHLTTPCCATrackParam MEM_LG2 &t ) const {return GetBz( t.X(), t.Y(), t.Z() );}
 
   protected:
     int fISlice; // slice number
@@ -165,17 +168,12 @@ class AliHLTTPCCAParam
 
 
 
-GPUd() inline float AliHLTTPCCAParam::GetBz( float x, float y, float z ) const
+MEM_CLASS_PRE GPUd() inline float AliHLTTPCCAParam MEM_LG::GetBz( float x, float y, float z ) const
 {
   float r2 = x * x + y * y;
   float r  = CAMath::Sqrt( r2 );
   const float *c = fPolinomialFieldBz;
   return ( c[0] + c[1]*z  + c[2]*r  + c[3]*z*z + c[4]*z*r + c[5]*r2 );
-}
-
-GPUd() inline float AliHLTTPCCAParam::GetBz( const AliHLTTPCCATrackParam &t ) const
-{
-  return GetBz( t.X(), t.Y(), t.Z() );
 }
 
 #endif //ALIHLTTPCCAPARAM_H

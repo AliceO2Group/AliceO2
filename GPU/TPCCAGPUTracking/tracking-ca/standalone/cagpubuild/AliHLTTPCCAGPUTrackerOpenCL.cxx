@@ -175,13 +175,73 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		return(1);
 	}
 
-	if (_makefiles_opencl_obtain_program_helper(ocl->context, count, ocl->devices, &ocl->program, _makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl))
+	{
+		char* file = "cagpubuild/AliHLTTPCCAGPUTrackerOpenCL.cl";
+		printf("Reading source file %s\n", file);
+		FILE* fp = fopen(file, "rb");
+		if (fp == NULL)
+		{
+			printf("Cannot open %s\n", file);
+			return(1);
+		}
+		fseek(fp, 0, SEEK_END);
+		size_t file_size = ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+
+		char* buffer = (char*) malloc(file_size + 1);
+		if (buffer == NULL)
+		{
+			quit("Memory allocation error");
+		}
+		fread(buffer, 1, file_size, fp);
+		buffer[file_size] = 0;
+		fclose(fp);
+
+		printf("Creating OpenCL Program Object\n");
+		//Create OpenCL program object
+		ocl->program = clCreateProgramWithSource(ocl->context, (cl_uint) 1, (const char**) &buffer, NULL, &ocl_error);
+		if (ocl_error != CL_SUCCESS) quit("Error creating program object");
+
+		printf("Compiling OpenCL Program\n");
+		//Compile program
+		ocl_error = clBuildProgram(ocl->program, count, ocl->devices, "-I. -Iinclude -Icode -Ibase -Imerger-ca -Icagpubuild -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -I/usr/local/cuda/include -DHLTCA_STANDALONE -DBUILD_GPU -D_64BIT  -x clc++", NULL, NULL);
+		if (ocl_error != CL_SUCCESS)
+		{
+			fprintf(stderr, "OpenCL Error while building program: %d (Compiler options: %s)\n", ocl_error, "");
+
+			for (unsigned int i = 0;i < count;i++)
+			{
+				cl_build_status status;
+				clGetProgramBuildInfo(ocl->program, ocl->devices[i], CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, NULL);
+				if (status == CL_BUILD_ERROR)
+				{
+					size_t log_size;
+					clGetProgramBuildInfo(ocl->program, ocl->devices[i], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+					char* build_log = (char*) malloc(log_size + 1);
+					if (build_log == NULL) quit("Memory allocation error");
+					clGetProgramBuildInfo(ocl->program, ocl->devices[i], CL_PROGRAM_BUILD_LOG, log_size, build_log, NULL);
+					fprintf(stderr, "Build Log (device %d):\n\n%s\n\n", i, build_log);
+					free(build_log);
+				}
+			}
+		}
+	}	
+
+	/*if (_makefiles_opencl_obtain_program_helper(ocl->context, count, ocl->devices, &ocl->program, _makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl))
 	{
 		clReleaseContext(ocl->context);
 		HLTError("Could not obtain OpenCL progarm");
 		return(1);
-	}
+	}*/
 	HLTInfo("OpenCL program loaded successfully");
+
+	ocl->kernel_neighbours_finder = clCreateKernel(ocl->program, "AliHLTTPCCAProcess_AliHLTTPCCANeighboursFinder", &ocl_error); if (ocl_error != CL_SUCCESS) {HLTError("OPENCL Kernel Error 1");return(1);}
+	ocl->kernel_neighbours_cleaner = clCreateKernel(ocl->program, "AliHLTTPCCAProcess_AliHLTTPCCANeighboursCleaner", &ocl_error); if (ocl_error != CL_SUCCESS) {HLTError("OPENCL Kernel Error 2");return(1);}
+	ocl->kernel_start_hits_finder = clCreateKernel(ocl->program, "AliHLTTPCCAProcess_AliHLTTPCCAStartHitsFinder", &ocl_error); if (ocl_error != CL_SUCCESS) {HLTError("OPENCL Kernel Error 3");return(1);}
+	ocl->kernel_start_hits_sorter = clCreateKernel(ocl->program, "AliHLTTPCCAProcess_AliHLTTPCCAStartHitsSorter", &ocl_error); if (ocl_error != CL_SUCCESS) {HLTError("OPENCL Kernel Error 4");return(1);}
+	ocl->kernel_tracklet_selector = clCreateKernel(ocl->program, "AliHLTTPCCAProcessMulti_AliHLTTPCCATrackletSelector", &ocl_error); if (ocl_error != CL_SUCCESS) {HLTError("OPENCL Kernel Error 5");return(1);}
+	ocl->kernel_tracklet_constructor = clCreateKernel(ocl->program, "AliHLTTPCCATrackletConstructorGPU", &ocl_error); if (ocl_error != CL_SUCCESS) {HLTError("OPENCL Kernel Error 6");return(1);}
+	HLTInfo("OpenCL kernels created successfully");
 
 	ocl->mem_gpu = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, fGPUMemSize, NULL, &ocl_error);
 	if (ocl_error != CL_SUCCESS)
@@ -560,6 +620,13 @@ int AliHLTTPCCAGPUTrackerOpenCL::ExitGPU_Runtime()
 		clReleaseMemObject(ocl->mem_gpu);
 		clReleaseMemObject(ocl->mem_constant);
 		fGPUMemory = NULL;
+
+		clReleaseKernel(ocl->kernel_neighbours_finder);
+		clReleaseKernel(ocl->kernel_neighbours_cleaner);
+		clReleaseKernel(ocl->kernel_start_hits_finder);
+		clReleaseKernel(ocl->kernel_start_hits_sorter);
+		clReleaseKernel(ocl->kernel_tracklet_constructor);
+		clReleaseKernel(ocl->kernel_tracklet_selector);
 	}
 	if (fHostLockedMemory)
 	{

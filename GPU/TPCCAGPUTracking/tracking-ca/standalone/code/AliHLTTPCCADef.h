@@ -16,7 +16,7 @@
 //#define HLTCA_STANDALONE // compilation w/o root
 #define HLTCA_INTERNAL_PERFORMANCE
 
-#if defined(__CUDACC__) | defined(__OPENCL__)
+#if defined(__CUDACC__) || defined(__OPENCL__)
 #define HLTCA_GPUCODE
 #endif //__CUDACC__
 
@@ -178,8 +178,8 @@ struct uint16 { unsigned int x[16]; };
 #define GPUhd() 
 #define GPUh() TRIGGER_ERROR_NO_HOST_CODE
 #define GPUg() __kernel
-#define GPUshared() __shared
-#define GPUsync() barrier()
+#define GPUshared() __local
+#define GPUsync() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
 
 #endif //HLTCA_HOSTCODE
 
@@ -232,6 +232,61 @@ inline bool finite(float x)
 #endif //R__WIN32
 
 #endif //HLTCA_GPUCODE
+
+#if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
+#define GPUsharedref() GPUshared()
+#define GPUglobalref() __global
+//#define GPUconstant() __constant //Replace __constant by __global (possibly add const __restrict where possible later!)
+#define GPUconstant() GPUglobalref()
+#else
+#define GPUconstant()
+#define GPUsharedref()
+#define GPUglobalref()
+#endif
+
+enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
+#if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
+template<LocalOrGlobal, typename L, typename G, typename C, typename P> struct MakeTypeHelper;
+template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Local, L, G, C, P> { typedef L type; };
+template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Global, L, G, C, P> { typedef G type; };
+template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Constant, L, G, C, P> { typedef C type; };
+template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Plain, L, G, C, P> { typedef P type; };
+#define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type 
+#define MakeType2(base_type) typename MakeTypeHelper<LG2, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type 
+#define MEM_CLASS_PRE template<LocalOrGlobal LG>
+#define MEM_LG <LG>
+#define MEM_CLASS_PRE2 template<LocalOrGlobal LG2>
+#define MEM_LG2 <LG2>
+#define MEM_CLASS_PRE12 template<LocalOrGlobal LG> template<LocalOrGlobal LG2>
+#define MEM_CLASS_PRE23 template<LocalOrGlobal LG2, LocalOrGlobal LG3>
+#define MEM_LG3 <LG3>
+#define MEM_CLASS_PRE234 template<LocalOrGlobal LG2, LocalOrGlobal LG3, LocalOrGlobal LG4>
+#define MEM_LG4 <LG4>
+#define MEM_GLOBAL <Mem_Global>
+#define MEM_LOCAL <Mem_Local>
+#define MEM_TEMPLATE template<typename T>
+#define MEM_TYPE(type) T
+//#define MEM_CONSTANT <Mem_Constant> //Use __global for time being instead of __constant, see above
+#define MEM_CONSTANT <Mem_Global>
+#define MEM_PLAIN <Mem_Plain>
+#else
+#define MakeType(base_type) base_type
+#define MEM_CLASS_PRE
+#define MEM_LG
+#define MEM_CLASS_PRE2
+#define MEM_LG2
+#define MEM_CLASS_PRE12
+#define MEM_CLASS_PRE23
+#define MEM_LG3
+#define MEM_CLASS_PRE234
+#define MEM_LG4
+#define MEM_GLOBAL
+#define MEM_LOCAL
+#define MEM_CONSTANT
+#define MEM_PLAIN
+#define MEM_TEMPLATE
+#define MEM_TYPE(type) type
+#endif
 
 /*
  * Helper for compile-time verification of correct API usage

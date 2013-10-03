@@ -12,7 +12,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAHitId.h"
 
-class AliHLTTPCCATracker;
+MEM_CLASS_PRE class AliHLTTPCCATracker;
 
 /**
  * @class AliHLTTPCCAStartHitsFinder
@@ -21,7 +21,7 @@ class AliHLTTPCCATracker;
 class AliHLTTPCCAStartHitsFinder
 {
   public:
-    class AliHLTTPCCASharedMemory
+    MEM_CLASS_PRE class AliHLTTPCCASharedMemory
     {
         friend class AliHLTTPCCAStartHitsFinder;
       public:
@@ -54,7 +54,7 @@ class AliHLTTPCCAStartHitsFinder
     GPUd() static int NThreadSyncPoints() { return 3; }
 
     GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-                               AliHLTTPCCASharedMemory &smem, AliHLTTPCCATracker &tracker );
+                               GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &smem, GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker );
 };
 
 

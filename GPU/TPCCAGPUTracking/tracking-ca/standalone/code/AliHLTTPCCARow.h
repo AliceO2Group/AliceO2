@@ -20,9 +20,9 @@
  * It is the internal class of the AliHLTTPCCATracker algorithm.
  *
  */
-class AliHLTTPCCARow
+MEM_CLASS_PRE class AliHLTTPCCARow
 {
-    friend class AliHLTTPCCASliceData;
+    MEM_CLASS_PRE2 friend class AliHLTTPCCASliceData;
   public:
 
 #if !defined(HLTCA_GPUCODE)
@@ -32,7 +32,7 @@ class AliHLTTPCCARow
     GPUhd() int   NHits()    const { return fNHits; }
     GPUhd() float X()        const { return fX; }
     GPUhd() float MaxY()     const { return fMaxY; }
-    GPUhd() const AliHLTTPCCAGrid &Grid() const { return fGrid; }
+    GPUhd() MakeType(const AliHLTTPCCAGrid&) Grid() const { return fGrid; }
 
     GPUhd() float Hy0()      const { return fHy0; }
     GPUhd() float Hz0()      const { return fHz0; }

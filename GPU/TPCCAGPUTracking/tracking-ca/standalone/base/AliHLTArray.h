@@ -30,6 +30,8 @@
 #ifndef ALIHLTARRAY_H
 #define ALIHLTARRAY_H
 
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+
 #ifndef assert
 #include <assert.h>
 #endif
@@ -713,5 +715,7 @@ inline void AliHLTResizableArray<T, Dim, alignment>::Resize( int x, int y, int z
 }
 
 #undef BOUNDS_CHECK
+
+#endif
 
 #endif // ALIHLTARRAY_H

@@ -21,7 +21,7 @@
 
 GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 ( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
- AliHLTTPCCASharedMemory &s, AliHLTTPCCATracker &tracker )
+ GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &s, GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker )
 {
 	//Sorts the Start Hits by Row Index and create RowBlock Data
 	if ( iSync == 0 ) {
@@ -98,8 +98,8 @@ GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 		int startOffset = s.fStartOffset;
 		for (int ir = 0;ir < s.fNRows;ir++)
 		{
-			AliHLTTPCCAHitId *const startHits = tracker.TrackletStartHits();
-			AliHLTTPCCAHitId *const tmpStartHits = tracker.TrackletTmpStartHits();
+			GPUglobalref() AliHLTTPCCAHitId *const startHits = tracker.TrackletStartHits();
+			GPUglobalref() AliHLTTPCCAHitId *const tmpStartHits = tracker.TrackletTmpStartHits();
 			const int tmpLen = tracker.RowStartHitCountOffset()[ir + s.fStartRow].x;			//Length of hits in row stored by StartHitsFinder
 			const int tmpOffset = tracker.RowStartHitCountOffset()[ir + s.fStartRow].y;			//Offset of first hit in row of unsorted array by StartHitsFinder
 			if (iThread == 0)

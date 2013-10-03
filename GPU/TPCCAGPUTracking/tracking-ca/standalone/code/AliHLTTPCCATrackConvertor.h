@@ -12,7 +12,7 @@
 #include "AliHLTTPCCADef.h"
 
 class AliExternalTrackParam;
-class AliHLTTPCCATrackParam;
+template<LocalOrGlobal LG> class AliHLTTPCCATrackParam;
 
 /**
  * @class AliHLTTPCCATrackConvertor

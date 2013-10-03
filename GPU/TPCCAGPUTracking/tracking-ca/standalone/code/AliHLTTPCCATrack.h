@@ -20,7 +20,7 @@
  * The class is dedicated for internal use by the AliHLTTPCCATracker algorithm.
  * The track parameters at both ends are stored separately in the AliHLTTPCCAEndPoint class
  */
-class AliHLTTPCCATrack
+ MEM_CLASS_PRE class AliHLTTPCCATrack
 {
   public:
 #if !defined(HLTCA_GPUCODE)
@@ -32,20 +32,20 @@ class AliHLTTPCCATrack
     GPUhd() int  NHits()               const { return fNHits; }
 	GPUhd() int  LocalTrackId()        const { return fLocalTrackId; }
     GPUhd() int  FirstHitID()          const { return fFirstHitID; }
-    GPUhd() const AliHLTTPCCABaseTrackParam &Param() const { return fParam; };
+    GPUhd() MakeType(const AliHLTTPCCABaseTrackParam MEM_LG&) Param() const { return fParam; }
 
     GPUhd() void SetAlive( bool v )              { fAlive = v; }
     GPUhd() void SetNHits( int v )               { fNHits = v; }
     GPUhd() void SetLocalTrackId( int v )        { fLocalTrackId = v; }
     GPUhd() void SetFirstHitID( int v )          { fFirstHitID = v; }
-    GPUhd() void SetParam( AliHLTTPCCABaseTrackParam v ) { fParam = v; };
+    MEM_CLASS_PRE2 GPUhd() void SetParam( AliHLTTPCCABaseTrackParam MEM_LG2 v ) { fParam = v; }
 
   private:
     bool fAlive;       // flag for mark tracks used by the track merger
     int  fFirstHitID; // index of the first track cell in the track->cell pointer array
     int  fNHits;      // number of track cells
 	int  fLocalTrackId; //Id of local track this global track belongs to, index of this track itself if it is a local track
-    AliHLTTPCCABaseTrackParam fParam; // track parameters
+    AliHLTTPCCABaseTrackParam MEM_LG fParam; // track parameters
 
   private:
     //void Dummy(); // to make rulechecker happy by having something in .cxx file

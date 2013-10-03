@@ -12,6 +12,7 @@
 #ifndef _Stopwatch
 #define _Stopwatch
 
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
 
 //////////////////////////////////////////////////////////////////////////
 //                                                                      //
@@ -265,4 +266,5 @@ inline double TStopwatch::GetCPUTime()
 #endif
 }
 
+#endif
 #endif

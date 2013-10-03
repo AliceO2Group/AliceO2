@@ -26,7 +26,9 @@
 #include <assert.h>
 #endif
 
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
 #include <iostream>
+#endif
 
 GPUdi() void AliHLTTPCCAGrid::CreateEmpty()
 {

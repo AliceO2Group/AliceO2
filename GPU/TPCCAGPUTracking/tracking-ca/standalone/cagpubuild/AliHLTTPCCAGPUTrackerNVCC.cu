@@ -19,6 +19,12 @@
 
 #define FERMI
 #include "AliHLTTPCCAGPUTrackerNVCC.h"
+#define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
+#define get_global_size(dim) (blockDim.x * gridDim.x)
+#define get_num_groups(dim) (gridDim.x)
+#define get_local_id(dim) (threadIdx.x)
+#define get_local_size(dim) (blockDim.x)
+#define get_group_id(dim) (blockIdx.x)
 
 #include <cuda.h>
 #include <sm_11_atomic_functions.h>
@@ -316,19 +322,19 @@ __global__ void PreInitRowBlocks(int4* const RowBlockPos, int* const RowBlockTra
 {
 	//Initialize GPU RowBlocks and HitWeights
 	int4* const sliceDataHitWeights4 = (int4*) SliceDataHitWeights;
-	const int stride = blockDim.x * gridDim.x;
+	const int stride = get_global_size(0);
 	int4 i0;
 	i0.x = i0.y = i0.z = i0.w = 0;
 #ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
 	int4* const rowBlockTracklets4 = (int4*) RowBlockTracklets;
 	int4 i1;
 	i1.x = i1.y = i1.z = i1.w = -1;
-	for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < sizeof(int4) * 2 * (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1) / sizeof(int4);i += stride)
+	for (int i = get_global_id(0);i < sizeof(int4) * 2 * (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1) / sizeof(int4);i += stride)
 		RowBlockPos[i] = i0;
-	for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < sizeof(int) * (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1) * HLTCA_GPU_MAX_TRACKLETS * 2 / sizeof(int4);i += stride)
+	for (int i = get_global_id(0);i < sizeof(int) * (HLTCA_ROW_COUNT / HLTCA_GPU_SCHED_ROW_STEP + 1) * HLTCA_GPU_MAX_TRACKLETS * 2 / sizeof(int4);i += stride)
 		rowBlockTracklets4[i] = i1;
 #endif
-	for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < nSliceDataHits * sizeof(int) / sizeof(int4);i += stride)
+	for (int i = get_global_id(0);i < nSliceDataHits * sizeof(int) / sizeof(int4);i += stride)
 		sliceDataHitWeights4[i] = i0;
 }
 
@@ -766,11 +772,11 @@ __global__ void ClearPPHitWeights(int sliceCount)
 		AliHLTTPCCATracker &tracker = ((AliHLTTPCCATracker*) gAliHLTTPCCATracker)[k];
 		int4* const pHitWeights = (int4*) tracker.Data().HitWeights();
 		const int dwCount = tracker.Data().NumberOfHitsPlusAlign();
-		const int stride = blockDim.x * gridDim.x;
+		const int stride = get_global_size(0);
 		int4 i0;
 		i0.x = i0.y = i0.z = i0.w = 0;
 
-		for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < dwCount * sizeof(int) / sizeof(int4);i += stride)
+		for (int i = get_global_id(0);i < dwCount * sizeof(int) / sizeof(int4);i += stride)
 		{
 			pHitWeights[i] = i0;
 		}
