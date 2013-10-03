@@ -75,13 +75,13 @@ typedef short          Version_t;   //Class version identifier (short)
 typedef const char     Option_t;    //Option string (const char)
 typedef int            Ssiz_t;      //String size (int)
 typedef float          Real_t;      //TVector and TMatrix element type (float)
-#if defined(R__WIN32) && !defined(__CINT__)
-typedef __int64          Long64_t;  //Portable signed long integer 8 bytes
-typedef unsigned __int64 ULong64_t; //Portable unsigned long integer 8 bytes
-#else
 #if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
 typedef long Long64_t;
 typedef unsigned long ULong64_t;
+#else
+#if defined(R__WIN32) && !defined(__CINT__)
+typedef __int64          Long64_t;  //Portable signed long integer 8 bytes
+typedef unsigned __int64 ULong64_t; //Portable unsigned long integer 8 bytes
 #else
 typedef long long          Long64_t; //Portable signed long integer 8 bytes
 typedef unsigned long long ULong64_t;//Portable unsigned long integer 8 bytes

@@ -906,28 +906,6 @@ GPUh() void AliHLTTPCCATracker::FitTrack( const AliHLTTPCCATrack &/*track*/, flo
 #endif
 }
 
-
-GPUdi() void AliHLTTPCCATracker::GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
-{
-	//
-	// Use calibrated cluster error from OCDB
-	//
-
-	fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
-	Err2Y*=fParam.ClusterError2CorrectionY();
-	Err2Z*=fParam.ClusterError2CorrectionZ();
-}
-
-GPUdi() void AliHLTTPCCATracker::GetErrors2( int iRow, const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const
-{
-	//
-	// Use calibrated cluster error from OCDB
-	//
-
-	fParam.GetClusterErrors2( iRow, t.GetZ(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), Err2Y, Err2Z );
-}
-
-
 #if !defined(HLTCA_GPUCODE)
 
 GPUh() void AliHLTTPCCATracker::WriteEvent( std::ostream &out )

@@ -6,17 +6,6 @@
 #endif
 #define assert(param)
 
-__kernel void PreInitRowBlocks(__global int4* const RowBlockPos, __global int* const RowBlockTracklets, __global int4* const SliceDataHitWeights4, int nSliceDataHits)
-{
-	//Initialize GPU RowBlocks and HitWeights
-	const int stride = get_global_size(0);
-	int4 i0;
-	i0.x = i0.y = i0.z = i0.w = 0;
-	for (int i = get_global_id(0);i < nSliceDataHits * sizeof(int) / sizeof(int4);i += stride)
-		SliceDataHitWeights4[i] = i0;
-}
-
-
 #include "AliHLTTPCCATrackParam.cxx"
 #include "AliHLTTPCCATrack.cxx" 
 
@@ -32,6 +21,21 @@ __kernel void PreInitRowBlocks(__global int4* const RowBlockPos, __global int* c
 #include "AliHLTTPCCAStartHitsFinder.cxx"
 #include "AliHLTTPCCAStartHitsSorter.cxx"
 #include "AliHLTTPCCATrackletConstructor.cxx"
+
+__kernel void PreInitRowBlocks(GPUconstant() void* pTrackerTmp, int iSlice)
+{
+	GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &pTracker = (( GPUconstant() AliHLTTPCCATracker MEM_CONSTANT * ) pTrackerTmp)[iSlice];
+
+	//Initialize GPU RowBlocks and HitWeights
+	const int nSliceDataHits = pTracker.Data().NumberOfHitsPlusAlign();
+	__global int4* SliceDataHitWeights4 = (__global int4*) pTracker.Data().HitWeights();
+
+	const int stride = get_global_size(0);
+	int4 i0;
+	i0.x = i0.y = i0.z = i0.w = 0;
+	for (int i = get_global_id(0);i < nSliceDataHits * sizeof(int) / sizeof(int4);i += stride)
+		SliceDataHitWeights4[i] = i0;
+}
 
 GPUg() void AliHLTTPCCAProcess_AliHLTTPCCANeighboursFinder(GPUconstant() void* pTrackerTmp, int iSlice)
 {

@@ -185,8 +185,13 @@ MEM_CLASS_PRE class AliHLTTPCCATracker
   GPUh() static int SortComparison(const void* a, const void* b);
 #endif  
   
-  MEM_CLASS_PRE2 GPUd() void GetErrors2( int iRow,  const AliHLTTPCCATrackParam MEM_LG2 &t, float &Err2Y, float &Err2Z ) const;
-  GPUd() void GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
+  MEM_CLASS_PRE2 GPUd() void GetErrors2( int iRow,  const AliHLTTPCCATrackParam MEM_LG2 &t, float &Err2Y, float &Err2Z ) const {fParam.GetClusterErrors2( iRow, t.GetZ(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), Err2Y, Err2Z );}
+  GPUd() void GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
+  {
+	fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
+	Err2Y*=fParam.ClusterError2CorrectionY();
+	Err2Z*=fParam.ClusterError2CorrectionZ();
+  }
   
   MEM_CLASS_PRE2 void FitTrack( const AliHLTTPCCATrack MEM_LG2 &track, float *t0 = 0 ) const;
   MEM_CLASS_PRE2 void FitTrackFull( const AliHLTTPCCATrack MEM_LG2 &track, float *t0 = 0 ) const;

@@ -183,7 +183,7 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 	  }
 
 #ifdef HLTCA_GPU_MERGER
-	  fMerger.SetGPUTracker(fTracker.GetGPUTracker());
+	  if (fTracker.GetGPUTracker()->GPUMergerAvailable()) fMerger.SetGPUTracker(fTracker.GetGPUTracker());
 #endif
 	  fMerger.Reconstruct();
   }
