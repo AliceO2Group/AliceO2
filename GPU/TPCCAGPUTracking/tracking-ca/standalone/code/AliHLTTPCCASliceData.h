@@ -189,8 +189,8 @@ MEM_CLASS_PRE class AliHLTTPCCASliceData
 
     int fMemorySize;           // size of the allocated memory in bytes
     int fGpuMemorySize;        // size of Memory needed to be transfered to GPU
-    char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
-    char *fGPUTextureBase;     // pointer to start of GPU texture
+    GPUglobalref() char *fMemory;             // pointer to the allocated memory where all the following arrays reside in
+    GPUglobalref() char *fGPUTextureBase;     // pointer to start of GPU texture
 
     GPUglobalref() AliHLTTPCCARow MEM_GLOBAL *fRows;     // The row objects needed for most accessor functions
 

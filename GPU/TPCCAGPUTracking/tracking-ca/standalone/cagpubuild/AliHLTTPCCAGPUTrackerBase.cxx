@@ -965,6 +965,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Init(AliHLTTPCCASliceOutput** pO
 		fGpuTracker[iSlice].SetGPUTrackerCommonMemory((char*) CommonMemory(fGPUMemory, iSlice));
 		fGpuTracker[iSlice].SetGPUSliceDataMemory(SliceDataMemory(fGPUMemory, iSlice), RowMemory(fGPUMemory, iSlice));
 		fGpuTracker[iSlice].SetPointersSliceData(&pClusterData[iSlice], false);
+		fGpuTracker[iSlice].GPUParametersConst()->fGPUMem = (char*) fGPUMemory;
 
 		//Set Pointers to GPU Memory
 		char* tmpMem = (char*) GlobalMemory(fGPUMemory, iSlice);
