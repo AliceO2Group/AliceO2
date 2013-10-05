@@ -22,9 +22,10 @@
 #include "AliHLTTPCCAStartHitsSorter.cxx"
 #include "AliHLTTPCCATrackletConstructor.cxx"
 
-__kernel void PreInitRowBlocks(GPUconstant() void* pTrackerTmp, int iSlice)
+__kernel void PreInitRowBlocks(__global char* gpu_mem, GPUconstant() void* pTrackerTmp, int iSlice)
 {
 	GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &pTracker = (( GPUconstant() AliHLTTPCCATracker MEM_CONSTANT * ) pTrackerTmp)[iSlice];
+	if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
 
 	//Initialize GPU RowBlocks and HitWeights
 	const int nSliceDataHits = pTracker.Data().NumberOfHitsPlusAlign();
@@ -37,9 +38,10 @@ __kernel void PreInitRowBlocks(GPUconstant() void* pTrackerTmp, int iSlice)
 		SliceDataHitWeights4[i] = i0;
 }
 
-GPUg() void AliHLTTPCCAProcess_AliHLTTPCCANeighboursFinder(GPUconstant() void* pTrackerTmp, int iSlice)
+GPUg() void AliHLTTPCCAProcess_AliHLTTPCCANeighboursFinder(__global char* gpu_mem, GPUconstant() void* pTrackerTmp, int iSlice)
 {
   GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &pTracker = (( GPUconstant() AliHLTTPCCATracker MEM_CONSTANT * ) pTrackerTmp)[iSlice];
+  if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
   GPUshared() typename AliHLTTPCCANeighboursFinder::AliHLTTPCCASharedMemory MEM_LOCAL smem;
 
   for( int iSync=0; iSync<=AliHLTTPCCANeighboursFinder::NThreadSyncPoints(); iSync++){
@@ -48,9 +50,10 @@ GPUg() void AliHLTTPCCAProcess_AliHLTTPCCANeighboursFinder(GPUconstant() void* p
   }
 }
 
-GPUg() void AliHLTTPCCAProcess_AliHLTTPCCANeighboursCleaner(GPUconstant() void* pTrackerTmp, int iSlice)
+GPUg() void AliHLTTPCCAProcess_AliHLTTPCCANeighboursCleaner(__global char* gpu_mem, GPUconstant() void* pTrackerTmp, int iSlice)
 {
   GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &pTracker = (( GPUconstant() AliHLTTPCCATracker MEM_CONSTANT * ) pTrackerTmp)[iSlice];
+  if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
   GPUshared() typename AliHLTTPCCANeighboursCleaner::AliHLTTPCCASharedMemory MEM_LOCAL smem;
 
   for( int iSync=0; iSync<=AliHLTTPCCANeighboursCleaner::NThreadSyncPoints(); iSync++){
@@ -59,9 +62,10 @@ GPUg() void AliHLTTPCCAProcess_AliHLTTPCCANeighboursCleaner(GPUconstant() void* 
   }
 }
 
-GPUg() void AliHLTTPCCAProcess_AliHLTTPCCAStartHitsFinder(GPUconstant() void* pTrackerTmp, int iSlice)
+GPUg() void AliHLTTPCCAProcess_AliHLTTPCCAStartHitsFinder(__global char* gpu_mem, GPUconstant() void* pTrackerTmp, int iSlice)
 {
   GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &pTracker = (( GPUconstant() AliHLTTPCCATracker MEM_CONSTANT * ) pTrackerTmp)[iSlice];
+  if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
   GPUshared() typename AliHLTTPCCAStartHitsFinder::AliHLTTPCCASharedMemory MEM_LOCAL smem;
 
   for( int iSync=0; iSync<=AliHLTTPCCAStartHitsFinder::NThreadSyncPoints(); iSync++){
@@ -70,9 +74,10 @@ GPUg() void AliHLTTPCCAProcess_AliHLTTPCCAStartHitsFinder(GPUconstant() void* pT
   }
 }
 
-GPUg() void AliHLTTPCCAProcess_AliHLTTPCCAStartHitsSorter(GPUconstant() void* pTrackerTmp, int iSlice)
+GPUg() void AliHLTTPCCAProcess_AliHLTTPCCAStartHitsSorter(__global char* gpu_mem, GPUconstant() void* pTrackerTmp, int iSlice)
 {
   GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &pTracker = (( GPUconstant() AliHLTTPCCATracker MEM_CONSTANT * ) pTrackerTmp)[iSlice];
+  if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
   GPUshared() typename AliHLTTPCCAStartHitsSorter::AliHLTTPCCASharedMemory MEM_LOCAL smem;
 
   for( int iSync=0; iSync<=AliHLTTPCCAStartHitsSorter::NThreadSyncPoints(); iSync++){
@@ -81,13 +86,14 @@ GPUg() void AliHLTTPCCAProcess_AliHLTTPCCAStartHitsSorter(GPUconstant() void* pT
   }
 }
 
-GPUg() void AliHLTTPCCAProcessMulti_AliHLTTPCCATrackletSelector(GPUconstant() void* pTrackerTmp, int firstSlice, int nSliceCount)
+GPUg() void AliHLTTPCCAProcessMulti_AliHLTTPCCATrackletSelector(__global char* gpu_mem, GPUconstant() void* pTrackerTmp, int firstSlice, int nSliceCount)
 {
   const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
   const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
   const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
   const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
   GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &pTracker = (( GPUconstant() AliHLTTPCCATracker MEM_CONSTANT * ) pTrackerTmp)[firstSlice + iSlice];
+  if (gpu_mem != pTracker.GPUParametersConst()->fGPUMem) return;
   GPUshared() typename AliHLTTPCCATrackletSelector::AliHLTTPCCASharedMemory MEM_LOCAL smem;
 
   for( int iSync=0; iSync<=AliHLTTPCCATrackletSelector::NThreadSyncPoints(); iSync++){
@@ -96,10 +102,11 @@ GPUg() void AliHLTTPCCAProcessMulti_AliHLTTPCCATrackletSelector(GPUconstant() vo
   }
 }
 
-GPUg() void AliHLTTPCCATrackletConstructorGPU(GPUconstant() void* pTrackerTmp)
+GPUg() void AliHLTTPCCATrackletConstructorGPU(__global char* gpu_mem, GPUconstant() void* pTrackerTmp)
 {
 	//GPU Wrapper for AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU
 	GPUconstant() AliHLTTPCCATracker MEM_CONSTANT *pTracker = ( GPUconstant() AliHLTTPCCATracker MEM_CONSTANT * ) pTrackerTmp ;
+	if (gpu_mem != pTracker[0].GPUParametersConst()->fGPUMem) return;
 	GPUshared() AliHLTTPCCATrackletConstructor::AliHLTTPCCASharedMemory MEM_LOCAL sMem;
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(pTracker, sMem);
 }

@@ -101,10 +101,11 @@ MEM_CLASS_PRE class AliHLTTPCCATracker
   
   MEM_CLASS_PRE2 struct StructGPUParametersConst
   {
-    StructGPUParametersConst() : fGPUFixedBlockCount( 0 ), fGPUiSlice( 0 ), fGPUnSlices( 0 ) {}
+    StructGPUParametersConst() : fGPUFixedBlockCount( 0 ), fGPUiSlice( 0 ), fGPUnSlices( 0 ), fGPUMem( NULL ) {}
     int fGPUFixedBlockCount;				//Count of blocks that is used for this tracker in fixed schedule situations
     int fGPUiSlice;							// slice number processed by running GPU MP
     int fGPUnSlices;						// n of slices to be processed in parallel
+	GPUglobalref() char* fGPUMem;			//Base pointer to GPU memory (Needed for OpenCL for verification)
   };
   
   struct commonMemoryStruct
@@ -341,7 +342,7 @@ private:
   
   /** A pointer to the ClusterData object that the SliceData was created from. This can be used to
    * merge clusters from inside the SliceTracker code and recreate the SliceData. */
-  AliHLTTPCCAClusterData *fClusterData; // ^
+  GPUglobalref() AliHLTTPCCAClusterData *fClusterData; // ^
   AliHLTTPCCASliceData MEM_LG fData; // The SliceData object. It is used to encapsulate the storage in memory from the access
   
   bool fIsGPUTracker; // is it GPU tracker object
@@ -386,7 +387,7 @@ private:
   
   // output
   
-  AliHLTTPCCASliceOutput **fOutput;		//address of pointer pointing to SliceOutput Object
+  GPUglobalref() AliHLTTPCCASliceOutput **fOutput;		//address of pointer pointing to SliceOutput Object
   
   // disable copy
   AliHLTTPCCATracker( const AliHLTTPCCATracker& );
