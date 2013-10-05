@@ -232,7 +232,7 @@ bool AliHLTTPCCAGPUTrackerNVCC::GPUFailedMsgA(cudaError_t error, const char* fil
 	return(true);
 }
 
-int AliHLTTPCCAGPUTrackerNVCC::GPUSync(char* state, int sliceLocal, int slice)
+int AliHLTTPCCAGPUTrackerNVCC::GPUSync(char* state, int stream, int slice)
 {
 	//Wait for CUDA-Kernel to finish and check for CUDA errors afterwards
 
@@ -241,12 +241,12 @@ int AliHLTTPCCAGPUTrackerNVCC::GPUSync(char* state, int sliceLocal, int slice)
 	cuErr = cudaGetLastError();
 	if (cuErr != cudaSuccess)
 	{
-		HLTError("Cuda Error %s while running kernel (%s) (Slice %d; %d/%d)", cudaGetErrorString(cuErr), state, sliceLocal, slice, fgkNSlices);
+		HLTError("Cuda Error %s while running kernel (%s) (Stream %d; %d/%d)", cudaGetErrorString(cuErr), state, stream, slice, fgkNSlices);
 		return(1);
 	}
 	if (GPUFailedMsg(cudaThreadSynchronize()))
 	{
-		HLTError("CUDA Error while synchronizing (%s) (Slice %d; %d/%d)", state, sliceLocal, slice, fgkNSlices);
+		HLTError("CUDA Error while synchronizing (%s) (Stream %d; %d/%d)", state, stream, slice, fgkNSlices);
 		return(1);
 	}
 	if (fDebugLevel >= 3) HLTInfo("CUDA Sync Done");
@@ -398,7 +398,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		//Initialize temporary memory where needed
 		if (fDebugLevel >= 3) HLTInfo("Copying Slice Data to GPU and initializing temporary memory");		
 		PreInitRowBlocks<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[2]>>>(fGpuTracker[iSlice].RowBlockPos(), fGpuTracker[iSlice].RowBlockTracklets(), fGpuTracker[iSlice].Data().HitWeights(), fSlaveTrackers[firstSlice + iSlice].Data().NumberOfHitsPlusAlign());
-		if (GPUSync("Initialization (2)", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Initialization (2)", 2, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -416,7 +416,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 			fSlaveTrackers[firstSlice + iSlice].SetGPUTrackerHitsMemory(reinterpret_cast<char*> ( new uint4 [ fGpuTracker[iSlice].HitMemorySize()/sizeof( uint4 ) + 100]), pClusterData[iSlice].NumberOfClusters() );
 		}
 
-		if (GPUSync("Initialization (3)", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Initialization (3)", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -426,7 +426,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 		if (fDebugLevel >= 3) HLTInfo("Running GPU Neighbours Finder (Slice %d/%d)", iSlice, sliceCountLocal);
 		AliHLTTPCCAProcess<AliHLTTPCCANeighboursFinder> <<<fSlaveTrackers[firstSlice + iSlice].Param().NRows(), HLTCA_GPU_THREAD_COUNT_FINDER, 0, cudaStreams[iSlice & 1]>>>(iSlice);
 
-		if (GPUSync("Neighbours finder", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Neighbours finder", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -442,7 +442,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		if (fDebugLevel >= 3) HLTInfo("Running GPU Neighbours Cleaner (Slice %d/%d)", iSlice, sliceCountLocal);
 		AliHLTTPCCAProcess<AliHLTTPCCANeighboursCleaner> <<<fSlaveTrackers[firstSlice + iSlice].Param().NRows()-2, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[iSlice & 1]>>>(iSlice);
-		if (GPUSync("Neighbours Cleaner", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Neighbours Cleaner", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -458,7 +458,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		if (fDebugLevel >= 3) HLTInfo("Running GPU Start Hits Finder (Slice %d/%d)", iSlice, sliceCountLocal);
 		AliHLTTPCCAProcess<AliHLTTPCCAStartHitsFinder> <<<fSlaveTrackers[firstSlice + iSlice].Param().NRows()-6, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[iSlice & 1]>>>(iSlice);
-		if (GPUSync("Start Hits Finder", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Start Hits Finder", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -468,7 +468,7 @@ int AliHLTTPCCAGPUTrackerNVCC::Reconstruct(AliHLTTPCCASliceOutput** pOutput, Ali
 
 		if (fDebugLevel >= 3) HLTInfo("Running GPU Start Hits Sorter (Slice %d/%d)", iSlice, sliceCountLocal);
 		AliHLTTPCCAProcess<AliHLTTPCCAStartHitsSorter> <<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT, 0, cudaStreams[iSlice & 1]>>>(iSlice);
-		if (GPUSync("Start Hits Sorter", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Start Hits Sorter", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -534,7 +534,7 @@ RestartTrackletConstructor:
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 	{
 		AliHLTTPCCATrackletConstructorInit<<<HLTCA_GPU_MAX_TRACKLETS /* *fSlaveTrackers[firstSlice + iSlice].NTracklets() */ / HLTCA_GPU_THREAD_COUNT + 1, HLTCA_GPU_THREAD_COUNT>>>(iSlice);
-		if (GPUSync("Tracklet Initializer", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Tracklet Initializer", -1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			cudaThreadSynchronize();
 			cuCtxPopCurrent((CUcontext*) fCudaContext);
@@ -546,7 +546,7 @@ RestartTrackletConstructor:
 
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Tracklet Constructor");
 	AliHLTTPCCATrackletConstructorGPU<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR>>>();
-	if (GPUSync("Tracklet Constructor", 0, firstSlice) RANDOM_ERROR)
+	if (GPUSync("Tracklet Constructor", -1, firstSlice) RANDOM_ERROR)
 	{
 		cudaThreadSynchronize();
 		cuCtxPopCurrent((CUcontext*) fCudaContext);
@@ -858,7 +858,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 
 		fGpuTracker[iSlice].SetGPUTextureBase(fGpuTracker[0].Data().Memory());
 
-		if (GPUSync("Initialization", iSlice, iSlice + firstSlice)) return(1);
+		if (GPUSync("Initialization", -1, iSlice + firstSlice)) return(1);
 		StandalonePerfTime(firstSlice + iSlice, 1);
 	}
 
@@ -901,19 +901,19 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Neighbours Finder");
 	AliHLTTPCCAProcessMultiA<AliHLTTPCCANeighboursFinder> <<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT_FINDER>>>(0, sliceCountLocal, fSlaveTrackers[firstSlice].Param().NRows());
-	if (GPUSync("Neighbours finder", 0, firstSlice)) return 1;
+	if (GPUSync("Neighbours finder", -1, firstSlice)) return 1;
 	StandalonePerfTime(firstSlice, 2);
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Neighbours Cleaner");
 	AliHLTTPCCAProcessMultiA<AliHLTTPCCANeighboursCleaner> <<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(0, sliceCountLocal, fSlaveTrackers[firstSlice].Param().NRows() - 2);
-	if (GPUSync("Neighbours Cleaner", 0, firstSlice)) return 1;
+	if (GPUSync("Neighbours Cleaner", -1, firstSlice)) return 1;
 	StandalonePerfTime(firstSlice, 3);
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Start Hits Finder");
 	AliHLTTPCCAProcessMultiA<AliHLTTPCCAStartHitsFinder> <<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(0, sliceCountLocal, fSlaveTrackers[firstSlice].Param().NRows() - 6);
-	if (GPUSync("Start Hits Finder", 0, firstSlice)) return 1;
+	if (GPUSync("Start Hits Finder", -1, firstSlice)) return 1;
 	StandalonePerfTime(firstSlice, 4);
 
 	ClearPPHitWeights <<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT>>>(sliceCountLocal);
-	if (GPUSync("Clear Hit Weights", 0, firstSlice)) return 1;
+	if (GPUSync("Clear Hit Weights", -1, firstSlice)) return 1;
 
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 	{
@@ -924,12 +924,12 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Tracklet Constructor");
 	AliHLTTPCCATrackletConstructorGPUPP<<<fConstructorBlockCount, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR>>>(0, sliceCountLocal);
-	if (GPUSync("Tracklet Constructor PP", 0, firstSlice)) return 1;
+	if (GPUSync("Tracklet Constructor PP", -1, firstSlice)) return 1;
 
 	StandalonePerfTime(firstSlice, 8);
 
 	AliHLTTPCCAProcessMulti<AliHLTTPCCATrackletSelector><<<selectorBlockCount, HLTCA_GPU_THREAD_COUNT_SELECTOR>>>(0, sliceCountLocal);
-	if (GPUSync("Tracklet Selector", 0, firstSlice)) return 1;
+	if (GPUSync("Tracklet Selector", -1, firstSlice)) return 1;
 	StandalonePerfTime(firstSlice, 9);
 
 	GPUFailedMsg(cudaMemcpy(fSlaveTrackers[firstSlice].CommonMemory(), fGpuTracker[0].CommonMemory(), fSlaveTrackers[firstSlice].CommonMemorySize() * sliceCountLocal, cudaMemcpyDeviceToHost));

@@ -393,14 +393,16 @@ bool AliHLTTPCCAGPUTrackerOpenCL::GPUFailedMsgA(int error, const char* file, int
 	return(true);
 }
 
-int AliHLTTPCCAGPUTrackerOpenCL::GPUSync(char* state, int sliceLocal, int slice)
+int AliHLTTPCCAGPUTrackerOpenCL::GPUSync(char* state, int stream, int slice)
 {
 	//Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards
 
 	if (fDebugLevel == 0) return(0);
 	for (int i = 0;i < fSliceCount;i++)
 	{
+		if (stream != -1) i = stream;
 		clFinish(ocl->command_queue[i]);
+		if (stream != -1) break;
 	}
 	if (fDebugLevel >= 3) HLTInfo("OPENCL Sync Done");
 	return(0);
@@ -442,8 +444,8 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		clSetKernelArgA(ocl->kernel_row_blocks, 0, ocl->mem_gpu);
 		clSetKernelArgA(ocl->kernel_row_blocks, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_row_blocks, 2, iSlice);
-		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_row_blocks, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL);
-		if (GPUSync("Initialization (2)", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		clExecuteKernelA(ocl->command_queue[2], ocl->kernel_row_blocks, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL);
+		if (GPUSync("Initialization (2)", 2, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -461,7 +463,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 			fSlaveTrackers[firstSlice + iSlice].SetGPUTrackerHitsMemory(reinterpret_cast<char*> ( new uint4 [ fGpuTracker[iSlice].HitMemorySize()/sizeof( uint4 ) + 100]), pClusterData[iSlice].NumberOfClusters() );
 		}
 
-		if (GPUSync("Initialization (3)", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Initialization (3)", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -474,7 +476,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		clSetKernelArgA(ocl->kernel_neighbours_finder, 2, iSlice);
 		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_finder, HLTCA_GPU_THREAD_COUNT_FINDER, HLTCA_GPU_THREAD_COUNT_FINDER * fSlaveTrackers[firstSlice + iSlice].Param().NRows(), NULL);
 
-		if (GPUSync("Neighbours finder", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Neighbours finder", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -493,7 +495,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		clSetKernelArgA(ocl->kernel_neighbours_cleaner, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_neighbours_cleaner, 2, iSlice);
 		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_neighbours_cleaner, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * (fSlaveTrackers[firstSlice + iSlice].Param().NRows() - 2), NULL);
-		if (GPUSync("Neighbours Cleaner", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Neighbours Cleaner", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -513,7 +515,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		clSetKernelArgA(ocl->kernel_start_hits_finder, 2, iSlice);
 		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_start_hits_finder, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * (fSlaveTrackers[firstSlice + iSlice].Param().NRows() - 6), NULL);
 
-		if (GPUSync("Start Hits Finder", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Start Hits Finder", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -526,7 +528,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		clSetKernelArgA(ocl->kernel_start_hits_sorter, 1, ocl->mem_constant);
 		clSetKernelArgA(ocl->kernel_start_hits_sorter, 2, iSlice);
 		clExecuteKernelA(ocl->command_queue[iSlice & 1], ocl->kernel_start_hits_sorter, HLTCA_GPU_THREAD_COUNT, HLTCA_GPU_THREAD_COUNT * fConstructorBlockCount, NULL);
-		if (GPUSync("Start Hits Sorter", iSlice, iSlice + firstSlice) RANDOM_ERROR)
+		if (GPUSync("Start Hits Sorter", iSlice & 1, iSlice + firstSlice) RANDOM_ERROR)
 		{
 			ResetHelperThreads(1);
 			return(1);
@@ -585,7 +587,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 	StandalonePerfTime(firstSlice, 7);
 
 	if (fDebugLevel >= 3) HLTInfo("Running GPU Tracklet Constructor");
-	SynchronizeGPU();
+	for (int i = 0;i < 3;i++) clFinish(ocl->command_queue[i]);
 	clSetKernelArgA(ocl->kernel_tracklet_constructor, 0, ocl->mem_gpu);
 	clSetKernelArgA(ocl->kernel_tracklet_constructor, 1, ocl->mem_constant);
 	clExecuteKernelA(ocl->command_queue[0], ocl->kernel_tracklet_constructor, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, NULL);
