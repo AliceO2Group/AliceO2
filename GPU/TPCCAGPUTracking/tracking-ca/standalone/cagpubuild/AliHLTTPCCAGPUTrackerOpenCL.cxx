@@ -18,6 +18,7 @@
 //***************************************************************************
 
 #define __OPENCL__
+#define RADEON
 #define HLTCA_HOSTCODE
 
 #include <string.h>
