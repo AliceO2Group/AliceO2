@@ -92,8 +92,8 @@ public:
 #endif
 				, fNTracklets(0) {
 #ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-				for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
-				for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
+				for( int i=0; i<HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
+				for( int i=0; i<HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
 #endif
 		}
 
@@ -104,8 +104,8 @@ public:
 #endif
 				, fNTracklets(0) {
 #ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-				for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
-				for( int i=0; i<HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
+				for( int i=0; i<HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1; i++)fStartRows[i] = 0;
+				for( int i=0; i<HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1; i++) fEndRows[i]=0;
 #endif
 		}
 
@@ -125,8 +125,8 @@ public:
 #endif
 #elif defined(HLTCA_GPU_RESCHED)
 		int fNextTrackletStupidDummy; //Shared Dummy variable to access
-		int fStartRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1]; // start rows
-		int fEndRows[HLTCA_GPU_THREAD_COUNT / HLTCA_GPU_WARP_SIZE + 1]; // end rows
+		int fStartRows[HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1]; // start rows
+		int fEndRows[HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR / HLTCA_GPU_WARP_SIZE + 1]; // end rows
 #endif
 		int fNTracklets; // Total number of tracklets
 
