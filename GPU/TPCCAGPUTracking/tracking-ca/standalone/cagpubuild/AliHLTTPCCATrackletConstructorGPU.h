@@ -1,6 +1,6 @@
 #include "AliHLTTPCCAGPUConfig.h"
 
-MEM_CLASS_PRE23 GPUdi() void AliHLTTPCCATrackletConstructor::CopyTrackletTempData( AliHLTTPCCAThreadMemory &rMemSrc, AliHLTTPCCAThreadMemory &rMemDst, AliHLTTPCCATrackParam MEM_LG2 &tParamSrc, AliHLTTPCCATrackParam MEM_LG3 &tParamDst)
+MEM_TEMPLATE4 GPUdi() void AliHLTTPCCATrackletConstructor::CopyTrackletTempData( MEM_TYPE(AliHLTTPCCAThreadMemory) &rMemSrc, MEM_TYPE2(AliHLTTPCCAThreadMemory) &rMemDst, MEM_TYPE3(AliHLTTPCCATrackParam) &tParamSrc, MEM_TYPE4(AliHLTTPCCATrackParam) &tParamDst)
 {
 	//Copy Temporary Tracklet data from registers to global mem and vice versa
 	rMemDst.fStartRow = rMemSrc.fStartRow;
@@ -431,7 +431,7 @@ GPUg() void AliHLTTPCCATrackletConstructorInit(int iSlice)
 
 #elif defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE)
 
-MEM_CLASS_PRE2 GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker, GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &sMem, AliHLTTPCCAThreadMemory& /*rMem*/, AliHLTTPCCATrackParam MEM_LG2& /*tParam*/)
+GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker, GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &sMem, AliHLTTPCCAThreadMemory& /*rMem*/, AliHLTTPCCATrackParam MEM_PLAIN& /*tParam*/)
 {
 	const int nativeslice = get_group_id(0) % tracker.GPUParametersConst()->fGPUnSlices;
 	const int nTracklets = *tracker.NTracklets();
@@ -567,7 +567,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 
 #else //HLTCA_GPU_ALTERNATIVE_SCHEDULER
 
-GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker, GPUshared() AliHLTTPCCASharedMemory MEM_LOCAL &sMem, AliHLTTPCCAThreadMemory &rMem, AliHLTTPCCATrackParam &tParam)
+GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker, GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &sMem, AliHLTTPCCAThreadMemory &rMem, AliHLTTPCCATrackParam MEM_PLAIN &tParam)
 {
 	const int nativeslice = get_group_id(0) % tracker.GPUParametersConst()->fGPUnSlices;
 	const int nTracklets = *tracker.NTracklets();
@@ -650,7 +650,7 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTP
 	return (sMem.fNextTrackletFirst);
 }
 
-MEM_CLASS_PRE2 GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(AliHLTTPCCATracker MEM_LG2 *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::AliHLTTPCCASharedMemory MEM_LOCAL& sMem)
+GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::AliHLTTPCCASharedMemory MEM_LOCAL& sMem)
 {
 	const int nSlices = pTracker[0].GPUParametersConst()->fGPUnSlices;
 	const int nativeslice = get_group_id(0) % nSlices;
@@ -672,9 +672,9 @@ MEM_CLASS_PRE2 GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletC
 
 	for (int iSlice = 0;iSlice < nSlices;iSlice++)
 	{
-		AliHLTTPCCATracker &tracker = pTracker[(nativeslice + iSlice) % nSlices];
+		GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker = pTracker[(nativeslice + iSlice) % nSlices];
 
-		AliHLTTPCCATrackParam tParam;
+		AliHLTTPCCATrackParam MEM_PLAIN tParam;
 		AliHLTTPCCAThreadMemory rMem;
 		rMem.fItr = -1;
 
@@ -692,9 +692,9 @@ MEM_CLASS_PRE2 GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletC
 			{
 				if (get_local_id(0) == 0) sMem.fNTracklets = *tracker.NTracklets();
 
-				for (int i = get_local_id(0);i < HLTCA_ROW_COUNT * sizeof(AliHLTTPCCARow) / sizeof(int);i += get_local_size(0))
+				for (int i = get_local_id(0);i < HLTCA_ROW_COUNT * sizeof(AliHLTTPCCARow MEM_PLAIN) / sizeof(int);i += get_local_size(0))
 				{
-					reinterpret_cast<int*>(&sMem.fRows)[i] = reinterpret_cast<int*>(tracker.SliceDataRows())[i];
+					reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 				}
 				currentSlice = iSlice;
 				GPUsync();

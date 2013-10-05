@@ -264,8 +264,14 @@ template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<M
 #define MEM_LG4 <LG4>
 #define MEM_GLOBAL <Mem_Global>
 #define MEM_LOCAL <Mem_Local>
-#define MEM_TEMPLATE template<typename T>
+#define MEM_TEMPLATE template <typename T>
 #define MEM_TYPE(type) T
+#define MEM_TEMPLATE2 template <typename T, typename T2>
+#define MEM_TYPE2(type) T2
+#define MEM_TEMPLATE3 template <typename T, typename T2, typename T3>
+#define MEM_TYPE3(type) T3
+#define MEM_TEMPLATE4 template <typename T, typename T2, typename T3, typename T4>
+#define MEM_TYPE4(type) T4
 //#define MEM_CONSTANT <Mem_Constant> //Use __global for time being instead of __constant, see above
 #define MEM_CONSTANT <Mem_Global>
 #define MEM_PLAIN <Mem_Plain>
@@ -286,6 +292,12 @@ template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<M
 #define MEM_PLAIN
 #define MEM_TEMPLATE
 #define MEM_TYPE(type) type
+#define MEM_TEMPLATE2
+#define MEM_TYPE2(type) type
+#define MEM_TEMPLATE3
+#define MEM_TYPE3(type) type
+#define MEM_TEMPLATE4
+#define MEM_TYPE4(type) type
 #endif
 
 /*
