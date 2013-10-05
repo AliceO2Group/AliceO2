@@ -2,7 +2,6 @@ include						config_common.mak
 
 TARGET						= libAliHLTTPCCAGPUSAOpenCL
 TARGETTYPE					= LIB
-WORKPATHSUFFIX				= $(TARGETTYPE)
 
 CPPFILES					= 
 CXXFILES					= code/AliHLTTPCCATracker.cxx \

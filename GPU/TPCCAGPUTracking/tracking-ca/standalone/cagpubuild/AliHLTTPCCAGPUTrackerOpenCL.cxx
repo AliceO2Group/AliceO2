@@ -195,7 +195,10 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		{
 			quit("Memory allocation error");
 		}
-		fread(buffer, 1, file_size, fp);
+		if (fread(buffer, 1, file_size, fp) != file_size)
+		{
+			quit("Error reading file");
+		}
 		buffer[file_size] = 0;
 		fclose(fp);
 
