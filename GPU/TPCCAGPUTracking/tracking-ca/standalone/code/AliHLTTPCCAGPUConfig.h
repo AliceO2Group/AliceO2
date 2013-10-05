@@ -50,7 +50,7 @@
 #define HLTCA_GPU_ALTERNATIVE_SCHEDULER					//Use alternative scheduling algorithm (makes upper 4 options obsolete)
 #define HLTCA_GPU_ALTSCHED_STEPSIZE 80					//Number of rows to process in between of rescheduling
 #define HLTCA_GPU_ALTSCHED_MIN_THREADS 32				//Reschedule if less than n threads are active
-//#define HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE			//Use simple version of alternative scheduler
+#define HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE			//Use simple version of alternative scheduler
 
 #if !defined(FERMI) && !defined(__OPENCL__)
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache

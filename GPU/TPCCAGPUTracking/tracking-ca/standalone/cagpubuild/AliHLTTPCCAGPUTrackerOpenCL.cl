@@ -1,4 +1,5 @@
 #define __OPENCL__
+#define RADEON
 
 //Disable assertions since they produce errors in GPU Code
 #ifdef assert
