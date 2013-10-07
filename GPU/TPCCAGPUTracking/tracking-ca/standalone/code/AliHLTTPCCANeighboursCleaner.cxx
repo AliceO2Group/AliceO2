@@ -24,7 +24,7 @@
 
 GPUdi() void AliHLTTPCCANeighboursCleaner::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
-  GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &s, GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker )
+  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {
   // *
   // * kill link to the neighbour if the neighbour is not pointed to the cluster
@@ -45,9 +45,9 @@ GPUdi() void AliHLTTPCCANeighboursCleaner::Thread
 #ifdef HLTCA_GPUCODE
       int Up = s.fIRowUp;
       int Dn = s.fIRowDn;
-      GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &row = tracker.Row( s.fIRow );
-      GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &rowUp = tracker.Row( Up );
-      GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &rowDn = tracker.Row( Dn );
+      GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( s.fIRow );
+      GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowUp = tracker.Row( Up );
+      GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowDn = tracker.Row( Dn );
 #else
       const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
       const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRowUp );

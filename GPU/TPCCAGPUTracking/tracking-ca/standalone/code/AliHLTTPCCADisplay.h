@@ -14,9 +14,9 @@
 #define ALIHLTTPCCADISPLAY_H
 
 
-MEM_CLASS_PRE class AliHLTTPCCATracker;
+MEM_CLASS_PRE() class AliHLTTPCCATracker;
 class AliHLTTPCCATrack;
-MEM_CLASS_PRE class AliHLTTPCCATrackParam;
+MEM_CLASS_PRE() class AliHLTTPCCATrackParam;
 class AliHLTTPCCAPerformance;
 
 class TCanvas;

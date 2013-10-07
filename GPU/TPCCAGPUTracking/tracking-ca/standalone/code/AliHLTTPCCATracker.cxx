@@ -784,7 +784,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 #endif
 
-GPUh() void AliHLTTPCCATracker::FitTrackFull( const AliHLTTPCCATrack MEM_LG2 &/**/, float * /**/ ) const
+GPUh() void AliHLTTPCCATracker::FitTrackFull( const MEM_LG2(AliHLTTPCCATrack) &/**/, float * /**/ ) const
 {
 	// fit track with material
 #ifdef XXX

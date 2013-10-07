@@ -37,7 +37,7 @@ typedef int cudaError_t
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1
 
-MEM_CLASS_PRE class AliHLTTPCCARow;
+MEM_CLASS_PRE() class AliHLTTPCCARow;
 
 class AliHLTTPCCAGPUTrackerBase : public AliHLTTPCCAGPUTracker, public AliHLTLogging
 {

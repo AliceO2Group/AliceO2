@@ -1,6 +1,6 @@
 #include "AliHLTTPCCAGPUConfig.h"
 
-MEM_TEMPLATE4 GPUdi() void AliHLTTPCCATrackletConstructor::CopyTrackletTempData( MEM_TYPE(AliHLTTPCCAThreadMemory) &rMemSrc, MEM_TYPE2(AliHLTTPCCAThreadMemory) &rMemDst, MEM_TYPE3(AliHLTTPCCATrackParam) &tParamSrc, MEM_TYPE4(AliHLTTPCCATrackParam) &tParamDst)
+MEM_TEMPLATE4() GPUdi() void AliHLTTPCCATrackletConstructor::CopyTrackletTempData( MEM_TYPE(AliHLTTPCCAThreadMemory) &rMemSrc, MEM_TYPE2(AliHLTTPCCAThreadMemory) &rMemDst, MEM_TYPE3(AliHLTTPCCATrackParam) &tParamSrc, MEM_TYPE4(AliHLTTPCCATrackParam) &tParamDst)
 {
 	//Copy Temporary Tracklet data from registers to global mem and vice versa
 	rMemDst.fStartRow = rMemSrc.fStartRow;
@@ -48,7 +48,7 @@ MEM_TEMPLATE4 GPUdi() void AliHLTTPCCATrackletConstructor::CopyTrackletTempData(
 }
 
 #ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
-GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker, GPUshared() AliHLTTPCCASharedMemory MEM_LOCAL &sMem, int Reverse, int RowBlock, int &mustInit)
+GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker, GPUshared() MEM_LOCAL(AliHLTTPCCASharedMemory) &sMem, int Reverse, int RowBlock, int &mustInit)
 {
 	//Fetch a new trackled to be processed by this thread
 	GPUsync();
@@ -142,7 +142,7 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTP
 	}
 }
 
-MEM_CLASS_PRE2 GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(AliHLTTPCCATracker MEM_LG2 *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::AliHLTTPCCASharedMemory MEM_LOCAL& sMem)
+MEM_CLASS_PRE2 GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(MEM_LG2(AliHLTTPCCATracker) *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem)
 {
 	//Main Tracklet construction function that calls the scheduled (FetchTracklet) and then Processes the tracklet (mainly UpdataTracklet) and at the end stores the tracklet.
 	//Can also dispatch a tracklet to be rescheduled
@@ -431,7 +431,7 @@ GPUg() void AliHLTTPCCATrackletConstructorInit(int iSlice)
 
 #elif defined(HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE)
 
-GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker, GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &sMem, AliHLTTPCCAThreadMemory& /*rMem*/, AliHLTTPCCATrackParam MEM_PLAIN& /*tParam*/)
+GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker, GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &sMem, AliHLTTPCCAThreadMemory& /*rMem*/, MEM_PLAIN(AliHLTTPCCATrackParam)& /*tParam*/)
 {
 	const int nativeslice = get_group_id(0) % tracker.GPUParametersConst()->fGPUnSlices;
 	const int nTracklets = *tracker.NTracklets();
@@ -464,11 +464,10 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTP
 	return (sMem.fNextTrackletFirst);
 }
 
-GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::AliHLTTPCCASharedMemory MEM_LOCAL& sMem)
+GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem)
 {
 	const int nSlices = pTracker[0].GPUParametersConst()->fGPUnSlices;
 	const int nativeslice = get_group_id(0) % nSlices;
-	//GPUshared() AliHLTTPCCASharedMemory MEM_LOCAL sMem;
 	int currentSlice = -1;
 
 	if (get_local_id(0))
@@ -478,10 +477,10 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 
 	for (int iSlice = 0;iSlice < nSlices;iSlice++)
 	{
-		GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker = pTracker[(nativeslice + iSlice) % nSlices];
+		GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker = pTracker[(nativeslice + iSlice) % nSlices];
 		int iRow, iRowEnd;
 
-		AliHLTTPCCATrackParam MEM_PLAIN tParam;
+		MEM_PLAIN(AliHLTTPCCATrackParam) tParam;
 		AliHLTTPCCAThreadMemory rMem;
 
 		int tmpTracklet;
@@ -503,7 +502,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 					sMem.fNTracklets = *tracker.NTracklets();
 				}
 
-				for (int i = get_local_id(0);i < HLTCA_ROW_COUNT * sizeof(AliHLTTPCCARow MEM_PLAIN) / sizeof(int);i += get_local_size(0))
+				for (int i = get_local_id(0);i < HLTCA_ROW_COUNT * sizeof(MEM_PLAIN(AliHLTTPCCARow)) / sizeof(int);i += get_local_size(0))
 				{
 					reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 				}
@@ -567,7 +566,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 
 #else //HLTCA_GPU_ALTERNATIVE_SCHEDULER
 
-GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker, GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &sMem, AliHLTTPCCAThreadMemory &rMem, AliHLTTPCCATrackParam MEM_PLAIN &tParam)
+GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker, GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &sMem, AliHLTTPCCAThreadMemory &rMem, MEM_PLAIN(AliHLTTPCCATrackParam) &tParam)
 {
 	const int nativeslice = get_group_id(0) % tracker.GPUParametersConst()->fGPUnSlices;
 	const int nTracklets = *tracker.NTracklets();
@@ -650,7 +649,7 @@ GPUdi() int AliHLTTPCCATrackletConstructor::FetchTracklet(GPUconstant() AliHLTTP
 	return (sMem.fNextTrackletFirst);
 }
 
-GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(GPUconstant() AliHLTTPCCATracker MEM_CONSTANT *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::AliHLTTPCCASharedMemory MEM_LOCAL& sMem)
+GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) *pTracker, GPUsharedref() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory)& sMem)
 {
 	const int nSlices = pTracker[0].GPUParametersConst()->fGPUnSlices;
 	const int nativeslice = get_group_id(0) % nSlices;
@@ -672,9 +671,9 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 
 	for (int iSlice = 0;iSlice < nSlices;iSlice++)
 	{
-		GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker = pTracker[(nativeslice + iSlice) % nSlices];
+		GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker = pTracker[(nativeslice + iSlice) % nSlices];
 
-		AliHLTTPCCATrackParam MEM_PLAIN tParam;
+		MEM_PLAIN(AliHLTTPCCATrackParam) tParam;
 		AliHLTTPCCAThreadMemory rMem;
 		rMem.fItr = -1;
 
@@ -692,7 +691,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(G
 			{
 				if (get_local_id(0) == 0) sMem.fNTracklets = *tracker.NTracklets();
 
-				for (int i = get_local_id(0);i < HLTCA_ROW_COUNT * sizeof(AliHLTTPCCARow MEM_PLAIN) / sizeof(int);i += get_local_size(0))
+				for (int i = get_local_id(0);i < HLTCA_ROW_COUNT * sizeof(MEM_PLAIN(AliHLTTPCCARow)) / sizeof(int);i += get_local_size(0))
 				{
 					reinterpret_cast<GPUsharedref() int*>(&sMem.fRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
 				}
@@ -779,7 +778,7 @@ GPUg() void AliHLTTPCCATrackletConstructorGPU()
 {
 	//GPU Wrapper for AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU
 	AliHLTTPCCATracker *pTracker = ( ( AliHLTTPCCATracker* ) gAliHLTTPCCATracker );
-	GPUshared() AliHLTTPCCATrackletConstructor::AliHLTTPCCASharedMemory MEM_LOCAL sMem;
+	GPUshared() AliHLTTPCCATrackletConstructor::MEM_LOCAL(AliHLTTPCCASharedMemory) sMem;
 	AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGPU(pTracker, sMem);
 }
 

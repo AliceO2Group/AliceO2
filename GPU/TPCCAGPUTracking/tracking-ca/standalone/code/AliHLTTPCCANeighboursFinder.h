@@ -13,7 +13,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCAGPUConfig.h"
-MEM_CLASS_PRE class AliHLTTPCCATracker;
+MEM_CLASS_PRE() class AliHLTTPCCATracker;
 
 /**
  * @class AliHLTTPCCANeighboursFinder
@@ -22,7 +22,7 @@ MEM_CLASS_PRE class AliHLTTPCCATracker;
 class AliHLTTPCCANeighboursFinder
 {
   public:
-    MEM_CLASS_PRE class AliHLTTPCCASharedMemory
+    MEM_CLASS_PRE() class AliHLTTPCCASharedMemory
     {
         friend class AliHLTTPCCANeighboursFinder;
       public:
@@ -51,13 +51,13 @@ class AliHLTTPCCANeighboursFinder
         float2 fA[HLTCA_GPU_THREAD_COUNT_FINDER][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
         unsigned short fB[HLTCA_GPU_THREAD_COUNT_FINDER][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
 #endif //ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-		AliHLTTPCCARow MEM_LG fRow, fRowUp, fRowDown;
+		MEM_LG(AliHLTTPCCARow) fRow, fRowUp, fRowDown;
     };
 
     GPUd() static int NThreadSyncPoints() { return 2; }
 
     GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-                               GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &smem, GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker );
+                               GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &smem, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker );
 
 };
 

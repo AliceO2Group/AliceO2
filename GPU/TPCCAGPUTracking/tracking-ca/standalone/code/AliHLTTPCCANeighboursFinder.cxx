@@ -31,13 +31,13 @@
 
 GPUdi() void AliHLTTPCCANeighboursFinder::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
-  GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &s, GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker )
+  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {
   //* find neighbours
 
   if ( iSync == 0 ) {
 #ifdef HLTCA_GPUCODE
-	for (int i = iThread;i < sizeof(AliHLTTPCCARow MEM_PLAIN) / sizeof(int);i += nThreads)
+	for (int i = iThread;i < sizeof(MEM_PLAIN(AliHLTTPCCARow)) / sizeof(int);i += nThreads)
 	{
 		reinterpret_cast<GPUsharedref() int*>(&s.fRow)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock])[i];
 		if (iBlock >= 2 && iBlock <= tracker.Param().NRows() - 3)
@@ -53,9 +53,9 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
       s.fIRow = iBlock;
       if ( s.fIRow < s.fNRows ) {
 #ifdef HLTCA_GPUCODE
-		GPUsharedref() const AliHLTTPCCARow MEM_LOCAL &row = s.fRow;
+		GPUsharedref() const MEM_LOCAL(AliHLTTPCCARow) &row = s.fRow;
 #else
-		GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &row = tracker.Row( s.fIRow );
+		GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( s.fIRow );
 #endif
         s.fNHits = row.NHits();
 
@@ -66,11 +66,11 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
           // references to the rows above and below
 
 #ifdef HLTCA_GPUCODE
-          GPUsharedref() const AliHLTTPCCARow MEM_LOCAL &rowUp = s.fRowUp;
-          GPUsharedref() const AliHLTTPCCARow MEM_LOCAL &rowDn = s.fRowDown;
+          GPUsharedref() const MEM_LOCAL(AliHLTTPCCARow) &rowUp = s.fRowUp;
+          GPUsharedref() const MEM_LOCAL(AliHLTTPCCARow) &rowDn = s.fRowDown;
 #else
-          GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &rowUp = tracker.Row( s.fIRowUp );
-          GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &rowDn = tracker.Row( s.fIRowDn );
+          GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowUp = tracker.Row( s.fIRowUp );
+          GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowDn = tracker.Row( s.fIRowDn );
 #endif
           // the axis perpendicular to the rows
           const float xDn = rowDn.X();
@@ -98,9 +98,9 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
     if ( s.fIRow < s.fNRows ) {
       if ( ( s.fIRow <= 1 ) || ( s.fIRow >= s.fNRows - 2 ) ) {
 #ifdef HLTCA_GPUCODE
-		GPUsharedref() const AliHLTTPCCARow MEM_LOCAL &row = s.fRow;
+		GPUsharedref() const MEM_LOCAL(AliHLTTPCCARow) &row = s.fRow;
 #else
-		GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &row = tracker.Row( s.fIRow );
+		GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( s.fIRow );
 #endif
         for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
           tracker.SetHitLinkUpData( row, ih, -1 );
@@ -137,13 +137,13 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
 #define kMaxN 20
 
 #ifdef HLTCA_GPUCODE
-		  GPUsharedref() const AliHLTTPCCARow MEM_LOCAL &row = s.fRow;
-          GPUsharedref() const AliHLTTPCCARow MEM_LOCAL &rowUp = s.fRowUp;
-          GPUsharedref() const AliHLTTPCCARow MEM_LOCAL &rowDn = s.fRowDown;
+		  GPUsharedref() const MEM_LOCAL(AliHLTTPCCARow) &row = s.fRow;
+          GPUsharedref() const MEM_LOCAL(AliHLTTPCCARow) &rowUp = s.fRowUp;
+          GPUsharedref() const MEM_LOCAL(AliHLTTPCCARow) &rowDn = s.fRowDown;
 #else
-		  GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &row = tracker.Row( s.fIRow );
-		  GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &rowUp = tracker.Row( s.fIRowUp );
-          GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &rowDn = tracker.Row( s.fIRowDn );
+		  GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( s.fIRow );
+		  GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowUp = tracker.Row( s.fIRowUp );
+          GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowDn = tracker.Row( s.fIRowDn );
 #endif
     const float y0 = row.Grid().YMin();
     const float z0 = row.Grid().ZMin();
