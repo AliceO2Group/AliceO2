@@ -252,7 +252,6 @@ template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<M
 template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Constant, L, G, C, P> { typedef C type; };
 template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Plain, L, G, C, P> { typedef P type; };
 #define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type 
-#define MakeType2(base_type) typename MakeTypeHelper<LG2, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type 
 #define MEM_CLASS_PRE() template<LocalOrGlobal LG>
 #define MEM_LG(type) type<LG>
 #define MEM_CLASS_PRE2() template<LocalOrGlobal LG2>
