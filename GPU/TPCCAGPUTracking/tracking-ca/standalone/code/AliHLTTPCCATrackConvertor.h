@@ -12,7 +12,7 @@
 #include "AliHLTTPCCADef.h"
 
 class AliExternalTrackParam;
-template<LocalOrGlobal LG> class AliHLTTPCCATrackParam;
+class AliHLTTPCCATrackParam;
 
 /**
  * @class AliHLTTPCCATrackConvertor
@@ -26,9 +26,9 @@ class AliHLTTPCCATrackConvertor
   public:
 
     AliHLTTPCCATrackConvertor() {}
-
-    static bool GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, double alpha );
-    static void SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2 );
+    
+  static bool GetExtParam( const AliHLTTPCCATrackParam &T1, AliExternalTrackParam &T2, double alpha );    
+  static void SetExtParam( AliHLTTPCCATrackParam &T1, const AliExternalTrackParam &T2 );
 
 };
 

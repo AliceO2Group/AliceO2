@@ -38,7 +38,8 @@
     GPUhd() void SetNHits( int v )               { fNHits = v; }
     GPUhd() void SetLocalTrackId( int v )        { fLocalTrackId = v; }
     GPUhd() void SetFirstHitID( int v )          { fFirstHitID = v; }
-    MEM_CLASS_PRE2() GPUhd() void SetParam( MEM_LG2(AliHLTTPCCABaseTrackParam) v ) { fParam = v; }
+
+    MEM_CLASS_PRE2() GPUhd() void SetParam( const MEM_LG2(AliHLTTPCCABaseTrackParam) &v ) { fParam = v; }
 
   private:
     bool fAlive;       // flag for mark tracks used by the track merger
