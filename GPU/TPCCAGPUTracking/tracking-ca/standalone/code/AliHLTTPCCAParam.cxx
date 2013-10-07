@@ -137,7 +137,7 @@ void AliHLTTPCCAParam::Update()
 #endif
 
 
-MEM_CLASS_PRE GPUdi() void AliHLTTPCCAParam MEM_LG::Slice2Global( float x, float y,  float z,
+MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::Slice2Global( float x, float y,  float z,
     float *X, float *Y,  float *Z ) const
 {
   // conversion of coorinates sector->global
@@ -146,7 +146,7 @@ MEM_CLASS_PRE GPUdi() void AliHLTTPCCAParam MEM_LG::Slice2Global( float x, float
   *Z = z;
 }
 
-MEM_CLASS_PRE GPUdi() void AliHLTTPCCAParam MEM_LG::Global2Slice( float X, float Y,  float Z,
+MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::Global2Slice( float X, float Y,  float Z,
     float *x, float *y,  float *z ) const
 {
   // conversion of coorinates global->sector
@@ -155,7 +155,7 @@ MEM_CLASS_PRE GPUdi() void AliHLTTPCCAParam MEM_LG::Global2Slice( float X, float
   *z = Z;
 }
 
-MEM_CLASS_PRE GPUdi() float AliHLTTPCCAParam MEM_LG::GetClusterError2( int yz, int type, float z, float angle ) const
+MEM_CLASS_PRE() GPUdi() float MEM_LG(AliHLTTPCCAParam)::GetClusterError2( int yz, int type, float z, float angle ) const
 {
   //* recalculate the cluster error wih respect to the track slope
 
@@ -165,7 +165,7 @@ MEM_CLASS_PRE GPUdi() float AliHLTTPCCAParam MEM_LG::GetClusterError2( int yz, i
   return CAMath::Abs( v );
 }
 
-MEM_CLASS_PRE GPUdi() void AliHLTTPCCAParam MEM_LG::GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
+MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
 {
   //
   // Use calibrated cluster error from OCDB
@@ -181,7 +181,7 @@ MEM_CLASS_PRE GPUdi() void AliHLTTPCCAParam MEM_LG::GetClusterErrors2( int iRow,
   Err2Z = GetClusterError2( 1, type, z, angleZ );
 }
 
-MEM_CLASS_PRE GPUdi() void AliHLTTPCCAParam MEM_LG::GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
+MEM_CLASS_PRE() GPUdi() void MEM_LG(AliHLTTPCCAParam)::GetClusterErrors2v1( int rowType, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
 {
   //
   // Use calibrated cluster error from OCDB

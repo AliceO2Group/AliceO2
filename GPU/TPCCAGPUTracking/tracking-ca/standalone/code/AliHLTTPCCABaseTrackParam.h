@@ -12,7 +12,7 @@
 #define ALIHLTTPCCABASETRACKPARAM_H
 
 #include "AliHLTTPCCADef.h"
-MEM_CLASS_PRE class AliHLTTPCCATrackParam;
+MEM_CLASS_PRE() class AliHLTTPCCATrackParam;
 
 /**
  * @class AliHLTTPCCABaseTrackParam
@@ -21,7 +21,7 @@ MEM_CLASS_PRE class AliHLTTPCCATrackParam;
  * used in output of the AliHLTTPCCATracker slice tracker.
  * This class is used for transfer between tracker and merger and does not contain the covariance matrice
  */
-MEM_CLASS_PRE class AliHLTTPCCABaseTrackParam
+MEM_CLASS_PRE() class AliHLTTPCCABaseTrackParam
 {
   public:
 

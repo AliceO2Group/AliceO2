@@ -18,7 +18,7 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCATrackParam.h"
 
-MEM_CLASS_PRE class AliHLTTPCCATracker;
+MEM_CLASS_PRE() class AliHLTTPCCATracker;
 
 #if defined(HLTCA_GPUCODE)
 

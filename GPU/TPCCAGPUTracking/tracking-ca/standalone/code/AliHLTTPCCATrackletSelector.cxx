@@ -27,7 +27,7 @@
 
 GPUdi() void AliHLTTPCCATrackletSelector::Thread
 ( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
- GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &s, GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker )
+ GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {
 	// select best tracklets and kill clones
 
@@ -56,7 +56,7 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 				if (itr >= s.fNTracklets) return;
 			}
 
-			GPUglobalref() AliHLTTPCCATracklet MEM_GLOBAL &tracklet = tracker.Tracklets()[itr];
+			GPUglobalref() MEM_GLOBAL(AliHLTTPCCATracklet) &tracklet = tracker.Tracklets()[itr];
 			const int kMaxRowGap = 4;
 			const float kMaxShared = .1;
 
@@ -93,7 +93,7 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 				int ih = tracklet.RowHit( irow );
 #endif //EXTERN_ROW_HITS
 				if ( ih >= 0 ) {
-					GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &row = tracker.Row( irow );
+					GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( irow );
 #ifdef GLOBAL_TRACKING_ONLY_UNASSIGNED_HITS
 					bool own = ( abs(tracker.HitWeight( row, ih )) <= w );
 #else

@@ -26,7 +26,7 @@
  * The class is under construction.
  *
  */
-MEM_CLASS_PRE class AliHLTTPCCAParam
+MEM_CLASS_PRE() class AliHLTTPCCAParam
 {
   public:
 	AliHLTTPCCAParam();
@@ -130,7 +130,7 @@ MEM_CLASS_PRE class AliHLTTPCCAParam
     GPUd() float GetBzkG() const { return fBzkG;}
     GPUd() float GetConstBz() const { return fConstBz;}
     GPUd() float GetBz( float x, float y, float z ) const;
-	MEM_CLASS_PRE2 GPUd() float GetBz( const AliHLTTPCCATrackParam MEM_LG2 &t ) const {return GetBz( t.X(), t.Y(), t.Z() );}
+	MEM_CLASS_PRE2() GPUd() float GetBz( const MEM_LG2(AliHLTTPCCATrackParam) &t ) const {return GetBz( t.X(), t.Y(), t.Z() );}
 
   protected:
     int fISlice; // slice number
@@ -168,7 +168,7 @@ MEM_CLASS_PRE class AliHLTTPCCAParam
 
 
 
-MEM_CLASS_PRE GPUd() inline float AliHLTTPCCAParam MEM_LG::GetBz( float x, float y, float z ) const
+MEM_CLASS_PRE() GPUd() inline float MEM_LG(AliHLTTPCCAParam)::GetBz( float x, float y, float z ) const
 {
   float r2 = x * x + y * y;
   float r  = CAMath::Sqrt( r2 );

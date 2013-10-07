@@ -19,7 +19,7 @@
  * The class describes the reconstructed TPC track candidate.
  * The class is dedicated for internal use by the AliHLTTPCCATracker algorithm.
  */
-MEM_CLASS_PRE class AliHLTTPCCATracklet
+MEM_CLASS_PRE() class AliHLTTPCCATracklet
 {
   public:
 
@@ -33,7 +33,7 @@ MEM_CLASS_PRE class AliHLTTPCCATracklet
     GPUhd() int  FirstRow()             const { return fFirstRow;   }
     GPUhd() int  LastRow()              const { return fLastRow;    }
     GPUhd() int  HitWeight()            const { return fHitWeight;  }
-    GPUhd() MakeType(const AliHLTTPCCABaseTrackParam MEM_LG&) Param() const { return fParam; }
+    GPUhd() MakeType(const MEM_LG(AliHLTTPCCABaseTrackParam)&) Param() const { return fParam; }
 #ifndef EXTERN_ROW_HITS
     GPUhd() int  RowHit( int i )   const { return fRowHits[i];    }
 	GPUhd() const int* RowHits()	const			{ return(fRowHits); }
@@ -43,14 +43,14 @@ MEM_CLASS_PRE class AliHLTTPCCATracklet
     GPUhd() void SetNHits( int v )               {  fNHits = v;      }
     GPUhd() void SetFirstRow( int v )            {  fFirstRow = v;   }
     GPUhd() void SetLastRow( int v )             {  fLastRow = v;    }
-    MEM_CLASS_PRE2 GPUhd() void SetParam( const AliHLTTPCCABaseTrackParam MEM_LG2 &v ) { fParam = reinterpret_cast<const AliHLTTPCCABaseTrackParam MEM_LG&>(v); }
+    MEM_CLASS_PRE2() GPUhd() void SetParam( const MEM_LG2(AliHLTTPCCABaseTrackParam) &v ) { fParam = reinterpret_cast<const MEM_LG(AliHLTTPCCABaseTrackParam)&>(v); }
     GPUhd() void SetHitWeight( const int w)    {  fHitWeight = w;  }
 
   private:
     int fNHits;                 // N hits
     int fFirstRow;              // first TPC row
     int fLastRow;               // last TPC row
-    AliHLTTPCCABaseTrackParam MEM_LG fParam; // tracklet parameters
+    MEM_LG(AliHLTTPCCABaseTrackParam) fParam; // tracklet parameters
 #ifndef EXTERN_ROW_HITS
     int fRowHits[HLTCA_ROW_COUNT + 1];          // hit index for each TPC row
 #endif //EXTERN_ROW_HITS

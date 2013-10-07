@@ -253,50 +253,50 @@ template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<M
 template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Plain, L, G, C, P> { typedef P type; };
 #define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type 
 #define MakeType2(base_type) typename MakeTypeHelper<LG2, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type 
-#define MEM_CLASS_PRE template<LocalOrGlobal LG>
-#define MEM_LG <LG>
-#define MEM_CLASS_PRE2 template<LocalOrGlobal LG2>
-#define MEM_LG2 <LG2>
-#define MEM_CLASS_PRE12 template<LocalOrGlobal LG> template<LocalOrGlobal LG2>
-#define MEM_CLASS_PRE23 template<LocalOrGlobal LG2, LocalOrGlobal LG3>
-#define MEM_LG3 <LG3>
-#define MEM_CLASS_PRE234 template<LocalOrGlobal LG2, LocalOrGlobal LG3, LocalOrGlobal LG4>
-#define MEM_LG4 <LG4>
-#define MEM_GLOBAL <Mem_Global>
-#define MEM_LOCAL <Mem_Local>
-#define MEM_TEMPLATE template <typename T>
+#define MEM_CLASS_PRE() template<LocalOrGlobal LG>
+#define MEM_LG(type) type<LG>
+#define MEM_CLASS_PRE2() template<LocalOrGlobal LG2>
+#define MEM_LG2(type) type<LG2>
+#define MEM_CLASS_PRE12() template<LocalOrGlobal LG> template<LocalOrGlobal LG2>
+#define MEM_CLASS_PRE23() template<LocalOrGlobal LG2, LocalOrGlobal LG3>
+#define MEM_LG3(type) type<LG3>
+#define MEM_CLASS_PRE234() template<LocalOrGlobal LG2, LocalOrGlobal LG3, LocalOrGlobal LG4>
+#define MEM_LG4(type) type<LG4>
+#define MEM_GLOBAL(type) type<Mem_Global>
+#define MEM_LOCAL(type) type<Mem_Local>
+#define MEM_CONSTANT(type) type<Mem_Global>
+#define MEM_PLAIN(type) type<Mem_Plain>
+#define MEM_TEMPLATE() template <typename T>
 #define MEM_TYPE(type) T
-#define MEM_TEMPLATE2 template <typename T, typename T2>
+#define MEM_TEMPLATE2() template <typename T, typename T2>
 #define MEM_TYPE2(type) T2
-#define MEM_TEMPLATE3 template <typename T, typename T2, typename T3>
+#define MEM_TEMPLATE3() template <typename T, typename T2, typename T3>
 #define MEM_TYPE3(type) T3
-#define MEM_TEMPLATE4 template <typename T, typename T2, typename T3, typename T4>
+#define MEM_TEMPLATE4() template <typename T, typename T2, typename T3, typename T4>
 #define MEM_TYPE4(type) T4
-//#define MEM_CONSTANT <Mem_Constant> //Use __global for time being instead of __constant, see above
-#define MEM_CONSTANT <Mem_Global>
-#define MEM_PLAIN <Mem_Plain>
+//#define MEM_CONSTANT() <Mem_Constant> //Use __global for time being instead of __constant, see above
 #else
 #define MakeType(base_type) base_type
-#define MEM_CLASS_PRE
-#define MEM_LG
-#define MEM_CLASS_PRE2
-#define MEM_LG2
-#define MEM_CLASS_PRE12
-#define MEM_CLASS_PRE23
-#define MEM_LG3
-#define MEM_CLASS_PRE234
-#define MEM_LG4
-#define MEM_GLOBAL
-#define MEM_LOCAL
-#define MEM_CONSTANT
-#define MEM_PLAIN
-#define MEM_TEMPLATE
+#define MEM_CLASS_PRE()
+#define MEM_LG(type) type
+#define MEM_CLASS_PRE2()
+#define MEM_LG2(type) type
+#define MEM_CLASS_PRE12()
+#define MEM_CLASS_PRE23()
+#define MEM_LG3(type) type
+#define MEM_CLASS_PRE234()
+#define MEM_LG4(type) type
+#define MEM_GLOBAL(type) type
+#define MEM_LOCAL(type) type
+#define MEM_CONSTANT(type) type
+#define MEM_PLAIN(type) type
+#define MEM_TEMPLATE()
 #define MEM_TYPE(type) type
-#define MEM_TEMPLATE2
+#define MEM_TEMPLATE2()
 #define MEM_TYPE2(type) type
-#define MEM_TEMPLATE3
+#define MEM_TEMPLATE3()
 #define MEM_TYPE3(type) type
-#define MEM_TEMPLATE4
+#define MEM_TEMPLATE4()
 #define MEM_TYPE4(type) type
 #endif
 

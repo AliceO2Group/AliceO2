@@ -24,7 +24,7 @@ class AliHLTTPCCATrackLinearisation;
  * which is used by the AliHLTTPCCATracker slice tracker.
  *
  */
- MEM_CLASS_PRE class AliHLTTPCCATrackParam
+ MEM_CLASS_PRE() class AliHLTTPCCATrackParam
 {
   public:
 
@@ -32,8 +32,8 @@ class AliHLTTPCCATrackLinearisation;
       float fBethe, fE, fTheta2, fEP2, fSigmadE2, fK22, fK33, fK43, fK44;// parameters
     };
 
-	GPUd() MakeType(const AliHLTTPCCABaseTrackParam MEM_LG&) GetParam() const { return fParam; }
-	GPUd() void SetParam(const AliHLTTPCCABaseTrackParam MEM_LG& v) { fParam = v; }
+	GPUd() MakeType(const MEM_LG(AliHLTTPCCABaseTrackParam)&) GetParam() const { return fParam; }
+	GPUd() void SetParam(const MEM_LG(AliHLTTPCCABaseTrackParam)& v) { fParam = v; }
 	GPUd() void InitParam();
 
     GPUd() float X()      const { return fParam.X();    }
@@ -140,7 +140,7 @@ class AliHLTTPCCATrackLinearisation;
 #ifndef HLTCA_GPUCODE
   private:
 #endif //!HLTCA_GPUCODE
-	AliHLTTPCCABaseTrackParam MEM_LG fParam; // Track Parameters
+	MEM_LG(AliHLTTPCCABaseTrackParam) fParam; // Track Parameters
 
   private:
 	//WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
@@ -152,7 +152,7 @@ class AliHLTTPCCATrackLinearisation;
     int   fNDF;    // the Number of Degrees of Freedom
 };
 
- GPUd() MEM_CLASS_PRE inline void AliHLTTPCCATrackParam MEM_LG::InitParam()
+ GPUd() MEM_CLASS_PRE() inline void MEM_LG(AliHLTTPCCATrackParam)::InitParam()
 {
   //Initialize Tracklet Parameters using default values
   SetSinPhi( 0 );

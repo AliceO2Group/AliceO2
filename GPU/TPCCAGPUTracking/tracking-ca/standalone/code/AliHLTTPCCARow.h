@@ -20,9 +20,9 @@
  * It is the internal class of the AliHLTTPCCATracker algorithm.
  *
  */
-MEM_CLASS_PRE class AliHLTTPCCARow
+MEM_CLASS_PRE() class AliHLTTPCCARow
 {
-    MEM_CLASS_PRE2 friend class AliHLTTPCCASliceData;
+    MEM_CLASS_PRE2() friend class AliHLTTPCCASliceData;
   public:
 
 #if !defined(HLTCA_GPUCODE)

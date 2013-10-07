@@ -23,7 +23,7 @@
 
 GPUdi() void AliHLTTPCCAStartHitsFinder::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
-  GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &s, GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker )
+  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {
   // find start hits for tracklets
 
@@ -40,8 +40,8 @@ GPUdi() void AliHLTTPCCAStartHitsFinder::Thread
   } else if ( iSync == 1 ) {
 #ifdef HLTCA_GPUCODE
     GPUsharedref() volatile int *xxx = &(s.fIRow);
-    GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &row = tracker.Row( *xxx );
-	GPUglobalref() const AliHLTTPCCARow MEM_GLOBAL &rowUp = tracker.Row( (*xxx) + 2 );
+    GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( *xxx );
+	GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowUp = tracker.Row( (*xxx) + 2 );
 #else
     const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
 	const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRow + 2 );

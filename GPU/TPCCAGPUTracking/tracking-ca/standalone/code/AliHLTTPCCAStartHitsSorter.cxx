@@ -21,7 +21,7 @@
 
 GPUd() void AliHLTTPCCAStartHitsSorter::Thread
 ( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
- GPUsharedref() AliHLTTPCCASharedMemory MEM_LOCAL &s, GPUconstant() AliHLTTPCCATracker MEM_CONSTANT &tracker )
+ GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {
 	//Sorts the Start Hits by Row Index and create RowBlock Data
 	if ( iSync == 0 ) {
