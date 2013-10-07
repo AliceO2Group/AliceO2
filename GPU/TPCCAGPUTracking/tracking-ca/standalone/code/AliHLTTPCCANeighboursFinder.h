@@ -57,7 +57,7 @@ class AliHLTTPCCANeighboursFinder
     GPUd() static int NThreadSyncPoints() { return 2; }
 
     GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-                               GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &smem, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker );
+                               MEM_LOCAL(GPUsharedref() AliHLTTPCCASharedMemory) &smem, MEM_CONSTANT(GPUconstant() AliHLTTPCCATracker) &tracker );
 
 };
 

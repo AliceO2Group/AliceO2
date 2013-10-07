@@ -38,7 +38,7 @@ class AliHLTTPCCATrackletSelector
     GPUd() static int NThreadSyncPoints() { return 1; }
 
     GPUd() static void Thread( int nBlocks, int nThreads, int iBlock, int iThread, int iSync,
-                               GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &smem, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker );
+                                MEM_LOCAL(GPUsharedref() AliHLTTPCCASharedMemory) &smem, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker );
 
 };
 

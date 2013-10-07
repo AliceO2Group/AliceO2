@@ -49,15 +49,14 @@ class AliHLTTPCCAMath
     GPUd() static bool Finite( float x );
 
 	GPUhd() static float Log(float x);
-
-    GPUd()  static int AtomicExch( GPUglobalref() int *addr, int val );
-    GPUd()  static int AtomicAdd ( GPUglobalref() int *addr, int val );
-    GPUd()  static int AtomicMax ( GPUglobalref() int *addr, int val );
-    GPUd()  static int AtomicMin ( GPUglobalref() int *addr, int val );
-    GPUd()  static int AtomicExchShared( GPUsharedref() int *addr, int val );
-    GPUd()  static int AtomicAddShared ( GPUsharedref() int *addr, int val );
-    GPUd()  static int AtomicMaxShared ( GPUsharedref() int *addr, int val );
-    GPUd()  static int AtomicMinShared ( GPUsharedref() int *addr, int val );
+  GPUd()  static int AtomicExch( register GPUglobalref() int *addr, int val );
+    GPUd()  static int AtomicAdd (register GPUglobalref() int *addr, int val );
+    GPUd()  static int AtomicMax (register GPUglobalref() int *addr, int val );
+    GPUd()  static int AtomicMin (register GPUglobalref() int *addr, int val );
+    GPUd()  static int AtomicExchShared(register GPUsharedref() int *addr, int val );
+    GPUd()  static int AtomicAddShared (register GPUsharedref() int *addr, int val );
+    GPUd()  static int AtomicMaxShared (register GPUsharedref() int *addr, int val );
+    GPUd()  static int AtomicMinShared (register GPUsharedref() int *addr, int val );
     GPUd()  static int Mul24( int a, int b );
     GPUd()  static float FMulRZ( float a, float b );
 };
@@ -221,10 +220,10 @@ GPUhd() inline float AliHLTTPCCAMath::Log(float x)
 }
 
 #if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
-GPUd()  inline int AliHLTTPCCAMath::AtomicExchShared( GPUsharedref() int *addr, int val ) {return ::atomic_xchg( (volatile __local int*) addr, val );}
-GPUd()  inline int AliHLTTPCCAMath::AtomicAddShared ( GPUsharedref() int *addr, int val ) {return ::atomic_add( (volatile __local int*) addr, val );}
-GPUd()  inline int AliHLTTPCCAMath::AtomicMaxShared ( GPUsharedref() int *addr, int val ) {return ::atomic_max( (volatile __local int*) addr, val );}
-GPUd()  inline int AliHLTTPCCAMath::AtomicMinShared ( GPUsharedref() int *addr, int val ) {return ::atomic_min( (volatile __local int*) addr, val );}
+GPUd()  inline int AliHLTTPCCAMath::AtomicExchShared(register GPUsharedref() int *addr, int val ) {return ::atomic_xchg( (volatile __local int*) addr, val );}
+GPUd()  inline int AliHLTTPCCAMath::AtomicAddShared (register GPUsharedref() int *addr, int val ) {return ::atomic_add( (volatile __local int*) addr, val );}
+GPUd()  inline int AliHLTTPCCAMath::AtomicMaxShared (register GPUsharedref() int *addr, int val ) {return ::atomic_max( (volatile __local int*) addr, val );}
+GPUd()  inline int AliHLTTPCCAMath::AtomicMinShared (register GPUsharedref() int *addr, int val ) {return ::atomic_min( (volatile __local int*) addr, val );}
 
 #else
 GPUd()  inline int AliHLTTPCCAMath::AtomicExchShared( int *addr, int val ) {return(AliHLTTPCCAMath::AtomicExch(addr, val));}
@@ -234,7 +233,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicMinShared ( int *addr, int val ) {retu
 #endif
 
 
-GPUd()  inline int AliHLTTPCCAMath::AtomicExch( GPUglobalref() int *addr, int val )
+GPUd()  inline int AliHLTTPCCAMath::AtomicExch(register GPUglobalref() int *addr, int val )
 {
 #if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
 #ifdef __OPENCL__
@@ -249,7 +248,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicExch( GPUglobalref() int *addr, int va
 #endif //HLTCA_GPUCODE
 }
 
-GPUd()  inline int AliHLTTPCCAMath::AtomicAdd ( GPUglobalref() int *addr, int val )
+GPUd()  inline int AliHLTTPCCAMath::AtomicAdd (register GPUglobalref() int *addr, int val )
 {
 #if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
 #ifdef __OPENCL__
@@ -264,7 +263,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicAdd ( GPUglobalref() int *addr, int va
 #endif //HLTCA_GPUCODE
 }
 
-GPUd()  inline int AliHLTTPCCAMath::AtomicMax ( GPUglobalref() int *addr, int val )
+GPUd()  inline int AliHLTTPCCAMath::AtomicMax (register GPUglobalref() int *addr, int val )
 {
 #if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
 #ifdef __OPENCL__
@@ -279,7 +278,7 @@ GPUd()  inline int AliHLTTPCCAMath::AtomicMax ( GPUglobalref() int *addr, int va
 #endif //HLTCA_GPUCODE
 }
 
-GPUd()  inline int AliHLTTPCCAMath::AtomicMin ( GPUglobalref() int *addr, int val )
+GPUd()  inline int AliHLTTPCCAMath::AtomicMin (register GPUglobalref() int *addr, int val )
 {
 #if defined( HLTCA_GPUCODE ) & !defined(HLTCA_HOSTCODE)
 #ifdef __OPENCL__
