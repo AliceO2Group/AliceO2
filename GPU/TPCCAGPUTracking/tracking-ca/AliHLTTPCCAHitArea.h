@@ -15,9 +15,9 @@
 
 class AliHLTTPCCAHit;
 class AliHLTTPCCAGrid;
-class AliHLTTPCCATracker;
-class AliHLTTPCCARow;
-class AliHLTTPCCASliceData;
+MEM_CLASS_PRE() class AliHLTTPCCATracker;
+MEM_CLASS_PRE() class AliHLTTPCCARow;
+MEM_CLASS_PRE() class AliHLTTPCCASliceData;
 
 /**
  * @class ALIHLTTPCCAHitArea
@@ -27,14 +27,14 @@ class AliHLTTPCCASliceData;
 class AliHLTTPCCAHitArea
 {
   public:
-    GPUd() void Init( const AliHLTTPCCARow &row, const AliHLTTPCCASliceData &slice, float y, float z, float dy, float dz );
+    MEM_TEMPLATE() GPUd() void Init( const MEM_TYPE( AliHLTTPCCARow) &row, GPUglobalref() const MEM_GLOBAL(AliHLTTPCCASliceData) &slice, float y, float z, float dy, float dz );
 
     /**
      * look up the next hit in the requested area.
      * Sets h to the coordinates and returns the index for the hit data
      */
-    int GetNext( const AliHLTTPCCATracker &tracker, const AliHLTTPCCARow &row,
-                 const AliHLTTPCCASliceData &slice, AliHLTTPCCAHit *h );
+    MEM_TEMPLATE() GPUd() int GetNext( register GPUconstant() const MEM_CONSTANT(AliHLTTPCCATracker) &tracker, const MEM_TYPE( AliHLTTPCCARow) &row,
+                 GPUglobalref() const MEM_GLOBAL(AliHLTTPCCASliceData) &slice, AliHLTTPCCAHit *h );
     /**
      * look up the best hit in the next hits in the requested area.
      * Sets h to the coordinates and returns the index for the hit data

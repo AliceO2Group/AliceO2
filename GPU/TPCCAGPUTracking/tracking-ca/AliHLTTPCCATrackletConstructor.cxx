@@ -28,13 +28,13 @@
 
 #define kMaxRowGap 4
 
-GPUdi() void AliHLTTPCCATrackletConstructor::InitTracklet( AliHLTTPCCATrackParam &tParam )
+MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::InitTracklet( MEM_LG2(AliHLTTPCCATrackParam) &tParam )
 {
   //Initialize Tracklet Parameters using default values
   tParam.InitParam();
 }
 
-GPUdi() bool AliHLTTPCCATrackletConstructor::CheckCov(AliHLTTPCCATrackParam &tParam)
+MEM_CLASS_PRE2() GPUdi() bool AliHLTTPCCATrackletConstructor::CheckCov(MEM_LG2(AliHLTTPCCATrackParam) &tParam)
 {
       bool ok = 1;
       const float *c = tParam.Cov();
@@ -46,15 +46,15 @@ GPUdi() bool AliHLTTPCCATrackletConstructor::CheckCov(AliHLTTPCCATrackParam &tPa
 }
 
 
-GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
+MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
-  AliHLTTPCCASharedMemory
+  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory)
 #if defined(HLTCA_GPUCODE) | defined(EXTERN_ROW_HITS)
   &s
 #else
   &/*s*/
 #endif  //!HLTCA_GPUCODE
-  , AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam )
+  , AliHLTTPCCAThreadMemory &r, GPUconstant() MEM_LG2(AliHLTTPCCATracker) &tracker, MEM_LG3(AliHLTTPCCATrackParam) &tParam )
 {
   // reconstruction of tracklets, tracklet store step
 
@@ -89,7 +89,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 	  tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);
 #endif*/
 
-  AliHLTTPCCATracklet &tracklet = tracker.Tracklets()[r.fItr];
+  GPUglobalref() MEM_GLOBAL(AliHLTTPCCATracklet) &tracklet = tracker.Tracklets()[r.fItr];
 
   tracklet.SetNHits( r.fNHits );
 
@@ -123,15 +123,15 @@ GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 
 }
 
-GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
+MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
-  AliHLTTPCCASharedMemory 
+  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory)
 #if defined(HLTCA_GPUCODE) | defined(EXTERN_ROW_HITS)
   &s
 #else
   &/*s*/
 #endif //HLTCA_GPUCODE
-  , AliHLTTPCCAThreadMemory &r, AliHLTTPCCATracker &tracker, AliHLTTPCCATrackParam &tParam, int iRow )
+  , AliHLTTPCCAThreadMemory &r, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker, MEM_LG2(AliHLTTPCCATrackParam) &tParam, int iRow )
 {
   // reconstruction of tracklets, tracklets update step
 
@@ -142,9 +142,9 @@ GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 #endif //EXTERN_ROW_HITS
 
 #if defined(HLTCA_GPUCODE)
-  const AliHLTTPCCARow &row = s.fRows[iRow];
+  const GPUsharedref() MEM_LOCAL(AliHLTTPCCARow) &row = s.fRows[iRow];
 #else
-  const AliHLTTPCCARow &row = tracker.Row( iRow );
+  const GPUglobalref() MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( iRow );
 #endif //HLTCA_GPUCODE
 
   float y0 = row.Grid().YMin();
@@ -291,7 +291,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       }
 
 #ifndef HLTCA_GPU_TEXTURE_FETCH
-	  const ushort2 *hits = tracker.HitData(row);
+	  GPUglobalref() const ushort2 *hits = tracker.HitData(row);
 #endif //!HLTCA_GPU_TEXTURE_FETCH
 
       float fY = tParam.GetY();
@@ -314,7 +314,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           int nY = row.Grid().Ny();
 
 #ifndef HLTCA_GPU_TEXTURE_FETCH
-		  const unsigned short *sGridP = tracker.FirstHitInBin(row);
+		  GPUglobalref()  const unsigned short *sGridP = tracker.FirstHitInBin(row);
 #endif //!HLTCA_GPU_TEXTURE_FETCH
 
 #ifdef HLTCA_GPU_TEXTURE_FETCH
@@ -389,7 +389,7 @@ GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 		  hh = hits[best];
 #endif //HLTCA_GPU_TEXTURE_FETCH
 
-      tracker.GetErrors2( iRow, *( ( AliHLTTPCCATrackParam* )&tParam ), err2Y, err2Z );
+      tracker.GetErrors2( iRow, *( ( MEM_LG2(AliHLTTPCCATrackParam)* )&tParam ), err2Y, err2Z );
 
       float y = y0 + hh.x * stepY;
       float z = z0 + hh.y * stepZ;

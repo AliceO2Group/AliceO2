@@ -11,11 +11,17 @@
 #define ALIHLTTPCCASLICEOUTPUT_H
 
 #include "AliHLTTPCCADef.h"
+
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+
 #include <cstdlib>
 #ifndef HLTCA_GPUCODE
 #include "AliHLTTPCCASliceOutTrack.h"
 #else
 class AliHLTTPCCASliceOutTrack;
+#endif
+#else
+#define NULL 0
 #endif
 
 
@@ -42,6 +48,7 @@ class AliHLTTPCCASliceOutput
     bool fEndOfSpace; // end of space flag 
   };
 
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
   GPUhd() int NTracks()                    const { return fNTracks;              }
   GPUhd() int NLocalTracks()               const { return fNLocalTracks;         }
   GPUhd() int NTrackClusters()             const { return fNTrackClusters;       }  
@@ -80,7 +87,7 @@ class AliHLTTPCCASliceOutput
 #ifndef HLTCA_GPUCODE
   AliHLTTPCCASliceOutTrack fMemory[0]; // the memory where the pointers above point into
 #endif
+#endif
 
 };
-
 #endif 

@@ -23,7 +23,7 @@
 
 GPUdi() void AliHLTTPCCAStartHitsFinder::Thread
 ( int /*nBlocks*/, int nThreads, int iBlock, int iThread, int iSync,
-  AliHLTTPCCASharedMemory &s, AliHLTTPCCATracker &tracker )
+  GPUsharedref() MEM_LOCAL(AliHLTTPCCASharedMemory) &s, GPUconstant() MEM_CONSTANT(AliHLTTPCCATracker) &tracker )
 {
   // find start hits for tracklets
 
@@ -39,16 +39,16 @@ GPUdi() void AliHLTTPCCAStartHitsFinder::Thread
     }
   } else if ( iSync == 1 ) {
 #ifdef HLTCA_GPUCODE
-    volatile int *xxx = &(s.fIRow);
-    const AliHLTTPCCARow &row = tracker.Row( *xxx );
-	  const AliHLTTPCCARow &rowUp = tracker.Row( (*xxx) + 2 );
+    GPUsharedref() volatile int *xxx = &(s.fIRow);
+    GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &row = tracker.Row( *xxx );
+	GPUglobalref() const MEM_GLOBAL(AliHLTTPCCARow) &rowUp = tracker.Row( (*xxx) + 2 );
 #else
     const AliHLTTPCCARow &row = tracker.Row( s.fIRow );
 	const AliHLTTPCCARow &rowUp = tracker.Row( s.fIRow + 2 );
 #endif
     for ( int ih = iThread; ih < s.fNHits; ih += nThreads ) {
       if (tracker.HitLinkDownData(row, ih) < 0 && tracker.HitLinkUpData(row, ih) >= 0 && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) >= 0) {
-        int oldNRowStartHits = CAMath::AtomicAdd( &s.fNRowStartHits, 1 );
+        int oldNRowStartHits = CAMath::AtomicAddShared( &s.fNRowStartHits, 1 );
 #ifdef HLTCA_GPUCODE
         s.fRowStartHits[oldNRowStartHits].Set( *xxx, ih );
 #else
@@ -69,16 +69,16 @@ GPUdi() void AliHLTTPCCAStartHitsFinder::Thread
 #endif
       s.fNOldStartHits = nOffset;
 #ifdef HLTCA_GPU_SORT_STARTHITS
-      volatile int *yyy = &(s.fIRow);
+      GPUsharedref() volatile int *yyy = &(s.fIRow);
 	  tracker.RowStartHitCountOffset()[*yyy].x = s.fNRowStartHits;
 	  tracker.RowStartHitCountOffset()[*yyy].y = nOffset;
 #endif
     }
   } else if ( iSync == 3 ) {
 #ifdef HLTCA_GPU_SORT_STARTHITS
-	AliHLTTPCCAHitId *const startHits = tracker.TrackletTmpStartHits();
+	GPUglobalref() AliHLTTPCCAHitId *const startHits = tracker.TrackletTmpStartHits();
 #else
-    AliHLTTPCCAHitId *const startHits = tracker.TrackletStartHits();
+    GPUglobalref() AliHLTTPCCAHitId *const startHits = tracker.TrackletStartHits();
 #endif
     for ( int ish = iThread; ish < s.fNRowStartHits; ish += nThreads ) {
       startHits[s.fNOldStartHits+ish] = s.fRowStartHits[ish];

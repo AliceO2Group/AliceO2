@@ -40,3 +40,4 @@ const AliHLTTPCCASliceOutput::outputControlStruct* AliHLTTPCCAGPUTracker::Output
 int AliHLTTPCCAGPUTracker::GetSliceCount() const { return(0); }
 int AliHLTTPCCAGPUTracker::RefitMergedTracks(AliHLTTPCGMMerger* /*Merger*/) { return(0); }
 char* AliHLTTPCCAGPUTracker::MergerBaseMemory() {return(NULL);}
+int AliHLTTPCCAGPUTracker::GPUMergerAvailable() {return(0);}

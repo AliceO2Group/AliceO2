@@ -80,40 +80,43 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
 
   AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 
-  const float bz = AliTracker::GetBz();
-  const float inRmin = fkParam->GetInnerRadiusLow();
-  //float inRmax = fkParam->GetInnerRadiusUp();
-  //float outRmin = fkParam->GetOuterRadiusLow();
-  const float outRmax = fkParam->GetOuterRadiusUp();
-  const float plusZmin = 0.0529937;
-  const float plusZmax = 249.778;
-  const float minusZmin = -249.645;
-  const float minusZmax = -0.0799937;
-  const float dalpha = 0.349066;
-  const float padPitch = 0.4;
-  const float sigmaZ = 0.228808;
-
-  const int nRows = fkParam->GetNRowLow() + fkParam->GetNRowUp();
-  const int dimRowX=fkParam->GetNRowLow()+fkParam->GetNRowUp();
-  float* rowX = new float[dimRowX];
-  if( !rowX ) return;
-  for ( int irow = 0; irow < fkParam->GetNRowLow(); irow++ ) {
-    rowX[irow] = fkParam->GetPadRowRadiiLow( irow );
-  }
-  for ( int irow = 0; irow < fkParam->GetNRowUp(); irow++ ) {
-    rowX[fkParam->GetNRowLow()+irow] = fkParam->GetPadRowRadiiUp( irow );
-  }
 
   for ( int iSlice = 0; iSlice < hlt.NSlices(); iSlice++ ) {
- 
+
+    float bz = AliTracker::GetBz();
+
+    float inRmin = fkParam->GetInnerRadiusLow();
+    //float inRmax = fkParam->GetInnerRadiusUp();
+    //float outRmin = fkParam->GetOuterRadiusLow();
+    float outRmax = fkParam->GetOuterRadiusUp();
+    float plusZmin = 0.0529937;
+    float plusZmax = 249.778;
+    float minusZmin = -249.645;
+    float minusZmax = -0.0799937;
+    float dalpha = 0.349066;
     float alpha = 0.174533 + dalpha * iSlice;
 
     bool zPlus = ( iSlice < 18 );
     float zMin =  zPlus ? plusZmin : minusZmin;
     float zMax =  zPlus ? plusZmax : minusZmax;
+    //TPCZmin = -249.645, ZMax = 249.778
+    //float rMin =  inRmin;
+    //float rMax =  outRmax;
 
+    float padPitch = 0.4;
+    float sigmaZ = 0.228808;
+
+    int nRows = fkParam->GetNRowLow() + fkParam->GetNRowUp();
+    int dimRowX=fkParam->GetNRowLow()+fkParam->GetNRowUp();
+    std::auto_ptr<float> rowX(new float[dimRowX]);
+    for ( int irow = 0; irow < fkParam->GetNRowLow(); irow++ ) {
+      (rowX.get())[irow] = fkParam->GetPadRowRadiiLow( irow );
+    }
+    for ( int irow = 0; irow < fkParam->GetNRowUp(); irow++ ) {
+      (rowX.get())[fkParam->GetNRowLow()+irow] = fkParam->GetPadRowRadiiUp( irow );
+    }
     AliHLTTPCCAParam param;
-    param.Initialize( iSlice, nRows, rowX, alpha, dalpha,
+    param.Initialize( iSlice, nRows, rowX.get(), alpha, dalpha,
                       inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, bz );
     param.SetHitPickUpFactor( 1. );
     param.SetMaxTrackMatchDRow( 5 );
@@ -135,9 +138,8 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
       }
     }
     //hlt.SliceTracker( iSlice ).Initialize( param );
-    hlt.InitializeSliceParam(iSlice, param);
+	hlt.InitializeSliceParam(iSlice, param);
   }
-  delete[] rowX;
 }
 
 
@@ -161,7 +163,12 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
   // load mc tracks
   while ( fDoHLTPerformance ) {
     if ( !gAlice ) break;
+#ifndef HAVE_NOT_ALIRUNLOADER30859
     AliRunLoader *rl = AliRunLoader::Instance();//gAlice->GetRunLoader();
+#else
+    // the old way before rev 30859
+    AliRunLoader *rl = AliRunLoader::GetRunLoader();
+#endif
     if ( !rl ) break;
     rl->LoadKinematics();
     AliStack *stack = rl->Stack();

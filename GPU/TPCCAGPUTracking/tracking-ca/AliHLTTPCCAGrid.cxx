@@ -26,7 +26,9 @@
 #include <assert.h>
 #endif
 
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
 #include <iostream>
+#endif
 
 GPUdi() void AliHLTTPCCAGrid::CreateEmpty()
 {
@@ -77,7 +79,7 @@ GPUdi() int AliHLTTPCCAGrid::GetBin( float Y, float Z ) const
   return bin;
 }
 
-GPUi() int AliHLTTPCCAGrid::GetBinBounded( float Y, float Z ) const
+GPUdi() int AliHLTTPCCAGrid::GetBinBounded( float Y, float Z ) const
 {
   //* get the bin pointer
   const int yBin = static_cast<int>( CAMath::FMulRZ( Y - fYMin, fStepYInv ) );

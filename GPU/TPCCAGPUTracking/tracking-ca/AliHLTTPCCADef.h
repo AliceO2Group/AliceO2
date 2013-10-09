@@ -16,7 +16,7 @@
 //#define HLTCA_STANDALONE // compilation w/o root
 #define HLTCA_INTERNAL_PERFORMANCE
 
-#ifdef __CUDACC__
+#if defined(__CUDACC__) || defined(__OPENCL__)
 #define HLTCA_GPUCODE
 #endif //__CUDACC__
 
@@ -75,12 +75,17 @@ typedef short          Version_t;   //Class version identifier (short)
 typedef const char     Option_t;    //Option string (const char)
 typedef int            Ssiz_t;      //String size (int)
 typedef float          Real_t;      //TVector and TMatrix element type (float)
+#if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
+typedef long Long64_t;
+typedef unsigned long ULong64_t;
+#else
 #if defined(R__WIN32) && !defined(__CINT__)
 typedef __int64          Long64_t;  //Portable signed long integer 8 bytes
 typedef unsigned __int64 ULong64_t; //Portable unsigned long integer 8 bytes
 #else
 typedef long long          Long64_t; //Portable signed long integer 8 bytes
 typedef unsigned long long ULong64_t;//Portable unsigned long integer 8 bytes
+#endif
 #endif //R__WIN32 && !__CINT__
 typedef double         Axis_t;      //Axis values type (double)
 typedef double         Stat_t;      //Statistics type (double)
@@ -137,6 +142,49 @@ namespace AliHLTTPCCADefinitions
 #endif //HLTCA_GPUCODE
 
 #ifdef HLTCA_GPUCODE
+#ifdef __OPENCL__
+#ifdef HLTCA_HOSTCODE //HLTCA_GPUCODE & __OPENCL & HLTCA_HOSTCODE
+
+#define GPUdi() //TRIGGER_ERROR_NO_DEVICE_CODE
+#define GPUhdi() inline
+#define GPUd() //TRIGGER_ERROR_NO_DEVICE_CODE
+#define GPUi() inline
+#define GPUhd() 
+#define GPUh() 
+#define GPUg() TRIGGER_ERROR_NO_DEVICE_CODE
+#define GPUshared() 
+#define GPUsync() 
+
+struct float4 { float x, y, z, w; };
+struct float2 { float x; float y; };
+struct uchar2 { unsigned char x, y; };
+struct short2 { short x, y; };
+struct ushort2 { unsigned short x, y; };
+struct int2 { int x, y; };
+struct int3 { int x, y, z; };
+struct int4 { int x, y, z, w; };
+struct uint1 { unsigned int x; };
+struct uint2 { unsigned int x, y; };
+struct uint3 { unsigned int x, y, z; };
+struct uint4 { unsigned int x, y, z, w; };
+struct uint16 { unsigned int x[16]; };
+
+#else //HLTCA_HOSTCODE : HLTCA_GPUCODE & __OPENCL__ & !HLTCA_HOSTCODE
+
+#define GPUdi() inline
+#define GPUhdi() inline
+#define GPUd() 
+#define GPUi() inline
+#define GPUhd() 
+#define GPUh() TRIGGER_ERROR_NO_HOST_CODE
+#define GPUg() __kernel
+#define GPUshared() __local
+#define GPUsync() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
+
+#endif //HLTCA_HOSTCODE
+
+#else //__OPENCL__ : HLTCA_GPUCODE & !__OPENCL__
+
 #define GPUdi() __device__ inline
 #define GPUhdi() __host__ __device__ inline
 #define GPUd() __device__
@@ -144,14 +192,14 @@ namespace AliHLTTPCCADefinitions
 #define GPUhd() __host__ __device__
 #define GPUh() __host__ inline
 #define GPUg() __global__
-
 #define GPUshared() __shared__
 #define GPUsync() __syncthreads()
 
-#else
+#endif //__OPENCL
+#else //HLTCA_GPUCODE : !HLTCA_GPUCODE
+
 #define GPUdi()
 #define GPUhdi()
-
 #define GPUd()
 #define GPUi()
 #define GPUhd()
@@ -184,6 +232,72 @@ inline bool finite(float x)
 #endif //R__WIN32
 
 #endif //HLTCA_GPUCODE
+
+#if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
+#define GPUsharedref() GPUshared()
+#define GPUglobalref() __global
+//#define GPUconstant() __constant //Replace __constant by __global (possibly add const __restrict where possible later!)
+#define GPUconstant() GPUglobalref()
+#else
+#define GPUconstant()
+#define GPUsharedref()
+#define GPUglobalref()
+#endif
+
+enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
+#if defined(__OPENCL__) && !defined(HLTCA_HOSTCODE)
+template<LocalOrGlobal, typename L, typename G, typename C, typename P> struct MakeTypeHelper;
+template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Local, L, G, C, P> { typedef L type; };
+template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Global, L, G, C, P> { typedef G type; };
+template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Constant, L, G, C, P> { typedef C type; };
+template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Plain, L, G, C, P> { typedef P type; };
+#define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type 
+#define MEM_CLASS_PRE() template<LocalOrGlobal LG>
+#define MEM_LG(type) type<LG>
+#define MEM_CLASS_PRE2() template<LocalOrGlobal LG2>
+#define MEM_LG2(type) type<LG2>
+#define MEM_CLASS_PRE12() template<LocalOrGlobal LG> template<LocalOrGlobal LG2>
+#define MEM_CLASS_PRE23() template<LocalOrGlobal LG2, LocalOrGlobal LG3>
+#define MEM_LG3(type) type<LG3>
+#define MEM_CLASS_PRE234() template<LocalOrGlobal LG2, LocalOrGlobal LG3, LocalOrGlobal LG4>
+#define MEM_LG4(type) type<LG4>
+#define MEM_GLOBAL(type) type<Mem_Global>
+#define MEM_LOCAL(type) type<Mem_Local>
+#define MEM_CONSTANT(type) type<Mem_Global>
+#define MEM_PLAIN(type) type<Mem_Plain>
+#define MEM_TEMPLATE() template <typename T>
+#define MEM_TYPE(type) T
+#define MEM_TEMPLATE2() template <typename T, typename T2>
+#define MEM_TYPE2(type) T2
+#define MEM_TEMPLATE3() template <typename T, typename T2, typename T3>
+#define MEM_TYPE3(type) T3
+#define MEM_TEMPLATE4() template <typename T, typename T2, typename T3, typename T4>
+#define MEM_TYPE4(type) T4
+//#define MEM_CONSTANT() <Mem_Constant> //Use __global for time being instead of __constant, see above
+#else
+#define MakeType(base_type) base_type
+#define MEM_CLASS_PRE()
+#define MEM_LG(type) type
+#define MEM_CLASS_PRE2()
+#define MEM_LG2(type) type
+#define MEM_CLASS_PRE12()
+#define MEM_CLASS_PRE23()
+#define MEM_LG3(type) type
+#define MEM_CLASS_PRE234()
+#define MEM_LG4(type) type
+#define MEM_GLOBAL(type) type
+#define MEM_LOCAL(type) type
+#define MEM_CONSTANT(type) type
+#define MEM_PLAIN(type) type
+#define MEM_TEMPLATE()
+#define MEM_TYPE(type) type
+#define MEM_TEMPLATE2()
+#define MEM_TYPE2(type) type
+#define MEM_TEMPLATE3()
+#define MEM_TYPE3(type) type
+#define MEM_TEMPLATE4()
+#define MEM_TYPE4(type) type
+#endif
 
 /*
  * Helper for compile-time verification of correct API usage
