@@ -3,9 +3,14 @@
 
 //GPU Run Configuration
 
-//#define FERMI
-
-#ifdef FERMI
+#ifdef RADEON
+#define HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER 2
+#define HLTCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER 3
+#define HLTCA_GPU_THREAD_COUNT 256
+#define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 256
+#define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
+#define HLTCA_GPU_THREAD_COUNT_FINDER 256
+#elif defined(FERMI) || defined(__OPENCL__)
 #define HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER 2
 #define HLTCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER 3
 #define HLTCA_GPU_THREAD_COUNT 256
@@ -44,10 +49,10 @@
 
 #define HLTCA_GPU_ALTERNATIVE_SCHEDULER					//Use alternative scheduling algorithm (makes upper 4 options obsolete)
 #define HLTCA_GPU_ALTSCHED_STEPSIZE 80					//Number of rows to process in between of rescheduling
-#define HLTCA_GPU_ALTSCHED_MIN_THREADS 32				//Reschedule if less than n threads are active
+#define HLTCA_GPU_ALTSCHED_MIN_THREADS 64				//Reschedule if less than n threads are active
 #define HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE			//Use simple version of alternative scheduler
 
-#ifndef FERMI
+#if !defined(FERMI) && !defined(__OPENCL__)
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
 #define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
 #endif

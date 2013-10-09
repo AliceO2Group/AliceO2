@@ -57,6 +57,8 @@
 
 ClassImp( AliHLTTPCCATracker )
 
+#if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
+
 #if !defined(HLTCA_GPUCODE)
 
 AliHLTTPCCATracker::~AliHLTTPCCATracker()
@@ -727,7 +729,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 	trackSortData* trackOrder = new trackSortData[fCommonMem->fNTracks];
 	for (int i = 0;i < fCommonMem->fNTracks;i++)
 	{
-		trackOrder[i].fTtrack = i % fCommonMem->fNTracks;
+		trackOrder[i].fTtrack = i;
 		trackOrder[i].fSortVal = fTracks[trackOrder[i].fTtrack].NHits() / 1000.f + fTracks[trackOrder[i].fTtrack].Param().GetZ() * 100.f + fTracks[trackOrder[i].fTtrack].Param().GetY();
 	}
 	qsort(trackOrder, fCommonMem->fNLocalTracks, sizeof(trackSortData), SortComparison);
@@ -782,7 +784,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 #endif
 
-GPUh() void AliHLTTPCCATracker::FitTrackFull( const AliHLTTPCCATrack &/**/, float * /**/ ) const
+GPUh() void AliHLTTPCCATracker::FitTrackFull( const MEM_LG2(AliHLTTPCCATrack) &/**/, float * /**/ ) const
 {
 	// fit track with material
 #ifdef XXX
@@ -903,28 +905,6 @@ GPUh() void AliHLTTPCCATracker::FitTrack( const AliHLTTPCCATrack &/*track*/, flo
 	}
 #endif
 }
-
-
-GPUdi() void AliHLTTPCCATracker::GetErrors2( int iRow, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const
-{
-	//
-	// Use calibrated cluster error from OCDB
-	//
-
-	fParam.GetClusterErrors2( iRow, z, sinPhi, cosPhi, DzDs, Err2Y, Err2Z );
-	Err2Y*=fParam.ClusterError2CorrectionY();
-	Err2Z*=fParam.ClusterError2CorrectionZ();
-}
-
-GPUdi() void AliHLTTPCCATracker::GetErrors2( int iRow, const AliHLTTPCCATrackParam &t, float &Err2Y, float &Err2Z ) const
-{
-	//
-	// Use calibrated cluster error from OCDB
-	//
-
-	fParam.GetClusterErrors2( iRow, t.GetZ(), t.SinPhi(), t.GetCosPhi(), t.DzDs(), Err2Y, Err2Z );
-}
-
 
 #if !defined(HLTCA_GPUCODE)
 
@@ -1094,4 +1074,5 @@ GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceL
 	//printf("Global Tracking Result: Slide %2d: LL %3d LR %3d UL %3d UR %3d\n", fParam.ISlice(), ll, lr, ul, ur);
 }
 
+#endif
 #endif

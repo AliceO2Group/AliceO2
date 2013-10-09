@@ -42,6 +42,7 @@ public:
 
 	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger);
 	virtual char* MergerBaseMemory();
+	virtual int GPUMergerAvailable();
 
 private:
 	// disable copy
