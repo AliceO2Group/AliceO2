@@ -88,7 +88,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 		return(1);
 	}
 	if (fDebugLevel >= 2) HLTInfo("Available CUDA devices:");
-#ifdef FERMI
+#if defined(FERMI) || defined(KEPLER)
 	const int reqVerMaj = 2;
 	const int reqVerMin = 0;
 #else
