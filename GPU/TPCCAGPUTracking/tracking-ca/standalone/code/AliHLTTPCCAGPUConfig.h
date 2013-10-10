@@ -10,6 +10,13 @@
 #define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 256
 #define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
 #define HLTCA_GPU_THREAD_COUNT_FINDER 256
+#elif defined(KEPLER)
+#define HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER 4
+#define HLTCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER 3
+#define HLTCA_GPU_THREAD_COUNT 256
+#define HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR 512
+#define HLTCA_GPU_THREAD_COUNT_SELECTOR 256
+#define HLTCA_GPU_THREAD_COUNT_FINDER 256
 #elif defined(FERMI) || defined(__OPENCL__)
 #define HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER 2
 #define HLTCA_GPU_BLOCK_COUNT_SELECTOR_MULTIPLIER 3
@@ -52,7 +59,7 @@
 #define HLTCA_GPU_ALTSCHED_MIN_THREADS 64				//Reschedule if less than n threads are active
 #define HLTCA_GPU_ALTERNATIVE_SCHEDULER_SIMPLE			//Use simple version of alternative scheduler
 
-#if !defined(FERMI) && !defined(__OPENCL__)
+#if !defined(FERMI) && !defined(KEPLER) && !defined(__OPENCL__)
 #define HLTCA_GPU_TEXTURE_FETCH							//Fetch data through texture cache
 #define HLTCA_GPU_TEXTURE_FETCHa						//Fetch also in Neighbours Finder
 #endif

@@ -202,7 +202,7 @@ GPUhd() inline float AliHLTTPCCAMath::ASin( float x )
 
 GPUd() inline int AliHLTTPCCAMath::Mul24( int a, int b )
 {
-#if defined(FERMI) || defined(__OPENCL__)
+#if defined(FERMI) || defined(__OPENCL__) || defined(KEPLER)
   return(a * b);
 #else
   return choice( __mul24( a, b ), a*b, a*b );
