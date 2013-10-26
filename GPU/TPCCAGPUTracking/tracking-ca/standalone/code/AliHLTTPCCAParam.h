@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCAParam.h 49685 2011-05-04 09:08:19Z sgorbuno $
+// @(#) $Id: AliHLTTPCCAParam.h 64473 2013-10-09 23:50:14Z sgorbuno $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *

@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 56404 2012-05-10 18:13:08Z hristov $
+// @(#) $Id: AliHLTTPCCATrackerComponent.cxx 64733 2013-10-26 16:06:30Z drohr $
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -71,7 +71,8 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fAllowGPU( 0),
   fGPUHelperThreads(-1),
   fCPUTrackers(0),
-  fGlobalTracking(0)
+  fGlobalTracking(0),
+  fGPULibrary("")
 {
   // see header file for class documentation
   // or
@@ -101,7 +102,8 @@ AliHLTProcessor(),
   fAllowGPU( 0),
   fGPUHelperThreads(-1),
   fCPUTrackers(0),
-  fGlobalTracking(0)
+  fGlobalTracking(0),
+  fGPULibrary("")
 {
   // see header file for class documentation
   for( int i=0; i<fgkNSlices; i++ ){
@@ -275,7 +277,13 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       continue;
     }
 
-    HLTError( "Unknown option \"%s\"", argument.Data() );
+    if ( argument.CompareTo( "-GPULibrary" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fGPULibrary = ( ( TObjString* )pTokens->At( i ) )->GetString();
+      continue;
+    }
+	
+	HLTError( "Unknown option \"%s\"", argument.Data() );
     iResult = -EINVAL;
   }
   delete pTokens;
@@ -420,7 +428,7 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     fMinSlice = 0;
     fSliceCount = fgkNSlices;
     //Create tracker instance and set parameters
-    fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU);
+    fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU, fGPULibrary);
     fClusterData = new AliHLTTPCCAClusterData[fgkNSlices];
     if (fGPUHelperThreads != -1)
     {
