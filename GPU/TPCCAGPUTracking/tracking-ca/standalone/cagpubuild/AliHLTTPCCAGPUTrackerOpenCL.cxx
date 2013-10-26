@@ -24,6 +24,7 @@
 #include <string.h>
 #include "AliHLTTPCCAGPUTrackerOpenCL.h"
 #include "AliHLTTPCCAGPUTrackerOpenCLInternals.h"
+#include "AliHLTTPCCAGPUTrackerCommon.h"
 
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCATrack.h" 
@@ -92,7 +93,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VERSION, 64, platform_version, NULL);
 		clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_NAME, 64, platform_name, NULL);
 		clGetPlatformInfo(platforms[i_platform], CL_PLATFORM_VENDOR, 64, platform_vendor, NULL);
-		if (fDebugLevel >= 2) printf("Available Platform %d: (%s %s) %s %s\n", i_platform, platform_profile, platform_version, platform_vendor, platform_name);
+		if (fDebugLevel >= 2) {HLTDebug("Available Platform %d: (%s %s) %s %s\n", i_platform, platform_profile, platform_version, platform_vendor, platform_name);}
 		if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0)
 		{
 			found = true;
@@ -127,7 +128,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	if (fDebugLevel >= 2) HLTInfo("Available OPENCL devices:");
 	for (unsigned int i = 0;i < count;i++)
 	{
-		if (fDebugLevel >= 3) printf("Examining device %d\n", i);
+		if (fDebugLevel >= 3) {HLTDebug("Examining device %d\n", i);}
 		cl_uint nbits;
 
 		clGetDeviceInfo(ocl->devices[i], CL_DEVICE_NAME, 64, device_name, NULL);
@@ -142,7 +143,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 
 		deviceSpeed = (long long int) freq * (long long int) shaders;
 		if (device_type & CL_DEVICE_TYPE_GPU) deviceSpeed *= 10;
-		if (fDebugLevel >= 2) printf("Found Device %d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %lld)\n", i, device_vendor, device_name, (int) freq, (int) shaders, (int) nbits, (long long int) deviceSpeed);
+		if (fDebugLevel >= 2) {HLTDebug("Found Device %d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %lld)\n", i, device_vendor, device_name, (int) freq, (int) shaders, (int) nbits, (long long int) deviceSpeed);}
 
 		if (deviceSpeed > bestDeviceSpeed)
 		{
@@ -164,7 +165,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	clGetDeviceInfo(ocl->device, CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, NULL);
 	clGetDeviceInfo(ocl->device, CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(freq), &freq, NULL);
 	clGetDeviceInfo(ocl->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(shaders), &shaders, NULL);
-	if (fDebugLevel >= 2) printf("Using OpenCL device %d: %s %s (Frequency %d, Shaders %d)\n", bestDevice, device_vendor, device_name, (int) freq, (int) shaders);
+	if (fDebugLevel >= 2) {HLTDebug("Using OpenCL device %d: %s %s (Frequency %d, Shaders %d)\n", bestDevice, device_vendor, device_name, (int) freq, (int) shaders);}
 
 	cl_uint compute_units;
 	clGetDeviceInfo(ocl->device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &compute_units, NULL);
@@ -182,11 +183,11 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	//Workaround to compile CL kernel during tracker initialization
 	/*{
 		char* file = "cagpubuild/AliHLTTPCCAGPUTrackerOpenCL.cl";
-		printf("Reading source file %s\n", file);
+		HLTDebug("Reading source file %s\n", file);
 		FILE* fp = fopen(file, "rb");
 		if (fp == NULL)
 		{
-			printf("Cannot open %s\n", file);
+			HLTDebug("Cannot open %s\n", file);
 			return(1);
 		}
 		fseek(fp, 0, SEEK_END);
@@ -205,17 +206,17 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		buffer[file_size] = 0;
 		fclose(fp);
 
-		printf("Creating OpenCL Program Object\n");
+		HLTDebug("Creating OpenCL Program Object\n");
 		//Create OpenCL program object
 		ocl->program = clCreateProgramWithSource(ocl->context, (cl_uint) 1, (const char**) &buffer, NULL, &ocl_error);
 		if (ocl_error != CL_SUCCESS) quit("Error creating program object");
 
-		printf("Compiling OpenCL Program\n");
+		HLTDebug("Compiling OpenCL Program\n");
 		//Compile program
 		ocl_error = clBuildProgram(ocl->program, count, ocl->devices, "-I. -Iinclude -Icode -Ibase -Imerger-ca -Icagpubuild -I/home/qon/AMD-APP-SDK-v2.8.1.0-RC-lnx64/include -I/usr/local/cuda/include -DHLTCA_STANDALONE -DBUILD_GPU -D_64BIT  -x clc++", NULL, NULL);
 		if (ocl_error != CL_SUCCESS)
 		{
-			fprintf(stderr, "OpenCL Error while building program: %d (Compiler options: %s)\n", ocl_error, "");
+			HLTDebug("OpenCL Error while building program: %d (Compiler options: %s)\n", ocl_error, "");
 
 			for (unsigned int i = 0;i < count;i++)
 			{
@@ -228,7 +229,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 					char* build_log = (char*) malloc(log_size + 1);
 					if (build_log == NULL) quit("Memory allocation error");
 					clGetProgramBuildInfo(ocl->program, ocl->devices[i], CL_PROGRAM_BUILD_LOG, log_size, build_log, NULL);
-					fprintf(stderr, "Build Log (device %d):\n\n%s\n\n", i, build_log);
+					HLTDebug("Build Log (device %d):\n\n%s\n\n", i, build_log);
 					free(build_log);
 				}
 			}
