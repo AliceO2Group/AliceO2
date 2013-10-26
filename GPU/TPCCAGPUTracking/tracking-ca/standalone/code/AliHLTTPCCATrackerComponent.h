@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id: AliHLTTPCCATrackerComponent.h 51262 2011-08-23 18:16:49Z hristov $
+// @(#) $Id: AliHLTTPCCATrackerComponent.h 64733 2013-10-26 16:06:30Z drohr $
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
@@ -103,6 +103,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     int fGPUHelperThreads;            // Number of helper threads for GPU tracker, set to -1 to use default number
     int fCPUTrackers;                 //Number of CPU trackers to run in addition to GPU tracker
     bool fGlobalTracking;             //Activate global tracking feature
+	TString fGPULibrary;			  //Name of the library file that provides the GPU tracker object
 
     /** set configuration parameters **/
     void SetDefaultConfiguration();
