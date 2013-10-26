@@ -23,12 +23,13 @@
 #endif
 #include "AliHLTTPCCAGPUTrackerBase.h"
 #include "AliHLTTPCCAClusterData.h"
+#include "AliHLTTPCCAGPUTrackerCommon.h"
 
 ClassImp( AliHLTTPCCAGPUTrackerBase )
 
 int AliHLTTPCCAGPUTrackerBase::GlobalTracking(int iSlice, int threadId, AliHLTTPCCAGPUTrackerBase::helperParam* hParam)
 {
-	if (fDebugLevel >= 3) printf("GPU Tracker running Global Tracking for slice %d on thread %d\n", iSlice, threadId);
+	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker running Global Tracking for slice %d on thread %d\n", iSlice, threadId);}
 
 	int sliceLeft = (iSlice + (fgkNSlices / 2 - 1)) % (fgkNSlices / 2);
 	int sliceRight = (iSlice + 1) % (fgkNSlices / 2);
@@ -50,7 +51,7 @@ int AliHLTTPCCAGPUTrackerBase::GlobalTracking(int iSlice, int threadId, AliHLTTP
 
 	fSliceLeftGlobalReady[sliceLeft] = 1;
 	fSliceRightGlobalReady[sliceRight] = 1;
-	if (fDebugLevel >= 3) printf("GPU Tracker finished Global Tracking for slice %d on thread %d\n", iSlice, threadId);
+	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker finished Global Tracking for slice %d on thread %d\n", iSlice, threadId);}
 	return(0);
 }
 
@@ -373,13 +374,13 @@ void AliHLTTPCCAGPUTrackerBase::ReadEvent(AliHLTTPCCAClusterData* pClusterData, 
 	fSlaveTrackers[firstSlice + iSlice].ReadEvent(&pClusterData[iSlice]);
 #ifdef HLTCA_GPU_TIME_PROFILE
 	AliHLTTPCCATracker::StandaloneQueryTime(&b);
-	printf("Read %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
+	HLTInfo("Read %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
 #endif
 }
 
 void AliHLTTPCCAGPUTrackerBase::WriteOutput(AliHLTTPCCASliceOutput** pOutput, int firstSlice, int iSlice, int threadId)
 {
-	if (fDebugLevel >= 3) printf("GPU Tracker running WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);
+	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker running WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);}
 	fSlaveTrackers[firstSlice + iSlice].SetOutput(&pOutput[iSlice]);
 #ifdef HLTCA_GPU_TIME_PROFILE
 	unsigned long long int a, b;
@@ -391,9 +392,9 @@ void AliHLTTPCCAGPUTrackerBase::WriteOutput(AliHLTTPCCASliceOutput** pOutput, in
 	fSlaveTrackers[firstSlice + iSlice].WriteOutput();
 #ifdef HLTCA_GPU_TIME_PROFILE
 	AliHLTTPCCATracker::StandaloneQueryTime(&b);
-	printf("Write %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
+	HLTInfo("Write %d %f %f\n", threadId, ((double) b - (double) a) / (double) fProfTimeC, ((double) a - (double) fProfTimeD) / (double) fProfTimeC);
 #endif
-	if (fDebugLevel >= 3) printf("GPU Tracker finished WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);
+	if (fDebugLevel >= 3) {HLTDebug("GPU Tracker finished WriteOutput for slice %d on thread %d\n", firstSlice + iSlice, threadId);}
 }
 
 int AliHLTTPCCAGPUTrackerBase::InitializeSliceParam(int iSlice, AliHLTTPCCAParam &param)
@@ -818,7 +819,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_Finalize(AliHLTTPCCASliceOutput*
 		{
 			for (int iSlice = 0;iSlice < fgkNSlices;iSlice++)
 			{
-				printf("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTracks, fSlaveTrackers[iSlice].CommonMemory()->fNTracks, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fSlaveTrackers[iSlice].CommonMemory()->fNTrackHits);
+				HLTDebug("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d\n", iSlice, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTracks, fSlaveTrackers[iSlice].CommonMemory()->fNTracks, fSlaveTrackers[iSlice].CommonMemory()->fNLocalTrackHits, fSlaveTrackers[iSlice].CommonMemory()->fNTrackHits);
 			}
 		}
 	}

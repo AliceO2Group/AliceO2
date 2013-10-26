@@ -72,7 +72,7 @@ typedef AliHLTTPCCAMath CAMath;
 #if defined( HLTCA_STANDALONE )
 #define choiceA(c1,c2,c3) c2
 #else //HLTCA_STANDALONE
-#define choiceA(c1,c2,c3) c3
+#define choiceA(c1,c2,c3) c2
 #endif //HLTCA_STANDALONE
 #else //HLTCA_HOSTCODE
 #define choiceA(c1, c2, c3) c2

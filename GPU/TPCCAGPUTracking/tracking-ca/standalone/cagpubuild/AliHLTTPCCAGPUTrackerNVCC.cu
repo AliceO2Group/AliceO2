@@ -19,6 +19,7 @@
 
 #define FERMI
 #include "AliHLTTPCCAGPUTrackerNVCC.h"
+#include "AliHLTTPCCAGPUTrackerCommon.h"
 #define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
 #define get_global_size(dim) (blockDim.x * gridDim.x)
 #define get_num_groups(dim) (gridDim.x)
