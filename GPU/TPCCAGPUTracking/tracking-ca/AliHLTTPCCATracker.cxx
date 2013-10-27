@@ -24,7 +24,6 @@
 #include "AliHLTTPCCAMath.h"
 #include "MemoryAssignmentHelpers.h"
 
-#include "TStopwatch.h"
 #include "AliHLTTPCCAHitArea.h"
 #include "AliHLTTPCCANeighboursFinder.h"
 #include "AliHLTTPCCANeighboursCleaner.h"
@@ -39,6 +38,7 @@
 #include "AliHLTTPCCAGPUConfig.h"
 
 #if !defined(HLTCA_GPUCODE)
+#include "TStopwatch.h"
 #include <iostream>
 #include <iomanip>
 #include <string.h>

@@ -30,7 +30,9 @@ MEM_CLASS_PRE() class AliHLTTPCCATrackParam;
 class AliHLTTPCCAClusterData;
 MEM_CLASS_PRE() class AliHLTTPCCARow;
 
+#if !(defined(HLTCA_GPUCODE) && defined(__OPENCL__) && !defined(HLTCA_HOSTCODE))
 #include "TStopwatch.h"
+#endif
 
 /**
  * @class AliHLTTPCCATracker

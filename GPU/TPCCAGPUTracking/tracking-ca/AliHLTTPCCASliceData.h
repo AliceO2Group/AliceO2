@@ -20,7 +20,9 @@
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCARow.h"
 #include "AliHLTTPCCAMath.h"
+#if !(defined(HLTCA_GPUCODE) && defined(__OPENCL__) && !defined(HLTCA_HOSTCODE))
 #include "AliHLTArray.h"
+#endif
 #include "AliHLTTPCCAGPUConfig.h"
 
 typedef int int_v;

@@ -229,9 +229,9 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 		if (allowGPU)
 		{
 			#ifndef R__WIN32
-				HLTInfo("The following error occured during dlopen: %s", dlerror());
+				HLTImportant("The following error occured during dlopen: %s", dlerror());
 			#endif
-			HLTError("Error Opening cagpu library for GPU Tracker, will fallback to CPU");
+			HLTError("Error Opening cagpu library for GPU Tracker (%s), will fallback to CPU", GPU_Library == NULL ? "default: " GPULIBNAME : GPU_Library);
 		}
 		else
 		{
