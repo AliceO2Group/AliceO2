@@ -8,49 +8,49 @@
 //                                                                        *
 //*************************************************************************
 
-//  @file   AliHLTTPCCAGPUTrackerNVCC.h
+//  @file   AliHLTTPCCAGPUTrackerOpenCL.h
 //  @author David Rohr, Sergey Gorbunov
 //  @date   
 //  @brief  TPC CA Tracker for the NVIDIA GPU
 //  @note 
 
 
-#ifndef ALIHLTTPCCAGPUTRACKERNVCC_H
-#define ALIHLTTPCCAGPUTRACKERNVCC_H
+#ifndef ALIHLTTPCCAGPUTRACKEROPENCL_H
+#define ALIHLTTPCCAGPUTRACKEROPENCL_H
 
 #include "AliHLTTPCCAGPUTrackerBase.h"
 
-class AliHLTTPCCAGPUTrackerNVCC : public AliHLTTPCCAGPUTrackerBase
+struct AliHLTTPCCAGPUTrackerOpenCLInternals;
+
+class AliHLTTPCCAGPUTrackerOpenCL : public AliHLTTPCCAGPUTrackerBase
 {
 public:
-	AliHLTTPCCAGPUTrackerNVCC();
-	virtual ~AliHLTTPCCAGPUTrackerNVCC();
+	AliHLTTPCCAGPUTrackerOpenCL();
+	virtual ~AliHLTTPCCAGPUTrackerOpenCL();
 
 	virtual int InitGPU_Runtime(int sliceCount = -1, int forceDeviceID = -1);
 	virtual int Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	virtual int ReconstructPP(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int fFirstSlice, int fSliceCount = -1);
 	virtual int ExitGPU_Runtime();
 	virtual int RefitMergedTracks(AliHLTTPCGMMerger* Merger);
-	virtual int GPUMergerAvailable();
 
 protected:
 	virtual void ActivateThreadContext();
 	virtual void ReleaseThreadContext();
 	virtual void SynchronizeGPU();
-	virtual int GPUSync(char* state = "UNKNOWN", int stream = -1, int slice = 0);
+	virtual int GPUSync(char* state = "UNKNOWN", int sliceLocal = 0, int slice = 0);
 
 private:
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
-	void* fCudaContext; //Pointer to CUDA context
-	bool GPUFailedMsgA(cudaError_t error, const char* file, int line);
+	bool GPUFailedMsgA(int, const char* file, int line);
+	AliHLTTPCCAGPUTrackerOpenCLInternals* ocl;
 
-	void* fpCudaStreams; //Pointer to array of CUDA Streams
 
 	// disable copy
-	AliHLTTPCCAGPUTrackerNVCC( const AliHLTTPCCAGPUTrackerNVCC& );
-	AliHLTTPCCAGPUTrackerNVCC &operator=( const AliHLTTPCCAGPUTrackerNVCC& );
+	AliHLTTPCCAGPUTrackerOpenCL( const AliHLTTPCCAGPUTrackerOpenCL& );
+	AliHLTTPCCAGPUTrackerOpenCL &operator=( const AliHLTTPCCAGPUTrackerOpenCL& );
 
-	ClassDef( AliHLTTPCCAGPUTrackerNVCC, 0 )
+	ClassDef( AliHLTTPCCAGPUTrackerOpenCL, 0 )
 };
 
 #ifdef R__WIN32

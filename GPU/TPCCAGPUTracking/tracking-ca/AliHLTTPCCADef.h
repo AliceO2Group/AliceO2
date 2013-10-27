@@ -42,7 +42,7 @@
 #endif //VSNET_RUNTIME
 #endif //R__WIN32
 
-#ifdef HLTCA_STANDALONE
+#if defined(HLTCA_STANDALONE) || (defined(HLTCA_GPUCODE) && defined(__OPENCL__) && !defined(HLTCA_HOSTCODE))
 
 // class TObject{};
 
