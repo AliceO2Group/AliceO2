@@ -215,7 +215,7 @@ int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAPar
 #define GPULIBNAME "libAliHLTTPCCAGPU"
 #endif
 
-AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const char* GPU_Library) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
+AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const char* GPU_Library, int GPUDeviceNum) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
 {
 	//Constructor
 	if (GPU_Library && !GPU_Library[0]) GPU_Library = NULL;
@@ -268,7 +268,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 
 	if (allowGPU && fGPULibAvailable)
 	{
-		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU() == 0));
+		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU(-1, GPUDeviceNum) == 0));
 		HLTInfo("GPU Tracker Initialized and available in framework");
 	}
 }

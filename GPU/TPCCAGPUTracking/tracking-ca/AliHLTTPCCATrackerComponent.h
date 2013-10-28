@@ -103,6 +103,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     int fGPUHelperThreads;            // Number of helper threads for GPU tracker, set to -1 to use default number
     int fCPUTrackers;                 //Number of CPU trackers to run in addition to GPU tracker
     bool fGlobalTracking;             //Activate global tracking feature
+	int fGPUDeviceNum;				  //GPU Device to use, default -1 for auto detection
 	TString fGPULibrary;			  //Name of the library file that provides the GPU tracker object
 
     /** set configuration parameters **/
