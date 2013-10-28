@@ -72,6 +72,7 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fGPUHelperThreads(-1),
   fCPUTrackers(0),
   fGlobalTracking(0),
+  fGPUDeviceNum(-1),
   fGPULibrary("")
 {
   // see header file for class documentation
@@ -103,6 +104,7 @@ AliHLTProcessor(),
   fGPUHelperThreads(-1),
   fCPUTrackers(0),
   fGlobalTracking(0),
+  fGPUDeviceNum(-1),
   fGPULibrary("")
 {
   // see header file for class documentation
@@ -277,6 +279,13 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       continue;
     }
 
+    if ( argument.CompareTo( "-GPUDeviceNum" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fGPUDeviceNum = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Using GPU Device Number %d", fGPUDeviceNum );
+      continue;
+    }
+
     if ( argument.CompareTo( "-GPULibrary" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fGPULibrary = ( ( TObjString* )pTokens->At( i ) )->GetString();
@@ -428,7 +437,7 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     fMinSlice = 0;
     fSliceCount = fgkNSlices;
     //Create tracker instance and set parameters
-    fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU, fGPULibrary);
+    fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU, fGPULibrary, fGPUDeviceNum);
     fClusterData = new AliHLTTPCCAClusterData[fgkNSlices];
     if (fGPUHelperThreads != -1)
     {
