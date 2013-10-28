@@ -28,7 +28,7 @@ class AliHLTTPCCATrackerFramework : AliHLTLogging
 #endif
 
 public:
-	AliHLTTPCCATrackerFramework(int allowGPU = 1, const char* GPU_Library = NULL);
+	AliHLTTPCCATrackerFramework(int allowGPU = 1, const char* GPU_Library = NULL, int GPUDeviceNum = -1);
 	~AliHLTTPCCATrackerFramework();
 
 	int InitGPU(int sliceCount = 1, int forceDeviceID = -1);
