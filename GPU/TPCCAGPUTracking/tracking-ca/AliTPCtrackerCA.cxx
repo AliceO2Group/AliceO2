@@ -312,7 +312,7 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
       }
 
       transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
-      double xx[3] = {cluster->GetRow(), cluster->GetPad(), cluster->GetTimeBin()};
+      double xx[3] = {static_cast<double>(cluster->GetRow()), cluster->GetPad(), cluster->GetTimeBin()};
       int id[1] = {cluster->GetDetector()};
       transform->Transform( xx, id, 0, 1 );
 

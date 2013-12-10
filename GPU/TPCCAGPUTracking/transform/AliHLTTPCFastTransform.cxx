@@ -217,8 +217,9 @@ Int_t AliHLTTPCFastTransform::SetCurrentTimeStamp( Long_t TimeStamp )
   Int_t nTimeBins = tpcParam->GetMaxTBin();
   Int_t is[]={0};
   bool sign = 0;
-  for( fLastTimeBin=0; fLastTimeBin<nTimeBins; fLastTimeBin++){  
-    Double_t xx[]={0,0,fLastTimeBin};
+  for( fLastTimeBin=0; fLastTimeBin<nTimeBins; fLastTimeBin++){
+    // static cast is okay since fLastTimeBin has limited value range  
+    Double_t xx[]={0,0,static_cast<Double_t>(fLastTimeBin)};
     fOrigTransform->Transform(xx,is,0,1);
     bool s = (xx[2]>=0);
     if( fLastTimeBin==0 ) sign = s;
@@ -275,7 +276,7 @@ Int_t AliHLTTPCFastTransform::InitRow( Int_t iSector, Int_t iRow )
     for( Int_t j=0; j<fRows[iSector][iRow]->fSpline[i].GetNPoints(); j++){
       Float_t pad, time;
       fRows[iSector][iRow]->fSpline[i].GetAB(j,pad,time);
-      Double_t xx[]={iRow,pad,time};
+      Double_t xx[]={static_cast<Double_t>(iRow),pad,time};
       fOrigTransform->Transform(xx,is,0,1);
       fRows[iSector][iRow]->fSpline[i].Fill(j,xx);    
     }
