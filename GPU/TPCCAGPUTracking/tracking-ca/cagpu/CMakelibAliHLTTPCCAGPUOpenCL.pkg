@@ -41,6 +41,10 @@ if ( NOT AMDAPPSDKROOT )
   message ( FATAL_ERROR "AMDAPPSDKROOT not set. Please install AMD APP SDK and set $AMDAPPSDKROOT or disable HLT_OPENCL." )
 endif()
 
+if ( NOT "$ENV{GPU_FORCE_64BIT_PTR}" STREQUAL "1"  )
+  message ( FATAL_ERROR "Please set env variable $GPU_FORCE_64BIT_PTR=1, required by HLT OpenCL tracker.")
+endif()
+
 #convenience variables
 set ( CAGPUDIR TPCLib/tracking-ca/cagpu )
 
