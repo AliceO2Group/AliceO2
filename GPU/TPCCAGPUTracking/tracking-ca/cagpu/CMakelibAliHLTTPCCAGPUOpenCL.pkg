@@ -52,7 +52,7 @@ set ( CAGPUDIR TPCLib/tracking-ca/cagpu )
 # -- checks the correct vendor implementation (AMD)
 # -- builds binary code (blob) for the found platform(s)
 add_executable ( opencl_compiler ${CAGPUDIR}/makefiles/makefile_opencl_compiler.cpp )
-target_link_libraries ( opencl_compiler -L${AMDAPPSDKROOT}/lib/x86_64 OpenCL )
+target_link_libraries ( opencl_compiler -L${AMDAPPSDKROOT}/lib/x86_64 amdocl64 OpenCL )
 
 #convenience variables
 set (CL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/${CAGPUDIR}/AliHLTTPCCAGPUTrackerOpenCL.cl )
@@ -98,7 +98,7 @@ set ( MODULE_DHDR )
 
 set ( EINCLUDE ${AMDAPPSDKROOT}/include HLT/${CAGPUDIR} HLT/${CAGPUDIR}/makefiles HLT/TPCLib/tracking-ca HLT/BASE )
 
-set ( ELIBS -L$(AMDAPPSDKROOT)/lib/x86_64 -lOpenCL )
+set ( ELIBS -L${AMDAPPSDKROOT}/lib/x86_64 -lamdocl64 -lOpenCL )
 
 include ("CMakehlt.conf")
 
