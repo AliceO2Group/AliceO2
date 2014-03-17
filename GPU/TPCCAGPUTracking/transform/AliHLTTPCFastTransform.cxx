@@ -149,18 +149,21 @@ Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Long_t TimeStam
 bool AliHLTTPCFastTransform::CalcAdjugateRotation(const Float_t *mA, Float_t *mB, bool bCheck)
 {
   // check rotation matrix and adjugate for consistency
+  //
+  // ( for a rotation matrix inverse == transpose )
+  //
 
-  mB[0]= mA[4]*mA[8]-mA[5]*mA[7];
-  mB[1]= mA[5]*mA[6]-mA[3]*mA[8];
-  mB[2]= mA[3]*mA[7]-mA[4]*mA[6];
+  mB[0] = mA[0];
+  mB[1] = mA[3];
+  mB[2] = mA[6];
 
-  mB[3]= mA[2]*mA[7]-mA[1]*mA[8];
-  mB[4]= mA[0]*mA[8]-mA[2]*mA[6];
-  mB[5]= mA[2]*mA[6]-mA[0]*mA[7];
+  mB[3] = mA[1];
+  mB[4] = mA[4];
+  mB[5] = mA[7];
 
-  mB[6]= mA[1]*mA[5]-mA[2]*mA[4];
-  mB[7]= mA[2]*mA[3]-mA[0]*mA[5];
-  mB[8]= mA[0]*mA[4]-mA[1]*mA[3];
+  mB[6] = mA[2];
+  mB[7] = mA[5];
+  mB[8] = mA[8];
 
   if (bCheck) {
     for (int r=0; r<3; r++) {
