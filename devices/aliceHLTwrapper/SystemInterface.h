@@ -35,7 +35,7 @@ namespace ALICE
       /** initilize the system
        *  load external library and set up the HLT system
        */
-      int InitSystem();
+      int InitSystem(unsigned long runNo);
 
       /** cleanup and release system
        */
@@ -58,7 +58,7 @@ namespace ALICE
        *  @param description
        *  @return 0 on success and valid handle
        */
-      int CreateComponent(const char* componentType,
+      int CreateComponent(const char* componentId,
 			  void* environParam,
 			  int argc,
 			  const char** argv,
@@ -110,6 +110,8 @@ namespace ALICE
       AliHLTExtFctProcessEvent      mpAliHLTExtFctProcessEvent;
       AliHLTExtFctGetOutputDataType mpAliHLTExtFctGetOutputDataType;
       AliHLTExtFctGetOutputSize     mpAliHLTExtFctGetOutputSize;
+
+      AliHLTAnalysisEnvironment     mEnvironment;
     };
 
   }    // namespace hlt

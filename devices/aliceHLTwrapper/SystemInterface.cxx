@@ -33,8 +33,11 @@ SystemInterface::SystemInterface() :
   mpAliHLTExtFctDestroyComponent(NULL),
   mpAliHLTExtFctProcessEvent(NULL),
   mpAliHLTExtFctGetOutputDataType(NULL),
-  mpAliHLTExtFctGetOutputSize(NULL)
+  mpAliHLTExtFctGetOutputSize(NULL),
+  mEnvironment()
 {
+  memset(&mEnvironment, 0, sizeof(mEnvironment));
+  mEnvironment.fStructSize=sizeof(mEnvironment);
 }
 
 SystemInterface::~SystemInterface()
@@ -76,9 +79,11 @@ const char* gInterfaceCallSignatures[]={
   NULL
 };
 
-int SystemInterface::InitSystem()
+int SystemInterface::InitSystem(unsigned long runNo)
 {
   /// init the system: load interface libraries and read function pointers
+  int iResult=0;
+
   string libraryPath=ALIHLTANALYSIS_INTERFACE_LIBRARY;
 
   void* libHandle=dlopen(libraryPath.c_str(), RTLD_NOW);
@@ -115,6 +120,13 @@ int SystemInterface::InitSystem()
       }
     }
   }
+
+  if (mpAliHLTExtFctInitSystem) {
+    if ((iResult=(*mpAliHLTExtFctInitSystem)(ALIHLT_DATA_TYPES_VERSION, &mEnvironment, runNo, NULL))!=0) {
+      cerr << "error: AliHLTAnalysisInitSystem failed with error " << iResult << endl;
+      return -ENOSYS;
+    }
+  }
  
   return 0;
 }
@@ -145,7 +157,7 @@ int SystemInterface::UnloadLibrary(const char* libname)
   return (*mpAliHLTExtFctUnloadLibrary)(libname);
 }
 
-int SystemInterface::CreateComponent(const char* componentType,
+int SystemInterface::CreateComponent(const char* componentId,
 			  void* environParam,
 			  int argc,
 			  const char** argv,
@@ -154,7 +166,7 @@ int SystemInterface::CreateComponent(const char* componentType,
 			  )
 {
   if (!mpAliHLTExtFctCreateComponent) return -ENOSYS;
-  return (*mpAliHLTExtFctCreateComponent)(componentType,
+  return (*mpAliHLTExtFctCreateComponent)(componentId,
 					  environParam,
 					  argc, argv,
 					  handle,
