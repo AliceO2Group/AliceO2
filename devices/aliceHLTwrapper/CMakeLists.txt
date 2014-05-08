@@ -1,6 +1,6 @@
 set(INCLUDE_DIRECTORIES
-  # ${CMAKE_SOURCE_DIR}/fairmq
-  # ${CMAKE_SOURCE_DIR}/fairmq/zeromq
+  ${CMAKE_SOURCE_DIR}/fairmq
+  ${CMAKE_SOURCE_DIR}/fairmq/zeromq
   # ${Boost_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
 )
@@ -18,6 +18,7 @@ link_directories(${LINK_DIRECTORIES})
 set(SRCS
   SystemInterface.cxx
   HOMERFactory.cxx
+  WrapperDevice.cxx
 )
 
 set(DEPENDENCIES
@@ -28,7 +29,7 @@ set(DEPENDENCIES
 set(DEPENDENCIES
   ${DEPENDENCIES}
 #  ${CMAKE_THREAD_LIBS_INIT}
-  # FairMQ
+   FairMQ
 )
 
 set(LIBRARY_NAME ALICEHLT)
