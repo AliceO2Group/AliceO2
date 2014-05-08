@@ -17,6 +17,7 @@ link_directories(${LINK_DIRECTORIES})
 
 set(SRCS
   SystemInterface.cxx
+  HOMERFactory.cxx
 )
 
 set(DEPENDENCIES
