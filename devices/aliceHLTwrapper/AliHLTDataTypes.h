@@ -70,8 +70,13 @@
  *  16       Adding data type for the meta data block to be forwarded by the
  *           TCPDumpSubscriber for the Common Data Header (CDH) and readout
  *           list information.
+ *  17       bugfix: definition of function AliHLTExtFctGetOutputSize did not
+ *           match the implementation in AliHLTExternalInterface; the bug was
+ *           introduced when extending the function call by one parameter and
+ *           has never been observed in the ALICE HLT because the PubSub
+ *           framework uses its own definition of function types
  */
-#define ALIHLT_DATA_TYPES_VERSION 16
+#define ALIHLT_DATA_TYPES_VERSION 17
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -1424,7 +1429,7 @@ extern "C" {
   typedef int (*AliHLTExtFctGetOutputDataType)( AliHLTComponentHandle, AliHLTComponentDataType* );
 
   /** @ingroup alihlt_wrapper_interface */
-  typedef int (*AliHLTExtFctGetOutputSize)( AliHLTComponentHandle, unsigned long*, double* );
+  typedef int (*AliHLTExtFctGetOutputSize)( AliHLTComponentHandle, unsigned long*, unsigned long*, double* );
 
 }
 
