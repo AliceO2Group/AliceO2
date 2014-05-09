@@ -198,10 +198,10 @@ int SystemInterface::GetOutputDataType(AliHLTComponentHandle handle, AliHLTCompo
 }
 
 int SystemInterface::GetOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
-				   unsigned long* /*constBlockBase*/, double* inputBlockMultiplier)
+				   unsigned long* constBlockBase, double* inputBlockMultiplier)
 {
   if (!mpAliHLTExtFctGetOutputSize) return -ENOSYS;
-  return (*mpAliHLTExtFctGetOutputSize)(handle, constEventBase, inputBlockMultiplier);
+  return (*mpAliHLTExtFctGetOutputSize)(handle, constEventBase, constEventBase, inputBlockMultiplier);
 }
 
 void SystemInterface::Clear(const char* /*option*/)
