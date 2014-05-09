@@ -16,14 +16,21 @@
 //  @brief  FairRoot/ALFA device running ALICE HLT code
 
 #include "SystemInterface.h"
+#include "WrapperDevice.h"
 #include <iostream>
 #include <getopt.h>
 #include <vector>
 #include <memory>
 #include <cstring>
+#ifdef NANOMSG
+  #include "FairMQTransportFactoryNN.h"
+#else
+  #include "FairMQTransportFactoryZMQ.h"
+#endif
 
 using std::cout;
 using std::cerr;
+using std::stringstream;
 
 int main(int argc, char** argv)
 {
@@ -40,12 +47,21 @@ int main(int argc, char** argv)
   /* getopt_long stores the option index here. */
   char c=0;
   int iOption = 0;
+
+  // HLT components are implemented in shared libraries, the library name
+  // and component id are used to factorize a component
+  // optionally, a list of configuration parameters can be specified as
+  // one single string which is translated in an array of string in the
+  // argc/argv format
   const char* componentLibrary="";
   const char* componentId="";
-  const char* componentParameter="";  
+  const char* componentParameter="";
+
+  // the configuration and calibration is fixed for every run and identified
+  // by the run no
   int runNumber=0;
 
-  while ((c=getopt_long(argc, argv, "l:c:p:", programOptions, &iOption)) != -1) {
+  while ((c=getopt_long(argc, argv, "l:c:p:r:", programOptions, &iOption)) != -1) {
     switch (c) {
     case 'l':
       componentLibrary=optarg;
@@ -56,6 +72,8 @@ int main(int argc, char** argv)
     case 'p':
       componentParameter=optarg;
       break;
+    case 'r':
+      stringstream(optarg) >> runNumber;
     case '?':
       // TODO: more error handling
       break;
@@ -66,6 +84,38 @@ int main(int argc, char** argv)
 
   cout << "Library: " << componentLibrary << " - " << componentId << " (" << componentParameter << ")" << endl;
 
+  ALICE::HLT::WrapperDevice device(componentLibrary, componentId, componentParameter, runNumber);
+
+#ifdef NANOMSG
+  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
+#else
+  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
+#endif
+
+  device.SetTransport(transportFactory);
+  device.SetProperty(FairMQDevice::Id, "ID");
+  device.SetProperty(FairMQDevice::NumIoThreads, 1);
+  device.SetProperty(FairMQDevice::NumInputs, 0);
+  device.SetProperty(FairMQDevice::NumOutputs, 1);
+  device.ChangeState(FairMQDevice::INIT);
+  device.SetProperty(FairMQDevice::OutputSocketType, "push");
+  device.SetProperty(FairMQDevice::OutputSndBufSize, 10000, 0);
+  device.SetProperty(FairMQDevice::OutputMethod, "connect", 0);
+  device.SetProperty(FairMQDevice::OutputAddress, "tcp://localhost:5565", 0);
+
+  device.ChangeState(FairMQDevice::SETOUTPUT);
+  device.ChangeState(FairMQDevice::SETINPUT);
+  device.ChangeState(FairMQDevice::RUN);
+
+  char ch;
+  cin.get(ch);
+
+  device.ChangeState(FairMQDevice::STOP);
+  device.ChangeState(FairMQDevice::END);
+
+  return iResult;
+
+  /* !!!! preliminary code below is disabled !!!*/
   AliHLTComponentHandle componentHandle=kEmptyHLTComponentHandle;
 
   // chop the parameter string in order to provide parameters in the argc/argv format
