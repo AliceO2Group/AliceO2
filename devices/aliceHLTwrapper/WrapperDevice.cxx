@@ -19,6 +19,9 @@
 #include "AliHLTDataTypes.h"
 #include "SystemInterface.h"
 #include "HOMERFactory.h"
+#include "AliHLTHOMERData.h"
+#include "AliHLTHOMERWriter.h"
+#include "AliHLTHOMERReader.h"
 #include "FairMQLogger.h"
 #include "FairMQPoller.h"
 
@@ -93,6 +96,8 @@ void WrapperDevice::Init()
   // create component
   if ((iResult=mpSystem->CreateComponent(mComponentId.c_str(), NULL, parameters.size(), &parameters[0], &mProcessor, ""))<0)
     return;
+
+  FairMQDevice::Init();
     
 }
 
@@ -152,11 +157,35 @@ void WrapperDevice::Run()
 
     // prepare input from messages
     vector<AliHLTComponentBlockData> inputBlocks;
+    // ...
+    // create blocks from messages
+    // ...
+    unsigned nofInputBlocks=inputBlocks.size();
+
+    // add event type data block
+    AliHLTComponentBlockData eventTypeBlock;
+    memset(&eventTypeBlock, 0, sizeof(eventTypeBlock));
+    eventTypeBlock.fStructSize=sizeof(eventTypeBlock);
+    // Note: no payload!
+    eventTypeBlock.fDataType=AliHLTComponentDataTypeInitializer("EVENTTYP", "PRIV");
+    eventTypeBlock.fSpecification=gkAliEventTypeData;
+    inputBlocks.push_back(eventTypeBlock);
 
     // process
     evtData.fBlockCnt=inputBlocks.size();
     int nofTrials=2;
     do {
+      unsigned long constEventBase=0;
+      unsigned long constBlockBase=0;
+      double inputBlockMultiplier=0.;
+      mpSystem->GetOutputSize(mProcessor, &constEventBase, &constBlockBase, &inputBlockMultiplier);
+      outputBufferSize=constEventBase+nofInputBlocks*constBlockBase;
+      if (mOutputBuffer.capacity()<outputBufferSize) {
+	  mOutputBuffer.reserve(outputBufferSize);
+      } else if (nofTrials<2) {
+	// component did not update the output size
+	break;
+      }
       outputBufferSize=mOutputBuffer.capacity();
       outputBlockCnt=0;
       // TODO: check if that is working with the corresponding allocation method of the 
@@ -171,40 +200,10 @@ void WrapperDevice::Run()
 				     &outputBlockCnt, &pOutputBlocks,
 				     &pEventDoneData);
 
-      if (iResult==-ENOSPC) {
-	if (mOutputBuffer.capacity()<outputBufferSize) {
-	  // resize according to what the component returned
-	  mOutputBuffer.reserve(outputBufferSize);
-          LOG(INFO) << "increasing output buffer to " << outputBufferSize << " and processing again" ;
-	} else {
-	  // component did not return what it would need
-	  nofTrials=0; // stop
-	}
-      }
-    } while (iResult==-ENOSPC && --nofTrials>0);
+    } while (iResult==ENOSPC && --nofTrials>0);
     
     // build the message from the output block
-    auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-    if (msg.get()) {
-      AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
-      for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++) {
-	int msgSize=sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize;
-	msg->Rebuild(msgSize);
-	if (msg->GetSize()<msgSize) {
-	  continue;
-	}
-	AliHLTUInt8_t* pTarget=reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
-	memcpy(pTarget, pOutputBlock, sizeof(AliHLTComponentBlockData));
-	pTarget+=sizeof(AliHLTComponentBlockData);
-	memcpy(pTarget, &mOutputBuffer[pOutputBlock->fOffset], pOutputBlock->fSize);
-	if (blockIndex+1<outputBlockCnt) {
-	  // TODO: replace this with the corresponding FairMQ flag if that becomes available
-	  fPayloadOutputs->at(0)->Send(msg.get()/*, ZMQ_SNDMORE*/);
-	} else {
-	  fPayloadOutputs->at(0)->Send(msg.get());
-	}
-      }
-    }
+    SendMultiMessages(pOutputBlocks, outputBlockCnt);
 
     // cleanup
     inputBlocks.clear();
@@ -224,6 +223,89 @@ void WrapperDevice::Run()
 
   rateLogger.interrupt();
   rateLogger.join();
+}
+
+int WrapperDevice::SendMultiMessages(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt)
+{
+  // send data blocks in a group of messages
+  int iResult=0;
+  auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+  if (msg.get()) {
+    AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
+    for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++) {
+      int msgSize=sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize;
+      msg->Rebuild(msgSize);
+      if (msg->GetSize()<msgSize) {
+	iResult=-ENOSPC;
+	break;
+      }
+      AliHLTUInt8_t* pTarget=reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
+      memcpy(pTarget, pOutputBlock, sizeof(AliHLTComponentBlockData));
+      pTarget+=sizeof(AliHLTComponentBlockData);
+      memcpy(pTarget, &mOutputBuffer[pOutputBlock->fOffset], pOutputBlock->fSize);
+      if (blockIndex+1<outputBlockCnt) {
+	// TODO: replace this with the corresponding FairMQ flag if that becomes available
+	fPayloadOutputs->at(0)->Send(msg.get()/*, ZMQ_SNDMORE*/);
+      } else {
+	fPayloadOutputs->at(0)->Send(msg.get());
+      }
+    }
+  }
+  return iResult;
+}
+   
+int WrapperDevice::SendHOMERMessage(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt)
+{
+  // send data blocks in HOMER format in one message
+  int iResult=0;
+  if (!mpFactory) return -ENODEV;
+  auto_ptr<AliHLTHOMERWriter> writer(mpFactory->OpenWriter());
+  if (writer.get()==NULL) return -ENOSYS;
+
+  homer_uint64 homerHeader[kCount_64b_Words];
+  HOMERBlockDescriptor homerDescriptor(homerHeader);
+
+  AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
+  for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++) {
+    memset( homerHeader, 0, sizeof(homer_uint64)*kCount_64b_Words );
+    homerDescriptor.Initialize();
+    homer_uint64 id=0;
+    homer_uint64 origin=0;
+    memcpy(&id, pOutputBlock->fDataType.fID, sizeof(homer_uint64));
+    memcpy(((AliHLTUInt8_t*)&origin)+sizeof(homer_uint32), pOutputBlock->fDataType.fOrigin, sizeof(homer_uint32));
+    homerDescriptor.SetType((id));
+    homerDescriptor.SetSubType1((origin));
+    homerDescriptor.SetSubType2(pOutputBlock->fSpecification);
+    homerDescriptor.SetBlockSize(pOutputBlock->fSize);
+    writer->AddBlock(homerHeader, &mOutputBuffer[pOutputBlock->fOffset]);
+  }
+
+  auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+  if (msg.get()) {
+    int msgSize=writer->GetTotalMemorySize();
+      msg->Rebuild(msgSize);
+    if (msg->GetSize()<msgSize) {
+      iResult=-ENOSPC;
+    } else {
+      AliHLTUInt8_t* pTarget=reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
+      writer->Copy(pTarget, 0, 0, 0, 0);
+      fPayloadOutputs->at(0)->Send(msg.get());
+    }
+  }
+  return iResult;
+}
+
+int WrapperDevice::ReadSingleBlock(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks)
+{
+  // read a single block from message payload consisting of AliHLTComponentBlockData followed by
+  // the block data
+  return 0;
+}
+
+int WrapperDevice::ReadHOMERMessage(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks)
+{
+  // read message payload in HOMER format
+  return 0;
 }
 
 void WrapperDevice::Pause()

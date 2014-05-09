@@ -63,6 +63,19 @@ namespace ALICE
       // assignment operator prohibited
       WrapperDevice& operator=(const WrapperDevice&);
 
+      // send data blocks in a group of messages
+      int SendMultiMessages(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt);
+
+      // send data blocks in HOMER format in one message
+      int SendHOMERMessage(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt);
+
+      // read a single block from message payload consisting of AliHLTComponentBlockData followed by
+      // the block data
+      int ReadSingleBlock(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks);
+
+      // read message payload in HOMER format
+      int ReadHOMERMessage(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks);
+
       string          mComponentLibrary;
       string          mComponentId;
       string          mComponentParameter;
