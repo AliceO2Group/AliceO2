@@ -1,11 +1,14 @@
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/fairmq
   ${CMAKE_SOURCE_DIR}/fairmq/zeromq
+  ${SIMPATH}/include
   # ${Boost_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
 )
 
 include_directories(${INCLUDE_DIRECTORIES})
+# set(CXXOPT "-O0 -g -ggdb")
+# set(CXXFLAGS "-O0 -g -ggdb")
 
 #configure_file( ${CMAKE_SOURCE_DIR}/example/flp2epn/run/startSomething.sh.in ${CMAKE_BINARY_DIR}/bin/startSomething.sh )
 
@@ -19,6 +22,7 @@ set(SRCS
   SystemInterface.cxx
   HOMERFactory.cxx
   WrapperDevice.cxx
+  Component.cxx
 )
 
 set(DEPENDENCIES
@@ -39,10 +43,12 @@ GENERATE_LIBRARY()
 Set(Exe_Names
 #  ${Exe_Names}
   aliceHLTWrapper
+  runComponent
 )
 
 set(Exe_Source 
   aliceHLTWrapper.cxx
+  runComponent.cxx
 )
 
 list(LENGTH Exe_Names _length)
