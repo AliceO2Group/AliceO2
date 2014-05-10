@@ -38,6 +38,7 @@ SystemInterface::SystemInterface() :
 {
   memset(&mEnvironment, 0, sizeof(mEnvironment));
   mEnvironment.fStructSize=sizeof(mEnvironment);
+  mEnvironment.fAllocMemoryFunc=SystemInterface::Alloc;
 }
 
 SystemInterface::~SystemInterface()
@@ -221,4 +222,17 @@ void SystemInterface::Clear(const char* /*option*/)
 void SystemInterface::Print(const char* /*option*/) const
 {
   /// print info
+}
+
+void* SystemInterface::Alloc( void* /*param*/, unsigned long size )
+{
+  // allocate memory
+  return malloc(size);
+}
+
+void SystemInterface::Dealloc( void* buffer, unsigned long /*size*/ )
+{
+  // deallocate memory
+  if (buffer==NULL) return;
+  free(buffer);
 }

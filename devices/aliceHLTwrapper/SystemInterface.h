@@ -98,6 +98,12 @@ namespace ALICE
       /// print info
       virtual void Print(const char* option="") const;
 
+      /// allocate memory
+      static void* Alloc( void* param, unsigned long size );
+
+      /// deallocate memory
+      static void Dealloc( void* buffer, unsigned long size );
+
     protected:
 
     private:
