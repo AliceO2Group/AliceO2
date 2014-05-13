@@ -1,7 +1,7 @@
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/fairmq
   ${CMAKE_SOURCE_DIR}/fairmq/zeromq
-  ${SIMPATH}/include
+  ${ZMQ_INCLUDE_DIR}
   # ${Boost_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
 )
