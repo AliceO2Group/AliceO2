@@ -38,6 +38,7 @@ Component::Component()
   , mpFactory(NULL)
   , mpWriter(NULL)
   , mProcessor(kEmptyHLTComponentHandle)
+  , mOutputMode(kOutputModeSequence)
 {
 }
 
@@ -56,6 +57,7 @@ int Component::Init(int argc, char** argv)
     {"parameter",   optional_argument, 0, 'p'},
     {"run",         required_argument, 0, 'r'},
     {"msgsize",     optional_argument, 0, 's'},
+    {"output-mode", optional_argument, 0, 'm'},
     {0, 0, 0, 0}
   };
 
@@ -76,7 +78,7 @@ int Component::Init(int argc, char** argv)
   // by the run no
   int runNumber=0;
 
-  while ((c=getopt_long(argc, argv, "l:c:p:r:s:", programOptions, &iOption)) != -1) {
+  while ((c=getopt_long(argc, argv, "l:c:p:r:s:m:", programOptions, &iOption)) != -1) {
     switch (c) {
     case 'l':
       componentLibrary=optarg;
@@ -94,9 +96,11 @@ int Component::Init(int argc, char** argv)
       {
 	unsigned size=0;
 	std::stringstream(optarg) >> size;
-	if (mOutputBuffer.capacity()<size)
-	  mOutputBuffer.reserve(size);
+	mOutputBuffer.resize(size);
       }
+      break;
+    case 'm':
+      std::stringstream(optarg) >> mOutputMode;
       break;
     case '?':
       // TODO: more error handling
@@ -162,9 +166,7 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
   if (!mpSystem) return -ENOSYS;
   int iResult=0;
 
-  // TODO: make the initial size configurable
-  unsigned outputBufferSize=10000;
-  mOutputBuffer.reserve(outputBufferSize);
+  unsigned outputBufferSize=0;
 
   AliHLTComponentEventData evtData;
   memset(&evtData, 0, sizeof(evtData));
@@ -183,9 +185,9 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
   vector<AliHLTComponentBlockData> inputBlocks;
   for (vector<BufferDesc_t>::iterator data=dataArray.begin();
        data!=dataArray.end(); data++) {
-    if (ReadSingleBlock(data->p, data->size, inputBlocks)<0) {
+    if (ReadBlockSequence(data->mP, data->mSize, inputBlocks)<0) {
       // not in the format of a single block, check if its a HOMER block
-      if (ReadHOMERFormat(data->p, data->size, inputBlocks)<0) {
+      if (ReadHOMERFormat(data->mP, data->mSize, inputBlocks)<0) {
 	// not in HOMER format either, ignore the input
 	// TODO: decide if that should be an error
       }
@@ -211,13 +213,13 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
     double inputBlockMultiplier=0.;
     mpSystem->GetOutputSize(mProcessor, &constEventBase, &constBlockBase, &inputBlockMultiplier);
     outputBufferSize=constEventBase+nofInputBlocks*constBlockBase;
-    if (mOutputBuffer.capacity()<outputBufferSize) {
-      mOutputBuffer.reserve(outputBufferSize);
+    if (mOutputBuffer.size()<outputBufferSize) {
+      mOutputBuffer.resize(outputBufferSize);
     } else if (nofTrials<2) {
       // component did not update the output size
       break;
     }
-    outputBufferSize=mOutputBuffer.capacity();
+    outputBufferSize=mOutputBuffer.size();
     outputBlockCnt=0;
     // TODO: check if that is working with the corresponding allocation method of the 
     // component environment
@@ -230,10 +232,68 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
 				   &mOutputBuffer[0], &outputBufferSize,
 				   &outputBlockCnt, &pOutputBlocks,
 				   &pEventDoneData);
+    if (outputBufferSize>0) {
+      if (outputBufferSize>mOutputBuffer.size()) {
+	cerr << "fatal error: component writing beyond buffer capacity" << endl;
+	return -EFAULT;
+      } else if (outputBufferSize<mOutputBuffer.size()) {
+	mOutputBuffer.resize(outputBufferSize);
+      }
+    } else {
+      mOutputBuffer.clear();
+    }
 
   } while (iResult==ENOSPC && --nofTrials>0);
     
-  // build the message from the output block
+  // prepare output
+  dataArray.clear();
+  if (mOutputMode==kOutputModeHOMER) {
+    AliHLTHOMERWriter* pWriter=CreateHOMERFormat(pOutputBlocks, outputBlockCnt);
+    if (pWriter) {
+      AliHLTUInt32_t position=mOutputBuffer.size();
+      AliHLTUInt32_t payloadSize=pWriter->GetTotalMemorySize();
+      if (mOutputBuffer.capacity()<position+payloadSize) {
+	mOutputBuffer.reserve(position+payloadSize);
+      }
+      pWriter->Copy(&mOutputBuffer[position], 0, 0, 0, 0);
+      mpFactory->DeleteWriter(pWriter);
+      dataArray.push_back(BufferDesc_t(&mOutputBuffer[position], payloadSize));
+    }
+  } else if (mOutputMode==kOutputModeMultiPart) {
+    AliHLTUInt32_t position=mOutputBuffer.size();
+    AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
+    for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
+      if (mOutputBuffer.capacity()<position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize)
+	mOutputBuffer.reserve(position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize);
+      dataArray.push_back(BufferDesc_t(&mOutputBuffer[position], sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize));
+      AliHLTUInt32_t sourcePosition=pOutputBlock->fOffset;
+      pOutputBlock->fOffset=0;
+      pOutputBlock->fPtr=NULL;
+      memcpy(&mOutputBuffer[position], pOutputBlock, sizeof(AliHLTComponentBlockData));
+      position+=sizeof(AliHLTComponentBlockData);
+      memcpy(&mOutputBuffer[position], &mOutputBuffer[sourcePosition], pOutputBlock->fSize);
+      position+=pOutputBlock->fSize;
+    }
+  } else if (mOutputMode==kOutputModeSequence) {
+    AliHLTUInt32_t position=mOutputBuffer.size();
+    AliHLTUInt32_t startPosition=position;
+    AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
+    for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
+      if (mOutputBuffer.capacity()<position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize)
+	mOutputBuffer.reserve(position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize);
+      AliHLTUInt32_t sourcePosition=pOutputBlock->fOffset;
+      pOutputBlock->fOffset=0;
+      pOutputBlock->fPtr=NULL;
+      memcpy(&mOutputBuffer[position], pOutputBlock, sizeof(AliHLTComponentBlockData));
+      position+=sizeof(AliHLTComponentBlockData);
+      memcpy(&mOutputBuffer[position], &mOutputBuffer[sourcePosition], pOutputBlock->fSize);
+      position+=pOutputBlock->fSize;
+    }
+    dataArray.push_back(BufferDesc_t(&mOutputBuffer[startPosition], position-startPosition));
+  } else {
+    // invalid output mode
+    cerr << "error ALICE::HLT::Component: invalid output mode " << mOutputMode << endl; 
+  }
 
   // cleanup
   // NOTE: don't cleanup mOutputBuffer as the data is going to be used outside the class
@@ -260,7 +320,7 @@ AliHLTHOMERWriter* Component::CreateHOMERFormat(AliHLTComponentBlockData* pOutpu
   HOMERBlockDescriptor homerDescriptor(homerHeader);
 
   AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
-  for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++) {
+  for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
     memset( homerHeader, 0, sizeof(homer_uint64)*kCount_64b_Words );
     homerDescriptor.Initialize();
     homer_uint64 id=0;
@@ -276,15 +336,57 @@ AliHLTHOMERWriter* Component::CreateHOMERFormat(AliHLTComponentBlockData* pOutpu
   return writer.release();
 }
 
-int Component::ReadSingleBlock(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks)
+int Component::ReadBlockSequence(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks)
 {
-  // read a single block from message payload consisting of AliHLTComponentBlockData followed by
-  // the block data
-  return 0;
+  // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
+  // from a buffer
+  if (buffer==NULL) return 0;
+  unsigned position=0;
+  vector<AliHLTComponentBlockData> input;
+  while (position+sizeof(AliHLTComponentBlockData)<size) {
+    AliHLTComponentBlockData* p=reinterpret_cast<AliHLTComponentBlockData*>(buffer+position);
+    if (p->fStructSize+position>size ||          // no space for the header
+	p->fStructSize+p->fSize+position>size) { // no space for the payload
+      // the buffer is only a valid sequence of data blocks if payload
+      // of the last block exacly matches the buffer boundary
+      // otherwize all blocks added until now are ignored
+      return 0;
+    }
+    // insert a new block
+    input.push_back(*p);
+    position+=p->fStructSize;
+    input.back().fPtr=buffer+position;
+    position+=p->fSize;
+  }
+
+  inputBlocks.insert(inputBlocks.end(), input.begin(), input.end());
+  return input.size();
 }
 
 int Component::ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks)
 {
   // read message payload in HOMER format
+  if (buffer==NULL || mpFactory==NULL) return 0;
+  auto_ptr<AliHLTHOMERReader> reader(mpFactory->OpenReaderBuffer(buffer, size));
+  if (reader.get()==NULL) return 0;
+
+  if (reader->ReadNextEvent()==0) {
+    unsigned nofBlocks=reader->GetBlockCnt();
+    for (unsigned i=0; i<nofBlocks; i++) {
+      AliHLTComponentBlockData block;
+      memset(&block, 0, sizeof(AliHLTComponentBlockData));
+      block.fStructSize=sizeof(AliHLTComponentBlockData);
+      block.fDataType.fStructSize=sizeof(AliHLTComponentDataType);
+      homer_uint64 id=reader->GetBlockDataType( i );
+      homer_uint32 origin=reader->GetBlockDataOrigin( i );
+      memcpy(&block.fDataType.fID, &id, sizeof(id)>kAliHLTComponentDataTypefIDsize?kAliHLTComponentDataTypefIDsize:sizeof(id));
+      memcpy(&block.fDataType.fOrigin, &origin, sizeof(origin)>kAliHLTComponentDataTypefOriginSize?kAliHLTComponentDataTypefOriginSize:sizeof(origin));
+      block.fSpecification=reader->GetBlockDataSpec( i );
+      block.fPtr=const_cast<void*>(reader->GetBlockData( i ));
+      block.fSize=reader->GetBlockDataLength( i );
+      inputBlocks.push_back(block);
+    }
+  }
+
   return 0;
 }

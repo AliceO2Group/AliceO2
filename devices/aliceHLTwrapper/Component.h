@@ -42,8 +42,22 @@ namespace ALICE
       int Init(int argc, char** argv);
 
       struct BufferDesc_t {
-	unsigned char* p;
-	unsigned size;
+	unsigned char* mP;
+	unsigned mSize;
+
+	BufferDesc_t(unsigned char* p, unsigned size) {
+	  mP=p; mSize=size;
+	}
+      };
+
+      enum {
+	// all blocks in HOMER format
+	kOutputModeHOMER=0,
+	// each block individually as part of a multi-part output
+	kOutputModeMultiPart,
+	// all blocks as sequence of header and payload
+	kOutputModeSequence,
+	kOutputModeLast
       };
 
       int Process(vector<BufferDesc_t>& dataArray);
@@ -56,9 +70,9 @@ namespace ALICE
       // assignment operator prohibited
       Component& operator=(const Component&);
 
-      // read a single block from message payload consisting of AliHLTComponentBlockData followed by
-      // the block data
-      int ReadSingleBlock(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks);
+      // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
+      // from a buffer
+      int ReadBlockSequence(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks);
 
       // read message payload in HOMER format
       int ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks);
@@ -72,6 +86,7 @@ namespace ALICE
       HOMERFactory*      mpFactory;
       AliHLTHOMERWriter* mpWriter;
       AliHLTComponentHandle mProcessor;
+      int mOutputMode;
     };
 
   }    // namespace hlt
