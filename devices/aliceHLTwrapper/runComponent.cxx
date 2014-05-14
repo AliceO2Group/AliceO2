@@ -93,11 +93,15 @@ int main(int argc, char** argv)
     return -iResult;
 
   // for now, only the first buffer is written
-  if (blockData.size()>0 && outputFileName!=NULL) {
+  if (blockData.size()>0) {
+    if (outputFileName!=NULL) {
     ofstream outputFile(outputFileName);
     if (outputFile.good()) {
       outputFile.write(reinterpret_cast<const char*>(blockData[0].mP), blockData[0].mSize);
       outputFile.close();
+    }
+    } else {
+      cerr << "WARNING: dropping " << blockData.size() << " data block(s) produced by component, use option '-o' to specify output file" << endl;
     }
   }
 }
