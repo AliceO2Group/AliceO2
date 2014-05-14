@@ -194,6 +194,9 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
     }
   }
   unsigned nofInputBlocks=inputBlocks.size();
+  if (dataArray.size()>0 && nofInputBlocks==0) {
+    cerr << "warning: none of " << dataArray.size() << " input buffers recognized as valid input" << endl;
+  }
 
   // add event type data block
   AliHLTComponentBlockData eventTypeBlock;
@@ -327,8 +330,8 @@ AliHLTHOMERWriter* Component::CreateHOMERFormat(AliHLTComponentBlockData* pOutpu
     homer_uint64 origin=0;
     memcpy(&id, pOutputBlock->fDataType.fID, sizeof(homer_uint64));
     memcpy(((AliHLTUInt8_t*)&origin)+sizeof(homer_uint32), pOutputBlock->fDataType.fOrigin, sizeof(homer_uint32));
-    homerDescriptor.SetType((id));
-    homerDescriptor.SetSubType1((origin));
+    homerDescriptor.SetType(ByteSwap64(id));
+    homerDescriptor.SetSubType1(ByteSwap64(origin));
     homerDescriptor.SetSubType2(pOutputBlock->fSpecification);
     homerDescriptor.SetBlockSize(pOutputBlock->fSize);
     writer->AddBlock(homerHeader, &mOutputBuffer[pOutputBlock->fOffset]);
@@ -345,18 +348,26 @@ int Component::ReadBlockSequence(AliHLTUInt8_t* buffer, unsigned size, vector<Al
   vector<AliHLTComponentBlockData> input;
   while (position+sizeof(AliHLTComponentBlockData)<size) {
     AliHLTComponentBlockData* p=reinterpret_cast<AliHLTComponentBlockData*>(buffer+position);
-    if (p->fStructSize+position>size ||          // no space for the header
+    if (p->fStructSize==0 ||                     // no valid header
+	p->fStructSize+position>size ||          // no space for the header
 	p->fStructSize+p->fSize+position>size) { // no space for the payload
       // the buffer is only a valid sequence of data blocks if payload
       // of the last block exacly matches the buffer boundary
       // otherwize all blocks added until now are ignored
-      return 0;
+      return -ENODATA;
     }
     // insert a new block
     input.push_back(*p);
     position+=p->fStructSize;
-    input.back().fPtr=buffer+position;
-    position+=p->fSize;
+    if (p->fSize>0) {
+      input.back().fPtr=buffer+position;
+      position+=p->fSize;
+    } else {
+      // Note: also a valid block, payload is optional
+      input.back().fPtr=NULL;
+    }
+    // offset always 0 for iput blocks
+    input.back().fOffset=0;
   }
 
   inputBlocks.insert(inputBlocks.end(), input.begin(), input.end());
@@ -366,19 +377,20 @@ int Component::ReadBlockSequence(AliHLTUInt8_t* buffer, unsigned size, vector<Al
 int Component::ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks)
 {
   // read message payload in HOMER format
-  if (buffer==NULL || mpFactory==NULL) return 0;
+  if (buffer==NULL || mpFactory==NULL) return -EINVAL;
   auto_ptr<AliHLTHOMERReader> reader(mpFactory->OpenReaderBuffer(buffer, size));
-  if (reader.get()==NULL) return 0;
+  if (reader.get()==NULL) return -ENOMEM;
 
+  unsigned nofBlocks=0;
   if (reader->ReadNextEvent()==0) {
-    unsigned nofBlocks=reader->GetBlockCnt();
+    nofBlocks=reader->GetBlockCnt();
     for (unsigned i=0; i<nofBlocks; i++) {
       AliHLTComponentBlockData block;
       memset(&block, 0, sizeof(AliHLTComponentBlockData));
       block.fStructSize=sizeof(AliHLTComponentBlockData);
       block.fDataType.fStructSize=sizeof(AliHLTComponentDataType);
-      homer_uint64 id=reader->GetBlockDataType( i );
-      homer_uint32 origin=reader->GetBlockDataOrigin( i );
+      homer_uint64 id=ByteSwap64(reader->GetBlockDataType( i ));
+      homer_uint32 origin=ByteSwap32(reader->GetBlockDataOrigin( i ));
       memcpy(&block.fDataType.fID, &id, sizeof(id)>kAliHLTComponentDataTypefIDsize?kAliHLTComponentDataTypefIDsize:sizeof(id));
       memcpy(&block.fDataType.fOrigin, &origin, sizeof(origin)>kAliHLTComponentDataTypefOriginSize?kAliHLTComponentDataTypefOriginSize:sizeof(origin));
       block.fSpecification=reader->GetBlockDataSpec( i );
@@ -388,5 +400,27 @@ int Component::ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<AliH
     }
   }
 
-  return 0;
+  return nofBlocks;
+}
+
+AliHLTUInt64_t Component::ByteSwap64(AliHLTUInt64_t src)
+{
+  // swap a 64 bit number
+  return ((src & 0xFFULL) << 56) | 
+    ((src & 0xFF00ULL) << 40) | 
+    ((src & 0xFF0000ULL) << 24) | 
+    ((src & 0xFF000000ULL) << 8) | 
+    ((src & 0xFF00000000ULL) >> 8) | 
+    ((src & 0xFF0000000000ULL) >> 24) | 
+    ((src & 0xFF000000000000ULL) >>  40) | 
+    ((src & 0xFF00000000000000ULL) >> 56);
+}
+
+AliHLTUInt32_t Component::ByteSwap32(AliHLTUInt32_t src)
+{
+  // swap a 32 bit number
+  return ((src & 0xFFULL) << 24) | 
+    ((src & 0xFF00ULL) << 8) | 
+    ((src & 0xFF0000ULL) >> 8) | 
+    ((src & 0xFF000000ULL) >> 24);
 }

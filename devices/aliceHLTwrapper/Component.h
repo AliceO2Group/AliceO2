@@ -62,6 +62,9 @@ namespace ALICE
 
       int Process(vector<BufferDesc_t>& dataArray);
 
+      AliHLTUInt64_t ByteSwap64(AliHLTUInt64_t src);
+      AliHLTUInt32_t ByteSwap32(AliHLTUInt32_t src);
+
     protected:
 
     private:
