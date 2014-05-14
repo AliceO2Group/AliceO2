@@ -19,24 +19,19 @@
 //  @since  2014-05-08
 //  @brief  FairRoot/ALFA device running ALICE HLT code
 
-#include "AliHLTDataTypes.h"
 #include "FairMQDevice.h"
 #include <vector>
-
-class AliHLTHOMERReader;
-class AliHLTHOMERWriter;
 
 namespace ALICE
 {
   namespace HLT
   {
-    class HOMERFactory;
-    class SystemInterface;
+    class Component;
 
     class WrapperDevice : public FairMQDevice {
     public:
       /// default constructor
-      WrapperDevice(const char* library="", const char* id="", const char* parameter="", unsigned runNumber=0);
+      WrapperDevice(int argc, char** argv);
       /// destructor
       ~WrapperDevice();
 
@@ -63,31 +58,8 @@ namespace ALICE
       // assignment operator prohibited
       WrapperDevice& operator=(const WrapperDevice&);
 
-      // send data blocks in a group of messages
-      int SendMultiMessages(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt);
-
-      // send data blocks in HOMER format in one message
-      int SendHOMERMessage(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt);
-
-      // read a single block from message payload consisting of AliHLTComponentBlockData followed by
-      // the block data
-      int ReadSingleBlock(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks);
-
-      // read message payload in HOMER format
-      int ReadHOMERMessage(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks);
-
-      string          mComponentLibrary;
-      string          mComponentId;
-      string          mComponentParameter;
-      unsigned        mRunNumber;
-      vector<AliHLTUInt8_t>            mOutputBuffer;
-      vector<AliHLTComponentBlockData> mOutputBlocks;
-
-      SystemInterface*   mpSystem;
-      HOMERFactory*      mpFactory;
-      AliHLTHOMERReader* mpReader;
-      AliHLTHOMERWriter* mpWriter;
-      AliHLTComponentHandle mProcessor;
+      Component* mComponent;
+      vector<char*> mArgv;
     };
 
   }    // namespace hlt
