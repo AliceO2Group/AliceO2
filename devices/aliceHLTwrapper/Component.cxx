@@ -197,6 +197,7 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
   if (dataArray.size()>0 && nofInputBlocks==0) {
     cerr << "warning: none of " << dataArray.size() << " input buffers recognized as valid input" << endl;
   }
+  dataArray.clear();
 
   // add event type data block
   AliHLTComponentBlockData eventTypeBlock;
@@ -249,7 +250,7 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
   } while (iResult==ENOSPC && --nofTrials>0);
     
   // prepare output
-  dataArray.clear();
+  if (outputBlockCnt>0) {
   if (mOutputMode==kOutputModeHOMER) {
     AliHLTHOMERWriter* pWriter=CreateHOMERFormat(pOutputBlocks, outputBlockCnt);
     if (pWriter) {
@@ -296,6 +297,7 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
   } else {
     // invalid output mode
     cerr << "error ALICE::HLT::Component: invalid output mode " << mOutputMode << endl; 
+  }
   }
 
   // cleanup

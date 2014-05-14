@@ -80,7 +80,7 @@ void WrapperDevice::Run()
   int errorCount=0;
   const int maxError=10;
 
-  vector</*const*/ FairMQMessage*> inputMessages(fNumInputs);
+  vector</*const*/ FairMQMessage*> inputMessages;
   while ( fState == RUNNING ) {
 
     // read input messages
@@ -92,7 +92,7 @@ void WrapperDevice::Run()
         received = fPayloadInputs->at(i)->Receive(msg.get());
 	if (received) {
 	  inputMessages.push_back(msg.release());
-          LOG(INFO) << "------ recieve Msg from " << i ;
+          //LOG(INFO) << "------ recieve Msg from " << i ;
 	}
       }
     }
@@ -111,6 +111,7 @@ void WrapperDevice::Run()
     }
 
     // build messages from output data
+    if (dataArray.size()>0) {
     auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
     if (msg.get() && fPayloadOutputs!=NULL && fPayloadOutputs->size()>0) {
       vector<ALICE::HLT::Component::BufferDesc_t>::iterator data=dataArray.begin();
@@ -144,6 +145,7 @@ void WrapperDevice::Run()
 	LOG(ERROR) << "can not get output message from framework";
       iResult=-ENOMSG;
     }
+    }
 
     // cleanup
     for (vector<FairMQMessage*>::iterator mit=inputMessages.begin();
@@ -163,6 +165,7 @@ void WrapperDevice::Pause()
   /// inherited from FairMQDevice
 
   // nothing to do
+  FairMQDevice::Pause();
 }
 
 void WrapperDevice::Shutdown()
@@ -171,16 +174,20 @@ void WrapperDevice::Shutdown()
 
   int iResult=0;
   // TODO: shutdown component and delte instance 
+
+  FairMQDevice::Shutdown();
 }
 
 void WrapperDevice::InitOutput()
 {
   /// inherited from FairMQDevice
 
+  FairMQDevice::InitOutput();
 }
 
 void WrapperDevice::InitInput()
 {
   /// inherited from FairMQDevice
 
+  FairMQDevice::InitInput();
 }

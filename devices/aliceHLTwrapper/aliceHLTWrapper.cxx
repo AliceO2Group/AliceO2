@@ -42,7 +42,7 @@ int main(int argc, char** argv)
   int numInputs=0;
   int numOutputs=0;
   std::string socketType;
-  int outputBufferSize=0;
+  int bufferSize=0;
   std::string connectMethod;
   std::string address;
   for (; iArg<argc; iArg++) {
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     case 3: std::stringstream(arg) >> numInputs; break;
     case 4: std::stringstream(arg) >> numOutputs; break;
     case 5: socketType=arg; break;
-    case 6: std::stringstream(arg) >> outputBufferSize; break;
+    case 6: std::stringstream(arg) >> bufferSize; break;
     case 7: connectMethod=arg; break;
     case 8: address=arg; break;
     default:
@@ -89,10 +89,19 @@ int main(int argc, char** argv)
   device.SetProperty(FairMQDevice::NumInputs, numInputs);
   device.SetProperty(FairMQDevice::NumOutputs, numOutputs);
   device.ChangeState(FairMQDevice::INIT);
-  device.SetProperty(FairMQDevice::OutputSocketType, socketType.c_str());
-  device.SetProperty(FairMQDevice::OutputSndBufSize, outputBufferSize, 0);
-  device.SetProperty(FairMQDevice::OutputMethod, connectMethod.c_str(), 0);
-  device.SetProperty(FairMQDevice::OutputAddress, address.c_str(), 0);
+  // TODO: this is for a quick test, extended configuration options
+  // necessary
+  if (numInputs>0) {
+    device.SetProperty(FairMQDevice::InputSocketType, socketType.c_str());
+    device.SetProperty(FairMQDevice::InputSndBufSize, bufferSize, 0);
+    device.SetProperty(FairMQDevice::InputMethod, connectMethod.c_str(), 0);
+    device.SetProperty(FairMQDevice::InputAddress, address.c_str(), 0);
+  } else if (numOutputs>0) {
+    device.SetProperty(FairMQDevice::OutputSocketType, socketType.c_str());
+    device.SetProperty(FairMQDevice::OutputSndBufSize, bufferSize, 0);
+    device.SetProperty(FairMQDevice::OutputMethod, connectMethod.c_str(), 0);
+    device.SetProperty(FairMQDevice::OutputAddress, address.c_str(), 0);
+  }
 
   device.ChangeState(FairMQDevice::SETOUTPUT);
   device.ChangeState(FairMQDevice::SETINPUT);
