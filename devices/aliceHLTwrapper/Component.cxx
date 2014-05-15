@@ -54,10 +54,10 @@ int Component::Init(int argc, char** argv)
   static struct option programOptions[] = {
     {"library",     required_argument, 0, 'l'},
     {"component",   required_argument, 0, 'c'},
-    {"parameter",   optional_argument, 0, 'p'},
+    {"parameter",   required_argument, 0, 'p'},
     {"run",         required_argument, 0, 'r'},
-    {"msgsize",     optional_argument, 0, 's'},
-    {"output-mode", optional_argument, 0, 'm'},
+    {"msgsize",     required_argument, 0, 's'},
+    {"output-mode", required_argument, 0, 'm'},
     {0, 0, 0, 0}
   };
 
@@ -78,6 +78,7 @@ int Component::Init(int argc, char** argv)
   // by the run no
   int runNumber=0;
 
+  optind=1; // indicate new start of scanning, especially when getop has been used in a higher layer already
   while ((c=getopt_long(argc, argv, "l:c:p:r:s:m:", programOptions, &iOption)) != -1) {
     switch (c) {
     case 'l':

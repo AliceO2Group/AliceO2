@@ -30,51 +30,110 @@ using std::cout;
 using std::cerr;
 using std::stringstream;
 
+  struct SocketProperties_t {
+    std::string type;
+    int         size;
+    std::string method;
+    std::string address;
+  };
+
 int main(int argc, char** argv)
 {
   int iResult=0;
 
   // parse options
-  int iArg=1;
-  bool bPrintUsage=true;
+  int iArg=0;
+  int iDeviceArg=-1;
+  bool bPrintUsage=false;
   std::string id;
   int numIoThreads=0;
   int numInputs=0;
   int numOutputs=0;
-  std::string socketType;
-  int bufferSize=0;
-  std::string connectMethod;
-  std::string address;
-  for (; iArg<argc; iArg++) {
-    char* arg=argv[iArg];
-    switch (iArg) {
-    case 1: id=arg; break;
-    case 2: std::stringstream(arg) >> numIoThreads; break;
-    case 3: std::stringstream(arg) >> numInputs; break;
-    case 4: std::stringstream(arg) >> numOutputs; break;
-    case 5: socketType=arg; break;
-    case 6: std::stringstream(arg) >> bufferSize; break;
-    case 7: connectMethod=arg; break;
-    case 8: address=arg; break;
+
+  vector<SocketProperties_t> inputSockets;
+  vector<SocketProperties_t> outputSockets;
+
+  static struct option programOptions[] = {
+    {"input",       required_argument, 0, 'i'},
+    {"output",      required_argument, 0, 'o'},
+    {0, 0, 0, 0}
+  };
+
+  enum socketkeyids{
+    TYPE = 0,
+    SIZE,
+    METHOD,
+    ADDRESS,
+    lastsocketkey
+  };
+
+  const char *socketkeys[] = {
+    [TYPE]    = "type",
+    [SIZE]    = "size",
+    [METHOD]  = "method",
+    [ADDRESS] = "address",
+    NULL
+  };
+
+  char c=0;
+  int iOption = 0;
+  opterr=false;
+  optind=1; // indicate new start of scanning
+  while ((c=getopt_long(argc, argv, "-i:o:", programOptions, &iOption)) != -1
+	 && bPrintUsage==false
+	 && iDeviceArg<0) {
+    switch (c) {
+    case 'i':
+    case 'o':
+      {
+	char* subopts = optarg;
+	char* value=NULL;
+	int keynum=0;
+	SocketProperties_t prop;
+	while (subopts && *subopts!=0 && *subopts != ' ') {
+	  char *saved = subopts;
+	  switch(getsubopt(&subopts, (char **)socketkeys, &value)) {
+	  case TYPE:    keynum++; prop.type=value;                       break;
+	  case SIZE:    keynum++; std::stringstream(value) >> prop.size; break;
+	  case METHOD:  keynum++; prop.method=value;                     break;
+	  case ADDRESS: keynum++; prop.address=value;                    break;
+	  default:
+	    keynum=0;
+	    break;
+	  }
+	}
+	if (bPrintUsage=(keynum<lastsocketkey)) {
+	  cerr << "invalid socket description format: required 'type=value,size=value,method=value,address=value'" << endl;
+	} else {
+	  if (c=='i') inputSockets.push_back(prop);
+	  else outputSockets.push_back(prop);
+	}
+      }
+      break;
+    case '?': // all remaining arguments passed to the device instance
+      iDeviceArg=optind-1;
+      break;
+    case '\1': // the first required arguments are without hyphens and in fixed order
+      switch (++iArg) {
+      case 1: id=optarg; break;
+      case 2: std::stringstream(optarg) >> numIoThreads; break;
+      default:
+	bPrintUsage=true;
+      }
+      break;
     default:
-      bPrintUsage=false;
-      break;
-    }
-    if (arg[0]=='-') {
-      // all options after the first one starting with '-' are propagated
-      // to the HLT component
-      break;
+      cerr << "unknown option: '"<< c << "'" << endl;
     }
   }
 
   if (bPrintUsage) {
-    cout << "Usage : " << argv[0] << " ID numIoThreads numInputs numOutputs socketType bufferSize connectMethod address componentArguments" << endl;
+    cout << "Usage : " << argv[0] << " ID numIoThreads [--input|--output type=value,size=value,method=value,address=value] componentArguments" << endl;
     return 0;
   }
 
   vector<char*> deviceArgs;
   deviceArgs.push_back(argv[0]);
-  deviceArgs.insert(deviceArgs.end(), argv+iArg, argv+argc);
+  deviceArgs.insert(deviceArgs.end(), argv+iDeviceArg, argv+argc);
   ALICE::HLT::WrapperDevice device(deviceArgs.size(), &deviceArgs[0]);
 
 #ifdef NANOMSG
@@ -83,24 +142,25 @@ int main(int argc, char** argv)
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
 #endif
 
+  numInputs=inputSockets.size();
+  numOutputs=outputSockets.size();
   device.SetTransport(transportFactory);
   device.SetProperty(FairMQDevice::Id, id.c_str());
   device.SetProperty(FairMQDevice::NumIoThreads, numIoThreads);
   device.SetProperty(FairMQDevice::NumInputs, numInputs);
   device.SetProperty(FairMQDevice::NumOutputs, numOutputs);
   device.ChangeState(FairMQDevice::INIT);
-  // TODO: this is for a quick test, extended configuration options
-  // necessary
-  if (numInputs>0) {
-    device.SetProperty(FairMQDevice::InputSocketType, socketType.c_str());
-    device.SetProperty(FairMQDevice::InputSndBufSize, bufferSize, 0);
-    device.SetProperty(FairMQDevice::InputMethod, connectMethod.c_str(), 0);
-    device.SetProperty(FairMQDevice::InputAddress, address.c_str(), 0);
-  } else if (numOutputs>0) {
-    device.SetProperty(FairMQDevice::OutputSocketType, socketType.c_str());
-    device.SetProperty(FairMQDevice::OutputSndBufSize, bufferSize, 0);
-    device.SetProperty(FairMQDevice::OutputMethod, connectMethod.c_str(), 0);
-    device.SetProperty(FairMQDevice::OutputAddress, address.c_str(), 0);
+  for (unsigned iInput=0; iInput<numInputs; iInput++) {
+    device.SetProperty(FairMQDevice::InputSocketType, inputSockets[iInput].type.c_str(), iInput);
+    device.SetProperty(FairMQDevice::InputSndBufSize, inputSockets[iInput].size, iInput);
+    device.SetProperty(FairMQDevice::InputMethod,     inputSockets[iInput].method.c_str(), iInput);
+    device.SetProperty(FairMQDevice::InputAddress,    inputSockets[iInput].address.c_str(), iInput);
+  }
+  for (unsigned iOutput=0; iOutput<numOutputs; iOutput++) {
+    device.SetProperty(FairMQDevice::OutputSocketType, outputSockets[iOutput].type.c_str(), iOutput);
+    device.SetProperty(FairMQDevice::OutputSndBufSize, outputSockets[iOutput].size, iOutput);
+    device.SetProperty(FairMQDevice::OutputMethod,     outputSockets[iOutput].method.c_str(), iOutput);
+    device.SetProperty(FairMQDevice::OutputAddress,    outputSockets[iOutput].address.c_str(), iOutput);
   }
 
   device.ChangeState(FairMQDevice::SETOUTPUT);
