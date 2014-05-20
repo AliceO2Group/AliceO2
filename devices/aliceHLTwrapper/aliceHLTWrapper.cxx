@@ -126,14 +126,21 @@ int main(int argc, char** argv)
     }
   }
 
-  if (bPrintUsage) {
+  numInputs=inputSockets.size();
+  numOutputs=outputSockets.size();
+  if (bPrintUsage || iDeviceArg<0 ||
+      (numInputs==0 && numOutputs==0)) {
+    cout << endl << argv[0] << ":" << endl;
+    cout << "        wrapper to run an ALICE HLT component in a FairRoot/ALFA device" << endl;
     cout << "Usage : " << argv[0] << " ID numIoThreads [--input|--output type=value,size=value,method=value,address=value] componentArguments" << endl;
+    cout << "        Multiple slots can be defined by --input/--output options" << endl;
     return 0;
   }
 
   vector<char*> deviceArgs;
   deviceArgs.push_back(argv[0]);
-  deviceArgs.insert(deviceArgs.end(), argv+iDeviceArg, argv+argc);
+  if (iDeviceArg>0)
+    deviceArgs.insert(deviceArgs.end(), argv+iDeviceArg, argv+argc);
   ALICE::HLT::WrapperDevice device(deviceArgs.size(), &deviceArgs[0]);
 
 #ifdef NANOMSG
@@ -142,8 +149,6 @@ int main(int argc, char** argv)
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
 #endif
 
-  numInputs=inputSockets.size();
-  numOutputs=outputSockets.size();
   device.SetTransport(transportFactory);
   device.SetProperty(FairMQDevice::Id, id.c_str());
   device.SetProperty(FairMQDevice::NumIoThreads, numIoThreads);
