@@ -2,7 +2,7 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/fairmq
   ${CMAKE_SOURCE_DIR}/fairmq/zeromq
   ${ZMQ_INCLUDE_DIR}
-  # ${Boost_INCLUDE_DIR}
+  ${Boost_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
 )
 
@@ -13,7 +13,7 @@ include_directories(${INCLUDE_DIRECTORIES})
 #configure_file( ${CMAKE_SOURCE_DIR}/example/flp2epn/run/startSomething.sh.in ${CMAKE_BINARY_DIR}/bin/startSomething.sh )
 
 set(LINK_DIRECTORIES
-  # ${Boost_LIBRARY_DIRS}
+  ${Boost_LIBRARY_DIRS}
 )
 
 link_directories(${LINK_DIRECTORIES})
