@@ -68,10 +68,10 @@ int main(int argc, char** argv)
   };
 
   const char *socketkeys[] = {
-    [TYPE]    = "type",
-    [SIZE]    = "size",
-    [METHOD]  = "method",
-    [ADDRESS] = "address",
+    /*[TYPE]    = */ "type",
+    /*[SIZE]    = */ "size",
+    /*[METHOD]  = */ "method",
+    /*[ADDRESS] = */ "address",
     NULL
   };
 

@@ -49,11 +49,9 @@ void WrapperDevice::Init()
   if (!component.get()) return /*-ENOMEM*/;
 
   if ((iResult=component->Init(mArgv.size(), &mArgv[0]))<0) {
-    LOG(ERROR) << "component init failed with error code" << iResult;
-    // the ALICE HLT external interface uses the following error definition
-    // 0 success
-    // >0 error number
-    return /*-iResult*/;
+    LOG(ERROR) << "component init failed with error code " << iResult;
+    throw std::runtime_error("component init failed");
+    return /*iResult*/;
   }
 
   mComponent=component.release();

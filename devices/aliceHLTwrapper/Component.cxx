@@ -156,8 +156,12 @@ int Component::Init(int argc, char** argv)
   }
 
   // create component
-  if ((iResult=mpSystem->CreateComponent(componentId, NULL, parameters.size(), &parameters[0], &mProcessor, ""))<0)
+  if ((iResult=mpSystem->CreateComponent(componentId, NULL, parameters.size(), &parameters[0], &mProcessor, ""))<0) {
+    // the ALICE HLT external interface uses the following error definition
+    // 0 success
+    // >0 error number
     return iResult>0?-iResult:iResult;
+  }
 
   return iResult;
 }
