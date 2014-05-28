@@ -46,10 +46,10 @@ typedef struct AliHLTTPCClusterMCLabel AliHLTTPCClusterMCLabel;
 struct AliHLTTPCClusterMCData 
 {
   AliHLTUInt32_t fCount;
-#if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC) || defined (__clang__)
+#if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC)
   AliHLTTPCClusterMCLabel fLabels[1];
 #else
-  AliHLTTPCClusterMCLabel fLabels[];
+  AliHLTTPCClusterMCLabel fLabels[0];
 #endif
 };
 
