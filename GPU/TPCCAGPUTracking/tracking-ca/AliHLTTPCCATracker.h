@@ -260,7 +260,7 @@ MEM_CLASS_PRE() class AliHLTTPCCATracker
   GPUd() static int CalculateHitWeight( int NHits, float chi2, int ) {
     const float chi2_suppress = 6.f;
     float weight = (((float) NHits * (chi2_suppress - chi2 / 500.f)) * (1e9 / chi2_suppress / 160.));
-    if (weight < 0 || weight > 2e9) weight = 0;
+    if (weight < 0. || weight > 2e9) return 0;
     return ( (int) weight );
     //return( (NHits << 16) + num);
   }
