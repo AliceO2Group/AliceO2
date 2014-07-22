@@ -57,5 +57,5 @@ void hltConfigurations()
       collectionInput+=cid;
     }
   }
-  liHLTConfiguration clustercollection("cluster-collection", "BlockFilter", collectionInput.Data(), "");
+  AliHLTConfiguration clustercollection("cluster-collection", "BlockFilter", collectionInput.Data(), "");
 }
