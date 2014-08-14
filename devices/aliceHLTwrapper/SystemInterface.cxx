@@ -85,12 +85,19 @@ int SystemInterface::InitSystem(unsigned long runNo)
   /// init the system: load interface libraries and read function pointers
   int iResult=0;
 
+    
   string libraryPath=ALIHLTANALYSIS_INTERFACE_LIBRARY;
 
   void* libHandle=dlopen(libraryPath.c_str(), RTLD_NOW);
   if (!libHandle) {
     cerr << "error: can not load library " << libraryPath.c_str() << endl;
-    return -ELIBACC;
+#ifdef __APPLE__
+      int returnvalue =-EFTYPE;
+#else
+      int returnvalue =-ELIBACC;
+#endif
+      
+    return returnvalue;
   }
 
   AliHLTAnalysisFctGetInterfaceCall fctGetSystemCall=(AliHLTAnalysisFctGetInterfaceCall)dlsym(libHandle, ALIHLTANALYSIS_FCT_GETINTERFACECALL);
