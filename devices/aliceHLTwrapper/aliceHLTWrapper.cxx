@@ -172,8 +172,11 @@ int main(int argc, char** argv)
   device.ChangeState(FairMQDevice::SETINPUT);
   device.ChangeState(FairMQDevice::RUN);
 
-  char ch;
-  cin.get(ch);
+  boost::unique_lock<boost::mutex> lock(device.fRunningMutex);
+  while (!device.fRunningFinished)
+  {
+      device.fRunningCondition.wait(lock);
+  }
 
   device.ChangeState(FairMQDevice::STOP);
   device.ChangeState(FairMQDevice::END);

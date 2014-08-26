@@ -156,6 +156,12 @@ void WrapperDevice::Run()
 
   rateLogger.interrupt();
   rateLogger.join();
+
+  Shutdown();
+
+  boost::lock_guard<boost::mutex> lock(fRunningMutex);
+  fRunningFinished = true;
+  fRunningCondition.notify_one();
 }
 
 void WrapperDevice::Pause()
