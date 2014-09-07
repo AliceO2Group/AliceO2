@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// $Id: AliTPCtrackerCA.h 53519 2011-12-11 11:47:40Z sgorbuno $
+// $Id$
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *

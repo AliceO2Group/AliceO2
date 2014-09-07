@@ -1,4 +1,4 @@
-// $Id: AliTPCtrackerCA.cxx 64473 2013-10-09 23:50:14Z sgorbuno $
+// $Id$
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -312,7 +312,7 @@ int AliTPCtrackerCA::LoadClusters ( TTree * fromTree )
       }
 
       transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
-      double xx[3] = {cluster->GetRow(), cluster->GetPad(), cluster->GetTimeBin()};
+      double xx[3] = {static_cast<double>(cluster->GetRow()), cluster->GetPad(), cluster->GetTimeBin()};
       int id[1] = {cluster->GetDetector()};
       transform->Transform( xx, id, 0, 1 );
 

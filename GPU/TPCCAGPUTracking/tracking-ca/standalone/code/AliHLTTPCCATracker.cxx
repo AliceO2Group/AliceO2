@@ -1,4 +1,4 @@
-// @(#) $Id: AliHLTTPCCATracker.cxx 64473 2013-10-09 23:50:14Z sgorbuno $
+// @(#) $Id$
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *
@@ -977,6 +977,18 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 	} while (fabs(tParam.Y()) > sliceNeighbour.Row(rowIndex).MaxY() && --maxRowGap);
 	if (maxRowGap == 0) return(0);
 
+#ifdef GLOBAL_TRACKING_MAINTAIN_TRACKLETS
+	int tmphits[HLTCA_ROW_COUNT];
+	for (int i = 0;i < HLTCA_ROW_COUNT;i++)
+	{
+#ifdef EXTERN_ROW_HITS
+		tmphits[i] = sliceNeighbour.TrackletRowHits()[i * *sliceNeighbour.NTracklets()];
+#else
+		tmphits[i] = sliceNeighbour.Tracklet(0).RowHit(i);
+#endif
+	}
+#endif
+
 	int nHits = AliHLTTPCCATrackletConstructor::AliHLTTPCCATrackletConstructorGlobalTracking(sliceNeighbour, tParam, rowIndex, direction);
 	if (nHits >= GLOBAL_TRACKING_MIN_HITS)
 	{
@@ -987,10 +999,15 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 			int i = 0;
 			while (i < nHits)
 			{
-				if (sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets] != -1)
+#ifdef EXTERN_ROW_HITS
+				const int rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
+#else
+				const int rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
+#endif
+				if (rowHit != -1)
 				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
-					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
+					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
 					if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), fParam.ConstBz(), .999);
 					i++;
 				}
@@ -1002,10 +1019,15 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 			int i = nHits - 1;
 			while (i >= 0)
 			{
-				if (sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets] != -1)
+#ifdef EXTERN_ROW_HITS
+				const int rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
+#else
+				const int rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
+#endif
+				if (rowHit != -1)
 				{
 					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
-					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
+					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
 					i--;
 				}
 				rowIndex--;
@@ -1019,9 +1041,21 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 		track.SetLocalTrackId(fParam.ISlice() * kMaxTrackIdInSlice + fTracks[iTrack].LocalTrackId());
 		sliceNeighbour.fCommonMem->fNTracks++;
 		sliceNeighbour.fCommonMem->fNTrackHits += nHits;
-		return(1);
+
 	}
-	return(0);
+
+#ifdef GLOBAL_TRACKING_MAINTAIN_TRACKLETS
+	for (int i = 0;i < HLTCA_ROW_COUNT;i++)
+	{
+#ifdef EXTERN_ROW_HITS
+		sliceNeighbour.TrackletRowHits()[i * *sliceNeighbour.NTracklets()] = tmphits[i];
+#else
+		sliceNeighbour.Tracklet(0).SetRowHit(i, tmphits[i]);
+#endif
+	}
+#endif
+
+	return(nHits >= GLOBAL_TRACKING_MIN_HITS);
 }
 
 GPUh() void AliHLTTPCCATracker::PerformGlobalTracking(AliHLTTPCCATracker& sliceLeft, AliHLTTPCCATracker& sliceRight, int MaxTracks)

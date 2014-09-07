@@ -32,7 +32,7 @@
 class AliHLTTPCCAStandaloneFramework
 {
 #ifdef HLTCA_STANDALONE
-	friend int DrawGLScene();
+	friend int DrawGLScene(bool DoAnimation);
 #endif
 
   public:

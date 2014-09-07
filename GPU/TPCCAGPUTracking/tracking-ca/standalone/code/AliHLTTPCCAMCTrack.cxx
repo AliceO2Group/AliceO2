@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCAMCTrack.cxx 48349 2011-03-12 02:19:58Z sgorbuno $
+// $Id$
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *

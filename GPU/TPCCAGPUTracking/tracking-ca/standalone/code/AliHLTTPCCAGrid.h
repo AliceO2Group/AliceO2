@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// $Id: AliHLTTPCCAGrid.h 36185 2009-11-02 07:19:00Z sgorbuno $
+// $Id$
 // ************************************************************************
 // This file is property of and copyright by the ALICE HLT Project        *
 // ALICE Experiment at CERN, All rights reserved.                         *
