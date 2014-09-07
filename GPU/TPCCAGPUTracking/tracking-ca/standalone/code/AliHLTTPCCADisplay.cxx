@@ -1,4 +1,4 @@
-// $Id: AliHLTTPCCADisplay.cxx 53176 2011-11-25 10:03:06Z richterm $
+// $Id$
 // **************************************************************************
 // This file is property of and copyright by the ALICE HLT Project          *
 // ALICE Experiment at CERN, All rights reserved.                           *

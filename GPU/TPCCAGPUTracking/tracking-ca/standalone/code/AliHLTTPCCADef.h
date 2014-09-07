@@ -126,6 +126,7 @@ namespace AliHLTTPCCADefinitions
 //#define GLOBAL_TRACKING_EXTRAPOLATE_ONLY			//Do not update the track parameters with new hits from global tracing
 #define GLOBAL_TRACKING_MIN_ROWS 10					//Min num of rows an additional global track must span over
 #define GLOBAL_TRACKING_MIN_HITS 8					//Min num of hits for an additional global track
+#define GLOBAL_TRACKING_MAINTAIN_TRACKLETS			//Maintain tracklets for standalone OpenGL event display
 
 #define REPRODUCIBLE_CLUSTER_SORTING
 

@@ -103,6 +103,8 @@ int updateDLList = 0;
 float pointSize = 2.0;
 float lineWidth = 1.5;
 
+int animate = 0;
+
 volatile int resetScene = 0;
 
 inline void SetColorClusters() {glColor3f(0, 0.7, 1.0);}
@@ -257,23 +259,25 @@ void DrawTracklets(AliHLTTPCCATracker& tracker)
 		const AliHLTTPCCATracklet &tracklet = tracker.Tracklet(i);
 		if (tracklet.NHits() == 0) continue;
 		glBegin(GL_LINE_STRIP);
+		float4 oldpos;
 		for (int j = tracklet.FirstRow();j <= tracklet.LastRow();j++)
 		{
 #ifdef EXTERN_ROW_HITS
-			if (tracker.TrackletRowHits()[j * *tracker.NTracklets() + i] != -1)
-			{
-				const AliHLTTPCCARow &row = tracker.Data().Row(j);
-				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, tracker.TrackletRowHits()[j * *tracker.NTracklets() + i]));
-				drawPointLinestrip(cid, 4);
-			}
+			const int rowHit = tracker.TrackletRowHits()[j * *tracker.NTracklets() + i];
 #else
-			if (tracklet.RowHit(j) != -1)
+			const int rowHit = tracklet.RowHit(j);
+#endif
+			if (rowHit != -1)
 			{
 				const AliHLTTPCCARow &row = tracker.Data().Row(j);
-				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, tracklet.RowHit(j)));
+				const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, rowHit));
+				if (j != tracklet.FirstRow())
+				{
+					float dist = (oldpos.x - globalPos[cid].x) * (oldpos.x - globalPos[cid].x) + (oldpos.y - globalPos[cid].y) * (oldpos.y - globalPos[cid].y) + (oldpos.z - globalPos[cid].z) * (oldpos.z - globalPos[cid].z);
+				}
+				oldpos = globalPos[cid];
 				drawPointLinestrip(cid, 4);
 			}
-#endif
 		}
 		glEnd();
 	}
@@ -443,7 +447,7 @@ void DrawGrid(AliHLTTPCCATracker& tracker)
 	glEnd();
 }
 
-int DrawGLScene()									// Here's Where We Do All The Drawing
+int DrawGLScene(bool doAnimation = false)									// Here's Where We Do All The Drawing
 {
 	static float fpsscale = 1;
 
@@ -455,6 +459,8 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	static GLuint glDLpoints[fgkNSlices][8];
 	static GLuint glDLgrid[fgkNSlices];
 	static int glDLcreated = 0;
+
+	static int nAnimatedFrame = 0;
 
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 
@@ -480,12 +486,37 @@ int DrawGLScene()									// Here's Where We Do All The Drawing
 	}
 
 	//Perform new rotation / translation
-	float moveZ = scalefactor * ((float) mouseWheelTmp / 150 + (float) (keys['W'] - keys['S']) * 0.2 * fpsscale);
-	float moveX = scalefactor * ((float) (keys['A'] - keys['D']) * 0.2 * fpsscale);
+	if (doAnimation)
+	{
+		float moveY = scalefactor * -0.14 * 0.25;
+		float moveX = scalefactor * -0.14;
+		static int nFrame = 0;
+		nFrame++;
+		float moveZ = 0;
+		if (nFrame > 570)
+		{
+			moveZ = scalefactor * 1.;
+		}
+		else if (nFrame > 510)
+		{
+			moveZ = scalefactor * 1.f * (nFrame - 510) / 60.f;
+		}
+		glTranslatef(moveX, moveY, moveZ);
+	}
+	else
+	{
+		float moveZ = scalefactor * ((float) mouseWheelTmp / 150 + (float) (keys['W'] - keys['S']) * 0.2 * fpsscale);
+		float moveX = scalefactor * ((float) (keys['A'] - keys['D']) * 0.2 * fpsscale);
+		glTranslatef(moveX, 0, moveZ);
+	}
 
-	glTranslatef(moveX, 0, moveZ);
-
-	if (mouseDnR && mouseDn)
+	if (doAnimation)
+	{
+		glRotatef(scalefactor * rotatescalefactor * -0.5, 0, 1, 0);
+		glRotatef(scalefactor * rotatescalefactor * 0.5 * 0.25, 1, 0, 0);
+		glRotatef(scalefactor * 0.2, 0, 0, 1);
+	}
+	else if (mouseDnR && mouseDn)
 	{
 		glTranslatef(0, 0, -scalefactor * ((float) mouseMvY - (float)mouseDnY) / 4);
 		glRotatef(scalefactor * ((float)mouseMvX - (float)mouseDnX), 0, 0, 1);
@@ -855,6 +886,110 @@ skip3:
 	return true;										// Keep Going
 }
 
+void DoScreenshot(char* filename, int SCALE_X, unsigned char** mixBuffer = NULL, float mixFactor = 0.)
+{
+
+//#define SCALE_X 3
+#define SCALE_Y SCALE_X
+
+	if (mixFactor < 0.f) mixFactor = 0.f;
+	if (mixFactor > 1.f) mixFactor = 1.f;
+
+	float tmpPointSize = pointSize;
+	float tmpLineWidth = lineWidth;
+	//pointSize *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
+	//lineWidth *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
+
+	if (animate)
+	{
+	}
+	else
+	{
+		pointSize *= 2;
+	}
+
+	GLint view[4], viewold[4];
+	glGetIntegerv(GL_VIEWPORT, viewold);
+	glGetIntegerv(GL_VIEWPORT, view);
+	view[2] *= SCALE_X;
+	view[3] *= SCALE_Y;
+	unsigned char* pixels = (unsigned char*) malloc(4 * view[2] * view[3]);
+
+	memset(pixels, 0, 4 * view[2] * view[3]);
+	unsigned char* pixels2 = (unsigned char*) malloc(4 * view[2] * view[3]);
+	for (int i = 0;i < SCALE_X;i++)
+	{
+		for (int j = 0;j < SCALE_Y;j++)
+		{
+			glViewport(-i * viewold[2], -j * viewold[3], view[2], view[3]);
+
+			DrawGLScene();
+			glPixelStorei(GL_PACK_ALIGNMENT, 1);
+			glReadBuffer(GL_BACK);
+			glReadPixels(0, 0, view[2], view[3], GL_RGBA, GL_UNSIGNED_BYTE, pixels2);
+			for (int k = 0;k < viewold[2];k++)
+			{
+				for (int l = 0;l < viewold[3];l++)
+				{
+					pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4] = pixels2[(l * view[2] + k) * 4 + 2];
+					pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 1] = pixels2[(l * view[2] + k) * 4 + 1];
+					pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 2] = pixels2[(l * view[2] + k) * 4];
+					pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 3] = 0;
+				}
+			}
+		}
+	}
+	free(pixels2);
+
+	if (mixBuffer)
+	{
+		if (*mixBuffer == NULL)
+		{
+			*mixBuffer = (unsigned char*) malloc(4 * view[2] * view[3]);
+			memcpy(*mixBuffer, pixels, 4 * view[2] * view[3]);
+		}
+		else
+		{
+			for (int i = 0;i < 4 * view[2] * view[3];i++)
+			{
+				pixels[i] = (*mixBuffer)[i] = (mixFactor * pixels[i] + (1.f - mixFactor) * (*mixBuffer)[i]);
+			}
+		}
+	}
+
+	if (filename)
+	{
+		FILE* fp = fopen(filename, "w+b");
+		int nEmptySync = 0, fEmpty;
+
+		BITMAPFILEHEADER bmpFH;
+		BITMAPINFOHEADER bmpIH;
+		ZeroMemory(&bmpFH, sizeof(bmpFH));
+		ZeroMemory(&bmpIH, sizeof(bmpIH));
+
+		bmpFH.bfType = 19778; //"BM"
+		bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + 3 * view[2] * view[3];
+		bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
+
+		bmpIH.biSize = sizeof(bmpIH);
+		bmpIH.biWidth = view[2];
+		bmpIH.biHeight = view[3];
+		bmpIH.biPlanes = 1;
+		bmpIH.biBitCount = 32;
+
+		fwrite(&bmpFH, 1, sizeof(bmpFH), fp);
+		fwrite(&bmpIH, 1, sizeof(bmpIH), fp); 	
+		fwrite(pixels, view[2] * view[3], 4, fp);
+		fclose(fp);
+	}
+	free(pixels);
+
+	glViewport(0, 0, viewold[2], viewold[3]);
+	pointSize = tmpPointSize;
+	lineWidth = tmpLineWidth;
+	DrawGLScene();
+}
+
 void HandleKeyRelease(int wParam)
 {
 	keys[wParam] = false;
@@ -879,6 +1014,10 @@ void HandleKeyRelease(int wParam)
 		Xscale++;
 		Zadd += 60;
 	}
+	if (wParam == 'Y')
+	{
+		animate = 1;
+	}
 
 	if (wParam == 'G') drawGrid ^= 1;
 	if (wParam == 'X') excludeClusters ^= 1;
@@ -891,79 +1030,11 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == '6') drawTracks ^= 1;
 	else if (wParam == '7') drawGlobalTracks ^= 1;
 	else if (wParam == '8') drawFinal ^= 1;
-#ifdef _WIN32
+#ifdef R__WIN32
 	else if (wParam == 'T')
 	{
 		printf("Taking Screenshot\n");
-
-#define SCALE_X 3
-#define SCALE_Y SCALE_X
-
-		float tmpPointSize = pointSize;
-		float tmpLineWidth = lineWidth;
-		//pointSize *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
-		//lineWidth *= (float) (SCALE_X + SCALE_Y) / 2. * 2.;
-		pointSize *= 2;
-
-		GLint view[4], viewold[4];
-		glGetIntegerv(GL_VIEWPORT, viewold);
-		glGetIntegerv(GL_VIEWPORT, view);
-		view[2] *= SCALE_X;
-		view[3] *= SCALE_Y;
-		char* pixels = (char*) malloc(4 * view[2] * view[3]);
-		memset(pixels, 0, 4 * view[2] * view[3]);
-		char* pixels2 = (char*) malloc(4 * view[2] * view[3]);
-		for (int i = 0;i < SCALE_X;i++)
-		{
-			for (int j = 0;j < SCALE_Y;j++)
-			{
-				glViewport(-i * viewold[2], -j * viewold[3], view[2], view[3]);
-
-				DrawGLScene();
-				glPixelStorei(GL_PACK_ALIGNMENT, 1);
-				glReadBuffer(GL_BACK);
-				glReadPixels(0, 0, view[2], view[3], GL_RGBA, GL_UNSIGNED_BYTE, pixels2);
-				for (int k = 0;k < viewold[2];k++)
-				{
-					for (int l = 0;l < viewold[3];l++)
-					{
-						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4] = pixels2[(l * view[2] + k) * 4 + 2];
-						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 1] = pixels2[(l * view[2] + k) * 4 + 1];
-						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 2] = pixels2[(l * view[2] + k) * 4];
-						pixels[((j * viewold[3] + l) * view[2] + i * viewold[2] + k) * 4 + 3] = 0;
-					}
-				}
-			}
-		}
-		free(pixels2);
-
-		FILE* fp = fopen("screenshot.bmp", "w+b");
-		int nEmptySync = 0, fEmpty;
-
-		BITMAPFILEHEADER bmpFH;
-		BITMAPINFOHEADER bmpIH;
-		ZeroMemory(&bmpFH, sizeof(bmpFH));
-		ZeroMemory(&bmpIH, sizeof(bmpIH));
-
-		bmpFH.bfType = 19778; //"BM"
-		bmpFH.bfSize = sizeof(bmpFH) + sizeof(bmpIH) + 3 * view[2] * view[3];
-		bmpFH.bfOffBits = sizeof(bmpFH) + sizeof(bmpIH);
-
-		bmpIH.biSize = sizeof(bmpIH);
-		bmpIH.biWidth = view[2];
-		bmpIH.biHeight = view[3];
-		bmpIH.biPlanes = 1;
-		bmpIH.biBitCount = 32;
-
-		fwrite(&bmpFH, 1, sizeof(bmpFH), fp);
-		fwrite(&bmpIH, 1, sizeof(bmpIH), fp); 	
-		fwrite(pixels, view[2] * view[3], 4, fp);
-		fclose(fp);
-		free(pixels);
-		glViewport(0, 0, viewold[2], viewold[3]);
-		pointSize = tmpPointSize;
-		lineWidth = tmpLineWidth;
-		DrawGLScene();
+		DoScreenshot("screenshot.bmp", 3);
 	}
 #endif
 	else if (wParam == 'O')
@@ -1160,7 +1231,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		PFD_SUPPORT_OPENGL |						// Format Must Support OpenGL
 		PFD_DOUBLEBUFFER,							// Must Support Double Buffering
 		PFD_TYPE_RGBA,								// Request An RGBA Format
-		bits,										// Select Our Color Depth
+		(unsigned char) bits,										// Select Our Color Depth
 		0, 0, 0, 0, 0, 0,							// Color Bits Ignored
 		0,											// No Alpha Buffer
 		0,											// Shift Bit Ignored
@@ -1349,7 +1420,7 @@ DWORD WINAPI OpenGLMain(LPVOID tmp)
 	fullscreen=FALSE;								// Windowed Mode
 
 	// Create Our OpenGL Window
-	if (!CreateGLWindow("Alice HLT TPC CA Event Display",1024,768,32,fullscreen))
+	if (!CreateGLWindow("Alice HLT TPC CA Event Display",1280,1080,32,fullscreen))
 	{
 		return 0;									// Quit If Window Was Not Created
 	}
@@ -1379,7 +1450,39 @@ DWORD WINAPI OpenGLMain(LPVOID tmp)
 				}
 				else								// Not Time To Quit, Update Screen
 				{
-					DrawGLScene();					// Draw The Scene
+					if (animate)
+					{
+						static int nFrame = 0;
+
+						DrawGLScene(true);
+						char filename[16];
+						sprintf(filename, "video%05d.bmp", nFrame++);
+						unsigned char* mixBuffer = NULL;
+						drawClusters = nFrame < 240;
+						drawSeeds = nFrame >= 90 && nFrame < 210;
+						drawTracklets = nFrame >= 210 && nFrame < 300;
+						pointSize = nFrame >= 90 ? 1.0 : 2.0;
+						drawTracks = nFrame >= 300 && nFrame < 390;
+						drawFinal = nFrame >= 390;
+						drawGlobalTracks = nFrame >= 480;
+						DoScreenshot(NULL, 1, &mixBuffer);
+
+						drawClusters = nFrame < 210;
+						drawSeeds = nFrame > 60 && nFrame < 180;
+						drawTracklets = nFrame >= 180 && nFrame < 270;
+						pointSize = nFrame > 60 ? 1.0 : 2.0;
+						drawTracks = nFrame > 270 && nFrame < 360;
+						drawFinal = nFrame > 360;
+						drawGlobalTracks = nFrame > 450;
+						DoScreenshot(filename, 1, &mixBuffer, (float) (nFrame % 30) / 30.f);
+
+						free(mixBuffer);
+						printf("Wrote video frame %s\n\n", filename);
+					}
+					else
+					{
+						DrawGLScene();				// Draw The Scene
+					}
 					SwapBuffers(hDC);				// Swap Buffers (Double Buffering)
 				}
 			}
