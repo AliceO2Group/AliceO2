@@ -39,6 +39,7 @@ Component::Component()
   , mpWriter(NULL)
   , mProcessor(kEmptyHLTComponentHandle)
   , mOutputMode(kOutputModeSequence)
+  , mEventCount(-1)
 {
 }
 
@@ -163,6 +164,8 @@ int Component::Init(int argc, char** argv)
     return iResult>0?-iResult:iResult;
   }
 
+  mEventCount=0;
+
   return iResult;
 }
 
@@ -176,6 +179,11 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
   AliHLTComponentEventData evtData;
   memset(&evtData, 0, sizeof(evtData));
   evtData.fStructSize=sizeof(evtData);
+  if (mEventCount>=0) {
+    // very simple approach to provide an event ID
+    // TODO: adjust to the relevant format if available
+    evtData.fEventID=mEventCount++;
+  }
 
   AliHLTComponentTriggerData trigData;
   memset(&trigData, 0, sizeof(trigData));

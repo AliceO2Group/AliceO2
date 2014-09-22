@@ -90,6 +90,7 @@ namespace ALICE
       AliHLTHOMERWriter* mpWriter;
       AliHLTComponentHandle mProcessor;
       int mOutputMode;
+      int mEventCount;
     };
 
   }    // namespace hlt
