@@ -50,6 +50,29 @@ namespace ALICE
       virtual void InitOutput();
       /// inherited from FairMQDevice
       virtual void InitInput();
+      /// inherited from FairMQDevice
+      /// handle device specific properties and forward to FairMQDevice::SetProperty
+      virtual void SetProperty(const int key, const string& value, const int slot = 0);
+      /// inherited from FairMQDevice
+      /// handle device specific properties and forward to FairMQDevice::GetProperty
+      virtual string GetProperty(const int key, const string& default_ = "", const int slot = 0);
+      /// inherited from FairMQDevice
+      /// handle device specific properties and forward to FairMQDevice::SetProperty
+      virtual void SetProperty(const int key, const int value, const int slot = 0);
+      /// inherited from FairMQDevice
+      /// handle device specific properties and forward to FairMQDevice::GetProperty
+      virtual int GetProperty(const int key, const int default_ = 0, const int slot = 0);
+
+      /////////////////////////////////////////////////////////////////
+      // device property identifier
+      enum
+	{
+	  Id = FairMQDevice::Last,
+	  PollingPeriod,
+	  SkipProcessing,
+	  Last
+	};
+
     protected:
 
     private:
@@ -58,8 +81,18 @@ namespace ALICE
       // assignment operator prohibited
       WrapperDevice& operator=(const WrapperDevice&);
 
-      Component* mComponent;
-      vector<char*> mArgv;
+      Component* mComponent;     // component instance
+      vector<char*> mArgv;       // array of arguments for the component
+
+      int mPollingPeriod;        // period of polling on input sockets in ms
+      int mSkipProcessing;       // skip component processing
+      int mLastCalcTime;         // start time of current statistic period
+      int mLastSampleTime;       // time of last data sample
+      int mMinTimeBetweenSample; // min time between data samples in statistic period
+      int mMaxTimeBetweenSample; // max time between data samples in statistic period
+      int mTotalReadCycles;      // tot number of read cycles in statistic period
+      int mMaxReadCycles;        // max number of read cycles in statistic period
+      int mNSamples;             // number of samples in statistic period
     };
 
   }    // namespace hlt

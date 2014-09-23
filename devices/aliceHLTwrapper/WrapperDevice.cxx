@@ -29,9 +29,30 @@
 #include <memory>
 using namespace ALICE::HLT;
 
+// the chrono lib needs C++11
+#if __cplusplus < 201103L
+#  warning statistics measurement for WrapperDevice disabled: need C++11 standard
+#else
+#  define USE_CHRONO
+#endif
+#ifdef USE_CHRONO
+#include <chrono>
+using std::chrono::system_clock;
+typedef std::chrono::milliseconds TimeScale;
+#endif //USE_CHRONO
+
 WrapperDevice::WrapperDevice(int argc, char** argv)
   : mComponent(NULL)
   , mArgv()
+  , mPollingPeriod(10)
+  , mSkipProcessing(0)
+  , mLastCalcTime(-1)
+  , mLastSampleTime(-1)
+  , mMinTimeBetweenSample(-1)
+  , mMaxTimeBetweenSample(-1)
+  , mTotalReadCycles(-1)
+  , mMaxReadCycles(-1)
+  , mNSamples(-1)
 {
   mArgv.insert(mArgv.end(), argv, argv+argc);
 }
@@ -55,6 +76,14 @@ void WrapperDevice::Init()
   }
 
   mComponent=component.release();
+  mLastCalcTime=-1;
+  mLastSampleTime=-1;
+  mMinTimeBetweenSample=-1;
+  mMaxTimeBetweenSample=-1;
+  mTotalReadCycles=0;
+  mMaxReadCycles=-1;
+  mNSamples=0;
+
   FairMQDevice::Init();
 }
 
@@ -63,6 +92,9 @@ void WrapperDevice::Run()
   /// inherited from FairMQDevice
   int iResult=0;
 
+#ifdef USE_CHRONO
+  static system_clock::time_point refTime = system_clock::now();
+#endif //USE_CHRONO
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
 
   FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
@@ -78,23 +110,70 @@ void WrapperDevice::Run()
   int errorCount=0;
   const int maxError=10;
 
-  vector</*const*/ FairMQMessage*> inputMessages;
+  vector</*const*/ FairMQMessage*> inputMessages(fNumInputs, NULL);
+  int nReadCycles=0;
   while ( fState == RUNNING ) {
 
     // read input messages
-    poller->Poll(100);
+    poller->Poll(mPollingPeriod);
+    int inputsReceived=0;
+    bool receivedAtLeastOneMessage=false;
     for(int i = 0; i < fNumInputs; i++) {
+      if (inputMessages[i]!=NULL) {
+	inputsReceived++;
+	continue;
+      }
       received = false;
       if (poller->CheckInput(i)){
 	auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
         received = fPayloadInputs->at(i)->Receive(msg.get());
 	if (received) {
-	  inputMessages.push_back(msg.release());
+	  receivedAtLeastOneMessage=true;
+	  inputMessages[i]=msg.release();
+	  inputsReceived++;
           //LOG(INFO) << "------ recieve Msg from " << i ;
 	}
       }
     }
+    if (receivedAtLeastOneMessage) nReadCycles++;
+    if (inputsReceived<fNumInputs) {
+      continue;
+    }
+    mNSamples++;
+    mTotalReadCycles+=nReadCycles;
+    if (mMaxReadCycles<0 || mMaxReadCycles<nReadCycles)
+      mMaxReadCycles=nReadCycles;
+    // if (nReadCycles>1) {
+    //   LOG(INFO) << "------ recieved complete Msg from " << fNumInputs << " input(s) after " << nReadCycles << " read cycles" ;
+    // }
+    nReadCycles=0;
+#ifdef USE_CHRONO
+    auto duration = std::chrono::duration_cast< TimeScale>(std::chrono::system_clock::now() - refTime);
 
+    if (mLastSampleTime>=0) {
+      int sampleTimeDiff=duration.count()-mLastSampleTime;
+      if (mMinTimeBetweenSample < 0 || sampleTimeDiff<mMinTimeBetweenSample)
+    	mMinTimeBetweenSample=sampleTimeDiff;
+      if (mMaxTimeBetweenSample < 0 || sampleTimeDiff>mMaxTimeBetweenSample)
+    	mMaxTimeBetweenSample=sampleTimeDiff;
+    }
+    mLastSampleTime=duration.count();
+    if (duration.count()-mLastCalcTime>fLogIntervalInMs) {
+      LOG(INFO) << "------ processed  " << mNSamples << " sample(s) ";
+      if (mNSamples>0) {
+    	LOG(INFO) << "------ min  " << mMinTimeBetweenSample << "ms, max " << mMaxTimeBetweenSample << "ms avrg " << (duration.count()-mLastCalcTime)/mNSamples << "ms ";
+    	LOG(INFO) << "------ avrg number of read cycles " << mTotalReadCycles/mNSamples << "  max number of read cycles " << mMaxReadCycles;
+      }
+      mNSamples=0;
+      mTotalReadCycles=0;
+      mMinTimeBetweenSample=-1;
+      mMaxTimeBetweenSample=-1;
+      mMaxReadCycles=-1;
+      mLastCalcTime=duration.count();
+    }
+#endif //USE_CHRONO
+
+    if (!mSkipProcessing) {
     // prepare input from messages
     vector<ALICE::HLT::Component::BufferDesc_t> dataArray;
     for (vector</*const*/ FairMQMessage*>::iterator msg=inputMessages.begin();
@@ -144,12 +223,14 @@ void WrapperDevice::Run()
       iResult=-ENOMSG;
     }
     }
+    }
 
     // cleanup
     for (vector<FairMQMessage*>::iterator mit=inputMessages.begin();
-	 mit!=inputMessages.end(); mit++)
+	 mit!=inputMessages.end(); mit++) {
       delete *mit;
-    inputMessages.clear();
+      *mit=NULL;
+    }
   }
 
   delete poller;
@@ -194,4 +275,46 @@ void WrapperDevice::InitInput()
   /// inherited from FairMQDevice
 
   FairMQDevice::InitInput();
+}
+
+void WrapperDevice::SetProperty(const int key, const string& value, const int slot)
+{
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::SetProperty
+  return FairMQDevice::SetProperty(key, value, slot);
+}
+
+string WrapperDevice::GetProperty(const int key, const string& default_, const int slot)
+{
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::GetProperty
+  return FairMQDevice::GetProperty(key, default_, slot);
+}
+
+void WrapperDevice::SetProperty(const int key, const int value, const int slot)
+{
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::SetProperty
+  switch (key) {
+  case PollingPeriod:
+    mPollingPeriod=value;
+    return;
+  case SkipProcessing:
+    mSkipProcessing=value;
+    return;
+  }
+  return FairMQDevice::SetProperty(key, value, slot);
+}
+
+int WrapperDevice::GetProperty(const int key, const int default_, const int slot)
+{
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::GetProperty
+  switch (key) {
+  case PollingPeriod:
+    return mPollingPeriod;
+  case SkipProcessing:
+    return mSkipProcessing;
+  }
+  return FairMQDevice::GetProperty(key, default_, slot);
 }
