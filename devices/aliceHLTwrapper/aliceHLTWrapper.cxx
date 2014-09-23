@@ -64,7 +64,7 @@ int main(int argc, char** argv)
     {"verbosity",   required_argument, 0, 'v'}, // verbosity
     {"loginterval", required_argument, 0, 'l'}, // logging interval
     {"poll-period", required_argument, 0, 'p'}, // polling period of the device in ms
-    {"dry-run",     required_argument, 0, 'n'}, // skip the component processing
+    {"dry-run",     no_argument      , 0, 'n'}, // skip the component processing
     {0, 0, 0, 0}
   };
 
@@ -88,7 +88,27 @@ int main(int argc, char** argv)
   int iOption = 0;
   opterr=false;
   optind=1; // indicate new start of scanning
-  while ((c=getopt_long(argc, argv, "-i:o:t:v:l:p:q:", programOptions, &iOption)) != -1
+
+  // build the string from the option definition
+  // hyphen in the beginning indicates custom handling for non-option elements
+  // a colon after the option indicates a required argument to that option
+  // two colons after the option indicate an optional argument
+  std::string optstring="-";
+  for (struct option* programOption=programOptions;
+       programOption!=NULL && programOption->name!=NULL;
+       programOption++) {
+    if (programOption->flag==NULL) {
+      // programOption->val uniquely identifies particular long option
+      optstring+=((char)programOption->val);
+      if (programOption->has_arg==required_argument)
+	optstring+=":"; // one colon to indicate required argument
+      if (programOption->has_arg==optional_argument)
+	optstring+="::"; // two colons to indicate optional argument
+    } else {
+      throw std::runtime_error("handling of program option flag is not yet implemented, please check option definitions");
+    }
+  }
+  while ((c=getopt_long(argc, argv, optstring.c_str(), programOptions, &iOption)) != -1
 	 && bPrintUsage==false
 	 && iDeviceArg<0) {
     switch (c) {
@@ -132,7 +152,7 @@ int main(int argc, char** argv)
       std::stringstream(optarg) >> pollingPeriod;
       break;
     case 'n':
-      std::stringstream(optarg) >> skipProcessing;
+      skipProcessing=1;
       break;
     case '?': // all remaining arguments passed to the device instance
       iDeviceArg=optind-1;
