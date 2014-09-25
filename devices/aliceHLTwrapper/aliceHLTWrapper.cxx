@@ -17,6 +17,7 @@
 
 #include "WrapperDevice.h"
 #include <iostream>
+#include <csignal>
 #include <getopt.h>
 #include <memory>
 #include <cstring>
@@ -35,6 +36,33 @@ using std::stringstream;
     std::string method;
     std::string address;
   };
+
+FairMQDevice* gDevice=NULL;
+static void s_signal_handler (int signal)
+{
+  cout << endl << "Caught signal " << signal << endl;
+
+  if (gDevice) {
+    gDevice->ChangeState(FairMQDevice::STOP);
+    gDevice->ChangeState(FairMQDevice::END);
+    cout << "Shutdown complete. Bye!" << endl;
+  } else {
+    cerr << "No device to shut down, ignoring signal ..." << endl;
+  }
+
+  exit(1);
+}
+
+static void s_catch_signals (void)
+{
+  struct sigaction action;
+  action.sa_handler = s_signal_handler;
+  action.sa_flags = 0;
+  sigemptyset(&action.sa_mask);
+  sigaction(SIGINT, &action, NULL);
+  sigaction(SIGQUIT, &action, NULL);
+  sigaction(SIGTERM, &action, NULL);
+}
 
 int main(int argc, char** argv)
 {
@@ -223,7 +251,16 @@ int main(int argc, char** argv)
   deviceArgs.push_back(argv[0]);
   if (iDeviceArg>0)
     deviceArgs.insert(deviceArgs.end(), argv+iDeviceArg, argv+argc);
-  ALICE::HLT::WrapperDevice device(deviceArgs.size(), &deviceArgs[0]);
+
+  gDevice=new ALICE::HLT::WrapperDevice(deviceArgs.size(), &deviceArgs[0]);
+  if (!gDevice) {
+    cerr << "failed to create device"  << endl;
+    return -ENODEV;
+  }
+  s_catch_signals();
+
+  { // scope for the device reference variable
+  FairMQDevice& device=*gDevice;
 
   device.SetTransport(transportFactory);
   device.SetProperty(FairMQDevice::Id, id.c_str());
@@ -256,9 +293,11 @@ int main(int argc, char** argv)
   {
       device.fRunningCondition.wait(lock);
   }
+  } // scope for the device reference variable
 
-  device.ChangeState(FairMQDevice::STOP);
-  device.ChangeState(FairMQDevice::END);
+  FairMQDevice* almostdead=gDevice;
+  gDevice=NULL;
+  delete almostdead;
 
   return iResult;
 }
