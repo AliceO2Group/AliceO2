@@ -273,13 +273,20 @@ int main(int argc, char** argv)
   device.ChangeState(FairMQDevice::INIT);
   for (unsigned iInput=0; iInput<numInputs; iInput++) {
     device.SetProperty(FairMQDevice::InputSocketType, inputSockets[iInput].type.c_str(), iInput);
+    // set High-water-mark for the sockets. in ZMQ, depending on the socket type, some
+    // have only send buffers (PUB, PUSH), some only receive buffers (SUB, PULL), and
+    // some have both (DEALER, ROUTER, PAIR, REQ, REP)
+    // we set both snd and rcv to the same value for the moment
     device.SetProperty(FairMQDevice::InputSndBufSize, inputSockets[iInput].size, iInput);
+    device.SetProperty(FairMQDevice::InputRcvBufSize, inputSockets[iInput].size, iInput);
     device.SetProperty(FairMQDevice::InputMethod,     inputSockets[iInput].method.c_str(), iInput);
     device.SetProperty(FairMQDevice::InputAddress,    inputSockets[iInput].address.c_str(), iInput);
   }
   for (unsigned iOutput=0; iOutput<numOutputs; iOutput++) {
     device.SetProperty(FairMQDevice::OutputSocketType, outputSockets[iOutput].type.c_str(), iOutput);
+    // we set both snd and rcv to the same value for the moment, see above
     device.SetProperty(FairMQDevice::OutputSndBufSize, outputSockets[iOutput].size, iOutput);
+    device.SetProperty(FairMQDevice::OutputRcvBufSize, outputSockets[iOutput].size, iOutput);
     device.SetProperty(FairMQDevice::OutputMethod,     outputSockets[iOutput].method.c_str(), iOutput);
     device.SetProperty(FairMQDevice::OutputAddress,    outputSockets[iOutput].address.c_str(), iOutput);
   }
