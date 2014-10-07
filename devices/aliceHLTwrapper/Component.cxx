@@ -212,6 +212,13 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
   }
   dataArray.clear();
 
+  // determine the total input size, needed later on for the calculation of the output buffer size
+  int totalInputSize=0;
+  for (vector<AliHLTComponentBlockData>::const_iterator ci=inputBlocks.begin();
+       ci!=inputBlocks.end(); ci++) {
+    totalInputSize+=ci->fSize;
+  }
+
   // add event type data block
   AliHLTComponentBlockData eventTypeBlock;
   memset(&eventTypeBlock, 0, sizeof(eventTypeBlock));
@@ -229,7 +236,10 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
     unsigned long constBlockBase=0;
     double inputBlockMultiplier=0.;
     mpSystem->GetOutputSize(mProcessor, &constEventBase, &constBlockBase, &inputBlockMultiplier);
-    outputBufferSize=constEventBase+nofInputBlocks*constBlockBase;
+    outputBufferSize=constEventBase+nofInputBlocks*constBlockBase+totalInputSize*inputBlockMultiplier;
+    // take the full available buffer and increase if that
+    // is too little
+    mOutputBuffer.resize(mOutputBuffer.capacity());
     if (mOutputBuffer.size()<outputBufferSize) {
       mOutputBuffer.resize(outputBufferSize);
     } else if (nofTrials<2) {
@@ -261,7 +271,7 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
     }
 
   } while (iResult==ENOSPC && --nofTrials>0);
-    
+
   // prepare output
   if (outputBlockCnt>0) {
   if (mOutputMode==kOutputModeHOMER) {

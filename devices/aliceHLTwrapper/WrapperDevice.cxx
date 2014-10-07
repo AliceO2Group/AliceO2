@@ -184,7 +184,7 @@ void WrapperDevice::Run()
 
     // call the component
     if ((iResult=mComponent->Process(dataArray))<0) {
-      LOG(ERROR) << "component processing failed with error code" << iResult;
+      LOG(ERROR) << "component processing failed with error code " << iResult;
     }
 
     // build messages from output data
