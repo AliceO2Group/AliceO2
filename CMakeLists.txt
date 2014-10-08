@@ -165,6 +165,7 @@ add_subdirectory (AliGenerators)
 add_subdirectory (its)
 add_subdirectory (passive)
 add_subdirectory (field)  
+add_subdirectory (devices)  
 
 WRITE_CONFIG_FILE(config.sh)
  
