@@ -1,0 +1,92 @@
+
+1) Software packages
+====================
+a) install all external packages needed for FairRoot
+----------------------------------------------------
+installation script
+   git clone https://github.com/FairRootGroup/FairSoft
+
+b) FairRoot
+-----------
+   export ALFA_INSTALL_DIR=<installation directory>
+   git clone https://github.com/FairRootGroup/FairRoot
+   cd FairRoot
+   mkdir build
+   cd build
+   cmake -D$ALFA_INSTALL_DIR -DCMAKE_BUILD_TYPE=Debug ..
+   make install
+
+c) install AliRoot
+------------------
+add library directory to LD_LIBRARY_PATH
+
+d) set up development clone
+---------------------------
+   git remote add --no-tags matthias gitolite@git.uio.no:u/mrichter/FairRoot
+   git remote update matthias
+   git branch --track alicehlt remotes/matthias/alicehlt
+   git checkout alicehlt # code can be found in example/alicehlt
+   make install # in the build directory
+
+
+2) Environment
+==============
+AliRoot, FairRoot and external packages need to be set up, in particular
+library directories need to be added to LD LIBRARY PATH, bin folder to
+PATH, e.g.
+
+   export SIMPATH=<path to external package folder>
+   export ALFA_INSTALL_DIR=<path to FairRoot installation>
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SIMPATH/lib
+   export PATH=$PATH:$SIMPATH/bin
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ALFA_INSTALL_DIR/lib
+   export PATH=$PATH:$ALFA_INSTALL_DIR/bin
+
+Path to the OCDB copy used for running the HLT components
+
+   export ALIHLT_HCDBDIR=local://./OCDB
+
+3) Test Data
+============
+Generate binary files of HLT TPC clusters to be used by FilePublishers of a simple processing topology,
+e.g. 6 publishers (one full slice/sector of the TPC) to one tracker instance
+Using:
+macro example/alice/hlt/macros/hltConfigurations.C to define a custom chain
+macro $ALICE_ROOT/HLT/exa/recraw-local.C to run the HLT chain embedded to AliRoot reconstruction
+
+   ln -s $ALICE_ROOT/HLT/exa/recraw-local.C
+   ln -s $ALICE_ROOT/HLT/exa/EnableHLTInGRP.C
+   aliroot -b -q -l hltConfigurations.C recraw-local.C’("raw.root", "raw://", 0, 0, "HLT TPC", "loglevel=0x79 chains=cluster-collection", "local://./OCDB")’
+   aliroot -b -q -l EnableHLTInGRP.C’(167808, "local://./OCDB", "local://./OCDB")’
+   rm galice.root QA.root
+   aliroot -b -q -l hltConfigurations.C recraw-local.C’("raw.root", "local://OCDB", -1, -1, "HLT", "loglevel=0x79 chains=cluster-collection")’ 2>&1 | tee cluster-collection.log
+
+Runs HLT TPC cluster emulation, binary files stored in emulated-tpc-clusters
+configuration files emulated-tpc-clusters *.txt for FilePublisher components
+
+Be aware that there might be crashes of the AliRoot framework after the last event has been
+processed. That does not effect the generation of the test data.
+
+4) Running the Wrapper
+======================
+Three groups of parameters:
+a) device specific arguments: id and number of i/o threads
+
+b) flexible input and output slot configuration, multiple arguments possible
+   --output|--input type=<value>,size=<size>,method=<value>,address=<value>
+
+c) HLT component arguments: library, component id, parameters, run number
+   --library <library name> --component <component id> --run <no>
+
+NOTE: have to be in that fixed sequence!!!
+
+Example:
+   aliceHLTWrapper ClusterPublisher_0x00000000 1 \
+    --input type=pull,size=1000,method=bind,address=tcp://*:45000 \
+    --output type=push,size=1000,method=connect,address=tcp://localhost:45001 \
+    --library libAliHLTUtil.so --component FilePublisher --run 167808 \
+    --parameter ’-datafilelist emulated-tpc-clusters_0x00000000.txt’
+
+Complex topology:
+Helper script to create the commands to launch multiple processes
+   createLaunchCommands.sh
