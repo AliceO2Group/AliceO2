@@ -3,12 +3,12 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/fairmq/zeromq
   ${CMAKE_SOURCE_DIR}/fairmq/nanomsg
   ${Boost_INCLUDE_DIR}
-  ${CMAKE_SOURCE_DIR}/example/flp2epn-dynamic
+  ${CMAKE_SOURCE_DIR}/example/devices/flp2epn-dynamic
 )
 
 include_directories(${INCLUDE_DIRECTORIES})
 
-configure_file( ${CMAKE_SOURCE_DIR}/example/flp2epn-dynamic/run/startFLP2EPN-dynamic.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN-dynamic.sh )
+configure_file( ${CMAKE_SOURCE_DIR}/example/devices/flp2epn-dynamic/run/startFLP2EPN-dynamic.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN-dynamic.sh )
 
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}

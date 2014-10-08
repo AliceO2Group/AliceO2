@@ -3,13 +3,13 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/fairmq/zeromq
   ${CMAKE_SOURCE_DIR}/fairmq/nanomsg
   ${Boost_INCLUDE_DIR}
-  ${CMAKE_SOURCE_DIR}/example/flp2epn
+  ${CMAKE_SOURCE_DIR}/example/devices/flp2epn
 )
 
 include_directories(${INCLUDE_DIRECTORIES})
 
-configure_file( ${CMAKE_SOURCE_DIR}/example/flp2epn/run/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh )
-configure_file( ${CMAKE_SOURCE_DIR}/example/flp2epn/run/startMerger.sh.in ${CMAKE_BINARY_DIR}/bin/startMerger.sh )
+configure_file( ${CMAKE_SOURCE_DIR}/example/devices/flp2epn/run/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh )
+configure_file( ${CMAKE_SOURCE_DIR}/example/devices/flp2epn/run/startMerger.sh.in ${CMAKE_BINARY_DIR}/bin/startMerger.sh )
 
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
