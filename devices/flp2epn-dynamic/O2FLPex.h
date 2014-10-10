@@ -27,13 +27,12 @@ class O2FLPex: public FairMQDevice
     enum {
       InputFile = FairMQDevice::Last,
       EventSize,
-      Last,
       OutputHeartbeat,
-      HeartbeatTimeoutInMs
+      HeartbeatTimeoutInMs,
+      Last
     };
     O2FLPex();
     virtual ~O2FLPex();
-    void Log(int intervalInMs);
 
     virtual void SetProperty(const int key, const string& value, const int slot = 0);
     virtual string GetProperty(const int key, const string& default_ = "", const int slot = 0);
@@ -44,12 +43,11 @@ class O2FLPex: public FairMQDevice
 
   protected:
     int fEventSize;
+    int fHeartbeatTimeoutInMs;
 
     virtual void Init();
     virtual void Run();
-    
-    int fHeartbeatTimeoutInMs;
-    
+
   private:
     vector<boost::posix_time::ptime> fOutputHeartbeat;
     bool updateIPHeartbeat (string str);

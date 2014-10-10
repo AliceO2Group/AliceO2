@@ -23,7 +23,7 @@ set(SRCS
 set(DEPENDENCIES
   ${DEPENDENCIES}
   ${CMAKE_THREAD_LIBS_INIT}
-  boost_date_time boost_thread boost_timer boost_system FairMQ
+  boost_date_time boost_thread boost_timer boost_system boost_program_options FairMQ
 )
 
 set(LIBRARY_NAME FLP2EPNex_dynamic)

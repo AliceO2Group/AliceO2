@@ -1,36 +1,21 @@
 #!/bin/bash
 
-if(@NANOMSG_FOUND@); then
-    buffSize="50000000" # nanomsg buffer size is in bytes
-else
-    buffSize="1000" # zeromq high-water mark is in messages
-fi
+buffSize="1000" # zeromq high-water mark is in messages
+#buffSize="50000000" # nanomsg buffer size is in bytes
 
-ID="101"
-eventSize="10000"
-numIoThreads="1"
-outputSocketType="push"
-outputBufSize=$buffSize
-outputMethod="connect"
-outputAddress="tcp://localhost:5565"
-xterm -e @CMAKE_BINARY_DIR@/bin/testFLP $ID $eventSize $numIoThreads $outputSocketType $outputBufSize $outputMethod $outputAddress &
+FLP0="testFLP"
+FLP0+=" --id 101"
+FLP0+=" --event-size 10000"
+FLP0+=" --output-socket-type push --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5565"
+xterm -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
 
-ID="201"
-numIoThreads="1"
-inputSocketType="pull"
-inputRcvBufSize=$buffSize
-inputMethod="bind"
-inputAddress="tcp://*:5565"
-outputSocketType="push"
-outputSndBufSize=$buffSize
-outputMethod="bind"
-outputAddress="tcp://*:5566"
-xterm -e @CMAKE_BINARY_DIR@/bin/testProxy $ID $numIoThreads $inputSocketType $inputRcvBufSize $inputMethod $inputAddress $outputSocketType $outputSndBufSize $outputMethod $outputAddress &
+PROXY="testProxy"
+PROXY+=" --id 201"
+PROXY+=" --input-socket-type pull --input-buff-size $buffSize --input-method bind --input-address tcp://*:5565"
+PROXY+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5566"
+xterm -e @CMAKE_BINARY_DIR@/bin/$PROXY &
 
-ID="301"
-numIoThreads="1"
-inputSocketType="pull"
-inputRcvBufSize=$buffSize
-inputMethod="connect"
-inputAddress="tcp://localhost:5566"
-xterm -e @CMAKE_BINARY_DIR@/bin/testEPN $ID $numIoThreads $inputSocketType $inputRcvBufSize $inputMethod $inputAddress &
+EPN0="testEPN"
+EPN0+=" --id 301"
+EPN0+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://127.0.0.1:5566"
+xterm -e @CMAKE_BINARY_DIR@/bin/$EPN0 &

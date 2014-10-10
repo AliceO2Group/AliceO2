@@ -1,142 +1,67 @@
 #!/bin/bash
 
-if(@NANOMSG_FOUND@); then
-    buffSize="50000000" # nanomsg buffer size is in bytes
-else
-    buffSize="1000" # zeromq high-water mark is in messages
-fi
+buffSize="1000" # zeromq high-water mark is in messages
+#buffSize="50000000" # nanomsg buffer size is in bytes
 
-ID="101"
-eventSize="1000"
-numIoThreads="1"
-numOutputs="3"
-heartbeatTimeoutInMs="20000"
-inputSocketType="sub"
-inputBufSize=$buffSize
-inputMethod="bind"
-inputAddress="tcp://127.0.0.1:5580"
-outputSocketType1="pub"
-outputBufSize1=$buffSize
-outputMethod1="connect"
-outputAddress1="tcp://127.0.0.1:5560"
-outputSocketType2="pub"
-outputBufSize2=$buffSize
-outputMethod2="connect"
-outputAddress2="tcp://127.0.0.1:5561"
-outputSocketType3="pub"
-outputBufSize3=$buffSize
-outputMethod3="connect"
-outputAddress3="tcp://127.0.0.1:5562"
-xterm -e @CMAKE_BINARY_DIR@/bin/testFLP_dynamic $ID $eventSize $numIoThreads $numOutputs $heartbeatTimeoutInMs $inputSocketType $inputBufSize $inputMethod $inputAddress $outputSocketType1 $outputBufSize1 $outputMethod1 $outputAddress1 $outputSocketType2 $outputBufSize2 $outputMethod2 $outputAddress2 $outputSocketType3 $outputBufSize3 $outputMethod3 $outputAddress3 &
+FLP0="testFLP_dynamic"
+FLP0+=" --id 0"
+FLP0+=" --event-size 1000"
+FLP0+=" --num-outputs 3"
+FLP0+=" --heartbeat-timeout 20000"
+FLP0+=" --input-socket-type sub --input-buff-size $buffSize --input-method bind --input-address tcp://127.0.0.1:5580"
+FLP0+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5560"
+FLP0+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5561"
+FLP0+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5562"
+xterm -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
 
-ID="102"
-eventSize="1000"
-numIoThreads="1"
-numOutputs="3"
-heartbeatTimeoutInMs="20000"
-inputSocketType="sub"
-inputBufSize=$buffSize
-inputMethod="bind"
-inputAddress="tcp://127.0.0.1:5581"
-outputSocketType1="pub"
-outputBufSize1=$buffSize
-outputMethod1="connect"
-outputAddress1="tcp://127.0.0.1:5560"
-outputSocketType2="pub"
-outputBufSize2=$buffSize
-outputMethod2="connect"
-outputAddress2="tcp://127.0.0.1:5561"
-outputSocketType3="pub"
-outputBufSize3=$buffSize
-outputMethod3="connect"
-outputAddress3="tcp://127.0.0.1:5562"
-xterm -e @CMAKE_BINARY_DIR@/bin/testFLP_dynamic $ID $eventSize $numIoThreads $numOutputs $heartbeatTimeoutInMs $inputSocketType $inputBufSize $inputMethod $inputAddress $outputSocketType1 $outputBufSize1 $outputMethod1 $outputAddress1 $outputSocketType2 $outputBufSize2 $outputMethod2 $outputAddress2 $outputSocketType3 $outputBufSize3 $outputMethod3 $outputAddress3 &
+FLP1="testFLP_dynamic"
+FLP1+=" --id 1"
+FLP1+=" --event-size 1000"
+FLP1+=" --num-outputs 3"
+FLP1+=" --heartbeat-timeout 20000"
+FLP1+=" --input-socket-type sub --input-buff-size $buffSize --input-method bind --input-address tcp://127.0.0.1:5581"
+FLP1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5560"
+FLP1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5561"
+FLP1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5562"
+xterm -e @CMAKE_BINARY_DIR@/bin/$FLP1 &
 
-ID="103"
-eventSize="1000"
-numIoThreads="1"
-numOutputs="3"
-heartbeatTimeoutInMs="20000"
-inputSocketType="sub"
-inputBufSize=$buffSize
-inputMethod="bind"
-inputAddress="tcp://127.0.0.1:5582"
-outputSocketType1="pub"
-outputBufSize1=$buffSize
-outputMethod1="connect"
-outputAddress1="tcp://127.0.0.1:5560"
-outputSocketType2="pub"
-outputBufSize2=$buffSize
-outputMethod2="connect"
-outputAddress2="tcp://127.0.0.1:5561"
-outputSocketType3="pub"
-outputBufSize3=$buffSize
-outputMethod3="connect"
-outputAddress3="tcp://127.0.0.1:5562"
-xterm -e @CMAKE_BINARY_DIR@/bin/testFLP_dynamic $ID $eventSize $numIoThreads $numOutputs $heartbeatTimeoutInMs $inputSocketType $inputBufSize $inputMethod $inputAddress $outputSocketType1 $outputBufSize1 $outputMethod1 $outputAddress1 $outputSocketType2 $outputBufSize2 $outputMethod2 $outputAddress2 $outputSocketType3 $outputBufSize3 $outputMethod3 $outputAddress3 &
+FLP2="testFLP_dynamic"
+FLP2+=" --id 2"
+FLP2+=" --event-size 1000"
+FLP2+=" --num-outputs 3"
+FLP2+=" --heartbeat-timeout 20000"
+FLP2+=" --input-socket-type sub --input-buff-size $buffSize --input-method bind --input-address tcp://127.0.0.1:5582"
+FLP2+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5560"
+FLP2+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5561"
+FLP2+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5562"
+xterm -e @CMAKE_BINARY_DIR@/bin/$FLP2 &
 
-ID="201"
-numIoThreads="1"
-numOutputs="3"
-heartbeatIntervalInMs="5000"
-inputSocketType="sub"
-inputRcvBufSize=$buffSize
-inputMethod="bind"
-inputAddress="tcp://127.0.0.1:5560"
-outputSocketType1="pub"
-outputBufSize1=$buffSize
-outputMethod1="connect"
-outputAddress1="tcp://127.0.0.1:5580"
-outputSocketType2="pub"
-outputBufSize2=$buffSize
-outputMethod2="connect"
-outputAddress2="tcp://127.0.0.1:5581"
-outputSocketType3="pub"
-outputBufSize3=$buffSize
-outputMethod3="connect"
-outputAddress3="tcp://127.0.0.1:5582"
-xterm -e @CMAKE_BINARY_DIR@/bin/testEPN_dynamic $ID $numIoThreads $numOutputs $heartbeatIntervalInMs $inputSocketType $inputRcvBufSize $inputMethod $inputAddress $outputSocketType1 $outputBufSize1 $outputMethod1 $outputAddress1 $outputSocketType2 $outputBufSize2 $outputMethod2 $outputAddress2 $outputSocketType3 $outputBufSize3 $outputMethod3 $outputAddress3 &
+EPN0="testEPN_dynamic"
+EPN0+=" --id EPN0"
+EPN0+=" --num-outputs 3"
+EPN0+=" --heartbeat-interval 5000"
+EPN0+=" --input-socket-type sub --input-buff-size $buffSize --input-method bind --input-address tcp://127.0.0.1:5560"
+EPN0+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5580"
+EPN0+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5581"
+EPN0+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5582"
+xterm -e @CMAKE_BINARY_DIR@/bin/$EPN0 &
 
-ID="202"
-numIoThreads="1"
-numOutputs="3"
-heartbeatIntervalInMs="5000"
-inputSocketType="sub"
-inputRcvBufSize=$buffSize
-inputMethod="bind"
-inputAddress="tcp://127.0.0.1:5561"
-outputSocketType1="pub"
-outputBufSize1=$buffSize
-outputMethod1="connect"
-outputAddress1="tcp://127.0.0.1:5580"
-outputSocketType2="pub"
-outputBufSize2=$buffSize
-outputMethod2="connect"
-outputAddress2="tcp://127.0.0.1:5581"
-outputSocketType3="pub"
-outputBufSize3=$buffSize
-outputMethod3="connect"
-outputAddress3="tcp://127.0.0.1:5582"
-xterm -e @CMAKE_BINARY_DIR@/bin/testEPN_dynamic $ID $numIoThreads $numOutputs $heartbeatIntervalInMs $inputSocketType $inputRcvBufSize $inputMethod $inputAddress $outputSocketType1 $outputBufSize1 $outputMethod1 $outputAddress1 $outputSocketType2 $outputBufSize2 $outputMethod2 $outputAddress2 $outputSocketType3 $outputBufSize3 $outputMethod3 $outputAddress3 &
+EPN1="testEPN_dynamic"
+EPN1+=" --id EPN1"
+EPN1+=" --num-outputs 3"
+EPN1+=" --heartbeat-interval 5000"
+EPN1+=" --input-socket-type sub --input-buff-size $buffSize --input-method bind --input-address tcp://127.0.0.1:5561"
+EPN1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5580"
+EPN1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5581"
+EPN1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5582"
+xterm -e @CMAKE_BINARY_DIR@/bin/$EPN1 &
 
-ID="203"
-numIoThreads="1"
-numOutputs="3"
-heartbeatIntervalInMs="5000"
-inputSocketType="sub"
-inputRcvBufSize=$buffSize
-inputMethod="bind"
-inputAddress="tcp://127.0.0.1:5562"
-outputSocketType1="pub"
-outputBufSize1=$buffSize
-outputMethod1="connect"
-outputAddress1="tcp://127.0.0.1:5580"
-outputSocketType2="pub"
-outputBufSize2=$buffSize
-outputMethod2="connect"
-outputAddress2="tcp://127.0.0.1:5581"
-outputSocketType3="pub"
-outputBufSize3=$buffSize
-outputMethod3="connect"
-outputAddress3="tcp://127.0.0.1:5582"
-xterm -e @CMAKE_BINARY_DIR@/bin/testEPN_dynamic $ID $numIoThreads $numOutputs $heartbeatIntervalInMs $inputSocketType $inputRcvBufSize $inputMethod $inputAddress $outputSocketType1 $outputBufSize1 $outputMethod1 $outputAddress1 $outputSocketType2 $outputBufSize2 $outputMethod2 $outputAddress2 $outputSocketType3 $outputBufSize3 $outputMethod3 $outputAddress3 &
+EPN2="testEPN_dynamic"
+EPN2+=" --id EPN2"
+EPN2+=" --num-outputs 3"
+EPN2+=" --heartbeat-interval 5000"
+EPN2+=" --input-socket-type sub --input-buff-size $buffSize --input-method bind --input-address tcp://127.0.0.1:5562"
+EPN2+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5580"
+EPN2+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5581"
+EPN2+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5582"
+xterm -e @CMAKE_BINARY_DIR@/bin/$EPN2 &
