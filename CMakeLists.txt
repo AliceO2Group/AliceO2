@@ -160,6 +160,7 @@ ENDIF(HAS_CXX11_SHAREDPOINTER)
 # cause another cmake executable to run.  The same process will walk through
 # the project's entire directory structure.
 
+add_subdirectory (AliBase)
 add_subdirectory (AliData)
 add_subdirectory (AliGenerators)
 add_subdirectory (its)

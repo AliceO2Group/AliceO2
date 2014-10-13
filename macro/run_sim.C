@@ -1,16 +1,35 @@
-void run_sim(Int_t nEvents = 100, TString mcEngine = "TGeant4")
+double radii2Turbo(double rMin,double rMid,double rMax, double sensW)
 {
-    
+  // compute turbo angle from radii and sensor width
+  return TMath::ASin((rMax*rMax-rMin*rMin)/(2*rMid*sensW))*TMath::RadToDeg();
+}
+
+void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+{
   // Output file name
-  TString outFile ="test.root";
-    
+  const char fileout[100];
+  sprintf(fileout, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
+  TString outFile = fileout;
+
   // Parameter file name
-  TString parFile="params.root";
-  
+  const char filepar[100];
+  sprintf(filepar, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
+  TString parFile = filepar;
+
+  // In general, the following parts need not be touched
+  // ========================================================================
+
+  // ----    Debug option   -------------------------------------------------
+  gDebug = 0;
+  // ------------------------------------------------------------------------
+
   // -----   Timer   --------------------------------------------------------
   TStopwatch timer;
   timer.Start();
   // ------------------------------------------------------------------------
+
+  gSystem->Load("libO2Base");
+  gSystem->Load("libits");
 
   // -----   Create simulation run   ----------------------------------------
   FairRunSim* run = new FairRunSim();
@@ -18,73 +37,129 @@ void run_sim(Int_t nEvents = 100, TString mcEngine = "TGeant4")
   run->SetOutputFile(outFile);          // Output file
   FairRuntimeDb* rtdb = run->GetRuntimeDb();
   // ------------------------------------------------------------------------
-  
+
   // -----   Create media   -------------------------------------------------
   run->SetMaterials("media.geo");       // Materials
   // ------------------------------------------------------------------------
-  
-  // -----   Create geometry   ----------------------------------------------
 
+  // -----   Create geometry   ----------------------------------------------
+  
   FairModule* cave= new AliCave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
+/*
+  FairDetector*  tpc = new O2tpc("TPCV2");
+  tpc->SetGeometry();
+  run->AddModule(tpc);
+*/
 
-  FairModule* magnet = new AliMagnet("Magnet");
-  run->AddModule(magnet);
+  O2Detector* its = new O2its("ITS", kTRUE, 7);
+  run->AddModule(its);
+  
+  // build ITS upgrade detector
+  // sensitive area 13x15mm (X,Z) with 20x20 micron pitch, 2mm dead zone on readout side and 50 micron guardring
+  const double kSensThick = 18e-4;
+  const double kPitchX = 20e-4;
+  const double kPitchZ = 20e-4;
+  const int    kNRow   = 650; 
+  const int    kNCol   = 1500;
+  const double kSiThickIB = 150e-4;
+  const double kSiThickOB = 150e-4;
+  //  const double kSensThick = 120e-4;   // -> sensor Si thickness
 
-  FairModule* pipe = new AliPipe("Pipe");
-  run->AddModule(pipe);
-    
-  FairDetector* NewDet = new AliIts("TestDetector", kTRUE);
-  run->AddModule(NewDet);
+  const double kReadOutEdge = 0.2;   // width of the readout edge (passive bottom)
+  const double kGuardRing   = 50e-4; // width of passive area on left/right/top of the sensor
 
- // ------------------------------------------------------------------------
+  const int kNLr = 7;
+  const int kNLrInner = 3;
+  const int kBuildLevel = 0;
+  enum {kRmn,kRmd,kRmx,kNModPerStave,kPhi0,kNStave,kNPar};
+  // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1, rMid is mean value)
+  const double tdr5dat[kNLr][kNPar] = { 
+    {2.24, 2.34, 2.67,  9., 16.37, 12}, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
+    {3.01, 3.15, 3.46,  9., 12.03, 16},
+    {3.78, 3.93, 4.21,  9., 10.02, 20},
+    {-1,  19.6 ,   -1,  4.,  0.  , 24},  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
+    {-1,  24.55, -1,    4.,  0.  , 30},  // 30 was 61
+    {-1,  34.39, -1,    7.,  0.  , 42},  // 42 was 88
+    {-1,  39.34, -1,    7.,  0.  , 48}   // 48 was 100
+  };
+  const int nChipsPerModule = 7; // For OB: how many chips in a row
 
+  // Delete the segmentations from previous runs
+  gSystem->Exec(" rm itsSegmentations.root ");
 
-    // -----   Magnetic field   -------------------------------------------
-    // Constant Field
-    AliConstField  *fMagField = new AliConstField();
-    fMagField->SetField(0., 20. ,0. ); // values are in kG
-    fMagField->SetFieldRegion(-200, 200,-200, 200, -200, 200); // values are in cm
-                          //  (xmin,xmax,ymin,ymax,zmin,zmax)
-    run->SetField(fMagField);
-    // --------------------------------------------------------------------
+  // create segmentations:
+  AliITSUSegmentationPix* seg0 = new AliITSUSegmentationPix(0,        // segID (0:9)
+							    1,  // chips per module
+							    kNCol,    // ncols (total for module)
+							    kNRow,    // nrows
+							    kPitchX,  // default row pitch in cm
+							    kPitchZ,  // default col pitch in cm
+							    kSensThick,  // sensor thickness in cm
+							    -1,     // no special left col between chips
+							    -1,     // no special right col between chips
+							    kGuardRing, // left
+							    kGuardRing, // right
+							    kGuardRing, // top
+							    kReadOutEdge  // bottom
+							    );    // see AliITSUSegmentationPix.h for extra options
+  seg0->Store(AliITSUGeomTGeo::GetITSsegmentationFileName());
+  seg0->Print();
 
-    
-    
+  double dzLr,rLr,phi0,turbo;
+  int nStaveLr,nModPerStaveLr,idLr;
+
+  its->SetStaveModelIB(O2its::kIBModel22);
+  its->SetStaveModelOB(O2its::kOBModel1);
+
+  const int kNWrapVol = 3;
+  const double wrpRMin[kNWrapVol]  = { 2.1, 15.0, 32.0};
+  const double wrpRMax[kNWrapVol]  = { 7.0, 27.0+2.5, 43.0+1.5};
+  const double wrpZSpan[kNWrapVol] = {28.0, 86.0, 150.0};
+
+  its->SetNWrapVolumes(kNWrapVol); // define wrapper volumes for layers
+
+  for (int iw=0;iw<kNWrapVol;iw++) {
+    its->DefineWrapVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
+  }
+
+  for (int idLr=0;idLr<kNLr;idLr++) {
+    rLr   = tdr5dat[idLr][kRmd];
+    phi0  = tdr5dat[idLr][kPhi0]; 
+
+    nStaveLr = TMath::Nint(tdr5dat[idLr][kNStave]);
+    nModPerStaveLr =  TMath::Nint(tdr5dat[idLr][kNModPerStave]);
+    int nChipsPerStaveLr = nModPerStaveLr;
+    if (idLr>=kNLrInner) {
+      nChipsPerStaveLr *= nChipsPerModule;
+      its->DefineLayer(idLr, phi0, rLr, nChipsPerStaveLr*seg0->Dz(), nStaveLr, nModPerStaveLr, 
+		       kSiThickOB, seg0->Dy(), seg0->GetChipTypeID(),kBuildLevel);
+      //      printf("Add Lr%d: R=%6.2f DZ:%6.2f Staves:%3d NMod/Stave:%3d\n",
+      //	     idLr,rLr,nChipsPerStaveLr*seg0->Dz(),nStaveLr,nModPerStaveLr);
+    } else {
+			turbo = -radii2Turbo(tdr5dat[idLr][kRmn],rLr,tdr5dat[idLr][kRmx],seg0->Dx());
+      its->DefineLayerTurbo(idLr, phi0, rLr, nChipsPerStaveLr*seg0->Dz(), nStaveLr, nChipsPerStaveLr,
+			  seg0->Dx(), turbo, kSiThickIB, seg0->Dy(), seg0->GetChipTypeID(),kBuildLevel);
+      //      printf("Add Lr%d: R=%6.2f DZ:%6.2f Turbo:%+6.2f Staves:%3d NMod/Stave:%3d\n",
+      //	     idLr,rLr,nChipsPerStaveLr*seg0->Dz(),turbo,nStaveLr,nModPerStaveLr);
+    }
+  }
+
   // -----   Create PrimaryGenerator   --------------------------------------
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
-  
+  FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 1);  /*protons*/
 
-    // Pythia8
-    Pythia8Generator* P8gen = new Pythia8Generator();
-    P8gen->UseRandom3(); //# TRandom1 or TRandom3 ?
-    P8gen->SetParameters("SoftQCD:inelastic = on");
-    P8gen->SetParameters("PhotonCollision:gmgm2mumu = on");
-    P8gen->SetParameters("PromptPhoton:all = on");
-    P8gen->SetParameters("WeakBosonExchange:all = on");
-    P8gen->SetMom(40);  //# beam momentum in GeV
-    primGen->AddGenerator(P8gen);
+  boxGen->SetThetaRange (0.0, 90.0);
+  boxGen->SetPRange     (100,100.01);
+  boxGen->SetPhiRange   (0.,360.);
+  boxGen->SetDebug(kTRUE);
 
- 
-    // Add a box generator also to the run
-    FairBoxGenerator* boxGen = new FairBoxGenerator(13, 5); // 13 = muon; 1 = multipl.
-    boxGen->SetPRange(20,25); // GeV/c
-    boxGen->SetPhiRange(0., 360.); // Azimuth angle range [degree]
-    boxGen->SetThetaRange(0., 90.); // Polar angle in lab system range [degree]
-    boxGen->SetXYZ(0., 0., 0.); // cm
-    primGen->AddGenerator(boxGen);
-  
-    
-    run->SetGenerator(primGen);
-// ------------------------------------------------------------------------
- 
-  //---Store the visualiztion info of the tracks, this make the output file very large!!
-  //--- Use it only to display but not for production!
-  run->SetStoreTraj(kTRUE);
+  primGen->AddGenerator(boxGen);
 
-    
-    
+  run->SetGenerator(primGen);
+  // ------------------------------------------------------------------------
+
   // -----   Initialize simulation run   ------------------------------------
   run->Init();
   // ------------------------------------------------------------------------
@@ -98,14 +173,12 @@ void run_sim(Int_t nEvents = 100, TString mcEngine = "TGeant4")
   rtdb->saveOutput();
   rtdb->print();
   // ------------------------------------------------------------------------
-   
+
   // -----   Start run   ----------------------------------------------------
-   run->Run(nEvents);
-    
-  //You can export your ROOT geometry ot a separate file
+  run->Run(nEvents);
   run->CreateGeometryFile("geofile_full.root");
   // ------------------------------------------------------------------------
-  
+
   // -----   Finish   -------------------------------------------------------
   timer.Stop();
   Double_t rtime = timer.RealTime();
@@ -114,9 +187,8 @@ void run_sim(Int_t nEvents = 100, TString mcEngine = "TGeant4")
   cout << "Macro finished succesfully." << endl;
   cout << "Output file is "    << outFile << endl;
   cout << "Parameter file is " << parFile << endl;
-  cout << "Real time " << rtime << " s, CPU time " << ctime 
+  cout << "Real time " << rtime << " s, CPU time " << ctime
        << "s" << endl << endl;
   // ------------------------------------------------------------------------
+
 }
-
-
