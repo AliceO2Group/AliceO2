@@ -13,7 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id: AliITSUSegmentationPix.cxx 47180 2011-02-08 09:42:29Z masera $ */
+/* $Id: UpgradeSegmentationPixel.cxx 47180 2011-02-08 09:42:29Z masera $ */
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
 #include <TGeoBBox.h>
@@ -21,10 +21,12 @@
 #include <TString.h>
 #include <TSystem.h>
 #include <TFile.h>
-#include "AliITSUGeomTGeo.h"
-#include "AliITSUSegmentationPix.h"
+#include "UpgradeGeometryTGeo.h"
+#include "UpgradeSegmentationPixel.h"
 
 using namespace TMath;
+
+using namespace AliceO2::ITS;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Segmentation class for pixels                                                                          //
@@ -36,16 +38,16 @@ using namespace TMath;
 //                                                                                                        //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ClassImp(AliITSUSegmentationPix)
+ClassImp(UpgradeSegmentationPixel)
 
-const char* AliITSUSegmentationPix::fgkSegmListName = "ITSUSegmentations";
+const char* UpgradeSegmentationPixel::fgkSegmListName = "ITSUSegmentations";
 
-AliITSUSegmentationPix::AliITSUSegmentationPix(UInt_t id, int nchips,int ncol,int nrow,
+UpgradeSegmentationPixel::UpgradeSegmentationPixel(UInt_t id, int nchips,int ncol,int nrow,
 						   float pitchX,float pitchZ,
 						   float thickness,
 						   float pitchLftC,float pitchRgtC,
 						   float edgL,float edgR,float edgT,float edgB)
-: AliITSsegmentation()
+: Segmentation()
   ,fGuardLft(edgL)
   ,fGuardRgt(edgR)
   ,fGuardTop(edgT)
@@ -70,7 +72,7 @@ AliITSUSegmentationPix::AliITSUSegmentationPix(UInt_t id, int nchips,int ncol,in
   ,fDiodShidtMatZ(0)
 {
   // Default constructor, sizes in cm
-  if (nchips) SetUniqueID( AliITSUGeomTGeo::ComposeChipTypeID(id) );
+  if (nchips) SetUniqueID( UpgradeGeometryTGeo::ComposeChipTypeID(id) );
   fChipDZ = (fNColPerChip-2)*fPitchZ + fPitchZLftCol + fPitchZRgtCol;;
   fDxActive = fNRow*fPitchX;
   fDzActive = fNChips*fChipDZ;
@@ -79,14 +81,14 @@ AliITSUSegmentationPix::AliITSUSegmentationPix(UInt_t id, int nchips,int ncol,in
 	      thickness);
 }
 
-AliITSUSegmentationPix::~AliITSUSegmentationPix()
+UpgradeSegmentationPixel::~UpgradeSegmentationPixel()
 {
   // d-tor
   delete[] fDiodShidtMatX;
   delete[] fDiodShidtMatZ;
 }
 
-void AliITSUSegmentationPix::GetPadIxz(Float_t x,Float_t z,Int_t &ix,Int_t &iz) const 
+void UpgradeSegmentationPixel::GetPadIxz(Float_t x,Float_t z,Int_t &ix,Int_t &iz) const 
 {
   //  Returns pixel coordinates (ix,iz) for given coordinates (x,z counted from corner of col/row 0:0)
   //  expects x, z in cm.
@@ -101,28 +103,25 @@ void AliITSUSegmentationPix::GetPadIxz(Float_t x,Float_t z,Int_t &ix,Int_t &iz) 
 																			 << fNRow << ")" << FairLogger::endl; ix=0; }
   else if (ix >= fNRow) { LOG(WARNING) << "X=" << x << " gives row=" << ix << " outside [0:"
 																			 << fNRow << ")" << FairLogger::endl; ix= fNRow-1;}
-  //
 }
 
-void AliITSUSegmentationPix::GetPadTxz(Float_t &x,Float_t &z) const
+void UpgradeSegmentationPixel::GetPadTxz(Float_t &x,Float_t &z) const
 {
   //  local transformation of real local coordinates (x,z)
   //  expects x, z in cm (wrt corner of col/row 0:0
   x /= fPitchX;
   z = Z2Col(z);
-  //
 }
 
-void AliITSUSegmentationPix::GetPadCxz(Int_t ix,Int_t iz,Float_t &x,Float_t&z) const
+void UpgradeSegmentationPixel::GetPadCxz(Int_t ix,Int_t iz,Float_t &x,Float_t&z) const
 {
   // Transform from pixel to real local coordinates
   // returns x, z in cm. wrt corner of col/row 0:0
   x = Float_t((ix+0.5)*fPitchX);
   z = Col2Z(iz);
-  //
 }
 
-Float_t AliITSUSegmentationPix::Z2Col(Float_t z) const 
+Float_t UpgradeSegmentationPixel::Z2Col(Float_t z) const 
 {
   // get column number (from 0) from local Z (wrt bottom left corner of the active matrix)
   int chip = int(z/fChipDZ);
@@ -132,7 +131,7 @@ Float_t AliITSUSegmentationPix::Z2Col(Float_t z) const
   return col;
 }
 
-Float_t AliITSUSegmentationPix::Col2Z(Int_t col) const 
+Float_t UpgradeSegmentationPixel::Col2Z(Int_t col) const 
 {
   // convert column number (from 0) to Z coordinate wrt bottom left corner of the active matrix
   int nchip = col/fNColPerChip;
@@ -144,14 +143,13 @@ Float_t AliITSUSegmentationPix::Col2Z(Int_t col) const
   }
   else z += fPitchZLftCol/2;
   return z;
-  //
 }
 
-AliITSUSegmentationPix& AliITSUSegmentationPix::operator=(const AliITSUSegmentationPix &src)
+UpgradeSegmentationPixel& UpgradeSegmentationPixel::operator=(const UpgradeSegmentationPixel &src)
 {
   // = operator
   if(this==&src) return *this;
-  AliITSsegmentation::operator=(src);
+  Segmentation::operator=(src);
   fNCol  = src.fNCol;
   fNRow  = src.fNRow;
   fNColPerChip  = src.fNColPerChip;
@@ -188,8 +186,8 @@ AliITSUSegmentationPix& AliITSUSegmentationPix::operator=(const AliITSUSegmentat
   return *this;
 }
 
-AliITSUSegmentationPix::AliITSUSegmentationPix(const AliITSUSegmentationPix &src) :
-  AliITSsegmentation(src)
+UpgradeSegmentationPixel::UpgradeSegmentationPixel(const UpgradeSegmentationPixel &src) :
+  Segmentation(src)
   ,fGuardLft(src.fGuardLft)
   ,fGuardRgt(src.fGuardRgt)
   ,fGuardTop(src.fGuardTop)
@@ -224,13 +222,13 @@ AliITSUSegmentationPix::AliITSUSegmentationPix(const AliITSUSegmentationPix &src
   }
 }
 
-Float_t AliITSUSegmentationPix::Dpx(Int_t ) const 
+Float_t UpgradeSegmentationPixel::Dpx(Int_t ) const 
 {
   //returs x pixel pitch for a give pixel
   return fPitchX;
 }
 
-Float_t AliITSUSegmentationPix::Dpz(Int_t col) const 
+Float_t UpgradeSegmentationPixel::Dpz(Int_t col) const 
 {
   // returns z pixel pitch for a given pixel (cols starts from 0)
   col %= fNColPerChip;
@@ -239,10 +237,9 @@ Float_t AliITSUSegmentationPix::Dpz(Int_t col) const
   return fPitchZ;
 }
 
-void AliITSUSegmentationPix::Neighbours(Int_t iX, Int_t iZ, Int_t* nlist, Int_t xlist[8], Int_t zlist[8]) const 
+void UpgradeSegmentationPixel::Neighbours(Int_t iX, Int_t iZ, Int_t* nlist, Int_t xlist[8], Int_t zlist[8]) const 
 {
   // returns the neighbouring pixels for use in Cluster Finders and the like.
-  //
   *nlist=8;
   xlist[0]=xlist[1]=iX;
   xlist[2]=iX-1;
@@ -250,22 +247,22 @@ void AliITSUSegmentationPix::Neighbours(Int_t iX, Int_t iZ, Int_t* nlist, Int_t 
   zlist[0]=iZ-1;
   zlist[1]=iZ+1;
   zlist[2]=zlist[3]=iZ;
+
   // Diagonal elements
   xlist[4]=iX+1;
   zlist[4]=iZ+1;
-  //  
+
   xlist[5]=iX-1;
   zlist[5]=iZ-1;
-  //
+
   xlist[6]=iX-1;
   zlist[6]=iZ+1;
-  //
+
   xlist[7]=iX+1;
   zlist[7]=iZ-1;
-  //
 }
 
-Bool_t AliITSUSegmentationPix::LocalToDet(Float_t x,Float_t z,Int_t &ix,Int_t &iz) const 
+Bool_t UpgradeSegmentationPixel::LocalToDet(Float_t x,Float_t z,Int_t &ix,Int_t &iz) const 
 {
   // Transformation from Geant detector centered local coordinates (cm) to
   // Pixel cell numbers ix and iz.
@@ -293,7 +290,7 @@ Bool_t AliITSUSegmentationPix::LocalToDet(Float_t x,Float_t z,Int_t &ix,Int_t &i
   return kTRUE; // Found ix and iz, return.
 }
 
-void AliITSUSegmentationPix::DetToLocal(Int_t ix,Int_t iz,Float_t &x,Float_t &z) const
+void UpgradeSegmentationPixel::DetToLocal(Int_t ix,Int_t iz,Float_t &x,Float_t &z) const
 {
 // Transformation from Detector cell coordiantes to Geant detector centered 
 // local coordinates (cm).
@@ -319,7 +316,7 @@ void AliITSUSegmentationPix::DetToLocal(Int_t ix,Int_t iz,Float_t &x,Float_t &z)
   return; // Found x and z, return.
 }
 
-void AliITSUSegmentationPix::CellBoundries(Int_t ix,Int_t iz,Double_t &xl,Double_t &xu,Double_t &zl,Double_t &zu) const
+void UpgradeSegmentationPixel::CellBoundries(Int_t ix,Int_t iz,Double_t &xl,Double_t &xu,Double_t &zl,Double_t &zu) const
 {
   // Transformation from Detector cell coordiantes to Geant detector centerd 
   // local coordinates (cm).
@@ -354,7 +351,7 @@ void AliITSUSegmentationPix::CellBoundries(Int_t ix,Int_t iz,Double_t &xl,Double
   return; // Found x and z, return.
 }
 
-Int_t AliITSUSegmentationPix::GetChipFromChannel(Int_t, Int_t iz) const 
+Int_t UpgradeSegmentationPixel::GetChipFromChannel(Int_t, Int_t iz) const 
 {
   // returns chip number (in range 0-4) starting from channel number
   if(iz>=fNCol  || iz<0 ){
@@ -364,7 +361,7 @@ Int_t AliITSUSegmentationPix::GetChipFromChannel(Int_t, Int_t iz) const
   return iz/fNColPerChip;
 }
 
-Int_t AliITSUSegmentationPix::GetChipFromLocal(Float_t, Float_t zloc) const 
+Int_t UpgradeSegmentationPixel::GetChipFromLocal(Float_t, Float_t zloc) const 
 {
   // returns chip number (in range 0-4) starting from local Geant coordinates
   Int_t ix0,iz;
@@ -375,7 +372,7 @@ Int_t AliITSUSegmentationPix::GetChipFromLocal(Float_t, Float_t zloc) const
   return GetChipFromChannel(ix0,iz);
 }
 
-Int_t AliITSUSegmentationPix::GetChipsInLocalWindow(Int_t* array, Float_t zmin, Float_t zmax, Float_t, Float_t) const 
+Int_t UpgradeSegmentationPixel::GetChipsInLocalWindow(Int_t* array, Float_t zmin, Float_t zmax, Float_t, Float_t) const 
 {
   // returns the number of chips containing a road defined by given local Geant coordinate limits
   if (zmin>zmax) {
@@ -408,24 +405,38 @@ Int_t AliITSUSegmentationPix::GetChipsInLocalWindow(Int_t* array, Float_t zmin, 
   return nChipInW;
 }
 
-void AliITSUSegmentationPix::Init()
+void UpgradeSegmentationPixel::Init()
 {
   // init settings
 }
 
-Bool_t AliITSUSegmentationPix::Store(const char* outf)
+Bool_t UpgradeSegmentationPixel::Store(const char* outf)
 {
   // store in the special list under given ID
   TString fns = outf;
   gSystem->ExpandPathName(fns);
-  if (fns.IsNull()) {LOG(FATAL) << "No file name provided" << FairLogger::endl; return kFALSE;}
+  
+  if (fns.IsNull()) {
+    LOG(FATAL) << "No file name provided" << FairLogger::endl; return kFALSE;
+  }
+  
   TFile* fout = TFile::Open(fns.Data(),"update");
-  if (!fout) {LOG(FATAL) << "Failed to open output file " << outf << FairLogger::endl; return kFALSE;}
+  
+  if (!fout) {
+    LOG(FATAL) << "Failed to open output file " << outf << FairLogger::endl; return kFALSE;
+  }
+  
   TObjArray* arr = (TObjArray*)fout->Get(fgkSegmListName);
+  
   int id = GetUniqueID();
-  if (!arr) arr = new TObjArray();
-  else if (arr->At(id)) {LOG(FATAL) << "Segmenation " << id << " already exists in file "
-																		<< outf << FairLogger::endl; return kFALSE;}
+  
+  if (!arr) {
+    arr = new TObjArray();
+  }
+  else if (arr->At(id)) {
+    LOG(FATAL) << "Segmenation " << id << " already exists in file " << outf
+               << FairLogger::endl; return kFALSE;
+  }
 
   arr->AddAtAndExpand(this,id);
   arr->SetOwner(kTRUE);
@@ -439,7 +450,7 @@ Bool_t AliITSUSegmentationPix::Store(const char* outf)
 }
 
 
-AliITSUSegmentationPix* AliITSUSegmentationPix::LoadWithID(UInt_t id, const char* inpf)
+UpgradeSegmentationPixel* UpgradeSegmentationPixel::LoadWithID(UInt_t id, const char* inpf)
 {
   // store in the special list under given ID
   TString fns = inpf;
@@ -453,7 +464,7 @@ AliITSUSegmentationPix* AliITSUSegmentationPix::LoadWithID(UInt_t id, const char
 							 << " in " << inpf << FairLogger::endl;
     return 0;
   }
-  AliITSUSegmentationPix* segm = dynamic_cast<AliITSUSegmentationPix*>(arr->At(id));
+  UpgradeSegmentationPixel* segm = dynamic_cast<UpgradeSegmentationPixel*>(arr->At(id));
   if (!segm || segm->GetUniqueID()!=id) {LOG(FATAL) << "LoadWithID: Failed to find segmenation "
 																										<< id << " in " << inpf << FairLogger::endl; return 0;}
 
@@ -466,7 +477,7 @@ AliITSUSegmentationPix* AliITSUSegmentationPix::LoadWithID(UInt_t id, const char
   return segm;
 }
 
-void AliITSUSegmentationPix::LoadSegmentations(TObjArray* dest, const char* inpf)
+void UpgradeSegmentationPixel::LoadSegmentations(TObjArray* dest, const char* inpf)
 {
   // store in the special list under given ID
   if (!dest) return;
@@ -490,7 +501,7 @@ void AliITSUSegmentationPix::LoadSegmentations(TObjArray* dest, const char* inpf
   delete arr;
 }
 
-void AliITSUSegmentationPix::SetDiodShiftMatrix(Int_t nrow,Int_t ncol, const Float_t *shiftX, const Float_t *shiftZ)
+void UpgradeSegmentationPixel::SetDiodShiftMatrix(Int_t nrow,Int_t ncol, const Float_t *shiftX, const Float_t *shiftZ)
 {
   // set matrix of periodic shifts of diod center. provided arrays must be in the format shift[nrow][ncol]
   if (fDiodShiftMatDim) {
@@ -515,7 +526,7 @@ void AliITSUSegmentationPix::SetDiodShiftMatrix(Int_t nrow,Int_t ncol, const Flo
   
 }
 
-void AliITSUSegmentationPix::SetDiodShiftMatrix(Int_t nrow,Int_t ncol, const Double_t *shiftX, const Double_t *shiftZ)
+void UpgradeSegmentationPixel::SetDiodShiftMatrix(Int_t nrow,Int_t ncol, const Double_t *shiftX, const Double_t *shiftZ)
 {
   // set matrix of periodic shifts of diod center. provided arrays must be in the format shift[nrow][ncol]
   if (fDiodShiftMatDim) {
@@ -540,7 +551,7 @@ void AliITSUSegmentationPix::SetDiodShiftMatrix(Int_t nrow,Int_t ncol, const Dou
   }
 }
 
-void AliITSUSegmentationPix::Print(Option_t* /*option*/) const
+void UpgradeSegmentationPixel::Print(Option_t* /*option*/) const
 {
   // print itself
   const double kmc=1e4;
@@ -565,7 +576,7 @@ void AliITSUSegmentationPix::Print(Option_t* /*option*/) const
   }
 }
 
-void AliITSUSegmentationPix::GetDiodShift(Int_t row,Int_t col, Float_t &dx,Float_t &dz) const
+void UpgradeSegmentationPixel::GetDiodShift(Int_t row,Int_t col, Float_t &dx,Float_t &dz) const
 {
   // obtain optional diod shift
   if (!fDiodShiftMatDim) {dx=dz=0; return;}

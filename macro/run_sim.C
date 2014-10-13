@@ -53,7 +53,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->AddModule(tpc);
 */
 
-  O2Detector* its = new O2its("ITS", kTRUE, 7);
+  O2Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
   run->AddModule(its);
   
   // build ITS upgrade detector
@@ -90,7 +90,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   gSystem->Exec(" rm itsSegmentations.root ");
 
   // create segmentations:
-  AliITSUSegmentationPix* seg0 = new AliITSUSegmentationPix(0,        // segID (0:9)
+  AliceO2::ITS::UpgradeSegmentationPixel* seg0 = new AliceO2::ITS::UpgradeSegmentationPixel(0,        // segID (0:9)
 							    1,  // chips per module
 							    kNCol,    // ncols (total for module)
 							    kNRow,    // nrows
@@ -103,15 +103,15 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 							    kGuardRing, // right
 							    kGuardRing, // top
 							    kReadOutEdge  // bottom
-							    );    // see AliITSUSegmentationPix.h for extra options
-  seg0->Store(AliITSUGeomTGeo::GetITSsegmentationFileName());
+							    );    // see UpgradeSegmentationPixel.h for extra options
+  seg0->Store(AliceO2::ITS::UpgradeGeometryTGeo::GetITSsegmentationFileName());
   seg0->Print();
 
   double dzLr,rLr,phi0,turbo;
   int nStaveLr,nModPerStaveLr,idLr;
 
-  its->SetStaveModelIB(O2its::kIBModel22);
-  its->SetStaveModelOB(O2its::kOBModel1);
+  its->SetStaveModelIB(AliceO2::ITS::Detector::kIBModel22);
+  its->SetStaveModelOB(AliceO2::ITS::Detector::kOBModel1);
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol]  = { 2.1, 15.0, 32.0};

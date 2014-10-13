@@ -1,25 +1,29 @@
-#ifndef ALIITSUSEGMENTATIONPIX_H
-#define ALIITSUSEGMENTATIONPIX_H
+#ifndef ALICEO2_ITS_UPGRADESEGMENTATIONPIXEL_H_
+#define ALICEO2_ITS_UPGRADESEGMENTATIONPIXEL_H_
 
 #include "FairLogger.h"
 
-#include "AliITSsegmentation.h"
+#include "Segmentation.h"
 
 // segmentation and response for pixels in ITS upgrade 
 
-class AliITSUSegmentationPix :
-public AliITSsegmentation {
+namespace AliceO2 {
+namespace ITS {
+
+class UpgradeSegmentationPixel : public AliceO2::ITS::Segmentation {
+  
  public:
-  AliITSUSegmentationPix(UInt_t id=0, int nchips=0,int ncol=0,int nrow=0,
+  
+  UpgradeSegmentationPixel(UInt_t id=0, int nchips=0,int ncol=0,int nrow=0,
 			 float pitchX=0,float pitchZ=0,
 			 float thickness=0,
 			 float pitchLftC=-1,float pitchRgtC=-1,
 			 float edgL=0,float edgR=0,float edgT=0,float edgB=0);
   
-  //  AliITSUSegmentationPix(Option_t *opt="" );
-  AliITSUSegmentationPix(const AliITSUSegmentationPix &source);
-  virtual ~AliITSUSegmentationPix();
-  AliITSUSegmentationPix& operator=(const AliITSUSegmentationPix &source);
+  //  UpgradeSegmentationPixel(Option_t *opt="" );
+  UpgradeSegmentationPixel(const UpgradeSegmentationPixel &source);
+  virtual ~UpgradeSegmentationPixel();
+  UpgradeSegmentationPixel& operator=(const UpgradeSegmentationPixel &source);
   //
   virtual void    Init();
   //  
@@ -72,7 +76,7 @@ public AliITSsegmentation {
   void         GetDiodShift(Int_t row,Int_t col, Double_t &dx,Double_t &dz) const {float dxf,dzf; GetDiodShift(row,col,dxf,dzf); dx=dxf; dz=dzf; }
   
   Bool_t                           Store(const char* outf);
-  static AliITSUSegmentationPix*   LoadWithID(UInt_t id, const char* inpf);
+  static UpgradeSegmentationPixel*   LoadWithID(UInt_t id, const char* inpf);
   static void                      LoadSegmentations(TObjArray* dest, const char* inpf);
   
  protected:
@@ -106,8 +110,10 @@ public AliITSsegmentation {
     
     static const char* fgkSegmListName; // pattern for segmentations list name
     
-  ClassDef(AliITSUSegmentationPix,3) //Segmentation class upgrade pixels 
+  ClassDef(UpgradeSegmentationPixel,3) //Segmentation class upgrade pixels 
 
 };
+}
+}
 
 #endif

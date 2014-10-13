@@ -9,11 +9,13 @@
 ////////////////////////////////////////////////
 
 #include <TF1.h>
-#include "AliITSsegmentation.h"
+#include "Segmentation.h"
 
-ClassImp(AliITSsegmentation)
+using namespace AliceO2::ITS;
 
-AliITSsegmentation::AliITSsegmentation():
+ClassImp(Segmentation)
+
+Segmentation::Segmentation():
 fDx(0),
 fDz(0),
 fDy(0),
@@ -21,26 +23,26 @@ fCorr(0){
   // Default constructor
 }
 
-AliITSsegmentation::~AliITSsegmentation(){
+Segmentation::~Segmentation(){
   // destructor
   if(fCorr)delete fCorr;
 }
 
-void AliITSsegmentation::Copy(TObject &obj) const {
+void Segmentation::Copy(TObject &obj) const {
   // copy this to obj
-  ((AliITSsegmentation& ) obj).fDz      = fDz;
-  ((AliITSsegmentation& ) obj).fDx      = fDx;
-  ((AliITSsegmentation& ) obj).fDy      = fDy;
+  ((Segmentation& ) obj).fDz      = fDz;
+  ((Segmentation& ) obj).fDx      = fDx;
+  ((Segmentation& ) obj).fDy      = fDy;
   if(fCorr){
-    ((AliITSsegmentation& ) obj).fCorr    = new TF1(*fCorr); // make a proper copy
+    ((Segmentation& ) obj).fCorr    = new TF1(*fCorr); // make a proper copy
   }
   else {
-    ((AliITSsegmentation& ) obj).fCorr = 0;
+    ((Segmentation& ) obj).fCorr = 0;
   }
 }
 
-AliITSsegmentation& AliITSsegmentation::operator=(
-                        const AliITSsegmentation &source){
+Segmentation& Segmentation::operator=(
+                        const Segmentation &source){
 // Operator =
   if(this != &source){
     source.Copy(*this);
@@ -48,7 +50,7 @@ AliITSsegmentation& AliITSsegmentation::operator=(
   return *this;
 }
 
-AliITSsegmentation::AliITSsegmentation(const AliITSsegmentation &source):
+Segmentation::Segmentation(const Segmentation &source):
     TObject(source),
 fDx(0),
 fDz(0),

@@ -1,5 +1,5 @@
-#ifndef ALIITSSEGMENTATION_H
-#define ALIITSSEGMENTATION_H
+#ifndef ALICEO2_ITS_SEGMENTATION_H_
+#define ALICEO2_ITS_SEGMENTATION_H_
 
 #include <TObject.h>
 
@@ -11,13 +11,18 @@
 //                                             -
 //----------------------------------------------
 class TF1;
-class AliITSsegmentation :
-public TObject {
+
+namespace AliceO2 {
+namespace ITS {
+
+class Segmentation : public TObject {
+  
  public:
-  AliITSsegmentation();
-  AliITSsegmentation(const AliITSsegmentation& source);
-  virtual ~AliITSsegmentation();
-  AliITSsegmentation& operator=(const AliITSsegmentation &source);
+  
+  Segmentation();
+  Segmentation(const Segmentation& source);
+  virtual ~Segmentation();
+  AliceO2::ITS::Segmentation& operator=(const AliceO2::ITS::Segmentation &source);
     // Set Detector Segmentation Parameters
     //
     // Detector size  
@@ -79,7 +84,6 @@ public TObject {
     virtual void Angles(Float_t& /* p */, Float_t& /* n */) const
                                           {MayNotUse("Angles");}
 
-    //
     // Get next neighbours 
     virtual void Neighbours(Int_t,Int_t,Int_t*,Int_t[10],Int_t[10]) const
                      {MayNotUse("Neighbours");}
@@ -107,6 +111,8 @@ public TObject {
                     //SSD: Full thickness of the detector (y axis) -um 
     TF1*       fCorr;   // correction function
 
-    ClassDef(AliITSsegmentation,2) //Segmentation virtual base class 
+    ClassDef(Segmentation,2) //Segmentation virtual base class 
 };
+}
+}
 #endif

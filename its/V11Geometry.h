@@ -1,5 +1,5 @@
-#ifndef ALIITSV11GEOMETRY_H
-#define ALIITSV11GEOMETRY_H
+#ifndef ALICEO2_ITS_V11GEOMETRY_H_
+#define ALICEO2_ITS_V11GEOMETRY_H_
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
@@ -21,11 +21,14 @@ class TGeoTubeSeg;
 class TGeoConeSeg;
 class TGeoBBox;
 
-class AliITSv11Geometry : public TObject {
+namespace AliceO2 {
+namespace ITS {
+
+class V11Geometry : public TObject {
   public:
-    AliITSv11Geometry():fDebug() {};
-    AliITSv11Geometry(Int_t debug):fDebug(debug) {};
-    virtual ~AliITSv11Geometry(){};
+    V11Geometry():fDebug() {};
+    V11Geometry(Int_t debug):fDebug(debug) {};
+    virtual ~V11Geometry(){};
     //
     // Sets the debug flag for debugging output
     void SetDebug(Int_t level=5){fDebug=level;}
@@ -191,7 +194,9 @@ class AliITSv11Geometry : public TObject {
     Double_t AngleForRoundedCorners1(Double_t dx,Double_t dy,
                                      Double_t sdr)const;
     Int_t fDebug; //! Debug flag/level
-    ClassDef(AliITSv11Geometry,1) // Base class for ITS v11 geometry
+    ClassDef(V11Geometry,1) // Base class for ITS v11 geometry
 };
+}
+}
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef ALIITSUV1LAYER_H
-#define ALIITSUV1LAYER_H
+#ifndef ALICEO2_ITS_UPGRADEV1LAYER_H_
+#define ALICEO2_ITS_UPGRADEV1LAYER_H_
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
@@ -16,26 +16,29 @@
   $Id: AliITSUv1Layer.h
  */
 
-#include "AliITSv11Geometry.h"
-#include "O2its.h"
+#include "V11Geometry.h"
+#include "Detector.h"
 #include <TGeoManager.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoXtru.h>
 
 class TGeoVolume;
 
-class AliITSUv1Layer : public AliITSv11Geometry {
+namespace AliceO2 {
+namespace ITS {
+
+class UpgradeV1Layer : public V11Geometry {
   public:
   enum {kStave,kHalfStave,kModule,kChip,kNHLevels};
 
   public:
-    AliITSUv1Layer();
-    AliITSUv1Layer(Int_t debug);
-    AliITSUv1Layer(Int_t lay, Int_t debug);
-    AliITSUv1Layer(Int_t lay, Bool_t turbo, Int_t debug);
-    AliITSUv1Layer(const AliITSUv1Layer &source);
-    AliITSUv1Layer& operator=(const AliITSUv1Layer &source);
-    virtual ~AliITSUv1Layer();
+    UpgradeV1Layer();
+    UpgradeV1Layer(Int_t debug);
+    UpgradeV1Layer(Int_t lay, Int_t debug);
+    UpgradeV1Layer(Int_t lay, Bool_t turbo, Int_t debug);
+    UpgradeV1Layer(const UpgradeV1Layer &source);
+    UpgradeV1Layer& operator=(const UpgradeV1Layer &source);
+    virtual ~UpgradeV1Layer();
 
     Bool_t    IsTurbo() const {return fIsTurbo;};
 
@@ -55,7 +58,7 @@ class AliITSUv1Layer : public AliITSv11Geometry {
     Int_t     GetNModulesPerParent()    const {return fHierarchy[kModule];}
     Int_t     GetNChipsPerParent()      const {return fHierarchy[kChip];}
     //
-    O2its::AliITSUModel_t GetStaveModel() const {return fStaveModel;}
+    AliceO2::ITS::Detector::AliITSUModel_t GetStaveModel() const {return fStaveModel;}
     //
     void      SetStaveThick(Double_t t)      {fStaveThick = t;};
     void      SetStaveTilt(Double_t t);
@@ -68,7 +71,7 @@ class AliITSUv1Layer : public AliITSv11Geometry {
     void      SetZLength(Double_t z)         {fZLength   = z;};
     void      SetChipType(Int_t tp)          {fChipTypeID = tp;}
     void      SetBuildLevel(Int_t buildLevel){fBuildLevel=buildLevel;}
-    void      SetStaveModel(O2its::AliITSUModel_t model) {fStaveModel=model;}
+    void      SetStaveModel(AliceO2::ITS::Detector::AliITSUModel_t model) {fStaveModel=model;}
     virtual void CreateLayer(TGeoVolume *moth);
 
   private:
@@ -128,7 +131,7 @@ class AliITSUv1Layer : public AliITSv11Geometry {
     Bool_t    fIsTurbo;     // True if this layer is a "turbo" layer
     Int_t     fBuildLevel;  // Used for material studies
 
-    O2its::AliITSUModel_t fStaveModel; // The stave model
+    AliceO2::ITS::Detector::AliITSUModel_t fStaveModel; // The stave model
 
     // Parameters for the Upgrade geometry
 
@@ -178,7 +181,9 @@ class AliITSUv1Layer : public AliITSv11Geometry {
     static const Double_t fgkOBSFrameBeamSidePhi;// OB SF side beam angle
 
 
-  ClassDef(AliITSUv1Layer,0) // ITS Upgrade v1 geometry
+  ClassDef(UpgradeV1Layer,0) // ITS Upgrade v1 geometry
 };
+}
+}
 
 #endif

@@ -1,4 +1,4 @@
-#include "O2itsGeoHandler.h"
+#include "GeometryHandler.h"
 
 #include "FairLogger.h"                 // for FairLogger, etc
 
@@ -19,7 +19,9 @@ using std::pair;
 using std::cout;
 using std::endl;
 
-O2itsGeoHandler::O2itsGeoHandler()
+using namespace AliceO2::ITS;
+
+GeometryHandler::GeometryHandler()
   : TObject(),
     fIsSimulation(kFALSE),
     fLastUsedDetectorID(0),
@@ -31,7 +33,7 @@ O2itsGeoHandler::O2itsGeoHandler()
 {
 }
 
-Int_t O2itsGeoHandler::Init(Bool_t isSimulation)
+Int_t GeometryHandler::Init(Bool_t isSimulation)
 {
 //  Int_t geoVersion = CheckGeometryVersion();
 
@@ -40,14 +42,14 @@ Int_t O2itsGeoHandler::Init(Bool_t isSimulation)
   return 1;
 }
 
-void O2itsGeoHandler::LocalToGlobal(Double_t* local, Double_t* global, Int_t detID)
+void GeometryHandler::LocalToGlobal(Double_t* local, Double_t* global, Int_t detID)
 {
   TString path=ConstructFullPathFromDetID(detID);
   NavigateTo(path);
   gGeoManager->LocalToMaster(local, global);
 }
 
-TString O2itsGeoHandler::ConstructFullPathFromDetID(Int_t detID)
+TString GeometryHandler::ConstructFullPathFromDetID(Int_t detID)
 {
   TString volStr   = "/cave_1/tutorial4_0/tut4_det_";
   TString volPath = volStr;
@@ -55,7 +57,7 @@ TString O2itsGeoHandler::ConstructFullPathFromDetID(Int_t detID)
   return volPath;
 }
 
-Int_t O2itsGeoHandler::GetUniqueDetectorId(TString volName)
+Int_t GeometryHandler::GetUniqueDetectorId(TString volName)
 {
   if (fGeoPathHash != volName.Hash()) {
     NavigateTo(volName);
@@ -64,7 +66,7 @@ Int_t O2itsGeoHandler::GetUniqueDetectorId(TString volName)
 }
 
 
-Int_t O2itsGeoHandler::GetUniqueDetectorId()
+Int_t GeometryHandler::GetUniqueDetectorId()
 {
 
   Int_t detectorNr=0;
@@ -77,7 +79,7 @@ Int_t O2itsGeoHandler::GetUniqueDetectorId()
 }
 
 
-Int_t O2itsGeoHandler::VolIdGeo(const char* name) const
+Int_t GeometryHandler::VolIdGeo(const char* name) const
 {
   //
   // Return the unique numeric identifier for volume name
@@ -91,7 +93,7 @@ Int_t O2itsGeoHandler::VolIdGeo(const char* name) const
   return uid;
 }
 
-Int_t O2itsGeoHandler::VolId(const Text_t* name) const
+Int_t GeometryHandler::VolId(const Text_t* name) const
 {
   if (fIsSimulation) {
     return gMC->VolId(name);
@@ -108,7 +110,7 @@ Int_t O2itsGeoHandler::VolId(const Text_t* name) const
   }
 }
 
-Int_t O2itsGeoHandler::CurrentVolID(Int_t& copy) const
+Int_t GeometryHandler::CurrentVolID(Int_t& copy) const
 {
   if (fIsSimulation) {
     return gMC->CurrentVolID(copy);
@@ -125,7 +127,7 @@ Int_t O2itsGeoHandler::CurrentVolID(Int_t& copy) const
 }
 
 //_____________________________________________________________________________
-Int_t O2itsGeoHandler::CurrentVolOffID(Int_t off, Int_t& copy) const
+Int_t GeometryHandler::CurrentVolOffID(Int_t off, Int_t& copy) const
 {
   if (fIsSimulation) {
     return gMC->CurrentVolOffID(off, copy);
@@ -143,8 +145,7 @@ Int_t O2itsGeoHandler::CurrentVolOffID(Int_t off, Int_t& copy) const
   }
 }
 
-//_____________________________________________________________________________
-const char* O2itsGeoHandler::CurrentVolName() const
+const char* GeometryHandler::CurrentVolName() const
 {
   if (fIsSimulation) {
     return gMC->CurrentVolName();
@@ -157,8 +158,7 @@ const char* O2itsGeoHandler::CurrentVolName() const
   }
 }
 
-//_____________________________________________________________________________
-const char* O2itsGeoHandler::CurrentVolOffName(Int_t off) const
+const char* GeometryHandler::CurrentVolOffName(Int_t off) const
 {
   if (fIsSimulation) {
     return gMC->CurrentVolOffName(off);
@@ -177,10 +177,10 @@ const char* O2itsGeoHandler::CurrentVolOffName(Int_t off) const
 }
 
 
-void O2itsGeoHandler::NavigateTo(TString volName)
+void GeometryHandler::NavigateTo(TString volName)
 {
   if (fIsSimulation) {
-    LOG(FATAL)<<"This methode is not supported in simulation mode"<<FairLogger::endl;
+    LOG(FATAL) << "This method is not supported in simulation mode" << FairLogger::endl;
   } else {
     gGeoManager->cd(volName.Data());
     fGeoPathHash = volName.Hash();
@@ -194,4 +194,4 @@ void O2itsGeoHandler::NavigateTo(TString volName)
 }
 
 
-ClassImp(O2itsGeoHandler)
+ClassImp(GeometryHandler)

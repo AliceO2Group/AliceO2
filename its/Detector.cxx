@@ -1,7 +1,7 @@
-#include "O2its.h"
+#include "Detector.h"
 
 #include "AliDetectorList.h"
-#include "O2itsPoint.h"
+#include "Point.h"
 #include "AliStack.h"
 
 #include "FairVolume.h"
@@ -13,8 +13,8 @@
 #include "FairRun.h"
 #include "FairRuntimeDb.h"
 
-#include "AliITSUv1Layer.h"
-#include "AliITSUGeomTGeo.h"
+#include "UpgradeV1Layer.h"
+#include "UpgradeGeometryTGeo.h"
 
 #include "TClonesArray.h"
 #include "TGeoManager.h"
@@ -28,8 +28,10 @@
 using std::cout;
 using std::endl;
 
-O2its::O2its()
-  : O2Detector("O2its", kTRUE, kAliIts),
+using namespace AliceO2::ITS;
+
+AliceO2::ITS::Detector::Detector()
+  : O2Detector("ITS", kTRUE, kAliIts),
     fIdSens(0),
     fTrackID(-1),
     fVolumeID(-1),
@@ -41,8 +43,8 @@ O2its::O2its()
     fLength(-1.),
     fELoss(-1),
     fShunt(),
-    fO2itsPointCollection(new TClonesArray("O2itsPoint")),
-    fGeoHandler(new O2itsGeoHandler()),
+    fO2itsPointCollection(new TClonesArray("AliceO2::ITS::Point")),
+    fGeoHandler(new GeometryHandler()),
     fMisalignPar(NULL),
     fNrOfDetectors(-1),
     fShiftX(),
@@ -75,7 +77,7 @@ O2its::O2its()
 {
 }
 
-O2its::O2its(const char* name, Bool_t active, const Int_t nlay)
+AliceO2::ITS::Detector::Detector(const char* name, Bool_t active, const Int_t nlay)
   : O2Detector(name, active, kAliIts),
     fIdSens(0),
     fTrackID(-1),
@@ -88,8 +90,8 @@ O2its::O2its(const char* name, Bool_t active, const Int_t nlay)
     fLength(-1.),
     fELoss(-1),
     fShunt(),
-    fO2itsPointCollection(new TClonesArray("O2itsPoint")),
-    fGeoHandler(new O2itsGeoHandler()),
+    fO2itsPointCollection(new TClonesArray("AliceO2::ITS::Point")),
+    fGeoHandler(new GeometryHandler()),
     fMisalignPar(NULL),
     fNrOfDetectors(-1),
     fShiftX(),
@@ -124,7 +126,7 @@ O2its::O2its(const char* name, Bool_t active, const Int_t nlay)
   fLayerName = new TString[fNLayers];
   
   for (Int_t j=0; j<fNLayers; j++)
-    fLayerName[j].Form("%s%d",AliITSUGeomTGeo::GetITSSensorPattern(),j); // See AliITSUv1Layer
+    fLayerName[j].Form("%s%d", UpgradeGeometryTGeo::GetITSSensorPattern(),j); // See UpgradeV1Layer
 
   fLayTurbo     = new Bool_t[fNLayers];
   fLayPhi0      = new Double_t[fNLayers];
@@ -139,7 +141,7 @@ O2its::O2its(const char* name, Bool_t active, const Int_t nlay)
   fChipTypeID   = new UInt_t[fNLayers];
   fBuildLevel   = new Int_t[fNLayers];
 
-  fUpGeom = new AliITSUv1Layer*[fNLayers];
+  fUpGeom = new UpgradeV1Layer*[fNLayers];
   
   if (fNLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
     for (Int_t j=0; j<fNLayers; j++) {
@@ -157,7 +159,7 @@ O2its::O2its(const char* name, Bool_t active, const Int_t nlay)
   }
 }
 
-O2its::~O2its()
+AliceO2::ITS::Detector::~Detector()
 {
   delete [] fLayTurbo;
   delete [] fLayPhi0;
@@ -185,10 +187,10 @@ O2its::~O2its()
   delete[] fIdSens;
 }
 
-O2its& O2its::operator=(const O2its &h){
+AliceO2::ITS::Detector& AliceO2::ITS::Detector::operator=(const AliceO2::ITS::Detector &h){
     // The standard = operator
     // Inputs:
-    //   O2its   &h the sourse of this copy
+    //   Detector   &h the sourse of this copy
     // Outputs:
     //   none.
     // Return:
@@ -210,7 +212,7 @@ O2its& O2its::operator=(const O2its &h){
     return *this;
 }
 
-void O2its::Initialize()
+void AliceO2::ITS::Detector::Initialize()
 {
   if (!fIdSens) {
     fIdSens = new Int_t[fNLayers];
@@ -220,7 +222,7 @@ void O2its::Initialize()
     fIdSens[i] = gMC ? gMC->VolId(fLayerName[i]) : 0;
   }
   
-  fGeomTGeo = new AliITSUGeomTGeo(kTRUE);
+  fGeomTGeo = new UpgradeGeometryTGeo(kTRUE);
   
   FairDetector::Initialize();
 
@@ -228,9 +230,9 @@ void O2its::Initialize()
 //  O2itsGeoPar* par=(O2itsGeoPar*)(rtdb->getContainer("O2itsGeoPar"));
 }
 
-void O2its::InitParContainers()
+void AliceO2::ITS::Detector::InitParContainers()
 {
-  LOG(INFO)<< "Initialize aliitsdet missallign parameters"<<FairLogger::endl;
+  LOG(INFO)<< "Initialize aliitsdet misallign parameters"<<FairLogger::endl;
   fNrOfDetectors=fMisalignPar->GetNrOfDetectors();
   fShiftX=fMisalignPar->GetShiftX();
   fShiftY=fMisalignPar->GetShiftY();
@@ -240,24 +242,23 @@ void O2its::InitParContainers()
   fRotZ=fMisalignPar->GetRotZ();
 }
 
-void O2its::SetParContainers()
+void AliceO2::ITS::Detector::SetParContainers()
 {
-  LOG(INFO)<< "Set tutdet missallign parameters"<<FairLogger::endl;
+  LOG(INFO)<< "Set tutdet misallign parameters"<<FairLogger::endl;
   // Get Base Container
   FairRun* sim = FairRun::Instance();
   LOG_IF(FATAL, !sim) << "No run object"<<FairLogger::endl;
   FairRuntimeDb* rtdb=sim->GetRuntimeDb();
   LOG_IF(FATAL, !rtdb) << "No runtime database"<<FairLogger::endl;
 
-  fMisalignPar = (O2itsMisalignPar*)
-                 (rtdb->getContainer("O2itsMissallignPar"));
+  fMisalignPar = (MisalignmentParameter*)
+                 (rtdb->getContainer("MisallignmentParameter"));
 
 }
 
-Bool_t O2its::ProcessHits(FairVolume* vol)
+Bool_t AliceO2::ITS::Detector::ProcessHits(FairVolume* vol)
 {
   /** This method is called from the MC stepping */
-  
   if(!(gMC->TrackCharge())) {
     return kFALSE;
   }
@@ -305,12 +306,12 @@ Bool_t O2its::ProcessHits(FairVolume* vol)
     return kFALSE; // don't save entering hit.
   }
 
-  // Create O2itsPoint on every step of the active volume
+  // Create Point on every step of the active volume
   AddHit(fTrackID, fVolumeID, TVector3(fStartPos.X(),  fStartPos.Y(),  fStartPos.Z()),
           TVector3(fPos.X(),  fPos.Y(),  fPos.Z()), TVector3(fMom.Px(), fMom.Py(), fMom.Pz()),
           fStartTime, fTime, fLength, fELoss, fShunt);
 
-  // Increment number of O2its det points in TParticle
+  // Increment number of Detector det points in TParticle
   AliStack* stack = (AliStack*) gMC->GetStack();
   stack->AddPoint(kAliIts);
   
@@ -321,7 +322,7 @@ Bool_t O2its::ProcessHits(FairVolume* vol)
   return kTRUE;
 }
 
-void O2its::CreateMaterials()
+void AliceO2::ITS::Detector::CreateMaterials()
 {
   //Int_t   ifield = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
   //Float_t fieldm = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();
@@ -430,35 +431,35 @@ void O2its::CreateMaterials()
   AliMedium(16,"ALUMINUM$",16,0,ifield,fieldm,tmaxfd,stemax,deemax,epsil,stmin);
 }
 
-void O2its::EndOfEvent()
+void AliceO2::ITS::Detector::EndOfEvent()
 {
   fO2itsPointCollection->Clear();
 }
 
-void O2its::Register()
+void AliceO2::ITS::Detector::Register()
 {
   /** This will create a branch in the output tree called
-      O2itsPoint, setting the last parameter to kFALSE means:
+      Point, setting the last parameter to kFALSE means:
       this collection will not be written to the file, it will exist
       only during the simulation.
   */
 
-  FairRootManager::Instance()->Register("O2itsPoint", "O2its",
+  FairRootManager::Instance()->Register("AliceO2::ITS::Point", "ITS",
                                         fO2itsPointCollection, kTRUE);
 }
 
-TClonesArray* O2its::GetCollection(Int_t iColl) const
+TClonesArray* AliceO2::ITS::Detector::GetCollection(Int_t iColl) const
 {
   if (iColl == 0) { return fO2itsPointCollection; }
   else { return NULL; }
 }
 
-void O2its::Reset()
+void AliceO2::ITS::Detector::Reset()
 {
   fO2itsPointCollection->Clear();
 }
 
-void O2its::SetNWrapVolumes(Int_t n)
+void AliceO2::ITS::Detector::SetNWrapVolumes(Int_t n)
 {
   // book arrays for wrapper volumes
   if (fNWrapVol) {
@@ -479,7 +480,7 @@ void O2its::SetNWrapVolumes(Int_t n)
   }
 }
 
-void O2its::DefineWrapVolume(Int_t id, Double_t rmin,Double_t rmax, Double_t zspan)
+void AliceO2::ITS::Detector::DefineWrapVolume(Int_t id, Double_t rmin,Double_t rmax, Double_t zspan)
 {
   // set parameters of id-th wrapper volume
   if (id>=fNWrapVol||id<0) {
@@ -491,7 +492,7 @@ void O2its::DefineWrapVolume(Int_t id, Double_t rmin,Double_t rmax, Double_t zsp
   fWrapZSpan[id] = zspan;
 }
 
-void O2its::DefineLayer(Int_t nlay, double phi0, Double_t r,
+void AliceO2::ITS::Detector::DefineLayer(Int_t nlay, double phi0, Double_t r,
 			    Double_t zlen, Int_t nstav,
 			    Int_t nunit, Double_t lthick,
 			    Double_t dthick, UInt_t dettypeID,
@@ -536,7 +537,7 @@ void O2its::DefineLayer(Int_t nlay, double phi0, Double_t r,
   fBuildLevel[nlay] = buildLevel;
 }
 
-void O2its::DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nstav,
+void AliceO2::ITS::Detector::DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nstav,
 				 Int_t nunit, Double_t width, Double_t tilt,
 				 Double_t lthick,Double_t dthick,
 				 UInt_t dettypeID, Int_t buildLevel)
@@ -586,7 +587,7 @@ void O2its::DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zle
   fBuildLevel[nlay] = buildLevel;
 }
 
-void O2its::GetLayerParameters(Int_t nlay, Double_t &phi0,
+void AliceO2::ITS::Detector::GetLayerParameters(Int_t nlay, Double_t &phi0,
 				   Double_t &r, Double_t &zlen,
 				   Int_t &nstav, Int_t &nmod,
 				   Double_t &width, Double_t &tilt,
@@ -628,7 +629,7 @@ void O2its::GetLayerParameters(Int_t nlay, Double_t &phi0,
   dettype= fChipTypeID[nlay];
 }
 
-TGeoVolume* O2its::CreateWrapperVolume(Int_t id)
+TGeoVolume* AliceO2::ITS::Detector::CreateWrapperVolume(Int_t id)
 {
 	// Creates an air-filled wrapper cylindrical volume
 
@@ -642,14 +643,14 @@ TGeoVolume* O2its::CreateWrapperVolume(Int_t id)
   TGeoMedium *medAir = gGeoManager->GetMedium("ITS_AIR$");
 
   char volnam[30];
-  snprintf(volnam, 29, "%s%d", AliITSUGeomTGeo::GetITSWrapVolPattern(),id);
+  snprintf(volnam, 29, "%s%d", UpgradeGeometryTGeo::GetITSWrapVolPattern(),id);
 
   TGeoVolume *wrapper = new TGeoVolume(volnam, tube, medAir);
 
   return wrapper;
 }
 
-void O2its::ConstructGeometry()
+void AliceO2::ITS::Detector::ConstructGeometry()
 {
   // Create the detector materials
   CreateMaterials();
@@ -661,7 +662,7 @@ void O2its::ConstructGeometry()
   DefineSensitiveVolumes();
 }
 
-void O2its::ConstructDetectorGeometry()
+void AliceO2::ITS::Detector::ConstructDetectorGeometry()
 {
   // Create the geometry and insert it in the mother volume ITSV
   TGeoManager *geoManager = gGeoManager;
@@ -672,9 +673,9 @@ void O2its::ConstructDetectorGeometry()
     LOG(FATAL) << "Could not find the top volume" << FairLogger::endl;
   }
 
-  new TGeoVolumeAssembly(AliITSUGeomTGeo::GetITSVolPattern());
-  TGeoVolume *vITSV = geoManager->GetVolume(AliITSUGeomTGeo::GetITSVolPattern());
-  vITSV->SetUniqueID(AliITSUGeomTGeo::GetUIDShift()); // store modID -> midUUID bitshift
+  new TGeoVolumeAssembly(UpgradeGeometryTGeo::GetITSVolPattern());
+  TGeoVolume *vITSV = geoManager->GetVolume(UpgradeGeometryTGeo::GetITSVolPattern());
+  vITSV->SetUniqueID(UpgradeGeometryTGeo::GetUIDShift()); // store modID -> midUUID bitshift
   vALIC->AddNode(vITSV, 2, 0);  // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
 
   const Int_t kLength=100;
@@ -752,11 +753,11 @@ void O2its::ConstructDetectorGeometry()
 		fLay2WrapV[j] = -1;
 
     if (fLayTurbo[j]) {
-      fUpGeom[j] = new AliITSUv1Layer(j,kTRUE,kFALSE);
+      fUpGeom[j] = new UpgradeV1Layer(j,kTRUE,kFALSE);
       fUpGeom[j]->SetStaveWidth(fStaveWidth[j]);
       fUpGeom[j]->SetStaveTilt(fStaveTilt[j]);
     } else {
-      fUpGeom[j] = new AliITSUv1Layer(j,kFALSE);
+      fUpGeom[j] = new UpgradeV1Layer(j,kFALSE);
     }
 
     fUpGeom[j]->SetPhi0(fLayPhi0[j]);
@@ -805,7 +806,7 @@ void O2its::ConstructDetectorGeometry()
 }
 
 //Service Barrel
-void O2its::CreateSuppCyl(const Bool_t innerBarrel,TGeoVolume *dest,const TGeoManager *mgr){
+void AliceO2::ITS::Detector::CreateSuppCyl(const Bool_t innerBarrel,TGeoVolume *dest,const TGeoManager *mgr){
   // Creates the Service Barrel (as a simple cylinder) for IB and OB
   // Inputs:
   //         innerBarrel : if true, build IB service barrel, otherwise for OB
@@ -841,7 +842,7 @@ void O2its::CreateSuppCyl(const Bool_t innerBarrel,TGeoVolume *dest,const TGeoMa
   return;
 }
 
-void O2its::DefineSensitiveVolumes()
+void AliceO2::ITS::Detector::DefineSensitiveVolumes()
 {
   TGeoManager *geoManager = gGeoManager;
   TGeoVolume *v;
@@ -850,23 +851,23 @@ void O2its::DefineSensitiveVolumes()
   
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...fNLayers-1)
   for (Int_t j=0; j<fNLayers; j++) {
-    volumeName = AliITSUGeomTGeo::GetITSSensorPattern() + TString::Itoa(j, 10);
+    volumeName = UpgradeGeometryTGeo::GetITSSensorPattern() + TString::Itoa(j, 10);
     v = geoManager->GetVolume(volumeName.Data());
     AddSensitiveVolume(v);
   }
 }
 
-O2itsPoint* O2its::AddHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom,
+Point* AliceO2::ITS::Detector::AddHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom,
                           Double_t startTime, Double_t time, Double_t length, Double_t eLoss,
                           Int_t shunt)
 {
   TClonesArray& clref = *fO2itsPointCollection;
   Int_t size = clref.GetEntriesFast();
-  return new(clref[size]) O2itsPoint(trackID, detID, startPos, pos, mom, 
+  return new(clref[size]) Point(trackID, detID, startPos, pos, mom, 
          startTime, time, length, eLoss, shunt);
 }
 
-TParticle* O2its::GetParticle() const
+TParticle* AliceO2::ITS::Detector::GetParticle() const
 {
     // Returns the pointer to the TParticle for the particle that created
     // this hit. From the TParticle all kinds of information about this 
@@ -881,7 +882,7 @@ TParticle* O2its::GetParticle() const
    return ((AliStack*) gMC->GetStack())->GetParticle(GetTrack());
 }
 
-void O2its::Print(ostream *os) const
+void AliceO2::ITS::Detector::Print(ostream *os) const
 {
     // Standard output format for this class.
     // Inputs:
@@ -919,7 +920,7 @@ void O2its::Print(ostream *os) const
     return;
 }
 
-void O2its::Read(istream *is)
+void AliceO2::ITS::Detector::Read(istream *is)
 {
     // Standard input format for this class.
     // Inputs:
@@ -935,12 +936,12 @@ void O2its::Read(istream *is)
     return;
 }
 
-ostream &operator<<(ostream &os, O2its &p)
+ostream &operator<<(ostream &os, AliceO2::ITS::Detector &p)
 {
     // Standard output streaming function.
     // Inputs:
     //   ostream os  The output stream
-    //   O2its p The his to be printed out
+    //   Detector p The his to be printed out
     // Outputs:
     //   none.
     // Return:
@@ -950,12 +951,12 @@ ostream &operator<<(ostream &os, O2its &p)
     return os;
 }
 
-istream &operator>>(istream &is, O2its &r)
+istream &operator>>(istream &is, AliceO2::ITS::Detector &r)
 {
     // Standard input streaming function.
     // Inputs:
     //   istream is  The input stream
-    //   O2its p The O2its class to be filled from this input stream
+    //   Detector p The Detector class to be filled from this input stream
     // Outputs:
     //   none.
     // Return:
@@ -965,4 +966,4 @@ istream &operator>>(istream &is, O2its &r)
     return is;
 }
 
-ClassImp(O2its)
+ClassImp(AliceO2::ITS::Detector)

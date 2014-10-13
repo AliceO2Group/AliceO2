@@ -45,30 +45,33 @@
 #include <TPolyMarker.h>
 #include <TPolyLine.h>
 
-#include "AliITSv11Geometry.h"
+#include "V11Geometry.h"
 
 using std::endl;
 using std::cout;
 using std::cin;
-ClassImp(AliITSv11Geometry)
 
-const Double_t AliITSv11Geometry::fgkmicron = 1.0E-4;
-const Double_t AliITSv11Geometry::fgkmm = 0.10;
-const Double_t AliITSv11Geometry::fgkcm = 1.00;
-const Double_t AliITSv11Geometry::fgkDegree = 1.0;
-const Double_t AliITSv11Geometry::fgkRadian = 180./3.14159265358979323846;
-const Double_t AliITSv11Geometry::fgkgcm3 = 1.0; // assume default is g/cm^3
-const Double_t AliITSv11Geometry::fgkKgm3 = 1.0E+3;// assume Kg/m^3
-const Double_t AliITSv11Geometry::fgkKgdm3 = 1.0; // assume Kg/dm^3
-const Double_t AliITSv11Geometry::fgkCelsius = 1.0; // Assume default is C
-const Double_t AliITSv11Geometry::fgkPascal  = 1.0E-3; // Assume kPascal
-const Double_t AliITSv11Geometry::fgkKPascal = 1.0;    // Asume kPascal
-const Double_t AliITSv11Geometry::fgkeV      = 1.0E-9; // GeV default
-const Double_t AliITSv11Geometry::fgkKeV     = 1.0e-6; // GeV default
-const Double_t AliITSv11Geometry::fgkMeV     = 1.0e-3; // GeV default
-const Double_t AliITSv11Geometry::fgkGeV     = 1.0;    // GeV default
+using namespace AliceO2::ITS;
 
-void AliITSv11Geometry::IntersectLines(Double_t m, Double_t x0, Double_t y0,
+ClassImp(V11Geometry)
+
+const Double_t V11Geometry::fgkmicron = 1.0E-4;
+const Double_t V11Geometry::fgkmm = 0.10;
+const Double_t V11Geometry::fgkcm = 1.00;
+const Double_t V11Geometry::fgkDegree = 1.0;
+const Double_t V11Geometry::fgkRadian = 180./3.14159265358979323846;
+const Double_t V11Geometry::fgkgcm3 = 1.0; // assume default is g/cm^3
+const Double_t V11Geometry::fgkKgm3 = 1.0E+3;// assume Kg/m^3
+const Double_t V11Geometry::fgkKgdm3 = 1.0; // assume Kg/dm^3
+const Double_t V11Geometry::fgkCelsius = 1.0; // Assume default is C
+const Double_t V11Geometry::fgkPascal  = 1.0E-3; // Assume kPascal
+const Double_t V11Geometry::fgkKPascal = 1.0;    // Asume kPascal
+const Double_t V11Geometry::fgkeV      = 1.0E-9; // GeV default
+const Double_t V11Geometry::fgkKeV     = 1.0e-6; // GeV default
+const Double_t V11Geometry::fgkMeV     = 1.0e-3; // GeV default
+const Double_t V11Geometry::fgkGeV     = 1.0;    // GeV default
+
+void V11Geometry::IntersectLines(Double_t m, Double_t x0, Double_t y0,
 				       Double_t n, Double_t x1, Double_t y1,
 				       Double_t &xi, Double_t &yi)const{
     // Given the two lines, one passing by (x0,y0) with slope m and
@@ -96,7 +99,7 @@ void AliITSv11Geometry::IntersectLines(Double_t m, Double_t x0, Double_t y0,
     return;
 }
 
-Bool_t AliITSv11Geometry::IntersectCircle(Double_t m, Double_t x0, Double_t y0,
+Bool_t V11Geometry::IntersectCircle(Double_t m, Double_t x0, Double_t y0,
 					  Double_t rr, Double_t xc, Double_t yc,
 					  Double_t &xi1, Double_t &yi1,
 					  Double_t &xi2, Double_t &yi2){
@@ -133,7 +136,7 @@ Bool_t AliITSv11Geometry::IntersectCircle(Double_t m, Double_t x0, Double_t y0,
     }
 }
 
-Double_t AliITSv11Geometry::Yfrom2Points(Double_t x0,Double_t y0,
+Double_t V11Geometry::Yfrom2Points(Double_t x0,Double_t y0,
                                          Double_t x1,Double_t y1,
                                          Double_t x)const{
     // Given the two points (x0,y0) and (x1,y1) and the location x, returns
@@ -152,12 +155,12 @@ Double_t AliITSv11Geometry::Yfrom2Points(Double_t x0,Double_t y0,
     //    the two points (x0,y0) and (x1,y1).
 
     if(x0==x1 && y0==y1) {
-        printf("Error: AliITSv11Geometry::Yfrom2Ponts The two points are "
+        printf("Error: V11Geometry::Yfrom2Ponts The two points are "
                "the same (%e,%e) and (%e,%e)",x0,y0,x1,y1);
         return 0.0;
     } // end if
     if(x0==x1){
-        printf("Warning: AliITSv11Geometry::Yfrom2Points x0=%e == x1=%e. "
+        printf("Warning: V11Geometry::Yfrom2Points x0=%e == x1=%e. "
                "line vertical ""returning mean y",x0,x1);
         return 0.5*(y0+y1);
     }// end if x0==x1
@@ -165,7 +168,7 @@ Double_t AliITSv11Geometry::Yfrom2Points(Double_t x0,Double_t y0,
     return m*(x-x0)+y0;
 }
 
-Double_t AliITSv11Geometry::Xfrom2Points(Double_t x0,Double_t y0,
+Double_t V11Geometry::Xfrom2Points(Double_t x0,Double_t y0,
                                          Double_t x1,Double_t y1,
                                          Double_t y)const{
     // Given the two points (x0,y0) and (x1,y1) and the location y, returns
@@ -184,12 +187,12 @@ Double_t AliITSv11Geometry::Xfrom2Points(Double_t x0,Double_t y0,
     //    the two points (x0,y0) and (x1,y1).
 
     if(x0==x1 && y0==y1) {
-        printf("Error: AliITSv11Geometry::Yfrom2Ponts The two points are "
+        printf("Error: V11Geometry::Yfrom2Ponts The two points are "
                "the same (%e,%e) and (%e,%e)",x0,y0,x1,y1);
         return 0.0;
     } // end if
     if(y0==y1){
-        printf("Warrning: AliITSv11Geometry::Yfrom2Points y0=%e == y1=%e. "
+        printf("Warrning: V11Geometry::Yfrom2Points y0=%e == y1=%e. "
                "line horizontal returning mean x",y0,y1);
         return 0.5*(x0+x1);
     }// end if y0==y1
@@ -197,7 +200,7 @@ Double_t AliITSv11Geometry::Xfrom2Points(Double_t x0,Double_t y0,
     return m*(y-y0)+x0;
 }
 
-Double_t AliITSv11Geometry::RmaxFrom2Points(const TGeoPcon *p,Int_t i1,
+Double_t V11Geometry::RmaxFrom2Points(const TGeoPcon *p,Int_t i1,
                                             Int_t i2,Double_t z)const{
     // functions Require at parts of Volume A to be already defined.
     // Retruns the value of Rmax corresponding to point z alone the line
@@ -221,7 +224,7 @@ Double_t AliITSv11Geometry::RmaxFrom2Points(const TGeoPcon *p,Int_t i1,
     return r;
 }
 
-Double_t AliITSv11Geometry::RminFrom2Points(const TGeoPcon *p,Int_t i1,
+Double_t V11Geometry::RminFrom2Points(const TGeoPcon *p,Int_t i1,
                                             Int_t i2,Double_t z)const{
     // Retruns the value of Rmin corresponding to point z alone the line
     // defined by the two points p->GetRmin(i1),p->GetZ(i1) and 
@@ -240,7 +243,7 @@ Double_t AliITSv11Geometry::RminFrom2Points(const TGeoPcon *p,Int_t i1,
      (p->GetZ(i1)-p->GetZ(i2));
 }
 
-Double_t AliITSv11Geometry::RFrom2Points(const Double_t *p,const Double_t *az,
+Double_t V11Geometry::RFrom2Points(const Double_t *p,const Double_t *az,
                                          Int_t i1,Int_t i2,Double_t z)const{
     // Retruns the value of Rmin corresponding to point z alone the line
     // defined by the two points p->GetRmin(i1),p->GetZ(i1) and 
@@ -259,7 +262,7 @@ Double_t AliITSv11Geometry::RFrom2Points(const Double_t *p,const Double_t *az,
     return p[i2]+(p[i1]-p[i2])*(z-az[i2])/(az[i1]-az[i2]);
 }
 
-Double_t AliITSv11Geometry::Zfrom2MinPoints(const TGeoPcon *p,Int_t i1,
+Double_t V11Geometry::Zfrom2MinPoints(const TGeoPcon *p,Int_t i1,
                                             Int_t i2,Double_t r)const{
     // Retruns the value of Z corresponding to point R alone the line
     // defined by the two points p->GetRmin(i1),p->GetZ(i1) and 
@@ -279,7 +282,7 @@ Double_t AliITSv11Geometry::Zfrom2MinPoints(const TGeoPcon *p,Int_t i1,
      (p->GetRmin(i1)-p->GetRmin(i2));
 }
 
-Double_t AliITSv11Geometry::Zfrom2MaxPoints(const TGeoPcon *p,Int_t i1,
+Double_t V11Geometry::Zfrom2MaxPoints(const TGeoPcon *p,Int_t i1,
                                             Int_t i2,Double_t r)const{
     // Retruns the value of Z corresponding to point R alone the line
     // defined by the two points p->GetRmax(i1),p->GetZ(i1) and 
@@ -299,7 +302,7 @@ Double_t AliITSv11Geometry::Zfrom2MaxPoints(const TGeoPcon *p,Int_t i1,
      (p->GetRmax(i1)-p->GetRmax(i2));
 }
 
-Double_t AliITSv11Geometry::Zfrom2Points(const Double_t *z,const Double_t *ar,
+Double_t V11Geometry::Zfrom2Points(const Double_t *z,const Double_t *ar,
                                          Int_t i1,Int_t i2,Double_t r)const{
     // Retruns the value of z corresponding to point R alone the line
     // defined by the two points p->GetRmax(i1),p->GetZ(i1) and 
@@ -318,7 +321,7 @@ Double_t AliITSv11Geometry::Zfrom2Points(const Double_t *z,const Double_t *ar,
     return z[i2]+(z[i1]-z[i2])*(r-ar[i2])/(ar[i1]-ar[i2]);
 }
 
-Double_t AliITSv11Geometry::RmaxFromZpCone(const TGeoPcon *p,int ip,
+Double_t V11Geometry::RmaxFromZpCone(const TGeoPcon *p,int ip,
                                            Double_t tc,Double_t z,
                                            Double_t th)const{
     // General Outer Cone surface equation Rmax.
@@ -340,7 +343,7 @@ Double_t AliITSv11Geometry::RmaxFromZpCone(const TGeoPcon *p,int ip,
     return -tantc*(z-p->GetZ(ip))+p->GetRmax(ip)+th/costc;
 }
 
-Double_t AliITSv11Geometry::RFromZpCone(const Double_t *ar,
+Double_t V11Geometry::RFromZpCone(const Double_t *ar,
                                         const Double_t *az,int ip,
                                         Double_t tc,Double_t z,
                                         Double_t th)const{
@@ -364,7 +367,7 @@ Double_t AliITSv11Geometry::RFromZpCone(const Double_t *ar,
     return -tantc*(z-az[ip])+ar[ip]+th/costc;
 }
 
-Double_t AliITSv11Geometry::RminFromZpCone(const TGeoPcon *p,Int_t ip,
+Double_t V11Geometry::RminFromZpCone(const TGeoPcon *p,Int_t ip,
                                            Double_t tc,Double_t z,
                                            Double_t th)const{
     // General Inner Cone surface equation Rmin.
@@ -386,7 +389,7 @@ Double_t AliITSv11Geometry::RminFromZpCone(const TGeoPcon *p,Int_t ip,
     return -tantc*(z-p->GetZ(ip))+p->GetRmin(ip)+th/costc;
 }
 
-Double_t AliITSv11Geometry::ZFromRmaxpCone(const TGeoPcon *p,int ip,
+Double_t V11Geometry::ZFromRmaxpCone(const TGeoPcon *p,int ip,
                                            Double_t tc,Double_t r,
                                            Double_t th)const{
     // General Outer cone Surface equation for z.
@@ -408,7 +411,7 @@ Double_t AliITSv11Geometry::ZFromRmaxpCone(const TGeoPcon *p,int ip,
     return p->GetZ(ip)+(p->GetRmax(ip)+th/costc-r)/tantc;
 }
 
-Double_t AliITSv11Geometry::ZFromRmaxpCone(const Double_t *ar,
+Double_t V11Geometry::ZFromRmaxpCone(const Double_t *ar,
                                            const Double_t *az,int ip,
                                            Double_t tc,Double_t r,
                                            Double_t th)const{
@@ -432,7 +435,7 @@ Double_t AliITSv11Geometry::ZFromRmaxpCone(const Double_t *ar,
     return az[ip]+(ar[ip]+th/costc-r)/tantc;
 }
 
-Double_t AliITSv11Geometry::ZFromRminpCone(const TGeoPcon *p,int ip,
+Double_t V11Geometry::ZFromRminpCone(const TGeoPcon *p,int ip,
                                            Double_t tc,Double_t r,
                                            Double_t th)const{
     // General Inner cone Surface equation for z.
@@ -454,7 +457,7 @@ Double_t AliITSv11Geometry::ZFromRminpCone(const TGeoPcon *p,int ip,
     return p->GetZ(ip)+(p->GetRmin(ip)+th/costc-r)/tantc;
 }
 
-void AliITSv11Geometry::RadiusOfCurvature(Double_t rc,Double_t theta0,
+void V11Geometry::RadiusOfCurvature(Double_t rc,Double_t theta0,
                                           Double_t z0,Double_t r0,
                                           Double_t theta1,Double_t &z1,
                                           Double_t &r1)const{
@@ -478,7 +481,7 @@ void AliITSv11Geometry::RadiusOfCurvature(Double_t rc,Double_t theta0,
     return;
 }
 
-void AliITSv11Geometry::InsidePoint(const TGeoPcon *p,Int_t i1,Int_t i2,
+void V11Geometry::InsidePoint(const TGeoPcon *p,Int_t i1,Int_t i2,
                                     Int_t i3,Double_t c,TGeoPcon *q,Int_t j1,
                                     Bool_t max)const{
     // Given two lines defined by the points i1, i2,i3 in the TGeoPcon 
@@ -529,7 +532,7 @@ void AliITSv11Geometry::InsidePoint(const TGeoPcon *p,Int_t i1,Int_t i2,
     return;
 }
 
-void AliITSv11Geometry::InsidePoint(Double_t x0,Double_t y0,
+void V11Geometry::InsidePoint(Double_t x0,Double_t y0,
                                     Double_t x1,Double_t y1,
                                     Double_t x2,Double_t y2,Double_t c,
                                     Double_t &x,Double_t &y)const{
@@ -586,7 +589,7 @@ void AliITSv11Geometry::InsidePoint(Double_t x0,Double_t y0,
     return;
 }
 
-void AliITSv11Geometry:: PrintArb8(const TGeoArb8 *a)const{
+void V11Geometry:: PrintArb8(const TGeoArb8 *a)const{
     // Prints out the content of the TGeoArb8. Usefull for debugging.
     // Inputs:
     //   TGeoArb8 *a
@@ -601,7 +604,7 @@ void AliITSv11Geometry:: PrintArb8(const TGeoArb8 *a)const{
     return;
 }
 
-void AliITSv11Geometry:: PrintPcon(const TGeoPcon *a)const{
+void V11Geometry:: PrintPcon(const TGeoPcon *a)const{
     // Prints out the content of the TGeoPcon. Usefull for debugging.
     // Inputs:
     //   TGeoPcon *a
@@ -621,7 +624,7 @@ void AliITSv11Geometry:: PrintPcon(const TGeoPcon *a)const{
     return;
 }
 
-void AliITSv11Geometry::PrintTube(const TGeoTube *a)const{
+void V11Geometry::PrintTube(const TGeoTube *a)const{
     // Prints out the content of the TGeoTube. Usefull for debugging.
     // Inputs:
     //   TGeoTube *a
@@ -636,7 +639,7 @@ void AliITSv11Geometry::PrintTube(const TGeoTube *a)const{
     return;
 }
 
-void AliITSv11Geometry::PrintTubeSeg(const TGeoTubeSeg *a)const{
+void V11Geometry::PrintTubeSeg(const TGeoTubeSeg *a)const{
     // Prints out the content of the TGeoTubeSeg. Usefull for debugging.
     // Inputs:
     //   TGeoTubeSeg *a
@@ -652,7 +655,7 @@ void AliITSv11Geometry::PrintTubeSeg(const TGeoTubeSeg *a)const{
     return;
 }
 
-void AliITSv11Geometry::PrintConeSeg(const TGeoConeSeg *a)const{
+void V11Geometry::PrintConeSeg(const TGeoConeSeg *a)const{
     // Prints out the content of the TGeoConeSeg. Usefull for debugging.
     // Inputs:
     //   TGeoConeSeg *a
@@ -669,7 +672,7 @@ void AliITSv11Geometry::PrintConeSeg(const TGeoConeSeg *a)const{
     return;
 }
 
-void AliITSv11Geometry::PrintBBox(const TGeoBBox *a)const{
+void V11Geometry::PrintBBox(const TGeoBBox *a)const{
     // Prints out the content of the TGeoBBox. Usefull for debugging.
     // Inputs:
     //   TGeoBBox *a
@@ -684,7 +687,7 @@ void AliITSv11Geometry::PrintBBox(const TGeoBBox *a)const{
     return;
 }
 
-void AliITSv11Geometry::CreateDefaultMaterials(){
+void V11Geometry::CreateDefaultMaterials(){
     // Create ITS materials
     // Defined media here should correspond to the one defined in galice.cuts
     // File which is red in (AliMC*) fMCApp::Init() { ReadTransPar(); }
@@ -1195,7 +1198,7 @@ void AliITSv11Geometry::CreateDefaultMaterials(){
     */
 }
 
-void AliITSv11Geometry::DrawCrossSection(const TGeoPcon *p,
+void V11Geometry::DrawCrossSection(const TGeoPcon *p,
                             Int_t fillc,Int_t fills,
                             Int_t linec,Int_t lines,Int_t linew,
                             Int_t markc,Int_t marks,Float_t marksize)const{
@@ -1261,7 +1264,7 @@ void AliITSv11Geometry::DrawCrossSection(const TGeoPcon *p,
     return;
 }
 
-Bool_t AliITSv11Geometry::AngleOfIntersectionWithLine(Double_t x0,Double_t y0,
+Bool_t V11Geometry::AngleOfIntersectionWithLine(Double_t x0,Double_t y0,
                                                       Double_t x1,Double_t y1,
                                                       Double_t xc,Double_t yc,
                                                       Double_t rc,Double_t &t0,
@@ -1347,7 +1350,7 @@ Bool_t AliITSv11Geometry::AngleOfIntersectionWithLine(Double_t x0,Double_t y0,
     return kTRUE;
 }
 
-Double_t AliITSv11Geometry::AngleForRoundedCorners0(Double_t dx,Double_t dy,
+Double_t V11Geometry::AngleForRoundedCorners0(Double_t dx,Double_t dy,
                                                     Double_t sdr)const{
     // Basic function used to determine the ending angle and starting angles
     // for rounded corners given the relative distance between the centers
@@ -1372,7 +1375,7 @@ Double_t AliITSv11Geometry::AngleForRoundedCorners0(Double_t dx,Double_t dy,
     
 }
 
-Double_t AliITSv11Geometry::AngleForRoundedCorners1(Double_t dx,Double_t dy,
+Double_t V11Geometry::AngleForRoundedCorners1(Double_t dx,Double_t dy,
                                                     Double_t sdr)const{
     // Basic function used to determine the ending angle and starting angles
     // for rounded corners given the relative distance between the centers
@@ -1397,7 +1400,7 @@ Double_t AliITSv11Geometry::AngleForRoundedCorners1(Double_t dx,Double_t dy,
     
 }
 
-void AliITSv11Geometry::AnglesForRoundedCorners(Double_t x0,Double_t y0,
+void V11Geometry::AnglesForRoundedCorners(Double_t x0,Double_t y0,
                                                 Double_t r0,Double_t x1,
                                                 Double_t y1,Double_t r1,
                                                 Double_t &t0,Double_t &t1)
@@ -1407,7 +1410,7 @@ void AliITSv11Geometry::AnglesForRoundedCorners(Double_t x0,Double_t y0,
     // discontinuities.
     //Begin_Html
     /*
-      <img src="picts/ITS/AliITSv11Geometry_AnglesForRoundedCorners.gif">
+      <img src="picts/ITS/V11Geometry_AnglesForRoundedCorners.gif">
      */
     //End_Html
     // Inputs:
@@ -1455,7 +1458,7 @@ void AliITSv11Geometry::AnglesForRoundedCorners(Double_t x0,Double_t y0,
     return;
 }
 
-void AliITSv11Geometry::MakeFigure1(Double_t x0,Double_t y0,Double_t r0,
+void V11Geometry::MakeFigure1(Double_t x0,Double_t y0,Double_t r0,
                                     Double_t x1,Double_t y1,Double_t r1){
     // Function to create the figure discribing how the function 
     // AnglesForRoundedCorners works.
@@ -1506,8 +1509,8 @@ void AliITSv11Geometry::MakeFigure1(Double_t x0,Double_t y0,Double_t r0,
     if(xmax<0.0) xmax *= 0.9; else xmax *= 1.1;
     if(ymax<0.0) ymax *= 0.9; else ymax *= 1.1;
     j = (Int_t)(500.0*(ymax-ymin)/(xmax-xmin));
-    TCanvas *can = new TCanvas("AliITSv11Geometry_AnglesForRoundedCorners",
-                               "Figure for AliITSv11Geometry",500,j);
+    TCanvas *can = new TCanvas("V11Geometry_AnglesForRoundedCorners",
+                               "Figure for V11Geometry",500,j);
     h = ymax-ymin; if(h<0) h = -h;
     can->Range(xmin,ymin,xmax,ymax);
     TArc *c0 = new TArc(x0,y0,r0);

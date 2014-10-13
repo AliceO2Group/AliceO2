@@ -23,7 +23,7 @@
 //*************************************************************************
 
 
-/* $Id: AliITSUv1Layer.cxx  */
+/* $Id: UpgradeV1Layer.cxx  */
 // General Root includes
 #include <TMath.h>
 // Root Geometry includes
@@ -36,8 +36,8 @@
 #include <TGeoXtru.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoMatrix.h>
-#include "AliITSUv1Layer.h"
-#include "AliITSUGeomTGeo.h"
+#include "UpgradeV1Layer.h"
+#include "UpgradeGeometryTGeo.h"
 #include <TGeoBBox.h>
 #include <TGeoShape.h>
 #include <TGeoTrd1.h>
@@ -45,57 +45,59 @@
 
 using namespace TMath;
 
-// General Parameters
-const Int_t    AliITSUv1Layer::fgkNumberOfInnerLayers =   3;
+using namespace AliceO2::ITS;
 
-const Double_t AliITSUv1Layer::fgkDefaultSensorThick  = 300*fgkmicron;
-const Double_t AliITSUv1Layer::fgkDefaultStaveThick   =   1*fgkcm;
+// General Parameters
+const Int_t    AliceO2::ITS::UpgradeV1Layer::fgkNumberOfInnerLayers =   3;
+
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkDefaultSensorThick  = 300*fgkmicron;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkDefaultStaveThick   =   1*fgkcm;
 
 // Inner Barrel Parameters
-const Int_t    AliITSUv1Layer::fgkIBChipsPerRow       =   9;
-const Int_t    AliITSUv1Layer::fgkIBNChipRows         =   1;
+const Int_t    AliceO2::ITS::UpgradeV1Layer::fgkIBChipsPerRow       =   9;
+const Int_t    AliceO2::ITS::UpgradeV1Layer::fgkIBNChipRows         =   1;
 
 // Outer Barrel Parameters
-const Int_t    AliITSUv1Layer::fgkOBChipsPerRow       =   7;
-const Int_t    AliITSUv1Layer::fgkOBNChipRows         =   2;
+const Int_t    AliceO2::ITS::UpgradeV1Layer::fgkOBChipsPerRow       =   7;
+const Int_t    AliceO2::ITS::UpgradeV1Layer::fgkOBNChipRows         =   2;
 
-const Double_t AliITSUv1Layer::fgkOBHalfStaveWidth    =   3.01 *fgkcm;
-const Double_t AliITSUv1Layer::fgkOBModuleWidth       = fgkOBHalfStaveWidth;
-const Double_t AliITSUv1Layer::fgkOBModuleGap         =   0.01 *fgkcm;
-const Double_t AliITSUv1Layer::fgkOBChipXGap          =   0.01 *fgkcm;
-const Double_t AliITSUv1Layer::fgkOBChipZGap          =   0.01 *fgkcm;
-const Double_t AliITSUv1Layer::fgkOBFlexCableAlThick  =   0.005*fgkcm;
-const Double_t AliITSUv1Layer::fgkOBFlexCableKapThick =   0.01 *fgkcm;
-const Double_t AliITSUv1Layer::fgkOBBusCableAlThick   =   0.02 *fgkcm;
-const Double_t AliITSUv1Layer::fgkOBBusCableKapThick  =   0.02 *fgkcm;
-const Double_t AliITSUv1Layer::fgkOBColdPlateThick    =   0.012*fgkcm;
-const Double_t AliITSUv1Layer::fgkOBCarbonPlateThick  =   0.012*fgkcm;
-const Double_t AliITSUv1Layer::fgkOBGlueThick         =   0.03 *fgkcm;
-const Double_t AliITSUv1Layer::fgkOBModuleZLength     =  21.06 *fgkcm;
-const Double_t AliITSUv1Layer::fgkOBHalfStaveYTrans   =   1.76 *fgkmm;
-const Double_t AliITSUv1Layer::fgkOBHalfStaveXOverlap =   4.3  *fgkmm;
-const Double_t AliITSUv1Layer::fgkOBGraphiteFoilThick =  30.0  *fgkmicron;
-const Double_t AliITSUv1Layer::fgkOBCoolTubeInnerD    =   2.052*fgkmm;
-const Double_t AliITSUv1Layer::fgkOBCoolTubeThick     =  32.0  *fgkmicron;
-const Double_t AliITSUv1Layer::fgkOBCoolTubeXDist     =  11.1  *fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBHalfStaveWidth    =   3.01 *fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBModuleWidth       = fgkOBHalfStaveWidth;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBModuleGap         =   0.01 *fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBChipXGap          =   0.01 *fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBChipZGap          =   0.01 *fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBFlexCableAlThick  =   0.005*fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBFlexCableKapThick =   0.01 *fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBBusCableAlThick   =   0.02 *fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBBusCableKapThick  =   0.02 *fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBColdPlateThick    =   0.012*fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBCarbonPlateThick  =   0.012*fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBGlueThick         =   0.03 *fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBModuleZLength     =  21.06 *fgkcm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBHalfStaveYTrans   =   1.76 *fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBHalfStaveXOverlap =   4.3  *fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBGraphiteFoilThick =  30.0  *fgkmicron;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBCoolTubeInnerD    =   2.052*fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBCoolTubeThick     =  32.0  *fgkmicron;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBCoolTubeXDist     =  11.1  *fgkmm;
 
-const Double_t AliITSUv1Layer::fgkOBSpaceFrameWidth   =  42.0  *fgkmm;
-const Double_t AliITSUv1Layer::fgkOBSpaceFrameTotHigh =  43.1  *fgkmm;
-const Double_t AliITSUv1Layer::fgkOBSFrameBeamRadius  =   0.6  *fgkmm;
-const Double_t AliITSUv1Layer::fgkOBSpaceFrameLa      =   3.0  *fgkmm;
-const Double_t AliITSUv1Layer::fgkOBSpaceFrameHa      =   0.721979*fgkmm;
-const Double_t AliITSUv1Layer::fgkOBSpaceFrameLb      =   3.7  *fgkmm;
-const Double_t AliITSUv1Layer::fgkOBSpaceFrameHb      =   0.890428*fgkmm;
-const Double_t AliITSUv1Layer::fgkOBSpaceFrameL       =   0.25 *fgkmm;
-const Double_t AliITSUv1Layer::fgkOBSFBotBeamAngle    =  56.5;
-const Double_t AliITSUv1Layer::fgkOBSFrameBeamSidePhi =  65.0;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSpaceFrameWidth   =  42.0  *fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSpaceFrameTotHigh =  43.1  *fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSFrameBeamRadius  =   0.6  *fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSpaceFrameLa      =   3.0  *fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSpaceFrameHa      =   0.721979*fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSpaceFrameLb      =   3.7  *fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSpaceFrameHb      =   0.890428*fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSpaceFrameL       =   0.25 *fgkmm;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSFBotBeamAngle    =  56.5;
+const Double_t AliceO2::ITS::UpgradeV1Layer::fgkOBSFrameBeamSidePhi =  65.0;
 
-ClassImp(AliITSUv1Layer)
+ClassImp(AliceO2::ITS::UpgradeV1Layer)
 
 #define SQ(A) (A)*(A)
 
-AliITSUv1Layer::AliITSUv1Layer(): 
-  AliITSv11Geometry(),
+AliceO2::ITS::UpgradeV1Layer::UpgradeV1Layer(): 
+  V11Geometry(),
   fLayerNumber(0),
   fPhi0(0),
   fLayRadius(0),
@@ -110,7 +112,7 @@ AliITSUv1Layer::AliITSUv1Layer():
   fChipTypeID(0),
   fIsTurbo(0),
   fBuildLevel(0),
-  fStaveModel(O2its::kIBModelDummy)
+  fStaveModel(AliceO2::ITS::Detector::kIBModelDummy)
 {
   //
   // Standard constructor
@@ -118,8 +120,8 @@ AliITSUv1Layer::AliITSUv1Layer():
   //
 }
 
-AliITSUv1Layer::AliITSUv1Layer(Int_t debug): 
-  AliITSv11Geometry(debug),
+AliceO2::ITS::UpgradeV1Layer::UpgradeV1Layer(Int_t debug): 
+  V11Geometry(debug),
   fLayerNumber(0),
   fPhi0(0),
   fLayRadius(0),
@@ -134,7 +136,7 @@ AliITSUv1Layer::AliITSUv1Layer(Int_t debug):
   fChipTypeID(0),
   fIsTurbo(0),
   fBuildLevel(0),
-  fStaveModel(O2its::kIBModelDummy)
+  fStaveModel(AliceO2::ITS::Detector::kIBModelDummy)
 {
   //
   // Constructor setting debugging level
@@ -142,8 +144,8 @@ AliITSUv1Layer::AliITSUv1Layer(Int_t debug):
   //
 }
 
-AliITSUv1Layer::AliITSUv1Layer(Int_t lay, Int_t debug): 
-  AliITSv11Geometry(debug),
+AliceO2::ITS::UpgradeV1Layer::UpgradeV1Layer(Int_t lay, Int_t debug): 
+  V11Geometry(debug),
   fLayerNumber(lay),
   fPhi0(0),
   fLayRadius(0),
@@ -158,7 +160,7 @@ AliITSUv1Layer::AliITSUv1Layer(Int_t lay, Int_t debug):
   fChipTypeID(0),
   fIsTurbo(0),
   fBuildLevel(0),
-  fStaveModel(O2its::kIBModelDummy)
+  fStaveModel(AliceO2::ITS::Detector::kIBModelDummy)
 {
   //
   // Constructor setting layer number and debugging level
@@ -166,8 +168,8 @@ AliITSUv1Layer::AliITSUv1Layer(Int_t lay, Int_t debug):
   //
 }
 
-AliITSUv1Layer::AliITSUv1Layer(Int_t lay, Bool_t turbo, Int_t debug): 
-  AliITSv11Geometry(debug),
+AliceO2::ITS::UpgradeV1Layer::UpgradeV1Layer(Int_t lay, Bool_t turbo, Int_t debug): 
+  V11Geometry(debug),
   fLayerNumber(lay),
   fPhi0(0),
   fLayRadius(0),
@@ -182,7 +184,7 @@ AliITSUv1Layer::AliITSUv1Layer(Int_t lay, Bool_t turbo, Int_t debug):
   fChipTypeID(0),
   fIsTurbo(turbo),
   fBuildLevel(0),
-  fStaveModel(O2its::kIBModelDummy)
+  fStaveModel(AliceO2::ITS::Detector::kIBModelDummy)
 {
   //
   // Constructor setting layer number and debugging level
@@ -191,8 +193,8 @@ AliITSUv1Layer::AliITSUv1Layer(Int_t lay, Bool_t turbo, Int_t debug):
   //
 }
 
-AliITSUv1Layer::AliITSUv1Layer(const AliITSUv1Layer &s):
-  AliITSv11Geometry(s.GetDebug()),
+AliceO2::ITS::UpgradeV1Layer::UpgradeV1Layer(const AliceO2::ITS::UpgradeV1Layer &s):
+  V11Geometry(s.GetDebug()),
   fLayerNumber(s.fLayerNumber),
   fPhi0(s.fPhi0),
   fLayRadius(s.fLayRadius),
@@ -215,7 +217,7 @@ AliITSUv1Layer::AliITSUv1Layer(const AliITSUv1Layer &s):
   //
 }
 
-AliITSUv1Layer& AliITSUv1Layer::operator=(const AliITSUv1Layer &s)
+AliceO2::ITS::UpgradeV1Layer& AliceO2::ITS::UpgradeV1Layer::operator=(const AliceO2::ITS::UpgradeV1Layer &s)
 {
   //
   // Assignment operator 
@@ -243,13 +245,13 @@ AliITSUv1Layer& AliITSUv1Layer::operator=(const AliITSUv1Layer &s)
   return *this;
 }
 
-AliITSUv1Layer::~AliITSUv1Layer() {
+AliceO2::ITS::UpgradeV1Layer::~UpgradeV1Layer() {
   //
   // Destructor
   //
 }
 
-void AliITSUv1Layer::CreateLayer(TGeoVolume *moth){
+void AliceO2::ITS::UpgradeV1Layer::CreateLayer(TGeoVolume *moth){
 //
 // Creates the actual Layer and places inside its mother volume
 //
@@ -308,7 +310,7 @@ void AliITSUv1Layer::CreateLayer(TGeoVolume *moth){
 
   //  fStaveWidth = fLayRadius*Tan(alpha);
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSLayerPattern(),fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSLayerPattern(),fLayerNumber);
   TGeoVolume *layVol = new TGeoVolumeAssembly(volname);
   layVol->SetUniqueID(fChipTypeID);
 
@@ -341,7 +343,7 @@ void AliITSUv1Layer::CreateLayer(TGeoVolume *moth){
   return;
 }
 
-void AliITSUv1Layer::CreateLayerTurbo(TGeoVolume *moth){
+void AliceO2::ITS::UpgradeV1Layer::CreateLayerTurbo(TGeoVolume *moth){
 //
 // Creates the actual Layer and places inside its mother volume
 // A so-called "turbo" layer is a layer where staves overlap in phi
@@ -375,7 +377,7 @@ void AliITSUv1Layer::CreateLayerTurbo(TGeoVolume *moth){
 								 << FairLogger::endl;
 
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSLayerPattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSLayerPattern(), fLayerNumber);
   TGeoVolume *layVol = new TGeoVolumeAssembly(volname);
   layVol->SetUniqueID(fChipTypeID);
   layVol->SetVisibility(kTRUE);
@@ -403,7 +405,7 @@ void AliITSUv1Layer::CreateLayerTurbo(TGeoVolume *moth){
   return;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStave(const TGeoManager * /*mgr*/){
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStave(const TGeoManager * /*mgr*/){
 //
 // Creates the actual Stave
 //
@@ -444,7 +446,7 @@ TGeoVolume* AliITSUv1Layer::CreateStave(const TGeoManager * /*mgr*/){
 
   // We have all shapes: now create the real volumes
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSStavePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSStavePattern(), fLayerNumber);
 //  TGeoVolume *staveVol = new TGeoVolume(volname, stave, medAir);
   TGeoVolume *staveVol = new TGeoVolumeAssembly(volname);
 
@@ -470,7 +472,7 @@ TGeoVolume* AliITSUv1Layer::CreateStave(const TGeoManager * /*mgr*/){
 
   else{
     TGeoVolume *hstaveVol = CreateStaveOuterB();
-    if (fStaveModel == O2its::kOBModel0) { // Create simplified stave struct as in v0
+    if (fStaveModel == AliceO2::ITS::Detector::kOBModel0) { // Create simplified stave struct as in v0
       staveVol->AddNode(hstaveVol, 0);
       fHierarchy[kHalfStave] = 1;
     } else { // (if fStaveModel) Create new stave struct as in TDR
@@ -494,7 +496,7 @@ TGeoVolume* AliITSUv1Layer::CreateStave(const TGeoManager * /*mgr*/){
   return staveVol;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveInnerB(const Double_t xsta,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveInnerB(const Double_t xsta,
 					      const Double_t ysta,
 					      const Double_t zsta,
 					      const TGeoManager *mgr){
@@ -530,7 +532,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveInnerB(const Double_t xsta,
 
   TGeoMedium *medAir = mgr->GetMedium("ITS_AIR$");
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSHalfStavePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSHalfStavePattern(), fLayerNumber);
   TGeoVolume *hstaveVol  = new TGeoVolume(volname, hstave, medAir);
 
 
@@ -542,7 +544,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveInnerB(const Double_t xsta,
   return hstaveVol;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateModuleInnerB(Double_t xmod,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateModuleInnerB(Double_t xmod,
 					       Double_t ymod,
 					       Double_t zmod,
 					       const TGeoManager *mgr){
@@ -574,7 +576,7 @@ TGeoVolume* AliITSUv1Layer::CreateModuleInnerB(Double_t xmod,
 
   TGeoMedium *medAir = mgr->GetMedium("ITS_AIR$");
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSModulePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSModulePattern(), fLayerNumber);
   TGeoVolume *modVol = new TGeoVolume(volname, module, medAir);
 
   // mm (not used)  zlen = ((TGeoBBox*)chipVol->GetShape())->GetDZ();
@@ -588,7 +590,7 @@ TGeoVolume* AliITSUv1Layer::CreateModuleInnerB(Double_t xmod,
   return modVol;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveStructInnerB(const Double_t xsta,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveStructInnerB(const Double_t xsta,
 						    const Double_t zsta,
 						    const TGeoManager *mgr){
 //
@@ -610,22 +612,22 @@ TGeoVolume* AliITSUv1Layer::CreateStaveStructInnerB(const Double_t xsta,
   TGeoVolume *mechStavVol = 0;
 
   switch (fStaveModel) {
-    case O2its::kIBModelDummy:
+    case AliceO2::ITS::Detector::kIBModelDummy:
       mechStavVol = CreateStaveModelInnerBDummy(xsta,zsta,mgr);
       break;
-    case O2its::kIBModel0:
+    case AliceO2::ITS::Detector::kIBModel0:
       mechStavVol = CreateStaveModelInnerB0(xsta,zsta,mgr);
       break;
-    case O2its::kIBModel1:
+    case AliceO2::ITS::Detector::kIBModel1:
       mechStavVol = CreateStaveModelInnerB1(xsta,zsta,mgr);
       break;
-    case O2its::kIBModel21:
+    case AliceO2::ITS::Detector::kIBModel21:
       mechStavVol = CreateStaveModelInnerB21(xsta,zsta,mgr);
       break;
-    case O2its::kIBModel22:
+    case AliceO2::ITS::Detector::kIBModel22:
       mechStavVol = CreateStaveModelInnerB22(xsta,zsta,mgr);
       break;
-    case O2its::kIBModel3:
+    case AliceO2::ITS::Detector::kIBModel3:
       mechStavVol = CreateStaveModelInnerB3(xsta,zsta,mgr);
       break;
     default:
@@ -636,7 +638,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveStructInnerB(const Double_t xsta,
   return mechStavVol; 
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerBDummy(const Double_t ,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveModelInnerBDummy(const Double_t ,
 							const Double_t ,
 							const TGeoManager *) const {
 //
@@ -659,7 +661,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerBDummy(const Double_t ,
   return 0;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB0(const Double_t xsta,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveModelInnerB0(const Double_t xsta,
 						    const Double_t zsta,
 						    const TGeoManager *mgr){
 //
@@ -709,7 +711,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB0(const Double_t xsta,
   LOG(DEBUG1) << "BuildLevel " << fBuildLevel << FairLogger::endl;
 
   char volname[30];
-  snprintf(volname, 30, "%s%d_StaveStruct", AliITSUGeomTGeo::GetITSStavePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(), fLayerNumber);
 
   Double_t z=0, y=-0.011+0.0150, x=0;
 
@@ -842,7 +844,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB0(const Double_t xsta,
   return mechStavVol;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB1(const Double_t xsta,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveModelInnerB1(const Double_t xsta,
 						    const Double_t zsta,
 						    const TGeoManager *mgr){
 //
@@ -892,7 +894,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB1(const Double_t xsta,
   TGeoVolume *mechStavVol = 0;
 
   char volname[30];
-  snprintf(volname, 30, "%s%d_StaveStruct", AliITSUGeomTGeo::GetITSStavePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(), fLayerNumber);
 
   // detailed structure ++++++++++++++
   Double_t z=0, y=-0.011+0.0150, x=0;
@@ -1037,7 +1039,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB1(const Double_t xsta,
 
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB21(const Double_t xsta,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveModelInnerB21(const Double_t xsta,
 						     const Double_t zsta,
 						     const TGeoManager *mgr){
 //
@@ -1091,7 +1093,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB21(const Double_t xsta,
   Int_t  loop = (Int_t)(kStaveLength/(2*kL1));
 
   char volname[30];
-  snprintf(volname, 30, "%s%d_StaveStruct", AliITSUGeomTGeo::GetITSStavePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(), fLayerNumber);
 
   Double_t z=0, y=-(kConeOutRadius+0.03)+0.0385, x=0;
 
@@ -1261,7 +1263,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB21(const Double_t xsta,
   
 }
 // new model22
-TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB22(const Double_t xsta,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveModelInnerB22(const Double_t xsta,
 						     const Double_t zsta,
 						     const TGeoManager *mgr){
 //
@@ -1321,7 +1323,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB22(const Double_t xsta,
   Int_t  loop = (Int_t)(kStaveLength/(2*kL1));
 
   char volname[30];
-  snprintf(volname, 30, "%s%d_StaveStruct", AliITSUGeomTGeo::GetITSStavePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(), fLayerNumber);
 
   Double_t z=0, y=-(2*kConeOutRadius)+klay1+klay2+fSensorThick/2-0.0004, x=0;
 
@@ -1502,7 +1504,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB22(const Double_t xsta,
 }
 
 // model3
-TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB3(const Double_t xsta,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveModelInnerB3(const Double_t xsta,
 						    const Double_t zsta,
 						    const TGeoManager *mgr){
 //
@@ -1569,7 +1571,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB3(const Double_t xsta,
        Double_t smcSpace=0.01;
 
     char volname[30];
-    snprintf(volname, 30, "%s%d_StaveStruct", AliITSUGeomTGeo::GetITSStavePattern(), fLayerNumber);
+    snprintf(volname, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(), fLayerNumber);
     
     // detailed structure ++++++++++++++
     Double_t z=0, y=0-0.007, x=0;
@@ -1874,7 +1876,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelInnerB3(const Double_t xsta,
     return mechStavVol;
  }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveOuterB(const TGeoManager *mgr){
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveOuterB(const TGeoManager *mgr){
 //
 // Create the chip stave for the Outer Barrel
 //
@@ -1892,13 +1894,13 @@ TGeoVolume* AliITSUv1Layer::CreateStaveOuterB(const TGeoManager *mgr){
   TGeoVolume *mechStavVol = 0;
 
   switch (fStaveModel) {
-    case O2its::kOBModelDummy:
+    case AliceO2::ITS::Detector::kOBModelDummy:
       mechStavVol = CreateStaveModelOuterBDummy(mgr);
       break;
-    case O2its::kOBModel0:
+    case AliceO2::ITS::Detector::kOBModel0:
       mechStavVol = CreateStaveModelOuterB0(mgr);
       break;
-    case O2its::kOBModel1:
+    case AliceO2::ITS::Detector::kOBModel1:
       mechStavVol = CreateStaveModelOuterB1(mgr);
       break;
     default:
@@ -1909,7 +1911,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveOuterB(const TGeoManager *mgr){
   return mechStavVol; 
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveModelOuterBDummy(const TGeoManager *) const {
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveModelOuterBDummy(const TGeoManager *) const {
 //
 // Create dummy stave
 //
@@ -1928,7 +1930,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelOuterBDummy(const TGeoManager *) con
   return 0;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveModelOuterB0(const TGeoManager *mgr){
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveModelOuterB0(const TGeoManager *mgr){
 //
 // Creation of the mechanical stave structure for the Outer Barrel as in v0
 // (we fake the module and halfstave volumes to have always
@@ -1974,11 +1976,11 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelOuterB0(const TGeoManager *mgr){
 
   TGeoMedium *medAir = mgr->GetMedium("ITS_AIR$");
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSModulePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSModulePattern(), fLayerNumber);
   TGeoVolume *modVol = new TGeoVolume(volname, module, medAir);
   modVol->SetVisibility(kTRUE);
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSHalfStavePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSHalfStavePattern(), fLayerNumber);
   TGeoVolume *hstaveVol  = new TGeoVolume(volname, hstave, medAir);
 
 
@@ -1998,7 +2000,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelOuterB0(const TGeoManager *mgr){
   return hstaveVol;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateStaveModelOuterB1(const TGeoManager *mgr){
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateStaveModelOuterB1(const TGeoManager *mgr){
 //
 // Create the mechanical half stave structure
 // for the Outer Barrel as in TDR
@@ -2190,7 +2192,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelOuterB1(const TGeoManager *mgr){
   fleectubVol->SetFillColor(fleectubVol->GetLineColor());
   fleectubVol->SetFillStyle(4000); // 0% transparent
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSHalfStavePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSHalfStavePattern(), fLayerNumber);
   TGeoVolume *halfStaveVol  = new TGeoVolume(volname, halfStave, medAir);
 //   halfStaveVol->SetLineColor(12);
 //   halfStaveVol->SetFillColor(12); 
@@ -2293,7 +2295,7 @@ TGeoVolume* AliITSUv1Layer::CreateStaveModelOuterB1(const TGeoManager *mgr){
   return halfStaveVol;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateSpaceFrameOuterB(const TGeoManager *mgr){
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateSpaceFrameOuterB(const TGeoManager *mgr){
 //
 // Create the space frame for the Outer Barrel
 //
@@ -2309,11 +2311,11 @@ TGeoVolume* AliITSUv1Layer::CreateSpaceFrameOuterB(const TGeoManager *mgr){
   TGeoVolume *mechStavVol = 0;
 
   switch (fStaveModel) {
-    case O2its::kOBModelDummy:
-    case O2its::kOBModel0:
+    case AliceO2::ITS::Detector::kOBModelDummy:
+    case AliceO2::ITS::Detector::kOBModel0:
       mechStavVol = CreateSpaceFrameOuterBDummy(mgr);
       break;
-    case O2its::kOBModel1:
+    case AliceO2::ITS::Detector::kOBModel1:
       mechStavVol = CreateSpaceFrameOuterB1(mgr);
       break;
     default:
@@ -2324,7 +2326,7 @@ TGeoVolume* AliITSUv1Layer::CreateSpaceFrameOuterB(const TGeoManager *mgr){
   return mechStavVol; 
 }
 
-TGeoVolume* AliITSUv1Layer::CreateSpaceFrameOuterBDummy(const TGeoManager *) const {
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateSpaceFrameOuterBDummy(const TGeoManager *) const {
 //
 // Create dummy stave
 //
@@ -2341,7 +2343,7 @@ TGeoVolume* AliITSUv1Layer::CreateSpaceFrameOuterBDummy(const TGeoManager *) con
   return 0;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateSpaceFrameOuterB1(const TGeoManager *mgr){
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateSpaceFrameOuterB1(const TGeoManager *mgr){
 //
 // Create the space frame for the Outer Barrel (Model 1)
 //
@@ -2387,7 +2389,7 @@ TGeoVolume* AliITSUv1Layer::CreateSpaceFrameOuterB1(const TGeoManager *mgr){
 
   zlen = fNModules*fgkOBModuleZLength + (fNModules-1)*fgkOBModuleGap;
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSHalfStavePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSHalfStavePattern(), fLayerNumber);
   if (gGeoManager->GetVolume(volname)) { // Should always be so
     sframeHeight -= ((TGeoBBox*)gGeoManager->GetVolume(volname)->GetShape())->GetDY()*2;
     zlen = ((TGeoBBox*)gGeoManager->GetVolume(volname)->GetShape())->GetDZ()*2;
@@ -2559,7 +2561,7 @@ TGeoVolume* AliITSUv1Layer::CreateSpaceFrameOuterB1(const TGeoManager *mgr){
   return spaceFrameVol;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateChipInnerB(const Double_t xchip,
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateChipInnerB(const Double_t xchip,
 					     const Double_t ychip,   
 					     const Double_t zchip,
 					     const TGeoManager *mgr){
@@ -2597,12 +2599,12 @@ TGeoVolume* AliITSUv1Layer::CreateChipInnerB(const Double_t xchip,
   // We have all shapes: now create the real volumes
   TGeoMedium *medSi  = mgr->GetMedium("ITS_SI$");
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSChipPattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSChipPattern(), fLayerNumber);
   TGeoVolume *chipVol = new TGeoVolume(volname, chip, medSi);
   chipVol->SetVisibility(kTRUE);
   chipVol->SetLineColor(1);
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSSensorPattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSSensorPattern(), fLayerNumber);
   TGeoVolume *sensVol = new TGeoVolume(volname, sensor, medSi);
   sensVol->SetVisibility(kTRUE);
   sensVol->SetLineColor(8);
@@ -2621,7 +2623,7 @@ TGeoVolume* AliITSUv1Layer::CreateChipInnerB(const Double_t xchip,
   return chipVol;
 }
 
-TGeoVolume* AliITSUv1Layer::CreateModuleOuterB(const TGeoManager *mgr){
+TGeoVolume* AliceO2::ITS::UpgradeV1Layer::CreateModuleOuterB(const TGeoManager *mgr){
 //
 // Creates the OB Module: HIC + FPC + Carbon plate
 //
@@ -2713,7 +2715,7 @@ TGeoVolume* AliITSUv1Layer::CreateModuleOuterB(const TGeoManager *mgr){
   flexKapVol->SetFillColor(flexKapVol->GetLineColor());
   flexKapVol->SetFillStyle(4000); // 0% transparent
 
-  snprintf(volname, 30, "%s%d", AliITSUGeomTGeo::GetITSModulePattern(), fLayerNumber);
+  snprintf(volname, 30, "%s%d", UpgradeGeometryTGeo::GetITSModulePattern(), fLayerNumber);
   TGeoVolume *modVol = new TGeoVolume(volname, module, medAir);
   modVol->SetVisibility(kTRUE);
 
@@ -2745,7 +2747,7 @@ TGeoVolume* AliITSUv1Layer::CreateModuleOuterB(const TGeoManager *mgr){
   return modVol;
 }
 
-Double_t AliITSUv1Layer::RadiusOfTurboContainer(){
+Double_t AliceO2::ITS::UpgradeV1Layer::RadiusOfTurboContainer(){
 //
 // Computes the inner radius of the air container for the Turbo configuration
 // as the radius of either the circle tangent to the stave or the circle
@@ -2780,7 +2782,7 @@ Double_t AliITSUv1Layer::RadiusOfTurboContainer(){
     return -1;
 }
 
-void AliITSUv1Layer::SetNUnits(Int_t u)
+void AliceO2::ITS::UpgradeV1Layer::SetNUnits(Int_t u)
 {
 //
 // Sets the number of units in a stave:
@@ -2807,7 +2809,7 @@ void AliITSUv1Layer::SetNUnits(Int_t u)
 
 }
 
-void AliITSUv1Layer::SetStaveTilt(const Double_t t)
+void AliceO2::ITS::UpgradeV1Layer::SetStaveTilt(const Double_t t)
 {
 //
 // Sets the Stave tilt angle (for turbo layers only)
@@ -2829,7 +2831,7 @@ void AliITSUv1Layer::SetStaveTilt(const Double_t t)
 
 }
 
-void AliITSUv1Layer::SetStaveWidth(const Double_t w){
+void AliceO2::ITS::UpgradeV1Layer::SetStaveWidth(const Double_t w){
 //
 // Sets the Stave width (for turbo layers only)
 //
@@ -2850,13 +2852,13 @@ void AliITSUv1Layer::SetStaveWidth(const Double_t w){
 
 }
 
-TGeoArb8 *AliITSUv1Layer::CreateStaveSide(const char *name,
+TGeoArb8 *AliceO2::ITS::UpgradeV1Layer::CreateStaveSide(const char *name,
                          Double_t dz, Double_t angle, Double_t xSign,
                          Double_t L, Double_t H, Double_t l) {
 //
 // Creates the V-shaped sides of the OB space frame
 // (from a similar method with same name and function
-// in AliITSv11GeometrySDD class by L.Gaudichet)
+// in V11GeometrySDD class by L.Gaudichet)
 //
 
     // Create one half of the V shape corner of CF stave
@@ -2885,13 +2887,13 @@ TGeoArb8 *AliITSUv1Layer::CreateStaveSide(const char *name,
     return cfStavSide;
 }
 
-TGeoCombiTrans *AliITSUv1Layer::CreateCombiTrans(const char *name,
+TGeoCombiTrans *AliceO2::ITS::UpgradeV1Layer::CreateCombiTrans(const char *name,
 					 Double_t dy, Double_t dz,
 					 Double_t dphi, Bool_t planeSym) {
 //
 // Help method to create a TGeoCombiTrans matrix
 // (from a similar method with same name and function
-// in AliITSv11GeometrySDD class by L.Gaudichet)
+// in V11GeometrySDD class by L.Gaudichet)
 //
 
     //
@@ -2913,14 +2915,14 @@ TGeoCombiTrans *AliITSUv1Layer::CreateCombiTrans(const char *name,
     return combiTrans1;
 }
 
-void AliITSUv1Layer::AddTranslationToCombiTrans(TGeoCombiTrans* ct,
+void AliceO2::ITS::UpgradeV1Layer::AddTranslationToCombiTrans(TGeoCombiTrans* ct,
                                                        Double_t dx,
                                                        Double_t dy,
                                                        Double_t dz) const{
 //
 // Help method to add a translation to a TGeoCombiTrans matrix
 // (from a similar method with same name and function
-// in AliITSv11GeometrySDD class by L.Gaudichet)
+// in V11GeometrySDD class by L.Gaudichet)
 //
 
   // Add a dx,dy,dz translation to the initial TGeoCombiTrans

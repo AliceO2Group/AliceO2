@@ -1,25 +1,20 @@
-#include "O2itsPoint.h"
+#include "Point.h"
 
 #include <iostream>
 using std::cout;
 using std::endl;
 
+using namespace AliceO2::ITS;
 
 // -----   Default constructor   -------------------------------------------
-O2itsPoint::O2itsPoint()
-  : FairMCPoint(),
-    fX_out(0.),
-    fY_out(0.),
-    fZ_out(0.),
-    fPx_out(0.),
-    fPy_out(0.),
-    fPz_out(0.)
+Point::Point()
+  : FairMCPoint()
 {
 }
 // -------------------------------------------------------------------------
 
 // -----   Standard constructor   ------------------------------------------
-O2itsPoint::O2itsPoint(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom,
+Point::Point(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom,
                                    Double_t startTime, Double_t time, Double_t length, 
                                    Double_t eLoss, Int_t shunt)
   : FairMCPoint(trackID, detID, pos, mom, time, length, eLoss)
@@ -28,13 +23,13 @@ O2itsPoint::O2itsPoint(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 p
 // -------------------------------------------------------------------------
 
 // -----   Destructor   ----------------------------------------------------
-O2itsPoint::~O2itsPoint() { }
+Point::~Point() { }
 // -------------------------------------------------------------------------
 
 // -----   Public method Print   -------------------------------------------
-void O2itsPoint::Print(const Option_t* opt) const
+void Point::Print(const Option_t* opt) const
 {
-  cout << "-I- O2itsPoint: O2its point for track " << fTrackID
+  cout << "-I- Point: O2its point for track " << fTrackID
        << " in detector " << fDetectorID << endl;
   cout << "    Position (" << fX << ", " << fY << ", " << fZ
        << ") cm" << endl;
@@ -45,5 +40,5 @@ void O2itsPoint::Print(const Option_t* opt) const
 }
 // -------------------------------------------------------------------------
 
-ClassImp(O2itsPoint)
+ClassImp(Point)
 

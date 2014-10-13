@@ -1,5 +1,5 @@
-#ifndef O2ITSMISSALLIGNPAR_H
-#define O2ITSMISSALLIGNPAR_H
+#ifndef ALICEO2_ITS_MISALIGNMENTPARAMETER_H_
+#define ALICEO2_ITS_MISALIGNMENTPARAMETER_H_
 
 #include "FairParGenericSet.h"          // for FairParGenericSet
 
@@ -9,14 +9,17 @@
 
 class FairParamList;
 
-class O2itsMisalignPar : public FairParGenericSet
+namespace AliceO2 {
+namespace ITS {
+
+class MisalignmentParameter : public FairParGenericSet
 {
   public:
 
-    O2itsMisalignPar(const char* name="O2itsMissallignPar",
-                                const char* title="Missalignment parameter for O2itsHitProducerIdealMissallign Parameters",
+    MisalignmentParameter(const char* name="MisallignmentParameter",
+                                const char* title="Misalignment parameter for O2itsHitProducerIdealMisallign Parameters",
                                 const char* context="TestDefaultContext");
-    ~O2itsMisalignPar(void);
+    ~MisalignmentParameter(void);
     void clear(void);
     void putParams(FairParamList*);
     Bool_t getParams(FairParamList*);
@@ -39,10 +42,12 @@ class O2itsMisalignPar : public FairParGenericSet
     TArrayD fRotZ; // Array to hold the rotation in z-direction
     Int_t fNrOfDetectors; // Total number of detectors
 
-    O2itsMisalignPar(const O2itsMisalignPar&);
-    O2itsMisalignPar& operator=(const O2itsMisalignPar&);
+    MisalignmentParameter(const MisalignmentParameter&);
+    MisalignmentParameter& operator=(const MisalignmentParameter&);
 
-    ClassDef(O2itsMisalignPar,1)
+    ClassDef(MisalignmentParameter,1)
 };
+}
+}
 
 #endif

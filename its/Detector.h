@@ -1,22 +1,26 @@
-#ifndef O2ITS_H
-#define O2ITS_H
+#ifndef ALICEO2_ITS_DETECTOR_H_
+#define ALICEO2_ITS_DETECTOR_H_
 
 #include "TParticle.h"
 #include "TVector3.h"
 #include "TLorentzVector.h"
 
 #include "O2Detector.h"
-#include "O2itsGeoHandler.h"
-#include "O2itsMisalignPar.h"
+#include "GeometryHandler.h"
+#include "MisalignmentParameter.h"
 
-#include "AliITSUGeomTGeo.h"
+#include "UpgradeGeometryTGeo.h"
 
-class O2itsPoint;
 class FairVolume;
 class TClonesArray;
-class AliITSUv1Layer;
 
-class O2its: public O2Detector
+namespace AliceO2 {
+namespace ITS {
+
+class Point;
+class UpgradeV1Layer;
+
+class Detector: public O2Detector
 {
 
   public:
@@ -37,13 +41,13 @@ class O2its: public O2Detector
      *       Active: kTRUE for active detectors (ProcessHits() will be called)
      *               kFALSE for inactive detectors
     */
-    O2its(const char* Name, Bool_t Active, const Int_t nlay);
+    Detector(const char* Name, Bool_t Active, const Int_t nlay);
 
     /**      default constructor    */
-    O2its();
+    Detector();
 
     /**       destructor     */
-    virtual ~O2its();
+    virtual ~Detector();
     
     /**      Initialization of the detector is done here    */
     virtual void   Initialize();
@@ -84,9 +88,9 @@ class O2its: public O2Detector
 				    UInt_t &dettype) const;
 
     /**      This method is an example of how to add your own point
-     *       of type O2itsPoint to the clones array
+     *       of type Point to the clones array
     */
-    O2itsPoint* AddHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom,
+    Point* AddHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom,
                              Double_t startTime, Double_t time, Double_t length, Double_t eLoss, 
                              Int_t shunt);
     
@@ -132,7 +136,7 @@ class O2its: public O2Detector
     virtual AliITSUModel_t GetStaveModelIB() const {return fStaveModelIB;}
     virtual AliITSUModel_t GetStaveModelOB() const {return fStaveModelOB;}
 
-    AliITSUGeomTGeo* fGeomTGeo; //! access to geometry details
+    UpgradeGeometryTGeo* fGeomTGeo; //! access to geometry details
     
   protected:
   
@@ -217,21 +221,24 @@ class O2its: public O2Detector
     /** Define the sensitive volumes of the geometry */
     void DefineSensitiveVolumes();
     
-    O2its(const O2its&);
-    O2its& operator=(const O2its&);
+    Detector(const Detector&);
+    Detector& operator=(const Detector&);
     
-    O2itsGeoHandler* fGeoHandler;
-    O2itsMisalignPar* fMisalignPar;
+    GeometryHandler* fGeoHandler;
+    MisalignmentParameter* fMisalignPar;
     
-    AliITSUv1Layer **fUpGeom; //! Geometry
+    UpgradeV1Layer **fUpGeom; //! Geometry
     AliITSUModel_t fStaveModelIB; //! The stave model for the Inner Barrel
     AliITSUModel_t fStaveModelOB; //! The stave model for the Outer Barrel
     
-    ClassDef(O2its,1)
+    ClassDef(Detector,1)
 };
 
 // Input and output function for standard C++ input/output.
-ostream& operator<<(ostream &os, O2its &source);
-istream& operator>>(istream &os, O2its &source);
+ostream& operator<<(ostream &os, Detector &source);
+istream& operator>>(istream &os, Detector &source);
+
+}
+}
 
 #endif

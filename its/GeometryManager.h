@@ -1,5 +1,5 @@
-#ifndef ALI_GEOM_MANAGER_H
-#define ALI_GEOM_MANAGER_H
+#ifndef ALICEO2_ITS_GEOMETRYMANAGER_H_
+#define ALICEO2_ITS_GEOMETRYMANAGER_H_
 
 //
 // Class for interfacing to the geometry; it also builds and manages the
@@ -21,7 +21,10 @@ class TGeoPNEntry;
 class TGeoHMatrix;
 class TObjArray;
 
-class AliGeomManager: public TObject {
+namespace AliceO2 {
+namespace ITS {  
+
+class GeometryManager: public TObject {
 
 public:
   enum ELayerID{kInvalidLayer=0,
@@ -40,15 +43,17 @@ public:
  
   static Bool_t GetOrigGlobalMatrix(const char *symname, TGeoHMatrix &m);
 
-  ~AliGeomManager();
+  ~GeometryManager();
 
  private:
-	AliGeomManager(); 
+	GeometryManager(); 
   static Bool_t       GetOrigGlobalMatrixFromPath(const char *path, TGeoHMatrix &m);
 
   static TGeoManager* fgGeometry;
 
-  ClassDef(AliGeomManager, 0); // Manager of geometry information for alignment
+  ClassDef(GeometryManager, 0); // Manager of geometry information for alignment
 };
+}
+}
 
 #endif

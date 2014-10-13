@@ -1,12 +1,12 @@
-#include "O2itsMisalignPar.h"
+#include "MisalignmentParameter.h"
 
 #include "FairParamList.h"
 
-//#include <iostream>
+using namespace AliceO2::ITS;
 
-ClassImp(O2itsMisalignPar)
+ClassImp(MisalignmentParameter)
 
-O2itsMisalignPar ::O2itsMisalignPar(const char* name,
+MisalignmentParameter ::MisalignmentParameter(const char* name,
     const char* title,
     const char* context)
   : FairParGenericSet(name,title,context),
@@ -20,15 +20,15 @@ O2itsMisalignPar ::O2itsMisalignPar(const char* name,
 {
 }
 
-O2itsMisalignPar::~O2itsMisalignPar(void)
+MisalignmentParameter::~MisalignmentParameter(void)
 {
 }
 
-void O2itsMisalignPar::clear(void)
+void MisalignmentParameter::clear(void)
 {
 }
 
-void O2itsMisalignPar::putParams(FairParamList* l)
+void MisalignmentParameter::putParams(FairParamList* l)
 {
   if (!l) { return; }
 
@@ -42,7 +42,7 @@ void O2itsMisalignPar::putParams(FairParamList* l)
 
 }
 
-Bool_t O2itsMisalignPar::getParams(FairParamList* l)
+Bool_t MisalignmentParameter::getParams(FairParamList* l)
 {
   if (!l) { return kFALSE; }
 

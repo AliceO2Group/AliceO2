@@ -1,23 +1,25 @@
-#include "O2itsContFact.h"
+#include "ContainerFactory.h"
 #include "FairRuntimeDb.h"
 
 #include <iostream>
 
-ClassImp(O2itsContFact)
+using namespace AliceO2::ITS;
 
-static O2itsContFact gO2itsContFact;
+ClassImp(ContainerFactory)
 
-O2itsContFact::O2itsContFact()
+static ContainerFactory gO2itsContFact;
+
+ContainerFactory::ContainerFactory()
   : FairContFact()
 {
   /** Constructor (called when the library is loaded) */
-  fName="O2itsContFact";
+  fName="ContainerFactory";
   fTitle="Factory for parameter containers in libO2its";
   setAllContainers();
   FairRuntimeDb::instance()->addContFactory(this);
 }
 
-void O2itsContFact::setAllContainers()
+void ContainerFactory::setAllContainers()
 {
   /** Creates the Container objects with all accepted
       contexts and adds them to
@@ -33,7 +35,7 @@ void O2itsContFact::setAllContainers()
 */
  }
 
-FairParSet* O2itsContFact::createContainer(FairContainer* c)
+FairParSet* ContainerFactory::createContainer(FairContainer* c)
 {
   /** Calls the constructor of the corresponding parameter container.
       For an actual context, which is not an empty string and not

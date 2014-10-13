@@ -4,18 +4,16 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliITSUGeomTGeo+;
-#pragma link C++ class AliITSv11Geometry+;
-#pragma link C++ class AliITSUv1Layer+;
-#pragma link C++ class AliITSsegmentation+;
-#pragma link C++ class AliITSUSegmentationPix+;
-#pragma link C++ class AliGeomManager+;
-#pragma link C++ class O2its+;
-#pragma link C++ class O2itsContFact;
-#pragma link C++ class O2itsGeoHandler+;
-#pragma link C++ class O2itsMisalignPar+;
-#pragma link C++ class O2itsPoint+;
-#pragma link C++ class O2itsDigi+;
-#pragma link C++ class O2itsDigiTask+;
+#pragma link C++ class AliceO2::ITS::UpgradeGeometryTGeo+;
+#pragma link C++ class AliceO2::ITS::V11Geometry+;
+#pragma link C++ class AliceO2::ITS::UpgradeV1Layer+;
+#pragma link C++ class AliceO2::ITS::Segmentation+;
+#pragma link C++ class AliceO2::ITS::UpgradeSegmentationPixel+;
+#pragma link C++ class AliceO2::ITS::GeometryManager+;
+#pragma link C++ class AliceO2::ITS::Detector+;
+#pragma link C++ class AliceO2::ITS::ContainerFactory;
+#pragma link C++ class AliceO2::ITS::GeometryHandler+;
+#pragma link C++ class AliceO2::ITS::MisalignmentParameter+;
+#pragma link C++ class AliceO2::ITS::Point+;
 
 #endif

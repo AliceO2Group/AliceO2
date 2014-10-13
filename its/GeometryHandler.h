@@ -1,18 +1,17 @@
+#ifndef ALICEO2_ITS_GEOMETRYHANDLER_H_
+#define ALICEO2_ITS_GEOMETRYHANDLER_H_
+
 // -------------------------------------------------------------------------
-// -----                 O2itsGeoHandler header file                  -----
+// -----                 GeometryHandler header file                  -----
 // -----                 Created 20/11/12  by F. Uhlig                 -----
 // -------------------------------------------------------------------------
 
-
-/** O2itsGeoHandler.h
+/** GeometryHandler.h
  ** Helper class to extract information from the GeoManager which is
  ** needed in many other TOF classes. This helper class should be a
  ** single place to hold all these functions.
  ** @author F. Uhlig <f.uhlig@gsi.de>
  **/
-
-#ifndef O2ITSGEOHANDLER_H
-#define O2ITSGEOHANDLER_H
 
 #include "TObject.h"                    // for TObject
 
@@ -23,15 +22,18 @@ class TGeoBBox;
 class TGeoVolume;
 class TGeoHMatrix;
 
-class O2itsGeoHandler : public TObject
+namespace AliceO2 {
+namespace ITS {
+
+class GeometryHandler : public TObject
 {
   public:
 
     /** Constructor **/
-    O2itsGeoHandler();
+    GeometryHandler();
 
     /** Destructor **/
-    ~O2itsGeoHandler() {};
+    ~GeometryHandler() {};
 
     Int_t GetUniqueDetectorId();
     Int_t GetUniqueDetectorId(TString volName);
@@ -71,12 +73,13 @@ class O2itsGeoHandler : public TObject
 
     TString ConstructFullPathFromDetID(Int_t detID);
 
-    O2itsGeoHandler(const O2itsGeoHandler&);
-    O2itsGeoHandler operator=(const O2itsGeoHandler&);
+    GeometryHandler(const GeometryHandler&);
+    GeometryHandler operator=(const GeometryHandler&);
 
-    ClassDef(O2itsGeoHandler,1)
+    ClassDef(GeometryHandler,1)
 
 };
-
+}
+}
 
 #endif

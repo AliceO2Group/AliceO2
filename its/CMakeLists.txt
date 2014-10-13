@@ -21,19 +21,17 @@ ${FAIRROOT_LIBRARY_DIR}
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-AliITSUGeomTGeo.cxx
-AliITSv11Geometry.cxx
-AliITSUv1Layer.cxx
-AliITSsegmentation.cxx
-AliITSUSegmentationPix.cxx
-AliGeomManager.cxx
-O2its.cxx
-O2itsContFact.cxx
-O2itsGeoHandler.cxx
-O2itsMisalignPar.cxx
-O2itsPoint.cxx
-O2itsDigi.cxx
-O2itsDigiTask.cxx
+UpgradeGeometryTGeo.cxx
+V11Geometry.cxx
+UpgradeV1Layer.cxx
+Segmentation.cxx
+UpgradeSegmentationPixel.cxx
+GeometryManager.cxx
+Detector.cxx
+ContainerFactory.cxx
+GeometryHandler.cxx
+MisalignmentParameter.cxx
+Point.cxx
 )
 
 Set(LINKDEF O2itsLinkDef.h)

@@ -13,7 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 //-------------------------------------------------------------------------
-//   Implementation of AliGeomManager, the geometry manager class 
+//   Implementation of GeometryManager, the geometry manager class 
 //   which interfaces to TGeo and the look-up table mapping unique
 //   volume indices to symbolic volume names. For that it collects
 //   several static methods.
@@ -33,26 +33,28 @@
 #include <TPluginManager.h>
 #include <TROOT.h>
 
-#include "AliGeomManager.h"
+#include "GeometryManager.h"
 
 #include "FairLogger.h"
 
-ClassImp(AliGeomManager)
+using namespace AliceO2::ITS;
 
-TGeoManager* AliGeomManager::fgGeometry = 0x0;
+ClassImp(GeometryManager)
 
-AliGeomManager::AliGeomManager():
+TGeoManager* GeometryManager::fgGeometry = 0x0;
+
+GeometryManager::GeometryManager():
   TObject()
 {
   // default constructor
 }
 
-AliGeomManager::~AliGeomManager()
+GeometryManager::~GeometryManager()
 {
   // dummy destructor
 }
 
-Bool_t AliGeomManager::GetOrigGlobalMatrix(const char* symname, TGeoHMatrix &m) 
+Bool_t GeometryManager::GetOrigGlobalMatrix(const char* symname, TGeoHMatrix &m) 
 {
   // Get the global transformation matrix (ideal geometry) for a given alignable volume
   // The alignable volume is identified by 'symname' which has to be either a valid symbolic
@@ -92,8 +94,7 @@ Bool_t AliGeomManager::GetOrigGlobalMatrix(const char* symname, TGeoHMatrix &m)
   return GetOrigGlobalMatrixFromPath(path,m);
 }
 
-//_____________________________________________________________________________
-Bool_t AliGeomManager::GetOrigGlobalMatrixFromPath(const char *path, TGeoHMatrix &m)
+Bool_t GeometryManager::GetOrigGlobalMatrixFromPath(const char *path, TGeoHMatrix &m)
 {
   // The method returns the global matrix for the volume identified by 
   // 'path' in the ideal detector geometry.
