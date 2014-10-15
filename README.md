@@ -6,18 +6,51 @@ Alice O2 project software. Simulation and reconstraction software for Alice expe
 ### Step by Step installation
 
 
-1. Install [FairSoft](https://github.com/FairRootGroup/FairSoft/tree/dev)
+1. Install [FairSoft/AlFa](https://github.com/FairRootGroup/FairSoft/tree/dev)
 
-    we use here "fair_install" as a directory name, you can use what you went! 
+    we use here "alfa_src" as a directory name, you can change it to what ever you like 
     ```bash
-    mkdir ~/fair_install
-    cd ~/fair_install
-    #git clone https://github.com/FairRootGroup/FairSoft.git
-    git clone -b dev https://github.com/FairRootGroup/FairSoft.git
-    cd FairSoft
-    ./configure.sh
+  
+    git clone  https://github.com/FairRootGroup/FairSoft.git  alfa_src
+    cd  alfa_src
+    ./alfaconfig.sh
     # 1) gcc (on Linux) 5) Clang (on OSX)
     # 1) No Debug Info
     # 2) Internet (install G4 files from internet)
-    # path: ~/fair_install/FairSoftInst
+    # path: ~/AlFa
     ```
+    
+    To run the tests do:
+
+    ```bash
+    cd alfa_src/FairRoot/build_for_alfa/
+    make test
+    ```
+    
+   
+2. Set several required shell variables, needed during the installation and running of the
+   different software packages. Put these in your shell's rc file (~/.bashrc or ~/.cshrc).
+   For bash:
+
+    ```bash
+    export SIMPATH=~/AlFa
+    export FAIRROOTPATH=$SIMPATH/FairRoot
+    ```
+
+    or for the csh:
+
+    ```bash
+    setenv SIMPATH ~/AlFa
+    setenv FAIRROOTPATH $SIMPATH/FairRoot
+    ```
+
+3. Install the [AliceO2] (https://github.com/AliceO2Group/AliceO2) software
+
+   ```bash
+   git clone  https://github.com/AliceO2Group/AliceO2.git
+   mkdir build_o2
+   cd build_o2
+   cmake ../
+   make 
+   . config.sh    [or source config.csh]
+    ```   
