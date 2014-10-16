@@ -1,4 +1,4 @@
-# The name of our project is “ALICEO2”.  CMakeLists files in this project can
+# The name of our project is "ALICEO2".  CMakeLists files in this project can
 # refer to the root source directory of the project as ${ALICEO2_SOURCE_DIR} 
 # or as ${CMAKE_SOURCE_DIR} and to the root binary directory of the project as 
 # ${ALICEO2_BINARY_DIR} or ${CMAKE_BINARY_DIR}.
@@ -6,9 +6,9 @@
 # and the experiment part.
 
 # Check if cmake has the required version
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6.0 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11 FATAL_ERROR)
 
-# Set name of our project to “ALICEO2". Has to be done
+# Set name of our project to "ALICEO2". Has to be done
 # after check of cmake version since this is a new feature                  
 project(ALICEO2)
 
@@ -152,9 +152,10 @@ SET(LD_LIBRARY_PATH  ${_LIBDIR} ${LD_LIBRARY_PATH})
 # any of the features of the new standard
 include(CheckCXX11Features)
 
-IF(HAS_CXX11_SHAREDPOINTER)
-  Add_Definitions(-DHAS_SHAREDPOINTER)
-ENDIF(HAS_CXX11_SHAREDPOINTER)
+# Check if the compilation flag -std=c++11 is set
+If(NOT CMAKE_CXX_FLAGS)
+  Message(FATAL_ERROR "No C++11 support found. AliceO2 require C++11 be build.")
+EndIF(NOT CMAKE_CXX_FLAGS)
 
 # Recurse into the given subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through
@@ -167,6 +168,8 @@ add_subdirectory (its)
 add_subdirectory (passive)
 add_subdirectory (field)  
 add_subdirectory (devices)  
+
+
 
 WRITE_CONFIG_FILE(config.sh)
  
