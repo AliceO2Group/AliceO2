@@ -1,51 +1,76 @@
+/// \file MisalignmentParameter.h
+/// \brief Definition of the MisalignmentParameter class
+
 #ifndef ALICEO2_ITS_MISALIGNMENTPARAMETER_H_
 #define ALICEO2_ITS_MISALIGNMENTPARAMETER_H_
 
-#include "FairParGenericSet.h"          // for FairParGenericSet
+#include "FairParGenericSet.h" // for FairParGenericSet
 
-#include "Rtypes.h"                     // for ClassDef
+#include "Rtypes.h" // for ClassDef
 
-#include "TArrayD.h"                    // for TArrayD
+#include "TArrayD.h" // for TArrayD
 
 class FairParamList;
 
 namespace AliceO2 {
 namespace ITS {
 
-class MisalignmentParameter : public FairParGenericSet
-{
-  public:
+class MisalignmentParameter : public FairParGenericSet {
 
-    MisalignmentParameter(const char* name="MisallignmentParameter",
-                                const char* title="Misalignment parameter for O2itsHitProducerIdealMisallign Parameters",
-                                const char* context="TestDefaultContext");
-    ~MisalignmentParameter(void);
-    void clear(void);
-    void putParams(FairParamList*);
-    Bool_t getParams(FairParamList*);
+public:
+  MisalignmentParameter(
+      const char* name = "MisalignmentParameter",
+      const char* title =
+          "Misalignment parameter for AliceO2ITSHitProducerIdealMisallign Parameters",
+      const char* context = "TestDefaultContext");
+  ~MisalignmentParameter(void);
 
-    TArrayD GetShiftX() {return fShiftX;}
-    TArrayD GetShiftY() {return fShiftY;}
-    TArrayD GetShiftZ() {return fShiftZ;}
-    TArrayD GetRotX() {return fRotX;}
-    TArrayD GetRotY() {return fRotY;}
-    TArrayD GetRotZ() {return fRotZ;}
-    Int_t GetNrOfDetectors() {return fNrOfDetectors;}
+  void Clear(void);
+  void PutParams(FairParamList*);
+  Bool_t GetParams(FairParamList*);
 
-  private:
+  TArrayD GetShiftX()
+  {
+    return mShiftX;
+  }
+  TArrayD GetShiftY()
+  {
+    return mShiftY;
+  }
+  TArrayD GetShiftZ()
+  {
+    return mShiftZ;
+  }
+  TArrayD GetRotX()
+  {
+    return mRotX;
+  }
+  TArrayD GetRotY()
+  {
+    return mRotY;
+  }
+  TArrayD GetRotZ()
+  {
+    return mRotZ;
+  }
+  Int_t GetNumberOfDetectors()
+  {
+    return mNumberOfDetectors;
+  }
 
-    TArrayD fShiftX; // Array to hold the misalignment in x-direction
-    TArrayD fShiftY; // Array to hold the misalignment in y-direction
-    TArrayD fShiftZ; // Array to hold the misalignment in z-direction
-    TArrayD fRotX; // Array to hold the rotation in x-direction
-    TArrayD fRotY; // Array to hold the rotation in y-direction
-    TArrayD fRotZ; // Array to hold the rotation in z-direction
-    Int_t fNrOfDetectors; // Total number of detectors
+private:
+  TArrayD mShiftX;          ///< Array to hold the misalignment in x-direction
+  TArrayD mShiftY;          ///< Array to hold the misalignment in y-direction
+  TArrayD mShiftZ;          ///< Array to hold the misalignment in z-direction
+  TArrayD mRotX;            ///< Array to hold the rotation in x-direction
+  TArrayD mRotY;            ///< Array to hold the rotation in y-direction
+  TArrayD mRotZ;            ///< Array to hold the rotation in z-direction
+  Int_t mNumberOfDetectors; ///< Total number of detectors
 
-    MisalignmentParameter(const MisalignmentParameter&);
-    MisalignmentParameter& operator=(const MisalignmentParameter&);
+  MisalignmentParameter(const MisalignmentParameter&);
+  MisalignmentParameter& operator=(const MisalignmentParameter&);
 
-    ClassDef(MisalignmentParameter,1)
+  ClassDef(MisalignmentParameter, 1)
 };
 }
 }

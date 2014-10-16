@@ -1,3 +1,6 @@
+/// \file ContainerFactory.cxx
+/// \brief Implementation of the ContainerFactory class
+
 #include "ContainerFactory.h"
 #include "FairRuntimeDb.h"
 
@@ -10,44 +13,32 @@ ClassImp(ContainerFactory)
 static ContainerFactory gO2itsContFact;
 
 ContainerFactory::ContainerFactory()
-  : FairContFact()
+    : FairContFact()
 {
-  /** Constructor (called when the library is loaded) */
-  fName="ContainerFactory";
-  fTitle="Factory for parameter containers in libO2its";
-  setAllContainers();
+  fName = "ContainerFactory";
+  fTitle = "Factory for parameter containers in libO2its";
+  mSetAllContainers();
   FairRuntimeDb::instance()->addContFactory(this);
 }
 
-void ContainerFactory::setAllContainers()
+void ContainerFactory::mSetAllContainers()
 {
-  /** Creates the Container objects with all accepted
-      contexts and adds them to
-      the list of containers for the O2its library.
-  */
-/*
-  FairContainer* p= new FairContainer("O2itsGeoPar",
-                                      "O2its Geometry Parameters",
-                                      "TestDefaultContext");
-  p->addContext("TestNonDefaultContext");
+  //FairContainer* p= new FairContainer("O2itsGeoPar",
+  //                                    "O2its Geometry Parameters",
+  //                                    "TestDefaultContext");
+  //p->addContext("TestNonDefaultContext");
+  //
+  //containers->Add(p);
 
-  containers->Add(p);
-*/
- }
+}
 
 FairParSet* ContainerFactory::createContainer(FairContainer* c)
 {
-  /** Calls the constructor of the corresponding parameter container.
-      For an actual context, which is not an empty string and not
-      the default context
-      of this container, the name is concatinated with the context.
-  */
- /* const char* name=c->GetName();
-  FairParSet* p=NULL;
-  if (strcmp(name,"O2itsGeoPar")==0) {
-    p=new O2itsGeoPar(c->getConcatName().Data(),
-                            c->GetTitle(),c->getContext());
-  }
-  return p;
-*/
-  }
+   //const char* name=c->GetName();
+   //FairParSet* p=NULL;
+   //if (strcmp(name,"O2itsGeoPar")==0) {
+   //  p=new O2itsGeoPar(c->getConcatName().Data(),
+   //                          c->GetTitle(),c->getContext());
+   //}
+   //return p;
+}

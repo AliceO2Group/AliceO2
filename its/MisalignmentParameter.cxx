@@ -1,3 +1,6 @@
+/// \file MisalignmentParameter.cxx
+/// \brief Implementation of the MisalignmentParameter class
+
 #include "MisalignmentParameter.h"
 
 #include "FairParamList.h"
@@ -6,17 +9,16 @@ using namespace AliceO2::ITS;
 
 ClassImp(MisalignmentParameter)
 
-MisalignmentParameter ::MisalignmentParameter(const char* name,
-    const char* title,
-    const char* context)
-  : FairParGenericSet(name,title,context),
-    fShiftX(),
-    fShiftY(),
-    fShiftZ(),
-    fRotX(),
-    fRotY(),
-    fRotZ(),
-    fNrOfDetectors(0)
+MisalignmentParameter::MisalignmentParameter(const char* name, const char* title,
+                                             const char* context)
+    : FairParGenericSet(name, title, context)
+    , mShiftX()
+    , mShiftY()
+    , mShiftZ()
+    , mRotX()
+    , mRotY()
+    , mRotZ()
+    , mNumberOfDetectors(0)
 {
 }
 
@@ -24,47 +26,64 @@ MisalignmentParameter::~MisalignmentParameter(void)
 {
 }
 
-void MisalignmentParameter::clear(void)
+void MisalignmentParameter::Clear(void)
 {
 }
 
-void MisalignmentParameter::putParams(FairParamList* l)
+void MisalignmentParameter::PutParams(FairParamList* list)
 {
-  if (!l) { return; }
+  if (!list) {
+    return;
+  }
 
-  l->add("NrOfDetectors", fNrOfDetectors);
-  l->add("ShiftX", fShiftX);
-  l->add("ShiftY", fShiftY);
-  l->add("ShiftZ", fShiftZ);
-  l->add("RotationX", fRotX);
-  l->add("RotationY", fRotY);
-  l->add("RotationZ", fRotZ);
-
+  list->add("NumberOfDetectors", mNumberOfDetectors);
+  list->add("ShiftX", mShiftX);
+  list->add("ShiftY", mShiftY);
+  list->add("ShiftZ", mShiftZ);
+  list->add("RotationX", mRotX);
+  list->add("RotationY", mRotY);
+  list->add("RotationZ", mRotZ);
 }
 
-Bool_t MisalignmentParameter::getParams(FairParamList* l)
+Bool_t MisalignmentParameter::GetParams(FairParamList* list)
 {
-  if (!l) { return kFALSE; }
+  if (!list) {
+    return kFALSE;
+  }
 
-  if ( ! l->fill("NrOfDetectors", &fNrOfDetectors) ) { return kFALSE; }
+  if (!list->fill("NumberOfDetectors", &mNumberOfDetectors)) {
+    return kFALSE;
+  }
 
-  fShiftX.Set(fNrOfDetectors);
-  if ( ! l->fill("ShiftX", &fShiftX )) { return kFALSE; }
+  mShiftX.Set(mNumberOfDetectors);
+  if (!list->fill("ShiftX", &mShiftX)) {
+    return kFALSE;
+  }
 
-  fShiftY.Set(fNrOfDetectors);
-  if ( ! l->fill("ShiftY", &fShiftY )) { return kFALSE; }
+  mShiftY.Set(mNumberOfDetectors);
+  if (!list->fill("ShiftY", &mShiftY)) {
+    return kFALSE;
+  }
 
-  fShiftZ.Set(fNrOfDetectors);
-  if ( ! l->fill("ShiftZ", &fShiftZ )) { return kFALSE; }
+  mShiftZ.Set(mNumberOfDetectors);
+  if (!list->fill("ShiftZ", &mShiftZ)) {
+    return kFALSE;
+  }
 
-  fRotX.Set(fNrOfDetectors);
-  if ( ! l->fill("RotationX", &fRotX )) { return kFALSE; }
+  mRotX.Set(mNumberOfDetectors);
+  if (!list->fill("RotationX", &mRotX)) {
+    return kFALSE;
+  }
 
-  fRotY.Set(fNrOfDetectors);
-  if ( ! l->fill("RotationY", &fRotY )) { return kFALSE; }
+  mRotY.Set(mNumberOfDetectors);
+  if (!list->fill("RotationY", &mRotY)) {
+    return kFALSE;
+  }
 
-  fRotZ.Set(fNrOfDetectors);
-  if ( ! l->fill("RotationZ", &fRotZ )) { return kFALSE; }
+  mRotZ.Set(mNumberOfDetectors);
+  if (!list->fill("RotationZ", &mRotZ)) {
+    return kFALSE;
+  }
 
   return kTRUE;
 }

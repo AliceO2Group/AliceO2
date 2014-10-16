@@ -1,22 +1,13 @@
+/// \file GeometryHandler.h
+/// \brief Definition of the GeometryHandler class
+/// \author F. Uhlig <f.uhlig@gsi.de>
+
 #ifndef ALICEO2_ITS_GEOMETRYHANDLER_H_
 #define ALICEO2_ITS_GEOMETRYHANDLER_H_
 
-// -------------------------------------------------------------------------
-// -----                 GeometryHandler header file                  -----
-// -----                 Created 20/11/12  by F. Uhlig                 -----
-// -------------------------------------------------------------------------
-
-/** GeometryHandler.h
- ** Helper class to extract information from the GeoManager which is
- ** needed in many other TOF classes. This helper class should be a
- ** single place to hold all these functions.
- ** @author F. Uhlig <f.uhlig@gsi.de>
- **/
-
-#include "TObject.h"                    // for TObject
-
-#include "Rtypes.h"                     // for Int_t, Double_t, Bool_t, etc
-#include "TString.h"                    // for TString
+#include "Rtypes.h"  // for Int_t, Double_t, Bool_t, etc
+#include "TObject.h" // for TObject
+#include "TString.h" // for TString
 
 class TGeoBBox;
 class TGeoVolume;
@@ -25,59 +16,73 @@ class TGeoHMatrix;
 namespace AliceO2 {
 namespace ITS {
 
-class GeometryHandler : public TObject
-{
-  public:
+/// Helper class to extract information from the GeoManager which is needed in many other TOF
+/// classes. This helper class should be a single place to hold all these functions.
+class GeometryHandler : public TObject {
 
-    /** Constructor **/
-    GeometryHandler();
+public:
+  /// Default constructor
+  GeometryHandler();
 
-    /** Destructor **/
-    ~GeometryHandler() {};
+  /// Default destructor
+  ~GeometryHandler() {};
 
-    Int_t GetUniqueDetectorId();
-    Int_t GetUniqueDetectorId(TString volName);
+  Int_t GetUniqueDetectorId();
 
-//  Int_t GetDetectorId(Int_t uniqueId);
+  Int_t GetUniqueDetectorId(TString volumeName);
 
-    Int_t Init(Bool_t isSimulation=kFALSE);
+  //  Int_t GetDetectorId(Int_t uniqueId);
 
-    void FillDetectorInfoArray(Int_t uniqueId);
-    void NavigateTo(TString volName);
+  Int_t Init(Bool_t isSimulation = kFALSE);
 
-    // Implement Interface functions to the TGeoManager to be
-    // the same as for the VMC
-    Int_t CurrentVolOffID(Int_t off, Int_t& copy) const;
-    Int_t CurrentVolID(Int_t& copy) const;
-    Int_t VolId(const Text_t* name) const;
-    Int_t VolIdGeo(const char* name) const;
-    const char* CurrentVolName() const;
-    const char* CurrentVolOffName(Int_t off) const;
+  void FillDetectorInfoArray(Int_t uniqueId);
 
-    void LocalToGlobal(Double_t* local, Double_t* global, Int_t detID);
+  void NavigateTo(TString volumeName);
 
-//  Int_t CheckGeometryVersion();
+  // Implement Interface functions to the TGeoManager to be
+  // the same as for the VMC
 
-  private:
+  /// Return the current volume "off" upward in the geometrical tree ID and copy number
+  Int_t CurrentVolumeOffId(Int_t off, Int_t& copy) const;
 
-    Bool_t fIsSimulation; //!
+  /// Returns the current volume ID and copy number
+  Int_t CurrentVolumeId(Int_t& copy) const;
 
-    Int_t fLastUsedDetectorID;  //!
+  /// Returns the unique numeric identifier for volume name
+  Int_t VolumeId(const Text_t* name) const;
 
-    UInt_t fGeoPathHash;        //!
-    TGeoVolume* fCurrentVolume; //!
-    TGeoBBox* fVolumeShape;     //!
-    Double_t fGlobal[3];        //! Global centre of volume
-    TGeoHMatrix* fGlobalMatrix; //!
+  /// Returns the unique numeric identifier for volume name
+  Int_t VolumeIdGeo(const char* name) const;
 
+  /// Returns the current volume name
+  const char* CurrentVolumeName() const;
 
-    TString ConstructFullPathFromDetID(Int_t detID);
+  /// Returns the current volume "off" upward in the geometrical tree ID, name and copy number
+  /// if name=0 no name is returned
+  const char* CurrentVolumeOffName(Int_t off) const;
 
-    GeometryHandler(const GeometryHandler&);
-    GeometryHandler operator=(const GeometryHandler&);
+  void LocalToGlobal(Double_t* local, Double_t* global, Int_t detectorId);
 
-    ClassDef(GeometryHandler,1)
+  //  Int_t CheckGeometryVersion();
 
+private:
+  Bool_t mIsSimulation;
+
+  Int_t mLastUsedDetectorId;
+
+  UInt_t mGeometryPathHash;
+  TGeoVolume* mCurrentVolume;
+  TGeoBBox* mVolumeShape;
+  Double_t mGlobalCentre[3]; ///< Global centre of volume
+  TGeoHMatrix* mGlobalMatrix;
+
+  TString ConstructFullPathFromDetectorId(Int_t detectorId);
+
+  GeometryHandler(const GeometryHandler&);
+
+  GeometryHandler operator=(const GeometryHandler&);
+
+  ClassDef(GeometryHandler, 1)
 };
 }
 }
