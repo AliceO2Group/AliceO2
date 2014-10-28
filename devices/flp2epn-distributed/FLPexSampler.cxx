@@ -1,5 +1,5 @@
 /**
- * O2FLPexSampler.cpp
+ * FLPexSampler.cpp
  *
  * @since 2013-04-23
  * @author D. Klein, A. Rybalchenko
@@ -10,27 +10,31 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
-#include "O2FLPexSampler.h"
+#include "FLPexSampler.h"
 #include "FairMQLogger.h"
 
-O2FLPexSampler::O2FLPexSampler()
+using namespace std;
+
+using namespace AliceO2::Devices;
+
+FLPexSampler::FLPexSampler()
   : fEventSize(10000)
   , fEventRate(1)
   , fEventCounter(0)
 {
 }
 
-O2FLPexSampler::~O2FLPexSampler()
+FLPexSampler::~FLPexSampler()
 {
 }
 
-void O2FLPexSampler::Run()
+void FLPexSampler::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
   boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
 
   // boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-  boost::thread resetEventCounter(boost::bind(&O2FLPexSampler::ResetEventCounter, this));
+  boost::thread resetEventCounter(boost::bind(&FLPexSampler::ResetEventCounter, this));
 
   int sent = 0;
   unsigned long eventId = 0;
@@ -89,7 +93,7 @@ void O2FLPexSampler::Run()
   fRunningCondition.notify_one();
 }
 
-void O2FLPexSampler::ResetEventCounter()
+void FLPexSampler::ResetEventCounter()
 {
   while (true) {
     try {
@@ -101,7 +105,7 @@ void O2FLPexSampler::ResetEventCounter()
   }
 }
 
-void O2FLPexSampler::SetProperty(const int key, const string& value, const int slot /*= 0*/)
+void FLPexSampler::SetProperty(const int key, const string& value, const int slot /*= 0*/)
 {
   switch (key) {
     default:
@@ -110,7 +114,7 @@ void O2FLPexSampler::SetProperty(const int key, const string& value, const int s
   }
 }
 
-string O2FLPexSampler::GetProperty(const int key, const string& default_ /*= ""*/, const int slot /*= 0*/)
+string FLPexSampler::GetProperty(const int key, const string& default_ /*= ""*/, const int slot /*= 0*/)
 {
   switch (key) {
     default:
@@ -118,7 +122,7 @@ string O2FLPexSampler::GetProperty(const int key, const string& default_ /*= ""*
   }
 }
 
-void O2FLPexSampler::SetProperty(const int key, const int value, const int slot /*= 0*/)
+void FLPexSampler::SetProperty(const int key, const int value, const int slot /*= 0*/)
 {
   switch (key) {
     case EventSize:
@@ -133,7 +137,7 @@ void O2FLPexSampler::SetProperty(const int key, const int value, const int slot 
   }
 }
 
-int O2FLPexSampler::GetProperty(const int key, const int default_ /*= 0*/, const int slot /*= 0*/)
+int FLPexSampler::GetProperty(const int key, const int default_ /*= 0*/, const int slot /*= 0*/)
 {
   switch (key) {
     case EventSize:

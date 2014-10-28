@@ -1,5 +1,5 @@
 /**
- * O2EPNex.cxx
+ * EPNex.cxx
  *
  * @since 2013-01-09
  * @author D. Klein, A. Rybalchenko, M.Al-Turany, C. Kouzinopoulos
@@ -9,24 +9,28 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
-#include "O2EPNex.h"
+#include "EPNex.h"
 #include "FairMQLogger.h"
 
-O2EPNex::O2EPNex() :
+using namespace std;
+
+using namespace AliceO2::Devices;
+
+EPNex::EPNex() :
   fHeartbeatIntervalInMs(5000)
 {
 }
 
-O2EPNex::~O2EPNex()
+EPNex::~EPNex()
 {
 }
 
-void O2EPNex::Run()
+void EPNex::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
 
   // boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-  boost::thread heartbeatSender(boost::bind(&O2EPNex::sendHeartbeats, this));
+  boost::thread heartbeatSender(boost::bind(&EPNex::sendHeartbeats, this));
 
   size_t idPartSize = 0;
   size_t dataPartSize = 0;
@@ -66,7 +70,7 @@ void O2EPNex::Run()
   fRunningCondition.notify_one();
 }
 
-void O2EPNex::sendHeartbeats()
+void EPNex::sendHeartbeats()
 {
   while (true) {
     try {
@@ -80,13 +84,13 @@ void O2EPNex::sendHeartbeats()
       }
       boost::this_thread::sleep(boost::posix_time::milliseconds(fHeartbeatIntervalInMs));
     } catch (boost::thread_interrupted&) {
-      LOG(INFO) << "O2EPNex::sendHeartbeat() interrupted";
+      LOG(INFO) << "EPNex::sendHeartbeat() interrupted";
       break;
     }
   } // while (true)
 }
 
-void O2EPNex::SetProperty(const int key, const string& value, const int slot/*= 0*/)
+void EPNex::SetProperty(const int key, const string& value, const int slot/*= 0*/)
 {
   switch (key) {
     default:
@@ -95,7 +99,7 @@ void O2EPNex::SetProperty(const int key, const string& value, const int slot/*= 
   }
 }
 
-string O2EPNex::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
+string EPNex::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
 {
   switch (key) {
     default:
@@ -103,7 +107,7 @@ string O2EPNex::GetProperty(const int key, const string& default_/*= ""*/, const
   }
 }
 
-void O2EPNex::SetProperty(const int key, const int value, const int slot/*= 0*/)
+void EPNex::SetProperty(const int key, const int value, const int slot/*= 0*/)
 {
   switch (key) {
     case HeartbeatIntervalInMs:
@@ -115,7 +119,7 @@ void O2EPNex::SetProperty(const int key, const int value, const int slot/*= 0*/)
   }
 }
 
-int O2EPNex::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
+int EPNex::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
 {
   switch (key) {
     case HeartbeatIntervalInMs:

@@ -1,5 +1,5 @@
 /**
- * O2FLPex.cxx
+ * FLPex.cxx
  *
  * @since 2013-04-23
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
@@ -13,19 +13,24 @@
 #include "FairMQLogger.h"
 #include "FairMQPoller.h"
 
-#include "O2FLPex.h"
+#include "FLPex.h"
 
-O2FLPex::O2FLPex()
+using namespace std;
+using boost::posix_time::ptime;
+
+using namespace AliceO2::Devices;
+
+FLPex::FLPex()
   : fHeartbeatTimeoutInMs(20000)
   , fSendOffset(0)
 {
 }
 
-O2FLPex::~O2FLPex()
+FLPex::~FLPex()
 {
 }
 
-void O2FLPex::Init()
+void FLPex::Init()
 {
   FairMQDevice::Init();
 
@@ -36,7 +41,7 @@ void O2FLPex::Init()
   }
 }
 
-bool O2FLPex::updateIPHeartbeat(string reply)
+bool FLPex::updateIPHeartbeat(string reply)
 {
   for (int i = 0; i < fNumOutputs; ++i) {
     if (GetProperty(OutputAddress, "", i) == reply) {
@@ -61,7 +66,7 @@ bool O2FLPex::updateIPHeartbeat(string reply)
   return false;
 }
 
-void O2FLPex::Run()
+void FLPex::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
 
@@ -71,7 +76,7 @@ void O2FLPex::Run()
 
   unsigned long eventId = 0;
   int direction = 0;
-  int counter = -1;
+  int counter = 0;
   int sent = 0;
   ptime currentHeartbeat;
   ptime storedHeartbeat;
@@ -169,7 +174,7 @@ void O2FLPex::Run()
   fRunningCondition.notify_one();
 }
 
-void O2FLPex::SetProperty(const int key, const string& value, const int slot/*= 0*/)
+void FLPex::SetProperty(const int key, const string& value, const int slot/*= 0*/)
 {
   switch (key) {
     default:
@@ -178,7 +183,7 @@ void O2FLPex::SetProperty(const int key, const string& value, const int slot/*= 
   }
 }
 
-string O2FLPex::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
+string FLPex::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
 {
   switch (key) {
     default:
@@ -186,7 +191,7 @@ string O2FLPex::GetProperty(const int key, const string& default_/*= ""*/, const
   }
 }
 
-void O2FLPex::SetProperty(const int key, const int value, const int slot/*= 0*/)
+void FLPex::SetProperty(const int key, const int value, const int slot/*= 0*/)
 {
   switch (key) {
     case HeartbeatTimeoutInMs:
@@ -201,7 +206,7 @@ void O2FLPex::SetProperty(const int key, const int value, const int slot/*= 0*/)
   }
 }
 
-int O2FLPex::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
+int FLPex::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
 {
   switch (key) {
     case HeartbeatTimeoutInMs:
@@ -214,7 +219,7 @@ int O2FLPex::GetProperty(const int key, const int default_/*= 0*/, const int slo
 }
 
 // Method for setting properties represented as a heartbeat.
-void O2FLPex::SetProperty(const int key, const ptime value, const int slot /*= 0*/)
+void FLPex::SetProperty(const int key, const ptime value, const int slot /*= 0*/)
 {
   switch (key) {
     case OutputHeartbeat:
@@ -225,7 +230,7 @@ void O2FLPex::SetProperty(const int key, const ptime value, const int slot /*= 0
 }
 
 // Method for getting properties represented as a heartbeat.
-ptime O2FLPex::GetProperty(const int key, const ptime default_, const int slot /*= 0*/)
+ptime FLPex::GetProperty(const int key, const ptime default_, const int slot /*= 0*/)
 {
   switch (key) {
     case OutputHeartbeat:

@@ -1,5 +1,5 @@
 /**
- * O2FrameBuilder.cxx
+ * FrameBuilder.cxx
  *
  * @since 2014-10-21
  * @author D. Klein, A. Rybalchenko, M. Al-Turany
@@ -11,13 +11,15 @@
 #include "FairMQLogger.h"
 #include "FairMQPoller.h"
 
-#include "O2FrameBuilder.h"
+#include "FrameBuilder.h"
 
-O2FrameBuilder::O2FrameBuilder()
+using namespace AliceO2::Devices;
+
+FrameBuilder::FrameBuilder()
 {
 }
 
-void O2FrameBuilder::Run()
+void FrameBuilder::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
 
@@ -62,6 +64,6 @@ void O2FrameBuilder::Run()
   fRunningCondition.notify_one();
 }
 
-O2FrameBuilder::~O2FrameBuilder()
+FrameBuilder::~FrameBuilder()
 {
 }

@@ -11,7 +11,7 @@
 #include "boost/program_options.hpp"
 
 #include "FairMQLogger.h"
-#include "O2FLPex.h"
+#include "FLPex.h"
 
 #ifdef NANOMSG
 #include "FairMQTransportFactoryNN.h"
@@ -21,14 +21,16 @@
 
 using namespace std;
 
-O2FLPex flp;
+using namespace AliceO2::Devices;
+
+FLPex flp;
 
 static void s_signal_handler (int signal)
 {
   cout << endl << "Caught signal " << signal << endl;
 
-  flp.ChangeState(O2FLPex::STOP);
-  flp.ChangeState(O2FLPex::END);
+  flp.ChangeState(FLPex::STOP);
+  flp.ChangeState(FLPex::END);
 
   cout << "Shutdown complete. Bye!" << endl;
   exit(1);
@@ -89,67 +91,67 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::variables_map vm;
   bpo::store(bpo::parse_command_line(_argc, _argv, desc), vm);
 
-  if ( vm.count("help") ) {
+  if (vm.count("help")) {
     LOG(INFO) << "FLP" << endl << desc;
     return false;
   }
 
   bpo::notify(vm);
 
-  if ( vm.count("id") ) {
+  if (vm.count("id")) {
     _options->id = vm["id"].as<string>();
   }
 
-  if ( vm.count("io-threads") ) {
+  if (vm.count("io-threads")) {
     _options->ioThreads = vm["io-threads"].as<int>();
   }
 
-  if ( vm.count("num-inputs") ) {
+  if (vm.count("num-inputs")) {
     _options->numInputs = vm["num-inputs"].as<int>();
   }
 
-  if ( vm.count("num-outputs") ) {
+  if (vm.count("num-outputs")) {
     _options->numOutputs = vm["num-outputs"].as<int>();
   }
 
-  if ( vm.count("heartbeat-timeout") ) {
+  if (vm.count("heartbeat-timeout")) {
     _options->heartbeatTimeoutInMs = vm["heartbeat-timeout"].as<int>();
   }
 
-  if ( vm.count("send-offset") ) {
+  if (vm.count("send-offset")) {
     _options->sendOffset = vm["send-offset"].as<int>();
   }
 
-  if ( vm.count("input-socket-type") ) {
-    _options->inputSocketType = vm["input-socket-type"].as<vector <string> >();
+  if (vm.count("input-socket-type")) {
+    _options->inputSocketType = vm["input-socket-type"].as<vector<string>>();
   }
 
-  if ( vm.count("input-buff-size") ) {
-    _options->inputBufSize = vm["input-buff-size"].as<vector <int> >();
+  if (vm.count("input-buff-size")) {
+    _options->inputBufSize = vm["input-buff-size"].as<vector<int>>();
   }
 
-  if ( vm.count("input-method") ) {
-    _options->inputMethod = vm["input-method"].as<vector <string> >();
+  if (vm.count("input-method")) {
+    _options->inputMethod = vm["input-method"].as<vector<string>>();
   }
 
-  if ( vm.count("input-address") ) {
-    _options->inputAddress = vm["input-address"].as<vector <string> >();
+  if (vm.count("input-address")) {
+    _options->inputAddress = vm["input-address"].as<vector<string>>();
   }
 
-  if ( vm.count("output-socket-type") ) {
-    _options->outputSocketType = vm["output-socket-type"].as< vector<string> >();
+  if (vm.count("output-socket-type")) {
+    _options->outputSocketType = vm["output-socket-type"].as<vector<string>>();
   }
 
-  if ( vm.count("output-buff-size") ) {
-    _options->outputBufSize = vm["output-buff-size"].as< vector<int> >();
+  if (vm.count("output-buff-size")) {
+    _options->outputBufSize = vm["output-buff-size"].as<vector<int>>();
   }
 
-  if ( vm.count("output-method") ) {
-    _options->outputMethod = vm["output-method"].as< vector<string> >();
+  if (vm.count("output-method")) {
+    _options->outputMethod = vm["output-method"].as<vector<string>>();
   }
 
-  if ( vm.count("output-address") ) {
-    _options->outputAddress = vm["output-address"].as< vector<string> >();
+  if (vm.count("output-address")) {
+    _options->outputAddress = vm["output-address"].as<vector<string>>();
   }
 
   return true;
@@ -181,33 +183,33 @@ int main(int argc, char** argv)
 
   flp.SetTransport(transportFactory);
 
-  flp.SetProperty(O2FLPex::Id, options.id);
-  flp.SetProperty(O2FLPex::NumIoThreads, options.ioThreads);
+  flp.SetProperty(FLPex::Id, options.id);
+  flp.SetProperty(FLPex::NumIoThreads, options.ioThreads);
 
-  flp.SetProperty(O2FLPex::NumInputs, options.numInputs);
-  flp.SetProperty(O2FLPex::NumOutputs, options.numOutputs);
-  flp.SetProperty(O2FLPex::HeartbeatTimeoutInMs, options.heartbeatTimeoutInMs);
-  flp.SetProperty(O2FLPex::SendOffset, options.sendOffset);
+  flp.SetProperty(FLPex::NumInputs, options.numInputs);
+  flp.SetProperty(FLPex::NumOutputs, options.numOutputs);
+  flp.SetProperty(FLPex::HeartbeatTimeoutInMs, options.heartbeatTimeoutInMs);
+  flp.SetProperty(FLPex::SendOffset, options.sendOffset);
 
-  flp.ChangeState(O2FLPex::INIT);
+  flp.ChangeState(FLPex::INIT);
 
   for (int i = 0; i < options.numInputs; ++i) {
-    flp.SetProperty(O2FLPex::InputSocketType, options.inputSocketType.at(i), i);
-    flp.SetProperty(O2FLPex::InputRcvBufSize, options.inputBufSize.at(i), i);
-    flp.SetProperty(O2FLPex::InputMethod, options.inputMethod.at(i), i);
-    flp.SetProperty(O2FLPex::InputAddress, options.inputAddress.at(i), i);
+    flp.SetProperty(FLPex::InputSocketType, options.inputSocketType.at(i), i);
+    flp.SetProperty(FLPex::InputRcvBufSize, options.inputBufSize.at(i), i);
+    flp.SetProperty(FLPex::InputMethod, options.inputMethod.at(i), i);
+    flp.SetProperty(FLPex::InputAddress, options.inputAddress.at(i), i);
   }
 
   for (int i = 0; i < options.numOutputs; ++i) {
-    flp.SetProperty(O2FLPex::OutputSocketType, options.outputSocketType.at(i), i);
-    flp.SetProperty(O2FLPex::OutputRcvBufSize, options.outputBufSize.at(i), i);
-    flp.SetProperty(O2FLPex::OutputMethod, options.outputMethod.at(i), i);
-    flp.SetProperty(O2FLPex::OutputAddress, options.outputAddress.at(i), i);
+    flp.SetProperty(FLPex::OutputSocketType, options.outputSocketType.at(i), i);
+    flp.SetProperty(FLPex::OutputRcvBufSize, options.outputBufSize.at(i), i);
+    flp.SetProperty(FLPex::OutputMethod, options.outputMethod.at(i), i);
+    flp.SetProperty(FLPex::OutputAddress, options.outputAddress.at(i), i);
   }
 
-  flp.ChangeState(O2FLPex::SETOUTPUT);
-  flp.ChangeState(O2FLPex::SETINPUT);
-  flp.ChangeState(O2FLPex::RUN);
+  flp.ChangeState(FLPex::SETOUTPUT);
+  flp.ChangeState(FLPex::SETINPUT);
+  flp.ChangeState(FLPex::RUN);
 
   // wait until the running thread has finished processing.
   boost::unique_lock<boost::mutex> lock(flp.fRunningMutex);
@@ -215,8 +217,8 @@ int main(int argc, char** argv)
     flp.fRunningCondition.wait(lock);
   }
 
-  flp.ChangeState(O2FLPex::STOP);
-  flp.ChangeState(O2FLPex::END);
+  flp.ChangeState(FLPex::STOP);
+  flp.ChangeState(FLPex::END);
 
   return 0;
 }

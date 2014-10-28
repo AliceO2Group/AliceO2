@@ -11,7 +11,7 @@
 #include "boost/program_options.hpp"
 
 #include "FairMQLogger.h"
-#include "O2FLPexSampler.h"
+#include "FLPexSampler.h"
 
 #ifdef NANOMSG
 #include "FairMQTransportFactoryNN.h"
@@ -21,14 +21,16 @@
 
 using namespace std;
 
-O2FLPexSampler sampler;
+using namespace AliceO2::Devices;
+
+FLPexSampler sampler;
 
 static void s_signal_handler (int signal)
 {
   cout << endl << "Caught signal " << signal << endl;
 
-  sampler.ChangeState(O2FLPexSampler::STOP);
-  sampler.ChangeState(O2FLPexSampler::END);
+  sampler.ChangeState(FLPexSampler::STOP);
+  sampler.ChangeState(FLPexSampler::END);
 
   cout << "Shutdown complete. Bye!" << endl;
   exit(1);
@@ -77,42 +79,42 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::variables_map vm;
   bpo::store(bpo::parse_command_line(_argc, _argv, desc), vm);
 
-  if ( vm.count("help") ) {
+  if (vm.count("help")) {
     LOG(INFO) << "Test FLP Sampler" << endl << desc;
     return false;
   }
 
     bpo::notify(vm);
 
-  if ( vm.count("id") ) {
+  if (vm.count("id")) {
     _options->id = vm["id"].as<string>();
   }
 
-  if ( vm.count("event-size") ) {
+  if (vm.count("event-size")) {
     _options->eventSize = vm["event-size"].as<int>();
   }
 
-  if ( vm.count("event-rate") ) {
+  if (vm.count("event-rate")) {
     _options->eventRate = vm["event-rate"].as<int>();
   }
 
-  if ( vm.count("io-threads") ) {
+  if (vm.count("io-threads")) {
     _options->ioThreads = vm["io-threads"].as<int>();
   }
 
-  if ( vm.count("output-socket-type") ) {
+  if (vm.count("output-socket-type")) {
     _options->outputSocketType = vm["output-socket-type"].as<string>();
   }
 
-  if ( vm.count("output-buff-size") ) {
+  if (vm.count("output-buff-size")) {
     _options->outputBufSize = vm["output-buff-size"].as<int>();
   }
 
-  if ( vm.count("output-method") ) {
+  if (vm.count("output-method")) {
     _options->outputMethod = vm["output-method"].as<string>();
   }
 
-  if ( vm.count("output-address") ) {
+  if (vm.count("output-address")) {
     _options->outputAddress = vm["output-address"].as<string>();
   }
 
@@ -145,24 +147,24 @@ int main(int argc, char** argv)
 
   sampler.SetTransport(transportFactory);
 
-  sampler.SetProperty(O2FLPexSampler::Id, options.id);
-  sampler.SetProperty(O2FLPexSampler::NumIoThreads, options.ioThreads);
-  sampler.SetProperty(O2FLPexSampler::EventSize, options.eventSize);
-  sampler.SetProperty(O2FLPexSampler::EventRate, options.eventRate);
+  sampler.SetProperty(FLPexSampler::Id, options.id);
+  sampler.SetProperty(FLPexSampler::NumIoThreads, options.ioThreads);
+  sampler.SetProperty(FLPexSampler::EventSize, options.eventSize);
+  sampler.SetProperty(FLPexSampler::EventRate, options.eventRate);
 
-  sampler.SetProperty(O2FLPexSampler::NumInputs, 0);
-  sampler.SetProperty(O2FLPexSampler::NumOutputs, 1);
+  sampler.SetProperty(FLPexSampler::NumInputs, 0);
+  sampler.SetProperty(FLPexSampler::NumOutputs, 1);
 
-  sampler.ChangeState(O2FLPexSampler::INIT);
+  sampler.ChangeState(FLPexSampler::INIT);
 
-  sampler.SetProperty(O2FLPexSampler::OutputSocketType, options.outputSocketType);
-  sampler.SetProperty(O2FLPexSampler::OutputRcvBufSize, options.outputBufSize);
-  sampler.SetProperty(O2FLPexSampler::OutputMethod, options.outputMethod);
-  sampler.SetProperty(O2FLPexSampler::OutputAddress, options.outputAddress);
+  sampler.SetProperty(FLPexSampler::OutputSocketType, options.outputSocketType);
+  sampler.SetProperty(FLPexSampler::OutputRcvBufSize, options.outputBufSize);
+  sampler.SetProperty(FLPexSampler::OutputMethod, options.outputMethod);
+  sampler.SetProperty(FLPexSampler::OutputAddress, options.outputAddress);
 
-  sampler.ChangeState(O2FLPexSampler::SETOUTPUT);
-  sampler.ChangeState(O2FLPexSampler::SETINPUT);
-  sampler.ChangeState(O2FLPexSampler::RUN);
+  sampler.ChangeState(FLPexSampler::SETOUTPUT);
+  sampler.ChangeState(FLPexSampler::SETINPUT);
+  sampler.ChangeState(FLPexSampler::RUN);
 
   // wait until the running thread has finished processing.
   boost::unique_lock<boost::mutex> lock(sampler.fRunningMutex);
@@ -171,8 +173,8 @@ int main(int argc, char** argv)
     sampler.fRunningCondition.wait(lock);
   }
 
-  sampler.ChangeState(O2FLPexSampler::STOP);
-  sampler.ChangeState(O2FLPexSampler::END);
+  sampler.ChangeState(FLPexSampler::STOP);
+  sampler.ChangeState(FLPexSampler::END);
 
   return 0;
 }

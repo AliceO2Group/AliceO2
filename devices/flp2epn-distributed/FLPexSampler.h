@@ -1,20 +1,21 @@
 /**
- * O2FLPexSampler.h
+ * FLPexSampler.h
  *
  * @since 2013-04-23
  * @author D. Klein, A. Rybalchenko
  */
 
-#ifndef O2FLPEXSAMPLER_H_
-#define O2FLPEXSAMPLER_H_
+#ifndef ALICEO2_DEVICES_FLPEXSAMPLER_H_
+#define ALICEO2_DEVICES_FLPEXSAMPLER_H_
 
 #include <string>
 
 #include "FairMQDevice.h"
 
-using namespace std;
+namespace AliceO2 {
+namespace Devices {
 
-class O2FLPexSampler : public FairMQDevice
+class FLPexSampler : public FairMQDevice
 {
   public:
     enum {
@@ -23,12 +24,12 @@ class O2FLPexSampler : public FairMQDevice
       Last
     };
 
-    O2FLPexSampler();
-    virtual ~O2FLPexSampler();
+    FLPexSampler();
+    virtual ~FLPexSampler();
 
     void ResetEventCounter();
-    virtual void SetProperty(const int key, const string& value, const int slot = 0);
-    virtual string GetProperty(const int key, const string& default_ = "", const int slot = 0);
+    virtual void SetProperty(const int key, const std::string& value, const int slot = 0);
+    virtual std::string GetProperty(const int key, const std::string& default_ = "", const int slot = 0);
     virtual void SetProperty(const int key, const int value, const int slot = 0);
     virtual int GetProperty(const int key, const int default_ = 0, const int slot = 0);
 
@@ -40,4 +41,7 @@ class O2FLPexSampler : public FairMQDevice
     int fEventCounter;
 };
 
-#endif /* O2FLPEXSAMPLER_H_ */
+} // namespace Devices
+} // namespace AliceO2
+
+#endif

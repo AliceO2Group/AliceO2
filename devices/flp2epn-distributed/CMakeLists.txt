@@ -18,9 +18,9 @@ set(LINK_DIRECTORIES
 link_directories(${LINK_DIRECTORIES})
 
 set(SRCS
-  O2FLPex.cxx
-  O2EPNex.cxx
-  O2FLPexSampler.cxx
+  FLPex.cxx
+  EPNex.cxx
+  FLPexSampler.cxx
 )
 
 set(DEPENDENCIES
