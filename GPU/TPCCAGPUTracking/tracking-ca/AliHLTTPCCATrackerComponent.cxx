@@ -706,7 +706,6 @@ int AliHLTTPCCATrackerComponent::DoEvent
   {
     for (int islice = 0;islice < fSliceCount;islice++)
     {
-      if (slicemaxPatch[islice] == -1) continue;
       int slice = fMinSlice + islice;
 
       mySize = fSliceOutput[islice]->Size();
