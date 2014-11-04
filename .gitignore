@@ -29,3 +29,12 @@
 
 # build directory
 build/
+
+# common editor backups
+*.swp
+*~
+
+# doxygen stuff
+html-doc/
+
+header/AliceO2Config.h

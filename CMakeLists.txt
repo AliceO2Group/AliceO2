@@ -61,8 +61,7 @@ set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
 set(INCLUDE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/include")
 Set(VMCWORKDIR ${CMAKE_SOURCE_DIR})
-Option(USE_PATH_INFO "Information from PATH and LD_LIBRARY_PATH are
-used." OFF)
+Option(USE_PATH_INFO "Information from PATH and LD_LIBRARY_PATH are used." OFF)
 If(USE_PATH_INFO)
   Set(PATH "$PATH")
   If (APPLE)
@@ -194,8 +193,8 @@ add_subdirectory (passive)
 add_subdirectory (MathUtils)
 add_subdirectory (field)
 add_subdirectory (devices)
-Add_Subdirectory(macro)
-
+add_subdirectory (macro)
+add_subdirectory (o2cdb)
 
 WRITE_CONFIG_FILE(config.sh)
 
