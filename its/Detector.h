@@ -8,7 +8,7 @@
 #include "TVector3.h"
 #include "TLorentzVector.h"
 
-#include "O2Detector.h"
+#include "Base/Detector.h"
 #include "GeometryHandler.h"
 #include "MisalignmentParameter.h"
 #include "UpgradeGeometryTGeo.h"
@@ -22,10 +22,10 @@ namespace ITS {
 class Point;
 class UpgradeV1Layer;
 
-class Detector : public O2Detector {
+class Detector : public AliceO2::Base::Detector {
 
 public:
-  enum Model {
+  enum UpgradeModel {
     kIBModelDummy = 0,
     kIBModel0 = 1,
     kIBModel1 = 2,
@@ -54,7 +54,7 @@ public:
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
   virtual Bool_t ProcessHits(FairVolume* v = 0);
 
-  /// Registers the produced collections in FAIRRootManager.
+  /// Registers the produced collections in FAIRRootManager
   virtual void Register();
 
   /// Gets the produced collections
@@ -93,7 +93,6 @@ public:
   virtual void DefineLayer(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd,
                            Int_t nmod, Double_t lthick = 0., Double_t dthick = 0.,
                            UInt_t detType = 0, Int_t buildFlag = 0);
-
 
   /// Sets the layer parameters for a "turbo" layer
   /// (i.e. a layer whose staves overlap in phi)
@@ -139,47 +138,40 @@ public:
   virtual void SetNumberOfWrapperVolumes(Int_t n);
 
   /// Set per wrapper volume parameters
-  virtual void DefineWrapVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan);
+  virtual void DefineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan);
 
-  /// The following methods can be implemented if you need to make
-  /// any optional action in your detector during the transport.
+  // The following methods can be implemented if you need to make
+  // any optional action in your detector during the transport
+
   virtual void CopyClones(TClonesArray* cl1, TClonesArray* cl2, Int_t offset)
   {
     ;
   }
-
   virtual void SetSpecialPhysicsCuts()
   {
     ;
   }
-
   virtual void EndOfEvent();
-
   virtual void FinishPrimary()
   {
     ;
   }
-
   virtual void FinishRun()
   {
     ;
   }
-
   virtual void BeginPrimary()
   {
     ;
   }
-
   virtual void PostTrack()
   {
     ;
   }
-
   virtual void PreTrack()
   {
     ;
   }
-
   virtual void BeginEvent()
   {
     ;
@@ -190,12 +182,12 @@ public:
   /// particle can be found. See the TParticle class.
   virtual TParticle* GetParticle() const;
 
-  /// SetTrack and GetTrack methods from AliHit.h
+  // SetTrack and GetTrack methods from AliHit.h
+
   virtual void SetTrack(Int_t track)
   {
     mTrackNumber = track;
   }
-
   virtual Int_t GetTrack() const
   {
     return mTrackNumber;
@@ -215,22 +207,19 @@ public:
     return mNumberLayers;
   }
 
-  virtual void SetStaveModelIB(Model model)
+  virtual void SetStaveModelIB(UpgradeModel model)
   {
     mStaveModelInnerBarrel = model;
   }
-
-  virtual void SetStaveModelOB(Model model)
+  virtual void SetStaveModelOB(UpgradeModel model)
   {
     mStaveModelOuterBarrel = model;
   }
-
-  virtual Model GetStaveModelIB() const
+  virtual UpgradeModel GetStaveModelIB() const
   {
     return mStaveModelInnerBarrel;
   }
-
-  virtual Model GetStaveModelOB() const
+  virtual UpgradeModel GetStaveModelOB() const
   {
     return mStaveModelOuterBarrel;
   }
@@ -252,18 +241,15 @@ protected:
   Float_t mStartingStepY;        ///< Starting point of this step
   Float_t mStartingStepZ;        ///< Starting point of this step
   Float_t mStartingStepT;        ///< Starting point of this step
-
-  Int_t mTrackNumber; ///< Track number
-  Float_t mPositionX; ///< X position of the hit
-  Float_t mPositionY; ///< Y position of the hit
-  Float_t mPositionZ; ///< Z position of the hit
-
-  TString* mLayerName; ///<[mNumberLayers] layer identifier
+  Int_t mTrackNumber;            ///< Track number
+  Float_t mPositionX;            ///< X position of the hit
+  Float_t mPositionY;            ///< Y position of the hit
+  Float_t mPositionZ;            ///< Z position of the hit
+  TString* mLayerName;           ///<[mNumberLayers] layer identifier
 
 private:
   /// Track information to be stored until the track leaves the
   /// active volume.
-
   Int_t mTrackNumberID;             ///<  track index
   Int_t mVolumeID;                  ///<  volume id
   Int_t mShunt;                     ///<  shunt
@@ -324,9 +310,9 @@ private:
   GeometryHandler* mGeometryHandler;
   MisalignmentParameter* mMisalignmentParameter;
 
-  UpgradeV1Layer** mUpgradeGeometry; ///< Geometry
-  Model mStaveModelInnerBarrel;      ///< The stave model for the Inner Barrel
-  Model mStaveModelOuterBarrel;      ///< The stave model for the Outer Barrel
+  UpgradeV1Layer** mUpgradeGeometry;   //! Geometry
+  UpgradeModel mStaveModelInnerBarrel; //! The stave model for the Inner Barrel
+  UpgradeModel mStaveModelOuterBarrel; //! The stave model for the Outer Barrel
 
   ClassDef(Detector, 1)
 };

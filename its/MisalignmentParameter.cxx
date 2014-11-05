@@ -7,18 +7,18 @@
 
 using namespace AliceO2::ITS;
 
-ClassImp(MisalignmentParameter)
+ClassImp(AliceO2::ITS::MisalignmentParameter)
 
 MisalignmentParameter::MisalignmentParameter(const char* name, const char* title,
                                              const char* context)
-    : FairParGenericSet(name, title, context)
-    , mShiftX()
-    , mShiftY()
-    , mShiftZ()
-    , mRotX()
-    , mRotY()
-    , mRotZ()
-    , mNumberOfDetectors(0)
+  : FairParGenericSet(name, title, context),
+    mShiftX(),
+    mShiftY(),
+    mShiftZ(),
+    mRotX(),
+    mRotY(),
+    mRotZ(),
+    mNumberOfDetectors(0)
 {
 }
 

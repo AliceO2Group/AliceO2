@@ -26,14 +26,14 @@ using std::endl;
 using namespace AliceO2::ITS;
 
 GeometryHandler::GeometryHandler()
-    : TObject()
-    , mIsSimulation(kFALSE)
-    , mLastUsedDetectorId(0)
-    , mGeometryPathHash(0)
-    , mCurrentVolume(NULL)
-    , mVolumeShape(NULL)
-    , mGlobalCentre()
-    , mGlobalMatrix(NULL)
+  : TObject(),
+    mIsSimulation(kFALSE),
+    mLastUsedDetectorId(0),
+    mGeometryPathHash(0),
+    mCurrentVolume(NULL),
+    mVolumeShape(NULL),
+    mGlobalCentre(),
+    mGlobalMatrix(NULL)
 {
 }
 
@@ -92,8 +92,7 @@ Int_t GeometryHandler::VolumeId(const Text_t* name) const
 {
   if (mIsSimulation) {
     return gMC->VolId(name);
-  }
-  else {
+  } else {
     char sname[20];
     Int_t length = strlen(name) - 1;
 
@@ -111,8 +110,7 @@ Int_t GeometryHandler::CurrentVolumeId(Int_t& copy) const
 {
   if (mIsSimulation) {
     return gMC->CurrentVolID(copy);
-  }
-  else {
+  } else {
     if (gGeoManager->IsOutside()) {
       return 0;
     }
@@ -128,8 +126,7 @@ Int_t GeometryHandler::CurrentVolumeOffId(Int_t off, Int_t& copy) const
 {
   if (mIsSimulation) {
     return gMC->CurrentVolOffID(off, copy);
-  }
-  else {
+  } else {
     if (off < 0 || off > gGeoManager->GetLevel()) {
       return 0;
     }
@@ -153,8 +150,7 @@ const char* GeometryHandler::CurrentVolumeName() const
 {
   if (mIsSimulation) {
     return gMC->CurrentVolName();
-  }
-  else {
+  } else {
     if (gGeoManager->IsOutside()) {
       return gGeoManager->GetTopVolume()->GetName();
     }
@@ -167,8 +163,7 @@ const char* GeometryHandler::CurrentVolumeOffName(Int_t off) const
 {
   if (mIsSimulation) {
     return gMC->CurrentVolOffName(off);
-  }
-  else {
+  } else {
     if (off < 0 || off > gGeoManager->GetLevel()) {
       return 0;
     }
@@ -191,8 +186,7 @@ void GeometryHandler::NavigateTo(TString volumeName)
 {
   if (mIsSimulation) {
     LOG(FATAL) << "This method is not supported in simulation mode" << FairLogger::endl;
-  }
-  else {
+  } else {
     gGeoManager->cd(volumeName.Data());
     mGeometryPathHash = volumeName.Hash();
     mCurrentVolume = gGeoManager->GetCurrentVolume();
@@ -205,4 +199,4 @@ void GeometryHandler::NavigateTo(TString volumeName)
   }
 }
 
-ClassImp(GeometryHandler)
+ClassImp(AliceO2::ITS::GeometryHandler)

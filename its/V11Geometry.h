@@ -27,10 +27,8 @@ namespace ITS {
 class V11Geometry : public TObject {
 
 public:
-  V11Geometry()
-      : mDebug() {};
-  V11Geometry(Int_t debug)
-      : mDebug(debug) {};
+  V11Geometry() : mDebug() {};
+  V11Geometry(Int_t debug) : mDebug(debug) {};
   virtual ~V11Geometry() {};
 
   /// Sets the debug flag for debugging output
@@ -369,7 +367,6 @@ public:
   Bool_t AngleOfIntersectionWithLine(Double_t x0, Double_t y0, Double_t x1, Double_t y1,
                                      Double_t xc, Double_t yc, Double_t rc, Double_t& t0,
                                      Double_t& t1) const;
-
 
   /// Function to compute the ending angle, for arc 0, and starting angle,
   /// for arc 1, such that a straight line will connect them with no discontinuities.

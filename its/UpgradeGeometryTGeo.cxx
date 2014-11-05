@@ -25,7 +25,7 @@
 using namespace TMath;
 using namespace AliceO2::ITS;
 
-ClassImp(UpgradeGeometryTGeo)
+ClassImp(AliceO2::ITS::UpgradeGeometryTGeo)
 
 UInt_t UpgradeGeometryTGeo::mUIDShift = 16; // bit shift to go from mod.id to modUUID for TGeo
 TString UpgradeGeometryTGeo::mVolumeName = "ITSV";
@@ -41,22 +41,22 @@ TString UpgradeGeometryTGeo::mChipTypeName[UpgradeGeometryTGeo::kNChipTypes] = {
 TString UpgradeGeometryTGeo::mSegmentationFileName = "itsSegmentations.root";
 
 UpgradeGeometryTGeo::UpgradeGeometryTGeo(Bool_t build, Bool_t loadSegmentations)
-    : mVersion(kITSVNA)
-    , mNumberOfLayers(0)
-    , mNumberOfChips(0)
-    , mNumberOfStaves(0)
-    , mNumberOfHalfStaves(0)
-    , mNumberOfModules(0)
-    , mNumberOfChipsPerModule(0)
-    , mNumberOfChipRowsPerModule(0)
-    , mNumberOfChipsPerHalfStave(0)
-    , mNumberOfChipsPerStave(0)
-    , mNumberOfChipsPerLayer(0)
-    , mLayerChipType(0)
-    , mLastChipIndex(0)
-    , mSensorMatrices(0)
-    , mTrackingToLocalMatrices(0)
-    , mSegmentations(0)
+  : mVersion(kITSVNA),
+    mNumberOfLayers(0),
+    mNumberOfChips(0),
+    mNumberOfStaves(0),
+    mNumberOfHalfStaves(0),
+    mNumberOfModules(0),
+    mNumberOfChipsPerModule(0),
+    mNumberOfChipRowsPerModule(0),
+    mNumberOfChipsPerHalfStave(0),
+    mNumberOfChipsPerStave(0),
+    mNumberOfChipsPerLayer(0),
+    mLayerChipType(0),
+    mLastChipIndex(0),
+    mSensorMatrices(0),
+    mTrackingToLocalMatrices(0),
+    mSegmentations(0)
 {
   // default c-tor
   for (int i = gMaxLayers; i--;) {
@@ -68,23 +68,23 @@ UpgradeGeometryTGeo::UpgradeGeometryTGeo(Bool_t build, Bool_t loadSegmentations)
 }
 
 UpgradeGeometryTGeo::UpgradeGeometryTGeo(const UpgradeGeometryTGeo& src)
-    : TObject(src)
-    , mVersion(src.mVersion)
-    , mNumberOfLayers(src.mNumberOfLayers)
-    , mNumberOfChips(src.mNumberOfChips)
-    , mNumberOfStaves(0)
-    , mNumberOfHalfStaves(0)
-    , mNumberOfModules(0)
-    , mNumberOfChipsPerModule(0)
-    , mNumberOfChipRowsPerModule(0)
-    , mNumberOfChipsPerHalfStave(0)
-    , mNumberOfChipsPerStave(0)
-    , mNumberOfChipsPerLayer(0)
-    , mLayerChipType(0)
-    , mLastChipIndex(0)
-    , mSensorMatrices(0)
-    , mTrackingToLocalMatrices(0)
-    , mSegmentations(0)
+  : TObject(src),
+    mVersion(src.mVersion),
+    mNumberOfLayers(src.mNumberOfLayers),
+    mNumberOfChips(src.mNumberOfChips),
+    mNumberOfStaves(0),
+    mNumberOfHalfStaves(0),
+    mNumberOfModules(0),
+    mNumberOfChipsPerModule(0),
+    mNumberOfChipRowsPerModule(0),
+    mNumberOfChipsPerHalfStave(0),
+    mNumberOfChipsPerStave(0),
+    mNumberOfChipsPerLayer(0),
+    mLayerChipType(0),
+    mLastChipIndex(0),
+    mSensorMatrices(0),
+    mTrackingToLocalMatrices(0),
+    mSegmentations(0)
 {
   // copy c-tor
   if (mNumberOfLayers) {
@@ -176,7 +176,7 @@ UpgradeGeometryTGeo& UpgradeGeometryTGeo::operator=(const UpgradeGeometryTGeo& s
     delete[] mNumberOfChipsPerLayer;
     delete[] mLastChipIndex;
     mNumberOfStaves = mNumberOfHalfStaves = mNumberOfModules = mLayerChipType =
-        mNumberOfChipsPerModule = mLastChipIndex = 0;
+      mNumberOfChipsPerModule = mLastChipIndex = 0;
     mVersion = src.mVersion;
     mNumberOfLayers = src.mNumberOfLayers;
     mNumberOfChips = src.mNumberOfChips;
@@ -245,7 +245,7 @@ Int_t UpgradeGeometryTGeo::GetChipIndex(Int_t lay, Int_t sta, Int_t chipInStave)
 }
 
 Int_t UpgradeGeometryTGeo::GetChipIndex(Int_t lay, Int_t sta, Int_t substa, Int_t chipInSStave)
-    const
+  const
 {
   int n = GetFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInSStave;
   if (mNumberOfHalfStaves[lay] && substa > 0) {
@@ -418,8 +418,8 @@ const char* UpgradeGeometryTGeo::ComposeSymNameStave(Int_t lr, Int_t stave)
 const char* UpgradeGeometryTGeo::ComposeSymNameHalfStave(Int_t lr, Int_t stave, Int_t substave)
 {
   return substave >= 0
-             ? Form("%s/%s%d", ComposeSymNameStave(lr, stave), GetITSHalfStavePattern(), substave)
-             : ComposeSymNameStave(lr, stave);
+           ? Form("%s/%s%d", ComposeSymNameStave(lr, stave), GetITSHalfStavePattern(), substave)
+           : ComposeSymNameStave(lr, stave);
 }
 
 const char* UpgradeGeometryTGeo::ComposeSymNameModule(Int_t lr, Int_t stave, Int_t substave,
@@ -712,8 +712,7 @@ Int_t UpgradeGeometryTGeo::ExtractNumberOfLayers()
       }
 
       mLayerToWrapper[lrID] = -1; // not wrapped
-    }
-    else if (strstr(name,
+    } else if (strstr(name,
                       GetITSWrapVolPattern())) { // this is a wrapper volume, may cointain layers
       int wrID = -1;
       if ((wrID = ExtractVolumeCopy(name, UpgradeGeometryTGeo::GetITSWrapVolPattern())) < 0) {
@@ -881,8 +880,7 @@ Int_t UpgradeGeometryTGeo::ExtractNumberOfChipsPerModule(Int_t lay, int& nrow) c
       if (!bbox) {
         LOG(FATAL) << "Chip " << node->GetName() << " volume is of unprocessed shape "
                    << chShape->IsA()->GetName() << FairLogger::endl;
-      }
-      else {
+      } else {
         dx = 2 * bbox->GetDX();
         dz = 2 * bbox->GetDZ();
       }
@@ -934,8 +932,8 @@ void UpgradeGeometryTGeo::Print(Option_t*) const
            "(%dx%-2d)\tNMod:%d\tNSubSt:%d\tNSt:%3d\tChipType:%3d\tChip#:%5d:%-5d\tWrapVol:%d\n",
            i, mNumberOfStaves[i], mNumberOfChipsPerModule[i], mNumberOfChipRowsPerModule[i],
            mNumberOfChipRowsPerModule[i]
-               ? mNumberOfChipsPerModule[i] / mNumberOfChipRowsPerModule[i]
-               : 0,
+             ? mNumberOfChipsPerModule[i] / mNumberOfChipRowsPerModule[i]
+             : 0,
            mNumberOfModules[i], mNumberOfHalfStaves[i], mNumberOfStaves[i], mLayerChipType[i],
            GetFirstChipIndex(i), GetLastChipIndex(i), mLayerToWrapper[i]);
   }

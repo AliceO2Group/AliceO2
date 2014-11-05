@@ -21,15 +21,14 @@
 
 using namespace AliceO2::ITS;
 
-ClassImp(GeometryManager)
+ClassImp(AliceO2::ITS::GeometryManager)
 
 TGeoManager* GeometryManager::mGeometry = 0x0;
 
 /// Implementation of GeometryManager, the geometry manager class which interfaces to TGeo and
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
 /// collects several static methods
-GeometryManager::GeometryManager()
-    : TObject()
+GeometryManager::GeometryManager() : TObject()
 {
 }
 
@@ -52,8 +51,7 @@ Bool_t GeometryManager::GetOriginalGlobalMatrix(const char* symname, TGeoHMatrix
     if (!mGeometry->cd(symname)) {
       LOG(ERROR) << "Volume path " << symname << " not valid!" << FairLogger::endl;
       return kFALSE;
-    }
-    else {
+    } else {
       m = *mGeometry->GetCurrentMatrix();
       return kTRUE;
     }
@@ -65,8 +63,7 @@ Bool_t GeometryManager::GetOriginalGlobalMatrix(const char* symname, TGeoHMatrix
   if (pne) {
     m = *pne->GetGlobalOrig();
     return kTRUE;
-  }
-  else {
+  } else {
     LOG(WARNING) << "The symbolic volume name " << symname
                  << "does not correspond to a physical entry. Using it as a volume path!"
                  << FairLogger::endl;
@@ -82,8 +79,8 @@ Bool_t GeometryManager::GetOriginalGlobalMatrixFromPath(const char* path, TGeoHM
 
   if (!mGeometry || !mGeometry->IsClosed()) {
     LOG(ERROR)
-        << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!"
-        << FairLogger::endl;
+      << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!"
+      << FairLogger::endl;
     return kFALSE;
   }
 
@@ -112,8 +109,7 @@ Bool_t GeometryManager::GetOriginalGlobalMatrixFromPath(const char* path, TGeoHM
       if (!lm) {
         lm = node->GetMatrix();
       }
-    }
-    else {
+    } else {
       lm = node->GetMatrix();
     }
 
