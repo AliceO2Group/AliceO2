@@ -25,7 +25,7 @@ using std::cin;
 
 using namespace AliceO2::ITS;
 
-ClassImp(V11Geometry)
+ClassImp(AliceO2::ITS::V11Geometry)
 
 const Double_t V11Geometry::sMicron = 1.0E-4;
 const Double_t V11Geometry::sMm = 0.10;
@@ -70,8 +70,7 @@ Bool_t V11Geometry::IntersectCircle(Double_t m, Double_t x0, Double_t y0, Double
 
   if (delta < 0) {
     return kFALSE;
-  }
-  else {
+  } else {
     Double_t root = TMath::Sqrt(delta);
     xi1 = (m * p + root) / q + xc;
     xi2 = (m * p - root) / q + xc;
@@ -82,7 +81,7 @@ Bool_t V11Geometry::IntersectCircle(Double_t m, Double_t x0, Double_t y0, Double
 }
 
 Double_t V11Geometry::Yfrom2Points(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t x)
-    const
+  const
 {
   if (x0 == x1 && y0 == y1) {
     printf("Error: V11Geometry::Yfrom2Ponts The two points are "
@@ -102,7 +101,7 @@ Double_t V11Geometry::Yfrom2Points(Double_t x0, Double_t y0, Double_t x1, Double
 }
 
 Double_t V11Geometry::Xfrom2Points(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t y)
-    const
+  const
 {
   if (x0 == x1 && y0 == y1) {
     printf("Error: V11Geometry::Yfrom2Ponts The two points are "
@@ -234,32 +233,30 @@ void V11Geometry::InsidePoint(const TGeoPcon* p, Int_t i1, Int_t i2, Int_t i3, D
     if (i1 == i2) {
       y0 = p->GetRmin(i1); // cout <<"L396 y0="<<y0<<endl;
     }
-    y1 = p->GetRmax(i2);   // cout <<"L397 y1="<<y1<<endl;
-    y2 = p->GetRmax(i3);   // cout <<"L398 y2="<<y2<<endl;
+    y1 = p->GetRmax(i2); // cout <<"L397 y1="<<y1<<endl;
+    y2 = p->GetRmax(i3); // cout <<"L398 y2="<<y2<<endl;
     if (i2 == i3) {
       y2 = p->GetRmin(i3); // cout <<"L399 y2="<<y2<<endl;
     }
-  }
-  else {                 // min
-    y0 = p->GetRmin(i1);   // cout <<"L401 y0="<<y0<<endl;
-    y1 = p->GetRmin(i2);   // cout <<"L402 y1="<<y1<<endl;
+  } else {               // min
+    y0 = p->GetRmin(i1); // cout <<"L401 y0="<<y0<<endl;
+    y1 = p->GetRmin(i2); // cout <<"L402 y1="<<y1<<endl;
     y2 = p->GetRmin(i3);
 
     if (i2 == i3) {
       y2 = p->GetRmax(i3); // cout <<"L404 y2="<<y2<<endl;
     }
-  }                        // end if
-  x0 = p->GetZ(i1);        // cout <<"L406 x0="<<x0<<endl;
-  x1 = p->GetZ(i2);        // cout <<"L407 x1="<<x1<<endl;
-  x2 = p->GetZ(i3);        // cout <<"L408 x2="<<x2<<endl;
+  }                 // end if
+  x0 = p->GetZ(i1); // cout <<"L406 x0="<<x0<<endl;
+  x1 = p->GetZ(i2); // cout <<"L407 x1="<<x1<<endl;
+  x2 = p->GetZ(i3); // cout <<"L408 x2="<<x2<<endl;
 
   InsidePoint(x0, y0, x1, y1, x2, y2, c, x, y);
   q->Z(j1) = x;
 
   if (max) {
     q->Rmax(j1) = y;
-  }
-  else {
+  } else {
     q->Rmin(j1) = y;
   }
   return;
@@ -285,14 +282,12 @@ void V11Geometry::InsidePoint(Double_t x0, Double_t y0, Double_t x1, Double_t y1
       y = y1;                // cout <<"L420 y="<<y<<endl;
       // printf("dy01==0.0 x=% #12.7g y=% #12.7g\n",x,y);
       return;
-    }
-    else if (dx01 == 0.0) {
+    } else if (dx01 == 0.0) {
       x = x1;
       y = y1 + c;
       // printf("dx01==0.0 x=% #12.7g y=% #12.7g\n",x,y);
       return;
-    }
-    else {                         // dx01!=0 and dy01 !=0.
+    } else {                         // dx01!=0 and dy01 !=0.
       x = x1 - 0.5 * c * r01 / dy01; // cout <<"L434 x="<<x<<endl;
       y = y1 + 0.5 * c * r01 / dx01; // cout <<"L435 y="<<y<<endl;
                                      // printf("m*m<DBL_E x=% #12.7g y=% #12.7g\n",x,y);
@@ -432,7 +427,7 @@ void V11Geometry::CreateDefaultMaterials()
   w = 3.0E-6;
   itsAir->AddElement(itsH, w); // Hydrogen, atomic
   w = 4.0E-7;
-  itsAir->AddElement(itsXe, w);      // Xenon, atomic
+  itsAir->AddElement(itsXe, w); // Xenon, atomic
   itsAir->SetDensity(351.0 * sKgm3);
   itsAir->SetPressure(101325 * sPascal);
   itsAir->SetTemperature(15.0 * sCelsius);
@@ -1058,7 +1053,7 @@ Double_t V11Geometry::AngleForRoundedCorners1(Double_t dx, Double_t dy, Double_t
 
 void V11Geometry::AnglesForRoundedCorners(Double_t x0, Double_t y0, Double_t r0, Double_t x1,
                                           Double_t y1, Double_t r1, Double_t& t0, Double_t& t1)
-    const
+  const
 {
   Double_t t;
 
@@ -1066,8 +1061,7 @@ void V11Geometry::AnglesForRoundedCorners(Double_t x0, Double_t y0, Double_t r0,
     t = AngleForRoundedCorners1(x1 - x0, y1 - y0, r1 - r0);
     t0 = t1 = t;
     return;
-  }
-  else if (r0 >= 0.0 && r1 <= 0.0) { // Inside to Outside  +-
+  } else if (r0 >= 0.0 && r1 <= 0.0) { // Inside to Outside  +-
     r1 = -r1;                          // make positive
     t = AngleForRoundedCorners0(x1 - x0, y1 - y0, r1 + r0);
     t0 = 180.0 + t;
@@ -1079,8 +1073,7 @@ void V11Geometry::AnglesForRoundedCorners(Double_t x0, Double_t y0, Double_t r0,
     }
     t1 = t;
     return;
-  }
-  else if (r0 <= 0.0 && r1 >= 0.0) { // Outside to Inside  -+
+  } else if (r0 <= 0.0 && r1 >= 0.0) { // Outside to Inside  -+
     r0 = -r0;                          // make positive
     t = AngleForRoundedCorners1(x1 - x0, y1 - y0, r1 + r0);
     t0 = 180.0 + t;
@@ -1092,8 +1085,7 @@ void V11Geometry::AnglesForRoundedCorners(Double_t x0, Double_t y0, Double_t r0,
     }
     t1 = t;
     return;
-  }
-  else if (r0 <= 0.0 && r1 <= 0.0) { // Outside to outside --
+  } else if (r0 <= 0.0 && r1 <= 0.0) { // Outside to outside --
     r0 = -r0;                          // make positive
     r1 = -r1;                          // make positive
     t = AngleForRoundedCorners0(x1 - x0, y1 - y0, r1 - r0);
@@ -1149,31 +1141,27 @@ void V11Geometry::MakeFigure1(Double_t x0, Double_t y0, Double_t r0, Double_t x1
   }
   if (xmin < 0.0) {
     xmin *= 1.1;
-  }
-  else {
+  } else {
     xmin *= 0.9;
   }
   if (ymin < 0.0) {
     ymin *= 1.1;
-  }
-  else {
+  } else {
     ymin *= 0.9;
   }
   if (xmax < 0.0) {
     xmax *= 0.9;
-  }
-  else {
+  } else {
     xmax *= 1.1;
   }
   if (ymax < 0.0) {
     ymax *= 0.9;
-  }
-  else {
+  } else {
     ymax *= 1.1;
   }
   j = (Int_t)(500.0 * (ymax - ymin) / (xmax - xmin));
   TCanvas* can =
-      new TCanvas("V11Geometry_AnglesForRoundedCorners", "Figure for V11Geometry", 500, j);
+    new TCanvas("V11Geometry_AnglesForRoundedCorners", "Figure for V11Geometry", 500, j);
   h = ymax - ymin;
   if (h < 0) {
     h = -h;

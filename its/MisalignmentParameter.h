@@ -19,10 +19,9 @@ class MisalignmentParameter : public FairParGenericSet {
 
 public:
   MisalignmentParameter(
-      const char* name = "MisalignmentParameter",
-      const char* title =
-          "Misalignment parameter for AliceO2ITSHitProducerIdealMisallign Parameters",
-      const char* context = "TestDefaultContext");
+    const char* name = "MisalignmentParameter",
+    const char* title = "Misalignment parameter for AliceO2ITSHitProducerIdealMisallign Parameters",
+    const char* context = "TestDefaultContext");
   ~MisalignmentParameter(void);
 
   void Clear(void);

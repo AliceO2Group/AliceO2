@@ -6,13 +6,9 @@
 
 using namespace AliceO2::ITS;
 
-ClassImp(Segmentation)
+ClassImp(AliceO2::ITS::Segmentation)
 
-Segmentation::Segmentation()
-    : mDx(0)
-    , mDz(0)
-    , mDy(0)
-    , mCorrection(0)
+Segmentation::Segmentation() : mDx(0), mDz(0), mDy(0), mCorrection(0)
 {
 }
 
@@ -32,8 +28,7 @@ void Segmentation::Copy(TObject& obj) const
 
   if (mCorrection) {
     ((Segmentation&)obj).mCorrection = new TF1(*mCorrection); // make a proper copy
-  }
-  else {
+  } else {
     ((Segmentation&)obj).mCorrection = 0;
   }
 }
@@ -48,11 +43,7 @@ Segmentation& Segmentation::operator=(const Segmentation& source)
 }
 
 Segmentation::Segmentation(const Segmentation& source)
-    : TObject(source)
-    , mDx(0)
-    , mDz(0)
-    , mDy(0)
-    , mCorrection(0)
+  : TObject(source), mDx(0), mDz(0), mDy(0), mCorrection(0)
 {
   // copy constructor
   source.Copy(*this);

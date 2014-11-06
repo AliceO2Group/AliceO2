@@ -37,10 +37,10 @@ public:
   /// for a "turbo" layer (i.e. where staves overlap in phi)
   UpgradeV1Layer(Int_t lay, Bool_t turbo, Int_t debug);
 
-  ///Copy constructor
+  /// Copy constructor
   UpgradeV1Layer(const UpgradeV1Layer& source);
 
-  ///Assignment operator
+  /// Assignment operator
   UpgradeV1Layer& operator=(const UpgradeV1Layer& source);
 
   /// Default destructor
@@ -109,7 +109,7 @@ public:
     return mHierarchy[kChip];
   }
 
-  AliceO2::ITS::Detector::Model GetStaveModel() const
+  AliceO2::ITS::Detector::UpgradeModel GetStaveModel() const
   {
     return mStaveModel;
   }
@@ -161,7 +161,7 @@ public:
   {
     mBuildLevel = buildLevel;
   }
-  void SetStaveModel(AliceO2::ITS::Detector::Model model)
+  void SetStaveModel(AliceO2::ITS::Detector::UpgradeModel model)
   {
     mStaveModel = model;
   }
@@ -310,26 +310,28 @@ private:
   void AddTranslationToCombiTrans(TGeoCombiTrans* ct, Double_t dx = 0, Double_t dy = 0,
                                   Double_t dz = 0) const;
 
-  Int_t mLayerNumber;    ///< Current layer number
-  Double_t mPhi0;        ///< lab phi of 1st stave, in degrees!!!
-  Double_t mLayerRadius;   ///< Inner radius of this layer
-  Double_t mZLength;     ///< Z length of this layer
+  Int_t mLayerNumber;        ///< Current layer number
+  Double_t mPhi0;            ///< lab phi of 1st stave, in degrees!!!
+  Double_t mLayerRadius;     ///< Inner radius of this layer
+  Double_t mZLength;         ///< Z length of this layer
   Double_t mSensorThickness; ///< Sensor thickness
   Double_t mStaveThickness;  ///< Stave thickness
-  Double_t mStaveWidth;  ///< Stave width (for turbo layers only)
-  Double_t mStaveTilt;   ///< Stave tilt angle (for turbo layers only) in degrees
-  Int_t mNumberOfStaves;        ///< Number of staves in this layer
-  Int_t mNumberOfModules; ///< Number of modules per container if defined (HalfStave, Stave, whatever is
-                   ///< container)
-  Int_t mNumberOfChips;   ///< Number chips per container (module, HalfStave, Stave, whatever is container)
+  Double_t mStaveWidth;      ///< Stave width (for turbo layers only)
+  Double_t mStaveTilt;       ///< Stave tilt angle (for turbo layers only) in degrees
+  Int_t mNumberOfStaves;     ///< Number of staves in this layer
+  Int_t
+    mNumberOfModules; ///< Number of modules per container if defined (HalfStave, Stave, whatever is
+                      ///< container)
+  Int_t mNumberOfChips; ///< Number chips per container (module, HalfStave, Stave, whatever is
+  /// container)
   Int_t mHierarchy
-      [kNHLevels]; ///< array to query number of staves, hstaves, modules, chips per its parent volume
+    [kNHLevels]; ///< array to query number of staves, hstaves, modules, chips per its parent volume
 
   UInt_t mChipTypeID; ///< detector type id
   Bool_t mIsTurbo;    ///< True if this layer is a "turbo" layer
   Int_t mBuildLevel;  ///< Used for material studies
 
-  AliceO2::ITS::Detector::Model mStaveModel; ///< The stave model
+  AliceO2::ITS::Detector::UpgradeModel mStaveModel; ///< The stave model
 
   // Parameters for the Upgrade geometry
 

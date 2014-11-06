@@ -15,7 +15,7 @@
 using namespace TMath;
 using namespace AliceO2::ITS;
 
-ClassImp(UpgradeSegmentationPixel)
+ClassImp(AliceO2::ITS::UpgradeSegmentationPixel)
 
 const char* UpgradeSegmentationPixel::sSegmentationsListName = "UpgradeSegmentations";
 
@@ -23,29 +23,29 @@ UpgradeSegmentationPixel::UpgradeSegmentationPixel(UInt_t id, int nchips, int nc
                                                    float pitchX, float pitchZ, float thickness,
                                                    float pitchLftC, float pitchRgtC, float edgL,
                                                    float edgR, float edgT, float edgB)
-    : Segmentation()
-    , mGuardLeft(edgL)
-    , mGuardRight(edgR)
-    , mGuardTop(edgT)
-    , mGuardBottom(edgB)
-    , mShiftLocalX(0.5 * (edgT - edgB))
-    , mShiftLocalZ(0.5 * (edgR - edgL))
-    , mDxActive(0)
-    , mDzActive(0)
-    , mPitchX(pitchX)
-    , mPitchZ(pitchZ)
-    , mPitchZLeftColumn(pitchLftC < 0 ? pitchZ : pitchLftC)
-    , mPitchZRightColumn(pitchRgtC < 0 ? pitchZ : pitchRgtC)
-    , mChipSizeDZ(0)
-    , mNumberOfChips(nchips)
-    , mNumberOfColumnsPerChip(nchips > 0 ? ncol / nchips : 0)
-    , mNumberOfRows(nrow)
-    , mNumberOfColumns(ncol)
-    , mDiodShiftMatNColumn(0)
-    , mDiodShiftMatNRow(0)
-    , mDiodShiftMatDimension(0)
-    , mDiodShiftMatX(0)
-    , mDiodShiftMatZ(0)
+  : Segmentation(),
+    mGuardLeft(edgL),
+    mGuardRight(edgR),
+    mGuardTop(edgT),
+    mGuardBottom(edgB),
+    mShiftLocalX(0.5 * (edgT - edgB)),
+    mShiftLocalZ(0.5 * (edgR - edgL)),
+    mDxActive(0),
+    mDzActive(0),
+    mPitchX(pitchX),
+    mPitchZ(pitchZ),
+    mPitchZLeftColumn(pitchLftC < 0 ? pitchZ : pitchLftC),
+    mPitchZRightColumn(pitchRgtC < 0 ? pitchZ : pitchRgtC),
+    mChipSizeDZ(0),
+    mNumberOfChips(nchips),
+    mNumberOfColumnsPerChip(nchips > 0 ? ncol / nchips : 0),
+    mNumberOfRows(nrow),
+    mNumberOfColumns(ncol),
+    mDiodShiftMatNColumn(0),
+    mDiodShiftMatNRow(0),
+    mDiodShiftMatDimension(0),
+    mDiodShiftMatX(0),
+    mDiodShiftMatZ(0)
 {
   // Default constructor, sizes in cm
   if (nchips) {
@@ -73,8 +73,7 @@ void UpgradeSegmentationPixel::GetPadIxz(Float_t x, Float_t z, Int_t& ix, Int_t&
     LOG(WARNING) << "Z=" << z << " gives col=" << iz << " outside [0:" << mNumberOfColumns << ")"
                  << FairLogger::endl;
     iz = 0;
-  }
-  else if (iz >= mNumberOfColumns) {
+  } else if (iz >= mNumberOfColumns) {
     LOG(WARNING) << "Z=" << z << " gives col=" << iz << " outside [0:" << mNumberOfColumns << ")"
                  << FairLogger::endl;
     iz = mNumberOfColumns - 1;
@@ -83,8 +82,7 @@ void UpgradeSegmentationPixel::GetPadIxz(Float_t x, Float_t z, Int_t& ix, Int_t&
     LOG(WARNING) << "X=" << x << " gives row=" << ix << " outside [0:" << mNumberOfRows << ")"
                  << FairLogger::endl;
     ix = 0;
-  }
-  else if (ix >= mNumberOfRows) {
+  } else if (ix >= mNumberOfRows) {
     LOG(WARNING) << "X=" << x << " gives row=" << ix << " outside [0:" << mNumberOfRows << ")"
                  << FairLogger::endl;
     ix = mNumberOfRows - 1;
@@ -122,12 +120,10 @@ Float_t UpgradeSegmentationPixel::ColumnToZ(Int_t col) const
   if (col > 0) {
     if (col < mNumberOfColumnsPerChip - 1) {
       z += mPitchZLeftColumn + (col - 0.5) * mPitchZ;
-    }
-    else {
+    } else {
       z += mChipSizeDZ - mPitchZRightColumn / 2;
     }
-  }
-  else {
+  } else {
     z += mPitchZLeftColumn / 2;
   }
   return z;
@@ -177,29 +173,29 @@ UpgradeSegmentationPixel& UpgradeSegmentationPixel::operator=(const UpgradeSegme
 }
 
 UpgradeSegmentationPixel::UpgradeSegmentationPixel(const UpgradeSegmentationPixel& src)
-    : Segmentation(src)
-    , mGuardLeft(src.mGuardLeft)
-    , mGuardRight(src.mGuardRight)
-    , mGuardTop(src.mGuardTop)
-    , mGuardBottom(src.mGuardBottom)
-    , mShiftLocalX(src.mShiftLocalX)
-    , mShiftLocalZ(src.mShiftLocalZ)
-    , mDxActive(src.mDxActive)
-    , mDzActive(src.mDzActive)
-    , mPitchX(src.mPitchX)
-    , mPitchZ(src.mPitchZ)
-    , mPitchZLeftColumn(src.mPitchZLeftColumn)
-    , mPitchZRightColumn(src.mPitchZRightColumn)
-    , mChipSizeDZ(src.mChipSizeDZ)
-    , mNumberOfChips(src.mNumberOfChips)
-    , mNumberOfColumnsPerChip(src.mNumberOfColumnsPerChip)
-    , mNumberOfRows(src.mNumberOfRows)
-    , mNumberOfColumns(src.mNumberOfColumns)
-    , mDiodShiftMatNColumn(src.mDiodShiftMatNColumn)
-    , mDiodShiftMatNRow(src.mDiodShiftMatNRow)
-    , mDiodShiftMatDimension(src.mDiodShiftMatDimension)
-    , mDiodShiftMatX(0)
-    , mDiodShiftMatZ(0)
+  : Segmentation(src),
+    mGuardLeft(src.mGuardLeft),
+    mGuardRight(src.mGuardRight),
+    mGuardTop(src.mGuardTop),
+    mGuardBottom(src.mGuardBottom),
+    mShiftLocalX(src.mShiftLocalX),
+    mShiftLocalZ(src.mShiftLocalZ),
+    mDxActive(src.mDxActive),
+    mDzActive(src.mDzActive),
+    mPitchX(src.mPitchX),
+    mPitchZ(src.mPitchZ),
+    mPitchZLeftColumn(src.mPitchZLeftColumn),
+    mPitchZRightColumn(src.mPitchZRightColumn),
+    mChipSizeDZ(src.mChipSizeDZ),
+    mNumberOfChips(src.mNumberOfChips),
+    mNumberOfColumnsPerChip(src.mNumberOfColumnsPerChip),
+    mNumberOfRows(src.mNumberOfRows),
+    mNumberOfColumns(src.mNumberOfColumns),
+    mDiodShiftMatNColumn(src.mDiodShiftMatNColumn),
+    mDiodShiftMatNRow(src.mDiodShiftMatNRow),
+    mDiodShiftMatDimension(src.mDiodShiftMatDimension),
+    mDiodShiftMatX(0),
+    mDiodShiftMatZ(0)
 {
   // copy constructor
   if (mDiodShiftMatDimension) {
@@ -284,9 +280,9 @@ void UpgradeSegmentationPixel::DetectorToLocal(Int_t ix, Int_t iz, Float_t& x, F
                  << FairLogger::endl;
     return;
   } // outside of detector
-  x += (ix + 0.5) * mPitchX -
-       mShiftLocalX; // RS: we go to the center of the pad, i.e. + pitch/2, not
-                     // to the boundary as in SPD
+  x +=
+    (ix + 0.5) * mPitchX - mShiftLocalX; // RS: we go to the center of the pad, i.e. + pitch/2, not
+                                         // to the boundary as in SPD
   z += ColumnToZ(iz) - mShiftLocalZ;
   return; // Found x and z, return.
 }
@@ -397,8 +393,7 @@ Bool_t UpgradeSegmentationPixel::Store(const char* outf)
 
   if (!arr) {
     arr = new TObjArray();
-  }
-  else if (arr->At(id)) {
+  } else if (arr->At(id)) {
     LOG(FATAL) << "Segmenation " << id << " already exists in file " << outf << FairLogger::endl;
     return kFALSE;
   }

@@ -1,13 +1,7 @@
-# Create a library called "libO2its" which includes the source files given in
-# the array .
-# The extension is already found.  Any number of sources could be listed here.
-
 set(INCLUDE_DIRECTORIES
 ${ROOT_INCLUDE_DIR}
 ${BASE_INCLUDE_DIRECTORIES}
-
-${CMAKE_SOURCE_DIR}/AliData
-${CMAKE_SOURCE_DIR}/AliBase
+${CMAKE_SOURCE_DIR}
 ${CMAKE_SOURCE_DIR}/its
 )
 
@@ -34,8 +28,8 @@ MisalignmentParameter.cxx
 Point.cxx
 )
 
-Set(LINKDEF O2itsLinkDef.h)
-Set(LIBRARY_NAME its)
+Set(LINKDEF itsLinkDef.h)
+Set(LIBRARY_NAME AliceO2its)
 Set(DEPENDENCIES
     Base
 )

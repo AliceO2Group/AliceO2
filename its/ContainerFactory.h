@@ -1,4 +1,4 @@
-/// \file GeometryHandler.h
+/// \file ContainerFactory.h
 /// \brief Definition of the ContainerFactory class
 
 #ifndef ALICEO2_ITS_CONTAINERFACTORY_H_

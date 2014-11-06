@@ -1,18 +1,18 @@
 # The name of our project is "ALICEO2".  CMakeLists files in this project can
-# refer to the root source directory of the project as ${ALICEO2_SOURCE_DIR} 
-# or as ${CMAKE_SOURCE_DIR} and to the root binary directory of the project as 
+# refer to the root source directory of the project as ${ALICEO2_SOURCE_DIR}
+# or as ${CMAKE_SOURCE_DIR} and to the root binary directory of the project as
 # ${ALICEO2_BINARY_DIR} or ${CMAKE_BINARY_DIR}.
-# This difference is important for the base classes which are in FAIRROOT 
+# This difference is important for the base classes which are in FAIRROOT
 # and the experiment part.
 
 # Check if cmake has the required version
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11 FATAL_ERROR)
 
 # Set name of our project to "ALICEO2". Has to be done
-# after check of cmake version since this is a new feature                  
+# after check of cmake version since this is a new feature
 project(ALICEO2)
 
-#In case you need Fortran 
+#In case you need Fortran
 #ENABLE_LANGUAGE(Fortran)
 
 # Check for needed environment variables
@@ -21,13 +21,13 @@ IF(NOT DEFINED ENV{FAIRROOTPATH})
 ENDIF(NOT DEFINED ENV{FAIRROOTPATH})
 
 IF(NOT DEFINED ENV{SIMPATH})
-   MESSAGE(FATAL_ERROR "You did not define the environment variable SIMPATH which is nedded to find the external packages. Please set this variable and execute cmake again.") 
+   MESSAGE(FATAL_ERROR "You did not define the environment variable SIMPATH which is nedded to find the external packages. Please set this variable and execute cmake again.")
 ENDIF(NOT DEFINED ENV{SIMPATH})
 
 SET(SIMPATH $ENV{SIMPATH})
 SET(FAIRROOTPATH $ENV{FAIRROOTPATH})
 
-# where to look first for cmake modules, before ${CMAKE_ROOT}/Modules/ 
+# where to look first for cmake modules, before ${CMAKE_ROOT}/Modules/
 # is checked
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules"  ${CMAKE_MODULE_PATH})
@@ -50,7 +50,6 @@ If(NOT CMAKE_BUILD_TYPE)
 EndIf(NOT CMAKE_BUILD_TYPE)
 Check_Compiler()
 
-
 set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
 set(INCLUDE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/include")
@@ -68,7 +67,6 @@ Else(USE_PATH_INFO)
   STRING(REGEX MATCHALL "[^:]+" PATH $ENV{PATH})
 EndIf(USE_PATH_INFO)
 
-
 # Check if the user wants to build the project in the source
 # directory
 CHECK_OUT_OF_SOURCE_BUILD()
@@ -77,7 +75,7 @@ CHECK_OUT_OF_SOURCE_BUILD()
 # message
 IF(NOT UNIX)
   MESSAGE(FATAL_ERROR "You're not on an UNIX system. The project was up to now only tested on UNIX systems, so we break here. If you want to go on please edit the CMakeLists.txt in the source directory.")
-ENDIF(NOT UNIX)  
+ENDIF(NOT UNIX)
 
 # Check if the external packages are installed into a separate install
 # directory
@@ -110,8 +108,8 @@ Else(${ROOT_LIBRARY_DIR} MATCHES /lib/root)
 EndIf(${ROOT_LIBRARY_DIR} MATCHES /lib/root)
 Message("-- Looking for Boost ...")
 # If an older version of boost is found both of the variables below are
-# cached and in a second cmake run, a good boost version is found even 
-# if the version is to old. 
+# cached and in a second cmake run, a good boost version is found even
+# if the version is to old.
 # To overcome this problem both variables are cleared before checking
 # for boost.
 Unset(Boost_INCLUDE_DIR CACHE)
@@ -143,9 +141,8 @@ Generate_Version_Info()
 SET(_LIBDIR ${CMAKE_BINARY_DIR}/lib)
 SET(LD_LIBRARY_PATH  ${_LIBDIR} ${LD_LIBRARY_PATH})
 
-#install(DIRECTORY geometry DESTINATION pnd_install 
+#install(DIRECTORY geometry DESTINATION pnd_install
 #          )
-
 
 # Check if the compiler support specific C++11 features
 # Up to now this is only a check since the code does not use
@@ -161,20 +158,16 @@ EndIF(NOT CMAKE_CXX_FLAGS)
 # cause another cmake executable to run.  The same process will walk through
 # the project's entire directory structure.
 
-add_subdirectory (AliBase)
-add_subdirectory (AliData)
-add_subdirectory (AliGenerators)
+add_subdirectory (Base)
+add_subdirectory (Data)
+add_subdirectory (Generators)
 add_subdirectory (its)
 add_subdirectory (passive)
-add_subdirectory (field)  
-add_subdirectory (devices)  
-
-
+add_subdirectory (field)
+add_subdirectory (devices)
 
 WRITE_CONFIG_FILE(config.sh)
- 
-configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake 
+
+configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
                ${CMAKE_BINARY_DIR}/CTestCustom.cmake
               )
-
-

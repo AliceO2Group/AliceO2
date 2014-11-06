@@ -1,0 +1,28 @@
+set(INCLUDE_DIRECTORIES
+${ROOT_INCLUDE_DIR}
+${BASE_INCLUDE_DIRECTORIES}
+${CMAKE_SOURCE_DIR}/Base
+)
+
+include_directories( ${INCLUDE_DIRECTORIES})
+
+set(LINK_DIRECTORIES
+${ROOT_LIBRARY_DIR}
+${FAIRROOT_LIBRARY_DIR}
+${CMAKE_SOURCE_DIR}/Base
+)
+
+link_directories( ${LINK_DIRECTORIES})
+
+set(SRCS
+Module.cxx
+Detector.cxx
+TrackReference.cxx
+)
+
+Set(HEADERS)
+Set(LINKDEF BaseLinkDef.h)
+Set(LIBRARY_NAME AliceO2Base)
+Set(DEPENDENCIES Base EG Physics Cint Core)
+
+GENERATE_LIBRARY()

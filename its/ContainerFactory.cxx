@@ -8,12 +8,11 @@
 
 using namespace AliceO2::ITS;
 
-ClassImp(ContainerFactory)
+ClassImp(AliceO2::ITS::ContainerFactory)
 
 static ContainerFactory gO2itsContFact;
 
-ContainerFactory::ContainerFactory()
-    : FairContFact()
+ContainerFactory::ContainerFactory() : FairContFact()
 {
   fName = "ContainerFactory";
   fTitle = "Factory for parameter containers in libO2its";
@@ -23,22 +22,21 @@ ContainerFactory::ContainerFactory()
 
 void ContainerFactory::mSetAllContainers()
 {
-  //FairContainer* p= new FairContainer("O2itsGeoPar",
+  // FairContainer* p= new FairContainer("O2itsGeoPar",
   //                                    "O2its Geometry Parameters",
   //                                    "TestDefaultContext");
-  //p->addContext("TestNonDefaultContext");
+  // p->addContext("TestNonDefaultContext");
   //
-  //containers->Add(p);
-
+  // containers->Add(p);
 }
 
 FairParSet* ContainerFactory::createContainer(FairContainer* c)
 {
-   //const char* name=c->GetName();
-   //FairParSet* p=NULL;
-   //if (strcmp(name,"O2itsGeoPar")==0) {
-   //  p=new O2itsGeoPar(c->getConcatName().Data(),
-   //                          c->GetTitle(),c->getContext());
-   //}
-   //return p;
+  // const char* name=c->GetName();
+  // FairParSet* p=NULL;
+  // if (strcmp(name,"O2itsGeoPar")==0) {
+  //  p=new O2itsGeoPar(c->getConcatName().Data(),
+  //                          c->GetTitle(),c->getContext());
+  //}
+  // return p;
 }

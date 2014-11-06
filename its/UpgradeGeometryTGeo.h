@@ -42,10 +42,7 @@ class Segmentation;
 class UpgradeGeometryTGeo : public TObject {
 
 public:
-  enum {
-    kITSVNA,
-    kITSVUpg
-  }; // ITS version
+  enum { kITSVNA, kITSVUpg }; // ITS version
 
   enum {
     kChipTypePix = 0,
@@ -73,8 +70,8 @@ public:
   Int_t GetNumberOfChipColsPerModule(Int_t lay) const
   {
     return mNumberOfChipRowsPerModule[lay]
-               ? mNumberOfChipsPerModule[lay] / mNumberOfChipRowsPerModule[lay]
-               : -1;
+             ? mNumberOfChipsPerModule[lay] / mNumberOfChipRowsPerModule[lay]
+             : -1;
   }
   Int_t GetNumberOfChipsPerModule(Int_t lay) const
   {
@@ -433,11 +430,11 @@ protected:
                                      ///< (group of chips on the substaves)
   Int_t* mNumberOfChipRowsPerModule; ///< [mNumberOfLayers] Array of the number of chips rows per
   ///< module (relevant for OB modules)
-  Int_t* mNumberOfChipsPerHalfStave; ///< [mNumberOfLayers] Array of number of chips per substave
-  Int_t* mNumberOfChipsPerStave;  ///< [mNumberOfLayers] Array of the number of chips per stave
-  Int_t* mNumberOfChipsPerLayer;  ///< [mNumberOfLayers] Array of the number of chips per stave
-  Int_t* mLayerChipType;          ///< [mNumberOfLayers] Array of layer chip types
-  Int_t* mLastChipIndex;          ///< [mNumberOfLayers] max ID of the detctor in the layer
+  Int_t* mNumberOfChipsPerHalfStave;   ///< [mNumberOfLayers] Array of number of chips per substave
+  Int_t* mNumberOfChipsPerStave;       ///< [mNumberOfLayers] Array of the number of chips per stave
+  Int_t* mNumberOfChipsPerLayer;       ///< [mNumberOfLayers] Array of the number of chips per stave
+  Int_t* mLayerChipType;               ///< [mNumberOfLayers] Array of layer chip types
+  Int_t* mLastChipIndex;               ///< [mNumberOfLayers] max ID of the detctor in the layer
   Char_t mLayerToWrapper[gMaxLayers];  ///< Layer to wrapper correspondence
   TObjArray* mSensorMatrices;          ///< Sensor's matrices pointers in the geometry
   TObjArray* mTrackingToLocalMatrices; ///< Tracking to Local matrices pointers in the geometry
@@ -459,48 +456,48 @@ protected:
   ClassDef(UpgradeGeometryTGeo, 1) // ITS geometry based on TGeo
 };
 
-/// Symbolic name
+/// Returns ymbolic name
 inline const char* UpgradeGeometryTGeo::GetSymbolicName(Int_t lay, Int_t sta, Int_t det) const
 {
   return GetSymbolicName(GetChipIndex(lay, sta, det));
 }
 
-/// Chip current matrix
+/// Returns chip current matrix
 inline TGeoHMatrix* UpgradeGeometryTGeo::GetMatrix(Int_t lay, Int_t sta, Int_t det) const
 {
   return GetMatrix(GetChipIndex(lay, sta, det));
 }
 
-/// Translation
+/// Returns translation
 inline Bool_t UpgradeGeometryTGeo::GetTranslation(Int_t lay, Int_t sta, Int_t det, Double_t t[3])
-    const
+  const
 {
   return GetTranslation(GetChipIndex(lay, sta, det), t);
 }
 
-/// Rotation
+/// Returns rotation
 inline Bool_t UpgradeGeometryTGeo::GetRotation(Int_t lay, Int_t sta, Int_t det, Double_t r[9]) const
 {
   return GetRotation(GetChipIndex(lay, sta, det), r);
 }
 
-/// Original matrix
-inline Bool_t UpgradeGeometryTGeo::GetOriginalMatrix(Int_t lay, Int_t sta, Int_t det, TGeoHMatrix& m)
-    const
+/// Returns original matrix
+inline Bool_t UpgradeGeometryTGeo::GetOriginalMatrix(Int_t lay, Int_t sta, Int_t det,
+                                                     TGeoHMatrix& m) const
 {
   return GetOriginalMatrix(GetChipIndex(lay, sta, det), m);
 }
 
-/// Original translation
+/// Returns original translation
 inline Bool_t UpgradeGeometryTGeo::GetOriginalTranslation(Int_t lay, Int_t sta, Int_t det,
-                                                      Double_t t[3]) const
+                                                          Double_t t[3]) const
 {
   return GetOriginalTranslation(GetChipIndex(lay, sta, det), t);
 }
 
 /// Original rotation
-inline Bool_t UpgradeGeometryTGeo::GetOriginalRotation(Int_t lay, Int_t sta, Int_t det, Double_t r[9])
-    const
+inline Bool_t UpgradeGeometryTGeo::GetOriginalRotation(Int_t lay, Int_t sta, Int_t det,
+                                                       Double_t r[9]) const
 {
   return GetOriginalRotation(GetChipIndex(lay, sta, det), r);
 }
@@ -555,13 +552,15 @@ inline void UpgradeGeometryTGeo::GlobalToLocal(Int_t index, const Double_t* glob
 }
 
 /// Sensor local to global
-inline void UpgradeGeometryTGeo::LocalToGlobalVector(Int_t index, const Double_t* loc, Double_t* glob)
+inline void UpgradeGeometryTGeo::LocalToGlobalVector(Int_t index, const Double_t* loc,
+                                                     Double_t* glob)
 {
   GetMatrixSensor(index)->LocalToMasterVect(loc, glob);
 }
 
 /// Global to sensor local
-inline void UpgradeGeometryTGeo::GlobalToLocalVector(Int_t index, const Double_t* glob, Double_t* loc)
+inline void UpgradeGeometryTGeo::GlobalToLocalVector(Int_t index, const Double_t* glob,
+                                                     Double_t* loc)
 {
   GetMatrixSensor(index)->MasterToLocalVect(glob, loc);
 }
@@ -602,7 +601,7 @@ inline const Segmentation* UpgradeGeometryTGeo::GetSegmentationById(Int_t id) co
   return mSegmentations ? (Segmentation*)mSegmentations->At(id) : 0;
 }
 
-// Get segmentation of layer
+/// Get segmentation of layer
 inline const Segmentation* UpgradeGeometryTGeo::GetSegmentation(Int_t lr) const
 {
   return mSegmentations ? (Segmentation*)mSegmentations->At(GetLayerChipTypeId(lr)) : 0;

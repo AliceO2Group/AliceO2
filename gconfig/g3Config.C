@@ -8,7 +8,7 @@
 
 // $Id: g3Config.C,v 1.1.1.1 2005/06/23 07:14:09 dbertini Exp $
 //
-// Configuration macro for Geant3 VirtualMC 
+// Configuration macro for Geant3 VirtualMC
 
 void Config()
 {
@@ -27,7 +27,7 @@ void Config()
              << endl;
   }
   // create Fair Specific Stack
-  AliStack *st = new AliStack();
+  AliceO2::Data::Stack *st = new AliceO2::Data::Stack();
   st->SetMinPoints(0);
   st->StoreSecondaries(kTRUE);
   geant3->SetStack( st ) ;
@@ -36,7 +36,7 @@ void Config()
     geant3->SetTRIG(1);         //Number of events to be processed
     geant3->SetSWIT(4, 100);
     geant3->SetDEBU(0, 0, 1);
-  
+
     geant3->SetRAYL(1);
     geant3->SetSTRA(1);
     geant3->SetAUTO(0);         //Select automatic STMIN etc... calc. (AUTO 1) or manual (AUTO 0)
@@ -44,7 +44,7 @@ void Config()
     geant3->SetOPTI(2);         //Select optimisation level for GEANT geometry searches (0,1,2)
     geant3->SetERAN(5.e-7);
     geant3->SetCKOV(1);     // cerenkov photons
- 
+
 }
 
 
