@@ -41,10 +41,10 @@ public:
   /// Define a rotation matrix. Angles are in degrees.
   /// \param nmat on output contains the number assigned to the rotation matrix
   /// \param theta1 polar angle for axis I
-  /// \param phi1 azimuthal angle for axis I
   /// \param theta2 polar angle for axis II
-  /// \param phi2 azimuthal angle for axis II
   /// \param theta3 polar angle for axis III
+  /// \param phi1 azimuthal angle for axis I
+  /// \param phi2 azimuthal angle for axis II
   /// \param phi3 azimuthal angle for axis III
   virtual void Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2,
                       Float_t theta3, Float_t phi3) const;
