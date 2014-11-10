@@ -10,16 +10,15 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
-#include "FLPexSampler.h"
 #include "FairMQLogger.h"
+#include "FLPexSampler.h"
 
 using namespace std;
 
 using namespace AliceO2::Devices;
 
 FLPexSampler::FLPexSampler()
-  : fEventSize(10000)
-  , fEventRate(1)
+  : fEventRate(1)
   , fEventCounter(0)
 {
 }
@@ -31,54 +30,36 @@ FLPexSampler::~FLPexSampler()
 void FLPexSampler::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
-  boost::this_thread::sleep(boost::posix_time::milliseconds(5000));
+  boost::this_thread::sleep(boost::posix_time::milliseconds(10000));
 
-  // boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
+  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
   boost::thread resetEventCounter(boost::bind(&FLPexSampler::ResetEventCounter, this));
 
-  int sent = 0;
-  unsigned long eventId = 0;
-
-  void* buffer = operator new[](fEventSize);
-  FairMQMessage* baseMsg = fTransportFactory->CreateMessage(buffer, fEventSize);
+  void* buffer = operator new[](100);
+  FairMQMessage* baseMsg = fTransportFactory->CreateMessage(buffer, 100);
 
   while (fState == RUNNING) {
-    FairMQMessage* idPart = fTransportFactory->CreateMessage(sizeof(unsigned long));
-    memcpy(idPart->GetData(), &eventId, sizeof(unsigned long));
+      FairMQMessage* msg = fTransportFactory->CreateMessage();
+      msg->Copy(baseMsg);
 
-    fPayloadOutputs->at(0)->Send(idPart, "snd-more");
-    ++eventId;
+      if (fPayloadOutputs->at(0)->Send(msg, "no-block") == 0) {
+        LOG(ERROR) << "Could not send signal without blocking";
+      }
 
-    FairMQMessage* dataPart = fTransportFactory->CreateMessage();
-    dataPart->Copy(baseMsg);
+      --fEventCounter;
 
-    sent = fPayloadOutputs->at(0)->Send(dataPart, "no-block");
-    if (sent == 0) {
-      LOG(ERROR) << "Could not send message with event #" << eventId << " without blocking";
-    }
+      while (fEventCounter == 0) {
+        boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+      }
 
-    LOG(INFO) << "Sent event #" << eventId;
-    if (eventId == ULONG_MAX) {
-      eventId = 0;
-    }
-
-    boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
-
-    --fEventCounter;
-
-    while (fEventCounter == 0) {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-    }
-
-    delete idPart;
-    delete dataPart;
+      delete msg;
   }
 
   delete baseMsg;
 
   try {
-    // rateLogger.interrupt();
-    // rateLogger.join();
+    rateLogger.interrupt();
+    rateLogger.join();
     resetEventCounter.interrupt();
     resetEventCounter.join();
   } catch(boost::thread_resource_error& e) {
@@ -125,9 +106,6 @@ string FLPexSampler::GetProperty(const int key, const string& default_ /*= ""*/,
 void FLPexSampler::SetProperty(const int key, const int value, const int slot /*= 0*/)
 {
   switch (key) {
-    case EventSize:
-      fEventSize = value;
-      break;
     case EventRate:
       fEventRate = value;
       break;
@@ -140,8 +118,6 @@ void FLPexSampler::SetProperty(const int key, const int value, const int slot /*
 int FLPexSampler::GetProperty(const int key, const int default_ /*= 0*/, const int slot /*= 0*/)
 {
   switch (key) {
-    case EventSize:
-      return fEventSize;
     case EventRate:
       return fEventRate;
     default:

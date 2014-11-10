@@ -36,7 +36,6 @@ class FLPexSampler : public FairMQDevice
   protected:
     virtual void Run();
 
-    int fEventSize;
     int fEventRate;
     int fEventCounter;
 };

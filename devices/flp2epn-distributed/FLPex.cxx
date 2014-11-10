@@ -23,6 +23,7 @@ using namespace AliceO2::Devices;
 FLPex::FLPex()
   : fHeartbeatTimeoutInMs(20000)
   , fSendOffset(0)
+  , fEventSize(10000)
 {
 }
 
@@ -49,8 +50,8 @@ bool FLPex::updateIPHeartbeat(string reply)
       ptime storedHeartbeat = GetProperty(OutputHeartbeat, storedHeartbeat, i);
 
       if (to_simple_string(storedHeartbeat) != "not-a-date-time") {
-        LOG(INFO) << "EPN " << i << " (" << reply << ")" << " last seen "
-                  << (currentHeartbeat - storedHeartbeat).total_milliseconds() << " ms ago.";
+        // LOG(INFO) << "EPN " << i << " (" << reply << ")" << " last seen "
+        //           << (currentHeartbeat - storedHeartbeat).total_milliseconds() << " ms ago.";
       }
       else {
         LOG(INFO) << "IP has no heartbeat associated. Adding heartbeat: " << currentHeartbeat;
@@ -70,19 +71,23 @@ void FLPex::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
 
-  // boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
+  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
 
   FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
 
-  unsigned long eventId = 0;
+  uint64_t timeframeId = 0;
+
+  // base buffer, to be copied from for every payload
+  void* buffer = operator new[](fEventSize);
+  FairMQMessage* baseMsg = fTransportFactory->CreateMessage(buffer, fEventSize);
+
   int direction = 0;
   int counter = 0;
-  int sent = 0;
   ptime currentHeartbeat;
   ptime storedHeartbeat;
 
   while (fState == RUNNING) {
-    poller->Poll(100);
+    poller->Poll(-1);
 
     // input 0 - commands
     if (poller->CheckInput(0)) {
@@ -107,34 +112,28 @@ void FLPex::Run()
       delete heartbeatMsg;
     }
 
-    // input 2 - data from Sampler
+    // input 2 - signal
     if (poller->CheckInput(2)) {
-      FairMQMessage* idPart = fTransportFactory->CreateMessage();
-      if (fPayloadInputs->at(2)->Receive(idPart) > 0) {
-        FairMQMessage* dataPart = fTransportFactory->CreateMessage();
-        if (fPayloadInputs->at(2)->Receive(dataPart) > 0) {
-          unsigned long* id = reinterpret_cast<unsigned long*>(idPart->GetData());
-          eventId = *id;
-          LOG(INFO) << "Received Event #" << eventId;
+      FairMQMessage* startSignal = fTransportFactory->CreateMessage();
+      fPayloadInputs->at(2)->Receive(startSignal);
+      delete startSignal;
 
-          fIdBuffer.push(idPart);
-          fDataBuffer.push(dataPart);
-        } else {
-          LOG(ERROR) << "Could not receive data part.";
-          delete dataPart;
-          continue;
-        }
-      } else {
-        LOG(ERROR) << "Could not receive id part.";
-        delete idPart;
-        continue;
-      }
+      // initialize and store id msg part in the buffer.
+      FairMQMessage* idPart = fTransportFactory->CreateMessage(sizeof(uint64_t));
+      memcpy(idPart->GetData(), &timeframeId, sizeof(uint64_t));
+      fIdBuffer.push(idPart);
+
+      // initialize and store data msg part in the buffer.
+      FairMQMessage* dataPart = fTransportFactory->CreateMessage();
+      dataPart->Copy(baseMsg);
+      fDataBuffer.push(dataPart);
 
       if (counter == fSendOffset) {
-        eventId = *(reinterpret_cast<unsigned long*>(fIdBuffer.front()->GetData()));
-        direction = eventId % fNumOutputs;
+        uint64_t currentTimeframeId = *(reinterpret_cast<uint64_t*>(fIdBuffer.front()->GetData()));
 
-        LOG(INFO) << "Trying to send event " << eventId << " to EPN#" << direction << "...";
+        // for which EPN is the message?
+        direction = currentTimeframeId % fNumOutputs;
+        // LOG(INFO) << "Sending event " << currentTimeframeId << " to EPN#" << direction << "...";
 
         currentHeartbeat = boost::posix_time::microsec_clock::local_time();
         storedHeartbeat = GetProperty(OutputHeartbeat, storedHeartbeat, direction);
@@ -143,14 +142,14 @@ void FLPex::Run()
         if (to_simple_string(storedHeartbeat) != "not-a-date-time" ||
             (currentHeartbeat - storedHeartbeat).total_milliseconds() < fHeartbeatTimeoutInMs) {
           fPayloadOutputs->at(direction)->Send(fIdBuffer.front(), "snd-more");
-          sent = fPayloadOutputs->at(direction)->Send(fDataBuffer.front(), "no-block");
-          if (sent == 0) {
-            LOG(ERROR) << "Could not send message with event #" << eventId << " without blocking";
+          if (fPayloadOutputs->at(direction)->Send(fDataBuffer.front(), "no-block") == 0) {
+            LOG(ERROR) << "Could not send message with event #" << currentTimeframeId << " without blocking";
           }
           fIdBuffer.pop();
           fDataBuffer.pop();
-        } else { // if the heartbeat is too old, receive the data and discard it.
-          LOG(WARN) << "Heartbeat too old for, discarding message.";
+        } else { // if the heartbeat is too old, discard the data.
+          LOG(WARN) << "Heartbeat too old for EPN#" << direction << ", discarding message.";
+          LOG(WARN) << (currentHeartbeat - storedHeartbeat).total_milliseconds();
           fIdBuffer.pop();
           fDataBuffer.pop();
         }
@@ -160,11 +159,16 @@ void FLPex::Run()
       } else {
         LOG(ERROR) << "Counter larger than offset, something went wrong...";
       }
-    } // if (poller->CheckInput(2))
+
+      ++timeframeId;
+    }
+
   } // while (fState == RUNNING)
 
-  // rateLogger.interrupt();
-  // rateLogger.join();
+  delete baseMsg;
+
+  rateLogger.interrupt();
+  rateLogger.join();
 
   FairMQDevice::Shutdown();
 
@@ -200,6 +204,9 @@ void FLPex::SetProperty(const int key, const int value, const int slot/*= 0*/)
     case SendOffset:
       fSendOffset = value;
       break;
+    case EventSize:
+      fEventSize = value;
+      break;
     default:
       FairMQDevice::SetProperty(key, value, slot);
       break;
@@ -213,6 +220,8 @@ int FLPex::GetProperty(const int key, const int default_/*= 0*/, const int slot/
       return fHeartbeatTimeoutInMs;
     case SendOffset:
       return fSendOffset;
+    case EventSize:
+      return fEventSize;
     default:
       return FairMQDevice::GetProperty(key, default_, slot);
   }

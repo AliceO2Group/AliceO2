@@ -49,6 +49,7 @@ static void s_catch_signals (void)
 typedef struct DeviceOptions
 {
   string id;
+  int eventSize;
   int ioThreads;
   int numInputs;
   int numOutputs;
@@ -58,10 +59,12 @@ typedef struct DeviceOptions
   vector<int> inputBufSize;
   vector<string> inputMethod;
   vector<string> inputAddress;
+  vector<int> logInputRate;
   vector<string> outputSocketType;
   vector<int> outputBufSize;
   vector<string> outputMethod;
   vector<string> outputAddress;
+  vector<int> logOutputRate;
 } DeviceOptions_t;
 
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
@@ -73,6 +76,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::options_description desc("Options");
   desc.add_options()
     ("id", bpo::value<string>()->required(), "Device ID")
+    ("event-size", bpo::value<int>()->default_value(1000), "Event size in bytes")
     ("io-threads", bpo::value<int>()->default_value(1), "Number of I/O threads")
     ("num-inputs", bpo::value<int>()->required(), "Number of FLP input sockets")
     ("num-outputs", bpo::value<int>()->required(), "Number of FLP output sockets")
@@ -82,10 +86,12 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("input-buff-size", bpo::value< vector<int> >()->required(), "Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("input-method", bpo::value< vector<string> >()->required(), "Input method: bind/connect")
     ("input-address", bpo::value< vector<string> >()->required(), "Input address, e.g.: \"tcp://localhost:5555\"")
+    ("log-input-rate", bpo::value< vector<int> >()->required(), "Log input rate on socket, 1/0")
     ("output-socket-type", bpo::value< vector<string> >()->required(), "Output socket type: pub/push")
     ("output-buff-size", bpo::value< vector<int> >()->required(), "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("output-method", bpo::value< vector<string> >()->required(), "Output method: bind/connect")
     ("output-address", bpo::value< vector<string> >()->required(), "Output address, e.g.: \"tcp://localhost:5555\"")
+    ("log-output-rate", bpo::value< vector<int> >()->required(), "Log output rate on socket, 1/0")
     ("help", "Print help messages");
 
   bpo::variables_map vm;
@@ -100,6 +106,10 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
   if (vm.count("id")) {
     _options->id = vm["id"].as<string>();
+  }
+
+  if (vm.count("event-size")) {
+    _options->eventSize = vm["event-size"].as<int>();
   }
 
   if (vm.count("io-threads")) {
@@ -138,6 +148,10 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     _options->inputAddress = vm["input-address"].as<vector<string>>();
   }
 
+  if (vm.count("log-input-rate")) {
+    _options->logInputRate = vm["log-input-rate"].as<vector<int>>();
+  }
+
   if (vm.count("output-socket-type")) {
     _options->outputSocketType = vm["output-socket-type"].as<vector<string>>();
   }
@@ -152,6 +166,10 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
   if (vm.count("output-address")) {
     _options->outputAddress = vm["output-address"].as<vector<string>>();
+  }
+
+  if (vm.count("log-output-rate")) {
+    _options->logOutputRate = vm["log-output-rate"].as<vector<int>>();
   }
 
   return true;
@@ -185,6 +203,7 @@ int main(int argc, char** argv)
 
   flp.SetProperty(FLPex::Id, options.id);
   flp.SetProperty(FLPex::NumIoThreads, options.ioThreads);
+  flp.SetProperty(FLPex::EventSize, options.eventSize);
 
   flp.SetProperty(FLPex::NumInputs, options.numInputs);
   flp.SetProperty(FLPex::NumOutputs, options.numOutputs);
@@ -198,13 +217,15 @@ int main(int argc, char** argv)
     flp.SetProperty(FLPex::InputRcvBufSize, options.inputBufSize.at(i), i);
     flp.SetProperty(FLPex::InputMethod, options.inputMethod.at(i), i);
     flp.SetProperty(FLPex::InputAddress, options.inputAddress.at(i), i);
+    flp.SetProperty(FLPex::LogInputRate, options.logInputRate.at(i), i);
   }
 
   for (int i = 0; i < options.numOutputs; ++i) {
     flp.SetProperty(FLPex::OutputSocketType, options.outputSocketType.at(i), i);
-    flp.SetProperty(FLPex::OutputRcvBufSize, options.outputBufSize.at(i), i);
+    flp.SetProperty(FLPex::OutputSndBufSize, options.outputBufSize.at(i), i);
     flp.SetProperty(FLPex::OutputMethod, options.outputMethod.at(i), i);
     flp.SetProperty(FLPex::OutputAddress, options.outputAddress.at(i), i);
+    flp.SetProperty(FLPex::LogOutputRate, options.logOutputRate.at(i), i);
   }
 
   flp.ChangeState(FLPex::SETOUTPUT);
