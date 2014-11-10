@@ -33,7 +33,7 @@ using std::endl;
 
 using namespace AliceO2::ITS;
 
-AliceO2::ITS::Detector::Detector()
+Detector::Detector()
   : AliceO2::Base::Detector("ITS", kTRUE, kAliIts),
     mLayerID(0),
     mTrackNumberID(-1),
@@ -80,7 +80,7 @@ AliceO2::ITS::Detector::Detector()
 {
 }
 
-AliceO2::ITS::Detector::Detector(const char* name, Bool_t active, const Int_t nlay)
+Detector::Detector(const char* name, Bool_t active, const Int_t nlay)
   : AliceO2::Base::Detector(name, active, kAliIts),
     mLayerID(0),
     mTrackNumberID(-1),
@@ -162,7 +162,7 @@ AliceO2::ITS::Detector::Detector(const char* name, Bool_t active, const Int_t nl
   }
 }
 
-AliceO2::ITS::Detector::~Detector()
+Detector::~Detector()
 {
   delete[] mTurboLayer;
   delete[] mLayerPhi0;
@@ -190,7 +190,7 @@ AliceO2::ITS::Detector::~Detector()
   delete[] mLayerID;
 }
 
-AliceO2::ITS::Detector& AliceO2::ITS::Detector::operator=(const AliceO2::ITS::Detector& h)
+Detector& Detector::operator=(const Detector& h)
 {
   // The standard = operator
   // Inputs:
@@ -218,7 +218,7 @@ AliceO2::ITS::Detector& AliceO2::ITS::Detector::operator=(const AliceO2::ITS::De
   return *this;
 }
 
-void AliceO2::ITS::Detector::Initialize()
+void Detector::Initialize()
 {
   if (!mLayerID) {
     mLayerID = new Int_t[mNumberLayers];
@@ -236,7 +236,7 @@ void AliceO2::ITS::Detector::Initialize()
   //  O2itsGeoPar* par=(O2itsGeoPar*)(rtdb->getContainer("O2itsGeoPar"));
 }
 
-void AliceO2::ITS::Detector::InitParameterContainers()
+void Detector::InitParameterContainers()
 {
   LOG(INFO) << "Initialize aliitsdet misallign parameters" << FairLogger::endl;
   mNumberOfDetectors = mMisalignmentParameter->GetNumberOfDetectors();
@@ -248,7 +248,7 @@ void AliceO2::ITS::Detector::InitParameterContainers()
   mRotZ = mMisalignmentParameter->GetRotZ();
 }
 
-void AliceO2::ITS::Detector::SetParameterContainers()
+void Detector::SetParameterContainers()
 {
   LOG(INFO) << "Set tutdet misallign parameters" << FairLogger::endl;
   // Get Base Container
@@ -260,7 +260,7 @@ void AliceO2::ITS::Detector::SetParameterContainers()
   mMisalignmentParameter = (MisalignmentParameter*)(rtdb->getContainer("MisallignmentParameter"));
 }
 
-Bool_t AliceO2::ITS::Detector::ProcessHits(FairVolume* vol)
+Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
   if (!(gMC->TrackCharge())) {
@@ -328,7 +328,7 @@ Bool_t AliceO2::ITS::Detector::ProcessHits(FairVolume* vol)
   return kTRUE;
 }
 
-void AliceO2::ITS::Detector::CreateMaterials()
+void Detector::CreateMaterials()
 {
   // Int_t   ifield = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
   // Float_t fieldm = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();
@@ -459,21 +459,21 @@ void AliceO2::ITS::Detector::CreateMaterials()
                                   epsil, stmin);
 }
 
-void AliceO2::ITS::Detector::EndOfEvent()
+void Detector::EndOfEvent()
 {
   mPointCollection->Clear();
 }
 
-void AliceO2::ITS::Detector::Register()
+void Detector::Register()
 {
   // This will create a branch in the output tree called Point, setting the last
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  FairRootManager::Instance()->Register("AliceO2::ITS::Point", "ITS", mPointCollection, kTRUE);
+  FairRootManager::Instance()->Register("Point", "ITS", mPointCollection, kTRUE);
 }
 
-TClonesArray* AliceO2::ITS::Detector::GetCollection(Int_t iColl) const
+TClonesArray* Detector::GetCollection(Int_t iColl) const
 {
   if (iColl == 0) {
     return mPointCollection;
@@ -482,12 +482,12 @@ TClonesArray* AliceO2::ITS::Detector::GetCollection(Int_t iColl) const
   }
 }
 
-void AliceO2::ITS::Detector::Reset()
+void Detector::Reset()
 {
   mPointCollection->Clear();
 }
 
-void AliceO2::ITS::Detector::SetNumberOfWrapperVolumes(Int_t n)
+void Detector::SetNumberOfWrapperVolumes(Int_t n)
 {
   // book arrays for wrapper volumes
   if (mNumberOfWrapperVolumes) {
@@ -508,7 +508,7 @@ void AliceO2::ITS::Detector::SetNumberOfWrapperVolumes(Int_t n)
   }
 }
 
-void AliceO2::ITS::Detector::DefineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax,
+void Detector::DefineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax,
                                                  Double_t zspan)
 {
   // set parameters of id-th wrapper volume
@@ -522,7 +522,7 @@ void AliceO2::ITS::Detector::DefineWrapperVolume(Int_t id, Double_t rmin, Double
   mWrapperZSpan[id] = zspan;
 }
 
-void AliceO2::ITS::Detector::DefineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
+void Detector::DefineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
                                          Int_t nstav, Int_t nunit, Double_t lthick, Double_t dthick,
                                          UInt_t dettypeID, Int_t buildLevel)
 {
@@ -565,7 +565,7 @@ void AliceO2::ITS::Detector::DefineLayer(Int_t nlay, double phi0, Double_t r, Do
   mBuildLevel[nlay] = buildLevel;
 }
 
-void AliceO2::ITS::Detector::DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen,
+void Detector::DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen,
                                               Int_t nstav, Int_t nunit, Double_t width,
                                               Double_t tilt, Double_t lthick, Double_t dthick,
                                               UInt_t dettypeID, Int_t buildLevel)
@@ -615,7 +615,7 @@ void AliceO2::ITS::Detector::DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_
   mBuildLevel[nlay] = buildLevel;
 }
 
-void AliceO2::ITS::Detector::GetLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r,
+void Detector::GetLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r,
                                                 Double_t& zlen, Int_t& nstav, Int_t& nmod,
                                                 Double_t& width, Double_t& tilt, Double_t& lthick,
                                                 Double_t& dthick, UInt_t& dettype) const
@@ -655,7 +655,7 @@ void AliceO2::ITS::Detector::GetLayerParameters(Int_t nlay, Double_t& phi0, Doub
   dettype = mChipTypeID[nlay];
 }
 
-TGeoVolume* AliceO2::ITS::Detector::CreateWrapperVolume(Int_t id)
+TGeoVolume* Detector::CreateWrapperVolume(Int_t id)
 {
   // Creates an air-filled wrapper cylindrical volume
 
@@ -677,7 +677,7 @@ TGeoVolume* AliceO2::ITS::Detector::CreateWrapperVolume(Int_t id)
   return wrapper;
 }
 
-void AliceO2::ITS::Detector::ConstructGeometry()
+void Detector::ConstructGeometry()
 {
   // Create the detector materials
   CreateMaterials();
@@ -689,7 +689,7 @@ void AliceO2::ITS::Detector::ConstructGeometry()
   DefineSensitiveVolumes();
 }
 
-void AliceO2::ITS::Detector::ConstructDetectorGeometry()
+void Detector::ConstructDetectorGeometry()
 {
   // Create the geometry and insert it in the mother volume ITSV
   TGeoManager* geoManager = gGeoManager;
@@ -834,7 +834,7 @@ void AliceO2::ITS::Detector::ConstructDetectorGeometry()
 }
 
 // Service Barrel
-void AliceO2::ITS::Detector::CreateServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest,
+void Detector::CreateServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest,
                                                  const TGeoManager* mgr)
 {
   // Creates the Service Barrel (as a simple cylinder) for IB and OB
@@ -870,7 +870,7 @@ void AliceO2::ITS::Detector::CreateServiceBarrel(const Bool_t innerBarrel, TGeoV
   return;
 }
 
-void AliceO2::ITS::Detector::DefineSensitiveVolumes()
+void Detector::DefineSensitiveVolumes()
 {
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* v;
@@ -885,7 +885,7 @@ void AliceO2::ITS::Detector::DefineSensitiveVolumes()
   }
 }
 
-Point* AliceO2::ITS::Detector::AddHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos,
+Point* Detector::AddHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos,
                                       TVector3 mom, Double_t startTime, Double_t time,
                                       Double_t length, Double_t eLoss, Int_t shunt)
 {
@@ -895,7 +895,7 @@ Point* AliceO2::ITS::Detector::AddHit(Int_t trackID, Int_t detID, TVector3 start
     Point(trackID, detID, startPos, pos, mom, startTime, time, length, eLoss, shunt);
 }
 
-TParticle* AliceO2::ITS::Detector::GetParticle() const
+TParticle* Detector::GetParticle() const
 {
   // Returns the pointer to the TParticle for the particle that created
   // this hit. From the TParticle all kinds of information about this
@@ -910,7 +910,7 @@ TParticle* AliceO2::ITS::Detector::GetParticle() const
   return ((AliceO2::Data::Stack*)gMC->GetStack())->GetParticle(GetTrack());
 }
 
-void AliceO2::ITS::Detector::Print(ostream* os) const
+void Detector::Print(ostream* os) const
 {
 // Standard output format for this class.
 // Inputs:
@@ -948,7 +948,7 @@ void AliceO2::ITS::Detector::Print(ostream* os) const
   return;
 }
 
-void AliceO2::ITS::Detector::Read(istream* is)
+void Detector::Read(istream* is)
 {
   // Standard input format for this class.
   // Inputs:
@@ -965,7 +965,7 @@ void AliceO2::ITS::Detector::Read(istream* is)
   return;
 }
 
-ostream& operator<<(ostream& os, AliceO2::ITS::Detector& p)
+ostream& operator<<(ostream& os, Detector& p)
 {
   // Standard output streaming function.
   // Inputs:
@@ -980,7 +980,7 @@ ostream& operator<<(ostream& os, AliceO2::ITS::Detector& p)
   return os;
 }
 
-istream& operator>>(istream& is, AliceO2::ITS::Detector& r)
+istream& operator>>(istream& is, Detector& r)
 {
   // Standard input streaming function.
   // Inputs:

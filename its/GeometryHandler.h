@@ -66,15 +66,15 @@ public:
   //  Int_t CheckGeometryVersion();
 
 private:
-  Bool_t mIsSimulation;
+  Bool_t mIsSimulation; //!
 
-  Int_t mLastUsedDetectorId;
+  Int_t mLastUsedDetectorId; //!
 
-  UInt_t mGeometryPathHash;
-  TGeoVolume* mCurrentVolume;
-  TGeoBBox* mVolumeShape;
-  Double_t mGlobalCentre[3]; ///< Global centre of volume
-  TGeoHMatrix* mGlobalMatrix;
+  UInt_t mGeometryPathHash;   //!
+  TGeoVolume* mCurrentVolume; //!
+  TGeoBBox* mVolumeShape;     //!
+  Double_t mGlobalCentre[3];  //! Global centre of volume
+  TGeoHMatrix* mGlobalMatrix; //!
 
   TString ConstructFullPathFromDetectorId(Int_t detectorId);
 

@@ -394,7 +394,7 @@ Bool_t UpgradeSegmentationPixel::Store(const char* outf)
   if (!arr) {
     arr = new TObjArray();
   } else if (arr->At(id)) {
-    LOG(FATAL) << "Segmenation " << id << " already exists in file " << outf << FairLogger::endl;
+    LOG(FATAL) << "Segmentation " << id << " already exists in file " << outf << FairLogger::endl;
     return kFALSE;
   }
 

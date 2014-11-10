@@ -181,32 +181,32 @@ private:
   FairLogger* mLogger;
 
   /// STL stack (FILO) used to handle the TParticles for tracking
-  std::stack<TParticle*> mStack;
+  std::stack<TParticle*> mStack; //!
 
   /// Array of TParticles (contains all TParticles put into or created
   /// by the transport
-  TClonesArray* mParticles;
+  TClonesArray* mParticles; //!
 
   /// Array of FairMCTracks containg the tracks written to the output
   TClonesArray* mTracks;
 
   /// STL map from particle index to storage flag
-  std::map<Int_t, Bool_t> mStoreMap;
-  std::map<Int_t, Bool_t>::iterator mStoreIterator;
+  std::map<Int_t, Bool_t> mStoreMap;                //!
+  std::map<Int_t, Bool_t>::iterator mStoreIterator; //!
 
   /// STL map from particle index to track index
-  std::map<Int_t, Int_t> mIndexMap;
-  std::map<Int_t, Int_t>::iterator mIndexIterator;
+  std::map<Int_t, Int_t> mIndexMap;                //!
+  std::map<Int_t, Int_t>::iterator mIndexIterator; //!
 
   /// STL map from track index and detector ID to number of MCPoints
-  std::map<std::pair<Int_t, Int_t>, Int_t> mPointsMap;
+  std::map<std::pair<Int_t, Int_t>, Int_t> mPointsMap; //!
 
   /// Some indices and counters
-  Int_t mIndexOfCurrentTrack;        ///< Index of current track
-  Int_t mNumberOfPrimaryParticles;   ///< Number of primary particles
-  Int_t mNumberOfEntriesInParticles; ///< Number of entries in mParticles
-  Int_t mNumberOfEntriesInTracks;    ///< Number of entries in mTracks
-  Int_t mIndex;                      ///< Used for merging
+  Int_t mIndexOfCurrentTrack;        //! Index of current track
+  Int_t mNumberOfPrimaryParticles;   //! Number of primary particles
+  Int_t mNumberOfEntriesInParticles; //! Number of entries in mParticles
+  Int_t mNumberOfEntriesInTracks;    //! Number of entries in mTracks
+  Int_t mIndex;                      //! Used for merging
 
   /// Variables defining the criteria for output selection
   Bool_t mStoreMothers;

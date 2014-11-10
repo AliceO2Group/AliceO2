@@ -14,10 +14,7 @@ namespace Base {
 class Detector : public FairDetector {
 
 public:
-  enum Model {
-    test123 = 0
-  };
-
+  enum Model { test123 = 0 };
 
   Detector(const char* name, Bool_t Active, Int_t DetId = 0);
 
@@ -73,8 +70,8 @@ public:
                                 Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
 
 protected:
-  static Float_t mDensityFactor; ///< factor that is multiplied to all material densities (ONLY for
-                                 ///< systematic studies)
+  static Float_t mDensityFactor; //! factor that is multiplied to all material densities (ONLY for
+                                 //systematic studies)
 private:
   Detector(const Detector&);
   Detector& operator=(const Detector&);

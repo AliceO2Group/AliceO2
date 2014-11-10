@@ -250,8 +250,10 @@ protected:
   Int_t mDiodShiftMatNColumn;    ///< periodicity of diod shift in columns
   Int_t mDiodShiftMatNRow;       ///< periodicity of diod shift in rows
   Int_t mDiodShiftMatDimension;  ///< dimension of diod shift matrix
-  Float_t* mDiodShiftMatX;       ///< diod shift in X (along column), in fraction of X pitch
-  Float_t* mDiodShiftMatZ;       ///< diod shift in Z (along row), in fraction of Z pitch
+  Float_t* mDiodShiftMatX; //[mDiodShiftMatDimension] diod shift in X (along column), in fraction of
+                           //X pitch
+  Float_t*
+    mDiodShiftMatZ; //[mDiodShiftMatDimension] diod shift in Z (along row), in fraction of Z pitch
 
   static const char* sSegmentationsListName; ///< pattern for segmentations list name
 

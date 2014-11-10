@@ -224,42 +224,42 @@ public:
     return mStaveModelOuterBarrel;
   }
 
-  UpgradeGeometryTGeo* mGeometryTGeo; ///< access to geometry details
+  UpgradeGeometryTGeo* mGeometryTGeo; //! access to geometry details
 
 protected:
-  Int_t* mLayerID;               ///< [mNumberLayers] layer identifier
-  Int_t mNumberLayers;           ///< Number of layers
-  Int_t mStatus;                 ///< Track Status
-  Int_t mModule;                 ///< Module number
-  Float_t mParticlePx;           ///< PX of particle at the point of the hit
-  Float_t mParticlePy;           ///< PY of particle at the point of the hit
-  Float_t mParticlePz;           ///< PZ of particle at the point of the hit
-  Float_t mEnergyDepositionStep; ///< Energy deposited in the current step
-  Float_t mTof;                  ///< Time of flight at the point of the hit
-  Int_t mStatus0;                ///< Track Status of Starting point
-  Float_t mStartingStepX;        ///< Starting point of this step
-  Float_t mStartingStepY;        ///< Starting point of this step
-  Float_t mStartingStepZ;        ///< Starting point of this step
-  Float_t mStartingStepT;        ///< Starting point of this step
-  Int_t mTrackNumber;            ///< Track number
-  Float_t mPositionX;            ///< X position of the hit
-  Float_t mPositionY;            ///< Y position of the hit
-  Float_t mPositionZ;            ///< Z position of the hit
-  TString* mLayerName;           ///<[mNumberLayers] layer identifier
+  Int_t* mLayerID;               //! [mNumberLayers] layer identifier
+  Int_t mNumberLayers;           //! Number of layers
+  Int_t mStatus;                 //! Track Status
+  Int_t mModule;                 //! Module number
+  Float_t mParticlePx;           //! PX of particle at the point of the hit
+  Float_t mParticlePy;           //! PY of particle at the point of the hit
+  Float_t mParticlePz;           //! PZ of particle at the point of the hit
+  Float_t mEnergyDepositionStep; //! Energy deposited in the current step
+  Float_t mTof;                  //! Time of flight at the point of the hit
+  Int_t mStatus0;                //! Track Status of Starting point
+  Float_t mStartingStepX;        //! Starting point of this step
+  Float_t mStartingStepY;        //! Starting point of this step
+  Float_t mStartingStepZ;        //! Starting point of this step
+  Float_t mStartingStepT;        //! Starting point of this step
+  Int_t mTrackNumber;            //! Track number
+  Float_t mPositionX;            //! X position of the hit
+  Float_t mPositionY;            //! Y position of the hit
+  Float_t mPositionZ;            //! Z position of the hit
+  TString* mLayerName;           //![mNumberLayers] layer identifier
 
 private:
   /// Track information to be stored until the track leaves the
   /// active volume.
-  Int_t mTrackNumberID;             ///<  track index
-  Int_t mVolumeID;                  ///<  volume id
-  Int_t mShunt;                     ///<  shunt
-  TLorentzVector mPosition;         ///<  position
-  TLorentzVector mEntrancePosition; ///<  position at entrance
-  TLorentzVector mMomentum;         ///<  momentum
-  Double32_t mEntranceTime;         ///<  time at entrance
-  Double32_t mTime;                 ///<  time
-  Double32_t mLength;               ///<  length
-  Double32_t mEnergyLoss;           ///<  energy loss
+  Int_t mTrackNumberID;             //! track index
+  Int_t mVolumeID;                  //! volume id
+  Int_t mShunt;                     //! shunt
+  TLorentzVector mPosition;         //! position
+  TLorentzVector mEntrancePosition; //! position at entrance
+  TLorentzVector mMomentum;         //! momentum
+  Double32_t mEntranceTime;         //! time at entrance
+  Double32_t mTime;                 //! time
+  Double32_t mLength;               //! length
+  Double32_t mEnergyLoss;           //! energy loss
 
   Int_t mNumberOfDetectors;
   TArrayD mShiftX;
@@ -271,23 +271,23 @@ private:
 
   Bool_t mModifyGeometry;
 
-  Int_t mNumberOfWrapperVolumes; ///< number of wrapper volumes
-  Double_t* mWrapperMinRadius;   ///< min radius of wrapper volume
-  Double_t* mWrapperMaxRadius;   ///< max radius of wrapper volume
-  Double_t* mWrapperZSpan;       ///< Z span of wrapper volume
-  Int_t* mWrapperLayerId;        ///< id of wrapper layer to which layer belongs (-1 if not wrapped)
-  Bool_t* mTurboLayer;           ///< True for "turbo" layers
-  Double_t* mLayerPhi0;          ///< Vector of layer's 1st stave phi in lab
-  Double_t* mLayerRadii;         ///< Vector of layer radii
-  Double_t* mLayerZLength;       ///< Vector of layer length along Z
-  Int_t* mStavePerLayer;         ///< Vector of number of staves per layer
-  Int_t* mUnitPerStave;          ///< Vector of number of "units" per stave
-  Double_t* mStaveThickness;     ///< Vector of stave thicknesses
-  Double_t* mStaveWidth;         ///< Vector of stave width (only used for turbo)
-  Double_t* mStaveTilt;          ///< Vector of stave tilt (only used for turbo)
-  Double_t* mDetectorThickness;  ///< Vector of detector thicknesses
-  UInt_t* mChipTypeID;           ///< Vector of detector type id
-  Int_t* mBuildLevel;            ///< Vector of Material Budget Studies
+  Int_t mNumberOfWrapperVolumes; //! number of wrapper volumes
+  Double_t* mWrapperMinRadius;   //! min radius of wrapper volume
+  Double_t* mWrapperMaxRadius;   //! max radius of wrapper volume
+  Double_t* mWrapperZSpan;       //! Z span of wrapper volume
+  Int_t* mWrapperLayerId;        //! id of wrapper layer to which layer belongs (-1 if not wrapped)
+  Bool_t* mTurboLayer;           //! True for "turbo" layers
+  Double_t* mLayerPhi0;          //! Vector of layer's 1st stave phi in lab
+  Double_t* mLayerRadii;         //! Vector of layer radii
+  Double_t* mLayerZLength;       //! Vector of layer length along Z
+  Int_t* mStavePerLayer;         //! Vector of number of staves per layer
+  Int_t* mUnitPerStave;          //! Vector of number of "units" per stave
+  Double_t* mStaveThickness;     //! Vector of stave thicknesses
+  Double_t* mStaveWidth;         //! Vector of stave width (only used for turbo)
+  Double_t* mStaveTilt;          //! Vector of stave tilt (only used for turbo)
+  Double_t* mDetectorThickness;  //! Vector of detector thicknesses
+  UInt_t* mChipTypeID;           //! Vector of detector type id
+  Int_t* mBuildLevel;            //! Vector of Material Budget Studies
 
   /// Container for data points
   TClonesArray* mPointCollection;

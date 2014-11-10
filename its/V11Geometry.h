@@ -442,7 +442,7 @@ private:
   /// \param Double_t sdr difference or sum of the circle radii
   Double_t AngleForRoundedCorners1(Double_t dx, Double_t dy, Double_t sdr) const;
 
-  Int_t mDebug;            ///< Debug flag/level
+  Int_t mDebug;            //! Debug flag/level
   ClassDef(V11Geometry, 1) // Base class for ITS v11 geometry
 };
 }

@@ -420,21 +420,21 @@ protected:
   Int_t ExtractVolumeCopy(const char* name, const char* prefix) const;
 
 protected:
-  Int_t mVersion;             ///< ITS Version
-  Int_t mNumberOfLayers;      ///< number of layers
-  Int_t mNumberOfChips;       ///< The total number of chips
-  Int_t* mNumberOfStaves;     ///< [mNumberOfLayers] Array of the number of staves/layer(layer)
-  Int_t* mNumberOfHalfStaves; ///< [mNumberOfLayers] Array of the number of substaves/stave(layer)
-  Int_t* mNumberOfModules;    ///< [mNumberOfLayers] Array of the number of modules/substave(layer)
-  Int_t* mNumberOfChipsPerModule;    ///< [mNumberOfLayers] Array of the number of chips per module
-                                     ///< (group of chips on the substaves)
-  Int_t* mNumberOfChipRowsPerModule; ///< [mNumberOfLayers] Array of the number of chips rows per
-  ///< module (relevant for OB modules)
-  Int_t* mNumberOfChipsPerHalfStave;   ///< [mNumberOfLayers] Array of number of chips per substave
-  Int_t* mNumberOfChipsPerStave;       ///< [mNumberOfLayers] Array of the number of chips per stave
-  Int_t* mNumberOfChipsPerLayer;       ///< [mNumberOfLayers] Array of the number of chips per stave
-  Int_t* mLayerChipType;               ///< [mNumberOfLayers] Array of layer chip types
-  Int_t* mLastChipIndex;               ///< [mNumberOfLayers] max ID of the detctor in the layer
+  Int_t mVersion;                 ///< ITS Version
+  Int_t mNumberOfLayers;          ///< number of layers
+  Int_t mNumberOfChips;           ///< The total number of chips
+  Int_t* mNumberOfStaves;         //[mNumberOfLayers] Array of the number of staves/layer(layer)
+  Int_t* mNumberOfHalfStaves;     //[mNumberOfLayers] Array of the number of substaves/stave(layer)
+  Int_t* mNumberOfModules;        //[mNumberOfLayers] Array of the number of modules/substave(layer)
+  Int_t* mNumberOfChipsPerModule; //[mNumberOfLayers] Array of the number of chips per module
+                                  // (group of chips on the substaves)
+  Int_t* mNumberOfChipRowsPerModule; //[mNumberOfLayers] Array of the number of chips rows per
+  // module (relevant for OB modules)
+  Int_t* mNumberOfChipsPerHalfStave;   //[mNumberOfLayers] Array of number of chips per substave
+  Int_t* mNumberOfChipsPerStave;       //[mNumberOfLayers] Array of the number of chips per stave
+  Int_t* mNumberOfChipsPerLayer;       //[mNumberOfLayers] Array of the number of chips per stave
+  Int_t* mLayerChipType;               //[mNumberOfLayers] Array of layer chip types
+  Int_t* mLastChipIndex;               //[mNumberOfLayers] max ID of the detctor in the layer
   Char_t mLayerToWrapper[gMaxLayers];  ///< Layer to wrapper correspondence
   TObjArray* mSensorMatrices;          ///< Sensor's matrices pointers in the geometry
   TObjArray* mTrackingToLocalMatrices; ///< Tracking to Local matrices pointers in the geometry
