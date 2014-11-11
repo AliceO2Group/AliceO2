@@ -61,20 +61,17 @@ Stack::~Stack()
   }
 }
 
-void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px, Double_t py,
-                      Double_t pz, Double_t e, Double_t vx, Double_t vy, Double_t vz, Double_t time,
-                      Double_t polx, Double_t poly, Double_t polz, TMCProcess proc, Int_t& ntr,
-                      Double_t weight, Int_t is)
+void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px, Double_t py, Double_t pz, Double_t e,
+                      Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
+                      TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is)
 {
 
-  PushTrack(toBeDone, parentId, pdgCode, px, py, pz, e, vx, vy, vz, time, polx, poly, polz, proc,
-            ntr, weight, is, -1);
+  PushTrack(toBeDone, parentId, pdgCode, px, py, pz, e, vx, vy, vz, time, polx, poly, polz, proc, ntr, weight, is, -1);
 }
 
-void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px, Double_t py,
-                      Double_t pz, Double_t e, Double_t vx, Double_t vy, Double_t vz, Double_t time,
-                      Double_t polx, Double_t poly, Double_t polz, TMCProcess proc, Int_t& ntr,
-                      Double_t weight, Int_t is, Int_t secondparentID)
+void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px, Double_t py, Double_t pz, Double_t e,
+                      Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
+                      TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondparentID)
 {
 
   // Get TParticle array
@@ -85,8 +82,8 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   Int_t nPoints = 0;
   Int_t daughter1Id = -1;
   Int_t daughter2Id = -1;
-  TParticle* particle = new (partArray[mNumberOfEntriesInParticles++]) TParticle(
-    pdgCode, trackId, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
+  TParticle* particle = new (partArray[mNumberOfEntriesInParticles++])
+    TParticle(pdgCode, trackId, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   particle->SetPolarisation(polx, poly, polz);
   particle->SetWeight(weight);
   particle->SetUniqueID(proc);
@@ -199,7 +196,7 @@ void Stack::FillTrackArray()
       // Set the number of points in the detectors for this track
       for (Int_t iDet = kAliIts; iDet < kSTOPHERE; iDet++) {
         pair<Int_t, Int_t> a(iPart, iDet);
-        track->SetNumberOfPoints(iDet, mPointsMap[a]);
+        track->setNumberOfPoints(iDet, mPointsMap[a]);
       }
       mNumberOfEntriesInTracks++;
     } else {
@@ -223,7 +220,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
   // First update mother ID in MCTracks
   for (Int_t i = 0; i < mNumberOfEntriesInTracks; i++) {
     MCTrack* track = (MCTrack*)mTracks->At(i);
-    Int_t iMotherOld = track->GetMotherTrackId();
+    Int_t iMotherOld = track->getMotherTrackId();
     mIndexIterator = mIndexMap.find(iMotherOld);
     if (mIndexIterator == mIndexMap.end()) {
       mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle index %i not found in dex map! ", iMotherOld);
@@ -257,8 +254,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
 
         mIndexIterator = mIndexMap.find(iTrack);
         if (mIndexIterator == mIndexMap.end()) {
-          mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle index %i not found in index map! ",
-                         iTrack);
+          mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle index %i not found in index map! ", iTrack);
           Fatal("Stack::UpdateTrackIndex", "Particle index not found in map");
         }
         point->SetTrackID((*mIndexIterator).second);

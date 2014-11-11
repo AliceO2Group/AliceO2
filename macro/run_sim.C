@@ -46,7 +46,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   //  tpc->SetGeometry();
   //  run->AddModule(tpc);
 
-  TGeoGlobalMagField::Instance()->SetField(new AliMagF("Maps","Maps", -1., -1., AliMagF::k5kG));
+  TGeoGlobalMagField::Instance()->SetField(new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagneticField::k5kG));
 
   AliceO2::Base::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
   run->AddModule(its);
@@ -102,24 +102,24 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     kGuardRing,  // top
     kReadOutEdge // bottom
     );           // see UpgradeSegmentationPixel.h for extra options
-  seg0->Store(AliceO2::ITS::UpgradeGeometryTGeo::GetITSsegmentationFileName());
+  seg0->Store(AliceO2::ITS::UpgradeGeometryTGeo::getITSsegmentationFileName());
   seg0->Print();
 
   double dzLr, rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr, idLr;
 
-  its->SetStaveModelIB(AliceO2::ITS::Detector::kIBModel22);
-  its->SetStaveModelOB(AliceO2::ITS::Detector::kOBModel1);
+  its->setStaveModelIB(AliceO2::ITS::Detector::kIBModel22);
+  its->setStaveModelOB(AliceO2::ITS::Detector::kOBModel1);
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = { 2.1, 15.0, 32.0 };
   const double wrpRMax[kNWrapVol] = { 7.0, 27.0 + 2.5, 43.0 + 1.5 };
   const double wrpZSpan[kNWrapVol] = { 28.0, 86.0, 150.0 };
 
-  its->SetNumberOfWrapperVolumes(kNWrapVol); // define wrapper volumes for layers
+  its->setNumberOfWrapperVolumes(kNWrapVol); // define wrapper volumes for layers
 
   for (int iw = 0; iw < kNWrapVol; iw++) {
-    its->DefineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
+    its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
   }
 
   for (int idLr = 0; idLr < kNLr; idLr++) {
@@ -131,15 +131,15 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     int nChipsPerStaveLr = nModPerStaveLr;
     if (idLr >= kNLrInner) {
       nChipsPerStaveLr *= nChipsPerModule;
-      its->DefineLayer(idLr, phi0, rLr, nChipsPerStaveLr * seg0->Dz(), nStaveLr, nModPerStaveLr,
-                       kSiThickOB, seg0->Dy(), seg0->GetChipTypeID(), kBuildLevel);
+      its->defineLayer(idLr, phi0, rLr, nChipsPerStaveLr * seg0->Dz(), nStaveLr, nModPerStaveLr,
+                       kSiThickOB, seg0->Dy(), seg0->getChipTypeID(), kBuildLevel);
       //      printf("Add Lr%d: R=%6.2f DZ:%6.2f Staves:%3d NMod/Stave:%3d\n",
       //	     idLr,rLr,nChipsPerStaveLr*seg0->Dz(),nStaveLr,nModPerStaveLr);
     } else {
       turbo = -radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], seg0->Dx());
-      its->DefineLayerTurbo(idLr, phi0, rLr, nChipsPerStaveLr * seg0->Dz(), nStaveLr,
+      its->defineLayerTurbo(idLr, phi0, rLr, nChipsPerStaveLr * seg0->Dz(), nStaveLr,
                             nChipsPerStaveLr, seg0->Dx(), turbo, kSiThickIB, seg0->Dy(),
-                            seg0->GetChipTypeID(), kBuildLevel);
+                            seg0->getChipTypeID(), kBuildLevel);
       //      printf("Add Lr%d: R=%6.2f DZ:%6.2f Turbo:%+6.2f Staves:%3d NMod/Stave:%3d\n",
       //	     idLr,rLr,nChipsPerStaveLr*seg0->Dz(),turbo,nStaveLr,nModPerStaveLr);
     }

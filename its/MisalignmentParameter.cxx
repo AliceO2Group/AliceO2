@@ -30,7 +30,7 @@ void MisalignmentParameter::Clear(void)
 {
 }
 
-void MisalignmentParameter::PutParams(FairParamList* list)
+void MisalignmentParameter::putParams(FairParamList* list)
 {
   if (!list) {
     return;
@@ -45,7 +45,7 @@ void MisalignmentParameter::PutParams(FairParamList* list)
   list->add("RotationZ", mRotZ);
 }
 
-Bool_t MisalignmentParameter::GetParams(FairParamList* list)
+Bool_t MisalignmentParameter::getParams(FairParamList* list)
 {
   if (!list) {
     return kFALSE;

@@ -93,8 +93,7 @@ public:
 
   virtual Float_t R() const
   {
-    return TMath::Sqrt(mReferencePositionX * mReferencePositionX +
-                       mReferencePositionY * mReferencePositionY);
+    return TMath::Sqrt(mReferencePositionX * mReferencePositionX + mReferencePositionY * mReferencePositionY);
   }
 
   virtual Float_t Pt() const
@@ -162,7 +161,7 @@ public:
     mDetectorId = id;
   }
 
-  virtual void SetPosition(Float_t x, Float_t y, Float_t z)
+  virtual void setPosition(Float_t x, Float_t y, Float_t z)
   {
     mReferencePositionX = x;
     mReferencePositionY = y;
@@ -176,7 +175,7 @@ public:
     mMomentumZ = pz;
   }
 
-  virtual void SetUserId(Int_t userId)
+  virtual void setUserId(Int_t userId)
   {
     mUserId = userId;
   }
@@ -184,14 +183,14 @@ public:
   // Methods to get position of the track reference in
   // in the TPC/TRD/TOF Tracking coordinate system
 
-  virtual Float_t PhiPos() const
+  virtual Float_t phiPosition() const
   {
     return TMath::Pi() + TMath::ATan2(-mReferencePositionY, -mReferencePositionX);
   }
 
   virtual Float_t Alpha() const
   {
-    return TMath::Pi() * (20 * ((((Int_t)(PhiPos() * 180 / TMath::Pi())) / 20)) + 10) / 180.;
+    return TMath::Pi() * (20 * ((((Int_t)(phiPosition() * 180 / TMath::Pi())) / 20)) + 10) / 180.;
   }
 
   virtual Float_t LocalX() const
@@ -204,7 +203,7 @@ public:
     return mReferencePositionX * TMath::Sin(-Alpha()) + mReferencePositionY * TMath::Cos(-Alpha());
   }
 
-  Bool_t IsSortable() const
+  Bool_t isSortable() const
   {
     return kTRUE;
   }

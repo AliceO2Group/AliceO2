@@ -72,22 +72,22 @@ void Detector::Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2,
   gMC->Matrix(nmat, theta1, phi1, theta2, phi2, theta3, phi3);
 }
 
-void Detector::DefineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan)
+void Detector::defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan)
 {
 }
 
-void Detector::SetNumberOfWrapperVolumes(Int_t n)
+void Detector::setNumberOfWrapperVolumes(Int_t n)
 {
 }
 
-void Detector::DefineLayer(const Int_t nlay, const double phi0, const Double_t r,
+void Detector::defineLayer(const Int_t nlay, const double phi0, const Double_t r,
                            const Double_t zlen, const Int_t nladd, const Int_t nmod,
                            const Double_t lthick, const Double_t dthick, const UInt_t dettypeID,
                            const Int_t buildLevel)
 {
 }
 
-void Detector::DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd,
+void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd,
                                 Int_t nmod, Double_t width, Double_t tilt, Double_t lthick,
                                 Double_t dthick, UInt_t dettypeID, Int_t buildLevel)
 {

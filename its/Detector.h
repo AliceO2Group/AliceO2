@@ -70,13 +70,12 @@ public:
   /// \param innerBarrel if true, build IB service barrel, otherwise for OB
   /// \param dest the mother volume holding the service barrel
   /// \param mgr  the gGeoManager pointer (used to get the material)
-  void CreateServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest,
-                           const TGeoManager* mgr = gGeoManager);
+  void createServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest, const TGeoManager* mgr = gGeoManager);
 
   /// Initialize the parameter containers
-  virtual void InitParameterContainers();
+  virtual void initializeParameterContainers();
 
-  void SetParameterContainers();
+  void setParameterContainers();
 
   /// Sets the layer parameters
   /// \param nlay layer number
@@ -90,9 +89,8 @@ public:
   /// \param dthick detector thickness (if omitted, defaults to 0)
   /// \param dettypeID ??
   /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-  virtual void DefineLayer(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd,
-                           Int_t nmod, Double_t lthick = 0., Double_t dthick = 0.,
-                           UInt_t detType = 0, Int_t buildFlag = 0);
+  virtual void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+                           Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
 
   /// Sets the layer parameters for a "turbo" layer
   /// (i.e. a layer whose staves overlap in phi)
@@ -109,9 +107,9 @@ public:
   /// \param dthick detector thickness (if omitted, defaults to 0)
   /// \param dettypeID ??
   /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-  virtual void DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd,
-                                Int_t nmod, Double_t width, Double_t tilt, Double_t lthick = 0.,
-                                Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
+  virtual void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+                                Double_t width, Double_t tilt, Double_t lthick = 0., Double_t dthick = 0.,
+                                UInt_t detType = 0, Int_t buildFlag = 0);
 
   /// Gets the layer parameters
   /// \param nlay layer number
@@ -126,19 +124,19 @@ public:
   /// \param lthick stave thickness
   /// \param dthick detector thickness
   /// \param dettype detector type
-  virtual void GetLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Double_t& zlen,
-                                  Int_t& nladd, Int_t& nmod, Double_t& width, Double_t& tilt,
-                                  Double_t& lthick, Double_t& mthick, UInt_t& dettype) const;
+  virtual void getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Double_t& zlen, Int_t& nladd, Int_t& nmod,
+                                  Double_t& width, Double_t& tilt, Double_t& lthick, Double_t& mthick,
+                                  UInt_t& dettype) const;
 
   /// This method is an example of how to add your own point of type Point to the clones array
-  Point* AddHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom,
-                Double_t startTime, Double_t time, Double_t length, Double_t eLoss, Int_t shunt);
+  Point* addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom, Double_t startTime,
+                Double_t time, Double_t length, Double_t eLoss, Int_t shunt);
 
   /// Book arrays for wrapper volumes
-  virtual void SetNumberOfWrapperVolumes(Int_t n);
+  virtual void setNumberOfWrapperVolumes(Int_t n);
 
   /// Set per wrapper volume parameters
-  virtual void DefineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan);
+  virtual void defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan);
 
   // The following methods can be implemented if you need to make
   // any optional action in your detector during the transport
@@ -156,7 +154,7 @@ public:
   {
     ;
   }
-  virtual void FinishRun()
+  virtual void finishRun()
   {
     ;
   }
@@ -202,24 +200,24 @@ public:
   void Read(istream* is);
 
   /// Returns the number of layers
-  Int_t GetNumberOfLayers() const
+  Int_t getNumberOfLayers() const
   {
     return mNumberLayers;
   }
 
-  virtual void SetStaveModelIB(UpgradeModel model)
+  virtual void setStaveModelIB(UpgradeModel model)
   {
     mStaveModelInnerBarrel = model;
   }
-  virtual void SetStaveModelOB(UpgradeModel model)
+  virtual void setStaveModelOB(UpgradeModel model)
   {
     mStaveModelOuterBarrel = model;
   }
-  virtual UpgradeModel GetStaveModelIB() const
+  virtual UpgradeModel getStaveModelIB() const
   {
     return mStaveModelInnerBarrel;
   }
-  virtual UpgradeModel GetStaveModelOB() const
+  virtual UpgradeModel getStaveModelOB() const
   {
     return mStaveModelOuterBarrel;
   }
@@ -293,16 +291,16 @@ private:
   TClonesArray* mPointCollection;
 
   /// Creates an air-filled wrapper cylindrical volume
-  TGeoVolume* CreateWrapperVolume(const Int_t nLay);
+  TGeoVolume* createWrapperVolume(const Int_t nLay);
 
   /// Create the detector materials
-  virtual void CreateMaterials();
+  virtual void createMaterials();
 
   /// Construct the detector geometry
-  void ConstructDetectorGeometry();
+  void constructDetectorGeometry();
 
   /// Define the sensitive volumes of the geometry
-  void DefineSensitiveVolumes();
+  void defineSensitiveVolumes();
 
   Detector(const Detector&);
   Detector& operator=(const Detector&);

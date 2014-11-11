@@ -10,7 +10,7 @@
 #include "Data/DetectorList.h"
 #include "Data/Stack.h"
 
-#include "field/AliMagF.h"
+#include "field/MagneticField.h"
 
 #include "FairVolume.h"
 #include "FairGeoVolume.h"
@@ -131,8 +131,9 @@ Detector::Detector(const char* name, Bool_t active, const Int_t nlay)
 {
   mLayerName = new TString[mNumberLayers];
 
-  for (Int_t j = 0; j < mNumberLayers; j++)
-    mLayerName[j].Form("%s%d", UpgradeGeometryTGeo::GetITSSensorPattern(), j); // See UpgradeV1Layer
+  for (Int_t j = 0; j < mNumberLayers; j++) {
+    mLayerName[j].Form("%s%d", UpgradeGeometryTGeo::getITSSensorPattern(), j); // See UpgradeV1Layer
+  }
 
   mTurboLayer = new Bool_t[mNumberLayers];
   mLayerPhi0 = new Double_t[mNumberLayers];
@@ -239,19 +240,19 @@ void Detector::Initialize()
   //  O2itsGeoPar* par=(O2itsGeoPar*)(rtdb->getContainer("O2itsGeoPar"));
 }
 
-void Detector::InitParameterContainers()
+void Detector::initializeParameterContainers()
 {
   LOG(INFO) << "Initialize aliitsdet misallign parameters" << FairLogger::endl;
-  mNumberOfDetectors = mMisalignmentParameter->GetNumberOfDetectors();
-  mShiftX = mMisalignmentParameter->GetShiftX();
-  mShiftY = mMisalignmentParameter->GetShiftY();
-  mShiftZ = mMisalignmentParameter->GetShiftZ();
-  mRotX = mMisalignmentParameter->GetRotX();
-  mRotY = mMisalignmentParameter->GetRotY();
-  mRotZ = mMisalignmentParameter->GetRotZ();
+  mNumberOfDetectors = mMisalignmentParameter->getNumberOfDetectors();
+  mShiftX = mMisalignmentParameter->getShiftX();
+  mShiftY = mMisalignmentParameter->getShiftY();
+  mShiftZ = mMisalignmentParameter->getShiftZ();
+  mRotX = mMisalignmentParameter->getRotX();
+  mRotY = mMisalignmentParameter->getRotY();
+  mRotZ = mMisalignmentParameter->getRotZ();
 }
 
-void Detector::SetParameterContainers()
+void Detector::setParameterContainers()
 {
   LOG(INFO) << "Set tutdet misallign parameters" << FairLogger::endl;
   // Get Base Container
@@ -291,7 +292,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   gMC->CurrentVolOffID(1, cpn1);
   gMC->CurrentVolOffID(2, cpn0);
 
-  mod = mGeometryTGeo->GetChipIndex(lay, cpn0, cpn1);
+  mod = mGeometryTGeo->getChipIndex(lay, cpn0, cpn1);
 
   // Record information on the points
   mEnergyLoss = gMC->Edep();
@@ -314,7 +315,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // Create Point on every step of the active volume
-  AddHit(mTrackNumberID, mVolumeID,
+  addHit(mTrackNumberID, mVolumeID,
          TVector3(mEntrancePosition.X(), mEntrancePosition.Y(), mEntrancePosition.Z()),
          TVector3(mPosition.X(), mPosition.Y(), mPosition.Z()),
          TVector3(mMomentum.Px(), mMomentum.Py(), mMomentum.Pz()), mEntranceTime, mTime, mLength,
@@ -331,10 +332,10 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   return kTRUE;
 }
 
-void Detector::CreateMaterials()
+void Detector::createMaterials()
 {
-  Int_t   ifield = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
-  Float_t fieldm = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();
+  Int_t   ifield = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Integral();
+  Float_t fieldm = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Max();
 
   Float_t tmaxfd = 0.1;   // 1.0; // Degree
   Float_t stemax = 1.0;   // cm
@@ -486,7 +487,7 @@ void Detector::Reset()
   mPointCollection->Clear();
 }
 
-void Detector::SetNumberOfWrapperVolumes(Int_t n)
+void Detector::setNumberOfWrapperVolumes(Int_t n)
 {
   // book arrays for wrapper volumes
   if (mNumberOfWrapperVolumes) {
@@ -507,7 +508,7 @@ void Detector::SetNumberOfWrapperVolumes(Int_t n)
   }
 }
 
-void Detector::DefineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax,
+void Detector::defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax,
                                                  Double_t zspan)
 {
   // set parameters of id-th wrapper volume
@@ -521,7 +522,7 @@ void Detector::DefineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax,
   mWrapperZSpan[id] = zspan;
 }
 
-void Detector::DefineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
+void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
                                          Int_t nstav, Int_t nunit, Double_t lthick, Double_t dthick,
                                          UInt_t dettypeID, Int_t buildLevel)
 {
@@ -564,7 +565,7 @@ void Detector::DefineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
   mBuildLevel[nlay] = buildLevel;
 }
 
-void Detector::DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen,
+void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen,
                                               Int_t nstav, Int_t nunit, Double_t width,
                                               Double_t tilt, Double_t lthick, Double_t dthick,
                                               UInt_t dettypeID, Int_t buildLevel)
@@ -614,7 +615,7 @@ void Detector::DefineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t 
   mBuildLevel[nlay] = buildLevel;
 }
 
-void Detector::GetLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r,
+void Detector::getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r,
                                                 Double_t& zlen, Int_t& nstav, Int_t& nmod,
                                                 Double_t& width, Double_t& tilt, Double_t& lthick,
                                                 Double_t& dthick, UInt_t& dettype) const
@@ -654,7 +655,7 @@ void Detector::GetLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r,
   dettype = mChipTypeID[nlay];
 }
 
-TGeoVolume* Detector::CreateWrapperVolume(Int_t id)
+TGeoVolume* Detector::createWrapperVolume(Int_t id)
 {
   // Creates an air-filled wrapper cylindrical volume
 
@@ -669,7 +670,7 @@ TGeoVolume* Detector::CreateWrapperVolume(Int_t id)
   TGeoMedium* medAir = gGeoManager->GetMedium("ITS_AIR$");
 
   char volnam[30];
-  snprintf(volnam, 29, "%s%d", UpgradeGeometryTGeo::GetITSWrapVolPattern(), id);
+  snprintf(volnam, 29, "%s%d", UpgradeGeometryTGeo::getITSWrapVolPattern(), id);
 
   TGeoVolume* wrapper = new TGeoVolume(volnam, tube, medAir);
 
@@ -679,16 +680,16 @@ TGeoVolume* Detector::CreateWrapperVolume(Int_t id)
 void Detector::ConstructGeometry()
 {
   // Create the detector materials
-  CreateMaterials();
+  createMaterials();
 
   // Construct the detector geometry
-  ConstructDetectorGeometry();
+  constructDetectorGeometry();
 
   // Define the list of sensitive volumes
-  DefineSensitiveVolumes();
+  defineSensitiveVolumes();
 }
 
-void Detector::ConstructDetectorGeometry()
+void Detector::constructDetectorGeometry()
 {
   // Create the geometry and insert it in the mother volume ITSV
   TGeoManager* geoManager = gGeoManager;
@@ -699,9 +700,9 @@ void Detector::ConstructDetectorGeometry()
     LOG(FATAL) << "Could not find the top volume" << FairLogger::endl;
   }
 
-  new TGeoVolumeAssembly(UpgradeGeometryTGeo::GetITSVolPattern());
-  TGeoVolume* vITSV = geoManager->GetVolume(UpgradeGeometryTGeo::GetITSVolPattern());
-  vITSV->SetUniqueID(UpgradeGeometryTGeo::GetUIDShift()); // store modID -> midUUID bitshift
+  new TGeoVolumeAssembly(UpgradeGeometryTGeo::getITSVolPattern());
+  TGeoVolume* vITSV = geoManager->GetVolume(UpgradeGeometryTGeo::getITSVolPattern());
+  vITSV->SetUniqueID(UpgradeGeometryTGeo::getUIDShift()); // store modID -> midUUID bitshift
   vALIC->AddNode(vITSV, 2, 0); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
 
   const Int_t kLength = 100;
@@ -766,7 +767,7 @@ void Detector::ConstructDetectorGeometry()
   if (mNumberOfWrapperVolumes) {
     wrapVols = new TGeoVolume* [mNumberOfWrapperVolumes];
     for (int id = 0; id < mNumberOfWrapperVolumes; id++) {
-      wrapVols[id] = CreateWrapperVolume(id);
+      wrapVols[id] = createWrapperVolume(id);
       vITSV->AddNode(wrapVols[id], 1, 0);
     }
   }
@@ -780,33 +781,33 @@ void Detector::ConstructDetectorGeometry()
 
     if (mTurboLayer[j]) {
       mUpgradeGeometry[j] = new UpgradeV1Layer(j, kTRUE, kFALSE);
-      mUpgradeGeometry[j]->SetStaveWidth(mStaveWidth[j]);
-      mUpgradeGeometry[j]->SetStaveTilt(mStaveTilt[j]);
+      mUpgradeGeometry[j]->setStaveWidth(mStaveWidth[j]);
+      mUpgradeGeometry[j]->setStaveTilt(mStaveTilt[j]);
     } else {
       mUpgradeGeometry[j] = new UpgradeV1Layer(j, kFALSE);
     }
 
-    mUpgradeGeometry[j]->SetPhi0(mLayerPhi0[j]);
-    mUpgradeGeometry[j]->SetRadius(mLayerRadii[j]);
-    mUpgradeGeometry[j]->SetZLength(mLayerZLength[j]);
-    mUpgradeGeometry[j]->SetNumberOfStaves(mStavePerLayer[j]);
-    mUpgradeGeometry[j]->SetNumberOfUnits(mUnitPerStave[j]);
-    mUpgradeGeometry[j]->SetChipType(mChipTypeID[j]);
-    mUpgradeGeometry[j]->SetBuildLevel(mBuildLevel[j]);
+    mUpgradeGeometry[j]->setPhi0(mLayerPhi0[j]);
+    mUpgradeGeometry[j]->setRadius(mLayerRadii[j]);
+    mUpgradeGeometry[j]->setZLength(mLayerZLength[j]);
+    mUpgradeGeometry[j]->setNumberOfStaves(mStavePerLayer[j]);
+    mUpgradeGeometry[j]->setNumberOfUnits(mUnitPerStave[j]);
+    mUpgradeGeometry[j]->setChipType(mChipTypeID[j]);
+    mUpgradeGeometry[j]->setBuildLevel(mBuildLevel[j]);
 
     if (j < 3) {
-      mUpgradeGeometry[j]->SetStaveModel(mStaveModelInnerBarrel);
+      mUpgradeGeometry[j]->setStaveModel(mStaveModelInnerBarrel);
     } else {
-      mUpgradeGeometry[j]->SetStaveModel(mStaveModelOuterBarrel);
+      mUpgradeGeometry[j]->setStaveModel(mStaveModelOuterBarrel);
     }
 
     LOG(DEBUG1) << "mBuildLevel: " << mBuildLevel[j] << FairLogger::endl;
 
     if (mStaveThickness[j] != 0) {
-      mUpgradeGeometry[j]->SetStaveThick(mStaveThickness[j]);
+      mUpgradeGeometry[j]->setStaveThick(mStaveThickness[j]);
     }
     if (mDetectorThickness[j] != 0) {
-      mUpgradeGeometry[j]->SetSensorThick(mDetectorThickness[j]);
+      mUpgradeGeometry[j]->setSensorThick(mDetectorThickness[j]);
     }
 
     for (int iw = 0; iw < mNumberOfWrapperVolumes; iw++) {
@@ -824,16 +825,16 @@ void Detector::ConstructDetectorGeometry()
         break;
       }
     }
-    mUpgradeGeometry[j]->CreateLayer(dest);
+    mUpgradeGeometry[j]->createLayer(dest);
   }
-  CreateServiceBarrel(kTRUE, wrapVols[0]);
-  CreateServiceBarrel(kFALSE, wrapVols[2]);
+  createServiceBarrel(kTRUE, wrapVols[0]);
+  createServiceBarrel(kFALSE, wrapVols[2]);
 
   delete[] wrapVols; // delete pointer only, not the volumes
 }
 
 // Service Barrel
-void Detector::CreateServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest,
+void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest,
                                                  const TGeoManager* mgr)
 {
   // Creates the Service Barrel (as a simple cylinder) for IB and OB
@@ -869,7 +870,7 @@ void Detector::CreateServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest,
   return;
 }
 
-void Detector::DefineSensitiveVolumes()
+void Detector::defineSensitiveVolumes()
 {
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* v;
@@ -878,13 +879,13 @@ void Detector::DefineSensitiveVolumes()
 
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...mNumberLayers-1)
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    volumeName = UpgradeGeometryTGeo::GetITSSensorPattern() + TString::Itoa(j, 10);
+    volumeName = UpgradeGeometryTGeo::getITSSensorPattern() + TString::Itoa(j, 10);
     v = geoManager->GetVolume(volumeName.Data());
     AddSensitiveVolume(v);
   }
 }
 
-Point* Detector::AddHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos,
+Point* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos,
                                       TVector3 mom, Double_t startTime, Double_t time,
                                       Double_t length, Double_t eLoss, Int_t shunt)
 {

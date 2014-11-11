@@ -12,8 +12,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliceO2::Data::Stack+;
-#pragma link C++ class MCTrack+;
+#pragma link C++ class AliceO2::Data::Stack + ;
+#pragma link C++ class MCTrack + ;
 
 #endif
-

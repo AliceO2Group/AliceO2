@@ -31,7 +31,7 @@ public:
   /// Set Detector Segmentation Parameters
 
   /// Detector size
-  virtual void SetDetSize(Float_t p1, Float_t p2, Float_t p3)
+  virtual void setDetectorSize(Float_t p1, Float_t p2, Float_t p3)
   {
     mDx = p1;
     mDz = p2;
@@ -39,73 +39,73 @@ public:
   }
 
   /// Cell size
-  virtual void SetPadSize(Float_t, Float_t)
+  virtual void setPadSize(Float_t, Float_t)
   {
     MayNotUse("SetPadSize");
   }
 
   /// Maximum number of cells along the two coordinates
-  virtual void SetNPads(Int_t, Int_t) = 0;
+  virtual void setNumberOfPads(Int_t, Int_t) = 0;
 
   /// Returns the maximum number of cells (digits) posible
-  virtual Int_t GetNPads() const = 0;
+  virtual Int_t getNumberOfPads() const = 0;
 
   /// Set layer
-  virtual void SetLayer(Int_t)
+  virtual void setLayer(Int_t)
   {
     MayNotUse("SetLayer");
   }
 
   /// Number of Chips
-  virtual Int_t GetNumberOfChips() const
+  virtual Int_t getNumberOfChips() const
   {
     MayNotUse("GetNumberOfChips");
     return 0;
   }
 
-  virtual Int_t GetMaximumChipIndex() const
+  virtual Int_t getMaximumChipIndex() const
   {
     MayNotUse("GetNumberOfChips");
     return 0;
   }
 
   /// Chip number from local coordinates
-  virtual Int_t GetChipFromLocal(Float_t, Float_t) const
+  virtual Int_t getChipFromLocal(Float_t, Float_t) const
   {
     MayNotUse("GetChipFromLocal");
     return 0;
   }
 
-  virtual Int_t GetChipsInLocalWindow(Int_t* /*array*/, Float_t /*zmin*/, Float_t /*zmax*/,
-                                      Float_t /*xmin*/, Float_t /*xmax*/) const
+  virtual Int_t getChipsInLocalWindow(Int_t* /*array*/, Float_t /*zmin*/, Float_t /*zmax*/, Float_t /*xmin*/,
+                                      Float_t /*xmax*/) const
   {
     MayNotUse("GetChipsInLocalWindow");
     return 0;
   }
 
   /// Chip number from channel number
-  virtual Int_t GetChipFromChannel(Int_t, Int_t) const
+  virtual Int_t getChipFromChannel(Int_t, Int_t) const
   {
     MayNotUse("GetChipFromChannel");
     return 0;
   }
 
   /// Transform from real to cell coordinates
-  virtual void GetPadIxz(Float_t, Float_t, Int_t&, Int_t&) const = 0;
+  virtual void getPadIxz(Float_t, Float_t, Int_t&, Int_t&) const = 0;
 
   /// Transform from cell to real coordinates
-  virtual void GetPadCxz(Int_t, Int_t, Float_t&, Float_t&) const = 0;
+  virtual void getPadCxz(Int_t, Int_t, Float_t&, Float_t&) const = 0;
 
   /// Local transformation of real local coordinates -
-  virtual void GetPadTxz(Float_t&, Float_t&) const = 0;
+  virtual void getPadTxz(Float_t&, Float_t&) const = 0;
 
   /// Transformation from Geant cm detector center local coordinates
   /// to detector segmentation/cell coordiantes starting from (0,0).
-  virtual Bool_t LocalToDetector(Float_t, Float_t, Int_t&, Int_t&) const = 0;
+  virtual Bool_t localToDetector(Float_t, Float_t, Int_t&, Int_t&) const = 0;
 
   /// Transformation from detector segmentation/cell coordiantes starting
   /// from (0,0) to Geant cm detector center local coordinates.
-  virtual void DetectorToLocal(Int_t, Int_t, Float_t&, Float_t&) const = 0;
+  virtual void detectorToLocal(Int_t, Int_t, Float_t&, Float_t&) const = 0;
 
   /// Initialisation
   virtual void Init() = 0;
@@ -131,19 +131,19 @@ public:
   }
 
   /// Cell size in x
-  virtual Float_t Dpx(Int_t) const = 0;
+  virtual Float_t cellSizeX(Int_t) const = 0;
 
   /// Cell size in z
-  virtual Float_t Dpz(Int_t) const = 0;
+  virtual Float_t cellSizeZ(Int_t) const = 0;
 
   /// Maximum number of Cells in x
-  virtual Int_t Npx() const = 0;
+  virtual Int_t numberOfCellsInX() const = 0;
 
   /// Maximum number of Cells in z
-  virtual Int_t Npz() const = 0;
+  virtual Int_t numberOfCellsInZ() const = 0;
 
   /// Layer
-  virtual Int_t GetLayer() const
+  virtual Int_t getLayer() const
   {
     MayNotUse("GetLayer");
     return 0;
@@ -152,33 +152,33 @@ public:
   /// Set hit position
   // virtual void SetHit(Float_t, Float_t) {}
 
-  /// Angles
-  virtual void Angles(Float_t& /* p */, Float_t& /* n */) const
+  /// angles
+  virtual void angles(Float_t& /* p */, Float_t& /* n */) const
   {
     MayNotUse("Angles");
   }
 
   /// Get next neighbours
-  virtual void Neighbours(Int_t, Int_t, Int_t*, Int_t[10], Int_t[10]) const
+  virtual void neighbours(Int_t, Int_t, Int_t*, Int_t[10], Int_t[10]) const
   {
     MayNotUse("Neighbours");
   }
 
   /// Function for systematic corrections
   /// Set the correction function
-  virtual void SetCorrFunc(TF1* fc)
+  virtual void setCorrectionFunction(TF1* fc)
   {
     mCorrection = fc;
   }
 
   /// Get the correction Function
-  virtual TF1* CorrFunc()
+  virtual TF1* getCorrectionFunction()
   {
     return mCorrection;
   }
 
   /// Print Default parameters
-  virtual void PrintDefaultParameters() const = 0;
+  virtual void printDefaultParameters() const = 0;
 
 protected:
   virtual void Copy(TObject& obj) const;

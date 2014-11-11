@@ -32,8 +32,9 @@ TrackReference::TrackReference()
   // Default constructor
   // Creates empty object
 
-  for (Int_t i = 0; i < 16; i++)
+  for (Int_t i = 0; i < 16; i++) {
     ResetBit(BIT(i));
+  }
 }
 
 TrackReference::TrackReference(const TrackReference& tr)
@@ -94,8 +95,9 @@ TrackReference::TrackReference(Int_t label, Int_t id)
   // Set Up status code
   // Copy Bits from virtual MC
 
-  for (Int_t i = 14; i < 22; i++)
+  for (Int_t i = 14; i < 22; i++) {
     ResetBit(BIT(i));
+  }
 
   SetBit(BIT(14), gMC->IsNewTrack());
   SetBit(BIT(15), gMC->IsTrackAlive());

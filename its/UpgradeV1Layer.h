@@ -46,91 +46,91 @@ public:
   /// Default destructor
   virtual ~UpgradeV1Layer();
 
-  Bool_t IsTurbo() const
+  Bool_t isTurbo() const
   {
     return mIsTurbo;
   };
 
-  Double_t GetStaveThick() const
+  Double_t getStaveThick() const
   {
     return mStaveThickness;
   };
-  Double_t GetStaveTilt() const
+  Double_t getStaveTilt() const
   {
     return mStaveTilt;
   };
-  Double_t GetStaveWidth() const
+  Double_t getStaveWidth() const
   {
     return mStaveWidth;
   };
-  Double_t GetSensorThick() const
+  Double_t getSensorThick() const
   {
     return mSensorThickness;
   };
-  Double_t GetNStaves() const
+  Double_t getNumberOfStaves() const
   {
     return mNumberOfStaves;
   };
-  Double_t GetNChips() const
+  Double_t getNumberOfChips() const
   {
     return mNumberOfChips;
   };
-  Double_t GetRadius() const
+  Double_t getRadius() const
   {
     return mLayerRadius;
   };
-  Double_t GetPhi0() const
+  Double_t getPhi0() const
   {
     return mPhi0;
   };
-  Double_t GetZLength() const
+  Double_t getZLength() const
   {
     return mZLength;
   };
-  Int_t GetChipType() const
+  Int_t getChipType() const
   {
     return mChipTypeID;
   }
 
-  Int_t GetNStavesPerParent() const
+  Int_t getNumberOfStavesPerParent() const
   {
     return mHierarchy[kStave];
   }
-  Int_t GetNHalfStavesPerParent() const
+  Int_t getNumberOfHalfStavesPerParent() const
   {
     return mHierarchy[kHalfStave];
   }
-  Int_t GetNModulesPerParent() const
+  Int_t getNumberOfModulesPerParent() const
   {
     return mHierarchy[kModule];
   }
-  Int_t GetNChipsPerParent() const
+  Int_t getNumberOfChipsPerParent() const
   {
     return mHierarchy[kChip];
   }
 
-  AliceO2::ITS::Detector::UpgradeModel GetStaveModel() const
+  AliceO2::ITS::Detector::UpgradeModel getStaveModel() const
   {
     return mStaveModel;
   }
 
-  void SetStaveThick(Double_t t)
+  void setStaveThick(Double_t t)
   {
     mStaveThickness = t;
   };
 
   /// Sets the Stave tilt angle (for turbo layers only)
   /// \param t The stave tilt angle
-  void SetStaveTilt(Double_t t);
+  void setStaveTilt(Double_t t);
 
   /// Sets the Stave width (for turbo layers only)
   /// \param w The stave width
-  void SetStaveWidth(Double_t w);
-  void SetSensorThick(Double_t t)
+  void setStaveWidth(Double_t w);
+  void setSensorThick(Double_t t)
   {
     mSensorThickness = t;
   };
-  void SetNumberOfStaves(Int_t n)
+  void setNumberOfStaves(Int_t n)
   {
     mHierarchy[kStave] = mNumberOfStaves = n;
   };
@@ -139,36 +139,36 @@ public:
   ///      for the Inner Barrel: the number of chips per stave
   ///      for the Outer Barrel: the number of modules per half stave
   /// \param u the number of units
-  void SetNumberOfUnits(Int_t u);
+  void setNumberOfUnits(Int_t u);
 
-  void SetRadius(Double_t r)
+  void setRadius(Double_t r)
   {
     mLayerRadius = r;
   };
-  void SetPhi0(Double_t phi)
+  void setPhi0(Double_t phi)
   {
     mPhi0 = phi;
   }
-  void SetZLength(Double_t z)
+  void setZLength(Double_t z)
   {
     mZLength = z;
   };
-  void SetChipType(Int_t tp)
+  void setChipType(Int_t tp)
   {
     mChipTypeID = tp;
   }
-  void SetBuildLevel(Int_t buildLevel)
+  void setBuildLevel(Int_t buildLevel)
   {
     mBuildLevel = buildLevel;
   }
-  void SetStaveModel(AliceO2::ITS::Detector::UpgradeModel model)
+  void setStaveModel(AliceO2::ITS::Detector::UpgradeModel model)
   {
     mStaveModel = model;
   }
 
   /// Creates the actual Layer and places inside its mother volume
   /// \param motherVolume the TGeoVolume owing the volume structure
-  virtual void CreateLayer(TGeoVolume* motherVolume);
+  virtual void createLayer(TGeoVolume* motherVolume);
 
 private:
   /// Creates the actual Layer and places inside its mother volume
@@ -176,125 +176,119 @@ private:
   /// User can set width and tilt angle, no check is performed here
   /// to avoid volume overlaps
   /// \param motherVolume The TGeoVolume owing the volume structure
-  void CreateLayerTurbo(TGeoVolume* motherVolume);
+  void createLayerTurbo(TGeoVolume* motherVolume);
 
   /// Computes the inner radius of the air container for the Turbo configuration
   /// as the radius of either the circle tangent to the stave or the circle
   /// passing for the stave's lower vertex. Returns the radius of the container
   /// if >0, else flag to use the lower vertex
-  Double_t RadiusOmTurboContainer();
+  Double_t radiusOmTurboContainer();
 
   /// Creates the actual Stave
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStave(const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStave(const TGeoManager* mgr = gGeoManager);
 
-  // TGeoVolume* CreateChip(Double_t x, Double_t z, const TGeoManager *mgr=gGeoManager);
+  // TGeoVolume* createChip(Double_t x, Double_t z, const TGeoManager *mgr=gGeoManager);
 
   /// Creates the IB Module: (only the chips for the time being)
   /// Returns the module as a TGeoVolume
   /// \param xmod, ymod, zmod X, Y, Z module half lengths
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateModuleInnerB(Double_t x, Double_t y, Double_t z,
-                                 const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createModuleInnerB(Double_t x, Double_t y, Double_t z, const TGeoManager* mgr = gGeoManager);
 
   /// Creates the actual Chip
   /// \param xchip,ychip,zchip The chip dimensions
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateChipInnerB(Double_t x, Double_t y, Double_t z,
-                               const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createChipInnerB(Double_t x, Double_t y, Double_t z, const TGeoManager* mgr = gGeoManager);
 
   /// Creates the OB Module: HIC + FPC + Carbon plate
   /// Returns the module as a TGeoVolume
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateModuleOuterB(const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createModuleOuterB(const TGeoManager* mgr = gGeoManager);
 
   /// Create the chip stave for the Inner Barrel(Here we fake the halfstave volume to have the
   /// same formal geometry hierarchy as for the Outer Barrel)
   /// \param xsta, ysta, zsta X, Y, Z stave half lengths
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveInnerB(Double_t x, Double_t y, Double_t z,
-                                const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveInnerB(Double_t x, Double_t y, Double_t z, const TGeoManager* mgr = gGeoManager);
 
   /// Create the mechanical stave structure
   /// \param xsta X length
   /// \param zsta Z length
   /// \param mgr  The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveStructInnerB(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveStructInnerB(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
 
   /// Create a dummy stave
   /// \param xsta X length
   /// \param zsta Z length
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveModelInnerBDummy(Double_t x, Double_t z,
-                                          const TGeoManager* mgr = gGeoManager) const;
+  TGeoVolume* createStaveModelInnerBDummy(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager) const;
 
   /// Create the mechanical stave structure for Model 0 of TDR
   /// \param xsta X length
   /// \param zsta Z length
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveModelInnerB0(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveModelInnerB0(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
 
   /// Create the mechanical stave structure for Model 1 of TDR
   /// \param xsta X length
   /// \param zsta Z length
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveModelInnerB1(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveModelInnerB1(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
 
   /// Create the mechanical stave structure for Model 2.1 of TDR
   /// \param xsta X length
   /// \param zsta Z length
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveModelInnerB21(Double_t x, Double_t z,
-                                       const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveModelInnerB21(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
 
   /// Create the mechanical stave structure for Model 2.2 of TDR
   /// \param xsta X length
   /// \param zsta Z length
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveModelInnerB22(Double_t x, Double_t z,
-                                       const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveModelInnerB22(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
 
   /// Create the mechanical stave structure for Model 3 of TDR
   /// \param xsta X length
   /// \param zsta Z length
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveModelInnerB3(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveModelInnerB3(Double_t x, Double_t z, const TGeoManager* mgr = gGeoManager);
 
   /// Create the chip stave for the Outer Barrel
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveOuterB(const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveOuterB(const TGeoManager* mgr = gGeoManager);
 
   /// Create dummy stave
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveModelOuterBDummy(const TGeoManager* mgr = gGeoManager) const;
+  TGeoVolume* createStaveModelOuterBDummy(const TGeoManager* mgr = gGeoManager) const;
 
   /// Creation of the mechanical stave structure for the Outer Barrel as in v0
   /// (we fake the module and halfstave volumes to have always
   /// the same formal geometry hierarchy)
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveModelOuterB0(const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveModelOuterB0(const TGeoManager* mgr = gGeoManager);
 
   /// Create the mechanical half stave structure or the Outer Barrel as in TDR
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateStaveModelOuterB1(const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createStaveModelOuterB1(const TGeoManager* mgr = gGeoManager);
 
   /// Create the space frame for the Outer Barrel
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateSpaceFrameOuterB(const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createSpaceFrameOuterB(const TGeoManager* mgr = gGeoManager);
 
   /// Create dummy stave
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateSpaceFrameOuterBDummy(const TGeoManager* mgr = gGeoManager) const;
+  TGeoVolume* createSpaceFrameOuterBDummy(const TGeoManager* mgr = gGeoManager) const;
 
   /// Create the space frame for the Outer Barrel (Model 1)
   /// Returns a TGeoVolume with the Space Frame of a stave
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* CreateSpaceFrameOuterB1(const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createSpaceFrameOuterB1(const TGeoManager* mgr = gGeoManager);
 
   /// Creates the V-shaped sides of the OB space frame (from a similar method with same
   /// name and function in V11GeometrySDD class by L.Gaudichet)
-  TGeoArb8* CreateStaveSide(const char* name, Double_t dz, Double_t angle, Double_t xSign,
-                            Double_t L, Double_t H, Double_t l);
+  TGeoArb8* createStaveSide(const char* name, Double_t dz, Double_t angle, Double_t xSign, Double_t L, Double_t H,
+                            Double_t l);
 
   /// Help method to create a TGeoCombiTrans matrix from a similar method with same name and
   /// function in V11GeometrySDD class by L.Gaudichet)
@@ -302,13 +296,11 @@ private:
   /// in the global coord system. If planeSym = true, the rotation places the object
   /// symetrically (with respect to the transverse plane) to its position in the
   /// case planeSym = false
-  TGeoCombiTrans* CreateCombiTrans(const char* name, Double_t dy, Double_t dz, Double_t dphi,
-                                   Bool_t planeSym = kFALSE);
+  TGeoCombiTrans* createCombiTrans(const char* name, Double_t dy, Double_t dz, Double_t dphi, Bool_t planeSym = kFALSE);
 
   /// Help method to add a translation to a TGeoCombiTrans matrix (from a similar method
   /// with same name and function in V11GeometrySDD class by L.Gaudichet)
-  void AddTranslationToCombiTrans(TGeoCombiTrans* ct, Double_t dx = 0, Double_t dy = 0,
-                                  Double_t dz = 0) const;
+  void addTranslationToCombiTrans(TGeoCombiTrans* ct, Double_t dx = 0, Double_t dy = 0, Double_t dz = 0) const;
 
   Int_t mLayerNumber;        ///< Current layer number
   Double_t mPhi0;            ///< lab phi of 1st stave, in degrees!!!
@@ -319,13 +311,11 @@ private:
   Double_t mStaveWidth;      ///< Stave width (for turbo layers only)
   Double_t mStaveTilt;       ///< Stave tilt angle (for turbo layers only) in degrees
   Int_t mNumberOfStaves;     ///< Number of staves in this layer
-  Int_t
-    mNumberOfModules; ///< Number of modules per container if defined (HalfStave, Stave, whatever is
-                      ///< container)
-  Int_t mNumberOfChips; ///< Number chips per container (module, HalfStave, Stave, whatever is
+  Int_t mNumberOfModules;    ///< Number of modules per container if defined (HalfStave, Stave, whatever is
+                             ///< container)
+  Int_t mNumberOfChips;      ///< Number chips per container (module, HalfStave, Stave, whatever is
   /// container)
-  Int_t mHierarchy
-    [kNHLevels]; ///< array to query number of staves, hstaves, modules, chips per its parent volume
+  Int_t mHierarchy[kNHLevels]; ///< array to query number of staves, hstaves, modules, chips per its parent volume
 
   UInt_t mChipTypeID; ///< detector type id
   Bool_t mIsTurbo;    ///< True if this layer is a "turbo" layer

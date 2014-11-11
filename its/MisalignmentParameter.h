@@ -18,41 +18,40 @@ namespace ITS {
 class MisalignmentParameter : public FairParGenericSet {
 
 public:
-  MisalignmentParameter(
-    const char* name = "MisalignmentParameter",
-    const char* title = "Misalignment parameter for AliceO2ITSHitProducerIdealMisallign Parameters",
-    const char* context = "TestDefaultContext");
+  MisalignmentParameter(const char* name = "MisalignmentParameter",
+                        const char* title = "Misalignment parameter for AliceO2ITSHitProducerIdealMisallign Parameters",
+                        const char* context = "TestDefaultContext");
   ~MisalignmentParameter(void);
 
   void Clear(void);
-  void PutParams(FairParamList*);
-  Bool_t GetParams(FairParamList*);
+  void putParams(FairParamList*);
+  Bool_t getParams(FairParamList*);
 
-  TArrayD GetShiftX()
+  TArrayD getShiftX()
   {
     return mShiftX;
   }
-  TArrayD GetShiftY()
+  TArrayD getShiftY()
   {
     return mShiftY;
   }
-  TArrayD GetShiftZ()
+  TArrayD getShiftZ()
   {
     return mShiftZ;
   }
-  TArrayD GetRotX()
+  TArrayD getRotX()
   {
     return mRotX;
   }
-  TArrayD GetRotY()
+  TArrayD getRotY()
   {
     return mRotY;
   }
-  TArrayD GetRotZ()
+  TArrayD getRotZ()
   {
     return mRotZ;
   }
-  Int_t GetNumberOfDetectors()
+  Int_t getNumberOfDetectors()
   {
     return mNumberOfDetectors;
   }

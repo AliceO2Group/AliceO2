@@ -53,7 +53,7 @@ public:
   /// The alignable volume is identified by 'symname' which has to be either a valid symbolic
   /// name, the query being performed after alignment, or a valid volume path if the query is
   /// performed before alignment.
-  static Bool_t GetOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m);
+  static Bool_t getOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m);
 
   /// Default destructor
   ~GeometryManager();
@@ -65,7 +65,7 @@ private:
   /// The method returns the global matrix for the volume identified by 'path' in the ideal
   /// detector geometry. The output global matrix is stored in 'm'.
   /// Returns kFALSE in case TGeo has not been initialized or the volume path is not valid.
-  static Bool_t GetOriginalGlobalMatrixFromPath(const char* path, TGeoHMatrix& m);
+  static Bool_t getOriginalGlobalMatrixFromPath(const char* path, TGeoHMatrix& m);
 
   static TGeoManager* mGeometry;
 

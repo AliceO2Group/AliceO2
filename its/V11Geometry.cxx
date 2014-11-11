@@ -43,7 +43,7 @@ const Double_t V11Geometry::sKEV = 1.0e-6;    // GeV default
 const Double_t V11Geometry::sMEV = 1.0e-3;    // GeV default
 const Double_t V11Geometry::sGEV = 1.0;       // GeV default
 
-void V11Geometry::IntersectLines(Double_t m, Double_t x0, Double_t y0, Double_t n, Double_t x1,
+void V11Geometry::intersectLines(Double_t m, Double_t x0, Double_t y0, Double_t n, Double_t x1,
                                  Double_t y1, Double_t& xi, Double_t& yi) const
 {
   if (TMath::Abs(m - n) < 0.000001) {
@@ -57,7 +57,7 @@ void V11Geometry::IntersectLines(Double_t m, Double_t x0, Double_t y0, Double_t 
   return;
 }
 
-Bool_t V11Geometry::IntersectCircle(Double_t m, Double_t x0, Double_t y0, Double_t rr, Double_t xc,
+Bool_t V11Geometry::intersectCircle(Double_t m, Double_t x0, Double_t y0, Double_t rr, Double_t xc,
                                     Double_t yc, Double_t& xi1, Double_t& yi1, Double_t& xi2,
                                     Double_t& yi2)
 {
@@ -80,7 +80,7 @@ Bool_t V11Geometry::IntersectCircle(Double_t m, Double_t x0, Double_t y0, Double
   }
 }
 
-Double_t V11Geometry::Yfrom2Points(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t x)
+Double_t V11Geometry::yFrom2Points(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t x)
   const
 {
   if (x0 == x1 && y0 == y1) {
@@ -90,7 +90,7 @@ Double_t V11Geometry::Yfrom2Points(Double_t x0, Double_t y0, Double_t x1, Double
     return 0.0;
   } // end if
   if (x0 == x1) {
-    printf("Warning: V11Geometry::Yfrom2Points x0=%e == x1=%e. "
+    printf("Warning: V11Geometry::yFrom2Points x0=%e == x1=%e. "
            "line vertical "
            "returning mean y",
            x0, x1);
@@ -100,7 +100,7 @@ Double_t V11Geometry::Yfrom2Points(Double_t x0, Double_t y0, Double_t x1, Double
   return m * (x - x0) + y0;
 }
 
-Double_t V11Geometry::Xfrom2Points(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t y)
+Double_t V11Geometry::xFrom2Points(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t y)
   const
 {
   if (x0 == x1 && y0 == y1) {
@@ -110,7 +110,7 @@ Double_t V11Geometry::Xfrom2Points(Double_t x0, Double_t y0, Double_t x1, Double
     return 0.0;
   } // end if
   if (y0 == y1) {
-    printf("Warrning: V11Geometry::Yfrom2Points y0=%e == y1=%e. "
+    printf("Warrning: V11Geometry::yFrom2Points y0=%e == y1=%e. "
            "line horizontal returning mean x",
            y0, y1);
     return 0.5 * (x0 + x1);
@@ -119,7 +119,7 @@ Double_t V11Geometry::Xfrom2Points(Double_t x0, Double_t y0, Double_t x1, Double
   return m * (y - y0) + x0;
 }
 
-Double_t V11Geometry::RmaxFrom2Points(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t z) const
+Double_t V11Geometry::rMaxFrom2Points(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t z) const
 {
   Double_t d0, d1, d2, r;
 
@@ -130,37 +130,37 @@ Double_t V11Geometry::RmaxFrom2Points(const TGeoPcon* p, Int_t i1, Int_t i2, Dou
   return r;
 }
 
-Double_t V11Geometry::RminFrom2Points(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t z) const
+Double_t V11Geometry::rMinFrom2Points(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t z) const
 {
   return p->GetRmin(i2) +
          (p->GetRmin(i1) - p->GetRmin(i2)) * (z - p->GetZ(i2)) / (p->GetZ(i1) - p->GetZ(i2));
 }
 
-Double_t V11Geometry::RFrom2Points(const Double_t* p, const Double_t* az, Int_t i1, Int_t i2,
+Double_t V11Geometry::rFrom2Points(const Double_t* p, const Double_t* az, Int_t i1, Int_t i2,
                                    Double_t z) const
 {
   return p[i2] + (p[i1] - p[i2]) * (z - az[i2]) / (az[i1] - az[i2]);
 }
 
-Double_t V11Geometry::Zfrom2MinPoints(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t r) const
+Double_t V11Geometry::zFrom2MinPoints(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t r) const
 {
   return p->GetZ(i2) +
          (p->GetZ(i1) - p->GetZ(i2)) * (r - p->GetRmin(i2)) / (p->GetRmin(i1) - p->GetRmin(i2));
 }
 
-Double_t V11Geometry::Zfrom2MaxPoints(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t r) const
+Double_t V11Geometry::zFrom2MaxPoints(const TGeoPcon* p, Int_t i1, Int_t i2, Double_t r) const
 {
   return p->GetZ(i2) +
          (p->GetZ(i1) - p->GetZ(i2)) * (r - p->GetRmax(i2)) / (p->GetRmax(i1) - p->GetRmax(i2));
 }
 
-Double_t V11Geometry::Zfrom2Points(const Double_t* z, const Double_t* ar, Int_t i1, Int_t i2,
+Double_t V11Geometry::zFrom2Points(const Double_t* z, const Double_t* ar, Int_t i1, Int_t i2,
                                    Double_t r) const
 {
   return z[i2] + (z[i1] - z[i2]) * (r - ar[i2]) / (ar[i1] - ar[i2]);
 }
 
-Double_t V11Geometry::RmaxFromZpCone(const TGeoPcon* p, int ip, Double_t tc, Double_t z,
+Double_t V11Geometry::rMaxFromZpCone(const TGeoPcon* p, int ip, Double_t tc, Double_t z,
                                      Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -169,7 +169,7 @@ Double_t V11Geometry::RmaxFromZpCone(const TGeoPcon* p, int ip, Double_t tc, Dou
   return -tantc * (z - p->GetZ(ip)) + p->GetRmax(ip) + th / costc;
 }
 
-Double_t V11Geometry::RFromZpCone(const Double_t* ar, const Double_t* az, int ip, Double_t tc,
+Double_t V11Geometry::rFromZpCone(const Double_t* ar, const Double_t* az, int ip, Double_t tc,
                                   Double_t z, Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -178,7 +178,7 @@ Double_t V11Geometry::RFromZpCone(const Double_t* ar, const Double_t* az, int ip
   return -tantc * (z - az[ip]) + ar[ip] + th / costc;
 }
 
-Double_t V11Geometry::RminFromZpCone(const TGeoPcon* p, Int_t ip, Double_t tc, Double_t z,
+Double_t V11Geometry::rMinFromZpCone(const TGeoPcon* p, Int_t ip, Double_t tc, Double_t z,
                                      Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -187,7 +187,7 @@ Double_t V11Geometry::RminFromZpCone(const TGeoPcon* p, Int_t ip, Double_t tc, D
   return -tantc * (z - p->GetZ(ip)) + p->GetRmin(ip) + th / costc;
 }
 
-Double_t V11Geometry::ZFromRmaxpCone(const TGeoPcon* p, int ip, Double_t tc, Double_t r,
+Double_t V11Geometry::zFromRMaxpCone(const TGeoPcon* p, int ip, Double_t tc, Double_t r,
                                      Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -196,7 +196,7 @@ Double_t V11Geometry::ZFromRmaxpCone(const TGeoPcon* p, int ip, Double_t tc, Dou
   return p->GetZ(ip) + (p->GetRmax(ip) + th / costc - r) / tantc;
 }
 
-Double_t V11Geometry::ZFromRmaxpCone(const Double_t* ar, const Double_t* az, int ip, Double_t tc,
+Double_t V11Geometry::zFromRMaxpCone(const Double_t* ar, const Double_t* az, int ip, Double_t tc,
                                      Double_t r, Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -205,7 +205,7 @@ Double_t V11Geometry::ZFromRmaxpCone(const Double_t* ar, const Double_t* az, int
   return az[ip] + (ar[ip] + th / costc - r) / tantc;
 }
 
-Double_t V11Geometry::ZFromRminpCone(const TGeoPcon* p, int ip, Double_t tc, Double_t r,
+Double_t V11Geometry::zFromRMinpCone(const TGeoPcon* p, int ip, Double_t tc, Double_t r,
                                      Double_t th) const
 {
   Double_t tantc = TMath::Tan(tc * TMath::DegToRad());
@@ -214,7 +214,7 @@ Double_t V11Geometry::ZFromRminpCone(const TGeoPcon* p, int ip, Double_t tc, Dou
   return p->GetZ(ip) + (p->GetRmin(ip) + th / costc - r) / tantc;
 }
 
-void V11Geometry::RadiusOfCurvature(Double_t rc, Double_t theta0, Double_t z0, Double_t r0,
+void V11Geometry::radiusOfCurvature(Double_t rc, Double_t theta0, Double_t z0, Double_t r0,
                                     Double_t theta1, Double_t& z1, Double_t& r1) const
 {
   z1 = rc * (TMath::Sin(theta1 * TMath::DegToRad()) - TMath::Sin(theta0 * TMath::DegToRad())) + z0;
@@ -222,7 +222,7 @@ void V11Geometry::RadiusOfCurvature(Double_t rc, Double_t theta0, Double_t z0, D
   return;
 }
 
-void V11Geometry::InsidePoint(const TGeoPcon* p, Int_t i1, Int_t i2, Int_t i3, Double_t c,
+void V11Geometry::insidePoint(const TGeoPcon* p, Int_t i1, Int_t i2, Int_t i3, Double_t c,
                               TGeoPcon* q, Int_t j1, Bool_t max) const
 {
   Double_t x0, y0, x1, y1, x2, y2, x, y;
@@ -251,7 +251,7 @@ void V11Geometry::InsidePoint(const TGeoPcon* p, Int_t i1, Int_t i2, Int_t i3, D
   x1 = p->GetZ(i2); // cout <<"L407 x1="<<x1<<endl;
   x2 = p->GetZ(i3); // cout <<"L408 x2="<<x2<<endl;
 
-  InsidePoint(x0, y0, x1, y1, x2, y2, c, x, y);
+  insidePoint(x0, y0, x1, y1, x2, y2, c, x, y);
   q->Z(j1) = x;
 
   if (max) {
@@ -262,7 +262,7 @@ void V11Geometry::InsidePoint(const TGeoPcon* p, Int_t i1, Int_t i2, Int_t i3, D
   return;
 }
 
-void V11Geometry::InsidePoint(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t x2,
+void V11Geometry::insidePoint(Double_t x0, Double_t y0, Double_t x1, Double_t y1, Double_t x2,
                               Double_t y2, Double_t c, Double_t& x, Double_t& y) const
 {
   Double_t dx01, dx12, dy01, dy12, r01, r12, m;
@@ -301,9 +301,9 @@ void V11Geometry::InsidePoint(Double_t x0, Double_t y0, Double_t x1, Double_t y1
   return;
 }
 
-void V11Geometry::PrintArb8(const TGeoArb8* a) const
+void V11Geometry::printArb8(const TGeoArb8* a) const
 {
-  if (!GetDebug()) {
+  if (!getDebug()) {
     return;
   }
   printf("%s", a->GetName());
@@ -311,9 +311,9 @@ void V11Geometry::PrintArb8(const TGeoArb8* a) const
   return;
 }
 
-void V11Geometry::PrintPcon(const TGeoPcon* a) const
+void V11Geometry::printPcon(const TGeoPcon* a) const
 {
-  if (!GetDebug()) {
+  if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": N=" << a->GetNz() << " Phi1=" << a->GetPhi1()
@@ -326,9 +326,9 @@ void V11Geometry::PrintPcon(const TGeoPcon* a) const
   return;
 }
 
-void V11Geometry::PrintTube(const TGeoTube* a) const
+void V11Geometry::printTube(const TGeoTube* a) const
 {
-  if (!GetDebug()) {
+  if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": Rmin=" << a->GetRmin() << " Rmax=" << a->GetRmax()
@@ -336,9 +336,9 @@ void V11Geometry::PrintTube(const TGeoTube* a) const
   return;
 }
 
-void V11Geometry::PrintTubeSeg(const TGeoTubeSeg* a) const
+void V11Geometry::printTubeSeg(const TGeoTubeSeg* a) const
 {
-  if (!GetDebug()) {
+  if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": Phi1=" << a->GetPhi1() << " Phi2=" << a->GetPhi2()
@@ -346,9 +346,9 @@ void V11Geometry::PrintTubeSeg(const TGeoTubeSeg* a) const
   return;
 }
 
-void V11Geometry::PrintConeSeg(const TGeoConeSeg* a) const
+void V11Geometry::printConeSeg(const TGeoConeSeg* a) const
 {
-  if (!GetDebug()) {
+  if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": Phi1=" << a->GetPhi1() << " Phi2=" << a->GetPhi2()
@@ -357,9 +357,9 @@ void V11Geometry::PrintConeSeg(const TGeoConeSeg* a) const
   return;
 }
 
-void V11Geometry::PrintBBox(const TGeoBBox* a) const
+void V11Geometry::printBBox(const TGeoBBox* a) const
 {
-  if (!GetDebug()) {
+  if (!getDebug()) {
     return;
   }
   cout << a->GetName() << ": Dx=" << a->GetDX() << " Dy=" << a->GetDY() << " Dz=" << a->GetDZ()
@@ -367,7 +367,7 @@ void V11Geometry::PrintBBox(const TGeoBBox* a) const
   return;
 }
 
-void V11Geometry::CreateDefaultMaterials()
+void V11Geometry::createDefaultMaterials()
 {
   Int_t i;
   Double_t w;
@@ -870,7 +870,7 @@ void V11Geometry::CreateDefaultMaterials()
   */
 }
 
-void V11Geometry::DrawCrossSection(const TGeoPcon* p, Int_t fillc, Int_t fills, Int_t linec,
+void V11Geometry::drawCrossSection(const TGeoPcon* p, Int_t fillc, Int_t fills, Int_t linec,
                                    Int_t lines, Int_t linew, Int_t markc, Int_t marks,
                                    Float_t marksize) const
 {
@@ -922,7 +922,7 @@ void V11Geometry::DrawCrossSection(const TGeoPcon* p, Int_t fillc, Int_t fills, 
   return;
 }
 
-Bool_t V11Geometry::AngleOfIntersectionWithLine(Double_t x0, Double_t y0, Double_t x1, Double_t y1,
+Bool_t V11Geometry::angleOfIntersectionWithLine(Double_t x0, Double_t y0, Double_t x1, Double_t y1,
                                                 Double_t xc, Double_t yc, Double_t rc, Double_t& t0,
                                                 Double_t& t1) const
 {
@@ -1023,7 +1023,7 @@ Bool_t V11Geometry::AngleOfIntersectionWithLine(Double_t x0, Double_t y0, Double
   return kTRUE;
 }
 
-Double_t V11Geometry::AngleForRoundedCorners0(Double_t dx, Double_t dy, Double_t sdr) const
+Double_t V11Geometry::angleForRoundedCorners0(Double_t dx, Double_t dy, Double_t sdr) const
 {
   Double_t a, b;
 
@@ -1037,7 +1037,7 @@ Double_t V11Geometry::AngleForRoundedCorners0(Double_t dx, Double_t dy, Double_t
   return TMath::ATan2(a, b) * TMath::RadToDeg();
 }
 
-Double_t V11Geometry::AngleForRoundedCorners1(Double_t dx, Double_t dy, Double_t sdr) const
+Double_t V11Geometry::angleForRoundedCorners1(Double_t dx, Double_t dy, Double_t sdr) const
 {
   Double_t a, b;
 
@@ -1051,19 +1051,19 @@ Double_t V11Geometry::AngleForRoundedCorners1(Double_t dx, Double_t dy, Double_t
   return TMath::ATan2(a, b) * TMath::RadToDeg();
 }
 
-void V11Geometry::AnglesForRoundedCorners(Double_t x0, Double_t y0, Double_t r0, Double_t x1,
+void V11Geometry::anglesForRoundedCorners(Double_t x0, Double_t y0, Double_t r0, Double_t x1,
                                           Double_t y1, Double_t r1, Double_t& t0, Double_t& t1)
   const
 {
   Double_t t;
 
   if (r0 >= 0.0 && r1 >= 0.0) { // Inside to inside    ++
-    t = AngleForRoundedCorners1(x1 - x0, y1 - y0, r1 - r0);
+    t = angleForRoundedCorners1(x1 - x0, y1 - y0, r1 - r0);
     t0 = t1 = t;
     return;
   } else if (r0 >= 0.0 && r1 <= 0.0) { // Inside to Outside  +-
     r1 = -r1;                          // make positive
-    t = AngleForRoundedCorners0(x1 - x0, y1 - y0, r1 + r0);
+    t = angleForRoundedCorners0(x1 - x0, y1 - y0, r1 + r0);
     t0 = 180.0 + t;
     if (t0 < 0.0) {
       t += 360.;
@@ -1075,7 +1075,7 @@ void V11Geometry::AnglesForRoundedCorners(Double_t x0, Double_t y0, Double_t r0,
     return;
   } else if (r0 <= 0.0 && r1 >= 0.0) { // Outside to Inside  -+
     r0 = -r0;                          // make positive
-    t = AngleForRoundedCorners1(x1 - x0, y1 - y0, r1 + r0);
+    t = angleForRoundedCorners1(x1 - x0, y1 - y0, r1 + r0);
     t0 = 180.0 + t;
     if (t0 > 180.) {
       t0 -= 360.;
@@ -1088,14 +1088,14 @@ void V11Geometry::AnglesForRoundedCorners(Double_t x0, Double_t y0, Double_t r0,
   } else if (r0 <= 0.0 && r1 <= 0.0) { // Outside to outside --
     r0 = -r0;                          // make positive
     r1 = -r1;                          // make positive
-    t = AngleForRoundedCorners0(x1 - x0, y1 - y0, r1 - r0);
+    t = angleForRoundedCorners0(x1 - x0, y1 - y0, r1 - r0);
     t0 = t1 = t;
     return;
   }
   return;
 }
 
-void V11Geometry::MakeFigure1(Double_t x0, Double_t y0, Double_t r0, Double_t x1, Double_t y1,
+void V11Geometry::makeFigure1(Double_t x0, Double_t y0, Double_t r0, Double_t x1, Double_t y1,
                               Double_t r1)
 {
   Double_t t0[4], t1[4], xa0[4], ya0[4], xa1[4], ya1[4], ra0[4], ra1[4];
@@ -1111,11 +1111,11 @@ void V11Geometry::MakeFigure1(Double_t x0, Double_t y0, Double_t r0, Double_t x1
     if (j > 1) {
       ra1[j] = -r1;
     }
-    AnglesForRoundedCorners(x0, y0, ra0[j], x1, y1, ra1[j], t0[j], t1[j]);
-    xa0[j] = TMath::Abs(r0) * CosD(t0[j]) + x0;
-    ya0[j] = TMath::Abs(r0) * SinD(t0[j]) + y0;
-    xa1[j] = TMath::Abs(r1) * CosD(t1[j]) + x1;
-    ya1[j] = TMath::Abs(r1) * SinD(t1[j]) + y1;
+    anglesForRoundedCorners(x0, y0, ra0[j], x1, y1, ra1[j], t0[j], t1[j]);
+    xa0[j] = TMath::Abs(r0) * cosD(t0[j]) + x0;
+    ya0[j] = TMath::Abs(r0) * sinD(t0[j]) + y0;
+    xa1[j] = TMath::Abs(r1) * cosD(t1[j]) + x1;
+    ya1[j] = TMath::Abs(r1) * sinD(t1[j]) + y1;
   }
   if (r0 < 0.0) {
     r0 = -r0;

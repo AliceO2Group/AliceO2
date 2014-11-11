@@ -167,7 +167,7 @@ UpgradeV1Layer::UpgradeV1Layer(Int_t lay, Bool_t turbo, Int_t debug)
 }
 
 UpgradeV1Layer::UpgradeV1Layer(const UpgradeV1Layer& s)
-  : V11Geometry(s.GetDebug()),
+  : V11Geometry(s.getDebug()),
     mLayerNumber(s.mLayerNumber),
     mPhi0(s.mPhi0),
     mLayerRadius(s.mLayerRadius),
@@ -221,7 +221,7 @@ UpgradeV1Layer::~UpgradeV1Layer()
 {
 }
 
-void UpgradeV1Layer::CreateLayer(TGeoVolume* motherVolume)
+void UpgradeV1Layer::createLayer(TGeoVolume* motherVolume)
 {
   char volumeName[30];
   Double_t xpos, ypos, zpos;
@@ -268,7 +268,7 @@ void UpgradeV1Layer::CreateLayer(TGeoVolume* motherVolume)
 
   // If a Turbo layer is requested, do it and exit
   if (mIsTurbo) {
-    CreateLayerTurbo(motherVolume);
+    createLayerTurbo(motherVolume);
     return;
   }
 
@@ -277,7 +277,7 @@ void UpgradeV1Layer::CreateLayer(TGeoVolume* motherVolume)
 
   //  mStaveWidth = mLayerRadius*Tan(alpha);
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSLayerPattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSLayerPattern(), mLayerNumber);
   TGeoVolume* layerVolume = new TGeoVolumeAssembly(volumeName);
   layerVolume->SetUniqueID(mChipTypeID);
 
@@ -285,15 +285,15 @@ void UpgradeV1Layer::CreateLayer(TGeoVolume* motherVolume)
   layerVolume->SetVisibility(kTRUE);
   layerVolume->SetLineColor(1);
 
-  TGeoVolume* stavVol = CreateStave();
+  TGeoVolume* stavVol = createStave();
 
   // Now build up the layer
   alpha = 360. / mNumberOfStaves;
   Double_t r = mLayerRadius + ((TGeoBBox*)stavVol->GetShape())->GetDY();
   for (Int_t j = 0; j < mNumberOfStaves; j++) {
     Double_t phi = j * alpha + mPhi0;
-    xpos = r * CosD(phi); // r*SinD(-phi);
-    ypos = r * SinD(phi); // r*CosD(-phi);
+    xpos = r * cosD(phi); // r*sinD(-phi);
+    ypos = r * sinD(phi); // r*cosD(-phi);
     zpos = 0.;
     phi += 90;
     layerVolume->AddNode(stavVol, j,
@@ -307,7 +307,7 @@ void UpgradeV1Layer::CreateLayer(TGeoVolume* motherVolume)
   return;
 }
 
-void UpgradeV1Layer::CreateLayerTurbo(TGeoVolume* motherVolume)
+void UpgradeV1Layer::createLayerTurbo(TGeoVolume* motherVolume)
 {
   char volumeName[30];
   Double_t xpos, ypos, zpos;
@@ -323,20 +323,20 @@ void UpgradeV1Layer::CreateLayerTurbo(TGeoVolume* motherVolume)
                  << FairLogger::endl;
   }
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSLayerPattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSLayerPattern(), mLayerNumber);
   TGeoVolume* layerVolume = new TGeoVolumeAssembly(volumeName);
   layerVolume->SetUniqueID(mChipTypeID);
   layerVolume->SetVisibility(kTRUE);
   layerVolume->SetLineColor(1);
-  TGeoVolume* stavVol = CreateStave();
+  TGeoVolume* stavVol = createStave();
 
   // Now build up the layer
   alpha = 360. / mNumberOfStaves;
   Double_t r = mLayerRadius /* +chip thick ?! */;
   for (Int_t j = 0; j < mNumberOfStaves; j++) {
     Double_t phi = j * alpha + mPhi0;
-    xpos = r * CosD(phi); // r*SinD(-phi);
-    ypos = r * SinD(phi); // r*CosD(-phi);
+    xpos = r * cosD(phi); // r*sinD(-phi);
+    ypos = r * sinD(phi); // r*cosD(-phi);
     zpos = 0.;
     phi += 90;
     layerVolume->AddNode(
@@ -350,7 +350,7 @@ void UpgradeV1Layer::CreateLayerTurbo(TGeoVolume* motherVolume)
   return;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStave(const TGeoManager* /*mgr*/)
+TGeoVolume* UpgradeV1Layer::createStave(const TGeoManager* /*mgr*/)
 {
   char volumeName[30];
 
@@ -379,7 +379,7 @@ TGeoVolume* UpgradeV1Layer::CreateStave(const TGeoManager* /*mgr*/)
 
   // We have all shapes: now create the real volumes
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSStavePattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSStavePattern(), mLayerNumber);
   //  TGeoVolume *staveVol = new TGeoVolume(volumeName, stave, medAir);
   TGeoVolume* staveVol = new TGeoVolumeAssembly(volumeName);
 
@@ -390,12 +390,12 @@ TGeoVolume* UpgradeV1Layer::CreateStave(const TGeoManager* /*mgr*/)
 
   // Now build up the stave
   if (mLayerNumber < sNumberOmInnerLayers) {
-    TGeoVolume* modVol = CreateStaveInnerB(xlen, ylen, zlen);
+    TGeoVolume* modVol = createStaveInnerB(xlen, ylen, zlen);
     staveVol->AddNode(modVol, 0);
     mHierarchy[kHalfStave] = 1;
 
     // Mechanical stave structure
-    mechStaveVol = CreateStaveStructInnerB(xlen, zlen);
+    mechStaveVol = createStaveStructInnerB(xlen, zlen);
     if (mechStaveVol) {
       ypos = ((TGeoBBox*)(modVol->GetShape()))->GetDY() +
              ((TGeoBBox*)(mechStaveVol->GetShape()))->GetDY();
@@ -403,18 +403,18 @@ TGeoVolume* UpgradeV1Layer::CreateStave(const TGeoManager* /*mgr*/)
                         new TGeoCombiTrans(0, -ypos, 0, new TGeoRotation("", 0, 0, 180)));
     }
   } else {
-    TGeoVolume* hstaveVol = CreateStaveOuterB();
+    TGeoVolume* hstaveVol = createStaveOuterB();
     if (mStaveModel == Detector::kOBModel0) { // Create simplified stave struct as in v0
       staveVol->AddNode(hstaveVol, 0);
       mHierarchy[kHalfStave] = 1;
     } else { // (if mStaveModel) Create new stave struct as in TDR
       xpos = ((TGeoBBox*)(hstaveVol->GetShape()))->GetDX() - sOBHalfStaveXOverlap / 2;
-      // ypos is CF height as computed in CreateSpaceFrameOuterB1
+      // ypos is CF height as computed in createSpaceFrameOuterB1
       ypos = (sOBSpaceFrameTotHigh - sOBHalfStaveYTrans) / 2;
       staveVol->AddNode(hstaveVol, 0, new TGeoTranslation(-xpos, ypos, 0));
       staveVol->AddNode(hstaveVol, 1, new TGeoTranslation(xpos, ypos + sOBHalfStaveYTrans, 0));
       mHierarchy[kHalfStave] = 2; // RS
-      mechStaveVol = CreateSpaceFrameOuterB();
+      mechStaveVol = createSpaceFrameOuterB();
 
       if (mechStaveVol) {
         staveVol->AddNode(mechStaveVol, 1,
@@ -426,14 +426,14 @@ TGeoVolume* UpgradeV1Layer::CreateStave(const TGeoManager* /*mgr*/)
   return staveVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveInnerB(const Double_t xsta, const Double_t ysta,
+TGeoVolume* UpgradeV1Layer::createStaveInnerB(const Double_t xsta, const Double_t ysta,
                                               const Double_t zsta, const TGeoManager* mgr)
 {
   Double_t xmod, ymod, zmod;
   char volumeName[30];
 
   // First we create the module (i.e. the HIC with 9 chips)
-  TGeoVolume* moduleVol = CreateModuleInnerB(xsta, ysta, zsta);
+  TGeoVolume* moduleVol = createModuleInnerB(xsta, ysta, zsta);
 
   // Then we create the fake halfstave and the actual stave
   xmod = ((TGeoBBox*)(moduleVol->GetShape()))->GetDX();
@@ -444,7 +444,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveInnerB(const Double_t xsta, const Double_
 
   TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSHalfStavePattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
   TGeoVolume* hstaveVol = new TGeoVolume(volumeName, hstave, medAir);
 
   // Finally build it up
@@ -455,7 +455,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveInnerB(const Double_t xsta, const Double_
   return hstaveVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateModuleInnerB(Double_t xmod, Double_t ymod, Double_t zmod,
+TGeoVolume* UpgradeV1Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t zmod,
                                                const TGeoManager* mgr)
 {
   Double_t zchip;
@@ -464,14 +464,14 @@ TGeoVolume* UpgradeV1Layer::CreateModuleInnerB(Double_t xmod, Double_t ymod, Dou
 
   // First create the single chip
   zchip = zmod / sIBChipsPerRow;
-  TGeoVolume* chipVol = CreateChipInnerB(xmod, ymod, zchip);
+  TGeoVolume* chipVol = createChipInnerB(xmod, ymod, zchip);
 
   // Then create the module and populate it with the chips
   TGeoBBox* module = new TGeoBBox(xmod, ymod, zmod);
 
   TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSModulePattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSModulePattern(), mLayerNumber);
   TGeoVolume* modVol = new TGeoVolume(volumeName, module, medAir);
 
   // mm (not used)  zlen = ((TGeoBBox*)chipVol->GetShape())->GetDZ();
@@ -484,29 +484,29 @@ TGeoVolume* UpgradeV1Layer::CreateModuleInnerB(Double_t xmod, Double_t ymod, Dou
   return modVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveStructInnerB(const Double_t xsta, const Double_t zsta,
+TGeoVolume* UpgradeV1Layer::createStaveStructInnerB(const Double_t xsta, const Double_t zsta,
                                                     const TGeoManager* mgr)
 {
   TGeoVolume* mechStavVol = 0;
 
   switch (mStaveModel) {
     case Detector::kIBModelDummy:
-      mechStavVol = CreateStaveModelInnerBDummy(xsta, zsta, mgr);
+      mechStavVol = createStaveModelInnerBDummy(xsta, zsta, mgr);
       break;
     case Detector::kIBModel0:
-      mechStavVol = CreateStaveModelInnerB0(xsta, zsta, mgr);
+      mechStavVol = createStaveModelInnerB0(xsta, zsta, mgr);
       break;
     case Detector::kIBModel1:
-      mechStavVol = CreateStaveModelInnerB1(xsta, zsta, mgr);
+      mechStavVol = createStaveModelInnerB1(xsta, zsta, mgr);
       break;
     case Detector::kIBModel21:
-      mechStavVol = CreateStaveModelInnerB21(xsta, zsta, mgr);
+      mechStavVol = createStaveModelInnerB21(xsta, zsta, mgr);
       break;
     case Detector::kIBModel22:
-      mechStavVol = CreateStaveModelInnerB22(xsta, zsta, mgr);
+      mechStavVol = createStaveModelInnerB22(xsta, zsta, mgr);
       break;
     case Detector::kIBModel3:
-      mechStavVol = CreateStaveModelInnerB3(xsta, zsta, mgr);
+      mechStavVol = createStaveModelInnerB3(xsta, zsta, mgr);
       break;
     default:
       LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
@@ -515,14 +515,14 @@ TGeoVolume* UpgradeV1Layer::CreateStaveStructInnerB(const Double_t xsta, const D
   return mechStavVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerBDummy(const Double_t, const Double_t,
+TGeoVolume* UpgradeV1Layer::createStaveModelInnerBDummy(const Double_t, const Double_t,
                                                         const TGeoManager*) const
 {
   // Done, return the stave structur
   return 0;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB0(const Double_t xsta, const Double_t zsta,
+TGeoVolume* UpgradeV1Layer::createStaveModelInnerB0(const Double_t xsta, const Double_t zsta,
                                                     const TGeoManager* mgr)
 {
   // Materials defined in Detector
@@ -556,7 +556,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB0(const Double_t xsta, const D
   LOG(DEBUG1) << "BuildLevel " << mBuildLevel << FairLogger::endl;
 
   char volumeName[30];
-  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(),
+  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::getITSStavePattern(),
            mLayerNumber);
 
   Double_t z = 0, y = -0.011 + 0.0150, x = 0;
@@ -725,7 +725,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB0(const Double_t xsta, const D
   return mechStavVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB1(const Double_t xsta, const Double_t zsta,
+TGeoVolume* UpgradeV1Layer::createStaveModelInnerB1(const Double_t xsta, const Double_t zsta,
                                                     const TGeoManager* mgr)
 {
   // Materials defined in Detector
@@ -758,7 +758,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB1(const Double_t xsta, const D
   TGeoVolume* mechStavVol = 0;
 
   char volumeName[30];
-  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(),
+  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::getITSStavePattern(),
            mLayerNumber);
 
   // detailed structure ++++++++++++++
@@ -931,7 +931,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB1(const Double_t xsta, const D
   return mechStavVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB21(const Double_t xsta, const Double_t zsta,
+TGeoVolume* UpgradeV1Layer::createStaveModelInnerB21(const Double_t xsta, const Double_t zsta,
                                                      const TGeoManager* mgr)
 {
   // Materials defined in Detector
@@ -969,7 +969,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB21(const Double_t xsta, const 
   Int_t loop = (Int_t)(kStaveLength / (2 * kL1));
 
   char volumeName[30];
-  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(),
+  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::getITSStavePattern(),
            mLayerNumber);
 
   Double_t z = 0, y = -(kConeOutRadius + 0.03) + 0.0385, x = 0;
@@ -1227,7 +1227,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB21(const Double_t xsta, const 
   return mechStavVol;
 }
 // new model22
-TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB22(const Double_t xsta, const Double_t zsta,
+TGeoVolume* UpgradeV1Layer::createStaveModelInnerB22(const Double_t xsta, const Double_t zsta,
                                                      const TGeoManager* mgr)
 {
   // Materials defined in Detector
@@ -1270,7 +1270,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB22(const Double_t xsta, const 
   Int_t loop = (Int_t)(kStaveLength / (2 * kL1));
 
   char volumeName[30];
-  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(),
+  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::getITSStavePattern(),
            mLayerNumber);
 
   Double_t z = 0, y = -(2 * kConeOutRadius) + klay1 + klay2 + mSensorThickness / 2 - 0.0004, x = 0;
@@ -1547,7 +1547,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB22(const Double_t xsta, const 
 }
 
 // model3
-TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB3(const Double_t xsta, const Double_t zsta,
+TGeoVolume* UpgradeV1Layer::createStaveModelInnerB3(const Double_t xsta, const Double_t zsta,
                                                     const TGeoManager* mgr)
 {
   // Materials defined in Detector
@@ -1597,7 +1597,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB3(const Double_t xsta, const D
   Double_t smcSpace = 0.01;
 
   char volumeName[30];
-  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::GetITSStavePattern(),
+  snprintf(volumeName, 30, "%s%d_StaveStruct", UpgradeGeometryTGeo::getITSStavePattern(),
            mLayerNumber);
 
   // detailed structure ++++++++++++++
@@ -2048,19 +2048,19 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelInnerB3(const Double_t xsta, const D
   return mechStavVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveOuterB(const TGeoManager* mgr)
+TGeoVolume* UpgradeV1Layer::createStaveOuterB(const TGeoManager* mgr)
 {
   TGeoVolume* mechStavVol = 0;
 
   switch (mStaveModel) {
     case Detector::kOBModelDummy:
-      mechStavVol = CreateStaveModelOuterBDummy(mgr);
+      mechStavVol = createStaveModelOuterBDummy(mgr);
       break;
     case Detector::kOBModel0:
-      mechStavVol = CreateStaveModelOuterB0(mgr);
+      mechStavVol = createStaveModelOuterB0(mgr);
       break;
     case Detector::kOBModel1:
-      mechStavVol = CreateStaveModelOuterB1(mgr);
+      mechStavVol = createStaveModelOuterB1(mgr);
       break;
     default:
       LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
@@ -2069,13 +2069,13 @@ TGeoVolume* UpgradeV1Layer::CreateStaveOuterB(const TGeoManager* mgr)
   return mechStavVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveModelOuterBDummy(const TGeoManager*) const
+TGeoVolume* UpgradeV1Layer::createStaveModelOuterBDummy(const TGeoManager*) const
 {
   // Done, return the stave structure
   return 0;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveModelOuterB0(const TGeoManager* mgr)
+TGeoVolume* UpgradeV1Layer::createStaveModelOuterB0(const TGeoManager* mgr)
 {
   Double_t xmod, ymod, zmod;
   Double_t xlen, ylen, zlen;
@@ -2088,7 +2088,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelOuterB0(const TGeoManager* mgr)
   ylen = 0.5 * mStaveThickness; // TO BE CHECKED
   zlen = sOBModuleZLength / 2;
 
-  TGeoVolume* chipVol = CreateChipInnerB(xlen, ylen, zlen);
+  TGeoVolume* chipVol = createChipInnerB(xlen, ylen, zlen);
 
   xmod = ((TGeoBBox*)chipVol->GetShape())->GetDX();
   ymod = ((TGeoBBox*)chipVol->GetShape())->GetDY();
@@ -2102,11 +2102,11 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelOuterB0(const TGeoManager* mgr)
   // We have all shapes: now create the real volumes
   TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSModulePattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSModulePattern(), mLayerNumber);
   TGeoVolume* modVol = new TGeoVolume(volumeName, module, medAir);
   modVol->SetVisibility(kTRUE);
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSHalfStavePattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
   TGeoVolume* hstaveVol = new TGeoVolume(volumeName, hstave, medAir);
 
   // Finally build it up
@@ -2123,7 +2123,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelOuterB0(const TGeoManager* mgr)
   return hstaveVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateStaveModelOuterB1(const TGeoManager* mgr)
+TGeoVolume* UpgradeV1Layer::createStaveModelOuterB1(const TGeoManager* mgr)
 {
   Double_t yFlex1 = sOBFlexCableAlThick;
   Double_t yFlex2 = sOBFlexCableKapThick;
@@ -2144,7 +2144,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelOuterB1(const TGeoManager* mgr)
   zlen = (mNumberOfModules * sOBModuleZLength + (mNumberOfModules - 1) * sOBModuleGap) / 2;
 
   // First create all needed shapes
-  TGeoVolume* moduleVol = CreateModuleOuterB();
+  TGeoVolume* moduleVol = createModuleOuterB();
   moduleVol->SetVisibility(kTRUE);
   ymod = ((TGeoBBox*)(moduleVol->GetShape()))->GetDY();
   zmod = ((TGeoBBox*)(moduleVol->GetShape()))->GetDZ();
@@ -2283,7 +2283,7 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelOuterB1(const TGeoManager* mgr)
   fleectubVol->SetFillColor(fleectubVol->GetLineColor());
   fleectubVol->SetFillStyle(4000); // 0% transparent
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSHalfStavePattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
   TGeoVolume* halmStaveVol = new TGeoVolume(volumeName, halmStave, medAir);
   //   halmStaveVol->SetLineColor(12);
   //   halmStaveVol->SetFillColor(12);
@@ -2400,17 +2400,17 @@ TGeoVolume* UpgradeV1Layer::CreateStaveModelOuterB1(const TGeoManager* mgr)
   return halmStaveVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB(const TGeoManager* mgr)
+TGeoVolume* UpgradeV1Layer::createSpaceFrameOuterB(const TGeoManager* mgr)
 {
   TGeoVolume* mechStavVol = 0;
 
   switch (mStaveModel) {
     case Detector::kOBModelDummy:
     case Detector::kOBModel0:
-      mechStavVol = CreateSpaceFrameOuterBDummy(mgr);
+      mechStavVol = createSpaceFrameOuterBDummy(mgr);
       break;
     case Detector::kOBModel1:
-      mechStavVol = CreateSpaceFrameOuterB1(mgr);
+      mechStavVol = createSpaceFrameOuterB1(mgr);
       break;
     default:
       LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
@@ -2420,13 +2420,13 @@ TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB(const TGeoManager* mgr)
   return mechStavVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterBDummy(const TGeoManager*) const
+TGeoVolume* UpgradeV1Layer::createSpaceFrameOuterBDummy(const TGeoManager*) const
 {
   // Done, return the stave structur
   return 0;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB1(const TGeoManager* mgr)
+TGeoVolume* UpgradeV1Layer::createSpaceFrameOuterB1(const TGeoManager* mgr)
 {
   // Materials defined in Detector
   TGeoMedium* medCarbon = mgr->GetMedium("ITS_CARBON$");
@@ -2455,7 +2455,7 @@ TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB1(const TGeoManager* mgr)
 
   zlen = mNumberOfModules * sOBModuleZLength + (mNumberOfModules - 1) * sOBModuleGap;
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSHalfStavePattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
   if (gGeoManager->GetVolume(volumeName)) { // Should always be so
     sframeHeight -= ((TGeoBBox*)gGeoManager->GetVolume(volumeName)->GetShape())->GetDY() * 2;
     zlen = ((TGeoBBox*)gGeoManager->GetVolume(volumeName)->GetShape())->GetDZ() * 2;
@@ -2474,12 +2474,12 @@ TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB1(const TGeoManager* mgr)
   // SpaceFrame
 
   //--- the top V of the Carbon Fiber Stave (segment)
-  TGeoArb8* cmStavTop1 = CreateStaveSide("CFstavTopCornerVol1shape", seglen / 2., halmTheta, -1,
+  TGeoArb8* cmStavTop1 = createStaveSide("CFstavTopCornerVol1shape", seglen / 2., halmTheta, -1,
                                          staveLa, staveHa, stavel);
   TGeoVolume* cmStavTopVol1 = new TGeoVolume("CFstavTopCornerVol1", cmStavTop1, medCarbon);
   cmStavTopVol1->SetLineColor(35);
 
-  TGeoArb8* cmStavTop2 = CreateStaveSide("CFstavTopCornerVol2shape", seglen / 2., halmTheta, 1,
+  TGeoArb8* cmStavTop2 = createStaveSide("CFstavTopCornerVol2shape", seglen / 2., halmTheta, 1,
                                          staveLa, staveHa, stavel);
   TGeoVolume* cmStavTopVol2 = new TGeoVolume("CFstavTopCornerVol2", cmStavTop2, medCarbon);
   cmStavTopVol2->SetLineColor(35);
@@ -2488,12 +2488,12 @@ TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB1(const TGeoManager* mgr)
 
   //--- the 2 side V
   TGeoArb8* cmStavSide1 =
-    CreateStaveSide("CFstavSideCornerVol1shape", seglen / 2., beta, -1, staveLb, staveHb, stavel);
+    createStaveSide("CFstavSideCornerVol1shape", seglen / 2., beta, -1, staveLb, staveHb, stavel);
   TGeoVolume* cmStavSideVol1 = new TGeoVolume("CFstavSideCornerVol1", cmStavSide1, medCarbon);
   cmStavSideVol1->SetLineColor(35);
 
   TGeoArb8* cmStavSide2 =
-    CreateStaveSide("CFstavSideCornerVol2shape", seglen / 2., beta, 1, staveLb, staveHb, stavel);
+    createStaveSide("CFstavSideCornerVol2shape", seglen / 2., beta, 1, staveLb, staveHb, stavel);
   TGeoVolume* cmStavSideVol2 = new TGeoVolume("CFstavSideCornerVol2", cmStavSide2, medCarbon);
   cmStavSideVol2->SetLineColor(35);
 
@@ -2515,7 +2515,7 @@ TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB1(const TGeoManager* mgr)
   // Beams on the sides
   Double_t beamPhiPrime = TMath::ASin(
     1. / TMath::Sqrt((1 + TMath::Sin(2 * beta) * TMath::Sin(2 * beta) /
-                            (TanD(sOBSFrameBeamSidePhi) * TanD(sOBSFrameBeamSidePhi)))));
+                            (tanD(sOBSFrameBeamSidePhi) * tanD(sOBSFrameBeamSidePhi)))));
   Double_t beamLength = TMath::Sqrt(sframeHeight * sframeHeight /
                                       (TMath::Sin(beamPhiPrime) * TMath::Sin(beamPhiPrime)) +
                                     sframeWidth * sframeWidth / 4.) -
@@ -2540,17 +2540,17 @@ TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB1(const TGeoManager* mgr)
   beamTransf[0] = new TGeoCombiTrans(xpos, ypos, -3 * zpos, beamRot1);
 
   beamTransf[1] = new TGeoCombiTrans(xpos, ypos, -3 * zpos, beamRot1);
-  AddTranslationToCombiTrans(beamTransf[1], 0, 0, seglen / 2);
+  addTranslationToCombiTrans(beamTransf[1], 0, 0, seglen / 2);
 
   beamTransf[2] = new TGeoCombiTrans(xpos, ypos, -zpos, beamRot2);
 
   beamTransf[3] = new TGeoCombiTrans(xpos, ypos, -zpos, beamRot2);
-  AddTranslationToCombiTrans(beamTransf[3], 0, 0, seglen / 2);
+  addTranslationToCombiTrans(beamTransf[3], 0, 0, seglen / 2);
 
   beamTransf[4] = new TGeoCombiTrans(-xpos, ypos, -3 * zpos, beamRot3);
 
   beamTransf[5] = new TGeoCombiTrans(-xpos, ypos, -3 * zpos, beamRot3);
-  AddTranslationToCombiTrans(beamTransf[5], 0, 0, seglen / 2);
+  addTranslationToCombiTrans(beamTransf[5], 0, 0, seglen / 2);
 
   beamTransf[6] = new TGeoCombiTrans(-xpos, ypos, -zpos, beamRot4);
   beamTransf[7] = new TGeoCombiTrans(-xpos, ypos, 3 * zpos, beamRot4);
@@ -2567,7 +2567,7 @@ TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB1(const TGeoManager* mgr)
   bottomBeam2Vol->SetLineColor(35);
 
   TGeoTubeSeg* bottomBeam3 = new TGeoTubeSeg(
-    0, staveBeamRadius, 0.5 * sframeWidth / SinD(bottomBeamAngle) - staveLb / 3, 0, 180);
+    0, staveBeamRadius, 0.5 * sframeWidth / sinD(bottomBeamAngle) - staveLb / 3, 0, 180);
   TGeoVolume* bottomBeam3Vol = new TGeoVolume("CFstavBottomBeam3Vol", bottomBeam3, medCarbon);
   bottomBeam3Vol->SetLineColor(35);
 
@@ -2614,7 +2614,7 @@ TGeoVolume* UpgradeV1Layer::CreateSpaceFrameOuterB1(const TGeoManager* mgr)
   return spaceFrameVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateChipInnerB(const Double_t xchip, const Double_t ychip,
+TGeoVolume* UpgradeV1Layer::createChipInnerB(const Double_t xchip, const Double_t ychip,
                                              const Double_t zchip, const TGeoManager* mgr)
 {
   char volumeName[30];
@@ -2635,12 +2635,12 @@ TGeoVolume* UpgradeV1Layer::CreateChipInnerB(const Double_t xchip, const Double_
   // We have all shapes: now create the real volumes
   TGeoMedium* medSi = mgr->GetMedium("ITS_SI$");
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSChipPattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSChipPattern(), mLayerNumber);
   TGeoVolume* chipVol = new TGeoVolume(volumeName, chip, medSi);
   chipVol->SetVisibility(kTRUE);
   chipVol->SetLineColor(1);
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSSensorPattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSSensorPattern(), mLayerNumber);
   TGeoVolume* sensVol = new TGeoVolume(volumeName, sensor, medSi);
   sensVol->SetVisibility(kTRUE);
   sensVol->SetLineColor(8);
@@ -2659,7 +2659,7 @@ TGeoVolume* UpgradeV1Layer::CreateChipInnerB(const Double_t xchip, const Double_
   return chipVol;
 }
 
-TGeoVolume* UpgradeV1Layer::CreateModuleOuterB(const TGeoManager* mgr)
+TGeoVolume* UpgradeV1Layer::createModuleOuterB(const TGeoManager* mgr)
 {
   char volumeName[30];
 
@@ -2677,7 +2677,7 @@ TGeoVolume* UpgradeV1Layer::CreateModuleOuterB(const TGeoManager* mgr)
   ylen = 0.5 * mStaveThickness; // TO BE CHECKED
   zlen = (sOBModuleZLength - (sOBChipsPerRow - 1) * zGap) / (2 * sOBChipsPerRow);
 
-  TGeoVolume* chipVol = CreateChipInnerB(xlen, ylen, zlen);
+  TGeoVolume* chipVol = createChipInnerB(xlen, ylen, zlen);
 
   xchip = ((TGeoBBox*)chipVol->GetShape())->GetDX();
   ychip = ((TGeoBBox*)chipVol->GetShape())->GetDY();
@@ -2734,7 +2734,7 @@ TGeoVolume* UpgradeV1Layer::CreateModuleOuterB(const TGeoManager* mgr)
   flexKapVol->SetFillColor(flexKapVol->GetLineColor());
   flexKapVol->SetFillStyle(4000); // 0% transparent
 
-  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::GetITSModulePattern(), mLayerNumber);
+  snprintf(volumeName, 30, "%s%d", UpgradeGeometryTGeo::getITSModulePattern(), mLayerNumber);
   TGeoVolume* modVol = new TGeoVolume(volumeName, module, medAir);
   modVol->SetVisibility(kTRUE);
 
@@ -2765,7 +2765,7 @@ TGeoVolume* UpgradeV1Layer::CreateModuleOuterB(const TGeoManager* mgr)
   return modVol;
 }
 
-Double_t UpgradeV1Layer::RadiusOmTurboContainer()
+Double_t UpgradeV1Layer::radiusOmTurboContainer()
 {
   Double_t rr, delta, z, lstav, rstav;
 
@@ -2774,20 +2774,20 @@ Double_t UpgradeV1Layer::RadiusOmTurboContainer()
   }
 
   rstav = mLayerRadius + 0.5 * mStaveThickness;
-  delta = (0.5 * mStaveThickness) / CosD(mStaveTilt);
-  z = (0.5 * mStaveThickness) * TanD(mStaveTilt);
+  delta = (0.5 * mStaveThickness) / cosD(mStaveTilt);
+  z = (0.5 * mStaveThickness) * tanD(mStaveTilt);
 
   rr = rstav - delta;
   lstav = (0.5 * mStaveWidth) - z;
 
-  if ((rr * SinD(mStaveTilt) < lstav)) {
-    return (rr * CosD(mStaveTilt));
+  if ((rr * sinD(mStaveTilt) < lstav)) {
+    return (rr * cosD(mStaveTilt));
   } else {
     return -1;
   }
 }
 
-void UpgradeV1Layer::SetNumberOfUnits(Int_t u)
+void UpgradeV1Layer::setNumberOfUnits(Int_t u)
 {
   if (mLayerNumber < sNumberOmInnerLayers) {
     mNumberOfChips = u;
@@ -2797,7 +2797,7 @@ void UpgradeV1Layer::SetNumberOfUnits(Int_t u)
   }
 }
 
-void UpgradeV1Layer::SetStaveTilt(const Double_t t)
+void UpgradeV1Layer::setStaveTilt(const Double_t t)
 {
   if (mIsTurbo) {
     mStaveTilt = t;
@@ -2806,7 +2806,7 @@ void UpgradeV1Layer::SetStaveTilt(const Double_t t)
   }
 }
 
-void UpgradeV1Layer::SetStaveWidth(const Double_t w)
+void UpgradeV1Layer::setStaveWidth(const Double_t w)
 {
   if (mIsTurbo) {
     mStaveWidth = w;
@@ -2815,7 +2815,7 @@ void UpgradeV1Layer::SetStaveWidth(const Double_t w)
   }
 }
 
-TGeoArb8* UpgradeV1Layer::CreateStaveSide(const char* name, Double_t dz, Double_t angle,
+TGeoArb8* UpgradeV1Layer::createStaveSide(const char* name, Double_t dz, Double_t angle,
                                           Double_t xSign, Double_t L, Double_t H, Double_t l)
 {
   // Create one half of the V shape corner of CF stave
@@ -2844,10 +2844,10 @@ TGeoArb8* UpgradeV1Layer::CreateStaveSide(const char* name, Double_t dz, Double_
   return cmStavSide;
 }
 
-TGeoCombiTrans* UpgradeV1Layer::CreateCombiTrans(const char* name, Double_t dy, Double_t dz,
+TGeoCombiTrans* UpgradeV1Layer::createCombiTrans(const char* name, Double_t dy, Double_t dz,
                                                  Double_t dphi, Bool_t planeSym)
 {
-  TGeoTranslation t1(dy * CosD(90. + dphi), dy * SinD(90. + dphi), dz);
+  TGeoTranslation t1(dy * cosD(90. + dphi), dy * sinD(90. + dphi), dz);
   TGeoRotation r1("", 0., 0., dphi);
   TGeoRotation r2("", 90, 180, -90 - dphi);
 
@@ -2861,7 +2861,7 @@ TGeoCombiTrans* UpgradeV1Layer::CreateCombiTrans(const char* name, Double_t dy, 
   return combiTrans1;
 }
 
-void UpgradeV1Layer::AddTranslationToCombiTrans(TGeoCombiTrans* ct, Double_t dx, Double_t dy,
+void UpgradeV1Layer::addTranslationToCombiTrans(TGeoCombiTrans* ct, Double_t dx, Double_t dy,
                                                 Double_t dz) const
 {
   // Add a dx,dy,dz translation to the initial TGeoCombiTrans

@@ -20,10 +20,9 @@ namespace ITS {
 class UpgradeSegmentationPixel : public AliceO2::ITS::Segmentation {
 
 public:
-  UpgradeSegmentationPixel(UInt_t id = 0, int nchips = 0, int ncol = 0, int nrow = 0,
-                           float pitchX = 0, float pitchZ = 0, float thickness = 0,
-                           float pitchLftC = -1, float pitchRgtC = -1, float edgL = 0,
-                           float edgR = 0, float edgT = 0, float edgB = 0);
+  UpgradeSegmentationPixel(UInt_t id = 0, int nchips = 0, int ncol = 0, int nrow = 0, float pitchX = 0,
+                           float pitchZ = 0, float thickness = 0, float pitchLftC = -1, float pitchRgtC = -1,
+                           float edgL = 0, float edgR = 0, float edgT = 0, float edgB = 0);
 
   //  UpgradeSegmentationPixel(Option_t *opt="" );
   UpgradeSegmentationPixel(const UpgradeSegmentationPixel& source);
@@ -32,27 +31,27 @@ public:
 
   virtual void Init();
 
-  virtual void SetNPads(Int_t, Int_t)
+  virtual void setNumberOfPads(Int_t, Int_t)
   {
     MayNotUse("SetPadSize");
   }
 
-  virtual Int_t GetNPads() const
+  virtual Int_t getNumberOfPads() const
   {
     return mNumberOfColumns * mNumberOfRows;
   }
 
   /// Returns pixel coordinates (ix,iz) for given coordinates (x,z counted from corner of col/row
   /// 0:0). Expects x, z in cm
-  virtual void GetPadIxz(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const;
+  virtual void getPadIxz(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const;
 
   /// Transform from pixel to real local coordinates
   /// Eeturns x, z in cm. wrt corner of col/row 0:0
-  virtual void GetPadCxz(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const;
+  virtual void getPadCxz(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const;
 
   /// Local transformation of real local coordinates (x,z)
   /// Expects x, z in cm (wrt corner of col/row 0:0
-  virtual void GetPadTxz(Float_t& x, Float_t& z) const;
+  virtual void getPadTxz(Float_t& x, Float_t& z) const;
 
   /// Transformation from Geant detector centered local coordinates (cm) to
   /// Pixel cell numbers ix and iz.
@@ -65,7 +64,7 @@ public:
   /// the center of the sensitive volulme.
   /// \param Int_t ix Detector x cell coordinate. Has the range 0 <= ix < mNumberOfRows
   /// \param Int_t iz Detector z cell coordinate. Has the range 0 <= iz < mNumberOfColumns
-  virtual Bool_t LocalToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const;
+  virtual Bool_t localToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const;
 
   /// Transformation from Detector cell coordiantes to Geant detector centered
   /// local coordinates (cm)
@@ -77,7 +76,7 @@ public:
   /// center of the sensitive volulme.
   /// If ix and or iz is outside of the segmentation range a value of -0.5*Dx()
   /// or -0.5*Dz() is returned.
-  virtual void DetectorToLocal(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const;
+  virtual void detectorToLocal(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const;
 
   /// Transformation from Detector cell coordiantes to Geant detector centered
   /// local coordinates (cm)
@@ -91,124 +90,122 @@ public:
   /// respect to the center of the sensitive volulme.
   /// \param Double_t zu Detector local coordinate upper bounds z in cm with
   /// respect to the center of the sensitive volulme.
-  /// If ix and or iz is outside of the segmentation range a value of -0.5*DxActive()
-  /// and -0.5*DxActive() or -0.5*DzActive() and -0.5*DzActive() are returned.
-  virtual void CellBoundries(Int_t ix, Int_t iz, Double_t& xl, Double_t& xu, Double_t& zl,
-                             Double_t& zu) const;
+  /// If ix and or iz is outside of the segmentation range a value of -0.5*dxActive()
+  /// and -0.5*dxActive() or -0.5*dzActive() and -0.5*dzActive() are returned.
+  virtual void cellBoundries(Int_t ix, Int_t iz, Double_t& xl, Double_t& xu, Double_t& zl, Double_t& zu) const;
 
-  virtual Int_t GetNumberOfChips() const
+  virtual Int_t getNumberOfChips() const
   {
     return mNumberOfChips;
   }
 
-  virtual Int_t GetMaximumChipIndex() const
+  virtual Int_t getMaximumChipIndex() const
   {
     return mNumberOfChips - 1;
   }
 
   /// Returns chip number (in range 0-4) starting from local Geant coordinates
-  virtual Int_t GetChipFromLocal(Float_t, Float_t zloc) const;
+  virtual Int_t getChipFromLocal(Float_t, Float_t zloc) const;
 
   /// Returns the number of chips containing a road defined by given local Geant coordinate limits
-  virtual Int_t GetChipsInLocalWindow(Int_t* array, Float_t zmin, Float_t zmax, Float_t,
-                                      Float_t) const;
+  virtual Int_t getChipsInLocalWindow(Int_t* array, Float_t zmin, Float_t zmax, Float_t, Float_t) const;
 
   /// Returns chip number (in range 0-4) starting from channel number
-  virtual Int_t GetChipFromChannel(Int_t, Int_t iz) const;
+  virtual Int_t getChipFromChannel(Int_t, Int_t iz) const;
 
   /// Returs x pixel pitch for a give pixel
-  virtual Float_t Dpx(Int_t ix = 0) const;
+  virtual Float_t cellSizeX(Int_t ix = 0) const;
 
   /// Returns z pixel pitch for a given pixel (cols starts from 0)
-  virtual Float_t Dpz(Int_t iz) const;
+  virtual Float_t cellSizeZ(Int_t iz) const;
 
-  Float_t DxActive() const
+  Float_t dxActive() const
   {
     return mDxActive;
   }
 
-  Float_t DzActive() const
+  Float_t dzActive() const
   {
     return mDzActive;
   }
 
-  Float_t GetShiftXLoc() const
+  Float_t getShiftXLoc() const
   {
     return mShiftLocalX;
   }
 
-  Float_t GetShiftZLoc() const
+  Float_t getShiftZLoc() const
   {
     return mShiftLocalZ;
   }
 
-  Float_t GetGuardLft() const
+  Float_t getGuardLft() const
   {
     return mGuardLeft;
   }
 
-  Float_t GetGuardRgt() const
+  Float_t getGuardRgt() const
   {
     return mGuardRight;
   }
 
-  Float_t GetGuardTop() const
+  Float_t getGuardTop() const
   {
     return mGuardTop;
   }
 
-  Float_t GetGuardBot() const
+  Float_t getGuardBot() const
   {
     return mGuardBottom;
   }
 
-  Int_t GetNumberOfRows() const
+  Int_t getNumberOfRows() const
   {
     return mNumberOfRows;
   }
 
-  Int_t GetNumberOfColumns() const
+  Int_t getNumberOfColumns() const
   {
     return mNumberOfColumns;
   }
 
-  virtual Int_t Npx() const
+  virtual Int_t numberOfCellsInX() const
   {
-    return GetNumberOfRows();
+    return getNumberOfRows();
   }
 
-  virtual Int_t Npz() const
+  virtual Int_t numberOfCellsInZ() const
   {
-    return GetNumberOfColumns();
+    return getNumberOfColumns();
   }
 
   /// Returns the neighbouring pixels for use in Cluster Finders and the like.
-  virtual void Neighbours(Int_t iX, Int_t iZ, Int_t* Nlist, Int_t Xlist[10], Int_t Zlist[10]) const;
+  virtual void neighbours(Int_t iX, Int_t iZ, Int_t* Nlist, Int_t Xlist[10], Int_t Zlist[10]) const;
 
-  virtual void PrintDefaultParameters() const
+  virtual void printDefaultParameters() const
   {
     LOG(WARNING) << "No def. parameters defined as const static data members" << FairLogger::endl;
   }
 
   virtual void Print(Option_t* option = "") const;
 
-  virtual Int_t GetChipTypeID() const
+  virtual Int_t getChipTypeID() const
   {
     return GetUniqueID();
   }
 
   /// Set matrix of periodic shifts of diod center. Provided arrays must be in the format
   /// shift[nrow][ncol]
-  void SetDiodShiftMatrix(Int_t nrow, Int_t ncol, const Float_t* shiftX, const Float_t* shiftZ);
+  void setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Float_t* shiftX, const Float_t* shiftZ);
 
   /// Set matrix of periodic shifts of diod center. Provided arrays must be in the format
   /// shift[nrow][ncol]
-  void SetDiodShiftMatrix(Int_t nrow, Int_t ncol, const Double_t* shiftX, const Double_t* shiftZ);
-  void GetDiodShift(Int_t row, Int_t col, Float_t& dx, Float_t& dz) const;
-  void GetDiodShift(Int_t row, Int_t col, Double_t& dx, Double_t& dz) const
+  void setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Double_t* shiftX, const Double_t* shiftZ);
+  void getDiodShift(Int_t row, Int_t col, Float_t& dx, Float_t& dz) const;
+  void getDiodShift(Int_t row, Int_t col, Double_t& dx, Double_t& dz) const
   {
     float dxf, dzf;
-    GetDiodShift(row, col, dxf, dzf);
+    getDiodShift(row, col, dxf, dzf);
     dx = dxf;
     dz = dzf;
   }
@@ -217,17 +214,17 @@ public:
   Bool_t Store(const char* outf);
 
   /// Store in the special list under given ID
-  static UpgradeSegmentationPixel* LoadWithId(UInt_t id, const char* inpf);
+  static UpgradeSegmentationPixel* loadWithId(UInt_t id, const char* inpf);
 
   /// Store in the special list under given ID
-  static void LoadSegmentations(TObjArray* dest, const char* inpf);
+  static void loadSegmentations(TObjArray* dest, const char* inpf);
 
 protected:
   /// Get column number (from 0) from local Z (wrt bottom left corner of the active matrix)
-  Float_t ZToColumn(Float_t z) const;
+  Float_t zToColumn(Float_t z) const;
 
   /// Convert column number (from 0) to Z coordinate wrt bottom left corner of the active matrix
-  Float_t ColumnToZ(Int_t col) const;
+  Float_t columnToZ(Int_t col) const;
 
 protected:
   Float_t mGuardLeft;            ///< left guard edge
@@ -250,10 +247,9 @@ protected:
   Int_t mDiodShiftMatNColumn;    ///< periodicity of diod shift in columns
   Int_t mDiodShiftMatNRow;       ///< periodicity of diod shift in rows
   Int_t mDiodShiftMatDimension;  ///< dimension of diod shift matrix
-  Float_t* mDiodShiftMatX; //[mDiodShiftMatDimension] diod shift in X (along column), in fraction of
-                           //X pitch
-  Float_t*
-    mDiodShiftMatZ; //[mDiodShiftMatDimension] diod shift in Z (along row), in fraction of Z pitch
+  Float_t* mDiodShiftMatX;       //[mDiodShiftMatDimension] diod shift in X (along column), in fraction of
+  // X pitch
+  Float_t* mDiodShiftMatZ; //[mDiodShiftMatDimension] diod shift in Z (along row), in fraction of Z pitch
 
   static const char* sSegmentationsListName; ///< pattern for segmentations list name
 

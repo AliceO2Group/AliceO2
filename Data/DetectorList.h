@@ -5,6 +5,6 @@
 #define ALICEO2_DATA_DETECTORLIST_H_
 
 // kSTOPHERE is needed for iteration over the enum. All detectors have to be put before.
-enum DetectorId {kAliIts, kSTOPHERE};
+enum DetectorId { kAliIts, kSTOPHERE };
 
 #endif

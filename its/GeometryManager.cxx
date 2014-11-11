@@ -36,7 +36,7 @@ GeometryManager::~GeometryManager()
 {
 }
 
-Bool_t GeometryManager::GetOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m)
+Bool_t GeometryManager::getOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m)
 {
   m.Clear();
 
@@ -70,10 +70,10 @@ Bool_t GeometryManager::GetOriginalGlobalMatrix(const char* symname, TGeoHMatrix
     path = symname;
   }
 
-  return GetOriginalGlobalMatrixFromPath(path, m);
+  return getOriginalGlobalMatrixFromPath(path, m);
 }
 
-Bool_t GeometryManager::GetOriginalGlobalMatrixFromPath(const char* path, TGeoHMatrix& m)
+Bool_t GeometryManager::getOriginalGlobalMatrixFromPath(const char* path, TGeoHMatrix& m)
 {
   m.Clear();
 

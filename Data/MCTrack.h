@@ -27,8 +27,8 @@ public:
   MCTrack();
 
   ///  Standard constructor
-  MCTrack(Int_t pdgCode, Int_t motherID, Double_t px, Double_t py, Double_t pz, Double_t x,
-          Double_t y, Double_t z, Double_t t, Int_t nPoints);
+  MCTrack(Int_t pdgCode, Int_t motherID, Double_t px, Double_t py, Double_t pz, Double_t x, Double_t y, Double_t z,
+          Double_t t, Int_t nPoints);
 
   ///  Copy constructor
   MCTrack(const MCTrack& track);
@@ -47,7 +47,7 @@ public:
   {
     return mPdgCode;
   }
-  Int_t GetMotherTrackId() const
+  Int_t getMotherTrackId() const
   {
     return mMotherTrackId;
   }
@@ -83,13 +83,11 @@ public:
   Double_t GetEnergy() const;
   Double_t GetPt() const
   {
-    return TMath::Sqrt(mStartVertexMomentumX * mStartVertexMomentumX +
-                       mStartVertexMomentumY * mStartVertexMomentumY);
+    return TMath::Sqrt(mStartVertexMomentumX * mStartVertexMomentumX + mStartVertexMomentumY * mStartVertexMomentumY);
   }
   Double_t GetP() const
   {
-    return TMath::Sqrt(mStartVertexMomentumX * mStartVertexMomentumX +
-                       mStartVertexMomentumY * mStartVertexMomentumY +
+    return TMath::Sqrt(mStartVertexMomentumX * mStartVertexMomentumX + mStartVertexMomentumY * mStartVertexMomentumY +
                        mStartVertexMomentumZ * mStartVertexMomentumZ);
   }
   Double_t GetRapidity() const;
@@ -98,14 +96,14 @@ public:
   void GetStartVertex(TVector3& vertex);
 
   /// Accessors to the number of MCPoints in the detectors
-  Int_t GetNumberOfPoints(DetectorId detId) const;
+  Int_t getNumberOfPoints(DetectorId detId) const;
 
   ///  Modifiers
   void SetMotherTrackId(Int_t id)
   {
     mMotherTrackId = id;
   }
-  void SetNumberOfPoints(Int_t iDet, Int_t np);
+  void setNumberOfPoints(Int_t iDet, Int_t np);
 
 private:
   ///  PDG particle code
@@ -118,8 +116,7 @@ private:
   Double32_t mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ;
 
   /// Coordinates of start vertex [cm, ns]
-  Double32_t mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ,
-    mStartVertexCoordinatesT;
+  Double32_t mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ, mStartVertexCoordinatesT;
 
   /// Bitvector representing the number of MCPoints for this track in
   /// each subdetector. The detectors can be represented by (example from CBM)
@@ -136,7 +133,7 @@ private:
   /// with the inline functions.
   /// Bits 26-31 are spare for potential additional detectors.
 
-  Int_t fNPoints;
+  Int_t mNumberOfPoints;
 
   ClassDef(MCTrack, 1);
 };
@@ -145,8 +142,7 @@ inline Double_t MCTrack::GetEnergy() const
 {
   Double_t mass = GetMass();
   return TMath::Sqrt(mass * mass + mStartVertexMomentumX * mStartVertexMomentumX +
-                     mStartVertexMomentumY * mStartVertexMomentumY +
-                     mStartVertexMomentumZ * mStartVertexMomentumZ);
+                     mStartVertexMomentumY * mStartVertexMomentumY + mStartVertexMomentumZ * mStartVertexMomentumZ);
 }
 
 inline void MCTrack::GetMomentum(TVector3& momentum)
@@ -156,8 +152,7 @@ inline void MCTrack::GetMomentum(TVector3& momentum)
 
 inline void MCTrack::Get4Momentum(TLorentzVector& momentum)
 {
-  momentum.SetXYZT(mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ,
-                   GetEnergy());
+  momentum.SetXYZT(mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ, GetEnergy());
 }
 
 inline void MCTrack::GetStartVertex(TVector3& vertex)

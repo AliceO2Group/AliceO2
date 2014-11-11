@@ -10,4 +10,3 @@
 #pragma link C++ class AliceO2::Base::TrackReference+;
 
 #endif
-

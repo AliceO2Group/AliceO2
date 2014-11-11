@@ -46,14 +46,14 @@ Int_t GeometryHandler::Init(Bool_t isSimulation)
   return 1;
 }
 
-void GeometryHandler::LocalToGlobal(Double_t* local, Double_t* global, Int_t detectorId)
+void GeometryHandler::localToGlobal(Double_t* local, Double_t* global, Int_t detectorId)
 {
-  TString path = ConstructFullPathFromDetectorId(detectorId);
-  NavigateTo(path);
+  TString path = constructFullPathFromDetectorId(detectorId);
+  navigateTo(path);
   gGeoManager->LocalToMaster(local, global);
 }
 
-TString GeometryHandler::ConstructFullPathFromDetectorId(Int_t detectorId)
+TString GeometryHandler::constructFullPathFromDetectorId(Int_t detectorId)
 {
   TString volumeString = "/cave_1/tutorial4_0/tut4_det_";
   TString volumePath = volumeString;
@@ -61,24 +61,24 @@ TString GeometryHandler::ConstructFullPathFromDetectorId(Int_t detectorId)
   return volumePath;
 }
 
-Int_t GeometryHandler::GetUniqueDetectorId(TString volumeName)
+Int_t GeometryHandler::getUniqueDetectorId(TString volumeName)
 {
   if (mGeometryPathHash != volumeName.Hash()) {
-    NavigateTo(volumeName);
+    navigateTo(volumeName);
   }
-  return GetUniqueDetectorId();
+  return getUniqueDetectorId();
 }
 
-Int_t GeometryHandler::GetUniqueDetectorId()
+Int_t GeometryHandler::getUniqueDetectorId()
 {
   Int_t detectorNumber = 0;
 
-  CurrentVolumeOffId(0, detectorNumber);
+  currentVolumeOffId(0, detectorNumber);
 
   return detectorNumber;
 }
 
-Int_t GeometryHandler::VolumeIdGeo(const char* name) const
+Int_t GeometryHandler::volumeIdGeo(const char* name) const
 {
   Int_t uid = gGeoManager->GetUID(name);
   if (uid < 0) {
@@ -88,7 +88,7 @@ Int_t GeometryHandler::VolumeIdGeo(const char* name) const
   return uid;
 }
 
-Int_t GeometryHandler::VolumeId(const Text_t* name) const
+Int_t GeometryHandler::volumeId(const Text_t* name) const
 {
   if (mIsSimulation) {
     return gMC->VolId(name);
@@ -97,16 +97,16 @@ Int_t GeometryHandler::VolumeId(const Text_t* name) const
     Int_t length = strlen(name) - 1;
 
     if (name[length] != ' ') {
-      return VolumeIdGeo(name);
+      return volumeIdGeo(name);
     }
 
     strncpy(sname, name, length);
     sname[length] = 0;
-    return VolumeIdGeo(sname);
+    return volumeIdGeo(sname);
   }
 }
 
-Int_t GeometryHandler::CurrentVolumeId(Int_t& copy) const
+Int_t GeometryHandler::currentVolumeId(Int_t& copy) const
 {
   if (mIsSimulation) {
     return gMC->CurrentVolID(copy);
@@ -122,7 +122,7 @@ Int_t GeometryHandler::CurrentVolumeId(Int_t& copy) const
 }
 
 //_____________________________________________________________________________
-Int_t GeometryHandler::CurrentVolumeOffId(Int_t off, Int_t& copy) const
+Int_t GeometryHandler::currentVolumeOffId(Int_t off, Int_t& copy) const
 {
   if (mIsSimulation) {
     return gMC->CurrentVolOffID(off, copy);
@@ -132,7 +132,7 @@ Int_t GeometryHandler::CurrentVolumeOffId(Int_t off, Int_t& copy) const
     }
 
     if (off == 0) {
-      return CurrentVolumeId(copy);
+      return currentVolumeId(copy);
     }
 
     TGeoNode* node = gGeoManager->GetMother(off);
@@ -146,7 +146,7 @@ Int_t GeometryHandler::CurrentVolumeOffId(Int_t off, Int_t& copy) const
   }
 }
 
-const char* GeometryHandler::CurrentVolumeName() const
+const char* GeometryHandler::currentVolumeName() const
 {
   if (mIsSimulation) {
     return gMC->CurrentVolName();
@@ -159,7 +159,7 @@ const char* GeometryHandler::CurrentVolumeName() const
   }
 }
 
-const char* GeometryHandler::CurrentVolumeOffName(Int_t off) const
+const char* GeometryHandler::currentVolumeOffName(Int_t off) const
 {
   if (mIsSimulation) {
     return gMC->CurrentVolOffName(off);
@@ -169,7 +169,7 @@ const char* GeometryHandler::CurrentVolumeOffName(Int_t off) const
     }
 
     if (off == 0) {
-      return CurrentVolumeName();
+      return currentVolumeName();
     }
 
     TGeoNode* node = gGeoManager->GetMother(off);
@@ -182,7 +182,7 @@ const char* GeometryHandler::CurrentVolumeOffName(Int_t off) const
   }
 }
 
-void GeometryHandler::NavigateTo(TString volumeName)
+void GeometryHandler::navigateTo(TString volumeName)
 {
   if (mIsSimulation) {
     LOG(FATAL) << "This method is not supported in simulation mode" << FairLogger::endl;

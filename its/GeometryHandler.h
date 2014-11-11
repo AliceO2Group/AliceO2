@@ -27,41 +27,41 @@ public:
   /// Default destructor
   ~GeometryHandler() {};
 
-  Int_t GetUniqueDetectorId();
+  Int_t getUniqueDetectorId();
 
-  Int_t GetUniqueDetectorId(TString volumeName);
+  Int_t getUniqueDetectorId(TString volumeName);
 
   //  Int_t GetDetectorId(Int_t uniqueId);
 
   Int_t Init(Bool_t isSimulation = kFALSE);
 
-  void FillDetectorInfoArray(Int_t uniqueId);
+  void fillDetectorInfoArray(Int_t uniqueId);
 
-  void NavigateTo(TString volumeName);
+  void navigateTo(TString volumeName);
 
   // Implement Interface functions to the TGeoManager to be
   // the same as for the VMC
 
   /// Return the current volume "off" upward in the geometrical tree ID and copy number
-  Int_t CurrentVolumeOffId(Int_t off, Int_t& copy) const;
+  Int_t currentVolumeOffId(Int_t off, Int_t& copy) const;
 
   /// Returns the current volume ID and copy number
-  Int_t CurrentVolumeId(Int_t& copy) const;
+  Int_t currentVolumeId(Int_t& copy) const;
 
   /// Returns the unique numeric identifier for volume name
-  Int_t VolumeId(const Text_t* name) const;
+  Int_t volumeId(const Text_t* name) const;
 
   /// Returns the unique numeric identifier for volume name
-  Int_t VolumeIdGeo(const char* name) const;
+  Int_t volumeIdGeo(const char* name) const;
 
   /// Returns the current volume name
-  const char* CurrentVolumeName() const;
+  const char* currentVolumeName() const;
 
   /// Returns the current volume "off" upward in the geometrical tree ID, name and copy number
   /// if name=0 no name is returned
-  const char* CurrentVolumeOffName(Int_t off) const;
+  const char* currentVolumeOffName(Int_t off) const;
 
-  void LocalToGlobal(Double_t* local, Double_t* global, Int_t detectorId);
+  void localToGlobal(Double_t* local, Double_t* global, Int_t detectorId);
 
   //  Int_t CheckGeometryVersion();
 
@@ -76,7 +76,7 @@ private:
   Double_t mGlobalCentre[3];  //! Global centre of volume
   TGeoHMatrix* mGlobalMatrix; //!
 
-  TString ConstructFullPathFromDetectorId(Int_t detectorId);
+  TString constructFullPathFromDetectorId(Int_t detectorId);
 
   GeometryHandler(const GeometryHandler&);
 

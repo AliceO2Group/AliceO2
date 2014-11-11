@@ -29,8 +29,8 @@ public:
   /// \param length Track length since creation [cm]
   /// \param eLoss Energy deposit [GeV]
   /// \param shunt Shunt value
-  Point(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom,
-        Double_t startTime, Double_t time, Double_t length, Double_t eLoss, Int_t shunt);
+  Point(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom, Double_t startTime, Double_t time,
+        Double_t length, Double_t eLoss, Int_t shunt);
 
   // Default Destructor
   virtual ~Point();
