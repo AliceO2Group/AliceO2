@@ -1,0 +1,3 @@
+#define O2PROTO1_MAGF_DIR "@CMAKE_SOURCE_DIR@/Resources/maps/mfchebKGI_sym.root"
+#define O2PROTO1_MAGF_CREATEFIELDMAP_DIR "@CMAKE_SOURCE_DIR@/Resources/maps/mfchebKGI_sym.root"
+

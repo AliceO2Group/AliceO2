@@ -171,3 +171,7 @@ WRITE_CONFIG_FILE(config.sh)
 configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
                ${CMAKE_BINARY_DIR}/CTestCustom.cmake
               )
+
+# Create an automatically generated config header file to pass file paths to the application
+configure_file(${PROJECT_SOURCE_DIR}/header/AliceO2Config.h.in
+               ${CMAKE_CURRENT_SOURCE_DIR}/header/AliceO2Config.h)

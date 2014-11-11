@@ -10,6 +10,8 @@
 #include "Data/DetectorList.h"
 #include "Data/Stack.h"
 
+#include "field/AliMagF.h"
+
 #include "FairVolume.h"
 #include "FairGeoVolume.h"
 #include "FairGeoNode.h"
@@ -24,6 +26,7 @@
 #include "TGeoTube.h"
 #include "TGeoVolume.h"
 #include "TVirtualMC.h"
+#include "TGeoGlobalMagField.h"
 
 #include <iostream>
 #include <Riostream.h>
@@ -330,12 +333,8 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
 void Detector::CreateMaterials()
 {
-  // Int_t   ifield = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
-  // Float_t fieldm = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();
-  // FIXME: values taken from the AliMagF constructor. These must (?) be provided by the run_sim
-  // macro instead
-  Int_t ifield = 2;
-  Float_t fieldm = 10.;
+  Int_t   ifield = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
+  Float_t fieldm = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();
 
   Float_t tmaxfd = 0.1;   // 1.0; // Degree
   Float_t stemax = 1.0;   // cm
