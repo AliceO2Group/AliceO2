@@ -7,18 +7,18 @@
  ********************************************************************************/
 
 // -------------------------------------------------------------------------
-// -----                    AliGeoCave  file                               -----
+// -----                    GeoCave  file                               -----
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
 /////////////////////////////////////////////////////////////
-// AliGeoCave
+// GeoCave
 //
 // Class for the geometry of the detector part CAVE
 //
 /////////////////////////////////////////////////////////////
 
-#include "AliGeoCave.h"
+#include "GeoCave.h"
 
 #include "FairGeoBasicShape.h"          // for FairGeoBasicShape
 #include "FairGeoMedia.h"               // for FairGeoMedia
@@ -32,9 +32,10 @@
 #include <iostream>                     // for cout
 
 using namespace std;
-ClassImp(AliGeoCave)
+using namespace AliceO2::Passive;
+ClassImp(AliceO2::Passive::GeoCave)
 
-AliGeoCave::AliGeoCave()
+GeoCave::GeoCave()
   : FairGeoSet(),
     name("cave")
 {
@@ -44,7 +45,7 @@ AliGeoCave::AliGeoCave()
   maxModules=1;
 }
 
-Bool_t AliGeoCave::read(fstream& fin,FairGeoMedia* media)
+Bool_t GeoCave::read(fstream& fin,FairGeoMedia* media)
 {
   // Reads the geometry from file
   if (!media) { return kFALSE; }
@@ -90,14 +91,14 @@ Bool_t AliGeoCave::read(fstream& fin,FairGeoMedia* media)
   return rc;
 }
 
-void AliGeoCave::addRefNodes()
+void GeoCave::addRefNodes()
 {
   // Adds the reference node
   FairGeoNode* volu=getVolume(name);
   if (volu) { masterNodes->Add(new FairGeoNode(*volu)); }
 }
 
-void AliGeoCave::write(fstream& fout)
+void GeoCave::write(fstream& fout)
 {
   // Writes the geometry to file
   fout.setf(ios::fixed,ios::floatfield);
@@ -112,7 +113,7 @@ void AliGeoCave::write(fstream& fout)
   }
 }
 
-void AliGeoCave::print()
+void GeoCave::print()
 {
   // Prints the geometry
   FairGeoNode* volu=getVolume(name);

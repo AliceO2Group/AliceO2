@@ -7,31 +7,32 @@
  ********************************************************************************/
 
 // -------------------------------------------------------------------------
-// -----                    AliCave  file                               -----
+// -----                    AliPassiveContFact  file                    -----
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
 
-#ifndef Cave_H
-#define Cave_H
+#ifndef ALICEO2_PASSIVE_CONTFACT_H
+#define ALICEO2_PASSIVE_CONTFACT_H
 
-#include "FairModule.h"                 // for FairModule
+#include "FairContFact.h"               // for FairContFact, etc
+#include "Rtypes.h"                     // for AliPassiveContFact::Class, etc
 
-#include "Rtypes.h"                     // for AliCave::Class, ClassDef, etc
+class FairParSet;
 
-class AliCave : public FairModule
+namespace AliceO2 {
+namespace Passive {
+
+class PassiveContFact : public FairContFact
 {
-  public:
-    AliCave(const char* name, const char* Title="Exp Cave");
-    AliCave();
-    virtual ~AliCave();
-    virtual void ConstructGeometry();
-
-
   private:
-    Double_t world[3];
-    ClassDef(AliCave,1) //PNDCaveSD
+    void setAllContainers();
+  public:
+    PassiveContFact();
+    virtual ~PassiveContFact() {;}
+    FairParSet* createContainer(FairContainer*);
+    ClassDef(AliceO2::Passive::PassiveContFact,0) // Factory for all Passive parameter containers
 };
-
-#endif //Cave_H
-
+}
+}
+#endif  /* !PNDPASSIVECONTFACT_H */

@@ -17,11 +17,11 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class  AliMagnet+;
-#pragma link C++ class  AliCave+;
-#pragma link C++ class AliGeoCave;
-#pragma link C++ class AliPassiveContFact;
-#pragma link C++ class  AliPipe+;
+#pragma link C++ class  AliceO2::Passive::Magnet+;
+#pragma link C++ class  AliceO2::Passive::Cave+;
+#pragma link C++ class  AliceO2::Passive::GeoCave;
+#pragma link C++ class  AliceO2::Passive::PassiveContFact;
+#pragma link C++ class  AliceO2::Passive::Pipe+;
 
 #endif
 

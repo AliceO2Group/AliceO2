@@ -7,11 +7,11 @@
  ********************************************************************************/
 
 // -------------------------------------------------------------------------
-// -----                    AliPipe  file                               -----
+// -----                    Pipe  file                               -----
 // -----                Created by M. Al-Turany  June 2014             -----
 // -------------------------------------------------------------------------
 
-#include "AliPipe.h"
+#include "Pipe.h"
 #include "TList.h"
 #include "TObjArray.h"
 
@@ -21,23 +21,24 @@
 #include "TGeoMedium.h"
 #include "TGeoManager.h"
 
+using namespace AliceO2::Passive;
 
-AliPipe::~AliPipe()
+Pipe::~Pipe()
 {
 }
-AliPipe::AliPipe()
+Pipe::Pipe()
   : FairModule()
 {
 }
 
-AliPipe::AliPipe(const char * name, const char * title)
+Pipe::Pipe(const char * name, const char * title)
   : FairModule(name ,title)
 {
 }
 
 
 // -----  ConstructGeometry  --------------------------------------------------
-void AliPipe::ConstructGeometry()
+void Pipe::ConstructGeometry()
 {
      TGeoVolume *top=gGeoManager->GetTopVolume();
     
@@ -60,7 +61,7 @@ void AliPipe::ConstructGeometry()
     }
     
     // ---> Volume
-    TGeoVolume* pipe = new TGeoVolume("AliPipe", shape, Carbon);
+    TGeoVolume* pipe = new TGeoVolume("Pipe", shape, Carbon);
     
     // --Now create the same but diameter less by Thikness and vacuum instead of Carbon
     TGeoPcon* Vshape = new TGeoPcon(0., 360., nSects);
@@ -69,7 +70,7 @@ void AliPipe::ConstructGeometry()
     }
     
     // ---> Volume
-    TGeoVolume* Vpipe = new TGeoVolume("AliPipe", shape, Vacuum);
+    TGeoVolume* Vpipe = new TGeoVolume("Pipe", shape, Vacuum);
     
     top->AddNode(pipe, 1);
     top->AddNode(Vpipe, 1);
@@ -80,5 +81,5 @@ void AliPipe::ConstructGeometry()
 
 
 
-ClassImp(AliPipe)
+ClassImp(AliceO2::Passive::Pipe)
 

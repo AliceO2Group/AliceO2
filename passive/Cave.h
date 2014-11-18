@@ -7,28 +7,33 @@
  ********************************************************************************/
 
 // -------------------------------------------------------------------------
-// -----                    AliMagnet  file                               -----
+// -----                    Cave  file                               -----
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
 
-#ifndef MAGNET_H
-#define MAGNET_H
+#ifndef ALICEO2_PASSIVE_Cave_H
+#define ALICEO2_PASSIVE_Cave_H
 
 #include "FairModule.h"                 // for FairModule
-#include "Rtypes.h"                     // for AliMagnet::Class, Bool_t, etc
-#include <string>                       // for string
+#include "Rtypes.h"                     // for ClassDef, etc
+namespace AliceO2 {
+namespace Passive {
 
-class AliMagnet : public FairModule
+class Cave : public FairModule
 {
   public:
-    AliMagnet(const char* name, const char* Title="MY Magnet");
-    AliMagnet();
-    virtual ~AliMagnet();
-    void ConstructGeometry();
-    ClassDef(AliMagnet,1)
+    Cave(const char* name, const char* Title="Exp Cave");
+    Cave();
+    virtual ~Cave();
+    virtual void ConstructGeometry();
 
+
+  private:
+    Double_t world[3];
+    ClassDef(AliceO2::Passive::Cave,1) //
 };
-
-#endif //MAGNET_H
+}
+}
+#endif //Cave_H
 

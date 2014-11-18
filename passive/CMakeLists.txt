@@ -20,11 +20,11 @@ ${FAIRROOT_LIBRARY_DIR}
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-AliCave.cxx           
-AliPipe.cxx 
-AliGeoCave.cxx        
-AliMagnet.cxx         
-AliPassiveContFact.cxx
+Cave.cxx 
+GeoCave.cxx          
+Pipe.cxx 
+Magnet.cxx         
+PassiveContFact.cxx
 )
 
 Set(HEADERS )

@@ -13,8 +13,8 @@
 // -------------------------------------------------------------------------
 
 
-#ifndef MYGEOCAVE_H
-#define MYGEOCAVE_H
+#ifndef ALICEO2_PASSIVE_GEOCAVE_H
+#define ALICEO2_PASSIVE_GEOCAVE_H
 
 #include "FairGeoSet.h"                 // for FairGeoSet
 #include "Riosfwd.h"                    // for fstream
@@ -24,20 +24,23 @@
 #include <fstream>                      // for fstream
 
 class FairGeoMedia;
+namespace AliceO2 {
+namespace Passive {
 
-class  AliGeoCave : public FairGeoSet
+class  GeoCave : public FairGeoSet
 {
   protected:
     TString name;
   public:
-    AliGeoCave();
-    ~AliGeoCave() {}
+    GeoCave();
+    ~GeoCave() {}
     const char* getModuleName(Int_t) {return name.Data();}
     Bool_t read(fstream&,FairGeoMedia*);
     void addRefNodes();
     void write(fstream&);
     void print();
-    ClassDef(AliGeoCave,0) // Class for the geometry of CAVE
+    ClassDef(AliceO2::Passive::GeoCave,0) // Class for the geometry of CAVE
 };
-
+}
+}
 #endif  /* !PNDGEOCAVE_H */

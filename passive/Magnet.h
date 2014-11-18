@@ -7,28 +7,33 @@
  ********************************************************************************/
 
 // -------------------------------------------------------------------------
-// -----                    AliPassiveContFact  file                    -----
+// -----                    Magnet  file                               -----
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
 
-#ifndef PNDPASSIVECONTFACT_H
-#define PNDPASSIVECONTFACT_H
+#ifndef ALICEO2_PASSIVE_MAGNET_H
+#define ALICEO2_PASSIVE_MAGNET_H
 
-#include "FairContFact.h"               // for FairContFact, etc
-#include "Rtypes.h"                     // for AliPassiveContFact::Class, etc
+#include "FairModule.h"                 // for FairModule
+#include "Rtypes.h"                     // for Magnet::Class, Bool_t, etc
+#include <string>                       // for string
+namespace AliceO2 {
+namespace Passive {
 
-class FairParSet;
-
-class AliPassiveContFact : public FairContFact
+class Magnet : public FairModule
 {
-  private:
-    void setAllContainers();
   public:
-    AliPassiveContFact();
-    ~AliPassiveContFact() {}
-    FairParSet* createContainer(FairContainer*);
-    ClassDef( AliPassiveContFact,0) // Factory for all Passive parameter containers
+    Magnet(const char* name, const char* Title="MY Magnet");
+    Magnet();
+    virtual ~Magnet();
+    void ConstructGeometry();
+    ClassDef(AliceO2::Passive::Magnet,1)
+
 };
 
-#endif  /* !PNDPASSIVECONTFACT_H */
+}
+}
+    
+#endif //MAGNET_H
+

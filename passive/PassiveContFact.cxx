@@ -7,7 +7,7 @@
  ********************************************************************************/
 
 // -------------------------------------------------------------------------
-// -----                    AliPassiveContFact  file                    -----
+// -----                    PassiveContFact  file                    -----
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
@@ -17,39 +17,36 @@
 
 /////////////////////////////////////////////////////////////
 //
-//  AliPassiveContFact
+//  PassiveContFact
 //
 //  Factory for the parameter containers in libPassive
 //
 /////////////////////////////////////////////////////////////
-#include "AliPassiveContFact.h"
-
+#include "PassiveContFact.h"
 #include "FairRuntimeDb.h"              // for FairRuntimeDb
-
 #include "TList.h"                      // for TList
 #include "TString.h"                    // for TString
-
 #include <string.h>                     // for strcmp, NULL
 
-class FairParSet;
 
 using namespace std;
+using namespace AliceO2::Passive;
 
-ClassImp(AliPassiveContFact)
+ClassImp(AliceO2::Passive::PassiveContFact)
 
-static AliPassiveContFact gAliPassiveContFact;
+static PassiveContFact gPassiveContFact;
 
-AliPassiveContFact::AliPassiveContFact()
+PassiveContFact::PassiveContFact()
   : FairContFact()
 {
   // Constructor (called when the library is loaded)
-  fName="AliPassiveContFact";
+  fName="PassiveContFact";
   fTitle="Factory for parameter containers in libPassive";
   setAllContainers();
   FairRuntimeDb::instance()->addContFactory(this);
 }
 
-void AliPassiveContFact::setAllContainers()
+void PassiveContFact::setAllContainers()
 {
   /** Creates the Container objects with all accepted contexts and adds them to
    *  the list of containers for the STS library.*/
@@ -62,7 +59,7 @@ void AliPassiveContFact::setAllContainers()
   containers->Add(p);
 }
 
-FairParSet* AliPassiveContFact::createContainer(FairContainer* c)
+FairParSet* PassiveContFact::createContainer(FairContainer* c)
 {
   /** Calls the constructor of the corresponding parameter container.
    * For an actual context, which is not an empty string and not the default context

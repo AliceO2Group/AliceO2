@@ -8,11 +8,11 @@
  ********************************************************************************/
 
 // -------------------------------------------------------------------------
-// -----                    AliCave  file                               -----
+// -----                    Cave  file                               -----
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
-#include "AliCave.h"
-#include "AliGeoCave.h"                // for AliGeoCave
+#include "Cave.h"
+#include "GeoCave.h"                // for AliGeoCave
 #include "FairGeoInterface.h"           // for FairGeoInterface
 #include "FairGeoLoader.h"              // for FairGeoLoader
 #include "FairGeoNode.h"                // for FairGeoNode
@@ -27,29 +27,33 @@
 
 #include <stddef.h>                     // for NULL
 
-ClassImp(AliCave)
+using namespace AliceO2::Passive;
 
-void AliCave::ConstructGeometry()
+ClassImp(AliceO2::Passive::Cave)
+
+
+
+void Cave::ConstructGeometry()
 {
   FairGeoLoader* loader=FairGeoLoader::Instance();
   FairGeoInterface* GeoInterface =loader->getGeoInterface();
-  AliGeoCave* MGeo=new AliGeoCave();
+  GeoCave* MGeo=new GeoCave();
   MGeo->setGeomFile(GetGeometryFileName());
   GeoInterface->addGeoModule(MGeo);
   Bool_t rc = GeoInterface->readSet(MGeo);
   if ( rc ) { MGeo->create(loader->getGeoBuilder()); }
  
 }
-AliCave::AliCave()
+Cave::Cave()
 :FairModule()
 {
 }
 
-AliCave::~AliCave()
+Cave::~Cave()
 {
 
 }
-AliCave::AliCave(const char* name,  const char* Title)
+Cave::Cave(const char* name,  const char* Title)
   : FairModule(name ,Title)
 {
   world[0] = 0;

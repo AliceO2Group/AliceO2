@@ -7,11 +7,11 @@
  ********************************************************************************/
 
 // -------------------------------------------------------------------------
-// -----                    AliMagnet  file                               -----
+// -----                    Magnet  file                               -----
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
-#include "AliMagnet.h"
+#include "Magnet.h"
 
 #include "TGeoManager.h"
 #include "FairRun.h"                    // for FairRun
@@ -29,22 +29,23 @@
 #include <stddef.h>                     // for NULL
 #include <iostream>                     // for operator<<, basic_ostream, etc
 
+using namespace AliceO2::Passive;
 
 
-AliMagnet::~AliMagnet()
+Magnet::~Magnet()
 {
 }
-AliMagnet::AliMagnet()
-  : FairModule("AliMagnet", "")
+Magnet::Magnet()
+  : FairModule("Magnet", "")
 {
 }
 
-AliMagnet::AliMagnet(const char* name, const char* Title)
+Magnet::Magnet(const char* name, const char* Title)
   : FairModule(name ,Title)
 {
 }
 
-void AliMagnet::ConstructGeometry()
+void Magnet::ConstructGeometry()
 {
    
     TGeoVolume *top=gGeoManager->GetTopVolume();
@@ -96,8 +97,7 @@ void AliMagnet::ConstructGeometry()
 }
 
 
-
-ClassImp(AliMagnet)
+ClassImp(AliceO2::Passive::Magnet)
 
 
 

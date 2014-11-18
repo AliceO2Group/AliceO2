@@ -25,8 +25,8 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   TStopwatch timer;
   timer.Start();
 
-  gSystem->Load("libAliceO2Base");
-  gSystem->Load("libAliceO2its");
+ // gSystem->Load("libAliceO2Base");
+ // gSystem->Load("libAliceO2its");
 
   // Create simulation run
   FairRunSim* run = new FairRunSim();
@@ -38,7 +38,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  FairModule* cave = new AliCave("CAVE");
+  AliceO2::Passive::Cave* cave = new AliceO2::Passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
