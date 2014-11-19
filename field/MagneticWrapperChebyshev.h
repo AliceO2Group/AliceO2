@@ -42,9 +42,6 @@ namespace Field {
 class MagneticWrapperChebyshev : public TNamed {
 
 public:
-    
-    
-    
   /// Default constructor
   MagneticWrapperChebyshev();
 

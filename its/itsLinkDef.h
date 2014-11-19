@@ -16,5 +16,4 @@
 #pragma link C++ class AliceO2::ITS::MisalignmentParameter+;
 #pragma link C++ class AliceO2::ITS::Point+;
 
-
 #endif
