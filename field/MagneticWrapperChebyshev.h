@@ -42,6 +42,9 @@ namespace Field {
 class MagneticWrapperChebyshev : public TNamed {
 
 public:
+    
+    
+    
   /// Default constructor
   MagneticWrapperChebyshev();
 
@@ -396,7 +399,7 @@ protected:
   TObjArray* mParameterizationDipole; ///< Parameterization pieces for Dipole field
 
   FairLogger* mLogger;
-  ClassDef(MagneticWrapperChebyshev, 1) // Wrapper class for the set of Chebishev parameterizations of Alice mag.field
+  ClassDef(AliceO2::Field::MagneticWrapperChebyshev, 2) // Wrapper class for the set of Chebishev parameterizations of Alice mag.field
 };
 
 /// Computes field in Cylindircal coordinates

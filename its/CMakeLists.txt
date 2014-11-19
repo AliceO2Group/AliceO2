@@ -30,7 +30,7 @@ Point.cxx
 )
 
 Set(LINKDEF itsLinkDef.h)
-Set(LIBRARY_NAME O2its)
+Set(LIBRARY_NAME its)
 Set(DEPENDENCIES
     Base
 )

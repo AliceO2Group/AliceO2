@@ -223,7 +223,7 @@ protected:
 
   FairLogger* mLogger;
 
-  ClassDef(MagneticField, 1) // Class for all Alice MagField wrapper for measured data + Tosca parameterization
+    ClassDef(AliceO2::Field::MagneticField, 2) // Class for all Alice MagField wrapper for measured data + Tosca parameterization
 };
 }
 }

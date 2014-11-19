@@ -46,7 +46,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   //  tpc->SetGeometry();
   //  run->AddModule(tpc);
 
-  TGeoGlobalMagField::Instance()->SetField(new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagneticField::k5kG));
+//  TGeoGlobalMagField::Instance()->SetField(new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagneticField::k5kG));
 
   AliceO2::Base::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
   run->AddModule(its);

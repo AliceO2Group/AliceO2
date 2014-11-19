@@ -26,8 +26,8 @@ Pythia8Generator.cxx
 )
 
 set(LINKDEF GeneratorsLinkDef.h)
-set(LIBRARY_NAME AliGen)
+set(LIBRARY_NAME Gen)
 
-set(DEPENDENCIES Base AliceO2Data pythia8 Pythia6)
+set(DEPENDENCIES Base O2Data pythia8 Pythia6)
 
 GENERATE_LIBRARY()

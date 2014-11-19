@@ -19,6 +19,7 @@ class TROOT;
 class stdio;
 class FairLogger;
 
+
 namespace AliceO2 {
 namespace Field {
 
@@ -54,6 +55,7 @@ namespace Field {
 /// H.Wind, CERN EP Internal Report, 81-12/Rev.
 class Chebyshev3D : public TNamed {
 public:
+    
   Chebyshev3D();
   Chebyshev3D(const Chebyshev3D& src);
   Chebyshev3D(const char* inpFile);
@@ -219,7 +221,7 @@ protected:
   TMethodCall* mUserMacro;   //! Pointer to MethodCall for function from user macro
   FairLogger* mLogger;       //!
 
-  ClassDef(Chebyshev3D, 1) // Chebyshev parametrization for 3D->N function
+  ClassDef(AliceO2::Field::Chebyshev3D, 2) // Chebyshev parametrization for 3D->N function
 };
 
 /// Checks if the point is inside of the fitted box

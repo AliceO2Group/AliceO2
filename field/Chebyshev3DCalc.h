@@ -17,10 +17,12 @@ class TSystem;
 
 namespace AliceO2 {
 namespace Field {
-
 class Chebyshev3DCalc : public TNamed {
 
 public:
+    
+  
+  
   /// Default constructor
   Chebyshev3DCalc();
   /// Copy constructor
@@ -156,7 +158,7 @@ protected:
   Float_t* mTemporaryCoefficients2D; //[mNumberOfColumns] temp. coeffs for 2d summation
   Float_t* mTemporaryCoefficients1D; //[mNumberOfRows] temp. coeffs for 1d summation
 
-  ClassDef(Chebyshev3DCalc, 1) // Class for interpolation of 3D->1 function by Chebyshev parametrization
+  ClassDef(AliceO2::Field::Chebyshev3DCalc, 2) // Class for interpolation of 3D->1 function by Chebyshev parametrization
 };
 
 /// Evaluates 1D Chebyshev parameterization. x is the argument mapped to [-1:1] interval

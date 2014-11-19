@@ -29,7 +29,7 @@ Chebyshev3DCalc.cxx
 
 Set(HEADERS)
 Set(LINKDEF fieldLinkDef.h)
-Set(LIBRARY_NAME AliceO2Field)
+Set(LIBRARY_NAME Field)
 Set(DEPENDENCIES Base EG Physics Cint Core)
 
 GENERATE_LIBRARY()
