@@ -31,15 +31,18 @@ void SetCuts()
   gMC->SetProcess("COMP",1); /**Compton scattering*/
   gMC->SetProcess("PHOT",1); /** photo electric effect */
   gMC->SetProcess("PFIS",0); /**photofission*/
-  gMC->SetProcess("DRAY",1); /**delta-ray*/
+  gMC->SetProcess("DRAY",0); /**delta-ray*/
   gMC->SetProcess("ANNI",1); /**annihilation*/
   gMC->SetProcess("BREM",1); /**bremsstrahlung*/
   gMC->SetProcess("HADR",1); /**hadronic process*/
   gMC->SetProcess("MUNU",1); /**muon nuclear interaction*/
   gMC->SetProcess("DCAY",1); /**decay*/
-  gMC->SetProcess("LOSS",1); /**energy loss*/
+  gMC->SetProcess("LOSS",2); /**energy loss*/
   gMC->SetProcess("MULS",1); /**multiple scattering*/
 
+  
+    
+  
   Double_t cut1 = 1.0E-3;         // GeV --> 1 MeV
   Double_t cutb = 1.0E4;          // GeV --> 10 TeV
   Double_t tofmax = 1.E10;        // seconds
