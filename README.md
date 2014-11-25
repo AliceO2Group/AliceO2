@@ -37,6 +37,7 @@ Alice O2 project software. Simulation and reconstraction software for the ALICE 
 3. Install the [AliceO2] (https://github.com/AliceO2Group/AliceO2) software
 
         git clone  https://github.com/AliceO2Group/AliceO2.git
+        cd AliceO2
         mkdir build_o2
         cd build_o2
         cmake ../
