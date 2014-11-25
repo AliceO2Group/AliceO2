@@ -2,7 +2,7 @@ set(INCLUDE_DIRECTORIES
   ${BASE_INCLUDE_DIRECTORIES} 
   ${ZMQ_INCLUDE_DIR}
   ${Boost_INCLUDE_DIR}
-  ${CMAKE_SOURCE_DIR}/devices/alicehlt
+  ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
 )
 
 include_directories(${INCLUDE_DIRECTORIES})

@@ -25,7 +25,7 @@ d) set up development clone
    git remote add --no-tags matthias gitolite@git.uio.no:u/mrichter/FairRoot
    git remote update matthias
    git branch --track alicehlt remotes/matthias/alicehlt
-   git checkout alicehlt # code can be found in example/alicehlt
+   git checkout alicehlt # code can be found in devices/aliceHLTwrapper
    make install # in the build directory
 
 
