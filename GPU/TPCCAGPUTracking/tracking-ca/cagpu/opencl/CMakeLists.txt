@@ -112,7 +112,7 @@ link_directories(${AMDAPPSDKROOT}/lib/x86_64)
 target_link_libraries(amdocl64 OpenCL)
 
 # Additional compilation flags
-set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "-O -g")
+set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
 
 *# Installation
 install(TARGETS ${MODULE}
