@@ -1,7 +1,7 @@
 #ifndef AliceO2_TPC_Detector_H_
 #define AliceO2_TPC_Detector_H_
 
-#include "base/Detector.h"
+#include "Base/Detector.h"
 
 #include "TVector3.h"
 #include "TLorentzVector.h"
