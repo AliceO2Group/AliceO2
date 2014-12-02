@@ -182,7 +182,7 @@ void MagneticWrapperChebyshev::copyFrom(const MagneticWrapperChebyshev& src)
            sizeof(Int_t) * mNumberOfDistinctRSegmentsSolenoid);
     mParameterizationSolenoid = new TObjArray(mNumberOfParameterizationSolenoid);
     for (int i = 0; i < mNumberOfParameterizationSolenoid; i++) {
-      mParameterizationSolenoid->AddAtAndExpand(new Chebyshev3D(*src.getParameterSolenoid(i)), i);
+      mParameterizationSolenoid->AddAtAndExpand(new AliceO2::MathUtils::Chebyshev3D(*src.getParameterSolenoid(i)), i);
     }
   }
 
@@ -212,7 +212,7 @@ void MagneticWrapperChebyshev::copyFrom(const MagneticWrapperChebyshev& src)
            sizeof(Int_t) * mNumberOfDistinctRSegmentsTPC);
     mParameterizationTPC = new TObjArray(mNumberOfParameterizationTPC);
     for (int i = 0; i < mNumberOfParameterizationTPC; i++) {
-      mParameterizationTPC->AddAtAndExpand(new Chebyshev3D(*src.getParameterTPCIntegral(i)), i);
+      mParameterizationTPC->AddAtAndExpand(new AliceO2::MathUtils::Chebyshev3D(*src.getParameterTPCIntegral(i)), i);
     }
   }
 
@@ -242,7 +242,7 @@ void MagneticWrapperChebyshev::copyFrom(const MagneticWrapperChebyshev& src)
            sizeof(Int_t) * mNumberOfDistinctRSegmentsTPCRat);
     mParameterizationTPCRat = new TObjArray(mNumberOfParameterizationTPCRat);
     for (int i = 0; i < mNumberOfParameterizationTPCRat; i++) {
-      mParameterizationTPCRat->AddAtAndExpand(new Chebyshev3D(*src.getParameterTPCRatIntegral(i)), i);
+      mParameterizationTPCRat->AddAtAndExpand(new AliceO2::MathUtils::Chebyshev3D(*src.getParameterTPCRatIntegral(i)), i);
     }
   }
 
@@ -271,7 +271,7 @@ void MagneticWrapperChebyshev::copyFrom(const MagneticWrapperChebyshev& src)
            sizeof(Int_t) * mNumberOfDistinctXSegmentsDipole);
     mParameterizationDipole = new TObjArray(mNumberOfParameterizationDipole);
     for (int i = 0; i < mNumberOfParameterizationDipole; i++) {
-      mParameterizationDipole->AddAtAndExpand(new Chebyshev3D(*src.getParameterDipole(i)), i);
+      mParameterizationDipole->AddAtAndExpand(new AliceO2::MathUtils::Chebyshev3D(*src.getParameterDipole(i)), i);
     }
   }
 }
@@ -419,7 +419,7 @@ void MagneticWrapperChebyshev::Field(const Double_t* xyz, Double_t* b) const
   if (iddip < 0) {
     return;
   }
-  Chebyshev3D* par = getParameterDipole(iddip);
+  AliceO2::MathUtils::Chebyshev3D* par = getParameterDipole(iddip);
 #ifndef _BRING_TO_BOUNDARY_
   if (!par->isInside(xyz)) {
     return;
@@ -441,7 +441,7 @@ Double_t MagneticWrapperChebyshev::getBz(const Double_t* xyz) const
   if (iddip < 0) {
     return 0.;
   }
-  Chebyshev3D* par = getParameterDipole(iddip);
+  AliceO2::MathUtils::Chebyshev3D* par = getParameterDipole(iddip);
 #ifndef _BRING_TO_BOUNDARY_
   if (!par->isInside(xyz)) {
     return 0.;
@@ -722,7 +722,7 @@ void MagneticWrapperChebyshev::fieldCylindricalSolenoid(const Double_t* rphiz, D
   if (id < 0) {
     return;
   }
-  Chebyshev3D* par = getParameterSolenoid(id);
+  AliceO2::MathUtils::Chebyshev3D* par = getParameterSolenoid(id);
 #ifndef _BRING_TO_BOUNDARY_ // exact matching to fitted volume is requested
   if (!par->isInside(rphiz)) {
     return;
@@ -738,7 +738,7 @@ Double_t MagneticWrapperChebyshev::fieldCylindricalSolenoidBz(const Double_t* rp
   if (id < 0) {
     return 0.;
   }
-  Chebyshev3D* par = getParameterSolenoid(id);
+  AliceO2::MathUtils::Chebyshev3D* par = getParameterSolenoid(id);
 #ifndef _BRING_TO_BOUNDARY_
   return par->isInside(rphiz) ? par->Eval(rphiz, 2) : 0;
 #else
@@ -758,7 +758,7 @@ void MagneticWrapperChebyshev::getTPCIntegralCylindrical(const Double_t* rphiz, 
     b[0] = b[1] = b[2] = 0;
     return;
   }
-  Chebyshev3D* par = getParameterTPCIntegral(id);
+  AliceO2::MathUtils::Chebyshev3D* par = getParameterTPCIntegral(id);
   if (par->isInside(rphiz)) {
     par->Eval(rphiz, b);
     return;
@@ -779,7 +779,7 @@ void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t* rphi
     b[0] = b[1] = b[2] = 0;
     return;
   }
-  Chebyshev3D* par = getParameterTPCRatIntegral(id);
+  AliceO2::MathUtils::Chebyshev3D* par = getParameterTPCRatIntegral(id);
   if (par->isInside(rphiz)) {
     par->Eval(rphiz, b);
     return;
@@ -788,7 +788,7 @@ void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t* rphi
   return;
 }
 
-#ifdef _INC_CREATION_ALICHEB3D_
+#ifdef _INC_CREATION_Chebyshev3D_
 
 void MagneticWrapperChebyshev::loadData(const char* inpfile)
 {
@@ -802,7 +802,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   }
 
   TString buffs;
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
 
   if (!buffs.BeginsWith("START")) {
     Error("LoadData", "Expected: \"START <name>\", found \"%s\"\nStop\n", buffs.Data());
@@ -814,43 +814,43 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   }
 
   // Solenoid part
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
 
   if (!buffs.BeginsWith("START SOLENOID")) {
     Error("LoadData", "Expected: \"START SOLENOID\", found \"%s\"\nStop\n", buffs.Data());
     exit(1);
   }
-  Chebyshev3DCalc::readLine(buffs, stream); // nparam
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream); // nparam
   int nparSol = buffs.Atoi();
 
   for (int ip = 0; ip < nparSol; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    AliceO2::MathUtils::Chebyshev3D* cheb = new AliceO2::MathUtils::Chebyshev3D();
     cheb->loadData(stream);
     addParameterSolenoid(cheb);
   }
 
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
   if (!buffs.BeginsWith("END SOLENOID")) {
     Error("LoadData", "Expected \"END SOLENOID\", found \"%s\"\nStop\n", buffs.Data());
     exit(1);
   }
 
   // TPCInt part
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
   if (!buffs.BeginsWith("START TPCINT")) {
     Error("LoadData", "Expected: \"START TPCINT\", found \"%s\"\nStop\n", buffs.Data());
     exit(1);
   }
-  Chebyshev3DCalc::readLine(buffs, stream); // nparam
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream); // nparam
   int nparTPCInt = buffs.Atoi();
 
   for (int ip = 0; ip < nparTPCInt; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    AliceO2::MathUtils::Chebyshev3D* cheb = new AliceO2::MathUtils::Chebyshev3D();
     cheb->loadData(stream);
-    AddParamTPCInt(cheb);
+    addParameterTPCIntegral(cheb);
   }
 
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
 
   if (!buffs.BeginsWith("END TPCINT")) {
     Error("LoadData", "Expected \"END TPCINT\", found \"%s\"\nStop\n", buffs.Data());
@@ -858,23 +858,23 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   }
 
   // TPCRatInt part
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
 
   if (!buffs.BeginsWith("START TPCRatINT")) {
     Error("LoadData", "Expected: \"START TPCRatINT\", found \"%s\"\nStop\n", buffs.Data());
     exit(1);
   }
 
-  Chebyshev3DCalc::readLine(buffs, stream); // nparam
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream); // nparam
   int nparTPCRatInt = buffs.Atoi();
 
   for (int ip = 0; ip < nparTPCRatInt; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    AliceO2::MathUtils::Chebyshev3D* cheb = new AliceO2::MathUtils::Chebyshev3D();
     cheb->loadData(stream);
-    AddParamTPCRatInt(cheb);
+    addParameterTPCRatIntegral(cheb);
   }
 
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
 
   if (!buffs.BeginsWith("END TPCRatINT")) {
     Error("LoadData", "Expected \"END TPCRatINT\", found \"%s\"\nStop\n", buffs.Data());
@@ -882,33 +882,33 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   }
 
   // Dipole part
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
 
   if (!buffs.BeginsWith("START DIPOLE")) {
     Error("LoadData", "Expected: \"START DIPOLE\", found \"%s\"\nStop\n", buffs.Data());
     exit(1);
   }
 
-  Chebyshev3DCalc::readLine(buffs, stream); // nparam
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream); // nparam
   int nparDip = buffs.Atoi();
 
   for (int ip = 0; ip < nparDip; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    AliceO2::MathUtils::Chebyshev3D* cheb = new AliceO2::MathUtils::Chebyshev3D();
     cheb->loadData(stream);
     addParameterDipole(cheb);
   }
 
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
 
   if (!buffs.BeginsWith("END DIPOLE")) {
     Error("LoadData", "Expected \"END DIPOLE\", found \"%s\"\nStop\n", buffs.Data());
     exit(1);
   }
 
-  Chebyshev3DCalc::readLine(buffs, stream);
+  AliceO2::MathUtils::Chebyshev3DCalc::readLine(buffs, stream);
 
-  if (!buffs.BeginsWith("END DIPOLE") || !buffs.Contains(GetName())) {
-    Error("LoadData", "Expected: \"END DIPOLE\", found \"%s\"\nStop\n", buffs.Data());
+  if (!buffs.BeginsWith("END ") && !buffs.Contains(GetName())) {
+    Error("LoadData", "Expected: \"END %s\", found \"%s\"\nStop\n", GetName(), buffs.Data());
     exit(1);
   }
 
@@ -958,7 +958,7 @@ void MagneticWrapperChebyshev::buildTableTPCRatIntegral()
 
 #endif
 
-#ifdef _INC_CREATION_ALICHEB3D_
+#ifdef _INC_CREATION_Chebyshev3D_
 MagneticWrapperChebyshev::MagneticWrapperChebyshev(const char* inputFile)
   : mNumberOfParameterizationSolenoid(0),
     mNumberOfDistinctZSegmentsSolenoid(0),
@@ -1027,48 +1027,48 @@ MagneticWrapperChebyshev::MagneticWrapperChebyshev(const char* inputFile)
   loadData(inputFile);
 }
 
-void MagneticWrapperChebyshev::addParameterSolenoid(const Chebyshev3D* param)
+void MagneticWrapperChebyshev::addParameterSolenoid(const AliceO2::MathUtils::Chebyshev3D* param)
 {
   if (!mParameterizationSolenoid) {
     mParameterizationSolenoid = new TObjArray();
   }
-  mParameterizationSolenoid->Add((Chebyshev3D*)param);
+  mParameterizationSolenoid->Add((AliceO2::MathUtils::Chebyshev3D*)param);
   mNumberOfParameterizationSolenoid++;
   if (mMaxRadiusSolenoid < param->getBoundMax(0)) {
     mMaxRadiusSolenoid = param->getBoundMax(0);
   }
 }
 
-void MagneticWrapperChebyshev::addParameterTPCIntegral(const Chebyshev3D* param)
+void MagneticWrapperChebyshev::addParameterTPCIntegral(const AliceO2::MathUtils::Chebyshev3D* param)
 {
   if (!mParameterizationTPC) {
     mParameterizationTPC = new TObjArray();
   }
-  mParameterizationTPC->Add((Chebyshev3D*)param);
+  mParameterizationTPC->Add((AliceO2::MathUtils::Chebyshev3D*)param);
   mNumberOfParameterizationTPC++;
   if (mMaxRadiusTPC < param->getBoundMax(0)) {
     mMaxRadiusTPC = param->getBoundMax(0);
   }
 }
 
-void MagneticWrapperChebyshev::addParameterTPCRatIntegral(const Chebyshev3D* param)
+void MagneticWrapperChebyshev::addParameterTPCRatIntegral(const AliceO2::MathUtils::Chebyshev3D* param)
 {
   if (!mParameterizationTPCRat) {
     mParameterizationTPCRat = new TObjArray();
   }
-  mParameterizationTPCRat->Add((Chebyshev3D*)param);
+  mParameterizationTPCRat->Add((AliceO2::MathUtils::Chebyshev3D*)param);
   mNumberOfParameterizationTPCRat++;
   if (mMaxRadiusTPCRat < param->getBoundMax(0)) {
     mMaxRadiusTPCRat = param->getBoundMax(0);
   }
 }
 
-void MagneticWrapperChebyshev::AddParamDipole(const Chebyshev3D* param)
+void MagneticWrapperChebyshev::addParameterDipole(const AliceO2::MathUtils::Chebyshev3D* param)
 {
   if (!mParameterizationDipole) {
     mParameterizationDipole = new TObjArray();
   }
-  mParameterizationDipole->Add((Chebyshev3D*)param);
+  mParameterizationDipole->Add((AliceO2::MathUtils::Chebyshev3D*)param);
   mNumberOfParameterizationDipole++;
 }
 
@@ -1248,7 +1248,7 @@ void MagneticWrapperChebyshev::buildTable(Int_t npar, TObjArray* parArr, Int_t& 
       for (int ix = 0; ix < nx; ix++) {
         xyz[0] = (tmpSegX[ix] + tmpSegX[ix + 1]) / 2.; // mean X of this segment
         for (int ipar = 0; ipar < npar; ipar++) {
-          Chebyshev3D* cheb = (Chebyshev3D*)parArr->At(ipar);
+          AliceO2::MathUtils::Chebyshev3D* cheb = (AliceO2::MathUtils::Chebyshev3D*)parArr->At(ipar);
           if (!cheb->isInside(xyz)) {
             continue;
           }
@@ -1355,7 +1355,7 @@ void MagneticWrapperChebyshev::buildTable(Int_t npar, TObjArray* parArr, Int_t& 
 //       for (int ix=0;ix<nx;ix++) {
 //   xyz[0] = (tmpSegX[ix]+tmpSegX[ix+1])/2.; // mean X of this segment
 //   for (int ipar=0;ipar<mNumberOfParameterizationDipole;ipar++) {
-//     Chebyshev3D* cheb = (Chebyshev3D*) mParameterizationDipole->At(ipar);
+//     AliceO2::MathUtils::Chebyshev3D* cheb = (AliceO2::MathUtils::Chebyshev3D*) mParameterizationDipole->At(ipar);
 //     if (!cheb->isInside(xyz)) continue;
 //     segID[mNumberOfDistinctXSegmentsDipole+ix] = ipar;
 //     break;
@@ -1440,7 +1440,7 @@ Int_t MagneticWrapperChebyshev::segmentDimension(float** seg, const TObjArray* p
   int* tmpInd = new int[2 * npar];
   int nseg0 = 0;
   for (int ip = 0; ip < npar; ip++) {
-    Chebyshev3D* cheb = (Chebyshev3D*)par->At(ip);
+    AliceO2::MathUtils::Chebyshev3D* cheb = (AliceO2::MathUtils::Chebyshev3D*)par->At(ip);
     if (xmn < xmx && (cheb->getBoundMin(0) > (xmx + xmn) / 2 || cheb->getBoundMax(0) < (xmn + xmx) / 2)) {
       continue;
     }

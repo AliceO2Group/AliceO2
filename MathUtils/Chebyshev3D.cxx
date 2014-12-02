@@ -14,13 +14,15 @@
 #include "Chebyshev3DCalc.h"
 #include "FairLogger.h"
 
-using namespace AliceO2::Field;
+using namespace AliceO2::MathUtils;
 
 ClassImp(Chebyshev3D)
 
+const Float_t Chebyshev3D::sMinimumPrecision = 1.e-12f;
+
 Chebyshev3D::Chebyshev3D()
   : mOutputArrayDimension(0),
-    mPrecision(0),
+    mPrecision(sMinimumPrecision),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
     mTemporaryUserResults(0),
@@ -111,11 +113,11 @@ Chebyshev3D::Chebyshev3D(FILE* stream)
 }
 
 #ifdef _INC_CREATION_Chebyshev3D_
-Chebyshev3D::Chebyshev3D(const char* funName, int DimOut, const Float_t* bmin, const Float_t* bmax, Int_t* npoints,
-                         Float_t prec)
+Chebyshev3D::Chebyshev3D(const char* funName, int dimOut, const Float_t* bmin, const Float_t* bmax, 
+			 const Int_t* npoints, Float_t prec, const Float_t* precD)
   : TNamed(funName, funName),
     mOutputArrayDimension(0),
-    mPrecision(TMath::Max(1.E-12f, prec)),
+    mPrecision(TMath::Max(sMinimumPrecision, prec)),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
     mTemporaryUserResults(0),
@@ -124,7 +126,7 @@ Chebyshev3D::Chebyshev3D(const char* funName, int DimOut, const Float_t* bmin, c
     mUserMacro(0),
     mLogger(FairLogger::GetLogger())
 {
-  if (DimOut < 1) {
+  if (dimOut < 1) {
     Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
     exit(1);
   }
@@ -134,7 +136,7 @@ Chebyshev3D::Chebyshev3D(const char* funName, int DimOut, const Float_t* bmin, c
     mTemporaryChebyshevGridOffs[i] = 0.;
     mTemporaryCoefficient[i] = 0;
   }
-  setDimOut(DimOut);
+  setDimOut(dimOut,precD);
   prepareBoundaries(bmin, bmax);
   defineGrid(npoints);
   setuserFunction(funName);
@@ -143,10 +145,10 @@ Chebyshev3D::Chebyshev3D(const char* funName, int DimOut, const Float_t* bmin, c
 #endif
 
 #ifdef _INC_CREATION_Chebyshev3D_
-Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin, Float_t* bmax, Int_t* npoints,
-                         Float_t prec)
+Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t* bmin, const Float_t* bmax, 
+			 const Int_t* npoints, Float_t prec, const Float_t* precD)
   : mOutputArrayDimension(0),
-    mPrecision(TMath::Max(1.E-12f, prec)),
+    mPrecision(TMath::Max(sMinimumPrecision, prec)),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
     mTemporaryUserResults(0),
@@ -155,11 +157,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin,
     mUserMacro(0),
     mLogger(FairLogger::GetLogger())
 {
-  if (DimOut < 1) {
-    Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
-    exit(1);
-  }
-  if (DimOut < 1) {
+  if (dimOut < 1) {
     Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
     exit(1);
   }
@@ -169,7 +167,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin,
     mTemporaryChebyshevGridOffs[i] = 0.;
     mTemporaryCoefficient[i] = 0;
   }
-  setDimOut(DimOut);
+  setDimOut(dimOut,precD);
   prepareBoundaries(bmin, bmax);
   defineGrid(npoints);
   setuserFunction(ptr);
@@ -178,10 +176,10 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin,
 #endif
 
 #ifdef _INC_CREATION_Chebyshev3D_
-Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin, Float_t* bmax, Int_t* npX, Int_t* npY,
-                         Int_t* npZ, Float_t prec)
+Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t* bmin, const Float_t* bmax, 
+			 const Int_t* npX, const Int_t* npY, const Int_t* npZ, Float_t prec, const Float_t* precD)
   : mOutputArrayDimension(0),
-    mPrecision(TMath::Max(1.E-12f, prec)),
+    mPrecision(TMath::Max(sMinimumPrecision, prec)),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
     mTemporaryUserResults(0),
@@ -190,11 +188,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin,
     mUserMacro(0),
     mLogger(FairLogger::GetLogger())
 {
-  if (DimOut < 1) {
-    Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
-    exit(1);
-  }
-  if (DimOut < 1) {
+  if (dimOut < 1) {
     Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
     exit(1);
   }
@@ -204,7 +198,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin,
     mTemporaryChebyshevGridOffs[i] = 0.;
     mTemporaryCoefficient[i] = 0;
   }
-  setDimOut(DimOut);
+  setDimOut(dimOut,precD);
   prepareBoundaries(bmin, bmax);
   setuserFunction(ptr);
 
@@ -218,10 +212,10 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin,
 #endif
 
 #ifdef _INC_CREATION_Chebyshev3D_
-Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin, Float_t* bmax, Float_t prec,
-                         Bool_t run)
+Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t* bmin, const Float_t* bmax, 
+			 Float_t prec, Bool_t run, const Float_t* precD)
   : mOutputArrayDimension(0),
-    mPrecision(TMath::Max(1.E-12f, prec)),
+    mPrecision(TMath::Max(sMinimumPrecision, prec)),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
     mTemporaryUserResults(0),
@@ -230,11 +224,11 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin,
     mUserMacro(0),
     mLogger(FairLogger::GetLogger())
 {
-  if (DimOut != 3) {
+  if (dimOut != 3) {
     Error("Chebyshev3D", "This constructor works only for 3D fits, %dD fit was requested\n", mOutputArrayDimension);
     exit(1);
   }
-  if (DimOut < 1) {
+  if (dimOut < 1) {
     Error("Chebyshev3D", "Requested output dimension is %d\nStop\n", mOutputArrayDimension);
     exit(1);
   }
@@ -244,7 +238,7 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin,
     mTemporaryChebyshevGridOffs[i] = 0.;
     mTemporaryCoefficient[i] = 0;
   }
-  setDimOut(DimOut);
+  setDimOut(dimOut, precD);
   prepareBoundaries(bmin, bmax);
   setuserFunction(ptr);
 
@@ -458,7 +452,7 @@ Int_t Chebyshev3D::calculateChebyshevCoefficients(const Float_t* funval, int np,
 #endif
 
 #ifdef _INC_CREATION_Chebyshev3D_
-void Chebyshev3D::defineGrid(Int_t* npoints)
+void Chebyshev3D::defineGrid(const Int_t* npoints)
 {
   // prepare the grid of Chebyshev roots in each dimension
   const int kMinPoints = 1;
@@ -519,14 +513,16 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
   Float_t* tmpCoef2D = new Float_t[mNumberOfPoints[0] * mNumberOfPoints[1]];
   Float_t* tmpCoef1D = new Float_t[maxDim];
 
-  Float_t rTiny = 0.1 * mPrecision / Float_t(maxDim); // neglect coefficient below this threshold
-
   // 1D Cheb.fit for 0-th dimension at current steps of remaining dimensions
   int ncmax = 0;
 
   printf("Dim%d : 00.00%% Done", dmOut);
   fflush(stdout);
   Chebyshev3DCalc* cheb = getChebyshevCalc(dmOut);
+
+  Float_t prec = cheb->getPrecision(); 
+  if (prec<sMinimumPrecision) prec = mPrecision;         // no specific precision for this dim.
+  Float_t rTiny = 0.1 * prec / Float_t(maxDim); // neglect coefficient below this threshold
 
   float ncals2count = mNumberOfPoints[2] * mNumberOfPoints[1] * mNumberOfPoints[0];
   float ncals = 0;
@@ -551,7 +547,7 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
           fflush(stdout);
         }
       }
-      int nc = calculateChebyshevCoefficients(fvals, mNumberOfPoints[0], tmpCoef1D, mPrecision);
+      int nc = calculateChebyshevCoefficients(fvals, mNumberOfPoints[0], tmpCoef1D, prec);
       for (int id0 = mNumberOfPoints[0]; id0--;) {
         tmpCoef2D[id1 + id0 * mNumberOfPoints[1]] = tmpCoef1D[id0];
       }
@@ -579,7 +575,7 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
   }
 
   // now find 2D surface which separates significant coefficients of 3D matrix from nonsignificant ones (up to
-  // mPrecision)
+  // prec)
   UShort_t* tmpCoefSurf = new UShort_t[mNumberOfPoints[0] * mNumberOfPoints[1]];
   for (int id0 = mNumberOfPoints[0]; id0--;) {
     for (int id1 = mNumberOfPoints[1]; id1--;) {
@@ -597,7 +593,7 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
           continue;
         } // neglect coefs below the threshold
         resid += cfa;
-        if (resid < mPrecision) {
+        if (resid < prec) {
           continue; // this coeff is negligible
         }
         // otherwise go back 1 step
@@ -638,9 +634,9 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
     nRows--;
   }
   // find max significant column and fill the permanent storage for the max sigificant column of each row
-  cheb->initRows(nRows); // create needed arrays;
+  cheb->initializeRows(nRows); // create needed arrays;
   UShort_t* nColsAtRow = cheb->getNumberOfColumnsAtRow();
-  UShort_t* colAtRowBg = cheb->GetColAtRowBg();
+  UShort_t* colAtRowBg = cheb->getColAtRowBg();
   int nCols = 0;
   int nElemBound2D = 0;
   for (int id0 = 0; id0 < nRows; id0++) {
@@ -651,12 +647,12 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
       nCols = nColsAtRow[id0];
     }
   }
-  cheb->initCols(nCols);
+  cheb->initializeColumns(nCols);
   delete[] tmpCols;
 
   // create the 2D matrix defining the boundary of significance for 3D coeffs.matrix
   // and count the number of siginifacnt coefficients
-  cheb->InitElemBound2D(nElemBound2D);
+  cheb->initializeElementBound2D(nElemBound2D);
   UShort_t* coefBound2D0 = cheb->getCoefficientBound2D0();
   UShort_t* coefBound2D1 = cheb->getCoefficientBound2D1();
   mMaxCoefficients = 0; // redefine number of coeffs
@@ -821,7 +817,7 @@ void Chebyshev3D::loadData(FILE* stream)
   }
 }
 
-void Chebyshev3D::setDimOut(const int d)
+void Chebyshev3D::setDimOut(const int d, const float* prec)
 {
   // init output dimensions
   mOutputArrayDimension = d;
@@ -831,6 +827,8 @@ void Chebyshev3D::setDimOut(const int d)
   mTemporaryUserResults = new Float_t[mOutputArrayDimension];
   mChebyshevParameter.Delete();
   for (int i = 0; i < d; i++) {
+    Chebyshev3DCalc* clc = new Chebyshev3DCalc();
+    clc->setPrecision(prec && prec[i]>sMinimumPrecision ? prec[i] : mPrecision);
     mChebyshevParameter.AddAtAndExpand(new Chebyshev3DCalc(), i);
   }
 }
@@ -860,6 +858,10 @@ TH1* Chebyshev3D::TestRMS(int idim, int npoints, TH1* histo)
   if (!histo) {
     histo = new TH1D(GetName(), "Control: Function - Parametrization", 100, -2 * mPrecision, 2 * mPrecision);
   }
+
+  float prc = getChebyshevCalc(idim)->getPrecision();
+  if (prc<sMinimumPrecision) prc = mPrecision;   // no dimension specific precision
+ 
   for (int ip = npoints; ip--;) {
     gRandom->RndmArray(3, (Float_t*)mTemporaryCoefficient);
     for (int i = 3; i--;) {
@@ -877,7 +879,7 @@ TH1* Chebyshev3D::TestRMS(int idim, int npoints, TH1* histo)
 
 #ifdef _INC_CREATION_Chebyshev3D_
 
-void Chebyshev3D::estimateNumberOfPoints(float Prec, int gridBC[3][3], Int_t npd1, Int_t npd2, Int_t npd3)
+void Chebyshev3D::estimateNumberOfPoints(float prec, int gridBC[3][3], Int_t npd1, Int_t npd2, Int_t npd3)
 {
   // Estimate number of points to generate a training data
   const int kScp = 9;
@@ -904,7 +906,7 @@ void Chebyshev3D::estimateNumberOfPoints(float Prec, int gridBC[3][3], Int_t npd
       xyz[id1] = mMinBoundaries[id1] + kScl[i1] * (mMaxBoundaries[id1] - mMinBoundaries[id1]);
       for (int i2 = 0; i2 < kScp; i2++) {
         xyz[id2] = mMinBoundaries[id2] + kScl[i2] * (mMaxBoundaries[id2] - mMinBoundaries[id2]);
-        int* npt = getNcNeeded(xyz, idim, dimMN, dimMX, Prec, npdTst[idim]); // npoints for Bx,By,Bz
+        int* npt = getNcNeeded(xyz, idim, dimMN, dimMX, prec, npdTst[idim]); // npoints for Bx,By,Bz
         for (int ib = 0; ib < 3; ib++) {
           if (npt[ib] > gridBC[ib][idim]) {
             gridBC[ib][idim] = npt[ib];
