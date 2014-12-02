@@ -2,8 +2,8 @@
 /// \brief Definition of the Cheb3D class
 /// \author ruben.shahoyan@cern.ch 09/09/2006
 
-#ifndef ALICEO2_FIELD_CHEBYSHEV3D_H_
-#define ALICEO2_FIELD_CHEBYSHEV3D_H_
+#ifndef ALICEO2_MATHUTILS_CHEBYSHEV3D_H_
+#define ALICEO2_MATHUTILS_CHEBYSHEV3D_H_
 
 #include <TNamed.h>
 #include <TObjArray.h>
@@ -21,7 +21,7 @@ class FairLogger;
 
 
 namespace AliceO2 {
-namespace Field {
+namespace MathUtils {
 
 /// Chebyshev3D produces the interpolation of the user 3D->NDimOut arbitrary function supplied in
 /// "void (*fcn)(float* inp,float* out)" format either in a separate macro file or as a function pointer. Only
@@ -69,9 +69,10 @@ public:
   /// \param bmax    : array of 3 elements with the upper boundaries of the region where the function is defined
   /// \param npoints : array of 3 elements with the number of points to compute in each of 3 dimension
   /// \param prec    : max allowed absolute difference between the user function and computed parameterization on the
-  /// requested grid
-  Chebyshev3D(const char* funName, Int_t DimOut, const Float_t* bmin, const Float_t* bmax, Int_t* npoints,
-              Float_t prec = 1E-6);
+  /// requested grid, common for all 1D components
+  /// \param precD   : optional precison per component
+  Chebyshev3D(const char* funName, Int_t dimOut, const Float_t* bmin, const Float_t* bmax, const Int_t* npoints,
+              Float_t prec = 1E-6, const Float_t* precD=0);
   /// Construct the parameterization for the function
   /// \param ptr     : pointer on the function: void fun(Float_t * inp,Float_t * out)
   /// \param DimOut  : dimension of the vector computed by the user function
@@ -79,9 +80,10 @@ public:
   /// \param bmax    : array of 3 elements with the upper boundaries of the region where the function is defined
   /// \param npoints : array of 3 elements with the number of points to compute in each of 3 dimension
   /// \param prec    : max allowed absolute difference between the user function and computed parameterization on the
-  /// requested grid
-  Chebyshev3D(void (*ptr)(float*, float*), Int_t DimOut, Float_t* bmin, Float_t* bmax, Int_t* npoints,
-              Float_t prec = 1E-6);
+  /// requested grid, common for all 1D components
+  /// \param precD   : optional precison per component
+  Chebyshev3D(void (*ptr)(float*, float*), Int_t dimOut, const Float_t* bmin, const Float_t* bmax, const Int_t* npoints,
+              Float_t prec = 1E-6, const Float_t* precD=0);
   /// Construct very economic  parameterization for the function
   /// \param ptr     : pointer on the function: void fun(Float_t * inp,Float_t * out)
   /// \param DimOut  : dimension of the vector computed by the user function
@@ -91,18 +93,21 @@ public:
   /// \param npY     : array of 3 elements with the number of points to compute in each dimension for 2nd component
   /// \param npZ     : array of 3 elements with the number of points to compute in each dimension for 3d  component
   /// \param prec    : max allowed absolute difference between the user function and computed parameterization on the
-  /// requested grid
-  Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin, Float_t* bmax, Int_t* npX, Int_t* npY, Int_t* npZ,
-              Float_t prec = 1E-6);
+  /// requested grid, common for all 1D components
+  /// \param precD   : optional precison per component
+  Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t* bmin, const Float_t* bmax, 
+	      const Int_t* npX, const Int_t* npY, const Int_t* npZ,
+              Float_t prec = 1E-6, const Float_t* precD=0);
   /// Construct very economic  parameterization for the function with automatic calculation of the root's grid
   /// \param ptr     : pointer on the function: void fun(Float_t * inp,Float_t * out)
   /// \param DimOut  : dimension of the vector computed by the user function
   /// \param bmin    : array of 3 elements with the lower boundaries of the region where the function is defined
   /// \param bmax    : array of 3 elements with the upper boundaries of the region where the function is defined
   /// \param prec    : max allowed absolute difference between the user function and computed parameterization on the
-  /// \param requested grid
-  Chebyshev3D(void (*ptr)(float*, float*), int DimOut, Float_t* bmin, Float_t* bmax, Float_t prec = 1E-6,
-              Bool_t run = kTRUE);
+  /// \param requested grid, common for all 1D components
+  /// \param precD   : optional precison per component
+  Chebyshev3D(void (*ptr)(float*, float*), int DimOut, const Float_t* bmin, const Float_t* bmax, Float_t prec = 1E-6,
+              Bool_t run = kTRUE, const Float_t* precD=0);
 #endif
 
   ~Chebyshev3D()
@@ -163,8 +168,8 @@ public:
 
 #ifdef _INC_CREATION_Chebyshev3D_
   void invertSign();
-  int* getNcNeeded(float xyz[3], int DimVar, float mn, float mx, float prec, Int_t npCheck = 30);
-  void estimateNumberOfPoints(float Prec, int gridBC[3][3], Int_t npd1 = 30, Int_t npd2 = 30, Int_t npd3 = 30);
+  int* getNcNeeded(float xyz[3], int dimVar, float mn, float mx, float prec, Int_t npCheck = 30);
+  void estimateNumberOfPoints(float prec, int gridBC[3][3], Int_t npd1 = 30, Int_t npd2 = 30, Int_t npd3 = 30);
   void saveData(const char* outfile, Bool_t append = kFALSE) const;
   void saveData(FILE* stream = stdout) const;
 
@@ -177,12 +182,12 @@ public:
 
 protected:
   void Clear(const Option_t* option = "");
-  void setDimOut(const int d);
+  void setDimOut(const int d, const float* prec=0);
   void prepareBoundaries(const Float_t* bmin, const Float_t* bmax);
 
 #ifdef _INC_CREATION_Chebyshev3D_
   void evaluateUserFunction();
-  void defineGrid(Int_t* npoints);
+  void defineGrid(const Int_t* npoints);
   Int_t chebyshevFit(); // fit all output dimensions
   Int_t chebyshevFit(int dmOut);
   void setPrecision(float prec)
@@ -221,7 +226,9 @@ protected:
   TMethodCall* mUserMacro;   //! Pointer to MethodCall for function from user macro
   FairLogger* mLogger;       //!
 
-  ClassDef(AliceO2::Field::Chebyshev3D, 2) // Chebyshev parametrization for 3D->N function
+  static const Float_t sMinimumPrecision; ///< minimum precision allowed
+
+  ClassDef(AliceO2::MathUtils::Chebyshev3D, 2) // Chebyshev parametrization for 3D->N function
 };
 
 /// Checks if the point is inside of the fitted box

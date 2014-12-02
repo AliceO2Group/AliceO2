@@ -2,21 +2,21 @@
 /// \brief Definition of the Cheb3DCalc class
 /// \author ruben.shahoyan@cern.ch 09/09/2006
 
-#ifndef ALICEO2_FIELD_CHEBYSHEV3DCALC_H_
-#define ALICEO2_FIELD_CHEBYSHEV3DCALC_H_
+#ifndef ALICEO2_MATHUTILS_CHEBYSHEV3DCALC_H_
+#define ALICEO2_MATHUTILS_CHEBYSHEV3DCALC_H_
 
 #include <TNamed.h>
 class TSystem;
 
 // To decrease the compilable code size comment this define. This will exclude the routines
 // used for the calculation and saving of the coefficients.
-//#define _INC_CREATION_ALICHEB3D_
+#define _INC_CREATION_Chebyshev3D_
 
 // When _BRING_TO_BOUNDARY_ is defined, the point outside of the fitted folume is assumed to be on the surface
 // #define _BRING_TO_BOUNDARY_
 
 namespace AliceO2 {
-namespace Field {
+namespace MathUtils {
 class Chebyshev3DCalc : public TNamed {
 
 public:
@@ -52,7 +52,7 @@ public:
   /// VERY IMPORTANT: par must contain the function arguments ALREADY MAPPED to [-1:1] interval
   Float_t evaluateDerivative2(int dim1, int dim2, const Float_t* par) const;
 
-#ifdef _INC_CREATION_ALICHEB3D_
+#ifdef _INC_CREATION_Chebyshev3D_
   /// Writes coefficients data to output text file, optionally appending on the end of existing file
   void saveData(const char* outfile, Bool_t append = kFALSE) const;
 
@@ -95,9 +95,20 @@ public:
     return mNumberOfColumnsAtRow;
   }
 
-  UShort_t* GetColAtRowBg() const
+  UShort_t* getColAtRowBg() const
   {
     return mColumnAtRowBeginning;
+  }
+
+  Float_t getPrecision() const
+  {
+    return mPrecision;
+  }
+
+  /// Sets requested precision
+  void setPrecision(Float_t prc=1e-6) 
+  {
+    mPrecision = prc;
   }
 
   /// Sets maximum number of significant coefficients for given row/column of coefficients 3D matrix
@@ -143,6 +154,7 @@ protected:
   Int_t mNumberOfRows;            ///< number of significant rows in the 3D coeffs matrix
   Int_t mNumberOfColumns;         ///< max number of significant cols in the 3D coeffs matrix
   Int_t mNumberOfElementsBound2D; ///< number of elements (mNumberOfRows*mNumberOfColumns) to store for the 2D boundary
+  Float_t mPrecision;             ///< requested precision
   /// of significant coeffs
   UShort_t*
     mNumberOfColumnsAtRow; //[mNumberOfRows] number of sighificant columns (2nd dim) at each row of 3D coefs matrix
@@ -158,7 +170,7 @@ protected:
   Float_t* mTemporaryCoefficients2D; //[mNumberOfColumns] temp. coeffs for 2d summation
   Float_t* mTemporaryCoefficients1D; //[mNumberOfRows] temp. coeffs for 1d summation
 
-  ClassDef(AliceO2::Field::Chebyshev3DCalc, 2) // Class for interpolation of 3D->1 function by Chebyshev parametrization
+  ClassDef(AliceO2::MathUtils::Chebyshev3DCalc, 2) // Class for interpolation of 3D->1 function by Chebyshev parametrization
 };
 
 /// Evaluates 1D Chebyshev parameterization. x is the argument mapped to [-1:1] interval

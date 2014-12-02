@@ -6,7 +6,7 @@
 #include <TSystem.h>
 #include "Chebyshev3DCalc.h"
 
-using namespace AliceO2::Field;
+using namespace AliceO2::MathUtils;
 
 ClassImp(Chebyshev3DCalc)
 
@@ -15,6 +15,7 @@ Chebyshev3DCalc::Chebyshev3DCalc()
     mNumberOfRows(0),
     mNumberOfColumns(0),
     mNumberOfElementsBound2D(0),
+    mPrecision(0),
     mNumberOfColumnsAtRow(0),
     mColumnAtRowBeginning(0),
     mCoefficientBound2D0(0),
@@ -31,6 +32,7 @@ Chebyshev3DCalc::Chebyshev3DCalc(const Chebyshev3DCalc& src)
     mNumberOfRows(src.mNumberOfRows),
     mNumberOfColumns(src.mNumberOfColumns),
     mNumberOfElementsBound2D(src.mNumberOfElementsBound2D),
+    mPrecision(src.mPrecision),
     mNumberOfColumnsAtRow(0),
     mColumnAtRowBeginning(0),
     mCoefficientBound2D0(0),
@@ -82,6 +84,7 @@ Chebyshev3DCalc::Chebyshev3DCalc(FILE* stream)
     mNumberOfRows(0),
     mNumberOfColumns(0),
     mNumberOfElementsBound2D(0),
+    mPrecision(0),
     mNumberOfColumnsAtRow(0),
     mColumnAtRowBeginning(0),
     mCoefficientBound2D0(0),
@@ -102,6 +105,7 @@ Chebyshev3DCalc& Chebyshev3DCalc::operator=(const Chebyshev3DCalc& rhs)
     mNumberOfCoefficients = rhs.mNumberOfCoefficients;
     mNumberOfRows = rhs.mNumberOfRows;
     mNumberOfColumns = rhs.mNumberOfColumns;
+    mPrecision = rhs.mPrecision;
     if (rhs.mNumberOfColumnsAtRow) {
       mNumberOfColumnsAtRow = new UShort_t[mNumberOfRows];
       for (int i = mNumberOfRows; i--;) {
@@ -176,7 +180,8 @@ void Chebyshev3DCalc::Clear(const Option_t*)
 
 void Chebyshev3DCalc::Print(const Option_t*) const
 {
-  printf("Chebyshev parameterization data %s for 3D->1 function.\n", GetName());
+  printf("Chebyshev parameterization data %s for 3D->1 function, precision: %e\n", 
+	 GetName(),mPrecision);
   int nmax3d = 0;
   for (int i = mNumberOfElementsBound2D; i--;) {
     if (mCoefficientBound2D0[i] > nmax3d) {
@@ -258,7 +263,7 @@ Float_t Chebyshev3DCalc::evaluateDerivative2(int dim1, int dim2, const Float_t* 
            : chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
 }
 
-#ifdef _INC_CREATION_ALICHEB3D_
+#ifdef _INC_CREATION_Chebyshev3D_
 void Chebyshev3DCalc::saveData(const char* outfile, Bool_t append) const
 {
   TString strf = outfile;
@@ -269,7 +274,7 @@ void Chebyshev3DCalc::saveData(const char* outfile, Bool_t append) const
 }
 #endif
 
-#ifdef _INC_CREATION_ALICHEB3D_
+#ifdef _INC_CREATION_Chebyshev3D_
 void Chebyshev3DCalc::saveData(FILE* stream) const
 {
   fprintf(stream, "#\nSTART %s\n", GetName());
@@ -289,6 +294,9 @@ void Chebyshev3DCalc::saveData(FILE* stream) const
   for (int i = 0; i < mNumberOfCoefficients; i++) {
     fprintf(stream, "%+.8e\n", mCoefficients[i]);
   }
+  fprintf(stream,"# Precision\n");
+  fprintf(stream,"%+.8e\n",mPrecision);
+  //
   fprintf(stream, "END %s\n", GetName());
 }
 #endif
@@ -315,7 +323,7 @@ void Chebyshev3DCalc::loadData(FILE* stream)
   readLine(buffs, stream); // NRows
   mNumberOfRows = buffs.Atoi();
 
-  if (mNumberOfRows < 1) {
+  if (mNumberOfRows < 0 || !buffs.IsDigit()) {
     Error("LoadData", "Expected: '<number_of_rows>', found \"%s\"\nStop\n", buffs.Data());
     exit(1);
   }
@@ -345,16 +353,15 @@ void Chebyshev3DCalc::loadData(FILE* stream)
     mNumberOfCoefficients += mCoefficientBound2D0[i];
   }
 
-  if (mNumberOfCoefficients <= 0) {
-    Error("LoadData", "Negtive (%d) number of Chebychef coeffs. is obtained.\nStop\n", mNumberOfCoefficients);
-    exit(1);
-  }
-
   initializeCoefficients(mNumberOfCoefficients);
   for (int i = 0; i < mNumberOfCoefficients; i++) {
     readLine(buffs, stream);
     mCoefficients[i] = buffs.Atof();
   }
+  // read precision
+  readLine(buffs,stream);
+  mPrecision = buffs.Atof();
+
   // check end_of_data record
   readLine(buffs, stream);
   if (!buffs.BeginsWith("END") || !buffs.Contains(GetName())) {
@@ -380,19 +387,24 @@ void Chebyshev3DCalc::initializeRows(int nr)
 {
   if (mNumberOfColumnsAtRow) {
     delete[] mNumberOfColumnsAtRow;
+    mNumberOfColumnsAtRow = 0;
   }
   if (mColumnAtRowBeginning) {
     delete[] mColumnAtRowBeginning;
+    mColumnAtRowBeginning = 0;
   }
   if (mTemporaryCoefficients1D) {
     delete[] mTemporaryCoefficients1D;
+    mTemporaryCoefficients1D = 0;
   }
   mNumberOfRows = nr;
-  mNumberOfColumnsAtRow = new UShort_t[mNumberOfRows];
-  mTemporaryCoefficients1D = new Float_t[mNumberOfRows];
-  mColumnAtRowBeginning = new UShort_t[mNumberOfRows];
-  for (int i = mNumberOfRows; i--;) {
-    mNumberOfColumnsAtRow[i] = mColumnAtRowBeginning[i] = 0;
+  if (mNumberOfRows) {
+    mNumberOfColumnsAtRow = new UShort_t[mNumberOfRows];
+    mTemporaryCoefficients1D = new Float_t[mNumberOfRows];
+    mColumnAtRowBeginning = new UShort_t[mNumberOfRows];
+    for (int i = mNumberOfRows; i--;) {
+      mNumberOfColumnsAtRow[i] = mColumnAtRowBeginning[i] = 0;
+    }
   }
 }
 
@@ -401,23 +413,28 @@ void Chebyshev3DCalc::initializeColumns(int nc)
   mNumberOfColumns = nc;
   if (mTemporaryCoefficients2D) {
     delete[] mTemporaryCoefficients2D;
+    mTemporaryCoefficients2D = 0;
   }
-  mTemporaryCoefficients2D = new Float_t[mNumberOfColumns];
+  if (mNumberOfColumns) mTemporaryCoefficients2D = new Float_t[mNumberOfColumns];
 }
 
 void Chebyshev3DCalc::initializeElementBound2D(int ne)
 {
   if (mCoefficientBound2D0) {
     delete[] mCoefficientBound2D0;
+    mCoefficientBound2D0 = 0;
   }
   if (mCoefficientBound2D1) {
     delete[] mCoefficientBound2D1;
+    mCoefficientBound2D1 = 0;
   }
   mNumberOfElementsBound2D = ne;
-  mCoefficientBound2D0 = new UShort_t[mNumberOfElementsBound2D];
-  mCoefficientBound2D1 = new UShort_t[mNumberOfElementsBound2D];
-  for (int i = mNumberOfElementsBound2D; i--;) {
-    mCoefficientBound2D0[i] = mCoefficientBound2D1[i] = 0;
+  if (mNumberOfElementsBound2D) {
+    mCoefficientBound2D0 = new UShort_t[mNumberOfElementsBound2D];
+    mCoefficientBound2D1 = new UShort_t[mNumberOfElementsBound2D];
+    for (int i = mNumberOfElementsBound2D; i--;) {
+      mCoefficientBound2D0[i] = mCoefficientBound2D1[i] = 0;
+    }
   }
 }
 
@@ -425,11 +442,14 @@ void Chebyshev3DCalc::initializeCoefficients(int nc)
 {
   if (mCoefficients) {
     delete[] mCoefficients;
+    mCoefficients = 0;
   }
   mNumberOfCoefficients = nc;
-  mCoefficients = new Float_t[mNumberOfCoefficients];
-  for (int i = mNumberOfCoefficients; i--;) {
-    mCoefficients[i] = 0.0;
+  if (mNumberOfCoefficients) {
+    mCoefficients = new Float_t[mNumberOfCoefficients];
+    for (int i = mNumberOfCoefficients; i--;) {
+      mCoefficients[i] = 0.0;
+    }
   }
 }
 
