@@ -1,6 +1,8 @@
 set(INCLUDE_DIRECTORIES
   ${BASE_INCLUDE_DIRECTORIES} 
   ${Boost_INCLUDE_DIR}
+  ${FAIRROOT_INCLUDE_DIR}
+  ${AlFa_DIR}/include
   ${CMAKE_SOURCE_DIR}/devices/flp2epn
 )
 
@@ -12,6 +14,7 @@ configure_file( ${CMAKE_SOURCE_DIR}/devices/flp2epn/run/startMerger.sh.in ${CMAK
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
   ${FAIRROOT_LIBRARY_DIR}
+  ${AlFa_DIR}/lib
 )
 
 link_directories(${LINK_DIRECTORIES})
