@@ -16,23 +16,30 @@ project(ALICEO2)
 #ENABLE_LANGUAGE(Fortran)
 
 # Check for needed environment variables
-IF(NOT DEFINED ENV{FAIRROOTPATH})
-  MESSAGE(FATAL_ERROR "You did not define the environment variable FAIRROOTPATH which is needed to find FairRoot. Please set this variable and execute cmake again.")
-ENDIF(NOT DEFINED ENV{FAIRROOTPATH})
+#If not stop execution unless modular build is activated
+Option(ALICEO2_MODULAR_BUILD "Modular build without environment variables" OFF)
+if(NOT ALICEO2_MODULAR_BUILD)
+  IF(NOT DEFINED ENV{FAIRROOTPATH})
+    MESSAGE(FATAL_ERROR "You did not define the environment variable FAIRROOTPATH which is needed to find FairRoot. Please set this variable and execute cmake again.")
+  ENDIF(NOT DEFINED ENV{FAIRROOTPATH})
 
-IF(NOT DEFINED ENV{SIMPATH})
-   MESSAGE(FATAL_ERROR "You did not define the environment variable SIMPATH which is nedded to find the external packages. Please set this variable and execute cmake again.")
-ENDIF(NOT DEFINED ENV{SIMPATH})
+  IF(NOT DEFINED ENV{SIMPATH})
+     MESSAGE(FATAL_ERROR "You did not define the environment variable SIMPATH which is nedded to find the external packages. Please set this variable and execute cmake again.")
+  ENDIF(NOT DEFINED ENV{SIMPATH})
 
-SET(SIMPATH $ENV{SIMPATH})
-SET(FAIRROOTPATH $ENV{FAIRROOTPATH})
+  SET(SIMPATH $ENV{SIMPATH})
+  SET(FAIRROOTPATH $ENV{FAIRROOTPATH})
 
-# where to look first for cmake modules, before ${CMAKE_ROOT}/Modules/
-# is checked
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
-set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules"  ${CMAKE_MODULE_PATH})
+  # where to look first for cmake modules, before ${CMAKE_ROOT}/Modules/
+  # is checked
+  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
+  set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules"  ${CMAKE_MODULE_PATH})
+  set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules_old"  ${CMAKE_MODULE_PATH})
 
-Set(CheckSrcDir "${FAIRROOTPATH}/share/fairbase/cmake/checks")
+  Set(CheckSrcDir "${FAIRROOTPATH}/share/fairbase/cmake/checks")
+else(NOT ALICEO2_MODULAR_BUILD)
+  find_package(Boost REQUIRED)
+endif(NOT ALICEO2_MODULAR_BUILD)
 
 find_package(FairRoot)
 
@@ -88,32 +95,42 @@ CHECK_EXTERNAL_PACKAGE_INSTALL_DIR()
 
 find_package(ROOT 5.32.00 REQUIRED)
 find_package(Pythia8)
-find_package(GENERATORS REQUIRED)
-find_package(GEANT3 REQUIRED)
-find_package(GEANT4)
-find_package(GEANT4DATA)
-find_package(GEANT4VMC)
-find_package(CLHEP)
+find_package(Pythia6)
+if(ALICEO2_MODULAR_BUILD)
+  # Geant3, Geant4 installed via cmake
+  find_package(Geant3 REQUIRED)
+  find_package(Geant4 REQUIRED)
+else(ALICEO2_MODULAR_BUILD)
+  # For old versions of VMC packages (to be removed)
+  find_package(GEANT3 REQUIRED)
+  find_package(GEANT4)
+  find_package(GEANT4DATA)
+  find_package(GEANT4VMC)
+  find_package(CLHEP)
+endif(ALICEO2_MODULAR_BUILD)
 find_package(CERNLIB)
 find_package(HEPMC)
 
-Set(Boost_NO_SYSTEM_PATHS TRUE)
-Set(Boost_NO_BOOST_CMAKE TRUE)
-If(${ROOT_LIBRARY_DIR} MATCHES /lib/root)
-  set(BOOST_ROOT ${SIMPATH})
-  set(GSL_DIR ${SIMPATH})
-Else(${ROOT_LIBRARY_DIR} MATCHES /lib/root)
-  set(BOOST_ROOT ${SIMPATH}/basics/boost)
-  set(GSL_DIR ${SIMPATH}/basics/gsl)
-EndIf(${ROOT_LIBRARY_DIR} MATCHES /lib/root)
-Message("-- Looking for Boost ...")
-# If an older version of boost is found both of the variables below are
-# cached and in a second cmake run, a good boost version is found even
-# if the version is to old.
-# To overcome this problem both variables are cleared before checking
-# for boost.
-Unset(Boost_INCLUDE_DIR CACHE)
-Unset(Boost_LIBRARY_DIRS CACHE)
+
+if(NOT BOOST_ROOT)
+  Set(Boost_NO_SYSTEM_PATHS TRUE)
+  Set(Boost_NO_BOOST_CMAKE TRUE)
+  If(${ROOT_LIBRARY_DIR} MATCHES /lib/root)
+    set(BOOST_ROOT ${SIMPATH})
+    set(GSL_DIR ${SIMPATH})
+  Else(${ROOT_LIBRARY_DIR} MATCHES /lib/root)
+    set(BOOST_ROOT ${SIMPATH}/basics/boost)
+    set(GSL_DIR ${SIMPATH}/basics/gsl)
+  EndIf(${ROOT_LIBRARY_DIR} MATCHES /lib/root)
+  Message("-- Looking for Boost ...")
+  # If an older version of boost is found both of the variables below are
+  # cached and in a second cmake run, a good boost version is found even
+  # if the version is to old.
+  # To overcome this problem both variables are cleared before checking
+  # for boost.
+  Unset(Boost_INCLUDE_DIR CACHE)
+  Unset(Boost_LIBRARY_DIRS CACHE)
+endif(NOT BOOST_ROOT)
 find_package(Boost 1.41)
 If (Boost_FOUND)
   Set(Boost_Avail 1)
@@ -123,7 +140,9 @@ EndIf (Boost_FOUND)
 
 # set a variable which should be used in all CMakeLists.txt
 # Defines all basic include directories from fairbase
-SetBasicVariables()
+if(NOT ALICEO2_MODULAR_BUILD)
+  SetBasicVariables()
+endif(NOT ALICEO2_MODULAR_BUILD)
 
 # Set the library version in the main CMakeLists.txt
 SET(FAIRROOT_MAJOR_VERSION 0)
@@ -144,15 +163,23 @@ SET(LD_LIBRARY_PATH  ${_LIBDIR} ${LD_LIBRARY_PATH})
 #install(DIRECTORY geometry DESTINATION pnd_install
 #          )
 
+if(NOT ALICEO2_MODULAR_BUILD)
 # Check if the compiler support specific C++11 features
 # Up to now this is only a check since the code does not use
 # any of the features of the new standard
+# does not work straightforward
 include(CheckCXX11Features)
 
 # Check if the compilation flag -std=c++11 is set
 If(NOT CMAKE_CXX_FLAGS)
   Message(FATAL_ERROR "No C++11 support found. AliceO2 require C++11 be build.")
 EndIF(NOT CMAKE_CXX_FLAGS)
+
+else(NOT ALICEO2_MODULAR_BUILD)
+  # This needs to be improved
+  # (hopefully by making CheckCXX11Features working also with this build option)
+  set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT ALICEO2_MODULAR_BUILD)
 
 # Recurse into the given subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through
