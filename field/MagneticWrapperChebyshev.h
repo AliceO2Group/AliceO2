@@ -8,7 +8,7 @@
 #include <TMath.h>
 #include <TNamed.h>
 #include <TObjArray.h>
-#include "Chebyshev3D.h"
+#include "MathUtils/Chebyshev3D.h"
 
 class TSystem;
 class TArrayF;
@@ -171,24 +171,24 @@ public:
     return mMaxRadiusTPCRat;
   }
 
-  Chebyshev3D* getParameterSolenoid(Int_t ipar) const
+  AliceO2::MathUtils::Chebyshev3D* getParameterSolenoid(Int_t ipar) const
   {
-    return (Chebyshev3D*)mParameterizationSolenoid->UncheckedAt(ipar);
+    return (AliceO2::MathUtils::Chebyshev3D*)mParameterizationSolenoid->UncheckedAt(ipar);
   }
 
-  Chebyshev3D* getParameterTPCRatIntegral(Int_t ipar) const
+  AliceO2::MathUtils::Chebyshev3D* getParameterTPCRatIntegral(Int_t ipar) const
   {
-    return (Chebyshev3D*)mParameterizationTPCRat->UncheckedAt(ipar);
+    return (AliceO2::MathUtils::Chebyshev3D*)mParameterizationTPCRat->UncheckedAt(ipar);
   }
 
-  Chebyshev3D* getParameterTPCIntegral(Int_t ipar) const
+  AliceO2::MathUtils::Chebyshev3D* getParameterTPCIntegral(Int_t ipar) const
   {
-    return (Chebyshev3D*)mParameterizationTPC->UncheckedAt(ipar);
+    return (AliceO2::MathUtils::Chebyshev3D*)mParameterizationTPC->UncheckedAt(ipar);
   }
 
-  Chebyshev3D* getParameterDipole(Int_t ipar) const
+  AliceO2::MathUtils::Chebyshev3D* getParameterDipole(Int_t ipar) const
   {
-    return (Chebyshev3D*)mParameterizationDipole->UncheckedAt(ipar);
+    return (AliceO2::MathUtils::Chebyshev3D*)mParameterizationDipole->UncheckedAt(ipar);
   }
 
   /// Prints info
@@ -237,7 +237,7 @@ public:
   static void cartesianToCylindrical(const Double_t* xyz, Double_t* rphiz);
   static void cylindricalToCartesian(const Double_t* rphiz, Double_t* xyz);
 
-#ifdef _INC_CREATION_ALICHEB3D_ // see Cheb3D.h for explanation
+#ifdef _INC_CREATION_Chebyshev3D_ // see Cheb3D.h for explanation
   /// Reads coefficients data from the text file
   void loadData(const char* inpfile);
 
@@ -254,18 +254,18 @@ public:
 
   /// Adds new parameterization piece for Solenoid
   /// NOTE: pieces must be added strictly in increasing R then increasing Z order
-  void addParameterSolenoid(const Chebyshev3D* param);
+  void addParameterSolenoid(const AliceO2::MathUtils::Chebyshev3D* param);
 
   // Adds new parameterization piece for TPCIntegral
   // NOTE: pieces must be added strictly in increasing R then increasing Z order
 
-  void addParameterTPCIntegral(const Chebyshev3D* param);
+  void addParameterTPCIntegral(const AliceO2::MathUtils::Chebyshev3D* param);
   /// Adds new parameterization piece for TPCRatInt
   // NOTE: pieces must be added strictly in increasing R then increasing Z order
-  void addParameterTPCRatIntegral(const Chebyshev3D* param);
+  void addParameterTPCRatIntegral(const AliceO2::MathUtils::Chebyshev3D* param);
 
   /// Adds new parameterization piece for Dipole
-  void addParameterDipole(const Chebyshev3D* param);
+  void addParameterDipole(const AliceO2::MathUtils::Chebyshev3D* param);
 
   /// Builds lookup table for dipole
   void buildTable(Int_t npar, TObjArray* parArr, Int_t& nZSeg, Int_t& nYSeg, Int_t& nXSeg, Float_t& minZ, Float_t& maxZ,
@@ -395,7 +395,7 @@ protected:
   Float_t mMaxDipoleZ;     ///< Max Z of Dipole parameterization
   TObjArray* mParameterizationDipole; ///< Parameterization pieces for Dipole field
 
-  FairLogger* mLogger;
+  FairLogger* mLogger; //!
   ClassDef(AliceO2::Field::MagneticWrapperChebyshev, 2) // Wrapper class for the set of Chebishev parameterizations of Alice mag.field
 };
 

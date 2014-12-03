@@ -9,6 +9,7 @@
 #include "FairLogger.h"
 
 using namespace AliceO2::Field;
+using namespace AliceO2::MathUtils;
 
 ClassImp(MagneticWrapperChebyshev)
 
@@ -788,7 +789,7 @@ void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t* rphi
   return;
 }
 
-#ifdef _INC_CREATION_ALICHEB3D_
+#ifdef _INC_CREATION_Chebyshev3D_
 
 void MagneticWrapperChebyshev::loadData(const char* inpfile)
 {
@@ -847,7 +848,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   for (int ip = 0; ip < nparTPCInt; ip++) {
     Chebyshev3D* cheb = new Chebyshev3D();
     cheb->loadData(stream);
-    AddParamTPCInt(cheb);
+    addParameterTPCIntegral(cheb);
   }
 
   Chebyshev3DCalc::readLine(buffs, stream);
@@ -871,7 +872,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   for (int ip = 0; ip < nparTPCRatInt; ip++) {
     Chebyshev3D* cheb = new Chebyshev3D();
     cheb->loadData(stream);
-    AddParamTPCRatInt(cheb);
+    addParameterTPCRatIntegral(cheb);
   }
 
   Chebyshev3DCalc::readLine(buffs, stream);
@@ -907,8 +908,8 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
 
   Chebyshev3DCalc::readLine(buffs, stream);
 
-  if (!buffs.BeginsWith("END DIPOLE") || !buffs.Contains(GetName())) {
-    Error("LoadData", "Expected: \"END DIPOLE\", found \"%s\"\nStop\n", buffs.Data());
+  if (!buffs.BeginsWith("END ") && !buffs.Contains(GetName())) {
+    Error("LoadData", "Expected: \"END %s\", found \"%s\"\nStop\n", GetName(), buffs.Data());
     exit(1);
   }
 
@@ -958,7 +959,7 @@ void MagneticWrapperChebyshev::buildTableTPCRatIntegral()
 
 #endif
 
-#ifdef _INC_CREATION_ALICHEB3D_
+#ifdef _INC_CREATION_Chebyshev3D_
 MagneticWrapperChebyshev::MagneticWrapperChebyshev(const char* inputFile)
   : mNumberOfParameterizationSolenoid(0),
     mNumberOfDistinctZSegmentsSolenoid(0),
@@ -1063,7 +1064,7 @@ void MagneticWrapperChebyshev::addParameterTPCRatIntegral(const Chebyshev3D* par
   }
 }
 
-void MagneticWrapperChebyshev::AddParamDipole(const Chebyshev3D* param)
+void MagneticWrapperChebyshev::addParameterDipole(const Chebyshev3D* param)
 {
   if (!mParameterizationDipole) {
     mParameterizationDipole = new TObjArray();
