@@ -110,7 +110,8 @@ void WrapperDevice::Run()
   int errorCount=0;
   const int maxError=10;
 
-  vector</*const*/ FairMQMessage*> inputMessages(fNumInputs, NULL);
+  vector</*const*/ FairMQMessage*> inputMessages;
+  vector<int> inputMessageCntPerSocket(fNumInputs, 0);
   int nReadCycles=0;
   while ( fState == RUNNING ) {
 
@@ -119,20 +120,28 @@ void WrapperDevice::Run()
     int inputsReceived=0;
     bool receivedAtLeastOneMessage=false;
     for(int i = 0; i < fNumInputs; i++) {
-      if (inputMessages[i]!=NULL) {
+      if (inputMessageCntPerSocket[i]>0) {
 	inputsReceived++;
 	continue;
       }
       received = false;
       if (poller->CheckInput(i)){
-	auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-        received = fPayloadInputs->at(i)->Receive(msg.get());
-	if (received) {
-	  receivedAtLeastOneMessage=true;
-	  inputMessages[i]=msg.release();
-	  inputsReceived++;
-          //LOG(INFO) << "------ recieve Msg from " << i ;
-	}
+	int64_t more = 0;
+	do {
+	  more=0;
+	  auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+	  received = fPayloadInputs->at(i)->Receive(msg.get());
+	  if (received) {
+	    receivedAtLeastOneMessage=true;
+	    inputMessages.push_back(msg.release());
+	    if (inputMessageCntPerSocket[i]==0)
+	      inputsReceived++; // count only the first message on that socket
+	    inputMessageCntPerSocket[i]++;
+	    //LOG(INFO) << "------ recieve Msg from " << i ;
+	    size_t more_size = sizeof(more);
+	    fPayloadInputs->at(i)->GetOption("rcv-more", &more, &more_size);
+	  }
+	} while (more);
       }
     }
     if (receivedAtLeastOneMessage) nReadCycles++;
@@ -189,6 +198,7 @@ void WrapperDevice::Run()
 
     // build messages from output data
     if (dataArray.size()>0) {
+    //LOG(INFO) << "sending " << dataArray.size() << " buffer(s)";
     auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
     if (msg.get() && fPayloadOutputs!=NULL && fPayloadOutputs->size()>0) {
       vector<ALICE::HLT::Component::BufferDesc_t>::iterator data=dataArray.begin();
@@ -201,11 +211,10 @@ void WrapperDevice::Run()
 	AliHLTUInt8_t* pTarget=reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
 	memcpy(pTarget, data->mP, data->mSize);
 	if (data+1==dataArray.end()) {
-	  // that is the last data block
-	  // TODO: replace this with the corresponding FairMQ flag if that becomes available
-	  fPayloadOutputs->at(0)->Send(msg.get()/*, ZMQ_SNDMORE*/);
-	} else {
+	  // this is the last data block
 	  fPayloadOutputs->at(0)->Send(msg.get());
+	} else {
+	  fPayloadOutputs->at(0)->Send(msg.get(), "snd-more");
 	}
       
 	data=dataArray.erase(data);
@@ -229,7 +238,11 @@ void WrapperDevice::Run()
     for (vector<FairMQMessage*>::iterator mit=inputMessages.begin();
 	 mit!=inputMessages.end(); mit++) {
       delete *mit;
-      *mit=NULL;
+    }
+    inputMessages.clear();
+    for (vector<int>::iterator mcit=inputMessageCntPerSocket.begin();
+	 mcit!=inputMessageCntPerSocket.end(); mcit++) {
+      *mcit=0;
     }
   }
 
