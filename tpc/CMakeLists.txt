@@ -5,6 +5,9 @@
 set(INCLUDE_DIRECTORIES
 ${ROOT_INCLUDE_DIR} 
 ${BASE_INCLUDE_DIRECTORIES}
+${Boost_INCLUDE_DIRS}
+${FAIRROOT_INCLUDE_DIR}
+${AlFa_DIR}/include
 #put here all directories where header files are located
 ${CMAKE_SOURCE_DIR}/
 ${CMAKE_SOURCE_DIR}/tpc
