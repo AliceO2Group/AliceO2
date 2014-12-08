@@ -2,6 +2,8 @@ set(INCLUDE_DIRECTORIES
   ${BASE_INCLUDE_DIRECTORIES} 
   ${ZMQ_INCLUDE_DIR}
   ${Boost_INCLUDE_DIR}
+  ${FAIRROOT_INCLUDE_DIR}
+  ${AlFa_DIR}/include
   ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
   ${FAIRROOT_INCLUDE_DIR}
   ${AlFa_DIR}/include
