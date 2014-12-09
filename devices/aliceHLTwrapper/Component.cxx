@@ -198,12 +198,16 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
   vector<AliHLTComponentBlockData> inputBlocks;
   for (vector<BufferDesc_t>::iterator data=dataArray.begin();
        data!=dataArray.end(); data++) {
+    if (data->mSize>0) {
     if (ReadBlockSequence(data->mP, data->mSize, inputBlocks)<0) {
       // not in the format of a single block, check if its a HOMER block
       if (ReadHOMERFormat(data->mP, data->mSize, inputBlocks)<0) {
 	// not in HOMER format either, ignore the input
 	// TODO: decide if that should be an error
       }
+    }
+    } else {
+      cerr << "warning: ignoring message with payload of size 0" << endl;
     }
   }
   unsigned nofInputBlocks=inputBlocks.size();
@@ -274,6 +278,54 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
 
   // prepare output
   if (outputBlockCnt>0) {
+    AliHLTUInt8_t* pOutputBufferStart=&mOutputBuffer[0];
+    AliHLTUInt8_t* pOutputBufferEnd=pOutputBufferStart+mOutputBuffer.size();
+    // consistency check for data blocks
+    // 1) all specified data must be either inside the output buffer given
+    //    to the component or in one of the input buffers
+    // 2) filter out special data blocks if they have been forwarded
+    //
+    // Some components set both pointer and offset in the block descriptor as data
+    // reference for blocks in the output buffer. Due to a misinterpretation in the
+    // early days of development that is only allowed if fPtr is set to the beginning
+    // of output buffer. The block is however fully described by offset relative to
+    // beginning of output buffer.
+    vector<unsigned> validBlocks;
+    AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
+    for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
+      // filter special data blocks
+      if (pOutputBlock->fDataType==eventTypeBlock.fDataType)
+	continue;
+
+      // block descriptors without any attached payload are propagated
+      if (pOutputBlock->fSize==0) {
+	validBlocks.push_back(blockIndex);
+	continue;
+      }
+
+      // calculate the data reference
+      AliHLTUInt8_t* pStart=pOutputBlock->fPtr!=NULL?reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr):&mOutputBuffer[0];
+      pStart+=pOutputBlock->fOffset;
+      AliHLTUInt8_t* pEnd=pStart+pOutputBlock->fSize;
+
+      // first search in the output buffer
+      if (pStart>=pOutputBufferStart && pEnd<=pOutputBufferEnd) {
+	validBlocks.push_back(blockIndex);
+	continue;
+      }
+      // possibly a forwarded data block, try the input buffers
+      for (vector<AliHLTComponentBlockData>::const_iterator ci=inputBlocks.begin();
+	   ci!=inputBlocks.end(); ci++) {
+	AliHLTUInt8_t* pInputBufferStart=reinterpret_cast<AliHLTUInt8_t*>(ci->fPtr);
+	AliHLTUInt8_t* pInputBufferEnd=pInputBufferStart+ci->fSize;
+	if (pStart>=pInputBufferStart && pEnd<=pInputBufferEnd) {
+	  validBlocks.push_back(blockIndex);
+	  continue;
+	}
+      }
+      cerr << "Inconsistent data reference in output block " << blockIndex << endl;      
+    }
+
   if (mOutputMode==kOutputModeHOMER) {
     AliHLTHOMERWriter* pWriter=CreateHOMERFormat(pOutputBlocks, outputBlockCnt);
     if (pWriter) {
@@ -286,37 +338,47 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
       mpFactory->DeleteWriter(pWriter);
       dataArray.push_back(BufferDesc_t(&mOutputBuffer[position], payloadSize));
     }
-  } else if (mOutputMode==kOutputModeMultiPart) {
-    AliHLTUInt32_t position=mOutputBuffer.size();
-    AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
-    for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
-      if (mOutputBuffer.capacity()<position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize)
-	mOutputBuffer.reserve(position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize);
-      dataArray.push_back(BufferDesc_t(&mOutputBuffer[position], sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize));
-      AliHLTUInt32_t sourcePosition=pOutputBlock->fOffset;
-      pOutputBlock->fOffset=0;
-      pOutputBlock->fPtr=NULL;
-      memcpy(&mOutputBuffer[position], pOutputBlock, sizeof(AliHLTComponentBlockData));
-      position+=sizeof(AliHLTComponentBlockData);
-      memcpy(&mOutputBuffer[position], &mOutputBuffer[sourcePosition], pOutputBlock->fSize);
-      position+=pOutputBlock->fSize;
-    }
-  } else if (mOutputMode==kOutputModeSequence) {
+  } else if (mOutputMode==kOutputModeMultiPart ||
+	     mOutputMode==kOutputModeSequence) {
+    // the output blocks are assempled in the internal buffer, for each
+    // block BlockData is added as header information, directly followed
+    // by the block payload
+    //
+    // kOutputModeMultiPart:
+    // multi part mode adds one buffer descriptor per output block
+    // the devices decides what to do with the multiple descriptors, one
+    // option is to send them in a multi-part message
+    //
+    // kOutputModeSequence:
+    // sequence mode concatenates the output blocks in the internal
+    // buffer. In contrast to multi part mode, only one buffer descriptor
+    // for the complete sequence is handed over to device
     AliHLTUInt32_t position=mOutputBuffer.size();
     AliHLTUInt32_t startPosition=position;
-    AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
-    for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
+    for (vector<unsigned>::const_iterator vbi=validBlocks.begin();
+	 vbi!=validBlocks.end(); vbi++) {
+      pOutputBlock=pOutputBlocks+*vbi;
       if (mOutputBuffer.capacity()<position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize)
 	mOutputBuffer.reserve(position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize);
-      AliHLTUInt32_t sourcePosition=pOutputBlock->fOffset;
+      // copy BlockData and payload
+      AliHLTUInt8_t* pData=pOutputBlock->fPtr!=NULL?reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr):&mOutputBuffer[0];
+      pData+=pOutputBlock->fOffset;
       pOutputBlock->fOffset=0;
       pOutputBlock->fPtr=NULL;
       memcpy(&mOutputBuffer[position], pOutputBlock, sizeof(AliHLTComponentBlockData));
       position+=sizeof(AliHLTComponentBlockData);
-      memcpy(&mOutputBuffer[position], &mOutputBuffer[sourcePosition], pOutputBlock->fSize);
+      memcpy(&mOutputBuffer[position], pData, pOutputBlock->fSize);
       position+=pOutputBlock->fSize;
+      if (mOutputMode==kOutputModeMultiPart) {
+	// send one descriptor per block back to device
+	dataArray.push_back(BufferDesc_t(&mOutputBuffer[startPosition], position-startPosition));
+	startPosition=position;
+      }
     }
+    if (mOutputMode==kOutputModeSequence) {
+      // send one single descriptor for all concatenated blocks
     dataArray.push_back(BufferDesc_t(&mOutputBuffer[startPosition], position-startPosition));
+    }
   } else {
     // invalid output mode
     cerr << "error ALICE::HLT::Component: invalid output mode " << mOutputMode << endl; 
