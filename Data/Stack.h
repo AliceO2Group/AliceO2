@@ -174,6 +174,9 @@ public:
     return mParticles;
   }
 
+  /// Clone for worker (used in MT mode only)
+  virtual FairGenericStack* CloneStack() const;
+
 private:
   FairLogger* mLogger;
 

@@ -26,6 +26,13 @@ class Pipe : public FairModule {
 
     virtual ~Pipe();
     virtual void ConstructGeometry();
+
+    /// Clone this object (used in MT mode only)
+    virtual FairModule* CloneModule() const;
+
+  private:
+    Pipe(const Pipe& orig);
+    Pipe& operator=(const Pipe&);
    
   ClassDef(Pipe,1) //PIPE
 

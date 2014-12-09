@@ -36,6 +36,21 @@ Pipe::Pipe(const char * name, const char * title)
 {
 }
 
+Pipe::Pipe(const Pipe& rhs)
+  : FairModule(rhs)
+{
+}
+
+Pipe& Pipe::operator=(const Pipe& rhs)
+{
+  // self assignment
+  if (this == &rhs) return *this;
+
+  // base class assignment
+  FairModule::operator=(rhs);
+
+  return *this;
+}
 
 // -----  ConstructGeometry  --------------------------------------------------
 void Pipe::ConstructGeometry()
@@ -77,9 +92,12 @@ void Pipe::ConstructGeometry()
 
 
 }
+
 // ----------------------------------------------------------------------------
-
-
+FairModule* Pipe::CloneModule() const
+{
+  return new Pipe(*this);
+}
 
 ClassImp(AliceO2::Passive::Pipe)
 
