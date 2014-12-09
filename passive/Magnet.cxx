@@ -45,6 +45,22 @@ Magnet::Magnet(const char* name, const char* Title)
 {
 }
 
+Magnet::Magnet(const Magnet& rhs)
+  : FairModule(rhs)
+{
+}
+
+Magnet& Magnet::operator=(const Magnet& rhs)
+{
+  // self assignment
+  if (this == &rhs) return *this;
+
+  // base class assignment
+  FairModule::operator=(rhs);
+
+  return *this;
+}
+
 void Magnet::ConstructGeometry()
 {
    
@@ -96,6 +112,10 @@ void Magnet::ConstructGeometry()
     
 }
 
+FairModule* Magnet::CloneModule() const
+{
+  return new Magnet(*this);
+}
 
 ClassImp(AliceO2::Passive::Magnet)
 

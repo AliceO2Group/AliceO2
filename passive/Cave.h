@@ -28,9 +28,14 @@ class Cave : public FairModule
     virtual ~Cave();
     virtual void ConstructGeometry();
 
+    /// Clone this object (used in MT mode only)
+    virtual FairModule* CloneModule() const;
 
   private:
-    Double_t world[3];
+    Cave(const Cave& orig);
+    Cave& operator=(const Cave&);
+
+    Double_t mWorld[3];
     ClassDef(AliceO2::Passive::Cave,1) //
 };
 }

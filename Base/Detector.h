@@ -67,11 +67,10 @@ public:
                                 UInt_t detType = 0, Int_t buildFlag = 0);
 
 protected:
+  Detector(const Detector& origin);
+  Detector& operator=(const Detector&);
   static Float_t mDensityFactor; //! factor that is multiplied to all material densities (ONLY for
   // systematic studies)
-private:
-  Detector(const Detector&);
-  Detector& operator=(const Detector&);
 
   ClassDef(Detector, 1) // Base class for ALICE Modules
 };

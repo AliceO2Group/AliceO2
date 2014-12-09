@@ -166,6 +166,85 @@ Detector::Detector(const char* name, Bool_t active, const Int_t nlay)
   }
 }
 
+Detector::Detector(const Detector& rhs)
+  : AliceO2::Base::Detector(rhs),
+  mLayerID(0),
+  mNumberLayers(rhs.mNumberLayers),
+  mStatus(rhs.mStatus),
+  mModule(rhs.mModule),
+  mParticlePx(rhs.mParticlePx),
+  mParticlePy(rhs.mParticlePy),
+  mParticlePz(rhs.mParticlePz),
+  mEnergyDepositionStep(rhs.mEnergyDepositionStep),
+  mTof(rhs.mTof),
+  mStatus0(rhs.mStatus0),
+  mStartingStepX(rhs.mStartingStepX),
+  mStartingStepY(rhs.mStartingStepY),
+  mStartingStepZ(rhs.mStartingStepZ),
+  mStartingStepT(rhs.mStartingStepT),
+  mTrackNumber(rhs.mTrackNumber),
+  mPositionX(rhs.mPositionX),
+  mPositionY(rhs.mPositionY),
+  mPositionZ(rhs.mPositionZ),
+  mLayerName(0),
+  mTrackNumberID(rhs.mTrackNumberID),
+  mVolumeID(rhs.mVolumeID),
+  mShunt(rhs.mShunt),
+  mPosition(rhs.mPosition),
+  mEntrancePosition(rhs.mEntrancePosition),
+  mMomentum(rhs.mMomentum),
+  mEntranceTime(rhs.mEntranceTime),
+  mTime(rhs.mTime),
+  mLength(rhs.mLength),
+  mEnergyLoss(rhs.mEnergyLoss),
+
+  mNumberOfDetectors(rhs.mNumberOfDetectors),
+  mShiftX(),
+  mShiftY(),
+  mShiftZ(),
+  mRotX(),
+  mRotY(),
+  mRotZ(),
+
+  mModifyGeometry(rhs.mModifyGeometry),
+
+  mNumberOfWrapperVolumes(rhs.mNumberOfWrapperVolumes),
+  // the following parameters may be shared with master if needed
+  // let's try not to set them and keep dtor simple
+  mWrapperMinRadius(0),
+  mWrapperMaxRadius(0),
+  mWrapperZSpan(0),
+  mWrapperLayerId(0),
+  mTurboLayer(0),
+  mLayerPhi0(0),
+  mLayerRadii(0),
+  mLayerZLength(0),
+  mStavePerLayer(0),
+  mUnitPerStave(0),
+  mStaveThickness(0),
+  mStaveWidth(0),
+  mStaveTilt(0),
+  mDetectorThickness(0),
+  mChipTypeID(0),
+  mBuildLevel(0),
+
+  /// Container for data points
+  mPointCollection(0),
+
+  mGeometryHandler(0),
+  mMisalignmentParameter(0),
+
+  mUpgradeGeometry(0),
+  mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
+  mStaveModelOuterBarrel(rhs.mStaveModelInnerBarrel)
+{
+  mLayerName = new TString[mNumberLayers];
+
+  for (Int_t j = 0; j < mNumberLayers; j++) {
+    mLayerName[j].Form("%s%d", UpgradeGeometryTGeo::getITSSensorPattern(), j); // See UpgradeV1Layer
+  }
+}
+
 Detector::~Detector()
 {
   delete[] mTurboLayer;
@@ -194,7 +273,7 @@ Detector::~Detector()
   delete[] mLayerID;
 }
 
-Detector& Detector::operator=(const Detector& h)
+Detector& Detector::operator=(const Detector& rhs)
 {
   // The standard = operator
   // Inputs:
@@ -204,21 +283,82 @@ Detector& Detector::operator=(const Detector& h)
   // Return:
   //  A copy of the sourse hit h
 
-  if (this == &h) {
+  if (this == &rhs) {
     return *this;
   }
-  this->mStatus = h.mStatus;
-  this->mModule = h.mModule;
-  this->mParticlePx = h.mParticlePx;
-  this->mParticlePy = h.mParticlePy;
-  this->mParticlePz = h.mParticlePz;
-  this->mEnergyDepositionStep = h.mEnergyDepositionStep;
-  this->mTof = h.mTof;
-  this->mStatus0 = h.mStatus0;
-  this->mStartingStepX = h.mStartingStepX;
-  this->mStartingStepY = h.mStartingStepY;
-  this->mStartingStepZ = h.mStartingStepZ;
-  this->mStartingStepT = h.mStartingStepT;
+
+  // base class assignment
+  Base::Detector::operator=(rhs);
+
+  mLayerID = 0;
+  mNumberLayers = rhs.mNumberLayers;
+  mStatus = rhs.mStatus;
+  mModule = rhs.mModule;
+  mParticlePx = rhs.mParticlePx;
+  mParticlePy = rhs.mParticlePy;
+  mParticlePz = rhs.mParticlePz;
+  mEnergyDepositionStep = rhs.mEnergyDepositionStep;
+  mTof = rhs.mTof;
+  mStatus0 = rhs.mStatus0;
+  mStartingStepX = rhs.mStartingStepX;
+  mStartingStepY = rhs.mStartingStepY;
+  mStartingStepZ = rhs.mStartingStepZ;
+  mStartingStepT = rhs.mStartingStepT;
+  mTrackNumber = rhs.mTrackNumber;
+  mPositionX = rhs.mPositionX;
+  mPositionY = rhs.mPositionY;
+  mPositionZ = rhs.mPositionZ;
+  mLayerName = 0;
+  mTrackNumberID = rhs.mTrackNumberID;
+  mVolumeID = rhs.mVolumeID;
+  mShunt = rhs.mShunt;
+  mPosition = rhs.mPosition;
+  mEntrancePosition = rhs.mEntrancePosition;
+  mMomentum = rhs.mMomentum;
+  mEntranceTime = rhs.mEntranceTime;
+  mTime = rhs.mTime;
+  mLength = rhs.mLength;
+  mEnergyLoss = rhs.mEnergyLoss;
+
+  mNumberOfDetectors = rhs.mNumberOfDetectors;
+
+  mModifyGeometry = rhs.mModifyGeometry;
+
+  mNumberOfWrapperVolumes = rhs.mNumberOfWrapperVolumes;
+  // the following parameters may be shared with master if needed
+  // let's try not to set them and keep dtor simple
+  mWrapperMinRadius = 0;
+  mWrapperMaxRadius = 0;
+  mWrapperZSpan = 0;
+  mWrapperLayerId = 0;
+  mTurboLayer = 0;
+  mLayerPhi0 = 0;
+  mLayerRadii = 0;
+  mLayerZLength = 0;
+  mStavePerLayer = 0;
+  mUnitPerStave = 0;
+  mStaveThickness = 0;
+  mStaveWidth = 0;
+  mStaveTilt = 0;
+  mDetectorThickness = 0;
+  mChipTypeID = 0;
+  mBuildLevel = 0;
+
+  /// Container for data points
+  mPointCollection = 0;
+
+  mGeometryHandler = 0;
+  mMisalignmentParameter = 0;
+
+  mUpgradeGeometry = 0;
+  mStaveModelInnerBarrel = rhs.mStaveModelInnerBarrel;
+  mStaveModelOuterBarrel = rhs.mStaveModelInnerBarrel;
+
+  mLayerName = new TString[mNumberLayers];
+  for (Int_t j = 0; j < mNumberLayers; j++) {
+    mLayerName[j].Form("%s%d", UpgradeGeometryTGeo::getITSSensorPattern(), j); // See UpgradeV1Layer
+  }
+
   return *this;
 }
 
@@ -467,7 +607,7 @@ void Detector::createMaterials()
 
 void Detector::EndOfEvent()
 {
-  mPointCollection->Clear();
+  if (mPointCollection) mPointCollection->Clear();
 }
 
 void Detector::Register()
@@ -476,7 +616,9 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  FairRootManager::Instance()->Register("Point", "ITS", mPointCollection, kTRUE);
+  if (FairRootManager::Instance()) {
+    FairRootManager::Instance()->Register("Point", "ITS", mPointCollection, kTRUE);
+  }
 }
 
 TClonesArray* Detector::GetCollection(Int_t iColl) const
@@ -969,6 +1111,11 @@ void Detector::Read(istream* is)
     mTof;
   *is >> mStartingStepX >> mStartingStepY >> mStartingStepZ;
   return;
+}
+
+FairModule* Detector::CloneModule() const
+{
+  return new Detector(*this);
 }
 
 ostream& operator<<(ostream& os, Detector& p)
