@@ -212,7 +212,7 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
   }
   unsigned nofInputBlocks=inputBlocks.size();
   if (dataArray.size()>0 && nofInputBlocks==0) {
-    cerr << "warning: none of " << dataArray.size() << " input buffers recognized as valid input" << endl;
+    cerr << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input" << endl;
   }
   dataArray.clear();
 
@@ -291,6 +291,7 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
     // of output buffer. The block is however fully described by offset relative to
     // beginning of output buffer.
     vector<unsigned> validBlocks;
+    unsigned totalPayloadSize=0;
     AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
     for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
       // filter special data blocks
@@ -298,10 +299,7 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
 	continue;
 
       // block descriptors without any attached payload are propagated
-      if (pOutputBlock->fSize==0) {
-	validBlocks.push_back(blockIndex);
-	continue;
-      }
+      bool bValid=pOutputBlock->fSize==0;
 
       // calculate the data reference
       AliHLTUInt8_t* pStart=pOutputBlock->fPtr!=NULL?reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr):&mOutputBuffer[0];
@@ -309,21 +307,26 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
       AliHLTUInt8_t* pEnd=pStart+pOutputBlock->fSize;
 
       // first search in the output buffer
-      if (pStart>=pOutputBufferStart && pEnd<=pOutputBufferEnd) {
-	validBlocks.push_back(blockIndex);
-	continue;
-      }
+      bValid=bValid || pStart>=pOutputBufferStart && pEnd<=pOutputBufferEnd;
+
       // possibly a forwarded data block, try the input buffers
-      for (vector<AliHLTComponentBlockData>::const_iterator ci=inputBlocks.begin();
-	   ci!=inputBlocks.end(); ci++) {
-	AliHLTUInt8_t* pInputBufferStart=reinterpret_cast<AliHLTUInt8_t*>(ci->fPtr);
-	AliHLTUInt8_t* pInputBufferEnd=pInputBufferStart+ci->fSize;
-	if (pStart>=pInputBufferStart && pEnd<=pInputBufferEnd) {
-	  validBlocks.push_back(blockIndex);
-	  continue;
+      if (!bValid) {
+	vector<AliHLTComponentBlockData>::const_iterator ci=inputBlocks.begin();
+	for (; ci!=inputBlocks.end(); ci++) {
+	  AliHLTUInt8_t* pInputBufferStart=reinterpret_cast<AliHLTUInt8_t*>(ci->fPtr);
+	  AliHLTUInt8_t* pInputBufferEnd=pInputBufferStart+ci->fSize;
+	  if (bValid=(pStart>=pInputBufferStart && pEnd<=pInputBufferEnd)) {
+	    break;
+	  }
 	}
       }
-      cerr << "Inconsistent data reference in output block " << blockIndex << endl;      
+
+      if (bValid) {
+	totalPayloadSize+=pOutputBlock->fSize;
+ 	validBlocks.push_back(blockIndex);
+      } else {
+	cerr << "Inconsistent data reference in output block " << blockIndex << endl;
+      }
     }
 
   if (mOutputMode==kOutputModeHOMER) {
@@ -355,11 +358,10 @@ int Component::Process(vector<BufferDesc_t>& dataArray)
     // for the complete sequence is handed over to device
     AliHLTUInt32_t position=mOutputBuffer.size();
     AliHLTUInt32_t startPosition=position;
+    mOutputBuffer.resize(position+validBlocks.size()*sizeof(AliHLTComponentBlockData)+totalPayloadSize);
     for (vector<unsigned>::const_iterator vbi=validBlocks.begin();
 	 vbi!=validBlocks.end(); vbi++) {
       pOutputBlock=pOutputBlocks+*vbi;
-      if (mOutputBuffer.capacity()<position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize)
-	mOutputBuffer.reserve(position+sizeof(AliHLTComponentBlockData)+pOutputBlock->fSize);
       // copy BlockData and payload
       AliHLTUInt8_t* pData=pOutputBlock->fPtr!=NULL?reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr):&mOutputBuffer[0];
       pData+=pOutputBlock->fOffset;
