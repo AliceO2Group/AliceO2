@@ -41,7 +41,7 @@ using std::chrono::system_clock;
 typedef std::chrono::milliseconds TimeScale;
 #endif //USE_CHRONO
 
-WrapperDevice::WrapperDevice(int argc, char** argv)
+WrapperDevice::WrapperDevice(int argc, char** argv, int verbosity)
   : mComponent(NULL)
   , mArgv()
   , mPollingPeriod(10)
@@ -53,6 +53,7 @@ WrapperDevice::WrapperDevice(int argc, char** argv)
   , mTotalReadCycles(-1)
   , mMaxReadCycles(-1)
   , mNSamples(-1)
+  , mVerbosity(verbosity)
 {
   mArgv.insert(mArgv.end(), argv, argv+argc);
 }
@@ -137,11 +138,16 @@ void WrapperDevice::Run()
 	    if (inputMessageCntPerSocket[i]==0)
 	      inputsReceived++; // count only the first message on that socket
 	    inputMessageCntPerSocket[i]++;
-	    //LOG(INFO) << "------ recieve Msg from " << i ;
+	    if (mVerbosity>3) {
+	      LOG(INFO) << " |---- recieve Msg from socket no" << i ;
+	    }
 	    size_t more_size = sizeof(more);
 	    fPayloadInputs->at(i)->GetOption("rcv-more", &more, &more_size);
 	  }
 	} while (more);
+	if (mVerbosity>2) {
+	  LOG(INFO) << "------ recieved " << inputMessageCntPerSocket[i] << " message(s) from socket no" << i ;
+	}
       }
     }
     if (receivedAtLeastOneMessage) nReadCycles++;
@@ -198,11 +204,16 @@ void WrapperDevice::Run()
 
     // build messages from output data
     if (dataArray.size()>0) {
-    //LOG(INFO) << "sending " << dataArray.size() << " buffer(s)";
+      if (mVerbosity>2) {
+	LOG(INFO) << "processing " << dataArray.size() << " buffer(s)";
+      }
     auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
     if (msg.get() && fPayloadOutputs!=NULL && fPayloadOutputs->size()>0) {
       vector<ALICE::HLT::Component::BufferDesc_t>::iterator data=dataArray.begin();
       while (data!=dataArray.end()) {
+	if (mVerbosity>2) {
+	  LOG(INFO) << "sending message of size " << data->mSize;
+	}
 	msg->Rebuild(data->mSize);
 	if (msg->GetSize()<data->mSize) {
 	  iResult=-ENOSPC;
