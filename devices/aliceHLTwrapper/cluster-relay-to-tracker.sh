@@ -133,26 +133,26 @@ create_flpgroup() {
     done
 
     if [ "x$bypass_relays" != "xyes" ]; then
-    # add a relay combining CF output into one (multi)message
-    deviceid="Relay_$node"
-    input=`translate_io_attributes "$cf_output"`
-    output="--output type=push,size=5000,method=bind,address=tcp://*:$((basesocket + c))"
-    let socketcount++
-    command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
+        # add a relay combining CF output into one (multi)message
+        deviceid="Relay_$node"
+        input=`translate_io_attributes "$cf_output"`
+        output="--output type=push,size=5000,method=bind,address=tcp://*:$((basesocket + c))"
+        let socketcount++
+        command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
 
-    sessionnode[nsessions]=$node
-    sessiontitle[nsessions]="$deviceid"
-    sessioncmd[nsessions]=$command
-    let nsessions++
+        sessionnode[nsessions]=$node
+        sessiontitle[nsessions]="$deviceid"
+        sessioncmd[nsessions]=$command
+        let nsessions++
 
-    epn1_input[n_epn1_inputs]=${output/\/\/\*:///$node:}
-    let n_epn1_inputs++
+        epn1_input[n_epn1_inputs]=${output/\/\/\*:///$node:}
+        let n_epn1_inputs++
     else
-    # add each CF output directly to EPN input
-    for output in $cf_output; do
-    epn1_input[n_epn1_inputs]=${output/\/\/\*:///$node:}
-    let n_epn1_inputs++
-    done
+        # add each CF output directly to EPN input
+        for output in $cf_output; do
+            epn1_input[n_epn1_inputs]=${output/\/\/\*:///$node:}
+            let n_epn1_inputs++
+        done
     fi
 }
 
@@ -165,27 +165,27 @@ create_epn1group() {
 
     output=`echo "${epn1_input[@]}"`
     if [ "x$bypass_tracking" != "xyes" ]; then
-    deviceid=Tracker
-    input=`translate_io_attributes "$output"`
-    output="--output type=push,size=1000,method=bind,address=tcp://*:$((basesocket + socketcount))"
-    let socketcount++
-    command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCATracker --run $runno --parameter '-GlobalTracking -loglevel=0x79'"
+        deviceid=Tracker
+        input=`translate_io_attributes "$output"`
+        output="--output type=push,size=1000,method=bind,address=tcp://*:$((basesocket + socketcount))"
+        let socketcount++
+        command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCATracker --run $runno --parameter '-GlobalTracking -loglevel=0x79'"
 
-    sessionnode[nsessions]=$node
-    sessiontitle[nsessions]="$deviceid"
-    sessioncmd[nsessions]=$command
-    let nsessions++
+        sessionnode[nsessions]=$node
+        sessiontitle[nsessions]="$deviceid"
+        sessioncmd[nsessions]=$command
+        let nsessions++
 
-    deviceid=GlobalMerger
-    input=`translate_io_attributes "$output"`
-    output="--output type=push,size=1000,method=bind,address=tcp://*:$((basesocket + socketcount))"
-    let socketcount++
-    command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCAGlobalMerger --run $runno --parameter '-loglevel=0x7c'"
+        deviceid=GlobalMerger
+        input=`translate_io_attributes "$output"`
+        output="--output type=push,size=1000,method=bind,address=tcp://*:$((basesocket + socketcount))"
+        let socketcount++
+        command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCAGlobalMerger --run $runno --parameter '-loglevel=0x7c'"
 
-    sessionnode[nsessions]=$node
-    sessiontitle[nsessions]="$deviceid"
-    sessioncmd[nsessions]=$command
-    let nsessions++
+        sessionnode[nsessions]=$node
+        sessiontitle[nsessions]="$deviceid"
+        sessioncmd[nsessions]=$command
+        let nsessions++
     fi
 
     deviceid=FileWriter
@@ -230,7 +230,7 @@ fi
 # start the screen sessions and devices
 for ((isession=$nsessions++-1; isession>=0; isession--)); do
     if [ "x$printcmdtoscreen" == "x" ]; then
-    echo "starting ${sessiontitle[$isession]} on ${sessionnode[$isession]}: ${sessioncmd[$isession]}"
+        echo "starting ${sessiontitle[$isession]} on ${sessionnode[$isession]}: ${sessioncmd[$isession]}"
     fi
     #$logcmd=" 2>&1 | tee ${sessiontitle[$isession]}.log"
     $printcmdtoscreen screen -d -m -S "${sessiontitle[$isession]} on ${sessionnode[$isession]}" ssh ${sessionnode[$isession]} "(cd workdir/alfa-rundir && source setup.sh && ${sessioncmd[$isession]}) $logcmd" &
