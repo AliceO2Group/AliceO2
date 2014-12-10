@@ -1,49 +1,84 @@
 #! /bin/bash
 
+#****************************************************************************
+#* This file is free software: you can redistribute it and/or modify        *
+#* it under the terms of the GNU General Public License as published by     *
+#* the Free Software Foundation, either version 3 of the License, or        *
+#* (at your option) any later version.                                      *
+#*                                                                          *
+#* Primary Authors: Matthias Richter <Matthias.Richter@scieq.net>           *
+#*                                                                          *
+#* The authors make no claims about the suitability of this software for    *
+#* any purpose. It is provided "as is" without express or implied warranty. *
+#****************************************************************************
+
+#  @file   cluster-relay-to-tracker.sh
+#  @author Matthias Richter
+#  @since  2014-11-26 
+#  @brief  Launch script for ALICE HLT TPC processing topology
+
+
 ###################################################################
 # global settings
 runno=167808
 
 # note: don't want to overdo the logic now, the lastslice should be firstslice plus multiples of slices_per_node minus 1
 # lastslice=(firstslice + n*slices_per_node) - 1
+#
+# TODO: this possibly needs some more checking 
 firstslice=0
-lastslice=3
+lastslice=35
 slices_per_node=4
-ibkey="-ib"
 #dryrun="-n"
-pollingtimeout=100
+pollingtimeout=1000
+
+baseport_on_flpgroup=48100
+baseport_on_epn1group=48200
+
+# uncomment the following line to print the commands instead of
+# actually launching them
+#printcmdtoscreen='echo'
+
+# uncomment the following line to bypass the FLP relays and
+# send data directly to th tracker
+#bypass_relays=yes
+
+# uncomment the following line to bypass the tracking
+#bypass_tracking=yes
 
 ###################################################################
-# fill the list of nodes
-# be aware that the node strings must not contain blanks
+######## end of configuration area                     ############
+######## no changes beyond this point                  ############
+###################################################################
+
+###################################################################
+# fill the list of nodes from subsidiary script in the current
+# directory
+# 
 nodelist=
-nodelist=(${nodelist[@]} cn48)
-nodelist=(${nodelist[@]} cn49)
-nodelist=(${nodelist[@]} cn50)
-nodelist=(${nodelist[@]} cn51)
-nodelist=(${nodelist[@]} cn53)
-nodelist=(${nodelist[@]} cn54)
-nodelist=(${nodelist[@]} cn55)
-nodelist=(${nodelist[@]} cn56)
-nodelist=(${nodelist[@]} cn58)
-nodelist=(${nodelist[@]} cn59)
+nodelistfile=nodelist.sh
+if [ -e $nodelistfile ]; then
+    . $nodelistfile
+fi
 
-# nodes with GPU
-#nodelist=(${nodelist[@]} cn26)
-#nodelist=(${nodelist[@]} cn27)
-#nodelist=(${nodelist[@]} cn28)
-#nodelist=(${nodelist[@]} cn29)
-#nodelist=(${nodelist[@]} cn30)
-#nodelist=(${nodelist[@]} cn31)
-#nodelist=(${nodelist[@]} cn32)
-#nodelist=(${nodelist[@]} cn33)
-#nodelist=(${nodelist[@]} cn34)
-#nodelist=(${nodelist[@]} cn35)
+if [ "x$nodelist" == "x" ]; then
+cat <<EOF
+error: can not find node definition
 
+Please add a script file 'nodelist.sh' in the current directory
+defining the nodes to be used in this topology.
+
+############## example ##############################
+nodelist=
+nodelist=(\${nodelist[@]} localhost)
+#nodelist=(\${nodelist[@]} someothernode)
+
+EOF
+exit -1
+fi
 nnodes=${#nodelist[@]}
-
-baseport_on_flpgroup=48000
-baseport_on_epn1group=48100
+echo "using $nnodes node(s) for running processing topology"
+echo ${nodelist[@]}
 
 # init the variables for the session commands
 sessionnode=
@@ -97,19 +132,28 @@ create_flpgroup() {
 	cf_output="$cf_output ${output}"
     done
 
+    if [ "x$bypass_relays" != "xyes" ]; then
+    # add a relay combining CF output into one (multi)message
     deviceid="Relay_$node"
     input=`translate_io_attributes "$cf_output"`
     output="--output type=push,size=5000,method=bind,address=tcp://*:$((basesocket + c))"
     let socketcount++
-    command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output -m 1 --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
+    command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
 
     sessionnode[nsessions]=$node
     sessiontitle[nsessions]="$deviceid"
     sessioncmd[nsessions]=$command
     let nsessions++
 
-    epn1_input[n_epn1_inputs]=${output/\/\/\*:///$node$ibkey:}
+    epn1_input[n_epn1_inputs]=${output/\/\/\*:///$node:}
     let n_epn1_inputs++
+    else
+    # add each CF output directly to EPN input
+    for output in $cf_output; do
+    epn1_input[n_epn1_inputs]=${output/\/\/\*:///$node:}
+    let n_epn1_inputs++
+    done
+    fi
 }
 
 ###################################################################
@@ -119,8 +163,9 @@ create_epn1group() {
     basesocket=$2
     socketcount=0
 
-    deviceid=Tracker
     output=`echo "${epn1_input[@]}"`
+    if [ "x$bypass_tracking" != "xyes" ]; then
+    deviceid=Tracker
     input=`translate_io_attributes "$output"`
     output="--output type=push,size=1000,method=bind,address=tcp://*:$((basesocket + socketcount))"
     let socketcount++
@@ -141,6 +186,7 @@ create_epn1group() {
     sessiontitle[nsessions]="$deviceid"
     sessioncmd[nsessions]=$command
     let nsessions++
+    fi
 
     deviceid=FileWriter
     input=`translate_io_attributes "$output"`
@@ -167,7 +213,7 @@ while [ "$sliceno" -le "$lastslice" ]; do
     let inode++
     if [ "$inode" -ge "$nnodes" ]; then
 	echo "error: too few nodes to create all flp node groups"
-	sliceno=$lastslice
+	sliceno=$((lastslice + 1))
     fi
 done
 
@@ -178,12 +224,19 @@ if [ "$inode" -lt "$nnodes" ]; then
     create_epn1group ${nodelist[inode]} $baseport_on_epn1group 
 else
     echo "error: too few nodes to create the epn1 node group"
+    exit -1
 fi
 
 # start the screen sessions and devices
 for ((isession=$nsessions++-1; isession>=0; isession--)); do
+    if [ "x$printcmdtoscreen" == "x" ]; then
     echo "starting ${sessiontitle[$isession]} on ${sessionnode[$isession]}: ${sessioncmd[$isession]}"
+    fi
     #$logcmd=" 2>&1 | tee ${sessiontitle[$isession]}.log"
-    screen -d -m -S "${sessiontitle[$isession]} on ${sessionnode[$isession]}" ssh ${sessionnode[$isession]} "(cd workdir/alfa-rundir && source setup.sh && ${sessioncmd[$isession]}) $logcmd" &
+    $printcmdtoscreen screen -d -m -S "${sessiontitle[$isession]} on ${sessionnode[$isession]}" ssh ${sessionnode[$isession]} "(cd workdir/alfa-rundir && source setup.sh && ${sessioncmd[$isession]}) $logcmd" &
 done
 
+usednodes=`for n in ${sessionnode[@]}; do echo $n; done | sort | uniq`
+echo
+echo "started processing topology in ${#sessionnode[@]} session(s) on `echo $usednodes | wc -w` node(s):"
+echo $usednodes | sed ':a;N;$!ba;s/\n/ /g'
