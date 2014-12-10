@@ -14,6 +14,7 @@
 #include "FLPexSampler.h"
 
 using namespace std;
+using boost::posix_time::ptime;
 
 using namespace AliceO2::Devices;
 
@@ -35,27 +36,26 @@ void FLPexSampler::Run()
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
   boost::thread resetEventCounter(boost::bind(&FLPexSampler::ResetEventCounter, this));
 
-  void* buffer = operator new[](100);
-  FairMQMessage* baseMsg = fTransportFactory->CreateMessage(buffer, 100);
+  uint64_t timeframeId = 0;
 
   while (fState == RUNNING) {
-      FairMQMessage* msg = fTransportFactory->CreateMessage();
-      msg->Copy(baseMsg);
+    FairMQMessage* msg = fTransportFactory->CreateMessage(sizeof(uint64_t));
+    memcpy(msg->GetData(), &timeframeId, sizeof(uint64_t));
 
-      if (fPayloadOutputs->at(0)->Send(msg, "no-block") == 0) {
-        LOG(ERROR) << "Could not send signal without blocking";
-      }
+    if (fPayloadOutputs->at(0)->Send(msg, "no-block") == 0) {
+      LOG(ERROR) << "Could not send signal without blocking";
+    }
 
-      --fEventCounter;
+    ++timeframeId;
 
-      while (fEventCounter == 0) {
-        boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-      }
+    --fEventCounter;
 
-      delete msg;
+    while (fEventCounter == 0) {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+    }
+
+    delete msg;
   }
-
-  delete baseMsg;
 
   try {
     rateLogger.interrupt();

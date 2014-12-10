@@ -24,7 +24,6 @@ class FLPex : public FairMQDevice
     enum {
       OutputHeartbeat = FairMQDevice::Last,
       HeartbeatTimeoutInMs,
-      NumFLPs,
       SendOffset,
       EventSize,
       Last

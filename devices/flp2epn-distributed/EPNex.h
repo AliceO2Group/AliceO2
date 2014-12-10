@@ -9,32 +9,36 @@
 #define ALICEO2_DEVICES_EPNEX_H_
 
 #include <string>
-#include <map>
+#include <unordered_map>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "FairMQDevice.h"
 
-struct eventDuration
-{
-  boost::posix_time::ptime start;
-  boost::posix_time::ptime end;
-};
-
 namespace AliceO2 {
 namespace Devices {
+
+struct timeframeBuffer
+{
+  int count;
+  vector<FairMQMessage*> parts;
+  boost::posix_time::ptime startTime;
+  boost::posix_time::ptime endTime;
+};
 
 class EPNex : public FairMQDevice
 {
   public:
     enum {
       HeartbeatIntervalInMs = FairMQDevice::Last,
+      NumFLPs,
+      BufferTimeoutInMs,
       Last
     };
     EPNex();
     virtual ~EPNex();
 
-    void PrintBuffer(std::map<uint64_t,int> &eventBuffer);
+    void PrintBuffer(std::unordered_map<uint64_t,timeframeBuffer> &buffer);
 
     virtual void SetProperty(const int key, const std::string& value, const int slot = 0);
     virtual std::string GetProperty(const int key, const std::string& default_ = "", const int slot = 0);
@@ -46,8 +50,14 @@ class EPNex : public FairMQDevice
     void sendHeartbeats();
 
     int fHeartbeatIntervalInMs;
-    std::map<uint64_t,int> fEventBuffer;
-    std::map<uint64_t,eventDuration> fFullEventTime;
+    int fBufferTimeoutInMs;
+    int fNumFLPs;
+
+    int fNumOfDiscardedTimeframes;
+
+    // std::unordered_map<uint64_t,int> fTimeframeCounter;
+    // std::unordered_map<uint64_t,vector<FairMQMessage*>*> fTimeframeBuffer;
+    std::unordered_map<uint64_t,timeframeBuffer> fTimeframeBuffer;
 };
 
 } // namespace Devices

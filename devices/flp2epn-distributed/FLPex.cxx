@@ -77,7 +77,7 @@ void FLPex::Run()
 
   uint64_t timeframeId = 0;
 
-  // base buffer, to be copied from for every payload
+  // base buffer, to be copied from for every timeframe body
   void* buffer = operator new[](fEventSize);
   FairMQMessage* baseMsg = fTransportFactory->CreateMessage(buffer, fEventSize);
 
@@ -112,16 +112,12 @@ void FLPex::Run()
       delete heartbeatMsg;
     }
 
-    // input 2 - signal
+    // input 2 - signal with a timeframe ID
     if (poller->CheckInput(2)) {
-      FairMQMessage* startSignal = fTransportFactory->CreateMessage();
-      fPayloadInputs->at(2)->Receive(startSignal);
-      delete startSignal;
-
-      // initialize and store id msg part in the buffer.
-      FairMQMessage* idPart = fTransportFactory->CreateMessage(sizeof(uint64_t));
-      memcpy(idPart->GetData(), &timeframeId, sizeof(uint64_t));
-      fIdBuffer.push(idPart);
+      // receive and store ID msg part in the buffer.
+      FairMQMessage* timeframeIdMsg = fTransportFactory->CreateMessage();
+      fPayloadInputs->at(2)->Receive(timeframeIdMsg);
+      fIdBuffer.push(timeframeIdMsg);
 
       // initialize and store data msg part in the buffer.
       FairMQMessage* dataPart = fTransportFactory->CreateMessage();
@@ -160,7 +156,6 @@ void FLPex::Run()
         LOG(ERROR) << "Counter larger than offset, something went wrong...";
       }
 
-      ++timeframeId;
     }
 
   } // while (fState == RUNNING)

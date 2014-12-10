@@ -2,7 +2,7 @@
  * EPNex.cxx
  *
  * @since 2013-01-09
- * @author D. Klein, A. Rybalchenko, M.Al-Turany, C. Kouzinopoulos
+ * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
  */
 
 #include <fstream>
@@ -14,12 +14,12 @@
 #include "FairMQLogger.h"
 
 using namespace std;
-using boost::posix_time::ptime;
 
 using namespace AliceO2::Devices;
 
 EPNex::EPNex() :
-  fHeartbeatIntervalInMs(3000)
+  fHeartbeatIntervalInMs(3000),
+  fNumFLPs(1)
 {
 }
 
@@ -27,12 +27,12 @@ EPNex::~EPNex()
 {
 }
 
-void EPNex::PrintBuffer(map<uint64_t,int> &eventBuffer)
+void EPNex::PrintBuffer(unordered_map<uint64_t,timeframeBuffer> &buffer)
 {
-  int size = eventBuffer.size();
+  int size = buffer.size();
   string header = "===== ";
 
-  for (int i = 1; i <= fNumOutputs; ++i) {
+  for (int i = 1; i <= fNumFLPs; ++i) {
     stringstream out;
     out << i % 10;
     header += out.str();
@@ -40,9 +40,9 @@ void EPNex::PrintBuffer(map<uint64_t,int> &eventBuffer)
   }
   LOG(INFO) << header;
 
-  for (map<uint64_t,int>::iterator it = eventBuffer.begin(); it != eventBuffer.end(); ++it) {
+  for (unordered_map<uint64_t,timeframeBuffer>::iterator it = buffer.begin(); it != buffer.end(); ++it) {
     string stars = "";
-    for (int j = 1; j <= it->second; ++j) {
+    for (int j = 1; j <= (it->second).count; ++j) {
       stars += "*";
     }
     LOG(INFO) << setw(4) << it->first << ": " << stars;
@@ -56,53 +56,88 @@ void EPNex::Run()
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
   boost::thread heartbeatSender(boost::bind(&EPNex::sendHeartbeats, this));
 
-  // Currently number of outputs equals number of FLPs, each output = heartbeat channel.
-  // This may need to be changed in future.
-  const int numFLPs = fNumOutputs;
-
-  uint64_t fullEvents = 0;
-  ptime time_start;
-  ptime time_end;
+  uint64_t id = 0; // holds the timeframe id of the currently arrived timeframe.
+  fNumOfDiscardedTimeframes = 0;
 
   while (fState == RUNNING) {
-    // Receive payload
     FairMQMessage* idPart = fTransportFactory->CreateMessage();
 
     if (fPayloadInputs->at(0)->Receive(idPart) > 0) {
-      uint64_t* id = reinterpret_cast<uint64_t*>(idPart->GetData());
-      // LOG(INFO) << "Received Event #" << *id;
+      // store the received ID
+      id = *(reinterpret_cast<uint64_t*>(idPart->GetData()));
+      // LOG(INFO) << "Received Timeframe #" << id;
 
-      if (fEventBuffer.find(*id) == fEventBuffer.end()) {
-        fEventBuffer[*id] = 1;
-        fFullEventTime[*id].start = boost::posix_time::microsec_clock::local_time();
-        // PrintBuffer(fEventBuffer);
+      if (fTimeframeBuffer.find(id) == fTimeframeBuffer.end()) {
+        // if received ID is not yet in the map
+        FairMQMessage* dataPart = fTransportFactory->CreateMessage();
+        if (fPayloadInputs->at(0)->Receive(dataPart) > 0) {
+          // receive data, store it in the buffer, save the receive time.
+          fTimeframeBuffer[id].count = 1;
+          fTimeframeBuffer[id].parts.push_back(dataPart);
+          fTimeframeBuffer[id].startTime = boost::posix_time::microsec_clock::local_time();
+        } else {
+          LOG(ERROR) << "no data received from input socket 0";
+          delete dataPart;
+        }
+        // PrintBuffer(fTimeframeBuffer);
       } else {
-        ++fEventBuffer[*id];
-        // PrintBuffer(fEventBuffer);
-        if (fEventBuffer[*id] == numFLPs) {
-          // LOG(INFO) << "collected " << numFLPs << " parts of event #" << *id << ", processing...";
-          // LOG(INFO) << "# of full events: " << ++fullEvents;
-          fFullEventTime[*id].end = boost::posix_time::microsec_clock::local_time();
-          fEventBuffer.erase(*id);
-          // LOG(INFO) << "size of eventBuffer: " << eventBuffer.size();
+        // if received ID is already in the map
+        FairMQMessage* dataPart = fTransportFactory->CreateMessage();
+        if (fPayloadInputs->at(0)->Receive(dataPart) > 0) {
+          fTimeframeBuffer[id].count++;
+          fTimeframeBuffer[id].parts.push_back(dataPart);
+        } else {
+          LOG(ERROR) << "no data received from input socket 0";
+          delete dataPart;
+        }
+        // PrintBuffer(fTimeframeBuffer);
+        if (fTimeframeBuffer[id].count == fNumFLPs) {
+          // when all parts are collected send all except last one with 'snd-more' flag, and last one without the flag.
+          for (int i = 0; i < fNumFLPs - 1; ++i) {
+            fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(i), "snd-more");
+          }
+          fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(fNumFLPs - 1));
+
+          // let transport know that the data is no longer needed. transport will clean up when it is out.
+          for(int i = 0; i < fTimeframeBuffer[id].parts.size(); ++i) {
+            delete fTimeframeBuffer[id].parts.at(i);
+          }
+          fTimeframeBuffer[id].parts.clear();
+
+          fTimeframeBuffer[id].endTime = boost::posix_time::microsec_clock::local_time();
+          // do something with time here ...
+          fTimeframeBuffer.erase(id);
         }
       }
 
-      FairMQMessage* dataPart = fTransportFactory->CreateMessage();
-
-      if (fPayloadInputs->at(0)->Receive(dataPart) > 0) {
-        // ... do something with data here ...
+      // check if any incomplete timeframes in the buffer are older than timeout period, and discard them
+      unordered_map<uint64_t,timeframeBuffer>::iterator it = fTimeframeBuffer.begin();
+      while (it != fTimeframeBuffer.end()) {
+        if ((boost::posix_time::microsec_clock::local_time() - (it->second).startTime).total_milliseconds() > fBufferTimeoutInMs) {
+          LOG(WARN) << "Timeframe #" << it->first << " incomplete after " << fBufferTimeoutInMs << " milliseconds, discarding";
+          for(int i = 0; i < (it->second).parts.size(); ++i) {
+            delete (it->second).parts.at(i);
+          }
+          it->second.parts.clear();
+          fTimeframeBuffer.erase(it++);
+          fNumOfDiscardedTimeframes++;
+          LOG(WARN) << "Number of discarded timeframes: " << fNumOfDiscardedTimeframes;
+        } else {
+          // LOG(INFO) << "Timeframe #" << it->first << " within timeout, buffering...";
+          ++it;
+        }
       }
-      delete dataPart;
+
+      // LOG(WARN) << "Buffer size: " << fTimeframeBuffer.size();
     }
     delete idPart;
   }
 
-  std::ofstream ofs(fId + "times.log");
-  for (map<uint64_t,eventDuration>::iterator it = fFullEventTime.begin(); it != fFullEventTime.end(); ++it) {
-    ofs << it->first << ": " << ((it->second).end - (it->second).start).total_milliseconds() << "\n";
-  }
-  ofs.close();
+  // std::ofstream ofs(fId + "times.log");
+  // for (unordered_map<uint64_t,timeframeDuration>::iterator it = fFullTimeframeBuffer.begin(); it != fFullTimeframeBuffer.end(); ++it) {
+  //   ofs << it->first << ": " << ((it->second).end - (it->second).start).total_milliseconds() << "\n";
+  // }
+  // ofs.close();
 
   rateLogger.interrupt();
   rateLogger.join();
@@ -122,7 +157,7 @@ void EPNex::sendHeartbeats()
 {
   while (true) {
     try {
-      for (int i = 0; i < fNumOutputs; ++i) {
+      for (int i = 0; i < fNumFLPs; ++i) {
         FairMQMessage* heartbeatMsg = fTransportFactory->CreateMessage(fInputAddress.at(0).size());
         memcpy(heartbeatMsg->GetData(), fInputAddress.at(0).c_str(), fInputAddress.at(0).size());
 
@@ -161,6 +196,12 @@ void EPNex::SetProperty(const int key, const int value, const int slot/*= 0*/)
     case HeartbeatIntervalInMs:
       fHeartbeatIntervalInMs = value;
       break;
+    case BufferTimeoutInMs:
+      fBufferTimeoutInMs = value;
+      break;
+    case NumFLPs:
+      fNumFLPs = value;
+      break;
     default:
       FairMQDevice::SetProperty(key, value, slot);
       break;
@@ -172,6 +213,10 @@ int EPNex::GetProperty(const int key, const int default_/*= 0*/, const int slot/
   switch (key) {
     case HeartbeatIntervalInMs:
       return fHeartbeatIntervalInMs;
+    case BufferTimeoutInMs:
+      return fBufferTimeoutInMs;
+    case NumFLPs:
+      return fNumFLPs;
     default:
       return FairMQDevice::GetProperty(key, default_, slot);
   }

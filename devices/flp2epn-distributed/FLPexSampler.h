@@ -10,10 +10,18 @@
 
 #include <string>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "FairMQDevice.h"
 
 namespace AliceO2 {
 namespace Devices {
+
+// struct timeframeDuration
+// {
+//   boost::posix_time::ptime start;
+//   boost::posix_time::ptime end;
+// };
 
 class FLPexSampler : public FairMQDevice
 {
@@ -38,6 +46,8 @@ class FLPexSampler : public FairMQDevice
 
     int fEventRate;
     int fEventCounter;
+
+    // std::unordered_map<uint64_t,timeframeDuration> fFullTimeframeTime;
 };
 
 } // namespace Devices
