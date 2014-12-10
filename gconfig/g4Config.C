@@ -36,15 +36,15 @@ void Config()
 /// When more than one options are selected, they should be separated with '+'
 /// character: eg. stepLimit+specialCuts.
 
-   // Geant4 VMC 2.x
+// Geant4 VMC 2.x
    TG4RunConfiguration* runConfiguration
            = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT", "stepLimiter+specialCuts+specialControls+stackPopper");
 
-   // Geant4 VMC 3.0
-   //Bool_t mtMode = true;
-   //TG4RunConfiguration* runConfiguration
-   //  = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT", "stepLimiter+specialCuts",
-   //                            false, mtMode);
+// Geant4 VMC 3.0
+//Bool_t mtMode = true;
+//TG4RunConfiguration* runConfiguration
+//  = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT", "stepLimiter+specialCuts",
+//                            false, mtMode);
 
 /// Create the G4 VMC
    TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
