@@ -31,7 +31,7 @@ namespace ALICE
     class WrapperDevice : public FairMQDevice {
     public:
       /// default constructor
-      WrapperDevice(int argc, char** argv);
+      WrapperDevice(int argc, char** argv, int verbosity=0);
       /// destructor
       ~WrapperDevice();
 
@@ -93,6 +93,7 @@ namespace ALICE
       int mTotalReadCycles;      // tot number of read cycles in statistic period
       int mMaxReadCycles;        // max number of read cycles in statistic period
       int mNSamples;             // number of samples in statistic period
+      int mVerbosity;            // verbosity level
     };
 
   }    // namespace hlt

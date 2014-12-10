@@ -244,7 +244,11 @@ int main(int argc, char** argv)
     std::ios::fmtflags oldflags = std::cout.flags();
     std::cout << "Verbosity: 0x" << std::setfill('0') << std::setw(2) << std::hex << verbosity << std::endl;
     std::cout.flags(oldflags);
-    // TODO: verbosity options to be propagated to device and component
+    // verbosity option is propagated to device, the verbosity level
+    // for the HLT component code can be specified as extra parameter,
+    // note that this is using a mask, where each bit corresponds to
+    // a message catagory, e.g. 0x78 is commonly used to get all
+    // above "Info"
   }
 
   vector<char*> deviceArgs;
@@ -252,7 +256,7 @@ int main(int argc, char** argv)
   if (iDeviceArg>0)
     deviceArgs.insert(deviceArgs.end(), argv+iDeviceArg, argv+argc);
 
-  gDevice=new ALICE::HLT::WrapperDevice(deviceArgs.size(), &deviceArgs[0]);
+  gDevice=new ALICE::HLT::WrapperDevice(deviceArgs.size(), &deviceArgs[0], verbosity);
   if (!gDevice) {
     cerr << "failed to create device"  << endl;
     return -ENODEV;
