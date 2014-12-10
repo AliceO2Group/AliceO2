@@ -222,6 +222,9 @@ public:
     return mStaveModelOuterBarrel;
   }
 
+  /// Clone this object (used in MT mode only)
+  virtual FairModule* CloneModule() const;
+
   UpgradeGeometryTGeo* mGeometryTGeo; //! access to geometry details
 
 protected:

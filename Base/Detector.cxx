@@ -27,8 +27,22 @@ Detector::Detector(const char* name, Bool_t Active, Int_t DetId)
 {
 }
 
+Detector::Detector(const Detector& rhs)
+    : FairDetector(rhs) {}
+
 Detector::~Detector()
 {
+}
+
+Detector& Detector::operator=(const Detector& rhs)
+{
+  // check assignment to self
+  if (this == &rhs) return *this;
+
+  // base class assignment
+  FairDetector::operator=(rhs);
+
+  return *this;
 }
 
 void Detector::Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens,

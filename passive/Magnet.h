@@ -28,6 +28,14 @@ class Magnet : public FairModule
     Magnet();
     virtual ~Magnet();
     void ConstructGeometry();
+
+    /// Clone this object (used in MT mode only)
+    virtual FairModule* CloneModule() const;
+
+  private:
+    Magnet(const Magnet& orig);
+    Magnet& operator=(const Magnet&);
+
     ClassDef(AliceO2::Passive::Magnet,1)
 
 };

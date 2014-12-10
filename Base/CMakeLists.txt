@@ -17,7 +17,6 @@ ${ROOT_LIBRARY_DIR}
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-Module.cxx
 Detector.cxx
 TrackReference.cxx
 )

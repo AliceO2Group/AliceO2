@@ -41,12 +41,37 @@ Stack::Stack(Int_t size)
     mNumberOfEntriesInParticles(0),
     mNumberOfEntriesInTracks(0),
     mIndex(0),
+    mStoreMothers(kTRUE),
     mStoreSecondaries(kTRUE),
     mMinPoints(1),
     mEnergyCut(0.),
-    mStoreMothers(kTRUE),
     mLogger(FairLogger::GetLogger())
 {
+}
+
+Stack::Stack(const Stack& rhs)
+  : FairGenericStack(rhs),
+    mStack(),
+    mParticles(0),
+    mTracks(0),
+    mStoreMap(),
+    mStoreIterator(),
+    mIndexMap(),
+    mIndexIterator(),
+    mPointsMap(),
+    mIndexOfCurrentTrack(-1),
+    mNumberOfPrimaryParticles(0),
+    mNumberOfEntriesInParticles(0),
+    mNumberOfEntriesInTracks(0),
+    mIndex(0),
+    mStoreMothers(rhs.mStoreMothers),
+    mStoreSecondaries(rhs.mStoreSecondaries),
+    mMinPoints(rhs.mMinPoints),
+    mEnergyCut(rhs.mEnergyCut),
+    mLogger(0)
+{
+  mParticles = new TClonesArray("TParticle", rhs.mParticles->GetSize());
+  mTracks = new TClonesArray("MCTrack", rhs.mTracks->GetSize());
 }
 
 Stack::~Stack()
@@ -59,6 +84,31 @@ Stack::~Stack()
     mTracks->Delete();
     delete mTracks;
   }
+}
+
+Stack& Stack::operator=(const Stack& rhs)
+{
+  // check assignment to self
+  if (this == &rhs) return *this;
+
+  // base class assignment
+  FairGenericStack::operator=(rhs);
+
+  // assignment operator
+  mParticles = new TClonesArray("TParticle", rhs.mParticles->GetSize());
+  mTracks = new TClonesArray("MCTrack", rhs.mTracks->GetSize());
+  mIndexOfCurrentTrack = -1;
+  mNumberOfPrimaryParticles = 0;
+  mNumberOfEntriesInParticles = 0;
+  mNumberOfEntriesInTracks = 0;
+  mIndex = 0;
+  mStoreMothers = rhs.mStoreMothers;
+  mStoreSecondaries = rhs.mStoreSecondaries;
+  mMinPoints = rhs.mMinPoints;
+  mEnergyCut = rhs.mEnergyCut;
+  mLogger = 0;
+
+  return *this;
 }
 
 void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px, Double_t py, Double_t pz, Double_t e,
@@ -134,7 +184,9 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
 
   // Test for index
   if (iPrim < 0 || iPrim >= mNumberOfPrimaryParticles) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Primary index out of range! %i ", iPrim);
+    if (mLogger) {
+      mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Primary index out of range! %i ", iPrim);
+    }
     Fatal("Stack::PopPrimaryForTracking", "Index out of range");
   }
 
@@ -142,7 +194,9 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
   // a primary.
   TParticle* part = (TParticle*)mParticles->At(iPrim);
   if (!(part->GetMother(0) < 0)) {
-    mLogger->Fatal(MESSAGE_ORIGIN, "Stack:: Not a primary track! %i ", iPrim);
+    if (mLogger) {
+      mLogger->Fatal(MESSAGE_ORIGIN, "Stack:: Not a primary track! %i ", iPrim);
+    }
     Fatal("Stack::PopPrimaryForTracking", "Not a primary track");
   }
 
@@ -153,7 +207,9 @@ TParticle* Stack::GetCurrentTrack() const
 {
   TParticle* currentPart = GetParticle(mIndexOfCurrentTrack);
   if (!currentPart) {
-    mLogger->Warning(MESSAGE_ORIGIN, "Stack: Current track not found in stack!");
+    if (mLogger) {
+      mLogger->Warning(MESSAGE_ORIGIN, "Stack: Current track not found in stack!");
+    }
     Warning("Stack::GetCurrentTrack", "Track not found in stack");
   }
   return currentPart;
@@ -170,8 +226,11 @@ void Stack::AddParticle(TParticle* oldPart)
 
 void Stack::FillTrackArray()
 {
-
-  mLogger->Debug(MESSAGE_ORIGIN, "Stack: Filling MCTrack array...");
+  if (mLogger) {
+    mLogger->Debug(MESSAGE_ORIGIN, "Stack: Filling MCTrack array...");
+  } else {
+    cout <<  "Stack: Filling MCTrack array..." << endl;
+  }
 
   // Reset index map and number of output tracks
   mIndexMap.clear();
@@ -185,7 +244,9 @@ void Stack::FillTrackArray()
 
     mStoreIterator = mStoreMap.find(iPart);
     if (mStoreIterator == mStoreMap.end()) {
-      mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle %i not found in storage map! ", iPart);
+      if (mLogger) {
+        mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle %i not found in storage map! ", iPart);
+      }
       Fatal("Stack::FillTrackArray", "Particle not found in storage map.");
     }
     Bool_t store = (*mStoreIterator).second;
@@ -213,8 +274,11 @@ void Stack::FillTrackArray()
 
 void Stack::UpdateTrackIndex(TRefArray* detList)
 {
-
-  mLogger->Debug(MESSAGE_ORIGIN, "Stack: Updating track indizes...");
+  if (mLogger) {
+    mLogger->Debug(MESSAGE_ORIGIN, "Stack: Updating track indices...");
+  } else {
+    cout << "Stack: Updating track indices..." << endl;
+  }
   Int_t nColl = 0;
 
   // First update mother ID in MCTracks
@@ -223,7 +287,9 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
     Int_t iMotherOld = track->getMotherTrackId();
     mIndexIterator = mIndexMap.find(iMotherOld);
     if (mIndexIterator == mIndexMap.end()) {
-      mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle index %i not found in dex map! ", iMotherOld);
+      if (mLogger) {
+        mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle index %i not found in dex map! ", iMotherOld);
+      }
       Fatal("Stack::UpdateTrackIndex", "Particle index not found in map");
     }
     track->SetMotherTrackId((*mIndexIterator).second);
@@ -254,7 +320,9 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
 
         mIndexIterator = mIndexMap.find(iTrack);
         if (mIndexIterator == mIndexMap.end()) {
-          mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle index %i not found in index map! ", iTrack);
+          if (mLogger) {
+            mLogger->Fatal(MESSAGE_ORIGIN, "Stack: Particle index %i not found in index map! ", iTrack);
+          }
           Fatal("Stack::UpdateTrackIndex", "Particle index not found in map");
         }
         point->SetTrackID((*mIndexIterator).second);
@@ -263,7 +331,11 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
 
     } // Collections of this detector
   }   // List of active detectors
-  mLogger->Debug(MESSAGE_ORIGIN, "...stack and  %i collections updated.", nColl);
+  if (mLogger) {
+    mLogger->Debug(MESSAGE_ORIGIN, "...stack and  %i collections updated.", nColl);
+  } else {
+    cout << "...stack and  " << nColl << " collections updated." << endl;
+  }
 }
 
 void Stack::Reset()
@@ -335,7 +407,9 @@ Int_t Stack::GetCurrentParentTrackNumber() const
 TParticle* Stack::GetParticle(Int_t trackID) const
 {
   if (trackID < 0 || trackID >= mNumberOfEntriesInParticles) {
-    mLogger->Debug(MESSAGE_ORIGIN, "Stack: Particle index %i out of range.", trackID);
+    if (mLogger) {
+      mLogger->Debug(MESSAGE_ORIGIN, "Stack: Particle index %i out of range.", trackID);
+    }
     Fatal("Stack::GetParticle", "Index out of range");
   }
   return (TParticle*)mParticles->At(trackID);
@@ -402,6 +476,11 @@ void Stack::SelectTracks()
       }
     }
   }
+}
+
+FairGenericStack* Stack::CloneStack() const
+{
+  return new AliceO2::Data::Stack(*this);
 }
 
 ClassImp(AliceO2::Data::Stack)

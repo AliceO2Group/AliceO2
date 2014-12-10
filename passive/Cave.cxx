@@ -56,7 +56,36 @@ Cave::~Cave()
 Cave::Cave(const char* name,  const char* Title)
   : FairModule(name ,Title)
 {
-  world[0] = 0;
-  world[1] = 0;
-  world[2] = 0;
+  mWorld[0] = 0;
+  mWorld[1] = 0;
+  mWorld[2] = 0;
+}
+
+Cave::Cave(const Cave& rhs)
+  : FairModule(rhs)
+{
+  mWorld[0] = rhs.mWorld[0];
+  mWorld[1] = rhs.mWorld[1];
+  mWorld[2] = rhs.mWorld[2];
+}
+
+Cave& Cave::operator=(const Cave& rhs)
+{
+  // self assignment
+  if (this == &rhs) return *this;
+
+  // base class assignment
+  FairModule::operator=(rhs);
+
+  // assignment operator
+  mWorld[0] = rhs.mWorld[0];
+  mWorld[1] = rhs.mWorld[1];
+  mWorld[2] = rhs.mWorld[2];
+
+  return *this;
+}
+
+FairModule* Cave::CloneModule() const
+{
+  return new Cave(*this);
 }
