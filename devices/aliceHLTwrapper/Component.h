@@ -20,6 +20,7 @@
 //  @brief  A component running ALICE HLT code
 
 #include "AliHLTDataTypes.h"
+#include "MessageFormat.h"
 #include <vector>
 
 class AliHLTHOMERReader;
@@ -41,15 +42,6 @@ namespace ALICE
 
       int Init(int argc, char** argv);
 
-      struct BufferDesc_t {
-	unsigned char* mP;
-	unsigned mSize;
-
-	BufferDesc_t(unsigned char* p, unsigned size) {
-	  mP=p; mSize=size;
-	}
-      };
-
       enum {
 	// all blocks in HOMER format
 	kOutputModeHOMER=0,
@@ -60,7 +52,7 @@ namespace ALICE
 	kOutputModeLast
       };
 
-      int Process(vector<BufferDesc_t>& dataArray);
+      int Process(vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray);
 
       AliHLTUInt64_t ByteSwap64(AliHLTUInt64_t src);
       AliHLTUInt32_t ByteSwap32(AliHLTUInt32_t src);
@@ -72,13 +64,6 @@ namespace ALICE
       Component(const Component&);
       // assignment operator prohibited
       Component& operator=(const Component&);
-
-      // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
-      // from a buffer
-      int ReadBlockSequence(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks);
-
-      // read message payload in HOMER format
-      int ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& inputBlocks);
 
       // create HOMER format from the output blocks
       AliHLTHOMERWriter* CreateHOMERFormat(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt);

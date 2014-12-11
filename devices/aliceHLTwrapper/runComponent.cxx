@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     return -iResult;
   }
 
-  vector<ALICE::HLT::Component::BufferDesc_t> blockData;
+  vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> blockData;
   char* inputBuffer=NULL;
   if (inputFileName) {
     std::ifstream input(inputFileName, std::ifstream::binary);
@@ -81,7 +81,7 @@ int main(int argc, char** argv)
       inputBuffer=new char [length];
       input.read (inputBuffer,length);
       input.close();
-      blockData.push_back(ALICE::HLT::Component::BufferDesc_t(reinterpret_cast<unsigned char*>(inputBuffer), length));
+      blockData.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(inputBuffer), length));
     }
   }
   if ((iResult=component.Process(blockData))<0) {
