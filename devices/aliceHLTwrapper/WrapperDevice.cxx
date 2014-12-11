@@ -139,14 +139,14 @@ void WrapperDevice::Run()
 	      inputsReceived++; // count only the first message on that socket
 	    inputMessageCntPerSocket[i]++;
 	    if (mVerbosity>3) {
-	      LOG(INFO) << " |---- recieve Msg from socket no" << i ;
+	      LOG(INFO) << " |---- receive Msg from socket " << i ;
 	    }
 	    size_t more_size = sizeof(more);
 	    fPayloadInputs->at(i)->GetOption("rcv-more", &more, &more_size);
 	  }
 	} while (more);
 	if (mVerbosity>2) {
-	  LOG(INFO) << "------ recieved " << inputMessageCntPerSocket[i] << " message(s) from socket no" << i ;
+	  LOG(INFO) << "------ received " << inputMessageCntPerSocket[i] << " message(s) from socket " << i ;
 	}
       }
     }

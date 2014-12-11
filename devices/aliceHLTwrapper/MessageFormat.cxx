@@ -37,6 +37,7 @@ MessageFormat::MessageFormat()
   , mDataBuffer()
   , mMessages()
   , mpFactory(NULL)
+  , mOutputMode(kOutputModeSequence)
 {
 }
 
@@ -45,6 +46,13 @@ MessageFormat::~MessageFormat()
   if (mpFactory)
     delete mpFactory;
   mpFactory=NULL;
+}
+
+void MessageFormat::clear()
+{
+  mBlockDescriptors.clear();
+  mDataBuffer.clear();
+  mMessages.clear();
 }
 
 int MessageFormat::AddMessage(AliHLTUInt8_t* buffer, unsigned size)
@@ -151,7 +159,70 @@ int MessageFormat::ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<
   return nofBlocks;
 }
 
-AliHLTHOMERWriter* MessageFormat::CreateHOMERFormat(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt) const
+vector<MessageFormat::BufferDesc_t> MessageFormat::CreateMessages(const AliHLTComponentBlockData* blocks, unsigned count, unsigned totalPayloadSize)
+{
+  const AliHLTComponentBlockData* pOutputBlocks=blocks;
+  AliHLTUInt32_t outputBlockCnt=count;
+  mDataBuffer.clear();
+  mMessages.clear();
+  if (mOutputMode==kOutputModeHOMER) {
+    AliHLTHOMERWriter* pWriter=CreateHOMERFormat(pOutputBlocks, outputBlockCnt);
+    if (pWriter) {
+      AliHLTUInt32_t position=mDataBuffer.size();
+      AliHLTUInt32_t payloadSize=pWriter->GetTotalMemorySize();
+      mDataBuffer.resize(position+payloadSize);
+      pWriter->Copy(&mDataBuffer[position], 0, 0, 0, 0);
+      mpFactory->DeleteWriter(pWriter);
+      mMessages.push_back(MessageFormat::BufferDesc_t(&mDataBuffer[position], payloadSize));
+    }
+  } else if (mOutputMode==kOutputModeMultiPart ||
+	     mOutputMode==kOutputModeSequence) {
+    // the output blocks are assempled in the internal buffer, for each
+    // block BlockData is added as header information, directly followed
+    // by the block payload
+    //
+    // kOutputModeMultiPart:
+    // multi part mode adds one buffer descriptor per output block
+    // the devices decides what to do with the multiple descriptors, one
+    // option is to send them in a multi-part message
+    //
+    // kOutputModeSequence:
+    // sequence mode concatenates the output blocks in the internal
+    // buffer. In contrast to multi part mode, only one buffer descriptor
+    // for the complete sequence is handed over to device
+    AliHLTUInt32_t position=mDataBuffer.size();
+    AliHLTUInt32_t startPosition=position;
+    mDataBuffer.resize(position+count*sizeof(AliHLTComponentBlockData)+totalPayloadSize);
+    for (unsigned bi=0; bi<count; bi++) {
+      const AliHLTComponentBlockData* pOutputBlock=pOutputBlocks+bi;
+      // copy BlockData and payload
+      AliHLTUInt8_t* pData=reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr);
+      pData+=pOutputBlock->fOffset;
+      AliHLTComponentBlockData* bdTarget=reinterpret_cast<AliHLTComponentBlockData*>(&mDataBuffer[position]);
+      memcpy(bdTarget, pOutputBlock, sizeof(AliHLTComponentBlockData));
+      bdTarget->fOffset=0;
+      bdTarget->fPtr=NULL;
+      position+=sizeof(AliHLTComponentBlockData);
+      memcpy(&mDataBuffer[position], pData, pOutputBlock->fSize);
+      position+=pOutputBlock->fSize;
+      if (mOutputMode==kOutputModeMultiPart) {
+	// send one descriptor per block back to device
+	mMessages.push_back(MessageFormat::BufferDesc_t(&mDataBuffer[startPosition], position-startPosition));
+	startPosition=position;
+      }
+    }
+    if (mOutputMode==kOutputModeSequence) {
+      // send one single descriptor for all concatenated blocks
+      mMessages.push_back(MessageFormat::BufferDesc_t(&mDataBuffer[startPosition], position-startPosition));
+    }
+  } else {
+    // invalid output mode
+    cerr << "error ALICE::HLT::Component: invalid output mode " << mOutputMode << endl; 
+  }
+  return mMessages;
+}
+
+AliHLTHOMERWriter* MessageFormat::CreateHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt) const
 {
   // send data blocks in HOMER format in one message
   int iResult=0;
@@ -164,7 +235,7 @@ AliHLTHOMERWriter* MessageFormat::CreateHOMERFormat(AliHLTComponentBlockData* pO
   homer_uint64 homerHeader[kCount_64b_Words];
   HOMERBlockDescriptor homerDescriptor(homerHeader);
 
-  AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
+  const AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
   for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
     if (pOutputBlock->fPtr==NULL && pOutputBlock->fSize>0) {
       cerr << "warning: ignoring block " << blockIndex << " because of missing data pointer" << endl;

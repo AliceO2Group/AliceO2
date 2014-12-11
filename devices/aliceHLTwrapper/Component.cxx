@@ -18,10 +18,6 @@
 #include "Component.h"
 #include "AliHLTDataTypes.h"
 #include "SystemInterface.h"
-#include "HOMERFactory.h"
-#include "AliHLTHOMERData.h"
-#include "AliHLTHOMERWriter.h"
-#include "AliHLTHOMERReader.h"
 
 #include <cstdlib>
 #include <cerrno>
@@ -36,10 +32,8 @@ using namespace AliceO2::AliceHLT;
 Component::Component()
   : mOutputBuffer()
   , mpSystem(NULL)
-  , mpFactory(NULL)
-  , mpWriter(NULL)
   , mProcessor(kEmptyHLTComponentHandle)
-  , mOutputMode(kOutputModeSequence)
+  , mFormatHandler()
   , mEventCount(-1)
 {
 }
@@ -103,7 +97,11 @@ int Component::Init(int argc, char** argv)
       }
       break;
     case 'm':
-      std::stringstream(optarg) >> mOutputMode;
+      {
+	unsigned outputMode;
+	std::stringstream(optarg) >> outputMode;
+	mFormatHandler.setOutputMode(outputMode);
+      }
       break;
     case '?':
       // TODO: more error handling
@@ -127,15 +125,9 @@ int Component::Init(int argc, char** argv)
     //LOG(ERROR) << "failed to set up SystemInterface " << iface.get() << " (" << iResult << ")";
     return -ENOSYS;
   }
-  auto_ptr<ALICE::HLT::HOMERFactory> homerfact(new HOMERFactory);
-  if (!homerfact.get()) {
-    //LOG(ERROR) << "failed to set up HOMERFactory " << homerfact.get();
-    return -ENOSYS;
-  }
 
   // basic initialization succeeded, make the instances persistent
   mpSystem=iface.release();
-  mpFactory=homerfact.release();
 
   // load the component library
   if ((iResult=mpSystem->LoadLibrary(componentLibrary))!=0)
@@ -196,9 +188,9 @@ int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
 
 
   // prepare input structure for the ALICE HLT component
-  MessageFormat input;
-  input.AddMessages(dataArray);
-  vector<AliHLTComponentBlockData>& inputBlocks=input.BlockDescriptors();
+  mFormatHandler.clear();
+  mFormatHandler.AddMessages(dataArray);
+  vector<AliHLTComponentBlockData>& inputBlocks=mFormatHandler.BlockDescriptors();
   unsigned nofInputBlocks=inputBlocks.size();
   if (dataArray.size()>0 && nofInputBlocks==0) {
     cerr << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input" << endl;
@@ -279,9 +271,10 @@ int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
     // early days of development that is only allowed if fPtr is set to the beginning
     // of output buffer. The block is however fully described by offset relative to
     // beginning of output buffer.
-    vector<unsigned> validBlocks;
+    unsigned validBlocks=0;
     unsigned totalPayloadSize=0;
     AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
+    AliHLTComponentBlockData* pFiltered=pOutputBlocks;
     for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
       // filter special data blocks
       if (pOutputBlock->fDataType==eventTypeBlock.fDataType)
@@ -294,6 +287,8 @@ int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
       AliHLTUInt8_t* pStart=pOutputBlock->fPtr!=NULL?reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr):&mOutputBuffer[0];
       pStart+=pOutputBlock->fOffset;
       AliHLTUInt8_t* pEnd=pStart+pOutputBlock->fSize;
+      pOutputBlock->fPtr=pStart;
+      pOutputBlock->fOffset=0;
 
       // first search in the output buffer
       bValid=bValid || pStart>=pOutputBufferStart && pEnd<=pOutputBufferEnd;
@@ -312,68 +307,19 @@ int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
 
       if (bValid) {
 	totalPayloadSize+=pOutputBlock->fSize;
- 	validBlocks.push_back(blockIndex);
+ 	validBlocks++;
+	pFiltered=pOutputBlock;
+	pFiltered++;
       } else {
 	cerr << "Inconsistent data reference in output block " << blockIndex << endl;
       }
     }
 
-  if (mOutputMode==kOutputModeHOMER) {
-    AliHLTHOMERWriter* pWriter=CreateHOMERFormat(pOutputBlocks, outputBlockCnt);
-    if (pWriter) {
-      AliHLTUInt32_t position=mOutputBuffer.size();
-      AliHLTUInt32_t payloadSize=pWriter->GetTotalMemorySize();
-      if (mOutputBuffer.capacity()<position+payloadSize) {
-	mOutputBuffer.reserve(position+payloadSize);
-      }
-      pWriter->Copy(&mOutputBuffer[position], 0, 0, 0, 0);
-      mpFactory->DeleteWriter(pWriter);
-      dataArray.push_back(MessageFormat::BufferDesc_t(&mOutputBuffer[position], payloadSize));
-    }
-  } else if (mOutputMode==kOutputModeMultiPart ||
-	     mOutputMode==kOutputModeSequence) {
-    // the output blocks are assempled in the internal buffer, for each
-    // block BlockData is added as header information, directly followed
-    // by the block payload
-    //
-    // kOutputModeMultiPart:
-    // multi part mode adds one buffer descriptor per output block
-    // the devices decides what to do with the multiple descriptors, one
-    // option is to send them in a multi-part message
-    //
-    // kOutputModeSequence:
-    // sequence mode concatenates the output blocks in the internal
-    // buffer. In contrast to multi part mode, only one buffer descriptor
-    // for the complete sequence is handed over to device
-    AliHLTUInt32_t position=mOutputBuffer.size();
-    AliHLTUInt32_t startPosition=position;
-    mOutputBuffer.resize(position+validBlocks.size()*sizeof(AliHLTComponentBlockData)+totalPayloadSize);
-    for (vector<unsigned>::const_iterator vbi=validBlocks.begin();
-	 vbi!=validBlocks.end(); vbi++) {
-      pOutputBlock=pOutputBlocks+*vbi;
-      // copy BlockData and payload
-      AliHLTUInt8_t* pData=pOutputBlock->fPtr!=NULL?reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr):&mOutputBuffer[0];
-      pData+=pOutputBlock->fOffset;
-      pOutputBlock->fOffset=0;
-      pOutputBlock->fPtr=NULL;
-      memcpy(&mOutputBuffer[position], pOutputBlock, sizeof(AliHLTComponentBlockData));
-      position+=sizeof(AliHLTComponentBlockData);
-      memcpy(&mOutputBuffer[position], pData, pOutputBlock->fSize);
-      position+=pOutputBlock->fSize;
-      if (mOutputMode==kOutputModeMultiPart) {
-	// send one descriptor per block back to device
-	dataArray.push_back(MessageFormat::BufferDesc_t(&mOutputBuffer[startPosition], position-startPosition));
-	startPosition=position;
-      }
-    }
-    if (mOutputMode==kOutputModeSequence) {
-      // send one single descriptor for all concatenated blocks
-    dataArray.push_back(MessageFormat::BufferDesc_t(&mOutputBuffer[startPosition], position-startPosition));
-    }
-  } else {
-    // invalid output mode
-    cerr << "error ALICE::HLT::Component: invalid output mode " << mOutputMode << endl; 
-  }
+    // create the messages
+    // TODO: for now there is an extra copy of the data, but it should be
+    // handled in place
+    vector<MessageFormat::BufferDesc_t> outputMessages=mFormatHandler.CreateMessages(pOutputBlocks, validBlocks, totalPayloadSize);
+    dataArray.insert(dataArray.end(), outputMessages.begin(), outputMessages.end());
   }
 
   // cleanup
@@ -387,54 +333,4 @@ int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
   pEventDoneData=NULL;
 
   return -iResult;
-}
-
-AliHLTHOMERWriter* Component::CreateHOMERFormat(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt)
-{
-  // send data blocks in HOMER format in one message
-  int iResult=0;
-  if (!mpFactory) return NULL;
-  auto_ptr<AliHLTHOMERWriter> writer(mpFactory->OpenWriter());
-  if (writer.get()==NULL) return NULL;
-
-  homer_uint64 homerHeader[kCount_64b_Words];
-  HOMERBlockDescriptor homerDescriptor(homerHeader);
-
-  AliHLTComponentBlockData* pOutputBlock=pOutputBlocks;
-  for (unsigned blockIndex=0; blockIndex<outputBlockCnt; blockIndex++, pOutputBlock++) {
-    memset( homerHeader, 0, sizeof(homer_uint64)*kCount_64b_Words );
-    homerDescriptor.Initialize();
-    homer_uint64 id=0;
-    homer_uint64 origin=0;
-    memcpy(&id, pOutputBlock->fDataType.fID, sizeof(homer_uint64));
-    memcpy(((AliHLTUInt8_t*)&origin)+sizeof(homer_uint32), pOutputBlock->fDataType.fOrigin, sizeof(homer_uint32));
-    homerDescriptor.SetType(ByteSwap64(id));
-    homerDescriptor.SetSubType1(ByteSwap64(origin));
-    homerDescriptor.SetSubType2(pOutputBlock->fSpecification);
-    homerDescriptor.SetBlockSize(pOutputBlock->fSize);
-    writer->AddBlock(homerHeader, &mOutputBuffer[pOutputBlock->fOffset]);
-  }
-  return writer.release();
-}
-
-AliHLTUInt64_t Component::ByteSwap64(AliHLTUInt64_t src)
-{
-  // swap a 64 bit number
-  return ((src & 0xFFULL) << 56) | 
-    ((src & 0xFF00ULL) << 40) | 
-    ((src & 0xFF0000ULL) << 24) | 
-    ((src & 0xFF000000ULL) << 8) | 
-    ((src & 0xFF00000000ULL) >> 8) | 
-    ((src & 0xFF0000000000ULL) >> 24) | 
-    ((src & 0xFF000000000000ULL) >>  40) | 
-    ((src & 0xFF00000000000000ULL) >> 56);
-}
-
-AliHLTUInt32_t Component::ByteSwap32(AliHLTUInt32_t src)
-{
-  // swap a 32 bit number
-  return ((src & 0xFFULL) << 24) | 
-    ((src & 0xFF00ULL) << 8) | 
-    ((src & 0xFF0000ULL) >> 8) | 
-    ((src & 0xFF000000ULL) >> 24);
 }
