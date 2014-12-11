@@ -5,7 +5,6 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
   ${FAIRROOT_INCLUDE_DIR}
   ${AlFa_DIR}/include
-  ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
 )
 
 include_directories(${INCLUDE_DIRECTORIES})
