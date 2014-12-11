@@ -23,14 +23,10 @@
 #include "MessageFormat.h"
 #include <vector>
 
-class AliHLTHOMERReader;
-class AliHLTHOMERWriter;
-
 namespace ALICE
 {
   namespace HLT
   {
-    class HOMERFactory;
     class SystemInterface;
 
     class Component {
@@ -42,20 +38,7 @@ namespace ALICE
 
       int Init(int argc, char** argv);
 
-      enum {
-	// all blocks in HOMER format
-	kOutputModeHOMER=0,
-	// each block individually as part of a multi-part output
-	kOutputModeMultiPart,
-	// all blocks as sequence of header and payload
-	kOutputModeSequence,
-	kOutputModeLast
-      };
-
       int Process(vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray);
-
-      AliHLTUInt64_t ByteSwap64(AliHLTUInt64_t src);
-      AliHLTUInt32_t ByteSwap32(AliHLTUInt32_t src);
 
     protected:
 
@@ -65,16 +48,11 @@ namespace ALICE
       // assignment operator prohibited
       Component& operator=(const Component&);
 
-      // create HOMER format from the output blocks
-      AliHLTHOMERWriter* CreateHOMERFormat(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt);
-
       vector<AliHLTUInt8_t>            mOutputBuffer;
 
       SystemInterface*   mpSystem;
-      HOMERFactory*      mpFactory;
-      AliHLTHOMERWriter* mpWriter;
       AliHLTComponentHandle mProcessor;
-      int mOutputMode;
+      AliceO2::AliceHLT::MessageFormat mFormatHandler;
       int mEventCount;
     };
 

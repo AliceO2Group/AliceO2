@@ -55,6 +55,22 @@ namespace AliceO2
 	}
       };
 
+      enum {
+	// all blocks in HOMER format
+	kOutputModeHOMER=0,
+	// each block individually as part of a multi-part output
+	kOutputModeMultiPart,
+	// all blocks as sequence of header and payload
+	kOutputModeSequence,
+	kOutputModeLast
+      };
+
+      // cleanup internal buffers
+      void clear();
+
+      // set output mode
+      void setOutputMode(unsigned mode) {mOutputMode=mode;}
+
       // add message
       // this will extract the block descriptors from the message
       // the descriptors refer to data in the original message buffer
@@ -79,8 +95,7 @@ namespace AliceO2
 
       // create message payloads in the internal buffer and return list
       // of decriptors
-      // NOTE: planned for future extension
-      //vector<BufferDesc_t> CreateMessages();
+      vector<BufferDesc_t> CreateMessages(const AliHLTComponentBlockData* blocks, unsigned count, unsigned totalPayloadSize);
 
       // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
       // from a buffer
@@ -90,7 +105,7 @@ namespace AliceO2
       int ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& descriptorList) const;
 
       // create HOMER format from the output blocks
-      AliHLTHOMERWriter* CreateHOMERFormat(AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt) const;
+      AliHLTHOMERWriter* CreateHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks, AliHLTUInt32_t outputBlockCnt) const;
 
       AliHLTUInt64_t ByteSwap64(AliHLTUInt64_t src) const;
       AliHLTUInt32_t ByteSwap32(AliHLTUInt32_t src) const;
@@ -110,6 +125,9 @@ namespace AliceO2
       vector<BufferDesc_t>             mMessages;
       /// HOMER factory for creation and deletion of HOMER readers and writers
       ALICE::HLT::HOMERFactory*        mpFactory;
+      /// output mode: HOMER, multi-message, sequential
+      int mOutputMode;
+
     };
 
   }    // namespace AliceHLT
