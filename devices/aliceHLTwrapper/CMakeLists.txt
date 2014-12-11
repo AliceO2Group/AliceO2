@@ -27,6 +27,7 @@ set(SRCS
   HOMERFactory.cxx
   WrapperDevice.cxx
   Component.cxx
+  MessageFormat.cxx
 )
 
 set(DEPENDENCIES

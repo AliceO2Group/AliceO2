@@ -190,11 +190,11 @@ void WrapperDevice::Run()
 
     if (!mSkipProcessing) {
     // prepare input from messages
-    vector<ALICE::HLT::Component::BufferDesc_t> dataArray;
+    vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
     for (vector</*const*/ FairMQMessage*>::iterator msg=inputMessages.begin();
 	 msg!=inputMessages.end(); msg++) {
       void* buffer=(*msg)->GetData();
-      dataArray.push_back(ALICE::HLT::Component::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
+      dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
     }
 
     // call the component
@@ -209,7 +209,7 @@ void WrapperDevice::Run()
       }
     auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
     if (msg.get() && fPayloadOutputs!=NULL && fPayloadOutputs->size()>0) {
-      vector<ALICE::HLT::Component::BufferDesc_t>::iterator data=dataArray.begin();
+      vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>::iterator data=dataArray.begin();
       while (data!=dataArray.end()) {
 	if (mVerbosity>2) {
 	  LOG(INFO) << "sending message of size " << data->mSize;
