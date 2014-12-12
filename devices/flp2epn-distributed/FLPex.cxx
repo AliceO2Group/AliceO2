@@ -23,6 +23,9 @@ using namespace AliceO2::Devices;
 FLPex::FLPex()
   : fHeartbeatTimeoutInMs(20000)
   , fSendOffset(0)
+  , fIdBuffer()
+  , fDataBuffer()
+  , fOutputHeartbeat()
   , fEventSize(10000)
 {
 }
@@ -76,6 +79,9 @@ void FLPex::Run()
   FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
 
   uint64_t timeframeId = 0;
+
+  int SNDMORE = fPayloadInputs->at(0)->SNDMORE;
+  int NOBLOCK = fPayloadInputs->at(0)->NOBLOCK;
 
   // base buffer, to be copied from for every timeframe body
   void* buffer = operator new[](fEventSize);
@@ -137,8 +143,10 @@ void FLPex::Run()
         // if the heartbeat from the corresponding EPN is within timeout period, send the data.
         if (to_simple_string(storedHeartbeat) != "not-a-date-time" ||
             (currentHeartbeat - storedHeartbeat).total_milliseconds() < fHeartbeatTimeoutInMs) {
-          fPayloadOutputs->at(direction)->Send(fIdBuffer.front(), "snd-more");
-          if (fPayloadOutputs->at(direction)->Send(fDataBuffer.front(), "no-block") == 0) {
+          if(fPayloadOutputs->at(direction)->Send(fIdBuffer.front(), SNDMORE|NOBLOCK) == 0) {
+	    LOG(ERROR) << "Could not queue ID part of event #" << currentTimeframeId << " without blocking";
+	  }
+          if (fPayloadOutputs->at(direction)->Send(fDataBuffer.front(), NOBLOCK) == 0) {
             LOG(ERROR) << "Could not send message with event #" << currentTimeframeId << " without blocking";
           }
           fIdBuffer.pop();

@@ -5,8 +5,6 @@
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
  */
 
-#include <fstream>
-
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
@@ -17,9 +15,12 @@ using namespace std;
 
 using namespace AliceO2::Devices;
 
-EPNex::EPNex() :
-  fHeartbeatIntervalInMs(3000),
-  fNumFLPs(1)
+EPNex::EPNex()
+  : fHeartbeatIntervalInMs(3000)
+  , fBufferTimeoutInMs(1000)
+  , fNumFLPs(1)
+  , fTimeframeBuffer()
+  , fDiscardedSet()
 {
 }
 
@@ -49,6 +50,26 @@ void EPNex::PrintBuffer(unordered_map<uint64_t,timeframeBuffer> &buffer)
   }
 }
 
+void EPNex::DiscardIncompleteTimeframes()
+{
+  unordered_map<uint64_t,timeframeBuffer>::iterator it = fTimeframeBuffer.begin();
+  while (it != fTimeframeBuffer.end()) {
+    if ((boost::posix_time::microsec_clock::local_time() - (it->second).startTime).total_milliseconds() > fBufferTimeoutInMs) {
+      LOG(WARN) << "Timeframe #" << it->first << " incomplete after " << fBufferTimeoutInMs << " milliseconds, discarding";
+      fDiscardedSet.insert(it->first);
+      for(int i = 0; i < (it->second).parts.size(); ++i) {
+        delete (it->second).parts.at(i);
+      }
+      it->second.parts.clear();
+      fTimeframeBuffer.erase(it++);
+      LOG(WARN) << "Number of discarded timeframes: " << fDiscardedSet.size();
+    } else {
+      // LOG(INFO) << "Timeframe #" << it->first << " within timeout, buffering...";
+      ++it;
+    }
+  }
+}
+
 void EPNex::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
@@ -56,8 +77,10 @@ void EPNex::Run()
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
   boost::thread heartbeatSender(boost::bind(&EPNex::sendHeartbeats, this));
 
+  int SNDMORE = fPayloadInputs->at(0)->SNDMORE;
+  int NOBLOCK = fPayloadInputs->at(0)->NOBLOCK;
+
   uint64_t id = 0; // holds the timeframe id of the currently arrived timeframe.
-  fNumOfDiscardedTimeframes = 0;
 
   while (fState == RUNNING) {
     FairMQMessage* idPart = fTransportFactory->CreateMessage();
@@ -67,8 +90,8 @@ void EPNex::Run()
       id = *(reinterpret_cast<uint64_t*>(idPart->GetData()));
       // LOG(INFO) << "Received Timeframe #" << id;
 
-      if (fTimeframeBuffer.find(id) == fTimeframeBuffer.end()) {
-        // if received ID is not yet in the map
+      if (fDiscardedSet.find(id) == fDiscardedSet.end() && fTimeframeBuffer.find(id) == fTimeframeBuffer.end()) {
+        // if received ID is not yet in the buffer and has not previously been discarded.
         FairMQMessage* dataPart = fTransportFactory->CreateMessage();
         if (fPayloadInputs->at(0)->Receive(dataPart) > 0) {
           // receive data, store it in the buffer, save the receive time.
@@ -76,12 +99,12 @@ void EPNex::Run()
           fTimeframeBuffer[id].parts.push_back(dataPart);
           fTimeframeBuffer[id].startTime = boost::posix_time::microsec_clock::local_time();
         } else {
-          LOG(ERROR) << "no data received from input socket 0";
+          LOG(ERROR) << "no data received from input socket";
           delete dataPart;
         }
         // PrintBuffer(fTimeframeBuffer);
       } else {
-        // if received ID is already in the map
+        // if received ID is already in the buffer
         FairMQMessage* dataPart = fTransportFactory->CreateMessage();
         if (fPayloadInputs->at(0)->Receive(dataPart) > 0) {
           fTimeframeBuffer[id].count++;
@@ -91,53 +114,43 @@ void EPNex::Run()
           delete dataPart;
         }
         // PrintBuffer(fTimeframeBuffer);
-        if (fTimeframeBuffer[id].count == fNumFLPs) {
-          // when all parts are collected send all except last one with 'snd-more' flag, and last one without the flag.
-          for (int i = 0; i < fNumFLPs - 1; ++i) {
-            fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(i), "snd-more");
-          }
-          fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(fNumFLPs - 1));
-
-          // let transport know that the data is no longer needed. transport will clean up when it is out.
-          for(int i = 0; i < fTimeframeBuffer[id].parts.size(); ++i) {
-            delete fTimeframeBuffer[id].parts.at(i);
-          }
-          fTimeframeBuffer[id].parts.clear();
-
-          fTimeframeBuffer[id].endTime = boost::posix_time::microsec_clock::local_time();
-          // do something with time here ...
-          fTimeframeBuffer.erase(id);
-        }
       }
 
-      // check if any incomplete timeframes in the buffer are older than timeout period, and discard them
-      unordered_map<uint64_t,timeframeBuffer>::iterator it = fTimeframeBuffer.begin();
-      while (it != fTimeframeBuffer.end()) {
-        if ((boost::posix_time::microsec_clock::local_time() - (it->second).startTime).total_milliseconds() > fBufferTimeoutInMs) {
-          LOG(WARN) << "Timeframe #" << it->first << " incomplete after " << fBufferTimeoutInMs << " milliseconds, discarding";
-          for(int i = 0; i < (it->second).parts.size(); ++i) {
-            delete (it->second).parts.at(i);
-          }
-          it->second.parts.clear();
-          fTimeframeBuffer.erase(it++);
-          fNumOfDiscardedTimeframes++;
-          LOG(WARN) << "Number of discarded timeframes: " << fNumOfDiscardedTimeframes;
-        } else {
-          // LOG(INFO) << "Timeframe #" << it->first << " within timeout, buffering...";
-          ++it;
+      if (fTimeframeBuffer[id].count == fNumFLPs) {
+        // when all parts are collected send all except last one with 'snd-more' flag, and last one without the flag.
+        for (int i = 0; i < fNumFLPs - 1; ++i) {
+          fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(i), SNDMORE);
         }
+        fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(fNumFLPs - 1));
+
+        // Send an acknowledgement back to the sampler to measure the round trip time
+        FairMQMessage* ack = fTransportFactory->CreateMessage(sizeof(uint64_t));
+        memcpy(ack->GetData(), &id, sizeof(uint64_t));
+
+        if (fPayloadOutputs->at(fNumFLPs + 1)->Send(ack, NOBLOCK) == 0) {
+          LOG(ERROR) << "Could not send acknowledgement without blocking";
+        }
+
+        delete ack;
+
+        // let transport know that the data is no longer needed. transport will clean up after it is sent out.
+        for(int i = 0; i < fTimeframeBuffer[id].parts.size(); ++i) {
+          delete fTimeframeBuffer[id].parts.at(i);
+        }
+        fTimeframeBuffer[id].parts.clear();
+
+        // fTimeframeBuffer[id].endTime = boost::posix_time::microsec_clock::local_time();
+        // do something with time here ...
+        fTimeframeBuffer.erase(id);
       }
+
+      // check if any incomplete timeframes in the buffer are older than timeout period, and discard them if they are
+      DiscardIncompleteTimeframes();
 
       // LOG(WARN) << "Buffer size: " << fTimeframeBuffer.size();
     }
     delete idPart;
   }
-
-  // std::ofstream ofs(fId + "times.log");
-  // for (unordered_map<uint64_t,timeframeDuration>::iterator it = fFullTimeframeBuffer.begin(); it != fFullTimeframeBuffer.end(); ++it) {
-  //   ofs << it->first << ": " << ((it->second).end - (it->second).start).total_milliseconds() << "\n";
-  // }
-  // ofs.close();
 
   rateLogger.interrupt();
   rateLogger.join();

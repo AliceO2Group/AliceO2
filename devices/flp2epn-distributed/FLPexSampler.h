@@ -17,11 +17,11 @@
 namespace AliceO2 {
 namespace Devices {
 
-// struct timeframeDuration
-// {
-//   boost::posix_time::ptime start;
-//   boost::posix_time::ptime end;
-// };
+struct timeframeDuration
+{
+  boost::posix_time::ptime start;
+  boost::posix_time::ptime end;
+};
 
 class FLPexSampler : public FairMQDevice
 {
@@ -36,6 +36,8 @@ class FLPexSampler : public FairMQDevice
     virtual ~FLPexSampler();
 
     void ResetEventCounter();
+    void ListenForAcks();
+
     virtual void SetProperty(const int key, const std::string& value, const int slot = 0);
     virtual std::string GetProperty(const int key, const std::string& default_ = "", const int slot = 0);
     virtual void SetProperty(const int key, const int value, const int slot = 0);
@@ -47,7 +49,7 @@ class FLPexSampler : public FairMQDevice
     int fEventRate;
     int fEventCounter;
 
-    // std::unordered_map<uint64_t,timeframeDuration> fFullTimeframeTime;
+    std::map<uint64_t,timeframeDuration> fTimeframeRTT;
 };
 
 } // namespace Devices

@@ -6,6 +6,7 @@
  */
 
 #include <vector>
+#include <fstream>
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
@@ -35,6 +36,9 @@ void FLPexSampler::Run()
 
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
   boost::thread resetEventCounter(boost::bind(&FLPexSampler::ResetEventCounter, this));
+  boost::thread ackListener(boost::bind(&FLPexSampler::ListenForAcks, this));
+
+  int NOBLOCK = fPayloadInputs->at(0)->NOBLOCK;
 
   uint64_t timeframeId = 0;
 
@@ -42,9 +46,11 @@ void FLPexSampler::Run()
     FairMQMessage* msg = fTransportFactory->CreateMessage(sizeof(uint64_t));
     memcpy(msg->GetData(), &timeframeId, sizeof(uint64_t));
 
-    if (fPayloadOutputs->at(0)->Send(msg, "no-block") == 0) {
+    if (fPayloadOutputs->at(0)->Send(msg, NOBLOCK) == 0) {
       LOG(ERROR) << "Could not send signal without blocking";
     }
+
+    fTimeframeRTT[timeframeId].start = boost::posix_time::microsec_clock::local_time();
 
     ++timeframeId;
 
@@ -62,6 +68,8 @@ void FLPexSampler::Run()
     rateLogger.join();
     resetEventCounter.interrupt();
     resetEventCounter.join();
+    ackListener.interrupt();
+    ackListener.join();
   } catch(boost::thread_resource_error& e) {
     LOG(ERROR) << e.what();
   }
@@ -72,6 +80,46 @@ void FLPexSampler::Run()
   boost::lock_guard<boost::mutex> lock(fRunningMutex);
   fRunningFinished = true;
   fRunningCondition.notify_one();
+}
+
+void FLPexSampler::ListenForAcks()
+{
+  FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
+
+  uint64_t id = 0;
+
+  string name = to_iso_string(boost::posix_time::microsec_clock::local_time()).substr(0, 20);
+  ofstream ofsFrames(name + "-frames.log");
+  ofstream ofsTimes(name + "-times.log");
+
+  while (fState == RUNNING) {
+    try {
+      poller->Poll(100);
+
+      if (poller->CheckInput(0)) {
+        FairMQMessage* idMsg = fTransportFactory->CreateMessage();
+
+        if (fPayloadInputs->at(0)->Receive(idMsg) > 0) {
+          id = *(reinterpret_cast<uint64_t*>(idMsg->GetData()));
+          fTimeframeRTT[id].end = boost::posix_time::microsec_clock::local_time();
+          // store values in a file
+          ofsFrames << id << "\n";
+          ofsTimes  << (fTimeframeRTT[id].end - fTimeframeRTT[id].start).total_microseconds() << "\n";
+
+          LOG(INFO) << "Timeframe #" << id << " acknowledged after "
+                    << (fTimeframeRTT[id].end - fTimeframeRTT[id].start).total_microseconds() << " μs.";
+        }
+      }
+    } catch (boost::thread_interrupted&) {
+      break;
+    }
+  }
+
+  ofsFrames.close();
+  ofsTimes.close();
+
+
+  delete poller;
 }
 
 void FLPexSampler::ResetEventCounter()

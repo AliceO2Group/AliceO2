@@ -7,12 +7,13 @@ signalBuffSize="100"
 SAMPLER="testFLPSampler"
 SAMPLER+=" --id 101"
 SAMPLER+=" --event-rate 100"
-SAMPLER+=" --output-socket-type pub --output-buff-size $signalBuffSize --output-method bind --output-address tcp://*:5550"
+SAMPLER+=" --input-socket-type pull --input-buff-size $signalBuffSize --input-method bind --input-address tcp://*:5990 --log-input-rate 1" # ACK from EPNs
+SAMPLER+=" --output-socket-type pub --output-buff-size $signalBuffSize --output-method bind --output-address tcp://*:5550  --log-output-rate 0" 
 xterm -geometry 80x25+0+0 -hold -e @CMAKE_BINARY_DIR@/bin/$SAMPLER &
 
 FLP0="testFLP_distributed"
 FLP0+=" --id FLP0"
-FLP0+=" --event-size 1000000"
+FLP0+=" --event-size 10000000"
 FLP0+=" --num-inputs 3"
 FLP0+=" --num-outputs 3"
 FLP0+=" --heartbeat-timeout 20000"
@@ -57,7 +58,7 @@ xterm -geometry 80x25+500+700 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP2 &
 
 EPN0="testEPN_distributed"
 EPN0+=" --id EPN0"
-EPN0+=" --num-outputs 4"
+EPN0+=" --num-outputs 5"
 EPN0+=" --heartbeat-interval 5000"
 EPN0+=" --num-flps 3"
 EPN0+=" --input-socket-type pull --input-buff-size $buffSize --input-method bind --input-address tcp://127.0.0.1:5560 --log-input-rate 1" # data
@@ -65,23 +66,25 @@ EPN0+=" --output-socket-type pub --output-buff-size $buffSize --output-method co
 EPN0+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5581 --log-output-rate 0"
 EPN0+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5582 --log-output-rate 0"
 EPN0+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5590 --log-output-rate 1" # send to next step
+EPN0+=" --output-socket-type push --output-buff-size $signalBuffSize --output-method connect --output-address tcp://127.0.0.1:5990 --log-output-rate 0" # ACK to the sampler
 xterm -geometry 80x25+1000+0 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN0 &
 
 EPN1="testEPN_distributed"
 EPN1+=" --id EPN1"
-EPN1+=" --num-outputs 4"
+EPN1+=" --num-outputs 5"
 EPN1+=" --heartbeat-interval 5000"
 EPN1+=" --num-flps 3"
 EPN1+=" --input-socket-type pull --input-buff-size $buffSize --input-method bind --input-address tcp://127.0.0.1:5561 --log-input-rate 1" # data
 EPN1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5580 --log-output-rate 0"
 EPN1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5581 --log-output-rate 0"
 EPN1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5582 --log-output-rate 0"
-EPN1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5590 --log-output-rate 1" # send to next step
+EPN1+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5990 --log-output-rate 1" # send to next step
+EPN1+=" --output-socket-type push --output-buff-size $signalBuffSize --output-method connect --output-address tcp://127.0.0.1:5990 --log-output-rate 0" # ACK to the sampler
 xterm -geometry 80x25+1000+350 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN1 &
 
 EPN2="testEPN_distributed"
 EPN2+=" --id EPN2"
-EPN2+=" --num-outputs 4"
+EPN2+=" --num-outputs 5"
 EPN2+=" --heartbeat-interval 5000"
 EPN2+=" --num-flps 3"
 EPN2+=" --input-socket-type pull --input-buff-size $buffSize --input-method bind --input-address tcp://127.0.0.1:5562 --log-input-rate 1" # data
@@ -89,4 +92,5 @@ EPN2+=" --output-socket-type pub --output-buff-size $buffSize --output-method co
 EPN2+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5581 --log-output-rate 0"
 EPN2+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5582 --log-output-rate 0"
 EPN2+=" --output-socket-type pub --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5590 --log-output-rate 1" # send to next step
+EPN2+=" --output-socket-type push --output-buff-size $signalBuffSize --output-method connect --output-address tcp://127.0.0.1:5990 --log-output-rate 0" # ACK to the sampler
 xterm -geometry 80x25+1000+700 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN2 &

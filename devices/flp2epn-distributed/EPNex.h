@@ -10,6 +10,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -39,6 +40,7 @@ class EPNex : public FairMQDevice
     virtual ~EPNex();
 
     void PrintBuffer(std::unordered_map<uint64_t,timeframeBuffer> &buffer);
+    void DiscardIncompleteTimeframes();
 
     virtual void SetProperty(const int key, const std::string& value, const int slot = 0);
     virtual std::string GetProperty(const int key, const std::string& default_ = "", const int slot = 0);
@@ -53,11 +55,8 @@ class EPNex : public FairMQDevice
     int fBufferTimeoutInMs;
     int fNumFLPs;
 
-    int fNumOfDiscardedTimeframes;
-
-    // std::unordered_map<uint64_t,int> fTimeframeCounter;
-    // std::unordered_map<uint64_t,vector<FairMQMessage*>*> fTimeframeBuffer;
     std::unordered_map<uint64_t,timeframeBuffer> fTimeframeBuffer;
+    std::unordered_set<uint64_t> fDiscardedSet;
 };
 
 } // namespace Devices
