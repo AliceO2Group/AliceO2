@@ -35,14 +35,17 @@ endif()
 #convenience variables
 set(CAGPUDIR ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu)
 
+#libdir path
+link_directories(${AMDAPPSDKROOT}/lib/x86_64)
+
 # build the OpenCL compile wrapper:
 # -- checks the correct vendor implementation (AMD)
 # -- builds binary code (blob) for the found platform(s)
 add_executable(opencl_compiler ${CAGPUDIR}/makefiles/makefile_opencl_compiler.cpp)
-target_link_libraries(opencl_compiler -L${AMDAPPSDKROOT}/lib/x86_64 amdocl64 OpenCL)
+target_link_libraries(opencl_compiler amdocl64 OpenCL)
 
 #convenience variables
-set(CL_SRC AliHLTTPCCAGPUTrackerOpenCL.cl )
+set(CL_SRC ${CAGPUDIR}/opencl/AliHLTTPCCAGPUTrackerOpenCL.cl )
 set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/AliHLTTPCCAGPUTrackerOpenCLCode.bin )
 set(CL_INC
     -I${AliRoot_SOURCE_DIR}/HLT/BASE 
@@ -88,33 +91,31 @@ set(SRCS
    )
 
 # Headers from sources
-set(HDRS
+set(CINTHDRS
     ${CAGPUDIR}/AliHLTTPCCAGPUTrackerBase.h
-    ${CAGPUDIR}/AliHLTTPCCAGPUTrackerCommon.h
     AliHLTTPCCAGPUTrackerOpenCL.h
+)
+
+set(HDRS
+    ${CINTHDRS}
+    ${CAGPUDIR}/AliHLTTPCCAGPUTrackerCommon.h
     AliHLTTPCCAGPUTrackerOpenCLInternals.h
   )
 
 # Generate the dictionary
 # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
 get_directory_property(incdirs INCLUDE_DIRECTORIES)
-generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
+generate_dictionary("${MODULE}" "" "${CINTHDRS}" "${incdirs}")
 
 # Generate the ROOT map
-# Dependecies
-set(LIBDEPS ${CUDA_LIBRARIES} cuda)
-generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
+generate_rootmap("${MODULE}" "" "")
 
 # Add a library to the project using the specified source files
 add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
-#CUDA run-time and driver
-link_directories(${AMDAPPSDKROOT}/lib/x86_64)
-target_link_libraries(amdocl64 OpenCL)
+#MAD OpenCL run-time and driver
+target_link_libraries(${MODULE} amdocl64 OpenCL)
 
-# Additional compilation flags
-set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
-
-*# Installation
+# Installation
 install(TARGETS ${MODULE}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib)
