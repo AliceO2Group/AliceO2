@@ -27,6 +27,17 @@ set(CUDA_NVCC_FLAGS --use_fast_math --maxrregcount 64 -O4 -Xptxas -O4 -gencode a
 #for convenience
 set(CAGPUDIR ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu)
 
+# Module include folder
+include_directories(${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu/cuda
+                    ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu
+                    ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca
+                   )
+
+# Additional include folders in alphabetical order except ROOT
+include_directories(${ROOT_INCLUDE_DIRS}
+                    ${AliRoot_SOURCE_DIR}/HLT/BASE
+                   )
+
 #nvcc fails with std=c++11, remove it temporarily
 string(FIND ${CMAKE_CXX_FLAGS} "-std=c++11" STDCXX11FOUND )
 if(STDCXX11FOUND GREATER -1)
@@ -49,17 +60,6 @@ endif()
 # not sure why __ROOT__ is used here, could just as well be something else
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/G__AliHLTTPCCAGPU.cxx PROPERTIES COMPILE_DEFINITIONS "cudaError_t=int;__ROOT__")
 
-# Module include folder
-include_directories(${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu/cuda
-                    ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu
-                    ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca
-                   )
-
-# Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
-                    ${AliRoot_SOURCE_DIR}/HLT/BASE
-                   )
-
 # Sources in alphabetical order
 set(SRCS
     ${CAGPUDIR}/AliHLTTPCCAGPUTrackerBase.cxx
@@ -67,31 +67,34 @@ set(SRCS
    )
 
 # Headers from sources
-set(HDRS
+set(CINTHDRS
     ${CAGPUDIR}/AliHLTTPCCAGPUTrackerBase.h
     AliHLTTPCCAGPUTrackerNVCC.h
-    AliHLTTPCCAGPUTrackerCommon.h
+    )
+  
+set(HDRS
+    ${CINTHDRS}
+    ${CAGPUDIR}/AliHLTTPCCAGPUTrackerCommon.h
   )
 
 # Generate the dictionary
 # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
 get_directory_property(incdirs INCLUDE_DIRECTORIES)
-generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
+generate_dictionary("${MODULE}" "" "${CINTHDRS}" "${incdirs}")
 
 # Generate the ROOT map
 # Dependecies
-set(LIBDEPS ${CUDA_LIBRARIES} cuda)
-generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
+generate_rootmap("${MODULE}" "" "")
 
 # Add a library to the project using the specified source files
 add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
 #CUDA run-time and driver
-target_link_libraries(${MODULE} ${CUDA_LIBRARIES} cuda)
+target_link_libraries(${MODULE} ${CUDA_LIBRARIES})
 
 # Additional compilation flags
 set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
 
-*# Installation
+# Installation
 install(TARGETS ${MODULE}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib)
