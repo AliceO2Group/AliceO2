@@ -196,6 +196,16 @@ add_subdirectory (devices)
 add_subdirectory (macro)
 add_subdirectory (o2cdb)
 
+
+Option(BUILD_DOXYGEN "Build Doxygen" OFF)
+if(BUILD_DOXYGEN)
+  MESSAGE(STATUS "*** Building the Doxygen documentaion ***")
+  ADD_SUBDIRECTORY(doxygen)
+endif(BUILD_DOXYGEN)
+
+
+
+
 WRITE_CONFIG_FILE(config.sh)
 
 configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake

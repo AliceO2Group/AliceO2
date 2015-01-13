@@ -1,0 +1,91 @@
+# -------------------------------------------------------------------------
+# doxyfile for generic project
+# modified by F. Uhlig
+# taken from ParaView 
+# -------------------------------------------------------------------------
+
+PROJECT_NAME         = @DOXYGEN_PROJECT_NAME@
+
+#FULL_PATH_NAMES      = YES
+FULL_PATH_NAMES      = NO
+WARN_IF_UNDOCUMENTED = NO
+
+GENERATE_TREEVIEW    = NO
+GENERATE_TODOLIST    = YES
+GENERATE_BUGLIST     = YES
+GENERATE_HTML        = YES
+#GENERATE_HTMLHELP    = YES
+GENERATE_HTMLHELP    = NO
+GENERATE_LATEX       = NO
+GENERATE_MAN         = NO
+GENERATE_RTF         = NO
+#GENERATE_TAGFILE     = "@CMAKE_CURRENT_BINARY_DIR@/@DOXYGEN_PROJECT_NAME@.tag"
+
+HAVE_DOT             = YES
+#HAVE_DOT            = NO
+DOT_PATH             = "@DOT_PATH@"
+CLASS_GRAPH          = YES
+COLLABORATION_GRAPH  = YES
+TEMPLATE_RELATIONS   = YES
+INCLUDE_GRAPH        = YES
+INCLUDED_BY_GRAPH    = YES
+CLASS_DIAGRAMS       = YES
+GENERATE_LEGEND      = YES
+GRAPHICAL_HIERARCHY  = YES
+
+ALLEXTERNALS         = NO
+
+#IMAGE_PATH           = "@CMAKE_CURRENT_SOURCE_DIR@"
+IMAGE_PATH           = 
+
+OUTPUT_DIRECTORY     = "@CMAKE_CURRENT_BINARY_DIR@/doc"
+
+#INPUT                = \
+# "@CMAKE_CURRENT_BINARY_DIR@/dox/doc_@DOXYGEN_PROJECT_NAME@_index.dox" \
+# @DOXYGEN_PARSED_INPUT_DIRS@
+INPUT		     = "@CMAKE_SOURCE_DIR@"
+
+#TAGFILES             = "@CMAKE_CURRENT_BINARY_DIR@/vtkNightlyDoc.tag=http://www.vtk.org/doc/nightly/html"
+TAGFILES             = @TAGFILES@
+
+EXTRACT_ALL          = YES
+#EXTRACT_PRIVATE      = NO
+EXTRACT_PRIVATE      = YES
+EXTRACT_STATIC       = YES
+HIDE_UNDOC_MEMBERS   = NO
+#HIDE_UNDOC_CLASSES   = YES
+HIDE_UNDOC_CLASSES   = NO
+ALWAYS_DETAILED_SEC  = NO
+SOURCE_BROWSER       = YES
+INLINE_SOURCES       = NO
+CASE_SENSE_NAMES     = YES
+#VERBATIM_HEADERS     = NO
+VERBATIM_HEADERS     = YES
+SHOW_INCLUDE_FILES   = YES
+#JAVADOC_AUTOBRIEF    = YES
+JAVADOC_AUTOBRIEF    = NO
+#SORT_MEMBER_DOCS     = NO
+SORT_MEMBER_DOCS     = YES
+#DISTRIBUTE_GROUP_DOC = YES
+DISTRIBUTE_GROUP_DOC = NO
+TAB_SIZE             = 3
+
+FILE_PATTERNS        = *.h *.cxx *.C
+#RECURSIVE            = NO
+#EXCLUDE              = Common/vtkSetGet.h
+RECURSIVE            = YES
+EXCLUDE              = cmake config doxygen gconfig geometry input m4 parameters .svn vis
+EXCLUDE_PATTERNS     = 
+
+HTML_ALIGN_MEMBERS   = YES
+ALPHABETICAL_INDEX   = YES
+COLS_IN_ALPHA_INDEX  = 3
+IGNORE_PREFIX        = @DOXYGEN_IGNORE_PREFIX@
+
+ENABLE_PREPROCESSING = YES
+#MACRO_EXPANSION      = YES
+MACRO_EXPANSION      = NO
+SEARCH_INCLUDES      = YES
+INCLUDE_PATH         =
+#EXPAND_ONLY_PREDEF   = YES
+EXPAND_ONLY_PREDEF   = NO
