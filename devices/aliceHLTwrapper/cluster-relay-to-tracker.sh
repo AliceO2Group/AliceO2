@@ -31,6 +31,7 @@ lastslice=35
 slices_per_node=4
 #dryrun="-n"
 pollingtimeout=1000
+rundir=`pwd`
 
 baseport_on_flpgroup=48100
 baseport_on_epn1group=48200
@@ -45,6 +46,16 @@ baseport_on_epn1group=48200
 
 # uncomment the following line to bypass the tracking
 #bypass_tracking=yes
+
+###################################################################
+# argument scan
+# TODO: implement real argument scan and more configurable options
+while [ "x$1" != "x" ]; do
+    if [ "x$1" == "x--print-commands" ]; then
+	printcmdtoscreen='echo'
+    fi
+    shift
+done
 
 ###################################################################
 ######## end of configuration area                     ############
@@ -149,6 +160,10 @@ create_flpgroup() {
         let n_epn1_inputs++
     else
         # add each CF output directly to EPN input
+	# TODO: this is a bug, but it does not harm
+	# the string is broken up at blanks, so the option-parameter
+	# relation is lost and there are too many elements in the array,
+	# the array is expanded to a string, so does not matter at the moment
         for output in $cf_output; do
             epn1_input[n_epn1_inputs]=${output/\/\/\*:///$node:}
             let n_epn1_inputs++
@@ -228,15 +243,27 @@ else
 fi
 
 # start the screen sessions and devices
+applications=
 for ((isession=$nsessions++-1; isession>=0; isession--)); do
     if [ "x$printcmdtoscreen" == "x" ]; then
         echo "starting ${sessiontitle[$isession]} on ${sessionnode[$isession]}: ${sessioncmd[$isession]}"
     fi
     #$logcmd=" 2>&1 | tee ${sessiontitle[$isession]}.log"
-    $printcmdtoscreen screen -d -m -S "${sessiontitle[$isession]} on ${sessionnode[$isession]}" ssh ${sessionnode[$isession]} "(cd workdir/alfa-rundir && source setup.sh && ${sessioncmd[$isession]}) $logcmd" &
+    $printcmdtoscreen screen -d -m -S "${sessiontitle[$isession]} on ${sessionnode[$isession]}" ssh ${sessionnode[$isession]} "(cd $rundir && source setup.sh && ${sessioncmd[$isession]}) $logcmd" &
+    applications+=" "`echo ${sessioncmd[$isession]} | sed -e 's| .*$||'`
 done
 
+if [ "x$printcmdtoscreen" == "x" ]; then
 usednodes=`for n in ${sessionnode[@]}; do echo $n; done | sort | uniq`
 echo
 echo "started processing topology in ${#sessionnode[@]} session(s) on `echo $usednodes | wc -w` node(s):"
-echo $usednodes | sed ':a;N;$!ba;s/\n/ /g'
+usednodes=`echo $usednodes | sed ':a;N;$!ba;s/\n/ /g'`
+echo $usednodes
+
+applications=`for app in $applications; do echo $app; done | sort | uniq`
+echo
+echo "a simple method to stop the devices:"
+for app in $applications; do
+    echo "for node in $usednodes; do ssh \$node killall $app; done"
+done
+fi
