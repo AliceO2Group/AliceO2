@@ -7,7 +7,7 @@ DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = @DOXYGEN_PROJECT_NAME@
 PROJECT_NUMBER         = 
 PROJECT_BRIEF          = 
-PROJECT_LOGO           = 
+PROJECT_LOGO           = "@CMAKE_SOURCE_DIR@/doxygen/o2_logo.png"
 OUTPUT_DIRECTORY       = "@CMAKE_CURRENT_BINARY_DIR@/doc"
 CREATE_SUBDIRS         = YES
 ALLOW_UNICODE_NAMES    = NO
@@ -106,7 +106,7 @@ EXCLUDE                = .git/ \
                          build/ \
                          build-dir/ \
                          html-docs/ \
-                         doxygen cmake config doxygen gconfig geometry input m4 parameters .svn vis 
+                         doxygen cmake config  gconfig geometry input parameters .svn vis 
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
 EXCLUDE_SYMBOLS        = 
