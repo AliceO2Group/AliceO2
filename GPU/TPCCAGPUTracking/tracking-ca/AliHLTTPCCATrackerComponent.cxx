@@ -704,7 +704,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   size = 0;
   if (error == 0)
   {
-    for (int islice = 0;islice < fSliceCount;islice++)
+    for (int islice = 0;islice < fSliceCount && fSliceOutput[islice];islice++)
     {
       int slice = fMinSlice + islice;
 
