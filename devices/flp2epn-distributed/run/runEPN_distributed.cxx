@@ -11,13 +11,9 @@
 #include "boost/program_options.hpp"
 
 #include "FairMQLogger.h"
-#include "EPNex.h"
-
-#ifdef NANOMSG
-#include "FairMQTransportFactoryNN.h"
-#else
 #include "FairMQTransportFactoryZMQ.h"
-#endif
+
+#include "EPNex.h"
 
 using namespace std;
 
@@ -187,11 +183,7 @@ int main(int argc, char** argv)
 
   LOG(INFO) << "PID: " << getpid();
 
-#ifdef NANOMSG
-  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
-#else
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-#endif
 
   epn.SetTransport(transportFactory);
 
@@ -221,14 +213,20 @@ int main(int argc, char** argv)
     epn.SetProperty(EPNex::LogOutputRate, options.logOutputRate.at(i), i);
   }
 
-  epn.ChangeState(EPNex::SETOUTPUT);
-  epn.ChangeState(EPNex::SETINPUT);
-  epn.ChangeState(EPNex::RUN);
+  try {
+    epn.ChangeState(EPNex::SETOUTPUT);
+    epn.ChangeState(EPNex::SETINPUT);
+    epn.ChangeState(EPNex::BIND);
+    epn.ChangeState(EPNex::CONNECT);
+    epn.ChangeState(EPNex::RUN);
+  }
+  catch ( const std::exception& e ) {
+      LOG(ERROR) << e.what();
+  }
 
   // wait until the running thread has finished processing.
   boost::unique_lock<boost::mutex> lock(epn.fRunningMutex);
-  while (!epn.fRunningFinished)
-  {
+  while (!epn.fRunningFinished) {
     epn.fRunningCondition.wait(lock);
   }
 

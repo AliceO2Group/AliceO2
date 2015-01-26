@@ -8,11 +8,11 @@ SAMPLER="testFLPSampler"
 SAMPLER+=" --id 101"
 SAMPLER+=" --event-rate 100"
 SAMPLER+=" --input-socket-type pull --input-buff-size $signalBuffSize --input-method bind --input-address tcp://*:5990 --log-input-rate 1" # ACK from EPNs
-SAMPLER+=" --output-socket-type pub --output-buff-size $signalBuffSize --output-method bind --output-address tcp://*:5550  --log-output-rate 0" 
+SAMPLER+=" --output-socket-type pub --output-buff-size $signalBuffSize --output-method bind --output-address tcp://*:5550  --log-output-rate 0"
 xterm -geometry 80x25+0+0 -hold -e @CMAKE_BINARY_DIR@/bin/$SAMPLER &
 
 FLP0="testFLP_distributed"
-FLP0+=" --id FLP0"
+FLP0+=" --id 1"
 FLP0+=" --event-size 10000000"
 FLP0+=" --num-inputs 3"
 FLP0+=" --num-outputs 3"
@@ -27,7 +27,7 @@ FLP0+=" --output-socket-type push --output-buff-size $buffSize --output-method c
 xterm -geometry 80x25+500+0 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
 
 FLP1="testFLP_distributed"
-FLP1+=" --id FLP1"
+FLP1+=" --id 2"
 FLP1+=" --event-size 1000000"
 FLP1+=" --num-inputs 3"
 FLP1+=" --num-outputs 3"
@@ -42,7 +42,7 @@ FLP1+=" --output-socket-type push --output-buff-size $buffSize --output-method c
 xterm -geometry 80x25+500+350 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP1 &
 
 FLP2="testFLP_distributed"
-FLP2+=" --id FLP2"
+FLP2+=" --id 3"
 FLP2+=" --event-size 1000000"
 FLP2+=" --num-inputs 3"
 FLP2+=" --num-outputs 3"

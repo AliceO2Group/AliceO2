@@ -143,6 +143,8 @@ int main(int argc, char** argv)
 
     epn.ChangeState(O2EpnMerger::SETOUTPUT);
     epn.ChangeState(O2EpnMerger::SETINPUT);
+    epn.ChangeState(O2EpnMerger::BIND);
+    epn.ChangeState(O2EpnMerger::CONNECT);
     epn.ChangeState(O2EpnMerger::RUN);
 
     // wait until the running thread has finished processing.

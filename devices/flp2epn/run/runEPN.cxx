@@ -143,6 +143,8 @@ int main(int argc, char** argv)
 
     epn.ChangeState(O2EPNex::SETOUTPUT);
     epn.ChangeState(O2EPNex::SETINPUT);
+    epn.ChangeState(O2EPNex::BIND);
+    epn.ChangeState(O2EPNex::CONNECT);
     epn.ChangeState(O2EPNex::RUN);
 
     // wait until the running thread has finished processing.

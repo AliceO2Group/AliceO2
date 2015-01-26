@@ -149,6 +149,8 @@ int main(int argc, char** argv)
 
     flp.ChangeState(O2FLPex::SETOUTPUT);
     flp.ChangeState(O2FLPex::SETINPUT);
+    flp.ChangeState(O2FLPex::BIND);
+    flp.ChangeState(O2FLPex::CONNECT);
     flp.ChangeState(O2FLPex::RUN);
 
     // wait until the running thread has finished processing.

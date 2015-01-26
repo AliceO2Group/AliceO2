@@ -11,13 +11,9 @@
 #include "boost/program_options.hpp"
 
 #include "FairMQLogger.h"
-#include "FLPexSampler.h"
-
-#ifdef NANOMSG
-#include "FairMQTransportFactoryNN.h"
-#else
 #include "FairMQTransportFactoryZMQ.h"
-#endif
+
+#include "FLPexSampler.h"
 
 using namespace std;
 
@@ -169,11 +165,7 @@ int main(int argc, char** argv)
 
   LOG(INFO) << "PID: " << getpid();
 
-#ifdef NANOMSG
-  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
-#else
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-#endif
 
   sampler.SetTransport(transportFactory);
 
@@ -198,14 +190,20 @@ int main(int argc, char** argv)
   sampler.SetProperty(FLPexSampler::OutputAddress, options.outputAddress);
   sampler.SetProperty(FLPexSampler::LogOutputRate, options.logOutputRate);
 
-  sampler.ChangeState(FLPexSampler::SETOUTPUT);
-  sampler.ChangeState(FLPexSampler::SETINPUT);
-  sampler.ChangeState(FLPexSampler::RUN);
+  try {
+    sampler.ChangeState(FLPexSampler::SETOUTPUT);
+    sampler.ChangeState(FLPexSampler::SETINPUT);
+    sampler.ChangeState(FLPexSampler::BIND);
+    sampler.ChangeState(FLPexSampler::CONNECT);
+    sampler.ChangeState(FLPexSampler::RUN);
+  }
+  catch ( const std::exception& e ) {
+      LOG(ERROR) << e.what();
+  }
 
   // wait until the running thread has finished processing.
   boost::unique_lock<boost::mutex> lock(sampler.fRunningMutex);
-  while (!sampler.fRunningFinished)
-  {
+  while (!sampler.fRunningFinished) {
     sampler.fRunningCondition.wait(lock);
   }
 

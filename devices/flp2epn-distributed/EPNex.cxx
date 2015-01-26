@@ -7,6 +7,7 @@
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
+#include <fstream> // writing to file (DEBUG)
 
 #include "EPNex.h"
 #include "FairMQLogger.h"
@@ -14,6 +15,11 @@
 using namespace std;
 
 using namespace AliceO2::Devices;
+
+struct f2eHeader {
+  uint64_t timeFrameId;
+  int      flpId;
+};
 
 EPNex::EPNex()
   : fHeartbeatIntervalInMs(3000)
@@ -80,15 +86,31 @@ void EPNex::Run()
   int SNDMORE = fPayloadInputs->at(0)->SNDMORE;
   int NOBLOCK = fPayloadInputs->at(0)->NOBLOCK;
 
-  uint64_t id = 0; // holds the timeframe id of the currently arrived timeframe.
+  // DEBUG: store receive intervals per FLP
+  vector<vector<int>> rcvIntervals(fNumFLPs, vector<int>());
+  vector<boost::posix_time::ptime> rcvTimestamp(fNumFLPs);
+  // end DEBUG
+
+  f2eHeader* h; // holds the header of the currently arrived message.
+  uint64_t id = 0; // holds the timeframe id of the currently arrived sub-timeframe.
 
   while (fState == RUNNING) {
-    FairMQMessage* idPart = fTransportFactory->CreateMessage();
+    FairMQMessage* headerPart = fTransportFactory->CreateMessage();
 
-    if (fPayloadInputs->at(0)->Receive(idPart) > 0) {
+    if (fPayloadInputs->at(0)->Receive(headerPart) > 0) {
       // store the received ID
-      id = *(reinterpret_cast<uint64_t*>(idPart->GetData()));
-      // LOG(INFO) << "Received Timeframe #" << id;
+      h = reinterpret_cast<f2eHeader*>(headerPart->GetData());
+      id = h->timeFrameId;
+      // LOG(INFO) << "Received Timeframe #" << id << " from FLP" << h->flpId;
+
+      // DEBUG:: store receive intervals per FLP
+      int flp_id = h->flpId - 1; // super dirty temporary hack 
+      if (to_simple_string(rcvTimestamp.at(flp_id)) != "not_a_date_time") {
+        rcvIntervals.at(flp_id).push_back( (boost::posix_time::microsec_clock::local_time() - rcvTimestamp.at(flp_id)).total_microseconds() );
+        // LOG(WARN) << rcvIntervals.at(flp_id).back();
+      }
+      rcvTimestamp.at(flp_id) = boost::posix_time::microsec_clock::local_time();
+      // end DEBUG
 
       if (fDiscardedSet.find(id) == fDiscardedSet.end() && fTimeframeBuffer.find(id) == fTimeframeBuffer.end()) {
         // if received ID is not yet in the buffer and has not previously been discarded.
@@ -149,8 +171,19 @@ void EPNex::Run()
 
       // LOG(WARN) << "Buffer size: " << fTimeframeBuffer.size();
     }
-    delete idPart;
+    delete headerPart;
   }
+
+  // DEBUG: save 
+  string name = to_iso_string(boost::posix_time::microsec_clock::local_time()).substr(0, 20);
+  for (int x = 0; x < fNumFLPs; ++x) {
+    ofstream flpRcvTimes(fId + "-" + name + "-flp-" + to_string(x) + ".log");
+    for (auto it = rcvIntervals.at(x).begin() ; it != rcvIntervals.at(x).end(); ++it) {
+      flpRcvTimes << *it << endl;
+    }
+    flpRcvTimes.close();
+  }
+  // end DEBUG
 
   rateLogger.interrupt();
   rateLogger.join();

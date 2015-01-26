@@ -36,6 +36,7 @@ class EPNex : public FairMQDevice
       BufferTimeoutInMs,
       Last
     };
+
     EPNex();
     virtual ~EPNex();
 

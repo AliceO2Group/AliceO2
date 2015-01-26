@@ -10,6 +10,7 @@
 
 #include <string>
 #include <queue>
+#include <unordered_map>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -33,6 +34,7 @@ class FLPex : public FairMQDevice
     virtual ~FLPex();
 
     void ResetEventCounter();
+
     virtual void SetProperty(const int key, const std::string& value, const int slot = 0);
     virtual std::string GetProperty(const int key, const std::string& default_ = "", const int slot = 0);
     virtual void SetProperty(const int key, const int value, const int slot = 0);
@@ -46,12 +48,17 @@ class FLPex : public FairMQDevice
 
   private:
     bool updateIPHeartbeat(std::string str);
+    void sendFrontData();
 
     int fHeartbeatTimeoutInMs;
-    int fSendOffset;
-    std::queue<FairMQMessage*> fIdBuffer;
-    std::queue<FairMQMessage*> fDataBuffer;
     vector<boost::posix_time::ptime> fOutputHeartbeat;
+
+    unsigned int fSendOffset;
+    std::queue<FairMQMessage*> fHeaderBuffer;
+    std::queue<FairMQMessage*> fDataBuffer;
+    std::queue<boost::posix_time::ptime> fArrivalTime;
+
+    std::unordered_map<int,boost::posix_time::ptime> fRTTimes;
 
     int fEventSize;
 };

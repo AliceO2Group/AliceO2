@@ -11,13 +11,9 @@
 #include "boost/program_options.hpp"
 
 #include "FairMQLogger.h"
-#include "FLPex.h"
-
-#ifdef NANOMSG
-#include "FairMQTransportFactoryNN.h"
-#else
 #include "FairMQTransportFactoryZMQ.h"
-#endif
+
+#include "FLPex.h"
 
 using namespace std;
 
@@ -193,11 +189,7 @@ int main(int argc, char** argv)
 
   LOG(INFO) << "PID: " << getpid();
 
-#ifdef NANOMSG
-  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
-#else
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-#endif
 
   flp.SetTransport(transportFactory);
 
@@ -228,9 +220,16 @@ int main(int argc, char** argv)
     flp.SetProperty(FLPex::LogOutputRate, options.logOutputRate.at(i), i);
   }
 
-  flp.ChangeState(FLPex::SETOUTPUT);
-  flp.ChangeState(FLPex::SETINPUT);
-  flp.ChangeState(FLPex::RUN);
+  try {
+    flp.ChangeState(FLPex::SETOUTPUT);
+    flp.ChangeState(FLPex::SETINPUT);
+    flp.ChangeState(FLPex::BIND);
+    flp.ChangeState(FLPex::CONNECT);
+    flp.ChangeState(FLPex::RUN);
+  }
+  catch ( const std::exception& e ) {
+      LOG(ERROR) << e.what();
+  }
 
   // wait until the running thread has finished processing.
   boost::unique_lock<boost::mutex> lock(flp.fRunningMutex);

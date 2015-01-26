@@ -168,6 +168,8 @@ int main(int argc, char** argv)
 
     proxy.ChangeState(O2Proxy::SETOUTPUT);
     proxy.ChangeState(O2Proxy::SETINPUT);
+    proxy.ChangeState(O2Proxy::BIND);
+    proxy.ChangeState(O2Proxy::CONNECT);
     proxy.ChangeState(O2Proxy::RUN);
 
 
