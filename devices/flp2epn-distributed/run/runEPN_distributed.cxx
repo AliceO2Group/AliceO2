@@ -65,7 +65,7 @@ typedef struct DeviceOptions
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 {
   if (_options == NULL)
-    throw std::runtime_error("Internal error: options' container is empty.");
+    throw runtime_error("Internal error: options' container is empty.");
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Options");
@@ -170,13 +170,10 @@ int main(int argc, char** argv)
   s_catch_signals();
 
   DeviceOptions_t options;
-  try
-  {
+  try {
     if (!parse_cmd_line(argc, argv, &options))
       return 0;
-  }
-  catch (exception& e)
-  {
+  } catch (const exception& e) {
     LOG(ERROR) << e.what();
     return 1;
   }
@@ -204,8 +201,7 @@ int main(int argc, char** argv)
   epn.SetProperty(EPNex::InputAddress, options.inputAddress);
   epn.SetProperty(EPNex::LogInputRate, options.logInputRate);
 
-  for (int i = 0; i < options.numOutputs; ++i)
-  {
+  for (int i = 0; i < options.numOutputs; ++i) {
     epn.SetProperty(EPNex::OutputSocketType, options.outputSocketType.at(i), i);
     epn.SetProperty(EPNex::OutputSndBufSize, options.outputBufSize.at(i), i);
     epn.SetProperty(EPNex::OutputMethod, options.outputMethod.at(i), i);
@@ -219,8 +215,7 @@ int main(int argc, char** argv)
     epn.ChangeState(EPNex::BIND);
     epn.ChangeState(EPNex::CONNECT);
     epn.ChangeState(EPNex::RUN);
-  }
-  catch ( const std::exception& e ) {
+  } catch (const exception& e) {
       LOG(ERROR) << e.what();
   }
 
