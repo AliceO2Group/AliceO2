@@ -133,7 +133,7 @@ int MessageFormat::readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size,
   // read message payload in HOMER format
   if (mpFactory == NULL) const_cast<MessageFormat*>(this)->mpFactory = new ALICE::HLT::HOMERFactory;
   if (buffer == NULL || mpFactory == NULL) return -EINVAL;
-  auto_ptr<AliHLTHOMERReader> reader(mpFactory->OpenReaderBuffer(buffer, size));
+  unique_ptr<AliHLTHOMERReader> reader(mpFactory->OpenReaderBuffer(buffer, size));
   if (reader.get() == NULL) return -ENOMEM;
 
   unsigned nofBlocks = 0;
@@ -230,7 +230,7 @@ AliHLTHOMERWriter* MessageFormat::createHOMERFormat(const AliHLTComponentBlockDa
   int iResult = 0;
   if (mpFactory == NULL) const_cast<MessageFormat*>(this)->mpFactory = new ALICE::HLT::HOMERFactory;
   if (!mpFactory) return NULL;
-  auto_ptr<AliHLTHOMERWriter> writer(mpFactory->OpenWriter());
+  unique_ptr<AliHLTHOMERWriter> writer(mpFactory->OpenWriter());
   if (writer.get() == NULL) return NULL;
 
   homer_uint64 homerHeader[kCount_64b_Words];

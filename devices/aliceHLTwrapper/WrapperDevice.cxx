@@ -67,7 +67,7 @@ void WrapperDevice::Init()
   /// inherited from FairMQDevice
 
   int iResult=0;
-  std::auto_ptr<Component> component(new ALICE::HLT::Component);
+  std::unique_ptr<Component> component(new ALICE::HLT::Component);
   if (!component.get()) return /*-ENOMEM*/;
 
   if ((iResult=component->init(mArgv.size(), &mArgv[0]))<0) {
@@ -130,7 +130,7 @@ void WrapperDevice::Run()
         int64_t more = 0;
         do {
           more = 0;
-          auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+          unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
           received = fPayloadInputs->at(i)->Receive(msg.get());
           if (received) {
             receivedAtLeastOneMessage = true;
@@ -209,7 +209,7 @@ void WrapperDevice::Run()
         if (mVerbosity > 2) {
           LOG(INFO) << "processing " << dataArray.size() << " buffer(s)";
         }
-        auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+        unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
         if (msg.get() && fPayloadOutputs != NULL && fPayloadOutputs->size() > 0) {
           vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>::iterator data = dataArray.begin();
           while (data != dataArray.end()) {

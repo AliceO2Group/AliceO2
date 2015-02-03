@@ -115,7 +115,7 @@ int Component::init(int argc, char** argv)
 
   int iResult = 0;
   // TODO: make the SystemInterface a singleton
-  auto_ptr<ALICE::HLT::SystemInterface> iface(new SystemInterface);
+  unique_ptr<ALICE::HLT::SystemInterface> iface(new SystemInterface);
   if (iface.get() == NULL || ((iResult = iface->initSystem(runNumber))) < 0) {
     // LOG(ERROR) << "failed to set up SystemInterface " << iface.get() << " (" << iResult << ")";
     return -ENOSYS;
@@ -130,7 +130,7 @@ int Component::init(int argc, char** argv)
   // chop the parameter string in order to provide parameters in the argc/argv format
   vector<const char*> parameters;
   unsigned parameterLength = strlen(componentParameter);
-  auto_ptr<char> parameterBuffer(new char[parameterLength + 1]);
+  unique_ptr<char> parameterBuffer(new char[parameterLength + 1]);
   if (parameterLength > 0 && parameterBuffer.get() != NULL) {
     strcpy(parameterBuffer.get(), componentParameter);
     char* iterator = parameterBuffer.get();
