@@ -38,7 +38,7 @@ SystemInterface::SystemInterface()
 {
   memset(&mEnvironment, 0, sizeof(mEnvironment));
   mEnvironment.fStructSize = sizeof(mEnvironment);
-  mEnvironment.fAllocMemoryFunc = SystemInterface::Alloc;
+  mEnvironment.fAllocMemoryFunc = SystemInterface::alloc;
 }
 
 SystemInterface::~SystemInterface()
@@ -80,7 +80,7 @@ const char* gInterfaceCallSignatures[] = {
   NULL
 };
 
-int SystemInterface::InitSystem(unsigned long runNo)
+int SystemInterface::initSystem(unsigned long runNo)
 {
   /// init the system: load interface libraries and read function pointers
   int iResult = 0;
@@ -158,7 +158,7 @@ int SystemInterface::InitSystem(unsigned long runNo)
   return 0;
 }
 
-int SystemInterface::ReleaseSystem()
+int SystemInterface::releaseSystem()
 {
   /// release the system interface, clean all internal structures
 
@@ -167,23 +167,23 @@ int SystemInterface::ReleaseSystem()
    */
   int iResult = 0;
   if (mpAliHLTExtFctDeinitSystem) iResult = (*mpAliHLTExtFctDeinitSystem)();
-  Clear();
+  clear();
   return iResult;
 }
 
-int SystemInterface::LoadLibrary(const char* libname)
+int SystemInterface::loadLibrary(const char* libname)
 {
   if (!mpAliHLTExtFctLoadLibrary) return -ENOSYS;
   return (*mpAliHLTExtFctLoadLibrary)(libname);
 }
 
-int SystemInterface::UnloadLibrary(const char* libname)
+int SystemInterface::unloadLibrary(const char* libname)
 {
   if (!mpAliHLTExtFctUnloadLibrary) return -ENOSYS;
   return (*mpAliHLTExtFctUnloadLibrary)(libname);
 }
 
-int SystemInterface::CreateComponent(const char* componentId,
+int SystemInterface::createComponent(const char* componentId,
                                      void* environParam,
                                      int argc,
                                      const char** argv,
@@ -195,13 +195,13 @@ int SystemInterface::CreateComponent(const char* componentId,
   return (*mpAliHLTExtFctCreateComponent)(componentId, environParam, argc, argv, handle, description);
 }
 
-int SystemInterface::DestroyComponent(AliHLTComponentHandle handle)
+int SystemInterface::destroyComponent(AliHLTComponentHandle handle)
 {
   if (!mpAliHLTExtFctDestroyComponent) return -ENOSYS;
   return (*mpAliHLTExtFctDestroyComponent)(handle);
 }
 
-int SystemInterface::ProcessEvent(AliHLTComponentHandle handle,
+int SystemInterface::processEvent(AliHLTComponentHandle handle,
                                   const AliHLTComponentEventData* evtData, const AliHLTComponentBlockData* blocks,
                                   AliHLTComponentTriggerData* trigData,
                                   AliHLTUInt8_t* outputPtr, AliHLTUInt32_t* size,
@@ -213,20 +213,20 @@ int SystemInterface::ProcessEvent(AliHLTComponentHandle handle,
 				       outputPtr, size, outputBlockCnt, outputBlocks, edd);
 }
 
-int SystemInterface::GetOutputDataType(AliHLTComponentHandle handle, AliHLTComponentDataType* dataType)
+int SystemInterface::getOutputDataType(AliHLTComponentHandle handle, AliHLTComponentDataType* dataType)
 {
   if (!mpAliHLTExtFctGetOutputDataType) return -ENOSYS;
   return (*mpAliHLTExtFctGetOutputDataType)(handle, dataType);
 }
 
-int SystemInterface::GetOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
+int SystemInterface::getOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
                                    unsigned long* constBlockBase, double* inputBlockMultiplier)
 {
   if (!mpAliHLTExtFctGetOutputSize) return -ENOSYS;
   return (*mpAliHLTExtFctGetOutputSize)(handle, constEventBase, constEventBase, inputBlockMultiplier);
 }
 
-void SystemInterface::Clear(const char* /*option*/)
+void SystemInterface::clear(const char* /*option*/)
 {
   /// clear the object and reset pointer references
   mpAliHLTExtFctInitSystem        = NULL;
@@ -240,18 +240,18 @@ void SystemInterface::Clear(const char* /*option*/)
   mpAliHLTExtFctGetOutputSize     = NULL;
 }
 
-void SystemInterface::Print(const char* /*option*/) const
+void SystemInterface::print(const char* /*option*/) const
 {
   /// print info
 }
 
-void* SystemInterface::Alloc(void* /*param*/, unsigned long size)
+void* SystemInterface::alloc(void* /*param*/, unsigned long size)
 {
   // allocate memory
   return malloc(size);
 }
 
-void SystemInterface::Dealloc(void* buffer, unsigned long /*size*/)
+void SystemInterface::dealloc(void* buffer, unsigned long /*size*/)
 {
   // deallocate memory
   if (buffer == NULL) return;

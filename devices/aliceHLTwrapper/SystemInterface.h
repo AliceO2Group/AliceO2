@@ -40,19 +40,19 @@ public:
   /** initilize the system
    *  load external library and set up the HLT system
    */
-  int InitSystem(unsigned long runNo);
+  int initSystem(unsigned long runNo);
 
   /** cleanup and release system
    */
-  int ReleaseSystem();
+  int releaseSystem();
 
   /** load HLT plugin library
    */
-  int LoadLibrary(const char* libname);
+  int loadLibrary(const char* libname);
 
   /** unload HLT plugin library
    */
-  int UnloadLibrary(const char* libname);
+  int unloadLibrary(const char* libname);
 
   /** create/factorize component
    *  @param componentType
@@ -63,7 +63,7 @@ public:
    *  @param description
    *  @return 0 on success and valid handle
    */
-  int CreateComponent(const char* componentId,
+  int createComponent(const char* componentId,
 			  void* environParam,
 			  int argc,
 			  const char** argv,
@@ -75,11 +75,11 @@ public:
    *  @param handle
    *  @return 0 on success
    */
-  int DestroyComponent(AliHLTComponentHandle handle);
+  int destroyComponent(AliHLTComponentHandle handle);
 
   /** process event
    */
-  int ProcessEvent( AliHLTComponentHandle handle,
+  int processEvent( AliHLTComponentHandle handle,
 			const AliHLTComponentEventData* evtData, const AliHLTComponentBlockData* blocks,
 			AliHLTComponentTriggerData* trigData,
 			AliHLTUInt8_t* outputPtr, AliHLTUInt32_t* size,
@@ -88,26 +88,26 @@ public:
 
   /** get the output data type
    */
-  int GetOutputDataType(AliHLTComponentHandle handle, AliHLTComponentDataType* dataType);
+  int getOutputDataType(AliHLTComponentHandle handle, AliHLTComponentDataType* dataType);
 
   /** get output data size
    *  return an estimation of the size of the produced data relative to the number of
    *  input blocks and input size
    */
-  int GetOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
+  int getOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
 			unsigned long* constBlockBase, double* inputBlockMultiplier);
 
   /// clear the object and reset pointer references
-  virtual void Clear(const char* /*option*/ = "");
+  virtual void clear(const char* /*option*/ = "");
 
   /// print info
-  virtual void Print(const char* option = "") const;
+  virtual void print(const char* option = "") const;
 
   /// allocate memory
-  static void* Alloc(void* param, unsigned long size);
+  static void* alloc(void* param, unsigned long size);
 
   /// deallocate memory
-  static void Dealloc(void* buffer, unsigned long size);
+  static void dealloc(void* buffer, unsigned long size);
 
 protected:
 

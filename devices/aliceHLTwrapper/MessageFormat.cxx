@@ -54,16 +54,16 @@ void MessageFormat::clear()
   mMessages.clear();
 }
 
-int MessageFormat::AddMessage(AliHLTUInt8_t* buffer, unsigned size)
+int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
 {
   // add message
   // this will extract the block descriptors from the message
   // the descriptors refer to data in the original message buffer
 
   unsigned count = mBlockDescriptors.size();
-  if (ReadBlockSequence(buffer, size, mBlockDescriptors) < 0) {
+  if (readBlockSequence(buffer, size, mBlockDescriptors) < 0) {
     // not in the format of a single block, check if its a HOMER block
-    if (ReadHOMERFormat(buffer, size, mBlockDescriptors) < 0) {
+    if (readHOMERFormat(buffer, size, mBlockDescriptors) < 0) {
       // not in HOMER format either, ignore the input
       // TODO: decide if that should be an error
     }
@@ -72,14 +72,14 @@ int MessageFormat::AddMessage(AliHLTUInt8_t* buffer, unsigned size)
   return mBlockDescriptors.size() - count;
 }
 
-int MessageFormat::AddMessages(const vector<BufferDesc_t>& list)
+int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
 {
   // add list of messages
   int totalCount = 0;
   int i = 0;
   for (vector<BufferDesc_t>::const_iterator data = list.begin(); data != list.end(); data++, i++) {
     if (data->mSize > 0) {
-      int result = AddMessage(data->mP, data->mSize);
+      int result = addMessage(data->mP, data->mSize);
       if (result > 0)
         totalCount += result;
       else if (result == 0) {
@@ -91,7 +91,7 @@ int MessageFormat::AddMessages(const vector<BufferDesc_t>& list)
   }
 }
 
-int MessageFormat::ReadBlockSequence(AliHLTUInt8_t* buffer, unsigned size,
+int MessageFormat::readBlockSequence(AliHLTUInt8_t* buffer, unsigned size,
                                      vector<AliHLTComponentBlockData>& descriptorList) const
 {
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
@@ -127,7 +127,7 @@ int MessageFormat::ReadBlockSequence(AliHLTUInt8_t* buffer, unsigned size,
   return input.size();
 }
 
-int MessageFormat::ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size,
+int MessageFormat::readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size,
                                    vector<AliHLTComponentBlockData>& descriptorList) const
 {
   // read message payload in HOMER format
@@ -144,8 +144,8 @@ int MessageFormat::ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size,
       memset(&block, 0, sizeof(AliHLTComponentBlockData));
       block.fStructSize = sizeof(AliHLTComponentBlockData);
       block.fDataType.fStructSize = sizeof(AliHLTComponentDataType);
-      homer_uint64 id = ByteSwap64(reader->GetBlockDataType(i));
-      homer_uint32 origin = ByteSwap32(reader->GetBlockDataOrigin(i));
+      homer_uint64 id = byteSwap64(reader->GetBlockDataType(i));
+      homer_uint32 origin = byteSwap32(reader->GetBlockDataOrigin(i));
       memcpy(&block.fDataType.fID, &id,
              sizeof(id) > kAliHLTComponentDataTypefIDsize ? kAliHLTComponentDataTypefIDsize : sizeof(id));
       memcpy(&block.fDataType.fOrigin, &origin, 
@@ -160,7 +160,7 @@ int MessageFormat::ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size,
   return nofBlocks;
 }
 
-vector<MessageFormat::BufferDesc_t> MessageFormat::CreateMessages(const AliHLTComponentBlockData* blocks,
+vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTComponentBlockData* blocks,
                                                                   unsigned count, unsigned totalPayloadSize)
 {
   const AliHLTComponentBlockData* pOutputBlocks = blocks;
@@ -168,7 +168,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::CreateMessages(const AliHLTCo
   mDataBuffer.clear();
   mMessages.clear();
   if (mOutputMode == kOutputModeHOMER) {
-    AliHLTHOMERWriter* pWriter = CreateHOMERFormat(pOutputBlocks, outputBlockCnt);
+    AliHLTHOMERWriter* pWriter = createHOMERFormat(pOutputBlocks, outputBlockCnt);
     if (pWriter) {
       AliHLTUInt32_t position = mDataBuffer.size();
       AliHLTUInt32_t payloadSize = pWriter->GetTotalMemorySize();
@@ -223,7 +223,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::CreateMessages(const AliHLTCo
   return mMessages;
 }
 
-AliHLTHOMERWriter* MessageFormat::CreateHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
+AliHLTHOMERWriter* MessageFormat::createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
                                                     AliHLTUInt32_t outputBlockCnt) const
 {
   // send data blocks in HOMER format in one message
@@ -247,8 +247,8 @@ AliHLTHOMERWriter* MessageFormat::CreateHOMERFormat(const AliHLTComponentBlockDa
     homer_uint64 origin = 0;
     memcpy(&id, pOutputBlock->fDataType.fID, sizeof(homer_uint64));
     memcpy(((AliHLTUInt8_t*)&origin) + sizeof(homer_uint32), pOutputBlock->fDataType.fOrigin, sizeof(homer_uint32));
-    homerDescriptor.SetType(ByteSwap64(id));
-    homerDescriptor.SetSubType1(ByteSwap64(origin));
+    homerDescriptor.SetType(byteSwap64(id));
+    homerDescriptor.SetSubType1(byteSwap64(origin));
     homerDescriptor.SetSubType2(pOutputBlock->fSpecification);
     homerDescriptor.SetBlockSize(pOutputBlock->fSize);
     writer->AddBlock(homerHeader, pOutputBlock->fPtr);
@@ -256,7 +256,7 @@ AliHLTHOMERWriter* MessageFormat::CreateHOMERFormat(const AliHLTComponentBlockDa
   return writer.release();
 }
 
-AliHLTUInt64_t MessageFormat::ByteSwap64(AliHLTUInt64_t src) const
+AliHLTUInt64_t MessageFormat::byteSwap64(AliHLTUInt64_t src) const
 {
   // swap a 64 bit number
   return ((src & 0xFFULL) << 56) | 
@@ -269,7 +269,7 @@ AliHLTUInt64_t MessageFormat::ByteSwap64(AliHLTUInt64_t src) const
     ((src & 0xFF00000000000000ULL) >> 56);
 }
 
-AliHLTUInt32_t MessageFormat::ByteSwap32(AliHLTUInt32_t src) const
+AliHLTUInt32_t MessageFormat::byteSwap32(AliHLTUInt32_t src) const
 {
   // swap a 32 bit number
   return ((src & 0xFFULL) << 24) | 

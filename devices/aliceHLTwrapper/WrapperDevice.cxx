@@ -70,7 +70,7 @@ void WrapperDevice::Init()
   std::auto_ptr<Component> component(new ALICE::HLT::Component);
   if (!component.get()) return /*-ENOMEM*/;
 
-  if ((iResult=component->Init(mArgv.size(), &mArgv[0]))<0) {
+  if ((iResult=component->init(mArgv.size(), &mArgv[0]))<0) {
     LOG(ERROR) << "component init failed with error code " << iResult;
     throw std::runtime_error("component init failed");
     return /*iResult*/;
@@ -200,7 +200,7 @@ void WrapperDevice::Run()
       }
 
       // call the component
-      if ((iResult=mComponent->Process(dataArray))<0) {
+      if ((iResult=mComponent->process(dataArray))<0) {
 	LOG(ERROR) << "component processing failed with error code " << iResult;
       }
 

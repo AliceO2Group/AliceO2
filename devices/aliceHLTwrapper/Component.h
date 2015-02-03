@@ -64,14 +64,14 @@ public:
   ~Component();
 
   /// Init the component
-  int Init(int argc, char** argv);
+  int init(int argc, char** argv);
 
   /// Process one event
   /// Method takes a list of binary buffers which are expected to start with
   /// the AliHLTComponentBlockData header immediately followed by the block
   /// payload. After processing, handles to output blocks are provided in this
   /// list.
-  int Process(vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray);
+  int process(vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray);
 
 protected:
 

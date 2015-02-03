@@ -60,7 +60,7 @@ int main(int argc, char** argv)
   }
 
   ALICE::HLT::Component component;
-  if ((iResult = component.Init(componentOptions.size(), &componentOptions[0])) < 0) {
+  if ((iResult = component.init(componentOptions.size(), &componentOptions[0])) < 0) {
     cerr << "error: init failed with " << iResult << endl;
     // the ALICE HLT external interface uses the following error definition
     // 0 success
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
         AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(inputBuffer), length));
     }
   }
-  if ((iResult = component.Process(blockData)) < 0) {
+  if ((iResult = component.process(blockData)) < 0) {
     cerr << "error: init failed with " << iResult << endl;
   }
   if (inputBuffer) delete[] inputBuffer;

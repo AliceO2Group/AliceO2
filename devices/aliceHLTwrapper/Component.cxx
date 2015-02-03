@@ -42,7 +42,7 @@ Component::~Component()
 {
 }
 
-int Component::Init(int argc, char** argv)
+int Component::init(int argc, char** argv)
 {
   /// initialize: scan arguments, setup system interface and create component
 
@@ -116,7 +116,7 @@ int Component::Init(int argc, char** argv)
   int iResult = 0;
   // TODO: make the SystemInterface a singleton
   auto_ptr<ALICE::HLT::SystemInterface> iface(new SystemInterface);
-  if (iface.get() == NULL || ((iResult = iface->InitSystem(runNumber))) < 0) {
+  if (iface.get() == NULL || ((iResult = iface->initSystem(runNumber))) < 0) {
     // LOG(ERROR) << "failed to set up SystemInterface " << iface.get() << " (" << iResult << ")";
     return -ENOSYS;
   }
@@ -125,7 +125,7 @@ int Component::Init(int argc, char** argv)
   mpSystem = iface.release();
 
   // load the component library
-  if ((iResult = mpSystem->LoadLibrary(componentLibrary)) != 0) return iResult > 0 ? -iResult : iResult;
+  if ((iResult = mpSystem->loadLibrary(componentLibrary)) != 0) return iResult > 0 ? -iResult : iResult;
 
   // chop the parameter string in order to provide parameters in the argc/argv format
   vector<const char*> parameters;
@@ -143,7 +143,7 @@ int Component::Init(int argc, char** argv)
   }
 
   // create component
-  if ((iResult=mpSystem->CreateComponent(componentId, NULL, parameters.size(), &parameters[0], &mProcessor, ""))<0) {
+  if ((iResult=mpSystem->createComponent(componentId, NULL, parameters.size(), &parameters[0], &mProcessor, ""))<0) {
     // the ALICE HLT external interface uses the following error definition
     // 0 success
     // >0 error number
@@ -155,7 +155,7 @@ int Component::Init(int argc, char** argv)
   return iResult;
 }
 
-int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
+int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
 {
   if (!mpSystem) return -ENOSYS;
   int iResult = 0;
@@ -181,8 +181,8 @@ int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
 
   // prepare input structure for the ALICE HLT component
   mFormatHandler.clear();
-  mFormatHandler.AddMessages(dataArray);
-  vector<AliHLTComponentBlockData>& inputBlocks = mFormatHandler.BlockDescriptors();
+  mFormatHandler.addMessages(dataArray);
+  vector<AliHLTComponentBlockData>& inputBlocks = mFormatHandler.getBlockDescriptors();
   unsigned nofInputBlocks = inputBlocks.size();
   if (dataArray.size() > 0 && nofInputBlocks == 0) {
     cerr << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input" << endl;
@@ -211,7 +211,7 @@ int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
     unsigned long constEventBase = 0;
     unsigned long constBlockBase = 0;
     double inputBlockMultiplier = 0.;
-    mpSystem->GetOutputSize(mProcessor, &constEventBase, &constBlockBase, &inputBlockMultiplier);
+    mpSystem->getOutputSize(mProcessor, &constEventBase, &constBlockBase, &inputBlockMultiplier);
     outputBufferSize = constEventBase + nofInputBlocks * constBlockBase + totalInputSize * inputBlockMultiplier;
     // take the full available buffer and increase if that
     // is too little
@@ -231,7 +231,7 @@ int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
     if (pEventDoneData) delete pEventDoneData;
     pEventDoneData = NULL;
 
-    iResult = mpSystem->ProcessEvent(mProcessor, &evtData, &inputBlocks[0], &trigData,
+    iResult = mpSystem->processEvent(mProcessor, &evtData, &inputBlocks[0], &trigData,
                                      &mOutputBuffer[0], &outputBufferSize,
                                      &outputBlockCnt, &pOutputBlocks,
                                      &pEventDoneData);
@@ -310,7 +310,7 @@ int Component::Process(vector<MessageFormat::BufferDesc_t>& dataArray)
     // TODO: for now there is an extra copy of the data, but it should be
     // handled in place
     vector<MessageFormat::BufferDesc_t> outputMessages =
-      mFormatHandler.CreateMessages(pOutputBlocks, validBlocks, totalPayloadSize);
+      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize);
     dataArray.insert(dataArray.end(), outputMessages.begin(), outputMessages.end());
   }
 

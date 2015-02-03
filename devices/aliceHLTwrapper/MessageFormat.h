@@ -74,45 +74,45 @@ public:
   // add message
   // this will extract the block descriptors from the message
   // the descriptors refer to data in the original message buffer
-  int AddMessage(AliHLTUInt8_t* buffer, unsigned size);
+  int addMessage(AliHLTUInt8_t* buffer, unsigned size);
 
   // add list of messages
   // this will extract the block descriptors from the message
   // the descriptors refer to data in the original message buffer
-  int AddMessages(const vector<BufferDesc_t>& list);
+  int addMessages(const vector<BufferDesc_t>& list);
 
   // add a block descriptor and its payload to the message
   // planned for future extension
   //int AddOutput(AliHLTComponentBlockData* db);
 
-  vector<AliHLTComponentBlockData>& BlockDescriptors()
+  vector<AliHLTComponentBlockData>& getBlockDescriptors()
   {
     return mBlockDescriptors;
   }
 
-  const vector<AliHLTComponentBlockData>& BlockDescriptors() const
+  const vector<AliHLTComponentBlockData>& getBlockDescriptors() const
   {
     return mBlockDescriptors;
   }
 
   // create message payloads in the internal buffer and return list
   // of decriptors
-  vector<BufferDesc_t> CreateMessages(const AliHLTComponentBlockData* blocks, unsigned count,
+  vector<BufferDesc_t> createMessages(const AliHLTComponentBlockData* blocks, unsigned count,
 				      unsigned totalPayloadSize);
 
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
-  int ReadBlockSequence(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& descriptorList) const;
+  int readBlockSequence(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& descriptorList) const;
 
   // read message payload in HOMER format
-  int ReadHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& descriptorList) const;
+  int readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& descriptorList) const;
 
   // create HOMER format from the output blocks
-  AliHLTHOMERWriter* CreateHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
+  AliHLTHOMERWriter* createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
 				       AliHLTUInt32_t outputBlockCnt) const;
 
-  AliHLTUInt64_t ByteSwap64(AliHLTUInt64_t src) const;
-  AliHLTUInt32_t ByteSwap32(AliHLTUInt32_t src) const;
+  AliHLTUInt64_t byteSwap64(AliHLTUInt64_t src) const;
+  AliHLTUInt32_t byteSwap32(AliHLTUInt32_t src) const;
 
 protected:
 
