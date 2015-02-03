@@ -12,7 +12,7 @@
 
 //  @file   runComponent.cxx
 //  @author Matthias Richter
-//  @since  2014-05-07 
+//  @since  2014-05-07
 //  @brief  run a component encapsulating ALICE HLT code
 
 // TODO: this file is intended to evolve into a unit test
@@ -32,34 +32,35 @@ using std::stringstream;
 
 int main(int argc, char** argv)
 {
-  int iResult=0;
+  int iResult = 0;
   // parse options
-  const char* inputFileName=NULL;
-  const char* outputFileName=NULL;
+  const char* inputFileName = NULL;
+  const char* outputFileName = NULL;
 
   vector<char*> componentOptions;
-  for (int i=0; i<argc; i++) {
-    char* arg=argv[i];
+  for (int i = 0; i < argc; i++) {
+    char* arg = argv[i];
     switch (arg[0]) {
-    case '-':
-      if (arg[1]!=0 && arg[2]==0) { // one char after the '-'
-	if (arg[1]=='i' || arg[1]=='o') {
-	  if (i+1>=argc) {
-	    cerr << "missing file name for option " << arg << endl;
-	  } 
-	  else if (arg[1]=='i') inputFileName=argv[i+1];
-	  else                 outputFileName=argv[i+1];
-	  break;
-	}
-      }
+      case '-':
+        if (arg[1] != 0 && arg[2] == 0) { // one char after the '-'
+          if (arg[1] == 'i' || arg[1] == 'o') {
+            if (i + 1 >= argc) {
+              cerr << "missing file name for option " << arg << endl;
+            } else if (arg[1] == 'i')
+              inputFileName = argv[i + 1];
+            else
+              outputFileName = argv[i + 1];
+            break;
+          }
+        }
       // intended fall-through
-    default:
-      componentOptions.push_back(arg);
+      default:
+        componentOptions.push_back(arg);
     }
   }
 
   ALICE::HLT::Component component;
-  if ((iResult=component.Init(componentOptions.size(), &componentOptions[0]))<0) {
+  if ((iResult = component.Init(componentOptions.size(), &componentOptions[0])) < 0) {
     cerr << "error: init failed with " << iResult << endl;
     // the ALICE HLT external interface uses the following error definition
     // 0 success
@@ -68,40 +69,41 @@ int main(int argc, char** argv)
   }
 
   vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> blockData;
-  char* inputBuffer=NULL;
+  char* inputBuffer = NULL;
   if (inputFileName) {
     std::ifstream input(inputFileName, std::ifstream::binary);
     if (input) {
       // get length of file:
-      input.seekg (0, input.end);
+      input.seekg(0, input.end);
       int length = input.tellg();
-      input.seekg (0, input.beg);
+      input.seekg(0, input.beg);
 
       // allocate memory:
-      inputBuffer=new char [length];
-      input.read (inputBuffer,length);
+      inputBuffer = new char[length];
+      input.read(inputBuffer, length);
       input.close();
-      blockData.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(inputBuffer), length));
+      blockData.push_back(
+        AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(inputBuffer), length));
     }
   }
-  if ((iResult=component.Process(blockData))<0) {
+  if ((iResult = component.Process(blockData)) < 0) {
     cerr << "error: init failed with " << iResult << endl;
   }
-  if (inputBuffer) delete [] inputBuffer;
-  inputBuffer=NULL;
-  if (iResult<0) 
-    return -iResult;
+  if (inputBuffer) delete[] inputBuffer;
+  inputBuffer = NULL;
+  if (iResult < 0) return -iResult;
 
   // for now, only the first buffer is written
-  if (blockData.size()>0) {
-    if (outputFileName!=NULL) {
-    ofstream outputFile(outputFileName);
-    if (outputFile.good()) {
-      outputFile.write(reinterpret_cast<const char*>(blockData[0].mP), blockData[0].mSize);
-      outputFile.close();
-    }
+  if (blockData.size() > 0) {
+    if (outputFileName != NULL) {
+      ofstream outputFile(outputFileName);
+      if (outputFile.good()) {
+        outputFile.write(reinterpret_cast<const char*>(blockData[0].mP), blockData[0].mSize);
+        outputFile.close();
+      }
     } else {
-      cerr << "WARNING: dropping " << blockData.size() << " data block(s) produced by component, use option '-o' to specify output file" << endl;
+      cerr << "WARNING: dropping " << blockData.size()
+           << " data block(s) produced by component, use option '-o' to specify output file" << endl;
     }
   }
 }

@@ -23,39 +23,76 @@
 #include "MessageFormat.h"
 #include <vector>
 
-namespace ALICE
-{
-  namespace HLT
-  {
-    class SystemInterface;
+namespace ALICE {
+namespace HLT {
+class SystemInterface;
 
-    class Component {
-    public:
-      /// default constructor
-      Component();
-      /// destructor
-      ~Component();
+/// @class Component
+/// This class handles the creation of an HLT component and data processing
+/// via the SystemInterface. Each HLT component is implemented in a library
+/// and identified by a "component ID". HLT components support the processing
+/// interface and need to be initialized by calling function Init().
+///
+/// Mandatory arguments:
+/// --library       HLT component library to be loaded
+/// --component     component ID
+///
+/// Optional arguments
+/// --parameter     parameters of the component
+///                 Each componenent is initialized from a list of arguments
+///                 which have impact on e.g. algorithm, cuts, data selection
+///                 and the type of output being produced. The arguments are
+///                 completely under control of component.
+/// --run           run no
+///                 Currently, all HLT components need configuration and
+///                 calibration data from OCDB; OCDB interface needs to
+///                 be initialized with run number
+/// --msgsize       size of the output buffer in byte
+///                 This overrides the default behavior where output buffer
+///                 size is determined from the input size and properties
+///                 of the component
+/// --output-mode   mode of arranging output blocks, @see MessageFormat.h
+///                 0  HOMER format
+///                 1  blocks in multiple messages
+///                 2  blocks concatenated in one message (default)
+///
+class Component {
+public:
+  /// default constructor
+  Component();
+  /// destructor
+  ~Component();
 
-      int Init(int argc, char** argv);
+  /// Init the component
+  int Init(int argc, char** argv);
 
-      int Process(vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray);
+  /// Process one event
+  /// Method takes a list of binary buffers which are expected to start with
+  /// the AliHLTComponentBlockData header immediately followed by the block
+  /// payload. After processing, handles to output blocks are provided in this
+  /// list.
+  int Process(vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray);
 
-    protected:
+protected:
 
-    private:
-      // copy constructor prohibited
-      Component(const Component&);
-      // assignment operator prohibited
-      Component& operator=(const Component&);
+private:
+  // copy constructor prohibited
+  Component(const Component&);
+  // assignment operator prohibited
+  Component& operator=(const Component&);
 
-      vector<AliHLTUInt8_t>            mOutputBuffer;
+  /// output buffer to receive the data produced by component
+  vector<AliHLTUInt8_t> mOutputBuffer;
 
-      SystemInterface*   mpSystem;
-      AliHLTComponentHandle mProcessor;
-      AliceO2::AliceHLT::MessageFormat mFormatHandler;
-      int mEventCount;
-    };
+  /// instance of the system interface
+  SystemInterface* mpSystem;
+  /// handle of the processing component
+  AliHLTComponentHandle mProcessor;
+  /// container for handling the i/o buffers
+  AliceO2::AliceHLT::MessageFormat mFormatHandler;
+  int mEventCount;
+};
 
-  }    // namespace hlt
-}      // namespace alice
+} // namespace hlt
+} // namespace alice
 #endif // COMPONENT_H

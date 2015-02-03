@@ -16,49 +16,54 @@
 
 //  @file   SystemInterface.h
 //  @author Matthias Richter
-//  @since  2014-05-07 
+//  @since  2014-05-07
 //  @brief  FairRoot/ALFA interface to ALICE HLT code
 
 #include "AliHLTDataTypes.h"
-namespace ALICE
-{
-  namespace HLT
-  {
+namespace ALICE {
+namespace HLT {
 
-    class SystemInterface {
-    public:
-      /// default constructor
-      SystemInterface();
-      /// destructor
-      ~SystemInterface();
+/// @class SystemInterface
+/// Tool class for the ALICE HLT external interface defined in
+/// AliHLTDataTypes.h
+///
+/// The class loads the interface library and loads the function
+/// pointers. The individual functions of the external interface
+/// can be used by calling the corresponding functions of this class.
+class SystemInterface {
+public:
+  /// default constructor
+  SystemInterface();
+  /// destructor
+  ~SystemInterface();
 
-      /** initilize the system
-       *  load external library and set up the HLT system
-       */
-      int InitSystem(unsigned long runNo);
+  /** initilize the system
+   *  load external library and set up the HLT system
+   */
+  int InitSystem(unsigned long runNo);
 
-      /** cleanup and release system
-       */
-      int ReleaseSystem();
+  /** cleanup and release system
+   */
+  int ReleaseSystem();
 
-      /** load HLT plugin library
-       */
-      int LoadLibrary(const char* libname);
+  /** load HLT plugin library
+   */
+  int LoadLibrary(const char* libname);
 
-      /** unload HLT plugin library
-       */
-      int UnloadLibrary(const char* libname);
+  /** unload HLT plugin library
+   */
+  int UnloadLibrary(const char* libname);
 
-      /** create/factorize component
-       *  @param componentType
-       *  @param environParam
-       *  @param argc
-       *  @param argv
-       *  @param handle
-       *  @param description
-       *  @return 0 on success and valid handle
-       */
-      int CreateComponent(const char* componentId,
+  /** create/factorize component
+   *  @param componentType
+   *  @param environParam
+   *  @param argc
+   *  @param argv
+   *  @param handle
+   *  @param description
+   *  @return 0 on success and valid handle
+   */
+  int CreateComponent(const char* componentId,
 			  void* environParam,
 			  int argc,
 			  const char** argv,
@@ -66,60 +71,60 @@ namespace ALICE
 			  const char* description
 			  );
 
-      /** create/factorize component
-       *  @param handle
-       *  @return 0 on success
-       */
-      int DestroyComponent(AliHLTComponentHandle handle);
+  /** create/factorize component
+   *  @param handle
+   *  @return 0 on success
+   */
+  int DestroyComponent(AliHLTComponentHandle handle);
 
-      /** process event
-       */
-      int ProcessEvent( AliHLTComponentHandle handle,
+  /** process event
+   */
+  int ProcessEvent( AliHLTComponentHandle handle,
 			const AliHLTComponentEventData* evtData, const AliHLTComponentBlockData* blocks,
 			AliHLTComponentTriggerData* trigData,
 			AliHLTUInt8_t* outputPtr, AliHLTUInt32_t* size,
 			AliHLTUInt32_t* outputBlockCnt,	AliHLTComponentBlockData** outputBlocks,
 			AliHLTComponentEventDoneData** edd );
 
-      /** get the output data type
-       */
-      int GetOutputDataType(AliHLTComponentHandle handle, AliHLTComponentDataType* dataType);
+  /** get the output data type
+   */
+  int GetOutputDataType(AliHLTComponentHandle handle, AliHLTComponentDataType* dataType);
 
-      /** get output data size
-       *  return an estimation of the size of the produced data relative to the number of
-       *  input blocks and input size
-       */
-      int GetOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
+  /** get output data size
+   *  return an estimation of the size of the produced data relative to the number of
+   *  input blocks and input size
+   */
+  int GetOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
 			unsigned long* constBlockBase, double* inputBlockMultiplier);
 
-      /// clear the object and reset pointer references
-      virtual void Clear(const char* /*option*/ ="");
+  /// clear the object and reset pointer references
+  virtual void Clear(const char* /*option*/ = "");
 
-      /// print info
-      virtual void Print(const char* option="") const;
+  /// print info
+  virtual void Print(const char* option = "") const;
 
-      /// allocate memory
-      static void* Alloc( void* param, unsigned long size );
+  /// allocate memory
+  static void* Alloc(void* param, unsigned long size);
 
-      /// deallocate memory
-      static void Dealloc( void* buffer, unsigned long size );
+  /// deallocate memory
+  static void Dealloc(void* buffer, unsigned long size);
 
-    protected:
+protected:
 
-    private:
-      AliHLTExtFctInitSystem        mpAliHLTExtFctInitSystem;
-      AliHLTExtFctDeinitSystem      mpAliHLTExtFctDeinitSystem;
-      AliHLTExtFctLoadLibrary       mpAliHLTExtFctLoadLibrary;
-      AliHLTExtFctUnloadLibrary     mpAliHLTExtFctUnloadLibrary;
-      AliHLTExtFctCreateComponent   mpAliHLTExtFctCreateComponent;
-      AliHLTExtFctDestroyComponent  mpAliHLTExtFctDestroyComponent;
-      AliHLTExtFctProcessEvent      mpAliHLTExtFctProcessEvent;
-      AliHLTExtFctGetOutputDataType mpAliHLTExtFctGetOutputDataType;
-      AliHLTExtFctGetOutputSize     mpAliHLTExtFctGetOutputSize;
+private:
+  AliHLTExtFctInitSystem        mpAliHLTExtFctInitSystem;
+  AliHLTExtFctDeinitSystem      mpAliHLTExtFctDeinitSystem;
+  AliHLTExtFctLoadLibrary       mpAliHLTExtFctLoadLibrary;
+  AliHLTExtFctUnloadLibrary     mpAliHLTExtFctUnloadLibrary;
+  AliHLTExtFctCreateComponent   mpAliHLTExtFctCreateComponent;
+  AliHLTExtFctDestroyComponent  mpAliHLTExtFctDestroyComponent;
+  AliHLTExtFctProcessEvent      mpAliHLTExtFctProcessEvent;
+  AliHLTExtFctGetOutputDataType mpAliHLTExtFctGetOutputDataType;
+  AliHLTExtFctGetOutputSize     mpAliHLTExtFctGetOutputSize;
 
-      AliHLTAnalysisEnvironment     mEnvironment;
-    };
+  AliHLTAnalysisEnvironment     mEnvironment;
+};
 
-  }    // namespace hlt
-}      // namespace alice
+} // namespace hlt
+} // namespace alice
 #endif // SYSTEMINTERFACE_H

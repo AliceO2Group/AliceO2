@@ -12,7 +12,7 @@
 
 //  @file   WrapperDevice.cxx
 //  @author Matthias Richter
-//  @since  2014-05-07 
+//  @since  2014-05-07
 //  @brief  FairRoot/ALFA device running ALICE HLT code
 
 #include "WrapperDevice.h"
@@ -31,15 +31,15 @@ using namespace ALICE::HLT;
 
 // the chrono lib needs C++11
 #if __cplusplus < 201103L
-#  warning statistics measurement for WrapperDevice disabled: need C++11 standard
+#warning statistics measurement for WrapperDevice disabled: need C++11 standard
 #else
-#  define USE_CHRONO
+#define USE_CHRONO
 #endif
 #ifdef USE_CHRONO
 #include <chrono>
 using std::chrono::system_clock;
 typedef std::chrono::milliseconds TimeScale;
-#endif //USE_CHRONO
+#endif // USE_CHRONO
 
 WrapperDevice::WrapperDevice(int argc, char** argv, int verbosity)
   : mComponent(NULL)
@@ -95,7 +95,7 @@ void WrapperDevice::Run()
 
 #ifdef USE_CHRONO
   static system_clock::time_point refTime = system_clock::now();
-#endif //USE_CHRONO
+#endif // USE_CHRONO
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
 
   FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
@@ -114,7 +114,7 @@ void WrapperDevice::Run()
   vector</*const*/ FairMQMessage*> inputMessages;
   vector<int> inputMessageCntPerSocket(fNumInputs, 0);
   int nReadCycles=0;
-  while ( fState == RUNNING ) {
+  while (fState == RUNNING) {
 
     // read input messages
     poller->Poll(mPollingPeriod);
@@ -126,28 +126,28 @@ void WrapperDevice::Run()
 	continue;
       }
       received = false;
-      if (poller->CheckInput(i)){
-	int64_t more = 0;
-	do {
-	  more=0;
-	  auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-	  received = fPayloadInputs->at(i)->Receive(msg.get());
-	  if (received) {
-	    receivedAtLeastOneMessage=true;
-	    inputMessages.push_back(msg.release());
-	    if (inputMessageCntPerSocket[i]==0)
-	      inputsReceived++; // count only the first message on that socket
-	    inputMessageCntPerSocket[i]++;
-	    if (mVerbosity>3) {
-	      LOG(INFO) << " |---- receive Msg from socket " << i ;
-	    }
-	    size_t more_size = sizeof(more);
-	    fPayloadInputs->at(i)->GetOption("rcv-more", &more, &more_size);
-	  }
-	} while (more);
-	if (mVerbosity>2) {
-	  LOG(INFO) << "------ received " << inputMessageCntPerSocket[i] << " message(s) from socket " << i ;
-	}
+      if (poller->CheckInput(i)) {
+        int64_t more = 0;
+        do {
+          more = 0;
+          auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+          received = fPayloadInputs->at(i)->Receive(msg.get());
+          if (received) {
+            receivedAtLeastOneMessage = true;
+            inputMessages.push_back(msg.release());
+            if (inputMessageCntPerSocket[i] == 0)
+              inputsReceived++; // count only the first message on that socket
+            inputMessageCntPerSocket[i]++;
+            if (mVerbosity > 3) {
+              LOG(INFO) << " |---- receive Msg from socket " << i;
+            }
+            size_t more_size = sizeof(more);
+            fPayloadInputs->at(i)->GetOption("rcv-more", &more, &more_size);
+          }
+        } while (more);
+        if (mVerbosity > 2) {
+          LOG(INFO) << "------ received " << inputMessageCntPerSocket[i] << " message(s) from socket " << i;
+        }
       }
     }
     if (receivedAtLeastOneMessage) nReadCycles++;
@@ -163,7 +163,7 @@ void WrapperDevice::Run()
     // }
     nReadCycles=0;
 #ifdef USE_CHRONO
-    auto duration = std::chrono::duration_cast< TimeScale>(std::chrono::system_clock::now() - refTime);
+    auto duration = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - refTime);
 
     if (mLastSampleTime>=0) {
       int sampleTimeDiff=duration.count()-mLastSampleTime;
@@ -175,9 +175,11 @@ void WrapperDevice::Run()
     mLastSampleTime=duration.count();
     if (duration.count()-mLastCalcTime>fLogIntervalInMs) {
       LOG(INFO) << "------ processed  " << mNSamples << " sample(s) ";
-      if (mNSamples>0) {
-    	LOG(INFO) << "------ min  " << mMinTimeBetweenSample << "ms, max " << mMaxTimeBetweenSample << "ms avrg " << (duration.count()-mLastCalcTime)/mNSamples << "ms ";
-    	LOG(INFO) << "------ avrg number of read cycles " << mTotalReadCycles/mNSamples << "  max number of read cycles " << mMaxReadCycles;
+      if (mNSamples > 0) {
+        LOG(INFO) << "------ min  " << mMinTimeBetweenSample << "ms, max " << mMaxTimeBetweenSample << "ms avrg "
+                  << (duration.count() - mLastCalcTime) / mNSamples << "ms ";
+        LOG(INFO) << "------ avrg number of read cycles " << mTotalReadCycles / mNSamples
+                  << "  max number of read cycles " << mMaxReadCycles;
       }
       mNSamples=0;
       mTotalReadCycles=0;
@@ -189,60 +191,61 @@ void WrapperDevice::Run()
 #endif //USE_CHRONO
 
     if (!mSkipProcessing) {
-    // prepare input from messages
-    vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
-    for (vector</*const*/ FairMQMessage*>::iterator msg=inputMessages.begin();
-	 msg!=inputMessages.end(); msg++) {
-      void* buffer=(*msg)->GetData();
-      dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
-    }
-
-    // call the component
-    if ((iResult=mComponent->Process(dataArray))<0) {
-      LOG(ERROR) << "component processing failed with error code " << iResult;
-    }
-
-    // build messages from output data
-    if (dataArray.size()>0) {
-      if (mVerbosity>2) {
-	LOG(INFO) << "processing " << dataArray.size() << " buffer(s)";
+      // prepare input from messages
+      vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
+      for (vector</*const*/ FairMQMessage*>::iterator msg=inputMessages.begin();
+	   msg!=inputMessages.end(); msg++) {
+	void* buffer=(*msg)->GetData();
+	dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
       }
-    auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-    if (msg.get() && fPayloadOutputs!=NULL && fPayloadOutputs->size()>0) {
-      vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>::iterator data=dataArray.begin();
-      while (data!=dataArray.end()) {
-	if (mVerbosity>2) {
-	  LOG(INFO) << "sending message of size " << data->mSize;
-	}
-	msg->Rebuild(data->mSize);
-	if (msg->GetSize()<data->mSize) {
-	  iResult=-ENOSPC;
-	  break;
-	}
-	AliHLTUInt8_t* pTarget=reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
-	memcpy(pTarget, data->mP, data->mSize);
-	if (data+1==dataArray.end()) {
-	  // this is the last data block
-	  fPayloadOutputs->at(0)->Send(msg.get());
-	} else {
-	  fPayloadOutputs->at(0)->Send(msg.get(), "snd-more");
-	}
-      
-	data=dataArray.erase(data);
+
+      // call the component
+      if ((iResult=mComponent->Process(dataArray))<0) {
+	LOG(ERROR) << "component processing failed with error code " << iResult;
       }
-    } else if (fPayloadOutputs==NULL || fPayloadOutputs->size()==0) {
-      if (errorCount==maxError && errorCount++>0)
-	LOG(ERROR) << "persistent error, suppressing further output";
-      else if (errorCount++<maxError)
-	LOG(ERROR) << "no output slot available (" << (fPayloadOutputs==NULL?"uninitialized":"0 slots") << ")";
-    } else {
-      if (errorCount==maxError && errorCount++>0)
-	LOG(ERROR) << "persistent error, suppressing further output";
-      else if (errorCount++<maxError)
-	LOG(ERROR) << "can not get output message from framework";
-      iResult=-ENOMSG;
-    }
-    }
+
+      // build messages from output data
+      if (dataArray.size() > 0) {
+        if (mVerbosity > 2) {
+          LOG(INFO) << "processing " << dataArray.size() << " buffer(s)";
+        }
+        auto_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+        if (msg.get() && fPayloadOutputs != NULL && fPayloadOutputs->size() > 0) {
+          vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>::iterator data = dataArray.begin();
+          while (data != dataArray.end()) {
+            if (mVerbosity > 2) {
+              LOG(INFO) << "sending message of size " << data->mSize;
+            }
+            msg->Rebuild(data->mSize);
+            if (msg->GetSize() < data->mSize) {
+              iResult = -ENOSPC;
+              break;
+            }
+            AliHLTUInt8_t* pTarget = reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
+            memcpy(pTarget, data->mP, data->mSize);
+            if (data + 1 == dataArray.end()) {
+              // this is the last data block
+              fPayloadOutputs->at(0)->Send(msg.get());
+            } else {
+              fPayloadOutputs->at(0)->Send(msg.get(), "snd-more");
+            }
+
+            data = dataArray.erase(data);
+          }
+        } else if (fPayloadOutputs == NULL || fPayloadOutputs->size() == 0) {
+          if (errorCount == maxError && errorCount++ > 0)
+            LOG(ERROR) << "persistent error, suppressing further output";
+          else if (errorCount++ < maxError)
+            LOG(ERROR) << "no output slot available (" << (fPayloadOutputs == NULL ? "uninitialized" : "0 slots")
+                       << ")";
+        } else {
+          if (errorCount == maxError && errorCount++ > 0)
+            LOG(ERROR) << "persistent error, suppressing further output";
+          else if (errorCount++ < maxError)
+            LOG(ERROR) << "can not get output message from framework";
+          iResult = -ENOMSG;
+        }
+      }
     }
 
     // cleanup
@@ -282,7 +285,7 @@ void WrapperDevice::Shutdown()
   /// inherited from FairMQDevice
 
   int iResult=0;
-  // TODO: shutdown component and delte instance 
+  // TODO: shutdown component and delete instance
 
   FairMQDevice::Shutdown();
 }
@@ -321,10 +324,10 @@ void WrapperDevice::SetProperty(const int key, const int value, const int slot)
   /// handle device specific properties and forward to FairMQDevice::SetProperty
   switch (key) {
   case PollingPeriod:
-    mPollingPeriod=value;
+    mPollingPeriod = value;
     return;
   case SkipProcessing:
-    mSkipProcessing=value;
+    mSkipProcessing = value;
     return;
   }
   return FairMQDevice::SetProperty(key, value, slot);

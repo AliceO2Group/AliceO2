@@ -22,80 +22,79 @@
 #include "FairMQDevice.h"
 #include <vector>
 
-namespace ALICE
-{
-  namespace HLT
-  {
-    class Component;
+namespace ALICE {
+namespace HLT {
+class Component;
 
-    class WrapperDevice : public FairMQDevice {
-    public:
-      /// default constructor
-      WrapperDevice(int argc, char** argv, int verbosity=0);
-      /// destructor
-      ~WrapperDevice();
+/// @class WrapperDevice
+/// A FairMQ device class supporting the HLT component interface
+/// for processing.
+///
+/// The device class implements the interface functions of FairMQ, and it
+/// receives and send messages. The data of the messages are processed
+/// using the Component class.
+class WrapperDevice : public FairMQDevice {
+public:
+  /// default constructor
+  WrapperDevice(int argc, char** argv, int verbosity = 0);
+  /// destructor
+  ~WrapperDevice();
 
-      /////////////////////////////////////////////////////////////////
-      // the FairMQDevice interface
+  /////////////////////////////////////////////////////////////////
+  // the FairMQDevice interface
 
-      /// inherited from FairMQDevice
-      virtual void Init();
-      /// inherited from FairMQDevice
-      virtual void Run();
-      /// inherited from FairMQDevice
-      virtual void Pause();
-      /// inherited from FairMQDevice
-      virtual void Shutdown();
-      /// inherited from FairMQDevice
-      virtual void InitOutput();
-      /// inherited from FairMQDevice
-      virtual void InitInput();
-      /// inherited from FairMQDevice
-      /// handle device specific properties and forward to FairMQDevice::SetProperty
-      virtual void SetProperty(const int key, const string& value, const int slot = 0);
-      /// inherited from FairMQDevice
-      /// handle device specific properties and forward to FairMQDevice::GetProperty
-      virtual string GetProperty(const int key, const string& default_ = "", const int slot = 0);
-      /// inherited from FairMQDevice
-      /// handle device specific properties and forward to FairMQDevice::SetProperty
-      virtual void SetProperty(const int key, const int value, const int slot = 0);
-      /// inherited from FairMQDevice
-      /// handle device specific properties and forward to FairMQDevice::GetProperty
-      virtual int GetProperty(const int key, const int default_ = 0, const int slot = 0);
+  /// inherited from FairMQDevice
+  virtual void Init();
+  /// inherited from FairMQDevice
+  virtual void Run();
+  /// inherited from FairMQDevice
+  virtual void Pause();
+  /// inherited from FairMQDevice
+  virtual void Shutdown();
+  /// inherited from FairMQDevice
+  virtual void InitOutput();
+  /// inherited from FairMQDevice
+  virtual void InitInput();
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::SetProperty
+  virtual void SetProperty(const int key, const string& value, const int slot = 0);
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::GetProperty
+  virtual string GetProperty(const int key, const string& default_ = "", const int slot = 0);
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::SetProperty
+  virtual void SetProperty(const int key, const int value, const int slot = 0);
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::GetProperty
+  virtual int GetProperty(const int key, const int default_ = 0, const int slot = 0);
 
-      /////////////////////////////////////////////////////////////////
-      // device property identifier
-      enum
-	{
-	  Id = FairMQDevice::Last,
-	  PollingPeriod,
-	  SkipProcessing,
-	  Last
-	};
+  /////////////////////////////////////////////////////////////////
+  // device property identifier
+  enum { Id = FairMQDevice::Last, PollingPeriod, SkipProcessing, Last };
 
-    protected:
+protected:
 
-    private:
-      // copy constructor prohibited
-      WrapperDevice(const WrapperDevice&);
-      // assignment operator prohibited
-      WrapperDevice& operator=(const WrapperDevice&);
+private:
+  // copy constructor prohibited
+  WrapperDevice(const WrapperDevice&);
+  // assignment operator prohibited
+  WrapperDevice& operator=(const WrapperDevice&);
 
-      Component* mComponent;     // component instance
-      vector<char*> mArgv;       // array of arguments for the component
+  Component* mComponent;     // component instance
+  vector<char*> mArgv;       // array of arguments for the component
 
-      int mPollingPeriod;        // period of polling on input sockets in ms
-      int mSkipProcessing;       // skip component processing
-      int mLastCalcTime;         // start time of current statistic period
-      int mLastSampleTime;       // time of last data sample
-      int mMinTimeBetweenSample; // min time between data samples in statistic period
-      int mMaxTimeBetweenSample; // max time between data samples in statistic period
-      int mTotalReadCycles;      // tot number of read cycles in statistic period
-      int mMaxReadCycles;        // max number of read cycles in statistic period
-      int mNSamples;             // number of samples in statistic period
-      int mVerbosity;            // verbosity level
-    };
+  int mPollingPeriod;        // period of polling on input sockets in ms
+  int mSkipProcessing;       // skip component processing
+  int mLastCalcTime;         // start time of current statistic period
+  int mLastSampleTime;       // time of last data sample
+  int mMinTimeBetweenSample; // min time between data samples in statistic period
+  int mMaxTimeBetweenSample; // max time between data samples in statistic period
+  int mTotalReadCycles;      // tot number of read cycles in statistic period
+  int mMaxReadCycles;        // max number of read cycles in statistic period
+  int mNSamples;             // number of samples in statistic period
+  int mVerbosity;            // verbosity level
+};
 
-  }    // namespace hlt
-}      // namespace alice
+} // namespace hlt
+} // namespace alice
 #endif // WRAPPERDEVICE_H
