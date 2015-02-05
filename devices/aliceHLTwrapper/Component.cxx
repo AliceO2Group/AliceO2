@@ -54,6 +54,7 @@ int Component::init(int argc, char** argv)
     {"run",         required_argument, 0, 'r'},
     {"msgsize",     required_argument, 0, 's'},
     {"output-mode", required_argument, 0, 'm'},
+    {"instance-id", required_argument, 0, 'i'},
     {0, 0, 0, 0}
   };
 
@@ -69,13 +70,14 @@ int Component::init(int argc, char** argv)
   const char* componentLibrary = "";
   const char* componentId = "";
   const char* componentParameter = "";
+  const char* instanceId="";
 
   // the configuration and calibration is fixed for every run and identified
   // by the run no
   int runNumber = 0;
 
   optind = 1; // indicate new start of scanning, especially when getop has been used in a higher layer already
-  while ((c = getopt_long(argc, argv, "l:c:p:r:s:m:", programOptions, &iOption)) != -1) {
+  while ((c = getopt_long(argc, argv, "l:c:p:r:s:m:i:", programOptions, &iOption)) != -1) {
     switch (c) {
       case 'l':
         componentLibrary = optarg;
@@ -99,6 +101,10 @@ int Component::init(int argc, char** argv)
         std::stringstream(optarg) >> outputMode;
         mFormatHandler.setOutputMode(outputMode);
       } break;
+      case 'i': {
+        instanceId=optarg;
+        break;
+      }
       case '?':
         // TODO: more error handling
         break;
@@ -143,7 +149,9 @@ int Component::init(int argc, char** argv)
   }
 
   // create component
-  if ((iResult=mpSystem->createComponent(componentId, NULL, parameters.size(), &parameters[0], &mProcessor, ""))<0) {
+  string description;
+  description+=" chainid="; description+=instanceId;
+  if ((iResult=mpSystem->createComponent(componentId, NULL, parameters.size(), &parameters[0], &mProcessor, description.c_str()))<0) {
     // the ALICE HLT external interface uses the following error definition
     // 0 success
     // >0 error number

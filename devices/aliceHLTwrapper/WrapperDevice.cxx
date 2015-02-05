@@ -70,7 +70,16 @@ void WrapperDevice::Init()
   std::unique_ptr<Component> component(new ALICE::HLT::Component);
   if (!component.get()) return /*-ENOMEM*/;
 
-  if ((iResult=component->init(mArgv.size(), &mArgv[0]))<0) {
+  string idkey="--instance-id";
+  string id="";
+  id=GetProperty(FairMQDevice::Id, id);
+  vector<char*> argv;
+  argv.push_back(mArgv[0]);
+  argv.push_back(&idkey[0]);
+  argv.push_back(&id[0]);
+  if (mArgv.size()>1)
+    argv.insert(argv.end(), mArgv.begin()+1, mArgv.end());
+  if ((iResult=component->init(argv.size(), &argv[0]))<0) {
     LOG(ERROR) << "component init failed with error code " << iResult;
     throw std::runtime_error("component init failed");
     return /*iResult*/;
