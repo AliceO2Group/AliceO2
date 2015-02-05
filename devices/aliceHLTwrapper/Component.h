@@ -73,6 +73,8 @@ public:
   /// list.
   int process(vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray);
 
+  int getEventCount() const {return mEventCount;}
+
 protected:
 
 private:

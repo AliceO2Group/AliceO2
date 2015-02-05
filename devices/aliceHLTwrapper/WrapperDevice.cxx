@@ -174,7 +174,8 @@ void WrapperDevice::Run()
     }
     mLastSampleTime=duration.count();
     if (duration.count()-mLastCalcTime>fLogIntervalInMs) {
-      LOG(INFO) << "------ processed  " << mNSamples << " sample(s) ";
+      LOG(INFO) << "------ processed  " << mNSamples << " sample(s) - total " 
+		<< mComponent->getEventCount() << " sample(s)";
       if (mNSamples > 0) {
         LOG(INFO) << "------ min  " << mMinTimeBetweenSample << "ms, max " << mMaxTimeBetweenSample << "ms avrg "
                   << (duration.count() - mLastCalcTime) / mNSamples << "ms ";
