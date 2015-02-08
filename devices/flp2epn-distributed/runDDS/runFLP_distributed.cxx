@@ -59,6 +59,7 @@ typedef struct DeviceOptions
   int numInputs;
   int numOutputs;
   int heartbeatTimeoutInMs;
+  int testMode;
   int sendOffset;
   vector<string> inputSocketType;
   vector<int> inputBufSize;
@@ -86,6 +87,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("num-inputs", bpo::value<int>()->required(), "Number of FLP input sockets")
     ("num-outputs", bpo::value<int>()->required(), "Number of FLP output sockets")
     ("heartbeat-timeout", bpo::value<int>()->default_value(20000), "Heartbeat timeout in milliseconds")
+    ("test-mode", bpo::value<int>()->default_value(0),"Run in test mode")
     ("send-offset", bpo::value<int>()->default_value(0), "Offset for staggered sending")
     ("input-socket-type", bpo::value< vector<string> >()->required(), "Input socket type: sub/pull")
     ("input-buff-size", bpo::value< vector<int> >()->required(), "Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
@@ -131,6 +133,10 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
   if (vm.count("heartbeat-timeout")) {
     _options->heartbeatTimeoutInMs = vm["heartbeat-timeout"].as<int>();
+  }
+
+  if (vm.count("test-mode")) {
+    _options->testMode = vm["test-mode"].as<int>();
   }
 
   if (vm.count("send-offset")) {
@@ -240,6 +246,7 @@ int main(int argc, char** argv)
   flp.SetProperty(FLPex::NumInputs, options.numInputs);
   flp.SetProperty(FLPex::NumOutputs, options.numOutputs);
   flp.SetProperty(FLPex::HeartbeatTimeoutInMs, options.heartbeatTimeoutInMs);
+  flp.SetProperty(FLPex::TestMode, options.testMode);
   flp.SetProperty(FLPex::SendOffset, options.sendOffset);
 
   flp.ChangeState(FLPex::INIT);

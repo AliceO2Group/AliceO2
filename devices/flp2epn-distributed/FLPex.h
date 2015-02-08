@@ -25,6 +25,7 @@ class FLPex : public FairMQDevice
     enum {
       OutputHeartbeat = FairMQDevice::Last,
       HeartbeatTimeoutInMs,
+      TestMode,
       SendOffset,
       EventSize,
       Last
@@ -61,6 +62,7 @@ class FLPex : public FairMQDevice
     std::unordered_map<int,boost::posix_time::ptime> fRTTimes;
 
     int fEventSize;
+    int fTestMode; // run in test mode
 };
 
 } // namespace Devices

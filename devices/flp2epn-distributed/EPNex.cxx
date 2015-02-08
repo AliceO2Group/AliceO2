@@ -25,6 +25,7 @@ EPNex::EPNex()
   : fHeartbeatIntervalInMs(3000)
   , fBufferTimeoutInMs(1000)
   , fNumFLPs(1)
+  , fTestMode(0)
   , fTimeframeBuffer()
   , fDiscardedSet()
 {
@@ -83,6 +84,8 @@ void EPNex::Run()
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
   boost::thread heartbeatSender(boost::bind(&EPNex::sendHeartbeats, this));
 
+  FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
+
   int SNDMORE = fPayloadInputs->at(0)->SNDMORE;
   int NOBLOCK = fPayloadInputs->at(0)->NOBLOCK;
 
@@ -93,96 +96,115 @@ void EPNex::Run()
 
   f2eHeader* h; // holds the header of the currently arrived message.
   uint64_t id = 0; // holds the timeframe id of the currently arrived sub-timeframe.
+  int rcvDataSize = 0;
 
   while (fState == RUNNING) {
-    FairMQMessage* headerPart = fTransportFactory->CreateMessage();
+    poller->Poll(100);
 
-    if (fPayloadInputs->at(0)->Receive(headerPart) > 0) {
-      // store the received ID
-      h = reinterpret_cast<f2eHeader*>(headerPart->GetData());
-      id = h->timeFrameId;
-      // LOG(INFO) << "Received Timeframe #" << id << " from FLP" << h->flpId;
+    if (poller->CheckInput(0)) {
+      FairMQMessage* headerPart = fTransportFactory->CreateMessage();
 
-      // DEBUG:: store receive intervals per FLP
-      int flp_id = h->flpId - 1; // super dirty temporary hack 
-      if (to_simple_string(rcvTimestamp.at(flp_id)) != "not_a_date_time") {
-        rcvIntervals.at(flp_id).push_back( (boost::posix_time::microsec_clock::local_time() - rcvTimestamp.at(flp_id)).total_microseconds() );
-        // LOG(WARN) << rcvIntervals.at(flp_id).back();
-      }
-      rcvTimestamp.at(flp_id) = boost::posix_time::microsec_clock::local_time();
-      // end DEBUG
+      if (fPayloadInputs->at(0)->Receive(headerPart) > 0) {
+        // store the received ID
+        h = reinterpret_cast<f2eHeader*>(headerPart->GetData());
+        id = h->timeFrameId;
+        // LOG(INFO) << "Received Timeframe #" << id << " from FLP" << h->flpId;
 
-      if (fDiscardedSet.find(id) == fDiscardedSet.end() && fTimeframeBuffer.find(id) == fTimeframeBuffer.end()) {
-        // if received ID is not yet in the buffer and has not previously been discarded.
+        // DEBUG:: store receive intervals per FLP
+        // if (fTestMode > 0) {
+        //   int flp_id = h->flpId - 1; // super dirty temporary hack 
+        //   if (to_simple_string(rcvTimestamp.at(flp_id)) != "not_a_date_time") {
+        //     rcvIntervals.at(flp_id).push_back( (boost::posix_time::microsec_clock::local_time() - rcvTimestamp.at(flp_id)).total_microseconds() );
+        //     // LOG(WARN) << rcvIntervals.at(flp_id).back();
+        //   }
+        //   rcvTimestamp.at(flp_id) = boost::posix_time::microsec_clock::local_time();
+        // }
+        // end DEBUG
+
         FairMQMessage* dataPart = fTransportFactory->CreateMessage();
-        if (fPayloadInputs->at(0)->Receive(dataPart) > 0) {
-          // receive data, store it in the buffer, save the receive time.
-          fTimeframeBuffer[id].count = 1;
-          fTimeframeBuffer[id].parts.push_back(dataPart);
-          fTimeframeBuffer[id].startTime = boost::posix_time::microsec_clock::local_time();
+        rcvDataSize = fPayloadInputs->at(0)->Receive(dataPart);
+
+        if (fDiscardedSet.find(id) == fDiscardedSet.end()) {
+          // if received ID has not previously been discarded.
+          if (fTimeframeBuffer.find(id) == fTimeframeBuffer.end()) {
+            // if received ID is not yet in the buffer.
+            if (rcvDataSize > 0) {
+              // receive data, store it in the buffer, save the receive time.
+              fTimeframeBuffer[id].count = 1;
+              fTimeframeBuffer[id].parts.push_back(dataPart);
+              fTimeframeBuffer[id].startTime = boost::posix_time::microsec_clock::local_time();
+            } else {
+              LOG(ERROR) << "no data received from input socket";
+              delete dataPart;
+            }
+            // PrintBuffer(fTimeframeBuffer);
+          } else {
+            // if received ID is already in the buffer
+            if (rcvDataSize > 0) {
+              fTimeframeBuffer[id].count++;
+              fTimeframeBuffer[id].parts.push_back(dataPart);
+            } else {
+              LOG(ERROR) << "no data received from input socket 0";
+              delete dataPart;
+            }
+            // PrintBuffer(fTimeframeBuffer);
+          }
         } else {
-          LOG(ERROR) << "no data received from input socket";
+          // if received ID has been previously discarded.
+          LOG(WARN) << "Received part from an already discarded timeframe with id " << id;
           delete dataPart;
         }
-        // PrintBuffer(fTimeframeBuffer);
-      } else {
-        // if received ID is already in the buffer
-        FairMQMessage* dataPart = fTransportFactory->CreateMessage();
-        if (fPayloadInputs->at(0)->Receive(dataPart) > 0) {
-          fTimeframeBuffer[id].count++;
-          fTimeframeBuffer[id].parts.push_back(dataPart);
-        } else {
-          LOG(ERROR) << "no data received from input socket 0";
-          delete dataPart;
+
+        if (fTimeframeBuffer[id].count == fNumFLPs) {
+          // when all parts are collected send all except last one with 'snd-more' flag, and last one without the flag.
+          for (int i = 0; i < fNumFLPs - 1; ++i) {
+            fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(i), SNDMORE);
+          }
+          fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(fNumFLPs - 1));
+
+          if (fTestMode > 0) {
+            // Send an acknowledgement back to the sampler to measure the round trip time
+            FairMQMessage* ack = fTransportFactory->CreateMessage(sizeof(uint64_t));
+            memcpy(ack->GetData(), &id, sizeof(uint64_t));
+
+            if (fPayloadOutputs->at(fNumFLPs + 1)->Send(ack, NOBLOCK) == 0) {
+              LOG(ERROR) << "Could not send acknowledgement without blocking";
+            }
+
+            delete ack;
+          }
+
+          // let transport know that the data is no longer needed. transport will clean up after it is sent out.
+          for(int i = 0; i < fTimeframeBuffer[id].parts.size(); ++i) {
+            delete fTimeframeBuffer[id].parts.at(i);
+          }
+          fTimeframeBuffer[id].parts.clear();
+
+          // fTimeframeBuffer[id].endTime = boost::posix_time::microsec_clock::local_time();
+          // do something with time here ...
+          fTimeframeBuffer.erase(id);
         }
-        // PrintBuffer(fTimeframeBuffer);
+
+        // LOG(WARN) << "Buffer size: " << fTimeframeBuffer.size();
       }
-
-      if (fTimeframeBuffer[id].count == fNumFLPs) {
-        // when all parts are collected send all except last one with 'snd-more' flag, and last one without the flag.
-        for (int i = 0; i < fNumFLPs - 1; ++i) {
-          fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(i), SNDMORE);
-        }
-        fPayloadOutputs->at(fNumFLPs)->Send(fTimeframeBuffer[id].parts.at(fNumFLPs - 1));
-
-        // Send an acknowledgement back to the sampler to measure the round trip time
-        FairMQMessage* ack = fTransportFactory->CreateMessage(sizeof(uint64_t));
-        memcpy(ack->GetData(), &id, sizeof(uint64_t));
-
-        if (fPayloadOutputs->at(fNumFLPs + 1)->Send(ack, NOBLOCK) == 0) {
-          LOG(ERROR) << "Could not send acknowledgement without blocking";
-        }
-
-        delete ack;
-
-        // let transport know that the data is no longer needed. transport will clean up after it is sent out.
-        for(int i = 0; i < fTimeframeBuffer[id].parts.size(); ++i) {
-          delete fTimeframeBuffer[id].parts.at(i);
-        }
-        fTimeframeBuffer[id].parts.clear();
-
-        // fTimeframeBuffer[id].endTime = boost::posix_time::microsec_clock::local_time();
-        // do something with time here ...
-        fTimeframeBuffer.erase(id);
-      }
-
-      // check if any incomplete timeframes in the buffer are older than timeout period, and discard them if they are
-      DiscardIncompleteTimeframes();
-
-      // LOG(WARN) << "Buffer size: " << fTimeframeBuffer.size();
+      delete headerPart;
     }
-    delete headerPart;
+
+    // check if any incomplete timeframes in the buffer are older than timeout period, and discard them if they are
+    DiscardIncompleteTimeframes();
   }
 
-  // DEBUG: save 
-  string name = to_iso_string(boost::posix_time::microsec_clock::local_time()).substr(0, 20);
-  for (int x = 0; x < fNumFLPs; ++x) {
-    ofstream flpRcvTimes(fId + "-" + name + "-flp-" + to_string(x) + ".log");
-    for (auto it = rcvIntervals.at(x).begin() ; it != rcvIntervals.at(x).end(); ++it) {
-      flpRcvTimes << *it << endl;
-    }
-    flpRcvTimes.close();
-  }
+  // DEBUG: save
+  // if (fTestMode > 0) {
+  //   string name = to_iso_string(boost::posix_time::microsec_clock::local_time()).substr(0, 20);
+  //   for (int x = 0; x < fNumFLPs; ++x) {
+  //     ofstream flpRcvTimes(fId + "-" + name + "-flp-" + to_string(x) + ".log");
+  //     for (auto it = rcvIntervals.at(x).begin() ; it != rcvIntervals.at(x).end(); ++it) {
+  //       flpRcvTimes << *it << endl;
+  //     }
+  //     flpRcvTimes.close();
+  //   }
+  // }
   // end DEBUG
 
   rateLogger.interrupt();
@@ -248,6 +270,9 @@ void EPNex::SetProperty(const int key, const int value, const int slot/*= 0*/)
     case NumFLPs:
       fNumFLPs = value;
       break;
+    case TestMode:
+      fTestMode = value;
+      break;
     default:
       FairMQDevice::SetProperty(key, value, slot);
       break;
@@ -263,6 +288,8 @@ int EPNex::GetProperty(const int key, const int default_/*= 0*/, const int slot/
       return fBufferTimeoutInMs;
     case NumFLPs:
       return fNumFLPs;
+    case TestMode:
+      return fTestMode;
     default:
       return FairMQDevice::GetProperty(key, default_, slot);
   }

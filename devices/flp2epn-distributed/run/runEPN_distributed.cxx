@@ -50,6 +50,7 @@ typedef struct DeviceOptions
   int heartbeatIntervalInMs;
   int bufferTimeoutInMs;
   int numFLPs;
+  int testMode;
   string inputSocketType;
   int inputBufSize;
   string inputMethod;
@@ -76,6 +77,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("heartbeat-interval", bpo::value<int>()->default_value(5000), "Heartbeat interval in milliseconds")
     ("buffer-timeout", bpo::value<int>()->default_value(1000), "Buffer timeout in milliseconds")
     ("num-flps", bpo::value<int>()->required(), "Number of FLPs")
+    ("test-mode", bpo::value<int>()->default_value(0), "Run in test mode")
     ("input-socket-type", bpo::value<string>()->required(), "Input socket type: sub/pull")
     ("input-buff-size", bpo::value<int>()->required(), "Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("input-method", bpo::value<string>()->required(), "Input method: bind/connect")
@@ -120,6 +122,10 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
   if (vm.count("num-flps")) {
     _options->numFLPs = vm["num-flps"].as<int>();
+  }
+
+  if (vm.count("test-mode")) {
+    _options->testMode = vm["test-mode"].as<int>();
   }
 
   if (vm.count("input-socket-type")) {
@@ -192,6 +198,7 @@ int main(int argc, char** argv)
   epn.SetProperty(EPNex::HeartbeatIntervalInMs, options.heartbeatIntervalInMs);
   epn.SetProperty(EPNex::BufferTimeoutInMs, options.bufferTimeoutInMs);
   epn.SetProperty(EPNex::NumFLPs, options.numFLPs);
+  epn.SetProperty(EPNex::TestMode, options.testMode);
 
   epn.ChangeState(EPNex::INIT);
 

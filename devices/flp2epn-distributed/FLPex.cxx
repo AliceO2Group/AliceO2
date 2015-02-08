@@ -6,6 +6,7 @@
  */
 
 #include <vector>
+#include <cstdint> // UINT64_MAX
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
@@ -32,6 +33,7 @@ FLPex::FLPex()
   , fHeaderBuffer()
   , fDataBuffer()
   , fEventSize(10000)
+  , fTestMode(0)
 {
 }
 
@@ -90,6 +92,8 @@ void FLPex::Run()
   ptime currentTime;
   ptime storedHeartbeat;
 
+  uint64_t timeFrameId = 0;
+
   while (fState == RUNNING) {
     poller->Poll(2);
 
@@ -116,20 +120,31 @@ void FLPex::Run()
       delete heartbeatMsg;
     }
 
-    // input 2 - signal with a timeframe ID
+    // input 2 - data (in test-mode: signal with a timeframe ID)
     if (poller->CheckInput(2)) {
 
       // initialize f2e header
       f2eHeader* h = new f2eHeader;
 
-      // receive and store ID msg part in the buffer.
-      FairMQMessage* idPart = fTransportFactory->CreateMessage();
-      fPayloadInputs->at(2)->Receive(idPart);
+      if (fTestMode > 0) {
+        // test-mode: receive and store id part in the buffer.
+        FairMQMessage* idPart = fTransportFactory->CreateMessage();
+        fPayloadInputs->at(2)->Receive(idPart);
 
-      h->timeFrameId = *(reinterpret_cast<uint64_t*>(idPart->GetData()));
-      h->flpId = stoi(fId);
+        h->timeFrameId = *(reinterpret_cast<uint64_t*>(idPart->GetData()));
+        h->flpId = stoi(fId);
 
-      delete idPart;
+        delete idPart;
+      } else {
+        // regular mode: use the id generated locally
+        h->timeFrameId = timeFrameId;
+        // h->flpId = stoi(fId);
+        h->flpId = 0;
+
+        if (++timeFrameId == UINT64_MAX - 1) {
+          timeFrameId = 0;
+        }
+      }
 
       FairMQMessage* headerPart = fTransportFactory->CreateMessage(h, sizeof(f2eHeader));
 
@@ -138,10 +153,17 @@ void FLPex::Run()
       // save the arrival time of the message.
       fArrivalTime.push(boost::posix_time::microsec_clock::local_time());
 
-      // initialize and store data msg part in the buffer.
-      FairMQMessage* dataPart = fTransportFactory->CreateMessage();
-      dataPart->Copy(baseMsg);
-      fDataBuffer.push(dataPart);
+      if (fTestMode > 0) {
+        // test-mode: initialize and store data part in the buffer.
+        FairMQMessage* dataPart = fTransportFactory->CreateMessage();
+        dataPart->Copy(baseMsg);
+        fDataBuffer.push(dataPart);
+      } else {
+        // regular mode: receive data part from input
+        FairMQMessage* dataPart = fTransportFactory->CreateMessage();
+        fPayloadInputs->at(2)->Receive(dataPart);
+        fDataBuffer.push(dataPart);
+      }
     }
 
     // LOG(INFO) << fDataBuffer.size();
@@ -150,7 +172,6 @@ void FLPex::Run()
     if (fSendOffset == 0 && fDataBuffer.size() > 0) {
       sendFrontData();
     } else if (fDataBuffer.size() > 0) {
-	LOG(DEBUG) << fDataBuffer.size();
       size_t dataSize = fDataBuffer.front()->GetSize();
       ptime now = boost::posix_time::microsec_clock::local_time();
       if ((now - fArrivalTime.front()).total_milliseconds() >= (8 * fSendOffset)) {
@@ -203,7 +224,6 @@ inline void FLPex::sendFrontData()
     fDataBuffer.pop();
   } else { // if the heartbeat is too old, discard the data.
     LOG(WARN) << "Heartbeat too old for EPN#" << direction << ", discarding message.";
-    LOG(WARN) << (currentTime - storedHeartbeat).total_milliseconds();
     fHeaderBuffer.pop();
     fArrivalTime.pop();
     fDataBuffer.pop();
@@ -233,6 +253,9 @@ void FLPex::SetProperty(const int key, const int value, const int slot/*= 0*/)
     case HeartbeatTimeoutInMs:
       fHeartbeatTimeoutInMs = value;
       break;
+    case TestMode:
+      fTestMode = value;
+      break;
     case SendOffset:
       fSendOffset = value;
       break;
@@ -250,6 +273,8 @@ int FLPex::GetProperty(const int key, const int default_/*= 0*/, const int slot/
   switch (key) {
     case HeartbeatTimeoutInMs:
       return fHeartbeatTimeoutInMs;
+    case TestMode:
+      return fTestMode;
     case SendOffset:
       return fSendOffset;
     case EventSize:

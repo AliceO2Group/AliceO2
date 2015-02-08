@@ -34,6 +34,7 @@ class EPNex : public FairMQDevice
       HeartbeatIntervalInMs = FairMQDevice::Last,
       NumFLPs,
       BufferTimeoutInMs,
+      TestMode,
       Last
     };
 
@@ -55,6 +56,7 @@ class EPNex : public FairMQDevice
     int fHeartbeatIntervalInMs;
     int fBufferTimeoutInMs;
     int fNumFLPs;
+    int fTestMode; // run in test mode
 
     std::unordered_map<uint64_t,timeframeBuffer> fTimeframeBuffer;
     std::unordered_set<uint64_t> fDiscardedSet;

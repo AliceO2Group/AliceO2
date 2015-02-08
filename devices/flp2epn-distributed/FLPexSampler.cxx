@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <fstream>
+#include <cstdint> // UINT64_MAX
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
@@ -40,19 +41,21 @@ void FLPexSampler::Run()
 
   int NOBLOCK = fPayloadInputs->at(0)->NOBLOCK;
 
-  uint64_t timeframeId = 0;
+  uint64_t timeFrameId = 0;
 
   while (fState == RUNNING) {
     FairMQMessage* msg = fTransportFactory->CreateMessage(sizeof(uint64_t));
-    memcpy(msg->GetData(), &timeframeId, sizeof(uint64_t));
+    memcpy(msg->GetData(), &timeFrameId, sizeof(uint64_t));
 
     if (fPayloadOutputs->at(0)->Send(msg, NOBLOCK) == 0) {
       LOG(ERROR) << "Could not send signal without blocking";
     }
 
-    fTimeframeRTT[timeframeId].start = boost::posix_time::microsec_clock::local_time();
+    fTimeframeRTT[timeFrameId].start = boost::posix_time::microsec_clock::local_time();
 
-    ++timeframeId;
+    if (++timeFrameId == UINT64_MAX - 1) {
+      timeFrameId = 0;
+    }
 
     --fEventCounter;
 
