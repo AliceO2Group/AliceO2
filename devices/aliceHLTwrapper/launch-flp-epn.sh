@@ -20,13 +20,13 @@
 
 ###################################################################
 # global settings
-number_of_flps=9
+number_of_flps=36
 flp_command_socket=48490
 flp_heartbeat_socket=48491
 baseport_on_flpgroup=48420
 baseport_on_epngroup=48480
-number_of_epns=170
-number_of_epns_per_node=17
+number_of_epns=28
+number_of_epns_per_node=1
 rundir=`pwd`
 
 ###################################################################
@@ -52,18 +52,73 @@ flpnodelist=(${flpnodelist[@]} cn48$ibkey)
 flpnodelist=(${flpnodelist[@]} cn49$ibkey)
 flpnodelist=(${flpnodelist[@]} cn50$ibkey)
 flpnodelist=(${flpnodelist[@]} cn51$ibkey)
+flpnodelist=(${flpnodelist[@]} cn52$ibkey)
 flpnodelist=(${flpnodelist[@]} cn53$ibkey)
 flpnodelist=(${flpnodelist[@]} cn54$ibkey)
 flpnodelist=(${flpnodelist[@]} cn55$ibkey)
 flpnodelist=(${flpnodelist[@]} cn56$ibkey)
+flpnodelist=(${flpnodelist[@]} cn57$ibkey)
 flpnodelist=(${flpnodelist[@]} cn58$ibkey)
+
+#flpnodelist=(${flpnodelist[@]} cn00$ibkey)
+flpnodelist=(${flpnodelist[@]} cn01$ibkey)
+flpnodelist=(${flpnodelist[@]} cn02$ibkey)
+flpnodelist=(${flpnodelist[@]} cn03$ibkey)
+flpnodelist=(${flpnodelist[@]} cn04$ibkey)
+flpnodelist=(${flpnodelist[@]} cn05$ibkey)
+flpnodelist=(${flpnodelist[@]} cn06$ibkey)
+flpnodelist=(${flpnodelist[@]} cn07$ibkey)
+flpnodelist=(${flpnodelist[@]} cn08$ibkey)
+flpnodelist=(${flpnodelist[@]} cn09$ibkey)
+flpnodelist=(${flpnodelist[@]} cn10$ibkey)
+flpnodelist=(${flpnodelist[@]} cn11$ibkey)
+flpnodelist=(${flpnodelist[@]} cn12$ibkey)
+flpnodelist=(${flpnodelist[@]} cn13$ibkey)
+flpnodelist=(${flpnodelist[@]} cn14$ibkey)
+flpnodelist=(${flpnodelist[@]} cn15$ibkey)
+flpnodelist=(${flpnodelist[@]} cn16$ibkey)
+flpnodelist=(${flpnodelist[@]} cn17$ibkey)
+flpnodelist=(${flpnodelist[@]} cn18$ibkey)
+flpnodelist=(${flpnodelist[@]} cn19$ibkey)
+flpnodelist=(${flpnodelist[@]} cn26$ibkey)
+flpnodelist=(${flpnodelist[@]} cn27$ibkey)
+flpnodelist=(${flpnodelist[@]} cn28$ibkey)
+#flpnodelist=(${flpnodelist[@]} cn29$ibkey)
+flpnodelist=(${flpnodelist[@]} cn30$ibkey)
+flpnodelist=(${flpnodelist[@]} cn31$ibkey)
+flpnodelist=(${flpnodelist[@]} cn32$ibkey)
+flpnodelist=(${flpnodelist[@]} cn33$ibkey)
+flpnodelist=(${flpnodelist[@]} cn34$ibkey)
+flpnodelist=(${flpnodelist[@]} cn35$ibkey)
 
 # nodes with GPU
 epnnodelist=
+#epnnodelist=(${epnnodelist[@]} 10.162.130.20) # cn00 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.21) # cn01 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.22) # cn02 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.23) # cn03 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.24) # cn04 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.25) # cn05 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.26) # cn06 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.27) # cn07 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.28) # cn08 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.29) # cn09 infiniband
+
+epnnodelist=(${epnnodelist[@]} 10.162.130.30) # cn10 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.31) # cn11 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.32) # cn12 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.33) # cn13 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.34) # cn14 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.35) # cn15 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.36) # cn16 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.37) # cn17 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.38) # cn18 infiniband
+epnnodelist=(${epnnodelist[@]} 10.162.130.39) # cn19 infiniband
+
 epnnodelist=(${epnnodelist[@]} 10.162.130.46) # cn26 infiniband
 epnnodelist=(${epnnodelist[@]} 10.162.130.47) # cn27 infiniband
 epnnodelist=(${epnnodelist[@]} 10.162.130.48) # cn28 infiniband
-epnnodelist=(${epnnodelist[@]} 10.162.130.49) # cn29 infiniband
+#epnnodelist=(${epnnodelist[@]} 10.162.130.49) # cn29 infiniband
 epnnodelist=(${epnnodelist[@]} 10.162.130.50) # cn30 infiniband
 epnnodelist=(${epnnodelist[@]} 10.162.130.51) # cn31 infiniband
 epnnodelist=(${epnnodelist[@]} 10.162.130.52) # cn32 infiniband
@@ -160,6 +215,7 @@ create_epngroup() {
 #
 # build the commands on the nodes
 # epn nodegroups
+error=0
 inode=0
 while [ "$nepnsessions" -lt "$number_of_epns" ]; do
     if [ "$inode" -ge "$nepnnodes" ]; then
@@ -228,8 +284,8 @@ for ((isession=$nflpsessions++-1; isession>=0; isession--)); do
 		usleep 500000
 	    fi
 	    
-	    #logcmd=" 2>&1 | tee ${flpsessiontitle[$isession]}.log"
-	    $printcmdtoscreen screen -d -m -S "${flpsessiontitle[$isession]} on ${flpsessionnode[$isession]}" ssh ${flpsessionnode[$isession]} "(cd $rundir && source setup.sh && ${flpsessioncmd[$isession]}) $logcmd" &
+	    logcmd=" 2>&1 | tee ${flpsessiontitle[$isession]}.log"
+	    $printcmdtoscreen screen -d -m -S "${flpsessiontitle[$isession]} on ${flpsessionnode[$isession]}" ssh ${flpsessionnode[$isession]} "cd $rundir && source setup.sh && ${flpsessioncmd[$isession]} $logcmd" &
 	    sessionmap[isession]=0
 	    lastnode=${flpsessionnode[$isession]}
 	fi
@@ -265,8 +321,8 @@ for ((isession=$nepnsessions++-1; isession>=0; isession--)); do
 		# sleep between starts, some of the screens are not started if the frequency is too high
 		usleep 500000
 	    fi
-	    #logcmd=" 2>&1 | tee ${epnsessiontitle[$isession]}.log"
-	    $printcmdtoscreen screen -d -m -S "${epnsessiontitle[$isession]} on ${epnsessionnode[$isession]}" ssh ${epnsessionnode[$isession]} "(cd $rundir && source setup.sh && ${epnsessioncmd[$isession]}) $logcmd" &
+	    logcmd=" 2>&1 | tee ${epnsessiontitle[$isession]}.log"
+	    $printcmdtoscreen screen -d -m -S "${epnsessiontitle[$isession]} on ${epnsessionnode[$isession]}" ssh ${epnsessionnode[$isession]} "cd $rundir && source setup.sh && ${epnsessioncmd[$isession]} $logcmd" &
 	    sessionmap[isession]=0
 	    lastnode=${epnsessionnode[$isession]}
 	fi
