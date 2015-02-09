@@ -28,13 +28,14 @@ runno=167808
 # TODO: this possibly needs some more checking 
 firstslice=0
 lastslice=35
-slices_per_node=4
+slices_per_node=1
 #dryrun="-n"
 pollingtimeout=100
 rundir=`pwd`
 
 baseport_on_flpgroup=48400
 baseport_on_epn1group=48450
+baseport_on_epn2group=48470
 
 # uncomment the following line to print the commands instead of
 # actually launching them
@@ -67,13 +68,14 @@ done
 # script in the current directory
 # 
 nodelist=
+epn2node=localhost
 
 flpinputnode=
 flpinputsocket=
 nflpinputs=0
-epninputnode=
-epninputsocket=
-nepninputs=0
+epnoutputnode=
+epnoutputsocket=
+nepnoutputs=0
 postponed_messages=
 npostponed_messages=0
 while read line; do
@@ -86,9 +88,9 @@ while read line; do
 	let nflpinputs++
     elif [ "x$epndevice" != "x" ]; then
 	echo "EPNOUTPUT $epndevice"
-	epninputnode[nepninputs]=`echo ${epndevice} | sed -e 's/:.*//'`
-	epninputsocket[nepninputs]=`echo ${epndevice} | sed -e 's/.*://'`
-	let nepninputs++
+	epnoutputnode[nepnoutputs]=`echo ${epndevice} | sed -e 's/:.*//'`
+	epnoutputsocket[nepnoutputs]=`echo ${epndevice} | sed -e 's/.*://'`
+	let nepnoutputs++
     elif [ "x${line:0:11}" == "xscheduling " ]; then
 	echo $line
     elif [ "x$line" != "x" ]; then
@@ -103,7 +105,7 @@ for node in `for n in ${flpinputnode[@]}; do echo $n; done | sort | uniq`; do
     flpnodelist=(${flpnodelist[@]} $node)
     nodelist=(${nodelist[@]} $node)
 done
-for node in `for n in ${epninputnode[@]}; do echo $n; done | sort | uniq`; do
+for node in `for n in ${epnoutputnode[@]}; do echo $n; done | sort | uniq`; do
     epnnodelist=(${epnnodelist[@]} $node)
     nodelist=(${nodelist[@]} $node)
 done
@@ -152,14 +154,14 @@ nsessions=0
 # push <--> pull
 translate_io_attributes() {
     __inputattributes=$1
-    __translated=`echo $1 | sed -e 's|--output|--input|g'`
+    __translated=`echo $1 | sed -e 'h; /--output/{s|--output|--input|g; p}; g; /--input/{s|--input|--output|g; p}; d'`
     __node=${2:-localhost}
     if [ x`echo ${__inputattributes} | sed -e 's|.*method=\(.*\)|\1|' -e 's|,.*$||'` == "xbind" ]; then
 	__translated=`echo ${__translated} | sed -e "s|://\*:|://${__node}:|g" -e 's|method=bind|method=connect|g'`
     else
 	__translated=`echo ${__translated} | sed -e 's|://.*:|://*:|g' -e 's|method=connect|method=bind|g'`
     fi
-    __translated=`echo ${__translated} | sed -e 's/type=push/type=pull/g'`
+    __translated=`echo ${__translated} | sed -e 'h; /type=push/{s/type=push/type=pull/g; p}; g; /type=pull/{s/type=pull/type=push/g; p}; d'`
     echo $__translated
 }
 
@@ -185,7 +187,7 @@ create_flpgroup() {
 	socket=$((basesocket + c))
 	spec=`printf %02d $slice`
 	output="--output type=push,size=5000,method=bind,address=tcp://*:$socket"
-	command="aliceHLTWrapper ClusterPublisher_$spec 1 --poll-period $pollingtimeout $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist data/emulated-tpc-clusters_slice_$spec.txt'"
+	command="aliceHLTWrapper ClusterPublisher_$spec 1 --poll-period $pollingtimeout $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist data/emulated-tpc-clusters_slice_$spec.txt -open_files_at_start'"
 	deviceid="ClusterPublisher_$spec"
 
 	sessionnode[nsessions]=$node
@@ -239,41 +241,42 @@ create_flpgroup() {
 ###################################################################
 # create an epn1 node group
 epn2_input=
-n_epn2_inputs=0
 ntrackers=0
 globalmergerid=0
 create_epn1group() {
     node=$1
     basesocket=$2
+    # epn2 input commonly subscribes to output of top devices of all epn1 node groups
+    epn2_input=$3
     socketcount=0
 
     # check if there is a FLP to EPN topology available
-    epninputonnode=
-    nepninputonnode=0
-    for ((iepninput=0; iepninput<nepninputs; iepninput++)); do
-        if [ "${epninputnode[$iepninput]}" == "$node" ]; then
-            epninputonnode[nepninputonnode]="tcp://${epninputnode[$iepninput]}:${epninputsocket[$iepninput]}"
-            let nepninputonnode++
-        fi
+    epnoutputonnode=
+    nepnoutputonnode=0
+    for ((iepnoutput=0; iepnoutput<nepnoutputs; iepnoutput++)); do
+	if [ "${epnoutputnode[$iepnoutput]}" == "$node" ]; then
+	    epnoutputonnode[nepnoutputonnode]="tcp://${epnoutputnode[$iepnoutput]}:${epnoutputsocket[$iepnoutput]}"
+	    let nepnoutputonnode++
+	fi
     done
 
-    ntrackersonnode=$nepninputonnode
-    [ "$nepninputonnode" -eq 0 ] && ntrackersonnode=1 # at least one tracker
+    ntrackersonnode=$nepnoutputonnode
+    [ "$nepnoutputonnode" -eq 0 ] && ntrackersonnode=1 # at least one tracker
     if [ "x$bypass_tracking" != "xyes" ]; then
         for ((trackerid=0; trackerid<$ntrackersonnode; trackerid++)); do
 
         deviceid=`printf %03d $ntrackers`
         deviceid="Tracker_$deviceid"
         let ntrackers++
-        if [ "$nepninputonnode" -eq 0 ]; then
+        if [ "$nepnoutputonnode" -eq 0 ]; then
             output=`echo "${epn1_input[@]}"`
             input=`translate_io_attributes "$output"`
         else
-            input="--input type=pull,size=1000,method=connect,address=${epninputonnode[$trackerid]}"
+            input="--input type=pull,size=1000,method=connect,address=${epnoutputonnode[$trackerid]}"
         fi
 
         output="--output type=push,size=1000,method=connect,address=tcp://localhost:$((basesocket + socketcount))"
-        command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCATracker --run $runno --parameter '-GlobalTracking -loglevel=0x79'"
+        command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCATracker --run $runno --parameter '-GlobalTracking -allowGPU -GPUHelperThreads 4 -loglevel=0x7c'"
 
         sessionnode[nsessions]=$node
         sessiontitle[nsessions]="$deviceid"
@@ -284,8 +287,7 @@ create_epn1group() {
 
         deviceid=GlobalMerger_`printf %02d $globalmergerid`
         input=`translate_io_attributes "$output"`
-        # temporarily no output
-        output= #"--output type=push,size=1000,method=bind,address=tcp://*:$((basesocket + socketcount))"
+        output=`translate_io_attributes "$epn2_input"`
         let socketcount++
         command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCAGlobalMerger --run $runno --parameter '-loglevel=0x7c'"
 
@@ -294,9 +296,6 @@ create_epn1group() {
         sessioncmd[nsessions]=$command
         let nsessions++
         let globalmergerid++
-
-        epn2_input[n_epn2_inputs]=${output}
-        let n_epn2_inputs++
     fi
 
     # deviceid=FileWriter
@@ -309,6 +308,27 @@ create_epn1group() {
     # sessiontitle[nsessions]="$deviceid"
     # sessioncmd[nsessions]=$command
     # let nsessions++
+}
+
+###################################################################
+# create an epn2 node group
+# collects different processing branches from epn1
+create_epn2group() {
+    node=$1
+    basesocket=$2
+    socketcount=0
+
+    deviceid=FileWriter
+    epn2_input="--input type=pull,size=1000,method=bind,address=tcp://$node:$((basesocket + socketcount))"
+    input=$epn2_input
+    output=
+    let socketcount++
+    command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
+
+    sessionnode[nsessions]=$node
+    sessiontitle[nsessions]="$deviceid"
+    sessioncmd[nsessions]=$command
+    let nsessions++
 }
 
 ########### main script ###########################################
@@ -329,10 +349,14 @@ while [ "$sliceno" -le "$lastslice" ]; do
     let inode++
 done
 
+# epn2 nodegroup
+# has one input which all epn1 outputs will connect to
+create_epn2group ${epn2node} $baseport_on_epn2group 
+
 # epn1 nodegroup
 inode=0
 while [ "$inode" -lt "$nepnnodes" ]; do
-    create_epn1group ${epnnodelist[inode]} $baseport_on_epn1group 
+    create_epn1group ${epnnodelist[inode]} $baseport_on_epn1group "$epn2_input"
     let inode++
 done
 
@@ -366,7 +390,8 @@ for ((isession=$nsessions++-1; isession>=0; isession--)); do
                 # sleep between starts, some of the screens are not started if the frequency is too high
                 usleep 500000
             fi
-            $printcmdtoscreen screen -d -m -S "${sessiontitle[$isession]} on ${sessionnode[$isession]}" ssh ${sessionnode[$isession]} "(cd $rundir && source setup.sh && ${sessioncmd[$isession]})" &
+	    logcmd="2>&1 | tee ${sessiontitle[$isession]}.log";
+            $printcmdtoscreen screen -d -m -S "${sessiontitle[$isession]} on ${sessionnode[$isession]}" ssh ${sessionnode[$isession]} "cd $rundir && source setup.sh && ${sessioncmd[$isession]} $logcmd" &
             sessionmap[isession]=0
             lastnode=${sessionnode[$isession]}
         fi
