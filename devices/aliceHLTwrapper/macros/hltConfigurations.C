@@ -58,4 +58,38 @@ void hltConfigurations()
     }
   }
   AliHLTConfiguration clustercollection("cluster-collection", "BlockFilter", collectionInput.Data(), "");
+
+  TString arg;
+  TString publisher;
+
+  arg.Form("-publish-raw filtered");
+  AliHLTConfiguration tpcdatapublisherconf("TPC-DP", "TPCDataPublisher", NULL , arg.Data());
+
+  publisher.Form("TPC-DP-raw", slice, part);
+  arg.Form("-datatype 'DDL_RAW ' 'TPC '");
+  AliHLTConfiguration tpcdatarawfilterconf(publisher.Data(), "BlockFilter", "TPC-DP" , arg.Data());
+
+  // Hardware CF emulator
+  TString hwcfemu;
+  hwcfemu.Form("TPC-HWCFEmu");
+  arg="";
+  AliHLTConfiguration tpchwcfemuconf(hwcfemu.Data(), "TPCHWClusterFinderEmulator", publisher.Data(), arg.Data());
+	
+  TString hwcf;
+  hwcf.Form("TPC-HWCF");
+  AliHLTConfiguration hwcfemuconf(hwcf.Data(), "TPCHWClusterTransform", hwcfemu.Data(), "-publish-raw");
+ 
+  TString hwcfDecoder = "TPC-HWCFDecoder";
+  AliHLTConfiguration hwcfdecoderconf(hwcfDecoder.Data(), "TPCHWClusterDecoder",hwcfemu.Data(), "");
+
+  TString clusterTransformation = "TPC-ClusterTransformation";
+  AliHLTConfiguration clustertransformationconf(clusterTransformation.Data(), "TPCClusterTransformation",hwcfDecoder.Data(), "");
+
+  arg="-directory clusters-from-raw -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks";
+  arg+=Form(" -publisher-conf emulated-tpc-clusters.txt");
+  AliHLTConfiguration clustertransformwriterconf("TPC-ClusterWriter", "FileWriter", clusterTransformation.Data(), arg.Data());
+
+  arg.Form("-disable-component-stat -publish 0 -file ClusterRawStatistics.root");
+  AliHLTConfiguration collector("collector", "StatisticsCollector", "TPC-ClusterWriter", arg.Data());
+
 }
