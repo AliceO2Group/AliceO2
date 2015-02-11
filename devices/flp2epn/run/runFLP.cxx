@@ -149,8 +149,11 @@ int main(int argc, char** argv)
 
     flp.ChangeState(O2FLPex::SETOUTPUT);
     flp.ChangeState(O2FLPex::SETINPUT);
+// temporary check to allow compilation with older fairmq version
+#ifdef FAIRMQ_INTERFACE_VERSION
     flp.ChangeState(O2FLPex::BIND);
     flp.ChangeState(O2FLPex::CONNECT);
+#endif
     flp.ChangeState(O2FLPex::RUN);
 
     // wait until the running thread has finished processing.

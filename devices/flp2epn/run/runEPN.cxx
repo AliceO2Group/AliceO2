@@ -143,8 +143,11 @@ int main(int argc, char** argv)
 
     epn.ChangeState(O2EPNex::SETOUTPUT);
     epn.ChangeState(O2EPNex::SETINPUT);
+// temporary check to allow compilation with older fairmq version
+#ifdef FAIRMQ_INTERFACE_VERSION
     epn.ChangeState(O2EPNex::BIND);
     epn.ChangeState(O2EPNex::CONNECT);
+#endif
     epn.ChangeState(O2EPNex::RUN);
 
     // wait until the running thread has finished processing.

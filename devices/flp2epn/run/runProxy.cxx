@@ -168,8 +168,11 @@ int main(int argc, char** argv)
 
     proxy.ChangeState(O2Proxy::SETOUTPUT);
     proxy.ChangeState(O2Proxy::SETINPUT);
+// temporary check to allow compilation with older fairmq version
+#ifdef FAIRMQ_INTERFACE_VERSION
     proxy.ChangeState(O2Proxy::BIND);
     proxy.ChangeState(O2Proxy::CONNECT);
+#endif
     proxy.ChangeState(O2Proxy::RUN);
 
 

@@ -227,8 +227,11 @@ int main(int argc, char** argv)
   try {
     flp.ChangeState(FLPex::SETOUTPUT);
     flp.ChangeState(FLPex::SETINPUT);
+// temporary check to allow compilation with older fairmq version
+#ifdef FAIRMQ_INTERFACE_VERSION
     flp.ChangeState(FLPex::BIND);
     flp.ChangeState(FLPex::CONNECT);
+#endif
     flp.ChangeState(FLPex::RUN);
   } catch (const exception& e) {
       LOG(ERROR) << e.what();

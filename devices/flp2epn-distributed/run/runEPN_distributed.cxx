@@ -219,8 +219,11 @@ int main(int argc, char** argv)
   try {
     epn.ChangeState(EPNex::SETOUTPUT);
     epn.ChangeState(EPNex::SETINPUT);
+// temporary check to allow compilation with older fairmq version
+#ifdef FAIRMQ_INTERFACE_VERSION
     epn.ChangeState(EPNex::BIND);
     epn.ChangeState(EPNex::CONNECT);
+#endif
     epn.ChangeState(EPNex::RUN);
   } catch (const exception& e) {
       LOG(ERROR) << e.what();

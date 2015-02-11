@@ -190,8 +190,11 @@ int main(int argc, char** argv)
   try {
     sampler.ChangeState(FLPexSampler::SETOUTPUT);
     sampler.ChangeState(FLPexSampler::SETINPUT);
+// temporary check to allow compilation with older fairmq version
+#ifdef FAIRMQ_INTERFACE_VERSION
     sampler.ChangeState(FLPexSampler::BIND);
     sampler.ChangeState(FLPexSampler::CONNECT);
+#endif
     sampler.ChangeState(FLPexSampler::RUN);
   } catch (const exception& e) {
       LOG(ERROR) << e.what();

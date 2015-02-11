@@ -78,8 +78,11 @@ int main(int argc, char** argv)
 
     server.ChangeState(RoundtripServer::SETOUTPUT);
     server.ChangeState(RoundtripServer::SETINPUT);
+// temporary check to allow compilation with older fairmq version
+#ifdef FAIRMQ_INTERFACE_VERSION
     server.ChangeState(RoundtripServer::BIND);
     server.ChangeState(RoundtripServer::CONNECT);
+#endif
 
     LOG(INFO) << "Listening for requests!";
 

@@ -130,8 +130,11 @@ int main(int argc, char** argv)
 
     client.ChangeState(RoundtripClient::SETOUTPUT);
     client.ChangeState(RoundtripClient::SETINPUT);
+// temporary check to allow compilation with older fairmq version
+#ifdef FAIRMQ_INTERFACE_VERSION
     client.ChangeState(RoundtripClient::BIND);
     client.ChangeState(RoundtripClient::CONNECT);
+#endif
     client.ChangeState(RoundtripClient::RUN);
 
     // wait until the running thread has finished processing.

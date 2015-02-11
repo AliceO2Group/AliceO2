@@ -176,8 +176,11 @@ int main(int argc, char** argv)
 
     merger.ChangeState(O2Merger::SETOUTPUT);
     merger.ChangeState(O2Merger::SETINPUT);
+// temporary check to allow compilation with older fairmq version
+#ifdef FAIRMQ_INTERFACE_VERSION
     merger.ChangeState(O2Merger::BIND);
     merger.ChangeState(O2Merger::CONNECT);
+#endif
     merger.ChangeState(O2Merger::RUN);
 
     // wait until the running thread has finished processing.
