@@ -26,6 +26,13 @@
 #endif
 #include "FairMQTransportFactoryZMQ.h"
 
+#include "FairMQStateMachine.h"
+#if defined(FAIRMQ_INTERFACE_VERSION) && FAIRMQ_INTERFACE_VERSION > 0
+// FairMQStateMachine interface supports strings as argument for the
+// ChangeState function from interface version 1 introduced Feb 2015
+#define HAVE_FAIRMQ_INTERFACE_CHANGESTATE_STRING
+#endif
+
 using std::cout;
 using std::cerr;
 using std::stringstream;
@@ -296,6 +303,15 @@ int main(int argc, char** argv)
 
     device.ChangeState(FairMQDevice::SETOUTPUT);
     device.ChangeState(FairMQDevice::SETINPUT);
+#if defined(HAVE_FAIRMQ_INTERFACE_CHANGESTATE_STRING)
+    // Feb 2015: changes in the FairMQStateMachine interface
+    // two new state changes introduced. To make the compilation
+    // independent of this in future changes, the ChangeState
+    // method has been introduced with string argument
+    // TODO: change later to this function
+    device.ChangeState(FairMQDevice::BIND);
+    device.ChangeState(FairMQDevice::CONNECT);
+#endif
     device.ChangeState(FairMQDevice::RUN);
 
     boost::unique_lock<boost::mutex> lock(device.fRunningMutex);
