@@ -43,6 +43,8 @@ endif(NOT ALICEO2_MODULAR_BUILD)
 
 find_package(FairRoot)
 
+find_package(AliRoot)
+
 # Load some basic macros which are needed later on
 include(FairMacros)
 include(WriteConfigFile)
