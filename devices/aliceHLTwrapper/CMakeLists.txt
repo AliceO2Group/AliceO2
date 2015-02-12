@@ -1,5 +1,5 @@
 set(INCLUDE_DIRECTORIES
-  ${BASE_INCLUDE_DIRECTORIES} 
+  ${BASE_INCLUDE_DIRECTORIES}
   ${ZMQ_INCLUDE_DIR}
   ${Boost_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
@@ -50,7 +50,7 @@ Set(Exe_Names
   runComponent
 )
 
-set(Exe_Source 
+set(Exe_Source
   aliceHLTWrapper.cxx
   runComponent.cxx
 )
@@ -66,3 +66,4 @@ ForEach(_file RANGE 0 ${_length})
   set(DEPENDENCIES ALICEHLT dl)
   GENERATE_EXECUTABLE()
 EndForEach(_file RANGE 0 ${_length})
+
