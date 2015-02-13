@@ -6,18 +6,26 @@
 #include "AliHLTTPCClusterDataFormat.h"
 #include "AliHLTTPCSpacePointContainer.h"
 #include "AliHLTComponent.h"
+#include "AliHLTTPCDefinitions.h"
 
 #include "boost/filesystem.hpp"
 
 #include <sstream>
 
-int processData(std::string dataFileName, std::string dataType, std::string dataOrigin)
+int processData(std::string dataPath, std::string dataType, std::string dataOrigin)
 {
-  std::ifstream inputData(dataFileName.c_str(), std::ifstream::binary);
+  std::ifstream inputData(dataPath.c_str(), std::ifstream::binary);
   if (!inputData) {
-    std::cerr << "Error, cluster data file " << dataFileName << " could not be accessed" << endl;
+    std::cerr << "Error, cluster data file " << dataPath << " could not be accessed" << endl;
     std::exit(1);
   }
+
+  //Retrieve the TPC slice and partition from the filename
+  std::string currentSliceString (dataPath, dataPath.length() - 6, 2);
+  std::string currentPartitionString (dataPath, dataPath.length() - 2, 2);
+
+  AliHLTUInt8_t currentSlice = std::stoul(currentSliceString, nullptr, 16);
+  AliHLTUInt8_t currentPartition = std::stoul(currentPartitionString, nullptr, 16);
 
   // Get length of file
   inputData.seekg(0, inputData.end);
@@ -46,7 +54,8 @@ int processData(std::string dataFileName, std::string dataType, std::string data
 
   AliHLTComponent::SetDataType(bdTarget->fDataType, dataType.c_str(), dataOrigin.c_str());
 
-  // AliHLTTPCDefinitions::EncodeDataSpecification(currentSlice, currentSlice, currentPartition, currentPartition);
+  AliHLTTPCDefinitions::EncodeDataSpecification(currentSlice, currentSlice, currentPartition, currentPartition);
+
   bdTarget->fSpecification = kAliHLTVoidDataSpec;
   bdTarget->fPtr = inputBuffer;
   bdTarget->fSize = sizeof(AliHLTTPCClusterData) + pClusterData->fSpacePointCnt * sizeof(AliHLTTPCSpacePointData);
@@ -71,11 +80,11 @@ int main(int argc, char** argv)
   }
 
   // Create data path
-  std::string dataPath = "emulated-tpc-clusters/event";
-  dataPath += argv[1];
+  std::string dataFilename = "emulated-tpc-clusters/event";
+  dataFilename += argv[1];
 
-  boost::filesystem::path someDir(dataPath);
-  boost::filesystem::directory_iterator end_iter;
+  boost::filesystem::path dataPath(dataFilename);
+  boost::filesystem::directory_iterator endIterator;
 
   typedef std::multimap<std::time_t, boost::filesystem::path> result_set_t;
   result_set_t result_set;
@@ -84,15 +93,15 @@ int main(int argc, char** argv)
 
   int totalNumberOfClusters = 0, totalNumberOfDataFiles = 0;
 
-  if (boost::filesystem::exists(someDir) && boost::filesystem::is_directory(someDir)) {
-    for (boost::filesystem::directory_iterator dir_iter(someDir); dir_iter != end_iter; ++dir_iter) {
-      if (boost::filesystem::is_regular_file(dir_iter->status())) {
-        totalNumberOfClusters += processData(dir_iter->path().string(), dataType, dataOrigin);
+  if (boost::filesystem::exists(dataPath) && boost::filesystem::is_directory(dataPath)) {
+    for (boost::filesystem::directory_iterator directoryIterator(dataPath); directoryIterator != endIterator; ++directoryIterator) {
+      if (boost::filesystem::is_regular_file(directoryIterator->status())) {
+        totalNumberOfClusters += processData(directoryIterator->path().string(), dataType, dataOrigin);
         totalNumberOfDataFiles++;
       }
     }
   } else {
-    std::cerr << "Path " << someDir.string() << "/ could not be found or does not contain any valid data files" << endl;
+    std::cerr << "Path " << dataPath.string() << "/ could not be found or does not contain any valid data files" << endl;
     exit(1);
   }
 
