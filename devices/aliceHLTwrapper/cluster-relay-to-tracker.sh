@@ -31,6 +31,8 @@ lastslice=35
 slices_per_node=1
 #dryrun="-n"
 pollingtimeout=100
+CFoptOpenFilesAtStart= #" -open_files_at_start"
+CFoptPublishIndividualPartitions=no #yes
 rundir=`pwd`
 
 baseport_on_flpgroup=48400
@@ -181,14 +183,28 @@ create_flpgroup() {
     basesocket=$2
     firstslice_on_node=$3
     nofslices=$4
+    socketcount=0
     cf_output=
+    if [ "x$CFoptPublishIndividualPartitions" == "xyes" ]; then
+      nofIndividualPartitions=6
+    else
+      nofIndividualPartitions=1
+    fi
     for ((c=0; c<nofslices; c++)); do
-	slice=$((firstslice_on_node + c))
-	socket=$((basesocket + c))
-	spec=`printf %02d $slice`
-	output="--output type=push,size=5000,method=bind,address=tcp://*:$socket"
-	command="aliceHLTWrapper ClusterPublisher_$spec 1 --poll-period $pollingtimeout $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist data/emulated-tpc-clusters_slice_$spec.txt -open_files_at_start'"
-	deviceid="ClusterPublisher_$spec"
+        for ((partition=0; partition<nofIndividualPartitions; partition++)); do
+        slice=$((firstslice_on_node + c))
+        socket=$((basesocket + socketcount))
+        let socketcount++
+        if [ "$nofIndividualPartitions" -le 1 ]; then
+        spec=`printf %02d $slice`
+        specprefix="slice_"
+        else
+        spec=0x`printf %02x%02x%02x%02x $slice $slice $partition $partition`
+        specprefix=
+        fi
+        deviceid="ClusterPublisher_$spec"
+        output="--output type=push,size=5000,method=bind,address=tcp://*:$socket"
+        command="aliceHLTWrapper $deviceid 1 --poll-period $pollingtimeout $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist data/emulated-tpc-clusters_$specprefix$spec.txt $CFoptOpenFilesAtStart'"
 
 	sessionnode[nsessions]=$node
 	sessiontitle[nsessions]=$deviceid
@@ -196,6 +212,7 @@ create_flpgroup() {
 	let nsessions++
 
 	cf_output="$cf_output ${output}"
+        done
     done
 
     if [ "x$bypass_relays" != "xyes" ]; then
