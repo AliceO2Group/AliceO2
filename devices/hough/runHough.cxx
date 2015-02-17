@@ -8,12 +8,31 @@
 #include "AliHLTComponent.h"
 #include "AliHLTTPCDefinitions.h"
 
+#include "TCanvas.h"
+#include "TGraph2D.h"
+
 #include "boost/filesystem.hpp"
 
 #include <sstream>
 
 std::unique_ptr<AliHLTTPCSpacePointContainer> spacepoints;
 vector<float> clusterCoordinates;
+
+void drawData(int totalNumberOfClusters, std::string dataFilename)
+{
+  TCanvas* c1 = new TCanvas("c1", dataFilename.c_str(), 0, 0, 800, 600);
+  TGraph2D* dt = new TGraph2D(10000);
+
+  for (Int_t i = 0; i < totalNumberOfClusters; i++) {
+    dt->SetPoint(i, clusterCoordinates[i * 4 + 1], clusterCoordinates[i * 4 + 2], clusterCoordinates[i * 4 + 3]);
+  }
+
+  // Draw with colored dots
+  dt->SetMarkerStyle(1);
+  dt->Draw("pcol");
+
+  c1->Print("clusters.pdf");
+}
 
 void printData(int totalNumberOfClusters)
 {
@@ -143,7 +162,9 @@ int main(int argc, char** argv)
 
   cout << "Added " << totalNumberOfClusters << " clusters from " << totalNumberOfDataFiles << " data files" << endl;
 
-  printData(totalNumberOfClusters);
+  // printData(totalNumberOfClusters);
+
+  drawData(totalNumberOfClusters, dataFilename);
 
   return 0;
 }

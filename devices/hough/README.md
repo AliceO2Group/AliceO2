@@ -15,9 +15,11 @@ It is important that AliRoot, FairRoot and AliceO2 have been built against the s
 
     alien-token-init <username>
     aliensh
+
     cd /alice/data/2011/LHC11h/000167808/raw/
     cp 11000167808000.10.root file://tmp
     exit
+
     mv /tmp/11000167808000.10.root raw.root
 
 Then, the necessary scripts to perform the clusterization for the data should be coppied to the current directory:
@@ -38,4 +40,4 @@ The result should be a directory, called "emulated-tpc-clusters" that will be th
 
     runHough 032
 
-the executable will load all the clusters from the emulated-tpc-clusters/event032 subdirectory.
+the executable will load all the clusters from the emulated-tpc-clusters/event032 subdirectory. After the execution, a graphics file "clusters.pdf" will be created in the current directory depicting the coordinates of the loaded clusters.
