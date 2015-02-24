@@ -438,6 +438,10 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     fSliceCount = fgkNSlices;
     //Create tracker instance and set parameters
     fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU, fGPULibrary, fGPUDeviceNum);
+    if ( fAllowGPU && fTracker->GetGPUStatus() < 2 ) {
+      HLTError("GPU Tracker requested but unavailable, aborting.");
+      return -ENODEV;
+    }
     fClusterData = new AliHLTTPCCAClusterData[fgkNSlices];
     if (fGPUHelperThreads != -1)
     {
