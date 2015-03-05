@@ -159,7 +159,7 @@ AliHLTComponentDataType AliHLTTPCCATrackerComponent::GetOutputDataType()
 void AliHLTTPCCATrackerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier )
 {
   // define guess for the output data size
-  constBase = 2200;       // minimum size
+  constBase = 1200;       // minimum size
   inputMultiplier = 0.6; // size relative to input
 }
 
@@ -669,26 +669,52 @@ int AliHLTTPCCATrackerComponent::DoEvent
   fTracker->ProcessSlices(fMinSlice, fSliceCount, fClusterData, fSliceOutput);
   fBenchmark.Stop(1);
 
+  int ret = 0;
+  unsigned int mySize = 0;
+  int ntracks = 0;
+  int error = 0;
+
+  for (int islice = 0;islice < fSliceCount;islice++)
+  {
+    if (slicemaxPatch[islice] == -1) continue;
+    int slice = fMinSlice + islice;
+
+    if( outputControl.fEndOfSpace ){
+      HLTWarning( "Output buffer size exceeded (buffer size %d, required size %d), tracks are not stored", maxBufferSize, mySize );
+      ret = -ENOSPC;
+      error = 1;
+      break;     
+    }
+
+    if (fSliceOutput[islice])
+    {
+      // write reconstructed tracks
+      Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct", "%d tracks found for slice %d", fSliceOutput[islice]->NTracks(), slice );
+
+      mySize += fSliceOutput[islice]->Size();
+      ntracks += fSliceOutput[islice]->NTracks();    
+    }
+    else
+    {
+      HLTWarning( "Error during Tracking, no tracks stored" );
+      mySize = 0;
+      ret = -ENOSPC;
+      ntracks = 0;
+      error = 1;
+      break;
+    }
+  }
 
   size = 0;
-  int ret = 0;
-
-  if( outputControl.fEndOfSpace ){
-    HLTWarning( "Output buffer size exceeded (buffer size %d), tracks are not stored", maxBufferSize );
-    ret = -ENOSPC;   
-  } else {
-
-    for (int islice = 0;islice < fSliceCount;islice++){      
+  if (error == 0)
+  {
+    for (int islice = 0;islice < fSliceCount && fSliceOutput[islice];islice++)
+    {
       int slice = fMinSlice + islice;
 
-      if( !fSliceOutput[islice] ){
-	HLTWarning("No output object for slice tracker of slice %d", slice);
-	continue;
-      }
-
-      Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reconstruct", "%d tracks found for slice %d", fSliceOutput[islice]->NTracks(), slice );    
-      unsigned int mySize = fSliceOutput[islice]->Size();
-      if (mySize > 0){
+      mySize = fSliceOutput[islice]->Size();
+      if (mySize > 0)
+      {
         AliHLTComponentBlockData bd;
         FillBlockData( bd );
         bd.fOffset = ((char*) fSliceOutput[islice] - (char*) outputPtr);
@@ -696,20 +722,24 @@ int AliHLTTPCCATrackerComponent::DoEvent
         bd.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( slice, slice, sliceminPatch[islice], slicemaxPatch[islice] );
         bd.fDataType = GetOutputDataType();
         outputBlocks.push_back( bd );
-        size += bd.fSize;
+        size += mySize;
         fBenchmark.AddOutput(bd.fSize);
       }
     }
   }
 
+  //No longer needed
+
   fBenchmark.Stop(0);
 
   // Set log level to "Warning" for on-line system monitoring
+
   //Min and Max Patch are taken for first slice processed...
-  
+
   fBenchmark.SetName(Form("CATracker"));
 
-  HLTInfo(fBenchmark.GetStatistics());  
+  HLTInfo(fBenchmark.GetStatistics());
+  //No longer needed
 
   return ret;
 }
