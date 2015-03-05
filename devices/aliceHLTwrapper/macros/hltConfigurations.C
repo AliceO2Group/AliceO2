@@ -85,9 +85,18 @@ void hltConfigurations()
   TString clusterTransformation = "TPC-ClusterTransformation";
   AliHLTConfiguration clustertransformationconf(clusterTransformation.Data(), "TPCClusterTransformation",hwcfDecoder.Data(), "");
 
+  TString tracker;
+  tracker.Form("TPC-TR");
+  AliHLTConfiguration trackerconf(tracker.Data(), "TPCCATracker", clusterTransformation.Data(), "-GlobalTracking");
+
+  AliHLTConfiguration globalmergerconf("TPC-globalmerger","TPCCAGlobalMerger",tracker.Data(),"");
+
+  TString input=clusterTransformation;
+  input+=" "; input+=hwcfDecoder;
+  //input+=" TPC-globalmerger";
   arg="-directory clusters-from-raw -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks";
   arg+=Form(" -publisher-conf emulated-tpc-clusters.txt");
-  AliHLTConfiguration clustertransformwriterconf("TPC-ClusterWriter", "FileWriter", clusterTransformation.Data(), arg.Data());
+  AliHLTConfiguration clustertransformwriterconf("TPC-ClusterWriter", "FileWriter", input.Data(), arg.Data());
 
   arg.Form("-disable-component-stat -publish 0 -file ClusterRawStatistics.root");
   AliHLTConfiguration collector("collector", "StatisticsCollector", "TPC-ClusterWriter", arg.Data());
