@@ -92,7 +92,7 @@ void hltConfigurations()
   TString trackerInput;
   //trackerInput=clusterTransformation;
   trackerInput="cluster-publisher";
-  AliHLTConfiguration trackerconf(trackerID.Data(), "TPCCATracker", trackerInput.Data(), "-GlobalTracking");
+  AliHLTConfiguration trackerconf(trackerID.Data(), "TPCCATracker", trackerInput.Data(), "-GlobalTracking -allowGPU -GPUHelperThreads 4");
 
   AliHLTConfiguration globalmergerconf("TPC-globalmerger","TPCCAGlobalMerger",trackerID.Data(),"");
 
@@ -100,11 +100,11 @@ void hltConfigurations()
   input+=" "; input+=clusterTransformation;
   input+=" "; input+=hwcfDecoder;
   //input+=" TPC-globalmerger";
-  arg="-directory clusters-from-raw -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks";
+  arg="-directory clusters-from-raw -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks -write-all-events";
   arg+=Form(" -publisher-conf emulated-tpc-clusters.txt");
   AliHLTConfiguration clustertransformwriterconf("TPC-ClusterWriter", "FileWriter", input.Data(), arg.Data());
 
-  arg="-directory output-tracks -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks";
+  arg="-directory output-tracks -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks -write-all-events";
   arg+=Form(" -publisher-conf output-tracks.txt");
   AliHLTConfiguration trackwriterconf("TPC-TrackWriter", "FileWriter", "TPC-globalmerger", arg.Data());
 
