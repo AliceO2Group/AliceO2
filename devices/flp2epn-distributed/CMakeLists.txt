@@ -90,8 +90,8 @@ set(Exe_Source
 if(DDS_LOCATION)
   set(Exe_Source
     ${Exe_Source}
-    runDDS/runFLP_distributed.cxx
-    runDDS/runEPN_distributed.cxx
+    runO2Prototype/runFLP_distributed.cxx
+    runO2Prototype/runEPN_distributed.cxx
     runDDS/runFLPSampler.cxx
   )
 endif()

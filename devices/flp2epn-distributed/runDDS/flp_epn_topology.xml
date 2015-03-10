@@ -22,8 +22,8 @@
 		<exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/testFLPSampler_dds --id 101 --event-rate 100 --input-socket-type pull --input-buff-size 100 --input-method bind --output-socket-type pub --output-buff-size 10 --output-method bind</exe>
 		<requirement>testFLPSamplerHost</requirement>
 		<properties>
-			<id>testFLPSamplerInputAddress</id>
-			<id>testFLPSamplerOutputAddress</id>
+			<id access="write">testFLPSamplerInputAddress</id>
+			<id access="write">testFLPSamplerOutputAddress</id>
 		</properties>
 	</decltask>
 
@@ -31,10 +31,10 @@
 		<exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/testFLP_distributed_dds --id 0 --event-size 593750 --num-inputs 3 --num-outputs 640 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method connect --log-input-rate 0 --output-socket-type push --output-buff-size 10 --output-method connect --log-output-rate 1 --test-mode 1</exe>
 		<requirement>testFLPdistributedHost</requirement>
 		<properties>
-			<id>testFLPSamplerOutputAddress</id>
-			<id>commandInputAddress</id>
-			<id>heartbeatInputAddress</id>
-			<id>testEPNdistributedInputAddress</id>
+			<id access="read">testFLPSamplerOutputAddress</id>
+			<id access="write">commandInputAddress</id>
+			<id access="write">heartbeatInputAddress</id>
+			<id access="read">testEPNdistributedInputAddress</id>
 		</properties>
 	</decltask>
 
@@ -42,10 +42,10 @@
 		<exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/testEPN_distributed_dds --id EPN0 --num-outputs 642 --num-flps 640 --input-socket-type pull --input-buff-size 10 --input-method bind --log-input-rate 1 --output-socket-type pub --output-buff-size 10 --output-method connect --log-output-rate 0 --nextstep-socket-type pub --nextstep-buff-size 10 --nextstep-method connect --log-nextstep-rate 0 --rttack-socket-type push --rttack-buff-size 100 --rttack-method connect --log-rttack-rate 0 --test-mode 1</exe>
 		<requirement>testEPNdistributedHost</requirement>
 		<properties>
-			<id>commandInputAddress</id>
-			<id>heartbeatInputAddress</id>
-			<id>testEPNdistributedInputAddress</id>
-			<id>testFLPSamplerInputAddress</id>
+			<id access="write">commandInputAddress</id>
+			<id access="read">heartbeatInputAddress</id>
+			<id access="write">testEPNdistributedInputAddress</id>
+			<id access="read">testFLPSamplerInputAddress</id>
 		</properties>
 	</decltask>
 
