@@ -21,10 +21,12 @@
 #include <getopt.h>
 #include <memory>
 #include <cstring>
+#include <sstream>
 #ifdef NANOMSG
 #include "FairMQTransportFactoryNN.h"
 #endif
 #include "FairMQTransportFactoryZMQ.h"
+#include "FairMQTools.h"
 
 #include "FairMQStateMachine.h"
 #if defined(FAIRMQ_INTERFACE_VERSION) && FAIRMQ_INTERFACE_VERSION > 0
@@ -42,6 +44,34 @@ struct SocketProperties_t {
   int         size;
   std::string method;
   std::string address;
+  std::string ddsprop;
+  int         ddscount;
+  int         ddsminport;
+  int         ddsmaxport;
+  unsigned    validParams;   // indicates which parameter has been specified
+
+  SocketProperties_t()
+    : type()
+    , size(0)
+    , method()
+    , address()
+    , ddsprop()
+    , ddscount(0)
+    , ddsminport(0)
+    , ddsmaxport(0)
+    , validParams(0)
+  {}
+  SocketProperties_t(const SocketProperties_t& other)
+    : type(other.type)
+    , size(other.size)
+    , method(other.method)
+    , address(other.address)
+    , ddsprop(other.ddsprop)
+    , ddscount(other.ddscount)
+    , ddsminport(other.ddsminport)
+    , ddsmaxport(other.ddsmaxport)
+    , validParams(other.validParams)
+  {}
 };
 
 FairMQDevice* gDevice = NULL;
@@ -71,6 +101,41 @@ static void s_catch_signals(void)
   sigaction(SIGTERM, &action, NULL);
 }
 
+int preprocessSockets(vector<SocketProperties_t>& sockets);
+int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networkPrefix="");
+std::string buildSocketParameterErrorMsg(unsigned reqMask, unsigned validMask, const char* headerMsg="");
+int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets);
+int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets);
+
+  enum socketkeyids{
+    TYPE = 0,       // push, pull, publish, subscribe, etc
+    SIZE,           // queue size
+    METHOD,         // bind or connect
+    ADDRESS,        // host, protocol and port address
+    PROPERTY,       // DDS property name for connecting sockets
+    COUNT,          // DDS property count
+    MINPORT,        // DDS port range minimum
+    MAXPORT,        // DDS port range maximum
+    DDSGLOBAL,      // DDS global property
+    DDSLOCAL,       // DDS local property
+    lastsocketkey
+  };
+
+  const char *socketkeys[] = {
+    /*[TYPE]      = */ "type",
+    /*[SIZE]      = */ "size",
+    /*[METHOD]    = */ "method",
+    /*[ADDRESS]   = */ "address",
+    /*[PROPERTY]  = */ "property",
+    /*[COUNT]     = */ "count",
+    /*[MINPORT]   = */ "min-port",
+    /*[MAXPORT]   = */ "max-port",
+    /*[DDSGLOBAL] = */ "global",
+    /*[DDSLOCAL]  = */ "local",
+    NULL
+  };
+
+
 int main(int argc, char** argv)
 {
   int iResult = 0;
@@ -91,32 +156,18 @@ int main(int argc, char** argv)
   int deviceLogInterval = 10000;
   int pollingPeriod = -1;
   int skipProcessing = 0;
+  bool bUseDDS = false;
 
   static struct option programOptions[] = {
     { "input",       required_argument, 0, 'i' }, // input socket
     { "output",      required_argument, 0, 'o' }, // output socket
-    { "factory-type",required_argument, 0, 't' }, // type of the factory "zmq", "nanomsg"
+    { "factory-type",required_argument, 0, 'f' }, // type of the factory "zmq", "nanomsg"
     { "verbosity",   required_argument, 0, 'v' }, // verbosity
     { "loginterval", required_argument, 0, 'l' }, // logging interval
     { "poll-period", required_argument, 0, 'p' }, // polling period of the device in ms
     { "dry-run",     no_argument      , 0, 'n' }, // skip the component processing
+    { "dds",         no_argument      , 0, 'd' }, // run in dds mode
     { 0, 0, 0, 0 }
-  };
-
-  enum socketkeyids{
-    TYPE = 0,
-    SIZE,
-    METHOD,
-    ADDRESS,
-    lastsocketkey
-  };
-
-  const char *socketkeys[] = {
-    /*[TYPE]    = */ "type",
-    /*[SIZE]    = */ "size",
-    /*[METHOD]  = */ "method",
-    /*[ADDRESS] = */ "address",
-    NULL
   };
 
   char c = 0;
@@ -154,27 +205,35 @@ int main(int argc, char** argv)
         SocketProperties_t prop;
         while (subopts && *subopts != 0 && *subopts != ' ') {
           char* saved = subopts;
-          switch (getsubopt(&subopts, (char**)socketkeys, &value)) {
-            case TYPE:    keynum++; prop.type=value;                       break;
-            case SIZE:    keynum++; std::stringstream(value) >> prop.size; break;
-            case METHOD:  keynum++; prop.method=value;                     break;
-            case ADDRESS: keynum++; prop.address=value;                    break;
+          int subopt=getsubopt(&subopts, (char**)socketkeys, &value);
+          if (subopt>=0) prop.validParams|=0x1<<subopt;
+          switch (subopt) {
+            case TYPE:     prop.type=value;                       break;
+            case SIZE:     std::stringstream(value) >> prop.size; break;
+            case METHOD:   prop.method=value;                     break;
+            case ADDRESS:  prop.address=value;                    break;
+            case PROPERTY: prop.ddsprop=value;                    break;
+            case COUNT:    std::stringstream(value) >> prop.ddscount;   break;
+            case MINPORT:  std::stringstream(value) >> prop.ddsminport; break;
+            case MAXPORT:  std::stringstream(value) >> prop.ddsmaxport; break;
+            case DDSGLOBAL:
+              // fall-through intentional 
+            case DDSLOCAL:
+              // key without argument, can be checked from the validParams bitfield
+              break;
             default:
-              keynum = 0;
+              prop.validParams = 0;
               break;
           }
         }
-        if (bPrintUsage = (keynum < lastsocketkey)) {
-          cerr << "invalid socket description format: required 'type=value,size=value,method=value,address=value'"
-               << endl;
-        } else {
+        {
           if (c == 'i')
             inputSockets.push_back(prop);
           else
             outputSockets.push_back(prop);
         }
       } break;
-      case 't':
+      case 'f':
         factoryType = optarg;
         break;
       case 'v':
@@ -207,6 +266,28 @@ int main(int argc, char** argv)
       default:
         cerr << "unknown option: '" << c << "'" << endl;
     }
+  }
+
+  std::string networkPrefix;
+  std::map<string,string> IPs;
+  FairMQ::tools::getHostIPs(IPs);
+
+  if(IPs.count("ib0")) {
+    networkPrefix=IPs["ib0"];
+  } else {
+    networkPrefix=IPs["eth0"];
+  }
+
+  if (bUseDDS) {
+    int result=preprocessSocketsDDS(inputSockets, networkPrefix);
+    if (result>=0)
+      result=preprocessSocketsDDS(outputSockets, networkPrefix);
+    bPrintUsage=result<0;
+  } else {
+    int result=preprocessSockets(inputSockets);
+    if (result>=0)
+      result=preprocessSockets(outputSockets);
+    bPrintUsage=result<0;    
   }
 
   numInputs = inputSockets.size();
@@ -310,6 +391,31 @@ int main(int argc, char** argv)
     // method has been introduced with string argument
     // TODO: change later to this function
     device.ChangeState(FairMQDevice::BIND);
+
+    // port addresses are assigned after BIND and can be propagated using DDS
+    if (bUseDDS) {
+      for (unsigned iInput = 0; iInput < numInputs; iInput++) {
+	if (not inputSockets[iInput].method.compare("bind")) continue;
+	inputSockets[iInput].method=device.GetProperty(FairMQDevice::InputAddress, iInput);
+      }
+      for (unsigned iOutput = 0; iOutput < numOutputs; iOutput++) {
+	if (not outputSockets[iOutput].method.compare("bind")) continue;
+	outputSockets[iOutput].method=device.GetProperty(FairMQDevice::OutputAddress, iOutput);
+      }
+      sendSocketPropertiesDDS(inputSockets);
+      sendSocketPropertiesDDS(outputSockets);
+
+      readSocketPropertiesDDS(inputSockets);
+      readSocketPropertiesDDS(outputSockets);
+      for (unsigned iInput = 0; iInput < numInputs; iInput++) {
+	if (not inputSockets[iInput].method.compare("connect")) continue;
+	device.SetProperty(FairMQDevice::InputAddress, inputSockets[iInput].address.c_str(), iInput);
+      }
+      for (unsigned iOutput = 0; iOutput < numOutputs; iOutput++) {
+	if (not outputSockets[iOutput].method.compare("connect")) continue;
+	device.SetProperty(FairMQDevice::OutputAddress, outputSockets[iOutput].address.c_str(), iOutput);
+      }
+    }
     device.ChangeState(FairMQDevice::CONNECT);
 #endif
     device.ChangeState(FairMQDevice::RUN);
@@ -325,4 +431,111 @@ int main(int argc, char** argv)
   delete almostdead;
 
   return iResult;
+}
+
+int preprocessSockets(vector<SocketProperties_t>& sockets)
+{
+  // check consistency of socket parameters
+  int iResult=0;
+  for (vector<SocketProperties_t>::iterator sit=sockets.begin();
+       sit!=sockets.end(); sit++) {
+    unsigned maskRequiredParams=(0x1<<SIZE)|(0x1<<TYPE)|(0x1<<METHOD)|(0x1<<ADDRESS);
+    if ((sit->validParams&maskRequiredParams)!=maskRequiredParams) {
+      cerr << buildSocketParameterErrorMsg(maskRequiredParams, sit->validParams, "Error: missing socket parameter(s)") << endl;
+      iResult=-1;
+      break;
+    }
+  }
+  return iResult; 
+}
+
+int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networkPrefix)
+{
+  // binding sockets
+  // - required arguments: size, type, property name, min, max port
+  // - find available port within given range
+  // - create address
+  // - send property to DDS
+  //
+  // connecting sockets
+  // - required arguments: size, property name, count
+  // - replicate according to count
+  // - fetch property from DDS
+  // - if local, only treat properties from tasks on the same node
+  // - translate type from type of opposite socket
+  // - add address
+  int iResult=0;
+  vector<SocketProperties_t> ddsduplicates;
+  for (vector<SocketProperties_t>::iterator sit=sockets.begin();
+       sit!=sockets.end(); sit++) {
+    if (sit->method.compare("bind")) {
+      unsigned maskRequiredParams=(0x1<<SIZE)|(0x1<<TYPE)|(0x1<<PROPERTY)|(0x1<<MINPORT);
+      if ((sit->validParams&maskRequiredParams)!=maskRequiredParams) {
+	cerr << buildSocketParameterErrorMsg(maskRequiredParams, sit->validParams, "Error: missing parameter(s) for binding socket") << endl;
+	iResult=-1;
+	break;
+      }
+      // the port will be selected by the FairMQ framework during the
+      // bind process, the address is a placeholder at the moment
+      sit->address=networkPrefix+":1234";
+    } else if (sit->method.compare("connect")) {
+      unsigned maskRequiredParams=(0x1<<SIZE)|(0x1<<PROPERTY)|(0x1<<COUNT);
+      if ((sit->validParams&maskRequiredParams)!=maskRequiredParams) {
+	cerr << buildSocketParameterErrorMsg(maskRequiredParams, sit->validParams, "Error: missing parameter(s) for connecting socket") << endl;
+	iResult=-1;
+	break;
+      }
+      // the port adress will be read from DDS properties
+      // address is a placeholder at the moment
+      // the actual number of input ports is spefified by the count argument, the
+      // corresponding number of properties is expected from DDS
+      sit->address=networkPrefix+":1234";
+      // add n-1 duplicates of the port configuration
+      for (int i=0; i<sit->ddscount-1; i++)
+	ddsduplicates.push_back(*sit);
+    } else {
+      cerr << "Error: invalid socket method '" << sit->method << "'" << endl;
+      iResult=-1; // TODO: find error codes
+      break;
+    }
+  }
+
+  if (iResult>=0) {
+    sockets.insert(sockets.end(), ddsduplicates.begin(), ddsduplicates.end());
+  }
+  return iResult;
+}
+
+int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
+{
+  // send dds property for all binding sockets
+  for (vector<SocketProperties_t>::iterator sit=sockets.begin();
+       sit!=sockets.end(); sit++) {
+    if (not sit->method.compare("bind")) continue;
+    std::stringstream ddsmsg;
+    ddsmsg << socketkeys[TYPE]    << "=" << sit->type << ",";
+    ddsmsg << socketkeys[METHOD]  << "=" << sit->method << ",";
+    ddsmsg << socketkeys[SIZE]    << "=" << sit->size << ",";
+    ddsmsg << socketkeys[ADDRESS] << "=" << sit->address;
+  }
+  return 0;
+}
+
+int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
+{
+  // read dds properties for connecting sockets
+  return 0;
+}
+
+std::string buildSocketParameterErrorMsg(unsigned reqMask, unsigned validMask, const char* headerMsg)
+{
+  // build error message for required parameters
+  std::stringstream errmsg;
+  errmsg << headerMsg;
+  for (int key=0; key<lastsocketkey; key++) {
+    if (not reqMask&(0x1<<key)) continue;
+    if (validMask&(0x1<<key)) continue;
+    errmsg << " " << socketkeys[key];
+  }
+  return errmsg.str();
 }
