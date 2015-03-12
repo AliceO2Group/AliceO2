@@ -1,0 +1,106 @@
+<topology id="O2Prototype">
+
+	<property id="DataPublisherOutputAddress" />
+	<property id="FLPInputAddress" />
+	<property id="HeartbeatInputAddress" />
+	<property id="EPNDistributedInputAddress" />
+	<property id="EPNOutputAddress" />
+	<property id="TrackingOutputAddress" />
+	<property id="CollectorInputAddress" />
+
+        <declrequirement id="collectorhosts">
+                <hostPattern value="cn(48)\.internal"/>
+        </declrequirement>
+    
+        <declrequirement id="flphosts">
+                <!-- <hostPattern value="cn(00|01|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17)\.internal"/> -->
+                <hostPattern value="cn(00|01)\.internal"/>
+        </declrequirement>
+
+        <declrequirement id="epnhosts">
+                <!-- <hostPattern value="cn(18|19|20|21|22|23|24|25|27|28|30|31|32|33|34|35)\.internal"/> -->
+                <hostPattern value="cn(31|32|33|34|35)\.internal"/>
+        </declrequirement>
+
+	<decltask id="dataPublisher">
+	        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper ClusterPublisher 1 --dds --poll-period 100 --output type=push,size=5000,method=bind,address=dummy,property=DataPublisherOutputAddress,min-port=48000 --library libAliHLTUtil.so --component FilePublisher --run 167808 --parameter '-datafilelist /tmp/tpc-cluster-publisher.conf'</exe>
+		<requirement>flphosts</requirement>
+		<properties>
+			<id access="write">DataPublisherOutputAddress</id>
+		</properties>
+	</decltask>
+
+	<decltask id="relay">
+	        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper Relay 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=DataPublisherOutputAddress,count=1,global --output type=push,size=5000,method=connect,property=FLPInputAddress,count=1 --library libAliHLTUtil.so --component BlockFilter --run 167808  --parameter '-loglevel=0x79'</exe>
+		<requirement>flphosts</requirement>
+		<properties>
+			<id access="read">DataPublisherOutputAddress</id>
+			<id access="read">FLPInputAddress</id>
+		</properties>
+	</decltask>
+
+	<decltask id="FLPdistributed">
+		<exe reachable="true">$ALICEO2_INSTALL_DIR/bin/testFLP_distributed_dds --id 0 --event-size 593750 --num-inputs 3 --num-outputs 10 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --output-socket-type push --output-buff-size 10 --output-method connect --log-output-rate 1 --test-mode 0</exe>
+		<requirement>flphosts</requirement>
+		<properties>
+			<id access="write">FLPInputAddress</id>
+			<id access="write">HeartbeatInputAddress</id>
+			<id access="read">EPNDistributedInputAddress</id>
+		</properties>
+	</decltask>
+
+	<decltask id="EPNdistributed">
+		<exe reachable="true">$ALICEO2_INSTALL_DIR/bin/testEPN_distributed_dds --id EPN0 --num-outputs 11 --num-flps 10 --input-socket-type pull --input-buff-size 10 --input-method bind --log-input-rate 1 --output-socket-type pub --output-buff-size 10 --output-method connect --log-output-rate 0 --nextstep-socket-type pub --nextstep-buff-size 10 --nextstep-method bind --log-nextstep-rate 1 --test-mode 0</exe>
+		<requirement>epnhosts</requirement>
+		<properties>
+			<id access="read">HeartbeatInputAddress</id>
+			<id access="write">EPNDistributedInputAddress</id>
+			<id access="write">EPNOutputAddress</id>
+		</properties>
+	</decltask>
+
+	<decltask id="tracker">
+	        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper Tracker 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=EPNOutputAddress,count=1 --output type=push,size=500,method=bind,property=TrackingOutputAddress,min-port=48000 --library libAliHLTTPC.so --component TPCCATracker --run 167808 --parameter '-GlobalTracking -allowGPU -GPUHelperThreads 4 -loglevel=0x7c'</exe>
+		<requirement>epnhosts</requirement>
+		<!-- <requirement></requirement> -->
+		<properties>
+			<id access="read">EPNOutputAddress</id>
+			<id access="write">TrackingOutputAddress</id>
+		</properties>
+	</decltask>
+
+	<decltask id="merger">
+	        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper GlobalMerger 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=TrackingOutputAddress,count=1 --output type=push,size=500,method=connect,property=CollectorInputAddress  --library libAliHLTTPC.so --component TPCCAGlobalMerger --run 167808 --parameter '-loglevel=0x7c'</exe>
+		<requirement>epnhosts</requirement>
+		<!-- <requirement></requirement> -->
+		<properties>
+			<id access="read">TrackingOutputAddress</id>
+			<id access="read">CollectorInputAddress</id>
+		</properties>
+	</decltask>
+
+	<decltask id="collector">
+	        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper Collector 1 --dds --poll-period 100 --input type=pull,size=500,method=bind,property=CollectorInputAddress,min-port=48000 --library libAliHLTUtil.so --component FileWriter --run 167808 --parameter '-directory tracker-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'</exe>
+		<requirement>collectorhosts</requirement>
+		<properties>
+			<id access="write">CollectorInputAddress</id>
+		</properties>
+	</decltask>
+
+
+
+	<main id="main">
+	        <task>collector</task>
+		<group id="groupFLP" n="2">
+			<task>dataPublisher</task>
+			<task>relay</task>
+			<task>FLPdistributed</task>
+		</group>
+		<group id="groupEPN" n="5">
+			<task>EPNdistributed</task>
+			<task>tracker</task>
+			<task>merger</task>
+		</group>
+	</main>
+
+</topology>
