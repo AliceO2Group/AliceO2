@@ -497,10 +497,11 @@ int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networ
 	break;
       }
       // the port adress will be read from DDS properties
-      // address is a placeholder at the moment
+      // address initialized to the host ip/name which is then used to match
+      // properties on the same hostwhen using local mode
       // the actual number of input ports is spefified by the count argument, the
       // corresponding number of properties is expected from DDS
-      sit->address="";
+      sit->address=networkPrefix;
       // add n-1 duplicates of the port configuration
       for (int i=0; i<sit->ddscount-1; i++) {
 	ddsduplicates.push_back(*sit);
@@ -556,36 +557,49 @@ int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
     dds::CKeyValue ddsKeyValue;
     dds::CKeyValue::valuesMap_t values;
 
+    std::string hostaddress=sit->address;
+    vector<SocketProperties_t>::iterator workit=sit;
+    int socketPropertiesToRead=sit->ddscount;
+    std::map<std::string, bool> usedProperties;
     {
       std::mutex keyMutex;
       std::condition_variable keyCondition;
   
       ddsKeyValue.subscribe([&keyCondition](const string& _key, const string& _value) {keyCondition.notify_all();});
 
-      ddsKeyValue.getValues(sit->ddsprop.c_str(), &values);
-      while (values.size() != sit->ddscount) {
-        std::unique_lock<std::mutex> lock(keyMutex);
-        keyCondition.wait_until(lock, std::chrono::system_clock::now() + chrono::milliseconds(1000));
+      for (int cycle=1; socketPropertiesToRead>0; cycle++) {
+	if (cycle>0) {
+	  std::unique_lock<std::mutex> lock(keyMutex);
+	  keyCondition.wait_until(lock, std::chrono::system_clock::now() + chrono::milliseconds(1000));
+	}
         ddsKeyValue.getValues(sit->ddsprop.c_str(), &values);
+	cout << "Info: DDS getValues received " << values.size() << " value(s) of property " << sit->ddsprop
+	     << " " << sit->ddscount-socketPropertiesToRead << " of " << sit->ddscount << " sockets processed" << endl;
+	for (dds::CKeyValue::valuesMap_t::const_iterator vit = values.begin();
+	     vit!=values.end(); vit++) {
+	  if (usedProperties.find(vit->first)!=usedProperties.end()) continue; // already processed
+	  cout << "Info: processing property " << vit->first << ", value " << vit->second << " on host " << hostaddress << endl;
+	  usedProperties[vit->first]=true;
+	  if (!(sit->validParams&(0x1<<DDSGLOBAL))) {
+	    std::string property=vit->second;
+	    if (property.find(hostaddress)==std::string::npos) {
+	      cout << "Info: local parameter requested, skipping " << vit->second << " on host " << hostaddress << endl;
+	      continue;
+	    }
+	  }
+	  if (workit==sockets.end()) break;
+	  workit->address=vit->second;
+	  cout << "DDS getValue:" << sit->ddsprop << " " << sit->ddscount-socketPropertiesToRead << ": " << workit->address << endl;
+	  socketPropertiesToRead--;
+	  while ((++workit)!=sockets.end()) {
+	    if (workit->method.compare("connect")==1) continue;
+	    if (workit->ddsprop!=sit->ddsprop) continue;
+	    break;
+	  }
+	}
       }
     }
-
-    dds::CKeyValue::valuesMap_t::const_iterator vit = values.begin();
 #endif
-
-    vector<SocketProperties_t>::iterator sit2=sit;
-    for (; sit2!=sockets.end(); sit2++) {
-      if (sit2->method.compare("connect")==1) continue;
-      if (sit2->ddsprop!=sit->ddsprop) continue;
-      sit2->address="placeholder";//vit->second;
-#ifdef ENABLE_DDS
-      sit2->address=vit->second;
-#endif
-      cout << "DDS getValue:" << sit->ddsprop << " " << sit2->address << endl;
-#ifdef ENABLE_DDS
-      vit++;
-#endif
-    }
   }
   return 0;
 }
