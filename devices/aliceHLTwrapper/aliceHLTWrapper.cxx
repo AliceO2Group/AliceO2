@@ -35,7 +35,7 @@
 #define HAVE_FAIRMQ_INTERFACE_CHANGESTATE_STRING
 #endif
 
-#define ENABLE_DDS
+//#define ENABLE_DDS
 #ifdef ENABLE_DDS
 #include <mutex>
 #include <condition_variable>
