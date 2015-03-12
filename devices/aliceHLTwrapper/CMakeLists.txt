@@ -7,6 +7,15 @@ set(INCLUDE_DIRECTORIES
   ${AlFa_DIR}/include
 )
 
+set(DDS_LOCATION $ENV{DDS_LOCATION})
+
+if(DDS_LOCATION)
+  set(INCLUDE_DIRECTORIES
+   ${INCLUDE_DIRECTORIES}
+   $ENV{DDS_LOCATION}/include
+  )
+endif()
+
 include_directories(${INCLUDE_DIRECTORIES})
 # set(CXXOPT "-O0 -g -ggdb")
 # set(CXXFLAGS "-O0 -g -ggdb")
@@ -19,6 +28,13 @@ set(LINK_DIRECTORIES
   ${AlFa_DIR}/lib
 )
 
+if(DDS_LOCATION)
+  set(LINK_DIRECTORIES
+   ${LINK_DIRECTORIES}
+   $ENV{DDS_LOCATION}/lib
+  )
+endif()
+
 link_directories(${LINK_DIRECTORIES})
 
 set(SRCS
@@ -28,6 +44,13 @@ set(SRCS
   Component.cxx
   MessageFormat.cxx
 )
+
+if(DDS_LOCATION)
+  set(DEPENDENCIES
+    ${DEPENDENCIES}
+    dds-key-value-lib
+  )
+endif()
 
 set(DEPENDENCIES
     ${DEPENDENCIES}
