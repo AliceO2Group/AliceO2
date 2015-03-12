@@ -35,6 +35,11 @@
 #define HAVE_FAIRMQ_INTERFACE_CHANGESTATE_STRING
 #endif
 
+#include <mutex>
+#include <condition_variable>
+#include "KeyValue.h"      // DDS
+#include <boost/asio.hpp>  // boost::lock
+
 using std::cout;
 using std::cerr;
 using std::stringstream;
@@ -518,10 +523,18 @@ int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
        sit!=sockets.end(); sit++) {
     if (sit->method.compare("bind")==1) continue;
     std::stringstream ddsmsg;
-    ddsmsg << socketkeys[TYPE]    << "=" << sit->type << ",";
-    ddsmsg << socketkeys[METHOD]  << "=" << sit->method << ",";
-    ddsmsg << socketkeys[SIZE]    << "=" << sit->size << ",";
-    ddsmsg << socketkeys[ADDRESS] << "=" << sit->address;
+    // TODO: send the complete socket configuration to allow the counterpart to
+    // set the relevant options
+    //ddsmsg << socketkeys[TYPE]    << "=" << sit->type << ",";
+    //ddsmsg << socketkeys[METHOD]  << "=" << sit->method << ",";
+    //ddsmsg << socketkeys[SIZE]    << "=" << sit->size << ",";
+    //ddsmsg << socketkeys[ADDRESS] << "=" << sit->address;
+    ddsmsg << sit->address;
+
+    dds::CKeyValue ddsKeyValue;
+
+    cout << "DDS putValue: " << sit->ddsprop.c_str() << " " << ddsmsg.str() << endl;
+    ddsKeyValue.putValue(sit->ddsprop, ddsmsg.str());
   }
   return 0;
 }
@@ -529,6 +542,38 @@ int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
 int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
 {
   // read dds properties for connecting sockets
+  for (vector<SocketProperties_t>::iterator sit=sockets.begin();
+       sit!=sockets.end(); sit++) {
+    if (sit->method.compare("connect")==1) continue;
+    if (sit->ddscount==0) continue; // the previously inserted duplicates
+
+    dds::CKeyValue ddsKeyValue;
+    dds::CKeyValue::valuesMap_t values;
+
+    {
+      std::mutex keyMutex;
+      std::condition_variable keyCondition;
+  
+      ddsKeyValue.subscribe([&keyCondition](const string& _key, const string& _value) {keyCondition.notify_all();});
+
+      ddsKeyValue.getValues(sit->ddsprop.c_str(), &values);
+      while (values.size() != sit->ddscount) {
+        std::unique_lock<std::mutex> lock(keyMutex);
+        keyCondition.wait_until(lock, std::chrono::system_clock::now() + chrono::milliseconds(1000));
+        ddsKeyValue.getValues(sit->ddsprop.c_str(), &values);
+      }
+    }
+
+    dds::CKeyValue::valuesMap_t::const_iterator vit = values.begin();
+    vector<SocketProperties_t>::iterator sit2=sit++;
+    for (; sit2!=sockets.end(); sit2++) {
+      if (sit2->method.compare("connect")==1) continue;
+      if (sit2->ddsprop.compare(sit->ddsprop)==1) continue;
+      sit2->address=vit->second;
+      cout << "DDS getValue:" << sit->ddsprop << " " << vit->second << endl;
+      vit++;
+    }
+  }
   return 0;
 }
 
