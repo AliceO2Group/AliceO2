@@ -407,11 +407,11 @@ int main(int argc, char** argv)
     if (bUseDDS) {
       for (unsigned iInput = 0; iInput < numInputs; iInput++) {
 	if (inputSockets[iInput].method.compare("bind")==1) continue;
-	inputSockets[iInput].method=device.GetProperty(FairMQDevice::InputAddress, iInput);
+	inputSockets[iInput].address=device.GetProperty(FairMQDevice::InputAddress, "", iInput);
       }
       for (unsigned iOutput = 0; iOutput < numOutputs; iOutput++) {
 	if (outputSockets[iOutput].method.compare("bind")==1) continue;
-	outputSockets[iOutput].method=device.GetProperty(FairMQDevice::OutputAddress, iOutput);
+	outputSockets[iOutput].address=device.GetProperty(FairMQDevice::OutputAddress, "", iOutput);
       }
       sendSocketPropertiesDDS(inputSockets);
       sendSocketPropertiesDDS(outputSockets);
@@ -488,7 +488,7 @@ int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networ
       }
       // the port will be selected by the FairMQ framework during the
       // bind process, the address is a placeholder at the moment
-      sit->address="tcp://"+networkPrefix+":1234";
+      sit->address="tcp://"+networkPrefix+":";
     } else if (sit->method.compare("connect")==0) {
       unsigned maskRequiredParams=(0x1<<SIZE)|(0x1<<PROPERTY)|(0x1<<COUNT);
       if ((sit->validParams&maskRequiredParams)!=maskRequiredParams) {
@@ -573,10 +573,10 @@ int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
     dds::CKeyValue::valuesMap_t::const_iterator vit = values.begin();
 #endif
 
-    vector<SocketProperties_t>::iterator sit2=sit++;
+    vector<SocketProperties_t>::iterator sit2=sit;
     for (; sit2!=sockets.end(); sit2++) {
       if (sit2->method.compare("connect")==1) continue;
-      if (sit2->ddsprop.compare(sit->ddsprop)==1) continue;
+      if (sit2->ddsprop!=sit->ddsprop) continue;
       sit2->address="placeholder";//vit->second;
 #ifdef ENABLE_DDS
       sit2->address=vit->second;
