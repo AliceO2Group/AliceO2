@@ -35,10 +35,13 @@
 #define HAVE_FAIRMQ_INTERFACE_CHANGESTATE_STRING
 #endif
 
+#define ENABLE_DDS
+#ifdef ENABLE_DDS
 #include <mutex>
 #include <condition_variable>
 #include "KeyValue.h"      // DDS
 #include <boost/asio.hpp>  // boost::lock
+#endif
 
 using std::cout;
 using std::cerr;
@@ -531,10 +534,12 @@ int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
     //ddsmsg << socketkeys[ADDRESS] << "=" << sit->address;
     ddsmsg << sit->address;
 
+#ifdef ENABLE_DDS
     dds::CKeyValue ddsKeyValue;
+    ddsKeyValue.putValue(sit->ddsprop, ddsmsg.str());
+#endif
 
     cout << "DDS putValue: " << sit->ddsprop.c_str() << " " << ddsmsg.str() << endl;
-    ddsKeyValue.putValue(sit->ddsprop, ddsmsg.str());
   }
   return 0;
 }
@@ -547,6 +552,7 @@ int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
     if (sit->method.compare("connect")==1) continue;
     if (sit->ddscount==0) continue; // the previously inserted duplicates
 
+#ifdef ENABLE_DDS
     dds::CKeyValue ddsKeyValue;
     dds::CKeyValue::valuesMap_t values;
 
@@ -565,13 +571,20 @@ int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
     }
 
     dds::CKeyValue::valuesMap_t::const_iterator vit = values.begin();
+#endif
+
     vector<SocketProperties_t>::iterator sit2=sit++;
     for (; sit2!=sockets.end(); sit2++) {
       if (sit2->method.compare("connect")==1) continue;
       if (sit2->ddsprop.compare(sit->ddsprop)==1) continue;
+      sit2->address="placeholder";//vit->second;
+#ifdef ENABLE_DDS
       sit2->address=vit->second;
-      cout << "DDS getValue:" << sit->ddsprop << " " << vit->second << endl;
+#endif
+      cout << "DDS getValue:" << sit->ddsprop << " " << sit2->address << endl;
+#ifdef ENABLE_DDS
       vit++;
+#endif
     }
   }
   return 0;
