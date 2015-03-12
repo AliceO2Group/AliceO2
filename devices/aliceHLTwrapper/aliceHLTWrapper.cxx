@@ -248,6 +248,9 @@ int main(int argc, char** argv)
       case 'n':
         skipProcessing = 1;
         break;
+      case 'd':
+        bUseDDS = true;
+        break;
       case '?': // all remaining arguments passed to the device instance
         iDeviceArg = optind - 1;
         break;
@@ -273,9 +276,9 @@ int main(int argc, char** argv)
   FairMQ::tools::getHostIPs(IPs);
 
   if(IPs.count("ib0")) {
-    networkPrefix=IPs["ib0"];
+    networkPrefix+=IPs["ib0"];
   } else {
-    networkPrefix=IPs["eth0"];
+    networkPrefix+=IPs["eth0"];
   }
 
   if (bUseDDS) {
@@ -395,11 +398,11 @@ int main(int argc, char** argv)
     // port addresses are assigned after BIND and can be propagated using DDS
     if (bUseDDS) {
       for (unsigned iInput = 0; iInput < numInputs; iInput++) {
-	if (not inputSockets[iInput].method.compare("bind")) continue;
+	if (inputSockets[iInput].method.compare("bind")==1) continue;
 	inputSockets[iInput].method=device.GetProperty(FairMQDevice::InputAddress, iInput);
       }
       for (unsigned iOutput = 0; iOutput < numOutputs; iOutput++) {
-	if (not outputSockets[iOutput].method.compare("bind")) continue;
+	if (outputSockets[iOutput].method.compare("bind")==1) continue;
 	outputSockets[iOutput].method=device.GetProperty(FairMQDevice::OutputAddress, iOutput);
       }
       sendSocketPropertiesDDS(inputSockets);
@@ -408,11 +411,11 @@ int main(int argc, char** argv)
       readSocketPropertiesDDS(inputSockets);
       readSocketPropertiesDDS(outputSockets);
       for (unsigned iInput = 0; iInput < numInputs; iInput++) {
-	if (not inputSockets[iInput].method.compare("connect")) continue;
+	if (inputSockets[iInput].method.compare("connect")==1) continue;
 	device.SetProperty(FairMQDevice::InputAddress, inputSockets[iInput].address.c_str(), iInput);
       }
       for (unsigned iOutput = 0; iOutput < numOutputs; iOutput++) {
-	if (not outputSockets[iOutput].method.compare("connect")) continue;
+	if (outputSockets[iOutput].method.compare("connect")==1) continue;
 	device.SetProperty(FairMQDevice::OutputAddress, outputSockets[iOutput].address.c_str(), iOutput);
       }
     }
@@ -468,7 +471,7 @@ int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networ
   vector<SocketProperties_t> ddsduplicates;
   for (vector<SocketProperties_t>::iterator sit=sockets.begin();
        sit!=sockets.end(); sit++) {
-    if (sit->method.compare("bind")) {
+    if (sit->method.compare("bind")==0) {
       unsigned maskRequiredParams=(0x1<<SIZE)|(0x1<<TYPE)|(0x1<<PROPERTY)|(0x1<<MINPORT);
       if ((sit->validParams&maskRequiredParams)!=maskRequiredParams) {
 	cerr << buildSocketParameterErrorMsg(maskRequiredParams, sit->validParams, "Error: missing parameter(s) for binding socket") << endl;
@@ -477,8 +480,8 @@ int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networ
       }
       // the port will be selected by the FairMQ framework during the
       // bind process, the address is a placeholder at the moment
-      sit->address=networkPrefix+":1234";
-    } else if (sit->method.compare("connect")) {
+      sit->address="tcp://"+networkPrefix+":1234";
+    } else if (sit->method.compare("connect")==0) {
       unsigned maskRequiredParams=(0x1<<SIZE)|(0x1<<PROPERTY)|(0x1<<COUNT);
       if ((sit->validParams&maskRequiredParams)!=maskRequiredParams) {
 	cerr << buildSocketParameterErrorMsg(maskRequiredParams, sit->validParams, "Error: missing parameter(s) for connecting socket") << endl;
@@ -489,10 +492,12 @@ int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networ
       // address is a placeholder at the moment
       // the actual number of input ports is spefified by the count argument, the
       // corresponding number of properties is expected from DDS
-      sit->address=networkPrefix+":1234";
+      sit->address="";
       // add n-1 duplicates of the port configuration
-      for (int i=0; i<sit->ddscount-1; i++)
+      for (int i=0; i<sit->ddscount-1; i++) {
 	ddsduplicates.push_back(*sit);
+	ddsduplicates.back().ddscount=0;
+      }
     } else {
       cerr << "Error: invalid socket method '" << sit->method << "'" << endl;
       iResult=-1; // TODO: find error codes
@@ -511,7 +516,7 @@ int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
   // send dds property for all binding sockets
   for (vector<SocketProperties_t>::iterator sit=sockets.begin();
        sit!=sockets.end(); sit++) {
-    if (not sit->method.compare("bind")) continue;
+    if (sit->method.compare("bind")==1) continue;
     std::stringstream ddsmsg;
     ddsmsg << socketkeys[TYPE]    << "=" << sit->type << ",";
     ddsmsg << socketkeys[METHOD]  << "=" << sit->method << ",";
@@ -533,9 +538,9 @@ std::string buildSocketParameterErrorMsg(unsigned reqMask, unsigned validMask, c
   std::stringstream errmsg;
   errmsg << headerMsg;
   for (int key=0; key<lastsocketkey; key++) {
-    if (not reqMask&(0x1<<key)) continue;
+    if (!(reqMask&(0x1<<key))) continue;
     if (validMask&(0x1<<key)) continue;
-    errmsg << " " << socketkeys[key];
+    errmsg << " '" << socketkeys[key] << "'";
   }
   return errmsg.str();
 }
