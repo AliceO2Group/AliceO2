@@ -2,8 +2,7 @@
   <property id="PublisherOutput" />
   <property id="SinkInput" />
   <declrequirement id="pubhostreq">
-    <!--<hostPattern value="cn(00|01|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17|18|19)\.internal"/>-->
-    <hostPattern value="cn00\.internal"/>
+    <hostPattern value="cn(00|01|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17)\.internal"/>
   </declrequirement>
   <declrequirement id="sinkhostreq">
     <hostPattern value="cn48\.internal"/>
@@ -18,7 +17,7 @@
   </decltask>
 
   <decltask id="DataSink">
-    <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper DataSink 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=PublisherOutput,count=1  --library libAliHLTUtil.so --component FileWriter --run 167808  --parameter '-directory sink-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf sink-output/datablocks.txt'</exe>
+    <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper DataSink 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=PublisherOutput,count=18  --library libAliHLTUtil.so --component FileWriter --run 167808  --parameter '-directory sink-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf sink-output/datablocks.txt'</exe>
     <requirement>sinkhostreq</requirement>
     <properties>
       <id access="read">PublisherOutput</id>
@@ -27,7 +26,7 @@
 
   <main id="main">
     <task>DataSink</task>
-    <group id="group1" n="1">
+    <group id="DP_group" n="18">
       <task>DataPublisher</task>
     </group>
   </main>
