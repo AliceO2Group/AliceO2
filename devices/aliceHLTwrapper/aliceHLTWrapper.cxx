@@ -22,6 +22,7 @@
 #include <memory>
 #include <cstring>
 #include <sstream>
+#include <cerrno>
 #ifdef NANOMSG
 #include "FairMQTransportFactoryNN.h"
 #endif
@@ -35,7 +36,6 @@
 #define HAVE_FAIRMQ_INTERFACE_CHANGESTATE_STRING
 #endif
 
-//#define ENABLE_DDS
 #ifdef ENABLE_DDS
 #include <mutex>
 #include <condition_variable>
@@ -290,6 +290,10 @@ int main(int argc, char** argv)
   }
 
   if (bUseDDS) {
+#ifndef ENABLE_DDS
+    cerr << "Fatal: device has not been compiled with DDS support" << endl;
+    exit(ENOSYS);
+#endif
     int result=preprocessSocketsDDS(inputSockets, networkPrefix);
     if (result>=0)
       result=preprocessSocketsDDS(outputSockets, networkPrefix);
