@@ -1,0 +1,47 @@
+<!--
+ @file   publisher-sink-simpletopology.cfg
+ @author Matthias Richter
+ @since  2015-03-12
+ @brief  DDS processing topology using multiplied data publisher and one data sink
+
+ This topology definition is going to be used with DDS. It defines multiple data
+ publishers on different nodes and one data sink receiving the data. The DDS
+ host configuration file should define 1 agent per node in order to make sure that
+ publisher tasks are distributed to the nodes.
+
+ The HLT FilePublisher component needs a configuration file with name
+ /tmp/tpc-cluster-publisher.conf on the publisher nodes
+-->
+<topology id="publisher-sink-simple">
+  <property id="PublisherOutput" />
+  <property id="SinkInput" />
+  <declrequirement id="pubhostreq">
+    <hostPattern value="cn(00|01|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17)\.internal"/>
+  </declrequirement>
+  <declrequirement id="sinkhostreq">
+    <hostPattern value="cn48\.internal"/>
+  </declrequirement>
+  
+  <decltask id="DataPublisher">
+    <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper ClusterPublisher 1 --dds --poll-period 100 --output type=push,size=5000,method=bind,address=dummy,property=PublisherOutput,min-port=48000 --library libAliHLTUtil.so --component FilePublisher --run 167808 --parameter '-datafilelist /tmp/tpc-cluster-publisher.conf'</exe>
+    <requirement>pubhostreq</requirement>
+    <properties>
+      <id access="write">PublisherOutput</id>
+    </properties>
+  </decltask>
+
+  <decltask id="DataSink">
+    <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper DataSink 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=PublisherOutput,count=18,global  --library libAliHLTUtil.so --component FileWriter --run 167808  --parameter '-directory sink-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf sink-output/datablocks.txt'</exe>
+    <requirement>sinkhostreq</requirement>
+    <properties>
+      <id access="read">PublisherOutput</id>
+    </properties>
+  </decltask>
+
+  <main id="main">
+    <task>DataSink</task>
+    <group id="DP_group" n="18">
+      <task>DataPublisher</task>
+    </group>
+  </main>
+</topology>

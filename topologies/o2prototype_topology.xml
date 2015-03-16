@@ -1,3 +1,24 @@
+<!--
+ @file   o2prototype_topology.cfg
+ @author Alexey Rybalchenko, Matthias Richter
+ @since  2015-03-12
+ @brief  DDS processing topology for ALICE O2 prototype
+
+DDS topology for the O2 prototype with TPC cluster publishers, tracker and merger components
+
+Fist version reduces the configuration to 1 FLP and 1 EPN, this will be extended after the
+necessary features become availabe in DDS.
+
+The following parameters need adjustment when extending the FLP-EPN configuration
+- FLP
+  - node patterns in requirements flphosts
+  - parameter num-flps of the EPN device
+  - multiplicator in group groupFLP
+- EPN
+  - node patterns in requirements epnhosts
+  - parameter num-inputs 2 + nEPNs
+  - multiplicator in group groupFPN
+-->
 <topology id="O2Prototype">
 
 	<property id="DataPublisherOutputAddress" />
@@ -14,12 +35,12 @@
     
         <declrequirement id="flphosts">
                 <!-- <hostPattern value="cn(00|01|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17)\.internal"/> -->
-                <hostPattern value="cn(00|01)\.internal"/>
+                <hostPattern value="cn(00)\.internal"/>
         </declrequirement>
 
         <declrequirement id="epnhosts">
                 <!-- <hostPattern value="cn(18|19|20|21|22|23|24|25|27|28|30|31|32|33|34|35)\.internal"/> -->
-                <hostPattern value="cn(31|32|33|34|35)\.internal"/>
+                <hostPattern value="cn(35)\.internal"/>
         </declrequirement>
 
 	<decltask id="dataPublisher">
@@ -40,7 +61,7 @@
 	</decltask>
 
 	<decltask id="FLPdistributed">
-		<exe reachable="true">$ALICEO2_INSTALL_DIR/bin/testFLP_distributed_dds --id 0 --event-size 593750 --num-inputs 3 --num-outputs 10 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --output-socket-type push --output-buff-size 10 --output-method connect --log-output-rate 1 --test-mode 0</exe>
+		<exe reachable="true">$ALICEO2_INSTALL_DIR/bin/testFLP_distributed_dds --id 0 --event-size 593750 --num-inputs 3 --num-outputs 1 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --output-socket-type push --output-buff-size 10 --output-method connect --log-output-rate 1 --test-mode 0</exe>
 		<requirement>flphosts</requirement>
 		<properties>
 			<id access="write">FLPInputAddress</id>
@@ -50,7 +71,7 @@
 	</decltask>
 
 	<decltask id="EPNdistributed">
-		<exe reachable="true">$ALICEO2_INSTALL_DIR/bin/testEPN_distributed_dds --id EPN0 --num-outputs 11 --num-flps 10 --input-socket-type pull --input-buff-size 10 --input-method bind --log-input-rate 1 --output-socket-type pub --output-buff-size 10 --output-method connect --log-output-rate 0 --nextstep-socket-type pub --nextstep-buff-size 10 --nextstep-method bind --log-nextstep-rate 1 --test-mode 0</exe>
+		<exe reachable="true">$ALICEO2_INSTALL_DIR/bin/testEPN_distributed_dds --id EPN0 --num-outputs 2 --num-flps 1 --input-socket-type pull --input-buff-size 10 --input-method bind --log-input-rate 1 --output-socket-type pub --output-buff-size 10 --output-method connect --log-output-rate 0 --nextstep-socket-type push --nextstep-buff-size 10 --nextstep-method bind --log-nextstep-rate 1 --test-mode 0</exe>
 		<requirement>epnhosts</requirement>
 		<properties>
 			<id access="read">HeartbeatInputAddress</id>
@@ -70,7 +91,7 @@
 	</decltask>
 
 	<decltask id="merger">
-	        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper GlobalMerger 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=TrackingOutputAddress,count=1 --output type=push,size=500,method=connect,property=CollectorInputAddress  --library libAliHLTTPC.so --component TPCCAGlobalMerger --run 167808 --parameter '-loglevel=0x7c'</exe>
+	        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper GlobalMerger 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=TrackingOutputAddress,count=1 --output type=push,size=500,method=connect,property=CollectorInputAddress,count=1,global  --library libAliHLTTPC.so --component TPCCAGlobalMerger --run 167808 --parameter '-loglevel=0x7c'</exe>
 		<requirement>epnhosts</requirement>
 		<!-- <requirement></requirement> -->
 		<properties>
@@ -91,12 +112,12 @@
 
 	<main id="main">
 	        <task>collector</task>
-		<group id="groupFLP" n="2">
+		<group id="groupFLP" n="1">
 			<task>dataPublisher</task>
 			<task>relay</task>
 			<task>FLPdistributed</task>
 		</group>
-		<group id="groupEPN" n="5">
+		<group id="groupEPN" n="1">
 			<task>EPNdistributed</task>
 			<task>tracker</task>
 			<task>merger</task>
