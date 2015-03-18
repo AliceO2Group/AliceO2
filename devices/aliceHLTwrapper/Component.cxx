@@ -197,6 +197,11 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
   }
   dataArray.clear();
 
+  if (mFormatHandler.getEvtDataList().size()>0) {
+    // copy the oldest event header
+    memcpy(&evtData, &mFormatHandler.getEvtDataList().front(), sizeof(AliHLTComponentEventData));
+  }
+
   // determine the total input size, needed later on for the calculation of the output buffer size
   int totalInputSize = 0;
   for (vector<AliHLTComponentBlockData>::const_iterator ci = inputBlocks.begin(); ci != inputBlocks.end(); ci++) {
@@ -318,7 +323,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
     // TODO: for now there is an extra copy of the data, but it should be
     // handled in place
     vector<MessageFormat::BufferDesc_t> outputMessages =
-      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize);
+      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, evtData);
     dataArray.insert(dataArray.end(), outputMessages.begin(), outputMessages.end());
   }
 
