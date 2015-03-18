@@ -38,6 +38,7 @@ MessageFormat::MessageFormat()
   , mMessages()
   , mpFactory(NULL)
   , mOutputMode(kOutputModeSequence)
+  , mListEvtData()
 {
 }
 
@@ -52,6 +53,7 @@ void MessageFormat::clear()
   mBlockDescriptors.clear();
   mDataBuffer.clear();
   mMessages.clear();
+  mListEvtData.clear();
 }
 
 int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
@@ -61,12 +63,43 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
   // the descriptors refer to data in the original message buffer
 
   unsigned count = mBlockDescriptors.size();
-  if (readBlockSequence(buffer, size, mBlockDescriptors) < 0) {
-    // not in the format of a single block, check if its a HOMER block
-    if (readHOMERFormat(buffer, size, mBlockDescriptors) < 0) {
-      // not in HOMER format either, ignore the input
-      // TODO: decide if that should be an error
+  // the buffer might start with an event descriptor of type AliHLTComponentEventData
+  // the first read attempt is assuming the descriptor and checking consistency
+  // - buffer size at least size of AliHLTComponentEventData struct
+  // - fStructSize member matches
+  // - number of blocks matches fBlockCnt member
+  unsigned position=0;
+  AliHLTComponentEventData* evtData=reinterpret_cast<AliHLTComponentEventData*>(buffer+position);
+  if (position+sizeof(AliHLTComponentEventData)<=size &&
+      evtData->fStructSize==sizeof(AliHLTComponentEventData)) {
+    position += sizeof(AliHLTComponentEventData);
+  } else {
+    // one of the criteria does not match -> no event descriptor
+    evtData=NULL;
+  }
+  do {
+    if (readBlockSequence(buffer+position, size-position, mBlockDescriptors) < 0 ||
+	evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt)) {
+      // not in the format of a single block, check if its a HOMER block
+      if (readHOMERFormat(buffer+position, size-position, mBlockDescriptors) < 0 ||
+	  evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt)) {
+	// not in HOMER format either
+	if (position>0) {
+	  // try once more without the assumption of event data header
+	  position=0;
+	  evtData=NULL;
+	  continue;
+	}
+	break;
+      }
     }
+  } while (0);
+
+  int result=0;
+  if (evtData && (result=insertEvtData(*evtData))<0) {
+    // error in the event data header, probably headers of different events
+    mBlockDescriptors.resize(count);
+    return result;
   }
 
   return mBlockDescriptors.size() - count;
@@ -84,6 +117,10 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
         totalCount += result;
       else if (result == 0) {
         cerr << "warning: no valid data blocks in message " << i << endl;
+      } else {
+	// severe error in the data
+	// TODO: think about downstream data handlling
+	mBlockDescriptors.clear();
       }
     } else {
       cerr << "warning: ignoring message " << i << " with payload of size 0" << endl;
@@ -161,7 +198,8 @@ int MessageFormat::readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size,
 }
 
 vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTComponentBlockData* blocks,
-                                                                  unsigned count, unsigned totalPayloadSize)
+                                                                  unsigned count, unsigned totalPayloadSize,
+                                                                  const AliHLTComponentEventData& evtData)
 {
   const AliHLTComponentBlockData* pOutputBlocks = blocks;
   AliHLTUInt32_t outputBlockCnt = count;
@@ -171,11 +209,14 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     AliHLTHOMERWriter* pWriter = createHOMERFormat(pOutputBlocks, outputBlockCnt);
     if (pWriter) {
       AliHLTUInt32_t position = mDataBuffer.size();
+      AliHLTUInt32_t startPosition = position;
       AliHLTUInt32_t payloadSize = pWriter->GetTotalMemorySize();
-      mDataBuffer.resize(position + payloadSize);
+      mDataBuffer.resize(position + payloadSize + sizeof(evtData));
+      memcpy(&mDataBuffer[position], &evtData, sizeof(evtData));
+      position+=sizeof(evtData);
       pWriter->Copy(&mDataBuffer[position], 0, 0, 0, 0);
       mpFactory->DeleteWriter(pWriter);
-      mMessages.push_back(MessageFormat::BufferDesc_t(&mDataBuffer[position], payloadSize));
+      mMessages.push_back(MessageFormat::BufferDesc_t(&mDataBuffer[startPosition], payloadSize));
     }
   } else if (mOutputMode == kOutputModeMultiPart || mOutputMode == kOutputModeSequence) {
     // the output blocks are assempled in the internal buffer, for each
@@ -193,7 +234,9 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     // for the complete sequence is handed over to device
     AliHLTUInt32_t position = mDataBuffer.size();
     AliHLTUInt32_t startPosition = position;
-    mDataBuffer.resize(position + count * sizeof(AliHLTComponentBlockData) + totalPayloadSize);
+    mDataBuffer.resize(position + count * sizeof(AliHLTComponentBlockData) + totalPayloadSize + sizeof(evtData));
+    memcpy(&mDataBuffer[position], &evtData, sizeof(evtData));
+    position+=sizeof(evtData);
     for (unsigned bi = 0; bi < count; bi++) {
       const AliHLTComponentBlockData* pOutputBlock = pOutputBlocks + bi;
       // copy BlockData and payload
@@ -254,6 +297,34 @@ AliHLTHOMERWriter* MessageFormat::createHOMERFormat(const AliHLTComponentBlockDa
     writer->AddBlock(homerHeader, pOutputBlock->fPtr);
   }
   return writer.release();
+}
+
+int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
+{
+  // insert event header to list, sort by time, oldest first
+  if (mListEvtData.size()==0) {
+    mListEvtData.push_back(evtData);
+  } else {
+    vector<AliHLTComponentEventData>::iterator it=mListEvtData.begin();
+    for (; it!=mListEvtData.end(); it++) {
+      if ((it->fEventCreation_us*1e3 + it->fEventCreation_us/1e3)>
+	  (evtData.fEventCreation_us*1e3 + evtData.fEventCreation_us/1e3)) {
+	// found a younger element
+	break;
+      }
+    }
+    // TODO: simple logic at the moment, header is not inserted
+    // if there is a mismatch, as the headers are inserted one by one, all
+    // headers in the list have the same ID
+    if (evtData.fEventID!=it->fEventID) {
+      cerr << "Error: mismatch in event ID for event with timestamp "
+	   << evtData.fEventCreation_us*1e3 + evtData.fEventCreation_us/1e3 << " ms"
+	   << endl;
+      return -1;
+    }
+    // insert before the younger element
+    mListEvtData.insert(it, evtData);
+  }
 }
 
 AliHLTUInt64_t MessageFormat::byteSwap64(AliHLTUInt64_t src) const

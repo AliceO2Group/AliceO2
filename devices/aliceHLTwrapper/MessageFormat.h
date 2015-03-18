@@ -98,7 +98,7 @@ public:
   // create message payloads in the internal buffer and return list
   // of decriptors
   vector<BufferDesc_t> createMessages(const AliHLTComponentBlockData* blocks, unsigned count,
-				      unsigned totalPayloadSize);
+                                      unsigned totalPayloadSize, const AliHLTComponentEventData& evtData);
 
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
@@ -110,6 +110,14 @@ public:
   // create HOMER format from the output blocks
   AliHLTHOMERWriter* createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
 				       AliHLTUInt32_t outputBlockCnt) const;
+
+  // insert event header to list, sort by time, oldest first
+  int insertEvtData(const AliHLTComponentEventData& evtData);
+
+  // get event header list
+  const vector<AliHLTComponentEventData>& getEvtDataList() const {
+    return mListEvtData;
+  }
 
   AliHLTUInt64_t byteSwap64(AliHLTUInt64_t src) const;
   AliHLTUInt32_t byteSwap32(AliHLTUInt32_t src) const;
@@ -131,6 +139,8 @@ private:
   ALICE::HLT::HOMERFactory*        mpFactory;
   /// output mode: HOMER, multi-message, sequential
   int mOutputMode;
+  /// list of event descriptors
+  vector<AliHLTComponentEventData> mListEvtData;
 };
 
 } // namespace AliceHLT
