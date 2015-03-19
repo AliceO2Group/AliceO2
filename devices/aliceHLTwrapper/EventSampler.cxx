@@ -55,6 +55,7 @@ EventSampler::~EventSampler()
 void EventSampler::Init()
 {
   /// inherited from FairMQDevice
+  mNEvents=0;
   FairMQDevice::Init();
 }
 
@@ -120,12 +121,34 @@ void EventSampler::Run()
 	 mit!=inputMessages.end(); mit++) {
       AliHLTComponentEventData* evtData=reinterpret_cast<AliHLTComponentEventData*>((*mit)->GetData());
       if ((*mit)->GetSize() >= sizeof(AliHLTComponentEventData) &&
-	  evtData && evtData->fStructSize == sizeof(AliHLTComponentEventData)) {
-	unsigned latencySeconds=evtData->fEventCreation_s - seconds.count();
-	unsigned latencyUSeconds=evtData->fEventCreation_us - useconds.count();
-	unsigned latencyMilliSeconds=latencySeconds*1000 + latencyUSeconds/1000;
+	  evtData && evtData->fStructSize == sizeof(AliHLTComponentEventData) &&
+	  (evtData->fEventCreation_s>0 || evtData->fEventCreation_us>0)) {
+	unsigned latencySeconds=seconds.count() - evtData->fEventCreation_s;
+	unsigned latencyUSeconds=0;
+	if (useconds.count() < evtData->fEventCreation_us) {
+	  latencySeconds--;
+	  latencyUSeconds=(1000000 + useconds.count()) - evtData->fEventCreation_us;
+	} else {
+	  latencyUSeconds=useconds.count() - evtData->fEventCreation_us;
+	}
+	if (mVerbosity>0) {
+	  const char* unit="";
+	  unsigned value=0;
+	  if (latencySeconds>=10) {
+	    unit=" s";
+	    value=latencySeconds;
+	  } else if (latencySeconds>0 || latencyUSeconds>10000) {
+	    value=latencySeconds*1000 + latencyUSeconds/1000;
+	    unit=" ms";
+	  } else {
+	    value=latencyUSeconds;
+	    unit=" us";
+	  }
+	  LOG(DEBUG) << "received event " << evtData->fEventID << " at " << seconds.count() << "s  " << useconds.count() << "us - latency " << value << unit;
+	}
+	latencyUSeconds+=latencySeconds*1000000; // max 4294s, should be enough for latency
 	if (latencyLog.is_open()) {
-	  latencyLog << evtData->fEventID << " " << latencyMilliSeconds << endl;
+	  latencyLog << evtData->fEventID << " " << latencyUSeconds << endl;
 	}
       }
 
@@ -270,12 +293,19 @@ void EventSampler::samplerLoop()
 
   LOG(INFO) << "starting sampler loop, period " << mEventPeriod << " us";
   while (fState == RUNNING) {
+    msg->Rebuild(sizeof(AliHLTComponentEventData));
+    evtData = reinterpret_cast<AliHLTComponentEventData*>(msg->GetData());
+    memset(evtData, 0, sizeof(AliHLTComponentEventData));
+    evtData->fStructSize = sizeof(AliHLTComponentEventData);
     evtData->fEventID=mNEvents;
     system_clock::time_point timestamp = system_clock::now();
     auto seconds = std::chrono::duration_cast<std::chrono::seconds>(timestamp - dayref);
     evtData->fEventCreation_s=seconds.count();
     auto useconds = std::chrono::duration_cast<std::chrono::microseconds>(timestamp  - dayref - seconds);
     evtData->fEventCreation_us=useconds.count();
+    if (mVerbosity>0) {
+      LOG(DEBUG) << "send     event " << evtData->fEventID << " at " << evtData->fEventCreation_s << "s  " << evtData->fEventCreation_us << "us";
+    }
 
     for (int iOutput=0; iOutput<fNumOutputs; iOutput++) {
       fPayloadOutputs->at(iOutput)->Send(msg.get());
