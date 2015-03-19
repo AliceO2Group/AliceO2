@@ -45,6 +45,7 @@ set(SRCS
   WrapperDevice.cxx
   Component.cxx
   MessageFormat.cxx
+  EventSampler.cxx
 )
 
 if(DDS_LOCATION)
@@ -72,11 +73,13 @@ GENERATE_LIBRARY()
 Set(Exe_Names
 #  ${Exe_Names}
   aliceHLTWrapper
+  aliceHLTEventSampler
   runComponent
 )
 
 set(Exe_Source
   aliceHLTWrapper.cxx
+  aliceHLTEventSampler.cxx
   runComponent.cxx
 )
 
