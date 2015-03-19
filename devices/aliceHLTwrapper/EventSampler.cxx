@@ -18,6 +18,7 @@
 #include "EventSampler.h"
 #include "FairMQLogger.h"
 #include "FairMQPoller.h"
+#include "AliHLTDataTypes.h"
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
@@ -26,26 +27,24 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <chrono>
+#include <fstream>
+
+// time reference for the timestamp of events is the beginning of the day
+using std::chrono::system_clock;
+typedef std::chrono::duration<int,std::ratio<60*60*24> > PeriodDay;
+const std::chrono::time_point<system_clock, PeriodDay> dayref=std::chrono::time_point_cast<PeriodDay>(system_clock::now());
+
 using namespace ALICE::HLT;
 
-// the chrono lib needs C++11
-#if __cplusplus < 201103L
-#warning statistics measurement for EventSampler disabled: need C++11 standard
-#else
-#define USE_CHRONO
-#endif
-#ifdef USE_CHRONO
-#include <chrono>
-using std::chrono::system_clock;
-typedef std::chrono::milliseconds TimeScale;
-#endif // USE_CHRONO
-
 EventSampler::EventSampler(int verbosity)
-  : mEventRate(1000)
+  : mEventPeriod(1000)
+  , mInitialDelay(1000)
   , mNEvents(-1)
   , mPollingTimeout(10)
   , mSkipProcessing(0)
   , mVerbosity(verbosity)
+  , mOutputFile()
 {
 }
 
@@ -64,10 +63,8 @@ void EventSampler::Run()
   /// inherited from FairMQDevice
   int iResult=0;
 
-#ifdef USE_CHRONO
-  static system_clock::time_point refTime = system_clock::now();
-#endif // USE_CHRONO
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
+  boost::thread samplerThread(boost::bind(&EventSampler::samplerLoop, this));
 
   FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
 
@@ -85,18 +82,14 @@ void EventSampler::Run()
   vector</*const*/ FairMQMessage*> inputMessages;
   vector<int> inputMessageCntPerSocket(fNumInputs, 0);
   int nReadCycles=0;
+
+  std::ofstream latencyLog(mOutputFile);
+
   while (fState == RUNNING) {
 
     // read input messages
     poller->Poll(mPollingTimeout);
-    int inputsReceived=0;
-    bool receivedAtLeastOneMessage=false;
     for(int i = 0; i < fNumInputs; i++) {
-      if (inputMessageCntPerSocket[i]>0) {
-	inputsReceived++;
-	continue;
-      }
-      received = false;
       if (poller->CheckInput(i)) {
         int64_t more = 0;
         do {
@@ -104,10 +97,7 @@ void EventSampler::Run()
           unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
           received = fPayloadInputs->at(i)->Receive(msg.get());
           if (received) {
-            receivedAtLeastOneMessage = true;
             inputMessages.push_back(msg.release());
-            if (inputMessageCntPerSocket[i] == 0)
-              inputsReceived++; // count only the first message on that socket
             inputMessageCntPerSocket[i]++;
             if (mVerbosity > 3) {
               LOG(INFO) << " |---- receive Msg from socket " << i;
@@ -121,75 +111,24 @@ void EventSampler::Run()
         }
       }
     }
-    if (receivedAtLeastOneMessage) nReadCycles++;
-    if (inputsReceived<fNumInputs) {
-      continue;
-    }
-#ifdef USE_CHRONO
-    auto duration = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - refTime);
-#endif //USE_CHRONO
 
-    // if (!mSkipProcessing) {
-    //   // prepare input from messages
-    //   vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
-    //   for (vector</*const*/ FairMQMessage*>::iterator msg=inputMessages.begin();
-    // 	   msg!=inputMessages.end(); msg++) {
-    // 	void* buffer=(*msg)->GetData();
-    // 	dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
-    //   }
+    system_clock::time_point timestamp = system_clock::now();
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(timestamp - dayref);
+    auto useconds = std::chrono::duration_cast<std::chrono::microseconds>(timestamp  - dayref - seconds);
 
-    //   // call the component
-    //   if ((iResult=mComponent->process(dataArray))<0) {
-    // 	LOG(ERROR) << "component processing failed with error code " << iResult;
-    //   }
-
-    //   // build messages from output data
-    //   if (dataArray.size() > 0) {
-    //     if (mVerbosity > 2) {
-    //       LOG(INFO) << "processing " << dataArray.size() << " buffer(s)";
-    //     }
-    //     unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-    //     if (msg.get() && fPayloadOutputs != NULL && fPayloadOutputs->size() > 0) {
-    //       vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>::iterator data = dataArray.begin();
-    //       while (data != dataArray.end()) {
-    //         if (mVerbosity > 2) {
-    //           LOG(INFO) << "sending message of size " << data->mSize;
-    //         }
-    //         msg->Rebuild(data->mSize);
-    //         if (msg->GetSize() < data->mSize) {
-    //           iResult = -ENOSPC;
-    //           break;
-    //         }
-    //         AliHLTUInt8_t* pTarget = reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
-    //         memcpy(pTarget, data->mP, data->mSize);
-    //         if (data + 1 == dataArray.end()) {
-    //           // this is the last data block
-    //           fPayloadOutputs->at(0)->Send(msg.get());
-    //         } else {
-    //           fPayloadOutputs->at(0)->Send(msg.get(), "snd-more");
-    //         }
-
-    //         data = dataArray.erase(data);
-    //       }
-    //     } else if (fPayloadOutputs == NULL || fPayloadOutputs->size() == 0) {
-    //       if (errorCount == maxError && errorCount++ > 0)
-    //         LOG(ERROR) << "persistent error, suppressing further output";
-    //       else if (errorCount++ < maxError)
-    //         LOG(ERROR) << "no output slot available (" << (fPayloadOutputs == NULL ? "uninitialized" : "0 slots")
-    //                    << ")";
-    //     } else {
-    //       if (errorCount == maxError && errorCount++ > 0)
-    //         LOG(ERROR) << "persistent error, suppressing further output";
-    //       else if (errorCount++ < maxError)
-    //         LOG(ERROR) << "can not get output message from framework";
-    //       iResult = -ENOMSG;
-    //     }
-    //   }
-    // }
-
-    // cleanup
     for (vector<FairMQMessage*>::iterator mit=inputMessages.begin();
 	 mit!=inputMessages.end(); mit++) {
+      AliHLTComponentEventData* evtData=reinterpret_cast<AliHLTComponentEventData*>((*mit)->GetData());
+      if ((*mit)->GetSize() >= sizeof(AliHLTComponentEventData) &&
+	  evtData && evtData->fStructSize == sizeof(AliHLTComponentEventData)) {
+	unsigned latencySeconds=evtData->fEventCreation_s - seconds.count();
+	unsigned latencyUSeconds=evtData->fEventCreation_us - useconds.count();
+	unsigned latencyMilliSeconds=latencySeconds*1000 + latencyUSeconds/1000;
+	if (latencyLog.is_open()) {
+	  latencyLog << evtData->fEventID << " " << latencyMilliSeconds << endl;
+	}
+      }
+
       delete *mit;
     }
     inputMessages.clear();
@@ -199,10 +138,16 @@ void EventSampler::Run()
     }
   }
 
+  if (latencyLog.is_open()) {
+    latencyLog.close();
+  }
+
   delete poller;
 
   rateLogger.interrupt();
   rateLogger.join();
+  samplerThread.interrupt();
+  samplerThread.join();
 
   Shutdown();
 
@@ -247,6 +192,11 @@ void EventSampler::SetProperty(const int key, const string& value, const int slo
 {
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::SetProperty
+  switch (key) {
+  case OutputFile:
+    mOutputFile = value;
+    return;
+  }
   return FairMQDevice::SetProperty(key, value, slot);
 }
 
@@ -262,8 +212,11 @@ void EventSampler::SetProperty(const int key, const int value, const int slot)
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::SetProperty
   switch (key) {
-  case EventRate:
-    mEventRate = value;
+  case EventPeriod:
+    mEventPeriod = value;
+    return;
+  case InitialDelay:
+    mInitialDelay = value;
     return;
   case PollingTimeout:
     mPollingTimeout = value;
@@ -280,8 +233,10 @@ int EventSampler::GetProperty(const int key, const int default_, const int slot)
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::GetProperty
   switch (key) {
-  case EventRate:
-    return mEventRate;
+  case EventPeriod:
+    return mEventPeriod;
+  case InitialDelay:
+    return mInitialDelay;
   case PollingTimeout:
     return mPollingTimeout;
   case SkipProcessing:
@@ -293,6 +248,41 @@ int EventSampler::GetProperty(const int key, const int default_, const int slot)
 void EventSampler::samplerLoop()
 {
   /// sampler loop
-  while (1) {
+  LOG(INFO) << "initializing sampler loop, then waiting for " << mInitialDelay << " ms";
+  // wait until the first event is sent
+  // usleep expects arguments in the range [0,1000000]
+  unsigned initialDelayInSeconds=mInitialDelay/1000;
+  unsigned initialDelayInUSeconds=mInitialDelay%1000;
+  unsigned eventPeriodInSeconds=mEventPeriod/1000000;
+  if (initialDelayInSeconds>0) sleep(initialDelayInSeconds);
+  usleep(initialDelayInUSeconds);
+
+  unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+  msg->Rebuild(sizeof(AliHLTComponentEventData));
+  if (msg->GetSize() < sizeof(AliHLTComponentEventData)) {
+    // fatal error
+    LOG(ERROR) << "failed to allocate message of size " << sizeof(AliHLTComponentEventData) << ", aborting event generation";
+    return;
+  }
+  AliHLTComponentEventData* evtData = reinterpret_cast<AliHLTComponentEventData*>(msg->GetData());
+  memset(evtData, 0, sizeof(AliHLTComponentEventData));
+  evtData->fStructSize = sizeof(AliHLTComponentEventData);
+
+  LOG(INFO) << "starting sampler loop, period " << mEventPeriod << " us";
+  while (fState == RUNNING) {
+    evtData->fEventID=mNEvents;
+    system_clock::time_point timestamp = system_clock::now();
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(timestamp - dayref);
+    evtData->fEventCreation_s=seconds.count();
+    auto useconds = std::chrono::duration_cast<std::chrono::microseconds>(timestamp  - dayref - seconds);
+    evtData->fEventCreation_us=useconds.count();
+
+    for (int iOutput=0; iOutput<fNumOutputs; iOutput++) {
+      fPayloadOutputs->at(iOutput)->Send(msg.get());
+    }
+
+    mNEvents++;
+    if (eventPeriodInSeconds>0) sleep(eventPeriodInSeconds);
+    else usleep(mEventPeriod);
   }
 }
