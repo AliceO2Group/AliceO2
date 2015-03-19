@@ -112,10 +112,11 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
   int i = 0;
   for (vector<BufferDesc_t>::const_iterator data = list.begin(); data != list.end(); data++, i++) {
     if (data->mSize > 0) {
+      unsigned nofEventHeaders=mListEvtData.size();
       int result = addMessage(data->mP, data->mSize);
       if (result > 0)
         totalCount += result;
-      else if (result == 0) {
+      else if (result == 0 && nofEventHeaders==mListEvtData.size()) {
         cerr << "warning: no valid data blocks in message " << i << endl;
       } else {
 	// severe error in the data
@@ -255,7 +256,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
         startPosition = position;
       }
     }
-    if (mOutputMode == kOutputModeSequence) {
+    if (mOutputMode == kOutputModeSequence || count==0) {
       // send one single descriptor for all concatenated blocks
       mMessages.push_back(MessageFormat::BufferDesc_t(&mDataBuffer[startPosition], position - startPosition));
     }

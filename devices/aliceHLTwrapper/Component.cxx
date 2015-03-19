@@ -192,7 +192,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
   mFormatHandler.addMessages(dataArray);
   vector<AliHLTComponentBlockData>& inputBlocks = mFormatHandler.getBlockDescriptors();
   unsigned nofInputBlocks = inputBlocks.size();
-  if (dataArray.size() > 0 && nofInputBlocks == 0) {
+  if (dataArray.size() > 0 && nofInputBlocks == 0 && mFormatHandler.getEvtDataList().size() == 0) {
     cerr << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input" << endl;
   }
   dataArray.clear();
@@ -262,7 +262,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
   } while (iResult == ENOSPC && --nofTrials > 0);
 
   // prepare output
-  if (outputBlockCnt > 0) {
+  if (outputBlockCnt >= 0) {
     AliHLTUInt8_t* pOutputBufferStart = &mOutputBuffer[0];
     AliHLTUInt8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
     // consistency check for data blocks
