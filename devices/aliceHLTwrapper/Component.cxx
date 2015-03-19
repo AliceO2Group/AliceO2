@@ -192,10 +192,15 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
   mFormatHandler.addMessages(dataArray);
   vector<AliHLTComponentBlockData>& inputBlocks = mFormatHandler.getBlockDescriptors();
   unsigned nofInputBlocks = inputBlocks.size();
-  if (dataArray.size() > 0 && nofInputBlocks == 0) {
+  if (dataArray.size() > 0 && nofInputBlocks == 0 && mFormatHandler.getEvtDataList().size() == 0) {
     cerr << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input" << endl;
   }
   dataArray.clear();
+
+  if (mFormatHandler.getEvtDataList().size()>0) {
+    // copy the oldest event header
+    memcpy(&evtData, &mFormatHandler.getEvtDataList().front(), sizeof(AliHLTComponentEventData));
+  }
 
   // determine the total input size, needed later on for the calculation of the output buffer size
   int totalInputSize = 0;
@@ -257,7 +262,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
   } while (iResult == ENOSPC && --nofTrials > 0);
 
   // prepare output
-  if (outputBlockCnt > 0) {
+  if (outputBlockCnt >= 0) {
     AliHLTUInt8_t* pOutputBufferStart = &mOutputBuffer[0];
     AliHLTUInt8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
     // consistency check for data blocks
@@ -318,7 +323,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
     // TODO: for now there is an extra copy of the data, but it should be
     // handled in place
     vector<MessageFormat::BufferDesc_t> outputMessages =
-      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize);
+      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, evtData);
     dataArray.insert(dataArray.end(), outputMessages.begin(), outputMessages.end());
   }
 
