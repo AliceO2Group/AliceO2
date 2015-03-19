@@ -71,7 +71,7 @@ public:
 
   /////////////////////////////////////////////////////////////////
   // device property identifier
-  enum { Id = FairMQDevice::Last, PollingTimeout, SkipProcessing, EventRate, Last };
+  enum { Id = FairMQDevice::Last, PollingTimeout, SkipProcessing, EventPeriod, InitialDelay, OutputFile, Last };
 
 protected:
 
@@ -81,11 +81,13 @@ private:
   // assignment operator prohibited
   EventSampler& operator=(const EventSampler&);
 
-  int mEventRate;            // event rate in us
+  int mEventPeriod;          // event rate in us
+  int mInitialDelay;         // initial delay in ms before sending first event
   int mNEvents;              // number of generated events
   int mPollingTimeout;       // period of polling on input sockets in ms
   int mSkipProcessing;       // skip component processing
   int mVerbosity;            // verbosity level
+  std::string mOutputFile;   // output file for logging of latency
 };
 
 } // namespace hlt
