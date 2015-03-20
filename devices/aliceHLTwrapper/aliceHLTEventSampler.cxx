@@ -303,7 +303,7 @@ int main(int argc, char** argv)
   if (bUseDDS) {
 #ifndef ENABLE_DDS
     cerr << "Fatal: device has not been compiled with DDS support" << endl;
-    exit ENOSYS;
+    exit(ENOSYS);
 #endif
     int result=preprocessSocketsDDS(inputSockets, networkPrefix);
     if (result>=0)
