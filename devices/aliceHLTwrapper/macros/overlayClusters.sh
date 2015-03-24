@@ -55,7 +55,7 @@ c=0
 unset inputeventlist
 while read inputevent; do
   inputeventlist=(${inputeventlist[@]} $inputevent)
-  if [ "$c" -ge $merge_nEvents ]; then
+  if [ "$c" -ge $(( merge_nEvents - 1 )) ]; then
     outputevent=`echo $targetdir | sed -e 's|\([^/]\)$|\1/|'`$outputBaseName`printf %03d $nOutput`
     echo merging ...
     for f in ${inputeventlist[@]}; do echo "   $f"; done
