@@ -57,6 +57,10 @@ while [ "x$1" != "x" ]; do
     if [ "x$1" == "x--print-commands" ]; then
 	printcmdtoscreen='echo'
     fi
+    if [ "x$1" == "x--polling-timeout" ] && [ "x$2" != "x" ] ; then
+	pollingtimeout=$2
+	shift
+    fi
     shift
 done
 
@@ -191,20 +195,23 @@ create_flpgroup() {
       nofIndividualPartitions=1
     fi
     for ((c=0; c<nofslices; c++)); do
-        for ((partition=0; partition<nofIndividualPartitions; partition++)); do
-        slice=$((firstslice_on_node + c))
-        socket=$((basesocket + socketcount))
+	for ((partition=0; partition<nofIndividualPartitions; partition++)); do
+	slice=$((firstslice_on_node + c))
+	socket=$((basesocket + socketcount))
         let socketcount++
-        if [ "$nofIndividualPartitions" -le 1 ]; then
-        spec=`printf %02d $slice`
-        specprefix="slice_"
+	if [ "$nofIndividualPartitions" -le 1 ]; then
+	spec=`printf %02d $slice`
+	specprefix="slice_"
         else
         spec=0x`printf %02x%02x%02x%02x $slice $slice $partition $partition`
         specprefix=
         fi
         deviceid="ClusterPublisher_$spec"
-        output="--output type=push,size=5000,method=bind,address=tcp://*:$socket"
-        command="aliceHLTWrapper $deviceid 1 --poll-period $pollingtimeout $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist data/emulated-tpc-clusters_$specprefix$spec.txt $CFoptOpenFilesAtStart'"
+	output="--output type=push,size=5000,method=bind,address=tcp://*:$socket"
+	publisher_conf_file=data/emulated-tpc-clusters_$specprefix$spec.txt
+	local_conf_file=/tmp/tpc-cluster-publisher.conf
+	scp $publisher_conf_file $node:$local_conf_file
+	command="aliceHLTWrapper $deviceid 1 --poll-period $pollingtimeout $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist $local_conf_file $CFoptOpenFilesAtStart'"
 
 	sessionnode[nsessions]=$node
 	sessiontitle[nsessions]=$deviceid
