@@ -31,13 +31,17 @@ lastslice=35
 slices_per_node=1
 #dryrun="-n"
 pollingtimeout=100
-CFoptOpenFilesAtStart= #" -open_files_at_start"
+eventperiod=100000
+CFoptOpenFilesAtStart=" -open_files_at_start"
 CFoptPublishIndividualPartitions=no #yes
+write_tracks=no #yes
 rundir=`pwd`
 
 baseport_on_flpgroup=48400
 baseport_on_epn1group=48450
 baseport_on_epn2group=48470
+triggernode=localhost
+epn2node=localhost
 
 # uncomment the following line to print the commands instead of
 # actually launching them
@@ -61,6 +65,10 @@ while [ "x$1" != "x" ]; do
 	pollingtimeout=$2
 	shift
     fi
+    if [ "x$1" == "x--eventperiod" ] && [ "x$2" != "x" ] ; then
+	eventperiod=$2
+	shift
+    fi
     shift
 done
 
@@ -74,7 +82,6 @@ done
 # script in the current directory
 # 
 nodelist=
-epn2node=localhost
 
 flpinputnode=
 flpinputsocket=
@@ -167,7 +174,11 @@ translate_io_attributes() {
     else
 	__translated=`echo ${__translated} | sed -e 's|://.*:|://*:|g' -e 's|method=connect|method=bind|g'`
     fi
+    if [[ ${__translated} == *push* ]] || [[ ${__translated} == *pull* ]]; then
     __translated=`echo ${__translated} | sed -e 'h; /type=push/{s/type=push/type=pull/g; p}; g; /type=pull/{s/type=pull/type=push/g; p}; d'`
+    elif [[ ${__translated} == *pub* ]] || [[ ${__translated} == *sub* ]]; then
+      __translated=`echo ${__translated} | sed -e 'h; /type=pub/{s/type=pub/type=sub/g; p}; g; /type=sub/{s/type=sub/type=pub/g; p}; d'`
+    fi
     echo $__translated
 }
 
@@ -176,6 +187,28 @@ translate_io_alternateformat() {
     io=`echo $__inputattributes | sed -e 's| .*$||`
     type=`echo $__inputattributes | sed -e 's| .*$||`
     io=`echo $__inputattributes | sed -e 's| .*$||`
+}
+
+###################################################################
+# create the trigger node group
+flp_trigger_input=
+create_triggergroup() {
+    node=$1
+    basesocket=$2
+    socketcount=0
+
+    deviceid="Trigger"
+    input=
+    output="--output type=pub,size=100,method=bind,address=tcp://*:$((basesocket + socketcount))"
+    let socketcount++
+    command="aliceHLTEventSampler $deviceid 1 ${dryrun} $input $output --eventperiod $eventperiod --initialdelay 10000 --latency-log /tmp/latency.log"
+
+    sessionnode[nsessions]=$node
+    sessiontitle[nsessions]="$deviceid"
+    sessioncmd[nsessions]=$command
+    let nsessions++
+
+    flp_trigger_input=${output/\/\/\*:///$node:}
 }
 
 ###################################################################
@@ -207,11 +240,15 @@ create_flpgroup() {
         specprefix=
         fi
         deviceid="ClusterPublisher_$spec"
+        input=
+        if [ "x$flp_trigger_input" != "x" ]; then
+            input=`translate_io_attributes "$flp_trigger_input"`
+        fi
 	output="--output type=push,size=5000,method=bind,address=tcp://*:$socket"
 	publisher_conf_file=data/emulated-tpc-clusters_$specprefix$spec.txt
 	local_conf_file=/tmp/tpc-cluster-publisher.conf
 	scp $publisher_conf_file $node:$local_conf_file
-	command="aliceHLTWrapper $deviceid 1 --poll-period $pollingtimeout $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist $local_conf_file $CFoptOpenFilesAtStart'"
+	command="aliceHLTWrapper $deviceid 1 --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist $local_conf_file $CFoptOpenFilesAtStart'"
 
 	sessionnode[nsessions]=$node
 	sessiontitle[nsessions]=$deviceid
@@ -342,22 +379,38 @@ create_epn2group() {
     basesocket=$2
     socketcount=0
 
-    deviceid=FileWriter
+    deviceid=Collector
     epn2_input="--input type=pull,size=1000,method=bind,address=tcp://$node:$((basesocket + socketcount))"
-    input=$epn2_input
-    output=
     let socketcount++
+    input=$epn2_input
+    output="--output type=pub,size=1000,method=bind,address=tcp://$node:$((basesocket + socketcount))"
+    let socketcount++
+    command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
+
+    sessionnode[nsessions]=$node
+    sessiontitle[nsessions]="$deviceid"
+    sessioncmd[nsessions]=$command
+    let nsessions++
+
+    if [ "x$write_tracks" == "xyes" ] ; then
+    deviceid=FileWriter
+    input=`translate_io_attributes "$output"`
+    output=
     command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
 
     sessionnode[nsessions]=$node
     sessiontitle[nsessions]="$deviceid"
     sessioncmd[nsessions]=$command
     let nsessions++
+    fi
 }
 
 ########### main script ###########################################
 #
 # now build the commands on the nodes
+# trigger nodegroup
+create_triggergroup $triggernode $baseport_on_flpgroup
+
 # flp nodegroups
 sliceno=$firstslice
 inode=0
