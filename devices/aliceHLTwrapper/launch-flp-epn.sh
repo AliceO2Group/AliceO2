@@ -156,20 +156,20 @@ create_flpgroup() {
 
     # for now only one flp per node
         deviceid="FLP_$node"
-	command="testFLP_distributed"
+	command="flpSender"
 	command+=" --id $deviceid"
 	command+=" --num-inputs 3"
 	command+=" --num-outputs $nepnsessions"
 	command+=" --heartbeat-timeout 20000"
 	command+=" --send-offset 0" #$((10#$i))"
-	command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_command_socket   --log-input-rate 0" # command input
-	command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_heartbeat_socket --log-input-rate 0" # heartbeat input
+	command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_command_socket   --input-rate-logging 0" # command input
+	command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_heartbeat_socket --input-rate-logging 0" # heartbeat input
 	command+=" "
 	flpinputsocket[nflpsessions]=$((basesocket + 0))
-	command+=" --input-socket-type pull --input-buff-size 5000 --input-method bind --input-address tcp://*:${flpinputsocket[$nflpsessions]} --log-input-rate 1" # data input
+	command+=" --input-socket-type pull --input-buff-size 5000 --input-method bind --input-address tcp://*:${flpinputsocket[$nflpsessions]} --input-rate-logging 1" # data input
 	for ((j=0; j<$nepnsessions; j++));
 	do
-            command+=" --output-socket-type push --output-buff-size 5000 --output-method connect --output-address tcp://${epnsessionnode[$j]}:${epninputsocket[$j]} --log-output-rate 1"
+            command+=" --output-socket-type push --output-buff-size 5000 --output-method connect --output-address tcp://${epnsessionnode[$j]}:${epninputsocket[$j]} --output-rate-logging 1"
 	done
 
 	flpsessionnode[nflpsessions]=$node
@@ -186,27 +186,27 @@ create_epngroup() {
 
     for ((nepn=0; nepn<$number_of_epns_per_node; nepn++)); do
         deviceid=EPN_`printf %02d $nepnsessions`
-	command="testEPN_distributed"
+	command="epnReceiver"
 	command+=" --id $deviceid"
 	command+=" --num-outputs $((number_of_flps + 1))"
 	command+=" --heartbeat-interval 5000"
 	command+=" --buffer-timeout 120000"
 	command+=" --num-flps $number_of_flps"
 	epninputsocket[nepnsessions]=$((2*nepn + basesocket))
-	command+=" --input-socket-type pull --input-buff-size 5000 --input-method bind --input-address tcp://$node:${epninputsocket[$nepnsessions]} --log-input-rate 1" # data input
+	command+=" --input-socket-type pull --input-buff-size 5000 --input-method bind --input-address tcp://$node:${epninputsocket[$nepnsessions]} --input-rate-logging 1" # data input
 	epnoutputsocket[nepnsessions]=$((2*nepn + basesocket +1))
         
 	epnsessionnode[nepnsessions]=$node
         epnsessiontitle[nepnsessions]="$deviceid"
         epnsessioncmd[nepnsessions]=$command
 	# have to postpone adding the data output socket because of fixed order in the device outputs
-        epnsessiondataout[nepnsessions]=" --output-socket-type push --output-buff-size 5000 --output-method bind --output-address tcp://*:${epnoutputsocket[$nepnsessions]} --log-output-rate 1" # data output
+        epnsessiondataout[nepnsessions]=" --output-socket-type push --output-buff-size 5000 --output-method bind --output-address tcp://*:${epnoutputsocket[$nepnsessions]} --output-rate-logging 1" # data output
         let nepnsessions++
 
 # TBD after the FLP creation
 #	for flpnode in ${epn1_input[@]}; # heartbeats
 #	do
-#	    command+=" --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://$flpnode:$flp_heartbeat_socket --log-output-rate 0"
+#	    command+=" --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://$flpnode:$flp_heartbeat_socket --output-rate-logging 0"
 #	done
     done
 }
@@ -247,7 +247,7 @@ fi
 # now set the heartbeat channels
 for ((iepnsession=0; iepnsession<$nepnsessions; iepnsession++)); do
     for ((iflpsession=0; iflpsession<$nflpsessions; iflpsession++)); do
-	epnsessioncmd[$iepnsession]="${epnsessioncmd[$iepnsession]} --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://${flpsessionnode[$iflpsession]}:$flp_heartbeat_socket --log-output-rate 0"
+	epnsessioncmd[$iepnsession]="${epnsessioncmd[$iepnsession]} --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://${flpsessionnode[$iflpsession]}:$flp_heartbeat_socket --output-rate-logging 0"
     done
     # now add the data output, note that there is a fixed order in the device outputs
     epnsessioncmd[$iepnsession]="${epnsessioncmd[$iepnsession]} ${epnsessiondataout[$iepnsession]}"

@@ -1,5 +1,5 @@
 /**
- * EPNex.cxx
+ * EPNReceiver.cxx
  *
  * @since 2013-01-09
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
@@ -9,7 +9,7 @@
 #include <boost/bind.hpp>
 #include <fstream> // writing to file (DEBUG)
 
-#include "EPNex.h"
+#include "EPNReceiver.h"
 #include "FairMQLogger.h"
 
 using namespace std;
@@ -21,7 +21,7 @@ struct f2eHeader {
   int      flpId;
 };
 
-EPNex::EPNex()
+EPNReceiver::EPNReceiver()
   : fHeartbeatIntervalInMs(3000)
   , fBufferTimeoutInMs(1000)
   , fNumFLPs(1)
@@ -31,11 +31,11 @@ EPNex::EPNex()
 {
 }
 
-EPNex::~EPNex()
+EPNReceiver::~EPNReceiver()
 {
 }
 
-void EPNex::PrintBuffer(unordered_map<uint64_t,timeframeBuffer> &buffer)
+void EPNReceiver::PrintBuffer(unordered_map<uint64_t,timeframeBuffer> &buffer)
 {
   int size = buffer.size();
   string header = "===== ";
@@ -57,7 +57,7 @@ void EPNex::PrintBuffer(unordered_map<uint64_t,timeframeBuffer> &buffer)
   }
 }
 
-void EPNex::DiscardIncompleteTimeframes()
+void EPNReceiver::DiscardIncompleteTimeframes()
 {
   unordered_map<uint64_t,timeframeBuffer>::iterator it = fTimeframeBuffer.begin();
   while (it != fTimeframeBuffer.end()) {
@@ -77,12 +77,12 @@ void EPNex::DiscardIncompleteTimeframes()
   }
 }
 
-void EPNex::Run()
+void EPNReceiver::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
 
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-  boost::thread heartbeatSender(boost::bind(&EPNex::sendHeartbeats, this));
+  boost::thread heartbeatSender(boost::bind(&EPNReceiver::sendHeartbeats, this));
 
   FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
 
@@ -221,7 +221,7 @@ void EPNex::Run()
   fRunningCondition.notify_one();
 }
 
-void EPNex::sendHeartbeats()
+void EPNReceiver::sendHeartbeats()
 {
   while (true) {
     try {
@@ -235,13 +235,13 @@ void EPNex::sendHeartbeats()
       }
       boost::this_thread::sleep(boost::posix_time::milliseconds(fHeartbeatIntervalInMs));
     } catch (boost::thread_interrupted&) {
-      LOG(INFO) << "EPNex::sendHeartbeat() interrupted";
+      LOG(INFO) << "EPNReceiver::sendHeartbeat() interrupted";
       break;
     }
   } // while (true)
 }
 
-void EPNex::SetProperty(const int key, const string& value, const int slot/*= 0*/)
+void EPNReceiver::SetProperty(const int key, const string& value, const int slot/*= 0*/)
 {
   switch (key) {
     default:
@@ -250,7 +250,7 @@ void EPNex::SetProperty(const int key, const string& value, const int slot/*= 0*
   }
 }
 
-string EPNex::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
+string EPNReceiver::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
 {
   switch (key) {
     default:
@@ -258,7 +258,7 @@ string EPNex::GetProperty(const int key, const string& default_/*= ""*/, const i
   }
 }
 
-void EPNex::SetProperty(const int key, const int value, const int slot/*= 0*/)
+void EPNReceiver::SetProperty(const int key, const int value, const int slot/*= 0*/)
 {
   switch (key) {
     case HeartbeatIntervalInMs:
@@ -279,7 +279,7 @@ void EPNex::SetProperty(const int key, const int value, const int slot/*= 0*/)
   }
 }
 
-int EPNex::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
+int EPNReceiver::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
 {
   switch (key) {
     case HeartbeatIntervalInMs:

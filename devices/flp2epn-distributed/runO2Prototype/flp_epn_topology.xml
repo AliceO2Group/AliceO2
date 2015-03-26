@@ -1,0 +1,59 @@
+<topology id="myTopology">
+
+    <property id="FLPSyncSamplerInputAddress" />
+    <property id="FLPSyncSamplerOutputAddress" />
+    <property id="FLPSenderHeartbeatInputAddress" />
+    <property id="EPNReceiverInputAddress" />
+
+    <declrequirement id="FLPSyncSamplerHost">
+        <hostPattern value="cn48\.internal"/>
+    </declrequirement>
+
+    <declrequirement id="FLPSenderHost">
+            <hostPattern value="cn(00|01|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17|18|19)\.internal"/>
+    </declrequirement>
+
+    <declrequirement id="EPNReceiverHost">
+            <hostPattern value="cn(26|27|28|30|31|32|33|34|35|49|50|51|52|53|54|55|56|57|58|59)\.internal"/>
+    </declrequirement>
+
+    <decltask id="flpSyncSampler">
+        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/flpSyncSampler_dds --id 0 --event-rate 100 --input-socket-type pull --input-buff-size 100 --input-method bind --output-socket-type pub --output-buff-size 10 --output-method bind</exe>
+        <requirement>FLPSyncSamplerHost</requirement>
+        <properties>
+            <id access="write">FLPSyncSamplerInputAddress</id>
+            <id access="write">FLPSyncSamplerOutputAddress</id>
+        </properties>
+    </decltask>
+
+    <decltask id="flpSender">
+        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/flpSender_dds --id 0 --event-size 100000 --num-inputs 3 --num-outputs 60 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method bind --log-input-rate 0 --input-socket-type sub --input-buff-size 10 --input-method connect --log-input-rate 0 --output-socket-type push --output-buff-size 10 --output-method connect --log-output-rate 1 --test-mode 1</exe>
+        <requirement>FLPSenderHost</requirement>
+        <properties>
+            <id access="read">FLPSyncSamplerOutputAddress</id>
+            <id access="write">FLPSenderHeartbeatInputAddress</id>
+            <id access="read">EPNReceiverInputAddress</id>
+        </properties>
+    </decltask>
+
+    <decltask id="epnReceiver">
+        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/epnReceiver_dds --id 0 --num-outputs 42 --num-flps 40 --input-socket-type pull --input-buff-size 10 --input-method bind --log-input-rate 1 --output-socket-type pub --output-buff-size 10 --output-method connect --log-output-rate 0 --nextstep-socket-type pub --nextstep-buff-size 10 --nextstep-method bind --log-nextstep-rate 0 --rttack-socket-type push --rttack-buff-size 100 --rttack-method connect --log-rttack-rate 0 --test-mode 1</exe>
+        <requirement>EPNReceiverHost</requirement>
+        <properties>
+            <id access="read">FLPSenderHeartbeatInputAddress</id>
+            <id access="write">EPNReceiverInputAddress</id>
+            <id access="read">FLPSyncSamplerInputAddress</id>
+        </properties>
+    </decltask>
+
+    <main id="main">
+        <task>flpSyncSampler</task>
+        <group id="groupFLP" n="40">
+            <task>flpSender</task>
+        </group>
+        <group id="groupEPN" n="60">
+            <task>epnReceiver</task>
+        </group>
+    </main>
+
+</topology>

@@ -11,6 +11,8 @@
 #include "O2EPNex.h"
 #include "FairMQLogger.h"
 
+using namespace std;
+
 O2EPNex::O2EPNex() :
   fHeartbeatIntervalInMs(5000)
 {

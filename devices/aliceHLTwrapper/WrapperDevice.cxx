@@ -27,6 +27,8 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+
+using namespace std;
 using namespace ALICE::HLT;
 
 // the chrono lib needs C++11

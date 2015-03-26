@@ -15,6 +15,8 @@ else()
 endif()
 
 if(DDS_LOCATION)
+  add_definitions(-DENABLE_DDS)
+
   set(INCLUDE_DIRECTORIES
    ${INCLUDE_DIRECTORIES}
    $ENV{DDS_LOCATION}/include
@@ -43,9 +45,9 @@ endif()
 link_directories(${LINK_DIRECTORIES})
 
 set(SRCS
-  FLPex.cxx
-  EPNex.cxx
-  FLPexSampler.cxx
+  FLPSyncSampler.cxx
+  FLPSender.cxx
+  EPNReceiver.cxx
 )
 
 set(DEPENDENCIES
@@ -67,32 +69,32 @@ GENERATE_LIBRARY()
 
 Set(Exe_Names
   ${Exe_Names}
-  testFLP_distributed
-  testEPN_distributed
-  testFLPSampler
+  flpSyncSampler
+  flpSender
+  epnReceiver
 )
 
 if(DDS_LOCATION)
   set(Exe_Names
     ${Exe_Names}
-    testFLP_distributed_dds
-    testEPN_distributed_dds
-    testFLPSampler_dds
+    flpSyncSampler_dds
+    flpSender_dds
+    epnReceiver_dds
   )
 endif()
 
 set(Exe_Source
-  run/runFLP_distributed.cxx
-  run/runEPN_distributed.cxx
-  run/runFLPSampler.cxx
+  run/runFLPSyncSampler.cxx
+  run/runFLPSender.cxx
+  run/runEPNReceiver.cxx
 )
 
 if(DDS_LOCATION)
   set(Exe_Source
     ${Exe_Source}
-    runO2Prototype/runFLP_distributed.cxx
-    runO2Prototype/runEPN_distributed.cxx
-    runDDS/runFLPSampler.cxx
+    runO2Prototype/runFLPSyncSampler.cxx
+    runO2Prototype/runFLPSender.cxx
+    runO2Prototype/runEPNReceiver.cxx
   )
 endif()
 

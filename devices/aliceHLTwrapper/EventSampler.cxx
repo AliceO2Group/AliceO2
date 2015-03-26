@@ -30,6 +30,8 @@
 #include <chrono>
 #include <fstream>
 
+using namespace std;
+
 // time reference for the timestamp of events is the beginning of the day
 using std::chrono::system_clock;
 typedef std::chrono::duration<int,std::ratio<60*60*24> > PeriodDay;
