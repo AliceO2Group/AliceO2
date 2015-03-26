@@ -1,5 +1,5 @@
 /**
- * FLPexSampler.cpp
+ * FLPSyncSampler.cpp
  *
  * @since 2013-04-23
  * @author D. Klein, A. Rybalchenko
@@ -13,31 +13,31 @@
 #include <boost/bind.hpp>
 
 #include "FairMQLogger.h"
-#include "FLPexSampler.h"
+#include "FLPSyncSampler.h"
 
 using namespace std;
 using boost::posix_time::ptime;
 
 using namespace AliceO2::Devices;
 
-FLPexSampler::FLPexSampler()
+FLPSyncSampler::FLPSyncSampler()
   : fEventRate(1)
   , fEventCounter(0)
 {
 }
 
-FLPexSampler::~FLPexSampler()
+FLPSyncSampler::~FLPSyncSampler()
 {
 }
 
-void FLPexSampler::Run()
+void FLPSyncSampler::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
   boost::this_thread::sleep(boost::posix_time::milliseconds(10000));
 
   boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-  boost::thread resetEventCounter(boost::bind(&FLPexSampler::ResetEventCounter, this));
-  boost::thread ackListener(boost::bind(&FLPexSampler::ListenForAcks, this));
+  boost::thread resetEventCounter(boost::bind(&FLPSyncSampler::ResetEventCounter, this));
+  boost::thread ackListener(boost::bind(&FLPSyncSampler::ListenForAcks, this));
 
   int NOBLOCK = fPayloadInputs->at(0)->NOBLOCK;
 
@@ -85,7 +85,7 @@ void FLPexSampler::Run()
   fRunningCondition.notify_one();
 }
 
-void FLPexSampler::ListenForAcks()
+void FLPSyncSampler::ListenForAcks()
 {
   FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
 
@@ -125,7 +125,7 @@ void FLPexSampler::ListenForAcks()
   delete poller;
 }
 
-void FLPexSampler::ResetEventCounter()
+void FLPSyncSampler::ResetEventCounter()
 {
   while (true) {
     try {
@@ -137,7 +137,7 @@ void FLPexSampler::ResetEventCounter()
   }
 }
 
-void FLPexSampler::SetProperty(const int key, const string& value, const int slot /*= 0*/)
+void FLPSyncSampler::SetProperty(const int key, const string& value, const int slot /*= 0*/)
 {
   switch (key) {
     default:
@@ -146,7 +146,7 @@ void FLPexSampler::SetProperty(const int key, const string& value, const int slo
   }
 }
 
-string FLPexSampler::GetProperty(const int key, const string& default_ /*= ""*/, const int slot /*= 0*/)
+string FLPSyncSampler::GetProperty(const int key, const string& default_ /*= ""*/, const int slot /*= 0*/)
 {
   switch (key) {
     default:
@@ -154,7 +154,7 @@ string FLPexSampler::GetProperty(const int key, const string& default_ /*= ""*/,
   }
 }
 
-void FLPexSampler::SetProperty(const int key, const int value, const int slot /*= 0*/)
+void FLPSyncSampler::SetProperty(const int key, const int value, const int slot /*= 0*/)
 {
   switch (key) {
     case EventRate:
@@ -166,7 +166,7 @@ void FLPexSampler::SetProperty(const int key, const int value, const int slot /*
   }
 }
 
-int FLPexSampler::GetProperty(const int key, const int default_ /*= 0*/, const int slot /*= 0*/)
+int FLPSyncSampler::GetProperty(const int key, const int default_ /*= 0*/, const int slot /*= 0*/)
 {
   switch (key) {
     case EventRate:

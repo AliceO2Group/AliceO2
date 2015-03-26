@@ -18,6 +18,8 @@
 #include "O2FLPex.h"
 #include "FairMQLogger.h"
 
+using namespace std;
+
 O2FLPex::O2FLPex() :
   fEventSize(10000),
   fHeartbeatTimeoutInMs(20000)

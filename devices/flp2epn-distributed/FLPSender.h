@@ -1,12 +1,12 @@
 /**
- * FLPex.h
+ * FLPSender.h
  *
  * @since 2014-02-24
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
  */
 
-#ifndef ALICEO2_DEVICES_FLPEX_H_
-#define ALICEO2_DEVICES_FLPEX_H_
+#ifndef ALICEO2_DEVICES_FLPSENDER_H_
+#define ALICEO2_DEVICES_FLPSENDER_H_
 
 #include <string>
 #include <queue>
@@ -19,7 +19,7 @@
 namespace AliceO2 {
 namespace Devices {
 
-class FLPex : public FairMQDevice
+class FLPSender : public FairMQDevice
 {
   public:
     enum {
@@ -31,8 +31,8 @@ class FLPex : public FairMQDevice
       Last
     };
 
-    FLPex();
-    virtual ~FLPex();
+    FLPSender();
+    virtual ~FLPSender();
 
     void ResetEventCounter();
 
@@ -52,7 +52,7 @@ class FLPex : public FairMQDevice
     void sendFrontData();
 
     int fHeartbeatTimeoutInMs;
-    vector<boost::posix_time::ptime> fOutputHeartbeat;
+    std::vector<boost::posix_time::ptime> fOutputHeartbeat;
 
     unsigned int fSendOffset;
     std::queue<FairMQMessage*> fHeaderBuffer;

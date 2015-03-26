@@ -1,12 +1,12 @@
 /**
- * EPNex.h
+ * EPNReceiver.h
  *
  * @since 2013-01-09
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
  */
 
-#ifndef ALICEO2_DEVICES_EPNEX_H_
-#define ALICEO2_DEVICES_EPNEX_H_
+#ifndef ALICEO2_DEVICES_EPNRECEIVER_H_
+#define ALICEO2_DEVICES_EPNRECEIVER_H_
 
 #include <string>
 #include <unordered_map>
@@ -22,12 +22,12 @@ namespace Devices {
 struct timeframeBuffer
 {
   int count;
-  vector<FairMQMessage*> parts;
+  std::vector<FairMQMessage*> parts;
   boost::posix_time::ptime startTime;
   boost::posix_time::ptime endTime;
 };
 
-class EPNex : public FairMQDevice
+class EPNReceiver : public FairMQDevice
 {
   public:
     enum {
@@ -38,8 +38,8 @@ class EPNex : public FairMQDevice
       Last
     };
 
-    EPNex();
-    virtual ~EPNex();
+    EPNReceiver();
+    virtual ~EPNReceiver();
 
     void PrintBuffer(std::unordered_map<uint64_t,timeframeBuffer> &buffer);
     void DiscardIncompleteTimeframes();

@@ -1,12 +1,12 @@
 /**
- * FLPexSampler.h
+ * FLPSyncSampler.h
  *
  * @since 2013-04-23
  * @author D. Klein, A. Rybalchenko
  */
 
-#ifndef ALICEO2_DEVICES_FLPEXSAMPLER_H_
-#define ALICEO2_DEVICES_FLPEXSAMPLER_H_
+#ifndef ALICEO2_DEVICES_FLPSYNCSAMPLER_H_
+#define ALICEO2_DEVICES_FLPSYNCSAMPLER_H_
 
 #include <string>
 
@@ -23,7 +23,7 @@ struct timeframeDuration
   boost::posix_time::ptime end;
 };
 
-class FLPexSampler : public FairMQDevice
+class FLPSyncSampler : public FairMQDevice
 {
   public:
     enum {
@@ -32,8 +32,8 @@ class FLPexSampler : public FairMQDevice
       Last
     };
 
-    FLPexSampler();
-    virtual ~FLPexSampler();
+    FLPSyncSampler();
+    virtual ~FLPSyncSampler();
 
     void ResetEventCounter();
     void ListenForAcks();

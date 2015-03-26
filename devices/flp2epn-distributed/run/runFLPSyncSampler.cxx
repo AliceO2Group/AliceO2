@@ -1,5 +1,5 @@
 /**
- * runFLPSampler.cxx
+ * runFLPSyncSampler.cxx
  *
  * @since 2013-01-21
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
@@ -13,20 +13,19 @@
 #include "FairMQLogger.h"
 #include "FairMQTransportFactoryZMQ.h"
 
-#include "FLPexSampler.h"
+#include "FLPSyncSampler.h"
 
 using namespace std;
-
 using namespace AliceO2::Devices;
 
-FLPexSampler sampler;
+FLPSyncSampler sampler;
 
 static void s_signal_handler (int signal)
 {
   cout << endl << "Caught signal " << signal << endl;
 
-  sampler.ChangeState(FLPexSampler::STOP);
-  sampler.ChangeState(FLPexSampler::END);
+  sampler.ChangeState(FLPSyncSampler::STOP);
+  sampler.ChangeState(FLPSyncSampler::END);
 
   cout << "Shutdown complete. Bye!" << endl;
   exit(1);
@@ -47,16 +46,18 @@ typedef struct DeviceOptions
   string id;
   int eventRate;
   int ioThreads;
+
   string inputSocketType;
   int inputBufSize;
   string inputMethod;
   string inputAddress;
-  int logInputRate;
+  int inputRateLogging;
+
   string outputSocketType;
   int outputBufSize;
   string outputMethod;
   string outputAddress;
-  int logOutputRate;
+  int outputRateLogging;
 } DeviceOptions_t;
 
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
@@ -74,12 +75,12 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("input-buff-size", bpo::value<int>()->required(), "Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("input-method", bpo::value<string>()->required(), "Input method: bind/connect")
     ("input-address", bpo::value<string>()->required(), "Input address, e.g.: \"tcp://localhost:5555\"")
-    ("log-input-rate", bpo::value<int>()->required(), "Log input rate on socket, 1/0")
+    ("input-rate-logging", bpo::value<int>()->required(), "Log input rate on socket, 1/0")
     ("output-socket-type", bpo::value<string>()->required(), "Output socket type: pub/push")
     ("output-buff-size", bpo::value<int>()->required(), "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("output-method", bpo::value<string>()->required(), "Output method: bind/connect")
     ("output-address", bpo::value<string>()->required(), "Output address, e.g.: \"tcp://localhost:5555\"")
-    ("log-output-rate", bpo::value<int>()->required(), "Log output rate on socket, 1/0")
+    ("output-rate-logging", bpo::value<int>()->required(), "Log output rate on socket, 1/0")
     ("help", "Print help messages");
 
   bpo::variables_map vm;
@@ -90,59 +91,23 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     return false;
   }
 
-    bpo::notify(vm);
+  bpo::notify(vm);
 
-  if (vm.count("id")) {
-    _options->id = vm["id"].as<string>();
-  }
+  if (vm.count("id"))                  { _options->id                = vm["id"].as<string>(); }
+  if (vm.count("event-rate"))          { _options->eventRate         = vm["event-rate"].as<int>(); }
+  if (vm.count("io-threads"))          { _options->ioThreads         = vm["io-threads"].as<int>(); }
 
-  if (vm.count("event-rate")) {
-    _options->eventRate = vm["event-rate"].as<int>();
-  }
+  if (vm.count("input-socket-type"))   { _options->inputSocketType   = vm["input-socket-type"].as<string>(); }
+  if (vm.count("input-buff-size"))     { _options->inputBufSize      = vm["input-buff-size"].as<int>(); }
+  if (vm.count("input-method"))        { _options->inputMethod       = vm["input-method"].as<string>(); }
+  if (vm.count("input-address"))       { _options->inputAddress      = vm["input-address"].as<string>(); }
+  if (vm.count("input-rate-logging"))  { _options->inputRateLogging  = vm["input-rate-logging"].as<int>(); }
 
-  if (vm.count("io-threads")) {
-    _options->ioThreads = vm["io-threads"].as<int>();
-  }
-
-  if (vm.count("input-socket-type")) {
-    _options->inputSocketType = vm["input-socket-type"].as<string>();
-  }
-
-  if (vm.count("input-buff-size")) {
-    _options->inputBufSize = vm["input-buff-size"].as<int>();
-  }
-
-  if (vm.count("input-method")) {
-    _options->inputMethod = vm["input-method"].as<string>();
-  }
-
-  if (vm.count("input-address")) {
-    _options->inputAddress = vm["input-address"].as<string>();
-  }
-
-  if (vm.count("log-input-rate")) {
-    _options->logInputRate = vm["log-input-rate"].as<int>();
-  }
-
-  if (vm.count("output-socket-type")) {
-    _options->outputSocketType = vm["output-socket-type"].as<string>();
-  }
-
-  if (vm.count("output-buff-size")) {
-    _options->outputBufSize = vm["output-buff-size"].as<int>();
-  }
-
-  if (vm.count("output-method")) {
-    _options->outputMethod = vm["output-method"].as<string>();
-  }
-
-  if (vm.count("output-address")) {
-    _options->outputAddress = vm["output-address"].as<string>();
-  }
-
-  if (vm.count("log-output-rate")) {
-    _options->logOutputRate = vm["log-output-rate"].as<int>();
-  }
+  if (vm.count("output-socket-type"))  { _options->outputSocketType  = vm["output-socket-type"].as<string>(); }
+  if (vm.count("output-buff-size"))    { _options->outputBufSize     = vm["output-buff-size"].as<int>(); }
+  if (vm.count("output-method"))       { _options->outputMethod      = vm["output-method"].as<string>(); }
+  if (vm.count("output-address"))      { _options->outputAddress     = vm["output-address"].as<string>(); }
+  if (vm.count("output-rate-logging")) { _options->outputRateLogging = vm["output-rate-logging"].as<int>(); }
 
   return true;
 }
@@ -166,36 +131,33 @@ int main(int argc, char** argv)
 
   sampler.SetTransport(transportFactory);
 
-  sampler.SetProperty(FLPexSampler::Id, options.id);
-  sampler.SetProperty(FLPexSampler::NumIoThreads, options.ioThreads);
-  sampler.SetProperty(FLPexSampler::EventRate, options.eventRate);
+  sampler.SetProperty(FLPSyncSampler::Id, options.id);
+  sampler.SetProperty(FLPSyncSampler::NumIoThreads, options.ioThreads);
+  sampler.SetProperty(FLPSyncSampler::EventRate, options.eventRate);
 
-  sampler.SetProperty(FLPexSampler::NumInputs, 1);
-  sampler.SetProperty(FLPexSampler::NumOutputs, 1);
+  sampler.SetProperty(FLPSyncSampler::NumInputs, 1);
+  sampler.SetProperty(FLPSyncSampler::NumOutputs, 1);
 
-  sampler.ChangeState(FLPexSampler::INIT);
+  sampler.ChangeState(FLPSyncSampler::INIT);
 
-  sampler.SetProperty(FLPexSampler::InputSocketType, options.inputSocketType);
-  sampler.SetProperty(FLPexSampler::InputSndBufSize, options.inputBufSize);
-  sampler.SetProperty(FLPexSampler::InputMethod, options.inputMethod);
-  sampler.SetProperty(FLPexSampler::InputAddress, options.inputAddress);
-  sampler.SetProperty(FLPexSampler::LogInputRate, options.logInputRate);
+  sampler.SetProperty(FLPSyncSampler::InputSocketType, options.inputSocketType);
+  sampler.SetProperty(FLPSyncSampler::InputSndBufSize, options.inputBufSize);
+  sampler.SetProperty(FLPSyncSampler::InputMethod, options.inputMethod);
+  sampler.SetProperty(FLPSyncSampler::InputAddress, options.inputAddress);
+  sampler.SetProperty(FLPSyncSampler::LogInputRate, options.inputRateLogging);
 
-  sampler.SetProperty(FLPexSampler::OutputSocketType, options.outputSocketType);
-  sampler.SetProperty(FLPexSampler::OutputSndBufSize, options.outputBufSize);
-  sampler.SetProperty(FLPexSampler::OutputMethod, options.outputMethod);
-  sampler.SetProperty(FLPexSampler::OutputAddress, options.outputAddress);
-  sampler.SetProperty(FLPexSampler::LogOutputRate, options.logOutputRate);
+  sampler.SetProperty(FLPSyncSampler::OutputSocketType, options.outputSocketType);
+  sampler.SetProperty(FLPSyncSampler::OutputSndBufSize, options.outputBufSize);
+  sampler.SetProperty(FLPSyncSampler::OutputMethod, options.outputMethod);
+  sampler.SetProperty(FLPSyncSampler::OutputAddress, options.outputAddress);
+  sampler.SetProperty(FLPSyncSampler::LogOutputRate, options.outputRateLogging);
 
   try {
-    sampler.ChangeState(FLPexSampler::SETOUTPUT);
-    sampler.ChangeState(FLPexSampler::SETINPUT);
-// temporary check to allow compilation with older fairmq version
-#ifdef FAIRMQ_INTERFACE_VERSION
-    sampler.ChangeState(FLPexSampler::BIND);
-    sampler.ChangeState(FLPexSampler::CONNECT);
-#endif
-    sampler.ChangeState(FLPexSampler::RUN);
+    sampler.ChangeState(FLPSyncSampler::SETOUTPUT);
+    sampler.ChangeState(FLPSyncSampler::SETINPUT);
+    sampler.ChangeState(FLPSyncSampler::BIND);
+    sampler.ChangeState(FLPSyncSampler::CONNECT);
+    sampler.ChangeState(FLPSyncSampler::RUN);
   } catch (const exception& e) {
       LOG(ERROR) << e.what();
   }
@@ -206,8 +168,8 @@ int main(int argc, char** argv)
     sampler.fRunningCondition.wait(lock);
   }
 
-  sampler.ChangeState(FLPexSampler::STOP);
-  sampler.ChangeState(FLPexSampler::END);
+  sampler.ChangeState(FLPSyncSampler::STOP);
+  sampler.ChangeState(FLPSyncSampler::END);
 
   return 0;
 }

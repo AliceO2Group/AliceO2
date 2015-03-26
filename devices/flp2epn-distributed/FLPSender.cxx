@@ -1,5 +1,5 @@
 /**
- * FLPex.cxx
+ * FLPSender.cxx
  *
  * @since 2013-04-23
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
@@ -14,7 +14,7 @@
 #include "FairMQLogger.h"
 #include "FairMQPoller.h"
 
-#include "FLPex.h"
+#include "FLPSender.h"
 
 using namespace std;
 using boost::posix_time::ptime;
@@ -26,7 +26,7 @@ struct f2eHeader {
   int      flpId;
 };
 
-FLPex::FLPex()
+FLPSender::FLPSender()
   : fHeartbeatTimeoutInMs(20000)
   , fOutputHeartbeat()
   , fSendOffset(0)
@@ -37,11 +37,11 @@ FLPex::FLPex()
 {
 }
 
-FLPex::~FLPex()
+FLPSender::~FLPSender()
 {
 }
 
-void FLPex::Init()
+void FLPSender::Init()
 {
   FairMQDevice::Init();
 
@@ -52,7 +52,7 @@ void FLPex::Init()
   }
 }
 
-bool FLPex::updateIPHeartbeat(string reply)
+bool FLPSender::updateIPHeartbeat(string reply)
 {
   for (int i = 0; i < fNumOutputs; ++i) {
     if (GetProperty(OutputAddress, "", i) == reply) {
@@ -77,7 +77,7 @@ bool FLPex::updateIPHeartbeat(string reply)
   return false;
 }
 
-void FLPex::Run()
+void FLPSender::Run()
 {
   LOG(INFO) << ">>>>>>> Run <<<<<<<";
 
@@ -195,7 +195,7 @@ void FLPex::Run()
   fRunningCondition.notify_one();
 }
 
-inline void FLPex::sendFrontData()
+inline void FLPSender::sendFrontData()
 {
   f2eHeader h = *(reinterpret_cast<f2eHeader*>(fHeaderBuffer.front()->GetData()));
   uint64_t currentTimeframeId = h.timeFrameId;
@@ -230,7 +230,7 @@ inline void FLPex::sendFrontData()
   }
 }
 
-void FLPex::SetProperty(const int key, const string& value, const int slot/*= 0*/)
+void FLPSender::SetProperty(const int key, const string& value, const int slot/*= 0*/)
 {
   switch (key) {
     default:
@@ -239,7 +239,7 @@ void FLPex::SetProperty(const int key, const string& value, const int slot/*= 0*
   }
 }
 
-string FLPex::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
+string FLPSender::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
 {
   switch (key) {
     default:
@@ -247,7 +247,7 @@ string FLPex::GetProperty(const int key, const string& default_/*= ""*/, const i
   }
 }
 
-void FLPex::SetProperty(const int key, const int value, const int slot/*= 0*/)
+void FLPSender::SetProperty(const int key, const int value, const int slot/*= 0*/)
 {
   switch (key) {
     case HeartbeatTimeoutInMs:
@@ -268,7 +268,7 @@ void FLPex::SetProperty(const int key, const int value, const int slot/*= 0*/)
   }
 }
 
-int FLPex::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
+int FLPSender::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
 {
   switch (key) {
     case HeartbeatTimeoutInMs:
@@ -285,7 +285,7 @@ int FLPex::GetProperty(const int key, const int default_/*= 0*/, const int slot/
 }
 
 // Method for setting properties represented as a heartbeat.
-void FLPex::SetProperty(const int key, const ptime value, const int slot /*= 0*/)
+void FLPSender::SetProperty(const int key, const ptime value, const int slot /*= 0*/)
 {
   switch (key) {
     case OutputHeartbeat:
@@ -296,7 +296,7 @@ void FLPex::SetProperty(const int key, const ptime value, const int slot /*= 0*/
 }
 
 // Method for getting properties represented as a heartbeat.
-ptime FLPex::GetProperty(const int key, const ptime default_, const int slot /*= 0*/)
+ptime FLPSender::GetProperty(const int key, const ptime default_, const int slot /*= 0*/)
 {
   switch (key) {
     case OutputHeartbeat:
