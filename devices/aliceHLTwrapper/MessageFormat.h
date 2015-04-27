@@ -22,6 +22,7 @@
 #include "AliHLTDataTypes.h"
 #include "HOMERFactory.h"
 #include <vector>
+#include <boost/signals2.hpp>
 
 class AliHLTHOMERReader;
 class AliHLTHOMERWriter;
@@ -98,7 +99,8 @@ public:
   // create message payloads in the internal buffer and return list
   // of decriptors
   vector<BufferDesc_t> createMessages(const AliHLTComponentBlockData* blocks, unsigned count,
-                                      unsigned totalPayloadSize, const AliHLTComponentEventData& evtData);
+                                      unsigned totalPayloadSize, const AliHLTComponentEventData& evtData,
+                                      boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate=nullptr);
 
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
