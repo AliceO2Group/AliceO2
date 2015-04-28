@@ -46,6 +46,7 @@ typedef std::chrono::milliseconds TimeScale;
 WrapperDevice::WrapperDevice(int argc, char** argv, int verbosity)
   : mComponent(NULL)
   , mArgv()
+  , mMessages()
   , mPollingPeriod(10)
   , mSkipProcessing(0)
   , mLastCalcTime(-1)
@@ -211,8 +212,14 @@ void WrapperDevice::Run()
 	dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
       }
 
+      // create a signal with the callback to the buffer allocation, the component
+      // can create messages via the callback and writes data directly to buffer
+      cballoc_signal_t cbsignal;
+      cbsignal.connect([this](unsigned int size){return this->createMessageBuffer(size);} );
+      mMessages.clear();
+
       // call the component
-      if ((iResult=mComponent->process(dataArray))<0) {
+      if ((iResult=mComponent->process(dataArray, &cbsignal))<0) {
 	LOG(ERROR) << "component processing failed with error code " << iResult;
       }
 
@@ -221,42 +228,69 @@ void WrapperDevice::Run()
         if (mVerbosity > 2) {
           LOG(INFO) << "processing " << dataArray.size() << " buffer(s)";
         }
-        unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-        if (msg.get() && fPayloadOutputs != NULL && fPayloadOutputs->size() > 0) {
-          vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>::iterator data = dataArray.begin();
-          while (data != dataArray.end()) {
-            if (mVerbosity > 2) {
-              LOG(INFO) << "sending message of size " << data->mSize;
-            }
-            msg->Rebuild(data->mSize);
-            if (msg->GetSize() < data->mSize) {
-              iResult = -ENOSPC;
+        for (auto opayload : dataArray) {
+          FairMQMessage* omsg=nullptr;
+          // loop over pre-allocated messages
+          for (auto premsg = begin(mMessages); premsg != end(mMessages); premsg++) {
+            if ((*premsg)->GetData() == opayload.mP &&
+                (*premsg)->GetSize() == opayload.mSize) {
+              omsg=*premsg;
+              if (mVerbosity > 2) {
+                LOG(DEBUG) << "using pre-allocated message of size " << opayload.mSize;
+              }
               break;
             }
-            AliHLTUInt8_t* pTarget = reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
-            memcpy(pTarget, data->mP, data->mSize);
-            if (data + 1 == dataArray.end()) {
-              // this is the last data block
-              fPayloadOutputs->at(0)->Send(msg.get());
-            } else {
-              fPayloadOutputs->at(0)->Send(msg.get(), "snd-more");
-            }
-
-            data = dataArray.erase(data);
           }
-        } else if (fPayloadOutputs == NULL || fPayloadOutputs->size() == 0) {
+          if (omsg==nullptr) {
+            unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+            if (msg.get()) {
+              msg->Rebuild(opayload.mSize);
+              if (msg->GetSize() < opayload.mSize) {
+                iResult = -ENOSPC;
+                break;
+              }
+              if (mVerbosity > 2) {
+                LOG(DEBUG) << "scheduling message of size " << opayload.mSize;
+              }
+              AliHLTUInt8_t* pTarget = reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
+              memcpy(pTarget, opayload.mP, opayload.mSize);
+              mMessages.push_back(msg.release());
+            } else {
+              if (errorCount == maxError && errorCount++ > 0)
+                LOG(ERROR) << "persistent error, suppressing further output";
+              else if (errorCount++ < maxError)
+                LOG(ERROR) << "can not get output message from framework";
+              iResult = -ENOMSG;
+            }
+          }
+        }
+      }
+
+      if (mMessages.size()>0) {
+        if (fPayloadOutputs != NULL && fPayloadOutputs->size() > 0) {
+          for (auto sendmsg = begin(mMessages); sendmsg != end(mMessages); sendmsg++) {
+            if (sendmsg + 1 == end(mMessages)) {
+              // this is the last data block
+              if (mVerbosity > 2) {
+                LOG(DEBUG) << "sending last message, size " << (*sendmsg)->GetSize();
+              }
+              fPayloadOutputs->at(0)->Send(*sendmsg);
+            } else {
+              if (mVerbosity > 2) {
+                LOG(DEBUG) << "sending multipart message, size " << (*sendmsg)->GetSize();
+              }
+              fPayloadOutputs->at(0)->Send(*sendmsg, "snd-more");
+            }
+          }
+        } else {
           if (errorCount == maxError && errorCount++ > 0)
             LOG(ERROR) << "persistent error, suppressing further output";
           else if (errorCount++ < maxError)
             LOG(ERROR) << "no output slot available (" << (fPayloadOutputs == NULL ? "uninitialized" : "0 slots")
                        << ")";
-        } else {
-          if (errorCount == maxError && errorCount++ > 0)
-            LOG(ERROR) << "persistent error, suppressing further output";
-          else if (errorCount++ < maxError)
-            LOG(ERROR) << "can not get output message from framework";
-          iResult = -ENOMSG;
         }
+        for (auto sendmsg : mMessages) delete sendmsg;
+        mMessages.clear();
       }
     }
 
@@ -356,4 +390,21 @@ int WrapperDevice::GetProperty(const int key, const int default_, const int slot
     return mSkipProcessing;
   }
   return FairMQDevice::GetProperty(key, default_, slot);
+}
+
+unsigned char* WrapperDevice::createMessageBuffer(unsigned size)
+{
+  /// create a new message with data buffer of specified size
+  unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+  if (msg.get()==nullptr) return nullptr;
+  msg->Rebuild(size);
+  if (msg->GetSize() < size) {
+    return nullptr;
+  }
+
+  if (mVerbosity > 2) {
+    LOG(DEBUG) << "allocating message of size " << size;
+  }
+  mMessages.push_back(msg.release());
+  return reinterpret_cast<AliHLTUInt8_t*>(mMessages.back()->GetData());
 }
