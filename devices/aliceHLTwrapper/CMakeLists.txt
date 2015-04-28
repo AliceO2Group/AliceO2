@@ -63,7 +63,7 @@ set(DEPENDENCIES
 set(DEPENDENCIES
   ${DEPENDENCIES}
 #  ${CMAKE_THREAD_LIBS_INIT}
-   boost_thread boost_system FairMQ
+   boost_thread boost_system boost_chrono FairMQ
 )
 
 set(LIBRARY_NAME ALICEHLT)
