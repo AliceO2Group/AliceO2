@@ -22,6 +22,8 @@
 #include "FairMQDevice.h"
 #include <vector>
 
+class FairMQMessage;
+
 namespace ALICE {
 namespace HLT {
 class Component;
@@ -80,8 +82,12 @@ private:
   // assignment operator prohibited
   WrapperDevice& operator=(const WrapperDevice&);
 
+  /// create a new message with data buffer of specified size
+  unsigned char* createMessageBuffer(unsigned size);
+
   Component* mComponent;     // component instance
   std::vector<char*> mArgv;       // array of arguments for the component
+  std::vector<FairMQMessage*> mMessages; // array of output messages
 
   int mPollingPeriod;        // period of polling on input sockets in ms
   int mSkipProcessing;       // skip component processing
