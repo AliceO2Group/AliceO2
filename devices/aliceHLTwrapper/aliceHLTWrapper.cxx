@@ -43,6 +43,9 @@
 #include <boost/asio.hpp>  // boost::lock
 #endif
 
+#include <chrono>
+#include <boost/chrono.hpp>
+
 using std::cout;
 using std::cerr;
 using std::stringstream;
@@ -165,6 +168,7 @@ int main(int argc, char** argv)
   int pollingPeriod = -1;
   int skipProcessing = 0;
   bool bUseDDS = false;
+  int timeout=-1;
 
   static struct option programOptions[] = {
     { "input",       required_argument, 0, 'i' }, // input socket
@@ -175,6 +179,7 @@ int main(int argc, char** argv)
     { "poll-period", required_argument, 0, 'p' }, // polling period of the device in ms
     { "dry-run",     no_argument      , 0, 'n' }, // skip the component processing
     { "dds",         no_argument      , 0, 'd' }, // run in dds mode
+    { "timeout",     required_argument, 0, 't' }, // polling period of the device in ms
     { 0, 0, 0, 0 }
   };
 
@@ -252,6 +257,9 @@ int main(int argc, char** argv)
         break;
       case 'p':
         std::stringstream(optarg) >> pollingPeriod;
+        break;
+      case 't':
+        std::stringstream(optarg) >> timeout;
         break;
       case 'n':
         skipProcessing = 1;
@@ -435,9 +443,29 @@ int main(int argc, char** argv)
 #endif
     device.ChangeState(FairMQDevice::RUN);
 
+    auto refTime = boost::chrono::system_clock::now();
+
     boost::unique_lock<boost::mutex> lock(device.fRunningMutex);
     while (!device.fRunningFinished) {
-      device.fRunningCondition.wait(lock);
+      // boost::chrono chosen when moved to wait_until because of the boost mutex
+      device.fRunningCondition.wait_until(lock, boost::chrono::system_clock::now() + boost::chrono::milliseconds(1000));
+      auto duration = boost::chrono::duration_cast<boost::chrono::seconds>(boost::chrono::system_clock::now() - refTime);
+      if (timeout>0) {
+	cout << "seconds elapsed since start " << duration.count() << endl;
+	if (duration.count()>timeout) {
+	  cout << "Executing time-out shutdown" << endl;
+	  // the execution is hanging in the state machine shutdown, has to be debugged
+	  // simply throw an exeption to terminate in order to allow callgrind to write
+	  // the statistics
+	  throw std::runtime_error("terminating by exception");
+	  gDevice->ChangeState(FairMQDevice::STOP);
+	  sleep(1);
+	  gDevice->ChangeState(FairMQDevice::END);
+	  sleep(5);
+	  cout << "... done" << endl;
+	  refTime=boost::chrono::system_clock::now();
+	}
+      }
     }
   } // scope for the device reference variable
 
