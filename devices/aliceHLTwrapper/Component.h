@@ -22,6 +22,9 @@
 #include "AliHLTDataTypes.h"
 #include "MessageFormat.h"
 #include <vector>
+#include <boost/signals2.hpp>
+//using boost::signals2::signal;
+typedef boost::signals2::signal<unsigned char* (unsigned int)> cballoc_signal_t;
 
 namespace ALICE {
 namespace HLT {
@@ -71,7 +74,8 @@ public:
   /// the AliHLTComponentBlockData header immediately followed by the block
   /// payload. After processing, handles to output blocks are provided in this
   /// list.
-  int process(vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray);
+  int process(vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray,
+              cballoc_signal_t* cbAllocate=nullptr);
 
   int getEventCount() const {return mEventCount;}
 

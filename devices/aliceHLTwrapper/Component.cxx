@@ -163,7 +163,8 @@ int Component::init(int argc, char** argv)
   return iResult;
 }
 
-int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
+int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
+                       cballoc_signal_t* cbAllocate)
 {
   if (!mpSystem) return -ENOSYS;
   int iResult = 0;
@@ -323,7 +324,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
     // TODO: for now there is an extra copy of the data, but it should be
     // handled in place
     vector<MessageFormat::BufferDesc_t> outputMessages =
-      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, evtData);
+      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, evtData, cbAllocate);
     dataArray.insert(dataArray.end(), outputMessages.begin(), outputMessages.end());
   }
 
