@@ -90,6 +90,8 @@ class AliHLTTPCFastTransform{
   /** Print */
   void Print(const char* option=0) const;
 
+  static Int_t Version() { return 0; }
+
  private:
 
   /** copy constructor prohibited */
