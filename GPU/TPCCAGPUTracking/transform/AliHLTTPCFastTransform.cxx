@@ -26,7 +26,8 @@
 #include "AliTPCParam.h"
 #include "AliTPCRecoParam.h"
 #include "AliTPCcalibDB.h"
- 
+#include "AliHLTTPCFastTransformObject.h"
+
 #include <iostream>
 #include <iomanip>
 
@@ -38,6 +39,7 @@ ClassImp(AliHLTTPCFastTransform); //ROOT macro for the implementation of ROOT sp
 AliHLTTPCFastTransform::AliHLTTPCFastTransform()
 :
   fError(),
+  fInitialisationMode(-1),
   fOrigTransform(0),
   fLastTimeStamp(-1),
   fLastTimeBin(600),
@@ -76,6 +78,7 @@ void  AliHLTTPCFastTransform::DeInit()
   delete[] fAlignment;
   fAlignment = NULL;
   fError = "";
+  fInitialisationMode = -1;
 }
 
 
@@ -84,6 +87,7 @@ Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Long_t TimeStam
   // Initialisation 
 
   DeInit();
+  fInitialisationMode = 1;
 
   AliTPCcalibDB* pCalib=AliTPCcalibDB::Instance();  
   if(!pCalib ) return Error( -1, "AliHLTTPCFastTransform::Init: No TPC calibration instance found");
@@ -147,6 +151,99 @@ Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Long_t TimeStam
 }
 
 
+Int_t AliHLTTPCFastTransform::WriteToObject( AliHLTTPCFastTransformObject &obj )
+{
+  //
+  // write fast transformation to ROOT object to store it in database
+  //
+  obj.Reset();
+
+  if( obj.GetMaxSec() < fkNSec ) return Error( -10, "AliHLTTPCFastTransform::WriteToObject: Wrong N Sectors in object");
+  if( obj.GetMaxRows() < fkNRows ) return Error( -10, "AliHLTTPCFastTransform::WriteToObject: Wrong N Rows in object");
+
+  obj.SetLastTimeBin( fLastTimeBin );
+  obj.SetTimeSplit1( fTimeBorder1 );
+  obj.SetTimeSplit2( fTimeBorder2 );
+
+  TArrayF &alignment =obj.GetAlignmentNonConst();
+  if( !fAlignment ) alignment.Set(0);
+  else{
+    alignment.Set( fkNSec*21 );
+    for( Int_t i=0; i<fkNSec*21; i++ ) alignment[i] = fAlignment[i];
+  }
+
+  for( Int_t iSec=0; iSec<fkNSec; iSec++ ){
+    for( int iRow=0; iRow<fkNRows; iRow++){
+      if( !fRows[iSec][iRow] ) break;
+      for( int iSpline=0; iSpline<3; iSpline++ ){
+	AliHLTTPCSpline2D3D & spline = fRows[iSec][iRow]->fSpline[iSpline];
+	AliHLTTPCSpline2D3DObject& splineObj = obj.GetSplineNonConst( iSec, iRow, iSpline );
+	spline.WriteToObject( splineObj );
+      }
+    }
+  }   
+  return 0;
+}
+
+
+
+Int_t AliHLTTPCFastTransform::ReadFromObject( const AliHLTTPCFastTransformObject &obj )
+{
+  //
+  // read fast transformation from ROOT object in database
+  //
+
+  DeInit();
+  fInitialisationMode = 0;
+
+  if( obj.GetMaxSec() > fkNSec ) return Error( -10, "AliHLTTPCFastTransform::ReadFromObject: Wrong N Sectors in object");
+  if( obj.GetMaxRows() > fkNRows ) return Error( -10, "AliHLTTPCFastTransform::ReadFromObject: Wrong N Rows in object");
+
+  fOrigTransform = NULL;
+  fLastTimeStamp = 0;
+
+  fLastTimeBin = obj.GetLastTimeBin();
+  fTimeBorder1 = obj.GetTimeSplit1();
+  fTimeBorder2 = obj.GetTimeSplit2();
+
+  AliTPCcalibDB* pCalib=AliTPCcalibDB::Instance();  
+  if(!pCalib ) return Error( -1, "AliHLTTPCFastTransform::Init: No TPC calibration instance found");
+
+  AliTPCParam *tpcParam = pCalib->GetParameters(); 
+  if( !tpcParam ) return Error( -2, "AliHLTTPCFastTransform::Init: No TPCParam object found");
+
+  tpcParam->Update();
+  tpcParam->ReadGeoMatrices();
+
+  int nSec = tpcParam->GetNSector();
+  if( nSec>fkNSec ) nSec = fkNSec;
+  
+  for( Int_t iSec=0; iSec<nSec; iSec++ ){     
+    int nRows = tpcParam->GetNRow(iSec);
+    if( nRows>fkNRows ) nRows = fkNRows;
+    for( int iRow=0; iRow<nRows; iRow++){
+      if( !fRows[iSec][iRow] ) fRows[iSec][iRow] = new AliHLTTPCFastTransform::AliRowTransform;
+      if( !fRows[iSec][iRow] ) return Error( -4, "AliHLTTPCFastTransform::ReadFromObject: Not enough memory");
+      for( int iSpline=0; iSpline<3; iSpline++ ){
+	AliHLTTPCSpline2D3D & spline = fRows[iSec][iRow]->fSpline[iSpline];
+	const AliHLTTPCSpline2D3DObject& splineObj = obj.GetSpline( iSec, iRow, iSpline );
+	spline.ReadFromObject( splineObj );
+      }
+    }
+  }
+  
+  const TArrayF &alignment =obj.GetAlignment();
+  delete[] fAlignment;
+  fAlignment = 0;  
+  if( alignment.GetSize() == fkNSec*21 ){
+    fAlignment = new Float_t [fkNSec*21];
+    for( Int_t i=0; i<fkNSec*21; i++ ) fAlignment[i] = alignment[i];
+  }  
+  return 0;
+}
+
+
+
 bool AliHLTTPCFastTransform::CalcAdjugateRotation(const Float_t *mA, Float_t *mB, bool bCheck)
 {
   // check rotation matrix and adjugate for consistency
@@ -193,7 +290,11 @@ Int_t AliHLTTPCFastTransform::SetCurrentTimeStamp( Long_t TimeStamp )
 {
   // Set the current time stamp
   
-  
+  if( fInitialisationMode!=1 ){
+    fLastTimeStamp = TimeStamp;
+    return 0;
+  }
+
   Long_t lastTS = fLastTimeStamp;
   fLastTimeStamp = -1; // deinitialise
 

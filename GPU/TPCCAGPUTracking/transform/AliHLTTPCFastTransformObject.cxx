@@ -23,27 +23,20 @@
 
 #include "AliHLTTPCFastTransformObject.h"
  
-#include <iostream>
-#include <iomanip>
-
-using namespace std;
-
 ClassImp(AliHLTTPCFastTransformObject); //ROOT macro for the implementation of ROOT specific class methods
 
 
 AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject()
-:
+  :
+  TObject(),
   fVersion(0),
-  fLastTimeBin(600),
-  fTimeSplit1(100),
-  fTimeSplit2(500),
+  fLastTimeBin(0),
+  fTimeSplit1(0),
+  fTimeSplit2(0),
   fAlignment(0)
 {
-  // see header file for class documentation
-  // or
-  // refer to README to build package
-  // or
-  // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt      
+  // constructor
+  
   Reset();
 }
 
@@ -52,16 +45,32 @@ AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject()
 void  AliHLTTPCFastTransformObject::Reset()
 {
   // Deinitialisation
-
-  for( Int_t i=0; i<fkNSec; i++){
-    for( Int_t j=0; j<fkNRows; j++ ){
-      for( Int_t k=0; k<3; k++ ){
-	fSplines[i][j][k].Init(0.,0,0.,0.,0,0.);
-      }
-    }
-  }
+  fLastTimeBin = 0.;
+  fTimeSplit1 = 0.;
+  fTimeSplit2 = 0.;  
+  for( Int_t i=0; i<fkNSec*fkNRows*3; i++) fSplines[i].Reset();
   fAlignment.Set(0);
 }
 
+AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject( const AliHLTTPCFastTransformObject &o )
+  :
+  TObject( o ),
+  fVersion(0),
+  fLastTimeBin(o.fLastTimeBin),
+  fTimeSplit1(o.fTimeSplit1),
+  fTimeSplit2(o.fTimeSplit2),
+  fAlignment(o.fAlignment)
+{ 
+  // constructor    
+  for( Int_t i=0; i<fkNSec*fkNRows*3; i++){
+    fSplines[i] = o.fSplines[i];
+  }
+}
 
+AliHLTTPCFastTransformObject& AliHLTTPCFastTransformObject::operator=( const AliHLTTPCFastTransformObject &o)
+{
+  // assignment operator
+   new (this) AliHLTTPCFastTransformObject( o );
+   return *this;
+}
 
