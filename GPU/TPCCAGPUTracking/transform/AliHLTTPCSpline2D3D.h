@@ -19,6 +19,7 @@
 
 #include"Rtypes.h"
 
+class AliHLTTPCSpline2D3DObject;
 
 /**
  * @class AliHLTTPCSpline2D3D
@@ -76,6 +77,10 @@ class AliHLTTPCSpline2D3D{
   Int_t WriteToBuffer( char *buf, size_t &size ) const;
   
   Int_t ReadFromBuffer( const char*buf, size_t &size );
+ 
+  void WriteToObject( AliHLTTPCSpline2D3DObject &obj );
+ 
+  void ReadFromObject( const AliHLTTPCSpline2D3DObject &obj );
 
   static Int_t Version() { return 0; }
 

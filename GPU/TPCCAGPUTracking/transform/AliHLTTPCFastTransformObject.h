@@ -17,23 +17,26 @@
 // or
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
-#include "Rtypes.h"
-#include "TString.h"
+#include "TObject.h"
 #include "AliHLTTPCSpline2D3DObject.h"
-
-class AliTPCTransform;
 
 /**
  * The class to store transformation map for AliHLTTPCFastTransform
  */
 
 
-class AliHLTTPCFastTransformObject{
+class AliHLTTPCFastTransformObject: public TObject{
     
  public:
 
   /** standard constructor */    
   AliHLTTPCFastTransformObject();           
+
+  /** constructor */
+  AliHLTTPCFastTransformObject( const AliHLTTPCFastTransformObject & );
+
+  /** assignment operator */
+  AliHLTTPCFastTransformObject& operator=( const AliHLTTPCFastTransformObject &);
 
   /** destructor */
   ~AliHLTTPCFastTransformObject(){};
@@ -63,7 +66,7 @@ class AliHLTTPCFastTransformObject{
   const TArrayF & GetAlignment() const { return fAlignment; } 
 
   /** transformation spline */
-  const AliHLTTPCSpline2D3DObject& GetSpline( Int_t iSec, Int_t iRow, Int_t iSpline ) const { return fSplines[iSec][iRow][iSpline]; }
+  const AliHLTTPCSpline2D3DObject& GetSpline( Int_t iSec, Int_t iRow, Int_t iSpline ) const { return fSplines[iSec*fkNRows*3 + iRow*3 + iSpline]; }
 
   /** last calibrated time bin */
   void SetLastTimeBin( Int_t v ){ fLastTimeBin = v; }
@@ -78,22 +81,23 @@ class AliHLTTPCFastTransformObject{
   TArrayF & GetAlignmentNonConst(){ return fAlignment; } 
 
   /** transformation spline */
-  AliHLTTPCSpline2D3DObject& GetSplineNonConst( Int_t iSec, Int_t iRow, Int_t iSpline ){ return fSplines[iSec][iRow][iSpline]; }
+  AliHLTTPCSpline2D3DObject& GetSplineNonConst( Int_t iSec, Int_t iRow, Int_t iSpline ){ return fSplines[iSec*fkNRows*3 + iRow*3 + iSpline]; }
 
- private:
+  private:
  
-  static const Int_t fkNSec = 72; //! transient
-  static const Int_t fkNRows = 100; //! transient
+  static const Int_t fkNSec = 72; // transient
+  static const Int_t fkNRows = 100; // transient
+
   Int_t fVersion;
   Int_t fLastTimeBin; // last calibrated time bin
   Float_t fTimeSplit1; // split of splines in time direction
   Float_t fTimeSplit2; // split of splines in time direction
   TArrayF fAlignment; // alignment matrices translation,rotation,reverse rotation
+  AliHLTTPCSpline2D3DObject fSplines[72*100*3]; // transient
 
-  AliHLTTPCSpline2D3DObject fSplines[fkNSec][fkNRows][3]; //! transient
+ public:
 
   ClassDef(AliHLTTPCFastTransformObject,1)
 };
-
 
 #endif

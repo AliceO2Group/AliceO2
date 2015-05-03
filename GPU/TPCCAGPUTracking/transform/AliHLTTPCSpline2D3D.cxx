@@ -21,6 +21,7 @@
 */
 
 #include "AliHLTTPCSpline2D3D.h"
+#include "AliHLTTPCSpline2D3DObject.h"
 #include "Vc/Vc"
   
 #include <iostream>
@@ -114,7 +115,7 @@ Int_t AliHLTTPCSpline2D3D::ReadFromBuffer( const char*buf, size_t &size )
   pFloat+=4;
   Vc::free( fXYZ );
   fXYZ = Vc::malloc< float, Vc::AlignOnCacheline>( 4*fN );
-  for( int i=0; i<fN; i+=4, pFloat+=3 ){ 
+  for( int i=0; i<4*fN; i+=4, pFloat+=3 ){ 
     fXYZ[i+0] = pFloat[0];
     fXYZ[i+1] = pFloat[1];
     fXYZ[i+2] = pFloat[2];
@@ -124,6 +125,45 @@ Int_t AliHLTTPCSpline2D3D::ReadFromBuffer( const char*buf, size_t &size )
   return err;
 }
 
+void AliHLTTPCSpline2D3D::WriteToObject( AliHLTTPCSpline2D3DObject &obj )
+{
+  //
+  // write spline to ROOT object to store it in database
+  //  
+  obj.SetMinA( fMinA );
+  obj.SetMinB( fMinB );
+  obj.SetStepA( fStepA );
+  obj.SetStepB( fStepB );
+  obj.InitGrid( fNA, fNB );
+  for( int i=0; i<fN; i++ ) obj.SetGridValue( i, fXYZ + i*4);
+}
+ 
+void  AliHLTTPCSpline2D3D::ReadFromObject( const AliHLTTPCSpline2D3DObject &obj )
+{
+  //
+  // read spline from ROOT object stored in database
+  //
+
+  fMinA = obj.GetMinA();
+  fStepA = obj.GetStepA();
+  fNA = obj.GetNPointsA();
+
+  fMinB = obj.GetMinB();
+  fStepB = obj.GetStepB();
+  fNB = obj.GetNPointsB();
+
+  fN = fNA*fNB;
+
+  fScaleA = fabs(fStepA) >1.e-8 ?1./fStepA :1.;
+  fScaleB = fabs(fStepB) >1.e-8 ?1./fStepB :1.;
+
+  Vc::free( fXYZ );
+  fXYZ = Vc::malloc< float, Vc::AlignOnCacheline>( 4*fN );
+  for( int i=0; i<fN; i++ ){
+    obj.GetGridValue( i, fXYZ + i*4 );
+    fXYZ[i*4+3] = 0.;
+  }
+}
 
 void AliHLTTPCSpline2D3D::Consolidate()
 {

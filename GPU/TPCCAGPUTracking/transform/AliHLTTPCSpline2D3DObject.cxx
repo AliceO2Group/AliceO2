@@ -22,28 +22,7 @@
 
 #include "AliHLTTPCSpline2D3DObject.h"
 
-  
-#include <iostream>
-#include <iomanip>
-
-using namespace std;
-
 ClassImp(AliHLTTPCSpline2D3DObject);
 
-void AliHLTTPCSpline2D3DObject::Init( Float_t minA, Int_t  nBinsA, Float_t  stepA, Float_t  minB, Int_t  nBinsB, Float_t  stepB )
-{
-  //
-  // Initialisation
-  //
-
-  fNA = nBinsA;
-  fNB = nBinsB;
-  fMinA = minA;
-  fMinB = minB;
-
-  fStepA = stepA;
-  fStepB = stepB;
-  fXYZ.Set(fNA*fNB);
-}
 
 

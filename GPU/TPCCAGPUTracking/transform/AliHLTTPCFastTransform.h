@@ -21,6 +21,8 @@
 #include "TString.h"
 #include "AliHLTTPCSpline2D3D.h"
 
+class AliHLTTPCFastTransformObject;
+
 class AliTPCTransform;
 
 /**
@@ -44,7 +46,13 @@ class AliHLTTPCFastTransform{
   
   /** initialization */
   Int_t  Init( AliTPCTransform *transform=0, Long_t TimeStamp=-1 );
- 
+
+  /** initialization */
+  Int_t ReadFromObject( const AliHLTTPCFastTransformObject &obj );
+
+  /** initialization */
+  Int_t WriteToObject( AliHLTTPCFastTransformObject &obj );
+
   /** initialization */
   Bool_t IsInitialised() const { return fOrigTransform!=NULL; }
   
@@ -58,7 +66,7 @@ class AliHLTTPCFastTransform{
   Long_t GetCurrentTimeStamp() const { return fLastTimeStamp; }
 
   /** Transformation: calibration + alignment */
-  Int_t  Transform( Int_t Sector, Int_t Row, Float_t Pad, Float_t Time, Float_t XYZ[] );
+  Int_t Transform( Int_t Sector, Int_t Row, Float_t Pad, Float_t Time, Float_t XYZ[] );
 
   /** Transformation: calibration + alignment in double*/
   Int_t Transform( Int_t Sector, Int_t Row, Float_t Pad, Float_t Time, Double_t XYZ[] );
@@ -115,8 +123,9 @@ class AliHLTTPCFastTransform{
 
   static const Int_t fkNSec = 72; //! transient
   static const Int_t fkNRows = 100; //! transient
-
+  
   TString fError; // error string
+  Int_t fInitialisationMode; // 0 == is initialised from pre-calculated OCDB object (online, no re-calculation in time) or 1== from TPC calib
   AliTPCTransform * fOrigTransform;                             //! transient
   Long_t fLastTimeStamp; // last time stamp
   Int_t fLastTimeBin; // last calibrated time bin
