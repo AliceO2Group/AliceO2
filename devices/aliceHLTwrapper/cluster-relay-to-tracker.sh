@@ -32,14 +32,18 @@ slices_per_node=1
 #dryrun="-n"
 pollingtimeout=100
 eventperiod=100000
+initialdelay=10000  # time before trigger starts
 CFoptOpenFilesAtStart=" -open_files_at_start"
 CFoptPublishIndividualPartitions=no #yes
-write_tracks=no #yes
+#CFoptLocalConfigFile=/tmp/tpc-cluster-publisher.conf
+write_tracks=yes
+syncrundir=no
 rundir=`pwd`
 
 baseport_on_flpgroup=48400
 baseport_on_epn1group=48450
 baseport_on_epn2group=48470
+baseport_on_triggergroup=48475
 triggernode=localhost
 epn2node=localhost
 
@@ -68,6 +72,19 @@ while [ "x$1" != "x" ]; do
     if [ "x$1" == "x--eventperiod" ] && [ "x$2" != "x" ] ; then
 	eventperiod=$2
 	shift
+    fi
+    if [ "x$1" == "x--initialdelay" ] && [ "x$2" != "x" ] ; then
+	initialdelay=$2
+	shift
+    fi
+    if [ "x$1" == "x--sync-rundir" ]; then
+	syncrundir=yes
+    fi
+    if [ "x$1" == "x--write-tracks" ]; then
+	write_tracks=yes
+    fi
+    if [ "x$1" == "x--skip-write-tracks" ]; then
+	write_tracks=no
     fi
     shift
 done
@@ -199,9 +216,9 @@ create_triggergroup() {
 
     deviceid="Trigger"
     input=
-    output="--output type=pub,size=100,method=bind,address=tcp://*:$((basesocket + socketcount))"
+    output="--output type=pub,size=5000,method=bind,address=tcp://*:$((basesocket + socketcount))"
     let socketcount++
-    command="aliceHLTEventSampler $deviceid 1 ${dryrun} $input $output --eventperiod $eventperiod --initialdelay 10000 --latency-log /tmp/latency.log"
+    command="aliceHLTEventSampler $deviceid 1 $input $output --eventperiod $eventperiod --initialdelay $initialdelay --latency-log /tmp/latency.log"
 
     sessionnode[nsessions]=$node
     sessiontitle[nsessions]="$deviceid"
@@ -245,10 +262,17 @@ create_flpgroup() {
             input=`translate_io_attributes "$flp_trigger_input"`
         fi
 	output="--output type=push,size=5000,method=bind,address=tcp://*:$socket"
+        if [ "x$syncrundir" == "xyes" ]; then
+            echo "synchronizing data $rundir on node $node"
+            rsync -auL --include="*CLUSTERS_"`printf 0x%02x $slice`"*" --exclude="event_*" $rundir/ $node:$rundir
+        fi
 	publisher_conf_file=data/emulated-tpc-clusters_$specprefix$spec.txt
-	local_conf_file=/tmp/tpc-cluster-publisher.conf
-	scp $publisher_conf_file $node:$local_conf_file
-	command="aliceHLTWrapper $deviceid 1 --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist $local_conf_file $CFoptOpenFilesAtStart'"
+        if [ "x$CFoptLocalConfigFile" != "x" ]; then
+            echo "copying publisher configuration file $publisher_conf_file to $CFoptLocalConfigFile on node $node"
+            scp $publisher_conf_file $node:$CFoptLocalConfigFile
+            publisher_conf_file=$CFoptLocalConfigFile
+        fi
+	command="aliceHLTWrapper $deviceid 2 --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist $publisher_conf_file $CFoptOpenFilesAtStart'"
 
 	sessionnode[nsessions]=$node
 	sessiontitle[nsessions]=$deviceid
@@ -277,7 +301,7 @@ create_flpgroup() {
         fi
 
         let socketcount++
-        command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
+        command="aliceHLTWrapper $deviceid 2 --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
 
         sessionnode[nsessions]=$node
         sessiontitle[nsessions]="$deviceid"
@@ -385,7 +409,7 @@ create_epn2group() {
     input=$epn2_input
     output="--output type=pub,size=1000,method=bind,address=tcp://$node:$((basesocket + socketcount))"
     let socketcount++
-    command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
+    command="aliceHLTWrapper $deviceid 1 --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
 
     sessionnode[nsessions]=$node
     sessiontitle[nsessions]="$deviceid"
@@ -396,7 +420,7 @@ create_epn2group() {
     deviceid=FileWriter
     input=`translate_io_attributes "$output"`
     output=
-    command="aliceHLTWrapper $deviceid 1 ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
+    command="aliceHLTWrapper $deviceid 1 --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
 
     sessionnode[nsessions]=$node
     sessiontitle[nsessions]="$deviceid"
@@ -409,7 +433,7 @@ create_epn2group() {
 #
 # now build the commands on the nodes
 # trigger nodegroup
-create_triggergroup $triggernode $baseport_on_flpgroup
+create_triggergroup $triggernode $baseport_on_triggergroup
 
 # flp nodegroups
 sliceno=$firstslice
@@ -445,9 +469,19 @@ done
 havesessions=1
 
 applications=
+usednodes=`for n in ${sessionnode[@]}; do echo $n; done | sort | uniq`
+if [ "x$syncrundir" == "xyes" ]; then
+for node in $usednodes; do
+    echo "synchronizing setup $rundir on node $node"
+    rsync -auL --include="setup.sh" --exclude="*" $rundir/ $node:$rundir
+    rsync -auL $rundir/data/OCDB/ $node:$rundir/data/OCDB
+done
+fi
+
 while [ "$havesessions" -gt 0 ]; do
 havesessions=0
 lastnode=
+
 for ((isession=$nsessions++-1; isession>=0; isession--)); do
     if [ "${sessionmap[isession]}" -eq 1 ]; then
     if [ "x$printcmdtoscreen" == "x" ]; then
@@ -483,7 +517,7 @@ for ((imsg=0; imsg<npostponed_messages; imsg++)); do
 done
 if [ "x$printcmdtoscreen" == "x" ]; then
 echo
-usednodes=`for n in ${sessionnode[@]}; do echo $n; done | sort | uniq`
+
 echo
 echo "started processing topology in ${#sessionnode[@]} session(s) on `echo $usednodes | wc -w` node(s):"
 usednodes=`echo $usednodes | sed ':a;N;$!ba;s/\n/ /g'`

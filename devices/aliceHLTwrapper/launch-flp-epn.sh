@@ -161,7 +161,7 @@ create_flpgroup() {
 	command+=" --num-inputs 3"
 	command+=" --num-outputs $nepnsessions"
 	command+=" --heartbeat-timeout 20000"
-	command+=" --send-offset 0" #$((10#$i))"
+	command+=" --send-offset $((1+3*$nflpsessions))"
 	command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_command_socket   --input-rate-logging 0" # command input
 	command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_heartbeat_socket --input-rate-logging 0" # heartbeat input
 	command+=" "
@@ -190,7 +190,7 @@ create_epngroup() {
 	command+=" --id $deviceid"
 	command+=" --num-outputs $((number_of_flps + 1))"
 	command+=" --heartbeat-interval 5000"
-	command+=" --buffer-timeout 120000"
+	command+=" --buffer-timeout 60000"
 	command+=" --num-flps $number_of_flps"
 	epninputsocket[nepnsessions]=$((2*nepn + basesocket))
 	command+=" --input-socket-type pull --input-buff-size 5000 --input-method bind --input-address tcp://$node:${epninputsocket[$nepnsessions]} --input-rate-logging 1" # data input
