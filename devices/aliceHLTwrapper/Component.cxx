@@ -319,6 +319,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
         cerr << "Inconsistent data reference in output block " << blockIndex << endl;
       }
     }
+    evtData.fBlockCnt=validBlocks;
 
     // create the messages
     // TODO: for now there is an extra copy of the data, but it should be
