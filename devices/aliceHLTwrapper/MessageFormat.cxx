@@ -78,6 +78,10 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
     evtData=NULL;
   }
   do {
+    if (evtData && evtData->fBlockCnt==0 && size<sizeof(AliHLTComponentBlockData)) {
+      // special case: no block data, only event header
+      break;
+    }
     if (readBlockSequence(buffer+position, size-position, mBlockDescriptors) < 0 ||
 	evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt)) {
       // not in the format of a single block, check if its a HOMER block
@@ -90,7 +94,7 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
 	  evtData=NULL;
 	  continue;
 	}
-	break;
+	return -ENODATA;
       }
     }
   } while (0);
@@ -114,14 +118,10 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
     if (data->mSize > 0) {
       unsigned nofEventHeaders=mListEvtData.size();
       int result = addMessage(data->mP, data->mSize);
-      if (result > 0)
+      if (result >= 0)
         totalCount += result;
-      else if (result == 0 && nofEventHeaders==mListEvtData.size()) {
+      else {
         cerr << "warning: no valid data blocks in message " << i << endl;
-      } else {
-	// severe error in the data
-	// TODO: think about downstream data handlling
-	mBlockDescriptors.clear();
       }
     } else {
       cerr << "warning: ignoring message " << i << " with payload of size 0" << endl;
@@ -291,8 +291,17 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
       }
 
       if (bi==0) {
-	// event data only in the first message
+	// event data only in the first message in order to avoid increase of required
+	// buffer size due to duplicated event header
 	memcpy(pTarget + offset, &evtData, sizeof(evtData));
+        if (mOutputMode == kOutputModeMultiPart && evtData.fBlockCnt>1) {
+          // in multipart mode, there is only one block per part
+          // consequently, the number of blocks indicated in the event data header
+          // does not reflect the number of blocks in this data sample. But it is
+          // set to 1 to make the single message consistent
+          auto* pEvtData = reinterpret_cast<AliHLTComponentEventData*>(pTarget + offset);
+          pEvtData->fBlockCnt=1;
+	}
 	offset+=sizeof(evtData);
       }
 
@@ -378,7 +387,9 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
     // if there is a mismatch, as the headers are inserted one by one, all
     // headers in the list have the same ID
     if (evtData.fEventID!=it->fEventID) {
-      cerr << "Error: mismatch in event ID for event with timestamp "
+      cerr << "Error: mismatching event ID " << evtData.fEventID
+	   << ", expected " << it->fEventID
+	   << " for event with timestamp "
 	   << evtData.fEventCreation_us*1e3 + evtData.fEventCreation_us/1e3 << " ms"
 	   << endl;
       return -1;
