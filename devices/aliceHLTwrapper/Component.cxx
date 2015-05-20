@@ -163,7 +163,8 @@ int Component::init(int argc, char** argv)
   return iResult;
 }
 
-int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
+int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
+                       cballoc_signal_t* cbAllocate)
 {
   if (!mpSystem) return -ENOSYS;
   int iResult = 0;
@@ -226,6 +227,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
     double inputBlockMultiplier = 0.;
     mpSystem->getOutputSize(mProcessor, &constEventBase, &constBlockBase, &inputBlockMultiplier);
     outputBufferSize = constEventBase + nofInputBlocks * constBlockBase + totalInputSize * inputBlockMultiplier;
+    outputBufferSize+=sizeof(AliHLTComponentStatistics) + sizeof(AliHLTComponentTableEntry);
     // take the full available buffer and increase if that
     // is too little
     mOutputBuffer.resize(mOutputBuffer.capacity());
@@ -312,18 +314,19 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray)
       if (bValid) {
         totalPayloadSize += pOutputBlock->fSize;
         validBlocks++;
-        pFiltered = pOutputBlock;
+        memcpy(pFiltered, pOutputBlock, sizeof(AliHLTComponentBlockData));
         pFiltered++;
       } else {
         cerr << "Inconsistent data reference in output block " << blockIndex << endl;
       }
     }
+    evtData.fBlockCnt=validBlocks;
 
     // create the messages
     // TODO: for now there is an extra copy of the data, but it should be
     // handled in place
     vector<MessageFormat::BufferDesc_t> outputMessages =
-      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, evtData);
+      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, evtData, cbAllocate);
     dataArray.insert(dataArray.end(), outputMessages.begin(), outputMessages.end());
   }
 

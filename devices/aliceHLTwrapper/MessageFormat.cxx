@@ -78,6 +78,10 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
     evtData=NULL;
   }
   do {
+    if (evtData && evtData->fBlockCnt==0 && size<sizeof(AliHLTComponentBlockData)) {
+      // special case: no block data, only event header
+      break;
+    }
     if (readBlockSequence(buffer+position, size-position, mBlockDescriptors) < 0 ||
 	evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt)) {
       // not in the format of a single block, check if its a HOMER block
@@ -90,7 +94,7 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
 	  evtData=NULL;
 	  continue;
 	}
-	break;
+	return -ENODATA;
       }
     }
   } while (0);
@@ -114,14 +118,10 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
     if (data->mSize > 0) {
       unsigned nofEventHeaders=mListEvtData.size();
       int result = addMessage(data->mP, data->mSize);
-      if (result > 0)
+      if (result >= 0)
         totalCount += result;
-      else if (result == 0 && nofEventHeaders==mListEvtData.size()) {
+      else {
         cerr << "warning: no valid data blocks in message " << i << endl;
-      } else {
-	// severe error in the data
-	// TODO: think about downstream data handlling
-	mBlockDescriptors.clear();
       }
     } else {
       cerr << "warning: ignoring message " << i << " with payload of size 0" << endl;
@@ -200,7 +200,8 @@ int MessageFormat::readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size,
 
 vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTComponentBlockData* blocks,
                                                                   unsigned count, unsigned totalPayloadSize,
-                                                                  const AliHLTComponentEventData& evtData)
+                                                                  const AliHLTComponentEventData& evtData,
+                                                                  boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate)
 {
   const AliHLTComponentBlockData* pOutputBlocks = blocks;
   AliHLTUInt32_t outputBlockCnt = count;
@@ -210,14 +211,26 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     AliHLTHOMERWriter* pWriter = createHOMERFormat(pOutputBlocks, outputBlockCnt);
     if (pWriter) {
       AliHLTUInt32_t position = mDataBuffer.size();
-      AliHLTUInt32_t startPosition = position;
+      AliHLTUInt32_t offset = 0;
       AliHLTUInt32_t payloadSize = pWriter->GetTotalMemorySize();
-      mDataBuffer.resize(position + payloadSize + sizeof(evtData));
-      memcpy(&mDataBuffer[position], &evtData, sizeof(evtData));
-      position+=sizeof(evtData);
-      pWriter->Copy(&mDataBuffer[position], 0, 0, 0, 0);
+      auto msgSize=payloadSize + sizeof(evtData);
+      auto pTarget=&mDataBuffer[position];
+      if (cbAllocate==nullptr) {
+	// make the target in the internal buffer
+	mDataBuffer.resize(position + msgSize);
+      } else {
+	// use callback to create target
+	pTarget=*(*cbAllocate)(msgSize);
+	if (pTarget==nullptr) {
+	  throw std::bad_alloc();
+	}
+      }
+      memcpy(pTarget + offset, &evtData, sizeof(evtData));
+      offset+=sizeof(evtData);
+      pWriter->Copy(pTarget + offset, 0, 0, 0, 0);
       mpFactory->DeleteWriter(pWriter);
-      mMessages.push_back(MessageFormat::BufferDesc_t(&mDataBuffer[startPosition], payloadSize));
+      offset+=payloadSize;
+      mMessages.push_back(MessageFormat::BufferDesc_t(pTarget, offset));
     }
   } else if (mOutputMode == kOutputModeMultiPart || mOutputMode == kOutputModeSequence) {
     // the output blocks are assempled in the internal buffer, for each
@@ -234,31 +247,87 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     // buffer. In contrast to multi part mode, only one buffer descriptor
     // for the complete sequence is handed over to device
     AliHLTUInt32_t position = mDataBuffer.size();
-    AliHLTUInt32_t startPosition = position;
-    mDataBuffer.resize(position + count * sizeof(AliHLTComponentBlockData) + totalPayloadSize + sizeof(evtData));
-    memcpy(&mDataBuffer[position], &evtData, sizeof(evtData));
-    position+=sizeof(evtData);
-    for (unsigned bi = 0; bi < count; bi++) {
-      const AliHLTComponentBlockData* pOutputBlock = pOutputBlocks + bi;
-      // copy BlockData and payload
-      AliHLTUInt8_t* pData = reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr);
-      pData += pOutputBlock->fOffset;
-      AliHLTComponentBlockData* bdTarget = reinterpret_cast<AliHLTComponentBlockData*>(&mDataBuffer[position]);
-      memcpy(bdTarget, pOutputBlock, sizeof(AliHLTComponentBlockData));
-      bdTarget->fOffset = 0;
-      bdTarget->fPtr = NULL;
-      position += sizeof(AliHLTComponentBlockData);
-      memcpy(&mDataBuffer[position], pData, pOutputBlock->fSize);
-      position += pOutputBlock->fSize;
-      if (mOutputMode == kOutputModeMultiPart) {
-        // send one descriptor per block back to device
-        mMessages.push_back(MessageFormat::BufferDesc_t(&mDataBuffer[startPosition], position - startPosition));
-        startPosition = position;
+    auto pTarget=&mDataBuffer[position];
+    AliHLTUInt32_t offset = 0;
+    unsigned bi = 0;
+    const auto* pOutputBlock = pOutputBlocks;
+    auto maxBufferSize = sizeof(evtData) + count * sizeof(AliHLTComponentBlockData) + totalPayloadSize;
+    do {
+      if (bi == 0 ||
+	  mOutputMode == kOutputModeMultiPart) {
+	// request a new message buffer when entering for the first time in concatanate mode
+	// and for every block in multi part mode
+	// the actual size depends on mode and block index
+	// - event data structure is only written at beginning of first
+	//   message, regardsless of mode
+	// - concatanate mode requests one big buffer for sequential sequence of
+	//   all blocks
+	auto msgSize = (bi==0?sizeof(evtData):0); // first message has event data
+	if (count>0 && mOutputMode==kOutputModeMultiPart) {
+	  msgSize+=sizeof(AliHLTComponentBlockData) + pOutputBlock->fSize;
+	} else {
+	  msgSize+=count*sizeof(AliHLTComponentBlockData) + totalPayloadSize;
+	}
+	if (cbAllocate==nullptr) {
+	  // make the target in the internal buffer, for simplicity data is copied
+	  // to a new buffer, a memmove would be possible to make room for block
+	  // descriptors
+	  if (mDataBuffer.size() < position + msgSize) {
+	    if (bi != 0) {
+	      throw std::runtime_error("complete buffer allocation must be done in the first cycle");
+	    }
+	    // resize to the full size at once
+	    mDataBuffer.resize(position + maxBufferSize);
+	  }
+	  pTarget=&mDataBuffer[position];
+	} else {
+	  // use callback to create target
+	  pTarget=*(*cbAllocate)(msgSize);
+	  if (pTarget==nullptr) {
+	    throw std::bad_alloc();
+	  }
+	}
+	offset=0;
+      }
+
+      if (bi==0) {
+	// event data only in the first message in order to avoid increase of required
+	// buffer size due to duplicated event header
+	memcpy(pTarget + offset, &evtData, sizeof(evtData));
+        if (mOutputMode == kOutputModeMultiPart && evtData.fBlockCnt>1) {
+          // in multipart mode, there is only one block per part
+          // consequently, the number of blocks indicated in the event data header
+          // does not reflect the number of blocks in this data sample. But it is
+          // set to 1 to make the single message consistent
+          auto* pEvtData = reinterpret_cast<AliHLTComponentEventData*>(pTarget + offset);
+          pEvtData->fBlockCnt=1;
+	}
+	offset+=sizeof(evtData);
+      }
+
+      if (bi<count) {
+        // copy BlockData and payload
+        AliHLTUInt8_t* pData = reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr);
+        pData += pOutputBlock->fOffset;
+        auto* bdTarget = reinterpret_cast<AliHLTComponentBlockData*>(pTarget + offset);
+        memcpy(bdTarget, pOutputBlock, sizeof(AliHLTComponentBlockData));
+        bdTarget->fOffset = 0;
+        bdTarget->fPtr = NULL;
+        offset += sizeof(AliHLTComponentBlockData);
+        memcpy(pTarget + offset, pData, pOutputBlock->fSize);
+        offset += pOutputBlock->fSize;
+        if (mOutputMode == kOutputModeMultiPart) {
+          // send one descriptor per block back to device
+          mMessages.push_back(MessageFormat::BufferDesc_t(pTarget, offset));
+          position+=offset;
+        }
+	pOutputBlock++;
       }
     }
+    while (++bi<count);
     if (mOutputMode == kOutputModeSequence || count==0) {
       // send one single descriptor for all concatenated blocks
-      mMessages.push_back(MessageFormat::BufferDesc_t(&mDataBuffer[startPosition], position - startPosition));
+      mMessages.push_back(MessageFormat::BufferDesc_t(pTarget, offset));
     }
   } else {
     // invalid output mode
@@ -317,8 +386,11 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
     // TODO: simple logic at the moment, header is not inserted
     // if there is a mismatch, as the headers are inserted one by one, all
     // headers in the list have the same ID
-    if (evtData.fEventID!=it->fEventID) {
-      cerr << "Error: mismatch in event ID for event with timestamp "
+    if (it != mListEvtData.end() &&
+        evtData.fEventID!=it->fEventID) {
+      cerr << "Error: mismatching event ID " << evtData.fEventID
+	   << ", expected " << it->fEventID
+	   << " for event with timestamp "
 	   << evtData.fEventCreation_us*1e3 + evtData.fEventCreation_us/1e3 << " ms"
 	   << endl;
       return -1;
@@ -326,6 +398,7 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
     // insert before the younger element
     mListEvtData.insert(it, evtData);
   }
+  return 0;
 }
 
 AliHLTUInt64_t MessageFormat::byteSwap64(AliHLTUInt64_t src) const
