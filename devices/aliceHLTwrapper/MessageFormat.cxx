@@ -386,7 +386,8 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
     // TODO: simple logic at the moment, header is not inserted
     // if there is a mismatch, as the headers are inserted one by one, all
     // headers in the list have the same ID
-    if (evtData.fEventID!=it->fEventID) {
+    if (it != mListEvtData.end() &&
+        evtData.fEventID!=it->fEventID) {
       cerr << "Error: mismatching event ID " << evtData.fEventID
 	   << ", expected " << it->fEventID
 	   << " for event with timestamp "
@@ -397,6 +398,7 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
     // insert before the younger element
     mListEvtData.insert(it, evtData);
   }
+  return 0;
 }
 
 AliHLTUInt64_t MessageFormat::byteSwap64(AliHLTUInt64_t src) const

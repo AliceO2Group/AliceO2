@@ -227,6 +227,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
     double inputBlockMultiplier = 0.;
     mpSystem->getOutputSize(mProcessor, &constEventBase, &constBlockBase, &inputBlockMultiplier);
     outputBufferSize = constEventBase + nofInputBlocks * constBlockBase + totalInputSize * inputBlockMultiplier;
+    outputBufferSize+=sizeof(AliHLTComponentStatistics) + sizeof(AliHLTComponentTableEntry);
     // take the full available buffer and increase if that
     // is too little
     mOutputBuffer.resize(mOutputBuffer.capacity());
@@ -313,7 +314,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
       if (bValid) {
         totalPayloadSize += pOutputBlock->fSize;
         validBlocks++;
-        pFiltered = pOutputBlock;
+        memcpy(pFiltered, pOutputBlock, sizeof(AliHLTComponentBlockData));
         pFiltered++;
       } else {
         cerr << "Inconsistent data reference in output block " << blockIndex << endl;
