@@ -30,7 +30,8 @@
 #include <chrono>
 #include <fstream>
 
-using namespace std;
+using std::string;
+using std::vector;
 
 // time reference for the timestamp of events is the beginning of the day
 using std::chrono::system_clock;
