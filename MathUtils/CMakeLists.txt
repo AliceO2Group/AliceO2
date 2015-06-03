@@ -28,7 +28,7 @@ Chebyshev3DCalc.cxx
 Set(HEADERS)
 Set(LINKDEF MathUtilsLinkDef.h)
 Set(LIBRARY_NAME MathUtils)
-Set(DEPENDENCIES Cint Core)
+Set(DEPENDENCIES Core)
 
 GENERATE_LIBRARY()
 

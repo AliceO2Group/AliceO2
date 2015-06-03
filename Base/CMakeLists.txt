@@ -24,6 +24,6 @@ TrackReference.cxx
 Set(HEADERS)
 Set(LINKDEF BaseLinkDef.h)
 Set(LIBRARY_NAME AliceO2Base)
-Set(DEPENDENCIES Base EG Physics Cint Core)
+Set(DEPENDENCIES Base EG Physics Core)
 
 GENERATE_LIBRARY()

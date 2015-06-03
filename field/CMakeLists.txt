@@ -28,7 +28,7 @@ MagneticField.cxx
 Set(HEADERS)
 Set(LINKDEF fieldLinkDef.h)
 Set(LIBRARY_NAME Field)
-Set(DEPENDENCIES MathUtils Cint Core)
+Set(DEPENDENCIES MathUtils Core)
 
 GENERATE_LIBRARY()
 

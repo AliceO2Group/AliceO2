@@ -128,7 +128,7 @@ void ConditionId::print(Option_t* /*option*/) const
 {
   // Prints ToString()
 
-  cout << ToString().Data() << endl;
+  std::cout << ToString().Data() << std::endl;
 }
 
 Int_t ConditionId::Compare(const TObject* obj) const
