@@ -1058,7 +1058,7 @@ TParticle* Detector::GetParticle() const
   return ((AliceO2::Data::Stack*)gMC->GetStack())->GetParticle(GetTrack());
 }
 
-void Detector::Print(ostream* os) const
+void Detector::Print(std::ostream* os) const
 {
 // Standard output format for this class.
 // Inputs:
@@ -1070,7 +1070,7 @@ void Detector::Print(ostream* os) const
 
 #if defined __GNUC__
 #if __GNUC__ > 2
-  ios::fmtflags fmt;
+ std::ios::fmtflags fmt;
 #else
   Int_t fmt;
 #endif
@@ -1082,11 +1082,11 @@ void Detector::Print(ostream* os) const
 #endif
 #endif
 
-  fmt = os->setf(ios::scientific); // set scientific floating point output
+  fmt = os->setf(std::ios::scientific); // set scientific floating point output
   *os << mTrackNumber << " " << mPositionX << " " << mPositionY << " " << mPositionZ << " ";
-  fmt = os->setf(ios::hex); // set hex for mStatus only.
+  fmt = os->setf(std::ios::hex); // set hex for mStatus only.
   *os << mStatus << " ";
-  fmt = os->setf(ios::dec); // every thing else decimel.
+  fmt = os->setf(std::ios::dec); // every thing else decimel.
   *os << mModule << " ";
   *os << mParticlePx << " " << mParticlePy << " " << mParticlePz << " ";
   *os << mEnergyDepositionStep << " " << mTof;
@@ -1096,7 +1096,7 @@ void Detector::Print(ostream* os) const
   return;
 }
 
-void Detector::Read(istream* is)
+void Detector::Read(std::istream* is)
 {
   // Standard input format for this class.
   // Inputs:
@@ -1118,7 +1118,7 @@ FairModule* Detector::CloneModule() const
   return new Detector(*this);
 }
 
-ostream& operator<<(ostream& os, Detector& p)
+std::ostream& operator<<(std::ostream& os, Detector& p)
 {
   // Standard output streaming function.
   // Inputs:
@@ -1133,7 +1133,7 @@ ostream& operator<<(ostream& os, Detector& p)
   return os;
 }
 
-istream& operator>>(istream& is, Detector& r)
+std::istream& operator>>(std::istream& is, Detector& r)
 {
   // Standard input streaming function.
   // Inputs:

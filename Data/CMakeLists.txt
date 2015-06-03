@@ -25,6 +25,6 @@ MCTrack.cxx
 Set(HEADERS )
 Set(LINKDEF DataLinkDef.h)
 Set(LIBRARY_NAME O2Data)
-Set(DEPENDENCIES Base EG Physics Cint Core)
+Set(DEPENDENCIES Base EG Physics Core)
 
 GENERATE_LIBRARY()

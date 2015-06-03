@@ -193,11 +193,11 @@ public:
 
   /// Prints out the content of this class in ASCII format
   /// \param ostream *os The output stream
-  void Print(ostream* os) const;
+  void Print(std::ostream* os) const;
 
   /// Reads in the content of this class in the format of Print
   /// \param istream *is The input stream
-  void Read(istream* is);
+  void Read(std::istream* is);
 
   /// Returns the number of layers
   Int_t getNumberOfLayers() const
@@ -319,8 +319,8 @@ private:
 };
 
 // Input and output function for standard C++ input/output.
-ostream& operator<<(ostream& os, Detector& source);
-istream& operator>>(istream& os, Detector& source);
+std::ostream& operator<<(std::ostream& os, Detector& source);
+std::istream& operator>>(std::istream& os, Detector& source);
 }
 }
 
