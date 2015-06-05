@@ -54,7 +54,7 @@ class AliHLTTPCFastTransform{
   Int_t WriteToObject( AliHLTTPCFastTransformObject &obj );
 
   /** initialization */
-  Bool_t IsInitialised() const { return fOrigTransform!=NULL; }
+  Bool_t IsInitialised() const { return fInitialisationMode != -1; }
   
   /** deinitialization */
   void  DeInit();
@@ -99,6 +99,10 @@ class AliHLTTPCFastTransform{
   void Print(const char* option=0) const;
 
   static Int_t Version() { return 0; }
+  
+  Int_t MinInitSec() {return fMinInitSec;}
+  Int_t MaxInitSec() {return fMaxInitSec;}
+  void SetInitSec(Int_t min, Int_t max) {fMinInitSec = min;fMaxInitSec = max;if (min < 0) min = 0;if (max > fkNSec) max = fkNSec;}
 
  private:
 
@@ -123,6 +127,9 @@ class AliHLTTPCFastTransform{
 
   static const Int_t fkNSec = 72; //! transient
   static const Int_t fkNRows = 100; //! transient
+  
+  Int_t fMinInitSec;	//Min sector for parallel initialization
+  Int_t fMaxInitSec;	//Max sector for parallel initialization
   
   TString fError; // error string
   Int_t fInitialisationMode; // 0 == is initialised from pre-calculated OCDB object (online, no re-calculation in time) or 1== from TPC calib
