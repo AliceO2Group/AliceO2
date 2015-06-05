@@ -22,6 +22,8 @@
 
 
 #include "AliHLTTPCFastTransformObject.h"
+#include "TCollection.h"
+#include "TIterator.h"
  
 ClassImp(AliHLTTPCFastTransformObject); //ROOT macro for the implementation of ROOT specific class methods
 
@@ -36,6 +38,7 @@ AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject()
   fAlignment(0)
 {
   // constructor
+  for (int i = 0;i < fkNSec;i++) fSectorInit[i] = false;
   
   Reset();
 }
@@ -74,3 +77,36 @@ AliHLTTPCFastTransformObject& AliHLTTPCFastTransformObject::operator=( const Ali
    return *this;
 }
 
+void AliHLTTPCFastTransformObject::Merge(const AliHLTTPCFastTransformObject& obj)
+{
+	for (int i = 0;i < fkNSec;i++)
+	{
+		if (!obj.IsSectorInit(i)) continue;
+		for(int iRow=0;iRow<fkNRows;iRow++)
+		{
+			for(int iSpline=0;iSpline<3;iSpline++)
+			{
+				GetSplineNonConst(i, iRow, iSpline) = obj.GetSpline(i, iRow, iSpline);
+			}
+		}
+		fSectorInit[i] = true;
+	}
+}
+
+Long64_t AliHLTTPCFastTransformObject::Merge(TCollection* list)
+{
+	if (list == NULL || list->GetSize() == 0) return(0); //Nothing to do!
+	TIterator* iter = list->MakeIterator();
+	TObject* obj;
+	int nMerged = 0;
+	while (obj = iter->Next())
+	{
+		AliHLTTPCFastTransformObject* mergeObj = dynamic_cast<AliHLTTPCFastTransformObject*>(obj);
+		if (mergeObj && mergeObj != this)
+		{
+			Merge(*mergeObj);
+			nMerged++;
+		}
+	}
+	return(nMerged);
+}

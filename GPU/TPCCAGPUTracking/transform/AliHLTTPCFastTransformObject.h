@@ -66,7 +66,7 @@ class AliHLTTPCFastTransformObject: public TObject{
   const TArrayF & GetAlignment() const { return fAlignment; } 
 
   /** transformation spline */
-  const AliHLTTPCSpline2D3DObject& GetSpline( Int_t iSec, Int_t iRow, Int_t iSpline ) const { return fSplines[iSec*fkNRows*3 + iRow*3 + iSpline]; }
+  const AliHLTTPCSpline2D3DObject& GetSpline ( Int_t iSec, Int_t iRow, Int_t iSpline ) const { return fSplines[iSec*fkNRows*3 + iRow*3 + iSpline]; }
 
   /** last calibrated time bin */
   void SetLastTimeBin( Int_t v ){ fLastTimeBin = v; }
@@ -82,11 +82,19 @@ class AliHLTTPCFastTransformObject: public TObject{
 
   /** transformation spline */
   AliHLTTPCSpline2D3DObject& GetSplineNonConst( Int_t iSec, Int_t iRow, Int_t iSpline ){ return fSplines[iSec*fkNRows*3 + iRow*3 + iSpline]; }
+  
+  bool IsSectorInit(int sec) const {return fSectorInit[sec];}
+  void SetInitSec(Int_t sector, bool init) {if (sector >= 0 && sector < fkNSec) fSectorInit[sector] = init;}
+  
+  void Merge(const AliHLTTPCFastTransformObject& obj);
+  Long64_t Merge(TCollection* list);
 
   private:
  
   static const Int_t fkNSec = 72; // transient
   static const Int_t fkNRows = 100; // transient
+  
+  bool fSectorInit[fkNSec];	//Sectors which are initialized
 
   Int_t fVersion;
   Int_t fLastTimeBin; // last calibrated time bin

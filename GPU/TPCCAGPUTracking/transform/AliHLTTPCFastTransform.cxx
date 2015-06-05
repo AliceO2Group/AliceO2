@@ -38,6 +38,8 @@ ClassImp(AliHLTTPCFastTransform); //ROOT macro for the implementation of ROOT sp
 
 AliHLTTPCFastTransform::AliHLTTPCFastTransform()
 :
+  fMinInitSec(0),
+  fMaxInitSec(fkNSec),
   fError(),
   fInitialisationMode(-1),
   fOrigTransform(0),
@@ -172,7 +174,7 @@ Int_t AliHLTTPCFastTransform::WriteToObject( AliHLTTPCFastTransformObject &obj )
     for( Int_t i=0; i<fkNSec*21; i++ ) alignment[i] = fAlignment[i];
   }
 
-  for( Int_t iSec=0; iSec<fkNSec; iSec++ ){
+  for( Int_t iSec=fMinInitSec; iSec<fMaxInitSec; iSec++ ){
     for( int iRow=0; iRow<fkNRows; iRow++){
       if( !fRows[iSec][iRow] ) break;
       for( int iSpline=0; iSpline<3; iSpline++ ){
@@ -181,7 +183,9 @@ Int_t AliHLTTPCFastTransform::WriteToObject( AliHLTTPCFastTransformObject &obj )
 	spline.WriteToObject( splineObj );
       }
     }
-  }   
+    obj.SetInitSec(iSec, true);
+  }
+  
   return 0;
 }
 
@@ -218,7 +222,8 @@ Int_t AliHLTTPCFastTransform::ReadFromObject( const AliHLTTPCFastTransformObject
   int nSec = tpcParam->GetNSector();
   if( nSec>fkNSec ) nSec = fkNSec;
   
-  for( Int_t iSec=0; iSec<nSec; iSec++ ){     
+  for( Int_t iSec=0; iSec<nSec; iSec++ ){
+	if (obj.IsSectorInit(iSec) == false) return Error( -10, "AliHLTTPCFastTransform::ReadFromObject: Cannot initialize from Object that does not contain full transform map!");
     int nRows = tpcParam->GetNRow(iSec);
     if( nRows>fkNRows ) nRows = fkNRows;
     for( int iRow=0; iRow<nRows; iRow++){
@@ -339,7 +344,7 @@ Int_t AliHLTTPCFastTransform::SetCurrentTimeStamp( Long_t TimeStamp )
   int nSec = tpcParam->GetNSector();
   if( nSec>fkNSec ) nSec = fkNSec;
 
-  for( Int_t i=0; i<nSec; i++ ){     
+  for( Int_t i=fMinInitSec; i<fMaxInitSec; i++ ){     
     int nRows = tpcParam->GetNRow(i);
     if( nRows>fkNRows ) nRows = fkNRows;
     for( int j=0; j<nRows; j++){
