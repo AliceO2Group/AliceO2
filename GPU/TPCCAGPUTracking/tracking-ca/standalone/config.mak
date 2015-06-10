@@ -1,9 +1,16 @@
+include						config_options.mak
 include						config_common.mak
 
 TARGET						= ca
-SUBTARGETS					= libAliHLTTPCCAGPUSA libAliHLTTPCCAGPUSAOpenCL
 
-CPPFILES					= display/opengl.cpp
+ifeq ($(BUILD_CUDA), 1)
+SUBTARGETS					+= libAliHLTTPCCAGPUSA
+endif
+
+ifeq ($(BUILD_OPENCL), 1)
+SUBTARGETS					+= libAliHLTTPCCAGPUSAOpenCL
+endif
+
 CXXFILES					= standalone.cxx \
 								code/AliHLTTPCCATrack.cxx \
 								code/AliHLTTPCCATrackParam.cxx \
@@ -31,12 +38,11 @@ CXXFILES					= standalone.cxx \
 								standalone/AliHLTLogging.cxx \
 								standalone/AliHLTTPCTransform.cxx
 
-
-#								code/AliHLTTPCCAMerger.cxx \
-
-ASMFILES					= 
-
+ifeq ($(BUILD_EVENT_DISPLAY), 1)
+CPPFILES					+= display/opengl.cpp
 CONFIG_OPENGL				= 1
 CONFIG_X11					= 1
+DEFINES						+= BUILD_EVENT_DISPLAY
+endif
 
 ALLDEP						+= config_common.mak
