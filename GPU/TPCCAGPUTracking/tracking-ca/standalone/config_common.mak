@@ -16,7 +16,7 @@ CC_i686-pc-cygwin			= ICC
 INCLUDEPATHS				= include code base merger-ca cagpubuild
 DEFINES						= HLTCA_STANDALONE BUILD_GPU
 
-EXTRAFLAGSGCC				= -Weffc++
+EXTRAFLAGSGCC				= -Weffc++ -Wno-unused-local-typedefs
 
 COMPILER_FLAGS				= OPT
 CONFIG_LTO					= 1
