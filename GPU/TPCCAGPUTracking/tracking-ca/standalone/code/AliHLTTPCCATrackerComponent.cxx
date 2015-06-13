@@ -62,7 +62,7 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fSliceCount( fgkNSlices ),
   fSolenoidBz( 0 ),
   fMinNTrackClusters( 30 ),
-  fMinTrackPt(0.2),
+  fMinTrackPt(0.05),
   fClusterZCut( 500. ),
   fNeighboursSearchArea( 0 ), 
   fClusterErrorCorrectionY(0), 
@@ -94,7 +94,7 @@ AliHLTProcessor(),
   fSliceCount( fgkNSlices ),
   fSolenoidBz( 0 ),
   fMinNTrackClusters( 30 ),
-  fMinTrackPt( 0.2 ),
+  fMinTrackPt( 0.05 ),
   fClusterZCut( 500. ),
   fNeighboursSearchArea(0),
   fClusterErrorCorrectionY(0), 
@@ -176,7 +176,7 @@ void AliHLTTPCCATrackerComponent::SetDefaultConfiguration()
 
   fSolenoidBz = -5.00668;
   fMinNTrackClusters = 30;
-  fMinTrackPt = 0.2;
+  fMinTrackPt = 0.05;
   fClusterZCut = 500.;
   fNeighboursSearchArea = 0;
   fClusterErrorCorrectionY = 0;
