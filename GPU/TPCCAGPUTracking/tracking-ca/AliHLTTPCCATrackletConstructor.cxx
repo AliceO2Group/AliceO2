@@ -59,7 +59,7 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
   // reconstruction of tracklets, tracklet store step
 
   do {
-    if ( r.fNHits < TRACKLET_SELECTOR_MIN_HITS ) {
+    if ( r.fNHits < TRACKLET_SELECTOR_MIN_HITS(tParam.QPt()) ) {
       r.fNHits = 0;
       break;
     }
