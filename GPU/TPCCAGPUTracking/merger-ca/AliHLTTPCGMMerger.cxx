@@ -163,7 +163,7 @@ void AliHLTTPCGMMerger::ClearMemory()
 {
   if (fOutputClusterIds) delete[] fOutputClusterIds;
   if (fSliceTrackInfos) delete[] fSliceTrackInfos;  
-  if (!fGPUTracker)
+  if (!(fGPUTracker && fGPUTracker->IsInitialized()))
   {
 	  if (fOutputTracks) delete[] fOutputTracks;
 	  if (fClusterX) delete[] fClusterX;
@@ -285,7 +285,7 @@ bool AliHLTTPCGMMerger::AllocateMemory()
 
   fOutputClusterIds = new UInt_t[fNClusters];
   fSliceTrackInfos = new AliHLTTPCGMSliceTrack[nTracks];
-  if (fGPUTracker)
+  if (fGPUTracker && fGPUTracker->IsInitialized())
   {
 	char* basemem = fGPUTracker->MergerBaseMemory();
 	AssignMemory(fClusterX, basemem, fNClusters);
@@ -821,7 +821,7 @@ void AliHLTTPCGMMerger::Refit()
 {
   //* final refit
 #ifdef HLTCA_GPU_MERGER
-	if (fGPUTracker)
+	if (fGPUTracker && fGPUTracker->IsInitialized())
 	{
 		fGPUTracker->RefitMergedTracks(this);
 	}
