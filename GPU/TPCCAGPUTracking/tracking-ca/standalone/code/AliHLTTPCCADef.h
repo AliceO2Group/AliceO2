@@ -115,7 +115,7 @@ namespace AliHLTTPCCADefinitions
 #endif //HLTCA_STANDALONE
 
 #define EXTERN_ROW_HITS
-#define TRACKLET_SELECTOR_MIN_HITS 29
+#define TRACKLET_SELECTOR_MIN_HITS(QPT) (QPT > 10 ? 10 : (QPT > 5 ? 15 : 29)) //Minimum hits should depend on Pt, lot Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
 
 #define GLOBAL_TRACKING_RANGE 45					//Number of rows from the upped/lower limit to search for global track candidates in for
 #define GLOBAL_TRACKING_Y_RANGE_UPPER_LEFT 0.85		//Inner portion of y-range in slice that is not used in searching for global track candidates

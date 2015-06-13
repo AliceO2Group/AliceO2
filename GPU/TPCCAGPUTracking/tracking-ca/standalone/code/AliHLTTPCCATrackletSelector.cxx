@@ -83,8 +83,9 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 			int gap = 0;
 			int nShared = 0;
 			nHits = 0;
+			const int minHits = TRACKLET_SELECTOR_MIN_HITS(tracklet.Param().QPt());
 
-			for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= TRACKLET_SELECTOR_MIN_HITS; irow++ )
+			for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++ )
 			{
 				gap++;
 #ifdef EXTERN_ROW_HITS
@@ -114,7 +115,7 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 				}
 
 				if ( gap > kMaxRowGap || irow == lastRow ) { // store
-					if ( nHits >= TRACKLET_SELECTOR_MIN_HITS ) { //SG!!!
+					if ( nHits >= minHits ) { //SG!!!
 						int itrout = CAMath::AtomicAdd( tracker.NTracks(), 1 );
 #ifdef HLTCA_GPUCODE
 						if (itrout >= HLTCA_GPU_MAX_TRACKS)
