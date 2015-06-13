@@ -531,7 +531,7 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 
 GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, float* PolinomialFieldBz, float* x, float* y, float* z, unsigned int* rowType, float* alpha, AliHLTTPCCAParam* param)
 {
-	for (int i = blockDim.x * blockIdx.x + threadIdx.x;i < nTracks;i += blockDim.x * gridDim.x)
+	for (int i = get_global_id(0);i < nTracks;i += get_global_size(0))
 	{
 		//This is in fact a copy of ReFit() in AliHLTTPCGMMerger.cxx
 		AliHLTTPCGMMergedTrack& track = tracks[i];
