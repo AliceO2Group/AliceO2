@@ -31,15 +31,15 @@ class AliHLTTPCGMTrackLinearisation
 
   public:
 
-    AliHLTTPCGMTrackLinearisation()
+    GPUd() AliHLTTPCGMTrackLinearisation()
       : fSinPhi( 0. ), fCosPhi( 1. ), fSecPhi( 1. ), fDzDs( 0. ), fDlDs( 0.), fQPt( 0. ) {}
 
-    AliHLTTPCGMTrackLinearisation( float SinPhi1, float CosPhi1, float SecPhi1, float DzDs1, float DlDs1, float QPt1 )
+    GPUd() AliHLTTPCGMTrackLinearisation( float SinPhi1, float CosPhi1, float SecPhi1, float DzDs1, float DlDs1, float QPt1 )
       : fSinPhi( SinPhi1 ), fCosPhi( CosPhi1 ), fSecPhi( SecPhi1 ), fDzDs( DzDs1 ), fDlDs( DlDs1), fQPt( QPt1 ) {}
 
-    AliHLTTPCGMTrackLinearisation( const AliHLTTPCGMTrackParam &t );
+    GPUd() AliHLTTPCGMTrackLinearisation( const AliHLTTPCGMTrackParam &t );
 
-    void Set( float SinPhi1, float CosPhi1, float SecPhi1, float DzDs1, float DlDs1, float QPt1 );
+    GPUd() void Set( float SinPhi1, float CosPhi1, float SecPhi1, float DzDs1, float DlDs1, float QPt1 );
 
     
     GPUd() float& SinPhi() { return fSinPhi; }
