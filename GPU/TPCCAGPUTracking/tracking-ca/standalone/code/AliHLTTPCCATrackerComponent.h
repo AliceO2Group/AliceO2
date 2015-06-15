@@ -16,7 +16,7 @@
 class AliHLTTPCCATrackerFramework;
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAClusterData;
-class AliHLTTPCSpacePointData;
+struct AliHLTTPCSpacePointData;
 
 /**
  * @class AliHLTTPCCATrackerComponent
