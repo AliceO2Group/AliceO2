@@ -269,7 +269,10 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 	if (allowGPU && fGPULibAvailable)
 	{
 		fUseGPUTracker = (fGPUTrackerAvailable = (fGPUTracker->InitGPU(-1, GPUDeviceNum) == 0));
-		HLTInfo("GPU Tracker Initialized and available in framework");
+		if(fUseGPUTracker)
+		  HLTInfo("GPU Tracker Initialized and available in framework");
+		else
+		  HLTError("GPU Tracker NOT Initialized and NOT available in framework");
 	}
 }
 
