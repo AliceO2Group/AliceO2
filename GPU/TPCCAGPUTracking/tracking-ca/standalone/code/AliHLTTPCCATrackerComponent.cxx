@@ -159,7 +159,7 @@ AliHLTComponentDataType AliHLTTPCCATrackerComponent::GetOutputDataType()
 void AliHLTTPCCATrackerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier )
 {
   // define guess for the output data size
-  constBase = 200;       // minimum size
+  constBase = 1200;       // minimum size
   inputMultiplier = 0.6; // size relative to input
 }
 
@@ -438,6 +438,10 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     fSliceCount = fgkNSlices;
     //Create tracker instance and set parameters
     fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU, fGPULibrary, fGPUDeviceNum);
+    if ( fAllowGPU && fTracker->GetGPUStatus() < 2 ) {
+      HLTError("GPU Tracker requested but unavailable, aborting.");
+      return -ENODEV;
+    }
     fClusterData = new AliHLTTPCCAClusterData[fgkNSlices];
     if (fGPUHelperThreads != -1)
     {
@@ -704,9 +708,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
   size = 0;
   if (error == 0)
   {
-    for (int islice = 0;islice < fSliceCount;islice++)
+    for (int islice = 0;islice < fSliceCount && fSliceOutput[islice];islice++)
     {
-      if (slicemaxPatch[islice] == -1) continue;
       int slice = fMinSlice + islice;
 
       mySize = fSliceOutput[islice]->Size();
