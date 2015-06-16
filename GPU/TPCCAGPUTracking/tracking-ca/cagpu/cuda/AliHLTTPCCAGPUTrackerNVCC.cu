@@ -233,7 +233,7 @@ bool AliHLTTPCCAGPUTrackerNVCC::GPUFailedMsgA(cudaError_t error, const char* fil
 	return(true);
 }
 
-int AliHLTTPCCAGPUTrackerNVCC::GPUSync(char* state, int stream, int slice)
+int AliHLTTPCCAGPUTrackerNVCC::GPUSync(const char* state, int stream, int slice)
 {
 	//Wait for CUDA-Kernel to finish and check for CUDA errors afterwards
 

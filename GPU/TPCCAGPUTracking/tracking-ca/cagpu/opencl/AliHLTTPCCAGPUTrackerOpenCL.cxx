@@ -278,7 +278,11 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	}
 	for (int i = 0;i < nStreams;i++)
 	{
+#ifdef CL_VERSION_2_0
+		ocl->command_queue[i] = clCreateCommandQueueWithProperties(ocl->context, ocl->device, NULL, &ocl_error);
+#else
 		ocl->command_queue[i] = clCreateCommandQueue(ocl->context, ocl->device, 0, &ocl_error);
+#endif
 		if (ocl_error != CL_SUCCESS) quit("Error creating OpenCL command queue");
 	}
 	if (clEnqueueMigrateMemObjects(ocl->command_queue[0], 1, &ocl->mem_gpu, 0, 0, NULL, NULL) != CL_SUCCESS) quit("Error migrating buffer");
@@ -400,7 +404,7 @@ bool AliHLTTPCCAGPUTrackerOpenCL::GPUFailedMsgA(int error, const char* file, int
 	return(true);
 }
 
-int AliHLTTPCCAGPUTrackerOpenCL::GPUSync(char* state, int stream, int slice)
+int AliHLTTPCCAGPUTrackerOpenCL::GPUSync(const char* state, int stream, int slice)
 {
 	//Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards
 
