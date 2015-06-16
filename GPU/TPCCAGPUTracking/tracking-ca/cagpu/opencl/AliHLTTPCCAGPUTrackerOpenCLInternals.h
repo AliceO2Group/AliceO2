@@ -27,6 +27,7 @@ struct AliHLTTPCCAGPUTrackerOpenCLInternals
 	cl_device_id* devices;
 	cl_context context;
 	cl_command_queue command_queue[36];
+	bool cl_queue_event_done[36];
 	cl_mem mem_gpu;
 	cl_mem mem_constant;
 	cl_mem mem_host;
