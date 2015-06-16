@@ -37,7 +37,7 @@ protected:
 	virtual void ActivateThreadContext();
 	virtual void ReleaseThreadContext();
 	virtual void SynchronizeGPU();
-	virtual int GPUSync(char* state = "UNKNOWN", int stream = -1, int slice = 0);
+	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0);
 
 private:
 	void DumpRowBlocks(AliHLTTPCCATracker* tracker, int iSlice, bool check = true);
