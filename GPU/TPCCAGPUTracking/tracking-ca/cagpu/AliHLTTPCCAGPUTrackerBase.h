@@ -117,7 +117,7 @@ protected:
 	void ReleaseGlobalLock(void* sem);
 	int CheckMemorySizes(int sliceCount);
 
-	virtual int GPUSync(char* state = "UNKNOWN", int stream = -1, int slice = 0) = 0;
+	virtual int GPUSync(const char* state = "UNKNOWN", int stream = -1, int slice = 0) = 0;
 	template <class T> T* alignPointer(T* ptr, int alignment);
 	void StandalonePerfTime(int iSlice, int i);
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
