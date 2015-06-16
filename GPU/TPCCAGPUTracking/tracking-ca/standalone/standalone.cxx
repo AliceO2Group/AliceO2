@@ -26,7 +26,7 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1;
+	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, runs2 = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1;
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
@@ -126,6 +126,11 @@ int main(int argc, char** argv)
 				runs = atoi(argv[i + 1]);
 		}
 
+		if ( !strcmp( argv[i], "-RUNS2" ) && argc > i + 1)
+		{
+			if (atoi(argv[i + 1]) > 0)
+				runs2 = atoi(argv[i + 1]);
+		}
 		if ( !strcmp( argv[i], "-EVENTS" ) && argc > i + 1)
 		{
 			printf("Reading events from Directory events%s\n", argv[i + 1]);
@@ -235,6 +240,7 @@ int main(int argc, char** argv)
 
 	if (seed != -1) srand(seed);
 
+	for (int jj = 0;jj < runs2;jj++) {if (runs2 > 1) printf("RUN2: %d\n", jj);
 	for (i = StartEvent;i < NEvents || NEvents == -1;i++)
 	{
 		char filename[256];
@@ -357,7 +363,7 @@ int main(int argc, char** argv)
 				}
 			}
 		}
-	}
+	}}
 breakrun:
 
 	if (clusterstats >= 2)
