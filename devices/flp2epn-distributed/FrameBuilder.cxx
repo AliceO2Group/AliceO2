@@ -21,28 +21,23 @@ FrameBuilder::FrameBuilder()
 
 void FrameBuilder::Run()
 {
-  LOG(INFO) << ">>>>>>> Run <<<<<<<";
+  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
 
-  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-
-  FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
-
-  int received = 0;
+  fNumInputs = fChannels["data-in"].size();
   int noOfMsgParts = fNumInputs - 1;
 
-  while (fState == RUNNING) {
+  while (GetCurrentState() == RUNNING) {
     FairMQMessage* msg = fTransportFactory->CreateMessage();
 
     poller->Poll(100);
 
     for (int i = 0; i < fNumInputs; ++i) {
       if (poller->CheckInput(i)) {
-        received = fPayloadInputs->at(i)->Receive(msg);
-        if (received > 0) {
+        if (fChannels["data-in"].at(i).Receive(msg) > 0) {
           if (i < noOfMsgParts) {
-            fPayloadOutputs->at(0)->Send(msg, "snd-more");
+            fChannels["data-out"].at(0).Send(msg, "snd-more");
           } else {
-            fPayloadOutputs->at(0)->Send(msg);
+            fChannels["data-out"].at(0).Send(msg);
           }
         }
       }
@@ -52,16 +47,6 @@ void FrameBuilder::Run()
   }
 
   delete poller;
-
-  rateLogger.interrupt();
-  rateLogger.join();
-
-  FairMQDevice::Shutdown();
-
-  // notify parent thread about end of processing.
-  boost::lock_guard<boost::mutex> lock(fRunningMutex);
-  fRunningFinished = true;
-  fRunningCondition.notify_one();
 }
 
 FrameBuilder::~FrameBuilder()

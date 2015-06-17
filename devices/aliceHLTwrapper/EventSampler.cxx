@@ -59,7 +59,6 @@ void EventSampler::Init()
 {
   /// inherited from FairMQDevice
   mNEvents=0;
-  FairMQDevice::Init();
 }
 
 void EventSampler::Run()
@@ -67,39 +66,37 @@ void EventSampler::Run()
   /// inherited from FairMQDevice
   int iResult=0;
 
-  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
   boost::thread samplerThread(boost::bind(&EventSampler::samplerLoop, this));
 
-  FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
+  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
 
   bool received = false;
 
   // inherited variables of FairMQDevice:
-  // fNumInputs
+  // fChannels
   // fTransportFactory
-  // fPayloadInputs
-  // fPayloadOutputs
-  int NoOfMsgParts=fNumInputs-1;
+  int numInputs = fChannels["data-in"].size();
+  int NoOfMsgParts=numInputs-1;
   int errorCount=0;
   const int maxError=10;
 
   vector</*const*/ FairMQMessage*> inputMessages;
-  vector<int> inputMessageCntPerSocket(fNumInputs, 0);
+  vector<int> inputMessageCntPerSocket(numInputs, 0);
   int nReadCycles=0;
 
   std::ofstream latencyLog(mOutputFile);
 
-  while (fState == RUNNING) {
+  while (GetCurrentState() == RUNNING) {
 
     // read input messages
     poller->Poll(mPollingTimeout);
-    for(int i = 0; i < fNumInputs; i++) {
+    for(int i = 0; i < numInputs; i++) {
       if (poller->CheckInput(i)) {
         int64_t more = 0;
         do {
           more = 0;
           unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-          received = fPayloadInputs->at(i)->Receive(msg.get());
+          received = fChannels["data-in"].at(i).Receive(msg.get());
           if (received) {
             inputMessages.push_back(msg.release());
             inputMessageCntPerSocket[i]++;
@@ -107,7 +104,7 @@ void EventSampler::Run()
               LOG(INFO) << " |---- receive Msg from socket " << i;
             }
             size_t more_size = sizeof(more);
-            fPayloadInputs->at(i)->GetOption("rcv-more", &more, &more_size);
+            fChannels["data-in"].at(i).fSocket->GetOption("rcv-more", &more, &more_size);
           }
         } while (more);
         if (mVerbosity > 2) {
@@ -170,16 +167,8 @@ void EventSampler::Run()
 
   delete poller;
 
-  rateLogger.interrupt();
-  rateLogger.join();
   samplerThread.interrupt();
   samplerThread.join();
-
-  Shutdown();
-
-  boost::lock_guard<boost::mutex> lock(fRunningMutex);
-  fRunningFinished = true;
-  fRunningCondition.notify_one();
 }
 
 void EventSampler::Pause()
@@ -200,21 +189,7 @@ void EventSampler::Shutdown()
   FairMQDevice::Shutdown();
 }
 
-void EventSampler::InitOutput()
-{
-  /// inherited from FairMQDevice
-
-  FairMQDevice::InitOutput();
-}
-
-void EventSampler::InitInput()
-{
-  /// inherited from FairMQDevice
-
-  FairMQDevice::InitInput();
-}
-
-void EventSampler::SetProperty(const int key, const string& value, const int slot)
+void EventSampler::SetProperty(const int key, const string& value)
 {
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::SetProperty
@@ -223,17 +198,17 @@ void EventSampler::SetProperty(const int key, const string& value, const int slo
     mOutputFile = value;
     return;
   }
-  return FairMQDevice::SetProperty(key, value, slot);
+  return FairMQDevice::SetProperty(key, value);
 }
 
-string EventSampler::GetProperty(const int key, const string& default_, const int slot)
+string EventSampler::GetProperty(const int key, const string& default_)
 {
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::GetProperty
-  return FairMQDevice::GetProperty(key, default_, slot);
+  return FairMQDevice::GetProperty(key, default_);
 }
 
-void EventSampler::SetProperty(const int key, const int value, const int slot)
+void EventSampler::SetProperty(const int key, const int value)
 {
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::SetProperty
@@ -251,10 +226,10 @@ void EventSampler::SetProperty(const int key, const int value, const int slot)
     mSkipProcessing = value;
     return;
   }
-  return FairMQDevice::SetProperty(key, value, slot);
+  return FairMQDevice::SetProperty(key, value);
 }
 
-int EventSampler::GetProperty(const int key, const int default_, const int slot)
+int EventSampler::GetProperty(const int key, const int default_)
 {
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::GetProperty
@@ -268,7 +243,7 @@ int EventSampler::GetProperty(const int key, const int default_, const int slot)
   case SkipProcessing:
     return mSkipProcessing;
   }
-  return FairMQDevice::GetProperty(key, default_, slot);
+  return FairMQDevice::GetProperty(key, default_);
 }
 
 void EventSampler::samplerLoop()
@@ -294,8 +269,10 @@ void EventSampler::samplerLoop()
   memset(evtData, 0, sizeof(AliHLTComponentEventData));
   evtData->fStructSize = sizeof(AliHLTComponentEventData);
 
+  int numOutputs = (fChannels.find("data-out") == fChannels.end() ? 0 : fChannels["data-out"].size());
+
   LOG(INFO) << "starting sampler loop, period " << mEventPeriod << " us";
-  while (fState == RUNNING) {
+  while (GetCurrentState() == RUNNING) {
     msg->Rebuild(sizeof(AliHLTComponentEventData));
     evtData = reinterpret_cast<AliHLTComponentEventData*>(msg->GetData());
     memset(evtData, 0, sizeof(AliHLTComponentEventData));
@@ -310,8 +287,8 @@ void EventSampler::samplerLoop()
       LOG(DEBUG) << "send     event " << evtData->fEventID << " at " << evtData->fEventCreation_s << "s  " << evtData->fEventCreation_us << "us";
     }
 
-    for (int iOutput=0; iOutput<fNumOutputs; iOutput++) {
-      fPayloadOutputs->at(iOutput)->Send(msg.get());
+    for (int iOutput=0; iOutput<numOutputs; iOutput++) {
+      fChannels["data-out"].at(iOutput).Send(msg.get());
     }
 
     mNEvents++;

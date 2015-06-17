@@ -32,7 +32,6 @@ static void s_signal_handler (int signal)
 {
   cout << endl << "Caught signal " << signal << endl;
 
-  flp.ChangeState(FLPSender::STOP);
   flp.ChangeState(FLPSender::END);
 
   cout << "Shutdown complete. Bye!" << endl;

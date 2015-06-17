@@ -17,14 +17,10 @@ O2EPNex::O2EPNex()
 
 void O2EPNex::Run()
 {
-  LOG(INFO) << ">>>>>>> Run <<<<<<<";
-
-  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-
-  while ( fState == RUNNING ) {
+  while (GetCurrentState() == RUNNING) {
     FairMQMessage* msg = fTransportFactory->CreateMessage();
 
-    fPayloadInputs->at(0)->Receive(msg);
+    fChannels["data-in"].at(0).Receive(msg);
 
     int inputSize = msg->GetSize();
     int numInput = inputSize / sizeof(Content);
@@ -36,16 +32,6 @@ void O2EPNex::Run()
 
     delete msg;
   }
-
-  rateLogger.interrupt();
-  rateLogger.join();
-
-  FairMQDevice::Shutdown();
-
-  // notify parent thread about end of processing.
-  boost::lock_guard<boost::mutex> lock(fRunningMutex);
-  fRunningFinished = true;
-  fRunningCondition.notify_one();
 }
 
 O2EPNex::~O2EPNex()

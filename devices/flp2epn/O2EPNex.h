@@ -18,7 +18,7 @@ struct Content {
   int z;
 };
 
-class O2EPNex: public FairMQDevice
+class O2EPNex : public FairMQDevice
 {
   public:
     O2EPNex();

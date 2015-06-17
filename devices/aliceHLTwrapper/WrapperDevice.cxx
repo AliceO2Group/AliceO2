@@ -97,8 +97,6 @@ void WrapperDevice::Init()
   mTotalReadCycles=0;
   mMaxReadCycles=-1;
   mNSamples=0;
-
-  FairMQDevice::Init();
 }
 
 void WrapperDevice::Run()
@@ -109,43 +107,37 @@ void WrapperDevice::Run()
 #ifdef USE_CHRONO
   static system_clock::time_point refTime = system_clock::now();
 #endif // USE_CHRONO
-  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
 
-  FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
-
-  bool received = false;
+  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
 
   // inherited variables of FairMQDevice:
-  // fNumInputs
+  // fChannels
   // fTransportFactory
-  // fPayloadInputs
-  // fPayloadOutputs
-  int NoOfMsgParts=fNumInputs-1;
+  int numInputs = fChannels["data-in"].size();
+  int NoOfMsgParts=numInputs-1;
   int errorCount=0;
   const int maxError=10;
 
   vector</*const*/ FairMQMessage*> inputMessages;
-  vector<int> inputMessageCntPerSocket(fNumInputs, 0);
+  vector<int> inputMessageCntPerSocket(numInputs, 0);
   int nReadCycles=0;
-  while (fState == RUNNING) {
+  while (GetCurrentState() == RUNNING) {
 
     // read input messages
     poller->Poll(mPollingPeriod);
     int inputsReceived=0;
     bool receivedAtLeastOneMessage=false;
-    for(int i = 0; i < fNumInputs; i++) {
+    for(int i = 0; i < numInputs; i++) {
       if (inputMessageCntPerSocket[i]>0) {
 	inputsReceived++;
 	continue;
       }
-      received = false;
       if (poller->CheckInput(i)) {
         int64_t more = 0;
         do {
           more = 0;
           unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-          received = fPayloadInputs->at(i)->Receive(msg.get());
-          if (received) {
+          if (fChannels["data-in"].at(i).Receive(msg.get())) {
             receivedAtLeastOneMessage = true;
             inputMessages.push_back(msg.release());
             if (inputMessageCntPerSocket[i] == 0)
@@ -155,7 +147,7 @@ void WrapperDevice::Run()
               LOG(INFO) << " |---- receive Msg from socket " << i;
             }
             size_t more_size = sizeof(more);
-            fPayloadInputs->at(i)->GetOption("rcv-more", &more, &more_size);
+            fChannels["data-in"].at(i).fSocket->GetOption("rcv-more", &more, &more_size);
           }
         } while (more);
         if (mVerbosity > 2) {
@@ -164,7 +156,7 @@ void WrapperDevice::Run()
       }
     }
     if (receivedAtLeastOneMessage) nReadCycles++;
-    if (inputsReceived<fNumInputs) {
+    if (inputsReceived<numInputs) {
       continue;
     }
     mNSamples++;
@@ -172,7 +164,7 @@ void WrapperDevice::Run()
     if (mMaxReadCycles<0 || mMaxReadCycles<nReadCycles)
       mMaxReadCycles=nReadCycles;
     // if (nReadCycles>1) {
-    //   LOG(INFO) << "------ recieved complete Msg from " << fNumInputs << " input(s) after " << nReadCycles << " read cycles" ;
+    //   LOG(INFO) << "------ recieved complete Msg from " << numInputs << " input(s) after " << nReadCycles << " read cycles" ;
     // }
     nReadCycles=0;
 #ifdef USE_CHRONO
@@ -268,26 +260,26 @@ void WrapperDevice::Run()
       }
 
       if (mMessages.size()>0) {
-        if (fPayloadOutputs != NULL && fPayloadOutputs->size() > 0) {
+        if (fChannels.find("data-out") != fChannels.end() && fChannels["data-out"].size() > 0) {
           for (auto sendmsg = begin(mMessages); sendmsg != end(mMessages); sendmsg++) {
             if (sendmsg + 1 == end(mMessages)) {
               // this is the last data block
               if (mVerbosity > 2) {
                 LOG(DEBUG) << "sending last message, size " << (*sendmsg)->GetSize();
               }
-              fPayloadOutputs->at(0)->Send(*sendmsg);
+              fChannels["data-out"].at(0).Send(*sendmsg);
             } else {
               if (mVerbosity > 2) {
                 LOG(DEBUG) << "sending multipart message, size " << (*sendmsg)->GetSize();
               }
-              fPayloadOutputs->at(0)->Send(*sendmsg, "snd-more");
+              fChannels["data-out"].at(0).Send(*sendmsg, "snd-more");
             }
           }
         } else {
           if (errorCount == maxError && errorCount++ > 0)
             LOG(ERROR) << "persistent error, suppressing further output";
           else if (errorCount++ < maxError)
-            LOG(ERROR) << "no output slot available (" << (fPayloadOutputs == NULL ? "uninitialized" : "0 slots")
+            LOG(ERROR) << "no output slot available (" << (fChannels.find("data-out") == fChannels.end() ? "uninitialized" : "0 slots")
                        << ")";
         }
         for (auto sendmsg : mMessages) delete sendmsg;
@@ -308,15 +300,6 @@ void WrapperDevice::Run()
   }
 
   delete poller;
-
-  rateLogger.interrupt();
-  rateLogger.join();
-
-  Shutdown();
-
-  boost::lock_guard<boost::mutex> lock(fRunningMutex);
-  fRunningFinished = true;
-  fRunningCondition.notify_one();
 }
 
 void WrapperDevice::Pause()
@@ -330,42 +313,26 @@ void WrapperDevice::Pause()
 void WrapperDevice::Shutdown()
 {
   /// inherited from FairMQDevice
-
   int iResult=0;
   // TODO: shutdown component and delete instance
-
   FairMQDevice::Shutdown();
 }
 
-void WrapperDevice::InitOutput()
-{
-  /// inherited from FairMQDevice
-
-  FairMQDevice::InitOutput();
-}
-
-void WrapperDevice::InitInput()
-{
-  /// inherited from FairMQDevice
-
-  FairMQDevice::InitInput();
-}
-
-void WrapperDevice::SetProperty(const int key, const string& value, const int slot)
+void WrapperDevice::SetProperty(const int key, const string& value)
 {
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::SetProperty
-  return FairMQDevice::SetProperty(key, value, slot);
+  return FairMQDevice::SetProperty(key, value);
 }
 
-string WrapperDevice::GetProperty(const int key, const string& default_, const int slot)
+string WrapperDevice::GetProperty(const int key, const string& default_)
 {
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::GetProperty
-  return FairMQDevice::GetProperty(key, default_, slot);
+  return FairMQDevice::GetProperty(key, default_);
 }
 
-void WrapperDevice::SetProperty(const int key, const int value, const int slot)
+void WrapperDevice::SetProperty(const int key, const int value)
 {
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::SetProperty
@@ -377,10 +344,10 @@ void WrapperDevice::SetProperty(const int key, const int value, const int slot)
     mSkipProcessing = value;
     return;
   }
-  return FairMQDevice::SetProperty(key, value, slot);
+  return FairMQDevice::SetProperty(key, value);
 }
 
-int WrapperDevice::GetProperty(const int key, const int default_, const int slot)
+int WrapperDevice::GetProperty(const int key, const int default_)
 {
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::GetProperty
@@ -390,7 +357,7 @@ int WrapperDevice::GetProperty(const int key, const int default_, const int slot
   case SkipProcessing:
     return mSkipProcessing;
   }
-  return FairMQDevice::GetProperty(key, default_, slot);
+  return FairMQDevice::GetProperty(key, default_);
 }
 
 unsigned char* WrapperDevice::createMessageBuffer(unsigned size)

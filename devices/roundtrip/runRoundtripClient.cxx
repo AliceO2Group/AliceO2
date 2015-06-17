@@ -34,7 +34,6 @@ static void s_signal_handler(int signal)
 {
     cout << endl << "Caught signal " << signal << endl;
 
-    client.ChangeState(RoundtripClient::STOP);
     client.ChangeState(RoundtripClient::END);
 
     cout << "Shutdown complete. Bye!" << endl;
@@ -115,37 +114,32 @@ int main(int argc, char** argv)
 
     client.SetProperty(RoundtripClient::Id, "client");
     client.SetProperty(RoundtripClient::NumIoThreads, 1);
-    client.SetProperty(RoundtripClient::NumInputs, 0);
-    client.SetProperty(RoundtripClient::NumOutputs, 1);
-
-    client.ChangeState(RoundtripClient::INIT);
-
-    client.SetProperty(RoundtripClient::OutputSocketType, "req", 0);
-    client.SetProperty(RoundtripClient::OutputSndBufSize, 10000, 0);
-    client.SetProperty(RoundtripClient::OutputRcvBufSize, 10000, 0);
-    client.SetProperty(RoundtripClient::OutputMethod, "connect", 0);
-    client.SetProperty(RoundtripClient::OutputAddress, "tcp://localhost:5005", 0);
-
     client.SetProperty(RoundtripClient::Text, options.text);
 
-    client.ChangeState(RoundtripClient::SETOUTPUT);
-    client.ChangeState(RoundtripClient::SETINPUT);
-// temporary check to allow compilation with older fairmq version
-#ifdef FAIRMQ_INTERFACE_VERSION
-    client.ChangeState(RoundtripClient::BIND);
-    client.ChangeState(RoundtripClient::CONNECT);
-#endif
-    client.ChangeState(RoundtripClient::RUN);
+    FairMQChannel channel("req", "connect", "tcp://localhost:5005");
+    channel.UpdateSndBufSize(10000);
+    channel.UpdateRcvBufSize(10000);
+    channel.UpdateRateLogging(1);
+    client.fChannels["data"].push_back(channel);
 
-    // wait until the running thread has finished processing.
-    boost::unique_lock<boost::mutex> lock(client.fRunningMutex);
-    while (!client.fRunningFinished)
-    {
-        client.fRunningCondition.wait(lock);
-    }
+    client.ChangeState("INIT_DEVICE");
+    client.WaitForEndOfState("INIT_DEVICE");
 
-    client.ChangeState(RoundtripClient::STOP);
-    client.ChangeState(RoundtripClient::END);
+    client.ChangeState("INIT_TASK");
+    client.WaitForEndOfState("INIT_TASK");
+
+    client.ChangeState("RUN");
+    client.WaitForEndOfState("RUN");
+
+    client.ChangeState("STOP");
+
+    client.ChangeState("RESET_TASK");
+    client.WaitForEndOfState("RESET_TASK");
+
+    client.ChangeState("RESET_DEVICE");
+    client.WaitForEndOfState("RESET_DEVICE");
+
+    client.ChangeState("END");
 
     return 0;
 }

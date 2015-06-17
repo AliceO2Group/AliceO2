@@ -32,7 +32,6 @@ static void s_signal_handler(int signal)
 {
     cout << endl << "Caught signal " << signal << endl;
 
-    server.ChangeState(RoundtripServer::STOP);
     server.ChangeState(RoundtripServer::END);
 
     cout << "Shutdown complete. Bye!" << endl;
@@ -65,38 +64,31 @@ int main(int argc, char** argv)
 
     server.SetProperty(RoundtripServer::Id, "server");
     server.SetProperty(RoundtripServer::NumIoThreads, 1);
-    server.SetProperty(RoundtripServer::NumInputs, 1);
-    server.SetProperty(RoundtripServer::NumOutputs, 0);
 
-    server.ChangeState(RoundtripServer::INIT);
+    FairMQChannel channel("rep", "bind", "tcp://*:5005");
+    channel.UpdateSndBufSize(10000);
+    channel.UpdateRcvBufSize(10000);
+    channel.UpdateRateLogging(1);
+    server.fChannels["data"].push_back(channel);
 
-    server.SetProperty(RoundtripServer::InputSocketType, "rep", 0);
-    server.SetProperty(RoundtripServer::InputSndBufSize, 10000, 0);
-    server.SetProperty(RoundtripServer::InputRcvBufSize, 10000, 0);
-    server.SetProperty(RoundtripServer::InputMethod, "bind", 0);
-    server.SetProperty(RoundtripServer::InputAddress, "tcp://*:5005", 0);
+    server.ChangeState("INIT_DEVICE");
+    server.WaitForEndOfState("INIT_DEVICE");
 
-    server.ChangeState(RoundtripServer::SETOUTPUT);
-    server.ChangeState(RoundtripServer::SETINPUT);
-// temporary check to allow compilation with older fairmq version
-#ifdef FAIRMQ_INTERFACE_VERSION
-    server.ChangeState(RoundtripServer::BIND);
-    server.ChangeState(RoundtripServer::CONNECT);
-#endif
+    server.ChangeState("INIT_TASK");
+    server.WaitForEndOfState("INIT_TASK");
 
-    LOG(INFO) << "Listening for requests!";
+    server.ChangeState("RUN");
+    server.WaitForEndOfState("RUN");
 
-    server.ChangeState(RoundtripServer::RUN);
+    server.ChangeState("STOP");
 
-    // wait until the running thread has finished processing.
-    boost::unique_lock<boost::mutex> lock(server.fRunningMutex);
-    while (!server.fRunningFinished)
-    {
-        server.fRunningCondition.wait(lock);
-    }
+    server.ChangeState("RESET_TASK");
+    server.WaitForEndOfState("RESET_TASK");
 
-    server.ChangeState(RoundtripServer::STOP);
-    server.ChangeState(RoundtripServer::END);
+    server.ChangeState("RESET_DEVICE");
+    server.WaitForEndOfState("RESET_DEVICE");
+
+    server.ChangeState("END");
 
     return 0;
 }

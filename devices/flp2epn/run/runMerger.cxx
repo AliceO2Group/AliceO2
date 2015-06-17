@@ -27,7 +27,6 @@ static void s_signal_handler (int signal)
 {
     cout << endl << "Caught signal " << signal << endl;
 
-    merger.ChangeState(O2Merger::STOP);
     merger.ChangeState(O2Merger::END);
 
     cout << "Shutdown complete. Bye!" << endl;
@@ -156,42 +155,41 @@ int main(int argc, char** argv)
     merger.SetProperty(O2Merger::Id, options.id);
     merger.SetProperty(O2Merger::NumIoThreads, options.ioThreads);
 
-    merger.SetProperty(O2Merger::NumInputs, options.numInputs);
-    merger.SetProperty(O2Merger::NumOutputs, 1);
-
-    merger.ChangeState(O2Merger::INIT);
-
-    for (int i = 0; i < options.numInputs; ++i)
+    for (int i = 0; i < options.inputAddress.size(); ++i)
     {
-        merger.SetProperty(O2Merger::InputSocketType, options.inputSocketType.at(i), i);
-        merger.SetProperty(O2Merger::InputSndBufSize, options.inputBufSize.at(i), i);
-        merger.SetProperty(O2Merger::InputMethod, options.inputMethod.at(i), i);
-        merger.SetProperty(O2Merger::InputAddress, options.inputAddress.at(i), i);
+        FairMQChannel inputChannel(options.inputSocketType.at(i), options.inputMethod.at(i), options.inputAddress.at(i));
+        inputChannel.UpdateSndBufSize(options.inputBufSize.at(i));
+        inputChannel.UpdateRcvBufSize(options.inputBufSize.at(i));
+        inputChannel.UpdateRateLogging(1);
+
+        merger.fChannels["data-in"].push_back(inputChannel);
     }
 
-    merger.SetProperty(O2Merger::OutputSocketType, options.outputSocketType);
-    merger.SetProperty(O2Merger::OutputRcvBufSize, options.outputBufSize);
-    merger.SetProperty(O2Merger::OutputMethod, options.outputMethod);
-    merger.SetProperty(O2Merger::OutputAddress, options.outputAddress);
+    FairMQChannel outputChannel(options.outputSocketType, options.outputMethod, options.outputAddress);
+    outputChannel.UpdateSndBufSize(options.outputBufSize);
+    outputChannel.UpdateRcvBufSize(options.outputBufSize);
+    outputChannel.UpdateRateLogging(1);
 
-    merger.ChangeState(O2Merger::SETOUTPUT);
-    merger.ChangeState(O2Merger::SETINPUT);
-// temporary check to allow compilation with older fairmq version
-#ifdef FAIRMQ_INTERFACE_VERSION
-    merger.ChangeState(O2Merger::BIND);
-    merger.ChangeState(O2Merger::CONNECT);
-#endif
-    merger.ChangeState(O2Merger::RUN);
+    merger.fChannels["data-out"].push_back(outputChannel);
 
-    // wait until the running thread has finished processing.
-    boost::unique_lock<boost::mutex> lock(merger.fRunningMutex);
-    while (!merger.fRunningFinished)
-    {
-      merger.fRunningCondition.wait(lock);
-    }
+    merger.ChangeState("INIT_DEVICE");
+    merger.WaitForEndOfState("INIT_DEVICE");
 
-    merger.ChangeState(O2Merger::STOP);
-    merger.ChangeState(O2Merger::END);
+    merger.ChangeState("INIT_TASK");
+    merger.WaitForEndOfState("INIT_TASK");
+
+    merger.ChangeState("RUN");
+    merger.WaitForEndOfState("RUN");
+
+    merger.ChangeState("STOP");
+
+    merger.ChangeState("RESET_TASK");
+    merger.WaitForEndOfState("RESET_TASK");
+
+    merger.ChangeState("RESET_DEVICE");
+    merger.WaitForEndOfState("RESET_DEVICE");
+
+    merger.ChangeState("END");
 
     return 0;
 }

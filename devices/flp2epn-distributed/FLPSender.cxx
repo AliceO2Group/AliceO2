@@ -43,19 +43,17 @@ FLPSender::~FLPSender()
 
 void FLPSender::Init()
 {
-  FairMQDevice::Init();
-
   ptime nullTime;
 
-  for (int i = 0; i < fNumOutputs; ++i) {
+  for (int i = 0; i < fChannels["data-out"].size(); ++i) {
     fOutputHeartbeat.push_back(nullTime);
   }
 }
 
 bool FLPSender::updateIPHeartbeat(string reply)
 {
-  for (int i = 0; i < fNumOutputs; ++i) {
-    if (GetProperty(OutputAddress, "", i) == reply) {
+  for (int i = 0; i < fChannels["data-out"].size(); ++i) {
+    if (fChannels["data-out"].at(i).GetAddress() == reply) {
       ptime currentTime = boost::posix_time::microsec_clock::local_time();
       ptime storedHeartbeat = GetProperty(OutputHeartbeat, storedHeartbeat, i);
 
@@ -79,11 +77,7 @@ bool FLPSender::updateIPHeartbeat(string reply)
 
 void FLPSender::Run()
 {
-  LOG(INFO) << ">>>>>>> Run <<<<<<<";
-
-  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-
-  FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
+  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
 
   // base buffer, to be copied from for every timeframe body
   void* buffer = operator new[](fEventSize);
@@ -94,14 +88,14 @@ void FLPSender::Run()
 
   uint64_t timeFrameId = 0;
 
-  while (fState == RUNNING) {
+  while (GetCurrentState() == RUNNING) {
     poller->Poll(2);
 
     // input 0 - commands
     if (poller->CheckInput(0)) {
       FairMQMessage* commandMsg = fTransportFactory->CreateMessage();
 
-      if (fPayloadInputs->at(0)->Receive(commandMsg) > 0) {
+      if (fChannels["data-in"].at(0).Receive(commandMsg) > 0) {
         //... handle command ...
       }
 
@@ -112,7 +106,7 @@ void FLPSender::Run()
     if (poller->CheckInput(1)) {
       FairMQMessage* heartbeatMsg = fTransportFactory->CreateMessage();
 
-      if (fPayloadInputs->at(1)->Receive(heartbeatMsg) > 0) {
+      if (fChannels["data-in"].at(1).Receive(heartbeatMsg) > 0) {
         string reply = string(static_cast<char*>(heartbeatMsg->GetData()), heartbeatMsg->GetSize());
         updateIPHeartbeat(reply);
       }
@@ -129,7 +123,7 @@ void FLPSender::Run()
       if (fTestMode > 0) {
         // test-mode: receive and store id part in the buffer.
         FairMQMessage* idPart = fTransportFactory->CreateMessage();
-        fPayloadInputs->at(2)->Receive(idPart);
+        fChannels["data-in"].at(2).Receive(idPart);
 
         h->timeFrameId = *(reinterpret_cast<uint64_t*>(idPart->GetData()));
         h->flpId = stoi(fId);
@@ -161,7 +155,7 @@ void FLPSender::Run()
       } else {
         // regular mode: receive data part from input
         FairMQMessage* dataPart = fTransportFactory->CreateMessage();
-        fPayloadInputs->at(2)->Receive(dataPart);
+        fChannels["data-in"].at(2).Receive(dataPart);
         fDataBuffer.push(dataPart);
       }
     }
@@ -183,16 +177,6 @@ void FLPSender::Run()
   }
 
   delete baseMsg;
-
-  rateLogger.interrupt();
-  rateLogger.join();
-
-  FairMQDevice::Shutdown();
-
-  // notify parent thread about end of processing.
-  boost::lock_guard<boost::mutex> lock(fRunningMutex);
-  fRunningFinished = true;
-  fRunningCondition.notify_one();
 }
 
 inline void FLPSender::sendFrontData()
@@ -200,11 +184,11 @@ inline void FLPSender::sendFrontData()
   f2eHeader h = *(reinterpret_cast<f2eHeader*>(fHeaderBuffer.front()->GetData()));
   uint64_t currentTimeframeId = h.timeFrameId;
 
-  int SNDMORE = fPayloadInputs->at(0)->SNDMORE;
-  int NOBLOCK = fPayloadInputs->at(0)->NOBLOCK;
+  int SNDMORE = fChannels["data-in"].at(0).fSocket->SNDMORE;
+  int NOBLOCK = fChannels["data-in"].at(0).fSocket->NOBLOCK;
 
   // for which EPN is the message?
-  int direction = currentTimeframeId % fNumOutputs;
+  int direction = currentTimeframeId % fChannels["data-out"].size();
   // LOG(INFO) << "Sending event " << currentTimeframeId << " to EPN#" << direction << "...";
 
   ptime currentTime = boost::posix_time::microsec_clock::local_time();
@@ -213,10 +197,10 @@ inline void FLPSender::sendFrontData()
   // if the heartbeat from the corresponding EPN is within timeout period, send the data.
   if (to_simple_string(storedHeartbeat) != "not-a-date-time" ||
       (currentTime - storedHeartbeat).total_milliseconds() < fHeartbeatTimeoutInMs) {
-    if(fPayloadOutputs->at(direction)->Send(fHeaderBuffer.front(), SNDMORE|NOBLOCK) == 0) {
+    if(fChannels["data-out"].at(direction).Send(fHeaderBuffer.front(), SNDMORE|NOBLOCK) == 0) {
       LOG(ERROR) << "Could not queue ID part of event #" << currentTimeframeId << " without blocking";
     }
-    if (fPayloadOutputs->at(direction)->Send(fDataBuffer.front(), NOBLOCK) == 0) {
+    if (fChannels["data-out"].at(direction).Send(fDataBuffer.front(), NOBLOCK) == 0) {
       LOG(ERROR) << "Could not send message with event #" << currentTimeframeId << " without blocking";
     }
     fHeaderBuffer.pop();
@@ -230,24 +214,24 @@ inline void FLPSender::sendFrontData()
   }
 }
 
-void FLPSender::SetProperty(const int key, const string& value, const int slot/*= 0*/)
+void FLPSender::SetProperty(const int key, const string& value)
 {
   switch (key) {
     default:
-      FairMQDevice::SetProperty(key, value, slot);
+      FairMQDevice::SetProperty(key, value);
       break;
   }
 }
 
-string FLPSender::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
+string FLPSender::GetProperty(const int key, const string& default_/*= ""*/)
 {
   switch (key) {
     default:
-      return FairMQDevice::GetProperty(key, default_, slot);
+      return FairMQDevice::GetProperty(key, default_);
   }
 }
 
-void FLPSender::SetProperty(const int key, const int value, const int slot/*= 0*/)
+void FLPSender::SetProperty(const int key, const int value)
 {
   switch (key) {
     case HeartbeatTimeoutInMs:
@@ -263,12 +247,12 @@ void FLPSender::SetProperty(const int key, const int value, const int slot/*= 0*
       fEventSize = value;
       break;
     default:
-      FairMQDevice::SetProperty(key, value, slot);
+      FairMQDevice::SetProperty(key, value);
       break;
   }
 }
 
-int FLPSender::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
+int FLPSender::GetProperty(const int key, const int default_/*= 0*/)
 {
   switch (key) {
     case HeartbeatTimeoutInMs:
@@ -280,7 +264,7 @@ int FLPSender::GetProperty(const int key, const int default_/*= 0*/, const int s
     case EventSize:
       return fEventSize;
     default:
-      return FairMQDevice::GetProperty(key, default_, slot);
+      return FairMQDevice::GetProperty(key, default_);
   }
 }
 

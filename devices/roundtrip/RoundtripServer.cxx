@@ -19,21 +19,15 @@ using namespace std;
 
 void RoundtripServer::Run()
 {
-    while (fState == RUNNING)
+    while (GetCurrentState() == RUNNING)
     {
         FairMQMessage* request = fTransportFactory->CreateMessage();
-        fPayloadInputs->at(0)->Receive(request);
+        fChannels["data"].at(0).Receive(request);
         delete request;
 
         void* buffer = operator new[](1);
         FairMQMessage* reply = fTransportFactory->CreateMessage(buffer, 1);
-        fPayloadInputs->at(0)->Send(reply);
+        fChannels["data"].at(0).Send(reply);
         delete reply;
     }
-
-    FairMQDevice::Shutdown();
-
-    boost::lock_guard<boost::mutex> lock(fRunningMutex);
-    fRunningFinished = true;
-    fRunningCondition.notify_one();
 }

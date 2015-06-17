@@ -88,7 +88,6 @@ static void s_signal_handler(int signal)
   cout << endl << "Caught signal " << signal << endl;
 
   if (gDevice) {
-    gDevice->ChangeState(FairMQDevice::STOP);
     gDevice->ChangeState(FairMQDevice::END);
     cout << "Shutdown complete. Bye!" << endl;
   } else {
@@ -369,54 +368,52 @@ int main(int argc, char** argv)
     device.SetTransport(transportFactory);
     device.SetProperty(FairMQDevice::Id, id.c_str());
     device.SetProperty(FairMQDevice::NumIoThreads, numIoThreads);
-    device.SetProperty(FairMQDevice::NumInputs, numInputs);
-    device.SetProperty(FairMQDevice::NumOutputs, numOutputs);
     device.SetProperty(FairMQDevice::LogIntervalInMs, deviceLogInterval);
     if (pollingTimeout > 0) device.SetProperty(ALICE::HLT::EventSampler::PollingTimeout, pollingTimeout);
     if (eventPeriod > 0) device.SetProperty(ALICE::HLT::EventSampler::EventPeriod, eventPeriod);
     if (initialDelay > 0) device.SetProperty(ALICE::HLT::EventSampler::InitialDelay, initialDelay);
     if (skipProcessing) device.SetProperty(ALICE::HLT::EventSampler::SkipProcessing, skipProcessing);
     device.SetProperty(ALICE::HLT::EventSampler::OutputFile, outputFile);
-    device.ChangeState(FairMQDevice::INIT);
     for (unsigned iInput = 0; iInput < numInputs; iInput++) {
-      device.SetProperty(FairMQDevice::InputSocketType, inputSockets[iInput].type.c_str(), iInput);
+      FairMQChannel inputChannel(inputSockets[iInput].type.c_str(), inputSockets[iInput].method.c_str(), inputSockets[iInput].address.c_str());
       // set High-water-mark for the sockets. in ZMQ, depending on the socket type, some
       // have only send buffers (PUB, PUSH), some only receive buffers (SUB, PULL), and
       // some have both (DEALER, ROUTER, PAIR, REQ, REP)
       // we set both snd and rcv to the same value for the moment
-      device.SetProperty(FairMQDevice::InputSndBufSize, inputSockets[iInput].size, iInput);
-      device.SetProperty(FairMQDevice::InputRcvBufSize, inputSockets[iInput].size, iInput);
-      device.SetProperty(FairMQDevice::InputMethod, inputSockets[iInput].method.c_str(), iInput);
-      device.SetProperty(FairMQDevice::InputAddress, inputSockets[iInput].address.c_str(), iInput);
+      inputChannel.UpdateSndBufSize(inputSockets[iInput].size);
+      inputChannel.UpdateRcvBufSize(inputSockets[iInput].size);
+      device.fChannels["data-in"].push_back(inputChannel);
     }
     for (unsigned iOutput = 0; iOutput < numOutputs; iOutput++) {
-      device.SetProperty(FairMQDevice::OutputSocketType, outputSockets[iOutput].type.c_str(), iOutput);
+      FairMQChannel outputChannel(outputSockets[iOutput].type.c_str(), outputSockets[iOutput].method.c_str(), outputSockets[iOutput].address.c_str());
       // we set both snd and rcv to the same value for the moment, see above
-      device.SetProperty(FairMQDevice::OutputSndBufSize, outputSockets[iOutput].size, iOutput);
-      device.SetProperty(FairMQDevice::OutputRcvBufSize, outputSockets[iOutput].size, iOutput);
-      device.SetProperty(FairMQDevice::OutputMethod, outputSockets[iOutput].method.c_str(), iOutput);
-      device.SetProperty(FairMQDevice::OutputAddress, outputSockets[iOutput].address.c_str(), iOutput);
+      outputChannel.UpdateSndBufSize(outputSockets[iOutput].size);
+      outputChannel.UpdateRcvBufSize(outputSockets[iOutput].size);
+      device.fChannels["data-out"].push_back(outputChannel);
     }
 
-    device.ChangeState(FairMQDevice::SETOUTPUT);
-    device.ChangeState(FairMQDevice::SETINPUT);
+    // The initialization state runs in its own thread.
+    // init device initializes sockets that have valid parameters, and then tries every 
+    // second to initialize the invalid ones, until all are initialized or timeout is reached
+    // (timeout can be set with SetProperty(FairMQDevice::MaxInitializationTime, valueInSeconds), default 120 seconds).
+    // This can be used to wait for DDS values.
+    device.ChangeState("INIT_DEVICE");
 #if defined(HAVE_FAIRMQ_INTERFACE_CHANGESTATE_STRING)
     // Feb 2015: changes in the FairMQStateMachine interface
     // two new state changes introduced. To make the compilation
     // independent of this in future changes, the ChangeState
     // method has been introduced with string argument
     // TODO: change later to this function
-    device.ChangeState(FairMQDevice::BIND);
 
     // port addresses are assigned after BIND and can be propagated using DDS
     if (bUseDDS) {
       for (unsigned iInput = 0; iInput < numInputs; iInput++) {
-	if (inputSockets[iInput].method.compare("bind")==1) continue;
-	inputSockets[iInput].address=device.GetProperty(FairMQDevice::InputAddress, "", iInput);
+        if (inputSockets[iInput].method.compare("bind")==1) continue;
+        inputSockets[iInput].address=device.fChannels["data-in"].at(iInput).GetAddress();
       }
       for (unsigned iOutput = 0; iOutput < numOutputs; iOutput++) {
-	if (outputSockets[iOutput].method.compare("bind")==1) continue;
-	outputSockets[iOutput].address=device.GetProperty(FairMQDevice::OutputAddress, "", iOutput);
+        if (outputSockets[iOutput].method.compare("bind")==1) continue;
+        outputSockets[iOutput].address=device.fChannels["data-out"].at(iOutput).GetAddress();
       }
       sendSocketPropertiesDDS(inputSockets);
       sendSocketPropertiesDDS(outputSockets);
@@ -424,22 +421,31 @@ int main(int argc, char** argv)
       readSocketPropertiesDDS(inputSockets);
       readSocketPropertiesDDS(outputSockets);
       for (unsigned iInput = 0; iInput < numInputs; iInput++) {
-	if (inputSockets[iInput].method.compare("connect")==1) continue;
-	device.SetProperty(FairMQDevice::InputAddress, inputSockets[iInput].address.c_str(), iInput);
+        if (inputSockets[iInput].method.compare("connect")==1) continue;
+        device.fChannels["data-in"].at(iInput).UpdateAddress(inputSockets[iInput].address.c_str());
       }
       for (unsigned iOutput = 0; iOutput < numOutputs; iOutput++) {
-	if (outputSockets[iOutput].method.compare("connect")==1) continue;
-	device.SetProperty(FairMQDevice::OutputAddress, outputSockets[iOutput].address.c_str(), iOutput);
+        if (outputSockets[iOutput].method.compare("connect")==1) continue;
+        device.fChannels["data-out"].at(iOutput).UpdateAddress(outputSockets[iOutput].address.c_str());
       }
     }
-    device.ChangeState(FairMQDevice::CONNECT);
+    device.WaitForEndOfState("INIT_DEVICE");
 #endif
-    device.ChangeState(FairMQDevice::RUN);
+    device.ChangeState("INIT_TASK");
+    device.WaitForEndOfState("INIT_TASK");
 
-    boost::unique_lock<boost::mutex> lock(device.fRunningMutex);
-    while (!device.fRunningFinished) {
-      device.fRunningCondition.wait(lock);
-    }
+    device.ChangeState("RUN");
+    device.WaitForEndOfState("RUN");
+
+    device.ChangeState("STOP");
+
+    device.ChangeState("RESET_TASK");
+    device.WaitForEndOfState("RESET_TASK");
+
+    device.ChangeState("RESET_DEVICE");
+    device.WaitForEndOfState("RESET_DEVICE");
+
+    device.ChangeState("END");
   } // scope for the device reference variable
 
   FairMQDevice* almostdead = gDevice;

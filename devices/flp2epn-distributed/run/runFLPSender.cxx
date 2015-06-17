@@ -24,7 +24,6 @@ static void s_signal_handler (int signal)
 {
   cout << endl << "Caught signal " << signal << endl;
 
-  flp.ChangeState(FLPSender::STOP);
   flp.ChangeState(FLPSender::END);
 
   cout << "Shutdown complete. Bye!" << endl;
@@ -149,49 +148,45 @@ int main(int argc, char** argv)
   flp.SetProperty(FLPSender::Id, options.id);
   flp.SetProperty(FLPSender::NumIoThreads, options.ioThreads);
   flp.SetProperty(FLPSender::EventSize, options.eventSize);
-
-  flp.SetProperty(FLPSender::NumInputs, options.numInputs);
-  flp.SetProperty(FLPSender::NumOutputs, options.numOutputs);
   flp.SetProperty(FLPSender::HeartbeatTimeoutInMs, options.heartbeatTimeoutInMs);
   flp.SetProperty(FLPSender::TestMode, options.testMode);
   flp.SetProperty(FLPSender::SendOffset, options.sendOffset);
 
-  flp.ChangeState(FLPSender::INIT);
 
-  for (int i = 0; i < options.numInputs; ++i) {
-    flp.SetProperty(FLPSender::InputSocketType, options.inputSocketType.at(i), i);
-    flp.SetProperty(FLPSender::InputRcvBufSize, options.inputBufSize.at(i), i);
-    flp.SetProperty(FLPSender::InputMethod, options.inputMethod.at(i), i);
-    flp.SetProperty(FLPSender::InputAddress, options.inputAddress.at(i), i);
-    flp.SetProperty(FLPSender::LogInputRate, options.inputRateLogging.at(i), i);
+  for (int i = 0; i < options.inputAddress.size(); ++i) {
+    FairMQChannel inputChannel(options.inputSocketType.at(i), options.inputMethod.at(i), options.inputAddress.at(i));
+    inputChannel.UpdateSndBufSize(options.inputBufSize.at(i));
+    inputChannel.UpdateRcvBufSize(options.inputBufSize.at(i));
+    inputChannel.UpdateRateLogging(options.inputRateLogging.at(i));
+    flp.fChannels["data-in"].push_back(inputChannel);
   }
 
-  for (int i = 0; i < options.numOutputs; ++i) {
-    flp.SetProperty(FLPSender::OutputSocketType, options.outputSocketType.at(i), i);
-    flp.SetProperty(FLPSender::OutputSndBufSize, options.outputBufSize.at(i), i);
-    flp.SetProperty(FLPSender::OutputMethod, options.outputMethod.at(i), i);
-    flp.SetProperty(FLPSender::OutputAddress, options.outputAddress.at(i), i);
-    flp.SetProperty(FLPSender::LogOutputRate, options.outputRateLogging.at(i), i);
+  for (int i = 0; i < options.outputAddress.size(); ++i) {
+    FairMQChannel outputChannel(options.outputSocketType.at(i), options.outputMethod.at(i), options.outputAddress.at(i));
+    outputChannel.UpdateSndBufSize(options.outputBufSize.at(i));
+    outputChannel.UpdateRcvBufSize(options.outputBufSize.at(i));
+    outputChannel.UpdateRateLogging(options.outputRateLogging.at(i));
+    flp.fChannels["data-out"].push_back(outputChannel);
   }
 
-  try {
-    flp.ChangeState(FLPSender::SETOUTPUT);
-    flp.ChangeState(FLPSender::SETINPUT);
-    flp.ChangeState(FLPSender::BIND);
-    flp.ChangeState(FLPSender::CONNECT);
-    flp.ChangeState(FLPSender::RUN);
-  } catch (const exception& e) {
-      LOG(ERROR) << e.what();
-  }
+  flp.ChangeState("INIT_DEVICE");
+  flp.WaitForEndOfState("INIT_DEVICE");
 
-  // wait until the running thread has finished processing.
-  boost::unique_lock<boost::mutex> lock(flp.fRunningMutex);
-  while (!flp.fRunningFinished) {
-    flp.fRunningCondition.wait(lock);
-  }
+  flp.ChangeState("INIT_TASK");
+  flp.WaitForEndOfState("INIT_TASK");
 
-  flp.ChangeState(FLPSender::STOP);
-  flp.ChangeState(FLPSender::END);
+  flp.ChangeState("RUN");
+  flp.WaitForEndOfState("RUN");
+
+  flp.ChangeState("STOP");
+
+  flp.ChangeState("RESET_TASK");
+  flp.WaitForEndOfState("RESET_TASK");
+
+  flp.ChangeState("RESET_DEVICE");
+  flp.WaitForEndOfState("RESET_DEVICE");
+
+  flp.ChangeState("END");
 
   return 0;
 }

@@ -36,12 +36,13 @@ class FLPSender : public FairMQDevice
 
     void ResetEventCounter();
 
-    virtual void SetProperty(const int key, const std::string& value, const int slot = 0);
-    virtual std::string GetProperty(const int key, const std::string& default_ = "", const int slot = 0);
-    virtual void SetProperty(const int key, const int value, const int slot = 0);
-    virtual int GetProperty(const int key, const int default_ = 0, const int slot = 0);
-    virtual void SetProperty(const int key, const boost::posix_time::ptime value, const int slot = 0);
-    virtual boost::posix_time::ptime GetProperty(const int key, const boost::posix_time::ptime value, const int slot = 0);
+    virtual void SetProperty(const int key, const std::string& value);
+    virtual std::string GetProperty(const int key, const std::string& default_ = "");
+    virtual void SetProperty(const int key, const int value);
+    virtual int GetProperty(const int key, const int default_ = 0);
+
+    void SetProperty(const int key, const boost::posix_time::ptime value, const int slot = 0);
+    boost::posix_time::ptime GetProperty(const int key, const boost::posix_time::ptime value, const int slot = 0);
 
   protected:
     virtual void Init();

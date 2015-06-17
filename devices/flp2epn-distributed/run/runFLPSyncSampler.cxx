@@ -24,7 +24,6 @@ static void s_signal_handler (int signal)
 {
   cout << endl << "Caught signal " << signal << endl;
 
-  sampler.ChangeState(FLPSyncSampler::STOP);
   sampler.ChangeState(FLPSyncSampler::END);
 
   cout << "Shutdown complete. Bye!" << endl;
@@ -135,41 +134,36 @@ int main(int argc, char** argv)
   sampler.SetProperty(FLPSyncSampler::NumIoThreads, options.ioThreads);
   sampler.SetProperty(FLPSyncSampler::EventRate, options.eventRate);
 
-  sampler.SetProperty(FLPSyncSampler::NumInputs, 1);
-  sampler.SetProperty(FLPSyncSampler::NumOutputs, 1);
+  FairMQChannel inputChannel(options.inputSocketType, options.inputMethod, options.inputAddress);
+  inputChannel.UpdateSndBufSize(options.inputBufSize);
+  inputChannel.UpdateRcvBufSize(options.inputBufSize);
+  inputChannel.UpdateRateLogging(options.inputRateLogging);
+  sampler.fChannels["data-in"].push_back(inputChannel);
 
-  sampler.ChangeState(FLPSyncSampler::INIT);
+  FairMQChannel outputChannel(options.outputSocketType, options.outputMethod, options.outputAddress);
+  outputChannel.UpdateSndBufSize(options.outputBufSize);
+  outputChannel.UpdateRcvBufSize(options.outputBufSize);
+  outputChannel.UpdateRateLogging(options.outputRateLogging);
+  sampler.fChannels["data-out"].push_back(outputChannel);
 
-  sampler.SetProperty(FLPSyncSampler::InputSocketType, options.inputSocketType);
-  sampler.SetProperty(FLPSyncSampler::InputSndBufSize, options.inputBufSize);
-  sampler.SetProperty(FLPSyncSampler::InputMethod, options.inputMethod);
-  sampler.SetProperty(FLPSyncSampler::InputAddress, options.inputAddress);
-  sampler.SetProperty(FLPSyncSampler::LogInputRate, options.inputRateLogging);
+  sampler.ChangeState("INIT_DEVICE");
+  sampler.WaitForEndOfState("INIT_DEVICE");
 
-  sampler.SetProperty(FLPSyncSampler::OutputSocketType, options.outputSocketType);
-  sampler.SetProperty(FLPSyncSampler::OutputSndBufSize, options.outputBufSize);
-  sampler.SetProperty(FLPSyncSampler::OutputMethod, options.outputMethod);
-  sampler.SetProperty(FLPSyncSampler::OutputAddress, options.outputAddress);
-  sampler.SetProperty(FLPSyncSampler::LogOutputRate, options.outputRateLogging);
+  sampler.ChangeState("INIT_TASK");
+  sampler.WaitForEndOfState("INIT_TASK");
 
-  try {
-    sampler.ChangeState(FLPSyncSampler::SETOUTPUT);
-    sampler.ChangeState(FLPSyncSampler::SETINPUT);
-    sampler.ChangeState(FLPSyncSampler::BIND);
-    sampler.ChangeState(FLPSyncSampler::CONNECT);
-    sampler.ChangeState(FLPSyncSampler::RUN);
-  } catch (const exception& e) {
-      LOG(ERROR) << e.what();
-  }
+  sampler.ChangeState("RUN");
+  sampler.WaitForEndOfState("RUN");
 
-  // wait until the running thread has finished processing.
-  boost::unique_lock<boost::mutex> lock(sampler.fRunningMutex);
-  while (!sampler.fRunningFinished) {
-    sampler.fRunningCondition.wait(lock);
-  }
+  sampler.ChangeState("STOP");
 
-  sampler.ChangeState(FLPSyncSampler::STOP);
-  sampler.ChangeState(FLPSyncSampler::END);
+  sampler.ChangeState("RESET_TASK");
+  sampler.WaitForEndOfState("RESET_TASK");
+
+  sampler.ChangeState("RESET_DEVICE");
+  sampler.WaitForEndOfState("RESET_DEVICE");
+
+  sampler.ChangeState("END");
 
   return 0;
 }
