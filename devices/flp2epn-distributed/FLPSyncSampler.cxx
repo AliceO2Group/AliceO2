@@ -32,22 +32,20 @@ FLPSyncSampler::~FLPSyncSampler()
 
 void FLPSyncSampler::Run()
 {
-  LOG(INFO) << ">>>>>>> Run <<<<<<<";
   boost::this_thread::sleep(boost::posix_time::milliseconds(10000));
 
-  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
   boost::thread resetEventCounter(boost::bind(&FLPSyncSampler::ResetEventCounter, this));
   boost::thread ackListener(boost::bind(&FLPSyncSampler::ListenForAcks, this));
 
-  int NOBLOCK = fPayloadInputs->at(0)->NOBLOCK;
+  int NOBLOCK = fChannels["data-out"].at(0).fSocket->NOBLOCK;
 
   uint64_t timeFrameId = 0;
 
-  while (fState == RUNNING) {
+  while (GetCurrentState() == RUNNING) {
     FairMQMessage* msg = fTransportFactory->CreateMessage(sizeof(uint64_t));
     memcpy(msg->GetData(), &timeFrameId, sizeof(uint64_t));
 
-    if (fPayloadOutputs->at(0)->Send(msg, NOBLOCK) == 0) {
+    if (fChannels["data-out"].at(0).Send(msg, NOBLOCK) == 0) {
       LOG(ERROR) << "Could not send signal without blocking";
     }
 
@@ -67,8 +65,6 @@ void FLPSyncSampler::Run()
   }
 
   try {
-    rateLogger.interrupt();
-    rateLogger.join();
     resetEventCounter.interrupt();
     resetEventCounter.join();
     ackListener.interrupt();
@@ -76,18 +72,11 @@ void FLPSyncSampler::Run()
   } catch(boost::thread_resource_error& e) {
     LOG(ERROR) << e.what();
   }
-
-  FairMQDevice::Shutdown();
-
-  // notify parent thread about end of processing.
-  boost::lock_guard<boost::mutex> lock(fRunningMutex);
-  fRunningFinished = true;
-  fRunningCondition.notify_one();
 }
 
 void FLPSyncSampler::ListenForAcks()
 {
-  FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
+  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
 
   uint64_t id = 0;
 
@@ -95,14 +84,14 @@ void FLPSyncSampler::ListenForAcks()
   ofstream ofsFrames(name + "-frames.log");
   ofstream ofsTimes(name + "-times.log");
 
-  while (fState == RUNNING) {
+  while (GetCurrentState() == RUNNING) {
     try {
       poller->Poll(100);
 
       if (poller->CheckInput(0)) {
         FairMQMessage* idMsg = fTransportFactory->CreateMessage();
 
-        if (fPayloadInputs->at(0)->Receive(idMsg) > 0) {
+        if (fChannels["data-in"].at(0).Receive(idMsg) > 0) {
           id = *(reinterpret_cast<uint64_t*>(idMsg->GetData()));
           fTimeframeRTT[id].end = boost::posix_time::microsec_clock::local_time();
           // store values in a file
@@ -121,7 +110,6 @@ void FLPSyncSampler::ListenForAcks()
   ofsFrames.close();
   ofsTimes.close();
 
-
   delete poller;
 }
 
@@ -137,41 +125,41 @@ void FLPSyncSampler::ResetEventCounter()
   }
 }
 
-void FLPSyncSampler::SetProperty(const int key, const string& value, const int slot /*= 0*/)
+void FLPSyncSampler::SetProperty(const int key, const string& value)
 {
   switch (key) {
     default:
-      FairMQDevice::SetProperty(key, value, slot);
+      FairMQDevice::SetProperty(key, value);
       break;
   }
 }
 
-string FLPSyncSampler::GetProperty(const int key, const string& default_ /*= ""*/, const int slot /*= 0*/)
+string FLPSyncSampler::GetProperty(const int key, const string& default_ /*= ""*/)
 {
   switch (key) {
     default:
-      return FairMQDevice::GetProperty(key, default_, slot);
+      return FairMQDevice::GetProperty(key, default_);
   }
 }
 
-void FLPSyncSampler::SetProperty(const int key, const int value, const int slot /*= 0*/)
+void FLPSyncSampler::SetProperty(const int key, const int value)
 {
   switch (key) {
     case EventRate:
       fEventRate = value;
       break;
     default:
-      FairMQDevice::SetProperty(key, value, slot);
+      FairMQDevice::SetProperty(key, value);
       break;
   }
 }
 
-int FLPSyncSampler::GetProperty(const int key, const int default_ /*= 0*/, const int slot /*= 0*/)
+int FLPSyncSampler::GetProperty(const int key, const int default_ /*= 0*/)
 {
   switch (key) {
     case EventRate:
       return fEventRate;
     default:
-      return FairMQDevice::GetProperty(key, default_, slot);
+      return FairMQDevice::GetProperty(key, default_);
   }
 }

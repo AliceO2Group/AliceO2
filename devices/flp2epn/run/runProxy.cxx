@@ -27,7 +27,6 @@ static void s_signal_handler (int signal)
 {
     cout << endl << "Caught signal " << signal << endl;
 
-    proxy.ChangeState(O2Proxy::STOP);
     proxy.ChangeState(O2Proxy::END);
 
     cout << "Shutdown complete. Bye!" << endl;
@@ -151,40 +150,38 @@ int main(int argc, char** argv)
     proxy.SetProperty(O2Proxy::Id, options.id);
     proxy.SetProperty(O2Proxy::NumIoThreads, options.ioThreads);
 
-    proxy.SetProperty(O2Proxy::NumInputs, 1);
-    proxy.SetProperty(O2Proxy::NumOutputs, 1);
+    FairMQChannel inputChannel(options.inputSocketType, options.inputMethod, options.inputAddress);
+    inputChannel.UpdateSndBufSize(options.inputBufSize);
+    inputChannel.UpdateRcvBufSize(options.inputBufSize);
+    inputChannel.UpdateRateLogging(1);
 
-    proxy.ChangeState(O2Proxy::INIT);
+    proxy.fChannels["data-in"].push_back(inputChannel);
 
-    proxy.SetProperty(O2Proxy::InputSocketType, options.inputSocketType);
-    proxy.SetProperty(O2Proxy::InputSndBufSize, options.inputBufSize);
-    proxy.SetProperty(O2Proxy::InputMethod, options.inputMethod);
-    proxy.SetProperty(O2Proxy::InputAddress, options.inputAddress);
+    FairMQChannel outputChannel(options.outputSocketType, options.outputMethod, options.outputAddress);
+    outputChannel.UpdateSndBufSize(options.outputBufSize);
+    outputChannel.UpdateRcvBufSize(options.outputBufSize);
+    outputChannel.UpdateRateLogging(1);
 
-    proxy.SetProperty(O2Proxy::OutputSocketType, options.outputSocketType);
-    proxy.SetProperty(O2Proxy::OutputRcvBufSize, options.outputBufSize);
-    proxy.SetProperty(O2Proxy::OutputMethod, options.outputMethod);
-    proxy.SetProperty(O2Proxy::OutputAddress, options.outputAddress);
+    proxy.fChannels["data-out"].push_back(outputChannel);
 
-    proxy.ChangeState(O2Proxy::SETOUTPUT);
-    proxy.ChangeState(O2Proxy::SETINPUT);
-// temporary check to allow compilation with older fairmq version
-#ifdef FAIRMQ_INTERFACE_VERSION
-    proxy.ChangeState(O2Proxy::BIND);
-    proxy.ChangeState(O2Proxy::CONNECT);
-#endif
-    proxy.ChangeState(O2Proxy::RUN);
+    proxy.ChangeState("INIT_DEVICE");
+    proxy.WaitForEndOfState("INIT_DEVICE");
 
+    proxy.ChangeState("INIT_TASK");
+    proxy.WaitForEndOfState("INIT_TASK");
 
-    // wait until the running thread has finished processing.
-    boost::unique_lock<boost::mutex> lock(proxy.fRunningMutex);
-    while (!proxy.fRunningFinished)
-    {
-      proxy.fRunningCondition.wait(lock);
-    }
+    proxy.ChangeState("RUN");
+    proxy.WaitForEndOfState("RUN");
 
-    proxy.ChangeState(O2Proxy::STOP);
-    proxy.ChangeState(O2Proxy::END);
+    proxy.ChangeState("STOP");
+
+    proxy.ChangeState("RESET_TASK");
+    proxy.WaitForEndOfState("RESET_TASK");
+
+    proxy.ChangeState("RESET_DEVICE");
+    proxy.WaitForEndOfState("RESET_DEVICE");
+
+    proxy.ChangeState("END");
 
     return 0;
 }

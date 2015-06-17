@@ -27,7 +27,6 @@ static void s_signal_handler (int signal)
 {
     cout << endl << "Caught signal " << signal << endl;
 
-    flp.ChangeState(O2FLPex::STOP);
     flp.ChangeState(O2FLPex::END);
 
     cout << "Shutdown complete. Bye!" << endl;
@@ -167,43 +166,43 @@ int main(int argc, char** argv)
     flp.SetProperty(O2FLPex::NumIoThreads, options.ioThreads);
     flp.SetProperty(O2FLPex::EventSize, options.eventSize);
 
-    flp.SetProperty(O2FLPex::NumInputs, 1);
-    flp.SetProperty(O2FLPex::NumOutputs, options.numOutputs);
     flp.SetProperty(O2FLPex::HeartbeatTimeoutInMs, options.heartbeatTimeoutInMs);
 
-    flp.ChangeState(O2FLPex::INIT);
+    FairMQChannel inputChannel(options.inputSocketType, options.inputMethod, options.inputAddress);
+    inputChannel.UpdateSndBufSize(options.inputBufSize);
+    inputChannel.UpdateRcvBufSize(options.inputBufSize);
+    inputChannel.UpdateRateLogging(1);
 
-    flp.SetProperty(O2FLPex::InputSocketType, options.inputSocketType);
-    flp.SetProperty(O2FLPex::InputSndBufSize, options.inputBufSize);
-    flp.SetProperty(O2FLPex::InputMethod, options.inputMethod);
-    flp.SetProperty(O2FLPex::InputAddress, options.inputAddress);
+    flp.fChannels["data-in"].push_back(inputChannel);
 
-    for (int i = 0; i < options.numOutputs; ++i)
+    for (int i = 0; i < options.outputAddress.size(); ++i)
     {
-        flp.SetProperty(O2FLPex::OutputSocketType, options.outputSocketType.at(i), i);
-        flp.SetProperty(O2FLPex::OutputRcvBufSize, options.outputBufSize.at(i), i);
-        flp.SetProperty(O2FLPex::OutputMethod, options.outputMethod.at(i), i);
-        flp.SetProperty(O2FLPex::OutputAddress, options.outputAddress.at(i), i);
+        FairMQChannel outputChannel(options.outputSocketType.at(i), options.outputMethod.at(i), options.outputAddress.at(i));
+        outputChannel.UpdateSndBufSize(options.outputBufSize.at(i));
+        outputChannel.UpdateRcvBufSize(options.outputBufSize.at(i));
+        outputChannel.UpdateRateLogging(1);
+
+        flp.fChannels["data-out"].push_back(outputChannel);
     }
 
-    flp.ChangeState(O2FLPex::SETOUTPUT);
-    flp.ChangeState(O2FLPex::SETINPUT);
-// temporary check to allow compilation with older fairmq version
-#ifdef FAIRMQ_INTERFACE_VERSION
-    flp.ChangeState(O2FLPex::BIND);
-    flp.ChangeState(O2FLPex::CONNECT);
-#endif
-    flp.ChangeState(O2FLPex::RUN);
+    flp.ChangeState("INIT_DEVICE");
+    flp.WaitForEndOfState("INIT_DEVICE");
 
-    // wait until the running thread has finished processing.
-    boost::unique_lock<boost::mutex> lock(flp.fRunningMutex);
-    while (!flp.fRunningFinished)
-    {
-        flp.fRunningCondition.wait(lock);
-    }
+    flp.ChangeState("INIT_TASK");
+    flp.WaitForEndOfState("INIT_TASK");
 
-    flp.ChangeState(O2FLPex::STOP);
-    flp.ChangeState(O2FLPex::END);
+    flp.ChangeState("RUN");
+    flp.WaitForEndOfState("RUN");
+
+    flp.ChangeState("STOP");
+
+    flp.ChangeState("RESET_TASK");
+    flp.WaitForEndOfState("RESET_TASK");
+
+    flp.ChangeState("RESET_DEVICE");
+    flp.WaitForEndOfState("RESET_DEVICE");
+
+    flp.ChangeState("END");
 
     return 0;
 }

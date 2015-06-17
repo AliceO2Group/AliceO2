@@ -27,7 +27,6 @@ static void s_signal_handler (int signal)
 {
     cout << endl << "Caught signal " << signal << endl;
 
-    epn.ChangeState(O2EPNex::STOP);
     epn.ChangeState(O2EPNex::END);
 
     cout << "Shutdown complete. Bye!" << endl;
@@ -161,43 +160,43 @@ int main(int argc, char** argv)
     epn.SetProperty(O2EPNex::Id, options.id);
     epn.SetProperty(O2EPNex::NumIoThreads, options.ioThreads);
 
-    epn.SetProperty(O2EPNex::NumInputs, 1);
-    epn.SetProperty(O2EPNex::NumOutputs, options.numOutputs);
     epn.SetProperty(O2EPNex::HeartbeatIntervalInMs, options.heartbeatIntervalInMs);
 
-    epn.ChangeState(O2EPNex::INIT);
+    FairMQChannel inputChannel(options.inputSocketType, options.inputMethod, options.inputAddress);
+    inputChannel.UpdateSndBufSize(options.inputBufSize);
+    inputChannel.UpdateRcvBufSize(options.inputBufSize);
+    inputChannel.UpdateRateLogging(1);
 
-    epn.SetProperty(O2EPNex::InputSocketType, options.inputSocketType);
-    epn.SetProperty(O2EPNex::InputSndBufSize, options.inputBufSize);
-    epn.SetProperty(O2EPNex::InputMethod, options.inputMethod);
-    epn.SetProperty(O2EPNex::InputAddress, options.inputAddress);
+    epn.fChannels["data-in"].push_back(inputChannel);
 
-    for (int i = 0; i < options.numOutputs; ++i)
+    for (int i = 0; i < options.outputAddress.size(); ++i)
     {
-        epn.SetProperty(O2EPNex::OutputSocketType, options.outputSocketType.at(i), i);
-        epn.SetProperty(O2EPNex::OutputRcvBufSize, options.outputBufSize.at(i), i);
-        epn.SetProperty(O2EPNex::OutputMethod, options.outputMethod.at(i), i);
-        epn.SetProperty(O2EPNex::OutputAddress, options.outputAddress.at(i), i);
+        FairMQChannel outputChannel(options.outputSocketType.at(i), options.outputMethod.at(i), options.outputAddress.at(i));
+        outputChannel.UpdateSndBufSize(options.outputBufSize.at(i));
+        outputChannel.UpdateRcvBufSize(options.outputBufSize.at(i));
+        outputChannel.UpdateRateLogging(1);
+
+        epn.fChannels["data-out"].push_back(outputChannel);
     }
 
-    epn.ChangeState(O2EPNex::SETOUTPUT);
-    epn.ChangeState(O2EPNex::SETINPUT);
-// temporary check to allow compilation with older fairmq version
-#ifdef FAIRMQ_INTERFACE_VERSION
-    epn.ChangeState(O2EPNex::BIND);
-    epn.ChangeState(O2EPNex::CONNECT);
-#endif
-    epn.ChangeState(O2EPNex::RUN);
+    epn.ChangeState("INIT_DEVICE");
+    epn.WaitForEndOfState("INIT_DEVICE");
 
-    // wait until the running thread has finished processing.
-    boost::unique_lock<boost::mutex> lock(epn.fRunningMutex);
-    while (!epn.fRunningFinished)
-    {
-      epn.fRunningCondition.wait(lock);
-    }
+    epn.ChangeState("INIT_TASK");
+    epn.WaitForEndOfState("INIT_TASK");
 
-    epn.ChangeState(O2EPNex::STOP);
-    epn.ChangeState(O2EPNex::END);
+    epn.ChangeState("RUN");
+    epn.WaitForEndOfState("RUN");
+
+    epn.ChangeState("STOP");
+
+    epn.ChangeState("RESET_TASK");
+    epn.WaitForEndOfState("RESET_TASK");
+
+    epn.ChangeState("RESET_DEVICE");
+    epn.WaitForEndOfState("RESET_DEVICE");
+
+    epn.ChangeState("END");
 
     return 0;
 }

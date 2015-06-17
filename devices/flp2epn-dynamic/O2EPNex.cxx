@@ -24,24 +24,22 @@ O2EPNex::~O2EPNex()
 
 void O2EPNex::Run()
 {
-  LOG(INFO) << ">>>>>>> Run <<<<<<<";
-
-  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-
   boost::posix_time::ptime referenceTime = boost::posix_time::microsec_clock::local_time();
 
   // Set the time difference to fHeartbeatIntervalInMs to immediately send a heartbeat to the EPNs
   int timeDif = fHeartbeatIntervalInMs;
+  string ownAddress = fChannels["data-in"].at(0).GetAddress();
+  int ownAddressLength = strlen(ownAddress.c_str());
 
-  while (fState == RUNNING) {
+  while (GetCurrentState() == RUNNING) {
     if (timeDif >= fHeartbeatIntervalInMs) {
       referenceTime = boost::posix_time::microsec_clock::local_time();
 
-      for (int i = 0; i < fNumOutputs; i++) {
-        FairMQMessage* heartbeatMsg = fTransportFactory->CreateMessage (strlen (fInputAddress.at(0).c_str()));
-        memcpy(heartbeatMsg->GetData(), fInputAddress.at(0).c_str(), strlen (fInputAddress.at(0).c_str()));
+      for (int i = 0; i < fChannels["data-out"].size(); ++i) {
+        FairMQMessage* heartbeatMsg = fTransportFactory->CreateMessage(ownAddressLength);
+        memcpy(heartbeatMsg->GetData(), ownAddress.c_str(), ownAddressLength);
 
-        fPayloadOutputs->at(i)->Send(heartbeatMsg);
+        fChannels["data-out"].at(i).Send(heartbeatMsg);
 
         delete heartbeatMsg;
       }
@@ -53,9 +51,7 @@ void O2EPNex::Run()
     // Receive payload
     FairMQMessage* payloadMsg = fTransportFactory->CreateMessage();
 
-    size_t payloadSize = fPayloadInputs->at(0)->Receive(payloadMsg, "no-block");
-
-    if ( payloadSize > 0 ) {
+    if (fChannels["data-in"].at(0).Receive(payloadMsg, "no-block") > 0) {
       int inputSize = payloadMsg->GetSize();
       int numInput = inputSize / sizeof(Content);
       Content* input = reinterpret_cast<Content*>(payloadMsg->GetData());
@@ -67,53 +63,43 @@ void O2EPNex::Run()
 
     delete payloadMsg;
   }
-
-  rateLogger.interrupt();
-  rateLogger.join();
-
-  FairMQDevice::Shutdown();
-
-  // notify parent thread about end of processing.
-  boost::lock_guard<boost::mutex> lock(fRunningMutex);
-  fRunningFinished = true;
-  fRunningCondition.notify_one();
 }
 
-void O2EPNex::SetProperty(const int key, const string& value, const int slot/*= 0*/)
+void O2EPNex::SetProperty(const int key, const string& value)
 {
   switch (key) {
     default:
-      FairMQDevice::SetProperty(key, value, slot);
+      FairMQDevice::SetProperty(key, value);
       break;
   }
 }
 
-string O2EPNex::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
+string O2EPNex::GetProperty(const int key, const string& default_/*= ""*/)
 {
   switch (key) {
     default:
-      return FairMQDevice::GetProperty(key, default_, slot);
+      return FairMQDevice::GetProperty(key, default_);
   }
 }
 
-void O2EPNex::SetProperty(const int key, const int value, const int slot/*= 0*/)
+void O2EPNex::SetProperty(const int key, const int value)
 {
   switch (key) {
     case HeartbeatIntervalInMs:
       fHeartbeatIntervalInMs = value;
       break;
     default:
-      FairMQDevice::SetProperty(key, value, slot);
+      FairMQDevice::SetProperty(key, value);
       break;
   }
 }
 
-int O2EPNex::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
+int O2EPNex::GetProperty(const int key, const int default_/*= 0*/)
 {
   switch (key) {
     case HeartbeatIntervalInMs:
       return fHeartbeatIntervalInMs;
     default:
-      return FairMQDevice::GetProperty(key, default_, slot);
+      return FairMQDevice::GetProperty(key, default_);
   }
 }

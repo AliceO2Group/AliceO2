@@ -12,8 +12,8 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
-#include "O2FLPex.h"
 #include "FairMQLogger.h"
+#include "O2FLPex.h"
 
 using namespace std;
 
@@ -33,17 +33,11 @@ void O2FLPex::Init()
 
 void O2FLPex::Run()
 {
-  LOG(INFO) << ">>>>>>> Run <<<<<<<";
-  //boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
-
-  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-
   srand(time(NULL));
 
   LOG(DEBUG) << "Message size: " << fEventSize * sizeof(Content) << " bytes.";
 
-  while ( fState == RUNNING ) {
-
+  while (GetCurrentState() == RUNNING) {
     Content* payload = new Content[fEventSize];
 
     for (int i = 0; i < fEventSize; ++i) {
@@ -58,93 +52,48 @@ void O2FLPex::Run()
     FairMQMessage* msg = fTransportFactory->CreateMessage(fEventSize * sizeof(Content));
     memcpy(msg->GetData(), payload, fEventSize * sizeof(Content));
 
-    fPayloadOutputs->at(0)->Send(msg);
+    fChannels["data-out"].at(0).Send(msg);
 
     delete[] payload;
     delete msg;
   }
-
-  rateLogger.interrupt();
-
-  rateLogger.join();
-
-  FairMQDevice::Shutdown();
-
-  // notify parent thread about end of processing.
-  boost::lock_guard<boost::mutex> lock(fRunningMutex);
-  fRunningFinished = true;
-  fRunningCondition.notify_one();
 }
 
-void O2FLPex::Log(int intervalInMs)
-{
-  timestamp_t t0;
-  timestamp_t t1;
-  unsigned long bytes = fPayloadOutputs->at(0)->GetBytesTx();
-  unsigned long messages = fPayloadOutputs->at(0)->GetMessagesTx();
-  unsigned long bytesNew = 0;
-  unsigned long messagesNew = 0;
-  double megabytesPerSecond = 0;
-  double messagesPerSecond = 0;
-
-  t0 = get_timestamp();
-
-  while (true) {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(intervalInMs));
-
-    t1 = get_timestamp();
-
-    bytesNew = fPayloadOutputs->at(0)->GetBytesTx();
-    messagesNew = fPayloadOutputs->at(0)->GetMessagesTx();
-
-    timestamp_t timeSinceLastLog_ms = (t1 - t0) / 1000.0L;
-
-    megabytesPerSecond = ((double) (bytesNew - bytes) / (1024. * 1024.)) / (double) timeSinceLastLog_ms * 1000.;
-    messagesPerSecond = (double) (messagesNew - messages) / (double) timeSinceLastLog_ms * 1000.;
-
-    LOG(DEBUG) << "send " << messagesPerSecond << " msg/s, " << megabytesPerSecond << " MB/s";
-
-    bytes = bytesNew;
-    messages = messagesNew;
-    t0 = t1;
-  }
-}
-
-void O2FLPex::SetProperty(const int key, const string& value, const int slot/*= 0*/)
+void O2FLPex::SetProperty(const int key, const string& value)
 {
   switch (key) {
   default:
-    FairMQDevice::SetProperty(key, value, slot);
+    FairMQDevice::SetProperty(key, value);
     break;
   }
 }
 
-string O2FLPex::GetProperty(const int key, const string& default_/*= ""*/, const int slot/*= 0*/)
+string O2FLPex::GetProperty(const int key, const string& default_/*= ""*/)
 {
   switch (key) {
   default:
-    return FairMQDevice::GetProperty(key, default_, slot);
+    return FairMQDevice::GetProperty(key, default_);
   }
 }
 
-void O2FLPex::SetProperty(const int key, const int value, const int slot/*= 0*/)
+void O2FLPex::SetProperty(const int key, const int value)
 {
   switch (key) {
   case EventSize:
     fEventSize = value;
     break;
   default:
-    FairMQDevice::SetProperty(key, value, slot);
+    FairMQDevice::SetProperty(key, value);
     break;
   }
 }
 
-int O2FLPex::GetProperty(const int key, const int default_/*= 0*/, const int slot/*= 0*/)
+int O2FLPex::GetProperty(const int key, const int default_/*= 0*/)
 {
   switch (key) {
   case EventSize:
     return fEventSize;
   default:
-    return FairMQDevice::GetProperty(key, default_, slot);
+    return FairMQDevice::GetProperty(key, default_);
   }
 }

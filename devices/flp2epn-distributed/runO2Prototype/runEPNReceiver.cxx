@@ -32,7 +32,6 @@ static void s_signal_handler (int signal)
 {
   cout << endl << "Caught signal " << signal << endl;
 
-  epn.ChangeState(EPNReceiver::STOP);
   epn.ChangeState(EPNReceiver::END);
 
   cout << "Shutdown complete. Bye!" << endl;

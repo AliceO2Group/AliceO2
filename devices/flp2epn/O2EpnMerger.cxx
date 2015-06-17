@@ -17,51 +17,44 @@ O2EpnMerger::O2EpnMerger()
 
 void O2EpnMerger::Run()
 {
-  LOG(INFO) << ">>>>>>> Run <<<<<<<";
+  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
 
-  boost::thread rateLogger(boost::bind(&FairMQDevice::LogSocketRates, this));
-    //--------------------
-    
-  FairMQPoller* poller = fTransportFactory->CreatePoller(*fPayloadInputs);
-    
   bool received = false;
-  int NoOfMsgParts=fNumInputs-1;
-    
-  while ( fState == RUNNING ) {
-    FairMQMessage* msg = fTransportFactory->CreateMessage();
-    poller->Poll(100);
-        for(int i = 0; i < fNumInputs; i++) {
-            if (poller->CheckInput(i)){
-                received = fPayloadInputs->at(i)->Receive(msg);
-                // LOG(INFO) << "------ recieve Msg from " << i ;
-            }
-            if (received) {
-                if(i<NoOfMsgParts){
-                    fPayloadOutputs->at(0)->Send(msg, "snd-more");
-                    //    LOG(INFO) << "------ Send  Msg Part " << i ;
-                }else{
-                    fPayloadOutputs->at(0)->Send(msg);
-                    //    LOG(INFO) << "------ Send  last Msg Part " << i ;
-                }
-                received = false;
-            }
-        }
-        
-        delete msg;
-    }
-    
-    delete poller;
-    
-    rateLogger.interrupt();
-    rateLogger.join();
-//--------------------
-    
-    
-    
-  while ( fState == RUNNING ) {
+  int NoOfMsgParts = fChannels["data-in"].size() - 1;
+
+  while (GetCurrentState() == RUNNING) {
     FairMQMessage* msg = fTransportFactory->CreateMessage();
 
-    fPayloadInputs->at(0)->Receive(msg);
+    poller->Poll(100);
+
+    for (int i = 0; i < fChannels["data-in"].size(); i++) {
+      if (poller->CheckInput(i)) {
+        if (fChannels["data-in"].at(i).Receive(msg)) {
+          // LOG(INFO) << "------ recieve Msg from " << i ;
+          if (i < NoOfMsgParts) {
+            fChannels["data-out"].at(0).Send(msg, "snd-more");
+            //    LOG(INFO) << "------ Send  Msg Part " << i ;
+          } else {
+            fChannels["data-out"].at(0).Send(msg);
+            //    LOG(INFO) << "------ Send  last Msg Part " << i ;
+          }
+        }
+      }
+    }
+
+    delete msg;
+  }
+
+  delete poller;
+
+//--------------------
+
+    // editor comment: i think following block shouldn't be here, but i'll just leave it here...
+
+  while (GetCurrentState() == RUNNING) {
+    FairMQMessage* msg = fTransportFactory->CreateMessage();
+
+    fChannels["data-in"].at(0).Receive(msg);
 
     int inputSize = msg->GetSize();
     int numInput = inputSize / sizeof(Content);
@@ -73,16 +66,6 @@ void O2EpnMerger::Run()
 
     delete msg;
   }
-
-  rateLogger.interrupt();
-  rateLogger.join();
-
-  FairMQDevice::Shutdown();
-
-  // notify parent thread about end of processing.
-  boost::lock_guard<boost::mutex> lock(fRunningMutex);
-  fRunningFinished = true;
-  fRunningCondition.notify_one();
 }
 
 O2EpnMerger::~O2EpnMerger()

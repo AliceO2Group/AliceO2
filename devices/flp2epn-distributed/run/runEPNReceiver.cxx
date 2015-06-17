@@ -24,7 +24,6 @@ static void s_signal_handler (int signal)
 {
   cout << endl << "Caught signal " << signal << endl;
 
-  epn.ChangeState(EPNReceiver::STOP);
   epn.ChangeState(EPNReceiver::END);
 
   cout << "Shutdown complete. Bye!" << endl;
@@ -146,47 +145,43 @@ int main(int argc, char** argv)
   epn.SetProperty(EPNReceiver::Id, options.id);
   epn.SetProperty(EPNReceiver::NumIoThreads, options.ioThreads);
 
-  epn.SetProperty(EPNReceiver::NumInputs, 1);
-  epn.SetProperty(EPNReceiver::NumOutputs, options.numOutputs);
   epn.SetProperty(EPNReceiver::HeartbeatIntervalInMs, options.heartbeatIntervalInMs);
   epn.SetProperty(EPNReceiver::BufferTimeoutInMs, options.bufferTimeoutInMs);
   epn.SetProperty(EPNReceiver::NumFLPs, options.numFLPs);
   epn.SetProperty(EPNReceiver::TestMode, options.testMode);
 
-  epn.ChangeState(EPNReceiver::INIT);
+  FairMQChannel inputChannel(options.inputSocketType, options.inputMethod, options.inputAddress);
+  inputChannel.UpdateSndBufSize(options.inputBufSize);
+  inputChannel.UpdateRcvBufSize(options.inputBufSize);
+  inputChannel.UpdateRateLogging(options.inputRateLogging);
+  epn.fChannels["data-in"].push_back(inputChannel);
 
-  epn.SetProperty(EPNReceiver::InputSocketType, options.inputSocketType);
-  epn.SetProperty(EPNReceiver::InputRcvBufSize, options.inputBufSize);
-  epn.SetProperty(EPNReceiver::InputMethod, options.inputMethod);
-  epn.SetProperty(EPNReceiver::InputAddress, options.inputAddress);
-  epn.SetProperty(EPNReceiver::LogInputRate, options.inputRateLogging);
-
-  for (int i = 0; i < options.numOutputs; ++i) {
-    epn.SetProperty(EPNReceiver::OutputSocketType, options.outputSocketType.at(i), i);
-    epn.SetProperty(EPNReceiver::OutputSndBufSize, options.outputBufSize.at(i), i);
-    epn.SetProperty(EPNReceiver::OutputMethod, options.outputMethod.at(i), i);
-    epn.SetProperty(EPNReceiver::OutputAddress, options.outputAddress.at(i), i);
-    epn.SetProperty(EPNReceiver::LogOutputRate, options.outputRateLogging.at(i), i);
+  for (int i = 0; i < options.outputAddress.size(); ++i) {
+    FairMQChannel outputChannel(options.outputSocketType.at(i), options.outputMethod.at(i), options.outputAddress.at(i));
+    outputChannel.UpdateSndBufSize(options.outputBufSize.at(i));
+    outputChannel.UpdateRcvBufSize(options.outputBufSize.at(i));
+    outputChannel.UpdateRateLogging(options.outputRateLogging.at(i));
+    epn.fChannels["data-out"].push_back(outputChannel);
   }
 
-  try {
-    epn.ChangeState(EPNReceiver::SETOUTPUT);
-    epn.ChangeState(EPNReceiver::SETINPUT);
-    epn.ChangeState(EPNReceiver::BIND);
-    epn.ChangeState(EPNReceiver::CONNECT);
-    epn.ChangeState(EPNReceiver::RUN);
-  } catch (const exception& e) {
-      LOG(ERROR) << e.what();
-  }
+  epn.ChangeState("INIT_DEVICE");
+  epn.WaitForEndOfState("INIT_DEVICE");
 
-  // wait until the running thread has finished processing.
-  boost::unique_lock<boost::mutex> lock(epn.fRunningMutex);
-  while (!epn.fRunningFinished) {
-    epn.fRunningCondition.wait(lock);
-  }
+  epn.ChangeState("INIT_TASK");
+  epn.WaitForEndOfState("INIT_TASK");
 
-  epn.ChangeState(EPNReceiver::STOP);
-  epn.ChangeState(EPNReceiver::END);
+  epn.ChangeState("RUN");
+  epn.WaitForEndOfState("RUN");
+
+  epn.ChangeState("STOP");
+
+  epn.ChangeState("RESET_TASK");
+  epn.WaitForEndOfState("RESET_TASK");
+
+  epn.ChangeState("RESET_DEVICE");
+  epn.WaitForEndOfState("RESET_DEVICE");
+
+  epn.ChangeState("END");
 
   return 0;
 }

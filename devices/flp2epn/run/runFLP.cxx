@@ -27,7 +27,6 @@ static void s_signal_handler (int signal)
 {
     cout << endl << "Caught signal " << signal << endl;
 
-    flp.ChangeState(O2FLPex::STOP);
     flp.ChangeState(O2FLPex::END);
 
     cout << "Shutdown complete. Bye!" << endl;
@@ -137,34 +136,30 @@ int main(int argc, char** argv)
     flp.SetProperty(O2FLPex::NumIoThreads, options.ioThreads);
     flp.SetProperty(O2FLPex::EventSize, options.eventSize);
 
-    flp.SetProperty(O2FLPex::NumInputs, 0);
-    flp.SetProperty(O2FLPex::NumOutputs, 1);
+    FairMQChannel outputChannel(options.outputSocketType, options.outputMethod, options.outputAddress);
+    outputChannel.UpdateSndBufSize(options.outputBufSize);
+    outputChannel.UpdateRcvBufSize(options.outputBufSize);
 
-    flp.ChangeState(O2FLPex::INIT);
+    flp.fChannels["data-out"].push_back(outputChannel);
 
-    flp.SetProperty(O2FLPex::OutputSocketType, options.outputSocketType);
-    flp.SetProperty(O2FLPex::OutputRcvBufSize, options.outputBufSize);
-    flp.SetProperty(O2FLPex::OutputMethod, options.outputMethod);
-    flp.SetProperty(O2FLPex::OutputAddress, options.outputAddress);
+    flp.ChangeState("INIT_DEVICE");
+    flp.WaitForEndOfState("INIT_DEVICE");
 
-    flp.ChangeState(O2FLPex::SETOUTPUT);
-    flp.ChangeState(O2FLPex::SETINPUT);
-// temporary check to allow compilation with older fairmq version
-#ifdef FAIRMQ_INTERFACE_VERSION
-    flp.ChangeState(O2FLPex::BIND);
-    flp.ChangeState(O2FLPex::CONNECT);
-#endif
-    flp.ChangeState(O2FLPex::RUN);
+    flp.ChangeState("INIT_TASK");
+    flp.WaitForEndOfState("INIT_TASK");
 
-    // wait until the running thread has finished processing.
-    boost::unique_lock<boost::mutex> lock(flp.fRunningMutex);
-    while (!flp.fRunningFinished)
-    {
-      flp.fRunningCondition.wait(lock);
-    }
+    flp.ChangeState("RUN");
+    flp.WaitForEndOfState("RUN");
 
-    flp.ChangeState(O2FLPex::STOP);
-    flp.ChangeState(O2FLPex::END);
+    flp.ChangeState("STOP");
+
+    flp.ChangeState("RESET_TASK");
+    flp.WaitForEndOfState("RESET_TASK");
+
+    flp.ChangeState("RESET_DEVICE");
+    flp.WaitForEndOfState("RESET_DEVICE");
+
+    flp.ChangeState("END");
 
     return 0;
 }

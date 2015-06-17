@@ -27,7 +27,6 @@ static void s_signal_handler (int signal)
 {
     cout << endl << "Caught signal " << signal << endl;
 
-    epn.ChangeState(O2EPNex::STOP);
     epn.ChangeState(O2EPNex::END);
 
     cout << "Shutdown complete. Bye!" << endl;
@@ -131,34 +130,30 @@ int main(int argc, char** argv)
     epn.SetProperty(O2EPNex::Id, options.id);
     epn.SetProperty(O2EPNex::NumIoThreads, options.ioThreads);
 
-    epn.SetProperty(O2EPNex::NumInputs, 1);
-    epn.SetProperty(O2EPNex::NumOutputs, 0);
+    FairMQChannel inputChannel(options.inputSocketType, options.inputMethod, options.inputAddress);
+    inputChannel.UpdateSndBufSize(options.inputBufSize);
+    inputChannel.UpdateRcvBufSize(options.inputBufSize);
 
-    epn.ChangeState(O2EPNex::INIT);
+    epn.fChannels["data-in"].push_back(inputChannel);
 
-    epn.SetProperty(O2EPNex::InputSocketType, options.inputSocketType);
-    epn.SetProperty(O2EPNex::InputSndBufSize, options.inputBufSize);
-    epn.SetProperty(O2EPNex::InputMethod, options.inputMethod);
-    epn.SetProperty(O2EPNex::InputAddress, options.inputAddress);
+    epn.ChangeState("INIT_DEVICE");
+    epn.WaitForEndOfState("INIT_DEVICE");
 
-    epn.ChangeState(O2EPNex::SETOUTPUT);
-    epn.ChangeState(O2EPNex::SETINPUT);
-// temporary check to allow compilation with older fairmq version
-#ifdef FAIRMQ_INTERFACE_VERSION
-    epn.ChangeState(O2EPNex::BIND);
-    epn.ChangeState(O2EPNex::CONNECT);
-#endif
-    epn.ChangeState(O2EPNex::RUN);
+    epn.ChangeState("INIT_TASK");
+    epn.WaitForEndOfState("INIT_TASK");
 
-    // wait until the running thread has finished processing.
-    boost::unique_lock<boost::mutex> lock(epn.fRunningMutex);
-    while (!epn.fRunningFinished)
-    {
-      epn.fRunningCondition.wait(lock);
-    }
+    epn.ChangeState("RUN");
+    epn.WaitForEndOfState("RUN");
 
-    epn.ChangeState(O2EPNex::STOP);
-    epn.ChangeState(O2EPNex::END);
+    epn.ChangeState("STOP");
+
+    epn.ChangeState("RESET_TASK");
+    epn.WaitForEndOfState("RESET_TASK");
+
+    epn.ChangeState("RESET_DEVICE");
+    epn.WaitForEndOfState("RESET_DEVICE");
+
+    epn.ChangeState("END");
 
     return 0;
 }

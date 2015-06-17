@@ -45,8 +45,8 @@ void RoundtripClient::Run()
 
         startTime = boost::posix_time::microsec_clock::local_time();
 
-        fPayloadOutputs->at(0)->Send(msg);
-        fPayloadOutputs->at(0)->Receive(reply);
+        fChannels["data"].at(0).Send(msg);
+        fChannels["data"].at(0).Receive(reply);
 
         endTime = boost::posix_time::microsec_clock::local_time();
 
@@ -60,16 +60,10 @@ void RoundtripClient::Run()
     {
         std::cout << it->first << ": " << it->second << " microseconds" << std::endl;
     }
-
-    FairMQDevice::Shutdown();
-
-    boost::lock_guard<boost::mutex> lock(fRunningMutex);
-    fRunningFinished = true;
-    fRunningCondition.notify_one();
 }
 
 
-void RoundtripClient::SetProperty(const int key, const string& value, const int slot /*= 0*/)
+void RoundtripClient::SetProperty(const int key, const string& value)
 {
     switch (key)
     {
@@ -77,12 +71,12 @@ void RoundtripClient::SetProperty(const int key, const string& value, const int 
             fText = value;
             break;
         default:
-            FairMQDevice::SetProperty(key, value, slot);
+            FairMQDevice::SetProperty(key, value);
             break;
     }
 }
 
-string RoundtripClient::GetProperty(const int key, const string& default_ /*= ""*/, const int slot /*= 0*/)
+string RoundtripClient::GetProperty(const int key, const string& default_ /*= ""*/)
 {
     switch (key)
     {
@@ -90,25 +84,25 @@ string RoundtripClient::GetProperty(const int key, const string& default_ /*= ""
             return fText;
             break;
         default:
-            return FairMQDevice::GetProperty(key, default_, slot);
+            return FairMQDevice::GetProperty(key, default_);
     }
 }
 
-void RoundtripClient::SetProperty(const int key, const int value, const int slot /*= 0*/)
+void RoundtripClient::SetProperty(const int key, const int value)
 {
     switch (key)
     {
         default:
-            FairMQDevice::SetProperty(key, value, slot);
+            FairMQDevice::SetProperty(key, value);
             break;
     }
 }
 
-int RoundtripClient::GetProperty(const int key, const int default_ /*= 0*/, const int slot /*= 0*/)
+int RoundtripClient::GetProperty(const int key, const int default_ /*= 0*/)
 {
     switch (key)
     {
         default:
-            return FairMQDevice::GetProperty(key, default_, slot);
+            return FairMQDevice::GetProperty(key, default_);
     }
 }
