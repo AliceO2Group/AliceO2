@@ -25,9 +25,11 @@ class FLPSender : public FairMQDevice
     enum {
       OutputHeartbeat = FairMQDevice::Last,
       HeartbeatTimeoutInMs,
-      TestMode,
+      Index,
       SendOffset,
+      SendDelay,
       EventSize,
+      TestMode,
       Last
     };
 
@@ -55,7 +57,9 @@ class FLPSender : public FairMQDevice
     int fHeartbeatTimeoutInMs;
     std::vector<boost::posix_time::ptime> fOutputHeartbeat;
 
+    unsigned int fIndex;
     unsigned int fSendOffset;
+    unsigned int fSendDelay;
     std::queue<FairMQMessage*> fHeaderBuffer;
     std::queue<FairMQMessage*> fDataBuffer;
     std::queue<boost::posix_time::ptime> fArrivalTime;

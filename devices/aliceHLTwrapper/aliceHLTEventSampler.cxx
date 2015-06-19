@@ -405,6 +405,8 @@ int main(int argc, char** argv)
     // method has been introduced with string argument
     // TODO: change later to this function
 
+    device.WaitForInitialValidation(); // this waits until valid sockets are configured (e.g. those that Bind())
+
     // port addresses are assigned after BIND and can be propagated using DDS
     if (bUseDDS) {
       for (unsigned iInput = 0; iInput < numInputs; iInput++) {

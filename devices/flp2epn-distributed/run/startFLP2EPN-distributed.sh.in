@@ -12,7 +12,8 @@ SAMPLER+=" --output-socket-type pub --output-buff-size $signalBuffSize --output-
 xterm -geometry 80x25+0+0 -hold -e @CMAKE_BINARY_DIR@/bin/$SAMPLER &
 
 FLP0="flpSender"
-FLP0+=" --id 1"
+FLP0+=" --id FLP1"
+FLP0+=" --flp-index 0"
 FLP0+=" --event-size 1000000"
 FLP0+=" --num-inputs 3"
 FLP0+=" --num-outputs 3"
@@ -28,7 +29,8 @@ FLP0+=" --output-socket-type push --output-buff-size $buffSize --output-method c
 xterm -geometry 80x25+500+0 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
 
 FLP1="flpSender"
-FLP1+=" --id 2"
+FLP1+=" --id FLP2"
+FLP1+=" --flp-index 0"
 FLP1+=" --event-size 1000000"
 FLP1+=" --num-inputs 3"
 FLP1+=" --num-outputs 3"
@@ -44,7 +46,8 @@ FLP1+=" --output-socket-type push --output-buff-size $buffSize --output-method c
 xterm -geometry 80x25+500+350 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP1 &
 
 FLP2="flpSender"
-FLP2+=" --id 3"
+FLP2+=" --id FLP3"
+FLP2+=" --flp-index 0"
 FLP2+=" --event-size 1000000"
 FLP2+=" --num-inputs 3"
 FLP2+=" --num-outputs 3"
@@ -60,7 +63,7 @@ FLP2+=" --output-socket-type push --output-buff-size $buffSize --output-method c
 xterm -geometry 80x25+500+700 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP2 &
 
 EPN0="epnReceiver"
-EPN0+=" --id EPN0"
+EPN0+=" --id EPN1"
 EPN0+=" --num-outputs 5"
 EPN0+=" --heartbeat-interval 5000"
 EPN0+=" --num-flps 3"
@@ -74,7 +77,7 @@ EPN0+=" --output-socket-type push --output-buff-size $signalBuffSize --output-me
 xterm -geometry 80x25+1000+0 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN0 &
 
 EPN1="epnReceiver"
-EPN1+=" --id EPN1"
+EPN1+=" --id EPN2"
 EPN1+=" --num-outputs 5"
 EPN1+=" --heartbeat-interval 5000"
 EPN1+=" --num-flps 3"
@@ -88,7 +91,7 @@ EPN1+=" --output-socket-type push --output-buff-size $signalBuffSize --output-me
 xterm -geometry 80x25+1000+350 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN1 &
 
 EPN2="epnReceiver"
-EPN2+=" --id EPN2"
+EPN2+=" --id EPN3"
 EPN2+=" --num-outputs 5"
 EPN2+=" --heartbeat-interval 5000"
 EPN2+=" --num-flps 3"

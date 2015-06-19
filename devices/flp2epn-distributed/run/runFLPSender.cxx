@@ -43,6 +43,7 @@ static void s_catch_signals (void)
 typedef struct DeviceOptions
 {
   string id;
+  int flpIndex;
   int eventSize;
   int ioThreads;
   int numInputs;
@@ -73,6 +74,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::options_description desc("Options");
   desc.add_options()
     ("id", bpo::value<string>()->required(), "Device ID")
+    ("flp-index", bpo::value<int>()->default_value(0), "FLP Index (for debugging in test mode)")
     ("event-size", bpo::value<int>()->default_value(1000), "Event size in bytes")
     ("io-threads", bpo::value<int>()->default_value(1), "Number of I/O threads")
     ("num-inputs", bpo::value<int>()->required(), "Number of FLP input sockets")
@@ -96,13 +98,14 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::store(bpo::parse_command_line(_argc, _argv, desc), vm);
 
   if (vm.count("help")) {
-    LOG(INFO) << "FLP" << endl << desc;
+    LOG(INFO) << "FLP Sender" << endl << desc;
     return false;
   }
 
   bpo::notify(vm);
 
   if (vm.count("id"))                  { _options->id                   = vm["id"].as<string>(); }
+  if (vm.count("flp-index"))           { _options->flpIndex             = vm["flp-index"].as<int>(); }
   if (vm.count("event-size"))          { _options->eventSize            = vm["event-size"].as<int>(); }
   if (vm.count("io-threads"))          { _options->ioThreads            = vm["io-threads"].as<int>(); }
   if (vm.count("num-inputs"))          { _options->numInputs            = vm["num-inputs"].as<int>(); }
@@ -146,6 +149,7 @@ int main(int argc, char** argv)
   flp.SetTransport(transportFactory);
 
   flp.SetProperty(FLPSender::Id, options.id);
+  flp.SetProperty(FLPSender::Index, options.flpIndex);
   flp.SetProperty(FLPSender::NumIoThreads, options.ioThreads);
   flp.SetProperty(FLPSender::EventSize, options.eventSize);
   flp.SetProperty(FLPSender::HeartbeatTimeoutInMs, options.heartbeatTimeoutInMs);

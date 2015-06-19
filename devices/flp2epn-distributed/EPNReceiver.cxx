@@ -18,7 +18,7 @@ using namespace AliceO2::Devices;
 
 struct f2eHeader {
   uint64_t timeFrameId;
-  int      flpId;
+  int      flpIndex;
 };
 
 EPNReceiver::EPNReceiver()
@@ -105,11 +105,11 @@ void EPNReceiver::Run()
         // store the received ID
         h = reinterpret_cast<f2eHeader*>(headerPart->GetData());
         id = h->timeFrameId;
-        // LOG(INFO) << "Received Timeframe #" << id << " from FLP" << h->flpId;
+        // LOG(INFO) << "Received sub-time frame #" << id << " from FLP" << h->flpIndex;
 
         // DEBUG:: store receive intervals per FLP
         // if (fTestMode > 0) {
-        //   int flp_id = h->flpId - 1; // super dirty temporary hack 
+        //   int flp_id = h->flpIndex - 1;
         //   if (to_simple_string(rcvTimestamp.at(flp_id)) != "not_a_date_time") {
         //     rcvIntervals.at(flp_id).push_back( (boost::posix_time::microsec_clock::local_time() - rcvTimestamp.at(flp_id)).total_microseconds() );
         //     // LOG(WARN) << rcvIntervals.at(flp_id).back();

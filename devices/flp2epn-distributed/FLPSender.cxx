@@ -23,13 +23,15 @@ using namespace AliceO2::Devices;
 
 struct f2eHeader {
   uint64_t timeFrameId;
-  int      flpId;
+  int      flpIndex;
 };
 
 FLPSender::FLPSender()
   : fHeartbeatTimeoutInMs(20000)
   , fOutputHeartbeat()
+  , fIndex(0)
   , fSendOffset(0)
+  , fSendDelay(8)
   , fHeaderBuffer()
   , fDataBuffer()
   , fEventSize(10000)
@@ -126,14 +128,14 @@ void FLPSender::Run()
         fChannels["data-in"].at(2).Receive(idPart);
 
         h->timeFrameId = *(reinterpret_cast<uint64_t*>(idPart->GetData()));
-        h->flpId = stoi(fId);
+        h->flpIndex = fIndex;
 
         delete idPart;
       } else {
         // regular mode: use the id generated locally
         h->timeFrameId = timeFrameId;
-        // h->flpId = stoi(fId);
-        h->flpId = 0;
+        // h->flpIndex = stoi(fId);
+        h->flpIndex = fIndex;
 
         if (++timeFrameId == UINT64_MAX - 1) {
           timeFrameId = 0;
@@ -168,7 +170,7 @@ void FLPSender::Run()
     } else if (fDataBuffer.size() > 0) {
       size_t dataSize = fDataBuffer.front()->GetSize();
       ptime now = boost::posix_time::microsec_clock::local_time();
-      if ((now - fArrivalTime.front()).total_milliseconds() >= (8 * fSendOffset)) {
+      if ((now - fArrivalTime.front()).total_milliseconds() >= (fSendDelay * fSendOffset)) {
         sendFrontData();
       } else {
         // LOG(INFO) << "buffering...";
@@ -237,11 +239,17 @@ void FLPSender::SetProperty(const int key, const int value)
     case HeartbeatTimeoutInMs:
       fHeartbeatTimeoutInMs = value;
       break;
+    case Index:
+      fIndex = value;
+      break;
     case TestMode:
       fTestMode = value;
       break;
     case SendOffset:
       fSendOffset = value;
+      break;
+    case SendDelay:
+      fSendDelay = value;
       break;
     case EventSize:
       fEventSize = value;
@@ -257,10 +265,14 @@ int FLPSender::GetProperty(const int key, const int default_/*= 0*/)
   switch (key) {
     case HeartbeatTimeoutInMs:
       return fHeartbeatTimeoutInMs;
+    case Index:
+      return fIndex;
     case TestMode:
       return fTestMode;
     case SendOffset:
       return fSendOffset;
+    case SendDelay:
+      return fSendDelay;
     case EventSize:
       return fEventSize;
     default:
