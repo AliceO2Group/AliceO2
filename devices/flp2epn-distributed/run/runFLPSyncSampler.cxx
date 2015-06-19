@@ -86,7 +86,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::store(bpo::parse_command_line(_argc, _argv, desc), vm);
 
   if (vm.count("help")) {
-    LOG(INFO) << "Test FLP Sampler" << endl << desc;
+    LOG(INFO) << "FLP Sync Sampler" << endl << desc;
     return false;
   }
 

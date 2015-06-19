@@ -51,6 +51,7 @@ static void s_catch_signals (void)
 typedef struct DeviceOptions
 {
   string id;
+  int flpIndex;
   int eventSize;
   int ioThreads;
   int numInputs;
@@ -79,6 +80,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::options_description desc("Options");
   desc.add_options()
     ("id", bpo::value<string>()->required(), "Device ID")
+    ("flp-index", bpo::value<int>()->default_value(0), "FLP Index (for debugging in test mode)")
     ("event-size", bpo::value<int>()->default_value(1000), "Event size in bytes")
     ("io-threads", bpo::value<int>()->default_value(1), "Number of I/O threads")
     ("num-inputs", bpo::value<int>()->required(), "Number of FLP input sockets")
@@ -102,13 +104,14 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::store(bpo::parse_command_line(_argc, _argv, desc), vm);
 
   if (vm.count("help")) {
-    LOG(INFO) << "FLP" << endl << desc;
+    LOG(INFO) << "FLP Sender" << endl << desc;
     return false;
   }
 
   bpo::notify(vm);
 
   if (vm.count("id"))                  { _options->id                   = vm["id"].as<string>(); }
+  if (vm.count("flp-index"))           { _options->flpIndex             = vm["flp-index"].as<int>(); }
   if (vm.count("event-size"))          { _options->eventSize            = vm["event-size"].as<int>(); }
   if (vm.count("io-threads"))          { _options->ioThreads            = vm["io-threads"].as<int>(); }
   if (vm.count("num-inputs"))          { _options->numInputs            = vm["num-inputs"].as<int>(); }
@@ -177,60 +180,61 @@ int main(int argc, char** argv)
     }
   }
 
+  LOG(INFO) << "FLP Sender";
   LOG(INFO) << "PID: " << getpid();
 
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
 
   flp.SetTransport(transportFactory);
 
+  // configure device
   flp.SetProperty(FLPSender::Id, options.id);
+  flp.SetProperty(FLPSender::Index, options.flpIndex);
   flp.SetProperty(FLPSender::NumIoThreads, options.ioThreads);
   flp.SetProperty(FLPSender::EventSize, options.eventSize);
-
-  flp.SetProperty(FLPSender::NumInputs, options.numInputs);
-  flp.SetProperty(FLPSender::NumOutputs, options.numOutputs);
   flp.SetProperty(FLPSender::HeartbeatTimeoutInMs, options.heartbeatTimeoutInMs);
   flp.SetProperty(FLPSender::TestMode, options.testMode);
   flp.SetProperty(FLPSender::SendOffset, options.sendOffset);
 
-  flp.ChangeState(FLPSender::INIT);
-
-  for (int i = 0; i < options.numInputs; ++i) {
-    flp.SetProperty(FLPSender::InputSocketType, options.inputSocketType.at(i), i);
-    flp.SetProperty(FLPSender::InputRcvBufSize, options.inputBufSize.at(i), i);
-    flp.SetProperty(FLPSender::InputMethod, options.inputMethod.at(i), i);
-    // flp.SetProperty(FLPSender::InputAddress, initialInputAddress, i);
-    flp.SetProperty(FLPSender::LogInputRate, options.inputRateLogging.at(i), i);
+  // configure inputs
+  for (int i = 0; i < options.inputSocketType.size(); ++i) {
+    FairMQChannel inputChannel;
+    inputChannel.UpdateType(options.inputSocketType.at(i));
+    inputChannel.UpdateMethod(options.inputMethod.at(i));
+    inputChannel.UpdateSndBufSize(options.inputBufSize.at(i));
+    inputChannel.UpdateRcvBufSize(options.inputBufSize.at(i));
+    inputChannel.UpdateRateLogging(options.inputRateLogging.at(i));
+    flp.fChannels["data-in"].push_back(inputChannel);
   }
 
-  flp.SetProperty(FLPSender::InputAddress, initialInputAddress, 0); // commands
-  flp.SetProperty(FLPSender::InputAddress, initialInputAddress, 1); // heartbeats
+  flp.fChannels["data-in"].at(0).UpdateAddress(initialInputAddress); // commands
+  flp.fChannels["data-in"].at(1).UpdateAddress(initialInputAddress); // heartbeats
   if (options.testMode == 1) {
     // In test mode, assign address that was received from the FLPSyncSampler via DDS.
-    flp.SetProperty(FLPSender::InputAddress, values.begin()->second, 2); // FLPSyncSampler signal
+    flp.fChannels["data-in"].at(2).UpdateAddress(values.begin()->second); // FLPSyncSampler signal
   } else {
     // In regular mode, assign placeholder address, that will be set when binding.
-    flp.SetProperty(FLPSender::InputAddress, initialInputAddress, 2); // data
+    flp.fChannels["data-in"].at(2).UpdateAddress(initialInputAddress); // data
   }
 
+  // configure outputs
   for (int i = 0; i < options.numOutputs; ++i) {
-    flp.SetProperty(FLPSender::OutputSocketType, options.outputSocketType, i);
-    flp.SetProperty(FLPSender::OutputSndBufSize, options.outputBufSize, i);
-    flp.SetProperty(FLPSender::OutputMethod, options.outputMethod, i);
-    flp.SetProperty(FLPSender::OutputAddress, "tcp://127.0.0.1:123");
-    flp.SetProperty(FLPSender::LogOutputRate, options.outputRateLogging, i);
+    FairMQChannel outputChannel(options.outputSocketType, options.outputMethod, "");
+    outputChannel.UpdateSndBufSize(options.outputBufSize);
+    outputChannel.UpdateRcvBufSize(options.outputBufSize);
+    outputChannel.UpdateRateLogging(options.outputRateLogging);
+    flp.fChannels["data-out"].push_back(outputChannel);
   }
 
-  flp.ChangeState(FLPSender::SETOUTPUT);
-  flp.ChangeState(FLPSender::SETINPUT);
-  flp.ChangeState(FLPSender::BIND);
+  flp.ChangeState("INIT_DEVICE");
+  flp.WaitForInitialValidation();
 
   if (options.testMode == 0) {
     // In regular mode, advertise the bound data input address to the DDS.
-    ddsKeyValue.putValue("FLPInputAddress", flp.GetProperty(FLPSender::InputAddress, "", 2));
+    ddsKeyValue.putValue("FLPSenderInputAddress", flp.fChannels["data-in"].at(2).GetAddress());
   }
 
-  ddsKeyValue.putValue("FLPSenderHeartbeatInputAddress", flp.GetProperty(FLPSender::InputAddress, "", 1));
+  ddsKeyValue.putValue("FLPSenderHeartbeatInputAddress", flp.fChannels["data-in"].at(1).GetAddress());
 
   dds::CKeyValue::valuesMap_t values2;
 
@@ -251,21 +255,29 @@ int main(int argc, char** argv)
   // Assign the received EPNReceiver input addresses to the device.
   dds::CKeyValue::valuesMap_t::const_iterator it_values2 = values2.begin();
   for (int i = 0; i < options.numOutputs; ++i) {
-    flp.SetProperty(FLPSender::OutputAddress, it_values2->second, i);
+    flp.fChannels["data-out"].at(i).UpdateAddress(it_values2->second);
     it_values2++;
   }
 
-  flp.ChangeState(FLPSender::CONNECT);
-  flp.ChangeState(FLPSender::RUN);
+  // TODO: sort the data channels
 
-  // wait until the running thread has finished processing.
-  boost::unique_lock<boost::mutex> lock(flp.fRunningMutex);
-  while (!flp.fRunningFinished) {
-    flp.fRunningCondition.wait(lock);
-  }
+  flp.WaitForEndOfState("INIT_DEVICE");
 
-  flp.ChangeState(FLPSender::STOP);
-  flp.ChangeState(FLPSender::END);
+  flp.ChangeState("INIT_TASK");
+  flp.WaitForEndOfState("INIT_TASK");
+
+  flp.ChangeState("RUN");
+  flp.WaitForEndOfState("RUN");
+
+  flp.ChangeState("STOP");
+
+  flp.ChangeState("RESET_TASK");
+  flp.WaitForEndOfState("RESET_TASK");
+
+  flp.ChangeState("RESET_DEVICE");
+  flp.WaitForEndOfState("RESET_DEVICE");
+
+  flp.ChangeState("END");
 
   return 0;
 }

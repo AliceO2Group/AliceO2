@@ -94,7 +94,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::store(bpo::parse_command_line(_argc, _argv, desc), vm);
 
   if (vm.count("help")) {
-    LOG(INFO) << "Test FLP Sampler" << endl << desc;
+    LOG(INFO) << "FLP Sync Sampler" << endl << desc;
     return false;
   }
 
@@ -146,6 +146,7 @@ int main(int argc, char** argv)
   string initialInputAddress  = ss.str();
   string initialOutputAddress = ss.str();
 
+  LOG(INFO) << "FLP Sync Sampler";
   LOG(INFO) << "PID: " << getpid();
 
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
@@ -157,24 +158,26 @@ int main(int argc, char** argv)
   sampler.SetProperty(FLPSyncSampler::EventRate, options.eventRate);
 
   FairMQChannel inputChannel(options.inputSocketType, options.inputMethod, initialInputAddress);
-  inputChannel.fSndBufSize = options.inputBufSize;
-  inputChannel.fRcvBufSize = options.inputBufSize;
-  inputChannel.fRateLogging = options.inputRateLogging;
+  inputChannel.UpdateSndBufSize(options.inputBufSize);
+  inputChannel.UpdateRcvBufSize(options.inputBufSize);
+  inputChannel.UpdateRateLogging(options.inputRateLogging);
   sampler.fChannels["data-in"].push_back(inputChannel);
 
   FairMQChannel outputChannel(options.outputSocketType, options.outputMethod, initialOutputAddress);
-  outputChannel.fSndBufSize = options.outputBufSize;
-  outputChannel.fRcvBufSize = options.outputBufSize;
-  outputChannel.fRateLogging = options.outputRateLogging;
+  outputChannel.UpdateSndBufSize(options.outputBufSize);
+  outputChannel.UpdateRcvBufSize(options.outputBufSize);
+  outputChannel.UpdateRateLogging(options.outputRateLogging);
   sampler.fChannels["data-out"].push_back(outputChannel);
 
   sampler.ChangeState("INIT_DEVICE");
-  sampler.WaitForEndOfState("INIT_DEVICE");
+  sampler.WaitForInitialValidation();
 
   // Advertise the bound addresses via DDS properties
   dds::CKeyValue ddsKeyValue;
-  ddsKeyValue.putValue("FLPSyncSamplerOutputAddress", sampler.GetProperty(FLPSyncSampler::OutputAddress, "", 0));
-  ddsKeyValue.putValue("FLPSyncSamplerInputAddress", sampler.GetProperty(FLPSyncSampler::InputAddress, "", 0));
+  ddsKeyValue.putValue("FLPSyncSamplerOutputAddress", sampler.fChannels["data-out"].at(0).GetAddress());
+  ddsKeyValue.putValue("FLPSyncSamplerInputAddress", sampler.fChannels["data-in"].at(0).GetAddress());
+
+  sampler.WaitForEndOfState("INIT_DEVICE");
 
   sampler.ChangeState("INIT_TASK");
   sampler.WaitForEndOfState("INIT_TASK");

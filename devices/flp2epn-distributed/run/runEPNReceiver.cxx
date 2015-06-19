@@ -94,7 +94,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::store(bpo::parse_command_line(_argc, _argv, desc), vm);
 
   if (vm.count("help")) {
-    LOG(INFO) << "EPN" << endl << desc;
+    LOG(INFO) << "EPN Receiver" << endl << desc;
     return false;
   }
 

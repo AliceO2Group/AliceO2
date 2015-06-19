@@ -124,7 +124,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::store(bpo::parse_command_line(_argc, _argv, desc), vm);
 
   if (vm.count("help")) {
-    LOG(INFO) << "EPN" << endl << desc;
+    LOG(INFO) << "EPN Receiver" << endl << desc;
     return false;
   }
 
@@ -192,63 +192,61 @@ int main(int argc, char** argv)
   string initialInputAddress  = ss.str();
   string initialOutputAddress = ss.str();
 
+  LOG(INFO) << "EPN Receiver";
   LOG(INFO) << "PID: " << getpid();
 
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
 
   epn.SetTransport(transportFactory);
 
+  // configure device
   epn.SetProperty(EPNReceiver::Id, options.id);
   epn.SetProperty(EPNReceiver::NumIoThreads, options.ioThreads);
-
-  epn.SetProperty(EPNReceiver::NumInputs, 1);
-  epn.SetProperty(EPNReceiver::NumOutputs, options.numOutputs);
   epn.SetProperty(EPNReceiver::HeartbeatIntervalInMs, options.heartbeatIntervalInMs);
   epn.SetProperty(EPNReceiver::BufferTimeoutInMs, options.bufferTimeoutInMs);
   epn.SetProperty(EPNReceiver::NumFLPs, options.numFLPs);
   epn.SetProperty(EPNReceiver::TestMode, options.testMode);
 
-  epn.ChangeState(EPNReceiver::INIT);
+  // configure inputs
+  FairMQChannel inputChannel(options.inputSocketType, options.inputMethod, initialInputAddress);
+  inputChannel.UpdateSndBufSize(options.inputBufSize);
+  inputChannel.UpdateRcvBufSize(options.inputBufSize);
+  inputChannel.UpdateRateLogging(options.inputRateLogging);
+  epn.fChannels["data-in"].push_back(inputChannel);
 
-  epn.SetProperty(EPNReceiver::InputSocketType, options.inputSocketType);
-  epn.SetProperty(EPNReceiver::InputRcvBufSize, options.inputBufSize);
-  epn.SetProperty(EPNReceiver::InputMethod, options.inputMethod);
-  epn.SetProperty(EPNReceiver::InputAddress, initialInputAddress);
-  epn.SetProperty(EPNReceiver::LogInputRate, options.inputRateLogging);
-
-  for (int i = 0; i < (options.numFLPs); ++i) {
-    epn.SetProperty(EPNReceiver::OutputSocketType, options.outputSocketType, i);
-    epn.SetProperty(EPNReceiver::OutputSndBufSize, options.outputBufSize, i);
-    epn.SetProperty(EPNReceiver::OutputMethod, options.outputMethod, i);
-    epn.SetProperty(EPNReceiver::OutputAddress, "tcp://127.0.0.1:1234", i);
-    epn.SetProperty(EPNReceiver::LogOutputRate, options.outputRateLogging, i);
+  // configure outputs
+  for (int i = 0; i < options.numFLPs; ++i) {
+    FairMQChannel outputChannel(options.outputSocketType, options.outputMethod, "");
+    outputChannel.UpdateSndBufSize(options.outputBufSize);
+    outputChannel.UpdateRcvBufSize(options.outputBufSize);
+    outputChannel.UpdateRateLogging(options.outputRateLogging);
+    epn.fChannels["data-out"].push_back(outputChannel);
   }
 
-  epn.SetProperty(EPNReceiver::OutputSocketType, options.nextStepSocketType, options.numFLPs);
-  epn.SetProperty(EPNReceiver::OutputSndBufSize, options.nextStepBufSize, options.numFLPs);
-  epn.SetProperty(EPNReceiver::OutputMethod, options.nextStepMethod, options.numFLPs);
-  epn.SetProperty(EPNReceiver::OutputAddress, initialOutputAddress, options.numFLPs);
-  epn.SetProperty(EPNReceiver::LogOutputRate, options.nextStepRateLogging, options.numFLPs);
+  FairMQChannel nextStepChannel(options.nextStepSocketType, options.nextStepMethod, initialOutputAddress);
+  nextStepChannel.UpdateSndBufSize(options.nextStepBufSize);
+  nextStepChannel.UpdateRcvBufSize(options.nextStepBufSize);
+  nextStepChannel.UpdateRateLogging(options.nextStepRateLogging);
+  epn.fChannels["data-out"].push_back(nextStepChannel);
 
   if (options.testMode == 1) {
     // In test mode, initialize the feedback socket to the FLPSyncSampler
-    epn.SetProperty(EPNReceiver::OutputSocketType, options.rttackSocketType, options.numFLPs + 1);
-    epn.SetProperty(EPNReceiver::OutputSndBufSize, options.rttackBufSize, options.numFLPs + 1);
-    epn.SetProperty(EPNReceiver::OutputMethod, options.rttackMethod, options.numFLPs + 1);
-    epn.SetProperty(EPNReceiver::OutputAddress, "tcp://127.0.0.1:1234", options.numFLPs + 1);
-    epn.SetProperty(EPNReceiver::LogOutputRate, options.rttackRateLogging, options.numFLPs + 1);
+    FairMQChannel rttackChannel(options.rttackSocketType, options.rttackMethod, "");
+    rttackChannel.UpdateSndBufSize(options.rttackBufSize);
+    rttackChannel.UpdateRcvBufSize(options.rttackBufSize);
+    rttackChannel.UpdateRateLogging(options.rttackRateLogging);
+    epn.fChannels["data-out"].push_back(rttackChannel);
   }
 
-  epn.ChangeState(EPNReceiver::SETOUTPUT);
-  epn.ChangeState(EPNReceiver::SETINPUT);
-  epn.ChangeState(EPNReceiver::BIND);
+  epn.ChangeState("INIT_DEVICE");
+  epn.WaitForInitialValidation();
 
   dds::CKeyValue ddsKeyValue;
 
-  ddsKeyValue.putValue("EPNReceiverInputAddress", epn.GetProperty(EPNReceiver::InputAddress, "", 0));
+  ddsKeyValue.putValue("EPNReceiverInputAddress", epn.fChannels["data-in"].at(0).GetAddress());
   if (options.testMode == 0) {
     // In regular mode, advertise the bound data output address via DDS.
-    ddsKeyValue.putValue("EPNOutputAddress", epn.GetProperty(EPNReceiver::OutputAddress, "", options.numFLPs));
+    ddsKeyValue.putValue("EPNReceiverOutputAddress", epn.fChannels["data-out"].at(options.numFLPs).GetAddress());
   }
 
   dds::CKeyValue::valuesMap_t values;
@@ -268,7 +266,7 @@ int main(int argc, char** argv)
 
   dds::CKeyValue::valuesMap_t::const_iterator it_values = values.begin();
   for (int i = 0; i < options.numFLPs; ++i) {
-    epn.SetProperty(EPNReceiver::OutputAddress, it_values->second, i);
+    epn.fChannels["data-out"].at(i).UpdateAddress(it_values->second);
     it_values++;
   }
 
@@ -289,21 +287,26 @@ int main(int argc, char** argv)
     }
     }
 
-    epn.SetProperty(EPNReceiver::OutputAddress, values.begin()->second, options.numFLPs + 1);
+    epn.fChannels["data-out"].at(options.numFLPs + 1).UpdateAddress(values.begin()->second);
   }
 
-  epn.ChangeState(EPNReceiver::CONNECT);
-  epn.ChangeState(EPNReceiver::RUN);
+  epn.WaitForEndOfState("INIT_DEVICE");
 
-  // wait until the running thread has finished processing.
-  boost::unique_lock<boost::mutex> lock(epn.fRunningMutex);
-  while (!epn.fRunningFinished)
-  {
-    epn.fRunningCondition.wait(lock);
-  }
+  epn.ChangeState("INIT_TASK");
+  epn.WaitForEndOfState("INIT_TASK");
 
-  epn.ChangeState(EPNReceiver::STOP);
-  epn.ChangeState(EPNReceiver::END);
+  epn.ChangeState("RUN");
+  epn.WaitForEndOfState("RUN");
+
+  epn.ChangeState("STOP");
+
+  epn.ChangeState("RESET_TASK");
+  epn.WaitForEndOfState("RESET_TASK");
+
+  epn.ChangeState("RESET_DEVICE");
+  epn.WaitForEndOfState("RESET_DEVICE");
+
+  epn.ChangeState("END");
 
   return 0;
 }
