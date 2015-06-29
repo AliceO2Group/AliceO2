@@ -6,7 +6,6 @@
  */
 
 #include <iostream>
-#include <csignal>
 
 #include "boost/program_options.hpp"
 
@@ -20,28 +19,6 @@
 #endif
 
 using namespace std;
-
-O2FLPex flp;
-
-static void s_signal_handler (int signal)
-{
-    cout << endl << "Caught signal " << signal << endl;
-
-    flp.ChangeState(O2FLPex::END);
-
-    cout << "Shutdown complete. Bye!" << endl;
-    exit(1);
-}
-
-static void s_catch_signals (void)
-{
-    struct sigaction action;
-    action.sa_handler = s_signal_handler;
-    action.sa_flags = 0;
-    sigemptyset(&action.sa_mask);
-    sigaction(SIGINT, &action, NULL);
-    sigaction(SIGTERM, &action, NULL);
-}
 
 typedef struct DeviceOptions
 {
@@ -138,7 +115,8 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
 int main(int argc, char** argv)
 {
-    s_catch_signals();
+    O2FLPex flp;
+    flp.CatchSignals();
 
     DeviceOptions_t options;
     try
@@ -192,17 +170,7 @@ int main(int argc, char** argv)
     flp.WaitForEndOfState("INIT_TASK");
 
     flp.ChangeState("RUN");
-    flp.WaitForEndOfState("RUN");
-
-    flp.ChangeState("STOP");
-
-    flp.ChangeState("RESET_TASK");
-    flp.WaitForEndOfState("RESET_TASK");
-
-    flp.ChangeState("RESET_DEVICE");
-    flp.WaitForEndOfState("RESET_DEVICE");
-
-    flp.ChangeState("END");
+    flp.InteractiveStateLoop();
 
     return 0;
 }

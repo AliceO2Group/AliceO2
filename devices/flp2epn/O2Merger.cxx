@@ -25,7 +25,7 @@ void O2Merger::Run()
 
   int NoOfMsgParts = fChannels["data-in"].size() - 1;
 
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
     FairMQMessage* msg = fTransportFactory->CreateMessage();
 
     poller->Poll(100);

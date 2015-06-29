@@ -31,7 +31,7 @@ void O2EPNex::Run()
   string ownAddress = fChannels["data-in"].at(0).GetAddress();
   int ownAddressLength = strlen(ownAddress.c_str());
 
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
     if (timeDif >= fHeartbeatIntervalInMs) {
       referenceTime = boost::posix_time::microsec_clock::local_time();
 

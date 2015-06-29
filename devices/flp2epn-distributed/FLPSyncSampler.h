@@ -8,8 +8,12 @@
 #ifndef ALICEO2_DEVICES_FLPSYNCSAMPLER_H_
 #define ALICEO2_DEVICES_FLPSYNCSAMPLER_H_
 
-#include "FairMQDevice.h"                        // for FairMQDevice, etc
-#include "boost/date_time/posix_time/ptime.hpp"  // for ptime
+#include <string>
+#include <cstdint> // UINT64_MAX
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+#include "FairMQDevice.h"
 
 namespace AliceO2 {
 namespace Devices {
@@ -25,7 +29,6 @@ class FLPSyncSampler : public FairMQDevice
   public:
     enum {
       EventRate = FairMQDevice::Last,
-      EventSize,
       Last
     };
 
@@ -41,12 +44,12 @@ class FLPSyncSampler : public FairMQDevice
     virtual int GetProperty(const int key, const int default_ = 0);
 
   protected:
+    virtual void InitTask();
     virtual void Run();
 
+    std::array<timeframeDuration, UINT16_MAX> fTimeframeRTT;
     int fEventRate;
     int fEventCounter;
-
-    std::map<uint64_t,timeframeDuration> fTimeframeRTT;
 };
 
 } // namespace Devices

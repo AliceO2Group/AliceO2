@@ -39,7 +39,7 @@ class EPNReceiver : public FairMQDevice
     EPNReceiver();
     virtual ~EPNReceiver();
 
-    void PrintBuffer(std::unordered_map<uint64_t,timeframeBuffer> &buffer);
+    void PrintBuffer(std::unordered_map<uint16_t, timeframeBuffer>& buffer);
     void DiscardIncompleteTimeframes();
 
     virtual void SetProperty(const int key, const std::string& value);
@@ -51,13 +51,13 @@ class EPNReceiver : public FairMQDevice
     virtual void Run();
     void sendHeartbeats();
 
-    int fHeartbeatIntervalInMs;
-    int fBufferTimeoutInMs;
-    int fNumFLPs;
-    int fTestMode; // run in test mode
+    std::unordered_map<uint16_t, timeframeBuffer> fTimeframeBuffer;
+    std::unordered_set<uint16_t> fDiscardedSet;
 
-    std::unordered_map<uint64_t,timeframeBuffer> fTimeframeBuffer;
-    std::unordered_set<uint64_t> fDiscardedSet;
+    int fNumFLPs;
+    int fBufferTimeoutInMs;
+    int fTestMode; // run in test mode
+    int fHeartbeatIntervalInMs;
 };
 
 } // namespace Devices

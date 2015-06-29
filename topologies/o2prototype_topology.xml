@@ -59,7 +59,7 @@ The following parameters need adjustment when extending the FLP-EPN configuratio
     </decltask>
 
     <decltask id="flpSender">
-        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/flpSender_dds --id flpSender_%collectionIndex%_%taskIndex% --event-size 593750 --num-inputs 3 --num-outputs 4 --input-socket-type sub --input-buff-size 10 --input-method bind --input-rate-logging 0 --input-socket-type sub --input-buff-size 10 --input-method bind --input-rate-logging 0 --input-socket-type sub --input-buff-size 10 --input-method bind --input-rate-logging 0 --output-socket-type push --output-buff-size 10 --output-method connect --output-rate-logging 1</exe>
+        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/flpSender_dds --id 0 --num-epns 1</exe>
         <properties>
             <id access="write">FLPSenderInputAddress</id>
             <id access="write">FLPSenderHeartbeatInputAddress</id>
@@ -68,7 +68,7 @@ The following parameters need adjustment when extending the FLP-EPN configuratio
     </decltask>
 
     <decltask id="epnReceiver">
-        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/epnReceiver_dds --id EPN_%collectionIndex%_%taskIndex% --num-outputs 3 --num-flps 2 --input-socket-type pull --input-buff-size 10 --input-method bind --input-rate-logging 1 --output-socket-type pub --output-buff-size 10 --output-method connect --output-rate-logging 0 --nextstep-socket-type push --nextstep-buff-size 10 --nextstep-method bind --nextstep-rate-logging 1</exe>
+        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/epnReceiver_dds --id EPN0 --num-flps 1</exe>
         <properties>
             <id access="read">FLPSenderHeartbeatInputAddress</id>
             <id access="write">EPNReceiverInputAddress</id>

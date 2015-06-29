@@ -6,7 +6,6 @@
  */
 
 #include <iostream>
-#include <csignal>
 #include <mutex>
 #include <condition_variable>
 #include <map>
@@ -26,45 +25,23 @@
 using namespace std;
 using namespace AliceO2::Devices;
 
-FLPSyncSampler sampler;
-
-static void s_signal_handler (int signal)
-{
-  cout << endl << "Caught signal " << signal << endl;
-
-  sampler.ChangeState(FLPSyncSampler::END);
-
-  cout << "Shutdown complete. Bye!" << endl;
-  exit(1);
-}
-
-static void s_catch_signals (void)
-{
-  struct sigaction action;
-  action.sa_handler = s_signal_handler;
-  action.sa_flags = 0;
-  sigemptyset(&action.sa_mask);
-  sigaction(SIGINT, &action, NULL);
-  sigaction(SIGTERM, &action, NULL);
-}
-
 typedef struct DeviceOptions
 {
   string id;
   int eventRate;
   int ioThreads;
 
-  string inputSocketType;
-  int inputBufSize;
-  string inputMethod;
-  // string inputAddress;
-  int inputRateLogging;
+  string dataOutSocketType;
+  int dataOutBufSize;
+  string dataOutMethod;
+  // string dataOutAddress;
+  int dataOutRateLogging;
 
-  string outputSocketType;
-  int outputBufSize;
-  string outputMethod;
-  // string outputAddress;
-  int outputRateLogging;
+  string ackInSocketType;
+  int ackInBufSize;
+  string ackInMethod;
+  // string ackInAddress;
+  int ackInRateLogging;
 } DeviceOptions_t;
 
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
@@ -76,18 +53,21 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   bpo::options_description desc("Options");
   desc.add_options()
     ("id", bpo::value<string>()->required(), "Device ID")
-    ("event-rate", bpo::value<int>()->default_value(0), "Event rate limit in maximum number of events per second")
+    ("event-rate", bpo::value<int>()->default_value(100), "Event rate limit in maximum number of events per second")
     ("io-threads", bpo::value<int>()->default_value(1), "Number of I/O threads")
-    ("input-socket-type", bpo::value<string>()->required(), "Input socket type: sub/pull")
-    ("input-buff-size", bpo::value<int>()->required(), "Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
-    ("input-method", bpo::value<string>()->required(), "Input method: bind/connect")
-    // ("input-address", bpo::value<string>()->required(), "Input address, e.g.: \"tcp://localhost:5555\"")
-    ("input-rate-logging", bpo::value<int>()->default_value(1), "Log input rate on socket, 1/0")
-    ("output-socket-type", bpo::value<string>()->required(), "Output socket type: pub/push")
-    ("output-buff-size", bpo::value<int>()->required(), "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
-    ("output-method", bpo::value<string>()->required(), "Output method: bind/connect")
-    // ("output-address", bpo::value<string>()->required(), "Output address, e.g.: \"tcp://localhost:5555\"")
-    ("output-rate-logging", bpo::value<int>()->default_value(1), "Log output rate on socket, 1/0")
+
+    ("data-out-socket-type", bpo::value<string>()->default_value("pub"), "Data output socket type: pub/push")
+    ("data-out-buff-size", bpo::value<int>()->default_value(100), "Data output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-out-method", bpo::value<string>()->default_value("bind"), "Data output method: bind/connect")
+    // ("data-out-address", bpo::value<string>()->required(), "Data output address, e.g.: \"tcp://localhost:5555\"")
+    ("data-out-rate-logging", bpo::value<int>()->default_value(0), "Log output rate on data socket, 1/0")
+
+    ("ack-in-socket-type", bpo::value<string>()->default_value("pull"), "Acknowledgement Input socket type: sub/pull")
+    ("ack-in-buff-size", bpo::value<int>()->default_value(100), "Acknowledgement Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("ack-in-method", bpo::value<string>()->default_value("bind"), "Acknowledgement Input method: bind/connect")
+    // ("ack-in-address", bpo::value<string>()->required(), "Acknowledgement Input address, e.g.: \"tcp://localhost:5555\"")
+    ("ack-in-rate-logging", bpo::value<int>()->default_value(0), "Log input rate on Acknowledgement socket, 1/0")
+
     ("help", "Print help messages");
 
   bpo::variables_map vm;
@@ -100,28 +80,29 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
   bpo::notify(vm);
 
-  if (vm.count("id"))                  { _options->id                = vm["id"].as<string>(); }
-  if (vm.count("event-rate"))          { _options->eventRate         = vm["event-rate"].as<int>(); }
-  if (vm.count("io-threads"))          { _options->ioThreads         = vm["io-threads"].as<int>(); }
+  if (vm.count("id"))                       { _options->id                = vm["id"].as<string>(); }
+  if (vm.count("event-rate"))               { _options->eventRate         = vm["event-rate"].as<int>(); }
+  if (vm.count("io-threads"))               { _options->ioThreads         = vm["io-threads"].as<int>(); }
 
-  if (vm.count("input-socket-type"))   { _options->inputSocketType   = vm["input-socket-type"].as<string>(); }
-  if (vm.count("input-buff-size"))     { _options->inputBufSize      = vm["input-buff-size"].as<int>(); }
-  if (vm.count("input-method"))        { _options->inputMethod       = vm["input-method"].as<string>(); }
-  // if (vm.count("input-address"))      { _options->inputAddress     = vm["input-address"].as<string>(); }
-  if (vm.count("input-rate-logging"))      { _options->inputRateLogging  = vm["input-rate-logging"].as<int>(); }
+  if (vm.count("data-out-socket-type"))  { _options->dataOutSocketType  = vm["data-out-socket-type"].as<string>(); }
+  if (vm.count("data-out-buff-size"))    { _options->dataOutBufSize     = vm["data-out-buff-size"].as<int>(); }
+  if (vm.count("data-out-method"))       { _options->dataOutMethod      = vm["data-out-method"].as<string>(); }
+  // if (vm.count("data-out-address"))      { _options->dataOutAddress     = vm["data-out-address"].as<string>(); }
+  if (vm.count("data-out-rate-logging")) { _options->dataOutRateLogging = vm["data-out-rate-logging"].as<int>(); }
 
-  if (vm.count("output-socket-type"))  { _options->outputSocketType  = vm["output-socket-type"].as<string>(); }
-  if (vm.count("output-buff-size"))    { _options->outputBufSize     = vm["output-buff-size"].as<int>(); }
-  if (vm.count("output-method"))       { _options->outputMethod      = vm["output-method"].as<string>(); }
-  // if (vm.count("output-address"))     { _options->outputAddress    = vm["output-address"].as<string>(); }
-  if (vm.count("output-rate-logging")) { _options->outputRateLogging = vm["output-rate-logging"].as<int>(); }
+  if (vm.count("ack-in-socket-type"))    { _options->ackInSocketType   = vm["ack-in-socket-type"].as<string>(); }
+  if (vm.count("ack-in-buff-size"))      { _options->ackInBufSize      = vm["ack-in-buff-size"].as<int>(); }
+  if (vm.count("ack-in-method"))         { _options->ackInMethod       = vm["ack-in-method"].as<string>(); }
+  // if (vm.count("ack-in-address"))        { _options->ackInAddress      = vm["ack-in-address"].as<string>(); }
+  if (vm.count("ack-in-rate-logging"))   { _options->ackInRateLogging  = vm["ack-in-rate-logging"].as<int>(); }
 
   return true;
 }
 
 int main(int argc, char** argv)
 {
-  s_catch_signals();
+  FLPSyncSampler sampler;
+  sampler.CatchSignals();
 
   DeviceOptions_t options;
   try {
@@ -132,22 +113,27 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  LOG(INFO) << "FLP Sync Sampler, ID: " << options.id << " (PID: " << getpid() << ")";
+
   map<string,string> IPs;
   FairMQ::tools::getHostIPs(IPs);
 
   stringstream ss;
 
   if (IPs.count("ib0")) {
-    ss << "tcp://" << IPs["ib0"] << ":5655";
+    ss << "tcp://" << IPs["ib0"];
+  } else if (IPs.count("eth0")) {
+    ss << "tcp://" << IPs["eth0"];
   } else {
-    ss << "tcp://" << IPs["eth0"] << ":5655";
+    LOG(ERROR) << "Could not find ib0 or eth0 interface";
+    exit(EXIT_FAILURE);
   }
 
-  string initialInputAddress  = ss.str();
-  string initialOutputAddress = ss.str();
+  LOG(INFO) << "Running on " << ss.str();
 
-  LOG(INFO) << "FLP Sync Sampler";
-  LOG(INFO) << "PID: " << getpid();
+  ss << ":5655";
+
+  string ownAddress = ss.str();
 
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
 
@@ -157,17 +143,17 @@ int main(int argc, char** argv)
   sampler.SetProperty(FLPSyncSampler::NumIoThreads, options.ioThreads);
   sampler.SetProperty(FLPSyncSampler::EventRate, options.eventRate);
 
-  FairMQChannel inputChannel(options.inputSocketType, options.inputMethod, initialInputAddress);
-  inputChannel.UpdateSndBufSize(options.inputBufSize);
-  inputChannel.UpdateRcvBufSize(options.inputBufSize);
-  inputChannel.UpdateRateLogging(options.inputRateLogging);
-  sampler.fChannels["data-in"].push_back(inputChannel);
+  FairMQChannel dataOutChannel(options.dataOutSocketType, options.dataOutMethod, ownAddress);
+  dataOutChannel.UpdateSndBufSize(options.dataOutBufSize);
+  dataOutChannel.UpdateRcvBufSize(options.dataOutBufSize);
+  dataOutChannel.UpdateRateLogging(options.dataOutRateLogging);
+  sampler.fChannels["data-out"].push_back(dataOutChannel);
 
-  FairMQChannel outputChannel(options.outputSocketType, options.outputMethod, initialOutputAddress);
-  outputChannel.UpdateSndBufSize(options.outputBufSize);
-  outputChannel.UpdateRcvBufSize(options.outputBufSize);
-  outputChannel.UpdateRateLogging(options.outputRateLogging);
-  sampler.fChannels["data-out"].push_back(outputChannel);
+  FairMQChannel ackInChannel(options.ackInSocketType, options.ackInMethod, ownAddress);
+  ackInChannel.UpdateSndBufSize(options.ackInBufSize);
+  ackInChannel.UpdateRcvBufSize(options.ackInBufSize);
+  ackInChannel.UpdateRateLogging(options.ackInRateLogging);
+  sampler.fChannels["ack-in"].push_back(ackInChannel);
 
   sampler.ChangeState("INIT_DEVICE");
   sampler.WaitForInitialValidation();
@@ -175,7 +161,7 @@ int main(int argc, char** argv)
   // Advertise the bound addresses via DDS properties
   dds::key_value::CKeyValue ddsKeyValue;
   ddsKeyValue.putValue("FLPSyncSamplerOutputAddress", sampler.fChannels["data-out"].at(0).GetAddress());
-  ddsKeyValue.putValue("FLPSyncSamplerInputAddress", sampler.fChannels["data-in"].at(0).GetAddress());
+  ddsKeyValue.putValue("FLPSyncSamplerInputAddress", sampler.fChannels["ack-in"].at(0).GetAddress());
 
   sampler.WaitForEndOfState("INIT_DEVICE");
 
@@ -184,8 +170,6 @@ int main(int argc, char** argv)
 
   sampler.ChangeState("RUN");
   sampler.WaitForEndOfState("RUN");
-
-  sampler.ChangeState("STOP");
 
   sampler.ChangeState("RESET_TASK");
   sampler.WaitForEndOfState("RESET_TASK");

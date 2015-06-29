@@ -22,7 +22,7 @@ void O2EpnMerger::Run()
   bool received = false;
   int NoOfMsgParts = fChannels["data-in"].size() - 1;
 
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
     FairMQMessage* msg = fTransportFactory->CreateMessage();
 
     poller->Poll(100);
@@ -49,23 +49,21 @@ void O2EpnMerger::Run()
 
 //--------------------
 
-    // editor comment: i think following block shouldn't be here, but i'll just leave it here...
+  // while (CheckCurrentState(RUNNING)) {
+  //   FairMQMessage* msg = fTransportFactory->CreateMessage();
 
-  while (GetCurrentState() == RUNNING) {
-    FairMQMessage* msg = fTransportFactory->CreateMessage();
+  //   fChannels["data-in"].at(0).Receive(msg);
 
-    fChannels["data-in"].at(0).Receive(msg);
+  //   int inputSize = msg->GetSize();
+  //   int numInput = inputSize / sizeof(Content);
+  //   Content* input = reinterpret_cast<Content*>(msg->GetData());
 
-    int inputSize = msg->GetSize();
-    int numInput = inputSize / sizeof(Content);
-    Content* input = reinterpret_cast<Content*>(msg->GetData());
+  //   // for (int i = 0; i < numInput; ++i) {
+  //   //     LOG(INFO) << (&input[i])->x << " " << (&input[i])->y << " " << (&input[i])->z << " " << (&input[i])->a << " " << (&input[i])->b;
+  //   // }
 
-    // for (int i = 0; i < numInput; ++i) {
-    //     LOG(INFO) << (&input[i])->x << " " << (&input[i])->y << " " << (&input[i])->z << " " << (&input[i])->a << " " << (&input[i])->b;
-    // }
-
-    delete msg;
-  }
+  //   delete msg;
+  // }
 }
 
 O2EpnMerger::~O2EpnMerger()

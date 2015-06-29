@@ -37,7 +37,7 @@ void O2FLPex::Run()
 
   LOG(DEBUG) << "Message size: " << fEventSize * sizeof(Content) << " bytes.";
 
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
     Content* payload = new Content[fEventSize];
 
     for (int i = 0; i < fEventSize; ++i) {

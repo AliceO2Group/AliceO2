@@ -86,27 +86,23 @@ void EventSampler::Run()
 
   std::ofstream latencyLog(mOutputFile);
 
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
 
     // read input messages
     poller->Poll(mPollingTimeout);
     for(int i = 0; i < numInputs; i++) {
       if (poller->CheckInput(i)) {
-        int64_t more = 0;
         do {
-          more = 0;
           unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-          received = fChannels["data-in"].at(i).Receive(msg.get());
+          received = fChannels.at("data-in").at(i).Receive(msg.get());
           if (received) {
             inputMessages.push_back(msg.release());
             inputMessageCntPerSocket[i]++;
             if (mVerbosity > 3) {
               LOG(INFO) << " |---- receive Msg from socket " << i;
             }
-            size_t more_size = sizeof(more);
-            fChannels["data-in"].at(i).fSocket->GetOption("rcv-more", &more, &more_size);
           }
-        } while (more);
+        } while (fChannels.at("data-in").at(i).ExpectsAnotherPart());
         if (mVerbosity > 2) {
           LOG(INFO) << "------ received " << inputMessageCntPerSocket[i] << " message(s) from socket " << i;
         }
@@ -118,45 +114,45 @@ void EventSampler::Run()
     auto useconds = std::chrono::duration_cast<std::chrono::microseconds>(timestamp  - dayref - seconds);
 
     for (vector<FairMQMessage*>::iterator mit=inputMessages.begin();
-	 mit!=inputMessages.end(); mit++) {
+         mit!=inputMessages.end(); mit++) {
       AliHLTComponentEventData* evtData=reinterpret_cast<AliHLTComponentEventData*>((*mit)->GetData());
       if ((*mit)->GetSize() >= sizeof(AliHLTComponentEventData) &&
-	  evtData && evtData->fStructSize == sizeof(AliHLTComponentEventData) &&
-	  (evtData->fEventCreation_s>0 || evtData->fEventCreation_us>0)) {
-	unsigned latencySeconds=seconds.count() - evtData->fEventCreation_s;
-	unsigned latencyUSeconds=0;
-	if (useconds.count() < evtData->fEventCreation_us) {
-	  latencySeconds--;
-	  latencyUSeconds=(1000000 + useconds.count()) - evtData->fEventCreation_us;
-	} else {
-	  latencyUSeconds=useconds.count() - evtData->fEventCreation_us;
-	}
-	if (mVerbosity>0) {
-	  const char* unit="";
-	  unsigned value=0;
-	  if (latencySeconds>=10) {
-	    unit=" s";
-	    value=latencySeconds;
-	  } else if (latencySeconds>0 || latencyUSeconds>10000) {
-	    value=latencySeconds*1000 + latencyUSeconds/1000;
-	    unit=" ms";
-	  } else {
-	    value=latencyUSeconds;
-	    unit=" us";
-	  }
-	  LOG(DEBUG) << "received event " << evtData->fEventID << " at " << seconds.count() << "s  " << useconds.count() << "us - latency " << value << unit;
-	}
-	latencyUSeconds+=latencySeconds*1000000; // max 4294s, should be enough for latency
-	if (latencyLog.is_open()) {
-	  latencyLog << evtData->fEventID << " " << latencyUSeconds << endl;
-	}
+          evtData && evtData->fStructSize == sizeof(AliHLTComponentEventData) &&
+          (evtData->fEventCreation_s>0 || evtData->fEventCreation_us>0)) {
+        unsigned latencySeconds=seconds.count() - evtData->fEventCreation_s;
+        unsigned latencyUSeconds=0;
+        if (useconds.count() < evtData->fEventCreation_us) {
+          latencySeconds--;
+          latencyUSeconds=(1000000 + useconds.count()) - evtData->fEventCreation_us;
+        } else {
+          latencyUSeconds=useconds.count() - evtData->fEventCreation_us;
+        }
+        if (mVerbosity>0) {
+          const char* unit="";
+          unsigned value=0;
+          if (latencySeconds>=10) {
+            unit=" s";
+            value=latencySeconds;
+          } else if (latencySeconds>0 || latencyUSeconds>10000) {
+            value=latencySeconds*1000 + latencyUSeconds/1000;
+            unit=" ms";
+          } else {
+            value=latencyUSeconds;
+            unit=" us";
+          }
+          LOG(DEBUG) << "received event " << evtData->fEventID << " at " << seconds.count() << "s  " << useconds.count() << "us - latency " << value << unit;
+        }
+        latencyUSeconds+=latencySeconds*1000000; // max 4294s, should be enough for latency
+        if (latencyLog.is_open()) {
+          latencyLog << evtData->fEventID << " " << latencyUSeconds << endl;
+        }
       }
 
       delete *mit;
     }
     inputMessages.clear();
     for (vector<int>::iterator mcit=inputMessageCntPerSocket.begin();
-	 mcit!=inputMessageCntPerSocket.end(); mcit++) {
+         mcit!=inputMessageCntPerSocket.end(); mcit++) {
       *mcit=0;
     }
   }
@@ -272,7 +268,7 @@ void EventSampler::samplerLoop()
   int numOutputs = (fChannels.find("data-out") == fChannels.end() ? 0 : fChannels["data-out"].size());
 
   LOG(INFO) << "starting sampler loop, period " << mEventPeriod << " us";
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
     msg->Rebuild(sizeof(AliHLTComponentEventData));
     evtData = reinterpret_cast<AliHLTComponentEventData*>(msg->GetData());
     memset(evtData, 0, sizeof(AliHLTComponentEventData));

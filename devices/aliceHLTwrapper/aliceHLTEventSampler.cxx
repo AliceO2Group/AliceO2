@@ -17,7 +17,6 @@
 
 #include "EventSampler.h"
 #include <iostream>
-#include <csignal>
 #include <getopt.h>
 #include <memory>
 #include <cstring>
@@ -83,30 +82,6 @@ struct SocketProperties_t {
 };
 
 FairMQDevice* gDevice = NULL;
-static void s_signal_handler(int signal)
-{
-  cout << endl << "Caught signal " << signal << endl;
-
-  if (gDevice) {
-    gDevice->ChangeState(FairMQDevice::END);
-    cout << "Shutdown complete. Bye!" << endl;
-  } else {
-    cerr << "No device to shut down, ignoring signal ..." << endl;
-  }
-
-  exit(1);
-}
-
-static void s_catch_signals(void)
-{
-  struct sigaction action;
-  action.sa_handler = s_signal_handler;
-  action.sa_flags = 0;
-  sigemptyset(&action.sa_mask);
-  sigaction(SIGINT, &action, NULL);
-  sigaction(SIGQUIT, &action, NULL);
-  sigaction(SIGTERM, &action, NULL);
-}
 
 int preprocessSockets(vector<SocketProperties_t>& sockets);
 int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networkPrefix="");
@@ -360,7 +335,7 @@ int main(int argc, char** argv)
     cerr << "failed to create device" << endl;
     return -ENODEV;
   }
-  s_catch_signals();
+  gDevice->CatchSignals();
 
   { // scope for the device reference variable
     FairMQDevice& device = *gDevice;
@@ -438,8 +413,6 @@ int main(int argc, char** argv)
 
     device.ChangeState("RUN");
     device.WaitForEndOfState("RUN");
-
-    device.ChangeState("STOP");
 
     device.ChangeState("RESET_TASK");
     device.WaitForEndOfState("RESET_TASK");

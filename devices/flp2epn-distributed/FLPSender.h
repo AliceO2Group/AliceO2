@@ -21,8 +21,7 @@ class FLPSender : public FairMQDevice
 {
   public:
     enum {
-      OutputHeartbeat = FairMQDevice::Last,
-      HeartbeatTimeoutInMs,
+      HeartbeatTimeoutInMs = FairMQDevice::Last,
       Index,
       SendOffset,
       SendDelay,
@@ -34,26 +33,18 @@ class FLPSender : public FairMQDevice
     FLPSender();
     virtual ~FLPSender();
 
-    void ResetEventCounter();
-
     virtual void SetProperty(const int key, const std::string& value);
     virtual std::string GetProperty(const int key, const std::string& default_ = "");
     virtual void SetProperty(const int key, const int value);
     virtual int GetProperty(const int key, const int default_ = 0);
 
-    void SetProperty(const int key, const boost::posix_time::ptime value, const int slot = 0);
-    boost::posix_time::ptime GetProperty(const int key, const boost::posix_time::ptime value, const int slot = 0);
-
   protected:
-    virtual void Init();
+    virtual void InitTask();
     virtual void Run();
 
   private:
-    bool updateIPHeartbeat(std::string str);
+    void receiveHeartbeats();
     void sendFrontData();
-
-    int fHeartbeatTimeoutInMs;
-    std::vector<boost::posix_time::ptime> fOutputHeartbeat;
 
     unsigned int fIndex;
     unsigned int fSendOffset;
@@ -62,7 +53,14 @@ class FLPSender : public FairMQDevice
     std::queue<FairMQMessage*> fDataBuffer;
     std::queue<boost::posix_time::ptime> fArrivalTime;
 
-    std::unordered_map<int,boost::posix_time::ptime> fRTTimes;
+    int fSndMoreFlag; // flag for multipart sending
+    int fNoBlockFlag; // flag for sending without blocking
+
+    int fNumEPNs;
+
+    int fHeartbeatTimeoutInMs;
+    std::unordered_map<std::string,boost::posix_time::ptime> fHeartbeats;
+    boost::shared_mutex fHeartbeatMutex;
 
     int fEventSize;
     int fTestMode; // run in test mode

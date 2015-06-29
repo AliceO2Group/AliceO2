@@ -23,7 +23,7 @@ O2Proxy::~O2Proxy()
 
 void O2Proxy::Run()
 {
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
     // int i = 0;
     int64_t more = 0;
     size_t more_size = sizeof more;

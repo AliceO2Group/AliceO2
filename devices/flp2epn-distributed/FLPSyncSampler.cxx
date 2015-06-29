@@ -5,17 +5,15 @@
  * @author D. Klein, A. Rybalchenko
  */
 
+#include <vector>
+#include <fstream>
+
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
+
+#include "FairMQLogger.h"
 #include "FLPSyncSampler.h"
-#include <stdint.h>
-#include "FairMQPoller.h"
-#include "boost/date_time/posix_time/posix_time_duration.hpp"
-#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
-#include "boost/preprocessor/seq/enum.hpp"
-#include "boost/preprocessor/seq/size.hpp"
-#include "boost/thread/detail/thread.hpp"
-#include "boost/thread/exceptions.hpp"
-#include "boost/thread/pthread/thread_data.hpp"                // for sleep
-#include <fstream>      // std::ofstream
+
 using namespace std;
 using boost::posix_time::ptime;
 
@@ -24,6 +22,7 @@ using namespace AliceO2::Devices;
 FLPSyncSampler::FLPSyncSampler()
   : fEventRate(1)
   , fEventCounter(0)
+  , fTimeframeRTT()
 {
 }
 
@@ -31,29 +30,34 @@ FLPSyncSampler::~FLPSyncSampler()
 {
 }
 
+void FLPSyncSampler::InitTask()
+{
+  // LOG(INFO) << "Waiting 10 seconds...";
+  // boost::this_thread::sleep(boost::posix_time::milliseconds(10000));
+  // LOG(INFO) << "Done!";
+}
+
 void FLPSyncSampler::Run()
 {
-  boost::this_thread::sleep(boost::posix_time::milliseconds(10000));
-
   boost::thread resetEventCounter(boost::bind(&FLPSyncSampler::ResetEventCounter, this));
   boost::thread ackListener(boost::bind(&FLPSyncSampler::ListenForAcks, this));
 
-  int NOBLOCK = fChannels["data-out"].at(0).fSocket->NOBLOCK;
+  int NOBLOCK = fChannels.at("data-out").at(0).fSocket->NOBLOCK;
 
-  uint64_t timeFrameId = 0;
+  uint16_t timeFrameId = 1;
 
-  while (GetCurrentState() == RUNNING) {
-    FairMQMessage* msg = fTransportFactory->CreateMessage(sizeof(uint64_t));
-    memcpy(msg->GetData(), &timeFrameId, sizeof(uint64_t));
+  FairMQChannel& dataOutputChannel = fChannels.at("data-out").at(0);
 
-    if (fChannels["data-out"].at(0).Send(msg, NOBLOCK) == 0) {
-      LOG(ERROR) << "Could not send signal without blocking";
-    }
+  while (CheckCurrentState(RUNNING)) {
+    FairMQMessage* msg = fTransportFactory->CreateMessage(sizeof(uint16_t));
+    memcpy(msg->GetData(), &timeFrameId, sizeof(uint16_t));
 
-    fTimeframeRTT[timeFrameId].start = boost::posix_time::microsec_clock::local_time();
+    if (dataOutputChannel.Send(msg, NOBLOCK) > 0) {
+      fTimeframeRTT[timeFrameId].start = boost::posix_time::microsec_clock::local_time();
 
-    if (++timeFrameId == UINT64_MAX - 1) {
-      timeFrameId = 0;
+      if (++timeFrameId == UINT16_MAX - 1) {
+        timeFrameId = 1;
+      }
     }
 
     --fEventCounter;
@@ -77,41 +81,34 @@ void FLPSyncSampler::Run()
 
 void FLPSyncSampler::ListenForAcks()
 {
-  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
-
-  uint64_t id = 0;
+  uint16_t id = 0;
 
   string name = to_iso_string(boost::posix_time::microsec_clock::local_time()).substr(0, 20);
   ofstream ofsFrames(name + "-frames.log");
   ofstream ofsTimes(name + "-times.log");
 
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
     try {
-      poller->Poll(100);
+      FairMQMessage* idMsg = fTransportFactory->CreateMessage();
 
-      if (poller->CheckInput(0)) {
-        FairMQMessage* idMsg = fTransportFactory->CreateMessage();
+      if (fChannels.at("ack-in").at(0).Receive(idMsg) > 0) {
+        id = *(static_cast<uint16_t*>(idMsg->GetData()));
+        fTimeframeRTT.at(id).end = boost::posix_time::microsec_clock::local_time();
+        // store values in a file
+        ofsFrames << id << "\n";
+        ofsTimes  << (fTimeframeRTT.at(id).end - fTimeframeRTT.at(id).start).total_microseconds() << "\n";
 
-        if (fChannels["data-in"].at(0).Receive(idMsg) > 0) {
-          id = *(reinterpret_cast<uint64_t*>(idMsg->GetData()));
-          fTimeframeRTT[id].end = boost::posix_time::microsec_clock::local_time();
-          // store values in a file
-          ofsFrames << id << "\n";
-          ofsTimes  << (fTimeframeRTT[id].end - fTimeframeRTT[id].start).total_microseconds() << "\n";
-
-          LOG(INFO) << "Timeframe #" << id << " acknowledged after "
-                    << (fTimeframeRTT[id].end - fTimeframeRTT[id].start).total_microseconds() << " μs.";
-        }
+        LOG(INFO) << "Timeframe #" << id << " acknowledged after "
+                  << (fTimeframeRTT.at(id).end - fTimeframeRTT.at(id).start).total_microseconds() << " μs.";
       }
     } catch (boost::thread_interrupted&) {
+      LOG(DEBUG) << "Acknowledgement listener thread interrupted";
       break;
     }
   }
 
   ofsFrames.close();
   ofsTimes.close();
-
-  delete poller;
 }
 
 void FLPSyncSampler::ResetEventCounter()
@@ -121,6 +118,7 @@ void FLPSyncSampler::ResetEventCounter()
       fEventCounter = fEventRate / 100;
       boost::this_thread::sleep(boost::posix_time::milliseconds(10));
     } catch (boost::thread_interrupted&) {
+      LOG(DEBUG) << "Event rate limiter thread interrupted";
       break;
     }
   }

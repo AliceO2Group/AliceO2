@@ -16,7 +16,7 @@ O2EPNex::O2EPNex()
 
 void O2EPNex::Run()
 {
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
     FairMQMessage* msg = fTransportFactory->CreateMessage();
 
     fChannels["data-in"].at(0).Receive(msg);

@@ -90,7 +90,7 @@ void O2FLPex::Run()
 
   delete[] payload;
 
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
     // Receive heartbeat
     FairMQMessage* heartbeatMsg = fTransportFactory->CreateMessage();
 

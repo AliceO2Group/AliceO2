@@ -6,7 +6,6 @@
  */
 
 #include <iostream>
-#include <csignal>
 
 #include "boost/program_options.hpp"
 
@@ -20,28 +19,6 @@
 #endif
 
 using namespace std;
-
-O2Merger merger;
-
-static void s_signal_handler (int signal)
-{
-    cout << endl << "Caught signal " << signal << endl;
-
-    merger.ChangeState(O2Merger::END);
-
-    cout << "Shutdown complete. Bye!" << endl;
-    exit(1);
-}
-
-static void s_catch_signals (void)
-{
-    struct sigaction action;
-    action.sa_handler = s_signal_handler;
-    action.sa_flags = 0;
-    sigemptyset(&action.sa_mask);
-    sigaction(SIGINT, &action, NULL);
-    sigaction(SIGTERM, &action, NULL);
-}
 
 typedef struct DeviceOptions
 {
@@ -128,7 +105,8 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
 int main(int argc, char** argv)
 {
-    s_catch_signals();
+    O2Merger merger;
+    merger.CatchSignals();
 
     DeviceOptions_t options;
     try
@@ -179,17 +157,7 @@ int main(int argc, char** argv)
     merger.WaitForEndOfState("INIT_TASK");
 
     merger.ChangeState("RUN");
-    merger.WaitForEndOfState("RUN");
-
-    merger.ChangeState("STOP");
-
-    merger.ChangeState("RESET_TASK");
-    merger.WaitForEndOfState("RESET_TASK");
-
-    merger.ChangeState("RESET_DEVICE");
-    merger.WaitForEndOfState("RESET_DEVICE");
-
-    merger.ChangeState("END");
+    merger.InteractiveStateLoop();
 
     return 0;
 }

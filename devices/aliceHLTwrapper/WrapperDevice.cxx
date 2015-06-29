@@ -125,7 +125,7 @@ void WrapperDevice::Run()
   vector</*const*/ FairMQMessage*> inputMessages;
   vector<int> inputMessageCntPerSocket(numInputs, 0);
   int nReadCycles=0;
-  while (GetCurrentState() == RUNNING) {
+  while (CheckCurrentState(RUNNING)) {
 
     // read input messages
     poller->Poll(mPollingPeriod);
@@ -133,15 +133,13 @@ void WrapperDevice::Run()
     bool receivedAtLeastOneMessage=false;
     for(int i = 0; i < numInputs; i++) {
       if (inputMessageCntPerSocket[i]>0) {
-	inputsReceived++;
-	continue;
+        inputsReceived++;
+        continue;
       }
       if (poller->CheckInput(i)) {
-        int64_t more = 0;
         do {
-          more = 0;
           unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-          if (fChannels["data-in"].at(i).Receive(msg.get())) {
+          if (fChannels.at("data-in").at(i).Receive(msg.get())) {
             receivedAtLeastOneMessage = true;
             inputMessages.push_back(msg.release());
             if (inputMessageCntPerSocket[i] == 0)
@@ -150,10 +148,8 @@ void WrapperDevice::Run()
             if (mVerbosity > 3) {
               LOG(INFO) << " |---- receive Msg from socket " << i;
             }
-            size_t more_size = sizeof(more);
-            fChannels["data-in"].at(i).fSocket->GetOption("rcv-more", &more, &more_size);
           }
-        } while (more);
+        } while (fChannels.at("data-in").at(i).ExpectsAnotherPart());
         if (mVerbosity > 2) {
           LOG(INFO) << "------ received " << inputMessageCntPerSocket[i] << " message(s) from socket " << i;
         }
@@ -177,14 +173,14 @@ void WrapperDevice::Run()
     if (mLastSampleTime>=0) {
       int sampleTimeDiff=duration.count()-mLastSampleTime;
       if (mMinTimeBetweenSample < 0 || sampleTimeDiff<mMinTimeBetweenSample)
-    	mMinTimeBetweenSample=sampleTimeDiff;
+        mMinTimeBetweenSample=sampleTimeDiff;
       if (mMaxTimeBetweenSample < 0 || sampleTimeDiff>mMaxTimeBetweenSample)
-    	mMaxTimeBetweenSample=sampleTimeDiff;
+        mMaxTimeBetweenSample=sampleTimeDiff;
     }
     mLastSampleTime=duration.count();
     if (duration.count()-mLastCalcTime>fLogIntervalInMs) {
       LOG(INFO) << "------ processed  " << mNSamples << " sample(s) - total " 
-		<< mComponent->getEventCount() << " sample(s)";
+                << mComponent->getEventCount() << " sample(s)";
       if (mNSamples > 0) {
         LOG(INFO) << "------ min  " << mMinTimeBetweenSample << "ms, max " << mMaxTimeBetweenSample << "ms avrg "
                   << (duration.count() - mLastCalcTime) / mNSamples << "ms ";
@@ -204,9 +200,9 @@ void WrapperDevice::Run()
       // prepare input from messages
       vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
       for (vector</*const*/ FairMQMessage*>::iterator msg=inputMessages.begin();
-	   msg!=inputMessages.end(); msg++) {
-	void* buffer=(*msg)->GetData();
-	dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
+           msg!=inputMessages.end(); msg++) {
+        void* buffer=(*msg)->GetData();
+        dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
       }
 
       // create a signal with the callback to the buffer allocation, the component
@@ -217,7 +213,7 @@ void WrapperDevice::Run()
 
       // call the component
       if ((iResult=mComponent->process(dataArray, &cbsignal))<0) {
-	LOG(ERROR) << "component processing failed with error code " << iResult;
+        LOG(ERROR) << "component processing failed with error code " << iResult;
       }
 
       // build messages from output data
@@ -293,12 +289,12 @@ void WrapperDevice::Run()
 
     // cleanup
     for (vector<FairMQMessage*>::iterator mit=inputMessages.begin();
-	 mit!=inputMessages.end(); mit++) {
+         mit!=inputMessages.end(); mit++) {
       delete *mit;
     }
     inputMessages.clear();
     for (vector<int>::iterator mcit=inputMessageCntPerSocket.begin();
-	 mcit!=inputMessageCntPerSocket.end(); mcit++) {
+         mcit!=inputMessageCntPerSocket.end(); mcit++) {
       *mcit=0;
     }
   }
