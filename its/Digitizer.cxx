@@ -26,7 +26,8 @@ Digitizer::Digitizer():
     FairTask("ITSDigitizer"),
     fPointsArray(nullptr),
     fDigitsArray(nullptr),
-    fDigitContainer(nullptr)
+    fDigitContainer(nullptr),
+    fGain(1.)
 {
     fGeometry = new UpgradeGeometryTGeo();
 }
@@ -49,7 +50,7 @@ InitStatus Digitizer::Init(){
         return kERROR;
     }
         
-    fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("Point"));
+    fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("ITS/Point"));
     if (!fPointsArray) {
         LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
         return kERROR;
@@ -82,7 +83,7 @@ void Digitizer::Exec(Option_t *option){
         if(digit){
             // For the moment only add the charge to the current digit
             double chargeDigit = digit->GetCharge();
-            chargeDigit += charge;
+            chargeDigit += charge * fGain;
         } else {
             digit = new Digit(inputpoint->GetDetectorID(), charge, inputpoint->GetTime());
             fDigitContainer->AddDigit(digit);
