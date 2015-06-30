@@ -20,6 +20,8 @@ namespace ITS {
             
         virtual InitStatus Init();
         virtual void Exec(Option_t *option);
+        
+        void SetGainFactor(Double_t gain) { fGain = gain; }
             
     private:
         Digitizer(const Digitizer &);
@@ -29,6 +31,8 @@ namespace ITS {
         TClonesArray            *fDigitsArray;              ///< Output digit container
         DigitContainer          *fDigitContainer;           ///< Internal digit storage
         UpgradeGeometryTGeo     *fGeometry;                 ///< ITS upgrade geometry
+        
+        Double_t                fGain;                      ///< pad gain factor (global for the moment)
         
         ClassDef(Digitizer, 1);
     };
