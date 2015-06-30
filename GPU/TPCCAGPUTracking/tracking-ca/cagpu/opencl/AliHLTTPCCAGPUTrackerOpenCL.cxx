@@ -451,6 +451,8 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		ResetHelperThreads(0);
 		return(1);
 	}
+	
+	clFinish(ocl->command_queue[0]);
 
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 	{
