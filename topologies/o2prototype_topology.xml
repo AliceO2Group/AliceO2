@@ -30,30 +30,28 @@ The following parameters need adjustment when extending the FLP-EPN configuratio
     <property id="CollectorInputAddress" />
 
     <declrequirement id="collectorhosts">
-        <hostPattern value="cn(48)\.internal"/>
+        <hostPattern value="cn(59)\.internal"/>
     </declrequirement>
 
     <declrequirement id="flphosts">
-        <!-- <hostPattern value="cn(00|01|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17)\.internal"/> -->
-        <hostPattern value="cn(00)\.internal"/>
+        <!-- <hostPattern value="cn(00|01|03|04|05|07|09|10|12|13|14|15|17|18|19|20|24|25|27|28|29|30|32|35|48|49|50|51|52|53|54|55|56|57|58|59)\.internal"/> -->
+        <hostPattern value="cn(01|03)\.internal"/>
     </declrequirement>
 
     <declrequirement id="epnhosts">
         <!-- <hostPattern value="cn(18|19|20|21|22|23|24|25|27|28|30|31|32|33|34|35)\.internal"/> -->
-        <hostPattern value="cn(35)\.internal"/>
+        <hostPattern value="cn(10|13|14|15)\.internal"/>
     </declrequirement>
 
     <decltask id="dataPublisher">
         <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper ClusterPublisher 1 --dds --poll-period 100 --output type=push,size=5000,method=bind,address=dummy,property=DataPublisherOutputAddress,min-port=48000 --library libAliHLTUtil.so --component FilePublisher --run 167808 --parameter '-datafilelist /tmp/tpc-cluster-publisher.conf'</exe>
-        <requirement>flphosts</requirement>
         <properties>
             <id access="write">DataPublisherOutputAddress</id>
         </properties>
     </decltask>
 
     <decltask id="relay">
-        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper Relay 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=DataPublisherOutputAddress,count=1,global --output type=push,size=5000,method=connect,property=FLPSenderInputAddress,count=1 --library libAliHLTUtil.so --component BlockFilter --run 167808  --parameter '-loglevel=0x79'</exe>
-        <requirement>flphosts</requirement>
+        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper Relay 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=DataPublisherOutputAddress,count=1,global --output type=push,size=5000,method=connect,property=FLPSenderInputAddress,count=1 --library libAliHLTUtil.so --component BlockFilter --run 167808  --parameter '-loglevel=0x79' -s 10000000</exe>
         <properties>
             <id access="read">DataPublisherOutputAddress</id>
             <id access="read">FLPSenderInputAddress</id>
@@ -61,8 +59,7 @@ The following parameters need adjustment when extending the FLP-EPN configuratio
     </decltask>
 
     <decltask id="flpSender">
-        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/flpSender_dds --id 0 --event-size 593750 --num-inputs 3 --num-outputs 1 --input-socket-type sub --input-buff-size 10 --input-method bind --input-rate-logging 0 --input-socket-type sub --input-buff-size 10 --input-method bind --input-rate-logging 0 --input-socket-type sub --input-buff-size 10 --input-method bind --input-rate-logging 0 --output-socket-type push --output-buff-size 10 --output-method connect --output-rate-logging 1</exe>
-        <requirement>flphosts</requirement>
+        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/flpSender_dds --id 0 --event-size 593750 --num-inputs 3 --num-outputs 4 --input-socket-type sub --input-buff-size 10 --input-method bind --input-rate-logging 0 --input-socket-type sub --input-buff-size 10 --input-method bind --input-rate-logging 0 --input-socket-type sub --input-buff-size 10 --input-method bind --input-rate-logging 0 --output-socket-type push --output-buff-size 10 --output-method connect --output-rate-logging 1</exe>
         <properties>
             <id access="write">FLPSenderInputAddress</id>
             <id access="write">FLPSenderHeartbeatInputAddress</id>
@@ -71,8 +68,7 @@ The following parameters need adjustment when extending the FLP-EPN configuratio
     </decltask>
 
     <decltask id="epnReceiver">
-        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/epnReceiver_dds --id EPN0 --num-outputs 2 --num-flps 1 --input-socket-type pull --input-buff-size 10 --input-method bind --input-rate-logging 1 --output-socket-type pub --output-buff-size 10 --output-method connect --output-rate-logging 0 --nextstep-socket-type push --nextstep-buff-size 10 --nextstep-method bind --nextstep-rate-logging 1</exe>
-        <requirement>epnhosts</requirement>
+        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/epnReceiver_dds --id EPN0 --num-outputs 3 --num-flps 2 --input-socket-type pull --input-buff-size 10 --input-method bind --input-rate-logging 1 --output-socket-type pub --output-buff-size 10 --output-method connect --output-rate-logging 0 --nextstep-socket-type push --nextstep-buff-size 10 --nextstep-method bind --nextstep-rate-logging 1</exe>
         <properties>
             <id access="read">FLPSenderHeartbeatInputAddress</id>
             <id access="write">EPNReceiverInputAddress</id>
@@ -82,7 +78,6 @@ The following parameters need adjustment when extending the FLP-EPN configuratio
 
     <decltask id="tracker">
         <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper Tracker 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=EPNReceiverOutputAddress,count=1 --output type=push,size=500,method=bind,property=TrackingOutputAddress,min-port=48000 --library libAliHLTTPC.so --component TPCCATracker --run 167808 --parameter '-GlobalTracking -allowGPU -GPUHelperThreads 4 -loglevel=0x7c'</exe>
-        <requirement>epnhosts</requirement>
         <!-- <requirement></requirement> -->
         <properties>
             <id access="read">EPNReceiverOutputAddress</id>
@@ -92,7 +87,6 @@ The following parameters need adjustment when extending the FLP-EPN configuratio
 
     <decltask id="merger">
             <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper GlobalMerger 1 --dds --poll-period 100 --input type=pull,size=5000,method=connect,property=TrackingOutputAddress,count=1 --output type=push,size=500,method=connect,property=CollectorInputAddress,count=1,global  --library libAliHLTTPC.so --component TPCCAGlobalMerger --run 167808 --parameter '-loglevel=0x7c'</exe>
-        <requirement>epnhosts</requirement>
         <!-- <requirement></requirement> -->
         <properties>
             <id access="read">TrackingOutputAddress</id>
@@ -101,26 +95,38 @@ The following parameters need adjustment when extending the FLP-EPN configuratio
     </decltask>
 
     <decltask id="collector">
-            <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper Collector 1 --dds --poll-period 100 --input type=pull,size=500,method=bind,property=CollectorInputAddress,min-port=48000 --library libAliHLTUtil.so --component FileWriter --run 167808 --parameter '-directory tracker-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'</exe>
+            <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/aliceHLTWrapper Collector 1 --dds --poll-period 100 --input type=pull,size=500,method=bind,property=CollectorInputAddress,min-port=48000 --library libAliHLTUtil.so --component BlockFilter --run 167808 --parameter '-origin SKIP' -s 1000000</exe>
         <requirement>collectorhosts</requirement>
         <properties>
             <id access="write">CollectorInputAddress</id>
     </properties>
     </decltask>
 
+    <declcollection id="flpcollection">
+        <requirement>flphosts</requirement>
+        <tasks>
+            <id>dataPublisher</id>
+            <id>relay</id>
+            <id>flpSender</id>
+        </tasks>
+    </declcollection>
 
+    <declcollection id="epncollection">
+        <requirement>epnhosts</requirement>
+        <tasks>
+            <id>epnReceiver</id>
+            <id>tracker</id>
+            <id>merger</id>
+        </tasks>
+    </declcollection>
 
     <main id="main">
         <task>collector</task>
-        <group id="groupFLP" n="1">
-            <task>dataPublisher</task>
-            <task>relay</task>
-            <task>flpSender</task>
+        <group id="groupFLP" n="2">
+            <collection>flpcollection</collection>
         </group>
-        <group id="groupEPN" n="1">
-            <task>epnReceiver</task>
-            <task>tracker</task>
-            <task>merger</task>
+        <group id="groupEPN" n="4">
+            <collection>epncollection</collection>
         </group>
     </main>
 
