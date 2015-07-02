@@ -85,6 +85,21 @@ struct SocketProperties_t {
   {}
 };
 
+ostream& operator<<(ostream &out, const SocketProperties_t& me)
+{
+  out << "Socket configuration:"
+      << " type       = " << me.type
+      << " size       = " << me.size
+      << " method     = " << me.method
+      << " address    = " << me.address
+      << " ddsprop    = " << me.ddsprop
+      << " ddscount   = " << me.ddscount
+      << " ddsminport = " << me.ddsminport
+      << " ddsmaxport = " << me.ddsmaxport
+    ;
+  return out;
+}
+
 FairMQDevice* gDevice = NULL;
 static void s_signal_handler(int signal)
 {
@@ -382,7 +397,16 @@ int main(int argc, char** argv)
     if (pollingPeriod > 0) device.SetProperty(ALICE::HLT::WrapperDevice::PollingPeriod, pollingPeriod);
     if (skipProcessing) device.SetProperty(ALICE::HLT::WrapperDevice::SkipProcessing, skipProcessing);
     for (unsigned iInput = 0; iInput < numInputs; iInput++) {
-      FairMQChannel inputChannel(inputSockets[iInput].type.c_str(), inputSockets[iInput].method.c_str(), inputSockets[iInput].address.c_str());
+      std::cout << "input socket " << iInput << " " << inputSockets[iInput] << endl;
+      // if running in DDS mode, the address contains now the IP address of the host
+      // machine in order to check if a DDS property comes from the same machine.
+      // This will be obsolete as soon as DDS propagates properties only within
+      // collections. Then the address can be empty for connecting sockets and
+      // can be directly used in the creation of the channel. The next two lines are
+      // then obsolete
+      std::string address=inputSockets[iInput].address.c_str();
+      if (inputSockets[iInput].method.compare("connect")==0 && bUseDDS) address="";
+      FairMQChannel inputChannel(inputSockets[iInput].type.c_str(), inputSockets[iInput].method.c_str(), address);
       // set High-water-mark for the sockets. in ZMQ, depending on the socket type, some
       // have only send buffers (PUB, PUSH), some only receive buffers (SUB, PULL), and
       // some have both (DEALER, ROUTER, PAIR, REQ, REP)
@@ -392,7 +416,12 @@ int main(int argc, char** argv)
       device.fChannels["data-in"].push_back(inputChannel);
     }
     for (unsigned iOutput = 0; iOutput < numOutputs; iOutput++) {
-      FairMQChannel outputChannel(outputSockets[iOutput].type.c_str(), outputSockets[iOutput].method.c_str(), outputSockets[iOutput].address.c_str());
+      std::cout << "output socket " << iOutput << " " << outputSockets[iOutput] << endl;
+      // see comment above, next two lines obsolete if DDS implements property
+      // propagation within collections
+      std::string address=outputSockets[iOutput].address.c_str();
+      if (outputSockets[iOutput].method.compare("connect")==0 && bUseDDS) address="";
+      FairMQChannel outputChannel(outputSockets[iOutput].type.c_str(), outputSockets[iOutput].method.c_str(), address);
       // we set both snd and rcv to the same value for the moment, see above
       outputChannel.UpdateSndBufSize(outputSockets[iOutput].size);
       outputChannel.UpdateRcvBufSize(outputSockets[iOutput].size);
@@ -438,6 +467,7 @@ int main(int argc, char** argv)
         device.fChannels["data-out"].at(iOutput).UpdateAddress(outputSockets[iOutput].address.c_str());
       }
     }
+    cout << "finnished fetching properties from DDS, now waiting for end of state INIT_DEVICE ..." << endl;
     device.WaitForEndOfState("INIT_DEVICE");
 #endif
     device.ChangeState("INIT_TASK");

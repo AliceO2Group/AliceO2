@@ -48,11 +48,11 @@ public:
   /// inherited from FairMQDevice
   virtual void Init();
   /// inherited from FairMQDevice
+  virtual void InitTask();
+  /// inherited from FairMQDevice
   virtual void Run();
   /// inherited from FairMQDevice
   virtual void Pause();
-  /// inherited from FairMQDevice
-  virtual void Shutdown();
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::SetProperty
   virtual void SetProperty(const int key, const std::string& value);

@@ -68,6 +68,10 @@ WrapperDevice::~WrapperDevice()
 
 void WrapperDevice::Init()
 {
+}
+
+void WrapperDevice::InitTask()
+{
   /// inherited from FairMQDevice
 
   int iResult=0;
@@ -308,14 +312,6 @@ void WrapperDevice::Pause()
 
   // nothing to do
   FairMQDevice::Pause();
-}
-
-void WrapperDevice::Shutdown()
-{
-  /// inherited from FairMQDevice
-  int iResult=0;
-  // TODO: shutdown component and delete instance
-  FairMQDevice::Shutdown();
 }
 
 void WrapperDevice::SetProperty(const int key, const string& value)
