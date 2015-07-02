@@ -9,7 +9,7 @@ class FairVolume;  // lines 10-10
 class TClonesArray;  // lines 11-11
 namespace AliceO2 { namespace TPC { class Point; } }  // lines 15-15
 
-
+class AliTPCParam;
 
 namespace AliceO2 {
 namespace TPC {
@@ -37,6 +37,7 @@ class Detector: public AliceO2::Base::Detector {
     /**       this method is called for each step during simulation
      *       (see FairMCApplication::Stepping())
     */
+//     virtual Bool_t ProcessHitsOrig( FairVolume* v=0);
     virtual Bool_t ProcessHits( FairVolume* v=0);
 
     /**       Registers the produced collections in FAIRRootManager.     */
@@ -51,6 +52,8 @@ class Detector: public AliceO2::Base::Detector {
     /**      Create the detector geometry        */
     void ConstructGeometry();
 
+    /** Define the sensitive volumes of the geometry */
+    void defineSensitiveVolumes();
 
 
     /**      This method is an example of how to add your own point
@@ -90,9 +93,18 @@ class Detector: public AliceO2::Base::Detector {
     Double32_t     mLength;            //!  length
     Double32_t     mEnergyLoss;             //!  energy loss
 
-    /** container for data points */
+    /// Create the detector materials
+    virtual void createMaterials();
 
+    /// Construct the detector geometry
+    void constructDetectorGeometry();
+
+    /** container for data points */
     TClonesArray*  mPointCollection;
+
+    Int_t mSens;  //! if to include stripts in the geometry
+    //TODO: dirty
+    AliTPCParam *mParam;
 
     Detector(const Detector&);
     Detector& operator=(const Detector&);
