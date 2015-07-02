@@ -33,6 +33,11 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   TStopwatch timer;
   timer.Start();
 
+  // CDB manager
+  AliceO2::CDB::Manager *cdbManager = AliceO2::CDB::Manager::Instance();
+  cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
+  cdbManager->setRun(0);
+
  // gSystem->Load("libAliceO2Base");
  // gSystem->Load("libAliceO2its");
 
@@ -153,6 +158,10 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     }
   }
 
+  // ===| Add TPC |============================================================
+  AliceO2::Base::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
+  run->AddModule(tpc);
+
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
   FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 1); /*protons*/
@@ -165,6 +174,9 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   primGen->AddGenerator(boxGen);
 
   run->SetGenerator(primGen);
+
+  // store track trajectories
+  run->SetStoreTraj(kTRUE);
 
   // Initialize simulation run
   run->Init();
