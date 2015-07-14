@@ -25,11 +25,8 @@ Point::~Point()
 
 void Point::Print(const Option_t* opt) const
 {
-  cout << "-I- Point: O2its point for track " << fTrackID << " in detector " << fDetectorID << endl;
-  cout << "    Position (" << fX << ", " << fY << ", " << fZ << ") cm" << endl;
-  cout << "    Momentum (" << fPx << ", " << fPy << ", " << fPz << ") GeV" << endl;
-  cout << "    Time " << fTime << " ns,  Length " << fLength << " cm,  Energy loss "
-       << fELoss * 1.0e06 << " keV" << endl;
+  cout << *this;
 }
+
 
 ClassImp(AliceO2::ITS::Point)
