@@ -8,6 +8,8 @@
 
 #include "TObject.h"
 #include "TVector3.h"
+//#include "Riosfwd.h"
+#include <iostream>
 
 namespace AliceO2 {
 namespace ITS {
@@ -37,6 +39,14 @@ public:
 
   /// Output to screen
   virtual void Print(const Option_t* opt) const;
+    friend std::ostream &operator<<(std::ostream &of, const Point &point){
+        of << "-I- Point: O2its point for track " << point.fTrackID << " in detector " << point.fDetectorID << std::endl;
+        of << "    Position (" << point.fX << ", " << point.fY << ", " << point.fZ << ") cm" << std::endl;
+        of << "    Momentum (" << point.fPx << ", " << point.fPy << ", " << point.fPz << ") GeV" << std::endl;
+        of << "    Time " << point.fTime << " ns,  Length " << point.fLength << " cm,  Energy loss "
+        << point.fELoss * 1.0e06 << " keV" << std::endl;
+        return of;
+    }
 
 private:
   /// Copy constructor
@@ -45,6 +55,7 @@ private:
 
   ClassDef(Point, 1)
 };
+
 }
 }
 
