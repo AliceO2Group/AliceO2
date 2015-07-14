@@ -71,10 +71,14 @@ InitStatus Digitizer::Init(){
 /// \param option Optional further settings
 void Digitizer::Exec(Option_t *option){
     fDigitsArray->Delete();
+    LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
     
     // Convert points to summable digits
     for (TIter pointiter = TIter(fPointsArray).Begin(); pointiter != TIter::End(); ++pointiter) {
         Point *inputpoint = dynamic_cast<Point *>(*pointiter);
+        LOG(DEBUG) << "Processing next point: " << FairLogger::endl;
+        LOG(DEBUG) << "=======================" << FairLogger::endl;
+        LOG(DEBUG) << *inputpoint << FairLogger::endl;
         Int_t layer = fGeometry->getLayer(inputpoint->GetDetectorID()),
                 stave = fGeometry->getStave(inputpoint->GetDetectorID()),
                 staveindex = fGeometry->getChipIdInStave(inputpoint->GetDetectorID());
