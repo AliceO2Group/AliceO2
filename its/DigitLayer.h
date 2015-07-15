@@ -9,7 +9,7 @@
 #ifndef _ALICEO2_ITS_DigitLayer_
 #define _ALICEO2_ITS_DigitLayer_
 
-#include "RTypes.h"
+#include "Rtypes.h"
 
 namespace AliceO2 {
     namespace ITS {

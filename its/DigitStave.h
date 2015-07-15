@@ -9,7 +9,7 @@
 #ifndef _ALICEO2_DigitStave_
 #define _ALICEO2_DigitStave_
 
-#include "RTypes.h"
+#include "Rtypes.h"
 #include <map>
 
 namespace AliceO2 {

@@ -9,7 +9,7 @@
 #endif
 
 #include "Riosfwd.h"
-#include "RTypes.h"
+#include "Rtypes.h"
 
 #include "FairTimeStamp.h"
 
