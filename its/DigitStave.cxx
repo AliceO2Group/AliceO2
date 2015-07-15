@@ -6,19 +6,23 @@
 //
 //
 
+#include "TClonesArray.h"
 #include "FairLogger.h"
 #include "Digit.h"
 #include "DigitStave.h"
 
 using namespace AliceO2::ITS;
 
-DigitStave::DigitStave(Int_t npixel){
+DigitStave::DigitStave(){
     
 }
 
 DigitStave::~DigitStave() {}
 
 void DigitStave::Reset(){
+    for (auto pixel: fPixels){
+        delete pixel.second;
+    }
     fPixels.clear();
 }
 
@@ -38,4 +42,11 @@ void DigitStave::SetDigit(int pixel, Digit *digi){
         delete olddigit;
     }
     fPixels.insert(std::pair<int, Digit *>(pixel, digi));
+}
+
+void DigitStave::FillOutputContainer(TClonesArray *outputcont){
+    TClonesArray &clref = *outputcont;
+    for (auto digit: fPixels) {
+        new(clref[clref.GetEntriesFast()]) Digit(*(digit.second));
+    }
 }
