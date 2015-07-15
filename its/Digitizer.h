@@ -4,7 +4,7 @@
 #define ALICEO2_ITS_Digitizer_H_
 
 #include "FairTask.h"
-#include "RTypes.h"
+#include "Rtypes.h"
 
 class TClonesArray;
 
