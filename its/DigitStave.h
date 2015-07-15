@@ -12,6 +12,8 @@
 #include "Rtypes.h"
 #include <map>
 
+class TClonesArray;
+
 namespace AliceO2 {
     namespace ITS{
         
@@ -19,16 +21,16 @@ namespace AliceO2 {
         
         class DigitStave{
         public:
-            DigitStave(Int_t npixel);
+            DigitStave();
             ~DigitStave();
             
             void Reset();
             
             Digit *FindDigit(Int_t pixel);
             void SetDigit(int pixel, Digit *digi);
+            void FillOutputContainer(TClonesArray *outputcont);
             
         private:
-            Int_t                       fNumberOfPixels;
             std::map<int, Digit*>       fPixels;
         };
     }

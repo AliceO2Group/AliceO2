@@ -11,6 +11,8 @@
 
 #include "UpgradeGeometryTGeo.h"
 
+class TClonesArray;
+
 namespace AliceO2 {
     namespace ITS{
         
@@ -19,17 +21,18 @@ namespace AliceO2 {
         
         class DigitContainer{
         public:
-            DigitContainer();
+            DigitContainer(const UpgradeGeometryTGeo *geo);
             ~DigitContainer();
             
             void Reset();
             
             void AddDigit(Digit *digi);
             Digit * FindDigit(int layer, int stave, int index);
+            void FillOutputContainer(TClonesArray *output);
         
         private:
             DigitLayer                      *fDigitLayer[7];
-            UpgradeGeometryTGeo             fGeometry;
+            const UpgradeGeometryTGeo       *fGeometry;
         };
     }
 }

@@ -13,14 +13,14 @@
 
 using namespace AliceO2::ITS;
 
-DigitLayer::DigitLayer(Int_t layerID, Int_t nstaves, Int_t npixels):
+DigitLayer::DigitLayer(Int_t layerID, Int_t nstaves):
     fLayerID(layerID),
     fNStaves(nstaves),
     fStaves(nullptr)
 {
     fStaves = new DigitStave*[fNStaves];
     for (int istave = 0; istave < fNStaves; istave++) {
-        fStaves[istave] = new DigitStave(npixels);
+        fStaves[istave] = new DigitStave();
     }
 }
 
@@ -44,4 +44,15 @@ Digit *DigitLayer::FindDigit(Int_t stave, Int_t pixel){
         return nullptr;
     }
     return fStaves[stave]->FindDigit(pixel);
+}
+
+void DigitLayer::Reset(){
+    for (DigitStave **staveIter = fStaves; staveIter < fStaves + fNStaves; staveIter++) {
+        (*staveIter)->Reset();
+    }}
+
+void DigitLayer::FillOutputContainer(TClonesArray *output){
+    for (DigitStave **staveIter = fStaves; staveIter < fStaves + fNStaves; staveIter++) {
+        (*staveIter)->FillOutputContainer(output);
+    }
 }

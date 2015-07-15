@@ -11,6 +11,8 @@
 
 #include "Rtypes.h"
 
+class TClonesArray;
+
 namespace AliceO2 {
     namespace ITS {
         
@@ -19,13 +21,15 @@ namespace AliceO2 {
         
         class DigitLayer {
         public:
-            DigitLayer(Int_t fLayerID, Int_t nstaves, Int_t fPixels);
+            DigitLayer(Int_t fLayerID, Int_t nstaves);
             ~DigitLayer();
             
             void Reset();
             
             void SetDigit(Digit *digi, Int_t stave, Int_t pixel);
             Digit *FindDigit(Int_t stave, Int_t pixel);
+            
+            void FillOutputContainer(TClonesArray *output);
             
         private:
             Int_t               fLayerID;           ///< Layer ID

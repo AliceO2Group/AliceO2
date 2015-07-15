@@ -29,7 +29,7 @@ Digitizer::Digitizer():
     fDigitContainer(nullptr),
     fGain(1.)
 {
-    fGeometry = new UpgradeGeometryTGeo();
+    fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
 }
     
 /// \brief Destructor
@@ -50,18 +50,18 @@ InitStatus Digitizer::Init(){
         return kERROR;
     }
         
-    fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("ITS/Point"));
+    fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("Point"));
     if (!fPointsArray) {
         LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
         return kERROR;
     }
         
     // Register output container
-    fDigitsArray = new TClonesArray("Digit");
+    fDigitsArray = new TClonesArray("AliceO2::ITS::Digit");
     mgr->Register("Digit", "ITS", fDigitsArray, kTRUE);
     
     // Create the digit storage
-    fDigitContainer = new DigitContainer();
+    fDigitContainer = new DigitContainer(fGeometry);
     return kSUCCESS;
 }
     
@@ -86,13 +86,17 @@ void Digitizer::Exec(Option_t *option){
         Digit * digit = fDigitContainer->FindDigit(layer, stave, staveindex);
         if(digit){
             // For the moment only add the charge to the current digit
+            LOG(DEBUG) << "Digit already found" << FairLogger::endl;
             double chargeDigit = digit->GetCharge();
             chargeDigit += charge * fGain;
         } else {
+            LOG(DEBUG) << "Creating new digit" << FairLogger::endl;
             digit = new Digit(inputpoint->GetDetectorID(), charge, inputpoint->GetTime());
             fDigitContainer->AddDigit(digit);
         }
     }
     
     // Fill output container
+    fDigitContainer->FillOutputContainer(fDigitsArray);
+    fDigitContainer->Reset();
 }
