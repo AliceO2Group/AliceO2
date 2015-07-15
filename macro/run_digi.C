@@ -1,7 +1,8 @@
 void run_digi(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         // Initialize logger
         FairLogger *logger = FairLogger::GetLogger();
-        logger->SetLogVerbosityLevel("DEBUG"); 
+        logger->SetLogVerbosityLevel("HIGH");
+        logger->SetLogScreenLevel("DEBUG"); 
         
         // Input and output file name
         std::stringstream inputfile, outputfile, paramfile;
@@ -22,6 +23,8 @@ void run_digi(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         FairParRootFileIo* parInput1 = new FairParRootFileIo();
         parInput1->open(paramfile.str().c_str());
         rtdb->setFirstInput(parInput1);
+
+        TGeoManager::Import("geofile_full.root");
 
         // Setup digitizer
         AliceO2::ITS::Digitizer *digi = new AliceO2::ITS::Digitizer;
