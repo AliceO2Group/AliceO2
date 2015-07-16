@@ -43,7 +43,7 @@ InitStatus DigitizerTask::Init(){
         return kERROR;
     }
     
-    fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("Point"));
+    fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("ITSPoint"));
     if (!fPointsArray) {
         LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
         return kERROR;
@@ -51,7 +51,7 @@ InitStatus DigitizerTask::Init(){
     
     // Register output container
     fDigitsArray = new TClonesArray("AliceO2::ITS::Digit");
-    mgr->Register("Digit", "ITS", fDigitsArray, kTRUE);
+    mgr->Register("ITSDigit", "ITS", fDigitsArray, kTRUE);
     
     fDigitizer->Init();
     return kSUCCESS;
