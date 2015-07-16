@@ -27,7 +27,7 @@ void run_digi(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         TGeoManager::Import("geofile_full.root");
 
         // Setup digitizer
-        AliceO2::ITS::Digitizer *digi = new AliceO2::ITS::Digitizer;
+        AliceO2::ITS::DigitizerTask *digi = new AliceO2::ITS::DigitizerTask;
         fRun->AddTask(digi);
 
         fRun->Init();
