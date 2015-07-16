@@ -617,7 +617,7 @@ void Detector::Register()
   // it will exist only during the simulation
 
   if (FairRootManager::Instance()) {
-    FairRootManager::Instance()->Register("Point", "ITS", mPointCollection, kTRUE);
+    FairRootManager::Instance()->Register("ITSPoint", "ITS", mPointCollection, kTRUE);
   }
 }
 

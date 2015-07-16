@@ -116,7 +116,7 @@ void Detector::Register()
       only during the simulation.
   */
 
-  FairRootManager::Instance()->Register("Point", "TPC",mPointCollection, kTRUE);
+  FairRootManager::Instance()->Register("TPCPoint", "TPC",mPointCollection, kTRUE);
 
 }
 
