@@ -8,9 +8,9 @@
 #include "TClonesArray.h"
 #include "FairLogger.h"
 
-#include "Digit.h"
-#include "DigitLayer.h"
-#include "DigitContainer.h"
+#include "its/Digit.h"
+#include "its/DigitLayer.h"
+#include "its/DigitContainer.h"
 
 
 using namespace AliceO2::ITS;

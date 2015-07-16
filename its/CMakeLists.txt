@@ -32,6 +32,7 @@ MisalignmentParameter.cxx
 Point.cxx
 Digit.cxx
 Digitizer.cxx
+DigitizerTask.cxx
 DigitContainer.cxx
 DigitLayer.cxx
 DigitStave.cxx

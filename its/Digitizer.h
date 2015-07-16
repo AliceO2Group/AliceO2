@@ -3,7 +3,7 @@
 #ifndef ALICEO2_ITS_Digitizer_H_
 #define ALICEO2_ITS_Digitizer_H_
 
-#include "FairTask.h"
+#include "TObject.h"
 #include "Rtypes.h"
 
 class TClonesArray;
@@ -13,13 +13,13 @@ namespace ITS {
     class DigitContainer;
     class UpgradeGeometryTGeo;
     
-    class Digitizer : public FairTask{
+    class Digitizer : public TObject {
     public:
         Digitizer();
         ~Digitizer();
             
-        virtual InitStatus Init();
-        virtual void Exec(Option_t *option);
+        void Init();
+        DigitContainer *Process(TClonesArray *points);
         
         void SetGainFactor(Double_t gain) { fGain = gain; }
             
@@ -27,8 +27,6 @@ namespace ITS {
         Digitizer(const Digitizer &);
         Digitizer &operator=(const Digitizer &);
             
-        TClonesArray            *fPointsArray;              ///< Input point container
-        TClonesArray            *fDigitsArray;              ///< Output digit container
         DigitContainer          *fDigitContainer;           ///< Internal digit storage
         UpgradeGeometryTGeo     *fGeometry;                 ///< ITS upgrade geometry
         
