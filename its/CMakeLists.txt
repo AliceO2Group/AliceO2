@@ -30,12 +30,18 @@ ContainerFactory.cxx
 GeometryHandler.cxx
 MisalignmentParameter.cxx
 Point.cxx
+Digit.cxx
+Digitizer.cxx
+DigitizerTask.cxx
+DigitContainer.cxx
+DigitLayer.cxx
+DigitStave.cxx
 )
 
 Set(LINKDEF itsLinkDef.h)
 Set(LIBRARY_NAME its)
 Set(DEPENDENCIES
-    Base
+    AliceO2Base
 )
 
 GENERATE_LIBRARY()
