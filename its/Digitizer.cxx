@@ -6,14 +6,13 @@
 
 #include "FairLink.h"
 #include "FairLogger.h"
-#include "FairRootManager.h"
 
 #include "Point.h"
 #include "UpgradeGeometryTGeo.h"
 
-#include "Digit.h"
-#include "Digitizer.h"
-#include "DigitContainer.h"
+#include "its/Digit.h"
+#include "its/Digitizer.h"
+#include "its/DigitContainer.h"
 
 ClassImp(AliceO2::ITS::Digitizer)
 
@@ -23,9 +22,7 @@ using namespace AliceO2::ITS;
 ///
 /// Default constructor
 Digitizer::Digitizer():
-    FairTask("ITSDigitizer"),
-    fPointsArray(nullptr),
-    fDigitsArray(nullptr),
+    TObject(),
     fDigitContainer(nullptr),
     fGain(1.)
 {
@@ -39,42 +36,21 @@ Digitizer::~Digitizer(){
     delete fGeometry;
     if(fDigitContainer) delete fDigitContainer;
 }
-    
-/// \brief Init function
-///
-/// Inititializes the digitizer and connects input and output container
-InitStatus Digitizer::Init(){
-    FairRootManager *mgr = FairRootManager::Instance();
-    if(!mgr){
-        LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
-        return kERROR;
-    }
-        
-    fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("Point"));
-    if (!fPointsArray) {
-        LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
-        return kERROR;
-    }
-        
-    // Register output container
-    fDigitsArray = new TClonesArray("AliceO2::ITS::Digit");
-    mgr->Register("Digit", "ITS", fDigitsArray, kTRUE);
-    
+
+void Digitizer::Init(){
     // Create the digit storage
     fDigitContainer = new DigitContainer(fGeometry);
-    return kSUCCESS;
 }
+
     
 /// \brief Exec function
 ///
 /// Main function converting hits to digits
-/// \param option Optional further settings
-void Digitizer::Exec(Option_t *option){
-    fDigitsArray->Delete();
-    LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
+DigitContainer *Digitizer::Process(TClonesArray *points){
+    fDigitContainer->Reset();
     
     // Convert points to summable digits
-    for (TIter pointiter = TIter(fPointsArray).Begin(); pointiter != TIter::End(); ++pointiter) {
+    for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
         Point *inputpoint = dynamic_cast<Point *>(*pointiter);
         LOG(DEBUG) << "Processing next point: " << FairLogger::endl;
         LOG(DEBUG) << "=======================" << FairLogger::endl;
@@ -96,7 +72,5 @@ void Digitizer::Exec(Option_t *option){
         }
     }
     
-    // Fill output container
-    fDigitContainer->FillOutputContainer(fDigitsArray);
-    fDigitContainer->Reset();
+    return fDigitContainer;
 }
