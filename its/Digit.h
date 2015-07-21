@@ -56,7 +56,7 @@ namespace AliceO2{
             /// Comparison is done based on the chip index
             /// \param other The digit to compare with
             /// \return True if this digit has a lower chip index, false otherwise
-            virtual bool operator<(const Digit &other){
+            virtual bool operator<(const Digit &other) const {
                 if(fIndex < other.fIndex) return true;
                 return false;
             }
