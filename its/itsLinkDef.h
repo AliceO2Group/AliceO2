@@ -16,6 +16,7 @@
 #pragma link C++ class AliceO2::ITS::MisalignmentParameter+;
 #pragma link C++ class AliceO2::ITS::Point+;
 #pragma link C++ class AliceO2::ITS::Digit+;
+#pragma link C++ class AliceO2::ITS::DigitWriteoutBuffer+;
 #pragma link C++ class AliceO2::ITS::Digitizer+;
 #pragma link C++ class AliceO2::ITS::DigitizerTask+;
 

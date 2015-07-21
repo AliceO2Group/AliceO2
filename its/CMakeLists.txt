@@ -40,6 +40,7 @@ Point.cxx
 Digit.cxx
 Digitizer.cxx
 DigitizerTask.cxx
+DigitWriteoutBuffer.cxx
 DigitContainer.cxx
 DigitLayer.cxx
 DigitStave.cxx
