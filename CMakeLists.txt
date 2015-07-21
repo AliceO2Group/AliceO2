@@ -8,6 +8,20 @@
 # Check if cmake has the required version
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11 FATAL_ERROR)
 
+### CMP0025   Compiler id for Apple Clang is now AppleClang.
+### CMP0042   MACOSX_RPATH is enabled by default.
+
+foreach(p
+CMP0025 # CMake 3.0
+CMP0042 # CMake 3.0
+)
+if(POLICY ${p})
+cmake_policy(SET ${p} NEW)
+endif()
+endforeach()
+
+
+
 # Set name of our project to "ALICEO2". Has to be done
 # after check of cmake version since this is a new feature
 project(ALICEO2)
@@ -41,9 +55,8 @@ else(NOT ALICEO2_MODULAR_BUILD)
   find_package(Boost REQUIRED)
 endif(NOT ALICEO2_MODULAR_BUILD)
 
-find_package(FairRoot)
-
 find_package(AliRoot)
+find_package(FairRoot)
 
 # Load some basic macros which are needed later on
 include(FairMacros)
@@ -146,15 +159,22 @@ if(NOT ALICEO2_MODULAR_BUILD)
 endif(NOT ALICEO2_MODULAR_BUILD)
 
 # Set the library version in the main CMakeLists.txt
-SET(FAIRROOT_MAJOR_VERSION 0)
-SET(FAIRROOT_MINOR_VERSION 0)
-SET(FAIRROOT_PATCH_VERSION 0)
-SET(FAIRROOT_VERSION "${FAIRROOT_MAJOR_VERSION}.${FAIRROOT_MINOR_VERSION}.${FAIRROOT_PATCH_VERSION}")
-SET(FAIRROOT_LIBRARY_PROPERTIES ${FAIRROOT_LIBRARY_PROPERTIES}
-    VERSION "${FAIRROOT_VERSION}"
-    SOVERSION "${FAIRROOT_MAJOR_VERSION}"
-    SUFFIX ".so"
+SET(ALICEO2_MAJOR_VERSION 0)
+SET(ALICEO2_MINOR_VERSION 0)
+SET(ALICEO2_PATCH_VERSION 0)
+SET(ALICEO2_VERSION "${ALICEO2_MAJOR_VERSION}.${ALICEO2_MINOR_VERSION}.${ALICEO2_PATCH_VERSION}")
+If(NOT ROOT_FOUND_VERSION OR ROOT_FOUND_VERSION LESS 59999)
+  SET(FAIRROOT_LIBRARY_PROPERTIES ${FAIRROOT_LIBRARY_PROPERTIES}
+  VERSION "${ALICEO2_VERSION}"
+  SOVERSION "${ALICEO2_MAJOR_VERSION}"
+  SUFFIX ".so"
 )
+Else()
+  SET(FAIRROOT_LIBRARY_PROPERTIES ${FAIRROOT_LIBRARY_PROPERTIES}
+  VERSION "${ALICEO2_VERSION}"
+  SOVERSION "${ALICEO2_MAJOR_VERSION}"
+)
+EndIf()
 
 Generate_Version_Info()
 

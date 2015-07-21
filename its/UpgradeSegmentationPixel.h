@@ -17,7 +17,7 @@ namespace ITS {
 /// of the ACTIVE matrix. If the guardring to be accounted in the local coords, in
 /// the Z and X conversions one needs to first subtract the  mGuardLeft and mGuardBottom
 /// from the local Z,X coordinates
-class UpgradeSegmentationPixel : public AliceO2::ITS::Segmentation {
+class UpgradeSegmentationPixel : public Segmentation {
 
 public:
   UpgradeSegmentationPixel(UInt_t id = 0, int nchips = 0, int ncol = 0, int nrow = 0, float pitchX = 0,

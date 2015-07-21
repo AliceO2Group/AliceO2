@@ -7,12 +7,12 @@ double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   // Output file name
-  const char fileout[100];
+  char fileout[100];
   sprintf(fileout, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TString outFile = fileout;
 
   // Parameter file name
-  const char filepar[100];
+  char filepar[100];
   sprintf(filepar, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
   TString parFile = filepar;
 
@@ -48,7 +48,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
 //  TGeoGlobalMagField::Instance()->SetField(new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagneticField::k5kG));
 
-  AliceO2::Base::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
+  AliceO2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
   run->AddModule(its);
 
   // build ITS upgrade detector
