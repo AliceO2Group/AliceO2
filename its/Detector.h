@@ -130,7 +130,7 @@ public:
 
   /// This method is an example of how to add your own point of type Point to the clones array
   Point* addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom, Double_t startTime,
-                Double_t time, Double_t length, Double_t eLoss, Int_t shunt);
+                Double_t time, Double_t length, Double_t eLoss, Int_t shunt, Int_t status, Int_t statusStart);
 
   /// Book arrays for wrapper volumes
   virtual void setNumberOfWrapperVolumes(Int_t n);
@@ -254,6 +254,7 @@ private:
   Int_t mTrackNumberID;             //! track index
   Int_t mVolumeID;                  //! volume id
   Int_t mShunt;                     //! shunt
+  Int_t mTrkStatusFlag;             //! track status flag
   TLorentzVector mPosition;         //! position
   TLorentzVector mEntrancePosition; //! position at entrance
   TLorentzVector mMomentum;         //! momentum

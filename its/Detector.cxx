@@ -441,8 +441,15 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   mVolumeID = vol->getMCid();
 
   // FIXME: Set a temporary value to mShunt for now, determine its use at a later stage
-  mShunt = 0;
-
+  Int_t trackStatus = 0;
+  if (gMC->IsTrackEntering()) trackStatus |= 1 << Point::kTrackEntering;
+  if (gMC->IsTrackInside()) trackStatus |= 1 << Point::kTrackInside;
+  if (gMC->IsTrackExiting()) trackStatus |= 1 << Point::kTrackExiting;
+  if (gMC->IsTrackOut()) trackStatus |= 1 << Point::kTrackOut;
+  if (gMC->IsTrackStop()) trackStatus |= 1 << Point::kTrackStopped;
+  if (gMC->IsTrackAlive()) trackStatus |= 1 << Point::kTrackAlive;
+  mStatus = trackStatus;
+    
   gMC->TrackPosition(mPosition);
   gMC->TrackMomentum(mMomentum);
 
@@ -451,6 +458,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if (gMC->IsTrackEntering()) {
     mEntrancePosition = mPosition;
     mEntranceTime = mTime;
+    mStatus0 = mStatus;
     return kFALSE; // don't save entering hit.
   }
 
@@ -459,7 +467,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
          TVector3(mEntrancePosition.X(), mEntrancePosition.Y(), mEntrancePosition.Z()),
          TVector3(mPosition.X(), mPosition.Y(), mPosition.Z()),
          TVector3(mMomentum.Px(), mMomentum.Py(), mMomentum.Pz()), mEntranceTime, mTime, mLength,
-         mEnergyLoss, mShunt);
+         mEnergyLoss, mShunt, mStatus, mStatus0);
 
   // Increment number of Detector det points in TParticle
   AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)gMC->GetStack();
@@ -468,7 +476,8 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // Save old position for the next hit.
   mEntrancePosition = mPosition;
   mEntranceTime = mTime;
-
+  mStatus0 = mStatus;
+  
   return kTRUE;
 }
 
@@ -1035,12 +1044,13 @@ void Detector::defineSensitiveVolumes()
 
 Point* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos,
                                       TVector3 mom, Double_t startTime, Double_t time,
-                                      Double_t length, Double_t eLoss, Int_t shunt)
+                                      Double_t length, Double_t eLoss, Int_t shunt,
+                                      Int_t status, Int_t statusStart)
 {
   TClonesArray& clref = *mPointCollection;
   Int_t size = clref.GetEntriesFast();
   return new (clref[size])
-    Point(trackID, detID, startPos, pos, mom, startTime, time, length, eLoss, shunt);
+    Point(trackID, detID, startPos, pos, mom, startTime, time, length, eLoss, shunt, status, statusStart);
 }
 
 TParticle* Detector::GetParticle() const
