@@ -43,7 +43,7 @@ if [ "$1" == "Experimental" -o "$1" == "Nightly" -o "$1" == "Continuous" -o "$1"
   echo ""
 else
   echo "-- Error -- This ctest model is not supported."
-  echo "-- Error -- Possible arguments are Nightly, Experimental, Continuous or Test_ROOT6.
+  echo "-- Error -- Possible arguments are Nightly, Experimental, Continuous or Test_ROOT6."
   exit 1
 fi 
 
