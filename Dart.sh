@@ -29,7 +29,8 @@ if [ "$#" -lt "2" ]; then
   echo ""
   echo "-- Error -- Please start script with two parameters"
   echo "-- Error -- The first parameter is the ctest model."
-  echo "-- Error -- Possible arguments are Nightly and Experimental ."
+  echo "-- Error -- Possible arguments are Nightly, Experimental,"
+  echo "-- Error -- Continuous or Profile."
   echo "-- Error -- The second parameter is the file containg the"
   echo "-- Error -- Information about the setup at the client" 
   echo "-- Error -- installation (see example below)."
@@ -38,12 +39,12 @@ if [ "$#" -lt "2" ]; then
   exit 1
 fi
 
-# test if a ctest model is either Experimantal or Nightly
-if [ "$1" == "Experimental" -o "$1" == "Nightly" -o "$1" == "Continuous" -o "$1" == "Test_ROOT6" ]; then
+# test if a valid ctest model is defined
+if [ "$1" == "Experimental" -o "$1" == "Nightly" -o "$1" == "Continuous" -o "$1" == "Profile" -o "$1" == "Test_ROOT6" ]; then
   echo ""
 else
   echo "-- Error -- This ctest model is not supported."
-  echo "-- Error -- Possible arguments are Nightly, Experimental, Continuous or Test_ROOT6."
+  echo "-- Error -- Possible arguments are Nightly, Experimental, Continuous, Profile or Test_ROOT6."
   exit 1
 fi 
 
