@@ -37,6 +37,7 @@ ContainerFactory.cxx
 GeometryHandler.cxx
 MisalignmentParameter.cxx
 Point.cxx
+Chip.cxx
 Digit.cxx
 Digitizer.cxx
 DigitizerTask.cxx

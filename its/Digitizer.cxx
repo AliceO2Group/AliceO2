@@ -10,6 +10,7 @@
 #include "Point.h"
 #include "UpgradeGeometryTGeo.h"
 
+#include "its/Chip.h"
 #include "its/Digit.h"
 #include "its/Digitizer.h"
 #include "its/DigitContainer.h"
@@ -18,59 +19,70 @@ ClassImp(AliceO2::ITS::Digitizer)
 
 using namespace AliceO2::ITS;
 
-/// \brief Default constructor
-///
-/// Default constructor
 Digitizer::Digitizer():
-    TObject(),
-    fDigitContainer(nullptr),
-    fGain(1.)
+TObject(),
+fChipContainer(),
+fDigitContainer(nullptr),
+fGain(1.)
 {
-    fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
+  fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
 }
     
-/// \brief Destructor
-///
-/// Destructor
 Digitizer::~Digitizer(){
-    delete fGeometry;
-    if(fDigitContainer) delete fDigitContainer;
+  delete fGeometry;
+  if(fDigitContainer) delete fDigitContainer;
 }
 
 void Digitizer::Init(){
-    // Create the digit storage
-    fDigitContainer = new DigitContainer(fGeometry);
+  fDigitContainer = new DigitContainer(fGeometry);
+  
+  for (int i = 0; i < fGeometry->getNumberOfChips(); i++) {
+    fChipContainer.push_back(Chip(i, fGeometry));
+  }
 }
 
-    
-/// \brief Exec function
-///
-/// Main function converting hits to digits
 DigitContainer *Digitizer::Process(TClonesArray *points){
-    fDigitContainer->Reset();
-    
-    // Convert points to summable digits
-    for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
-        Point *inputpoint = dynamic_cast<Point *>(*pointiter);
-        LOG(DEBUG) << "Processing next point: " << FairLogger::endl;
-        LOG(DEBUG) << "=======================" << FairLogger::endl;
-        LOG(DEBUG) << *inputpoint << FairLogger::endl;
-        Int_t layer = fGeometry->getLayer(inputpoint->GetDetectorID()),
-                stave = fGeometry->getStave(inputpoint->GetDetectorID()),
-                staveindex = fGeometry->getChipIdInStave(inputpoint->GetDetectorID());
-        Double_t charge = inputpoint->GetEnergyLoss();
-        Digit * digit = fDigitContainer->FindDigit(layer, stave, staveindex);
-        if(digit){
-            // For the moment only add the charge to the current digit
-            LOG(DEBUG) << "Digit already found" << FairLogger::endl;
-            double chargeDigit = digit->GetCharge();
-            chargeDigit += charge * fGain;
-        } else {
-            LOG(DEBUG) << "Creating new digit" << FairLogger::endl;
-            digit = new Digit(inputpoint->GetDetectorID(), charge, inputpoint->GetTime());
-            fDigitContainer->AddDigit(digit);
-        }
+  fDigitContainer->Reset();
+  ClearChips();
+  
+  // Assign points to chips
+  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
+    Point *itspoint = dynamic_cast<Point *>(*pointiter);
+    if (itspoint->GetDetectorID() > fChipContainer.size()){
+      LOG(ERROR) << "Chip ID " << itspoint->GetDetectorID() <<"out of range, max " << fChipContainer.size() << FairLogger::endl;
+      continue;
     }
+    fChipContainer[itspoint->GetDetectorID()].InsertPoint(itspoint);
+  }
     
-    return fDigitContainer;
+  // Convert points to summable digits
+  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
+    Point *inputpoint = dynamic_cast<Point *>(*pointiter);
+    LOG(DEBUG) << "Processing next point: " << FairLogger::endl;
+    LOG(DEBUG) << "=======================" << FairLogger::endl;
+    LOG(DEBUG) << *inputpoint << FairLogger::endl;
+    Int_t layer = fGeometry->getLayer(inputpoint->GetDetectorID()),
+    stave = fGeometry->getStave(inputpoint->GetDetectorID()),
+    staveindex = fGeometry->getChipIdInStave(inputpoint->GetDetectorID());
+    Double_t charge = inputpoint->GetEnergyLoss();
+    Digit * digit = fDigitContainer->FindDigit(layer, stave, staveindex);
+    if(digit){
+      // For the moment only add the charge to the current digit
+      LOG(DEBUG) << "Digit already found" << FairLogger::endl;
+      double chargeDigit = digit->GetCharge();
+      chargeDigit += charge * fGain;
+    } else {
+      LOG(DEBUG) << "Creating new digit" << FairLogger::endl;
+      // @TODO Impplement handling og pixels within the chip
+      digit = new Digit(inputpoint->GetDetectorID(), 0, charge, inputpoint->GetTime());
+      fDigitContainer->AddDigit(digit);
+    }
+  }
+  return fDigitContainer;
+}
+
+void Digitizer::ClearChips(){
+  for (auto chipIter : fChipContainer) {
+    chipIter.Clear();
+  }
 }

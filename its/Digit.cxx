@@ -9,17 +9,26 @@ using namespace AliceO2::ITS;
 
 
 Digit::Digit():
-    FairTimeStamp(),
-    fIndex(0),
-    fCharge(0.),
-    fLabels()
-    {}
+FairTimeStamp(),
+fChipIndex(-1),
+fPixelIndex(-1),
+fCharge(0.),
+fLabels()
+{
+}
     
-Digit::Digit(Int_t index, Double_t charge, Double_t time):
-    FairTimeStamp(time),
-    fIndex(index),
-    fCharge(charge),
-    fLabels()
-    {}
+Digit::Digit(Int_t chipindex, Double_t pixelindex, Double_t charge, Double_t time):
+FairTimeStamp(time),
+fChipIndex(chipindex),
+fPixelIndex(pixelindex),
+fCharge(charge),
+fLabels()
+{
+}
     
 Digit::~Digit(){}
+
+std::ostream &Digit::Print(std::ostream &output) const{
+  output << "ITS Digit of chip index [" << fChipIndex << "] and pixel [" << fPixelIndex << "]with charge " << fCharge << " at time stamp" << fTimeStamp;
+  return output;
+}
