@@ -3,14 +3,17 @@
 # The extension is already found.  Any number of sources could be listed here.
 
 set(INCLUDE_DIRECTORIES
-${BASE_INCLUDE_DIRECTORIES}
 ${CMAKE_SOURCE_DIR}/passive
+)
+
+set(SYSTEM_INCLUDE_DIRECTORIES
+${BASE_INCLUDE_DIRECTORIES}
 ${FAIRROOT_INCLUDE_DIR}
 ${ROOT_INCLUDE_DIR} 
-
 )
 
 include_directories( ${INCLUDE_DIRECTORIES})
+include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
 set(LINK_DIRECTORIES
 ${ROOT_LIBRARY_DIR}

@@ -1,9 +1,12 @@
 set(INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}/devices/flp2epn-distributed
+)
+
+set(SYSTEM_INCLUDE_DIRECTORIES
   ${BASE_INCLUDE_DIRECTORIES}
   ${Boost_INCLUDE_DIR}
   ${FAIRROOT_INCLUDE_DIR}
   ${AlFa_DIR}/include
-  ${CMAKE_SOURCE_DIR}/devices/flp2epn-distributed
 )
 
 set(DDS_LOCATION $ENV{DDS_LOCATION})
@@ -17,13 +20,14 @@ endif()
 if(DDS_LOCATION)
   add_definitions(-DENABLE_DDS)
 
-  set(INCLUDE_DIRECTORIES
-   ${INCLUDE_DIRECTORIES}
+  set(SYSTEM_INCLUDE_DIRECTORIES
+   ${SYSTEM_INCLUDE_DIRECTORIES}
    $ENV{DDS_LOCATION}/include
   )
 endif()
 
 include_directories(${INCLUDE_DIRECTORIES})
+include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
 configure_file(
   ${CMAKE_SOURCE_DIR}/devices/flp2epn-distributed/run/startFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN-distributed.sh

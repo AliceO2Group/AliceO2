@@ -1,12 +1,15 @@
 set(INCLUDE_DIRECTORIES
-  ${BASE_INCLUDE_DIRECTORIES} 
-  ${Boost_INCLUDE_DIR}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${AlFa_DIR}/include
   ${CMAKE_SOURCE_DIR}/devices/flp2epn-dynamic
 )
 
+set(SYSTEM_INCLUDE_DIRECTORIES
+  ${BASE_INCLUDE_DIRECTORIES} 
+  ${Boost_INCLUDE_DIR}
+  ${FAIRROOT_INCLUDE_DIR}
+)
+
 include_directories(${INCLUDE_DIRECTORIES})
+include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
 configure_file( ${CMAKE_SOURCE_DIR}/devices/flp2epn-dynamic/run/startFLP2EPN-dynamic.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN-dynamic.sh )
 

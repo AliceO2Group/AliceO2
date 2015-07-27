@@ -5,7 +5,7 @@ set(INCLUDE_DIRECTORIES
   ${SIMPATH}/include/root
 )
 
-include_directories(${INCLUDE_DIRECTORIES})
+include_directories(SYSTEM ${INCLUDE_DIRECTORIES})
 
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}

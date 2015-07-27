@@ -3,17 +3,20 @@
 # The extension is already found.  Any number of sources could be listed here.
 
 set(INCLUDE_DIRECTORIES
+${CMAKE_SOURCE_DIR}/
+${CMAKE_SOURCE_DIR}/tpc
+)
+
+set(SYSTEM_INCLUDE_DIRECTORIES
 ${ROOT_INCLUDE_DIR}
 ${BASE_INCLUDE_DIRECTORIES}
 ${Boost_INCLUDE_DIRS}
 ${FAIRROOT_INCLUDE_DIR}
 ${AlFa_DIR}/include
-#put here all directories where header files are located
-${CMAKE_SOURCE_DIR}/
-${CMAKE_SOURCE_DIR}/tpc
 )
 
 include_directories( ${INCLUDE_DIRECTORIES})
+include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
 set(LINK_DIRECTORIES
 ${ROOT_LIBRARY_DIR}

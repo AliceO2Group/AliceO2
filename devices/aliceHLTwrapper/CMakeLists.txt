@@ -1,8 +1,11 @@
 set(INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
+)
+
+set(SYSTEM_INCLUDE_DIRECTORIES
   ${BASE_INCLUDE_DIRECTORIES}
   ${ZMQ_INCLUDE_DIR}
   ${Boost_INCLUDE_DIR}
-  ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
   ${FAIRROOT_INCLUDE_DIR}
   ${AlFa_DIR}/include
 )
@@ -12,13 +15,14 @@ set(DDS_LOCATION $ENV{DDS_LOCATION})
 if(DDS_LOCATION)
   add_definitions(-DENABLE_DDS)
 
-  set(INCLUDE_DIRECTORIES
-   ${INCLUDE_DIRECTORIES}
+  set(SYSTEM_INCLUDE_DIRECTORIES
+   ${SYSTEM_INCLUDE_DIRECTORIES}
    $ENV{DDS_LOCATION}/include
   )
 endif()
 
 include_directories(${INCLUDE_DIRECTORIES})
+include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 # set(CXXOPT "-O0 -g -ggdb")
 # set(CXXFLAGS "-O0 -g -ggdb")
 
