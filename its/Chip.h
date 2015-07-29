@@ -9,6 +9,9 @@
 #ifndef ALICEO2_ITS_CHIP_
 #define ALICEO2_ITS_CHIP_
 
+#include <exception>
+#include <sstream>
+
 #include <TObjArray.h>
 #include "TObject.h"
 
@@ -26,6 +29,51 @@ namespace AliceO2 {
     /// chip identified by the chip index.
     class Chip : public TObject {
     public:
+      
+      /// @class IndexException
+      /// @brief Handling discrepancies between Chip index stored in the hit
+      /// and Chip index stored in the chip
+      class IndexException : public std::exception{
+      public:
+        
+        /// Default constructor
+        /// Initializes indices with -1. Not to be used when throwing the
+        /// exception. Use other constructor instead
+        IndexException(): fDetIdChip(-1), fDetIdHit(-1){}
+        
+        /// Constructor
+        /// Initializing indices from chip and from hit
+        /// @param indexChip Chip index stored in chip itself
+        /// @param indexHit Chip index stored in the hit
+        IndexException(ULong_t indexChip, ULong_t indexHit) :
+        fDetIdChip(indexChip), fDetIdHit(indexHit)
+        {}
+        
+        /// Destructor
+        virtual ~IndexException() throw () {}
+        
+        /// Build error message
+        /// The error message contains the indices stored in the chip and in the hit
+        /// @return Error message connected to this exception
+        const char *what() const throw() {
+          std::stringstream message;
+          message << "Chip ID " << fDetIdHit << " from hit different compared to this ID " << fDetIdChip;
+          return message.str().c_str();
+        }
+        
+        /// Get the chip index stored in the chip
+        /// @return Chip index stored in the chip
+        ULong_t     GetChipIndexChip() const { return fDetIdChip; }
+          
+        /// Fet the chip index stored in the hit
+        /// @return Chip index stored in the hit
+        ULong_t     GetChipIndexHit() const { return fDetIdHit; }
+        
+      private:
+        ULong_t           fDetIdChip;               ///< Index of the chip stored in the chip
+        ULong_t           fDetIdHit;                ///< Index of the chip stored in the hit
+      };
+      
       /// Default constructor
       Chip();
       
@@ -71,7 +119,7 @@ namespace AliceO2 {
       
       /// Empties the point container
       /// @param option unused
-      void Clear(Option_t *opt = "");
+      virtual void Clear(Option_t *opt = "");
       
       /// Change the chip index
       /// @param index New chip index

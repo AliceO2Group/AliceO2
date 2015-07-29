@@ -1,0 +1,33 @@
+set(INCLUDE_DIRECTORIES
+${CMAKE_SOURCE_DIR}
+${CMAKE_SOURCE_DIR}/its
+${CMAKE_SOURCE_DIR}/header
+${CMAKE_SOURCE_DIR}/test/its
+${BASE_INCLUDE_DIRECTORIES}
+${Boost_INCLUDE_DIRS}
+${FAIRROOT_INCLUDE_DIR}
+${AlFa_DIR}/include
+${ROOT_INCLUDE_DIR}
+)
+
+include_directories( ${INCLUDE_DIRECTORIES})
+
+set(LINK_DIRECTORIES
+${ROOT_LIBRARY_DIR}
+${FAIRROOT_LIBRARY_DIR}
+)
+
+link_directories( ${LINK_DIRECTORIES})
+
+set(SRCS
+HitAnalysis.cxx
+)
+
+Set(LINKDEF testitsLinkDef.h)
+Set(LIBRARY_NAME testits)
+Set(DEPENDENCIES
+    AliceO2Base its
+)
+
+GENERATE_LIBRARY()
+

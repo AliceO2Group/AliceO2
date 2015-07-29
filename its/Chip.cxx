@@ -3,14 +3,16 @@
 //  ALICEO2
 //
 //  Created by Markus Fasel on 23.07.15.
-//  Adapted from AliITSUChip by Massimo Masers
+//  Adapted from AliITSUChip by Massimo Masera
 //
 
 #include <TMath.h>
 
-#include "Chip.h"
-#include "Point.h"
-#include "UpgradeGeometryTGeo.h"
+#include "FairLogger.h"
+
+#include "its/Chip.h"
+#include "its/Point.h"
+#include "its/UpgradeGeometryTGeo.h"
 
 ClassImp(AliceO2::ITS::Chip)
 
@@ -73,6 +75,9 @@ Chip::~Chip(){
 }
 
 void Chip::InsertPoint(Point *p){
+  if (p->GetDetectorID() != fChipIndex) {
+    throw IndexException(fChipIndex, p->GetDetectorID());
+  }
   fPoints.AddLast(p);
 }
 
@@ -99,8 +104,10 @@ Bool_t Chip::LineSegmentLocal(Int_t hitindex, Double_t &xstart, Double_t &xpoint
   Double_t  posglob[3] = { tmp->GetX(), tmp->GetY(), tmp->GetZ()},
   posglobStart[3] = {tmp->GetStartX(), tmp->GetStartY(), tmp->GetStartZ()},
   posloc[3], poslocStart[3];
+  memset(posloc, 0, sizeof(Double_t)*3);
+  memset(poslocStart, 0, sizeof(Double_t)*3);
   
-  // convert to global position
+  // convert to local position
   fGeometry->globalToLocal(fChipIndex, posglob, posloc);
   fGeometry->globalToLocal(fChipIndex, posglobStart, poslocStart);
   
@@ -109,8 +116,8 @@ Bool_t Chip::LineSegmentLocal(Int_t hitindex, Double_t &xstart, Double_t &xpoint
   ystart = poslocStart[1];
   zstart = poslocStart[2];
   xpoint = posloc[0] - poslocStart[0];
-  ypoint = posloc[0] - poslocStart[0];
-  zpoint = posloc[0] - poslocStart[0];
+  ypoint = posloc[1] - poslocStart[1];
+  zpoint = posloc[2] - poslocStart[2];
   
   timestart = tmp->GetStartTime();
   eloss = tmp->GetEnergyLoss();

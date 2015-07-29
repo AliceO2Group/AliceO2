@@ -415,7 +415,6 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   Int_t copy = vol->getCopyNo();
   Int_t id = vol->getMCid();
   Int_t lay = 0;
-  Int_t cpn0, cpn1, mod;
 
   // FIXME: Determine the layer number. Is this information available directly from the FairVolume?
   while ((lay < mNumberLayers) && id != mLayerID[lay]) {
@@ -428,12 +427,13 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   // } // if Outer ITS mother Volume
 
   // Retrieve the indices with the volume path
-  copy = 1;
-  gMC->CurrentVolOffID(1, cpn1);
-  gMC->CurrentVolOffID(2, cpn0);
-
-  mod = mGeometryTGeo->getChipIndex(lay, cpn0, cpn1);
-
+  int stave(0), halfstave(0), chipinmodule(0), module;
+  gMC->CurrentVolOffID(1, chipinmodule);
+  gMC->CurrentVolOffID(2, module);
+  gMC->CurrentVolOffID(3, halfstave);
+  gMC->CurrentVolOffID(4, stave);
+  int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
+  
   // Record information on the points
   mEnergyLoss = gMC->Edep();
   mTime = gMC->TrackTime();
@@ -463,7 +463,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // Create Point on every step of the active volume
-  addHit(mTrackNumberID, mVolumeID,
+  addHit(mTrackNumberID, chipindex, //mVolumeID,
          TVector3(mEntrancePosition.X(), mEntrancePosition.Y(), mEntrancePosition.Z()),
          TVector3(mPosition.X(), mPosition.Y(), mPosition.Z()),
          TVector3(mMomentum.Px(), mMomentum.Py(), mMomentum.Pz()), mEntranceTime, mTime, mLength,
