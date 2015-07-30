@@ -16,6 +16,9 @@
 namespace AliceO2{
   namespace ITS{
     
+    /// \class Digit
+    /// \brief Digit class for the ITS
+    ///
     class Digit : public FairTimeStamp {
     public:
       
@@ -31,6 +34,19 @@ namespace AliceO2{
       
       /// Destructor
       virtual ~Digit();
+      
+      /// Addition operator
+      /// Adds the charge of 2 digits
+      /// @param lhs First digit for addition (also serves as time stamp)
+      /// @param rhs Second digit for addition
+      /// @return Digit with the summed charge of two digits and the time stamp of the first one
+      const Digit operator+(const Digit &other);
+      
+      /// Operator +=
+      /// Adds charge in other digit to this digit
+      /// @param other Digit added to this digit
+      /// @return Digit after addition
+      Digit &operator+=(const Digit &other);
       
       /// Get the index of the chip
       /// @return Index of the chip

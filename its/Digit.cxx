@@ -28,6 +28,18 @@ fLabels()
     
 Digit::~Digit(){}
 
+Digit &Digit::operator+=(const Digit &other){
+  fCharge += other.fCharge;
+  return *this;
+}
+
+const Digit Digit::operator+(const Digit &other){
+  Digit result(*this);
+  result += other;
+  return result;
+}
+
+
 std::ostream &Digit::Print(std::ostream &output) const{
   output << "ITS Digit of chip index [" << fChipIndex << "] and pixel [" << fPixelIndex << "]with charge " << fCharge << " at time stamp" << fTimeStamp;
   return output;
