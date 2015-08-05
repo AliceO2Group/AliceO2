@@ -250,20 +250,22 @@ void UpgradeSegmentationPixel::neighbours(Int_t iX, Int_t iZ, Int_t* nlist, Int_
   zlist[7] = iZ - 1;
 }
 
-Bool_t UpgradeSegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const
+void UpgradeSegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const
 {
   x += 0.5 * dxActive() + mShiftLocalX; // get X,Z wrt bottom/left corner
   z += 0.5 * dzActive() + mShiftLocalZ;
   ix = iz = -1;
   if (x < 0 || x > dxActive()) {
-    return kFALSE; // outside x range.
+    throw OutOfActiveAreaException(OutOfActiveAreaException::kX, x, 0, dxActive());
+    //return kFALSE; // outside x range.
   }
   if (z < 0 || z > dzActive()) {
-    return kFALSE; // outside z range.
+    throw OutOfActiveAreaException(OutOfActiveAreaException::kZ, z, 0, dzActive());
+    //return kFALSE; // outside z range.
   }
   ix = int(x / mPitchX);
   iz = zToColumn(z);
-  return kTRUE; // Found ix and iz, return.
+  //return kTRUE; // Found ix and iz, return.
 }
 
 void UpgradeSegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const
@@ -271,20 +273,15 @@ void UpgradeSegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t& x, F
   x = -0.5 * dxActive(); // default value.
   z = -0.5 * dzActive(); // default value.
   if (ix < 0 || ix >= mNumberOfRows) {
-    LOG(WARNING) << "Obtained row " << ix << " is not in range [0:" << mNumberOfRows << ")"
-                 << FairLogger::endl;
-    return;
+    throw InvalidPixelException(InvalidPixelException::kX, ix, mNumberOfRows);
   } // outside of detector
   if (iz < 0 || iz >= mNumberOfColumns) {
-    LOG(WARNING) << "Obtained col " << ix << " is not in range [0:" << mNumberOfColumns << ")"
-                 << FairLogger::endl;
-    return;
+    throw InvalidPixelException(InvalidPixelException::kZ, iz, mNumberOfColumns);
   } // outside of detector
   x +=
     (ix + 0.5) * mPitchX - mShiftLocalX; // RS: we go to the center of the pad, i.e. + pitch/2, not
                                          // to the boundary as in SPD
   z += columnToZ(iz) - mShiftLocalZ;
-  return; // Found x and z, return.
 }
 
 void UpgradeSegmentationPixel::cellBoundries(Int_t ix, Int_t iz, Double_t& xl, Double_t& xu,
@@ -310,8 +307,7 @@ void UpgradeSegmentationPixel::cellBoundries(Int_t ix, Int_t iz, Double_t& xl, D
 Int_t UpgradeSegmentationPixel::getChipFromChannel(Int_t, Int_t iz) const
 {
   if (iz >= mNumberOfColumns || iz < 0) {
-    LOG(WARNING) << "Bad cell number" << FairLogger::endl;
-    return -1;
+    throw InvalidPixelException(InvalidPixelException::kZ, iz, mNumberOfColumns);
   }
   return iz / mNumberOfColumnsPerChip;
 }
@@ -319,7 +315,9 @@ Int_t UpgradeSegmentationPixel::getChipFromChannel(Int_t, Int_t iz) const
 Int_t UpgradeSegmentationPixel::getChipFromLocal(Float_t, Float_t zloc) const
 {
   Int_t ix0, iz;
-  if (!localToDetector(0, zloc, ix0, iz)) {
+  try {
+    localToDetector(0, zloc, ix0, iz);
+  } catch (OutOfActiveAreaException &e) {
     LOG(WARNING) << "Bad local coordinate" << FairLogger::endl;
     return -1;
   }

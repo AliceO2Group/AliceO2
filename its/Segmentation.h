@@ -4,6 +4,9 @@
 #ifndef ALICEO2_ITS_SEGMENTATION_H_
 #define ALICEO2_ITS_SEGMENTATION_H_
 
+#include <exception>
+#include <sstream>
+
 #include <TObject.h>
 
 class TF1;
@@ -18,6 +21,116 @@ namespace ITS {
 class Segmentation : public TObject {
 
 public:
+  /// Error handling in case a point in local coordinates
+  /// exceeds limits in any direction
+  class OutOfActiveAreaException : public std::exception {
+  public:
+    /// Definition of direction in which the boundary is exceeded
+    enum Direction {
+      kX = 0,       ///< Local X
+      kZ = 1        ///< Local Z
+    };
+    /// Constructor
+    /// Settting necessary information for the error handling
+    /// @param dir Direction in which the range exception happened
+    /// @param val Value of the exception
+    /// @param lower Lower limit in the direction
+    /// @param upper Upper limit in the direction
+    OutOfActiveAreaException(Direction dir, Double_t val, Double_t lower, Double_t upper) :
+    fErrorMessage(), fDirection(dir), fValue(val), fLower(lower), fUpper(upper)
+    {
+      std::stringstream errormessage;
+      errormessage << "Range exceeded in " << (fDirection == kX ? "x" : "z") << "-direction, value " << fValue << ", limits [" << fLower << "|" << fUpper << "]";
+      fErrorMessage = errormessage.str();
+    }
+    /// Destructor
+    virtual ~OutOfActiveAreaException() throw() {}
+    
+    /// Get the value for which the exception was raised
+    /// @return Value (point in one direction)
+    Double_t GetValue() const { return fValue; }
+    /// Get the lower limit in direction for which the exception
+    /// was raised
+    /// @return Lower limit of the direction
+    Double_t GetLowerLimit() const { return fLower; }
+    /// Get the upper limit in direction for which the exception
+    /// was raised
+    /// @return Upper limit of the direction
+    Double_t GetUpperLimit() const { return fUpper; }
+    /// Check whether exception was raised in x-directon
+    /// @return True if exception was raised in x-direction, false otherwise
+    Bool_t IsX() const { return fDirection == kX; }
+    /// Check whether exception was raised in z-direction
+    /// @return True if exception was raised in z-direction, false otherwise
+    Bool_t IsZ() const { return fDirection == kZ; }
+    
+    /// Provide error message string containing direction,
+    /// value of the point, and limits
+    /// @return Error message
+    const char *what() const noexcept {
+      return fErrorMessage.c_str();
+    }
+    
+  private:
+    std::string         fErrorMessage;  ///< Error message connected to the exception
+    Direction           fDirection;     ///< Direction in which the exception was raised
+    Double_t            fValue;         ///< Value which exceeds limit
+    Double_t            fLower;         ///< Lower limit in direction
+    Double_t            fUpper;         ///< Upper limit in direction
+  };
+  
+  /// Error handling in case of access to an invalid pixel ID
+  /// (pixel ID in direction which exceeds the range of valid pixel IDs)
+  class InvalidPixelException : public std::exception{
+  public:
+    /// Definition of direction in which the boundary is exceeded
+    enum Direction {
+      kX = 0,       ///< Local X
+      kZ = 1        ///< Local Z
+    };
+    /// Constructor
+    /// Setting necessary information for the error handling
+    /// @param dir Direction in which the exception occurs
+    /// @param pixelID Index of the pixel (in direction) which is out of scope
+    /// @param maxPixelID Maximum amount of pixels in direction
+    InvalidPixelException(Direction dir, Int_t pixelID, Int_t maxPixelID):
+    fErrorMessage(), fDirection(dir), fValue(pixelID), fMaxPixelID(maxPixelID)
+    {
+      std::stringstream errormessage;
+      errormessage << "Obtained " << (fDirection == kX ? "row" : "col") << " " << fValue << " is not in range [0:" << fMaxPixelID << ")";
+      fErrorMessage = errormessage.str();
+    }
+    
+    /// Destructor
+    virtual ~InvalidPixelException() {}
+    
+    /// Get the ID of the pixel which raised the exception
+    /// @return ID of the pixel
+    Int_t GetPixelID() const { return fValue; }
+    /// Get the maximum number of pixels in a given direction
+    /// @return Max. number of pixels
+    Int_t GetMaxNumberOfPixels() const { return fMaxPixelID; }
+    /// Check whether exception was raised in x-directon
+    /// @return True if exception was raised in x-direction, false otherwise
+    Bool_t IsX() const { return fDirection == kX; }
+    /// Check whether exception was raised in z-direction
+    /// @return True if exception was raised in z-direction, false otherwise
+    Bool_t IsZ() const { return fDirection == kZ; }
+    
+    /// Provide error message string containing direction,
+    /// index of the pixel out of range, and the maximum pixel ID
+    const char *what() const noexcept {
+      return fErrorMessage.c_str();
+    }
+    
+  private:
+    std::string         fErrorMessage;      ///< Error message connected to this exception
+    Direction           fDirection;         ///< Direction in which the pixel index is out of range
+    Int_t               fValue;             ///< Value of the pixel ID which is out of range
+    Int_t               fMaxPixelID;       ///< Maximum amount of pixels in direction;
+  };
+  
+
   /// Default constructor
   Segmentation();
 
@@ -101,10 +214,12 @@ public:
 
   /// Transformation from Geant cm detector center local coordinates
   /// to detector segmentation/cell coordiantes starting from (0,0).
-  virtual Bool_t localToDetector(Float_t, Float_t, Int_t&, Int_t&) const = 0;
+  /// @throw OutOfActiveAreaException if the point is outside the active area in any of the directions
+  virtual void localToDetector(Float_t, Float_t, Int_t&, Int_t&) const = 0;
 
   /// Transformation from detector segmentation/cell coordiantes starting
   /// from (0,0) to Geant cm detector center local coordinates.
+  /// @throw InvalidPixelException in case the pixel ID in any direction is out of range
   virtual void detectorToLocal(Int_t, Int_t, Float_t&, Float_t&) const = 0;
 
   /// Initialisation
