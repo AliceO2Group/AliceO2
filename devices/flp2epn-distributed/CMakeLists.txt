@@ -7,24 +7,8 @@ set(SYSTEM_INCLUDE_DIRECTORIES
   ${Boost_INCLUDE_DIR}
   ${FAIRROOT_INCLUDE_DIR}
   ${AlFa_DIR}/include
+  ${DDS_INCLUDE_DIR}
 )
-
-set(DDS_LOCATION $ENV{DDS_LOCATION})
-
-if(DDS_LOCATION)
-  message(STATUS "DDS found at ${DDS_LOCATION}")
-else()
-  message(STATUS "DDS not found")
-endif()
-
-if(DDS_LOCATION)
-  add_definitions(-DENABLE_DDS)
-
-  set(SYSTEM_INCLUDE_DIRECTORIES
-   ${SYSTEM_INCLUDE_DIRECTORIES}
-   $ENV{DDS_LOCATION}/include
-  )
-endif()
 
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
@@ -37,14 +21,8 @@ set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
   ${FAIRROOT_LIBRARY_DIR}
   ${AlFa_DIR}/lib
+  ${DDS_LIBRARY_DIR}
 )
-
-if(DDS_LOCATION)
-  set(LINK_DIRECTORIES
-   ${LINK_DIRECTORIES}
-   $ENV{DDS_LOCATION}/lib
-  )
-endif()
 
 link_directories(${LINK_DIRECTORIES})
 
@@ -60,7 +38,7 @@ set(DEPENDENCIES
   boost_date_time boost_thread boost_timer boost_system boost_program_options FairMQ
 )
 
-if(DDS_LOCATION)
+if(DDS_FOUND)
   set(DEPENDENCIES
     ${DEPENDENCIES}
     dds-key-value-lib
@@ -78,7 +56,7 @@ Set(Exe_Names
   epnReceiver
 )
 
-if(DDS_LOCATION)
+if(DDS_FOUND)
   set(Exe_Names
     ${Exe_Names}
     flpSyncSampler_dds
@@ -93,7 +71,7 @@ set(Exe_Source
   run/runEPNReceiver.cxx
 )
 
-if(DDS_LOCATION)
+if(DDS_FOUND)
   set(Exe_Source
     ${Exe_Source}
     runO2Prototype/runFLPSyncSampler.cxx
