@@ -173,7 +173,7 @@ int main(int argc, char** argv)
   sampler.WaitForInitialValidation();
 
   // Advertise the bound addresses via DDS properties
-  dds::CKeyValue ddsKeyValue;
+  dds::key_value::CKeyValue ddsKeyValue;
   ddsKeyValue.putValue("FLPSyncSamplerOutputAddress", sampler.fChannels["data-out"].at(0).GetAddress());
   ddsKeyValue.putValue("FLPSyncSamplerInputAddress", sampler.fChannels["data-in"].at(0).GetAddress());
 

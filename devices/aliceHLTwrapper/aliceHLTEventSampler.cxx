@@ -549,7 +549,7 @@ int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
     ddsmsg << sit->address;
 
 #ifdef ENABLE_DDS
-    dds::CKeyValue ddsKeyValue;
+    dds::key_value::CKeyValue ddsKeyValue;
     ddsKeyValue.putValue(sit->ddsprop, ddsmsg.str());
 #endif
 
@@ -567,8 +567,8 @@ int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
     if (sit->ddscount==0) continue; // the previously inserted duplicates
 
 #ifdef ENABLE_DDS
-    dds::CKeyValue ddsKeyValue;
-    dds::CKeyValue::valuesMap_t values;
+    dds::key_value::CKeyValue ddsKeyValue;
+    dds::key_value::CKeyValue::valuesMap_t values;
 
     std::string hostaddress=sit->address;
     vector<SocketProperties_t>::iterator workit=sit;
@@ -588,7 +588,7 @@ int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
         ddsKeyValue.getValues(sit->ddsprop.c_str(), &values);
 	cout << "Info: DDS getValues received " << values.size() << " value(s) of property " << sit->ddsprop
 	     << " " << sit->ddscount-socketPropertiesToRead << " of " << sit->ddscount << " sockets processed" << endl;
-	for (dds::CKeyValue::valuesMap_t::const_iterator vit = values.begin();
+	for (dds::key_value::CKeyValue::valuesMap_t::const_iterator vit = values.begin();
 	     vit!=values.end(); vit++) {
 	  if (usedProperties.find(vit->first)!=usedProperties.end()) continue; // already processed
 	  cout << "Info: processing property " << vit->first << ", value " << vit->second << " on host " << hostaddress << endl;
