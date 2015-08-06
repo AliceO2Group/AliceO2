@@ -241,7 +241,7 @@ int main(int argc, char** argv)
   epn.ChangeState("INIT_DEVICE");
   epn.WaitForInitialValidation();
 
-  dds::CKeyValue ddsKeyValue;
+  dds::key_value::CKeyValue ddsKeyValue;
 
   ddsKeyValue.putValue("EPNReceiverInputAddress", epn.fChannels["data-in"].at(0).GetAddress());
   if (options.testMode == 0) {
@@ -249,7 +249,7 @@ int main(int argc, char** argv)
     ddsKeyValue.putValue("EPNReceiverOutputAddress", epn.fChannels["data-out"].at(options.numFLPs).GetAddress());
   }
 
-  dds::CKeyValue::valuesMap_t values;
+  dds::key_value::CKeyValue::valuesMap_t values;
   {
   mutex keyMutex;
   condition_variable keyCondition;
@@ -264,7 +264,7 @@ int main(int argc, char** argv)
   }
   }
 
-  dds::CKeyValue::valuesMap_t::const_iterator it_values = values.begin();
+  dds::key_value::CKeyValue::valuesMap_t::const_iterator it_values = values.begin();
   for (int i = 0; i < options.numFLPs; ++i) {
     epn.fChannels["data-out"].at(i).UpdateAddress(it_values->second);
     it_values++;

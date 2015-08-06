@@ -163,8 +163,8 @@ int main(int argc, char** argv)
 
   // DDS
   // Waiting for properties
-  dds::CKeyValue ddsKeyValue;
-  dds::CKeyValue::valuesMap_t values;
+  dds::key_value::CKeyValue ddsKeyValue;
+  dds::key_value::CKeyValue::valuesMap_t values;
 
   // In test mode, retreive the output address of FLPSyncSampler to connect to
   if (options.testMode == 1) {
@@ -236,7 +236,7 @@ int main(int argc, char** argv)
 
   ddsKeyValue.putValue("FLPSenderHeartbeatInputAddress", flp.fChannels["data-in"].at(1).GetAddress());
 
-  dds::CKeyValue::valuesMap_t values2;
+  dds::key_value::CKeyValue::valuesMap_t values2;
 
   // Receive the EPNReceiver input addresses from DDS.
   {
@@ -253,7 +253,7 @@ int main(int argc, char** argv)
   }
 
   // Assign the received EPNReceiver input addresses to the device.
-  dds::CKeyValue::valuesMap_t::const_iterator it_values2 = values2.begin();
+  dds::key_value::CKeyValue::valuesMap_t::const_iterator it_values2 = values2.begin();
   for (int i = 0; i < options.numOutputs; ++i) {
     flp.fChannels["data-out"].at(i).UpdateAddress(it_values2->second);
     it_values2++;

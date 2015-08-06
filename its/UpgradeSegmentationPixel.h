@@ -20,6 +20,7 @@ namespace ITS {
 class UpgradeSegmentationPixel : public Segmentation {
 
 public:
+  
   UpgradeSegmentationPixel(UInt_t id = 0, int nchips = 0, int ncol = 0, int nrow = 0, float pitchX = 0,
                            float pitchZ = 0, float thickness = 0, float pitchLftC = -1, float pitchRgtC = -1,
                            float edgL = 0, float edgR = 0, float edgT = 0, float edgB = 0);
@@ -64,7 +65,7 @@ public:
   /// the center of the sensitive volulme.
   /// \param Int_t ix Detector x cell coordinate. Has the range 0 <= ix < mNumberOfRows
   /// \param Int_t iz Detector z cell coordinate. Has the range 0 <= iz < mNumberOfColumns
-  virtual Bool_t localToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const;
+  virtual void localToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const;
 
   /// Transformation from Detector cell coordiantes to Geant detector centered
   /// local coordinates (cm)
