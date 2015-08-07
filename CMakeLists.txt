@@ -57,6 +57,7 @@ endif(NOT ALICEO2_MODULAR_BUILD)
 
 find_package(AliRoot)
 find_package(FairRoot)
+find_package(DDS)
 
 # Load some basic macros which are needed later on
 include(FairMacros)
