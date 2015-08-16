@@ -39,4 +39,5 @@ FairParSet* ContainerFactory::createContainer(FairContainer* c)
   //                          c->GetTitle(),c->getContext());
   //}
   // return p;
+  return 0;
 }
