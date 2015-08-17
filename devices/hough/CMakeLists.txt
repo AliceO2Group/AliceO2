@@ -1,6 +1,7 @@
 set(INCLUDE_DIRECTORIES
   ${BASE_INCLUDE_DIRECTORIES}
   ${Boost_INCLUDE_DIR}
+  ${ROOT_INCLUDE_DIR}
   ${ALIROOT}/include
   ${SIMPATH}/include/root
 )
@@ -9,6 +10,7 @@ include_directories(SYSTEM ${INCLUDE_DIRECTORIES})
 
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
+  ${ROOT_LIBRARY_DIR}
   ${ALIROOT}/lib
   ${SIMPATH}/lib/root
 )
