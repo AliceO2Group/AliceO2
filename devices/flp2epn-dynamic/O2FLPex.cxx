@@ -14,6 +14,7 @@
 #include <boost/bind.hpp>
 #include <iostream>
 #include <sstream>
+#include <cassert>
 
 #include "O2FLPex.h"
 #include "FairMQLogger.h"
@@ -188,4 +189,5 @@ boost::posix_time::ptime O2FLPex::GetProperty(const int key, const boost::posix_
     case OutputHeartbeat:
       return fOutputHeartbeat.at(slot);
   }
+  assert(false);
 }

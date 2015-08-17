@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <cstdint> // UINT64_MAX
+#include <cassert>
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
@@ -298,4 +299,5 @@ ptime FLPSender::GetProperty(const int key, const ptime default_, const int slot
     case OutputHeartbeat:
       return fOutputHeartbeat.at(slot);
   }
+  assert(false);
 }
