@@ -118,6 +118,7 @@ Int_t MCTrack::getNumberOfPoints(DetectorId detId) const
   //   return 0;
   // }
   //
+  return 0;
 }
 
 void MCTrack::setNumberOfPoints(Int_t iDet, Int_t nPoints)
