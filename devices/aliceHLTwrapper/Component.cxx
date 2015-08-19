@@ -305,7 +305,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
         for (; ci != inputBlocks.end(); ci++) {
           AliHLTUInt8_t* pInputBufferStart = reinterpret_cast<AliHLTUInt8_t*>(ci->fPtr);
           AliHLTUInt8_t* pInputBufferEnd = pInputBufferStart + ci->fSize;
-          if (bValid = (pStart >= pInputBufferStart && pEnd <= pInputBufferEnd)) {
+          if ((bValid = (pStart >= pInputBufferStart && pEnd <= pInputBufferEnd))) {
             break;
           }
         }
