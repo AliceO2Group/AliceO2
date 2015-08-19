@@ -12,7 +12,7 @@
 
 #include <math.h>
 #include "TROOT.h"
-#include "Pythia.h"
+#include "Pythia8/Pythia.h"
 #include "FairPrimaryGenerator.h"
 //#include "FairGenerator.h"
 
@@ -40,7 +40,17 @@ Bool_t Pythia8Generator::Init()
   fPythia.setRndmEnginePtr(fRandomEngine);
   
   cout<<"Beam Momentum "<<fMom<<endl;
-  fPythia.init(fId, 2212, 0., 0., fMom, 0., 0., 0.);
+  // Set arguments in Settings database.
+  fPythia.settings.mode("Beams:idA",  fId);
+  fPythia.settings.mode("Beams:idB",  2212);
+  fPythia.settings.mode("Beams:frameType",  3);
+  fPythia.settings.parm("Beams:pxA",    0.);
+  fPythia.settings.parm("Beams:pyA",    0.);
+  fPythia.settings.parm("Beams:pzA",    fMom);
+  fPythia.settings.parm("Beams:pxB",    0.);
+  fPythia.settings.parm("Beams:pyB",    0.);
+  fPythia.settings.parm("Beams:pzB",    0.);
+  fPythia.init();
   return kTRUE;
 }
 // -------------------------------------------------------------------------
