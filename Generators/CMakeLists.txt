@@ -2,6 +2,7 @@
 # the array .
 # The extension is already found.  Any number of sources could be listed here.
 
+if(PYTHIA8_INCLUDE_DIR)
 set(INCLUDE_DIRECTORIES
 ${CMAKE_SOURCE_DIR}/Generators
 )
@@ -38,3 +39,6 @@ set(LIBRARY_NAME O2Gen)
 set(DEPENDENCIES Base O2Data pythia8 Pythia6)
 
 GENERATE_LIBRARY()
+else(PYTHIA8_INCLUDE_DIR)
+  message(STATUS "module 'Generators' requires Pythia8 ... deactivated")
+endif(PYTHIA8_INCLUDE_DIR)
