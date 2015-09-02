@@ -34,7 +34,23 @@ project(ALICEO2)
 Option(ALICEO2_MODULAR_BUILD "Modular build without environment variables" OFF)
 if(NOT ALICEO2_MODULAR_BUILD)
   IF(NOT DEFINED ENV{FAIRROOTPATH})
-    MESSAGE(FATAL_ERROR "You did not define the environment variable FAIRROOTPATH which is needed to find FairRoot. Please set this variable and execute cmake again.")
+    FIND_PROGRAM(FAIRROOT_CONFIG_EXECUTABLE NAMES fairroot-config 
+      )
+
+    IF(FAIRROOT_CONFIG_EXECUTABLE)
+      EXECUTE_PROCESS(COMMAND ${FAIRROOT_CONFIG_EXECUTABLE} --fairsoft_path
+                  OUTPUT_VARIABLE FAIRROOTPATH
+                 )
+    ENDIF(FAIRROOT_CONFIG_EXECUTABLE)
+    STRING(STRIP ${FAIRROOTPATH} FAIRROOTPATH)
+
+    IF(DEFINED FAIRROOTPATH)
+      SET(ENV{FAIRROOTPATH} ${FAIRROOTPATH})
+    ELSE(DEFINED FAIRROOTPATH)
+      MESSAGE(FATAL_ERROR "Can not find FairRoot. Either set variable FAIRROOTPATH or make sure the installation path is in variable PATH, and execute cmake again.")
+    ENDIF(DEFINED FAIRROOTPATH)
+  ELSE(NOT DEFINED ENV{FAIRROOTPATH})
+    SET(FAIRROOTPATH $ENV{FAIRROOTPATH})
   ENDIF(NOT DEFINED ENV{FAIRROOTPATH})
 
   IF(NOT DEFINED ENV{SIMPATH})
@@ -42,7 +58,6 @@ if(NOT ALICEO2_MODULAR_BUILD)
   ENDIF(NOT DEFINED ENV{SIMPATH})
 
   SET(SIMPATH $ENV{SIMPATH})
-  SET(FAIRROOTPATH $ENV{FAIRROOTPATH})
 
   # where to look first for cmake modules, before ${CMAKE_ROOT}/Modules/
   # is checked
@@ -52,6 +67,7 @@ if(NOT ALICEO2_MODULAR_BUILD)
 
   Set(CheckSrcDir "${FAIRROOTPATH}/share/fairbase/cmake/checks")
 else(NOT ALICEO2_MODULAR_BUILD)
+  message(FATAL_ERROR "build option 'ALICEO2_MODULAR_BUILD' not supported yet")
   find_package(Boost REQUIRED)
 endif(NOT ALICEO2_MODULAR_BUILD)
 
