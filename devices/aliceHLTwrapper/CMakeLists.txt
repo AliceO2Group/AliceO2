@@ -64,11 +64,21 @@ set(DEPENDENCIES
     # ${ZMQ_LIBRARY_SHARED}
   )
 
-set(DEPENDENCIES
-  ${DEPENDENCIES}
-#  ${CMAKE_THREAD_LIBS_INIT}
-   boost_thread boost_system boost_chrono FairMQ
-)
+if(FAIRMQ_DEPENDENCIES)
+  set(DEPENDENCIES
+    ${DEPENDENCIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${FAIRMQ_DEPENDENCIES}
+    boost_chrono
+    FairMQ
+  )
+else(FAIRMQ_DEPENDENCIES)
+  set(DEPENDENCIES
+    ${DEPENDENCIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    boost_chrono boost_date_time boost_thread boost_timer boost_system boost_program_options FairMQ
+  )
+endif(FAIRMQ_DEPENDENCIES)
 
 set(LIBRARY_NAME ALICEHLT)
 

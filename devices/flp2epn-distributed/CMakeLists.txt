@@ -55,11 +55,20 @@ set(SRCS
   EPNReceiver.cxx
 )
 
-set(DEPENDENCIES
-  ${DEPENDENCIES}
-  ${CMAKE_THREAD_LIBS_INIT}
-  boost_date_time boost_thread boost_timer boost_system boost_program_options FairMQ
-)
+if(FAIRMQ_DEPENDENCIES)
+  set(DEPENDENCIES
+    ${DEPENDENCIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${FAIRMQ_DEPENDENCIES}
+    FairMQ
+  )
+else(FAIRMQ_DEPENDENCIES)
+  set(DEPENDENCIES
+    ${DEPENDENCIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    boost_date_time boost_thread boost_timer boost_system boost_program_options boost_chrono FairMQ
+  )
+endif(FAIRMQ_DEPENDENCIES)
 
 if(DDS_LOCATION)
   set(DEPENDENCIES
