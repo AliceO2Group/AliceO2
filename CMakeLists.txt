@@ -125,6 +125,7 @@ endif(ALICEO2_MODULAR_BUILD)
 find_package(CERNLIB)
 find_package(HEPMC)
 find_package(IWYU)
+find_package(DDS)
 
 if(NOT BOOST_ROOT)
   Set(Boost_NO_SYSTEM_PATHS TRUE)

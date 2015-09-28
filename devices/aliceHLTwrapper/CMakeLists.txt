@@ -10,14 +10,12 @@ set(SYSTEM_INCLUDE_DIRECTORIES
   ${AlFa_DIR}/include
 )
 
-set(DDS_LOCATION $ENV{DDS_LOCATION})
-
-if(DDS_LOCATION)
+if(DDS_FOUND)
   add_definitions(-DENABLE_DDS)
 
   set(SYSTEM_INCLUDE_DIRECTORIES
    ${SYSTEM_INCLUDE_DIRECTORIES}
-   $ENV{DDS_LOCATION}/include
+   ${DDS_INCLUDE_DIR}
   )
 endif()
 
@@ -34,10 +32,10 @@ set(LINK_DIRECTORIES
   ${AlFa_DIR}/lib
 )
 
-if(DDS_LOCATION)
+if(DDS_FOUND)
   set(LINK_DIRECTORIES
    ${LINK_DIRECTORIES}
-   $ENV{DDS_LOCATION}/lib
+   ${DDS_LIBRARY_DIR}
   )
 endif()
 
@@ -52,7 +50,7 @@ set(SRCS
   EventSampler.cxx
 )
 
-if(DDS_LOCATION)
+if(DDS_FOUND)
   set(DEPENDENCIES
     ${DEPENDENCIES}
     dds-key-value-lib

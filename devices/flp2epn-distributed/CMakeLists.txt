@@ -10,20 +10,12 @@ set(SYSTEM_INCLUDE_DIRECTORIES
   ${AlFa_DIR}/include
 )
 
-set(DDS_LOCATION $ENV{DDS_LOCATION})
-
-if(DDS_LOCATION)
-  message(STATUS "DDS found at ${DDS_LOCATION}")
-else()
-  message(STATUS "DDS not found")
-endif()
-
-if(DDS_LOCATION)
+if(DDS_FOUND)
   add_definitions(-DENABLE_DDS)
 
   set(SYSTEM_INCLUDE_DIRECTORIES
    ${SYSTEM_INCLUDE_DIRECTORIES}
-   $ENV{DDS_LOCATION}/include
+   ${DDS_INCLUDE_DIR}
   )
 endif()
 
@@ -40,10 +32,10 @@ set(LINK_DIRECTORIES
   ${AlFa_DIR}/lib
 )
 
-if(DDS_LOCATION)
+if(DDS_FOUND)
   set(LINK_DIRECTORIES
    ${LINK_DIRECTORIES}
-   $ENV{DDS_LOCATION}/lib
+   ${DDS_LIBRARY_DIR}
   )
 endif()
 
@@ -70,7 +62,7 @@ else(FAIRMQ_DEPENDENCIES)
   )
 endif(FAIRMQ_DEPENDENCIES)
 
-if(DDS_LOCATION)
+if(DDS_FOUND)
   set(DEPENDENCIES
     ${DEPENDENCIES}
     dds-key-value-lib
@@ -88,7 +80,7 @@ Set(Exe_Names
   epnReceiver
 )
 
-if(DDS_LOCATION)
+if(DDS_FOUND)
   set(Exe_Names
     ${Exe_Names}
     flpSyncSampler_dds
@@ -103,7 +95,7 @@ set(Exe_Source
   run/runEPNReceiver.cxx
 )
 
-if(DDS_LOCATION)
+if(DDS_FOUND)
   set(Exe_Source
     ${Exe_Source}
     runO2Prototype/runFLPSyncSampler.cxx
