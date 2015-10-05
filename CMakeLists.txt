@@ -34,23 +34,7 @@ project(ALICEO2)
 Option(ALICEO2_MODULAR_BUILD "Modular build without environment variables" OFF)
 if(NOT ALICEO2_MODULAR_BUILD)
   IF(NOT DEFINED ENV{FAIRROOTPATH})
-    FIND_PROGRAM(FAIRROOT_CONFIG_EXECUTABLE NAMES fairroot-config 
-      )
-
-    IF(FAIRROOT_CONFIG_EXECUTABLE)
-      EXECUTE_PROCESS(COMMAND ${FAIRROOT_CONFIG_EXECUTABLE} --fairsoft_path
-                  OUTPUT_VARIABLE FAIRROOTPATH
-                 )
-    ENDIF(FAIRROOT_CONFIG_EXECUTABLE)
-    STRING(STRIP ${FAIRROOTPATH} FAIRROOTPATH)
-
-    IF(DEFINED FAIRROOTPATH)
-      SET(ENV{FAIRROOTPATH} ${FAIRROOTPATH})
-    ELSE(DEFINED FAIRROOTPATH)
-      MESSAGE(FATAL_ERROR "Can not find FairRoot. Either set variable FAIRROOTPATH or make sure the installation path is in variable PATH, and execute cmake again.")
-    ENDIF(DEFINED FAIRROOTPATH)
-  ELSE(NOT DEFINED ENV{FAIRROOTPATH})
-    SET(FAIRROOTPATH $ENV{FAIRROOTPATH})
+    MESSAGE(FATAL_ERROR "You did not define the environment variable FAIRROOTPATH which is needed to find FairRoot. Please set this variable and execute cmake again.")
   ENDIF(NOT DEFINED ENV{FAIRROOTPATH})
 
   IF(NOT DEFINED ENV{SIMPATH})
@@ -58,6 +42,7 @@ if(NOT ALICEO2_MODULAR_BUILD)
   ENDIF(NOT DEFINED ENV{SIMPATH})
 
   SET(SIMPATH $ENV{SIMPATH})
+  SET(FAIRROOTPATH $ENV{FAIRROOTPATH})
 
   # where to look first for cmake modules, before ${CMAKE_ROOT}/Modules/
   # is checked
@@ -67,7 +52,6 @@ if(NOT ALICEO2_MODULAR_BUILD)
 
   Set(CheckSrcDir "${FAIRROOTPATH}/share/fairbase/cmake/checks")
 else(NOT ALICEO2_MODULAR_BUILD)
-  message(FATAL_ERROR "build option 'ALICEO2_MODULAR_BUILD' not supported yet")
   find_package(Boost REQUIRED)
 endif(NOT ALICEO2_MODULAR_BUILD)
 
@@ -124,7 +108,7 @@ CHECK_EXTERNAL_PACKAGE_INSTALL_DIR()
 # mandatory
 
 find_package(ROOT 5.32.00 REQUIRED)
-find_package(Pythia8)
+find_package(Pythian)
 find_package(Pythia6)
 if(ALICEO2_MODULAR_BUILD)
   # Geant3, Geant4 installed via cmake
@@ -132,7 +116,7 @@ if(ALICEO2_MODULAR_BUILD)
   find_package(Geant4 REQUIRED)
 else(ALICEO2_MODULAR_BUILD)
   # For old versions of VMC packages (to be removed)
-  find_package(GEANT3 REQUIRED)
+  find_package(GEANT3)
   find_package(GEANT4)
   find_package(GEANT4DATA)
   find_package(GEANT4VMC)
@@ -224,7 +208,9 @@ endif(NOT ALICEO2_MODULAR_BUILD)
 
 add_subdirectory (Base)
 add_subdirectory (Data)
+if (PYTHIA8_FOUND AND Pythia6_FOUND)
 add_subdirectory (Generators)
+Endif ()
 add_subdirectory (its)
 add_subdirectory (tpc)
 add_subdirectory (passive)
