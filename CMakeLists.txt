@@ -57,6 +57,7 @@ endif(NOT ALICEO2_MODULAR_BUILD)
 
 find_package(AliRoot)
 find_package(FairRoot)
+find_package(IWYU)
 
 # Load some basic macros which are needed later on
 include(FairMacros)
@@ -228,6 +229,14 @@ if(BUILD_DOXYGEN)
   ADD_SUBDIRECTORY(doxygen)
 endif(BUILD_DOXYGEN)
 
+
+if(IWYU_FOUND)
+
+  ADD_CUSTOM_TARGET(checkHEADERS 
+     DEPENDS $ENV{ALL_HEADER_RULES}
+  )
+
+endif(IWYU_FOUND)
 
 
 
