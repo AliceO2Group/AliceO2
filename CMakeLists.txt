@@ -46,9 +46,9 @@ if(NOT ALICEO2_MODULAR_BUILD)
 
   # where to look first for cmake modules, before ${CMAKE_ROOT}/Modules/
   # is checked
-  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
   set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules"  ${CMAKE_MODULE_PATH})
   set(CMAKE_MODULE_PATH "${FAIRROOTPATH}/share/fairbase/cmake/modules_old"  ${CMAKE_MODULE_PATH})
+  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
 
   Set(CheckSrcDir "${FAIRROOTPATH}/share/fairbase/cmake/checks")
 else(NOT ALICEO2_MODULAR_BUILD)
@@ -124,7 +124,7 @@ else(ALICEO2_MODULAR_BUILD)
 endif(ALICEO2_MODULAR_BUILD)
 find_package(CERNLIB)
 find_package(HEPMC)
-
+find_package(IWYU)
 
 if(NOT BOOST_ROOT)
   Set(Boost_NO_SYSTEM_PATHS TRUE)
@@ -227,6 +227,11 @@ if(BUILD_DOXYGEN)
 endif(BUILD_DOXYGEN)
 
 
+If(IWYU_FOUND)
+  ADD_CUSTOM_TARGET(checkHEADERS 
+                    DEPENDS $ENV{ALL_HEADER_RULES}
+  )
+EndIf()
 
 
 WRITE_CONFIG_FILE(config.sh)
