@@ -59,7 +59,7 @@ The following parameters need adjustment when extending the FLP-EPN configuratio
     </decltask>
 
     <decltask id="flpSender">
-        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/flpSender_dds --id 0 --num-epns 1</exe>
+        <exe reachable="true">$ALICEO2_INSTALL_DIR/bin/flpSender_dds --id FLP0 --num-epns 1</exe>
         <properties>
             <id access="write">FLPSenderInputAddress</id>
             <id access="write">FLPSenderHeartbeatInputAddress</id>
