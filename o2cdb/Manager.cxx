@@ -1,24 +1,34 @@
-#include <fstream>
-
-#include <TObjString.h>
-#include <TSAXParser.h>
-#include <TKey.h>
-#include <TUUID.h>
-#include <TGrid.h>
-#include <TMessage.h>
-#include <TObject.h>
-#include <TRegexp.h>
-#include <TString.h>
-
-#include <FairLogger.h>
 
 #include "Manager.h"
-#include "Storage.h"
-#include "FileStorage.h"
-#include "LocalStorage.h"
-#include "GridStorage.h"
-#include "Condition.h"
-#include "XmlHandler.h"
+#include <FairLogger.h>    // for LOG
+#include <TGrid.h>         // for gGrid, TGrid
+#include <TKey.h>          // for TKey
+#include <TMessage.h>      // for TMessage
+#include <TObjString.h>    // for TObjString
+#include <TObject.h>       // for TObject
+#include <TRegexp.h>       // for TRegexp
+#include <TSAXParser.h>    // for TSAXParser
+#include <TString.h>       // for TString, operator==, Printf, Form, etc
+#include <TUUID.h>         // for TUUID
+#include <string.h>        // for NULL, strcmp
+#include "Condition.h"     // for Condition
+#include "ConditionId.h"   // for ConditionId
+#include "FileStorage.h"   // for FileStorageFactory
+#include "GridStorage.h"   // for GridStorageFactory
+#include "IdPath.h"        // for IdPath
+#include "LocalStorage.h"  // for LocalStorageFactory
+#include "Storage.h"       // for Storage
+#include "TBuffer.h"       // for TBuffer, TBuffer::EMode::kWrite
+#include "TCollection.h"   // for TIter
+#include "TFile.h"         // for TFile
+#include "THashTable.h"    // for THashTable
+#include "TList.h"         // for TList
+#include "TMap.h"          // for TMap, TPair
+#include "TObjArray.h"     // for TObjArray
+#include "TSystem.h"       // for TSystem, gSystem
+#include "TTime.h"         // for TTime
+#include "XmlHandler.h"    // for XmlHandler
+#include <fstream>
 
 using namespace AliceO2::CDB;
 

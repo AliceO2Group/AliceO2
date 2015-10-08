@@ -2,34 +2,30 @@
 /// \brief Implementation of the Detector class
 
 #include "its/Detector.h"
-
-#include "Point.h"
-#include "UpgradeV1Layer.h"
-#include "UpgradeGeometryTGeo.h"
-
-#include "Data/DetectorList.h"
-#include "Data/Stack.h"
-
-#include "field/MagneticField.h"
-
-#include "FairVolume.h"
-#include "FairGeoVolume.h"
-#include "FairGeoNode.h"
-#include "FairRootManager.h"
-#include "FairGeoLoader.h"
-#include "FairGeoInterface.h"
-#include "FairRun.h"
-#include "FairRuntimeDb.h"
-
-#include "TClonesArray.h"
-#include "TGeoManager.h"
-#include "TGeoTube.h"
-#include "TGeoVolume.h"
-#include "TVirtualMC.h"
-#include "TGeoGlobalMagField.h"
-
-#include <iostream>
-#include <Riostream.h>
+#include <stdio.h>                  // for NULL, snprintf
+#include "Data/DetectorList.h"      // for DetectorId::kAliIts
+#include "Data/Stack.h"             // for Stack
+#include "FairDetector.h"           // for FairDetector
+#include "FairLogger.h"             // for LOG, LOG_IF
+#include "FairRootManager.h"        // for FairRootManager
+#include "FairRun.h"                // for FairRun
+#include "FairRuntimeDb.h"          // for FairRuntimeDb
+#include "FairVolume.h"             // for FairVolume
+#include "GeometryHandler.h"        // for GeometryHandler
+#include "MisalignmentParameter.h"  // for MisalignmentParameter
+#include "Point.h"                  // for Point, etc
+#include "TClonesArray.h"           // for TClonesArray
+#include "TGeoManager.h"            // for TGeoManager, gGeoManager
+#include "TGeoTube.h"               // for TGeoTube
+#include "TGeoVolume.h"             // for TGeoVolume, TGeoVolumeAssembly
+#include "TString.h"                // for TString, operator+
+#include "TVirtualMC.h"             // for gMC, TVirtualMC
+#include "TVirtualMCStack.h"        // for TVirtualMCStack
+#include "UpgradeGeometryTGeo.h"    // for UpgradeGeometryTGeo
+#include "UpgradeV1Layer.h"         // for UpgradeV1Layer
+class FairModule;
+class TGeoMedium;
+class TParticle;
 
 using std::cout;
 using std::endl;

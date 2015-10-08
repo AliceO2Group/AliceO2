@@ -3,8 +3,15 @@
 
 //  class  LocalStorage						   //
 //  access class to a DataBase in a local storage                  //
-#include "Storage.h"
-#include "Manager.h"
+#include "Manager.h"  // for StorageFactory, StorageParameters
+#include "Rtypes.h"   // for Bool_t, Int_t, ClassDef, LocalStorage::Class, etc
+#include "Storage.h"  // for Storage
+#include "TString.h"  // for TString
+class TList;
+class TObject;
+namespace AliceO2 { namespace CDB { class Condition; } }
+namespace AliceO2 { namespace CDB { class ConditionId; } }
+namespace AliceO2 { namespace CDB { class IdRunRange; } }
 
 namespace AliceO2 {
 namespace CDB {

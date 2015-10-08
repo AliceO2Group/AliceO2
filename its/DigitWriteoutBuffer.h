@@ -10,12 +10,11 @@
 #define ALICEO2_ITS_DIGITWRITEOUTBUFFER_H_
 
 #include <map>
-
-#include <TString.h>
-
-#include "FairWriteoutBuffer.h"
-
-#include "its/Digit.h"
+#include <TString.h>             // for TString
+#include "FairWriteoutBuffer.h"  // for FairWriteoutBuffer
+#include "Rtypes.h"              // for DigitWriteoutBuffer::Class, Bool_t, etc
+#include "Digit.h"            // for Digit
+class FairTimeStamp;
 
 namespace AliceO2 {
     namespace ITS {

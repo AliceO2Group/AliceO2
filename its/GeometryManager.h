@@ -4,12 +4,10 @@
 #ifndef ALICEO2_ITS_GEOMETRYMANAGER_H_
 #define ALICEO2_ITS_GEOMETRYMANAGER_H_
 
-#include <TObject.h>
-
-class TGeoManager;
-class TGeoPNEntry;
-class TGeoHMatrix;
-class TObjArray;
+#include <TObject.h>  // for TObject
+#include "Rtypes.h"   // for Bool_t, GeometryManager::Class, ClassDef, etc
+class TGeoHMatrix;  // lines 11-11
+class TGeoManager;  // lines 9-9
 
 namespace AliceO2 {
 namespace ITS {

@@ -11,10 +11,8 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
-
-#include <boost/date_time/posix_time/posix_time.hpp>
-
-#include "FairMQDevice.h"
+#include "FairMQDevice.h"                        // for FairMQDevice, etc
+#include "boost/date_time/posix_time/ptime.hpp"  // for ptime
 
 namespace AliceO2 {
 namespace Devices {

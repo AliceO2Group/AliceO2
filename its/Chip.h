@@ -11,9 +11,11 @@
 
 #include <exception>
 #include <sstream>
-
-#include <TObjArray.h>
-#include "TObject.h"
+#include <TObjArray.h>  // for TObjArray
+#include "Rtypes.h"     // for Double_t, Int_t, ULong_t, Bool_t, etc
+#include "TObject.h"    // for TObject
+namespace AliceO2 { namespace ITS { class Point; } }  // lines 22-22
+namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; } }  // lines 23-23
 
 namespace AliceO2 {
   

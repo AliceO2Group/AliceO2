@@ -7,7 +7,6 @@
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
-
 #include "O2EPNex.h"
 #include "FairMQLogger.h"
 

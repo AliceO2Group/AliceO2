@@ -1,11 +1,13 @@
 //  Set of data describing the object  				   //
 //  but not used to identify the object 			   //
-#include <TObjString.h>
-#include <TTimeStamp.h>
-
-#include <FairLogger.h>
-
 #include "ConditionMetaData.h"
+#include <TObjString.h>   // for TObjString
+#include <TTimeStamp.h>   // for TTimeStamp
+#include <time.h>         // for time
+#include "TCollection.h"  // for TIter
+#include "THashTable.h"   // for THashTable
+#include "TMap.h"         // for TMap, TPair
+#include "TObject.h"      // for TObject
 
 using namespace AliceO2::CDB;
 

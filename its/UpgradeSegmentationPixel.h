@@ -4,9 +4,10 @@
 #ifndef ALICEO2_ITS_UPGRADESEGMENTATIONPIXEL_H_
 #define ALICEO2_ITS_UPGRADESEGMENTATIONPIXEL_H_
 
-#include "FairLogger.h"
-
-#include "Segmentation.h"
+#include "FairLogger.h"    // for LOG
+#include "Rtypes.h"        // for Int_t, Float_t, Double_t, UInt_t, etc
+#include "Segmentation.h"  // for Segmentation
+class TObjArray;
 
 namespace AliceO2 {
 namespace ITS {

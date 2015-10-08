@@ -2,9 +2,9 @@
 /// \brief Implementation of the ContainerFactory class
 
 #include "ContainerFactory.h"
-#include "FairRuntimeDb.h"
-
-#include <iostream>
+#include "FairRuntimeDb.h"  // for FairRuntimeDb
+#include "TString.h"        // for TString
+class FairParSet;
 
 using namespace AliceO2::ITS;
 

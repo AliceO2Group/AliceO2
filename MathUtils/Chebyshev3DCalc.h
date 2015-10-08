@@ -5,8 +5,11 @@
 #ifndef ALICEO2_MATHUTILS_CHEBYSHEV3DCALC_H_
 #define ALICEO2_MATHUTILS_CHEBYSHEV3DCALC_H_
 
-#include <TNamed.h>
-class TSystem;
+#include <TNamed.h>  // for TNamed
+#include <stdio.h>   // for FILE, stdout
+#include "Rtypes.h"  // for Float_t, UShort_t, Int_t, Double_t, etc
+class TString;
+
 
 // To decrease the compilable code size comment this define. This will exclude the routines
 // used for the calculation and saving of the coefficients.

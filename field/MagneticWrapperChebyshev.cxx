@@ -3,10 +3,17 @@
 /// \author ruben.shahoyan@cern.ch 20/03/2007
 
 #include "MagneticWrapperChebyshev.h"
-#include <TSystem.h>
-#include <TArrayF.h>
-#include <TArrayI.h>
-#include "FairLogger.h"
+#include <TArrayF.h>     // for TArrayF
+#include <TArrayI.h>     // for TArrayI
+#include <TSystem.h>     // for TSystem, gSystem
+#include <stdio.h>       // for printf, fprintf, fclose, fopen, FILE
+#include <string.h>      // for memcpy
+#include "FairLogger.h"  // for FairLogger, MESSAGE_ORIGIN
+#include "TMath.h"       // for BinarySearch, Sort
+#include "TMathBase.h"   // for Abs
+#include "TNamed.h"      // for TNamed
+#include "TObjArray.h"   // for TObjArray
+#include "TString.h"     // for TString
 
 using namespace AliceO2::Field;
 using namespace AliceO2::MathUtils;

@@ -14,7 +14,9 @@
 #ifndef ALICEO2_PASSIVE_PIPE_H
 #define ALICEO2_PASSIVE_PIPE_H
 
-#include "FairModule.h"
+#include "FairModule.h"  // for FairModule
+#include "Rtypes.h"      // for Pipe::Class, ClassDef, Pipe::Streamer
+
 namespace AliceO2 {
 namespace Passive {
  

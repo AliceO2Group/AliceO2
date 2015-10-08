@@ -4,14 +4,12 @@
 #define ALICEO2_ITS_DIGIT_H
 
 #ifndef __CINT__
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/base_object.hpp>  // for base_object
 #endif
 
-#include "Riosfwd.h"
-#include "Rtypes.h"
-
-#include "FairTimeStamp.h"
+#include "FairTimeStamp.h"                      // for FairTimeStamp
+#include "Rtypes.h"                             // for Double_t, ULong_t, etc
+namespace boost { namespace serialization { class access; } }
 
 namespace AliceO2{
   namespace ITS{

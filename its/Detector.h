@@ -4,17 +4,23 @@
 #ifndef ALICEO2_ITS_DETECTOR_H_
 #define ALICEO2_ITS_DETECTOR_H_
 
-#include "TParticle.h"
-#include "TVector3.h"
-#include "TLorentzVector.h"
-
-#include "Base/Detector.h"
-#include "GeometryHandler.h"
-#include "MisalignmentParameter.h"
-#include "UpgradeGeometryTGeo.h"
-
-class FairVolume;
-class TClonesArray;
+#include "Base/Detector.h"   // for Detector
+#include "Rtypes.h"          // for Int_t, Double_t, Float_t, Bool_t, etc
+#include "TArrayD.h"         // for TArrayD
+#include "TGeoManager.h"     // for gGeoManager, TGeoManager (ptr only)
+#include "TLorentzVector.h"  // for TLorentzVector
+#include "TVector3.h"        // for TVector3
+class FairModule;
+class FairVolume;  // lines 16-16
+class TClonesArray;  // lines 17-17
+class TGeoVolume;
+class TParticle;
+class TString;
+namespace AliceO2 { namespace ITS { class GeometryHandler; } }
+namespace AliceO2 { namespace ITS { class MisalignmentParameter; } }
+namespace AliceO2 { namespace ITS { class Point; } }  // lines 22-22
+namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; } }
+namespace AliceO2 { namespace ITS { class UpgradeV1Layer; } }  // lines 23-23
 
 namespace AliceO2 {
 namespace ITS {

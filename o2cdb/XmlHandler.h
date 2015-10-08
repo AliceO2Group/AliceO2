@@ -2,8 +2,13 @@
 #define ALICE_O2_XML_HANDLER_H_
 //  The SAX XML file handler used by the OCDB Manager                     //
 //  get the OCDB Folder <-> Run Range correspondance                      //
-#include <TObject.h>
-class TString;
+
+#include <TObject.h>  // for TObject
+#include "Rtypes.h"   // for Int_t, XmlHandler::Class, ClassDef, etc
+#include "TString.h"  // for TString
+class TList;
+#include <stddef.h>      // for NULL
+namespace AliceO2 { namespace CDB { class IdRunRange; } }
 
 namespace AliceO2 {
 namespace CDB {

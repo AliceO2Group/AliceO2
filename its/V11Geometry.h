@@ -4,16 +4,15 @@
 #ifndef ALICEO2_ITS_V11GEOMETRY_H_
 #define ALICEO2_ITS_V11GEOMETRY_H_
 
-#include <TObject.h>
-#include <TMath.h>
-#include "FairLogger.h"
-
-class TGeoArb8;
-class TGeoPcon;
-class TGeoTube;
-class TGeoTubeSeg;
-class TGeoConeSeg;
-class TGeoBBox;
+#include <TMath.h>    // for DegToRad, Cos, Sin, Tan
+#include <TObject.h>  // for TObject
+#include "Rtypes.h"   // for Double_t, Int_t, Bool_t, V11Geometry::Class, etc
+class TGeoArb8;  // lines 11-11
+class TGeoBBox;  // lines 16-16
+class TGeoConeSeg;  // lines 15-15
+class TGeoPcon;  // lines 12-12
+class TGeoTube;  // lines 13-13
+class TGeoTubeSeg;  // lines 14-14
 
 namespace AliceO2 {
 namespace ITS {

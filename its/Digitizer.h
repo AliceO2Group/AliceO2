@@ -3,14 +3,13 @@
 #ifndef ALICEO2_ITS_Digitizer_H_
 #define ALICEO2_ITS_Digitizer_H_
 
-#include <vector>
-
-#include "TObject.h"
-#include "Rtypes.h"
-
+#include "Rtypes.h"   // for Digitizer::Class, Double_t, ClassDef, etc
+#include "TObject.h"  // for TObject
 #include "its/Chip.h"
 
-class TClonesArray;
+class TClonesArray;  // lines 13-13
+namespace AliceO2 { namespace ITS { class DigitContainer; } }  // lines 19-19
+namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; } }  // lines 20-20
 
 namespace AliceO2{
 

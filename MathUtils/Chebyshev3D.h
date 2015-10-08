@@ -5,19 +5,15 @@
 #ifndef ALICEO2_MATHUTILS_CHEBYSHEV3D_H_
 #define ALICEO2_MATHUTILS_CHEBYSHEV3D_H_
 
-#include <TNamed.h>
-#include <TObjArray.h>
-#include "Chebyshev3DCalc.h"
-
-class TString;
-class TSystem;
-class TRandom;
-class TH1;
-class TMethodCall;
-class TRandom;
-class TROOT;
-class stdio;
-class FairLogger;
+#include <TNamed.h>           // for TNamed
+#include <TObjArray.h>        // for TObjArray
+#include <stdio.h>            // for FILE, stdout
+#include "Chebyshev3DCalc.h"  // for Chebyshev3DCalc, etc
+#include "Rtypes.h"           // for Float_t, Int_t, Double_t, Bool_t, etc
+#include "TString.h"          // for TString
+class FairLogger;  // lines 20-20
+class TH1;  // lines 15-15
+class TMethodCall;  // lines 16-16
 
 
 namespace AliceO2 {

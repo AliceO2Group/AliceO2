@@ -1,7 +1,9 @@
 #ifndef ALICEO2_TPC_CONTAINERFACTORY_H_
 #define ALICEO2_TPC_CONTAINERFACTORY_H_
 
-#include "FairContFact.h"
+#include "FairContFact.h"  // for FairContFact, FairContainer (ptr only)
+#include "Rtypes.h"        // for ContainerFactory::Class, ClassDef, etc
+class FairParSet;
 
 class FairContainer;
 

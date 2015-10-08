@@ -1,23 +1,29 @@
 /// \file V11Geometry.cxx
 /// \brief Implementation of the V11Geometry class
 
-#include <Riostream.h>
-#include <TArc.h>
-#include <TLine.h>
-#include <TArrow.h>
-#include <TCanvas.h>
-#include <TText.h>
-
-#include <TGeoPcon.h>
-#include <TGeoCone.h>
-#include <TGeoTube.h> // contaings TGeoTubeSeg
-#include <TGeoArb8.h>
-#include <TGeoElement.h>
-#include <TGeoMaterial.h>
-#include <TPolyMarker.h>
-#include <TPolyLine.h>
 
 #include "V11Geometry.h"
+#include <TArc.h>          // for TArc
+#include <TArrow.h>        // for TArrow
+#include <TCanvas.h>       // for TCanvas
+#include <TGeoArb8.h>      // for TGeoArb8
+#include <TGeoElement.h>   // for TGeoElement
+#include <TGeoMaterial.h>  // for TGeoMixture, TGeoMaterial, etc
+#include <TGeoPcon.h>      // for TGeoPcon
+#include <TGeoCone.h>      // for TGeoConSeg
+#include <TLine.h>         // for TLine
+#include <TPolyLine.h>     // for TPolyLine
+#include <TPolyMarker.h>   // for TPolyMarker
+#include <TText.h>         // for TText
+#include <stdio.h>         // for printf, snprintf
+#include "FairLogger.h"    // for LOG
+#include "TMath.h"         // for DegToRad, Cos, Sqrt, ATan2, Sin, Tan, Pi, etc
+#include "TMathBase.h"     // for Max, Min, Abs
+
+
+#include <Riostream.h>
+#include <TGeoTube.h>      // for TGeoTubeSeg
+
 
 using std::endl;
 using std::cout;

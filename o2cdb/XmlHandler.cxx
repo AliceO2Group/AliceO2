@@ -1,14 +1,14 @@
 //  The SAX XML file handler used in the CDBManager                       //
+#include "XmlHandler.h"
+#include <FairLogger.h>   // for LOG
+#include <TList.h>        // for TList
+#include <TObject.h>      // for TObject
+#include <TXMLAttr.h>     // for TXMLAttr
+#include "TCollection.h"  // for TIter
 #include <cstdlib>
 #include <Riostream.h>
 
-#include <TList.h>
-#include <TObject.h>
-#include <TXMLAttr.h>
-#include <TSAXParser.h>
 
-#include <FairLogger.h>
-#include "XmlHandler.h"
 
 using namespace AliceO2::CDB;
 ClassImp(XmlHandler)

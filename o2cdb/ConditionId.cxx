@@ -1,8 +1,10 @@
-#include "ConditionId.h"
-#include <Riostream.h>
-#include <TObjArray.h>
-#include <TObjString.h>
 
+#include "ConditionId.h"
+#include <TObjArray.h>    // for TObjArray
+#include <TObjString.h>   // for TObjString
+#include "TCollection.h"  // for TIter
+#include "TObject.h"      // for TObject
+#include <Riostream.h>
 // using std::endl;
 // using std::cout;
 using namespace AliceO2::CDB;

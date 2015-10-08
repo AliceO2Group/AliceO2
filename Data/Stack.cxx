@@ -3,23 +3,17 @@
 /// \author M. Al-Turany - June 2014
 
 #include "Stack.h"
-
-#include "FairDetector.h"
-#include "FairLink.h"
-#include "FairMCPoint.h"
-#include "MCTrack.h"
-#include "FairRootManager.h"
-#include "FairLogger.h"
-
-#include "Riosfwd.h"
-#include "TClonesArray.h"
-#include "TIterator.h"
-#include "TLorentzVector.h"
-#include "TParticle.h"
-#include "TRefArray.h"
-
-#include <stddef.h>
-#include <iostream>
+#include <stddef.h>           // for NULL
+#include "FairDetector.h"     // for FairDetector
+#include "FairLogger.h"       // for MESSAGE_ORIGIN, FairLogger
+#include "FairMCPoint.h"      // for FairMCPoint
+#include "FairRootManager.h"  // for FairRootManager
+#include "MCTrack.h"          // for MCTrack
+#include "TClonesArray.h"     // for TClonesArray
+#include "TIterator.h"        // for TIterator
+#include "TLorentzVector.h"   // for TLorentzVector
+#include "TParticle.h"        // for TParticle
+#include "TRefArray.h"        // for TRefArray
 
 using std::cout;
 using std::endl;

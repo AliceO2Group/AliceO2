@@ -1,21 +1,13 @@
 #include "Detector.h"
-
-#include "Point.h"
-
-#include "FairVolume.h"
-#include "FairGeoVolume.h"
-#include "FairGeoNode.h"
-#include "FairRootManager.h"
-#include "FairGeoLoader.h"
-#include "FairGeoInterface.h"
-#include "FairRun.h"
-#include "FairRuntimeDb.h"
-
-#include "Data/DetectorList.h"
-#include "Data/Stack.h"
-
-#include "TClonesArray.h"
-#include "TVirtualMC.h"
+#include <stddef.h>             // for NULL
+#include "Data/DetectorList.h"  // for DetectorId::kAliTpc
+#include "Data/Stack.h"         // for Stack
+#include "FairRootManager.h"    // for FairRootManager
+#include "FairVolume.h"         // for FairVolume
+#include "Point.h"              // for Point
+#include "TClonesArray.h"       // for TClonesArray
+#include "TVirtualMC.h"         // for TVirtualMC, gMC
+#include "TVirtualMCStack.h"    // for TVirtualMCStack
 
 #include <iostream>
 using std::cout;

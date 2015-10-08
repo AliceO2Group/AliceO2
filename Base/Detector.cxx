@@ -2,9 +2,8 @@
 /// \brief Implementation of the Detector class
 
 #include "Detector.h"
-
-#include <Riostream.h>
-#include <TVirtualMC.h>
+#include <TVirtualMC.h>  // for TVirtualMC, gMC
+#include "TString.h"     // for TString
 
 using std::endl;
 using std::cout;

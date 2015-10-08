@@ -6,8 +6,9 @@
 
 #include <exception>
 #include <sstream>
-
-#include <TObject.h>
+#include "TObject.h"  // for TObject
+#include "Rtypes.h"   // for Int_t, Float_t, Double_t, Bool_t, etc
+class TF1;  // lines 12-12
 
 class TF1;
 

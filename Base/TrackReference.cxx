@@ -2,15 +2,15 @@
 /// \brief Implementation of the TrackReference class
 /// \author Sylwester Radomski (S.Radomski@gsi.de) GSI, Jan 31, 2003
 
-#include "TVirtualMC.h"
-#include "TParticle.h"
-
 #include "TrackReference.h"
+#include "TVirtualMC.h"  // for TVirtualMC, gMC
 #include <Riostream.h>
 
 using std::endl;
 using std::cout;
+
 using namespace AliceO2::Base;
+
 
 ClassImp(AliceO2::Base::TrackReference)
 

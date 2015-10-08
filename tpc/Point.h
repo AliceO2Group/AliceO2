@@ -2,10 +2,9 @@
 #define ALICEO2_TPC_POINT_H
 
 
-#include "FairMCPoint.h"
-
-#include "TObject.h"
-#include "TVector3.h"
+#include "FairMCPoint.h"  // for FairMCPoint
+#include "Rtypes.h"       // for Double_t, Int_t, Point::Class, ClassDef, etc
+#include "TVector3.h"     // for TVector3
 namespace AliceO2 {
 namespace TPC {
 

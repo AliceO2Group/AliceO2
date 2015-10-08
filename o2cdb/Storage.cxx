@@ -1,14 +1,18 @@
-#include <TKey.h>
-#include <TH1.h>
-#include <TTree.h>
-#include <TNtuple.h>
-#include <TFile.h>
-
-#include <FairLogger.h>
-
 #include "Storage.h"
-#include "GridStorage.h"
-#include "Condition.h"
+#include <FairLogger.h>         // for LOG
+#include <TH1.h>                // for TH1
+#include <TKey.h>               // for TKey
+#include <TNtuple.h>            // for TNtuple
+#include <TTree.h>              // for TTree
+#include <string.h>             // for NULL, strcmp
+#include "Condition.h"          // for Condition
+#include "ConditionId.h"        // for ConditionId
+#include "ConditionMetaData.h"  // for ConditionMetaData
+#include "Manager.h"            // for Manager
+#include "TCollection.h"        // for TIter
+#include "TList.h"              // for TList
+#include "TObjArray.h"          // for TObjArray
+namespace AliceO2 { namespace CDB { class IdRunRange; } }
 
 using namespace AliceO2::CDB;
 
