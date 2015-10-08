@@ -6,7 +6,6 @@
  */
 
 #include "FLPSender.h"
-#include <_types/_uint64_t.h>                               // for uint64_t
 #include <assert.h>                                         // for assert
 #include <stdint.h>
 #include "FairMQMessage.h"

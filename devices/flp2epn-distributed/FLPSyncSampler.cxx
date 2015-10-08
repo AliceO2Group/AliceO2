@@ -6,7 +6,6 @@
  */
 
 #include "FLPSyncSampler.h"
-#include <_types/_uint64_t.h>
 #include <stdint.h>
 #include "FairMQPoller.h"
 #include "boost/date_time/posix_time/posix_time_duration.hpp"

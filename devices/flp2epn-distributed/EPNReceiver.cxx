@@ -6,11 +6,10 @@
  */
 
 #include "EPNReceiver.h"
-#include <_types/_uint64_t.h>               // for uint64_t
 #include "boost/preprocessor/seq/enum.hpp"  // for BOOST_PP_SEQ_ENUM_1
 #include "boost/preprocessor/seq/size.hpp"
 #include "logger/logger.h"                  // for LOG
-
+#include <cstddef>
 using namespace std;
 
 using namespace AliceO2::Devices;
