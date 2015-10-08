@@ -16,11 +16,9 @@
 #ifndef ALICEO2_PASSIVE_GEOCAVE_H
 #define ALICEO2_PASSIVE_GEOCAVE_H
 
-#include "FairGeoSet.h"                 // for FairGeoSet
-#include "Riosfwd.h"                    // for fstream
-#include "Rtypes.h"                     // for AliGeoCave::Class, Bool_t, etc
-#include "TString.h"                    // for TString
-
+#include "FairGeoSet.h"  // for FairGeoSet
+#include "Rtypes.h"      // for GeoCave::Class, Bool_t, ClassDef, etc
+#include "TString.h"     // for TString
 #include <fstream>                      // for fstream
 
 class FairGeoMedia;

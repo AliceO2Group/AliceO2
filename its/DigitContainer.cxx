@@ -5,12 +5,13 @@
 //  Created by Markus Fasel on 25.03.15.
 //
 //
-#include "TClonesArray.h"
-#include "FairLogger.h"
-
-#include "its/Digit.h"
-#include "its/DigitLayer.h"
 #include "its/DigitContainer.h"
+#include "FairLogger.h"           // for LOG
+#include "Rtypes.h"               // for Int_t, nullptr
+#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "its/Digit.h"            // for Digit
+#include "its/DigitLayer.h"       // for DigitLayer
+
 
 
 using namespace AliceO2::ITS;

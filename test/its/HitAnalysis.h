@@ -10,8 +10,12 @@
 #define __ALICEO2__HitAnalysis__
 
 #include <map>
+#include "FairTask.h"  // for FairTask, InitStatus
+#include "Rtypes.h"    // for Bool_t, HitAnalysis::Class, ClassDef, etc
+class TClonesArray;  // lines 17-17
+class TH1;  // lines 16-16
+namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; } }  // lines 23-23
 
-#include "FairTask.h"
 
 class TH1;
 class TClonesArray;
@@ -19,9 +23,7 @@ class TClonesArray;
 namespace AliceO2 {
   namespace ITS{
     
-    class Chip;
-    class UpgradeGeometryTGeo;
-    
+    class Chip;    
     class HitAnalysis : public FairTask {
     public:
       HitAnalysis();

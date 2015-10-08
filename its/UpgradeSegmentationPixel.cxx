@@ -1,16 +1,15 @@
 /// \file UpgradeSegmentationPixel.cxx
 /// \brief Implementation of the UpgradeSegmentationPixel class
 
-#include <TGeoManager.h>
-#include <TGeoVolume.h>
-#include <TGeoBBox.h>
-#include <TObjArray.h>
-#include <TString.h>
-#include <TSystem.h>
-#include <TFile.h>
-
-#include "UpgradeGeometryTGeo.h"
 #include "UpgradeSegmentationPixel.h"
+#include <TFile.h>                // for TFile
+#include <TObjArray.h>            // for TObjArray
+#include <TString.h>              // for TString
+#include <TSystem.h>              // for TSystem, gSystem
+#include <stdio.h>                // for printf
+#include "TMathBase.h"            // for Abs, Max, Min
+#include "TObject.h"              // for TObject
+#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
 
 using namespace TMath;
 using namespace AliceO2::ITS;

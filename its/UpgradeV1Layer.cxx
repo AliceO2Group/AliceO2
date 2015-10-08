@@ -3,24 +3,23 @@
 /// \author Mario Sitta <sitta@to.infn.it>
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 
-#include <TMath.h>
-#include <TGeoManager.h>
-#include <TGeoVolume.h>
-#include <TGeoPcon.h>
-#include <TGeoCone.h>
-#include <TGeoTube.h> // contaings TGeoTubeSeg
-#include <TGeoArb8.h>
-#include <TGeoXtru.h>
-#include <TGeoCompositeShape.h>
-#include <TGeoMatrix.h>
-#include <TGeoBBox.h>
-#include <TGeoShape.h>
-#include <TGeoTrd1.h>
-
 #include "UpgradeV1Layer.h"
-#include "UpgradeGeometryTGeo.h"
-
-#include "FairLogger.h"
+#include <TGeoArb8.h>             // for TGeoArb8
+#include <TGeoBBox.h>             // for TGeoBBox
+#include <TGeoCone.h>             // for TGeoConeSeg, TGeoCone
+#include <TGeoManager.h>          // for TGeoManager, gGeoManager
+#include <TGeoMatrix.h>           // for TGeoCombiTrans, TGeoRotation, etc
+#include <TGeoTrd1.h>             // for TGeoTrd1
+#include <TGeoTube.h>             // for TGeoTube, TGeoTubeSeg
+#include <TGeoVolume.h>           // for TGeoVolume, TGeoVolumeAssembly
+#include <TGeoXtru.h>             // for TGeoXtru
+#include <TMath.h>                // for Sin, RadToDeg, DegToRad, Cos, Tan, etc
+#include <stdio.h>                // for snprintf
+#include "Detector.h"             // for Detector, etc
+#include "FairLogger.h"           // for LOG
+#include "TMathBase.h"            // for Abs
+#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+class TGeoMedium;
 
 using namespace TMath;
 using namespace AliceO2::ITS;

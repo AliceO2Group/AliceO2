@@ -2,17 +2,20 @@
 /// \brief Implementation of the Cheb3D class
 /// \author ruben.shahoyan@cern.ch 09/09/2006
 
-#include <TString.h>
-#include <TSystem.h>
-#include <TROOT.h>
-#include <TRandom.h>
-#include <stdio.h>
-#include <TMethodCall.h>
-#include <TMath.h>
-#include <TH1.h>
 #include "Chebyshev3D.h"
-#include "Chebyshev3DCalc.h"
-#include "FairLogger.h"
+#include <TH1.h>              // for TH1D, TH1
+#include <TMath.h>            // for Cos, Pi
+#include <TMethodCall.h>      // for TMethodCall
+#include <TROOT.h>            // for TROOT, gROOT
+#include <TRandom.h>          // for TRandom, gRandom
+#include <TString.h>          // for TString
+#include <TSystem.h>          // for TSystem, gSystem
+#include <stdio.h>            // for printf, fprintf, FILE, fclose, fflush, etc
+#include "Chebyshev3DCalc.h"  // for Chebyshev3DCalc, etc
+#include "FairLogger.h"       // for FairLogger, MESSAGE_ORIGIN
+#include "TMathBase.h"        // for Max, Abs
+#include "TNamed.h"           // for TNamed
+#include "TObjArray.h"        // for TObjArray
 
 using namespace AliceO2::MathUtils;
 

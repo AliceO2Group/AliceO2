@@ -2,14 +2,17 @@
 /// \brief Implementation of the MagF class
 /// \author ruben.shahoyan@cern.ch
 
-#include <TClass.h>
-#include <TFile.h>
-#include <TSystem.h>
-#include <TPRegexp.h>
 #include "MagneticField.h"
-#include "MagneticWrapperChebyshev.h"
-
-#include "FairLogger.h"
+#include <TFile.h>                     // for TFile
+#include <TPRegexp.h>                  // for TPRegexp
+#include <TSystem.h>                   // for TSystem, gSystem
+#include <stdio.h>                     // for snprintf
+#include "FairLogger.h"                // for FairLogger, MESSAGE_ORIGIN
+#include "MagneticWrapperChebyshev.h"  // for MagneticWrapperChebyshev
+#include "TMathBase.h"                 // for Abs, Sign
+#include "TObject.h"                   // for TObject
+#include "TString.h"                   // for TString
+#include "TVirtualMagField.h"          // for TVirtualMagField
 
 using namespace AliceO2::Field;
 

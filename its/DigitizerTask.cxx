@@ -7,13 +7,12 @@
 //
 
 #include "its/DigitizerTask.h"
-#include "its/DigitContainer.h"
-#include "its/Digitizer.h"
-
-#include <TClonesArray.h>
-
-#include "FairRootManager.h"
-#include "FairLogger.h"
+#include <TClonesArray.h>        // for TClonesArray
+#include "FairLogger.h"          // for LOG
+#include "FairRootManager.h"     // for FairRootManager
+#include "TObject.h"             // for TObject
+#include "its/DigitContainer.h"  // for DigitContainer
+#include "its/Digitizer.h"       // for Digitizer
 
 ClassImp(AliceO2::ITS::DigitizerTask)
 

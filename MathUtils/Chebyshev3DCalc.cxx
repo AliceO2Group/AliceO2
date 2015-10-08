@@ -2,10 +2,10 @@
 /// \brief Implementation of the Cheb3DCalc class
 /// \author ruben.shahoyan@cern.ch 09/09/2006
 
-#include <cstdlib>
-#include <TSystem.h>
 #include "Chebyshev3DCalc.h"
-
+#include <TSystem.h>  // for TSystem, gSystem
+#include "TNamed.h"   // for TNamed
+#include "TString.h"  // for TString, TString::EStripType::kBoth
 using namespace AliceO2::MathUtils;
 
 ClassImp(Chebyshev3DCalc)

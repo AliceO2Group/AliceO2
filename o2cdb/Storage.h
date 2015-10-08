@@ -3,12 +3,16 @@
 
 //  interface to specific storage classes                          //
 //  ( GridStorage,  LocalStorage, FileStorage)			   //
-#include "ConditionId.h"
-#include "ConditionMetaData.h"
-#include "Manager.h"
-
-#include <TList.h>
-#include <TObjArray.h>
+#include <TList.h>      // for TList
+#include <TObjArray.h>  // for TObjArray
+#include "IdPath.h"     // for IdPath
+#include "Rtypes.h"     // for Int_t, Bool_t, Short_t, Storage::Class, etc
+#include "TObject.h"    // for TObject
+#include "TString.h"    // for TString
+namespace AliceO2 { namespace CDB { class Condition; } }  // lines 18-18
+namespace AliceO2 { namespace CDB { class ConditionId; } }
+namespace AliceO2 { namespace CDB { class ConditionMetaData; } }
+namespace AliceO2 { namespace CDB { class IdRunRange; } }
 
 class TFile;
 

@@ -1,8 +1,11 @@
 /// \file Condition.h
 /// \brief Implementation of the Condition class (CDB object) containing the condition and its metadata
 
-#include <FairLogger.h>
 #include "Condition.h"
+#include <FairLogger.h>  // for LOG
+#include <stddef.h>      // for NULL
+namespace AliceO2 { namespace CDB { class IdRunRange; } }
+
 
 using namespace AliceO2::CDB;
 

@@ -1,11 +1,16 @@
 #ifndef ALICEO2_CDB_FILEDUMP_H_
 #define ALICEO2_CDB_FILEDUMP_H_
 
-#include "Storage.h"
-#include "Manager.h"
-
-class TDirectory;
-class TFile;
+#include "Manager.h"  // for StorageFactory, StorageParameters
+#include "Rtypes.h"   // for Bool_t, Int_t, ClassDef, kFALSE, etc
+#include "Storage.h"  // for Storage
+#include "TString.h"  // for TString
+class TFile;  // lines 8-8
+class TList;
+class TObject;
+namespace AliceO2 { namespace CDB { class Condition; } }
+namespace AliceO2 { namespace CDB { class ConditionId; } }
+namespace AliceO2 { namespace CDB { class IdRunRange; } }
 
 namespace AliceO2 {
 namespace CDB {

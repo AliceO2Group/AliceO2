@@ -1,8 +1,8 @@
 //  defines the run validity range of the object:		   //
 //  [mFirstRun, mLastRun] 					   //
-
-#include <FairLogger.h>
 #include "IdRunRange.h"
+#include <FairLogger.h>  // for LOG
+#include "TObject.h"     // for TObject
 
 using namespace AliceO2::CDB;
 

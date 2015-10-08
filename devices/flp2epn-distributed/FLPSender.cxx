@@ -5,17 +5,17 @@
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
  */
 
-#include <vector>
-#include <cstdint> // UINT64_MAX
-#include <cassert>
-
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
-
-#include "FairMQLogger.h"
-#include "FairMQPoller.h"
-
 #include "FLPSender.h"
+#include <_types/_uint64_t.h>                               // for uint64_t
+#include <assert.h>                                         // for assert
+#include <stdint.h>
+#include "FairMQMessage.h"
+#include "FairMQTransportFactory.h"
+#include "boost/date_time/posix_time/posix_time_types.hpp"
+#include "boost/preprocessor/seq/enum.hpp"
+#include "boost/preprocessor/seq/size.hpp"
+#include "logger/logger.h"                                  // for LOG
+class FairMQPoller;
 
 using namespace std;
 using boost::posix_time::ptime;

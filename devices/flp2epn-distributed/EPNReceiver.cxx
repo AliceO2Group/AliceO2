@@ -5,12 +5,11 @@
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
  */
 
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
-#include <fstream> // writing to file (DEBUG)
-
 #include "EPNReceiver.h"
-#include "FairMQLogger.h"
+#include <_types/_uint64_t.h>               // for uint64_t
+#include "boost/preprocessor/seq/enum.hpp"  // for BOOST_PP_SEQ_ENUM_1
+#include "boost/preprocessor/seq/size.hpp"
+#include "logger/logger.h"                  // for LOG
 
 using namespace std;
 

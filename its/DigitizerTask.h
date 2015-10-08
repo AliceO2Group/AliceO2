@@ -10,8 +10,10 @@
 #define __ALICEO2__DigitizerTask__
 
 #include <stdio.h>
-
-#include "FairTask.h"
+#include "FairTask.h"  // for FairTask, InitStatus
+#include "Rtypes.h"    // for DigitizerTask::Class, ClassDef, etc
+class TClonesArray;
+namespace AliceO2 { namespace ITS { class Digitizer; } }  // lines 19-19
 
 namespace AliceO2 {
     namespace ITS{

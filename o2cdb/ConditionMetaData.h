@@ -1,8 +1,11 @@
 #ifndef ALI_META_DATA_H
 #define ALI_META_DATA_H
 
-#include <TObject.h>
-#include <TMap.h>
+#include <TMap.h>     // for TMap
+#include <TObject.h>  // for TObject
+#include "Rtypes.h"   // for UInt_t, ConditionMetaData::Class, Bool_t, etc
+#include "TString.h"  // for TString
+
 
 namespace AliceO2 {
 namespace CDB {

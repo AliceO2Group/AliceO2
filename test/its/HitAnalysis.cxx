@@ -7,21 +7,19 @@
 //
 
 #include <vector>
-
-#include <TClonesArray.h>
-#include <TFile.h>
-#include <TH1.h>
-#include <TMath.h>
-
-#include "FairRootManager.h"
-#include "FairLogger.h"
-
-#include "its/Chip.h"
-#include "its/UpgradeGeometryTGeo.h"
-#include "its/Segmentation.h"
-#include "its/Point.h"
-
+#include "TMath.h"
 #include "test/its/HitAnalysis.h"
+#include <TClonesArray.h>             // for TClonesArray
+#include <TFile.h>                    // for TFile
+#include <TH1.h>                      // for TH1, TH1D, TH1F
+#include "FairLogger.h"               // for LOG
+#include "FairRootManager.h"          // for FairRootManager
+#include "TCollection.h"              // for TIter
+#include "TObject.h"                  // for TObject
+#include "its/Chip.h"                 // for Chip, Chip::IndexException
+#include "its/Point.h"                // for Point
+#include "its/Segmentation.h"         // for Segmentation
+#include "its/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
 
 using namespace AliceO2::ITS;
 

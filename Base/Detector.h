@@ -4,7 +4,8 @@
 #ifndef ALICEO2_BASE_DETECTOR_H_
 #define ALICEO2_BASE_DETECTOR_H_
 
-#include "FairDetector.h"
+#include "FairDetector.h"  // for FairDetector
+#include "Rtypes.h"        // for Float_t, Int_t, Double_t, Detector::Class, etc
 
 namespace AliceO2 {
 namespace Base {

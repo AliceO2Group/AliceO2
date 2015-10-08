@@ -4,8 +4,14 @@
 #ifndef ALICEO2_CDB_ENTRY_H_
 #define ALICEO2_CDB_ENTRY_H_
 
-#include "ConditionId.h"
-#include "ConditionMetaData.h"
+#include "ConditionId.h"        // for ConditionId
+#include "ConditionMetaData.h"  // for ConditionMetaData
+#include "IdPath.h"             // for IdPath
+#include "Rtypes.h"             // for Int_t, kFALSE, Bool_t, etc
+#include "TObject.h"            // for TObject
+#include "TString.h"            // for TString
+namespace AliceO2 { namespace CDB { class IdRunRange; } }
+
 
 namespace AliceO2 {
 namespace CDB {

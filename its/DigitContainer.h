@@ -9,9 +9,11 @@
 #ifndef _ALICEO2_ITS_DigitContainer_
 #define _ALICEO2_ITS_DigitContainer_
 
-#include "UpgradeGeometryTGeo.h"
+class TClonesArray;  // lines 14-14
+namespace AliceO2 { namespace ITS { class Digit; } }  // lines 19-19
+namespace AliceO2 { namespace ITS { class DigitLayer; } }  // lines 20-20
+namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; } }
 
-class TClonesArray;
 
 namespace AliceO2 {
     namespace ITS{

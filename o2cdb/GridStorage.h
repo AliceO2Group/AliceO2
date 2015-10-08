@@ -1,9 +1,17 @@
 #ifndef ALICEO2_CDB_GRID_H_
 #define ALICEO2_CDB_GRID_H_
 
-#include "Storage.h"
-#include "Manager.h"
-#include "ConditionMetaData.h"
+#include "Manager.h"  // for StorageFactory, StorageParameters
+#include "Rtypes.h"   // for Bool_t, Long64_t, Long_t, Int_t, ClassDef, etc
+#include "Storage.h"  // for Storage
+#include "TString.h"  // for TString
+class TFile;
+class TList;
+class TObjArray;
+class TObject;
+namespace AliceO2 { namespace CDB { class Condition; } }
+namespace AliceO2 { namespace CDB { class ConditionId; } }
+namespace AliceO2 { namespace CDB { class ConditionMetaData; } }
 
 namespace AliceO2 {
 namespace CDB {

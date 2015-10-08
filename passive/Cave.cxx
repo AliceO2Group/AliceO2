@@ -12,18 +12,11 @@
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 #include "Cave.h"
-#include "GeoCave.h"                // for AliGeoCave
-#include "FairGeoInterface.h"           // for FairGeoInterface
-#include "FairGeoLoader.h"              // for FairGeoLoader
-#include "FairGeoNode.h"                // for FairGeoNode
-#include "FairGeoVolume.h"              // for FairGeoVolume
-#include "FairRun.h"                    // for FairRun
-#include "FairRuntimeDb.h"              // for FairRuntimeDb
-#include "TList.h"                      // for TListIter, TList (ptr only)
-#include "TObjArray.h"                  // for TObjArray
-#include "TString.h"                    // for TString
-
-#include <stddef.h>                     // for NULL
+#include "FairGeoInterface.h"  // for FairGeoInterface
+#include "FairGeoLoader.h"     // for FairGeoLoader
+#include "GeoCave.h"           // for GeoCave
+#include "TString.h"           // for TString
+#include <stddef.h>            // for NULL
 
 using namespace AliceO2::Passive;
 

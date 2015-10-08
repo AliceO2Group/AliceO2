@@ -6,13 +6,13 @@
 //  Adapted from AliITSUChip by Massimo Masera
 //
 
-#include <TMath.h>
-
-#include "FairLogger.h"
-
 #include "its/Chip.h"
-#include "its/Point.h"
-#include "its/UpgradeGeometryTGeo.h"
+#include <TMath.h>                    // for Sqrt
+#include <string.h>                   // for memset
+#include "TObjArray.h"                // for TObjArray
+#include "its/Point.h"                // for Point
+#include "its/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+
 
 ClassImp(AliceO2::ITS::Chip)
 

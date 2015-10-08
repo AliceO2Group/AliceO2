@@ -6,16 +6,14 @@
 #ifndef ALICEO2_ITS_UPGRADEGEOMETRYTGEO_H_
 #define ALICEO2_ITS_UPGRADEGEOMETRYTGEO_H_
 
-#include <TObject.h>
-#include <TGeoMatrix.h>
-#include <TString.h>
-#include <TObjArray.h>
+#include <TGeoMatrix.h>    // for TGeoHMatrix
+#include <TObjArray.h>     // for TObjArray
+#include <TObject.h>       // for TObject
+#include <TString.h>       // for TString
+#include "Rtypes.h"        // for Int_t, Double_t, Bool_t, UInt_t, etc
+#include "Segmentation.h"  // for Segmentation
+class TGeoPNEntry;  // lines 17-17
 
-// FIXME: This is temporary and you have to remove it to avoid cyclic deps
-#include <TGeoManager.h>
-
-class TGeoPNEntry;
-class TDatime;
 
 namespace AliceO2 {
 namespace ITS {

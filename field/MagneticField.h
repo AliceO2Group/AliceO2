@@ -5,14 +5,12 @@
 #ifndef ALICEO2_FIELD_MAGNETICFIELD_H_
 #define ALICEO2_FIELD_MAGNETICFIELD_H_
 
-//#include <TGeoGlobalMagField.h>
-
-#include <TVirtualMagField.h>
-
-#include "AliceO2Config.h"
-
-class FairLogger;
-
+#include <TVirtualMagField.h>  // for TVirtualMagField
+#include "AliceO2Config.h"     // for O2PROTO1_MAGF_CREATEFIELDMAP_DIR, etc
+#include "Rtypes.h"            // for Double_t, Char_t, Int_t, Float_t, etc
+#include "TNamed.h"            // for TNamed
+class FairLogger;  // lines 14-14
+namespace AliceO2 { namespace Field { class MagneticWrapperChebyshev; } }  // lines 19-19
 namespace AliceO2 {
 namespace Field {
 

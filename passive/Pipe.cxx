@@ -12,14 +12,11 @@
 // -------------------------------------------------------------------------
 
 #include "Pipe.h"
-#include "TList.h"
-#include "TObjArray.h"
-
-#include "TGeoPcon.h"
-#include "TGeoTube.h"
-#include "TGeoMaterial.h"
-#include "TGeoMedium.h"
-#include "TGeoManager.h"
+#include "TGeoManager.h"   // for TGeoManager, gGeoManager
+#include "TGeoMaterial.h"  // for TGeoMaterial
+#include "TGeoMedium.h"    // for TGeoMedium
+#include "TGeoPcon.h"      // for TGeoPcon
+#include "TGeoVolume.h"    // for TGeoVolume
 
 using namespace AliceO2::Passive;
 

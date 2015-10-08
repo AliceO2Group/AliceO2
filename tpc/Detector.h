@@ -1,14 +1,15 @@
 #ifndef AliceO2_TPC_Detector_H_
 #define AliceO2_TPC_Detector_H_
 
-#include "Base/Detector.h"
+#include "Base/Detector.h"   // for Detector
+#include "Rtypes.h"          // for Int_t, Double32_t, Double_t, Bool_t, etc
+#include "TLorentzVector.h"  // for TLorentzVector
+#include "TVector3.h"        // for TVector3
+class FairVolume;  // lines 10-10
+class TClonesArray;  // lines 11-11
+namespace AliceO2 { namespace TPC { class Point; } }  // lines 15-15
 
-#include "TVector3.h"
-#include "TLorentzVector.h"
 
-
-class FairVolume;
-class TClonesArray;
 
 namespace AliceO2 {
 namespace TPC {

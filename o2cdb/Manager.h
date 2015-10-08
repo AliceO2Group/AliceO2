@@ -1,11 +1,22 @@
 #ifndef ALICEO2_CDB_MANAGER_H_
 #define ALICEO2_CDB_MANAGER_H_
 
-#include <TObject.h>
-#include <TList.h>
-#include <TMap.h>
-#include <TSystem.h>
-#include <TFile.h>
+#include <TList.h>    // for TList
+#include <TMap.h>     // for TMap
+#include <TObject.h>  // for TObject
+#include <stddef.h>   // for NULL
+#include "Rtypes.h"   // for Int_t, Bool_t, kFALSE, kTRUE, ClassDef, etc
+#include "TString.h"  // for TString
+class TFile;
+namespace AliceO2 { namespace CDB { class Condition; } }  // lines 20-20
+namespace AliceO2 { namespace CDB { class ConditionId; } }  // lines 21-21
+namespace AliceO2 { namespace CDB { class ConditionMetaData; } }  // lines 24-24
+namespace AliceO2 { namespace CDB { class IdPath; } }  // lines 22-22
+namespace AliceO2 { namespace CDB { class IdRunRange; } }  // lines 23-23
+namespace AliceO2 { namespace CDB { class Storage; } }  // lines 25-25
+namespace AliceO2 { namespace CDB { class StorageFactory; } }  // lines 26-26
+namespace AliceO2 { namespace CDB { class StorageParameters; } }  // lines 27-27
+
 
 //  @file   Manager.h
 //  @author Raffaele Grosso
