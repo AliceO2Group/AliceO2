@@ -11,9 +11,9 @@
 #include "FairMQMessage.h"
 #include "FairMQTransportFactory.h"
 #include "boost/date_time/posix_time/posix_time_types.hpp"
+#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
 #include "boost/preprocessor/seq/enum.hpp"
 #include "boost/preprocessor/seq/size.hpp"
-#include "logger/logger.h"                                  // for LOG
 class FairMQPoller;
 
 using namespace std;

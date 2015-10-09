@@ -9,13 +9,13 @@
 #include <stdint.h>
 #include "FairMQPoller.h"
 #include "boost/date_time/posix_time/posix_time_duration.hpp"
+#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
 #include "boost/preprocessor/seq/enum.hpp"
 #include "boost/preprocessor/seq/size.hpp"
 #include "boost/thread/detail/thread.hpp"
 #include "boost/thread/exceptions.hpp"
 #include "boost/thread/pthread/thread_data.hpp"                // for sleep
-#include "logger/logger.h"                                     // for LOG
-
+#include <fstream>      // std::ofstream
 using namespace std;
 using boost::posix_time::ptime;
 
