@@ -5,13 +5,13 @@
  * @author D. Klein, A. Rybalchenko
  */
 
-#include <vector>
 #include <fstream>
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
 #include "FairMQLogger.h"
+
 #include "FLPSyncSampler.h"
 
 using namespace std;

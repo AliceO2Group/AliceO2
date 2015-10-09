@@ -5,10 +5,16 @@
  * @author D. Klein, A. Rybalchenko, M. Al-Turany, C. Kouzinopoulos
  */
 
+#include <cstddef> // size_t
+#include <fstream> // writing to file (DEBUG)
+
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
+
+#include "FairMQLogger.h"
+
 #include "EPNReceiver.h"
-#include "boost/preprocessor/seq/enum.hpp"  // for BOOST_PP_SEQ_ENUM_1
-#include "boost/preprocessor/seq/size.hpp"
-#include <cstddef>
+
 using namespace std;
 using namespace AliceO2::Devices;
 
