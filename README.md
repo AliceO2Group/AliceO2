@@ -38,7 +38,6 @@ make test
 ```
 2. Set several required shell variables, needed during the installation and running of the
 different software packages. Put these in your shell's rc file (~/.bashrc or ~/.cshrc).
-
 For bash:
 ```bash 
 export SIMPATH=~/AlFa
@@ -50,8 +49,6 @@ setenv SIMPATH ~/AlFa
 setenv FAIRROOTPATH $SIMPATH/FairRoot
 ```
 
-#### Minumum installtion (reconstruction only installation)
-
 This installaiton will exclude:
 
 1. Simulation engines (Geant3/4)
@@ -60,7 +57,7 @@ This installaiton will exclude:
 
 
 ##### Step by step installation
-Edit the recoonly file in alfa_src, and set your compiler and installation directory.
+Edit the "recoonly.conf" file in alfa_src, and set your compiler and installation directory.
 (if you went to use ROOT 6 switch it on!)
 
 ```bash 
@@ -109,7 +106,6 @@ To run the tests do:
 # To run test: make new shell, do not define SIMPATH
 cd FairRoot/build
 make test
-
 ```
 
 ### Install the [AliceO2](https://github.com/AliceO2Group/AliceO2) software
@@ -118,6 +114,59 @@ If you choosed the minimum installation for ALFA before (in step one above) Alic
 
 Set the variable SIMPATH to your FairSoft/alfasoft installation directory
 
+This installaiton will exclude:
+1. Simulation engines (Geant3/4)
+2. Event generators (Pythia6/8)
+3. VGM, VMC
+##### Step by step installation
+Edit the recoonly file in alfa_src, and set your compiler and installation directory.
+(if you went to use ROOT 6 switch it on!)
+```bash 
+compiler= <your compiler> 
+debug=yes
+optimize=no
+geant4_download_install_data_automatic=no
+geant4_install_data_from_dir=no
+build_root6=no
+build_python=no
+install_sim=no
+SIMPATH_INSTALL= <ALFA_installation_dir>
+```
+
+1. Install FairSoft
+```bash 
+git clone  https://github.com/FairRootGroup/FairSoft.git  alfa_src
+cd  alfa_src
+./configure.sh  recoonly
+```
+2. Install [FairRoot](http://fairroot.gsi.de/?q=node/82)
+
+```bash
+# Set the shell variable SIMPATH to the installation directory
+export SIMPATH= ALFA_installation_dir
+[setenv SIMPATH ALFA_installation_dir]
+
+git clone -b dev https://github.com/FairRootGroup/FairRoot.git
+cd FairRoot
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX="FairRoot_installation_dir" ..
+make
+make install
+```
+
+To run the tests do:
+```bash
+# To run test: make new shell, do not define SIMPATH
+cd FairRoot/build
+make test
+```
+
+### Install the [AliceO2](https://github.com/AliceO2Group/AliceO2) software
+
+If you choosed the minimum installation for ALFA before (in step one above) AliceO2 will not include the simulation and reconstruction packages.
+
+Set the variable SIMPATH to your FairSoft/alfasoft installation directory
 ```bash 
 export SIMPATH=ALFA_installation_dir
 export FAIRROOTPATH=FairRoot_installation_dir
@@ -146,4 +195,5 @@ To include custom DDS location in the compilation, provide DDS_PATH flag when ca
 ```bash
 cmake -DDDS_PATH="/home/username/DDS/0.11.27.g79f48d4/" ..
 ```
+
 
