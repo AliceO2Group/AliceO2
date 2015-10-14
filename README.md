@@ -19,9 +19,11 @@ This installation:
 ##### Step by step installation
 1. Install [FairSoft/AlFa](https://github.com/FairRootGroup/FairSoft/tree/dev)
 
-we use here "alfa_src" as a directory name, you can change it to what ever you like
+we use here "alfa_src" as a directory name, you can change it to what ever you like.
+
 
 ```bash 
+
 git clone  https://github.com/FairRootGroup/FairSoft.git  alfa_src
 cd  alfa_src
 ./alfaconfig.sh
@@ -29,6 +31,7 @@ cd  alfa_src
 # 1) No Debug Info
 # 2) Internet (install G4 files from internet)
 # path: ~/AlFa
+
 ```
 
 To run the tests do:
