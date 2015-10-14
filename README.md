@@ -54,9 +54,9 @@ setenv FAIRROOTPATH $SIMPATH/FairRoot
 
 This installaiton will exclude:
 
- 1. Simulation engines (Geant3/4)
- 2. Event generators (Pythia6/8)
- 3. VGM, VMC
+1. Simulation engines (Geant3/4)
+2. Event generators (Pythia6/8)
+3. VGM, VMC
 
 
 ##### Step by step installation
@@ -136,7 +136,7 @@ make
 
 ### Generating the doxygen documentation
 
-If the flage -DBUILD_DOXYGEN=ON  is set when calling cmake, the doxygen documentation will be generated when calling make.  The generated html files can then be found in "build_o2/doxygen/doc/html"
+To automatically generate documentation for the AliceO2 project using Doxygen, set the flag -DBUILD_DOXYGEN=ON when calling cmake; the doxygen documentation will then be generated when calling make.  The generated html files can be found in the "doxygen/doc/html" subdirectory of the build directory.
 
 Doxygen documantation is also available online [here](http://aliceo2group.github.io/AliceO2/)
 
@@ -146,3 +146,4 @@ To include custom DDS location in the compilation, provide DDS_PATH flag when ca
 ```bash
 cmake -DDDS_PATH="/home/username/DDS/0.11.27.g79f48d4/" ..
 ```
+
