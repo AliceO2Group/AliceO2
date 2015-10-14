@@ -16,14 +16,12 @@ This installation:
 * It will install Geant4 Data files 
 * Need about __10 GByte__ of disk space (8.1 for the source and objects files, etc and 2.2 GByte for the installation)
 
-##### Step by step installation
+##### Step by step for the full installation
 1. Install [FairSoft/AlFa](https://github.com/FairRootGroup/FairSoft/tree/dev)
 
-we use here "alfa_src" as a directory name, you can change it to what ever you like.
-
+we use here "alfa_src" as a directory name, you can change it to what ever you like
 
 ```bash 
-
 git clone  https://github.com/FairRootGroup/FairSoft.git  alfa_src
 cd  alfa_src
 ./alfaconfig.sh
@@ -31,7 +29,6 @@ cd  alfa_src
 # 1) No Debug Info
 # 2) Internet (install G4 files from internet)
 # path: ~/AlFa
-
 ```
 
 To run the tests do:
@@ -39,89 +36,15 @@ To run the tests do:
 cd alfa_src/FairRoot/build_for_alfa/
 make test
 ```
-2. Set several required shell variables, needed during the installation and running of the
-different software packages. Put these in your shell's rc file (~/.bashrc or ~/.cshrc).
-For bash:
-```bash 
-export SIMPATH=~/AlFa
-export FAIRROOTPATH=$SIMPATH/FairRoot
-```
-or for csh:
-```bash 
-setenv SIMPATH ~/AlFa
-setenv FAIRROOTPATH $SIMPATH/FairRoot
-```
-
-This installaiton will exclude:
-
- 1. Simulation engines (Geant3/4)
- 2. Event generators (Pythia6/8)
- 3. VGM, VMC
 
 
-##### Step by step installation
-Edit the "recoonly.conf" file in alfa_src, and set your compiler and installation directory.
-(if you went to use ROOT 6 switch it on!)
-
-```bash 
-compiler= <your compiler> 
-debug=yes
-optimize=no
-geant4_download_install_data_automatic=no
-geant4_install_data_from_dir=no
-build_root6=no
-build_python=no
-install_sim=no
-SIMPATH_INSTALL= <ALFA_installation_dir>
-
-```
-
-1. Install FairSoft
-
-```bash 
-git clone  https://github.com/FairRootGroup/FairSoft.git  alfa_src
-cd  alfa_src
-./configure.sh  recoonly
-
-```
-
-2. Install [FairRoot](http://fairroot.gsi.de/?q=node/82)
-
-
-```bash
-# Set the shell variable SIMPATH to the installation directory
-export SIMPATH= ALFA_installation_dir
-[setenv SIMPATH ALFA_installation_dir]
-
-git clone -b dev https://github.com/FairRootGroup/FairRoot.git
-cd FairRoot
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX="FairRoot_installation_dir" ..
-make
-make install
-
-```
-To run the tests do:
-
-```bash
-# To run test: make new shell, do not define SIMPATH
-cd FairRoot/build
-make test
-```
-
-### Install the [AliceO2](https://github.com/AliceO2Group/AliceO2) software
-
-If you choosed the minimum installation for ALFA before (in step one above) AliceO2 will not include the simulation and reconstruction packages.
-
-Set the variable SIMPATH to your FairSoft/alfasoft installation directory
-
+#### Minumum installtion (reconstruction only installation)
 This installaiton will exclude:
 1. Simulation engines (Geant3/4)
 2. Event generators (Pythia6/8)
 3. VGM, VMC
-##### Step by step installation
-Edit the recoonly file in alfa_src, and set your compiler and installation directory.
+##### Step by step for the minimum installation
+Edit the "[recoonly.conf](https://github.com/FairRootGroup/FairSoft/blob/master/recoonly.conf)" file in alfa_src, and set your compiler and installation directory.
 (if you went to use ROOT 6 switch it on!)
 ```bash 
 compiler= <your compiler> 
@@ -156,8 +79,8 @@ cmake -DCMAKE_INSTALL_PREFIX="FairRoot_installation_dir" ..
 make
 make install
 ```
-
 To run the tests do:
+
 ```bash
 # To run test: make new shell, do not define SIMPATH
 cd FairRoot/build
@@ -169,6 +92,7 @@ make test
 If you choosed the minimum installation for ALFA before (in step one above) AliceO2 will not include the simulation and reconstruction packages.
 
 Set the variable SIMPATH to your FairSoft/alfasoft installation directory
+
 ```bash 
 export SIMPATH=ALFA_installation_dir
 export FAIRROOTPATH=FairRoot_installation_dir
