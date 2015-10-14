@@ -40,13 +40,13 @@ Alice O2 project software. Simulation and reconstraction software for the ALICE 
         cd AliceO2
         mkdir build_o2
         cd build_o2
-        cmake ../   
+        cmake ../
         # -DBUILD_DOXYGEN=ON   ( add this option to cmake to generate the doxygen documentation)
         make
         . config.sh [or source config.csh]
 
 ### Generating the doxygen documentation
 
-If the flage -DBUILD_DOXYGEN=ON  is set when calling cmake, the doxygen documentation will be generated when calling make.  The generated html files can then be found in "build_o2/doxygen/doc/html"
+To automatically generate documentation for the AliceO2 project using Doxygen, set the flag -DBUILD_DOXYGEN=ON when calling cmake; the doxygen documentation will then be generated when calling make.  The generated html files can be found in the "doxygen/doc/html" subdirectory of the build directory.
 
-Doxygen documantation is also available online [here](http://aliceo2group.github.io/AliceO2/) 
+Doxygen documantation is also available online [here](http://aliceo2group.github.io/AliceO2/)
