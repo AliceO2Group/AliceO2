@@ -108,7 +108,7 @@ EXCLUDE                = .git/ \
                          html-docs/ \
                          doxygen cmake config  gconfig geometry input parameters .svn vis
 EXCLUDE_SYMLINKS       = NO
-EXCLUDE_PATTERNS       =
+EXCLUDE_PATTERNS       = G__* ClassImp build_*
 EXCLUDE_SYMBOLS        =
 EXAMPLE_PATH           =
 EXAMPLE_PATTERNS       =
