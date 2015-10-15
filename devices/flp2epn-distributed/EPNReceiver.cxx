@@ -25,7 +25,7 @@ struct f2eHeader {
 
 EPNReceiver::EPNReceiver()
   : fHeartbeatIntervalInMs(3000)
-  , fBufferTimeoutInMs(1000)
+  , fBufferTimeoutInMs(5000)
   , fNumFLPs(0)
   , fTestMode(0)
   , fTimeframeBuffer()
@@ -37,7 +37,7 @@ EPNReceiver::~EPNReceiver()
 {
 }
 
-void EPNReceiver::PrintBuffer(unordered_map<uint16_t,timeframeBuffer>& buffer)
+void EPNReceiver::PrintBuffer(const unordered_map<uint16_t, TFBuffer>& buffer) const
 {
   string header = "===== ";
 
@@ -51,7 +51,7 @@ void EPNReceiver::PrintBuffer(unordered_map<uint16_t,timeframeBuffer>& buffer)
 
   for (auto& it : buffer) {
     string stars = "";
-    for (int j = 1; j <= (it.second).count; ++j) {
+    for (int j = 1; j <= (it.second).parts.size(); ++j) {
       stars += "*";
     }
     LOG(INFO) << setw(4) << it.first << ": " << stars;
@@ -132,7 +132,6 @@ void EPNReceiver::Run()
             // if received ID is not yet in the buffer.
             if (rcvDataSize > 0) {
               // receive data, store it in the buffer, save the receive time.
-              fTimeframeBuffer[id].count = 1; // TODO: don't need this, use size()
               fTimeframeBuffer[id].parts.push_back(dataPart);
               fTimeframeBuffer[id].startTime = boost::posix_time::microsec_clock::local_time();
             } else {
@@ -143,7 +142,6 @@ void EPNReceiver::Run()
           } else {
             // if received ID is already in the buffer
             if (rcvDataSize > 0) {
-              fTimeframeBuffer[id].count++;
               fTimeframeBuffer[id].parts.push_back(dataPart);
             } else {
               LOG(ERROR) << "no data received from input socket";
@@ -157,7 +155,7 @@ void EPNReceiver::Run()
           delete dataPart;
         }
 
-        if (fTimeframeBuffer[id].count == fNumFLPs) {
+        if (fTimeframeBuffer[id].parts.size() == fNumFLPs) {
           // LOG(INFO) << "Collected all parts for timeframe #" << id;
           // when all parts are collected send all except last one with 'snd-more' flag, and last one without the flag.
           for (int i = 0; i < fNumFLPs - 1; ++i) {
@@ -170,7 +168,7 @@ void EPNReceiver::Run()
             FairMQMessage* ack = fTransportFactory->CreateMessage(sizeof(uint16_t));
             memcpy(ack->GetData(), &id, sizeof(uint16_t));
 
-            if (ackOutChannel.Send(ack, NOBLOCK) == 0) {
+            if (ackOutChannel.Send(ack, NOBLOCK) <= 0) {
               LOG(ERROR) << "Could not send acknowledgement without blocking";
             }
 

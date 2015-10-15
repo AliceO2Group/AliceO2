@@ -93,10 +93,14 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
 int main(int argc, char** argv)
 {
+  // create the device
   FLPSyncSampler sampler;
+  // let the device handle the interrupt signals (SIGINT, SIGTERM)
   sampler.CatchSignals();
 
+  // container for the command line options
   DeviceOptions_t options;
+  // parse the command line options and fill the container
   try {
     if (!parse_cmd_line(argc, argv, &options))
       return 0;
@@ -107,10 +111,11 @@ int main(int argc, char** argv)
 
   LOG(INFO) << "FLP Sync Sampler, ID: " << options.id << " (PID: " << getpid() << ")";
 
+  // configure the transport interface
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-
   sampler.SetTransport(transportFactory);
 
+  // set device properties
   sampler.SetProperty(FLPSyncSampler::Id, options.id);
   sampler.SetProperty(FLPSyncSampler::NumIoThreads, options.ioThreads);
   sampler.SetProperty(FLPSyncSampler::EventRate, options.eventRate);
@@ -129,12 +134,15 @@ int main(int argc, char** argv)
   ackInChannel.UpdateRateLogging(options.ackInRateLogging);
   sampler.fChannels["ack-in"].push_back(ackInChannel);
 
+  // init the device
   sampler.ChangeState("INIT_DEVICE");
   sampler.WaitForEndOfState("INIT_DEVICE");
 
+  // init the task (user code)
   sampler.ChangeState("INIT_TASK");
   sampler.WaitForEndOfState("INIT_TASK");
 
+  // run the device
   sampler.ChangeState("RUN");
   sampler.InteractiveStateLoop();
 

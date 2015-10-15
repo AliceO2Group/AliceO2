@@ -101,9 +101,12 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
 int main(int argc, char** argv)
 {
+  // create the device
   FLPSyncSampler sampler;
+  // let the device catch interrupt signals (SIGINT, SIGTERM)
   sampler.CatchSignals();
 
+  // create container for command line options and fill it
   DeviceOptions_t options;
   try {
     if (!parse_cmd_line(argc, argv, &options))
@@ -115,11 +118,13 @@ int main(int argc, char** argv)
 
   LOG(INFO) << "FLP Sync Sampler, ID: " << options.id << " (PID: " << getpid() << ")";
 
+  // container to hold the IP address of the node we are running on
   map<string,string> IPs;
   FairMQ::tools::getHostIPs(IPs);
 
   stringstream ss;
 
+  // With TCP, we want to run either one Eth or Infiniband, try to find available interfaces
   if (IPs.count("ib0")) {
     ss << "tcp://" << IPs["ib0"];
   } else if (IPs.count("eth0")) {
@@ -133,6 +138,7 @@ int main(int argc, char** argv)
 
   ss << ":5655";
 
+  // store the IP addresses to be given to device for initialization
   string ownAddress = ss.str();
 
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();

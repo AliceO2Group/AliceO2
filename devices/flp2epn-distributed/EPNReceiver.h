@@ -19,47 +19,72 @@
 namespace AliceO2 {
 namespace Devices {
 
-struct timeframeBuffer
+/// Container for (sub-)timeframes
+
+struct TFBuffer
 {
-  int count;
   std::vector<FairMQMessage*> parts;
   boost::posix_time::ptime startTime;
   boost::posix_time::ptime endTime;
 };
 
+/// Receives sub-timeframes from the flpSenders and merges these into full timeframes.
+
 class EPNReceiver : public FairMQDevice
 {
   public:
+    /// Device properties
     enum {
-      HeartbeatIntervalInMs = FairMQDevice::Last,
-      NumFLPs,
-      BufferTimeoutInMs,
-      TestMode,
+      NumFLPs = FairMQDevice::Last, ///< Number of flpSenders
+      BufferTimeoutInMs, ///< Time after which incomplete timeframes are dropped
+      TestMode, ///< Run the device in test mode
+      HeartbeatIntervalInMs, ///< Interval for sending heartbeats
       Last
     };
 
+    /// Default constructor
     EPNReceiver();
+
+    /// Default destructor
     virtual ~EPNReceiver();
 
-    void PrintBuffer(std::unordered_map<uint16_t, timeframeBuffer>& buffer);
+    /// Prints the contents of the timeframe container
+    void PrintBuffer(const std::unordered_map<uint16_t, TFBuffer>& buffer) const;
+    /// Discared incomplete timeframes after \p fBufferTimeoutInMs.
     void DiscardIncompleteTimeframes();
 
+    /// Set device properties stored as strings
+    /// @param key      Property key
+    /// @param value    Property value
     virtual void SetProperty(const int key, const std::string& value);
+    /// Get device properties stored as strings
+    /// @param key      Property key
+    /// @param default_ not used
+    /// @return         Property value
     virtual std::string GetProperty(const int key, const std::string& default_ = "");
+    /// Set device properties stored as integers
+    /// @param key      Property key
+    /// @param value    Property value
     virtual void SetProperty(const int key, const int value);
+    /// Get device properties stored as integers
+    /// @param key      Property key
+    /// @param default_ not used
+    /// @return         Property value
     virtual int GetProperty(const int key, const int default_ = 0);
 
   protected:
+    /// Overloads the Run() method of FairMQDevice
     virtual void Run();
+    /// Sends heartbeats to flpSenders
     void sendHeartbeats();
 
-    std::unordered_map<uint16_t, timeframeBuffer> fTimeframeBuffer;
-    std::unordered_set<uint16_t> fDiscardedSet;
+    std::unordered_map<uint16_t, TFBuffer> fTimeframeBuffer; ///< Stores (sub-)timeframes
+    std::unordered_set<uint16_t> fDiscardedSet; ///< Set containing IDs of dropped timeframes
 
-    int fNumFLPs;
-    int fBufferTimeoutInMs;
-    int fTestMode; // run in test mode
-    int fHeartbeatIntervalInMs;
+    int fNumFLPs; ///< Number of flpSenders
+    int fBufferTimeoutInMs; ///< Time after which incomplete timeframes are dropped
+    int fTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
+    int fHeartbeatIntervalInMs; ///< Interval for sending heartbeats
 };
 
 } // namespace Devices

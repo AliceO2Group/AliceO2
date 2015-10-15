@@ -186,8 +186,8 @@ int main(int argc, char** argv)
   // store the IP addresses to be given to device for initialization
   string ownAddress = ss.str();
 
+  // configure the transport interface
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-
   epn.SetTransport(transportFactory);
 
   // configure device

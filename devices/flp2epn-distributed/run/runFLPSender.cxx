@@ -132,10 +132,14 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
 int main(int argc, char** argv)
 {
+  // create the device
   FLPSender flp;
+  // let the device handle the interrupt signals (SIGINT, SIGTERM)
   flp.CatchSignals();
 
+  // container for the command line options
   DeviceOptions_t options;
+  // parse the command line options and fill the container
   try {
     if (!parse_cmd_line(argc, argv, &options)) {
       return 0;
@@ -145,6 +149,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  // check if the number of provided output addresses matches the configured number of epnReceivers
   if (options.numEPNs != options.dataOutAddress.size()) {
     LOG(ERROR) << "Number of EPNs does not match the number of provided data output addresses.";
     return 1;
@@ -152,10 +157,11 @@ int main(int argc, char** argv)
 
   LOG(INFO) << "FLP Sender, ID: " << options.id << " (PID: " << getpid() << ")";
 
+  // configure the transport interface
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-
   flp.SetTransport(transportFactory);
 
+  // set device properties
   flp.SetProperty(FLPSender::Id, options.id);
   flp.SetProperty(FLPSender::Index, options.flpIndex);
   flp.SetProperty(FLPSender::NumIoThreads, options.ioThreads);
@@ -188,12 +194,15 @@ int main(int argc, char** argv)
   hbInChannel.UpdateRateLogging(options.hbInRateLogging);
   flp.fChannels["heartbeat-in"].push_back(hbInChannel);
 
+  // init the device
   flp.ChangeState("INIT_DEVICE");
   flp.WaitForEndOfState("INIT_DEVICE");
 
+  // init the task (user code)
   flp.ChangeState("INIT_TASK");
   flp.WaitForEndOfState("INIT_TASK");
 
+  // run the device
   flp.ChangeState("RUN");
   flp.InteractiveStateLoop();
 

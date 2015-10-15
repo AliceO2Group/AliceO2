@@ -138,10 +138,14 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
 int main(int argc, char** argv)
 {
+  // create the device
   EPNReceiver epn;
+  // let the device handle the interrupt signals (SIGINT, SIGTERM)
   epn.CatchSignals();
 
+  // container for the command line options
   DeviceOptions_t options;
+  // parse the command line options and fill the container
   try {
     if (!parse_cmd_line(argc, argv, &options))
       return 0;
@@ -150,6 +154,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  // check if the number of provided heartbeat addresses matches the configured number of flpSenders
   if (options.numFLPs != options.hbOutAddress.size()) {
     LOG(ERROR) << "Number of FLPs does not match the number of provided heartbeat output addresses.";
     return 1;
@@ -157,13 +162,13 @@ int main(int argc, char** argv)
 
   LOG(INFO) << "EPN Receiver, ID: " << options.id << " (PID: " << getpid() << ")";
 
+  // configure the transport interface
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-
   epn.SetTransport(transportFactory);
 
+  // set device properties
   epn.SetProperty(EPNReceiver::Id, options.id);
   epn.SetProperty(EPNReceiver::NumIoThreads, options.ioThreads);
-
   epn.SetProperty(EPNReceiver::HeartbeatIntervalInMs, options.heartbeatIntervalInMs);
   epn.SetProperty(EPNReceiver::BufferTimeoutInMs, options.bufferTimeoutInMs);
   epn.SetProperty(EPNReceiver::NumFLPs, options.numFLPs);
@@ -199,12 +204,15 @@ int main(int argc, char** argv)
   ackOutChannel.UpdateRateLogging(options.ackOutRateLogging);
   epn.fChannels["ack-out"].push_back(ackOutChannel);
 
+  // init the device
   epn.ChangeState("INIT_DEVICE");
   epn.WaitForEndOfState("INIT_DEVICE");
 
+  // init the task (user code)
   epn.ChangeState("INIT_TASK");
   epn.WaitForEndOfState("INIT_TASK");
 
+  // run the device
   epn.ChangeState("RUN");
   epn.InteractiveStateLoop();
 

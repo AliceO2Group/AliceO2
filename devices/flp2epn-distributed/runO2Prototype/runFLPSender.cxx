@@ -137,10 +137,14 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
 int main(int argc, char** argv)
 {
+  // create the device
   FLPSender flp;
+  // let the device handle the interrupt signals (SIGINT, SIGTERM)
   flp.CatchSignals();
 
+  // container for the command line options
   DeviceOptions_t options;
+  // parse the command line options and fill the container
   try {
     if (!parse_cmd_line(argc, argv, &options))
       return 0;
@@ -149,18 +153,21 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  // check if configred with a meaningful number of epnReceivers
   if (options.numEPNs <= 0) {
-    LOG(ERROR) << "Configured with 0 EPNs, exiting. Use --num-epns program option.";
+    LOG(ERROR) << "Configured with 0 epnReceivers, exiting. Use --num-epns program option.";
     exit(EXIT_FAILURE);
   }
 
   LOG(INFO) << "FLP Sender, ID: " << options.id << " (PID: " << getpid() << ")";
 
+  // container to hold the IP address of the node we are running on
   map<string,string> IPs;
   FairMQ::tools::getHostIPs(IPs);
 
   stringstream ss;
 
+  // With TCP, we want to run either one Eth or Infiniband, try to find available interfaces
   if (IPs.count("ib0")) {
     ss << "tcp://" << IPs["ib0"];
   } else if (IPs.count("eth0")) {
@@ -174,32 +181,17 @@ int main(int argc, char** argv)
 
   ss << ":5655";
 
+  // store the IP addresses to be given to device for initialization
   string ownAddress  = ss.str();
 
-  // DDS
-  // Waiting for properties
-  dds::key_value::CKeyValue ddsKeyValue;
-  dds::key_value::CKeyValue::valuesMap_t values;
-
-  // In test mode, retreive the output address of FLPSyncSampler to connect to
-  if (options.testMode == 1) {
-    mutex keyMutex;
-    condition_variable keyCondition;
-
-    ddsKeyValue.subscribe([&keyCondition](const string& /*_key*/, const string& /*_value*/) { keyCondition.notify_all(); });
-    ddsKeyValue.getValues("FLPSyncSamplerOutputAddress", &values);
-    while (values.empty()) {
-      unique_lock<mutex> lock(keyMutex);
-      keyCondition.wait_until(lock, chrono::system_clock::now() + chrono::milliseconds(1000));
-      ddsKeyValue.getValues("FLPSyncSamplerOutputAddress", &values);
-    }
-  }
-
+  // configure the transport interface
   FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-
   flp.SetTransport(transportFactory);
 
-  // Configure device.
+  // initialize DDS key value store
+  dds::key_value::CKeyValue ddsKeyValue;
+
+  // set device properties
   flp.SetProperty(FLPSender::Id, options.id);
   flp.SetProperty(FLPSender::Index, options.flpIndex);
   flp.SetProperty(FLPSender::NumIoThreads, options.ioThreads);
@@ -208,14 +200,14 @@ int main(int argc, char** argv)
   flp.SetProperty(FLPSender::TestMode, options.testMode);
   flp.SetProperty(FLPSender::SendOffset, options.sendOffset);
 
-  // Configure data input channel (address is set later when received from DDS).
+  // configure data input channel (address is set later when received from DDS).
   FairMQChannel dataInChannel(options.dataInSocketType, options.dataInMethod, "");
   dataInChannel.UpdateSndBufSize(options.dataInBufSize);
   dataInChannel.UpdateRcvBufSize(options.dataInBufSize);
   dataInChannel.UpdateRateLogging(options.dataInRateLogging);
   flp.fChannels["data-in"].push_back(dataInChannel);
 
-  // Configure data output channels (address is set later when received from DDS).
+  // configure data output channels (address is set later when received from DDS).
   for (int i = 0; i < options.numEPNs; ++i) {
     FairMQChannel dataOutChannel(options.dataOutSocketType, options.dataOutMethod, "");
     dataOutChannel.UpdateSndBufSize(options.dataOutBufSize);
@@ -232,10 +224,24 @@ int main(int argc, char** argv)
   flp.fChannels["heartbeat-in"].push_back(hbInChannel);
 
   if (options.testMode == 1) {
-    // In test mode, assign address that was received from the FLPSyncSampler via DDS.
+    // in test mode, retreive the output address of FLPSyncSampler to connect to and assign it to device
+    dds::key_value::CKeyValue::valuesMap_t values;
+    {
+    mutex keyMutex;
+    condition_variable keyCondition;
+
+    ddsKeyValue.subscribe([&keyCondition](const string& /*_key*/, const string& /*_value*/) { keyCondition.notify_all(); });
+    ddsKeyValue.getValues("FLPSyncSamplerOutputAddress", &values);
+    while (values.empty()) {
+      unique_lock<mutex> lock(keyMutex);
+      keyCondition.wait_until(lock, chrono::system_clock::now() + chrono::milliseconds(1000));
+      ddsKeyValue.getValues("FLPSyncSamplerOutputAddress", &values);
+    }
+    }
+
     flp.fChannels["data-in"].at(0).UpdateAddress(values.begin()->second); // FLPSyncSampler signal
   } else {
-    // In regular mode, assign placeholder address, that will be set when binding.
+    // in regular mode, assign placeholder address, that will be set when binding.
     flp.fChannels["data-in"].at(0).UpdateAddress(ownAddress); // data
   }
 
@@ -243,15 +249,16 @@ int main(int argc, char** argv)
   flp.WaitForInitialValidation();
 
   if (options.testMode == 0) {
-    // In regular mode, advertise the bound data input address to the DDS.
+    // in regular mode, advertise the bound data input address via DDS
     ddsKeyValue.putValue("FLPSenderInputAddress", flp.fChannels["data-in"].at(0).GetAddress());
   }
 
+  // advertise the heartbeat input address via DDS
   ddsKeyValue.putValue("FLPSenderHeartbeatInputAddress", flp.fChannels["heartbeat-in"].at(0).GetAddress());
 
   dds::key_value::CKeyValue::valuesMap_t epn_addr_values;
 
-  // Receive the EPNReceiver input addresses from DDS.
+  // receive the EPNReceiver input addresses from DDS.
   {
   mutex keyMutex;
   condition_variable keyCondition;
@@ -265,7 +272,7 @@ int main(int argc, char** argv)
   }
   }
 
-  // Assign the received EPNReceiver input addresses to the device.
+  // assign the received EPNReceiver input addresses to the device.
   auto it_epn_addr_values = epn_addr_values.begin();
   for (int i = 0; i < options.numEPNs; ++i) {
     flp.fChannels["data-out"].at(i).UpdateAddress(it_epn_addr_values->second);
