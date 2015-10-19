@@ -2,26 +2,28 @@
 AliceO2
 =======
 
-Alice O2 project software. Simulation and reconstraction software for the ALICE experiment at CERN based on ALFA and the FairRoot software.
+Alice O2 project software. Simulation and reconstruction software for the ALICE experiment at CERN based on ALFA and the FairRoot software.
 
-### Installation of Alfasoft (FairSoft)
-Before start installing please be sure that your system has all the required libraries (see [FairSoft/DEPENDENCIES](https://github.com/FairRootGroup/FairSoft/blob/master/DEPENDENCIES)) for details.
+Before compiling and installing AliceO2, the ALFA software must be installed by choosing either the full or the minimum installation.
+
+### Installation of ALFA (FairSoft)
+Please be sure that your system has all the required libraries (as listed on [FairSoft/DEPENDENCIES](https://github.com/FairRootGroup/FairSoft/blob/master/DEPENDENCIES)).
 
 #### Full installation:
-The full installation will install all packages on [FairSoft](https://github.com/FairRootGroup/FairSoft/tree/dev) + [DDS](https://github.com/FairRootGroup/DDS) + [FairRoot](https://github.com/FairRootGroup/FairRoot/tree/dev) and [AliROOT]() 
+The full installation will install [FairSoft](https://github.com/FairRootGroup/FairSoft/tree/dev), [DDS](https://github.com/FairRootGroup/DDS), [FairRoot](https://github.com/FairRootGroup/FairRoot/tree/dev) and [AliROOT]()
 
-This installation:
-* Need a fast network connection 
-* will take the __development__ branches for all above packages.
-* It will install Geant4 Data files 
-* Need about __10 GByte__ of disk space (8.1 for the source and objects files, etc and 2.2 GByte for the installation)
+The installation:
+* Needs a fast network connection
+* Will take the __development__ branches for all the above packages.
+* Will install the Geant4 Data files
+* Needs about __10 GBytes__ of disk space (8.1 for the source and objects files, etc and 2.2 GBytes for the installation)
 
-##### Step by step for the full installation
-1. Install [FairSoft/AlFa](https://github.com/FairRootGroup/FairSoft/tree/dev)
+##### Step by step instructions for the full installation
+1. Install [ALFA(FairSoft)](https://github.com/FairRootGroup/FairSoft/tree/dev)
 
-we use here "alfa_src" as a directory name, you can change it to what ever you like
+"alfa_src" is referred as the directory where the ALFA sources exist, you can specify an alternative name if you wish
 
-```bash 
+```bash
 git clone  https://github.com/FairRootGroup/FairSoft.git  alfa_src
 cd  alfa_src
 ./alfaconfig.sh
@@ -32,22 +34,21 @@ cd  alfa_src
 ```
 
 To run the tests do:
-```bash 
+```bash
 cd alfa_src/FairRoot/build_for_alfa/
 make test
 ```
 
-
-#### Minumum installtion (reconstruction only installation)
-This installaiton will exclude:
+#### Minimum installation (reconstruction only installation)
+This installation will exclude:
 1. Simulation engines (Geant3/4)
 2. Event generators (Pythia6/8)
 3. VGM, VMC
 ##### Step by step for the minimum installation
 Edit the "[recoonly.conf](https://github.com/FairRootGroup/FairSoft/blob/master/recoonly.conf)" file in alfa_src, and set your compiler and installation directory.
-(if you went to use ROOT 6 switch it on!)
-```bash 
-compiler= <your compiler> 
+(the use of ROOT 6 can be also specified here if needed!)
+```bash
+compiler= <your compiler>
 debug=yes
 optimize=no
 geant4_download_install_data_automatic=no
@@ -59,10 +60,10 @@ SIMPATH_INSTALL= <ALFA_installation_dir>
 ```
 
 1. Install FairSoft
-```bash 
+```bash
 git clone  https://github.com/FairRootGroup/FairSoft.git  alfa_src
 cd  alfa_src
-./configure.sh  recoonly
+./configure.sh  recoonly.conf
 ```
 2. Install [FairRoot](http://fairroot.gsi.de/?q=node/82)
 
@@ -89,25 +90,25 @@ make test
 
 ### Install the [AliceO2](https://github.com/AliceO2Group/AliceO2) software
 
-If you choosed the minimum installation for ALFA before (in step one above) AliceO2 will not include the simulation and reconstruction packages.
+If ALFA was built using the minimum installation instructions above, AliceO2 will not include the simulation and reconstruction packages.
 
-Set the variable SIMPATH to your FairSoft/alfasoft installation directory
+Set the variable SIMPATH to your ALFA/FairSoft installation directory
 
-```bash 
+```bash
 export SIMPATH=ALFA_installation_dir
 export FAIRROOTPATH=FairRoot_installation_dir
 ```
 
-```bash 
+```bash
 git clone  https://github.com/AliceO2Group/AliceO2.git
 cd AliceO2
 mkdir build_o2
 cd build_o2
-cmake ../   
+cmake ../
 # -DBUILD_DOXYGEN=ON   ( add this option to cmake to generate the doxygen documentation)
 make
 . config.sh [or source config.csh]
-```       
+```
 
 ### Generating the doxygen documentation
 
