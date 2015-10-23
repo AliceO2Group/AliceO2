@@ -197,7 +197,7 @@ void HitAnalysis::ProcessChips(){
 void HitAnalysis::ProcessHits(){
   for (TIter pointiter = TIter(fPointsArray).Begin(); pointiter != TIter::End(); ++pointiter) {
     Point *p = static_cast<Point *>(*pointiter);
-    double_t phitloc[3], pstartloc[3],
+    Double_t phitloc[3], pstartloc[3],
     phitglob[3] = {p->GetX(), p->GetY(), p->GetZ()},
     pstartglob[3] = {p->GetStartX(), p->GetStartY(), p->GetStartZ()};
     
