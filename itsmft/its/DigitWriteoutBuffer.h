@@ -15,7 +15,7 @@
 
 #include "FairWriteoutBuffer.h"
 
-#include "its/Digit.h"
+#include "itsmft/its/Digit.h"
 
 namespace AliceO2 {
     namespace ITS {

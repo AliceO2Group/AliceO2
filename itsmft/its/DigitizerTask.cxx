@@ -6,9 +6,9 @@
 //
 //
 
-#include "its/DigitizerTask.h"
-#include "its/DigitContainer.h"
-#include "its/Digitizer.h"
+#include "itsmft/its/DigitizerTask.h"
+#include "itsmft/its/DigitContainer.h"
+#include "itsmft/its/Digitizer.h"
 
 #include <TClonesArray.h>
 

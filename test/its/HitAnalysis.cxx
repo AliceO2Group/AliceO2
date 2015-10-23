@@ -16,10 +16,10 @@
 #include "FairRootManager.h"
 #include "FairLogger.h"
 
-#include "its/Chip.h"
-#include "its/UpgradeGeometryTGeo.h"
-#include "its/Segmentation.h"
-#include "its/Point.h"
+#include "itsmft/its/Chip.h"
+#include "itsmft/its/UpgradeGeometryTGeo.h"
+#include "itsmft/its/Segmentation.h"
+#include "itsmft/its/Point.h"
 
 #include "test/its/HitAnalysis.h"
 
@@ -237,3 +237,4 @@ void HitAnalysis::FinishTask(){
   outfile->Close();
   delete outfile;
 }
+

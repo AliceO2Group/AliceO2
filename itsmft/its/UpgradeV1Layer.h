@@ -7,7 +7,7 @@
 #define ALICEO2_ITS_UPGRADEV1LAYER_H_
 
 #include "V11Geometry.h"
-#include "its/Detector.h"
+#include "itsmft/its/Detector.h"
 #include <TGeoManager.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoXtru.h>

@@ -10,10 +10,10 @@
 #include "Point.h"
 #include "UpgradeGeometryTGeo.h"
 
-#include "its/Chip.h"
-#include "its/Digit.h"
-#include "its/Digitizer.h"
-#include "its/DigitContainer.h"
+#include "itsmft/its/Chip.h"
+#include "itsmft/its/Digit.h"
+#include "itsmft/its/Digitizer.h"
+#include "itsmft/its/DigitContainer.h"
 
 ClassImp(AliceO2::ITS::Digitizer)
 

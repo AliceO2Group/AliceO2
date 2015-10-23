@@ -9,7 +9,7 @@
 
 #include "FairRootManager.h"
 
-#include "its/DigitWriteoutBuffer.h"
+#include "itsmft/its/DigitWriteoutBuffer.h"
 
 ClassImp(AliceO2::ITS::DigitWriteoutBuffer)
 

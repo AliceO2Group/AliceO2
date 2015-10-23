@@ -8,7 +8,7 @@
 #include "TObject.h"
 #include "Rtypes.h"
 
-#include "its/Chip.h"
+#include "itsmft/its/Chip.h"
 
 class TClonesArray;
 

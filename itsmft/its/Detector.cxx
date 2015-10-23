@@ -1,7 +1,7 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "its/Detector.h"
+#include "itsmft/its/Detector.h"
 
 #include "Point.h"
 #include "UpgradeV1Layer.h"

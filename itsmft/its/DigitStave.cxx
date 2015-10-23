@@ -8,8 +8,8 @@
 
 #include "TClonesArray.h"
 #include "FairLogger.h"
-#include "its/Digit.h"
-#include "its/DigitStave.h"
+#include "itsmft/its/Digit.h"
+#include "itsmft/its/DigitStave.h"
 
 using namespace AliceO2::ITS;
 

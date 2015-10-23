@@ -10,9 +10,9 @@
 
 #include "FairLogger.h"
 
-#include "its/Chip.h"
-#include "its/Point.h"
-#include "its/UpgradeGeometryTGeo.h"
+#include "itsmft/its/Chip.h"
+#include "itsmft/its/Point.h"
+#include "itsmft/its/UpgradeGeometryTGeo.h"
 
 ClassImp(AliceO2::ITS::Chip)
 
