@@ -16,10 +16,10 @@
 #include "FairRootManager.h"          // for FairRootManager
 #include "TCollection.h"              // for TIter
 #include "TObject.h"                  // for TObject
-#include "its/Chip.h"                 // for Chip, Chip::IndexException
-#include "its/Point.h"                // for Point
-#include "its/Segmentation.h"         // for Segmentation
-#include "its/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "itsmft/its/Chip.h"                 // for Chip, Chip::IndexException
+#include "itsmft/its/Point.h"                // for Point
+#include "itsmft/its/Segmentation.h"         // for Segmentation
+#include "itsmft/its/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
 
 using namespace AliceO2::ITS;
 
@@ -235,3 +235,4 @@ void HitAnalysis::FinishTask(){
   outfile->Close();
   delete outfile;
 }
+

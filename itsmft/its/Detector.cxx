@@ -1,7 +1,7 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "its/Detector.h"
+#include "itsmft/its/Detector.h"
 #include <stdio.h>                  // for NULL, snprintf
 #include "Data/DetectorList.h"      // for DetectorId::kAliIts
 #include "Data/Stack.h"             // for Stack

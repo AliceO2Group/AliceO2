@@ -5,9 +5,9 @@
 //  Created by Markus Fasel on 26.03.15.
 //
 //
-#include "its/DigitStave.h"
+#include "itsmft/its/DigitStave.h"
 #include "FairLogger.h"  // for LOG
-#include "its/Digit.h"   // for Digit
+#include "itsmft/its/Digit.h"   // for Digit
 #include "TClonesArray.h"
 
 using namespace AliceO2::ITS;

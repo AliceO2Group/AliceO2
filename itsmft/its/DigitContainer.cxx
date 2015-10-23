@@ -5,13 +5,12 @@
 //  Created by Markus Fasel on 25.03.15.
 //
 //
-#include "its/DigitContainer.h"
+#include "itsmft/its/DigitContainer.h"
 #include "FairLogger.h"           // for LOG
 #include "Rtypes.h"               // for Int_t, nullptr
 #include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
-#include "its/Digit.h"            // for Digit
-#include "its/DigitLayer.h"       // for DigitLayer
-
+#include "itsmft/its/Digit.h"            // for Digit
+#include "itsmft/its/DigitLayer.h"       // for DigitLayer
 
 
 using namespace AliceO2::ITS;

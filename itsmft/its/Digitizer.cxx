@@ -1,15 +1,14 @@
 /// \file AliITSUpgradeDigitizer.cxx
 /// \brief Digitizer for the upgrated ITS
 #include <iostream>
-#include "its/Digitizer.h"
+#include "itsmft/its/Digitizer.h"
 #include "FairLogger.h"           // for LOG
 #include "Point.h"                // for Point
 #include "TClonesArray.h"         // for TClonesArray
 #include "TCollection.h"          // for TIter
 #include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
-#include "its/Digit.h"            // for Digit
-#include "its/DigitContainer.h"   // for DigitContainer
-
+#include "itsmft/its/Digit.h"            // for Digit
+#include "itsmft/its/DigitContainer.h"   // for DigitContainer
 
 ClassImp(AliceO2::ITS::Digitizer)
 

@@ -5,12 +5,11 @@
 //  Created by Markus Fasel on 21.07.15.
 //
 //
-#include "its/DigitWriteoutBuffer.h"
+#include "itsmft/its/DigitWriteoutBuffer.h"
 #include <TClonesArray.h>     // for TClonesArray
 #include "FairRootManager.h"  // for FairRootManager
 #include "TString.h"          // for TString
 class FairTimeStamp;
-
 
 ClassImp(AliceO2::ITS::DigitWriteoutBuffer)
 
