@@ -255,13 +255,13 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
 
     if (argument.CompareTo( "-allowGPU" ) == 0) {
       fAllowGPU = 1;
-      HLTImportant( "Will try to run tracker on GPU" );
+      HLTInfo( "Will try to run tracker on GPU" );
       continue;
     }
 
     if (argument.CompareTo( "-GlobalTracking" ) == 0) {
       fGlobalTracking = 1;
-      HLTImportant( "Global Tracking Activated" );
+      HLTInfo( "Global Tracking Activated" );
       continue;
     }
 

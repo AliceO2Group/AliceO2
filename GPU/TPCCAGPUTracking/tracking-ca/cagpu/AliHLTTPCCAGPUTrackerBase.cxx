@@ -665,7 +665,7 @@ int AliHLTTPCCAGPUTrackerBase::InitGPU(int sliceCount, int forceDeviceID)
 	}
 
 	fCudaInitialized = 1;
-	HLTImportant("GPU Tracker initialization successfull");
+	HLTInfo("GPU Tracker initialization successfull"); //Verbosity reduced because GPU backend will print HLTImportant message!
 
 #if defined(HLTCA_STANDALONE) & !defined(CUDA_DEVICE_EMULATION)
 	if (fDebugLevel < 2 && 0)
