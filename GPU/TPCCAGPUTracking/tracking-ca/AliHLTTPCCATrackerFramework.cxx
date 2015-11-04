@@ -262,7 +262,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 			fGPUTracker = tmp();
 			fGPULibAvailable = true;
 			fGPULib = (void*) (size_t) hGPULib;
-			HLTImportant("GPU Tracker library loaded and GPU tracker object created sucessfully (%sactive)", allowGPU ? "" : "in");
+			HLTInfo("GPU Tracker library loaded and GPU tracker object created sucessfully (%sactive)", allowGPU ? "" : "in");
 		}
 	}
 
