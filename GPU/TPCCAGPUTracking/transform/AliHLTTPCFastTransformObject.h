@@ -47,11 +47,16 @@ class AliHLTTPCFastTransformObject: public TObject{
   /** deinitialization */
   void  Reset();
 
-  /** Max N sectors */
-  static Int_t GetMaxSec() { return fkNSec; }
+  /** N sectors */
+  static Int_t GetNSec() { return fkNSec; }
+  static Int_t GetNSecIn() { return fkNSecIn; }
+  static Int_t GetNSecOut() { return fkNSecOut; }
 
-  /** Max N rows per sector */
-  static Int_t GetMaxRows() { return fkNRows; }
+  /** N rows per inner sector */
+  static Int_t GetNRowsIn() { return fkNRowsIn; }
+
+  /** N rows per outer sector */
+  static Int_t GetNRowsOut() { return fkNRowsOut; }
 
   /** last calibrated time bin */
   Int_t GetLastTimeBin() const { return fLastTimeBin; }
@@ -66,7 +71,18 @@ class AliHLTTPCFastTransformObject: public TObject{
   const TArrayF & GetAlignment() const { return fAlignment; } 
 
   /** transformation spline */
-  const AliHLTTPCSpline2D3DObject& GetSpline ( Int_t iSec, Int_t iRow, Int_t iSpline ) const { return fSplines[iSec*fkNRows*3 + iRow*3 + iSpline]; }
+  const AliHLTTPCSpline2D3DObject& GetSpline ( Int_t iSec, Int_t iRow, Int_t iSpline ) const { 
+    if( iSec<fkNSecIn ) return fSplines[iSec*fkNRowsIn*3 + iRow*3 + iSpline];
+    else return fSplines[fkNSplinesIn + (iSec-fkNSecIn)*fkNRowsOut*3 + iRow*3 + iSpline]; 
+  }
+
+  const AliHLTTPCSpline2D3DObject& GetSplineIn ( Int_t iSecIn, Int_t iRow, Int_t iSpline ) const { 
+    return fSplines[iSecIn*fkNRowsIn*3 + iRow*3 + iSpline];
+  }
+ 
+  const AliHLTTPCSpline2D3DObject& GetSplineOut ( Int_t iSecOut, Int_t iRow, Int_t iSpline ) const { 
+    return fSplines[fkNSplinesIn + fkNSecOut*fkNRowsOut*3 + iRow*3 + iSpline]; 
+  }
 
   /** last calibrated time bin */
   void SetLastTimeBin( Int_t v ){ fLastTimeBin = v; }
@@ -81,8 +97,19 @@ class AliHLTTPCFastTransformObject: public TObject{
   TArrayF & GetAlignmentNonConst(){ return fAlignment; } 
 
   /** transformation spline */
-  AliHLTTPCSpline2D3DObject& GetSplineNonConst( Int_t iSec, Int_t iRow, Int_t iSpline ){ return fSplines[iSec*fkNRows*3 + iRow*3 + iSpline]; }
+  AliHLTTPCSpline2D3DObject& GetSplineNonConst( Int_t iSec, Int_t iRow, Int_t iSpline ){ 
+    if( iSec<fkNSecIn ) return fSplines[iSec*fkNRowsIn*3 + iRow*3 + iSpline];
+    else return fSplines[fkNSplinesIn + (iSec-fkNSecIn)*fkNRowsOut*3 + iRow*3 + iSpline]; 
+  }
   
+  AliHLTTPCSpline2D3DObject& GetSplineInNonConst ( Int_t iSecIn, Int_t iRow, Int_t iSpline ) { 
+    return fSplines[iSecIn*fkNRowsIn*3 + iRow*3 + iSpline];
+  }
+ 
+  AliHLTTPCSpline2D3DObject& GetSplineOutNonConst ( Int_t iSecOut, Int_t iRow, Int_t iSpline )  { 
+    return fSplines[fkNSplinesIn + fkNSecOut*fkNRowsOut*3 + iRow*3 + iSpline]; 
+  }
+
   bool IsSectorInit(int sec) const {return fSectorInit[sec];}
   void SetInitSec(Int_t sector, bool init) {if (sector >= 0 && sector < fkNSec) fSectorInit[sector] = init;}
   
@@ -91,9 +118,14 @@ class AliHLTTPCFastTransformObject: public TObject{
 
   private:
  
-  static const Int_t fkNSec = 72; // transient
-  static const Int_t fkNRows = 100; // transient
-  
+  static const Int_t fkNSecIn = 36; // transient
+  static const Int_t fkNSecOut = 36; // transient
+  static const Int_t fkNSec = 36+36;//fkNSecIn + fkNSecOut; 
+  static const Int_t fkNRowsIn = 63; // transient
+  static const Int_t fkNRowsOut = 96; // transient
+  static const Int_t fkNSplinesIn = 36*63*3;// fkNSecIn*fkNRowsIn*3; 
+  static const Int_t fkNSplinesOut = 36*96*3;// fkNSecOut*fkNRowsOut*3;
+
   bool fSectorInit[fkNSec];	//Sectors which are initialized
 
   Int_t fVersion;
@@ -101,7 +133,7 @@ class AliHLTTPCFastTransformObject: public TObject{
   Float_t fTimeSplit1; // split of splines in time direction
   Float_t fTimeSplit2; // split of splines in time direction
   TArrayF fAlignment; // alignment matrices translation,rotation,reverse rotation
-  AliHLTTPCSpline2D3DObject fSplines[72*100*3]; // transient
+  AliHLTTPCSpline2D3DObject fSplines[fkNSplinesIn + fkNSplinesOut]; // transient
 
  public:
 

@@ -51,7 +51,7 @@ void  AliHLTTPCFastTransformObject::Reset()
   fLastTimeBin = 0.;
   fTimeSplit1 = 0.;
   fTimeSplit2 = 0.;  
-  for( Int_t i=0; i<fkNSec*fkNRows*3; i++) fSplines[i].Reset();
+  for( Int_t i=0; i<fkNSplinesIn + fkNSplinesOut; i++) fSplines[i].Reset();
   fAlignment.Set(0);
 }
 
@@ -65,7 +65,7 @@ AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject( const AliHLTTPCFastT
   fAlignment(o.fAlignment)
 { 
   // constructor    
-  for( Int_t i=0; i<fkNSec*fkNRows*3; i++){
+  for( Int_t i=0; i<fkNSplinesIn + fkNSplinesOut; i++){
     fSplines[i] = o.fSplines[i];
   }
 }
@@ -79,18 +79,31 @@ AliHLTTPCFastTransformObject& AliHLTTPCFastTransformObject::operator=( const Ali
 
 void AliHLTTPCFastTransformObject::Merge(const AliHLTTPCFastTransformObject& obj)
 {
-	for (int i = 0;i < fkNSec;i++)
+  for (int i = 0;i < fkNSecIn;i++)
+    {
+      if (!obj.IsSectorInit(i)) continue;
+      for(int iRow=0;iRow<fkNRowsIn;iRow++)
 	{
-		if (!obj.IsSectorInit(i)) continue;
-		for(int iRow=0;iRow<fkNRows;iRow++)
-		{
-			for(int iSpline=0;iSpline<3;iSpline++)
-			{
-				GetSplineNonConst(i, iRow, iSpline) = obj.GetSpline(i, iRow, iSpline);
-			}
-		}
-		fSectorInit[i] = true;
+	  for(int iSpline=0;iSpline<3;iSpline++)
+	    {
+	      GetSplineInNonConst(i, iRow, iSpline) = obj.GetSplineIn(i, iRow, iSpline);
+	    }
 	}
+      fSectorInit[i] = true;
+    }
+
+  for (int i = 0;i < fkNSecOut;i++)
+    {
+      if (!obj.IsSectorInit(fkNSecIn+i)) continue;
+      for(int iRow=0;iRow<fkNRowsOut;iRow++)
+	{
+	  for(int iSpline=0;iSpline<3;iSpline++)
+	    {
+	      GetSplineOutNonConst(i, iRow, iSpline) = obj.GetSplineOut(i, iRow, iSpline);
+	    }
+	}
+      fSectorInit[fkNSecIn+i] = true;
+    }
 }
 
 Long64_t AliHLTTPCFastTransformObject::Merge(TCollection* list)
