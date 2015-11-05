@@ -16,10 +16,10 @@
 #include "FairRootManager.h"          // for FairRootManager
 #include "TCollection.h"              // for TIter
 #include "TObject.h"                  // for TObject
-#include "its/Chip.h"                 // for Chip, Chip::IndexException
-#include "its/Point.h"                // for Point
-#include "its/Segmentation.h"         // for Segmentation
-#include "its/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "itsmft/its/Chip.h"                 // for Chip, Chip::IndexException
+#include "itsmft/its/Point.h"                // for Point
+#include "itsmft/its/Segmentation.h"         // for Segmentation
+#include "itsmft/its/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
 
 using namespace AliceO2::ITS;
 
@@ -197,7 +197,7 @@ void HitAnalysis::ProcessChips(){
 void HitAnalysis::ProcessHits(){
   for (TIter pointiter = TIter(fPointsArray).Begin(); pointiter != TIter::End(); ++pointiter) {
     Point *p = static_cast<Point *>(*pointiter);
-    double_t phitloc[3], pstartloc[3],
+    Double_t phitloc[3], pstartloc[3],
     phitglob[3] = {p->GetX(), p->GetY(), p->GetZ()},
     pstartglob[3] = {p->GetStartX(), p->GetStartY(), p->GetStartZ()};
     
@@ -235,3 +235,4 @@ void HitAnalysis::FinishTask(){
   outfile->Close();
   delete outfile;
 }
+
