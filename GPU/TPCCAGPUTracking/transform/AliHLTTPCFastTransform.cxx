@@ -160,8 +160,7 @@ Int_t AliHLTTPCFastTransform::WriteToObject( AliHLTTPCFastTransformObject &obj )
   //
   obj.Reset();
 
-  if( obj.GetMaxSec() < fkNSec ) return Error( -10, "AliHLTTPCFastTransform::WriteToObject: Wrong N Sectors in object");
-  if( obj.GetMaxRows() < fkNRows ) return Error( -10, "AliHLTTPCFastTransform::WriteToObject: Wrong N Rows in object");
+  if( obj.GetNSec() < fkNSec ) return Error( -10, "AliHLTTPCFastTransform::WriteToObject: Wrong N Sectors in object");
 
   obj.SetLastTimeBin( fLastTimeBin );
   obj.SetTimeSplit1( fTimeBorder1 );
@@ -177,6 +176,9 @@ Int_t AliHLTTPCFastTransform::WriteToObject( AliHLTTPCFastTransformObject &obj )
   for( Int_t iSec=fMinInitSec; iSec<fMaxInitSec; iSec++ ){
     for( int iRow=0; iRow<fkNRows; iRow++){
       if( !fRows[iSec][iRow] ) break;
+      if( ( iSec<obj.GetNSecIn() && iRow>=obj.GetNRowsIn() ) || ( iSec>=obj.GetNSecIn() && iRow>=obj.GetNRowsOut() ) ){
+	  return Error( -10, "AliHLTTPCFastTransform::WriteToObject: Wrong N Rows in object");
+	}
       for( int iSpline=0; iSpline<3; iSpline++ ){
 	AliHLTTPCSpline2D3D & spline = fRows[iSec][iRow]->fSpline[iSpline];
 	AliHLTTPCSpline2D3DObject& splineObj = obj.GetSplineNonConst( iSec, iRow, iSpline );
@@ -200,8 +202,7 @@ Int_t AliHLTTPCFastTransform::ReadFromObject( const AliHLTTPCFastTransformObject
   DeInit();
   fInitialisationMode = 0;
 
-  if( obj.GetMaxSec() > fkNSec ) return Error( -10, "AliHLTTPCFastTransform::ReadFromObject: Wrong N Sectors in object");
-  if( obj.GetMaxRows() > fkNRows ) return Error( -10, "AliHLTTPCFastTransform::ReadFromObject: Wrong N Rows in object");
+  if( obj.GetNSec() > fkNSec ) return Error( -10, "AliHLTTPCFastTransform::ReadFromObject: Wrong N Sectors in object");
 
   fOrigTransform = NULL;
   fLastTimeStamp = 0;
@@ -223,9 +224,17 @@ Int_t AliHLTTPCFastTransform::ReadFromObject( const AliHLTTPCFastTransformObject
   if( nSec>fkNSec ) nSec = fkNSec;
   
   for( Int_t iSec=0; iSec<nSec; iSec++ ){
-	if (obj.IsSectorInit(iSec) == false) return Error( -10, "AliHLTTPCFastTransform::ReadFromObject: Cannot initialize from Object that does not contain full transform map!");
+
+    if (obj.IsSectorInit(iSec) == false) return Error( -10, "AliHLTTPCFastTransform::ReadFromObject: Cannot initialize from Object that does not contain full transform map!");
+
     int nRows = tpcParam->GetNRow(iSec);
-    if( nRows>fkNRows ) nRows = fkNRows;
+
+    if( nRows>fkNRows ) return Error( -10, Form("AliHLTTPCFastTransform::ReadFromObject: N of rows in the fast transformation is too low: %d, needed %d for sector %d", fkNRows, nRows , iSec) );
+
+    if( iSec<obj.GetNSecIn() && nRows>obj.GetNRowsIn() ) return Error( -10, Form( "AliHLTTPCFastTransform::ReadFromObject: N of rows in the fast transformation obect is too low: %d, needed %d for sector %d", obj.GetNRowsIn(), nRows , iSec) );
+
+    if( iSec>=obj.GetNSecIn() && nRows>obj.GetNRowsOut() ) return Error( -10, Form("AliHLTTPCFastTransform::ReadFromObject: N of rows in the fast transformation obect is too low: %d, needed %d for sector %d", obj.GetNRowsOut(), nRows , iSec) );
+  
     for( int iRow=0; iRow<nRows; iRow++){
       if( !fRows[iSec][iRow] ) fRows[iSec][iRow] = new AliHLTTPCFastTransform::AliRowTransform;
       if( !fRows[iSec][iRow] ) return Error( -4, "AliHLTTPCFastTransform::ReadFromObject: Not enough memory");
