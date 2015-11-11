@@ -75,17 +75,14 @@ class FLPSender : public FairMQDevice
     /// Sends the "oldest" element from the sub-timeframe container
     void sendFrontData();
 
-    std::queue<FairMQMessage*> fHeaderBuffer; ///< Stores sub-timeframe headers
-    std::queue<FairMQMessage*> fDataBuffer; ///< Stores sub-timeframe bodies
+    std::queue<std::unique_ptr<FairMQMessage>> fHeaderBuffer; ///< Stores sub-timeframe headers
+    std::queue<std::unique_ptr<FairMQMessage>> fDataBuffer; ///< Stores sub-timeframe bodies
     std::queue<boost::posix_time::ptime> fArrivalTime; ///< Stores arrival times of sub-timeframes
 
     int fNumEPNs; ///< Number of epnReceivers
     unsigned int fIndex; ///< Index of the flpSender among other flpSenders
     unsigned int fSendOffset; ///< Offset for staggering output
     unsigned int fSendDelay; ///< Delay for staggering output
-
-    int fSndMoreFlag; ///< Flag for faster access to multipart sending
-    int fNoBlockFlag; ///< Flag for faster access to sending without blocking
 
     int fEventSize; ///< Size of the sub-timeframe body (only for test mode)
     int fTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)

@@ -66,7 +66,7 @@ void EPNReceiver::DiscardIncompleteTimeframes()
       LOG(WARN) << "Timeframe #" << it->first << " incomplete after " << fBufferTimeoutInMs << " milliseconds, discarding";
       fDiscardedSet.insert(it->first);
       for (int i = 0; i < (it->second).parts.size(); ++i) {
-        delete (it->second).parts.at(i);
+        (it->second).parts.at(i).reset();
       }
       it->second.parts.clear();
       fTimeframeBuffer.erase(it++);
@@ -82,10 +82,7 @@ void EPNReceiver::Run()
 {
   // boost::thread heartbeatSender(boost::bind(&EPNReceiver::sendHeartbeats, this));
 
-  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels.at("data-in"));
-
-  int SNDMORE = fChannels.at("data-in").at(0).fSocket->SNDMORE;
-  int NOBLOCK = fChannels.at("data-in").at(0).fSocket->NOBLOCK;
+  unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels.at("data-in")));
 
   // DEBUG: store receive intervals per FLP
   // vector<vector<int>> rcvIntervals(fNumFLPs, vector<int>());
@@ -104,7 +101,7 @@ void EPNReceiver::Run()
     poller->Poll(100);
 
     if (poller->CheckInput(0)) {
-      FairMQMessage* headerPart = fTransportFactory->CreateMessage();
+      unique_ptr<FairMQMessage> headerPart(fTransportFactory->CreateMessage());
 
       if (dataInputChannel.Receive(headerPart) > 0) {
         // store the received ID
@@ -123,61 +120,55 @@ void EPNReceiver::Run()
         // }
         // end DEBUG
 
-        FairMQMessage* dataPart = fTransportFactory->CreateMessage();
-        rcvDataSize = dataInputChannel.Receive(dataPart);
+        unique_ptr<FairMQMessage> dataPart(fTransportFactory->CreateMessage());
 
-        if (fDiscardedSet.find(id) == fDiscardedSet.end()) {
-          // if received ID has not previously been discarded.
-          if (fTimeframeBuffer.find(id) == fTimeframeBuffer.end()) {
-            // if received ID is not yet in the buffer.
-            if (rcvDataSize > 0) {
-              // receive data, store it in the buffer, save the receive time.
-              fTimeframeBuffer[id].parts.push_back(dataPart);
+        // receive the data part
+        if (dataInputChannel.Receive(dataPart) > 0)
+        {
+          if (fDiscardedSet.find(id) == fDiscardedSet.end())
+          {
+            if (fTimeframeBuffer.find(id) == fTimeframeBuffer.end())
+            {
+              // if this is the first part with this ID, save the receive time.
               fTimeframeBuffer[id].startTime = boost::posix_time::microsec_clock::local_time();
-            } else {
-              LOG(ERROR) << "no data received from input socket";
-              delete dataPart;
             }
-            // PrintBuffer(fTimeframeBuffer);
-          } else {
-            // if received ID is already in the buffer
-            if (rcvDataSize > 0) {
-              fTimeframeBuffer[id].parts.push_back(dataPart);
-            } else {
-              LOG(ERROR) << "no data received from input socket";
-              delete dataPart;
-            }
+            // if the received ID has not previously been discarded,
+            // store the data part in the buffer
+            fTimeframeBuffer[id].parts.push_back(move(dataPart));
             // PrintBuffer(fTimeframeBuffer);
           }
-        } else {
-          // if received ID has been previously discarded.
-          LOG(WARN) << "Received part from an already discarded timeframe with id " << id;
-          delete dataPart;
+          else
+          {
+            // if received ID has been previously discarded.
+            LOG(WARN) << "Received part from an already discarded timeframe with id " << id;
+          }
+        }
+        else
+        {
+          LOG(ERROR) << "no data received from input socket";
         }
 
         if (fTimeframeBuffer[id].parts.size() == fNumFLPs) {
           // LOG(INFO) << "Collected all parts for timeframe #" << id;
           // when all parts are collected send all except last one with 'snd-more' flag, and last one without the flag.
           for (int i = 0; i < fNumFLPs - 1; ++i) {
-            dataOutChannel.Send(fTimeframeBuffer[id].parts.at(i), SNDMORE);
+            dataOutChannel.SendPart(fTimeframeBuffer[id].parts.at(i));
           }
           dataOutChannel.Send(fTimeframeBuffer[id].parts.at(fNumFLPs - 1));
 
           if (fTestMode > 0) {
             // Send an acknowledgement back to the sampler to measure the round trip time
-            FairMQMessage* ack = fTransportFactory->CreateMessage(sizeof(uint16_t));
+            unique_ptr<FairMQMessage> ack(fTransportFactory->CreateMessage(sizeof(uint16_t)));
             memcpy(ack->GetData(), &id, sizeof(uint16_t));
 
-            if (ackOutChannel.Send(ack, NOBLOCK) <= 0) {
+            if (ackOutChannel.SendAsync(ack) <= 0) {
               LOG(ERROR) << "Could not send acknowledgement without blocking";
             }
-
-            delete ack;
           }
 
           // let transport know that the data is no longer needed. transport will clean up after it is sent out.
           for (int i = 0; i < fTimeframeBuffer[id].parts.size(); ++i) {
-            delete fTimeframeBuffer[id].parts.at(i);
+            fTimeframeBuffer[id].parts.at(i).reset();
           }
           fTimeframeBuffer[id].parts.clear();
 
@@ -188,7 +179,6 @@ void EPNReceiver::Run()
 
         // LOG(WARN) << "Buffer size: " << fTimeframeBuffer.size();
       }
-      delete headerPart;
     }
 
     // check if any incomplete timeframes in the buffer are older than timeout period, and discard them if they are
@@ -220,12 +210,10 @@ void EPNReceiver::sendHeartbeats()
   while (CheckCurrentState(RUNNING)) {
     try {
       for (int i = 0; i < fNumFLPs; ++i) {
-        FairMQMessage* heartbeatMsg = fTransportFactory->CreateMessage(ownAddressSize);
+        unique_ptr<FairMQMessage> heartbeatMsg(fTransportFactory->CreateMessage(ownAddressSize));
         memcpy(heartbeatMsg->GetData(), ownAddress.c_str(), ownAddressSize);
 
         fChannels.at("heartbeat-out").at(i).Send(heartbeatMsg);
-
-        delete heartbeatMsg;
       }
       boost::this_thread::sleep(boost::posix_time::milliseconds(fHeartbeatIntervalInMs));
     } catch (boost::thread_interrupted&) {

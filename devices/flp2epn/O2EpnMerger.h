@@ -10,19 +10,12 @@
 
 #include "FairMQDevice.h"
 
-struct Content {
-  double a;
-  double b;
-  int x;
-  int y;
-  int z;
-};
-
 class O2EpnMerger: public FairMQDevice
 {
   public:
     O2EpnMerger();
     virtual ~O2EpnMerger();
+
   protected:
     virtual void Run();
 };

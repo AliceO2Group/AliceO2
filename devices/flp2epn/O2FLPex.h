@@ -12,15 +12,6 @@
 
 #include "FairMQDevice.h"
 
-struct Content {
-  int id;
-  double a;
-  double b;
-  int x;
-  int y;
-  int z;
-};
-
 class O2FLPex : public FairMQDevice
 {
   public:
@@ -41,7 +32,6 @@ class O2FLPex : public FairMQDevice
   protected:
     int fEventSize;
 
-    virtual void Init();
     virtual void Run();
 };
 

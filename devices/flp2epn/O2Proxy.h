@@ -16,6 +16,7 @@ class O2Proxy: public FairMQDevice
   public:
     O2Proxy();
     virtual ~O2Proxy();
+
   protected:
     virtual void Run();
 };

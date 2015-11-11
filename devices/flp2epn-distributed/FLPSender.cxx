@@ -34,8 +34,6 @@ FLPSender::FLPSender()
   , fHeaderBuffer()
   , fDataBuffer()
   , fArrivalTime()
-  , fSndMoreFlag(0)
-  , fNoBlockFlag(0)
   , fNumEPNs(0)
   , fHeartbeatTimeoutInMs(20000)
   , fHeartbeats()
@@ -66,7 +64,7 @@ void FLPSender::receiveHeartbeats()
 
   while (CheckCurrentState(RUNNING)) {
     try {
-      FairMQMessage* hbMsg = fTransportFactory->CreateMessage();
+      unique_ptr<FairMQMessage> hbMsg(fTransportFactory->CreateMessage());
 
       if (hbChannel.Receive(hbMsg) > 0) {
         string address = string(static_cast<char*>(hbMsg->GetData()), hbMsg->GetSize());
@@ -87,8 +85,6 @@ void FLPSender::receiveHeartbeats()
           LOG(ERROR) << "IP " << address << " unknown, not provided at execution time";
         }
       }
-
-      delete hbMsg;
     } catch (boost::thread_interrupted&) {
       LOG(INFO) << "FLPSender::receiveHeartbeats() interrupted";
       break;
@@ -100,15 +96,13 @@ void FLPSender::Run()
 {
   // boost::thread heartbeatReceiver(boost::bind(&FLPSender::receiveHeartbeats, this));
 
-  // base buffer, to be copied from for every timeframe body
+  // base buffer, to be copied from for every timeframe body (zero-copy)
   void* buffer = operator new[](fEventSize);
-  FairMQMessage* baseMsg = fTransportFactory->CreateMessage(buffer, fEventSize);
-
-  fSndMoreFlag = fChannels.at("data-in").at(0).fSocket->SNDMORE;
-  fNoBlockFlag = fChannels.at("data-in").at(0).fSocket->NOBLOCK;
+  unique_ptr<FairMQMessage> baseMsg(fTransportFactory->CreateMessage(buffer, fEventSize));
 
   uint16_t timeFrameId = 0;
 
+  // store the channel reference to avoid traversing the map on every loop iteration
   FairMQChannel& dataInChannel = fChannels.at("data-in").at(0);
 
   while (CheckCurrentState(RUNNING)) {
@@ -117,7 +111,7 @@ void FLPSender::Run()
 
     if (fTestMode > 0) {
       // test-mode: receive and store id part in the buffer.
-      FairMQMessage* idPart = fTransportFactory->CreateMessage();
+      unique_ptr<FairMQMessage> idPart(fTransportFactory->CreateMessage());
       if (dataInChannel.Receive(idPart) > 0) {
         h->timeFrameId = *(static_cast<uint16_t*>(idPart->GetData()));
         h->flpIndex = fIndex;
@@ -126,8 +120,6 @@ void FLPSender::Run()
         delete h;
         continue;
       }
-
-      delete idPart;
     } else {
       // regular mode: use the id generated locally
       h->timeFrameId = timeFrameId;
@@ -138,8 +130,8 @@ void FLPSender::Run()
       }
     }
 
-    FairMQMessage* headerPart = fTransportFactory->CreateMessage(h, sizeof(f2eHeader));
-    FairMQMessage* dataPart = fTransportFactory->CreateMessage();
+    unique_ptr<FairMQMessage> headerPart(fTransportFactory->CreateMessage(h, sizeof(f2eHeader)));
+    unique_ptr<FairMQMessage> dataPart(fTransportFactory->CreateMessage());
 
     // save the arrival time of the message.
     fArrivalTime.push(boost::posix_time::microsec_clock::local_time());
@@ -147,13 +139,13 @@ void FLPSender::Run()
     if (fTestMode > 0) {
       // test-mode: initialize and store data part in the buffer.
       dataPart->Copy(baseMsg);
-      fHeaderBuffer.push(headerPart);
-      fDataBuffer.push(dataPart);
+      fHeaderBuffer.push(move(headerPart));
+      fDataBuffer.push(move(dataPart));
     } else {
       // regular mode: receive data part from input
       if (dataInChannel.Receive(dataPart) >= 0) {
-        fHeaderBuffer.push(headerPart);
-        fDataBuffer.push(dataPart);
+        fHeaderBuffer.push(move(headerPart));
+        fDataBuffer.push(move(dataPart));
       } else {
         // if nothing was received, try again
         continue;
@@ -175,8 +167,6 @@ void FLPSender::Run()
       }
     }
   }
-
-  delete baseMsg;
 
   // heartbeatReceiver.interrupt();
   // heartbeatReceiver.join();
@@ -207,11 +197,12 @@ inline void FLPSender::sendFrontData()
   //   fArrivalTime.pop();
   //   fDataBuffer.pop();
   // } else { // if the heartbeat from the corresponding EPN is within timeout period, send the data.
-    if (fChannels.at("data-out").at(direction).Send(fHeaderBuffer.front(), fSndMoreFlag|fNoBlockFlag) <= 0) {
-      LOG(ERROR) << "Could not queue ID part of event #" << currentTimeframeId << " without blocking";
-    }
-    if (fChannels.at("data-out").at(direction).Send(fDataBuffer.front(), fNoBlockFlag) <= 0) {
-      LOG(ERROR) << "Could not send message with event #" << currentTimeframeId << " without blocking";
+    if (fChannels.at("data-out").at(direction).SendPartAsync(fHeaderBuffer.front()) < 0) {
+      LOG(ERROR) << "Failed to queue ID part of event #" << currentTimeframeId;
+    } else {
+      if (fChannels.at("data-out").at(direction).SendAsync(fDataBuffer.front()) < 0) {
+        LOG(ERROR) << "Could not send message with event #" << currentTimeframeId << " without blocking";
+      }
     }
     fHeaderBuffer.pop();
     fArrivalTime.pop();

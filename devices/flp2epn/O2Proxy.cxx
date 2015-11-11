@@ -11,8 +11,6 @@
 #include "FairMQLogger.h"
 #include "O2Proxy.h"
 
-
-
 O2Proxy::O2Proxy()
 {
 }
@@ -23,24 +21,26 @@ O2Proxy::~O2Proxy()
 
 void O2Proxy::Run()
 {
+  FairMQChannel& inChannel = fChannels.at("data-in").at(0);
+  FairMQChannel& outChannel = fChannels.at("data-out").at(0);
+
   while (CheckCurrentState(RUNNING)) {
     // int i = 0;
-    int64_t more = 0;
-    size_t more_size = sizeof more;
+    bool more = false;
+
     do {
-      /* Create an empty ØMQ message to hold the message part */
-      FairMQMessage* msgpart = fTransportFactory->CreateMessage();
+      /* Create an empty message to hold the message part */
+      std::unique_ptr<FairMQMessage> part(fTransportFactory->CreateMessage());
       /* Block until a message is available to be received from socket */
-      fChannels["data-in"].at(0).Receive(msgpart);
+      inChannel.Receive(part);
       /* Determine if more message parts are to follow */
-      fChannels["data-in"].at(0).fSocket->GetOption("rcv-more", &more, &more_size);
+      more = inChannel.ExpectsAnotherPart();
       // LOG(INFO) << "------ Get Msg Part "<< " more = " << more << " counter " << i++ ;
       if (more) {
-          fChannels["data-out"].at(0).Send(msgpart, "snd-more");
+          outChannel.SendPart(part);
       } else {
-          fChannels["data-out"].at(0).Send(msgpart);
+          outChannel.Send(part);
       }
-      delete msgpart;
     } while (more);
     // i = 0;
   }
