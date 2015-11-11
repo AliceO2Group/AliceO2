@@ -9,8 +9,9 @@
 #include <boost/bind.hpp>
 
 #include "FairMQLogger.h"
-#include "O2Merger.h"
 #include "FairMQPoller.h"
+#include "O2Merger.h"
+
 O2Merger::O2Merger()
 {
 }
@@ -21,33 +22,29 @@ O2Merger::~O2Merger()
 
 void O2Merger::Run()
 {
-  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
+  std::unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels.at("data-in")));
 
-  int NoOfMsgParts = fChannels["data-in"].size() - 1;
+  int numParts = fChannels.at("data-in").size() - 1;
 
   while (CheckCurrentState(RUNNING)) {
-    FairMQMessage* msg = fTransportFactory->CreateMessage();
+    std::unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
 
     poller->Poll(100);
 
-    for (int i = 0; i < fChannels["data-in"].size(); i++) {
+    for (int i = 0; i < fChannels.at("data-in").size(); i++) {
       if (poller->CheckInput(i)) {
-        if (fChannels["data-in"].at(i).Receive(msg)) {
+        if (fChannels.at("data-in").at(i).Receive(msg) >= 0) {
           // LOG(INFO) << "------ recieve Msg from " << i ;
-          if (i < NoOfMsgParts) {
-            fChannels["data-out"].at(0).Send(msg, "snd-more");
+          if (i < numParts) {
+            fChannels.at("data-out").at(0).SendPart(msg);
             //    LOG(INFO) << "------ Send  Msg Part " << i ;
           } else {
-            fChannels["data-out"].at(0).Send(msg);
+            fChannels.at("data-out").at(0).Send(msg);
             //    LOG(INFO) << "------ Send  last Msg Part " << i ;
           }
         }
       }
     }
-
-    delete msg;
   }
-
-  delete poller;
 }
 

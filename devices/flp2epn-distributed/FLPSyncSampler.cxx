@@ -42,17 +42,15 @@ void FLPSyncSampler::Run()
   boost::thread resetEventCounter(boost::bind(&FLPSyncSampler::ResetEventCounter, this));
   boost::thread ackListener(boost::bind(&FLPSyncSampler::ListenForAcks, this));
 
-  int NOBLOCK = fChannels.at("data-out").at(0).fSocket->NOBLOCK;
-
   uint16_t timeFrameId = 1;
 
   FairMQChannel& dataOutputChannel = fChannels.at("data-out").at(0);
 
   while (CheckCurrentState(RUNNING)) {
-    FairMQMessage* msg = fTransportFactory->CreateMessage(sizeof(uint16_t));
+    unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage(sizeof(uint16_t)));
     memcpy(msg->GetData(), &timeFrameId, sizeof(uint16_t));
 
-    if (dataOutputChannel.Send(msg, NOBLOCK) > 0) {
+    if (dataOutputChannel.SendAsync(msg) > 0) {
       fTimeframeRTT[timeFrameId].start = boost::posix_time::microsec_clock::local_time();
 
       if (++timeFrameId == UINT16_MAX - 1) {
@@ -65,8 +63,6 @@ void FLPSyncSampler::Run()
     while (fEventCounter == 0) {
       boost::this_thread::sleep(boost::posix_time::milliseconds(1));
     }
-
-    delete msg;
   }
 
   try {
@@ -89,7 +85,7 @@ void FLPSyncSampler::ListenForAcks()
 
   while (CheckCurrentState(RUNNING)) {
     try {
-      FairMQMessage* idMsg = fTransportFactory->CreateMessage();
+      unique_ptr<FairMQMessage> idMsg(fTransportFactory->CreateMessage());
 
       if (fChannels.at("ack-in").at(0).Receive(idMsg) > 0) {
         id = *(static_cast<uint16_t*>(idMsg->GetData()));

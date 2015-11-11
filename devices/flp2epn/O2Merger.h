@@ -16,6 +16,7 @@ class O2Merger: public FairMQDevice
   public:
     O2Merger();
     virtual ~O2Merger();
+
   protected:
     virtual void Run();
 };

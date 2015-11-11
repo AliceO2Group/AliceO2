@@ -17,53 +17,30 @@ O2EpnMerger::O2EpnMerger()
 
 void O2EpnMerger::Run()
 {
-  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
+  std::unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels.at("data-in")));
 
-  bool received = false;
-  int NoOfMsgParts = fChannels["data-in"].size() - 1;
+  int numParts = fChannels.at("data-in").size() - 1;
 
   while (CheckCurrentState(RUNNING)) {
-    FairMQMessage* msg = fTransportFactory->CreateMessage();
+    std::unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
 
     poller->Poll(100);
 
-    for (int i = 0; i < fChannels["data-in"].size(); i++) {
+    for (int i = 0; i < fChannels.at("data-in").size(); i++) {
       if (poller->CheckInput(i)) {
-        if (fChannels["data-in"].at(i).Receive(msg)) {
+        if (fChannels.at("data-in").at(i).Receive(msg)) {
           // LOG(INFO) << "------ recieve Msg from " << i ;
-          if (i < NoOfMsgParts) {
-            fChannels["data-out"].at(0).Send(msg, "snd-more");
+          if (i < numParts) {
+            fChannels.at("data-out").at(0).SendPart(msg);
             //    LOG(INFO) << "------ Send  Msg Part " << i ;
           } else {
-            fChannels["data-out"].at(0).Send(msg);
+            fChannels.at("data-out").at(0).Send(msg);
             //    LOG(INFO) << "------ Send  last Msg Part " << i ;
           }
         }
       }
     }
-
-    delete msg;
   }
-
-  delete poller;
-
-//--------------------
-
-  // while (CheckCurrentState(RUNNING)) {
-  //   FairMQMessage* msg = fTransportFactory->CreateMessage();
-
-  //   fChannels["data-in"].at(0).Receive(msg);
-
-  //   int inputSize = msg->GetSize();
-  //   int numInput = inputSize / sizeof(Content);
-  //   Content* input = reinterpret_cast<Content*>(msg->GetData());
-
-  //   // for (int i = 0; i < numInput; ++i) {
-  //   //     LOG(INFO) << (&input[i])->x << " " << (&input[i])->y << " " << (&input[i])->z << " " << (&input[i])->a << " " << (&input[i])->b;
-  //   // }
-
-  //   delete msg;
-  // }
 }
 
 O2EpnMerger::~O2EpnMerger()
