@@ -32,6 +32,8 @@ if(NOT "$ENV{GPU_FORCE_64BIT_PTR}" STREQUAL "1")
     message(FATAL_ERROR "Please set env variable $GPU_FORCE_64BIT_PTR=1, required by HLT OpenCL tracker.")
 endif()
 
+message(STATUS "Building HLT with OpenCL support" )
+
 #convenience variables
 set(CAGPUDIR ${AliRoot_SOURCE_DIR}/HLT/TPCLib/tracking-ca/cagpu)
 
