@@ -23,6 +23,7 @@ else()
     find_library(LIBCUDA_SO_PATH libcuda.so)
     string(FIND ${LIBCUDA_SO_PATH} "-NOTFOUND" LIBCUDA_SO_PATH_NOTFOUND )
 endif(NOT CUDA_FOUND)
+message( STATUS "Building HLT with CUDA support" )
 
 if(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
   message( FATAL_ERROR "NVIDIA CUDA libcuda.so not found. Please install or set HLT_CUDA=OFF" )
