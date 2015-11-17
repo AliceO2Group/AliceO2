@@ -25,6 +25,7 @@ typedef struct DeviceOptions
   int bufferTimeoutInMs;
   int numFLPs;
   int testMode;
+  int interactive;
 
   string dataInSocketType;
   int dataInBufSize;
@@ -65,6 +66,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("buffer-timeout", bpo::value<int>()->default_value(1000), "Buffer timeout in milliseconds")
     ("num-flps", bpo::value<int>()->required(), "Number of FLPs")
     ("test-mode", bpo::value<int>()->default_value(0), "Run in test mode")
+    ("interactive", bpo::value<int>()->default_value(1), "Run in interactive mode (1/0)")
 
     ("data-in-socket-type", bpo::value<string>()->default_value("pull"), "Data input socket type: sub/pull")
     ("data-in-buff-size", bpo::value<int>()->default_value(10), "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
@@ -108,6 +110,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   if (vm.count("buffer-timeout"))        { _options->bufferTimeoutInMs     = vm["buffer-timeout"].as<int>(); }
   if (vm.count("num-flps"))              { _options->numFLPs               = vm["num-flps"].as<int>(); }
   if (vm.count("test-mode"))             { _options->testMode              = vm["test-mode"].as<int>(); }
+  if (vm.count("interactive"))           { _options->interactive           = vm["interactive"].as<int>(); }
 
   if (vm.count("data-in-socket-type"))   { _options->dataInSocketType      = vm["data-in-socket-type"].as<string>(); }
   if (vm.count("data-in-buff-size"))     { _options->dataInBufSize         = vm["data-in-buff-size"].as<int>(); }
@@ -214,7 +217,19 @@ int main(int argc, char** argv)
 
   // run the device
   epn.ChangeState("RUN");
-  epn.InteractiveStateLoop();
+  if (options.interactive > 0) {
+    epn.InteractiveStateLoop();
+  } else {
+    epn.WaitForEndOfState("RUN");
+
+    epn.ChangeState("RESET_TASK");
+    epn.WaitForEndOfState("RESET_TASK");
+
+    epn.ChangeState("RESET_DEVICE");
+    epn.WaitForEndOfState("RESET_DEVICE");
+
+    epn.ChangeState("END");
+  }
 
   return 0;
 }

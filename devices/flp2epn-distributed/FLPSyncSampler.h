@@ -33,6 +33,8 @@ class FLPSyncSampler : public FairMQDevice
   public:
     enum {
       EventRate = FairMQDevice::Last, ///< Publishing rate of the timeframe IDs
+      MaxEvents, ///< Maximum number of events to send (0 - unlimited)
+      StoreRTTinFile, ///< Store round trip time measurements in a file
       Last
     };
 
@@ -74,6 +76,8 @@ class FLPSyncSampler : public FairMQDevice
 
     std::array<timeframeDuration, UINT16_MAX> fTimeframeRTT; ///< Container for the roundtrip values per timeframe ID
     int fEventRate; ///< Publishing rate of the timeframe IDs
+    int fMaxEvents; ///< Maximum number of events to send (0 - unlimited)
+    int fStoreRTTinFile; ///< Store round trip time measurements in a file.
     int fEventCounter; ///< Controls the send rate of the timeframe IDs
 };
 
