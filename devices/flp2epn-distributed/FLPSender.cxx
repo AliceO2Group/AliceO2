@@ -197,7 +197,8 @@ inline void FLPSender::sendFrontData()
   //   fArrivalTime.pop();
   //   fDataBuffer.pop();
   // } else { // if the heartbeat from the corresponding EPN is within timeout period, send the data.
-    if (fChannels.at("data-out").at(direction).SendPartAsync(fHeaderBuffer.front()) < 0) {
+    if (fChannels.at("data-out").at(direction).SendPart(fHeaderBuffer.front()) < 0) {
+      // TODO: replace SendPart() with SendPartAsync() after nov15 fairroot release
       LOG(ERROR) << "Failed to queue ID part of event #" << currentTimeframeId;
     } else {
       if (fChannels.at("data-out").at(direction).SendAsync(fDataBuffer.front()) < 0) {

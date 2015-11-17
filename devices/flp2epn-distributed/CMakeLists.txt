@@ -1,3 +1,6 @@
+configure_file(${CMAKE_SOURCE_DIR}/devices/flp2epn-distributed/run/startFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN-distributed.sh)
+configure_file(${CMAKE_SOURCE_DIR}/devices/flp2epn-distributed/test/testFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/devices/flp2epn-distributed/test/testFLP2EPN-distributed.sh)
+
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/devices/flp2epn-distributed
 )
@@ -21,10 +24,6 @@ endif()
 
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-configure_file(
-  ${CMAKE_SOURCE_DIR}/devices/flp2epn-distributed/run/startFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN-distributed.sh
-)
 
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
@@ -115,3 +114,7 @@ ForEach(_file RANGE 0 ${_length})
   set(DEPENDENCIES FLP2EPNex_distributed)
   GENERATE_EXECUTABLE()
 EndForEach(_file RANGE 0 ${_length})
+
+add_test(NAME run_flp2epn_distributed COMMAND ${CMAKE_BINARY_DIR}/devices/flp2epn-distributed/test/testFLP2EPN-distributed.sh)
+set_tests_properties(run_flp2epn_distributed PROPERTIES TIMEOUT "30")
+set_tests_properties(run_flp2epn_distributed PROPERTIES PASS_REGULAR_EXPRESSION "acknowledged after")

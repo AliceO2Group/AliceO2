@@ -29,6 +29,8 @@ typedef struct DeviceOptions
 {
   string id;
   int eventRate;
+  int maxEvents;
+  int storeRTTinFile;
   int ioThreads;
 
   string dataOutSocketType;
@@ -54,6 +56,8 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   desc.add_options()
     ("id", bpo::value<string>()->required(), "Device ID")
     ("event-rate", bpo::value<int>()->default_value(100), "Event rate limit in maximum number of events per second")
+    ("max-events", bpo::value<int>()->default_value(0), "Maximum number of events to send (0 - unlimited)")
+    ("store-rtt-in-file", bpo::value<int>()->default_value(0), "Store round trip time measurements in a file (1/0)")
     ("io-threads", bpo::value<int>()->default_value(1), "Number of I/O threads")
 
     ("data-out-socket-type", bpo::value<string>()->default_value("pub"), "Data output socket type: pub/push")
@@ -80,9 +84,11 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
   bpo::notify(vm);
 
-  if (vm.count("id"))                       { _options->id                = vm["id"].as<string>(); }
-  if (vm.count("event-rate"))               { _options->eventRate         = vm["event-rate"].as<int>(); }
-  if (vm.count("io-threads"))               { _options->ioThreads         = vm["io-threads"].as<int>(); }
+  if (vm.count("id"))                    { _options->id                 = vm["id"].as<string>(); }
+  if (vm.count("event-rate"))            { _options->eventRate          = vm["event-rate"].as<int>(); }
+  if (vm.count("max-events"))            { _options->maxEvents          = vm["max-events"].as<int>(); }
+  if (vm.count("store-rtt-in-file"))     { _options->storeRTTinFile     = vm["store-rtt-in-file"].as<int>(); }
+  if (vm.count("io-threads"))            { _options->ioThreads          = vm["io-threads"].as<int>(); }
 
   if (vm.count("data-out-socket-type"))  { _options->dataOutSocketType  = vm["data-out-socket-type"].as<string>(); }
   if (vm.count("data-out-buff-size"))    { _options->dataOutBufSize     = vm["data-out-buff-size"].as<int>(); }
@@ -90,11 +96,11 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   // if (vm.count("data-out-address"))      { _options->dataOutAddress     = vm["data-out-address"].as<string>(); }
   if (vm.count("data-out-rate-logging")) { _options->dataOutRateLogging = vm["data-out-rate-logging"].as<int>(); }
 
-  if (vm.count("ack-in-socket-type"))    { _options->ackInSocketType   = vm["ack-in-socket-type"].as<string>(); }
-  if (vm.count("ack-in-buff-size"))      { _options->ackInBufSize      = vm["ack-in-buff-size"].as<int>(); }
-  if (vm.count("ack-in-method"))         { _options->ackInMethod       = vm["ack-in-method"].as<string>(); }
+  if (vm.count("ack-in-socket-type"))    { _options->ackInSocketType    = vm["ack-in-socket-type"].as<string>(); }
+  if (vm.count("ack-in-buff-size"))      { _options->ackInBufSize       = vm["ack-in-buff-size"].as<int>(); }
+  if (vm.count("ack-in-method"))         { _options->ackInMethod        = vm["ack-in-method"].as<string>(); }
   // if (vm.count("ack-in-address"))        { _options->ackInAddress      = vm["ack-in-address"].as<string>(); }
-  if (vm.count("ack-in-rate-logging"))   { _options->ackInRateLogging  = vm["ack-in-rate-logging"].as<int>(); }
+  if (vm.count("ack-in-rate-logging"))   { _options->ackInRateLogging   = vm["ack-in-rate-logging"].as<int>(); }
 
   return true;
 }
@@ -148,6 +154,8 @@ int main(int argc, char** argv)
   sampler.SetProperty(FLPSyncSampler::Id, options.id);
   sampler.SetProperty(FLPSyncSampler::NumIoThreads, options.ioThreads);
   sampler.SetProperty(FLPSyncSampler::EventRate, options.eventRate);
+  sampler.SetProperty(FLPSyncSampler::MaxEvents, options.maxEvents);
+  sampler.SetProperty(FLPSyncSampler::StoreRTTinFile, options.storeRTTinFile);
 
   FairMQChannel dataOutChannel(options.dataOutSocketType, options.dataOutMethod, ownAddress);
   dataOutChannel.UpdateSndBufSize(options.dataOutBufSize);

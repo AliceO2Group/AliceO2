@@ -26,6 +26,7 @@ typedef struct DeviceOptions
   int numEPNs;
   int heartbeatTimeoutInMs;
   int testMode;
+  int interactive;
   int sendOffset;
   int sendDelay;
 
@@ -64,6 +65,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("num-epns", bpo::value<int>()->required(), "Number of EPNs")
     ("heartbeat-timeout", bpo::value<int>()->default_value(20000), "Heartbeat timeout in milliseconds")
     ("test-mode", bpo::value<int>()->default_value(0), "Run in test mode")
+    ("interactive", bpo::value<int>()->default_value(1), "Run in interactive mode (1/0)")
     ("send-offset", bpo::value<int>()->default_value(0), "Offset for staggered sending")
     ("send-delay", bpo::value<int>()->default_value(8), "Delay for staggered sending")
 
@@ -97,35 +99,36 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
   bpo::notify(vm);
 
-  if (vm.count("id"))                      { _options->id                        = vm["id"].as<string>(); }
-  if (vm.count("flp-index"))               { _options->flpIndex                  = vm["flp-index"].as<int>(); }
-  if (vm.count("event-size"))              { _options->eventSize                 = vm["event-size"].as<int>(); }
-  if (vm.count("io-threads"))              { _options->ioThreads                 = vm["io-threads"].as<int>(); }
+  if (vm.count("id"))                    { _options->id                   = vm["id"].as<string>(); }
+  if (vm.count("flp-index"))             { _options->flpIndex             = vm["flp-index"].as<int>(); }
+  if (vm.count("event-size"))            { _options->eventSize            = vm["event-size"].as<int>(); }
+  if (vm.count("io-threads"))            { _options->ioThreads            = vm["io-threads"].as<int>(); }
 
-  if (vm.count("num-epns"))                { _options->numEPNs                   = vm["num-epns"].as<int>(); }
+  if (vm.count("num-epns"))              { _options->numEPNs              = vm["num-epns"].as<int>(); }
 
-  if (vm.count("heartbeat-timeout"))       { _options->heartbeatTimeoutInMs      = vm["heartbeat-timeout"].as<int>(); }
-  if (vm.count("test-mode"))               { _options->testMode                  = vm["test-mode"].as<int>(); }
-  if (vm.count("send-offset"))             { _options->sendOffset                = vm["send-offset"].as<int>(); }
-  if (vm.count("send-delay"))              { _options->sendDelay                 = vm["send-delay"].as<int>(); }
+  if (vm.count("heartbeat-timeout"))     { _options->heartbeatTimeoutInMs = vm["heartbeat-timeout"].as<int>(); }
+  if (vm.count("test-mode"))             { _options->testMode             = vm["test-mode"].as<int>(); }
+  if (vm.count("interactive"))           { _options->interactive          = vm["interactive"].as<int>(); }
+  if (vm.count("send-offset"))           { _options->sendOffset           = vm["send-offset"].as<int>(); }
+  if (vm.count("send-delay"))            { _options->sendDelay            = vm["send-delay"].as<int>(); }
 
-  if (vm.count("data-in-socket-type"))  { _options->dataInSocketType       = vm["data-in-socket-type"].as<string>(); }
-  if (vm.count("data-in-buff-size"))    { _options->dataInBufSize          = vm["data-in-buff-size"].as<int>(); }
-  if (vm.count("data-in-method"))       { _options->dataInMethod           = vm["data-in-method"].as<string>(); }
-  if (vm.count("data-in-address"))      { _options->dataInAddress          = vm["data-in-address"].as<string>(); }
-  if (vm.count("data-in-rate-logging")) { _options->dataInRateLogging      = vm["data-in-rate-logging"].as<int>(); }
+  if (vm.count("data-in-socket-type"))   { _options->dataInSocketType     = vm["data-in-socket-type"].as<string>(); }
+  if (vm.count("data-in-buff-size"))     { _options->dataInBufSize        = vm["data-in-buff-size"].as<int>(); }
+  if (vm.count("data-in-method"))        { _options->dataInMethod         = vm["data-in-method"].as<string>(); }
+  if (vm.count("data-in-address"))       { _options->dataInAddress        = vm["data-in-address"].as<string>(); }
+  if (vm.count("data-in-rate-logging"))  { _options->dataInRateLogging    = vm["data-in-rate-logging"].as<int>(); }
 
-  if (vm.count("data-out-socket-type"))      { _options->dataOutSocketType          = vm["data-out-socket-type"].as<string>(); }
-  if (vm.count("data-out-buff-size"))        { _options->dataOutBufSize             = vm["data-out-buff-size"].as<int>(); }
-  if (vm.count("data-out-method"))           { _options->dataOutMethod              = vm["data-out-method"].as<string>(); }
-  if (vm.count("data-out-address"))          { _options->dataOutAddress             = vm["data-out-address"].as<vector<string>>(); }
-  if (vm.count("data-out-rate-logging"))     { _options->dataOutRateLogging         = vm["data-out-rate-logging"].as<int>(); }
+  if (vm.count("data-out-socket-type"))  { _options->dataOutSocketType    = vm["data-out-socket-type"].as<string>(); }
+  if (vm.count("data-out-buff-size"))    { _options->dataOutBufSize       = vm["data-out-buff-size"].as<int>(); }
+  if (vm.count("data-out-method"))       { _options->dataOutMethod        = vm["data-out-method"].as<string>(); }
+  if (vm.count("data-out-address"))      { _options->dataOutAddress       = vm["data-out-address"].as<vector<string>>(); }
+  if (vm.count("data-out-rate-logging")) { _options->dataOutRateLogging   = vm["data-out-rate-logging"].as<int>(); }
 
-  if (vm.count("hb-in-socket-type"))    { _options->hbInSocketType         = vm["hb-in-socket-type"].as<string>(); }
-  if (vm.count("hb-in-buff-size"))      { _options->hbInBufSize            = vm["hb-in-buff-size"].as<int>(); }
-  if (vm.count("hb-in-method"))         { _options->hbInMethod             = vm["hb-in-method"].as<string>(); }
-  if (vm.count("hb-in-address"))        { _options->hbInAddress            = vm["hb-in-address"].as<string>(); }
-  if (vm.count("hb-in-rate-logging"))   { _options->hbInRateLogging        = vm["hb-in-rate-logging"].as<int>(); }
+  if (vm.count("hb-in-socket-type"))     { _options->hbInSocketType       = vm["hb-in-socket-type"].as<string>(); }
+  if (vm.count("hb-in-buff-size"))       { _options->hbInBufSize          = vm["hb-in-buff-size"].as<int>(); }
+  if (vm.count("hb-in-method"))          { _options->hbInMethod           = vm["hb-in-method"].as<string>(); }
+  if (vm.count("hb-in-address"))         { _options->hbInAddress          = vm["hb-in-address"].as<string>(); }
+  if (vm.count("hb-in-rate-logging"))    { _options->hbInRateLogging      = vm["hb-in-rate-logging"].as<int>(); }
 
   return true;
 }
@@ -204,7 +207,19 @@ int main(int argc, char** argv)
 
   // run the device
   flp.ChangeState("RUN");
-  flp.InteractiveStateLoop();
+  if (options.interactive > 0) {
+    flp.InteractiveStateLoop();
+  } else {
+    flp.WaitForEndOfState("RUN");
+
+    flp.ChangeState("RESET_TASK");
+    flp.WaitForEndOfState("RESET_TASK");
+
+    flp.ChangeState("RESET_DEVICE");
+    flp.WaitForEndOfState("RESET_DEVICE");
+
+    flp.ChangeState("END");
+  }
 
   return 0;
 }
