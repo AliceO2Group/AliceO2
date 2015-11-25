@@ -175,16 +175,6 @@ void EventSampler::Pause()
   FairMQDevice::Pause();
 }
 
-void EventSampler::Shutdown()
-{
-  /// inherited from FairMQDevice
-
-  int iResult=0;
-  // TODO: shutdown component and delete instance
-
-  FairMQDevice::Shutdown();
-}
-
 void EventSampler::SetProperty(const int key, const string& value)
 {
   /// inherited from FairMQDevice
