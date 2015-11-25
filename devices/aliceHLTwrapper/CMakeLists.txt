@@ -29,7 +29,6 @@ include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 set(LINK_DIRECTORIES
   ${FAIRROOT_LIBRARY_DIR}
   ${Boost_LIBRARY_DIRS}
-  ${AlFa_DIR}/lib
 )
 
 if(DDS_FOUND)
