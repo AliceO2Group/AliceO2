@@ -264,7 +264,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   } while (iResult == ENOSPC && --nofTrials > 0);
 
   // prepare output
-  if (outputBlockCnt >= 0) {
+  { // keep this after removing condition to preserve formatting
     AliHLTUInt8_t* pOutputBufferStart = &mOutputBuffer[0];
     AliHLTUInt8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
     // consistency check for data blocks
