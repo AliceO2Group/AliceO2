@@ -452,8 +452,6 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		return(1);
 	}
 	
-	clFinish(ocl->command_queue[0]);
-
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 	{
 		if (Reconstruct_Base_SliceInit(pClusterData, iSlice, firstSlice)) return(1);
