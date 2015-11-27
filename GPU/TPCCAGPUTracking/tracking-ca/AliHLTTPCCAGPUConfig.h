@@ -85,9 +85,9 @@
 #define HLTCA_GPU_TRACKER_OBJECT_MEMORY 1024 * 1024		//Total amount of Memory to reserve for GPU Tracker Objects
 #define HLTCA_GPU_ROWS_MEMORY 1024 * 1024				//Total amount of Memory to reserve for GPU Row Parameters
 #define HLTCA_GPU_COMMON_MEMORY 1024 * 1024				//Total amount of Memory to reserve for CommomMemoryStruct on GPU
-#define HLTCA_GPU_SLICE_DATA_MEMORY 6 * 1024 * 1024		//Amount of Slice Data Memory to reserve per Slice on GPU
-#define HLTCA_GPU_GLOBAL_MEMORY 13 * 1024 * 1024		//Amount of global temporary Memory to reserve per Slice on GPU
-#define HLTCA_GPU_TRACKS_MEMORY 2 * 1024 * 1024			//Amount of Memory to reserve for Final Tracks per Slice on Host as Page Locked Memory
+#define HLTCA_GPU_SLICE_DATA_MEMORY 9 * 1024 * 1024		//Amount of Slice Data Memory to reserve per Slice on GPU
+#define HLTCA_GPU_GLOBAL_MEMORY 20 * 1024 * 1024		//Amount of global temporary Memory to reserve per Slice on GPU
+#define HLTCA_GPU_TRACKS_MEMORY 3 * 1024 * 1024			//Amount of Memory to reserve for Final Tracks per Slice on Host as Page Locked Memory
 
 //Make sure options do not interfere
 
