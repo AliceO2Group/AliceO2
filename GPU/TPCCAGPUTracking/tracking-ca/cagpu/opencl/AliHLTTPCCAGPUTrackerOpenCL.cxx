@@ -727,7 +727,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 
 		if (fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError RANDOM_ERROR)
 		{
-			HLTError("GPU Tracker returned Error Code %d in slice %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice);
+			HLTError("GPU Tracker returned Error Code %d in slice %d (clusters %d)", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice, fSlaveTrackers[firstSlice + iSlice].Data().NumberOfHits());
 			ResetHelperThreads(1);
 			for (int iSlice2 = 0;iSlice2 < sliceCountLocal;iSlice2++) clReleaseEvent(ocl->selector_events[iSlice2]);
 			return(1);
