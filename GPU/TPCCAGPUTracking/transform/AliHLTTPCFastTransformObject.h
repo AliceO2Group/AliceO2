@@ -81,7 +81,7 @@ class AliHLTTPCFastTransformObject: public TObject{
   }
  
   const AliHLTTPCSpline2D3DObject& GetSplineOut ( Int_t iSecOut, Int_t iRow, Int_t iSpline ) const { 
-    return fSplines[fkNSplinesIn + fkNSecOut*fkNRowsOut*3 + iRow*3 + iSpline]; 
+    return fSplines[fkNSplinesIn + iSecOut*fkNRowsOut*3 + iRow*3 + iSpline]; 
   }
 
   /** last calibrated time bin */
@@ -107,7 +107,7 @@ class AliHLTTPCFastTransformObject: public TObject{
   }
  
   AliHLTTPCSpline2D3DObject& GetSplineOutNonConst ( Int_t iSecOut, Int_t iRow, Int_t iSpline )  { 
-    return fSplines[fkNSplinesIn + fkNSecOut*fkNRowsOut*3 + iRow*3 + iSpline]; 
+    return fSplines[fkNSplinesIn + iSecOut*fkNRowsOut*3 + iRow*3 + iSpline]; 
   }
 
   bool IsSectorInit(int sec) const {return fSectorInit[sec];}
