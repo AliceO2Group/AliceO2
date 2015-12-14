@@ -123,4 +123,12 @@ To include custom DDS location in the compilation, provide DDS_PATH flag when ca
 cmake -DDDS_PATH="/home/username/DDS/0.11.27.g79f48d4/" ..
 ```
 
+### Documentation
+
+The documentation single entry point is [here](https://alice-o2.web.cern.ch/). 
+
+### Issue tracking system
+
+We use JIRA to track issues. Head [here](https://alice.its.cern.ch/jira) to create tickets. 
+
 
