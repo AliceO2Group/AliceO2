@@ -1325,10 +1325,23 @@ TList* Manager::getAllObjects(const ConditionId& query)
       Storage* chkStorage = getStorage(chkPar);
       LOG(DEBUG) << "Found specific storage! " << chkPar->getUri().Data() << FairLogger::endl;
 
-      Condition* newCondition = 0;
       chkId.setIdRunRange(query.getFirstRun(), query.getLastRun());
-      chkId.setVersion(query.getVersion());
-      chkId.setSubVersion(query.getSubVersion());
+      UInt_t uId = chkPar->GetUniqueID();
+      Int_t version = -1, subVersion = -1;
+      version = Int_t(uId&0xffff) - 1;
+      subVersion = Int_t(uId>>16) - 1;
+      if(version!=-1){
+        chkId.setVersion(version);
+      }else{
+        chkId.setVersion(query.getVersion());
+      }
+      if(subVersion!=-1){
+        chkId.setSubVersion(subVersion);
+      }else{
+        chkId.setSubVersion(query.getSubVersion());
+      }
+
+      Condition *newCondition = 0;
 
       if (chkStorage)
         newCondition = chkStorage->getObject(chkId);
