@@ -61,6 +61,10 @@
 #ifndef PND_PYTHIAGENERATOR_H
 #define PND_PYTHIAGENERATOR_H
 
+#ifdef __CINT__
+#define _DLFCN_H_
+#define _DLFCN_H
+#endif
 
 #include <stdio.h>          // for FILE
 #include "FairGenerator.h"  // for FairGenerator

@@ -1,0 +1,14 @@
+To run the MQ server-client example with the MQ server replying with CDB objects to the client requests, follow the following steps:
+
+0) In each shell configure the AliceO2 environment: source <your ${CMAKE_BINARY_DIR}>/config.sh
+
+1) To create a local O2CDB instance run the macro
+   root -l bin/config/fill_local_ocdb.C
+   under your build directory. This will create "DET/Calib/Histo" calibration objects in bin/config/O2CDB for a hundred of runs
+
+2a) In one shell run the server example:
+<your ${CMAKE_BINARY_DIR}>/bin/conditions-server --id parmq-server --config-json-file <your ${CMAKE_BINARY_DIR}>/bin/config/conditions-server.json
+    --first-input-name local://<your ${CMAKE_BINARY_DIR}>/bin/config/O2CDB --first-input-type OCDB
+
+2b) In a separate shell run the client example:
+<your ${CMAKE_BINARY_DIR}>/bin/conditions-client --id parmq-client --config-json-file <your ${CMAKE_BINARY_DIR}>/bin/config/conditions-client.json

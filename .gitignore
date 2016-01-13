@@ -29,6 +29,7 @@
 
 # build directory
 build/
+build_o2/
 
 # common editor backups
 *.swp
