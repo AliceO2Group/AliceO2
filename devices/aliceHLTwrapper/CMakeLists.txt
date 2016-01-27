@@ -1,13 +1,14 @@
+# @author Matthias Richter
+# @brief  cmake setup for module devices/aliceHLTwrapper
+
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
   ${BASE_INCLUDE_DIRECTORIES}
-  ${ZMQ_INCLUDE_DIR}
   ${Boost_INCLUDE_DIR}
   ${FAIRROOT_INCLUDE_DIR}
-  ${AlFa_DIR}/include
 )
 
 if(DDS_FOUND)
@@ -21,10 +22,6 @@ endif()
 
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-# set(CXXOPT "-O0 -g -ggdb")
-# set(CXXFLAGS "-O0 -g -ggdb")
-
-#configure_file( ${CMAKE_SOURCE_DIR}/example/flp2epn/run/startSomething.sh.in ${CMAKE_BINARY_DIR}/bin/startSomething.sh )
 
 set(LINK_DIRECTORIES
   ${FAIRROOT_LIBRARY_DIR}
@@ -58,7 +55,6 @@ endif()
 
 set(DEPENDENCIES
     ${DEPENDENCIES}
-    # ${ZMQ_LIBRARY_SHARED}
   )
 
 if(FAIRMQ_DEPENDENCIES)
@@ -105,4 +101,3 @@ ForEach(_file RANGE 0 ${_length})
   set(DEPENDENCIES ALICEHLT dl)
   GENERATE_EXECUTABLE()
 EndForEach(_file RANGE 0 ${_length})
-
