@@ -19,49 +19,90 @@
 
 // use the standard definitions of int variables
 #include <stdint.h>
+#include "header_versions.h"
 
+/**
+The defined headers are a tradeoff to provide the necessary information in a lightweight way and to allow for evolution and compatibility.
+
+General header format
+- Starts with basic header information, never serialized, with unique version number
+- Strict policy enforced: no changes to members (e.g. width) or sequence of members
+- New members can be appended
+- All basic header structs are defined with fixed endianess and padding
+- Header-stack concept: optional headers can follow the basic header
+*/
 namespace AliceO2 {
 namespace Format {
   /**
-   * Basic struct for the data block meta data
+   * Data header to be commonly used for all in-memory data blocks
    *
-   * In total 24 byte are used per data block to descibe meta data
+   * Unique header version; struct size included for consistency check
+   * and to facilitate later implementation of conversion handlers.
+   *
+   * A magic string makes identification of header simpler, e.g. after
+   * a data corruption; great help for low level debugging
+   *
+   * PayloadSize is a redundant information, to be used for integrity
+   * check and mandatory for disk dumped data
+   *
+   * Payload serialization method defined in the header, allows to build
+   * common functionality. Framework can choose the right tool for
+   * de-serialization
    */
-  struct BlockMetaData_t {
-    /** Size and version of the struct */
-    int16_t mStructSize;
-    /** Subsystem or detector */
-    char mDataOrigin[3+1]; // find if there is a consistent 3-letter naming scheme in ALICE, enforce 0 at the end
-    /** Main specification, e.g. raw, clusters, tracks */
-    char mDataDescriptor[8];
-    /** A system or detector specific sub specification */
-    int32_t mSubSpec;
+  struct  DataHeader_t {
+    /** 4 bytes of a magic string */
+    int32_t  mMagicString;
+    /** size of the struct */
+    int32_t  mStructSize;
+    /** header version, bookkeeping in the software */
+    int32_t  mHeaderVersion;
+    /** Flags field, valid bits and their meaning defined by the header version */
+    int32_t  mFlags;
+    /** size of payload in memory */
+    int64_t  mPayloadSize;
+    /** payload serialization method for transfer */
+    char mPayloadSerializationMethod[7+1];
+    /** Payload meta data: Subsystem or detector */
+    char mDataOrigin[3+1];
+    /** Payload meta data: Data description, e.g. raw, clusters, tracks */
+    char mDataDescriptor[15+1];
+    /** Payload meta data: A system or detector specific sub specification */
+    int64_t mSubSpec;
   };
 
   /**
-   * Block data header to be commonly used for all in-memory data blocks
+   * Helper struct for the payload meta data
    *
-   * To be decided: use unions to fit different members for transfer and in-memory?
-   *
-   * The struct size could be handled by the transport layer in the multi-header
-   * approach, having the size as member keeps the possibility of sub headers
+   * This struct is an addition to DataHeader_t to allow implementation
+   * of operators. All meta data members are directly included in DataHeader_t
+   * for easier access and consistency.
    */
-  struct BlockData_t
-  {
-    /** 4 bytes of a magic string */
-    int32_t mMagicString;
-    /** size and version of the struct */
-    int16_t mStructSize;
-    /** flags, one of the bits to indicate that a sub header is following */
-    int16_t mFlags;
-    /** size of the data block in memory */
-    int64_t mPayloadSize; // keep it for storage on disk
-    /** header serialization method for transfer */
-    int64_t mHeaderSerializationMethod; // use string
-    /** payload serialization method for transfer */
-    int64_t mPayloadSerializationMethod; // use string
-    /** data block meta data: type, origin, specification */
-    BlockMetaData_t mMetaData;
+  struct PayloadMetaData_t {
+    /** Subsystem or detector */
+    char mDataOrigin[3+1];
+    /** Data description, e.g. raw, clusters, tracks */
+    char mDataDescriptor[15+1];
+    /** A system or detector specific sub specification */
+    int64_t mSubSpec;
+  };
+
+  /**
+   * Header-stack:: optional headers can follow the basic header
+   * A next header is indicated in the flag member of preceeding header
+   * Optional headers consist of a fixed NextHeaderDescription and a variable
+   * NextHeaderContent
+   */
+  struct NextHeaderDescription_t {
+    /** size of this next header description */
+    int32_t mStructSize;
+    /** size of the next header payload */
+    int32_t mNextHeaderContentSize;
+    /** Common flags for all next-headers, includes next-header flag */
+    int32_t mFlags;
+    /** Descriptor */
+    char mHeaderDescriptor[15+1];
+    /** serialization method */
+    char mSerializationMethod[7+1];
   };
 
 }; // namespace Format
