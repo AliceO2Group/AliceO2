@@ -30,8 +30,8 @@ void O2EPNex::Run()
 
     fChannels.at("data-in").at(0).Receive(msg);
 
-    int numInput = msg->GetSize() / sizeof(Content);
-    Content* input = static_cast<Content*>(msg->GetData());
+    // int numInput = msg->GetSize() / sizeof(Content);
+    // Content* input = static_cast<Content*>(msg->GetData());
 
     // for (int i = 0; i < numInput; ++i) {
     //     LOG(INFO) << (&input[i])->x << " " << (&input[i])->y << " " << (&input[i])->z << " " << (&input[i])->a << " " << (&input[i])->b;

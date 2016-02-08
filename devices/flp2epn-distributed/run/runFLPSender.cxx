@@ -17,8 +17,14 @@
 using namespace std;
 using namespace AliceO2::Devices;
 
-typedef struct DeviceOptions
+struct DeviceOptions
 {
+  DeviceOptions() :
+    id(), flpIndex(0), eventSize(0), ioThreads(0), numEPNs(0), heartbeatTimeoutInMs(0), testMode(0), interactive(0), sendOffset(0), sendDelay(0),
+    dataInSocketType(), dataInBufSize(0), dataInMethod(), dataInAddress(), dataInRateLogging(0),
+    dataOutSocketType(), dataOutBufSize(0), dataOutMethod(), dataOutAddress(), dataOutRateLogging(0),
+    hbInSocketType(), hbInBufSize(0), hbInMethod(), hbInAddress(), hbInRateLogging(0) {}
+
   string id;
   int flpIndex;
   int eventSize;
@@ -47,7 +53,7 @@ typedef struct DeviceOptions
   string hbInMethod;
   string hbInAddress;
   int hbInRateLogging;
-} DeviceOptions_t;
+};
 
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 {
@@ -141,7 +147,7 @@ int main(int argc, char** argv)
   flp.CatchSignals();
 
   // container for the command line options
-  DeviceOptions_t options;
+  DeviceOptions options;
   // parse the command line options and fill the container
   try {
     if (!parse_cmd_line(argc, argv, &options)) {

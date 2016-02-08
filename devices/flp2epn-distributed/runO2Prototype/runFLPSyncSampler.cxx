@@ -25,8 +25,13 @@
 using namespace std;
 using namespace AliceO2::Devices;
 
-typedef struct DeviceOptions
+struct DeviceOptions
 {
+  DeviceOptions() :
+    id(), eventRate(0), maxEvents(0), ioThreads(0), storeRTTinFile(0),
+    dataOutSocketType(), dataOutBufSize(0), dataOutMethod(), dataOutRateLogging(0),
+    ackInSocketType(), ackInBufSize(0), ackInMethod(), ackInRateLogging(0) {}
+
   string id;
   int eventRate;
   int maxEvents;
@@ -44,7 +49,7 @@ typedef struct DeviceOptions
   string ackInMethod;
   // string ackInAddress;
   int ackInRateLogging;
-} DeviceOptions_t;
+};
 
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 {
@@ -113,7 +118,7 @@ int main(int argc, char** argv)
   sampler.CatchSignals();
 
   // create container for command line options and fill it
-  DeviceOptions_t options;
+  DeviceOptions options;
   try {
     if (!parse_cmd_line(argc, argv, &options))
       return 0;

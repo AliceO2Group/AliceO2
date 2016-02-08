@@ -20,15 +20,19 @@
 
 using namespace std;
 
-typedef struct DeviceOptions
+struct DeviceOptions
 {
+    DeviceOptions() :
+        id(), ioThreads(1),
+        inputSocketType(), inputBufSize(1000), inputMethod(), inputAddress() {}
+
     string id;
     int ioThreads;
     string inputSocketType;
     int inputBufSize;
     string inputMethod;
     string inputAddress;
-} DeviceOptions_t;
+};
 
 inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 {
@@ -49,7 +53,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     bpo::variables_map vm;
     bpo::store(bpo::parse_command_line(_argc, _argv, desc), vm);
 
-    if ( vm.count("help") )
+    if (vm.count("help"))
     {
         LOG(INFO) << "EPN Merger" << endl << desc;
         return false;
@@ -57,23 +61,12 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
     bpo::notify(vm);
 
-    if ( vm.count("id") )
-        _options->id = vm["id"].as<string>();
-
-    if ( vm.count("io-threads") )
-        _options->ioThreads = vm["io-threads"].as<int>();
-
-    if ( vm.count("input-socket-type") )
-        _options->inputSocketType = vm["input-socket-type"].as<string>();
-
-    if ( vm.count("input-buff-size") )
-        _options->inputBufSize = vm["input-buff-size"].as<int>();
-
-    if ( vm.count("input-method") )
-        _options->inputMethod = vm["input-method"].as<string>();
-
-    if ( vm.count("input-address") )
-        _options->inputAddress = vm["input-address"].as<string>();
+    if (vm.count("id"))                { _options->id              = vm["id"].as<string>(); }
+    if (vm.count("io-threads"))        { _options->ioThreads       = vm["io-threads"].as<int>(); }
+    if (vm.count("input-socket-type")) { _options->inputSocketType = vm["input-socket-type"].as<string>(); }
+    if (vm.count("input-buff-size"))   { _options->inputBufSize    = vm["input-buff-size"].as<int>(); }
+    if (vm.count("input-method"))      { _options->inputMethod     = vm["input-method"].as<string>(); }
+    if (vm.count("input-address"))     { _options->inputAddress    = vm["input-address"].as<string>(); }
 
     return true;
 }
@@ -83,7 +76,7 @@ int main(int argc, char** argv)
     O2EpnMerger epn;
     epn.CatchSignals();
 
-    DeviceOptions_t options;
+    DeviceOptions options;
     try
     {
         if (!parse_cmd_line(argc, argv, &options))

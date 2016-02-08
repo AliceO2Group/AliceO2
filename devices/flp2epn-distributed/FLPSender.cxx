@@ -28,18 +28,18 @@ struct f2eHeader {
 };
 
 FLPSender::FLPSender()
-  : fIndex(0)
-  , fSendOffset(0)
-  , fSendDelay(8)
-  , fHeaderBuffer()
+  : fHeaderBuffer()
   , fDataBuffer()
   , fArrivalTime()
   , fNumEPNs(0)
+  , fIndex(0)
+  , fSendOffset(0)
+  , fSendDelay(8)
+  , fEventSize(10000)
+  , fTestMode(0)
   , fHeartbeatTimeoutInMs(20000)
   , fHeartbeats()
   , fHeartbeatMutex()
-  , fEventSize(10000)
-  , fTestMode(0)
 {
 }
 

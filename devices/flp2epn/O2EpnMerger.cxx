@@ -26,7 +26,7 @@ void O2EpnMerger::Run()
 
     poller->Poll(100);
 
-    for (int i = 0; i < fChannels.at("data-in").size(); i++) {
+    for (unsigned int i = 0; i < fChannels.at("data-in").size(); i++) {
       if (poller->CheckInput(i)) {
         if (fChannels.at("data-in").at(i).Receive(msg)) {
           // LOG(INFO) << "------ recieve Msg from " << i ;

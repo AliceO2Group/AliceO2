@@ -24,12 +24,12 @@ struct f2eHeader {
 };
 
 EPNReceiver::EPNReceiver()
-  : fHeartbeatIntervalInMs(3000)
-  , fBufferTimeoutInMs(5000)
-  , fNumFLPs(0)
-  , fTestMode(0)
-  , fTimeframeBuffer()
+  : fTimeframeBuffer()
   , fDiscardedSet()
+  , fNumFLPs(0)
+  , fBufferTimeoutInMs(5000)
+  , fTestMode(0)
+  , fHeartbeatIntervalInMs(3000)
 {
 }
 
@@ -51,7 +51,7 @@ void EPNReceiver::PrintBuffer(const unordered_map<uint16_t, TFBuffer>& buffer) c
 
   for (auto& it : buffer) {
     string stars = "";
-    for (int j = 1; j <= (it.second).parts.size(); ++j) {
+    for (unsigned int j = 1; j <= (it.second).parts.size(); ++j) {
       stars += "*";
     }
     LOG(INFO) << setw(4) << it.first << ": " << stars;
@@ -65,7 +65,7 @@ void EPNReceiver::DiscardIncompleteTimeframes()
     if ((boost::posix_time::microsec_clock::local_time() - (it->second).startTime).total_milliseconds() > fBufferTimeoutInMs) {
       LOG(WARN) << "Timeframe #" << it->first << " incomplete after " << fBufferTimeoutInMs << " milliseconds, discarding";
       fDiscardedSet.insert(it->first);
-      for (int i = 0; i < (it->second).parts.size(); ++i) {
+      for (unsigned int i = 0; i < (it->second).parts.size(); ++i) {
         (it->second).parts.at(i).reset();
       }
       it->second.parts.clear();
@@ -89,9 +89,8 @@ void EPNReceiver::Run()
   // vector<boost::posix_time::ptime> rcvTimestamp(fNumFLPs);
   // end DEBUG
 
-  f2eHeader* h; // holds the header of the currently arrived message.
+  // f2eHeader* header; // holds the header of the currently arrived message.
   uint16_t id = 0; // holds the timeframe id of the currently arrived sub-timeframe.
-  int rcvDataSize = 0;
 
   FairMQChannel& dataInputChannel = fChannels.at("data-in").at(0);
   FairMQChannel& dataOutChannel = fChannels.at("data-out").at(0);
@@ -105,13 +104,13 @@ void EPNReceiver::Run()
 
       if (dataInputChannel.Receive(headerPart) > 0) {
         // store the received ID
-        h = static_cast<f2eHeader*>(headerPart->GetData());
-        id = h->timeFrameId;
-        // LOG(INFO) << "Received sub-time frame #" << id << " from FLP" << h->flpIndex;
+        f2eHeader& header = *(static_cast<f2eHeader*>(headerPart->GetData()));
+        id = header.timeFrameId;
+        // LOG(INFO) << "Received sub-time frame #" << id << " from FLP" << header.flpIndex;
 
         // DEBUG:: store receive intervals per FLP
         // if (fTestMode > 0) {
-        //   int flp_id = h->flpIndex;
+        //   int flp_id = header.flpIndex;
         //   if (to_simple_string(rcvTimestamp.at(flp_id)) != "not_a_date_time") {
         //     rcvIntervals.at(flp_id).push_back( (boost::posix_time::microsec_clock::local_time() - rcvTimestamp.at(flp_id)).total_microseconds() );
         //     // LOG(WARN) << rcvIntervals.at(flp_id).back();
@@ -167,7 +166,7 @@ void EPNReceiver::Run()
           }
 
           // let transport know that the data is no longer needed. transport will clean up after it is sent out.
-          for (int i = 0; i < fTimeframeBuffer[id].parts.size(); ++i) {
+          for (unsigned int i = 0; i < fTimeframeBuffer[id].parts.size(); ++i) {
             fTimeframeBuffer[id].parts.at(i).reset();
           }
           fTimeframeBuffer[id].parts.clear();

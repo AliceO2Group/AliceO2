@@ -20,11 +20,11 @@ using boost::posix_time::ptime;
 using namespace AliceO2::Devices;
 
 FLPSyncSampler::FLPSyncSampler()
-  : fEventRate(1)
+  : fTimeframeRTT()
+  , fEventRate(1)
   , fMaxEvents(0)
   , fStoreRTTinFile(0)
   , fEventCounter(0)
-  , fTimeframeRTT()
 {
 }
 
