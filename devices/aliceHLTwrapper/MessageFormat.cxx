@@ -83,10 +83,10 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
       break;
     }
     if (readBlockSequence(buffer+position, size-position, mBlockDescriptors) < 0 ||
-	evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt)) {
+	(evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
       // not in the format of a single block, check if its a HOMER block
       if (readHOMERFormat(buffer+position, size-position, mBlockDescriptors) < 0 ||
-	  evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt)) {
+	 (evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
 	// not in HOMER format either
 	if (position>0) {
 	  // try once more without the assumption of event data header
@@ -127,6 +127,7 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
       cerr << "warning: ignoring message " << i << " with payload of size 0" << endl;
     }
   }
+  return 0;
 }
 
 int MessageFormat::readBlockSequence(AliHLTUInt8_t* buffer, unsigned size,
