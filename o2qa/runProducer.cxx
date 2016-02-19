@@ -14,20 +14,7 @@
 
 namespace
 {
-
 std::vector<ProducerStateMachine*> producerStateMachines;
-
-void signalHandler(int signal)
-{
-    LOG(INFO) << "Caught signal " << signal;
-
-    for (auto ProducerStateMachine : producerStateMachines) {
-        ProducerStateMachine->ChangeState(ProducerStateMachine::END);
-    }
-
-    LOG(INFO) << "Shutdown complete.";
-}
-
 }
 
 int main(int argc, char** argv)
@@ -41,9 +28,6 @@ int main(int argc, char** argv)
 
     ProducerStateMachine ProducerStateMachine("Producer", argv[3], atof(argv[1]), atof(argv[2]), 1);
     producerStateMachines.push_back(&ProducerStateMachine);
-    
-    std::signal(SIGINT, signalHandler);
-    std::signal(SIGTERM, signalHandler);
 
     LOG(INFO) << "PID: " << getpid();
     LOG(INFO) << "Producer id: " 
