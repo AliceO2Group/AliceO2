@@ -15,25 +15,10 @@ using namespace std;
 
 HistogramViewer histogramViewer("Viewer_1", 1);
 
-namespace
-{
-
-void signalHandler(int signal)
-{
-    LOG(INFO) << "Caught signal " << signal;
-    histogramViewer.ChangeState(HistogramViewer::END);
-    LOG(INFO) << "Caught signal " << signal;
-}
-
-}
-
 int main(int argc, char** argv)
 {   
     TApplication *app; 
     app = new TApplication("app1", &argc, argv);
-
-    std::signal(SIGINT, signalHandler);
-    std::signal(SIGTERM, signalHandler);
 
     LOG(INFO) << "PID: " << getpid();
     LOG(INFO) << "Viewer id: " 

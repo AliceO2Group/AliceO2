@@ -14,24 +14,8 @@ using namespace std;
 
 SystemController systemController("CentralSystemController", "systemController_log.txt", 1);
 
-namespace
-{
-
-void signal_handler(int signal)
-{
-    LOG(INFO) << "Caught signal " << signal;
-    systemController.ChangeState(SystemController::END);
-    LOG(INFO) << "Caught signal " << signal;
-}
-
-}
-
 int main(int argc, char** argv)
 {
-
-    std::signal(SIGINT, signal_handler);
-    std::signal(SIGTERM, signal_handler);
-
     LOG(INFO) << "PID: " << getpid();
     LOG(INFO) << "SystemController id: " 
               << systemController.GetProperty(SystemController::Id, "default_id");

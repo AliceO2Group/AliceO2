@@ -17,23 +17,8 @@ using namespace std;
 
 HistogramMerger histogramMerger("Merger_1", 1);
 
-namespace
-{
-
-void signalHandler(int signal)
-{
-    LOG(INFO) << "Caught signal " << signal;
-    histogramMerger.ChangeState(HistogramMerger::END);
-    LOG(INFO) << "Caught signal " << signal;
-}
-
-}
-
 int main(int argc, char** argv)
 {    
-    std::signal(SIGINT, signalHandler);
-    std::signal(SIGTERM, signalHandler);
-
     LOG(INFO) << "PID: " << getpid();
     LOG(INFO) << "Merger id: " 
               << histogramMerger.GetProperty(HistogramMerger::Id, "default_id");
