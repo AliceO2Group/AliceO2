@@ -6,15 +6,15 @@ using namespace std;
 
 HistogramProducer::HistogramProducer(string histogramId, float xLow, float xUp)
 {
-	mHistogramProducerId = histogramId;
+	mHistogramId = histogramId;
 	mBeansNumber = 100;
 	mXLow = xLow;
 	mXUp = xUp;
 }
 
-TObject* HistogramProducer::produceData()
+TObject* HistogramProducer::produceData() const
 {
-    auto histogram = new TH1F(mHistogramProducerId.c_str(), "Gauss distribution", mBeansNumber, mXLow, mXUp);
+    TH1F* histogram = new TH1F(mHistogramId.c_str(), "Gauss distribution", mBeansNumber, mXLow, mXUp);
     histogram->FillRandom("gaus", 1000);
     return histogram;
 }

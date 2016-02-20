@@ -5,16 +5,16 @@
 #include <thread>
 #include <FairMQTransportFactoryZMQ.h>
 
-#include "ProducerStateMachine.h"
+#include "ProducerDevice.h"
 #include "HistogramProducer.h"
 
 using namespace std;
 
-ProducerStateMachine::ProducerStateMachine(string producerId, string histogramId, float xLow, float xUp, int numIoThreads) 
+ProducerDevice::ProducerDevice(string producerId, string histogramId, float xLow, float xUp, int numIoThreads) 
 {
     this->SetTransport(new FairMQTransportFactoryZMQ);
-    this->SetProperty(ProducerStateMachine::Id, producerId);
-    this->SetProperty(ProducerStateMachine::NumIoThreads, numIoThreads);
+    this->SetProperty(ProducerDevice::Id, producerId);
+    this->SetProperty(ProducerDevice::NumIoThreads, numIoThreads);
     mProducer = make_shared<HistogramProducer>(histogramId, xLow, xUp);
 }
 
@@ -23,7 +23,7 @@ void freeTMessage(void* data, void* hint)
     delete static_cast<TMessage*>(hint);
 }
 
-void ProducerStateMachine::Run()
+void ProducerDevice::Run()
 {
     while (GetCurrentState() == RUNNING) {
         this_thread::sleep_for(chrono::milliseconds(1000));
@@ -55,7 +55,7 @@ void ProducerStateMachine::Run()
     }
 }
 
-void ProducerStateMachine::establishChannel(std::string type, std::string method, std::string address, std::string channelName)
+void ProducerDevice::establishChannel(std::string type, std::string method, std::string address, std::string channelName)
 {
     FairMQChannel requestChannel(type, method, address);
     requestChannel.UpdateSndBufSize(10000);
@@ -64,7 +64,7 @@ void ProducerStateMachine::establishChannel(std::string type, std::string method
     fChannels[channelName].push_back(requestChannel);
 }
 
-void ProducerStateMachine::executeRunLoop()
+void ProducerDevice::executeRunLoop()
 {
     ChangeState("INIT_DEVICE");
     WaitForEndOfState("INIT_DEVICE");
@@ -75,9 +75,3 @@ void ProducerStateMachine::executeRunLoop()
     ChangeState("RUN");
     InteractiveStateLoop();
 }
-
-void ProducerStateMachine::CustomCleanup(void* data, void* hint)
-{
-    delete (string*)hint;
-}
-

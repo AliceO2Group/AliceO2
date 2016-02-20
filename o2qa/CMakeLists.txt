@@ -1,15 +1,13 @@
 Set(INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}  
   ${BASE_INCLUDE_DIRECTORIES} 
-  ${Boost_INCLUDE_DIR}
   ${FAIRROOT_INCLUDE_DIR}
   ${AlFa_DIR}/include
   ${CMAKE_SOURCE_DIR}/o2qa
   ${CMAKE_SOURCE_DIR}/o2qa/Merger
   ${CMAKE_SOURCE_DIR}/o2qa/Producer
   ${CMAKE_SOURCE_DIR}/o2qa/Viewer
-  ${CMAKE_SOURCE_DIR}/o2qa/SystemController
-  ${SIMPATH}/include/root
+#  ${CMAKE_SOURCE_DIR}/o2qa/SystemController
 )
 
 Set(SYSTEM_INCLUDE_DIRECTORIES
@@ -22,7 +20,6 @@ Include_Directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
   ${FAIRROOT_LIBRARY_DIR}
-  ${ALIROOT}/lib
   ${AlFa_DIR}/lib
   ${SIMPATH}/lib/root
 )
@@ -30,38 +27,33 @@ set(LINK_DIRECTORIES
 Link_Directories(${LINK_DIRECTORIES})
 
 set(SRCS
-  Producer/ProducerStateMachine.cxx
+  Producer/ProducerDevice.cxx
   Producer/HistogramProducer.cxx
   Merger/HistogramMerger.cxx
   Viewer/HistogramViewer.cxx
-  SystemController/SystemController.cxx
+#  SystemController/SystemController.cxx
 )
 
 set(DEPENDENCIES
   ${CMAKE_THREAD_LIBS_INIT}
-  boost_thread boost_system boost_program_options boost_unit_test_framework
+  boost_unit_test_framework
 )
 
 set(LIBRARY_NAME o2qaLibrary)
-
 GENERATE_LIBRARY()
-
-ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK) 
 
 Set(Exe_Names
   runHistogramMerger
   runProducer
   runHistogramViewer
-  runSystemController
-  histogramMerget_UT
+#  runSystemController
 )
 
 Set(Exe_Source
   runHistogramMerger.cxx
   runProducer.cxx
   runHistogramViewer.cxx
-  runSystemController.cxx
-  Merger/HistogramMergerTestSuite.cxx
+#  runSystemController.cxx
 )
 
 list(LENGTH Exe_Names _length)
@@ -75,3 +67,16 @@ ForEach(_file RANGE 0 ${_length})
   set(DEPENDENCIES dl Core Base Hist o2qaLibrary FairMQ)
   GENERATE_EXECUTABLE()
 EndForEach(_file RANGE 0 ${_length})
+
+ENABLE_TESTING()
+ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK)
+SET(EXECUTABLE_PATH ${CMAKE_SOURCE_DIR}/build_o2/bin)
+
+add_executable(testQaProducer Producer/Tests/ProducerTestSuite.cxx)
+add_executable(testQaMerger Merger/Tests/MergerTestSuite.cxx)
+
+target_link_libraries(testQaProducer dl Core Base Hist o2qaLibrary FairMQ)
+target_link_libraries(testQaMerger dl Core Base Hist o2qaLibrary FairMQ)
+
+add_test(ProducerTest ${EXECUTABLE_PATH}/testQaProducer)
+add_test(MergerTest ${EXECUTABLE_PATH}/testQaMerger)
