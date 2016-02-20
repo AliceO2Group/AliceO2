@@ -13,7 +13,7 @@
 #include <TMessage.h>
 #include <FairMQDevice.h>
 #include <string>
-#include <map>
+#include <unordered_map>
 
 class HistogramMerger : public FairMQDevice
 {
@@ -41,6 +41,6 @@ private:
     void handleSystemCommunicationWithController();
     void handleReceivedHistograms();
 
-    std::map<std::string, std::shared_ptr<TCollection>> mHistogramIdTohistogramMap;
+    std::unordered_map<std::string, std::shared_ptr<TCollection>> mHistogramIdTohistogramMap;
 };
 

@@ -1,5 +1,5 @@
 /**
- * runProducerStateMachine.cxx
+ * runProducerDevice.cxx
  *
  * @since 2015-09-30
  * @author Patryk Lesiak
@@ -10,11 +10,11 @@
 #include <cstdlib>
 #include <vector>
 
-#include "ProducerStateMachine.h"
+#include "ProducerDevice.h"
 
 namespace
 {
-std::vector<ProducerStateMachine*> producerStateMachines;
+std::vector<ProducerDevice*> producerDevices;
 }
 
 int main(int argc, char** argv)
@@ -26,18 +26,18 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    ProducerStateMachine ProducerStateMachine("Producer", argv[3], atof(argv[1]), atof(argv[2]), 1);
-    producerStateMachines.push_back(&ProducerStateMachine);
+    ProducerDevice producerDevice("Producer", argv[3], atof(argv[1]), atof(argv[2]), 1);
+    producerDevices.push_back(&producerDevice);
 
     LOG(INFO) << "PID: " << getpid();
     LOG(INFO) << "Producer id: " 
-              << producerStateMachines[0]->GetProperty(ProducerStateMachine::Id, "default_id");
+              << producerDevices[0]->GetProperty(ProducerDevice::Id, "default_id");
 
-    producerStateMachines[0]->establishChannel("req", "connect", "tcp://localhost:5005", "data");
+    producerDevices[0]->establishChannel("req", "connect", "tcp://localhost:5005", "data");
 
-    producerStateMachines[0]->executeRunLoop();
+    producerDevices[0]->executeRunLoop();
 
-    LOG(INFO) << "END OF runProducerStateMachine";
+    LOG(INFO) << "END OF runProducerDevice";
 
     return 0;
 }

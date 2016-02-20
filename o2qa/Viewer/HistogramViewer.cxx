@@ -61,8 +61,6 @@ void HistogramViewer::updateCanvas(TH1F* receivedHistogra)
         mHistogramCanvas->Divide(mNamesOfHistogramsToDraw.size(), 1);
         mHistogramCanvas->cd(mNamesOfHistogramsToDraw.size());
         mHistogramCanvas->Update();
-
-        LOG(DEBUG) << "DODANO NOWY DIAGRAM, liczba: " << mNamesOfHistogramsToDraw.size();
     }
     else {
         unsigned padId = mNamesOfHistogramsToDraw.size();
@@ -72,9 +70,7 @@ void HistogramViewer::updateCanvas(TH1F* receivedHistogra)
             }
             padId--;
         }
-        mHistogramCanvas->cd(padId);
-        LOG(DEBUG) <<"NIC NIE DODANO";
-        
+        mHistogramCanvas->cd(padId);      
     }
 }
 
