@@ -4,45 +4,51 @@
 #include <boost/test/unit_test.hpp>
 #include <string>
 #include <memory>
+#include <vector>
+#include <sstream>
+#include <TH1F.h>
 
-#include "Merger/HistogramMerger.h"
+#include "Merger/MergerDevice.h"
+#include "Merger.h"
 #include "fakeit.hpp"
 
-class Dummy {
-public:
-	virtual int returnThree() {return 3;}
-};
+BOOST_AUTO_TEST_SUITE(MergerDeviceTestSuite)
 
-BOOST_AUTO_TEST_SUITE(HistogramMergerTestSuite)
-
-BOOST_AUTO_TEST_CASE(createMergerWithGivenIdAndNumberOfThreads)
+BOOST_AUTO_TEST_CASE(createMergerDeviceWithGivenIdAndNumberOfThreads)
 {
     std::string mergerId = "Test_merger";
     unsigned short numberOfThreads = 1;
 
-    std::unique_ptr<HistogramMerger> merger(new HistogramMerger(mergerId, numberOfThreads));
+    std::unique_ptr<MergerDevice> merger(new MergerDevice(std::unique_ptr<Merger>(new Merger()), mergerId, numberOfThreads));
 
     BOOST_CHECK(merger != nullptr);
-    BOOST_CHECK(merger->GetProperty(HistogramMerger::Id, "default_id") == mergerId);
-    BOOST_CHECK(merger->GetProperty(HistogramMerger::NumIoThreads, 0) == numberOfThreads);
+    BOOST_CHECK(merger->GetProperty(MergerDevice::Id, "default_id") == mergerId);
+    BOOST_CHECK(merger->GetProperty(MergerDevice::NumIoThreads, 0) == numberOfThreads);
 }
 
-BOOST_AUTO_TEST_CASE(checkClass)
+BOOST_AUTO_TEST_CASE(mergeTwoHistograms)
 {
-	Dummy dummy = Dummy();
-	BOOST_CHECK(dummy.returnThree() == 3);
-}
+	using namespace std;
 
-BOOST_AUTO_TEST_CASE(CheckFakeIt)
-{
-	using namespace fakeit;
-	Mock<Dummy> mock;
+	const unsigned numberOfHistogramsToTest = 2;
+	Merger* merger = new Merger();
+	vector<TH1F> histograms;
 
-	When(Method(mock, returnThree)).Return(1);
+	for(int i = 0; i < numberOfHistogramsToTest; ++i) {
+		histograms.push_back(TH1F("test_histogram", "Gauss distribution", 100, -10.0, 10.0));
+		histograms.at(i).FillRandom("gaus", 1000);
 
-	Dummy &ref = mock.get();
+		TH1* histogram = dynamic_cast<TH1*>(merger->mergeObject(&(histograms.at(i))));
 
-	BOOST_CHECK(ref.returnThree() == 1);
+		ostringstream errorMessage;
+		errorMessage << "Expected: " << (1000 * (i + 1)) << " entries, received: " << histogram->GetEntries();
+		BOOST_TEST(histogram->GetEntries() == (1000 * (i + 1)), errorMessage.str().c_str());
+
+		delete histogram;
+	}
+
+	delete merger;
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()

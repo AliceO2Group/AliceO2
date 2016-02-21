@@ -29,7 +29,9 @@ Link_Directories(${LINK_DIRECTORIES})
 set(SRCS
   Producer/ProducerDevice.cxx
   Producer/HistogramProducer.cxx
-  Merger/HistogramMerger.cxx
+  Producer/TreeProducer.cxx
+  Merger/MergerDevice.cxx
+  Merger/Merger.cxx
   Viewer/HistogramViewer.cxx
 #  SystemController/SystemController.cxx
 )
@@ -43,14 +45,14 @@ set(LIBRARY_NAME o2qaLibrary)
 GENERATE_LIBRARY()
 
 Set(Exe_Names
-  runHistogramMerger
+  runMergerDevice
   runProducer
   runHistogramViewer
 #  runSystemController
 )
 
 Set(Exe_Source
-  runHistogramMerger.cxx
+  runMerger.cxx
   runProducer.cxx
   runHistogramViewer.cxx
 #  runSystemController.cxx

@@ -1,18 +1,9 @@
-/**
- * HistogramMerger.cxx
- *
- * @since 2014-10-10
- * @author Patryk Lesiak
- */
-
 #include <FairMQLogger.h>
 #include <FairMQTransportFactoryZMQ.h>
 #include <chrono>
 #include <thread>
 
-#include <TClass.h>
-
-#include "HistogramMerger.h"
+#include "MergerDevice.h"
 #include "HistogramTMessage.h"
 
 using namespace std;
@@ -22,22 +13,19 @@ void freeTMessage_sec(void* data, void* hint)
     delete static_cast<TMessage*>(hint);
 }
 
-HistogramMerger::HistogramMerger(std::string mergerId, int numIoThreads)
+MergerDevice::MergerDevice(unique_ptr<Merger> merger, std::string mergerId, int numIoThreads) : mMerger(move(merger))
 {
     this->SetTransport(new FairMQTransportFactoryZMQ);
-    this->SetProperty(HistogramMerger::Id, mergerId);
-    this->SetProperty(HistogramMerger::NumIoThreads, numIoThreads);
+    this->SetProperty(MergerDevice::Id, mergerId);
+    this->SetProperty(MergerDevice::NumIoThreads, numIoThreads);
 }
 
-void HistogramMerger::CustomCleanup(void* data, void* hint)
+void MergerDevice::CustomCleanup(void* data, void* hint)
 {
     delete (string*)hint;
 }
 
-void HistogramMerger::establishChannel(std::string type,
-                                       std::string method,
-                                       std::string address,
-                                       std::string channelName)
+void MergerDevice::establishChannel(std::string type, std::string method, std::string address, std::string channelName)
 {
     FairMQChannel requestChannel(type, method, address);
     requestChannel.UpdateSndBufSize(1000);
@@ -46,7 +34,7 @@ void HistogramMerger::establishChannel(std::string type,
     fChannels[channelName].push_back(requestChannel);
 }
 
-void HistogramMerger::executeRunLoop()
+void MergerDevice::executeRunLoop()
 {
     ChangeState("INIT_DEVICE");
     WaitForEndOfState("INIT_DEVICE");
@@ -58,7 +46,7 @@ void HistogramMerger::executeRunLoop()
     InteractiveStateLoop();
 }
 
-void HistogramMerger::Run()
+void MergerDevice::Run()
 {
     const int producerChannel = 0;
     const int controllerChannel = 2;
@@ -69,7 +57,7 @@ void HistogramMerger::Run()
 
         if (poller->CheckInput(producerChannel)) {
             LOG(INFO) << "Received histogram from Producer";
-            handleReceivedHistograms();
+            handleReceivedDataObject();
         }
 
         if (poller->CheckInput(controllerChannel)) {
@@ -79,29 +67,37 @@ void HistogramMerger::Run()
     }
 }
 
-void HistogramMerger::handleReceivedHistograms()
+void MergerDevice::handleReceivedDataObject()
 {
     this_thread::sleep_for(chrono::milliseconds(1000));
 
-    TH1F* receivedHistogram = receiveHistogramFromProducer();
+    TObject* receivedObject = receiveDataObjectFromProducer();
 
-    if (receivedHistogram != nullptr) {
-        TCollection* currentHistogramsList = addReceivedObjectToMapByName(receivedHistogram);
-        TMessage * viewerMessage = createTMessageForViewer(receivedHistogram, currentHistogramsList);
+    if (receivedObject != nullptr) {
+        shared_ptr<TObject> mergedHistogram(mMerger->mergeObject(receivedObject));
+
+        TMessage* viewerMessage = createTMessageForViewer(mergedHistogram);
         unique_ptr<FairMQMessage> viewerReply(fTransportFactory->CreateMessage());
 
-        sendHistogramToViewer(viewerMessage, move(viewerReply));
+        sendMergedObjectToViewer(viewerMessage, move(viewerReply));
         sendReplyToProducer(new string("MERGER_OK"));
     }
 }
 
-void HistogramMerger::handleSystemCommunicationWithController()
+TMessage* MergerDevice::createTMessageForViewer(shared_ptr<TObject> objectToSend)
+{
+    TMessage* viewerMessage = new TMessage(kMESS_OBJECT);
+    viewerMessage->WriteObject(objectToSend.get());
+    return viewerMessage;
+}
+
+void MergerDevice::handleSystemCommunicationWithController()
 {
     this_thread::sleep_for(chrono::milliseconds(1000));
 
     unique_ptr<FairMQMessage> request(fTransportFactory->CreateMessage());
     fChannels["data"].at(2).Receive(request);
-    string* text = new string(GetProperty(HistogramMerger::Id, "default_id") + "_ALIVE");
+    string* text = new string(GetProperty(MergerDevice::Id, "default_id") + "_ALIVE");
 
     FairMQMessage* reply = fTransportFactory->CreateMessage(const_cast<char*>(text->c_str()),
                                                             text->length(),
@@ -110,75 +106,27 @@ void HistogramMerger::handleSystemCommunicationWithController()
     fChannels["data"].at(2).Send(reply);
 }
 
-TCollection* HistogramMerger::addReceivedObjectToMapByName(TObject* receivedObject)
+TObject* MergerDevice::receiveDataObjectFromProducer()
 {
-    auto foundList = mHistogramIdTohistogramMap.find(receivedObject->GetName());
-
-    if (foundList != mHistogramIdTohistogramMap.end()) {
-        foundList->second->Add(receivedObject);
-        return foundList->second.get();
-    }
-    else {   
-        auto newItemIterator = mHistogramIdTohistogramMap.insert(make_pair(receivedObject->GetName(),
-                                                                           make_shared<TList>()));
-        newItemIterator.first->second->SetOwner();
-        newItemIterator.first->second->Add(receivedObject);
-        return newItemIterator.first->second.get();
-    }
-}
-
-TMessage* HistogramMerger::createTMessageForViewer(TH1F* receivedHistogram, TCollection* histogramsList)
-{
-    TMessage* viewerMessage = new TMessage(kMESS_OBJECT);
-    shared_ptr<TObject> mergedHistogram(mergeObjectWithGivenCollection(receivedHistogram, histogramsList));
-    viewerMessage->WriteObject(mergedHistogram.get());
-    return viewerMessage;
-}
-
-TObject* HistogramMerger::mergeObjectWithGivenCollection(TObject* object, TCollection* mergeList) 
-{
-    TObject* mergedObject = object->Clone(object->GetName());
-
-    if (!mergedObject->IsA()->GetMethodWithPrototype("Merge", "TCollection*"))
-    {
-        LOG(ERROR) << "Object does not implement a merge function!";
-        return nullptr;
-    }
-    Int_t error = 0;
-    TString listHargs;
-    listHargs.Form("((TCollection*)0x%lx)", (ULong_t) mergeList);
-
-    mergedObject->Execute("Merge", listHargs.Data(), &error);
-    if (error)
-    {
-        LOG(ERROR) << "Error " << error << "running merge!";
-        return nullptr;
-    }
-
-    return mergedObject;
-}
-
-TH1F* HistogramMerger::receiveHistogramFromProducer()
-{
-    TH1F* receivedHistogram;
+    TObject* receivedDataObject;
     unique_ptr<FairMQMessage> request(fTransportFactory->CreateMessage());
     fChannels["data"].at(0).Receive(request);
 
     if (request->GetSize() != 0) {
         LOG(INFO) << "Received histogram from histogram producer";
         HistogramTMessage tm(request->GetData(), request->GetSize());
-        receivedHistogram = static_cast<TH1F*>(tm.ReadObject(tm.GetClass()));
-        LOG(INFO) << "Received histogram name: " << receivedHistogram->GetName();
+        receivedDataObject = static_cast<TObject*>(tm.ReadObject(tm.GetClass()));
+        LOG(INFO) << "Received histogram name: " << receivedDataObject->GetName();
     }
     else {
         LOG(ERROR) << "Received empty message from producer, skipping RUN procedure";
-        receivedHistogram = nullptr;
+        receivedDataObject = nullptr;
     }
 
-    return receivedHistogram;
+    return receivedDataObject;
 }
 
-void HistogramMerger::sendHistogramToViewer(TMessage* viewerMessage, unique_ptr<FairMQMessage> viewerReply)
+void MergerDevice::sendMergedObjectToViewer(TMessage* viewerMessage, unique_ptr<FairMQMessage> viewerReply)
 {
     unique_ptr<FairMQMessage> viewerRequest(fTransportFactory->CreateMessage(viewerMessage->Buffer(), 
                                                                              viewerMessage->BufferSize(), 
@@ -198,7 +146,7 @@ void HistogramMerger::sendHistogramToViewer(TMessage* viewerMessage, unique_ptr<
     }
 }
 
-void HistogramMerger::sendReplyToProducer(std::string* message)
+void MergerDevice::sendReplyToProducer(std::string* message)
 {
     LOG(INFO) << "Sending reply to producer.";
     unique_ptr<FairMQMessage> reply(fTransportFactory->CreateMessage(const_cast<char*>(message->c_str()), 
@@ -208,9 +156,4 @@ void HistogramMerger::sendReplyToProducer(std::string* message)
     fChannels["data"].at(0).Send(reply);
 }
 
-HistogramMerger::~HistogramMerger()
-{
-    for (auto const& entry : mHistogramIdTohistogramMap) { 
-        entry.second->Delete();
-    } 
-}
+
