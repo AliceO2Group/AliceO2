@@ -4,6 +4,7 @@
 #include <TH1F.h>
 #include <FairMQDevice.h>
 #include <memory>
+
 #include "Producer.h"
 
 class ProducerDevice : public FairMQDevice

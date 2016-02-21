@@ -7,6 +7,7 @@
 
 #include "ProducerDevice.h"
 #include "HistogramProducer.h"
+#include "TreeProducer.h"
 
 using namespace std;
 
@@ -16,6 +17,7 @@ ProducerDevice::ProducerDevice(string producerId, string histogramId, float xLow
     this->SetProperty(ProducerDevice::Id, producerId);
     this->SetProperty(ProducerDevice::NumIoThreads, numIoThreads);
     mProducer = make_shared<HistogramProducer>(histogramId, xLow, xUp);
+    //mProducer = make_shared<TreeProducer>(histogramId);
 }
 
 void freeTMessage(void* data, void* hint)
