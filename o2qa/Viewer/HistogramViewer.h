@@ -1,11 +1,5 @@
-/**
- * HistogramViewer.h
- *
- * @since 2014-10-10
- * @author Patryk Lesiak
- */
-
 #pragma once
+
 #include <TApplication.h>
 #include <memory>
 #include <TH1F.h>
@@ -19,13 +13,13 @@ class HistogramViewer : public FairMQDevice
 {
 public:
     HistogramViewer(std::string viewerId, int numIoThreads);
-    virtual ~HistogramViewer();
+    virtual ~HistogramViewer() = default;
 
     static void CustomCleanup(void *data, void* hint);
     void executeRunLoop();
     void establishChannel(std::string type, std::string method, std::string address, std::string channelName);
 protected:
-    HistogramViewer();
+    HistogramViewer() = default;
     virtual void Run();
 
 private:

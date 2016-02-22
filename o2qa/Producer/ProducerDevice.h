@@ -10,7 +10,12 @@
 class ProducerDevice : public FairMQDevice
 {
 public:
-    ProducerDevice(std::string producerId, std::string histogramId, float xLow, float xUp, int numIoThreads);
+    ProducerDevice(std::string producerId,
+    			   std::string histogramNamePrefix,
+    			   std::string histogramTitle,
+    			   float xLow,
+    			   float xUp,
+    			   int numIoThreads);
     virtual ~ProducerDevice() = default;
 
     void executeRunLoop();

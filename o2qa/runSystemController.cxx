@@ -1,10 +1,3 @@
-/**
- * runSystemController.cxx
- *
- * @since 2015-10-21
- * @author Patryk Lesiak
- */
-
 #include <csignal>
 #include <FairMQTransportFactoryZMQ.h>
 

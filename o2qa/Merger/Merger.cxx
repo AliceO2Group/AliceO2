@@ -13,14 +13,14 @@ TObject* Merger::mergeObject(TObject* object)
 
 TCollection* Merger::addReceivedObjectToMapByName(TObject* receivedObject)
 {
-    auto foundList = mHistogramIdTohistogramMap.find(receivedObject->GetName());
+    auto foundList = mHistogramIdTohistogramMap.find(receivedObject->GetTitle());
 
     if (foundList != mHistogramIdTohistogramMap.end()) {
         foundList->second->Add(receivedObject);
         return foundList->second.get();
     }
     else {   
-        auto newItemIterator = mHistogramIdTohistogramMap.insert(make_pair(receivedObject->GetName(),
+        auto newItemIterator = mHistogramIdTohistogramMap.insert(make_pair(receivedObject->GetTitle(),
                                                                            make_shared<TList>()));
         newItemIterator.first->second->SetOwner();
         return newItemIterator.first->second.get();
@@ -29,7 +29,9 @@ TCollection* Merger::addReceivedObjectToMapByName(TObject* receivedObject)
 
 TObject* Merger::mergeObjectWithGivenCollection(TObject* object, TCollection* mergeList) 
 {
-    TObject* mergedObject = object->Clone(object->GetName());
+	ostringstream newName;
+	newName << object->GetName() << "clone";
+    TObject* mergedObject = object->Clone(newName.str().c_str());
 
     if (!mergedObject->IsA()->GetMethodWithPrototype("Merge", "TCollection*"))
     {
