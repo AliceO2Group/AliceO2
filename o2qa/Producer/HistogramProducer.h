@@ -7,12 +7,14 @@
 class HistogramProducer : public Producer
 {
 public:
-	HistogramProducer(std::string histogramId, float xLow, float xUp);
-	TObject* produceData() const override;
+	HistogramProducer(std::string histogramNamePrefix, std::string histogramTitle, float xLow, float xUp);
+	TObject* produceData() override;
 
 private:
-	std::string mHistogramId;
+	std::string mHistogramNamePrefix;
+	std::string mHistogramTitle;
 	int mBeansNumber;
     double mXLow;
     double mXUp;
+    int producedHistogramNumber;
 };

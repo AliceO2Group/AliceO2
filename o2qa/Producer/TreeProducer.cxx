@@ -10,7 +10,7 @@ TreeProducer::TreeProducer(string treeId)
 	mTreeId = treeId;
 }
 
-TObject* TreeProducer::produceData() const
+TObject* TreeProducer::produceData()
 {
     TTree* tree = new TTree(mTreeId.c_str(), "TestTree");
     //createBranch(tree);

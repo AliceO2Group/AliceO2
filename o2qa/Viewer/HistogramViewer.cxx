@@ -1,10 +1,3 @@
-/**
- * HistogramViewer.cxx
- *
- * @since 2014-10-10
- * @author Patryk Lesiak
- */
-
 #include <TSystem.h>
 #include <FairMQLogger.h>
 #include <FairMQTransportFactoryZMQ.h>
@@ -21,10 +14,6 @@ HistogramViewer::HistogramViewer(std::string viewerId, int numIoThreads)
     this->SetTransport(new FairMQTransportFactoryZMQ);
     this->SetProperty(HistogramViewer::Id, viewerId);
     this->SetProperty(HistogramViewer::NumIoThreads, numIoThreads);   
-}
-
-HistogramViewer::HistogramViewer()
-{
 }
 
 void HistogramViewer::CustomCleanup(void *data, void *hint)
@@ -53,9 +42,9 @@ void HistogramViewer::Run()
 
 void HistogramViewer::updateCanvas(TH1F* receivedHistogra)
 {
-    if (mNamesOfHistogramsToDraw.find(receivedHistogra->GetName()) == mNamesOfHistogramsToDraw.end()) {
+    if (mNamesOfHistogramsToDraw.find(receivedHistogra->GetTitle()) == mNamesOfHistogramsToDraw.end()) {
  
-        mNamesOfHistogramsToDraw.insert(receivedHistogra->GetName());
+        mNamesOfHistogramsToDraw.insert(receivedHistogra->GetTitle());
     
         mHistogramCanvas->Clear();
         mHistogramCanvas->Divide(mNamesOfHistogramsToDraw.size(), 1);
@@ -65,7 +54,7 @@ void HistogramViewer::updateCanvas(TH1F* receivedHistogra)
     else {
         unsigned padId = mNamesOfHistogramsToDraw.size();
         for (auto const & name : mNamesOfHistogramsToDraw) {
-            if (receivedHistogra->GetName() == name) {
+            if (receivedHistogra->GetTitle() == name) {
                 break;
             }
             padId--;
@@ -136,8 +125,4 @@ void HistogramViewer::establishChannel(string type, string method, string addres
     requestChannel.UpdateRcvBufSize(1000);
     requestChannel.UpdateRateLogging(1);
     fChannels[channelName].push_back(requestChannel);
-}
-
-HistogramViewer::~HistogramViewer()
-{
 }

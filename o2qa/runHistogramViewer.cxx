@@ -1,10 +1,3 @@
-/**
- * runHistogramViewer.cxx
- *
- * @since 2013-04-23
- * @author Patryk Lesiak
- */
-
 #include <csignal>
 #include <TApplication.h>
 #include <FairMQLogger.h>

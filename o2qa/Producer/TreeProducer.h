@@ -9,7 +9,7 @@ class TreeProducer : public Producer
 {
 public:
 	TreeProducer(std::string treeId);
-	TObject* produceData() const override;
+	TObject* produceData() override;
 
 private:
 	std::string mTreeId;

@@ -11,12 +11,12 @@
 
 using namespace std;
 
-ProducerDevice::ProducerDevice(string producerId, string histogramId, float xLow, float xUp, int numIoThreads) 
+ProducerDevice::ProducerDevice(string producerId, string histogramNamePrefix, string histogramTitle, float xLow, float xUp, int numIoThreads) 
 {
     this->SetTransport(new FairMQTransportFactoryZMQ);
     this->SetProperty(ProducerDevice::Id, producerId);
     this->SetProperty(ProducerDevice::NumIoThreads, numIoThreads);
-    mProducer = make_shared<HistogramProducer>(histogramId, xLow, xUp);
+    mProducer = make_shared<HistogramProducer>(histogramNamePrefix, histogramTitle, xLow, xUp);
     //mProducer = make_shared<TreeProducer>(histogramId);
 }
 

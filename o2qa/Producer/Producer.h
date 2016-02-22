@@ -5,5 +5,5 @@ class TObject;
 class Producer
 {
 	public:
-		virtual TObject* produceData() const = 0;	
+		virtual TObject* produceData() = 0;	
 };
