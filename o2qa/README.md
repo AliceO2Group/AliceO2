@@ -8,7 +8,7 @@ Quality assurance software prototype.
 1. Set the environment variable SIMPATH to your FairSoft installation directory.
 2. Set the environment variable FAIRROOTPATH to your FairRoot installation directory.
 
-It is a good practice to run config.sh script from AliceO2 build directory to set all others variables as PATH etc.
+It is a good practice to run config.sh script from AliceO2 build directory to set all others variables such as PATH etc.
 
 ### Overwiev
 This is a quality assurance software prototype for AliceO2 software. It uses FairMQ framework to provide distributed environment.
@@ -38,4 +38,4 @@ runViewerDevice
 
 ### Unit tests
 All modules are provided with unit tests written in BOOST test framework. Each module has it's tests in "Tests" directory.
-To run all unit tests type ```bash ctest ```
+To run all unit tests type ```ctest ```
