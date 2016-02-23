@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Producer.h"
-
 #include <TTree.h>
 #include <string>
+
+#include "Producer.h"
 
 class TreeProducer : public Producer
 {

@@ -1,5 +1,5 @@
 #include <TBranch.h>
-#include "TRandom.h"
+#include <TRandom.h>
 
 #include "TreeProducer.h"
 
@@ -12,9 +12,8 @@ TreeProducer::TreeProducer(string treeId)
 
 TObject* TreeProducer::produceData()
 {
-    TTree* tree = new TTree(mTreeId.c_str(), "TestTree");
-    //createBranch(tree);
-    return tree;
+  TTree* tree = new TTree(mTreeId.c_str(), "TestTree");
+  return tree;
 }
 
 void TreeProducer::createBranch(TTree* tree) const

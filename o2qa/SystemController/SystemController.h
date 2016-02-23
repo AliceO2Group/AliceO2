@@ -8,20 +8,20 @@
 class SystemController : public FairMQDevice
 {
 public:
-    SystemController(std::string controllerId, std::string logFileName, int numIoThreads);
-    virtual ~SystemController();
+  SystemController(std::string controllerId, std::string logFileName, int numIoThreads);
+  virtual ~SystemController();
 
-    void establishChannel(std::string type, std::string method, std::string address, std::string channelName);
-    void executeRunLoop();
-    static void CustomCleanup(void* data, void* hint);
+  void establishChannel(std::string type, std::string method, std::string address, std::string channelName);
+  void executeRunLoop();
+  static void CustomCleanup(void* data, void* hint);
 
 protected:
-    virtual void Run();
+  virtual void Run();
 
 private:
-    std::ofstream mLogFile;
+  std::ofstream mLogFile;
 
-    void getStatusFromSystemNodes();
-    std::string getCurrentTime();
-    FairMQMessage* sendMessageToNodes();
+  void getStatusFromSystemNodes();
+  std::string getCurrentTime();
+  FairMQMessage* sendMessageToNodes();
 };

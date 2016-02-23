@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Producer.h"
-
 #include <string>
+
+#include "Producer.h"
 
 class HistogramProducer : public Producer
 {
@@ -14,7 +14,7 @@ private:
 	std::string mHistogramNamePrefix;
 	std::string mHistogramTitle;
 	int mBeansNumber;
-    double mXLow;
-    double mXUp;
-    int producedHistogramNumber;
+  double mXLow;
+  double mXUp;
+  int producedHistogramNumber;
 };

@@ -4,6 +4,6 @@ class TObject;
 
 class Producer
 {
-	public:
-		virtual TObject* produceData() = 0;	
+public:
+	virtual TObject* produceData() = 0;
 };
