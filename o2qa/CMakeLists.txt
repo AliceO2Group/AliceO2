@@ -1,6 +1,6 @@
 Set(INCLUDE_DIRECTORIES
-  ${ROOT_INCLUDE_DIR}  
-  ${BASE_INCLUDE_DIRECTORIES} 
+  ${ROOT_INCLUDE_DIR}
+  ${BASE_INCLUDE_DIRECTORIES}
   ${FAIRROOT_INCLUDE_DIR}
   ${AlFa_DIR}/include
   ${CMAKE_SOURCE_DIR}/o2qa
@@ -32,8 +32,7 @@ set(SRCS
   Producer/TreeProducer.cxx
   Merger/MergerDevice.cxx
   Merger/Merger.cxx
-  Viewer/HistogramViewer.cxx
-#  SystemController/SystemController.cxx
+  Viewer/ViewerDevice.cxx
 )
 
 set(DEPENDENCIES
@@ -47,15 +46,13 @@ GENERATE_LIBRARY()
 Set(Exe_Names
   runMergerDevice
   runProducer
-  runHistogramViewer
-#  runSystemController
+  runViewerDevice
 )
 
 Set(Exe_Source
   runMerger.cxx
   runProducer.cxx
-  runHistogramViewer.cxx
-#  runSystemController.cxx
+  runViewerDevice.cxx
 )
 
 list(LENGTH Exe_Names _length)
@@ -76,9 +73,12 @@ SET(EXECUTABLE_PATH ${CMAKE_SOURCE_DIR}/build_o2/bin)
 
 add_executable(testQaProducer Producer/Tests/ProducerTestSuite.cxx)
 add_executable(testQaMerger Merger/Tests/MergerTestSuite.cxx)
+add_executable(testQaViewer Viewer/Tests/ViewerTestSuite.cxx)
 
 target_link_libraries(testQaProducer dl Core Base Hist o2qaLibrary FairMQ)
 target_link_libraries(testQaMerger dl Core Base Hist o2qaLibrary FairMQ)
+target_link_libraries(testQaViewer dl Core Base Hist o2qaLibrary FairMQ)
 
 add_test(ProducerTest ${EXECUTABLE_PATH}/testQaProducer)
 add_test(MergerTest ${EXECUTABLE_PATH}/testQaMerger)
+add_test(ViewerTest ${EXECUTABLE_PATH}/testQaViewer)

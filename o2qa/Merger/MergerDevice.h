@@ -6,35 +6,34 @@
 #include <FairMQDevice.h>
 #include <string>
 #include <unordered_map>
- 
+
 #include "Merger.h"
 
 class MergerDevice : public FairMQDevice
 {
 public:
-    MergerDevice(std::unique_ptr<Merger> merger, std::string producerId, int numIoThreads);
-    virtual ~MergerDevice() = default;
+  MergerDevice(std::unique_ptr<Merger> merger, std::string producerId, int numIoThreads);
+  virtual ~MergerDevice() = default;
 
-    static void CustomCleanup(void* data, void* hint);
-    void establishChannel(std::string type,
-                          std::string method,
-                          std::string address,
-                          std::string channelName);
-    void executeRunLoop();
+  static void CustomCleanup(void* data, void* hint);
+  void establishChannel(std::string type,
+                        std::string method,
+                        std::string address,
+                        std::string channelName);
+  void executeRunLoop();
 
 protected:
-    virtual void Run();
+  virtual void Run();
 
 private:
-    TObject* receiveDataObjectFromProducer();
-    void sendReplyToProducer(std::string* message);
+  TObject* receiveDataObjectFromProducer();
+  void sendReplyToProducer(std::string* message);
 
-    TMessage* createTMessageForViewer(std::shared_ptr<TObject> objectToSend);
-    void sendMergedObjectToViewer(TMessage* viewerMessage, std::unique_ptr<FairMQMessage> viewerReply);
+  TMessage* createTMessageForViewer(std::shared_ptr<TObject> objectToSend);
+  void sendMergedObjectToViewer(TMessage* viewerMessage, std::unique_ptr<FairMQMessage> viewerReply);
 
-    void handleSystemCommunicationWithController();
-    void handleReceivedDataObject();
+  void handleSystemCommunicationWithController();
+  void handleReceivedDataObject();
 
-    std::unique_ptr<Merger> mMerger;
+  std::unique_ptr<Merger> mMerger;
 };
-

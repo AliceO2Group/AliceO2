@@ -6,11 +6,9 @@
 #include <memory>
 #include <FairMQDevice.h>
 #include <TH1.h>
-#include <iostream>
 
 #include "Producer/HistogramProducer.h"
 #include "Producer/ProducerDevice.h"
-#include "fakeit.hpp"
 
 using namespace std;
 
@@ -18,26 +16,26 @@ BOOST_AUTO_TEST_SUITE(ProducerTestSuite)
 
 BOOST_AUTO_TEST_CASE(produceHistogramWithGivenParameters)
 {
-    string histogramNamePrefix = "TestId_";
-    string histogramTitle = "Gauss_distribution";
-    float xLow = -10.0;
-    float xUp = 10.0;
-    const int expectedNumberOfEntries = 1000;
-    const int expectedNumberOfBins = 100;
+  string histogramNamePrefix = "TestId_";
+  string histogramTitle = "Gauss_distribution";
+  float xLow = -10.0;
+  float xUp = 10.0;
+  const int expectedNumberOfEntries = 1000;
+  const int expectedNumberOfBins = 100;
 
-    unique_ptr<HistogramProducer> histogramProducer(new HistogramProducer(histogramNamePrefix,
-                                                                          histogramTitle,
-                                                                          xLow,
-                                                                          xUp));
-    
-    unique_ptr<TH1> histogram(dynamic_cast<TH1*>(histogramProducer->produceData()));
+  unique_ptr<HistogramProducer> histogramProducer(new HistogramProducer(histogramNamePrefix,
+                                                                        histogramTitle,
+                                                                        xLow,
+                                                                        xUp));
 
-    BOOST_TEST(histogram->GetEntries() == expectedNumberOfEntries, "Invalid number of entries");
-    BOOST_TEST(histogram->GetName() == "TestId_0", "Invalid name of histogram");
-    BOOST_TEST(histogram->GetTitle() == histogramTitle, "Invalid title of histogram");
-    BOOST_TEST(histogram->GetXaxis()->GetXmin() == xLow, "Invalid minimal value for x axis");
-    BOOST_TEST(histogram->GetXaxis()->GetXmax() == xUp, "Invalid maximal value for x axis");
-    BOOST_TEST(histogram->GetNbinsX() == expectedNumberOfBins, "Invalid number of bins");
+  unique_ptr<TH1> histogram(dynamic_cast<TH1*>(histogramProducer->produceData()));
+
+  BOOST_TEST(histogram->GetEntries() == expectedNumberOfEntries, "Invalid number of entries");
+  BOOST_TEST(histogram->GetName() == "TestId_0", "Invalid name of histogram");
+  BOOST_TEST(histogram->GetTitle() == histogramTitle, "Invalid title of histogram");
+  BOOST_TEST(histogram->GetXaxis()->GetXmin() == xLow, "Invalid minimal value for x axis");
+  BOOST_TEST(histogram->GetXaxis()->GetXmax() == xUp, "Invalid maximal value for x axis");
+  BOOST_TEST(histogram->GetNbinsX() == expectedNumberOfBins, "Invalid number of bins");
 }
 
 BOOST_AUTO_TEST_CASE(establishChannelByProducerDevice)

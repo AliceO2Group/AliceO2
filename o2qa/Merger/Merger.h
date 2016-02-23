@@ -14,5 +14,5 @@ public:
 	TCollection* addReceivedObjectToMapByName(TObject* receivedObject);
 
 private:
-	std::unordered_map<std::string, std::shared_ptr<TCollection>> mHistogramIdTohistogramMap;
+	std::unordered_map<std::string, std::shared_ptr<TCollection>> mTitlesToDataObjectsMap;
 };

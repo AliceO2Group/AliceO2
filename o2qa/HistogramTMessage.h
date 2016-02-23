@@ -8,10 +8,8 @@ using namespace std;
 class HistogramTMessage : public TMessage
 {
 public:
-    HistogramTMessage(void* buf, Int_t len)
-        : TMessage(buf, len)
+    HistogramTMessage(void* buf, Int_t len) : TMessage(buf, len)
     {
         ResetBit(kIsOwner);
     }
 };
-

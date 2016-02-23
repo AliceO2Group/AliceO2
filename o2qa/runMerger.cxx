@@ -9,20 +9,17 @@
 
 using namespace std;
 
-MergerDevice mergerDevice(unique_ptr<Merger>(new Merger()), "Merger_1", 1);
-
 int main(int argc, char** argv)
-{    
-    LOG(INFO) << "PID: " << getpid();
-    LOG(INFO) << "Merger id: " 
-              << mergerDevice.GetProperty(MergerDevice::Id, "default_id");
+{
+  MergerDevice mergerDevice(unique_ptr<Merger>(new Merger()), "Merger_1", 1);
 
-    mergerDevice.establishChannel("rep", "bind", "tcp://*:5005", "data");
-    mergerDevice.establishChannel("req", "connect", "tcp://localhost:5004", "data");
-    // mergerDevice.establishChannel("rep", "bind", "tcp://*:5001", "data"); // controller
-    mergerDevice.executeRunLoop();
+  LOG(INFO) << "PID: " << getpid();
+  LOG(INFO) << "Merger id: "
+            << mergerDevice.GetProperty(MergerDevice::Id, "default_id");
 
-    LOG(INFO) << "END OF runHistogramMerger";
+  mergerDevice.establishChannel("rep", "bind", "tcp://*:5005", "data");
+  mergerDevice.establishChannel("req", "connect", "tcp://localhost:5004", "data");
+  mergerDevice.executeRunLoop();
 
-    return 0;
+  LOG(INFO) << "END OF runHistogramMerger";
 }
