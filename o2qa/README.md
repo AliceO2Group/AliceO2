@@ -11,16 +11,24 @@ Quality assurance software prototype.
 It is a good practice to run config.sh script from AliceO2 build directory to set all others variables such as PATH etc.
 
 ### Overwiev
-This is a quality assurance software prototype for AliceO2 software. It uses FairMQ framework to provide distributed environment.
+This is a quality assurance software prototype for AliceO2 project. It uses FairMQ framework to provide distributed environment.
 
 Project consists of three modules:
-## Producer - produces histograms and trees
-Run example:
+## Producer - produces histograms or trees
+Run example for histogram:
 ```bash
-runProducer -10 10 exampleHistogramPrefixName exampleHistogramTitle
+runProducer -histogram exampleHistogramPrefixName exampleHistogramTitle -10 10
 ```
-First two arguments provides information about x axis range.
-## Merger - merges received objects by titles
+The last two parameters describes minimal and maximal values of x axis.
+
+Run example for tree:
+```bash
+runProducer -tree treeName_ treeTitle_ 4 1000
+```
+The fourth parameter gives number of branches created in the tree.
+The last parameter is the number of entries in each branch. 
+
+## Merger - merges received objects by titles. It can merge both trees and histograms with the same title.
 Run example:
 ```bash
 runMergerDevice
@@ -30,6 +38,8 @@ Run example:
 ```bash
 runViewerDevice
 ```
+Viewer can received additional parameter which describes drawing option given to Draw function of TObject class.
+
 ### Compile software
 1. Go to build folder of AliceO2 software
 2. cmake ../
