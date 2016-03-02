@@ -21,5 +21,5 @@ int main(int argc, char** argv)
   mergerDevice.establishChannel("req", "connect", "tcp://localhost:5004", "data");
   mergerDevice.executeRunLoop();
 
-  LOG(INFO) << "END OF runHistogramMerger";
+  LOG(INFO) << "END OF runMergerDevice";
 }

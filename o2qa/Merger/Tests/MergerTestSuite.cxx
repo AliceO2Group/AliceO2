@@ -10,7 +10,6 @@
 
 #include "Merger/MergerDevice.h"
 #include "Merger.h"
-#include "fakeit.hpp"
 
 BOOST_AUTO_TEST_SUITE(MergerDeviceTestSuite)
 

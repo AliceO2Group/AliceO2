@@ -16,5 +16,5 @@ private:
 	int mBeansNumber;
   double mXLow;
   double mXUp;
-  int producedHistogramNumber;
+  int mProducedHistogramNumber;
 };
