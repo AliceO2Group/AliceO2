@@ -30,6 +30,7 @@ The last parameter is the number of entries in each branch.
 
 ## Merger - merges received objects by titles. 
 It can merge both trees and histograms with the same title.
+
 Run example:
 ```bash
 runMergerDevice
