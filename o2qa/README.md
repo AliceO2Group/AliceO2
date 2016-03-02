@@ -28,7 +28,8 @@ runProducer -tree treeName_ treeTitle_ 4 1000
 The fourth parameter gives number of branches created in the tree.
 The last parameter is the number of entries in each branch. 
 
-## Merger - merges received objects by titles. It can merge both trees and histograms with the same title.
+## Merger - merges received objects by titles. 
+It can merge both trees and histograms with the same title.
 Run example:
 ```bash
 runMergerDevice
