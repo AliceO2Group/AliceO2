@@ -8,7 +8,11 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-  ViewerDevice viewerDevice("Viewer_1", 1);
+  string drawingOptions = "";
+  if (argc == 2) {
+    drawingOptions = argv[1];
+  }
+  ViewerDevice viewerDevice("Viewer_1", 1, drawingOptions);
   TApplication *app = new TApplication("app1", &argc, argv);
 
   LOG(INFO) << "PID: " << getpid();

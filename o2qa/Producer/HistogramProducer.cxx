@@ -5,7 +5,7 @@
 
 using namespace std;
 
-HistogramProducer::HistogramProducer(string histogramNamePrefix, string histogramTitle, float xLow, float xUp) : producedHistogramNumber(0)
+HistogramProducer::HistogramProducer(string histogramNamePrefix, string histogramTitle, float xLow, float xUp) : mProducedHistogramNumber(0)
 {
 	mHistogramNamePrefix = histogramNamePrefix;
 	mHistogramTitle = histogramTitle;
@@ -19,9 +19,9 @@ TObject* HistogramProducer::produceData()
 	ostringstream histogramName;
 	string histogramTitle = "Gauss_distribution";
 
-	histogramName << mHistogramNamePrefix << producedHistogramNumber++;
+	histogramName << mHistogramNamePrefix << mProducedHistogramNumber++;
 
-    TH1F* histogram = new TH1F(histogramName.str().c_str(), mHistogramTitle.c_str(), mBeansNumber, mXLow, mXUp);
-    histogram->FillRandom("gaus", 1000);
-    return histogram;
+  TH1F* histogram = new TH1F(histogramName.str().c_str(), mHistogramTitle.c_str(), mBeansNumber, mXLow, mXUp);
+  histogram->FillRandom("gaus", 1000);
+  return histogram;
 }

@@ -9,11 +9,12 @@
 
 using namespace std;
 
-ViewerDevice::ViewerDevice(std::string viewerId, int numIoThreads)
+ViewerDevice::ViewerDevice(std::string viewerId, int numIoThreads, string drawingOptions)
 {
   this->SetTransport(new FairMQTransportFactoryZMQ);
   this->SetProperty(ViewerDevice::Id, viewerId);
   this->SetProperty(ViewerDevice::NumIoThreads, numIoThreads);
+  mDrawingOptions = drawingOptions;
 }
 
 void ViewerDevice::CustomCleanup(void *data, void *hint)
@@ -99,7 +100,8 @@ unique_ptr<FairMQMessage> ViewerDevice::receiveMessageFromMerger()
 
 void ViewerDevice::updateObjectCanvas(TObject* receivedObject)
 {
-  receivedObject->Draw();
+  mObjectCanvas->Update();
+  receivedObject->Draw(mDrawingOptions.c_str());
   mObjectCanvas->Modified();
   mObjectCanvas->Update();
   gSystem->ProcessEvents();

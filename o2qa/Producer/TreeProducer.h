@@ -8,10 +8,18 @@
 class TreeProducer : public Producer
 {
 public:
-	TreeProducer(std::string treeId);
+	TreeProducer(std::string treeNamePrefix,
+               std::string treeTitle,
+               double numberOfBranches,
+               double numberOfEntriesInEachBranch);
 	TObject* produceData() override;
 
 private:
-	std::string mTreeId;
-	void createBranch(TTree* tree) const;
+	std::string mTreeNamePrefix;
+  std::string mTreeTitle;
+  double mNumberOfBranches;
+  double mNumberOfEntriesInEachBranch;
+  int mProducedTreeNumber;
+
+	void createBranch(TTree* tree, int brunchNumber) const;
 };

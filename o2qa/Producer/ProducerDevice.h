@@ -10,12 +10,7 @@
 class ProducerDevice : public FairMQDevice
 {
 public:
-  ProducerDevice(std::string producerId,
-    			       std::string namePrefix,
-    			       std::string title,
-    			       float xLow,
-    			       float xUp,
-    			       int numIoThreads);
+  ProducerDevice(std::string producerId, int numIoThreads, std::shared_ptr<Producer> & producer);
   virtual ~ProducerDevice() = default;
 
   void executeRunLoop();

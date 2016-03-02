@@ -11,7 +11,7 @@
 class ViewerDevice : public FairMQDevice
 {
 public:
-  ViewerDevice(std::string viewerId, int numIoThreads);
+  ViewerDevice(std::string viewerId, int numIoThreads, std::string drawingOptions);
   virtual ~ViewerDevice() = default;
 
   static void CustomCleanup(void *data, void* hint);
@@ -24,6 +24,7 @@ protected:
 private:
   TCanvas* mObjectCanvas;
   std::unordered_set<std::string> mNamesOfObjectsToDraw;
+  std::string mDrawingOptions;
 
   std::unique_ptr<FairMQMessage> receiveMessageFromMerger();
   void sendReplyToMerger(std::string* message);

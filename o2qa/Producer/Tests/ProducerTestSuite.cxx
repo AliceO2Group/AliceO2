@@ -8,6 +8,7 @@
 #include <TH1.h>
 
 #include "Producer/HistogramProducer.h"
+#include "TreeProducer.h"
 #include "Producer/ProducerDevice.h"
 
 using namespace std;
@@ -38,13 +39,33 @@ BOOST_AUTO_TEST_CASE(produceHistogramWithGivenParameters)
   BOOST_TEST(histogram->GetNbinsX() == expectedNumberOfBins, "Invalid number of bins");
 }
 
+BOOST_AUTO_TEST_CASE(produceTreeWithGivenParameters)
+{
+  string treeNamePrefix = "test_tree_prefix";
+  string treeTitle = "test_tree_title";
+  double numberOfBranches = 2;
+  double numberOfEntriesInEachBranch = 1000;
+
+  unique_ptr<TreeProducer> treeProducer(new TreeProducer(treeNamePrefix,
+                                                         treeTitle,
+                                                         numberOfBranches,
+                                                         numberOfEntriesInEachBranch));
+
+  unique_ptr<TTree> tree(dynamic_cast<TTree*>(treeProducer->produceData()));
+
+  BOOST_TEST(tree->GetTitle() == treeTitle, "Invalid title of tree");
+  BOOST_TEST(tree->GetEntries() == numberOfBranches * numberOfEntriesInEachBranch, "Invalid number of entries in tree");
+}
+
 BOOST_AUTO_TEST_CASE(establishChannelByProducerDevice)
 {
-	unique_ptr<ProducerDevice> producer(new ProducerDevice("Producer", "HistName_", "HistTitle_", -10.0, 10.0, 1));
-	BOOST_TEST(producer->fChannels.size() == 0, "Producer device has a channel connected at startup");
+  std::shared_ptr<Producer> producer = std::make_shared<HistogramProducer>("HistName_", "HistTitle_", -10.0, 10.0);
+	unique_ptr<ProducerDevice> producerDevice(new ProducerDevice("Producer", 1, producer));
 
-	producer->establishChannel("req", "connect", "tcp://localhost:5005", "data");
-	BOOST_TEST(producer->fChannels.size() == 1, "Producer device did not establish channel");
+	BOOST_TEST(producerDevice->fChannels.size() == 0, "Producer device has a channel connected at startup");
+
+	producerDevice->establishChannel("req", "connect", "tcp://localhost:5005", "data");
+	BOOST_TEST(producerDevice->fChannels.size() == 1, "Producer device did not establish channel");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

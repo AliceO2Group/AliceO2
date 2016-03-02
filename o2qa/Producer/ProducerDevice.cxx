@@ -6,17 +6,15 @@
 #include <FairMQTransportFactoryZMQ.h>
 
 #include "ProducerDevice.h"
-#include "HistogramProducer.h"
-#include "TreeProducer.h"
 
 using namespace std;
 
-ProducerDevice::ProducerDevice(string producerId, string namePrefix, string title, float xLow, float xUp, int numIoThreads)
+ProducerDevice::ProducerDevice(string producerId, int numIoThreads, shared_ptr<Producer> & producer)
 {
   this->SetTransport(new FairMQTransportFactoryZMQ);
   this->SetProperty(ProducerDevice::Id, producerId);
   this->SetProperty(ProducerDevice::NumIoThreads, numIoThreads);
-  mProducer = make_shared<HistogramProducer>(namePrefix, title, xLow, xUp);
+  mProducer = producer;
 }
 
 void freeTMessage(void* data, void* hint)
@@ -40,7 +38,7 @@ void ProducerDevice::Run()
                                                               message));
     unique_ptr<FairMQMessage> reply(fTransportFactory->CreateMessage());
 
-    LOG(INFO) << "Sending new histogram to merger";
+    LOG(INFO) << "Sending new data object to merger";
 
     fChannels["data"].at(0).Send(request);
     fChannels["data"].at(0).Receive(reply);
