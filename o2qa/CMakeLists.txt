@@ -7,7 +7,6 @@ Set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/o2qa/Merger
   ${CMAKE_SOURCE_DIR}/o2qa/Producer
   ${CMAKE_SOURCE_DIR}/o2qa/Viewer
-#  ${CMAKE_SOURCE_DIR}/o2qa/SystemController
 )
 
 Set(SYSTEM_INCLUDE_DIRECTORIES
