@@ -37,6 +37,7 @@ runMergerDevice
 ```
 ## Viewer - provides visualization of merged objects.
 Its optional parameter describes drawing option given to Draw function of TObject class.
+
 Run example:
 ```bash
 runViewerDevice branchToDrawName
