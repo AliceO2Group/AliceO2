@@ -35,12 +35,11 @@ Run example:
 ```bash
 runMergerDevice
 ```
-## Viewer - provides visualization of merged objects
+## Viewer - provides visualization of merged objects. Its optional parameter describes drawing option given to Draw function of TObject class.
 Run example:
 ```bash
 runViewerDevice
 ```
-Viewer can received additional parameter which describes drawing option given to Draw function of TObject class.
 
 ### Compile software
 1. Go to build folder of AliceO2 software
