@@ -8,7 +8,7 @@
 
 BOOST_AUTO_TEST_SUITE(ViewerTestSuite)
 
-/*BOOST_AUTO_TEST_CASE(createViewerDevice)
+BOOST_AUTO_TEST_CASE(createViewerDevice)
 {
   const std::string viewerId = "Viewer_1";
   const int numberOfThreads = 1;
@@ -28,12 +28,6 @@ BOOST_AUTO_TEST_CASE(establishChannelByViewerDevice)
 
   viewer.establishChannel("req", "connect", "tcp://localhost:5005", "data");
   BOOST_TEST(viewer.fChannels.size() == 1, "Viewer device did not establish channel");
-}*/
-
-BOOST_AUTO_TEST_CASE(valgrind)
-{
-  TObject* object = new TObject();
-  delete object;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
