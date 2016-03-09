@@ -75,7 +75,7 @@ EndForEach(_file RANGE 0 ${_length})
 
 ENABLE_TESTING()
 ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK)
-SET(EXECUTABLE_PATH ${CMAKE_SOURCE_DIR}/build_o2/bin)
+SET(EXECUTABLE_PATH ${CMAKE_BINARY_DIR}/bin)
 
 add_executable(testQaProducer Producer/Tests/ProducerTestSuite.cxx)
 add_executable(testQaMerger Merger/Tests/MergerTestSuite.cxx)
