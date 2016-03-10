@@ -8,6 +8,11 @@
 
 using namespace std;
 
+void freeMergerTMessage(void* data, void* hint)
+{
+  delete static_cast<TMessage*>(hint);
+}
+
 MergerDevice::MergerDevice(unique_ptr<Merger> merger, std::string mergerId, int numIoThreads) : mMerger(move(merger))
 {
   this->SetTransport(new FairMQTransportFactoryZMQ);
@@ -124,7 +129,7 @@ void MergerDevice::sendMergedObjectToViewer(TMessage* viewerMessage, unique_ptr<
 {
   unique_ptr<FairMQMessage> viewerRequest(fTransportFactory->CreateMessage(viewerMessage->Buffer(),
                                                                            viewerMessage->BufferSize(),
-                                                                           CustomCleanup,
+                                                                           freeMergerTMessage,
                                                                            viewerMessage));
   LOG(INFO) << "Sending new data object to viewer";
 
