@@ -20,7 +20,7 @@ set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
   ${FAIRROOT_LIBRARY_DIR}
   ${AlFa_DIR}/lib
-  ${SIMPATH}/lib/root
+  ${ROOT_LIBRARY_DIR}
 )
 
 Link_Directories(${LINK_DIRECTORIES})
