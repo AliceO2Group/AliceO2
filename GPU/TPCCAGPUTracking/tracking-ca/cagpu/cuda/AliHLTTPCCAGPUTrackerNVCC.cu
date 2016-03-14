@@ -220,7 +220,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 	}
 
 	cuCtxPopCurrent((CUcontext*) fCudaContext);
-	HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d, %d GB used)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount, fGPUMemSize);
+	HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d, %d bytes used)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount, fGPUMemSize);
 
 	return(0);
 }
