@@ -336,7 +336,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 
 	ocl->selector_events = new cl_event[fSliceCount];
 
-	HLTImportant("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, Max slices: %d, %d GB used)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, fSliceCount, fGPUMemSize);
+	HLTImportant("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, Max slices: %d, %d bytes used)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, fSliceCount, fGPUMemSize);
 
 	return(0);
 }
