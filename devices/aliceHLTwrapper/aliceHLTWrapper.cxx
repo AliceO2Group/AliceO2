@@ -158,6 +158,7 @@ int main(int argc, char** argv)
   int skipProcessing = 0;
   bool bUseDDS = false;
   int timeout=-1;
+  bool bInteractive = false;
 
   static struct option programOptions[] = {
     { "input",       required_argument, 0, 'i' }, // input socket
@@ -169,6 +170,7 @@ int main(int argc, char** argv)
     { "dry-run",     no_argument      , 0, 'n' }, // skip the component processing
     { "dds",         no_argument      , 0, 'd' }, // run in dds mode
     { "timeout",     required_argument, 0, 't' }, // polling period of the device in ms
+    { "interactive", no_argument      , 0, 'x' }, // enter interactive mode (from terminal only)
     { 0, 0, 0, 0 }
   };
 
@@ -252,6 +254,9 @@ int main(int argc, char** argv)
         break;
       case 'n':
         skipProcessing = 1;
+        break;
+      case 'x':
+        bInteractive = true;
         break;
       case 'd':
         bUseDDS = true;
@@ -450,6 +455,11 @@ int main(int argc, char** argv)
 
     device.ChangeState("RUN");
 
+    if (bInteractive) {
+      device.InteractiveStateLoop();
+    }
+    else { // identation not changed in the following to avoid fake diffs
+
     auto refTime = boost::chrono::system_clock::now();
 
     while (device.GetCurrentStateName() == "RUNNING") {
@@ -470,7 +480,7 @@ int main(int argc, char** argv)
         }
       }
     }
-
+  }
     device.ChangeState("RESET_TASK");
     device.WaitForEndOfState("RESET_TASK");
 
