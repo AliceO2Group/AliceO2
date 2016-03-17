@@ -15,13 +15,8 @@
 #include "TMessage.h"
 #include "Rtypes.h"
 
-#include "FairRuntimeDb.h"
-#include "FairParAsciiFileIo.h"
-#include "FairParRootFileIo.h"
-
 #include "ConditionsMQServer.h"
 #include "FairMQLogger.h"
-#include "FairParGenericSet.h"
 
 #include "IdPath.h"
 #include "Condition.h"
@@ -31,65 +26,25 @@ using std::endl;
 using std::cout;
 using std::string;
 
-ConditionsMQServer::ConditionsMQServer()
-  : fRtdb(FairRuntimeDb::instance()),
-    fCdbManager(AliceO2::CDB::Manager::Instance()),
-    fFirstInputName("first_input.root"),
-    fFirstInputType("ROOT"),
-    fSecondInputName(""),
-    fSecondInputType("ROOT"),
-    fOutputName(""),
-    fOutputType("ROOT")
-{
-}
+ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), fCdbManager(AliceO2::CDB::Manager::Instance()) {}
 
 void ConditionsMQServer::InitTask()
 {
-  if (fRtdb != 0) {
-    // Set first input
-    if (fFirstInputType == "ROOT") {
-      FairParRootFileIo* par1R = new FairParRootFileIo();
-      par1R->open(fFirstInputName.data(), "UPDATE");
-      fRtdb->setFirstInput(par1R);
-    }
-    else if (fFirstInputType == "ASCII") {
-      FairParAsciiFileIo* par1A = new FairParAsciiFileIo();
-      par1A->open(fFirstInputName.data(), "in");
-      fRtdb->setFirstInput(par1A);
-    }
-    else if (fFirstInputType == "OCDB") {
-      fCdbManager->setDefaultStorage(fFirstInputName.c_str());
-    }
+  ParameterMQServer::InitTask();
+  // Set first input
+  if (GetProperty(FirstInputType, "") == "OCDB") {
+    fCdbManager->setDefaultStorage(GetProperty(FirstInputName, "").c_str());
+  }
 
-    // Set second input
-    if (fSecondInputName != "") {
-      if (fSecondInputType == "ROOT") {
-        FairParRootFileIo* par2R = new FairParRootFileIo();
-        par2R->open(fSecondInputName.data(), "UPDATE");
-        fRtdb->setSecondInput(par2R);
-      }
-      else if (fSecondInputType == "ASCII") {
-        FairParAsciiFileIo* par2A = new FairParAsciiFileIo();
-        par2A->open(fSecondInputName.data(), "in");
-        fRtdb->setSecondInput(par2A);
-      }
-      else if (fSecondInputType == "OCDB") {
-        fCdbManager->setDefaultStorage(fSecondInputName.c_str());
-      }
-    }
+  // Set second input
+  if (GetProperty(SecondInputType, "") == "OCDB") {
+    fCdbManager->setDefaultStorage(GetProperty(SecondInputName, "").c_str());
+  }
 
-    // Set output
-    if (fOutputName != "") {
-      if (fOutputType == "ROOT") {
-        FairParRootFileIo* parOut = new FairParRootFileIo(kTRUE);
-        parOut->open(fOutputName.data());
-        fRtdb->setOutput(parOut);
-      }
-      else if (fOutputType == "OCDB") {
-        fCdbManager->setDefaultStorage(fOutputName.c_str());
-      }
-
-      fRtdb->saveOutput();
+  // Set output
+  if (GetProperty(OutputName, "") != "") {
+    if (GetProperty(OutputType, "") == "OCDB") {
+      fCdbManager->setDefaultStorage(GetProperty(OutputName, "").c_str());
     }
   }
 }
@@ -99,7 +54,6 @@ void free_tmessage(void* data, void* hint) { delete static_cast<TMessage*>(hint)
 void ConditionsMQServer::Run()
 {
   std::string parameterName = "";
-  FairParGenericSet* par = nullptr;
   Condition* aCondition = nullptr;
 
   while (CheckCurrentState(RUNNING)) {
@@ -116,35 +70,14 @@ void ConditionsMQServer::Run()
       LOG(INFO) << "Run ID: " << runId;
 
       LOG(INFO) << "Retrieving parameter...";
-      // Check if the parameter name has changed to avoid getting same container repeatedly
-      if (fFirstInputType != "OCDB") {
-        if (newParameterName != parameterName) {
-          parameterName = newParameterName;
-          par = static_cast<FairParGenericSet*>(fRtdb->getContainer(parameterName.c_str()));
-        }
-        fRtdb->initContainers(runId);
-      }
-      else {
-        fCdbManager->setRun(runId);
-        aCondition = fCdbManager->getObject(IdPath(newParameterName), runId);
-      }
+      fCdbManager->setRun(runId);
+      aCondition = fCdbManager->getObject(IdPath(newParameterName), runId);
 
-      LOG(INFO) << "Sending following parameter to the client:";
-      if (par) {
-        par->print();
-
+      if (aCondition) {
+        LOG(INFO) << "Sending following parameter to the client:";
+        aCondition->printConditionMetaData();
         TMessage* tmsg = new TMessage(kMESS_OBJECT);
-	tmsg->WriteObject(par);
-
-        std::unique_ptr<FairMQMessage> reply(
-          fTransportFactory->CreateMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
-
-        fChannels.at("data").at(0).Send(reply);
-      }
-      else if (aCondition) {
-	aCondition->printConditionMetaData();
-	TMessage* tmsg = new TMessage(kMESS_OBJECT);
-	tmsg->WriteObject(aCondition);
+        tmsg->WriteObject(aCondition);
 
         std::unique_ptr<FairMQMessage> reply(
           fTransportFactory->CreateMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
@@ -152,82 +85,10 @@ void ConditionsMQServer::Run()
         fChannels.at("data").at(0).Send(reply);
       }
       else {
-        LOG(ERROR) << "Parameter uninitialized!";
+        LOG(ERROR) << "Could not get a condition for \"" << parameterName << "\" and run " << runId << "!";
       }
     }
   }
 }
 
-void ConditionsMQServer::SetProperty(const int key, const std::string& value)
-{
-  switch (key) {
-    case FirstInputName:
-      fFirstInputName = value;
-      break;
-    case FirstInputType:
-      fFirstInputType = value;
-      break;
-    case SecondInputName:
-      fSecondInputName = value;
-      break;
-    case SecondInputType:
-      fSecondInputType = value;
-      break;
-    case OutputName:
-      fOutputName = value;
-      break;
-    case OutputType:
-      fOutputType = value;
-      break;
-    default:
-      FairMQDevice::SetProperty(key, value);
-      break;
-  }
-}
-
-string ConditionsMQServer::GetProperty(const int key, const string& default_ /*= ""*/)
-{
-  switch (key) {
-    case FirstInputName:
-      return fFirstInputName;
-    case FirstInputType:
-      return fFirstInputType;
-    case SecondInputName:
-      return fSecondInputName;
-    case SecondInputType:
-      return fSecondInputType;
-    case OutputName:
-      return fOutputName;
-    case OutputType:
-      return fOutputType;
-    default:
-      return FairMQDevice::GetProperty(key, default_);
-  }
-}
-
-void ConditionsMQServer::SetProperty(const int key, const int value)
-{
-  switch (key) {
-    default:
-      FairMQDevice::SetProperty(key, value);
-      break;
-  }
-}
-
-int ConditionsMQServer::GetProperty(const int key, const int default_ /*= 0*/)
-{
-  switch (key) {
-    default:
-      return FairMQDevice::GetProperty(key, default_);
-  }
-}
-
-ConditionsMQServer::~ConditionsMQServer()
-{
-  if (fRtdb) {
-    delete fRtdb;
-  }
-  if (fCdbManager) {
-    delete fCdbManager;
-  }
-}
+ConditionsMQServer::~ConditionsMQServer() { delete fCdbManager; }
