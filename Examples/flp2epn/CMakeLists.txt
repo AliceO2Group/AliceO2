@@ -13,8 +13,8 @@ set(SYSTEM_INCLUDE_DIRECTORIES
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
-configure_file( ${CMAKE_SOURCE_DIR}/Examples/flp2epn/run/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh )
-configure_file( ${CMAKE_SOURCE_DIR}/Examples/flp2epn/run/startMerger.sh.in ${CMAKE_BINARY_DIR}/bin/startMerger.sh )
+configure_file(${CMAKE_SOURCE_DIR}/Examples/flp2epn/run/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh)
+configure_file(${CMAKE_SOURCE_DIR}/Examples/flp2epn/run/flp2epn.json ${CMAKE_BINARY_DIR}/bin/config/flp2epn.json)
 
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
@@ -27,9 +27,6 @@ link_directories(${LINK_DIRECTORIES})
 set(SRCS
   O2FLPex.cxx
   O2EPNex.cxx
-  O2Proxy.cxx
-  O2Merger.cxx
-  O2EpnMerger.cxx
 )
 
 if(FAIRMQ_DEPENDENCIES)
@@ -38,12 +35,21 @@ if(FAIRMQ_DEPENDENCIES)
     ${CMAKE_THREAD_LIBS_INIT}
     ${FAIRMQ_DEPENDENCIES}
     FairMQ
+    ${Boost_RANDOM_LIBRARY}
+    ${Boost_CHRONO_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
   )
 else(FAIRMQ_DEPENDENCIES)
   set(DEPENDENCIES
     ${DEPENDENCIES}
     ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} FairMQ
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_CHRONO_LIBRARY}
+    FairMQ
   )
 endif(FAIRMQ_DEPENDENCIES)
 
@@ -55,17 +61,13 @@ Set(Exe_Names
   ${Exe_Names}
   testFLP
   testEPN
-  testEPN_M
   testProxy
-  testMerger
 )
 
 set(Exe_Source
   run/runFLP.cxx
   run/runEPN.cxx
-  run/runEPN_M.cxx
   run/runProxy.cxx
-  run/runMerger.cxx
 )
 
 list(LENGTH Exe_Names _length)

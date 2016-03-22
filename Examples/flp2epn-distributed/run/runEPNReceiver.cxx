@@ -10,7 +10,6 @@
 #include "boost/program_options.hpp"
 
 #include "FairMQLogger.h"
-#include "FairMQTransportFactoryZMQ.h"
 
 #include "EPNReceiver.h"
 
@@ -33,6 +32,7 @@ struct DeviceOptions
   int numFLPs;
   int testMode;
   int interactive;
+  string transport;
 
   string dataInSocketType;
   int dataInBufSize;
@@ -74,6 +74,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("num-flps", bpo::value<int>()->required(), "Number of FLPs")
     ("test-mode", bpo::value<int>()->default_value(0), "Run in test mode")
     ("interactive", bpo::value<int>()->default_value(1), "Run in interactive mode (1/0)")
+    ("transport", bpo::value<string>()->default_value("zeromq"), "Transport (zeromq/nanomsg)")
 
     ("data-in-socket-type", bpo::value<string>()->default_value("pull"), "Data input socket type: sub/pull")
     ("data-in-buff-size", bpo::value<int>()->default_value(10), "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
@@ -88,13 +89,13 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("data-out-rate-logging", bpo::value<int>()->default_value(1), "Log output rate on data socket, 1/0")
 
     ("hb-out-socket-type", bpo::value<string>()->default_value("pub"), "Heartbeat output socket type: pub/push")
-    ("hb-out-buff-size", bpo::value<int>()->default_value(100), "Heartbeat output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("hb-out-buff-size", bpo::value<int>()->default_value(10), "Heartbeat output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("hb-out-method", bpo::value<string>()->default_value("connect"), "Heartbeat output method: bind/connect")
     ("hb-out-address", bpo::value<vector<string>>()->required(), "Heartbeat output address, e.g.: \"tcp://localhost:5555\"")
     ("hb-out-rate-logging", bpo::value<int>()->default_value(0), "Log output rate on heartbeat socket, 1/0")
 
     ("ack-out-socket-type", bpo::value<string>()->default_value("push"), "Acknowledgement output socket type: pub/push")
-    ("ack-out-buff-size", bpo::value<int>()->default_value(100), "Acknowledgement output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("ack-out-buff-size", bpo::value<int>()->default_value(10), "Acknowledgement output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("ack-out-method", bpo::value<string>()->default_value("connect"), "Acknowledgement output method: bind/connect")
     ("ack-out-address", bpo::value<string>()->required(), "Acknowledgement output address, e.g.: \"tcp://localhost:5555\"")
     ("ack-out-rate-logging", bpo::value<int>()->default_value(0), "Log output rate on acknowledgement socket, 1/0")
@@ -118,6 +119,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   if (vm.count("num-flps"))              { _options->numFLPs               = vm["num-flps"].as<int>(); }
   if (vm.count("test-mode"))             { _options->testMode              = vm["test-mode"].as<int>(); }
   if (vm.count("interactive"))           { _options->interactive           = vm["interactive"].as<int>(); }
+  if (vm.count("transport"))             { _options->transport             = vm["transport"].as<string>(); }
 
   if (vm.count("data-in-socket-type"))   { _options->dataInSocketType      = vm["data-in-socket-type"].as<string>(); }
   if (vm.count("data-in-buff-size"))     { _options->dataInBufSize         = vm["data-in-buff-size"].as<int>(); }
@@ -173,8 +175,7 @@ int main(int argc, char** argv)
   LOG(INFO) << "EPN Receiver, ID: " << options.id << " (PID: " << getpid() << ")";
 
   // configure the transport interface
-  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-  epn.SetTransport(transportFactory);
+  epn.SetTransport(options.transport);
 
   // set device properties
   epn.SetProperty(EPNReceiver::Id, options.id);

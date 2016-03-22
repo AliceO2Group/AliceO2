@@ -51,7 +51,7 @@ void EPNReceiver::PrintBuffer(const unordered_map<uint16_t, TFBuffer>& buffer) c
 
   for (auto& it : buffer) {
     string stars = "";
-    for (unsigned int j = 1; j <= (it.second).parts.size(); ++j) {
+    for (unsigned int j = 1; j <= (it.second).parts.Size(); ++j) {
       stars += "*";
     }
     LOG(INFO) << setw(4) << it.first << ": " << stars;
@@ -65,10 +65,6 @@ void EPNReceiver::DiscardIncompleteTimeframes()
     if ((boost::posix_time::microsec_clock::local_time() - (it->second).startTime).total_milliseconds() > fBufferTimeoutInMs) {
       LOG(WARN) << "Timeframe #" << it->first << " incomplete after " << fBufferTimeoutInMs << " milliseconds, discarding";
       fDiscardedSet.insert(it->first);
-      for (unsigned int i = 0; i < (it->second).parts.size(); ++i) {
-        (it->second).parts.at(i).reset();
-      }
-      it->second.parts.clear();
       fTimeframeBuffer.erase(it++);
       LOG(WARN) << "Number of discarded timeframes: " << fDiscardedSet.size();
     } else {
@@ -92,19 +88,17 @@ void EPNReceiver::Run()
   // f2eHeader* header; // holds the header of the currently arrived message.
   uint16_t id = 0; // holds the timeframe id of the currently arrived sub-timeframe.
 
-  FairMQChannel& dataInputChannel = fChannels.at("data-in").at(0);
-  FairMQChannel& dataOutChannel = fChannels.at("data-out").at(0);
   FairMQChannel& ackOutChannel = fChannels.at("ack-out").at(0);
 
   while (CheckCurrentState(RUNNING)) {
     poller->Poll(100);
 
     if (poller->CheckInput(0)) {
-      unique_ptr<FairMQMessage> headerPart(fTransportFactory->CreateMessage());
+      FairMQParts parts;
 
-      if (dataInputChannel.Receive(headerPart) > 0) {
+      if (Receive(parts, "data-in") > 0) {
         // store the received ID
-        f2eHeader& header = *(static_cast<f2eHeader*>(headerPart->GetData()));
+        f2eHeader& header = *(static_cast<f2eHeader*>(parts.At(0)->GetData()));
         id = header.timeFrameId;
         // LOG(INFO) << "Received sub-time frame #" << id << " from FLP" << header.flpIndex;
 
@@ -119,45 +113,32 @@ void EPNReceiver::Run()
         // }
         // end DEBUG
 
-        unique_ptr<FairMQMessage> dataPart(fTransportFactory->CreateMessage());
-
-        // receive the data part
-        if (dataInputChannel.Receive(dataPart) > 0)
+        if (fDiscardedSet.find(id) == fDiscardedSet.end())
         {
-          if (fDiscardedSet.find(id) == fDiscardedSet.end())
+          if (fTimeframeBuffer.find(id) == fTimeframeBuffer.end())
           {
-            if (fTimeframeBuffer.find(id) == fTimeframeBuffer.end())
-            {
-              // if this is the first part with this ID, save the receive time.
-              fTimeframeBuffer[id].startTime = boost::posix_time::microsec_clock::local_time();
-            }
-            // if the received ID has not previously been discarded,
-            // store the data part in the buffer
-            fTimeframeBuffer[id].parts.push_back(move(dataPart));
-            // PrintBuffer(fTimeframeBuffer);
+            // if this is the first part with this ID, save the receive time.
+            fTimeframeBuffer[id].startTime = boost::posix_time::microsec_clock::local_time();
           }
-          else
-          {
-            // if received ID has been previously discarded.
-            LOG(WARN) << "Received part from an already discarded timeframe with id " << id;
-          }
+          // if the received ID has not previously been discarded,
+          // store the data part in the buffer
+          fTimeframeBuffer[id].parts.AddPart(move(parts.At(1)));
+          // PrintBuffer(fTimeframeBuffer);
         }
         else
         {
-          LOG(ERROR) << "no data received from input socket";
+          // if received ID has been previously discarded.
+          LOG(WARN) << "Received part from an already discarded timeframe with id " << id;
         }
 
-        if (fTimeframeBuffer[id].parts.size() == fNumFLPs) {
+        if (fTimeframeBuffer[id].parts.Size() == fNumFLPs) {
           // LOG(INFO) << "Collected all parts for timeframe #" << id;
-          // when all parts are collected send all except last one with 'snd-more' flag, and last one without the flag.
-          for (int i = 0; i < fNumFLPs - 1; ++i) {
-            dataOutChannel.SendPart(fTimeframeBuffer[id].parts.at(i));
-          }
-          dataOutChannel.Send(fTimeframeBuffer[id].parts.at(fNumFLPs - 1));
+          // when all parts are collected send then to the output channel
+          Send(fTimeframeBuffer[id].parts, "data-out");
 
           if (fTestMode > 0) {
             // Send an acknowledgement back to the sampler to measure the round trip time
-            unique_ptr<FairMQMessage> ack(fTransportFactory->CreateMessage(sizeof(uint16_t)));
+            unique_ptr<FairMQMessage> ack(NewMessage(sizeof(uint16_t)));
             memcpy(ack->GetData(), &id, sizeof(uint16_t));
 
             if (ackOutChannel.SendAsync(ack) <= 0) {
@@ -165,14 +146,8 @@ void EPNReceiver::Run()
             }
           }
 
-          // let transport know that the data is no longer needed. transport will clean up after it is sent out.
-          for (unsigned int i = 0; i < fTimeframeBuffer[id].parts.size(); ++i) {
-            fTimeframeBuffer[id].parts.at(i).reset();
-          }
-          fTimeframeBuffer[id].parts.clear();
-
           // fTimeframeBuffer[id].endTime = boost::posix_time::microsec_clock::local_time();
-          // do something with time here ...
+
           fTimeframeBuffer.erase(id);
         }
 
@@ -209,7 +184,7 @@ void EPNReceiver::sendHeartbeats()
   while (CheckCurrentState(RUNNING)) {
     try {
       for (int i = 0; i < fNumFLPs; ++i) {
-        unique_ptr<FairMQMessage> heartbeatMsg(fTransportFactory->CreateMessage(ownAddressSize));
+        unique_ptr<FairMQMessage> heartbeatMsg(NewMessage(ownAddressSize));
         memcpy(heartbeatMsg->GetData(), ownAddress.c_str(), ownAddressSize);
 
         fChannels.at("heartbeat-out").at(i).Send(heartbeatMsg);

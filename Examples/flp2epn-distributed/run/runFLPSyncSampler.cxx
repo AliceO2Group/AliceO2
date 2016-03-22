@@ -10,7 +10,6 @@
 #include "boost/program_options.hpp"
 
 #include "FairMQLogger.h"
-#include "FairMQTransportFactoryZMQ.h"
 
 #include "FLPSyncSampler.h"
 
@@ -30,6 +29,7 @@ struct DeviceOptions
   int ioThreads;
   int interactive;
   int storeRTTinFile;
+  string transport;
 
   string dataOutSocketType;
   int dataOutBufSize;
@@ -57,16 +57,17 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("max-events", bpo::value<int>()->default_value(0), "Maximum number of events to send (0 - unlimited)")
     ("io-threads", bpo::value<int>()->default_value(1), "Number of I/O threads")
     ("interactive", bpo::value<int>()->default_value(1), "Run in interactive mode (1/0)")
+    ("transport", bpo::value<string>()->default_value("zeromq"), "Transport (zeromq/nanomsg)")
     ("store-rtt-in-file", bpo::value<int>()->default_value(0), "Store round trip time measurements in a file (1/0)")
 
     ("data-out-socket-type", bpo::value<string>()->default_value("pub"), "Data output socket type: pub/push")
-    ("data-out-buff-size", bpo::value<int>()->default_value(100), "Data output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-out-buff-size", bpo::value<int>()->default_value(10), "Data output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("data-out-method", bpo::value<string>()->default_value("bind"), "Data output method: bind/connect")
     ("data-out-address", bpo::value<string>()->required(), "Data output address, e.g.: \"tcp://localhost:5555\"")
     ("data-out-rate-logging", bpo::value<int>()->default_value(0), "Log output rate on data socket, 1/0")
 
     ("ack-in-socket-type", bpo::value<string>()->default_value("pull"), "Acknowledgement Input socket type: sub/pull")
-    ("ack-in-buff-size", bpo::value<int>()->default_value(100), "Acknowledgement Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("ack-in-buff-size", bpo::value<int>()->default_value(10), "Acknowledgement Input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("ack-in-method", bpo::value<string>()->default_value("bind"), "Acknowledgement Input method: bind/connect")
     ("ack-in-address", bpo::value<string>()->required(), "Acknowledgement Input address, e.g.: \"tcp://localhost:5555\"")
     ("ack-in-rate-logging", bpo::value<int>()->default_value(0), "Log input rate on Acknowledgement socket, 1/0")
@@ -88,6 +89,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   if (vm.count("max-events"))            { _options->maxEvents          = vm["max-events"].as<int>(); }
   if (vm.count("io-threads"))            { _options->ioThreads          = vm["io-threads"].as<int>(); }
   if (vm.count("interactive"))           { _options->interactive        = vm["interactive"].as<int>(); }
+  if (vm.count("transport"))             { _options->transport          = vm["transport"].as<string>(); }
   if (vm.count("store-rtt-in-file"))     { _options->storeRTTinFile     = vm["store-rtt-in-file"].as<int>(); }
 
   if (vm.count("data-out-socket-type"))  { _options->dataOutSocketType  = vm["data-out-socket-type"].as<string>(); }
@@ -126,8 +128,7 @@ int main(int argc, char** argv)
   LOG(INFO) << "FLP Sync Sampler, ID: " << options.id << " (PID: " << getpid() << ")";
 
   // configure the transport interface
-  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-  sampler.SetTransport(transportFactory);
+  sampler.SetTransport(options.transport);
 
   // set device properties
   sampler.SetProperty(FLPSyncSampler::Id, options.id);

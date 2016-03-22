@@ -20,7 +20,7 @@
 
 #include "FLPSyncSampler.h"
 
-#include "KeyValue.h" // DDS
+#include "dds_intercom.h" // DDS
 
 using namespace std;
 using namespace AliceO2::Devices;
@@ -178,7 +178,7 @@ int main(int argc, char** argv)
   sampler.WaitForInitialValidation();
 
   // Advertise the bound addresses via DDS properties
-  dds::key_value::CKeyValue ddsKeyValue;
+  dds::intercom_api::CKeyValue ddsKeyValue;
   ddsKeyValue.putValue("FLPSyncSamplerOutputAddress", sampler.fChannels["data-out"].at(0).GetAddress());
   ddsKeyValue.putValue("FLPSyncSamplerInputAddress", sampler.fChannels["ack-in"].at(0).GetAddress());
 

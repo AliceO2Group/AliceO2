@@ -51,20 +51,33 @@ if(FAIRMQ_DEPENDENCIES)
     ${DEPENDENCIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${FAIRMQ_DEPENDENCIES}
+    ${Boost_RANDOM_LIBRARY}
+    ${Boost_CHRONO_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
     FairMQ
   )
 else(FAIRMQ_DEPENDENCIES)
   set(DEPENDENCIES
     ${DEPENDENCIES}
     ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} FairMQ
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_CHRONO_LIBRARY}
+    ${Boost_RANDOM_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    FairMQ
   )
 endif(FAIRMQ_DEPENDENCIES)
 
 if(DDS_FOUND)
   set(DEPENDENCIES
     ${DEPENDENCIES}
-    dds-key-value-lib
+    ${DDS_INTERCOM_LIBRARY_SHARED}
+    ${DDS_PROTOCOL_LIBRARY_SHARED} # also link the two DDS dependency libraries to avoid linking issues on some osx systems
+    ${DDS_USER_DEFAULTS_LIBRARY_SHARED}
   )
 endif()
 

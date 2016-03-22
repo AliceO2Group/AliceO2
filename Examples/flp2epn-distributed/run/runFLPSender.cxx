@@ -10,7 +10,6 @@
 #include "boost/program_options.hpp"
 
 #include "FairMQLogger.h"
-#include "FairMQTransportFactoryZMQ.h"
 
 #include "FLPSender.h"
 
@@ -35,6 +34,7 @@ struct DeviceOptions
   int interactive;
   int sendOffset;
   int sendDelay;
+  string transport;
 
   string dataInSocketType;
   int dataInBufSize;
@@ -72,6 +72,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("heartbeat-timeout", bpo::value<int>()->default_value(20000), "Heartbeat timeout in milliseconds")
     ("test-mode", bpo::value<int>()->default_value(0), "Run in test mode")
     ("interactive", bpo::value<int>()->default_value(1), "Run in interactive mode (1/0)")
+    ("transport", bpo::value<string>()->default_value("zeromq"), "Transport (zeromq/nanomsg)")
     ("send-offset", bpo::value<int>()->default_value(0), "Offset for staggered sending")
     ("send-delay", bpo::value<int>()->default_value(8), "Delay for staggered sending")
 
@@ -88,7 +89,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("data-out-rate-logging", bpo::value<int>()->default_value(1), "Log output rate on socket, 1/0")
 
     ("hb-in-socket-type", bpo::value<string>()->default_value("sub"), "Heartbeat in socket type: sub/pull")
-    ("hb-in-buff-size", bpo::value<int>()->default_value(100), "Heartbeat in buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("hb-in-buff-size", bpo::value<int>()->default_value(10), "Heartbeat in buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("hb-in-method", bpo::value<string>()->default_value("bind"), "Heartbeat in method: bind/connect")
     ("hb-in-address", bpo::value<string>()->required(), "Heartbeat in address, e.g.: \"tcp://localhost:5555\"")
     ("hb-in-rate-logging", bpo::value<int>()->default_value(0), "Log heartbeat in rate on socket, 1/0")
@@ -115,6 +116,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   if (vm.count("heartbeat-timeout"))     { _options->heartbeatTimeoutInMs = vm["heartbeat-timeout"].as<int>(); }
   if (vm.count("test-mode"))             { _options->testMode             = vm["test-mode"].as<int>(); }
   if (vm.count("interactive"))           { _options->interactive          = vm["interactive"].as<int>(); }
+  if (vm.count("transport"))             { _options->transport            = vm["transport"].as<string>(); }
   if (vm.count("send-offset"))           { _options->sendOffset           = vm["send-offset"].as<int>(); }
   if (vm.count("send-delay"))            { _options->sendDelay            = vm["send-delay"].as<int>(); }
 
@@ -167,8 +169,7 @@ int main(int argc, char** argv)
   LOG(INFO) << "FLP Sender, ID: " << options.id << " (PID: " << getpid() << ")";
 
   // configure the transport interface
-  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-  flp.SetTransport(transportFactory);
+  flp.SetTransport(options.transport);
 
   // set device properties
   flp.SetProperty(FLPSender::Id, options.id);

@@ -49,9 +49,8 @@ int main(int argc, char** argv)
             ("output-type", value<string>(&outputType)->default_value("ROOT"), "Output file type");
 
         config.AddToCmdLineOptions(serverOptions);
+        config.ParseAll(argc, argv);
 
-       config.ParseAll(argc, argv);
-       
         string file = config.GetValue<string>("config-json-file");
         string id = config.GetValue<string>("id");
 

@@ -75,8 +75,7 @@ class FLPSender : public FairMQDevice
     /// Sends the "oldest" element from the sub-timeframe container
     void sendFrontData();
 
-    std::queue<std::unique_ptr<FairMQMessage>> fHeaderBuffer; ///< Stores sub-timeframe headers
-    std::queue<std::unique_ptr<FairMQMessage>> fDataBuffer; ///< Stores sub-timeframe bodies
+    std::queue<FairMQParts> fSTFBuffer; ///< Buffer for sub-timeframes
     std::queue<boost::posix_time::ptime> fArrivalTime; ///< Stores arrival times of sub-timeframes
 
     int fNumEPNs; ///< Number of epnReceivers
