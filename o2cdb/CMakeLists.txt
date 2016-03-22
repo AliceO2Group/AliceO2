@@ -3,6 +3,8 @@ configure_file(${CMAKE_SOURCE_DIR}/o2cdb/conditions-client.json ${CMAKE_BINARY_D
 configure_file(${CMAKE_SOURCE_DIR}/o2cdb/fill_local_ocdb.C ${CMAKE_BINARY_DIR}/bin/config/fill_local_ocdb.C)
 
 set(INCLUDE_DIRECTORIES
+  ${BASE_INCLUDE_DIRECTORIES}
+  ${Boost_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/o2cdb
 )
 
