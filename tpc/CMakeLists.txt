@@ -22,6 +22,7 @@ include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
 set(LINK_DIRECTORIES
 ${ROOT_LIBRARY_DIR}
+${Boost_LIBRARY_DIRS}
 ${FAIRROOT_LIBRARY_DIR}
 )
 
@@ -46,7 +47,7 @@ Set(LINKDEF TpcLinkDef.h)
 Set(LIBRARY_NAME tpc)
 Set(DEPENDENCIES
     Base
-    Minuit
+    Minuit boost_log
     AliceO2Base
     AliceO2Cdb
 )
