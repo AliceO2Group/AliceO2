@@ -20,7 +20,7 @@
 
 #include "EPNReceiver.h"
 
-#include "KeyValue.h" // DDS
+#include "dds_intercom.h" // DDS
 
 using namespace std;
 using namespace AliceO2::Devices;
@@ -244,7 +244,7 @@ int main(int argc, char** argv)
   epn.WaitForInitialValidation();
 
   // create DDS key value store
-  dds::key_value::CKeyValue ddsKeyValue;
+  dds::intercom_api::CKeyValue ddsKeyValue;
 
   // Advertise the bound data input address via DDS.
   ddsKeyValue.putValue("EPNReceiverInputAddress", epn.fChannels["data-in"].at(0).GetAddress());
@@ -254,7 +254,7 @@ int main(int argc, char** argv)
   }
 
   // Initialize DDS store to receive properties
-  dds::key_value::CKeyValue::valuesMap_t values;
+  dds::intercom_api::CKeyValue::valuesMap_t values;
   {
   mutex keyMutex;
   condition_variable keyCondition;

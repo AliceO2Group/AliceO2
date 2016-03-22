@@ -1,21 +1,23 @@
 #!/bin/bash
 
-buffSize="1000" # zeromq high-water mark is in messages
-#buffSize="50000000" # nanomsg buffer size is in bytes
+flp2epnEx1config="@CMAKE_BINARY_DIR@/bin/config/flp2epn.json"
 
 FLP0="testFLP"
-FLP0+=" --id 101"
-FLP0+=" --event-size 10000"
-FLP0+=" --output-socket-type push --output-buff-size $buffSize --output-method connect --output-address tcp://127.0.0.1:5565"
-xterm -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
+FLP0+=" --id flpEx"
+# FLP0+=" --transport nanomsg"
+FLP0+=" --num-content 10000"
+FLP0+=" --mq-config $flp2epnEx1config"
+xterm -geometry 80x23+0+0 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
 
 PROXY="testProxy"
-PROXY+=" --id 201"
-PROXY+=" --input-socket-type pull --input-buff-size $buffSize --input-method bind --input-address tcp://*:5565"
-PROXY+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5566"
-xterm -e @CMAKE_BINARY_DIR@/bin/$PROXY &
+PROXY+=" --id proxy"
+# PROXY+=" --transport nanomsg"
+# PROXY+=" --multipart 0"
+PROXY+=" --mq-config $flp2epnEx1config"
+xterm -geometry 80x23+500+0 -hold -e @CMAKE_BINARY_DIR@/bin/$PROXY &
 
 EPN0="testEPN"
-EPN0+=" --id 301"
-EPN0+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://127.0.0.1:5566"
-xterm -e @CMAKE_BINARY_DIR@/bin/$EPN0 &
+EPN0+=" --id epnEx"
+# EPN0+=" --transport nanomsg"
+EPN0+=" --mq-config $flp2epnEx1config"
+xterm -geometry 80x23+1000+0 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN0 &

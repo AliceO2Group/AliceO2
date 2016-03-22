@@ -20,7 +20,7 @@
 
 #include "FLPSender.h"
 
-#include "KeyValue.h" // DDS
+#include "dds_intercom.h" // DDS
 
 using namespace std;
 using namespace AliceO2::Devices;
@@ -195,7 +195,7 @@ int main(int argc, char** argv)
   flp.SetTransport(transportFactory);
 
   // initialize DDS key value store
-  dds::key_value::CKeyValue ddsKeyValue;
+  dds::intercom_api::CKeyValue ddsKeyValue;
 
   // set device properties
   flp.SetProperty(FLPSender::Id, options.id);
@@ -231,7 +231,7 @@ int main(int argc, char** argv)
 
   if (options.testMode == 1) {
     // in test mode, retreive the output address of FLPSyncSampler to connect to and assign it to device
-    dds::key_value::CKeyValue::valuesMap_t values;
+    dds::intercom_api::CKeyValue::valuesMap_t values;
     {
     mutex keyMutex;
     condition_variable keyCondition;
@@ -262,7 +262,7 @@ int main(int argc, char** argv)
   // advertise the heartbeat input address via DDS
   ddsKeyValue.putValue("FLPSenderHeartbeatInputAddress", flp.fChannels["heartbeat-in"].at(0).GetAddress());
 
-  dds::key_value::CKeyValue::valuesMap_t epn_addr_values;
+  dds::intercom_api::CKeyValue::valuesMap_t epn_addr_values;
 
   // receive the EPNReceiver input addresses from DDS.
   {

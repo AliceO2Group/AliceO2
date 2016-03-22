@@ -112,7 +112,7 @@ void WrapperDevice::Run()
   static system_clock::time_point refTime = system_clock::now();
 #endif // USE_CHRONO
 
-  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
+  unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels["data-in"]));
 
   // inherited variables of FairMQDevice:
   // fChannels
@@ -122,7 +122,7 @@ void WrapperDevice::Run()
   int errorCount=0;
   const int maxError=10;
 
-  vector</*const*/ FairMQMessage*> inputMessages;
+  vector<unique_ptr<FairMQMessage>> inputMessages;
   vector<int> inputMessageCntPerSocket(numInputs, 0);
   int nReadCycles=0;
   while (CheckCurrentState(RUNNING)) {
@@ -137,19 +137,14 @@ void WrapperDevice::Run()
         continue;
       }
       if (poller->CheckInput(i)) {
-        do {
-          unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-          if (fChannels.at("data-in").at(i).Receive(msg.get())) {
-            receivedAtLeastOneMessage = true;
-            inputMessages.push_back(msg.release());
-            if (inputMessageCntPerSocket[i] == 0)
-              inputsReceived++; // count only the first message on that socket
-            inputMessageCntPerSocket[i]++;
-            if (mVerbosity > 3) {
-              LOG(INFO) << " |---- receive Msg from socket " << i;
-            }
+        if (fChannels.at("data-in").at(i).Receive(inputMessages)) {
+          receivedAtLeastOneMessage = true;
+          inputsReceived++; // count only the first message on that socket
+          inputMessageCntPerSocket[i] = inputMessages.size();
+          if (mVerbosity > 3) {
+            LOG(INFO) << " |---- receive Msgs from socket " << i;
           }
-        } while (fChannels.at("data-in").at(i).ExpectsAnotherPart());
+        }
         if (mVerbosity > 2) {
           LOG(INFO) << "------ received " << inputMessageCntPerSocket[i] << " message(s) from socket " << i;
         }
@@ -199,7 +194,7 @@ void WrapperDevice::Run()
     if (!mSkipProcessing) {
       // prepare input from messages
       vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
-      for (vector</*const*/ FairMQMessage*>::iterator msg=inputMessages.begin();
+      for (vector<unique_ptr<FairMQMessage>>::iterator msg=inputMessages.begin();
            msg!=inputMessages.end(); msg++) {
         void* buffer=(*msg)->GetData();
         dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
@@ -227,7 +222,7 @@ void WrapperDevice::Run()
           for (auto premsg = begin(mMessages); premsg != end(mMessages); premsg++) {
             if ((*premsg)->GetData() == opayload.mP &&
                 (*premsg)->GetSize() == opayload.mSize) {
-              omsg=*premsg;
+              omsg=(*premsg).get();
               if (mVerbosity > 2) {
                 LOG(DEBUG) << "using pre-allocated message of size " << opayload.mSize;
               }
@@ -247,7 +242,7 @@ void WrapperDevice::Run()
               }
               AliHLTUInt8_t* pTarget = reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
               memcpy(pTarget, opayload.mP, opayload.mSize);
-              mMessages.push_back(msg.release());
+              mMessages.push_back(move(msg));
             } else {
               if (errorCount == maxError && errorCount++ > 0)
                 LOG(ERROR) << "persistent error, suppressing further output";
@@ -261,19 +256,9 @@ void WrapperDevice::Run()
 
       if (mMessages.size()>0) {
         if (fChannels.find("data-out") != fChannels.end() && fChannels["data-out"].size() > 0) {
-          for (auto sendmsg = begin(mMessages); sendmsg != end(mMessages); sendmsg++) {
-            if (sendmsg + 1 == end(mMessages)) {
-              // this is the last data block
-              if (mVerbosity > 2) {
-                LOG(DEBUG) << "sending last message, size " << (*sendmsg)->GetSize();
-              }
-              fChannels["data-out"].at(0).Send(*sendmsg);
-            } else {
-              if (mVerbosity > 2) {
-                LOG(DEBUG) << "sending multipart message, size " << (*sendmsg)->GetSize();
-              }
-              fChannels["data-out"].at(0).Send(*sendmsg, "snd-more");
-            }
+          fChannels["data-out"].at(0).Send(mMessages);
+          if (mVerbosity > 2) {
+            LOG(DEBUG) << "sending multipart message with " << mMessages.size() << " parts";
           }
         } else {
           if (errorCount == maxError && errorCount++ > 0)
@@ -282,24 +267,17 @@ void WrapperDevice::Run()
             LOG(ERROR) << "no output slot available (" << (fChannels.find("data-out") == fChannels.end() ? "uninitialized" : "0 slots")
                        << ")";
         }
-        for (auto sendmsg : mMessages) delete sendmsg;
         mMessages.clear();
       }
     }
 
     // cleanup
-    for (vector<FairMQMessage*>::iterator mit=inputMessages.begin();
-         mit!=inputMessages.end(); mit++) {
-      delete *mit;
-    }
     inputMessages.clear();
     for (vector<int>::iterator mcit=inputMessageCntPerSocket.begin();
          mcit!=inputMessageCntPerSocket.end(); mcit++) {
       *mcit=0;
     }
   }
-
-  delete poller;
 }
 
 void WrapperDevice::Pause()
@@ -365,6 +343,6 @@ unsigned char* WrapperDevice::createMessageBuffer(unsigned size)
   if (mVerbosity > 2) {
     LOG(DEBUG) << "allocating message of size " << size;
   }
-  mMessages.push_back(msg.release());
+  mMessages.push_back(move(msg));
   return reinterpret_cast<AliHLTUInt8_t*>(mMessages.back()->GetData());
 }

@@ -23,7 +23,7 @@ namespace Devices {
 
 struct TFBuffer
 {
-  std::vector<std::unique_ptr<FairMQMessage>> parts;
+  FairMQParts parts;
   boost::posix_time::ptime startTime;
   boost::posix_time::ptime endTime;
 };

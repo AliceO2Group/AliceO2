@@ -50,7 +50,7 @@ set(SRCS
 if(DDS_FOUND)
   set(DEPENDENCIES
     ${DEPENDENCIES}
-    dds-key-value-lib
+    dds_intercom_lib
   )
 endif()
 
@@ -64,13 +64,20 @@ if(FAIRMQ_DEPENDENCIES)
     ${CMAKE_THREAD_LIBS_INIT}
     ${FAIRMQ_DEPENDENCIES}
     ${Boost_CHRONO_LIBRARY}
+    ${Boost_RANDOM_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
     FairMQ
   )
 else(FAIRMQ_DEPENDENCIES)
   set(DEPENDENCIES
     ${DEPENDENCIES}
     ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_CHRONO_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} FairMQ
+    ${Boost_CHRONO_LIBRARY}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    FairMQ
   )
 endif(FAIRMQ_DEPENDENCIES)
 

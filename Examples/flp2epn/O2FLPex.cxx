@@ -14,20 +14,12 @@
 
 #include "FairMQLogger.h"
 #include "O2FLPex.h"
+#include "O2FLPExContent.h"
 
 using namespace std;
 
-struct Content {
-  int id;
-  double a;
-  double b;
-  int x;
-  int y;
-  int z;
-};
-
 O2FLPex::O2FLPex() :
-  fEventSize(10000)
+  fNumContent(10000)
 {
 }
 
@@ -39,14 +31,14 @@ void O2FLPex::Run()
 {
   srand(time(NULL));
 
-  FairMQChannel& outChannel = fChannels.at("data-out").at(0);
+  FairMQChannel& outChannel = fChannels.at("data").at(0);
 
-  LOG(DEBUG) << "Message size: " << fEventSize * sizeof(Content) << " bytes.";
+  LOG(DEBUG) << "Message size: " << fNumContent * sizeof(O2FLPExContent) << " bytes.";
 
   while (CheckCurrentState(RUNNING)) {
-    vector<Content> payload(fEventSize);
+    vector<O2FLPExContent> payload(fNumContent);
 
-    for (int i = 0; i < fEventSize; ++i) {
+    for (int i = 0; i < fNumContent; ++i) {
       payload.at(i).x = rand() % 100 + 1;
       payload.at(i).y = rand() % 100 + 1;
       payload.at(i).z = rand() % 100 + 1;
@@ -55,8 +47,8 @@ void O2FLPex::Run()
       // LOG(INFO) << (&payload[i])->x << " " << (&payload[i])->y << " " << (&payload[i])->z << " " << (&payload[i])->a << " " << (&payload[i])->b;
     }
 
-    unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage(fEventSize * sizeof(Content)));
-    memcpy(msg->GetData(), payload.data(), fEventSize * sizeof(Content));
+    unique_ptr<FairMQMessage> msg(NewMessage(fNumContent * sizeof(O2FLPExContent)));
+    memcpy(msg->GetData(), payload.data(), fNumContent * sizeof(O2FLPExContent));
 
     outChannel.Send(msg);
   }
@@ -82,8 +74,8 @@ string O2FLPex::GetProperty(const int key, const string& default_/*= ""*/)
 void O2FLPex::SetProperty(const int key, const int value)
 {
   switch (key) {
-    case EventSize:
-      fEventSize = value;
+    case NumContent:
+      fNumContent = value;
       break;
     default:
       FairMQDevice::SetProperty(key, value);
@@ -94,8 +86,8 @@ void O2FLPex::SetProperty(const int key, const int value)
 int O2FLPex::GetProperty(const int key, const int default_/*= 0*/)
 {
   switch (key) {
-    case EventSize:
-      return fEventSize;
+    case NumContent:
+      return fNumContent;
     default:
       return FairMQDevice::GetProperty(key, default_);
   }
