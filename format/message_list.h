@@ -14,11 +14,15 @@
 //* any purpose. It is provided "as is" without express or implied warranty. *
 //****************************************************************************
 
-//  @file   messageList.h
+//  @file   message_list.h
 //  @author Matthias Richter
 //  @since  2016-02-11
 //  @brief  Container class for messages in the O2 framework
 
+#include <cstdint>
+#include <cstddef>
+#include <vector>
+#include <cstring> // memset
 #include "memory-format.h"
 
 namespace AliceO2 {
@@ -26,16 +30,26 @@ namespace Format {
 
 // Ideally it does not matter for the implementation of the container class
 // whether the type is the message container or the pointer to the payload
-template<class T>
+template<class MsgT, class HdrT>
 class messageList {
  public:
-  messageList();
-  messageList(const messageList& other);
-  messageList& operator=(const messageList& other);
-  ~messageList();
+  typedef MsgT message_type;
+  typedef HdrT header_type;
+
+  messageList() {}
+  messageList(const messageList& other); // not yet implemented
+  messageList& operator=(const messageList& other); // not yet implemented
+  ~messageList() {}
 
   /** add data block to list */
-  int add(T* headerMsg, T* payloadMsg);
+  int add(MsgT& headerMsg, MsgT& payloadMsg) {
+    // conversion relies on the conversion operator for complex types
+    const uint8_t* headerData = headerMsg;
+
+    const HdrT* srcHeader = reinterpret_cast<const HdrT*>(headerData);
+    // TODO: consistency check
+    mDataArray.push_back(messagePair(*srcHeader, payloadMsg));
+  }
   /** number of data blocks in the list */
   size_t size() {return mDataArray.size();}
   /** clear the list */
@@ -44,44 +58,65 @@ class messageList {
   bool empty() {mDataArray.empty();}
 
   /**
-   * messagePair describes the two sequential messages for header and payload
-   * of a data block
+   * messagePair describes the two sequential message parts for header and payload
+   * respectively.
    *
    * TODO: decide whether to use pointer to message or pointer to payload in the
    * message. Whith the template approach and appropriate conversion operators in the
    * message class possibly both ways can be served at the same time
    */
   struct messagePair {
-    DataHeader_t header;
-    T* payload;
+    HdrT  mHeader;
+    MsgT* mPayload;
+
+    messagePair(MsgT& payload) : mHeader(), mPayload(&payload) {
+      memset(&mHeader, 0, sizeof(HdrT));
+    }
+
+    messagePair(const HdrT& header, MsgT& payload) : mHeader(), mPayload(&payload) {
+      memcpy(&mHeader, &header, sizeof(HdrT));
+    }
   };
-  typedef vector<messagePair>::iterator pairIt_t
+  typedef typename std::vector<messagePair>::iterator pairIt_t;
+  // TODO: operators inside a class can only have one parameter
+  // check whether to create a functor class
+  //bool operator==(const messageList::pairIt_t& first, const messageList::pairIt_t& second) {
+  //  return (first->mHeader == second->mHeader) && (first->mPayload == second->mPayload);
+  //}
+  //
+  //bool operator!=(const messageList::pairIt_t& first, const messageList::pairIt_t& second) {
+  //  return (first->mHeader != second->mHeader) || (first->mPayload != second->mPayload);
+  //}
 
   class iterator {
    public:
     typedef iterator self_type;
-    typedef T value_type;
+    typedef MsgT value_type;
   
-    iterator(pairIt_t& dataIterator) : mDataIterator(dataIterator) { }
+    iterator(const pairIt_t& dataIterator) : mDataIterator(dataIterator) { }
     // prefix increment
-    self_type operator++() { mDataIterator++; return *this; }
+    self_type operator++() { ++mDataIterator; return *this; }
     // postfix increment
     self_type operator++(int unused) {self_type copy(*this); ++*this; return copy;}
     // TODO: given the fact that the data which is hold is a pointer, it always needs to be
     // valid for dereference
-    T& operator*() { return *this.operator->();}
-    T* operator->() { return (*mDataIterator).payload;}
+    MsgT& operator*() { return *((*mDataIterator).mPayload);}
+    MsgT* operator->() { return (*mDataIterator).mPayload;}
+
+    HdrT& getHdr() const {return (*mDataIterator).mHeader;}
 
     bool operator==(const self_type& other) { return mDataIterator == other.mDataIterator; }
     bool operator!=(const self_type& other) { return mDataIterator != other.mDataIterator; }
 
-    bool operator==(const PayloadMetaData_t& md) { return (*mDataIterator).header == md }
-    bool operator!=(const PayloadMetaData_t& md) { return (*mDataIterator).header != md }
+    /** TODO: comparison object to be used
+    bool operator==(const PayloadMetaData_t& md) { return (*mDataIterator).mHeader == md; }
+    bool operator!=(const PayloadMetaData_t& md) { return (*mDataIterator).mHeader != md; }
+    */
 
     /** conversion operator to PayloadMetaData_t struct */
-    operator PayloadMetaData_t() {return (*mDataIterator).header;}
+    operator HdrT() {return (*mDataIterator).mHeader;}
     /** return size of payload */
-    size_t size() {return (*mDataIterator).header.mPayloadSize;}
+    size_t size() {return (*mDataIterator).mHeader.mPayloadSize;}
 
   private:
     pairIt_t mDataIterator;
@@ -93,19 +128,19 @@ class messageList {
   };
   */
 
+  iterator begin() {
+    pairIt_t it = mDataArray.begin();
+    return iterator(it);
+  }
+
+  iterator end() {
+    pairIt_t it = mDataArray.end();
+    return iterator(it);
+  }
+
  private:
-  vector<messagePair> mDataArray;
+  std::vector<messagePair> mDataArray;
 };
-
-template<class T>
-int messageList::add(T& headerMsg, T& payloadMsg)
-{
-  // following conversion relies on the conversion operator for complex types
-  uint* headerData = static_cast<uint8_t*>(headerMsg);
-
-  DataHeader_t* srcHeader = reinterpret_cast<DataHeader_t*>(headerData);
-  DataHeader_t tgtHeader(*srcHeader);
-}
 
 }; // namespace Format
 }; // namespace AliceO2
