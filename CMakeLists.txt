@@ -224,6 +224,7 @@ add_subdirectory (macro)
 add_subdirectory (o2cdb)
 add_subdirectory (test)
 add_subdirectory (o2qa)
+add_subdirectory (format)
 
 
 Option(BUILD_DOXYGEN "Build Doxygen" OFF)
