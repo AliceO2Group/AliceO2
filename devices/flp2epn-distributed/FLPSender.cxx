@@ -97,7 +97,6 @@ void FLPSender::Run()
   // boost::thread heartbeatReceiver(boost::bind(&FLPSender::receiveHeartbeats, this));
 
   // base buffer, to be copied from for every timeframe body (zero-copy)
-  void* buffer = operator new[](fEventSize);
   unique_ptr<FairMQMessage> baseMsg(fTransportFactory->CreateMessage(fEventSize));
 
   uint16_t timeFrameId = 0;
@@ -130,7 +129,8 @@ void FLPSender::Run()
       }
     }
 
-    unique_ptr<FairMQMessage> headerPart(fTransportFactory->CreateMessage(sizeof(f2eHeader)));
+   // unique_ptr<FairMQMessage> headerPart(fTransportFactory->CreateMessage(sizeof(f2eHeader)));
+    unique_ptr<FairMQMessage> headerPart(fTransportFactory->CreateMessage(h, sizeof(f2eHeader), [](void* data, void* hint){ delete static_cast<f2eHeader*>(hint); }, h));
     unique_ptr<FairMQMessage> dataPart(fTransportFactory->CreateMessage());
 
     // save the arrival time of the message.
