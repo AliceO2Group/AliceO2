@@ -98,7 +98,7 @@ void FLPSender::Run()
 
   // base buffer, to be copied from for every timeframe body (zero-copy)
   void* buffer = operator new[](fEventSize);
-  unique_ptr<FairMQMessage> baseMsg(fTransportFactory->CreateMessage(buffer, fEventSize));
+  unique_ptr<FairMQMessage> baseMsg(fTransportFactory->CreateMessage(fEventSize));
 
   uint16_t timeFrameId = 0;
 
@@ -130,7 +130,7 @@ void FLPSender::Run()
       }
     }
 
-    unique_ptr<FairMQMessage> headerPart(fTransportFactory->CreateMessage(h, sizeof(f2eHeader)));
+    unique_ptr<FairMQMessage> headerPart(fTransportFactory->CreateMessage(sizeof(f2eHeader)));
     unique_ptr<FairMQMessage> dataPart(fTransportFactory->CreateMessage());
 
     // save the arrival time of the message.
