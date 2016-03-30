@@ -46,7 +46,7 @@ Set(NO_DICT_SRCS
 )
 
 set(DEPENDENCIES
-  Base ParBase FairMQ ParMQ boost_program_options boost_system boost_log fairmq_logger pthread Core Tree XMLParser Hist
+  Base ParBase FairMQ ParMQ ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger pthread Core Tree XMLParser Hist
 )
 
 set(LIBRARY_NAME AliceO2Cdb)

@@ -36,7 +36,7 @@ set(SRCS
 
 set(DEPENDENCIES
   ${CMAKE_THREAD_LIBS_INIT}
-  boost_unit_test_framework
+  ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
   RIO
   Core
   MathMore
@@ -69,7 +69,7 @@ ForEach(_file RANGE 0 ${_length})
   list(GET Exe_Source ${_file} _src)
   set(EXE_NAME ${_name})
   set(SRCS ${_src})
-  set(DEPENDENCIES dl Core Base Hist o2qaLibrary FairMQ pthread fairmq_logger boost_system boost_log )
+  set(DEPENDENCIES dl Core Base Hist o2qaLibrary FairMQ pthread fairmq_logger ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} )
   GENERATE_EXECUTABLE()
 EndForEach(_file RANGE 0 ${_length})
 
@@ -81,9 +81,9 @@ add_executable(testQaProducer Producer/Tests/ProducerTestSuite.cxx)
 add_executable(testQaMerger Merger/Tests/MergerTestSuite.cxx)
 add_executable(testQaViewer Viewer/Tests/ViewerTestSuite.cxx)
 
-target_link_libraries(testQaProducer dl Core Base Hist o2qaLibrary FairMQ  boost_system )
-target_link_libraries(testQaMerger dl Core Base Hist o2qaLibrary FairMQ  boost_system )
-target_link_libraries(testQaViewer dl Core Base Hist o2qaLibrary FairMQ boost_system )
+target_link_libraries(testQaProducer dl Core Base Hist o2qaLibrary FairMQ  ${Boost_SYSTEM_LIBRARY} )
+target_link_libraries(testQaMerger dl Core Base Hist o2qaLibrary FairMQ  ${Boost_SYSTEM_LIBRARY} )
+target_link_libraries(testQaViewer dl Core Base Hist o2qaLibrary FairMQ ${Boost_SYSTEM_LIBRARY} )
 
 add_test(ProducerTest ${EXECUTABLE_PATH}/testQaProducer)
 add_test(MergerTest ${EXECUTABLE_PATH}/testQaMerger)

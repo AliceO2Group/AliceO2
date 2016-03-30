@@ -67,14 +67,14 @@ if(FAIRMQ_DEPENDENCIES)
     ${DEPENDENCIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${FAIRMQ_DEPENDENCIES}
-    boost_chrono
+    ${Boost_CHRONO_LIBRARY}
     FairMQ
   )
 else(FAIRMQ_DEPENDENCIES)
   set(DEPENDENCIES
     ${DEPENDENCIES}
     ${CMAKE_THREAD_LIBS_INIT}
-    boost_chrono boost_date_time boost_thread boost_timer boost_system boost_program_options FairMQ
+    ${Boost_CHRONO_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} FairMQ
   )
 endif(FAIRMQ_DEPENDENCIES)
 

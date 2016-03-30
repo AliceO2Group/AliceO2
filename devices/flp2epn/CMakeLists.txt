@@ -43,7 +43,7 @@ else(FAIRMQ_DEPENDENCIES)
   set(DEPENDENCIES
     ${DEPENDENCIES}
     ${CMAKE_THREAD_LIBS_INIT}
-    boost_date_time boost_thread boost_timer boost_system boost_program_options boost_chrono FairMQ
+    ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} FairMQ
   )
 endif(FAIRMQ_DEPENDENCIES)
 
