@@ -59,22 +59,22 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   /** This method is called from the MC stepping */
 
   //Set parameters at entrance of volume. Reset ELoss.
-  if ( gMC->IsTrackEntering() ) {
+  if ( TVirtualMC::GetMC()->IsTrackEntering() ) {
     mEnergyLoss  = 0.;
-    mTime   = gMC->TrackTime() * 1.0e09;
-    mLength = gMC->TrackLength();
-    gMC->TrackPosition(mPosition);
-    gMC->TrackMomentum(mMomentum);
+    mTime   = TVirtualMC::GetMC()->TrackTime() * 1.0e09;
+    mLength = TVirtualMC::GetMC()->TrackLength();
+    TVirtualMC::GetMC()->TrackPosition(mPosition);
+    TVirtualMC::GetMC()->TrackMomentum(mMomentum);
   }
 
   // Sum energy loss for all steps in the active volume
-  mEnergyLoss += gMC->Edep();
+  mEnergyLoss += TVirtualMC::GetMC()->Edep();
 
   // Create DetectorPoint at exit of active volume
-  if ( gMC->IsTrackExiting()    ||
-       gMC->IsTrackStop()       ||
-       gMC->IsTrackDisappeared()   ) {
-    mTrackNumberID  = gMC->GetStack()->GetCurrentTrackNumber();
+  if ( TVirtualMC::GetMC()->IsTrackExiting()    ||
+       TVirtualMC::GetMC()->IsTrackStop()       ||
+       TVirtualMC::GetMC()->IsTrackDisappeared()   ) {
+    mTrackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
     mVolumeID = vol->getMCid();
     if (mEnergyLoss == 0. ) { return kFALSE; }
     AddHit(mTrackNumberID, mVolumeID, TVector3(mPosition.X(),  mPosition.Y(),  mPosition.Z()),
@@ -82,7 +82,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
            mEnergyLoss);
 
     // Increment number of Detector det points in TParticle
-    AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)gMC->GetStack();
+    AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)TVirtualMC::GetMC()->GetStack();
     stack->AddPoint(kAliTpc);
     
   }

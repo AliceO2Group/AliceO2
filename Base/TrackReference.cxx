@@ -63,8 +63,8 @@ TrackReference::TrackReference(Int_t label, Int_t id)
     , mMomentumX(0)
     , mMomentumY(0)
     , mMomentumZ(0)
-    , mTrackLength(gMC->TrackLength())
-    , mTof(gMC->TrackTime())
+    , mTrackLength(TVirtualMC::GetMC()->TrackLength())
+    , mTof(TVirtualMC::GetMC()->TrackTime())
     , mUserId(0)
     , mDetectorId(id)
 {
@@ -80,13 +80,13 @@ TrackReference::TrackReference(Int_t label, Int_t id)
 
   Double_t vec[4];
 
-  gMC->TrackPosition(vec[0], vec[1], vec[2]);
+  TVirtualMC::GetMC()->TrackPosition(vec[0], vec[1], vec[2]);
 
   mReferencePositionX = vec[0];
   mReferencePositionY = vec[1];
   mReferencePositionZ = vec[2];
 
-  gMC->TrackMomentum(vec[0], vec[1], vec[2], vec[3]);
+  TVirtualMC::GetMC()->TrackMomentum(vec[0], vec[1], vec[2], vec[3]);
 
   mMomentumX = vec[0];
   mMomentumY = vec[1];
@@ -99,14 +99,14 @@ TrackReference::TrackReference(Int_t label, Int_t id)
     ResetBit(BIT(i));
   }
 
-  SetBit(BIT(14), gMC->IsNewTrack());
-  SetBit(BIT(15), gMC->IsTrackAlive());
-  SetBit(BIT(16), gMC->IsTrackDisappeared());
-  SetBit(BIT(17), gMC->IsTrackEntering());
-  SetBit(BIT(18), gMC->IsTrackExiting());
-  SetBit(BIT(19), gMC->IsTrackInside());
-  SetBit(BIT(20), gMC->IsTrackOut());
-  SetBit(BIT(21), gMC->IsTrackStop());
+  SetBit(BIT(14), TVirtualMC::GetMC()->IsNewTrack());
+  SetBit(BIT(15), TVirtualMC::GetMC()->IsTrackAlive());
+  SetBit(BIT(16), TVirtualMC::GetMC()->IsTrackDisappeared());
+  SetBit(BIT(17), TVirtualMC::GetMC()->IsTrackEntering());
+  SetBit(BIT(18), TVirtualMC::GetMC()->IsTrackExiting());
+  SetBit(BIT(19), TVirtualMC::GetMC()->IsTrackInside());
+  SetBit(BIT(20), TVirtualMC::GetMC()->IsTrackOut());
+  SetBit(BIT(21), TVirtualMC::GetMC()->IsTrackStop());
 
   // This particle has to be kept
 }

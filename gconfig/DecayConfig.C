@@ -39,11 +39,11 @@ void DecayConfig() {
 	// i)particle decays not defined in concrete monte carlo, or
 	//ii)particles for which the concrete monte carlo is told
 	//   to use the external decayer for its type via:
-	//     gMC->SetUserDecay(pdgId);
+	//     TVirtualMC::GetMC()->SetUserDecay(pdgId);
 	//   If this is invoked, the external decayer will be used for particles 
 	//   of type pdgId even if the concrete monte carlo has a decay mode 
 	//   already defined for that particle type.
-	gMC->SetExternalDecayer(decayer);
+	TVirtualMC::GetMC()->SetExternalDecayer(decayer);
 	
 	TPythia6& pythia6 = *(TPythia6::Instance());
 	
@@ -57,7 +57,7 @@ void DecayConfig() {
 	for ( Int_t ipartnf = 0; ipartnf < npartnf; ipartnf++ ) {
 	 Int_t ipdg = pdgnf[ipartnf];
 	 
-        if (TString(gMC->GetName()) == "TGeant3") gMC->SetUserDecay(ipdg);// Force the decay to be done w/external decayer
+        if (TString(TVirtualMC::GetMC()->GetName()) == "TGeant3") TVirtualMC::GetMC()->SetUserDecay(ipdg);// Force the decay to be done w/external decayer
 	
          pythia6.SetMDCY(pythia6.Pycomp(ipdg),1,1); // Activate decay in pythia
 	}
@@ -76,7 +76,7 @@ void DecayConfig() {
         Int_t pdghq[nparthq] = {421,3122,-3122};
 	for ( Int_t iparthq = 0; iparthq < nparthq; iparthq++ ) {
 	Int_t ipdg = pdghq[iparthq];
-	if (TString(gMC->GetName()) == "TGeant3") gMC->SetUserDecay(ipdg); // Force the decay to be done w/external decayer
+	if (TString(TVirtualMC::GetMC()->GetName()) == "TGeant3") TVirtualMC::GetMC()->SetUserDecay(ipdg); // Force the decay to be done w/external decayer
 	pythia6.SetMDCY(pythia6.Pycomp(ipdg),1,1); // Activate decay in pythia
 	}
 	// Set pi0 to be stable in pythia6 so that Geant3 can handle decay.

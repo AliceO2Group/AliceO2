@@ -365,7 +365,7 @@ void Detector::Initialize()
   }
 
   for (int i = 0; i < mNumberLayers; i++) {
-    mLayerID[i] = gMC ? gMC->VolId(mLayerName[i]) : 0;
+    mLayerID[i] = gMC ? TVirtualMC::GetMC()->VolId(mLayerName[i]) : 0;
   }
 
   mGeometryTGeo = new UpgradeGeometryTGeo(kTRUE);
@@ -403,7 +403,7 @@ void Detector::setParameterContainers()
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
-  if (!(gMC->TrackCharge())) {
+  if (!(TVirtualMC::GetMC()->TrackCharge())) {
     return kFALSE;
   }
 
@@ -418,40 +418,40 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // FIXME: Is it needed to keep a track reference when the outer ITS volume is encountered?
-  // if(gMC->IsTrackExiting()) {
+  // if(TVirtualMC::GetMC()->IsTrackExiting()) {
   //  AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kITS);
   // } // if Outer ITS mother Volume
 
   // Retrieve the indices with the volume path
   int stave(0), halfstave(0), chipinmodule(0), module;
-  gMC->CurrentVolOffID(1, chipinmodule);
-  gMC->CurrentVolOffID(2, module);
-  gMC->CurrentVolOffID(3, halfstave);
-  gMC->CurrentVolOffID(4, stave);
+  TVirtualMC::GetMC()->CurrentVolOffID(1, chipinmodule);
+  TVirtualMC::GetMC()->CurrentVolOffID(2, module);
+  TVirtualMC::GetMC()->CurrentVolOffID(3, halfstave);
+  TVirtualMC::GetMC()->CurrentVolOffID(4, stave);
   int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
   
   // Record information on the points
-  mEnergyLoss = gMC->Edep();
-  mTime = gMC->TrackTime();
-  mTrackNumberID = gMC->GetStack()->GetCurrentTrackNumber();
+  mEnergyLoss = TVirtualMC::GetMC()->Edep();
+  mTime = TVirtualMC::GetMC()->TrackTime();
+  mTrackNumberID = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
   mVolumeID = vol->getMCid();
 
   // FIXME: Set a temporary value to mShunt for now, determine its use at a later stage
   Int_t trackStatus = 0;
-  if (gMC->IsTrackEntering()) trackStatus |= 1 << Point::kTrackEntering;
-  if (gMC->IsTrackInside()) trackStatus |= 1 << Point::kTrackInside;
-  if (gMC->IsTrackExiting()) trackStatus |= 1 << Point::kTrackExiting;
-  if (gMC->IsTrackOut()) trackStatus |= 1 << Point::kTrackOut;
-  if (gMC->IsTrackStop()) trackStatus |= 1 << Point::kTrackStopped;
-  if (gMC->IsTrackAlive()) trackStatus |= 1 << Point::kTrackAlive;
+  if (TVirtualMC::GetMC()->IsTrackEntering()) trackStatus |= 1 << Point::kTrackEntering;
+  if (TVirtualMC::GetMC()->IsTrackInside()) trackStatus |= 1 << Point::kTrackInside;
+  if (TVirtualMC::GetMC()->IsTrackExiting()) trackStatus |= 1 << Point::kTrackExiting;
+  if (TVirtualMC::GetMC()->IsTrackOut()) trackStatus |= 1 << Point::kTrackOut;
+  if (TVirtualMC::GetMC()->IsTrackStop()) trackStatus |= 1 << Point::kTrackStopped;
+  if (TVirtualMC::GetMC()->IsTrackAlive()) trackStatus |= 1 << Point::kTrackAlive;
   mStatus = trackStatus;
     
-  gMC->TrackPosition(mPosition);
-  gMC->TrackMomentum(mMomentum);
+  TVirtualMC::GetMC()->TrackPosition(mPosition);
+  TVirtualMC::GetMC()->TrackMomentum(mMomentum);
 
-  // mLength = gMC->TrackLength();
+  // mLength = TVirtualMC::GetMC()->TrackLength();
 
-  if (gMC->IsTrackEntering()) {
+  if (TVirtualMC::GetMC()->IsTrackEntering()) {
     mEntrancePosition = mPosition;
     mEntranceTime = mTime;
     mStatus0 = mStatus;
@@ -466,7 +466,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
          mEnergyLoss, mShunt, mStatus, mStatus0);
 
   // Increment number of Detector det points in TParticle
-  AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)gMC->GetStack();
+  AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)TVirtualMC::GetMC()->GetStack();
   stack->AddPoint(kAliIts);
 
   // Save old position for the next hit.
@@ -1061,7 +1061,7 @@ TParticle* Detector::GetParticle() const
   // Return:
   //   The TParticle of the track that created this hit.
 
-  return ((AliceO2::Data::Stack*)gMC->GetStack())->GetParticle(GetTrack());
+  return ((AliceO2::Data::Stack*)TVirtualMC::GetMC()->GetStack())->GetParticle(GetTrack());
 }
 
 void Detector::Print(std::ostream* os) const

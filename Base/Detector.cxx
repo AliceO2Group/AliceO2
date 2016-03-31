@@ -52,7 +52,7 @@ void Detector::Material(Int_t imat, const char* name, Float_t a, Float_t z, Floa
   uniquename.Append(name);
 
   // Check this!!!
-  gMC->Material(imat, uniquename.Data(), a, z, dens * mDensityFactor, radl, absl, buf, nwbuf);
+  TVirtualMC::GetMC()->Material(imat, uniquename.Data(), a, z, dens * mDensityFactor, radl, absl, buf, nwbuf);
 }
 
 void Detector::Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens,
@@ -63,7 +63,7 @@ void Detector::Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Flo
   uniquename.Append(name);
 
   // Check this!!!
-  gMC->Mixture(imat, uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat);
+  TVirtualMC::GetMC()->Mixture(imat, uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat);
 }
 
 void Detector::Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield,
@@ -75,14 +75,14 @@ void Detector::Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, In
   uniquename.Append(name);
 
   // Check this!!!
-  gMC->Medium(numed, uniquename.Data(), nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
+  TVirtualMC::GetMC()->Medium(numed, uniquename.Data(), nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
               stmin, ubuf, nbuf);
 }
 
 void Detector::Matrix(Int_t& nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2,
                       Float_t theta3, Float_t phi3) const
 {
-  gMC->Matrix(nmat, theta1, phi1, theta2, phi2, theta3, phi3);
+  TVirtualMC::GetMC()->Matrix(nmat, theta1, phi1, theta2, phi2, theta3, phi3);
 }
 
 void Detector::defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan)

@@ -91,7 +91,7 @@ Int_t GeometryHandler::volumeIdGeo(const char* name) const
 Int_t GeometryHandler::volumeId(const Text_t* name) const
 {
   if (mIsSimulation) {
-    return gMC->VolId(name);
+    return TVirtualMC::GetMC()->VolId(name);
   } else {
     char sname[20];
     Int_t length = strlen(name) - 1;
@@ -109,7 +109,7 @@ Int_t GeometryHandler::volumeId(const Text_t* name) const
 Int_t GeometryHandler::currentVolumeId(Int_t& copy) const
 {
   if (mIsSimulation) {
-    return gMC->CurrentVolID(copy);
+    return TVirtualMC::GetMC()->CurrentVolID(copy);
   } else {
     if (gGeoManager->IsOutside()) {
       return 0;
@@ -125,7 +125,7 @@ Int_t GeometryHandler::currentVolumeId(Int_t& copy) const
 Int_t GeometryHandler::currentVolumeOffId(Int_t off, Int_t& copy) const
 {
   if (mIsSimulation) {
-    return gMC->CurrentVolOffID(off, copy);
+    return TVirtualMC::GetMC()->CurrentVolOffID(off, copy);
   } else {
     if (off < 0 || off > gGeoManager->GetLevel()) {
       return 0;
@@ -149,7 +149,7 @@ Int_t GeometryHandler::currentVolumeOffId(Int_t off, Int_t& copy) const
 const char* GeometryHandler::currentVolumeName() const
 {
   if (mIsSimulation) {
-    return gMC->CurrentVolName();
+    return TVirtualMC::GetMC()->CurrentVolName();
   } else {
     if (gGeoManager->IsOutside()) {
       return gGeoManager->GetTopVolume()->GetName();
@@ -162,7 +162,7 @@ const char* GeometryHandler::currentVolumeName() const
 const char* GeometryHandler::currentVolumeOffName(Int_t off) const
 {
   if (mIsSimulation) {
-    return gMC->CurrentVolOffName(off);
+    return TVirtualMC::GetMC()->CurrentVolOffName(off);
   } else {
     if (off < 0 || off > gGeoManager->GetLevel()) {
       return 0;
