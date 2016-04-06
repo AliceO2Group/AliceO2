@@ -23,9 +23,6 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#if __GNUC__>= 3
-using namespace std;
-#endif
 
 #include "AliHLTTPCCAInputDataCompressorComponent.h"
 #include "AliHLTTPCCACompressedInputData.h"
@@ -35,6 +32,9 @@ using namespace std;
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCCADef.h"
 
+#if __GNUC__>= 3
+using namespace std;
+#endif
 
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkCompressedInputDataType = AliHLTComponentDataTypeInitializer( "CAINPACK", kAliHLTDataOriginTPC );
 

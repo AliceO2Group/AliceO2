@@ -18,14 +18,11 @@
 //                                                                          *
 //***************************************************************************
 
-
 /// @file   AliHLTTPCCAGlobalMergerComponent.cxx
 /// @author Matthias Kretz
 /// @date
 /// @brief  HLT TPC CA global merger component.
 ///
-
-using namespace std;
 
 #include "AliHLTTPCCAGlobalMergerComponent.h"
 #include "AliHLTTPCCASliceOutput.h"
@@ -52,6 +49,7 @@ using namespace std;
 #include <cstdlib>
 #include <cerrno>
 
+using namespace std;
 
 // ROOT macro for the implementation of ROOT specific class methods
 ClassImp( AliHLTTPCCAGlobalMergerComponent )
