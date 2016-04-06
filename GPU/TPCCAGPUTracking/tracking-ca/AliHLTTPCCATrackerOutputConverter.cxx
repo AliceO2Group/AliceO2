@@ -24,8 +24,6 @@
 /// @brief  Converter of CA tracker output
 ///
 
-using namespace std;
-
 #include "AliHLTTPCCATrackerOutputConverter.h"
 #include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCCADef.h"
@@ -44,6 +42,8 @@ using namespace std;
 #include <climits>
 #include <cstdlib>
 #include <cerrno>
+
+using namespace std;
 
 
 // ROOT macro for the implementation of ROOT specific class methods

@@ -24,10 +24,6 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#if __GNUC__>= 3
-using namespace std;
-#endif
-
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCCATrackerFramework.h"
@@ -48,6 +44,10 @@ using namespace std;
 #include "TObjArray.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAClusterData.h"
+
+#if __GNUC__>= 3
+using namespace std;
+#endif
 
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkTrackletsDataType = AliHLTComponentDataTypeInitializer( "CATRACKL", kAliHLTDataOriginTPC );
 
