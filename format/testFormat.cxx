@@ -53,8 +53,8 @@ private:
 };
 
 template<typename ListType>
-void print_list(ListType& list) {
-  for (typename ListType::iterator it = list.begin();
+void print_list(ListType& list, typename ListType::HdrComparison hdrsel = typename ListType::HdrComparison()) {
+  for (typename ListType::iterator it = list.begin(hdrsel);
        it != list.end();
        ++it) {
     // the iterator defines a conversion operator to the header type
@@ -98,7 +98,7 @@ int main(int argc, char** argv)
   msglist.add(testHeaderMsg2, testPayloadMsg2);
 
   std::cout << "message class list:" << std::endl;
-  print_list(msglist);
+  print_list(msglist, [](const TestMsgList_t::header_type& hdr){return hdr.specification==0xf00;} );
   std::cout << std::endl;
 
   return 0;
