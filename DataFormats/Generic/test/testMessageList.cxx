@@ -1,3 +1,11 @@
+/// @file testMessageList.cxx
+/// @brief Unit test for message_list.h template class
+
+//  TODO: this is for the moment only testing compilation
+//  ideally, this test program is only compiled when the test
+//  is going to be executed. By using add_executable in the cmake
+//  configuartion, the program is always build (though not installed)
+
 #include "message_list.h"
 #include "memory-format.h"
 
@@ -7,8 +15,10 @@
 using namespace AliceO2;
 using namespace Format;
 
+// a simple message type, just a pointer to some payload
 typedef const uint8_t* SimpleMsg_t;
 
+// a simple header definition
 struct SimpleHeader_t {
   uint32_t id;
   uint32_t specification;
@@ -17,11 +27,15 @@ struct SimpleHeader_t {
   SimpleHeader_t(uint32_t _id, uint32_t _spec) : id(_id), specification(_spec) {}
 };
 
+// print operator for the simple header
 std::ostream& operator<<(std::ostream& stream, SimpleHeader_t header) {
   stream << "Header ID: " << header.id << std::endl;
   stream << "Header Specification: " << std::hex << header.specification;
 }
 
+// more complex message type, some class which wraps around payload
+// implements type conversion operator to return pointer to payload
+// buffer
 class TestMsg {
 public:
   TestMsg() : mBuffer(nullptr), mBufferSize(0) {}
@@ -52,6 +66,8 @@ private:
   unsigned mBufferSize;
 };
 
+// helper function to print entries of the message list by using
+// iterator
 template<typename ListType>
 void print_list(ListType& list, typename ListType::HdrComparison hdrsel = typename ListType::HdrComparison()) {
   for (typename ListType::iterator it = list.begin(hdrsel);
