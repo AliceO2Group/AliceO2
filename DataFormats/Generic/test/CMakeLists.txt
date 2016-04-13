@@ -2,20 +2,17 @@
 # @brief  cmake setup for the test of format implementation
 
 set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/format
+  ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
-  ${BASE_INCLUDE_DIRECTORIES}
   ${Boost_INCLUDE_DIR}
-  ${FAIRROOT_INCLUDE_DIR}
 )
 
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
 set(LINK_DIRECTORIES
-  ${FAIRROOT_LIBRARY_DIR}
   ${Boost_LIBRARY_DIRS}
 )
 
@@ -35,12 +32,7 @@ set(DEPENDENCIES
 )
 
 set(SRCS
-  message_list.cxx
 )
-
-set(LIBRARY_NAME aliceo2format)
-
-GENERATE_LIBRARY()
 
 Set(Exe_Names
   testFormat
