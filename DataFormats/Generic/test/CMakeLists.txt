@@ -1,5 +1,5 @@
 # @author Matthias Richter
-# @brief  cmake setup for the test of format implementation
+# @brief  cmake setup for the test of generic format implementation
 
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/..
@@ -35,16 +35,15 @@ set(SRCS
 )
 
 Set(Exe_Names
-  testFormat
 )
 
 set(Exe_Source
-  testFormat.cxx
 )
 
 list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
 
+if(${_length})
+math(EXPR _length ${_length}-1)
 ForEach(_file RANGE 0 ${_length})
   list(GET Exe_Names ${_file} _name)
   list(GET Exe_Source ${_file} _src)
@@ -53,3 +52,8 @@ ForEach(_file RANGE 0 ${_length})
   set(DEPENDENCIES ALICEHLT dl)
   GENERATE_EXECUTABLE()
 EndForEach(_file RANGE 0 ${_length})
+endif(${_length})
+
+# avoid installation of test exe by not using macro GENERATE_EXECUTABLE
+add_executable(testMessageList testMessageList.cxx)
+add_test(testMessageList ${CMAKE_BINARY_DIR}/bin/testMessageList)
