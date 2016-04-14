@@ -12,10 +12,14 @@
 //* any purpose. It is provided "as is" without express or implied warranty. *
 //****************************************************************************
 
-//  @file   memory_format.h
-//  @author Matthias Richter
-//  @since  2016-01-28
-//  @brief  Primitives for the ALICE O2 in-memory format
+/// @file   memory_format.h
+/// @author Matthias Richter
+/// @since  2016-01-28
+/// @brief  Helper structs for the ALICE O2 generic format API test
+/// @note   DO NOT USE OUTSIDE UNIT TEST OF FORMAT API
+///         This definitions have been a first draft during discussion of
+///         in memory data formats, the final header file has been placed
+///         elsewhere, but this file is temporarily kept for the unit test
 
 // use the standard definitions of int variables
 #include <stdint.h>
