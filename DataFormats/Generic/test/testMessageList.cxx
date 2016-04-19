@@ -31,6 +31,8 @@ struct SimpleHeader_t {
 std::ostream& operator<<(std::ostream& stream, SimpleHeader_t header) {
   stream << "Header ID: " << header.id << std::endl;
   stream << "Header Specification: " << std::hex << header.specification;
+
+  return stream;
 }
 
 // more complex message type, some class which wraps around payload
@@ -45,6 +47,8 @@ public:
   ~TestMsg() {clear();}
 
   int alloc(int size) {
+    // not yet implemented
+    return 0;
   }
 
   uint8_t* get() const {
