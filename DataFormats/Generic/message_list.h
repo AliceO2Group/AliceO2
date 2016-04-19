@@ -56,6 +56,8 @@ class messageList {
     const HdrT* srcHeader = reinterpret_cast<const HdrT*>(headerData);
     // TODO: consistency check
     mDataArray.push_back(messagePair(*srcHeader, payloadMsg));
+
+    return mDataArray.size();
   }
   /** number of data blocks in the list */
   size_t size() {return mDataArray.size();}
