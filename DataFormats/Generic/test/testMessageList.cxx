@@ -78,8 +78,7 @@ void print_list(ListType& list, typename ListType::HdrComparison hdrsel = typena
        it != list.end();
        ++it) {
     // the iterator defines a conversion operator to the header type
-    typename ListType::header_type hdr = it;
-    std::cout << hdr << std::endl;
+    std::cout << static_cast<typename ListType::header_type>(it) << std::endl;
     // dereferencing of the iterator gives the payload
     std::cout << *it << std::endl;
   }
