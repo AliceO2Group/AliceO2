@@ -6,6 +6,7 @@ node {
                      "dberzano",
                      "MohammadAlTurany",
                      "matthiasrichter",
+                     "Barthelemy",
                      "rbx"]
   echo "Changeset from " + env.CHANGE_AUTHOR
   if (power_users.contains(env.CHANGE_AUTHOR)) {
