@@ -1,7 +1,7 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "Detector.h"
+#include "include/Detector.h"
 #include <TVirtualMC.h>  // for TVirtualMC, gMC
 #include "TString.h"     // for TString
 

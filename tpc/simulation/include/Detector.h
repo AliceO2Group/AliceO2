@@ -1,7 +1,7 @@
 #ifndef AliceO2_TPC_Detector_H_
 #define AliceO2_TPC_Detector_H_
 
-#include "Base/Detector.h"   // for Detector
+#include "Base/include/Detector.h"   // for Detector
 #include "Rtypes.h"          // for Int_t, Double32_t, Double_t, Bool_t, etc
 #include "TLorentzVector.h"  // for TLorentzVector
 #include "TVector3.h"        // for TVector3
@@ -14,7 +14,7 @@ namespace AliceO2 { namespace TPC { class Point; } }  // lines 15-15
 namespace AliceO2 {
 namespace TPC {
 class Point;
-  
+
 class Detector: public AliceO2::Base::Detector {
 
   public:

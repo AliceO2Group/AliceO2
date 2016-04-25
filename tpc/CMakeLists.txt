@@ -1,39 +1,19 @@
-# Create a library called "libO2tpc" which includes the source files given in
-# the array .
-# The extension is already found.  Any number of sources could be listed here.
+# **************************************************************************
+# * Copyright(c) 1998-2014, ALICE Experiment at CERN, All rights reserved. *
+# *                                                                        *
+# * Author: The ALICE Off-line Project.                                    *
+# * Contributors are mentioned in the code where appropriate.              *
+# *                                                                        *
+# * Permission to use, copy, modify and distribute this software and its   *
+# * documentation strictly for non-commercial purposes is hereby granted   *
+# * without fee, provided that the above copyright notice appears in all   *
+# * copies and that both the copyright notice and this permission notice   *
+# * appear in the supporting documentation. The authors make no claims     *
+# * about the suitability of this software for any purpose. It is          *
+# * provided "as is" without express or implied warranty.                  *
+# **************************************************************************
 
-set(INCLUDE_DIRECTORIES
-${CMAKE_SOURCE_DIR}/
-${CMAKE_SOURCE_DIR}/tpc
-)
-
-set(SYSTEM_INCLUDE_DIRECTORIES
-${ROOT_INCLUDE_DIR}
-${BASE_INCLUDE_DIRECTORIES}
-${Boost_INCLUDE_DIRS}
-${FAIRROOT_INCLUDE_DIR}
-${AlFa_DIR}/include
-)
-
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-${ROOT_LIBRARY_DIR}
-${FAIRROOT_LIBRARY_DIR}
-)
-
-link_directories( ${LINK_DIRECTORIES})
-
-set(SRCS
-ContainerFactory.cxx
-Point.cxx
-Detector.cxx
-)
-
-Set(LINKDEF TpcLinkDef.h)
-Set(LIBRARY_NAME tpc)
-Set(DEPENDENCIES
-    Base
-)
-GENERATE_LIBRARY()
+# Libraries
+add_subdirectory(base)
+#add_subdirectory(reconstruction)
+add_subdirectory(simulation)

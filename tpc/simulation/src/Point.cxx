@@ -1,4 +1,4 @@
-#include "Point.h"
+#include "include/Point.h"
 
 #include <iostream>
 using std::cout;
@@ -42,4 +42,3 @@ void Point::Print(const Option_t* opt) const
 // -------------------------------------------------------------------------
 
 ClassImp(Point)
-

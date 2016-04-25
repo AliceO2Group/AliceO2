@@ -5,7 +5,5 @@
 #pragma link off all functions;
 
 #pragma link C++ class AliceO2::TPC::ContainerFactory;
-#pragma link C++ class AliceO2::TPC::Detector+;
-#pragma link C++ class AliceO2::TPC::Point+;
 
 #endif

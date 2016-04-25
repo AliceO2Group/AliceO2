@@ -2,7 +2,7 @@
 /// \brief Implementation of the TrackReference class
 /// \author Sylwester Radomski (S.Radomski@gsi.de) GSI, Jan 31, 2003
 
-#include "TrackReference.h"
+#include "include/TrackReference.h"
 #include "TVirtualMC.h"  // for TVirtualMC, gMC
 #include <Riostream.h>
 

@@ -1,14 +1,17 @@
-#include "Detector.h"
-#include <stddef.h>             // for NULL
+#include "include/Detector.h"
+#include "include/Point.h"              // for Point
+
 #include "Data/DetectorList.h"  // for DetectorId::kAliTpc
 #include "Data/Stack.h"         // for Stack
+
 #include "FairRootManager.h"    // for FairRootManager
 #include "FairVolume.h"         // for FairVolume
-#include "Point.h"              // for Point
+
 #include "TClonesArray.h"       // for TClonesArray
 #include "TVirtualMC.h"         // for TVirtualMC, gMC
 #include "TVirtualMCStack.h"    // for TVirtualMCStack
 
+#include <stddef.h>             // for NULL
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -84,7 +87,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     // Increment number of Detector det points in TParticle
     AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)TVirtualMC::GetMC()->GetStack();
     stack->AddPoint(kAliTpc);
-    
+
   }
 
   return kTRUE;
