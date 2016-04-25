@@ -11,9 +11,7 @@
 #pragma link C++ class AliceO2::ITS::UpgradeSegmentationPixel+;
 #pragma link C++ class AliceO2::ITS::GeometryManager+;
 #pragma link C++ class AliceO2::ITS::Detector+;
-#pragma link C++ class AliceO2::ITS::ContainerFactory;
 #pragma link C++ class AliceO2::ITS::GeometryHandler+;
-#pragma link C++ class AliceO2::ITS::MisalignmentParameter+;
 #pragma link C++ class AliceO2::ITS::Point+;
 #pragma link C++ class AliceO2::ITS::Chip+;
 #pragma link C++ class AliceO2::ITS::Digit+;
