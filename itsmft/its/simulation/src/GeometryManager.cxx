@@ -1,16 +1,20 @@
 /// \file GeometryManager.cxx
 /// \brief Implementation of the GeometryManager class
 
-#include "GeometryManager.h"
-#include <TGeoManager.h>       // for TGeoManager
-#include <TGeoMatrix.h>        // for TGeoHMatrix
-#include <TGeoPhysicalNode.h>  // for TGeoPhysicalNode, TGeoPNEntry
-#include <stddef.h>            // for NULL
+#include "include/GeometryManager.h"
+
 #include "FairLogger.h"        // for LOG
+
+#include "TGeoManager.h"       // for TGeoManager
+#include "TGeoMatrix.h"        // for TGeoHMatrix
+#include "TGeoPhysicalNode.h"  // for TGeoPhysicalNode, TGeoPNEntry
 #include "TCollection.h"       // for TIter
 #include "TGeoNode.h"          // for TGeoNode
 #include "TObjArray.h"         // for TObjArray
 #include "TObject.h"           // for TObject
+
+
+#include "stddef.h"            // for NULL
 
 using namespace AliceO2::ITS;
 

@@ -4,7 +4,7 @@
 #ifndef ALICEO2_ITS_DETECTOR_H_
 #define ALICEO2_ITS_DETECTOR_H_
 
-#include "Base/Detector.h"   // for Detector
+#include "Base/include/Detector.h"   // for Detector
 #include "Rtypes.h"          // for Int_t, Double_t, Float_t, Bool_t, etc
 #include "TArrayD.h"         // for TArrayD
 #include "TGeoManager.h"     // for gGeoManager, TGeoManager (ptr only)

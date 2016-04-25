@@ -4,27 +4,32 @@
 /// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
-#include "UpgradeGeometryTGeo.h"
+#include "include/UpgradeGeometryTGeo.h"
+#include "include/UpgradeSegmentationPixel.h"  // for UpgradeSegmentationPixel
+#include "include/GeometryManager.h"           // for GeometryManager
+#include "include/Segmentation.h"              // for Segmentation
+
+
+#include "FairLogger.h"                // for LOG
+
 #include <TGeoBBox.h>                  // for TGeoBBox
 #include <TGeoManager.h>               // for gGeoManager, TGeoManager
 #include <TGeoPhysicalNode.h>          // for TGeoPNEntry, TGeoPhysicalNode
 #include <TGeoShape.h>                 // for TGeoShape
 #include <TMath.h>                     // for Nint, ATan2, RadToDeg
 #include <TString.h>                   // for TString, Form
-#include <ctype.h>                     // for isdigit
-#include <stdio.h>                     // for snprintf, NULL, printf
-#include <string.h>                    // for strstr, strlen
-#include "FairLogger.h"                // for LOG
-#include "GeometryManager.h"           // for GeometryManager
-#include "Segmentation.h"              // for Segmentation
 #include "TGeoMatrix.h"                // for TGeoHMatrix
 #include "TGeoNode.h"                  // for TGeoNode, TGeoNodeMatrix
 #include "TGeoVolume.h"                // for TGeoVolume
 #include "TMathBase.h"                 // for Max
 #include "TObjArray.h"                 // for TObjArray
 #include "TObject.h"                   // for TObject
-#include "UpgradeSegmentationPixel.h"  // for UpgradeSegmentationPixel
 #include "TClass.h"                    // for TClass
+
+#include <ctype.h>                     // for isdigit
+#include <stdio.h>                     // for snprintf, NULL, printf
+#include <string.h>                    // for strstr, strlen
+
 
 using namespace TMath;
 using namespace AliceO2::ITS;

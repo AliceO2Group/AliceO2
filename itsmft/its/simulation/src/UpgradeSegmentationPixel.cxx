@@ -1,7 +1,9 @@
 /// \file UpgradeSegmentationPixel.cxx
 /// \brief Implementation of the UpgradeSegmentationPixel class
 
-#include "UpgradeSegmentationPixel.h"
+#include "include/UpgradeSegmentationPixel.h"
+#include "include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+
 #include <TFile.h>                // for TFile
 #include <TObjArray.h>            // for TObjArray
 #include <TString.h>              // for TString
@@ -9,7 +11,6 @@
 #include <stdio.h>                // for printf
 #include "TMathBase.h"            // for Abs, Max, Min
 #include "TObject.h"              // for TObject
-#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
 
 using namespace TMath;
 using namespace AliceO2::ITS;

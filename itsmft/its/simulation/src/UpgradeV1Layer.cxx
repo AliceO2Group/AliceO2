@@ -3,7 +3,12 @@
 /// \author Mario Sitta <sitta@to.infn.it>
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 
-#include "UpgradeV1Layer.h"
+#include "include/UpgradeV1Layer.h"
+#include "include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "include/Detector.h"             // for Detector, etc
+
+#include "FairLogger.h"           // for LOG
+
 #include <TGeoArb8.h>             // for TGeoArb8
 #include <TGeoBBox.h>             // for TGeoBBox
 #include <TGeoCone.h>             // for TGeoConeSeg, TGeoCone
@@ -13,12 +18,13 @@
 #include <TGeoTube.h>             // for TGeoTube, TGeoTubeSeg
 #include <TGeoVolume.h>           // for TGeoVolume, TGeoVolumeAssembly
 #include <TGeoXtru.h>             // for TGeoXtru
-#include <TMath.h>                // for Sin, RadToDeg, DegToRad, Cos, Tan, etc
-#include <stdio.h>                // for snprintf
-#include "Detector.h"             // for Detector, etc
-#include "FairLogger.h"           // for LOG
 #include "TMathBase.h"            // for Abs
-#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include <TMath.h>                // for Sin, RadToDeg, DegToRad, Cos, Tan, etc
+
+
+
+#include <stdio.h>                // for snprintf
+
 class TGeoMedium;
 
 using namespace TMath;

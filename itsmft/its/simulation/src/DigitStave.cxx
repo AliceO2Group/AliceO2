@@ -5,15 +5,17 @@
 //  Created by Markus Fasel on 26.03.15.
 //
 //
-#include "itsmft/its/DigitStave.h"
+#include "include/DigitStave.h"
+#include "include/Digit.h"   // for Digit
+
 #include "FairLogger.h"  // for LOG
-#include "itsmft/its/Digit.h"   // for Digit
+
 #include "TClonesArray.h"
 
 using namespace AliceO2::ITS;
 
 DigitStave::DigitStave(){
-    
+
 }
 
 DigitStave::~DigitStave() {}

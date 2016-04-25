@@ -1,7 +1,7 @@
 /// \file AliITSUpgradeDigi.cxx
 /// \brief Digits structure for ITS digits
 
-#include "Digit.h"
+#include "include/Digit.h"
 
 ClassImp(AliceO2::ITS::Digit)
 
@@ -16,7 +16,7 @@ fCharge(0.),
 fLabels()
 {
 }
-    
+
 Digit::Digit(Int_t chipindex, Double_t pixelindex, Double_t charge, Double_t time):
 FairTimeStamp(time),
 fChipIndex(chipindex),
@@ -25,7 +25,7 @@ fCharge(charge),
 fLabels()
 {
 }
-    
+
 Digit::~Digit(){}
 
 Digit &Digit::operator+=(const Digit &other){

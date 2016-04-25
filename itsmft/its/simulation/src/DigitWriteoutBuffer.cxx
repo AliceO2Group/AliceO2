@@ -5,9 +5,9 @@
 //  Created by Markus Fasel on 21.07.15.
 //
 //
-#include "itsmft/its/DigitWriteoutBuffer.h"
-#include <TClonesArray.h>     // for TClonesArray
+#include "include/DigitWriteoutBuffer.h"
 #include "FairRootManager.h"  // for FairRootManager
+#include "TClonesArray.h"     // for TClonesArray
 #include "TString.h"          // for TString
 class FairTimeStamp;
 
@@ -19,24 +19,24 @@ DigitWriteoutBuffer::DigitWriteoutBuffer():
 FairWriteoutBuffer(),
 fData_map()
 {
-    
+
 }
 
 DigitWriteoutBuffer::DigitWriteoutBuffer(TString branchname, TString foldername, Bool_t persistance):
 FairWriteoutBuffer(branchname, "AliceO2::ITS::Digit", foldername, persistance),
 fData_map()
 {
-    
+
 }
 
 DigitWriteoutBuffer::~DigitWriteoutBuffer(){
-    
+
 }
 
 void DigitWriteoutBuffer::AddNewDataToTClonesArray(FairTimeStamp *timestamp){
     FairRootManager *iohandler = FairRootManager::Instance();
     TClonesArray *outputarray = iohandler->GetTClonesArray(fBranchName);
-    
+
     new ((*outputarray)[outputarray->GetEntries()])Digit(*(static_cast<Digit *>(timestamp)));
 }
 

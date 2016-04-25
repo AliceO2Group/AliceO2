@@ -1,7 +1,6 @@
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/itsmft/its/base/include
-  ${CMAKE_SOURCE_DIR}/itsmft/its/base/src
+  ${CMAKE_SOURCE_DIR}/itsmft/its/base/
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
@@ -27,12 +26,12 @@ set(SRCS
 )
 
 set(HEADERS
-  includes/ContainerFactory.h
-  includes/MisalignmentParameter.h
+  include/ContainerFactory.h
+  include/MisalignmentParameter.h
 )
 
 
-Set(LINKDEF itsBaseLinkDef.h)
+Set(LINKDEF src/itsBaseLinkDef.h)
 Set(LIBRARY_NAME itsBase)
 Set(DEPENDENCIES
     AliceO2Base

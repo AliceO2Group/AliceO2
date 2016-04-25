@@ -2,7 +2,7 @@
 /// \brief Implementation of the GeometryHandler class
 /// \author F. Uhlig <f.uhlig@gsi.de>
 
-#include "GeometryHandler.h"
+#include "include/GeometryHandler.h"
 
 #include "FairLogger.h" // for FairLogger, etc
 

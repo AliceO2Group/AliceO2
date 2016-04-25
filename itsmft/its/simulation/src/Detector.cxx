@@ -1,19 +1,26 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "itsmft/its/Detector.h"
-#include <stdio.h>                  // for NULL, snprintf
+#include "include/Detector.h"
+#include "include/GeometryHandler.h"        // for GeometryHandler
+#include "include/UpgradeGeometryTGeo.h"    // for UpgradeGeometryTGeo
+#include "include/UpgradeV1Layer.h"         // for UpgradeV1Layer
+#include "include/Point.h"                  // for Point, etc
+
+#include "include/MisalignmentParameter.h"  // for MisalignmentParameter
+
 #include "Data/DetectorList.h"      // for DetectorId::kAliIts
 #include "Data/Stack.h"             // for Stack
+
+//FairRoot includes
 #include "FairDetector.h"           // for FairDetector
 #include "FairLogger.h"             // for LOG, LOG_IF
 #include "FairRootManager.h"        // for FairRootManager
 #include "FairRun.h"                // for FairRun
 #include "FairRuntimeDb.h"          // for FairRuntimeDb
 #include "FairVolume.h"             // for FairVolume
-#include "GeometryHandler.h"        // for GeometryHandler
-#include "MisalignmentParameter.h"  // for MisalignmentParameter
-#include "Point.h"                  // for Point, etc
+
+
 #include "TClonesArray.h"           // for TClonesArray
 #include "TGeoManager.h"            // for TGeoManager, gGeoManager
 #include "TGeoTube.h"               // for TGeoTube
@@ -21,8 +28,10 @@
 #include "TString.h"                // for TString, operator+
 #include "TVirtualMC.h"             // for gMC, TVirtualMC
 #include "TVirtualMCStack.h"        // for TVirtualMCStack
-#include "UpgradeGeometryTGeo.h"    // for UpgradeGeometryTGeo
-#include "UpgradeV1Layer.h"         // for UpgradeV1Layer
+
+
+#include <stdio.h>                  // for NULL, snprintf
+
 class FairModule;
 class TGeoMedium;
 class TParticle;
@@ -429,7 +438,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   TVirtualMC::GetMC()->CurrentVolOffID(3, halfstave);
   TVirtualMC::GetMC()->CurrentVolOffID(4, stave);
   int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
-  
+
   // Record information on the points
   mEnergyLoss = TVirtualMC::GetMC()->Edep();
   mTime = TVirtualMC::GetMC()->TrackTime();
@@ -445,7 +454,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if (TVirtualMC::GetMC()->IsTrackStop()) trackStatus |= 1 << Point::kTrackStopped;
   if (TVirtualMC::GetMC()->IsTrackAlive()) trackStatus |= 1 << Point::kTrackAlive;
   mStatus = trackStatus;
-    
+
   TVirtualMC::GetMC()->TrackPosition(mPosition);
   TVirtualMC::GetMC()->TrackMomentum(mMomentum);
 
@@ -473,7 +482,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   mEntrancePosition = mPosition;
   mEntranceTime = mTime;
   mStatus0 = mStatus;
-  
+
   return kTRUE;
 }
 

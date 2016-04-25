@@ -5,13 +5,13 @@
 //  Created by Markus Fasel on 25.03.15.
 //
 //
-#include "itsmft/its/DigitContainer.h"
+#include "include/DigitContainer.h"
+#include "include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "include/Digit.h"            // for Digit
+#include "include//DigitLayer.h"       // for DigitLayer
+
 #include "FairLogger.h"           // for LOG
 #include "Rtypes.h"               // for Int_t, nullptr
-#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
-#include "itsmft/its/Digit.h"            // for Digit
-#include "itsmft/its/DigitLayer.h"       // for DigitLayer
-
 
 using namespace AliceO2::ITS;
 
@@ -45,7 +45,7 @@ void DigitContainer::AddDigit(Digit *digi){
     Int_t layer = fGeometry->getLayer(digi->GetChipIndex()),
     stave = fGeometry->getStave(digi->GetChipIndex()),
     pixel = fGeometry->getChipIdInStave(digi->GetChipIndex());
-    
+
     if(layer >= 7){
         LOG(ERROR) << "Layer index out of range : " << layer << ", max 6" << FairLogger::endl;
         return;

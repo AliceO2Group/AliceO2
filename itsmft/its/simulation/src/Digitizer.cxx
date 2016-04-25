@@ -1,14 +1,16 @@
 /// \file AliITSUpgradeDigitizer.cxx
 /// \brief Digitizer for the upgrated ITS
-#include <iostream>
-#include "itsmft/its/Digitizer.h"
+#include "include/Digitizer.h"
+#include "include/Point.h"                // for Point
+#include "include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "include/Digit.h"            // for Digit
+#include "include/DigitContainer.h"   // for DigitContainer
+
 #include "FairLogger.h"           // for LOG
-#include "Point.h"                // for Point
 #include "TClonesArray.h"         // for TClonesArray
 #include "TCollection.h"          // for TIter
-#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
-#include "itsmft/its/Digit.h"            // for Digit
-#include "itsmft/its/DigitContainer.h"   // for DigitContainer
+
+#include <iostream>
 
 ClassImp(AliceO2::ITS::Digitizer)
 
@@ -22,7 +24,7 @@ fGain(1.)
 {
   fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
 }
-    
+
 Digitizer::~Digitizer(){
   delete fGeometry;
   if(fDigitContainer) delete fDigitContainer;
@@ -30,7 +32,7 @@ Digitizer::~Digitizer(){
 
 void Digitizer::Init(){
   fDigitContainer = new DigitContainer(fGeometry);
-  
+
   for (int i = 0; i < fGeometry->getNumberOfChips(); i++) {
     fChipContainer.push_back(Chip(i, fGeometry));
   }
@@ -39,7 +41,7 @@ void Digitizer::Init(){
 DigitContainer *Digitizer::Process(TClonesArray *points){
   fDigitContainer->Reset();
   ClearChips();
-  
+
   // Assign points to chips
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
     Point *itspoint = dynamic_cast<Point *>(*pointiter);
@@ -49,7 +51,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
     }
     fChipContainer[itspoint->GetDetectorID()].InsertPoint(itspoint);
   }
-    
+
   // Convert points to summable digits
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
     Point *inputpoint = dynamic_cast<Point *>(*pointiter);

@@ -6,12 +6,12 @@
 //  Adapted from AliITSUChip by Massimo Masera
 //
 
-#include "itsmft/its/Chip.h"
+#include "include/Chip.h"
 #include <TMath.h>                    // for Sqrt
 #include <string.h>                   // for memset
 #include "TObjArray.h"                // for TObjArray
-#include "itsmft/its/Point.h"                // for Point
-#include "itsmft/its/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "include/Point.h"                // for Point
+#include "include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
 
 ClassImp(AliceO2::ITS::Chip)
 
@@ -70,7 +70,7 @@ Point *Chip::operator[](Int_t i) const {
 }
 
 Chip::~Chip(){
-  
+
 }
 
 void Chip::InsertPoint(Point *p){
@@ -105,11 +105,11 @@ Bool_t Chip::LineSegmentLocal(Int_t hitindex, Double_t &xstart, Double_t &xpoint
   posloc[3], poslocStart[3];
   memset(posloc, 0, sizeof(Double_t)*3);
   memset(poslocStart, 0, sizeof(Double_t)*3);
-  
+
   // convert to local position
   fGeometry->globalToLocal(fChipIndex, posglob, posloc);
   fGeometry->globalToLocal(fChipIndex, posglobStart, poslocStart);
-  
+
   // Prepare output, hit point relative to starting point
   xstart = poslocStart[0];
   ystart = poslocStart[1];
@@ -117,10 +117,10 @@ Bool_t Chip::LineSegmentLocal(Int_t hitindex, Double_t &xstart, Double_t &xpoint
   xpoint = posloc[0] - poslocStart[0];
   ypoint = posloc[1] - poslocStart[1];
   zpoint = posloc[2] - poslocStart[2];
-  
+
   timestart = tmp->GetStartTime();
   eloss = tmp->GetEnergyLoss();
-  
+
   return kTRUE;
 }
 
@@ -132,7 +132,7 @@ Bool_t Chip::LineSegmentGlobal(Int_t hitindex, Double_t &xstart, Double_t &xpoin
   if (tmp->IsEntering()) {
     return kFALSE;
   }
-  
+
   // Fill output fields
   xstart = tmp->GetStartX();
   ystart = tmp->GetStartY();
@@ -142,7 +142,7 @@ Bool_t Chip::LineSegmentGlobal(Int_t hitindex, Double_t &xstart, Double_t &xpoin
   zpoint = tmp->GetY() - zstart;
   timestart = tmp->GetStartTime();
   eloss = tmp->GetEnergyLoss();
-  
+
   return kTRUE;
 }
 
@@ -157,7 +157,7 @@ void Chip::MedianHitGlobal(const Point *p1, const Point *p2, Double_t &x, Double
   // Get hit positions in global coordinates
   Double_t pos1Glob[3] = {p1->GetX(), p1->GetY(), p1->GetZ()},
   pos2Glob[3] = {p2->GetX(), p2->GetY(), p2->GetZ()}, posMedianLocal[3], posMedianGlobal[3];
-  
+
   // Calculate mean positions
   posMedianLocal[1] = 0.;
   if ((pos1Glob[1] * pos2Glob[1]) < 0.) {
@@ -181,7 +181,7 @@ void Chip::MedianHitLocal(const Point *p1, const Point *p2, Double_t &x, Double_
   pos2Glob[3] = {p2->GetX(), p2->GetY(), p2->GetZ()}, pos1Loc[3], pos2Loc[3];
   fGeometry->globalToLocal(fChipIndex, pos1Glob, pos1Loc);
   fGeometry->globalToLocal(fChipIndex, pos2Glob, pos2Loc);
-  
+
   // Calculate mean positions
   y = 0.;
   if ((pos1Loc[1] * pos2Loc[1]) < 0.) {

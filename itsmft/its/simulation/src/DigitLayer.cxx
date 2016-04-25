@@ -6,11 +6,12 @@
 //
 //
 
+
+
+#include "include/DigitLayer.h"
+#include "include/DigitStave.h"
+
 #include "FairLogger.h"
-
-#include "itsmft/its/DigitLayer.h"
-#include "itsmft/its/DigitStave.h"
-
 using namespace AliceO2::ITS;
 
 DigitLayer::DigitLayer(Int_t layerID, Int_t nstaves):

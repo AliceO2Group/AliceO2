@@ -1,10 +1,9 @@
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/itsmft/its/simulation/include
-  ${CMAKE_SOURCE_DIR}/itsmft/its/simulation/src
-  ${CMAKE_SOURCE_DIR}/itsmft/its/base/include
-  ${CMAKE_SOURCE_DIR}/itsmft/its/base/src
-)
+  ${CMAKE_SOURCE_DIR}/itsmft/its/base/
+  ${CMAKE_SOURCE_DIR}/itsmft/its/simulation/
+
+  )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
@@ -25,45 +24,45 @@ set(LINK_DIRECTORIES
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-  UpgradeGeometryTGeo.cxx
-  V11Geometry.cxx
-  UpgradeV1Layer.cxx
-  Segmentation.cxx
-  UpgradeSegmentationPixel.cxx
-  GeometryManager.cxx
-  Detector.cxx
-  GeometryHandler.cxx
-  Point.cxx
-  Chip.cxx
-  Digit.cxx
-  Digitizer.cxx
-  DigitizerTask.cxx
-  DigitWriteoutBuffer.cxx
-  DigitContainer.cxx
-  DigitLayer.cxx
-  DigitStave.cxx
+  src/UpgradeGeometryTGeo.cxx
+  src/V11Geometry.cxx
+  src/UpgradeV1Layer.cxx
+  src/Segmentation.cxx
+  src/UpgradeSegmentationPixel.cxx
+  src/GeometryManager.cxx
+  src/Detector.cxx
+  src/GeometryHandler.cxx
+  src/Point.cxx
+  src/Chip.cxx
+  src/Digit.cxx
+  src/Digitizer.cxx
+  src/DigitizerTask.cxx
+  src/DigitWriteoutBuffer.cxx
+  src/DigitContainer.cxx
+  src/DigitLayer.cxx
+  src/DigitStave.cxx
 )
 set(HEADERS
-  UpgradeGeometryTGeo.h
-  V11Geometry.h
-  UpgradeV1Layer.h
-  Segmentation.h
-  UpgradeSegmentationPixel.h
-  GeometryManager.h
-  Detector.h
-  GeometryHandler.h
-  Point.h
-  Chip.h
-  Digit.h
-  Digitizer.h
-  DigitizerTask.h
-  DigitWriteoutBuffer.h
-  DigitContainer.h
-  DigitLayer.h
-  DigitStave.h
+  include/UpgradeGeometryTGeo.h
+  include/V11Geometry.h
+  include/UpgradeV1Layer.h
+  include/Segmentation.h
+  include/UpgradeSegmentationPixel.h
+  include/GeometryManager.h
+  include/Detector.h
+  include/GeometryHandler.h
+  include/Point.h
+  include/Chip.h
+  include/Digit.h
+  include/Digitizer.h
+  include/DigitizerTask.h
+  include/DigitWriteoutBuffer.h
+  include/DigitContainer.h
+  include/DigitLayer.h
+  include/DigitStave.h
 )
 
-Set(LINKDEF src/itsSimualationLinkDef.h)
+Set(LINKDEF src/itsSimulationLinkDef.h)
 Set(LIBRARY_NAME itsSimulation)
 Set(DEPENDENCIES
     itsBase

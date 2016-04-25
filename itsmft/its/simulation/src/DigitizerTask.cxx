@@ -6,13 +6,14 @@
 //
 //
 
-#include "itsmft/its/DigitizerTask.h"
-#include <TClonesArray.h>        // for TClonesArray
+#include "include/DigitizerTask.h"
+#include "include/DigitContainer.h"  // for DigitContainer
+#include "include/Digitizer.h"       // for Digitizer
+
+#include "TObject.h"             // for TObject
+#include "TClonesArray.h"        // for TClonesArray
 #include "FairLogger.h"          // for LOG
 #include "FairRootManager.h"     // for FairRootManager
-#include "TObject.h"             // for TObject
-#include "itsmft/its/DigitContainer.h"  // for DigitContainer
-#include "itsmft/its/Digitizer.h"       // for Digitizer
 
 ClassImp(AliceO2::ITS::DigitizerTask)
 
@@ -41,17 +42,17 @@ InitStatus DigitizerTask::Init(){
         LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
         return kERROR;
     }
-    
+
     fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("ITSPoint"));
     if (!fPointsArray) {
         LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
         return kERROR;
     }
-    
+
     // Register output container
     fDigitsArray = new TClonesArray("AliceO2::ITS::Digit");
     mgr->Register("ITSDigit", "ITS", fDigitsArray, kTRUE);
-    
+
     fDigitizer->Init();
     return kSUCCESS;
 }
@@ -59,8 +60,7 @@ InitStatus DigitizerTask::Init(){
 void DigitizerTask::Exec(Option_t *option){
     fDigitsArray->Delete();
     LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
-    
+
     DigitContainer *digits = fDigitizer->Process(fPointsArray);
     digits->FillOutputContainer(fDigitsArray);
 }
-

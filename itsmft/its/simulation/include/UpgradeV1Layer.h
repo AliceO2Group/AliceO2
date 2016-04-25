@@ -9,7 +9,7 @@
 #include <TGeoManager.h>   // for gGeoManager
 #include "Rtypes.h"        // for Double_t, Int_t, Bool_t, etc
 #include "V11Geometry.h"   // for V11Geometry
-#include "itsmft/its/Detector.h"  // for Detector, Detector::UpgradeModel
+#include "include/Detector.h"  // for Detector, Detector::UpgradeModel
 class TGeoArb8;
 class TGeoCombiTrans;
 class TGeoVolume;  // lines 15-15

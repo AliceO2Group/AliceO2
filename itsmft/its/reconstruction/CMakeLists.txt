@@ -29,7 +29,7 @@ set(SRCS
 set(HEADERS
 
 )
-Set(LINKDEF src/itsReconstructioLinkDef.h)
+Set(LINKDEF src/itsReconstructionLinkDef.h)
 Set(LIBRARY_NAME its)
 Set(DEPENDENCIES
     AliceO2Base
