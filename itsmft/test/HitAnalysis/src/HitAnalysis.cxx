@@ -6,20 +6,26 @@
 //
 //
 
-#include <vector>
-#include "TMath.h"
-#include "test/its/HitAnalysis.h"
-#include <TClonesArray.h>             // for TClonesArray
-#include <TFile.h>                    // for TFile
-#include <TH1.h>                      // for TH1, TH1D, TH1F
+#include "include/HitAnalysis.h"
+
 #include "FairLogger.h"               // for LOG
 #include "FairRootManager.h"          // for FairRootManager
+
+
+#include "TClonesArray.h"             // for TClonesArray
+#include "TFile.h"                    // for TFile
+#include "TH1.h"                      // for TH1, TH1D, TH1F
 #include "TCollection.h"              // for TIter
 #include "TObject.h"                  // for TObject
-#include "itsmft/its/Chip.h"                 // for Chip, Chip::IndexException
-#include "itsmft/its/Point.h"                // for Point
-#include "itsmft/its/Segmentation.h"         // for Segmentation
-#include "itsmft/its/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "TMath.h"
+
+
+#include "itsmft/its/simulation/include/Chip.h"                 // for Chip, Chip::IndexException
+#include "itsmft/its/simulation/include/Point.h"                // for Point
+#include "itsmft/its/simulation/include/Segmentation.h"         // for Segmentation
+#include "itsmft/its/simulation/include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+
+#include <vector>
 
 using namespace AliceO2::ITS;
 
@@ -61,22 +67,22 @@ InitStatus HitAnalysis::Init(){
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
-  
+
   fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("ITSPoint"));
   if (!fPointsArray) {
     LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
-  
+
   // Create geometry, initialize chip array
   fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
-  
+
   if (fProcessChips){
     for (int chipid = 0; chipid < fGeometry->getNumberOfChips(); chipid++) {
       fChips[chipid] = new Chip(chipid, fGeometry);
     }
     LOG(DEBUG) << "Created " << fChips.size() << " chips." << FairLogger::endl;
-  
+
     // Test whether indices match:
     LOG(DEBUG) << "Testing for integrity of chip indices" << FairLogger::endl;
     for (int i = 0; i < fGeometry->getNumberOfChips(); i++) {
@@ -86,7 +92,7 @@ InitStatus HitAnalysis::Init(){
     }
     LOG(DEBUG) << "Test for chip index integrity finished" << FairLogger::endl;
   }
-  
+
   // Create histograms
   // Ranges to be adjusted
   Double_t maxLengthX(-1.), maxLengthY(-1.), maxLengthZ(-1.);
@@ -118,10 +124,10 @@ void HitAnalysis::Exec(Option_t *option){
   //for (auto chipiter : fChips) {
   //  chipiter.second.Clear();
   //}
-  
+
   // Add test: Count number of hits in the points array (cannot be larger then the entries in the tree)
   fHitCounter->Fill(1., fPointsArray->GetEntries());
-  
+
   if (fProcessChips) {
     ProcessChips();
   } else {
@@ -145,7 +151,7 @@ void HitAnalysis::ProcessChips(){
       LOG(ERROR) << "Chip index " << inditer << FairLogger::endl;
     }
   }
-  
+
   // Assign hits to chips
   for (TIter pointIter = TIter(fPointsArray).Begin(); pointIter != TIter::End(); ++pointIter) {
     Point *point = static_cast<Point *>(*pointIter);
@@ -155,7 +161,7 @@ void HitAnalysis::ProcessChips(){
       LOG(ERROR) << e.what() << FairLogger::endl;
     }
   }
-  
+
   // Add test: Total number of hits assigned to chips must be the same as the size of the points array
   Int_t nHitsAssigned(0);
   for (auto chipiter : fChips) {
@@ -164,10 +170,10 @@ void HitAnalysis::ProcessChips(){
   if (nHitsAssigned != fPointsArray->GetEntries()) {
     LOG(ERROR) << "Number of points mismatch: Read(" << fPointsArray->GetEntries() << "), Assigned(" <<nHitsAssigned << ")" << FairLogger::endl;
   }
-  
+
   // Values for line segment calculation
   double x0, x1, y0, y1, z0, z1, tof, edep, steplength;
-  
+
   // loop over chips, get the line segment
   for (auto chipiter: fChips) {
     Chip &mychip = *(chipiter.second);
@@ -200,12 +206,12 @@ void HitAnalysis::ProcessHits(){
     Double_t phitloc[3], pstartloc[3],
     phitglob[3] = {p->GetX(), p->GetY(), p->GetZ()},
     pstartglob[3] = {p->GetStartX(), p->GetStartY(), p->GetStartZ()};
-    
+
     //fGeometry->GetMatrix(p->GetDetectorID())->MasterToLocal(phitglob, phitloc);
     //fGeometry->GetMatrix(p->GetDetectorID())->MasterToLocal(pstartglob, pstartloc);
     fGeometry->globalToLocal(p->GetDetectorID(), phitglob, phitloc);
     fGeometry->globalToLocal(p->GetDetectorID(), pstartglob, pstartloc);
-    
+
     fLocalX0->Fill(pstartloc[0]);
     fLocalY0->Fill(pstartloc[1]);
     fLocalZ0->Fill(pstartloc[2]);
@@ -221,7 +227,7 @@ void HitAnalysis::ProcessHits(){
 void HitAnalysis::FinishTask(){
   if( !fIsInitialized )
     return;
-  
+
   TFile *outfile = TFile::Open("hitanalysis.root", "RECREATE");
   outfile->cd();
   fLineSegment->Write();
@@ -235,4 +241,3 @@ void HitAnalysis::FinishTask(){
   outfile->Close();
   delete outfile;
 }
-

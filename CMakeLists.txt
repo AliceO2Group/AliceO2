@@ -222,7 +222,6 @@ add_subdirectory (field)
 add_subdirectory (devices)
 add_subdirectory (macro)
 add_subdirectory (o2cdb)
-add_subdirectory (test)
 add_subdirectory (o2qa)
 add_subdirectory (DataFormats)
 
