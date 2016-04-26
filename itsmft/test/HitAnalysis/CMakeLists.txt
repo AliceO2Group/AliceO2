@@ -29,7 +29,7 @@ set(HEADERS
 Set(LINKDEF src/testitsLinkDef.h)
 Set(LIBRARY_NAME testits)
 Set(DEPENDENCIES
-    AliceO2Base its
+    AliceO2Base itsSimulation itsBase
 )
 
 GENERATE_LIBRARY()

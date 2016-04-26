@@ -1,11 +1,8 @@
 
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/
-<<<<<<< HEAD
   ${CMAKE_SOURCE_DIR}/tpc
-=======
   ${CMAKE_SOURCE_DIR}/tpc/simulation
->>>>>>> Re-arrange the repository
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
