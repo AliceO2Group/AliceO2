@@ -1,8 +1,8 @@
 #include "include/Detector.h"
 #include "include/Point.h"              // for Point
 
-#include "Data/DetectorList.h"  // for DetectorId::kAliTpc
-#include "Data/Stack.h"         // for Stack
+#include "DataFormats/simulation/include/DetectorList.h"  // for DetectorId::kAliTpc
+#include "DataFormats/simulation/include/Stack.h"         // for Stack
 
 #include "FairRootManager.h"    // for FairRootManager
 #include "FairVolume.h"         // for FairVolume

@@ -9,8 +9,8 @@
 
 #include "include/MisalignmentParameter.h"  // for MisalignmentParameter
 
-#include "Data/DetectorList.h"      // for DetectorId::kAliIts
-#include "Data/Stack.h"             // for Stack
+#include "DataFormats/simulation/include/DetectorList.h"      // for DetectorId::kAliIts
+#include "DataFormats/simulation/include/Stack.h"             // for Stack
 
 //FairRoot includes
 #include "FairDetector.h"           // for FairDetector

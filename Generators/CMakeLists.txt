@@ -38,7 +38,7 @@ Pythia8Generator.cxx
 set(LINKDEF GeneratorsLinkDef.h)
 set(LIBRARY_NAME O2Gen)
 
-set(DEPENDENCIES Base O2Data pythia8 Pythia6)
+set(DEPENDENCIES Base O2SimulationDataFormat pythia8 Pythia6)
 
 GENERATE_LIBRARY()
 else(PYTHIA8_INCLUDE_DIR)

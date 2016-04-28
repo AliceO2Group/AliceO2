@@ -5,9 +5,9 @@
 #ifndef ALICEO2_DATA_STACK_H_
 #define ALICEO2_DATA_STACK_H_
 
-#include "FairGenericStack.h"
-
 #include "DetectorList.h"
+
+#include "FairGenericStack.h"
 
 #include "Rtypes.h"
 #include "TMCProcess.h"

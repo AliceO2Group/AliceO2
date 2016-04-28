@@ -210,7 +210,6 @@ endif(NOT ALICEO2_MODULAR_BUILD)
 # the project's entire directory structure.
 
 add_subdirectory (Base)
-add_subdirectory (Data)
 if (PYTHIA8_FOUND AND Pythia6_FOUND)
 add_subdirectory (Generators)
 Endif ()
