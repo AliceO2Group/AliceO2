@@ -3,6 +3,7 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/
   ${CMAKE_SOURCE_DIR}/tpc
   ${CMAKE_SOURCE_DIR}/tpc/simulation
+  ${CMAKE_SOURCE_DIR}/tpc/simulation/include
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES

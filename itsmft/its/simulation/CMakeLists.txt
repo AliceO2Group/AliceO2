@@ -2,6 +2,7 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/itsmft/its/base/
   ${CMAKE_SOURCE_DIR}/itsmft/its/simulation/
+  ${CMAKE_SOURCE_DIR}/itsmft/its/simulation/include
 
   )
 
