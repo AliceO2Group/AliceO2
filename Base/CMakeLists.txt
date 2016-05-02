@@ -31,6 +31,6 @@ Set(HEADERS
 )
 Set(LINKDEF src/BaseLinkDef.h)
 Set(LIBRARY_NAME AliceO2Base)
-Set(DEPENDENCIES Base parbase EG Physics Core )
+Set(DEPENDENCIES Base ParBase EG Physics Core )
 
 GENERATE_LIBRARY()

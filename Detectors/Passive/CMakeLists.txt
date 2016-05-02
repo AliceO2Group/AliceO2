@@ -3,7 +3,7 @@
 # The extension is already found.  Any number of sources could be listed here.
 
 set(INCLUDE_DIRECTORIES
-${CMAKE_SOURCE_DIR}/Detectors/passive
+${CMAKE_SOURCE_DIR}/Detectors/Passive
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
