@@ -219,7 +219,7 @@ add_subdirectory (devices)
 add_subdirectory (macro)
 add_subdirectory (o2cdb)
 add_subdirectory (o2qa)
-add_subdirectory (detectors)
+add_subdirectory (Detectors)
 add_subdirectory (DataFormats)
 
 

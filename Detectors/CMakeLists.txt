@@ -14,7 +14,6 @@
 # **************************************************************************
 
 # Libraries
-add_subdirectory(its)
-add_subdirectory(common)
-add_subdirectory(test)
-add_subdirectory(mft)
+add_subdirectory(Passive)
+add_subdirectory(ITSMFT)
+add_subdirectory(TPC)
