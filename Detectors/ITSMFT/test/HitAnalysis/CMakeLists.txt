@@ -1,7 +1,7 @@
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/detectors/itsmft/its/simulation/include
-  ${CMAKE_SOURCE_DIR}/detectors/itsmft/test/HitAnalysis
+  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/include
+  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/test/HitAnalysis
 )
 set(SYSTEM_INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}

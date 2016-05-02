@@ -1,6 +1,6 @@
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/detectors/itsmft/its/base/
+  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES

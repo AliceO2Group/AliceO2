@@ -20,10 +20,10 @@
 #include "TMath.h"
 
 
-#include "detectors/itsmft/its/simulation/include/Chip.h"                 // for Chip, Chip::IndexException
-#include "detectors/itsmft/its/simulation/include/Point.h"                // for Point
-#include "detectors/itsmft/its/simulation/include/Segmentation.h"         // for Segmentation
-#include "detectors/itsmft/its/simulation/include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "detectors/ITSMFT/ITS/simulation/include/Chip.h"                 // for Chip, Chip::IndexException
+#include "detectors/ITSMFT/ITS/simulation/include/Point.h"                // for Point
+#include "detectors/ITSMFT/ITS/simulation/include/Segmentation.h"         // for Segmentation
+#include "detectors/ITSMFT/ITS/simulation/include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
 
 #include <vector>
 
