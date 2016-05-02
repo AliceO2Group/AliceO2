@@ -5,10 +5,10 @@
 #ifndef ALICEO2_BASE_TRACKREFERENCE_H_
 #define ALICEO2_BASE_TRACKREFERENCE_H_
 
-#include "Rtypes.h"   // for Float_t, Int_t, TrackReference::Class, Bool_t, etc
-#include "TMath.h"    // for Pi, Sqrt, ATan2, Cos, Sin, ACos
-#include "TObject.h"  // for TObject
-
+#include "Rtypes.h"      // for TrackReference::Class, ClassDef, etc
+#include "RtypesCore.h"  // for Float_t, Int_t, Bool_t, Option_t
+#include "TMath.h"       // for Pi, Sqrt, ATan2, Cos, Sin, ACos
+#include "TObject.h"     // for TObject
 
 namespace AliceO2 {
 namespace Base {
