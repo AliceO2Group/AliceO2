@@ -209,7 +209,6 @@ endif(NOT ALICEO2_MODULAR_BUILD)
 # cause another cmake executable to run.  The same process will walk through
 # the project's entire directory structure.
 
-add_subdirectory (Base)
 if (PYTHIA8_FOUND AND Pythia6_FOUND)
 add_subdirectory (Generators)
 Endif ()
