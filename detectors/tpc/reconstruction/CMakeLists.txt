@@ -1,7 +1,6 @@
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/itsmft/its/reconstruction/src
-  ${CMAKE_SOURCE_DIR}/itsmft/its/reconstruction/include
+  ${CMAKE_SOURCE_DIR}/detectors/tpc
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
@@ -29,10 +28,10 @@ set(SRCS
 set(HEADERS
 
 )
-Set(LINKDEF src/itsReconstructionLinkDef.h)
-Set(LIBRARY_NAME its)
+Set(LINKDEF src/tpcReconstructionLinkDef.h)
+Set(LIBRARY_NAME tpcReconstruction)
 Set(DEPENDENCIES
-    AliceO2Base
+    tpcBase
 )
 
 GENERATE_LIBRARY()

@@ -1,9 +1,9 @@
 
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/
-  ${CMAKE_SOURCE_DIR}/tpc
-  ${CMAKE_SOURCE_DIR}/tpc/simulation
-  ${CMAKE_SOURCE_DIR}/tpc/simulation/include
+  ${CMAKE_SOURCE_DIR}/detectors/tpc
+  ${CMAKE_SOURCE_DIR}/detectors/tpc/simulation
+  ${CMAKE_SOURCE_DIR}/detectors/tpc/simulation/include
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES

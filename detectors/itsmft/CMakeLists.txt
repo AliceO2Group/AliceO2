@@ -14,9 +14,7 @@
 # **************************************************************************
 
 # Libraries
-add_subdirectory(common)
 add_subdirectory(its)
-add_subdirectory(mft)
+add_subdirectory(common)
 add_subdirectory(test)
-
-message(STATUS "itsmft enabled")
+add_subdirectory(mft)

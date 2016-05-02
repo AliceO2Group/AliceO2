@@ -1,15 +1,15 @@
-
 set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/
-  ${CMAKE_SOURCE_DIR}/tpc/base
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/detectors/itsmft/its/simulation/include
+  ${CMAKE_SOURCE_DIR}/detectors/itsmft/test/HitAnalysis
 )
-
 set(SYSTEM_INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
   ${BASE_INCLUDE_DIRECTORIES}
   ${Boost_INCLUDE_DIRS}
   ${FAIRROOT_INCLUDE_DIR}
 )
+
 include_directories( ${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
@@ -21,16 +21,15 @@ set(LINK_DIRECTORIES
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-   src/ContainerFactory.cxx
+  src/HitAnalysis.cxx
 )
-
-
 set(HEADERS
-   include/ContainerFactory.h
+  include/HitAnalysis.h
 )
-Set(LINKDEF src/tpcBaseLinkDef.h)
-Set(LIBRARY_NAME tpcBase)
+Set(LINKDEF src/testitsLinkDef.h)
+Set(LIBRARY_NAME testits)
 Set(DEPENDENCIES
-    Base
+    AliceO2Base itsSimulation itsBase
 )
+
 GENERATE_LIBRARY()

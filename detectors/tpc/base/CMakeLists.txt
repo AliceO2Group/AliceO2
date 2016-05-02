@@ -1,15 +1,15 @@
+
 set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/itsmft/its/base/
+  ${CMAKE_SOURCE_DIR}/
+  ${CMAKE_SOURCE_DIR}/detectors/tpc/base
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${FAIRROOT_INCLUDE_DIR}
   ${ROOT_INCLUDE_DIR}
+  ${BASE_INCLUDE_DIRECTORIES}
+  ${Boost_INCLUDE_DIRS}
+  ${FAIRROOT_INCLUDE_DIR}
 )
-
 include_directories( ${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
@@ -21,20 +21,16 @@ set(LINK_DIRECTORIES
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-  src/ContainerFactory.cxx
-  src/MisalignmentParameter.cxx
+   src/ContainerFactory.cxx
 )
+
 
 set(HEADERS
-  include/ContainerFactory.h
-  include/MisalignmentParameter.h
+   include/ContainerFactory.h
 )
-
-
-Set(LINKDEF src/itsBaseLinkDef.h)
-Set(LIBRARY_NAME itsBase)
+Set(LINKDEF src/tpcBaseLinkDef.h)
+Set(LIBRARY_NAME tpcBase)
 Set(DEPENDENCIES
-    AliceO2Base
+    Base
 )
-
 GENERATE_LIBRARY()
