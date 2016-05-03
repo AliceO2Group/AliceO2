@@ -2,7 +2,6 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/
   ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/
-
   )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
@@ -43,23 +42,23 @@ set(SRCS
   src/DigitStave.cxx
 )
 set(HEADERS
-  include/UpgradeGeometryTGeo.h
-  include/V11Geometry.h
-  include/UpgradeV1Layer.h
-  include/Segmentation.h
-  include/UpgradeSegmentationPixel.h
-  include/GeometryManager.h
-  include/Detector.h
-  include/GeometryHandler.h
-  include/Point.h
   include/Chip.h
+  include/Detector.h
   include/Digit.h
-  include/Digitizer.h
-  include/DigitizerTask.h
-  include/DigitWriteoutBuffer.h
   include/DigitContainer.h
   include/DigitLayer.h
   include/DigitStave.h
+  include/DigitWriteoutBuffer.h
+  include/Digitizer.h
+  include/DigitizerTask.h
+  include/GeometryHandler.h
+  include/GeometryManager.h
+  include/Point.h
+  include/Segmentation.h
+  include/UpgradeGeometryTGeo.h
+  include/UpgradeSegmentationPixel.h
+  include/UpgradeV1Layer.h
+  include/V11Geometry.h
 )
 
 Set(LINKDEF src/itsSimulationLinkDef.h)
@@ -67,6 +66,7 @@ Set(LIBRARY_NAME itsSimulation)
 Set(DEPENDENCIES
     itsBase
     AliceO2Base
+    Base ParBase
 )
 
 GENERATE_LIBRARY()

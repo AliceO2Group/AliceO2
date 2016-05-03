@@ -40,7 +40,7 @@ set( HEADERS
 )
 
 set(LINKDEF src/EventGeneratorLinkDef.h)
-set(LIBRARY_NAME EvntGenerator)
+set(LIBRARY_NAME EvtGenerator)
 
 set(DEPENDENCIES Base O2SimulationDataFormat pythia8 Pythia6)
 

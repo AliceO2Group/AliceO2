@@ -34,7 +34,7 @@ set(HEADERS
 Set(LINKDEF src/itsBaseLinkDef.h)
 Set(LIBRARY_NAME itsBase)
 Set(DEPENDENCIES
-    AliceO2Base
+    AliceO2Base ParBase 
 )
 
 GENERATE_LIBRARY()

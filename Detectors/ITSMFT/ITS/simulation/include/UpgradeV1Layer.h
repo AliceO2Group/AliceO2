@@ -8,7 +8,7 @@
 
 #include <TGeoManager.h>   // for gGeoManager
 #include "Rtypes.h"        // for Double_t, Int_t, Bool_t, etc
-#include "V11Geometry.h"   // for V11Geometry
+#include "include/V11Geometry.h"   // for V11Geometry
 #include "include/Detector.h"  // for Detector, Detector::UpgradeModel
 class TGeoArb8;
 class TGeoCombiTrans;
@@ -109,7 +109,7 @@ public:
     return mHierarchy[kChip];
   }
 
-  AliceO2::ITS::Detector::UpgradeModel getStaveModel() const
+  Detector::UpgradeModel getStaveModel() const
   {
     return mStaveModel;
   }
@@ -321,7 +321,7 @@ private:
   Bool_t mIsTurbo;    ///< True if this layer is a "turbo" layer
   Int_t mBuildLevel;  ///< Used for material studies
 
-  AliceO2::ITS::Detector::UpgradeModel mStaveModel; ///< The stave model
+  Detector::UpgradeModel mStaveModel; ///< The stave model
 
   // Parameters for the Upgrade geometry
 
