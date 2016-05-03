@@ -2,7 +2,7 @@
 /// \brief Implementation of the MagWrapCheb class
 /// \author ruben.shahoyan@cern.ch 20/03/2007
 
-#include "MagneticWrapperChebyshev.h"
+#include "include/MagneticWrapperChebyshev.h"
 #include <TArrayF.h>     // for TArrayF
 #include <TArrayI.h>     // for TArrayI
 #include <TSystem.h>     // for TSystem, gSystem

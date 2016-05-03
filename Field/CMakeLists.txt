@@ -3,36 +3,38 @@
 # The extension is already found.  Any number of sources could be listed here.
 
 set(INCLUDE_DIRECTORIES
-${CMAKE_SOURCE_DIR}
-${CMAKE_SOURCE_DIR}/field
-${CMAKE_SOURCE_DIR}/header
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/Field
+  ${CMAKE_SOURCE_DIR}/header
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
-${BASE_INCLUDE_DIRECTORIES}
-${FAIRROOT_INCLUDE_DIR}
-${ROOT_INCLUDE_DIR}
+  ${BASE_INCLUDE_DIRECTORIES}
+  ${FAIRROOT_INCLUDE_DIR}
+  ${ROOT_INCLUDE_DIR}
 )
 
 include_directories( ${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
 set(LINK_DIRECTORIES
-${FAIRROOT_LIBRARY_DIR}
-${ROOT_LIBRARY_DIR}
+  ${FAIRROOT_LIBRARY_DIR}
+  ${ROOT_LIBRARY_DIR}
 )
 
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-MagneticWrapperChebyshev.cxx
-MagneticField.cxx
+  src/MagneticWrapperChebyshev.cxx
+  src/MagneticField.cxx
 )
 
-Set(HEADERS)
-Set(LINKDEF fieldLinkDef.h)
+Set(HEADERS
+   include/MagneticWrapperChebyshev.h
+   include/MagneticField.h
+)
+Set(LINKDEF src/FieldLinkDef.h)
 Set(LIBRARY_NAME Field)
 Set(DEPENDENCIES MathUtils Core)
 
 GENERATE_LIBRARY()
-

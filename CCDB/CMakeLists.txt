@@ -44,8 +44,6 @@ set(HEADERS
   include/Condition.h
   include/ConditionId.h
   include/ConditionMetaData.h
-  include/ConditionsMQClient.h
-  include/ConditionsMQServer.h
   include/FileStorage.h
   include/GridStorage.h
   include/IdPath.h
