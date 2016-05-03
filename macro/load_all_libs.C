@@ -7,7 +7,7 @@ void load_all_libs()
   gSystem->Load("libFLP2EPNex_distributed");
   gSystem->Load("libField");
   gSystem->Load("libMathUtils");
-  gSystem->Load("libO2SimulationDataFormat)");
+  gSystem->Load("libO2SimulationDataFormat");
   gSystem->Load("libEvtGenerator");
   gSystem->Load("libPassive");
   gSystem->Load("libRoundtripTest");
