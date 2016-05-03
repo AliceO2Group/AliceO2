@@ -1,13 +1,14 @@
-# Create a library called "MathUtils" which includes the source files given in
+# Create a library called "AliceO2Field" which includes the source files given in
 # the array.
 # The extension is already found.  Any number of sources could be listed here.
 
 set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/MathUtils/include
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/Common/Field
+  ${CMAKE_SOURCE_DIR}/header
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/MathUtils
   ${BASE_INCLUDE_DIRECTORIES}
   ${FAIRROOT_INCLUDE_DIR}
   ${ROOT_INCLUDE_DIR}
@@ -17,7 +18,6 @@ include_directories( ${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
 set(LINK_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/MathUtils
   ${FAIRROOT_LIBRARY_DIR}
   ${ROOT_LIBRARY_DIR}
 )
@@ -25,16 +25,16 @@ set(LINK_DIRECTORIES
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-  src/Chebyshev3D.cxx
-  src/Chebyshev3DCalc.cxx
+  src/MagneticWrapperChebyshev.cxx
+  src/MagneticField.cxx
 )
 
 Set(HEADERS
-  include/Chebyshev3D.h
-  include/Chebyshev3DCalc.h
+   include/MagneticWrapperChebyshev.h
+   include/MagneticField.h
 )
-Set(LINKDEF src/MathUtilsLinkDef.h)
-Set(LIBRARY_NAME MathUtils)
-Set(DEPENDENCIES Core)
+Set(LINKDEF src/FieldLinkDef.h)
+Set(LIBRARY_NAME Field)
+Set(DEPENDENCIES MathUtils Core)
 
 GENERATE_LIBRARY()
