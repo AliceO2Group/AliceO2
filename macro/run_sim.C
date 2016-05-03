@@ -6,13 +6,13 @@ double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 
 void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
+  TString dir = getenv("VMCWORKDIR");
+  TString geom_dir = dir + "/Detectors/Geometry/";
+  gSystem->Setenv("GEOMPATH",geom_dir.Data());
 
 
-   TString dir = getenv("VMCWORKDIR");
-   TString geom_dir = dir + "/Detectors/Geometry/";
-   gSystem->Setenv("GEOMPATH",geom_dir.Data());
-
-
+  TString tut_configdir = dir + "/Detectors/gconfig";
+  gSystem->Setenv("CONFIG_DIR",tut_configdir.Data());
 
   // Output file name
   char fileout[100];
