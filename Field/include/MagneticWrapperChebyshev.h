@@ -7,8 +7,8 @@
 #include <TMath.h>                      // for ATan2, Cos, Sin, Sqrt
 #include <TNamed.h>                     // for TNamed
 #include <TObjArray.h>                  // for TObjArray
-#include "MathUtils/Chebyshev3D.h"      // for Chebyshev3D
-#include "MathUtils/Chebyshev3DCalc.h"  // for _INC_CREATION_Chebyshev3D_
+#include "MathUtils/include/Chebyshev3D.h"      // for Chebyshev3D
+#include "MathUtils/include/Chebyshev3DCalc.h"  // for _INC_CREATION_Chebyshev3D_
 #include "Rtypes.h"                     // for Double_t, Int_t, Float_t, etc
 class FairLogger;  // lines 16-16
 
