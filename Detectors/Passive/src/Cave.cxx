@@ -11,10 +11,10 @@
 // -----                    Cave  file                               -----
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
-#include "Cave.h"
+#include "include/Cave.h"
 #include "FairGeoInterface.h"  // for FairGeoInterface
 #include "FairGeoLoader.h"     // for FairGeoLoader
-#include "GeoCave.h"           // for GeoCave
+#include "include/GeoCave.h"           // for GeoCave
 #include "TString.h"           // for TString
 #include <stddef.h>            // for NULL
 
@@ -33,7 +33,7 @@ void Cave::ConstructGeometry()
   GeoInterface->addGeoModule(MGeo);
   Bool_t rc = GeoInterface->readSet(MGeo);
   if ( rc ) { MGeo->create(loader->getGeoBuilder()); }
- 
+
 }
 Cave::Cave()
 :FairModule()

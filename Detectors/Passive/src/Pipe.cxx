@@ -11,7 +11,7 @@
 // -----                Created by M. Al-Turany  June 2014             -----
 // -------------------------------------------------------------------------
 
-#include "Pipe.h"
+#include "include/Pipe.h"
 #include "TGeoManager.h"   // for TGeoManager, gGeoManager
 #include "TGeoMaterial.h"  // for TGeoMaterial
 #include "TGeoMedium.h"    // for TGeoMedium
@@ -53,16 +53,16 @@ Pipe& Pipe::operator=(const Pipe& rhs)
 void Pipe::ConstructGeometry()
 {
      TGeoVolume *top=gGeoManager->GetTopVolume();
-    
+
     // define some materials
      TGeoMaterial *matCarbon    = new TGeoMaterial("C", 12.011, 6.0, 2.265);
      TGeoMaterial *matVacuum    = new TGeoMaterial("Vacuum", 0, 0, 0);
-    
+
     // define some media
      TGeoMedium *Carbon     = new TGeoMedium("C", 3, matCarbon);
      TGeoMedium *Vacuum     = new TGeoMedium("Vacuum", 4, matVacuum);
-   
-    
+
+
     Int_t nSects=2;
     Double_t z[] = { -100, 300};    // in cm
     Double_t r[] = { 2.5, 2.5};    // in cm
@@ -71,19 +71,19 @@ void Pipe::ConstructGeometry()
     for (Int_t iSect = 0; iSect < nSects; iSect++) {
         shape->DefineSection(iSect, z[iSect], r[iSect], r[iSect]+Thickness);
     }
-    
+
     // ---> Volume
     TGeoVolume* pipe = new TGeoVolume("Pipe", shape, Carbon);
-    
+
     // --Now create the same but diameter less by Thikness and vacuum instead of Carbon
     TGeoPcon* Vshape = new TGeoPcon(0., 360., nSects);
     for (Int_t iSect = 0; iSect < nSects; iSect++) {
         Vshape->DefineSection(iSect, z[iSect], r[iSect], r[iSect]);
     }
-    
+
     // ---> Volume
     TGeoVolume* Vpipe = new TGeoVolume("Pipe", shape, Vacuum);
-    
+
     top->AddNode(pipe, 1);
     top->AddNode(Vpipe, 1);
 
@@ -97,4 +97,3 @@ FairModule* Pipe::CloneModule() const
 }
 
 ClassImp(AliceO2::Passive::Pipe)
-

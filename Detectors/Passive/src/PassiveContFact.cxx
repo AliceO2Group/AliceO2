@@ -22,7 +22,7 @@
 //  Factory for the parameter containers in libPassive
 //
 /////////////////////////////////////////////////////////////
-#include "PassiveContFact.h"
+#include "include/PassiveContFact.h"
 #include "FairRuntimeDb.h"              // for FairRuntimeDb
 #include "TList.h"                      // for TList
 #include "TString.h"                    // for TString
@@ -73,4 +73,3 @@ FairParSet* PassiveContFact::createContainer(FairContainer* c)
 */
   return 0;
 }
-
