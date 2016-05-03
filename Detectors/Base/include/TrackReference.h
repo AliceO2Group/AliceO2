@@ -6,7 +6,6 @@
 #define ALICEO2_BASE_TRACKREFERENCE_H_
 
 #include "Rtypes.h"      // for TrackReference::Class, ClassDef, etc
-#include "RtypesCore.h"  // for Float_t, Int_t, Bool_t, Option_t
 #include "TMath.h"       // for Pi, Sqrt, ATan2, Cos, Sin, ACos
 #include "TObject.h"     // for TObject
 
