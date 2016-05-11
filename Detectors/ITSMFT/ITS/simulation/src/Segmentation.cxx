@@ -1,7 +1,7 @@
 /// \file Segmentation.cxx
 /// \brief Implementation of the Segmentation class
 
-#include "include/Segmentation.h"
+#include "Segmentation.h"
 #include "TF1.h"      // for TF1
 
 

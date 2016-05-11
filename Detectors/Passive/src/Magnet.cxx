@@ -11,7 +11,7 @@
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
-#include "include/Magnet.h"
+#include "Magnet.h"
 #include "TGeoBBox.h"            // for TGeoBBox
 #include "TGeoCompositeShape.h"  // for TGeoCompositeShape
 #include "TGeoManager.h"         // for TGeoManager, gGeoManager

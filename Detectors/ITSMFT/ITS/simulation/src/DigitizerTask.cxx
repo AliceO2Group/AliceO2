@@ -6,9 +6,9 @@
 //
 //
 
-#include "include/DigitizerTask.h"
-#include "include/DigitContainer.h"  // for DigitContainer
-#include "include/Digitizer.h"       // for Digitizer
+#include "DigitizerTask.h"
+#include "DigitContainer.h"  // for DigitContainer
+#include "Digitizer.h"       // for Digitizer
 
 #include "TObject.h"             // for TObject
 #include "TClonesArray.h"        // for TClonesArray

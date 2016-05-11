@@ -5,8 +5,8 @@
 //  Created by Markus Fasel on 26.03.15.
 //
 //
-#include "include/DigitStave.h"
-#include "include/Digit.h"   // for Digit
+#include "DigitStave.h"
+#include "Digit.h"   // for Digit
 
 #include "FairLogger.h"  // for LOG
 

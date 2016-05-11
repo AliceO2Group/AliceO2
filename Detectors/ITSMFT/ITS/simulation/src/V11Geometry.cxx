@@ -2,7 +2,7 @@
 /// \brief Implementation of the V11Geometry class
 
 
-#include "include/V11Geometry.h"
+#include "V11Geometry.h"
 
 #include "FairLogger.h"    // for LOG
 

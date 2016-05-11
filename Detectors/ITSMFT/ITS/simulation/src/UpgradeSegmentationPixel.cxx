@@ -1,8 +1,8 @@
 /// \file UpgradeSegmentationPixel.cxx
 /// \brief Implementation of the UpgradeSegmentationPixel class
 
-#include "include/UpgradeSegmentationPixel.h"
-#include "include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "UpgradeSegmentationPixel.h"
+#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
 
 #include <TFile.h>                // for TFile
 #include <TObjArray.h>            // for TObjArray

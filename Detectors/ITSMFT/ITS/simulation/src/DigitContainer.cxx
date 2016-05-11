@@ -5,10 +5,10 @@
 //  Created by Markus Fasel on 25.03.15.
 //
 //
-#include "include/DigitContainer.h"
-#include "include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
-#include "include/Digit.h"            // for Digit
-#include "include//DigitLayer.h"       // for DigitLayer
+#include "DigitContainer.h"
+#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "Digit.h"            // for Digit
+#include "DigitLayer.h"       // for DigitLayer
 
 #include "FairLogger.h"           // for LOG
 #include "Rtypes.h"               // for Int_t, nullptr

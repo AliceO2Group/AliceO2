@@ -8,8 +8,8 @@
 
 
 
-#include "include/DigitLayer.h"
-#include "include/DigitStave.h"
+#include "DigitLayer.h"
+#include "DigitStave.h"
 
 #include "FairLogger.h"
 using namespace AliceO2::ITS;

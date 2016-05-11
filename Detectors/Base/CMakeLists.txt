@@ -1,5 +1,7 @@
 set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/Detectors/Base
+  ${CMAKE_SOURCE_DIR}/Detectors/Base/
+  ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES

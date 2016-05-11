@@ -3,9 +3,9 @@
 /// \author Mario Sitta <sitta@to.infn.it>
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 
-#include "include/UpgradeV1Layer.h"
-#include "include/UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
-#include "include/Detector.h"             // for Detector, etc
+#include "UpgradeV1Layer.h"
+#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "Detector.h"             // for Detector, etc
 
 #include "FairLogger.h"           // for LOG
 

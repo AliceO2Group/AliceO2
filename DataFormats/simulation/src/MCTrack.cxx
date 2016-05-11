@@ -2,7 +2,7 @@
 /// \brief Implementation of the MCTrack class
 /// \author M. Al-Turany - June 2014
 
-#include "include/MCTrack.h"
+#include "MCTrack.h"
 
 #include "FairLogger.h"
 #include "TDatabasePDG.h"

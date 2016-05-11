@@ -2,8 +2,8 @@
 /// \brief Implementation of the MagF class
 /// \author ruben.shahoyan@cern.ch
 
-#include "include/MagneticField.h"
-#include "include/MagneticWrapperChebyshev.h"  // for MagneticWrapperChebyshev
+#include "MagneticField.h"
+#include "MagneticWrapperChebyshev.h"  // for MagneticWrapperChebyshev
 #include <TFile.h>                     // for TFile
 #include <TPRegexp.h>                  // for TPRegexp
 #include <TSystem.h>                   // for TSystem, gSystem

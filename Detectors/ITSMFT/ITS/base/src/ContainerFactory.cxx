@@ -1,7 +1,7 @@
 /// \file ContainerFactory.cxx
 /// \brief Implementation of the ContainerFactory class
 
-#include "include/ContainerFactory.h"
+#include "ContainerFactory.h"
 #include "FairRuntimeDb.h"  // for FairRuntimeDb
 #include "TString.h"        // for TString
 class FairParSet;

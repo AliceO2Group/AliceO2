@@ -22,7 +22,7 @@
 //  Factory for the parameter containers in libPassive
 //
 /////////////////////////////////////////////////////////////
-#include "include/PassiveContFact.h"
+#include "PassiveContFact.h"
 #include "FairRuntimeDb.h"              // for FairRuntimeDb
 #include "TList.h"                      // for TList
 #include "TString.h"                    // for TString

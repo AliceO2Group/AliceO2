@@ -1,5 +1,5 @@
-#include "include/Detector.h"
-#include "include/Point.h"              // for Point
+#include "Detector.h"
+#include "Point.h"              // for Point
 
 #include "DataFormats/simulation/include/DetectorList.h"  // for DetectorId::kAliTpc
 #include "DataFormats/simulation/include/Stack.h"         // for Stack

@@ -1,13 +1,13 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "include/Detector.h"
-#include "include/GeometryHandler.h"        // for GeometryHandler
-#include "include/UpgradeGeometryTGeo.h"    // for UpgradeGeometryTGeo
-#include "include/UpgradeV1Layer.h"         // for UpgradeV1Layer
-#include "include/Point.h"                  // for Point, etc
+#include "Detector.h"
+#include "GeometryHandler.h"        // for GeometryHandler
+#include "UpgradeGeometryTGeo.h"    // for UpgradeGeometryTGeo
+#include "UpgradeV1Layer.h"         // for UpgradeV1Layer
+#include "Point.h"                  // for Point, etc
 
-#include "include/MisalignmentParameter.h"  // for MisalignmentParameter
+#include "MisalignmentParameter.h"  // for MisalignmentParameter
 
 #include "DataFormats/simulation/include/DetectorList.h"      // for DetectorId::kAliIts
 #include "DataFormats/simulation/include/Stack.h"             // for Stack

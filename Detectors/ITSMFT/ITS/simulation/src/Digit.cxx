@@ -1,7 +1,7 @@
 /// \file AliITSUpgradeDigi.cxx
 /// \brief Digits structure for ITS digits
 
-#include "include/Digit.h"
+#include "Digit.h"
 
 ClassImp(AliceO2::ITS::Digit)
 

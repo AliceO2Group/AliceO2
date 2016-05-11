@@ -5,7 +5,7 @@
 //  Created by Markus Fasel on 21.07.15.
 //
 //
-#include "include/DigitWriteoutBuffer.h"
+#include "DigitWriteoutBuffer.h"
 #include "FairRootManager.h"  // for FairRootManager
 #include "TClonesArray.h"     // for TClonesArray
 #include "TString.h"          // for TString

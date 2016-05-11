@@ -2,8 +2,8 @@
 /// \brief Implementation of the Stack class
 /// \author M. Al-Turany - June 2014
 
-#include "include/Stack.h"
-#include "include/MCTrack.h"          // for MCTrack
+#include "Stack.h"
+#include "MCTrack.h"          // for MCTrack
 
 #include "FairDetector.h"     // for FairDetector
 #include "FairLogger.h"       // for MESSAGE_ORIGIN, FairLogger

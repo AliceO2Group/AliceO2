@@ -1,6 +1,8 @@
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/
+  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
+
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
@@ -34,7 +36,7 @@ set(HEADERS
 Set(LINKDEF src/itsBaseLinkDef.h)
 Set(LIBRARY_NAME itsBase)
 Set(DEPENDENCIES
-    AliceO2Base ParBase 
+    AliceO2Base ParBase
 )
 
 GENERATE_LIBRARY()

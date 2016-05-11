@@ -4,10 +4,10 @@
 /// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
-#include "include/UpgradeGeometryTGeo.h"
-#include "include/UpgradeSegmentationPixel.h"  // for UpgradeSegmentationPixel
-#include "include/GeometryManager.h"           // for GeometryManager
-#include "include/Segmentation.h"              // for Segmentation
+#include "UpgradeGeometryTGeo.h"
+#include "UpgradeSegmentationPixel.h"  // for UpgradeSegmentationPixel
+#include "GeometryManager.h"           // for GeometryManager
+#include "Segmentation.h"              // for Segmentation
 
 
 #include "FairLogger.h"                // for LOG

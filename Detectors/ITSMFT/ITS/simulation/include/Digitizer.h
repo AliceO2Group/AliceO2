@@ -5,7 +5,7 @@
 
 #include "Rtypes.h"   // for Digitizer::Class, Double_t, ClassDef, etc
 #include "TObject.h"  // for TObject
-#include "include/Chip.h"
+#include "Chip.h"
 
 class TClonesArray;  // lines 13-13
 namespace AliceO2 { namespace ITS { class DigitContainer; } }  // lines 19-19
