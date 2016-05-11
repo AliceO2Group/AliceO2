@@ -1,9 +1,9 @@
 set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/devices/flp2epn
+  ${CMAKE_SOURCE_DIR}/Examples/flp2epn
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
-  ${BASE_INCLUDE_DIRECTORIES} 
+  ${BASE_INCLUDE_DIRECTORIES}
   ${Boost_INCLUDE_DIR}
   ${FAIRROOT_INCLUDE_DIR}
   ${ZMQ_INCLUDE_DIR}
@@ -13,8 +13,8 @@ set(SYSTEM_INCLUDE_DIRECTORIES
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
-configure_file( ${CMAKE_SOURCE_DIR}/devices/flp2epn/run/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh )
-configure_file( ${CMAKE_SOURCE_DIR}/devices/flp2epn/run/startMerger.sh.in ${CMAKE_BINARY_DIR}/bin/startMerger.sh )
+configure_file( ${CMAKE_SOURCE_DIR}/Examples/flp2epn/run/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh )
+configure_file( ${CMAKE_SOURCE_DIR}/Examples/flp2epn/run/startMerger.sh.in ${CMAKE_BINARY_DIR}/bin/startMerger.sh )
 
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
@@ -60,7 +60,7 @@ Set(Exe_Names
   testMerger
 )
 
-set(Exe_Source 
+set(Exe_Source
   run/runFLP.cxx
   run/runEPN.cxx
   run/runEPN_M.cxx

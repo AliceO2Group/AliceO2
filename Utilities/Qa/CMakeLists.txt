@@ -2,11 +2,10 @@ Set(INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
   ${BASE_INCLUDE_DIRECTORIES}
   ${FAIRROOT_INCLUDE_DIR}
-  ${AlFa_DIR}/include
-  ${CMAKE_SOURCE_DIR}/o2qa
-  ${CMAKE_SOURCE_DIR}/o2qa/Merger
-  ${CMAKE_SOURCE_DIR}/o2qa/Producer
-  ${CMAKE_SOURCE_DIR}/o2qa/Viewer
+  ${CMAKE_SOURCE_DIR}/Utilities/Qa
+  ${CMAKE_SOURCE_DIR}/Utilities/Qa/Merger
+  ${CMAKE_SOURCE_DIR}/Utilities/Qa/Producer
+  ${CMAKE_SOURCE_DIR}/Utilities/Qa/Viewer
 )
 
 Set(SYSTEM_INCLUDE_DIRECTORIES
@@ -20,7 +19,6 @@ Include_Directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 set(LINK_DIRECTORIES
   ${Boost_LIBRARY_DIRS}
   ${FAIRROOT_LIBRARY_DIR}
-  ${AlFa_DIR}/lib
   ${ROOT_LIBRARY_DIR}
 )
 

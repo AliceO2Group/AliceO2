@@ -1,6 +1,5 @@
-add_subdirectory (flp2epn)
-add_subdirectory (flp2epn-distributed)
 if(ALIROOT)
   add_subdirectory (hough)
 endif(ALIROOT)
 add_subdirectory (aliceHLTwrapper)
+add_subdirectory (Qa)
