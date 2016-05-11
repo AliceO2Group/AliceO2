@@ -6,7 +6,7 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/Common/Field
   ${CMAKE_SOURCE_DIR}/Common/Field/include
-  ${CMAKE_SOURCE_DIR}/header
+  ${CMAKE_SOURCE_DIR}/Common/Header
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
