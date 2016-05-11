@@ -2,10 +2,10 @@ Set(INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
   ${BASE_INCLUDE_DIRECTORIES}
   ${FAIRROOT_INCLUDE_DIR}
-  ${CMAKE_SOURCE_DIR}/Utilities/Qa
-  ${CMAKE_SOURCE_DIR}/Utilities/Qa/Merger
-  ${CMAKE_SOURCE_DIR}/Utilities/Qa/Producer
-  ${CMAKE_SOURCE_DIR}/Utilities/Qa/Viewer
+  ${CMAKE_SOURCE_DIR}/Utilities/QA
+  ${CMAKE_SOURCE_DIR}/Utilities/QA/Merger
+  ${CMAKE_SOURCE_DIR}/Utilities/QA/Producer
+  ${CMAKE_SOURCE_DIR}/Utilities/QA/Viewer
 )
 
 Set(SYSTEM_INCLUDE_DIRECTORIES
