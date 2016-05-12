@@ -2,6 +2,9 @@ set(MODULE_NAME "CCDB")
 
 O2_SETUP(NAME ${MODULE_NAME})
 
+PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src/request.proto)
+include_directories(${CMAKE_BINARY_DIR}/CCDB)
+
 set(SRCS
   src/Manager.cxx
   src/Condition.cxx
@@ -14,6 +17,7 @@ set(SRCS
   src/IdRunRange.cxx
   src/Storage.cxx
   src/XmlHandler.cxx
+  src/ObjectHandler.cxx
 )
 
 set(HEADERS
@@ -28,14 +32,17 @@ set(HEADERS
   include/${MODULE_NAME}/Manager.h
   include/${MODULE_NAME}/Storage.h
   include/${MODULE_NAME}/XmlHandler.h
+  include/${MODULE_NAME}/ObjectHandler.h
 )
 
 Set(NO_DICT_SRCS
   src/ConditionsMQServer.cxx
   src/ConditionsMQClient.cxx
+  ${PROTO_SRCS}
 )
 
 set(LIBRARY_NAME ${MODULE_NAME})
+
 set(LINKDEF src/CCDBLinkDef.h)
 set(BUCKET_NAME CCDB_bucket)
 

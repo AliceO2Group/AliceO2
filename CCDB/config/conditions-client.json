@@ -6,12 +6,25 @@
             "id": "parmq-client",
             "channel":
             {
-                "name": "data",
+                "name": "data-put",
+                "socket":
+                {
+                    "type": "push",
+                    "method": "connect",
+                    "address": "tcp://localhost:5005",
+                    "sndBufSize": "200",
+                    "rcvBufSize": "1000",
+                    "rateLogging": "0"
+                }
+            },
+            "channel":
+            {
+                "name": "data-get",
                 "socket":
                 {
                     "type": "req",
                     "method": "connect",
-                    "address": "tcp://localhost:5005",
+                    "address": "tcp://localhost:5006",
                     "sndBufSize": "1000",
                     "rcvBufSize": "1000",
                     "rateLogging": "0"

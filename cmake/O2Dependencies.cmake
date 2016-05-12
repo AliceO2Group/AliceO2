@@ -27,6 +27,7 @@ find_package(ZeroMQ)
 find_package(AliRoot)
 find_package(FairRoot REQUIRED)
 find_package(FairMQ REQUIRED)
+find_package(Protobuf REQUIRED)
 
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
@@ -197,16 +198,21 @@ o2_define_bucket(
     CCDB_bucket
 
     DEPENDENCIES
+    dl
     common_boost_bucket
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${PROTOBUF_LIBRARY}
     Base
     FairTools
     ParBase
     FairMQ ParMQ
-    fairmq_logger pthread Core Tree XMLParser Hist Net RIO
+    fairmq_logger pthread Core Tree XMLParser Hist Net RIO z
 
     INCLUDE_DIRECTORIES
-    ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
+    ${PROTOBUF_INCLUDE_DIR}
+    ${ZMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
