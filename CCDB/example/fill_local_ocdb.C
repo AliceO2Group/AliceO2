@@ -1,7 +1,5 @@
 void fill_local_ocdb()
 {
-  gSystem->Load("libAliceO2Base");
-  gSystem->Load("libAliceO2Cdb");
   AliceO2::CDB::Manager* cdb = AliceO2::CDB::Manager::Instance();
   cdb->setDefaultStorage("local://O2CDB");
   TH1F* h = 0;

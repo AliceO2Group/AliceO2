@@ -9,89 +9,91 @@
  * runConditionsServer.cxx
  *
  * @since 2015-12-10
- * @author D. Klein, A. Rybalchenko, R. Grosso
+ * @author D. Klein, A. Rybalchenko, R. Grosso, C. Kouzinopoulos
  */
 
 #include <iostream>
 
+#include "CCDB/ConditionsMQServer.h"
 #include "FairMQLogger.h"
 #include "FairMQParser.h"
 #include "FairMQProgOptions.h"
-#include "CCDB/ConditionsMQServer.h"
-#include "TApplication.h"
+
+#ifdef NANOMSG
+#include "FairMQTransportFactoryNN.h"
+#else
+#include "FairMQTransportFactoryZMQ.h"
+#endif
 
 using namespace std;
 using namespace boost::program_options;
 using namespace AliceO2::CDB;
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-    ConditionsMQServer server;
-    server.CatchSignals();
+  FairMQProgOptions config;
+  ConditionsMQServer server;
 
-    FairMQProgOptions config;
+  try {
+    std::string firstInputName;
+    std::string firstInputType;
+    std::string secondInputName;
+    std::string secondInputType;
+    std::string outputName;
+    std::string outputType;
+    std::string channelName;
 
-    try
+    options_description serverOptions("Conditions MQ Server options");
+    serverOptions.add_options()(
+      "first-input-name", value<std::string>(&firstInputName)->default_value("first_input.root"),
+      "First input file name")("first-input-type", value<std::string>(&firstInputType)->default_value("ROOT"),
+                               "First input file type (ROOT/ASCII)")(
+      "second-input-name", value<std::string>(&secondInputName)->default_value(""), "Second input file name")(
+      "second-input-type", value<std::string>(&secondInputType)->default_value("ROOT"),
+      "Second input file type (ROOT/ASCII)")("output-name", value<std::string>(&outputName)->default_value(""),
+                                             "Output file name")(
+      "output-type", value<std::string>(&outputType)->default_value("ROOT"), "Output file type")(
+      "channel-name", value<std::string>(&channelName)->default_value("ROOT"), "Output channel name");
+
+    config.AddToCmdLineOptions(serverOptions);
+    config.ParseAll(argc, argv);
+
+    server.fChannels = config.GetFairMQMap();
+    LOG(INFO) << "Communication channels: " << server.fChannels.size();
+
     {
-        string firstInputName;
-        string firstInputType;
-        string secondInputName;
-        string secondInputType;
-        string outputName;
-        string outputType;
+#ifdef NANOMSG
+      FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
+#else
+      FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
+#endif
+      server.SetTransport(transportFactory);
 
-        options_description serverOptions("Parameter MQ Server options");
-        serverOptions.add_options()
-            ("first-input-name", value<string>(&firstInputName)->default_value("first_input.root"), "First input file name")
-            ("first-input-type", value<string>(&firstInputType)->default_value("ROOT"), "First input file type (ROOT/ASCII)")
-            ("second-input-name", value<string>(&secondInputName)->default_value(""), "Second input file name")
-            ("second-input-type", value<string>(&secondInputType)->default_value("ROOT"), "Second input file type (ROOT/ASCII)")
-            ("output-name", value<string>(&outputName)->default_value(""), "Output file name")
-            ("output-type", value<string>(&outputType)->default_value("ROOT"), "Output file type");
+      server.SetProperty(ConditionsMQServer::FirstInputName, firstInputName);
+      server.SetProperty(ConditionsMQServer::FirstInputType, firstInputType);
+      server.SetProperty(ConditionsMQServer::SecondInputName, secondInputName);
+      server.SetProperty(ConditionsMQServer::SecondInputType, secondInputType);
+      server.SetProperty(ConditionsMQServer::OutputName, outputName);
+      server.SetProperty(ConditionsMQServer::OutputType, outputType);
+      server.SetProperty(ConditionsMQServer::ChannelName, channelName);
 
-        config.AddToCmdLineOptions(serverOptions);
-        config.ParseAll(argc, argv);
+      server.CatchSignals();
+      server.SetConfig(config);
 
-        string file = config.GetValue<string>("config-json-file");
-        string id = config.GetValue<string>("id");
+      server.ChangeState("INIT_DEVICE");
+      server.WaitForEndOfState("INIT_DEVICE");
 
-        config.UserParser<FairMQParser::JSON>(file, id);
+      server.ChangeState("INIT_TASK");
+      server.WaitForEndOfState("INIT_TASK");
 
-        server.fChannels = config.GetFairMQMap();
-
-        LOG(INFO) << "PID: " << getpid();
-
-        TApplication app("ConditionsMQServer", 0, 0);
-
-        server.SetProperty(ConditionsMQServer::Id, id);
-        server.SetProperty(ConditionsMQServer::NumIoThreads, config.GetValue<int>("io-threads"));
-
-        server.SetProperty(ConditionsMQServer::FirstInputName, firstInputName);
-        server.SetProperty(ConditionsMQServer::FirstInputType, firstInputType);
-        server.SetProperty(ConditionsMQServer::SecondInputName, secondInputName);
-        server.SetProperty(ConditionsMQServer::SecondInputType, secondInputType);
-        server.SetProperty(ConditionsMQServer::OutputName, outputName);
-        server.SetProperty(ConditionsMQServer::OutputType, outputType);
-
-        server.ChangeState("INIT_DEVICE");
-        server.WaitForEndOfState("INIT_DEVICE");
-
-        server.ChangeState("INIT_TASK");
-        server.WaitForEndOfState("INIT_TASK");
-
-        server.ChangeState("RUN");
-        server.InteractiveStateLoop();
-
-        gApplication->Terminate();
+      server.ChangeState("RUN");
+      server.InteractiveStateLoop();
     }
-    catch (exception& e)
-    {
-        LOG(ERROR) << e.what();
-        LOG(INFO) << "Command line options are the following: ";
-        config.PrintHelp();
-        return 1;
-    }
+  }
+  catch (std::exception& e) {
+    LOG(ERROR) << "Unhandled Exception reached the top of main: " << e.what() << ", application will now exit";
+    return 1;
+  }
 
-    return 0;
-
+  return 0;
 }

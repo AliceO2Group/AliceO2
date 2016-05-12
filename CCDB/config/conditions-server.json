@@ -6,12 +6,51 @@
             "id": "parmq-server",
             "channel":
             {
-                "name": "data",
+                "name": "data-put",
+                "socket":
+                {
+                    "type": "pull",
+                    "method": "bind",
+                    "address": "tcp://*:5005",
+                    "sndBufSize": "1000",
+                    "rcvBufSize": "1000",
+                    "rateLogging": "0"
+                }
+            },
+            "channel":
+            {
+                "name": "data-get",
                 "socket":
                 {
                     "type": "rep",
                     "method": "bind",
-                    "address": "tcp://*:5005",
+                    "address": "tcp://*:5006",
+                    "sndBufSize": "1000",
+                    "rcvBufSize": "1000",
+                    "rateLogging": "0"
+                }
+            },
+            "channel":
+            {
+                "name": "broker-put",
+                "socket":
+                {
+                    "type": "push",
+                    "method": "connect",
+                    "address": "tcp://127.0.0.1:5558",
+                    "sndBufSize": "1000",
+                    "rcvBufSize": "1000",
+                    "rateLogging": "0"
+                }
+            },
+            "channel":
+            {
+                "name": "broker-get",
+                "socket":
+                {
+                    "type": "req",
+                    "method": "connect",
+                    "address": "tcp://127.0.0.1:5559",
                     "sndBufSize": "1000",
                     "rcvBufSize": "1000",
                     "rateLogging": "0"
