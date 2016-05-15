@@ -158,7 +158,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
         	
         	if (fDumpClusters)
         	{
-        	    int dumpVals[11] = {slice, patch, cluster.GetPadRow(), pad64, time64, sigmaPad64, sigmaTime64, cluster.GetQMax(), cluster.GetCharge(), cluster.GetFlagSplitPad(), cluster.GetFlagSplitTime()};
+        	    int dumpVals[11] = {(int) slice, (int) patch, (int) cluster.GetPadRow(), (int) pad64, (int) time64, (int) sigmaPad64, (int) sigmaTime64, (int) cluster.GetQMax(), (int) cluster.GetCharge(), (int) cluster.GetFlagSplitPad(), (int) cluster.GetFlagSplitTime()};
         	    fwrite(dumpVals, sizeof(int), 11, fp);
         	}
 		
