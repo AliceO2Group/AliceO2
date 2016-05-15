@@ -47,6 +47,9 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
 
   int fPrintClusters; //!
   int fPrintClustersScaled; //!
+  int fDumpClusters; //!
+  
+  FILE* fp;
 
 protected:
 
