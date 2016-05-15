@@ -34,6 +34,7 @@ AliHLTTPCClusterStatComponent::AliHLTTPCClusterStatComponent() : AliHLTProcessor
 , fSplitPadOrTime(0)
 , fPrintClusters(0)
 , fPrintClustersScaled(0)
+, fDumpClusters(0)
 {
 }
 
@@ -69,6 +70,10 @@ int AliHLTTPCClusterStatComponent::ProcessOption(TString option, TString value)
     {
 	fPrintClustersScaled = 1;
     }
+    else if (option.EqualTo("dump-clusters"))
+    {
+	fDumpClusters = 1;
+    }
     else
     {
         HLTError("invalid option: %s", value.Data());
@@ -86,12 +91,15 @@ int AliHLTTPCClusterStatComponent::DoInit(int argc, const char** argv)
         HLTFatal("wrong config string! %s", GetComponentArgs().c_str());
         return -EINVAL;
     }
+    
+    if (fDumpClusters) if ((fp = fopen("clusters.dump", "w+b")) == NULL) return -1;
 
     return iResult;
 }
 
 int AliHLTTPCClusterStatComponent::DoDeinit()
 {
+    if (fDumpClusters) fclose(fp);
     return 0;
 }
 
@@ -130,21 +138,32 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
 		
 		if (fPrintClusters) HLTImportant("Slice %d, Patch %d, Row %d, Pad %.2f, Time %.2f, SPad %.2f, STime %.2f, QMax %d, QTot %d, SplitPad %d, SplitTime %d",
 		    slice, patch, (int) cluster.GetPadRow(), cluster.GetPad(), cluster.GetTime(), cluster.GetSigmaPad2(), cluster.GetSigmaTime2(), (int) cluster.GetQMax(), (int) cluster.GetCharge(), (int) cluster.GetFlagSplitPad(), (int) cluster.GetFlagSplitTime());
-		    
+		
+		AliHLTUInt64_t pad64=0;
+		if (!isnan(cluster.GetPad())) pad64=(AliHLTUInt64_t)round(cluster.GetPad()*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kPad].fScale);
+		
+		AliHLTUInt64_t time64=0;
+        	if (!isnan(cluster.GetTime())) time64=(AliHLTUInt64_t)round(cluster.GetTime()*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kTime].fScale);
+        	
+        	AliHLTUInt64_t sigmaPad64=0;
+        	if (!isnan(cluster.GetSigmaPad2())) sigmaPad64=(AliHLTUInt64_t)round(cluster.GetSigmaPad2()*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaY2].fScale);
+        	
+        	AliHLTUInt64_t sigmaTime64=0;
+        	if (!isnan(cluster.GetSigmaTime2())) sigmaTime64=(AliHLTUInt64_t)round(cluster.GetSigmaTime2()*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaZ2].fScale);
+        	
+        	if (sigmaPad64 >= (unsigned)1<<AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaY2].fBitLength)
+	            sigmaPad64 = (1<<AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaY2].fBitLength)-1;
+		if (sigmaTime64 >= (unsigned)1<<AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaZ2].fBitLength)
+        	    sigmaTime64 = (1<<AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaZ2].fBitLength)-1;
+        	
+        	if (fDumpClusters)
+        	{
+        	    int dumpVals[11] = {slice, patch, cluster.GetPadRow(), pad64, time64, sigmaPad64, sigmaTime64, cluster.GetQMax(), cluster.GetCharge(), cluster.GetFlagSplitPad(), cluster.GetFlagSplitTime()};
+        	    fwrite(dumpVals, sizeof(int), 11, fp);
+        	}
+		
 		if (fPrintClustersScaled)
 		{
-		    AliHLTUInt64_t pad64=0;
-		    if (!isnan(cluster.GetPad())) pad64=(AliHLTUInt64_t)round(cluster.GetPad()*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kPad].fScale);
-		
-		    AliHLTUInt64_t time64=0;
-        	    if (!isnan(cluster.GetTime())) time64=(AliHLTUInt64_t)round(cluster.GetTime()*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kTime].fScale);
-        	    
-        	    AliHLTUInt64_t sigmaPad64=0;
-        	    if (!isnan(cluster.GetSigmaPad2())) sigmaPad64=(AliHLTUInt64_t)round(cluster.GetSigmaPad2()*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaY2].fScale);
-        	    
-        	    AliHLTUInt64_t sigmaTime64=0;
-        	    if (!isnan(cluster.GetSigmaTime2())) sigmaTime64=(AliHLTUInt64_t)round(cluster.GetSigmaTime2()*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaZ2].fScale);
-        	    
         	    HLTImportant("Slice %d, Patch %d, Row %d, Pad %d, Time %d, SPad %d, STime %d, QMax %d, QTot %d, SplitPad %d, SplitTime %d",
 			slice, patch, (int) cluster.GetPadRow(), (int) pad64, (int) time64, (int) sigmaPad64, (int) sigmaTime64, (int) cluster.GetQMax(), (int) cluster.GetCharge(), (int) cluster.GetFlagSplitPad(), (int) cluster.GetFlagSplitTime());
 		}
