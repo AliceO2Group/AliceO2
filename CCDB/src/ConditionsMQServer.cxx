@@ -13,10 +13,8 @@
  */
 
 #include "TMessage.h"
-#include "Rtypes.h"
 
 #include "CCDB/ConditionsMQServer.h"
-#include "FairMQLogger.h"
 
 #include "CCDB/IdPath.h"
 #include "CCDB/Condition.h"
@@ -26,7 +24,8 @@ using std::endl;
 using std::cout;
 using std::string;
 
-ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), fCdbManager(AliceO2::CDB::Manager::Instance()) {}
+ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), fCdbManager(AliceO2::CDB::Manager::Instance())
+{ }
 
 void ConditionsMQServer::InitTask()
 {
@@ -49,18 +48,19 @@ void ConditionsMQServer::InitTask()
   }
 }
 
-void free_tmessage(void* data, void* hint) { delete static_cast<TMessage*>(hint); }
+void free_tmessage(void *data, void *hint)
+{ delete static_cast<TMessage *>(hint); }
 
 void ConditionsMQServer::Run()
 {
   std::string parameterName = "";
-  Condition* aCondition = nullptr;
+  Condition *aCondition = nullptr;
 
   while (CheckCurrentState(RUNNING)) {
     std::unique_ptr<FairMQMessage> req(fTransportFactory->CreateMessage());
 
     if (fChannels.at("data").at(0).Receive(req) > 0) {
-      std::string reqStr(static_cast<char*>(req->GetData()), req->GetSize());
+      std::string reqStr(static_cast<char *>(req->GetData()), req->GetSize());
       LOG(INFO) << "Received parameter request from client: \"" << reqStr << "\"";
 
       size_t pos = reqStr.rfind(",");
@@ -76,7 +76,7 @@ void ConditionsMQServer::Run()
       if (aCondition) {
         LOG(INFO) << "Sending following parameter to the client:";
         aCondition->printConditionMetaData();
-        TMessage* tmsg = new TMessage(kMESS_OBJECT);
+        TMessage *tmsg = new TMessage(kMESS_OBJECT);
         tmsg->WriteObject(aCondition);
 
         std::unique_ptr<FairMQMessage> reply(
@@ -91,4 +91,5 @@ void ConditionsMQServer::Run()
   }
 }
 
-ConditionsMQServer::~ConditionsMQServer() { delete fCdbManager; }
+ConditionsMQServer::~ConditionsMQServer()
+{ delete fCdbManager; }

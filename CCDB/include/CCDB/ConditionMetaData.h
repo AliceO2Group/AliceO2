@@ -6,80 +6,91 @@
 #include "Rtypes.h"   // for UInt_t, ConditionMetaData::Class, Bool_t, etc
 #include "TString.h"  // for TString
 
-
 namespace AliceO2 {
 namespace CDB {
 //  Set of data describing the object  				   //
 //  but not used to identify the object 			   //
 
-class ConditionMetaData : public TObject {
+class ConditionMetaData : public TObject
+{
 
-public:
-  ConditionMetaData();
-  ConditionMetaData(const char* responsible, UInt_t beamPeriod = 0, const char* alirootVersion = "", const char* comment = "");
-  virtual ~ConditionMetaData();
+  public:
+    ConditionMetaData();
 
-  void setObjectClassName(const char* name)
-  {
-    mObjectClassName = name;
-  };
-  const char* getObjectClassName() const
-  {
-    return mObjectClassName.Data();
-  };
+    ConditionMetaData(const char *responsible, UInt_t beamPeriod = 0, const char *alirootVersion = "",
+                      const char *comment = "");
 
-  void setResponsible(const char* yourName)
-  {
-    mResponsible = yourName;
-  };
-  const char* getResponsible() const
-  {
-    return mResponsible.Data();
-  };
+    virtual ~ConditionMetaData();
 
-  void setBeamPeriod(UInt_t period)
-  {
-    mBeamPeriod = period;
-  };
-  UInt_t getBeamPeriod() const
-  {
-    return mBeamPeriod;
-  };
+    void setObjectClassName(const char *name)
+    {
+      mObjectClassName = name;
+    };
 
-  void setAliRootVersion(const char* version)
-  {
-    mAliRootVersion = version;
-  };
-  const char* getAliRootVersion() const
-  {
-    return mAliRootVersion.Data();
-  };
+    const char *getObjectClassName() const
+    {
+      return mObjectClassName.Data();
+    };
 
-  void setComment(const char* comment)
-  {
-    mComment = comment;
-  };
-  const char* getComment() const
-  {
-    return mComment.Data();
-  };
-  void addDateToComment();
+    void setResponsible(const char *yourName)
+    {
+      mResponsible = yourName;
+    };
 
-  void setProperty(const char* property, TObject* object);
-  TObject* getProperty(const char* property) const;
-  Bool_t removeProperty(const char* property);
+    const char *getResponsible() const
+    {
+      return mResponsible.Data();
+    };
 
-  void printConditionMetaData();
+    void setBeamPeriod(UInt_t period)
+    {
+      mBeamPeriod = period;
+    };
 
-private:
-  TString mObjectClassName; // object's class name
-  TString mResponsible;     // object's responsible person
-  UInt_t mBeamPeriod;       // beam period
-  TString mAliRootVersion;  // AliRoot version
-  TString mComment;         // extra comments
-  // TList mCalibRuns;
+    UInt_t getBeamPeriod() const
+    {
+      return mBeamPeriod;
+    };
 
-  TMap mProperties; // list of object specific properties
+    void setAliRootVersion(const char *version)
+    {
+      mAliRootVersion = version;
+    };
+
+    const char *getAliRootVersion() const
+    {
+      return mAliRootVersion.Data();
+    };
+
+    void setComment(const char *comment)
+    {
+      mComment = comment;
+    };
+
+    const char *getComment() const
+    {
+      return mComment.Data();
+    };
+
+    void addDateToComment();
+
+    void setProperty(const char *property, TObject *object);
+
+    TObject *getProperty(const char *property) const;
+
+    Bool_t removeProperty(const char *property);
+
+    void printConditionMetaData();
+
+  private:
+    TString mObjectClassName; // object's class name
+    TString mResponsible;     // object's responsible person
+    UInt_t mBeamPeriod;       // beam period
+    TString mAliRootVersion;  // AliRoot version
+    TString mComment;         // extra comments
+    // TList mCalibRuns;
+
+    TMap mProperties; // list of object specific properties
 
   ClassDef(ConditionMetaData, 1)
 };

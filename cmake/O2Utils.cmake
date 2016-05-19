@@ -303,7 +303,7 @@ endfunction(O2_FORMAT)
 #------------------------------------------------------------------------------
 # O2_ROOT_GENERATE_DICTIONARY
 # TODO use arguments, do NOT modify the parent's scope variables.
-Macro(O2_ROOT_GENERATE_DICTIONARY)
+macro(O2_ROOT_GENERATE_DICTIONARY)
 
   # All Arguments needed for this new version of the macro are defined
   # in the parent scope, namely in the CMakeLists.txt of the submodule

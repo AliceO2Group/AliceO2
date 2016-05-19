@@ -2,7 +2,6 @@
 //  [mFirstRun, mLastRun] 					   //
 #include "CCDB/IdRunRange.h"
 #include <FairLogger.h>  // for LOG
-#include "TObject.h"     // for TObject
 
 using namespace AliceO2::CDB;
 
@@ -23,7 +22,7 @@ IdRunRange::~IdRunRange()
   // destructor
 }
 
-Bool_t IdRunRange::isOverlappingWith(const IdRunRange& other) const
+Bool_t IdRunRange::isOverlappingWith(const IdRunRange &other) const
 {
   // check if this runRange overlaps other runRange
 
@@ -41,7 +40,7 @@ Bool_t IdRunRange::isOverlappingWith(const IdRunRange& other) const
           (other.mFirstRun <= mFirstRun && mFirstRun <= other.mLastRun));
 }
 
-Bool_t IdRunRange::isSupersetOf(const IdRunRange& other) const
+Bool_t IdRunRange::isSupersetOf(const IdRunRange &other) const
 {
   // check if this runRange contains other runRange
 
@@ -58,7 +57,7 @@ Bool_t IdRunRange::isSupersetOf(const IdRunRange& other) const
          other.mLastRun <= mLastRun;
 }
 
-Bool_t IdRunRange::isEqual(const TObject* obj) const
+Bool_t IdRunRange::isEqual(const TObject *obj) const
 {
   // check if this runRange is equal to other runRange
 
@@ -69,7 +68,7 @@ Bool_t IdRunRange::isEqual(const TObject* obj) const
   if (IdRunRange::Class() != obj->IsA()) {
     return kFALSE;
   }
-  IdRunRange* other = (IdRunRange*)obj;
+  IdRunRange *other = (IdRunRange *) obj;
   return mFirstRun == other->mFirstRun && mLastRun == other->mLastRun;
 }
 
