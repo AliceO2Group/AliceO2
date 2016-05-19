@@ -92,7 +92,7 @@ void hltConfigurations()
   TString trackerInput;
   //trackerInput=clusterTransformation;
   trackerInput="cluster-publisher";
-  AliHLTConfiguration trackerconf(trackerID.Data(), "TPCCATracker", trackerInput.Data(), "-GlobalTracking -allowGPU -GPUHelperThreads 4");
+  AliHLTConfiguration trackerconf(trackerID.Data(), "TPCCATracker", trackerInput.Data(), "-ExampleModule2 -allowGPU -GPUHelperThreads 4");
 
   AliHLTConfiguration globalmergerconf("TPC-globalmerger","TPCCAGlobalMerger",trackerID.Data(),"");
 

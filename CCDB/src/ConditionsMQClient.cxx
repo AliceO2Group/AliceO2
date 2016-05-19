@@ -16,12 +16,12 @@
 #include <boost/bind.hpp>
 
 #include "FairMQLogger.h"
-#include "ConditionsMQClient.h"
+#include "CCDB/ConditionsMQClient.h"
 
 #include "TMessage.h"
 #include "Rtypes.h"
 
-#include "Condition.h"
+#include "CCDB/Condition.h"
 
 using namespace AliceO2::CDB;
 using namespace std;
