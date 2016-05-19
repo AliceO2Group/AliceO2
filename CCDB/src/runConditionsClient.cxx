@@ -18,6 +18,9 @@
 #include "FairMQParser.h"
 #include "FairMQProgOptions.h"
 #include "ConditionsMQClient.h"
+
+#include "CCDB/ConditionsMQClient.h"
+
 using namespace std;
 using namespace boost::program_options;
 using namespace AliceO2::CDB;

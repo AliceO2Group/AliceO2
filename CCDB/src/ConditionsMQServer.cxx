@@ -15,11 +15,11 @@
 #include "TMessage.h"
 #include "Rtypes.h"
 
-#include "ConditionsMQServer.h"
+#include "CCDB/ConditionsMQServer.h"
 #include "FairMQLogger.h"
 
-#include "IdPath.h"
-#include "Condition.h"
+#include "CCDB/IdPath.h"
+#include "CCDB/Condition.h"
 
 using namespace AliceO2::CDB;
 using std::endl;

@@ -1,17 +1,17 @@
 // access class to a DataBase in a local storage  			                       //
 
-#include "LocalStorage.h"
+#include "CCDB/LocalStorage.h"
 #include <FairLogger.h>         // for LOG
 #include <TFile.h>              // for TFile
 #include <TObjString.h>         // for TObjString
 #include <TRegexp.h>            // for TRegexp
 #include <TSystem.h>            // for TSystem, gSystem
 #include <stddef.h>             // for NULL
-#include "Condition.h"          // for Condition
-#include "ConditionId.h"        // for ConditionId
-#include "ConditionMetaData.h"  // for ConditionMetaData
-#include "IdPath.h"             // for IdPath
-#include "IdRunRange.h"         // for IdRunRange
+#include "CCDB/Condition.h"          // for Condition
+#include "CCDB/ConditionId.h"        // for ConditionId
+#include "CCDB/ConditionMetaData.h"  // for ConditionMetaData
+#include "CCDB/IdPath.h"             // for IdPath
+#include "CCDB/IdRunRange.h"         // for IdRunRange
 #include "TCollection.h"        // for TIter
 #include "TList.h"              // for TList
 #include "TObjArray.h"          // for TObjArray

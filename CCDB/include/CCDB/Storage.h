@@ -5,7 +5,7 @@
 //  ( GridStorage,  LocalStorage, FileStorage)			   //
 #include <TList.h>      // for TList
 #include <TObjArray.h>  // for TObjArray
-#include "IdPath.h"     // for IdPath
+#include "CCDB/IdPath.h"     // for IdPath
 #include "Rtypes.h"     // for Int_t, Bool_t, Short_t, Storage::Class, etc
 #include "TObject.h"    // for TObject
 #include "TString.h"    // for TString

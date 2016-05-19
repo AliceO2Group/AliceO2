@@ -1,11 +1,8 @@
-configure_file(${CMAKE_SOURCE_DIR}/CCDB/config/conditions-server.json ${CMAKE_BINARY_DIR}/bin/config/conditions-server.json)
-configure_file(${CMAKE_SOURCE_DIR}/CCDB/config/conditions-client.json ${CMAKE_BINARY_DIR}/bin/config/conditions-client.json)
-configure_file(${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C ${CMAKE_BINARY_DIR}/bin/config/fill_local_ocdb.C)
+O2_SETUP(NAME "CCDB")
 
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/CCDB/include
   ${CMAKE_SOURCE_DIR}/CCDB
-
 )
 
 set(SYSTEM_INCLUDE_DIRECTORIES
@@ -15,16 +12,6 @@ set(SYSTEM_INCLUDE_DIRECTORIES
   ${FAIRROOT_INCLUDE_DIR}
   ${ZMQ_INCLUDE_DIR}
 )
-
-include_directories(${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${ROOT_LIBRARY_DIR}
-  ${Boost_LIBRARY_DIRS}
-  ${FAIRROOT_LIBRARY_DIR}
-)
-link_directories(${LINK_DIRECTORIES})
 
 set(SRCS
   src/Manager.cxx
@@ -41,17 +28,17 @@ set(SRCS
 )
 
 set(HEADERS
-  include/Condition.h
-  include/ConditionId.h
-  include/ConditionMetaData.h
-  include/FileStorage.h
-  include/GridStorage.h
-  include/IdPath.h
-  include/IdRunRange.h
-  include/LocalStorage.h
-  include/Manager.h
-  include/Storage.h
-  include/XmlHandler.h
+  include/CCDB/Condition.h
+  include/CCDB/ConditionId.h
+  include/CCDB/ConditionMetaData.h
+  include/CCDB/FileStorage.h
+  include/CCDB/GridStorage.h
+  include/CCDB/IdPath.h
+  include/CCDB/IdRunRange.h
+  include/CCDB/LocalStorage.h
+  include/CCDB/Manager.h
+  include/CCDB/Storage.h
+  include/CCDB/XmlHandler.h
 )
 
 Set(NO_DICT_SRCS
@@ -59,20 +46,10 @@ Set(NO_DICT_SRCS
   src/ConditionsMQClient.cxx
 )
 
-set(DEPENDENCIES
-  ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
-  ${Boost_LOG_SETUP_LIBRARY}
-  ${Boost_LOG_LIBRARY}
-  Base
-  ParBase
-  FairMQ ParMQ
-  fairmq_logger pthread Core Tree XMLParser Hist
-)
-
 set(LIBRARY_NAME CCDB)
 set(LINKDEF src/CCDBLinkDef.h)
-GENERATE_LIBRARY()
+set(BUCKET_NAME CCDB_Bucket)
+O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
   conditions-server
@@ -87,11 +64,27 @@ Set(Exe_Source
 list(LENGTH Exe_Names _length)
 math(EXPR _length ${_length}-1)
 
-ForEach(_file RANGE 0 ${_length})
+# todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
+set(LIBRARY_NAME CCDB)
+set(BUCKET_NAME CCDB_Bucket)
+
+foreach (_file RANGE 0 ${_length})
   list(GET Exe_Names ${_file} _name)
   list(GET Exe_Source ${_file} _src)
   Set(EXE_NAME ${_name})
   Set(SRCS ${_src})
   Set(DEPENDENCIES CCDB)
-  GENERATE_EXECUTABLE()
-EndForEach(_file RANGE 0 ${_length})
+  O2_GENERATE_EXECUTABLE(
+      EXE_NAME ${_name}
+      SOURCES ${_src}
+      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+      BUCKET_NAME ${BUCKET_NAME}
+  )
+endforeach (_file RANGE 0 ${_length})
+
+install(
+    FILES config/conditions-server.json
+    config/conditions-client.json
+    example/fill_local_ocdb.C
+    DESTINATION bin/config
+)

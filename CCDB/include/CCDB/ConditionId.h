@@ -4,8 +4,8 @@
 //  Identity of an object stored into a database:  		   //
 //  path, run validity range, version, subVersion 		   //
 #include <TObject.h>     // for TObject
-#include "IdPath.h"      // for IdPath
-#include "IdRunRange.h"  // for IdRunRange
+#include "CCDB/IdPath.h"      // for IdPath
+#include "CCDB/IdRunRange.h"  // for IdRunRange
 #include "Rtypes.h"      // for Int_t, Bool_t, ConditionId::Class, ClassDef, etc
 #include "TString.h"     // for TString
 

@@ -1,5 +1,5 @@
 
-#include "Manager.h"
+#include "CCDB/Manager.h"
 #include <FairLogger.h>    // for LOG
 #include <TGrid.h>         // for gGrid, TGrid
 #include <TKey.h>          // for TKey
@@ -11,13 +11,13 @@
 #include <TString.h>       // for TString, operator==, Printf, Form, etc
 #include <TUUID.h>         // for TUUID
 #include <string.h>        // for NULL, strcmp
-#include "Condition.h"     // for Condition
-#include "ConditionId.h"   // for ConditionId
-#include "FileStorage.h"   // for FileStorageFactory
-#include "GridStorage.h"   // for GridStorageFactory
-#include "IdPath.h"        // for IdPath
-#include "LocalStorage.h"  // for LocalStorageFactory
-#include "Storage.h"       // for Storage
+#include "CCDB/Condition.h"     // for Condition
+#include "CCDB/ConditionId.h"   // for ConditionId
+#include "CCDB/FileStorage.h"   // for FileStorageFactory
+#include "CCDB/GridStorage.h"   // for GridStorageFactory
+#include "CCDB/IdPath.h"        // for IdPath
+#include "CCDB/LocalStorage.h"  // for LocalStorageFactory
+#include "CCDB/Storage.h"       // for Storage
 #include "TBuffer.h"       // for TBuffer, TBuffer::EMode::kWrite
 #include "TCollection.h"   // for TIter
 #include "TFile.h"         // for TFile
@@ -27,7 +27,7 @@
 #include "TObjArray.h"     // for TObjArray
 #include "TSystem.h"       // for TSystem, gSystem
 #include "TTime.h"         // for TTime
-#include "XmlHandler.h"    // for XmlHandler
+#include "CCDB/XmlHandler.h"    // for XmlHandler
 #include <fstream>
 
 using namespace AliceO2::CDB;
