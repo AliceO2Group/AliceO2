@@ -18,7 +18,7 @@
 #include <string>
 
 #include "ParameterMQServer.h"
-#include "Manager.h"
+#include "CCDB/Manager.h"
 
 namespace AliceO2 {
 namespace CDB {

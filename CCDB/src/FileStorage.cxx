@@ -1,5 +1,5 @@
 //  access class to a DataBase in a dump storage (single file)     //
-#include "FileStorage.h"
+#include "CCDB/FileStorage.h"
 #include <FairLogger.h>   // for LOG
 #include <TFile.h>        // for TFile
 #include <TKey.h>         // for TKey
@@ -8,10 +8,10 @@
 #include <TRegexp.h>      // for TRegexp
 #include <TSystem.h>      // for TSystem, gSystem
 #include <stddef.h>       // for NULL
-#include "Condition.h"    // for Condition
-#include "ConditionId.h"  // for ConditionId
-#include "IdPath.h"       // for IdPath
-#include "IdRunRange.h"   // for IdRunRange
+#include "CCDB/Condition.h"    // for Condition
+#include "CCDB/ConditionId.h"  // for ConditionId
+#include "CCDB/IdPath.h"       // for IdPath
+#include "CCDB/IdRunRange.h"   // for IdRunRange
 #include "TCollection.h"  // for TIter
 #include "TDirectory.h"   // for TDirectory, gDirectory, etc
 #include "TObjArray.h"    // for TObjArray

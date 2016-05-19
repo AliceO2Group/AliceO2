@@ -1,6 +1,6 @@
 // access class to a DataBase in an AliEn storage  			                       //
 
-#include "GridStorage.h"
+#include "CCDB/GridStorage.h"
 #include <FairLogger.h>         // for LOG
 #include <TFile.h>              // for TFile
 #include <TGrid.h>              // for gGrid, TGrid
@@ -12,12 +12,12 @@
 #include <TRegexp.h>            // for TRegexp
 #include <stddef.h>             // for NULL
 #include <unistd.h>             // for sleep
-#include "Condition.h"          // for Condition
-#include "ConditionId.h"        // for ConditionId
-#include "ConditionMetaData.h"  // for ConditionMetaData
-#include "IdPath.h"             // for IdPath
-#include "IdRunRange.h"         // for IdRunRange
-#include "Manager.h"            // for Manager, StorageParameters
+#include "CCDB/Condition.h"          // for Condition
+#include "CCDB/ConditionId.h"        // for ConditionId
+#include "CCDB/ConditionMetaData.h"  // for ConditionMetaData
+#include "CCDB/IdPath.h"             // for IdPath
+#include "CCDB/IdRunRange.h"         // for IdRunRange
+#include "CCDB/Manager.h"            // for Manager, StorageParameters
 #include "TCollection.h"        // for TIter
 #include "TDirectory.h"         // for TDirectory, gDirectory
 #include "TMap.h"               // for TMap

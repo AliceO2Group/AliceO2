@@ -1,9 +1,9 @@
 #ifndef ALICEO2_CDB_FILEDUMP_H_
 #define ALICEO2_CDB_FILEDUMP_H_
 
-#include "Manager.h"  // for StorageFactory, StorageParameters
+#include "CCDB/Manager.h"  // for StorageFactory, StorageParameters
 #include "Rtypes.h"   // for Bool_t, Int_t, ClassDef, kFALSE, etc
-#include "Storage.h"  // for Storage
+#include "CCDB/Storage.h"  // for Storage
 #include "TString.h"  // for TString
 class TFile;  // lines 8-8
 class TList;

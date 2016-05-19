@@ -1,6 +1,6 @@
 //  defines the run validity range of the object:		   //
 //  [mFirstRun, mLastRun] 					   //
-#include "IdRunRange.h"
+#include "CCDB/IdRunRange.h"
 #include <FairLogger.h>  // for LOG
 #include "TObject.h"     // for TObject
 

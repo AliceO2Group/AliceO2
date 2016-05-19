@@ -1,6 +1,6 @@
 //  Path string identifying the object:  			   //
 //  (example: "ZDC/Calib/Pedestals") 		         	   //
-#include "IdPath.h"
+#include "CCDB/IdPath.h"
 #include <FairLogger.h>  // for LOG
 #include <TObjArray.h>   // for TObjArray
 #include <TObjString.h>  // for TObjString

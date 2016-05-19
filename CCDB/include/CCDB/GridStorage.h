@@ -1,9 +1,9 @@
 #ifndef ALICEO2_CDB_GRID_H_
 #define ALICEO2_CDB_GRID_H_
 
-#include "Manager.h"  // for StorageFactory, StorageParameters
+#include "CCDB/Manager.h"  // for StorageFactory, StorageParameters
 #include "Rtypes.h"   // for Bool_t, Long64_t, Long_t, Int_t, ClassDef, etc
-#include "Storage.h"  // for Storage
+#include "CCDB/Storage.h"  // for Storage
 #include "TString.h"  // for TString
 class TFile;
 class TList;

@@ -3,9 +3,9 @@
 
 //  class  LocalStorage						   //
 //  access class to a DataBase in a local storage                  //
-#include "Manager.h"  // for StorageFactory, StorageParameters
+#include "CCDB/Manager.h"  // for StorageFactory, StorageParameters
 #include "Rtypes.h"   // for Bool_t, Int_t, ClassDef, LocalStorage::Class, etc
-#include "Storage.h"  // for Storage
+#include "CCDB/Storage.h"  // for Storage
 #include "TString.h"  // for TString
 class TList;
 class TObject;

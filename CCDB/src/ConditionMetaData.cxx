@@ -1,6 +1,6 @@
 //  Set of data describing the object  				   //
 //  but not used to identify the object 			   //
-#include "ConditionMetaData.h"
+#include "CCDB/ConditionMetaData.h"
 #include <TObjString.h>   // for TObjString
 #include <TTimeStamp.h>   // for TTimeStamp
 #include <time.h>         // for time
