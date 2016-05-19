@@ -11,7 +11,7 @@
 namespace po = boost::program_options;
 using namespace std;
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
   // Arguments parsing
   po::variables_map vm;

@@ -8,61 +8,65 @@
 
 namespace AliceO2 {
 namespace CDB {
-class IdRunRange : public TObject {
+class IdRunRange : public TObject
+{
 
-public:
-  IdRunRange();
-  IdRunRange(Int_t firstRun, Int_t lastRun);
+  public:
+    IdRunRange();
 
-  virtual ~IdRunRange();
+    IdRunRange(Int_t firstRun, Int_t lastRun);
 
-  Int_t getFirstRun() const
-  {
-    return mFirstRun;
-  };
-  Int_t getLastRun() const
-  {
-    return mLastRun;
-  };
+    virtual ~IdRunRange();
 
-  void setFirstRun(Int_t firstRun)
-  {
-    mFirstRun = firstRun;
-  };
-  void setLastRun(Int_t lastRun)
-  {
-    mLastRun = lastRun;
-  };
+    Int_t getFirstRun() const
+    {
+      return mFirstRun;
+    };
 
-  void setIdRunRange(Int_t firstRun, Int_t lastRun)
-  {
-    mFirstRun = firstRun;
-    mLastRun = lastRun;
-  };
+    Int_t getLastRun() const
+    {
+      return mLastRun;
+    };
 
-  Bool_t isValid() const;
+    void setFirstRun(Int_t firstRun)
+    {
+      mFirstRun = firstRun;
+    };
 
-  Bool_t isAnyRange() const
-  {
-    return mFirstRun < 0 && mLastRun < 0;
-  };
+    void setLastRun(Int_t lastRun)
+    {
+      mLastRun = lastRun;
+    };
 
-  Bool_t isOverlappingWith(const IdRunRange& other) const;
+    void setIdRunRange(Int_t firstRun, Int_t lastRun)
+    {
+      mFirstRun = firstRun;
+      mLastRun = lastRun;
+    };
 
-  Bool_t isSupersetOf(const IdRunRange& other) const;
+    Bool_t isValid() const;
 
-  virtual Bool_t isEqual(const TObject* obj) const;
+    Bool_t isAnyRange() const
+    {
+      return mFirstRun < 0 && mLastRun < 0;
+    };
 
-  static Int_t Infinity()
-  {
-    return sInfinity;
-  }
+    Bool_t isOverlappingWith(const IdRunRange &other) const;
 
-private:
-  Int_t mFirstRun; // first valid run
-  Int_t mLastRun;  // last valid run
+    Bool_t isSupersetOf(const IdRunRange &other) const;
 
-  static const Int_t sInfinity = 999999999; //! Flag for "infinity"
+    virtual Bool_t isEqual(const TObject *obj) const;
+
+    static Int_t Infinity()
+    {
+      return sInfinity;
+    }
+
+  private:
+    Int_t mFirstRun; // first valid run
+    Int_t mLastRun;  // last valid run
+
+    static const Int_t sInfinity = 999999999; //! Flag for "infinity"
 
   ClassDef(IdRunRange, 1)
 };

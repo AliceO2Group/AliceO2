@@ -7,15 +7,16 @@
 #include <stddef.h>   // for NULL
 #include "Rtypes.h"   // for Int_t, Bool_t, kFALSE, kTRUE, ClassDef, etc
 #include "TString.h"  // for TString
+
 class TFile;
-namespace AliceO2 { namespace CDB { class Condition; } }  // lines 20-20
-namespace AliceO2 { namespace CDB { class ConditionId; } }  // lines 21-21
-namespace AliceO2 { namespace CDB { class ConditionMetaData; } }  // lines 24-24
-namespace AliceO2 { namespace CDB { class IdPath; } }  // lines 22-22
-namespace AliceO2 { namespace CDB { class IdRunRange; } }  // lines 23-23
-namespace AliceO2 { namespace CDB { class Storage; } }  // lines 25-25
-namespace AliceO2 { namespace CDB { class StorageFactory; } }  // lines 26-26
-namespace AliceO2 { namespace CDB { class StorageParameters; } }  // lines 27-27
+namespace AliceO2 { namespace CDB { class Condition; }}  // lines 20-20
+namespace AliceO2 { namespace CDB { class ConditionId; }}  // lines 21-21
+namespace AliceO2 { namespace CDB { class ConditionMetaData; }}  // lines 24-24
+namespace AliceO2 { namespace CDB { class IdPath; }}  // lines 22-22
+namespace AliceO2 { namespace CDB { class IdRunRange; }}  // lines 23-23
+namespace AliceO2 { namespace CDB { class Storage; }}  // lines 25-25
+namespace AliceO2 { namespace CDB { class StorageFactory; }}  // lines 26-26
+namespace AliceO2 { namespace CDB { class StorageParameters; }}  // lines 27-27
 
 
 //  @file   Manager.h
@@ -29,195 +30,281 @@ namespace CDB {
 /// Steer retrieval and upload of condition objects from/to
 /// different storages (local, alien, file)
 class Condition;
+
 class ConditionId;
+
 class IdPath;
+
 class IdRunRange;
+
 class ConditionMetaData;
+
 class Storage;
+
 class StorageFactory;
+
 class StorageParameters;
 
-class Manager : public TObject {
+class Manager : public TObject
+{
 
-public:
-  void registerFactory(StorageFactory* factory);
-  Bool_t hasStorage(const char* dbString) const;
-  StorageParameters* createStorageParameter(const char* dbString) const;
-  Storage* getStorage(const char* dbString);
-  TList* getActiveStorages();
-  const TMap* getStorageMap() const
-  {
-    return mStorageMap;
-  }
-  const TList* getRetrievedIds() const
-  {
-    return mIds;
-  }
-  void setDefaultStorage(const char* dbString);
-  void setDefaultStorage(const StorageParameters* param);
-  void setDefaultStorage(Storage* storage);
-  void setDefaultStorageFromRun(Int_t run);
-  Bool_t isDefaultStorageSet() const
-  {
-    return mDefaultStorage != 0;
-  }
-  Storage* getDefaultStorage() const
-  {
-    return mDefaultStorage;
-  }
-  void unsetDefaultStorage();
-  void setSpecificStorage(const char* calibType, const char* dbString, Int_t version = -1, Int_t subVersion = -1);
-  Storage* getSpecificStorage(const char* calibType);
-  void setdrainMode(const char* dbString);
-  void setdrainMode(const StorageParameters* param);
-  void setdrainMode(Storage* storage);
-  void unsetdrainMode()
-  {
-    mdrainStorage = 0x0;
-  }
-  Bool_t isdrainSet() const
-  {
-    return mdrainStorage != 0;
-  }
-  Bool_t drain(Condition* entry);
+  public:
+    void registerFactory(StorageFactory *factory);
 
-  Bool_t setOcdbUploadMode();
-  void unsetOcdbUploadMode()
-  {
-    mOcdbUploadMode = kFALSE;
-  }
-  Bool_t isOcdbUploadMode() const
-  {
-    return mOcdbUploadMode;
-  }
-  Condition* getObject(const ConditionId& query, Bool_t forceCaching = kFALSE);
-  Condition* getObject(const IdPath& path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
-  Condition* getObject(const IdPath& path, const IdRunRange& runRange, Int_t version = -1, Int_t subVersion = -1);
-  Condition* getConditionFromSnapshot(const char* path);
-  const char* getUri(const char* path);
-  TList* getAllObjects(const ConditionId& query);
-  TList* getAllObjects(const IdPath& path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
-  TList* getAllObjects(const IdPath& path, const IdRunRange& runRange, Int_t version = -1, Int_t subVersion = -1);
-  Bool_t putObject(TObject* object, const ConditionId& id, ConditionMetaData* metaData, const char* mirrors = "");
-  Bool_t putObject(Condition* entry, const char* mirrors = "");
-  void setCacheFlag(Bool_t cacheFlag)
-  {
-    mCache = cacheFlag;
-  }
-  Bool_t getCacheFlag() const
-  {
-    return mCache;
-  }
-  ULong64_t setLock(Bool_t lockFlag = kTRUE, ULong64_t key = 0);
-  Bool_t getLock() const
-  {
-    return mLock;
-  }
-  void setRawFlag(Bool_t rawFlag)
-  {
-    mRaw = rawFlag;
-  }
-  Bool_t getRawFlag() const
-  {
-    return mRaw;
-  }
-  void setRun(Int_t run);
-  Int_t getRun() const
-  {
-    return mRun;
-  }
-  void setMirrorSEs(const char* mirrors);
-  const char* getMirrorSEs() const;
-  void destroyActiveStorages();
-  void destroyActiveStorage(Storage* storage);
-  void queryStorages();
-  void print(Option_t* option = "") const;
-  static void destroy();
-  ~Manager();
-  void clearCache();
-  void unloadFromCache(const char* path);
-  const TMap* getConditionCache() const
-  {
-    return &mConditionCache;
-  }
-  static Manager* Instance(TMap* entryCache = NULL, Int_t run = -1);
-  void init();
-  void initFromCache(TMap* entryCache, Int_t run);
-  Bool_t initFromSnapshot(const char* snapshotFileName, Bool_t overwrite = kTRUE);
-  Bool_t setSnapshotMode(const char* snapshotFileName = "OCDB.root");
-  void unsetSnapshotMode()
-  {
-    mSnapshotMode = kFALSE;
-  }
-  void dumpToSnapshotFile(const char* snapshotFileName, Bool_t singleKeys) const;
-  void dumpToLightSnapshotFile(const char* lightSnapshotFileName) const;
-  Int_t getStartRunLHCPeriod();
-  Int_t getEndRunLHCPeriod();
-  TString getLHCPeriod();
-  TString getCvmfsOcdbTag() const
-  {
-    return mCvmfsOcdb;
-  }
-  Bool_t diffObjects(const char* cdbFile1, const char* cdbFile2) const;
-  void extractBaseFolder(TString& url); // remove everything but the url from OCDB path
+    Bool_t hasStorage(const char *dbString) const;
 
-protected:
-  static TString sOcdbFolderXmlFile; // alien path of the XML file for OCDB folder <--> Run range correspondance
+    StorageParameters *createStorageParameter(const char *dbString) const;
 
-  Manager();
-  Manager(const Manager& source);
-  Manager& operator=(const Manager& source);
+    Storage *getStorage(const char *dbString);
 
-  static Manager* sInstance; // Manager instance
+    TList *getActiveStorages();
 
-  Storage* getStorage(const StorageParameters* param);
-  Storage* getActiveStorage(const StorageParameters* param);
-  void putActiveStorage(StorageParameters* param, Storage* storage);
-  void setSpecificStorage(const char* calibType, const StorageParameters* param, Int_t version = -1, Int_t subVersion = -1);
-  void alienToCvmfsUri(TString& uriString) const;
-  void validateCvmfsCase() const;
-  void getLHCPeriodAgainstAlienFile(Int_t run, TString& lhcPeriod, Int_t& startRun, Int_t& endRun);
-  void getLHCPeriodAgainstCvmfsFile(Int_t run, TString& lhcPeriod, Int_t& startRun, Int_t& endRun);
+    const TMap *getStorageMap() const
+    {
+      return mStorageMap;
+    }
 
-  void cacheCondition(const char* path, Condition* entry);
+    const TList *getRetrievedIds() const
+    {
+      return mIds;
+    }
 
-  StorageParameters* selectSpecificStorage(const TString& path);
+    void setDefaultStorage(const char *dbString);
 
-  ConditionId* getId(const ConditionId& query);
-  ConditionId* getId(const IdPath& path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
-  ConditionId* getId(const IdPath& path, const IdRunRange& runRange, Int_t version = -1, Int_t subVersion = -1);
+    void setDefaultStorage(const StorageParameters *param);
 
-  TList mFactories;       //! list of registered storage factories
-  TMap mActiveStorages;   //! list of active storages
-  TMap mSpecificStorages; //! list of detector-specific storages
-  TMap mConditionCache;       //! cache of the retrieved objects
+    void setDefaultStorage(Storage *storage);
 
-  TList* mIds;       //! List of the retrieved object ConditionId's (to be streamed to file)
-  TMap* mStorageMap; //! list of storages (to be streamed to file)
+    void setDefaultStorageFromRun(Int_t run);
 
-  Storage* mDefaultStorage; //! pointer to default storage
-  Storage* mdrainStorage;   //! pointer to drain storage
+    Bool_t isDefaultStorageSet() const
+    {
+      return mDefaultStorage != 0;
+    }
 
-  StorageParameters* mOfficialStorageParameters;  // Conditions data storage parameters
-  StorageParameters* mReferenceStorageParameters; // Reference data storage parameters
+    Storage *getDefaultStorage() const
+    {
+      return mDefaultStorage;
+    }
 
-  Int_t mRun;    //! The run number
-  Bool_t mCache; //! The cache flag
-  Bool_t mLock;  //! Lock flag, if ON default storage and run number cannot be reset
+    void unsetDefaultStorage();
 
-  Bool_t mSnapshotMode; //! flag saying if we are in snapshot mode
-  TFile* mSnapshotFile;
-  Bool_t mOcdbUploadMode; //! flag for uploads to Official CDBs (upload to cvmfs must follow upload
-  // to AliEn)
+    void setSpecificStorage(const char *calibType, const char *dbString, Int_t version = -1, Int_t subVersion = -1);
 
-  Bool_t mRaw;              // flag to say whether we are in the raw case
-  TString mCvmfsOcdb;       // set from $OCDB_PATH, points to a cvmfs AliRoot package
-  Int_t mStartRunLhcPeriod; // 1st run of the LHC period set
-  Int_t mEndRunLhcPeriod;   // last run of the LHC period set
-  TString mLhcPeriod;       // LHC period alien folder
+    Storage *getSpecificStorage(const char *calibType);
 
-private:
-  ULong64_t mKey; //! Key for locking/unlocking
+    void setdrainMode(const char *dbString);
+
+    void setdrainMode(const StorageParameters *param);
+
+    void setdrainMode(Storage *storage);
+
+    void unsetdrainMode()
+    {
+      mdrainStorage = 0x0;
+    }
+
+    Bool_t isdrainSet() const
+    {
+      return mdrainStorage != 0;
+    }
+
+    Bool_t drain(Condition *entry);
+
+    Bool_t setOcdbUploadMode();
+
+    void unsetOcdbUploadMode()
+    {
+      mOcdbUploadMode = kFALSE;
+    }
+
+    Bool_t isOcdbUploadMode() const
+    {
+      return mOcdbUploadMode;
+    }
+
+    Condition *getObject(const ConditionId &query, Bool_t forceCaching = kFALSE);
+
+    Condition *getObject(const IdPath &path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
+
+    Condition *getObject(const IdPath &path, const IdRunRange &runRange, Int_t version = -1, Int_t subVersion = -1);
+
+    Condition *getConditionFromSnapshot(const char *path);
+
+    const char *getUri(const char *path);
+
+    TList *getAllObjects(const ConditionId &query);
+
+    TList *getAllObjects(const IdPath &path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
+
+    TList *getAllObjects(const IdPath &path, const IdRunRange &runRange, Int_t version = -1, Int_t subVersion = -1);
+
+    Bool_t putObject(TObject *object, const ConditionId &id, ConditionMetaData *metaData, const char *mirrors = "");
+
+    Bool_t putObject(Condition *entry, const char *mirrors = "");
+
+    void setCacheFlag(Bool_t cacheFlag)
+    {
+      mCache = cacheFlag;
+    }
+
+    Bool_t getCacheFlag() const
+    {
+      return mCache;
+    }
+
+    ULong64_t setLock(Bool_t lockFlag = kTRUE, ULong64_t key = 0);
+
+    Bool_t getLock() const
+    {
+      return mLock;
+    }
+
+    void setRawFlag(Bool_t rawFlag)
+    {
+      mRaw = rawFlag;
+    }
+
+    Bool_t getRawFlag() const
+    {
+      return mRaw;
+    }
+
+    void setRun(Int_t run);
+
+    Int_t getRun() const
+    {
+      return mRun;
+    }
+
+    void setMirrorSEs(const char *mirrors);
+
+    const char *getMirrorSEs() const;
+
+    void destroyActiveStorages();
+
+    void destroyActiveStorage(Storage *storage);
+
+    void queryStorages();
+
+    void print(Option_t *option = "") const;
+
+    static void destroy();
+
+    ~Manager();
+
+    void clearCache();
+
+    void unloadFromCache(const char *path);
+
+    const TMap *getConditionCache() const
+    {
+      return &mConditionCache;
+    }
+
+    static Manager *Instance(TMap *entryCache = NULL, Int_t run = -1);
+
+    void init();
+
+    void initFromCache(TMap *entryCache, Int_t run);
+
+    Bool_t initFromSnapshot(const char *snapshotFileName, Bool_t overwrite = kTRUE);
+
+    Bool_t setSnapshotMode(const char *snapshotFileName = "OCDB.root");
+
+    void unsetSnapshotMode()
+    {
+      mSnapshotMode = kFALSE;
+    }
+
+    void dumpToSnapshotFile(const char *snapshotFileName, Bool_t singleKeys) const;
+
+    void dumpToLightSnapshotFile(const char *lightSnapshotFileName) const;
+
+    Int_t getStartRunLHCPeriod();
+
+    Int_t getEndRunLHCPeriod();
+
+    TString getLHCPeriod();
+
+    TString getCvmfsOcdbTag() const
+    {
+      return mCvmfsOcdb;
+    }
+
+    Bool_t diffObjects(const char *cdbFile1, const char *cdbFile2) const;
+
+    void extractBaseFolder(TString &url); // remove everything but the url from OCDB path
+
+  protected:
+    static TString sOcdbFolderXmlFile; // alien path of the XML file for OCDB folder <--> Run range correspondance
+
+    Manager();
+
+    Manager(const Manager &source);
+
+    Manager &operator=(const Manager &source);
+
+    static Manager *sInstance; // Manager instance
+
+    Storage *getStorage(const StorageParameters *param);
+
+    Storage *getActiveStorage(const StorageParameters *param);
+
+    void putActiveStorage(StorageParameters *param, Storage *storage);
+
+    void setSpecificStorage(const char *calibType, const StorageParameters *param, Int_t version = -1,
+                            Int_t subVersion = -1);
+
+    void alienToCvmfsUri(TString &uriString) const;
+
+    void validateCvmfsCase() const;
+
+    void getLHCPeriodAgainstAlienFile(Int_t run, TString &lhcPeriod, Int_t &startRun, Int_t &endRun);
+
+    void getLHCPeriodAgainstCvmfsFile(Int_t run, TString &lhcPeriod, Int_t &startRun, Int_t &endRun);
+
+    void cacheCondition(const char *path, Condition *entry);
+
+    StorageParameters *selectSpecificStorage(const TString &path);
+
+    ConditionId *getId(const ConditionId &query);
+
+    ConditionId *getId(const IdPath &path, Int_t runNumber = -1, Int_t version = -1, Int_t subVersion = -1);
+
+    ConditionId *getId(const IdPath &path, const IdRunRange &runRange, Int_t version = -1, Int_t subVersion = -1);
+
+    TList mFactories;       //! list of registered storage factories
+    TMap mActiveStorages;   //! list of active storages
+    TMap mSpecificStorages; //! list of detector-specific storages
+    TMap mConditionCache;       //! cache of the retrieved objects
+
+    TList *mIds;       //! List of the retrieved object ConditionId's (to be streamed to file)
+    TMap *mStorageMap; //! list of storages (to be streamed to file)
+
+    Storage *mDefaultStorage; //! pointer to default storage
+    Storage *mdrainStorage;   //! pointer to drain storage
+
+    StorageParameters *mOfficialStorageParameters;  // Conditions data storage parameters
+    StorageParameters *mReferenceStorageParameters; // Reference data storage parameters
+
+    Int_t mRun;    //! The run number
+    Bool_t mCache; //! The cache flag
+    Bool_t mLock;  //! Lock flag, if ON default storage and run number cannot be reset
+
+    Bool_t mSnapshotMode; //! flag saying if we are in snapshot mode
+    TFile *mSnapshotFile;
+    Bool_t mOcdbUploadMode; //! flag for uploads to Official CDBs (upload to cvmfs must follow upload
+    // to AliEn)
+
+    Bool_t mRaw;              // flag to say whether we are in the raw case
+    TString mCvmfsOcdb;       // set from $OCDB_PATH, points to a cvmfs AliRoot package
+    Int_t mStartRunLhcPeriod; // 1st run of the LHC period set
+    Int_t mEndRunLhcPeriod;   // last run of the LHC period set
+    TString mLhcPeriod;       // LHC period alien folder
+
+  private:
+    ULong64_t mKey; //! Key for locking/unlocking
 
   ClassDef(Manager, 0)
 };
@@ -229,18 +316,22 @@ private:
 /////////////////////////////////////////////////////////////////////
 
 class StorageParameters;
-class StorageFactory : public TObject {
-  friend class Manager;
 
-public:
-  virtual ~StorageFactory()
-  {
-  }
-  virtual Bool_t validateStorageUri(const char* dbString) = 0;
-  virtual StorageParameters* createStorageParameter(const char* dbString) = 0;
+class StorageFactory : public TObject
+{
+    friend class Manager;
 
-protected:
-  virtual Storage* createStorage(const StorageParameters* param) = 0;
+  public:
+    virtual ~StorageFactory()
+    {
+    }
+
+    virtual Bool_t validateStorageUri(const char *dbString) = 0;
+
+    virtual StorageParameters *createStorageParameter(const char *dbString) = 0;
+
+  protected:
+    virtual Storage *createStorage(const StorageParameters *param) = 0;
 
   ClassDef(StorageFactory, 0)
 };
@@ -251,34 +342,40 @@ protected:
 //                                                                 //
 /////////////////////////////////////////////////////////////////////
 
-class StorageParameters : public TObject {
+class StorageParameters : public TObject
+{
 
-public:
-  StorageParameters();
-  virtual ~StorageParameters();
-  const TString& getStorageType() const
-  {
-    return mType;
-  };
-  const TString& getUri() const
-  {
-    return mURI;
-  };
-  virtual StorageParameters* cloneParam() const = 0;
+  public:
+    StorageParameters();
 
-protected:
-  void setType(const char* type)
-  {
-    mType = type;
-  };
-  void setUri(const char* uri)
-  {
-    mURI = uri;
-  };
+    virtual ~StorageParameters();
 
-private:
-  TString mType; //! CDB type
-  TString mURI;  //! CDB URI
+    const TString &getStorageType() const
+    {
+      return mType;
+    };
+
+    const TString &getUri() const
+    {
+      return mURI;
+    };
+
+    virtual StorageParameters *cloneParam() const = 0;
+
+  protected:
+    void setType(const char *type)
+    {
+      mType = type;
+    };
+
+    void setUri(const char *uri)
+    {
+      mURI = uri;
+    };
+
+  private:
+    TString mType; //! CDB type
+    TString mURI;  //! CDB URI
 
   ClassDef(StorageParameters, 0)
 };

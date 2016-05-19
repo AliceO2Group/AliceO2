@@ -9,137 +9,163 @@
 #include "Rtypes.h"      // for Int_t, Bool_t, ConditionId::Class, ClassDef, etc
 #include "TString.h"     // for TString
 
-
 namespace AliceO2 {
 namespace CDB {
 
-class ConditionId : public TObject {
+class ConditionId : public TObject
+{
 
-public:
-  ConditionId();
-  ConditionId(const ConditionId& other);
-  ConditionId(const IdPath& path, const IdRunRange& runRange, Int_t version = -1, Int_t subVersion = -1);
-  ConditionId(const IdPath& path, Int_t firstRun, Int_t lastRun, Int_t verison = -1, Int_t subVersion = -1);
+  public:
+    ConditionId();
 
-  static ConditionId* makeFromString(const TString& idString);
-  virtual ~ConditionId();
-  const IdPath& getPath() const
-  {
-    return mPath;
-  }
-  const TString& getPathString() const
-  {
-    return mPath.getPathString();
-  }
-  const TString getPathLevel(Int_t i) const
-  {
-    return mPath.getLevel(i);
-  }
-  Bool_t isWildcard() const
-  {
-    return mPath.isWildcard();
-  }
-  void setPath(const char* path)
-  {
-    mPath.setPath(path);
-  }
-  const IdRunRange& getIdRunRange() const
-  {
-    return mIdRunRange;
-  }
-  IdRunRange& getIdRunRange()
-  {
-    return mIdRunRange;
-  }
-  Int_t getFirstRun() const
-  {
-    return mIdRunRange.getFirstRun();
-  }
-  Int_t getLastRun() const
-  {
-    return mIdRunRange.getLastRun();
-  }
-  void setFirstRun(Int_t firstRun)
-  {
-    mIdRunRange.setFirstRun(firstRun);
-  }
-  void setLastRun(Int_t lastRun)
-  {
-    mIdRunRange.setLastRun(lastRun);
-  }
-  void setIdRunRange(Int_t firstRun, Int_t lastRun)
-  {
-    mIdRunRange.setIdRunRange(firstRun, lastRun);
-  }
+    ConditionId(const ConditionId &other);
 
-  Bool_t isAnyRange() const
-  {
-    return mIdRunRange.isAnyRange();
-  }
+    ConditionId(const IdPath &path, const IdRunRange &runRange, Int_t version = -1, Int_t subVersion = -1);
 
-  Int_t getVersion() const
-  {
-    return mVersion;
-  }
-  Int_t getSubVersion() const
-  {
-    return mSubVersion;
-  }
-  void setVersion(Int_t version)
-  {
-    mVersion = version;
-  }
-  void setSubVersion(Int_t subVersion)
-  {
-    mSubVersion = subVersion;
-  }
+    ConditionId(const IdPath &path, Int_t firstRun, Int_t lastRun, Int_t verison = -1, Int_t subVersion = -1);
 
-  const TString& getLastStorage() const
-  {
-    return mLastStorage;
-  }
-  void setLastStorage(TString& lastStorage)
-  {
-    mLastStorage = lastStorage;
-  }
+    static ConditionId *makeFromString(const TString &idString);
 
-  Bool_t isValid() const;
-  Bool_t isSpecified() const
-  {
-    return !(isWildcard() || isAnyRange());
-  }
+    virtual ~ConditionId();
 
-  Bool_t hasVersion() const
-  {
-    return mVersion >= 0;
-  }
-  Bool_t hasSubVersion() const
-  {
-    return mSubVersion >= 0;
-  }
+    const IdPath &getPath() const
+    {
+      return mPath;
+    }
 
-  Bool_t isSupersetOf(const ConditionId& other) const
-  {
-    return mPath.isSupersetOf(other.mPath) && mIdRunRange.isSupersetOf(other.mIdRunRange);
-  }
+    const TString &getPathString() const
+    {
+      return mPath.getPathString();
+    }
 
-  virtual Bool_t isEqual(const TObject* obj) const;
+    const TString getPathLevel(Int_t i) const
+    {
+      return mPath.getLevel(i);
+    }
 
-  TString ToString() const;
-  void print(Option_t* option = "") const;
-  virtual Int_t Compare(const TObject* obj) const;
-  virtual Bool_t IsSortable() const;
-  virtual const char* GetName() const
-  {
-    return mPath.getPathString().Data();
-  }
+    Bool_t isWildcard() const
+    {
+      return mPath.isWildcard();
+    }
 
-private:
-  IdPath mPath;           // path
-  IdRunRange mIdRunRange;   // run range
-  Int_t mVersion;       // version
-  Int_t mSubVersion;    // subversion
-  TString mLastStorage; // previous storage place (new, grid, local, dump)
+    void setPath(const char *path)
+    {
+      mPath.setPath(path);
+    }
+
+    const IdRunRange &getIdRunRange() const
+    {
+      return mIdRunRange;
+    }
+
+    IdRunRange &getIdRunRange()
+    {
+      return mIdRunRange;
+    }
+
+    Int_t getFirstRun() const
+    {
+      return mIdRunRange.getFirstRun();
+    }
+
+    Int_t getLastRun() const
+    {
+      return mIdRunRange.getLastRun();
+    }
+
+    void setFirstRun(Int_t firstRun)
+    {
+      mIdRunRange.setFirstRun(firstRun);
+    }
+
+    void setLastRun(Int_t lastRun)
+    {
+      mIdRunRange.setLastRun(lastRun);
+    }
+
+    void setIdRunRange(Int_t firstRun, Int_t lastRun)
+    {
+      mIdRunRange.setIdRunRange(firstRun, lastRun);
+    }
+
+    Bool_t isAnyRange() const
+    {
+      return mIdRunRange.isAnyRange();
+    }
+
+    Int_t getVersion() const
+    {
+      return mVersion;
+    }
+
+    Int_t getSubVersion() const
+    {
+      return mSubVersion;
+    }
+
+    void setVersion(Int_t version)
+    {
+      mVersion = version;
+    }
+
+    void setSubVersion(Int_t subVersion)
+    {
+      mSubVersion = subVersion;
+    }
+
+    const TString &getLastStorage() const
+    {
+      return mLastStorage;
+    }
+
+    void setLastStorage(TString &lastStorage)
+    {
+      mLastStorage = lastStorage;
+    }
+
+    Bool_t isValid() const;
+
+    Bool_t isSpecified() const
+    {
+      return !(isWildcard() || isAnyRange());
+    }
+
+    Bool_t hasVersion() const
+    {
+      return mVersion >= 0;
+    }
+
+    Bool_t hasSubVersion() const
+    {
+      return mSubVersion >= 0;
+    }
+
+    Bool_t isSupersetOf(const ConditionId &other) const
+    {
+      return mPath.isSupersetOf(other.mPath) && mIdRunRange.isSupersetOf(other.mIdRunRange);
+    }
+
+    virtual Bool_t isEqual(const TObject *obj) const;
+
+    TString ToString() const;
+
+    void print(Option_t *option = "") const;
+
+    virtual Int_t Compare(const TObject *obj) const;
+
+    virtual Bool_t IsSortable() const;
+
+    virtual const char *GetName() const
+    {
+      return mPath.getPathString().Data();
+    }
+
+  private:
+    IdPath mPath;           // path
+    IdRunRange mIdRunRange;   // run range
+    Int_t mVersion;       // version
+    Int_t mSubVersion;    // subversion
+    TString mLastStorage; // previous storage place (new, grid, local, dump)
 
   ClassDef(ConditionId, 1)
 };

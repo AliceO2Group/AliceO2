@@ -3,25 +3,16 @@
 #include <FairLogger.h>   // for LOG
 #include <TFile.h>        // for TFile
 #include <TKey.h>         // for TKey
-#include <TList.h>        // for TList
 #include <TObjString.h>   // for TObjString
 #include <TRegexp.h>      // for TRegexp
 #include <TSystem.h>      // for TSystem, gSystem
-#include <stddef.h>       // for NULL
 #include "CCDB/Condition.h"    // for Condition
-#include "CCDB/ConditionId.h"  // for ConditionId
-#include "CCDB/IdPath.h"       // for IdPath
-#include "CCDB/IdRunRange.h"   // for IdRunRange
-#include "TCollection.h"  // for TIter
-#include "TDirectory.h"   // for TDirectory, gDirectory, etc
-#include "TObjArray.h"    // for TObjArray
-#include "TObject.h"      // for TObject
 
 using namespace AliceO2::CDB;
 
 ClassImp(FileStorage)
 
-FileStorage::FileStorage(const char* dbFile, Bool_t readOnly) : mFile(NULL), mReadOnly(readOnly)
+FileStorage::FileStorage(const char *dbFile, Bool_t readOnly) : mFile(NULL), mReadOnly(readOnly)
 {
   // constructor
 
@@ -49,7 +40,7 @@ FileStorage::~FileStorage()
   }
 }
 
-Bool_t FileStorage::keyNameToId(const char* keyname, IdRunRange& runRange, Int_t& version, Int_t& subVersion)
+Bool_t FileStorage::keyNameToId(const char *keyname, IdRunRange &runRange, Int_t &version, Int_t &subVersion)
 {
   // build  ConditionId from keyname numbers
 
@@ -63,16 +54,16 @@ Bool_t FileStorage::keyNameToId(const char* keyname, IdRunRange& runRange, Int_t
     return kFALSE;
   }
 
-  TObjArray* strArray = (TObjArray*)TString(keyname).Tokenize("_");
+  TObjArray *strArray = (TObjArray *) TString(keyname).Tokenize("_");
 
-  TString firstRunString(((TObjString*)strArray->At(0))->GetString());
+  TString firstRunString(((TObjString *) strArray->At(0))->GetString());
   runRange.setFirstRun(atoi(firstRunString.Data() + 3));
-  runRange.setLastRun(atoi(((TObjString*)strArray->At(1))->GetString()));
+  runRange.setLastRun(atoi(((TObjString *) strArray->At(1))->GetString()));
 
-  TString verString(((TObjString*)strArray->At(2))->GetString());
+  TString verString(((TObjString *) strArray->At(2))->GetString());
   version = atoi(verString.Data() + 1);
 
-  TString subVerString(((TObjString*)strArray->At(3))->GetString());
+  TString subVerString(((TObjString *) strArray->At(3))->GetString());
   subVersion = atoi(subVerString.Data() + 1);
 
   delete strArray;
@@ -80,7 +71,7 @@ Bool_t FileStorage::keyNameToId(const char* keyname, IdRunRange& runRange, Int_t
   return kTRUE;
 }
 
-Bool_t FileStorage::idToKeyName(const IdRunRange& runRange, Int_t version, Int_t subVersion, TString& keyname)
+Bool_t FileStorage::idToKeyName(const IdRunRange &runRange, Int_t version, Int_t subVersion, TString &keyname)
 {
   // build key name from  ConditionId data (run range, version, subVersion)
 
@@ -112,15 +103,15 @@ Bool_t FileStorage::idToKeyName(const IdRunRange& runRange, Int_t version, Int_t
   return kTRUE;
 }
 
-Bool_t FileStorage::makeDir(const TString& path)
+Bool_t FileStorage::makeDir(const TString &path)
 {
   // descend into TDirectory, making TDirectories if they don't exist
-  TObjArray* strArray = (TObjArray*)path.Tokenize("/");
+  TObjArray *strArray = (TObjArray *) path.Tokenize("/");
 
   TIter iter(strArray);
-  TObjString* str;
+  TObjString *str;
 
-  while ((str = (TObjString*)iter.Next())) {
+  while ((str = (TObjString *) iter.Next())) {
 
     TString dirName(str->GetString());
     if (!dirName.Length()) {
@@ -131,7 +122,7 @@ Bool_t FileStorage::makeDir(const TString& path)
       continue;
     }
 
-    TDirectory* aDir = gDirectory->mkdir(dirName, "");
+    TDirectory *aDir = gDirectory->mkdir(dirName, "");
     if (!aDir) {
       LOG(ERROR) << "Can't create directory \"" << dirName.Data() << "\"!" << FairLogger::endl;
       delete strArray;
@@ -147,7 +138,7 @@ Bool_t FileStorage::makeDir(const TString& path)
   return kTRUE;
 }
 
-Bool_t FileStorage::prepareId(ConditionId& id)
+Bool_t FileStorage::prepareId(ConditionId &id)
 {
   // prepare id (version, subVersion) of the object that will be stored (called by putCondition)
 
@@ -157,27 +148,31 @@ Bool_t FileStorage::prepareId(ConditionId& id)
   Int_t lastVersion = 0, lastSubVersion = -1; // highest version and subVersion found
 
   TIter iter(gDirectory->GetListOfKeys());
-  TKey* key;
+  TKey *key;
 
   if (!id.hasVersion()) { // version not specified: look for highest version & subVersion
 
-    while ((key = (TKey*)iter.Next())) { // loop on keys
+    while ((key = (TKey *) iter.Next())) { // loop on keys
 
-      const char* keyName = key->GetName();
+      const char *keyName = key->GetName();
 
       if (!keyNameToId(keyName, aIdRunRange, aVersion, aSubVersion)) {
         LOG(DEBUG) << "Bad keyname <" << keyName << ">!I'll skip it." << FairLogger::endl;
         continue;
       }
 
-      if (!aIdRunRange.isOverlappingWith(id.getIdRunRange()))
+      if (!aIdRunRange.isOverlappingWith(id.getIdRunRange())) {
         continue;
-      if (aVersion < lastVersion)
+      }
+      if (aVersion < lastVersion) {
         continue;
-      if (aVersion > lastVersion)
+      }
+      if (aVersion > lastVersion) {
         lastSubVersion = -1;
-      if (aSubVersion < lastSubVersion)
+      }
+      if (aSubVersion < lastSubVersion) {
         continue;
+      }
       lastVersion = aVersion;
       lastSubVersion = aSubVersion;
       lastIdRunRange = aIdRunRange;
@@ -188,9 +183,9 @@ Bool_t FileStorage::prepareId(ConditionId& id)
 
   } else { // version specified, look for highest subVersion only
 
-    while ((key = (TKey*)iter.Next())) { // loop on the keys
+    while ((key = (TKey *) iter.Next())) { // loop on the keys
 
-      const char* keyName = key->GetName();
+      const char *keyName = key->GetName();
 
       if (!keyNameToId(keyName, aIdRunRange, aVersion, aSubVersion)) {
         LOG(DEBUG) << "Bad keyname <" << keyName << ">!I'll skip it." << FairLogger::endl;
@@ -231,7 +226,7 @@ Bool_t FileStorage::prepareId(ConditionId& id)
   return kTRUE;
 }
 
-ConditionId* FileStorage::getId(const ConditionId& query)
+ConditionId *FileStorage::getId(const ConditionId &query)
 {
   // look for filename matching query (called by getCondition)
 
@@ -239,22 +234,24 @@ ConditionId* FileStorage::getId(const ConditionId& query)
   Int_t aVersion, aSubVersion; // the version and subVersion got from filename
 
   TIter iter(gDirectory->GetListOfKeys());
-  TKey* key;
+  TKey *key;
 
-  ConditionId* result = new ConditionId();
+  ConditionId *result = new ConditionId();
   result->setPath(query.getPathString());
 
   if (!query.hasVersion()) { // neither version and subversion specified -> look for highest version
-                             // and subVersion
+    // and subVersion
 
-    while ((key = (TKey*)iter.Next())) { // loop on the keys
+    while ((key = (TKey *) iter.Next())) { // loop on the keys
 
-      if (!keyNameToId(key->GetName(), aIdRunRange, aVersion, aSubVersion))
+      if (!keyNameToId(key->GetName(), aIdRunRange, aVersion, aSubVersion)) {
         continue;
+      }
       // aIdRunRange, aVersion, aSubVersion filled from filename
 
-      if (!aIdRunRange.isSupersetOf(query.getIdRunRange()))
+      if (!aIdRunRange.isSupersetOf(query.getIdRunRange())) {
         continue;
+      }
       // aIdRunRange contains requested run!
 
       if (result->getVersion() < aVersion) {
@@ -280,22 +277,25 @@ ConditionId* FileStorage::getId(const ConditionId& query)
     }
 
   } else if (!query.hasSubVersion()) { // version specified but not subversion -> look for highest
-                                       // subVersion
+    // subVersion
 
     result->setVersion(query.getVersion());
 
-    while ((key = (TKey*)iter.Next())) { // loop on the keys
+    while ((key = (TKey *) iter.Next())) { // loop on the keys
 
-      if (!keyNameToId(key->GetName(), aIdRunRange, aVersion, aSubVersion))
+      if (!keyNameToId(key->GetName(), aIdRunRange, aVersion, aSubVersion)) {
         continue;
+      }
       // aIdRunRange, aVersion, aSubVersion filled from filename
 
-      if (!aIdRunRange.isSupersetOf(query.getIdRunRange()))
+      if (!aIdRunRange.isSupersetOf(query.getIdRunRange())) {
         continue;
+      }
       // aIdRunRange contains requested run!
 
-      if (query.getVersion() != aVersion)
+      if (query.getVersion() != aVersion) {
         continue;
+      }
       // aVersion is requested version!
 
       if (result->getSubVersion() == aSubVersion) {
@@ -315,18 +315,21 @@ ConditionId* FileStorage::getId(const ConditionId& query)
 
   } else { // both version and subversion specified
 
-    while ((key = (TKey*)iter.Next())) { // loop on the keys
+    while ((key = (TKey *) iter.Next())) { // loop on the keys
 
-      if (!keyNameToId(key->GetName(), aIdRunRange, aVersion, aSubVersion))
+      if (!keyNameToId(key->GetName(), aIdRunRange, aVersion, aSubVersion)) {
         continue;
+      }
       // aIdRunRange, aVersion, aSubVersion filled from filename
 
-      if (!aIdRunRange.isSupersetOf(query.getIdRunRange()))
+      if (!aIdRunRange.isSupersetOf(query.getIdRunRange())) {
         continue;
+      }
       // aIdRunRange contains requested run!
 
-      if (query.getVersion() != aVersion || query.getSubVersion() != aSubVersion)
+      if (query.getVersion() != aVersion || query.getSubVersion() != aSubVersion) {
         continue;
+      }
       // aVersion and aSubVersion are requested version and subVersion!
 
       if (result->getVersion() == aVersion && result->getSubVersion() == aSubVersion) {
@@ -345,7 +348,7 @@ ConditionId* FileStorage::getId(const ConditionId& query)
   return result;
 }
 
-Condition* FileStorage::getCondition(const ConditionId& queryId)
+Condition *FileStorage::getCondition(const ConditionId &queryId)
 {
   // get  Condition from the database
 
@@ -360,11 +363,12 @@ Condition* FileStorage::getCondition(const ConditionId& queryId)
     return NULL;
   }
 
-  ConditionId* dataId = getConditionId(queryId);
+  ConditionId *dataId = getConditionId(queryId);
 
   if (!dataId || !dataId->isSpecified()) {
-    if (dataId)
+    if (dataId) {
       delete dataId;
+    }
     return NULL;
   }
 
@@ -379,7 +383,7 @@ Condition* FileStorage::getCondition(const ConditionId& queryId)
   // the object in the file is an  Condition entry named keyname
   // keyName = Run#firstRun_#lastRun_v#version_s#subVersion
 
-  TObject* anObject = gDirectory->Get(keyname);
+  TObject *anObject = gDirectory->Get(keyname);
   if (!anObject) {
     LOG(DEBUG) << "Bad storage data: NULL entry object!" << FairLogger::endl;
     delete dataId;
@@ -392,13 +396,13 @@ Condition* FileStorage::getCondition(const ConditionId& queryId)
     return NULL;
   }
 
-  ((Condition*)anObject)->setLastStorage("dump");
+  ((Condition *) anObject)->setLastStorage("dump");
 
   delete dataId;
-  return (Condition*)anObject;
+  return (Condition *) anObject;
 }
 
-ConditionId* FileStorage::getConditionId(const ConditionId& queryId)
+ConditionId *FileStorage::getConditionId(const ConditionId &queryId)
 {
   // get  Condition from the database
 
@@ -413,7 +417,7 @@ ConditionId* FileStorage::getConditionId(const ConditionId& queryId)
     return NULL;
   }
 
-  ConditionId* dataId = 0;
+  ConditionId *dataId = 0;
 
   // look for a filename matching query requests (path, runRange, version, subVersion)
   if (!queryId.hasVersion()) {
@@ -433,16 +437,16 @@ ConditionId* FileStorage::getConditionId(const ConditionId& queryId)
   return dataId;
 }
 
-void FileStorage::getEntriesForLevel0(const ConditionId& queryId, TList* result)
+void FileStorage::getEntriesForLevel0(const ConditionId &queryId, TList *result)
 {
   // multiple request ( Storage::GetAllObjects)
 
-  TDirectory* saveDir = gDirectory;
+  TDirectory *saveDir = gDirectory;
 
   TIter iter(gDirectory->GetListOfKeys());
-  TKey* key;
+  TKey *key;
 
-  while ((key = (TKey*)iter.Next())) {
+  while ((key = (TKey *) iter.Next())) {
 
     TString keyNameStr(key->GetName());
     if (queryId.getPath().doesLevel1Contain(keyNameStr)) {
@@ -454,16 +458,16 @@ void FileStorage::getEntriesForLevel0(const ConditionId& queryId, TList* result)
   }
 }
 
-void FileStorage::getEntriesForLevel1(const ConditionId& queryId, TList* result)
+void FileStorage::getEntriesForLevel1(const ConditionId &queryId, TList *result)
 {
   // multiple request ( Storage::GetAllObjects)
 
   TIter iter(gDirectory->GetListOfKeys());
-  TKey* key;
+  TKey *key;
 
-  TDirectory* level0Dir = (TDirectory*)gDirectory->GetMother();
+  TDirectory *level0Dir = (TDirectory *) gDirectory->GetMother();
 
-  while ((key = (TKey*)iter.Next())) {
+  while ((key = (TKey *) iter.Next())) {
 
     TString keyNameStr(key->GetName());
     if (queryId.getPath().doesLevel2Contain(keyNameStr)) {
@@ -471,7 +475,7 @@ void FileStorage::getEntriesForLevel1(const ConditionId& queryId, TList* result)
       IdPath aPath(level0Dir->GetName(), gDirectory->GetName(), keyNameStr);
       ConditionId anId(aPath, queryId.getIdRunRange(), queryId.getVersion(), -1);
 
-      Condition* anCondition = getCondition(anId);
+      Condition *anCondition = getCondition(anId);
       if (anCondition) {
         result->Add(anCondition);
       }
@@ -479,7 +483,7 @@ void FileStorage::getEntriesForLevel1(const ConditionId& queryId, TList* result)
   }
 }
 
-TList* FileStorage::getAllEntries(const ConditionId& queryId)
+TList *FileStorage::getAllEntries(const ConditionId &queryId)
 {
   // return list of CDB entries matching a generic request (Storage::GetAllObjects)
 
@@ -490,13 +494,13 @@ TList* FileStorage::getAllEntries(const ConditionId& queryId)
     return NULL;
   }
 
-  TList* result = new TList();
+  TList *result = new TList();
   result->SetOwner();
 
   TIter iter(gDirectory->GetListOfKeys());
-  TKey* key;
+  TKey *key;
 
-  while ((key = (TKey*)iter.Next())) {
+  while ((key = (TKey *) iter.Next())) {
 
     TString keyNameStr(key->GetName());
     if (queryId.getPath().doesLevel0Contain(keyNameStr)) {
@@ -510,7 +514,7 @@ TList* FileStorage::getAllEntries(const ConditionId& queryId)
   return result;
 }
 
-Bool_t FileStorage::putCondition(Condition* entry, const char* mirrors)
+Bool_t FileStorage::putCondition(Condition *entry, const char *mirrors)
 {
   // put an  Condition object into the database
 
@@ -528,9 +532,10 @@ Bool_t FileStorage::putCondition(Condition* entry, const char* mirrors)
 
   TString mirrorsString(mirrors);
   if (!mirrorsString.IsNull())
-    LOG(WARNING) << "LocalStorage storage cannot take mirror SEs into account. They will be ignored." << FairLogger::endl;
+    LOG(WARNING) << "LocalStorage storage cannot take mirror SEs into account. They will be ignored." <<
+                 FairLogger::endl;
 
-  ConditionId& id = entry->getId();
+  ConditionId &id = entry->getId();
 
   if (!gDirectory->cd(id.getPathString())) {
     if (!makeDir(id.getPathString())) {
@@ -565,34 +570,35 @@ Bool_t FileStorage::putCondition(Condition* entry, const char* mirrors)
   return result;
 }
 
-TList* FileStorage::getIdListFromFile(const char* fileName)
+TList *FileStorage::getIdListFromFile(const char *fileName)
 {
 
   TString turl(fileName);
   if (turl[0] != '/') {
     turl.Prepend(TString(gSystem->WorkingDirectory()) + '/');
   }
-  TFile* file = TFile::Open(turl);
+  TFile *file = TFile::Open(turl);
   if (!file) {
     LOG(ERROR) << "Can't open selection file <" << turl.Data() << ">!" << FairLogger::endl;
     return NULL;
   }
   file->cd();
 
-  TList* list = new TList();
+  TList *list = new TList();
   list->SetOwner();
   int i = 0;
   TString keycycle;
 
-  ConditionId* id;
+  ConditionId *id;
   while (1) {
     i++;
     keycycle = " ConditionId;";
     keycycle += i;
 
-    id = (ConditionId*)file->Get(keycycle);
-    if (!id)
+    id = (ConditionId *) file->Get(keycycle);
+    if (!id) {
       break;
+    }
     list->AddFirst(id);
   }
   file->Close();
@@ -601,7 +607,7 @@ TList* FileStorage::getIdListFromFile(const char* fileName)
   return list;
 }
 
-Bool_t FileStorage::hasConditionType(const char* path) const
+Bool_t FileStorage::hasConditionType(const char *path) const
 {
   // check for path in storage
 
@@ -622,7 +628,7 @@ void FileStorage::queryValidFiles()
   LOG(ERROR) << "Not yet (and maybe never) implemented" << FairLogger::endl;
 }
 
-Bool_t FileStorage::idToFilename(const ConditionId& /*id*/, TString& /*filename*/) const
+Bool_t FileStorage::idToFilename(const ConditionId & /*id*/, TString & /*filename*/) const
 {
   // build file name from  ConditionId (path, run range, version) and mDBFolder
 
@@ -634,21 +640,21 @@ void FileStorage::setRetry(Int_t /* nretry */, Int_t /* initsec */)
 {
   // Function to set the exponential retry for putting entries in the OCDB
   LOG(INFO) << "This function sets the exponential retry for putting entries in the OCDB - to be "
-               "used ONLY for  GridStorage --> returning without doing anything" << FairLogger::endl;
+    "used ONLY for  GridStorage --> returning without doing anything" << FairLogger::endl;
   return;
 }
 
 // FileStorage factory
 ClassImp(FileStorageFactory)
 
-Bool_t FileStorageFactory::validateStorageUri(const char* dbString)
+Bool_t FileStorageFactory::validateStorageUri(const char *dbString)
 {
   // check if the string is valid dump URI
   TRegexp dbPattern("^dump://.+$");
   return TString(dbString).Contains(dbPattern);
 }
 
-StorageParameters* FileStorageFactory::createStorageParameter(const char* dbString)
+StorageParameters *FileStorageFactory::createStorageParameter(const char *dbString)
 {
   // create  FileStorageParameters class from the URI string
 
@@ -676,12 +682,12 @@ StorageParameters* FileStorageFactory::createStorageParameter(const char* dbStri
   return new FileStorageParameters(pathname, readOnly);
 }
 
-Storage* FileStorageFactory::createStorage(const StorageParameters* param)
+Storage *FileStorageFactory::createStorage(const StorageParameters *param)
 {
   // create FileStorage instance from parameters
   if (FileStorageParameters::Class() == param->IsA()) {
-    const FileStorageParameters* dumpParam = (const FileStorageParameters*)param;
-    FileStorage* dumpStorage = new FileStorage(dumpParam->getPathString(), dumpParam->isReadOnly());
+    const FileStorageParameters *dumpParam = (const FileStorageParameters *) param;
+    FileStorage *dumpStorage = new FileStorage(dumpParam->getPathString(), dumpParam->isReadOnly());
     return dumpStorage;
   }
   return NULL;
@@ -695,7 +701,7 @@ FileStorageParameters::FileStorageParameters() : StorageParameters(), mDBPath(),
   // default constructor
 }
 
-FileStorageParameters::FileStorageParameters(const char* dbPath, Bool_t readOnly) : mDBPath(dbPath), mReadOnly(readOnly)
+FileStorageParameters::FileStorageParameters(const char *dbPath, Bool_t readOnly) : mDBPath(dbPath), mReadOnly(readOnly)
 {
   // constructor
   TString uri;
@@ -715,7 +721,7 @@ FileStorageParameters::~FileStorageParameters()
   // destructor
 }
 
-StorageParameters* FileStorageParameters::cloneParam() const
+StorageParameters *FileStorageParameters::cloneParam() const
 {
   // clone parameter
 
@@ -729,7 +735,7 @@ ULong_t FileStorageParameters::getHash() const
   return mDBPath.Hash();
 }
 
-Bool_t FileStorageParameters::isEqual(const TObject* obj) const
+Bool_t FileStorageParameters::isEqual(const TObject *obj) const
 {
   // check if this object is equal to  StorageParameters obj
 
@@ -741,7 +747,7 @@ Bool_t FileStorageParameters::isEqual(const TObject* obj) const
     return kFALSE;
   }
 
-  FileStorageParameters* other = (FileStorageParameters*)obj;
+  FileStorageParameters *other = (FileStorageParameters *) obj;
 
   return mDBPath == other->mDBPath;
 }
