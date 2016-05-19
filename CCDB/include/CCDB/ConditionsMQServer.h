@@ -27,13 +27,15 @@ class ConditionsMQServer : public ParameterMQServer
 {
   public:
     ConditionsMQServer();
+
     virtual ~ConditionsMQServer();
 
     virtual void Run();
+
     virtual void InitTask();
 
   private:
-    Manager* fCdbManager;
+    Manager *fCdbManager;
 };
 }
 }

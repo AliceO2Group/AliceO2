@@ -1,21 +1,21 @@
 
 ########## Dependencies lookup ############
 
-find_package(ROOT 5.32.00 REQUIRED)
+find_package(ROOT 6.06.00 REQUIRED)
 find_package(Pythia8)
 find_package(Pythia6)
-IF (ALICEO2_MODULAR_BUILD)
+if (ALICEO2_MODULAR_BUILD)
   # Geant3, Geant4 installed via cmake
   find_package(Geant3)
   find_package(Geant4)
-ELSE (ALICEO2_MODULAR_BUILD)
+else (ALICEO2_MODULAR_BUILD)
   # For old versions of VMC packages (to be removed)
   find_package(GEANT3)
   find_package(GEANT4)
   find_package(GEANT4DATA)
   find_package(GEANT4VMC)
   find_package(CLHEP)
-ENDIF (ALICEO2_MODULAR_BUILD)
+endif (ALICEO2_MODULAR_BUILD)
 find_package(CERNLIB)
 find_package(HEPMC)
 find_package(IWYU)
@@ -31,7 +31,7 @@ include_directories(SYSTEM
     ${ZMQ_INCLUDE_DIR}
     )
 
-# todo this should really not be needed. Investigate.
+# todo this should really not be needed. ROOT and FairRoot should comply with CMake best practices but they do not properly return libraries with full path.
 set(LINK_DIRECTORIES
     ${ROOT_LIBRARY_DIR}
     ${FAIRROOT_LIBRARY_DIR}
@@ -52,12 +52,13 @@ o2_define_bucket(
     ExampleModule2_Bucket
     DEPENDENCIES # library names
     ExampleModule1_Bucket
-    Core Hist # ROOT todo use full names
+    Core Hist # ROOT
 )
 
 o2_define_bucket(
     NAME
     CCDB_Bucket
     DEPENDENCIES
-    Base ParBase FairMQ ParMQ ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger pthread Core Tree XMLParser Hist
+    Base ParBase FairMQ ParMQ ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger pthread
+    Core Tree XMLParser Hist # ROOT
 )

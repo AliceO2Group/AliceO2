@@ -3,16 +3,10 @@
 #include <TH1.h>                // for TH1
 #include <TKey.h>               // for TKey
 #include <TNtuple.h>            // for TNtuple
-#include <TTree.h>              // for TTree
-#include <string.h>             // for NULL, strcmp
 #include "CCDB/Condition.h"          // for Condition
-#include "CCDB/ConditionId.h"        // for ConditionId
-#include "CCDB/ConditionMetaData.h"  // for ConditionMetaData
 #include "CCDB/Manager.h"            // for Manager
-#include "TCollection.h"        // for TIter
-#include "TList.h"              // for TList
-#include "TObjArray.h"          // for TObjArray
-namespace AliceO2 { namespace CDB { class IdRunRange; } }
+
+namespace AliceO2 { namespace CDB { class IdRunRange; }}
 
 using namespace AliceO2::CDB;
 
@@ -46,15 +40,15 @@ Storage::~Storage()
   delete mConditionMetaDataFilter;
 }
 
-void Storage::getSelection(/*const*/ ConditionId* id)
+void Storage::getSelection(/*const*/ ConditionId *id)
 {
   // return required version and subversion from the list of selection criteria
 
   TIter iter(&mSelections);
-  ConditionId* aSelection;
+  ConditionId *aSelection;
 
   // loop on the list of selection criteria
-  while ((aSelection = (ConditionId*)iter.Next())) {
+  while ((aSelection = (ConditionId *) iter.Next())) {
     // check if selection element contains id's path and run (range)
     if (aSelection->isSupersetOf(*id)) {
       LOG(DEBUG) << "Using selection criterion: " << aSelection->ToString().Data() << " " << FairLogger::endl;
@@ -71,43 +65,46 @@ void Storage::getSelection(/*const*/ ConditionId* id)
   return;
 }
 
-void Storage::readSelectionFromFile(const char* fileName)
+void Storage::readSelectionFromFile(const char *fileName)
 {
   // read selection criteria list from file
 
   removeAllSelections();
 
-  TList* list = getIdListFromFile(fileName);
-  if (!list)
+  TList *list = getIdListFromFile(fileName);
+  if (!list) {
     return;
+  }
 
   list->SetOwner();
   Int_t nId = list->GetEntries();
-  ConditionId* id;
-  TKey* key;
+  ConditionId *id;
+  TKey *key;
 
   for (int i = nId - 1; i >= 0; i--) {
-    key = (TKey*)list->At(i);
-    id = (ConditionId*)key->ReadObj();
-    if (id)
+    key = (TKey *) list->At(i);
+    id = (ConditionId *) key->ReadObj();
+    if (id) {
       addSelection(*id);
+    }
   }
   delete list;
   LOG(INFO) << "Selection criteria list filled with " << mSelections.GetEntries() << " entries" << FairLogger::endl;
   printSelectionList();
 }
 
-void Storage::addSelection(const ConditionId& selection)
+void Storage::addSelection(const ConditionId &selection)
 {
   // add a selection criterion
 
   IdPath path = selection.getPath();
-  if (!path.isValid())
+  if (!path.isValid()) {
     return;
+  }
 
   TIter iter(&mSelections);
-  const ConditionId* anId;
-  while ((anId = (ConditionId*)iter.Next())) {
+  const ConditionId *anId;
+  while ((anId = (ConditionId *) iter.Next())) {
     if (selection.isSupersetOf(*anId)) {
       LOG(WARNING) << "This selection is more general than a previous one and will hide it!" << FairLogger::endl;
       LOG(WARNING) << (anId->ToString()).Data() << FairLogger::endl;
@@ -118,42 +115,42 @@ void Storage::addSelection(const ConditionId& selection)
   mSelections.AddFirst(new ConditionId(selection));
 }
 
-void Storage::addSelection(const IdPath& path, const IdRunRange& runRange, Int_t version, Int_t subVersion)
+void Storage::addSelection(const IdPath &path, const IdRunRange &runRange, Int_t version, Int_t subVersion)
 {
   // add a selection criterion
 
   addSelection(ConditionId(path, runRange, version, subVersion));
 }
 
-void Storage::addSelection(const IdPath& path, Int_t firstRun, Int_t lastRun, Int_t version, Int_t subVersion)
+void Storage::addSelection(const IdPath &path, Int_t firstRun, Int_t lastRun, Int_t version, Int_t subVersion)
 {
   // add a selection criterion
 
   addSelection(ConditionId(path, firstRun, lastRun, version, subVersion));
 }
 
-void Storage::removeSelection(const ConditionId& selection)
+void Storage::removeSelection(const ConditionId &selection)
 {
   // remove a selection criterion
 
   TIter iter(&mSelections);
-  ConditionId* aSelection;
+  ConditionId *aSelection;
 
-  while ((aSelection = (ConditionId*)iter.Next())) {
+  while ((aSelection = (ConditionId *) iter.Next())) {
     if (selection.isSupersetOf(*aSelection)) {
       mSelections.Remove(aSelection);
     }
   }
 }
 
-void Storage::removeSelection(const IdPath& path, const IdRunRange& runRange)
+void Storage::removeSelection(const IdPath &path, const IdRunRange &runRange)
 {
   // remove a selection criterion
 
   removeSelection(ConditionId(path, runRange, -1, -1));
 }
 
-void Storage::removeSelection(const IdPath& path, Int_t firstRun, Int_t lastRun)
+void Storage::removeSelection(const IdPath &path, Int_t firstRun, Int_t lastRun)
 {
   // remove a selection criterion
 
@@ -179,16 +176,16 @@ void Storage::printSelectionList()
   // prints the list of selection criteria
 
   TIter iter(&mSelections);
-  ConditionId* aSelection;
+  ConditionId *aSelection;
 
   // loop on the list of selection criteria
   int index = 0;
-  while ((aSelection = (ConditionId*)iter.Next())) {
+  while ((aSelection = (ConditionId *) iter.Next())) {
     LOG(INFO) << "index " << index++ << " -> selection: " << aSelection->ToString().Data() << FairLogger::endl;
   }
 }
 
-Condition* Storage::getObject(const ConditionId& query)
+Condition *Storage::getObject(const ConditionId &query)
 {
   // get an  Condition object from the database
 
@@ -209,33 +206,35 @@ Condition* Storage::getObject(const ConditionId& query)
   Bool_t oldStatus = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
 
-  Condition* entry = getCondition(query);
+  Condition *entry = getCondition(query);
 
-  if (oldStatus != kFALSE)
+  if (oldStatus != kFALSE) {
     TH1::AddDirectory(kTRUE);
+  }
 
   // if drain storage is set, drain entry into drain storage
-  if (entry && (Manager::Instance())->isdrainSet())
+  if (entry && (Manager::Instance())->isdrainSet()) {
     Manager::Instance()->drain(entry);
+  }
 
   return entry;
 }
 
-Condition* Storage::getObject(const IdPath& path, Int_t runNumber, Int_t version, Int_t subVersion)
+Condition *Storage::getObject(const IdPath &path, Int_t runNumber, Int_t version, Int_t subVersion)
 {
   // get an  Condition object from the database
 
   return getObject(ConditionId(path, runNumber, runNumber, version, subVersion));
 }
 
-Condition* Storage::getObject(const IdPath& path, const IdRunRange& runRange, Int_t version, Int_t subVersion)
+Condition *Storage::getObject(const IdPath &path, const IdRunRange &runRange, Int_t version, Int_t subVersion)
 {
   // get an  Condition object from the database
 
   return getObject(ConditionId(path, runRange, version, subVersion));
 }
 
-TList* Storage::getAllObjects(const ConditionId& query)
+TList *Storage::getAllObjects(const ConditionId &query)
 {
   // get multiple  Condition objects from the database
 
@@ -253,23 +252,24 @@ TList* Storage::getAllObjects(const ConditionId& query)
   Bool_t oldStatus = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
 
-  TList* result = getAllEntries(query);
+  TList *result = getAllEntries(query);
 
-  if (oldStatus != kFALSE)
+  if (oldStatus != kFALSE) {
     TH1::AddDirectory(kTRUE);
+  }
 
   Int_t nEntries = result->GetEntries();
 
   LOG(INFO) << nEntries << " objects retrieved. Request was: " << query.ToString().Data() << FairLogger::endl;
   for (int i = 0; i < nEntries; i++) {
-    Condition* entry = (Condition*)result->At(i);
+    Condition *entry = (Condition *) result->At(i);
     LOG(INFO) << entry->getId().ToString().Data() << FairLogger::endl;
   }
 
   // if drain storage is set, drain entries into drain storage
   if ((Manager::Instance())->isdrainSet()) {
     for (int i = 0; i < result->GetEntries(); i++) {
-      Condition* entry = (Condition*)result->At(i);
+      Condition *entry = (Condition *) result->At(i);
       Manager::Instance()->drain(entry);
     }
   }
@@ -277,21 +277,21 @@ TList* Storage::getAllObjects(const ConditionId& query)
   return result;
 }
 
-TList* Storage::getAllObjects(const IdPath& path, Int_t runNumber, Int_t version, Int_t subVersion)
+TList *Storage::getAllObjects(const IdPath &path, Int_t runNumber, Int_t version, Int_t subVersion)
 {
   // get multiple  Condition objects from the database
 
   return getAllObjects(ConditionId(path, runNumber, runNumber, version, subVersion));
 }
 
-TList* Storage::getAllObjects(const IdPath& path, const IdRunRange& runRange, Int_t version, Int_t subVersion)
+TList *Storage::getAllObjects(const IdPath &path, const IdRunRange &runRange, Int_t version, Int_t subVersion)
 {
   // get multiple  Condition objects from the database
 
   return getAllObjects(ConditionId(path, runRange, version, subVersion));
 }
 
-ConditionId* Storage::getId(const ConditionId& query)
+ConditionId *Storage::getId(const ConditionId &query)
 {
   // get the ConditionId of the valid object from the database (does not open the file)
 
@@ -308,26 +308,26 @@ ConditionId* Storage::getId(const ConditionId& query)
     return NULL;
   }
 
-  ConditionId* id = getConditionId(query);
+  ConditionId *id = getConditionId(query);
 
   return id;
 }
 
-ConditionId* Storage::getId(const IdPath& path, Int_t runNumber, Int_t version, Int_t subVersion)
+ConditionId *Storage::getId(const IdPath &path, Int_t runNumber, Int_t version, Int_t subVersion)
 {
   // get the ConditionId of the valid object from the database (does not open the file)
 
   return getId(ConditionId(path, runNumber, runNumber, version, subVersion));
 }
 
-ConditionId* Storage::getId(const IdPath& path, const IdRunRange& runRange, Int_t version, Int_t subVersion)
+ConditionId *Storage::getId(const IdPath &path, const IdRunRange &runRange, Int_t version, Int_t subVersion)
 {
   // get the ConditionId of the valid object from the database (does not open the file)
 
   return getId(ConditionId(path, runRange, version, subVersion));
 }
 
-Bool_t Storage::putObject(TObject* object, ConditionId& id, ConditionMetaData* metaData, const char* mirrors)
+Bool_t Storage::putObject(TObject *object, ConditionId &id, ConditionMetaData *metaData, const char *mirrors)
 {
   // store an  Condition object into the database
 
@@ -341,7 +341,7 @@ Bool_t Storage::putObject(TObject* object, ConditionId& id, ConditionMetaData* m
   return putObject(&anCondition, mirrors);
 }
 
-Bool_t Storage::putObject(Condition* entry, const char* mirrors)
+Bool_t Storage::putObject(Condition *entry, const char *mirrors)
 {
   // store an  Condition object into the database
 
@@ -366,13 +366,14 @@ Bool_t Storage::putObject(Condition* entry, const char* mirrors)
   }
 
   TString strMirrors(mirrors);
-  if (!strMirrors.IsNull() && !strMirrors.IsWhitespace())
+  if (!strMirrors.IsNull() && !strMirrors.IsWhitespace()) {
     return putCondition(entry, mirrors);
-  else
+  } else {
     return putCondition(entry);
+  }
 }
 
-void Storage::queryStorages(Int_t run, const char* pathFilter, Int_t version, ConditionMetaData* md)
+void Storage::queryStorages(Int_t run, const char *pathFilter, Int_t version, ConditionMetaData *md)
 {
   // query CDB for files valid for given run, and fill list mValidFileIds
   // Actual query is done in virtual function queryValidFiles()
@@ -398,7 +399,7 @@ void Storage::queryStorages(Int_t run, const char* pathFilter, Int_t version, Co
              << FairLogger::endl;
   IdPath filter(pathFilter);
   for (Int_t i = mValidFileIds.GetEntries() - 1; i >= 0; --i) {
-    ConditionId* rmMe = dynamic_cast<ConditionId*>(mValidFileIds.At(i));
+    ConditionId *rmMe = dynamic_cast<ConditionId *>(mValidFileIds.At(i));
     IdPath rmPath = rmMe->getPathString();
     if (filter.isSupersetOf(rmPath)) {
       LOG(DEBUG) << "Removing id \"" << rmPath.getPathString().Data() << "\" matching: \"" << pathFilter << "\""
@@ -411,8 +412,9 @@ void Storage::queryStorages(Int_t run, const char* pathFilter, Int_t version, Co
     delete mConditionMetaDataFilter;
     mConditionMetaDataFilter = 0;
   }
-  if (md)
-    mConditionMetaDataFilter = dynamic_cast<ConditionMetaData*>(md->Clone());
+  if (md) {
+    mConditionMetaDataFilter = dynamic_cast<ConditionMetaData *>(md->Clone());
+  }
 
   queryValidFiles();
 
@@ -426,22 +428,23 @@ void Storage::printrQueryStorages()
   ConditionId paramId(mPathFilter, mRun, mRun, mVersion);
   LOG(INFO) << "**** queryStorages Parameters **** \n\t\"" << paramId.ToString().Data() << "\"" << FairLogger::endl;
 
-  if (mConditionMetaDataFilter)
+  if (mConditionMetaDataFilter) {
     mConditionMetaDataFilter->printConditionMetaData();
+  }
 
   TString message = "**** ConditionId's of valid objects found *****\n";
   TIter iter(&mValidFileIds);
-  ConditionId* anId = 0;
+  ConditionId *anId = 0;
 
   // loop on the list of selection criteria
-  while ((anId = dynamic_cast<ConditionId*>(iter.Next()))) {
+  while ((anId = dynamic_cast<ConditionId *>(iter.Next()))) {
     message += Form("\t%s\n", anId->ToString().Data());
   }
   message += Form("\n\tTotal: %d objects found\n", mValidFileIds.GetEntriesFast());
   LOG(INFO) << message.Data() << FairLogger::endl;
 }
 
-void Storage::setMirrorSEs(const char* mirrors)
+void Storage::setMirrorSEs(const char *mirrors)
 {
   // if the current storage is not of "alien" type, just issue a warning
   //  GridStorage implements its own setMirrorSEs method, classes for other storage types do not
@@ -456,7 +459,7 @@ void Storage::setMirrorSEs(const char* mirrors)
   return;
 }
 
-const char* Storage::getMirrorSEs() const
+const char *Storage::getMirrorSEs() const
 {
   // if the current storage is not of "alien" type, just issue a warning
   //  GridStorage implements its own getMirrorSEs method, classes for other storage types do not
@@ -471,11 +474,11 @@ const char* Storage::getMirrorSEs() const
   return "";
 }
 
-void Storage::loadTreeFromFile(Condition* entry) const
+void Storage::loadTreeFromFile(Condition *entry) const
 {
   // Checks whether entry contains a TTree and in case loads it into memory
 
-  TObject* obj = (TObject*)entry->getObject();
+  TObject *obj = (TObject *) entry->getObject();
   if (!obj) {
     LOG(ERROR) << "Cannot retrieve the object:" << FairLogger::endl;
     entry->printConditionMetaData();
@@ -486,10 +489,11 @@ void Storage::loadTreeFromFile(Condition* entry) const
 
     LOG(WARNING) << "Condition contains a TTree! Loading baskets..." << FairLogger::endl;
 
-    TTree* tree = dynamic_cast<TTree*>(obj);
+    TTree *tree = dynamic_cast<TTree *>(obj);
 
-    if (!tree)
+    if (!tree) {
       return;
+    }
 
     tree->LoadBaskets();
     tree->SetDirectory(0);
@@ -497,10 +501,11 @@ void Storage::loadTreeFromFile(Condition* entry) const
 
     LOG(WARNING) << "Condition contains a TNtuple! Loading baskets..." << FairLogger::endl;
 
-    TNtuple* ntu = dynamic_cast<TNtuple*>(obj);
+    TNtuple *ntu = dynamic_cast<TNtuple *>(obj);
 
-    if (!ntu)
+    if (!ntu) {
       return;
+    }
 
     ntu->LoadBaskets();
     ntu->SetDirectory(0);

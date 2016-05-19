@@ -1,8 +1,8 @@
 /********************************************************************************
  *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
  *                                                                              *
- *              This software is distributed under the terms of the             * 
- *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *  
+ *              This software is distributed under the terms of the             *
+ *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
 /**
@@ -19,11 +19,12 @@
 #include "FairMQProgOptions.h"
 #include "CCDB/ConditionsMQServer.h"
 #include "TApplication.h"
+
 using namespace std;
 using namespace boost::program_options;
 using namespace AliceO2::CDB;
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     ConditionsMQServer server;
     server.CatchSignals();
