@@ -79,7 +79,7 @@ function(GET_BUCKET_CONTENT BUCKET_NAME RESULT) # DEPTH
   set(dependencies ${Bucket_map_${BUCKET_NAME}})
   set(LOCAL_RESULT "")
   foreach (dependency ${dependencies})
-    message("${INDENTATION}- ${dependency} : ")
+    message("${INDENTATION}- ${dependency}")
     # if it is a bucket we call recursively
     if (DEFINED Bucket_map_${dependency})
       MATH(EXPR new_depth "${DEPTH}+1")
@@ -88,7 +88,7 @@ function(GET_BUCKET_CONTENT BUCKET_NAME RESULT) # DEPTH
       # else we add the dependency to the results
       set(LOCAL_RESULT "${LOCAL_RESULT};${dependency}")
     endif ()
-    message("${INDENTATION}  Now LOCAL_RESULT is ${LOCAL_RESULT}")
+#    message("${INDENTATION}  Now LOCAL_RESULT is ${LOCAL_RESULT}")
   endforeach ()
 
   set(${RESULT} ${LOCAL_RESULT} PARENT_SCOPE)
@@ -131,7 +131,7 @@ function(O2_TARGET_LINK_BUCKET)
 
   # for each dependency in the bucket invoke target_link_library
 #  set(DEPENDENCIES ${Bucket_map_${PARSED_ARGS_BUCKET}})
-  message(STATUS "   invoke target_link_libraries for target ${PARSED_ARGS_TARGET} : ${RESULT} ${PARSED_ARGS_MODULE_LIBRARY_NAME}")
+#  message(STATUS "   invoke target_link_libraries for target ${PARSED_ARGS_TARGET} : ${RESULT} ${PARSED_ARGS_MODULE_LIBRARY_NAME}")
   target_link_libraries(${PARSED_ARGS_TARGET} ${RESULT} ${PARSED_ARGS_MODULE_LIBRARY_NAME})
 endfunction()
 
@@ -204,10 +204,6 @@ macro(O2_GENERATE_LIBRARY)
       set(Int_DEPENDENCIES ${Int_DEPENDENCIES} ${_lib})
     endif ()
   endforeach ()
-
-  message(ARGS_SOURCE : ${ARGS_SOURCES})
-  message(ARGS_NO_DICT_SOURCES : ${ARGS_NO_DICT_SOURCES})
-  message(ARGS_LINKDEF : ${ARGS_LINKDEF})
 
   ############### build the library #####################
   if (${CMAKE_GENERATOR} MATCHES Xcode)
@@ -311,9 +307,7 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   set(Int_DICTIONARY ${DICTIONARY})
   set(Int_LIB ${LIBRARY_NAME})
 
-  #  Message("DEFINITIONS: ${DEFINITIONS}")
   set(Int_INC ${INCLUDE_DIRECTORIES} ${SYSTEM_INCLUDE_DIRECTORIES})
-  message(Int_INC : ${Int_INC})
   set(Int_HDRS ${HDRS})
   set(Int_DEF ${DEFINITIONS})
 
@@ -325,7 +319,6 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   # Format neccesary arguments
   # Add -I and -D to include directories and definitions
   O2_FORMAT(Int_INC "${Int_INC}" "-I" "")
-  message(Int_INC 2 : ${Int_INC})
   O2_FORMAT(Int_DEF "${Int_DEF}" "-D" "")
 
   #---call rootcint / cling --------------------------------
@@ -339,7 +332,6 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
       -rml ${Int_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
   set_source_files_properties(${OUTPUT_FILES} PROPERTIES GENERATED TRUE)
   if (CMAKE_SYSTEM_NAME MATCHES Linux)
-    message(Int_LINKDEF : ${Int_LINKDEF})
     add_custom_command(OUTPUT ${OUTPUT_FILES}
         COMMAND LD_LIBRARY_PATH=${ROOT_LIBRARY_DIR}:${_intel_lib_dirs}:$ENV{LD_LIBRARY_PATH} ROOTSYS=${ROOTSYS} ${ROOT_CINT_EXECUTABLE} -f ${Int_DICTIONARY} ${EXTRA_DICT_PARAMETERS} -c ${Int_DEF} ${Int_INC} ${Int_HDRS} ${Int_LINKDEF}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${Int_PCMFILE} ${LIBRARY_OUTPUT_PATH}/${Int_PCMFILE}
