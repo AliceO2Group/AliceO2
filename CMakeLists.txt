@@ -55,9 +55,6 @@ ELSE (NOT ALICEO2_MODULAR_BUILD)
   find_package(Boost REQUIRED)
 ENDIF (NOT ALICEO2_MODULAR_BUILD)
 
-find_package(AliRoot)
-find_package(FairRoot)
-
 # Load some basic macros which are needed later on
 include(O2Utils)
 include(O2Dependencies)
