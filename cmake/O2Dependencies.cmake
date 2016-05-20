@@ -23,6 +23,10 @@ find_package(DDS)
 
 find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework REQUIRED)
 
+find_package(AliRoot)
+find_package(FairRoot REQUIRED)
+find_package(FairMQ REQUIRED)
+
 include_directories(SYSTEM
     ${BASE_INCLUDE_DIRECTORIES}
     ${Boost_INCLUDE_DIR}
