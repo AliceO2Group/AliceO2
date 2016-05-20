@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     config.AddToCmdLineOptions(serverOptions);
       
     config.ParseAll(argc, argv);
-      
+
     string file = config.GetValue<string>("config-json-file");
     string id = config.GetValue<string>("id");
       
