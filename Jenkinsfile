@@ -22,7 +22,7 @@ node {
   def test_script = '''
       rm -fr alibuild alidist
       git clone https://github.com/alisw/alibuild
-      git clone -b IB/v5-08/next https://github.com/alisw/alidist
+      git clone -b IB/v5-08/o2 https://github.com/alisw/alidist
       x=`date +"%s"`
       WORKAREA=/build/workarea/pr/`echo $(( $x / 3600 / 24 / 7))`
 
