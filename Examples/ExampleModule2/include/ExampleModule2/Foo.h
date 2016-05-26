@@ -7,6 +7,7 @@
 #define ALICE_O2_EXAMPLEMODULE2_FOO_H
 
 #include "Rtypes.h"   // for ClassDef
+#include "ExampleModule1/Foo.h"
 
 /// @brief    Here you put a short description of the namespace
 /// Extended documentation for this namespace
