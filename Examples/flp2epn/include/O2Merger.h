@@ -10,11 +10,11 @@
 
 #include "FairMQDevice.h"
 
-
-class O2Merger: public FairMQDevice
+class O2Merger : public FairMQDevice
 {
   public:
     O2Merger();
+
     virtual ~O2Merger();
 
   protected:

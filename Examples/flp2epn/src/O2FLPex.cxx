@@ -17,13 +17,14 @@
 
 using namespace std;
 
-struct Content {
-  int id;
-  double a;
-  double b;
-  int x;
-  int y;
-  int z;
+struct Content
+{
+    int id;
+    double a;
+    double b;
+    int x;
+    int y;
+    int z;
 };
 
 O2FLPex::O2FLPex() :
@@ -39,7 +40,7 @@ void O2FLPex::Run()
 {
   srand(time(NULL));
 
-  FairMQChannel& outChannel = fChannels.at("data-out").at(0);
+  FairMQChannel &outChannel = fChannels.at("data-out").at(0);
 
   LOG(DEBUG) << "Message size: " << fEventSize * sizeof(Content) << " bytes.";
 
@@ -62,7 +63,7 @@ void O2FLPex::Run()
   }
 }
 
-void O2FLPex::SetProperty(const int key, const string& value)
+void O2FLPex::SetProperty(const int key, const string &value)
 {
   switch (key) {
     default:
@@ -71,7 +72,7 @@ void O2FLPex::SetProperty(const int key, const string& value)
   }
 }
 
-string O2FLPex::GetProperty(const int key, const string& default_/*= ""*/)
+string O2FLPex::GetProperty(const int key, const string &default_/*= ""*/)
 {
   switch (key) {
     default:

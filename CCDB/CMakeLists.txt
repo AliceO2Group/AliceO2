@@ -36,6 +36,7 @@ Set(NO_DICT_SRCS
 set(LIBRARY_NAME CCDB)
 set(LINKDEF src/CCDBLinkDef.h)
 set(BUCKET_NAME CCDB_Bucket)
+
 O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
@@ -48,19 +49,19 @@ Set(Exe_Source
   src/runConditionsClient.cxx
 )
 
-list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
-
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
 set(LIBRARY_NAME CCDB)
 set(BUCKET_NAME CCDB_Bucket)
 
-foreach (_file RANGE 0 ${_length})
+list(LENGTH Exe_Names _length)
+math(EXPR _length ${_length}-1)
+
+foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lists and not 1
   list(GET Exe_Names ${_file} _name)
   list(GET Exe_Source ${_file} _src)
-  Set(EXE_NAME ${_name})
-  Set(SRCS ${_src})
-  Set(DEPENDENCIES CCDB)
+#  Set(EXE_NAME ${_name})
+#  Set(SRCS ${_src})
+#  Set(DEPENDENCIES CCDB)
   O2_GENERATE_EXECUTABLE(
       EXE_NAME ${_name}
       SOURCES ${_src}

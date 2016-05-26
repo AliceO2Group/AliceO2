@@ -6,17 +6,17 @@
  */
 
 #include <boost/thread.hpp>
-#include <boost/bind.hpp>
 
 #include "FairMQLogger.h"
 #include "O2EPNex.h"
 
-struct Content {
-  double a;
-  double b;
-  int x;
-  int y;
-  int z;
+struct Content
+{
+    double a;
+    double b;
+    int x;
+    int y;
+    int z;
 };
 
 O2EPNex::O2EPNex()

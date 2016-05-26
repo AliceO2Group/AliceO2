@@ -6,10 +6,8 @@
  */
 
 #include <boost/thread.hpp>
-#include <boost/bind.hpp>
 
 #include "O2EpnMerger.h"
-#include "FairMQLogger.h"
 
 O2EpnMerger::O2EpnMerger()
 {

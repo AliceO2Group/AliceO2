@@ -21,8 +21,8 @@ O2Proxy::~O2Proxy()
 
 void O2Proxy::Run()
 {
-  FairMQChannel& inChannel = fChannels.at("data-in").at(0);
-  FairMQChannel& outChannel = fChannels.at("data-out").at(0);
+  FairMQChannel &inChannel = fChannels.at("data-in").at(0);
+  FairMQChannel &outChannel = fChannels.at("data-out").at(0);
 
   while (CheckCurrentState(RUNNING)) {
     // int i = 0;
@@ -37,11 +37,12 @@ void O2Proxy::Run()
       more = inChannel.ExpectsAnotherPart();
       // LOG(INFO) << "------ Get Msg Part "<< " more = " << more << " counter " << i++ ;
       if (more) {
-          outChannel.SendPart(part);
+        outChannel.SendPart(part);
       } else {
-          outChannel.Send(part);
+        outChannel.Send(part);
       }
-    } while (more);
+    }
+    while (more);
     // i = 0;
   }
 }
