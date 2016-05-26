@@ -2,7 +2,7 @@
 /// \brief Implementation of the MagWrapCheb class
 /// \author ruben.shahoyan@cern.ch 20/03/2007
 
-#include "MagneticWrapperChebyshev.h"
+#include "Field/MagneticWrapperChebyshev.h"
 #include <TArrayF.h>     // for TArrayF
 #include <TArrayI.h>     // for TArrayI
 #include <TSystem.h>     // for TSystem, gSystem
@@ -88,7 +88,7 @@ MagneticWrapperChebyshev::MagneticWrapperChebyshev()
 {
 }
 
-MagneticWrapperChebyshev::MagneticWrapperChebyshev(const MagneticWrapperChebyshev& src)
+MagneticWrapperChebyshev::MagneticWrapperChebyshev(const MagneticWrapperChebyshev &src)
   : TNamed(src),
     mNumberOfParameterizationSolenoid(0),
     mNumberOfDistinctZSegmentsSolenoid(0),
@@ -158,7 +158,7 @@ MagneticWrapperChebyshev::MagneticWrapperChebyshev(const MagneticWrapperChebyshe
   copyFrom(src);
 }
 
-void MagneticWrapperChebyshev::copyFrom(const MagneticWrapperChebyshev& src)
+void MagneticWrapperChebyshev::copyFrom(const MagneticWrapperChebyshev &src)
 {
   Clear();
   SetName(src.GetName());
@@ -284,7 +284,7 @@ void MagneticWrapperChebyshev::copyFrom(const MagneticWrapperChebyshev& src)
   }
 }
 
-MagneticWrapperChebyshev& MagneticWrapperChebyshev::operator=(const MagneticWrapperChebyshev& rhs)
+MagneticWrapperChebyshev &MagneticWrapperChebyshev::operator=(const MagneticWrapperChebyshev &rhs)
 {
   if (this != &rhs) {
     Clear();
@@ -293,7 +293,7 @@ MagneticWrapperChebyshev& MagneticWrapperChebyshev::operator=(const MagneticWrap
   return *this;
 }
 
-void MagneticWrapperChebyshev::Clear(const Option_t*)
+void MagneticWrapperChebyshev::Clear(const Option_t *)
 {
   if (mNumberOfParameterizationSolenoid) {
     mParameterizationSolenoid->SetOwner(kTRUE);
@@ -318,7 +318,7 @@ void MagneticWrapperChebyshev::Clear(const Option_t*)
   }
 
   mNumberOfParameterizationSolenoid = mNumberOfDistinctZSegmentsSolenoid = mNumberOfDistinctPSegmentsSolenoid =
-    mNumberOfDistinctRSegmentsSolenoid = 0;
+  mNumberOfDistinctRSegmentsSolenoid = 0;
   mMinZSolenoid = 1e6;
   mMaxZSolenoid = -1e6;
   mMaxRadiusSolenoid = 0;
@@ -346,7 +346,7 @@ void MagneticWrapperChebyshev::Clear(const Option_t*)
   }
 
   mNumberOfParameterizationTPC = mNumberOfDistinctZSegmentsTPC = mNumberOfDistinctPSegmentsTPC =
-    mNumberOfDistinctRSegmentsTPC = 0;
+  mNumberOfDistinctRSegmentsTPC = 0;
   mMinZTPC = 1e6;
   mMaxZTPC = -1e6;
   mMaxRadiusTPC = 0;
@@ -374,7 +374,7 @@ void MagneticWrapperChebyshev::Clear(const Option_t*)
   }
 
   mNumberOfParameterizationTPCRat = mNumberOfDistinctZSegmentsTPCRat = mNumberOfDistinctPSegmentsTPCRat =
-    mNumberOfDistinctRSegmentsTPCRat = 0;
+  mNumberOfDistinctRSegmentsTPCRat = 0;
   mMinZTPCRat = 1e6;
   mMaxZTPCRat = -1e6;
   mMaxRadiusTPCRat = 0;
@@ -402,12 +402,12 @@ void MagneticWrapperChebyshev::Clear(const Option_t*)
   }
 
   mNumberOfParameterizationDipole = mNumberOfDistinctZSegmentsDipole = mNumberOfDistinctYSegmentsDipole =
-    mNumberOfDistinctXSegmentsDipole = 0;
+  mNumberOfDistinctXSegmentsDipole = 0;
   mMinDipoleZ = 1e6;
   mMaxDipoleZ = -1e6;
 }
 
-void MagneticWrapperChebyshev::Field(const Double_t* xyz, Double_t* b) const
+void MagneticWrapperChebyshev::Field(const Double_t *xyz, Double_t *b) const
 {
   Double_t rphiz[3];
 
@@ -427,7 +427,7 @@ void MagneticWrapperChebyshev::Field(const Double_t* xyz, Double_t* b) const
   if (iddip < 0) {
     return;
   }
-  Chebyshev3D* par = getParameterDipole(iddip);
+  Chebyshev3D *par = getParameterDipole(iddip);
 #ifndef _BRING_TO_BOUNDARY_
   if (!par->isInside(xyz)) {
     return;
@@ -436,7 +436,7 @@ void MagneticWrapperChebyshev::Field(const Double_t* xyz, Double_t* b) const
   par->Eval(xyz, b);
 }
 
-Double_t MagneticWrapperChebyshev::getBz(const Double_t* xyz) const
+Double_t MagneticWrapperChebyshev::getBz(const Double_t *xyz) const
 {
   Double_t rphiz[3];
 
@@ -449,7 +449,7 @@ Double_t MagneticWrapperChebyshev::getBz(const Double_t* xyz) const
   if (iddip < 0) {
     return 0.;
   }
-  Chebyshev3D* par = getParameterDipole(iddip);
+  Chebyshev3D *par = getParameterDipole(iddip);
 #ifndef _BRING_TO_BOUNDARY_
   if (!par->isInside(xyz)) {
     return 0.;
@@ -458,7 +458,7 @@ Double_t MagneticWrapperChebyshev::getBz(const Double_t* xyz) const
   return par->Eval(xyz, 2);
 }
 
-void MagneticWrapperChebyshev::Print(Option_t*) const
+void MagneticWrapperChebyshev::Print(Option_t *) const
 {
   printf("Alice magnetic field parameterized by Chebyshev polynomials\n");
   printf("Segmentation for Solenoid (%+.2f<Z<%+.2f cm | R<%.2f cm)\n", mMinZSolenoid, mMaxZSolenoid,
@@ -499,13 +499,13 @@ void MagneticWrapperChebyshev::Print(Option_t*) const
   }
 }
 
-Int_t MagneticWrapperChebyshev::findDipoleSegment(const Double_t* xyz) const
+Int_t MagneticWrapperChebyshev::findDipoleSegment(const Double_t *xyz) const
 {
   if (!mNumberOfParameterizationDipole) {
     return -1;
   }
   int xid, yid, zid = TMath::BinarySearch(mNumberOfDistinctZSegmentsDipole, mCoordinatesSegmentsZDipole,
-                                          (Float_t)xyz[2]); // find zsegment
+                                          (Float_t) xyz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
   while (1) {
@@ -545,13 +545,13 @@ Int_t MagneticWrapperChebyshev::findDipoleSegment(const Double_t* xyz) const
   return mSegmentIdDipole[xid];
 }
 
-Int_t MagneticWrapperChebyshev::findSolenoidSegment(const Double_t* rpz) const
+Int_t MagneticWrapperChebyshev::findSolenoidSegment(const Double_t *rpz) const
 {
   if (!mNumberOfParameterizationSolenoid) {
     return -1;
   }
   int rid, pid, zid = TMath::BinarySearch(mNumberOfDistinctZSegmentsSolenoid, mCoordinatesSegmentsZSolenoid,
-                                          (Float_t)rpz[2]); // find zsegment
+                                          (Float_t) rpz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
   while (1) {
@@ -589,13 +589,13 @@ Int_t MagneticWrapperChebyshev::findSolenoidSegment(const Double_t* rpz) const
   return mSegmentIdSolenoid[rid];
 }
 
-Int_t MagneticWrapperChebyshev::findTPCSegment(const Double_t* rpz) const
+Int_t MagneticWrapperChebyshev::findTPCSegment(const Double_t *rpz) const
 {
   if (!mNumberOfParameterizationTPC) {
     return -1;
   }
   int rid, pid, zid = TMath::BinarySearch(mNumberOfDistinctZSegmentsTPC, mCoordinatesSegmentsZTPC,
-                                          (Float_t)rpz[2]); // find zsegment
+                                          (Float_t) rpz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
   while (1) {
@@ -634,13 +634,13 @@ Int_t MagneticWrapperChebyshev::findTPCSegment(const Double_t* rpz) const
   return mSegmentIdTPC[rid];
 }
 
-Int_t MagneticWrapperChebyshev::findTPCRatSegment(const Double_t* rpz) const
+Int_t MagneticWrapperChebyshev::findTPCRatSegment(const Double_t *rpz) const
 {
   if (!mNumberOfParameterizationTPCRat) {
     return -1;
   }
   int rid, pid, zid = TMath::BinarySearch(mNumberOfDistinctZSegmentsTPCRat, mCoordinatesSegmentsZTPCRat,
-                                          (Float_t)rpz[2]); // find zsegment
+                                          (Float_t) rpz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
   while (1) {
@@ -679,7 +679,7 @@ Int_t MagneticWrapperChebyshev::findTPCRatSegment(const Double_t* rpz) const
   return mSegmentIdTPCRat[rid];
 }
 
-void MagneticWrapperChebyshev::getTPCIntegral(const Double_t* xyz, Double_t* b) const
+void MagneticWrapperChebyshev::getTPCIntegral(const Double_t *xyz, Double_t *b) const
 {
   static Double_t rphiz[3];
 
@@ -701,7 +701,7 @@ void MagneticWrapperChebyshev::getTPCIntegral(const Double_t* xyz, Double_t* b) 
   cylindricalToCartesianCylB(rphiz, b, b);
 }
 
-void MagneticWrapperChebyshev::getTPCRatIntegral(const Double_t* xyz, Double_t* b) const
+void MagneticWrapperChebyshev::getTPCRatIntegral(const Double_t *xyz, Double_t *b) const
 {
   static Double_t rphiz[3];
 
@@ -724,13 +724,13 @@ void MagneticWrapperChebyshev::getTPCRatIntegral(const Double_t* xyz, Double_t* 
   cylindricalToCartesianCylB(rphiz, b, b);
 }
 
-void MagneticWrapperChebyshev::fieldCylindricalSolenoid(const Double_t* rphiz, Double_t* b) const
+void MagneticWrapperChebyshev::fieldCylindricalSolenoid(const Double_t *rphiz, Double_t *b) const
 {
   int id = findSolenoidSegment(rphiz);
   if (id < 0) {
     return;
   }
-  Chebyshev3D* par = getParameterSolenoid(id);
+  Chebyshev3D *par = getParameterSolenoid(id);
 #ifndef _BRING_TO_BOUNDARY_ // exact matching to fitted volume is requested
   if (!par->isInside(rphiz)) {
     return;
@@ -740,13 +740,13 @@ void MagneticWrapperChebyshev::fieldCylindricalSolenoid(const Double_t* rphiz, D
   return;
 }
 
-Double_t MagneticWrapperChebyshev::fieldCylindricalSolenoidBz(const Double_t* rphiz) const
+Double_t MagneticWrapperChebyshev::fieldCylindricalSolenoidBz(const Double_t *rphiz) const
 {
   int id = findSolenoidSegment(rphiz);
   if (id < 0) {
     return 0.;
   }
-  Chebyshev3D* par = getParameterSolenoid(id);
+  Chebyshev3D *par = getParameterSolenoid(id);
 #ifndef _BRING_TO_BOUNDARY_
   return par->isInside(rphiz) ? par->Eval(rphiz, 2) : 0;
 #else
@@ -754,7 +754,7 @@ Double_t MagneticWrapperChebyshev::fieldCylindricalSolenoidBz(const Double_t* rp
 #endif
 }
 
-void MagneticWrapperChebyshev::getTPCIntegralCylindrical(const Double_t* rphiz, Double_t* b) const
+void MagneticWrapperChebyshev::getTPCIntegralCylindrical(const Double_t *rphiz, Double_t *b) const
 {
   int id = findTPCSegment(rphiz);
   if (id < 0) {
@@ -766,7 +766,7 @@ void MagneticWrapperChebyshev::getTPCIntegralCylindrical(const Double_t* rphiz, 
     b[0] = b[1] = b[2] = 0;
     return;
   }
-  Chebyshev3D* par = getParameterTPCIntegral(id);
+  Chebyshev3D *par = getParameterTPCIntegral(id);
   if (par->isInside(rphiz)) {
     par->Eval(rphiz, b);
     return;
@@ -775,7 +775,7 @@ void MagneticWrapperChebyshev::getTPCIntegralCylindrical(const Double_t* rphiz, 
   return;
 }
 
-void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t* rphiz, Double_t* b) const
+void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t *rphiz, Double_t *b) const
 {
   int id = findTPCRatSegment(rphiz);
   if (id < 0) {
@@ -787,7 +787,7 @@ void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t* rphi
     b[0] = b[1] = b[2] = 0;
     return;
   }
-  Chebyshev3D* par = getParameterTPCRatIntegral(id);
+  Chebyshev3D *par = getParameterTPCRatIntegral(id);
   if (par->isInside(rphiz)) {
     par->Eval(rphiz, b);
     return;
