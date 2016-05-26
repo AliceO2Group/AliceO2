@@ -2,23 +2,19 @@
 /// \brief Implementation of the MagF class
 /// \author ruben.shahoyan@cern.ch
 
-#include "MagneticField.h"
-#include "MagneticWrapperChebyshev.h"  // for MagneticWrapperChebyshev
+#include "Field/MagneticField.h"
+#include "Field/MagneticWrapperChebyshev.h"  // for MagneticWrapperChebyshev
 #include <TFile.h>                     // for TFile
 #include <TPRegexp.h>                  // for TPRegexp
 #include <TSystem.h>                   // for TSystem, gSystem
-#include <stdio.h>                     // for snprintf
 #include "FairLogger.h"                // for FairLogger, MESSAGE_ORIGIN
-#include "TMathBase.h"                 // for Abs, Sign
-#include "TObject.h"                   // for TObject
-#include "TString.h"                   // for TString
-#include "TVirtualMagField.h"          // for TVirtualMagField
 
 using namespace AliceO2::Field;
 
 ClassImp(MagneticField)
 
-const Double_t MagneticField::sSolenoidToDipoleZ = -700.;
+  const
+Double_t MagneticField::sSolenoidToDipoleZ = -700.;
 
 /// Explanation for polarity conventions: these are the mapping between the
 /// current signs and main field components in L3 (Bz) and Dipole (Bx) (in Alice frame)
@@ -77,8 +73,9 @@ MagneticField::MagneticField()
 {
 }
 
-MagneticField::MagneticField(const char* name, const char* title, Double_t factorSol, Double_t factorDip,
-                             BMap_t maptype, BeamType_t bt, Double_t be, Int_t integ, Double_t fmax, const char* path)
+MagneticField::MagneticField(const char *name, const char *title, Double_t factorSol, Double_t factorDip,
+                             BMap_t maptype, BeamType_t bt, Double_t be, Int_t integ, Double_t fmax,
+                             const std::string path)
   : TVirtualMagField(name),
     mMeasuredMap(0),
     mMapType(maptype),
@@ -121,7 +118,7 @@ MagneticField::MagneticField(const char* name, const char* title, Double_t facto
     FairLogger::GetLogger()->Info(MESSAGE_ORIGIN, "Maximim possible beam energy for requested beam is assumed");
   }
 
-  const char* parname = 0;
+  const char *parname = 0;
 
   if (mMapType == k2kG) {
     parname = mDipoleOnOffFlag ? "Sol12_Dip0_Hole" : "Sol12_Dip6_Hole";
@@ -133,19 +130,19 @@ MagneticField::MagneticField(const char* name, const char* title, Double_t facto
     mLogger->Fatal(MESSAGE_ORIGIN, "Unknown field identifier %d is requested\n", mMapType);
   }
 
-  setDataFileName(path);
+  setDataFileName(path.c_str());
   setParameterName(parname);
 
   loadParameterization();
   initializeMachineField(mBeamType, mBeamEnergy);
-  double xyz[3] = { 0., 0., 0. };
+  double xyz[3] = {0., 0., 0.};
   mSolenoid = getBz(xyz);
   setFactorSolenoid(factorSol);
   setFactorDipole(factorDip);
   Print("a");
 }
 
-MagneticField::MagneticField(const MagneticField& src)
+MagneticField::MagneticField(const MagneticField &src)
   : TVirtualMagField(src),
     mMeasuredMap(0),
     mMapType(src.mMapType),
@@ -182,13 +179,13 @@ Bool_t MagneticField::loadParameterization()
     mLogger->Fatal(MESSAGE_ORIGIN, "Field data %s are already loaded from %s\n", getParameterName(), getDataFileName());
   }
 
-  char* fname = gSystem->ExpandPathName(getDataFileName());
-  TFile* file = TFile::Open(fname);
+  char *fname = gSystem->ExpandPathName(getDataFileName());
+  TFile *file = TFile::Open(fname);
   if (!file) {
     mLogger->Fatal(MESSAGE_ORIGIN, "Failed to open magnetic field data file %s\n", fname);
   }
 
-  mMeasuredMap = dynamic_cast<MagneticWrapperChebyshev*>(file->Get(getParameterName()));
+  mMeasuredMap = dynamic_cast<MagneticWrapperChebyshev *>(file->Get(getParameterName()));
   if (!mMeasuredMap) {
     mLogger->Fatal(MESSAGE_ORIGIN, "Did not find field %s in %s\n", getParameterName(), fname);
   }
@@ -197,7 +194,7 @@ Bool_t MagneticField::loadParameterization()
   return kTRUE;
 }
 
-void MagneticField::Field(const Double_t* xyz, Double_t* b)
+void MagneticField::Field(const Double_t *xyz, Double_t *b)
 {
   //  b[0]=b[1]=b[2]=0.0;
   if (mMeasuredMap && xyz[2] > mMeasuredMap->getMinZ() && xyz[2] < mMeasuredMap->getMaxZ()) {
@@ -216,7 +213,7 @@ void MagneticField::Field(const Double_t* xyz, Double_t* b)
   }
 }
 
-Double_t MagneticField::getBz(const Double_t* xyz) const
+Double_t MagneticField::getBz(const Double_t *xyz) const
 {
   if (mMeasuredMap && xyz[2] > mMeasuredMap->getMinZ() && xyz[2] < mMeasuredMap->getMaxZ()) {
     double bz = mMeasuredMap->getBz(xyz);
@@ -227,7 +224,7 @@ Double_t MagneticField::getBz(const Double_t* xyz) const
   }
 }
 
-MagneticField& MagneticField::operator=(const MagneticField& src)
+MagneticField &MagneticField::operator=(const MagneticField &src)
 {
   if (this != &src) {
     if (src.mMeasuredMap) {
@@ -260,8 +257,9 @@ void MagneticField::initializeMachineField(BeamType_t btype, Double_t benergy)
 
   double rigScale = benergy / 7000.; // scale according to ratio of E/Enominal
   // for ions assume PbPb (with energy provided per nucleon) and account for A/Z
-  if (btype == kBeamTypeAA /* || btype==kBeamTypepA || btype==kBeamTypeAp */)
+  if (btype == kBeamTypeAA /* || btype==kBeamTypepA || btype==kBeamTypeAp */) {
     rigScale *= 208. / 82.;
+  }
   // Attention: in p-Pb the energy recorded in the GRP is the PROTON energy, no rigidity
   // rescaling is needed
 
@@ -275,7 +273,7 @@ void MagneticField::initializeMachineField(BeamType_t btype, Double_t benergy)
   mCompensatorField2A = 11.7905;
 }
 
-void MagneticField::MachineField(const Double_t* x, Double_t* b) const
+void MagneticField::MachineField(const Double_t *x, Double_t *b) const
 {
   // ---- This is the ZDC part
   // Compansators for Alice Muon Arm Dipole
@@ -321,7 +319,7 @@ void MagneticField::MachineField(const Double_t* x, Double_t* b) const
     }
   }
 
-  // SIDE A
+    // SIDE A
   else {
     if (TMath::Abs(x[2] - kBComp1CZ) < kBComp1hDZ && rad2 < kBComp1SqR) {
       // Compensator magnet at z = 1075 m
@@ -353,7 +351,7 @@ void MagneticField::MachineField(const Double_t* x, Double_t* b) const
   }
 }
 
-void MagneticField::getTPCIntegral(const Double_t* xyz, Double_t* b) const
+void MagneticField::getTPCIntegral(const Double_t *xyz, Double_t *b) const
 {
   b[0] = b[1] = b[2] = 0.0;
   if (mMeasuredMap) {
@@ -364,7 +362,7 @@ void MagneticField::getTPCIntegral(const Double_t* xyz, Double_t* b) const
   }
 }
 
-void MagneticField::getTPCRatIntegral(const Double_t* xyz, Double_t* b) const
+void MagneticField::getTPCRatIntegral(const Double_t *xyz, Double_t *b) const
 {
   b[0] = b[1] = b[2] = 0.0;
   if (mMeasuredMap) {
@@ -373,7 +371,7 @@ void MagneticField::getTPCRatIntegral(const Double_t* xyz, Double_t* b) const
   }
 }
 
-void MagneticField::getTPCIntegralCylindrical(const Double_t* rphiz, Double_t* b) const
+void MagneticField::getTPCIntegralCylindrical(const Double_t *rphiz, Double_t *b) const
 {
   b[0] = b[1] = b[2] = 0.0;
   if (mMeasuredMap) {
@@ -384,7 +382,7 @@ void MagneticField::getTPCIntegralCylindrical(const Double_t* rphiz, Double_t* b
   }
 }
 
-void MagneticField::getTPCRatIntegralCylindrical(const Double_t* rphiz, Double_t* b) const
+void MagneticField::getTPCRatIntegralCylindrical(const Double_t *rphiz, Double_t *b) const
 {
   b[0] = b[1] = b[2] = 0.0;
   if (mMeasuredMap) {
@@ -447,15 +445,15 @@ Double_t MagneticField::getFactorDipole() const
   }
 }
 
-MagneticField* MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t convention, Bool_t uniform,
-                                             Float_t beamenergy, const Char_t* beamtype, const Char_t* path)
+MagneticField *MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t convention, Bool_t uniform,
+                                             Float_t beamenergy, const Char_t *beamtype, const std::string path)
 {
-  const Float_t l3NominalCurrent1 = 30000.; // (A)
-  const Float_t l3NominalCurrent2 = 12000.; // (A)
-  const Float_t diNominalCurrent = 6000.;   // (A)
+  const Float_t l3NominalCurrent1 = 30000.f; // (A)
+  const Float_t l3NominalCurrent2 = 12000.f; // (A)
+  const Float_t diNominalCurrent = 6000.f;   // (A)
 
   const Float_t tolerance = 0.03; // relative current tolerance
-  const Float_t zero = 77.;       // "zero" current (A)
+  const Float_t zero = 77.f;       // "zero" current (A)
 
   BMap_t map = k5kG;
   double sclL3, sclDip;
@@ -528,8 +526,8 @@ MagneticField* MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
     FairLogger::GetLogger()->Info(MESSAGE_ORIGIN, "Assume no LHC magnet field for the beam type %s,", beamtype);
   }
   char ttl[80];
-  snprintf(ttl, 79, "L3: %+5d Dip: %+4d kA; %s | Polarities in %s convention", (int)TMath::Sign(l3Cur, float(sclL3)),
-           (int)TMath::Sign(diCur, float(sclDip)), uniform ? " Constant" : "",
+  snprintf(ttl, 79, "L3: %+5d Dip: %+4d kA; %s | Polarities in %s convention", (int) TMath::Sign(l3Cur, float(sclL3)),
+           (int) TMath::Sign(diCur, float(sclDip)), uniform ? " Constant" : "",
            convention == kConvLHC ? "LHC" : "DCS2008");
   // LHC and DCS08 conventions have opposite dipole polarities
   if (getPolarityConvention() != convention) {
@@ -539,13 +537,13 @@ MagneticField* MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
   return new MagneticField("MagneticFieldMap", ttl, sclL3, sclDip, map, btype, beamenergy, 2, 10., path);
 }
 
-const char* MagneticField::getBeamTypeText() const
+const char *MagneticField::getBeamTypeText() const
 {
-  const char* beamNA = "No Beam";
-  const char* beamPP = "p-p";
-  const char* beamPbPb = "A-A";
-  const char* beamPPb = "p-A";
-  const char* beamPbP = "A-p";
+  const char *beamNA = "No Beam";
+  const char *beamPP = "p-p";
+  const char *beamPbPb = "A-A";
+  const char *beamPPb = "p-A";
+  const char *beamPbP = "A-p";
   switch (mBeamType) {
     case kBeamTypepp:
       return beamPP;
@@ -561,7 +559,7 @@ const char* MagneticField::getBeamTypeText() const
   }
 }
 
-void MagneticField::Print(Option_t* opt) const
+void MagneticField::Print(Option_t *opt) const
 {
   TString opts = opt;
   opts.ToLower();
