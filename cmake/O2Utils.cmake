@@ -307,14 +307,15 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   set(Int_DICTIONARY ${DICTIONARY})
   set(Int_LIB ${LIBRARY_NAME})
 
-  set(Int_INC ${INCLUDE_DIRECTORIES} ${SYSTEM_INCLUDE_DIRECTORIES})
   set(Int_HDRS ${HDRS})
   set(Int_DEF ${DEFINITIONS})
 
   # Convert the values of the variable to a semi-colon separated list
-  separate_arguments(Int_INC)
   separate_arguments(Int_HDRS)
   separate_arguments(Int_DEF)
+
+    # Get the include directories
+  get_property(Int_INC DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
 
   # Format neccesary arguments
   # Add -I and -D to include directories and definitions
@@ -333,14 +334,16 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   set_source_files_properties(${OUTPUT_FILES} PROPERTIES GENERATED TRUE)
   if (CMAKE_SYSTEM_NAME MATCHES Linux)
     add_custom_command(OUTPUT ${OUTPUT_FILES}
-        COMMAND LD_LIBRARY_PATH=${ROOT_LIBRARY_DIR}:${_intel_lib_dirs}:$ENV{LD_LIBRARY_PATH} ROOTSYS=${ROOTSYS} ${ROOT_CINT_EXECUTABLE} -f ${Int_DICTIONARY} ${EXTRA_DICT_PARAMETERS} -c ${Int_DEF} ${Int_INC} ${Int_HDRS} ${Int_LINKDEF}
+        COMMAND LD_LIBRARY_PATH=${ROOT_LIBRARY_DIR}:${_intel_lib_dirs}:$ENV{LD_LIBRARY_PATH} ROOTSYS=${ROOTSYS}
+        ${ROOT_CINT_EXECUTABLE} -f ${Int_DICTIONARY} ${EXTRA_DICT_PARAMETERS} -c ${Int_DEF} ${Int_INC} ${Int_HDRS} ${Int_LINKDEF}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${Int_PCMFILE} ${LIBRARY_OUTPUT_PATH}/${Int_PCMFILE}
         DEPENDS ${Int_HDRS} ${Int_LINKDEF}
         )
   else (CMAKE_SYSTEM_NAME MATCHES Linux)
     if (CMAKE_SYSTEM_NAME MATCHES Darwin)
       add_custom_command(OUTPUT ${OUTPUT_FILES}
-          COMMAND DYLD_LIBRARY_PATH=${ROOT_LIBRARY_DIR}:$ENV{DYLD_LIBRARY_PATH} ROOTSYS=${ROOTSYS} ${ROOT_CINT_EXECUTABLE} -f ${Int_DICTIONARY} ${EXTRA_DICT_PARAMETERS} -c ${Int_DEF} ${Int_INC} ${Int_HDRS} ${Int_LINKDEF}
+          COMMAND DYLD_LIBRARY_PATH=${ROOT_LIBRARY_DIR}:$ENV{DYLD_LIBRARY_PATH} ROOTSYS=${ROOTSYS} ${ROOT_CINT_EXECUTABLE}
+          -f ${Int_DICTIONARY} ${EXTRA_DICT_PARAMETERS} -c ${Int_DEF} ${Int_INC} ${Int_HDRS} ${Int_LINKDEF}
           COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${Int_PCMFILE} ${LIBRARY_OUTPUT_PATH}/${Int_PCMFILE}
           DEPENDS ${Int_HDRS} ${Int_LINKDEF}
           )
