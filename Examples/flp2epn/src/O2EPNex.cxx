@@ -6,13 +6,23 @@
  */
 
 #include <boost/thread.hpp>
-#include <boost/bind.hpp>
 
 #include "FairMQLogger.h"
 #include "O2EPNex.h"
 #include "O2FLPExContent.h"
 
+<<<<<<< HEAD:Examples/flp2epn/O2EPNex.cxx
 using namespace std;
+=======
+struct Content
+{
+    double a;
+    double b;
+    int x;
+    int y;
+    int z;
+};
+>>>>>>> 685fc34... Apply new scheme to flp2epn:Examples/flp2epn/src/O2EPNex.cxx
 
 O2EPNex::O2EPNex()
 {

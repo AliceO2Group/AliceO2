@@ -88,7 +88,7 @@ function(GET_BUCKET_CONTENT BUCKET_NAME RESULT) # DEPTH
       # else we add the dependency to the results
       set(LOCAL_RESULT "${LOCAL_RESULT};${dependency}")
     endif ()
-#    message("${INDENTATION}  Now LOCAL_RESULT is ${LOCAL_RESULT}")
+    #    message("${INDENTATION}  Now LOCAL_RESULT is ${LOCAL_RESULT}")
   endforeach ()
 
   set(${RESULT} ${LOCAL_RESULT} PARENT_SCOPE)
@@ -130,8 +130,8 @@ function(O2_TARGET_LINK_BUCKET)
   message(STATUS "All dependencies of the bucket : ${RESULT}")
 
   # for each dependency in the bucket invoke target_link_library
-#  set(DEPENDENCIES ${Bucket_map_${PARSED_ARGS_BUCKET}})
-#  message(STATUS "   invoke target_link_libraries for target ${PARSED_ARGS_TARGET} : ${RESULT} ${PARSED_ARGS_MODULE_LIBRARY_NAME}")
+  #  set(DEPENDENCIES ${Bucket_map_${PARSED_ARGS_BUCKET}})
+  #  message(STATUS "   invoke target_link_libraries for target ${PARSED_ARGS_TARGET} : ${RESULT} ${PARSED_ARGS_MODULE_LIBRARY_NAME}")
   target_link_libraries(${PARSED_ARGS_TARGET} ${RESULT} ${PARSED_ARGS_MODULE_LIBRARY_NAME})
 endfunction()
 
@@ -314,7 +314,7 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   separate_arguments(Int_HDRS)
   separate_arguments(Int_DEF)
 
-    # Get the include directories
+  # Get the include directories
   get_property(Int_INC DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
 
   # Format neccesary arguments
