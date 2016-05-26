@@ -84,7 +84,7 @@ IF (USE_PATH_INFO)
     Set(LD_LIBRARY_PATH $ENV{LD_LIBRARY_PATH})
   ENDIF (APPLE)
 ELSE (USE_PATH_INFO)
-  STRING(REGEX MATCHALL "[^:]+" PATH $ENV{PATH})
+  STRING(REGEX MATCHALL "[^:]+" PATH "$ENV{PATH}")
 ENDIF (USE_PATH_INFO)
 
 # Check IF the user wants to build the project in the source
