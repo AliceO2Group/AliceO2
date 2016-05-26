@@ -14,11 +14,6 @@ set(HEADERS
 set(LIBRARY_NAME ExampleModule2)
 set(BUCKET_NAME ExampleModule2_Bucket)
 
-# extra variables to generate a dictionary (should go away if O2_GENERATE_LIBRARY takes arguments instead)
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}
-)
 set(LINKDEF src/ExampleLinkDef.h)
 
 O2_GENERATE_LIBRARY()
