@@ -4,6 +4,7 @@
 ///
 
 #include "ExampleModule2/Foo.h"
+#include "ExampleModule1/Foo.h"
 
 #include <iostream>
 
@@ -14,6 +15,8 @@ namespace ExampleModule2 {
 void Foo::greet()
 {
   std::cout << "Hello ExampleModule2 world!!" << std::endl;
+  AliceO2::Examples::ExampleModule1::Foo otherFoo;
+  otherFoo.greet();
 }
 
 int Foo::returnsN(int n)
