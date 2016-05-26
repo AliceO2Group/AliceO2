@@ -34,12 +34,13 @@ class EPNReceiver : public FairMQDevice
 {
   public:
     /// Device properties
-    enum {
-      NumFLPs = FairMQDevice::Last, ///< Number of flpSenders
-      BufferTimeoutInMs, ///< Time after which incomplete timeframes are dropped
-      TestMode, ///< Run the device in test mode
-      HeartbeatIntervalInMs, ///< Interval for sending heartbeats
-      Last
+    enum
+    {
+        NumFLPs = FairMQDevice::Last, ///< Number of flpSenders
+        BufferTimeoutInMs, ///< Time after which incomplete timeframes are dropped
+        TestMode, ///< Run the device in test mode
+        HeartbeatIntervalInMs, ///< Interval for sending heartbeats
+        Last
     };
 
     /// Default constructor
@@ -49,23 +50,27 @@ class EPNReceiver : public FairMQDevice
     virtual ~EPNReceiver();
 
     /// Prints the contents of the timeframe container
-    void PrintBuffer(const std::unordered_map<uint16_t, TFBuffer>& buffer) const;
+    void PrintBuffer(const std::unordered_map<uint16_t, TFBuffer> &buffer) const;
+
     /// Discared incomplete timeframes after \p fBufferTimeoutInMs.
     void DiscardIncompleteTimeframes();
 
     /// Set device properties stored as strings
     /// @param key      Property key
     /// @param value    Property value
-    virtual void SetProperty(const int key, const std::string& value);
+    virtual void SetProperty(const int key, const std::string &value);
+
     /// Get device properties stored as strings
     /// @param key      Property key
     /// @param default_ not used
     /// @return         Property value
-    virtual std::string GetProperty(const int key, const std::string& default_ = "");
+    virtual std::string GetProperty(const int key, const std::string &default_ = "");
+
     /// Set device properties stored as integers
     /// @param key      Property key
     /// @param value    Property value
     virtual void SetProperty(const int key, const int value);
+
     /// Get device properties stored as integers
     /// @param key      Property key
     /// @param default_ not used
@@ -75,6 +80,7 @@ class EPNReceiver : public FairMQDevice
   protected:
     /// Overloads the Run() method of FairMQDevice
     virtual void Run();
+
     /// Sends heartbeats to flpSenders
     void sendHeartbeats();
 
