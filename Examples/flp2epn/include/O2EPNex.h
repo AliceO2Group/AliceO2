@@ -14,6 +14,7 @@ class O2EPNex : public FairMQDevice
 {
   public:
     O2EPNex();
+
     virtual ~O2EPNex();
 
   protected:

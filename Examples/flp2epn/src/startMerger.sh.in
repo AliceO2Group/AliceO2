@@ -1,0 +1,57 @@
+#!/bin/bash
+
+buffSize="1000" # zeromq high-water mark is in messages
+#buffSize="50000000" # nanomsg buffer size is in bytes
+
+FLP0="testFLP"
+FLP0+=" --id 101"
+FLP0+=" --event-size 10000"
+FLP0+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5565"
+xterm -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
+
+FLP1="testFLP"
+FLP1+=" --id 102"
+FLP1+=" --event-size 10000"
+FLP1+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5566"
+xterm -e @CMAKE_BINARY_DIR@/bin/$FLP1 &
+
+FLP2="testFLP"
+FLP2+=" --id 103"
+FLP2+=" --event-size 10000"
+FLP2+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5567"
+xterm -e @CMAKE_BINARY_DIR@/bin/$FLP2 &
+
+MERGER="testMerger"
+MERGER+=" --id 501"
+MERGER+=" --num-inputs 3"
+MERGER+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5565"
+MERGER+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5566"
+MERGER+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5567"
+MERGER+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5581"
+xterm -e @CMAKE_BINARY_DIR@/bin/$MERGER &
+
+PROXY="testProxy"
+PROXY+=" --id 201"
+PROXY+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5581"
+PROXY+=" --output-socket-type push --output-buff-size $buffSize --output-method bind --output-address tcp://*:5582"
+xterm -e @CMAKE_BINARY_DIR@/bin/$PROXY &
+
+EPN0="testEPN"
+EPN0+=" --id 301"
+EPN0+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5582"
+xterm -e @CMAKE_BINARY_DIR@/bin/$EPN0 &
+
+EPN1="testEPN"
+EPN1+=" --id 302"
+EPN1+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5582"
+xterm -e @CMAKE_BINARY_DIR@/bin/$EPN1 &
+
+EPN2="testEPN"
+EPN2+=" --id 303"
+EPN2+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5582"
+xterm -e @CMAKE_BINARY_DIR@/bin/$EPN2 &
+
+EPN3="testEPN"
+EPN3+=" --id 304"
+EPN3+=" --input-socket-type pull --input-buff-size $buffSize --input-method connect --input-address tcp://localhost:5582"
+xterm -e @CMAKE_BINARY_DIR@/bin/$EPN3 &

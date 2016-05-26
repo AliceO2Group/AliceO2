@@ -65,3 +65,12 @@ o2_define_bucket(
     Base ParBase FairMQ ParMQ ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger pthread
     Core Tree XMLParser Hist # ROOT
 )
+
+o2_define_bucket(
+    NAME
+    flp2epn_Bucket
+    DEPENDENCIES
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} FairMQ ${Boost_LOG_LIBRARY} fairmq_logger
+)
