@@ -62,7 +62,8 @@ o2_define_bucket(
     NAME
     ExampleModule2_Bucket
     DEPENDENCIES # library names
-    ExampleModule1_Bucket
+    ExampleModule1 # another module
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
     Core Hist # ROOT
 )
 
@@ -90,3 +91,18 @@ o2_define_bucket(
     flp2epndistrib_no_dds_Bucket
     dds-key-value-lib
 )
+
+o2_define_bucket(
+    NAME
+    common_math_bucket
+    DEPENDENCIES
+    FairMQ ${Boost_LOG_LIBRARY} fairmq_logger Core
+)
+
+o2_define_bucket(
+    NAME
+    common_field_bucket
+    DEPENDENCIES
+    MathUtils
+)
+
