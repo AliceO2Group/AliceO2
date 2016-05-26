@@ -22,8 +22,8 @@ namespace Devices {
 
 struct timeframeDuration
 {
-  boost::posix_time::ptime start;
-  boost::posix_time::ptime end;
+    boost::posix_time::ptime start;
+    boost::posix_time::ptime end;
 };
 
 /// Publishes timeframes IDs for flpSenders (used only in test mode)
@@ -31,11 +31,12 @@ struct timeframeDuration
 class FLPSyncSampler : public FairMQDevice
 {
   public:
-    enum {
-      EventRate = FairMQDevice::Last, ///< Publishing rate of the timeframe IDs
-      MaxEvents, ///< Maximum number of events to send (0 - unlimited)
-      StoreRTTinFile, ///< Store round trip time measurements in a file
-      Last
+    enum
+    {
+        EventRate = FairMQDevice::Last, ///< Publishing rate of the timeframe IDs
+        MaxEvents, ///< Maximum number of events to send (0 - unlimited)
+        StoreRTTinFile, ///< Store round trip time measurements in a file
+        Last
     };
 
     /// Default constructor
@@ -46,22 +47,26 @@ class FLPSyncSampler : public FairMQDevice
 
     /// Controls the send rate of the timeframe IDs
     void ResetEventCounter();
+
     /// Listens for acknowledgements from the epnReceivers when they collected full timeframe
     void ListenForAcks();
 
     /// Set Device properties stored as strings
     /// @param key      Property key
     /// @param value    Property value
-    virtual void SetProperty(const int key, const std::string& value);
+    virtual void SetProperty(const int key, const std::string &value);
+
     /// Get Device properties stored as strings
     /// @param key      Property key
     /// @param default_ not used
     /// @return         Property value
-    virtual std::string GetProperty(const int key, const std::string& default_ = "");
+    virtual std::string GetProperty(const int key, const std::string &default_ = "");
+
     /// Set Device properties stored as integers
     /// @param key      Property key
     /// @param value    Property value
     virtual void SetProperty(const int key, const int value);
+
     /// Get Device properties stored as integers
     /// @param key      Property key
     /// @param default_ not used
@@ -71,6 +76,7 @@ class FLPSyncSampler : public FairMQDevice
   protected:
     /// Overloads the InitTask() method of FairMQDevice
     virtual void InitTask();
+
     /// Overloads the Run() method of FairMQDevice
     virtual void Run();
 

@@ -29,34 +29,39 @@ class FLPSender : public FairMQDevice
 {
   public:
     /// Device properties
-    enum {
-      Index = FairMQDevice::Last, ///< Index of the flpSender amond other flpSenders
-      SendOffset, ///< Offset for staggering output
-      SendDelay, ///< Delay for staggering output
-      HeartbeatTimeoutInMs, ///< Heartbeat timeout for epnReceivers
-      EventSize, ///< Size of the sub-timeframe body (only for test mode)
-      TestMode, ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
-      Last
+    enum
+    {
+        Index = FairMQDevice::Last, ///< Index of the flpSender amond other flpSenders
+        SendOffset, ///< Offset for staggering output
+        SendDelay, ///< Delay for staggering output
+        HeartbeatTimeoutInMs, ///< Heartbeat timeout for epnReceivers
+        EventSize, ///< Size of the sub-timeframe body (only for test mode)
+        TestMode, ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
+        Last
     };
 
     /// Default constructor
     FLPSender();
+
     /// Default destructor
     virtual ~FLPSender();
 
     /// Set Device properties stored as strings
     /// @param key      Property key
     /// @param value    Property value
-    virtual void SetProperty(const int key, const std::string& value);
+    virtual void SetProperty(const int key, const std::string &value);
+
     /// Get Device properties stored as strings
     /// @param key      Property key
     /// @param default_ not used
     /// @return         Property value
-    virtual std::string GetProperty(const int key, const std::string& default_ = "");
+    virtual std::string GetProperty(const int key, const std::string &default_ = "");
+
     /// Set Device properties stored as integers
     /// @param key      Property key
     /// @param value    Property value
     virtual void SetProperty(const int key, const int value);
+
     /// Get Device properties stored as integers
     /// @param key      Property key
     /// @param default_ not used
@@ -66,12 +71,14 @@ class FLPSender : public FairMQDevice
   protected:
     /// Overloads the InitTask() method of FairMQDevice
     virtual void InitTask();
+
     /// Overloads the Run() method of FairMQDevice
     virtual void Run();
 
   private:
     /// Receives heartbeats from epnReceivers
     void receiveHeartbeats();
+
     /// Sends the "oldest" element from the sub-timeframe container
     void sendFrontData();
 
@@ -87,7 +94,7 @@ class FLPSender : public FairMQDevice
     int fTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
 
     int fHeartbeatTimeoutInMs; ///< Heartbeat timeout for epnReceivers
-    std::unordered_map<std::string,boost::posix_time::ptime> fHeartbeats; ///< Stores heartbeats from epnReceiver
+    std::unordered_map<std::string, boost::posix_time::ptime> fHeartbeats; ///< Stores heartbeats from epnReceiver
     boost::shared_mutex fHeartbeatMutex; ///< Mutex for heartbeat synchronization
 };
 

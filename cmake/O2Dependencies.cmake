@@ -34,6 +34,14 @@ include_directories(SYSTEM
     ${ZMQ_INCLUDE_DIR}
     )
 
+if (DDS_FOUND)
+  add_definitions(-DENABLE_DDS)
+
+  include_directories(SYSTEM
+      ${DDS_INCLUDE_DIR}
+      )
+endif ()
+
 # todo this should really not be needed. ROOT and FairRoot should comply with CMake best practices but they do not properly return libraries with full path.
 set(LINK_DIRECTORIES
     ${ROOT_LIBRARY_DIR}
@@ -72,5 +80,13 @@ o2_define_bucket(
     DEPENDENCIES
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} FairMQ ${Boost_LOG_LIBRARY} fairmq_logger
+    ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} FairMQ ${Boost_LOG_LIBRARY} fairmq_logger pthread
+)
+
+o2_define_bucket(
+    NAME
+    flp2epndistrib_Bucket
+    DEPENDENCIES
+    flp2epndistrib_no_dds_Bucket
+    dds-key-value-lib
 )
