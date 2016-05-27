@@ -1,10 +1,5 @@
 O2_SETUP(NAME common_field)
 
-# TODO get rid of this (true for all modules)
-set(DICT_OTHER_MODULES_INCLUDE_DIRECTORIES
-    ${CMAKE_CURRENT_SOURCE_DIR}/../MathUtils/include
-    )
-
 set(SRCS
     src/MagneticWrapperChebyshev.cxx
     src/MagneticField.cxx
