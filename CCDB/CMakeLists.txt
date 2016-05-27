@@ -1,4 +1,6 @@
-O2_SETUP(NAME "CCDB")
+set(MODULE_NAME "CCDB")
+
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Manager.cxx
@@ -15,17 +17,17 @@ set(SRCS
 )
 
 set(HEADERS
-  include/CCDB/Condition.h
-  include/CCDB/ConditionId.h
-  include/CCDB/ConditionMetaData.h
-  include/CCDB/FileStorage.h
-  include/CCDB/GridStorage.h
-  include/CCDB/IdPath.h
-  include/CCDB/IdRunRange.h
-  include/CCDB/LocalStorage.h
-  include/CCDB/Manager.h
-  include/CCDB/Storage.h
-  include/CCDB/XmlHandler.h
+  include/${MODULE_NAME}/Condition.h
+  include/${MODULE_NAME}/ConditionId.h
+  include/${MODULE_NAME}/ConditionMetaData.h
+  include/${MODULE_NAME}/FileStorage.h
+  include/${MODULE_NAME}/GridStorage.h
+  include/${MODULE_NAME}/IdPath.h
+  include/${MODULE_NAME}/IdRunRange.h
+  include/${MODULE_NAME}/LocalStorage.h
+  include/${MODULE_NAME}/Manager.h
+  include/${MODULE_NAME}/Storage.h
+  include/${MODULE_NAME}/XmlHandler.h
 )
 
 Set(NO_DICT_SRCS
@@ -38,6 +40,9 @@ set(LINKDEF src/CCDBLinkDef.h)
 set(BUCKET_NAME CCDB_Bucket)
 
 O2_GENERATE_LIBRARY()
+
+# Install all the public header
+install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
 
 Set(Exe_Names
   conditions-server

@@ -7,7 +7,7 @@
 
 #include <boost/thread.hpp>
 
-#include "O2EpnMerger.h"
+#include "flp2epn/O2EpnMerger.h"
 
 O2EpnMerger::O2EpnMerger()
 {

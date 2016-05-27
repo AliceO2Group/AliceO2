@@ -12,7 +12,7 @@
 #include "FairMQLogger.h"
 #include "FairMQTransportFactoryZMQ.h"
 
-#include "FLPSender.h"
+#include "FLP2EPNex_distributed/FLPSender.h"
 
 using namespace std;
 using namespace AliceO2::Devices;

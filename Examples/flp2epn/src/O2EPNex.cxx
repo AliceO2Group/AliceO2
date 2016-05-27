@@ -8,7 +8,7 @@
 #include <boost/thread.hpp>
 
 #include "FairMQLogger.h"
-#include "O2EPNex.h"
+#include "flp2epn/O2EPNex.h"
 
 struct Content
 {

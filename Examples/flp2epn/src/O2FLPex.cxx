@@ -13,7 +13,7 @@
 #include <boost/bind.hpp>
 
 #include "FairMQLogger.h"
-#include "O2FLPex.h"
+#include "flp2epn/O2FLPex.h"
 
 using namespace std;
 

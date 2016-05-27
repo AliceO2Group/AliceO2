@@ -15,7 +15,7 @@
 #include "FairMQMessage.h"
 #include "FairMQTransportFactory.h"
 
-#include "FLPSender.h"
+#include "FLP2EPNex_distributed/FLPSender.h"
 
 using namespace std;
 using boost::posix_time::ptime;
