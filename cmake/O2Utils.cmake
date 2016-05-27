@@ -5,7 +5,6 @@ include(CMakeParseArguments)
 # The modules register themselves using this macro.
 # Developer note : we use a macro because we want to access the variables of the caller.
 # arg NAME - Module name
-# TODO this is not needed at the moment (anymore)
 macro(O2_SETUP)
   cmake_parse_arguments(
       PARSED_ARGS
@@ -15,6 +14,14 @@ macro(O2_SETUP)
       ${ARGN} # arguments
   )
   CHECK_VARIABLE(PARSED_ARGS_NAME "You must provide a name")
+
+  # Global variable used to keep a list of all the modules' include directories.
+  # It is used for the dictionary generation.
+  set(GLOBAL_ALL_MODULES_INCLUDE_DIRECTORIES
+      ${GLOBAL_ALL_MODULES_INCLUDE_DIRECTORIES}
+      ${CMAKE_CURRENT_SOURCE_DIR}
+      ${CMAKE_CURRENT_SOURCE_DIR}/include
+      PARENT_SCOPE)
 endmacro()
 
 #------------------------------------------------------------------------------
@@ -320,18 +327,10 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   separate_arguments(Int_HDRS)
   separate_arguments(Int_DEF)
 
-    # Create a fake target to compute all the dependencies of this module and thus have them to build the dictionary
-    # The dictionary must exist prior to the library thus we can't use the target for the library.
-    # THIS DOES NOT WORK. WHY ?
-#    add_custom_target(${Int_LIB}_dict)
-#    o2_target_link_bucket(TARGET ${Int_LIB}_dict BUCKET ${BUCKET_NAME})
-#  get_property(Int_INC2 TARGET ${Int_LIB}_dict PROPERTY INCLUDE_DIRECTORIES)
-#  message("***************** Int_INC2 : ${Int_INC2}")
-
   # Get the include directories
   get_property(Int_INC DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
   set(Int_INC ${Int_INC} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
-  set(Int_INC ${Int_INC} ${DICT_OTHER_MODULES_INCLUDE_DIRECTORIES})
+  set(Int_INC ${Int_INC} ${GLOBAL_ALL_MODULES_INCLUDE_DIRECTORIES})
 
   # Format neccesary arguments
   # Add -I and -D to include directories and definitions
