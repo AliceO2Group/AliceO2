@@ -11,7 +11,7 @@
 
 #include "FairMQLogger.h"
 
-#include "FLPSyncSampler.h"
+#include "FLP2EPNex_distributed/FLPSyncSampler.h"
 
 using namespace std;
 using namespace AliceO2::Devices;

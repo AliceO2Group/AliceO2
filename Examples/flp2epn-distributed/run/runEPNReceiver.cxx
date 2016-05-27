@@ -11,7 +11,7 @@
 
 #include "FairMQLogger.h"
 
-#include "EPNReceiver.h"
+#include "FLP2EPNex_distributed/EPNReceiver.h"
 
 using namespace std;
 using namespace AliceO2::Devices;

@@ -10,7 +10,7 @@
 
 #include "FairMQLogger.h"
 #include "FairMQPoller.h"
-#include "O2Merger.h"
+#include "flp2epn/O2Merger.h"
 
 O2Merger::O2Merger()
 {

@@ -9,7 +9,7 @@
 #include <boost/bind.hpp>
 
 #include "FairMQLogger.h"
-#include "O2Proxy.h"
+#include "flp2epn/O2Proxy.h"
 
 O2Proxy::O2Proxy()
 {
