@@ -13,24 +13,11 @@
 #include <boost/bind.hpp>
 
 #include "FairMQLogger.h"
-#include "O2FLPex.h"
+#include "flp2epn/O2FLPex.h"
 #include "O2FLPExContent.h"
 
 using namespace std;
 
-<<<<<<< HEAD:Examples/flp2epn/O2FLPex.cxx
-=======
-struct Content
-{
-    int id;
-    double a;
-    double b;
-    int x;
-    int y;
-    int z;
-};
-
->>>>>>> 685fc34... Apply new scheme to flp2epn:Examples/flp2epn/src/O2FLPex.cxx
 O2FLPex::O2FLPex() :
   fNumContent(10000)
 {
@@ -44,11 +31,7 @@ void O2FLPex::Run()
 {
   srand(time(NULL));
 
-<<<<<<< HEAD:Examples/flp2epn/O2FLPex.cxx
   FairMQChannel& outChannel = fChannels.at("data").at(0);
-=======
-  FairMQChannel &outChannel = fChannels.at("data-out").at(0);
->>>>>>> 685fc34... Apply new scheme to flp2epn:Examples/flp2epn/src/O2FLPex.cxx
 
   LOG(DEBUG) << "Message size: " << fNumContent * sizeof(O2FLPExContent) << " bytes.";
 

@@ -1,46 +1,9 @@
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/startFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN-distributed.sh)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}//test/testFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/testFLP2EPN-distributed.sh)
 
-#set(INCLUDE_DIRECTORIES
-#  ${CMAKE_SOURCE_DIR}/Examples/flp2epn-distributed
-#)
-#
-#set(SYSTEM_INCLUDE_DIRECTORIES
-#  ${BASE_INCLUDE_DIRECTORIES}
-#  ${Boost_INCLUDE_DIR}
-#  ${ZMQ_INCLUDE_DIR}
-#  ${FAIRROOT_INCLUDE_DIR}
-#  ${AlFa_DIR}/include
-#)
+set(MODULE_NAME "FLP2EPNex_distributed")
 
-O2_SETUP(NAME "flp2epn-distributed")
-
-#if(DDS_FOUND)
-#  add_definitions(-DENABLE_DDS)
-#
-##  set(SYSTEM_INCLUDE_DIRECTORIES
-##   ${SYSTEM_INCLUDE_DIRECTORIES}
-##   ${DDS_INCLUDE_DIR}
-##  )
-#endif()
-
-#include_directories(${INCLUDE_DIRECTORIES})
-#include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-#set(LINK_DIRECTORIES
-#  ${Boost_LIBRARY_DIRS}
-#  ${FAIRROOT_LIBRARY_DIR}
-#  ${AlFa_DIR}/lib
-#)
-
-#if(DDS_FOUND)
-#  set(LINK_DIRECTORIES
-#   ${LINK_DIRECTORIES}
-#   ${DDS_LIBRARY_DIR}
-#  )
-#endif()
-
-#link_directories(${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/FLPSyncSampler.cxx
@@ -49,31 +12,9 @@ set(SRCS
     )
 
 set(HEADERS
-    include/FLPSyncSampler.h
-    include/FLPSender.h
-    include/EPNReceiver.h)
-
-#if(FAIRMQ_DEPENDENCIES)
-#  set(DEPENDENCIES
-#    ${DEPENDENCIES}
-#    ${CMAKE_THREAD_LIBS_INIT}
-#    ${FAIRMQ_DEPENDENCIES}
-#    FairMQ
-#  )
-#else(FAIRMQ_DEPENDENCIES)
-#  set(DEPENDENCIES
-#    ${DEPENDENCIES}
-#    ${CMAKE_THREAD_LIBS_INIT}
-#    ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} FairMQ
-#  )
-#endif(FAIRMQ_DEPENDENCIES)
-
-#if(DDS_FOUND)
-#  set(DEPENDENCIES
-#    ${DEPENDENCIES}
-#    dds-key-value-lib
-#  )
-#endif()
+    include/${MODULE_NAME}/FLPSyncSampler.h
+    include/${MODULE_NAME}/FLPSender.h
+    include/${MODULE_NAME}/EPNReceiver.h)
 
 if (DDS_FOUND)
   set(BUCKET_NAME flp2epndistrib_Bucket)
@@ -83,6 +24,9 @@ endif ()
 set(LIBRARY_NAME FLP2EPNex_distributed)
 
 O2_GENERATE_LIBRARY()
+
+# Install all the public header
+install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
 
 Set(Exe_Names
     ${Exe_Names}

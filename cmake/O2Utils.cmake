@@ -141,6 +141,10 @@ endfunction()
 #------------------------------------------------------------------------------
 # O2_GENERATE_LIBRARY
 # TODO use arguments, do NOT modify the parent's scope variables.
+# This macro
+#    - Generate a ROOT dictionary if LINKDEF is defined and install it,
+#    - Create the library named LIBRARY_NAME with sources SRCS using headers HEADERS and install it,
+#    - Install
 macro(O2_GENERATE_LIBRARY)
 
   #  cmake_parse_arguments(
@@ -173,11 +177,11 @@ macro(O2_GENERATE_LIBRARY)
   Set(Int_SRCS ${SRCS})
 
   # ???
-  if (HEADERS)
-    Set(HDRS ${HEADERS})
-  else (HEADERS)
-    CHANGE_FILE_EXTENSION(*.cxx *.h HDRS "${SRCS}")
-  endif (HEADERS)
+  #  if (HEADERS)
+  Set(HDRS ${HEADERS})
+  #  else (HEADERS)
+  #    CHANGE_FILE_EXTENSION(*.cxx *.h HDRS "${SRCS}")
+  #  endif (HEADERS)
 
   # ???
   if (IWYU_FOUND)
@@ -228,7 +232,7 @@ macro(O2_GENERATE_LIBRARY)
 
   ############### install the library ###################
   install(TARGETS ${ARGS_LIBRARY_NAME} DESTINATION lib)
-  install(FILES ${HDRS} DESTINATION include)
+#  install(FILES ${HDRS} DESTINATION include)
 
   Set(LIBRARY_NAME)
   Set(DICTIONARY)

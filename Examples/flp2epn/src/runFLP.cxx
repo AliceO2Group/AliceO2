@@ -10,7 +10,7 @@
 #include "boost/program_options.hpp"
 
 #include "FairMQLogger.h"
-#include "O2FLPex.h"
+#include "flp2epn/O2FLPex.h"
 
 #ifdef NANOMSG
 #include "FairMQTransportFactoryNN.h"
