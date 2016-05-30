@@ -31,10 +31,8 @@
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCGMMergedTrack.h"
-#include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackLinearisation.h"
-#include "AliHLTTPCCADataCompressor.h"
 
 #include "AliHLTTPCGMTrackParam.h"
 #include "AliHLTTPCGMTrackLinearisation.h"
