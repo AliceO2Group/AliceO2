@@ -19,7 +19,6 @@
 
 #include "AliHLTTPCCAStandaloneFramework.h"
 #include "AliHLTTPCCATrackParam.h"
-#include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAClusterData.h"
 #include "TStopwatch.h"

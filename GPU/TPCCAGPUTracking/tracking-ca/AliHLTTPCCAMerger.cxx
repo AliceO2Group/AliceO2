@@ -31,10 +31,8 @@
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAMergedTrack.h"
 #include "AliHLTTPCCAMergerOutput.h"
-#include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackLinearisation.h"
-#include "AliHLTTPCCADataCompressor.h"
 
 class AliHLTTPCCAMerger::AliHLTTPCCASliceTrackInfo
 {

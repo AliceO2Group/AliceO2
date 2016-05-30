@@ -12,7 +12,6 @@
 namespace AliHLTTPCCADefinitions
 {
   extern const AliHLTComponentDataType fgkTrackletsDataType;
-  extern const AliHLTComponentDataType fgkCompressedInputDataType;
 }
 
 #endif //ALIHLTTPCCADEFINITIONS_H
