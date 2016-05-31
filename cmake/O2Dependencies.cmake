@@ -242,3 +242,11 @@ o2_define_bucket(
     DEPENDENCIES
     Base GeoBase ParBase Geom Core
 )
+
+o2_define_bucket(
+    NAME
+    generators_bucket
+    DEPENDENCIES
+    Base O2SimulationDataFormat pythia8 Pythia6
+)
+
