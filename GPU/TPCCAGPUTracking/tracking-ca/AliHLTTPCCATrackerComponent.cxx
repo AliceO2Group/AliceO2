@@ -31,8 +31,8 @@
 #include "AliHLTTPCCATrackConvertor.h"
 #include "AliHLTArray.h"
 
-#include "AliHLTTPCSpacePointData.h"
-#include "AliHLTTPCClusterDataFormat.h"
+#include "AliHLTTPCRawCluster.h"
+#include "AliHLTTPCClusterXYZ.h"
 #include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliExternalTrackParam.h"
@@ -145,7 +145,8 @@ void AliHLTTPCCATrackerComponent::GetInputDataTypes( vector<AliHLTComponentDataT
 {
   // see header file for class documentation
   list.clear();
-  list.push_back( AliHLTTPCDefinitions::fgkClustersDataType );
+  list.push_back( AliHLTTPCDefinitions::RawClustersDataType() );
+  list.push_back( AliHLTTPCDefinitions::ClustersXYZDataType() );
 }
 
 AliHLTComponentDataType AliHLTTPCCATrackerComponent::GetOutputDataType()
@@ -512,9 +513,6 @@ int AliHLTTPCCATrackerComponent::DoEvent
     return 0;
   }
 
-  const AliHLTComponentBlockData* iter = NULL;
-  unsigned long ndx;
-
   // min and max patch numbers and row numbers
   int sliceminPatch[fgkNSlices];
   int slicemaxPatch[fgkNSlices];
@@ -534,28 +532,35 @@ int AliHLTTPCCATrackerComponent::DoEvent
     int nClustersTotal = 0;
 
     // sort patches
-    std::vector<unsigned long> patchIndices;
+    std::vector<unsigned long> patchIndicesRaw, patchIndicesXYZ;
 
-    for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
-      iter = blocks + ndx;
+    for ( unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++ ) {
+      const AliHLTComponentBlockData* iter = blocks + ndx;
       if ( slice != AliHLTTPCDefinitions::GetMinSliceNr( *iter ) ) continue;
-      if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ){
-        AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
-        nClustersTotal += inPtrSP->fSpacePointCnt;
+      if ( iter->fDataType == AliHLTTPCDefinitions::ClustersXYZDataType() ){
+        AliHLTTPCClusterXYZData* inPtrSP = ( AliHLTTPCClusterXYZData* )( iter->fPtr );
+        nClustersTotal += inPtrSP->fCount;
         fBenchmark.AddInput(iter->fSize);
-      } else continue;
-      int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
-      if ( sliceminPatch[islice] > patch ) {
-	sliceminPatch[islice] = patch;
+	int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
+	if ( sliceminPatch[islice] > patch ) {
+	  sliceminPatch[islice] = patch;
+	}
+	if ( slicemaxPatch[islice] < patch ) {
+	  slicemaxPatch[islice] = patch;
+	}
+	std::vector<unsigned long>::iterator pIter = patchIndicesXYZ.begin();
+	while ( pIter != patchIndicesXYZ.end() && AliHLTTPCDefinitions::GetMinPatchNr( blocks[*pIter] ) < patch ) {
+	  pIter++;
+	}
+	patchIndicesXYZ.insert( pIter, ndx );
+      } else if ( iter->fDataType == AliHLTTPCDefinitions::RawClustersDataType() ){
+ 	int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
+	std::vector<unsigned long>::iterator pIter = patchIndicesRaw.begin();
+	while ( pIter != patchIndicesRaw.end() && AliHLTTPCDefinitions::GetMinPatchNr( blocks[*pIter] ) < patch ) {
+	  pIter++;
+	}
+	patchIndicesRaw.insert( pIter, ndx );
       }
-      if ( slicemaxPatch[islice] < patch ) {
-	slicemaxPatch[islice] = patch;
-      }
-      std::vector<unsigned long>::iterator pIter = patchIndices.begin();
-      while ( pIter != patchIndices.end() && AliHLTTPCDefinitions::GetMinPatchNr( blocks[*pIter] ) < patch ) {
-	pIter++;
-      }
-      patchIndices.insert( pIter, ndx );
     }
 
 
@@ -574,29 +579,47 @@ int AliHLTTPCCATrackerComponent::DoEvent
     {
       fClusterData[islice].StartReading( slice, nClustersTotal );
 
-      for ( std::vector<unsigned long>::iterator pIter = patchIndices.begin(); pIter != patchIndices.end(); pIter++ ) {
-        ndx = *pIter;
-        iter = blocks + ndx;
-        int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
-        int nPatchClust = 0;
+      for ( std::vector<unsigned long>::iterator pIter = patchIndicesXYZ.begin(); pIter != patchIndicesXYZ.end(); pIter++ ) {
+        unsigned long ndx = *pIter;
+        const AliHLTComponentBlockData* iter = blocks + ndx;
 
-        if ( iter->fDataType == AliHLTTPCDefinitions::fgkClustersDataType ) {
-          AliHLTTPCCAClusterData::Data* pCluster = &fClusterData[islice].Clusters()[fClusterData[islice].NumberOfClusters()];
-          AliHLTTPCClusterData* inPtrSP = ( AliHLTTPCClusterData* )( iter->fPtr );
-          nPatchClust = inPtrSP->fSpacePointCnt;
-          const AliHLTTPCSpacePointData* pLastSpacePoint = &inPtrSP->fSpacePoints[inPtrSP->fSpacePointCnt];
-          for ( const AliHLTTPCSpacePointData* pSpacePoint = inPtrSP->fSpacePoints; pSpacePoint < pLastSpacePoint; pSpacePoint++ ) {
-            if ( pSpacePoint->fZ > fClusterZCut || pSpacePoint->fZ < -fClusterZCut) continue;
-            pCluster->fId = pSpacePoint->fRawID;
-            pCluster->fRow = pSpacePoint->fPadRow;
-            pCluster->fX = pSpacePoint->fX;
-            pCluster->fY = pSpacePoint->fY;
-            pCluster->fZ = pSpacePoint->fZ;
-            pCluster->fAmp = pSpacePoint->fCharge;
-            pCluster++;
-          }
-          fClusterData[islice].SetNumberOfClusters(pCluster - fClusterData[islice].Clusters());
-        }
+	if ( iter->fDataType != AliHLTTPCDefinitions::ClustersXYZDataType() ) continue;
+	  
+        int patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
+
+	int firstRow = AliHLTTPCGeometry::GetFirstRow(patch);
+ 
+        int nPatchClust = 0;
+	const AliHLTComponentBlockData* rawIter = NULL;
+
+	for ( std::vector<unsigned long>::iterator pRawIter = patchIndicesRaw.begin(); pRawIter != patchIndicesRaw.end(); pRawIter++ ) {
+	  const AliHLTComponentBlockData* iter1 = blocks + (*pRawIter);
+ 	  if( iter1->fDataType == AliHLTTPCDefinitions::RawClustersDataType() && AliHLTTPCDefinitions::GetMinPatchNr( *iter1 ) == patch ){
+	    rawIter = iter1;
+	    break;
+	  }
+	}
+	if( rawIter==NULL ) continue;
+	AliHLTTPCClusterXYZData* inPtrSP = ( AliHLTTPCClusterXYZData* )( iter->fPtr );
+	AliHLTTPCRawClusterData* inPtrRaw = ( AliHLTTPCRawClusterData* )( rawIter->fPtr );
+
+	AliHLTTPCCAClusterData::Data* pCluster = &fClusterData[islice].Clusters()[fClusterData[islice].NumberOfClusters()];
+
+	nPatchClust = inPtrSP->fCount;
+	const AliHLTTPCClusterXYZ* pLastHLTCluster = &inPtrSP->fClusters[inPtrSP->fCount];
+	for ( const AliHLTTPCClusterXYZ* pHLTCluster = inPtrSP->fClusters; pHLTCluster < pLastHLTCluster; pHLTCluster++ ) {
+	  if ( pHLTCluster->fZ > fClusterZCut || pHLTCluster->fZ < -fClusterZCut) continue;
+	  pCluster->fId = pHLTCluster->GetRawClusterID();
+	  pCluster->fX = pHLTCluster->GetX();
+	  pCluster->fY = pHLTCluster->GetY();
+	  pCluster->fZ = pHLTCluster->GetZ();
+	  int ind = pHLTCluster->GetRawClusterIndex();
+	  pCluster->fRow = firstRow + inPtrRaw->fClusters[ind].GetPadRow();
+	  pCluster->fAmp = inPtrRaw->fClusters[ind].GetCharge();
+	  pCluster++;
+	}
+	fClusterData[islice].SetNumberOfClusters(pCluster - fClusterData[islice].Clusters());
+      
         Logging( kHLTLogInfo, "HLT::TPCCATracker::DoEvent", "Reading hits",
           "Read %d hits for slice %d - patch %d", nPatchClust, slice, patch );
       }
