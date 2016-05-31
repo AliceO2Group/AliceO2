@@ -5,7 +5,7 @@
 #include <thread>
 #include <FairMQTransportFactoryZMQ.h>
 
-#include "Producer/ProducerDevice.h"
+#include "QCProducer/ProducerDevice.h"
 
 using namespace std;
 

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "Producer/Producer.h"
+#include "QCProducer/Producer.h"
 
 class HistogramProducer : public Producer
 {
