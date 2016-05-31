@@ -105,7 +105,7 @@ void FLPSender::Run()
   FairMQChannel& dataInChannel = fChannels.at("data-in").at(0);
 
   while (CheckCurrentState(RUNNING)) {
-    // initialize f2e header
+    // initialize f2e include
     f2eHeader* h = new f2eHeader;
 
     if (fTestMode > 0) {

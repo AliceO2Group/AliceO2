@@ -2,7 +2,7 @@
 /// \brief Implementation of the MCTrack class
 /// \author M. Al-Turany - June 2014
 
-#include "MCTrack.h"
+#include "SimulationDataFormat/MCTrack.h"
 
 #include "FairLogger.h"
 #include "TDatabasePDG.h"
@@ -40,7 +40,7 @@ MCTrack::MCTrack(Int_t pdgCode, Int_t motherId, Double_t px, Double_t py, Double
 {
 }
 
-MCTrack::MCTrack(const MCTrack& track)
+MCTrack::MCTrack(const MCTrack &track)
   : TObject(track),
     mPdgCode(track.mPdgCode),
     mMotherTrackId(track.mMotherTrackId),
@@ -55,7 +55,7 @@ MCTrack::MCTrack(const MCTrack& track)
 {
 }
 
-MCTrack::MCTrack(TParticle* part)
+MCTrack::MCTrack(TParticle *part)
   : TObject(),
     mPdgCode(part->GetPdgCode()),
     mMotherTrackId(part->GetMother(0)),
@@ -89,7 +89,7 @@ void MCTrack::Print(Int_t trackId) const
 Double_t MCTrack::GetMass() const
 {
   if (TDatabasePDG::Instance()) {
-    TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(mPdgCode);
+    TParticlePDG *particle = TDatabasePDG::Instance()->GetParticle(mPdgCode);
     if (particle) {
       return particle->Mass();
     } else {

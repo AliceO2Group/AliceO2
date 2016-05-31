@@ -1,74 +1,51 @@
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
-  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/include
-  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/
+set(MODULE_NAME "itsSimulation")
 
-  )
-
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${Boost_INCLUDE_DIRS}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${ROOT_INCLUDE_DIR}
-)
-
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${ROOT_LIBRARY_DIR}
-  ${FAIRROOT_LIBRARY_DIR}
-)
-
-link_directories( ${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-  src/UpgradeGeometryTGeo.cxx
-  src/V11Geometry.cxx
-  src/UpgradeV1Layer.cxx
-  src/Segmentation.cxx
-  src/UpgradeSegmentationPixel.cxx
-  src/GeometryManager.cxx
-  src/Detector.cxx
-  src/GeometryHandler.cxx
-  src/Point.cxx
-  src/Chip.cxx
-  src/Digit.cxx
-  src/Digitizer.cxx
-  src/DigitizerTask.cxx
-  src/DigitWriteoutBuffer.cxx
-  src/DigitContainer.cxx
-  src/DigitLayer.cxx
-  src/DigitStave.cxx
-)
+    src/UpgradeGeometryTGeo.cxx
+    src/V11Geometry.cxx
+    src/UpgradeV1Layer.cxx
+    src/Segmentation.cxx
+    src/UpgradeSegmentationPixel.cxx
+    src/GeometryManager.cxx
+    src/Detector.cxx
+    src/GeometryHandler.cxx
+    src/Point.cxx
+    src/Chip.cxx
+    src/Digit.cxx
+    src/Digitizer.cxx
+    src/DigitizerTask.cxx
+    src/DigitWriteoutBuffer.cxx
+    src/DigitContainer.cxx
+    src/DigitLayer.cxx
+    src/DigitStave.cxx
+    )
 set(HEADERS
-  include/Chip.h
-  include/Detector.h
-  include/Digit.h
-  include/DigitContainer.h
-  include/DigitLayer.h
-  include/DigitStave.h
-  include/DigitWriteoutBuffer.h
-  include/Digitizer.h
-  include/DigitizerTask.h
-  include/GeometryHandler.h
-  include/GeometryManager.h
-  include/Point.h
-  include/Segmentation.h
-  include/UpgradeGeometryTGeo.h
-  include/UpgradeSegmentationPixel.h
-  include/UpgradeV1Layer.h
-  include/V11Geometry.h
-)
+    include/${MODULE_NAME}/Chip.h
+    include/${MODULE_NAME}/Detector.h
+    include/${MODULE_NAME}/Digit.h
+    include/${MODULE_NAME}/DigitContainer.h
+    include/${MODULE_NAME}/DigitLayer.h
+    include/${MODULE_NAME}/DigitStave.h
+    include/${MODULE_NAME}/DigitWriteoutBuffer.h
+    include/${MODULE_NAME}/Digitizer.h
+    include/${MODULE_NAME}/DigitizerTask.h
+    include/${MODULE_NAME}/GeometryHandler.h
+    include/${MODULE_NAME}/GeometryManager.h
+    include/${MODULE_NAME}/Point.h
+    include/${MODULE_NAME}/Segmentation.h
+    include/${MODULE_NAME}/UpgradeGeometryTGeo.h
+    include/${MODULE_NAME}/UpgradeSegmentationPixel.h
+    include/${MODULE_NAME}/UpgradeV1Layer.h
+    include/${MODULE_NAME}/V11Geometry.h
+    )
 
 Set(LINKDEF src/itsSimulationLinkDef.h)
 Set(LIBRARY_NAME itsSimulation)
-Set(DEPENDENCIES
-    itsBase
-    AliceO2Base
-    Base ParBase
-)
+set(BUCKET_NAME its_simulation_bucket)
 
-GENERATE_LIBRARY()
+O2_GENERATE_LIBRARY()
+
+# Install all the public header
+install(DIRECTORY include/${MODULE_NAME} DESTINATION include)

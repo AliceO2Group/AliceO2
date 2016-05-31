@@ -21,9 +21,9 @@
 /// echo commands. Multiple input file names can be listed using ls with
 /// wildcard expansion.
 
-// Note: when using new classes the corresponding header files need to be
+// Note: when using new classes the corresponding include files need to be
 // add in the include section
-#if defined(__CINT__) && !defined(__MAKECINT__)
+#if defined(__CLING__) && !defined(__MAKECLING__)
 {
   gSystem->AddIncludePath("-I$ROOTSYS/include -I$ALICE_ROOT/include");
   TString macroname=gInterpreter->GetCurrentMacroName();
@@ -99,7 +99,7 @@ void overlayClusters()
       clsize=clcount*sizeof(AliHLTTPCSpacePointData);
 
       if (verbosity>1) std::cout << "adding " << clcount << " cluster(s) of total size " << clsize << " to buffer of size " << offset << endl;
-      // remove the header of the current block and append its clusters to the main block
+      // remove the include of the current block and append its clusters to the main block
       memmove(&buffer[offset], &buffer[offset+sizeof(AliHLTTPCClusterData)], clsize);
     }
     buffer.resize(offset+clsize);
@@ -162,7 +162,7 @@ int scanArguments()
 bool checkConsistency(const byte* data, unsigned size)
 {
   // check the format of the data block
-  // binary block contains AliHLTTPCClusterData header followed by
+  // binary block contains AliHLTTPCClusterData include followed by
   // array of AliHLTTPCSpacePointData
   if (size<sizeof(AliHLTTPCClusterData)) return false;
   const AliHLTTPCClusterData* cld=reinterpret_cast<const AliHLTTPCClusterData*>(data);
