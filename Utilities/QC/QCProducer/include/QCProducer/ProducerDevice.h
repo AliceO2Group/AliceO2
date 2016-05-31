@@ -5,7 +5,7 @@
 #include <FairMQDevice.h>
 #include <memory>
 
-#include "Producer/Producer.h"
+#include "QCProducer/Producer.h"
 
 class ProducerDevice : public FairMQDevice
 {

@@ -1,7 +1,7 @@
 #include <TH1.h>
 #include <sstream>
 
-#include "Producer/HistogramProducer.h"
+#include "QCProducer/HistogramProducer.h"
 
 using namespace std;
 

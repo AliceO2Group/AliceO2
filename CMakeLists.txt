@@ -66,7 +66,7 @@ include(CheckCompiler)
 
 #Check the compiler and set the compile and link flags
 IF (NOT CMAKE_BUILD_TYPE)
-  Message(STATUS "Set BuildType DEBUG")
+  Message(STATU"Set BuildType DEBUG")
   set(CMAKE_BUILD_TYPE Debug)
 ENDIF (NOT CMAKE_BUILD_TYPE)
 Check_Compiler()

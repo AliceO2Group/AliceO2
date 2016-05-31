@@ -2,9 +2,9 @@
 #include <FairMQLogger.h>
 #include <cstdlib>
 
-#include "Producer/ProducerDevice.h"
-#include "Producer/HistogramProducer.h"
-#include "Producer/TreeProducer.h"
+#include "QCProducer/ProducerDevice.h"
+#include "QCProducer/HistogramProducer.h"
+#include "QCProducer/TreeProducer.h"
 
 
 int main(int argc, char** argv)
