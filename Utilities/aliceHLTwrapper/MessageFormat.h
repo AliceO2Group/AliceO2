@@ -61,7 +61,7 @@ public:
     kOutputModeHOMER = 0,
     // each block individually as part of a multi-part output
     kOutputModeMultiPart,
-    // all blocks as sequence of header and payload
+    // all blocks as sequence of include and payload
     kOutputModeSequence,
     kOutputModeLast
   };
@@ -113,10 +113,10 @@ public:
   AliHLTHOMERWriter* createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
 				       AliHLTUInt32_t outputBlockCnt) const;
 
-  // insert event header to list, sort by time, oldest first
+  // insert event include to list, sort by time, oldest first
   int insertEvtData(const AliHLTComponentEventData& evtData);
 
-  // get event header list
+  // get event include list
   const vector<AliHLTComponentEventData>& getEvtDataList() const {
     return mListEvtData;
   }

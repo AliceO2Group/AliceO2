@@ -45,7 +45,7 @@ void EPNReceiver::PrintBuffer(const unordered_map<uint16_t, TFBuffer>& buffer) c
     stringstream out;
     out << i % 10;
     header += out.str();
-    //i > 9 ? header += " " : header += "  ";
+    //i > 9 ? include += " " : include += "  ";
   }
   LOG(INFO) << header;
 
@@ -85,7 +85,7 @@ void EPNReceiver::Run()
   // vector<boost::posix_time::ptime> rcvTimestamp(fNumFLPs);
   // end DEBUG
 
-  // f2eHeader* header; // holds the header of the currently arrived message.
+  // f2eHeader* include; // holds the include of the currently arrived message.
   uint16_t id = 0; // holds the timeframe id of the currently arrived sub-timeframe.
 
   FairMQChannel& ackOutChannel = fChannels.at("ack-out").at(0);
@@ -100,11 +100,11 @@ void EPNReceiver::Run()
         // store the received ID
         f2eHeader& header = *(static_cast<f2eHeader*>(parts.At(0)->GetData()));
         id = header.timeFrameId;
-        // LOG(INFO) << "Received sub-time frame #" << id << " from FLP" << header.flpIndex;
+        // LOG(INFO) << "Received sub-time frame #" << id << " from FLP" << include.flpIndex;
 
         // DEBUG:: store receive intervals per FLP
         // if (fTestMode > 0) {
-        //   int flp_id = header.flpIndex;
+        //   int flp_id = include.flpIndex;
         //   if (to_simple_string(rcvTimestamp.at(flp_id)) != "not_a_date_time") {
         //     rcvIntervals.at(flp_id).push_back( (boost::posix_time::microsec_clock::local_time() - rcvTimestamp.at(flp_id)).total_microseconds() );
         //     // LOG(WARN) << rcvIntervals.at(flp_id).back();

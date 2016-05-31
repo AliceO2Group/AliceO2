@@ -1,8 +1,8 @@
 /// \file UpgradeSegmentationPixel.cxx
 /// \brief Implementation of the UpgradeSegmentationPixel class
 
-#include "UpgradeSegmentationPixel.h"
-#include "UpgradeGeometryTGeo.h"  // for UpgradeGeometryTGeo
+#include "itsSimulation/UpgradeSegmentationPixel.h"
+#include "itsSimulation/UpgradeGeometryTGeo.h"
 
 #include <TFile.h>                // for TFile
 #include <TObjArray.h>            // for TObjArray
@@ -17,7 +17,7 @@ using namespace AliceO2::ITS;
 
 ClassImp(AliceO2::ITS::UpgradeSegmentationPixel)
 
-const char* UpgradeSegmentationPixel::sSegmentationsListName = "UpgradeSegmentations";
+const char *UpgradeSegmentationPixel::sSegmentationsListName = "UpgradeSegmentations";
 
 UpgradeSegmentationPixel::UpgradeSegmentationPixel(UInt_t id, int nchips, int ncol, int nrow,
                                                    float pitchX, float pitchZ, float thickness,
@@ -64,7 +64,7 @@ UpgradeSegmentationPixel::~UpgradeSegmentationPixel()
   delete[] mDiodShiftMatZ;
 }
 
-void UpgradeSegmentationPixel::getPadIxz(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const
+void UpgradeSegmentationPixel::getPadIxz(Float_t x, Float_t z, Int_t &ix, Int_t &iz) const
 {
   ix = int(x / mPitchX);
   iz = int(zToColumn(z));
@@ -89,13 +89,13 @@ void UpgradeSegmentationPixel::getPadIxz(Float_t x, Float_t z, Int_t& ix, Int_t&
   }
 }
 
-void UpgradeSegmentationPixel::getPadTxz(Float_t& x, Float_t& z) const
+void UpgradeSegmentationPixel::getPadTxz(Float_t &x, Float_t &z) const
 {
   x /= mPitchX;
   z = zToColumn(z);
 }
 
-void UpgradeSegmentationPixel::getPadCxz(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const
+void UpgradeSegmentationPixel::getPadCxz(Int_t ix, Int_t iz, Float_t &x, Float_t &z) const
 {
   x = Float_t((ix + 0.5) * mPitchX);
   z = columnToZ(iz);
@@ -129,7 +129,7 @@ Float_t UpgradeSegmentationPixel::columnToZ(Int_t col) const
   return z;
 }
 
-UpgradeSegmentationPixel& UpgradeSegmentationPixel::operator=(const UpgradeSegmentationPixel& src)
+UpgradeSegmentationPixel &UpgradeSegmentationPixel::operator=(const UpgradeSegmentationPixel &src)
 {
   if (this == &src) {
     return *this;
@@ -172,7 +172,7 @@ UpgradeSegmentationPixel& UpgradeSegmentationPixel::operator=(const UpgradeSegme
   return *this;
 }
 
-UpgradeSegmentationPixel::UpgradeSegmentationPixel(const UpgradeSegmentationPixel& src)
+UpgradeSegmentationPixel::UpgradeSegmentationPixel(const UpgradeSegmentationPixel &src)
   : Segmentation(src),
     mGuardLeft(src.mGuardLeft),
     mGuardRight(src.mGuardRight),
@@ -225,7 +225,7 @@ Float_t UpgradeSegmentationPixel::cellSizeZ(Int_t col) const
   return mPitchZ;
 }
 
-void UpgradeSegmentationPixel::neighbours(Int_t iX, Int_t iZ, Int_t* nlist, Int_t xlist[8],
+void UpgradeSegmentationPixel::neighbours(Int_t iX, Int_t iZ, Int_t *nlist, Int_t xlist[8],
                                           Int_t zlist[8]) const
 {
   *nlist = 8;
@@ -250,7 +250,7 @@ void UpgradeSegmentationPixel::neighbours(Int_t iX, Int_t iZ, Int_t* nlist, Int_
   zlist[7] = iZ - 1;
 }
 
-void UpgradeSegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const
+void UpgradeSegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t &ix, Int_t &iz) const
 {
   x += 0.5 * dxActive() + mShiftLocalX; // get X,Z wrt bottom/left corner
   z += 0.5 * dzActive() + mShiftLocalZ;
@@ -268,7 +268,7 @@ void UpgradeSegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t& ix, 
   //return kTRUE; // Found ix and iz, return.
 }
 
-void UpgradeSegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const
+void UpgradeSegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t &x, Float_t &z) const
 {
   x = -0.5 * dxActive(); // default value.
   z = -0.5 * dzActive(); // default value.
@@ -280,12 +280,12 @@ void UpgradeSegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t& x, F
   } // outside of detector
   x +=
     (ix + 0.5) * mPitchX - mShiftLocalX; // RS: we go to the center of the pad, i.e. + pitch/2, not
-                                         // to the boundary as in SPD
+  // to the boundary as in SPD
   z += columnToZ(iz) - mShiftLocalZ;
 }
 
-void UpgradeSegmentationPixel::cellBoundries(Int_t ix, Int_t iz, Double_t& xl, Double_t& xu,
-                                             Double_t& zl, Double_t& zu) const
+void UpgradeSegmentationPixel::cellBoundries(Int_t ix, Int_t iz, Double_t &xl, Double_t &xu,
+                                             Double_t &zl, Double_t &zu) const
 {
   Float_t x, z;
   detectorToLocal(ix, iz, x, z);
@@ -324,7 +324,7 @@ Int_t UpgradeSegmentationPixel::getChipFromLocal(Float_t, Float_t zloc) const
   return getChipFromChannel(ix0, iz);
 }
 
-Int_t UpgradeSegmentationPixel::getChipsInLocalWindow(Int_t* array, Float_t zmin, Float_t zmax,
+Int_t UpgradeSegmentationPixel::getChipsInLocalWindow(Int_t *array, Float_t zmin, Float_t zmax,
                                                       Float_t, Float_t) const
 {
   if (zmin > zmax) {
@@ -368,7 +368,7 @@ void UpgradeSegmentationPixel::Init()
   // init settings
 }
 
-Bool_t UpgradeSegmentationPixel::Store(const char* outf)
+Bool_t UpgradeSegmentationPixel::Store(const char *outf)
 {
   TString fns = outf;
   gSystem->ExpandPathName(fns);
@@ -378,14 +378,14 @@ Bool_t UpgradeSegmentationPixel::Store(const char* outf)
     return kFALSE;
   }
 
-  TFile* fout = TFile::Open(fns.Data(), "update");
+  TFile *fout = TFile::Open(fns.Data(), "update");
 
   if (!fout) {
     LOG(FATAL) << "Failed to open output file " << outf << FairLogger::endl;
     return kFALSE;
   }
 
-  TObjArray* arr = (TObjArray*)fout->Get(sSegmentationsListName);
+  TObjArray *arr = (TObjArray *) fout->Get(sSegmentationsListName);
 
   int id = GetUniqueID();
 
@@ -407,7 +407,7 @@ Bool_t UpgradeSegmentationPixel::Store(const char* outf)
   return kTRUE;
 }
 
-UpgradeSegmentationPixel* UpgradeSegmentationPixel::loadWithId(UInt_t id, const char* inpf)
+UpgradeSegmentationPixel *UpgradeSegmentationPixel::loadWithId(UInt_t id, const char *inpf)
 {
   TString fns = inpf;
   gSystem->ExpandPathName(fns);
@@ -415,18 +415,18 @@ UpgradeSegmentationPixel* UpgradeSegmentationPixel::loadWithId(UInt_t id, const 
     LOG(FATAL) << "LoadWithId: No file name provided" << FairLogger::endl;
     return 0;
   }
-  TFile* finp = TFile::Open(fns.Data());
+  TFile *finp = TFile::Open(fns.Data());
   if (!finp) {
     LOG(FATAL) << "LoadWithId: Failed to open file " << inpf << FairLogger::endl;
     return 0;
   }
-  TObjArray* arr = (TObjArray*)finp->Get(sSegmentationsListName);
+  TObjArray *arr = (TObjArray *) finp->Get(sSegmentationsListName);
   if (!arr) {
     LOG(FATAL) << "LoadWithId: Failed to find segmenation array " << sSegmentationsListName
                << " in " << inpf << FairLogger::endl;
     return 0;
   }
-  UpgradeSegmentationPixel* segm = dynamic_cast<UpgradeSegmentationPixel*>(arr->At(id));
+  UpgradeSegmentationPixel *segm = dynamic_cast<UpgradeSegmentationPixel *>(arr->At(id));
   if (!segm || segm->GetUniqueID() != id) {
     LOG(FATAL) << "LoadWithId: Failed to find segmenation " << id << " in " << inpf
                << FairLogger::endl;
@@ -442,7 +442,7 @@ UpgradeSegmentationPixel* UpgradeSegmentationPixel::loadWithId(UInt_t id, const 
   return segm;
 }
 
-void UpgradeSegmentationPixel::loadSegmentations(TObjArray* dest, const char* inpf)
+void UpgradeSegmentationPixel::loadSegmentations(TObjArray *dest, const char *inpf)
 {
   if (!dest) {
     return;
@@ -452,17 +452,17 @@ void UpgradeSegmentationPixel::loadSegmentations(TObjArray* dest, const char* in
   if (fns.IsNull()) {
     LOG(FATAL) << "LoadWithId: No file name provided" << FairLogger::endl;
   }
-  TFile* finp = TFile::Open(fns.Data());
+  TFile *finp = TFile::Open(fns.Data());
   if (!finp) {
     LOG(FATAL) << "LoadWithId: Failed to open file " << inpf << FairLogger::endl;
   }
-  TObjArray* arr = (TObjArray*)finp->Get(sSegmentationsListName);
+  TObjArray *arr = (TObjArray *) finp->Get(sSegmentationsListName);
   if (!arr) {
     LOG(FATAL) << "LoadWithId: Failed to find segmentation array " << sSegmentationsListName
                << " in " << inpf << FairLogger::endl;
   }
   int nent = arr->GetEntriesFast();
-  TObject* segm = 0;
+  TObject *segm = 0;
   for (int i = nent; i--;) {
     if ((segm = arr->At(i))) {
       dest->AddAtAndExpand(segm, segm->GetUniqueID());
@@ -477,8 +477,8 @@ void UpgradeSegmentationPixel::loadSegmentations(TObjArray* dest, const char* in
   delete arr;
 }
 
-void UpgradeSegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Float_t* shiftX,
-                                                  const Float_t* shiftZ)
+void UpgradeSegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Float_t *shiftX,
+                                                  const Float_t *shiftZ)
 {
   if (mDiodShiftMatDimension) {
     delete mDiodShiftMatX;
@@ -501,8 +501,8 @@ void UpgradeSegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const 
   }
 }
 
-void UpgradeSegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Double_t* shiftX,
-                                                  const Double_t* shiftZ)
+void UpgradeSegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Double_t *shiftX,
+                                                  const Double_t *shiftZ)
 {
   if (mDiodShiftMatDimension) {
     delete mDiodShiftMatX;
@@ -526,13 +526,13 @@ void UpgradeSegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const 
   }
 }
 
-void UpgradeSegmentationPixel::Print(Option_t* /*option*/) const
+void UpgradeSegmentationPixel::Print(Option_t * /*option*/) const
 {
   const double kmc = 1e4;
   printf("Segmentation %d: Active Size: DX: %.1f DY: %.1f DZ: %.1f | Pitch: X:%.1f Z:%.1f\n",
          GetUniqueID(), kmc * dxActive(), kmc * Dy(), kmc * dzActive(), kmc * cellSizeX(1), kmc * cellSizeZ(1));
   printf("Passive Edges: Bottom: %.1f Right: %.1f Top: %.1f Left: %.1f -> DX: %.1f DZ: %.1f Shift: "
-         "x:%.1f z:%.1f\n",
+           "x:%.1f z:%.1f\n",
          kmc * mGuardBottom, kmc * mGuardRight, kmc * mGuardTop, kmc * mGuardLeft, kmc * Dx(),
          kmc * Dz(), kmc * mShiftLocalX, kmc * mShiftLocalZ);
   printf("%d chips along Z: chip Ncol=%d Nrow=%d\n", mNumberOfChips, mNumberOfColumnsPerChip,
@@ -557,7 +557,7 @@ void UpgradeSegmentationPixel::Print(Option_t* /*option*/) const
   }
 }
 
-void UpgradeSegmentationPixel::getDiodShift(Int_t row, Int_t col, Float_t& dx, Float_t& dz) const
+void UpgradeSegmentationPixel::getDiodShift(Int_t row, Int_t col, Float_t &dx, Float_t &dz) const
 {
   // obtain optional diod shift
   if (!mDiodShiftMatDimension) {

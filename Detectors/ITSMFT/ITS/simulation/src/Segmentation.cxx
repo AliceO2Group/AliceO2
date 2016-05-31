@@ -1,9 +1,8 @@
 /// \file Segmentation.cxx
 /// \brief Implementation of the Segmentation class
 
-#include "Segmentation.h"
+#include "itsSimulation/Segmentation.h"
 #include "TF1.h"      // for TF1
-
 
 using namespace AliceO2::ITS;
 
@@ -20,21 +19,21 @@ Segmentation::~Segmentation()
   }
 }
 
-void Segmentation::Copy(TObject& obj) const
+void Segmentation::Copy(TObject &obj) const
 {
   // copy this to obj
-  ((Segmentation&)obj).mDz = mDz;
-  ((Segmentation&)obj).mDx = mDx;
-  ((Segmentation&)obj).mDy = mDy;
+  ((Segmentation &) obj).mDz = mDz;
+  ((Segmentation &) obj).mDx = mDx;
+  ((Segmentation &) obj).mDy = mDy;
 
   if (mCorrection) {
-    ((Segmentation&)obj).mCorrection = new TF1(*mCorrection); // make a proper copy
+    ((Segmentation &) obj).mCorrection = new TF1(*mCorrection); // make a proper copy
   } else {
-    ((Segmentation&)obj).mCorrection = 0;
+    ((Segmentation &) obj).mCorrection = 0;
   }
 }
 
-Segmentation& Segmentation::operator=(const Segmentation& source)
+Segmentation &Segmentation::operator=(const Segmentation &source)
 {
   // Operator =
   if (this != &source) {
@@ -43,7 +42,7 @@ Segmentation& Segmentation::operator=(const Segmentation& source)
   return *this;
 }
 
-Segmentation::Segmentation(const Segmentation& source)
+Segmentation::Segmentation(const Segmentation &source)
   : TObject(source), mDx(0), mDz(0), mDy(0), mCorrection(0)
 {
   // copy constructor

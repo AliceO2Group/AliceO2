@@ -1,15 +1,13 @@
-#include "Detector.h"
-#include "Point.h"              // for Point
+#include "TPCsimulation/Detector.h"
+#include "TPCsimulation/Point.h"
 
-#include "DataFormats/simulation/include/DetectorList.h"  // for DetectorId::kAliTpc
-#include "DataFormats/simulation/include/Stack.h"         // for Stack
+#include "SimulationDataFormat/DetectorList.h"
+#include "SimulationDataFormat/Stack.h"
 
-#include "FairRootManager.h"    // for FairRootManager
 #include "FairVolume.h"         // for FairVolume
 
 #include "TClonesArray.h"       // for TClonesArray
 #include "TVirtualMC.h"         // for TVirtualMC, gMC
-#include "TVirtualMCStack.h"    // for TVirtualMCStack
 
 #include <stddef.h>             // for NULL
 
@@ -45,6 +43,7 @@
 
 
 #include <iostream>
+
 using std::cout;
 using std::endl;
 using std::ios_base;

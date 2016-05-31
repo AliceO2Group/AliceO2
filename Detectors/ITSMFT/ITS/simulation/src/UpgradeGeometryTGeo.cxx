@@ -4,11 +4,10 @@
 /// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
-#include "UpgradeGeometryTGeo.h"
-#include "UpgradeSegmentationPixel.h"  // for UpgradeSegmentationPixel
-#include "GeometryManager.h"           // for GeometryManager
-#include "Segmentation.h"              // for Segmentation
-
+#include "itsSimulation/UpgradeGeometryTGeo.h"
+#include "itsSimulation/UpgradeSegmentationPixel.h"
+#include "itsSimulation/GeometryManager.h"
+#include "itsSimulation/Segmentation.h"
 
 #include "FairLogger.h"                // for LOG
 
@@ -30,7 +29,6 @@
 #include <stdio.h>                     // for snprintf, NULL, printf
 #include <string.h>                    // for strstr, strlen
 
-
 using namespace TMath;
 using namespace AliceO2::ITS;
 
@@ -45,7 +43,7 @@ TString UpgradeGeometryTGeo::mModuleName = "ITSUModule";
 TString UpgradeGeometryTGeo::mChipName = "ITSUChip";
 TString UpgradeGeometryTGeo::mSensorName = "ITSUSensor";
 TString UpgradeGeometryTGeo::mWrapperVolumeName = "ITSUWrapVol";
-TString UpgradeGeometryTGeo::mChipTypeName[UpgradeGeometryTGeo::kNChipTypes] = { "Pix" };
+TString UpgradeGeometryTGeo::mChipTypeName[UpgradeGeometryTGeo::kNChipTypes] = {"Pix"};
 
 TString UpgradeGeometryTGeo::mSegmentationFileName = "itsSegmentations.root";
 
@@ -76,7 +74,7 @@ UpgradeGeometryTGeo::UpgradeGeometryTGeo(Bool_t build, Bool_t loadSegmentations)
   }
 }
 
-UpgradeGeometryTGeo::UpgradeGeometryTGeo(const UpgradeGeometryTGeo& src)
+UpgradeGeometryTGeo::UpgradeGeometryTGeo(const UpgradeGeometryTGeo &src)
   : TObject(src),
     mVersion(src.mVersion),
     mNumberOfLayers(src.mNumberOfLayers),
@@ -122,7 +120,7 @@ UpgradeGeometryTGeo::UpgradeGeometryTGeo(const UpgradeGeometryTGeo& src)
       mSensorMatrices = new TObjArray(mNumberOfChips);
       mSensorMatrices->SetOwner(kTRUE);
       for (int i = 0; i < mNumberOfChips; i++) {
-        const TGeoHMatrix* mat = (TGeoHMatrix*)src.mSensorMatrices->At(i);
+        const TGeoHMatrix *mat = (TGeoHMatrix *) src.mSensorMatrices->At(i);
         mSensorMatrices->AddAt(new TGeoHMatrix(*mat), i);
       }
     }
@@ -130,7 +128,7 @@ UpgradeGeometryTGeo::UpgradeGeometryTGeo(const UpgradeGeometryTGeo& src)
       mTrackingToLocalMatrices = new TObjArray(mNumberOfChips);
       mTrackingToLocalMatrices->SetOwner(kTRUE);
       for (int i = 0; i < mNumberOfChips; i++) {
-        const TGeoHMatrix* mat = (TGeoHMatrix*)src.mTrackingToLocalMatrices->At(i);
+        const TGeoHMatrix *mat = (TGeoHMatrix *) src.mTrackingToLocalMatrices->At(i);
         mTrackingToLocalMatrices->AddAt(new TGeoHMatrix(*mat), i);
       }
     }
@@ -139,7 +137,7 @@ UpgradeGeometryTGeo::UpgradeGeometryTGeo(const UpgradeGeometryTGeo& src)
       mSegmentations = new TObjArray(sz);
       mSegmentations->SetOwner(kTRUE);
       for (int i = 0; i < sz; i++) {
-        Segmentation* sg = (Segmentation*)src.mSegmentations->UncheckedAt(i);
+        Segmentation *sg = (Segmentation *) src.mSegmentations->UncheckedAt(i);
         if (!sg) {
           continue;
         }
@@ -170,7 +168,7 @@ UpgradeGeometryTGeo::~UpgradeGeometryTGeo()
   delete mSegmentations;
 }
 
-UpgradeGeometryTGeo& UpgradeGeometryTGeo::operator=(const UpgradeGeometryTGeo& src)
+UpgradeGeometryTGeo &UpgradeGeometryTGeo::operator=(const UpgradeGeometryTGeo &src)
 {
   // cp op.
   if (this != &src) {
@@ -185,7 +183,7 @@ UpgradeGeometryTGeo& UpgradeGeometryTGeo::operator=(const UpgradeGeometryTGeo& s
     delete[] mNumberOfChipsPerLayer;
     delete[] mLastChipIndex;
     mNumberOfStaves = mNumberOfHalfStaves = mNumberOfModules = mLayerChipType =
-      mNumberOfChipsPerModule = mLastChipIndex = 0;
+    mNumberOfChipsPerModule = mLastChipIndex = 0;
     mVersion = src.mVersion;
     mNumberOfLayers = src.mNumberOfLayers;
     mNumberOfChips = src.mNumberOfChips;
@@ -194,7 +192,7 @@ UpgradeGeometryTGeo& UpgradeGeometryTGeo::operator=(const UpgradeGeometryTGeo& s
       mSensorMatrices = new TObjArray(mNumberOfChips);
       mSensorMatrices->SetOwner(kTRUE);
       for (int i = 0; i < mNumberOfChips; i++) {
-        const TGeoHMatrix* mat = (TGeoHMatrix*)src.mSensorMatrices->At(i);
+        const TGeoHMatrix *mat = (TGeoHMatrix *) src.mSensorMatrices->At(i);
         mSensorMatrices->AddAt(new TGeoHMatrix(*mat), i);
       }
     }
@@ -203,7 +201,7 @@ UpgradeGeometryTGeo& UpgradeGeometryTGeo::operator=(const UpgradeGeometryTGeo& s
       mTrackingToLocalMatrices = new TObjArray(mNumberOfChips);
       mTrackingToLocalMatrices->SetOwner(kTRUE);
       for (int i = 0; i < mNumberOfChips; i++) {
-        const TGeoHMatrix* mat = (TGeoHMatrix*)src.mTrackingToLocalMatrices->At(i);
+        const TGeoHMatrix *mat = (TGeoHMatrix *) src.mTrackingToLocalMatrices->At(i);
         mTrackingToLocalMatrices->AddAt(new TGeoHMatrix(*mat), i);
       }
     }
@@ -212,7 +210,7 @@ UpgradeGeometryTGeo& UpgradeGeometryTGeo::operator=(const UpgradeGeometryTGeo& s
       mSegmentations = new TObjArray(sz);
       mSegmentations->SetOwner(kTRUE);
       for (int i = 0; i < sz; i++) {
-        Segmentation* sg = (Segmentation*)src.mSegmentations->UncheckedAt(i);
+        Segmentation *sg = (Segmentation *) src.mSegmentations->UncheckedAt(i);
         if (!sg) {
           continue;
         }
@@ -254,7 +252,7 @@ Int_t UpgradeGeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t chipInStave)
 }
 
 Int_t UpgradeGeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t substa, Int_t chipInSStave)
-  const
+const
 {
   int n = getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInSStave;
   if (mNumberOfHalfStaves[lay] && substa > 0) {
@@ -276,7 +274,7 @@ Int_t UpgradeGeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t substa, Int_
   return n;
 }
 
-Bool_t UpgradeGeometryTGeo::getLayer(Int_t index, Int_t& lay, Int_t& indexInLr) const
+Bool_t UpgradeGeometryTGeo::getLayer(Int_t index, Int_t &lay, Int_t &indexInLr) const
 {
   lay = getLayer(index);
   indexInLr = index - getFirstChipIndex(lay);
@@ -373,8 +371,8 @@ Int_t UpgradeGeometryTGeo::getChipIdInModule(Int_t index) const
   return index % mNumberOfChipsPerModule[lay];
 }
 
-Bool_t UpgradeGeometryTGeo::getChipId(Int_t index, Int_t& lay, Int_t& sta, Int_t& hsta, Int_t& mod,
-                                      Int_t& chip) const
+Bool_t UpgradeGeometryTGeo::getChipId(Int_t index, Int_t &lay, Int_t &sta, Int_t &hsta, Int_t &mod,
+                                      Int_t &chip) const
 {
   lay = getLayer(index);
   index -= getFirstChipIndex(lay);
@@ -388,7 +386,7 @@ Bool_t UpgradeGeometryTGeo::getChipId(Int_t index, Int_t& lay, Int_t& sta, Int_t
   return kTRUE;
 }
 
-const char* UpgradeGeometryTGeo::getSymbolicName(Int_t index) const
+const char *UpgradeGeometryTGeo::getSymbolicName(Int_t index) const
 {
   Int_t lay, index2;
   if (!getLayer(index, lay, index2)) {
@@ -400,7 +398,7 @@ const char* UpgradeGeometryTGeo::getSymbolicName(Int_t index) const
   // hardwired layers
   //  TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(
   // GeometryManager::layerToVolUID(lay+1,index2) );
-  TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(chipVolUID(index));
+  TGeoPNEntry *pne = gGeoManager->GetAlignableEntryByUID(chipVolUID(index));
   if (!pne) {
     LOG(ERROR) << "Failed to find alignable entry with index " << index << ": (Lr" << lay
                << " Chip:" << index2 << ") !" << FairLogger::endl;
@@ -409,29 +407,29 @@ const char* UpgradeGeometryTGeo::getSymbolicName(Int_t index) const
   return pne->GetName();
 }
 
-const char* UpgradeGeometryTGeo::composeSymNameITS()
+const char *UpgradeGeometryTGeo::composeSymNameITS()
 {
   return "ITS";
 }
 
-const char* UpgradeGeometryTGeo::composeSymNameLayer(Int_t lr)
+const char *UpgradeGeometryTGeo::composeSymNameLayer(Int_t lr)
 {
   return Form("%s/%s%d", composeSymNameITS(), getITSLayerPattern(), lr);
 }
 
-const char* UpgradeGeometryTGeo::composeSymNameStave(Int_t lr, Int_t stave)
+const char *UpgradeGeometryTGeo::composeSymNameStave(Int_t lr, Int_t stave)
 {
   return Form("%s/%s%d", composeSymNameLayer(lr), getITSStavePattern(), stave);
 }
 
-const char* UpgradeGeometryTGeo::composeSymNameHalfStave(Int_t lr, Int_t stave, Int_t substave)
+const char *UpgradeGeometryTGeo::composeSymNameHalfStave(Int_t lr, Int_t stave, Int_t substave)
 {
   return substave >= 0
-           ? Form("%s/%s%d", composeSymNameStave(lr, stave), getITSHalfStavePattern(), substave)
-           : composeSymNameStave(lr, stave);
+         ? Form("%s/%s%d", composeSymNameStave(lr, stave), getITSHalfStavePattern(), substave)
+         : composeSymNameStave(lr, stave);
 }
 
-const char* UpgradeGeometryTGeo::composeSymNameModule(Int_t lr, Int_t stave, Int_t substave,
+const char *UpgradeGeometryTGeo::composeSymNameModule(Int_t lr, Int_t stave, Int_t substave,
                                                       Int_t mod)
 {
   return mod >= 0 ? Form("%s/%s%d", composeSymNameHalfStave(lr, stave, substave),
@@ -439,26 +437,26 @@ const char* UpgradeGeometryTGeo::composeSymNameModule(Int_t lr, Int_t stave, Int
                   : composeSymNameHalfStave(lr, stave, substave);
 }
 
-const char* UpgradeGeometryTGeo::composeSymNameChip(Int_t lr, Int_t sta, Int_t substave, Int_t mod,
+const char *UpgradeGeometryTGeo::composeSymNameChip(Int_t lr, Int_t sta, Int_t substave, Int_t mod,
                                                     Int_t chip)
 {
   return Form("%s/%s%d", composeSymNameModule(lr, sta, substave, mod), getITSChipPattern(), chip);
 }
 
-TGeoHMatrix* UpgradeGeometryTGeo::GetMatrix(Int_t index) const
+TGeoHMatrix *UpgradeGeometryTGeo::GetMatrix(Int_t index) const
 {
   static TGeoHMatrix matTmp;
-  TGeoPNEntry* pne = getPNEntry(index);
+  TGeoPNEntry *pne = getPNEntry(index);
   if (!pne) {
     return NULL;
   }
 
-  TGeoPhysicalNode* pnode = pne->GetPhysicalNode();
+  TGeoPhysicalNode *pnode = pne->GetPhysicalNode();
   if (pnode) {
     return pnode->GetMatrix();
   }
 
-  const char* path = pne->GetTitle();
+  const char *path = pne->GetTitle();
   gGeoManager->PushPath(); // Preserve the modeler state.
   if (!gGeoManager->cd(path)) {
     gGeoManager->PopPath();
@@ -472,12 +470,12 @@ TGeoHMatrix* UpgradeGeometryTGeo::GetMatrix(Int_t index) const
 
 Bool_t UpgradeGeometryTGeo::GetTranslation(Int_t index, Double_t t[3]) const
 {
-  TGeoHMatrix* m = GetMatrix(index);
+  TGeoHMatrix *m = GetMatrix(index);
   if (!m) {
     return kFALSE;
   }
 
-  Double_t* trans = m->GetTranslation();
+  Double_t *trans = m->GetTranslation();
   for (Int_t i = 0; i < 3; i++) {
     t[i] = trans[i];
   }
@@ -487,12 +485,12 @@ Bool_t UpgradeGeometryTGeo::GetTranslation(Int_t index, Double_t t[3]) const
 
 Bool_t UpgradeGeometryTGeo::getRotation(Int_t index, Double_t r[9]) const
 {
-  TGeoHMatrix* m = GetMatrix(index);
+  TGeoHMatrix *m = GetMatrix(index);
   if (!m) {
     return kFALSE;
   }
 
-  Double_t* rot = m->GetRotationMatrix();
+  Double_t *rot = m->GetRotationMatrix();
   for (Int_t i = 0; i < 9; i++) {
     r[i] = rot[i];
   }
@@ -500,11 +498,11 @@ Bool_t UpgradeGeometryTGeo::getRotation(Int_t index, Double_t r[9]) const
   return kTRUE;
 }
 
-Bool_t UpgradeGeometryTGeo::GetOriginalMatrix(Int_t index, TGeoHMatrix& m) const
+Bool_t UpgradeGeometryTGeo::GetOriginalMatrix(Int_t index, TGeoHMatrix &m) const
 {
   m.Clear();
 
-  const char* symname = getSymbolicName(index);
+  const char *symname = getSymbolicName(index);
   if (!symname) {
     return kFALSE;
   }
@@ -519,7 +517,7 @@ Bool_t UpgradeGeometryTGeo::getOriginalTranslation(Int_t index, Double_t t[3]) c
     return kFALSE;
   }
 
-  Double_t* trans = m.GetTranslation();
+  Double_t *trans = m.GetTranslation();
   for (Int_t i = 0; i < 3; i++) {
     t[i] = trans[i];
   }
@@ -534,7 +532,7 @@ Bool_t UpgradeGeometryTGeo::getOriginalRotation(Int_t index, Double_t r[9]) cons
     return kFALSE;
   }
 
-  Double_t* rot = m.GetRotationMatrix();
+  Double_t *rot = m.GetRotationMatrix();
   for (Int_t i = 0; i < 9; i++) {
     r[i] = rot[i];
   }
@@ -542,14 +540,14 @@ Bool_t UpgradeGeometryTGeo::getOriginalRotation(Int_t index, Double_t r[9]) cons
   return kTRUE;
 }
 
-TGeoHMatrix* UpgradeGeometryTGeo::extractMatrixTrackingToLocal(Int_t index) const
+TGeoHMatrix *UpgradeGeometryTGeo::extractMatrixTrackingToLocal(Int_t index) const
 {
-  TGeoPNEntry* pne = getPNEntry(index);
+  TGeoPNEntry *pne = getPNEntry(index);
   if (!pne) {
     return NULL;
   }
 
-  TGeoHMatrix* m = (TGeoHMatrix*)pne->GetMatrix();
+  TGeoHMatrix *m = (TGeoHMatrix *) pne->GetMatrix();
   if (!m) {
     LOG(ERROR) << "TGeoPNEntry (" << pne->GetName() << ") contains no matrix !" << FairLogger::endl;
   }
@@ -557,16 +555,16 @@ TGeoHMatrix* UpgradeGeometryTGeo::extractMatrixTrackingToLocal(Int_t index) cons
   return m;
 }
 
-Bool_t UpgradeGeometryTGeo::getTrackingMatrix(Int_t index, TGeoHMatrix& m)
+Bool_t UpgradeGeometryTGeo::getTrackingMatrix(Int_t index, TGeoHMatrix &m)
 {
   m.Clear();
 
-  TGeoHMatrix* m1 = GetMatrix(index);
+  TGeoHMatrix *m1 = GetMatrix(index);
   if (!m1) {
     return kFALSE;
   }
 
-  const TGeoHMatrix* m2 = getMatrixT2L(index);
+  const TGeoHMatrix *m2 = getMatrixT2L(index);
   if (!m2) {
     return kFALSE;
   }
@@ -577,7 +575,7 @@ Bool_t UpgradeGeometryTGeo::getTrackingMatrix(Int_t index, TGeoHMatrix& m)
   return kTRUE;
 }
 
-TGeoHMatrix* UpgradeGeometryTGeo::extractMatrixSensor(Int_t index) const
+TGeoHMatrix *UpgradeGeometryTGeo::extractMatrixSensor(Int_t index) const
 {
   Int_t lay, stav, sstav, mod, chipInMod;
   getChipId(index, lay, stav, sstav, mod, chipInMod);
@@ -620,7 +618,7 @@ TGeoHMatrix* UpgradeGeometryTGeo::extractMatrixSensor(Int_t index) const
   return &matTmp;
 }
 
-TGeoPNEntry* UpgradeGeometryTGeo::getPNEntry(Int_t index) const
+TGeoPNEntry *UpgradeGeometryTGeo::getPNEntry(Int_t index) const
 {
   if (index >= mNumberOfChips) {
     LOG(ERROR) << "Invalid ITS chip index: " << index << " (0 -> " << mNumberOfChips << ") !"
@@ -633,7 +631,7 @@ TGeoPNEntry* UpgradeGeometryTGeo::getPNEntry(Int_t index) const
                << FairLogger::endl;
     return NULL;
   }
-  TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(chipVolUID(index));
+  TGeoPNEntry *pne = gGeoManager->GetAlignableEntryByUID(chipVolUID(index));
   //  TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(getSymbolicName(index));
 
   if (!pne) {
@@ -696,7 +694,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfLayers()
 {
   Int_t numberOfLayers = 0;
 
-  TGeoVolume* itsV = gGeoManager->GetVolume(getITSVolPattern());
+  TGeoVolume *itsV = gGeoManager->GetVolume(getITSVolPattern());
   if (!itsV) {
     LOG(FATAL) << "ITS volume " << getITSVolPattern() << " is not in the geometry"
                << FairLogger::endl;
@@ -705,13 +703,13 @@ Int_t UpgradeGeometryTGeo::extractNumberOfLayers()
 
   // Loop on all ITSV nodes, count Layer volumes by checking names
   // Build on the fly layer - wrapper correspondence
-  TObjArray* nodes = itsV->GetNodes();
+  TObjArray *nodes = itsV->GetNodes();
   Int_t nNodes = nodes->GetEntriesFast();
 
   for (Int_t j = 0; j < nNodes; j++) {
     int lrID = -1;
-    TGeoNode* nd = (TGeoNode*)nodes->At(j);
-    const char* name = nd->GetName();
+    TGeoNode *nd = (TGeoNode *) nodes->At(j);
+    const char *name = nd->GetName();
 
     if (strstr(name, getITSLayerPattern())) {
       numberOfLayers++;
@@ -729,11 +727,11 @@ Int_t UpgradeGeometryTGeo::extractNumberOfLayers()
         exit(1);
       }
 
-      TObjArray* nodesW = nd->GetNodes();
+      TObjArray *nodesW = nd->GetNodes();
       int nNodesW = nodesW->GetEntriesFast();
 
       for (Int_t jw = 0; jw < nNodesW; jw++) {
-        TGeoNode* ndW = (TGeoNode*)nodesW->At(jw);
+        TGeoNode *ndW = (TGeoNode *) nodesW->At(jw);
         if (strstr(ndW->GetName(), getITSLayerPattern())) {
           if ((lrID = extractVolumeCopy(ndW->GetName(),
                                         UpgradeGeometryTGeo::getITSLayerPattern())) < 0) {
@@ -754,7 +752,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfStaves(Int_t lay) const
   Int_t numberOfStaves = 0;
   char laynam[30];
   snprintf(laynam, 30, "%s%d", getITSLayerPattern(), lay);
-  TGeoVolume* volLr = gGeoManager->GetVolume(laynam);
+  TGeoVolume *volLr = gGeoManager->GetVolume(laynam);
   if (!volLr) {
     LOG(FATAL) << "can't find " << laynam << " volume" << FairLogger::endl;
     return -1;
@@ -781,7 +779,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfHalfStaves(Int_t lay) const
   Int_t nSS = 0;
   char stavnam[30];
   snprintf(stavnam, 30, "%s%d", getITSStavePattern(), lay);
-  TGeoVolume* volLd = gGeoManager->GetVolume(stavnam);
+  TGeoVolume *volLd = gGeoManager->GetVolume(stavnam);
   if (!volLd) {
     LOG(FATAL) << "can't find volume " << stavnam << FairLogger::endl;
   }
@@ -802,7 +800,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfModules(Int_t lay) const
   }
 
   char stavnam[30];
-  TGeoVolume* volLd = 0;
+  TGeoVolume *volLd = 0;
 
   if (!mHalfStaveName.IsNull()) {
     snprintf(stavnam, 30, "%s%d", getITSHalfStavePattern(), lay);
@@ -829,11 +827,11 @@ Int_t UpgradeGeometryTGeo::extractNumberOfModules(Int_t lay) const
   return nMod;
 }
 
-Int_t UpgradeGeometryTGeo::extractNumberOfChipsPerModule(Int_t lay, int& nrow) const
+Int_t UpgradeGeometryTGeo::extractNumberOfChipsPerModule(Int_t lay, int &nrow) const
 {
   Int_t numberOfChips = 0;
   char stavnam[30];
-  TGeoVolume* volLd = 0;
+  TGeoVolume *volLd = 0;
 
   if (!mModuleName.IsNull()) {
     snprintf(stavnam, 30, "%s%d", getITSModulePattern(), lay);
@@ -857,13 +855,13 @@ Int_t UpgradeGeometryTGeo::extractNumberOfChipsPerModule(Int_t lay, int& nrow) c
   Int_t nNodes = volLd->GetNodes()->GetEntries();
 
   double xmin = 1e9, xmax = -1e9, zmin = 1e9, zmax = -1e9;
-  double lab[3], loc[3] = { 0, 0, 0 };
+  double lab[3], loc[3] = {0, 0, 0};
   double dx = -1, dz = -1;
 
   for (Int_t j = 0; j < nNodes; j++) {
     //    AliInfo(Form("L%d %d of %d %s %s ->
     // %d",lay,j,nNodes,volLd->GetNodes()->At(j)->GetName(),GetITSChipPattern(),numberOfChips));
-    TGeoNodeMatrix* node = (TGeoNodeMatrix*)volLd->GetNodes()->At(j);
+    TGeoNodeMatrix *node = (TGeoNodeMatrix *) volLd->GetNodes()->At(j);
     if (!strstr(node->GetName(), getITSChipPattern())) {
       continue;
     }
@@ -884,8 +882,8 @@ Int_t UpgradeGeometryTGeo::extractNumberOfChipsPerModule(Int_t lay, int& nrow) c
     numberOfChips++;
 
     if (dx < 0) {
-      TGeoShape* chShape = node->GetVolume()->GetShape();
-      TGeoBBox* bbox = dynamic_cast<TGeoBBox*>(chShape);
+      TGeoShape *chShape = node->GetVolume()->GetShape();
+      TGeoBBox *bbox = dynamic_cast<TGeoBBox *>(chShape);
       if (!bbox) {
         LOG(FATAL) << "Chip " << node->GetName() << " volume is of unprocessed shape "
                    << chShape->IsA()->GetName() << FairLogger::endl;
@@ -913,7 +911,7 @@ Int_t UpgradeGeometryTGeo::extractLayerChipType(Int_t lay) const
 {
   char stavnam[30];
   snprintf(stavnam, 30, "%s%d", getITSLayerPattern(), lay);
-  TGeoVolume* volLd = gGeoManager->GetVolume(stavnam);
+  TGeoVolume *volLd = gGeoManager->GetVolume(stavnam);
   if (!volLd) {
     LOG(FATAL) << "can't find volume " << stavnam << FairLogger::endl;
     return -1;
@@ -930,7 +928,7 @@ UInt_t UpgradeGeometryTGeo::composeChipTypeId(UInt_t segmId)
   return segmId + kChipTypePix * kMaxSegmPerChipType;
 }
 
-void UpgradeGeometryTGeo::Print(Option_t*) const
+void UpgradeGeometryTGeo::Print(Option_t *) const
 {
   printf("Geometry version %d, NLayers:%d NChips:%d\n", mVersion, mNumberOfLayers, mNumberOfChips);
   if (mVersion == kITSVNA) {
@@ -938,11 +936,11 @@ void UpgradeGeometryTGeo::Print(Option_t*) const
   }
   for (int i = 0; i < mNumberOfLayers; i++) {
     printf("Lr%2d\tNStav:%2d\tNChips:%2d "
-           "(%dx%-2d)\tNMod:%d\tNSubSt:%d\tNSt:%3d\tChipType:%3d\tChip#:%5d:%-5d\tWrapVol:%d\n",
+             "(%dx%-2d)\tNMod:%d\tNSubSt:%d\tNSt:%3d\tChipType:%3d\tChip#:%5d:%-5d\tWrapVol:%d\n",
            i, mNumberOfStaves[i], mNumberOfChipsPerModule[i], mNumberOfChipRowsPerModule[i],
            mNumberOfChipRowsPerModule[i]
-             ? mNumberOfChipsPerModule[i] / mNumberOfChipRowsPerModule[i]
-             : 0,
+           ? mNumberOfChipsPerModule[i] / mNumberOfChipRowsPerModule[i]
+           : 0,
            mNumberOfModules[i], mNumberOfHalfStaves[i], mNumberOfStaves[i], mLayerChipType[i],
            getFirstChipIndex(i), getLastChipIndex(i), mLayerToWrapper[i]);
   }
@@ -967,9 +965,9 @@ void UpgradeGeometryTGeo::createT2LMatrices()
   mTrackingToLocalMatrices = new TObjArray(mNumberOfChips);
   mTrackingToLocalMatrices->SetOwner(kTRUE);
   TGeoHMatrix matLtoT;
-  double locA[3] = { -100, 0, 0 }, locB[3] = { 100, 0, 0 }, gloA[3], gloB[3];
+  double locA[3] = {-100, 0, 0}, locB[3] = {100, 0, 0}, gloA[3], gloB[3];
   for (int isn = 0; isn < mNumberOfChips; isn++) {
-    const TGeoHMatrix* matSens = getMatrixSensor(isn);
+    const TGeoHMatrix *matSens = getMatrixSensor(isn);
     if (!matSens) {
       LOG(FATAL) << "Failed to get matrix for sensor " << isn << FairLogger::endl;
       return;
@@ -979,8 +977,8 @@ void UpgradeGeometryTGeo::createT2LMatrices()
     double dx = gloB[0] - gloA[0];
     double dy = gloB[1] - gloA[1];
     double t = (gloB[0] * dx + gloB[1] * dy) / (dx * dx + dy * dy), x = gloB[0] - dx * t,
-           y = gloB[1] - dy * t;
-    TGeoHMatrix* t2l = new TGeoHMatrix();
+      y = gloB[1] - dy * t;
+    TGeoHMatrix *t2l = new TGeoHMatrix();
     t2l->RotateZ(ATan2(y, x) * RadToDeg()); // rotate in direction of normal to the sensor plane
     t2l->SetDx(x);
     t2l->SetDy(y);
@@ -1021,7 +1019,7 @@ void UpgradeGeometryTGeo::createT2LMatrices()
 }
 
 //______________________________________________________________________
-Int_t UpgradeGeometryTGeo::extractVolumeCopy(const char* name, const char* prefix) const
+Int_t UpgradeGeometryTGeo::extractVolumeCopy(const char *name, const char *prefix) const
 {
   TString nms = name;
   if (!nms.BeginsWith(prefix)) {

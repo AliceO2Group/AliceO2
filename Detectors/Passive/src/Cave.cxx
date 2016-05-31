@@ -11,10 +11,10 @@
 // -----                    Cave  file                               -----
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
-#include "Cave.h"
+#include "DetectorsPassive/Cave.h"
 #include "FairGeoInterface.h"  // for FairGeoInterface
 #include "FairGeoLoader.h"     // for FairGeoLoader
-#include "GeoCave.h"           // for GeoCave
+#include "include/DetectorsPassive/GeoCave.h"
 #include "TString.h"           // for TString
 #include <stddef.h>            // for NULL
 

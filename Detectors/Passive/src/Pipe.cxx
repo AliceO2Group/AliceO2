@@ -11,7 +11,7 @@
 // -----                Created by M. Al-Turany  June 2014             -----
 // -------------------------------------------------------------------------
 
-#include "Pipe.h"
+#include "DetectorsPassive/Pipe.h"
 #include "TGeoManager.h"   // for TGeoManager, gGeoManager
 #include "TGeoMaterial.h"  // for TGeoMaterial
 #include "TGeoMedium.h"    // for TGeoMedium

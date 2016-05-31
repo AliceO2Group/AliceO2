@@ -1,9 +1,10 @@
 /// \file ContainerFactory.cxx
 /// \brief Implementation of the ContainerFactory class
 
-#include "ContainerFactory.h"
+#include "itsBase/ContainerFactory.h"
 #include "FairRuntimeDb.h"  // for FairRuntimeDb
 #include "TString.h"        // for TString
+
 class FairParSet;
 
 using namespace AliceO2::ITS;
@@ -30,7 +31,7 @@ void ContainerFactory::mSetAllContainers()
   // containers->Add(p);
 }
 
-FairParSet* ContainerFactory::createContainer(FairContainer* c)
+FairParSet *ContainerFactory::createContainer(FairContainer *c)
 {
   // const char* name=c->GetName();
   // FairParSet* p=NULL;
