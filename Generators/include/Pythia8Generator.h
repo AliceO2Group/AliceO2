@@ -14,7 +14,7 @@
 #define PNDP8GENERATOR_H 1
 
 // Avoid the inclusion of dlfcn.h by Pyhtia.h that CINT is not able to process (avoid compile error on GCC > 5)
-#ifdef __CINT__
+#ifdef __CLING__
 #define _DLFCN_H_
 #define _DLFCN_H
 #endif

@@ -1,25 +1,6 @@
+set(MODULE_NAME "TPCbase")
 
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
-  ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/
-
-)
-
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${ROOT_INCLUDE_DIR}
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${Boost_INCLUDE_DIRS}
-  ${FAIRROOT_INCLUDE_DIR}
-)
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${ROOT_LIBRARY_DIR}
-  ${FAIRROOT_LIBRARY_DIR}
-)
-
-link_directories( ${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
    src/ContainerFactory.cxx
@@ -36,7 +17,6 @@ set(SRCS
    src/ROC.cxx
    src/Sector.cxx
 )
-
 
 set(HEADERS
    include/ContainerFactory.h
@@ -56,11 +36,11 @@ set(HEADERS
    include/Sector.h
 )
 
-# string(REPLACE ".cxx" ".h" HEADERS "${SRCS}")
-
 Set(LINKDEF src/tpcBaseLinkDef.h)
-Set(LIBRARY_NAME tpcBase)
-Set(DEPENDENCIES
-    Base
-)
-GENERATE_LIBRARY()
+Set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME tpc_base_bucket)
+
+O2_GENERATE_LIBRARY()
+
+# Install all the public header
+install(DIRECTORY include/${MODULE_NAME} DESTINATION include)

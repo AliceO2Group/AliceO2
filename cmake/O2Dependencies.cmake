@@ -107,3 +107,138 @@ o2_define_bucket(
     MathUtils
 )
 
+o2_define_bucket(
+    NAME
+    root_base_bucket
+    DEPENDENCIES
+    Core # ROOT
+)
+
+o2_define_bucket(
+    NAME
+    fairroot_base_bucket
+    DEPENDENCIES
+    root_base_bucket
+    FairMQ ${Boost_LOG_LIBRARY} fairmq_logger Base
+)
+
+o2_define_bucket(
+    NAME
+    root_physics_bucket
+    DEPENDENCIES
+    EG Physics  # ROOT
+)
+
+o2_define_bucket(
+    NAME
+    data_format_simulation_bucket
+    DEPENDENCIES
+    fairroot_base_bucket
+    root_physics_bucket
+)
+
+o2_define_bucket(
+    NAME
+    detectors_base
+    DEPENDENCIES
+    fairroot_base_bucket
+    root_physics_bucket
+    EG Physics
+)
+
+o2_define_bucket(
+    NAME
+    its_simulation_bucket
+    DEPENDENCIES
+    fairroot_base_bucket
+    root_physics_bucket
+    ParBase
+    itsBase
+    DetectorsBase
+    SimulationDataFormat
+)
+
+o2_define_bucket(
+    NAME
+    itsmft_test
+    DEPENDENCIES
+    itsSimulation
+)
+
+o2_define_bucket(
+    NAME
+    its_base_bucket
+    DEPENDENCIES
+    ParBase
+    DetectorsBase
+)
+
+o2_define_bucket(
+    NAME
+    QC_base_bucket
+    DEPENDENCIES
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+    RIO
+    Core
+    MathMore
+    Net
+    Hist
+    Tree
+    Gpad
+    ${Boost_LOG_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    FairMQ ${Boost_LOG_LIBRARY} fairmq_logger
+)
+
+o2_define_bucket(
+    NAME
+    QC_viewer_bucket
+    DEPENDENCIES
+    QC_base_bucket
+    Gpad
+)
+
+o2_define_bucket(
+    NAME
+    QC_merger_bucket
+    DEPENDENCIES
+    QC_base_bucket
+)
+
+o2_define_bucket(
+    NAME
+    QC_producer_bucket
+    DEPENDENCIES
+    QC_base_bucket
+)
+
+o2_define_bucket(
+    NAME
+    QC_test_bucket
+    DEPENDENCIES
+    dl Core Base Hist o2qaLibrary FairMQ  ${Boost_SYSTEM_LIBRARY}
+)
+
+o2_define_bucket(
+    NAME
+    tpc_base_bucket
+    DEPENDENCIES
+    Base
+)
+
+o2_define_bucket(
+    NAME
+    tpc_simulation_bucket
+    DEPENDENCIES
+    TPCbase
+    DetectorsBase
+    SimulationDataFormat
+)
+
+o2_define_bucket(
+    NAME
+    root_geom
+    DEPENDENCIES
+    Base GeoBase ParBase Geom Core
+)

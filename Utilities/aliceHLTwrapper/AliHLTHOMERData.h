@@ -49,7 +49,7 @@
 
 // Determine the sizes of the different integer type
 // homer_uint32, homer_uint64
-#if !defined(USE_ROOT) && !defined(__CINT__)
+#if !defined(USE_ROOT) && !defined(__CLING__)
 // First homer_uint32
 #if USHRT_MAX==4294967295
 typedef unsigned short homer_uint32;
@@ -114,7 +114,7 @@ typedef unsigned long long homer_uint64;
 
 typedef unsigned char homer_uint8;
 
-#else // !USE_ROOT && !CINT
+#else // !USE_ROOT && !CLING
 
 
 typedef UShort_t homer_uint16;
@@ -122,7 +122,7 @@ typedef UInt_t homer_uint32;
 typedef ULong64_t homer_uint64;
 typedef Byte_t homer_uint8;
 
-#ifdef __CINT__
+#ifdef __CLING__
 typedef int key_t;
 #endif
 
@@ -177,9 +177,9 @@ const homer_uint8 kHOMERBigEndianByteOrder    = 2;
 #if defined(__powerpc__)
     const homer_uint8 kHOMERNativeByteOrder = kHOMERBigEndianByteOrder;
 #else
-#ifdef __CINT__
+#ifdef __CLING__
     const homer_uint8 kHOMERNativeByteOrder = kHOMERLittleEndianByteOrder;
-#warning Assuming little endian format for __CINT__
+#warning Assuming little endian format for __CLING__
 #else
     const homer_uint8 kHOMERNativeByteOrder = kHOMERLittleEndianByteOrder;
 #warning Assuming little endian format for unknown architecture

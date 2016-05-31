@@ -2,7 +2,7 @@
 /// \brief Implementation of the TrackReference class
 /// \author Sylwester Radomski (S.Radomski@gsi.de) GSI, Jan 31, 2003
 
-#include "TrackReference.h"
+#include "DetectorsBase/TrackReference.h"
 #include "TVirtualMC.h"  // for TVirtualMC, gMC
 #include <Riostream.h>
 
@@ -11,22 +11,21 @@ using std::cout;
 
 using namespace AliceO2::Base;
 
-
 ClassImp(AliceO2::Base::TrackReference)
 
 TrackReference::TrackReference()
-    : TObject()
-    , mTrackNumber(0)
-    , mReferencePositionX(0)
-    , mReferencePositionY(0)
-    , mReferencePositionZ(0)
-    , mMomentumX(0)
-    , mMomentumY(0)
-    , mMomentumZ(0)
-    , mTrackLength(0)
-    , mTof(0)
-    , mUserId(0)
-    , mDetectorId(-999)
+  : TObject(),
+    mTrackNumber(0),
+    mReferencePositionX(0),
+    mReferencePositionY(0),
+    mReferencePositionZ(0),
+    mMomentumX(0),
+    mMomentumY(0),
+    mMomentumZ(0),
+    mTrackLength(0),
+    mTof(0),
+    mUserId(0),
+    mDetectorId(-999)
 {
   //
   // Default constructor
@@ -37,36 +36,36 @@ TrackReference::TrackReference()
   }
 }
 
-TrackReference::TrackReference(const TrackReference& tr)
-    : TObject(tr)
-    , mTrackNumber(tr.mTrackNumber)
-    , mReferencePositionX(tr.mReferencePositionX)
-    , mReferencePositionY(tr.mReferencePositionY)
-    , mReferencePositionZ(tr.mReferencePositionZ)
-    , mMomentumX(tr.mMomentumX)
-    , mMomentumY(tr.mMomentumY)
-    , mMomentumZ(tr.mMomentumZ)
-    , mTrackLength(tr.mTrackLength)
-    , mTof(tr.mTof)
-    , mUserId(tr.mUserId)
-    , mDetectorId(tr.mDetectorId)
+TrackReference::TrackReference(const TrackReference &tr)
+  : TObject(tr),
+    mTrackNumber(tr.mTrackNumber),
+    mReferencePositionX(tr.mReferencePositionX),
+    mReferencePositionY(tr.mReferencePositionY),
+    mReferencePositionZ(tr.mReferencePositionZ),
+    mMomentumX(tr.mMomentumX),
+    mMomentumY(tr.mMomentumY),
+    mMomentumZ(tr.mMomentumZ),
+    mTrackLength(tr.mTrackLength),
+    mTof(tr.mTof),
+    mUserId(tr.mUserId),
+    mDetectorId(tr.mDetectorId)
 {
   // Copy Constructor
 }
 
 TrackReference::TrackReference(Int_t label, Int_t id)
-    : TObject()
-    , mTrackNumber(label)
-    , mReferencePositionX(0)
-    , mReferencePositionY(0)
-    , mReferencePositionZ(0)
-    , mMomentumX(0)
-    , mMomentumY(0)
-    , mMomentumZ(0)
-    , mTrackLength(TVirtualMC::GetMC()->TrackLength())
-    , mTof(TVirtualMC::GetMC()->TrackTime())
-    , mUserId(0)
-    , mDetectorId(id)
+  : TObject(),
+    mTrackNumber(label),
+    mReferencePositionX(0),
+    mReferencePositionY(0),
+    mReferencePositionZ(0),
+    mMomentumX(0),
+    mMomentumY(0),
+    mMomentumZ(0),
+    mTrackLength(TVirtualMC::GetMC()->TrackLength()),
+    mTof(TVirtualMC::GetMC()->TrackTime()),
+    mUserId(0),
+    mDetectorId(id)
 {
   //
   // Create Reference object out of label and
@@ -137,10 +136,10 @@ TrackReference::TrackReference(Int_t label, Int_t id)
 //   return track;
 // }
 
-void TrackReference::Print(Option_t* /*opt*/) const
+void TrackReference::Print(Option_t * /*opt*/) const
 {
   cout << Form("Label %d P=%7.2f (PX,PY,PZ)=(%7.2f,%7.2f,%7.2f) (X,Y,Z)=(%7.2f,%7.2f,%7.2f)"
-               " Length=%7.2f Time=%7.2f UserId=%d",
+                 " Length=%7.2f Time=%7.2f UserId=%d",
                Label(), P(), Px(), Py(), Pz(), X(), Y(), Z(), GetLength(), GetTime(), UserId())
-       << endl;
+  << endl;
 }

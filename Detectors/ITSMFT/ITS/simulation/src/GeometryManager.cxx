@@ -1,7 +1,7 @@
 /// \file GeometryManager.cxx
 /// \brief Implementation of the GeometryManager class
 
-#include "GeometryManager.h"
+#include "itsSimulation/GeometryManager.h"
 
 #include "FairLogger.h"        // for LOG
 
@@ -13,14 +13,13 @@
 #include "TObjArray.h"         // for TObjArray
 #include "TObject.h"           // for TObject
 
-
 #include "stddef.h"            // for NULL
 
 using namespace AliceO2::ITS;
 
 ClassImp(AliceO2::ITS::GeometryManager)
 
-TGeoManager* GeometryManager::mGeometry = 0x0;
+TGeoManager *GeometryManager::mGeometry = 0x0;
 
 /// Implementation of GeometryManager, the geometry manager class which interfaces to TGeo and
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
@@ -33,7 +32,7 @@ GeometryManager::~GeometryManager()
 {
 }
 
-Bool_t GeometryManager::getOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m)
+Bool_t GeometryManager::getOriginalGlobalMatrix(const char *symname, TGeoHMatrix &m)
 {
   m.Clear();
 
@@ -54,8 +53,8 @@ Bool_t GeometryManager::getOriginalGlobalMatrix(const char* symname, TGeoHMatrix
     }
   }
 
-  TGeoPNEntry* pne = mGeometry->GetAlignableEntry(symname);
-  const char* path = NULL;
+  TGeoPNEntry *pne = mGeometry->GetAlignableEntry(symname);
+  const char *path = NULL;
 
   if (pne) {
     m = *pne->GetGlobalOrig();
@@ -70,14 +69,14 @@ Bool_t GeometryManager::getOriginalGlobalMatrix(const char* symname, TGeoHMatrix
   return getOriginalGlobalMatrixFromPath(path, m);
 }
 
-Bool_t GeometryManager::getOriginalGlobalMatrixFromPath(const char* path, TGeoHMatrix& m)
+Bool_t GeometryManager::getOriginalGlobalMatrixFromPath(const char *path, TGeoHMatrix &m)
 {
   m.Clear();
 
   if (!mGeometry || !mGeometry->IsClosed()) {
     LOG(ERROR)
-      << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!"
-      << FairLogger::endl;
+    << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!"
+    << FairLogger::endl;
     return kFALSE;
   }
 
@@ -90,17 +89,17 @@ Bool_t GeometryManager::getOriginalGlobalMatrixFromPath(const char* path, TGeoHM
   mGeometry->cd(path);
 
   while (mGeometry->GetLevel()) {
-    TGeoPhysicalNode* physNode = NULL;
+    TGeoPhysicalNode *physNode = NULL;
     next.Reset();
-    TGeoNode* node = mGeometry->GetCurrentNode();
+    TGeoNode *node = mGeometry->GetCurrentNode();
 
-    while ((physNode = (TGeoPhysicalNode*)next())) {
+    while ((physNode = (TGeoPhysicalNode *) next())) {
       if (physNode->GetNode() == node) {
         break;
       }
     }
 
-    TGeoMatrix* lm = NULL;
+    TGeoMatrix *lm = NULL;
     if (physNode) {
       lm = physNode->GetOriginalMatrix();
       if (!lm) {
