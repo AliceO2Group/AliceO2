@@ -18,13 +18,6 @@
 #include "FairMQParser.h"
 #include "FairMQProgOptions.h"
 #include "ConditionsMQClient.h"
-
-#ifdef NANOMSG
-#include "FairMQTransportFactoryNN.h"
-#else
-#include "FairMQTransportFactoryZMQ.h"
-#endif
-
 using namespace std;
 using namespace boost::program_options;
 using namespace AliceO2::CDB;
@@ -56,14 +49,6 @@ int main(int argc, char** argv)
         client.fChannels = config.GetFairMQMap();
 
         LOG(INFO) << "PID: " << getpid();
-
-#ifdef NANOMSG
-        FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
-#else
-        FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-#endif
-
-        client.SetTransport(transportFactory);
 
         client.SetProperty(ConditionsMQClient::Id, "client");
         client.SetProperty(ConditionsMQClient::ParameterName, parameterName);

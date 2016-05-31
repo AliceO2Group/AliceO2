@@ -19,13 +19,6 @@
 #include "FairMQProgOptions.h"
 #include "ConditionsMQServer.h"
 #include "TApplication.h"
-
-#ifdef NANOMSG
-#include "FairMQTransportFactoryNN.h"
-#else
-#include "FairMQTransportFactoryZMQ.h"
-#endif
-
 using namespace std;
 using namespace boost::program_options;
 using namespace AliceO2::CDB;
@@ -69,13 +62,6 @@ int main(int argc, char** argv)
         LOG(INFO) << "PID: " << getpid();
 
         TApplication app("ConditionsMQServer", 0, 0);
-
-#ifdef NANOMSG
-        FairMQTransportFactory* transportFactory = new FairMQTransportFactoryNN();
-#else
-        FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
-#endif
-        server.SetTransport(transportFactory);
 
         server.SetProperty(ConditionsMQServer::Id, id);
         server.SetProperty(ConditionsMQServer::NumIoThreads, config.GetValue<int>("io-threads"));
