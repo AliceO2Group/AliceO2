@@ -77,6 +77,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
   private:
 
     static const int fgkNSlices = 36;       //* N slices
+    static const int fgkNPatches = 6;       //* N slices
 
     /** the tracker object */
     AliHLTTPCCATrackerFramework* fTracker;                      //! transient
