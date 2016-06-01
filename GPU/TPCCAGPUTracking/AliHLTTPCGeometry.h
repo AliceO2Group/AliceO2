@@ -238,6 +238,16 @@ class AliHLTTPCGeometry {
 
   static void PrintCompileOptions();
   
+  // cluster indexation
+
+  static UInt_t CreateClusterID( UInt_t Slice, UInt_t Partition, UInt_t ClusterIndex ){
+    return ( (Slice & 0x3F)<<25 ) + ( (Partition & 0x7)<<22 ) + ( ClusterIndex & 0x003FFFFF );
+  }
+  static UInt_t CluID2Slice     ( UInt_t ClusterId )  { return ( ClusterId >> 25 )  & 0x3F; }
+  static UInt_t CluID2Partition ( UInt_t ClusterId )  { return ( ClusterId >> 22 )  & 0x7;  }
+  static UInt_t CluID2Index     ( UInt_t ClusterId )  { return   ClusterId & 0x003FFFFF;    }
+  
+
   ClassDef(AliHLTTPCGeometry,0)
 };
 #endif

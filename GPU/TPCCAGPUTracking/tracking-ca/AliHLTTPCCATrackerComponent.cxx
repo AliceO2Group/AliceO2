@@ -613,7 +613,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	  pCluster->fX = pHLTCluster->GetX();
 	  pCluster->fY = pHLTCluster->GetY();
 	  pCluster->fZ = pHLTCluster->GetZ();
-	  int ind = pHLTCluster->GetRawClusterIndex();
+	  int ind = AliHLTTPCGeometry::CluID2Index( pHLTCluster->GetRawClusterID() );
 	  pCluster->fRow = firstRow + inPtrRaw->fClusters[ind].GetPadRow();
 	  pCluster->fAmp = inPtrRaw->fClusters[ind].GetCharge();
 	  pCluster++;
