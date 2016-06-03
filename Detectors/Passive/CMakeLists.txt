@@ -23,6 +23,3 @@ Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME root_geom)
 
 O2_GENERATE_LIBRARY()
-
-# Install all the public include
-install(DIRECTORY include/${MODULE_NAME} DESTINATION include)

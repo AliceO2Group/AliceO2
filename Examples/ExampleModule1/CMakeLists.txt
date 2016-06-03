@@ -18,9 +18,6 @@ set(BUCKET_NAME ExampleModule1_Bucket)
 
 O2_GENERATE_LIBRARY()
 
-# Install all the public header
-install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
-
 # todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ExampleModule1_Bucket)
