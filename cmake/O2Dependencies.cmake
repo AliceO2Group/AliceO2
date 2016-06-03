@@ -189,6 +189,7 @@ o2_define_bucket(
     ${Boost_LOG_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
     FairMQ ${Boost_LOG_LIBRARY} fairmq_logger
+    pthread
 )
 
 o2_define_bucket(
