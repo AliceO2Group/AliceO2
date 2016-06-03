@@ -7,11 +7,14 @@ O2_SETUP(NAME ${MODULE_NAME})
 # Define the source and header files
 set(SRCS
     src/Foo.cxx
+    src/Bar.cxx
     )
 
-set(HEADERS
-    include/${MODULE_NAME}/Foo.h
-    )
+# HEADERS is not needed if we don't generate a dictionary.
+#set(HEADERS
+#    include/${MODULE_NAME}/Foo.h
+#    src/Bar.h
+#    )
 
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ExampleModule1_Bucket)

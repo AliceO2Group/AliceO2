@@ -1,9 +1,8 @@
 ///
-/// @file    Foo.cxx
+/// @file    Bar.cxx
 /// @author  Barthelemy von Haller
 ///
 
-#include "ExampleModule1/Foo.h"
 #include "Bar.h"
 
 #include <iostream>
@@ -12,14 +11,18 @@ namespace AliceO2 {
 namespace Examples {
 namespace ExampleModule1 {
 
-void Foo::greet()
+Bar::Bar()
+{ }
+
+Bar::~Bar()
+{}
+
+void Bar::greet()
 {
-  std::cout << "Hello world from ExampleModule1::Foo" << std::endl;
-  Bar bar;
-  bar.greet();
+  std::cout << "Hello world from ExampleModule1::Bar" << std::endl;
 }
 
-int Foo::returnsN(int n)
+int Bar::returnsN(int n)
 {
 
   /// \todo This is how you can markup a todo in your code that will show up in the documentation of your project.
