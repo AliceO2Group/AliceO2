@@ -41,9 +41,6 @@ set(BUCKET_NAME CCDB_Bucket)
 
 O2_GENERATE_LIBRARY()
 
-# Install all the public header
-install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
-
 Set(Exe_Names
   conditions-server
   conditions-client

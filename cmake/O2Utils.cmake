@@ -231,7 +231,8 @@ macro(O2_GENERATE_LIBRARY)
 
   ############### install the library ###################
   install(TARGETS ${ARGS_LIBRARY_NAME} DESTINATION lib)
-#  install(FILES ${HDRS} DESTINATION include)
+  # Install all the public header
+  install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
 
   Set(LIBRARY_NAME)
   Set(DICTIONARY)
