@@ -46,6 +46,3 @@ Set(LIBRARY_NAME itsSimulation)
 set(BUCKET_NAME its_simulation_bucket)
 
 O2_GENERATE_LIBRARY()
-
-# Install all the public header
-install(DIRECTORY include/${MODULE_NAME} DESTINATION include)

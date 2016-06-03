@@ -16,6 +16,3 @@ set(LIBRARY_NAME Field)
 set(BUCKET_NAME common_field_bucket)
 
 O2_GENERATE_LIBRARY()
-
-# Install all the public header
-install(DIRECTORY include/${MODULE_NAME} DESTINATION include)

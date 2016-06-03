@@ -27,9 +27,6 @@ set(BUCKET_NAME flp2epn_Bucket)
 
 O2_GENERATE_LIBRARY()
 
-# Install all the public header
-install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
-
 Set(Exe_Names
     ${Exe_Names}
     testFLP
