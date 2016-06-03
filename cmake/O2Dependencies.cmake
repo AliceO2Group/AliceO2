@@ -72,7 +72,7 @@ o2_define_bucket(
     NAME
     CCDB_Bucket
     DEPENDENCIES
-    Base ParBase FairMQ ParMQ ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger pthread
+    Base ParBase FairMQ ParMQ ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} ${Boost_THREAD_LIBRARY} fairmq_logger pthread
     Core Tree XMLParser Hist # ROOT
 )
 
@@ -97,7 +97,7 @@ o2_define_bucket(
     NAME
     common_math_bucket
     DEPENDENCIES
-    FairMQ ${Boost_LOG_LIBRARY} fairmq_logger Core
+    FairMQ ${Boost_LOG_LIBRARY} ${Boost_THREAD_LIBRARY} fairmq_logger Core
 )
 
 o2_define_bucket(
@@ -188,7 +188,7 @@ o2_define_bucket(
     Gpad
     ${Boost_LOG_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
-    FairMQ ${Boost_LOG_LIBRARY} fairmq_logger
+    FairMQ ${Boost_THREAD_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger
     pthread
 )
 
