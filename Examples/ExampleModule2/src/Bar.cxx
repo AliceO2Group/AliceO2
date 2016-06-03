@@ -1,11 +1,9 @@
 ///
-/// @file    Foo.cxx
+/// @file    Bar.cxx
 /// @author  Barthelemy von Haller
 ///
 
-#include "ExampleModule2/Foo.h"
-#include "ExampleModule1/Foo.h"
-#include "Bar.h" // private class, not in the api
+#include "Bar.h"
 
 #include <iostream>
 
@@ -13,16 +11,18 @@ namespace AliceO2 {
 namespace Examples {
 namespace ExampleModule2 {
 
-void Foo::greet()
+Bar::Bar()
+{ }
+
+Bar::~Bar()
+{}
+
+void Bar::greet()
 {
-  std::cout << "Hello world from ExampleModule2::Foo" << std::endl;
-  AliceO2::Examples::ExampleModule1::Foo otherFoo;
-  otherFoo.greet();
-  AliceO2::Examples::ExampleModule2::Bar bar;
-  bar.greet();
+  std::cout << "Hello world from ExampleModule2::Bar" << std::endl;
 }
 
-int Foo::returnsN(int n)
+int Bar::returnsN(int n)
 {
 
   /// \todo This is how you can markup a todo in your code that will show up in the documentation of your project.

@@ -4,12 +4,17 @@ set(MODULE_NAME "ExampleModule2")
 
 O2_SETUP(NAME ${MODULE_NAME})
 
-# Define the source and header files
+# Define the source and header files of the library
 set(SRCS
     src/Foo.cxx
     )
 
+set(NO_DICT_SRCS # sources not for the dictionary
+    src/Bar.cxx
+    )
+
 set(HEADERS
+    src/Bar.h
     include/${MODULE_NAME}/Foo.h
     )
 
