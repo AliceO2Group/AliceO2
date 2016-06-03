@@ -38,10 +38,10 @@ function(O2_DEFINE_BUCKET)
   )
   CHECK_VARIABLE(PARSED_ARGS_NAME "You must provide a name")
 
-#  message(STATUS "o2_define_bucket : ${PARSED_ARGS_NAME}")
-#  foreach (dependency ${PARSED_ARGS_DEPENDENCIES})
-#    message(STATUS "   - ${dependency}")
-#  endforeach ()
+  #  message(STATUS "o2_define_bucket : ${PARSED_ARGS_NAME}")
+  #  foreach (dependency ${PARSED_ARGS_DEPENDENCIES})
+  #    message(STATUS "   - ${dependency}")
+  #  endforeach ()
 
   # Save this information
   set("Bucket_map_${PARSED_ARGS_NAME}" "${PARSED_ARGS_DEPENDENCIES}" PARENT_SCOPE) # emulation of a map
@@ -76,13 +76,13 @@ function(GET_BUCKET_CONTENT BUCKET_NAME RESULT) # DEPTH
     message(FATAL_ERROR "${INDENTATION}Bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it.")
   endif ()
 
-#  message("${INDENTATION}Get content of bucket ${BUCKET_NAME}")
+  #  message("${INDENTATION}Get content of bucket ${BUCKET_NAME}")
 
   # Fetch the content (recursively)
   set(dependencies ${Bucket_map_${BUCKET_NAME}})
   set(LOCAL_RESULT "")
   foreach (dependency ${dependencies})
-#    message("${INDENTATION}- ${dependency}")
+    #    message("${INDENTATION}- ${dependency}")
     # if it is a bucket we call recursively
     if (DEFINED Bucket_map_${dependency})
       MATH(EXPR new_depth "${DEPTH}+1")
@@ -119,7 +119,7 @@ function(O2_TARGET_LINK_BUCKET)
     endif (NOT PARSED_ARGS_MODULE_LIBRARY_NAME)
   endif (PARSED_ARGS_EXE)
 
-#  message(STATUS "Add dependency bucket for target ${PARSED_ARGS_TARGET} : ${PARSED_ARGS_BUCKET}")
+  #  message(STATUS "Add dependency bucket for target ${PARSED_ARGS_TARGET} : ${PARSED_ARGS_BUCKET}")
 
   # find the bucket
   if (NOT DEFINED Bucket_map_${PARSED_ARGS_BUCKET})
@@ -129,7 +129,7 @@ function(O2_TARGET_LINK_BUCKET)
 
   set(RESULT "")
   GET_BUCKET_CONTENT(${PARSED_ARGS_BUCKET} RESULT)
-#  message(STATUS "All dependencies of the bucket : ${RESULT}")
+  #  message(STATUS "All dependencies of the bucket : ${RESULT}")
 
   # for each dependency in the bucket invoke target_link_library
   #  set(DEPENDENCIES ${Bucket_map_${PARSED_ARGS_BUCKET}})
@@ -175,12 +175,13 @@ macro(O2_GENERATE_LIBRARY)
 
   Set(Int_SRCS ${SRCS})
 
-  # ???
-  #  if (HEADERS)
-  Set(HDRS ${HEADERS})
-  #  else (HEADERS)
-  #    CHANGE_FILE_EXTENSION(*.cxx *.h HDRS "${SRCS}")
-  #  endif (HEADERS)
+  # If headers are defined we use them otherwise we search for the headers
+  if (HEADERS)
+    set(HDRS ${HEADERS})
+  else (HEADERS)
+    file(GLOB_RECURSE HDRS *.h)
+    message("Headers : ${HDRS}")
+  endif (HEADERS)
 
   # ???
   if (IWYU_FOUND)
