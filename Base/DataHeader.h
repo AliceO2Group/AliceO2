@@ -70,7 +70,7 @@ struct BaseHeader
   static const char* sMagicString;
 
   //__the data layout:
-  
+
   /// a magic string
   union {
     char     magicString[gSizeMagicString];
@@ -81,7 +81,13 @@ struct BaseHeader
   uint32_t    headerSize;
 
   /// flags, first bit indicates that a sub header follows
-  uint32_t    flags;
+  union {
+    uint32_t    flags;
+    struct {
+      uint32_t  flagsNextHeader :1, //do we have a next header after this one?
+                flagsUnused :31;    //currently unused
+    }
+  }
 
   /// version of this header
   uint32_t    headerVersion;
@@ -124,7 +130,7 @@ struct DataHeader : BaseHeader
     char     payloadSerialization[gSizeSerializationString];
     uint64_t  payloadSerializationInt;
   };
-  
+
   /// data type descriptor
   union {
     char     dataDescription[gSizeDataDescriptionString];
