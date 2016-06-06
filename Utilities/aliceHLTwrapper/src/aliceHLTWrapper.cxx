@@ -15,7 +15,7 @@
 //  @since  2014-05-07
 //  @brief  FairRoot/ALFA device running ALICE HLT code
 
-#include "WrapperDevice.h"
+#include "aliceHLTwrapper/WrapperDevice.h"
 #include <iostream>
 #include <getopt.h>
 #include <memory>

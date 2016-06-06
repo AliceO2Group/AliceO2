@@ -1,116 +1,60 @@
 # @author Matthias Richter
 # @brief  cmake setup for module devices/aliceHLTwrapper
 
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/devices/aliceHLTwrapper
-)
+set(MODULE_NAME "ALICEHLT")
 
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${Boost_INCLUDE_DIR}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${ZMQ_INCLUDE_DIR}
-)
-
-if(DDS_FOUND)
-  add_definitions(-DENABLE_DDS)
-
-  set(SYSTEM_INCLUDE_DIRECTORIES
-   ${SYSTEM_INCLUDE_DIRECTORIES}
-   ${DDS_INCLUDE_DIR}
-  )
-endif()
-
-include_directories(${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${FAIRROOT_LIBRARY_DIR}
-  ${Boost_LIBRARY_DIRS}
-)
-
-if(DDS_FOUND)
-  set(LINK_DIRECTORIES
-   ${LINK_DIRECTORIES}
-   ${DDS_LIBRARY_DIR}
-  )
-endif()
-
-link_directories(${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-  SystemInterface.cxx
-  HOMERFactory.cxx
-  WrapperDevice.cxx
-  Component.cxx
-  MessageFormat.cxx
-  EventSampler.cxx
-)
+    src/SystemInterface.cxx
+    src/HOMERFactory.cxx
+    src/WrapperDevice.cxx
+    src/Component.cxx
+    src/MessageFormat.cxx
+    src/EventSampler.cxx
+    )
 
-if(DDS_FOUND)
-  set(DEPENDENCIES
-    ${DEPENDENCIES}
-    dds_intercom_lib
-  )
-endif()
+set(LIBRARY_NAME ${MODULE_NAME})
 
-set(DEPENDENCIES
-    ${DEPENDENCIES}
-  )
+if (DDS_FOUND)
+  set(BUCKET_NAME alicehlt_with_dds_bucket)
+else ()
+  set(BUCKET_NAME alicehlt_bucket)
+endif ()
 
-if(FAIRMQ_DEPENDENCIES)
-  set(DEPENDENCIES
-    ${DEPENDENCIES}
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${FAIRMQ_DEPENDENCIES}
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_RANDOM_LIBRARY}
-    ${Boost_REGEX_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_LOG_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    FairMQ
-  )
-else(FAIRMQ_DEPENDENCIES)
-  set(DEPENDENCIES
-    ${DEPENDENCIES}
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    FairMQ
-  )
-endif(FAIRMQ_DEPENDENCIES)
+O2_GENERATE_LIBRARY()
 
-set(LIBRARY_NAME ALICEHLT)
+# todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
+set(LIBRARY_NAME ${MODULE_NAME})
+if (DDS_FOUND)
+  set(BUCKET_NAME alicehlt_with_dds_bucket)
+else ()
+  set(BUCKET_NAME alicehlt_bucket)
+endif ()
 
-GENERATE_LIBRARY()
 
 Set(Exe_Names
-#  ${Exe_Names}
-  aliceHLTWrapper
-  aliceHLTEventSampler
-  runComponent
-)
+    aliceHLTWrapper
+    aliceHLTEventSampler
+    runComponent
+    )
 
 set(Exe_Source
-  aliceHLTWrapper.cxx
-  aliceHLTEventSampler.cxx
-  runComponent.cxx
-)
+    src/aliceHLTWrapper.cxx
+    src/aliceHLTEventSampler.cxx
+    src/runComponent.cxx
+    )
 
 list(LENGTH Exe_Names _length)
 math(EXPR _length ${_length}-1)
 
-ForEach(_file RANGE 0 ${_length})
+ForEach (_file RANGE 0 ${_length})
   list(GET Exe_Names ${_file} _name)
   list(GET Exe_Source ${_file} _src)
-  set(EXE_NAME ${_name})
-  set(SRCS ${_src})
-  set(DEPENDENCIES ALICEHLT dl)
-  GENERATE_EXECUTABLE()
-EndForEach(_file RANGE 0 ${_length})
+  O2_GENERATE_EXECUTABLE(
+      EXE_NAME ${_name}
+      SOURCES ${_src}
+      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+      BUCKET_NAME ${BUCKET_NAME}
+  )
+EndForEach (_file RANGE 0 ${_length})

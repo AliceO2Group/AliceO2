@@ -15,18 +15,13 @@
 //  @since  2015-03-15
 //  @brief  Event sampler for Alice HLT in FairMQ/ALFA
 
-#include "EventSampler.h"
-#include <iostream>
-#include <getopt.h>
-#include <memory>
-#include <cstring>
-#include <sstream>
-#include <cerrno>
+#include "aliceHLTwrapper/EventSampler.h"
 #ifdef NANOMSG
 #include "FairMQTransportFactoryNN.h"
 #endif
 #include "FairMQTransportFactoryZMQ.h"
 #include "FairMQTools.h"
+#include <getopt.h>
 
 #include "FairMQStateMachine.h"
 #if defined(FAIRMQ_INTERFACE_VERSION) && FAIRMQ_INTERFACE_VERSION > 0

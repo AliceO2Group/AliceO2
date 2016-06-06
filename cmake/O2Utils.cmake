@@ -180,7 +180,6 @@ macro(O2_GENERATE_LIBRARY)
     set(HDRS ${HEADERS})
   else (HEADERS)
     file(GLOB_RECURSE HDRS *.h)
-    message("Headers : ${HDRS}")
   endif (HEADERS)
 
   # ???
