@@ -15,9 +15,9 @@
 //  @since  2014-05-07
 //  @brief  A component running ALICE HLT code
 
-#include "Component.h"
-#include "AliHLTDataTypes.h"
-#include "SystemInterface.h"
+#include "aliceHLTwrapper/Component.h"
+#include "aliceHLTwrapper/AliHLTDataTypes.h"
+#include "aliceHLTwrapper/SystemInterface.h"
 
 #include <cstdlib>
 #include <cerrno>

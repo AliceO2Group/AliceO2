@@ -180,6 +180,7 @@ ENDIF ()
 
 WRITE_CONFIG_FILE(config.sh)
 
+# Place the CTestCustom.cmake in the build dir
 configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
     ${CMAKE_BINARY_DIR}/CTestCustom.cmake
     )

@@ -250,3 +250,35 @@ o2_define_bucket(
     Base O2SimulationDataFormat pythia8 Pythia6
 )
 
+#if (FAIRMQ_DEPENDENCIES)
+#  set(DEPENDENCIES
+#      ${DEPENDENCIES}
+#      ${CMAKE_THREAD_LIBS_INIT}
+#      ${FAIRMQ_DEPENDENCIES}
+#      ${Boost_CHRONO_LIBRARY}
+#      FairMQ
+#      )
+#else (FAIRMQ_DEPENDENCIES)
+#  set(DEPENDENCIES
+#      ${DEPENDENCIES}
+#      ${CMAKE_THREAD_LIBS_INIT}
+#      ${Boost_CHRONO_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} FairMQ
+#      )
+#endif (FAIRMQ_DEPENDENCIES)
+
+o2_define_bucket(
+    NAME
+    alicehlt_bucket
+    DEPENDENCIES
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_CHRONO_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} FairMQ dl
+)
+
+o2_define_bucket(
+    NAME
+    alicehlt_with_dds_bucket
+    DEPENDENCIES
+    alicehlt_bucket
+    dds-key-value-lib
+)

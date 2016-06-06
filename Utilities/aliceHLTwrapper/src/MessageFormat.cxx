@@ -15,11 +15,11 @@
 //  @since  2014-12-11
 //  @brief  Helper class for message format of ALICE HLT data blocks
 
-#include "MessageFormat.h"
-#include "HOMERFactory.h"
-#include "AliHLTHOMERData.h"
-#include "AliHLTHOMERWriter.h"
-#include "AliHLTHOMERReader.h"
+#include "aliceHLTwrapper/MessageFormat.h"
+#include "aliceHLTwrapper/HOMERFactory.h"
+#include "aliceHLTwrapper/AliHLTHOMERData.h"
+#include "aliceHLTwrapper/AliHLTHOMERWriter.h"
+#include "aliceHLTwrapper/AliHLTHOMERReader.h"
 
 #include <cstdlib>
 #include <cerrno>
