@@ -40,9 +40,9 @@
 #include <cstring>
 #include <iostream>
 #include <dlfcn.h>
-#include "HOMERFactory.h"
-#include "AliHLTHOMERReader.h"
-#include "AliHLTHOMERWriter.h"
+#include "aliceHLTwrapper/HOMERFactory.h"
+#include "aliceHLTwrapper/AliHLTHOMERReader.h"
+#include "aliceHLTwrapper/AliHLTHOMERWriter.h"
 
 using namespace ALICE::HLT;
 

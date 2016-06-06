@@ -15,7 +15,7 @@
 //  @since  2014-05-07
 //  @brief  FairRoot/ALFA interface to ALICE HLT code
 
-#include "SystemInterface.h"
+#include "aliceHLTwrapper/SystemInterface.h"
 #include "AliHLTDataTypes.h"
 #include <cstdlib>
 #include <cerrno>

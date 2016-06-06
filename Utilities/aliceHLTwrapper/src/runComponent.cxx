@@ -17,11 +17,10 @@
 
 // TODO: this file is intended to evolve into a unit test
 
-#include "SystemInterface.h"
-#include "Component.h"
+#include "aliceHLTwrapper/SystemInterface.h"
+#include "aliceHLTwrapper/Component.h"
 #include <iostream>
 #include <fstream>
-#include <getopt.h>
 #include <vector>
 #include <memory>
 #include <cstring>
