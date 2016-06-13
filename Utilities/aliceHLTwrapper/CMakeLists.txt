@@ -1,7 +1,7 @@
 # @author Matthias Richter
 # @brief  cmake setup for module devices/aliceHLTwrapper
 
-set(MODULE_NAME "ALICEHLT")
+set(MODULE_NAME "aliceHLTwrapper")
 
 O2_SETUP(NAME ${MODULE_NAME})
 
