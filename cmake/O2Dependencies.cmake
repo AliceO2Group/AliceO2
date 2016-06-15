@@ -53,7 +53,7 @@ link_directories(${LINK_DIRECTORIES})
 
 ########## General definitions and flags ##########
 
-set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} "-Wl,--no-undefined") # avoid undefined in our libs
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined") # avoid undefined in our libs
 
 ########## Bucket definitions ############
 
