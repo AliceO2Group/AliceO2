@@ -51,6 +51,10 @@ set(LINK_DIRECTORIES
     )
 link_directories(${LINK_DIRECTORIES})
 
+########## General definitions and flags ##########
+
+set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} "-Wl,--no-undefined") # avoid undefined in our libs
+
 ########## Bucket definitions ############
 
 o2_define_bucket(
