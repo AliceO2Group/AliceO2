@@ -61,7 +61,7 @@ endmacro()
 # arg BUCKET_NAME -
 # arg RESULT - Name of the variable in the parent scope that should be populated.
 # arg DEPTH - Use 0 when calling the first time (can be omitted).
-function(GET_BUCKET_CONTENT BUCKET_NAME RESULT) # DEPTH
+function(GET_BUCKET_CONTENT BUCKET_NAME RESULT_VAR_NAME) # DEPTH
   # Check arguments
   if (${ARGC} GREATER 2)
     set(DEPTH ${ARGV2})
@@ -80,20 +80,20 @@ function(GET_BUCKET_CONTENT BUCKET_NAME RESULT) # DEPTH
 
   # Fetch the content (recursively)
   set(dependencies ${Bucket_map_${BUCKET_NAME}})
-  set(LOCAL_RESULT "")
+  set(LOCAL_RESULT_${DEPTH} "")
   foreach (dependency ${dependencies})
     #    message("${INDENTATION}- ${dependency}")
     # if it is a bucket we call recursively
     if (DEFINED Bucket_map_${dependency})
       MATH(EXPR new_depth "${DEPTH}+1")
-      GET_BUCKET_CONTENT(${dependency} LOCAL_RESULT ${new_depth})
+      GET_BUCKET_CONTENT(${dependency} LOCAL_RESULT_${DEPTH} ${new_depth})
     else ()
       # else we add the dependency to the results
-      set(LOCAL_RESULT "${LOCAL_RESULT};${dependency}")
+      set(LOCAL_RESULT_${DEPTH} "${LOCAL_RESULT_${DEPTH}};${dependency}")
     endif ()
   endforeach ()
 
-  set(${RESULT} ${LOCAL_RESULT} PARENT_SCOPE)
+  set(${RESULT_VAR_NAME} "${${RESULT_VAR_NAME}};${LOCAL_RESULT_${DEPTH}}" PARENT_SCOPE)
 endfunction()
 
 #------------------------------------------------------------------------------

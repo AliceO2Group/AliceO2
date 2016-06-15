@@ -21,7 +21,8 @@ find_package(HEPMC)
 find_package(IWYU)
 find_package(DDS)
 
-find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework REQUIRED)
+find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time REQUIRED)
+find_package(ZeroMQ)
 
 find_package(AliRoot)
 find_package(FairRoot)
@@ -71,8 +72,8 @@ o2_define_bucket(
     NAME
     CCDB_Bucket
     DEPENDENCIES
-    Base ParBase FairMQ ParMQ ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} ${Boost_THREAD_LIBRARY} fairmq_logger pthread
-    Core Tree XMLParser Hist # ROOT
+    Base FairTools FairMQ ParBase ParMQ ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} ${Boost_THREAD_LIBRARY} fairmq_logger pthread
+    Core Tree XMLParser Hist Net RIO # ROOT
 )
 
 o2_define_bucket(
@@ -81,7 +82,8 @@ o2_define_bucket(
     DEPENDENCIES
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} FairMQ ${Boost_LOG_LIBRARY} fairmq_logger pthread
+    ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} ${Boost_DATE_TIME_LIBRARY}
+    ${ZMQ_LIBRARIES} Base FairTools FairMQ ${Boost_LOG_LIBRARY} fairmq_logger pthread
 )
 
 o2_define_bucket(
@@ -96,14 +98,14 @@ o2_define_bucket(
     NAME
     common_math_bucket
     DEPENDENCIES
-    FairMQ ${Boost_LOG_LIBRARY} ${Boost_THREAD_LIBRARY} fairmq_logger Core
+    FairMQ ${Boost_LOG_LIBRARY} ${Boost_THREAD_LIBRARY} fairmq_logger Base FairTools Core MathCore Hist
 )
 
 o2_define_bucket(
     NAME
     common_field_bucket
     DEPENDENCIES
-    MathUtils
+    Core RIO MathUtils Geom
 )
 
 o2_define_bucket(
@@ -115,10 +117,17 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    root_geom
+    DEPENDENCIES
+    Base GeoBase ParBase Geom Core
+)
+
+o2_define_bucket(
+    NAME
     fairroot_base_bucket
     DEPENDENCIES
     root_base_bucket
-    FairMQ ${Boost_LOG_LIBRARY} fairmq_logger Base
+    Base FairMQ FairTools ${Boost_LOG_LIBRARY} fairmq_logger Base
 )
 
 o2_define_bucket(
@@ -142,13 +151,19 @@ o2_define_bucket(
     DEPENDENCIES
     fairroot_base_bucket
     root_physics_bucket
-    EG Physics
+    VMC # ROOT
 )
 
 o2_define_bucket(
     NAME
     its_simulation_bucket
     DEPENDENCIES
+    root_base_bucket
+    root_geom
+    Hist
+    Graf
+    Gpad
+    RIO
     fairroot_base_bucket
     root_physics_bucket
     ParBase
@@ -185,6 +200,7 @@ o2_define_bucket(
     Hist
     Tree
     Gpad
+    MathCore
     ${Boost_LOG_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
     FairMQ ${Boost_THREAD_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger
@@ -224,7 +240,9 @@ o2_define_bucket(
     NAME
     tpc_base_bucket
     DEPENDENCIES
-    Base
+    root_base_bucket
+    fairroot_base_bucket
+    ParBase
 )
 
 o2_define_bucket(
@@ -238,33 +256,10 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    root_geom
-    DEPENDENCIES
-    Base GeoBase ParBase Geom Core
-)
-
-o2_define_bucket(
-    NAME
     generators_bucket
     DEPENDENCIES
     Base O2SimulationDataFormat pythia8 Pythia6
 )
-
-#if (FAIRMQ_DEPENDENCIES)
-#  set(DEPENDENCIES
-#      ${DEPENDENCIES}
-#      ${CMAKE_THREAD_LIBS_INIT}
-#      ${FAIRMQ_DEPENDENCIES}
-#      ${Boost_CHRONO_LIBRARY}
-#      FairMQ
-#      )
-#else (FAIRMQ_DEPENDENCIES)
-#  set(DEPENDENCIES
-#      ${DEPENDENCIES}
-#      ${CMAKE_THREAD_LIBS_INIT}
-#      ${Boost_CHRONO_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} FairMQ
-#      )
-#endif (FAIRMQ_DEPENDENCIES)
 
 o2_define_bucket(
     NAME
@@ -272,7 +267,7 @@ o2_define_bucket(
     DEPENDENCIES
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_CHRONO_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} FairMQ dl
+    ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_LOG_LIBRARY} pthread FairMQ fairmq_logger dl
 )
 
 o2_define_bucket(
