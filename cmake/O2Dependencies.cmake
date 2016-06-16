@@ -282,3 +282,10 @@ o2_define_bucket(
     alicehlt_bucket
     dds-key-value-lib
 )
+
+o2_define_bucket(
+    NAME
+    hough_Bucket
+    DEPENDENCIES
+    dl Core RIO Gpad Hist HLTbase AliHLTTPC AliHLTUtil boost_system boost_filesystem
+)

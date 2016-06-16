@@ -100,7 +100,7 @@ endfunction()
 # O2_TARGET_LINK_BUCKET
 # arg TARGET
 # arg BUCKET
-# arg EXE - true indicates that it is an executable. It will require the MODULE_LIBRARY argument
+# arg EXE - true indicates that it is an executable. (not used for the time being/anymore)
 # arg MODULE_LIBRARY_NAME - Only used for executables. It should indicate the library of the module.
 function(O2_TARGET_LINK_BUCKET)
   cmake_parse_arguments(
@@ -113,11 +113,6 @@ function(O2_TARGET_LINK_BUCKET)
   # errors if missing arguments
   CHECK_VARIABLE(PARSED_ARGS_TARGET "You must provide a target name")
   CHECK_VARIABLE(PARSED_ARGS_BUCKET "You must provide a bucket name")
-  if (PARSED_ARGS_EXE)
-    if (NOT PARSED_ARGS_MODULE_LIBRARY_NAME)
-      message(FATAL_ERROR "You must provide the name of the module library when used for an executable.")
-    endif (NOT PARSED_ARGS_MODULE_LIBRARY_NAME)
-  endif (PARSED_ARGS_EXE)
 
   #  message(STATUS "Add dependency bucket for target ${PARSED_ARGS_TARGET} : ${PARSED_ARGS_BUCKET}")
 
@@ -249,7 +244,7 @@ endmacro(O2_GENERATE_LIBRARY)
 # arg EXE_NAME
 # arg BUCKET_NAME
 # arg SOURCES
-# arg MODULE_LIBRARY_NAME - Name of the library of the module this executable belongs to.
+# arg MODULE_LIBRARY_NAME - Name of the library of the module this executable belongs to. Optional.
 function(O2_GENERATE_EXECUTABLE)
 
   cmake_parse_arguments(
@@ -263,7 +258,7 @@ function(O2_GENERATE_EXECUTABLE)
   CHECK_VARIABLE(PARSED_ARGS_EXE_NAME "You must provide an executable name")
   CHECK_VARIABLE(PARSED_ARGS_BUCKET_NAME "You must provide a bucket name")
   CHECK_VARIABLE(PARSED_ARGS_SOURCES "You must provide the list of sources")
-  CHECK_VARIABLE(PARSED_ARGS_MODULE_LIBRARY_NAME "You must provide the module library name this executable belongs to")
+#  CHECK_VARIABLE(PARSED_ARGS_MODULE_LIBRARY_NAME "You must provide the module library name this executable belongs to")
 
   ############### build the library #####################
   ADD_EXECUTABLE(${PARSED_ARGS_EXE_NAME} ${PARSED_ARGS_SOURCES})
