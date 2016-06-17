@@ -52,7 +52,11 @@ link_directories(${LINK_DIRECTORIES})
 
 ########## General definitions and flags ##########
 
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined") # avoid undefined in our libs
+if(APPLE)
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-undefined,error") # avoid undefined in our libs
+elseif(UNIX)
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined") # avoid undefined in our libs
+endif() 
 
 ########## Bucket definitions ############
 
@@ -132,6 +136,7 @@ o2_define_bucket(
     DEPENDENCIES
     root_base_bucket
     Base FairMQ FairTools ${Boost_LOG_LIBRARY} fairmq_logger Base
+    ${Boost_THREAD_LIBRARY} pthread
 )
 
 o2_define_bucket(
@@ -269,9 +274,9 @@ o2_define_bucket(
     NAME
     alicehlt_bucket
     DEPENDENCIES
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_CHRONO_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_LOG_LIBRARY} pthread FairMQ fairmq_logger dl
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_CHRONO_LIBRARY}
+    fairroot_base_bucket
 )
 
 o2_define_bucket(
