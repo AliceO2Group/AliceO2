@@ -33,7 +33,7 @@ else ()
 endif ()
 
 Set(Exe_Names
-    aliceHLTWrapper
+    aliceHLTWrapperApp
     aliceHLTEventSampler
     runComponent
     )
