@@ -5,6 +5,8 @@
 #include "Rtypes.h"          // for Int_t, Double32_t, Double_t, Bool_t, etc
 #include "TLorentzVector.h"  // for TLorentzVector
 #include "TVector3.h"        // for TVector3
+#include "TString.h"
+
 class FairVolume;  // lines 10-10
 class TClonesArray;  // lines 11-11
 namespace AliceO2 { namespace TPC { class Point; } }  // lines 15-15
@@ -52,10 +54,6 @@ class Detector: public AliceO2::Base::Detector {
     /**      Create the detector geometry        */
     void ConstructGeometry();
 
-    /** Define the sensitive volumes of the geometry */
-    void defineSensitiveVolumes();
-
-
     /**      This method is an example of how to add your own point
      *       of type DetectorPoint to the clones array
     */
@@ -79,6 +77,8 @@ class Detector: public AliceO2::Base::Detector {
     virtual void   PreTrack() {;}
     virtual void   BeginEvent() {;}
 
+    void SetGeoFileName(const TString file) { fGeoFileName=file;   }
+    const TString& GetGeoFileName() const   { return fGeoFileName; }
 
   private:
 
@@ -94,17 +94,20 @@ class Detector: public AliceO2::Base::Detector {
     Double32_t     mEnergyLoss;             //!  energy loss
 
     /// Create the detector materials
-    virtual void createMaterials();
+    virtual void CreateMaterials();
 
     /// Construct the detector geometry
-    void constructDetectorGeometry();
+    void LoadGeometryFromFile();
+    /// Construct the detector geometry
+    void ConstructTPCGeometry();
+
+    /** Define the sensitive volumes of the geometry */
+    void DefineSensitiveVolumes();
 
     /** container for data points */
     TClonesArray*  mPointCollection;
 
-    Int_t mSens;  //! if to include stripts in the geometry
-    //TODO: dirty
-    AliTPCParam *mParam;
+    TString fGeoFileName;                  /// Name of the file containing the TPC geometry
 
     Detector(const Detector&);
     Detector& operator=(const Detector&);
