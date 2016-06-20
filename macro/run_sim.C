@@ -34,9 +34,9 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   timer.Start();
 
   // CDB manager
-  AliceO2::CDB::Manager *cdbManager = AliceO2::CDB::Manager::Instance();
-  cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
-  cdbManager->setRun(0);
+//   AliceO2::CDB::Manager *cdbManager = AliceO2::CDB::Manager::Instance();
+//   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
+//   cdbManager->setRun(0);
 
  // gSystem->Load("libAliceO2Base");
  // gSystem->Load("libAliceO2its");
@@ -159,7 +159,8 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   }
 
   // ===| Add TPC |============================================================
-  AliceO2::Base::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
+  AliceO2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
+  tpc->SetGeoFileName("/data/Work/software/o2/AliceO2/wiechula/Detectors/TPC/simulation/geometry/TPCGeometry.root");
   run->AddModule(tpc);
 
   // Create PrimaryGenerator
