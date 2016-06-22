@@ -292,5 +292,5 @@ o2_define_bucket(
     NAME
     hough_Bucket
     DEPENDENCIES
-    Core RIO Gpad Hist HLTbase AliHLTTPC AliHLTUtil ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} dl
+    Core RIO Gpad Hist HLTbase AliHLTUtil AliHLTTPC AliHLTUtil ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} dl
 )
