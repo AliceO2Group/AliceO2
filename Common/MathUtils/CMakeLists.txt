@@ -1,39 +1,18 @@
-# Create a library called "MathUtils" which includes the source files given in
-# the array.
-# The extension is already found.  Any number of sources could be listed here.
+set(MODULE_NAME "MathUtils")
 
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/Common/MathUtils/
-  ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
-)
-
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${ROOT_INCLUDE_DIR}
-)
-
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${FAIRROOT_LIBRARY_DIR}
-  ${ROOT_LIBRARY_DIR}
-)
-
-link_directories( ${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Chebyshev3D.cxx
   src/Chebyshev3DCalc.cxx
 )
 
-Set(HEADERS
-  include/Chebyshev3D.h
-  include/Chebyshev3DCalc.h
+set(HEADERS
+  include/${MODULE_NAME}/Chebyshev3D.h
+  include/${MODULE_NAME}/Chebyshev3DCalc.h
 )
-Set(LINKDEF src/MathUtilsLinkDef.h)
-Set(LIBRARY_NAME MathUtils)
-Set(DEPENDENCIES Core)
+set(LINKDEF src/MathUtilsLinkDef.h)
+set(LIBRARY_NAME MathUtils)
+set(BUCKET_NAME common_math_bucket)
 
-GENERATE_LIBRARY()
+O2_GENERATE_LIBRARY()

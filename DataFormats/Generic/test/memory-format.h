@@ -28,28 +28,28 @@
 /**
 The defined headers are a tradeoff to provide the necessary information in a lightweight way and to allow for evolution and compatibility.
 
-General header format
-- Starts with basic header information, never serialized, with unique version number
+General include format
+- Starts with basic include information, never serialized, with unique version number
 - Strict policy enforced: no changes to members (e.g. width) or sequence of members
 - New members can be appended
-- All basic header structs are defined with fixed endianess and padding
-- Header-stack concept: optional headers can follow the basic header
+- All basic include structs are defined with fixed endianess and padding
+- Header-stack concept: optional headers can follow the basic include
 */
 namespace AliceO2 {
 namespace Format {
   /**
-   * Data header to be commonly used for all in-memory data blocks
+   * Data include to be commonly used for all in-memory data blocks
    *
-   * Unique header version; struct size included for consistency check
+   * Unique include version; struct size included for consistency check
    * and to facilitate later implementation of conversion handlers.
    *
-   * A magic string makes identification of header simpler, e.g. after
+   * A magic string makes identification of include simpler, e.g. after
    * a data corruption; great help for low level debugging
    *
    * PayloadSize is a redundant information, to be used for integrity
    * check and mandatory for disk dumped data
    *
-   * Payload serialization method defined in the header, allows to build
+   * Payload serialization method defined in the include, allows to build
    * common functionality. Framework can choose the right tool for
    * de-serialization
    */
@@ -91,8 +91,8 @@ namespace Format {
   };
 
   /**
-   * Header-stack:: optional headers can follow the basic header
-   * A next header is indicated in the flag member of preceeding header
+   * Header-stack:: optional headers can follow the basic include
+   * A next include is indicated in the flag member of preceeding include
    * Optional headers consist of a fixed NextHeaderDescription and a variable
    * NextHeaderContent
    */
@@ -101,7 +101,7 @@ namespace Format {
     int32_t mStructSize;
     /** size of the next header payload */
     int32_t mNextHeaderContentSize;
-    /** Common flags for all next-headers, includes next-header flag */
+    /** QCCommon flags for all next-headers, includes next-header flag */
     int32_t mFlags;
     /** Descriptor */
     char mHeaderDescriptor[15+1];

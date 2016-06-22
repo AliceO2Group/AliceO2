@@ -2,7 +2,7 @@
 /// \brief Implementation of the GeometryHandler class
 /// \author F. Uhlig <f.uhlig@gsi.de>
 
-#include "GeometryHandler.h"
+#include "itsSimulation/GeometryHandler.h"
 
 #include "FairLogger.h" // for FairLogger, etc
 
@@ -46,7 +46,7 @@ Int_t GeometryHandler::Init(Bool_t isSimulation)
   return 1;
 }
 
-void GeometryHandler::localToGlobal(Double_t* local, Double_t* global, Int_t detectorId)
+void GeometryHandler::localToGlobal(Double_t *local, Double_t *global, Int_t detectorId)
 {
   TString path = constructFullPathFromDetectorId(detectorId);
   navigateTo(path);
@@ -78,7 +78,7 @@ Int_t GeometryHandler::getUniqueDetectorId()
   return detectorNumber;
 }
 
-Int_t GeometryHandler::volumeIdGeo(const char* name) const
+Int_t GeometryHandler::volumeIdGeo(const char *name) const
 {
   Int_t uid = gGeoManager->GetUID(name);
   if (uid < 0) {
@@ -88,7 +88,7 @@ Int_t GeometryHandler::volumeIdGeo(const char* name) const
   return uid;
 }
 
-Int_t GeometryHandler::volumeId(const Text_t* name) const
+Int_t GeometryHandler::volumeId(const Text_t *name) const
 {
   if (mIsSimulation) {
     return TVirtualMC::GetMC()->VolId(name);
@@ -106,7 +106,7 @@ Int_t GeometryHandler::volumeId(const Text_t* name) const
   }
 }
 
-Int_t GeometryHandler::currentVolumeId(Int_t& copy) const
+Int_t GeometryHandler::currentVolumeId(Int_t &copy) const
 {
   if (mIsSimulation) {
     return TVirtualMC::GetMC()->CurrentVolID(copy);
@@ -114,7 +114,7 @@ Int_t GeometryHandler::currentVolumeId(Int_t& copy) const
     if (gGeoManager->IsOutside()) {
       return 0;
     }
-    TGeoNode* node = gGeoManager->GetCurrentNode();
+    TGeoNode *node = gGeoManager->GetCurrentNode();
     copy = node->GetNumber();
     Int_t id = node->GetVolume()->GetNumber();
     return id;
@@ -122,7 +122,7 @@ Int_t GeometryHandler::currentVolumeId(Int_t& copy) const
 }
 
 //_____________________________________________________________________________
-Int_t GeometryHandler::currentVolumeOffId(Int_t off, Int_t& copy) const
+Int_t GeometryHandler::currentVolumeOffId(Int_t off, Int_t &copy) const
 {
   if (mIsSimulation) {
     return TVirtualMC::GetMC()->CurrentVolOffID(off, copy);
@@ -135,7 +135,7 @@ Int_t GeometryHandler::currentVolumeOffId(Int_t off, Int_t& copy) const
       return currentVolumeId(copy);
     }
 
-    TGeoNode* node = gGeoManager->GetMother(off);
+    TGeoNode *node = gGeoManager->GetMother(off);
 
     if (!node) {
       return 0;
@@ -146,7 +146,7 @@ Int_t GeometryHandler::currentVolumeOffId(Int_t off, Int_t& copy) const
   }
 }
 
-const char* GeometryHandler::currentVolumeName() const
+const char *GeometryHandler::currentVolumeName() const
 {
   if (mIsSimulation) {
     return TVirtualMC::GetMC()->CurrentVolName();
@@ -159,7 +159,7 @@ const char* GeometryHandler::currentVolumeName() const
   }
 }
 
-const char* GeometryHandler::currentVolumeOffName(Int_t off) const
+const char *GeometryHandler::currentVolumeOffName(Int_t off) const
 {
   if (mIsSimulation) {
     return TVirtualMC::GetMC()->CurrentVolOffName(off);
@@ -172,7 +172,7 @@ const char* GeometryHandler::currentVolumeOffName(Int_t off) const
       return currentVolumeName();
     }
 
-    TGeoNode* node = gGeoManager->GetMother(off);
+    TGeoNode *node = gGeoManager->GetMother(off);
 
     if (!node) {
       return 0;
@@ -190,8 +190,8 @@ void GeometryHandler::navigateTo(TString volumeName)
     gGeoManager->cd(volumeName.Data());
     mGeometryPathHash = volumeName.Hash();
     mCurrentVolume = gGeoManager->GetCurrentVolume();
-    mVolumeShape = (TGeoBBox*)mCurrentVolume->GetShape();
-    Double_t local[3] = { 0., 0., 0. }; // Local centre of volume
+    mVolumeShape = (TGeoBBox *) mCurrentVolume->GetShape();
+    Double_t local[3] = {0., 0., 0.}; // Local centre of volume
     gGeoManager->LocalToMaster(local, mGlobalCentre);
     LOG(DEBUG2) << "Pos: " << mGlobalCentre[0] << " , " << mGlobalCentre[1] << " , "
                 << mGlobalCentre[2] << FairLogger::endl;

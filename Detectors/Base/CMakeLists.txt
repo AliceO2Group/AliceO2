@@ -1,26 +1,6 @@
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/Detectors/Base/
-  ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+set(MODULE_NAME "DetectorsBase")
 
-)
-
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${Boost_INCLUDE_DIRS}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${ROOT_INCLUDE_DIR}
-)
-
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/Base
-  ${FAIRROOT_LIBRARY_DIR}
-  ${ROOT_LIBRARY_DIR}
-)
-
-link_directories( ${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Detector.cxx
@@ -28,11 +8,14 @@ set(SRCS
 )
 
 Set(HEADERS
-  include/TrackReference.h
-  include/Detector.h
+  include/${MODULE_NAME}/TrackReference.h
+  include/${MODULE_NAME}/Detector.h
 )
 Set(LINKDEF src/BaseLinkDef.h)
-Set(LIBRARY_NAME AliceO2Base)
-Set(DEPENDENCIES Base ParBase EG Physics Core )
+Set(LIBRARY_NAME ${MODULE_NAME})#AliceO2Base)
+set(BUCKET_NAME detectors_base)
 
-GENERATE_LIBRARY()
+O2_GENERATE_LIBRARY()
+
+# Install all the public include
+install(DIRECTORY include/${MODULE_NAME} DESTINATION include)

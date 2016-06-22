@@ -12,50 +12,72 @@
 #include "FairMQLogger.h"
 #include "FairMQTransportFactoryZMQ.h"
 
-#include "FLPSender.h"
+#include "FLP2EPNex_distributed/FLPSender.h"
 
 using namespace std;
 using namespace AliceO2::Devices;
 
 struct DeviceOptions
 {
-  DeviceOptions() :
-    id(), flpIndex(0), eventSize(0), ioThreads(0), numEPNs(0), heartbeatTimeoutInMs(0), testMode(0), interactive(0), sendOffset(0), sendDelay(0),
-    dataInSocketType(), dataInBufSize(0), dataInMethod(), dataInAddress(), dataInRateLogging(0),
-    dataOutSocketType(), dataOutBufSize(0), dataOutMethod(), dataOutAddress(), dataOutRateLogging(0),
-    hbInSocketType(), hbInBufSize(0), hbInMethod(), hbInAddress(), hbInRateLogging(0) {}
+    DeviceOptions() :
+      id(),
+      flpIndex(0),
+      eventSize(0),
+      ioThreads(0),
+      numEPNs(0),
+      heartbeatTimeoutInMs(0),
+      testMode(0),
+      interactive(0),
+      sendOffset(0),
+      sendDelay(0),
+      dataInSocketType(),
+      dataInBufSize(0),
+      dataInMethod(),
+      dataInAddress(),
+      dataInRateLogging(0),
+      dataOutSocketType(),
+      dataOutBufSize(0),
+      dataOutMethod(),
+      dataOutAddress(),
+      dataOutRateLogging(0),
+      hbInSocketType(),
+      hbInBufSize(0),
+      hbInMethod(),
+      hbInAddress(),
+      hbInRateLogging(0)
+    { }
 
-  string id;
-  int flpIndex;
-  int eventSize;
-  int ioThreads;
-  int numEPNs;
-  int heartbeatTimeoutInMs;
-  int testMode;
-  int interactive;
-  int sendOffset;
-  int sendDelay;
+    string id;
+    int flpIndex;
+    int eventSize;
+    int ioThreads;
+    int numEPNs;
+    int heartbeatTimeoutInMs;
+    int testMode;
+    int interactive;
+    int sendOffset;
+    int sendDelay;
 
-  string dataInSocketType;
-  int dataInBufSize;
-  string dataInMethod;
-  string dataInAddress;
-  int dataInRateLogging;
+    string dataInSocketType;
+    int dataInBufSize;
+    string dataInMethod;
+    string dataInAddress;
+    int dataInRateLogging;
 
-  string dataOutSocketType;
-  int dataOutBufSize;
-  string dataOutMethod;
-  vector<string> dataOutAddress;
-  int dataOutRateLogging;
+    string dataOutSocketType;
+    int dataOutBufSize;
+    string dataOutMethod;
+    vector<string> dataOutAddress;
+    int dataOutRateLogging;
 
-  string hbInSocketType;
-  int hbInBufSize;
-  string hbInMethod;
-  string hbInAddress;
-  int hbInRateLogging;
+    string hbInSocketType;
+    int hbInBufSize;
+    string hbInMethod;
+    string hbInAddress;
+    int hbInRateLogging;
 };
 
-inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
+inline bool parse_cmd_line(int _argc, char *_argv[], DeviceOptions *_options)
 {
   if (_options == NULL) {
     throw runtime_error("Internal error: options' container is empty.");
@@ -76,19 +98,22 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("send-delay", bpo::value<int>()->default_value(8), "Delay for staggered sending")
 
     ("data-in-socket-type", bpo::value<string>()->default_value("pull"), "Data input socket type: sub/pull")
-    ("data-in-buff-size", bpo::value<int>()->default_value(10), "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-in-buff-size", bpo::value<int>()->default_value(10),
+     "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("data-in-method", bpo::value<string>()->default_value("bind"), "Data input method: bind/connect")
     ("data-in-address", bpo::value<string>()->required(), "Data input address, e.g.: \"tcp://localhost:5555\"")
     ("data-in-rate-logging", bpo::value<int>()->default_value(1), "Log data input rate on socket, 1/0")
 
     ("data-out-socket-type", bpo::value<string>()->default_value("push"), "Output socket type: pub/push")
-    ("data-out-buff-size", bpo::value<int>()->default_value(10), "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-out-buff-size", bpo::value<int>()->default_value(10),
+     "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("data-out-method", bpo::value<string>()->default_value("connect"), "Output method: bind/connect")
     ("data-out-address", bpo::value<vector<string>>()->required(), "Output address, e.g.: \"tcp://localhost:5555\"")
     ("data-out-rate-logging", bpo::value<int>()->default_value(1), "Log output rate on socket, 1/0")
 
     ("hb-in-socket-type", bpo::value<string>()->default_value("sub"), "Heartbeat in socket type: sub/pull")
-    ("hb-in-buff-size", bpo::value<int>()->default_value(100), "Heartbeat in buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("hb-in-buff-size", bpo::value<int>()->default_value(100),
+     "Heartbeat in buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("hb-in-method", bpo::value<string>()->default_value("bind"), "Heartbeat in method: bind/connect")
     ("hb-in-address", bpo::value<string>()->required(), "Heartbeat in address, e.g.: \"tcp://localhost:5555\"")
     ("hb-in-rate-logging", bpo::value<int>()->default_value(0), "Log heartbeat in rate on socket, 1/0")
@@ -105,41 +130,41 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
   bpo::notify(vm);
 
-  if (vm.count("id"))                    { _options->id                   = vm["id"].as<string>(); }
-  if (vm.count("flp-index"))             { _options->flpIndex             = vm["flp-index"].as<int>(); }
-  if (vm.count("event-size"))            { _options->eventSize            = vm["event-size"].as<int>(); }
-  if (vm.count("io-threads"))            { _options->ioThreads            = vm["io-threads"].as<int>(); }
+  if (vm.count("id")) { _options->id = vm["id"].as<string>(); }
+  if (vm.count("flp-index")) { _options->flpIndex = vm["flp-index"].as<int>(); }
+  if (vm.count("event-size")) { _options->eventSize = vm["event-size"].as<int>(); }
+  if (vm.count("io-threads")) { _options->ioThreads = vm["io-threads"].as<int>(); }
 
-  if (vm.count("num-epns"))              { _options->numEPNs              = vm["num-epns"].as<int>(); }
+  if (vm.count("num-epns")) { _options->numEPNs = vm["num-epns"].as<int>(); }
 
-  if (vm.count("heartbeat-timeout"))     { _options->heartbeatTimeoutInMs = vm["heartbeat-timeout"].as<int>(); }
-  if (vm.count("test-mode"))             { _options->testMode             = vm["test-mode"].as<int>(); }
-  if (vm.count("interactive"))           { _options->interactive          = vm["interactive"].as<int>(); }
-  if (vm.count("send-offset"))           { _options->sendOffset           = vm["send-offset"].as<int>(); }
-  if (vm.count("send-delay"))            { _options->sendDelay            = vm["send-delay"].as<int>(); }
+  if (vm.count("heartbeat-timeout")) { _options->heartbeatTimeoutInMs = vm["heartbeat-timeout"].as<int>(); }
+  if (vm.count("test-mode")) { _options->testMode = vm["test-mode"].as<int>(); }
+  if (vm.count("interactive")) { _options->interactive = vm["interactive"].as<int>(); }
+  if (vm.count("send-offset")) { _options->sendOffset = vm["send-offset"].as<int>(); }
+  if (vm.count("send-delay")) { _options->sendDelay = vm["send-delay"].as<int>(); }
 
-  if (vm.count("data-in-socket-type"))   { _options->dataInSocketType     = vm["data-in-socket-type"].as<string>(); }
-  if (vm.count("data-in-buff-size"))     { _options->dataInBufSize        = vm["data-in-buff-size"].as<int>(); }
-  if (vm.count("data-in-method"))        { _options->dataInMethod         = vm["data-in-method"].as<string>(); }
-  if (vm.count("data-in-address"))       { _options->dataInAddress        = vm["data-in-address"].as<string>(); }
-  if (vm.count("data-in-rate-logging"))  { _options->dataInRateLogging    = vm["data-in-rate-logging"].as<int>(); }
+  if (vm.count("data-in-socket-type")) { _options->dataInSocketType = vm["data-in-socket-type"].as<string>(); }
+  if (vm.count("data-in-buff-size")) { _options->dataInBufSize = vm["data-in-buff-size"].as<int>(); }
+  if (vm.count("data-in-method")) { _options->dataInMethod = vm["data-in-method"].as<string>(); }
+  if (vm.count("data-in-address")) { _options->dataInAddress = vm["data-in-address"].as<string>(); }
+  if (vm.count("data-in-rate-logging")) { _options->dataInRateLogging = vm["data-in-rate-logging"].as<int>(); }
 
-  if (vm.count("data-out-socket-type"))  { _options->dataOutSocketType    = vm["data-out-socket-type"].as<string>(); }
-  if (vm.count("data-out-buff-size"))    { _options->dataOutBufSize       = vm["data-out-buff-size"].as<int>(); }
-  if (vm.count("data-out-method"))       { _options->dataOutMethod        = vm["data-out-method"].as<string>(); }
-  if (vm.count("data-out-address"))      { _options->dataOutAddress       = vm["data-out-address"].as<vector<string>>(); }
-  if (vm.count("data-out-rate-logging")) { _options->dataOutRateLogging   = vm["data-out-rate-logging"].as<int>(); }
+  if (vm.count("data-out-socket-type")) { _options->dataOutSocketType = vm["data-out-socket-type"].as<string>(); }
+  if (vm.count("data-out-buff-size")) { _options->dataOutBufSize = vm["data-out-buff-size"].as<int>(); }
+  if (vm.count("data-out-method")) { _options->dataOutMethod = vm["data-out-method"].as<string>(); }
+  if (vm.count("data-out-address")) { _options->dataOutAddress = vm["data-out-address"].as<vector<string>>(); }
+  if (vm.count("data-out-rate-logging")) { _options->dataOutRateLogging = vm["data-out-rate-logging"].as<int>(); }
 
-  if (vm.count("hb-in-socket-type"))     { _options->hbInSocketType       = vm["hb-in-socket-type"].as<string>(); }
-  if (vm.count("hb-in-buff-size"))       { _options->hbInBufSize          = vm["hb-in-buff-size"].as<int>(); }
-  if (vm.count("hb-in-method"))          { _options->hbInMethod           = vm["hb-in-method"].as<string>(); }
-  if (vm.count("hb-in-address"))         { _options->hbInAddress          = vm["hb-in-address"].as<string>(); }
-  if (vm.count("hb-in-rate-logging"))    { _options->hbInRateLogging      = vm["hb-in-rate-logging"].as<int>(); }
+  if (vm.count("hb-in-socket-type")) { _options->hbInSocketType = vm["hb-in-socket-type"].as<string>(); }
+  if (vm.count("hb-in-buff-size")) { _options->hbInBufSize = vm["hb-in-buff-size"].as<int>(); }
+  if (vm.count("hb-in-method")) { _options->hbInMethod = vm["hb-in-method"].as<string>(); }
+  if (vm.count("hb-in-address")) { _options->hbInAddress = vm["hb-in-address"].as<string>(); }
+  if (vm.count("hb-in-rate-logging")) { _options->hbInRateLogging = vm["hb-in-rate-logging"].as<int>(); }
 
   return true;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   // create the device
   FLPSender flp;
@@ -153,7 +178,7 @@ int main(int argc, char** argv)
     if (!parse_cmd_line(argc, argv, &options)) {
       return 0;
     }
-  } catch (const exception& e) {
+  } catch (const exception &e) {
     LOG(ERROR) << e.what();
     return 1;
   }
@@ -167,7 +192,7 @@ int main(int argc, char** argv)
   LOG(INFO) << "FLP Sender, ID: " << options.id << " (PID: " << getpid() << ")";
 
   // configure the transport interface
-  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
+  FairMQTransportFactory *transportFactory = new FairMQTransportFactoryZMQ();
   flp.SetTransport(transportFactory);
 
   // set device properties

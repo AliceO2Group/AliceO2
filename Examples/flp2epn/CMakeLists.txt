@@ -1,81 +1,62 @@
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/Examples/flp2epn
-)
+set(MODULE_NAME "flp2epn")
 
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${Boost_INCLUDE_DIR}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${ZMQ_INCLUDE_DIR}
-  ${AlFa_DIR}/include
-)
+O2_SETUP(NAME ${MODULE_NAME})
 
-include_directories(${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/startMerger.sh.in ${CMAKE_BINARY_DIR}/bin/startMerger.sh)
 
-configure_file( ${CMAKE_SOURCE_DIR}/Examples/flp2epn/run/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh )
-configure_file( ${CMAKE_SOURCE_DIR}/Examples/flp2epn/run/startMerger.sh.in ${CMAKE_BINARY_DIR}/bin/startMerger.sh )
-
-set(LINK_DIRECTORIES
-  ${Boost_LIBRARY_DIRS}
-  ${FAIRROOT_LIBRARY_DIR}
-  ${AlFa_DIR}/lib
-)
-
-link_directories(${LINK_DIRECTORIES})
+set(HEADERS
+    include/${MODULE_NAME}/O2FLPex.h
+    include/${MODULE_NAME}/O2EPNex.h
+    include/${MODULE_NAME}/O2Proxy.h
+    include/${MODULE_NAME}/O2Merger.h
+    include/${MODULE_NAME}/O2EpnMerger.h
+    )
 
 set(SRCS
-  O2FLPex.cxx
-  O2EPNex.cxx
-  O2Proxy.cxx
-  O2Merger.cxx
-  O2EpnMerger.cxx
-)
-
-if(FAIRMQ_DEPENDENCIES)
-  set(DEPENDENCIES
-    ${DEPENDENCIES}
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${FAIRMQ_DEPENDENCIES}
-    FairMQ
-  )
-else(FAIRMQ_DEPENDENCIES)
-  set(DEPENDENCIES
-    ${DEPENDENCIES}
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} FairMQ
-  )
-endif(FAIRMQ_DEPENDENCIES)
+    src/O2FLPex.cxx
+    src/O2EPNex.cxx
+    src/O2Proxy.cxx
+    src/O2Merger.cxx
+    src/O2EpnMerger.cxx
+    )
 
 set(LIBRARY_NAME FLP2EPNex)
+set(BUCKET_NAME flp2epn_Bucket)
 
-GENERATE_LIBRARY()
+O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
-  ${Exe_Names}
-  testFLP
-  testEPN
-  testEPN_M
-  testProxy
-  testMerger
-)
+    ${Exe_Names}
+    testFLP
+    testEPN
+    testEPN_M
+    testProxy
+    testMerger
+    )
 
 set(Exe_Source
-  run/runFLP.cxx
-  run/runEPN.cxx
-  run/runEPN_M.cxx
-  run/runProxy.cxx
-  run/runMerger.cxx
-)
+    src/runFLP.cxx
+    src/runEPN.cxx
+    src/runEPN_M.cxx
+    src/runProxy.cxx
+    src/runMerger.cxx
+    )
+
+# todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
+set(LIBRARY_NAME FLP2EPNex)
+set(BUCKET_NAME flp2epn_Bucket)
 
 list(LENGTH Exe_Names _length)
 math(EXPR _length ${_length}-1)
 
-ForEach(_file RANGE 0 ${_length})
+ForEach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lists and not 1
   list(GET Exe_Names ${_file} _name)
   list(GET Exe_Source ${_file} _src)
-  set(EXE_NAME ${_name})
-  set(SRCS ${_src})
-  set(DEPENDENCIES FLP2EPNex)
-  GENERATE_EXECUTABLE()
-EndForEach(_file RANGE 0 ${_length})
+  O2_GENERATE_EXECUTABLE(
+      EXE_NAME ${_name}
+      SOURCES ${_src}
+      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+      BUCKET_NAME ${BUCKET_NAME}
+  )
+EndForEach (_file RANGE 0 ${_length})

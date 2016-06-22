@@ -1,13 +1,8 @@
 //  Set of data describing the object  				   //
 //  but not used to identify the object 			   //
-#include "ConditionMetaData.h"
+#include "CCDB/ConditionMetaData.h"
 #include <TObjString.h>   // for TObjString
 #include <TTimeStamp.h>   // for TTimeStamp
-#include <time.h>         // for time
-#include "TCollection.h"  // for TIter
-#include "THashTable.h"   // for THashTable
-#include "TMap.h"         // for TMap, TPair
-#include "TObject.h"      // for TObject
 
 using namespace AliceO2::CDB;
 
@@ -21,7 +16,8 @@ ConditionMetaData::ConditionMetaData()
   mProperties.SetOwner(1);
 }
 
-ConditionMetaData::ConditionMetaData(const char* responsible, UInt_t beamPeriod, const char* alirootVersion, const char* comment)
+ConditionMetaData::ConditionMetaData(const char *responsible, UInt_t beamPeriod, const char *alirootVersion,
+                                     const char *comment)
   : TObject(),
     mObjectClassName(""),
     mResponsible(responsible),
@@ -40,26 +36,26 @@ ConditionMetaData::~ConditionMetaData()
   // destructor
 }
 
-void ConditionMetaData::setProperty(const char* property, TObject* object)
+void ConditionMetaData::setProperty(const char *property, TObject *object)
 {
   // add something to the list of properties
 
   mProperties.Add(new TObjString(property), object);
 }
 
-TObject* ConditionMetaData::getProperty(const char* property) const
+TObject *ConditionMetaData::getProperty(const char *property) const
 {
   // get a property specified by its name (property)
 
   return mProperties.GetValue(property);
 }
 
-Bool_t ConditionMetaData::removeProperty(const char* property)
+Bool_t ConditionMetaData::removeProperty(const char *property)
 {
   // removes a property
 
   TObjString objStrProperty(property);
-  TObjString* aKey = (TObjString*)mProperties.Remove(&objStrProperty);
+  TObjString *aKey = (TObjString *) mProperties.Remove(&objStrProperty);
 
   if (aKey) {
     delete aKey;
@@ -89,23 +85,28 @@ void ConditionMetaData::printConditionMetaData()
   // print the object's metaData
 
   TString message;
-  if (mObjectClassName != "")
+  if (mObjectClassName != "") {
     message += TString::Format("\tObject's class name:	%s\n", mObjectClassName.Data());
-  if (mResponsible != "")
+  }
+  if (mResponsible != "") {
     message += TString::Format("\tResponsible:		%s\n", mResponsible.Data());
-  if (mBeamPeriod != 0)
+  }
+  if (mBeamPeriod != 0) {
     message += TString::Format("\tBeam period:		%d\n", mBeamPeriod);
-  if (mAliRootVersion != "")
+  }
+  if (mAliRootVersion != "") {
     message += TString::Format("\tAliRoot version:	%s\n", mAliRootVersion.Data());
-  if (mComment != "")
+  }
+  if (mComment != "") {
     message += TString::Format("\tComment:		%s\n", mComment.Data());
+  }
   if (mProperties.GetEntries() > 0) {
     message += "\tProperties key names:";
 
     TIter iter(mProperties.GetTable());
-    TPair* aPair;
-    while ((aPair = (TPair*)iter.Next())) {
-      message += TString::Format("\t\t%s\n", ((TObjString*)aPair->Key())->String().Data());
+    TPair *aPair;
+    while ((aPair = (TPair *) iter.Next())) {
+      message += TString::Format("\t\t%s\n", ((TObjString *) aPair->Key())->String().Data());
     }
   }
   message += '\n';
