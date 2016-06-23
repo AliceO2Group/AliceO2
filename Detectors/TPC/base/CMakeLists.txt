@@ -23,12 +23,30 @@ link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
    src/ContainerFactory.cxx
+   src/FECInfo.cxx
+   src/Mapper.cxx
+   src/PadInfo.cxx
+   src/PadPos.cxx
+   src/PadSecPos.cxx
+   src/Point2D.cxx
+   src/ROC.cxx
 )
 
 
 set(HEADERS
    include/ContainerFactory.h
+   include/FECInfo.h
+   include/Mapper.h
+   include/PadInfo.h
+   include/PadPos.h
+   include/PadSecPos.h
+   include/Point2D.h
+   include/ROC.h
+   include/Defs.h
 )
+
+# string(REPLACE ".cxx" ".h" HEADERS "${SRCS}")
+
 Set(LINKDEF src/tpcBaseLinkDef.h)
 Set(LIBRARY_NAME tpcBase)
 Set(DEPENDENCIES
