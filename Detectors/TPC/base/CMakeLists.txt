@@ -27,6 +27,7 @@ set(SRCS
    src/Mapper.cxx
    src/PadInfo.cxx
    src/PadPos.cxx
+   src/PadRegionInfo.cxx
    src/PadSecPos.cxx
    src/Point2D.cxx
    src/ROC.cxx
@@ -39,6 +40,7 @@ set(HEADERS
    include/Mapper.h
    include/PadInfo.h
    include/PadPos.h
+   include/PadRegionInfo.h
    include/PadSecPos.h
    include/Point2D.h
    include/ROC.h
