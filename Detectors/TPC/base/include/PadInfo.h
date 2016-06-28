@@ -9,17 +9,15 @@
 namespace AliceO2 {
 namespace TPC {
 
-typedef Point2D<float> PadCentre;
-
 class PadInfo {
   public:
 
 
   private:
-    unsigned short mIndex{};       /// unique pad index in sector
-    PadPos         mPadPos{};      /// pad row and pad
-    PadCentre      mPadCentre{};   /// pad coordingate as seen for sector A04 in global ALICE coordiantes
-    FECInfo        mFECInfo{};     /// FEC mapping information
+    GlobalPadNumber mIndex{};       /// unique pad index in sector
+    PadPos          mPadPos{};      /// pad row and pad
+    PadCentre       mPadCentre{};   /// pad coordingate as seen for sector A04 in global ALICE coordiantes
+    FECInfo         mFECInfo{};     /// FEC mapping information
 
 };
 
