@@ -5,13 +5,13 @@ namespace AliceO2 {
 namespace TPC {
   class PadPos {
     public:
-//       PadPos() {}
-//       PadPos(const unsigned char row, const unsigned char pad) :
-      const unsigned char row() const { return mRow; }
-      const unsigned char pad() const { return mPad; }
+      PadPos() {}
+      PadPos(const unsigned char row, const unsigned char pad) : mRow(row), mPad(pad) {}
+      const unsigned char getRow() const { return mRow; }
+      const unsigned char getPad() const { return mPad; }
       
       bool operator==(const PadPos& other) { return (mRow==other.mRow) && (mPad==other.mPad); }
-      bool operator<(const PadPos& other) {
+      bool operator<(const PadPos& other) const {
         if (mRow<other.mRow) return true;
         if (mRow==other.mRow && mPad<other.mPad) return true;
         return false;
@@ -23,4 +23,5 @@ namespace TPC {
   };
 }
 }
+
 #endif

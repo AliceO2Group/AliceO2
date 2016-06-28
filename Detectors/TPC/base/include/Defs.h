@@ -1,6 +1,7 @@
 #ifndef AliceO2_TPC_Defs_H
 #define AliceO2_TPC_Defs_H
 
+#include "Point2D.h"
 
 namespace AliceO2 {
 namespace TPC {
@@ -14,6 +15,12 @@ enum Side {A=0, C=1};
 enum RocType {IROC=0, OROC=1};
 // enum class RocType {IROC=0, OROC=1};
 
+
+/// Pad centres as 2D float
+typedef Point2D<float> PadCentre;
+
+/// global pad number
+typedef unsigned short GlobalPadNumber;
 
 /**
  * simple class to allow for range for loops over enums
@@ -70,4 +77,3 @@ typename Enum<T>::Iterator end( Enum<T> )
 
 
 #endif
-

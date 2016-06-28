@@ -15,11 +15,11 @@ class FECInfo {
     : mIndex(index), mConnector(connector), mChannel(channel), mSampaChip(sampaChip), mSampaChannel(sampaChannel)
     {}
 
-    const unsigned char Index()        const { return mIndex;       } 
-    const unsigned char Connector()    const { return mConnector;   } 
-    const unsigned char Channel()      const { return mChannel;     } 
-    const unsigned char SampaChip()    const { return mSampaChip;   } 
-    const unsigned char SampaChannel() const { return mSampaChannel;} 
+    const unsigned char getIndex()        const { return mIndex;       }
+    const unsigned char getConnector()    const { return mConnector;   }
+    const unsigned char getChannel()      const { return mChannel;     }
+    const unsigned char getSampaChip()    const { return mSampaChip;   }
+    const unsigned char getSampaChannel() const { return mSampaChannel;}
   private:
     unsigned char mIndex        {0};   /// FEC number in the sector
     unsigned char mConnector    {0};   /// Connector on the FEC
@@ -32,4 +32,3 @@ class FECInfo {
 }
 
 #endif
-
