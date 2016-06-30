@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include <TSystem.h>
+#include <cstdlib>
 
 #include "Mapper.h"
 namespace AliceO2 {
@@ -72,9 +72,10 @@ bool Mapper::readMappingFile(std::string file)
       >> sampaChip
       >> sampaChannel;
 
-      mMapGlobalPadToPadPos[padIndex]=PadPos(padRow,pad);
-      mMapPadPosGlobalPad[PadPos(padRow,pad)]=padIndex;
-      mMapGlobalPadFECInfo[padIndex]=FECInfo(fecIndex, fecConnector, fecChannel, sampaChip, sampaChannel);
+      mMapGlobalPadToPadPos[padIndex]         = PadPos(padRow,pad);
+      mMapPadPosGlobalPad[PadPos(padRow,pad)] = padIndex;
+      mMapGlobalPadFECInfo[padIndex]          = FECInfo(fecIndex, fecConnector, fecChannel, sampaChip, sampaChannel);
+      mMapGlobalPadCentre[padIndex]           = PadCentre(xPos, yPos);
 
 //       std::cout
 //       << padIndex<< " "
@@ -101,7 +102,10 @@ bool Mapper::readMappingFile(std::string file)
 void Mapper::load()
 {
 
-  std::string inputDir=gSystem->Getenv("ALICEO2");
+//   std::string inputDir(std::getenv("ALICEO2"));
+  std::string inputDir;
+  const char* aliceO2env=std::getenv("ALICEO2");
+  if (aliceO2env) inputDir=aliceO2env;
   readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-IROC.txt");
   readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC1.txt");
   readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC2.txt");
