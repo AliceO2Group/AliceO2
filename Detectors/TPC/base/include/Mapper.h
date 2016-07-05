@@ -7,8 +7,11 @@
 
 #include "Defs.h"
 #include "PadPos.h"
+#include "DigitPos.h"
 #include "FECInfo.h"
 #include "PadRegionInfo.h"
+
+using AliceO2::TPC::PadRegionInfo;
 
 namespace AliceO2 {
 namespace TPC {
@@ -23,10 +26,15 @@ public:
   const PadPos&     padPos    (GlobalPadNumber padNumber) const { return mMapGlobalPadToPadPos[padNumber%mPadsInSector]; }
   const PadCentre&  padCentre (GlobalPadNumber padNumber) const { return mMapGlobalPadCentre  [padNumber%mPadsInSector]; }
   const FECInfo&    fecInfo   (GlobalPadNumber padNumber) const { return mMapGlobalPadFECInfo [padNumber%mPadsInSector]; }
-  
+
   const GlobalPadNumber globalPadNumber(const PadPos& padPosition) const { return mMapPadPosGlobalPad.find(padPosition)->second; }
 
-  const PadRegionInfo& padRegionInfo(const unsigned char region) const { return mMapPadRegionInfo[region]; }
+  const PadRegionInfo& getPadRegionInfo(const unsigned char region) const { return mMapPadRegionInfo[region]; }
+
+  const DigitPos findDigitPosFromLocalPosition(const LocalPosition3D& pos, const Sector& sec);
+  const DigitPos findDigitPosFromGlobalPostion(const GlobalPosition3D& pos);
+
+  const std::vector<PadRegionInfo>& getMapPadRegionInfo() const { return mMapPadRegionInfo; }
 
   static const unsigned short getPadsInIROC  () { return mPadsInIROC  ; }
   static const unsigned short getPadsInOROC1 () { return mPadsInOROC1 ; }
@@ -42,6 +50,23 @@ public:
   // c++11 feature don't work with root dictionary :(
 //   Mapper(const Mapper&) = delete;
 //   void operator=(const Mapper&) = delete;
+
+static GlobalPosition3D LocalToGlobal(const LocalPosition3D pos, const double alpha)
+{
+  const double cs=cos(alpha), sn=sin(alpha);
+  return GlobalPosition3D(float(double(pos.getX())*cs-double(pos.getY())*sn),
+                          float(double(pos.getX())*sn+double(pos.getY()*cs)),
+                          pos.getZ());
+}
+
+static LocalPosition3D GlobalToLocal(const GlobalPosition3D& pos, const double alpha)
+{
+  const double cs=cos(-alpha), sn=sin(-alpha);
+  return LocalPosition3D(float(double(pos.getX())*cs-double(pos.getY())*sn),
+                         float(double(pos.getX())*sn+double(pos.getY()*cs)),
+                         pos.getZ());
+}
+
 private:
   Mapper() : mMapGlobalPadToPadPos(mPadsInSector),  mMapGlobalPadCentre(mPadsInSector), mMapPadPosGlobalPad(), mMapGlobalPadFECInfo(mPadsInSector), mMapPadRegionInfo(10) {load();}
   // use old c++03 due to root
