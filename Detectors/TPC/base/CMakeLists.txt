@@ -23,6 +23,8 @@ link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
    src/ContainerFactory.cxx
+   src/CRU.cxx
+   src/DigitPos.cxx
    src/FECInfo.cxx
    src/Mapper.cxx
    src/PadInfo.cxx
@@ -30,12 +32,17 @@ set(SRCS
    src/PadRegionInfo.cxx
    src/PadSecPos.cxx
    src/Point2D.cxx
+   src/Point3D.cxx
    src/ROC.cxx
+   src/Sector.cxx
 )
 
 
 set(HEADERS
    include/ContainerFactory.h
+   include/CRU.h
+#    include/Defs.h
+   include/DigitPos.h
    include/FECInfo.h
    include/Mapper.h
    include/PadInfo.h
@@ -43,8 +50,10 @@ set(HEADERS
    include/PadRegionInfo.h
    include/PadSecPos.h
    include/Point2D.h
+   include/Point3D.h
    include/ROC.h
    include/Defs.h
+   include/Sector.h
 )
 
 # string(REPLACE ".cxx" ".h" HEADERS "${SRCS}")

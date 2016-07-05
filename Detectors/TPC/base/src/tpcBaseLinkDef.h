@@ -4,7 +4,10 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliceO2::TPC::Point2D<float>;
+#pragma link C++ class AliceO2::TPC::GlobalPosition2D;
+#pragma link C++ class AliceO2::TPC::GlobalPosition3D;
+#pragma link C++ class AliceO2::TPC::LocalPosition2D;
+#pragma link C++ class AliceO2::TPC::LocalPosition3D;
 #pragma link C++ class AliceO2::TPC::PadCentre;
 #pragma link C++ class AliceO2::TPC::ContainerFactory;
 #pragma link C++ class AliceO2::TPC::FECInfo;
@@ -14,5 +17,7 @@
 #pragma link C++ class AliceO2::TPC::PadRegionInfo;
 #pragma link C++ class AliceO2::TPC::PadSecPos;
 #pragma link C++ class AliceO2::TPC::ROC;
+#pragma link C++ class AliceO2::TPC::DigitPos;
+#pragma link C++ class AliceO2::TPC::Sector;
 
 #endif
