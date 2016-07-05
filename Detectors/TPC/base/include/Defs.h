@@ -1,7 +1,10 @@
 #ifndef AliceO2_TPC_Defs_H
 #define AliceO2_TPC_Defs_H
 
+#include <cmath>
+
 #include "Point2D.h"
+#include "Point3D.h"
 
 namespace AliceO2 {
 namespace TPC {
@@ -10,6 +13,13 @@ namespace TPC {
 enum Side {A=0, C=1};
 //   enum class Side {A=0, C=1};
 //  Problem with root cint. does not seem to support enum class ...
+const unsigned char SECTORSPERSIDE=18;
+const unsigned char SIDES=2;
+
+const double PI          = 3.14159265358979323846;
+const double TWOPI       = 2*PI;
+const double SECPHIWIDTH = TWOPI/18;
+
 
 /// TPC ROC types
 enum RocType {IROC=0, OROC=1};
@@ -18,9 +28,26 @@ enum RocType {IROC=0, OROC=1};
 
 /// Pad centres as 2D float
 typedef Point2D<float> PadCentre;
+typedef Point2D<float> GlobalPosition2D;
+typedef Point2D<float> LocalPosition2D;
+typedef Point3D<float> GlobalPosition3D;
+typedef Point3D<float> LocalPosition3D;
 
 /// global pad number
 typedef unsigned short GlobalPadNumber;
+
+// GlobalPosition3D LocalToGlobal(const LocalPosition3D pos, const float alpha)
+// {
+//   const double cs=cos(alpha), sn=sin(alpha);
+//   return GlobalPosition3D(pos.getX()*cs-pos.getY()*sn,pos.getX()*sn+pos.getY()*cs,pos.getZ());
+// }
+
+// LocalPosition3D GlobalToLocal(const GlobalPosition3D& pos, const float alpha)
+// {
+//   const double cs=cos(-alpha), sn=sin(-alpha);
+//   return LocalPosition3D(pos.getX()*cs-pos.getY()*sn,pos.getX()*sn+pos.getY()*cs,pos.getZ());
+// }
+
 
 /**
  * simple class to allow for range for loops over enums
