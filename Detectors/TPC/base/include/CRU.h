@@ -23,9 +23,9 @@ namespace TPC {
       CRU& operator= (const CRU& other) { mCRU=other.mCRU; return *this; }
       CRU& operator= (const unsigned short cru) { mCRU=cru; return *this; }
 
-      bool    operator==(const CRU& other)  { return mCRU==other.mCRU; }
-      bool    operator!=(const CRU& other)  { return mCRU!=other.mCRU; }
-      bool    operator< (const CRU& other)  { return mCRU<other.mCRU; }
+      bool    operator==(const CRU& other)  const { return mCRU==other.mCRU; }
+      bool    operator!=(const CRU& other)  const { return mCRU!=other.mCRU; }
+      bool    operator< (const CRU& other)  const { return mCRU<other.mCRU; }
       bool    operator++()                  { mLoop=++mCRU>=MaxCRU; mCRU%=MaxCRU; return mLoop; }
 
       unsigned short number()   const { return mCRU; }

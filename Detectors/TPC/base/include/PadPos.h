@@ -19,7 +19,8 @@ namespace TPC {
 
       bool isValid() const { return !(mRow==255 && mPad==255); }
 
-      bool operator==(const PadPos& other) { return (mRow==other.mRow) && (mPad==other.mPad); }
+      bool operator==(const PadPos& other) const { return (mRow==other.mRow) && (mPad==other.mPad); }
+      bool operator!=(const PadPos& other) const { return (mRow!=other.mRow) || (mPad!=other.mPad); }
       bool operator<(const PadPos& other) const {
         if (mRow<other.mRow) return true;
         if (mRow==other.mRow && mPad<other.mPad) return true;
