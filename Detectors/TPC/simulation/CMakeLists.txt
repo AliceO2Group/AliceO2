@@ -1,7 +1,7 @@
 
 set(INCLUDE_DIRECTORIES
   ${CMAKE_SOURCE_DIR}/
-  ${CMAKE_SOURCE_DIR}/Detectors/TPC/Base/include
+  ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
   ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/
   ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/include
 
@@ -26,12 +26,29 @@ link_directories( ${LINK_DIRECTORIES})
 set(SRCS
    src/Detector.cxx
    src/Point.cxx
-
+   src/DigitizerTask.cxx
+   src/Digitizer.cxx
+   src/DigitContainer.cxx
+   src/DigitCRU.cxx
+   src/DigitRow.cxx
+   src/DigitPad.cxx
+   src/DigitTime.cxx
+   src/DigitADC.cxx
+   src/Digit.cxx
 )
 
 set(HEADERS
    include/Detector.h
    include/Point.h
+   include/DigitizerTask.h
+   include/Digitizer.h
+   include/DigitContainer.h
+   include/DigitCRU.h
+   include/DigitRow.h
+   include/DigitPad.h
+   include/DigitTime.h
+   include/DigitADC.h
+   include/Digit.h
 )
 Set(LINKDEF src/tpcSimulationLinkDef.h)
 Set(LIBRARY_NAME tpcSimulation)
