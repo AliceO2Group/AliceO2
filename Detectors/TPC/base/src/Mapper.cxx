@@ -146,7 +146,7 @@ void Mapper::initPadRegions()
 
 }
 
-const DigitPos Mapper::findDigitPosFromLocalPosition(const LocalPosition3D& pos, const Sector& sec)
+const DigitPos Mapper::findDigitPosFromLocalPosition(const LocalPosition3D& pos, const Sector& sec) const
 {
   PadPos pad;
   CRU    cru;
@@ -159,7 +159,7 @@ const DigitPos Mapper::findDigitPosFromLocalPosition(const LocalPosition3D& pos,
   return DigitPos(cru, pad);
 }
 
-const DigitPos Mapper::findDigitPosFromGlobalPostion(const GlobalPosition3D& pos)
+const DigitPos Mapper::findDigitPosFromGlobalPosition(const GlobalPosition3D& pos) const
 {
   // ===| find sector |=========================================================
   double phi=atan2(pos.getY(), pos.getX());

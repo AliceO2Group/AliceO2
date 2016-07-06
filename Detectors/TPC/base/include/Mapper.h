@@ -31,8 +31,8 @@ public:
 
   const PadRegionInfo& getPadRegionInfo(const unsigned char region) const { return mMapPadRegionInfo[region]; }
 
-  const DigitPos findDigitPosFromLocalPosition(const LocalPosition3D& pos, const Sector& sec);
-  const DigitPos findDigitPosFromGlobalPostion(const GlobalPosition3D& pos);
+  const DigitPos findDigitPosFromLocalPosition(const LocalPosition3D& pos, const Sector& sec) const;
+  const DigitPos findDigitPosFromGlobalPosition(const GlobalPosition3D& pos) const;
 
   const std::vector<PadRegionInfo>& getMapPadRegionInfo() const { return mMapPadRegionInfo; }
 
