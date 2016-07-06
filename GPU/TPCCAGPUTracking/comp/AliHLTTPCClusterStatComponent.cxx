@@ -35,6 +35,7 @@ AliHLTTPCClusterStatComponent::AliHLTTPCClusterStatComponent() : AliHLTProcessor
 , fPrintClusters(0)
 , fPrintClustersScaled(0)
 , fDumpClusters(0)
+, fAggregate(0)
 {
 }
 
@@ -65,6 +66,10 @@ int AliHLTTPCClusterStatComponent::ProcessOption(TString option, TString value)
     if (option.EqualTo("print-clusters"))
     {
 	fPrintClusters = 1;
+    }
+    else if (option.EqualTo("aggregate"))
+    {
+	fAggregate = 1;
     }
     else if (option.EqualTo("print-clusters-scaled"))
     {
@@ -109,7 +114,10 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
 
     if (!IsDataEvent()) {return iResult;}
 
-    fTotal = fSplitPad = fSplitTime = fSplitPadTime = fSplitPadOrTime = 0;
+    if (!fAggregate)
+    {
+	fTotal = fSplitPad = fSplitTime = fSplitPadTime = fSplitPadOrTime = 0;
+    }
     int slice, patch;
 
     int nBlocks = evtData.fBlockCnt;
@@ -136,7 +144,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
 		if (cluster.GetFlagSplitAny()) fSplitPadOrTime++;
 		if (cluster.GetFlagSplitPad() && cluster.GetFlagSplitTime()) fSplitPadTime++;
 		
-		if (fPrintClusters) HLTImportant("Slice %d, Patch %d, Row %d, Pad %.2f, Time %.2f, SPad %.2f, STime %.2f, QMax %d, QTot %d, SplitPad %d, SplitTime %d",
+		if (fPrintClusters && cluster.GetCharge() < 40) HLTImportant("Slice %d, Patch %d, Row %d, Pad %.2f, Time %.2f, SPad %.2f, STime %.2f, QMax %d, QTot %d, SplitPad %d, SplitTime %d",
 		    slice, patch, (int) cluster.GetPadRow(), cluster.GetPad(), cluster.GetTime(), cluster.GetSigmaPad2(), cluster.GetSigmaTime2(), (int) cluster.GetQMax(), (int) cluster.GetCharge(), (int) cluster.GetFlagSplitPad(), (int) cluster.GetFlagSplitTime());
 		
 		AliHLTUInt64_t pad64=0;
