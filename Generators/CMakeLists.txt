@@ -1,7 +1,9 @@
 # Create a library called "libGen" which includes the source files given in
 # the array .
 # The extension is already found.  Any number of sources could be listed here.
+set(MODULE_NAME "Generators")
 
+O2_SETUP(NAME ${MODULE_NAME})
 if (PYTHIA8_INCLUDE_DIR)
 
   set(SRCS
@@ -20,7 +22,7 @@ if (PYTHIA8_INCLUDE_DIR)
 
 #  set(DEPENDENCIES Base O2SimulationDataFormat pythia8 Pythia6)
 
-  GENERATE_LIBRARY()
+  O2_GENERATE_LIBRARY()
 
 
 else (PYTHIA8_INCLUDE_DIR)
