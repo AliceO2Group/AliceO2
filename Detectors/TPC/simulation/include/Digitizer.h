@@ -5,20 +5,17 @@
 
 #include "DigitContainer.h"
 
-#include "Rtypes.h"   // for Digitizer::Class, Double_t, ClassDef, etc
-#include "TObject.h"  // for TObject
+#include "Rtypes.h"
+#include "TObject.h"
 
 
-class TClonesArray;  // lines 13-13
-// namespace AliceO2 { namespace TPC { class DigitContainer; } }  // lines 19-19
-// namespace AliceO2 { namespace TPC { class UpgradeGeometryTGeo; } }  // lines 20-20
+class TClonesArray;
 
 namespace AliceO2{
 
   namespace TPC {
 
     class DigitContainer;
-//     class UpgradeGeometryTGeo;
 
     class Digitizer : public TObject {
     public:
@@ -27,16 +24,22 @@ namespace AliceO2{
       /// Destructor
       ~Digitizer();
 
-      void Init();
+      void init();
 
       /// Steer conversion of points to digits
-      /// @param points Container with ITS points
+      /// @param points Container with TPC points
       /// @return digits container
       DigitContainer *Process(TClonesArray *points);
-      void DriftElectrons(Float_t *xyz);
-      void GEMAmplification(Float_t nele);
+      Int_t getADCvalue(Float_t nElectrons);
+      void getElectronDrift(Float_t *xyz);
+      Float_t getGEMAmplification();
+      const Int_t getTimeBin(Float_t zPos);
+      
+      
+      
+      Double_t Gamma4(Double_t x, Double_t p0, Double_t p1);
 
-      void SetGainFactor(Double_t gain) { mGain = gain; }
+      void setGainFactor(Double_t gain) { mGain = gain; }
 
 
     private:
