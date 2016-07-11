@@ -35,6 +35,11 @@ set(SRCS
    src/DigitTime.cxx
    src/DigitADC.cxx
    src/Digit.cxx
+   src/Cluster.cxx
+   src/BoxCluster.cxx
+   src/ClusterContainer.cxx
+   src/BoxClusterer.cxx
+   src/ClustererTask.cxx
 )
 
 set(HEADERS
@@ -49,6 +54,11 @@ set(HEADERS
    include/DigitTime.h
    include/DigitADC.h
    include/Digit.h
+   include/Cluster.h
+   include/BoxCluster.h
+   include/ClusterContainer.h
+   include/BoxClusterer.h
+   include/ClustererTask.h
 )
 Set(LINKDEF src/tpcSimulationLinkDef.h)
 Set(LIBRARY_NAME tpcSimulation)

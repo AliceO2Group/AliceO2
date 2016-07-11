@@ -16,4 +16,9 @@
 #pragma link C++ class AliceO2::TPC::DigitTime+;
 #pragma link C++ class AliceO2::TPC::DigitADC+;
 #pragma link C++ class AliceO2::TPC::Digit+;
+#pragma link C++ class AliceO2::TPC::Cluster+;
+#pragma link C++ class AliceO2::TPC::BoxCluster+;
+#pragma link C++ class AliceO2::TPC::ClusterContainer+;
+#pragma link C++ class AliceO2::TPC::BoxClusterer+;
+#pragma link C++ class AliceO2::TPC::ClustererTask+;
 #endif
