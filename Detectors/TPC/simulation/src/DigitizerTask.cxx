@@ -10,10 +10,10 @@
 #include "DigitContainer.h"  // for DigitContainer
 #include "Digitizer.h"       // for Digitizer
 
-#include "TObject.h"             // for TObject
-#include "TClonesArray.h"        // for TClonesArray
-#include "FairLogger.h"          // for LOG
-#include "FairRootManager.h"     // for FairRootManager
+#include "TObject.h"
+#include "TClonesArray.h"
+#include "FairLogger.h"
+#include "FairRootManager.h"
 
 ClassImp(AliceO2::TPC::DigitizerTask)
 
@@ -21,16 +21,16 @@ using namespace AliceO2::TPC;
 
 DigitizerTask::DigitizerTask():
 FairTask("TPCDigitizerTask"),
-fDigitizer(nullptr),
-fPointsArray(nullptr),
-fDigitsArray(nullptr)
+mDigitizer(nullptr),
+mPointsArray(nullptr),
+mDigitsArray(nullptr)
 {
-    fDigitizer = new Digitizer;
+    mDigitizer = new Digitizer;
 }
 
 DigitizerTask::~DigitizerTask(){
-    delete fDigitizer;
-    if (fDigitsArray) delete fDigitsArray;
+    delete mDigitizer;
+    if (mDigitsArray) delete mDigitsArray;
 }
 
 /// \brief Init function
@@ -42,24 +42,24 @@ InitStatus DigitizerTask::Init(){
         return kERROR;
     }
 
-    fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCPoint"));
-    if (!fPointsArray) {
+    mPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCPoint"));
+    if (!mPointsArray) {
         LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
         return kERROR;
     }
 
     // Register output container
-    fDigitsArray = new TClonesArray("AliceO2::TPC::Digit");
-    mgr->Register("TPCDigit", "TPC", fDigitsArray, kTRUE);      
+    mDigitsArray = new TClonesArray("AliceO2::TPC::Digit");
+    mgr->Register("TPCDigit", "TPC", mDigitsArray, kTRUE);      
 
-    fDigitizer->Init();
+    mDigitizer->init();
     return kSUCCESS;
 }
 
 void DigitizerTask::Exec(Option_t *option){
-    fDigitsArray->Delete();
+    mDigitsArray->Delete();
     LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-    DigitContainer *digits = fDigitizer->Process(fPointsArray);
-    digits->FillOutputContainer(fDigitsArray);
+    DigitContainer *digits = mDigitizer->Process(mPointsArray);
+    digits->fillOutputContainer(mDigitsArray);
 }

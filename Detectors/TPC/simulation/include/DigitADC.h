@@ -1,11 +1,5 @@
-//
-//  DigitADC.h
-//  ALICEO2
-//
-//  Created by Markus Fasel on 26.03.15.
-//
-//
-
+/// \file DigitADC.h
+/// \brief Container class for the ADC values
 #ifndef _ALICEO2_DigitADC_
 #define _ALICEO2_DigitADC_
 
@@ -25,7 +19,7 @@ namespace AliceO2 {
             DigitADC(Float_t charge);
             ~DigitADC();
             
-            Float_t GetADC() {return mADC;}
+            Float_t getADC() {return mADC;}
                         
         private:
             Float_t mADC;

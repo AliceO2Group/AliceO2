@@ -1,5 +1,5 @@
-/// \file AliITSUpgradeDigi.h
-/// \brief Digits structure for upgrade ITS
+/// \file Digit.h
+/// \brief Digits structure for upgraded TPC
 #ifndef ALICEO2_TPC_DIGIT_H
 #define ALICEO2_TPC_DIGIT_H
 
@@ -24,6 +24,7 @@ namespace AliceO2{
       Digit();
       
       /// Constructor, initializing values for position, charge and time
+      /// @param cru CRU of the digit
       /// @param charge Accumulated charge of digit
       /// @param timestamp Time at which the digit was created
       Digit(Int_t cru, Double_t charge, Int_t row, Int_t pad, Double_t time);
@@ -33,20 +34,21 @@ namespace AliceO2{
       
       /// Get the accumulated charged of the digit
       /// @return charge of the digit
-      Double_t GetCharge() const { return mCharge; }
+      Double_t getCharge() const { return mCharge; }
       
-      Int_t GetCRU() const { return mCRU; }
-      Int_t GetRow() const { return mRow; }
-      Int_t GetPad() const { return mPad; }
+      Int_t getCRU() const { return mCRU; }
+      Int_t getRow() const { return mRow; }
+      Int_t getPad() const { return mPad; }
 //       Double_t GetTime() const { return mTimeStamp; }
                   
       /// Set the charge of the digit
       /// @param charge The charge of the the digit
-      void SetCharge(Double_t charge) { mCharge = charge; }
+      void setCharge(Double_t charge) { mCharge = charge; }
       
       /// Print function: Print basic digit information on the  output stream
       /// @param output Stream to put the digit on
       /// @return The output stream
+
       std::ostream &Print(std::ostream &output) const;
                   
     private:

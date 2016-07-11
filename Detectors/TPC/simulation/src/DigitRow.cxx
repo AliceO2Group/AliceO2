@@ -7,37 +7,36 @@ using namespace AliceO2::TPC;
 
 DigitRow::DigitRow(Int_t rowID, Int_t npads):
 mRowID(rowID),
-mNPads(npads),
 mPads(npads)
 {}
 
 DigitRow::~DigitRow(){
-  for (int ipad = 0; ipad < mNPads; ipad++) {
-    delete mPads[ipad];
+  for(std::vector<DigitPad*>::iterator iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
+    delete (*iterPad);
   }
 }
 
-void DigitRow::SetDigit(Int_t pad, Int_t time, Float_t charge){
+void DigitRow::setDigit(Int_t pad, Int_t time, Float_t charge){
   DigitPad *result = mPads[pad];
   if(result != nullptr){
-    mPads[pad]->SetDigit(time, charge);
+    mPads[pad]->setDigit(time, charge);
   }
   else{
-    mPads[pad] = new DigitPad(pad,1000);
-    mPads[pad]->SetDigit(time, charge);
+    mPads[pad] = new DigitPad(pad);
+    mPads[pad]->setDigit(time, charge);
   }
 }
 
-void DigitRow::Reset(){
-  for(std::vector<DigitPad*>::iterator iterPad = mPads.begin(); iterPad != mPads.end(); iterPad++) {
+void DigitRow::reset(){
+  for(std::vector<DigitPad*>::iterator iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
     if((*iterPad) == nullptr) continue;
-    (*iterPad)->Reset();
+    (*iterPad)->reset();
   }
 }
 
-void DigitRow::FillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID){
-  for(std::vector<DigitPad*>::iterator iterPad = mPads.begin(); iterPad != mPads.end(); iterPad++) {
+void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID){
+  for(std::vector<DigitPad*>::iterator iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
     if((*iterPad) == nullptr) continue;
-    (*iterPad)->FillOutputContainer(output, cruID, rowID, (*iterPad)->GetPad());
+    (*iterPad)->fillOutputContainer(output, cruID, rowID, (*iterPad)->getPad());
   }
 }

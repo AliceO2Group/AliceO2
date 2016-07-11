@@ -1,3 +1,5 @@
+/// \file DigitTime.h
+/// \brief Container class for the ADC Digits
 #ifndef _ALICEO2_ITS_DigitTime_
 #define _ALICEO2_ITS_DigitTime_
 
@@ -17,13 +19,13 @@ namespace AliceO2 {
             DigitTime(Int_t mTimeBin);
             ~DigitTime();
             
-            void Reset();
+            void reset();
             
-            Int_t GetTimeBin() {return mTimeBin;}
+            Int_t getTimeBin() {return mTimeBin;}
             
-            void SetDigit(Float_t charge);
+            void setDigit(Float_t charge);
             
-            void FillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID, Int_t timeBin);
+            void fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID, Int_t timeBin);
             
         private:
             Int_t               mTimeBin;
