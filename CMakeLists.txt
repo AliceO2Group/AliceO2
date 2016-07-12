@@ -56,7 +56,8 @@ else(NOT ALICEO2_MODULAR_BUILD)
 endif(NOT ALICEO2_MODULAR_BUILD)
 
 find_package(AliRoot)
-find_package(FairRoot)
+find_package(FairRoot REQUIRED)
+find_package(FairMQ REQUIRED)
 
 # Load some basic macros which are needed later on
 include(FairMacros)
@@ -108,7 +109,6 @@ CHECK_EXTERNAL_PACKAGE_INSTALL_DIR()
 # mandatory
 
 find_package(ROOT 5.32.00 REQUIRED)
-find_package(FairMQ REQUIRED)
 find_package(Pythia8)
 find_package(Pythia6)
 if(ALICEO2_MODULAR_BUILD)

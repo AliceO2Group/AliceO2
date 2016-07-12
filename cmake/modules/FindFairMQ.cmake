@@ -6,13 +6,29 @@
 # also have to be available in the required (minimal) version.
 #
 
+if(FairRoot_DIR)
+  set(FAIRROOTPATH ${FairRoot_DIR})
+else()
+  set(FAIRROOTPATH $ENV{FAIRROOTPATH})
+endif(FairRoot_DIR)
+
+if(FAIRROOTPATH)
+  if(NOT FairMQ_FIND_QUIETLY)
+  MESSAGE(STATUS "FairRoot ... - found ${FAIRROOTPATH}")
+  endif(NOT FairMQ_FIND_QUIETLY)
+else()
+  if(NOT FairMQ_FIND_QUIETLY)
+  MESSAGE(FATAL_ERROR "FairRoot installation not found")
+  endif(NOT FairMQ_FIND_QUIETLY)
+endif(FAIRROOTPATH)
+
 set(FAIRMQ_REQUIRED_HEADERS FairMQDevice.h)
 if(NOT FairMQ_FIND_QUIETLY)
   message(STATUS "Looking for FairMQ functionality in FairRoot ...")
 endif(NOT FairMQ_FIND_QUIETLY)
 
 find_path(FAIRMQ_INCLUDE_DIR NAMES ${FAIRMQ_REQUIRED_HEADERS}
-  PATHS ${FairRoot_DIR}/include
+  PATHS ${FAIRROOTPATH}/include
   NO_DEFAULT_PATH
 )
 
@@ -27,7 +43,7 @@ if(FAIRMQ_INCLUDE_DIR)
   set(FAIRMQ_FOUND TRUE)
 else(FAIRMQ_INCLUDE_DIR)
   if(FairMQ_FIND_REQUIRED)
-    message(FATAL_ERROR "FairRoot is not built with FairMQ support")
+    message(STATUS "FairRoot is not built with FairMQ support")
   else(FairMQ_FIND_REQUIRED)
     if(NOT FairMQ_FIND_QUIETLY)
       message(STATUS "Looking for FairMQ functionality in FairRoot: no")
