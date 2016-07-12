@@ -1,3 +1,5 @@
+/// \file DigitPad.h
+/// \brief Digit container for the TimeBin Digits
 #ifndef _ALICEO2_ITS_DigitPad_
 #define _ALICEO2_ITS_DigitPad_
 
@@ -15,16 +17,16 @@ namespace AliceO2 {
         
         class DigitPad{
         public:
-            DigitPad(Int_t mPadID, Int_t nTimeBins);
+            DigitPad(Int_t mPadID);
             ~DigitPad();
             
-            void Reset();
+            void reset();
             
-            Int_t GetPad() {return mPadID;}
+            Int_t getPad() {return mPadID;}
             
-            void SetDigit(Int_t time, Float_t charge);
+            void setDigit(Int_t time, Float_t charge);
             
-            void FillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID);
+            void fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID);
             
         private:
             Int_t               mPadID;           ///< Layer ID

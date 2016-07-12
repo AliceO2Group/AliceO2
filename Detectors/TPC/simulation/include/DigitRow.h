@@ -1,3 +1,5 @@
+/// \file DigitPad.h
+/// \brief Container class for the Pad Digits
 #ifndef _ALICEO2_ITS_DigitRow_
 #define _ALICEO2_ITS_DigitRow_
 
@@ -18,13 +20,13 @@ namespace AliceO2 {
             DigitRow(Int_t mRowID, Int_t npads);
             ~DigitRow();
             
-            void Reset();
+            void reset();
             
-            Int_t GetRow() {return mRowID;}
+            Int_t getRow() {return mRowID;}
             
-            void SetDigit(Int_t pad, Int_t time, Float_t charge);
+            void setDigit(Int_t pad, Int_t time, Float_t charge);
             
-            void FillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID);
+            void fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID);
             
         private:
             Int_t               mRowID;           ///< Layer ID

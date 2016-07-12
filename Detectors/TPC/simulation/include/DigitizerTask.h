@@ -1,19 +1,13 @@
-//
-//  DigitizerTask.h
-//  ALICEO2
-//
-//  Created by Markus Fasel on 16.07.15.
-//
-//
-
+/// \file DigitizerTask.h
+/// \brief Task for ALICE TPC digitization
 #ifndef __ALICEO2__DigitizerTask__
 #define __ALICEO2__DigitizerTask__
 
 #include <stdio.h>
-#include "FairTask.h"  // for FairTask, InitStatus
-#include "Rtypes.h"    // for DigitizerTask::Class, ClassDef, etc
+#include "FairTask.h"
+#include "Rtypes.h"
 class TClonesArray;
-namespace AliceO2 { namespace TPC { class Digitizer; } }  // lines 19-19
+namespace AliceO2 { namespace TPC { class Digitizer; } }
 
 namespace AliceO2 {
     namespace TPC{
@@ -28,13 +22,11 @@ namespace AliceO2 {
             virtual InitStatus Init();
             virtual void Exec(Option_t *option);
             
-//             Digitizer *GetDigitizer() const { return fDigitizer; }
-
         private:
-            Digitizer           *fDigitizer;
+            Digitizer           *mDigitizer;
             
-            TClonesArray        *fPointsArray;
-            TClonesArray        *fDigitsArray;
+            TClonesArray        *mPointsArray;
+            TClonesArray        *mDigitsArray;
             
             ClassDef(DigitizerTask, 1)
         };

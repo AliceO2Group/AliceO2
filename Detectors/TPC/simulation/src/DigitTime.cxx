@@ -12,27 +12,31 @@ mTimeBin(timeBin)
 {}
 
 DigitTime::~DigitTime(){
-  for(std::vector<DigitADC*>::iterator iterADC = mADCCounts.begin(); iterADC != mADCCounts.end(); iterADC++) {
+  for(std::vector<DigitADC*>::iterator iterADC = mADCCounts.begin(); iterADC != mADCCounts.end(); ++iterADC) {
     delete (*iterADC);
   }   
 }
 
-void DigitTime::SetDigit(Float_t charge){
+void DigitTime::setDigit(Float_t charge){
   digitAdc = new DigitADC(charge);
   mADCCounts.push_back(digitAdc);
 }
 
-void DigitTime::Reset(){
+void DigitTime::reset(){
   mADCCounts.clear();
 }
 
-void DigitTime::FillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID, Int_t timeBin){
+void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID, Int_t timeBin){
   mCharge = 0;
-  for(std::vector<DigitADC*>::iterator iterADC = mADCCounts.begin(); iterADC != mADCCounts.end(); iterADC++) {
+  for(std::vector<DigitADC*>::iterator iterADC = mADCCounts.begin(); iterADC != mADCCounts.end(); ++iterADC) {
     if((*iterADC) == nullptr) continue;
-    mCharge += (*iterADC)->GetADC();
+    mCharge += (*iterADC)->getADC();
   }
-  Digit *digit = new Digit(cruID, mCharge, rowID, padID, timeBin);
-  TClonesArray &clref = *output;
-  new(clref[clref.GetEntriesFast()]) Digit(*(digit));
+  //TODO have to understand what is going wrong here - tree is filled with many zeros otherwise...
+  if(mCharge > 0){  
+    if(mCharge > 1024) mCharge = 1024;
+    Digit *digit = new Digit(cruID, mCharge, rowID, padID, timeBin);
+    TClonesArray &clref = *output;
+    new(clref[clref.GetEntriesFast()]) Digit(*(digit));
+  }
 }

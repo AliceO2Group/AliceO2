@@ -6,39 +6,40 @@
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
 
-DigitPad::DigitPad(Int_t padID, Int_t nTimeBins) :
+DigitPad::DigitPad(Int_t padID) :
 mPadID(padID),
-mNTimeBins(nTimeBins),
-mTimeBins(nTimeBins)
+mTimeBins(500)
 {}
 
 DigitPad::~DigitPad(){
-  for (int itime = 0; itime < mNTimeBins; itime++) {
-    delete mTimeBins[itime];
+  for(std::vector<DigitTime*>::iterator iterTime = mTimeBins.begin(); iterTime != mTimeBins.end(); ++iterTime) {
+    delete (*iterTime);
   }
 }
 
-void DigitPad::SetDigit(Int_t time, Float_t charge){
+void DigitPad::setDigit(Int_t time, Float_t charge){
   DigitTime *result = mTimeBins[time];
   if(result != nullptr){
-    mTimeBins[time]->SetDigit(charge);
+    mTimeBins[time]->setDigit(charge);
   }
   else{
     mTimeBins[time] = new DigitTime(time);
-    mTimeBins[time]->SetDigit(charge);
+//     digitTime = new DigitTime(time);
+//     mTimeBins[time].push_back(digitTime);
+    mTimeBins[time]->setDigit(charge);
   }
 }
 
-void DigitPad::Reset(){
-  for(std::vector<DigitTime*>::iterator iterTime = mTimeBins.begin(); iterTime != mTimeBins.end(); iterTime++) {
+void DigitPad::reset(){
+  for(std::vector<DigitTime*>::iterator iterTime = mTimeBins.begin(); iterTime != mTimeBins.end(); ++iterTime) {
     if((*iterTime) == nullptr) continue;
-    (*iterTime)->Reset();
+    (*iterTime)->reset();
   }
 }
 
-void DigitPad::FillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID){
-  for(std::vector<DigitTime*>::iterator iterTime = mTimeBins.begin(); iterTime != mTimeBins.end(); iterTime++) {
+void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID){
+  for(std::vector<DigitTime*>::iterator iterTime = mTimeBins.begin(); iterTime != mTimeBins.end(); ++iterTime) {
     if((*iterTime) == nullptr) continue;
-    (*iterTime)->FillOutputContainer(output, cruID, rowID, padID, (*iterTime)->GetTimeBin());
+    (*iterTime)->fillOutputContainer(output, cruID, rowID, padID, (*iterTime)->getTimeBin());
   }
 }

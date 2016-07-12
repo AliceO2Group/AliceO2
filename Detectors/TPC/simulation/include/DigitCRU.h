@@ -1,11 +1,5 @@
-//
-//  DigitCRU.h
-//  ALICEO2
-//
-//  Created by Markus Fasel on 25.03.15.
-//
-//
-
+/// \file DigitCRU.h
+/// \brief Digit container for the Row Digits
 #ifndef _ALICEO2_ITS_DigitCRU_
 #define _ALICEO2_ITS_DigitCRU_
 
@@ -27,12 +21,12 @@ namespace AliceO2 {
             DigitCRU(Int_t mCRUID, Int_t nrows);
             ~DigitCRU();
             
-            void Reset();
-            Int_t GetCRUID() {return mCRUID;}
+            void reset();
+            Int_t getCRUID() {return mCRUID;}
             
-            void SetDigit(Int_t row, Int_t pad, Int_t time, Float_t charge);
+            void setDigit(Int_t row, Int_t pad, Int_t time, Float_t charge);
             
-            void FillOutputContainer(TClonesArray *output, Int_t cruID);
+            void fillOutputContainer(TClonesArray *output, Int_t cruID);
             
         private:
             Int_t               mCRUID;           ///< CRU ID
