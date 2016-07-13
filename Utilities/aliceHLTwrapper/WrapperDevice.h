@@ -83,7 +83,7 @@ private:
 
   Component* mComponent;     // component instance
   std::vector<char*> mArgv;       // array of arguments for the component
-  std::vector<FairMQMessage*> mMessages; // array of output messages
+  std::vector<std::unique_ptr<FairMQMessage>> mMessages; // array of output messages
 
   int mPollingPeriod;        // period of polling on input sockets in ms
   int mSkipProcessing;       // skip component processing

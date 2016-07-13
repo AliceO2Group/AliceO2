@@ -68,7 +68,7 @@ void EventSampler::Run()
 
   boost::thread samplerThread(boost::bind(&EventSampler::samplerLoop, this));
 
-  FairMQPoller* poller = fTransportFactory->CreatePoller(fChannels["data-in"]);
+  unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels["data-in"]));
 
   bool received = false;
 
@@ -80,7 +80,7 @@ void EventSampler::Run()
   int errorCount=0;
   const int maxError=10;
 
-  vector</*const*/ FairMQMessage*> inputMessages;
+  vector<unique_ptr<FairMQMessage>> inputMessages;
   vector<int> inputMessageCntPerSocket(numInputs, 0);
   int nReadCycles=0;
 
@@ -92,17 +92,12 @@ void EventSampler::Run()
     poller->Poll(mPollingTimeout);
     for(int i = 0; i < numInputs; i++) {
       if (poller->CheckInput(i)) {
-        do {
-          unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-          received = fChannels.at("data-in").at(i).Receive(msg.get());
-          if (received) {
-            inputMessages.push_back(msg.release());
-            inputMessageCntPerSocket[i]++;
-            if (mVerbosity > 3) {
-              LOG(INFO) << " |---- receive Msg from socket " << i;
-            }
+        if (fChannels.at("data-in").at(i).Receive(inputMessages)) {
+          inputMessageCntPerSocket[i] = inputMessages.size();
+          if (mVerbosity > 3) {
+            LOG(INFO) << " |---- receive Msgs from socket " << i;
           }
-        } while (fChannels.at("data-in").at(i).ExpectsAnotherPart());
+        }
         if (mVerbosity > 2) {
           LOG(INFO) << "------ received " << inputMessageCntPerSocket[i] << " message(s) from socket " << i;
         }
@@ -113,7 +108,7 @@ void EventSampler::Run()
     auto seconds = std::chrono::duration_cast<std::chrono::seconds>(timestamp - dayref);
     auto useconds = std::chrono::duration_cast<std::chrono::microseconds>(timestamp  - dayref - seconds);
 
-    for (vector<FairMQMessage*>::iterator mit=inputMessages.begin();
+    for (vector<unique_ptr<FairMQMessage>>::iterator mit=inputMessages.begin();
          mit!=inputMessages.end(); mit++) {
       AliHLTComponentEventData* evtData=reinterpret_cast<AliHLTComponentEventData*>((*mit)->GetData());
       if ((*mit)->GetSize() >= sizeof(AliHLTComponentEventData) &&
@@ -147,8 +142,6 @@ void EventSampler::Run()
           latencyLog << evtData->fEventID << " " << latencyUSeconds << endl;
         }
       }
-
-      delete *mit;
     }
     inputMessages.clear();
     for (vector<int>::iterator mcit=inputMessageCntPerSocket.begin();
@@ -160,8 +153,6 @@ void EventSampler::Run()
   if (latencyLog.is_open()) {
     latencyLog.close();
   }
-
-  delete poller;
 
   samplerThread.interrupt();
   samplerThread.join();
