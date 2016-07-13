@@ -50,11 +50,13 @@ Cluster* ClusterContainer::AddCluster(Int_t cru, Int_t row,
 				      Float_t sigmapad, Float_t sigmatime)
 {
   R__ASSERT(mClusterArray);
-  Cluster *cluster = 
+  Cluster *cluster =
     dynamic_cast<Cluster*>(mClusterArray->ConstructedAt(mNclusters));
   mNclusters++;
-  cluster->setParameters(cru, row, qtot, qmax, meanpad, meantime, 
-			 sigmapad, sigmatime);
+  // ATTENTION: the order of parameters in setParameters is different than in AddCluster!
+  cluster->setParameters(cru, row, qtot, qmax,
+                         meanpad, sigmapad,
+                         meantime, sigmatime);
   return cluster;
 }
 
@@ -62,12 +64,10 @@ Cluster* ClusterContainer::AddCluster(Int_t cru, Int_t row,
 //________________________________________________________________________
 void ClusterContainer::FillOutputContainer(TClonesArray *output)
 {
+  output->Expand(mNclusters);
+  TClonesArray &outputRef = *output;
   for(Int_t n = 0; n < mNclusters; n++) {
-    
-    Cluster *clusterOut = 
-      dynamic_cast<Cluster*>(mClusterArray->ConstructedAt(n));
-    
-Cluster* cluster = dynamic_cast<Cluster*>(mClusterArray->At(mNclusters));
-    clusterOut->Copy(*cluster);
+    Cluster* cluster = dynamic_cast<Cluster*>(mClusterArray->At(n));
+    new (outputRef[n]) Cluster(*cluster);
   }
 }
