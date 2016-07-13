@@ -47,9 +47,9 @@ void BoxCluster::setBoxParameters(Short_t pad, Short_t time, Short_t size)
 //________________________________________________________________________
 std::ostream &BoxCluster::Print(std::ostream &output) const 
 { 
-  output << Cluster::Print(output) 
+  output << &Cluster::Print(output)
 	 << " centered at (pad, time) = " << mPad << ", " << mTime 
-	 << " covering " << Int_t(mSize/10)  << " pads and " << mSize%10 
+	 << " covering " << Int_t(mSize/10)  << " pads and " << mSize%10
 	 << " time bins";
   return output;
 }
