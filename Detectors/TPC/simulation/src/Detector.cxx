@@ -48,7 +48,7 @@
 using std::cout;
 using std::endl;
 using std::ios_base;
-
+using std::ifstream;
 using namespace AliceO2::TPC;
 
 Detector::Detector()
