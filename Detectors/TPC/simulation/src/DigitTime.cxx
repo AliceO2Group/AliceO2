@@ -35,8 +35,9 @@ void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t row
   //TODO have to understand what is going wrong here - tree is filled with many zeros otherwise...
   if(mCharge > 0){  
     if(mCharge > 1024) mCharge = 1024;
-    Digit *digit = new Digit(cruID, mCharge, rowID, padID, timeBin);
+//     Digit *digit = new Digit(cruID, mCharge, rowID, padID, timeBin);
     TClonesArray &clref = *output;
-    new(clref[clref.GetEntriesFast()]) Digit(*(digit));
+//     new(clref[clref.GetEntriesFast()]) Digit(*(digit));
+    new(clref[clref.GetEntriesFast()]) Digit(cruID, mCharge, rowID, padID, timeBin);
   }
 }

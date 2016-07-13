@@ -9,20 +9,20 @@ using namespace AliceO2::TPC;
 
 
 Digit::Digit():
+FairTimeStamp(),
 mCRU(-1),
 mCharge(0.),
 mRow(),
-mPad(),
-FairTimeStamp()
+mPad()
 {
 }
 
 Digit::Digit(Int_t cru, Double_t charge, Int_t row, Int_t pad, Double_t time):
+FairTimeStamp(time),
 mCRU(cru),
 mCharge(charge),
 mRow(row),
-mPad(pad),
-FairTimeStamp(time)
+mPad(pad)
 {
 }
 

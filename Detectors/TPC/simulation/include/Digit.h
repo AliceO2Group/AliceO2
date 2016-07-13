@@ -39,7 +39,8 @@ namespace AliceO2{
       Int_t getCRU() const { return mCRU; }
       Int_t getRow() const { return mRow; }
       Int_t getPad() const { return mPad; }
-//       Double_t GetTime() const { return mTimeStamp; }
+      //       Double_t GetTime() const { return mTimeStamp; }
+      Int_t getTimeStamp() const { return Int_t(FairTimeStamp::GetTimeStamp()); }
                   
       /// Set the charge of the digit
       /// @param charge The charge of the the digit
