@@ -82,6 +82,15 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
     Int_t ADCvalue = getADCvalue(nEleAmp);
 
     mDigitContainer->addDigit(digiPos.getCRU().number(), digiPos.getPadPos().getRow(), digiPos.getPadPos().getPad(), timeBin, ADCvalue);
+    // ===| just for testing the clusterer add time bins/ pads as pseudo response |===
+    //      should be removed when more proper response is in place
+    const Int_t pad=digiPos.getPadPos().getPad();
+    const PadRegionInfo &pinf=mapper.getPadRegionInfo(digiPos.getCRU().region());
+    const Int_t npads=pinf.getPadsInRowRegion(digiPos.getPadPos().getRow());
+
+    mDigitContainer->addDigit(digiPos.getCRU().number(), digiPos.getPadPos().getRow(), pad,             timeBin+1, ADCvalue/3);
+    if (pad>0) mDigitContainer->addDigit(digiPos.getCRU().number(), digiPos.getPadPos().getRow(), pad-1,     timeBin,   ADCvalue/3);
+    if (pad<npads-1) mDigitContainer->addDigit(digiPos.getCRU().number(), digiPos.getPadPos().getRow(), pad+1, timeBin+1, ADCvalue/3);
   }
   return mDigitContainer;
 }
