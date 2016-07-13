@@ -154,17 +154,18 @@ ClusterContainer* BoxClusterer::Process(TClonesArray *digits)
   
   Int_t nSignals = 0;
   Int_t lastCRU = -1;
+  Int_t iCRU    = -1;
   
   for (TIter digititer = TIter(digits).Begin(); digititer != TIter::End(); ++digititer) 
     {
       Digit* digit = dynamic_cast<Digit*>(*digititer);
       
-      Int_t iCRU     = digit->GetCRU();
-      Int_t iRow     = digit->GetRow();
-      Int_t iPad     = digit->GetPad();
-      //      Int_t iTime    = digit->GetTime();
-      Float_t charge = digit->GetCharge();
-      
+                  iCRU     = digit->getCRU();
+      const Int_t iRow     = digit->getRow();
+      const Int_t iPad     = digit->getPad();
+      const Int_t iTimeBin = digit->getTimeStamp();
+      const Float_t charge = digit->getCharge();
+//       printf("digi: %d, %d, %d, %d, %.2f\n", iCRU, iRow, iPad, iTimeBin, charge);
       if(iCRU != lastCRU) {
 	
 	if(nSignals>0) {
@@ -176,10 +177,18 @@ ClusterContainer* BoxClusterer::Process(TClonesArray *digits)
       } else { // add signal to array
 
 	// while we wait for the time bin
-	Update(iCRU, iRow, iPad, iPad, charge);
-	//	Update(iCRU, iRow, iPad, iTimeBin, charge);
+// 	Update(iCRU, iRow, iPad, iPad, charge);
+        Update(iCRU, iRow, iPad, iTimeBin, charge);
+        ++nSignals;
       }
     }
+
+    // processing of last CRU
+    if(nSignals>0) {
+      FindLocalMaxima(iCRU);
+      CleanArrays();
+    }
+
   return mClusterContainer;
 }
 
@@ -194,29 +203,27 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
   R__ASSERT(mAllBins);
   
   Int_t nLocalMaxima = 0;
-  
   // loop over rows
   for (Int_t iRow = 0; iRow < mRowsMax; iRow++) {
-    
+
     Float_t* allBins = mAllBins[iRow];
     Int_t* sigBins   = mAllSigBins[iRow];
     const Int_t nSigBins   = mAllNSigBins[iRow];
-    
+
     // loop over all signals
     for (Int_t iSig = 0; iSig < nSigBins; iSig++) {
-      
+
       Int_t bin  = sigBins[iSig];
       // Array of charged centered at the current signal
       Float_t *qArray = &allBins[bin];
       Float_t qMax = qArray[0];
-      
+
       // First check that the charge is bigger than the threshold
       if ( qMax < mMinQMax )
 	continue;
-      
+
       // Require at least one neighboring time bin with signal
       if ( qArray[-1] + qArray[1] <= 0 ) continue;
-      
       // Require at least one neighboring pad with signal
       const Int_t maxTimeBin = mTimeBinsMax+4; // Used to step between neighboring
       if ( mRequireNeighbouringPad 
@@ -294,7 +301,7 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
 	  }
 	}
       }
-      
+
       // calculate cluster parameters
       if(qTot > 0) {
 	meanP  /= qTot;
@@ -311,7 +318,7 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
 	Short_t nTimeBins = maxT-minT+1;
 	Short_t size = 10*nPad+nTimeBins;
 	BoxCluster* cluster = dynamic_cast<BoxCluster*>
-	  (mClusterContainer->AddCluster(iCRU, iRow, qTot, qMax, meanP, meanT, 
+	  (mClusterContainer->AddCluster(iCRU, iRow, qTot, qMax, meanP, meanT,
 					 sigmaP, sigmaT));
 	cluster->setBoxParameters(pad, timebin, size);
       }

@@ -56,8 +56,9 @@ InitStatus ClustererTask::Init()
   }
   
   // Register output container
-  fClustersArray = new TClonesArray("AliceO2::TPC::BoxCluster");
-  mgr->Register("TPCCluster", "TPC", fClustersArray, kTRUE);      
+//   fClustersArray = new TClonesArray("AliceO2::TPC::BoxCluster");
+  fClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
+  mgr->Register("TPCCluster", "TPC", fClustersArray, kTRUE);
   
   fClusterer->Init();
   return kSUCCESS;
