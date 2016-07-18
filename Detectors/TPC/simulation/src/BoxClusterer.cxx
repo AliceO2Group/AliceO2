@@ -86,7 +86,8 @@
 
 #include "FairLogger.h"           
 #include "TMath.h"         
-#include "TError.h"   // for R__ASSERT()         
+#include "TError.h"   // for R__ASSERT()
+#include "TClonesArray.h"
 
 ClassImp(AliceO2::TPC::BoxClusterer)
 

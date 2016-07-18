@@ -6,6 +6,8 @@
 #include "Rtypes.h"
 #include "TObject.h"
 
+class TClonesArray;
+
 namespace AliceO2{
   
   namespace TPC {
