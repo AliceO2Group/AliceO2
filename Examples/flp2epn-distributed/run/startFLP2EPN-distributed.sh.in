@@ -1,0 +1,101 @@
+#!/bin/bash
+
+cfg="@CMAKE_BINARY_DIR@/bin/config/flp2epn-prototype.json"
+
+SAMPLER="flpSyncSampler"
+SAMPLER+=" --id flpSyncSampler"
+# SAMPLER+=" --mq-config $cfg"
+SAMPLER+=" --event-rate 100"
+SAMPLER+=" --ack-in-address tcp://*:5990"
+SAMPLER+=" --data-out-address tcp://*:5550"
+xterm -geometry 80x25+0+0 -hold -e @CMAKE_BINARY_DIR@/bin/$SAMPLER &
+
+FLP0="flpSender"
+FLP0+=" --id flpSender1"
+# FLP0+=" --mq-config $cfg"
+FLP0+=" --flp-index 0"
+FLP0+=" --event-size 1000000"
+FLP0+=" --num-epns 3"
+FLP0+=" --heartbeat-timeout 20000"
+FLP0+=" --test-mode 1"
+FLP0+=" --send-offset 0"
+FLP0+=" --hb-in-address tcp://127.0.0.1:5580"
+FLP0+=" --data-in-socket-type sub --data-in-method connect --data-in-address tcp://127.0.0.1:5550" # non-default socket type and method for test mode, default is pull/bind
+FLP0+=" --data-out-address tcp://127.0.0.1:5560"
+FLP0+=" --data-out-address tcp://127.0.0.1:5561"
+FLP0+=" --data-out-address tcp://127.0.0.1:5562"
+xterm -geometry 80x25+500+0 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
+
+FLP1="flpSender"
+FLP1+=" --id flpSender2"
+# FLP1+=" --mq-config $cfg"
+FLP1+=" --flp-index 1"
+FLP1+=" --event-size 1000000"
+FLP1+=" --num-epns 3"
+FLP1+=" --heartbeat-timeout 20000"
+FLP1+=" --test-mode 1"
+FLP1+=" --send-offset 0"
+FLP1+=" --hb-in-address tcp://127.0.0.1:5581"
+FLP1+=" --data-in-socket-type sub --data-in-method connect --data-in-address tcp://127.0.0.1:5550" # non-default socket type and method for test mode, default is pull/bind
+FLP1+=" --data-out-address tcp://127.0.0.1:5560"
+FLP1+=" --data-out-address tcp://127.0.0.1:5561"
+FLP1+=" --data-out-address tcp://127.0.0.1:5562"
+xterm -geometry 80x25+500+350 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP1 &
+
+FLP2="flpSender"
+FLP2+=" --id flpSender3"
+# FLP2+=" --mq-config $cfg"
+FLP2+=" --flp-index 2"
+FLP2+=" --event-size 1000000"
+FLP2+=" --num-epns 3"
+FLP2+=" --heartbeat-timeout 20000"
+FLP2+=" --test-mode 1"
+FLP2+=" --send-offset 0"
+FLP2+=" --hb-in-address tcp://127.0.0.1:5582"
+FLP2+=" --data-in-socket-type sub --data-in-method connect --data-in-address tcp://127.0.0.1:5550" # non-default socket type and method for test mode, default is pull/bind
+FLP2+=" --data-out-address tcp://127.0.0.1:5560"
+FLP2+=" --data-out-address tcp://127.0.0.1:5561"
+FLP2+=" --data-out-address tcp://127.0.0.1:5562"
+xterm -geometry 80x25+500+700 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP2 &
+
+EPN0="epnReceiver"
+EPN0+=" --id epnReceiver1"
+# EPN0+=" --mq-config $cfg"
+EPN0+=" --heartbeat-interval 5000"
+EPN0+=" --num-flps 3"
+EPN0+=" --test-mode 1"
+EPN0+=" --data-in-address tcp://127.0.0.1:5560"
+EPN0+=" --data-out-address tcp://*:5590 --data-out-socket-type pub" # non-default socket type  for test mode (because no receiver - do pub), default is push.
+EPN0+=" --hb-out-address tcp://127.0.0.1:5580"
+EPN0+=" --hb-out-address tcp://127.0.0.1:5581"
+EPN0+=" --hb-out-address tcp://127.0.0.1:5582"
+EPN0+=" --ack-out-address tcp://127.0.0.1:5990"
+xterm -geometry 80x25+1000+0 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN0 &
+
+EPN1="epnReceiver"
+EPN1+=" --id epnReceiver2"
+# EPN1+=" --mq-config $cfg"
+EPN1+=" --heartbeat-interval 5000"
+EPN1+=" --num-flps 3"
+EPN1+=" --test-mode 1"
+EPN1+=" --data-in-address tcp://127.0.0.1:5561"
+EPN1+=" --data-out-address tcp://*:5591 --data-out-socket-type pub" # non-default socket type  for test mode (because no receiver - do pub), default is push.
+EPN1+=" --hb-out-address tcp://127.0.0.1:5580"
+EPN1+=" --hb-out-address tcp://127.0.0.1:5581"
+EPN1+=" --hb-out-address tcp://127.0.0.1:5582"
+EPN1+=" --ack-out-address tcp://127.0.0.1:5990"
+xterm -geometry 80x25+1000+350 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN1 &
+
+EPN2="epnReceiver"
+EPN2+=" --id epnReceiver3"
+# EPN2+=" --mq-config $cfg"
+EPN2+=" --heartbeat-interval 5000"
+EPN2+=" --num-flps 3"
+EPN2+=" --test-mode 1"
+EPN2+=" --data-in-address tcp://127.0.0.1:5562"
+EPN2+=" --data-out-address tcp://*:5592 --data-out-socket-type pub" # non-default socket type  for test mode (because no receiver - do pub), default is push.
+EPN2+=" --hb-out-address tcp://127.0.0.1:5580"
+EPN2+=" --hb-out-address tcp://127.0.0.1:5581"
+EPN2+=" --hb-out-address tcp://127.0.0.1:5582"
+EPN2+=" --ack-out-address tcp://127.0.0.1:5990"
+xterm -geometry 80x25+1000+700 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN2 &

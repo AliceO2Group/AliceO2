@@ -112,8 +112,8 @@ find_package(Pythia8)
 find_package(Pythia6)
 if(ALICEO2_MODULAR_BUILD)
   # Geant3, Geant4 installed via cmake
-  find_package(Geant3 REQUIRED)
-  find_package(Geant4 REQUIRED)
+  find_package(Geant3)
+  find_package(Geant4)
 else(ALICEO2_MODULAR_BUILD)
   # For old versions of VMC packages (to be removed)
   find_package(GEANT3)
@@ -146,7 +146,9 @@ if(NOT BOOST_ROOT)
   Unset(Boost_INCLUDE_DIR CACHE)
   Unset(Boost_LIBRARY_DIRS CACHE)
 endif(NOT BOOST_ROOT)
-find_package(Boost 1.41)
+
+find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework REQUIRED)
+
 If (Boost_FOUND)
   Set(Boost_Avail 1)
 Else (Boost_FOUND)
@@ -207,20 +209,16 @@ endif(NOT ALICEO2_MODULAR_BUILD)
 # cause another cmake executable to run.  The same process will walk through
 # the project's entire directory structure.
 
-add_subdirectory (Base)
-add_subdirectory (Data)
 if (PYTHIA8_FOUND AND Pythia6_FOUND)
 add_subdirectory (Generators)
 Endif ()
-add_subdirectory (itsmft)
-add_subdirectory (tpc)
-add_subdirectory (passive)
-add_subdirectory (MathUtils)
-add_subdirectory (field)
-add_subdirectory (devices)
+add_subdirectory (Common)
+add_subdirectory (Examples)
 add_subdirectory (macro)
-add_subdirectory (o2cdb)
-add_subdirectory (test)
+add_subdirectory (CCDB)
+add_subdirectory (Utilities)
+add_subdirectory (Detectors)
+add_subdirectory (DataFormats)
 
 
 Option(BUILD_DOXYGEN "Build Doxygen" OFF)
@@ -231,7 +229,7 @@ endif(BUILD_DOXYGEN)
 
 
 If(IWYU_FOUND)
-  ADD_CUSTOM_TARGET(checkHEADERS 
+  ADD_CUSTOM_TARGET(checkHEADERS
                     DEPENDS $ENV{ALL_HEADER_RULES}
   )
 EndIf()
@@ -244,5 +242,5 @@ configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
               )
 
 # Create an automatically generated config header file to pass file paths to the application
-configure_file(${PROJECT_SOURCE_DIR}/header/AliceO2Config.h.in
-               ${CMAKE_CURRENT_SOURCE_DIR}/header/AliceO2Config.h)
+configure_file(${PROJECT_SOURCE_DIR}/Common/Header/AliceO2Config.h.in
+               ${CMAKE_CURRENT_SOURCE_DIR}/Common/Header/AliceO2Config.h)
