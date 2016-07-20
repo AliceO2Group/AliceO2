@@ -34,9 +34,9 @@ namespace AliceO2{
       void getElectronDrift(Float_t *xyz);
       Float_t getGEMAmplification();
       const Int_t getTimeBin(Float_t zPos);
-      
-      
-      
+
+
+
       Double_t Gamma4(Double_t x, Double_t p0, Double_t p1);
 
       void setGainFactor(Double_t gain) { mGain = gain; }
@@ -49,7 +49,7 @@ namespace AliceO2{
       DigitContainer          *mDigitContainer;           ///< Internal digit storage
       Double_t                mGain;                      ///< pad gain factor (global for the moment)
 
-      ClassDef(Digitizer, 1);
+      ClassDef(ALICEO2::TPC::Digitizer, 1);
     };
 }
 }
