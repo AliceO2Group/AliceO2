@@ -586,12 +586,12 @@ GPUh() void AliHLTTPCCATracker::DoTracking()
 	{
 		SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // to calculate the size
 		fTrackletMemory = reinterpret_cast<char*> ( new uint4 [ fTrackletMemorySize/sizeof( uint4 ) + 100] );
-		SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // to calculate the size
+		SetPointersTracks( fCommonMem->fNTracklets * 2 + 50, NHitsTotal() ); // to calculate the size
 		fTrackMemory = reinterpret_cast<char*> ( new uint4 [ fTrackMemorySize/sizeof( uint4 ) + 100] );
 	}
 
 	SetPointersTracklets( fCommonMem->fNTracklets * 2 ); // set pointers for hits
-	SetPointersTracks( fCommonMem->fNTracklets * 2, NHitsTotal() ); // set pointers for hits
+	SetPointersTracks( fCommonMem->fNTracklets * 2 + 50, NHitsTotal() ); // set pointers for hits
 
 	StandalonePerfTime(6);
 	StandalonePerfTime(7);
@@ -1009,54 +1009,61 @@ GPUh() int AliHLTTPCCATracker::PerformGlobalTrackingRun(AliHLTTPCCATracker& slic
 	if (nHits >= GLOBAL_TRACKING_MIN_HITS)
 	{
 		//printf("%d hits found\n", nHits);
-		AliHLTTPCCATrack& track = sliceNeighbour.fTracks[sliceNeighbour.fCommonMem->fNTracks];
-		if (direction == 1)
+		if (sliceNeighbour.fCommonMem->fNTracks >= 2 * sliceNeighbour.fCommonMem->fNTracklets + 50)
 		{
-			int i = 0;
-			while (i < nHits)
-			{
-#ifdef EXTERN_ROW_HITS
-				const int rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
-#else
-				const int rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
-#endif
-				if (rowHit != -1)
-				{
-					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
-					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
-					if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), fParam.ConstBz(), .999);
-					i++;
-				}
-				rowIndex ++;
-			}
+			printf("Insufficient Track Memory for Global Tracking!\n");
 		}
 		else
 		{
-			int i = nHits - 1;
-			while (i >= 0)
+			AliHLTTPCCATrack& track = sliceNeighbour.fTracks[sliceNeighbour.fCommonMem->fNTracks];
+			if (direction == 1)
 			{
-#ifdef EXTERN_ROW_HITS
-				const int rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
-#else
-				const int rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
-#endif
-				if (rowHit != -1)
+				int i = 0;
+				while (i < nHits)
 				{
-					//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
-					sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
-					i--;
+#ifdef EXTERN_ROW_HITS
+					const int rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
+#else
+					const int rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
+#endif
+					if (rowHit != -1)
+					{
+						//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
+						sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
+						if (i == 0) tParam.TransportToX(sliceNeighbour.Row(rowIndex).X(), fParam.ConstBz(), .999);
+						i++;
+					}
+					rowIndex ++;
 				}
-				rowIndex--;
 			}
+			else
+			{
+				int i = nHits - 1;
+				while (i >= 0)
+				{
+#ifdef EXTERN_ROW_HITS
+					const int rowHit = sliceNeighbour.TrackletRowHits()[rowIndex * *sliceNeighbour.NTracklets()];
+#else
+					const int rowHit = sliceNeighbour.Tracklet(0).RowHit(rowIndex);
+#endif
+					if (rowHit != -1)
+		    			{
+						//printf("New track: entry %d, row %d, hitindex %d\n", i, rowIndex, sliceNeighbour.fTrackletRowHits[rowIndex * sliceNeighbour.fCommonMem->fNTracklets]);
+						sliceNeighbour.fTrackHits[sliceNeighbour.fCommonMem->fNTrackHits + i].Set(rowIndex, rowHit);
+						i--;
+					}
+					rowIndex--;
+				}
+			}
+			track.SetAlive(1);
+			track.SetParam(tParam.GetParam());
+			track.SetNHits(nHits);
+			track.SetFirstHitID(sliceNeighbour.fCommonMem->fNTrackHits);
+			const int kMaxTrackIdInSlice = AliHLTTPCCASliceOutTrack::MaxTrackId();
+			track.SetLocalTrackId(fParam.ISlice() * kMaxTrackIdInSlice + fTracks[iTrack].LocalTrackId());
+			sliceNeighbour.fCommonMem->fNTracks++;
+			sliceNeighbour.fCommonMem->fNTrackHits += nHits;
 		}
-		track.SetAlive(1);
-		track.SetParam(tParam.GetParam());
-		track.SetNHits(nHits);
-		track.SetFirstHitID(sliceNeighbour.fCommonMem->fNTrackHits);
-		const int kMaxTrackIdInSlice = AliHLTTPCCASliceOutTrack::MaxTrackId();
-		track.SetLocalTrackId(fParam.ISlice() * kMaxTrackIdInSlice + fTracks[iTrack].LocalTrackId());
-		sliceNeighbour.fCommonMem->fNTracks++;
-		sliceNeighbour.fCommonMem->fNTrackHits += nHits;
 
 	}
 
