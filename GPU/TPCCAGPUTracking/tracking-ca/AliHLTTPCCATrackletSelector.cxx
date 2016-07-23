@@ -119,12 +119,14 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 						int itrout = CAMath::AtomicAdd( tracker.NTracks(), 1 );
 #ifdef HLTCA_GPUCODE
 						if (itrout >= HLTCA_GPU_MAX_TRACKS)
+#else
+						if (itrout >= tracker.CommonMemory()->fNTracklets * 2 + 50)
+#endif //HLTCA_GPUCODE
 						{
 							tracker.GPUParameters()->fGPUError = HLTCA_GPU_ERROR_TRACK_OVERFLOW;
 							CAMath::AtomicExch( tracker.NTracks(), 0 );
 							return;
 						}
-#endif //HLTCA_GPUCODE
 						nFirstTrackHit = CAMath::AtomicAdd( tracker.NTrackHits(), nHits );
 						tracker.Tracks()[itrout].SetAlive(1);
 						tracker.Tracks()[itrout].SetLocalTrackId(itrout);
@@ -137,7 +139,7 @@ GPUdi() void AliHLTTPCCATrackletSelector::Thread
 							{
 								tracker.TrackHits()[nFirstTrackHit + jh] = s.fHits[iThread][jh];
 #ifdef GLOBAL_TRACKING_ONLY_UNASSIGNED_HITS
-							    tracker.SetHitWeight( tracker.Row( s.fHits[iThread][jh].RowIndex() ), s.fHits[iThread][jh].HitIndex(), -w );
+								tracker.SetHitWeight( tracker.Row( s.fHits[iThread][jh].RowIndex() ), s.fHits[iThread][jh].HitIndex(), -w );
 #endif
 							}
 							else
