@@ -36,38 +36,46 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
  bool UseMeanPt,
  float maxSinPhi
  ){
-  
-  const float kRho = 1.025e-3;//0.9e-3;
-  const float kRadLen = 29.532;//28.94;
-  const float kRhoOverRadLen = kRho / kRadLen;
-  
   AliHLTTPCGMTrackLinearisation t0(*this);
- 
-  const float kZLength = 250.f - 0.275f;
   float trDzDs2 = t0.DzDs()*t0.DzDs();
  
   AliHLTTPCGMTrackFitParam par;
+  const float kRho = 1.025e-3;//0.9e-3;
+  const float kRadLen = 29.532;//28.94;
+  const float kRhoOverRadLen = kRho / kRadLen;
+    
   CalculateFitParameters( par, kRhoOverRadLen, kRho, UseMeanPt );
 
   int maxN = N;
 
-  bool first = 1;
+  int first = 1;
   N = 0;
 
   for( int ihit=0; ihit<maxN; ihit++ ){
+    float dL = 0;
+    float ex1i = 0;
+
+    if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2)) break;
+    if (first == 0 && UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, t0, dL, ex1i, trDzDs2)) break;
+    first = 0;
+  }
+}
+
+GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, bool UseMeanPt, int first, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMTrackLinearisation& t0, float& dL, float& ex1i, float trDzDs2)
+{
+    const float kRho = 1.025e-3;//0.9e-3;
+    const float kRadLen = 29.532;//28.94;
+    const float kRhoOverRadLen = kRho / kRadLen;
     
-    float sliceAlpha =  alpha[ihit];
+    float sliceAlpha = posAlpha;
     
     if ( fabs( sliceAlpha - Alpha ) > 1.e-4 ) {
-      if( !Rotate(  sliceAlpha - Alpha, t0, .999 ) ) break;
+      if( !Rotate(  sliceAlpha - Alpha, t0, .999 ) ) return 1;
       Alpha = sliceAlpha;
     }
 
-    float dL=0;    
-    float bz =  GetBz(x[ihit], y[ihit],z[ihit], PolinomialFieldBz);
+    float bz =  GetBz(posX, posY, posZ, PolinomialFieldBz);
         
-    float err2Y, err2Z;
-
     { // transport block
       
       bz = -bz;
@@ -76,11 +84,11 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       
       float ey = t0.SinPhi();
       float k  = t0.QPt()*bz;
-      float dx = x[ihit] - X();
+      float dx = posX - X();
       float kdx = k*dx;
       float ey1 = kdx + ey;
       
-      if( fabs( ey1 ) >= maxSinPhi ) break;
+      if( fabs( ey1 ) >= maxSinPhi ) return 1;
 
       float ss = ey + ey1;   
       float ex1 = sqrt(1 - ey1*ey1);
@@ -105,7 +113,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
 	dS = dl + dl*a*(k2 + a*(k4 ));//+ k6*a) );
       }
       
-      float ex1i = Reciprocal(ex1);
+      ex1i = Reciprocal(ex1);
       float dz = dS * t0.DzDs();  
       
       dL = -dS * t0.DlDs();
@@ -128,31 +136,34 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       t0.SecPhi() = ex1i;
       t0.SinPhi() = ey1;      
 
-      {
-	const float *cy = param.GetParamS0Par(0,rowType[ihit]);
-	const float *cz = param.GetParamS0Par(1,rowType[ihit]);
-
-	float secPhi2 = ex1i*ex1i;
-	float zz = fabs( kZLength - fabs(fP[2]) );	
-	float zz2 = zz*zz;
-	float angleY2 = secPhi2 - 1.f; 
-	float angleZ2 = trDzDs2 * secPhi2 ;
-
-	float cy0 = cy[0] + cy[1]*zz + cy[3]*zz2;
-	float cy1 = cy[2] + cy[5]*zz;
-	float cy2 = cy[4];
-	float cz0 = cz[0] + cz[1]*zz + cz[3]*zz2;
-	float cz1 = cz[2] + cz[5]*zz;
-	float cz2 = cz[4];
-	
-	err2Y = fabs( cy0 + angleY2 * ( cy1 + angleY2*cy2 ) );
-	err2Z = fabs( cz0 + angleZ2 * ( cz1 + angleZ2*cz2 ) );      
-     }
-
 
       if ( first ) {
-	fP[0] = y[ihit];
-	fP[1] = z[ihit];
+        float err2Y, err2Z;
+        {
+	    const float *cy = param.GetParamS0Par(0,rowType);
+	    const float *cz = param.GetParamS0Par(1,rowType);
+
+	    float secPhi2 = ex1i*ex1i;
+	    const float kZLength = 250.f - 0.275f;
+	    float zz = fabs( kZLength - fabs(fP[2]) );	
+	    float zz2 = zz*zz;
+	    float angleY2 = secPhi2 - 1.f; 
+	    const float trDzDs2 = t0.DzDs()*t0.DzDs();
+	    float angleZ2 = trDzDs2 * secPhi2 ;
+
+	    float cy0 = cy[0] + cy[1]*zz + cy[3]*zz2;
+	    float cy1 = cy[2] + cy[5]*zz;
+	    float cy2 = cy[4];
+	    float cz0 = cz[0] + cz[1]*zz + cz[3]*zz2;
+	    float cz1 = cz[2] + cz[5]*zz;
+	    float cz2 = cz[4];
+	
+	    err2Y = fabs( cy0 + angleY2 * ( cy1 + angleY2*cy2 ) );
+	    err2Z = fabs( cz0 + angleZ2 * ( cz1 + angleZ2*cz2 ) );      
+        }
+        
+	fP[0] = posY;
+	fP[1] = posZ;
 	SetCov( 0, err2Y );
 	SetCov( 1,  0 );
 	SetCov( 2, err2Z);
@@ -171,9 +182,8 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
 	SetChi2( 0 );
 	SetNDF( -3 );
 	CalculateFitParameters( par, kRhoOverRadLen, kRho, UseMeanPt );
-	first = 0;
 	N+=1;
-	continue;
+	return 0;
       }
 
       float c20 = fC[3];
@@ -219,8 +229,12 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       fC[12] = n12;
       
     } // end transport block 
+    
+    return 0;
+}
 
- 
+GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMTrackLinearisation& t0, float& dL, float& ex1i, float trDzDs2)
+{
     float &fC22 = fC[5];
     float &fC33 = fC[9];
     float &fC40 = fC[10];
@@ -234,8 +248,32 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       c11 = fC[ 2],
       c20 = fC[ 3],
       c31 = fC[ 7];
-    
-    
+
+	//Copy computation of err2? from first propagation (above) for update
+        float err2Y, err2Z;
+        {
+	    const float *cy = param.GetParamS0Par(0,rowType);
+	    const float *cz = param.GetParamS0Par(1,rowType);
+
+	    float secPhi2 = ex1i*ex1i;
+	    const float kZLength = 250.f - 0.275f;
+	    float zz = fabs( kZLength - fabs(fP[2]) );	
+	    float zz2 = zz*zz;
+	    float angleY2 = secPhi2 - 1.f; 
+	    float angleZ2 = trDzDs2 * secPhi2 ;
+
+	    float cy0 = cy[0] + cy[1]*zz + cy[3]*zz2;
+	    float cy1 = cy[2] + cy[5]*zz;
+	    float cy2 = cy[4];
+	    float cz0 = cz[0] + cz[1]*zz + cz[3]*zz2;
+	    float cz1 = cz[2] + cz[5]*zz;
+	    float cz2 = cz[4];
+	
+	    err2Y = fabs( cy0 + angleY2 * ( cy1 + angleY2*cy2 ) );
+	    err2Z = fabs( cz0 + angleZ2 * ( cz1 + angleZ2*cz2 ) );      
+        }
+
+
     // MS block  
     
     float dLmask = 0.f;
@@ -251,10 +289,12 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
     
     // Filter block
     
-    float  z0 = y[ihit] - fP[0];
+    if (posY - fP[0] > 3 || posZ - fP[1] > 3) return 1;
+    
+    float  z0 = posY - fP[0];
     float mS2 = Reciprocal(err2Z + c11);
     
-    if( fabs( fP[2] + z0*c20*mS0  ) > maxSinPhi ) break;
+    if( fabs( fP[2] + z0*c20*mS0  ) > maxSinPhi ) return 1;
     
     // MS block
     
@@ -295,12 +335,13 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
     fC[ 3] -= k20 * c00 ;
     fC[14] -= k40 * c40 ;
   
-    float  z1 = z[ihit] - fP[1];
+    float  z1 = posZ - fP[1];
     
     k11 = c11 * mS2;
     k31 = c31 * mS2;
     
     fChi2  +=  mS2*z1*z1 ;
+    if (fChi2 / (N + 1) > 5) return 1;
     fNDF  += 2;
     N+=1;
     
@@ -309,8 +350,9 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
     
     fC[ 7] -= k31 * c11;
     fC[ 2] -= k11 * c11;
-    fC[ 9] -= k31 * c31;    
-  } 
+    fC[ 9] -= k31 * c31;
+    
+    return 0;
 }
 
 GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const

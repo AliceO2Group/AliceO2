@@ -35,7 +35,8 @@ AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject()
   fLastTimeBin(0),
   fTimeSplit1(0),
   fTimeSplit2(0),
-  fAlignment(0)
+  fAlignment(0),
+  fReverseTransformInfo()
 {
   // constructor
   for (int i = 0;i < fkNSec;i++) fSectorInit[i] = false;
@@ -57,12 +58,13 @@ void  AliHLTTPCFastTransformObject::Reset()
 
 AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject( const AliHLTTPCFastTransformObject &o )
   :
-  TObject( o ),
+  TObject(o),
   fVersion(0),
   fLastTimeBin(o.fLastTimeBin),
   fTimeSplit1(o.fTimeSplit1),
   fTimeSplit2(o.fTimeSplit2),
-  fAlignment(o.fAlignment)
+  fAlignment(o.fAlignment),
+  fReverseTransformInfo()
 { 
   // constructor    
   for( Int_t i=0; i<fkNSplinesIn + fkNSplinesOut; i++){
