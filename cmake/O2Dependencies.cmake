@@ -33,6 +33,8 @@ include_directories(SYSTEM
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
     ${ZMQ_INCLUDE_DIR}
+    ${PYTHIA8_INCLUDE_DIR}
+    ${PYTHIA6_INCLUDE_DIR}
     )
 
 if (DDS_FOUND)
@@ -47,6 +49,7 @@ endif ()
 set(LINK_DIRECTORIES
     ${ROOT_LIBRARY_DIR}
     ${FAIRROOT_LIBRARY_DIR}
+    ${Pythia6_LIBRARY_DIR}
     )
 link_directories(${LINK_DIRECTORIES})
 
@@ -56,7 +59,7 @@ if(APPLE)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-undefined,error") # avoid undefined in our libs
 elseif(UNIX)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined") # avoid undefined in our libs
-endif() 
+endif()
 
 ########## Bucket definitions ############
 
@@ -267,9 +270,8 @@ o2_define_bucket(
     NAME
     generators_bucket
     DEPENDENCIES
-    Base O2SimulationDataFormat pythia8 Pythia6
-)
-
+    Base SimulationDataFormat Pythia6 pythia8 MathCore 
+   )
 o2_define_bucket(
     NAME
     alicehlt_bucket
