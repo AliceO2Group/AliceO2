@@ -14,8 +14,17 @@ class AliHLTTPCCAParam;
 class AliHLTTPCRawCluster;
 class AliHLTTPCClusterXYZ;
 
+class AliHLTTPCReverseTransformInfoV1;
+class AliHLTExternalTrackParam;
+class AliHLTTPCCAParam;
+class AliHLTTPCRawCluster;
+class AliHLTTPCClusterXYZ;
+
 class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionParser
 {
+ protected:
+  class AliHLTTPCTrackHelperStruct;
+
  public:
   /** standard constructor */
   AliHLTTPCClusterStatComponent();
@@ -28,6 +37,11 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
   AliHLTComponentDataType GetOutputDataType();
   void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
   AliHLTComponent* Spawn() {return new AliHLTTPCClusterStatComponent;}
+
+  static void TransformReverse(int slice, int row, float y, float z, float padtime[], const AliHLTTPCReverseTransformInfoV1* revInfo, bool applyCorrection = false);
+  static void TransformForward(int slice, int row, float pad, float time, float xyz[], const AliHLTTPCReverseTransformInfoV1* revInfo, bool applyCorrection = false);
+  
+  void PrintDumpClustersScaled(int is, int ip, AliHLTTPCRawCluster &cluster, AliHLTTPCClusterXYZ &clusterTransformed, AliHLTTPCTrackHelperStruct &clusterTrack);
 
  protected:
   // interface methods of base class
@@ -42,19 +56,35 @@ class AliHLTTPCClusterStatComponent : public AliHLTProcessor, public AliOptionPa
 
   using AliHLTProcessor::DoEvent;
   int ProcessOption(TString option, TString value);
+  
+  
+  struct AliHLTTPCTrackHelperStruct
+  {
+    int fID;
+    const AliHLTExternalTrackParam* fTrack;
+    float fResidualPad;
+    float fResidualTime;
+    bool fFirstHit;
+    long long int fAverageQMax;
+    long long int fAverageQTot;
+  };
 
  private:
   /** copy constructor prohibited */
   AliHLTTPCClusterStatComponent(const AliHLTTPCClusterStatComponent&);
   /** assignment operator prohibited */
   AliHLTTPCClusterStatComponent& operator=(const AliHLTTPCClusterStatComponent&);
+  
+  AliHLTTPCCAParam* fSliceParam;
+  float fPolinomialFieldBz[6];
 
-  int fTotal, fSplitPad, fSplitTime, fSplitPadTime, fSplitPadOrTime; //!
+  int fTotal, fSplitPad, fSplitTime, fSplitPadTime, fSplitPadOrTime, fAssigned; //!
 
   int fPrintClusters; //!
   int fPrintClustersScaled; //!
   int fDumpClusters; //!
   int fAggregate; //!
+  int fEvent;
   
   FILE* fp;
 

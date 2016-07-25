@@ -1,4 +1,4 @@
-//**************************************************************************
+//************************OB**************************************************
 //* This file is property of and copyright by the ALICE HLT Project        *
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //*                                                                        *
@@ -20,13 +20,15 @@
     @brief 
 */
 
-
 #include "AliHLTTPCFastTransform.h"
 #include "AliTPCTransform.h"
 #include "AliTPCParam.h"
 #include "AliTPCRecoParam.h"
 #include "AliTPCcalibDB.h"
 #include "AliHLTTPCFastTransformObject.h"
+#include "AliHLTTPCDataCompressionComponent.h"
+#include "AliHLTTPCClusterStatComponent.h"
+#include "AliHLTTPCGeometry.h"
 
 #include <iostream>
 #include <iomanip>
@@ -47,7 +49,8 @@ AliHLTTPCFastTransform::AliHLTTPCFastTransform()
   fLastTimeBin(600),
   fTimeBorder1(100),
   fTimeBorder2(500),
-  fAlignment(NULL)
+  fAlignment(NULL),
+  fReverseTransformInfo()
 {
   // see header file for class documentation
   // or
@@ -188,7 +191,8 @@ Int_t AliHLTTPCFastTransform::WriteToObject( AliHLTTPCFastTransformObject &obj )
     }
     obj.SetInitSec(iSec, true);
   }
-  
+  obj.SetReverseTransformInfo(fReverseTransformInfo);
+
   return 0;
 }
 
@@ -253,7 +257,9 @@ Int_t AliHLTTPCFastTransform::ReadFromObject( const AliHLTTPCFastTransformObject
   if( alignment.GetSize() == fkNSec*21 ){
     fAlignment = new Float_t [fkNSec*21];
     for( Int_t i=0; i<fkNSec*21; i++ ) fAlignment[i] = alignment[i];
-  }  
+  }
+  
+  fReverseTransformInfo = obj.GetReverseTransformInfo();
   return 0;
 }
 
@@ -365,6 +371,53 @@ Int_t AliHLTTPCFastTransform::SetCurrentTimeStamp( Long_t TimeStamp )
       }
     }
   }
+
+  AliHLTTPCReverseTransformInfoV1* info = fOrigTransform->GetReverseTransformInfo();
+
+  AliHLTTPCDataCompressionComponent::CalculateDriftTimeTransformation(*this, 0, 0, info->fDriftTimeFactorA, info->fDriftTimeOffsetA, info);
+  AliHLTTPCDataCompressionComponent::CalculateDriftTimeTransformation(*this, 18, 0, info->fDriftTimeFactorC, info->fDriftTimeOffsetC, info);
+  
+  TLinearFitter fitter(3,"hyp2");
+  int nPoints = 0;
+  for(int i = 0;i < 36;i+=4)
+  {
+    for (int j = 0;j < 159;j += 30)
+    {
+      for (int k = 0;k < AliHLTTPCGeometry::GetNPads(j);k += AliHLTTPCGeometry::GetNPads(j) / 10)
+      {
+        for (int l = 0;l < fLastTimeBin;l += fLastTimeBin / 10)
+        {
+	  int sector, sectorrow;
+          if (j < AliHLTTPCGeometry::GetNRowLow())
+          {
+            sector = i;
+            sectorrow = j;
+          }
+          else
+          {
+            sector = i + 36;
+            sectorrow = j - AliHLTTPCGeometry::GetNRowLow();
+          }
+          float xyz[3];
+          Transform(sector, sectorrow, k, l, xyz);
+          float xyz2[3];
+          AliHLTTPCClusterStatComponent::TransformForward(i, j, k, l, xyz2, info);
+          Double_t x[2] = {xyz[0], AliHLTTPCGeometry::GetZLength() - fabs(xyz[2])}; 
+          fitter.AddPoint(x, xyz[1] - xyz2[1]);
+          nPoints++;
+        }
+      }
+    }
+  }
+  fitter.Eval();
+  TVectorD param(3);
+  fitter.GetParameters(param);
+  info->fCorrectY1 = param[0];
+  info->fCorrectY2 = param[1];
+  info->fCorrectY3 = param[2];
+
+  fReverseTransformInfo = *info;
+  delete info;
   return 0;
 }
 

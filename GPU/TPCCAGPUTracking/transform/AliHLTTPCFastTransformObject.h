@@ -19,6 +19,7 @@
 
 #include "TObject.h"
 #include "AliHLTTPCSpline2D3DObject.h"
+#include "AliHLTTPCReverseTransformInfoV1.h"
 
 /**
  * The class to store transformation map for AliHLTTPCFastTransform
@@ -115,6 +116,9 @@ class AliHLTTPCFastTransformObject: public TObject{
   
   void Merge(const AliHLTTPCFastTransformObject& obj);
   Long64_t Merge(TCollection* list);
+  
+  void SetReverseTransformInfo(const AliHLTTPCReverseTransformInfoV1 p) {*(AliHLTTPCReverseTransformInfoV1*) fReverseTransformInfo = p;}
+  AliHLTTPCReverseTransformInfoV1 GetReverseTransformInfo() const {return *(AliHLTTPCReverseTransformInfoV1*) fReverseTransformInfo;}
 
   private:
  
@@ -134,6 +138,8 @@ class AliHLTTPCFastTransformObject: public TObject{
   Float_t fTimeSplit2; // split of splines in time direction
   TArrayF fAlignment; // alignment matrices translation,rotation,reverse rotation
   AliHLTTPCSpline2D3DObject fSplines[fkNSplinesIn + fkNSplinesOut]; // transient
+
+  float fReverseTransformInfo[sizeof(AliHLTTPCReverseTransformInfoV1)/sizeof(float)+1]; // Object that contains reverse transform information, stored as float array to simplify root streaming
 
  public:
 

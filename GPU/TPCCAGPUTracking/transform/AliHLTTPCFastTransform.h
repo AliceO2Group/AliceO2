@@ -20,6 +20,7 @@
 #include "Rtypes.h"
 #include "TString.h"
 #include "AliHLTTPCSpline2D3D.h"
+#include "AliHLTTPCReverseTransformInfoV1.h"
 
 class AliHLTTPCFastTransformObject;
 
@@ -103,6 +104,8 @@ class AliHLTTPCFastTransform{
   Int_t MinInitSec() {return fMinInitSec;}
   Int_t MaxInitSec() {return fMaxInitSec;}
   void SetInitSec(Int_t min, Int_t max) {fMinInitSec = min;fMaxInitSec = max;if (min < 0) min = 0;if (max > fkNSec) max = fkNSec;}
+  
+  const AliHLTTPCReverseTransformInfoV1* GetReverseTransformInfo() {return &fReverseTransformInfo;}
 
  private:
 
@@ -139,6 +142,7 @@ class AliHLTTPCFastTransform{
   Float_t fTimeBorder1; //! transient
   Float_t fTimeBorder2; //! transient
   Float_t *fAlignment; // alignment matrices translation,rotation,reverse rotation
+  AliHLTTPCReverseTransformInfoV1 fReverseTransformInfo;
 
   AliHLTTPCFastTransform::AliRowTransform *fRows[fkNSec][fkNRows]; //! transient
 
