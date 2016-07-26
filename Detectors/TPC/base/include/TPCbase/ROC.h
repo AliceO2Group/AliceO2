@@ -1,8 +1,8 @@
 #ifndef AliceO2_TPC_ROC_H
 #define AliceO2_TPC_ROC_H
 
-#include "Defs.h"
-#include "Sector.h"
+#include "TPCbase/Defs.h"
+#include "TPCbase/Sector.h"
 //using namespace AliceO2::TPC;
 
 namespace AliceO2 {

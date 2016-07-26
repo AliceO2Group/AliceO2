@@ -6,9 +6,9 @@
 //
 //
 
-#include "ClustererTask.h"
-#include "ClusterContainer.h"  // for ClusterContainer
-#include "BoxClusterer.h"       // for Clusterer
+#include "TPCsimulation/ClustererTask.h"
+#include "TPCsimulation/ClusterContainer.h"  // for ClusterContainer
+#include "TPCsimulation/BoxClusterer.h"       // for Clusterer
 
 #include "TObject.h"             // for TObject
 #include "TClonesArray.h"        // for TClonesArray
@@ -33,7 +33,7 @@ ClustererTask::ClustererTask():
 ClustererTask::~ClustererTask()
 {
   delete fClusterer;
-  if (fClustersArray) 
+  if (fClustersArray)
     delete fClustersArray;
 }
 
@@ -48,18 +48,18 @@ InitStatus ClustererTask::Init()
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
-  
+
   fDigitsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCDigit"));
   if( !fDigitsArray ) {
     LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
-  
+
   // Register output container
 //   fClustersArray = new TClonesArray("AliceO2::TPC::BoxCluster");
   fClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
   mgr->Register("TPCCluster", "TPC", fClustersArray, kTRUE);
-  
+
   fClusterer->Init();
   return kSUCCESS;
 }
@@ -69,7 +69,7 @@ void ClustererTask::Exec(Option_t *option)
 {
   fClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
-  
+
   ClusterContainer* clusters = fClusterer->Process(fDigitsArray);
   clusters->FillOutputContainer(fClustersArray);
 }

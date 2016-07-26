@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "Defs.h"
-#include "PadPos.h"
+#include "TPCbase/Defs.h"
+#include "TPCbase/PadPos.h"
 
 namespace AliceO2 {
 namespace TPC {

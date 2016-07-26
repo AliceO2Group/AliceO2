@@ -261,6 +261,10 @@ o2_define_bucket(
     NAME
     tpc_simulation_bucket
     DEPENDENCIES
+    root_base_bucket
+    root_geom
+    MathCore
+    RIO
     TPCbase
     DetectorsBase
     SimulationDataFormat
@@ -270,7 +274,7 @@ o2_define_bucket(
     NAME
     generators_bucket
     DEPENDENCIES
-    Base SimulationDataFormat Pythia6 pythia8 MathCore 
+    Base SimulationDataFormat Pythia6 pythia8 MathCore
    )
 o2_define_bucket(
     NAME

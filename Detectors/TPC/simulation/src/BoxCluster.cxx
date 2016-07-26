@@ -1,8 +1,8 @@
 /// \file BoxCluster.cxx
 /// \brief Class to have some more info about the BoxClusterer clusters
 
-#include "BoxCluster.h"
-#include "Cluster.h"
+#include "TPCsimulation/BoxCluster.h"
+#include "TPCsimulation/Cluster.h"
 
 ClassImp(AliceO2::TPC::BoxCluster)
 
@@ -20,8 +20,8 @@ BoxCluster::BoxCluster():
 
 //________________________________________________________________________
 BoxCluster::BoxCluster(Short_t cru, Short_t row, Short_t pad, Short_t time,
-		       Float_t q, Float_t qmax, Float_t padmean, 
-		       Float_t padsigma, Float_t timemean, 
+		       Float_t q, Float_t qmax, Float_t padmean,
+		       Float_t padsigma, Float_t timemean,
 		       Float_t timesigma, Short_t size):
   Cluster(cru, row, q, qmax, padmean, padsigma, timemean, timesigma),
   mPad(pad),
@@ -45,10 +45,10 @@ void BoxCluster::setBoxParameters(Short_t pad, Short_t time, Short_t size)
 
 
 //________________________________________________________________________
-std::ostream &BoxCluster::Print(std::ostream &output) const 
-{ 
+std::ostream &BoxCluster::Print(std::ostream &output) const
+{
   output << &Cluster::Print(output)
-	 << " centered at (pad, time) = " << mPad << ", " << mTime 
+	 << " centered at (pad, time) = " << mPad << ", " << mTime
 	 << " covering " << Int_t(mSize/10)  << " pads and " << mSize%10
 	 << " time bins";
   return output;

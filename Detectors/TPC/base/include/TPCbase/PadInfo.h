@@ -1,10 +1,10 @@
 #ifndef AliceO2_TPC_PadInfo_H
 #define AliceO2_TPC_PadInfo_H
 
-#include "Defs.h"
-#include "PadPos.h"
-#include "Point2D.h"
-#include "FECInfo.h"
+#include "TPCbase/Defs.h"
+#include "TPCbase/PadPos.h"
+#include "TPCbase/Point2D.h"
+#include "TPCbase/FECInfo.h"
 
 namespace AliceO2 {
 namespace TPC {

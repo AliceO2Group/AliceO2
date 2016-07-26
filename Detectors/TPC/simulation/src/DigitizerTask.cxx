@@ -6,9 +6,9 @@
 //
 //
 
-#include "DigitizerTask.h"
-#include "DigitContainer.h"  // for DigitContainer
-#include "Digitizer.h"       // for Digitizer
+#include "TPCsimulation/DigitizerTask.h"
+#include "TPCsimulation/DigitContainer.h"  // for DigitContainer
+#include "TPCsimulation/Digitizer.h"       // for Digitizer
 
 #include "TObject.h"
 #include "TClonesArray.h"
@@ -50,7 +50,7 @@ InitStatus DigitizerTask::Init(){
 
     // Register output container
     mDigitsArray = new TClonesArray("AliceO2::TPC::Digit");
-    mgr->Register("TPCDigit", "TPC", mDigitsArray, kTRUE);      
+    mgr->Register("TPCDigit", "TPC", mDigitsArray, kTRUE);
 
     mDigitizer->init();
     return kSUCCESS;

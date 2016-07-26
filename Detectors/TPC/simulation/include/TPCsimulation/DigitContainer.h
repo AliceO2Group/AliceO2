@@ -3,8 +3,8 @@
 #ifndef _ALICEO2_DigitContainer_
 #define _ALICEO2_DigitContainer_
 
-#include "Digit.h"
-#include "DigitCRU.h"
+#include "TPCsimulation/Digit.h"
+#include "TPCsimulation/DigitCRU.h"
 #include "Rtypes.h"
 #include <map>
 
@@ -16,17 +16,17 @@ namespace AliceO2 {
         class DigitPad;
         class DigitRow;
         class DigitCRU;
-        
+
         class DigitContainer{
         public:
             DigitContainer();
             ~DigitContainer();
-            
+
             void reset();
-            
+
             void addDigit(Int_t cru, Int_t row, Int_t pad, Int_t time, Float_t charge);
             void fillOutputContainer(TClonesArray *outputcont);
-            
+
         private:
           Int_t mNCRU;
           std::vector<DigitCRU*> mCRU;

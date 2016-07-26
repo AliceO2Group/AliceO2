@@ -1,7 +1,7 @@
 /// \file Cluster.cxx
 /// \brief Cluster structure for TPC clusters
 
-#include "Cluster.h"
+#include "TPCsimulation/Cluster.h"
 
 ClassImp(AliceO2::TPC::Cluster)
 
@@ -22,7 +22,7 @@ FairTimeStamp()
 }
 
 //________________________________________________________________________
-Cluster::Cluster(Short_t cru, Short_t row, Float_t q, Float_t qmax, 
+Cluster::Cluster(Short_t cru, Short_t row, Float_t q, Float_t qmax,
 		 Float_t padmean, Float_t padsigma,
 		 Float_t timemean, Float_t timesigma):
 mCRU(cru),
@@ -43,7 +43,7 @@ Cluster::~Cluster()
 }
 
 //________________________________________________________________________
-void Cluster::setParameters(Short_t cru, Short_t row, Float_t q, Float_t qmax, 
+void Cluster::setParameters(Short_t cru, Short_t row, Float_t q, Float_t qmax,
 			    Float_t padmean, Float_t padsigma,
 			    Float_t timemean, Float_t timesigma)
 {
@@ -61,8 +61,8 @@ void Cluster::setParameters(Short_t cru, Short_t row, Float_t q, Float_t qmax,
 //________________________________________________________________________
 std::ostream &Cluster::Print(std::ostream &output) const
 {
-  output << "TPC Cluster in CRU [" << mCRU << "], pad row [" 
-	 << mRow << "] with charge/maxCharge " << mQ << "/" << mQmax 
+  output << "TPC Cluster in CRU [" << mCRU << "], pad row ["
+	 << mRow << "] with charge/maxCharge " << mQ << "/" << mQmax
 	 << "and coordinates (" << mPadMean << ", " << mTimeMean << ")"
 	 << "and width (" << mPadSigma << ", " << mTimeSigma << ")";
   return output;
