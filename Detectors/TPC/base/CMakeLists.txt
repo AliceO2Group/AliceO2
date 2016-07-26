@@ -19,21 +19,21 @@ set(SRCS
 )
 
 set(HEADERS
-   include/ContainerFactory.h
-   include/CRU.h
-#    include/Defs.h
-   include/DigitPos.h
-   include/FECInfo.h
-   include/Mapper.h
-   include/PadInfo.h
-   include/PadPos.h
-   include/PadRegionInfo.h
-   include/PadSecPos.h
-   include/Point2D.h
-   include/Point3D.h
-   include/ROC.h
-   include/Defs.h
-   include/Sector.h
+   include/TPCbase/ContainerFactory.h
+   include/TPCbase/CRU.h
+#    include/TPCbase/Defs.h
+   include/TPCbase/DigitPos.h
+   include/TPCbase/FECInfo.h
+   include/TPCbase/Mapper.h
+   include/TPCbase/PadInfo.h
+   include/TPCbase/PadPos.h
+   include/TPCbase/PadRegionInfo.h
+   include/TPCbase/PadSecPos.h
+   include/TPCbase/Point2D.h
+   include/TPCbase/Point3D.h
+   include/TPCbase/ROC.h
+   include/TPCbase/Defs.h
+   include/TPCbase/Sector.h
 )
 
 Set(LINKDEF src/tpcBaseLinkDef.h)
@@ -41,5 +41,3 @@ Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME tpc_base_bucket)
 
 O2_GENERATE_LIBRARY()
-
-

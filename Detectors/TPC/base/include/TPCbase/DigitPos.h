@@ -1,10 +1,10 @@
 #ifndef AliceO2_TPC_DigitPos_H
 #define AliceO2_TPC_DigitPos_H
 
-#include "Defs.h"
-#include "CRU.h"
-#include "PadPos.h"
-#include "PadSecPos.h"
+#include "TPCbase/Defs.h"
+#include "TPCbase/CRU.h"
+#include "TPCbase/PadPos.h"
+#include "TPCbase/PadSecPos.h"
 
 namespace AliceO2 {
 namespace TPC {

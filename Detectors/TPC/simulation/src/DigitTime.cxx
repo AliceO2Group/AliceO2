@@ -1,8 +1,8 @@
-#include "DigitTime.h"
-#include "DigitADC.h"
-#include "Digit.h"
+#include "TPCsimulation/DigitTime.h"
+#include "TPCsimulation/DigitADC.h"
+#include "TPCsimulation/Digit.h"
 #include "TClonesArray.h"
-#include "Mapper.h"
+#include "TPCbase/Mapper.h"
 
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
@@ -14,7 +14,7 @@ mTimeBin(timeBin)
 DigitTime::~DigitTime(){
   for(std::vector<DigitADC*>::iterator iterADC = mADCCounts.begin(); iterADC != mADCCounts.end(); ++iterADC) {
     delete (*iterADC);
-  }   
+  }
 }
 
 void DigitTime::setDigit(Float_t charge){
@@ -33,7 +33,7 @@ void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t row
     mCharge += (*iterADC)->getADC();
   }
   //TODO have to understand what is going wrong here - tree is filled with many zeros otherwise...
-  if(mCharge > 0){  
+  if(mCharge > 0){
     if(mCharge > 1024) mCharge = 1024;
 //     Digit *digit = new Digit(cruID, mCharge, rowID, padID, timeBin);
     TClonesArray &clref = *output;

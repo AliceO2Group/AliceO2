@@ -3,7 +3,7 @@
 #ifndef ALICEO2_TPC_Digitizer_H_
 #define ALICEO2_TPC_Digitizer_H_
 
-#include "DigitContainer.h"
+#include "TPCsimulation/DigitContainer.h"
 
 #include "Rtypes.h"
 #include "TObject.h"
@@ -34,9 +34,9 @@ namespace AliceO2{
       void getElectronDrift(Float_t *xyz);
       Float_t getGEMAmplification();
       const Int_t getTimeBin(Float_t zPos);
-      
-      
-      
+
+
+
       Double_t Gamma4(Double_t x, Double_t p0, Double_t p1);
 
       void setGainFactor(Double_t gain) { mGain = gain; }

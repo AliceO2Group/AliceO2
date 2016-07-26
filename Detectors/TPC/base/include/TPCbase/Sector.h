@@ -1,7 +1,7 @@
 #ifndef AliceO2_TPC_Sector_H
 #define AliceO2_TPC_Sector_H
 
-#include "Defs.h"
+#include "TPCbase/Defs.h"
 //using namespace AliceO2::TPC;
 
 namespace AliceO2 {

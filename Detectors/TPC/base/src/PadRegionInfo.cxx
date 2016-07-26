@@ -1,6 +1,6 @@
 #include <cmath>
 
-#include "PadRegionInfo.h"
+#include "TPCbase/PadRegionInfo.h"
 
 namespace AliceO2 {
 namespace TPC {

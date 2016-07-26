@@ -18,8 +18,6 @@ set(SRCS
     src/O2FLPex.cxx
     src/O2EPNex.cxx
     src/O2Proxy.cxx
-    src/O2Merger.cxx
-    src/O2EpnMerger.cxx
     )
 
 set(LIBRARY_NAME FLP2EPNex)
@@ -31,17 +29,13 @@ Set(Exe_Names
     ${Exe_Names}
     testFLP
     testEPN
-    testEPN_M
     testProxy
-    testMerger
     )
 
 set(Exe_Source
     src/runFLP.cxx
     src/runEPN.cxx
-    src/runEPN_M.cxx
     src/runProxy.cxx
-    src/runMerger.cxx
     )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.

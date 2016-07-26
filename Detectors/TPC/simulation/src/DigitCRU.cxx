@@ -1,7 +1,7 @@
-#include "DigitCRU.h"
-#include "DigitRow.h"
-#include "DigitPad.h"
-#include "Mapper.h"
+#include "TPCsimulation/DigitCRU.h"
+#include "TPCsimulation/DigitRow.h"
+#include "TPCsimulation/DigitPad.h"
+#include "TPCbase/Mapper.h"
 
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
