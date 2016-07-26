@@ -7,7 +7,7 @@
 //
 
 #ifndef __ALICEO2__ITS__DigitizerTask__
-#define __ALICEO2__ITS_DigitizerTask__
+#define __ALICEO2__ITS__DigitizerTask__
 
 #include <stdio.h>
 #include "FairTask.h"  // for FairTask, InitStatus
