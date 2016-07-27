@@ -35,12 +35,11 @@ AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject()
   fLastTimeBin(0),
   fTimeSplit1(0),
   fTimeSplit2(0),
-  fAlignment(0),
-  fReverseTransformInfo()
+  fAlignment(0)
 {
   // constructor
   for (int i = 0;i < fkNSec;i++) fSectorInit[i] = false;
-  
+  for (int i = 0;i < sizeof(fReverseTransformInfo) / sizeof(float);i++) fReverseTransformInfo[i] = 0.;
   Reset();
 }
 
@@ -54,6 +53,7 @@ void  AliHLTTPCFastTransformObject::Reset()
   fTimeSplit2 = 0.;  
   for( Int_t i=0; i<fkNSplinesIn + fkNSplinesOut; i++) fSplines[i].Reset();
   fAlignment.Set(0);
+  for (int i = 0;i < sizeof(fReverseTransformInfo) / sizeof(float);i++) fReverseTransformInfo[i] = 0.;
 }
 
 AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject( const AliHLTTPCFastTransformObject &o )
@@ -63,13 +63,13 @@ AliHLTTPCFastTransformObject::AliHLTTPCFastTransformObject( const AliHLTTPCFastT
   fLastTimeBin(o.fLastTimeBin),
   fTimeSplit1(o.fTimeSplit1),
   fTimeSplit2(o.fTimeSplit2),
-  fAlignment(o.fAlignment),
-  fReverseTransformInfo()
+  fAlignment(o.fAlignment)
 { 
   // constructor    
   for( Int_t i=0; i<fkNSplinesIn + fkNSplinesOut; i++){
     fSplines[i] = o.fSplines[i];
   }
+  for (int i = 0;i < sizeof(fReverseTransformInfo) / sizeof(float);i++) fReverseTransformInfo[i] = o.fReverseTransformInfo[i];
 }
 
 AliHLTTPCFastTransformObject& AliHLTTPCFastTransformObject::operator=( const AliHLTTPCFastTransformObject &o)
