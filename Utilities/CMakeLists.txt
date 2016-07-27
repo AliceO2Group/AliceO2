@@ -1,0 +1,5 @@
+if(ALIROOT)
+  add_subdirectory (hough)
+endif(ALIROOT)
+add_subdirectory (aliceHLTwrapper)
+add_subdirectory (QC)

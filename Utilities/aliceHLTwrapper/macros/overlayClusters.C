@@ -1,0 +1,253 @@
+/// @file   overlayClusters.C
+/// @author Matthias.Richter@scieq.net
+/// @date   2015-03-02
+/// @brief  Merge clusters from multiple events into one single data sample
+///
+/// Usage:
+///   (echo -o target_file_path ; ls path_to_source_files) \
+///   | root -b -q -l overlayClusters.C
+///
+/// for performance reasons, the macro is compiled into a temporary library
+/// and the compiled function is called. All options are read from standard
+/// input. Empty lines break the argument scan.
+///
+/// Options:
+///   -o target_file_path      path to target file
+///   -v                       verbose mode
+///   -q                       quiet mode
+///   path_to_source_file      path to source file, multiple occurrence
+///
+/// All options need to be separated by newline, and can be created via
+/// echo commands. Multiple input file names can be listed using ls with
+/// wildcard expansion.
+
+// Note: when using new classes the corresponding include files need to be
+// add in the include section
+#if defined(__CLING__) && !defined(__MAKECLING__)
+{
+  gSystem->AddIncludePath("-I$ROOTSYS/include -I$ALICE_ROOT/include");
+  TString macroname=gInterpreter->GetCurrentMacroName();
+  macroname+="+";
+  gROOT->LoadMacro(macroname);
+  overlayClusters();
+}
+#else
+
+#include "AliHLTDataTypes.h"
+#include "AliHLTTPCSpacePointContainer.h"
+#include "AliHLTTPCClusterDataFormat.h"
+#include "AliHLTTPCSpacePointData.h"
+
+#include <vector>
+#include <cstdlib>
+#include <iostream>
+#include <iomanip>
+#include <memory>
+#include <fstream>
+#include <ostream>
+
+typedef unsigned char byte;
+
+vector<std::string> inputFileNames;
+std::string outputFileName="";
+float zShift=20.;
+int verbosity=1;
+
+int scanArguments();
+bool checkConsistency(const byte* data, unsigned size);
+int shiftClusters(AliHLTTPCSpacePointData* array, unsigned size, float zshift);
+int readData(std::string fileName, std::vector<byte>& buffer);
+int writeData(std::string fileName, std::vector<byte>& buffer);
+int writeData(std::vector<byte>& buffer, std::ostream& os=std::cout);
+void printHelp();
+
+void overlayClusters()
+{
+  // main function
+  scanArguments();
+  if (inputFileNames.size()==0) {
+    printHelp();
+    return;
+  }
+  unsigned addedClCount=0;
+  vector<byte> buffer;
+  vector<std::string>::const_iterator fileName=inputFileNames.begin();
+  if (readData(*fileName, buffer)<0) {
+    std::cerr << "Error: no usable data in file " << *fileName << ", aborting ..." << endl;
+    return;
+  }
+  if (!checkConsistency(&buffer[0], buffer.size())) {
+    std::cerr << "Error: inconsistent cluster data block in file " << *fileName << ", aborting ..." << endl;
+    return;
+  }
+  unsigned fileCount=1;
+  for (; ++fileName!=inputFileNames.end(); fileCount++) {
+    unsigned offset=buffer.size();
+    if (readData(*fileName, buffer)<0) {
+      std::cerr << "Error: no usable data in file " << *fileName << ", aborting ..." << endl;
+      return;
+    }
+    if (!checkConsistency(&buffer[offset], buffer.size()-offset)) {
+      std::cerr << "Error: inconsistent cluster data block in file " << *fileName << ", aborting ..." << endl;
+      return;
+    }
+    unsigned clcount=0;
+    unsigned clsize=0;
+    { // scope for the blockheader, eventually invalid after buffer resize
+      AliHLTTPCClusterData* blockheader=reinterpret_cast<AliHLTTPCClusterData*>(&buffer[offset]);
+      clcount=blockheader->fSpacePointCnt;
+      clsize=clcount*sizeof(AliHLTTPCSpacePointData);
+
+      if (verbosity>1) std::cout << "adding " << clcount << " cluster(s) of total size " << clsize << " to buffer of size " << offset << endl;
+      // remove the include of the current block and append its clusters to the main block
+      memmove(&buffer[offset], &buffer[offset+sizeof(AliHLTTPCClusterData)], clsize);
+    }
+    buffer.resize(offset+clsize);
+    addedClCount+=clcount;
+
+    // shift the clusters of the current block
+    shiftClusters(reinterpret_cast<AliHLTTPCSpacePointData*>(&buffer[offset]), clcount, fileCount*zShift);
+    if (verbosity>1) std::cout << "buffer size: " << buffer.size() << endl;
+  }
+  AliHLTTPCClusterData* header=reinterpret_cast<AliHLTTPCClusterData*>(&buffer[0]);
+  header->fSpacePointCnt+=addedClCount;
+
+  if (verbosity>1) std::cout << "Merged " << header->fSpacePointCnt << " cluster(s) from " << fileCount << " file(s) to " << outputFileName << endl;
+  writeData(outputFileName, buffer);
+
+  return;
+}
+
+int scanArguments()
+{
+  // read commands from the std input
+  std::string line;
+  char c=0;
+  std::cout << "Reading parameters from std input ... (terminate with empty line)" << endl;
+  while (cin.get(c)) {
+    while (c==' ' && cin.get(c)) /* nop */;
+    if (c=='\n') { // break on empty line
+      inputFileNames.clear();
+      break;
+    } else if (c=='-') {
+      if (!cin.get(c) || c=='\n') {
+	std::cerr << "incomplete option token" << endl;
+	inputFileNames.clear();
+	break;
+      }
+      char arg=0;
+      while (cin.get(arg) && arg==' ') /* nop */;
+      cin.putback(arg);
+      std::getline(std::cin, line);
+      if (c=='o') {
+	outputFileName=line;
+      } else if (c='v') {
+	verbosity=2;
+      } else if (c='q') {
+	verbosity=0;
+      } else {
+	std::cerr << "unknown option '" << c << "'" << endl;
+	inputFileNames.clear();
+	break;
+      }
+      continue;
+    }
+    cin.putback(c);
+    std::getline(std::cin, line);
+    inputFileNames.push_back(line);
+  }
+  return inputFileNames.size();
+}
+
+bool checkConsistency(const byte* data, unsigned size)
+{
+  // check the format of the data block
+  // binary block contains AliHLTTPCClusterData include followed by
+  // array of AliHLTTPCSpacePointData
+  if (size<sizeof(AliHLTTPCClusterData)) return false;
+  const AliHLTTPCClusterData* cld=reinterpret_cast<const AliHLTTPCClusterData*>(data);
+  if (cld->fSpacePointCnt*sizeof(AliHLTTPCSpacePointData)+sizeof(AliHLTTPCClusterData)!=size) return false;
+  return true;
+}
+
+int shiftClusters(AliHLTTPCSpacePointData* array, unsigned count, float zshift)
+{
+  // shift the z coordinate of all the clusters
+  for (AliHLTTPCSpacePointData* cl=array; cl<array+count; cl++) {
+    float z=cl->GetZ();
+    if (z>=0) z+=zshift;
+    else z-=zshift;
+    cl->SetZ(z);
+  }
+  return count;
+}
+
+int readData(std::string fileName, std::vector<byte>& buffer)
+{
+  // read file content as binary block to the end of the buffer
+  std::ifstream inputFile(fileName.c_str(), std::ifstream::binary);
+  if (!inputFile) {
+    std::cerr << "Error: failed to open file " << fileName << endl;
+    return -1;
+  }
+
+  inputFile.seekg(0, inputFile.end);
+  int len = inputFile.tellg();
+  inputFile.seekg(0, inputFile.beg);
+
+  unsigned offset=buffer.size();
+  buffer.resize(offset+len);
+  inputFile.read((char*)&buffer[offset], len);
+  if (!inputFile) {
+  std:cerr << "Error: failed to read from file " << fileName << " - only " << inputFile.gcount() << " of " << len << std::endl;
+    return -1;
+  }
+  inputFile.close();
+  return len;
+}
+
+int writeData(std::string fileName, std::vector<byte>& buffer)
+{
+  // write buffer to file
+  std::ifstream inputFile(fileName.c_str(), std::ifstream::binary);
+  if (inputFile) {
+    std::cerr << "Error: refusing to overwrite existing output file " << fileName << endl;
+    inputFile.close();
+    return -1;
+  }
+  std::ofstream outputFile(fileName.c_str(), std::ifstream::binary);
+  if (!outputFile) {
+    std::cerr << "Error: failed to open output file " << fileName << endl;
+    return -1;
+  }
+
+  int result=writeData(buffer, outputFile);
+  outputFile.close();
+  return result;
+}
+
+int writeData(std::vector<byte>& buffer, std::ostream& os)
+{
+  // write buffer to stream
+  os.write((char*)&buffer[0], buffer.size());
+  if (!os) return -1;
+  return buffer.size();
+}
+
+void printHelp()
+{
+  // print help instructions
+  std::cerr << "overlayClusters.C" << endl;
+  std::cerr << "Usage: " << endl;
+  std::cerr << "    (echo -o target_file_path ; ls path_to_source_files) \\ " << endl;
+  std::cerr << "    | root -b -q -l overlayClusters.C" << endl << endl;
+  std::cerr << " Options:" << endl;
+  std::cerr << "   -o target_file_path      path to target file" << endl;
+  std::cerr << "   -v                       verbose mode" << endl;
+  std::cerr << "   path_to_source_file      path to source file, multiple occurrence" << endl << endl;
+  std::cerr << " All options need to be separated by newline, and can be created via" << endl;
+  std::cerr << " echo commands. Multiple input file names can be listed using ls with" << endl;
+  std::cerr << " wildcard expansion." << endl;
+}
+
+#endif

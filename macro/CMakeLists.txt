@@ -26,6 +26,8 @@ GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/run_digi.C)
   Set_Tests_Properties(run_digi_TGeant4 PROPERTIES TIMEOUT "30")
   Set_Tests_Properties(run_digi_TGeant4 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
 
+GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/run_clusterer.C)
+
 GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/load_all_libs.C)
 
   Add_Test(load_all_libs

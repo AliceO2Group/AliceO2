@@ -20,16 +20,21 @@ if(ALIROOT)
   # Check if AliRoot is really installed there
   if(EXISTS ${ALIROOT}/bin/aliroot AND EXISTS ${ALIROOT}/lib AND EXISTS ${ALIROOT}/include)
 
+    # TODO this is really not the way it should be done
     include_directories(
       ${ALIROOT}/include
       ${ALIROOT}/include/pythia
     )
-
+    # TODO neither is this
     link_directories(${ALIROOT}/lib)
 
     set(AliRoot_FOUND TRUE)
 
     message(STATUS "AliRoot ... - found ${ALIROOT}")
+
+  else()
+
+    message(STATUS "AliRoot ... - not found")
 
   endif()
 endif(ALIROOT)
