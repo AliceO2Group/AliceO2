@@ -13,14 +13,14 @@ set(NO_DICT_SRCS # sources not for the dictionary
     src/Bar.cxx
     )
 
-set(HEADERS
+set(HEADERS # needed for the dictionary generation
     src/Bar.h
     include/${MODULE_NAME}/Foo.h
     )
 
 set(LIBRARY_NAME ExampleModule2)
 set(BUCKET_NAME ExampleModule2_Bucket)
-set(LINKDEF src/ExampleLinkDef.h)
+set(LINKDEF src/ExampleLinkDef.h) # needed for the dictionary generation
 
 O2_GENERATE_LIBRARY()
 

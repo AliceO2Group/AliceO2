@@ -20,6 +20,6 @@ Set(HEADERS
 
 Set(LINKDEF src/PassiveLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME root_geom)
+set(BUCKET_NAME fairroot_geom)
 
 O2_GENERATE_LIBRARY()

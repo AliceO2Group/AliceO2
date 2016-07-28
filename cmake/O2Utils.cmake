@@ -27,24 +27,29 @@ endmacro()
 #------------------------------------------------------------------------------
 # O2_DEFINE_BUCKET
 # arg NAME
-# arg DEPENDENCIES
+# arg LIBRARIES
+# arg INCLUDE_DIRECTORIES
 function(O2_DEFINE_BUCKET)
   cmake_parse_arguments(
       PARSED_ARGS
       "" # bool args
       "NAME" # mono-valued arguments
-      "DEPENDENCIES" # multi-valued arguments
+      "DEPENDENCIES;INCLUDE_DIRECTORIES" # multi-valued arguments
       ${ARGN} # arguments
   )
   CHECK_VARIABLE(PARSED_ARGS_NAME "You must provide a name")
 
-  #  message(STATUS "o2_define_bucket : ${PARSED_ARGS_NAME}")
-  #  foreach (dependency ${PARSED_ARGS_DEPENDENCIES})
-  #    message(STATUS "   - ${dependency}")
-  #  endforeach ()
+  message(STATUS "o2_define_bucket : ${PARSED_ARGS_NAME}")
+  foreach (library ${PARSED_ARGS_DEPENDENCIES})
+    message(STATUS "   - ${library} (lib or bucket)")
+  endforeach ()
+  foreach (inc_dir ${PARSED_ARGS_INCLUDE_DIRECTORIES})
+    message(STATUS "   - ${inc_dir} (inc_dir)")
+  endforeach ()
 
   # Save this information
-  set("Bucket_map_${PARSED_ARGS_NAME}" "${PARSED_ARGS_DEPENDENCIES}" PARENT_SCOPE) # emulation of a map
+  set("Bucket_map_libs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_DEPENDENCIES}" PARENT_SCOPE) # emulation of a map
+  set("Bucket_map_inc_dirs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_INCLUDE_DIRECTORIES}" PARENT_SCOPE) # emulation of a map
 endfunction()
 
 macro(INDENT NUMBER_SPACES INDENTATION)
@@ -59,11 +64,17 @@ endmacro()
 # part of other buckets referenced by this one.
 # We allow a maximum of 10 levels of recursion.
 # arg BUCKET_NAME -
-# arg RESULT - Name of the variable in the parent scope that should be populated.
+# arg RESULT_LIBS_VAR_NAME - Name of the variable in the parent scope that should be populated with list of libraries.
+# arg RESULT_INC_DIRS_VAR_NAME - Name of the variable in the parent scope that should be populated with list of include directories.
 # arg DEPTH - Use 0 when calling the first time (can be omitted).
-function(GET_BUCKET_CONTENT BUCKET_NAME RESULT_VAR_NAME) # DEPTH
+function(GET_BUCKET_CONTENT
+        BUCKET_NAME
+        RESULT_LIBS_VAR_NAME
+        RESULT_INC_DIRS_VAR_NAME
+        # DEPTH
+        )
   # Check arguments
-  if (${ARGC} GREATER 2)
+  if (${ARGC} GREATER 3)
     set(DEPTH ${ARGV2})
   else ()
     set(DEPTH 0)
@@ -72,28 +83,38 @@ function(GET_BUCKET_CONTENT BUCKET_NAME RESULT_VAR_NAME) # DEPTH
     message(FATAL_ERROR "It seems that you have a loop in your bucket definitions. Aborted.")
   endif ()
   INDENT(${DEPTH} INDENTATION)
-  if (NOT DEFINED Bucket_map_${BUCKET_NAME})
+  if (NOT DEFINED Bucket_map_libs_${BUCKET_NAME})
     message(FATAL_ERROR "${INDENTATION}Bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it.")
   endif ()
 
-  #  message("${INDENTATION}Get content of bucket ${BUCKET_NAME}")
+  message("${INDENTATION}Get content of bucket ${BUCKET_NAME}")
 
   # Fetch the content (recursively)
-  set(dependencies ${Bucket_map_${BUCKET_NAME}})
-  set(LOCAL_RESULT_${DEPTH} "")
-  foreach (dependency ${dependencies})
-    #    message("${INDENTATION}- ${dependency}")
+  set(libs ${Bucket_map_libs_${BUCKET_NAME}})
+  set(inc_dirs ${Bucket_map_inc_dirs_${BUCKET_NAME}})
+  set(LOCAL_RESULT_libs_${DEPTH} "")
+  set(LOCAL_RESULT_inc_dirs_${DEPTH} "")
+  foreach (dependency ${libs})
+    message("${INDENTATION}- ${dependency} (lib or bucket)")
     # if it is a bucket we call recursively
-    if (DEFINED Bucket_map_${dependency})
+    if (DEFINED Bucket_map_libs_${dependency})
       MATH(EXPR new_depth "${DEPTH}+1")
-      GET_BUCKET_CONTENT(${dependency} LOCAL_RESULT_${DEPTH} ${new_depth})
+      GET_BUCKET_CONTENT(${dependency}
+              LOCAL_RESULT_libs_${DEPTH}
+              LOCAL_RESULT_inc_dirs_${DEPTH}
+              ${new_depth})
     else ()
       # else we add the dependency to the results
-      set(LOCAL_RESULT_${DEPTH} "${LOCAL_RESULT_${DEPTH}};${dependency}")
+      set(LOCAL_RESULT_libs_${DEPTH} "${LOCAL_RESULT_libs_${DEPTH}};${dependency}")
     endif ()
   endforeach ()
+  set(LOCAL_RESULT_inc_dirs_${DEPTH} "${LOCAL_RESULT_inc_dirs_${DEPTH}};${inc_dirs}")
+  foreach (inc_dir ${inc_dirs})
+    message("${INDENTATION}- ${inc_dir} (inc_dir)")
+  endforeach ()
 
-  set(${RESULT_VAR_NAME} "${${RESULT_VAR_NAME}};${LOCAL_RESULT_${DEPTH}}" PARENT_SCOPE)
+  set(${RESULT_LIBS_VAR_NAME} "${${RESULT_LIBS_VAR_NAME}};${LOCAL_RESULT_libs_${DEPTH}}" PARENT_SCOPE)
+  set(${RESULT_INC_DIRS_VAR_NAME} "${${RESULT_INC_DIRS_VAR_NAME}};${LOCAL_RESULT_inc_dirs_${DEPTH}}" PARENT_SCOPE)
 endfunction()
 
 #------------------------------------------------------------------------------
@@ -117,19 +138,23 @@ function(O2_TARGET_LINK_BUCKET)
   #  message(STATUS "Add dependency bucket for target ${PARSED_ARGS_TARGET} : ${PARSED_ARGS_BUCKET}")
 
   # find the bucket
-  if (NOT DEFINED Bucket_map_${PARSED_ARGS_BUCKET})
+  if (NOT DEFINED Bucket_map_libs_${PARSED_ARGS_BUCKET})
     message(FATAL_ERROR "Bucket ${PARSED_ARGS_BUCKET} not defined.
         Use o2_define_bucket to define it.")
   endif ()
 
-  set(RESULT "")
-  GET_BUCKET_CONTENT(${PARSED_ARGS_BUCKET} RESULT)
-  #  message(STATUS "All dependencies of the bucket : ${RESULT}")
+  set(RESULT_libs "")
+  set(RESULT_inc_dirs "")
+  GET_BUCKET_CONTENT(${PARSED_ARGS_BUCKET} RESULT_libs RESULT_inc_dirs) # RESULT_lib_dirs)
+  message(STATUS "All dependencies of the bucket : ${RESULT_libs}")
+  message(STATUS "All inc_dirs of the bucket : ${RESULT_inc_dirs}")
 
   # for each dependency in the bucket invoke target_link_library
-  #  set(DEPENDENCIES ${Bucket_map_${PARSED_ARGS_BUCKET}})
-  #  message(STATUS "   invoke target_link_libraries for target ${PARSED_ARGS_TARGET} : ${RESULT} ${PARSED_ARGS_MODULE_LIBRARY_NAME}")
-  target_link_libraries(${PARSED_ARGS_TARGET} ${RESULT} ${PARSED_ARGS_MODULE_LIBRARY_NAME})
+  #  set(DEPENDENCIES ${Bucket_map_libs_${PARSED_ARGS_BUCKET}})
+  #  message(STATUS "   invoke target_link_libraries for target ${PARSED_ARGS_TARGET} : ${RESULT_libs} ${PARSED_ARGS_MODULE_LIBRARY_NAME}")
+  target_link_libraries(${PARSED_ARGS_TARGET} ${RESULT_libs} ${PARSED_ARGS_MODULE_LIBRARY_NAME})
+  # Same thing for lib_dirs and inc_dirs
+  target_include_directories(${PARSED_ARGS_TARGET} PUBLIC ${RESULT_inc_dirs})
 endfunction()
 
 #------------------------------------------------------------------------------
@@ -326,8 +351,10 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   separate_arguments(Int_HDRS)
   separate_arguments(Int_DEF)
 
-  # Get the include directories
-  get_property(Int_INC DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
+  # Get the include directories (from the bucket and from the internal dependencies)
+  set(RESULT_libs "")
+  set(Int_INC "")
+  GET_BUCKET_CONTENT(${BUCKET_NAME} RESULT_libs Int_INC)
   set(Int_INC ${Int_INC} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
   set(Int_INC ${Int_INC} ${GLOBAL_ALL_MODULES_INCLUDE_DIRECTORIES})
 

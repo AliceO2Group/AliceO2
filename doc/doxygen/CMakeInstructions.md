@@ -32,3 +32,11 @@ TODO
 
 The two modules ExampleModule1 and ExampleModule2 show a basic implementation of modules following
 the guidelines described above. 
+
+## Developers documentation 
+
+* Q: Why are the libraries' directories globally set in O2Dependencies.cmake ? 
+ * A: CMake discourages the use of _link_directories_ because find_package and find_library
+   should return absolute paths. As a consequence little effort is put in the development of this 
+   feature and it only exists at the global level. We can't set it on a target like the 
+   _include_directories_ for example.
