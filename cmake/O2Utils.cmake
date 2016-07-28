@@ -39,13 +39,13 @@ function(O2_DEFINE_BUCKET)
   )
   CHECK_VARIABLE(PARSED_ARGS_NAME "You must provide a name")
 
-  message(STATUS "o2_define_bucket : ${PARSED_ARGS_NAME}")
-  foreach (library ${PARSED_ARGS_DEPENDENCIES})
-    message(STATUS "   - ${library} (lib or bucket)")
-  endforeach ()
-  foreach (inc_dir ${PARSED_ARGS_INCLUDE_DIRECTORIES})
-    message(STATUS "   - ${inc_dir} (inc_dir)")
-  endforeach ()
+#  message(STATUS "o2_define_bucket : ${PARSED_ARGS_NAME}")
+#  foreach (library ${PARSED_ARGS_DEPENDENCIES})
+#    message(STATUS "   - ${library} (lib or bucket)")
+#  endforeach ()
+#  foreach (inc_dir ${PARSED_ARGS_INCLUDE_DIRECTORIES})
+#    message(STATUS "   - ${inc_dir} (inc_dir)")
+#  endforeach ()
 
   # Save this information
   set("Bucket_map_libs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_DEPENDENCIES}" PARENT_SCOPE) # emulation of a map
@@ -95,7 +95,7 @@ function(GET_BUCKET_CONTENT
   set(LOCAL_RESULT_libs_${DEPTH} "")
   set(LOCAL_RESULT_inc_dirs_${DEPTH} "")
   foreach (dependency ${libs})
-    message("${INDENTATION}- ${dependency} (lib or bucket)")
+#    message("${INDENTATION}- ${dependency} (lib or bucket)")
     # if it is a bucket we call recursively
     if (DEFINED Bucket_map_libs_${dependency})
       MATH(EXPR new_depth "${DEPTH}+1")
@@ -109,9 +109,9 @@ function(GET_BUCKET_CONTENT
     endif ()
   endforeach ()
   set(LOCAL_RESULT_inc_dirs_${DEPTH} "${LOCAL_RESULT_inc_dirs_${DEPTH}};${inc_dirs}")
-  foreach (inc_dir ${inc_dirs})
-    message("${INDENTATION}- ${inc_dir} (inc_dir)")
-  endforeach ()
+#  foreach (inc_dir ${inc_dirs})
+#    message("${INDENTATION}- ${inc_dir} (inc_dir)")
+#  endforeach ()
 
   set(${RESULT_LIBS_VAR_NAME} "${${RESULT_LIBS_VAR_NAME}};${LOCAL_RESULT_libs_${DEPTH}}" PARENT_SCOPE)
   set(${RESULT_INC_DIRS_VAR_NAME} "${${RESULT_INC_DIRS_VAR_NAME}};${LOCAL_RESULT_inc_dirs_${DEPTH}}" PARENT_SCOPE)
@@ -146,8 +146,8 @@ function(O2_TARGET_LINK_BUCKET)
   set(RESULT_libs "")
   set(RESULT_inc_dirs "")
   GET_BUCKET_CONTENT(${PARSED_ARGS_BUCKET} RESULT_libs RESULT_inc_dirs) # RESULT_lib_dirs)
-  message(STATUS "All dependencies of the bucket : ${RESULT_libs}")
-  message(STATUS "All inc_dirs of the bucket : ${RESULT_inc_dirs}")
+#  message(STATUS "All dependencies of the bucket : ${RESULT_libs}")
+#  message(STATUS "All inc_dirs of the bucket : ${RESULT_inc_dirs}")
 
   # for each dependency in the bucket invoke target_link_library
   #  set(DEPENDENCIES ${Bucket_map_libs_${PARSED_ARGS_BUCKET}})
