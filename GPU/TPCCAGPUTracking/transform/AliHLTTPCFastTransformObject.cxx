@@ -125,3 +125,15 @@ Long64_t AliHLTTPCFastTransformObject::Merge(TCollection* list)
 	}
 	return(nMerged);
 }
+
+void AliHLTTPCFastTransformObject::SetReverseTransformInfo(const AliHLTTPCReverseTransformInfoV1 p)
+{
+    if (sizeof(AliHLTTPCReverseTransformInfoV1) > sizeof(fReverseTransformInfo))
+    {
+	printf("ERROR: Not enough space in HLT fast transform object to store revere transform info. Increase array size!");
+    }
+    else
+    {
+	*(AliHLTTPCReverseTransformInfoV1*) fReverseTransformInfo = p;
+    }
+}
