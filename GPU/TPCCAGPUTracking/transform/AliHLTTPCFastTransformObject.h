@@ -117,7 +117,7 @@ class AliHLTTPCFastTransformObject: public TObject{
   void Merge(const AliHLTTPCFastTransformObject& obj);
   Long64_t Merge(TCollection* list);
   
-  void SetReverseTransformInfo(const AliHLTTPCReverseTransformInfoV1 p) {*(AliHLTTPCReverseTransformInfoV1*) fReverseTransformInfo = p;}
+  void SetReverseTransformInfo(const AliHLTTPCReverseTransformInfoV1 p);
   AliHLTTPCReverseTransformInfoV1 GetReverseTransformInfo() const {return *(AliHLTTPCReverseTransformInfoV1*) fReverseTransformInfo;}
 
   private:
@@ -132,7 +132,6 @@ class AliHLTTPCFastTransformObject: public TObject{
 
   bool fSectorInit[fkNSec];	//Sectors which are initialized
 
-  Float_t fReverseTransformInfo[sizeof(AliHLTTPCReverseTransformInfoV1)/sizeof(float)+1]; // Object that contains reverse transform information, stored as float array to simplify root streaming
 
   Int_t fVersion;
   Int_t fLastTimeBin; // last calibrated time bin
@@ -140,6 +139,8 @@ class AliHLTTPCFastTransformObject: public TObject{
   Float_t fTimeSplit2; // split of splines in time direction
   TArrayF fAlignment; // alignment matrices translation,rotation,reverse rotation
   AliHLTTPCSpline2D3DObject fSplines[fkNSplinesIn + fkNSplinesOut]; // transient
+
+  Float_t fReverseTransformInfo[21]; // Object that contains reverse transform information, stored as float array to simplify root streaming
 
  public:
 
