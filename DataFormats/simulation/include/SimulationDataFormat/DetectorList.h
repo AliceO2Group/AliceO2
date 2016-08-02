@@ -7,7 +7,7 @@
 // kSTOPHERE is needed for iteration over the enum. All detectors have to be put before.
 enum DetectorId
 {
-    kAliIts, kAliTpc, kSTOPHERE
+    kAliIts, kAliTpc, kAliMft, kSTOPHERE
 };
 
 #endif

@@ -1,0 +1,40 @@
+set(INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/base/
+  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/base/include
+
+)
+
+set(SYSTEM_INCLUDE_DIRECTORIES
+  ${CMAKE_SOURCE_DIR}
+  ${BASE_INCLUDE_DIRECTORIES}
+  ${FAIRROOT_INCLUDE_DIR}
+  ${ROOT_INCLUDE_DIR}
+)
+
+include_directories( ${INCLUDE_DIRECTORIES})
+include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
+
+set(LINK_DIRECTORIES
+  ${ROOT_LIBRARY_DIR}
+  ${FAIRROOT_LIBRARY_DIR}
+)
+
+link_directories( ${LINK_DIRECTORIES})
+
+set(SRCS
+  src/Constants.cxx
+)
+
+set(HEADERS
+  include/Constants.h
+)
+
+
+Set(LINKDEF src/mftBaseLinkDef.h)
+Set(LIBRARY_NAME mftBase)
+Set(DEPENDENCIES
+    AliceO2Base ParBase
+)
+
+GENERATE_LIBRARY()
