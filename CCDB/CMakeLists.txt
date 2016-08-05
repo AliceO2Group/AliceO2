@@ -60,7 +60,14 @@ Set(NO_DICT_SRCS
 )
 
 set(DEPENDENCIES
-  Base ParBase FairMQ ParMQ ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger pthread Core Tree XMLParser Hist
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  ${Boost_SYSTEM_LIBRARY}
+  ${Boost_LOG_SETUP_LIBRARY}
+  ${Boost_LOG_LIBRARY}
+  Base
+  ParBase
+  FairMQ ParMQ
+  fairmq_logger pthread Core Tree XMLParser Hist
 )
 
 set(LIBRARY_NAME CCDB)
