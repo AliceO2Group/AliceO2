@@ -68,7 +68,17 @@ ForEach(_file RANGE 0 ${_length})
   list(GET Exe_Source ${_file} _src)
   set(EXE_NAME ${_name})
   set(SRCS ${_src})
-  set(DEPENDENCIES dl Core Base Hist o2qaLibrary FairMQ pthread fairmq_logger ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} )
+  set(DEPENDENCIES dl 
+      Core
+      Base
+      Hist
+      o2qaLibrary
+      FairMQ
+      pthread
+      fairmq_logger
+      ${Boost_SYSTEM_LIBRARY}
+      ${Boost_LOG_LIBRARY}
+      ${Boost_LOG_SETUP_LIBRARY})
   GENERATE_EXECUTABLE()
 EndForEach(_file RANGE 0 ${_length})
 
