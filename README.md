@@ -2,12 +2,24 @@
 AliceO2
 =======
 
-Alice O2 project software. Simulation and reconstruction software for the ALICE experiment at CERN based on ALFA and the FairRoot software.
+Alice O2 project software. Simulation and reconstruction software for
+the ALICE experiment at CERN based on ALFA and the FairRoot software.
 
-Before compiling and installing AliceO2, the ALFA software must be installed by choosing either the full or the minimum installation.
+Before compiling and installing AliceO2, the ALFA software must be
+installed by choosing either the full or the minimum installation.
+
+### Installation via aliBuild
+
+In order to install with aliBuild you can follow the tutorial at:
+
+    http://alisw.github.io/alibuild/o2-tutorial.html
 
 ### Installation of ALFA (FairSoft)
-Please be sure that your system has all the required libraries (as listed on [FairSoft/DEPENDENCIES](https://github.com/FairRootGroup/FairSoft/blob/master/DEPENDENCIES)).
+
+Please be sure that your system has all
+the required libraries (as listed on
+[FairSoft/DEPENDENCIES](https://github.com/FairRootGroup/FairSoft/blob/m
+aster/DEPENDENCIES)).
 
 #### Full installation:
 The full installation will install [FairSoft](https://github.com/FairRootGroup/FairSoft/tree/dev), [DDS](https://github.com/FairRootGroup/DDS), [FairRoot](https://github.com/FairRootGroup/FairRoot/tree/dev) and [AliROOT]()
