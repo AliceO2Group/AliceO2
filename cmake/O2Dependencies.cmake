@@ -83,10 +83,17 @@ o2_define_bucket(
     flp2epn_Bucket
 
     DEPENDENCIES
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_CHRONO_LIBRARY} ${Boost_DATE_TIME_LIBRARY}
-    ${ZMQ_LIBRARIES} Base FairTools FairMQ ${Boost_LOG_LIBRARY} fairmq_logger pthread
+    ${Boost_CHRONO_LIBRARY}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_LOG_LIBRARY}
+    ${Boost_LOG_SETUP_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_RANDOM_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${ZMQ_LIBRARIES}
+    Base FairTools FairMQ fairmq_logger pthread
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -98,7 +105,7 @@ o2_define_bucket(
     flp2epndistrib_Bucket
 
     DEPENDENCIES
-    flp2epndistrib_no_dds_Bucket
+    flp2epn_Bucket
     dds-key-value-lib
 
     INCLUDE_DIRECTORIES
@@ -136,10 +143,16 @@ o2_define_bucket(
     CCDB_Bucket
 
     DEPENDENCIES
-    Base FairTools FairMQ ParBase ParMQ
-    ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_LOG_LIBRARY} ${Boost_THREAD_LIBRARY}
-    fairmq_logger pthread
-    Core Tree XMLParser Hist Net RIO # ROOT
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_LOG_SETUP_LIBRARY}
+    ${Boost_LOG_LIBRARY}
+    Base
+    FairTools
+    ParBase
+    FairMQ ParMQ
+    fairmq_logger pthread Core Tree XMLParser Hist Net RIO
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
@@ -284,13 +297,38 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
 )
-#
+
+o2_define_bucket(
+    NAME 
+    QC_apps_bucket
+    
+    DEPENDENCIES
+    dl
+    Core
+    Base
+    Hist
+    FairMQ
+    pthread
+    fairmq_logger
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_LOG_LIBRARY}
+    ${Boost_LOG_SETUP_LIBRARY}
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${FAIRROOT_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIR}
+)
+
 o2_define_bucket(
     NAME
     QC_viewer_bucket
 
     DEPENDENCIES
-    QC_base_bucket
+    QC_apps_bucket
+    Core
+    RIO
+    Net
     Gpad
 )
 
@@ -299,7 +337,7 @@ o2_define_bucket(
     QC_merger_bucket
 
     DEPENDENCIES
-    QC_base_bucket
+    QC_apps_bucket
 )
 
 o2_define_bucket(
@@ -307,7 +345,7 @@ o2_define_bucket(
     QC_producer_bucket
 
     DEPENDENCIES
-    QC_base_bucket
+    QC_apps_bucket
 )
 
 o2_define_bucket(
@@ -315,7 +353,7 @@ o2_define_bucket(
     QC_test_bucket
 
     DEPENDENCIES
-    dl Core Base Hist o2qaLibrary FairMQ  ${Boost_SYSTEM_LIBRARY}
+    dl Core Base Hist FairMQ  ${Boost_SYSTEM_LIBRARY}
 )
 
 o2_define_bucket(
@@ -364,9 +402,18 @@ o2_define_bucket(
     alicehlt_bucket
 
     DEPENDENCIES
-    ${Boost_SYSTEM_LIBRARY}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${FAIRMQ_DEPENDENCIES}
     ${Boost_CHRONO_LIBRARY}
-    fairroot_base_bucket
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_RANDOM_LIBRARY}
+    ${Boost_REGEX_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_LOG_LIBRARY}
+    ${Boost_LOG_SETUP_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    FairMQ
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
