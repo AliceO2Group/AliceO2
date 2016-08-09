@@ -402,6 +402,7 @@ o2_define_bucket(
     alicehlt_bucket
 
     DEPENDENCIES
+    dl
     ${CMAKE_THREAD_LIBS_INIT}
     ${FAIRMQ_DEPENDENCIES}
     ${Boost_CHRONO_LIBRARY}
