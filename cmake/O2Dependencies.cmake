@@ -76,7 +76,6 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/Examples/ExampleModule1/include # another module's include dir
 )
 
 o2_define_bucket(
@@ -135,7 +134,8 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+    # todo this line is to show how to do it if we remove the global variable containing all the modules inc dirs
+    #${CMAKE_SOURCE_DIR}/Common/MathUtils/include # this should be added to avoid errors when generating the dictionary
 )
 
 o2_define_bucket(
@@ -247,9 +247,6 @@ o2_define_bucket(
     itsBase
     DetectorsBase
     SimulationDataFormat
-
-    INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
 )
 
 o2_define_bucket(
@@ -325,6 +322,8 @@ o2_define_bucket(
     ${ZMQ_INCLUDE_DIR}
 )
 
+message("AAAAAAAAAAAAAAAAAAA:     ${ZMQ_INCLUDE_DIR}")
+
 o2_define_bucket(
     NAME
     QC_viewer_bucket
@@ -351,7 +350,10 @@ o2_define_bucket(
 
     DEPENDENCIES
     QC_apps_bucket
-)
+    INCLUDE_DIRECTORIES
+    ${ZMQ_INCLUDE_DIR}
+
+   )
 
 o2_define_bucket(
     NAME
@@ -425,6 +427,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
+    ${ZMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
