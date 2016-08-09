@@ -135,7 +135,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     # todo this line is to show how to do it if we remove the global variable containing all the modules inc dirs
-    #${CMAKE_SOURCE_DIR}/Common/MathUtils/include # this should be added to avoid errors when generating the dictionary
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include # this should be added to avoid errors when generating the dictionary
 )
 
 o2_define_bucket(
@@ -319,6 +319,7 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
+    ${ZMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
