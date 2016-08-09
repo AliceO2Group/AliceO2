@@ -148,7 +148,7 @@ if(NOT BOOST_ROOT)
   Unset(Boost_LIBRARY_DIRS CACHE)
 endif(NOT BOOST_ROOT)
 
-find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework REQUIRED)
+find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono date_time exception regex serialization log log_setup unit_test_framework REQUIRED)
 
 If (Boost_FOUND)
   Set(Boost_Avail 1)
