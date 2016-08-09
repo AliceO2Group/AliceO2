@@ -296,6 +296,7 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
+    ${ZMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
