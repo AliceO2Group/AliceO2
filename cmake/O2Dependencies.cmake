@@ -76,6 +76,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Examples/ExampleModule1/include # another module's include dir
 )
 
 o2_define_bucket(
@@ -134,8 +135,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
-    # todo this line is to show how to do it if we remove the global variable containing all the modules inc dirs
-    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include # this should be added to avoid errors when generating the dictionary
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
 
 o2_define_bucket(
@@ -247,6 +247,9 @@ o2_define_bucket(
     itsBase
     DetectorsBase
     SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
 )
 
 o2_define_bucket(
@@ -383,6 +386,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
 )
 
 o2_define_bucket(
