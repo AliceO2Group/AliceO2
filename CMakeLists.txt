@@ -20,8 +20,6 @@ cmake_policy(SET ${p} NEW)
 endif()
 endforeach()
 
-
-
 # Set name of our project to "ALICEO2". Has to be done
 # after check of cmake version since this is a new feature
 project(ALICEO2)
@@ -221,13 +219,11 @@ add_subdirectory (Utilities)
 add_subdirectory (Detectors)
 add_subdirectory (DataFormats)
 
-
 Option(BUILD_DOXYGEN "Build Doxygen" OFF)
 if(BUILD_DOXYGEN)
   MESSAGE(STATUS "*** Building the Doxygen documentaion ***")
   ADD_SUBDIRECTORY(doxygen)
 endif(BUILD_DOXYGEN)
-
 
 If(IWYU_FOUND)
   ADD_CUSTOM_TARGET(checkHEADERS
@@ -235,13 +231,8 @@ If(IWYU_FOUND)
   )
 EndIf()
 
-
 WRITE_CONFIG_FILE(config.sh)
 
 configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
                ${CMAKE_BINARY_DIR}/CTestCustom.cmake
               )
-
-# Create an automatically generated config header file to pass file paths to the application
-configure_file(${PROJECT_SOURCE_DIR}/Common/Header/AliceO2Config.h.in
-               ${CMAKE_CURRENT_SOURCE_DIR}/Common/Header/AliceO2Config.h)
