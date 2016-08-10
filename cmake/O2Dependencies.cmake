@@ -181,6 +181,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIR}
 )
 
 o2_define_bucket(
