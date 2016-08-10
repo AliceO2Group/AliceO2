@@ -1,0 +1,229 @@
+{
+    "fairMQOptions":
+    {
+        "devices":
+        [{
+            "id": "flpSyncSampler",
+            "channels":
+            [{
+                "name": "data",
+                "type": "pub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5550",
+                "rateLogging": "0"
+            },
+            {
+                "name": "ack",
+                "type": "pull",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5990",
+                "rateLogging": "0"
+            }]
+        },
+
+
+        {
+            "id": "flpSender1",
+            "channels":
+            [{
+                "name": "data-in",
+                "type": "sub",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5550",
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "hb-in",
+                "type": "sub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5581",
+                "rateLogging": "0"
+            },
+            {
+                "name": "data-out",
+                "type": "push",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5561" },
+                 { "address": "tcp://127.0.0.1:5562" },
+                 { "address": "tcp://127.0.0.1:5563" }
+                ],
+                "sndBufSize": "10"
+            }]
+        },
+        {
+            "id": "flpSender2",
+            "channels":
+            [{
+                "name": "data-in",
+                "type": "sub",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5550",
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "hb-in",
+                "type": "sub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5582",
+                "rateLogging": "0"
+            },
+            {
+                "name": "data-out",
+                "type": "push",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5561" },
+                 { "address": "tcp://127.0.0.1:5562" },
+                 { "address": "tcp://127.0.0.1:5563" }
+                ],
+                "sndBufSize": "10"
+            }]
+        },
+        {
+            "id": "flpSender3",
+            "channels":
+            [{
+                "name": "data-in",
+                "type": "sub",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5550",
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "hb-in",
+                "type": "sub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5583",
+                "rateLogging": "0"
+            },
+            {
+                "name": "data-out",
+                "type": "push",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5561" },
+                 { "address": "tcp://127.0.0.1:5562" },
+                 { "address": "tcp://127.0.0.1:5563" }
+                ],
+                "sndBufSize": "10"
+            }]
+        },
+
+
+        {
+            "id": "epnReceiver1",
+            "channels":
+            [{
+                "name": "data-in",
+                "type": "pull",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5561",
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "data-out",
+                "type": "pub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5591",
+                "sndBufSize": "10"
+            },
+            {
+                "name": "hb-out",
+                "type": "pub",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5581" },
+                 { "address": "tcp://127.0.0.1:5582" },
+                 { "address": "tcp://127.0.0.1:5583" }
+                ],
+                "rateLogging": "0"
+            },
+            {
+                "name": "ack",
+                "type": "push",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5990",
+                "rateLogging": "0"
+            }]
+        },
+        {
+            "id": "epnReceiver2",
+            "channels":
+            [{
+                "name": "data-in",
+                "type": "pull",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5562",
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "data-out",
+                "type": "pub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5592",
+                "sndBufSize": "10"
+            },
+            {
+                "name": "hb-out",
+                "type": "pub",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5581" },
+                 { "address": "tcp://127.0.0.1:5582" },
+                 { "address": "tcp://127.0.0.1:5583" }
+                ],
+                "rateLogging": "0"
+            },
+            {
+                "name": "ack",
+                "type": "push",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5990",
+                "rateLogging": "0"
+            }]
+        },
+        {
+            "id": "epnReceiver3",
+            "channels":
+            [{
+                "name": "data-in",
+                "type": "pull",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5563",
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "data-out",
+                "type": "pub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5593",
+                "sndBufSize": "10"
+            },
+            {
+                "name": "hb-out",
+                "type": "pub",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5581" },
+                 { "address": "tcp://127.0.0.1:5582" },
+                 { "address": "tcp://127.0.0.1:5583" }
+                ],
+                "rateLogging": "0"
+            },
+            {
+                "name": "ack",
+                "type": "push",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5990",
+                "rateLogging": "0"
+            }]
+        }]
+    }
+}

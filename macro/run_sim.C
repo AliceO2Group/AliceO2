@@ -6,6 +6,14 @@ double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 
 void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
+  TString dir = getenv("VMCWORKDIR");
+  TString geom_dir = dir + "share/geometry/";
+  gSystem->Setenv("GEOMPATH",geom_dir.Data());
+
+
+  TString tut_configdir = dir + "share/gconfig/";
+  gSystem->Setenv("CONFIG_DIR",tut_configdir.Data());
+
   // Output file name
   char fileout[100];
   sprintf(fileout, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
@@ -24,6 +32,11 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   // Timer
   TStopwatch timer;
   timer.Start();
+
+  // CDB manager
+//   AliceO2::CDB::Manager *cdbManager = AliceO2::CDB::Manager::Instance();
+//   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
+//   cdbManager->setRun(0);
 
  // gSystem->Load("libAliceO2Base");
  // gSystem->Load("libAliceO2its");
@@ -145,6 +158,11 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     }
   }
 
+  // ===| Add TPC |============================================================
+  AliceO2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
+  tpc->SetGeoFileName("/data/Work/software/o2/AliceO2/wiechula/Detectors/TPC/simulation/geometry/TPCGeometry.root");
+  run->AddModule(tpc);
+
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
   FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 1); /*protons*/
@@ -157,6 +175,9 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   primGen->AddGenerator(boxGen);
 
   run->SetGenerator(primGen);
+
+  // store track trajectories
+  run->SetStoreTraj(kTRUE);
 
   // Initialize simulation run
   run->Init();
