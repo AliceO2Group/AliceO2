@@ -6,7 +6,6 @@
 #define ALICEO2_FIELD_MAGNETICFIELD_H_
 
 #include <TVirtualMagField.h>  // for TVirtualMagField
-#include "AliceO2Config.h"     // for O2PROTO1_MAGF_CREATEFIELDMAP_DIR, etc
 #include "Rtypes.h"            // for Double_t, Char_t, Int_t, Float_t, etc
 #include "TNamed.h"            // for TNamed
 class FairLogger;  // lines 14-14
@@ -35,7 +34,7 @@ public:
   /// The "be" is the energy of the beam in GeV/nucleon
   MagneticField(const char* name, const char* title, Double_t factorSol = 1., Double_t factorDip = 1.,
                 BMap_t maptype = k5kG, BeamType_t btype = kBeamTypepp, Double_t benergy = -1, Int_t integ = 2,
-                Double_t fmax = 15, const char* path = O2PROTO1_MAGF_DIR);
+                Double_t fmax = 15, const char* path = "share/field/mfchebKGI_sym.root");
   MagneticField(const MagneticField& src);
   MagneticField& operator=(const MagneticField& src);
 
@@ -178,7 +177,7 @@ public:
   /// unless the special uniform map was used for MC
   static MagneticField* createFieldMap(Float_t l3Current = -30000., Float_t diCurrent = -6000., Int_t convention = 0,
                                        Bool_t uniform = kFALSE, Float_t beamenergy = 7000, const Char_t* btype = "pp",
-                                       const Char_t* path = O2PROTO1_MAGF_CREATEFIELDMAP_DIR);
+                                       const Char_t* path = "share/field/mfchebKGI_sym.root");
 
 protected:
   // not supposed to be changed during the run, set only at the initialization via constructor

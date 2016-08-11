@@ -14,7 +14,10 @@
 # **************************************************************************
 
 # Libraries
-add_subdirectory(Passive)
-add_subdirectory(ITSMFT)
-add_subdirectory(TPC)
-add_subdirectory(Base)
+add_subdirectory (Base)
+add_subdirectory (gconfig)
+add_subdirectory (Geometry)
+add_subdirectory (ITSMFT)
+add_subdirectory (Passive)
+add_subdirectory (TPC)
+
