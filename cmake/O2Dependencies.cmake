@@ -323,8 +323,6 @@ o2_define_bucket(
     ${ZMQ_INCLUDE_DIR}
 )
 
-message("AAAAAAAAAAAAAAAAAAA:     ${ZMQ_INCLUDE_DIR}")
-
 o2_define_bucket(
     NAME
     QC_viewer_bucket
