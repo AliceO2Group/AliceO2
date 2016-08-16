@@ -27,49 +27,51 @@ using namespace AliceO2::Devices;
 
 struct DeviceOptions
 {
-  DeviceOptions() :
-    id(), ioThreads(0), heartbeatIntervalInMs(0), bufferTimeoutInMs(0), numFLPs(0), testMode(0),
-    dataInSocketType(), dataInBufSize(1000), dataInMethod(), dataInRateLogging(0),
-    dataOutSocketType(), dataOutBufSize(1000), dataOutMethod(), dataOutRateLogging(0),
-    hbOutSocketType(), hbOutBufSize(1000), hbOutMethod(), hbOutRateLogging(0),
-    ackOutSocketType(), ackOutBufSize(1000), ackOutMethod(), ackOutRateLogging(0) {}
+    DeviceOptions() :
+      id(), ioThreads(0), heartbeatIntervalInMs(0), bufferTimeoutInMs(0), numFLPs(0), testMode(0),
+      dataInSocketType(), dataInBufSize(1000), dataInMethod(), dataInRateLogging(0),
+      dataOutSocketType(), dataOutBufSize(1000), dataOutMethod(), dataOutRateLogging(0),
+      hbOutSocketType(), hbOutBufSize(1000), hbOutMethod(), hbOutRateLogging(0),
+      ackOutSocketType(), ackOutBufSize(1000), ackOutMethod(), ackOutRateLogging(0)
+    { }
 
-  string id;
-  int ioThreads;
-  int heartbeatIntervalInMs;
-  int bufferTimeoutInMs;
-  int numFLPs;
-  int testMode;
+    string id;
+    int ioThreads;
+    int heartbeatIntervalInMs;
+    int bufferTimeoutInMs;
+    int numFLPs;
+    int testMode;
 
-  string dataInSocketType;
-  int dataInBufSize;
-  string dataInMethod;
-  // string dataInAddress;
-  int dataInRateLogging;
+    string dataInSocketType;
+    int dataInBufSize;
+    string dataInMethod;
+    // string dataInAddress;
+    int dataInRateLogging;
 
-  string dataOutSocketType;
-  int dataOutBufSize;
-  string dataOutMethod;
-  // string dataOutAddress;
-  int dataOutRateLogging;
+    string dataOutSocketType;
+    int dataOutBufSize;
+    string dataOutMethod;
+    // string dataOutAddress;
+    int dataOutRateLogging;
 
-  string hbOutSocketType;
-  int hbOutBufSize;
-  string hbOutMethod;
-  // string hbOutAddress;
-  int hbOutRateLogging;
+    string hbOutSocketType;
+    int hbOutBufSize;
+    string hbOutMethod;
+    // string hbOutAddress;
+    int hbOutRateLogging;
 
-  string ackOutSocketType;
-  int ackOutBufSize;
-  string ackOutMethod;
-  // string ackOutAddress;
-  int ackOutRateLogging;
+    string ackOutSocketType;
+    int ackOutBufSize;
+    string ackOutMethod;
+    // string ackOutAddress;
+    int ackOutRateLogging;
 };
 
-inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
+inline bool parse_cmd_line(int _argc, char *_argv[], DeviceOptions *_options)
 {
-  if (_options == NULL)
+  if (_options == NULL) {
     throw runtime_error("Internal error: options' container is empty.");
+  }
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Options");
@@ -82,25 +84,29 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("test-mode", bpo::value<int>()->default_value(0), "Run in test mode")
 
     ("data-in-socket-type", bpo::value<string>()->default_value("pull"), "Data input socket type: sub/pull")
-    ("data-in-buff-size", bpo::value<int>()->default_value(10), "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-in-buff-size", bpo::value<int>()->default_value(10),
+     "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("data-in-method", bpo::value<string>()->default_value("bind"), "Data input method: bind/connect")
     // ("data-in-address", bpo::value<string>()->required(), "Data input address, e.g.: \"tcp://localhost:5555\"")
     ("data-in-rate-logging", bpo::value<int>()->default_value(1), "Log input rate on data socket, 1/0")
 
     ("data-out-socket-type", bpo::value<string>()->default_value("push"), "Data output socket type: pub/push")
-    ("data-out-buff-size", bpo::value<int>()->default_value(10), "Data output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-out-buff-size", bpo::value<int>()->default_value(10),
+     "Data output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("data-out-method", bpo::value<string>()->default_value("bind"), "Data output method: bind/connect")
     // ("data-out-address", bpo::value<string>()->required(), "Data output address, e.g.: \"tcp://localhost:5555\"")
     ("data-out-rate-logging", bpo::value<int>()->default_value(1), "Log output rate on data socket, 1/0")
 
     ("hb-out-socket-type", bpo::value<string>()->default_value("pub"), "Heartbeat output socket type: pub/push")
-    ("hb-out-buff-size", bpo::value<int>()->default_value(100), "Heartbeat output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("hb-out-buff-size", bpo::value<int>()->default_value(100),
+     "Heartbeat output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("hb-out-method", bpo::value<string>()->default_value("connect"), "Heartbeat output method: bind/connect")
     // ("hb-out-address", bpo::value<string>()->required(), "Heartbeat output address, e.g.: \"tcp://localhost:5555\"")
     ("hb-out-rate-logging", bpo::value<int>()->default_value(0), "Log output rate on heartbeat socket, 1/0")
 
     ("ack-out-socket-type", bpo::value<string>()->default_value("push"), "Acknowledgement output socket type: pub/push")
-    ("ack-out-buff-size", bpo::value<int>()->default_value(100), "Acknowledgement output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("ack-out-buff-size", bpo::value<int>()->default_value(100),
+     "Acknowledgement output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("ack-out-method", bpo::value<string>()->default_value("connect"), "Acknowledgement output method: bind/connect")
     // ("ack-out-address", bpo::value<string>()->required() "Acknowledgement output address, e.g.: \"tcp://localhost:5555\"")
     ("ack-out-rate-logging", bpo::value<int>()->default_value(0), "Log output rate on acknowledgement socket, 1/0")
@@ -117,41 +123,41 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
 
   bpo::notify(vm);
 
-  if (vm.count("id"))                    { _options->id                    = vm["id"].as<string>(); }
-  if (vm.count("io-threads"))            { _options->ioThreads             = vm["io-threads"].as<int>(); }
-  if (vm.count("heartbeat-interval"))    { _options->heartbeatIntervalInMs = vm["heartbeat-interval"].as<int>(); }
-  if (vm.count("buffer-timeout"))        { _options->bufferTimeoutInMs     = vm["buffer-timeout"].as<int>(); }
-  if (vm.count("num-flps"))              { _options->numFLPs               = vm["num-flps"].as<int>(); }
-  if (vm.count("test-mode"))             { _options->testMode              = vm["test-mode"].as<int>(); }
+  if (vm.count("id")) { _options->id = vm["id"].as<string>(); }
+  if (vm.count("io-threads")) { _options->ioThreads = vm["io-threads"].as<int>(); }
+  if (vm.count("heartbeat-interval")) { _options->heartbeatIntervalInMs = vm["heartbeat-interval"].as<int>(); }
+  if (vm.count("buffer-timeout")) { _options->bufferTimeoutInMs = vm["buffer-timeout"].as<int>(); }
+  if (vm.count("num-flps")) { _options->numFLPs = vm["num-flps"].as<int>(); }
+  if (vm.count("test-mode")) { _options->testMode = vm["test-mode"].as<int>(); }
 
-  if (vm.count("data-in-socket-type"))   { _options->dataInSocketType      = vm["data-in-socket-type"].as<string>(); }
-  if (vm.count("data-in-buff-size"))     { _options->dataInBufSize         = vm["data-in-buff-size"].as<int>(); }
-  if (vm.count("data-in-method"))        { _options->dataInMethod          = vm["data-in-method"].as<string>(); }
+  if (vm.count("data-in-socket-type")) { _options->dataInSocketType = vm["data-in-socket-type"].as<string>(); }
+  if (vm.count("data-in-buff-size")) { _options->dataInBufSize = vm["data-in-buff-size"].as<int>(); }
+  if (vm.count("data-in-method")) { _options->dataInMethod = vm["data-in-method"].as<string>(); }
   // if (vm.count("data-in-address"))       { _options->dataInAddress         = vm["data-in-address"].as<string>(); }
-  if (vm.count("data-in-rate-logging"))  { _options->dataInRateLogging     = vm["data-in-rate-logging"].as<int>(); }
+  if (vm.count("data-in-rate-logging")) { _options->dataInRateLogging = vm["data-in-rate-logging"].as<int>(); }
 
-  if (vm.count("data-out-socket-type"))  { _options->dataOutSocketType     = vm["data-out-socket-type"].as<string>(); }
-  if (vm.count("data-out-buff-size"))    { _options->dataOutBufSize        = vm["data-out-buff-size"].as<int>(); }
-  if (vm.count("data-out-method"))       { _options->dataOutMethod         = vm["data-out-method"].as<string>(); }
+  if (vm.count("data-out-socket-type")) { _options->dataOutSocketType = vm["data-out-socket-type"].as<string>(); }
+  if (vm.count("data-out-buff-size")) { _options->dataOutBufSize = vm["data-out-buff-size"].as<int>(); }
+  if (vm.count("data-out-method")) { _options->dataOutMethod = vm["data-out-method"].as<string>(); }
   // if (vm.count("data-out-address"))      { _options->dataOutAddress        = vm["data-out-address"].as<string>(); }
-  if (vm.count("data-out-rate-logging")) { _options->dataOutRateLogging    = vm["data-out-rate-logging"].as<int>(); }
+  if (vm.count("data-out-rate-logging")) { _options->dataOutRateLogging = vm["data-out-rate-logging"].as<int>(); }
 
-  if (vm.count("hb-out-socket-type"))    { _options->hbOutSocketType       = vm["hb-out-socket-type"].as<string>(); }
-  if (vm.count("hb-out-buff-size"))      { _options->hbOutBufSize          = vm["hb-out-buff-size"].as<int>(); }
-  if (vm.count("hb-out-method"))         { _options->hbOutMethod           = vm["hb-out-method"].as<string>(); }
+  if (vm.count("hb-out-socket-type")) { _options->hbOutSocketType = vm["hb-out-socket-type"].as<string>(); }
+  if (vm.count("hb-out-buff-size")) { _options->hbOutBufSize = vm["hb-out-buff-size"].as<int>(); }
+  if (vm.count("hb-out-method")) { _options->hbOutMethod = vm["hb-out-method"].as<string>(); }
   // if (vm.count("hb-out-address"))        { _options->hbOutAddress          = vm["hb-out-address"].as<string>(); }
-  if (vm.count("hb-out-rate-logging"))   { _options->hbOutRateLogging      = vm["hb-out-rate-logging"].as<int>(); }
+  if (vm.count("hb-out-rate-logging")) { _options->hbOutRateLogging = vm["hb-out-rate-logging"].as<int>(); }
 
-  if (vm.count("ack-out-socket-type"))   { _options->ackOutSocketType      = vm["ack-out-socket-type"].as<string>(); }
-  if (vm.count("ack-out-buff-size"))     { _options->ackOutBufSize         = vm["ack-out-buff-size"].as<int>(); }
-  if (vm.count("ack-out-method"))        { _options->ackOutMethod          = vm["ack-out-method"].as<string>(); }
+  if (vm.count("ack-out-socket-type")) { _options->ackOutSocketType = vm["ack-out-socket-type"].as<string>(); }
+  if (vm.count("ack-out-buff-size")) { _options->ackOutBufSize = vm["ack-out-buff-size"].as<int>(); }
+  if (vm.count("ack-out-method")) { _options->ackOutMethod = vm["ack-out-method"].as<string>(); }
   // if (vm.count("ack-out-address"))       { _options->ackOutAddress         = vm["ack-out-address"].as<string>(); }
-  if (vm.count("ack-out-rate-logging"))  { _options->ackOutRateLogging     = vm["ack-out-rate-logging"].as<int>(); }
+  if (vm.count("ack-out-rate-logging")) { _options->ackOutRateLogging = vm["ack-out-rate-logging"].as<int>(); }
 
   return true;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   // create the device
   EPNReceiver epn;
@@ -161,9 +167,10 @@ int main(int argc, char** argv)
   // create container for command line options and fill it
   DeviceOptions options;
   try {
-    if (!parse_cmd_line(argc, argv, &options))
+    if (!parse_cmd_line(argc, argv, &options)) {
       return 0;
-  } catch (exception& e) {
+    }
+  } catch (exception &e) {
     LOG(ERROR) << e.what();
     return 1;
   }
@@ -171,7 +178,7 @@ int main(int argc, char** argv)
   LOG(INFO) << "EPN Receiver, ID: " << options.id << " (PID: " << getpid() << ")";
 
   // container to hold the IP address of the node we are running on
-  map<string,string> IPs;
+  map <string, string> IPs;
   FairMQ::tools::getHostIPs(IPs);
 
   stringstream ss;
@@ -194,7 +201,7 @@ int main(int argc, char** argv)
   string ownAddress = ss.str();
 
   // configure the transport interface
-  FairMQTransportFactory* transportFactory = new FairMQTransportFactoryZMQ();
+  FairMQTransportFactory *transportFactory = new FairMQTransportFactoryZMQ();
   epn.SetTransport(transportFactory);
 
   // configure device
@@ -256,19 +263,19 @@ int main(int argc, char** argv)
   // Initialize DDS store to receive properties
   dds::intercom_api::CKeyValue::valuesMap_t values;
   {
-  mutex keyMutex;
-  condition_variable keyCondition;
+    mutex keyMutex;
+    condition_variable keyCondition;
 
-  ddsKeyValue.subscribe([&keyCondition](const string& _key, const string& _value) {keyCondition.notify_all();});
+    ddsKeyValue.subscribe([&keyCondition](const string &_key, const string &_value) { keyCondition.notify_all(); });
 
-  // Receive FLPSender heartbeat input addresses from DDS.
-  LOG(DEBUG) << "Waiting for FLPSender heartbeat input addresses from DDS...";
-  ddsKeyValue.getValues("FLPSenderHeartbeatInputAddress", &values);
-  while (values.size() != options.numFLPs) {
-    unique_lock<mutex> lock(keyMutex);
-    keyCondition.wait_until(lock, chrono::system_clock::now() + chrono::milliseconds(1000));
+    // Receive FLPSender heartbeat input addresses from DDS.
+    LOG(DEBUG) << "Waiting for FLPSender heartbeat input addresses from DDS...";
     ddsKeyValue.getValues("FLPSenderHeartbeatInputAddress", &values);
-  }
+    while (values.size() != options.numFLPs) {
+      unique_lock <mutex> lock(keyMutex);
+      keyCondition.wait_until(lock, chrono::system_clock::now() + chrono::milliseconds(1000));
+      ddsKeyValue.getValues("FLPSenderHeartbeatInputAddress", &values);
+    }
   }
   LOG(DEBUG) << "Received all " << options.numFLPs << " addresses from DDS.";
 
@@ -283,18 +290,18 @@ int main(int argc, char** argv)
   if (options.testMode == 1) {
     values.clear();
     {
-    mutex keyMutex;
-    condition_variable keyCondition;
+      mutex keyMutex;
+      condition_variable keyCondition;
 
-    ddsKeyValue.subscribe([&keyCondition](const string& _key, const string& _value) {keyCondition.notify_all();});
+      ddsKeyValue.subscribe([&keyCondition](const string &_key, const string &_value) { keyCondition.notify_all(); });
 
-    LOG(DEBUG) << "Waiting for FLPSyncSampler Input Address from DDS...";
-    ddsKeyValue.getValues("FLPSyncSamplerInputAddress", &values);
-    while (values.empty()) {
-      unique_lock<mutex> lock(keyMutex);
-      keyCondition.wait_until(lock, chrono::system_clock::now() + chrono::milliseconds(1000));
+      LOG(DEBUG) << "Waiting for FLPSyncSampler Input Address from DDS...";
       ddsKeyValue.getValues("FLPSyncSamplerInputAddress", &values);
-    }
+      while (values.empty()) {
+        unique_lock <mutex> lock(keyMutex);
+        keyCondition.wait_until(lock, chrono::system_clock::now() + chrono::milliseconds(1000));
+        ddsKeyValue.getValues("FLPSyncSamplerInputAddress", &values);
+      }
     }
     LOG(DEBUG) << "Received FLPSyncSampler Input Address from DDS.";
 

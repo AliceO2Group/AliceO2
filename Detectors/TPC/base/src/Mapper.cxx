@@ -10,7 +10,7 @@
 // using std::endl;
 // using boost::format;
 
-#include "Mapper.h"
+#include "TPCbase/Mapper.h"
 namespace AliceO2 {
 namespace TPC {
 

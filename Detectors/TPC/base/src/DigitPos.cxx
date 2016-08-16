@@ -1,5 +1,5 @@
-#include "DigitPos.h"
-#include "Mapper.h"
+#include "TPCbase/DigitPos.h"
+#include "TPCbase/Mapper.h"
 
 namespace AliceO2 {
 namespace TPC {

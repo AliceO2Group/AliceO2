@@ -1,8 +1,8 @@
-#include "DigitContainer.h"
-#include "DigitCRU.h"
-#include "Digit.h"
-#include "Mapper.h"
-#include "CRU.h"
+#include "TPCsimulation/DigitContainer.h"
+#include "TPCsimulation/DigitCRU.h"
+#include "TPCsimulation/Digit.h"
+#include "TPCbase/Mapper.h"
+#include "TPCbase/CRU.h"
 
 #include "FairLogger.h"
 

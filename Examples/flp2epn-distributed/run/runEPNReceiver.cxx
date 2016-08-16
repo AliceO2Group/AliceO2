@@ -11,7 +11,7 @@
 
 #include "FairMQLogger.h"
 
-#include "EPNReceiver.h"
+#include "FLP2EPNex_distributed/EPNReceiver.h"
 
 using namespace std;
 using namespace AliceO2::Devices;
@@ -59,10 +59,11 @@ struct DeviceOptions
   int ackOutRateLogging;
 };
 
-inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
+inline bool parse_cmd_line(int _argc, char *_argv[], DeviceOptions *_options)
 {
-  if (_options == NULL)
+  if (_options == NULL) {
     throw runtime_error("Internal error: options' container is empty.");
+  }
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Options");
@@ -77,27 +78,33 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("transport", bpo::value<string>()->default_value("zeromq"), "Transport (zeromq/nanomsg)")
 
     ("data-in-socket-type", bpo::value<string>()->default_value("pull"), "Data input socket type: sub/pull")
-    ("data-in-buff-size", bpo::value<int>()->default_value(10), "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-in-buff-size", bpo::value<int>()->default_value(10),
+     "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("data-in-method", bpo::value<string>()->default_value("bind"), "Data input method: bind/connect")
     ("data-in-address", bpo::value<string>()->required(), "Data input address, e.g.: \"tcp://localhost:5555\"")
     ("data-in-rate-logging", bpo::value<int>()->default_value(1), "Log input rate on data socket, 1/0")
 
     ("data-out-socket-type", bpo::value<string>()->default_value("push"), "Output socket type: pub/push")
-    ("data-out-buff-size", bpo::value<int>()->default_value(10), "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-out-buff-size", bpo::value<int>()->default_value(10),
+     "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("data-out-method", bpo::value<string>()->default_value("bind"), "Output method: bind/connect")
     ("data-out-address", bpo::value<string>()->required(), "Output address, e.g.: \"tcp://localhost:5555\"")
     ("data-out-rate-logging", bpo::value<int>()->default_value(1), "Log output rate on data socket, 1/0")
 
     ("hb-out-socket-type", bpo::value<string>()->default_value("pub"), "Heartbeat output socket type: pub/push")
     ("hb-out-buff-size", bpo::value<int>()->default_value(10), "Heartbeat output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+
     ("hb-out-method", bpo::value<string>()->default_value("connect"), "Heartbeat output method: bind/connect")
-    ("hb-out-address", bpo::value<vector<string>>()->required(), "Heartbeat output address, e.g.: \"tcp://localhost:5555\"")
+    ("hb-out-address", bpo::value<vector<string>>()->required(),
+     "Heartbeat output address, e.g.: \"tcp://localhost:5555\"")
     ("hb-out-rate-logging", bpo::value<int>()->default_value(0), "Log output rate on heartbeat socket, 1/0")
 
     ("ack-out-socket-type", bpo::value<string>()->default_value("push"), "Acknowledgement output socket type: pub/push")
     ("ack-out-buff-size", bpo::value<int>()->default_value(10), "Acknowledgement output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+
     ("ack-out-method", bpo::value<string>()->default_value("connect"), "Acknowledgement output method: bind/connect")
-    ("ack-out-address", bpo::value<string>()->required(), "Acknowledgement output address, e.g.: \"tcp://localhost:5555\"")
+    ("ack-out-address", bpo::value<string>()->required(),
+     "Acknowledgement output address, e.g.: \"tcp://localhost:5555\"")
     ("ack-out-rate-logging", bpo::value<int>()->default_value(0), "Log output rate on acknowledgement socket, 1/0")
 
     ("help", "Print help messages");
@@ -148,7 +155,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   return true;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   // create the device
   EPNReceiver epn;
@@ -159,9 +166,10 @@ int main(int argc, char** argv)
   DeviceOptions options;
   // parse the command line options and fill the container
   try {
-    if (!parse_cmd_line(argc, argv, &options))
+    if (!parse_cmd_line(argc, argv, &options)) {
       return 0;
-  } catch (const exception& e) {
+    }
+  } catch (const exception &e) {
     LOG(ERROR) << e.what();
     return 1;
   }

@@ -11,7 +11,7 @@
 
 #include "FairMQLogger.h"
 
-#include "FLPSender.h"
+#include "FLP2EPNex_distributed/FLPSender.h"
 
 using namespace std;
 using namespace AliceO2::Devices;
@@ -53,9 +53,10 @@ struct DeviceOptions
   string hbInMethod;
   string hbInAddress;
   int hbInRateLogging;
+
 };
 
-inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
+inline bool parse_cmd_line(int _argc, char *_argv[], DeviceOptions *_options)
 {
   if (_options == NULL) {
     throw runtime_error("Internal error: options' container is empty.");
@@ -77,19 +78,22 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
     ("send-delay", bpo::value<int>()->default_value(8), "Delay for staggered sending")
 
     ("data-in-socket-type", bpo::value<string>()->default_value("pull"), "Data input socket type: sub/pull")
-    ("data-in-buff-size", bpo::value<int>()->default_value(10), "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-in-buff-size", bpo::value<int>()->default_value(10),
+     "Data input buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("data-in-method", bpo::value<string>()->default_value("bind"), "Data input method: bind/connect")
     ("data-in-address", bpo::value<string>()->required(), "Data input address, e.g.: \"tcp://localhost:5555\"")
     ("data-in-rate-logging", bpo::value<int>()->default_value(1), "Log data input rate on socket, 1/0")
 
     ("data-out-socket-type", bpo::value<string>()->default_value("push"), "Output socket type: pub/push")
-    ("data-out-buff-size", bpo::value<int>()->default_value(10), "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+    ("data-out-buff-size", bpo::value<int>()->default_value(10),
+     "Output buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
     ("data-out-method", bpo::value<string>()->default_value("connect"), "Output method: bind/connect")
     ("data-out-address", bpo::value<vector<string>>()->required(), "Output address, e.g.: \"tcp://localhost:5555\"")
     ("data-out-rate-logging", bpo::value<int>()->default_value(1), "Log output rate on socket, 1/0")
 
     ("hb-in-socket-type", bpo::value<string>()->default_value("sub"), "Heartbeat in socket type: sub/pull")
     ("hb-in-buff-size", bpo::value<int>()->default_value(10), "Heartbeat in buffer size in number of messages (ZeroMQ)/bytes(nanomsg)")
+
     ("hb-in-method", bpo::value<string>()->default_value("bind"), "Heartbeat in method: bind/connect")
     ("hb-in-address", bpo::value<string>()->required(), "Heartbeat in address, e.g.: \"tcp://localhost:5555\"")
     ("hb-in-rate-logging", bpo::value<int>()->default_value(0), "Log heartbeat in rate on socket, 1/0")
@@ -141,7 +145,7 @@ inline bool parse_cmd_line(int _argc, char* _argv[], DeviceOptions* _options)
   return true;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   // create the device
   FLPSender flp;
@@ -155,7 +159,7 @@ int main(int argc, char** argv)
     if (!parse_cmd_line(argc, argv, &options)) {
       return 0;
     }
-  } catch (const exception& e) {
+  } catch (const exception &e) {
     LOG(ERROR) << e.what();
     return 1;
   }
@@ -170,6 +174,7 @@ int main(int argc, char** argv)
 
   // configure the transport interface
   flp.SetTransport(options.transport);
+
 
   // set device properties
   flp.SetProperty(FLPSender::Id, options.id);

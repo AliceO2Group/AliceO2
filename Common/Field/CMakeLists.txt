@@ -1,41 +1,18 @@
-# Create a library called "AliceO2Field" which includes the source files given in
-# the array.
-# The extension is already found.  Any number of sources could be listed here.
+set(MODULE_NAME "Field")
 
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/Common/Field
-  ${CMAKE_SOURCE_DIR}/Common/Field/include
-  ${CMAKE_SOURCE_DIR}/Common/Header
-)
-
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${ROOT_INCLUDE_DIR}
-)
-
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${FAIRROOT_LIBRARY_DIR}
-  ${ROOT_LIBRARY_DIR}
-)
-
-link_directories( ${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-  src/MagneticWrapperChebyshev.cxx
-  src/MagneticField.cxx
-)
+    src/MagneticWrapperChebyshev.cxx
+    src/MagneticField.cxx
+    )
 
-Set(HEADERS
-   include/MagneticWrapperChebyshev.h
-   include/MagneticField.h
-)
-Set(LINKDEF src/FieldLinkDef.h)
-Set(LIBRARY_NAME Field)
-Set(DEPENDENCIES MathUtils Core)
+set(HEADERS
+    include/${MODULE_NAME}/MagneticWrapperChebyshev.h
+    include/${MODULE_NAME}/MagneticField.h
+    )
+set(LINKDEF src/FieldLinkDef.h)
+set(LIBRARY_NAME Field)
+set(BUCKET_NAME common_field_bucket)
 
-GENERATE_LIBRARY()
+O2_GENERATE_LIBRARY()

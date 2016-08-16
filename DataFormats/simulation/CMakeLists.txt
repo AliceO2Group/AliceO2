@@ -1,25 +1,6 @@
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/DataFormats/simulation
-  ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
-)
+set(MODULE_NAME "SimulationDataFormat")
 
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${Boost_INCLUDE_DIRS}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${ROOT_INCLUDE_DIR}
-)
-
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/DataFormats/simulation/
-  ${FAIRROOT_LIBRARY_DIR}
-  ${ROOT_LIBRARY_DIR}
-)
-
-link_directories( ${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Stack.cxx
@@ -27,11 +8,11 @@ set(SRCS
 )
 
 Set(HEADERS
-  include/Stack.h
-  include/MCTrack.h
+    include/${MODULE_NAME}/Stack.h
+    include/${MODULE_NAME}/MCTrack.h
 )
 Set(LINKDEF src/SimulationDataLinkDef.h)
-Set(LIBRARY_NAME O2SimulationDataFormat)
-Set(DEPENDENCIES Base EG Physics Core)
+Set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME data_format_simulation_bucket)
 
-GENERATE_LIBRARY()
+O2_GENERATE_LIBRARY()

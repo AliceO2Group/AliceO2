@@ -18,7 +18,7 @@
 //
 /////////////////////////////////////////////////////////////
 
-#include "GeoCave.h"
+#include "DetectorsPassive/GeoCave.h"
 
 #include "FairGeoBasicShape.h"          // for FairGeoBasicShape
 #include "FairGeoMedia.h"               // for FairGeoMedia

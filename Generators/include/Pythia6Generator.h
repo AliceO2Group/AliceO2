@@ -61,7 +61,7 @@
 #ifndef PND_PYTHIAGENERATOR_H
 #define PND_PYTHIAGENERATOR_H
 
-#ifdef __CINT__
+#ifdef __CLING__
 #define _DLFCN_H_
 #define _DLFCN_H
 #endif

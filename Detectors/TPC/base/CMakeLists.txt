@@ -1,25 +1,6 @@
+set(MODULE_NAME "TPCbase")
 
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
-  ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/
-
-)
-
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${ROOT_INCLUDE_DIR}
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${Boost_INCLUDE_DIRS}
-  ${FAIRROOT_INCLUDE_DIR}
-)
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${ROOT_LIBRARY_DIR}
-  ${FAIRROOT_LIBRARY_DIR}
-)
-
-link_directories( ${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
    src/ContainerFactory.cxx
@@ -37,30 +18,26 @@ set(SRCS
    src/Sector.cxx
 )
 
-
 set(HEADERS
-   include/ContainerFactory.h
-   include/CRU.h
-#    include/Defs.h
-   include/DigitPos.h
-   include/FECInfo.h
-   include/Mapper.h
-   include/PadInfo.h
-   include/PadPos.h
-   include/PadRegionInfo.h
-   include/PadSecPos.h
-   include/Point2D.h
-   include/Point3D.h
-   include/ROC.h
-   include/Defs.h
-   include/Sector.h
+   include/TPCbase/ContainerFactory.h
+   include/TPCbase/CRU.h
+#    include/TPCbase/Defs.h
+   include/TPCbase/DigitPos.h
+   include/TPCbase/FECInfo.h
+   include/TPCbase/Mapper.h
+   include/TPCbase/PadInfo.h
+   include/TPCbase/PadPos.h
+   include/TPCbase/PadRegionInfo.h
+   include/TPCbase/PadSecPos.h
+   include/TPCbase/Point2D.h
+   include/TPCbase/Point3D.h
+   include/TPCbase/ROC.h
+   include/TPCbase/Defs.h
+   include/TPCbase/Sector.h
 )
-
-# string(REPLACE ".cxx" ".h" HEADERS "${SRCS}")
 
 Set(LINKDEF src/tpcBaseLinkDef.h)
-Set(LIBRARY_NAME tpcBase)
-Set(DEPENDENCIES
-    Base
-)
-GENERATE_LIBRARY()
+Set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME tpc_base_bucket)
+
+O2_GENERATE_LIBRARY()

@@ -1,50 +1,30 @@
 # Create a library called "libGen" which includes the source files given in
 # the array .
 # The extension is already found.  Any number of sources could be listed here.
+set(MODULE_NAME "Generators")
 
-if(PYTHIA8_INCLUDE_DIR)
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}/Generators/include
-  ${CMAKE_SOURCE_DIR}/Generators/
-)
+O2_SETUP(NAME ${MODULE_NAME})
+if (PYTHIA8_INCLUDE_DIR)
 
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${ROOT_INCLUDE_DIR}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${PYTHIA8_INCLUDE_DIR}
-  ${SIMPATH}/include
-  ${BASE_INCLUDE_DIRECTORIES}
-)
+  set(SRCS
+      src/Pythia6Generator.cxx
+      src/Pythia8Generator.cxx
+      )
 
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
+  set(HEADERS
+      include/Pythia6Generator.h
+      include/Pythia8Generator.h
+      )
 
-set(LINK_DIRECTORIES
-  ${ROOT_LIBRARY_DIR}
-  ${FAIRROOT_LIBRARY_DIR}
-  ${Pythia6_LIBRARY_DIR}
-  ${PYTHIA8_LIBRARY_DIR}
-  ${SIMPATH}/lib
-)
+  set(LINKDEF src/EventGeneratorLinkDef.h)
+  set(LIBRARY_NAME EvtGenerator)
+    set(BUCKET_NAME generators_bucket)
 
-link_directories( ${LINK_DIRECTORIES})
+#  set(DEPENDENCIES Base O2SimulationDataFormat pythia8 Pythia6)
 
-set(SRCS
-  src/Pythia6Generator.cxx
-  src/Pythia8Generator.cxx
-)
+  O2_GENERATE_LIBRARY()
 
-set( HEADERS
-  include/Pythia6Generator.h
-  include/Pythia8Generator.h
-)
 
-set(LINKDEF src/EventGeneratorLinkDef.h)
-set(LIBRARY_NAME EvtGenerator)
-
-set(DEPENDENCIES Base O2SimulationDataFormat pythia8 Pythia6)
-
-GENERATE_LIBRARY()
-else(PYTHIA8_INCLUDE_DIR)
+else (PYTHIA8_INCLUDE_DIR)
   message(STATUS "module 'Generators' requires Pythia8 ... deactivated")
-endif(PYTHIA8_INCLUDE_DIR)
+endif (PYTHIA8_INCLUDE_DIR)

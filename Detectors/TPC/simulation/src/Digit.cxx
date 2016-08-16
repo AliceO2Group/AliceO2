@@ -1,7 +1,7 @@
 /// \file AliITSUpgradeDigi.cxx
 /// \brief Digits structure for ITS digits
 
-#include "Digit.h"
+#include "TPCsimulation/Digit.h"
 
 ClassImp(AliceO2::TPC::Digit)
 

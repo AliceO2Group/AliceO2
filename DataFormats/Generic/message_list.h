@@ -46,8 +46,8 @@ class messageList {
   ~messageList() {}
 
   /// add data block to list
-  /// both header and payload message parts are required to add an entry
-  /// the actual header of type HdrT is extracted from the header
+  /// both include and payload message parts are required to add an entry
+  /// the actual include of type HdrT is extracted from the include
   /// message part.
   int add(MsgT& headerMsg, MsgT& payloadMsg) {
     // conversion relies on the conversion operator for complex types
@@ -67,7 +67,7 @@ class messageList {
   bool empty() {mDataArray.empty();}
 
   /**
-   * messagePair describes the two sequential message parts for header and payload
+   * messagePair describes the two sequential message parts for include and payload
    * respectively.
    *
    * TODO: decide whether to use pointer to message or pointer to payload in the
@@ -126,7 +126,7 @@ class messageList {
 	// operator bool() of std::function is used to determine whether
 	// a selector is set or not, the default is not callable.
 	// if the std::function container has an assigned target, this is
-	// called with the header as parameter
+	// called with the include as parameter
 	if (!mHdrSelection || mHdrSelection(mDataIterator->mHeader)) break;
       }
       return *this;
@@ -138,7 +138,7 @@ class messageList {
     MsgT& operator*() { return *((*mDataIterator).mPayload);}
     MsgT* operator->() { return (*mDataIterator).mPayload;}
 
-    /** return header at iterator position */
+    /** return include at iterator position */
     HdrT& getHdr() const {return (*mDataIterator).mHeader;}
 
     bool operator==(const self_type& other) { return mDataIterator == other.mDataIterator; }
