@@ -14,6 +14,8 @@ class AliHLTTPCCAParam;
 class AliHLTTPCRawCluster;
 class AliHLTTPCClusterXYZ;
 
+using namespace AliZMQhelpers;
+
 class AliHLTTPCReverseTransformInfoV1;
 class AliHLTExternalTrackParam;
 class AliHLTTPCCAParam;
