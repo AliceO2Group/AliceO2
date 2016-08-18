@@ -11,7 +11,6 @@ ${CMAKE_SOURCE_DIR}/header
 ${BASE_INCLUDE_DIRECTORIES}
 ${Boost_INCLUDE_DIRS}
 ${FAIRROOT_INCLUDE_DIR}
-${AlFa_DIR}/include
 ${ROOT_INCLUDE_DIR}
 )
 
@@ -50,6 +49,7 @@ DigitStave.cxx
 Set(LINKDEF itsLinkDef.h)
 Set(LIBRARY_NAME its)
 Set(DEPENDENCIES
+    Base
     AliceO2Base
 )
 

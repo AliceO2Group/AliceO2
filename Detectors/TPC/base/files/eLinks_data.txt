@@ -1,0 +1,63 @@
+SAMPA_0[0] -> GBTx_0, G0, 0
+SAMPA_0[1] -> GBTx_0, G0, 2
+SAMPA_0[2] -> GBTx_0, G0, 4
+SAMPA_0[3] -> GBTx_0, G0, 6
+SAMPA_0[4] -> GBTx_0, G1, 8
+SAMPA_0[5] -> GBTx_0, G1, 10
+SAMPA_0[6] -> GBTx_0, G1, 12
+SAMPA_0[7] -> GBTx_0, G1, 14
+SAMPA_0[8] -> GBTx_0, G2, 16
+SAMPA_0[9] -> GBTx_0, G2, 18
+SAMPA_0[10] -> GBTx_0, G2, 20
+
+SAMPA_1[0] -> GBTx_0, G2, 22
+SAMPA_1[1] -> GBTx_0, G3, 24
+SAMPA_1[2] -> GBTx_0, G3, 26
+SAMPA_1[3] -> GBTx_0, G3, 28
+SAMPA_1[4] -> GBTx_0, G3, 30
+SAMPA_1[5] -> GBTx_0, G4, 32
+SAMPA_1[6] -> GBTx_0, G4, 34
+SAMPA_1[7] -> GBTx_0, G4, 36
+SAMPA_1[8] -> GBTx_0, G4, 38
+SAMPA_1[9] -> GBTx_0, G5, 1
+SAMPA_1[10] -> GBTx_0, G5, 3
+
+SAMPA_2[0] -> GBTx_0, G5, 5
+SAMPA_2[1] -> GBTx_0, G5, 7
+SAMPA_2[2] -> GBTx_0, G6, 9
+SAMPA_2[3] -> GBTx_0, G6, 11
+SAMPA_2[4] -> GBTx_0, G6, 13
+SAMPA_2[10] -> GBTx_0, G6, 15 (multidrop)
+
+------------------------------- GBTx boundary
+
+SAMPA_3[0] -> GBTx_1, G0, 0
+SAMPA_3[1] -> GBTx_1, G0, 2
+SAMPA_3[2] -> GBTx_1, G0, 4
+SAMPA_3[3] -> GBTx_1, G0, 6
+SAMPA_3[4] -> GBTx_1, G1, 8
+SAMPA_3[5] -> GBTx_1, G1, 10
+SAMPA_3[6] -> GBTx_1, G1, 12
+SAMPA_3[7] -> GBTx_1, G1, 14
+SAMPA_3[8] -> GBTx_1, G2, 16
+SAMPA_3[9] -> GBTx_1, G2, 18
+SAMPA_3[10] -> GBTx_1, G2, 20
+
+SAMPA_4[0] -> GBTx_1, G2, 22
+SAMPA_4[1] -> GBTx_1, G3, 24
+SAMPA_4[2] -> GBTx_1, G3, 26
+SAMPA_4[3] -> GBTx_1, G3, 28
+SAMPA_4[4] -> GBTx_1, G3, 30
+SAMPA_4[5] -> GBTx_1, G4, 32
+SAMPA_4[6] -> GBTx_1, G4, 34
+SAMPA_4[7] -> GBTx_1, G4, 36
+SAMPA_4[8] -> GBTx_1, G4, 38
+SAMPA_4[9] -> GBTx_1, G5, 1
+SAMPA_4[10] -> GBTx_1, G5, 3
+
+SAMPA_2[5] -> GBTx_1, G5, 5
+SAMPA_2[6] -> GBTx_1, G5, 7
+SAMPA_2[7] -> GBTx_1, G6, 9
+SAMPA_2[8] -> GBTx_1, G6, 11
+SAMPA_2[9] -> GBTx_1, G6, 13
+SAMPA_2[10] -> GBTx_1, G6, 15 (multidrop)

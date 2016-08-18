@@ -1,0 +1,36 @@
+IROC
+Col 0 -> INDEX (0 - 5279)
+Col 1 -> PADROW (0 - 62)
+Col 2 -> PAD (0 - (Np-1))
+Col 3 -> Connector (1 - 132)
+Col 4 -> Pin (1 - 40)
+Col 5 -> Trace length (mm)
+Col 6 -> Number of vias
+
+OROC1
+Col 0 -> INDEX (0 - 2879)(5280 - 8159)
+Col 1 -> PADROW (0 - 33)(63 - 96)
+Col 2 -> PAD (0 - (Np-1))
+Col 3 -> Connector (1 - 72)
+Col 4 -> Pin (1 - 40)
+Col 5 -> Trace length (mm)
+Col 6 -> Number of vias
+
+OROC2
+Col 0 -> INDEX (0 - 3199)(8160 - 11359)
+Col 1 -> PADROW (0 - 29)(97 - 126)
+Col 2 -> PAD (0 - (Np-1))
+Col 3 -> Connector (1 - 80)
+Col 4 -> Pin (1 - 40)
+Col 5 -> Trace length (mm)
+Col 6 -> Number of vias
+
+OROC3
+Col 0 -> INDEX (11360 - 14559)(0 - 3199)
+Col 1 -> PADROW (0 - 24)(127 - 151)
+Col 2 -> PAD (0 - (Np-1))
+Col 3 -> Connector (1 - 80)
+Col 4 -> Pin (1 - 40)
+Col 5 -> Trace length (mm)
+Col 6 -> Number of vias
+

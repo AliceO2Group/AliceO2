@@ -29,6 +29,8 @@
 
 # build directory
 build/
+build_o2/
+xbuild/
 
 # common editor backups
 *.swp
@@ -38,3 +40,15 @@ build/
 html-doc/
 
 header/AliceO2Config.h
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+
+# IDEs files
+.cproject
+.project
+.idea
+.settings
