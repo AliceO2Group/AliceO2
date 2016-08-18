@@ -14,7 +14,7 @@ In order to install with aliBuild you can follow the tutorial at:
 
     http://alisw.github.io/alibuild/o2-tutorial.html
 
-### Installation of ALFA (FairSoft)
+### Installation with ALFA (FairSoft)
 
 Please be sure that your system has all
 the required libraries (as listed on
@@ -31,10 +31,8 @@ The installation:
 * Needs about __10 GBytes__ of disk space (8.1 for the source and objects files, etc and 2.2 GBytes for the installation)
 
 ##### Step by step instructions for the full installation
-1. Install [(FairSoft)](https://github.com/FairRootGroup/FairSoft/tree/dev)
-
+1. Install [FairSoft](https://github.com/FairRootGroup/FairSoft/tree/dev)
 "alfa_src" is referred as the directory where the ALFA sources exist, you can specify an alternative name if you wish
-
 ```bash
 git clone  https://github.com/FairRootGroup/FairSoft.git  alfa_src
 cd  alfa_src
@@ -44,7 +42,7 @@ cd  alfa_src
 # 2) Internet (install G4 files from internet)
 # path: ~/AlFa
 ```
-2. Install DDS (https://github.com/FairRootGroup/DDS)
+2. Install [DDS](https://github.com/FairRootGroup/DDS)
 ```bash
 git clone https://github.com/FairRootGroup/DDS
 cd DDS
@@ -52,10 +50,10 @@ mkdir build
 cd build
 BOOST_ROOT=$ALFA_installation_dir cmake -DCMAKE_INSTALL_PREFIX="DDS_install_prefix"  -C ../BuildSetup.cmake ../
 ```
-3. Install FairRoot(http://fairroot.gsi.de/?q=node/82)
+3. Install [FairRoot](http://fairroot.gsi.de/?q=node/82)  
 
 ```bash
-# Set the shell variable SIMPATH to the installation directory
+#Set the shell variable SIMPATH to the installation directory
 export SIMPATH= ALFA_installation_dir
 [setenv SIMPATH ALFA_installation_dir]
 
@@ -63,7 +61,7 @@ git clone -b dev https://github.com/FairRootGroup/FairRoot.git
 cd FairRoot
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX="FairRoot_installation_dir" ..
+cmake -DCMAKE_INSTALL_PREFIX="FairRoot_installation_dir" -DDDS_PATH="DDS_install_prefix"  ..
 make
 make install
 ```
@@ -131,7 +129,7 @@ make test
 
 ### Install the [AliceO2](https://github.com/AliceO2Group/AliceO2) software
 
-If ALFA was built using the minimum installation instructions above, AliceO2 will not include the simulation and reconstruction packages.
+If ALFA was built using the minimum installation AliceO2 will not include the simulation and reconstruction packages.
 
 Set the variable SIMPATH to your ALFA/FairSoft installation directory
 
