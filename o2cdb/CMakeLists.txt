@@ -14,7 +14,6 @@ set(SYSTEM_INCLUDE_DIRECTORIES
   ${ROOT_INCLUDE_DIR}
   ${FAIRROOT_INCLUDE_DIR}
   ${ZMQ_INCLUDE_DIR}
-  ${AlFa_DIR}/include
 )
 
 include_directories(${INCLUDE_DIRECTORIES})
@@ -24,7 +23,6 @@ set(LINK_DIRECTORIES
   ${ROOT_LIBRARY_DIR}
   ${Boost_LIBRARY_DIRS}
   ${FAIRROOT_LIBRARY_DIR}
-  ${AlFa_DIR}/lib
 )
 link_directories(${LINK_DIRECTORIES})
 
