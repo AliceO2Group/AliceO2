@@ -92,7 +92,7 @@ o2_define_bucket(
     ${Boost_REGEX_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
-    ${ZMQ_LIBRARIES}
+    ${ZMQ_LIBRARY_SHARED}
     Base FairTools FairMQ fairmq_logger pthread
 
     INCLUDE_DIRECTORIES
@@ -301,9 +301,9 @@ o2_define_bucket(
 )
 
 o2_define_bucket(
-    NAME 
+    NAME
     QC_apps_bucket
-    
+
     DEPENDENCIES
     dl
     Core
