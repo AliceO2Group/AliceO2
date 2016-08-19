@@ -16,22 +16,14 @@ set(SRCS
 
 set(LIBRARY_NAME ${MODULE_NAME})
 
-if (DDS_FOUND)
-  set(BUCKET_NAME alicehlt_with_dds_bucket)
-else ()
-  set(BUCKET_NAME alicehlt_bucket)
-endif ()
+# Bucket uses DDS depending on whether it's found.
+set(BUCKET_NAME alicehlt_bucket)
 
 O2_GENERATE_LIBRARY()
 
 # todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
 set(LIBRARY_NAME ${MODULE_NAME})
-if (DDS_FOUND)
-  set(BUCKET_NAME alicehlt_with_dds_bucket)
-else ()
-  set(BUCKET_NAME alicehlt_bucket)
-endif ()
-
+set(BUCKET_NAME alicehlt_bucket)
 
 Set(Exe_Names
     aliceHLTWrapperApp
