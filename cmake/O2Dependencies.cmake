@@ -30,6 +30,8 @@ find_package(FairMQ REQUIRED)
 
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
+  set(DDS_KEY_VALUE_LIBRARY dds-key-value-lib)
+  set(OPTIONAL_DDS_INCLUDE_DIR ${DDS_INCLUDE_DIR})
 endif ()
 
 # todo this should really not be needed. ROOT, Pythia, and FairRoot should comply with CMake best practices
@@ -404,6 +406,7 @@ o2_define_bucket(
     ${PYTHIA6_INCLUDE_DIR}
 )
 
+
 o2_define_bucket(
     NAME
     alicehlt_bucket
@@ -422,23 +425,13 @@ o2_define_bucket(
     ${Boost_LOG_SETUP_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     FairMQ
+    ${DDS_KEY_VALUE_LIBRARY}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${Boost_INCLUDE_DIR}
     ${ZMQ_INCLUDE_DIR}
-)
-
-o2_define_bucket(
-    NAME
-    alicehlt_with_dds_bucket
-
-    DEPENDENCIES
-    alicehlt_bucket
-    dds-key-value-lib
-
-    INCLUDE_DIRECTORIES
-    ${DDS_INCLUDE_DIR}
+    ${OPTIONAL_DDS_INCLUDE_DIR}
 )
 
 o2_define_bucket(
