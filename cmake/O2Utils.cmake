@@ -15,13 +15,6 @@ macro(O2_SETUP)
   )
   CHECK_VARIABLE(PARSED_ARGS_NAME "You must provide a name")
 
-  # Global variable used to keep a list of all the modules' include directories.
-  # It is used for the dictionary generation.
-  set(GLOBAL_ALL_MODULES_INCLUDE_DIRECTORIES
-      ${GLOBAL_ALL_MODULES_INCLUDE_DIRECTORIES}
-      ${CMAKE_CURRENT_SOURCE_DIR}
-      ${CMAKE_CURRENT_SOURCE_DIR}/include
-      PARENT_SCOPE)
 endmacro()
 
 #------------------------------------------------------------------------------
