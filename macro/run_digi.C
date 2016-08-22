@@ -1,8 +1,8 @@
 void run_digi(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         // Initialize logger
         FairLogger *logger = FairLogger::GetLogger();
-        logger->SetLogVerbosityLevel("HIGH");
-        logger->SetLogScreenLevel("DEBUG"); 
+        logger->SetLogVerbosityLevel("LOW");
+        logger->SetLogScreenLevel("INFO");
         
         // Input and output file name
         std::stringstream inputfile, outputfile, paramfile;
@@ -29,7 +29,7 @@ void run_digi(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         // Setup digitizer
         AliceO2::ITS::DigitizerTask *digi = new AliceO2::ITS::DigitizerTask;
         fRun->AddTask(digi);
-        
+
         AliceO2::TPC::DigitizerTask *digiTPC = new AliceO2::TPC::DigitizerTask;
         fRun->AddTask(digiTPC);
 
@@ -64,4 +64,3 @@ void run_digi(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
                   << "s" << endl << endl;
         std::cout << "Macro finished succesfully." << std::endl;
 }
-
