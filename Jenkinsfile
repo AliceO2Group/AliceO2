@@ -47,6 +47,10 @@ node {
                         --disable DDS                                      \
                         -d build O2 || BUILDERR=$?
 
+      pushd $WORKAREA/$WORKAREA_INDEX/BUILD/O2-latest/O2
+        make test || BUILDERR=$?
+      popd
+
       rm -f $WORKAREA/$WORKAREA_INDEX/current_slave
       if [ ! "X$BUILDERR" = X ]; then
         exit $BUILDERR
