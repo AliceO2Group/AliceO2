@@ -1,9 +1,9 @@
 #ifndef AliceO2_TPC_CRU_H
 #define AliceO2_TPC_CRU_H
 
-#include "TPCbase/Defs.h"
-#include "TPCbase/Sector.h"
-#include "TPCbase/ROC.h"
+#include "TPCBase/Defs.h"
+#include "TPCBase/Sector.h"
+#include "TPCBase/ROC.h"
 //using namespace AliceO2::TPC;
 
 namespace AliceO2 {

@@ -6,9 +6,9 @@
 //
 //
 
-#include "TPCsimulation/DigitizerTask.h"
-#include "TPCsimulation/DigitContainer.h"  // for DigitContainer
-#include "TPCsimulation/Digitizer.h"       // for Digitizer
+#include "TPCSimulation/DigitizerTask.h"
+#include "TPCSimulation/DigitContainer.h"  // for DigitContainer
+#include "TPCSimulation/Digitizer.h"       // for Digitizer
 
 #include "TObject.h"
 #include "TClonesArray.h"

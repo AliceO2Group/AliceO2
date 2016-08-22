@@ -79,10 +79,10 @@
  */
 
 
-#include "TPCsimulation/BoxClusterer.h"
-#include "TPCsimulation/Digit.h"
-#include "TPCsimulation/ClusterContainer.h"
-#include "TPCsimulation/BoxCluster.h"                
+#include "TPCSimulation/BoxClusterer.h"
+#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/ClusterContainer.h"
+#include "TPCSimulation/BoxCluster.h"
 
 #include "FairLogger.h"
 #include "TMath.h"

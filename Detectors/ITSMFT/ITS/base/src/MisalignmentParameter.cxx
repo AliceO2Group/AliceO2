@@ -1,7 +1,7 @@
 /// \file MisalignmentParameter.cxx
 /// \brief Implementation of the MisalignmentParameter class
 
-#include "itsBase/MisalignmentParameter.h"
+#include "ITSBase/MisalignmentParameter.h"
 
 #include "FairParamList.h"
 

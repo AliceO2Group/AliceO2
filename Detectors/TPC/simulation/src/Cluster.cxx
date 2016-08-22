@@ -1,7 +1,7 @@
 /// \file Cluster.cxx
 /// \brief Cluster structure for TPC clusters
 
-#include "TPCsimulation/Cluster.h"
+#include "TPCSimulation/Cluster.h"
 
 ClassImp(AliceO2::TPC::Cluster)
 

@@ -5,11 +5,11 @@
 #include <vector>
 #include <string>
 
-#include "TPCbase/Defs.h"
-#include "TPCbase/PadPos.h"
-#include "TPCbase/DigitPos.h"
-#include "TPCbase/FECInfo.h"
-#include "TPCbase/PadRegionInfo.h"
+#include "TPCBase/Defs.h"
+#include "TPCBase/PadPos.h"
+#include "TPCBase/DigitPos.h"
+#include "TPCBase/FECInfo.h"
+#include "TPCBase/PadRegionInfo.h"
 
 using AliceO2::TPC::PadRegionInfo;
 

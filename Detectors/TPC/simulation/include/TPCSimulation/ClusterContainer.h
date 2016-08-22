@@ -3,7 +3,7 @@
 #ifndef _ALICEO2_TPC_ClusterContainer_
 #define _ALICEO2_TPC_ClusterContainer_
 
-#include "TPCsimulation/Cluster.h"
+#include "TPCSimulation/Cluster.h"
 #include "Rtypes.h"
 #include "TClonesArray.h"
 

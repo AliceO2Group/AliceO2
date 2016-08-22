@@ -1,5 +1,5 @@
-#include "TPCsimulation/ClusterCRU.h"
-#include "TPCsimulation/ClusterRow.h"
+#include "TPCSimulation/ClusterCRU.h"
+#include "TPCSimulation/ClusterRow.h"
 
 #include "FairLogger.h"
 using namespace AliceO2::TPC;

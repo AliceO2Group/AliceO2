@@ -1,4 +1,4 @@
-#include "TPCsimulation/Point.h"
+#include "TPCSimulation/Point.h"
 
 using std::cout;
 using std::endl;

@@ -1,7 +1,7 @@
 /// \file Segmentation.cxx
 /// \brief Implementation of the Segmentation class
 
-#include "itsSimulation/Segmentation.h"
+#include "ITSSimulation/Segmentation.h"
 #include "TF1.h"      // for TF1
 
 using namespace AliceO2::ITS;

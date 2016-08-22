@@ -1,5 +1,4 @@
-set(MODULE_NAME "TPCsimulation")
-
+set(MODULE_NAME "TPCSimulation")
 
 O2_SETUP(NAME ${MODULE_NAME})
 
@@ -43,8 +42,8 @@ set(HEADERS
    include/${MODULE_NAME}/ClustererTask.h
 
 )
-Set(LINKDEF src/tpcSimulationLinkDef.h)
-Set(LIBRARY_NAME tpcSimulation)
+Set(LINKDEF src/TPCSimulationLinkDef.h)
+Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME tpc_simulation_bucket)
 
 O2_GENERATE_LIBRARY()

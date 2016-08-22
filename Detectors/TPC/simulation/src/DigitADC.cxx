@@ -1,5 +1,5 @@
-#include "TPCsimulation/DigitADC.h"
-#include "TPCsimulation/Digit.h"   // for Digit
+#include "TPCSimulation/DigitADC.h"
+#include "TPCSimulation/Digit.h"   // for Digit
 
 using namespace AliceO2::TPC;
 

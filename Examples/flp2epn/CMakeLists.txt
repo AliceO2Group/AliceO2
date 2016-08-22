@@ -20,8 +20,8 @@ set(SRCS
     src/O2Proxy.cxx
     )
 
-set(LIBRARY_NAME FLP2EPNex)
-set(BUCKET_NAME flp2epn_Bucket)
+set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME flp2epn_bucket)
 
 O2_GENERATE_LIBRARY()
 
@@ -39,8 +39,8 @@ set(Exe_Source
     )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
-set(LIBRARY_NAME FLP2EPNex)
-set(BUCKET_NAME flp2epn_Bucket)
+set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME flp2epn_bucket)
 
 list(LENGTH Exe_Names _length)
 math(EXPR _length ${_length}-1)

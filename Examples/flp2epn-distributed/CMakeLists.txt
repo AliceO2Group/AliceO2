@@ -17,11 +17,11 @@ set(HEADERS
     include/${MODULE_NAME}/EPNReceiver.h)
 
 if (DDS_FOUND)
-  set(BUCKET_NAME flp2epndistrib_Bucket)
+  set(BUCKET_NAME flp2epndistrib_bucket)
 else ()
-  set(BUCKET_NAME flp2epn_Bucket)
+  set(BUCKET_NAME flp2epn_bucket)
 endif ()
-set(LIBRARY_NAME FLP2EPNex_distributed)
+set(LIBRARY_NAME ${MODULE_NAME})
 
 O2_GENERATE_LIBRARY()
 
@@ -58,11 +58,11 @@ endif ()
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
 if (DDS_FOUND)
-  set(BUCKET_NAME flp2epndistrib_Bucket)
+  set(BUCKET_NAME flp2epndistrib_bucket)
 else ()
-  set(BUCKET_NAME flp2epn_Bucket)
+  set(BUCKET_NAME flp2epn_bucket)
 endif ()
-set(LIBRARY_NAME FLP2EPNex_distributed)
+set(LIBRARY_NAME ${MODULE_NAME})
 
 list(LENGTH Exe_Names _length)
 math(EXPR _length ${_length}-1)

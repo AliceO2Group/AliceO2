@@ -5,8 +5,8 @@
 //  Created by Markus Fasel on 26.03.15.
 //
 //
-#include "itsSimulation/DigitStave.h"
-#include "itsSimulation/Digit.h"
+#include "ITSSimulation/DigitStave.h"
+#include "ITSSimulation/Digit.h"
 
 #include "FairLogger.h"  // for LOG
 

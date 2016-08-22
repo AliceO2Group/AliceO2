@@ -1,7 +1,7 @@
 /// \file Point.cxx
 /// \brief Implementation of the Point class
 
-#include "itsSimulation/Point.h"
+#include "ITSSimulation/Point.h"
 
 #include <iostream>
 

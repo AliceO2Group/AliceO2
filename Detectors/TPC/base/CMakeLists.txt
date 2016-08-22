@@ -1,4 +1,4 @@
-set(MODULE_NAME "TPCbase")
+set(MODULE_NAME "TPCBase")
 
 O2_SETUP(NAME ${MODULE_NAME})
 
@@ -19,24 +19,24 @@ set(SRCS
 )
 
 set(HEADERS
-   include/TPCbase/ContainerFactory.h
-   include/TPCbase/CRU.h
-#    include/TPCbase/Defs.h
-   include/TPCbase/DigitPos.h
-   include/TPCbase/FECInfo.h
-   include/TPCbase/Mapper.h
-   include/TPCbase/PadInfo.h
-   include/TPCbase/PadPos.h
-   include/TPCbase/PadRegionInfo.h
-   include/TPCbase/PadSecPos.h
-   include/TPCbase/Point2D.h
-   include/TPCbase/Point3D.h
-   include/TPCbase/ROC.h
-   include/TPCbase/Defs.h
-   include/TPCbase/Sector.h
+   include/TPCBase/ContainerFactory.h
+   include/TPCBase/CRU.h
+#    include/TPCBase/Defs.h
+   include/TPCBase/DigitPos.h
+   include/TPCBase/FECInfo.h
+   include/TPCBase/Mapper.h
+   include/TPCBase/PadInfo.h
+   include/TPCBase/PadPos.h
+   include/TPCBase/PadRegionInfo.h
+   include/TPCBase/PadSecPos.h
+   include/TPCBase/Point2D.h
+   include/TPCBase/Point3D.h
+   include/TPCBase/ROC.h
+   include/TPCBase/Defs.h
+   include/TPCBase/Sector.h
 )
 
-Set(LINKDEF src/tpcBaseLinkDef.h)
+Set(LINKDEF src/TPCBaseLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME tpc_base_bucket)
 

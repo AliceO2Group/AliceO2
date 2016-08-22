@@ -7,7 +7,7 @@
 #include <boost/serialization/base_object.hpp>  // for base_object
 #endif
 
-#include "TPCsimulation/Cluster.h"
+#include "TPCSimulation/Cluster.h"
 #include "FairTimeStamp.h"                      // for FairTimeStamp
 #include "Rtypes.h"                             // for Double_t, ULong_t, etc
 namespace boost { namespace serialization { class access; } }

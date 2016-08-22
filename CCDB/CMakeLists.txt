@@ -35,9 +35,9 @@ Set(NO_DICT_SRCS
   src/ConditionsMQClient.cxx
 )
 
-set(LIBRARY_NAME CCDB)
+set(LIBRARY_NAME ${MODULE_NAME})
 set(LINKDEF src/CCDBLinkDef.h)
-set(BUCKET_NAME CCDB_Bucket)
+set(BUCKET_NAME CCDB_bucket)
 
 O2_GENERATE_LIBRARY()
 
@@ -52,8 +52,8 @@ Set(Exe_Source
 )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
-set(LIBRARY_NAME CCDB)
-set(BUCKET_NAME CCDB_Bucket)
+set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME CCDB_bucket)
 
 list(LENGTH Exe_Names _length)
 math(EXPR _length ${_length}-1)

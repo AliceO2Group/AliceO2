@@ -6,12 +6,12 @@
 //  Adapted from AliITSUChip by Massimo Masera
 //
 
-#include "itsSimulation/Chip.h"
+#include "ITSSimulation/Chip.h"
 #include <TMath.h>                    // for Sqrt
 #include <string.h>                   // for memset
 #include "TObjArray.h"                // for TObjArray
-#include "itsSimulation/Point.h"
-#include "itsSimulation/UpgradeGeometryTGeo.h"
+#include "ITSSimulation/Point.h"
+#include "ITSSimulation/UpgradeGeometryTGeo.h"
 
 ClassImp(AliceO2::ITS::Chip)
 

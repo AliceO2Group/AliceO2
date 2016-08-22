@@ -10,7 +10,7 @@ set(Exe_Source
   runHough.cxx
 )
 
-set(BUCKET_NAME hough_Bucket)
+set(BUCKET_NAME hough_bucket)
 
 list(LENGTH Exe_Names _length)
 math(EXPR _length ${_length}-1)

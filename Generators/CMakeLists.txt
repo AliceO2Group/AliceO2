@@ -16,8 +16,8 @@ if (PYTHIA8_INCLUDE_DIR)
       include/Pythia8Generator.h
       )
 
-  set(LINKDEF src/EventGeneratorLinkDef.h)
-  set(LIBRARY_NAME EvtGenerator)
+  set(LINKDEF src/GeneratorsLinkDef.h)
+  set(LIBRARY_NAME ${MODULE_NAME})
     set(BUCKET_NAME generators_bucket)
 
 #  set(DEPENDENCIES Base O2SimulationDataFormat pythia8 Pythia6)

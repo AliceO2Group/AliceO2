@@ -8,8 +8,8 @@
 
 #include <TGeoManager.h>   // for gGeoManager
 #include "Rtypes.h"        // for Double_t, Int_t, Bool_t, etc
-#include "itsSimulation/V11Geometry.h"   // for V11Geometry
-#include "itsSimulation/Detector.h"  // for Detector, Detector::UpgradeModel
+#include "ITSSimulation/V11Geometry.h"   // for V11Geometry
+#include "ITSSimulation/Detector.h"  // for Detector, Detector::UpgradeModel
 
 class TGeoArb8;
 

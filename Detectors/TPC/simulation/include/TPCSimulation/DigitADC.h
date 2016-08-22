@@ -4,7 +4,7 @@
 #define _ALICEO2_DigitADC_
 
 #include "Rtypes.h"
-#include "TPCsimulation/Digit.h"
+#include "TPCSimulation/Digit.h"
 #include <map>
 
 class TClonesArray;

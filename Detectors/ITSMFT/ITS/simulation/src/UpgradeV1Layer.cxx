@@ -3,9 +3,9 @@
 /// \author Mario Sitta <sitta@to.infn.it>
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 
-#include "itsSimulation/UpgradeV1Layer.h"
-#include "itsSimulation/UpgradeGeometryTGeo.h"
-#include "itsSimulation/Detector.h"
+#include "ITSSimulation/UpgradeV1Layer.h"
+#include "ITSSimulation/UpgradeGeometryTGeo.h"
+#include "ITSSimulation/Detector.h"
 
 #include "FairLogger.h"           // for LOG
 

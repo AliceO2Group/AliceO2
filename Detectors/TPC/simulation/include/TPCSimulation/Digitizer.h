@@ -3,7 +3,7 @@
 #ifndef ALICEO2_TPC_Digitizer_H_
 #define ALICEO2_TPC_Digitizer_H_
 
-#include "TPCsimulation/DigitContainer.h"
+#include "TPCSimulation/DigitContainer.h"
 
 #include "Rtypes.h"
 #include "TObject.h"

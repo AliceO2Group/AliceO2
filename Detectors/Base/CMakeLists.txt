@@ -12,7 +12,7 @@ Set(HEADERS
   include/${MODULE_NAME}/Detector.h
 )
 Set(LINKDEF src/BaseLinkDef.h)
-Set(LIBRARY_NAME ${MODULE_NAME})#AliceO2Base)
+Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME detectors_base)
 
 O2_GENERATE_LIBRARY()

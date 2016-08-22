@@ -1,8 +1,8 @@
 #ifndef AliceO2_TPC_PadSecPos_H
 #define AliceO2_TPC_PadSecPos_H
 
-#include "TPCbase/Sector.h"
-#include "TPCbase/PadPos.h"
+#include "TPCBase/Sector.h"
+#include "TPCBase/PadPos.h"
 
 namespace AliceO2 {
 namespace TPC {

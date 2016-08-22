@@ -6,9 +6,9 @@
 //
 //
 
-#include "itsSimulation/DigitizerTask.h"
-#include "itsSimulation/DigitContainer.h"
-#include "itsSimulation/Digitizer.h"
+#include "ITSSimulation/DigitizerTask.h"
+#include "ITSSimulation/DigitContainer.h"
+#include "ITSSimulation/Digitizer.h"
 
 #include "TObject.h"             // for TObject
 #include "TClonesArray.h"        // for TClonesArray

@@ -1,8 +1,8 @@
-#include "TPCsimulation/DigitTime.h"
-#include "TPCsimulation/DigitADC.h"
-#include "TPCsimulation/Digit.h"
+#include "TPCSimulation/DigitTime.h"
+#include "TPCSimulation/DigitADC.h"
+#include "TPCSimulation/Digit.h"
 #include "TClonesArray.h"
-#include "TPCbase/Mapper.h"
+#include "TPCBase/Mapper.h"
 
 #include "FairLogger.h"
 using namespace AliceO2::TPC;

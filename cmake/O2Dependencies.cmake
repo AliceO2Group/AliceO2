@@ -58,7 +58,7 @@ endif()
 
 o2_define_bucket(
     NAME
-    ExampleModule1_Bucket
+    ExampleModule1_bucket
 
     DEPENDENCIES # library names
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -69,11 +69,11 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    ExampleModule2_Bucket
+    ExampleModule2_bucket
 
     DEPENDENCIES # library names
     ExampleModule1 # another module
-    ExampleModule1_Bucket # another bucket
+    ExampleModule1_bucket # another bucket
     Core Hist # ROOT
 
     INCLUDE_DIRECTORIES
@@ -83,7 +83,7 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    flp2epn_Bucket
+    flp2epn_bucket
 
     DEPENDENCIES
     ${Boost_CHRONO_LIBRARY}
@@ -105,10 +105,10 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    flp2epndistrib_Bucket
+    flp2epndistrib_bucket
 
     DEPENDENCIES
-    flp2epn_Bucket
+    flp2epn_bucket
     dds-key-value-lib
 
     INCLUDE_DIRECTORIES
@@ -142,7 +142,7 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    CCDB_Bucket
+    CCDB_bucket
 
     DEPENDENCIES
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -247,7 +247,7 @@ o2_define_bucket(
     fairroot_base_bucket
     root_physics_bucket
     ParBase
-    itsBase
+    ITSBase
     DetectorsBase
     SimulationDataFormat
 
@@ -257,10 +257,10 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    itsmft_test
+    hitanalysis_bucket
 
     DEPENDENCIES
-    itsSimulation
+    ITSSimulation
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -386,7 +386,7 @@ o2_define_bucket(
     fairroot_geom
     MathCore
     RIO
-    TPCbase
+    TPCBase
     DetectorsBase
     SimulationDataFormat
 
@@ -439,7 +439,7 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    hough_Bucket
+    hough_bucket
 
     DEPENDENCIES
     Core RIO Gpad Hist HLTbase AliHLTUtil AliHLTTPC AliHLTUtil

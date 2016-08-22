@@ -18,15 +18,15 @@ set(HEADERS # needed for the dictionary generation
     include/${MODULE_NAME}/Foo.h
     )
 
-set(LIBRARY_NAME ExampleModule2)
-set(BUCKET_NAME ExampleModule2_Bucket)
+set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME ExampleModule2_bucket)
 set(LINKDEF src/ExampleLinkDef.h) # needed for the dictionary generation
 
 O2_GENERATE_LIBRARY()
 
 # todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
-set(LIBRARY_NAME ExampleModule2)
-set(BUCKET_NAME ExampleModule2_Bucket)
+set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME ExampleModule2_bucket)
 
 # Define application
 O2_GENERATE_EXECUTABLE(

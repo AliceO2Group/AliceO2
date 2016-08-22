@@ -6,7 +6,7 @@
 
 #include "FairLogger.h"    // for LOG
 #include "Rtypes.h"        // for Int_t, Float_t, Double_t, UInt_t, etc
-#include "itsSimulation/Segmentation.h"  // for Segmentation
+#include "ITSSimulation/Segmentation.h"  // for Segmentation
 
 class TObjArray;
 

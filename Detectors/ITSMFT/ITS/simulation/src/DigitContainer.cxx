@@ -5,10 +5,10 @@
 //  Created by Markus Fasel on 25.03.15.
 //
 //
-#include "itsSimulation/DigitContainer.h"
-#include "itsSimulation/UpgradeGeometryTGeo.h"
-#include "itsSimulation/Digit.h"
-#include "itsSimulation/DigitLayer.h"
+#include "ITSSimulation/DigitContainer.h"
+#include "ITSSimulation/UpgradeGeometryTGeo.h"
+#include "ITSSimulation/Digit.h"
+#include "ITSSimulation/DigitLayer.h"
 
 #include "FairLogger.h"           // for LOG
 #include "Rtypes.h"               // for Int_t, nullptr

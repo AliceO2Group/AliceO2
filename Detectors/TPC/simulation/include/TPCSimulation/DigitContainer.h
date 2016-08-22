@@ -3,8 +3,8 @@
 #ifndef _ALICEO2_DigitContainer_
 #define _ALICEO2_DigitContainer_
 
-#include "TPCsimulation/Digit.h"
-#include "TPCsimulation/DigitCRU.h"
+#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/DigitCRU.h"
 #include "Rtypes.h"
 #include <map>
 

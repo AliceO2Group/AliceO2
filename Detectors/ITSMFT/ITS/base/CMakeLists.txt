@@ -1,4 +1,4 @@
-set(MODULE_NAME "itsBase")
+set(MODULE_NAME "ITSBase")
 
 O2_SETUP(NAME ${MODULE_NAME})
 
@@ -13,8 +13,8 @@ set(HEADERS
     )
 
 
-Set(LINKDEF src/itsBaseLinkDef.h)
-Set(LIBRARY_NAME itsBase)
+Set(LINKDEF src/ITSBaseLinkDef.h)
+Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME its_base_bucket)
 
 O2_GENERATE_LIBRARY()

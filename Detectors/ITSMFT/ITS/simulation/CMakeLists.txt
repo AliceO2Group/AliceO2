@@ -1,4 +1,4 @@
-set(MODULE_NAME "itsSimulation")
+set(MODULE_NAME "ITSSimulation")
 
 O2_SETUP(NAME ${MODULE_NAME})
 
@@ -41,8 +41,8 @@ set(HEADERS
     include/${MODULE_NAME}/V11Geometry.h
     )
 
-Set(LINKDEF src/itsSimulationLinkDef.h)
-Set(LIBRARY_NAME itsSimulation)
+Set(LINKDEF src/ITSSimulationLinkDef.h)
+Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME its_simulation_bucket)
 
 O2_GENERATE_LIBRARY()

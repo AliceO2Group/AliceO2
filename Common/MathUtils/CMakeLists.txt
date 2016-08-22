@@ -12,7 +12,7 @@ set(HEADERS
   include/${MODULE_NAME}/Chebyshev3DCalc.h
 )
 set(LINKDEF src/MathUtilsLinkDef.h)
-set(LIBRARY_NAME MathUtils)
+set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME common_math_bucket)
 
 O2_GENERATE_LIBRARY()

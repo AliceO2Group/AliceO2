@@ -12,7 +12,7 @@ set(HEADERS
     include/${MODULE_NAME}/MagneticField.h
     )
 set(LINKDEF src/FieldLinkDef.h)
-set(LIBRARY_NAME Field)
+set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME common_field_bucket)
 
 O2_GENERATE_LIBRARY()

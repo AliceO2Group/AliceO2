@@ -1,13 +1,12 @@
 /// \file BoxCluster.cxx
 /// \brief Class to have some more info about the BoxClusterer clusters
 
-#include "TPCsimulation/BoxCluster.h"
-#include "TPCsimulation/Cluster.h"
+#include "TPCSimulation/BoxCluster.h"
+#include "TPCSimulation/Cluster.h"
 
 ClassImp(AliceO2::TPC::BoxCluster)
 
 using namespace AliceO2::TPC;
-
 
 //________________________________________________________________________
 BoxCluster::BoxCluster():
@@ -42,7 +41,6 @@ void BoxCluster::setBoxParameters(Short_t pad, Short_t time, Short_t size)
   mTime = time;
   mTime = time;
 }
-
 
 //________________________________________________________________________
 std::ostream &BoxCluster::Print(std::ostream &output) const

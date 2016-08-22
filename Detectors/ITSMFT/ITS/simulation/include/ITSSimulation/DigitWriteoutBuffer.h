@@ -13,7 +13,7 @@
 #include <TString.h>             // for TString
 #include "FairWriteoutBuffer.h"  // for FairWriteoutBuffer
 #include "Rtypes.h"              // for DigitWriteoutBuffer::Class, Bool_t, etc
-#include "itsSimulation/Digit.h"            // for Digit
+#include "ITSSimulation/Digit.h"            // for Digit
 
 namespace AliceO2 {
 namespace ITS {

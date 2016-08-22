@@ -6,9 +6,9 @@
 //
 //
 
-#include "TPCsimulation/ClustererTask.h"
-#include "TPCsimulation/ClusterContainer.h"  // for ClusterContainer
-#include "TPCsimulation/BoxClusterer.h"       // for Clusterer
+#include "TPCSimulation/ClustererTask.h"
+#include "TPCSimulation/ClusterContainer.h"  // for ClusterContainer
+#include "TPCSimulation/BoxClusterer.h"       // for Clusterer
 
 #include "TObject.h"             // for TObject
 #include "TClonesArray.h"        // for TClonesArray

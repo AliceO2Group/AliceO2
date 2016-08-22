@@ -1,10 +1,10 @@
 /// \file AliITSUpgradeDigitizer.cxx
 /// \brief Digitizer for the upgrated ITS
-#include "itsSimulation/Digitizer.h"
-#include "itsSimulation/Point.h"
-#include "itsSimulation/UpgradeGeometryTGeo.h"
-#include "itsSimulation/Digit.h"
-#include "itsSimulation/DigitContainer.h"
+#include "ITSSimulation/Digitizer.h"
+#include "ITSSimulation/Point.h"
+#include "ITSSimulation/UpgradeGeometryTGeo.h"
+#include "ITSSimulation/Digit.h"
+#include "ITSSimulation/DigitContainer.h"
 
 #include "FairLogger.h"           // for LOG
 #include "TClonesArray.h"         // for TClonesArray

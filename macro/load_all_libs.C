@@ -11,11 +11,10 @@ void load_all_libs()
   gSystem->Load("libEvtGenerator");
   gSystem->Load("libPassive");
   gSystem->Load("libRoundtripTest");
-  gSystem->Load("libits");
-  gSystem->Load("libitsBase");
+  gSystem->Load("libITSBase");
   gSystem->Load("libSimulation");
-  gSystem->Load("libtpcBase");
-  gSystem->Load("libtpcSimulation");
+  gSystem->Load("libTPCBase");
+  gSystem->Load("libTPCSimulation");
   gSystem->Load("libo2qaLibrary");
   cout << endl << endl;
   cout << "Macro finished succesfully." << endl;

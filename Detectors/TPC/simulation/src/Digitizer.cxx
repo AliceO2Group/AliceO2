@@ -1,13 +1,13 @@
 /// \file AliTPCUpgradeDigitizer.cxx
 /// \brief Digitizer for the TPC
-#include "TPCsimulation/Digitizer.h"
-#include "TPCsimulation/Point.h"                // for Point
+#include "TPCSimulation/Digitizer.h"
+#include "TPCSimulation/Point.h"                // for Point
 #include "TRandom.h"
 
 #include "FairLogger.h"           // for LOG
 #include "TClonesArray.h"         // for TClonesArray
 #include "TCollection.h"          // for TIter
-#include "TPCbase/Mapper.h"
+#include "TPCBase/Mapper.h"
 #include "TMath.h"
 #include <cmath>
 

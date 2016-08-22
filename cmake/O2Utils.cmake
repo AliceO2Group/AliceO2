@@ -41,8 +41,8 @@ function(O2_DEFINE_BUCKET)
 #  endforeach ()
 
   # Save this information
-  set("Bucket_map_libs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_DEPENDENCIES}" PARENT_SCOPE) # emulation of a map
-  set("Bucket_map_inc_dirs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_INCLUDE_DIRECTORIES}" PARENT_SCOPE) # emulation of a map
+  set("bucket_map_libs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_DEPENDENCIES}" PARENT_SCOPE) # emulation of a map
+  set("bucket_map_inc_dirs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_INCLUDE_DIRECTORIES}" PARENT_SCOPE) # emulation of a map
 endfunction()
 
 macro(INDENT NUMBER_SPACES INDENTATION)
@@ -76,21 +76,21 @@ function(GET_BUCKET_CONTENT
     message(FATAL_ERROR "It seems that you have a loop in your bucket definitions. Aborted.")
   endif ()
   INDENT(${DEPTH} INDENTATION)
-  if (NOT DEFINED Bucket_map_libs_${BUCKET_NAME})
-    message(FATAL_ERROR "${INDENTATION}Bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it.")
+  if (NOT DEFINED bucket_map_libs_${BUCKET_NAME})
+    message(FATAL_ERROR "${INDENTATION}bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it.")
   endif ()
 
   message("${INDENTATION}Get content of bucket ${BUCKET_NAME}")
 
   # Fetch the content (recursively)
-  set(libs ${Bucket_map_libs_${BUCKET_NAME}})
-  set(inc_dirs ${Bucket_map_inc_dirs_${BUCKET_NAME}})
+  set(libs ${bucket_map_libs_${BUCKET_NAME}})
+  set(inc_dirs ${bucket_map_inc_dirs_${BUCKET_NAME}})
   set(LOCAL_RESULT_libs_${DEPTH} "")
   set(LOCAL_RESULT_inc_dirs_${DEPTH} "")
   foreach (dependency ${libs})
 #    message("${INDENTATION}- ${dependency} (lib or bucket)")
     # if it is a bucket we call recursively
-    if (DEFINED Bucket_map_libs_${dependency})
+    if (DEFINED bucket_map_libs_${dependency})
       MATH(EXPR new_depth "${DEPTH}+1")
       GET_BUCKET_CONTENT(${dependency}
               LOCAL_RESULT_libs_${DEPTH}
@@ -131,8 +131,8 @@ function(O2_TARGET_LINK_BUCKET)
   #  message(STATUS "Add dependency bucket for target ${PARSED_ARGS_TARGET} : ${PARSED_ARGS_BUCKET}")
 
   # find the bucket
-  if (NOT DEFINED Bucket_map_libs_${PARSED_ARGS_BUCKET})
-    message(FATAL_ERROR "Bucket ${PARSED_ARGS_BUCKET} not defined.
+  if (NOT DEFINED bucket_map_libs_${PARSED_ARGS_BUCKET})
+    message(FATAL_ERROR "bucket ${PARSED_ARGS_BUCKET} not defined.
         Use o2_define_bucket to define it.")
   endif ()
 
@@ -143,7 +143,7 @@ function(O2_TARGET_LINK_BUCKET)
   message(STATUS "All inc_dirs of the bucket ${PARSED_ARGS_BUCKET} : ${RESULT_inc_dirs}")
 
   # for each dependency in the bucket invoke target_link_library
-  #  set(DEPENDENCIES ${Bucket_map_libs_${PARSED_ARGS_BUCKET}})
+  #  set(DEPENDENCIES ${bucket_map_libs_${PARSED_ARGS_BUCKET}})
   #  message(STATUS "   invoke target_link_libraries for target ${PARSED_ARGS_TARGET} : ${RESULT_libs} ${PARSED_ARGS_MODULE_LIBRARY_NAME}")
   target_link_libraries(${PARSED_ARGS_TARGET} ${RESULT_libs} ${PARSED_ARGS_MODULE_LIBRARY_NAME})
   # Same thing for lib_dirs and inc_dirs

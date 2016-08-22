@@ -14,10 +14,10 @@
 #include "TH1.h"                      // for TH1, TH1D, TH1F
 #include "TMath.h"
 
-#include "itsSimulation/Chip.h"
-#include "itsSimulation/Point.h"
-#include "itsSimulation/Segmentation.h"
-#include "itsSimulation/UpgradeGeometryTGeo.h"
+#include "ITSSimulation/Chip.h"
+#include "ITSSimulation/Point.h"
+#include "ITSSimulation/Segmentation.h"
+#include "ITSSimulation/UpgradeGeometryTGeo.h"
 
 using namespace AliceO2::ITS;
 

@@ -1,13 +1,13 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "itsSimulation/Detector.h"
-#include "itsSimulation/GeometryHandler.h"
-#include "itsSimulation/UpgradeGeometryTGeo.h"
-#include "itsSimulation/UpgradeV1Layer.h"
-#include "itsSimulation/Point.h"
+#include "ITSSimulation/Detector.h"
+#include "ITSSimulation/GeometryHandler.h"
+#include "ITSSimulation/UpgradeGeometryTGeo.h"
+#include "ITSSimulation/UpgradeV1Layer.h"
+#include "ITSSimulation/Point.h"
 
-#include "itsBase/MisalignmentParameter.h"  // for MisalignmentParameter
+#include "ITSBase/MisalignmentParameter.h"  // for MisalignmentParameter
 
 #include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"

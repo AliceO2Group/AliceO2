@@ -38,7 +38,7 @@ A sub-module CMakeLists.txt minimally contains (see Examples/ExampleModule1)
 * The setup the system : `O2_SETUP(NAME My_Module)`
 * The list of the source files in the variable SRC : `set(SRCS something.cxx)`
 * The name of the library : `set(LIBRARY_NAME My_Module)`
-* The name of the dependency bucket to use : `set(BUCKET_NAME My_Bucket)`
+* The name of the dependency bucket to use : `set(BUCKET_NAME My_bucket)`
 * The call to generate the library : `O2_GENERATE_LIBRARY()`
 
 Optionally it contains (see Examples/ExampleModule2)
@@ -51,7 +51,7 @@ Optionally it contains (see Examples/ExampleModule2)
   * Again the name of the library and bucket_name because they got erased by `O2_GENERATE_LIBRARY()`
     ```
     set(LIBRARY_NAME ExampleModule2)
-    set(BUCKET_NAME ExampleModule2_Bucket)
+    set(BUCKET_NAME ExampleModule2_bucket)
     ```
   * The call to generate the executable : 
     ```
@@ -67,12 +67,12 @@ If a new bucket is needed, it should be defined in cmake/O2Dependencies.cmake us
 ```
 o2_define_bucket(
     NAME
-    ExampleModule2_Bucket
+    ExampleModule2_bucket
 
     DEPENDENCIES
     ${Boost_PROGRAM_OPTIONS_LIBRARY}    # a library
     ExampleModule1                      # another module
-    ExampleModule1_Bucket               # another bucket
+    ExampleModule1_bucket               # another bucket
 
     INCLUDE_DIRECTORIES
     ${Boost_INCLUDE_DIR}                # another lib include dir

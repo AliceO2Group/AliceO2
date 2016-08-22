@@ -8,8 +8,8 @@
 
 
 
-#include "itsSimulation/DigitLayer.h"
-#include "itsSimulation/DigitStave.h"
+#include "ITSSimulation/DigitLayer.h"
+#include "ITSSimulation/DigitStave.h"
 
 #include "FairLogger.h"
 
