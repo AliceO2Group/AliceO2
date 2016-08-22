@@ -23,9 +23,11 @@ void DigitPad::setDigit(Int_t time, Float_t charge){
     mTimeBins[time]->setDigit(charge);
   }
   else{
+    //if time bin outside specified range, the range of the vector is extended by one full drift time.
+    while(int(mTimeBins.size()) <= time){
+      mTimeBins.resize(int(mTimeBins.size()) + 500);
+    }
     mTimeBins[time] = new DigitTime(time);
-//     digitTime = new DigitTime(time);
-//     mTimeBins[time].push_back(digitTime);
     mTimeBins[time]->setDigit(charge);
   }
 }

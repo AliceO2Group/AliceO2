@@ -1,5 +1,5 @@
 /// \file AliITSUpgradeDigi.cxx
-/// \brief Digits structure for ITS digits
+/// \brief Digits structure for TPC digits
 
 #include "TPCSimulation/Digit.h"
 

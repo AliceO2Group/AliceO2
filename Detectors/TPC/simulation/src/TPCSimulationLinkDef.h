@@ -4,7 +4,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-
 #pragma link C++ class AliceO2::TPC::Detector+;
 #pragma link C++ class AliceO2::TPC::Point+;
 #pragma link C++ class AliceO2::TPC::DigitizerTask+;
@@ -21,4 +20,14 @@
 #pragma link C++ class AliceO2::TPC::ClusterContainer+;
 #pragma link C++ class AliceO2::TPC::BoxClusterer+;
 #pragma link C++ class AliceO2::TPC::ClustererTask+;
+
+#pragma link C++ class AliceO2::TPC::HitContainer+;
+#pragma link C++ class AliceO2::TPC::HitCRU+;
+#pragma link C++ class AliceO2::TPC::HitRow+;
+#pragma link C++ class AliceO2::TPC::HitPad+;
+#pragma link C++ class AliceO2::TPC::HitTime+;
+#pragma link C++ class AliceO2::TPC::HitCharge+;
+#pragma link C++ class AliceO2::TPC::PadHit+;
+#pragma link C++ class AliceO2::TPC::PadHitTime+;
+
 #endif
