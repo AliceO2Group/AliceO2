@@ -61,7 +61,7 @@ InitStatus DigitizerTask::Init()
 
 void DigitizerTask::Exec(Option_t *option)
 {
-  fDigitsArray->Delete();
+  fDigitsArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
   DigitContainer *digits = fDigitizer->Process(fPointsArray);
