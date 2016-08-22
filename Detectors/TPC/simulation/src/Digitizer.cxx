@@ -10,7 +10,6 @@
 #include "TPCBase/Mapper.h"
 #include "TMath.h"
 #include <cmath>
-
 #include <iostream>
 
 ClassImp(AliceO2::TPC::Digitizer)
@@ -20,11 +19,12 @@ using namespace AliceO2::TPC;
 Digitizer::Digitizer():
 TObject(),
 mDigitContainer(nullptr),
-mGain(2000.)
+mHitContainer(nullptr)
 {}
 
 Digitizer::~Digitizer(){
   if(mDigitContainer) delete mDigitContainer;
+  if(mHitContainer) delete mHitContainer;
 }
 
 void Digitizer::init(){
@@ -32,75 +32,85 @@ void Digitizer::init(){
 }
 
 DigitContainer *Digitizer::Process(TClonesArray *points){
+  // TODO should be parametrized
+  Float_t wIon = 37.3e-6;
+  Float_t attCoef = 250.;
+  Float_t OxyCont = 5.e-6;
+  Float_t driftV = 2.58;
+  Float_t zBinWidth = 0.19379844961;
+  
+  mHitContainer = new HitContainer();
   mDigitContainer->reset();
 
-  Int_t nEle;
   Float_t posEle[4] = {0,0,0,0};
 
   const Mapper& mapper = Mapper::instance();
-
-  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
+  
+  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter){
     Point *inputpoint = dynamic_cast<Point *>(*pointiter);
-
-    // Convert energy loss in number of electrons
-    nEle = (Int_t)(inputpoint->GetEnergyLoss()*1000000/37.3);
-
+    
     posEle[0] = inputpoint->GetX();
     posEle[1] = inputpoint->GetY();
     posEle[2] = inputpoint->GetZ();
-    posEle[3] = nEle;
-
-    const GlobalPosition3D pos (posEle[0], posEle[1], posEle[2]);
-    const DigitPos digiPos = mapper.findDigitPosFromGlobalPosition(pos);
-
-    // remove hits that are out of the acceptance of the TPC
-    if(!digiPos.isValid()) continue;
-    if(abs(posEle[2]) > 250) continue;
-
-    // Compute mean time Bin of the charge cloud
-    const Int_t timeBin = getTimeBin(posEle[2]);
-
-    Float_t nEleAmp = 0;
-
-    //Loop over electrons - take into account diffusion and amplification
-    for(Int_t iEle=0; iEle < nEle; ++iEle){
-
-      //attachment
-      Float_t time = (250-abs(posEle[2])/2.58); // in us
-      Float_t attProb = 250. * 5.e-6 * time;
-      // Float_t attProb = fTPCParam->GetAttCoef()*fTPCParam->GetOxyCont()*time;
+    posEle[3] = static_cast<int>(inputpoint->GetEnergyLoss()/wIon);
+    Int_t count = 0;
+    //Loop over electrons
+    for(Int_t iEle=0; iEle < posEle[3]; ++iEle){
+      
+      // Attachment
+      Float_t attProb = attCoef * OxyCont * getTime(posEle[2]);
       if((gRandom->Rndm(0)) < attProb) continue;
 
-      getElectronDrift(posEle);
+      // Drift and Diffusion
+      ElectronDrift(posEle);
 
-      nEleAmp += getGEMAmplification();
+      // remove electrons that end up outside the active volume
+      if(TMath::Abs(posEle[2]) > 250) continue;
+
+      const GlobalPosition3D posElePad (posEle[0], posEle[1], posEle[2]);
+      const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posElePad);
+
+      if(!digiPadPos.isValid()) continue;
+
+      // GEM response
+      // here the pad response will be applied
+
+      // Sort pad hits into HitContainer
+      mHitContainer->addHit(digiPadPos.getCRU().number(), digiPadPos.getPadPos().getRow(), digiPadPos.getPadPos().getPad(), getTimeBin(posEle[2]), GEMAmplification());
     }
     //end of loop over electrons
-
-    // here the time response and sorting of the charge spread due to diffusion into different pad rows, pads and time bins will come...
-
-    Int_t ADCvalue = getADCvalue(nEleAmp);
-
-    mDigitContainer->addDigit(digiPos.getCRU().number(), digiPos.getPadPos().getRow(), digiPos.getPadPos().getPad(), timeBin, ADCvalue);
-    // ===| just for testing the clusterer add time bins/ pads as pseudo response |===
-    //      should be removed when more proper response is in place
-    const Int_t pad=digiPos.getPadPos().getPad();
-    const PadRegionInfo &pinf=mapper.getPadRegionInfo(digiPos.getCRU().region());
-    const Int_t npads=pinf.getPadsInRowRegion(digiPos.getPadPos().getRow());
-
-    mDigitContainer->addDigit(digiPos.getCRU().number(), digiPos.getPadPos().getRow(), pad,             timeBin+1, ADCvalue/3);
-    if (pad>0) mDigitContainer->addDigit(digiPos.getCRU().number(), digiPos.getPadPos().getRow(), pad-1,     timeBin,   ADCvalue/3);
-    if (pad<npads-1) mDigitContainer->addDigit(digiPos.getCRU().number(), digiPos.getPadPos().getRow(), pad+1, timeBin+1, ADCvalue/3);
   }
+  // end of loop over points
+  
+  mHitContainer->getHits(mPadHit);
+  delete mHitContainer;
+  
+  for(std::vector<PadHit*>::iterator iter = mPadHit.begin(); iter != mPadHit.end(); ++iter){
+    std::vector<PadHitTime*> mTimeHits = (*iter)->getTimeHit(); //retrieve time bin hit on that pad
+    
+    for(std::vector<PadHitTime*>::iterator iterTime = mTimeHits.begin(); iterTime != mTimeHits.end(); ++iterTime){
+      
+      // loop over individual time bins and apply time response function
+      Float_t startTime = getTimeFromBin((*iterTime)->getTime())+0.5*zBinWidth;
+      for(Float_t bin = 0; bin<5; ++bin){
+        Double_t signal = 55*Gamma4(startTime+bin*zBinWidth, startTime, (*iterTime)->getCharge());
+        mDigitContainer->addDigit((*iter)->getCRU(), (*iter)->getRow(), (*iter)->getPad(), getTimeBinFromTime(startTime+(bin-0.5)*zBinWidth), ADCvalue(signal));
+      }
+    }
+  }
+    
   return mDigitContainer;
 }
 
-void Digitizer::getElectronDrift(Float_t *posEle){
+
+void Digitizer::ElectronDrift(Float_t *posEle){
+  // TODO parameters to be stored someplace else
+  Float_t DiffT = 0.0209;
+  Float_t DiffL = 0.0221;
+  
   Float_t driftl=posEle[2];
   if(driftl<0.01) driftl=0.01;
   driftl=TMath::Sqrt(driftl);
-  Float_t DiffT = 0.0209;
-  Float_t DiffL = 0.0221;
   Float_t sigT = driftl*DiffT;
   Float_t sigL = driftl*DiffL;
   posEle[0]=gRandom->Gaus(posEle[0],sigT);
@@ -108,35 +118,73 @@ void Digitizer::getElectronDrift(Float_t *posEle){
   posEle[2]=gRandom->Gaus(posEle[2],sigL);
 }
 
-Int_t Digitizer::getADCvalue(Float_t nElectrons){
-  // parameters to be stored someplace else
-  Float_t ADCSat = 1024;
-  Float_t Qel = 1.602e-19;
-  Float_t ChipGain = 12;
-  Float_t ADCDynRange = 2000;
 
-  Float_t ADCvalue = nElectrons*Qel*1.e15*ChipGain*ADCSat/ADCDynRange;
-  ADCvalue = TMath::Nint(ADCvalue);
-  if(ADCvalue >= ADCSat) ADCvalue = ADCSat - 1; // saturation
-  return ADCvalue;
-}
-
-Float_t Digitizer::getGEMAmplification(){
+Float_t Digitizer::GEMAmplification(){
+  // TODO parameters to be stored someplace else
+  Float_t gain = 2000;
+  
   Float_t rn=TMath::Max(gRandom->Rndm(0),1.93e-22);
-  Float_t signal = (Int_t)(-(mGain) * TMath::Log(rn));
+  Float_t signal = static_cast<int>(-(gain) * TMath::Log(rn));
   return signal;
 }
 
-const Int_t Digitizer::getTimeBin(Float_t zPos){
-  //TODO: parameterize the conversion of the zPos to timeBin + should go someplace else.
-  Int_t timeBin = (Int_t)((250-abs(zPos))/(2.58*0.2));
-  return timeBin;
+
+
+
+Int_t Digitizer::ADCvalue(Float_t nElectrons){
+  // TODO parameters to be stored someplace else
+  Float_t ADCSat = 1024;
+  Float_t Qel = 1.602e-19;
+  Float_t ChipGain = 20;
+  Float_t ADCDynRange = 2000;
+  
+  Int_t adcValue = static_cast<int>(nElectrons*Qel*1.e15*ChipGain*ADCSat/ADCDynRange);
+  // saturation is applied at a later stage
+  return adcValue;
 }
 
-Double_t  Digitizer::Gamma4(Double_t x, Double_t p0, Double_t p1){
-  // should of course go someplace else!
-  if (x<0) return 0;
-  Double_t g1 = TMath::Exp(-4.*x/p1);
-  Double_t g2 = TMath::Power(x/p1,4);
-  return p0*g1*g2;
+
+const Int_t Digitizer::getTimeBin(Float_t zPos){
+  // TODO parameters to be stored someplace else
+  Float_t driftV = 2.58;
+  Double_t zBinWidth = 0.19379844961;
+  
+  Float_t timeBin = (250.-TMath::Abs(zPos))/(driftV*zBinWidth);
+  return static_cast<int>(timeBin);
+}
+
+
+const Int_t Digitizer::getTimeBinFromTime(Float_t time){
+  // TODO parameters to be stored someplace else
+  Double_t zBinWidth = 0.19379844961;
+  
+  Float_t timeBin = time/zBinWidth;
+  return static_cast<int>(timeBin);
+}
+
+
+const Float_t Digitizer::getTimeFromBin(Int_t timeBin){
+  // TODO parameters to be stored someplace else
+  Double_t zBinWidth = 0.19379844961;
+  
+  Float_t time = static_cast<float>(timeBin)*zBinWidth;
+  return time;
+}
+
+
+const Double_t Digitizer::getTime(Float_t zPos){
+  // TODO parameters to be stored someplace else
+  Float_t driftV = 2.58;
+  
+  Double_t time = (250.-TMath::Abs(zPos))/driftV;
+  return time;
+}
+
+
+Double_t Digitizer::Gamma4(Double_t time, Double_t startTime, Double_t ADC){
+  // TODO parameters to be stored someplace else
+  Double_t peakingTime = 160e-3; // all times are in us
+  
+  if (time<0) return 0;
+  return ADC*TMath::Exp(-4.*(time-startTime)/peakingTime)*TMath::Power((time-startTime)/peakingTime,4);
 }

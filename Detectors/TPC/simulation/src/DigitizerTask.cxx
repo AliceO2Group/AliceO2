@@ -33,8 +33,7 @@ DigitizerTask::~DigitizerTask(){
     if (mDigitsArray) delete mDigitsArray;
 }
 
-/// \brief Init function
-/// Inititializes the digitizer and connects input and output container
+
 InitStatus DigitizerTask::Init(){
     FairRootManager *mgr = FairRootManager::Instance();
     if(!mgr){

@@ -27,17 +27,19 @@ void DigitTime::reset(){
 }
 
 void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID, Int_t timeBin){
-  mCharge = 0;
+  //TODO: Store parameters elsewhere
+  Float_t ADCSat = 1024;
+ 
+  mADC = 0;
   for(std::vector<DigitADC*>::iterator iterADC = mADCCounts.begin(); iterADC != mADCCounts.end(); ++iterADC) {
     if((*iterADC) == nullptr) continue;
-    mCharge += (*iterADC)->getADC();
+    mADC += (*iterADC)->getADC();
   }
-  //TODO have to understand what is going wrong here - tree is filled with many zeros otherwise...
-  if(mCharge > 0){
-    if(mCharge > 1024) mCharge = 1024;
-//     Digit *digit = new Digit(cruID, mCharge, rowID, padID, timeBin);
+
+  if(mADC > 0){
+    if(mADC >= ADCSat) mADC = ADCSat-1;// saturation
+    Digit *digit = new Digit(cruID, mADC, rowID, padID, timeBin);
     TClonesArray &clref = *output;
-//     new(clref[clref.GetEntriesFast()]) Digit(*(digit));
-    new(clref[clref.GetEntriesFast()]) Digit(cruID, mCharge, rowID, padID, timeBin);
+    new(clref[clref.GetEntriesFast()]) Digit(*(digit));
   }
 }

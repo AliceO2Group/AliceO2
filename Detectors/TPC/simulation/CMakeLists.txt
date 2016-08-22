@@ -21,6 +21,14 @@ set(SRCS
    src/ClusterContainer.cxx
    src/BoxClusterer.cxx
    src/ClustererTask.cxx
+   src/HitContainer.cxx
+   src/HitCRU.cxx
+   src/HitRow.cxx
+   src/HitPad.cxx
+   src/HitTime.cxx
+   src/HitCharge.cxx
+   src/PadHitTime.cxx
+   src/PadHit.cxx
 )
 
 set(HEADERS
@@ -40,7 +48,14 @@ set(HEADERS
    include/${MODULE_NAME}/ClusterContainer.h
    include/${MODULE_NAME}/BoxClusterer.h
    include/${MODULE_NAME}/ClustererTask.h
-
+   include/${MODULE_NAME}/HitContainer.h
+   include/${MODULE_NAME}/HitCRU.h
+   include/${MODULE_NAME}/HitRow.h
+   include/${MODULE_NAME}/HitPad.h
+   include/${MODULE_NAME}/HitTime.h
+   include/${MODULE_NAME}/HitCharge.h
+   include/${MODULE_NAME}/PadHitTime.h
+   include/${MODULE_NAME}/PadHit.h
 )
 Set(LINKDEF src/TPCSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})

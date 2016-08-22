@@ -36,8 +36,16 @@ namespace AliceO2{
       /// @return charge of the digit
       Double_t getCharge() const { return mCharge; }
       
+      /// Get the CRU of the digit
+      /// @return CRU of the digit
       Int_t getCRU() const { return mCRU; }
+      
+      /// Get the pad row of the digit
+      /// @return pad row of the digit
       Int_t getRow() const { return mRow; }
+      
+      /// Get the pad of the digit
+      /// @return pad of the digit
       Int_t getPad() const { return mPad; }
       //       Double_t GetTime() const { return mTimeStamp; }
       Int_t getTimeStamp() const { return Int_t(FairTimeStamp::GetTimeStamp()); }
@@ -49,7 +57,6 @@ namespace AliceO2{
       /// Print function: Print basic digit information on the  output stream
       /// @param output Stream to put the digit on
       /// @return The output stream
-
       std::ostream &Print(std::ostream &output) const;
                   
     private:
