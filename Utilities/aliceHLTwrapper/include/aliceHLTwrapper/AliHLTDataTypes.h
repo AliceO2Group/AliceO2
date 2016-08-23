@@ -30,7 +30,7 @@
  *           gkAliHLTDDLListSize set from 29 to 30 according to new PubSub
  *           specs
  *   5       Data types for Run and Event summary, and for monitoring added
- *   6       QCCommon data types for TreeD and TreeR defined
+ *   6       Common data types for TreeD and TreeR defined
  *           kAliHLTAllDataTypes and kAliHLTDataOriginSample added
  *           kAliHLTDataOriginEMCAL added
  *           kAliHLTDataTypeRunType added
@@ -68,7 +68,7 @@
  *           Adding new event type for software triggers.
  *  15       Modifying data block types for trigger counter blocks.
  *  16       Adding data type for the meta data block to be forwarded by the
- *           TCPDumpSubscriber for the QCCommon Data Header (CDH) and readout
+ *           TCPDumpSubscriber for the Common Data Header (CDH) and readout
  *           list information.
  *  17       bugfix: definition of function AliHLTExtFctGetOutputSize did not
  *           match the implementation in AliHLTExternalInterface; the bug was
@@ -270,7 +270,7 @@ const int kAliHLTComponentDataTypefIDsize=8;
 # define kAliHLTDDLRawDataTypeID   {'D','D','L','_','R','A','W',' '}
 
 /** CLUSTERS data
- * QCCommon data type for the output of cluster finders, the exact
+ * Common data type for the output of cluster finders, the exact
  * format depends on the origin (detector)
  * @ingroup alihlt_component_datatypes
  */
@@ -546,14 +546,14 @@ const int kAliHLTComponentDataTypefIDsize=8;
 #define kAliHLTJetDataTypeID                  {'H','L','T','J','E','T','V','0'}
 
 /** dEdx  data
- * QCCommon data type for the dEdx
+ * Common data type for the dEdx 
  * format depends on the origin (detector)
  * @ingroup alihlt_component_datatypes
  */
 # define kAliHLTdEdxDataTypeID {'D','E','D','X',' ',' ',' ',' '}
 
 /** dNdPt  data
- * QCCommon data type for the dNdPt output object
+ * Common data type for the dNdPt output object
  * @ingroup alihlt_component_datatypes
  */
 # define kAliHLTdNdPtDataTypeID {'D','N','D','P','T',' ',' ',' '}
@@ -668,7 +668,7 @@ extern "C" {
   };
 
   /**
-   * @defgroup alihlt_component_datatypes QCCommon Component Data Types
+   * @defgroup alihlt_component_datatypes Common Component Data Types
    * The analysis framework defines a number of common data types for
    * usage in the detector modules, like e.g. ::kAliHLTAnyDataType
    * and ::kAliHLTDataTypeDDLRaw. Those data types always have
@@ -1018,7 +1018,7 @@ extern "C" {
   extern const AliHLTComponentDataType kAliHLTDataTypeDAQRDOUT;
 
   /** CLUSTERS data
-   * QCCommon data type for the output of cluster finders, the exact
+   * Common data type for the output of cluster finders, the exact
    * format depends on the origin (detector)
    * @ingroup alihlt_component_datatypes
    */
@@ -1185,7 +1185,7 @@ extern "C" {
   extern const AliHLTComponentDataType kAliHLTDataTypeComponentFwdTable;
 
   /**
-   * Data type for the QCCommon Data Header and readout list information sent by TCPDumpSubscriber.
+   * Data type for the Common Data Header and readout list information sent by TCPDumpSubscriber.
    * @ingroup alihlt_component_datatypes
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeTriggerMetaBlock;     // {METADATA:PRIV}

@@ -79,7 +79,7 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
   }
   do {
     if (evtData && evtData->fBlockCnt==0 && size<sizeof(AliHLTComponentBlockData)) {
-      // special case: no block data, only event include
+      // special case: no block data, only event header
       break;
     }
     if (readBlockSequence(buffer+position, size-position, mBlockDescriptors) < 0 ||
@@ -89,7 +89,7 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
 	 (evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
 	// not in HOMER format either
 	if (position>0) {
-	  // try once more without the assumption of event data include
+	  // try once more without the assumption of event data header
 	  position=0;
 	  evtData=NULL;
 	  continue;
@@ -101,7 +101,7 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
 
   int result=0;
   if (evtData && (result=insertEvtData(*evtData))<0) {
-    // error in the event data include, probably headers of different events
+    // error in the event data header, probably headers of different events
     mBlockDescriptors.resize(count);
     return result;
   }
@@ -140,8 +140,8 @@ int MessageFormat::readBlockSequence(AliHLTUInt8_t* buffer, unsigned size,
   vector<AliHLTComponentBlockData> input;
   while (position + sizeof(AliHLTComponentBlockData) < size) {
     AliHLTComponentBlockData* p = reinterpret_cast<AliHLTComponentBlockData*>(buffer + position);
-    if (p->fStructSize == 0 ||                         // no valid include
-        p->fStructSize + position > size ||            // no space for the include
+    if (p->fStructSize == 0 ||                         // no valid header
+        p->fStructSize + position > size ||            // no space for the header
         p->fStructSize + p->fSize + position > size) { // no space for the payload
       // the buffer is only a valid sequence of data blocks if payload
       // of the last block exacly matches the buffer boundary
@@ -235,7 +235,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     }
   } else if (mOutputMode == kOutputModeMultiPart || mOutputMode == kOutputModeSequence) {
     // the output blocks are assempled in the internal buffer, for each
-    // block BlockData is added as include information, directly followed
+    // block BlockData is added as header information, directly followed
     // by the block payload
     //
     // kOutputModeMultiPart:
@@ -293,11 +293,11 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
 
       if (bi==0) {
 	// event data only in the first message in order to avoid increase of required
-	// buffer size due to duplicated event include
+	// buffer size due to duplicated event header
 	memcpy(pTarget + offset, &evtData, sizeof(evtData));
         if (mOutputMode == kOutputModeMultiPart && evtData.fBlockCnt>1) {
           // in multipart mode, there is only one block per part
-          // consequently, the number of blocks indicated in the event data include
+          // consequently, the number of blocks indicated in the event data header
           // does not reflect the number of blocks in this data sample. But it is
           // set to 1 to make the single message consistent
           auto* pEvtData = reinterpret_cast<AliHLTComponentEventData*>(pTarget + offset);
@@ -372,7 +372,7 @@ AliHLTHOMERWriter* MessageFormat::createHOMERFormat(const AliHLTComponentBlockDa
 
 int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
 {
-  // insert event include to list, sort by time, oldest first
+  // insert event header to list, sort by time, oldest first
   if (mListEvtData.size()==0) {
     mListEvtData.push_back(evtData);
   } else {
@@ -384,7 +384,7 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
 	break;
       }
     }
-    // TODO: simple logic at the moment, include is not inserted
+    // TODO: simple logic at the moment, header is not inserted
     // if there is a mismatch, as the headers are inserted one by one, all
     // headers in the list have the same ID
     if (it != mListEvtData.end() &&

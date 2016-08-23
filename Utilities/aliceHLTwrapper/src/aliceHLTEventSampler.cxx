@@ -16,12 +16,12 @@
 //  @brief  Event sampler for Alice HLT in FairMQ/ALFA
 
 #include "aliceHLTwrapper/EventSampler.h"
+#include <getopt.h>
 #ifdef NANOMSG
 #include "FairMQTransportFactoryNN.h"
 #endif
 #include "FairMQTransportFactoryZMQ.h"
 #include "FairMQTools.h"
-#include <getopt.h>
 
 #include "FairMQStateMachine.h"
 #if defined(FAIRMQ_INTERFACE_VERSION) && FAIRMQ_INTERFACE_VERSION > 0
@@ -300,7 +300,7 @@ int main(int argc, char** argv)
     cout << "        --verbosity,-v 0xhexval      verbosity level" << endl;
     cout << "        --dry-run,-n                 skip the component processing" << endl;
     cout << "        Multiple slots can be defined by --input/--output options" << endl;
-    cout << "        Sampler will send the event include on all outputs, inputs are treated as" << endl;
+    cout << "        Sampler will send the event header on all outputs, inputs are treated as" << endl;
     cout << "        feedback to determine letancy of events." << endl;
 
     return 0;

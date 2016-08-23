@@ -199,7 +199,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   dataArray.clear();
 
   if (mFormatHandler.getEvtDataList().size()>0) {
-    // copy the oldest event include
+    // copy the oldest event header
     memcpy(&evtData, &mFormatHandler.getEvtDataList().front(), sizeof(AliHLTComponentEventData));
   }
 
