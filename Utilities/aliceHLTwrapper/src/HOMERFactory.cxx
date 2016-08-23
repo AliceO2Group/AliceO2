@@ -175,7 +175,7 @@ AliHLTHOMERWriter* HOMERFactory::OpenWriter()
 
 int HOMERFactory::DeleteWriter(AliHLTHOMERWriter* pWriter)
 {
-  // see include file for class documentation
+  // see header file for class documentation
   if (fgLibraryStatus<0) return fgLibraryStatus;
 
   fgLibraryStatus=LoadHOMERLibrary();

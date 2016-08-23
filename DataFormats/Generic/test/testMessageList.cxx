@@ -18,7 +18,7 @@ using namespace Format;
 // a simple message type, just a pointer to some payload
 typedef const uint8_t* SimpleMsg_t;
 
-// a simple include definition
+// a simple header definition
 struct SimpleHeader_t {
   uint32_t id;
   uint32_t specification;
@@ -27,7 +27,7 @@ struct SimpleHeader_t {
   SimpleHeader_t(uint32_t _id, uint32_t _spec) : id(_id), specification(_spec) {}
 };
 
-// print operator for the simple include
+// print operator for the simple header
 std::ostream& operator<<(std::ostream& stream, SimpleHeader_t header) {
   stream << "Header ID: " << header.id << std::endl;
   stream << "Header Specification: " << std::hex << header.specification;
@@ -77,7 +77,7 @@ void print_list(ListType& list, typename ListType::HdrComparison hdrsel = typena
   for (typename ListType::iterator it = list.begin(hdrsel);
        it != list.end();
        ++it) {
-    // the iterator defines a conversion operator to the include type
+    // the iterator defines a conversion operator to the header type
     std::cout << static_cast<typename ListType::header_type>(it) << std::endl;
     // dereferencing of the iterator gives the payload
     std::cout << *it << std::endl;
