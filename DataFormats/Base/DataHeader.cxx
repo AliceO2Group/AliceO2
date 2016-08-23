@@ -7,25 +7,25 @@ const char* AliceO2::Base::BaseHeader::sMagicString = "O2 ";
 using namespace AliceO2::Base;
 
 //possible data origins
-const DataOrigin gDataOriginAny    ("***");
-const DataOrigin gDataOriginInvalid("   ");
-const DataOrigin gDataOriginTPC    ("TPC");
-const DataOrigin gDataOriginTRD    ("TRD");
-const DataOrigin gDataOriginTOF    ("TOF");
+const DataOrigin AliceO2::Base::gDataOriginAny    ("***");
+const DataOrigin AliceO2::Base::gDataOriginInvalid("   ");
+const DataOrigin AliceO2::Base::gDataOriginTPC    ("TPC");
+const DataOrigin AliceO2::Base::gDataOriginTRD    ("TRD");
+const DataOrigin AliceO2::Base::gDataOriginTOF    ("TOF");
 
 //possible data types
-const DataDescription gDataDescriptionAny     ("***************");
-const DataDescription gDataDescriptionInvalid ("               ");
-const DataDescription gDataDescriptionRawData ("RAWDATA        ");
-const DataDescription gDataDescriptionClusters("CLUSTERS       ");
-const DataDescription gDataDescriptionTracks  ("TRACKS         ");
+const DataDescription AliceO2::Base::gDataDescriptionAny     ("***************");
+const DataDescription AliceO2::Base::gDataDescriptionInvalid ("               ");
+const DataDescription AliceO2::Base::gDataDescriptionRawData ("RAWDATA        ");
+const DataDescription AliceO2::Base::gDataDescriptionClusters("CLUSTERS       ");
+const DataDescription AliceO2::Base::gDataDescriptionTracks  ("TRACKS         ");
 
 //possible serialization types
-const PayloadSerialization gSerializationAny    ("*******");
-const PayloadSerialization gSerializationInvalid("       ");
-const PayloadSerialization gSerializationNone   ("NONE   ");
-const PayloadSerialization gSerializationROOT   ("ROOT   ");
-const PayloadSerialization gSerializationFlatBuf("FLATBUF");
+const PayloadSerialization AliceO2::Base::gSerializationAny    ("*******");
+const PayloadSerialization AliceO2::Base::gSerializationInvalid("       ");
+const PayloadSerialization AliceO2::Base::gSerializationNone   ("NONE   ");
+const PayloadSerialization AliceO2::Base::gSerializationROOT   ("ROOT   ");
+const PayloadSerialization AliceO2::Base::gSerializationFlatBuf("FLATBUF");
 
 ////_________________________________________________________________________________________________
 AliceO2::Base::BaseHeader::BaseHeader()
@@ -54,7 +54,7 @@ AliceO2::Base::DataHeader::DataHeader()
   : BaseHeader()
   , dataOriginInt(gDataOriginInvalid.dataOriginInt)
   , reserved(0)
-  , payloadSerializationInt(gPayloadSerializationInvalid.payloadSerializationInt)
+  , payloadSerializationInt(gSerializationInvalid.payloadSerializationInt)
   , dataDescriptionInt{gDataDescriptionInvalid.dataDescriptionInt[0],
                        gDataDescriptionInvalid.dataDescriptionInt[1]}
   , subSpecification(0)
@@ -143,7 +143,7 @@ bool AliceO2::Base::DataHeader::operator==(const DataDescription& that)
 //_________________________________________________________________________________________________
 bool AliceO2::Base::DataHeader::operator==(const PayloadSerialization& that)
 {
-  return (that.payloadSerializationInt == gPayloadSerializationAny.payloadSerializationInt ||
+  return (that.payloadSerializationInt == gSerializationAny.payloadSerializationInt ||
           that.payloadSerializationInt == payloadSerializationInt );
 }
 

@@ -1,0 +1,23 @@
+set(INCLUDE_DIRECTORIES
+)
+
+set(SYSTEM_INCLUDE_DIRECTORIES
+${Boost_INCLUDE_DIRS}
+)
+
+include_directories( ${INCLUDE_DIRECTORIES})
+
+set(LINK_DIRECTORIES
+)
+
+link_directories( ${LINK_DIRECTORIES})
+
+set(SRCS
+DataHeader.cxx
+)
+
+Set(HEADERS)
+Set(LIBRARY_NAME AliceO2FormatBase)
+Set(DEPENDENCIES )
+
+GENERATE_LIBRARY()

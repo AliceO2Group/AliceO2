@@ -86,8 +86,8 @@ struct BaseHeader
     struct {
       uint32_t  flagsNextHeader :1, //do we have a next header after this one?
                 flagsUnused :31;    //currently unused
-    }
-  }
+    };
+  };
 
   /// version of this header
   uint32_t    headerVersion;
@@ -289,17 +289,17 @@ extern const DataOrigin gDataOriginTOF;
 //possible data types
 extern const DataDescription gDataDescriptionAny;
 extern const DataDescription gDataDescriptionInvalid;
-extern const DataDescription gDataDescriptionRaw;
+extern const DataDescription gDataDescriptionRawData;
 extern const DataDescription gDataDescriptionClusters;
 extern const DataDescription gDataDescriptionTracks;
 
 //____________________________________________________________________________
 //possible serialization types
-extern const PayloadSerialization gPayloadSerializationAny;
-extern const PayloadSerialization gPayloadSerializationInvalid;
-extern const PayloadSerialization gPayloadSerializationNone;
-extern const PayloadSerialization gPayloadSerializationROOT;
-extern const PayloadSerialization gPayloadSerializationFlatBuf;
+extern const PayloadSerialization gSerializationAny;
+extern const PayloadSerialization gSerializationInvalid;
+extern const PayloadSerialization gSerializationNone;
+extern const PayloadSerialization gSerializationROOT;
+extern const PayloadSerialization gSerializationFlatBuf;
 
 /// @} // end of doxygen group
 
