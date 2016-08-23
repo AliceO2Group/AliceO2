@@ -71,7 +71,7 @@ Bool_t Pythia6Generator::ReadEvent(FairPrimaryGenerator* primGen) {
   Float_t fPx = 0., fPy = 0., fPz = 0., fM = 0., fE = 0.;
   Float_t fVx = 0., fVy = 0., fVz = 0., fT = 0.;
   
-  // Read event include line from input file
+  // Read event header line from input file
 
   Int_t max_nr = 0;
   
