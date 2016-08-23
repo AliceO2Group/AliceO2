@@ -80,7 +80,7 @@ function(GET_BUCKET_CONTENT
     message(FATAL_ERROR "${INDENTATION}bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it.")
   endif ()
 
-  message("${INDENTATION}Get content of bucket ${BUCKET_NAME}")
+#  message("${INDENTATION}Get content of bucket ${BUCKET_NAME}")
 
   # Fetch the content (recursively)
   set(libs ${bucket_map_libs_${BUCKET_NAME}})
@@ -140,7 +140,7 @@ function(O2_TARGET_LINK_BUCKET)
   set(RESULT_inc_dirs "")
   GET_BUCKET_CONTENT(${PARSED_ARGS_BUCKET} RESULT_libs RESULT_inc_dirs) # RESULT_lib_dirs)
 #  message(STATUS "All dependencies of the bucket : ${RESULT_libs}")
-  message(STATUS "All inc_dirs of the bucket ${PARSED_ARGS_BUCKET} : ${RESULT_inc_dirs}")
+#  message(STATUS "All inc_dirs of the bucket ${PARSED_ARGS_BUCKET} : ${RESULT_inc_dirs}")
 
   # for each dependency in the bucket invoke target_link_library
   #  set(DEPENDENCIES ${bucket_map_libs_${PARSED_ARGS_BUCKET}})
