@@ -16,29 +16,29 @@
 #include "FairPrimaryGenerator.h"
 //#include "FairGenerator.h"
 
-#include "Pythia8Generator.h"
+#include "Generators/Pythia8Generator.h"
 
 using namespace Pythia8;
 
 // -----   Default constructor   -------------------------------------------
-Pythia8Generator::Pythia8Generator() 
+Pythia8Generator::Pythia8Generator()
 {
-  fUseRandom1 = kFALSE; 
+  fUseRandom1 = kFALSE;
   fUseRandom3 = kTRUE;
   fId         = 2212; // proton
   fMom        = 400;  // proton
-  fHNL        = 0;    // HNL  if set to !=0, for example 9900014, only track 
+  fHNL        = 0;    // HNL  if set to !=0, for example 9900014, only track
 }
 // -------------------------------------------------------------------------
 
 // -----   Default constructor   -------------------------------------------
-Bool_t Pythia8Generator::Init() 
+Bool_t Pythia8Generator::Init()
 {
   if (fUseRandom1) fRandomEngine = new PyTr1Rng();
   if (fUseRandom3) fRandomEngine = new PyTr3Rng();
-  
+
   fPythia.setRndmEnginePtr(fRandomEngine);
-  
+
   cout<<"Beam Momentum "<<fMom<<endl;
   // Set arguments in Settings database.
   fPythia.settings.mode("Beams:idA",  fId);
@@ -57,7 +57,7 @@ Bool_t Pythia8Generator::Init()
 
 
 // -----   Destructor   ----------------------------------------------------
-Pythia8Generator::~Pythia8Generator() 
+Pythia8Generator::~Pythia8Generator()
 {
 }
 // -------------------------------------------------------------------------
@@ -79,8 +79,8 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
                 if (fPythia.event[im].id()==fHNL ){
 // for the moment, hardcode 110m is maximum decay length
                  Double_t z = fPythia.event[i].zProd();
-                 Double_t x = abs(fPythia.event[i].xProd());  
-                 Double_t y = abs(fPythia.event[i].yProd());  
+                 Double_t x = abs(fPythia.event[i].xProd());
+                 Double_t y = abs(fPythia.event[i].yProd());
                  // cout<<"debug HNL decay pos "<<x<<" "<< y<<" "<< z <<endl;
                  if ( z < 11000. && z > 7000. && x<250. && y<250.) {
                    npart++;
@@ -88,9 +88,9 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
                }
               }
 	      else {npart++;}
-	    }; 
+	    };
 	};
-// happens if a charm particle being produced which does decay without producing a HNL. Try another event.  
+// happens if a charm particle being produced which does decay without producing a HNL. Try another event.
 //       if (npart == 0){ fPythia.event.list();}
     };
 // cout<<"debug p8 event 0 " << fPythia.event[0].id()<< " "<< fPythia.event[1].id()<< " "<< fPythia.event[2].id()<< " "<< npart <<endl;
@@ -101,15 +101,15 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
         if (fHNL != 0){
            Int_t im = fPythia.event[ii].mother1();
            if (fPythia.event[im].id() != fHNL) {wanttracking=false;}
-        }           
+        }
         if (  wanttracking ) {
           Double_t z  = fPythia.event[ii].zProd();
-          Double_t x  = fPythia.event[ii].xProd();  
-          Double_t y  = fPythia.event[ii].yProd();  
+          Double_t x  = fPythia.event[ii].xProd();
+          Double_t y  = fPythia.event[ii].yProd();
           Double_t pz = fPythia.event[ii].pz();
-          Double_t px = fPythia.event[ii].px();  
-          Double_t py = fPythia.event[ii].py();  
-	  cpg->AddTrack((Int_t)fPythia.event[ii].id(),px,py,pz,x,y,z, 
+          Double_t px = fPythia.event[ii].px();
+          Double_t py = fPythia.event[ii].py();
+	  cpg->AddTrack((Int_t)fPythia.event[ii].id(),px,py,pz,x,y,z,
 		      (Int_t)fPythia.event[ii].mother1(),wanttracking);
           // cout<<"debug p8->geant4 "<< wanttracking << " "<< ii <<  " " << fPythia.event[ii].id()<< " "<< fPythia.event[ii].mother1()<<" "<<x<<" "<< y<<" "<< z <<endl;
         }
@@ -119,13 +119,13 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
     if (fHNL != 0 && fPythia.event[ii].id() == fHNL){
          Int_t im = (Int_t)fPythia.event[ii].mother1();
          Double_t z  = fPythia.event[ii].zProd();
-         Double_t x  = fPythia.event[ii].xProd();  
-         Double_t y  = fPythia.event[ii].yProd();  
+         Double_t x  = fPythia.event[ii].xProd();
+         Double_t y  = fPythia.event[ii].yProd();
          Double_t pz = fPythia.event[ii].pz();
-         Double_t px = fPythia.event[ii].px();  
-         Double_t py = fPythia.event[ii].py();  
-	 cpg->AddTrack((Int_t)fPythia.event[im].id(),px,py,pz,x,y,z,0,false);   
-	 cpg->AddTrack((Int_t)fPythia.event[ii].id(),px,py,pz,x,y,z, im,false);            
+         Double_t px = fPythia.event[ii].px();
+         Double_t py = fPythia.event[ii].py();
+	 cpg->AddTrack((Int_t)fPythia.event[im].id(),px,py,pz,x,y,z,0,false);
+	 cpg->AddTrack((Int_t)fPythia.event[ii].id(),px,py,pz,x,y,z, im,false);
          //cout<<"debug p8->geant4 "<< 0 << " "<< ii <<  " " << fake<< " "<< fPythia.event[ii].mother1()<<endl;
       };
   }
@@ -150,8 +150,8 @@ void Pythia8Generator::Print(){
 }
 // -------------------------------------------------------------------------
 void Pythia8Generator::GetPythiaInstance(int arg){
-  fPythia.particleData.list(arg) ; 
-  cout<<"canDecay "<<fPythia.particleData.canDecay(arg)<<" "<<fPythia.particleData.mayDecay(arg)<<endl ; 
+  fPythia.particleData.list(arg) ;
+  cout<<"canDecay "<<fPythia.particleData.canDecay(arg)<<" "<<fPythia.particleData.mayDecay(arg)<<endl ;
 }
 // -------------------------------------------------------------------------
 

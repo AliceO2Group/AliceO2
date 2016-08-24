@@ -12,8 +12,8 @@ if (PYTHIA8_INCLUDE_DIR)
       )
 
   set(HEADERS
-      include/Pythia6Generator.h
-      include/Pythia8Generator.h
+      include/${MODULE_NAME}/Pythia6Generator.h
+      include/${MODULE_NAME}/Pythia8Generator.h
       )
 
   set(LINKDEF src/GeneratorsLinkDef.h)
