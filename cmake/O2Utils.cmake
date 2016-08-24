@@ -145,7 +145,9 @@ function(O2_TARGET_LINK_BUCKET)
   # for each dependency in the bucket invoke target_link_library
   #  set(DEPENDENCIES ${bucket_map_libs_${PARSED_ARGS_BUCKET}})
   #  message(STATUS "   invoke target_link_libraries for target ${PARSED_ARGS_TARGET} : ${RESULT_libs} ${PARSED_ARGS_MODULE_LIBRARY_NAME}")
+
   target_link_libraries(${PARSED_ARGS_TARGET} ${RESULT_libs} ${PARSED_ARGS_MODULE_LIBRARY_NAME})
+
   # Same thing for lib_dirs and inc_dirs
   target_include_directories(${PARSED_ARGS_TARGET} PUBLIC ${RESULT_inc_dirs})
 endfunction()
@@ -243,8 +245,9 @@ macro(O2_GENERATE_LIBRARY)
   )
 
   ############### install the library ###################
-  install(TARGETS ${ARGS_LIBRARY_NAME} DESTINATION lib)
-  # Install all the public header
+  install(TARGETS ${Int_LIB} DESTINATION lib)
+
+  # Install all the public headers
   install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
 
   Set(LIBRARY_NAME)
@@ -287,8 +290,11 @@ function(O2_GENERATE_EXECUTABLE)
       MODULE_LIBRARY_NAME ${PARSED_ARGS_MODULE_LIBRARY_NAME}
   )
 
-  ############### install the library ###################
+  ############### install the executable #################
   install(TARGETS ${PARSED_ARGS_EXE_NAME} DESTINATION bin)
+
+  ############### install the library ###################
+  install(TARGETS ${PARSED_ARGS_MODULE_LIBRARY_NAME} DESTINATION lib)
 
 endfunction(O2_GENERATE_EXECUTABLE)
 

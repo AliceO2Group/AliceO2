@@ -1421,7 +1421,7 @@ void Detector::ConstructTPCGeometry()
   TGeoBBox *conn = new TGeoBBox(0.4,0.3,4.675); // identical for iroc and oroc
   TGeoVolume *connv = new TGeoVolume("TPC_RCCON",conn,m1);
   TString fileName(gSystem->Getenv("VMCWORKDIR"));
-  fileName += "/Detectors/TPC/simulation/geo_data/conn_iroc.dat";
+  fileName += "/Detectors/Geometry/TPC/conn_iroc.dat";
   ifstream in;
   in.open(fileName.Data(), ios_base::in); // asci file
   if ( ! in.is_open() ) {
@@ -1542,7 +1542,7 @@ void Detector::ConstructTPCGeometry()
   // holes for connectors
   //
   fileName = gSystem->Getenv("VMCWORKDIR");
-  fileName += "/Detectors/TPC/simulation/geo_data/conn_oroc.dat";
+  fileName += "/Detectors/Geometry/TPC/conn_oroc.dat";
   in.open(fileName.Data(), ios_base::in); // asci file
   if ( ! in.is_open() ) {
     LOG(FATAL) << "Cannot open input file : " << fileName.Data() << FairLogger::endl;

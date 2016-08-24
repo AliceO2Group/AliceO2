@@ -155,14 +155,14 @@ ENDIF (NOT ALICEO2_MODULAR_BUILD)
 IF (PYTHIA8_FOUND AND Pythia6_FOUND)
   add_subdirectory(Generators)
 ENDIF ()
+
+add_subdirectory(CCDB)
 add_subdirectory(Common)
+add_subdirectory(DataFormats)
+add_subdirectory(Detectors)
 add_subdirectory(Examples)
 add_subdirectory(macro)
-add_subdirectory(CCDB)
 add_subdirectory(Utilities)
-add_subdirectory(Detectors)
-add_subdirectory(DataFormats)
-
 
 Option(BUILD_DOXYGEN "Build Doxygen" OFF)
 IF (BUILD_DOXYGEN)
@@ -177,8 +177,22 @@ IF (IWYU_FOUND)
       )
 ENDIF ()
 
+Install(FILES ${CMAKE_BINARY_DIR}/check_system.sh
+        DESTINATION bin
+       )
+
+SET(VMCWORKDIR ${CMAKE_SOURCE_DIR})
 
 WRITE_CONFIG_FILE(config.sh)
+
+SET(VMCWORKDIR ${CMAKE_INSTALL_PREFIX}/share)
+SET(ROOT_INCLUDE_PATH ${CMAKE_INSTALL_PREFIX}/include)
+WRITE_CONFIG_FILE(config.sh_install)
+
+Install(FILES ${CMAKE_BINARY_DIR}/config.sh_install
+        DESTINATION bin
+        RENAME O2Config.sh
+       )
 
 # Place the CTestCustom.cmake in the build dir
 configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
