@@ -6,6 +6,7 @@
 #define ALICEO2_FIELD_MAGNETICFIELD_H_
 
 #include <TVirtualMagField.h>  // for TVirtualMagField
+#include "TSystem.h"
 #include "Rtypes.h"            // for Double_t, Char_t, Int_t, Float_t, etc
 #include "TNamed.h"            // for TNamed
 
@@ -48,8 +49,8 @@ class MagneticField : public TVirtualMagField
     /// The "be" is the energy of the beam in GeV/nucleon
     MagneticField(const char *name, const char *title, Double_t factorSol = 1., Double_t factorDip = 1.,
                   BMap_t maptype = k5kG, BeamType_t btype = kBeamTypepp, Double_t benergy = -1, Int_t integ = 2,
-                  Double_t fmax = 15, const std::string path = "../share/maps/mfchebKGI_sym.root"
-
+                  Double_t fmax = 15, const std::string path = std::string(gSystem->Getenv("VMCWORKDIR")) +
+                                                               std::string("/Common/maps/mfchebKGI_sym.root")
     );
 
     MagneticField(const MagneticField &src);
@@ -195,7 +196,8 @@ class MagneticField : public TVirtualMagField
     /// unless the special uniform map was used for MC
     static MagneticField *createFieldMap(Float_t l3Current = -30000., Float_t diCurrent = -6000., Int_t convention = 0,
                                          Bool_t uniform = kFALSE, Float_t beamenergy = 7000, const Char_t *btype = "pp",
-                                         const std::string path = "../share/maps/mfchebKGI_sym.root"
+                                         const std::string path = std::string(gSystem->Getenv("VMCWORKDIR")) +
+                                                                  std::string("/Common/maps/mfchebKGI_sym.root")
     );
 
   protected:

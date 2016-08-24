@@ -19,3 +19,6 @@ O2_GENERATE_LIBRARY()
 
 # Install all the public include
 install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
+
+# Install the library
+install(TARGETS ${MODULE_NAME} LIBRARY DESTINATION lib)
