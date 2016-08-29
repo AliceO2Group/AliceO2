@@ -1,5 +1,5 @@
-#include "TPCsimulation/HitTime.h"
-#include "TPCsimulation/HitCharge.h"
+#include "TPCSimulation/HitTime.h"
+#include "TPCSimulation/HitCharge.h"
 #include "TClonesArray.h"
 
 #include "FairLogger.h"

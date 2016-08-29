@@ -4,7 +4,7 @@
 #define _ALICEO2_TPC_HitPad_
 
 #include "Rtypes.h"
-#include "TPCsimulation/PadHit.h"
+#include "TPCSimulation/PadHit.h"
 
 class TClonesArray;
 

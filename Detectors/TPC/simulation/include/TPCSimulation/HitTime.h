@@ -4,7 +4,7 @@
 #define _ALICEO2_TPC_HitTime_
 
 #include "Rtypes.h"
-#include "TPCsimulation/HitPad.h"
+#include "TPCSimulation/HitPad.h"
 
 class TClonesArray;
 

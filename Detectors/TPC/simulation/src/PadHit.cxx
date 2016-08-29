@@ -1,5 +1,5 @@
-#include "TPCsimulation/PadHit.h"
-#include "TPCsimulation/PadHitTime.h"
+#include "TPCSimulation/PadHit.h"
+#include "TPCSimulation/PadHitTime.h"
 
 ClassImp(AliceO2::TPC::PadHit)
 

@@ -1,8 +1,8 @@
-#include "TPCsimulation/HitContainer.h"
-#include "TPCsimulation/HitCRU.h"
-#include "TPCsimulation/PadHit.h"
-#include "TPCbase/Mapper.h"
-#include "TPCbase/CRU.h"
+#include "TPCSimulation/HitContainer.h"
+#include "TPCSimulation/HitCRU.h"
+#include "TPCSimulation/PadHit.h"
+#include "TPCBase/Mapper.h"
+#include "TPCBase/CRU.h"
 
 #include "FairLogger.h"
 

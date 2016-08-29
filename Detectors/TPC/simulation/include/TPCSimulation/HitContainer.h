@@ -3,8 +3,8 @@
 #ifndef _ALICEO2_HitContainer_
 #define _ALICEO2_HitContainer_
 
-#include "TPCsimulation/HitCRU.h"
-#include "TPCsimulation/PadHit.h"
+#include "TPCSimulation/HitCRU.h"
+#include "TPCSimulation/PadHit.h"
 #include "Rtypes.h"
 #include <map>
 

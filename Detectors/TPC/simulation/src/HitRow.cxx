@@ -1,6 +1,6 @@
-#include "TPCsimulation/HitRow.h"
-#include "TPCsimulation/HitPad.h"
-#include "TPCbase/Mapper.h"
+#include "TPCSimulation/HitRow.h"
+#include "TPCSimulation/HitPad.h"
+#include "TPCBase/Mapper.h"
 
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
