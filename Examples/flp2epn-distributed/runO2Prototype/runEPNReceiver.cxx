@@ -18,7 +18,7 @@
 #include "FairMQTransportFactoryZMQ.h"
 #include "FairMQTools.h"
 
-#include "EPNReceiver.h"
+#include "FLP2EPNex_distributed/EPNReceiver.h"
 
 #include "dds_intercom.h" // DDS
 

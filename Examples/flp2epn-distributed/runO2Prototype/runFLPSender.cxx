@@ -18,7 +18,7 @@
 #include "FairMQTransportFactoryZMQ.h"
 #include "FairMQTools.h"
 
-#include "FLPSender.h"
+#include "FLP2EPNex_distributed/FLPSender.h"
 
 #include "dds_intercom.h" // DDS
 
