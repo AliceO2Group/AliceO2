@@ -30,7 +30,7 @@ find_package(FairMQ REQUIRED)
 
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
-  set(DDS_KEY_VALUE_LIBRARY dds-key-value-lib)
+  set(OPTIONAL_DDS_LIBRARIES ${DDS_INTERCOM_LIBRARY_SHARED} ${DDS_PROTOCOL_LIBRARY_SHARED} ${DDS_USER_DEFAULTS_LIBRARY_SHARED})
   set(OPTIONAL_DDS_INCLUDE_DIR ${DDS_INCLUDE_DIR})
 endif ()
 
@@ -109,7 +109,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     flp2epn_bucket
-    dds-key-value-lib
+    ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
     ${DDS_INCLUDE_DIR}
@@ -428,7 +428,7 @@ o2_define_bucket(
     ${Boost_LOG_SETUP_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     FairMQ
-    ${DDS_KEY_VALUE_LIBRARY}
+    ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}

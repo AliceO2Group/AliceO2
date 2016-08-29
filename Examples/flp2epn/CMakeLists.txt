@@ -4,6 +4,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/startMerger.sh.in ${CMAKE_BINARY_DIR}/bin/startMerger.sh)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/flp2epn.json ${CMAKE_BINARY_DIR}/bin/config/flp2epn.json)
 
 
 set(HEADERS
