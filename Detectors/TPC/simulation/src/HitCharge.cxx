@@ -1,4 +1,4 @@
-#include "HitCharge.h"
+#include "TPCsimulation/HitCharge.h"
 
 using namespace AliceO2::TPC;
 

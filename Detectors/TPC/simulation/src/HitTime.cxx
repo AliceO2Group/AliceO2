@@ -1,7 +1,6 @@
-#include "HitTime.h"
-#include "HitCharge.h"
+#include "TPCsimulation/HitTime.h"
+#include "TPCsimulation/HitCharge.h"
 #include "TClonesArray.h"
-#include "Mapper.h"
 
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
