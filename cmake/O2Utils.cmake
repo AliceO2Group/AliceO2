@@ -20,14 +20,15 @@ endmacro()
 #------------------------------------------------------------------------------
 # O2_DEFINE_BUCKET
 # arg NAME
-# arg LIBRARIES
-# arg INCLUDE_DIRECTORIES
+# arg DEPENDENCIES               # either libraries or buckets
+# arg INCLUDE_DIRECTORIES        # project include directories
+# arg SYSTEMINCLUDE_DIRECTORIES  # system include directories (no compiler warnings)
 function(O2_DEFINE_BUCKET)
   cmake_parse_arguments(
       PARSED_ARGS
       "" # bool args
       "NAME" # mono-valued arguments
-      "DEPENDENCIES;INCLUDE_DIRECTORIES" # multi-valued arguments
+      "DEPENDENCIES;INCLUDE_DIRECTORIES;SYSTEMINCLUDE_DIRECTORIES" # multi-valued arguments
       ${ARGN} # arguments
   )
   CHECK_VARIABLE(PARSED_ARGS_NAME "You must provide a name")
@@ -41,8 +42,10 @@ function(O2_DEFINE_BUCKET)
 #  endforeach ()
 
   # Save this information
+  set("bucket_map_${PARSED_ARGS_NAME}" "${PARSED_ARGS_NAME}" PARENT_SCOPE) # emulation of a map
   set("bucket_map_libs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_DEPENDENCIES}" PARENT_SCOPE) # emulation of a map
   set("bucket_map_inc_dirs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_INCLUDE_DIRECTORIES}" PARENT_SCOPE) # emulation of a map
+  set("bucket_map_systeminc_dirs_${PARSED_ARGS_NAME}" "${PARSED_ARGS_SYSTEMINCLUDE_DIRECTORIES}" PARENT_SCOPE) # emulation of a map
 endfunction()
 
 macro(INDENT NUMBER_SPACES INDENTATION)
@@ -59,55 +62,80 @@ endmacro()
 # arg BUCKET_NAME -
 # arg RESULT_LIBS_VAR_NAME - Name of the variable in the parent scope that should be populated with list of libraries.
 # arg RESULT_INC_DIRS_VAR_NAME - Name of the variable in the parent scope that should be populated with list of include directories.
+# arg RESULT_SYSTEMINC_DIRS_VAR_NAME - Name of the variable in the parent scope that should be populated with list of system include directories.
 # arg DEPTH - Use 0 when calling the first time (can be omitted).
 function(GET_BUCKET_CONTENT
         BUCKET_NAME
         RESULT_LIBS_VAR_NAME
         RESULT_INC_DIRS_VAR_NAME
-        # DEPTH
+        RESULT_SYSTEMINC_DIRS_VAR_NAME
         )
-  # Check arguments
-  if (${ARGC} GREATER 3)
-    set(DEPTH ${ARGV2})
-  else ()
-    set(DEPTH 0)
-  endif ()
-  if (${DEPTH} GREATER 10)
-    message(FATAL_ERROR "It seems that you have a loop in your bucket definitions. Aborted.")
-  endif ()
-  INDENT(${DEPTH} INDENTATION)
-  if (NOT DEFINED bucket_map_libs_${BUCKET_NAME})
+  INDENT(0 INDENTATION)
+#  message("${INDENTATION}Get content of bucket ${BUCKET_NAME} (from parent(s): ${RECURSIVE_BUCKETS})")
+#  message("${INDENTATION}    RESULT_LIBS_VAR_NAME           = ${RESULT_LIBS_VAR_NAME}          ")
+#  message("${INDENTATION}    RESULT_INC_DIRS_VAR_NAME       = ${RESULT_INC_DIRS_VAR_NAME}      ")
+#  message("${INDENTATION}    RESULT_SYSTEMINC_DIRS_VAR_NAME = ${RESULT_SYSTEMINC_DIRS_VAR_NAME}")
+
+  if (NOT DEFINED bucket_map_${BUCKET_NAME})
     message(FATAL_ERROR "${INDENTATION}bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it.")
   endif ()
-
-#  message("${INDENTATION}Get content of bucket ${BUCKET_NAME}")
+  list (FIND RECURSIVE_BUCKETS ${BUCKET_NAME} _index)
+  if (${_index} GREATER -1)
+    message(FATAL_ERROR "circular dependency detected for bucket ${BUCKET_NAME} from parent(s):${RECURSIVE_BUCKETS}")
+  endif ()
 
   # Fetch the content (recursively)
   set(libs ${bucket_map_libs_${BUCKET_NAME}})
   set(inc_dirs ${bucket_map_inc_dirs_${BUCKET_NAME}})
-  set(LOCAL_RESULT_libs_${DEPTH} "")
-  set(LOCAL_RESULT_inc_dirs_${DEPTH} "")
+  set(systeminc_dirs ${bucket_map_systeminc_dirs_${BUCKET_NAME}})
+  set(LOCAL_VARIABLE_EXTENSION "_${BUCKET_NAME}")
+  set(LOCAL_RESULT_libs${LOCAL_VARIABLE_EXTENSION} "")
+  set(LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION} "")
+  set(LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION} "")
   foreach (dependency ${libs})
 #    message("${INDENTATION}- ${dependency} (lib or bucket)")
     # if it is a bucket we call recursively
-    if (DEFINED bucket_map_libs_${dependency})
-      MATH(EXPR new_depth "${DEPTH}+1")
+    if (DEFINED bucket_map_${dependency})
+      list(APPEND RECURSIVE_BUCKETS ${BUCKET_NAME})
       GET_BUCKET_CONTENT(${dependency}
-              LOCAL_RESULT_libs_${DEPTH}
-              LOCAL_RESULT_inc_dirs_${DEPTH}
-              ${new_depth})
+        LOCAL_RESULT_libs${LOCAL_VARIABLE_EXTENSION}
+        LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION}
+        LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION}
+        )
+      list(REMOVE_ITEM RECURSIVE_BUCKETS ${BUCKET_NAME})
+#      message("  ${INDENTATION}dependencies  ${LOCAL_RESULT_libs${LOCAL_VARIABLE_EXTENSION}}")
+#      message("  ${INDENTATION}include       ${LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION}}")
+#      message("  ${INDENTATION}systeminclude ${LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION}}")
     else ()
       # else we add the dependency to the results
-      set(LOCAL_RESULT_libs_${DEPTH} "${LOCAL_RESULT_libs_${DEPTH}};${dependency}")
+      set(LOCAL_RESULT_libs${LOCAL_VARIABLE_EXTENSION} "${LOCAL_RESULT_libs${LOCAL_VARIABLE_EXTENSION}};${dependency}")
     endif ()
   endforeach ()
-  set(LOCAL_RESULT_inc_dirs_${DEPTH} "${LOCAL_RESULT_inc_dirs_${DEPTH}};${inc_dirs}")
+
+  if (LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION} AND inc_dirs)
+    set(LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION} "${LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION}};")
+  endif ()
+  set(LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION} "${LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION}}${inc_dirs}")
+  if (LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION} AND systeminc_dirs)
+    set(LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION} "${LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION}};")
+  endif ()
+  set(LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION} "${LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION}}${systeminc_dirs}")
 #  foreach (inc_dir ${inc_dirs})
 #    message("${INDENTATION}- ${inc_dir} (inc_dir)")
 #  endforeach ()
+#  foreach (inc_dir ${systeminc_dirs})
+#    message("${INDENTATION}- ${inc_dir} (systeminc_dir)")
+#  endforeach ()
 
-  set(${RESULT_LIBS_VAR_NAME} "${${RESULT_LIBS_VAR_NAME}};${LOCAL_RESULT_libs_${DEPTH}}" PARENT_SCOPE)
-  set(${RESULT_INC_DIRS_VAR_NAME} "${${RESULT_INC_DIRS_VAR_NAME}};${LOCAL_RESULT_inc_dirs_${DEPTH}}" PARENT_SCOPE)
+  if (LOCAL_RESULT_libs${LOCAL_VARIABLE_EXTENSION})
+    set(${RESULT_LIBS_VAR_NAME} "${${RESULT_LIBS_VAR_NAME}};${LOCAL_RESULT_libs${LOCAL_VARIABLE_EXTENSION}}" PARENT_SCOPE)
+  endif ()
+  if (LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION})
+    set(${RESULT_INC_DIRS_VAR_NAME} "${${RESULT_INC_DIRS_VAR_NAME}};${LOCAL_RESULT_inc_dirs${LOCAL_VARIABLE_EXTENSION}}" PARENT_SCOPE)
+  endif ()
+  if (LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION})
+    set(${RESULT_SYSTEMINC_DIRS_VAR_NAME} "${${RESULT_SYSTEMINC_DIRS_VAR_NAME}};${LOCAL_RESULT_systeminc_dirs${LOCAL_VARIABLE_EXTENSION}}" PARENT_SCOPE)
+  endif ()
 endfunction()
 
 #------------------------------------------------------------------------------
@@ -138,7 +166,8 @@ function(O2_TARGET_LINK_BUCKET)
 
   set(RESULT_libs "")
   set(RESULT_inc_dirs "")
-  GET_BUCKET_CONTENT(${PARSED_ARGS_BUCKET} RESULT_libs RESULT_inc_dirs) # RESULT_lib_dirs)
+  set(RESULT_systeminc_dirs "")
+  GET_BUCKET_CONTENT(${PARSED_ARGS_BUCKET} RESULT_libs RESULT_inc_dirs RESULT_systeminc_dirs) # RESULT_lib_dirs)
 #  message(STATUS "All dependencies of the bucket : ${RESULT_libs}")
 #  message(STATUS "All inc_dirs of the bucket ${PARSED_ARGS_BUCKET} : ${RESULT_inc_dirs}")
 
@@ -150,6 +179,7 @@ function(O2_TARGET_LINK_BUCKET)
 
   # Same thing for lib_dirs and inc_dirs
   target_include_directories(${PARSED_ARGS_TARGET} PUBLIC ${RESULT_inc_dirs})
+  target_include_directories(${PARSED_ARGS_TARGET} SYSTEM PUBLIC ${RESULT_systeminc_dirs})
 endfunction()
 
 #------------------------------------------------------------------------------
@@ -353,9 +383,11 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   # Get the include directories (from the bucket and from the internal dependencies)
   set(RESULT_libs "")
   set(Int_INC "")
-  GET_BUCKET_CONTENT(${BUCKET_NAME} RESULT_libs Int_INC)
+  set(Int_SYSTEMINC "")
+  GET_BUCKET_CONTENT(${BUCKET_NAME} RESULT_libs Int_INC Int_SYSTEMINC)
   set(Int_INC ${Int_INC} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
   set(Int_INC ${Int_INC} ${GLOBAL_ALL_MODULES_INCLUDE_DIRECTORIES})
+  set(Int_INC ${Int_INC} ${Int_SYSTEMINC})
 
   # Format neccesary arguments
   # Add -I and -D to include directories and definitions
