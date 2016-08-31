@@ -113,7 +113,7 @@ generate_dictionary("${MODULE}" "" "${CINTHDRS}" "${incdirs}")
 generate_rootmap("${MODULE}" "" "")
 
 # Add a library to the project using the specified source files
-add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
+add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
 #MAD OpenCL run-time and driver
 target_link_libraries(${MODULE} amdocl64 OpenCL AliHLTTPC)
 
