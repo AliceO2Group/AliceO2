@@ -1,5 +1,7 @@
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/startFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN-distributed.sh)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}//test/testFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/testFLP2EPN-distributed.sh)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test/testFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/testFLP2EPN-distributed.sh)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/flp2epn-prototype.json ${CMAKE_BINARY_DIR}/bin/config/flp2epn-prototype.json)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/flp2epn-prototype-dds.json ${CMAKE_BINARY_DIR}/bin/config/flp2epn-prototype-dds.json)
 
 set(MODULE_NAME "FLP2EPNex_distributed")
 
@@ -32,29 +34,11 @@ Set(Exe_Names
     epnReceiver
     )
 
-if (DDS_FOUND)
-  set(Exe_Names
-      ${Exe_Names}
-      flpSyncSampler_dds
-      flpSender_dds
-      epnReceiver_dds
-      )
-endif ()
-
 set(Exe_Source
     run/runFLPSyncSampler.cxx
     run/runFLPSender.cxx
     run/runEPNReceiver.cxx
     )
-
-if (DDS_FOUND)
-  set(Exe_Source
-      ${Exe_Source}
-      runO2Prototype/runFLPSyncSampler.cxx
-      runO2Prototype/runFLPSender.cxx
-      runO2Prototype/runEPNReceiver.cxx
-      )
-endif ()
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
 if (DDS_FOUND)

@@ -5,31 +5,25 @@
  * @author D. Klein, A. Rybalchenko, M.Al-Turany
  */
 
-#include <boost/thread.hpp>
-
 #include "FairMQLogger.h"
 #include "flp2epn/O2EPNex.h"
 #include "O2FLPExContent.h"
-using namespace std;
 
 O2EPNex::O2EPNex()
 {
+  OnData("data", &O2EPNex::Process);
 }
 
-void O2EPNex::Run()
+bool O2EPNex::Process(FairMQMessagePtr& msg, int index)
 {
-  while (CheckCurrentState(RUNNING)) {
-    unique_ptr<FairMQMessage> msg(NewMessage());
+  // int numInput = msg->GetSize() / sizeof(O2FLPExContent);
+  // O2FLPExContent* input = static_cast<O2FLPExContent*>(msg->GetData());
 
-    fChannels.at("data").at(0).Receive(msg);
+  // for (int i = 0; i < numInput; ++i) {
+  //     LOG(INFO) << (&input[i])->x << " " << (&input[i])->y << " " << (&input[i])->z << " " << (&input[i])->a << " " << (&input[i])->b;
+  // }
 
-    // int numInput = msg->GetSize() / sizeof(O2FLPExContent);
-    // O2FLPExContent* input = static_cast<O2FLPExContent*>(msg->GetData());
-
-    // for (int i = 0; i < numInput; ++i) {
-    //     LOG(INFO) << (&input[i])->x << " " << (&input[i])->y << " " << (&input[i])->z << " " << (&input[i])->a << " " << (&input[i])->b;
-    // }
-  }
+  return true;
 }
 
 O2EPNex::~O2EPNex()

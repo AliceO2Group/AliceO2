@@ -5,23 +5,23 @@
 
     <property id="FLPSyncSamplerInputAddress" />
     <property id="FLPSyncSamplerOutputAddress" />
-    <property id="FLPSenderHeartbeatInputAddress" />
     <property id="EPNReceiverInputAddress" />
+    <property id="EPNReceiverOutputAddress" />
 
     <declrequirement id="FLPSyncSamplerHost">
-        <hostPattern type="hostname" value="cn48\.internal"/>
+        <hostPattern type="wnname" value="sampler"/>
     </declrequirement>
 
     <declrequirement id="FLPSenderHost">
-        <hostPattern type="hostname" value="cn(49|50|51|52)\.internal"/>
+        <hostPattern type="wnname" value="flp(00|01|02|03)"/>
     </declrequirement>
 
     <declrequirement id="EPNReceiverHost">
-        <hostPattern type="hostname" value="cn(53|54|55|56)\.internal"/>
+        <hostPattern type="wnname" value="epn(00|01|02|03)"/>
     </declrequirement>
 
     <decltask id="flpSyncSampler">
-        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/flpSyncSampler_dds --id SAMPLER0 --event-rate 100</exe>
+        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/flpSyncSampler --id flpSyncSampler --mq-config /home/arybalch/alice/AliceO2/build/bin/config/flp2epn-prototype-dds.json --log-color 0 --control dds --event-rate 100</exe>
         <requirement>FLPSyncSamplerHost</requirement>
         <properties>
             <id access="write">FLPSyncSamplerInputAddress</id>
@@ -30,22 +30,21 @@
     </decltask>
 
     <decltask id="flpSender">
-        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/flpSender_dds --id FLP%taskIndex% --event-size 100000 --num-epns ${numEPNs} --data-in-socket-type sub --data-in-method connect --test-mode 1</exe>
+        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/flpSender --id flp%taskIndex% --config-key flpSender --mq-config /home/arybalch/alice/AliceO2/build/bin/config/flp2epn-prototype-dds.json --log-color 0 --control dds --event-size 100000 --num-epns ${numEPNs} --test-mode 1</exe>
         <requirement>FLPSenderHost</requirement>
         <properties>
             <id access="read">FLPSyncSamplerOutputAddress</id>
-            <id access="write">FLPSenderHeartbeatInputAddress</id>
             <id access="read">EPNReceiverInputAddress</id>
         </properties>
     </decltask>
 
     <decltask id="epnReceiver">
-        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/epnReceiver_dds --id EPN%taskIndex% --num-flps ${numFLPs} --data-out-socket-type pub --test-mode 1</exe>
+        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/epnReceiver --id epn%taskIndex% --config-key epnReceiver --mq-config /home/arybalch/alice/AliceO2/build/bin/config/flp2epn-prototype-dds.json --log-color 0 --control dds --num-flps ${numFLPs} --test-mode 1</exe>
         <requirement>EPNReceiverHost</requirement>
         <properties>
-            <id access="read">FLPSenderHeartbeatInputAddress</id>
             <id access="write">EPNReceiverInputAddress</id>
             <id access="read">FLPSyncSamplerInputAddress</id>
+            <id access="write">EPNReceiverOutputAddress</id>
         </properties>
     </decltask>
 

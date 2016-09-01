@@ -30,6 +30,7 @@ find_package(FairMQ REQUIRED)
 
 if (DDS_FOUND)
   add_definitions(-DENABLE_DDS)
+  add_definitions(-DDDS_FOUND)
   set(OPTIONAL_DDS_LIBRARIES ${DDS_INTERCOM_LIBRARY_SHARED} ${DDS_PROTOCOL_LIBRARY_SHARED} ${DDS_USER_DEFAULTS_LIBRARY_SHARED})
   set(OPTIONAL_DDS_INCLUDE_DIR ${DDS_INCLUDE_DIR})
 endif ()
@@ -105,10 +106,17 @@ o2_define_bucket(
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
     ${ZMQ_LIBRARY_SHARED}
-    Base FairTools FairMQ fairmq_logger pthread
+    ${OPTIONAL_DDS_LIBRARIES}
+    Base
+    FairTools
+    FairMQ
+    fairmq_logger
+    pthread
+    dl
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
+    ${OPTIONAL_DDS_INCLUDE_DIR}
 )
 
 o2_define_bucket(

@@ -3,22 +3,17 @@ set(MODULE_NAME "flp2epn")
 O2_SETUP(NAME ${MODULE_NAME})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/startFLP2EPN.sh.in ${CMAKE_BINARY_DIR}/bin/startFLP2EPN.sh)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/startMerger.sh.in ${CMAKE_BINARY_DIR}/bin/startMerger.sh)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/flp2epn.json ${CMAKE_BINARY_DIR}/bin/config/flp2epn.json)
 
 
 set(HEADERS
     include/${MODULE_NAME}/O2FLPex.h
     include/${MODULE_NAME}/O2EPNex.h
-    include/${MODULE_NAME}/O2Proxy.h
-    include/${MODULE_NAME}/O2Merger.h
-    include/${MODULE_NAME}/O2EpnMerger.h
     )
 
 set(SRCS
     src/O2FLPex.cxx
     src/O2EPNex.cxx
-    src/O2Proxy.cxx
     )
 
 set(LIBRARY_NAME ${MODULE_NAME})

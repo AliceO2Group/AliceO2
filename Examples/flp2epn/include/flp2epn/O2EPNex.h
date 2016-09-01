@@ -17,8 +17,7 @@ class O2EPNex : public FairMQDevice
 
     virtual ~O2EPNex();
 
-  protected:
-    virtual void Run();
+    bool Process(std::unique_ptr<FairMQMessage>&, int);
 };
 
 #endif

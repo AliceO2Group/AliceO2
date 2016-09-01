@@ -9,12 +9,12 @@ FLP0+=" --num-content 10000"
 FLP0+=" --mq-config $flp2epnEx1config"
 xterm -geometry 80x23+0+0 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
 
-PROXY="testProxy"
+PROXY="proxy"
 PROXY+=" --id proxy"
 # PROXY+=" --transport nanomsg"
 # PROXY+=" --multipart 0"
 PROXY+=" --mq-config $flp2epnEx1config"
-xterm -geometry 80x23+500+0 -hold -e @CMAKE_BINARY_DIR@/bin/$PROXY &
+xterm -geometry 80x23+500+0 -hold -e @FAIRROOTPATH@/bin/$PROXY &
 
 EPN0="testEPN"
 EPN0+=" --id epnEx"

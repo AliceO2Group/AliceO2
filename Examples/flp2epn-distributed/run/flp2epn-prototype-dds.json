@@ -1,0 +1,70 @@
+{
+    "fairMQOptions":
+    {
+        "devices":
+        [{
+            "id": "flpSyncSampler",
+            "channels":
+            [{
+                "name": "data",
+                "type": "pub",
+                "method": "bind",
+                "property": "FLPSyncSamplerOutputAddress",
+                "rateLogging": "0"
+            },
+            {
+                "name": "ack",
+                "type": "pull",
+                "method": "bind",
+                "property": "FLPSyncSamplerInputAddress",
+                "rateLogging": "0"
+            }]
+        },
+
+        {
+            "key": "flpSender",
+            "channels":
+            [{
+                "name": "data-in",
+                "type": "sub",
+                "method": "connect",
+                "property": "FLPSyncSamplerOutputAddress",
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "data-out",
+                "type": "push",
+                "method": "connect",
+                "numSockets": "5",
+                "property": "EPNReceiverInputAddress",
+                "sndBufSize": "10"
+            }]
+        },
+
+        {
+            "key": "epnReceiver",
+            "channels":
+            [{
+                "name": "data-in",
+                "type": "pull",
+                "method": "bind",
+                "property": "EPNReceiverInputAddress",
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "data-out",
+                "type": "pub",
+                "method": "bind",
+                "property": "EPNReceiverOutputAddress",
+                "sndBufSize": "10"
+            },
+            {
+                "name": "ack",
+                "type": "push",
+                "method": "connect",
+                "property": "FLPSyncSamplerInputAddress",
+                "rateLogging": "0"
+            }]
+        }]
+    }
+}

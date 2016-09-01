@@ -11,7 +11,9 @@
 #include <string>
 #include <cstdint> // UINT64_MAX
 
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <thread>
+#include <atomic>
+#include <chrono>
 
 #include "FairMQDevice.h"
 
@@ -22,8 +24,8 @@ namespace Devices {
 
 struct timeframeDuration
 {
-    boost::posix_time::ptime start;
-    boost::posix_time::ptime end;
+    std::chrono::steady_clock::time_point start;
+    std::chrono::steady_clock::time_point end;
 };
 
 /// Publishes timeframes IDs for flpSenders (used only in test mode)
@@ -31,14 +33,6 @@ struct timeframeDuration
 class FLPSyncSampler : public FairMQDevice
 {
   public:
-    enum
-    {
-        EventRate = FairMQDevice::Last, ///< Publishing rate of the timeframe IDs
-        MaxEvents, ///< Maximum number of events to send (0 - unlimited)
-        StoreRTTinFile, ///< Store round trip time measurements in a file
-        Last
-    };
-
     /// Default constructor
     FLPSyncSampler();
 
@@ -51,40 +45,24 @@ class FLPSyncSampler : public FairMQDevice
     /// Listens for acknowledgements from the epnReceivers when they collected full timeframe
     void ListenForAcks();
 
-    /// Set Device properties stored as strings
-    /// @param key      Property key
-    /// @param value    Property value
-    virtual void SetProperty(const int key, const std::string &value);
-
-    /// Get Device properties stored as strings
-    /// @param key      Property key
-    /// @param default_ not used
-    /// @return         Property value
-    virtual std::string GetProperty(const int key, const std::string &default_ = "");
-
-    /// Set Device properties stored as integers
-    /// @param key      Property key
-    /// @param value    Property value
-    virtual void SetProperty(const int key, const int value);
-
-    /// Get Device properties stored as integers
-    /// @param key      Property key
-    /// @param default_ not used
-    /// @return         Property value
-    virtual int GetProperty(const int key, const int default_ = 0);
-
   protected:
     /// Overloads the InitTask() method of FairMQDevice
     virtual void InitTask();
 
     /// Overloads the Run() method of FairMQDevice
-    virtual void Run();
+    virtual bool ConditionalRun();
+    virtual void PreRun();
+    virtual void PostRun();
 
     std::array<timeframeDuration, UINT16_MAX> fTimeframeRTT; ///< Container for the roundtrip values per timeframe ID
     int fEventRate; ///< Publishing rate of the timeframe IDs
     int fMaxEvents; ///< Maximum number of events to send (0 - unlimited)
     int fStoreRTTinFile; ///< Store round trip time measurements in a file.
     int fEventCounter; ///< Controls the send rate of the timeframe IDs
+    uint16_t fTimeFrameId;
+    std::thread fAckListener;
+    std::thread fResetEventCounter;
+    std::atomic<bool> fLeaving;
 };
 
 } // namespace Devices
