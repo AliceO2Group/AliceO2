@@ -23,24 +23,19 @@
 #include <cerrno>
 #include <set>
 #include <map>
+#include <exception>
+#include <stdexcept>
 
 namespace AliceO2 {
 
-/** TODO:
-    - ensure that _ValueType is not a float type
-    - max value at compile time depending on bit width of _CodeType
-    - generalization of the alphabet to be encoded, e.g. alphabet policy with
-      an iterator of the valid elements of the alphabet. This would then
-      also allow symbol ranges other then 0 to some max value
-
-    - class StorageType as template parameter for Alphabet type
-    - code direction can be a property of the node, assignment loop can be
-      simplified by a specialized implementation of operator<<=, alternatively
-      a struct combining code value and length and assignment operator=
-    - right now, the code direction in assignCode is fixed by the default of
-      the order template argument
-*/
-
+/**
+ * @class HuffmanNode
+ * @brief Container holding information to build Huffman tree
+ *
+ * The container holds information about child nodes in the tree, the
+ * accumulated weight (probability) according to coding model. Leave node, i.e.
+ * the end of the tree branches, also contain the Huffman code after assignment.
+ */
 template<typename _CodeType>
 class HuffmanNode {
 public:
@@ -101,7 +96,6 @@ public:
     level--;
   }
 
-
 private:
   pointer mLeft;
   pointer mRight;
@@ -111,51 +105,127 @@ private:
   uint16_t mCodeLen;
 };
 
+/**
+ * @class HuffmanCodec
+ * @brief Main class of the Huffman codec implementation
+ *
+ * The codec forwards the encoding/decoding requests to the implementation of
+ * the coding model.
+ *
+ * TODO:
+ * - Multi parameter support
+ * - Interface methods to methods of the instances of the coding model
+ */
 template<
-  class    _AlphabetType,
-  typename _NodeType
+  typename _CodingModel
   >
 class HuffmanCodec {
  public:
-  HuffmanCodec() : mAlphabet(), mLeaveNodes(), mLeaveNodeIndex(), mValueIndex(), mTreeNodes() {}
+  HuffmanCodec(const _CodingModel& model) : mCodingModel(model) {}
   ~HuffmanCodec() {}
 
-  typedef typename _NodeType::CodeType _CodeType;
+  /// Return Huffman code for a value
+  template<typename CodeType, typename ValueType>
+  const bool Encode(ValueType v, CodeType& code, uint16_t& codeLength) const {
+    code = mCodingModel.Encode(v, codeLength);
+    return true;
+  }
 
-  /// Return huffman code for a value
-  const _CodeType Encode(typename _AlphabetType::value_type v, uint16_t& codeLength) const {
+  template<typename ReturnType, typename CodeType, bool orderMSB = true>
+  bool Decode(ReturnType& v, CodeType code, uint16_t& codeLength) const {
+    v = mCodingModel.Decode(code, codeLength);
+    return true;
+  }
+
+ private:
+  HuffmanCodec(); //forbidden
+  _CodingModel mCodingModel;
+};
+
+/**
+ * @class Huffman model
+ * @brief Probability model implementing Huffman functionality
+ * This is a mixin class which extends the ProbabilityModel base
+ *
+ * TODO:
+ * - Alphabet object: right now only a default object of the alphabet is
+ *   supported, all functionality needs to be implemented in the type
+ * - assignment loop can be simplified by a specialized implementation of operator<<=,
+ *   alternatively a struct combining code value and length and assignment operator=
+ * - type traits for code_type to provide set and reset functions for primitive
+ *   data types
+ * - check max length possible by code_type to be compatible with required length
+ * - class StorageType as template parameter for Alphabet type
+ * - error policy
+ */
+template<typename _BASE, typename _NodeType, bool _orderMSB = true>
+class HuffmanModel : public _BASE {
+public:
+  HuffmanModel() : mAlphabet(), mLeaveNodes(), mLeaveNodeIndex(), mValueIndex(), mTreeNodes() {}
+  ~HuffmanModel() {}
+
+  typedef _BASE                                base_type;
+  typedef class HuffmanModel<_BASE, _NodeType> self_type;
+  typedef typename _BASE::value_type value_type;
+  typedef typename _NodeType::CodeType code_type;
+  static constexpr bool orderMSB = _orderMSB;
+
+  int init(double v = 1.) {return _BASE::initWeight(mAlphabet, v);}
+
+  /**
+   * Encode value
+   *
+   * @arg symbol     [in]  symbol to be encoded
+   * @arg codeLength [OUT] code length, number of LSBs
+   * @return Huffman code, valid if codeLength > 0
+   */
+  code_type Encode(typename _BASE::value_type symbol, uint16_t& codeLength) const {
     codeLength = 0;
-    auto nodeIndex = mLeaveNodeIndex.find(v);
+    auto nodeIndex = mLeaveNodeIndex.find(symbol);
     if (nodeIndex != mLeaveNodeIndex.end() && nodeIndex->second < mLeaveNodes.size()) {
       // valid symbol/value
       codeLength = mLeaveNodes[nodeIndex->second].getBinaryCodeLength();
       return mLeaveNodes[nodeIndex->second].getBinaryCode();
     } else {
-      // TODO: error policy: invalid value
+      std::string msg = "symbol "; msg += symbol;
+      msg += " not found in alphapet "; msg += _BASE::getName();
+      throw std::range_error(msg);
     }
 
-    static const _CodeType dummy = 0;
+    static const code_type dummy = 0;
     return dummy;
   }
 
-  template<bool orderMSB = true>
-  typename _AlphabetType::value_type Decode(_CodeType code, uint16_t& codeLength) const {
+  /**
+   * Decode bit pattern
+   *
+   * The caller provides a bit field determined by the class' template parameter,
+   * The number of decoded bits is indicated in the codeLength parameter after decoding.
+   * @arg code        [in]  code bits
+   * @arg codeLength  [OUT] number of decoded bits
+   * @return value, valid if codeLength > 0
+   */
+  value_type Decode(code_type code, uint16_t& codeLength) const {
     codeLength = 0;
-    typename _AlphabetType::value_type v = 0;
+    typename _BASE::value_type v = 0;
     const _NodeType* node = *mTreeNodes.begin();
     uint16_t codeMSB = code.size() - 1;
     while (node) {
+      // N.B.: nodes have either both child nodes or none of them
       if (node->getLeftChild() == nullptr) {
-	// this is a leave node
-	if (mValueIndex.find(node->getIndex()) != mValueIndex.end()) {
-	  return mValueIndex.find(node->getIndex())->second;
-	}
-	// something wrong here
-	break;
+        // this is a leave node, find the value for the corresponding
+        // index in the value map
+        if (mValueIndex.find(node->getIndex()) != mValueIndex.end()) {
+          return mValueIndex.find(node->getIndex())->second;
+        }
+        // something wrong here
+        throw std::range_error("the index is not known in the map of values");
+        break;
       }
       if (codeLength > codeMSB) {
-	// something wrong here
-	break;
+        // the size of the code type is shorter than the Huffman tree length
+        throw std::range_error("code type length insufficient for Huffman tree length");
+        break;
       }
       bool bit = false;
       if (orderMSB) bit = code.test(codeMSB - codeLength);
@@ -186,25 +256,28 @@ class HuffmanCodec {
    * TODO: separate data structures for tree and leaf nodes to optimize
    * storage
    */
-  template<
-    class ProbabilityModel
-    >
-  bool GenerateHuffmanTree(ProbabilityModel model) {
+  bool GenerateHuffmanTree() {
     mLeaveNodes.clear();
     mLeaveNodeIndex.clear();
+
+    // probability model provides map of {symbol, weight}-pairs
+    uint16_t index = 0;
+    _BASE& model = *this;
+    for ( auto i : model) {
+      // create nodes knowing about their index and the symbol weight
+      mLeaveNodes.push_back(_NodeType(i.second, index));
+      // map of {symbol, index}-pairs
+      mLeaveNodeIndex[i.first] = index;
+      // map of {index, symbol}-pairs
+      mValueIndex[index++] = i.first;
+    }
+
     // insert pointer to nodes into ordered structure to build tree
     // since the type is a pointer, a specific 'less' functor needs to
     // be provided to dereference before applying operator<
-    uint16_t index = 0;
-    for ( auto i : model) {
-      mLeaveNodes.push_back(_NodeType(i.second, index));
-      mLeaveNodeIndex[i.first] = index;
-      mValueIndex[index++] = i.first;
-    }
     for ( auto &i : mLeaveNodes) {
       mTreeNodes.insert(&(i));
     }
-  
     while (mTreeNodes.size() > 1) {
       // create new node combining the two with lowest probability
       _NodeType* combinedNode=new _NodeType(*mTreeNodes.begin(), *++mTreeNodes.begin());
@@ -214,36 +287,32 @@ class HuffmanCodec {
       // insert the new node according to the less functor
       mTreeNodes.insert(combinedNode);
     }
-    _NodeType* topNode = *mTreeNodes.begin();
     //assign value
-    assignCode(topNode);
-    topNode->print();
+    assignCode(*mTreeNodes.begin());
     return true;
   }
 
   /**
-     TODO: implement iterator concept
+   * assign code to this node loop to right and left nodes
+   *
+   * Code direction is determined by template parameter _orderMSB being either
+   * true or false.
+   * Code can be built up in two directions, either with the bit of the parent
+   * node in the MSB or LSB. In the latter case, the bit of the parent node
+   * has to be right of the bit of child nodes, i.e. bits correspond to the
+   * current code length. A bit stream storing bits from MSB to LSB and then
+   * overwrapping to the MSBs of the next byte, requires to code to start with
+   * MSB.
+   *
+   * TODO: implement iterator concept
    */
-  template<
-    class NodeType = _NodeType,
-    bool  OrderMSB = true
-    >
-  int assignCode(NodeType* node) {
-    /// assign code to this node loop to right and left nodes
-    /// code can be built up in two directions, either with the bit of the parent
-    /// node in the MSB or LSB. In the latter case, the bit of the parent node
-    /// has to be right of the bit of child nodes, i.e. bits correspond to the
-    /// current code length. A bit stream storing bits from MSB to LSB and then
-    /// overwrapping to the MSBs of the next byte, requires to code to start with
-    /// MSB.
-    /// TODO: type traits for _CodeType to povide set and reset functions for
-    /// primitive data types
+  int assignCode(_NodeType* node) {
     if (node == nullptr) return 0;
     int codelen = node->getBinaryCodeLength();
     int retcodelen = codelen;
     if (node->getLeftChild()) {// bit '1' branch
-      _CodeType c = node->getBinaryCode();
-      if (OrderMSB) {// note: this is a compile time switch
+      code_type c = node->getBinaryCode();
+      if (orderMSB) {// note: this is a compile time switch
         c <<= 1;
         c.set(0);
       } else {
@@ -252,11 +321,11 @@ class HuffmanCodec {
       node->getLeftChild()->setBinaryCode(codelen+1, c);
       int branchlen = assignCode(node->getLeftChild());
       if (retcodelen < branchlen)
-	retcodelen = branchlen;
+        retcodelen = branchlen;
     }
     if (node->getRightChild()) {// bit '0' branch
-      _CodeType c = node->getBinaryCode();
-      if (OrderMSB) {
+      code_type c = node->getBinaryCode();
+      if (orderMSB) {
         c<<=1;
         c.reset(0);
       } else {
@@ -265,19 +334,30 @@ class HuffmanCodec {
       node->getRightChild()->setBinaryCode(codelen+1, c);
       int branchlen = assignCode(node->getRightChild());
       if (retcodelen < branchlen)
-	retcodelen = branchlen;
+        retcodelen = branchlen;
     }
     return retcodelen;
   }
 
- private:
-  _AlphabetType* mAlphabet;
-  std::vector<_NodeType> mLeaveNodes;
-  std::map<typename _AlphabetType::value_type, uint16_t > mLeaveNodeIndex;
-  std::map<uint16_t , typename _AlphabetType::value_type> mValueIndex;
-  std::multiset<_NodeType*, pless<_NodeType*> > mTreeNodes;
+  void print() const {
+    if (mTreeNodes.size() > 0) {
+      _NodeType* topNode = *mTreeNodes.begin();
+      topNode->print();
+    }
+  };
 
+private:
+  // the alphabet, determined by template parameter
+  typename _BASE::alphabet_type mAlphabet;
+  // Huffman leave nodes containing symbol index to code mapping
+  std::vector<_NodeType> mLeaveNodes;
+  // map of {symbol, index}-pairs
+  std::map<typename _BASE::value_type, uint16_t > mLeaveNodeIndex;
+  // map of {index, symbol}-patrs
+  std::map<uint16_t , typename _BASE::value_type> mValueIndex;
+  // multiset, order determined by less functor working on pointers
+  std::multiset<_NodeType*, pless<_NodeType*> > mTreeNodes;
 };
-};
+}; // namespace AliceO2
 
 #endif
