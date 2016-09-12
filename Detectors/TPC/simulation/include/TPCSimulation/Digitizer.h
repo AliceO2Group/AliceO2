@@ -6,9 +6,13 @@
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/HitContainer.h"
 #include "TPCSimulation/PadHit.h"
+#include "TPCSimulation/PadResponse.h"
 
 #include "Rtypes.h"
 #include "TObject.h"
+#include "TF1.h"
+
+using std::vector;
 
 class TClonesArray;
 
@@ -45,6 +49,20 @@ namespace AliceO2{
       /// Simulation of the GEM response
       /// @return Number of electrons after GEM amplification taking into account exponential fluctuations of the gain
       Float_t GEMAmplification();
+      
+      
+      /// Simulation of the GEM response of a single GEM
+      /// @param nEle Number of incoming electrons
+      /// @param gain Gain of the single GEM, should go to OCDB
+      /// @return Number of electrons after GEM amplification taking into account fluctuations of the gain according to a Polya distribution
+      Int_t SingleGEMAmplification(Int_t nEle, Float_t gain);
+      
+      
+      /// Pad Response
+      /// @param xabs Position in x
+      /// @param yabs Position in y
+      /// @return Vector with PadResponse objects with pad and row position and the correponding fraction of the induced signal
+      vector< PadResponse*> getPadResponse(Float_t xabs, Float_t yabs);
       
       
       /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,6 +103,7 @@ namespace AliceO2{
       Digitizer(const Digitizer &);
       Digitizer &operator=(const Digitizer &);
 
+      TF1                     *mPolya;
       DigitContainer          *mDigitContainer;
       HitContainer            *mHitContainer;
       std::vector < PadHit* > mPadHit;

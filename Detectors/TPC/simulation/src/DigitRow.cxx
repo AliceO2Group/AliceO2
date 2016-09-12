@@ -1,7 +1,5 @@
 #include "TPCSimulation/DigitRow.h"
 #include "TPCSimulation/DigitPad.h"
-#include "TPCBase/Mapper.h"
-
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
 

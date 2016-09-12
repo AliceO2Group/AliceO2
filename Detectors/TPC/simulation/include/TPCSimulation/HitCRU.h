@@ -47,7 +47,7 @@ namespace AliceO2 {
             /// Sort hits in pad plane vector
             /// @param padHits Output container
             /// @param cruID CRU ID
-            void getHits(std::vector < AliceO2::TPC::PadHit* > &padHits, Int_t cruID);
+            void getHits(std::vector < PadHit* > &padHits, Int_t cruID);
             
         private:
             Int_t               mCRUID;

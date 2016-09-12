@@ -61,7 +61,17 @@ class Detector: public AliceO2::Base::Detector {
                              TVector3 pos, TVector3 mom,
                              Double_t time, Double_t length,
                              Double_t eLoss);
+    
 
+    /// Copied from AliRoot - should go to someplace else
+    
+    /// Empirical ALEPH parameterization of the Bethe-Bloch formula, normalized to 1 at the minimum.
+    /// @param bg Beta*Gamma of the incident particle
+    /// @param kp* Parameters for the ALICE TPC
+    /// @return Bethe-Bloch value in MIP units
+    Double_t BetheBlochAleph(Double_t bg, Double_t kp1, Double_t kp2, Double_t kp3, Double_t kp4, Double_t kp5);
+
+    
     /** The following methods can be implemented if you need to make
      *  any optional action in your detector during the transport.
     */

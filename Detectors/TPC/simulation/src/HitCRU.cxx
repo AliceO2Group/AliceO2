@@ -1,11 +1,8 @@
 #include "TPCSimulation/HitCRU.h"
 #include "TPCSimulation/HitRow.h"
 #include "TPCBase/Mapper.h"
-
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
-
-#include <iostream>
 
 HitCRU::HitCRU(Int_t cruID, Int_t nrows):
 mCRUID(cruID),
@@ -38,7 +35,7 @@ void HitCRU::reset(){
   }
 }
 
-void HitCRU::getHits(std::vector < AliceO2::TPC::PadHit* > &padHits, Int_t cruID){
+void HitCRU::getHits(std::vector < PadHit* > &padHits, Int_t cruID){
   for(std::vector<HitRow*>::iterator iterRow = mRows.begin(); iterRow != mRows.end(); ++iterRow) {
     if((*iterRow) == nullptr) continue;
     (*iterRow)->getHits(padHits, cruID, (*iterRow)->getRow());

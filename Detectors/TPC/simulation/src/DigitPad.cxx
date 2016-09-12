@@ -1,8 +1,5 @@
 #include "TPCSimulation/DigitTime.h"
 #include "TPCSimulation/DigitPad.h"
-#include <iostream>
-#include "TPCBase/Mapper.h"
-
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
 
@@ -18,15 +15,16 @@ DigitPad::~DigitPad(){
 }
 
 void DigitPad::setDigit(Int_t time, Float_t charge){
+  //if time bin outside specified range, the range of the vector is extended by one full drift time.
+  while(int(mTimeBins.size()) <= time){
+    mTimeBins.resize(int(mTimeBins.size()) + 500);
+  }
+
   DigitTime *result = mTimeBins[time];
   if(result != nullptr){
     mTimeBins[time]->setDigit(charge);
   }
   else{
-    //if time bin outside specified range, the range of the vector is extended by one full drift time.
-    while(int(mTimeBins.size()) <= time){
-      mTimeBins.resize(int(mTimeBins.size()) + 500);
-    }
     mTimeBins[time] = new DigitTime(time);
     mTimeBins[time]->setDigit(charge);
   }

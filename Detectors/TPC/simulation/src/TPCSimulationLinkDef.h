@@ -30,4 +30,6 @@
 #pragma link C++ class AliceO2::TPC::PadHit+;
 #pragma link C++ class AliceO2::TPC::PadHitTime+;
 
+#pragma link C++ class AliceO2::TPC::PadResponse+;
+
 #endif

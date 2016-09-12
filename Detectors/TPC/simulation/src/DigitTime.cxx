@@ -2,8 +2,6 @@
 #include "TPCSimulation/DigitADC.h"
 #include "TPCSimulation/Digit.h"
 #include "TClonesArray.h"
-#include "TPCBase/Mapper.h"
-
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
 
@@ -28,7 +26,7 @@ void DigitTime::reset(){
 
 void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID, Int_t timeBin){
   //TODO: Store parameters elsewhere
-  Float_t ADCSat = 1024;
+  Float_t ADCSat = 1023;
  
   mADC = 0;
   for(std::vector<DigitADC*>::iterator iterADC = mADCCounts.begin(); iterADC != mADCCounts.end(); ++iterADC) {

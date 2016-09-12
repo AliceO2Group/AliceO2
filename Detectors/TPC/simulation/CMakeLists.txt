@@ -29,6 +29,7 @@ set(SRCS
    src/HitCharge.cxx
    src/PadHitTime.cxx
    src/PadHit.cxx
+   src/PadResponse.cxx
 )
 
 set(HEADERS
@@ -56,6 +57,7 @@ set(HEADERS
    include/${MODULE_NAME}/HitCharge.h
    include/${MODULE_NAME}/PadHitTime.h
    include/${MODULE_NAME}/PadHit.h
+   include/${MODULE_NAME}/PadResponse.h
 )
 Set(LINKDEF src/TPCSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})

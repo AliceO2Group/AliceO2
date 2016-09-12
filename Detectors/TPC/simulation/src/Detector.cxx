@@ -22,6 +22,7 @@
 #include "TSystem.h"
 #include "TClonesArray.h"
 #include "TVirtualMC.h"
+#include "TVectorD.h"
 
 #include "TFile.h"
 
@@ -129,7 +130,25 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     stack->AddPoint(kAliTpc);
 
   }
+  
+  // ________________________________________________________________________________________________
+  // Energy loss à la NA49
+  
+  Float_t prim = 14; // number of electron/ion pairs per MIP and cm. Should go to parameter space. 
+  
+  Float_t pp;
+  
+  Float_t betaGamma = mMomentum.Rho()/TVirtualMC::GetMC()->TrackMass();
+  betaGamma = TMath::Max(betaGamma,(Float_t)7.e-3); // protection against too small bg
 
+//   TVectorD *bbpar = fTPCParam->GetBetheBlochParametersMC(); //get parametrization from OCDB
+//   pp=prim*BetheBlochAleph(betaGamma,(*bbpar)(0),(*bbpar)(1),(*bbpar)(2),(*bbpar)(3),(*bbpar)(4));         
+  
+  pp=prim*BetheBlochAleph(betaGamma,0.76176e-1, 10.632, 0.13279e-4, 1.8631, 1.9479);  // params hardcoded for the time being...
+  
+  Double_t rnd = TVirtualMC::GetMC()->GetRandom()->Rndm();
+  TVirtualMC::GetMC()->SetMaxStep(-TMath::Log(rnd)/pp);
+  
   return kTRUE;
 }
 
@@ -2912,6 +2931,18 @@ Point* Detector::AddHit(Int_t trackID, Int_t detID,
   Int_t size = clref.GetEntriesFast();
   return new(clref[size]) Point(trackID, detID, pos, mom,
          time, length, eLoss);
+}
+
+
+Double_t Detector::BetheBlochAleph(Double_t bg, Double_t kp1, Double_t kp2, Double_t kp3, Double_t kp4, Double_t kp5){
+  Double_t beta = bg/TMath::Sqrt(1.+ bg*bg);
+
+  Double_t aa = TMath::Power(beta,kp4);
+  Double_t bb = TMath::Power(1./bg,kp5);
+
+  bb=TMath::Log(kp3+bb);
+  
+  return (kp2-aa-bb)*kp1/aa;
 }
 
 ClassImp(AliceO2::TPC::Detector)

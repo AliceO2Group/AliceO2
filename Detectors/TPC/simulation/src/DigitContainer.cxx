@@ -1,6 +1,5 @@
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/DigitCRU.h"
-#include "TPCSimulation/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CRU.h"
 

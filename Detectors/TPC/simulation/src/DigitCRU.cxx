@@ -1,6 +1,5 @@
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/DigitRow.h"
-#include "TPCSimulation/DigitPad.h"
 #include "TPCBase/Mapper.h"
 
 #include "FairLogger.h"

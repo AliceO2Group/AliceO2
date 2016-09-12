@@ -34,6 +34,7 @@ void HitRow::reset(){
   }
 }
 
+
 void HitRow::getHits(std::vector < PadHit* > &padHits, Int_t cruID, Int_t rowID){
   for(std::vector<HitPad*>::iterator iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
     if((*iterPad) == nullptr) continue;
