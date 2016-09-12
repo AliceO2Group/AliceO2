@@ -167,7 +167,8 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
   FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 1); /*protons*/
 
-  boxGen->SetThetaRange(0.0, 90.0);
+  //boxGen->SetThetaRange(0.0, 90.0);
+  boxGen->SetEtaRange(-0.9,0.9);
   boxGen->SetPRange(100, 100.01);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kTRUE);
