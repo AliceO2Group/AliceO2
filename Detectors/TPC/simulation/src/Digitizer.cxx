@@ -1,14 +1,19 @@
-/// \file AliTPCUpgradeDigitizer.cxx
+/// \file Digitizer.cxx
 /// \brief Digitizer for the TPC
 #include "TPCSimulation/Digitizer.h"
-#include "TPCSimulation/Point.h"                // for Point
-#include "TRandom.h"
+#include "TPCSimulation/Point.h"
+#include "TPCSimulation/PadResponse.h"
 
-#include "FairLogger.h"           // for LOG
-#include "TClonesArray.h"         // for TClonesArray
-#include "TCollection.h"          // for TIter
 #include "TPCBase/Mapper.h"
+
+#include "TRandom.h"
+#include "TF1.h"
+#include "TClonesArray.h"
+#include "TCollection.h"
 #include "TMath.h"
+
+#include "FairLogger.h"
+
 #include <cmath>
 #include <iostream>
 
@@ -18,17 +23,26 @@ using namespace AliceO2::TPC;
 
 Digitizer::Digitizer():
 TObject(),
+mPolya(nullptr),
 mDigitContainer(nullptr),
 mHitContainer(nullptr)
 {}
 
 Digitizer::~Digitizer(){
-  if(mDigitContainer) delete mDigitContainer;
-  if(mHitContainer) delete mHitContainer;
+  delete mDigitContainer;
+  delete mHitContainer;
+  delete mPolya;
 }
 
 void Digitizer::init(){
   mDigitContainer = new DigitContainer();
+  //Double_t SigmaOverMu = 0.78;
+  //Double_t kappa = 1/(SigmaOverMu*SigmaOverMu);
+  //Double_t s = 1/kappa;
+  
+  //char strPolya[1000];
+  //snprintf(strPolya,1000,"1/(TMath::Gamma(%e)*%e) *pow(x/%e, (%e)) *exp(-x/%e)", kappa, s, s, kappa-1, s);
+  //mPolya = new TF1("polya", "1/x", 0, 1000);
 }
 
 DigitContainer *Digitizer::Process(TClonesArray *points){
@@ -54,6 +68,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
     posEle[2] = inputpoint->GetZ();
     posEle[3] = static_cast<int>(inputpoint->GetEnergyLoss()/wIon);
     Int_t count = 0;
+    
     //Loop over electrons
     for(Int_t iEle=0; iEle < posEle[3]; ++iEle){
       
@@ -71,12 +86,24 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
       const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posElePad);
 
       if(!digiPadPos.isValid()) continue;
-
-      // GEM response
-      // here the pad response will be applied
-
-      // Sort pad hits into HitContainer
-      mHitContainer->addHit(digiPadPos.getCRU().number(), digiPadPos.getPadPos().getRow(), digiPadPos.getPadPos().getPad(), getTimeBin(posEle[2]), GEMAmplification());
+      
+      // GEM amplification
+      // Gain values taken from TDR addendum - to be put someplace else
+      Int_t nEleGEM1 = SingleGEMAmplification(1, 9.1);
+      Int_t nEleGEM2 = SingleGEMAmplification(nEleGEM1, 0.88);
+      Int_t nEleGEM3 = SingleGEMAmplification(nEleGEM2, 1.66);
+      Int_t nEleGEM4 = SingleGEMAmplification(nEleGEM4, 144);
+      
+      // Loop over all individual pads with signal due to pad response function
+      vector< PadResponse*> padResponse = getPadResponse(posEle[0], posEle[1]);
+      for(auto iterPRF = padResponse.begin(); iterPRF != padResponse.end(); ++iterPRF){
+        Int_t pad = digiPadPos.getPadPos().getPad() + (*iterPRF)->getPad();
+        Int_t row = digiPadPos.getPadPos().getRow() + (*iterPRF)->getRow();
+        Double_t weight = (*iterPRF)->getWeight();
+        
+        mHitContainer->addHit(digiPadPos.getCRU().number(), row, pad, getTimeBin(posEle[2]), nEleGEM4*weight);
+      }
+      // end of loop over individual pads
     }
     //end of loop over electrons
   }
@@ -85,10 +112,10 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
   mHitContainer->getHits(mPadHit);
   delete mHitContainer;
   
-  for(std::vector<PadHit*>::iterator iter = mPadHit.begin(); iter != mPadHit.end(); ++iter){
-    std::vector<PadHitTime*> mTimeHits = (*iter)->getTimeHit(); //retrieve time bin hit on that pad
+  for(vector<PadHit*>::iterator iter = mPadHit.begin(); iter != mPadHit.end(); ++iter){
+    vector<PadHitTime*> mTimeHits = (*iter)->getTimeHit(); //retrieve time bin hit on that pad
     
-    for(std::vector<PadHitTime*>::iterator iterTime = mTimeHits.begin(); iterTime != mTimeHits.end(); ++iterTime){
+    for(vector<PadHitTime*>::iterator iterTime = mTimeHits.begin(); iterTime != mTimeHits.end(); ++iterTime){
       
       // loop over individual time bins and apply time response function
       Float_t startTime = getTimeFromBin((*iterTime)->getTime())+0.5*zBinWidth;
@@ -98,7 +125,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
       }
     }
   }
-    
+
   return mDigitContainer;
 }
 
@@ -128,6 +155,21 @@ Float_t Digitizer::GEMAmplification(){
   return signal;
 }
 
+
+Int_t Digitizer::SingleGEMAmplification(Int_t nEle, Float_t gain){
+//   return static_cast<int>(static_cast<float>(nEle)*gain*mPolya->GetRandom());
+  return static_cast<int>(static_cast<float>(nEle)*gain);
+}
+
+
+vector< PadResponse*> Digitizer::getPadResponse(Float_t xabs, Float_t yabs){
+  vector < PadResponse* >  mPadResponse;
+
+  // purely projective for the time being!
+  PadResponse *padHit = new PadResponse(0, 0, 1);
+  mPadResponse.push_back(padHit);
+  return mPadResponse;
+}
 
 
 
