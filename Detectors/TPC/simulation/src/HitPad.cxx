@@ -18,15 +18,16 @@ HitPad::~HitPad(){
 }
 
 void HitPad::setHit(Int_t time, Float_t charge){
+  //if time bin outside specified range, the range of the vector is extended by one full drift time.
+  while(int(mTimeBins.size()) <= time){
+    mTimeBins.resize(int(mTimeBins.size()) + 500);
+  }
+
   HitTime *result = mTimeBins[time];
   if(result != nullptr){
     mTimeBins[time]->setHit(charge);
   }
   else{
-    //if time bin outside specified range, the range of the vector is extended by one full drift time.
-    while(int(mTimeBins.size()) <= time){
-      mTimeBins.resize(int(mTimeBins.size()) + 500);
-    }
     mTimeBins[time] = new HitTime(time);
     mTimeBins[time]->setHit(charge);
   }
