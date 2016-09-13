@@ -92,7 +92,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
       Int_t nEleGEM1 = SingleGEMAmplification(1, 9.1);
       Int_t nEleGEM2 = SingleGEMAmplification(nEleGEM1, 0.88);
       Int_t nEleGEM3 = SingleGEMAmplification(nEleGEM2, 1.66);
-      Int_t nEleGEM4 = SingleGEMAmplification(nEleGEM4, 144);
+      Int_t nEleGEM4 = SingleGEMAmplification(nEleGEM3, 144);
       
       // Loop over all individual pads with signal due to pad response function
       vector< PadResponse*> padResponse = getPadResponse(posEle[0], posEle[1]);

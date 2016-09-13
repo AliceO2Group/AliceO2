@@ -95,7 +95,9 @@ void Detector::Initialize()
 Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
   /** This method is called from the MC stepping */
-//   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
+  //   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
+  if(TMath::Abs(TVirtualMC::GetMC()->TrackCharge())<=0.) return kFALSE; // take only charged particles
+
   //Set parameters at entrance of volume. Reset ELoss.
   if ( TVirtualMC::GetMC()->IsTrackEntering() ) {
     mEnergyLoss  = 0.;
