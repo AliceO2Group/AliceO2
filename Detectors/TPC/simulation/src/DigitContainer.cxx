@@ -13,20 +13,23 @@ DigitContainer::DigitContainer():
 mCRU(CRU::MaxCRU)
 {}
 
-DigitContainer::~DigitContainer(){
+DigitContainer::~DigitContainer()
+{
   for(int icru = 0; icru < CRU::MaxCRU; ++icru){
     delete mCRU[icru];
   }
 }
 
-void DigitContainer::reset(){
-  for(std::vector<DigitCRU*>::iterator iterCRU = mCRU.begin(); iterCRU != mCRU.end(); ++iterCRU) {
+void DigitContainer::reset()
+{
+  for(auto iterCRU = mCRU.begin(); iterCRU != mCRU.end(); ++iterCRU) {
     if((*iterCRU) == nullptr) continue;
     (*iterCRU)->reset();
   }
 }
 
-void DigitContainer::addDigit(Int_t cru, Int_t row, Int_t pad, Int_t time, Float_t charge){
+void DigitContainer::addDigit(Int_t cru, Int_t row, Int_t pad, Int_t time, Float_t charge)
+{
   DigitCRU *result = mCRU[cru];
   if(result != nullptr){
     mCRU[cru]->setDigit(row, pad, time, charge);
@@ -39,8 +42,9 @@ void DigitContainer::addDigit(Int_t cru, Int_t row, Int_t pad, Int_t time, Float
 }
 
 
-void DigitContainer::fillOutputContainer(TClonesArray *output){
-  for(std::vector<DigitCRU*>::iterator iterCRU = mCRU.begin(); iterCRU != mCRU.end(); ++iterCRU) {
+void DigitContainer::fillOutputContainer(TClonesArray *output)
+{
+  for(auto iterCRU = mCRU.begin(); iterCRU != mCRU.end(); ++iterCRU) {
     if((*iterCRU) == nullptr) continue;
     (*iterCRU)->fillOutputContainer(output, (*iterCRU)->getCRUID());
   }

@@ -8,13 +8,15 @@ mRowID(rowID),
 mPads(npads)
 {}
 
-DigitRow::~DigitRow(){
-  for(std::vector<DigitPad*>::iterator iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
+DigitRow::~DigitRow()
+{
+  for(auto iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
     delete (*iterPad);
   }
 }
 
-void DigitRow::setDigit(Int_t pad, Int_t time, Float_t charge){
+void DigitRow::setDigit(Int_t pad, Int_t time, Float_t charge)
+{
   DigitPad *result = mPads[pad];
   if(result != nullptr){
     mPads[pad]->setDigit(time, charge);
@@ -25,15 +27,17 @@ void DigitRow::setDigit(Int_t pad, Int_t time, Float_t charge){
   }
 }
 
-void DigitRow::reset(){
-  for(std::vector<DigitPad*>::iterator iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
+void DigitRow::reset()
+{
+  for(auto iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
     if((*iterPad) == nullptr) continue;
     (*iterPad)->reset();
   }
 }
 
-void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID){
-  for(std::vector<DigitPad*>::iterator iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
+void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID)
+{
+  for(auto iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
     if((*iterPad) == nullptr) continue;
     (*iterPad)->fillOutputContainer(output, cruID, rowID, (*iterPad)->getPad());
   }

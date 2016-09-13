@@ -21,15 +21,6 @@
 #pragma link C++ class AliceO2::TPC::BoxClusterer+;
 #pragma link C++ class AliceO2::TPC::ClustererTask+;
 
-#pragma link C++ class AliceO2::TPC::HitContainer+;
-#pragma link C++ class AliceO2::TPC::HitCRU+;
-#pragma link C++ class AliceO2::TPC::HitRow+;
-#pragma link C++ class AliceO2::TPC::HitPad+;
-#pragma link C++ class AliceO2::TPC::HitTime+;
-#pragma link C++ class AliceO2::TPC::HitCharge+;
-#pragma link C++ class AliceO2::TPC::PadHit+;
-#pragma link C++ class AliceO2::TPC::PadHitTime+;
-
 #pragma link C++ class AliceO2::TPC::PadResponse+;
 
 #endif

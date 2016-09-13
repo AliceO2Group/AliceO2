@@ -99,6 +99,9 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   if(TMath::Abs(TVirtualMC::GetMC()->TrackCharge())<=0.) return kFALSE; // take only charged particles
 
   //Set parameters at entrance of volume. Reset ELoss.
+  
+  if(TMath::Abs(TVirtualMC::GetMC()->TrackCharge())<=0.) return kFALSE; // take only charged particles
+  
   if ( TVirtualMC::GetMC()->IsTrackEntering() ) {
     mEnergyLoss  = 0.;
     mTime   = TVirtualMC::GetMC()->TrackTime() * 1.0e09;
@@ -150,7 +153,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   
   Double_t rnd = TVirtualMC::GetMC()->GetRandom()->Rndm();
   TVirtualMC::GetMC()->SetMaxStep(-TMath::Log(rnd)/pp);
-  
+ 
   return kTRUE;
 }
 

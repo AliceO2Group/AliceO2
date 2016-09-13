@@ -4,8 +4,6 @@
 #define ALICEO2_TPC_Digitizer_H_
 
 #include "TPCSimulation/DigitContainer.h"
-#include "TPCSimulation/HitContainer.h"
-#include "TPCSimulation/PadHit.h"
 #include "TPCSimulation/PadResponse.h"
 
 #include "Rtypes.h"
@@ -16,26 +14,26 @@ using std::vector;
 
 class TClonesArray;
 
-namespace AliceO2{
-  namespace TPC{
-
+namespace AliceO2 {
+  namespace TPC {
+    
     class DigitContainer;
-
+    
     /// \class Digitizer
     /// \brief Digitizer class for the TPC
-
+    
     class Digitizer : public TObject {
     public:
-
+      
       /// Default constructor
       Digitizer();
-
+      
       /// Destructor
       ~Digitizer();
-
+      
       /// Initializer
       void init();
-
+      
       /// Steer conversion of points to digits
       /// @param points Container with TPC points
       /// @return digits container
@@ -67,7 +65,7 @@ namespace AliceO2{
       
       /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       /// Conversion functions that at some point should go someplace else
-
+      
       /// Conversion from a given number of electrons into ADC value
       /// @param nElectrons Number of electrons in time bin
       /// @return ADC value
@@ -98,19 +96,17 @@ namespace AliceO2{
       /// @param startTime First bin in the pulse
       /// @param ADC ADC value of the corresponding time bin
       Double_t Gamma4(Double_t time, Double_t startTime, Double_t ADC);
-
+      
     private:
       Digitizer(const Digitizer &);
       Digitizer &operator=(const Digitizer &);
-
+      
       TF1                     *mPolya;
       DigitContainer          *mDigitContainer;
-      HitContainer            *mHitContainer;
-      std::vector < PadHit* > mPadHit;
-
+      
       ClassDef(Digitizer, 1);
     };
-}
+  }
 }
 
 #endif /* ALICEO2_TPC_Digitizer_H_ */
