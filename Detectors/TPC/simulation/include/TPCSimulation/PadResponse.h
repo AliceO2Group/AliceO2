@@ -5,8 +5,8 @@
 
 #include "Rtypes.h"
 
-namespace AliceO2{
-  namespace TPC{
+namespace AliceO2 {
+  namespace TPC {
     
     /// \class PadResponse
     /// \brief Object for the pad hits due to the PRF
@@ -25,7 +25,7 @@ namespace AliceO2{
       
       /// Destructor
       virtual ~PadResponse();
-            
+      
       /// Get the pad
       /// @return Pad
       Double_t getPad() const { return mPad; }

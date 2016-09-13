@@ -11,8 +11,8 @@
 #include "Rtypes.h"                             // for Double_t, ULong_t, etc
 namespace boost { namespace serialization { class access; } }
 
-namespace AliceO2{
-  namespace TPC{
+namespace AliceO2 {
+  namespace TPC {
     
     /// \class Digit
     /// \brief Digit class for the TPC
@@ -49,7 +49,7 @@ namespace AliceO2{
       Int_t getPad() const { return mPad; }
       //       Double_t GetTime() const { return mTimeStamp; }
       Int_t getTimeStamp() const { return Int_t(FairTimeStamp::GetTimeStamp()); }
-                  
+      
       /// Set the charge of the digit
       /// @param charge The charge of the the digit
       void setCharge(Double_t charge) { mCharge = charge; }
@@ -58,17 +58,17 @@ namespace AliceO2{
       /// @param output Stream to put the digit on
       /// @return The output stream
       std::ostream &Print(std::ostream &output) const;
-                  
+      
     private:
-#ifndef __CINT__
+      #ifndef __CINT__
       friend class boost::serialization::access;
-#endif
+      #endif
       
       UShort_t                  mCRU;
       Float_t                   mCharge;
       UChar_t                   mRow;
       UChar_t                   mPad;
-            
+      
       ClassDef(Digit, 1);
     };
   }
