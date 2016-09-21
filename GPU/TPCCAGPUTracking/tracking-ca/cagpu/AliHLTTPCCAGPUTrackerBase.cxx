@@ -219,7 +219,9 @@ fNCPUTrackers(0),
 fNSlicesPerCPUTracker(0),
 fGlobalTracking(0),
 fUseGlobalTracking(0),
-fNSlaveThreads(0)
+fNSlaveThreads(0),
+fStuckProtection(0),
+fGPUStuck(0)
 {}
 
 AliHLTTPCCAGPUTrackerBase::~AliHLTTPCCAGPUTrackerBase()
@@ -302,6 +304,10 @@ int AliHLTTPCCAGPUTrackerBase::SetGPUTrackerOption(char* OptionName, int OptionV
 	else if (strcmp(OptionName, "GlobalTracking") == 0)
 	{
 		fGlobalTracking = OptionValue;
+	}
+	else if (strcmp(OptionName, "StuckProtection") == 0)
+	{
+		fStuckProtection = OptionValue;
 	}
 	else
 	{
