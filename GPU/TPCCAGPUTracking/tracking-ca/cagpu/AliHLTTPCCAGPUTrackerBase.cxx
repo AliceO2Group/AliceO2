@@ -888,7 +888,7 @@ int AliHLTTPCCAGPUTrackerBase::Reconstruct_Base_SliceInit(AliHLTTPCCAClusterData
 
 	if (fSlaveTrackers[firstSlice + iSlice].Data().MemorySize() > HLTCA_GPU_SLICE_DATA_MEMORY RANDOM_ERROR)
 	{
-		HLTError("Insufficiant Slice Data Memory: Slice %d, Needed %d, Available %d", firstSlice + iSlice, fSlaveTrackers[firstSlice + iSlice].Data().MemorySize(), HLTCA_GPU_SLICE_DATA_MEMORY);
+		HLTError("Insufficiant Slice Data Memory: Slice %d, Needed %d, Available %d", firstSlice + iSlice, (int) fSlaveTrackers[firstSlice + iSlice].Data().MemorySize(), HLTCA_GPU_SLICE_DATA_MEMORY);
 		ResetHelperThreads(1);
 		return(1);
 	}
