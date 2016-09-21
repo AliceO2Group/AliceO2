@@ -24,12 +24,8 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#if __GNUC__>= 3
-using namespace std;
-#endif
-
 #include "AliHLTTPCCATrackerComponent.h"
-#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCCATrackerFramework.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackConvertor.h"
@@ -38,7 +34,7 @@ using namespace std;
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCClusterDataFormat.h"
 #include "AliHLTTPCCACompressedInputData.h"
-#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliExternalTrackParam.h"
 #include "TMath.h"
@@ -48,6 +44,10 @@ using namespace std;
 #include "TObjArray.h"
 #include "AliHLTTPCCASliceOutput.h"
 #include "AliHLTTPCCAClusterData.h"
+
+#if __GNUC__>= 3
+using namespace std;
+#endif
 
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkTrackletsDataType = AliHLTComponentDataTypeInitializer( "CATRACKL", kAliHLTDataOriginTPC );
 
@@ -255,13 +255,13 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
 
     if (argument.CompareTo( "-allowGPU" ) == 0) {
       fAllowGPU = 1;
-      HLTImportant( "Will try to run tracker on GPU" );
+      HLTInfo( "Will try to run tracker on GPU" );
       continue;
     }
 
     if (argument.CompareTo( "-GlobalTracking" ) == 0) {
       fGlobalTracking = 1;
-      HLTImportant( "Global Tracking Activated" );
+      HLTInfo( "Global Tracking Activated" );
       continue;
     }
 
@@ -393,14 +393,14 @@ void AliHLTTPCCATrackerComponent::ConfigureSlices()
     //TPCZmin = -249.645, ZMax = 249.778
     //    float rMin =  inRmin;
     //    float rMax =  outRmax;
-    int nRows = AliHLTTPCTransform::GetNRows();
+    int nRows = AliHLTTPCGeometry::GetNRows();
 
     float padPitch = 0.4;
     float sigmaZ = 0.228808;
 
     float *rowX = new float [nRows];
     for ( int irow = 0; irow < nRows; irow++ ) {
-      rowX[irow] = AliHLTTPCTransform::Row2X( irow );
+      rowX[irow] = AliHLTTPCGeometry::Row2X( irow );
     }
 
     AliHLTTPCCAParam param;
@@ -620,8 +620,8 @@ int AliHLTTPCCATrackerComponent::DoEvent
             UInt_t jslice = id>>10;    
             UInt_t jpatch = (id>>6) & 0x7;
             UInt_t jrow   =  id     & 0x3F;     
-            jrow+= AliHLTTPCTransform::GetFirstRow( jpatch );
-            Double_t rowX = AliHLTTPCTransform::Row2X( jrow );
+            jrow+= AliHLTTPCGeometry::GetFirstRow( jpatch );
+            Double_t rowX = AliHLTTPCGeometry::Row2X( jrow );
             //cout<<"Read row: s "<<jslice<<" p "<<jpatch<<" r "<<jrow<<" x "<<row->fX<<" nclu "<<row->fNClusters<<" :"<<endl;
             if( jrow > 159 ) {
               HLTError( "Wrong TPC cluster with row number %d received", jrow );

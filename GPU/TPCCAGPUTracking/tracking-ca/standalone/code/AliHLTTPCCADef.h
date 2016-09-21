@@ -106,11 +106,7 @@ typedef float          Size_t;      //Attribute size (float)
 #include "Rtypes.h"
 #include "AliHLTDataTypes.h"
 
-namespace AliHLTTPCCADefinitions
-{
-  extern const AliHLTComponentDataType fgkTrackletsDataType;
-  extern const AliHLTComponentDataType fgkCompressedInputDataType;
-}
+#include "AliHLTTPCCADefinitions.h"
 
 #endif //HLTCA_STANDALONE
 

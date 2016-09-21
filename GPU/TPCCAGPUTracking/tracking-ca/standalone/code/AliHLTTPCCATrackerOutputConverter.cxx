@@ -24,10 +24,8 @@
 /// @brief  Converter of CA tracker output
 ///
 
-using namespace std;
-
 #include "AliHLTTPCCATrackerOutputConverter.h"
-#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCCADef.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCCATrackConvertor.h"
@@ -44,6 +42,8 @@ using namespace std;
 #include <climits>
 #include <cstdlib>
 #include <cerrno>
+
+using namespace std;
 
 
 // ROOT macro for the implementation of ROOT specific class methods
@@ -259,7 +259,7 @@ int AliHLTTPCCATrackerOutputConverter::DoEvent( const AliHLTComponentEventData &
     fBenchmark.AddInput(block->fSize);
 
     int slice = AliHLTTPCDefinitions::GetMinSliceNr( *block );
-    if ( slice < 0 || slice >= AliHLTTPCTransform::GetNSlice() ) {
+    if ( slice < 0 || slice >= AliHLTTPCGeometry::GetNSlice() ) {
       HLTError( "invalid slice number %d extracted from specification 0x%08lx,  skipping block of type %s",
                 slice, block->fSpecification, DataType2Text( block->fDataType ).c_str() );
       // just remember the error, if there are other valid blocks ignore the error, return code otherwise

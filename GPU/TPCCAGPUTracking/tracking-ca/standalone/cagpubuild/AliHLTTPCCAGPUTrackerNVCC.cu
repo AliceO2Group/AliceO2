@@ -28,8 +28,7 @@
 #define get_group_id(dim) (blockIdx.x)
 
 #include <cuda.h>
-#include <sm_11_atomic_functions.h>
-#include <sm_12_atomic_functions.h>
+#include <sm_20_atomic_functions.h>
 
 __constant__ float4 gAliHLTTPCCATracker[HLTCA_GPU_TRACKER_CONSTANT_MEM / sizeof( float4 )];
 #ifdef HLTCA_GPU_TEXTURE_FETCH
@@ -220,7 +219,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 	}
 
 	cuCtxPopCurrent((CUcontext*) fCudaContext);
-	HLTImportant("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount);
+	HLTInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d, %d bytes used)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount, fGPUMemSize);
 
 	return(0);
 }
@@ -672,7 +671,7 @@ RestartTrackletConstructor:
 				goto RestartTrackletConstructor;
 			}
 #endif
-			HLTError("GPU Tracker returned Error Code %d in slice %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice);
+			HLTError("GPU Tracker returned Error Code %d in slice %d (Clusters %d)", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice, fSlaveTrackers[firstSlice + iSlice].Data().NumberOfHits());
 			ResetHelperThreads(1);
 			return(1);
 		}
@@ -944,7 +943,7 @@ int AliHLTTPCCAGPUTrackerNVCC::ReconstructPP(AliHLTTPCCASliceOutput** pOutput, A
 
 		if (fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError)
 		{
-			HLTError("GPU Tracker returned Error Code %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError);
+			HLTError("GPU Tracker returned Error Code %d in Slice %d (Clusters %d)", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice, fSlaveTrackers[firstSlice + iSlice].Data().NumberOfHits());
 			return(1);
 		}
 		if (fDebugLevel >= 3) HLTInfo("Tracks Transfered: %d / %d", *fSlaveTrackers[firstSlice + iSlice].NTracks(), *fSlaveTrackers[firstSlice + iSlice].NTrackHits());
