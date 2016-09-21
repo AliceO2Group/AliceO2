@@ -45,6 +45,8 @@
 #include "AliHLTTPCCATrackletConstructor.h"
 #include "AliHLTTPCCAClusterData.h"
 
+#include <unistd.h>
+
 #include "../makefiles/opencl_obtain_program.h"
 extern "C" char _makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl[];
 
@@ -432,7 +434,11 @@ static inline cl_int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, si
 int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
 	//Primary reconstruction function
-
+	if (fGPUStuck)
+	{
+		HLTWarning("This GPU is stuck, processing of tracking for this event is skipped!");
+		return(1);
+	}
 	if (Reconstruct_Base_Init(pOutput, pClusterData, firstSlice, sliceCountLocal)) return(1);
 
 	//Copy Tracker Object to GPU Memory
@@ -614,9 +620,10 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		//clFinish(ocl->command_queue[i]);
 	}
 
+	cl_event constructorEvent;
 	clSetKernelArgA(ocl->kernel_tracklet_constructor, 0, ocl->mem_gpu);
 	clSetKernelArgA(ocl->kernel_tracklet_constructor, 1, ocl->mem_constant);
-	clExecuteKernelA(ocl->command_queue[0], ocl->kernel_tracklet_constructor, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, NULL, initEvents2, 3);
+	clExecuteKernelA(ocl->command_queue[0], ocl->kernel_tracklet_constructor, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, &constructorEvent, initEvents2, 3);
 	for (int i = 0;i < 3;i++)
 	{
 		clReleaseEvent(initEvents2[i]);
@@ -626,7 +633,27 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		SynchronizeGPU();
 		return(1);
 	}
-	clFinish(ocl->command_queue[0]);
+	if (fStuckProtection)
+	{
+		cl_int tmp;
+		for (int i = 0;i <= fStuckProtection / 50;i++)
+		{
+			usleep(50);
+			clGetEventInfo(constructorEvent, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(tmp), &tmp, NULL);
+			if (tmp == CL_COMPLETE) break;
+		}
+		if (tmp != CL_COMPLETE)
+		{
+			HLTError("GPU Stuck, future processing in this component is disabled, skipping event (GPU Event State %d)", (int) tmp);
+			fGPUStuck = 1;
+			return(1);
+		}
+	}
+	else
+	{
+		clFinish(ocl->command_queue[0]);
+	}
+	clReleaseEvent(constructorEvent);
 
 	StandalonePerfTime(firstSlice, 8);
 

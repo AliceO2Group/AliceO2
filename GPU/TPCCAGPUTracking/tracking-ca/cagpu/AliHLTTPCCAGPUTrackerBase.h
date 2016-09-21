@@ -182,6 +182,9 @@ protected:
 	int fUseGlobalTracking; 
 
 	int fNSlaveThreads;	//Number of slave threads currently active
+	
+	int fStuckProtection;   //Protection from GPU stuck, set maximum time to wait for GPU in usec!
+	int fGPUStuck;		//Marks that the GPU is stuck, skip future events
 
 	// disable copy
 	AliHLTTPCCAGPUTrackerBase( const AliHLTTPCCAGPUTrackerBase& );
