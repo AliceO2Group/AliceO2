@@ -1,44 +1,19 @@
-set(INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/base/include
-  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/simulation/include
-  ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/simulation/
+set(MODULE_NAME "MFTSimulation")
 
-  )
-
-set(SYSTEM_INCLUDE_DIRECTORIES
-  ${CMAKE_SOURCE_DIR}
-  ${BASE_INCLUDE_DIRECTORIES}
-  ${Boost_INCLUDE_DIRS}
-  ${FAIRROOT_INCLUDE_DIR}
-  ${ROOT_INCLUDE_DIR}
-)
-
-include_directories( ${INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
-
-set(LINK_DIRECTORIES
-  ${ROOT_LIBRARY_DIR}
-  ${FAIRROOT_LIBRARY_DIR}
-)
-
-link_directories( ${LINK_DIRECTORIES})
+O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Detector.cxx
   src/GeometryTGeo.cxx
 )
 set(HEADERS
-  include/Detector.h
-  include/GeometryTGeo.h
+  include/${MODULE_NAME}/Detector.h
+  include/${MODULE_NAME}/GeometryTGeo.h
 )
 
-Set(LINKDEF src/mftSimulationLinkDef.h)
-Set(LIBRARY_NAME mftSimulation)
-Set(DEPENDENCIES
-    mftBase
-    AliceO2Base
-    Base ParBase
-)
+Set(LINKDEF src/MFTSimulationLinkDef.h)
+Set(LIBRARY_NAME ${MODULE_NAME})
+set(BUCKET_NAME mft_simulation_bucket)
 
-GENERATE_LIBRARY()
+O2_GENERATE_LIBRARY()
+

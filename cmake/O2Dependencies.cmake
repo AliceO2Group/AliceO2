@@ -461,3 +461,38 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
 )
+
+o2_define_bucket(
+    NAME
+    mft_base_bucket
+
+    DEPENDENCIES
+    ParBase
+    DetectorsBase
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    mft_simulation_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_geom
+    Hist
+    Graf
+    Gpad
+    RIO
+    fairroot_base_bucket
+    root_physics_bucket
+    ParBase
+    MFTBase
+    DetectorsBase
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+)
+

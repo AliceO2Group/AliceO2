@@ -2,8 +2,8 @@
 /// \brief Implementation of the GeometryTGeo class
 /// \author bogdan.vulpescu@cern.ch - 01/08/2016
 
-#include "GeometryTGeo.h"
-#include "Constants.h"
+#include "MFTSimulation/GeometryTGeo.h"
+#include "MFTBase/Constants.h"
 
 using namespace AliceO2::MFT;
 

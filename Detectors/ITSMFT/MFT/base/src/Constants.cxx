@@ -2,7 +2,7 @@
 /// \brief Implementation of the Constants class
 /// \author bogdan.vulpescu@cern.ch - 01/08/2016
 
-#include "Constants.h"
+#include "MFTBase/Constants.h"
 
 using namespace AliceO2::MFT;
 

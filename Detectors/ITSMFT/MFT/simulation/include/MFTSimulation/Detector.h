@@ -4,7 +4,7 @@
 #ifndef ALICEO2_MFT_DETECTOR_H_
 #define ALICEO2_MFT_DETECTOR_H_
 
-#include "Detectors/Base/include/Detector.h"   // for Detector
+#include "DetectorsBase/Detector.h"
 
 namespace AliceO2 { namespace MFT { class GeometryTGeo; } }
 
@@ -20,6 +20,8 @@ public:
 
   /// Default destructor
   virtual ~Detector();
+
+  Int_t IsVersion() const { return fVersion; }
 
   /// Initialization of the detector is done here
   virtual void Initialize();
@@ -83,6 +85,14 @@ public:
   }
 
   const GeometryTGeo* GetGeometryTGeo() const { return mGeometryTGeo; }
+  /*
+  void CreateMaterials();
+
+  enum EMedia{kZero,kAir, kVacuum, kSi, kReadout, kSupport, kCarbon, kBe, kAlu, kWater, kSiO2, kInox, kKapton, kEpoxy, kCarbonFiber, kCarbonEpoxy, kRohacell, kPolyimide, kPEEK, kFR4, kCu, kX7R, kX7Rw, kCarbonFleece, kSE4445};  // media IDs used in CreateMaterials
+  */
+protected:
+
+  Int_t fVersion;
 
 private:
 
