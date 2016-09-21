@@ -23,18 +23,18 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#if __GNUC__>= 3
-using namespace std;
-#endif
 
 #include "AliHLTTPCCAInputDataCompressorComponent.h"
 #include "AliHLTTPCCACompressedInputData.h"
-#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCClusterDataFormat.h"
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCCADef.h"
 
+#if __GNUC__>= 3
+using namespace std;
+#endif
 
 const AliHLTComponentDataType AliHLTTPCCADefinitions::fgkCompressedInputDataType = AliHLTComponentDataTypeInitializer( "CAINPACK", kAliHLTDataOriginTPC );
 
@@ -247,8 +247,8 @@ int AliHLTTPCCAInputDataCompressorComponent::Compress( AliHLTTPCClusterData* inp
     UInt_t patch = cluster->GetPatch();
     UInt_t slice = cluster->GetSlice();
     UInt_t row = cluster->fPadRow;
-    Double_t rowX = AliHLTTPCTransform::Row2X( row );
-    row = row - AliHLTTPCTransform::GetFirstRow( patch );
+    Double_t rowX = AliHLTTPCGeometry::Row2X( row );
+    row = row - AliHLTTPCGeometry::GetFirstRow( patch );
     UShort_t id = (UShort_t)( (slice<<10) +(patch<<6) + row );
     if( i==0 || id!= oldId ){ 
       // fill new row header	

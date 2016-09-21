@@ -336,7 +336,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 
 	ocl->selector_events = new cl_event[fSliceCount];
 
-	HLTImportant("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, Max slices: %d)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, fSliceCount);
+	HLTInfo("OPENCL Initialisation successfull (%d: %s %s (Frequency %d, Shaders %d) Thread %d, Max slices: %d, %d bytes used)", bestDevice, device_vendor, device_name, (int) freq, (int) shaders, fThreadId, fSliceCount, fGPUMemSize);
 
 	return(0);
 }
@@ -451,7 +451,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		ResetHelperThreads(0);
 		return(1);
 	}
-
+	
 	for (int iSlice = 0;iSlice < sliceCountLocal;iSlice++)
 	{
 		if (Reconstruct_Base_SliceInit(pClusterData, iSlice, firstSlice)) return(1);
@@ -727,7 +727,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 
 		if (fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError RANDOM_ERROR)
 		{
-			HLTError("GPU Tracker returned Error Code %d in slice %d", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice);
+			HLTError("GPU Tracker returned Error Code %d in slice %d (clusters %d)", fSlaveTrackers[firstSlice + iSlice].GPUParameters()->fGPUError, firstSlice + iSlice, fSlaveTrackers[firstSlice + iSlice].Data().NumberOfHits());
 			ResetHelperThreads(1);
 			for (int iSlice2 = 0;iSlice2 < sliceCountLocal;iSlice2++) clReleaseEvent(ocl->selector_events[iSlice2]);
 			return(1);
