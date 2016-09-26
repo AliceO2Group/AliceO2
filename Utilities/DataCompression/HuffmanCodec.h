@@ -23,8 +23,12 @@
 #include <cerrno>
 #include <set>
 #include <map>
+#include <vector>
 #include <exception>
 #include <stdexcept>
+#include <iostream>
+#include <iomanip>
+#include <sstream> // stringstream in configuration parsing
 
 namespace AliceO2 {
 
@@ -339,6 +343,124 @@ public:
     return retcodelen;
   }
 
+  /**
+   * @brief Write Huffman table in self-consistent format.
+   */
+  int write(std::ostream& out) {
+    return write(out, *mTreeNodes.begin(), 0);
+  }
+
+  /**
+   * @brief Read configuration from file
+   *
+   * The text file contains a self-consistent representatio of the Huffman tree,
+   * one node definition per line. Each node has an index (corresponding to the
+   * line number). The tree nodes hold the indices of their child nodes.
+   * Leave node format: index value weight codelen code
+   * Tree node format:  index left_index right_index
+   */
+  int read(std::istream& in) {
+    mLeaveNodes.clear();
+    mTreeNodes.clear();
+    mLeaveNodeIndex.clear();
+    mValueIndex.clear();
+    int lineNo = -1;
+    std::string node, left, right, parameters;
+    std::set<int> nodeIndices;
+    struct treeNodeConfiguration {
+      treeNodeConfiguration(int _index, int _left, int _right) : index(_index), left(_left), right(_right) {}
+      int index; int left; int right;
+      bool operator<(const treeNodeConfiguration& other) const {return index < other.index;}
+      struct less {
+        bool operator()(const treeNodeConfiguration& a, const treeNodeConfiguration& b) {return a.index < b.index;}
+      };
+    };
+    std::set<treeNodeConfiguration> treeNodeConfigurations;
+    char firstChar = 0;
+    std::map<int, int> leaveNodeMap;
+    while ((in.get(firstChar)) && firstChar != '\n' && (in.putback(firstChar)) && (in >> node) && (in >> left) && (in >> right) && ++lineNo>=0) {
+      std::getline(in, parameters);
+      if (lineNo != std::stoi(node)) {
+        std::cerr << "format error: expected node no " << lineNo << ", but got " << node << " (" << left << " " << right << " " << parameters << ")" << std::endl;
+        std::cerr << "Note: Huffman table dump has to be terminated by blank line or eof" << std::endl;
+        break;
+      }
+      if (parameters.empty()) {
+        //std::cout << "tree node " << lineNo << " left=" << left << " right=" << right << std::endl;
+        int leftIndex = std::stoi(left);
+        int rightIndex = std::stoi(right);
+        auto it = nodeIndices.find(leftIndex);
+        if (it == nodeIndices.end()) {
+          std::cerr << "Format error: can not find left child node with index " << leftIndex << std::endl;
+          return -1;
+        }
+        nodeIndices.erase(it);
+        it = nodeIndices.find(rightIndex);
+        if (it == nodeIndices.end()) {
+          std::cerr << "Format error: can not find right child node with index " << rightIndex << std::endl;
+          return -1;
+        }
+        nodeIndices.erase(it);
+        treeNodeConfigurations.insert(treeNodeConfiguration(lineNo, leftIndex, rightIndex));
+      } else {
+        std::stringstream vs(left), ws(right);
+        typename _BASE::alphabet_type::value_type value; vs >> value;
+        typename _BASE::weight_type weight; ws >> weight;
+        mLeaveNodes.push_back(_NodeType(weight, mLeaveNodes.size()));
+        std::stringstream ps(parameters);
+        uint16_t codeLen = 0; ps >> codeLen;
+        code_type code = 0; ps >> code;
+        mLeaveNodes.back().setBinaryCode(codeLen, code);
+        leaveNodeMap[lineNo] = mLeaveNodes.back().getIndex();
+        mLeaveNodeIndex[value] = mLeaveNodes.back().getIndex();
+        mValueIndex[mLeaveNodes.back().getIndex()] = value;
+        _BASE::addWeight(value, weight);
+        //std::cout << "leave node " << lineNo << " " << " value=" << value << " weight=" << weight << " " << codeLen << " " << code << std::endl;
+      }
+      nodeIndices.insert(lineNo);
+    }
+    std::map<int, _NodeType*> treeNodes;
+    for (auto conf : treeNodeConfigurations) {
+      _NodeType* left = NULL;
+      auto ln = leaveNodeMap.find(conf.left);
+      if ( ln != leaveNodeMap.end()) {
+        left = &mLeaveNodes[ln->second];
+        leaveNodeMap.erase(ln);
+      } else {
+        auto tn = treeNodes.find(conf.left);
+        if (tn == treeNodes.end()) {
+          std::cerr << "Internal error: can not find left child node with index " << conf.left << std::endl;
+          return -1;
+        }
+        treeNodes.erase(tn);
+        left = tn->second;
+      }
+      _NodeType* right = NULL;
+      auto rn = leaveNodeMap.find(conf.right);
+      if (rn != leaveNodeMap.end()) {
+        right = &mLeaveNodes[rn->second];
+        leaveNodeMap.erase(rn);
+      } else {
+        auto tn = treeNodes.find(conf.right);
+        if (tn == treeNodes.end()) {
+          std::cerr << "Internal error: can not find right child node with index " << conf.right << std::endl;
+          return -1;
+        }
+        treeNodes.erase(tn);
+        right = tn->second;
+      }
+      _NodeType* combinedNode = new _NodeType(left, right);
+      treeNodes[conf.index] = combinedNode;
+    }
+    if (leaveNodeMap.size() != 0 || treeNodes.size() != 1) {
+      std::cerr << "error: " << leaveNodeMap.size() << " unhandled leave node(s)"
+                << "; " << treeNodes.size() << " tree nodes(s), expected 1"
+                << std::endl;
+    }
+    mTreeNodes.insert(treeNodes.begin()->second);
+    return 0;
+  }
+
   void print() const {
     if (mTreeNodes.size() > 0) {
       _NodeType* topNode = *mTreeNodes.begin();
@@ -347,6 +469,30 @@ public:
   };
 
 private:
+  /**
+   * @brief Recursive write of the node content.
+   *
+   * Iterate through Huffman tree and write information first of the
+   * leave of each branch and then the corresponding parent tree nodes.
+   */
+  template<typename NodeType>
+  int write(std::ostream& out, NodeType* node, int nodeIndex) const
+  {
+    if (!node) return nodeIndex;
+    const _BASE& model = *this;
+    NodeType* left = node->getLeftChild();
+    NodeType* right = node->getRightChild();
+    if (left==NULL) {
+      typename _BASE::value_type value = mValueIndex.find(node->getIndex())->second;
+      out << nodeIndex << " " << value << " " << model[value] << " " << node->getBinaryCodeLength() << " " << node->getBinaryCode() << std::endl;
+      return nodeIndex;
+    }
+    int leftIndex = write(out, left, nodeIndex);
+    int rightIndex = write(out, right, leftIndex + 1);
+    out << rightIndex + 1 << " " << leftIndex << " " << rightIndex << std::endl;
+    return rightIndex + 1;
+  }
+
   // the alphabet, determined by template parameter
   typename _BASE::alphabet_type mAlphabet;
   // Huffman leave nodes containing symbol index to code mapping
@@ -358,6 +504,7 @@ private:
   // multiset, order determined by less functor working on pointers
   std::multiset<_NodeType*, pless<_NodeType*> > mTreeNodes;
 };
+
 }; // namespace AliceO2
 
 #endif
