@@ -121,6 +121,7 @@ Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Long_t TimeStam
   const AliTPCRecoParam *rec = transform->GetCurrentRecoParam();
 
   if( !rec ) return Error( -5, "AliHLTTPCFastTransform::Init: No TPC Reco Param set in transformation");
+  transform->SetCorrectionMapMode(kTRUE); //If the simulation set this to false to simulate distortions, we need to reverse it for the transformation
 
   fOrigTransform = transform;
 
@@ -328,6 +329,7 @@ Int_t AliHLTTPCFastTransform::SetCurrentTimeStamp( Long_t TimeStamp )
   if( fLastTimeStamp>=0 && TMath::Abs(fLastTimeStamp - TimeStamp ) <60 ) return 0;
  
    
+  fOrigTransform->SetCorrectionMapMode(kTRUE); //If the simulation set this to false to simulate distortions, we need to reverse it for the transformation
   fOrigTransform->SetCurrentTimeStamp( static_cast<UInt_t>(TimeStamp) );
   fLastTimeStamp = TimeStamp;  
 
