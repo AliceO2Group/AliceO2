@@ -537,6 +537,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
       if ( slice != AliHLTTPCDefinitions::GetMinSliceNr( pBlock ) ) continue;
       int patch = AliHLTTPCDefinitions::GetMinPatchNr( pBlock );
       if( patch<0 || patch>=fgkNPatches ) continue; 
+      fBenchmark.AddInput(pBlock.fSize); 
       if ( pBlock.fDataType == AliHLTTPCDefinitions::RawClustersDataType() ){
 	pcRaw[ patch ] = reinterpret_cast<AliHLTTPCRawClusterData*>( pBlock.fPtr );	
       } else if( pBlock.fDataType == AliHLTTPCDefinitions::ClustersXYZDataType() ){
