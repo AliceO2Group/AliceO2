@@ -66,6 +66,100 @@ public:
   /// return highest stage of runtime container
   container_type& operator*() {return mContainer;}
 
+  /// functor to add weight to probability model at runtime container level
+  template<typename ValueType, typename WeightType>
+  class addWeightFctr {
+  public:
+    addWeightFctr(ValueType _v, WeightType _w)
+      : value(_v), weight(_w) {}
+    ~addWeightFctr() {}
+
+    typedef bool return_type;
+
+    template<typename T>
+    return_type operator()(T& stage) {
+      // the addWeight function belongs to the probability model as base
+      // of the specific model; funcions of the base can be accessed by
+      // static casting. This avoids an extra level of function calls.
+      return static_cast<typename T::wrapped_type::base_type&>(*stage).addWeight(value, weight);
+    }
+
+  private:
+    ValueType value;
+    WeightType weight;
+  };
+
+  /**
+   * add weight to current model
+   *
+   * Dispatcher increments to the next model definition after decoding if
+   * parameter switchToNextModel is true.
+   */
+  template<typename ValueType, typename WeightType>
+  bool addWeight(ValueType v, WeightType w, bool switchToNextModel = true) {
+    bool result = mContainer.apply(mPosition, addWeightFctr<ValueType, WeightType>(v, w));
+    if (switchToNextModel && ++mPosition >= getNumberOfModels()) mPosition = 0;
+    return result;
+  }
+
+  /**
+   * init model
+   */
+  class initFctr {
+  public:
+    initFctr(container_type& container) : mContainer(container) {}
+    ~initFctr() {}
+
+    typedef int return_type;
+
+    template<typename T>
+    return_type operator()(boost::type<T>) {
+      T& stage = static_cast<T&>(mContainer);
+      return (*stage).init();
+    }
+
+  private:
+    container_type& mContainer;
+  };
+
+  /**
+   * init dispatcher and models
+   */
+  int init() {
+    mPosition = 0;
+    boost::mpl::for_each<typename container_type::types , boost::type<boost::mpl::_> >(initFctr(mContainer));
+    return 0;
+  }
+
+  /**
+   * TODO: this is tailored to HuffmanCodec for the moment, some generic interface
+   * has to come
+   */
+  class generateFctr {
+  public:
+    generateFctr(container_type& container) : mContainer(container) {}
+    ~generateFctr() {}
+
+    typedef int return_type;
+
+    template<typename T>
+    return_type operator()(boost::type<T>) {
+      T& stage = static_cast<T&>(mContainer);
+      return (*stage).GenerateHuffmanTree();
+    }
+
+  private:
+    container_type& mContainer;
+  };
+
+  /**
+   * TODO: maybe 'generate' is not the appropriate name
+   */
+  int generate() {
+    boost::mpl::for_each<typename container_type::types , boost::type<boost::mpl::_> >(generateFctr(mContainer));
+    return 0;
+  }
+
   /// functor to execute encoding on runtime container level
   template<typename CodeType, typename ValueType>
   class encodeFctr {
