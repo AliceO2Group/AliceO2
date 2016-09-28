@@ -107,9 +107,15 @@ struct upperbinarybound<0> {
  * not implemented. The class is required to support the following functions to
  * hook it up onto the DataCompression framework:
  * - isValid validity of a value
+ * - getIndex  get index from value
+ * - getSymbol get symbol from index
  * - forward iterator class to walk through elements of alphabet
  * - begin   start iteration over elements
  * - end     end marker for iteration
+ *
+ * The alphabet has to provide an index for the symbol range such that the
+ * framework can build a one to one relation between symbols and index values
+ * used for internal mapping of the symbols.
  */
 template<typename T>
 class ExampleAlphabet {
@@ -120,7 +126,13 @@ public:
   typedef T value_type;
 
   /// check for valid value within range
-  bool isValid(value_type v);
+  static bool isValid(value_type v);
+
+  /// get index of value
+  static int getIndex(value_type symbol);
+
+  /// get symbol from index
+  static value_type getSymbol(int index);
 
   typedef std::iterator<std::forward_iterator_tag, T> _iterator_base;
 
@@ -166,7 +178,7 @@ private:
  *
  * TODO: the mpl string length is limited and can be configured with the
  *       define BOOST_MPL_LIMIT_STRING_SIZE (somehow the number of allowed
- *       template arguments is given by this number devided by four)
+ *       template arguments is given by this number divided by four)
  */
 template<
   typename T,
@@ -185,10 +197,29 @@ public:
   typedef boost::mpl::plus<boost::mpl::size<range>, boost::mpl::int_<1>> size;
 
   /// check for valid value within range
-  bool isValid(value_type v) {
+  static bool isValid(value_type v) {
     return v >= _min && v <= _max;
   }
 
+  /// get index of symbol
+  ///
+  /// Each alphabet has to provide a one to one mapping of symbols to
+  /// index values used for internal storage
+  static int getIndex(value_type symbol) {
+    int index = symbol;
+    if (_min < 0) index += -_min;
+    else if (_min > 0) index -= _min;
+    return index;
+  }
+
+  /// get symbol from index
+  static value_type getSymbol(int index) {
+    return _min + index;
+  }
+
+  /// get the name of the alphabet
+  ///
+  /// name is part of the type definition, defined as a boost mpl string
   constexpr const char* getName() const { return boost::mpl::c_str<NameT>::value;}
 
   typedef std::iterator<std::forward_iterator_tag, T> _iterator_base;
@@ -341,7 +372,7 @@ public:
     return totalWeight;
   }
 
-  // const reference only to avoid changes in the weigth count
+  // const reference only to avoid changes in the weight count
   // without registering in the total weight as well
   const WeightType& operator[](value_type v) const {
     typename TableType::const_iterator i = mProbabilityTable.find(v);
