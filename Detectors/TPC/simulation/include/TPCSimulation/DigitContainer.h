@@ -44,7 +44,7 @@ namespace AliceO2 {
       void fillOutputContainer(TClonesArray *outputcont);
       
     private:
-      Int_t mNCRU;
+      UShort_t mNCRU;
       std::vector<DigitCRU*> mCRU;
     };
   }

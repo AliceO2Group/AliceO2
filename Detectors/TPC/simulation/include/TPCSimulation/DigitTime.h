@@ -47,8 +47,8 @@ namespace AliceO2 {
       void fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID, Int_t timeBin);
       
     private:
-      Int_t               mTimeBin;
-      DigitADC            *digitAdc;
+      Int_t                   mTimeBin;
+      DigitADC                *digitAdc;
       std::vector <DigitADC*>  mADCCounts;
     };
   }

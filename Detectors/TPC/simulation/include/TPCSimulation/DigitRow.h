@@ -49,8 +49,8 @@ namespace AliceO2 {
       void fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID);
       
     private:
-      Int_t               mRowID;
-      Int_t               mNPads;
+      UChar_t                mRowID;
+      UChar_t                mNPads;
       std::vector<DigitPad*> mPads;
     };
   }

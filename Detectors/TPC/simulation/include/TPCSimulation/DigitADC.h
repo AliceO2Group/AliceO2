@@ -4,10 +4,6 @@
 #define _ALICEO2_TPC_DigitADC_
 
 #include "Rtypes.h"
-#include "TPCSimulation/Digit.h"
-#include <map>
-
-class TClonesArray;
 
 namespace AliceO2 {
   namespace TPC {
@@ -19,6 +15,9 @@ namespace AliceO2 {
     
     class DigitADC{
     public:
+      
+      /// Default constructor
+      DigitADC();
       
       /// Constructor 
       /// @param charge Charge

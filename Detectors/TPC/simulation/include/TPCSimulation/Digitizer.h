@@ -8,11 +8,11 @@
 
 #include "Rtypes.h"
 #include "TObject.h"
-#include "TF1.h"
 
 using std::vector;
 
 class TClonesArray;
+class TF1;
 
 namespace AliceO2 {
   namespace TPC {
@@ -60,7 +60,7 @@ namespace AliceO2 {
       /// @param xabs Position in x
       /// @param yabs Position in y
       /// @return Vector with PadResponse objects with pad and row position and the correponding fraction of the induced signal
-      vector< PadResponse*> getPadResponse(Float_t xabs, Float_t yabs);
+      vector< PadResponse> getPadResponse(Float_t xabs, Float_t yabs);
       
       
       /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -98,10 +98,8 @@ namespace AliceO2 {
       Double_t Gamma4(Double_t time, Double_t startTime, Double_t ADC);
       
     private:
-      Digitizer(const Digitizer &);
-      Digitizer &operator=(const Digitizer &);
-      
-      TF1                     *mPolya;
+//       TF1                     *mPolya;
+
       DigitContainer          *mDigitContainer;
       
       ClassDef(Digitizer, 1);

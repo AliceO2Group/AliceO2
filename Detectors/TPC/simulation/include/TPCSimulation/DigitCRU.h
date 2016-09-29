@@ -50,8 +50,8 @@ namespace AliceO2 {
       void fillOutputContainer(TClonesArray *output, Int_t cruID);
       
     private:
-      Int_t               mCRUID;           ///< CRU ID
-      Int_t               mNRows;           ///< Number of rows in CRU
+      UShort_t                 mCRUID;           ///< CRU ID
+      UChar_t                  mNRows;           ///< Number of rows in CRU
       std::vector <DigitRow*>  mRows;
     };
   }

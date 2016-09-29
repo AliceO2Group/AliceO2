@@ -1,19 +1,15 @@
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/PadResponse.h"
-
 #include "TPCBase/Mapper.h"
 
 #include "TRandom.h"
-#include "TF1.h"
+#include "TF1.h" 
 #include "TClonesArray.h"
 #include "TCollection.h"
 #include "TMath.h"
 
 #include "FairLogger.h"
-
-#include <cmath>
-#include <iostream>
 
 ClassImp(AliceO2::TPC::Digitizer)
 
@@ -21,26 +17,29 @@ using namespace AliceO2::TPC;
 
 Digitizer::Digitizer():
 TObject(),
-mPolya(nullptr),
+// mPolya(0),
 mDigitContainer(nullptr)
 {}
 
 Digitizer::~Digitizer()
 {
   delete mDigitContainer;
-  delete mPolya;
+//   delete mPolya;
 }
 
 void Digitizer::init()
 {
-  mDigitContainer = new DigitContainer();
-  //Double_t SigmaOverMu = 0.78;
-  //Double_t kappa = 1/(SigmaOverMu*SigmaOverMu);
-  //Double_t s = 1/kappa;
+  // TODO should be parametrized
+  Double_t SigmaOverMu = 0.78;
   
-  //char strPolya[1000];
-  //snprintf(strPolya,1000,"1/(TMath::Gamma(%e)*%e) *pow(x/%e, (%e)) *exp(-x/%e)", kappa, s, s, kappa-1, s);
-  //mPolya = new TF1("polya", "1/x", 0, 1000);
+  
+  mDigitContainer = new DigitContainer();
+  
+  Double_t kappa = 1/(SigmaOverMu*SigmaOverMu);
+  Double_t s = 1/kappa;
+  char strPolya[1000];
+  snprintf(strPolya,1000,"1/(TMath::Gamma(%e)*%e) *pow(x/%e, (%e)) *exp(-x/%e)", kappa, s, s, kappa-1, s);
+//   mPolya = TF1("polya", strPolya, 0, 1000);
 }
 
 DigitContainer *Digitizer::Process(TClonesArray *points)
@@ -93,11 +92,11 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       const Int_t nEleGEM4 = SingleGEMAmplification(nEleGEM3, 144);
       
       // Loop over all individual pads with signal due to pad response function
-      vector< PadResponse*> padResponse = getPadResponse(posEle[0], posEle[1]);
+      vector< PadResponse > padResponse = getPadResponse(posEle[0], posEle[1]);
       for(auto iterPRF = padResponse.begin(); iterPRF != padResponse.end(); ++iterPRF){
-        const Int_t pad = digiPadPos.getPadPos().getPad() + (*iterPRF)->getPad();
-        const Int_t row = digiPadPos.getPadPos().getRow() + (*iterPRF)->getRow();
-        const Double_t weight = (*iterPRF)->getWeight();
+        const Int_t pad = digiPadPos.getPadPos().getPad() + (*iterPRF).getPad();
+        const Int_t row = digiPadPos.getPadPos().getRow() + (*iterPRF).getRow();
+        const Double_t weight = (*iterPRF).getWeight();
         
         const Float_t startTime = getTime(posEle[2]);
         const Float_t startBin  = getTimeBin(posEle[2])+0.5*zBinWidth;
@@ -143,15 +142,12 @@ Int_t Digitizer::SingleGEMAmplification(Int_t nEle, Float_t gain)
 }
 
 
-vector< PadResponse*> Digitizer::getPadResponse(Float_t xabs, Float_t yabs)
+vector< PadResponse> Digitizer::getPadResponse(Float_t xabs, Float_t yabs)
 {
-  vector < PadResponse* >  mPadResponse;
+  vector < PadResponse >  mPadResponse;
   
   // purely projective for the time being!
-  
-  PadResponse test(0,0,1);
-
-  PadResponse *padHit = new PadResponse(0, 0, 1);
+  PadResponse padHit(0,0,1);
   mPadResponse.push_back(padHit);
   return mPadResponse;
 }

@@ -40,8 +40,8 @@ namespace AliceO2 {
       
     private:
       
-      Int_t             mPad;
-      Int_t             mRow;
+      UChar_t           mPad;
+      UChar_t           mRow;
       Float_t           mWeight;
       
       ClassDef(PadResponse, 1);
