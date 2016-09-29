@@ -165,7 +165,7 @@ class HuffmanCodec {
 template<typename _BASE, typename _NodeType, bool _orderMSB = true>
 class HuffmanModel : public _BASE {
 public:
-  HuffmanModel() : mAlphabet(), mLeaveNodes(), mLeaveNodeIndex(), mValueIndex(), mTreeNodes() {}
+  HuffmanModel() : mAlphabet(), mLeaveNodes(), mTreeNodes() {}
   ~HuffmanModel() {}
 
   typedef _BASE                                base_type;
@@ -185,11 +185,11 @@ public:
    */
   code_type Encode(typename _BASE::value_type symbol, uint16_t& codeLength) const {
     codeLength = 0;
-    auto nodeIndex = mLeaveNodeIndex.find(symbol);
-    if (nodeIndex != mLeaveNodeIndex.end() && nodeIndex->second < mLeaveNodes.size()) {
+    auto nodeIndex = _BASE::alphabet_type::getIndex(symbol);
+    if (nodeIndex < mLeaveNodes.size()) {
       // valid symbol/value
-      codeLength = mLeaveNodes[nodeIndex->second].getBinaryCodeLength();
-      return mLeaveNodes[nodeIndex->second].getBinaryCode();
+      codeLength = mLeaveNodes[nodeIndex].getBinaryCodeLength();
+      return mLeaveNodes[nodeIndex].getBinaryCode();
     } else {
       std::string msg = "symbol "; msg += symbol;
       msg += " not found in alphapet "; msg += _BASE::getName();
@@ -217,14 +217,11 @@ public:
     while (node) {
       // N.B.: nodes have either both child nodes or none of them
       if (node->getLeftChild() == nullptr) {
-        // this is a leave node, find the value for the corresponding
-        // index in the value map
-        if (mValueIndex.find(node->getIndex()) != mValueIndex.end()) {
-          return mValueIndex.find(node->getIndex())->second;
-        }
-        // something wrong here
-        throw std::range_error("the index is not known in the map of values");
-        break;
+        // this is a leave node, retrieve value for corresponding index
+        // TODO: validity check for index, this can be done once after
+        // initializing the Huffman configuration, either after training
+        // or loading the configuration
+        return _BASE::alphabet_type::getSymbol(node->getIndex());
       }
       if (codeLength > codeMSB) {
         // the size of the code type is shorter than the Huffman tree length
@@ -262,18 +259,12 @@ public:
    */
   bool GenerateHuffmanTree() {
     mLeaveNodes.clear();
-    mLeaveNodeIndex.clear();
 
     // probability model provides map of {symbol, weight}-pairs
-    uint16_t index = 0;
     _BASE& model = *this;
     for ( auto i : model) {
       // create nodes knowing about their index and the symbol weight
-      mLeaveNodes.push_back(_NodeType(i.second, index));
-      // map of {symbol, index}-pairs
-      mLeaveNodeIndex[i.first] = index;
-      // map of {index, symbol}-pairs
-      mValueIndex[index++] = i.first;
+      mLeaveNodes.push_back(_NodeType(i.second, _BASE::alphabet_type::getIndex(i.second)));
     }
 
     // insert pointer to nodes into ordered structure to build tree
@@ -362,8 +353,6 @@ public:
   int read(std::istream& in) {
     mLeaveNodes.clear();
     mTreeNodes.clear();
-    mLeaveNodeIndex.clear();
-    mValueIndex.clear();
     int lineNo = -1;
     std::string node, left, right, parameters;
     std::set<int> nodeIndices;
@@ -404,17 +393,18 @@ public:
         treeNodeConfigurations.insert(treeNodeConfiguration(lineNo, leftIndex, rightIndex));
       } else {
         std::stringstream vs(left), ws(right);
-        typename _BASE::alphabet_type::value_type value; vs >> value;
+        typename _BASE::alphabet_type::value_type symbol; vs >> symbol;
         typename _BASE::weight_type weight; ws >> weight;
-        mLeaveNodes.push_back(_NodeType(weight, mLeaveNodes.size()));
+        int symbolIndex = _BASE::alphabet_type::getIndex(symbol);
+        // grow the vector as operator[] always expects index within range
+        if (mLeaveNodes.size() < symbolIndex + 1) mLeaveNodes.resize(symbolIndex + 1);
+        mLeaveNodes[symbolIndex] = _NodeType(weight, symbolIndex);
         std::stringstream ps(parameters);
         uint16_t codeLen = 0; ps >> codeLen;
         code_type code = 0; ps >> code;
-        mLeaveNodes.back().setBinaryCode(codeLen, code);
-        leaveNodeMap[lineNo] = mLeaveNodes.back().getIndex();
-        mLeaveNodeIndex[value] = mLeaveNodes.back().getIndex();
-        mValueIndex[mLeaveNodes.back().getIndex()] = value;
-        _BASE::addWeight(value, weight);
+        mLeaveNodes[symbolIndex].setBinaryCode(codeLen, code);
+        leaveNodeMap[lineNo] = symbolIndex;
+        _BASE::addWeight(symbol, weight);
         //std::cout << "leave node " << lineNo << " " << " value=" << value << " weight=" << weight << " " << codeLen << " " << code << std::endl;
       }
       nodeIndices.insert(lineNo);
@@ -483,7 +473,7 @@ private:
     NodeType* left = node->getLeftChild();
     NodeType* right = node->getRightChild();
     if (left==NULL) {
-      typename _BASE::value_type value = mValueIndex.find(node->getIndex())->second;
+      typename _BASE::value_type value = _BASE::alphabet_type::getSymbol(node->getIndex());
       out << nodeIndex << " " << value << " " << model[value] << " " << node->getBinaryCodeLength() << " " << node->getBinaryCode() << std::endl;
       return nodeIndex;
     }
@@ -497,10 +487,6 @@ private:
   typename _BASE::alphabet_type mAlphabet;
   // Huffman leave nodes containing symbol index to code mapping
   std::vector<_NodeType> mLeaveNodes;
-  // map of {symbol, index}-pairs
-  std::map<typename _BASE::value_type, uint16_t > mLeaveNodeIndex;
-  // map of {index, symbol}-patrs
-  std::map<uint16_t , typename _BASE::value_type> mValueIndex;
   // multiset, order determined by less functor working on pointers
   std::multiset<_NodeType*, pless<_NodeType*> > mTreeNodes;
 };
