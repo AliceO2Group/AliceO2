@@ -48,9 +48,9 @@ namespace AliceO2 {
       void fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID);
       
     private:
-      Int_t               mPadID;
-      Int_t               mNTimeBins;
-      std::vector <DigitTime*>  mTimeBins;
+      UChar_t                  mPadID;
+      Int_t                    mNTimeBins;
+      std::vector <DigitTime*> mTimeBins;
     };
   }
 }

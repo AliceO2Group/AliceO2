@@ -25,10 +25,8 @@ void DigitTime::setDigit(Float_t charge)
 
 void DigitTime::reset()
 {
-  // delete all elements in the vector
-  mADCCounts.clear();
-  // make sure the memory is deallocated
-  std::vector<DigitADC*>(mADCCounts).swap(mADCCounts);
+  mADCCounts.clear();                                    // delete all elements in the vector
+  std::vector<DigitADC*>(mADCCounts).swap(mADCCounts);   // make sure the memory is deallocated
 }
 
 void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID, Int_t padID, Int_t timeBin)
