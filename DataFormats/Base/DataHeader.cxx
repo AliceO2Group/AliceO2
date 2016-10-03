@@ -2,39 +2,56 @@
 #include <cstdio> // printf
 #include <cstring> // strncpy
 
-const char* AliceO2::Base::BaseHeader::sMagicString = "O2 ";
+//the answer to life and everything
+const uint32_t AliceO2::Base::BaseHeader::sMagicString = CharArr2uint32("O2O2");
 
 using namespace AliceO2::Base;
 
 //possible data origins
-const DataOrigin AliceO2::Base::gDataOriginAny    ("***");
-const DataOrigin AliceO2::Base::gDataOriginInvalid("   ");
-const DataOrigin AliceO2::Base::gDataOriginTPC    ("TPC");
-const DataOrigin AliceO2::Base::gDataOriginTRD    ("TRD");
-const DataOrigin AliceO2::Base::gDataOriginTOF    ("TOF");
+const DataHeader::DataOrigin AliceO2::Base::gDataOriginAny    ("***");
+const DataHeader::DataOrigin AliceO2::Base::gDataOriginInvalid("   ");
+const DataHeader::DataOrigin AliceO2::Base::gDataOriginTPC    ("TPC");
+const DataHeader::DataOrigin AliceO2::Base::gDataOriginTRD    ("TRD");
+const DataHeader::DataOrigin AliceO2::Base::gDataOriginTOF    ("TOF");
 
 //possible data types
-const DataDescription AliceO2::Base::gDataDescriptionAny     ("***************");
-const DataDescription AliceO2::Base::gDataDescriptionInvalid ("               ");
-const DataDescription AliceO2::Base::gDataDescriptionRawData ("RAWDATA        ");
-const DataDescription AliceO2::Base::gDataDescriptionClusters("CLUSTERS       ");
-const DataDescription AliceO2::Base::gDataDescriptionTracks  ("TRACKS         ");
+const DataHeader::DataDescription AliceO2::Base::gDataDescriptionAny     ("***************");
+const DataHeader::DataDescription AliceO2::Base::gDataDescriptionInvalid ("               ");
+const DataHeader::DataDescription AliceO2::Base::gDataDescriptionRawData ("RAWDATA        ");
+const DataHeader::DataDescription AliceO2::Base::gDataDescriptionClusters("CLUSTERS       ");
+const DataHeader::DataDescription AliceO2::Base::gDataDescriptionTracks  ("TRACKS         ");
 
 //possible serialization types
-const PayloadSerialization AliceO2::Base::gSerializationAny    ("*******");
-const PayloadSerialization AliceO2::Base::gSerializationInvalid("       ");
-const PayloadSerialization AliceO2::Base::gSerializationNone   ("NONE   ");
-const PayloadSerialization AliceO2::Base::gSerializationROOT   ("ROOT   ");
-const PayloadSerialization AliceO2::Base::gSerializationFlatBuf("FLATBUF");
+const BaseHeader::SerializationMethod AliceO2::Base::gSerializationMethodAny    ("*******");
+const BaseHeader::SerializationMethod AliceO2::Base::gSerializationMethodInvalid("       ");
+const BaseHeader::SerializationMethod AliceO2::Base::gSerializationMethodNone   ("NONE   ");
+const BaseHeader::SerializationMethod AliceO2::Base::gSerializationMethodROOT   ("ROOT   ");
+const BaseHeader::SerializationMethod AliceO2::Base::gSerializationMethodFlatBuf("FLATBUF");
+
+//static version numbers
+const uint32_t BaseHeader::sVersion=1;
+const BaseHeader::Description DataHeader::sDescription = String2uint64("BaseHDR");
+const BaseHeader::SerializationMethod DataHeader::sSerializationMethod = AliceO2::Base::gSerializationMethodNone;
 
 ////_________________________________________________________________________________________________
 AliceO2::Base::BaseHeader::BaseHeader()
-  : magicStringInt(*reinterpret_cast<const uint32_t*>(sMagicString))
+  : magicStringInt(sMagicString)
   , headerSize(sizeof(BaseHeader))
   , flags(0)
-  , headerVersion(gInvalidVersion)
-  , headerDescriptionInt(gInvalidToken64)
-  , headerSerializationInt(gInvalidToken64)
+  , headerVersion(sVersion)
+  , description(gInvalidToken64)
+  , serialization(gInvalidToken64)
+{
+}
+
+////_________________________________________________________________________________________________
+AliceO2::Base::BaseHeader::BaseHeader(uint32_t size, Description desc, SerializationMethod ser)
+  : magicStringInt(sMagicString)
+  , headerSize(size)
+  , flags(0)
+  , headerVersion(sVersion)
+  , description(desc)
+  , serialization(ser)
 {
 }
 
@@ -44,19 +61,18 @@ AliceO2::Base::BaseHeader::BaseHeader(const BaseHeader& that)
   , headerSize(that.headerSize)
   , flags(that.flags)
   , headerVersion(that.headerVersion)
-  , headerDescriptionInt(that.headerDescriptionInt)
-  , headerSerializationInt(that.headerSerializationInt)
+  , description(that.description)
+  , serialization(that.serialization)
 {
 }
 
 ////_________________________________________________________________________________________________
 AliceO2::Base::DataHeader::DataHeader()
-  : BaseHeader()
-  , dataOriginInt(gDataOriginInvalid.dataOriginInt)
+  : BaseHeader(sizeof(DataHeader),sDescription,sSerializationMethod)
+  , dataOrigin(gDataOriginInvalid)
   , reserved(0)
-  , payloadSerializationInt(gSerializationInvalid.payloadSerializationInt)
-  , dataDescriptionInt{gDataDescriptionInvalid.dataDescriptionInt[0],
-                       gDataDescriptionInvalid.dataDescriptionInt[1]}
+  , payloadSerializationMethod(gSerializationMethodInvalid)
+  , dataDescription(gDataDescriptionInvalid)
   , subSpecification(0)
   , payloadSize(0)
 {
@@ -65,10 +81,10 @@ AliceO2::Base::DataHeader::DataHeader()
 //_________________________________________________________________________________________________
 AliceO2::Base::DataHeader::DataHeader(const DataHeader& that)
   : BaseHeader(that)
-  , dataOriginInt(that.dataOriginInt)
+  , dataOrigin(that.dataOrigin)
   , reserved(that.reserved)
-  , payloadSerializationInt(that.payloadSerializationInt)
-  , dataDescriptionInt{that.dataDescriptionInt[0], that.dataDescriptionInt[1]}
+  , payloadSerializationMethod(that.payloadSerializationMethod)
+  , dataDescription(that.dataDescription)
   , subSpecification(that.subSpecification)
   , payloadSize(that.payloadSize)
 {
@@ -78,22 +94,21 @@ AliceO2::Base::DataHeader::DataHeader(const DataHeader& that)
 void AliceO2::Base::DataHeader::print() const
 {
   printf("Data header version %i, flags: %i\n",headerVersion, flags);
-  printf("  origin       : %s\n", dataOrigin);
-  printf("  serialization: %s\n", payloadSerialization);
-  printf("  description  : %s\n", dataDescription);
-  printf("  sub spec.    : %lu\n", subSpecification);
+  printf("  origin       : %s\n", dataOrigin.str);
+  printf("  serialization: %s\n", payloadSerializationMethod.str);
+  printf("  description  : %s\n", dataDescription.str);
+  printf("  sub spec.    : %llu\n", subSpecification);
   printf("  header size  : %i\n", headerSize);
-  printf("  payloadSize  : %li\n", payloadSize);
+  printf("  payloadSize  : %llu\n", payloadSize);
 }
 
 //_________________________________________________________________________________________________
 DataHeader& AliceO2::Base::DataHeader::operator=(const DataHeader& that)
 {
   magicStringInt = that.magicStringInt;
-  dataOriginInt = that.dataOriginInt;
-  dataDescriptionInt[0] = that.dataDescriptionInt[0];
-  dataDescriptionInt[1] = that.dataDescriptionInt[1];
-  payloadSerializationInt = that.payloadSerializationInt;
+  dataOrigin = that.dataOrigin;
+  dataDescription = that.dataDescription;
+  payloadSerializationMethod= that.payloadSerializationMethod;
   subSpecification = that.subSpecification;
   flags = that.flags;
   headerVersion = that.headerVersion;
@@ -105,109 +120,108 @@ DataHeader& AliceO2::Base::DataHeader::operator=(const DataHeader& that)
 //_________________________________________________________________________________________________
 DataHeader& AliceO2::Base::DataHeader::operator=(const DataOrigin& that)
 {
-  dataOriginInt = that.dataOriginInt;
+  dataOrigin = that;
   return *this;
 }
 
 //_________________________________________________________________________________________________
 DataHeader& AliceO2::Base::DataHeader::operator=(const DataDescription& that)
 {
-  dataDescriptionInt[0] = that.dataDescriptionInt[0];
-  dataDescriptionInt[1] = that.dataDescriptionInt[1];
+  dataDescription = that;
   return *this;
 }
 
 //_________________________________________________________________________________________________
-DataHeader& AliceO2::Base::DataHeader::operator=(const PayloadSerialization& that)
+DataHeader& AliceO2::Base::DataHeader::operator=(const SerializationMethod& that)
 {
-  payloadSerializationInt = that.payloadSerializationInt;
+  payloadSerializationMethod = that;
   return *this;
 }
 
 //_________________________________________________________________________________________________
 bool AliceO2::Base::DataHeader::operator==(const DataOrigin& that)
 {
-  return (that.dataOriginInt == gDataOriginAny.dataOriginInt ||
-          that.dataOriginInt == dataOriginInt );
+  return (that == gDataOriginAny||
+          that == dataOrigin );
 }
 
 //_________________________________________________________________________________________________
 bool AliceO2::Base::DataHeader::operator==(const DataDescription& that)
 {
-  return ((that.dataDescriptionInt[0] == gDataDescriptionAny.dataDescriptionInt[0] &&
-	   that.dataDescriptionInt[1] == gDataDescriptionAny.dataDescriptionInt[1]) ||
-          (that.dataDescriptionInt[0] == dataDescriptionInt[0] &&
-	   that.dataDescriptionInt[1] == dataDescriptionInt[1] ));
+  return ((that.itg[0] == gDataDescriptionAny.itg[0] &&
+	   that.itg[1] == gDataDescriptionAny.itg[1]) ||
+          (that.itg[0] == dataDescription.itg[0] &&
+	   that.itg[1] == dataDescription.itg[1] ));
 }
 
 //_________________________________________________________________________________________________
-bool AliceO2::Base::DataHeader::operator==(const PayloadSerialization& that)
+bool AliceO2::Base::DataHeader::operator==(const SerializationMethod& that)
 {
-  return (that.payloadSerializationInt == gSerializationAny.payloadSerializationInt ||
-          that.payloadSerializationInt == payloadSerializationInt );
+  return (that == gSerializationMethodAny||
+          that == payloadSerializationMethod );
 }
 
 //_________________________________________________________________________________________________
 bool AliceO2::Base::DataHeader::operator==(const DataHeader& that)
 {
   return( magicStringInt == that.magicStringInt &&
-          dataOriginInt == that.dataOriginInt &&
-          dataDescriptionInt == that.dataDescriptionInt &&
+          dataOrigin == that.dataOrigin &&
+          dataDescription == that.dataDescription &&
           subSpecification == that.subSpecification );
 }
 
 //_________________________________________________________________________________________________
-AliceO2::Base::DataOrigin::DataOrigin() : dataOriginInt(gInvalidToken32) {}
+AliceO2::Base::DataHeader::DataOrigin::DataOrigin() : itg(gInvalidToken32) {}
 
 //_________________________________________________________________________________________________
-AliceO2::Base::DataOrigin::DataOrigin(const char* origin)
-  : dataOriginInt(gInvalidToken32)
+AliceO2::Base::DataHeader::DataOrigin::DataOrigin(const char* origin)
+  : itg(gInvalidToken32)
 {
   if (origin) {
-    strncpy(dataOrigin, origin, gSizeDataOriginString-1);
+    strncpy(str, origin, gSizeDataOriginString-1);
   }
 }
 
 //_________________________________________________________________________________________________
-bool AliceO2::Base::DataOrigin::operator==(const AliceO2::Base::DataOrigin& other) const
+bool AliceO2::Base::DataHeader::DataOrigin::operator==(const DataOrigin& other) const
 {
-  return dataOriginInt == other.dataOriginInt;
+  return itg == other.itg;
 }
 
 //_________________________________________________________________________________________________
-void AliceO2::Base::DataOrigin::print() const
+void AliceO2::Base::DataHeader::DataOrigin::print() const
 {
-  printf("Data origin  : %s\n", dataOrigin);
+  printf("Data origin  : %s\n", str);
 }
 
 //_________________________________________________________________________________________________
-AliceO2::Base::DataDescription::DataDescription()
-  : dataDescriptionInt()
+AliceO2::Base::DataHeader::DataDescription::DataDescription()
+  : itg()
 {
-  dataDescriptionInt[0] = gInvalidToken64;
-  dataDescriptionInt[1] = gInvalidToken64<<8 | gInvalidToken64;
+  itg[0] = gInvalidToken64;
+  itg[1] = gInvalidToken64<<8 | gInvalidToken64;
 }
 
 //_________________________________________________________________________________________________
-AliceO2::Base::DataDescription::DataDescription(const char* desc)
-  : dataDescription()
+AliceO2::Base::DataHeader::DataDescription::DataDescription(const char* desc)
+  : itg()
 {
   *this = DataDescription(); // initialize by standard constructor
   if (desc) {
-    strncpy(dataDescription, desc, gSizeDataDescriptionString-1);
+    strncpy(str, desc, gSizeDataDescriptionString-1);
   }
 }
 
 //_________________________________________________________________________________________________
-bool AliceO2::Base::DataDescription::operator==(const AliceO2::Base::DataDescription& other) const {
-  return (dataDescriptionInt[0] == other.dataDescriptionInt[0] &&
-          dataDescriptionInt[1] == other.dataDescriptionInt[1]);
+bool AliceO2::Base::DataHeader::DataDescription::operator==(const DataDescription& other) const {
+  return (itg[0] == other.itg[0] &&
+          itg[1] == other.itg[1]);
 }
 
 //_________________________________________________________________________________________________
-void AliceO2::Base::DataDescription::print() const
+void AliceO2::Base::DataHeader::DataDescription::print() const
 {
-  printf("Data descr.  : %s\n", dataDescription);
+  printf("Data descr.  : %s\n", str);
 }
 
 //_________________________________________________________________________________________________
@@ -220,12 +234,12 @@ AliceO2::Base::DataIdentifier::DataIdentifier()
 AliceO2::Base::DataIdentifier::DataIdentifier(const char* desc, const char* origin)
   : dataDescription(), dataOrigin()
 {
-  dataDescription = AliceO2::Base::DataDescription(desc);
-  dataOrigin = AliceO2::Base::DataOrigin(origin);
+  dataDescription = AliceO2::Base::DataHeader::DataDescription(desc);
+  dataOrigin = AliceO2::Base::DataHeader::DataOrigin(origin);
 }
 
 //_________________________________________________________________________________________________
-bool AliceO2::Base::DataIdentifier::operator==(const AliceO2::Base::DataIdentifier& other) const {
+bool AliceO2::Base::DataIdentifier::operator==(const DataIdentifier& other) const {
   if (other.dataOrigin != gDataOriginAny && dataOrigin != other.dataOrigin) return false;
   if (other.dataDescription != gDataDescriptionAny && dataDescription != other.dataDescription) return false;
   return true;
@@ -238,25 +252,3 @@ void AliceO2::Base::DataIdentifier::print() const
   dataDescription.print();
 }
 
-//_________________________________________________________________________________________________
-AliceO2::Base::PayloadSerialization::PayloadSerialization() : payloadSerializationInt(gInvalidToken64) {}
-
-//_________________________________________________________________________________________________
-AliceO2::Base::PayloadSerialization::PayloadSerialization(const char* serialization)
-  : payloadSerializationInt(gInvalidToken32)
-{
-  if (serialization) {
-    strncpy(payloadSerialization, serialization, gSizeSerializationString-1);
-  }
-}
-
-//_________________________________________________________________________________________________
-bool AliceO2::Base::PayloadSerialization::operator==(const AliceO2::Base::PayloadSerialization& other) const {
-  return payloadSerializationInt == other.payloadSerializationInt;
-}
-
-//_________________________________________________________________________________________________
-void AliceO2::Base::PayloadSerialization::print() const
-{
-  printf("Serialization: %s\n", payloadSerialization);
-}

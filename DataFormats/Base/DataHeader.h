@@ -8,6 +8,7 @@
 #define ALICEO2_BASE_DATA_HEADER_
 
 #include <cstdint>
+#include <stdio.h>
 
 namespace AliceO2 {
 namespace Base {
@@ -44,7 +45,7 @@ const uint32_t gSizeMagicString = 4;
 /// size of the data origin field @ingroup dataheader_defines
 const uint32_t gSizeDataOriginString = 4;
 /// size of the payload serialization field @ingroup dataheader_defines
-const uint32_t gSizeSerializationString = 8;
+const uint32_t gSizeSerializationMethodString = 8;
 /// size of the data description field @ingroup dataheader_defines
 const uint32_t gSizeDataDescriptionString = 16;
 /// size of the header description field @ingroup dataheader_defines
@@ -53,10 +54,38 @@ const uint32_t gSizeHeaderDescriptionString = 8;
 
 //____________________________________________________________________________
 struct DataHeader;
-struct DataOrigin;
-struct DataDescription;
 struct DataIdentifier;
-struct PayloadSerialization;
+
+//intializers
+constexpr uint64_t String2uint64(char c1, char c2, char c3, char c4, char c5, char c6, char c7)
+{
+	return((uint64_t) c1 | (uint64_t) c2 << 8 | (uint64_t) c3 << 16 | (uint64_t) c4 << 24 | (uint64_t) c5 << 32 | (uint64_t) c6 << 40 | (uint64_t) c7 << 48);
+}
+
+constexpr uint64_t String2uint64(const char* str)
+{
+	return((uint64_t) str[0] | (str[0] ? ((uint64_t) str[1] << 8 | (str[1] ? ((uint64_t) str[2] << 16 | (str[2] ? ((uint64_t) str[3] << 24 | (str[3] ? ((uint64_t) str[4] << 32 | (str[4] ? ((uint64_t) str[5] << 40 | (str[5] ? ((uint64_t) str[6] << 48 ) : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
+}
+
+constexpr uint32_t String2uint32(char c1, char c2, char c3)
+{
+	return((uint32_t) c1 | (uint32_t) c2 << 8 | (uint32_t) c3 << 16);
+}
+
+constexpr uint32_t String2uint32(const char* str)
+{
+	return((uint32_t) str[0] | (str[0] ? ((uint32_t) str[1] << 8 | (str[1] ? ((uint32_t) str[2] << 16 ) : 0)) : 0));
+}
+
+constexpr uint32_t CharArr2uint32(char c1, char c2, char c3, char c4)
+{
+	return((uint32_t) c1 | (uint32_t) c2 << 8 | (uint32_t) c3 << 16 | (uint32_t) c4 << 24);
+}
+
+constexpr uint32_t CharArr2uint32(const char* str)
+{
+	return((uint32_t) str[0] | (str[0] ? ((uint32_t) str[1] << 8 | (str[1] ? ((uint32_t) str[2] << 16 | (str[2] ? ((uint32_t) str[3] << 24) : 0)) : 0)) : 0));
+}
 
 //____________________________________________________________________________
 /// @struct BaseHeader
@@ -66,8 +95,8 @@ struct PayloadSerialization;
 struct BaseHeader
 {
   //other constants
-  static const uint32_t sVersion = 1;
-  static const char* sMagicString;
+  static const uint32_t sVersion;
+  static const uint32_t sMagicString;
 
   //__the data layout:
 
@@ -93,20 +122,39 @@ struct BaseHeader
   uint32_t    headerVersion;
 
   /// header contents description
-  union {
-    char headerDescription[gSizeHeaderDescriptionString];
-    uint64_t headerDescriptionInt;
-  };
+  struct Description {
+    union {
+      char     str[gSizeHeaderDescriptionString];
+      uint64_t itg;
+    };
+    Description(uint64_t v) {itg=v;}
+    Description(const char* s) {itg=String2uint64(s);}
+    Description(const Description& that) {itg=that.itg;}
+    bool operator==(const Description& that) const {return that.itg==itg;}
+    bool operator==(const uint64_t& that) const {return that==itg;}
+  } description;
 
   /// header serialization method
-  union {
-    char     headerSerialization[gSizeSerializationString];
-    uint64_t  headerSerializationInt;
-  };
+  struct SerializationMethod {
+    union {
+      char      str[gSizeSerializationMethodString];
+      uint64_t  itg;
+    };
+    SerializationMethod(uint64_t v) {itg=v;}
+    SerializationMethod(const char* s) {itg=String2uint64(s);}
+    SerializationMethod(const SerializationMethod& that) {itg=that.itg;}
+    bool operator==(const SerializationMethod& that) const {return that.itg==itg;}
+    bool operator==(const uint64_t& that) const {return that==itg;}
+  } serialization;
 
   //___the functions:
   BaseHeader(); //ctor
+  BaseHeader(uint32_t size, Description description, SerializationMethod serialization); //ctor for use in derived types
   BaseHeader(const BaseHeader&); //copy ctor
+  static BaseHeader* Get(void* b) {
+    return (*(reinterpret_cast<uint32_t*>(b))==sMagicString)?static_cast<BaseHeader*>(b):nullptr;
+  }
+  inline BaseHeader* NextHeader() {return (flagsNextHeader)?reinterpret_cast<BaseHeader*>(reinterpret_cast<unsigned char*>(this)+headerSize):nullptr;}
 };
 
 //____________________________________________________________________________
@@ -114,28 +162,59 @@ struct BaseHeader
 /// @brief the main header struct
 ///
 /// @ingroup aliceo2_dataformats_dataheader
-struct DataHeader : BaseHeader
+struct DataHeader : public BaseHeader
 {
+  static const Description sDescription;
+  static const SerializationMethod sSerializationMethod;
+
+  /// data type descriptor
+  struct DataDescription {
+    union {
+      char     str[gSizeDataDescriptionString];
+      uint64_t itg[2];
+    };
+    DataDescription();
+    DataDescription(const DataDescription& other) : itg() {*this = other;}
+    DataDescription& operator=(const DataDescription& other) {
+      if (&other != this) {
+        itg[0] = other.itg[0];
+        itg[1] = other.itg[1];
+      }
+      return *this;
+    }
+    // note: no operator=(const char*) as this potentially runs into trouble with this
+    // general pointer type, use: somedesc = DataOrigin("SOMEDESCRIPTION")
+    DataDescription(const char* desc);
+    bool operator==(const DataDescription&) const;
+    bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
+    void print() const;
+  } dataDescription;
+
   /// origin of the data (originating detector)
-  union {
-    char     dataOrigin[gSizeDataOriginString];
-    uint32_t  dataOriginInt;
-  };
+  struct DataOrigin {
+    union {
+      char     str[gSizeDataOriginString];
+      uint32_t itg;
+    };
+    DataOrigin();
+    DataOrigin(const DataOrigin& other) : itg(other.itg) {}
+    DataOrigin& operator=(const DataOrigin& other) {
+      if (&other != this) itg = other.itg;
+      return *this;
+    }
+    // note: no operator=(const char*) as this potentially runs into trouble with this
+    // general pointer type, use: someorigin = DataOrigin("BLA")
+    DataOrigin(const char* origin);
+    bool operator==(const DataOrigin&) const;
+    bool operator!=(const DataOrigin& other) const {return not this->operator==(other);}
+    void print() const;
+  } dataOrigin;
 
   // need something for alignment, is there another field needed?
   uint32_t reserved;
 
   /// serialization method
-  union {
-    char     payloadSerialization[gSizeSerializationString];
-    uint64_t  payloadSerializationInt;
-  };
-
-  /// data type descriptor
-  union {
-    char     dataDescription[gSizeDataDescriptionString];
-    uint64_t  dataDescriptionInt[2];
-  };
+  BaseHeader::SerializationMethod payloadSerializationMethod;
 
   /// sub specification (e.g. link number)
   uint64_t    subSpecification;
@@ -152,73 +231,16 @@ struct DataHeader : BaseHeader
   DataHeader& operator=(const DataHeader&); //assignment
   DataHeader& operator=(const DataOrigin&); //assignment
   DataHeader& operator=(const DataDescription&); //assignment
-  DataHeader& operator=(const PayloadSerialization&); //assignment
+  DataHeader& operator=(const SerializationMethod&); //assignment
   bool operator==(const DataHeader&); //comparison
   bool operator==(const DataOrigin&); //comparison
   bool operator==(const DataDescription&); //comparison
-  bool operator==(const PayloadSerialization&); //comparison
+  bool operator==(const SerializationMethod&); //comparison
   void print() const;
-};
-
-//____________________________________________________________________________
-/// @struct DataOrigin
-/// @brief Helper struct to encode origin of data.
-///
-/// The DataHeader stores the origin of data, e.g. detector in a dedicted field,
-/// DataOrigin structure is used for assignment and comparison
-///
-/// @ingroup aliceo2_dataformats_dataheader
-struct DataOrigin
-{
-  //origin of the data (originating detector)
-  union {
-    char     dataOrigin[gSizeDataOriginString];
-    uint32_t  dataOriginInt;
-  };
-  DataOrigin();
-  DataOrigin(const DataOrigin& other) : dataOriginInt(other.dataOriginInt) {}
-  DataOrigin& operator=(const DataOrigin& other) {
-    if (&other != this) dataOriginInt = other.dataOriginInt;
-    return *this;
+  static const DataHeader* Get(const BaseHeader* baseHeader) {
+    return (baseHeader->description==DataHeader::sDescription)?
+    static_cast<const DataHeader*>(baseHeader):nullptr;
   }
-  // note: no operator=(const char*) as this potentially runs into trouble with this
-  // general pointer type, use: someorigin = DataOrigin("BLA")
-  DataOrigin(const char* origin);
-  bool operator==(const DataOrigin&) const;
-  bool operator!=(const DataOrigin& other) const {return not this->operator==(other);}
-  void print() const;
-};
-
-//____________________________________________________________________________
-/// @struct DataDescription
-/// @brief Helper struct to encode description of the data.
-///
-/// The DataHeader stores the description of data, e.g. raw, tracks, ... in a dedicted
-/// field, DataDescription structure is used for assignment and comparison
-///
-/// @ingroup aliceo2_dataformats_dataheader
-struct DataDescription
-{
-  //data type descriptor
-  union {
-    char     dataDescription[gSizeDataDescriptionString];
-    uint64_t  dataDescriptionInt[2];
-  };
-  DataDescription();
-  DataDescription(const DataDescription& other) : dataDescriptionInt() {*this = other;}
-  DataDescription& operator=(const DataDescription& other) {
-    if (&other != this) {
-      dataDescriptionInt[0] = other.dataDescriptionInt[0];
-      dataDescriptionInt[1] = other.dataDescriptionInt[1];
-    }
-    return *this;
-  }
-  // note: no operator=(const char*) as this potentially runs into trouble with this
-  // general pointer type, use: somedesc = DataOrigin("SOMEDESCRIPTION")
-  DataDescription(const char* desc);
-  bool operator==(const DataDescription&) const;
-  bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
-  void print() const;
 };
 
 //____________________________________________________________________________
@@ -232,35 +254,12 @@ struct DataDescription
 struct DataIdentifier
 {
   //a full data identifier combining origin and description
-  DataDescription dataDescription;
-  DataOrigin dataOrigin;
+  DataHeader::DataDescription dataDescription;
+  DataHeader::DataOrigin dataOrigin;
   DataIdentifier();
   DataIdentifier(const DataIdentifier&);
   DataIdentifier(const char* desc, const char* origin);
   bool operator==(const DataIdentifier&) const;
-  void print() const;
-};
-
-//____________________________________________________________________________
-/// @struct PayloadSerialization
-/// @brief Helper struct to encode payload serialization method of the data.
-///
-/// The DataHeader stores the payload serialization method in a dedicted field,
-/// PayloadSerialization structure is used for assignment and comparison
-///
-/// @ingroup aliceo2_dataformats_dataheader
-struct PayloadSerialization
-{
-  //serialization method
-  union {
-    char     payloadSerialization[gSizeSerializationString];
-    uint64_t  payloadSerializationInt;
-  };
-  PayloadSerialization();
-  // note: no operator=(const char*) as this potentially runs into trouble with this
-  // general pointer type, use: sertype = DataOrigin("SERTYPE")
-  PayloadSerialization(const char* serialization);
-  bool operator==(const PayloadSerialization&) const;
   void print() const;
 };
 
@@ -279,31 +278,79 @@ const uint64_t gInvalidToken64 = 0x0020202020202020;
 
 //____________________________________________________________________________
 //possible data origins
-extern const DataOrigin gDataOriginAny;
-extern const DataOrigin gDataOriginInvalid;
-extern const DataOrigin gDataOriginTPC;
-extern const DataOrigin gDataOriginTRD;
-extern const DataOrigin gDataOriginTOF;
+extern const DataHeader::DataOrigin gDataOriginAny;
+extern const DataHeader::DataOrigin gDataOriginInvalid;
+extern const DataHeader::DataOrigin gDataOriginTPC;
+extern const DataHeader::DataOrigin gDataOriginTRD;
+extern const DataHeader::DataOrigin gDataOriginTOF;
 
 //____________________________________________________________________________
 //possible data types
-extern const DataDescription gDataDescriptionAny;
-extern const DataDescription gDataDescriptionInvalid;
-extern const DataDescription gDataDescriptionRawData;
-extern const DataDescription gDataDescriptionClusters;
-extern const DataDescription gDataDescriptionTracks;
+extern const DataHeader::DataDescription gDataDescriptionAny;
+extern const DataHeader::DataDescription gDataDescriptionInvalid;
+extern const DataHeader::DataDescription gDataDescriptionRawData;
+extern const DataHeader::DataDescription gDataDescriptionClusters;
+extern const DataHeader::DataDescription gDataDescriptionTracks;
 
 //____________________________________________________________________________
 //possible serialization types
-extern const PayloadSerialization gSerializationAny;
-extern const PayloadSerialization gSerializationInvalid;
-extern const PayloadSerialization gSerializationNone;
-extern const PayloadSerialization gSerializationROOT;
-extern const PayloadSerialization gSerializationFlatBuf;
+extern const BaseHeader::SerializationMethod gSerializationMethodAny;
+extern const BaseHeader::SerializationMethod gSerializationMethodInvalid;
+extern const BaseHeader::SerializationMethod gSerializationMethodNone;
+extern const BaseHeader::SerializationMethod gSerializationMethodROOT;
+extern const BaseHeader::SerializationMethod gSerializationMethodFlatBuf;
 
 /// @} // end of doxygen group
 
 } //namespace Base
 } //namespace AliceO2
+
+//____________________________________________________________________________
+//helper function to print a hex/ASCII dump of some memory
+void hexDump (const char *desc, void *addr, int len) {
+  int i;
+  unsigned char buff[17];       // stores the ASCII data
+  unsigned char *pc = static_cast<unsigned char*>(addr);     // cast to make the code cleaner.
+
+  // Output description if given.
+  if (desc != NULL)
+    printf ("%s:\n", desc);
+
+  // In case of null pointer addr
+  if (addr==nullptr) {printf("  nullptr\n"); return;}
+
+  // Process every byte in the data.
+  for (i = 0; i < len; i++) {
+    // Multiple of 16 means new line (with line offset).
+    if ((i % 16) == 0) {
+      // Just don't print ASCII for the zeroth line.
+      if (i != 0)
+        printf ("  %s\n", buff);
+
+      // Output the offset.
+      //printf ("  %04x ", i);
+      printf ("  %p ", &pc[i]);
+    }
+
+    // Now the hex code for the specific character.
+    printf (" %02x", pc[i]);
+
+    // And store a printable ASCII character for later.
+    if ((pc[i] < 0x20) || (pc[i] > 0x7e))
+      buff[i % 16] = '.';
+    else
+      buff[i % 16] = pc[i];
+    buff[(i % 16) + 1] = '\0';
+  }
+
+  // Pad out last line if not exactly 16 characters.
+  while ((i % 16) != 0) {
+    printf ("   ");
+    i++;
+  }
+
+  // And print the final ASCII bit.
+  printf ("  %s\n", buff);
+}
 
 #endif
