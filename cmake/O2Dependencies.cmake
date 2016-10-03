@@ -485,6 +485,7 @@ o2_define_bucket(
     Graf
     Gpad
     RIO
+    XMLIO
     fairroot_base_bucket
     root_physics_bucket
     ParBase

@@ -1,5 +1,7 @@
 /// \file Detector.h
 /// \brief Definition of the Detector class
+/// \author antonio.uras@cern.ch, bogdan.vulpescu@cern.ch 
+/// \date 01/08/2016
 
 #ifndef ALICEO2_MFT_DETECTOR_H_
 #define ALICEO2_MFT_DETECTOR_H_
@@ -81,25 +83,38 @@ public:
   /// Gets the produced collections
   virtual TClonesArray* GetCollection(Int_t iColl) const 
   {
-    ;
+    return NULL;
   }
 
-  const GeometryTGeo* GetGeometryTGeo() const { return mGeometryTGeo; }
-  /*
+  GeometryTGeo* GetGeometryTGeo() const { return fGeometryTGeo; }
+  
+  /// Creating materials for the detector
+
   void CreateMaterials();
 
   enum EMedia{kZero,kAir, kVacuum, kSi, kReadout, kSupport, kCarbon, kBe, kAlu, kWater, kSiO2, kInox, kKapton, kEpoxy, kCarbonFiber, kCarbonEpoxy, kRohacell, kPolyimide, kPEEK, kFR4, kCu, kX7R, kX7Rw, kCarbonFleece, kSE4445};  // media IDs used in CreateMaterials
-  */
+
+  void SetDensitySupportOverSi(Double_t density) { 
+    if (density > 1e-6) fDensitySupportOverSi = density; 
+    else fDensitySupportOverSi = 1e-6; 
+  }
+
+  /// Constructing the geometry
+
+  void ConstructGeometry();  // inherited from FairModule
+  void CreateGeometry();
+
 protected:
 
   Int_t fVersion;
+  GeometryTGeo *fGeometryTGeo;
 
+  Double_t fDensitySupportOverSi;
+ 
 private:
 
   Detector(const Detector&);
   Detector& operator=(const Detector&);
-
-  GeometryTGeo *mGeometryTGeo;
 
   ClassDef(Detector,1)
 

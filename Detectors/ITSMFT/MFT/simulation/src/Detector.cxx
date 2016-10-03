@@ -1,31 +1,38 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
+/// \author antonio.uras@cern.ch, bogdan.vulpescu@cern.ch 
+/// \date 01/08/2016
 
-#include "Detector.h"
-
+#include "MFTSimulation/Geometry.h"
 #include "MFTSimulation/GeometryTGeo.h"
+#include "MFTSimulation/Detector.h"
 
-#include "DataFormats/simulation/include/DetectorList.h"
+#include "SimulationDataFormat/DetectorList.h"
 
 #include "TVirtualMC.h"
+#include "TGeoGlobalMagField.h"
 
 using namespace AliceO2::MFT;
+
+ClassImp(AliceO2::MFT::Detector)
 
 //_____________________________________________________________________________
 Detector::Detector()
   : AliceO2::Base::Detector("MFT", kTRUE, kAliMft),
     fVersion(1),
-    mGeometryTGeo(0) 
+    fGeometryTGeo(0),
+    fDensitySupportOverSi(0.036)
 {
 
 }
 
 //_____________________________________________________________________________
-Detector::Detector(const Detector& rhs)
-  : AliceO2::Base::Detector(rhs) 
+Detector::Detector(const Detector& src)
+  : AliceO2::Base::Detector(src),
+    fVersion(src.fVersion),
+    fGeometryTGeo(src.fGeometryTGeo),
+    fDensitySupportOverSi(src.fDensitySupportOverSi)
 {
-
-  fVersion = rhs.fVersion;
 
 }
 
@@ -33,33 +40,13 @@ Detector::Detector(const Detector& rhs)
 Detector::~Detector()
 {
 
-}
-
-//_____________________________________________________________________________
-Detector& Detector::operator=(const Detector& rhs)
-{
-  // The standard = operator
-  // Inputs:
-  //   Detector   &h the sourse of this copy
-  // Outputs:
-  //   none.
-  // Return:
-  //  A copy of the sourse hit h
-
-  if (this == &rhs) {
-    return *this;
-  }
-
-  // base class assignment
-  Base::Detector::operator=(rhs);
+  delete fGeometryTGeo;
 
 }
 
 //_____________________________________________________________________________
 void Detector::Initialize()
 {
-
-  mGeometryTGeo = new GeometryTGeo();
 
   FairDetector::Initialize();
 
@@ -72,7 +59,6 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if (!(TVirtualMC::GetMC()->TrackCharge())) {
     return kFALSE;
   }
-
   return kTRUE;
 
 }
@@ -80,7 +66,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 //_____________________________________________________________________________
 void Detector::CreateMaterials()
 {
-
+  
   // data from PDG booklet 2002                 
   // density [gr/cm^3], rad len [cm], abs len [cm]
   Float_t   aSi = 28.085 ,    zSi   = 14. ,     dSi      =  2.329 ,   radSi   =  21.82/dSi , absSi   = 108.4/dSi  ;    // Silicon
@@ -197,9 +183,12 @@ void Detector::CreateMaterials()
   Float_t epsilSi  =  0.5e-4;                // tracking precision [cm]
   Float_t stminSi  = -0.001;                 // minimum step due to continuous processes [cm] (negative value: choose it automatically)
   
-  Int_t    fieldType        = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();     // Field type
-  Double_t maxField         = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();     // Field max.
+  //Int_t    fieldType        = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Integral();     // Field type
+  //Double_t maxField         = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Max();     // Field max.
   
+  Int_t fieldType = 2;
+  Float_t maxField = 10.0;
+
   AliceO2::Base::Detector::Mixture(kAir,"Air$", aAir, zAir, dAir, nAir, wAir);
   AliceO2::Base::Detector::Medium(kAir,    "Air$", kAir, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
   
@@ -288,4 +277,22 @@ void Detector::CreateMaterials()
 
 }
 
+//_____________________________________________________________________________
+void Detector::CreateGeometry()
+{
+
+  Geometry *mftGeom = Geometry::Instance();
+  mftGeom->Build();
+  fGeometryTGeo = new GeometryTGeo();
+
+}
+
+//_____________________________________________________________________________
+void Detector::ConstructGeometry()
+{
+
+  CreateMaterials();
+  CreateGeometry();
+
+}
 
