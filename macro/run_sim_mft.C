@@ -4,7 +4,7 @@ double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
   return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
 }
 
-void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+void run_sim_mft(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
 
   TString dir = getenv("VMCWORKDIR");
