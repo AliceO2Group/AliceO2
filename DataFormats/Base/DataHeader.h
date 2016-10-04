@@ -13,13 +13,13 @@
 namespace AliceO2 {
 namespace Base {
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 /// @defgroup aliceo2_dataformat_primitives Primitive data format definitions for ALICE O2
 /// @brief This module collects information about all primitive data formats.
 ///
 /// More to come
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 /// @defgroup aliceo2_dataformats_dataheader The Data Header
 /// @brief A descriptive information for payload blocks
 ///
@@ -30,7 +30,7 @@ namespace Base {
 ///
 /// @ingroup aliceo2_dataformat_primitives
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 /// @defgroup dataheader_defines Length defines for DataHeader members
 /// The header uses char fields for several members. This allows to define self
 /// consistent unique identifiers. The identifiers are human readable in memory
@@ -52,19 +52,28 @@ const uint32_t gSizeDataDescriptionString = 16;
 const uint32_t gSizeHeaderDescriptionString = 8;
 /// @}
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 struct DataHeader;
 struct DataIdentifier;
 
+//__________________________________________________________________________________________________
 //intializers
 constexpr uint64_t String2uint64(char c1, char c2, char c3, char c4, char c5, char c6, char c7)
 {
-	return((uint64_t) c1 | (uint64_t) c2 << 8 | (uint64_t) c3 << 16 | (uint64_t) c4 << 24 | (uint64_t) c5 << 32 | (uint64_t) c6 << 40 | (uint64_t) c7 << 48);
+	return((uint64_t) c1 | (uint64_t) c2 << 8 | (uint64_t) c3 << 16 | (uint64_t) c4 << 24 |
+      (uint64_t) c5 << 32 | (uint64_t) c6 << 40 | (uint64_t) c7 << 48);
 }
 
 constexpr uint64_t String2uint64(const char* str)
 {
-	return((uint64_t) str[0] | (str[0] ? ((uint64_t) str[1] << 8 | (str[1] ? ((uint64_t) str[2] << 16 | (str[2] ? ((uint64_t) str[3] << 24 | (str[3] ? ((uint64_t) str[4] << 32 | (str[4] ? ((uint64_t) str[5] << 40 | (str[5] ? ((uint64_t) str[6] << 48 ) : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
+	return((uint64_t) str[0] |
+         (str[0] ? ((uint64_t) str[1] << 8 |
+         (str[1] ? ((uint64_t) str[2] << 16 |
+         (str[2] ? ((uint64_t) str[3] << 24 |
+         (str[3] ? ((uint64_t) str[4] << 32 |
+         (str[4] ? ((uint64_t) str[5] << 40 |
+         (str[5] ? ((uint64_t) str[6] << 48 )
+          : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
 }
 
 constexpr uint32_t String2uint32(char c1, char c2, char c3)
@@ -74,20 +83,30 @@ constexpr uint32_t String2uint32(char c1, char c2, char c3)
 
 constexpr uint32_t String2uint32(const char* str)
 {
-	return((uint32_t) str[0] | (str[0] ? ((uint32_t) str[1] << 8 | (str[1] ? ((uint32_t) str[2] << 16 ) : 0)) : 0));
+	return((uint32_t) str[0] |
+         (str[0] ? ((uint32_t) str[1] << 8 |
+         (str[1] ? ((uint32_t) str[2] << 16 )
+          : 0)) : 0));
 }
 
 constexpr uint32_t CharArr2uint32(char c1, char c2, char c3, char c4)
 {
-	return((uint32_t) c1 | (uint32_t) c2 << 8 | (uint32_t) c3 << 16 | (uint32_t) c4 << 24);
+	return((uint32_t) c1 |
+         (uint32_t) c2 << 8 |
+         (uint32_t) c3 << 16 |
+         (uint32_t) c4 << 24);
 }
 
 constexpr uint32_t CharArr2uint32(const char* str)
 {
-	return((uint32_t) str[0] | (str[0] ? ((uint32_t) str[1] << 8 | (str[1] ? ((uint32_t) str[2] << 16 | (str[2] ? ((uint32_t) str[3] << 24) : 0)) : 0)) : 0));
+	return((uint32_t) str[0] |
+         (str[0] ? ((uint32_t) str[1] << 8 |
+         (str[1] ? ((uint32_t) str[2] << 16 |
+         (str[2] ? ((uint32_t) str[3] << 24)
+          : 0)) : 0)) : 0));
 }
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 /// @struct BaseHeader
 /// @brief the base header struct
 ///
@@ -148,16 +167,20 @@ struct BaseHeader
   } serialization;
 
   //___the functions:
-  BaseHeader(); //ctor
-  BaseHeader(uint32_t size, Description description, SerializationMethod serialization); //ctor for use in derived types
+  //ctor
+  BaseHeader();
+  //ctor for use in derived types
+  BaseHeader(uint32_t size, Description description, SerializationMethod serialization);
   BaseHeader(const BaseHeader&); //copy ctor
   static BaseHeader* Get(void* b) {
     return (*(reinterpret_cast<uint32_t*>(b))==sMagicString)?static_cast<BaseHeader*>(b):nullptr;
   }
-  inline BaseHeader* NextHeader() {return (flagsNextHeader)?reinterpret_cast<BaseHeader*>(reinterpret_cast<unsigned char*>(this)+headerSize):nullptr;}
+  inline BaseHeader* NextHeader() {
+    return (flagsNextHeader)?
+      reinterpret_cast<BaseHeader*>(reinterpret_cast<unsigned char*>(this)+headerSize):nullptr;}
 };
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 /// @struct DataHeader
 /// @brief the main header struct
 ///
@@ -243,7 +266,7 @@ struct DataHeader : public BaseHeader
   }
 };
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 /// @struct DataIdentifier
 /// @brief Helper struct to encode origin and description of data.
 ///
@@ -263,20 +286,20 @@ struct DataIdentifier
   void print() const;
 };
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 /// @defgroup data_description_defines Defines for data description
 /// @ingroup aliceo2_dataformats_dataheader
 /// @{
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 /// default int representation of 'invalid' token for 4-byte char field
 const uint32_t gInvalidToken32 = 0x00202020;
 /// default int representation of 'invalid' token for 8-byte char field
 const uint64_t gInvalidToken64 = 0x0020202020202020;
 /// invalid version
- const uint32_t gInvalidVersion = 0;
+const uint32_t gInvalidVersion = 0;
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 //possible data origins
 extern const DataHeader::DataOrigin gDataOriginAny;
 extern const DataHeader::DataOrigin gDataOriginInvalid;
@@ -284,7 +307,7 @@ extern const DataHeader::DataOrigin gDataOriginTPC;
 extern const DataHeader::DataOrigin gDataOriginTRD;
 extern const DataHeader::DataOrigin gDataOriginTOF;
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 //possible data types
 extern const DataHeader::DataDescription gDataDescriptionAny;
 extern const DataHeader::DataDescription gDataDescriptionInvalid;
@@ -292,7 +315,7 @@ extern const DataHeader::DataDescription gDataDescriptionRawData;
 extern const DataHeader::DataDescription gDataDescriptionClusters;
 extern const DataHeader::DataDescription gDataDescriptionTracks;
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 //possible serialization types
 extern const BaseHeader::SerializationMethod gSerializationMethodAny;
 extern const BaseHeader::SerializationMethod gSerializationMethodInvalid;
@@ -305,7 +328,7 @@ extern const BaseHeader::SerializationMethod gSerializationMethodFlatBuf;
 } //namespace Base
 } //namespace AliceO2
 
-//____________________________________________________________________________
+//__________________________________________________________________________________________________
 //helper function to print a hex/ASCII dump of some memory
 void hexDump (const char *desc, void *addr, int len) {
   int i;
