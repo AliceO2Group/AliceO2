@@ -67,7 +67,6 @@ set(BUCKET_NAME tpc_simulation_bucket)
 
 O2_GENERATE_LIBRARY()
 
-
 Set(Exe_Names
   tpc-run-sim
 )

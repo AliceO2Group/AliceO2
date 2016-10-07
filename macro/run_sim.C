@@ -27,7 +27,7 @@ double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
   return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
 }
 
-void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
 {
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
@@ -159,7 +159,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
   }
 
-  for (int idLr = 0; idLr < kNLr; idLr++) {
+  for (idLr = 0; idLr < kNLr; idLr++) {
     rLr = tdr5dat[idLr][kRmd];
     phi0 = tdr5dat[idLr][kPhi0];
 
