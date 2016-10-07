@@ -100,7 +100,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   gSystem->Exec(" rm itsSegmentations.root ");
 
   // create segmentations:
-/*  AliceO2::ITS::UpgradeSegmentationPixel* seg0 = new AliceO2::ITS::UpgradeSegmentationPixel(
+  /*AliceO2::ITS::SegmentationPixel* seg0 = new AliceO2::ITS::SegmentationPixel(
     0,           // segID (0:9)
     1,           // chips per module
     kNCol,       // ncols (total for module)
@@ -115,7 +115,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     kGuardRing,  // top
     kReadOutEdge // bottom
     );           // see UpgradeSegmentationPixel.h for extra options
-  seg0->Store(AliceO2::ITS::UpgradeGeometryTGeo::getITSsegmentationFileName());
+  seg0->Store(AliceO2::ITS::GeometryTGeo::getITSsegmentationFileName());
   seg0->Print();
 
   double dzLr, rLr, phi0, turbo;
@@ -199,9 +199,13 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   timer.Stop();
   Double_t rtime = timer.RealTime();
   Double_t ctime = timer.CpuTime();
-  cout << endl << endl;
-  cout << "Macro finished succesfully." << endl;
-  cout << "Output file is " << outFile << endl;
-  cout << "Parameter file is " << parFile << endl;
-  cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
+  std::cout << std::endl << std::endl;
+  std::cout << "Macro finished succesfully." << std::endl;
+  std::cout << "Output file is " << outFile << std::endl;
+  std::cout << "Parameter file is " << parFile << std::endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl << std::endl;
+
+  delete run;
+
+  return;
 }

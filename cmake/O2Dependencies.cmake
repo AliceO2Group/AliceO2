@@ -555,20 +555,28 @@ o2_define_bucket(
     tpc_simulation_bucket
 
     DEPENDENCIES
-    root_base_bucket
-    Hist
-    common_vc_bucket
-    fairroot_geom
+    tpc_base_bucket
+    DetectorsBase
+    TPCBase
+    SimulationDataFormat
+    Geom
     MathCore
     RIO
-    TPCBase
-    DetectorsBase
-    SimulationDataFormat
-    ${GENERATORS_LIBRARY}
+    Hist
+    DetectorsPassive
+    its_reconstruction_bucket
+    Gen
+    Base
+    TreePlayer
+    #   Core
+    #    root_base_bucket
+    #    fairroot_geom
+    #    ${GENERATORS_LIBRARY}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Passive/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
 )
 
