@@ -41,6 +41,8 @@ namespace AliceO2 {
       // Copy container info into the output container
       void FillOutputContainer(TClonesArray *outputcont);
 
+      Int_t GetEntries() { return mClusterArray->GetEntries(); };
+
     private:
       Int_t         mNclusters;        // number of clusters
       TClonesArray* mClusterArray;      // array for clusters

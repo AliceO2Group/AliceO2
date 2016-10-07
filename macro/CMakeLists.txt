@@ -36,6 +36,12 @@
     Set_Tests_Properties(run_clusterer_TGeant3 PROPERTIES TIMEOUT "30")
     Set_Tests_Properties(run_clusterer_TGeant3 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
 
+    Add_Test(comp_clusterer_TGeant3
+            ${CMAKE_BINARY_DIR}/macro/compare_cluster.sh 10 \"TGeant3\")
+    Set_Tests_Properties(comp_clusterer_TGeant3 PROPERTIES DEPENDS run_clusterer_TGeant3)
+    Set_Tests_Properties(comp_clusterer_TGeant3 PROPERTIES TIMEOUT "30")
+    Set_Tests_Properties(comp_clusterer_TGeant3 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
+
     Add_Test(run_clusterer_TGeant4
     ${CMAKE_BINARY_DIR}/macro/run_clusterer.sh 10 \"TGeant4\")
     Set_Tests_Properties(run_clusterer_TGeant4 PROPERTIES DEPENDS run_digi_tpc_TGeant4)
