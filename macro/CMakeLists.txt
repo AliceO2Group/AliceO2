@@ -48,6 +48,15 @@
     Set_Tests_Properties(run_clusterer_TGeant4 PROPERTIES TIMEOUT "30")
     Set_Tests_Properties(run_clusterer_TGeant4 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
 
+GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/compare_cluster.C)
+
+  Add_Test(comp_clusterer_TGeant3
+          ${CMAKE_BINARY_DIR}/macro/compare_cluster.sh 10 \"TGeant3\")
+  Set_Tests_Properties(comp_clusterer_TGeant3 PROPERTIES DEPENDS run_clusterer_TGeant3)
+  Set_Tests_Properties(comp_clusterer_TGeant3 PROPERTIES TIMEOUT "30")
+  Set_Tests_Properties(comp_clusterer_TGeant3 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
+
+GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/load_all_libs.C)
 
 #ITS tests with G3
   configure_file(${CMAKE_SOURCE_DIR}/macro/run_sim_its.sh ${CMAKE_BINARY_DIR}/macro/run_sim_its.sh)
