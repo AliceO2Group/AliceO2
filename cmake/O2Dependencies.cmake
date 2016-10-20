@@ -1363,3 +1363,27 @@ o2_define_bucket(
     ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/common/include
 )
+
+o2_define_bucket(
+    NAME
+    mch_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+)
+
+o2_define_bucket(
+    NAME
+    mch_preclustering_bucket
+
+    DEPENDENCIES
+    fairroot_base_bucket
+    aliceHLTwrapper
+    MCHBase
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Utilities/aliceHLTwrapper/include
+    ${CMAKE_SOURCE_DIR}/Detectors/MUON/MCH/Base/include
+)
+
