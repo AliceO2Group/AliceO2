@@ -8,15 +8,19 @@
 #include "runFairMQDevice.h"
 #include "FLP2EPNex_distributed/EPNReceiver.h"
 
+#include <string>
+
 namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
   options.add_options()
-    ("heartbeat-interval", bpo::value<int>()->default_value(5000), "Heartbeat interval in milliseconds")
     ("buffer-timeout", bpo::value<int>()->default_value(1000), "Buffer timeout in milliseconds")
     ("num-flps", bpo::value<int>()->required(), "Number of FLPs")
-    ("test-mode", bpo::value<int>()->default_value(0), "Run in test mode");
+    ("test-mode", bpo::value<int>()->default_value(0), "Run in test mode")
+    ("in-chan-name", bpo::value<std::string>()->default_value("stf2"), "Name of the input channel (sub-time frames)")
+    ("out-chan-name", bpo::value<std::string>()->default_value("tf"), "Name of the output channel (time frames)")
+    ("ack-chan-name", bpo::value<std::string>()->default_value("ack"), "Name of the acknowledgement channel");
 }
 
 FairMQDevice* getDevice(const FairMQProgOptions& config)

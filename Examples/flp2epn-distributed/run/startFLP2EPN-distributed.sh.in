@@ -14,7 +14,6 @@ FLP0+=" --mq-config $cfg"
 FLP0+=" --flp-index 0"
 FLP0+=" --event-size 1000000"
 FLP0+=" --num-epns 3"
-FLP0+=" --heartbeat-timeout 20000"
 FLP0+=" --test-mode 1"
 FLP0+=" --send-offset 0"
 xterm -geometry 80x25+500+0 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP0 &
@@ -25,7 +24,6 @@ FLP1+=" --mq-config $cfg"
 FLP1+=" --flp-index 1"
 FLP1+=" --event-size 1000000"
 FLP1+=" --num-epns 3"
-FLP1+=" --heartbeat-timeout 20000"
 FLP1+=" --test-mode 1"
 FLP1+=" --send-offset 0"
 xterm -geometry 80x25+500+350 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP1 &
@@ -36,7 +34,6 @@ FLP2+=" --mq-config $cfg"
 FLP2+=" --flp-index 2"
 FLP2+=" --event-size 1000000"
 FLP2+=" --num-epns 3"
-FLP2+=" --heartbeat-timeout 20000"
 FLP2+=" --test-mode 1"
 FLP2+=" --send-offset 0"
 xterm -geometry 80x25+500+700 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP2 &
@@ -44,7 +41,6 @@ xterm -geometry 80x25+500+700 -hold -e @CMAKE_BINARY_DIR@/bin/$FLP2 &
 EPN0="epnReceiver"
 EPN0+=" --id epnReceiver1"
 EPN0+=" --mq-config $cfg"
-EPN0+=" --heartbeat-interval 5000"
 EPN0+=" --num-flps 3"
 EPN0+=" --test-mode 1"
 xterm -geometry 80x25+1000+0 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN0 &
@@ -52,7 +48,6 @@ xterm -geometry 80x25+1000+0 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN0 &
 EPN1="epnReceiver"
 EPN1+=" --id epnReceiver2"
 EPN1+=" --mq-config $cfg"
-EPN1+=" --heartbeat-interval 5000"
 EPN1+=" --num-flps 3"
 EPN1+=" --test-mode 1"
 xterm -geometry 80x25+1000+350 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN1 &
@@ -60,7 +55,6 @@ xterm -geometry 80x25+1000+350 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN1 &
 EPN2="epnReceiver"
 EPN2+=" --id epnReceiver3"
 EPN2+=" --mq-config $cfg"
-EPN2+=" --heartbeat-interval 5000"
 EPN2+=" --num-flps 3"
 EPN2+=" --test-mode 1"
 xterm -geometry 80x25+1000+700 -hold -e @CMAKE_BINARY_DIR@/bin/$EPN2 &

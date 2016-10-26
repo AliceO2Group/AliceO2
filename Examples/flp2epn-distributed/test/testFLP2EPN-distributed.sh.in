@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cfg="@CMAKE_BINARY_DIR@/bin/config/flp2epn-prototype.json"
+
 # setup a trap to kill everything if the test fails/timeouts
 
 trap 'kill -TERM $FLP0_PID; kill -TERM $FLP1_PID; kill -TERM $EPN0_PID; kill -TERM $EPN1_PID; kill -TERM $SAMPLER_PID; wait $FLP0_PID; wait $FLP1_PID; wait $EPN0_PID; wait $EPN1_PID; wait $SAMPLER_PID;' TERM
@@ -7,64 +9,45 @@ trap 'kill -TERM $FLP0_PID; kill -TERM $FLP1_PID; kill -TERM $EPN0_PID; kill -TE
 # start 2 flpSenders in non-interactive mode
 
 FLP0="flpSender"
-FLP0+=" --id FLP1"
-FLP0+=" --interactive 0"
+FLP0+=" --id flpSender1"
+FLP0+=" --control static"
+FLP0+=" --mq-config $cfg"
 FLP0+=" --flp-index 0"
 FLP0+=" --event-size 1000000"
 FLP0+=" --num-epns 2"
-FLP0+=" --heartbeat-timeout 20000"
 FLP0+=" --test-mode 1"
 FLP0+=" --send-offset 0"
-FLP0+=" --hb-in-address tcp://127.0.0.1:7580"
-FLP0+=" --data-in-socket-type sub --data-in-method connect --data-in-address tcp://127.0.0.1:7550" # non-default socket type and method for test mode, default is pull/bind
-FLP0+=" --data-out-address tcp://127.0.0.1:7560"
-FLP0+=" --data-out-address tcp://127.0.0.1:7561"
 @CMAKE_BINARY_DIR@/bin/$FLP0 &
 FLP0_PID=$!
 
 FLP1="flpSender"
-FLP1+=" --id FLP2"
-FLP1+=" --interactive 0"
+FLP1+=" --id flpSender2"
+FLP1+=" --control static"
+FLP1+=" --mq-config $cfg"
 FLP1+=" --flp-index 1"
 FLP1+=" --event-size 1000000"
 FLP1+=" --num-epns 2"
-FLP1+=" --heartbeat-timeout 20000"
 FLP1+=" --test-mode 1"
 FLP1+=" --send-offset 0"
-FLP1+=" --hb-in-address tcp://127.0.0.1:7581"
-FLP1+=" --data-in-socket-type sub --data-in-method connect --data-in-address tcp://127.0.0.1:7550" # non-default socket type and method for test mode, default is pull/bind
-FLP1+=" --data-out-address tcp://127.0.0.1:7560"
-FLP1+=" --data-out-address tcp://127.0.0.1:7561"
 @CMAKE_BINARY_DIR@/bin/$FLP1 &
 FLP1_PID=$!
 
 # start 2 epnReceivers in non-interactive mode
-
 EPN0="epnReceiver"
-EPN0+=" --id EPN1"
-EPN0+=" --interactive 0"
-EPN0+=" --heartbeat-interval 5000"
+EPN0+=" --id epnReceiver1"
+EPN0+=" --control static"
+EPN0+=" --mq-config $cfg"
 EPN0+=" --num-flps 2"
 EPN0+=" --test-mode 1"
-EPN0+=" --data-in-address tcp://127.0.0.1:7560"
-EPN0+=" --data-out-address tcp://*:7590 --data-out-socket-type pub" # non-default socket type  for test mode (because no receiver - do pub), default is push.
-EPN0+=" --hb-out-address tcp://127.0.0.1:7580"
-EPN0+=" --hb-out-address tcp://127.0.0.1:7581"
-EPN0+=" --ack-out-address tcp://127.0.0.1:7990"
 @CMAKE_BINARY_DIR@/bin/$EPN0 &
 EPN0_PID=$!
 
 EPN1="epnReceiver"
-EPN1+=" --id EPN2"
-EPN1+=" --interactive 0"
-EPN1+=" --heartbeat-interval 5000"
+EPN1+=" --id epnReceiver2"
+EPN1+=" --control static"
+EPN1+=" --mq-config $cfg"
 EPN1+=" --num-flps 2"
 EPN1+=" --test-mode 1"
-EPN1+=" --data-in-address tcp://127.0.0.1:7561"
-EPN1+=" --data-out-address tcp://*:7591 --data-out-socket-type pub" # non-default socket type  for test mode (because no receiver - do pub), default is push.
-EPN1+=" --hb-out-address tcp://127.0.0.1:7580"
-EPN1+=" --hb-out-address tcp://127.0.0.1:7581"
-EPN1+=" --ack-out-address tcp://127.0.0.1:7990"
 @CMAKE_BINARY_DIR@/bin/$EPN1 &
 EPN1_PID=$!
 
@@ -75,12 +58,11 @@ sleep 2
 # start flpSyncSampler in non-interactive mode
 
 SAMPLER="flpSyncSampler"
-SAMPLER+=" --id 101"
+SAMPLER+=" --id flpSyncSampler"
+SAMPLER+=" --mq-config $cfg"
 SAMPLER+=" --event-rate 100"
 SAMPLER+=" --max-events 100"
-SAMPLER+=" --interactive 0"
-SAMPLER+=" --ack-in-address tcp://*:7990"
-SAMPLER+=" --data-out-address tcp://*:7550"
+SAMPLER+=" --control static"
 @CMAKE_BINARY_DIR@/bin/$SAMPLER &
 SAMPLER_PID=$!
 

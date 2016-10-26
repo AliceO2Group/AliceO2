@@ -38,7 +38,7 @@ class EPNReceiver : public FairMQDevice
     /// Default destructor
     virtual ~EPNReceiver();
 
-    void InitTask();
+    virtual void InitTask();
 
     /// Prints the contents of the timeframe container
     void PrintBuffer(const std::unordered_map<uint16_t, TFBuffer> &buffer) const;
@@ -56,6 +56,10 @@ class EPNReceiver : public FairMQDevice
     int fNumFLPs; ///< Number of flpSenders
     int fBufferTimeoutInMs; ///< Time after which incomplete timeframes are dropped
     int fTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
+
+    std::string fInChannelName;
+    std::string fOutChannelName;
+    std::string fAckChannelName;
 };
 
 } // namespace Devices
