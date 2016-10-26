@@ -34,6 +34,8 @@ FLPSender::FLPSender()
   , fEventSize(10000)
   , fTestMode(0)
   , fTimeFrameId(0)
+  , fInChannelName()
+  , fOutChannelName()
 {
 }
 
@@ -49,6 +51,8 @@ void FLPSender::InitTask()
   fTestMode = fConfig->GetValue<int>("test-mode");
   fSendOffset = fConfig->GetValue<int>("send-offset");
   fSendDelay = fConfig->GetValue<int>("send-delay");
+  fInChannelName = fConfig->GetValue<string>("in-chan-name");
+  fOutChannelName = fConfig->GetValue<string>("out-chan-name");
 }
 
 void FLPSender::Run()
@@ -57,7 +61,7 @@ void FLPSender::Run()
   FairMQMessagePtr baseMsg(NewMessage(fEventSize));
 
   // store the channel reference to avoid traversing the map on every loop iteration
-  FairMQChannel& dataInChannel = fChannels.at("data-in").at(0);
+  FairMQChannel& dataInChannel = fChannels.at(fInChannelName).at(0);
 
   while (CheckCurrentState(RUNNING)) {
     // initialize f2e header
@@ -127,7 +131,7 @@ inline void FLPSender::sendFrontData()
   int direction = currentTimeframeId % fNumEPNs;
   // LOG(INFO) << "Sending event " << currentTimeframeId << " to EPN#" << direction << "...";
 
-  if (Send(fSTFBuffer.front(), "data-out", direction, 0) < 0) {
+  if (Send(fSTFBuffer.front(), fOutChannelName, direction, 0) < 0) {
     LOG(ERROR) << "Failed to queue sub-timeframe #" << currentTimeframeId << " to EPN[" << direction << "]";
   }
   fSTFBuffer.pop();

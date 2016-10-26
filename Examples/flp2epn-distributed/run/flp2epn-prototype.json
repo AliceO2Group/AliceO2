@@ -6,7 +6,7 @@
             "id": "flpSyncSampler",
             "channels":
             [{
-                "name": "data",
+                "name": "stf1",
                 "type": "pub",
                 "method": "bind",
                 "address": "tcp://127.0.0.1:5550",
@@ -26,14 +26,14 @@
             "id": "flpSender1",
             "channels":
             [{
-                "name": "data-in",
+                "name": "stf1",
                 "type": "sub",
                 "method": "connect",
                 "address": "tcp://127.0.0.1:5550",
                 "rcvBufSize": "10"
             },
             {
-                "name": "data-out",
+                "name": "stf2",
                 "type": "push",
                 "method": "connect",
                 "sockets":
@@ -49,14 +49,14 @@
             "id": "flpSender2",
             "channels":
             [{
-                "name": "data-in",
+                "name": "stf1",
                 "type": "sub",
                 "method": "connect",
                 "address": "tcp://127.0.0.1:5550",
                 "rcvBufSize": "10"
             },
             {
-                "name": "data-out",
+                "name": "stf2",
                 "type": "push",
                 "method": "connect",
                 "sockets":
@@ -72,14 +72,14 @@
             "id": "flpSender3",
             "channels":
             [{
-                "name": "data-in",
+                "name": "stf1",
                 "type": "sub",
                 "method": "connect",
                 "address": "tcp://127.0.0.1:5550",
                 "rcvBufSize": "10"
             },
             {
-                "name": "data-out",
+                "name": "stf2",
                 "type": "push",
                 "method": "connect",
                 "sockets":
@@ -97,14 +97,14 @@
             "id": "epnReceiver1",
             "channels":
             [{
-                "name": "data-in",
+                "name": "stf2",
                 "type": "pull",
                 "method": "bind",
                 "address": "tcp://127.0.0.1:5561",
                 "rcvBufSize": "10"
             },
             {
-                "name": "data-out",
+                "name": "tf",
                 "type": "pub",
                 "method": "bind",
                 "address": "tcp://127.0.0.1:5591",
@@ -122,14 +122,14 @@
             "id": "epnReceiver2",
             "channels":
             [{
-                "name": "data-in",
+                "name": "stf2",
                 "type": "pull",
                 "method": "bind",
                 "address": "tcp://127.0.0.1:5562",
                 "rcvBufSize": "10"
             },
             {
-                "name": "data-out",
+                "name": "tf",
                 "type": "pub",
                 "method": "bind",
                 "address": "tcp://127.0.0.1:5592",
@@ -147,14 +147,14 @@
             "id": "epnReceiver3",
             "channels":
             [{
-                "name": "data-in",
+                "name": "stf2",
                 "type": "pull",
                 "method": "bind",
                 "address": "tcp://127.0.0.1:5563",
                 "rcvBufSize": "10"
             },
             {
-                "name": "data-out",
+                "name": "tf",
                 "type": "pub",
                 "method": "bind",
                 "address": "tcp://127.0.0.1:5593",

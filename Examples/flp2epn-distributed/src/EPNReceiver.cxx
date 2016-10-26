@@ -28,6 +28,9 @@ EPNReceiver::EPNReceiver()
   , fNumFLPs(0)
   , fBufferTimeoutInMs(5000)
   , fTestMode(0)
+  , fInChannelName()
+  , fOutChannelName()
+  , fAckChannelName()
 {
 }
 
@@ -40,6 +43,9 @@ void EPNReceiver::InitTask()
   fNumFLPs = fConfig->GetValue<int>("num-flps");
   fBufferTimeoutInMs = fConfig->GetValue<int>("buffer-timeout");
   fTestMode = fConfig->GetValue<int>("test-mode");
+  fInChannelName = fConfig->GetValue<string>("in-chan-name");
+  fOutChannelName = fConfig->GetValue<string>("out-chan-name");
+  fAckChannelName = fConfig->GetValue<string>("ack-chan-name");
 }
 
 void EPNReceiver::PrintBuffer(const unordered_map<uint16_t, TFBuffer>& buffer) const
@@ -90,12 +96,12 @@ void EPNReceiver::Run()
   // f2eHeader* header; // holds the header of the currently arrived message.
   uint16_t id = 0; // holds the timeframe id of the currently arrived sub-timeframe.
 
-  FairMQChannel& ackOutChannel = fChannels.at("ack").at(0);
+  FairMQChannel& ackOutChannel = fChannels.at(fAckChannelName).at(0);
 
   while (CheckCurrentState(RUNNING)) {
     FairMQParts parts;
 
-    if (Receive(parts, "data-in", 0, 100) > 0) {
+    if (Receive(parts, fInChannelName, 0, 100) > 0) {
       // store the received ID
       f2eHeader& header = *(static_cast<f2eHeader*>(parts.At(0)->GetData()));
       id = header.timeFrameId;
@@ -131,7 +137,7 @@ void EPNReceiver::Run()
       if (fTimeframeBuffer[id].parts.Size() == fNumFLPs) {
         // LOG(INFO) << "Collected all parts for timeframe #" << id;
         // when all parts are collected send then to the output channel
-        Send(fTimeframeBuffer[id].parts, "data-out");
+        Send(fTimeframeBuffer[id].parts, fOutChannelName);
 
         if (fTestMode > 0) {
           // Send an acknowledgement back to the sampler to measure the round trip time

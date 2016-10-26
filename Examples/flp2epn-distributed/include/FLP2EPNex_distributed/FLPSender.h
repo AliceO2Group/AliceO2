@@ -55,6 +55,9 @@ class FLPSender : public FairMQDevice
     int fEventSize; ///< Size of the sub-timeframe body (only for test mode)
     int fTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
     uint16_t fTimeFrameId;
+
+    std::string fInChannelName;
+    std::string fOutChannelName;
 };
 
 } // namespace Devices

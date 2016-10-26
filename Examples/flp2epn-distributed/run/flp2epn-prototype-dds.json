@@ -6,17 +6,15 @@
             "id": "flpSyncSampler",
             "channels":
             [{
-                "name": "data",
+                "name": "stf1",
                 "type": "pub",
                 "method": "bind",
-                "property": "FLPSyncSamplerOutputAddress",
                 "rateLogging": "0"
             },
             {
                 "name": "ack",
                 "type": "pull",
                 "method": "bind",
-                "property": "FLPSyncSamplerInputAddress",
                 "rateLogging": "0"
             }]
         },
@@ -25,18 +23,16 @@
             "key": "flpSender",
             "channels":
             [{
-                "name": "data-in",
+                "name": "stf1",
                 "type": "sub",
                 "method": "connect",
-                "property": "FLPSyncSamplerOutputAddress",
                 "rcvBufSize": "10"
             },
             {
-                "name": "data-out",
+                "name": "stf2",
                 "type": "push",
                 "method": "connect",
-                "numSockets": "5",
-                "property": "EPNReceiverInputAddress",
+                "numSockets": "64",
                 "sndBufSize": "10"
             }]
         },
@@ -45,24 +41,21 @@
             "key": "epnReceiver",
             "channels":
             [{
-                "name": "data-in",
+                "name": "stf2",
                 "type": "pull",
                 "method": "bind",
-                "property": "EPNReceiverInputAddress",
                 "rcvBufSize": "10"
             },
             {
-                "name": "data-out",
+                "name": "tf",
                 "type": "pub",
                 "method": "bind",
-                "property": "EPNReceiverOutputAddress",
                 "sndBufSize": "10"
             },
             {
                 "name": "ack",
                 "type": "push",
                 "method": "connect",
-                "property": "FLPSyncSamplerInputAddress",
                 "rateLogging": "0"
             }]
         }]

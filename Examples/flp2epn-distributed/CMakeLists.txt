@@ -2,6 +2,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/startFLP2EPN-distributed.sh.in ${
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test/testFLP2EPN-distributed.sh.in ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/testFLP2EPN-distributed.sh)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/flp2epn-prototype.json ${CMAKE_BINARY_DIR}/bin/config/flp2epn-prototype.json)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/flp2epn-prototype-dds.json ${CMAKE_BINARY_DIR}/bin/config/flp2epn-prototype-dds.json)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/flp2epn-dds-topology.xml ${CMAKE_BINARY_DIR}/bin/config/flp2epn-dds-topology.xml @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run/flp2epn-dds-hosts.cfg ${CMAKE_BINARY_DIR}/bin/config/flp2epn-dds-hosts.cfg COPYONLY)
 
 set(MODULE_NAME "FLP2EPNex_distributed")
 

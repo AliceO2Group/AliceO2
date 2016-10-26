@@ -27,6 +27,8 @@ FLPSyncSampler::FLPSyncSampler()
   , fAckListener()
   , fResetEventCounter()
   , fLeaving(false)
+  , fAckChannelName()
+  , fOutChannelName()
 {
 }
 
@@ -42,6 +44,8 @@ void FLPSyncSampler::InitTask()
   fEventRate = fConfig->GetValue<int>("event-rate");
   fMaxEvents = fConfig->GetValue<int>("max-events");
   fStoreRTTinFile = fConfig->GetValue<int>("store-rtt-in-file");
+  fAckChannelName = fConfig->GetValue<string>("ack-chan-name");
+  fOutChannelName = fConfig->GetValue<string>("out-chan-name");
 }
 
 void FLPSyncSampler::PreRun()
@@ -55,7 +59,7 @@ bool FLPSyncSampler::ConditionalRun()
 {
   FairMQMessagePtr msg(NewSimpleMessage(fTimeFrameId));
 
-  if (fChannels.at("data").at(0).Send(msg) >= 0) {
+  if (fChannels.at(fOutChannelName).at(0).Send(msg) >= 0) {
     fTimeframeRTT[fTimeFrameId].start = steady_clock::now();
 
     if (++fTimeFrameId == UINT16_MAX - 1) {
@@ -105,7 +109,7 @@ void FLPSyncSampler::ListenForAcks()
   while (!fLeaving) {
     FairMQMessagePtr idMsg(NewMessage());
 
-    if (fChannels.at("ack").at(0).Receive(idMsg) >= 0) {
+    if (Receive(idMsg, fAckChannelName, 0, 1000) >= 0) {
       id = *(static_cast<uint16_t*>(idMsg->GetData()));
       fTimeframeRTT.at(id).end = steady_clock::now();
       // store values in a file
@@ -117,15 +121,13 @@ void FLPSyncSampler::ListenForAcks()
       }
 
       LOG(INFO) << "Timeframe #" << id << " acknowledged after " << elapsed.count() << " μs.";
-    } else {
-      break;
     }
   }
 
   // store round trip time measurements in a file
   if (fStoreRTTinFile > 0) {
-    // ofsFrames.close();
-    // ofsTimes.close();
+    ofsFrames.close();
+    ofsTimes.close();
   }
   LOG(INFO) << "Exiting Ack listener";
 }

@@ -63,6 +63,9 @@ class FLPSyncSampler : public FairMQDevice
     std::thread fAckListener;
     std::thread fResetEventCounter;
     std::atomic<bool> fLeaving;
+
+    std::string fAckChannelName;
+    std::string fOutChannelName;
 };
 
 } // namespace Devices

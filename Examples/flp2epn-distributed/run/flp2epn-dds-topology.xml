@@ -3,10 +3,10 @@
     <var id="numFLPs" value="64" />
     <var id="numEPNs" value="64" />
 
-    <property id="FLPSyncSamplerInputAddress" />
-    <property id="FLPSyncSamplerOutputAddress" />
-    <property id="EPNReceiverInputAddress" />
-    <property id="EPNReceiverOutputAddress" />
+    <property id="ack" />
+    <property id="stf1" />
+    <property id="stf2" />
+    <property id="tf" />
 
     <declrequirement id="FLPSyncSamplerHost">
         <hostPattern type="wnname" value="sampler"/>
@@ -21,30 +21,30 @@
     </declrequirement>
 
     <decltask id="flpSyncSampler">
-        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/flpSyncSampler --id flpSyncSampler --mq-config /home/arybalch/alice/AliceO2/build/bin/config/flp2epn-prototype-dds.json --log-color 0 --control dds --event-rate 100</exe>
+        <exe reachable="true">@CMAKE_BINARY_DIR@/bin/flpSyncSampler --id flpSyncSampler --control libFairMQDDSControlPlugin.so --config libFairMQDDSConfigPlugin.so --mq-config @CMAKE_BINARY_DIR@/bin/config/flp2epn-prototype-dds.json --log-color 0 --event-rate 100</exe>
         <requirement>FLPSyncSamplerHost</requirement>
         <properties>
-            <id access="write">FLPSyncSamplerInputAddress</id>
-            <id access="write">FLPSyncSamplerOutputAddress</id>
+            <id access="write">ack</id>
+            <id access="write">stf1</id>
         </properties>
     </decltask>
 
     <decltask id="flpSender">
-        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/flpSender --id flp%taskIndex% --config-key flpSender --mq-config /home/arybalch/alice/AliceO2/build/bin/config/flp2epn-prototype-dds.json --log-color 0 --control dds --event-size 100000 --num-epns ${numEPNs} --test-mode 1</exe>
+        <exe reachable="true">@CMAKE_BINARY_DIR@/bin/flpSender --id flp%taskIndex% --config-key flpSender --control libFairMQDDSControlPlugin.so --config libFairMQDDSConfigPlugin.so --mq-config @CMAKE_BINARY_DIR@/bin/config/flp2epn-prototype-dds.json --log-color 0 --event-size 100000 --num-epns ${numEPNs} --test-mode 1</exe>
         <requirement>FLPSenderHost</requirement>
         <properties>
-            <id access="read">FLPSyncSamplerOutputAddress</id>
-            <id access="read">EPNReceiverInputAddress</id>
+            <id access="read">stf1</id>
+            <id access="read">stf2</id>
         </properties>
     </decltask>
 
     <decltask id="epnReceiver">
-        <exe reachable="true">/home/arybalch/alice/AliceO2/build/bin/epnReceiver --id epn%taskIndex% --config-key epnReceiver --mq-config /home/arybalch/alice/AliceO2/build/bin/config/flp2epn-prototype-dds.json --log-color 0 --control dds --num-flps ${numFLPs} --test-mode 1</exe>
+        <exe reachable="true">@CMAKE_BINARY_DIR@/bin/epnReceiver --id epn%taskIndex% --config-key epnReceiver --control libFairMQDDSControlPlugin.so --config libFairMQDDSConfigPlugin.so --mq-config @CMAKE_BINARY_DIR@/bin/config/flp2epn-prototype-dds.json --log-color 0 --num-flps ${numFLPs} --test-mode 1</exe>
         <requirement>EPNReceiverHost</requirement>
         <properties>
-            <id access="write">EPNReceiverInputAddress</id>
-            <id access="read">FLPSyncSamplerInputAddress</id>
-            <id access="write">EPNReceiverOutputAddress</id>
+            <id access="write">stf2</id>
+            <id access="read">ack</id>
+            <id access="write">tf</id>
         </properties>
     </decltask>
 
