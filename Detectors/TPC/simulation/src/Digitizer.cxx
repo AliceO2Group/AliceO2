@@ -156,13 +156,13 @@ vector< PadResponse> Digitizer::getPadResponse(Float_t xabs, Float_t yabs)
 Int_t Digitizer::ADCvalue(Float_t nElectrons)
 {
   // TODO parameters to be stored someplace else
-  Float_t ADCSat = 1024;
+  Float_t ADCSat = 1023;
   Float_t Qel = 1.602e-19;
   Float_t ChipGain = 20;
   Float_t ADCDynRange = 2000;
   
   Int_t adcValue = static_cast<int>(nElectrons*Qel*1.e15*ChipGain*ADCSat/ADCDynRange);
-  if(adcValue >= ADCSat) adcValue = ADCSat-1;// saturation
+  if(adcValue > ADCSat) adcValue = ADCSat;// saturation
   // saturation is applied at a later stage
   return adcValue;
 }
