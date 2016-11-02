@@ -56,6 +56,20 @@ Segmentation::~Segmentation() {
   
 }
 
+/// \brief Returns pointer to the segmentation of the half-MFT
+/// \param iHalf Integer : 0 = Bottom; 1 = Top
+/// \return Pointer to a HalfSegmentation
+
+//_____________________________________________________________________________
+HalfSegmentation* Segmentation::GetHalf(Int_t iHalf) const 
+{ 
+
+  Info("GetHalf",Form("Ask for half %d (of %d and %d)",iHalf,kBottom,kTop),0,0);
+
+  return ((iHalf==kTop || iHalf==kBottom) ? ( (HalfSegmentation*) fHalves->At(iHalf)) :  NULL); 
+
+}
+
 ///Clear the TClonesArray holding the HalfSegmentation objects
 
 //_____________________________________________________________________________

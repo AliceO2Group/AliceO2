@@ -29,7 +29,7 @@ public:
   /// \brief Returns pointer to the segmentation of the half-MFT
   /// \param iHalf Integer : 0 = Bottom; 1 = Top
   /// \return Pointer to a HalfSegmentation
-  HalfSegmentation* GetHalf(Int_t iHalf) const { return ((iHalf==kTop || iHalf==kBottom) ? ( (HalfSegmentation*) fHalves->At(iHalf)) :  NULL); }
+  HalfSegmentation* GetHalf(Int_t iHalf) const;
 
   Int_t GetDetElemLocalID(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const;
   

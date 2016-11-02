@@ -17,7 +17,6 @@ class GeometryTGeo : public TObject {
 public:
 
   GeometryTGeo();
-  GeometryTGeo(const GeometryTGeo &src);
   ~GeometryTGeo();
 
   /// The number of disks
@@ -33,13 +32,14 @@ public:
 
 private:
 
+  GeometryTGeo(const GeometryTGeo &src);
   GeometryTGeo& operator=(const GeometryTGeo &);
 
   void Build();
 
-  Int_t fNDisks;
-  Int_t fNChips;
-  Int_t **fNLaddersHalfDisk;         //[2][fNDisks]
+  Int_t  fNDisks;
+  Int_t  fNChips;
+  Int_t *fNLaddersHalfDisk;         //![2*fNDisks]
 
   static TString fgVolumeName;      ///< \brief MFT-mother volume name
   static TString fgHalfDetName;     ///< \brief MFT-half prefix

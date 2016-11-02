@@ -55,6 +55,7 @@ HalfDisk::HalfDisk(HalfDiskSegmentation *segmentation):TNamed(segmentation->GetN
   
   fSupport = new Support();
   TGeoVolumeAssembly * mftSupport = fSupport->CreateVolume(mftGeom->GetHalfID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()));
+  // BV: is empty!
   //fHalfDiskVolume->AddNode(mftSupport,1);
   
   // Building Heat Exchanger Between faces

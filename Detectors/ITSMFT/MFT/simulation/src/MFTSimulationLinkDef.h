@@ -22,5 +22,6 @@
 #pragma link C++ class AliceO2::MFT::Chip+;
 #pragma link C++ class AliceO2::MFT::Support+;
 #pragma link C++ class AliceO2::MFT::HeatExchanger+;
+#pragma link C++ class AliceO2::MFT::Point+;
 
 #endif
