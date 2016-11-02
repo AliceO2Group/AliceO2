@@ -38,7 +38,7 @@ Support::~Support()
 TGeoVolumeAssembly* Support::CreateVolume(Int_t half, Int_t disk)
 {
 
-  Info("CreateVolume",Form("Creating support and PCB for half %d and disk %d (to be done!)",half, disk),0,0);
+  //Info("CreateVolume",Form("Creating support and PCB for half %d and disk %d (to be done!)",half, disk),0,0);
   /*
   fSupportVolume = new TGeoVolumeAssembly(Form("SupportPCB_%d_%d", half, disk));
   

@@ -6,11 +6,24 @@
 #include "MFTSimulation/Geometry.h"
 #include "MFTSimulation/GeometryTGeo.h"
 #include "MFTSimulation/Detector.h"
+#include "MFTSimulation/Point.h"
+#include "MFTSimulation/HalfSegmentation.h"
+#include "MFTSimulation/HalfDiskSegmentation.h"
+#include "MFTSimulation/LadderSegmentation.h"
 
 #include "SimulationDataFormat/DetectorList.h"
+#include "SimulationDataFormat/Stack.h"
 
 #include "TVirtualMC.h"
 #include "TGeoGlobalMagField.h"
+#include "TLorentzVector.h"
+#include "TVector3.h"
+#include "TClonesArray.h"
+#include "TGeoManager.h"
+
+#include "FairLogger.h"
+#include "FairRootManager.h"
+#include "FairVolume.h"
 
 using namespace AliceO2::MFT;
 
@@ -18,10 +31,11 @@ ClassImp(AliceO2::MFT::Detector)
 
 //_____________________________________________________________________________
 Detector::Detector()
-  : AliceO2::Base::Detector("MFT", kTRUE, kAliMft),
-    fVersion(1),
-    fGeometryTGeo(0),
-    fDensitySupportOverSi(0.036)
+: AliceO2::Base::Detector("MFT", kTRUE, kAliMft),
+  fVersion(1),
+  fGeometryTGeo(0),
+  fDensitySupportOverSi(0.036),
+  fPoints(new TClonesArray("AliceO2::MFT::Point"))
 {
 
 }
@@ -31,8 +45,27 @@ Detector::Detector(const Detector& src)
   : AliceO2::Base::Detector(src),
     fVersion(src.fVersion),
     fGeometryTGeo(src.fGeometryTGeo),
-    fDensitySupportOverSi(src.fDensitySupportOverSi)
+    fDensitySupportOverSi(src.fDensitySupportOverSi),
+    fPoints(0)
 {
+  
+}
+
+//_____________________________________________________________________________
+Detector &Detector::operator=(const Detector &src)
+{
+
+  if (this == &src) {
+    return *this;
+  }
+
+  // base class assignment
+  Base::Detector::operator=(src);
+
+  fVersion = src.fVersion;
+  fGeometryTGeo = src.fGeometryTGeo;
+  fDensitySupportOverSi = src.fDensitySupportOverSi;
+  fPoints = 0;
 
 }
 
@@ -42,6 +75,11 @@ Detector::~Detector()
 
   delete fGeometryTGeo;
 
+  if (fPoints) {
+    fPoints->Delete();
+    delete fPoints;
+  }
+  
 }
 
 //_____________________________________________________________________________
@@ -56,10 +94,112 @@ void Detector::Initialize()
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
+
+  // do not track neutral particles
   if (!(TVirtualMC::GetMC()->TrackCharge())) {
     return kFALSE;
   }
+
+  Geometry *mftGeo = Geometry::Instance();
+  Segmentation * seg = mftGeo->GetSegmentation();
+  if (!seg) Fatal("ProcessHits","No segmentation available",0,0);
+
+  Int_t copy;
+  // Check if hit is into a MFT sensor volume
+  if(TVirtualMC::GetMC()->CurrentVolID(copy) != mftGeo->GetSensorVolumeID() ) return kFALSE;
+
+  // Get The Sensor Unique ID
+  Int_t chipId = -1, ladderId = -1, diskId = -1, halfId = -1, level = 0;
+  TVirtualMC::GetMC()->CurrentVolOffID(++level,chipId);
+  TVirtualMC::GetMC()->CurrentVolOffID(++level,ladderId);
+  TVirtualMC::GetMC()->CurrentVolOffID(++level,diskId);
+  TVirtualMC::GetMC()->CurrentVolOffID(++level,halfId);
+
+  Int_t detElemID = mftGeo->GetObjectID(Geometry::kSensorType,halfId,diskId,ladderId,chipId);
+
+  LOG(DEBUG1) << "Found hit into half = " << halfId << "; disk = " << diskId << "; ladder = " << ladderId << "; chip = " << chipId << FairLogger::endl;
+
+  if (TVirtualMC::GetMC()->IsTrackExiting()) {
+    //AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kMFT);
+  }
+  
+  static TLorentzVector position, momentum;
+  
+  Int_t  status = 0;
+  
+  // Track status
+  if (TVirtualMC::GetMC()->IsTrackInside())      status += 0x1<<0;
+  if (TVirtualMC::GetMC()->IsTrackEntering())    status += 0x1<<1;
+  if (TVirtualMC::GetMC()->IsTrackExiting())     status += 0x1<<2;
+  if (TVirtualMC::GetMC()->IsTrackOut())         status += 0x1<<3;
+  if (TVirtualMC::GetMC()->IsTrackDisappeared()) status += 0x1<<4;
+  if (TVirtualMC::GetMC()->IsTrackStop())        status += 0x1<<5;
+  if (TVirtualMC::GetMC()->IsTrackAlive())       status += 0x1<<6;
+  
+  // ---------- Fill hit structure
+  /*
+  hit.SetDetElemID(detElemID);
+  hit.SetPlane(diskId);
+  hit.SetTrack(gAlice->GetMCApp()->GetCurrentTrackNumber());
+  
+  TVirtualMC::GetMC()->TrackPosition(position);
+  TVirtualMC::GetMC()->TrackMomentum(momentum);
+  
+  LOG(DEBUG1) << TVirtualMC::GetMC()->CurrentVolName() << " Hit " << fNHits << " (x = " << position.X() << " , y = " << position.Y() << " , z = " << position.Z() << ") belongs to track " << gAlice->GetMCApp()->GetCurrentTrackNumber() << FairLogger::endl;
+  
+  hit.SetPosition(position);
+  hit.SetTOF(TVirtualMC::GetMC()->TrackTime());
+  hit.SetMomentum(momentum);
+  hit.SetStatus(status);
+  hit.SetEloss(TVirtualMC::GetMC()->Edep());
+  //hit.SetShunt(GetIshunt());
+  //if (TVirtualMC::GetMC()->IsTrackEntering()) {
+  //  hit.SetStartPosition(position);
+  //  hit.SetStartTime(TVirtualMC::GetMC()->TrackTime());
+  //  hit.SetStartStatus(status);
+  //  return; // don't save entering hit.
+  //}
+  
+  // Fill hit structure with this new hit.
+  new ((*fHits)[fNhits++]) AliMFTHit(hit);
+  
+  // Save old position... for next hit.
+  //   hit.SetStartPosition(position);
+  //   hit.SetStartTime(TVirtualMC::GetMC()->TrackTime());
+  //   hit.SetStartStatus(status);
+  */
+  if (!TVirtualMC::GetMC()->IsTrackExiting()) return kFALSE;
+
+  Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+  Int_t detID = vol->getMCid();
+  TVirtualMC::GetMC()->TrackPosition(position);
+  TVirtualMC::GetMC()->TrackMomentum(momentum);
+  Double32_t time = TVirtualMC::GetMC()->TrackTime();
+  Double32_t length = TVirtualMC::GetMC()->TrackLength();
+  Double32_t eLoss = TVirtualMC::GetMC()->Edep();
+
+  AddHit(trackID, detID, TVector3(position.X(),position.Y(),position.Z()), TVector3(momentum.X(),momentum.Y(),momentum.Z()), time, length, eLoss);
+  /*
+  printf("%5d %3d %10.4f %10.4f %10.4f %6.2f %6.2f %6.2f status ",trackID,detID,position.X(),position.Y(),position.Z(),momentum.X(),momentum.Y(),momentum.Z());
+  for (Int_t i = 7; i >= 0; i--) printf("%1d",((status >> i) & 0x1));
+  printf("\n");
+  */
+  // Increment number of Detector det points in TParticle
+  AliceO2::Data::Stack *stack = (AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+  stack->AddPoint(kAliMft);
+
   return kTRUE;
+
+}
+
+//_____________________________________________________________________________
+Point* Detector::AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length, Double_t eLoss)
+{
+
+  TClonesArray &clref = *fPoints;
+  Int_t size = clref.GetEntriesFast();
+
+  return new(clref[size]) Point(trackID, detID, pos, mom, time, length, eLoss);
 
 }
 
@@ -293,6 +433,82 @@ void Detector::ConstructGeometry()
 
   CreateMaterials();
   CreateGeometry();
+  DefineSensitiveVolumes();
 
 }
 
+//_____________________________________________________________________________
+void Detector::DefineSensitiveVolumes()
+{
+
+  TGeoVolume* vol;
+  /*
+  Geometry *mftGeo = Geometry::Instance();
+  Segmentation *seg = mftGeo->GetSegmentation();
+
+  Int_t nSensVol = 0;
+  for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
+    HalfSegmentation * halfSeg = seg->GetHalf(iHalf);
+    for (Int_t iDisk = 0; iDisk < halfSeg->GetNHalfDisks(); iDisk++) {
+      HalfDiskSegmentation* halfDiskSeg = halfSeg->GetHalfDisk(iDisk);
+      for (Int_t iLadder = 0; iLadder < halfDiskSeg->GetNLadders(); iLadder++) {
+	LadderSegmentation* ladderSeg = halfDiskSeg->GetLadder(iLadder);
+	TString volumeName = Form("MFT_S_%d_%d_%d",
+	  mftGeo->GetHalfID(ladderSeg->GetUniqueID()),
+	  mftGeo->GetHalfDiskID(ladderSeg->GetUniqueID()),
+	  mftGeo->GetLadderID(ladderSeg->GetUniqueID()));
+	vol = gGeoManager->GetVolume(volumeName.Data());
+	LOG(INFO) << "Add sensitive volume: " << volumeName.Data() << FairLogger::endl;
+	AddSensitiveVolume(vol);
+	nSensVol++;
+      }
+    }
+  }
+  Info("DefineSensitiveVolumes",Form("%d volumes addes.\n",nSensVol),0,0);
+  */
+  vol = gGeoManager->GetVolume("MFTSensor");
+  AddSensitiveVolume(vol);
+
+}
+
+//_____________________________________________________________________________
+void Detector::EndOfEvent()
+{
+
+  if (fPoints) { 
+    fPoints->Clear(); 
+  }
+
+}
+
+//_____________________________________________________________________________
+void Detector::Register()
+{
+  // This will create a branch in the output tree called Point, setting the last
+  // parameter to kFALSE means that this collection will not be written to the file,
+  // it will exist only during the simulation
+
+  if (FairRootManager::Instance()) {
+    FairRootManager::Instance()->Register("MFTPoints", "MFT", fPoints, kTRUE);
+  }
+
+}
+//_____________________________________________________________________________
+TClonesArray *Detector::GetCollection(Int_t iColl) const
+{
+
+  if (iColl == 0) {
+    return fPoints;
+  } else {
+    return NULL;
+  }
+
+}
+
+//_____________________________________________________________________________
+void Detector::Reset()
+{
+
+  fPoints->Clear();
+
+}

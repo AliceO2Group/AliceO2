@@ -153,7 +153,7 @@ void Ladder::CreateSensors()
   chipVol->AddNode(readoutVol, 1, new TGeoTranslation(0.,-Constants::kSensorHeight/2.+readout->GetDY(),  0.));
   chipVol->AddNode(sensorVol, 1, new TGeoTranslation( 0., Constants::kSensorHeight/2.-sensor->GetDY(),0.));
 
-  for (int ichip =0; ichip<fSegmentation->GetNSensors(); ichip++) {
+  for (int ichip = 0; ichip < fSegmentation->GetNSensors(); ichip++) {
     ChipSegmentation * chipSeg = fSegmentation->GetSensor(ichip);
     TGeoCombiTrans * chipPos = chipSeg->GetTransformation();
     TGeoCombiTrans * chipPosGlue = chipSeg->GetTransformation();

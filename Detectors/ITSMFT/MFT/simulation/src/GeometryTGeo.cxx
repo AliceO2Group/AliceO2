@@ -38,8 +38,7 @@ GeometryTGeo::~GeometryTGeo()
 {
   // destructor
 
-  delete fNLaddersHalfDisk[0];
-  delete fNLaddersHalfDisk[1];
+  delete [] fNLaddersHalfDisk;
 
 }
 
@@ -51,13 +50,34 @@ GeometryTGeo::GeometryTGeo(const GeometryTGeo& src)
 {
   // copy constructor
 
-  fNLaddersHalfDisk    = new Int_t*[2];
-  fNLaddersHalfDisk[0] = new Int_t[fNDisks];
-  fNLaddersHalfDisk[1] = new Int_t[fNDisks];
+  fNLaddersHalfDisk = new Int_t[2*src.fNDisks];
 
-  for (Int_t iDisk = 0; iDisk < fNDisks; iDisk++) {
-    fNLaddersHalfDisk[0][iDisk] = src.fNLaddersHalfDisk[0][iDisk];
-    fNLaddersHalfDisk[1][iDisk] = src.fNLaddersHalfDisk[1][iDisk];
+  for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
+    for (Int_t iDisk = 0; iDisk < (src.fNDisks); iDisk++) {
+      fNLaddersHalfDisk[iHalf*(src.fNDisks)+iDisk] = src.fNLaddersHalfDisk[iHalf*(src.fNDisks)+iDisk];
+    }
+  }
+
+}
+
+//_____________________________________________________________________________
+GeometryTGeo &GeometryTGeo::operator=(const GeometryTGeo &src)
+{
+
+  if (this == &src) {
+    return *this;
+  }
+
+  TObject::operator=(src);
+  fNDisks = src.fNDisks;
+  fNChips = src.fNChips;
+
+  fNLaddersHalfDisk = new Int_t[2*src.fNDisks];
+
+  for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
+    for (Int_t iDisk = 0; iDisk < (src.fNDisks); iDisk++) {
+      fNLaddersHalfDisk[iHalf*(src.fNDisks)+iDisk] = src.fNLaddersHalfDisk[iHalf*(src.fNDisks)+iDisk];
+    }
   }
 
 }
@@ -67,10 +87,7 @@ void GeometryTGeo::Build()
 {
 
   fNDisks = Constants::kNDisks;
-
-  fNLaddersHalfDisk    = new Int_t*[2];
-  fNLaddersHalfDisk[0] = new Int_t[fNDisks];
-  fNLaddersHalfDisk[1] = new Int_t[fNDisks];
+  fNLaddersHalfDisk = new Int_t[2*fNDisks];
 
   // extract the total number of sensors (chips)
   Geometry *mftGeo = Geometry::Instance();
@@ -79,7 +96,7 @@ void GeometryTGeo::Build()
     HalfSegmentation * halfSeg = seg->GetHalf(iHalf);
     for (Int_t iDisk = 0; iDisk < fNDisks; iDisk++) {
       HalfDiskSegmentation* halfDiskSeg = halfSeg->GetHalfDisk(iDisk);
-      fNLaddersHalfDisk[iHalf][iDisk] = halfDiskSeg->GetNLadders();
+      fNLaddersHalfDisk[iHalf*fNDisks+iDisk] = halfDiskSeg->GetNLadders();
       for (Int_t iLadder = 0; iLadder < halfDiskSeg->GetNLadders(); iLadder++) {
 	LadderSegmentation* ladderSeg = halfDiskSeg->GetLadder(iLadder);
 	fNChips += ladderSeg->GetNSensors();

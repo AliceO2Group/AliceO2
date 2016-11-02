@@ -21,6 +21,7 @@ set(SRCS
   src/Chip.cxx
   src/Support.cxx
   src/HeatExchanger.cxx
+  src/Point.cxx
 )
 set(HEADERS
   include/${MODULE_NAME}/Detector.h
@@ -41,6 +42,7 @@ set(HEADERS
   include/${MODULE_NAME}/Chip.h
   include/${MODULE_NAME}/Support.h
   include/${MODULE_NAME}/HeatExchanger.h
+  include/${MODULE_NAME}/Point.h
 )
 
 Set(LINKDEF src/MFTSimulationLinkDef.h)

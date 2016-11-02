@@ -121,7 +121,7 @@ fradius4fifth()
 TGeoVolumeAssembly* HeatExchanger::Create(Int_t half, Int_t disk) 
 {
 	
-  Info("Create",Form("Creating HeatExchanger_%d_%d", disk, half),0,0);
+  //Info("Create",Form("Creating HeatExchanger_%d_%d", disk, half),0,0);
   
   fHalfDisk = new TGeoVolumeAssembly(Form("HeatExchanger_%d_%d", disk, half));
     switch (disk) {

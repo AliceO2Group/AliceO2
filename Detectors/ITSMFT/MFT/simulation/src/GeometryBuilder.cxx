@@ -44,6 +44,13 @@ void GeometryBuilder::BuildGeometry()
 
   LOG(INFO) << "GeometryBuilder::BuildGeometry volume name = " << GeometryTGeo::GetVolumeName() << FairLogger::endl;
 
+ TGeoVolume *vALIC = gGeoManager->GetVolume("cave");
+  if (!vALIC) {
+    LOG(FATAL) << "Could not find the top volume" << FairLogger::endl;
+  }
+
+  vALIC->AddNode(volMFT,0);
+
   Info("BuildGeometry",Form("gGeoManager name is %s title is %s \n",gGeoManager->GetName(),gGeoManager->GetTitle()),0,0);
 
   Segmentation *seg = mftGeo->GetSegmentation();
@@ -55,7 +62,5 @@ void GeometryBuilder::BuildGeometry()
     delete halfMFT;
   }
 
-  gGeoManager->GetVolume("cave")->AddNode(volMFT,0);
-
-}
+ }
 

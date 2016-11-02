@@ -8,7 +8,11 @@
 
 #include "DetectorsBase/Detector.h"
 
+class TClonesArray;
+class TVector3;
+
 namespace AliceO2 { namespace MFT { class GeometryTGeo; } }
+namespace AliceO2 { namespace MFT { class Point; } }
 
 namespace AliceO2 {
 namespace MFT {
@@ -31,60 +35,25 @@ public:
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
   virtual Bool_t ProcessHits(FairVolume* v = 0);
 
-  virtual void CopyClones(TClonesArray* cl1, TClonesArray* cl2, Int_t offset)
-  {
-    ;
-  }
-  virtual void EndOfEvent()
-  {
-    ;
-  }
-  virtual void FinishPrimary()
-  {
-    ;
-  }
-  virtual void finishRun()
-  {
-    ;
-  }
-  virtual void BeginPrimary()
-  {
-    ;
-  }
-  virtual void PostTrack()
-  {
-    ;
-  }
-  virtual void PreTrack()
-  {
-    ;
-  }
-  virtual void BeginEvent()
-  {
-    ;
-  }
-  virtual void SetSpecialPhysicsCuts()
-  {
-    ;
-  }
-
   /// Has to be called after each event to reset the containers
-  virtual void Reset()
-  {
-    ;
-  }
+  virtual void Reset();
 
   /// Registers the produced collections in FAIRRootManager
-  virtual void Register() 
-  {
-    ;
-  }
+  virtual void Register(); 
 
   /// Gets the produced collections
-  virtual TClonesArray* GetCollection(Int_t iColl) const 
-  {
-    return NULL;
-  }
+  virtual TClonesArray* GetCollection(Int_t iColl) const;
+
+  virtual void EndOfEvent();
+
+  virtual void CopyClones(TClonesArray* cl1, TClonesArray* cl2, Int_t offset) {;}
+  virtual void FinishPrimary() {;}
+  virtual void FinishRun() {;}
+  virtual void BeginPrimary() {;}
+  virtual void PostTrack() {;}
+  virtual void PreTrack() {;}
+  virtual void BeginEvent() {;}
+  virtual void SetSpecialPhysicsCuts() {;}
 
   GeometryTGeo* GetGeometryTGeo() const { return fGeometryTGeo; }
   
@@ -103,18 +72,21 @@ public:
 
   void ConstructGeometry();  // inherited from FairModule
   void CreateGeometry();
+  void DefineSensitiveVolumes();
 
 protected:
 
-  Int_t fVersion;
-  GeometryTGeo *fGeometryTGeo;
-
-  Double_t fDensitySupportOverSi;
+  Int_t fVersion;                  //
+  GeometryTGeo *fGeometryTGeo;     //!
+  Double_t fDensitySupportOverSi;  //
+  TClonesArray *fPoints;           //!
  
 private:
 
   Detector(const Detector&);
   Detector& operator=(const Detector&);
+
+  Point* AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length, Double_t eLoss);
 
   ClassDef(Detector,1)
 
