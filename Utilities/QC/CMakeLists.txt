@@ -6,3 +6,5 @@ include_directories(QCCommon/include)
 add_subdirectory(QCProducer)
 add_subdirectory(QCMerger)
 add_subdirectory(QCViewer)
+add_subdirectory(QCMetricsExtractor)
+

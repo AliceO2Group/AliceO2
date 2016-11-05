@@ -26,10 +26,21 @@ set(BUCKET_NAME QC_merger_bucket)
 
 # Define application
 O2_GENERATE_EXECUTABLE(
-    EXE_NAME runMerger
+    EXE_NAME runQCMergerDevice
     SOURCES src/runMerger.cxx
     MODULE_LIBRARY_NAME ${LIBRARY_NAME}
     BUCKET_NAME ${BUCKET_NAME}
 )
 
-# TODO add test
+ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK)
+
+set(TEST_SRCS
+    test/MergerDeviceTestSuite.cxx
+    test/MergerTestSuite.cxx
+    )
+
+O2_GENERATE_TESTS(
+    MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+    BUCKET_NAME ${BUCKET_NAME}
+    TEST_SRCS ${TEST_SRCS}
+)

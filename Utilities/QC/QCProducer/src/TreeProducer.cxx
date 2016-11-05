@@ -1,4 +1,5 @@
 #include <sstream>
+
 #include <TBranch.h>
 #include <TRandom.h>
 #include <TFile.h>
@@ -7,22 +8,21 @@
 
 using namespace std;
 
-TreeProducer::TreeProducer(string treeNamePrefix,
-													 string treeTitle,
-													 double numberOfBranches,
-													 double numberOfEntriesInEachBranch) : mProducedTreeNumber(0)
+TreeProducer::TreeProducer(const char * treeName,
+													 const char * treeTitle,
+													 const int numberOfBranches,
+													 const int numberOfEntriesInEachBranch) : 
+	mTreeName(treeName),
+	mTreeTitle(treeTitle),
+	mNumberOfBranches(numberOfBranches),
+	mNumberOfEntriesInEachBranch(numberOfEntriesInEachBranch)
 {
-	mTreeNamePrefix = treeNamePrefix;
-	mTreeTitle = treeTitle;
-	mNumberOfBranches = numberOfBranches;
-	mNumberOfEntriesInEachBranch = numberOfEntriesInEachBranch;
+
 }
 
-TObject* TreeProducer::produceData()
+TObject* TreeProducer::produceData() const
 {
-	ostringstream treeName;
-	treeName << mTreeNamePrefix << mProducedTreeNumber++;
-	TTree* tree = new TTree(treeName.str().c_str(), mTreeTitle.c_str());
+	TTree* tree = new TTree(mTreeName, mTreeTitle);
 
 	for (int i = 0; i < mNumberOfBranches; ++i) {
 		createBranch(tree, i);
@@ -31,10 +31,9 @@ TObject* TreeProducer::produceData()
   return tree;
 }
 
-void TreeProducer::createBranch(TTree* tree, int brunchNumber) const
+void TreeProducer::createBranch(TTree* tree, int brunchNumber, const char * branchNamePrefix) const
 {
 	Float_t new_v;
-	string branchNamePrefix = "default_branch_name_";
 	ostringstream branchName;
 
 	branchName << branchNamePrefix << brunchNumber;

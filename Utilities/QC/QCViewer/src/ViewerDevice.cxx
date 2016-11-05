@@ -1,11 +1,13 @@
+#include <chrono>
+#include <thread>
+#include <limits>
+
 #include <TSystem.h>
 #include <FairMQLogger.h>
 #include <FairMQTransportFactoryZMQ.h>
-#include <chrono>
-#include <thread>
 
 #include "QCViewer/ViewerDevice.h"
-#include "QCCommon/HistogramTMessage.h"
+#include "QCCommon/TMessageWrapper.h"
 
 using namespace std;
 
@@ -17,113 +19,81 @@ ViewerDevice::ViewerDevice(std::string viewerId, int numIoThreads, string drawin
   mDrawingOptions = drawingOptions;
 }
 
-void ViewerDevice::CustomCleanup(void *data, void *hint)
-{
-  delete (string*)hint;
-}
-
 void ViewerDevice::Run()
 {
-  mObjectCanvas = new TCanvas("mObjectCanvas", "Object canvas", 100, 10, 1200, 800);
-
-  while (GetCurrentState() == RUNNING) {
-    this_thread::sleep_for(chrono::milliseconds(1000));
-
+  while (CheckCurrentState(RUNNING)) {
     TObject* receivedObject = receiveDataObjectFromMerger();
 
     if (receivedObject != nullptr) {
-      updateCanvas(receivedObject);
-      updateObjectCanvas(receivedObject);
-      sendReplyToMerger(new string("VIEWER_OK"));
+      LOG(INFO) << "Received QC objects from Merger device";
+      //updateCanvas(receivedObject); // Visualization is disabled because there was no support of X11 protocol on the previous testing environment
     }
+
+    delete receivedObject;
   }
-  delete mObjectCanvas;
 }
 
 void ViewerDevice::updateCanvas(TObject* receivedObject)
 {
-  if (mNamesOfObjectsToDraw.find(receivedObject->GetTitle()) == mNamesOfObjectsToDraw.end()) {
+  auto objectIterator = objectsToDraw.find(receivedObject->GetTitle());
+  shared_ptr<TCanvas> activeCanvas;
 
-    mNamesOfObjectsToDraw.insert(receivedObject->GetTitle());
-
-    mObjectCanvas->Clear();
-    mObjectCanvas->Divide(mNamesOfObjectsToDraw.size(), 1);
-    mObjectCanvas->cd(mNamesOfObjectsToDraw.size());
-    mObjectCanvas->Update();
+  if (objectIterator == objectsToDraw.end()) {
+    auto newObjectIterator = objectsToDraw.insert({receivedObject->GetTitle(), make_shared<TCanvas>(receivedObject->GetTitle(), "QC object", 100, 10, 500, 400)});
+    activeCanvas = newObjectIterator.first->second;
   }
   else {
-    unsigned padId = mNamesOfObjectsToDraw.size();
-    for (auto const & name : mNamesOfObjectsToDraw) {
-      if (receivedObject->GetTitle() == name) {
-        break;
-      }
-      padId--;
-    }
-    mObjectCanvas->cd(padId);
+    activeCanvas = objectIterator->second;
   }
-}
 
-void ViewerDevice::sendReplyToMerger(string* message)
-{
-  LOG(INFO) << "Sending reply to merger";
-  FairMQMessage* reply = fTransportFactory->CreateMessage(const_cast<char*>(message->c_str()),
-                                                          message->length(),
-                                                          CustomCleanup,
-                                                          message);
-  fChannels["data"].at(0).Send(reply);
+  activeCanvas->cd();
+  receivedObject->Draw(mDrawingOptions.c_str());
+  activeCanvas->Update();
+  gSystem->ProcessEvents();
 }
 
 TObject* ViewerDevice::receiveDataObjectFromMerger()
 {
   TObject* receivedObject;
-  unique_ptr<FairMQMessage> request(move(receiveMessageFromMerger()));
+  unique_ptr<FairMQMessage> request(NewMessage());
 
-  if (request->GetSize() != 0) {
-    HistogramTMessage tm(request->GetData(), request->GetSize());
+  if (fChannels.at("data-in").at(0).ReceiveAsync(request) >= 0) {
+    TMessageWrapper tm(request->GetData(), request->GetSize());
     receivedObject = static_cast<TObject*>(tm.ReadObject(tm.GetClass()));
   }
   else {
-    LOG(ERROR) << "Received empty request from merger";
     receivedObject = nullptr;
   }
 
   return receivedObject;
 }
 
-unique_ptr<FairMQMessage> ViewerDevice::receiveMessageFromMerger()
-{
-  unique_ptr<FairMQMessage> request(fTransportFactory->CreateMessage());
-  fChannels["data"].at(0).Receive(&(*request));
-  LOG(INFO) << "Received data object from merger";
-  return request;
-}
-
-void ViewerDevice::updateObjectCanvas(TObject* receivedObject)
-{
-  mObjectCanvas->Update();
-  receivedObject->Draw(mDrawingOptions.c_str());
-  mObjectCanvas->Modified();
-  mObjectCanvas->Update();
-  gSystem->ProcessEvents();
-}
-
 void ViewerDevice::executeRunLoop()
 {
   ChangeState("INIT_DEVICE");
+  WaitForInitialValidation();
   WaitForEndOfState("INIT_DEVICE");
 
   ChangeState("INIT_TASK");
   WaitForEndOfState("INIT_TASK");
 
   ChangeState("RUN");
-  InteractiveStateLoop();
+  WaitForEndOfState("RUN");
+
+  ChangeState("RESET_TASK");
+  WaitForEndOfState("RESET_TASK");
+
+  ChangeState("RESET_DEVICE");
+  WaitForEndOfState("RESET_DEVICE");
+
+  ChangeState("END");
 }
 
 void ViewerDevice::establishChannel(string type, string method, string address, string channelName)
 {
   FairMQChannel requestChannel(type, method, address);
-  requestChannel.UpdateSndBufSize(1000);
-  requestChannel.UpdateRcvBufSize(1000);
+  requestChannel.UpdateSndBufSize(numeric_limits<int>::max());
+  requestChannel.UpdateRcvBufSize(numeric_limits<int>::max());
   requestChannel.UpdateRateLogging(1);
   fChannels[channelName].push_back(requestChannel);
 }

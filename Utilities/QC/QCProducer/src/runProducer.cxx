@@ -1,46 +1,106 @@
-#include <csignal>
-#include <FairMQLogger.h>
+#include <string>
 #include <cstdlib>
+#include <mutex>
+
+#include <FairMQLogger.h>
+
+#include <dds_intercom.h>
 
 #include "QCProducer/ProducerDevice.h"
-#include "QCProducer/HistogramProducer.h"
+#include "QCProducer/TH1Producer.h"
+#include "QCProducer/TH2Producer.h"
+#include "QCProducer/TH3Producer.h"
+#include "QCProducer/THnProducer.h"
 #include "QCProducer/TreeProducer.h"
 
+using namespace dds;
+using namespace dds::intercom_api;
+using namespace std;
+
+namespace
+{
+  shared_ptr<Producer> producer;
+  const int NUMBER_OF_IO_THREADS = 1;
+  const char * outputAddress;
+  mutex keyMutex;
+}
 
 int main(int argc, char** argv)
 {
-  const int requiredNumberOfParametersForTrees = 6;
-  const int requiredNumberOfParametersForHistograms = 6;
-
-  int numberOfIoThreads = 1;
-  std::string producerType = argv[1];
-
-  std::string namePrefix = argv[2];
-  std::string title = argv[3];
-
-  std::shared_ptr<Producer> producer;
-
-  if (producerType == "-histogram") {
-    float xLow = atof(argv[4]);
-    float xUp = atof(argv[5]);
-    producer = std::make_shared<HistogramProducer>(namePrefix, title, xLow, xUp);
+  if (argc < 7 || argc > 8) {
+    LOG(ERROR) << "Provided wrong number of arguments: " << argc - 1;
+    exit(-1);
   }
-  else if (producerType == "-tree" && argc == requiredNumberOfParametersForTrees) {
-    float numberOfBranches = atof(argv[4]);
-    float numberOfEntriesInEachBranch = atof(argv[5]);
-    producer = std::make_shared<TreeProducer>(namePrefix, title, numberOfBranches, numberOfEntriesInEachBranch);
+
+  string outputTopologyProperty = argv[1];
+  const char * producerId = argv[2];
+  const string producerType = argv[3];
+  const char * name = argv[4];
+  const char * title = argv[5];
+  const int bufferSize = atoi(argv[6]);
+
+  if (producerType.compare("TH1F") == 0) {
+    LOG(INFO) << "Producing TH1F objects";
+    const int binsNumber = atoi(argv[7]);
+    producer = make_shared<TH1Producer>(name, title, binsNumber);
+  }
+  else if (producerType.compare("TH2F") == 0) {
+    LOG(INFO) << "Producing TH2F objects";
+    const int binsNumber = atoi(argv[7]);
+    producer = make_shared<TH2Producer>(name, title, binsNumber);
+  }
+  else if (producerType.compare("TH3F") == 0) {
+    LOG(INFO) << "Producing TH3F objects";
+    const int binsNumber = atoi(argv[7]);
+    producer = make_shared<TH3Producer>(name, title, binsNumber);
+  }
+  else if (producerType.compare("THnF") == 0) {
+    LOG(INFO) << "Producing THnF objects";
+    const int binsNumber = atoi(argv[7]);
+    producer = make_shared<THnProducer>(name, title, binsNumber);
+  }
+  else if (producerType.compare("TTree") == 0) {
+    LOG(INFO) << "Producing TTree objects";
+    const int numberOfBranches = atoi(argv[7]);
+    const int numberOfEntriesInEachBranch = atoi(argv[8]);
+    producer = make_shared<TreeProducer>(name, title, numberOfBranches, numberOfEntriesInEachBranch);
   }
   else {
-    LOG(ERROR) << "Unknown type of producer: " << producerType;
+    LOG(ERROR) << "Unknown type of producer: \"" << producerType << "\", number of provided arguments: " << (argc - 1);
     return -1;
   }
 
-  ProducerDevice producerDevice("Producer", numberOfIoThreads, producer);
+  ProducerDevice producerDevice(producerId, NUMBER_OF_IO_THREADS, producer);
+  producerDevice.CatchSignals();
 
-  LOG(INFO) << "PID: " << getpid() << "Producer id: " << producerDevice.GetProperty(ProducerDevice::Id, "default_id");
+  LOG(INFO) << "PID: " << getpid();
+  LOG(INFO) << "Producer id: " << producerDevice.GetProperty(ProducerDevice::Id, "default_id");
+  LOG(INFO) << "Hostname: " << getenv("HOSTNAME");
 
-  producerDevice.establishChannel("req", "connect", "tcp://localhost:5005", "data");
+  condition_variable keyCondition;
+  CIntercomService service;
+  CKeyValue keyValue(service);
+
+  service.subscribeOnError([](EErrorCode _errorCode, const string& _msg) {
+      cerr << "DDS key-value error code: " << _errorCode << ", message: " << _msg;
+  });
+
+  keyValue.subscribe([&keyCondition, &outputTopologyProperty](const string& _propertyID, const string& _key, const string& _value) {
+      LOG(INFO) << "Received key-value update: propertyID=" << _propertyID << " key=" << _key << " value=" << _value
+           << std::endl;
+
+      if (outputTopologyProperty.compare(_propertyID) == 0) {
+        outputAddress = _value.c_str();
+        keyCondition.notify_all();
+      }
+  });
+
+  service.start();
+  unique_lock<mutex> lock(keyMutex);
+  keyCondition.wait(lock);
+
+  LOG(INFO) << "Output address: " << outputAddress;
+
+  producerDevice.establishChannel("push", "connect", outputAddress, "data-out", bufferSize);
   producerDevice.executeRunLoop();
-
-  LOG(INFO) << "END OF runProducerDevice";
 }
