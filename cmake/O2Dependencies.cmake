@@ -309,13 +309,19 @@ o2_define_bucket(
     Tree
     Gpad
     MathCore
+    common_boost_bucket
+    FairMQ
+    fairmq_logger
+    pthread
     ${Boost_LOG_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
-    common_boost_bucket
-    FairMQ ${Boost_THREAD_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger
-    pthread
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_LOG_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
+    ${DDS_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
     ${ZMQ_INCLUDE_DIR}

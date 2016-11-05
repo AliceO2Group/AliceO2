@@ -1,0 +1,69 @@
+<topology id="QA">
+
+    <var id="noOfProducers" value="50" />
+
+    <property id="merger1Addr" />
+    <property id="merger2Addr" />
+
+    <decltask id="Producer1">
+        <exe reachable="false">@CMAKE_BINARY_DIR@/runQCProducerDevice merger1Addr deviceID TH1F histogramName histogramTitle 4 100</exe>
+        <properties>
+          <id access="read">merger1Addr</id>
+        </properties>
+    </decltask>
+
+    <decltask id="Producer2">
+        <exe reachable="false">@CMAKE_BINARY_DIR@/runQCProducerDevice merger2Addr deviceID TH1F histogramName histogramTitle 4 100</exe>
+        <properties>
+          <id access="read">merger2Addr</id>
+        </properties>
+    </decltask>
+
+    <decltask id="Merger1">
+        <exe reachable="false">@CMAKE_BINARY_DIR@/runQCMergerDevice merger1Addr Merger1 100 5015 500000 tcp://login01.pro.cyfronet.pl:5004</exe>
+        <properties>
+          <id access="write">merger1Addr</id>
+        </properties>
+    </decltask>
+
+    <decltask id="Merger2">
+        <exe reachable="false">@CMAKE_BINARY_DIR@/runQCMergerDevice merger2Addr Merger2 100 5016 500000 tcp://login01.pro.cyfronet.pl:5004</exe>
+        <properties>
+          <id access="write">merger2Addr</id>
+        </properties>
+    </decltask>
+
+    <declcollection id="producers1">
+      <tasks>
+         <id>Producer1</id>
+      </tasks>
+   </declcollection>
+
+    <declcollection id="producers2">
+      <tasks>
+         <id>Producer2</id>
+      </tasks>
+   </declcollection>
+
+    <declcollection id="mergers1">
+      <tasks>
+         <id>Merger1</id>
+      </tasks>
+   </declcollection>
+
+    <declcollection id="mergers2">
+      <tasks>
+         <id>Merger2</id>
+      </tasks>
+   </declcollection>
+
+    <main id="main">
+        <group id="producersGroup1" n="${noOfProducers}">
+            <collection>producers1</collection>
+        </group>
+        <group id="mergersGroup1" n="1">
+            <collection>mergers1</collection>
+        </group>
+    </main>
+
+</topology>
