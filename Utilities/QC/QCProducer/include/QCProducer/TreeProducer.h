@@ -1,25 +1,24 @@
 #pragma once
 
 #include <TTree.h>
-#include <string>
 
 #include "QCProducer/Producer.h"
+
 
 class TreeProducer : public Producer
 {
 public:
-	TreeProducer(std::string treeNamePrefix,
-               std::string treeTitle,
-               double numberOfBranches,
-               double numberOfEntriesInEachBranch);
-	TObject* produceData() override;
+	TreeProducer(const char * treeName,
+               const char * treeTitle,
+               const int numberOfBranches,
+               const int numberOfEntriesInEachBranch);
+	TObject* produceData() const override;
 
 private:
-	std::string mTreeNamePrefix;
-  std::string mTreeTitle;
-  double mNumberOfBranches;
-  double mNumberOfEntriesInEachBranch;
-  int mProducedTreeNumber;
+	const char * mTreeName;
+  const char * mTreeTitle;
+  const int mNumberOfBranches;
+  const int mNumberOfEntriesInEachBranch;
 
-	void createBranch(TTree* tree, int brunchNumber) const;
+	void createBranch(TTree* tree, int brunchNumber, const char * branchNamePrefix = "default_branch_name_") const;
 };

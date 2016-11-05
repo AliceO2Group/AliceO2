@@ -1,18 +1,27 @@
 #pragma once
 
-#include <TCollection.h>
 #include <unordered_map>
-#include <memory>
+#include <chrono>
+
 #include <TList.h>
+
+typedef std::unordered_map<std::string, TList*> TCollectionMap;
 
 class Merger
 {
 public:
+  Merger (const int numberOfQCOgbjectForCompleteData);
 	virtual ~Merger();
 	TObject* mergeObject(TObject* object);
-	TObject* mergeObjectWithGivenCollection(TObject* object, TCollection* mergeList);
-	TCollection* addReceivedObjectToMapByName(TObject* receivedObject);
+	TObject* mergeObjectWithGivenCollection(TObject* object);
+  void addReceivedObjectToMapByName(TObject* receivedObject);
+  double getMergeTime();
+  void dumpObjectsCollectionToFile(const char* title);
+  void eraseCollection(const char* title);
 
 private:
-	std::unordered_map<std::string, std::shared_ptr<TCollection>> mTitlesToDataObjectsMap;
+  TCollectionMap mTitlesToDataObjectsMap;
+  std::chrono::microseconds mMergeTime {0};
+  unsigned int mNumberOfDumpedObjects {0};
+  const int NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA;
 };

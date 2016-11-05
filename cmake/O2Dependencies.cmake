@@ -309,13 +309,19 @@ o2_define_bucket(
     Tree
     Gpad
     MathCore
+    common_boost_bucket
+    FairMQ
+    fairmq_logger
+    pthread
     ${Boost_LOG_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
-    common_boost_bucket
-    FairMQ ${Boost_THREAD_LIBRARY} ${Boost_LOG_LIBRARY} fairmq_logger
-    pthread
+    ${Boost_THREAD_LIBRARY}
+    ${Boost_LOG_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
+    ${DDS_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
     ${ZMQ_INCLUDE_DIR}
@@ -503,56 +509,5 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
-)
-
-o2_define_bucket(
-    NAME
-    mft_reconstruction_bucket
-
-    DEPENDENCIES
-    root_base_bucket
-    fairroot_geom
-    Hist
-    Graf
-    Gpad
-    RIO
-    XMLIO
-    fairroot_base_bucket
-    root_physics_bucket
-    ParBase
-    MFTBase
-    MFTSimulation
-    DetectorsBase
-    SimulationDataFormat
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_LOG_LIBRARY}
-    ${Boost_LOG_SETUP_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_RANDOM_LIBRARY}
-    ${Boost_REGEX_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    ${ZMQ_LIBRARY_SHARED}
-    ${OPTIONAL_DDS_LIBRARIES}
-    Base
-    FairTools
-    ParBase
-    FairMQ 
-    ParMQ
-    fairmq_logger 
-    pthread 
-    Core 
-    Tree 
-    XMLParser 
-    Hist 
-    Net 
-    RIO
-    dl
-
-    INCLUDE_DIRECTORIES
-    ${FAIRROOT_INCLUDE_DIR}
-    ${OPTIONAL_DDS_INCLUDE_DIR}
-
 )
 
