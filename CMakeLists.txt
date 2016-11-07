@@ -154,6 +154,7 @@ ENDIF (NOT ALICEO2_MODULAR_BUILD)
 
 IF (PYTHIA8_FOUND AND Pythia6_FOUND)
   add_subdirectory(Generators)
+  set(GENERATORS_LIBRARY Generators)
 ENDIF ()
 
 add_subdirectory(CCDB)

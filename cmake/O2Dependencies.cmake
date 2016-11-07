@@ -405,7 +405,7 @@ o2_define_bucket(
     TPCBase
     DetectorsBase
     SimulationDataFormat
-    Generators
+    ${GENERATORS_LIBRARY}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
