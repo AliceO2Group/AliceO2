@@ -95,6 +95,7 @@ o2_define_bucket(
     flp2epn_bucket
 
     DEPENDENCIES
+    dl
     common_boost_bucket
     ${Boost_CHRONO_LIBRARY}
     ${Boost_DATE_TIME_LIBRARY}
@@ -544,15 +545,15 @@ o2_define_bucket(
     Base
     FairTools
     ParBase
-    FairMQ 
+    FairMQ
     ParMQ
-    fairmq_logger 
-    pthread 
-    Core 
-    Tree 
-    XMLParser 
-    Hist 
-    Net 
+    fairmq_logger
+    pthread
+    Core
+    Tree
+    XMLParser
+    Hist
+    Net
     RIO
     dl
 
