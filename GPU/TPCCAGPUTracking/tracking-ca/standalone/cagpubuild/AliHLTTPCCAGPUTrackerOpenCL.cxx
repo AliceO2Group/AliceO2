@@ -109,7 +109,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	}
 
 	cl_uint count, bestDevice = (cl_uint) -1;
-	long long int bestDeviceSpeed = 0, deviceSpeed;
+	double bestDeviceSpeed = 0, deviceSpeed;
 	if (GPUFailedMsg(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, &count)))
 	{
 		HLTError("Error getting OPENCL Device Count");
@@ -141,7 +141,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		//if (!(device_type & CL_DEVICE_TYPE_GPU)) continue;
 		if (nbits / 8 != sizeof(void*)) continue;
 
-		deviceSpeed = (long long int) freq * (long long int) shaders;
+		deviceSpeed = (double) freq * (double) shaders;
 		if (device_type & CL_DEVICE_TYPE_GPU) deviceSpeed *= 10;
 		if (fDebugLevel >= 2) {HLTDebug("Found Device %d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %lld)\n", i, device_vendor, device_name, (int) freq, (int) shaders, (int) nbits, (long long int) deviceSpeed);}
 
