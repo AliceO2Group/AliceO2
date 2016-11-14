@@ -66,7 +66,7 @@ foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lis
   )
 endforeach (_file RANGE 0 ${_length})
 
-install(
-    FILES config/mft-dds.json
-    DESTINATION bin/config
-)
+#install(
+#    FILES config/mft-dds.json
+#    DESTINATION bin/config
+#)
