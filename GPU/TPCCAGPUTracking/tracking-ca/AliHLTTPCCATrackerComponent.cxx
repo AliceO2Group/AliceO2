@@ -72,7 +72,8 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fCPUTrackers(0),
   fGlobalTracking(0),
   fGPUDeviceNum(-1),
-  fGPULibrary("")
+  fGPULibrary(""),
+  fGPUStuckProtection(0)
 {
   // see header file for class documentation
   // or
@@ -104,7 +105,8 @@ AliHLTProcessor(),
   fCPUTrackers(0),
   fGlobalTracking(0),
   fGPUDeviceNum(-1),
-  fGPULibrary("")
+  fGPULibrary(""),
+  fGPUStuckProtection(0)
 {
   // see header file for class documentation
   for( int i=0; i<fgkNSlices; i++ ){
@@ -291,7 +293,13 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       continue;
     }
 	
-	HLTError( "Unknown option \"%s\"", argument.Data() );
+    if ( argument.CompareTo( "-GPUStuckProtection" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fGPUStuckProtection = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      continue;
+    }
+
+    HLTError( "Unknown option \"%s\"", argument.Data() );
     iResult = -EINVAL;
   }
   delete pTokens;
@@ -457,6 +465,11 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     {
       char cc[256] = "GlobalTracking";
       fTracker->SetGPUTrackerOption(cc, 1);
+    }
+    if (fGPUStuckProtection)
+    {
+      char cc[256] = "StuckProtection";
+      fTracker->SetGPUTrackerOption(cc, fGPUStuckProtection);
     }
 
     ConfigureSlices();
