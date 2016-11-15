@@ -264,10 +264,12 @@ int AliHLTTRDTrackerComponent::DoEvent
 
     if ( iter->fDataType == (AliHLTTRDDefinitions::fgkTRDTrackletDataType) ){
       tracklets = reinterpret_cast<AliHLTTRDTrackletWord*>( iter->fPtr );
-      const int nTrackletsTotal = iter->fSize / sizeof(AliHLTTRDTrackletWord);
+      nTrackletsTotal = iter->fSize / sizeof(AliHLTTRDTrackletWord);
     }
 
   }// end read input blocks
+
+  printf("TRDTrackerComponent recieved %i tracklets\n", nTrackletsTotal);
 
   fTracker->Reset();
   fTracker->StartLoadTracklets(nTrackletsTotal);
