@@ -18,6 +18,7 @@ set(HEADERS
 set(NO_DICT_SRCS
   src/devices/Sampler.cxx
   src/devices/FileSink.cxx
+  src/devices/Merger.cxx
 )
 
 set(NO_DICT_HEADERS
@@ -25,6 +26,7 @@ set(NO_DICT_HEADERS
   include/${MODULE_NAME}/devices/TaskProcessor.h
   include/${MODULE_NAME}/devices/TaskProcessor.tpl
   include/${MODULE_NAME}/devices/FileSink.h
+  include/${MODULE_NAME}/devices/Merger.h
 )
 
 Set(LINKDEF src/MFTReconstructionLinkDef.h)
@@ -37,12 +39,14 @@ Set(Exe_Names
   mft-reco-sampler
   mft-reco-processor
   mft-reco-sink
+  mft-reco-merger
 )
 
 Set(Exe_Source
   src/runMFTrecoSampler.cxx
   src/runMFTrecoTaskProcessor.cxx
   src/runMFTrecoFileSink.cxx
+  src/runMFTrecoMerger.cxx
 )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.

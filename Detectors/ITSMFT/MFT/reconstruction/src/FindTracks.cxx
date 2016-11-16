@@ -3,6 +3,7 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 07/10/2016
 
+#include "MFTBase/EventHeader.h"
 #include "MFTReconstruction/Hit.h"
 #include "MFTReconstruction/Track.h"
 #include "MFTReconstruction/FindTracks.h"
@@ -11,7 +12,7 @@
 #include "TF1.h"
 #include "TGraphErrors.h"
 
-#include "FairLogger.h"
+#include "FairMQLogger.h"
 
 using namespace AliceO2::MFT;
 
@@ -25,7 +26,8 @@ fNHits(0),
 fNTracks(0),
 fTNofEvents(0),
 fTNofHits(0),
-fTNofTracks(0)
+fTNofTracks(0),
+fEventHeader(NULL)
 {
 
 }
@@ -39,7 +41,8 @@ FindTracks::FindTracks(Int_t iVerbose)
     fNTracks(0),
     fTNofEvents(0),
     fTNofHits(0),
-    fTNofTracks(0)
+    fTNofTracks(0),
+    fEventHeader(NULL)
 {
 
 }
@@ -60,21 +63,20 @@ FindTracks::~FindTracks()
 InitStatus FindTracks::Init()
 {
 
-  LOG(INFO) << "Initilization of FindTracks"
-            << FairLogger::endl;
+  LOG(INFO) << "FindTracks::Init >>>>> initilization" << "";
 
   // Get a handle from the IO manager
   FairRootManager* ioman = FairRootManager::Instance();
   if ( !ioman ) {
-    LOG(FATAL) << "RootManager not instantiated!" << FairLogger::endl;
+    LOG(INFO) << "FindTracks::Init >>>>> RootManager not instantiated!" << "";
     return kFATAL;
   }
 
   // Get a pointer to the previous already existing data level
   fHits = static_cast<TClonesArray*>(ioman->GetObject("MFTHits"));
   if ( ! fHits ) {
-    LOG(ERROR) << "No InputDataLevelName array! "
-               << "FindTracks will be inactive" << FairLogger::endl;
+    LOG(ERROR) << "FindTracks::Init >>>>> No InputDataLevelName array! "
+               << "FindTracks will be inactive" << "";
     return kERROR;
   }
 
@@ -93,8 +95,7 @@ InitStatus FindTracks::Init()
 InitStatus FindTracks::ReInit()
 {
 
-  LOG(DEBUG) << "Re-Initilization of FindTracks"
-             << FairLogger::endl;
+  LOG(DEBUG) << "FindTracks::ReInit >>>>> Re-Initilization of FindTracks" << "";
 
   return kSUCCESS;
 
@@ -107,6 +108,7 @@ void FindTracks::InitMQ(TList* tempList)
   LOG(INFO) << "FindTracks::InitMQ >>>>>" << "";
 
   fTracks = new TClonesArray("AliceO2::MFT::Track",10000);
+  fTracks->Dump();
 
   return;
 
@@ -116,11 +118,12 @@ void FindTracks::InitMQ(TList* tempList)
 void FindTracks::Exec(Option_t* /*opt*/) 
 {
 
-  Info("Exec","Exec called",0,0);
+  //Info("Exec","Exec called",0,0);
+  LOG(INFO) << "FindTracks::Exec >>>>>" << "";
 
   Reset();
 
-  const Int_t nMaxTracks = 100;
+  const Int_t nMaxTracks = 1000;
   fNHits = fHits->GetEntriesFast();
 
   Float_t **xPos = new Float_t*[nMaxTracks];
@@ -213,8 +216,12 @@ void FindTracks::ExecMQ(TList* inputList,TList* outputList)
 
   LOG(INFO) << "FindTracks::ExecMQ >>>>> (" << inputList->GetName() << "," << outputList->GetName() << "), Event " << fTNofEvents << "";
 
-  fHits = (TClonesArray*) inputList->FindObject("MFTHits");
+  fHits = (TClonesArray*)inputList->FindObject("MFTHits");
+
   outputList->Add(fTracks);
+
+  fEventHeader = (EventHeader*)inputList->FindObject("EventHeader.");
+  outputList->Add(fEventHeader);
 
   Exec("");
 

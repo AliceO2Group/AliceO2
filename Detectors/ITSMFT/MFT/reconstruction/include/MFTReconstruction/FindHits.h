@@ -8,10 +8,14 @@
 
 #include "FairTask.h"
 
+class FairMCEventHeader;
+
 class TClonesArray;
 
 namespace AliceO2 {
 namespace MFT {
+
+class EventHeader;
 
 class FindHits : public FairTask
 {
@@ -42,6 +46,9 @@ class FindHits : public FairTask
 
   Int_t fTNofEvents;
   Int_t fTNofHits;
+
+  FairMCEventHeader *fMCEventHeader;
+  EventHeader *fEventHeader;
 
   ClassDef(FindHits,1);
 

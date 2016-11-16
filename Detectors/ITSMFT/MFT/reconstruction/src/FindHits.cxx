@@ -4,6 +4,7 @@
 /// \date 10/10/2016
 
 #include "MFTBase/Constants.h"
+#include "MFTBase/EventHeader.h"
 #include "MFTSimulation/Point.h"
 #include "MFTReconstruction/Hit.h"
 #include "MFTReconstruction/FindHits.h"
@@ -12,6 +13,7 @@
 #include "TMath.h"
 
 #include "FairMQLogger.h"
+#include "FairMCEventHeader.h"
 
 using namespace AliceO2::MFT;
 
@@ -23,7 +25,9 @@ fPoints(NULL),
 fHits(NULL),
 fNHits(0),
 fTNofEvents(0),
-fTNofHits(0)
+fTNofHits(0),
+fMCEventHeader(NULL),
+fEventHeader(NULL)
 {
 
 }
@@ -48,14 +52,14 @@ InitStatus FindHits::Init()
 
   // Get RootManager
   FairRootManager* ioman = FairRootManager::Instance();
-  if ( !ioman ) {
+  if (!ioman) {
     //LOG(FATAL) << "RootManager not instantiated!" << "";
     return kFATAL;
   }
 
   // Get input array
   fPoints = static_cast<TClonesArray*>(ioman->GetObject("MFTPoints"));
-  if ( !fPoints ) {
+  if (!fPoints) {
     //LOG(FATAL) << "No Point array!" << "";
     return kFATAL;
   }
@@ -63,6 +67,10 @@ InitStatus FindHits::Init()
   // Create and register output array
   fHits = new TClonesArray("AliceO2::MFT::Hit");
   ioman->Register("MFTHits", "MFT", fHits, kTRUE);
+
+  fEventHeader = new EventHeader();
+  fEventHeader->SetName("EventHeader.");
+  ioman->Register("EventHeader.","EvtHeader", fEventHeader, kFALSE);
 
   return kSUCCESS;
 
@@ -84,6 +92,8 @@ void FindHits::InitMQ(TList* tempList)
 
   LOG(INFO) << "FindHits::InitMQ >>>>>" << "";
 
+  fEventHeader = new EventHeader();
+  fEventHeader->SetName("EventHeader.");
   fHits = new TClonesArray("AliceO2::MFT::Hit",10000);
 
   return;
@@ -110,7 +120,7 @@ void FindHits::Exec(Option_t* /*opt*/)
   Int_t nPoints = fPoints->GetEntriesFast();
   for (Int_t iPoint = 0; iPoint < nPoints; iPoint++) {
     point = static_cast<AliceO2::MFT::Point*>(fPoints->At(iPoint));
-    if ( !point) continue;
+    if (!point) continue;
     detID = point->GetDetectorID();
     trackID = point->GetTrackID();
     // copy the coordinates from point to hit
@@ -134,8 +144,17 @@ void FindHits::ExecMQ(TList* inputList,TList* outputList) {
 
   LOG(INFO) << "FindHits::ExecMQ >>>>> (" << inputList->GetName() << "," << outputList->GetName() << "), Event " << fTNofEvents << "";
 
-  fPoints = (TClonesArray*) inputList->FindObject("MFTPoints");
+  fPoints = (TClonesArray*)inputList->FindObject("MFTPoints");
+
   outputList->Add(fHits);
+
+  // use numbers from the MC event header ...
+  fMCEventHeader = (FairMCEventHeader*)inputList->FindObject("MCEventHeader.");
+  fEventHeader->SetRunId(fMCEventHeader->GetRunID());
+  fEventHeader->SetMCEntryNumber(fMCEventHeader->GetEventID());
+  fEventHeader->SetPartNo(fMCEventHeader->GetNPrim());
+  LOG(INFO) << "FindHits::ExecMQ >>>>> RunID " << fMCEventHeader->GetRunID() << " EventID " << fMCEventHeader->GetEventID() << " NPrim " << fMCEventHeader->GetNPrim() << "";
+  outputList->Add(fEventHeader);
 
   Exec("");
 

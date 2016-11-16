@@ -13,6 +13,8 @@ class TClonesArray;
 namespace AliceO2 {
 namespace MFT {
 
+class EventHeader;
+
 class FindTracks : public FairTask
 {
 
@@ -42,6 +44,8 @@ class FindTracks : public FairTask
   Int_t fTNofEvents;
   Int_t fTNofHits;
   Int_t fTNofTracks;
+
+  EventHeader *fEventHeader;
 
   ClassDef(FindTracks,1);
 

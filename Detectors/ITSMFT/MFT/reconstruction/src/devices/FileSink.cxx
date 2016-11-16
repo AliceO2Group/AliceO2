@@ -8,6 +8,7 @@
 
 #include "FairEventHeader.h"
 
+#include "MFTBase/EventHeader.h"
 #include "MFTReconstruction/devices/FileSink.h"
 #include "MFTReconstruction/Hit.h"
 
@@ -97,19 +98,23 @@ void FileSink::Init()
     if (fClassNames[fNObjects].find("TClonesArray(") == 0) {
 
       fClassNames[fNObjects] = fClassNames[fNObjects].substr(13,fClassNames[fNObjects].length()-12-2);
+
       LOG(INFO) << "FileSink::Init >>>>> Create a TClonesArray of this class: " << fClassNames[fNObjects].c_str() << "";
+
       fOutputObjects[fNObjects] = new TClonesArray(fClassNames[fNObjects].c_str());
-      fOutputObjects[fNObjects]->Print();
+
       LOG(INFO) << "FileSink::Init >>>>> Create a branch " << fBranchNames[fNObjects].c_str() << "";
+
       fTree->Branch(fBranchNames[fNObjects].c_str(),"TClonesArray", &fOutputObjects[fNObjects]);
       foldMFT->Add(fOutputObjects[fNObjects]);
       BranchNameList->AddLast(new TObjString(fBranchNames[fNObjects].c_str()));
 
-    } else if ( fClassNames[fNObjects].find("FairEventHeader") == 0 ) {
+    } else if ( fClassNames[fNObjects].find("AliceO2::MFT::EventHeader") == 0 ) {
 
-      LOG(INFO) << "FileSink::Init >>>>> Create the branch FairEventHeader" << "";
-      fOutputObjects            [fNObjects] = new    FairEventHeader();
-      fTree->Branch(fBranchNames[fNObjects].c_str(),"FairEventHeader", &fOutputObjects[fNObjects]);
+      LOG(INFO) << "FileSink::Init >>>>> Create the branch EventHeader" << "";
+
+      fOutputObjects            [fNObjects] = new EventHeader();
+      fTree->Branch(fBranchNames[fNObjects].c_str(),"AliceO2::MFT::EventHeader", &fOutputObjects[fNObjects]);
       foldEventHeader->Add(fOutputObjects[fNObjects]);
       BranchNameList->AddLast(new TObjString(fBranchNames[fNObjects].c_str()));
 
@@ -148,16 +153,24 @@ void FileSink::Run()
 	
 	TMessage2 tm(parts.At(ipart)->GetData(), parts.At(ipart)->GetSize());
 	tempObjects[ipart] = (TObject*)tm.ReadObject(tm.GetClass());
+
 	for (unsigned int ibr = 0; ibr < fBranchNames.size(); ibr++) { 
 	  
-          LOG(INFO) << "FileSink::Run >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << "";
-          LOG(INFO) << "FileSink::Run >>>>> branch " << fBranchNames[ibr].c_str() << " " << tempObjects[ipart]->GetName() << "";
-	  // !!! force !!!
-	  if (kTRUE || (strcmp(tempObjects[ipart]->GetName(),fBranchNames[ibr].c_str()) == 0)) { 
+          //LOG(INFO) << "FileSink::Run >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << " " << tempObjects[ipart]->GetName() << "";
+
+	  // !!! force ???
+	  //if (kFALSE || (strcmp(tempObjects[ipart]->GetName(),fBranchNames[ibr].c_str()) == 0)) { 
+
+	  if ((strcmp(tempObjects[ipart]->GetName(),fBranchNames[ibr].c_str()) == 0) || (strncmp(fBranchNames[ibr].c_str(),"MFT",3) == 0 && strncmp(tempObjects[ipart]->GetName(),"AliceO2",7) == 0)) {
+
 	    fOutputObjects[ibr] = tempObjects[ipart];
-	    LOG(INFO) << "FileSink""Run >>>>> out object branch " << ibr << " part " << ipart << "";	    
+
+	    LOG(INFO) << "FileSink::Run >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << " " << tempObjects[ipart]->GetName() << "";
+	    //LOG(INFO) << "FileSink::Run >>>>> out object branch " << ibr << " part " << ipart << "";	    
+
 	    //fOutputObjects[ibr]->Dump();
 	    fTree->SetBranchAddress(fBranchNames[ibr].c_str(),&fOutputObjects[ibr]);
+
 	  }
 	}
       }

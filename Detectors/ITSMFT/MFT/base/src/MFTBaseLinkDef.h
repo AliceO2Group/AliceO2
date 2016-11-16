@@ -5,5 +5,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class AliceO2::MFT::Constants+;
+#pragma link C++ class AliceO2::MFT::EventHeader+;
 
 #endif

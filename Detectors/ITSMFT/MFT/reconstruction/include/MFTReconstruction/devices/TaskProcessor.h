@@ -4,11 +4,10 @@
 #include <string>
 
 #include "FairMQDevice.h"
-#include "FairEventHeader.h"
+
+#include "MFTBase/EventHeader.h"
 
 #include "TMessage.h"
-
-class FairEventHeader;
 
 class TList;
 
@@ -40,7 +39,7 @@ class TaskProcessor : public FairMQDevice
   std::string     fInputChannelName;
   std::string     fOutputChannelName;
   
-  FairEventHeader* fEventHeader;
+  EventHeader*     fEventHeader;
   TList*           fInput;
   TList*           fOutput;
   
