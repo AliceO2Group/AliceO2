@@ -2,8 +2,8 @@ void run_clusterer(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   // Initialize logger
   FairLogger *logger = FairLogger::GetLogger();
-  logger->SetLogVerbosityLevel("HIGH");
-  logger->SetLogScreenLevel("DEBUG");
+  logger->SetLogVerbosityLevel("LOW");
+  logger->SetLogScreenLevel("INFO");
 
   // Input and output file name
   std::stringstream inputfile, outputfile, paramfile;

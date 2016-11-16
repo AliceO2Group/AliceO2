@@ -160,7 +160,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // ===| Add TPC |============================================================
   AliceO2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
-  tpc->SetGeoFileName("/data/Work/software/o2/AliceO2/wiechula/Detectors/TPC/simulation/geometry/TPCGeometry.root");
+  tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 
   // Create PrimaryGenerator
@@ -178,7 +178,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetGenerator(primGen);
 
   // store track trajectories
-  run->SetStoreTraj(kTRUE);
+//  run->SetStoreTraj(kTRUE);
 
   // Initialize simulation run
   run->Init();
@@ -193,7 +193,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Start run
   run->Run(nEvents);
-  run->CreateGeometryFile("geofile_full.root");
+//  run->CreateGeometryFile("geofile_full.root");
 
   // Finish
   timer.Stop();
