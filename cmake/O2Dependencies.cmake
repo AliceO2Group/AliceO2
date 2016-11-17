@@ -316,6 +316,7 @@ o2_define_bucket(
     ${Boost_LOG_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_THREAD_LIBRARY}
+    ${Boost_DATE_TIME_LIBRARY}
     ${Boost_LOG_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${OPTIONAL_DDS_LIBRARIES}
