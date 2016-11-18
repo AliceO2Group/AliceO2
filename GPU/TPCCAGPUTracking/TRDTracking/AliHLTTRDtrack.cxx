@@ -1,5 +1,6 @@
 #include "AliHLTTRDtrack.h"
 #include "AliESDtrack.h"
+#include "AliHLTGlobalBarrelTrack.h"
 
 ClassImp(AliHLTTRDtrack);
 
@@ -79,6 +80,22 @@ AliHLTTRDtrack::AliHLTTRDtrack(AliExternalTrackParam& t ) throw (const Char_t *)
   Set(par->GetX(),par->GetAlpha(),par->GetParameter(),par->GetCovariance());
   for (Int_t i=0; i<=5; ++i) {
     fAttachedTracklets[i] = -1;
+  }
+}
+
+AliHLTTRDtrack::AliHLTTRDtrack(const AliHLTGlobalBarrelTrack& t) :
+  AliKalmanTrack(t),
+  fTPCtrackId(0),
+  fNtracklets(0)
+{
+  fTPCtrackId = 0;
+  fNtracklets = 0;
+  for (Int_t i=0; i<6; ++i) {
+    fAttachedTracklets[i] = -2;
+  }
+  for( Int_t i=0; i<t.GetNumberOfPoints() && i<6; ++i) {
+    fAttachedTracklets[i] = t.GetClusterIndex(i);
+    if( fAttachedTracklets[i]>=0 ) fNtracklets++;
   }
 }
 

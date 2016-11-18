@@ -313,7 +313,7 @@ int AliHLTTRDTrackerComponent::DoEvent
     AliHLTUInt32_t blockSize = sizeof(AliHLTTracksData);
 
     for (int iTrk=0; iTrk<nTracks; ++iTrk) {
-      unsigned int dSize = sizeof(AliHLTExternalTrackParam) + 5 * sizeof( unsigned int );
+      unsigned int dSize = sizeof(AliHLTExternalTrackParam) + 6 * sizeof( unsigned int );
       if (size + blockSize + dSize > maxBufferSize) {
         HLTWarning( "Output buffer exceeded for tracks" );
         return -ENOSPC;
@@ -332,11 +332,9 @@ int AliHLTTRDTrackerComponent::DoEvent
       for( int i=0; i<15; i++ ) currOutTrack->fC[i] = t.GetCovariance()[i];
       currOutTrack->fTrackID = t.GetTPCtrackId();
       currOutTrack->fFlags = 0;
-      currOutTrack->fNPoints = 0;      
-      for ( int i = 0; i <= 5; i++ ) {
-        if (t.GetTracklet(i) != -1) {
-          currOutTrack->fPointIDs[ currOutTrack->fNPoints++ ] = t.GetTracklet( i );          
-        }
+      currOutTrack->fNPoints = 6;      
+      for ( int i = 0; i <6; i++ ){
+	currOutTrack->fPointIDs[ i ] = t.GetTracklet( i );        
       }
       dSize = sizeof(AliHLTExternalTrackParam) + currOutTrack->fNPoints * sizeof( unsigned int );
       blockSize += dSize;
@@ -396,6 +394,8 @@ int AliHLTTRDTrackerComponent::DoEvent
     resultData.fDataType = AliHLTTRDDefinitions::fgkTRDSpacePointDataType;
     outputBlocks.push_back( resultDataSP );
     size += blockSize;
+
+    HLTInfo("TRD tracker: output %d tracks and %d tracklets (spacepoints)",outTracks->fCount, outSpacePoints->fCount);
   }
 
   return iResult;

@@ -6,6 +6,7 @@
 
 #include "AliKalmanTrack.h"
 
+class AliHLTGlobalBarrelTrack;
 class AliESDtrack;
 
 
@@ -17,6 +18,7 @@ class AliHLTTRDtrack : public AliKalmanTrack
   AliHLTTRDtrack();
   AliHLTTRDtrack(AliESDtrack& t,Bool_t c=kFALSE) throw (const Char_t *);
   AliHLTTRDtrack(AliExternalTrackParam& t ) throw (const Char_t *);
+  AliHLTTRDtrack(const AliHLTGlobalBarrelTrack& t);
   AliHLTTRDtrack(const AliHLTTRDtrack& t);
   AliHLTTRDtrack &operator=(const AliHLTTRDtrack& t);
 
@@ -36,6 +38,11 @@ class AliHLTTRDtrack : public AliKalmanTrack
   Double_t GetPredictedChi2(Double_t cy, Double_t cz, Double_t cerr2Y, Double_t cerr2Z) const { Error("AliHLTTRDtrack", "This is a dummy method and should never be used"); return -1.0; }
   Bool_t PropagateTo(Double_t xr, Double_t x0, Double_t rho) { Error("AliHLTTRDtrack", "This is a dummy method and should never be used"); return kFALSE; }
   Bool_t Update(const AliCluster* c, Double_t chi2, Int_t index) { Error("AliHLTTRDtrack", "This is a dummy method and should never be used"); return kFALSE; }
+
+  // virtual method of AliKalmanTrack, it is used when the TRD track is saved in AliESDTrack
+  Int_t GetTrackletIndex(Int_t iLayer) const { 
+    return GetTracklet(iLayer);
+  }
 
  protected:
 
