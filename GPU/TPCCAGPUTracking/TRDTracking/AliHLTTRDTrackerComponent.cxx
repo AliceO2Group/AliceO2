@@ -204,7 +204,8 @@ int AliHLTTRDTrackerComponent::DoEvent
     return 0;
   }
 
-  int sizeOffset = 0;
+  AliHLTUInt32_t maxBufferSize = size;
+  size = 0; // output size  
 
   int iResult=0;
 
@@ -298,89 +299,103 @@ int AliHLTTRDTrackerComponent::DoEvent
   }
   // push back AliHLTExternalTrackParam (default)
   else {
-    AliHLTUInt32_t maxBufferSize = size;
-    size = 0; // output size
-
-    if (sizeof(AliHLTTracksData) > maxBufferSize) {
+ 
+    if (size + sizeof(AliHLTTracksData) > maxBufferSize) {
       HLTWarning( "Output buffer exceeded for AliHLTTracksData" );
       return -ENOSPC;
     }
 
     AliHLTTracksData* outTracks = ( AliHLTTracksData* )( outputPtr );
+    outTracks->fCount = 0;
+     
     AliHLTExternalTrackParam* currOutTrack = outTracks->fTracklets;
 
-    size += sizeof(AliHLTTracksData);
-
-    outTracks->fCount = 0;
+    AliHLTUInt32_t blockSize = sizeof(AliHLTTracksData);
 
     for (int iTrk=0; iTrk<nTracks; ++iTrk) {
-	    unsigned int dSize = sizeof(AliHLTExternalTrackParam) + trackArray[iTrk].GetNtracklets() * sizeof( unsigned int );
-      if (size + dSize > maxBufferSize) {
+      unsigned int dSize = sizeof(AliHLTExternalTrackParam) + 5 * sizeof( unsigned int );
+      if (size + blockSize + dSize > maxBufferSize) {
         HLTWarning( "Output buffer exceeded for tracks" );
         return -ENOSPC;
       }
-      size += dSize;
       AliHLTTRDtrack &t = trackArray[iTrk];
-
-	    currOutTrack->fAlpha = t.GetAlpha();
-	    currOutTrack->fX = t.GetX();
-	    currOutTrack->fY = t.GetY();
-	    currOutTrack->fZ = t.GetZ();
-	    currOutTrack->fLastX = 0;
-	    currOutTrack->fLastY = 0;
-	    currOutTrack->fLastZ = 0;
-	    currOutTrack->fq1Pt = t.GetSigned1Pt();
-	    currOutTrack->fSinPsi = t.GetSnp();
-	    currOutTrack->fTgl = t.GetTgl();
-	    for( int i=0; i<15; i++ ) currOutTrack->fC[i] = t.GetCovariance()[i];
-	    currOutTrack->fTrackID = t.GetTPCtrackId();
-	    currOutTrack->fFlags = 0;
-	    currOutTrack->fNPoints = t.GetNtracklets();
-      int iTrackletAttached = 0;
-	    for ( int i = 0; i <= 5; i++ ) {
+      currOutTrack->fAlpha = t.GetAlpha();
+      currOutTrack->fX = t.GetX();
+      currOutTrack->fY = t.GetY();
+      currOutTrack->fZ = t.GetZ();
+      currOutTrack->fLastX = 0;
+      currOutTrack->fLastY = 0;
+      currOutTrack->fLastZ = 0;
+      currOutTrack->fq1Pt = t.GetSigned1Pt();
+      currOutTrack->fSinPsi = t.GetSnp();
+      currOutTrack->fTgl = t.GetTgl();
+      for( int i=0; i<15; i++ ) currOutTrack->fC[i] = t.GetCovariance()[i];
+      currOutTrack->fTrackID = t.GetTPCtrackId();
+      currOutTrack->fFlags = 0;
+      currOutTrack->fNPoints = 0;      
+      for ( int i = 0; i <= 5; i++ ) {
         if (t.GetTracklet(i) != -1) {
-          currOutTrack->fPointIDs[iTrackletAttached] = t.GetTracklet( i );
-          ++iTrackletAttached;
+          currOutTrack->fPointIDs[ currOutTrack->fNPoints++ ] = t.GetTracklet( i );          
         }
       }
-	    currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
-	    outTracks->fCount++;
+      dSize = sizeof(AliHLTExternalTrackParam) + currOutTrack->fNPoints * sizeof( unsigned int );
+      blockSize += dSize;
+      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
+      outTracks->fCount++;
     }
 
     AliHLTComponentBlockData resultData;
     FillBlockData( resultData );
-    resultData.fOffset = sizeOffset;
-    resultData.fSize = size;
-	  resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginTRD;
+    resultData.fOffset = size;
+    resultData.fSize = blockSize;
+    resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginTRD;
     outputBlocks.push_back( resultData );
-    sizeOffset += size;
-    size = 0;
+
+    size += blockSize;
+    outputPtr += resultData.fSize;
+    
+    blockSize = 0;
 
     // space points calculated from tracklets
-    AliHLTTRDSpacePointData* outSpacePoints = ( AliHLTTRDSpacePointData* )( outputPtr );
-    outSpacePoints->fCount = nTrackletsTotal;
-    //AliHLTTRDSpacePoint *currOutPoint = outSpacePoints->fPoints;
-    size = sizeof(AliHLTTRDSpacePoint) * nTrackletsTotal;
-    size += sizeof(AliHLTTRDSpacePointData);
-    if (size + sizeOffset > maxBufferSize) {
+
+    blockSize = sizeof(AliHLTTRDSpacePointData) + sizeof(AliHLTTRDSpacePoint) * nTrackletsTotal;
+
+    if (size + blockSize > maxBufferSize) {
       HLTWarning( "Output buffer exceeded for space points" );
       return -ENOSPC;
     }
+
+    AliHLTTRDSpacePointData* outSpacePoints = ( AliHLTTRDSpacePointData* )( outputPtr );
+    outSpacePoints->fCount = nTrackletsTotal;
+
+    { // fill array with 0 for a case..
+      AliHLTTRDSpacePoint empty;
+      empty.fX[0] = 0;
+      empty.fX[1] = 0;
+      empty.fX[2] = 0;      
+      for (int i=0; i<nTrackletsTotal; ++i) {
+	outSpacePoints->fPoints[i] = empty;
+      }
+    }
+
     for (int i=0; i<nTrackletsTotal; ++i) {
-      AliHLTTRDTracker::AliHLTTRDSpacePointInternal &sp = spacePoints[i];
-      AliHLTTRDSpacePoint *currOutPoint = &outSpacePoints->fPoints[sp.fId];
+      const AliHLTTRDTracker::AliHLTTRDSpacePointInternal &sp = spacePoints[i];
+      int id = sp.fId;
+      if( id<0 || id>=nTrackletsTotal ){
+	HLTError("Internal error: wrong space point index %d", id );
+      }
+      AliHLTTRDSpacePoint *currOutPoint = &outSpacePoints->fPoints[id];
       currOutPoint->fX[0] = sp.fX[0];
       currOutPoint->fX[1] = sp.fX[1];
       currOutPoint->fX[2] = sp.fX[2];
     }
     AliHLTComponentBlockData resultDataSP;
     FillBlockData( resultDataSP );
-    resultDataSP.fOffset = sizeOffset;
-    resultDataSP.fSize = size;
+    resultDataSP.fOffset = size;
+    resultDataSP.fSize = blockSize;
     resultData.fDataType = AliHLTTRDDefinitions::fgkTRDSpacePointDataType;
     outputBlocks.push_back( resultDataSP );
-    sizeOffset += size;
-    size = 0;
+    size += blockSize;
   }
 
   return iResult;
