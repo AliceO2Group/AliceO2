@@ -8,7 +8,7 @@
 
 class AliHLTGlobalBarrelTrack;
 class AliESDtrack;
-
+class AliHLTExternalTrackParam;
 
 //_____________________________________________________________________________
 class AliHLTTRDtrack : public AliKalmanTrack
@@ -43,6 +43,13 @@ class AliHLTTRDtrack : public AliKalmanTrack
   Int_t GetTrackletIndex(Int_t iLayer) const { 
     return GetTracklet(iLayer);
   }
+
+
+  // convertion to HLT track structure
+ 
+  size_t ConvertTo( AliHLTExternalTrackParam* t ) const;
+  void ConvertFrom( const AliHLTExternalTrackParam* t );
+  
 
  protected:
 
