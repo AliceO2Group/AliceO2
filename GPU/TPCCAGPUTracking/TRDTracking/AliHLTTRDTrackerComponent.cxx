@@ -319,24 +319,7 @@ int AliHLTTRDTrackerComponent::DoEvent
         return -ENOSPC;
       }
       AliHLTTRDtrack &t = trackArray[iTrk];
-      currOutTrack->fAlpha = t.GetAlpha();
-      currOutTrack->fX = t.GetX();
-      currOutTrack->fY = t.GetY();
-      currOutTrack->fZ = t.GetZ();
-      currOutTrack->fLastX = 0;
-      currOutTrack->fLastY = 0;
-      currOutTrack->fLastZ = 0;
-      currOutTrack->fq1Pt = t.GetSigned1Pt();
-      currOutTrack->fSinPsi = t.GetSnp();
-      currOutTrack->fTgl = t.GetTgl();
-      for( int i=0; i<15; i++ ) currOutTrack->fC[i] = t.GetCovariance()[i];
-      currOutTrack->fTrackID = t.GetTPCtrackId();
-      currOutTrack->fFlags = 0;
-      currOutTrack->fNPoints = 6;      
-      for ( int i = 0; i <6; i++ ){
-	currOutTrack->fPointIDs[ i ] = t.GetTracklet( i );        
-      }
-      dSize = sizeof(AliHLTExternalTrackParam) + currOutTrack->fNPoints * sizeof( unsigned int );
+      dSize = t.ConvertTo(currOutTrack);
       blockSize += dSize;
       currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
       outTracks->fCount++;

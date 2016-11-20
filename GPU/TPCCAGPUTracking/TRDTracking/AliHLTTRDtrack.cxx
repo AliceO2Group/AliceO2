@@ -1,6 +1,7 @@
 #include "AliHLTTRDtrack.h"
 #include "AliESDtrack.h"
 #include "AliHLTGlobalBarrelTrack.h"
+#include "AliExternalTrackParam.h"
 
 ClassImp(AliHLTTRDtrack);
 
@@ -106,5 +107,46 @@ Int_t AliHLTTRDtrack::GetTracklet(Int_t iLayer) const
   }
   else {
     return fAttachedTracklets[iLayer];
+  }
+}
+
+
+size_t AliHLTTRDtrack::ConvertTo( AliHLTExternalTrackParam* t ) const
+{
+  // convert to HLT structure
+  
+  t->fAlpha = GetAlpha();
+  t->fX = GetX();
+  t->fY = GetY();
+  t->fZ = GetZ();
+  t->fLastX = 0;
+  t->fLastY = 0;
+  t->fLastZ = 0;
+  t->fq1Pt = GetSigned1Pt();
+  t->fSinPsi = GetSnp();
+  t->fTgl = GetTgl();
+  for( int i=0; i<15; i++ ) t->fC[i] = GetCovariance()[i];
+  t->fTrackID = GetTPCtrackId();
+  t->fFlags = 0;
+  t->fNPoints = 6;
+  for ( int i = 0; i <6; i++ ){
+    t->fPointIDs[ i ] = GetTracklet( i );
+  }  
+  return sizeof(AliHLTExternalTrackParam) + 6 * sizeof( unsigned int );
+}
+
+void AliHLTTRDtrack::ConvertFrom( const AliHLTExternalTrackParam* t )
+{
+  // convert from HLT structure
+  Set(t->fX, t->fAlpha, &(t->fY), t->fC);
+  SetTPCtrackId( t->fTrackID );
+  fNtracklets = 0;
+  int iLayer=0;
+  for ( ; iLayer <6 && iLayer<t->fNPoints; iLayer++ ){
+    fAttachedTracklets[iLayer] = t->fPointIDs[ iLayer ];
+    if( fAttachedTracklets[iLayer]>=0 ) fNtracklets++;
+  }
+  for ( ; iLayer <6; iLayer++ ){
+    fAttachedTracklets[iLayer] = -1;
   }
 }
