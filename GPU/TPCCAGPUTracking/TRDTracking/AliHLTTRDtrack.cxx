@@ -1,7 +1,6 @@
 #include "AliHLTTRDtrack.h"
 #include "AliESDtrack.h"
-#include "AliHLTGlobalBarrelTrack.h"
-#include "AliExternalTrackParam.h"
+#include "AliHLTTRDTrackData.h"
 
 ClassImp(AliHLTTRDtrack);
 
@@ -84,21 +83,6 @@ AliHLTTRDtrack::AliHLTTRDtrack(AliExternalTrackParam& t ) throw (const Char_t *)
   }
 }
 
-AliHLTTRDtrack::AliHLTTRDtrack(const AliHLTGlobalBarrelTrack& t) :
-  AliKalmanTrack(t),
-  fTPCtrackId(0),
-  fNtracklets(0)
-{
-  fTPCtrackId = 0;
-  fNtracklets = 0;
-  for (Int_t i=0; i<6; ++i) {
-    fAttachedTracklets[i] = -2;
-  }
-  for( Int_t i=0; i<t.GetNumberOfPoints() && i<6; ++i) {
-    fAttachedTracklets[i] = t.GetClusterIndex(i);
-    if( fAttachedTracklets[i]>=0 ) fNtracklets++;
-  }
-}
 
 Int_t AliHLTTRDtrack::GetTracklet(Int_t iLayer) const
 {
@@ -111,42 +95,33 @@ Int_t AliHLTTRDtrack::GetTracklet(Int_t iLayer) const
 }
 
 
-size_t AliHLTTRDtrack::ConvertTo( AliHLTExternalTrackParam* t ) const
+void AliHLTTRDtrack::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
 {
   // convert to HLT structure
   
-  t->fAlpha = GetAlpha();
-  t->fX = GetX();
-  t->fY = GetY();
-  t->fZ = GetZ();
-  t->fLastX = 0;
-  t->fLastY = 0;
-  t->fLastZ = 0;
-  t->fq1Pt = GetSigned1Pt();
-  t->fSinPsi = GetSnp();
-  t->fTgl = GetTgl();
-  for( int i=0; i<15; i++ ) t->fC[i] = GetCovariance()[i];
-  t->fTrackID = GetTPCtrackId();
-  t->fFlags = 0;
-  t->fNPoints = 6;
+  t.fAlpha = GetAlpha();
+  t.fX = GetX();
+  t.fY = GetY();
+  t.fZ = GetZ();
+  t.fq1Pt = GetSigned1Pt();
+  t.fSinPsi = GetSnp();
+  t.fTgl = GetTgl();
+  for( int i=0; i<15; i++ ) t.fC[i] = GetCovariance()[i];
+  t.fTPCTrackID = GetTPCtrackId();  
   for ( int i = 0; i <6; i++ ){
-    t->fPointIDs[ i ] = GetTracklet( i );
+    t.fAttachedTracklets[ i ] = GetTracklet( i );
   }  
-  return sizeof(AliHLTExternalTrackParam) + 6 * sizeof( unsigned int );
 }
 
-void AliHLTTRDtrack::ConvertFrom( const AliHLTExternalTrackParam* t )
+void AliHLTTRDtrack::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
 {
   // convert from HLT structure
-  Set(t->fX, t->fAlpha, &(t->fY), t->fC);
-  SetTPCtrackId( t->fTrackID );
+
+  Set(t.fX, t.fAlpha, &(t.fY), t.fC);
+  SetTPCtrackId( t.fTPCTrackID );
   fNtracklets = 0;
-  int iLayer=0;
-  for ( ; iLayer <6 && iLayer<t->fNPoints; iLayer++ ){
-    fAttachedTracklets[iLayer] = t->fPointIDs[ iLayer ];
+  for ( int iLayer=0; iLayer <6; iLayer++ ){
+    fAttachedTracklets[iLayer] = t.fAttachedTracklets[ iLayer ];
     if( fAttachedTracklets[iLayer]>=0 ) fNtracklets++;
-  }
-  for ( ; iLayer <6; iLayer++ ){
-    fAttachedTracklets[iLayer] = -1;
   }
 }
