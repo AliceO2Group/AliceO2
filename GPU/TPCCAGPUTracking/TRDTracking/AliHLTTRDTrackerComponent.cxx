@@ -46,6 +46,7 @@
 #include "AliExternalTrackParam.h"
 #include "AliHLTExternalTrackParam.h"
 #include "AliHLTTrackMCLabel.h"
+#include "AliHLTTRDTrackData.h"
 #include <map>
 
 
@@ -99,7 +100,7 @@ int AliHLTTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& t
 {
   // see header file for class documentation
   tgtList.clear();
-  tgtList.push_back(kAliHLTDataTypeTrack|kAliHLTDataOriginTRD);
+  tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackDataType);
   tgtList.push_back(AliHLTTRDDefinitions::fgkTRDSpacePointDataType);
   tgtList.push_back(kAliHLTDataTypeTObject|kAliHLTDataOriginTRD);
   return tgtList.size();
@@ -300,28 +301,19 @@ int AliHLTTRDTrackerComponent::DoEvent
   // push back AliHLTExternalTrackParam (default)
   else {
  
-    if (size + sizeof(AliHLTTracksData) > maxBufferSize) {
-      HLTWarning( "Output buffer exceeded for AliHLTTracksData" );
+    AliHLTUInt32_t blockSize = AliHLTTRDTrackData::GetSize( nTracks );
+    if (size + blockSize > maxBufferSize) {
+      HLTWarning( "Output buffer exceeded for tracks" );
       return -ENOSPC;
     }
-
-    AliHLTTracksData* outTracks = ( AliHLTTracksData* )( outputPtr );
+    
+    AliHLTTRDTrackData* outTracks = ( AliHLTTRDTrackData* )( outputPtr );
     outTracks->fCount = 0;
-     
-    AliHLTExternalTrackParam* currOutTrack = outTracks->fTracklets;
-
-    AliHLTUInt32_t blockSize = sizeof(AliHLTTracksData);
-
+      
     for (int iTrk=0; iTrk<nTracks; ++iTrk) {
-      unsigned int dSize = sizeof(AliHLTExternalTrackParam) + 6 * sizeof( unsigned int );
-      if (size + blockSize + dSize > maxBufferSize) {
-        HLTWarning( "Output buffer exceeded for tracks" );
-        return -ENOSPC;
-      }
       AliHLTTRDtrack &t = trackArray[iTrk];
-      dSize = t.ConvertTo(currOutTrack);
-      blockSize += dSize;
-      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
+      AliHLTTRDTrackDataRecord &currOutTrack = outTracks->fTracks[outTracks->fCount];
+      t.ConvertTo(currOutTrack);      
       outTracks->fCount++;
     }
 
@@ -329,7 +321,7 @@ int AliHLTTRDTrackerComponent::DoEvent
     FillBlockData( resultData );
     resultData.fOffset = size;
     resultData.fSize = blockSize;
-    resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginTRD;
+    resultData.fDataType = AliHLTTRDDefinitions::fgkTRDTrackDataType;
     outputBlocks.push_back( resultData );
 
     size += blockSize;

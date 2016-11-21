@@ -6,9 +6,8 @@
 
 #include "AliKalmanTrack.h"
 
-class AliHLTGlobalBarrelTrack;
 class AliESDtrack;
-class AliHLTExternalTrackParam;
+class AliHLTTRDTrackDataRecord;
 
 //_____________________________________________________________________________
 class AliHLTTRDtrack : public AliKalmanTrack
@@ -18,7 +17,6 @@ class AliHLTTRDtrack : public AliKalmanTrack
   AliHLTTRDtrack();
   AliHLTTRDtrack(AliESDtrack& t,Bool_t c=kFALSE) throw (const Char_t *);
   AliHLTTRDtrack(AliExternalTrackParam& t ) throw (const Char_t *);
-  AliHLTTRDtrack(const AliHLTGlobalBarrelTrack& t);
   AliHLTTRDtrack(const AliHLTTRDtrack& t);
   AliHLTTRDtrack &operator=(const AliHLTTRDtrack& t);
 
@@ -47,8 +45,8 @@ class AliHLTTRDtrack : public AliKalmanTrack
 
   // convertion to HLT track structure
  
-  size_t ConvertTo( AliHLTExternalTrackParam* t ) const;
-  void ConvertFrom( const AliHLTExternalTrackParam* t );
+  void ConvertTo( AliHLTTRDTrackDataRecord &t ) const;
+  void ConvertFrom( const AliHLTTRDTrackDataRecord &t );
   
 
  protected:
