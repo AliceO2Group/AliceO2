@@ -170,7 +170,10 @@ int main(int argc, char** argv)
 				printf("Error setting CPU affinity\n");
 				return(1);
 			}
+		}
 
+		if ( !strcmp( argv[i], "-FIFO"))
+		{
 			printf("Setting FIFO scheduler\n");
 			sched_param param;
 			sched_getparam( 0, &param );
