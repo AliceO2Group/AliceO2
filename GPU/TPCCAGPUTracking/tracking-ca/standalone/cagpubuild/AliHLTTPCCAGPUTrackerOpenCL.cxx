@@ -157,7 +157,17 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		return(1);
 	}
 
-	if (forceDeviceID > -1 && forceDeviceID < (signed) count) bestDevice = forceDeviceID;
+	if (forceDeviceID > -1)
+	{
+		if (forceDeviceID < (signed) count)
+		{
+			bestDevice = forceDeviceID;
+		}
+		else
+		{
+			HLTWarning("Requested device ID %d non existend, falling back to default device id %d", forceDeviceID, bestDevice);
+		}
+	}
 	ocl->device = ocl->devices[bestDevice];
 
 	clGetDeviceInfo(ocl->device, CL_DEVICE_NAME, 64, device_name, NULL);
