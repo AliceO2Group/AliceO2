@@ -484,6 +484,7 @@ o2_define_bucket(
     DEPENDENCIES
     ParBase
     DetectorsBase
+    common_boost_bucket
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -545,15 +546,15 @@ o2_define_bucket(
     Base
     FairTools
     ParBase
-    FairMQ 
+    FairMQ
     ParMQ
-    fairmq_logger 
-    pthread 
-    Core 
-    Tree 
-    XMLParser 
-    Hist 
-    Net 
+    fairmq_logger
+    pthread
+    Core
+    Tree
+    XMLParser
+    Hist
+    Net
     RIO
     dl
 
