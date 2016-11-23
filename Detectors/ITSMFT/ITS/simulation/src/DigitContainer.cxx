@@ -2,63 +2,47 @@
 //  DigitContainer.cxx
 //  ALICEO2
 //
-//  Created by Markus Fasel on 25.03.15.
-//
-//
 #include "ITSSimulation/DigitContainer.h"
-#include "ITSSimulation/UpgradeGeometryTGeo.h"
 #include "ITSSimulation/Digit.h"
-#include "ITSSimulation/DigitLayer.h"
+#include "ITSSimulation/DigitChip.h"
 
 #include "FairLogger.h"           // for LOG
-#include "Rtypes.h"               // for Int_t, nullptr
 
 using namespace AliceO2::ITS;
 
-DigitContainer::DigitContainer(const UpgradeGeometryTGeo *geo) :
-  fGeometry(geo)
+DigitContainer::DigitContainer(Int_t nChips)
 {
-  for (Int_t ily = 0; ily < 7; ily++) {
-    fDigitLayer[ily] = new DigitLayer(ily,
-                                      fGeometry->getNumberOfStaves(ily));
-  }
+  fnChips=nChips;
+  fChips = new DigitChip[fnChips];
 }
 
 DigitContainer::~DigitContainer()
 {
-  for (int ily = 0; ily < 7; ily++) { delete fDigitLayer[ily]; }
+  Reset();
+  delete[] fChips;
 }
 
 void DigitContainer::Reset()
 {
-  for (int ily = 0; ily < 7; ily++) { fDigitLayer[ily]->Reset(); }
+  for (Int_t i = 0; i < fnChips; i++) fChips[i].Reset();
 }
 
-Digit *DigitContainer::FindDigit(int layer, int stave, int pixel)
+Digit *DigitContainer::GetDigit(Int_t chipID, Int_t idx)
 {
-  if (layer >= 7) {
-    LOG(ERROR) << "Layer index out of range : " << layer << ", max 6" << FairLogger::endl;
-    return nullptr;
-  }
-  return fDigitLayer[layer]->FindDigit(stave, pixel);
+  return fChips[chipID].GetDigit(idx);
 }
 
-void DigitContainer::AddDigit(Digit *digi)
+Digit *DigitContainer::AddDigit(
+       UShort_t chipID, UShort_t row, UShort_t col,
+       Double_t charge, Double_t timestamp
+)
 {
-  Int_t layer = fGeometry->getLayer(digi->GetChipIndex()),
-    stave = fGeometry->getStave(digi->GetChipIndex()),
-    pixel = fGeometry->getChipIdInStave(digi->GetChipIndex());
-
-  if (layer >= 7) {
-    LOG(ERROR) << "Layer index out of range : " << layer << ", max 6" << FairLogger::endl;
-    return;
-  }
-  fDigitLayer[layer]->SetDigit(digi, stave, pixel);
+  return fChips[chipID].AddDigit(chipID,row,col,charge,timestamp);
 }
 
 void DigitContainer::FillOutputContainer(TClonesArray *output)
 {
-  for (DigitLayer **layeriter = fDigitLayer; layeriter < fDigitLayer + 7; layeriter++) {
-    (*layeriter)->FillOutputContainer(output);
+  for (Int_t i = 0; i < fnChips; i++) {
+    fChips[i].FillOutputContainer(output);
   }
 }

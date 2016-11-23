@@ -55,7 +55,7 @@ InitStatus DigitizerTask::Init()
   mgr->Register("ITSDigit", "ITS", fDigitsArray, kTRUE);
   
   fDigitizer = new Digitizer;
-  fDigitizer->Init();
+
   return kSUCCESS;
 }
 

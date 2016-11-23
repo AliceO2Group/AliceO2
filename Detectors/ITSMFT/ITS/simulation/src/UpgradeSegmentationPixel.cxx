@@ -256,12 +256,12 @@ void UpgradeSegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t &ix, 
   z += 0.5 * dzActive() + mShiftLocalZ;
   ix = iz = -1;
   if (x < 0 || x > dxActive()) {
-    throw OutOfActiveAreaException(OutOfActiveAreaException::kX, x, 0, dxActive());
-    //return kFALSE; // outside x range.
+    //throw OutOfActiveAreaException(OutOfActiveAreaException::kX, x, 0, dxActive());
+    return;
   }
   if (z < 0 || z > dzActive()) {
-    throw OutOfActiveAreaException(OutOfActiveAreaException::kZ, z, 0, dzActive());
-    //return kFALSE; // outside z range.
+    //throw OutOfActiveAreaException(OutOfActiveAreaException::kZ, z, 0, dzActive());
+    return;
   }
   ix = int(x / mPitchX);
   iz = zToColumn(z);

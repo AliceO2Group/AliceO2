@@ -3,6 +3,7 @@
 #include "ITSSimulation/Digitizer.h"
 #include "ITSSimulation/Point.h"
 #include "ITSSimulation/UpgradeGeometryTGeo.h"
+#include "ITSSimulation/UpgradeSegmentationPixel.h"
 #include "ITSSimulation/Digit.h"
 #include "ITSSimulation/DigitContainer.h"
 
@@ -17,74 +18,84 @@ ClassImp(AliceO2::ITS::Digitizer)
 using namespace AliceO2::ITS;
 
 Digitizer::Digitizer() :
-  TObject(),
-  fChipContainer(),
-  fDigitContainer(nullptr),
   fGain(1.)
 {
   fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
+  fDigitContainer = new DigitContainer(fGeometry->getNumberOfChips());
+
+  // Default segmentation.
+  const double kSensThick = 18e-4;
+  const double kPitchX = 20e-4;
+  const double kPitchZ = 20e-4;
+  const int kNRow = 650;
+  const int kNCol = 1500;
+  const double kSiThickIB = 150e-4;
+  const double kSiThickOB = 150e-4;
+  const double kGuardRing = 50e-4; // width of passive area on left/right/top of the sensor
+  const double kReadOutEdge = 0.2; // width of the readout edge (passive bottom)
+  fSeg = new UpgradeSegmentationPixel(
+    0,           // segID (0:9)
+    1,           // chips per module
+    kNCol,       // ncols (total for module)
+    kNRow,       // nrows
+    kPitchX,     // default row pitch in cm
+    kPitchZ,     // default col pitch in cm
+    kSensThick,  // sensor thickness in cm
+    -1,          // no special left col between chips
+    -1,          // no special right col between chips
+    kGuardRing,  // left
+    kGuardRing,  // right
+    kGuardRing,  // top
+    kReadOutEdge // bottom
+  );
 }
 
 Digitizer::~Digitizer()
 {
   delete fGeometry;
+  delete fSeg;
   if (fDigitContainer) { delete fDigitContainer; }
-}
-
-void Digitizer::Init()
-{
-  fDigitContainer = new DigitContainer(fGeometry);
-
-  for (int i = 0; i < fGeometry->getNumberOfChips(); i++) {
-    fChipContainer.push_back(Chip(i, fGeometry));
-  }
 }
 
 DigitContainer *Digitizer::Process(TClonesArray *points)
 {
   fDigitContainer->Reset();
-  ClearChips();
-
-  // Assign points to chips
-  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
-    Point *itspoint = dynamic_cast<Point *>(*pointiter);
-    if (itspoint->GetDetectorID() > fChipContainer.size()) {
-      LOG(ERROR) << "Chip ID " << itspoint->GetDetectorID() << "out of range, max " << fChipContainer.size() <<
-                 FairLogger::endl;
-      continue;
-    }
-    fChipContainer[itspoint->GetDetectorID()].InsertPoint(itspoint);
-  }
 
   // Convert points to summable digits
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
-    Point *inputpoint = dynamic_cast<Point *>(*pointiter);
+    Point *point = dynamic_cast<Point *>(*pointiter);
+
+    Float_t x,z;
+    if (point->IsStopped()) {
+      x=point->GetX();
+      z=point->GetZ();
+    } else if (point->IsExiting()) {
+      x=0.5*(point->GetX() + point->GetStartX());
+      z=0.5*(point->GetZ() + point->GetStartZ());
+    } else { continue; }
+    
     LOG(DEBUG) << "Processing next point: " << FairLogger::endl;
     LOG(DEBUG) << "=======================" << FairLogger::endl;
-    LOG(DEBUG) << *inputpoint << FairLogger::endl;
-    Int_t layer = fGeometry->getLayer(inputpoint->GetDetectorID()),
-      stave = fGeometry->getStave(inputpoint->GetDetectorID()),
-      staveindex = fGeometry->getChipIdInStave(inputpoint->GetDetectorID());
-    Double_t charge = inputpoint->GetEnergyLoss();
-    Digit *digit = fDigitContainer->FindDigit(layer, stave, staveindex);
-    if (digit) {
-      // For the moment only add the charge to the current digit
-      LOG(DEBUG) << "Digit already found" << FairLogger::endl;
-      double chargeDigit = digit->GetCharge();
-      chargeDigit += charge * fGain;
-    } else {
-      LOG(DEBUG) << "Creating new digit" << FairLogger::endl;
-      // @TODO Impplement handling og pixels within the chip
-      digit = new Digit(inputpoint->GetDetectorID(), 0, charge, inputpoint->GetTime());
-      fDigitContainer->AddDigit(digit);
+    LOG(DEBUG) << *point << FairLogger::endl;
+    Double_t charge = point->GetEnergyLoss();
+    Int_t label = point->GetTrackID();
+    Int_t chipID= point->GetDetectorID();
+    
+    LOG(DEBUG) << "Creating new digit" << FairLogger::endl;
+    const Double_t glo[3]= {point->GetX(), point->GetY(), point->GetZ()};
+    Double_t loc[3]={0.,0.,0.};    
+    fGeometry->globalToLocal(chipID,glo,loc);
+    Int_t ix, iz;
+    fSeg->localToDetector(loc[0],loc[2],ix,iz);
+    if ((ix<0) || (iz<0)) {
+       LOG(DEBUG) << "Out of the chip" << FairLogger::endl;
+       continue; 
     }
+    Digit *digit=fDigitContainer->AddDigit(
+       chipID, ix, iz, charge, point->GetTime()
+    );
+    digit->SetLabel(0,label);
   }
   return fDigitContainer;
 }
 
-void Digitizer::ClearChips()
-{
-  for (auto chipIter : fChipContainer) {
-    chipIter.Clear();
-  }
-}

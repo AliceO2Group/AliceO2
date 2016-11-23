@@ -32,7 +32,7 @@ class Digit : public FairTimeStamp
     /// @param pixelindex Index of the pixel within the chip
     /// @param charge Accumulated charge of digit
     /// @param timestamp Time at which the digit was created
-    Digit(Int_t chipindex, Double_t pixelindex, Double_t charge, Double_t timestamp);
+    Digit(UShort_t chipindex, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
 
     /// Destructor
     virtual ~Digit();
@@ -52,13 +52,18 @@ class Digit : public FairTimeStamp
 
     /// Get the index of the chip
     /// @return Index of the chip
-    ULong_t GetChipIndex() const
+    UShort_t GetChipIndex() const
     { return fChipIndex; }
 
-    /// Get the index of the pixel within the chip
-    /// @return index of the pixel within the chip
-    ULong_t GetPixelIndex() const
-    { return fPixelIndex; }
+    /// Get the column of the pixel within the chip
+    /// @return column of the pixel within the chip
+    UShort_t GetColumn() const
+    { return fCol; }
+
+    /// Get the row of the pixel within the chip
+    /// @return row of the pixel within the chip
+    UShort_t GetRow() const
+    { return fRow; }
 
     /// Get the accumulated charged of the digit
     /// @return charge of the digit
@@ -66,24 +71,22 @@ class Digit : public FairTimeStamp
     { return fCharge; }
 
     /// Get the labels connected to this digit
-    /// @return vector of track labels
-    const std::vector<int> &GetListOfLabels() const
-    { return fLabels; }
+    Int_t GetLabel(Int_t idx) const
+    { return fLabels[idx]; }
 
     /// Add Label to the list of Monte-Carlo labels
-    /// @TODO: be confirmed how this is handled
-    void AddLabel(Int_t label)
-    { fLabels.push_back(label); }
+    void SetLabel(Int_t idx, Int_t label)
+    { fLabels[idx]=label; }
 
     /// Set the index of the chip
     /// @param index The chip index
-    void SetChipIndex(Int_t index)
+    void SetChipIndex(UShort_t index)
     { fChipIndex = index; }
 
     /// Set the index of the pixel within the chip
     /// @param index Index of the pixel within the chip
-    void SetPixelIndex(Int_t index)
-    { fPixelIndex = index; }
+    void SetPixelIndex(UShort_t row, UShort_t col)
+    { fRow = row; fCol = col; }
 
     /// Set the charge of the digit
     /// @param charge The charge of the the digit
@@ -98,7 +101,9 @@ class Digit : public FairTimeStamp
     {
       Digit *mydigi = dynamic_cast<Digit *>(other);
       if (mydigi) {
-        if (fChipIndex == mydigi->GetChipIndex() && fPixelIndex == mydigi->GetPixelIndex()) { return true; }
+        if (fChipIndex == mydigi->GetChipIndex() &&
+	    fCol == mydigi->GetColumn() &&
+	    fRow == mydigi->GetRow()) { return true; }
       }
       return false;
     }
@@ -112,10 +117,10 @@ class Digit : public FairTimeStamp
     /// @return True if this digit has a lower total index, false otherwise
     virtual bool operator<(const Digit &other) const
     {
-      if (fChipIndex < other.fChipIndex ||
-          (fChipIndex == other.fChipIndex && fPixelIndex < other.fPixelIndex)) {
-            return true;
-      }
+      /* if (fChipIndex < other.fChipIndex || */
+      /*     (fChipIndex == other.fChipIndex && fCol < other.fCol)) { */
+      /*       return true; */
+      /* } */
       return false;
     }
 
@@ -143,7 +148,8 @@ class Digit : public FairTimeStamp
     {
       ar & boost::serialization::base_object<FairTimeStamp>(*this);
       ar & fChipIndex;
-      ar & fPixelIndex;
+      ar & fRow;
+      ar & fCol;
       ar & fCharge;
       ar & fLabels;
     }
@@ -154,12 +160,13 @@ class Digit : public FairTimeStamp
     friend class boost::serialization::access;
 
 #endif
-    ULong_t fChipIndex;         ///< Chip index
-    ULong_t fPixelIndex;        ///< Index of the pixel within the chip
+    UShort_t fChipIndex;         ///< Chip index
+    UShort_t fRow;               ///< Pixel index in X
+    UShort_t fCol;               ///< Pixel index in Z
     Double_t fCharge;            ///< Accumulated charge
-    std::vector<int> fLabels;            ///< Particle labels associated to this digit (@TODO be confirmed)
+    Int_t fLabels[3];            ///< Particle labels associated to this digit
 
-  ClassDef(Digit, 1);
+  ClassDef(Digit, 2);
 };
 }
 }

@@ -2,46 +2,41 @@
 //  DigitContainer.h
 //  ALICEO2
 //
-//  Created by Markus Fasel on 25.03.15.
-//
-//
 
 #ifndef _ALICEO2_ITS_DigitContainer_
 #define _ALICEO2_ITS_DigitContainer_
 
-class TClonesArray;  // lines 14-14
-namespace AliceO2 { namespace ITS { class Digit; }}  // lines 19-19
-namespace AliceO2 { namespace ITS { class DigitLayer; }}  // lines 20-20
-namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; }}
+#include "Rtypes.h"
 
+class TClonesArray;
 
 namespace AliceO2 {
 namespace ITS {
 
 class Digit;
-
-class DigitLayer;
+class DigitChip;
 
 class DigitContainer
 {
   public:
-    DigitContainer(const UpgradeGeometryTGeo *geo);
-
-    ~DigitContainer();
+    DigitContainer(Int_t nChips);
+   ~DigitContainer();
 
     void Reset();
 
-    void AddDigit(Digit *digi);
-
-    Digit *FindDigit(int layer, int stave, int index);
+    Digit *AddDigit(
+       UShort_t chipid, UShort_t row, UShort_t col,
+       Double_t charge, Double_t timestamp
+    );
+    Digit *GetDigit(Int_t chipID, Int_t idx);
 
     void FillOutputContainer(TClonesArray *output);
 
   private:
-    DigitLayer *fDigitLayer[7];
-    const UpgradeGeometryTGeo *fGeometry;
+    Int_t fnChips;
+    DigitChip *fChips;
 };
 }
 }
 
-#endif /* defined(__ALICEO2__DigitContainer__) */
+#endif /* defined(_ALICEO2_ITS_DigitContainer_) */
