@@ -43,14 +43,15 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     LOG(DEBUG) << "=======================" << FairLogger::endl;
     LOG(DEBUG) << *point << FairLogger::endl;
 
-    Float_t x=0.5*(point->GetX() + point->GetStartX());
-    Float_t z=0.5*(point->GetZ() + point->GetStartZ());
+    Double_t x=0.5*(point->GetX() + point->GetStartX());
+    Double_t y=0.5*(point->GetY() + point->GetStartY());
+    Double_t z=0.5*(point->GetZ() + point->GetStartZ());
     Double_t charge = point->GetEnergyLoss();
     Int_t label = point->GetTrackID();
     Int_t chipID= point->GetDetectorID();
     
     LOG(DEBUG) << "Creating new digit" << FairLogger::endl;
-    const Double_t glo[3]= {point->GetX(), point->GetY(), point->GetZ()};
+    const Double_t glo[3]= {x, y, z};
     Double_t loc[3]={0.,0.,0.};    
     fGeometry->globalToLocal(chipID,glo,loc);
     const UpgradeSegmentationPixel *seg =
