@@ -19,40 +19,14 @@ Digitizer::Digitizer()
 {
   fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
   fDigitContainer = new DigitContainer(fGeometry->getNumberOfChips());
-
-  // Default segmentation.
-  const double kSensThick = 18e-4;
-  const double kPitchX = 20e-4;
-  const double kPitchZ = 20e-4;
-  const int kNRow = 650;
-  const int kNCol = 1500;
-  const double kSiThickIB = 150e-4;
-  const double kSiThickOB = 150e-4;
-  const double kGuardRing = 50e-4; // width of passive area on left/right/top of the sensor
-  const double kReadOutEdge = 0.2; // width of the readout edge (passive bottom)
-  fSeg = new UpgradeSegmentationPixel(
-    0,           // segID (0:9)
-    1,           // chips per module
-    kNCol,       // ncols (total for module)
-    kNRow,       // nrows
-    kPitchX,     // default row pitch in cm
-    kPitchZ,     // default col pitch in cm
-    kSensThick,  // sensor thickness in cm
-    -1,          // no special left col between chips
-    -1,          // no special right col between chips
-    kGuardRing,  // left
-    kGuardRing,  // right
-    kGuardRing,  // top
-    kReadOutEdge // bottom
-  );
-
-  DigitChip::SetNRows(kNRow);
+  const UpgradeSegmentationPixel *seg =
+     (UpgradeSegmentationPixel*)fGeometry->getSegmentationById(0);
+  DigitChip::SetNRows(seg->getNumberOfRows());
 }
 
 Digitizer::~Digitizer()
 {
   delete fGeometry;
-  delete fSeg;
   if (fDigitContainer) { delete fDigitContainer; }
 }
 
@@ -79,8 +53,10 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     const Double_t glo[3]= {point->GetX(), point->GetY(), point->GetZ()};
     Double_t loc[3]={0.,0.,0.};    
     fGeometry->globalToLocal(chipID,glo,loc);
+    const UpgradeSegmentationPixel *seg =
+       (UpgradeSegmentationPixel*)fGeometry->getSegmentationById(0);
     Int_t ix, iz;
-    fSeg->localToDetector(loc[0],loc[2],ix,iz);
+    seg->localToDetector(loc[0],loc[2],ix,iz);
     if ((ix<0) || (iz<0)) {
        LOG(DEBUG) << "Out of the chip" << FairLogger::endl;
        continue; 

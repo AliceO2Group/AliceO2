@@ -34,7 +34,6 @@ class Digitizer : public TObject
 
     DigitContainer *fDigitContainer;           ///< Internal digit storage
     UpgradeGeometryTGeo *fGeometry;            ///< ITS upgrade geometry
-    UpgradeSegmentationPixel *fSeg;            ///< Pixelchip segmentation
 
   ClassDef(Digitizer, 2);
 };
