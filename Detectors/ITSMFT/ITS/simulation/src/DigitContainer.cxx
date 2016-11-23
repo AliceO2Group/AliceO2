@@ -27,9 +27,9 @@ void DigitContainer::Reset()
   for (Int_t i = 0; i < fnChips; i++) fChips[i].Reset();
 }
 
-Digit *DigitContainer::GetDigit(Int_t chipID, Int_t idx)
+Digit *DigitContainer::GetDigit(Int_t chipID, UShort_t row, UShort_t col)
 {
-  return fChips[chipID].GetDigit(idx);
+  return fChips[chipID].GetDigit(row,col);
 }
 
 Digit *DigitContainer::AddDigit(

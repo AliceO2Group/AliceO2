@@ -28,7 +28,7 @@ class DigitContainer
        UShort_t chipid, UShort_t row, UShort_t col,
        Double_t charge, Double_t timestamp
     );
-    Digit *GetDigit(Int_t chipID, Int_t idx);
+    Digit *GetDigit(Int_t chipID, UShort_t row, UShort_t col);
 
     void FillOutputContainer(TClonesArray *output);
 

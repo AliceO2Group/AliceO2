@@ -5,20 +5,17 @@
 #include "ITSSimulation/UpgradeGeometryTGeo.h"
 #include "ITSSimulation/UpgradeSegmentationPixel.h"
 #include "ITSSimulation/Digit.h"
+#include "ITSSimulation/DigitChip.h"
 #include "ITSSimulation/DigitContainer.h"
 
 #include "FairLogger.h"           // for LOG
 #include "TClonesArray.h"         // for TClonesArray
-#include "TCollection.h"          // for TIter
-
-#include <iostream>
 
 ClassImp(AliceO2::ITS::Digitizer)
 
 using namespace AliceO2::ITS;
 
-Digitizer::Digitizer() :
-  fGain(1.)
+Digitizer::Digitizer()
 {
   fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
   fDigitContainer = new DigitContainer(fGeometry->getNumberOfChips());
@@ -48,6 +45,8 @@ Digitizer::Digitizer() :
     kGuardRing,  // top
     kReadOutEdge // bottom
   );
+
+  DigitChip::SetNRows(kNRow);
 }
 
 Digitizer::~Digitizer()
@@ -59,24 +58,19 @@ Digitizer::~Digitizer()
 
 DigitContainer *Digitizer::Process(TClonesArray *points)
 {
-  fDigitContainer->Reset();
+    fDigitContainer->Reset();
 
   // Convert points to summable digits
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
+    
     Point *point = dynamic_cast<Point *>(*pointiter);
 
-    Float_t x,z;
-    if (point->IsStopped()) {
-      x=point->GetX();
-      z=point->GetZ();
-    } else if (point->IsExiting()) {
-      x=0.5*(point->GetX() + point->GetStartX());
-      z=0.5*(point->GetZ() + point->GetStartZ());
-    } else { continue; }
-    
     LOG(DEBUG) << "Processing next point: " << FairLogger::endl;
     LOG(DEBUG) << "=======================" << FairLogger::endl;
     LOG(DEBUG) << *point << FairLogger::endl;
+
+    Float_t x=0.5*(point->GetX() + point->GetStartX());
+    Float_t z=0.5*(point->GetZ() + point->GetStartZ());
     Double_t charge = point->GetEnergyLoss();
     Int_t label = point->GetTrackID();
     Int_t chipID= point->GetDetectorID();
