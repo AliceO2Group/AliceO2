@@ -726,16 +726,16 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       int nHits = 0;
       for( int ipart=0; ipart<nParts; ipart++ ){
 	const AliHLTTPCGMSliceTrack *t = trackParts[ipart];
-      	int nTrackHits = t->NClusters();
-	if( nHits + nTrackHits >= kMaxClusters ) break;
+	int nTrackHits = t->NClusters();
+	if( nHits + nTrackHits > kMaxClusters ) break;
 	const AliHLTTPCCASliceOutCluster *c= t->OrigTrack()->Clusters();
 	AliHLTTPCCASliceOutCluster *c2 = trackClusters+nHits + nTrackHits-1;
-	for( int i=0; i<nTrackHits; i++, c++, c2-- ) *c2 = *c;	
+	for( int i=0; i<nTrackHits; i++, c++, c2-- ) *c2 = *c;
 	float alpha =  t->Alpha();
 	for( int i=0; i<nTrackHits; i++) clA[nHits++] = alpha;
       }
 
-      if ( nHits < 30 ) continue;   
+      if ( nHits < 30 ) continue;
 
       int ordered = 1;
       for( int i=1; i<nHits; i++ )
@@ -758,34 +758,33 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  qsort(clusterIndices, nHits, sizeof(int2), CompareClusterIds);
 
 	  int nFilteredHits = 0;
-	  float *clA = fClusterAngle + nOutTrackClusters;
 	  int idPrev = -1;
 	  for (int i = 0;i < nHits;i++)
 	    {
 	      if( clusterIndices[i].y == idPrev ) continue; // same cluster
-	      idPrev = clusterIndices[i].y;	      
-	      int ind = clusterIndices[i].x;	      
+	      idPrev = clusterIndices[i].y;
+	      int ind = clusterIndices[i].x;
 	      trackClusters[nFilteredHits] = trackClustersUnsorted[ind];
-	      clA[nFilteredHits] = clAUnsorted[ind];	    
+	      clA[nFilteredHits] = clAUnsorted[ind];
 	      nFilteredHits++;
 	    }
 	  nHits = nFilteredHits;
 	}
 	  
-      UInt_t *clId = fOutputClusterIds + nOutTrackClusters;      
-      for( int i=0; i<nHits; i++ ) clId[i] = trackClusters[i].GetId();      
+      UInt_t *clId = fOutputClusterIds + nOutTrackClusters;
+      for( int i=0; i<nHits; i++ ) clId[i] = trackClusters[i].GetId();
       
       UInt_t *clT  = fClusterRowType + nOutTrackClusters;
-      for( int i=0; i<nHits; i++ ) clT[i] = trackClusters[i].GetRowType();  
+      for( int i=0; i<nHits; i++ ) clT[i] = trackClusters[i].GetRowType();
       
       float *clX = fClusterX + nOutTrackClusters;
-      for( int i=0; i<nHits; i++ ) clX[i] = trackClusters[i].GetX();      
+      for( int i=0; i<nHits; i++ ) clX[i] = trackClusters[i].GetX();
 
       float *clY = fClusterY + nOutTrackClusters;
-      for( int i=0; i<nHits; i++ ) clY[i] = trackClusters[i].GetY();      
+      for( int i=0; i<nHits; i++ ) clY[i] = trackClusters[i].GetY();
 
       float *clZ = fClusterZ + nOutTrackClusters;
-      for( int i=0; i<nHits; i++ ) clZ[i] = trackClusters[i].GetZ();      
+      for( int i=0; i<nHits; i++ ) clZ[i] = trackClusters[i].GetZ();
 
       AliHLTTPCGMMergedTrack &mergedTrack = fOutputTracks[fNOutputTracks];
       mergedTrack.SetOK(1);
