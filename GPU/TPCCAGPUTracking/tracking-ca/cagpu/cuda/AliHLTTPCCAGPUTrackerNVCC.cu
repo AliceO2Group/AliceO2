@@ -81,7 +81,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 
 #ifndef CUDA_DEVICE_EMULATION
 	int count, bestDevice = -1;
-	long long int bestDeviceSpeed = 0, deviceSpeed;
+	double bestDeviceSpeed = -1, deviceSpeed;
 	if (GPUFailedMsg(cudaGetDeviceCount(&count)))
 	{
 		HLTError("Error getting CUDA Device Count");
@@ -113,17 +113,24 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 		if (fDebugLevel >= 4) printf("Obtained current memory usage for device %d\n", i);
 		if (GPUFailedMsg(cudaGetDeviceProperties(&fCudaDeviceProp, i))) continue;
 		if (fDebugLevel >= 4) printf("Obtained device properties for device %d\n", i);
-		int deviceOK = fCudaDeviceProp.major < 9 && !(fCudaDeviceProp.major < reqVerMaj || (fCudaDeviceProp.major == reqVerMaj && fCudaDeviceProp.minor < reqVerMin)) && free >= fGPUMemSize + 100 * 1024 + 1024;
+		int deviceOK = fCudaDeviceProp.major < 9 && (fCudaDeviceProp.major > reqVerMaj || (fCudaDeviceProp.major == reqVerMaj && fCudaDeviceProp.minor >= reqVerMin)) && (size_t) free >= (size_t) (fGPUMemSize + 100 * 1024 + 1024);
 #ifndef HLTCA_GPU_ALTERNATIVE_SCHEDULER
 		//if (sliceCount > fCudaDeviceProp.multiProcessorCount * HLTCA_GPU_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER) deviceOK = 0;
 #endif
 
-		if (fDebugLevel >= 2) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, (long long int) free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
-		deviceSpeed = (long long int) fCudaDeviceProp.multiProcessorCount * (long long int) fCudaDeviceProp.clockRate * (long long int) fCudaDeviceProp.warpSize * (long long int) free * (long long int) fCudaDeviceProp.major * (long long int) fCudaDeviceProp.major;
-		if (deviceOK && deviceSpeed > bestDeviceSpeed)
+		if (fDebugLevel >= 0) HLTInfo("%s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s", deviceOK ? " " : "[", i, fCudaDeviceProp.name, fCudaDeviceProp.major, fCudaDeviceProp.minor, (long long int) free, (long long int) fCudaDeviceProp.totalGlobalMem, deviceOK ? "" : " ]");
+		deviceSpeed = (double) fCudaDeviceProp.multiProcessorCount * (double) fCudaDeviceProp.clockRate * (double) fCudaDeviceProp.warpSize * (double) free * (double) fCudaDeviceProp.major * (double) fCudaDeviceProp.major;
+		if (deviceOK)
 		{
-			bestDevice = i;
-			bestDeviceSpeed = deviceSpeed;
+			if (deviceSpeed > bestDeviceSpeed)
+			{
+				bestDevice = i;
+				bestDeviceSpeed = deviceSpeed;
+			}
+			else
+			{
+				if (fDebugLevel >= 0) HLTInfo("Skipping: Speed %lld < %lld\n", deviceSpeed, bestDeviceSpeed);
+			}
 		}
 	}
 	if (bestDevice == -1)
