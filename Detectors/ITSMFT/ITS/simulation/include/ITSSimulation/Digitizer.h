@@ -28,9 +28,6 @@ class Digitizer : public TObject
     /// @return digits container
     DigitContainer *Process(TClonesArray *points);
 
-    void SetGainFactor(Double_t gain)
-    { fGain = gain; }
-
   private:
     Digitizer(const Digitizer &);
     Digitizer &operator=(const Digitizer &);
@@ -38,8 +35,6 @@ class Digitizer : public TObject
     DigitContainer *fDigitContainer;           ///< Internal digit storage
     UpgradeGeometryTGeo *fGeometry;            ///< ITS upgrade geometry
     UpgradeSegmentationPixel *fSeg;            ///< Pixelchip segmentation
-    
-    Double_t fGain;               ///< pad gain factor (global for the moment)
 
   ClassDef(Digitizer, 2);
 };

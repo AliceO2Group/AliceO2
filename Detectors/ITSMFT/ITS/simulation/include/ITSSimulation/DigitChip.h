@@ -7,7 +7,7 @@
 #define _ALICEO2_DigitChip_
 
 #include "Rtypes.h"
-#include <vector>
+#include <map>
 
 class TClonesArray;
 
@@ -22,9 +22,11 @@ class DigitChip
     DigitChip();
    ~DigitChip();
 
+    static void SetNRows(Int_t nr) { fnRows=nr; }
+   
     void Reset();
 
-    Digit *GetDigit(Int_t idx);
+    Digit *GetDigit(UShort_t row, UShort_t col);
 
     Digit *AddDigit(
        UShort_t chipid, UShort_t row, UShort_t col,
@@ -34,7 +36,9 @@ class DigitChip
     void FillOutputContainer(TClonesArray *outputcont);
 
   private:
-    std::vector<Digit *> fPixels;
+    Digit *FindDigit(Int_t idx);
+    static Int_t fnRows;
+    std::map<Int_t, Digit *> fPixels;
 };
 }
 }
