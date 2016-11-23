@@ -11,6 +11,10 @@
 #define ALIHLTTPCCASLICEOUTCLUSTER_H
 
 #include "AliHLTTPCCADef.h"
+#ifdef HLTCA_STANDALONE
+#include "AliHLTTPCRootTypes.h"
+#endif
+
 
 /**
  * @class AliHLTTPCCASliceOutCluster
