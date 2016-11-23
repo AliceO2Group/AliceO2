@@ -46,14 +46,6 @@ include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
 include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE
                    )
 
-#nvcc fails with std=c++11, remove it temporarily
-if(CMAKE_CXX_FLAGS)
-string(FIND ${CMAKE_CXX_FLAGS} "-std=c++11" STDCXX11FOUND )
-if(STDCXX11FOUND GREATER -1)
-  string(REPLACE "-std=c++11" "-std=c++98" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-endif()
-endif(CMAKE_CXX_FLAGS)
-
 #compile CUDA object file
 cuda_compile(CAGPU_O AliHLTTPCCAGPUTrackerNVCC.cu)
 
