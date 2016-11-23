@@ -129,7 +129,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 			}
 			else
 			{
-				if (fDebugLevel >= 0) HLTInfo("Skipping: Speed %lld < %lld\n", deviceSpeed, bestDeviceSpeed);
+				if (fDebugLevel >= 0) HLTInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
 			}
 		}
 	}
@@ -226,7 +226,7 @@ int AliHLTTPCCAGPUTrackerNVCC::InitGPU_Runtime(int sliceCount, int forceDeviceID
 	}
 
 	cuCtxPopCurrent((CUcontext*) fCudaContext);
-	HLTInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d, %d bytes used)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount, fGPUMemSize);
+	HLTInfo("CUDA Initialisation successfull (Device %d: %s, Thread %d, Max slices: %d, %lld bytes used)", fCudaDevice, fCudaDeviceProp.name, fThreadId, fSliceCount, fGPUMemSize);
 
 	return(0);
 }
