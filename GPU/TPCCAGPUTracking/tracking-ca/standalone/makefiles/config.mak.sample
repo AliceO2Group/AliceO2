@@ -1,0 +1,76 @@
+#make command line options:
+#VERBOSE=1 //Do not hide command lines
+#CHECK_DEPENDENCIES=0 //Do not perform dependency file creation
+
+include config_options.mak  #will be autocreated by config_options.sample
+
+INTELARCH					= Host
+GCCARCH						= native
+MSVCFAVOR					= INTEL64
+CUDAVERSION					= 10 13 20 30 35
+CUDAREGS					= 64
+ARCHBITS					= 64
+
+HIDEECHO					= @
+#HIDEECHO					= -
+CC_x86_64-pc-linux-gnu		= GCC
+CC_i686-pc-cygwin			= ICC
+
+EXTRAFLAGSGCC				= -Weffc++
+EXTRAOBJFILES				= objfile.obj
+EXTRAFLAGSLINK				= 
+EXTRADEPS					= non_obj_file_required.dat
+
+INCLUDEPATHS				= include subdir/include
+DEFINES						= SAMPLE_DEFINE=1
+LIBPATHS					= /usr/local/lib/sample
+LIBS						= sample
+
+#CONFIG_STATIC				= 1
+
+CONFIG_DIRECTX				= 1
+CONFIG_OPENCL				= 1
+CONFIG_OPENGL				= 0
+CONFIG_OPENMP				= 0
+CONFIG_GDB					= 1 #by default
+CONFIG_CAL					= 0
+#CONFIG_X11					=
+CONFIG_CUDA					= 0
+#CONFIG_VIDEO_EDIT			=
+CONFIG_OPENCL_VERSION		= All
+#Options are: AMD, NVIDIA, Intel, All, empty defaults to all
+CONFIG_QT					= 0
+CONFIG_CPP11				= 0
+
+include						config_common.mak
+
+TARGET						= ca
+SUBTARGETS					= libAliHLTTPCCAGPUSA
+#TARGETPATH					= ../
+
+TARGETTYPE					= LIB
+WORKPATHSUFFIX				= $(TARGETTYPE)_$TARGET
+
+CPPFILES					= sample.cpp
+CXXFILES					= subdir/sample.cxx \
+								subdir/sample2.cxx
+ASMFILES					= sample.asm
+CUFILES						= sample.cu
+RESOURCEFILES				= myresource.dat
+CLFILES						= opencl_file.cl
+CFILES						= sample.c
+
+QTFILES						= 
+QTCPPFILES					=
+
+OPENCL_OPTIONS				= -x clc++
+
+#Set all compiler flags to optimized/debug or set compiler flags individually
+COMPILER_FLAGS				= OPT
+#INTELFLAGSUSE				= $(INTELFLAGSOPT)
+#VSNETFLAGSUSE				= $(VSNETFLAGSOPT)
+#GCCFLAGSUSE				= $(GCCFLAGSOPT)
+#NVCCFLAGSUSE				= $(NVCCFLAGSOPT)
+
+CONFIG_LTO					= 1
+CONFIG_CUDA_DC				= 1
