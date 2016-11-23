@@ -7,27 +7,21 @@
 #include "TObject.h"  // for TObject
 #include "ITSSimulation/Chip.h"
 
-class TClonesArray;  // lines 13-13
-namespace AliceO2 { namespace ITS { class DigitContainer; }}  // lines 19-19
-namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; }}  // lines 20-20
+class TClonesArray;
 
 namespace AliceO2 {
 
 namespace ITS {
 
 class DigitContainer;
-
 class UpgradeGeometryTGeo;
+class UpgradeSegmentationPixel;
 
 class Digitizer : public TObject
 {
   public:
     Digitizer();
-
-    /// Destructor
-    ~Digitizer();
-
-    void Init();
+   ~Digitizer();
 
     /// Steer conversion of points to digits
     /// @param points Container with ITS points
@@ -37,21 +31,17 @@ class Digitizer : public TObject
     void SetGainFactor(Double_t gain)
     { fGain = gain; }
 
-    void ClearChips();
-
   private:
     Digitizer(const Digitizer &);
-
     Digitizer &operator=(const Digitizer &);
 
-    std::vector<Chip> fChipContainer;             ///< Container for ITS chip
-
     DigitContainer *fDigitContainer;           ///< Internal digit storage
-    UpgradeGeometryTGeo *fGeometry;                 ///< ITS upgrade geometry
+    UpgradeGeometryTGeo *fGeometry;            ///< ITS upgrade geometry
+    UpgradeSegmentationPixel *fSeg;            ///< Pixelchip segmentation
+    
+    Double_t fGain;               ///< pad gain factor (global for the moment)
 
-    Double_t fGain;                      ///< pad gain factor (global for the moment)
-
-  ClassDef(Digitizer, 1);
+  ClassDef(Digitizer, 2);
 };
 }
 }

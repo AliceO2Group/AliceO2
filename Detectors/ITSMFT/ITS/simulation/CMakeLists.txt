@@ -14,6 +14,7 @@ set(SRCS
     src/Point.cxx
     src/Chip.cxx
     src/Digit.cxx
+    src/DigitChip.cxx
     src/Digitizer.cxx
     src/DigitizerTask.cxx
     src/DigitWriteoutBuffer.cxx
@@ -25,6 +26,7 @@ set(HEADERS
     include/${MODULE_NAME}/Chip.h
     include/${MODULE_NAME}/Detector.h
     include/${MODULE_NAME}/Digit.h
+    include/${MODULE_NAME}/DigitChip.h
     include/${MODULE_NAME}/DigitContainer.h
     include/${MODULE_NAME}/DigitLayer.h
     include/${MODULE_NAME}/DigitStave.h
