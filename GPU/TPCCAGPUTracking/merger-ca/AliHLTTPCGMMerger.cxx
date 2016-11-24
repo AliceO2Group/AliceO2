@@ -845,12 +845,23 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       AliHLTTPCGMTrackParam &p1 = mergedTrack.Param();
       const AliHLTTPCGMSliceTrack &p2 = *(trackParts[firstTrackIndex]);
 	  
-      p1.X() = p2.X();
-      p1.Y() = p2.Y();
-      p1.Z() = p2.Z();
-      p1.SinPhi() = p2.SinPhi();
-      p1.DzDs()  = p2.DzDs();
-      p1.QPt()  = p2.QPt();
+	  AliHLTTPCGMBorderTrack b;
+	  if (p2.TransportToX(clX[0], fSliceParam.ConstBz(), b, 0.999))
+	  {
+			  p1.X() = clX[0];
+			  p1.Y() = b.Par()[0];
+		  p1.Z() = b.Par()[1];
+		  p1.SinPhi() = b.Par()[2];
+	  }
+	  else
+	  {
+		  p1.X() = p2.X();
+		  p1.Y() = p2.Y();
+		  p1.Z() = p2.Z();
+		  p1.SinPhi() = p2.SinPhi();
+	  }
+	  p1.DzDs()  = p2.DzDs();
+	  p1.QPt()  = p2.QPt();
       mergedTrack.SetAlpha( p2.Alpha() );
 
       fNOutputTracks++;
