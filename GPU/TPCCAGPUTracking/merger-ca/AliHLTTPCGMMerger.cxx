@@ -729,10 +729,13 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	int nTrackHits = t->NClusters();
 	if( nHits + nTrackHits > kMaxClusters ) break;
 	const AliHLTTPCCASliceOutCluster *c= t->OrigTrack()->Clusters();
-	AliHLTTPCCASliceOutCluster *c2 = trackClusters+nHits + nTrackHits-1;
-	for( int i=0; i<nTrackHits; i++, c++, c2-- ) *c2 = *c;
+	AliHLTTPCCASliceOutCluster *c2 = trackClusters + nHits + nTrackHits-1;
 	float alpha =  t->Alpha();
-	for( int i=0; i<nTrackHits; i++) clA[nHits++] = alpha;
+	for( int i=0; i<nTrackHits; i++, c++, c2-- )
+	{
+		*c2 = *c;
+		clA[nHits++] = alpha;
+	}
       }
 
       if ( nHits < 30 ) continue;
@@ -746,18 +749,52 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       int firstTrackIndex = 0;
       if (ordered == 0)
 	{
+	  float trackClusterSortWeights[kMaxClusters];
+	  int nTmpHits = 0;
+	  
+	  //Find sign(Pt) for the segment closest to the vertex, if low/mid Pt
+	  float baseSign = 0.f;
+	  if (fabs(trackParts[0]->QPt()) > 2)
+	  {
+		  float minZ = 1000.f;
+		  for (int i = 0;i < nParts;i++)
+		  {
+			  if (fabs(trackParts[i]->Z()) < minZ)
+			  {
+				  baseSign = trackParts[i]->QPt() < 0 ? -1.f : 1.f;
+				  minZ = fabs(trackParts[i]->Z());
+			  }
+		  }
+	  }
+	  for (int i = 0;i < nParts;i++)
+	  {
+		const AliHLTTPCGMSliceTrack *t = trackParts[i];
+		int nTrackHits = t->NClusters();
+		if (nTmpHits + nTrackHits > kMaxClusters) break;
+	    for (int j = 0;j < nTrackHits;j++)
+		{
+			const AliHLTTPCCASliceOutCluster *c = trackClusters + nTmpHits + j;
+			//Give Z-difference precendense if it is big, otherwise order the rows.
+			//We need to reverse the order for the second half of a helix --> negative sign for low/medium negative Pt
+			//Correct for negative charge particle via baseSign
+			float sign = baseSign == 0.f ? 1. : (baseSign * (t->QPt() < 0 ? -1.f : 1.f));
+			trackClusterSortWeights[nTmpHits + j] = fabs(c->GetZ()) * -0.1f + c->GetX() * sign;
+		}
+		nTmpHits += nTrackHits;
+	  }
+	  
 	  AliHLTTPCCASliceOutCluster trackClustersUnsorted[kMaxClusters];
 	  float clAUnsorted[kMaxClusters];
-	  int2 clusterIndices[kMaxClusters];
+	  intfloat2 clusterIndices[kMaxClusters];
 	  for( int i = 0;i < nHits;i++)
 	    {
 	      trackClustersUnsorted[i] = trackClusters[i];
 	      clAUnsorted[i] = clA[i];
 	      clusterIndices[i].x = i;
-	      clusterIndices[i].y = trackClusters[i].GetId();
+	      clusterIndices[i].y = trackClusterSortWeights[i];
 	    }
-	  qsort(clusterIndices, nHits, sizeof(int2), CompareClusterIds);
-	  int nTmpHits = 0;
+	  qsort(clusterIndices, nHits, sizeof(intfloat2), CompareClusterIds);
+	  nTmpHits = 0;
 	  for (int i = 0;i < nParts;i++)
 	  {
 		  nTmpHits += trackParts[i]->NClusters();
@@ -769,12 +806,12 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  }
 
 	  int nFilteredHits = 0;
-	  int idPrev = -1;
+	  int indPrev = -1;
 	  for (int i = 0;i < nHits;i++)
 	    {
-	      if( clusterIndices[i].y == idPrev ) continue; // same cluster
-	      idPrev = clusterIndices[i].y;
-	      int ind = clusterIndices[i].x;
+		  int ind = clusterIndices[i].x;
+	      if(indPrev >= 0 && trackClusters[ind].GetId() == trackClusters[indPrev].GetId()) continue;
+	      indPrev = ind;
 	      trackClusters[nFilteredHits] = trackClustersUnsorted[ind];
 	      clA[nFilteredHits] = clAUnsorted[ind];
 	      nFilteredHits++;
@@ -803,11 +840,11 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       mergedTrack.SetFirstClusterRef( nOutTrackClusters );
       AliHLTTPCGMTrackParam &p1 = mergedTrack.Param();
       const AliHLTTPCGMSliceTrack &p2 = *(trackParts[firstTrackIndex]);
-
+	  
       p1.X() = p2.X();
       p1.Y() = p2.Y();
       p1.Z() = p2.Z();
-      p1.SinPhi()  = p2.SinPhi();
+      p1.SinPhi() = p2.SinPhi();
       p1.DzDs()  = p2.DzDs();
       p1.QPt()  = p2.QPt();
       mergedTrack.SetAlpha( p2.Alpha() );

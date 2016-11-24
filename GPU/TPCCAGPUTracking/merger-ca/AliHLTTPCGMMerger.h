@@ -80,8 +80,9 @@ private:
                fabs(t2->OrigTrack()->Cluster(0).GetX() - t1->OrigTrack()->Cluster(t1->NClusters() - 1).GetX()));
   }
 
+  struct intfloat2 {int x; float y;};
   static int CompareClusterIds(const void* a, const void* b) {
-	  return(((int2*)a)->y < ((int2*)b)->y ? 1 : -1);
+	  return(((intfloat2*)a)->y < ((intfloat2*)b)->y ? 1 : -1);
   }
 
   void ClearMemory();
