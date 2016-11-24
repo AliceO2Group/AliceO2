@@ -743,7 +743,11 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       int ordered = 1;
       for( int i=1; i<nHits; i++ )
 	{
-	  if ( trackClusters[i].GetX() > trackClusters[i-1].GetX() ) ordered = 0;
+	  if ( trackClusters[i].GetX() > trackClusters[i-1].GetX() )
+	  {
+	    ordered = 0;
+	    break;
+  	  }
 	}
 
       int firstTrackIndex = 0;
