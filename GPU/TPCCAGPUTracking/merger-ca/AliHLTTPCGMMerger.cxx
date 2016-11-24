@@ -743,6 +743,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  if ( trackClusters[i].GetX() > trackClusters[i-1].GetX() ) ordered = 0;
 	}
 
+      int firstTrackIndex = 0;
       if (ordered == 0)
 	{
 	  AliHLTTPCCASliceOutCluster trackClustersUnsorted[kMaxClusters];
@@ -756,6 +757,16 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	      clusterIndices[i].y = trackClusters[i].GetId();
 	    }
 	  qsort(clusterIndices, nHits, sizeof(int2), CompareClusterIds);
+	  int nTmpHits = 0;
+	  for (int i = 0;i < nParts;i++)
+	  {
+		  nTmpHits += trackParts[i]->NClusters();
+		  if (nTmpHits > clusterIndices[i].x)
+		  {
+			firstTrackIndex = i;
+			break;
+		  }
+	  }
 
 	  int nFilteredHits = 0;
 	  int idPrev = -1;
@@ -791,7 +802,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       mergedTrack.SetNClusters( nHits );
       mergedTrack.SetFirstClusterRef( nOutTrackClusters );
       AliHLTTPCGMTrackParam &p1 = mergedTrack.Param();
-      const AliHLTTPCGMSliceTrack &p2 = *(trackParts[0]);
+      const AliHLTTPCGMSliceTrack &p2 = *(trackParts[firstTrackIndex]);
 
       p1.X() = p2.X();
       p1.Y() = p2.Y();
@@ -867,4 +878,3 @@ void AliHLTTPCGMMerger::Refit()
 	  }
 	}
 }
-
