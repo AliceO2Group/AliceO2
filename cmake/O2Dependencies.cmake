@@ -286,6 +286,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     its_base_bucket
+    ITSBase
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
