@@ -11,7 +11,6 @@
 #include <TObject.h>       // for TObject
 #include <TString.h>       // for TString
 #include "Rtypes.h"        // for Int_t, Double_t, Bool_t, UInt_t, etc
-#include "ITSSimulation/Segmentation.h"  // for Segmentation
 
 class TGeoPNEntry;  // lines 17-17
 

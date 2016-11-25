@@ -3,7 +3,7 @@
 
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/GeometryHandler.h"
-#include "ITSSimulation/UpgradeGeometryTGeo.h"
+#include "ITSBase/UpgradeGeometryTGeo.h"
 #include "ITSSimulation/UpgradeV1Layer.h"
 #include "ITSSimulation/Point.h"
 

@@ -11,7 +11,7 @@
 #include <string.h>                   // for memset
 #include "TObjArray.h"                // for TObjArray
 #include "ITSSimulation/Point.h"
-#include "ITSSimulation/UpgradeGeometryTGeo.h"
+#include "ITSBase/UpgradeGeometryTGeo.h"
 
 ClassImp(AliceO2::ITS::Chip)
 

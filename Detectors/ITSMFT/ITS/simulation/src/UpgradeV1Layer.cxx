@@ -4,7 +4,7 @@
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 
 #include "ITSSimulation/UpgradeV1Layer.h"
-#include "ITSSimulation/UpgradeGeometryTGeo.h"
+#include "ITSBase/UpgradeGeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 
 #include "FairLogger.h"           // for LOG

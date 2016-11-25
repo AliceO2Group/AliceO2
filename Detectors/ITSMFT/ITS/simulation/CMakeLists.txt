@@ -3,12 +3,8 @@ set(MODULE_NAME "ITSSimulation")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-    src/UpgradeGeometryTGeo.cxx
     src/V11Geometry.cxx
     src/UpgradeV1Layer.cxx
-    src/Segmentation.cxx
-    src/UpgradeSegmentationPixel.cxx
-    src/GeometryManager.cxx
     src/Detector.cxx
     src/GeometryHandler.cxx
     src/Point.cxx
@@ -34,11 +30,7 @@ set(HEADERS
     include/${MODULE_NAME}/Digitizer.h
     include/${MODULE_NAME}/DigitizerTask.h
     include/${MODULE_NAME}/GeometryHandler.h
-    include/${MODULE_NAME}/GeometryManager.h
     include/${MODULE_NAME}/Point.h
-    include/${MODULE_NAME}/Segmentation.h
-    include/${MODULE_NAME}/UpgradeGeometryTGeo.h
-    include/${MODULE_NAME}/UpgradeSegmentationPixel.h
     include/${MODULE_NAME}/UpgradeV1Layer.h
     include/${MODULE_NAME}/V11Geometry.h
     )

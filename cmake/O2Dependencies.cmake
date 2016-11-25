@@ -251,6 +251,21 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    its_base_bucket
+
+    DEPENDENCIES
+    Geom
+    RIO
+    Hist
+    ParBase
+    DetectorsBase
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
     its_simulation_bucket
 
     DEPENDENCIES
@@ -269,6 +284,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
 )
 
 o2_define_bucket(
@@ -280,18 +296,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-)
-
-o2_define_bucket(
-    NAME
-    its_base_bucket
-
-    DEPENDENCIES
-    ParBase
-    DetectorsBase
-
-    INCLUDE_DIRECTORIES
-    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
 )
 
 o2_define_bucket(

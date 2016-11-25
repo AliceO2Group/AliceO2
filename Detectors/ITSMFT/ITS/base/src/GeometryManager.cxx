@@ -1,7 +1,7 @@
 /// \file GeometryManager.cxx
 /// \brief Implementation of the GeometryManager class
 
-#include "ITSSimulation/GeometryManager.h"
+#include "ITSBase/GeometryManager.h"
 
 #include "FairLogger.h"        // for LOG
 
