@@ -76,7 +76,7 @@ class AliHLTTPCGMSliceTrack
 
   bool FilterErrors( AliHLTTPCCAParam &param, float maxSinPhi =.999 );
 
-  bool TransportToX( float x, float Bz, AliHLTTPCGMBorderTrack &b, float maxSinPhi ) const ;
+  bool TransportToX( float x, float Bz, AliHLTTPCGMBorderTrack &b, float maxSinPhi, bool doCov = true ) const ;
 
   bool TransportToXAlpha( float x, float sinAlpha, float cosAlpha, float Bz, AliHLTTPCGMBorderTrack &b, float maxSinPhi ) const ;
 

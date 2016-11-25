@@ -846,10 +846,10 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
       const AliHLTTPCGMSliceTrack &p2 = *(trackParts[firstTrackIndex]);
 	  
 	  AliHLTTPCGMBorderTrack b;
-	  if (p2.TransportToX(clX[0], fSliceParam.ConstBz(), b, 0.999))
+	  if (p2.TransportToX(clX[0], fSliceParam.ConstBz(), b, 0.999, false))
 	  {
-			  p1.X() = clX[0];
-			  p1.Y() = b.Par()[0];
+		  p1.X() = clX[0];
+		  p1.Y() = b.Par()[0];
 		  p1.Z() = b.Par()[1];
 		  p1.SinPhi() = b.Par()[2];
 	  }
