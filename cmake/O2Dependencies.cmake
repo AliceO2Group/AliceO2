@@ -254,14 +254,13 @@ o2_define_bucket(
     its_base_bucket
 
     DEPENDENCIES
+    fairroot_base_bucket
     Geom
     RIO
     Hist
     ParBase
-    DetectorsBase
 
     INCLUDE_DIRECTORIES
-    ${FAIRROOT_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -269,21 +268,26 @@ o2_define_bucket(
     its_simulation_bucket
 
     DEPENDENCIES
-    root_base_bucket
-    fairroot_geom
-    Hist
+    its_base_bucket
     Graf
     Gpad
-    RIO
-    fairroot_base_bucket
-    root_physics_bucket
-    ParBase
     ITSBase
     DetectorsBase
     SimulationDataFormat
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
+)
+
+o2_define_bucket(
+    NAME
+    its_reconstruction_bucket
+
+    DEPENDENCIES
+    its_base_bucket
+
+    INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
 )
 
