@@ -2,8 +2,8 @@
 /// \brief Digitizer for the upgrated ITS
 #include "ITSSimulation/Digitizer.h"
 #include "ITSSimulation/Point.h"
-#include "ITSSimulation/UpgradeGeometryTGeo.h"
-#include "ITSSimulation/UpgradeSegmentationPixel.h"
+#include "ITSBase/UpgradeGeometryTGeo.h"
+#include "ITSBase/UpgradeSegmentationPixel.h"
 #include "ITSSimulation/Digit.h"
 #include "ITSSimulation/DigitChip.h"
 #include "ITSSimulation/DigitContainer.h"

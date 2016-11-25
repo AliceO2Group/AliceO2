@@ -1,8 +1,8 @@
 /// \file UpgradeSegmentationPixel.cxx
 /// \brief Implementation of the UpgradeSegmentationPixel class
 
-#include "ITSSimulation/UpgradeSegmentationPixel.h"
-#include "ITSSimulation/UpgradeGeometryTGeo.h"
+#include "ITSBase/UpgradeSegmentationPixel.h"
+#include "ITSBase/UpgradeGeometryTGeo.h"
 
 #include <TFile.h>                // for TFile
 #include <TObjArray.h>            // for TObjArray
@@ -48,9 +48,11 @@ UpgradeSegmentationPixel::UpgradeSegmentationPixel(UInt_t id, int nchips, int nc
     mDiodShiftMatZ(0)
 {
   // Default constructor, sizes in cm
+
   if (nchips) {
     SetUniqueID(UpgradeGeometryTGeo::composeChipTypeId(id));
   }
+
   mChipSizeDZ = (mNumberOfColumnsPerChip - 2) * mPitchZ + mPitchZLeftColumn + mPitchZRightColumn;
   mDxActive = mNumberOfRows * mPitchX;
   mDzActive = mNumberOfChips * mChipSizeDZ;
