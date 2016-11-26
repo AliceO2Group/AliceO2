@@ -4,9 +4,11 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/Cluster.cxx
+    src/ClustererTask.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Cluster.h
+    include/${MODULE_NAME}/ClustererTask.h
     )
 
 Set(LINKDEF src/ITSReconstructionLinkDef.h)
