@@ -10,7 +10,6 @@
 #pragma link C++ class AliceO2::ITS::GeometryHandler+;
 #pragma link C++ class AliceO2::ITS::Point+;
 #pragma link C++ class AliceO2::ITS::Chip+;
-#pragma link C++ class AliceO2::ITS::Digit+;
 #pragma link C++ class AliceO2::ITS::DigitChip+;
 #pragma link C++ class AliceO2::ITS::DigitWriteoutBuffer+;
 #pragma link C++ class AliceO2::ITS::Digitizer+;

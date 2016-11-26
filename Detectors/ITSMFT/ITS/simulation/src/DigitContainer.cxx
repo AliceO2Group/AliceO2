@@ -3,7 +3,7 @@
 //  ALICEO2
 //
 #include "ITSSimulation/DigitContainer.h"
-#include "ITSSimulation/Digit.h"
+#include "ITSBase/Digit.h"
 #include "ITSSimulation/DigitChip.h"
 
 #include "FairLogger.h"           // for LOG

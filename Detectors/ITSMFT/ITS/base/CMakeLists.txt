@@ -3,6 +3,7 @@ set(MODULE_NAME "ITSBase")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
+    src/Digit.cxx
     src/UpgradeGeometryTGeo.cxx
     src/GeometryManager.cxx
     src/Segmentation.cxx
@@ -12,6 +13,7 @@ set(SRCS
     )
 
 set(HEADERS
+    include/${MODULE_NAME}/Digit.h
     include/${MODULE_NAME}/UpgradeGeometryTGeo.h
     include/${MODULE_NAME}/GeometryManager.h
     include/${MODULE_NAME}/Segmentation.h

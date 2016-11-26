@@ -9,7 +9,6 @@ set(SRCS
     src/GeometryHandler.cxx
     src/Point.cxx
     src/Chip.cxx
-    src/Digit.cxx
     src/DigitChip.cxx
     src/Digitizer.cxx
     src/DigitizerTask.cxx
@@ -21,7 +20,6 @@ set(SRCS
 set(HEADERS
     include/${MODULE_NAME}/Chip.h
     include/${MODULE_NAME}/Detector.h
-    include/${MODULE_NAME}/Digit.h
     include/${MODULE_NAME}/DigitChip.h
     include/${MODULE_NAME}/DigitContainer.h
     include/${MODULE_NAME}/DigitLayer.h

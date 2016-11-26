@@ -4,6 +4,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class AliceO2::ITS::Digit+;
 #pragma link C++ class AliceO2::ITS::UpgradeGeometryTGeo+;
 #pragma link C++ class AliceO2::ITS::GeometryManager+;
 #pragma link C++ class AliceO2::ITS::Segmentation+;
