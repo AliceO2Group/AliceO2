@@ -5,5 +5,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class AliceO2::ITS::Cluster+;
+#pragma link C++ class AliceO2::ITS::ClustererTask+;
 
 #endif
