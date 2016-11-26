@@ -389,7 +389,7 @@ void AliHLTTPCGMMerger::UnpackSlices()
 		  if (TrackIds[sliceTr->LocalTrackId()] == -1) continue;
 		  AliHLTTPCGMSliceTrack &track = fSliceTrackInfos[nTracksCurrent];
 		  track.Set( sliceTr, alpha );
-		  //if( !track.FilterErrors( fSliceParam, .999 ) ) continue;
+		  track.SetGlobalSectorTrackCov();
 		  track.SetPrevNeighbour( -1 );
 		  track.SetNextNeighbour( -1 );
 		  track.SetSliceNeighbour( -1 );
@@ -716,7 +716,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	    }
 	    break;
       }while(1);
-
+	  
       // unpack and sort clusters
       
       std::sort(trackParts, trackParts+nParts, CompareTrackParts );

@@ -287,7 +287,7 @@ bool AliHLTTPCGMSliceTrack::TransportToX( float x, float Bz, AliHLTTPCGMBorderTr
   b.SetCov(3, c33);
   b.SetCov(4, c44);
   b.SetCovD(0, c20ph4c42 + h2c22  + dxBz*(c40 + h2*c42 + h4c44) );
-  b.SetCovD(1, n7 );   
+  b.SetCovD(1, n7 );
   return 1;
 }
 
