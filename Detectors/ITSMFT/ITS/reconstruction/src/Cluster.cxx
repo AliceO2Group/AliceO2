@@ -56,7 +56,7 @@ Cluster::Cluster(const Cluster& cluster):
     fX(cluster.fX),fY(cluster.fY),fZ(cluster.fZ)
   , fSigmaY2(cluster.fSigmaY2),fSigmaZ2(cluster.fSigmaZ2)
   , fSigmaYZ(cluster.fSigmaYZ)
-  , fVolumeId(0)
+  , fVolumeId(cluster.fVolumeId)
   , fCharge(cluster.fCharge)
   ,fRecoInfo(cluster.fRecoInfo)
   ,fNxNzN(cluster.fNxNzN)
