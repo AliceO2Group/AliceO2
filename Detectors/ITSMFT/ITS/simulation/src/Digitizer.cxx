@@ -4,7 +4,7 @@
 #include "ITSSimulation/Point.h"
 #include "ITSBase/UpgradeGeometryTGeo.h"
 #include "ITSBase/UpgradeSegmentationPixel.h"
-#include "ITSSimulation/Digit.h"
+#include "ITSBase/Digit.h"
 #include "ITSSimulation/DigitChip.h"
 #include "ITSSimulation/DigitContainer.h"
 

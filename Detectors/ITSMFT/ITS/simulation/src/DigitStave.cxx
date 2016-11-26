@@ -6,7 +6,7 @@
 //
 //
 #include "ITSSimulation/DigitStave.h"
-#include "ITSSimulation/Digit.h"
+#include "ITSBase/Digit.h"
 
 #include "FairLogger.h"  // for LOG
 
