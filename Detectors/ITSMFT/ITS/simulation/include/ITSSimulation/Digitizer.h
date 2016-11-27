@@ -5,7 +5,6 @@
 
 #include "Rtypes.h"   // for Digitizer::Class, Double_t, ClassDef, etc
 #include "TObject.h"  // for TObject
-#include "ITSSimulation/Chip.h"
 
 class TClonesArray;
 

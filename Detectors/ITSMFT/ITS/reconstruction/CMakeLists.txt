@@ -4,10 +4,12 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/Cluster.cxx
+    src/Clusterer.cxx
     src/ClustererTask.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Cluster.h
+    include/${MODULE_NAME}/Clusterer.h
     include/${MODULE_NAME}/ClustererTask.h
     )
 

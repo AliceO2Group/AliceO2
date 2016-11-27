@@ -4,8 +4,10 @@
 //
 
 #include "ITSReconstruction/ClustererTask.h"
+#include "ITSReconstruction/Clusterer.h"
 #include "ITSReconstruction/Cluster.h"
 #include "ITSBase/Digit.h"
+#include "ITSBase/UpgradeSegmentationPixel.h"
 
 #include "TClonesArray.h"        // for TClonesArray
 #include "FairLogger.h"          // for LOG
@@ -18,17 +20,16 @@ using namespace AliceO2::ITS;
 //_____________________________________________________________________
 ClustererTask::ClustererTask():
   FairTask("ITSClustererTask"),
-  //fClusterer(nullptr),
   fDigitsArray(nullptr),
   fClustersArray(nullptr)
 {
-  //fClusterer = new BoxClusterer();
+  fClusterer = new Clusterer();
 }
 
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  //delete fClusterer;
+  delete fClusterer;
   if (fClustersArray)
     delete fClustersArray;
 }
@@ -65,14 +66,6 @@ void ClustererTask::Exec(Option_t *option)
   fClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-  //ClusterContainer* clusters = fClusterer->Process(fDigitsArray);
-  //clusters->FillOutputContainer(fClustersArray);
+  fClusterer->Process(fDigitsArray,fClustersArray);
 
-  TClonesArray &clref = *fClustersArray;
-  for (TIter digP=TIter(fDigitsArray).Begin(); digP != TIter::End(); ++digP) {
-      Digit *dig = static_cast<Digit *>(*digP);
-      Cluster c;
-      c.SetVolumeId(dig->GetChipIndex());
-      new(clref[clref.GetEntriesFast()]) Cluster(c);
-  }
 }
