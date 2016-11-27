@@ -13,7 +13,7 @@ class TClonesArray;
 namespace AliceO2 {
   namespace ITS {
     
-    //class Clusterer;
+    class Clusterer;
     
     class ClustererTask : public FairTask {
     public:
@@ -23,10 +23,8 @@ namespace AliceO2 {
       virtual InitStatus Init();
       virtual void Exec(Option_t *option);
       
-      //Clusterer *GetClusterer() const { return fClusterer; }
-      
     private:
-      //Clusterer        *fClusterer;
+      Clusterer        *fClusterer;
       
       TClonesArray        *fDigitsArray;
       TClonesArray        *fClustersArray;

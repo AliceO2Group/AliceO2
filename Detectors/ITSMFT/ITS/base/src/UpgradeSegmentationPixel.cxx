@@ -275,10 +275,12 @@ void UpgradeSegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t &x, F
   x = -0.5 * dxActive(); // default value.
   z = -0.5 * dzActive(); // default value.
   if (ix < 0 || ix >= mNumberOfRows) {
-    throw InvalidPixelException(InvalidPixelException::kX, ix, mNumberOfRows);
+    //throw InvalidPixelException(InvalidPixelException::kX, ix, mNumberOfRows);
+    return;
   } // outside of detector
   if (iz < 0 || iz >= mNumberOfColumns) {
-    throw InvalidPixelException(InvalidPixelException::kZ, iz, mNumberOfColumns);
+    //throw InvalidPixelException(InvalidPixelException::kZ, iz, mNumberOfColumns);
+    return;
   } // outside of detector
   x +=
     (ix + 0.5) * mPitchX - mShiftLocalX; // RS: we go to the center of the pad, i.e. + pitch/2, not
