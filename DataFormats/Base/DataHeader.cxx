@@ -32,9 +32,12 @@ const BaseHeader::SerializationMethod AliceO2::Base::gSerializationMethodFlatBuf
 //__________________________________________________________________________________________________
 //static version numbers
 const uint32_t BaseHeader::sVersion=1;
-const BaseHeader::Description DataHeader::sDescription = String2uint64("BaseHDR");
-const BaseHeader::SerializationMethod DataHeader::sSerializationMethod =
-                                                  AliceO2::Base::gSerializationMethodNone;
+
+const BaseHeader::HeaderType DataHeader::sHeaderType = String2uint64("BaseHDER");
+const BaseHeader::SerializationMethod DataHeader::sSerializationMethod = AliceO2::Base::gSerializationMethodNone;
+
+const BaseHeader::HeaderType ROOTobjectHeader::sHeaderType = "ROOTmeta";
+const BaseHeader::SerializationMethod ROOTobjectHeader::sSerializationMethod = gSerializationMethodNone;
 
 //__________________________________________________________________________________________________
 AliceO2::Base::BaseHeader::BaseHeader()
@@ -48,7 +51,7 @@ AliceO2::Base::BaseHeader::BaseHeader()
 }
 
 //__________________________________________________________________________________________________
-AliceO2::Base::BaseHeader::BaseHeader(uint32_t size, Description desc, SerializationMethod ser)
+AliceO2::Base::BaseHeader::BaseHeader(uint32_t size, HeaderType desc, SerializationMethod ser)
   : magicStringInt(sMagicString)
   , headerSize(size)
   , flags(0)
@@ -59,37 +62,14 @@ AliceO2::Base::BaseHeader::BaseHeader(uint32_t size, Description desc, Serializa
 }
 
 //__________________________________________________________________________________________________
-AliceO2::Base::BaseHeader::BaseHeader(const BaseHeader& that)
-  : magicStringInt(that.magicStringInt)
-  , headerSize(that.headerSize)
-  , flags(that.flags)
-  , headerVersion(that.headerVersion)
-  , description(that.description)
-  , serialization(that.serialization)
-{
-}
-
-//__________________________________________________________________________________________________
 AliceO2::Base::DataHeader::DataHeader()
-  : BaseHeader(sizeof(DataHeader),sDescription,sSerializationMethod)
+  : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod)
   , dataOrigin(gDataOriginInvalid)
   , reserved(0)
   , payloadSerializationMethod(gSerializationMethodInvalid)
   , dataDescription(gDataDescriptionInvalid)
   , subSpecification(0)
   , payloadSize(0)
-{
-}
-
-//__________________________________________________________________________________________________
-AliceO2::Base::DataHeader::DataHeader(const DataHeader& that)
-  : BaseHeader(that)
-  , dataOrigin(that.dataOrigin)
-  , reserved(that.reserved)
-  , payloadSerializationMethod(that.payloadSerializationMethod)
-  , dataDescription(that.dataDescription)
-  , subSpecification(that.subSpecification)
-  , payloadSize(that.payloadSize)
 {
 }
 
