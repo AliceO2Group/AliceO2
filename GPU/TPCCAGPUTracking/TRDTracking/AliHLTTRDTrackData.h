@@ -26,6 +26,12 @@ struct AliHLTTRDTrackDataRecord
   AliHLTFloat32_t fC[15];  // covariance matrix
   AliHLTInt32_t   fTPCTrackID;// id of corresponding TPC track  
   AliHLTInt32_t   fAttachedTracklets[6];  // IDs for attached tracklets sorted by layer
+
+  int GetNTracklets() const {
+    int n=0;
+    for( int i=0; i<6; i++ ) if( fAttachedTracklets[i]>=0 ) n++;
+    return n;
+  }
 };
 
 typedef struct AliHLTTRDTrackDataRecord AliHLTTRDTrackDataRecord;
