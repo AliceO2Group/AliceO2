@@ -1,10 +1,10 @@
-#include "AliHLTTRDtrack.h"
+#include "AliHLTTRDTrack.h"
 #include "AliESDtrack.h"
 #include "AliHLTTRDTrackData.h"
 
-ClassImp(AliHLTTRDtrack);
+ClassImp(AliHLTTRDTrack);
 
-AliHLTTRDtrack::AliHLTTRDtrack() :
+AliHLTTRDTrack::AliHLTTRDTrack() :
   fTPCtrackId(0),
   fNtracklets(0)
 {
@@ -17,7 +17,7 @@ AliHLTTRDtrack::AliHLTTRDtrack() :
 }
 
 
-AliHLTTRDtrack::AliHLTTRDtrack(const AliHLTTRDtrack& t) :
+AliHLTTRDTrack::AliHLTTRDTrack(const AliHLTTRDTrack& t) :
   AliKalmanTrack(t),
   fTPCtrackId( t.fTPCtrackId),
   fNtracklets( t.fNtracklets)
@@ -31,7 +31,7 @@ AliHLTTRDtrack::AliHLTTRDtrack(const AliHLTTRDtrack& t) :
 }
 
 
-AliHLTTRDtrack &AliHLTTRDtrack::operator=(const AliHLTTRDtrack& t)
+AliHLTTRDTrack &AliHLTTRDTrack::operator=(const AliHLTTRDTrack& t)
 {
   //------------------------------------------------------------------
   //Assignment operator
@@ -47,7 +47,7 @@ AliHLTTRDtrack &AliHLTTRDtrack::operator=(const AliHLTTRDtrack& t)
 }
 
 
-AliHLTTRDtrack::AliHLTTRDtrack(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
+AliHLTTRDTrack::AliHLTTRDTrack(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
   AliKalmanTrack(),
   fTPCtrackId(0),
   fNtracklets(0)
@@ -59,7 +59,7 @@ AliHLTTRDtrack::AliHLTTRDtrack(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
   const AliExternalTrackParam *par=&t;
   if (c) {
     par=t.GetConstrainedParam();
-    if (!par) throw "AliHLTTRDtrack: conversion failed !\n";
+    if (!par) throw "AliHLTTRDTrack: conversion failed !\n";
   }
   Set(par->GetX(),par->GetAlpha(),par->GetParameter(),par->GetCovariance());
   for (Int_t i=0; i<=5; ++i) {
@@ -67,7 +67,7 @@ AliHLTTRDtrack::AliHLTTRDtrack(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
   }
 }
 
-AliHLTTRDtrack::AliHLTTRDtrack(AliExternalTrackParam& t ) throw (const Char_t *) :
+AliHLTTRDTrack::AliHLTTRDTrack(AliExternalTrackParam& t ) throw (const Char_t *) :
   AliKalmanTrack(),
   fTPCtrackId(0),
   fNtracklets(0)
@@ -84,7 +84,7 @@ AliHLTTRDtrack::AliHLTTRDtrack(AliExternalTrackParam& t ) throw (const Char_t *)
 }
 
 
-Int_t AliHLTTRDtrack::GetTracklet(Int_t iLayer) const
+Int_t AliHLTTRDTrack::GetTracklet(Int_t iLayer) const
 {
   if (fAttachedTracklets[iLayer] == -1) {
     return -1;
@@ -95,7 +95,7 @@ Int_t AliHLTTRDtrack::GetTracklet(Int_t iLayer) const
 }
 
 
-void AliHLTTRDtrack::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
+void AliHLTTRDTrack::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
 {
   // convert to HLT structure
   
@@ -113,7 +113,7 @@ void AliHLTTRDtrack::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
   }  
 }
 
-void AliHLTTRDtrack::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
+void AliHLTTRDTrack::ConvertFrom( const AliHLTTRDTrackDataRecord &t )
 {
   // convert from HLT structure
 

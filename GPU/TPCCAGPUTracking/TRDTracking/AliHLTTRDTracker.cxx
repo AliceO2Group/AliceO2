@@ -149,12 +149,12 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
   CalculateSpacePoints();
   delete[] fTracks;
   fNTracks = 0;
-  fTracks = new AliHLTTRDtrack[nTPCTracks];
+  fTracks = new AliHLTTRDTrack[nTPCTracks];
   double piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass(); //why pion mass??
 
   for (int i=0; i<nTPCTracks; ++i) {
-    AliHLTTRDtrack tMI(tracksTPC[i]);
-    AliHLTTRDtrack *t = &tMI;
+    AliHLTTRDTrack tMI(tracksTPC[i]);
+    AliHLTTRDTrack *t = &tMI;
     t->SetTPCtrackId(i);
     t->SetLabel(0); // for monte carlo tracks still TODO: set correct label
     t->SetMass(piMass);
@@ -206,7 +206,7 @@ void AliHLTTRDTracker::CalculateSpacePoints()
   }
 }
 
-int AliHLTTRDTracker::FollowProlongation(AliHLTTRDtrack *t, double mass)
+int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
 {
   // propagate TPC track through TRD and pick up
   // closest tracklet in each layer on the way
@@ -419,7 +419,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDtrack *t, double mass)
   return result;
 }
 
-void AliHLTTRDTracker::FindResiduals(AliHLTTRDtrack *t, double mass)
+void AliHLTTRDTracker::FindResiduals(AliHLTTRDTrack *t, double mass)
 {
   //TODO
 }

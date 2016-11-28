@@ -37,7 +37,7 @@
 #include "AliHLTErrorGuard.h"
 #include "AliHLTDataTypes.h"
 #include "AliHLTTRDTracker.h"
-#include "AliHLTTRDtrack.h"
+#include "AliHLTTRDTrack.h"
 #include "AliHLTTRDTrackerComponent.h"
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDDefinitions.h"
@@ -137,7 +137,7 @@ int AliHLTTRDTrackerComponent::ReadConfigurationString(  const char* arguments )
 
     if ( argument.CompareTo("-debugOutput") == 0 ) {
       fDebugTrackOutput = true;
-      HLTWarning( "Tracks are dumped in the AliHLTTRDtrack format" );
+      HLTWarning( "Tracks are dumped in the AliHLTTRDTrack format" );
       continue;
     }
     HLTError( "Unknown option \"%s\"", argument.Data() );
@@ -283,7 +283,7 @@ int AliHLTTRDTrackerComponent::DoEvent
 
   fTracker->DoTracking(&(tracksTPC[0]), &(tracksTPCLab[0]), tracksTPC.size());
 
-  AliHLTTRDtrack *trackArray = fTracker->Tracks();
+  AliHLTTRDTrack *trackArray = fTracker->Tracks();
   int nTracks = fTracker->NTracks();
   AliHLTTRDTracker::AliHLTTRDSpacePointInternal *spacePoints = fTracker->SpacePoints();
 
@@ -294,7 +294,7 @@ int AliHLTTRDTrackerComponent::DoEvent
     fTrackList->AddLast(&trackArray[iTrack]);
   }
 
-  // push back AliHLTTRDtracks for debugging purposes
+  // push back AliHLTTRDTracks for debugging purposes
   if (fDebugTrackOutput) {
     PushBack(fTrackList, (kAliHLTDataTypeTObject | kAliHLTDataOriginTRD), 0x3fffff);
   }
@@ -311,7 +311,7 @@ int AliHLTTRDTrackerComponent::DoEvent
     outTracks->fCount = 0;
       
     for (int iTrk=0; iTrk<nTracks; ++iTrk) {
-      AliHLTTRDtrack &t = trackArray[iTrk];
+      AliHLTTRDTrack &t = trackArray[iTrk];
       AliHLTTRDTrackDataRecord &currOutTrack = outTracks->fTracks[outTracks->fCount];
       t.ConvertTo(currOutTrack);      
       outTracks->fCount++;

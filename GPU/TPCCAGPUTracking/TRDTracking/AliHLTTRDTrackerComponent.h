@@ -125,7 +125,7 @@ private:
   AliHLTTRDTracker *fTracker; // the tracker itself
 
   TList* fTrackList;
-  bool fDebugTrackOutput; // output AliHLTTRDtracks instead AliHLTExternalTrackParam
+  bool fDebugTrackOutput; // output AliHLTTRDTracks instead AliHLTExternalTrackParam
 
   ClassDef(AliHLTTRDTrackerComponent, 0)
 };

@@ -10,7 +10,7 @@ class AliESDEvent;
 class AliESDtrack;
 
 #include "AliHLTTRDTrackletWord.h"
-#include "AliHLTTRDtrack.h"
+#include "AliHLTTRDTrack.h"
 
 #include "AliTracker.h"
 
@@ -31,11 +31,11 @@ public:
   void LoadTracklet(const AliHLTTRDTrackletWord &tracklet);
   void DoTracking(AliExternalTrackParam *tracksTPC, int *tracksTPCLab, int nTPCTracks);
   void CalculateSpacePoints();
-  int FollowProlongation(AliHLTTRDtrack *t, double mass);
-  void FindResiduals(AliHLTTRDtrack *t, double mass);
+  int FollowProlongation(AliHLTTRDTrack *t, double mass);
+  void FindResiduals(AliHLTTRDTrack *t, double mass);
 
 
-  AliHLTTRDtrack *Tracks() const { return fTracks;}
+  AliHLTTRDTrack *Tracks() const { return fTracks;}
   int NTracks() const { return fNTracks;}
   AliHLTTRDSpacePointInternal *SpacePoints() const { return fSpacePoints; }
 
@@ -56,7 +56,7 @@ public:
 protected:
 
 
-  AliHLTTRDtrack *fTracks;            // array of trd-updated tracks
+  AliHLTTRDTrack *fTracks;            // array of trd-updated tracks
   int fNTracks;                       // number of TPC tracks to be matched
   int fNEvents;                       // number of processed events
   AliHLTTRDTrackletWord *fTracklets;  // array of all tracklets, later sorted by HCId
