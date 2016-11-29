@@ -5,7 +5,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class AliceO2::ITS::V11Geometry+;
-#pragma link C++ class AliceO2::ITS::UpgradeV1Layer+;
+#pragma link C++ class AliceO2::ITS::V1Layer+;
 #pragma link C++ class AliceO2::ITS::Detector+;
 #pragma link C++ class AliceO2::ITS::GeometryHandler+;
 #pragma link C++ class AliceO2::ITS::Point+;

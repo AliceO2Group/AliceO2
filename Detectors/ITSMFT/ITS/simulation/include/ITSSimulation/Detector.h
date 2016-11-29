@@ -23,21 +23,21 @@ class TString;
 namespace AliceO2 { namespace ITS { class GeometryHandler; }}
 namespace AliceO2 { namespace ITS { class MisalignmentParameter; }}
 namespace AliceO2 { namespace ITS { class Point; }}  // lines 22-22
-namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; }}
-namespace AliceO2 { namespace ITS { class UpgradeV1Layer; }}  // lines 23-23
+namespace AliceO2 { namespace ITS { class GeometryTGeo; }}
+namespace AliceO2 { namespace ITS { class V1Layer; }}  // lines 23-23
 
 namespace AliceO2 {
 namespace ITS {
 
 class Point;
 
-class UpgradeV1Layer;
+class V1Layer;
 
 class Detector : public AliceO2::Base::Detector
 {
 
   public:
-    enum UpgradeModel
+    enum Model
     {
         kIBModelDummy = 0,
         kIBModel0 = 1,
@@ -227,22 +227,22 @@ class Detector : public AliceO2::Base::Detector
       return mNumberLayers;
     }
 
-    virtual void setStaveModelIB(UpgradeModel model)
+    virtual void setStaveModelIB(Model model)
     {
       mStaveModelInnerBarrel = model;
     }
 
-    virtual void setStaveModelOB(UpgradeModel model)
+    virtual void setStaveModelOB(Model model)
     {
       mStaveModelOuterBarrel = model;
     }
 
-    virtual UpgradeModel getStaveModelIB() const
+    virtual Model getStaveModelIB() const
     {
       return mStaveModelInnerBarrel;
     }
 
-    virtual UpgradeModel getStaveModelOB() const
+    virtual Model getStaveModelOB() const
     {
       return mStaveModelOuterBarrel;
     }
@@ -250,7 +250,7 @@ class Detector : public AliceO2::Base::Detector
     /// Clone this object (used in MT mode only)
     virtual FairModule *CloneModule() const;
 
-    UpgradeGeometryTGeo *mGeometryTGeo; //! access to geometry details
+    GeometryTGeo *mGeometryTGeo; //! access to geometry details
 
   protected:
     Int_t *mLayerID;               //! [mNumberLayers] layer identifier
@@ -338,9 +338,9 @@ class Detector : public AliceO2::Base::Detector
     GeometryHandler *mGeometryHandler;
     MisalignmentParameter *mMisalignmentParameter;
 
-    UpgradeV1Layer **mUpgradeGeometry;   //! Geometry
-    UpgradeModel mStaveModelInnerBarrel; //! The stave model for the Inner Barrel
-    UpgradeModel mStaveModelOuterBarrel; //! The stave model for the Outer Barrel
+    V1Layer **mGeometry;   //! Geometry
+    Model mStaveModelInnerBarrel; //! The stave model for the Inner Barrel
+    Model mStaveModelOuterBarrel; //! The stave model for the Outer Barrel
 
   ClassDef(Detector, 1)
 };

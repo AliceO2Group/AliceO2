@@ -17,7 +17,7 @@
 #include "ITSSimulation/Chip.h"
 #include "ITSSimulation/Point.h"
 #include "ITSBase/Segmentation.h"
-#include "ITSBase/UpgradeGeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
 
 using namespace AliceO2::ITS;
 
@@ -69,7 +69,7 @@ InitStatus HitAnalysis::Init()
   }
 
   // Create geometry, initialize chip array
-  fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
+  fGeometry = new GeometryTGeo(kTRUE, kTRUE);
 
   if (fProcessChips) {
     for (int chipid = 0; chipid < fGeometry->getNumberOfChips(); chipid++) {

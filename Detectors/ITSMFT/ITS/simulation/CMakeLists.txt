@@ -4,7 +4,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/V11Geometry.cxx
-    src/UpgradeV1Layer.cxx
+    src/V1Layer.cxx
     src/Detector.cxx
     src/GeometryHandler.cxx
     src/Point.cxx
@@ -29,7 +29,7 @@ set(HEADERS
     include/${MODULE_NAME}/DigitizerTask.h
     include/${MODULE_NAME}/GeometryHandler.h
     include/${MODULE_NAME}/Point.h
-    include/${MODULE_NAME}/UpgradeV1Layer.h
+    include/${MODULE_NAME}/V1Layer.h
     include/${MODULE_NAME}/V11Geometry.h
     )
 

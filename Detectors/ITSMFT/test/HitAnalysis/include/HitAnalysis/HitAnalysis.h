@@ -15,7 +15,7 @@
 
 class TClonesArray;  // lines 17-17
 class TH1;  // lines 16-16
-namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; }}  // lines 23-23
+namespace AliceO2 { namespace ITS { class GeometryTGeo; }}  // lines 23-23
 
 
 class TH1;
@@ -56,7 +56,7 @@ class HitAnalysis : public FairTask
     Bool_t fProcessChips;        ///< Process chips or hits
     std::map<int, Chip *> fChips;               ///< lookup map for ITS chips
     TClonesArray *fPointsArray;        ///< Array with ITS space points, filled by the FairRootManager
-    UpgradeGeometryTGeo *fGeometry;           ///< Upgrade geometry
+    GeometryTGeo *fGeometry;           ///<  geometry
     TH1 *fLineSegment;        ///< Histogram for line segment
     TH1 *fLocalX0;            ///< Histogram for Starting X position in local coordinates
     TH1 *fLocalX1;            ///< Histogram for Hit X position in local coordinates

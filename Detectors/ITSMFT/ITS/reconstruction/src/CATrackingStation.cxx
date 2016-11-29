@@ -6,7 +6,7 @@
 // Primary Author: Ruben Shahoyan                                           *
 //                                                                          *
 // Adapted to ITSU: Maximiliano Puccio <maximiliano.puccio@cern.ch>         *
-//                  for the ITS Upgrade project                             *
+//                  for the ITS project                                     *
 //                                                                          *
 // Permission to use, copy, modify and distribute this software and its     *
 // documentation strictly for non-commercial purposes is hereby granted     *
@@ -26,7 +26,7 @@
 #include <TClonesArray.h>
 
 #include "ITSSimulation/Point.h"
-#include "ITSBase/UpgradeGeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/Utils.h"
 
 
@@ -94,7 +94,7 @@ TrackingStation::~TrackingStation() {
   delete[] mOccBins;
 }
 
-void TrackingStation::Init(TClonesArray* points, AliceO2::ITS::UpgradeGeometryTGeo* geo) {
+void TrackingStation::Init(TClonesArray* points, AliceO2::ITS::GeometryTGeo* geo) {
   if (mNZBins < 1)   mNZBins = 2;
   if (mNPhiBins < 1) mNPhiBins = 1;
   mDZInv   = mNZBins / (mZMax - mZMin);

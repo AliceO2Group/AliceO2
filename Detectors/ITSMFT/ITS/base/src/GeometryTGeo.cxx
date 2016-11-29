@@ -1,13 +1,13 @@
-/// \file UpgradeGeometryTGeo.cxx
-/// \brief Implementation of the UpgradeGeometryTGeo class
+/// \file GeometryTGeo.cxx
+/// \brief Implementation of the GeometryTGeo class
 /// \author cvetan.cheshkov@cern.ch - 15/02/2007
 /// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
-#include "ITSBase/UpgradeGeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "ITSBase/GeometryManager.h"
 #include "ITSBase/Segmentation.h"
-#include "ITSBase/UpgradeSegmentationPixel.h"
+#include "ITSBase/SegmentationPixel.h"
 
 #include "FairLogger.h"                // for LOG
 
@@ -32,22 +32,22 @@
 using namespace TMath;
 using namespace AliceO2::ITS;
 
-ClassImp(AliceO2::ITS::UpgradeGeometryTGeo)
+ClassImp(AliceO2::ITS::GeometryTGeo)
 
-UInt_t UpgradeGeometryTGeo::mUIDShift = 16; // bit shift to go from mod.id to modUUID for TGeo
-TString UpgradeGeometryTGeo::mVolumeName = "ITSV";
-TString UpgradeGeometryTGeo::mLayerName = "ITSULayer";
-TString UpgradeGeometryTGeo::mStaveName = "ITSUStave";
-TString UpgradeGeometryTGeo::mHalfStaveName = "ITSUHalfStave";
-TString UpgradeGeometryTGeo::mModuleName = "ITSUModule";
-TString UpgradeGeometryTGeo::mChipName = "ITSUChip";
-TString UpgradeGeometryTGeo::mSensorName = "ITSUSensor";
-TString UpgradeGeometryTGeo::mWrapperVolumeName = "ITSUWrapVol";
-TString UpgradeGeometryTGeo::mChipTypeName[UpgradeGeometryTGeo::kNChipTypes] = {"Pix"};
+UInt_t GeometryTGeo::mUIDShift = 16; // bit shift to go from mod.id to modUUID for TGeo
+TString GeometryTGeo::mVolumeName = "ITSV";
+TString GeometryTGeo::mLayerName = "ITSULayer";
+TString GeometryTGeo::mStaveName = "ITSUStave";
+TString GeometryTGeo::mHalfStaveName = "ITSUHalfStave";
+TString GeometryTGeo::mModuleName = "ITSUModule";
+TString GeometryTGeo::mChipName = "ITSUChip";
+TString GeometryTGeo::mSensorName = "ITSUSensor";
+TString GeometryTGeo::mWrapperVolumeName = "ITSUWrapVol";
+TString GeometryTGeo::mChipTypeName[GeometryTGeo::kNChipTypes] = {"Pix"};
 
-TString UpgradeGeometryTGeo::mSegmentationFileName = "itsSegmentations.root";
+TString GeometryTGeo::mSegmentationFileName = "itsSegmentations.root";
 
-UpgradeGeometryTGeo::UpgradeGeometryTGeo(Bool_t build, Bool_t loadSegmentations)
+GeometryTGeo::GeometryTGeo(Bool_t build, Bool_t loadSegmentations)
   : mVersion(kITSVNA),
     mNumberOfLayers(0),
     mNumberOfChips(0),
@@ -74,7 +74,7 @@ UpgradeGeometryTGeo::UpgradeGeometryTGeo(Bool_t build, Bool_t loadSegmentations)
   }
 }
 
-UpgradeGeometryTGeo::UpgradeGeometryTGeo(const UpgradeGeometryTGeo &src)
+GeometryTGeo::GeometryTGeo(const GeometryTGeo &src)
   : TObject(src),
     mVersion(src.mVersion),
     mNumberOfLayers(src.mNumberOfLayers),
@@ -150,7 +150,7 @@ UpgradeGeometryTGeo::UpgradeGeometryTGeo(const UpgradeGeometryTGeo &src)
   }
 }
 
-UpgradeGeometryTGeo::~UpgradeGeometryTGeo()
+GeometryTGeo::~GeometryTGeo()
 {
   // d-tor
   delete[] mNumberOfStaves;
@@ -168,7 +168,7 @@ UpgradeGeometryTGeo::~UpgradeGeometryTGeo()
   delete mSegmentations;
 }
 
-UpgradeGeometryTGeo &UpgradeGeometryTGeo::operator=(const UpgradeGeometryTGeo &src)
+GeometryTGeo &GeometryTGeo::operator=(const GeometryTGeo &src)
 {
   // cp op.
   if (this != &src) {
@@ -246,12 +246,12 @@ UpgradeGeometryTGeo &UpgradeGeometryTGeo::operator=(const UpgradeGeometryTGeo &s
   return *this;
 }
 
-Int_t UpgradeGeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t chipInStave) const
+Int_t GeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t chipInStave) const
 {
   return getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInStave;
 }
 
-Int_t UpgradeGeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t substa, Int_t chipInSStave)
+Int_t GeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t substa, Int_t chipInSStave)
 const
 {
   int n = getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInSStave;
@@ -261,7 +261,7 @@ const
   return n;
 }
 
-Int_t UpgradeGeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t substa, Int_t md,
+Int_t GeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t substa, Int_t md,
                                         Int_t chipInMod) const
 {
   int n = getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInMod;
@@ -274,14 +274,14 @@ Int_t UpgradeGeometryTGeo::getChipIndex(Int_t lay, Int_t sta, Int_t substa, Int_
   return n;
 }
 
-Bool_t UpgradeGeometryTGeo::getLayer(Int_t index, Int_t &lay, Int_t &indexInLr) const
+Bool_t GeometryTGeo::getLayer(Int_t index, Int_t &lay, Int_t &indexInLr) const
 {
   lay = getLayer(index);
   indexInLr = index - getFirstChipIndex(lay);
   return kTRUE;
 }
 
-Int_t UpgradeGeometryTGeo::getLayer(Int_t index) const
+Int_t GeometryTGeo::getLayer(Int_t index) const
 {
   int lay = 0;
   while (index > mLastChipIndex[lay]) {
@@ -290,7 +290,7 @@ Int_t UpgradeGeometryTGeo::getLayer(Int_t index) const
   return lay;
 }
 
-Int_t UpgradeGeometryTGeo::getStave(Int_t index) const
+Int_t GeometryTGeo::getStave(Int_t index) const
 {
   int lay = 0;
   while (index > mLastChipIndex[lay]) {
@@ -300,7 +300,7 @@ Int_t UpgradeGeometryTGeo::getStave(Int_t index) const
   return index / mNumberOfChipsPerStave[lay];
 }
 
-Int_t UpgradeGeometryTGeo::getHalfStave(Int_t index) const
+Int_t GeometryTGeo::getHalfStave(Int_t index) const
 {
   int lay = 0;
   while (index > mLastChipIndex[lay]) {
@@ -314,7 +314,7 @@ Int_t UpgradeGeometryTGeo::getHalfStave(Int_t index) const
   return index / mNumberOfChipsPerHalfStave[lay];
 }
 
-Int_t UpgradeGeometryTGeo::getModule(Int_t index) const
+Int_t GeometryTGeo::getModule(Int_t index) const
 {
   int lay = 0;
   while (index > mLastChipIndex[lay]) {
@@ -331,7 +331,7 @@ Int_t UpgradeGeometryTGeo::getModule(Int_t index) const
   return index / mNumberOfChipsPerModule[lay];
 }
 
-Int_t UpgradeGeometryTGeo::getChipIdInLayer(Int_t index) const
+Int_t GeometryTGeo::getChipIdInLayer(Int_t index) const
 {
   int lay = 0;
   while (index > mLastChipIndex[lay]) {
@@ -341,7 +341,7 @@ Int_t UpgradeGeometryTGeo::getChipIdInLayer(Int_t index) const
   return index;
 }
 
-Int_t UpgradeGeometryTGeo::getChipIdInStave(Int_t index) const
+Int_t GeometryTGeo::getChipIdInStave(Int_t index) const
 {
   int lay = 0;
   while (index > mLastChipIndex[lay]) {
@@ -351,7 +351,7 @@ Int_t UpgradeGeometryTGeo::getChipIdInStave(Int_t index) const
   return index % mNumberOfChipsPerStave[lay];
 }
 
-Int_t UpgradeGeometryTGeo::getChipIdInHalfStave(Int_t index) const
+Int_t GeometryTGeo::getChipIdInHalfStave(Int_t index) const
 {
   int lay = 0;
   while (index > mLastChipIndex[lay]) {
@@ -361,7 +361,7 @@ Int_t UpgradeGeometryTGeo::getChipIdInHalfStave(Int_t index) const
   return index % mNumberOfChipsPerHalfStave[lay];
 }
 
-Int_t UpgradeGeometryTGeo::getChipIdInModule(Int_t index) const
+Int_t GeometryTGeo::getChipIdInModule(Int_t index) const
 {
   int lay = 0;
   while (index > mLastChipIndex[lay]) {
@@ -371,7 +371,7 @@ Int_t UpgradeGeometryTGeo::getChipIdInModule(Int_t index) const
   return index % mNumberOfChipsPerModule[lay];
 }
 
-Bool_t UpgradeGeometryTGeo::getChipId(Int_t index, Int_t &lay, Int_t &sta, Int_t &hsta, Int_t &mod,
+Bool_t GeometryTGeo::getChipId(Int_t index, Int_t &lay, Int_t &sta, Int_t &hsta, Int_t &mod,
                                       Int_t &chip) const
 {
   lay = getLayer(index);
@@ -386,7 +386,7 @@ Bool_t UpgradeGeometryTGeo::getChipId(Int_t index, Int_t &lay, Int_t &sta, Int_t
   return kTRUE;
 }
 
-const char *UpgradeGeometryTGeo::getSymbolicName(Int_t index) const
+const char *GeometryTGeo::getSymbolicName(Int_t index) const
 {
   Int_t lay, index2;
   if (!getLayer(index, lay, index2)) {
@@ -407,29 +407,29 @@ const char *UpgradeGeometryTGeo::getSymbolicName(Int_t index) const
   return pne->GetName();
 }
 
-const char *UpgradeGeometryTGeo::composeSymNameITS()
+const char *GeometryTGeo::composeSymNameITS()
 {
   return "ITS";
 }
 
-const char *UpgradeGeometryTGeo::composeSymNameLayer(Int_t lr)
+const char *GeometryTGeo::composeSymNameLayer(Int_t lr)
 {
   return Form("%s/%s%d", composeSymNameITS(), getITSLayerPattern(), lr);
 }
 
-const char *UpgradeGeometryTGeo::composeSymNameStave(Int_t lr, Int_t stave)
+const char *GeometryTGeo::composeSymNameStave(Int_t lr, Int_t stave)
 {
   return Form("%s/%s%d", composeSymNameLayer(lr), getITSStavePattern(), stave);
 }
 
-const char *UpgradeGeometryTGeo::composeSymNameHalfStave(Int_t lr, Int_t stave, Int_t substave)
+const char *GeometryTGeo::composeSymNameHalfStave(Int_t lr, Int_t stave, Int_t substave)
 {
   return substave >= 0
          ? Form("%s/%s%d", composeSymNameStave(lr, stave), getITSHalfStavePattern(), substave)
          : composeSymNameStave(lr, stave);
 }
 
-const char *UpgradeGeometryTGeo::composeSymNameModule(Int_t lr, Int_t stave, Int_t substave,
+const char *GeometryTGeo::composeSymNameModule(Int_t lr, Int_t stave, Int_t substave,
                                                       Int_t mod)
 {
   return mod >= 0 ? Form("%s/%s%d", composeSymNameHalfStave(lr, stave, substave),
@@ -437,13 +437,13 @@ const char *UpgradeGeometryTGeo::composeSymNameModule(Int_t lr, Int_t stave, Int
                   : composeSymNameHalfStave(lr, stave, substave);
 }
 
-const char *UpgradeGeometryTGeo::composeSymNameChip(Int_t lr, Int_t sta, Int_t substave, Int_t mod,
+const char *GeometryTGeo::composeSymNameChip(Int_t lr, Int_t sta, Int_t substave, Int_t mod,
                                                     Int_t chip)
 {
   return Form("%s/%s%d", composeSymNameModule(lr, sta, substave, mod), getITSChipPattern(), chip);
 }
 
-TGeoHMatrix *UpgradeGeometryTGeo::GetMatrix(Int_t index) const
+TGeoHMatrix *GeometryTGeo::GetMatrix(Int_t index) const
 {
   static TGeoHMatrix matTmp;
   TGeoPNEntry *pne = getPNEntry(index);
@@ -468,7 +468,7 @@ TGeoHMatrix *UpgradeGeometryTGeo::GetMatrix(Int_t index) const
   return &matTmp;
 }
 
-Bool_t UpgradeGeometryTGeo::GetTranslation(Int_t index, Double_t t[3]) const
+Bool_t GeometryTGeo::GetTranslation(Int_t index, Double_t t[3]) const
 {
   TGeoHMatrix *m = GetMatrix(index);
   if (!m) {
@@ -483,7 +483,7 @@ Bool_t UpgradeGeometryTGeo::GetTranslation(Int_t index, Double_t t[3]) const
   return kTRUE;
 }
 
-Bool_t UpgradeGeometryTGeo::getRotation(Int_t index, Double_t r[9]) const
+Bool_t GeometryTGeo::getRotation(Int_t index, Double_t r[9]) const
 {
   TGeoHMatrix *m = GetMatrix(index);
   if (!m) {
@@ -498,7 +498,7 @@ Bool_t UpgradeGeometryTGeo::getRotation(Int_t index, Double_t r[9]) const
   return kTRUE;
 }
 
-Bool_t UpgradeGeometryTGeo::GetOriginalMatrix(Int_t index, TGeoHMatrix &m) const
+Bool_t GeometryTGeo::GetOriginalMatrix(Int_t index, TGeoHMatrix &m) const
 {
   m.Clear();
 
@@ -510,7 +510,7 @@ Bool_t UpgradeGeometryTGeo::GetOriginalMatrix(Int_t index, TGeoHMatrix &m) const
   return GeometryManager::getOriginalGlobalMatrix(symname, m);
 }
 
-Bool_t UpgradeGeometryTGeo::getOriginalTranslation(Int_t index, Double_t t[3]) const
+Bool_t GeometryTGeo::getOriginalTranslation(Int_t index, Double_t t[3]) const
 {
   TGeoHMatrix m;
   if (!GetOriginalMatrix(index, m)) {
@@ -525,7 +525,7 @@ Bool_t UpgradeGeometryTGeo::getOriginalTranslation(Int_t index, Double_t t[3]) c
   return kTRUE;
 }
 
-Bool_t UpgradeGeometryTGeo::getOriginalRotation(Int_t index, Double_t r[9]) const
+Bool_t GeometryTGeo::getOriginalRotation(Int_t index, Double_t r[9]) const
 {
   TGeoHMatrix m;
   if (!GetOriginalMatrix(index, m)) {
@@ -540,7 +540,7 @@ Bool_t UpgradeGeometryTGeo::getOriginalRotation(Int_t index, Double_t r[9]) cons
   return kTRUE;
 }
 
-TGeoHMatrix *UpgradeGeometryTGeo::extractMatrixTrackingToLocal(Int_t index) const
+TGeoHMatrix *GeometryTGeo::extractMatrixTrackingToLocal(Int_t index) const
 {
   TGeoPNEntry *pne = getPNEntry(index);
   if (!pne) {
@@ -555,7 +555,7 @@ TGeoHMatrix *UpgradeGeometryTGeo::extractMatrixTrackingToLocal(Int_t index) cons
   return m;
 }
 
-Bool_t UpgradeGeometryTGeo::getTrackingMatrix(Int_t index, TGeoHMatrix &m)
+Bool_t GeometryTGeo::getTrackingMatrix(Int_t index, TGeoHMatrix &m)
 {
   m.Clear();
 
@@ -575,30 +575,30 @@ Bool_t UpgradeGeometryTGeo::getTrackingMatrix(Int_t index, TGeoHMatrix &m)
   return kTRUE;
 }
 
-TGeoHMatrix *UpgradeGeometryTGeo::extractMatrixSensor(Int_t index) const
+TGeoHMatrix *GeometryTGeo::extractMatrixSensor(Int_t index) const
 {
   Int_t lay, stav, sstav, mod, chipInMod;
   getChipId(index, lay, stav, sstav, mod, chipInMod);
 
   int wrID = mLayerToWrapper[lay];
 
-  TString path = Form("/cave_1/%s_2/", UpgradeGeometryTGeo::getITSVolPattern());
+  TString path = Form("/cave_1/%s_2/", GeometryTGeo::getITSVolPattern());
 
   if (wrID >= 0) {
     path += Form("%s%d_1/", getITSWrapVolPattern(), wrID);
   }
 
-  path += Form("%s%d_1/%s%d_%d/", UpgradeGeometryTGeo::getITSLayerPattern(), lay,
-               UpgradeGeometryTGeo::getITSStavePattern(), lay, stav);
+  path += Form("%s%d_1/%s%d_%d/", GeometryTGeo::getITSLayerPattern(), lay,
+               GeometryTGeo::getITSStavePattern(), lay, stav);
 
   if (mNumberOfHalfStaves[lay] > 0) {
-    path += Form("%s%d_%d/", UpgradeGeometryTGeo::getITSHalfStavePattern(), lay, sstav);
+    path += Form("%s%d_%d/", GeometryTGeo::getITSHalfStavePattern(), lay, sstav);
   }
   if (mNumberOfModules[lay] > 0) {
-    path += Form("%s%d_%d/", UpgradeGeometryTGeo::getITSModulePattern(), lay, mod);
+    path += Form("%s%d_%d/", GeometryTGeo::getITSModulePattern(), lay, mod);
   }
-  path += Form("%s%d_%d/%s%d_1", UpgradeGeometryTGeo::getITSChipPattern(), lay, chipInMod,
-               UpgradeGeometryTGeo::getITSSensorPattern(), lay);
+  path += Form("%s%d_%d/%s%d_1", GeometryTGeo::getITSChipPattern(), lay, chipInMod,
+               GeometryTGeo::getITSSensorPattern(), lay);
 
   static TGeoHMatrix matTmp;
   gGeoManager->PushPath();
@@ -618,7 +618,7 @@ TGeoHMatrix *UpgradeGeometryTGeo::extractMatrixSensor(Int_t index) const
   return &matTmp;
 }
 
-TGeoPNEntry *UpgradeGeometryTGeo::getPNEntry(Int_t index) const
+TGeoPNEntry *GeometryTGeo::getPNEntry(Int_t index) const
 {
   if (index >= mNumberOfChips) {
     LOG(ERROR) << "Invalid ITS chip index: " << index << " (0 -> " << mNumberOfChips << ") !"
@@ -641,7 +641,7 @@ TGeoPNEntry *UpgradeGeometryTGeo::getPNEntry(Int_t index) const
   return pne;
 }
 
-void UpgradeGeometryTGeo::Build(Bool_t loadSegmentations)
+void GeometryTGeo::Build(Bool_t loadSegmentations)
 {
   if (mVersion != kITSVNA) {
     LOG(WARNING) << "Already built" << FairLogger::endl;
@@ -686,11 +686,11 @@ void UpgradeGeometryTGeo::Build(Bool_t loadSegmentations)
 
   if (loadSegmentations) { // fetch segmentations
     mSegmentations = new TObjArray();
-    UpgradeSegmentationPixel::loadSegmentations(mSegmentations, getITSsegmentationFileName());
+    SegmentationPixel::loadSegmentations(mSegmentations, getITSsegmentationFileName());
   }
 }
 
-Int_t UpgradeGeometryTGeo::extractNumberOfLayers()
+Int_t GeometryTGeo::extractNumberOfLayers()
 {
   Int_t numberOfLayers = 0;
 
@@ -713,7 +713,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfLayers()
 
     if (strstr(name, getITSLayerPattern())) {
       numberOfLayers++;
-      if ((lrID = extractVolumeCopy(name, UpgradeGeometryTGeo::getITSLayerPattern())) < 0) {
+      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getITSLayerPattern())) < 0) {
         LOG(FATAL) << "Failed to extract layer ID from the " << name << FairLogger::endl;
         exit(1);
       }
@@ -722,7 +722,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfLayers()
     } else if (strstr(name,
                       getITSWrapVolPattern())) { // this is a wrapper volume, may cointain layers
       int wrID = -1;
-      if ((wrID = extractVolumeCopy(name, UpgradeGeometryTGeo::getITSWrapVolPattern())) < 0) {
+      if ((wrID = extractVolumeCopy(name, GeometryTGeo::getITSWrapVolPattern())) < 0) {
         LOG(FATAL) << "Failed to extract wrapper ID from the " << name << FairLogger::endl;
         exit(1);
       }
@@ -734,7 +734,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfLayers()
         TGeoNode *ndW = (TGeoNode *) nodesW->At(jw);
         if (strstr(ndW->GetName(), getITSLayerPattern())) {
           if ((lrID = extractVolumeCopy(ndW->GetName(),
-                                        UpgradeGeometryTGeo::getITSLayerPattern())) < 0) {
+                                        GeometryTGeo::getITSLayerPattern())) < 0) {
             LOG(FATAL) << "Failed to extract layer ID from the " << name << FairLogger::endl;
             exit(1);
           }
@@ -747,7 +747,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfLayers()
   return numberOfLayers;
 }
 
-Int_t UpgradeGeometryTGeo::extractNumberOfStaves(Int_t lay) const
+Int_t GeometryTGeo::extractNumberOfStaves(Int_t lay) const
 {
   Int_t numberOfStaves = 0;
   char laynam[30];
@@ -771,7 +771,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfStaves(Int_t lay) const
   return numberOfStaves;
 }
 
-Int_t UpgradeGeometryTGeo::extractNumberOfHalfStaves(Int_t lay) const
+Int_t GeometryTGeo::extractNumberOfHalfStaves(Int_t lay) const
 {
   if (mHalfStaveName.IsNull()) {
     return 0; // for the setup w/o substave defined the stave and the substave is the same thing
@@ -793,7 +793,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfHalfStaves(Int_t lay) const
   return nSS;
 }
 
-Int_t UpgradeGeometryTGeo::extractNumberOfModules(Int_t lay) const
+Int_t GeometryTGeo::extractNumberOfModules(Int_t lay) const
 {
   if (mModuleName.IsNull()) {
     return 0;
@@ -827,7 +827,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfModules(Int_t lay) const
   return nMod;
 }
 
-Int_t UpgradeGeometryTGeo::extractNumberOfChipsPerModule(Int_t lay, int &nrow) const
+Int_t GeometryTGeo::extractNumberOfChipsPerModule(Int_t lay, int &nrow) const
 {
   Int_t numberOfChips = 0;
   char stavnam[30];
@@ -907,7 +907,7 @@ Int_t UpgradeGeometryTGeo::extractNumberOfChipsPerModule(Int_t lay, int &nrow) c
   return numberOfChips;
 }
 
-Int_t UpgradeGeometryTGeo::extractLayerChipType(Int_t lay) const
+Int_t GeometryTGeo::extractLayerChipType(Int_t lay) const
 {
   char stavnam[30];
   snprintf(stavnam, 30, "%s%d", getITSLayerPattern(), lay);
@@ -919,7 +919,7 @@ Int_t UpgradeGeometryTGeo::extractLayerChipType(Int_t lay) const
   return volLd->GetUniqueID();
 }
 
-UInt_t UpgradeGeometryTGeo::composeChipTypeId(UInt_t segmId)
+UInt_t GeometryTGeo::composeChipTypeId(UInt_t segmId)
 {
   if (segmId >= kMaxSegmPerChipType) {
     LOG(FATAL) << "Id=" << segmId << " is >= max.allowed " << kMaxSegmPerChipType
@@ -928,7 +928,7 @@ UInt_t UpgradeGeometryTGeo::composeChipTypeId(UInt_t segmId)
   return segmId + kChipTypePix * kMaxSegmPerChipType;
 }
 
-void UpgradeGeometryTGeo::Print(Option_t *) const
+void GeometryTGeo::Print(Option_t *) const
 {
   printf("Geometry version %d, NLayers:%d NChips:%d\n", mVersion, mNumberOfLayers, mNumberOfChips);
   if (mVersion == kITSVNA) {
@@ -946,7 +946,7 @@ void UpgradeGeometryTGeo::Print(Option_t *) const
   }
 }
 
-void UpgradeGeometryTGeo::fetchMatrices()
+void GeometryTGeo::fetchMatrices()
 {
   if (!gGeoManager) {
     LOG(FATAL) << "Geometry is not loaded" << FairLogger::endl;
@@ -959,7 +959,7 @@ void UpgradeGeometryTGeo::fetchMatrices()
   createT2LMatrices();
 }
 
-void UpgradeGeometryTGeo::createT2LMatrices()
+void GeometryTGeo::createT2LMatrices()
 {
   // create tracking to local (Sensor!) matrices
   mTrackingToLocalMatrices = new TObjArray(mNumberOfChips);
@@ -1019,7 +1019,7 @@ void UpgradeGeometryTGeo::createT2LMatrices()
 }
 
 //______________________________________________________________________
-Int_t UpgradeGeometryTGeo::extractVolumeCopy(const char *name, const char *prefix) const
+Int_t GeometryTGeo::extractVolumeCopy(const char *name, const char *prefix) const
 {
   TString nms = name;
   if (!nms.BeginsWith(prefix)) {

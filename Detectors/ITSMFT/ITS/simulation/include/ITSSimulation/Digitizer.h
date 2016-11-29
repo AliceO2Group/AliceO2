@@ -13,8 +13,8 @@ namespace AliceO2 {
 namespace ITS {
 
 class DigitContainer;
-class UpgradeGeometryTGeo;
-class UpgradeSegmentationPixel;
+class GeometryTGeo;
+class SegmentationPixel;
 
 class Digitizer : public TObject
 {
@@ -32,7 +32,7 @@ class Digitizer : public TObject
     Digitizer &operator=(const Digitizer &);
 
     DigitContainer *fDigitContainer;           ///< Internal digit storage
-    UpgradeGeometryTGeo *fGeometry;            ///< ITS upgrade geometry
+    GeometryTGeo *fGeometry;            ///< ITS upgrade geometry
 
   ClassDef(Digitizer, 2);
 };

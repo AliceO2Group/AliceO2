@@ -1,5 +1,5 @@
-/// \file AliITSUpgradeDigi.h
-/// \brief Digits structure for upgrade ITS
+/// \file Digi.h
+/// \brief Digit structure for upgrade ITS
 #ifndef ALICEO2_ITS_DIGIT_H
 #define ALICEO2_ITS_DIGIT_H
 
@@ -171,4 +171,4 @@ class Digit : public FairTimeStamp
 }
 }
 
-#endif /* ALICEO2_ITS_AliITSUpgradeDigi_H */
+#endif /* ALICEO2_ITS_DIGIT_H */

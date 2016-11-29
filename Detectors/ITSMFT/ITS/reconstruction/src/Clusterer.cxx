@@ -2,8 +2,8 @@
 /// \brief Clusterer for the upgrated ITS
 #include "ITSReconstruction/Clusterer.h"
 #include "ITSReconstruction/Cluster.h"
-#include "ITSBase/UpgradeGeometryTGeo.h"
-#include "ITSBase/UpgradeSegmentationPixel.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "ITSBase/SegmentationPixel.h"
 #include "ITSBase/Digit.h"
 
 #include "FairLogger.h"           // for LOG
@@ -15,7 +15,7 @@ using namespace AliceO2::ITS;
 
 Clusterer::Clusterer()
 {
-  fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
+  fGeometry = new GeometryTGeo(kTRUE, kTRUE);
 }
 
 Clusterer::~Clusterer()
@@ -25,8 +25,8 @@ Clusterer::~Clusterer()
 
 void Clusterer::Process(const TClonesArray *digits, TClonesArray *clusters)
 {
-  const UpgradeSegmentationPixel *seg =
-       (UpgradeSegmentationPixel*)fGeometry->getSegmentationById(0);
+  const SegmentationPixel *seg =
+       (SegmentationPixel*)fGeometry->getSegmentationById(0);
   Float_t sigma2=seg->cellSizeX()*seg->cellSizeX()/12.; 
   
   TClonesArray &clref = *clusters;

@@ -16,7 +16,7 @@
 #include "TObject.h"    // for TObject
 
 namespace AliceO2 { namespace ITS { class Point; }}  // lines 22-22
-namespace AliceO2 { namespace ITS { class UpgradeGeometryTGeo; }}  // lines 23-23
+namespace AliceO2 { namespace ITS { class GeometryTGeo; }}  // lines 23-23
 
 namespace AliceO2 {
 
@@ -24,7 +24,7 @@ namespace ITS {
 
 class Point;
 
-class UpgradeGeometryTGeo;
+class GeometryTGeo;
 
 /// @class Chip
 /// @brief Container for similated points connected to a given chip
@@ -91,7 +91,7 @@ class Chip : public TObject
     /// Main constructor
     /// @param chipindex Index of the chip
     /// @param geometry Geometry of the ITS
-    Chip(Int_t index, UpgradeGeometryTGeo *geo);
+    Chip(Int_t index, GeometryTGeo *geo);
 
     /// Copy constructor
     /// @param ref Reference for the copy
@@ -218,7 +218,7 @@ class Chip : public TObject
 
     Int_t fChipIndex;     ///< Chip ID
     TObjArray fPoints;        ///< Hits connnected to the given chip
-    UpgradeGeometryTGeo *fGeometry;     ///< Geometry of the ITS
+    GeometryTGeo *fGeometry;     ///< Geometry of the ITS
 
   ClassDef(Chip, 1);
 };

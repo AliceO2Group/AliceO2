@@ -9,7 +9,7 @@
 #include <TGeoManager.h>   // for gGeoManager
 #include "Rtypes.h"        // for Double_t, Int_t, Bool_t, etc
 #include "ITSSimulation/V11Geometry.h"   // for V11Geometry
-#include "ITSSimulation/Detector.h"  // for Detector, Detector::UpgradeModel
+#include "ITSSimulation/Detector.h"  // for Detector, Detector::Model
 
 class TGeoArb8;
 
@@ -20,9 +20,9 @@ class TGeoVolume;  // lines 15-15
 namespace AliceO2 {
 namespace ITS {
 
-/// This class defines the Geometry for the ITS Upgrade using TGeo. This is a work class used
+/// This class defines the Geometry for the ITS  using TGeo. This is a work class used
 /// to study different configurations during the development of the new ITS structure
-class UpgradeV1Layer : public V11Geometry
+class V1Layer : public V11Geometry
 {
 
   public:
@@ -32,26 +32,26 @@ class UpgradeV1Layer : public V11Geometry
     };
 
     // Default constructor
-    UpgradeV1Layer();
+    V1Layer();
 
     // Constructor setting debugging level
-    UpgradeV1Layer(Int_t debug);
+    V1Layer(Int_t debug);
 
     // Constructor setting layer number and debugging level
-    UpgradeV1Layer(Int_t lay, Int_t debug);
+    V1Layer(Int_t lay, Int_t debug);
 
     /// Constructor setting layer number and debugging level
     /// for a "turbo" layer (i.e. where staves overlap in phi)
-    UpgradeV1Layer(Int_t lay, Bool_t turbo, Int_t debug);
+    V1Layer(Int_t lay, Bool_t turbo, Int_t debug);
 
     /// Copy constructor
-    UpgradeV1Layer(const UpgradeV1Layer &source);
+    V1Layer(const V1Layer &source);
 
     /// Assignment operator
-    UpgradeV1Layer &operator=(const UpgradeV1Layer &source);
+    V1Layer &operator=(const V1Layer &source);
 
     /// Default destructor
-    virtual ~UpgradeV1Layer();
+    virtual ~V1Layer();
 
     Bool_t isTurbo() const
     {
@@ -128,7 +128,7 @@ class UpgradeV1Layer : public V11Geometry
       return mHierarchy[kChip];
     }
 
-    Detector::UpgradeModel getStaveModel() const
+    Detector::Model getStaveModel() const
     {
       return mStaveModel;
     }
@@ -187,7 +187,7 @@ class UpgradeV1Layer : public V11Geometry
       mBuildLevel = buildLevel;
     }
 
-    void setStaveModel(AliceO2::ITS::Detector::UpgradeModel model)
+    void setStaveModel(AliceO2::ITS::Detector::Model model)
     {
       mStaveModel = model;
     }
@@ -348,9 +348,9 @@ class UpgradeV1Layer : public V11Geometry
     Bool_t mIsTurbo;    ///< True if this layer is a "turbo" layer
     Int_t mBuildLevel;  ///< Used for material studies
 
-    Detector::UpgradeModel mStaveModel; ///< The stave model
+    Detector::Model mStaveModel; ///< The stave model
 
-    // Parameters for the Upgrade geometry
+    // Parameters for the  geometry
 
     // General Parameters
     static const Int_t sNumberOmInnerLayers; ///< Number of IB Layers
@@ -397,7 +397,7 @@ class UpgradeV1Layer : public V11Geometry
     static const Double_t sOBSFBotBeamAngle;    ///< OB SF bottom beam angle
     static const Double_t sOBSFrameBeamSidePhi; ///< OB SF side beam angle
 
-  ClassDef(UpgradeV1Layer, 0) // ITS Upgrade v1 geometry
+  ClassDef(V1Layer, 0) // ITS v1 geometry
 };
 }
 }

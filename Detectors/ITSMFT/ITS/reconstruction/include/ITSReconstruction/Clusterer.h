@@ -13,8 +13,8 @@ namespace AliceO2 {
 namespace ITS {
 
 class DigitContainer;
-class UpgradeGeometryTGeo;
-class UpgradeSegmentationPixel;
+class GeometryTGeo;
+class SegmentationPixel;
 
 class Clusterer : public TObject
 {
@@ -31,7 +31,7 @@ class Clusterer : public TObject
     Clusterer(const Clusterer &);
     Clusterer &operator=(const Clusterer &);
 
-    UpgradeGeometryTGeo *fGeometry;            ///< ITS upgrade geometry
+    GeometryTGeo *fGeometry;            ///< ITS upgrade geometry
 
   ClassDef(Clusterer, 1);
 };

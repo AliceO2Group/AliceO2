@@ -11,8 +11,8 @@
   #include <TGeoManager.h>
   #include <TCanvas.h>
 
-  #include "ITSBase/UpgradeGeometryTGeo.h"
-  #include "ITSBase/UpgradeSegmentationPixel.h"
+  #include "ITSBase/GeometryTGeo.h"
+  #include "ITSBase/SegmentationPixel.h"
   #include "ITSBase/Digit.h"
   #include "ITSSimulation/Point.h"
 #endif
@@ -24,10 +24,10 @@ void CheckDigits() {
   TNtuple *nt=new TNtuple("nt","my ntuple","x:y:z:dx:dz");
 
   TGeoManager::Import("geofile_full.root");
-  UpgradeGeometryTGeo *gman = new UpgradeGeometryTGeo(kTRUE);
+  GeometryTGeo *gman = new GeometryTGeo(kTRUE);
   
-  UpgradeSegmentationPixel *seg =
-    (UpgradeSegmentationPixel*)gman->getSegmentationById(0);
+  SegmentationPixel *seg =
+    (SegmentationPixel*)gman->getSegmentationById(0);
 
   // Hits
   TFile *file0 = TFile::Open("AliceO2_TGeant3.mc_10_event.root");

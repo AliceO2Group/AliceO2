@@ -3,8 +3,8 @@
 
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/GeometryHandler.h"
-#include "ITSBase/UpgradeGeometryTGeo.h"
-#include "ITSSimulation/UpgradeV1Layer.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "ITSSimulation/V1Layer.h"
 #include "ITSSimulation/Point.h"
 
 #include "ITSBase/MisalignmentParameter.h"  // for MisalignmentParameter
@@ -82,7 +82,7 @@ Detector::Detector()
     mDetectorThickness(0),
     mChipTypeID(0),
     mBuildLevel(0),
-    mUpgradeGeometry(0),
+    mGeometry(0),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -129,7 +129,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mDetectorThickness(0),
     mChipTypeID(0),
     mBuildLevel(0),
-    mUpgradeGeometry(0),
+    mGeometry(0),
     mNumberLayers(nlay),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
@@ -137,7 +137,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
   mLayerName = new TString[mNumberLayers];
 
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", UpgradeGeometryTGeo::getITSSensorPattern(), j); // See UpgradeV1Layer
+    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V1Layer
   }
 
   mTurboLayer = new Bool_t[mNumberLayers];
@@ -153,7 +153,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
   mChipTypeID = new UInt_t[mNumberLayers];
   mBuildLevel = new Int_t[mNumberLayers];
 
-  mUpgradeGeometry = new UpgradeV1Layer *[mNumberLayers];
+  mGeometry = new V1Layer *[mNumberLayers];
 
   if (mNumberLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
     for (Int_t j = 0; j < mNumberLayers; j++) {
@@ -166,7 +166,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
       mDetectorThickness[j] = 0.;
       mChipTypeID[j] = 0;
       mBuildLevel[j] = 0;
-      mUpgradeGeometry[j] = 0;
+      mGeometry[j] = 0;
     }
   }
 }
@@ -239,14 +239,14 @@ Detector::Detector(const Detector &rhs)
     mGeometryHandler(0),
     mMisalignmentParameter(0),
 
-    mUpgradeGeometry(0),
+    mGeometry(0),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelInnerBarrel)
 {
   mLayerName = new TString[mNumberLayers];
 
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", UpgradeGeometryTGeo::getITSSensorPattern(), j); // See UpgradeV1Layer
+    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V1Layer
   }
 }
 
@@ -264,7 +264,7 @@ Detector::~Detector()
   delete[] mDetectorThickness;
   delete[] mChipTypeID;
   delete[] mBuildLevel;
-  delete[] mUpgradeGeometry;
+  delete[] mGeometry;
   delete[] mWrapperMinRadius;
   delete[] mWrapperMaxRadius;
   delete[] mWrapperZSpan;
@@ -355,13 +355,13 @@ Detector &Detector::operator=(const Detector &rhs)
   mGeometryHandler = 0;
   mMisalignmentParameter = 0;
 
-  mUpgradeGeometry = 0;
+  mGeometry = 0;
   mStaveModelInnerBarrel = rhs.mStaveModelInnerBarrel;
   mStaveModelOuterBarrel = rhs.mStaveModelInnerBarrel;
 
   mLayerName = new TString[mNumberLayers];
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", UpgradeGeometryTGeo::getITSSensorPattern(), j); // See UpgradeV1Layer
+    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V1Layer
   }
 
   return *this;
@@ -377,7 +377,7 @@ void Detector::Initialize()
     mLayerID[i] = gMC ? TVirtualMC::GetMC()->VolId(mLayerName[i]) : 0;
   }
 
-  mGeometryTGeo = new UpgradeGeometryTGeo(kTRUE);
+  mGeometryTGeo = new GeometryTGeo(kTRUE);
 
   FairDetector::Initialize();
 
@@ -832,7 +832,7 @@ TGeoVolume *Detector::createWrapperVolume(Int_t id)
   TGeoMedium *medAir = gGeoManager->GetMedium("ITS_AIR$");
 
   char volnam[30];
-  snprintf(volnam, 29, "%s%d", UpgradeGeometryTGeo::getITSWrapVolPattern(), id);
+  snprintf(volnam, 29, "%s%d", GeometryTGeo::getITSWrapVolPattern(), id);
 
   TGeoVolume *wrapper = new TGeoVolume(volnam, tube, medAir);
 
@@ -862,9 +862,9 @@ void Detector::constructDetectorGeometry()
     LOG(FATAL) << "Could not find the top volume" << FairLogger::endl;
   }
 
-  new TGeoVolumeAssembly(UpgradeGeometryTGeo::getITSVolPattern());
-  TGeoVolume *vITSV = geoManager->GetVolume(UpgradeGeometryTGeo::getITSVolPattern());
-  vITSV->SetUniqueID(UpgradeGeometryTGeo::getUIDShift()); // store modID -> midUUID bitshift
+  new TGeoVolumeAssembly(GeometryTGeo::getITSVolPattern());
+  TGeoVolume *vITSV = geoManager->GetVolume(GeometryTGeo::getITSVolPattern());
+  vITSV->SetUniqueID(GeometryTGeo::getUIDShift()); // store modID -> midUUID bitshift
   vALIC->AddNode(vITSV, 2, 0); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
 
   const Int_t kLength = 100;
@@ -942,34 +942,34 @@ void Detector::constructDetectorGeometry()
     mWrapperLayerId[j] = -1;
 
     if (mTurboLayer[j]) {
-      mUpgradeGeometry[j] = new UpgradeV1Layer(j, kTRUE, kFALSE);
-      mUpgradeGeometry[j]->setStaveWidth(mStaveWidth[j]);
-      mUpgradeGeometry[j]->setStaveTilt(mStaveTilt[j]);
+      mGeometry[j] = new V1Layer(j, kTRUE, kFALSE);
+      mGeometry[j]->setStaveWidth(mStaveWidth[j]);
+      mGeometry[j]->setStaveTilt(mStaveTilt[j]);
     } else {
-      mUpgradeGeometry[j] = new UpgradeV1Layer(j, kFALSE);
+      mGeometry[j] = new V1Layer(j, kFALSE);
     }
 
-    mUpgradeGeometry[j]->setPhi0(mLayerPhi0[j]);
-    mUpgradeGeometry[j]->setRadius(mLayerRadii[j]);
-    mUpgradeGeometry[j]->setZLength(mLayerZLength[j]);
-    mUpgradeGeometry[j]->setNumberOfStaves(mStavePerLayer[j]);
-    mUpgradeGeometry[j]->setNumberOfUnits(mUnitPerStave[j]);
-    mUpgradeGeometry[j]->setChipType(mChipTypeID[j]);
-    mUpgradeGeometry[j]->setBuildLevel(mBuildLevel[j]);
+    mGeometry[j]->setPhi0(mLayerPhi0[j]);
+    mGeometry[j]->setRadius(mLayerRadii[j]);
+    mGeometry[j]->setZLength(mLayerZLength[j]);
+    mGeometry[j]->setNumberOfStaves(mStavePerLayer[j]);
+    mGeometry[j]->setNumberOfUnits(mUnitPerStave[j]);
+    mGeometry[j]->setChipType(mChipTypeID[j]);
+    mGeometry[j]->setBuildLevel(mBuildLevel[j]);
 
     if (j < 3) {
-      mUpgradeGeometry[j]->setStaveModel(mStaveModelInnerBarrel);
+      mGeometry[j]->setStaveModel(mStaveModelInnerBarrel);
     } else {
-      mUpgradeGeometry[j]->setStaveModel(mStaveModelOuterBarrel);
+      mGeometry[j]->setStaveModel(mStaveModelOuterBarrel);
     }
 
     LOG(DEBUG1) << "mBuildLevel: " << mBuildLevel[j] << FairLogger::endl;
 
     if (mStaveThickness[j] != 0) {
-      mUpgradeGeometry[j]->setStaveThick(mStaveThickness[j]);
+      mGeometry[j]->setStaveThick(mStaveThickness[j]);
     }
     if (mDetectorThickness[j] != 0) {
-      mUpgradeGeometry[j]->setSensorThick(mDetectorThickness[j]);
+      mGeometry[j]->setSensorThick(mDetectorThickness[j]);
     }
 
     for (int iw = 0; iw < mNumberOfWrapperVolumes; iw++) {
@@ -987,7 +987,7 @@ void Detector::constructDetectorGeometry()
         break;
       }
     }
-    mUpgradeGeometry[j]->createLayer(dest);
+    mGeometry[j]->createLayer(dest);
   }
   createServiceBarrel(kTRUE, wrapVols[0]);
   createServiceBarrel(kFALSE, wrapVols[2]);
@@ -1041,7 +1041,7 @@ void Detector::defineSensitiveVolumes()
 
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...mNumberLayers-1)
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    volumeName = UpgradeGeometryTGeo::getITSSensorPattern() + TString::Itoa(j, 10);
+    volumeName = GeometryTGeo::getITSSensorPattern() + TString::Itoa(j, 10);
     v = geoManager->GetVolume(volumeName.Data());
     AddSensitiveVolume(v);
   }

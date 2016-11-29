@@ -1,9 +1,9 @@
-/// \file AliITSUpgradeDigitizer.cxx
+/// \file AliITSDigitizer.cxx
 /// \brief Digitizer for the upgrated ITS
 #include "ITSSimulation/Digitizer.h"
 #include "ITSSimulation/Point.h"
-#include "ITSBase/UpgradeGeometryTGeo.h"
-#include "ITSBase/UpgradeSegmentationPixel.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "ITSBase/SegmentationPixel.h"
 #include "ITSBase/Digit.h"
 #include "ITSSimulation/DigitChip.h"
 #include "ITSSimulation/DigitContainer.h"
@@ -17,10 +17,10 @@ using namespace AliceO2::ITS;
 
 Digitizer::Digitizer()
 {
-  fGeometry = new UpgradeGeometryTGeo(kTRUE, kTRUE);
+  fGeometry = new GeometryTGeo(kTRUE, kTRUE);
   fDigitContainer = new DigitContainer(fGeometry->getNumberOfChips());
-  const UpgradeSegmentationPixel *seg =
-     (UpgradeSegmentationPixel*)fGeometry->getSegmentationById(0);
+  const SegmentationPixel *seg =
+     (SegmentationPixel*)fGeometry->getSegmentationById(0);
   DigitChip::SetNRows(seg->getNumberOfRows());
 }
 
@@ -54,8 +54,8 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     const Double_t glo[3]= {x, y, z};
     Double_t loc[3]={0.,0.,0.};    
     fGeometry->globalToLocal(chipID,glo,loc);
-    const UpgradeSegmentationPixel *seg =
-       (UpgradeSegmentationPixel*)fGeometry->getSegmentationById(0);
+    const SegmentationPixel *seg =
+       (SegmentationPixel*)fGeometry->getSegmentationById(0);
     Int_t ix, iz;
     seg->localToDetector(loc[0],loc[2],ix,iz);
     if ((ix<0) || (iz<0)) {

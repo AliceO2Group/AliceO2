@@ -4,7 +4,7 @@
 // ALICE Experiment at CERN, All rights reserved.                           *
 //                                                                          *
 // Primary Author: Maximiliano Puccio <maximiliano.puccio@cern.ch>          *
-//                 for the ITS Upgrade project                              *
+//                 for the ITS project                                      *
 //                                                                          *
 // Permission to use, copy, modify and distribute this software and its     *
 // documentation strictly for non-commercial purposes is hereby granted     *

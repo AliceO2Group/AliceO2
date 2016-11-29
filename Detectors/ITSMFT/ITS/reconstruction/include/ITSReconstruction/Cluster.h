@@ -21,7 +21,7 @@ namespace AliceO2{
     /// \brief Cluster class for the ITS
     ///
 
-  class UpgradeGeometryTGeo;
+  class GeometryTGeo;
    
 class Cluster : public FairTimeStamp 
 {
@@ -128,7 +128,7 @@ class Cluster : public FairTimeStamp
   //
   Bool_t  HasCommonTrack(const Cluster* cl)          const;
   //
-  static  void                 SetGeom(UpgradeGeometryTGeo* gm) {fgGeom = gm;}
+  static  void                 SetGeom(GeometryTGeo* gm) {fgGeom = gm;}
   static  void                 SetSortMode(SortMode_t md)   {fgMode &= ~kSortBits; fgMode |= md;}
   static  UInt_t               GetSortMode()                {return fgMode&kSortBits;}
   static  UInt_t               GetMode()                    {return fgMode;}
@@ -172,7 +172,7 @@ class Cluster : public FairTimeStamp
   Int_t                   fNxNzN;         //  effective cluster size in X (1st byte) and Z (2nd byte) directions 
                                           //  and total Npix(next 9 bits). last 7 bits are used for clusters usage counter
   static UInt_t           fgMode;         //! general mode (sorting mode etc)
-  static UpgradeGeometryTGeo* fgGeom;         //! pointer on the geometry data
+  static GeometryTGeo* fgGeom;         //! pointer on the geometry data
 
 #ifdef  _ClusterTopology_
   UShort_t fPatternNRows;                 // pattern span in rows

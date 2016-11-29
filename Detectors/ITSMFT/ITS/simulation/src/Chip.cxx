@@ -11,7 +11,7 @@
 #include <string.h>                   // for memset
 #include "TObjArray.h"                // for TObjArray
 #include "ITSSimulation/Point.h"
-#include "ITSBase/UpgradeGeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
 
 ClassImp(AliceO2::ITS::Chip)
 
@@ -26,7 +26,7 @@ Chip::Chip() :
   fPoints.SetOwner(kFALSE);
 }
 
-Chip::Chip(Int_t chipindex, UpgradeGeometryTGeo *geometry) :
+Chip::Chip(Int_t chipindex, GeometryTGeo *geometry) :
   TObject(),
   fChipIndex(chipindex),
   fPoints(),

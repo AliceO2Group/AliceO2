@@ -11,7 +11,7 @@
   #include <TGeoManager.h>
   #include <TCanvas.h>
 
-  #include "ITSBase/UpgradeGeometryTGeo.h"
+  #include "ITSBase/GeometryTGeo.h"
   #include "ITSSimulation/Point.h"
   #include "ITSReconstruction/Cluster.h"
 #endif
@@ -24,7 +24,7 @@ void CheckClusters() {
   TNtuple *nt=new TNtuple("nt","my ntuple","x:y:z:dx:dz");
 
   TGeoManager::Import("geofile_full.root");
-  UpgradeGeometryTGeo *gman = new UpgradeGeometryTGeo(kTRUE);
+  GeometryTGeo *gman = new GeometryTGeo(kTRUE);
 
   Cluster::SetGeom(gman);
   

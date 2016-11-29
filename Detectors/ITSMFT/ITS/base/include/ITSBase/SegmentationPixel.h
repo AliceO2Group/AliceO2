@@ -1,8 +1,8 @@
-/// \file UpgradeSegmentationPixel.h
-/// \brief Definition of the UpgradeSegmentationPixel class
+/// \file SegmentationPixel.h
+/// \brief Definition of the SegmentationPixel class
 
-#ifndef ALICEO2_ITS_UPGRADESEGMENTATIONPIXEL_H_
-#define ALICEO2_ITS_UPGRADESEGMENTATIONPIXEL_H_
+#ifndef ALICEO2_ITS_SEGMENTATIONPIXEL_H_
+#define ALICEO2_ITS_SEGMENTATIONPIXEL_H_
 
 #include "FairLogger.h"    // for LOG
 #include "Rtypes.h"        // for Int_t, Float_t, Double_t, UInt_t, etc
@@ -19,21 +19,21 @@ namespace ITS {
 /// of the ACTIVE matrix. If the guardring to be accounted in the local coords, in
 /// the Z and X conversions one needs to first subtract the  mGuardLeft and mGuardBottom
 /// from the local Z,X coordinates
-class UpgradeSegmentationPixel : public Segmentation
+class SegmentationPixel : public Segmentation
 {
 
   public:
 
-    UpgradeSegmentationPixel(UInt_t id = 0, int nchips = 0, int ncol = 0, int nrow = 0, float pitchX = 0,
+    SegmentationPixel(UInt_t id = 0, int nchips = 0, int ncol = 0, int nrow = 0, float pitchX = 0,
                              float pitchZ = 0, float thickness = 0, float pitchLftC = -1, float pitchRgtC = -1,
                              float edgL = 0, float edgR = 0, float edgT = 0, float edgB = 0);
 
-    //  UpgradeSegmentationPixel(Option_t *opt="" );
-    UpgradeSegmentationPixel(const UpgradeSegmentationPixel &source);
+    //  SegmentationPixel(Option_t *opt="" );
+    SegmentationPixel(const SegmentationPixel &source);
 
-    virtual ~UpgradeSegmentationPixel();
+    virtual ~SegmentationPixel();
 
-    UpgradeSegmentationPixel &operator=(const UpgradeSegmentationPixel &source);
+    SegmentationPixel &operator=(const SegmentationPixel &source);
 
     virtual void Init();
 
@@ -222,7 +222,7 @@ class UpgradeSegmentationPixel : public Segmentation
     Bool_t Store(const char *outf);
 
     /// Store in the special list under given ID
-    static UpgradeSegmentationPixel *loadWithId(UInt_t id, const char *inpf);
+    static SegmentationPixel *loadWithId(UInt_t id, const char *inpf);
 
     /// Store in the special list under given ID
     static void loadSegmentations(TObjArray *dest, const char *inpf);
@@ -261,7 +261,7 @@ class UpgradeSegmentationPixel : public Segmentation
 
     static const char *sSegmentationsListName; ///< pattern for segmentations list name
 
-  ClassDef(UpgradeSegmentationPixel, 1) // Segmentation class upgrade pixels
+  ClassDef(SegmentationPixel, 1) // Segmentation class upgrade pixels
 };
 }
 }

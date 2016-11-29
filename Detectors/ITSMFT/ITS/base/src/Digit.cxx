@@ -1,5 +1,5 @@
-/// \file AliITSUpgradeDigi.cxx
-/// \brief Digits structure for ITS digits
+/// \file Digit.cxx
+/// \brief Digit structure for ITS digits
 
 #include "ITSBase/Digit.h"
 

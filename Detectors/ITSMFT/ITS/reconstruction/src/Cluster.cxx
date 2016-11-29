@@ -2,7 +2,7 @@
 /// \brief Cluster structure for ITS clusters
 
 #include "ITSReconstruction/Cluster.h"
-#include "ITSBase/UpgradeGeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "FairLogger.h"
 
 #include <TGeoMatrix.h>
@@ -17,7 +17,7 @@ ClassImp(AliceO2::ITS::Cluster)
 
 
 
-UpgradeGeometryTGeo *Cluster::fgGeom = 0;
+GeometryTGeo *Cluster::fgGeom = 0;
 UInt_t               Cluster::fgMode = 0;
 
 //_____________________________________________________

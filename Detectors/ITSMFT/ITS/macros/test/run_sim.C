@@ -13,8 +13,8 @@
 
   #include "DetectorsPassive/Cave.h"
 
-  #include "ITSBase/UpgradeGeometryTGeo.h"
-  #include "ITSBase/UpgradeSegmentationPixel.h"
+  #include "ITSBase/GeometryTGeo.h"
+  #include "ITSBase/SegmentationPixel.h"
   #include "ITSSimulation/Detector.h"
 #endif
 
@@ -117,7 +117,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   gSystem->Exec(" rm itsSegmentations.root ");
 
   // create segmentations:
-  AliceO2::ITS::UpgradeSegmentationPixel* seg0 = new AliceO2::ITS::UpgradeSegmentationPixel(
+  AliceO2::ITS::SegmentationPixel* seg0 = new AliceO2::ITS::SegmentationPixel(
     0,           // segID (0:9)
     1,           // chips per module
     kNCol,       // ncols (total for module)
@@ -131,8 +131,8 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     kGuardRing,  // right
     kGuardRing,  // top
     kReadOutEdge // bottom
-    );           // see UpgradeSegmentationPixel.h for extra options
-  seg0->Store(AliceO2::ITS::UpgradeGeometryTGeo::getITSsegmentationFileName());
+    );           // see SegmentationPixel.h for extra options
+  seg0->Store(AliceO2::ITS::GeometryTGeo::getITSsegmentationFileName());
   seg0->Print();
 
   double dzLr, rLr, phi0, turbo;

@@ -7,7 +7,7 @@
 #include "ITSReconstruction/Clusterer.h"
 #include "ITSReconstruction/Cluster.h"
 #include "ITSBase/Digit.h"
-#include "ITSBase/UpgradeSegmentationPixel.h"
+#include "ITSBase/SegmentationPixel.h"
 
 #include "TClonesArray.h"        // for TClonesArray
 #include "FairLogger.h"          // for LOG
