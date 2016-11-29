@@ -35,6 +35,14 @@
 #define HAVE_FAIRMQ_INTERFACE_CHANGESTATE_STRING
 #endif
 
+// DDS intercom API has been changed in release 1.4
+// as it is not a matter of a few lines, DDS support is disabled for
+// the moment. We need a major rewrite and testing 
+#ifdef ENABLE_DDS
+#define ENFORCED_DDS_DISABLE
+#undef ENABLE_DDS
+#endif
+
 #ifdef ENABLE_DDS
 #include <mutex>
 #include <condition_variable>
@@ -293,7 +301,11 @@ int main(int argc, char** argv)
 
   if (bUseDDS) {
 #ifndef ENABLE_DDS
+#ifdef ENFORCED_DDS_DISABLE
+    cerr << "Fatal: device is not compatible with DDS Intercom API any more" << endl;
+#else
     cerr << "Fatal: device has not been compiled with DDS support" << endl;
+#endif
     exit(ENOSYS);
 #endif
     int result=preprocessSocketsDDS(inputSockets, networkPrefix);
