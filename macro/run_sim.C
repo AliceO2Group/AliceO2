@@ -70,8 +70,8 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   const double kSensThick = 18e-4;
   const double kPitchX = 20e-4;
   const double kPitchZ = 20e-4;
-  const int kNRow = 650;
-  const int kNCol = 1500;
+  int kNRow = 650;
+  int kNCol = 1500;
   const double kSiThickIB = 150e-4;
   const double kSiThickOB = 150e-4;
   //  const double kSensThick = 120e-4;   // -> sensor Si thickness
