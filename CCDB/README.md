@@ -23,7 +23,7 @@ conditions-server --id parmq-server --mq-config <installation directory>/bin/con
 * In a separate shell run the client example:
 
 ```bash
-conditions-client --id parmq-client --mq-config <installation directory>/bin/config/conditions-client.json --data-source OCDB
+conditions-client --id parmq-client --mq-config <installation directory>/bin/config/conditions-client.json --data-source OCDB --object-path <installation directory>/bin/config/O2CDB
 ```
 
 ### Riak backend

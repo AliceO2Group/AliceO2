@@ -36,13 +36,13 @@ public:
 private:
   Manager* fCdbManager;
 
-  void getFromOCDB(std::string key, int runId);
+  void getFromOCDB(std::string key);
 
   /// Parses a serialized message for a data source entry
   void ParseDataSource(std::string& dataSource, const std::string& data);
 
-  /// Parses a serialized message for a key entry
-  void ParseKey(std::string& key, int& runId, const std::string& data);
+  /// Deserializes a message and stores the value to an std::string using Protocol Buffers
+  void Deserialize(const std::string& messageString, std::string& key);
 };
 }
 }

@@ -69,19 +69,14 @@ void ConditionsMQServer::ParseDataSource(std::string& dataSource, const std::str
   delete msgReply;
 }
 
-void ConditionsMQServer::ParseKey(std::string& key, int& runId, const std::string& data)
+void ConditionsMQServer::Deserialize(const std::string& messageString, std::string& object)
 {
-  messaging::RequestMessage* msgReply = new messaging::RequestMessage;
-  msgReply->ParseFromString(data);
+  messaging::RequestMessage* requestMessage = new messaging::RequestMessage;
+  requestMessage->ParseFromString(messageString);
 
-  std::string keyIdentifier = msgReply->key();
-  std::vector<std::string> dataVector;
-  boost::split(dataVector, keyIdentifier, boost::is_any_of(","));
+  object.assign(requestMessage->key());
 
-  key = dataVector.at(0);
-  runId = std::stoi(dataVector.at(1));
-
-  delete msgReply;
+  delete requestMessage;
 }
 
 void ConditionsMQServer::Run()
@@ -99,7 +94,7 @@ void ConditionsMQServer::Run()
       if (Receive(input, "data-get") > 0) {
         std::string serialString(static_cast<char*>(input->GetData()), input->GetSize());
 
-        // LOG(DEBUG) << "Received a GET client message: " << serialString;
+        //LOG(DEBUG) << "Received a GET client message: " << serialString;
 
         std::string dataSource;
         ParseDataSource(dataSource, serialString);
@@ -107,10 +102,9 @@ void ConditionsMQServer::Run()
         if (dataSource == "OCDB") {
           // Retrieve the key from the serialized message
           std::string key;
-          int runId;
-          ParseKey(key, runId, serialString);
+          Deserialize(serialString, key);
 
-          getFromOCDB(key, runId);
+          getFromOCDB(key);
         } else if (dataSource == "Riak") {
           // No need to de-serialize, just forward message to the broker
           fChannels.at("broker-get").at(0).Send(input);
@@ -151,12 +145,20 @@ void ConditionsMQServer::Run()
 }
 
 // Query OCDB for the condition
-void ConditionsMQServer::getFromOCDB(std::string key, int runId)
+void ConditionsMQServer::getFromOCDB(std::string key)
 {
+  // Change key from i.e. "/DET/Calib/Histo/Run2008_2008_v1_s0" to (DET/Calib/Histo, 2008)
+  // FIXME: This will have to be changed in the future by adapting IdPath and getObject accordingly
+  std::size_t pos = key.rfind("/");
+  std::string identifier = key.substr(1, pos);
+  key.erase(0, pos + 4);
+  std::size_t pos2 = key.find("_");
+  int runId = atoi(key.substr(0, pos2).c_str());
+
   Condition* aCondition = nullptr;
 
   fCdbManager->setRun(runId);
-  aCondition = fCdbManager->getObject(IdPath(key), runId);
+  aCondition = fCdbManager->getObject(IdPath(identifier), runId);
 
   if (aCondition) {
     LOG(DEBUG) << "Sending following parameter to the client:";

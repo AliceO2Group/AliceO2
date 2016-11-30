@@ -45,17 +45,6 @@ private:
   std::string fDataSource;
   std::string fObjectPath;
 
-  /// Serializes a key (and optionally value) to an std::string using Protocol Buffers
-  void Serialize(std::string*& messageString, const std::string& key, const std::string& object = std::string());
-
-  /// Deserializes a message and stores the value to an std::string using Protocol Buffers
-  void Deserialize(const std::string& messageString, std::string& object);
-
-  /// Run loop when an OCDB backend is chosen
-  void RunOCDB();
-
-  /// Run loop when a Riak backend is chosen
-  void RunRiak();
 };
 }
 }
