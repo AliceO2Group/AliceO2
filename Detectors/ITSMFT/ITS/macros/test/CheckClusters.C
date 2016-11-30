@@ -48,7 +48,6 @@ void CheckClusters() {
     Int_t nc=clusArr.GetEntriesFast();
     while(nc--) {
       Cluster *c=static_cast<Cluster *>(clusArr.UncheckedAt(nc));
-      c->SetFrameLoc(); // temporary fix !
       c->GoToFrameLoc();
       const Double_t loc[3]={c->GetX(), 0., c->GetZ()};
       
