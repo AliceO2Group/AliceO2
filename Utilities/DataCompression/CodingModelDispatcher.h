@@ -26,6 +26,8 @@
 #include <boost/type.hpp>
 #include <boost/mpl/for_each.hpp>
 
+using namespace gNeric;
+
 namespace ALICE {
 namespace O2 {
 
