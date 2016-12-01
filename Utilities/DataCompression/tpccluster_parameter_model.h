@@ -1,5 +1,5 @@
-#include "dc_primitives.h"
-#include "HuffmanCodec.h"
+#include "DataCompression/dc_primitives.h"
+#include "DataCompression/HuffmanCodec.h"
 #include <bitset>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/string.hpp>
