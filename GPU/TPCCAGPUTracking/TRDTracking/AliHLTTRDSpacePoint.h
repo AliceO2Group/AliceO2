@@ -6,6 +6,7 @@
 // struct to hold the information on the space points
 struct AliHLTTRDSpacePoint {
   float fX[3];
+  short fVolumeId; 
 };
 
 struct AliHLTTRDSpacePointData {
