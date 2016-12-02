@@ -126,6 +126,7 @@ private:
 
   TList* fTrackList;
   bool fDebugTrackOutput; // output AliHLTTRDTracks instead AliHLTExternalTrackParam
+  bool fVerboseDebugOutput; // more verbose information is printed
 
   ClassDef(AliHLTTRDTrackerComponent, 0)
 };

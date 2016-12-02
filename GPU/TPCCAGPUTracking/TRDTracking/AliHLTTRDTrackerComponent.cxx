@@ -55,7 +55,8 @@ ClassImp(AliHLTTRDTrackerComponent)
 AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent() :
   fTracker(0x0),
   fTrackList(0x0),
-  fDebugTrackOutput(false)
+  fDebugTrackOutput(false),
+  fVerboseDebugOutput(false)
 {
 }
 
@@ -64,7 +65,8 @@ AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent( const AliHLTTRDTrackerComp
   fTracker(0x0),
   fTrackList(0x0),
   AliHLTProcessor(),
-  fDebugTrackOutput(false)
+  fDebugTrackOutput(false),
+  fVerboseDebugOutput(false)
 {
   // see header file for class documentation
   HLTFatal( "copy constructor untested" );
@@ -137,6 +139,7 @@ int AliHLTTRDTrackerComponent::ReadConfigurationString(  const char* arguments )
 
     if ( argument.CompareTo("-debugOutput") == 0 ) {
       fDebugTrackOutput = true;
+      fVerboseDebugOutput = true;
       HLTWarning( "Tracks are dumped in the AliHLTTRDTrack format" );
       continue;
     }
@@ -247,6 +250,8 @@ int AliHLTTRDTrackerComponent::DoEvent
       }
     }
 
+
+
     // Read TPC tracks
 
     if( iter->fDataType == ( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC ) ){
@@ -255,7 +260,12 @@ int AliHLTTRDTrackerComponent::DoEvent
       AliHLTExternalTrackParam* currOutTrack = dataPtr->fTracklets;
       for( int itr=0; itr<nTracks; itr++ ){
 	      AliHLTGlobalBarrelTrack t(*currOutTrack);
+        Int_t mcLabel = -1;
+        if (mcLabels.find(currOutTrack->fTrackID) != mcLabels.end() ) {
+          mcLabel = mcLabels[currOutTrack->fTrackID];
+        }
 	      tracksTPC.push_back( t );
+        tracksTPCLab.push_back(mcLabel);
 	      tracksTPCId.push_back( currOutTrack->fTrackID );
 	      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + currOutTrack->fNPoints * sizeof( unsigned int );
 	      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
@@ -271,7 +281,9 @@ int AliHLTTRDTrackerComponent::DoEvent
 
   }// end read input blocks
 
-  printf("TRDTrackerComponent recieved %i tracklets\n", nTrackletsTotal);
+  if (fVerboseDebugOutput) {
+    printf("TRDTrackerComponent recieved %i tracklets\n", nTrackletsTotal);
+  }
 
   fTracker->Reset();
   fTracker->StartLoadTracklets(nTrackletsTotal);
