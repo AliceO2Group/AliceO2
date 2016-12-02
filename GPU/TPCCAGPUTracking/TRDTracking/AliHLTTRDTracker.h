@@ -23,6 +23,7 @@ public:
   struct AliHLTTRDSpacePointInternal {
     double fX[3];
     int fId;
+    short fVolumeId;
   };
 
   void Init();

@@ -346,6 +346,7 @@ int AliHLTTRDTrackerComponent::DoEvent
       empty.fX[0] = 0;
       empty.fX[1] = 0;
       empty.fX[2] = 0;      
+      empty.fVolumeId = 0;
       for (int i=0; i<nTrackletsTotal; ++i) {
 	outSpacePoints->fPoints[i] = empty;
       }
@@ -361,6 +362,7 @@ int AliHLTTRDTrackerComponent::DoEvent
       currOutPoint->fX[0] = sp.fX[0];
       currOutPoint->fX[1] = sp.fX[1];
       currOutPoint->fX[2] = sp.fX[2];
+      currOutPoint->fVolumeId = sp.fVolumeId;
     }
     AliHLTComponentBlockData resultDataSP;
     FillBlockData( resultDataSP );

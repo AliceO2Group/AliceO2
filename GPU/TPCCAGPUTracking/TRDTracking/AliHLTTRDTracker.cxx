@@ -82,10 +82,11 @@ void AliHLTTRDTracker::Reset()
   fNTracklets = 0;
   for (int i=0; i<fNtrackletsMax; ++i) {
     fTracklets[i] = 0x0;
-    fSpacePoints[i].fX[0] = 0.;
-    fSpacePoints[i].fX[1] = 0.;
-    fSpacePoints[i].fX[2] = 0.;
-    fSpacePoints[i].fId = 0;
+    fSpacePoints[i].fX[0]     = 0.;
+    fSpacePoints[i].fX[1]     = 0.;
+    fSpacePoints[i].fX[2]     = 0.;
+    fSpacePoints[i].fId       = 0;
+    fSpacePoints[i].fVolumeId = 0;
   }
   for (int iDet=0; iDet<540; ++iDet) {
     fTrackletIndexArray[iDet][0] = -1;
@@ -202,6 +203,11 @@ void AliHLTTRDTracker::CalculateSpacePoints()
       }
       matrix->LocalToMaster(xTrklt, fSpacePoints[trkltIdx].fX);
       fSpacePoints[trkltIdx].fId = fTracklets[trkltIdx].GetId();
+
+      AliGeomManager::ELayerID iLayer = AliGeomManager::ELayerID(AliGeomManager::kTRD1+fTRDgeometry->GetLayer(iDet));
+      int modId   = fTRDgeometry->GetSector(iDet) * AliTRDgeometry::kNstack + fTRDgeometry->GetStack(iDet);
+      short volId = AliGeomManager::LayerToVolUID(iLayer, modId);
+      fSpacePoints[trkltIdx].fVolumeId = volId;
     }
   }
 }
