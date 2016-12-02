@@ -276,7 +276,7 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
   std::vector<AliHLTTRDTrackletWord> outputTrkls;
   int nTracklets = fTrackletArray->GetEntriesFast();
 
-  printf("There are %i tracklets in this event\n", nTracklets);
+  HLTInfo("There are %i tracklets in this event\n", nTracklets);
   for (int iTracklet = 0; iTracklet < nTracklets; ++iTracklet){
     AliHLTTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
     trkl.SetId(iTracklet);

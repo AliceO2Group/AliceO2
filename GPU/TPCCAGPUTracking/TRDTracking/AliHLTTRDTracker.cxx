@@ -281,7 +281,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
         double zNew = t->GetZ() > 0 ? t->GetZ() - 20. : t->GetZ() + 20.;
         stack[0] = fTRDgeometry->GetStack(zNew, iLayer);
         if (stack[0] < 0) {
-          printf("Determining stack failed twice in outer chamber: z=%f, layer=%i, stack=%i\n", t->GetZ(), iLayer, stack[0]);
+          Info("FollowProlongation", "Determining stack failed twice in outer chamber: z=%f, layer=%i, stack=%i\n", t->GetZ(), iLayer, stack[0]);
           return result;
         }
       }
