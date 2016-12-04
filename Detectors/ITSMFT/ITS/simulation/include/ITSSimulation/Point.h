@@ -46,6 +46,9 @@ class Point : public FairMCPoint
     // Default Destructor
     virtual ~Point();
 
+    void SetTotalEnergy(Double_t e) { fTotalEnergy=e; }
+    Double_t GetTotalEnergy() const { return fTotalEnergy; }
+
     Double_t GetStartX() const
     { return fStartX; }
 
@@ -134,10 +137,11 @@ class Point : public FairMCPoint
     Int_t fTrackStatus;                     ///< MC status flag at hit
     Int_t fTrackStatusStart;                ///< MC status at starting point
     Int_t fShunt;                           ///< Shunt
-    Double32_t fStartX, fStartY, fStartZ;        ///< Position at the entrance of the active volume
-    Double32_t fStartTime;                       ///< Time at the entrance of the active volume
+    Double32_t fStartX, fStartY, fStartZ;   ///< Position at the entrance of the active volume
+    Double32_t fStartTime;     ///< Time at the entrance of the active volume
+    Double32_t fTotalEnergy;   ///< Total energy
 
-  ClassDef(Point, 1)
+  ClassDef(Point, 2)
 };
 
 }

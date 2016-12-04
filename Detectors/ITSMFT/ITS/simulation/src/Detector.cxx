@@ -468,12 +468,13 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
   }
 
   // Create Point on every step of the active volume
-  addHit(mTrackNumberID, chipindex, //mVolumeID,
+  Point *p=addHit(mTrackNumberID, chipindex, //mVolumeID,
          TVector3(mEntrancePosition.X(), mEntrancePosition.Y(), mEntrancePosition.Z()),
          TVector3(mPosition.X(), mPosition.Y(), mPosition.Z()),
          TVector3(mMomentum.Px(), mMomentum.Py(), mMomentum.Pz()), mEntranceTime, mTime, mLength,
          mEnergyLoss, mShunt, mStatus, mStatus0);
-
+  p->SetTotalEnergy(TVirtualMC::GetMC()->Etot());
+  
   // Increment number of Detector det points in TParticle
   AliceO2::Data::Stack *stack = (AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
   stack->AddPoint(kAliIts);

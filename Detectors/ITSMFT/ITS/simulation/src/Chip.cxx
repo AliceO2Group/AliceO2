@@ -101,8 +101,10 @@ void Chip::Clear(Option_t *opt)
   fPoints.Clear();
 }
 
-Bool_t Chip::LineSegmentLocal(Int_t hitindex, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
-                              Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
+Bool_t Chip::LineSegmentLocal(Int_t hitindex,
+Double_t &xstart, Double_t &xpoint,
+Double_t &ystart, Double_t &ypoint,
+Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
 {
   if (hitindex >= fPoints.GetEntriesFast()) {
     return kFALSE;

@@ -15,7 +15,9 @@ Point::Point() : FairMCPoint(),
                  fShunt(0),
                  fStartX(0.),
                  fStartY(0.),
-                 fStartZ(0.)
+                 fStartZ(0.),
+                 fStartTime(0.),
+                 fTotalEnergy(0.)
 {
 }
 
@@ -29,7 +31,8 @@ Point::Point(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVecto
     fStartX(startPos.X()),
     fStartY(startPos.Y()),
     fStartZ(startPos.Z()),
-    fStartTime(startTime)
+    fStartTime(startTime),
+    fTotalEnergy(0.)
 {
 }
 

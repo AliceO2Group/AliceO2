@@ -146,6 +146,8 @@ class Chip : public TObject
     /// @param p Point to be added
     void InsertPoint(Point *p);
 
+    GeometryTGeo *GetGeometry() const { return fGeometry; }
+
     /// Get the number of point assigned to the chip
     /// @return Number of points assigned to the chip
     Int_t GetNumberOfPoints() const
@@ -153,7 +155,7 @@ class Chip : public TObject
 
     /// Get the list of points assigned to this chip
     /// @return TObjArray of points
-    TObjArray *GetListOfPoints()
+    TObjArray *GetPoints()
     { return &fPoints; }
 
     /// Access Point assigned to chip at a given index

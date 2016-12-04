@@ -9,6 +9,9 @@ set(SRCS
     src/GeometryHandler.cxx
     src/Point.cxx
     src/Chip.cxx
+    src/ClusterShape.cxx
+    src/SimuClusterShaper.cxx
+    src/SimulationAlpide.cxx
     src/DigitChip.cxx
     src/Digitizer.cxx
     src/DigitizerTask.cxx
@@ -20,6 +23,9 @@ set(SRCS
 set(HEADERS
     include/${MODULE_NAME}/Chip.h
     include/${MODULE_NAME}/Detector.h
+    include/${MODULE_NAME}/ClusterShape.h
+    include/${MODULE_NAME}/SimuClusterShaper.h
+    include/${MODULE_NAME}/SimulationAlpide.h
     include/${MODULE_NAME}/DigitChip.h
     include/${MODULE_NAME}/DigitContainer.h
     include/${MODULE_NAME}/DigitLayer.h

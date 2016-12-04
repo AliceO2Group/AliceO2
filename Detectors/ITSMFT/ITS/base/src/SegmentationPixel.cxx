@@ -252,40 +252,41 @@ void SegmentationPixel::neighbours(Int_t iX, Int_t iZ, Int_t *nlist, Int_t xlist
   zlist[7] = iZ - 1;
 }
 
-void SegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t &ix, Int_t &iz) const
+Bool_t SegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t &ix, Int_t &iz) const
 {
   x += 0.5 * dxActive() + mShiftLocalX; // get X,Z wrt bottom/left corner
   z += 0.5 * dzActive() + mShiftLocalZ;
   ix = iz = -1;
   if (x < 0 || x > dxActive()) {
     //throw OutOfActiveAreaException(OutOfActiveAreaException::kX, x, 0, dxActive());
-    return;
+    return kFALSE;
   }
   if (z < 0 || z > dzActive()) {
     //throw OutOfActiveAreaException(OutOfActiveAreaException::kZ, z, 0, dzActive());
-    return;
+    return kFALSE;
   }
   ix = int(x / mPitchX);
   iz = zToColumn(z);
-  //return kTRUE; // Found ix and iz, return.
+  return kTRUE; // Found ix and iz, return.
 }
 
-void SegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t &x, Float_t &z) const
+Bool_t SegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t &x, Float_t &z) const
 {
   x = -0.5 * dxActive(); // default value.
   z = -0.5 * dzActive(); // default value.
   if (ix < 0 || ix >= mNumberOfRows) {
     //throw InvalidPixelException(InvalidPixelException::kX, ix, mNumberOfRows);
-    return;
+    return kFALSE;
   } // outside of detector
   if (iz < 0 || iz >= mNumberOfColumns) {
     //throw InvalidPixelException(InvalidPixelException::kZ, iz, mNumberOfColumns);
-    return;
+    return kFALSE;
   } // outside of detector
   x +=
     (ix + 0.5) * mPitchX - mShiftLocalX; // RS: we go to the center of the pad, i.e. + pitch/2, not
   // to the boundary as in SPD
   z += columnToZ(iz) - mShiftLocalZ;
+  return kTRUE;
 }
 
 void SegmentationPixel::cellBoundries(Int_t ix, Int_t iz, Double_t &xl, Double_t &xu,

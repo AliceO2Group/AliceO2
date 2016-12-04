@@ -247,12 +247,12 @@ class Segmentation : public TObject
     /// Transformation from Geant cm detector center local coordinates
     /// to detector segmentation/cell coordiantes starting from (0,0).
     /// @throw OutOfActiveAreaException if the point is outside the active area in any of the directions
-    virtual void localToDetector(Float_t, Float_t, Int_t &, Int_t &) const = 0;
+    virtual Bool_t localToDetector(Float_t, Float_t, Int_t &, Int_t &) const = 0;
 
     /// Transformation from detector segmentation/cell coordiantes starting
     /// from (0,0) to Geant cm detector center local coordinates.
     /// @throw InvalidPixelException in case the pixel ID in any direction is out of range
-    virtual void detectorToLocal(Int_t, Int_t, Float_t &, Float_t &) const = 0;
+    virtual Bool_t detectorToLocal(Int_t, Int_t, Float_t &, Float_t &) const = 0;
 
     /// Initialisation
     virtual void Init() = 0;

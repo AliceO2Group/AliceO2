@@ -70,7 +70,7 @@ class SegmentationPixel : public Segmentation
     /// the center of the sensitive volulme.
     /// \param Int_t ix Detector x cell coordinate. Has the range 0 <= ix < mNumberOfRows
     /// \param Int_t iz Detector z cell coordinate. Has the range 0 <= iz < mNumberOfColumns
-    virtual void localToDetector(Float_t x, Float_t z, Int_t &ix, Int_t &iz) const;
+    virtual Bool_t localToDetector(Float_t x, Float_t z, Int_t &ix, Int_t &iz) const;
 
     /// Transformation from Detector cell coordiantes to Geant detector centered
     /// local coordinates (cm)
@@ -82,7 +82,7 @@ class SegmentationPixel : public Segmentation
     /// center of the sensitive volulme.
     /// If ix and or iz is outside of the segmentation range a value of -0.5*Dx()
     /// or -0.5*Dz() is returned.
-    virtual void detectorToLocal(Int_t ix, Int_t iz, Float_t &x, Float_t &z) const;
+    virtual Bool_t detectorToLocal(Int_t ix, Int_t iz, Float_t &x, Float_t &z) const;
 
     /// Transformation from Detector cell coordiantes to Geant detector centered
     /// local coordinates (cm)

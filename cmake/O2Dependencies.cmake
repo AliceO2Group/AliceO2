@@ -251,6 +251,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     fairroot_base_bucket
+    MathCore
     Geom
     RIO
     Hist
