@@ -61,6 +61,13 @@ o2_define_bucket(
     NAME
     common_boost_bucket
 
+    DEPENDENCIES
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_LOG_LIBRARY}
+    ${Boost_LOG_SETUP_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+
     SYSTEMINCLUDE_DIRECTORIES
     ${Boost_INCLUDE_DIR}
 )
@@ -69,9 +76,8 @@ o2_define_bucket(
     NAME
     ExampleModule1_bucket
 
-    DEPENDENCIES # library names
+    DEPENDENCIES # library names and other buckets
     common_boost_bucket
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
 
     INCLUDE_DIRECTORIES
 )
@@ -98,13 +104,8 @@ o2_define_bucket(
     common_boost_bucket
     ${Boost_CHRONO_LIBRARY}
     ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_LOG_LIBRARY}
-    ${Boost_LOG_SETUP_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_RANDOM_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
     ${ZMQ_LIBRARY_SHARED}
     ${OPTIONAL_DDS_LIBRARIES}
     Base
@@ -137,7 +138,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    FairMQ ${Boost_LOG_LIBRARY} ${Boost_THREAD_LIBRARY} fairmq_logger Base FairTools Core MathCore Hist
+    FairMQ fairmq_logger Base FairTools Core MathCore Hist
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -162,11 +163,6 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
-    ${Boost_LOG_SETUP_LIBRARY}
-    ${Boost_LOG_LIBRARY}
     Base
     FairTools
     ParBase
@@ -208,7 +204,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     root_base_bucket
-    Base FairMQ FairTools ${Boost_LOG_LIBRARY} fairmq_logger Base
+    Base FairMQ FairTools fairmq_logger Base
     common_boost_bucket
     ${Boost_THREAD_LIBRARY} pthread
 
@@ -327,12 +323,7 @@ o2_define_bucket(
     FairMQ
     fairmq_logger
     pthread
-    ${Boost_LOG_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
     ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_LOG_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
@@ -355,9 +346,6 @@ o2_define_bucket(
     pthread
     fairmq_logger
     common_boost_bucket
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_LOG_LIBRARY}
-    ${Boost_LOG_SETUP_LIBRARY}
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
@@ -401,7 +389,8 @@ o2_define_bucket(
     QC_test_bucket
 
     DEPENDENCIES
-    dl Core Base Hist FairMQ  ${Boost_SYSTEM_LIBRARY}
+    dl Core Base Hist FairMQ
+    common_boost_bucket
 )
 
 o2_define_bucket(
@@ -459,13 +448,8 @@ o2_define_bucket(
     common_boost_bucket
     ${Boost_CHRONO_LIBRARY}
     ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_RANDOM_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_LOG_LIBRARY}
-    ${Boost_LOG_SETUP_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
     FairMQ
     ${OPTIONAL_DDS_LIBRARIES}
 
@@ -484,7 +468,7 @@ o2_define_bucket(
     DEPENDENCIES
     Core RIO Gpad Hist HLTbase AliHLTUtil AliHLTTPC AliHLTUtil
     common_boost_bucket
-    ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
     dl
 
     INCLUDE_DIRECTORIES
@@ -546,15 +530,11 @@ o2_define_bucket(
     MFTSimulation
     DetectorsBase
     SimulationDataFormat
+    common_boost_bucket
     ${Boost_CHRONO_LIBRARY}
     ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_LOG_LIBRARY}
-    ${Boost_LOG_SETUP_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${Boost_RANDOM_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
     ${ZMQ_LIBRARY_SHARED}
     ${OPTIONAL_DDS_LIBRARIES}
     Base
