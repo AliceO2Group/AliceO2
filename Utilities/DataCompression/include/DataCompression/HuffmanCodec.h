@@ -24,6 +24,7 @@
 #include <set>
 #include <map>
 #include <vector>
+#include <memory>
 #include <exception>
 #include <stdexcept>
 #include <iostream>
@@ -44,19 +45,19 @@ template<typename _CodeType>
 class HuffmanNode {
 public:
   typedef HuffmanNode self_type;
-  typedef HuffmanNode* pointer;
+  typedef self_type* pointer;
+  typedef std::shared_ptr<self_type> shared_pointer;
   typedef _CodeType CodeType;
 
-  HuffmanNode() : mLeft(nullptr), mRight(nullptr), mWeight(0.), mIndex(~uint16_t(0)), mCode(), mCodeLen(0) {}
-  HuffmanNode(const HuffmanNode& other) : mLeft(other.mLeft), mRight(other.mRight), mWeight(other.mWeight), mCode(other.mCode), mIndex(other.mIndex), mCodeLen(other.mCodeLen) {}
-  HuffmanNode& operator=(const HuffmanNode& other) {
-    if (this != &other) new (this) HuffmanNode(other);
-    return *this;
-  }
+  HuffmanNode() : mLeft(), mRight(), mWeight(0.), mIndex(~uint16_t(0)), mCode(), mCodeLen(0) {}
+  HuffmanNode(const HuffmanNode& other) = default;
+  HuffmanNode& operator=(const HuffmanNode& other) = default;
   ~HuffmanNode() {}
 
-  HuffmanNode(double weight, uint16_t index = ~uint16_t(0)) : mLeft(nullptr), mRight(nullptr), mWeight(weight), mIndex(index), mCode(), mCodeLen(0) {}
-  HuffmanNode(pointer left, pointer right) : mLeft(left), mRight(right), mWeight((mLeft!=nullptr?mLeft->mWeight:0.)+(mRight!=nullptr?mRight->mWeight:0.)), mIndex(~uint16_t(0)), mCode(), mCodeLen(0) {}
+  HuffmanNode(double weight, uint16_t index = ~uint16_t(0)) : mLeft(), mRight(), mWeight(weight), mIndex(index), mCode(), mCodeLen(0) {}
+  // TODO: check if the shared pointers can be passed by reference
+  // quick attempt lead to compilation error
+  HuffmanNode(shared_pointer left, shared_pointer right) : mLeft(left), mRight(right), mWeight((mLeft?mLeft->mWeight:0.)+(mRight?mRight->mWeight:0.)), mIndex(~uint16_t(0)), mCode(), mCodeLen(0) {}
 
   bool operator<(const HuffmanNode& other) const {
     return mWeight < other.mWeight;
@@ -67,8 +68,8 @@ public:
   uint16_t getIndex() const {return mIndex;}
 
   // TODO: can be combined to one function with templated index
-  pointer  getLeftChild() const {return mLeft;}
-  pointer  getRightChild() const {return mRight;}
+  pointer  getLeftChild() const {return mLeft.get();}
+  pointer  getRightChild() const {return mRight.get();}
   void setBinaryCode(uint16_t codeLen, CodeType code) {mCode = code; mCodeLen = codeLen;}
 
   self_type& operator<<=(bool bit) {
@@ -89,20 +90,20 @@ public:
   void print(std::ostream& stream = std::cout) const {
     static int level=1;
     stream << "node weight: " << std::setw(9) << mWeight;
-    if (mLeft == nullptr) stream << " leave ";
-    else                  stream << "  tree ";
+    if (!mLeft) stream << " leave ";
+    else       stream << "  tree ";
     stream << " code length: " << mCodeLen;
     stream << " code " << mCode;
     stream << std::endl;
     level++;
-    if (mLeft!=nullptr)  {stream << std::setw(level) << level << ":  left: "; mLeft->print(stream);}
-    if (mRight!=nullptr) {stream << std::setw(level) << level << ": right: "; mRight->print(stream);}
+    if (mLeft)  {stream << std::setw(level) << level << ":  left: "; mLeft->print(stream);}
+    if (mRight) {stream << std::setw(level) << level << ": right: "; mRight->print(stream);}
     level--;
   }
 
 private:
-  pointer mLeft;
-  pointer mRight;
+  shared_pointer mLeft;
+  shared_pointer mRight;
   double  mWeight;
   uint16_t mIndex;
   CodeType mCode;
@@ -188,8 +189,8 @@ public:
     auto nodeIndex = _BASE::alphabet_type::getIndex(symbol);
     if (nodeIndex < mLeaveNodes.size()) {
       // valid symbol/value
-      codeLength = mLeaveNodes[nodeIndex].getBinaryCodeLength();
-      return mLeaveNodes[nodeIndex].getBinaryCode();
+      codeLength = mLeaveNodes[nodeIndex]->getBinaryCodeLength();
+      return mLeaveNodes[nodeIndex]->getBinaryCode();
     } else {
       std::string msg = "symbol "; msg += symbol;
       msg += " not found in alphapet "; msg += _BASE::getName();
@@ -210,9 +211,17 @@ public:
    * @return value, valid if codeLength > 0
    */
   value_type Decode(code_type code, uint16_t& codeLength) const {
+    // TODO: need to check if there is a loaded tree, but don't
+    // want to check this every time when calling. Maybe its enough
+    // to let the dereferencing below throw an exception
     codeLength = 0;
     typename _BASE::value_type v = 0;
-    const _NodeType* node = *mTreeNodes.begin();
+    // dereference the iterator and get raw pointer from shared pointer
+    // TODO: work on shared pointers here as well
+    // the top node is the only element in the multiset after using the
+    // weighted sort algorithm to build the tree, all nodes are referenced
+    // from their parents in the tree.
+    const _NodeType* node = (*mTreeNodes.begin()).get();
     uint16_t codeMSB = code.size() - 1;
     while (node) {
       // N.B.: nodes have either both child nodes or none of them
@@ -239,15 +248,31 @@ public:
   }
 
   /**
-   * 'less' functor for pointer type arguments
-   * used in the multiset for sorting in the order less probable to
-   * more probable
+   * 'less' functor used in the multiset for sorting in the order less
+   * probable to more probable
    */
   template<typename T>
-  class pless {
+  class isless {
   public:
     bool operator()(const T a, const T b) {
+      return a < b;
+    }
+  };
+  /// specialization for pointer types
+  template<typename T>
+  class isless<T*> {
+  public:
+    bool operator()(const T* a, const T* b) {
       if (a == nullptr || b == nullptr) return false;
+      return *a < *b;
+    }
+  };
+  /// specialization for shared pointer
+  template<typename T>
+  class isless<std::shared_ptr<T>> {
+  public:
+    bool operator()(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b) {
+      if (!a || !b) return false;
       return *a < *b;
     }
   };
@@ -264,26 +289,28 @@ public:
     _BASE& model = *this;
     for ( auto i : model) {
       // create nodes knowing about their index and the symbol weight
-      mLeaveNodes.push_back(_NodeType(i.second, _BASE::alphabet_type::getIndex(i.first)));
+      mLeaveNodes.push_back(std::make_shared<_NodeType>(i.second, _BASE::alphabet_type::getIndex(i.first)));
     }
 
     // insert pointer to nodes into ordered structure to build tree
     // since the type is a pointer, a specific 'less' functor needs to
     // be provided to dereference before applying operator<
     for ( auto &i : mLeaveNodes) {
-      mTreeNodes.insert(&(i));
+      mTreeNodes.insert(i);
     }
     while (mTreeNodes.size() > 1) {
       // create new node combining the two with lowest probability
-      _NodeType* combinedNode=new _NodeType(*mTreeNodes.begin(), *++mTreeNodes.begin());
+      std::shared_ptr<_NodeType> combinedNode = std::make_shared<_NodeType>(*mTreeNodes.begin(), *++mTreeNodes.begin());
       // remove those two nodes from the list
       mTreeNodes.erase(mTreeNodes.begin());
       mTreeNodes.erase(mTreeNodes.begin());
       // insert the new node according to the less functor
       mTreeNodes.insert(combinedNode);
     }
-    //assign value
-    assignCode(*mTreeNodes.begin());
+    //assign value, method works on pointer
+    // dereference iterator and shared_ptr to get the raw pointer
+    // TODO: change method to work on shared instead of raw pointers
+    assignCode((*mTreeNodes.begin()).get());
     return true;
   }
 
@@ -338,7 +365,8 @@ public:
    * @brief Write Huffman table in self-consistent format.
    */
   int write(std::ostream& out) {
-    return write(out, *mTreeNodes.begin(), 0);
+    if (mTreeNodes.size() == 0) return 0;
+    return write(out, (*mTreeNodes.begin()).get(), 0);
   }
 
   /**
@@ -398,23 +426,23 @@ public:
         int symbolIndex = _BASE::alphabet_type::getIndex(symbol);
         // grow the vector as operator[] always expects index within range
         if (mLeaveNodes.size() < symbolIndex + 1) mLeaveNodes.resize(symbolIndex + 1);
-        mLeaveNodes[symbolIndex] = _NodeType(weight, symbolIndex);
+        mLeaveNodes[symbolIndex] = std::make_shared<_NodeType>(weight, symbolIndex);
         std::stringstream ps(parameters);
         uint16_t codeLen = 0; ps >> codeLen;
         code_type code = 0; ps >> code;
-        mLeaveNodes[symbolIndex].setBinaryCode(codeLen, code);
+        mLeaveNodes[symbolIndex]->setBinaryCode(codeLen, code);
         leaveNodeMap[lineNo] = symbolIndex;
         _BASE::addWeight(symbol, weight);
         //std::cout << "leave node " << lineNo << " " << " value=" << value << " weight=" << weight << " " << codeLen << " " << code << std::endl;
       }
       nodeIndices.insert(lineNo);
     }
-    std::map<int, _NodeType*> treeNodes;
+    std::map<int, std::shared_ptr<_NodeType>> treeNodes;
     for (auto conf : treeNodeConfigurations) {
-      _NodeType* left = NULL;
+      std::shared_ptr<_NodeType> left;
       auto ln = leaveNodeMap.find(conf.left);
       if ( ln != leaveNodeMap.end()) {
-        left = &mLeaveNodes[ln->second];
+        left = mLeaveNodes[ln->second];
         leaveNodeMap.erase(ln);
       } else {
         auto tn = treeNodes.find(conf.left);
@@ -422,13 +450,13 @@ public:
           std::cerr << "Internal error: can not find left child node with index " << conf.left << std::endl;
           return -1;
         }
-        treeNodes.erase(tn);
         left = tn->second;
+        treeNodes.erase(tn);
       }
-      _NodeType* right = NULL;
+      std::shared_ptr<_NodeType> right;
       auto rn = leaveNodeMap.find(conf.right);
       if (rn != leaveNodeMap.end()) {
-        right = &mLeaveNodes[rn->second];
+        right = mLeaveNodes[rn->second];
         leaveNodeMap.erase(rn);
       } else {
         auto tn = treeNodes.find(conf.right);
@@ -436,11 +464,11 @@ public:
           std::cerr << "Internal error: can not find right child node with index " << conf.right << std::endl;
           return -1;
         }
-        treeNodes.erase(tn);
         right = tn->second;
+        treeNodes.erase(tn);
       }
-      _NodeType* combinedNode = new _NodeType(left, right);
-      treeNodes[conf.index] = combinedNode;
+      // make combined node shared ptr and add to map
+      treeNodes[conf.index] = std::make_shared<_NodeType>(left, right);
     }
     if (leaveNodeMap.size() != 0 || treeNodes.size() != 1) {
       std::cerr << "error: " << leaveNodeMap.size() << " unhandled leave node(s)"
@@ -453,8 +481,12 @@ public:
 
   void print() const {
     if (mTreeNodes.size() > 0) {
-      _NodeType* topNode = *mTreeNodes.begin();
-      topNode->print();
+      _NodeType* topNode = (*mTreeNodes.begin()).get();
+      if (topNode) {
+        topNode->print();
+      } else {
+        // TODO: handle this error condition
+      }
     }
   };
 
@@ -486,9 +518,9 @@ private:
   // the alphabet, determined by template parameter
   typename _BASE::alphabet_type mAlphabet;
   // Huffman leave nodes containing symbol index to code mapping
-  std::vector<_NodeType> mLeaveNodes;
+  std::vector<std::shared_ptr<_NodeType>> mLeaveNodes;
   // multiset, order determined by less functor working on pointers
-  std::multiset<_NodeType*, pless<_NodeType*> > mTreeNodes;
+  std::multiset<std::shared_ptr<_NodeType>, isless<std::shared_ptr<_NodeType>>> mTreeNodes;
 };
 
 }; // namespace AliceO2
