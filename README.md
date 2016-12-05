@@ -8,6 +8,15 @@ the ALICE experiment at CERN based on ALFA and the FairRoot software.
 Before compiling and installing AliceO2, the ALFA software must be
 installed by choosing either the full or the minimum installation.
 
+### Documentation
+The documentation single entry point is [here](https://alice-o2.web.cern.ch/).
+
+### Issue tracking system
+We use JIRA to track issues. Head [here](https://alice.its.cern.ch/jira) to create tickets.
+
+### Coding guidelines
+The Coding Guidelines are [here] (https://github.com/AliceO2Group/CodingGuidelines).
+
 ### Installation via aliBuild
 
 In order to install with aliBuild you can follow the tutorial at:
@@ -161,11 +170,3 @@ To include custom DDS location in the compilation, provide DDS_PATH flag when ca
 ```bash
 cmake -DDDS_PATH="/home/username/DDS/0.11.27.g79f48d4/" ..
 ```
-
-### Documentation
-
-The documentation single entry point is [here](https://alice-o2.web.cern.ch/).
-
-### Issue tracking system
-
-We use JIRA to track issues. Head [here](https://alice.its.cern.ch/jira) to create tickets.
