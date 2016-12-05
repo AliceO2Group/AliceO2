@@ -301,7 +301,7 @@ function(O2_GENERATE_EXECUTABLE)
 
   cmake_parse_arguments(
       PARSED_ARGS
-      "INSTALL" # bool args
+      "NO_INSTALL" # bool args
       "EXE_NAME;BUCKET_NAME;MODULE_LIBRARY_NAME" # mono-valued arguments
       "SOURCES" # multi-valued arguments
       ${ARGN} # arguments
@@ -321,7 +321,7 @@ function(O2_GENERATE_EXECUTABLE)
       MODULE_LIBRARY_NAME ${PARSED_ARGS_MODULE_LIBRARY_NAME}
   )
 
-  if (NOT ${PARSED_ARGS_INSTALL} OR ${PARSED_ARGS_INSTALL})
+  if (NOT ${PARSED_ARGS_NO_INSTALL})
     ############### install the executable #################
     install(TARGETS ${PARSED_ARGS_EXE_NAME} DESTINATION bin)
 
@@ -362,7 +362,7 @@ function(O2_GENERATE_TESTS)
         SOURCES ${test}
         MODULE_LIBRARY_NAME ${PARSED_ARGS_MODULE_LIBRARY_NAME}
         BUCKET_NAME ${PARSED_ARGS_BUCKET_NAME}
-        INSTALL FALSE
+        NO_INSTALL FALSE
     )
     target_link_libraries(${test_name} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
     add_test(NAME ${test_name} COMMAND ${test_name})
