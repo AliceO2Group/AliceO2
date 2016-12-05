@@ -264,7 +264,7 @@ public:
     _BASE& model = *this;
     for ( auto i : model) {
       // create nodes knowing about their index and the symbol weight
-      mLeaveNodes.push_back(_NodeType(i.second, _BASE::alphabet_type::getIndex(i.second)));
+      mLeaveNodes.push_back(_NodeType(i.second, _BASE::alphabet_type::getIndex(i.first)));
     }
 
     // insert pointer to nodes into ordered structure to build tree
