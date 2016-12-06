@@ -42,6 +42,8 @@ public:
       (Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);
     virtual   ~SimulationAlpide();
 
+    void Init(Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);
+
     void      SDigitiseChip(TClonesArray*);
     void      FinishSDigitiseChip(TClonesArray*);
     void      DigitiseChip(TClonesArray*);

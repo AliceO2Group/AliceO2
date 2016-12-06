@@ -24,7 +24,7 @@ class Digitizer;
 class DigitizerTask : public FairTask
 {
   public:
-    DigitizerTask();
+    DigitizerTask(Bool_t useAlpide=kFALSE);
 
     virtual ~DigitizerTask();
 
@@ -36,6 +36,7 @@ class DigitizerTask : public FairTask
     { return fDigitizer; }
 
   private:
+    Bool_t fUseAlpideSim;
     Digitizer *fDigitizer;
 
     TClonesArray *fPointsArray;

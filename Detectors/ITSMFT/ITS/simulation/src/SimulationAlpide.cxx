@@ -40,13 +40,25 @@ SimulationAlpide::SimulationAlpide
   fChip(chip)
 {
    for (Int_t i=0; i<NumberOfParameters; i++) fParam[i]=par[i];
-   fSensMap=new SensMap("AliceO2::ITS::SDigit", 0, 0);
+   fSensMap=new SensMap("AliceO2::ITS::SDigit",
+			seg->getNumberOfColumns(), seg->getNumberOfRows());
 }
 
 //______________________________________________________________________
 SimulationAlpide::~SimulationAlpide() {
   fSensMap->Clear();
   delete fSensMap;
+}
+
+//______________________________________________________________________
+void SimulationAlpide::Init
+(Double_t par[NumberOfParameters], SegmentationPixel *seg, Chip *chip)
+{
+  for (Int_t i=0; i<NumberOfParameters; i++) fParam[i]=par[i];
+  fSeg=seg;
+  fChip=chip;
+  fSensMap=new SensMap("AliceO2::ITS::SDigit",
+			seg->getNumberOfColumns(), seg->getNumberOfRows());
 }
 
 //______________________________________________________________________
@@ -73,7 +85,8 @@ void SimulationAlpide::FrompListToDigits(TClonesArray *detDigits) {
 
       fSensMap->GetMapIndex(sd->GetUniqueID(),col,row,iCycle);
       dig.SetPixelIndex(row,col);
-
+      dig.SetChipIndex(modId);
+      
       //dig.SetROCycle(iCycle);
       dig.SetCharge(sd->GetSumSignal());
       for (Int_t j=0; j<3; j++) dig.SetLabel(j,sd->GetTrack(j));
@@ -225,7 +238,8 @@ void SimulationAlpide::GenerateCluster() {
     py=hit->GetPy();
     pz=hit->GetPz();
     etot = hit->GetTotalEnergy();
-
+    idtrack=hit->GetTrackID();
+    
     TLorentzVector momen;
     momen.SetPxPyPzE(px, py, pz, etot);
     beta = momen.Beta();
@@ -273,8 +287,8 @@ void SimulationAlpide::GenerateCluster() {
 
 //______________________________________________________________________
 void SimulationAlpide::CreateDigi(UInt_t col, UInt_t row, Int_t track, Int_t hit) {
-  Int_t index = fSensMap->GetIndex(col, row, 0);
-  Int_t chip  = fChip->GetChipIndex();
+  UInt_t index = fSensMap->GetIndex(col, row, 0);
+  UInt_t chip  = fChip->GetChipIndex();
 
   fSensMap->RegisterItem(new (fSensMap->GetFree()) SDigit(track, hit, chip, index, 0.1, 0));
 }

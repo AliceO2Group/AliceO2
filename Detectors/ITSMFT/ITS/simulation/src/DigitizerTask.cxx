@@ -19,8 +19,9 @@ ClassImp(AliceO2::ITS::DigitizerTask)
 
 using namespace AliceO2::ITS;
 
-DigitizerTask::DigitizerTask() :
+DigitizerTask::DigitizerTask(Bool_t useAlpide) :
   FairTask("ITSDigitizerTask"),
+  fUseAlpideSim(useAlpide),
   fDigitizer(nullptr),
   fPointsArray(nullptr),
   fDigitsArray(nullptr)
@@ -63,7 +64,10 @@ void DigitizerTask::Exec(Option_t *option)
 {
   fDigitsArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
-
-  DigitContainer *digits = fDigitizer->Process(fPointsArray);
-  digits->FillOutputContainer(fDigitsArray);
+  if (!fUseAlpideSim) {
+     DigitContainer *digits = fDigitizer->Process(fPointsArray);
+     digits->FillOutputContainer(fDigitsArray);
+  } else {
+     fDigitizer->Process(fPointsArray,fDigitsArray); // ALPIDE response
+  }
 }

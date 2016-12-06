@@ -1,10 +1,13 @@
 /// \file AliITSDigitizer.cxx
 /// \brief Digitizer for the upgrated ITS
-#include "ITSSimulation/Digitizer.h"
-#include "ITSSimulation/Point.h"
+
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSBase/SegmentationPixel.h"
 #include "ITSBase/Digit.h"
+#include "ITSSimulation/SimulationAlpide.h"
+#include "ITSSimulation/Chip.h"
+#include "ITSSimulation/Digitizer.h"
+#include "ITSSimulation/Point.h"
 #include "ITSSimulation/DigitChip.h"
 #include "ITSSimulation/DigitContainer.h"
 
@@ -18,23 +21,59 @@ using namespace AliceO2::ITS;
 Digitizer::Digitizer()
 {
   fGeometry = new GeometryTGeo(kTRUE, kTRUE);
-  fDigitContainer = new DigitContainer(fGeometry->getNumberOfChips());
-  const SegmentationPixel *seg =
+  Int_t nc=fGeometry->getNumberOfChips();
+
+  fDigitContainer = new DigitContainer(nc);
+  SegmentationPixel *seg =
      (SegmentationPixel*)fGeometry->getSegmentationById(0);
   DigitChip::SetNRows(seg->getNumberOfRows());
+  
+  fChips = new Chip[nc];
+  fSimulations = new SimulationAlpide[nc];
+  Double_t param[]={
+    50,     // ALPIDE threshold
+    -1.315, // ACSFromBGPar0
+    0.5018, // ACSFromBGPar1
+    1.084   // ACSFromBGPar2
+  };
+  for (Int_t i=0; i<nc; i++) {
+    fChips[i].SetChipIndex(i);
+    fChips[i].SetGeometry(fGeometry);
+    fSimulations[i].Init(param, seg, fChips+i);
+  }
 }
 
 Digitizer::~Digitizer()
 {
   delete fGeometry;
+  delete[] fChips;
+  delete[] fSimulations;
   if (fDigitContainer) { delete fDigitContainer; }
+}
+
+void Digitizer::Process(TClonesArray *points, TClonesArray *digits)
+{
+  Int_t nChips=fGeometry->getNumberOfChips();
+
+  // Convert points to digits
+  for (TIter iter = TIter(points).Begin(); iter != TIter::End(); ++iter) {
+    Point *point = dynamic_cast<Point *>(*iter);
+    Int_t chipID= point->GetDetectorID();
+    if (chipID >= nChips) continue;
+    fChips[chipID].InsertPoint(point); 
+  }
+
+  for (Int_t i=0; i<nChips; i++) {
+    fSimulations[i].DigitiseChip(digits);
+  }
+
 }
 
 DigitContainer *Digitizer::Process(TClonesArray *points)
 {
     fDigitContainer->Reset();
 
-  // Convert points to summable digits
+  // Convert points to digits
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
     
     Point *point = dynamic_cast<Point *>(*pointiter);
