@@ -8,7 +8,6 @@
 
 #include "ITSSimulation/DigitizerTask.h"
 #include "ITSSimulation/DigitContainer.h"
-#include "ITSSimulation/Digitizer.h"
 
 #include "TObject.h"             // for TObject
 #include "TClonesArray.h"        // for TClonesArray
@@ -22,7 +21,7 @@ using namespace AliceO2::ITS;
 DigitizerTask::DigitizerTask(Bool_t useAlpide) :
   FairTask("ITSDigitizerTask"),
   fUseAlpideSim(useAlpide),
-  fDigitizer(nullptr),
+  fDigitizer(),
   fPointsArray(nullptr),
   fDigitsArray(nullptr)
 {
@@ -30,7 +29,6 @@ DigitizerTask::DigitizerTask(Bool_t useAlpide) :
 
 DigitizerTask::~DigitizerTask()
 {
-  delete fDigitizer;
   if (fDigitsArray) { delete fDigitsArray; }
 }
 
@@ -55,8 +53,6 @@ InitStatus DigitizerTask::Init()
   fDigitsArray = new TClonesArray("AliceO2::ITS::Digit");
   mgr->Register("ITSDigit", "ITS", fDigitsArray, kTRUE);
   
-  fDigitizer = new Digitizer;
-
   return kSUCCESS;
 }
 
@@ -65,9 +61,9 @@ void DigitizerTask::Exec(Option_t *option)
   fDigitsArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
   if (!fUseAlpideSim) {
-     DigitContainer *digits = fDigitizer->Process(fPointsArray);
-     digits->FillOutputContainer(fDigitsArray);
+     DigitContainer &digits = fDigitizer.Process(fPointsArray);
+     digits.FillOutputContainer(fDigitsArray);
   } else {
-     fDigitizer->Process(fPointsArray,fDigitsArray); // ALPIDE response
+     fDigitizer.Process(fPointsArray,fDigitsArray); // ALPIDE response
   }
 }

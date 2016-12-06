@@ -13,6 +13,8 @@
 #include "FairTask.h"  // for FairTask, InitStatus
 #include "Rtypes.h"    // for DigitizerTask::Class, ClassDef, etc
 
+#include "ITSSimulation/Digitizer.h"
+
 class TClonesArray;
 namespace AliceO2 { namespace ITS { class Digitizer; }}  // lines 19-19
 
@@ -32,12 +34,11 @@ class DigitizerTask : public FairTask
 
     virtual void Exec(Option_t *option);
 
-    Digitizer *GetDigiztizer() const
-    { return fDigitizer; }
+    Digitizer &GetDigitizer() { return fDigitizer; }
 
   private:
     Bool_t fUseAlpideSim;
-    Digitizer *fDigitizer;
+    Digitizer fDigitizer;
 
     TClonesArray *fPointsArray;
     TClonesArray *fDigitsArray;

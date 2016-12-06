@@ -1,7 +1,6 @@
 /// \file AliITSDigitizer.cxx
 /// \brief Digitizer for the upgrated ITS
 
-#include "ITSBase/GeometryTGeo.h"
 #include "ITSBase/SegmentationPixel.h"
 #include "ITSBase/Digit.h"
 #include "ITSSimulation/SimulationAlpide.h"
@@ -9,7 +8,6 @@
 #include "ITSSimulation/Digitizer.h"
 #include "ITSSimulation/Point.h"
 #include "ITSSimulation/DigitChip.h"
-#include "ITSSimulation/DigitContainer.h"
 
 #include "FairLogger.h"           // for LOG
 #include "TClonesArray.h"         // for TClonesArray
@@ -18,42 +16,36 @@ ClassImp(AliceO2::ITS::Digitizer)
 
 using namespace AliceO2::ITS;
 
-Digitizer::Digitizer()
+Digitizer::Digitizer():
+fGeometry(kTRUE, kTRUE),
+fNChips(fGeometry.getNumberOfChips()),
+fChips(fNChips, Chip(0,&fGeometry)),
+fSimulations(fNChips),
+fDigitContainer(fNChips)
 {
-  fGeometry = new GeometryTGeo(kTRUE, kTRUE);
-  Int_t nc=fGeometry->getNumberOfChips();
-
-  fDigitContainer = new DigitContainer(nc);
   SegmentationPixel *seg =
-     (SegmentationPixel*)fGeometry->getSegmentationById(0);
+     (SegmentationPixel*)fGeometry.getSegmentationById(0);
   DigitChip::SetNRows(seg->getNumberOfRows());
   
-  fChips = new Chip[nc];
-  fSimulations = new SimulationAlpide[nc];
   Double_t param[]={
     50,     // ALPIDE threshold
     -1.315, // ACSFromBGPar0
     0.5018, // ACSFromBGPar1
     1.084   // ACSFromBGPar2
   };
-  for (Int_t i=0; i<nc; i++) {
+  for (Int_t i=0; i<fNChips; i++) {
     fChips[i].SetChipIndex(i);
-    fChips[i].SetGeometry(fGeometry);
-    fSimulations[i].Init(param, seg, fChips+i);
+    fSimulations[i].Init(param, seg, &fChips[i]);
   }
 }
 
 Digitizer::~Digitizer()
 {
-  delete fGeometry;
-  delete[] fChips;
-  delete[] fSimulations;
-  if (fDigitContainer) { delete fDigitContainer; }
 }
 
 void Digitizer::Process(TClonesArray *points, TClonesArray *digits)
 {
-  Int_t nChips=fGeometry->getNumberOfChips();
+  Int_t nChips=fGeometry.getNumberOfChips();
 
   // Convert points to digits
   for (TIter iter = TIter(points).Begin(); iter != TIter::End(); ++iter) {
@@ -69,9 +61,9 @@ void Digitizer::Process(TClonesArray *points, TClonesArray *digits)
 
 }
 
-DigitContainer *Digitizer::Process(TClonesArray *points)
+DigitContainer &Digitizer::Process(TClonesArray *points)
 {
-    fDigitContainer->Reset();
+    fDigitContainer.Reset();
 
   // Convert points to digits
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
@@ -92,16 +84,16 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     LOG(DEBUG) << "Creating new digit" << FairLogger::endl;
     const Double_t glo[3]= {x, y, z};
     Double_t loc[3]={0.,0.,0.};    
-    fGeometry->globalToLocal(chipID,glo,loc);
+    fGeometry.globalToLocal(chipID,glo,loc);
     const SegmentationPixel *seg =
-       (SegmentationPixel*)fGeometry->getSegmentationById(0);
+       (SegmentationPixel*)fGeometry.getSegmentationById(0);
     Int_t ix, iz;
     seg->localToDetector(loc[0],loc[2],ix,iz);
     if ((ix<0) || (iz<0)) {
        LOG(DEBUG) << "Out of the chip" << FairLogger::endl;
        continue; 
     }
-    Digit *digit=fDigitContainer->AddDigit(
+    Digit *digit=fDigitContainer.AddDigit(
        chipID, ix, iz, charge, point->GetTime()
     );
     digit->SetLabel(0,label);
