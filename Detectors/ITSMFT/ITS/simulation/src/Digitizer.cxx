@@ -45,17 +45,16 @@ Digitizer::~Digitizer()
 
 void Digitizer::Process(TClonesArray *points, TClonesArray *digits)
 {
-  Int_t nChips=fGeometry.getNumberOfChips();
 
   // Convert points to digits
   for (TIter iter = TIter(points).Begin(); iter != TIter::End(); ++iter) {
     Point *point = dynamic_cast<Point *>(*iter);
     Int_t chipID= point->GetDetectorID();
-    if (chipID >= nChips) continue;
+    if (chipID >= fNChips) continue;
     fChips[chipID].InsertPoint(point); 
   }
 
-  for (Int_t i=0; i<nChips; i++) {
+  for (Int_t i=0; i<fNChips; i++) {
     fSimulations[i].DigitiseChip(digits);
   }
 
