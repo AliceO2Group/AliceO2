@@ -109,6 +109,7 @@ o2_define_bucket(
     ${ZMQ_LIBRARY_SHARED}
     ${OPTIONAL_DDS_LIBRARIES}
     Base
+    Headers
     FairTools
     FairMQ
     fairmq_logger

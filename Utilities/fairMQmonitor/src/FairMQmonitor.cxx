@@ -17,35 +17,33 @@
 
 #include "fairMQmonitor/FairMQmonitor.h"
 #include "FairMQLogger.h"
+#include "Headers/DataHeader.h"
 
 using namespace std;
+using namespace AliceO2;
 
 FairMQmonitor::FairMQmonitor()
-    : fCounter(0)
 {
 }
 
 bool FairMQmonitor::ConditionalRun()
 {
-    // Wait a second to keep the output readable.
     this_thread::sleep_for(chrono::seconds(1));
 
     FairMQParts parts;
 
     // NewSimpleMessage creates a copy of the data and takes care of its destruction (after the transfer takes place).
     // Should only be used for small data because of the cost of an additional copy
-    parts.AddPart(NewMessage(100));
-    parts.AddPart(NewMessage(1000));
+    Base::DataHeader h;
+    h = AliceO2::Base::gDataOriginAny;
+    h = AliceO2::Base::gDataDescriptionInfo;
+    h = AliceO2::Base::gSerializationMethodNone;
+
+    //AddMessage(parts,O2Header(h),"some info");
 
     LOG(INFO) << "Sending body of size: " << parts.At(1)->GetSize();
 
     Send(parts, "data-out");
-
-    // Go out of the sending loop if the stopFlag was sent.
-    if (fCounter++ == 5)
-    {
-        return false;
-    }
 
     return true;
 }
