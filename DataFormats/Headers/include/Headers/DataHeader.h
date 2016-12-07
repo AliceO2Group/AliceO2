@@ -19,7 +19,7 @@
 using byte = unsigned char;
 
 namespace AliceO2 {
-namespace Base {
+namespace Header {
 
 //__________________________________________________________________________________________________
 /// @defgroup aliceo2_dataformat_primitives Primitive data format definitions for ALICE O2
@@ -183,44 +183,75 @@ struct BaseHeader
   BaseHeader(uint32_t size, HeaderType description, SerializationMethod serialization);
 
   //access
-  inline static BaseHeader* get(char* b, size_t /*len*/=0) {
+  inline static const BaseHeader* get(byte* b, size_t /*len*/=0) {
     //this is to guess if the buffer starting at b looks like a header
     return (*(reinterpret_cast<uint32_t*>(b))==sMagicString)?reinterpret_cast<BaseHeader*>(b):nullptr;
   }
 
   inline uint32_t size() const noexcept { return headerSize; }
-  inline const char* data() const noexcept { return reinterpret_cast<const char*>(this); }
+  inline const byte* data() const noexcept { return reinterpret_cast<const byte*>(this); }
 
-  inline BaseHeader* next() {
+  inline const BaseHeader* next() const noexcept {
     return (flagsNextHeader)?
-      reinterpret_cast<BaseHeader*>(reinterpret_cast<unsigned char*>(this)+headerSize):nullptr;
+      reinterpret_cast<const BaseHeader*>(reinterpret_cast<const byte*>(this)+headerSize):nullptr;
   }
 
-  // find a header with specified description (every header type must define one, usually a global)
-  inline BaseHeader* get(const HeaderType desc) {
-    BaseHeader* current = this;
-    if (current->description==desc) return current;
+  template<typename HeaderType>
+  static const HeaderType* get(byte* buffer, size_t /*len*/=0) {
+    const BaseHeader* current = BaseHeader::get(buffer);
+    if (!current) return nullptr;
+    if (current->description==HeaderType::sHeaderType) return reinterpret_cast<const HeaderType*>(current);
     while ((current = current->next())) {
-      if (current->description==desc) return current;
+      if (current->description==HeaderType::sHeaderType) return reinterpret_cast<const HeaderType*>(current);
     }
-    return nullptr;
+    return nullptr;  
   }
+
+};
+
+//__________________________________________________________________________________________________
+/// @struct Block
+/// @brief a move-only header block with serialized headers
+struct Block {
+  using Buffer = std::unique_ptr<byte[]>;
+
+  // This is ugly and needs fixing BUT:
+  // we need a static deleter for fairmq.
+  static std::default_delete<byte[]> sDeleter;
+  static void freefn(void* /*data*/, void* hint) {
+    Block::sDeleter(static_cast<byte*>(hint));
+  }
+
+  size_t bufferSize;
+  Buffer buffer;
+
+  byte* data() {return buffer.get();}
+  size_t size() {return bufferSize;}
+  template<typename... Headers>
+    Block(Headers... headers)
+    : bufferSize{size(headers...)}
+    , buffer{new byte[bufferSize]}
+  {
+    inject(buffer.get(), headers...);
+  }
+  Block(Block&&) = default;
+  Block(Block&) = delete;
+  Block& operator=(Block&) = delete;
+  Block& operator=(Block&&) = default;
 
   // methods to construct a multi-header
   // intended use:
   //   compose(const T& header1, const T& header2, ...)
   //   - T are derived from BaseHeader, arbirtary number of arguments/headers
   //   - return is a unique_ptr holding the serialized buffer ready to be shipped.
-  using MemorySpan = std::unique_ptr<char[]>;
-  using Buffer = std::pair<MemorySpan,size_t>;
 
-  //TODO: this should maybe return a std::vector<char>
+  // TODO: this should maybe return a std::vector<byte>
   // - nope, there is no way we can release the actual data to zmq using vector
-  //TODO: maybe add a specialization requiring first arg to be DataHeader
+  // TODO: maybe add a specialization requiring first arg to be DataHeader
   template<typename... Args>
-  static Buffer compose(const Args... args) {
+  static Block compose(const Args... args) {
     size_t bufferSize = size(args...);
-    MemorySpan memory(new char[bufferSize]);
+    Buffer memory(new byte[bufferSize]);
     inject(memory.get(), args...);
     return std::make_pair(std::move(memory),bufferSize);
   }
@@ -237,13 +268,13 @@ private:
   }
 
   template<typename T>
-  static char* inject(char* here, const T& h) noexcept {
+  static byte* inject(byte* here, const T& h) noexcept {
     std::copy(h.data(), h.data()+h.size(), here);
     return here + h.size();
   }
 
   template<typename T, typename... Args>
-  static char* inject(char* here, const T& h, const Args... args) noexcept {
+  static byte* inject(byte* here, const T& h, const Args... args) noexcept {
     auto alsohere = inject(here, h);
     (reinterpret_cast<BaseHeader*>(here))->flagsNextHeader = true;
     return inject(alsohere, args...);
@@ -251,18 +282,22 @@ private:
 };
 
 //__________________________________________________________________________________________________
-/// @struct ROOTobjectHeader
-/// @brief an example data header containing a name of a ROOT object
-struct ROOTobjectHeader : public BaseHeader {
+/// @struct NameHeader
+/// @brief an example data header containing a name of an object
+struct NameHeader : public BaseHeader {
   static const HeaderType sHeaderType;
   static const SerializationMethod sSerializationMethod;
-  ROOTobjectHeader() :
-    BaseHeader(sizeof(ROOTobjectHeader), sHeaderType, sSerializationMethod)
+  NameHeader()
+  : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod)
   , name()
   {
-    //memset(static_cast<void*>(&name[0]),'Z',64);
-    memset(&name[0],'Z',64);
+    memset(&name[0],'\0',64);
   }
+  NameHeader& operator=(const std::string string) {
+    std::copy(string.begin(), string.end(), name);
+    return *this;
+  }
+private:
   char name[64];
 };
 
@@ -400,6 +435,8 @@ extern const DataHeader::DataDescription gDataDescriptionInvalid;
 extern const DataHeader::DataDescription gDataDescriptionRawData;
 extern const DataHeader::DataDescription gDataDescriptionClusters;
 extern const DataHeader::DataDescription gDataDescriptionTracks;
+extern const DataHeader::DataDescription gDataDescriptionConfig;
+extern const DataHeader::DataDescription gDataDescriptionInfo;
 
 //__________________________________________________________________________________________________
 //possible serialization types
@@ -427,7 +464,7 @@ void hexDump (const char* desc, const void* voidaddr, size_t len) {
   printf("%zu bytes:\n", len);
 
   // In case of null pointer addr
-  if (addr==nullptr) {printf("  nullptr\n"); return;}
+  if (addr==nullptr) {printf("  nullptr, size: %zu\n", len); return;}
 
   // Process every byte in the data.
   for (i = 0; i < len; i++) {

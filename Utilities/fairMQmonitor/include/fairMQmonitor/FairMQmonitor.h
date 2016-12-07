@@ -26,8 +26,6 @@ class FairMQmonitor : public FairMQDevice
   protected:
     virtual bool ConditionalRun();
 
-  private:
-    int fCounter;
 };
 
 #endif /* FAIRMQMONITOR_H_ */
