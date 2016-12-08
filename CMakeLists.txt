@@ -167,8 +167,8 @@ add_subdirectory(Utilities)
 
 Option(BUILD_DOXYGEN "Build Doxygen" OFF)
 IF (BUILD_DOXYGEN)
-  MESSAGE(STATUS "*** Building the Doxygen documentaion ***")
-  ADD_SUBDIRECTORY(doxygen)
+  MESSAGE(STATUS "Building the Doxygen documentation")
+  ADD_SUBDIRECTORY(docs)
 ENDIF (BUILD_DOXYGEN)
 
 
