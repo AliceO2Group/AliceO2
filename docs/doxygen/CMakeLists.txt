@@ -1,10 +1,6 @@
 #
 # Build the documentation
 #
-# INCLUDE (Documentation)
-
-
-
 
 IF (BUILD_DOXYGEN)
 

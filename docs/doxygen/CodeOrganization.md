@@ -1,5 +1,5 @@
-Code organisation and build
-=
+Code organisation and build {#CodeOrganizationAndBuild}
+=======
 
 ## Principles
 * A _module_ is a set of code closely related sharing an interface that can result in one or more libraries.
@@ -89,3 +89,17 @@ If it needs a new external library, it should be first discussed with CWG13.
    should return absolute paths. As a consequence little effort is put in the development of this 
    feature and it only exists at the global level. We can't set it on a target like the 
    _include_directories_ for example.
+* Q: Why buckets ? 
+ * A: The goal is to avoid a dependency nightmare. 
+ It allows to define centrally and in an organized way the dependencies for all modules.
+ It also allows us to be especially careful in PRs about changes to the bucket definition file. 
+* Q: Why macros to build libraries and executables ?
+ * A: To simplify the life of the users and to make sure everyone does it the same way. It is also a way
+ to reuse what was made for FairRoot.
+* Q: Why are headers in `MyModule/include/MyModule` and not directly in `MyModule/include ?`
+ * A: The difficulty here is that we have a number of constraints. First the headers must be installed in a directory
+ named after the module. Second the code which uses the headers must include `MyModule/xyz.h` and it must work
+ whether it is inside AliceO2 or in a different repo, i.e. whether the headers are installed or they are internal.
+ When evaluating the different options we ended up with this not-totally-perfect solution because all other solutions
+ broke one of the constraints or required a massive hurdle of CMake magic. If someone comes up with a different working
+ solution we would happily consider it.
