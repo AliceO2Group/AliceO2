@@ -129,6 +129,8 @@ class HuffmanCodec {
   HuffmanCodec(const _CodingModel& model) : mCodingModel(model) {}
   ~HuffmanCodec() {}
 
+  typedef _CodingModel model_type;
+
   /// Return Huffman code for a value
   template<typename CodeType, typename ValueType>
   const bool Encode(ValueType v, CodeType& code, uint16_t& codeLength) const {
