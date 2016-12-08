@@ -17,7 +17,7 @@
 
 // Compilation: make sure variable BOOST_ROOT points to your boost installation
 /*
-   g++ --std=c++11 -g -ggdb -I$BOOST_ROOT/include -I../include -o test_huffmancodec test_huffmancodec.cxx
+   g++ --std=c++11 -g -ggdb -I$BOOST_ROOT/include -I../include -pthread -o test_huffmancodec test_huffmancodec.cxx
 */
 
 #include <iostream>
@@ -27,9 +27,43 @@
 #include <bitset>
 #include <random> // std::exponential_distribution
 #include <cmath>  // std::exp
-#include <boost/mpl/string.hpp>
+#include <thread>
+#include <stdexcept>  // exeptions, runtime_error
 #include "DataCompression/dc_primitives.h"
 #include "DataCompression/HuffmanCodec.h"
+#include "DataGenerator.h"
+#include "Fifo.h"
+
+template<class RandvalStreamT
+         , class EncodedStreamT
+         , class CodecT
+         >
+void decoderProcess(RandvalStreamT& fifoRandvals, EncodedStreamT& fifoEncoded, CodecT& codec)
+{
+  uint16_t decodedLen = 0;
+  typename CodecT::model_type::value_type decodedValue;
+  do {}
+  while (fifoEncoded.pull([&](typename EncodedStreamT::value_type c)
+                          {
+                            codec.Decode(decodedValue, c, decodedLen);
+                            return fifoRandvals.pull([&](typename RandvalStreamT::value_type v)
+                                                     {
+                                                       if (decodedValue != v) {
+                                                         throw std::runtime_error("decoding mismatch");
+                                                         return false;
+                                                       } else {
+                                                         //std::cout << "decoded: "
+                                                         //          << std::setw(4) << decodedValue
+                                                         //          << " code: " << c
+                                                         //          << std::endl;
+                                                       }
+                                                       return true;
+                                                     }
+                                                     );
+                          }
+                          )
+         );
+}
 
 int main()
 {
@@ -37,27 +71,11 @@ int main()
   // in the range [-1, 10] including the upper bound
   // the first definition is a data type, then an object of this type is
   // defined
-  typedef ContiguousAlphabet<int16_t, -1, 15> SimpleRangeAlphabet_t;
+  typedef AliceO2::Test::normal_distribution<double> TestDistribution_t;
+  typedef AliceO2::Test::DataGenerator<int16_t, TestDistribution_t> DataGenerator_t;
+  DataGenerator_t dg(-7.5, 10.5, 1., 0., 1.);
+  typedef ContiguousAlphabet<DataGenerator_t::value_type, -7, 10> SimpleRangeAlphabet_t;
   SimpleRangeAlphabet_t alphabet;
-  std::cout << "alphabet '" << alphabet.getName()
-	    << "' has " <<  SimpleRangeAlphabet_t::size::value
-	    << " element(s)"
-	    << std::endl;
-  for (auto a : alphabet) {
-    // trying also the postfix ++ operator; a is not the iterator itself
-    // so it has no consequence on the iteration
-    std::cout << a++ << " ";
-    // simple testing of the type defines in the alphabet iterator
-    SimpleRangeAlphabet_t::iterator::value_type v = a;
-    SimpleRangeAlphabet_t::iterator::reference r = a;
-  }
-  std::cout << std::endl;
-
-  std::cout << std::endl << "checking some numbers to be valid symbols in the alphabet" << std::endl;
-  std::vector<int16_t> values = {0 , 5, 15, -2, -1};
-  for (auto v : values) {
-    std::cout << v << " is " << (alphabet.isValid(v)?"valid":"not valid") << std::endl;
-  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Using the Huffman propability model for the alphabet
@@ -68,7 +86,7 @@ int main()
   // MSB to LSB (true) or LSB to MSB (false)
   typedef AliceO2::HuffmanModel<
     ProbabilityModel<SimpleRangeAlphabet_t>
-    , AliceO2::HuffmanNode<std::bitset<16> >
+    , AliceO2::HuffmanNode<std::bitset<32> >
     , true
     > HuffmanModel_t;
   HuffmanModel_t huffmanmodel;
@@ -79,26 +97,15 @@ int main()
     std::cout << "val = " << std::setw(2) << s << " --> weight = " << huffmanmodel[s] << std::endl;
   }
 
-  // an exponential distribution random generator to be used to create a
-  // sequence of random numbers to be encoded
-  double lambda=1.;
-  std::default_random_engine generator;
-  std::exponential_distribution<double> distribution(lambda);
-
-  // add weights directly for every symbol, using the expenential distribution
-  // and an epsilon value to make the Huffman table more 'interesting'
-  // set epsilon to 0 to get a completely 'linear' tree
+  // add probabilities from data generator as weights for every symbol
   int x = 0;
   for (auto s : alphabet) {
-    double epsilon = (SimpleRangeAlphabet_t::size::value - x)*0.1;
-    double p = lambda * std::exp(-lambda*x++) + epsilon;
-    //p = p - 1.; // compensate for the 1 we have previously initialized
-    huffmanmodel.addWeight(s, p);
+    huffmanmodel.addWeight(s, dg.getProbability(s));
   }
 
   // normalizing the weight to the total weight thus having the probability
   // for every symbol
-  std::cout << std::endl << "Probabilities:" << std::endl;
+  std::cout << std::endl << "Probabilities from DataGenerator:" << std::endl;
   huffmanmodel.normalize();
   for (auto i : huffmanmodel) {
     std::cout << "val = " << std::setw(2) << i.first << " --> weight = " << i.second << std::endl;
@@ -114,10 +121,11 @@ int main()
   Codec_t codec(huffmanmodel);
 
   ////////////////////////////////////////////////////////////////////////////
-  // print Huffman code summary
+  // print Huffman code summary and perform an encoding-decoding check for
+  // every symbol
   std::cout << std::endl << "Huffman code summary: "
-	    << (HuffmanModel_t::orderMSB?"MSB to LSB":"LSB to MSB")
-	    << std::endl;
+            << (HuffmanModel_t::orderMSB?"MSB to LSB":"LSB to MSB")
+            << std::endl;
   for ( auto i : huffmanmodel) {
     uint16_t codeLen = 0;
     HuffmanModel_t::code_type code;
@@ -137,4 +145,35 @@ int main()
       std::cout << "mismatch in decoded value: " << value << "(" << decodedLen << ")" << std::endl;
     }
   }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // test loop for random values
+  //
+
+  // FIFO for the random numbers
+  AliceO2::Test::Fifo<DataGenerator_t::value_type> fifoRandvals;
+
+  // FIFO for encoded values
+  typedef AliceO2::Test::Fifo<uint32_t> FifoBuffer_t;
+  FifoBuffer_t fifoEncoded;
+
+  const int nRolls = 1000000;
+  int n = nRolls;
+  std::cout << std::endl << "Testing encoding-decoding with " << nRolls << " random value(s) ..." << std::endl;
+
+  std::thread decoderThread([&](){decoderProcess(fifoRandvals, fifoEncoded, codec);});
+
+  while (n-- > 0) {
+    uint16_t codeLen = 0;
+    HuffmanModel_t::code_type code;
+    DataGenerator_t::value_type value = dg();
+    codec.Encode(value, code, codeLen);
+    fifoRandvals.push(value);
+    if (HuffmanModel_t::orderMSB) code <<= (code.size()-codeLen);
+    fifoEncoded.push(code.to_ulong(), n == 0);
+    //std::cout << "encoded: " << std::setw(4) << value << " code: " << code << std::endl;
+  }
+
+  decoderThread.join();
+  std::cout << "... done" << std::endl;
 }
