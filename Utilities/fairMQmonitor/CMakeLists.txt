@@ -14,14 +14,13 @@ set(HEADERS
 )
 
 set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME flp2epn_bucket)
-#include_directories(include/${MODULE_NAME})
+set(BUCKET_NAME fairMQmonitor_bucket)
 
 O2_GENERATE_LIBRARY()
 
 # todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
 set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME flp2epn_bucket)
+set(BUCKET_NAME fairMQmonitor_bucket)
 
 # Define application
 O2_GENERATE_EXECUTABLE(

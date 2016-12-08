@@ -1,14 +1,14 @@
 /********************************************************************************
- *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
+ *    Copyright (C) 2014 Frankfurt Institute for Advanced Studies               *
  *                                                                              *
- *              This software is distributed under the terms of the             * 
- *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *  
+ *              This software is distributed under the terms of the             *
+ *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
 /**
  * FairMQmonitor.cpp
  *
- * @since 2014-10-10
+ * @since 2014-12-10
  * @author M.Krzewicki <mkrzewic@cern.ch>
  */
 

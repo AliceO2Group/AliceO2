@@ -6,26 +6,10 @@
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
 /**
- * FairMQmonitor.h
+ * O2device.cpp
  *
  * @since 2014-12-10
- * @author M. Krzewicki <mkrzewic@cern.ch>
+ * @author M.Krzewicki <mkrzewic@cern.ch>
  */
 
-#ifndef FAIRMQMONITOR_H_
-#define FAIRMQMONITOR_H_
-
 #include "O2device/O2device.h"
-
-class FairMQmonitor : public AliceO2::Base::O2device
-{
-  public:
-    FairMQmonitor();
-    virtual ~FairMQmonitor();
-
-  protected:
-    virtual bool ConditionalRun();
-
-};
-
-#endif /* FAIRMQMONITOR_H_ */
