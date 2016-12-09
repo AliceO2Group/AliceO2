@@ -20,7 +20,7 @@
 #include "Headers/DataHeader.h"
 
 using namespace std;
-using namespace AliceO2;
+using namespace AliceO2::Header;
 
 FairMQmonitor::FairMQmonitor()
 {
@@ -28,24 +28,41 @@ FairMQmonitor::FairMQmonitor()
 
 bool FairMQmonitor::ConditionalRun()
 {
-    this_thread::sleep_for(chrono::seconds(1));
+  this_thread::sleep_for(chrono::seconds(1));
 
-    FairMQParts parts;
+  FairMQParts parts;
 
-    // NewSimpleMessage creates a copy of the data and takes care of its destruction (after the transfer takes place).
-    // Should only be used for small data because of the cost of an additional copy
-    Base::DataHeader h;
-    h = AliceO2::Base::gDataOriginAny;
-    h = AliceO2::Base::gDataDescriptionInfo;
-    h = AliceO2::Base::gSerializationMethodNone;
+  DataHeader dataHeader;
+  dataHeader = gDataOriginAny;
+  dataHeader = gDataDescriptionInfo;
+  dataHeader = gSerializationMethodNone;
 
-    //AddMessage(parts,O2Header(h),"some info");
+  NameHeader nameHeader;
+  nameHeader = "some name";
 
-    LOG(INFO) << "Sending body of size: " << parts.At(1)->GetSize();
+  AddMessage(parts,{dataHeader},NewSimpleMessage("foo"));
+  AddMessage(parts,{dataHeader,nameHeader},NewSimpleMessage("bar"));
 
-    Send(parts, "data-out");
+  Send(parts, "data-out");
 
-    return true;
+  return true;
+}
+
+bool FairMQmonitor::HandleData(FairMQParts& parts, int /*index*/)
+{
+  ForEach(parts, &FairMQmonitor::HandleBuffers);
+  return true;
+}
+
+bool FairMQmonitor::HandleBuffers(byte* headerBuffer, byte* dataBuffer)
+{
+  const DataHeader* dataHeader = BaseHeader::get<DataHeader>(headerBuffer);
+  if (!dataHeader) return false;
+
+  const NameHeader* nameHeader = BaseHeader::get<NameHeader>(headerBuffer);
+  if (!nameHeader) return false;
+
+  return true;
 }
 
 FairMQmonitor::~FairMQmonitor()
