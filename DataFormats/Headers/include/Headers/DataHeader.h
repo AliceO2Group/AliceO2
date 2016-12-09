@@ -1,8 +1,9 @@
-//The main O2 data header, v0.1
-//origin: CWG4
-//blame: Mikolaj Krzewicki, mkrzewic@cern.ch
-//       Matthias Richter, Matthias.Richter@cern.ch
-//       David Rohr, drohr@cern.ch
+/// @brief O2 data header classes and API, v0.1
+///
+/// origin: CWG4
+/// @author Mikolaj Krzewicki, mkrzewic@cern.ch
+/// @author Matthias Richter, Matthias.Richter@cern.ch
+/// @author David Rohr, drohr@cern.ch
 
 #ifndef ALICEO2_BASE_DATA_HEADER_
 #define ALICEO2_BASE_DATA_HEADER_
@@ -12,10 +13,10 @@
 #include <iostream>
 
 
-// define a byte type
-//enum class byte : unsigned char
-//{
-//};
+// enum class byte : unsigned char
+// {
+// };
+/// @typedef define a byte type
 using byte = unsigned char;
 
 namespace AliceO2 {
@@ -65,38 +66,45 @@ struct DataHeader;
 struct DataIdentifier;
 
 //__________________________________________________________________________________________________
-//intializers
-constexpr uint64_t String2uint64(char c1, char c2, char c3, char c4, char c5, char c6, char c7)
+/// constexpr intializer, evaluated at compile time
+constexpr uint64_t String2uint64(char c1, char c2, char c3, char c4,
+                                 char c5, char c6, char c7, char c8)
 {
 	return((uint64_t) c1 | (uint64_t) c2 << 8 | (uint64_t) c3 << 16 | (uint64_t) c4 << 24 |
-      (uint64_t) c5 << 32 | (uint64_t) c6 << 40 | (uint64_t) c7 << 48);
+      (uint64_t) c5 << 32 | (uint64_t) c6 << 40 | (uint64_t) c7 << 48 | (uint64_t) c8 << 56);
 }
 
+/// constexpr intializer, evaluated at compile time
 constexpr uint64_t String2uint64(const char* str)
 {
 	return((uint64_t) str[0] |
-         (str[0] ? ((uint64_t) str[1] << 8 |
+         (str[0] ? ((uint64_t) str[1] << 8  |
          (str[1] ? ((uint64_t) str[2] << 16 |
          (str[2] ? ((uint64_t) str[3] << 24 |
          (str[3] ? ((uint64_t) str[4] << 32 |
          (str[4] ? ((uint64_t) str[5] << 40 |
-         (str[5] ? ((uint64_t) str[6] << 48 )
-          : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
+         (str[5] ? ((uint64_t) str[6] << 48 |
+         (str[6] ? ((uint64_t) str[7] << 56 )
+          : 0)) : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
 }
 
+/// constexpr intializer, evaluated at compile time
 constexpr uint32_t String2uint32(char c1, char c2, char c3)
 {
 	return((uint32_t) c1 | (uint32_t) c2 << 8 | (uint32_t) c3 << 16);
 }
 
+/// constexpr intializer, evaluated at compile time
 constexpr uint32_t String2uint32(const char* str)
 {
 	return((uint32_t) str[0] |
-         (str[0] ? ((uint32_t) str[1] << 8 |
-         (str[1] ? ((uint32_t) str[2] << 16 )
-          : 0)) : 0));
+         (str[0] ? ((uint32_t) str[1] << 8  |
+         (str[1] ? ((uint32_t) str[2] << 16 |
+         (str[2] ? ((uint32_t) str[3] << 24 )
+          :0 )) : 0)) : 0));
 }
 
+/// constexpr intializer, evaluated at compile time
 constexpr uint32_t CharArr2uint32(char c1, char c2, char c3, char c4)
 {
 	return((uint32_t) c1 |
@@ -105,6 +113,7 @@ constexpr uint32_t CharArr2uint32(char c1, char c2, char c3, char c4)
          (uint32_t) c4 << 24);
 }
 
+/// constexpr intializer, evaluated at compile time
 constexpr uint32_t CharArr2uint32(const char* str)
 {
 	return((uint32_t) str[0] |
@@ -117,23 +126,42 @@ constexpr uint32_t CharArr2uint32(const char* str)
 //__________________________________________________________________________________________________
 /// @struct BaseHeader
 /// @brief the base header struct
-///
+/// Every header type must begin (i.e. derive) with this.
+/// Don't use this struct directly.
+/// The derived header must initialize BaseHeader fields with appropriate values
+/// - headerSize must be initialized to sizeof(DerivedHeader)
+/// 3 static members MUST be defined in each derived type:
+/// - sHeaderType; description must be initialized with a static const member of type
+///   BaseHeader::HeaderType with a gloablly unique value.
+/// - sSerializationMethod; the contents of a derived header (content defined after the BaseHeader)
+///   can be serialized using any method. The serialization member must be initialized
+///   with a gloablly unique static const BaseHeader::SerializationMethod value defined
+///   in the Derived header.
+/// - sVersion; the version of the header described by this base header.
+/// Call the special BaseHeader constructor in the DerivedHeader ctor to easily achieve
+/// the above.
 /// @ingroup aliceo2_dataformats_dataheader
 struct BaseHeader
 {
-  //other constants
-  static const uint32_t sVersion;
+  struct HeaderType;
+  struct SerializationMethod;
+
+  // static definitions
   static const uint32_t sMagicString;
+  static const HeaderType sHeaderType;
+  static const SerializationMethod sSerializationMethod;
+  static const uint32_t sVersion;
 
   //__the data layout:
 
-  /// a magic string
+  /// a magic string, used to identify an O2 header in a raw stream of bytes
   union {
     char     magicString[gSizeMagicString];
     uint32_t  magicStringInt;
   };
 
-  /// size of this header (base + derived header)
+  /// size of the header that starts with this sequence (base + derived header)
+  /// set by the derived header
   uint32_t    headerSize;
 
   /// flags, first bit indicates that a sub header follows
@@ -145,10 +173,10 @@ struct BaseHeader
     };
   };
 
-  /// version of this header
+  /// version of the entire header, set by the derived header
   uint32_t    headerVersion;
 
-  /// header type description
+  /// header type description, set by derived header
   struct HeaderType {
     union {
       char     str[gSizeHeaderDescriptionString];
@@ -161,7 +189,7 @@ struct BaseHeader
     bool operator==(const uint64_t& that) const {return that==itg;}
   } description;
 
-  /// header serialization method
+  /// header serialization method, set by derived header
   struct SerializationMethod {
     union {
       char      str[gSizeSerializationMethodString];
@@ -176,47 +204,78 @@ struct BaseHeader
 
   //___the functions:
 
-  //ctor
+  /// dont construct directly
   BaseHeader();
   BaseHeader(const BaseHeader&) = default;
-  //ctor for use in derived types
-  BaseHeader(uint32_t size, HeaderType description, SerializationMethod serialization);
+  /// Special ctor for initialization in derived types
+  BaseHeader(uint32_t size, HeaderType description,
+             SerializationMethod serialization, uint32_t version);
 
-  //access
+  /// @brief access header in buffer
+  ///
+  /// this is to guess if the buffer starting at b looks like a header
   inline static const BaseHeader* get(byte* b, size_t /*len*/=0) {
-    //this is to guess if the buffer starting at b looks like a header
-    return (*(reinterpret_cast<uint32_t*>(b))==sMagicString)?reinterpret_cast<BaseHeader*>(b):nullptr;
+    return (*(reinterpret_cast<uint32_t*>(b))==sMagicString) ?
+      reinterpret_cast<BaseHeader*>(b) :
+      nullptr;
   }
 
   inline uint32_t size() const noexcept { return headerSize; }
   inline const byte* data() const noexcept { return reinterpret_cast<const byte*>(this); }
 
+  /// get the next header if any
   inline const BaseHeader* next() const noexcept {
-    return (flagsNextHeader)?
-      reinterpret_cast<const BaseHeader*>(reinterpret_cast<const byte*>(this)+headerSize):nullptr;
-  }
-
-  template<typename HeaderType>
-  static const HeaderType* get(byte* buffer, size_t /*len*/=0) {
-    const BaseHeader* current = BaseHeader::get(buffer);
-    if (!current) return nullptr;
-    if (current->description==HeaderType::sHeaderType) return reinterpret_cast<const HeaderType*>(current);
-    while ((current = current->next())) {
-      if (current->description==HeaderType::sHeaderType) return reinterpret_cast<const HeaderType*>(current);
-    }
-    return nullptr;  
+    return (flagsNextHeader) ?
+      reinterpret_cast<const BaseHeader*>(reinterpret_cast<const byte*>(this)+headerSize) :
+      nullptr;
   }
 
 };
 
+/// find a header of type HeaderType in a buffer
+/// use like this:
+/// HeaderType* h = get<HeaderType>(buffer)
+template<typename HeaderType>
+const HeaderType* get(byte* buffer, size_t /*len*/=0) {
+  const BaseHeader* current = BaseHeader::get(buffer);
+  if (!current) return nullptr;
+  if (current->description==HeaderType::sHeaderType)
+    return reinterpret_cast<const HeaderType*>(current);
+  while ((current = current->next())) {
+    if (current->description==HeaderType::sHeaderType)
+      return reinterpret_cast<const HeaderType*>(current);
+  }
+  return nullptr;
+}
+
+//__________________________________________________________________________________________________
+//possible serialization types
+extern const BaseHeader::SerializationMethod gSerializationMethodAny;
+extern const BaseHeader::SerializationMethod gSerializationMethodInvalid;
+extern const BaseHeader::SerializationMethod gSerializationMethodNone;
+extern const BaseHeader::SerializationMethod gSerializationMethodROOT;
+extern const BaseHeader::SerializationMethod gSerializationMethodFlatBuf;
+
 //__________________________________________________________________________________________________
 /// @struct Block
 /// @brief a move-only header block with serialized headers
+/// This is the flat buffer where all the headers in a multi-header go.
+/// This guy knows how to move the serialized content to FairMQ
+/// and inform it how to release when all is sent.
+/// methods to construct a multi-header
+/// intended use:
+///   - as a variadic intializer list (as an argument to a function)
+///
+///   One can also use Block::compose(const T& header1, const T& header2, ...)
+///   - T are derived from BaseHeader, arbirtary number of arguments/headers
+///   - return is a unique_ptr holding the serialized buffer ready to be shipped.
 struct Block {
-  using Buffer = std::unique_ptr<byte[]>;
 
   // This is ugly and needs fixing BUT:
   // we need a static deleter for fairmq.
+  // TODO: template the class with allocators
+  //
+  using Buffer = std::unique_ptr<byte[]>;
   static std::default_delete<byte[]> sDeleter;
   static void freefn(void* /*data*/, void* hint) {
     Block::sDeleter(static_cast<byte*>(hint));
@@ -227,6 +286,12 @@ struct Block {
 
   byte* data() {return buffer.get();}
   size_t size() {return bufferSize;}
+
+  ///The magic constructor: takes arbitrary number of arguments and serialized them
+  /// into the buffer.
+  /// Intended use: produce a temporary via an initializer list.
+  /// TODO: maybe add a static_assert requiring first arg to be DataHeader
+  /// or maybe even require all these to be derived form BaseHeader
   template<typename... Headers>
     Block(Headers... headers)
     : bufferSize{size(headers...)}
@@ -234,26 +299,21 @@ struct Block {
   {
     inject(buffer.get(), headers...);
   }
+  Block() = default;
   Block(Block&&) = default;
   Block(Block&) = delete;
   Block& operator=(Block&) = delete;
   Block& operator=(Block&&) = default;
 
-  // methods to construct a multi-header
-  // intended use:
-  //   compose(const T& header1, const T& header2, ...)
-  //   - T are derived from BaseHeader, arbirtary number of arguments/headers
-  //   - return is a unique_ptr holding the serialized buffer ready to be shipped.
-
-  // TODO: this should maybe return a std::vector<byte>
-  // - nope, there is no way we can release the actual data to zmq using vector
-  // TODO: maybe add a specialization requiring first arg to be DataHeader
+  /// the magic compose - serialize (almost) anything into the buffer
+  /// (works with headers, strings and arrays)
   template<typename... Args>
   static Block compose(const Args... args) {
-    size_t bufferSize = size(args...);
-    Buffer memory(new byte[bufferSize]);
-    inject(memory.get(), args...);
-    return std::make_pair(std::move(memory),bufferSize);
+    Block b;
+    b.bufferSize = size(args...);
+    b.buffer.reset(new byte[b.bufferSize]);
+    inject(b.buffer.get(), args...);
+    return b;
   }
 
 private:
@@ -284,34 +344,64 @@ private:
 //__________________________________________________________________________________________________
 /// @struct NameHeader
 /// @brief an example data header containing a name of an object
+/// this is a template! at instantiation the template parameter determines the
+/// size of the held string array.
+/// a caveat with decoding is you have to use Header::get<NameHeader<0>>(buffer)
+/// to get it out of a buffer. May improve in the future if enough people complain.
+/// @ingroup aliceo2_dataformats_dataheader
+template <size_t N>
 struct NameHeader : public BaseHeader {
   static const HeaderType sHeaderType;
   static const SerializationMethod sSerializationMethod;
+  static const uint32_t sVersion;
   NameHeader()
-  : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod)
+  : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion)
   , name()
   {
-    memset(&name[0],'\0',64);
+    memset(&name[0],'\0',N);
   }
   NameHeader& operator=(const std::string string) {
-    std::copy(string.begin(), string.end(), name);
+    std::copy(string.begin(), string.begin()+N, name);
     return *this;
   }
 private:
-  char name[64];
+  char name[N];
 };
+
+template <size_t N>
+const BaseHeader::HeaderType NameHeader<N>::sHeaderType = "NameHead";
+// dirty trick to always have access to the headertypeID of a templated header type
+// TODO: find out if this can be done in a nicer way + is this realy necessary?
+template <>
+const BaseHeader::HeaderType NameHeader<0>::sHeaderType = "NameHead";
+
+template <size_t N>
+const BaseHeader::SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMethodNone;
+
+template <size_t N>
+const uint32_t NameHeader<N>::sVersion = 1;
 
 //__________________________________________________________________________________________________
 /// @struct DataHeader
 /// @brief the main header struct
+///
+/// The main O2 data header struct. All messages should have it, preferably at the beginning
+/// of the header block.
+/// It contains the fields that describe the buffer size, data type,
+/// origin and serialization method used to construct the buffer.
+/// The member subSpecification might be defined differently for each type/origin,
+/// interpretation of this field is up to the specific subsystem involved.
 ///
 /// @ingroup aliceo2_dataformats_dataheader
 struct DataHeader : public BaseHeader
 {
   static const HeaderType sHeaderType;
   static const SerializationMethod sSerializationMethod;
+  static const uint32_t sVersion;
 
+  ///
   /// data type descriptor
+  ///
   struct DataDescription {
     union {
       char     str[gSizeDataDescriptionString];
@@ -334,7 +424,9 @@ struct DataHeader : public BaseHeader
     void print() const;
   } dataDescription;
 
+  ///
   /// origin of the data (originating detector)
+  ///
   struct DataOrigin {
     union {
       char     str[gSizeDataOriginString];
@@ -354,33 +446,42 @@ struct DataHeader : public BaseHeader
     void print() const;
   } dataOrigin;
 
-  // need something for alignment, is there another field needed?
+  ///
+  /// need something for alignment, is there another field needed?
+  ///
   uint32_t reserved;
 
+  ///
   /// serialization method
+  ///
   BaseHeader::SerializationMethod payloadSerializationMethod;
 
+  ///
   /// sub specification (e.g. link number)
+  ///
   uint64_t    subSpecification;
 
+  ///
   /// size of the associated data
+  ///
   uint64_t    payloadSize;
 
   //___NEVER MODIFY THE ABOVE
   //___NEW STUFF GOES BELOW
 
   //___the functions:
-  DataHeader(); //ctor
+  DataHeader(); ///ctor
   DataHeader(const DataHeader&) = default;
   DataHeader& operator=(const DataHeader&); //assignment
   DataHeader& operator=(const DataOrigin&); //assignment
   DataHeader& operator=(const DataDescription&); //assignment
   DataHeader& operator=(const SerializationMethod&); //assignment
-  bool operator==(const DataHeader&); //comparison
-  bool operator==(const DataOrigin&); //comparison
-  bool operator==(const DataDescription&); //comparison
-  bool operator==(const SerializationMethod&); //comparison
-  void print() const;
+  bool operator==(const DataHeader&) const; //comparison
+  bool operator==(const DataOrigin&) const; //comparison
+  bool operator==(const DataDescription&) const; //comparison
+  bool operator==(const SerializationMethod&) const; //comparison
+  void print() const; ///pretty print the contents
+
   static const DataHeader* Get(const BaseHeader* baseHeader) {
     return (baseHeader->description==DataHeader::sHeaderType)?
     static_cast<const DataHeader*>(baseHeader):nullptr;
@@ -414,11 +515,9 @@ struct DataIdentifier
 
 //__________________________________________________________________________________________________
 /// default int representation of 'invalid' token for 4-byte char field
-const uint32_t gInvalidToken32 = 0x00202020;
+const uint32_t gInvalidToken32 = 0xFFFFFFFF;
 /// default int representation of 'invalid' token for 8-byte char field
-const uint64_t gInvalidToken64 = 0x0020202020202020;
-/// invalid version
-const uint32_t gInvalidVersion = 0;
+const uint64_t gInvalidToken64 = 0xFFFFFFFFFFFFFFFF;
 
 //__________________________________________________________________________________________________
 //possible data origins
@@ -438,66 +537,13 @@ extern const DataHeader::DataDescription gDataDescriptionTracks;
 extern const DataHeader::DataDescription gDataDescriptionConfig;
 extern const DataHeader::DataDescription gDataDescriptionInfo;
 
-//__________________________________________________________________________________________________
-//possible serialization types
-extern const BaseHeader::SerializationMethod gSerializationMethodAny;
-extern const BaseHeader::SerializationMethod gSerializationMethodInvalid;
-extern const BaseHeader::SerializationMethod gSerializationMethodNone;
-extern const BaseHeader::SerializationMethod gSerializationMethodROOT;
-extern const BaseHeader::SerializationMethod gSerializationMethodFlatBuf;
-
 /// @} // end of doxygen group
 
-} //namespace Base
-} //namespace AliceO2
-
 //__________________________________________________________________________________________________
-//helper function to print a hex/ASCII dump of some memory
-void hexDump (const char* desc, const void* voidaddr, size_t len) {
-  size_t i;
-  unsigned char buff[17];       // stores the ASCII data
-  const byte* addr = reinterpret_cast<const byte*>(voidaddr);
+///helper function to print a hex/ASCII dump of some memory
+void hexDump (const char* desc, const void* voidaddr, size_t len);
 
-  // Output description if given.
-  if (desc != NULL)
-    printf ("%s, ", desc);
-  printf("%zu bytes:\n", len);
-
-  // In case of null pointer addr
-  if (addr==nullptr) {printf("  nullptr, size: %zu\n", len); return;}
-
-  // Process every byte in the data.
-  for (i = 0; i < len; i++) {
-    // Multiple of 16 means new line (with line offset).
-    if ((i % 16) == 0) {
-      // Just don't print ASCII for the zeroth line.
-      if (i != 0)
-        printf ("  %s\n", buff);
-
-      // Output the offset.
-      //printf ("  %04x ", i);
-      printf ("  %p ", &addr[i]);
-    }
-
-    // Now the hex code for the specific character.
-    printf (" %02x", addr[i]);
-
-    // And store a printable ASCII character for later.
-    if ((addr[i] < 0x20) || (addr[i] > 0x7e))
-      buff[i % 16] = '.';
-    else
-      buff[i % 16] = addr[i];
-    buff[(i % 16) + 1] = '\0';
-  }
-
-  // Pad out last line if not exactly 16 characters.
-  while ((i % 16) != 0) {
-    printf ("   ");
-    i++;
-  }
-
-  // And print the final ASCII bit.
-  printf ("  %s\n", buff);
-}
+} //namespace Header
+} //namespace AliceO2
 
 #endif

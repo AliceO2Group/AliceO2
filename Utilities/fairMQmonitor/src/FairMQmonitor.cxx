@@ -22,6 +22,8 @@
 using namespace std;
 using namespace AliceO2::Header;
 
+using NameHeader16 = NameHeader<16>; //header holding 16 characters
+
 FairMQmonitor::FairMQmonitor()
 {
 }
@@ -37,11 +39,15 @@ bool FairMQmonitor::ConditionalRun()
   dataHeader = gDataDescriptionInfo;
   dataHeader = gSerializationMethodNone;
 
-  NameHeader nameHeader;
+  NameHeader16 nameHeader;
   nameHeader = "some name";
 
   AddMessage(parts,{dataHeader},NewSimpleMessage("foo"));
   AddMessage(parts,{dataHeader,nameHeader},NewSimpleMessage("bar"));
+
+  dataHeader = gDataOriginTPC;
+  AddMessage(parts,{dataHeader},NewSimpleMessage("foo"));
+
 
   Send(parts, "data-out");
 
@@ -54,12 +60,16 @@ bool FairMQmonitor::HandleData(FairMQParts& parts, int /*index*/)
   return true;
 }
 
-bool FairMQmonitor::HandleBuffers(byte* headerBuffer, byte* dataBuffer)
+bool FairMQmonitor::HandleBuffers(byte* headerBuffer, size_t headerBufferSize,
+                                  byte* dataBuffer,   size_t dataBufferSize)
 {
-  const DataHeader* dataHeader = BaseHeader::get<DataHeader>(headerBuffer);
+  const DataHeader* dataHeader = get<DataHeader>(headerBuffer);
   if (!dataHeader) return false;
 
-  const NameHeader* nameHeader = BaseHeader::get<NameHeader>(headerBuffer);
+  if ( (*dataHeader)==gDataDescriptionTracks ) return true;
+  if ( (*dataHeader)==gDataOriginTPC ) return true;
+
+  const NameHeader16* nameHeader = get<NameHeader16>(headerBuffer);
   if (!nameHeader) return false;
 
   return true;
