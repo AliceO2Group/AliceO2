@@ -25,6 +25,8 @@ class FairMQmonitor : public AliceO2::Base::O2device
 
   protected:
     virtual bool ConditionalRun();
+    bool HandleData(FairMQParts& parts, int index);
+    bool HandleBuffers(byte* headerBuffer, byte* dataBuffer);
 
 };
 
