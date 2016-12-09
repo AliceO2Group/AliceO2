@@ -33,31 +33,32 @@ const BaseHeader::SerializationMethod AliceO2::Header::gSerializationMethodFlatB
 
 //__________________________________________________________________________________________________
 //static version numbers
-const uint32_t BaseHeader::sVersion=1;
+const uint32_t BaseHeader::sVersion=gInvalidToken32;
+const BaseHeader::HeaderType BaseHeader::sHeaderType = gInvalidToken64;
+const BaseHeader::SerializationMethod BaseHeader::sSerializationMethod = gInvalidToken64;
 
+const uint32_t DataHeader::sVersion=1;
 const BaseHeader::HeaderType DataHeader::sHeaderType = String2uint64("DataHead");
 const BaseHeader::SerializationMethod DataHeader::sSerializationMethod = AliceO2::Header::gSerializationMethodNone;
-
-const BaseHeader::HeaderType NameHeader::sHeaderType = "NameHead";
-const BaseHeader::SerializationMethod NameHeader::sSerializationMethod = gSerializationMethodNone;
 
 //__________________________________________________________________________________________________
 AliceO2::Header::BaseHeader::BaseHeader()
   : magicStringInt(sMagicString)
   , headerSize(sizeof(BaseHeader))
   , flags(0)
-  , headerVersion(sVersion)
+  , headerVersion(gInvalidToken32)
   , description(gInvalidToken64)
   , serialization(gInvalidToken64)
 {
 }
 
 //__________________________________________________________________________________________________
-AliceO2::Header::BaseHeader::BaseHeader(uint32_t size, HeaderType desc, SerializationMethod ser)
+AliceO2::Header::BaseHeader::BaseHeader(uint32_t size, HeaderType desc,
+                                        SerializationMethod ser, uint32_t version)
   : magicStringInt(sMagicString)
   , headerSize(size)
   , flags(0)
-  , headerVersion(sVersion)
+  , headerVersion(version)
   , description(desc)
   , serialization(ser)
 {
@@ -65,7 +66,7 @@ AliceO2::Header::BaseHeader::BaseHeader(uint32_t size, HeaderType desc, Serializ
 
 //__________________________________________________________________________________________________
 AliceO2::Header::DataHeader::DataHeader()
-  : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod)
+  : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
   , dataOrigin(gDataOriginInvalid)
   , reserved(0)
   , payloadSerializationMethod(gSerializationMethodInvalid)
@@ -124,14 +125,14 @@ DataHeader& AliceO2::Header::DataHeader::operator=(const SerializationMethod& th
 }
 
 //__________________________________________________________________________________________________
-bool AliceO2::Header::DataHeader::operator==(const DataOrigin& that)
+bool AliceO2::Header::DataHeader::operator==(const DataOrigin& that) const
 {
   return (that == gDataOriginAny||
           that == dataOrigin );
 }
 
 //__________________________________________________________________________________________________
-bool AliceO2::Header::DataHeader::operator==(const DataDescription& that)
+bool AliceO2::Header::DataHeader::operator==(const DataDescription& that) const
 {
   return ((that.itg[0] == gDataDescriptionAny.itg[0] &&
 	   that.itg[1] == gDataDescriptionAny.itg[1]) ||
@@ -140,14 +141,14 @@ bool AliceO2::Header::DataHeader::operator==(const DataDescription& that)
 }
 
 //__________________________________________________________________________________________________
-bool AliceO2::Header::DataHeader::operator==(const SerializationMethod& that)
+bool AliceO2::Header::DataHeader::operator==(const SerializationMethod& that) const
 {
   return (that == gSerializationMethodAny||
           that == payloadSerializationMethod );
 }
 
 //__________________________________________________________________________________________________
-bool AliceO2::Header::DataHeader::operator==(const DataHeader& that)
+bool AliceO2::Header::DataHeader::operator==(const DataHeader& that) const
 {
   return( magicStringInt == that.magicStringInt &&
           dataOrigin == that.dataOrigin &&
@@ -236,5 +237,54 @@ void AliceO2::Header::DataIdentifier::print() const
 {
   dataOrigin.print();
   dataDescription.print();
+}
+
+//__________________________________________________________________________________________________
+void AliceO2::Header::hexDump (const char* desc, const void* voidaddr, size_t len)
+{
+  size_t i;
+  unsigned char buff[17];       // stores the ASCII data
+  const byte* addr = reinterpret_cast<const byte*>(voidaddr);
+
+  // Output description if given.
+  if (desc != NULL)
+    printf ("%s, ", desc);
+  printf("%zu bytes:\n", len);
+
+  // In case of null pointer addr
+  if (addr==nullptr) {printf("  nullptr, size: %zu\n", len); return;}
+
+  // Process every byte in the data.
+  for (i = 0; i < len; i++) {
+    // Multiple of 16 means new line (with line offset).
+    if ((i % 16) == 0) {
+      // Just don't print ASCII for the zeroth line.
+      if (i != 0)
+        printf ("  %s\n", buff);
+
+      // Output the offset.
+      //printf ("  %04x ", i);
+      printf ("  %p ", &addr[i]);
+    }
+
+    // Now the hex code for the specific character.
+    printf (" %02x", addr[i]);
+
+    // And store a printable ASCII character for later.
+    if ((addr[i] < 0x20) || (addr[i] > 0x7e))
+      buff[i % 16] = '.';
+    else
+      buff[i % 16] = addr[i];
+    buff[(i % 16) + 1] = '\0';
+  }
+
+  // Pad out last line if not exactly 16 characters.
+  while ((i % 16) != 0) {
+    printf ("   ");
+    i++;
+  }
+
+  // And print the final ASCII bit.
+  printf ("  %s\n", buff);
 }
 
