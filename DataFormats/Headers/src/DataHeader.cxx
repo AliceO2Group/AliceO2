@@ -53,10 +53,10 @@ AliceO2::Header::BaseHeader::BaseHeader()
 }
 
 //__________________________________________________________________________________________________
-AliceO2::Header::BaseHeader::BaseHeader(uint32_t size, HeaderType desc,
+AliceO2::Header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
                                         SerializationMethod ser, uint32_t version)
   : magicStringInt(sMagicString)
-  , headerSize(size)
+  , headerSize(mySize)
   , flags(0)
   , headerVersion(version)
   , description(desc)
@@ -240,16 +240,23 @@ void AliceO2::Header::DataIdentifier::print() const
 }
 
 //__________________________________________________________________________________________________
-void AliceO2::Header::hexDump (const char* desc, const void* voidaddr, size_t len)
+void AliceO2::Header::hexDump (const char* desc, const void* voidaddr, size_t len, size_t max)
 {
   size_t i;
   unsigned char buff[17];       // stores the ASCII data
+  memset(&buff[0],'\0',17);
   const byte* addr = reinterpret_cast<const byte*>(voidaddr);
 
   // Output description if given.
   if (desc != NULL)
     printf ("%s, ", desc);
-  printf("%zu bytes:\n", len);
+  printf("%zu bytes:", len);
+  if (max>0 && len>max) {
+    len = max;  //limit the output if requested
+    printf(" output limited to %zu bytes\n", len);
+  } else {
+    printf("\n");
+  }
 
   // In case of null pointer addr
   if (addr==nullptr) {printf("  nullptr, size: %zu\n", len); return;}

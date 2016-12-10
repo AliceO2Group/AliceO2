@@ -16,65 +16,93 @@
 #include <chrono>
 
 #include "fairMQmonitor/FairMQmonitor.h"
+#include "FairMQProgOptions.h"
 #include "FairMQLogger.h"
 #include "Headers/DataHeader.h"
 
 using namespace std;
 using namespace AliceO2::Header;
+using namespace AliceO2::Base;
 
-using NameHeader16 = NameHeader<16>; //header holding 16 characters
+using NameHeader48 = NameHeader<48>; //header holding 16 characters
 
+//__________________________________________________________________________________________________
 FairMQmonitor::FairMQmonitor()
+  : mDataHeader()
+  , mPayload("I am the info payload")
+  , mName("My name is \"gDataDescriptionInfo\"")
+  , mDelay(1000)
+  , mIterations(10)
+  , mLimitOutputCharacters(1024)
 {
+  mDataHeader = gDataOriginAny;
+  mDataHeader = gDataDescriptionInfo;
+  mDataHeader = gSerializationMethodNone;
 }
 
-bool FairMQmonitor::ConditionalRun()
+//__________________________________________________________________________________________________
+void FairMQmonitor::InitTask()
 {
-  this_thread::sleep_for(chrono::seconds(1));
-
-  O2message parts;
-
-  DataHeader dataHeader;
-  dataHeader = gDataOriginAny;
-  dataHeader = gDataDescriptionInfo;
-  dataHeader = gSerializationMethodNone;
-
-  NameHeader16 nameHeader;
-  nameHeader = "some name";
-
-  AddMessage(parts,{dataHeader},NewSimpleMessage("foo"));
-  AddMessage(parts,{dataHeader,nameHeader},NewSimpleMessage("bar"));
-
-  dataHeader = gDataOriginTPC;
-  AddMessage(parts,{dataHeader},NewSimpleMessage("foo"));
-
-
-  Send(parts, "data-out");
-
-  return true;
+  mDelay = fConfig->GetValue<int>("sleep");
+  mIterations = fConfig->GetValue<int>("n");
+  mPayload = fConfig->GetValue<std::string>("payload");
+  std::string tmp = fConfig->GetValue<std::string>("name");
+  if (!tmp.empty()) mName = tmp;
+  mLimitOutputCharacters = fConfig->GetValue<int>("limit");
 }
 
-bool FairMQmonitor::HandleData(O2message& parts, int /*index*/)
+//__________________________________________________________________________________________________
+void FairMQmonitor::Run()
 {
-  ForEach(parts, &FairMQmonitor::HandleBuffers);
-  return true;
+  //check socket type of data channel
+  std::string type;
+  std::vector<FairMQChannel> subChannels = fChannels["data"];
+  if (subChannels.size()>0) {
+    type = subChannels[0].GetType();
+  }
+
+  while (CheckCurrentState(RUNNING) && (--mIterations)!=0) {
+    this_thread::sleep_for(chrono::milliseconds(mDelay));
+
+    O2message message;
+    NameHeader48 nameHeader;
+
+    //maybe send a request
+    nameHeader = mName;
+    AddMessage(message,{mDataHeader,nameHeader},NewSimpleMessage(mPayload));
+    Send(message, "data");
+    message.fParts.clear();
+
+    //message in;
+    Receive(message, "data");
+    LOG(INFO) << "== New message=============================";
+    ForEach(message, &FairMQmonitor::HandleO2frame);
+    message.fParts.clear();
+
+    //maybe a reply message
+    if (type=="rep") {
+      nameHeader = "My name is reply";
+      AddMessage(message,{mDataHeader,nameHeader},NewSimpleMessage("I am a reply"));
+      Send(message, "data");
+    }
+  }
 }
 
-bool FairMQmonitor::HandleBuffers(byte* headerBuffer, size_t headerBufferSize,
-                                  byte* dataBuffer,   size_t dataBufferSize)
+//__________________________________________________________________________________________________
+bool FairMQmonitor::HandleO2frame(byte* headerBuffer, size_t headerBufferSize,
+    byte* dataBuffer,   size_t dataBufferSize)
 {
+
+  hexDump("headerBuffer", headerBuffer, headerBufferSize);
+  hexDump("dataBuffer", dataBuffer, dataBufferSize, mLimitOutputCharacters);
+
   const DataHeader* dataHeader = get<DataHeader>(headerBuffer);
-  if (!dataHeader) return false;
+  if (!dataHeader) { LOG(INFO) << "data header empty!"; return false; }
+  if ( (*dataHeader)==gDataDescriptionInfo ) {}
 
-  if ( (*dataHeader)==gDataDescriptionTracks ) return true;
-  if ( (*dataHeader)==gDataOriginTPC ) return true;
-
-  const NameHeader16* nameHeader = get<NameHeader16>(headerBuffer);
-  if (!nameHeader) return false;
+  const NameHeader<0>* nameHeader = get<NameHeader<0>>(headerBuffer);
+  if (nameHeader) {size_t sizeNameHeader=nameHeader->size();}
 
   return true;
 }
 
-FairMQmonitor::~FairMQmonitor()
-{
-}

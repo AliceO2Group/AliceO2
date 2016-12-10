@@ -67,13 +67,21 @@ public:
       throw std::invalid_argument("number of parts in message not even (n%2 != 0)");
 
     for (auto it = parts.fParts.begin(); it != parts.fParts.end(); ++it) {
-      byte* headerBuffer = reinterpret_cast<byte*>((*it)->GetData());
-      size_t headerBufferSize = (*it)->GetSize();
+      byte* headerBuffer = nullptr;
+      size_t headerBufferSize = 0;
+      if (*it != nullptr) {
+        headerBuffer = reinterpret_cast<byte*>((*it)->GetData());
+        headerBufferSize = (*it)->GetSize();
+      }
       ++it;
-      byte* dataBuffer = reinterpret_cast<byte*>((*it)->GetData());
-      size_t dataBufferSize = (*it)->GetSize();
+      byte* dataBuffer = nullptr;
+      size_t dataBufferSize = 0;
+      if (*it != nullptr) {
+        dataBuffer = reinterpret_cast<byte*>((*it)->GetData());
+        dataBufferSize = (*it)->GetSize();
+      }
 
-      // call teh user provided function
+      // call the user provided function
       (static_cast<T*>(this)->*memberFunction)
         (headerBuffer, headerBufferSize, dataBuffer, dataBufferSize);
     }
