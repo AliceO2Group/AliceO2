@@ -32,7 +32,7 @@ bool FairMQmonitor::ConditionalRun()
 {
   this_thread::sleep_for(chrono::seconds(1));
 
-  FairMQParts parts;
+  O2message parts;
 
   DataHeader dataHeader;
   dataHeader = gDataOriginAny;
@@ -54,7 +54,7 @@ bool FairMQmonitor::ConditionalRun()
   return true;
 }
 
-bool FairMQmonitor::HandleData(FairMQParts& parts, int /*index*/)
+bool FairMQmonitor::HandleData(O2message& parts, int /*index*/)
 {
   ForEach(parts, &FairMQmonitor::HandleBuffers);
   return true;
