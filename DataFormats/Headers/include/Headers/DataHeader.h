@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <stdio.h>
 #include <iostream>
-
+#include <memory>
 
 // enum class byte : unsigned char
 // {
@@ -208,7 +208,7 @@ struct BaseHeader
   BaseHeader();
   BaseHeader(const BaseHeader&) = default;
   /// Special ctor for initialization in derived types
-  BaseHeader(uint32_t size, HeaderType description,
+  BaseHeader(uint32_t mySize, HeaderType description,
              SerializationMethod serialization, uint32_t version);
 
   /// @brief access header in buffer
@@ -360,6 +360,14 @@ struct NameHeader : public BaseHeader {
   {
     memset(&name[0],'\0',N);
   }
+
+  NameHeader(std::string in)
+  : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion)
+  , name()
+  {
+    std::copy(in.begin(), in.begin()+N, name);
+  }
+
   NameHeader& operator=(const std::string string) {
     std::copy(string.begin(), string.begin()+N, name);
     return *this;
@@ -541,7 +549,7 @@ extern const DataHeader::DataDescription gDataDescriptionInfo;
 
 //__________________________________________________________________________________________________
 ///helper function to print a hex/ASCII dump of some memory
-void hexDump (const char* desc, const void* voidaddr, size_t len);
+void hexDump (const char* desc, const void* voidaddr, size_t len, size_t max=0);
 
 } //namespace Header
 } //namespace AliceO2
