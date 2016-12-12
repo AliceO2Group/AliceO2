@@ -6,14 +6,11 @@
 #include "CCDB/Condition.h"
 #include "CCDB/ObjectHandler.h"
 
-#include "TBufferFile.h"
-#include "TFile.h"
 #include "TMessage.h"
-#include "Rtypes.h"
-
-#include <zlib.h>
 
 #include "FairMQLogger.h"
+
+#include <zlib.h>
 
 using namespace AliceO2::CDB;
 using namespace std;

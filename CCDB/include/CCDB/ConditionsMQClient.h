@@ -1,10 +1,3 @@
-/********************************************************************************
- *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
- *                                                                              *
- *              This software is distributed under the terms of the             *
- *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
- *                  copied verbatim in the file "LICENSE"                       *
- ********************************************************************************/
 /**
  * ConditionsMQClient.h
  *
@@ -24,18 +17,11 @@ namespace CDB {
 
 class ConditionsMQClient : public FairMQDevice {
 public:
-  enum { ParameterName = FairMQDevice::Last, OperationType, DataSource, ObjectPath, Last };
-
   ConditionsMQClient();
-
   virtual ~ConditionsMQClient();
 
-  virtual void SetProperty(const int key, const std::string& value);
-  virtual std::string GetProperty(const int key, const std::string& default_ = "");
-  virtual void SetProperty(const int key, const int value);
-  virtual int GetProperty(const int key, const int default_ = 0);
-
 protected:
+  virtual void InitTask();
   virtual void Run();
 
 private:
