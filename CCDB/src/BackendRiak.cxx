@@ -105,11 +105,9 @@ void BackendRiak::Deserialize(const std::string& messageString, std::string& obj
 
 void BackendRiak::Pack(const std::string& path, const std::string& key, std::string*& messageString)
 {
-  ObjectHandler objHandler;
-
   // Load the AliCDBEntry object from disk
   std::string object;
-  objHandler.GetObject(path, object);
+  ObjectHandler::GetObject(path, object);
 
   // Compress the object before storing to Riak
   std::string compressed_object;

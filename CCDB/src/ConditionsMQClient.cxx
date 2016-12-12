@@ -19,6 +19,7 @@
 #include "CCDB/BackendRiak.h"
 #include "CCDB/ConditionsMQClient.h"
 #include "FairMQLogger.h"
+#include "FairMQProgOptions.h"
 
 #include "boost/filesystem.hpp"
 
@@ -30,6 +31,14 @@ ConditionsMQClient::ConditionsMQClient() : fRunId(0), fParameterName() {}
 ConditionsMQClient::~ConditionsMQClient() {}
 
 void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hint); }
+
+void ConditionsMQClient::InitTask()
+{
+  fParameterName = fConfig->GetValue<string>("parameter-name");
+  fOperationType = fConfig->GetValue<string>("operation-type");
+  fDataSource = fConfig->GetValue<string>("data-source");
+  fObjectPath = fConfig->GetValue<string>("object-path");
+}
 
 void ConditionsMQClient::Run()
 {
@@ -97,60 +106,5 @@ void ConditionsMQClient::Run()
 
     boost::posix_time::ptime endTime = boost::posix_time::microsec_clock::local_time();
     LOG(DEBUG) << " Time elapsed: " << (endTime - startTime).total_milliseconds() << "ms";
-  }
-}
-
-void ConditionsMQClient::SetProperty(const int key, const string& value)
-{
-  switch (key) {
-    case ParameterName:
-      fParameterName = value;
-      break;
-    case OperationType:
-      fOperationType = value;
-      break;
-    case DataSource:
-      fDataSource = value;
-      break;
-    case ObjectPath:
-      fObjectPath = value;
-      break;
-    default:
-      FairMQDevice::SetProperty(key, value);
-      break;
-  }
-}
-
-string ConditionsMQClient::GetProperty(const int key, const string& default_ /*= ""*/)
-{
-  switch (key) {
-    case ParameterName:
-      return fParameterName;
-      break;
-    case OperationType:
-      return fOperationType;
-      break;
-    case DataSource:
-      return fDataSource;
-      break;
-    default:
-      return FairMQDevice::GetProperty(key, default_);
-  }
-}
-
-void ConditionsMQClient::SetProperty(const int key, const int value)
-{
-  switch (key) {
-    default:
-      FairMQDevice::SetProperty(key, value);
-      break;
-  }
-}
-
-int ConditionsMQClient::GetProperty(const int key, const int default_ /*= 0*/)
-{
-  switch (key) {
-    default:
-      return FairMQDevice::GetProperty(key, default_);
   }
 }

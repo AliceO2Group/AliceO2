@@ -150,7 +150,7 @@ void ConditionsMQServer::getFromOCDB(std::string key)
   // Change key from i.e. "/DET/Calib/Histo/Run2008_2008_v1_s0" to (DET/Calib/Histo, 2008)
   // FIXME: This will have to be changed in the future by adapting IdPath and getObject accordingly
   std::size_t pos = key.rfind("/");
-  std::string identifier = key.substr(1, pos);
+  std::string identifier = key.substr(0, pos);
   key.erase(0, pos + 4);
   std::size_t pos2 = key.find("_");
   int runId = atoi(key.substr(0, pos2).c_str());
