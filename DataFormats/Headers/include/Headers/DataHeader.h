@@ -305,7 +305,7 @@ struct Block {
   /// TODO: maybe add a static_assert requiring first arg to be DataHeader
   /// or maybe even require all these to be derived form BaseHeader
   template<typename... Headers>
-    Block(Headers... headers)
+  Block(Headers... headers)
     : bufferSize{size(headers...)}
     , buffer{new byte[bufferSize]}
   {
@@ -468,6 +468,7 @@ struct DataHeader : public BaseHeader
 
   ///
   /// need something for alignment, is there another field needed?
+  /// how about a hash?
   ///
   uint32_t reserved;
 

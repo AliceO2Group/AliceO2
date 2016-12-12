@@ -80,7 +80,7 @@ AliceO2::Header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
 AliceO2::Header::DataHeader::DataHeader()
   : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
   , dataOrigin(gDataOriginInvalid)
-  , reserved(0)
+  , reserved(gInvalidToken32)
   , payloadSerializationMethod(gSerializationMethodInvalid)
   , dataDescription(gDataDescriptionInvalid)
   , subSpecification(0)
