@@ -335,15 +335,15 @@ struct Block {
     return b;
   }
 
+  template<typename T, typename... Args>
+  static size_t size(const T& h, const Args... args) noexcept {
+    return size(h) + size(args...);
+  }
+
 private:
   template<typename T>
   static size_t size(const T& h) noexcept {
     return h.size();
-  }
-
-  template<typename T, typename... Args>
-  static size_t size(const T& h, const Args... args) noexcept {
-    return size(h) + size(args...);
   }
 
   template<typename T>
