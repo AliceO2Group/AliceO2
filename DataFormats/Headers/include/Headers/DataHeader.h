@@ -62,15 +62,15 @@ namespace Header {
 /// @ingroup aliceo2_dataformats_dataheader
 
 /// size of the magic string field @ingroup dataheader_defines
-const uint32_t gSizeMagicString = 4;
+constexpr uint32_t gSizeMagicString = 4;
 /// size of the data origin field @ingroup dataheader_defines
-const uint32_t gSizeDataOriginString = 4;
+constexpr uint32_t gSizeDataOriginString = 4;
 /// size of the payload serialization field @ingroup dataheader_defines
-const uint32_t gSizeSerializationMethodString = 8;
+constexpr uint32_t gSizeSerializationMethodString = 8;
 /// size of the data description field @ingroup dataheader_defines
-const uint32_t gSizeDataDescriptionString = 16;
+constexpr uint32_t gSizeDataDescriptionString = 16;
 /// size of the header description field @ingroup dataheader_defines
-const uint32_t gSizeHeaderDescriptionString = 8;
+constexpr uint32_t gSizeHeaderDescriptionString = 8;
 /// @}
 
 //__________________________________________________________________________________________________
@@ -87,16 +87,16 @@ constexpr uint64_t String2uint64(char c1, char c2, char c3, char c4,
 }
 
 /// constexpr intializer, evaluated at compile time
-constexpr uint64_t String2uint64(const char* str)
+constexpr uint64_t String2uint64(const char* str, int pos=0)
 {
-	return((uint64_t) str[0] |
-         (str[0] ? ((uint64_t) str[1] << 8  |
-         (str[1] ? ((uint64_t) str[2] << 16 |
-         (str[2] ? ((uint64_t) str[3] << 24 |
-         (str[3] ? ((uint64_t) str[4] << 32 |
-         (str[4] ? ((uint64_t) str[5] << 40 |
-         (str[5] ? ((uint64_t) str[6] << 48 |
-         (str[6] ? ((uint64_t) str[7] << 56 )
+	return((uint64_t) str[0+pos] |
+         (str[0+pos] ? ((uint64_t) str[1+pos] << 8  |
+         (str[1+pos] ? ((uint64_t) str[2+pos] << 16 |
+         (str[2+pos] ? ((uint64_t) str[3+pos] << 24 |
+         (str[3+pos] ? ((uint64_t) str[4+pos] << 32 |
+         (str[4+pos] ? ((uint64_t) str[5+pos] << 40 |
+         (str[5+pos] ? ((uint64_t) str[6+pos] << 48 |
+         (str[6+pos] ? ((uint64_t) str[7+pos] << 56 )
           : 0)) : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
 }
 
@@ -136,6 +136,43 @@ constexpr uint32_t CharArr2uint32(const char* str)
 }
 
 //__________________________________________________________________________________________________
+/// default int representation of 'invalid' token for 4-byte char field
+const uint32_t gInvalidToken32 = 0xFFFFFFFF;
+/// default int representation of 'invalid' token for 8-byte char field
+const uint64_t gInvalidToken64 = 0xFFFFFFFFFFFFFFFF;
+
+struct HeaderType {
+  union {
+    char     str[gSizeHeaderDescriptionString];
+    uint64_t itg;
+  };
+  constexpr HeaderType(uint64_t v) : itg{v} {}
+  HeaderType(const char* s) {itg=String2uint64(s);}
+  HeaderType(const HeaderType& that) {itg=that.itg;}
+  bool operator==(const HeaderType& that) const {return that.itg==itg;}
+  bool operator==(const uint64_t& that) const {return that==itg;}
+};
+
+struct SerializationMethod {
+  union {
+    char      str[gSizeSerializationMethodString];
+    uint64_t  itg;
+  };
+  constexpr SerializationMethod(uint64_t v) : itg{v} {}
+  constexpr SerializationMethod(const char* s) : itg{String2uint64(s)} {}
+  SerializationMethod(const SerializationMethod& that) {itg=that.itg;}
+  bool operator==(const SerializationMethod& that) const {return that.itg==itg;}
+  bool operator==(const uint64_t& that) const {return that==itg;}
+};
+
+//possible serialization types
+constexpr AliceO2::Header::SerializationMethod gSerializationMethodAny    ("*******");
+constexpr AliceO2::Header::SerializationMethod gSerializationMethodInvalid("       ");
+constexpr AliceO2::Header::SerializationMethod gSerializationMethodNone   ("NONE   ");
+constexpr AliceO2::Header::SerializationMethod gSerializationMethodROOT   ("ROOT   ");
+constexpr AliceO2::Header::SerializationMethod gSerializationMethodFlatBuf("FLATBUF");
+
+//__________________________________________________________________________________________________
 /// @struct BaseHeader
 /// @brief the base header struct
 /// Every header type must begin (i.e. derive) with this.
@@ -155,14 +192,12 @@ constexpr uint32_t CharArr2uint32(const char* str)
 /// @ingroup aliceo2_dataformats_dataheader
 struct BaseHeader
 {
-  struct HeaderType;
-  struct SerializationMethod;
-
   // static definitions
-  static const uint32_t sMagicString;
-  static const HeaderType sHeaderType;
-  static const SerializationMethod sSerializationMethod;
-  static const uint32_t sVersion;
+  constexpr static uint32_t sMagicString = CharArr2uint32("O2O2");
+
+  constexpr static uint32_t sVersion = gInvalidToken32;
+  constexpr static AliceO2::Header::HeaderType sHeaderType = gInvalidToken64;
+  constexpr static AliceO2::Header::SerializationMethod sSerializationMethod = gInvalidToken64;
 
   //__the data layout:
 
@@ -189,30 +224,10 @@ struct BaseHeader
   uint32_t    headerVersion;
 
   /// header type description, set by derived header
-  struct HeaderType {
-    union {
-      char     str[gSizeHeaderDescriptionString];
-      uint64_t itg;
-    };
-    HeaderType(uint64_t v) {itg=v;}
-    HeaderType(const char* s) {itg=String2uint64(s);}
-    HeaderType(const HeaderType& that) {itg=that.itg;}
-    bool operator==(const HeaderType& that) const {return that.itg==itg;}
-    bool operator==(const uint64_t& that) const {return that==itg;}
-  } description;
+  AliceO2::Header::HeaderType description;
 
   /// header serialization method, set by derived header
-  struct SerializationMethod {
-    union {
-      char      str[gSizeSerializationMethodString];
-      uint64_t  itg;
-    };
-    SerializationMethod(uint64_t v) {itg=v;}
-    SerializationMethod(const char* s) {itg=String2uint64(s);}
-    SerializationMethod(const SerializationMethod& that) {itg=that.itg;}
-    bool operator==(const SerializationMethod& that) const {return that.itg==itg;}
-    bool operator==(const uint64_t& that) const {return that==itg;}
-  } serialization;
+  AliceO2::Header::SerializationMethod serialization;
 
   //___the functions:
 
@@ -259,14 +274,6 @@ const HeaderType* get(byte* buffer, size_t /*len*/=0) {
   }
   return nullptr;
 }
-
-//__________________________________________________________________________________________________
-//possible serialization types
-extern const BaseHeader::SerializationMethod gSerializationMethodAny;
-extern const BaseHeader::SerializationMethod gSerializationMethodInvalid;
-extern const BaseHeader::SerializationMethod gSerializationMethodNone;
-extern const BaseHeader::SerializationMethod gSerializationMethodROOT;
-extern const BaseHeader::SerializationMethod gSerializationMethodFlatBuf;
 
 //__________________________________________________________________________________________________
 /// @struct Block
@@ -363,9 +370,9 @@ private:
 /// @ingroup aliceo2_dataformats_dataheader
 template <size_t N>
 struct NameHeader : public BaseHeader {
-  static const HeaderType sHeaderType;
-  static const SerializationMethod sSerializationMethod;
   static const uint32_t sVersion;
+  static const AliceO2::Header::HeaderType sHeaderType;
+  static const AliceO2::Header::SerializationMethod sSerializationMethod;
   NameHeader()
   : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion)
   , name()
@@ -389,17 +396,63 @@ private:
 };
 
 template <size_t N>
-const BaseHeader::HeaderType NameHeader<N>::sHeaderType = "NameHead";
+const AliceO2::Header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
+
 // dirty trick to always have access to the headertypeID of a templated header type
 // TODO: find out if this can be done in a nicer way + is this realy necessary?
 template <>
-const BaseHeader::HeaderType NameHeader<0>::sHeaderType = "NameHead";
+const AliceO2::Header::HeaderType NameHeader<0>::sHeaderType = "NameHead";
 
 template <size_t N>
-const BaseHeader::SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMethodNone;
+const SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMethodNone;
 
 template <size_t N>
 const uint32_t NameHeader<N>::sVersion = 1;
+
+//__________________________________________________________________________________________________
+/// this 128 bit type for a header field describing the payload data type
+struct DataDescription {
+  union {
+    char     str[gSizeDataDescriptionString];
+    uint64_t itg[2];
+  };
+  DataDescription();
+  DataDescription(const DataDescription& other) : itg() {*this = other;}
+  DataDescription& operator=(const DataDescription& other) {
+    if (&other != this) {
+      itg[0] = other.itg[0];
+      itg[1] = other.itg[1];
+    }
+    return *this;
+  }
+  // note: no operator=(const char*) as this potentially runs into trouble with this
+  // general pointer type, use: somedesc = DataOrigin("SOMEDESCRIPTION")
+  constexpr DataDescription(const char* desc) : itg{String2uint64(desc),String2uint64(desc,8)} {}
+  bool operator==(const DataDescription&) const;
+  bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
+  void print() const;
+};
+
+//__________________________________________________________________________________________________
+// 32bit (4 characters) for data origin, ex. the detector or subsystem name
+struct DataOrigin {
+  union {
+    char     str[gSizeDataOriginString];
+    uint32_t itg;
+  };
+  DataOrigin();
+  DataOrigin(const DataOrigin& other) : itg(other.itg) {}
+  DataOrigin& operator=(const DataOrigin& other) {
+    if (&other != this) itg = other.itg;
+    return *this;
+  }
+  // note: no operator=(const char*) as this potentially runs into trouble with this
+  // general pointer type, use: someorigin = DataOrigin("BLA")
+  constexpr DataOrigin(const char* origin) : itg{String2uint32(origin)} {};
+  bool operator==(const DataOrigin&) const;
+  bool operator!=(const DataOrigin& other) const {return not this->operator==(other);}
+  void print() const;
+};
 
 //__________________________________________________________________________________________________
 /// @struct DataHeader
@@ -415,56 +468,20 @@ const uint32_t NameHeader<N>::sVersion = 1;
 /// @ingroup aliceo2_dataformats_dataheader
 struct DataHeader : public BaseHeader
 {
-  static const HeaderType sHeaderType;
-  static const SerializationMethod sSerializationMethod;
-  static const uint32_t sVersion;
+  //static data for this header type/version
+  constexpr static uint32_t sVersion = 1;
+  constexpr static AliceO2::Header::HeaderType sHeaderType = String2uint64("DataHead");
+  constexpr static AliceO2::Header::SerializationMethod sSerializationMethod = AliceO2::Header::gSerializationMethodNone;
 
   ///
   /// data type descriptor
   ///
-  struct DataDescription {
-    union {
-      char     str[gSizeDataDescriptionString];
-      uint64_t itg[2];
-    };
-    DataDescription();
-    DataDescription(const DataDescription& other) : itg() {*this = other;}
-    DataDescription& operator=(const DataDescription& other) {
-      if (&other != this) {
-        itg[0] = other.itg[0];
-        itg[1] = other.itg[1];
-      }
-      return *this;
-    }
-    // note: no operator=(const char*) as this potentially runs into trouble with this
-    // general pointer type, use: somedesc = DataOrigin("SOMEDESCRIPTION")
-    DataDescription(const char* desc);
-    bool operator==(const DataDescription&) const;
-    bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
-    void print() const;
-  } dataDescription;
+  DataDescription dataDescription;
 
   ///
   /// origin of the data (originating detector)
   ///
-  struct DataOrigin {
-    union {
-      char     str[gSizeDataOriginString];
-      uint32_t itg;
-    };
-    DataOrigin();
-    DataOrigin(const DataOrigin& other) : itg(other.itg) {}
-    DataOrigin& operator=(const DataOrigin& other) {
-      if (&other != this) itg = other.itg;
-      return *this;
-    }
-    // note: no operator=(const char*) as this potentially runs into trouble with this
-    // general pointer type, use: someorigin = DataOrigin("BLA")
-    DataOrigin(const char* origin);
-    bool operator==(const DataOrigin&) const;
-    bool operator!=(const DataOrigin& other) const {return not this->operator==(other);}
-    void print() const;
-  } dataOrigin;
+  DataOrigin dataOrigin;
 
   ///
   /// need something for alignment, is there another field needed?
@@ -475,7 +492,7 @@ struct DataHeader : public BaseHeader
   ///
   /// serialization method
   ///
-  BaseHeader::SerializationMethod payloadSerializationMethod;
+  SerializationMethod payloadSerializationMethod;
 
   ///
   /// sub specification (e.g. link number)
@@ -510,6 +527,30 @@ struct DataHeader : public BaseHeader
 };
 
 //__________________________________________________________________________________________________
+/// @defgroup data_description_defines Defines for data description
+/// @ingroup aliceo2_dataformats_dataheader
+/// @{
+
+//__________________________________________________________________________________________________
+//possible data origins
+constexpr AliceO2::Header::DataOrigin gDataOriginAny    ("***");
+constexpr AliceO2::Header::DataOrigin gDataOriginInvalid("   ");
+constexpr AliceO2::Header::DataOrigin gDataOriginTPC    ("TPC");
+constexpr AliceO2::Header::DataOrigin gDataOriginTRD    ("TRD");
+constexpr AliceO2::Header::DataOrigin gDataOriginTOF    ("TOF");
+
+//possible data types
+constexpr AliceO2::Header::DataDescription gDataDescriptionAny     ("***************");
+constexpr AliceO2::Header::DataDescription gDataDescriptionInvalid ("               ");
+constexpr AliceO2::Header::DataDescription gDataDescriptionRawData ("RAWDATA        ");
+constexpr AliceO2::Header::DataDescription gDataDescriptionClusters("CLUSTERS       ");
+constexpr AliceO2::Header::DataDescription gDataDescriptionTracks  ("TRACKS         ");
+constexpr AliceO2::Header::DataDescription gDataDescriptionConfig  ("CONFIG         ");
+constexpr AliceO2::Header::DataDescription gDataDescriptionInfo    ("INFO           ");
+
+/// @} // end of doxygen group
+
+//__________________________________________________________________________________________________
 /// @struct DataIdentifier
 /// @brief Helper struct to encode origin and description of data.
 ///
@@ -520,45 +561,14 @@ struct DataHeader : public BaseHeader
 struct DataIdentifier
 {
   //a full data identifier combining origin and description
-  DataHeader::DataDescription dataDescription;
-  DataHeader::DataOrigin dataOrigin;
+  DataDescription dataDescription;
+  DataOrigin dataOrigin;
   DataIdentifier();
   DataIdentifier(const DataIdentifier&);
   DataIdentifier(const char* desc, const char* origin);
   bool operator==(const DataIdentifier&) const;
   void print() const;
 };
-
-//__________________________________________________________________________________________________
-/// @defgroup data_description_defines Defines for data description
-/// @ingroup aliceo2_dataformats_dataheader
-/// @{
-
-//__________________________________________________________________________________________________
-/// default int representation of 'invalid' token for 4-byte char field
-const uint32_t gInvalidToken32 = 0xFFFFFFFF;
-/// default int representation of 'invalid' token for 8-byte char field
-const uint64_t gInvalidToken64 = 0xFFFFFFFFFFFFFFFF;
-
-//__________________________________________________________________________________________________
-//possible data origins
-extern const DataHeader::DataOrigin gDataOriginAny;
-extern const DataHeader::DataOrigin gDataOriginInvalid;
-extern const DataHeader::DataOrigin gDataOriginTPC;
-extern const DataHeader::DataOrigin gDataOriginTRD;
-extern const DataHeader::DataOrigin gDataOriginTOF;
-
-//__________________________________________________________________________________________________
-//possible data types
-extern const DataHeader::DataDescription gDataDescriptionAny;
-extern const DataHeader::DataDescription gDataDescriptionInvalid;
-extern const DataHeader::DataDescription gDataDescriptionRawData;
-extern const DataHeader::DataDescription gDataDescriptionClusters;
-extern const DataHeader::DataDescription gDataDescriptionTracks;
-extern const DataHeader::DataDescription gDataDescriptionConfig;
-extern const DataHeader::DataDescription gDataDescriptionInfo;
-
-/// @} // end of doxygen group
 
 //__________________________________________________________________________________________________
 ///helper function to print a hex/ASCII dump of some memory
