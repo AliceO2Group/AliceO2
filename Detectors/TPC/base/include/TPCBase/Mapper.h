@@ -36,6 +36,8 @@ public:
 
   const std::vector<PadRegionInfo>& getMapPadRegionInfo() const { return mMapPadRegionInfo; }
 
+  const int getNumberOfPadRegions() { return int(mMapPadRegionInfo.size()); }
+
   static const unsigned short getPadsInIROC  () { return mPadsInIROC  ; }
   static const unsigned short getPadsInOROC1 () { return mPadsInOROC1 ; }
   static const unsigned short getPadsInOROC2 () { return mPadsInOROC2 ; }
@@ -94,6 +96,35 @@ private:
   std::vector<PadRegionInfo>        mMapPadRegionInfo;     /// pad region information
 
 };
+
+// ===| inline functions |======================================================
+inline const DigitPos Mapper::findDigitPosFromLocalPosition(const LocalPosition3D& pos, const Sector& sec) const
+{
+  PadPos pad;
+  CRU    cru;
+  for (const PadRegionInfo& padRegion : mMapPadRegionInfo) {
+    cru=CRU(sec,padRegion.getPartition());
+    pad=padRegion.findPad(pos);
+    if (pad.isValid()) break;
+  }
+
+  return DigitPos(cru, pad);
+}
+
+inline const DigitPos Mapper::findDigitPosFromGlobalPosition(const GlobalPosition3D& pos) const
+{
+  // ===| find sector |=========================================================
+  double phi=atan2(pos.getY(), pos.getX());
+  if (phi<0.) phi+=TWOPI;
+  const unsigned char secNum = floor(phi/SECPHIWIDTH);
+  const double        secPhi = secNum*SECPHIWIDTH+SECPHIWIDTH/2.;
+  Sector sec(secNum+(pos.getZ()<0)*SECTORSPERSIDE);
+
+  // ===| rotated position |====================================================
+  LocalPosition3D posLoc=GlobalToLocal(pos, secPhi);
+
+  return findDigitPosFromLocalPosition(posLoc, sec);
+}
 
 }
 }
