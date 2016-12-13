@@ -362,7 +362,7 @@ private:
 
 //__________________________________________________________________________________________________
 /// @struct NameHeader
-/// @brief an example data header containing a name of an object
+/// @brief an example data header containing a name of an object as a null terminated char arr.
 /// this is a template! at instantiation the template parameter determines the
 /// size of the held string array.
 /// a caveat with decoding is you have to use Header::get<NameHeader<0>>(buffer)
@@ -384,7 +384,10 @@ struct NameHeader : public BaseHeader {
   : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion)
   , name()
   {
-    std::copy(in.begin(), in.begin()+N, name);
+    //std::copy(in.begin(), in.begin()+N, name);
+    // here we actually wnat a null terminated string
+    strncpy(name,in.c_str(),N);
+    name[N-1] = '\0';
   }
 
   NameHeader& operator=(const std::string string) {
