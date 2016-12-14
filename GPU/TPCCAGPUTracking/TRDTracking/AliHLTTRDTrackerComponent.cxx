@@ -41,7 +41,7 @@
 #include "AliHLTTRDTrackerComponent.h"
 #include "AliHLTTRDTrackletWord.h"
 #include "AliHLTTRDDefinitions.h"
-#include "AliHLTTRDSpacePoint.h"
+#include "AliHLTTRDTrackPoint.h"
 #include "AliHLTGlobalBarrelTrack.h"
 #include "AliExternalTrackParam.h"
 #include "AliHLTExternalTrackParam.h"
@@ -103,7 +103,7 @@ int AliHLTTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& t
   // see header file for class documentation
   tgtList.clear();
   tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackDataType);
-  tgtList.push_back(AliHLTTRDDefinitions::fgkTRDSpacePointDataType);
+  tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackPointDataType);
   tgtList.push_back(kAliHLTDataTypeTObject|kAliHLTDataOriginTRD);
   return tgtList.size();
 }
@@ -343,24 +343,24 @@ int AliHLTTRDTrackerComponent::DoEvent
 
     // space points calculated from tracklets
 
-    blockSize = sizeof(AliHLTTRDSpacePointData) + sizeof(AliHLTTRDSpacePoint) * nTrackletsTotal;
+    blockSize = sizeof(AliHLTTRDTrackPointData) + sizeof(AliHLTTRDTrackPoint) * nTrackletsTotal;
 
     if (size + blockSize > maxBufferSize) {
       HLTWarning( "Output buffer exceeded for space points" );
       return -ENOSPC;
     }
 
-    AliHLTTRDSpacePointData* outSpacePoints = ( AliHLTTRDSpacePointData* )( outputPtr );
-    outSpacePoints->fCount = nTrackletsTotal;
+    AliHLTTRDTrackPointData* outTrackPoints = ( AliHLTTRDTrackPointData* )( outputPtr );
+    outTrackPoints->fCount = nTrackletsTotal;
 
     { // fill array with 0 for a case..
-      AliHLTTRDSpacePoint empty;
+      AliHLTTRDTrackPoint empty;
       empty.fX[0] = 0;
       empty.fX[1] = 0;
       empty.fX[2] = 0;      
       empty.fVolumeId = 0;
       for (int i=0; i<nTrackletsTotal; ++i) {
-	outSpacePoints->fPoints[i] = empty;
+	outTrackPoints->fPoints[i] = empty;
       }
     }
 
@@ -370,7 +370,7 @@ int AliHLTTRDTrackerComponent::DoEvent
       if( id<0 || id>=nTrackletsTotal ){
 	HLTError("Internal error: wrong space point index %d", id );
       }
-      AliHLTTRDSpacePoint *currOutPoint = &outSpacePoints->fPoints[id];
+      AliHLTTRDTrackPoint *currOutPoint = &outTrackPoints->fPoints[id];
       currOutPoint->fX[0] = sp.fX[0];
       currOutPoint->fX[1] = sp.fX[1];
       currOutPoint->fX[2] = sp.fX[2];
@@ -380,11 +380,11 @@ int AliHLTTRDTrackerComponent::DoEvent
     FillBlockData( resultDataSP );
     resultDataSP.fOffset = size;
     resultDataSP.fSize = blockSize;
-    resultData.fDataType = AliHLTTRDDefinitions::fgkTRDSpacePointDataType;
+    resultData.fDataType = AliHLTTRDDefinitions::fgkTRDTrackPointDataType;
     outputBlocks.push_back( resultDataSP );
     size += blockSize;
 
-    HLTInfo("TRD tracker: output %d tracks and %d tracklets (spacepoints)",outTracks->fCount, outSpacePoints->fCount);
+    HLTInfo("TRD tracker: output %d tracks and %d tracklets (spacepoints)",outTracks->fCount, outTrackPoints->fCount);
   }
 
   return iResult;
