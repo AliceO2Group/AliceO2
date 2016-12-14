@@ -206,7 +206,7 @@ void AliHLTTRDTracker::CalculateSpacePoints()
 
       AliGeomManager::ELayerID iLayer = AliGeomManager::ELayerID(AliGeomManager::kTRD1+fTRDgeometry->GetLayer(iDet));
       int modId   = fTRDgeometry->GetSector(iDet) * AliTRDgeometry::kNstack + fTRDgeometry->GetStack(iDet);
-      short volId = AliGeomManager::LayerToVolUID(iLayer, modId);
+      unsigned short volId = AliGeomManager::LayerToVolUID(iLayer, modId);
       fSpacePoints[trkltIdx].fVolumeId = volId;
     }
   }
