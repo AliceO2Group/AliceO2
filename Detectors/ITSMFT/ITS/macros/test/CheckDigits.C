@@ -23,9 +23,10 @@ void CheckDigits() {
   TFile *f=TFile::Open("digit_xyz.root","recreate");
   TNtuple *nt=new TNtuple("nt","my ntuple","x:y:z:dx:dz");
 
-  TGeoManager::Import("geofile_full.root");
+  // Geometry
+  TFile *file = TFile::Open("AliceO2_TGeant3.params_10.root");
+  gFile->Get("FairGeoParSet");
   GeometryTGeo *gman = new GeometryTGeo(kTRUE);
-  
   SegmentationPixel *seg =
     (SegmentationPixel*)gman->getSegmentationById(0);
 

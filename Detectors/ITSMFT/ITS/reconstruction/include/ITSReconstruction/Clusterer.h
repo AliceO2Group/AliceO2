@@ -5,6 +5,7 @@
 
 #include "Rtypes.h"   // for Clusterer::Class, Double_t, ClassDef, etc
 #include "TObject.h"  // for TObject
+#include "ITSBase/GeometryTGeo.h"
 
 class TClonesArray;
 
@@ -12,15 +13,13 @@ namespace AliceO2 {
 
 namespace ITS {
 
-class DigitContainer;
-class GeometryTGeo;
-class SegmentationPixel;
-
 class Clusterer : public TObject
 {
   public:
     Clusterer();
    ~Clusterer();
+
+    void Init(Bool_t build=kTRUE);
 
     /// Steer conversion of points to digits
     /// @param points Container with ITS points
@@ -31,9 +30,9 @@ class Clusterer : public TObject
     Clusterer(const Clusterer &);
     Clusterer &operator=(const Clusterer &);
 
-    GeometryTGeo *fGeometry;            ///< ITS upgrade geometry
+    GeometryTGeo fGeometry;            ///< ITS upgrade geometry
 
-  ClassDef(Clusterer, 1);
+  ClassDef(Clusterer, 2);
 };
 }
 }

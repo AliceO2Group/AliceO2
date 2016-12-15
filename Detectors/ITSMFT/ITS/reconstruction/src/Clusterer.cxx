@@ -2,7 +2,6 @@
 /// \brief Clusterer for the upgrated ITS
 #include "ITSReconstruction/Clusterer.h"
 #include "ITSReconstruction/Cluster.h"
-#include "ITSBase/GeometryTGeo.h"
 #include "ITSBase/SegmentationPixel.h"
 #include "ITSBase/Digit.h"
 
@@ -15,18 +14,21 @@ using namespace AliceO2::ITS;
 
 Clusterer::Clusterer()
 {
-  fGeometry = new GeometryTGeo(kTRUE, kTRUE);
 }
 
 Clusterer::~Clusterer()
 {
-  delete fGeometry;
+}
+
+void Clusterer::Init(Bool_t build)
+{
+  fGeometry.Build(build);
 }
 
 void Clusterer::Process(const TClonesArray *digits, TClonesArray *clusters)
 {
   const SegmentationPixel *seg =
-       (SegmentationPixel*)fGeometry->getSegmentationById(0);
+       (SegmentationPixel*)fGeometry.getSegmentationById(0);
   Float_t sigma2=seg->cellSizeX()*seg->cellSizeX()/12.; 
   
   TClonesArray &clref = *clusters;

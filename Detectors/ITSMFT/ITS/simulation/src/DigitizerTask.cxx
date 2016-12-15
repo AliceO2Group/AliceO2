@@ -52,6 +52,8 @@ InitStatus DigitizerTask::Init()
   // Register output container
   fDigitsArray = new TClonesArray("AliceO2::ITS::Digit");
   mgr->Register("ITSDigit", "ITS", fDigitsArray, kTRUE);
+
+  fDigitizer.Init(kTRUE);  
   
   return kSUCCESS;
 }

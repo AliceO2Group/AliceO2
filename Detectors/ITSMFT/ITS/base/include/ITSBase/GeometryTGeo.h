@@ -60,6 +60,9 @@ class GeometryTGeo : public TObject
 
     GeometryTGeo(const GeometryTGeo &src);
 
+    /// Exract ITS parameters from TGeo
+    void Build(Bool_t loadSegmentations);
+
     GeometryTGeo &operator=(const GeometryTGeo &geom);
 
     Int_t getNumberOfChips() const
@@ -462,9 +465,6 @@ class GeometryTGeo : public TObject
 
     /// Determines the number of layers in the Geometry
     Int_t extractNumberOfLayers();
-
-    /// Exract ITS parameters from TGeo
-    void Build(Bool_t loadSegmentations);
 
     /// Extract number following the prefix in the name string
     Int_t extractVolumeCopy(const char *name, const char *prefix) const;

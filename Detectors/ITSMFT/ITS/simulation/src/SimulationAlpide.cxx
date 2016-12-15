@@ -45,8 +45,17 @@ SimulationAlpide::SimulationAlpide
 }
 
 //______________________________________________________________________
+SimulationAlpide::SimulationAlpide(const SimulationAlpide &s):
+  fSeg(s.fSeg),
+  fChip(s.fChip)
+{
+   for (Int_t i=0; i<NumberOfParameters; i++) fParam[i]=s.fParam[i];
+   fSensMap=new SensMap(*(s.fSensMap));
+}
+
+//______________________________________________________________________
 SimulationAlpide::~SimulationAlpide() {
-  fSensMap->Clear();
+  if (fSensMap) fSensMap->Clear();
   delete fSensMap;
 }
 

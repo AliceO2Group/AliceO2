@@ -6,7 +6,10 @@
 #ifndef _ALICEO2_ITS_DigitContainer_
 #define _ALICEO2_ITS_DigitContainer_
 
+#include <vector>
+
 #include "Rtypes.h"
+#include "ITSSimulation/DigitChip.h"
 
 class TClonesArray;
 
@@ -14,16 +17,16 @@ namespace AliceO2 {
 namespace ITS {
 
 class Digit;
-class DigitChip;
 
 class DigitContainer
 {
   public:
-    DigitContainer(Int_t nChips);
-   ~DigitContainer();
+    DigitContainer() {}
+   ~DigitContainer() {}
 
     void Reset();
-
+    void Resize(Int_t n) {fChips.resize(n);}
+    
     Digit *AddDigit(
        UShort_t chipid, UShort_t row, UShort_t col,
        Double_t charge, Double_t timestamp
@@ -33,8 +36,7 @@ class DigitContainer
     void FillOutputContainer(TClonesArray *output);
 
   private:
-    Int_t fnChips;
-    DigitChip *fChips;
+    std::vector<DigitChip> fChips;
 };
 }
 }

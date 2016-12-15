@@ -205,7 +205,6 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Start run
   run->Run(nEvents);
-  run->CreateGeometryFile("geofile_full.root");
 
   // Finish
   timer.Stop();

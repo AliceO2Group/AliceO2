@@ -17,12 +17,27 @@ ClassImp(AliceO2::ITS::Digitizer)
 using namespace AliceO2::ITS;
 
 Digitizer::Digitizer():
-fGeometry(kTRUE, kTRUE),
-fNChips(fGeometry.getNumberOfChips()),
-fChips(fNChips, Chip(0,&fGeometry)),
-fSimulations(fNChips),
-fDigitContainer(fNChips)
+fGeometry(),
+fNChips(0),
+fChips(),
+fSimulations(),
+fDigitContainer()
 {
+}
+
+Digitizer::~Digitizer()
+{
+}
+
+void Digitizer::Init(Bool_t build)
+{
+  fGeometry.Build(build);
+  fNChips=fGeometry.getNumberOfChips();
+
+  fChips.resize(fNChips, Chip(0,&fGeometry));
+  fSimulations.resize(fNChips);
+  fDigitContainer.Resize(fNChips);
+  
   SegmentationPixel *seg =
      (SegmentationPixel*)fGeometry.getSegmentationById(0);
   DigitChip::SetNRows(seg->getNumberOfRows());
@@ -37,10 +52,6 @@ fDigitContainer(fNChips)
     fChips[i].SetChipIndex(i);
     fSimulations[i].Init(param, seg, &fChips[i]);
   }
-}
-
-Digitizer::~Digitizer()
-{
 }
 
 void Digitizer::Process(TClonesArray *points, TClonesArray *digits)
@@ -99,4 +110,3 @@ DigitContainer &Digitizer::Process(TClonesArray *points)
   }
   return fDigitContainer;
 }
-

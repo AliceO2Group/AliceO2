@@ -8,12 +8,12 @@
 #include "FairTask.h"  // for FairTask, InitStatus
 #include "Rtypes.h"    // for ClustererTask::Class, ClassDef, etc
 
+#include "ITSReconstruction/Clusterer.h"
+
 class TClonesArray;
 
 namespace AliceO2 {
   namespace ITS {
-    
-    class Clusterer;
     
     class ClustererTask : public FairTask {
     public:
@@ -24,12 +24,12 @@ namespace AliceO2 {
       virtual void Exec(Option_t *option);
       
     private:
-      Clusterer        *fClusterer;
+      Clusterer            fClusterer;
       
       TClonesArray        *fDigitsArray;
       TClonesArray        *fClustersArray;
       
-      ClassDef(ClustererTask, 1)
+      ClassDef(ClustererTask, 2)
     };
   }
 }

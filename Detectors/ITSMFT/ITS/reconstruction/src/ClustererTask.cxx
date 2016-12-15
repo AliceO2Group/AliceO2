@@ -4,7 +4,6 @@
 //
 
 #include "ITSReconstruction/ClustererTask.h"
-#include "ITSReconstruction/Clusterer.h"
 #include "ITSReconstruction/Cluster.h"
 #include "ITSBase/Digit.h"
 #include "ITSBase/SegmentationPixel.h"
@@ -23,13 +22,11 @@ ClustererTask::ClustererTask():
   fDigitsArray(nullptr),
   fClustersArray(nullptr)
 {
-  fClusterer = new Clusterer();
 }
 
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  delete fClusterer;
   if (fClustersArray)
     delete fClustersArray;
 }
@@ -56,7 +53,8 @@ InitStatus ClustererTask::Init()
   fClustersArray = new TClonesArray("AliceO2::ITS::Cluster");
   mgr->Register("ITSCluster", "ITS", fClustersArray, kTRUE);
 
-  //fClusterer->Init();
+  fClusterer.Init(kTRUE);
+  
   return kSUCCESS;
 }
 
@@ -66,6 +64,6 @@ void ClustererTask::Exec(Option_t *option)
   fClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-  fClusterer->Process(fDigitsArray,fClustersArray);
+  fClusterer.Process(fDigitsArray,fClustersArray);
 
 }

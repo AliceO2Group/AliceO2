@@ -26,6 +26,8 @@ class Digitizer : public TObject
     Digitizer();
    ~Digitizer();
 
+    void Init(Bool_t build=kTRUE);
+
     /// Steer conversion of points to digits
     /// @param points Container with ITS points
     /// @return digits container

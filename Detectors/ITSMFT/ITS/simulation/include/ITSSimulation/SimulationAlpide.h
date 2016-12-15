@@ -40,6 +40,7 @@ public:
     SimulationAlpide();
     SimulationAlpide
       (Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);
+    SimulationAlpide(const SimulationAlpide&);
     virtual   ~SimulationAlpide();
 
     void Init(Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);

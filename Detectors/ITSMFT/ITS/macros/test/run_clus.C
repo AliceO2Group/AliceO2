@@ -41,8 +41,6 @@ void run_clus(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         parInput1->open(paramfile.str().c_str());
         rtdb->setFirstInput(parInput1);
 
-        TGeoManager::Import("geofile_full.root");
-
         // Setup digitizer
         AliceO2::ITS::ClustererTask *clus = new AliceO2::ITS::ClustererTask;
         fRun->AddTask(clus);

@@ -41,8 +41,6 @@ void run_digi(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         parInput1->open(paramfile.str().c_str());
         rtdb->setFirstInput(parInput1);
 
-        TGeoManager::Import("geofile_full.root");
-
         // Setup digitizer
         // Call AliceO2::ITS::DigitizerTask(kTRUE) to activate the ALPIDE simulation
         AliceO2::ITS::DigitizerTask *digi = new AliceO2::ITS::DigitizerTask;
