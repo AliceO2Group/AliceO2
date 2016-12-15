@@ -15,6 +15,41 @@
 #include <cstring> // strncpy
 
 //the answer to life and everything
+const uint32_t AliceO2::Header::BaseHeader::sMagicString = CharArr2uint32("O2O2");
+
+//possible serialization types
+const AliceO2::Header::SerializationMethod AliceO2::Header::gSerializationMethodAny    ("*******");
+const AliceO2::Header::SerializationMethod AliceO2::Header::gSerializationMethodInvalid("       ");
+const AliceO2::Header::SerializationMethod AliceO2::Header::gSerializationMethodNone   ("NONE   ");
+const AliceO2::Header::SerializationMethod AliceO2::Header::gSerializationMethodROOT   ("ROOT   ");
+const AliceO2::Header::SerializationMethod AliceO2::Header::gSerializationMethodFlatBuf("FLATBUF");
+
+//__________________________________________________________________________________________________
+//possible data origins
+const AliceO2::Header::DataOrigin AliceO2::Header::gDataOriginAny    ("***");
+const AliceO2::Header::DataOrigin AliceO2::Header::gDataOriginInvalid("   ");
+const AliceO2::Header::DataOrigin AliceO2::Header::gDataOriginTPC    ("TPC");
+const AliceO2::Header::DataOrigin AliceO2::Header::gDataOriginTRD    ("TRD");
+const AliceO2::Header::DataOrigin AliceO2::Header::gDataOriginTOF    ("TOF");
+
+//possible data types
+const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionAny     ("***************");
+const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionInvalid ("               ");
+const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionRawData ("RAWDATA        ");
+const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionClusters("CLUSTERS       ");
+const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionTracks  ("TRACKS         ");
+const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionConfig  ("CONFIG         ");
+const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionInfo    ("INFO           ");
+
+//storage for BaseHeader static members, all invalid
+const uint32_t AliceO2::Header::BaseHeader::sVersion = AliceO2::Header::gInvalidToken32;
+const AliceO2::Header::HeaderType AliceO2::Header::BaseHeader::sHeaderType = AliceO2::Header::gInvalidToken64;
+const AliceO2::Header::SerializationMethod AliceO2::Header::BaseHeader::sSerializationMethod = AliceO2::Header::gInvalidToken64;
+
+//storage for DataHeader static members
+const uint32_t AliceO2::Header::DataHeader::sVersion = 1;
+const AliceO2::Header::HeaderType AliceO2::Header::DataHeader::sHeaderType = String2uint64("DataHead");
+const AliceO2::Header::SerializationMethod AliceO2::Header::DataHeader::sSerializationMethod = AliceO2::Header::gSerializationMethodNone;
 
 using namespace AliceO2::Header;
 

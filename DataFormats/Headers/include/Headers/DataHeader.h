@@ -71,6 +71,7 @@ constexpr uint32_t gSizeSerializationMethodString = 8;
 constexpr uint32_t gSizeDataDescriptionString = 16;
 /// size of the header description field @ingroup dataheader_defines
 constexpr uint32_t gSizeHeaderDescriptionString = 8;
+
 /// @}
 
 //__________________________________________________________________________________________________
@@ -147,8 +148,8 @@ struct HeaderType {
     uint64_t itg;
   };
   constexpr HeaderType(uint64_t v) : itg{v} {}
-  HeaderType(const char* s) {itg=String2uint64(s);}
-  HeaderType(const HeaderType& that) {itg=that.itg;}
+  constexpr HeaderType(const char* s) : itg{String2uint64(s)} {}
+  constexpr HeaderType(const HeaderType& that) : itg{that.itg} {}
   bool operator==(const HeaderType& that) const {return that.itg==itg;}
   bool operator==(const uint64_t& that) const {return that==itg;}
 };
@@ -160,17 +161,17 @@ struct SerializationMethod {
   };
   constexpr SerializationMethod(uint64_t v) : itg{v} {}
   constexpr SerializationMethod(const char* s) : itg{String2uint64(s)} {}
-  SerializationMethod(const SerializationMethod& that) {itg=that.itg;}
+  constexpr SerializationMethod(const SerializationMethod& that) : itg{that.itg} {}
   bool operator==(const SerializationMethod& that) const {return that.itg==itg;}
   bool operator==(const uint64_t& that) const {return that==itg;}
 };
 
 //possible serialization types
-constexpr AliceO2::Header::SerializationMethod gSerializationMethodAny    ("*******");
-constexpr AliceO2::Header::SerializationMethod gSerializationMethodInvalid("       ");
-constexpr AliceO2::Header::SerializationMethod gSerializationMethodNone   ("NONE   ");
-constexpr AliceO2::Header::SerializationMethod gSerializationMethodROOT   ("ROOT   ");
-constexpr AliceO2::Header::SerializationMethod gSerializationMethodFlatBuf("FLATBUF");
+extern const AliceO2::Header::SerializationMethod gSerializationMethodAny;
+extern const AliceO2::Header::SerializationMethod gSerializationMethodInvalid;
+extern const AliceO2::Header::SerializationMethod gSerializationMethodNone;
+extern const AliceO2::Header::SerializationMethod gSerializationMethodROOT;
+extern const AliceO2::Header::SerializationMethod gSerializationMethodFlatBuf;
 
 //__________________________________________________________________________________________________
 /// @struct BaseHeader
@@ -193,11 +194,11 @@ constexpr AliceO2::Header::SerializationMethod gSerializationMethodFlatBuf("FLAT
 struct BaseHeader
 {
   // static definitions
-  constexpr static uint32_t sMagicString = CharArr2uint32("O2O2");
+  static const uint32_t sMagicString;
 
-  constexpr static uint32_t sVersion = gInvalidToken32;
-  constexpr static AliceO2::Header::HeaderType sHeaderType = gInvalidToken64;
-  constexpr static AliceO2::Header::SerializationMethod sSerializationMethod = gInvalidToken64;
+  static const uint32_t sVersion;
+  static const AliceO2::Header::HeaderType sHeaderType;
+  static const AliceO2::Header::SerializationMethod sSerializationMethod;
 
   //__the data layout:
 
@@ -472,9 +473,9 @@ struct DataOrigin {
 struct DataHeader : public BaseHeader
 {
   //static data for this header type/version
-  constexpr static uint32_t sVersion = 1;
-  constexpr static AliceO2::Header::HeaderType sHeaderType = String2uint64("DataHead");
-  constexpr static AliceO2::Header::SerializationMethod sSerializationMethod = AliceO2::Header::gSerializationMethodNone;
+  static const uint32_t sVersion;
+  static const AliceO2::Header::HeaderType sHeaderType;
+  static const AliceO2::Header::SerializationMethod sSerializationMethod;
 
   ///
   /// data type descriptor
@@ -536,21 +537,20 @@ struct DataHeader : public BaseHeader
 
 //__________________________________________________________________________________________________
 //possible data origins
-constexpr AliceO2::Header::DataOrigin gDataOriginAny    ("***");
-constexpr AliceO2::Header::DataOrigin gDataOriginInvalid("   ");
-constexpr AliceO2::Header::DataOrigin gDataOriginTPC    ("TPC");
-constexpr AliceO2::Header::DataOrigin gDataOriginTRD    ("TRD");
-constexpr AliceO2::Header::DataOrigin gDataOriginTOF    ("TOF");
+extern const AliceO2::Header::DataOrigin gDataOriginAny;
+extern const AliceO2::Header::DataOrigin gDataOriginInvalid;
+extern const AliceO2::Header::DataOrigin gDataOriginTPC;
+extern const AliceO2::Header::DataOrigin gDataOriginTRD;
+extern const AliceO2::Header::DataOrigin gDataOriginTOF;
 
 //possible data types
-constexpr AliceO2::Header::DataDescription gDataDescriptionAny     ("***************");
-constexpr AliceO2::Header::DataDescription gDataDescriptionInvalid ("               ");
-constexpr AliceO2::Header::DataDescription gDataDescriptionRawData ("RAWDATA        ");
-constexpr AliceO2::Header::DataDescription gDataDescriptionClusters("CLUSTERS       ");
-constexpr AliceO2::Header::DataDescription gDataDescriptionTracks  ("TRACKS         ");
-constexpr AliceO2::Header::DataDescription gDataDescriptionConfig  ("CONFIG         ");
-constexpr AliceO2::Header::DataDescription gDataDescriptionInfo    ("INFO           ");
-
+extern const AliceO2::Header::DataDescription gDataDescriptionAny;
+extern const AliceO2::Header::DataDescription gDataDescriptionInvalid;
+extern const AliceO2::Header::DataDescription gDataDescriptionRawData;
+extern const AliceO2::Header::DataDescription gDataDescriptionClusters;
+extern const AliceO2::Header::DataDescription gDataDescriptionTracks;
+extern const AliceO2::Header::DataDescription gDataDescriptionConfig;
+extern const AliceO2::Header::DataDescription gDataDescriptionInfo;
 /// @} // end of doxygen group
 
 //__________________________________________________________________________________________________
