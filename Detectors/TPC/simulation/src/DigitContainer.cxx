@@ -13,39 +13,30 @@ DigitContainer::DigitContainer():
 mCRU(CRU::MaxCRU)
 {}
 
-DigitContainer::~DigitContainer()
-{
-  for(int icru = 0; icru < CRU::MaxCRU; ++icru){
-    delete mCRU[icru];
+DigitContainer::~DigitContainer() {
+  for(auto &aCRU : mCRU) {
+    if(aCRU == nullptr) continue;
+    delete aCRU;
   }
 }
 
-void DigitContainer::reset()
-{
-  for(auto iterCRU = mCRU.begin(); iterCRU != mCRU.end(); ++iterCRU) {
-    if((*iterCRU) == nullptr) continue;
-    (*iterCRU)->reset();
-  }
-}
-
-void DigitContainer::addDigit(Int_t cru, Int_t row, Int_t pad, Int_t time, Float_t charge)
+void DigitContainer::addDigit(Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
 {
   DigitCRU *result = mCRU[cru];
   if(result != nullptr){
-    mCRU[cru]->setDigit(row, pad, time, charge);
+    mCRU[cru]->setDigit(timeBin, row, pad, charge);
   }
   else{
     const Mapper& mapper = Mapper::instance();
-    mCRU[cru] = new DigitCRU(cru, mapper.getPadRegionInfo(CRU(cru).region()).getNumberOfPadRows());
-    mCRU[cru]->setDigit(row, pad, time, charge);
+    mCRU[cru] = new DigitCRU(cru);
+    mCRU[cru]->setDigit(timeBin, row, pad, charge);
   }
 }
 
 
-void DigitContainer::fillOutputContainer(TClonesArray *output)
-{
-  for(auto iterCRU = mCRU.begin(); iterCRU != mCRU.end(); ++iterCRU) {
-    if((*iterCRU) == nullptr) continue;
-    (*iterCRU)->fillOutputContainer(output, (*iterCRU)->getCRUID());
+void DigitContainer::fillOutputContainer(TClonesArray *output) {
+    for(auto &aCRU : mCRU) {
+    if(aCRU == nullptr) continue;
+    aCRU->fillOutputContainer(output, aCRU->getCRUID());
   }
 }

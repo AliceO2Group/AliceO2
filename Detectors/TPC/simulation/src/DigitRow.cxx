@@ -3,42 +3,33 @@
 #include "FairLogger.h"
 using namespace AliceO2::TPC;
 
-DigitRow::DigitRow(Int_t rowID, Int_t npads):
-mRowID(rowID),
+DigitRow::DigitRow(Int_t row, Int_t npads):
+mRow(row),
 mPads(npads)
 {}
 
-DigitRow::~DigitRow()
-{
-  for(auto iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
-    delete (*iterPad);
+DigitRow::~DigitRow() {
+  for(auto &aPad : mPads) {
+    if(aPad == nullptr) continue;
+    delete aPad;
   }
 }
 
-void DigitRow::setDigit(Int_t pad, Int_t time, Float_t charge)
-{
+void DigitRow::setDigit(Int_t pad, Float_t charge) {
   DigitPad *result = mPads[pad];
-  if(result != nullptr){
-    mPads[pad]->setDigit(time, charge);
+  if(result != nullptr) {
+    mPads[pad]->setDigit(charge);
   }
   else{
     mPads[pad] = new DigitPad(pad);
-    mPads[pad]->setDigit(time, charge);
+    mPads[pad]->setDigit(charge);
   }
 }
 
-void DigitRow::reset()
-{
-  for(auto iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
-    if((*iterPad) == nullptr) continue;
-    (*iterPad)->reset();
-  }
-}
 
-void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cruID, Int_t rowID)
-{
-  for(auto iterPad = mPads.begin(); iterPad != mPads.end(); ++iterPad) {
-    if((*iterPad) == nullptr) continue;
-    (*iterPad)->fillOutputContainer(output, cruID, rowID, (*iterPad)->getPad());
+void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row) {
+  for(auto &aPad : mPads) {
+    if(aPad == nullptr) continue;
+    aPad->fillOutputContainer(output, cru, timeBin, row, aPad->getPad());
   }
 }

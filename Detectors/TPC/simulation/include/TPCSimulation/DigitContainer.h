@@ -35,18 +35,27 @@ namespace AliceO2 {
       /// @param cru CRU of the digit
       /// @param row Pad row of digit
       /// @param pad Pad of digit
-      /// @param time Time bin of the digit
+      /// @param timeBin Time bin of the digit
       /// @param charge Charge of the digit
-      void addDigit(Int_t cru, Int_t row, Int_t pad, Int_t time, Float_t charge);
+      void addDigit(Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t charge);
       
       /// Fill output TClonesArray
       /// @param outputcont Output container
-      void fillOutputContainer(TClonesArray *outputcont);
+      void fillOutputContainer(TClonesArray *output);
       
     private:
       UShort_t mNCRU;
       std::vector<DigitCRU*> mCRU;
     };
+    
+    inline
+    void DigitContainer::reset() {
+      for(auto &aCRU : mCRU) {
+        if(aCRU == nullptr) continue;
+        aCRU->reset();
+      }
+    }
+       
   }
 }
 
