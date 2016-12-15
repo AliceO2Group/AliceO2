@@ -19,11 +19,11 @@
 //  @since  2015-08-08
 //  @brief  A general data deflater
 
-#include <cstdint>
 #include <cerrno>
+#include <cstdint>
 
-namespace AliceO2 {
-
+namespace AliceO2
+{
 /* TODO: separate the bare deflater and additional functionality like
    bounds check and codec by using a mixin approach
    TODO: error policy, initialization policy
@@ -32,22 +32,20 @@ namespace AliceO2 {
    TODO: bit order: LSB to MSB in every byte or vice versa
  */
 
-template<
-  typename _RegType,
-  typename _TargetType,
-  //  typename BoundsCheck, // bounds check policy
-  class Codec
-  >
-class DataDeflater {
+template <typename _RegType, typename _TargetType,
+          //  typename BoundsCheck, // bounds check policy
+          class Codec>
+class DataDeflater
+{
  public:
   DataDeflater() : mBegin(nullptr), mEnd(nullptr), mCurrent(mEnd), mBitPosition(0), mCodec() {}
   ~DataDeflater() {}
-
   /**
    * Init target
    * TODO: think about other targets than a buffer
    */
-  int Init(_TargetType* buffer, int size) {
+  int Init(_TargetType* buffer, int size)
+  {
     // check if no active buffer according to error policy
     mBegin = buffer;
     mEnd = mBegin + size;
@@ -60,8 +58,10 @@ class DataDeflater {
    *
    * @return Number of written elements
    */
-  int Close() {
-    if (mBitPosition > 0) mCurrent++;
+  int Close()
+  {
+    if (mBitPosition > 0)
+      mCurrent++;
     int nElements = mCurrent - mBegin;
     mBegin = nullptr;
     mEnd = mBegin;
@@ -80,65 +80,69 @@ class DataDeflater {
    * finally use 'Write' of the mixin base.
    */
   template <typename ValueType>
-  int WriteRaw(ValueType value, uint16_t bitlength) {
+  int WriteRaw(ValueType value, uint16_t bitlength)
+  {
     uint16_t bitsWritten = 0;
-    if (bitlength > 8*sizeof(ValueType)) {
+    if (bitlength > 8 * sizeof(ValueType)) {
       // TODO: error policy
-      bitlength = 8*sizeof(ValueType);
+      bitlength = 8 * sizeof(ValueType);
     }
     while (bitsWritten < bitlength) {
       if (mCurrent == mEnd) {
-        //break; // depending on error policy
+        // break; // depending on error policy
         return -ENOSPC;
       }
       _TargetType& current = *mCurrent;
       // write at max what is left to be written
       uint16_t writeNow = bitlength - bitsWritten;
-      ValueType mask = 1<<(writeNow); mask -= 1;
+      ValueType mask = 1 << (writeNow);
+      mask -= 1;
       // write one element of the target buffer at a time
-      if (writeNow > 8*sizeof(_TargetType)) writeNow = 8*sizeof(_TargetType);
+      if (writeNow > 8 * sizeof(_TargetType))
+        writeNow = 8 * sizeof(_TargetType);
       // write the remaining space in the current element
-      uint16_t capacity=8*sizeof(_TargetType)-mBitPosition;
-      if (writeNow > capacity) writeNow = capacity;
-      ValueType activebits=(value&mask)>>(bitlength-bitsWritten-writeNow);
-      activebits<<(capacity-writeNow);
-      mBitPosition+=writeNow;
-      bitsWritten+=writeNow;
-      if (mBitPosition==8*sizeof(_TargetType)) {
-        mBitPosition=0;
+      uint16_t capacity = 8 * sizeof(_TargetType) - mBitPosition;
+      if (writeNow > capacity)
+        writeNow = capacity;
+      ValueType activebits = (value & mask) >> (bitlength - bitsWritten - writeNow);
+      activebits << (capacity - writeNow);
+      mBitPosition += writeNow;
+      bitsWritten += writeNow;
+      if (mBitPosition == 8 * sizeof(_TargetType)) {
+        mBitPosition = 0;
         mCurrent++;
       } // pedantic check: should never exceed the taget type size
     }
     return bitsWritten;
   }
 
-  int WriteRaw(bool bit) {
-    return WriteRaw(bit, 1);
-  }
-
+  int WriteRaw(bool bit) { return WriteRaw(bit, 1); }
   template <typename T>
-  int Write(T value) {
+  int Write(T value)
+  {
     return mCodec.Write(value, _RegType(0),
-                         [this] (_RegType value, uint16_t bitlength) -> int {return this->WriteRaw(value, bitlength);}
-                         );
+                        [this](_RegType value, uint16_t bitlength) -> int { return this->WriteRaw(value, bitlength); });
   }
 
   /**
    * Align bit output
    * @return number of forward bits
    */
-  int Align() {
-    if (mBitPosition == 0 || mCurrent == mEnd) return 0;
+  int Align()
+  {
+    if (mBitPosition == 0 || mCurrent == mEnd)
+      return 0;
     int nforward = sizeof(_TargetType) - mBitPosition;
     mBitPosition = 0;
     mCurrent++;
     return nforward;
   }
 
-  void print() {
+  void print()
+  {
     int bufferSize = mEnd - mBegin;
     int filledSize = mCurrent - mBegin;
-    std::cout << "DataDeflater: " << bufferSize << " elements of bit width " << 8*sizeof(_TargetType) << std::endl;
+    std::cout << "DataDeflater: " << bufferSize << " elements of bit width " << 8 * sizeof(_TargetType) << std::endl;
     if (bufferSize > 0)
       std::cout << "    position: " << filledSize << " (bit " << mBitPosition << ")" << std::endl;
   }
@@ -151,10 +155,9 @@ class DataDeflater {
   /// current target position
   _TargetType* mCurrent;
   /// current bit position
-  int           mBitPosition;
+  int mBitPosition;
   /// codec instance
-  Codec         mCodec;
-
+  Codec mCodec;
 };
 
 }; // namespace AliceO2

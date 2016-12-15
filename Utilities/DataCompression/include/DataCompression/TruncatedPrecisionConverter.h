@@ -18,32 +18,29 @@
 //  @author Matthias Richter
 //  @since  2015-08-08
 //  @brief  A simple converter producing truncated precision
-//          according to a data model 
+//          according to a data model
 
-namespace AliceO2 {
-
-template<class _ParameterModel>
-class TruncatedPrecisionConverter {
-public:
+namespace AliceO2
+{
+template <class _ParameterModel>
+class TruncatedPrecisionConverter
+{
+ public:
   TruncatedPrecisionConverter() : mParameterModel() {}
   ~TruncatedPrecisionConverter() {}
-
   template <typename T, typename _RegType, typename _Writer>
-  int Write(T value, _RegType /*dummy*/, _Writer writer) {
-    uint8_t bitlength=0;
-    _RegType content=0;
+  int Write(T value, _RegType /*dummy*/, _Writer writer)
+  {
+    uint8_t bitlength = 0;
+    _RegType content = 0;
     mParameterModel.Convert(value, content, bitlength);
     return writer(content, bitlength);
   }
 
-  void ResetParameterModel() {
-    mParameterModel.Reset();
-  }
-
-  const _ParameterModel& GetModel() const {return mParameterModel;}
-  _ParameterModel& GetModel() {return mParameterModel;}
-
-private:
+  void ResetParameterModel() { mParameterModel.Reset(); }
+  const _ParameterModel& GetModel() const { return mParameterModel; }
+  _ParameterModel& GetModel() { return mParameterModel; }
+ private:
   /// forbidden in the first implementation
   TruncatedPrecisionConverter(const TruncatedPrecisionConverter&);
   /// forbidden in the first implementation
