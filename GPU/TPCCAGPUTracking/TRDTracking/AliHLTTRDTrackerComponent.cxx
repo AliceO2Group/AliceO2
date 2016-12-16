@@ -102,8 +102,8 @@ int AliHLTTRDTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& t
 {
   // see header file for class documentation
   tgtList.clear();
-  tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackDataType);
-  tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackPointDataType);
+  tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackDataType|kAliHLTDataOriginTRD);
+  tgtList.push_back(AliHLTTRDDefinitions::fgkTRDTrackPointDataType|kAliHLTDataOriginTRD);
   tgtList.push_back(kAliHLTDataTypeTObject|kAliHLTDataOriginTRD);
   return tgtList.size();
 }
@@ -380,11 +380,12 @@ int AliHLTTRDTrackerComponent::DoEvent
     FillBlockData( resultDataSP );
     resultDataSP.fOffset = size;
     resultDataSP.fSize = blockSize;
-    resultData.fDataType = AliHLTTRDDefinitions::fgkTRDTrackPointDataType;
+    resultDataSP.fDataType = AliHLTTRDDefinitions::fgkTRDTrackPointDataType|kAliHLTDataOriginTRD;
     outputBlocks.push_back( resultDataSP );
     size += blockSize;
+    outputPtr += resultDataSP.fSize;
 
-    HLTInfo("TRD tracker: output %d tracks and %d tracklets (spacepoints)",outTracks->fCount, outTrackPoints->fCount);
+    HLTInfo("TRD tracker: output %d tracks and %d track points",outTracks->fCount, outTrackPoints->fCount);
   }
 
   return iResult;
