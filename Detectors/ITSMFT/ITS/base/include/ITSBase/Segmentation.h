@@ -6,340 +6,271 @@
 
 #include <exception>
 #include <sstream>
-#include "TObject.h"  // for TObject
-#include "Rtypes.h"   // for Int_t, Float_t, Double_t, Bool_t, etc
+#include "Rtypes.h"  // for Int_t, Float_t, Double_t, Bool_t, etc
+#include "TObject.h" // for TObject
 
-class TF1;  // lines 12-12
+class TF1; // lines 12-12
 
 class TF1;
 
-namespace AliceO2 {
-namespace ITS {
-
+namespace AliceO2
+{
+namespace ITS
+{
 /// ITS segmentation virtual base class
 /// All methods implemented in the derived classes are set = 0 in the header file
 /// so this class cannot be instantiated methods implemented in a part of the derived
 /// classes are implemented here as TObject::MayNotUse
 class Segmentation : public TObject
 {
-
-  public:
-    /// Error handling in case a point in local coordinates
-    /// exceeds limits in any direction
-    class OutOfActiveAreaException : public std::exception
-    {
-      public:
-        /// Definition of direction in which the boundary is exceeded
-        enum Direction
-        {
-            kX = 0,       ///< Local X
-            kZ = 1        ///< Local Z
-        };
-
-        /// Constructor
-        /// Settting necessary information for the error handling
-        /// @param dir Direction in which the range exception happened
-        /// @param val Value of the exception
-        /// @param lower Lower limit in the direction
-        /// @param upper Upper limit in the direction
-        OutOfActiveAreaException(Direction dir, Double_t val, Double_t lower, Double_t upper) :
-          fErrorMessage(), fDirection(dir), fValue(val), fLower(lower), fUpper(upper)
-        {
-          std::stringstream errormessage;
-          errormessage << "Range exceeded in " << (fDirection == kX ? "x" : "z") << "-direction, value " << fValue <<
-          ", limits [" << fLower << "|" << fUpper << "]";
-          fErrorMessage = errormessage.str();
-        }
-
-        /// Destructor
-        virtual ~OutOfActiveAreaException() throw()
-        { }
-
-        /// Get the value for which the exception was raised
-        /// @return Value (point in one direction)
-        Double_t GetValue() const
-        { return fValue; }
-
-        /// Get the lower limit in direction for which the exception
-        /// was raised
-        /// @return Lower limit of the direction
-        Double_t GetLowerLimit() const
-        { return fLower; }
-
-        /// Get the upper limit in direction for which the exception
-        /// was raised
-        /// @return Upper limit of the direction
-        Double_t GetUpperLimit() const
-        { return fUpper; }
-
-        /// Check whether exception was raised in x-directon
-        /// @return True if exception was raised in x-direction, false otherwise
-        Bool_t IsX() const
-        { return fDirection == kX; }
-
-        /// Check whether exception was raised in z-direction
-        /// @return True if exception was raised in z-direction, false otherwise
-        Bool_t IsZ() const
-        { return fDirection == kZ; }
-
-        /// Provide error message string containing direction,
-        /// value of the point, and limits
-        /// @return Error message
-        const char *what() const noexcept
-        {
-          return fErrorMessage.c_str();
-        }
-
-      private:
-        std::string fErrorMessage;  ///< Error message connected to the exception
-        Direction fDirection;     ///< Direction in which the exception was raised
-        Double_t fValue;         ///< Value which exceeds limit
-        Double_t fLower;         ///< Lower limit in direction
-        Double_t fUpper;         ///< Upper limit in direction
+ public:
+  /// Error handling in case a point in local coordinates
+  /// exceeds limits in any direction
+  class OutOfActiveAreaException : public std::exception
+  {
+   public:
+    /// Definition of direction in which the boundary is exceeded
+    enum Direction {
+      kX = 0, ///< Local X
+      kZ = 1  ///< Local Z
     };
 
-    /// Error handling in case of access to an invalid pixel ID
-    /// (pixel ID in direction which exceeds the range of valid pixel IDs)
-    class InvalidPixelException : public std::exception
+    /// Constructor
+    /// Settting necessary information for the error handling
+    /// @param dir Direction in which the range exception happened
+    /// @param val Value of the exception
+    /// @param lower Lower limit in the direction
+    /// @param upper Upper limit in the direction
+    OutOfActiveAreaException(Direction dir, Double_t val, Double_t lower, Double_t upper)
+      : fErrorMessage(), fDirection(dir), fValue(val), fLower(lower), fUpper(upper)
     {
-      public:
-        /// Definition of direction in which the boundary is exceeded
-        enum Direction
-        {
-            kX = 0,       ///< Local X
-            kZ = 1        ///< Local Z
-        };
+      std::stringstream errormessage;
+      errormessage << "Range exceeded in " << (fDirection == kX ? "x" : "z") << "-direction, value " << fValue
+                   << ", limits [" << fLower << "|" << fUpper << "]";
+      fErrorMessage = errormessage.str();
+    }
 
-        /// Constructor
-        /// Setting necessary information for the error handling
-        /// @param dir Direction in which the exception occurs
-        /// @param pixelID Index of the pixel (in direction) which is out of scope
-        /// @param maxPixelID Maximum amount of pixels in direction
-        InvalidPixelException(Direction dir, Int_t pixelID, Int_t maxPixelID) :
-          fErrorMessage(), fDirection(dir), fValue(pixelID), fMaxPixelID(maxPixelID)
-        {
-          std::stringstream errormessage;
-          errormessage << "Obtained " << (fDirection == kX ? "row" : "col") << " " << fValue <<
-          " is not in range [0:" << fMaxPixelID << ")";
-          fErrorMessage = errormessage.str();
-        }
+    /// Destructor
+    virtual ~OutOfActiveAreaException() throw() {}
+    /// Get the value for which the exception was raised
+    /// @return Value (point in one direction)
+    Double_t GetValue() const { return fValue; }
+    /// Get the lower limit in direction for which the exception
+    /// was raised
+    /// @return Lower limit of the direction
+    Double_t GetLowerLimit() const { return fLower; }
+    /// Get the upper limit in direction for which the exception
+    /// was raised
+    /// @return Upper limit of the direction
+    Double_t GetUpperLimit() const { return fUpper; }
+    /// Check whether exception was raised in x-directon
+    /// @return True if exception was raised in x-direction, false otherwise
+    Bool_t IsX() const { return fDirection == kX; }
+    /// Check whether exception was raised in z-direction
+    /// @return True if exception was raised in z-direction, false otherwise
+    Bool_t IsZ() const { return fDirection == kZ; }
+    /// Provide error message string containing direction,
+    /// value of the point, and limits
+    /// @return Error message
+    const char* what() const noexcept { return fErrorMessage.c_str(); }
+   private:
+    std::string fErrorMessage; ///< Error message connected to the exception
+    Direction fDirection;      ///< Direction in which the exception was raised
+    Double_t fValue;           ///< Value which exceeds limit
+    Double_t fLower;           ///< Lower limit in direction
+    Double_t fUpper;           ///< Upper limit in direction
+  };
 
-        /// Destructor
-        virtual ~InvalidPixelException()
-        { }
-
-        /// Get the ID of the pixel which raised the exception
-        /// @return ID of the pixel
-        Int_t GetPixelID() const
-        { return fValue; }
-
-        /// Get the maximum number of pixels in a given direction
-        /// @return Max. number of pixels
-        Int_t GetMaxNumberOfPixels() const
-        { return fMaxPixelID; }
-
-        /// Check whether exception was raised in x-directon
-        /// @return True if exception was raised in x-direction, false otherwise
-        Bool_t IsX() const
-        { return fDirection == kX; }
-
-        /// Check whether exception was raised in z-direction
-        /// @return True if exception was raised in z-direction, false otherwise
-        Bool_t IsZ() const
-        { return fDirection == kZ; }
-
-        /// Provide error message string containing direction,
-        /// index of the pixel out of range, and the maximum pixel ID
-        const char *what() const noexcept
-        {
-          return fErrorMessage.c_str();
-        }
-
-      private:
-        std::string fErrorMessage;      ///< Error message connected to this exception
-        Direction fDirection;         ///< Direction in which the pixel index is out of range
-        Int_t fValue;             ///< Value of the pixel ID which is out of range
-        Int_t fMaxPixelID;       ///< Maximum amount of pixels in direction;
+  /// Error handling in case of access to an invalid pixel ID
+  /// (pixel ID in direction which exceeds the range of valid pixel IDs)
+  class InvalidPixelException : public std::exception
+  {
+   public:
+    /// Definition of direction in which the boundary is exceeded
+    enum Direction {
+      kX = 0, ///< Local X
+      kZ = 1  ///< Local Z
     };
 
-
-    /// Default constructor
-    Segmentation();
-
-    Segmentation(const Segmentation &source);
-
-    /// Default destructor
-    virtual ~Segmentation();
-
-    AliceO2::ITS::Segmentation &operator=(const AliceO2::ITS::Segmentation &source);
-
-    /// Set Detector Segmentation Parameters
-
-    /// Detector size
-    virtual void setDetectorSize(Float_t p1, Float_t p2, Float_t p3)
+    /// Constructor
+    /// Setting necessary information for the error handling
+    /// @param dir Direction in which the exception occurs
+    /// @param pixelID Index of the pixel (in direction) which is out of scope
+    /// @param maxPixelID Maximum amount of pixels in direction
+    InvalidPixelException(Direction dir, Int_t pixelID, Int_t maxPixelID)
+      : fErrorMessage(), fDirection(dir), fValue(pixelID), fMaxPixelID(maxPixelID)
     {
-      mDx = p1;
-      mDz = p2;
-      mDy = p3;
+      std::stringstream errormessage;
+      errormessage << "Obtained " << (fDirection == kX ? "row" : "col") << " " << fValue
+                   << " is not in range [0:" << fMaxPixelID << ")";
+      fErrorMessage = errormessage.str();
     }
 
-    /// Cell size
-    virtual void setPadSize(Float_t, Float_t)
-    {
-      MayNotUse("SetPadSize");
-    }
+    /// Destructor
+    virtual ~InvalidPixelException() {}
+    /// Get the ID of the pixel which raised the exception
+    /// @return ID of the pixel
+    Int_t GetPixelID() const { return fValue; }
+    /// Get the maximum number of pixels in a given direction
+    /// @return Max. number of pixels
+    Int_t GetMaxNumberOfPixels() const { return fMaxPixelID; }
+    /// Check whether exception was raised in x-directon
+    /// @return True if exception was raised in x-direction, false otherwise
+    Bool_t IsX() const { return fDirection == kX; }
+    /// Check whether exception was raised in z-direction
+    /// @return True if exception was raised in z-direction, false otherwise
+    Bool_t IsZ() const { return fDirection == kZ; }
+    /// Provide error message string containing direction,
+    /// index of the pixel out of range, and the maximum pixel ID
+    const char* what() const noexcept { return fErrorMessage.c_str(); }
+   private:
+    std::string fErrorMessage; ///< Error message connected to this exception
+    Direction fDirection;      ///< Direction in which the pixel index is out of range
+    Int_t fValue;              ///< Value of the pixel ID which is out of range
+    Int_t fMaxPixelID;         ///< Maximum amount of pixels in direction;
+  };
 
-    /// Maximum number of cells along the two coordinates
-    virtual void setNumberOfPads(Int_t, Int_t) = 0;
+  /// Default constructor
+  Segmentation();
 
-    /// Returns the maximum number of cells (digits) posible
-    virtual Int_t getNumberOfPads() const = 0;
+  Segmentation(const Segmentation& source);
 
-    /// Set layer
-    virtual void setLayer(Int_t)
-    {
-      MayNotUse("SetLayer");
-    }
+  /// Default destructor
+  virtual ~Segmentation();
 
-    /// Number of Chips
-    virtual Int_t getNumberOfChips() const
-    {
-      MayNotUse("GetNumberOfChips");
-      return 0;
-    }
+  AliceO2::ITS::Segmentation& operator=(const AliceO2::ITS::Segmentation& source);
 
-    virtual Int_t getMaximumChipIndex() const
-    {
-      MayNotUse("GetNumberOfChips");
-      return 0;
-    }
+  /// Set Detector Segmentation Parameters
 
-    /// Chip number from local coordinates
-    virtual Int_t getChipFromLocal(Float_t, Float_t) const
-    {
-      MayNotUse("GetChipFromLocal");
-      return 0;
-    }
+  /// Detector size
+  virtual void setDetectorSize(Float_t p1, Float_t p2, Float_t p3)
+  {
+    mDx = p1;
+    mDz = p2;
+    mDy = p3;
+  }
 
-    virtual Int_t getChipsInLocalWindow(Int_t * /*array*/, Float_t /*zmin*/, Float_t /*zmax*/, Float_t /*xmin*/,
-                                        Float_t /*xmax*/) const
-    {
-      MayNotUse("GetChipsInLocalWindow");
-      return 0;
-    }
+  /// Cell size
+  virtual void setPadSize(Float_t, Float_t) { MayNotUse("SetPadSize"); }
+  /// Maximum number of cells along the two coordinates
+  virtual void setNumberOfPads(Int_t, Int_t) = 0;
 
-    /// Chip number from channel number
-    virtual Int_t getChipFromChannel(Int_t, Int_t) const
-    {
-      MayNotUse("GetChipFromChannel");
-      return 0;
-    }
+  /// Returns the maximum number of cells (digits) posible
+  virtual Int_t getNumberOfPads() const = 0;
 
-    /// Transform from real to cell coordinates
-    virtual void getPadIxz(Float_t, Float_t, Int_t &, Int_t &) const = 0;
+  /// Set layer
+  virtual void setLayer(Int_t) { MayNotUse("SetLayer"); }
+  /// Number of Chips
+  virtual Int_t getNumberOfChips() const
+  {
+    MayNotUse("GetNumberOfChips");
+    return 0;
+  }
 
-    /// Transform from cell to real coordinates
-    virtual void getPadCxz(Int_t, Int_t, Float_t &, Float_t &) const = 0;
+  virtual Int_t getMaximumChipIndex() const
+  {
+    MayNotUse("GetNumberOfChips");
+    return 0;
+  }
 
-    /// Local transformation of real local coordinates -
-    virtual void getPadTxz(Float_t &, Float_t &) const = 0;
+  /// Chip number from local coordinates
+  virtual Int_t getChipFromLocal(Float_t, Float_t) const
+  {
+    MayNotUse("GetChipFromLocal");
+    return 0;
+  }
 
-    /// Transformation from Geant cm detector center local coordinates
-    /// to detector segmentation/cell coordiantes starting from (0,0).
-    /// @throw OutOfActiveAreaException if the point is outside the active area in any of the directions
-    virtual Bool_t localToDetector(Float_t, Float_t, Int_t &, Int_t &) const = 0;
+  virtual Int_t getChipsInLocalWindow(Int_t* /*array*/, Float_t /*zmin*/, Float_t /*zmax*/, Float_t /*xmin*/,
+                                      Float_t /*xmax*/) const
+  {
+    MayNotUse("GetChipsInLocalWindow");
+    return 0;
+  }
 
-    /// Transformation from detector segmentation/cell coordiantes starting
-    /// from (0,0) to Geant cm detector center local coordinates.
-    /// @throw InvalidPixelException in case the pixel ID in any direction is out of range
-    virtual Bool_t detectorToLocal(Int_t, Int_t, Float_t &, Float_t &) const = 0;
+  /// Chip number from channel number
+  virtual Int_t getChipFromChannel(Int_t, Int_t) const
+  {
+    MayNotUse("GetChipFromChannel");
+    return 0;
+  }
 
-    /// Initialisation
-    virtual void Init() = 0;
+  /// Transform from real to cell coordinates
+  virtual void getPadIxz(Float_t, Float_t, Int_t&, Int_t&) const = 0;
 
-    /// Get member data
+  /// Transform from cell to real coordinates
+  virtual void getPadCxz(Int_t, Int_t, Float_t&, Float_t&) const = 0;
 
-    /// Detector length
-    virtual Float_t Dx() const
-    {
-      return mDx;
-    }
+  /// Local transformation of real local coordinates -
+  virtual void getPadTxz(Float_t&, Float_t&) const = 0;
 
-    /// Detector width
-    virtual Float_t Dz() const
-    {
-      return mDz;
-    }
+  /// Transformation from Geant cm detector center local coordinates
+  /// to detector segmentation/cell coordiantes starting from (0,0).
+  /// @throw OutOfActiveAreaException if the point is outside the active area in any of the directions
+  virtual Bool_t localToDetector(Float_t, Float_t, Int_t&, Int_t&) const = 0;
 
-    /// Detector thickness
-    virtual Float_t Dy() const
-    {
-      return mDy;
-    }
+  /// Transformation from detector segmentation/cell coordiantes starting
+  /// from (0,0) to Geant cm detector center local coordinates.
+  /// @throw InvalidPixelException in case the pixel ID in any direction is out of range
+  virtual Bool_t detectorToLocal(Int_t, Int_t, Float_t&, Float_t&) const = 0;
 
-    /// Cell size in x
-    virtual Float_t cellSizeX(Int_t) const = 0;
+  /// Initialisation
+  virtual void Init() = 0;
 
-    /// Cell size in z
-    virtual Float_t cellSizeZ(Int_t) const = 0;
+  /// Get member data
 
-    /// Maximum number of Cells in x
-    virtual Int_t numberOfCellsInX() const = 0;
+  /// Detector length
+  virtual Float_t Dx() const { return mDx; }
+  /// Detector width
+  virtual Float_t Dz() const { return mDz; }
+  /// Detector thickness
+  virtual Float_t Dy() const { return mDy; }
+  /// Cell size in x
+  virtual Float_t cellSizeX(Int_t) const = 0;
 
-    /// Maximum number of Cells in z
-    virtual Int_t numberOfCellsInZ() const = 0;
+  /// Cell size in z
+  virtual Float_t cellSizeZ(Int_t) const = 0;
 
-    /// Layer
-    virtual Int_t getLayer() const
-    {
-      MayNotUse("GetLayer");
-      return 0;
-    }
+  /// Maximum number of Cells in x
+  virtual Int_t numberOfCellsInX() const = 0;
 
-    /// Set hit position
-    // virtual void SetHit(Float_t, Float_t) {}
+  /// Maximum number of Cells in z
+  virtual Int_t numberOfCellsInZ() const = 0;
 
-    /// angles
-    virtual void angles(Float_t & /* p */, Float_t & /* n */) const
-    {
-      MayNotUse("Angles");
-    }
+  /// Layer
+  virtual Int_t getLayer() const
+  {
+    MayNotUse("GetLayer");
+    return 0;
+  }
 
-    /// Get next neighbours
-    virtual void neighbours(Int_t, Int_t, Int_t *, Int_t[10], Int_t[10]) const
-    {
-      MayNotUse("Neighbours");
-    }
+  /// Set hit position
+  // virtual void SetHit(Float_t, Float_t) {}
 
-    /// Function for systematic corrections
-    /// Set the correction function
-    virtual void setCorrectionFunction(TF1 *fc)
-    {
-      mCorrection = fc;
-    }
+  /// angles
+  virtual void angles(Float_t& /* p */, Float_t& /* n */) const { MayNotUse("Angles"); }
+  /// Get next neighbours
+  virtual void neighbours(Int_t, Int_t, Int_t*, Int_t[10], Int_t[10]) const { MayNotUse("Neighbours"); }
+  /// Function for systematic corrections
+  /// Set the correction function
+  virtual void setCorrectionFunction(TF1* fc) { mCorrection = fc; }
+  /// Get the correction Function
+  virtual TF1* getCorrectionFunction() { return mCorrection; }
+  /// Print Default parameters
+  virtual void printDefaultParameters() const = 0;
 
-    /// Get the correction Function
-    virtual TF1 *getCorrectionFunction()
-    {
-      return mCorrection;
-    }
+ protected:
+  virtual void Copy(TObject& obj) const;
 
-    /// Print Default parameters
-    virtual void printDefaultParameters() const = 0;
-
-  protected:
-    virtual void Copy(TObject &obj) const;
-
-    Float_t mDx; // SPD: Full width of the detector (x axis)- microns
-    // SDD: Drift distance of the 1/2detector (x axis)-microns
-    // SSD: Full length of the detector (x axis)- microns
-    Float_t mDz; // SPD: Full length of the detector (z axis)- microns
-    // SDD: Full Length of the detector (z axis) - microns
-    // SSD: Full width of the detector (z axis)- microns
-    Float_t mDy; // SPD:  Full thickness of the detector (y axis) -um
-    // SDD: Full thickness of the detector (y axis) - microns
-    // SSD: Full thickness of the detector (y axis) -um
-    TF1 *mCorrection; // correction function
+  Float_t mDx; // SPD: Full width of the detector (x axis)- microns
+  // SDD: Drift distance of the 1/2detector (x axis)-microns
+  // SSD: Full length of the detector (x axis)- microns
+  Float_t mDz; // SPD: Full length of the detector (z axis)- microns
+  // SDD: Full Length of the detector (z axis) - microns
+  // SSD: Full width of the detector (z axis)- microns
+  Float_t mDy; // SPD:  Full thickness of the detector (y axis) -um
+  // SDD: Full thickness of the detector (y axis) - microns
+  // SSD: Full thickness of the detector (y axis) -um
+  TF1* mCorrection; // correction function
 
   ClassDef(Segmentation, 1) // Segmentation virtual base class
 };

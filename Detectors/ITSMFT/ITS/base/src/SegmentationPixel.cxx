@@ -4,25 +4,24 @@
 #include "ITSBase/SegmentationPixel.h"
 #include "ITSBase/GeometryTGeo.h"
 
-#include <TFile.h>                // for TFile
-#include <TObjArray.h>            // for TObjArray
-#include <TString.h>              // for TString
-#include <TSystem.h>              // for TSystem, gSystem
-#include <stdio.h>                // for printf
-#include "TMathBase.h"            // for Abs, Max, Min
-#include "TObject.h"              // for TObject
+#include <TFile.h>     // for TFile
+#include <TObjArray.h> // for TObjArray
+#include <TString.h>   // for TString
+#include <TSystem.h>   // for TSystem, gSystem
+#include <stdio.h>     // for printf
+#include "TMathBase.h" // for Abs, Max, Min
+#include "TObject.h"   // for TObject
 
 using namespace TMath;
 using namespace AliceO2::ITS;
 
 ClassImp(AliceO2::ITS::SegmentationPixel)
 
-const char *SegmentationPixel::sSegmentationsListName = "Segmentations";
+  const char* SegmentationPixel::sSegmentationsListName = "Segmentations";
 
-SegmentationPixel::SegmentationPixel(UInt_t id, int nchips, int ncol, int nrow,
-                                                   float pitchX, float pitchZ, float thickness,
-                                                   float pitchLftC, float pitchRgtC, float edgL,
-                                                   float edgR, float edgT, float edgB)
+SegmentationPixel::SegmentationPixel(UInt_t id, int nchips, int ncol, int nrow, float pitchX, float pitchZ,
+                                     float thickness, float pitchLftC, float pitchRgtC, float edgL, float edgR,
+                                     float edgT, float edgB)
   : Segmentation(),
     mGuardLeft(edgL),
     mGuardRight(edgR),
@@ -66,38 +65,34 @@ SegmentationPixel::~SegmentationPixel()
   delete[] mDiodShiftMatZ;
 }
 
-void SegmentationPixel::getPadIxz(Float_t x, Float_t z, Int_t &ix, Int_t &iz) const
+void SegmentationPixel::getPadIxz(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const
 {
   ix = int(x / mPitchX);
   iz = int(zToColumn(z));
 
   if (iz < 0) {
-    LOG(WARNING) << "Z=" << z << " gives col=" << iz << " outside [0:" << mNumberOfColumns << ")"
-                 << FairLogger::endl;
+    LOG(WARNING) << "Z=" << z << " gives col=" << iz << " outside [0:" << mNumberOfColumns << ")" << FairLogger::endl;
     iz = 0;
   } else if (iz >= mNumberOfColumns) {
-    LOG(WARNING) << "Z=" << z << " gives col=" << iz << " outside [0:" << mNumberOfColumns << ")"
-                 << FairLogger::endl;
+    LOG(WARNING) << "Z=" << z << " gives col=" << iz << " outside [0:" << mNumberOfColumns << ")" << FairLogger::endl;
     iz = mNumberOfColumns - 1;
   }
   if (ix < 0) {
-    LOG(WARNING) << "X=" << x << " gives row=" << ix << " outside [0:" << mNumberOfRows << ")"
-                 << FairLogger::endl;
+    LOG(WARNING) << "X=" << x << " gives row=" << ix << " outside [0:" << mNumberOfRows << ")" << FairLogger::endl;
     ix = 0;
   } else if (ix >= mNumberOfRows) {
-    LOG(WARNING) << "X=" << x << " gives row=" << ix << " outside [0:" << mNumberOfRows << ")"
-                 << FairLogger::endl;
+    LOG(WARNING) << "X=" << x << " gives row=" << ix << " outside [0:" << mNumberOfRows << ")" << FairLogger::endl;
     ix = mNumberOfRows - 1;
   }
 }
 
-void SegmentationPixel::getPadTxz(Float_t &x, Float_t &z) const
+void SegmentationPixel::getPadTxz(Float_t& x, Float_t& z) const
 {
   x /= mPitchX;
   z = zToColumn(z);
 }
 
-void SegmentationPixel::getPadCxz(Int_t ix, Int_t iz, Float_t &x, Float_t &z) const
+void SegmentationPixel::getPadCxz(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const
 {
   x = Float_t((ix + 0.5) * mPitchX);
   z = columnToZ(iz);
@@ -131,7 +126,7 @@ Float_t SegmentationPixel::columnToZ(Int_t col) const
   return z;
 }
 
-SegmentationPixel &SegmentationPixel::operator=(const SegmentationPixel &src)
+SegmentationPixel& SegmentationPixel::operator=(const SegmentationPixel& src)
 {
   if (this == &src) {
     return *this;
@@ -174,7 +169,7 @@ SegmentationPixel &SegmentationPixel::operator=(const SegmentationPixel &src)
   return *this;
 }
 
-SegmentationPixel::SegmentationPixel(const SegmentationPixel &src)
+SegmentationPixel::SegmentationPixel(const SegmentationPixel& src)
   : Segmentation(src),
     mGuardLeft(src.mGuardLeft),
     mGuardRight(src.mGuardRight),
@@ -210,11 +205,7 @@ SegmentationPixel::SegmentationPixel(const SegmentationPixel &src)
   }
 }
 
-Float_t SegmentationPixel::cellSizeX(Int_t) const
-{
-  return mPitchX;
-}
-
+Float_t SegmentationPixel::cellSizeX(Int_t) const { return mPitchX; }
 Float_t SegmentationPixel::cellSizeZ(Int_t col) const
 {
   col %= mNumberOfColumnsPerChip;
@@ -227,8 +218,7 @@ Float_t SegmentationPixel::cellSizeZ(Int_t col) const
   return mPitchZ;
 }
 
-void SegmentationPixel::neighbours(Int_t iX, Int_t iZ, Int_t *nlist, Int_t xlist[8],
-                                          Int_t zlist[8]) const
+void SegmentationPixel::neighbours(Int_t iX, Int_t iZ, Int_t* nlist, Int_t xlist[8], Int_t zlist[8]) const
 {
   *nlist = 8;
   xlist[0] = xlist[1] = iX;
@@ -252,17 +242,17 @@ void SegmentationPixel::neighbours(Int_t iX, Int_t iZ, Int_t *nlist, Int_t xlist
   zlist[7] = iZ - 1;
 }
 
-Bool_t SegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t &ix, Int_t &iz) const
+Bool_t SegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const
 {
   x += 0.5 * dxActive() + mShiftLocalX; // get X,Z wrt bottom/left corner
   z += 0.5 * dzActive() + mShiftLocalZ;
   ix = iz = -1;
   if (x < 0 || x > dxActive()) {
-    //throw OutOfActiveAreaException(OutOfActiveAreaException::kX, x, 0, dxActive());
+    // throw OutOfActiveAreaException(OutOfActiveAreaException::kX, x, 0, dxActive());
     return kFALSE;
   }
   if (z < 0 || z > dzActive()) {
-    //throw OutOfActiveAreaException(OutOfActiveAreaException::kZ, z, 0, dzActive());
+    // throw OutOfActiveAreaException(OutOfActiveAreaException::kZ, z, 0, dzActive());
     return kFALSE;
   }
   ix = int(x / mPitchX);
@@ -270,27 +260,25 @@ Bool_t SegmentationPixel::localToDetector(Float_t x, Float_t z, Int_t &ix, Int_t
   return kTRUE; // Found ix and iz, return.
 }
 
-Bool_t SegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t &x, Float_t &z) const
+Bool_t SegmentationPixel::detectorToLocal(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const
 {
   x = -0.5 * dxActive(); // default value.
   z = -0.5 * dzActive(); // default value.
   if (ix < 0 || ix >= mNumberOfRows) {
-    //throw InvalidPixelException(InvalidPixelException::kX, ix, mNumberOfRows);
+    // throw InvalidPixelException(InvalidPixelException::kX, ix, mNumberOfRows);
     return kFALSE;
   } // outside of detector
   if (iz < 0 || iz >= mNumberOfColumns) {
-    //throw InvalidPixelException(InvalidPixelException::kZ, iz, mNumberOfColumns);
+    // throw InvalidPixelException(InvalidPixelException::kZ, iz, mNumberOfColumns);
     return kFALSE;
-  } // outside of detector
-  x +=
-    (ix + 0.5) * mPitchX - mShiftLocalX; // RS: we go to the center of the pad, i.e. + pitch/2, not
+  }                                         // outside of detector
+  x += (ix + 0.5) * mPitchX - mShiftLocalX; // RS: we go to the center of the pad, i.e. + pitch/2, not
   // to the boundary as in SPD
   z += columnToZ(iz) - mShiftLocalZ;
   return kTRUE;
 }
 
-void SegmentationPixel::cellBoundries(Int_t ix, Int_t iz, Double_t &xl, Double_t &xu,
-                                             Double_t &zl, Double_t &zu) const
+void SegmentationPixel::cellBoundries(Int_t ix, Int_t iz, Double_t& xl, Double_t& xu, Double_t& zl, Double_t& zu) const
 {
   Float_t x, z;
   detectorToLocal(ix, iz, x, z);
@@ -322,15 +310,14 @@ Int_t SegmentationPixel::getChipFromLocal(Float_t, Float_t zloc) const
   Int_t ix0, iz;
   try {
     localToDetector(0, zloc, ix0, iz);
-  } catch (OutOfActiveAreaException &e) {
+  } catch (OutOfActiveAreaException& e) {
     LOG(WARNING) << "Bad local coordinate" << FairLogger::endl;
     return -1;
   }
   return getChipFromChannel(ix0, iz);
 }
 
-Int_t SegmentationPixel::getChipsInLocalWindow(Int_t *array, Float_t zmin, Float_t zmax,
-                                                      Float_t, Float_t) const
+Int_t SegmentationPixel::getChipsInLocalWindow(Int_t* array, Float_t zmin, Float_t zmax, Float_t, Float_t) const
 {
   if (zmin > zmax) {
     LOG(WARNING) << "Bad coordinate limits: zmin>zmax!" << FairLogger::endl;
@@ -373,7 +360,7 @@ void SegmentationPixel::Init()
   // init settings
 }
 
-Bool_t SegmentationPixel::Store(const char *outf)
+Bool_t SegmentationPixel::Store(const char* outf)
 {
   TString fns = outf;
   gSystem->ExpandPathName(fns);
@@ -383,14 +370,14 @@ Bool_t SegmentationPixel::Store(const char *outf)
     return kFALSE;
   }
 
-  TFile *fout = TFile::Open(fns.Data(), "update");
+  TFile* fout = TFile::Open(fns.Data(), "update");
 
   if (!fout) {
     LOG(FATAL) << "Failed to open output file " << outf << FairLogger::endl;
     return kFALSE;
   }
 
-  TObjArray *arr = (TObjArray *) fout->Get(sSegmentationsListName);
+  TObjArray* arr = (TObjArray*)fout->Get(sSegmentationsListName);
 
   int id = GetUniqueID();
 
@@ -412,7 +399,7 @@ Bool_t SegmentationPixel::Store(const char *outf)
   return kTRUE;
 }
 
-SegmentationPixel *SegmentationPixel::loadWithId(UInt_t id, const char *inpf)
+SegmentationPixel* SegmentationPixel::loadWithId(UInt_t id, const char* inpf)
 {
   TString fns = inpf;
   gSystem->ExpandPathName(fns);
@@ -420,21 +407,20 @@ SegmentationPixel *SegmentationPixel::loadWithId(UInt_t id, const char *inpf)
     LOG(FATAL) << "LoadWithId: No file name provided" << FairLogger::endl;
     return 0;
   }
-  TFile *finp = TFile::Open(fns.Data());
+  TFile* finp = TFile::Open(fns.Data());
   if (!finp) {
     LOG(FATAL) << "LoadWithId: Failed to open file " << inpf << FairLogger::endl;
     return 0;
   }
-  TObjArray *arr = (TObjArray *) finp->Get(sSegmentationsListName);
+  TObjArray* arr = (TObjArray*)finp->Get(sSegmentationsListName);
   if (!arr) {
-    LOG(FATAL) << "LoadWithId: Failed to find segmenation array " << sSegmentationsListName
-               << " in " << inpf << FairLogger::endl;
+    LOG(FATAL) << "LoadWithId: Failed to find segmenation array " << sSegmentationsListName << " in " << inpf
+               << FairLogger::endl;
     return 0;
   }
-  SegmentationPixel *segm = dynamic_cast<SegmentationPixel *>(arr->At(id));
+  SegmentationPixel* segm = dynamic_cast<SegmentationPixel*>(arr->At(id));
   if (!segm || segm->GetUniqueID() != id) {
-    LOG(FATAL) << "LoadWithId: Failed to find segmenation " << id << " in " << inpf
-               << FairLogger::endl;
+    LOG(FATAL) << "LoadWithId: Failed to find segmenation " << id << " in " << inpf << FairLogger::endl;
     return 0;
   }
 
@@ -447,7 +433,7 @@ SegmentationPixel *SegmentationPixel::loadWithId(UInt_t id, const char *inpf)
   return segm;
 }
 
-void SegmentationPixel::loadSegmentations(TObjArray *dest, const char *inpf)
+void SegmentationPixel::loadSegmentations(TObjArray* dest, const char* inpf)
 {
   if (!dest) {
     return;
@@ -457,24 +443,23 @@ void SegmentationPixel::loadSegmentations(TObjArray *dest, const char *inpf)
   if (fns.IsNull()) {
     LOG(FATAL) << "LoadWithId: No file name provided" << FairLogger::endl;
   }
-  TFile *finp = TFile::Open(fns.Data());
+  TFile* finp = TFile::Open(fns.Data());
   if (!finp) {
     LOG(FATAL) << "LoadWithId: Failed to open file " << inpf << FairLogger::endl;
   }
-  TObjArray *arr = (TObjArray *) finp->Get(sSegmentationsListName);
+  TObjArray* arr = (TObjArray*)finp->Get(sSegmentationsListName);
   if (!arr) {
-    LOG(FATAL) << "LoadWithId: Failed to find segmentation array " << sSegmentationsListName
-               << " in " << inpf << FairLogger::endl;
+    LOG(FATAL) << "LoadWithId: Failed to find segmentation array " << sSegmentationsListName << " in " << inpf
+               << FairLogger::endl;
   }
   int nent = arr->GetEntriesFast();
-  TObject *segm = 0;
+  TObject* segm = 0;
   for (int i = nent; i--;) {
     if ((segm = arr->At(i))) {
       dest->AddAtAndExpand(segm, segm->GetUniqueID());
     }
   }
-  LOG(INFO) << "LoadSegmentations: Loaded " << arr->GetEntries() << " segmentations from " << inpf
-            << FairLogger::endl;
+  LOG(INFO) << "LoadSegmentations: Loaded " << arr->GetEntries() << " segmentations from " << inpf << FairLogger::endl;
   arr->SetOwner(kFALSE);
   arr->Clear();
   finp->Close();
@@ -482,8 +467,7 @@ void SegmentationPixel::loadSegmentations(TObjArray *dest, const char *inpf)
   delete arr;
 }
 
-void SegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Float_t *shiftX,
-                                                  const Float_t *shiftZ)
+void SegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Float_t* shiftX, const Float_t* shiftZ)
 {
   if (mDiodShiftMatDimension) {
     delete mDiodShiftMatX;
@@ -506,8 +490,7 @@ void SegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Float_t
   }
 }
 
-void SegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Double_t *shiftX,
-                                                  const Double_t *shiftZ)
+void SegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Double_t* shiftX, const Double_t* shiftZ)
 {
   if (mDiodShiftMatDimension) {
     delete mDiodShiftMatX;
@@ -531,17 +514,17 @@ void SegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Double_
   }
 }
 
-void SegmentationPixel::Print(Option_t * /*option*/) const
+void SegmentationPixel::Print(Option_t* /*option*/) const
 {
   const double kmc = 1e4;
-  printf("Segmentation %d: Active Size: DX: %.1f DY: %.1f DZ: %.1f | Pitch: X:%.1f Z:%.1f\n",
-         GetUniqueID(), kmc * dxActive(), kmc * Dy(), kmc * dzActive(), kmc * cellSizeX(1), kmc * cellSizeZ(1));
-  printf("Passive Edges: Bottom: %.1f Right: %.1f Top: %.1f Left: %.1f -> DX: %.1f DZ: %.1f Shift: "
-           "x:%.1f z:%.1f\n",
-         kmc * mGuardBottom, kmc * mGuardRight, kmc * mGuardTop, kmc * mGuardLeft, kmc * Dx(),
-         kmc * Dz(), kmc * mShiftLocalX, kmc * mShiftLocalZ);
-  printf("%d chips along Z: chip Ncol=%d Nrow=%d\n", mNumberOfChips, mNumberOfColumnsPerChip,
-         mNumberOfRows);
+  printf("Segmentation %d: Active Size: DX: %.1f DY: %.1f DZ: %.1f | Pitch: X:%.1f Z:%.1f\n", GetUniqueID(),
+         kmc * dxActive(), kmc * Dy(), kmc * dzActive(), kmc * cellSizeX(1), kmc * cellSizeZ(1));
+  printf(
+    "Passive Edges: Bottom: %.1f Right: %.1f Top: %.1f Left: %.1f -> DX: %.1f DZ: %.1f Shift: "
+    "x:%.1f z:%.1f\n",
+    kmc * mGuardBottom, kmc * mGuardRight, kmc * mGuardTop, kmc * mGuardLeft, kmc * Dx(), kmc * Dz(),
+    kmc * mShiftLocalX, kmc * mShiftLocalZ);
+  printf("%d chips along Z: chip Ncol=%d Nrow=%d\n", mNumberOfChips, mNumberOfColumnsPerChip, mNumberOfRows);
   if (Abs(mPitchZLeftColumn - mPitchZ) > 1e-5) {
     printf("Special left  column pitch: %.1f\n", mPitchZLeftColumn * kmc);
   }
@@ -562,7 +545,7 @@ void SegmentationPixel::Print(Option_t * /*option*/) const
   }
 }
 
-void SegmentationPixel::getDiodShift(Int_t row, Int_t col, Float_t &dx, Float_t &dz) const
+void SegmentationPixel::getDiodShift(Int_t row, Int_t col, Float_t& dx, Float_t& dz) const
 {
   // obtain optional diod shift
   if (!mDiodShiftMatDimension) {

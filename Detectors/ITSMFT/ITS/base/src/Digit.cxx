@@ -1,52 +1,36 @@
 /// \file Digit.cxx
-/// \brief Digit structure for ITS digits
+/// \brief Implementation of the ITS digit
 
 #include "ITSBase/Digit.h"
 
 ClassImp(AliceO2::ITS::Digit)
 
-using namespace AliceO2::ITS;
+  using namespace AliceO2::ITS;
 
-Digit::Digit() :
-  FairTimeStamp(),
-  fChipIndex(0),
-  fRow(0),
-  fCol(0),
-  fCharge(0.),
-  fLabels()
+Digit::Digit() : FairTimeStamp(), mChipIndex(0), mRow(0), mCol(0), mCharge(0.), mLabels{ -1, -1, -1 } {}
+Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Double_t charge, Double_t time)
+  : FairTimeStamp(time), mChipIndex(chipindex), mRow(row), mCol(col), mCharge(charge), mLabels{ -1, -1, -1 }
 {
 }
 
-Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Double_t charge, Double_t time) :
-  FairTimeStamp(time),
-  fChipIndex(chipindex),
-  fRow(row),
-  fCol(col),
-  fCharge(charge),
-  fLabels()
-{
-}
+Digit::~Digit() {}
 
-Digit::~Digit()
-{ }
-
-Digit &Digit::operator+=(const Digit &other)
+Digit& Digit::operator+=(const Digit& other)
 {
-  fCharge += other.fCharge;
+  mCharge += other.mCharge;
   return *this;
 }
 
-const Digit Digit::operator+(const Digit &other)
+const Digit Digit::operator+(const Digit& other)
 {
   Digit result(*this);
   result += other;
   return result;
 }
 
-
-std::ostream &Digit::Print(std::ostream &output) const
+std::ostream& Digit::print(std::ostream& output) const
 {
-  output << "ITS Digit of chip index [" << fChipIndex << "] and pixel [" << fRow << ','<< fCol << "] with charge " << fCharge <<
-  " at time stamp" << fTimeStamp;
+  output << "ITS Digit of chip index [" << mChipIndex << "] and pixel [" << mRow << ',' << mCol << "] with charge "
+         << mCharge << " at time stamp" << fTimeStamp;
   return output;
 }

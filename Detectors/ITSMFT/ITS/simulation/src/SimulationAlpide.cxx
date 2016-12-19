@@ -73,7 +73,7 @@ void SimulationAlpide::Init
 //______________________________________________________________________
 void SimulationAlpide::SDigitiseChip(TClonesArray *sdarray) {
   if (fChip->GetNumberOfPoints()) GenerateCluster();
-  if (!fSensMap->GetEntries()) return;
+  if (!fSensMap->getEntries()) return;
   WriteSDigits(sdarray);
   fSensMap->Clear();
 }
@@ -81,7 +81,7 @@ void SimulationAlpide::SDigitiseChip(TClonesArray *sdarray) {
 
 //______________________________________________________________________
 void SimulationAlpide::FrompListToDigits(TClonesArray *detDigits) {
-  int nsd = fSensMap->GetEntries();
+  int nsd = fSensMap->getEntries();
   if (!nsd) return; // nothing to digitize
 
   UInt_t row,col;
@@ -90,15 +90,15 @@ void SimulationAlpide::FrompListToDigits(TClonesArray *detDigits) {
 
   for (int i = 0; i < nsd; ++i) {
       SDigit* sd = (SDigit*) fSensMap->At(i); // ordered in index
-      if (fSensMap->IsDisabled(sd)) continue;
+      if (fSensMap->isDisabled(sd)) continue;
 
-      fSensMap->GetMapIndex(sd->GetUniqueID(),col,row,iCycle);
-      dig.SetPixelIndex(row,col);
-      dig.SetChipIndex(modId);
+      fSensMap->getMapIndex(sd->GetUniqueID(),col,row,iCycle);
+      dig.setPixelIndex(row,col);
+      dig.setChipIndex(modId);
       
       //dig.SetROCycle(iCycle);
-      dig.SetCharge(sd->GetSumSignal());
-      for (Int_t j=0; j<3; j++) dig.SetLabel(j,sd->GetTrack(j));
+      dig.setCharge(sd->getSumSignal());
+      for (Int_t j=0; j<3; j++) dig.setLabel(j,sd->getTrack(j));
       
       TClonesArray &ldigits = *detDigits;
       int nd = ldigits.GetEntriesFast();
@@ -110,11 +110,11 @@ void SimulationAlpide::FrompListToDigits(TClonesArray *detDigits) {
 //______________________________________________________________________
 void SimulationAlpide::WriteSDigits(TClonesArray *sdarray) {
   //  This function adds each S-Digit to pList
-  int nsd = fSensMap->GetEntries();
+  int nsd = fSensMap->getEntries();
 
   for (int i = 0; i < nsd; ++i) {
     SDigit* sd = (SDigit*)fSensMap->At(i); // ordered in index
-    if (fSensMap->IsDisabled(sd)) continue;
+    if (fSensMap->isDisabled(sd)) continue;
     new ((*sdarray)[sdarray->GetEntriesFast()]) SDigit(*sd);
   }
   return;
@@ -129,11 +129,11 @@ Bool_t SimulationAlpide::AddSDigitsToChip(TSeqCollection *pItemArr, Int_t mask) 
 
   for( Int_t i=0; i<nItems; i++ ) {
     SDigit * pItem = (SDigit *)(pItemArr->At( i ));
-    if(pItem->GetChip() != int(fChip->GetChipIndex()) )
-      LOG(FATAL)<<"SDigits chip "<<pItem->GetChip()<<" != current chip "<<fChip->GetChipIndex()<<": exit"<<FairLogger::endl;
+    if(pItem->getChip() != int(fChip->GetChipIndex()) )
+      LOG(FATAL)<<"SDigits chip "<<pItem->getChip()<<" != current chip "<<fChip->GetChipIndex()<<": exit"<<FairLogger::endl;
 
-    SDigit* oldItem = (SDigit*)fSensMap->GetItem(pItem);
-    if (!oldItem) oldItem = (SDigit*)fSensMap->RegisterItem( new(fSensMap->GetFree()) SDigit(*pItem) );
+    SDigit* oldItem = (SDigit*)fSensMap->getItem(pItem);
+    if (!oldItem) oldItem = (SDigit*)fSensMap->registerItem( new(fSensMap->getFree()) SDigit(*pItem) );
   }
   return true;
 }
@@ -296,8 +296,8 @@ void SimulationAlpide::GenerateCluster() {
 
 //______________________________________________________________________
 void SimulationAlpide::CreateDigi(UInt_t col, UInt_t row, Int_t track, Int_t hit) {
-  UInt_t index = fSensMap->GetIndex(col, row, 0);
+  UInt_t index = fSensMap->getIndex(col, row, 0);
   UInt_t chip  = fChip->GetChipIndex();
 
-  fSensMap->RegisterItem(new (fSensMap->GetFree()) SDigit(track, hit, chip, index, 0.1, 0));
+  fSensMap->registerItem(new (fSensMap->getFree()) SDigit(track, hit, chip, index, 0.1, 0));
 }
