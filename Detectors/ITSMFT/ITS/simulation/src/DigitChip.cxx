@@ -55,7 +55,7 @@ Digit *DigitChip::AddDigit(
   Digit *digit=FindDigit(idx);
   if (digit) {
     LOG(DEBUG) << "Adding charge to pixel..." << FairLogger::endl;
-    charge += digit->GetCharge();
+    charge += digit->getCharge();
     delete digit;
   }
   

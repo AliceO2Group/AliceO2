@@ -9,8 +9,7 @@ using namespace AliceO2::ITS;
 
 ClassImp(AliceO2::ITS::MisalignmentParameter)
 
-MisalignmentParameter::MisalignmentParameter(const char *name, const char *title,
-                                             const char *context)
+  MisalignmentParameter::MisalignmentParameter(const char* name, const char* title, const char* context)
   : FairParGenericSet(name, title, context),
     mShiftX(),
     mShiftY(),
@@ -22,15 +21,9 @@ MisalignmentParameter::MisalignmentParameter(const char *name, const char *title
 {
 }
 
-MisalignmentParameter::~MisalignmentParameter(void)
-{
-}
-
-void MisalignmentParameter::Clear(void)
-{
-}
-
-void MisalignmentParameter::putParams(FairParamList *list)
+MisalignmentParameter::~MisalignmentParameter(void) {}
+void MisalignmentParameter::Clear(void) {}
+void MisalignmentParameter::putParams(FairParamList* list)
 {
   if (!list) {
     return;
@@ -45,7 +38,7 @@ void MisalignmentParameter::putParams(FairParamList *list)
   list->add("RotationZ", mRotZ);
 }
 
-Bool_t MisalignmentParameter::getParams(FairParamList *list)
+Bool_t MisalignmentParameter::getParams(FairParamList* list)
 {
   if (!list) {
     return kFALSE;

@@ -1,19 +1,19 @@
 /// \file SensMap.cxx
-/// \brief Sensor map structure for ITS digits
+/// \brief Implementation of hte ITS sensor map
 
 //***********************************************************************
 //
-// It consist of a TClonesArray of 
+// It consist of a TClonesArray of
 // SensMapItem objects
 // This array can be accessed via 2 indexed
-// it is used at digitization level by 
+// it is used at digitization level by
 // all the 3 ITS subdetectors
 //
 //
 // The items should be added to the map like this:
 // map->RegisterItem( new(map->GetFree()) ItemConstructor(...) );
 //
-// The items must be sortable with the same sorting algorithm like 
+// The items must be sortable with the same sorting algorithm like
 // for SensMap::IsSortable,IsEqual,Compare
 //
 // ***********************************************************************
@@ -23,109 +23,108 @@
 
 ClassImp(AliceO2::ITS::SensMap)
 
-using namespace AliceO2::ITS;
+  using namespace AliceO2::ITS;
 
 //______________________________________________________________________
-SensMap::SensMap() 
-:  fDimCol(0)
-  ,fDimRow(0)
-  ,fDimCycle(0)
-  ,fItems(0)
-  ,fBTree(0)
+SensMap::SensMap() : mDimCol(0), mDimRow(0), mDimCycle(0), mItems(0), mBTree(0)
 {
   // Default constructor
 }
 
 //______________________________________________________________________
-SensMap::SensMap(const char* className, UInt_t dimCol,UInt_t dimRow,UInt_t dimCycle)
-  :fDimCol(dimCol)
-  ,fDimRow(dimRow)
-  ,fDimCycle(dimCycle)
-  ,fItems(new TClonesArray(className,100))
-  ,fBTree(new TBtree())
+SensMap::SensMap(const char* className, UInt_t dimCol, UInt_t dimRow, UInt_t dimCycle)
+  : mDimCol(dimCol),
+    mDimRow(dimRow),
+    mDimCycle(dimCycle),
+    mItems(new TClonesArray(className, 100)),
+    mBTree(new TBtree())
 {
   // Standard constructor
 }
 
 //______________________________________________________________________
-SensMap::~SensMap() 
+SensMap::~SensMap()
 {
   // Default destructor
-  delete fItems;
-  delete fBTree;
+  delete mItems;
+  delete mBTree;
 }
 
-
 //______________________________________________________________________
-SensMap::SensMap(const SensMap &source)
-  :TObject(source)
-  ,fDimCol(source.fDimCol)
-  ,fDimRow(source.fDimRow)
-  ,fDimCycle(source.fDimCycle)
-  ,fItems( source.fItems ? new TClonesArray(*source.fItems) : 0)
-  ,fBTree( 0 )
+SensMap::SensMap(const SensMap& source)
+  : TObject(source),
+    mDimCol(source.mDimCol),
+    mDimRow(source.mDimRow),
+    mDimCycle(source.mDimCycle),
+    mItems(source.mItems ? new TClonesArray(*source.mItems) : 0),
+    mBTree(0)
 {
-  if (source.fBTree) {
-    fBTree = new TBtree();
-    if (fItems) {
-      for (int i=fItems->GetEntriesFast();i--;) {
-	TObject* obj = fItems->At(i);
-	if (obj && ! IsDisabled(obj)) continue;
-	RegisterItem(obj);
+  if (source.mBTree) {
+    mBTree = new TBtree();
+    if (mItems) {
+      for (int i = mItems->GetEntriesFast(); i--;) {
+        TObject* obj = mItems->At(i);
+        if (obj && !isDisabled(obj))
+          continue;
+        registerItem(obj);
       }
     }
   }
 }
 
 //______________________________________________________________________
-SensMap& SensMap::operator=(const SensMap &source)
+SensMap& SensMap::operator=(const SensMap& source)
 {
   // = operator
-  if (this!=&source) {
+  if (this != &source) {
     this->~SensMap();
-    new(this) SensMap(source);
+    new (this) SensMap(source);
   }
   return *this;
 }
 
 //______________________________________________________________________
-void SensMap::Clear(Option_t*) 
+void SensMap::clear(Option_t*)
 {
   // clean everything
-  if (fItems) fItems->Clear();
-  if (fBTree) fBTree->Clear();
+  if (mItems)
+    mItems->Clear();
+  if (mBTree)
+    mBTree->Clear();
 }
 
 //______________________________________________________________________
-void SensMap::DeleteItem(UInt_t col,UInt_t row,Int_t cycle)
+void SensMap::deleteItem(UInt_t col, UInt_t row, Int_t cycle)
 {
   // Delete a particular SensMapItems.
-  SetUniqueID( GetIndex(col,row,cycle) );
-  TObject* fnd = fBTree->FindObject(this);
-  if (!fnd) return;
-  Disable(fnd);
-  fBTree->Remove(fnd);
+  SetUniqueID(getIndex(col, row, cycle));
+  TObject* fnd = mBTree->FindObject(this);
+  if (!fnd)
+    return;
+  disable(fnd);
+  mBTree->Remove(fnd);
 }
 
 //______________________________________________________________________
-void SensMap::DeleteItem(TObject* obj)
+void SensMap::deleteItem(TObject* obj)
 {
   // Delete a particular SensMapItems.
-  TObject* fnd = fBTree->FindObject(obj);
-  if (!fnd) return;
-  Disable(fnd);
-  fBTree->Remove(fnd);
+  TObject* fnd = mBTree->FindObject(obj);
+  if (!fnd)
+    return;
+  disable(fnd);
+  mBTree->Remove(fnd);
 }
 
 //______________________________________________________________________
-void SensMap::SetDimensions(UInt_t dimCol,UInt_t dimRow,UInt_t dimCycle) 
+void SensMap::setDimensions(UInt_t dimCol, UInt_t dimRow, UInt_t dimCycle)
 {
   // set dimensions for current sensor
   const UInt_t kMaxPackDim = 0xffffffff;
-  fDimCol = dimCol; 
-  fDimRow = dimRow; 
-  fDimCycle=dimCycle;
-  if ((fDimCol*fDimRow*fDimCycle)>kMaxPackDim/2)
-    LOG(FATAL)<<"Dimension "<<fDimCol<<'x'<<fDimRow<<'x'<<fDimCycle<<"*2 cannot be packed to UInt_t"<<FairLogger::endl;
+  mDimCol = dimCol;
+  mDimRow = dimRow;
+  mDimCycle = dimCycle;
+  if ((mDimCol * mDimRow * mDimCycle) > kMaxPackDim / 2)
+    LOG(FATAL) << "Dimension " << mDimCol << 'x' << mDimRow << 'x' << mDimCycle << "*2 cannot be packed to UInt_t"
+               << FairLogger::endl;
 }
-

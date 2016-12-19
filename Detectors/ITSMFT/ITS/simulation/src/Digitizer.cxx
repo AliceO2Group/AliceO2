@@ -106,7 +106,7 @@ DigitContainer &Digitizer::Process(TClonesArray *points)
     Digit *digit=fDigitContainer.AddDigit(
        chipID, ix, iz, charge, point->GetTime()
     );
-    digit->SetLabel(0,label);
+    digit->setLabel(0,label);
   }
   return fDigitContainer;
 }
