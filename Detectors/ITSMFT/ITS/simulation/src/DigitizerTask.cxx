@@ -1,6 +1,6 @@
-//
-//  DigitizerTask.cxx
-//  ALICEO2
+/// \file DigitizerTask.cxx
+/// \brief Implementation of the ITS digitizer task
+
 //
 //  Created by Markus Fasel on 16.07.15.
 //
@@ -9,27 +9,25 @@
 #include "ITSSimulation/DigitizerTask.h"
 #include "ITSSimulation/DigitContainer.h"
 
-#include "TObject.h"             // for TObject
-#include "TClonesArray.h"        // for TClonesArray
-#include "FairLogger.h"          // for LOG
-#include "FairRootManager.h"     // for FairRootManager
+#include "FairLogger.h"      // for LOG
+#include "FairRootManager.h" // for FairRootManager
+#include "TClonesArray.h"    // for TClonesArray
+#include "TObject.h"         // for TObject
 
 ClassImp(AliceO2::ITS::DigitizerTask)
 
-using namespace AliceO2::ITS;
+  using namespace AliceO2::ITS;
 
-DigitizerTask::DigitizerTask(Bool_t useAlpide) :
-  FairTask("ITSDigitizerTask"),
-  fUseAlpideSim(useAlpide),
-  fDigitizer(),
-  fPointsArray(nullptr),
-  fDigitsArray(nullptr)
+DigitizerTask::DigitizerTask(Bool_t useAlpide)
+  : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer(), mPointsArray(nullptr), mDigitsArray(nullptr)
 {
 }
 
 DigitizerTask::~DigitizerTask()
 {
-  if (fDigitsArray) { delete fDigitsArray; }
+  if (mDigitsArray) {
+    delete mDigitsArray;
+  }
 }
 
 /// \brief Init function
@@ -37,35 +35,35 @@ DigitizerTask::~DigitizerTask()
 /// Inititializes the digitizer and connects input and output container
 InitStatus DigitizerTask::Init()
 {
-  FairRootManager *mgr = FairRootManager::Instance();
+  FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
-  fPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("ITSPoint"));
-  if (!fPointsArray) {
+  mPointsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSPoint"));
+  if (!mPointsArray) {
     LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
   // Register output container
-  fDigitsArray = new TClonesArray("AliceO2::ITS::Digit");
-  mgr->Register("ITSDigit", "ITS", fDigitsArray, kTRUE);
+  mDigitsArray = new TClonesArray("AliceO2::ITS::Digit");
+  mgr->Register("ITSDigit", "ITS", mDigitsArray, kTRUE);
 
-  fDigitizer.Init(kTRUE);  
-  
+  mDigitizer.init(kTRUE);
+
   return kSUCCESS;
 }
 
-void DigitizerTask::Exec(Option_t *option)
+void DigitizerTask::Exec(Option_t* option)
 {
-  fDigitsArray->Clear();
+  mDigitsArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
-  if (!fUseAlpideSim) {
-     DigitContainer &digits = fDigitizer.Process(fPointsArray);
-     digits.FillOutputContainer(fDigitsArray);
+  if (!mUseAlpideSim) {
+    DigitContainer& digits = mDigitizer.process(mPointsArray);
+    digits.fillOutputContainer(mDigitsArray);
   } else {
-     fDigitizer.Process(fPointsArray,fDigitsArray); // ALPIDE response
+    mDigitizer.process(mPointsArray, mDigitsArray); // ALPIDE response
   }
 }

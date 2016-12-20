@@ -1,51 +1,57 @@
-//
-//  DigitizerTask.h
-//  ALICEO2
+/// \file DigitizerTask.h
+/// \brief Definition of the ITS digitizer task
+
 //
 //  Created by Markus Fasel on 16.07.15.
 //
 //
 
-#ifndef __ALICEO2__DigitizerTask__
-#define __ALICEO2__DigitizerTask__
+#ifndef ALICEO2_ITS_DIGITIZERTASK_H
+#define ALICEO2_ITS_DIGITIZERTASK_H
 
 #include <stdio.h>
-#include "FairTask.h"  // for FairTask, InitStatus
-#include "Rtypes.h"    // for DigitizerTask::Class, ClassDef, etc
+#include "FairTask.h" // for FairTask, InitStatus
+#include "Rtypes.h"   // for DigitizerTask::Class, ClassDef, etc
 
 #include "ITSSimulation/Digitizer.h"
 
 class TClonesArray;
-namespace AliceO2 { namespace ITS { class Digitizer; }}  // lines 19-19
+namespace AliceO2
+{
+namespace ITS
+{
+class Digitizer;
+}
+} // lines 19-19
 
-namespace AliceO2 {
-namespace ITS {
-
+namespace AliceO2
+{
+namespace ITS
+{
 class Digitizer;
 
 class DigitizerTask : public FairTask
 {
-  public:
-    DigitizerTask(Bool_t useAlpide=kFALSE);
+ public:
+  DigitizerTask(Bool_t useAlpide = kFALSE);
 
-    virtual ~DigitizerTask();
+  virtual ~DigitizerTask();
 
-    virtual InitStatus Init();
+  virtual InitStatus Init();
 
-    virtual void Exec(Option_t *option);
+  virtual void Exec(Option_t* option);
 
-    Digitizer &GetDigitizer() { return fDigitizer; }
+  Digitizer& getDigitizer() { return mDigitizer; }
+ private:
+  Bool_t mUseAlpideSim; ///< ALPIDE simulation activation flag
+  Digitizer mDigitizer; ///< Digitizer
 
-  private:
-    Bool_t fUseAlpideSim;
-    Digitizer fDigitizer;
-
-    TClonesArray *fPointsArray;
-    TClonesArray *fDigitsArray;
+  TClonesArray* mPointsArray; ///< Array of MC hits
+  TClonesArray* mDigitsArray; ///< Array of digits
 
   ClassDef(DigitizerTask, 1)
 };
 }
 }
 
-#endif /* defined(__ALICEO2__DigitizerTask__) */
+#endif /* ALICEO2_ITS_DIGITIZERTASK_H */

@@ -1,74 +1,66 @@
-//
-//  DigitChip.cxx
-//  ALICEO2
-//
+/// \file DigitChip.cxx
+/// \brief Implementation of the ITS DigitChip class
+
 #include "ITSSimulation/DigitChip.h"
 #include "ITSBase/Digit.h"
 
-#include "FairLogger.h"  // for LOG
+#include "FairLogger.h" // for LOG
 
 #include "TClonesArray.h"
 
 using namespace AliceO2::ITS;
 
-Int_t DigitChip::fnRows=650;
+Int_t DigitChip::sNumOfRows = 650;
 
-DigitChip::DigitChip()
-{
-}
+DigitChip::DigitChip() {}
 
-DigitChip::~DigitChip()
-{
-  Reset();
-}
+DigitChip::~DigitChip() { reset(); }
 
-void DigitChip::Reset()
+void DigitChip::reset()
 {
-  for (auto pixel: fPixels) {
+  for (auto pixel : mPixels) {
     delete pixel.second;
   }
-  fPixels.clear();
+  mPixels.clear();
 }
 
-Digit *DigitChip::FindDigit(Int_t idx)
+Digit* DigitChip::findDigit(Int_t idx)
 {
-  Digit *result = nullptr;
-  auto digitentry = fPixels.find(idx);
-  if (digitentry != fPixels.end()) {
+  Digit* result = nullptr;
+  auto digitentry = mPixels.find(idx);
+  if (digitentry != mPixels.end()) {
     result = digitentry->second;
   }
   return result;
 }
 
-Digit *DigitChip::GetDigit(UShort_t row, UShort_t col) {
-  Int_t idx = col*fnRows + row;
-  return FindDigit(idx); 
+Digit* DigitChip::getDigit(UShort_t row, UShort_t col)
+{
+  Int_t idx = col * sNumOfRows + row;
+  return findDigit(idx);
 }
 
-Digit *DigitChip::AddDigit(
-       UShort_t chipid, UShort_t row, UShort_t col,
-       Double_t charge, Double_t timestamp
-)
+Digit* DigitChip::addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp)
 {
-  Int_t idx = col*fnRows + row;
+  Int_t idx = col * sNumOfRows + row;
 
-  Digit *digit=FindDigit(idx);
+  Digit* digit = findDigit(idx);
   if (digit) {
     LOG(DEBUG) << "Adding charge to pixel..." << FairLogger::endl;
     charge += digit->getCharge();
     delete digit;
   }
-  
-  digit = new Digit(chipid,row,col,charge,timestamp);
-  fPixels.insert(std::pair<Int_t, Digit *>(idx,digit));
+
+  digit = new Digit(chipid, row, col, charge, timestamp);
+  mPixels.insert(std::pair<Int_t, Digit*>(idx, digit));
 
   return digit;
 }
 
-void DigitChip::FillOutputContainer(TClonesArray *outputcont)
+void DigitChip::fillOutputContainer(TClonesArray* outputcont)
 {
-  TClonesArray &clref = *outputcont;
-  for (auto digit: fPixels) {
-    new(clref[clref.GetEntriesFast()]) Digit(*(digit.second));
+  TClonesArray& clref = *outputcont;
+  for (auto digit : mPixels) {
+    new (clref[clref.GetEntriesFast()]) Digit(*(digit.second));
   }
 }

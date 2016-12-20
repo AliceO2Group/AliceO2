@@ -1,44 +1,38 @@
-//
-//  DigitContainer.h
-//  ALICEO2
-//
+/// \file DigitContainer.h
+/// \brief Definition of the ITS DigitContainer class
 
-#ifndef _ALICEO2_ITS_DigitContainer_
-#define _ALICEO2_ITS_DigitContainer_
+#ifndef ALICEO2_ITS_DIGITCONTAINER
+#define ALICEO2_ITS_DIGITCONTAINER
 
 #include <vector>
 
-#include "Rtypes.h"
 #include "ITSSimulation/DigitChip.h"
+#include "Rtypes.h"
 
 class TClonesArray;
 
-namespace AliceO2 {
-namespace ITS {
-
+namespace AliceO2
+{
+namespace ITS
+{
 class Digit;
 
 class DigitContainer
 {
-  public:
-    DigitContainer() {}
-   ~DigitContainer() {}
+ public:
+  DigitContainer() {}
+  ~DigitContainer() {}
+  void reset();
+  void resize(Int_t n) { mChips.resize(n); }
+  Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
+  Digit* getDigit(Int_t chipID, UShort_t row, UShort_t col);
 
-    void Reset();
-    void Resize(Int_t n) {fChips.resize(n);}
-    
-    Digit *AddDigit(
-       UShort_t chipid, UShort_t row, UShort_t col,
-       Double_t charge, Double_t timestamp
-    );
-    Digit *GetDigit(Int_t chipID, UShort_t row, UShort_t col);
+  void fillOutputContainer(TClonesArray* output);
 
-    void FillOutputContainer(TClonesArray *output);
-
-  private:
-    std::vector<DigitChip> fChips;
+ private:
+  std::vector<DigitChip> mChips; ///< Vector of DigitChips
 };
 }
 }
 
-#endif /* defined(_ALICEO2_ITS_DigitContainer_) */
+#endif /* ALICEO2_ITS_DIGITCONTAINER */

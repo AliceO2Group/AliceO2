@@ -1,35 +1,29 @@
-//
-//  DigitContainer.cxx
-//  ALICEO2
+/// \file DigitContainer.cxx
+/// \brief Implementation of the ITS DigitContainer class
 //
 #include "ITSSimulation/DigitContainer.h"
 #include "ITSBase/Digit.h"
 
-#include "FairLogger.h"           // for LOG
+#include "FairLogger.h" // for LOG
 
 using namespace AliceO2::ITS;
 
-void DigitContainer::Reset()
+void DigitContainer::reset()
 {
-  for (Int_t i = 0; i < fChips.size(); i++) fChips[i].Reset();
+  for (Int_t i = 0; i < mChips.size(); i++)
+    mChips[i].reset();
 }
 
-Digit *DigitContainer::GetDigit(Int_t chipID, UShort_t row, UShort_t col)
+Digit* DigitContainer::getDigit(Int_t chipID, UShort_t row, UShort_t col) { return mChips[chipID].getDigit(row, col); }
+
+Digit* DigitContainer::addDigit(UShort_t chipID, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp)
 {
-  return fChips[chipID].GetDigit(row,col);
+  return mChips[chipID].addDigit(chipID, row, col, charge, timestamp);
 }
 
-Digit *DigitContainer::AddDigit(
-       UShort_t chipID, UShort_t row, UShort_t col,
-       Double_t charge, Double_t timestamp
-)
+void DigitContainer::fillOutputContainer(TClonesArray* output)
 {
-  return fChips[chipID].AddDigit(chipID,row,col,charge,timestamp);
-}
-
-void DigitContainer::FillOutputContainer(TClonesArray *output)
-{
-  for (Int_t i = 0; i < fChips.size(); i++) {
-    fChips[i].FillOutputContainer(output);
+  for (Int_t i = 0; i < mChips.size(); i++) {
+    mChips[i].fillOutputContainer(output);
   }
 }
