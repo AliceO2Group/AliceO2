@@ -28,7 +28,7 @@ void CheckClusters() {
   gFile->Get("FairGeoParSet");
   GeometryTGeo *gman = new GeometryTGeo(kTRUE);
 
-  Cluster::SetGeom(gman);
+  Cluster::setGeom(gman);
   
   // Hits
   TFile *file0 = TFile::Open("AliceO2_TGeant3.mc_10_event.root");
@@ -50,11 +50,11 @@ void CheckClusters() {
     Int_t nc=clusArr.GetEntriesFast();
     while(nc--) {
       Cluster *c=static_cast<Cluster *>(clusArr.UncheckedAt(nc));
-      c->GoToFrameLoc();
-      const Double_t loc[3]={c->GetX(), 0., c->GetZ()};
+      c->goToFrameLoc();
+      const Double_t loc[3]={c->getX(), 0., c->getZ()};
       
-      Int_t chipID=c->GetVolumeId();
-      Int_t lab=c->GetLabel(0);
+      Int_t chipID=c->getVolumeId();
+      Int_t lab=c->getLabel(0);
 
       Double_t glo[3]={0., 0., 0.}, dx=0., dz=0.;
       gman->localToGlobal(chipID,loc,glo);
