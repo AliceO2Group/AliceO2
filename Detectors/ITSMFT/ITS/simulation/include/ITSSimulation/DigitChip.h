@@ -1,46 +1,41 @@
-//
-//  DigitChip.h
-//  ALICEO2
-//
+/// \file DigitChip.h
+/// \brief Definition of the ITS DigitChip class
 
-#ifndef _ALICEO2_DigitChip_
-#define _ALICEO2_DigitChip_
+#ifndef ALICEO2_ITS_DIGITCHIP
+#define ALICEO2_ITS_DIGITCHIP
 
-#include "Rtypes.h"
 #include <map>
+#include "Rtypes.h"
 
 class TClonesArray;
 
-namespace AliceO2 {
-namespace ITS {
-
+namespace AliceO2
+{
+namespace ITS
+{
 class Digit;
 
 class DigitChip
 {
-  public:
-    DigitChip();
-   ~DigitChip();
+ public:
+  DigitChip();
+  ~DigitChip();
 
-    static void SetNRows(Int_t nr) { fnRows=nr; }
-   
-    void Reset();
+  static void setNumberOfRows(Int_t nr) { sNumOfRows = nr; }
+  void reset();
 
-    Digit *GetDigit(UShort_t row, UShort_t col);
+  Digit* getDigit(UShort_t row, UShort_t col);
 
-    Digit *AddDigit(
-       UShort_t chipid, UShort_t row, UShort_t col,
-       Double_t charge, Double_t timestamp
-    );
-    
-    void FillOutputContainer(TClonesArray *outputcont);
+  Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
 
-  private:
-    Digit *FindDigit(Int_t idx);
-    static Int_t fnRows;
-    std::map<Int_t, Digit *> fPixels;
+  void fillOutputContainer(TClonesArray* outputcont);
+
+ private:
+  Digit* findDigit(Int_t idx);
+  static Int_t sNumOfRows;         ///< Number of rows in the pixel matrix
+  std::map<Int_t, Digit*> mPixels; ///< Map of fired pixels
 };
 }
 }
 
-#endif
+#endif /* ALICEO2_ITS_DIGITCHIP */
