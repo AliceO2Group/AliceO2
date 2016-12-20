@@ -206,7 +206,7 @@ void SDigit::shiftIndices(Int_t fileIndex)
 }
 
 //______________________________________________________________________
-Int_t SDigit::compare(const TObject* obj) const
+Int_t SDigit::Compare(const TObject* obj) const
 {
   // compare objects
   if (GetUniqueID() < obj->GetUniqueID())
