@@ -45,9 +45,9 @@ class SDigit : public TObject
   void print(Option_t* option = "") const;
   Int_t read(const char* name) { return TObject::Read(name); }
   //
-  virtual Bool_t isSortable() const { return kTRUE; }
-  virtual Bool_t isEqual(const TObject* obj) const { return GetUniqueID() == obj->GetUniqueID(); }
-  virtual Int_t compare(const TObject* obj) const;
+  virtual Bool_t IsSortable() const { return kTRUE; }
+  virtual Bool_t IsEqual(const TObject* obj) const { return GetUniqueID() == obj->GetUniqueID(); }
+  virtual Int_t Compare(const TObject* obj) const;
   //
   static Int_t getBuffSize() { return kBuffSize; };
   //
