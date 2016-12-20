@@ -50,13 +50,13 @@ void CheckDigits() {
     Int_t nd=digArr.GetEntriesFast();
     while(nd--) {
       Digit *d=(Digit *)digArr.UncheckedAt(nd);
-      Int_t ix=d->GetRow(), iz=d->GetColumn();
+      Int_t ix=d->getRow(), iz=d->getColumn();
       Float_t x,z; 
       seg->detectorToLocal(ix,iz,x,z);
       const Double_t loc[3]={x,0.,z};
       
-      Int_t chipID=d->GetChipIndex();
-      Int_t lab=d->GetLabel(0);
+      Int_t chipID=d->getChipIndex();
+      Int_t lab=d->getLabel(0);
 
       Double_t glo[3]={0., 0., 0.}, dx=0., dz=0.;
       gman->localToGlobal(chipID,loc,glo);

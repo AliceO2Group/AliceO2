@@ -1,34 +1,27 @@
-//
-//  ClustererTask.cxx
-//  ALICEO2
-//
+/// \file  ClustererTask.cxx
+/// \brief Implementation of the ITS cluster finder task
 
 #include "ITSReconstruction/ClustererTask.h"
-#include "ITSReconstruction/Cluster.h"
 #include "ITSBase/Digit.h"
 #include "ITSBase/SegmentationPixel.h"
+#include "ITSReconstruction/Cluster.h"
 
-#include "TClonesArray.h"        // for TClonesArray
-#include "FairLogger.h"          // for LOG
-#include "FairRootManager.h"     // for FairRootManager
+#include "FairLogger.h"      // for LOG
+#include "FairRootManager.h" // for FairRootManager
+#include "TClonesArray.h"    // for TClonesArray
 
 ClassImp(AliceO2::ITS::ClustererTask)
 
-using namespace AliceO2::ITS;
+  using namespace AliceO2::ITS;
 
 //_____________________________________________________________________
-ClustererTask::ClustererTask():
-  FairTask("ITSClustererTask"),
-  fDigitsArray(nullptr),
-  fClustersArray(nullptr)
-{
-}
+ClustererTask::ClustererTask() : FairTask("ITSClustererTask"), mDigitsArray(nullptr), mClustersArray(nullptr) {}
 
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  if (fClustersArray)
-    delete fClustersArray;
+  if (mClustersArray)
+    delete mClustersArray;
 }
 
 //_____________________________________________________________________
@@ -36,34 +29,32 @@ ClustererTask::~ClustererTask()
 /// Inititializes the clusterer and connects input and output container
 InitStatus ClustererTask::Init()
 {
-  FairRootManager *mgr = FairRootManager::Instance();
-  if( !mgr ) {
-
+  FairRootManager* mgr = FairRootManager::Instance();
+  if (!mgr) {
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
-  fDigitsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("ITSDigit"));
-  if( !fDigitsArray ) {
+  mDigitsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSDigit"));
+  if (!mDigitsArray) {
     LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
   // Register output container
-  fClustersArray = new TClonesArray("AliceO2::ITS::Cluster");
-  mgr->Register("ITSCluster", "ITS", fClustersArray, kTRUE);
+  mClustersArray = new TClonesArray("AliceO2::ITS::Cluster");
+  mgr->Register("ITSCluster", "ITS", mClustersArray, kTRUE);
 
-  fClusterer.Init(kTRUE);
-  
+  mClusterer.init(kTRUE);
+
   return kSUCCESS;
 }
 
 //_____________________________________________________________________
-void ClustererTask::Exec(Option_t *option)
+void ClustererTask::Exec(Option_t* option)
 {
-  fClustersArray->Clear();
+  mClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-  fClusterer.Process(fDigitsArray,fClustersArray);
-
+  mClusterer.process(mDigitsArray, mClustersArray);
 }

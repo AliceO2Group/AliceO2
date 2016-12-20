@@ -1,9 +1,9 @@
 /// \file Cluster.cxx
-/// \brief Cluster structure for ITS clusters
+/// \brief Implementation of the ITS cluster
 
 #include "ITSReconstruction/Cluster.h"
-#include "ITSBase/GeometryTGeo.h"
 #include "FairLogger.h"
+#include "ITSBase/GeometryTGeo.h"
 
 #include <TGeoMatrix.h>
 #include <TString.h>
@@ -15,34 +15,34 @@ using namespace AliceO2::ITS;
 
 ClassImp(AliceO2::ITS::Cluster)
 
-
-
-GeometryTGeo *Cluster::fgGeom = 0;
-UInt_t               Cluster::fgMode = 0;
+  GeometryTGeo* Cluster::sGeom = 0;
+UInt_t Cluster::sMode = 0;
 
 //_____________________________________________________
-Cluster::Cluster():
-    fX(0),fY(0),fZ(0)
-  , fSigmaY2(0),fSigmaZ2(0),fSigmaYZ(0)
-  , fVolumeId(0)
-  , fCharge(0)
-  , fRecoInfo(0)
-  , fNxNzN(0)
+Cluster::Cluster()
+  : mTracks{ -1, -1, -1 },
+    mX(0),
+    mY(0),
+    mZ(0),
+    mSigmaY2(0),
+    mSigmaZ2(0),
+    mSigmaYZ(0),
+    mVolumeId(0),
+    mCharge(0),
+    mRecoInfo(0),
+    mNxNzN(0)
 #ifdef _ClusterTopology_
-  ,fPatternNRows(0)
-  ,fPatternNCols(0)
-  ,fPatternMinRow(0)
-  ,fPatternMinCol(0)
+    ,
+    mPatternNRows(0),
+    mPatternNCols(0),
+    mPatternMinRow(0),
+    mPatternMinCol(0)
 #endif
 {
-  fTracks[0]=-1;
-  fTracks[1]=-1;
-  fTracks[2]=-1;
-  // default constructor
+// default constructor
 #ifdef _ClusterTopology_
-  memset(fPattern,0,kMaxPatternBytes*sizeof(UChar_t));
+  memset(mPattern, 0, kMaxPatternBytes * sizeof(UChar_t));
 #endif
-
 }
 
 //_____________________________________________________
@@ -53,77 +53,87 @@ Cluster::~Cluster()
 
 //_____________________________________________________
 Cluster::Cluster(const Cluster& cluster)
-  : FairTimeStamp(cluster)
-  , fX(cluster.fX),fY(cluster.fY),fZ(cluster.fZ)
-  , fSigmaY2(cluster.fSigmaY2),fSigmaZ2(cluster.fSigmaZ2)
-  , fSigmaYZ(cluster.fSigmaYZ)
-  , fVolumeId(cluster.fVolumeId)
-  , fCharge(cluster.fCharge)
-  ,fRecoInfo(cluster.fRecoInfo)
-  ,fNxNzN(cluster.fNxNzN)
+  : FairTimeStamp(cluster),
+    mTracks{ cluster.mTracks[0], cluster.mTracks[1], cluster.mTracks[2] },
+    mX(cluster.mX),
+    mY(cluster.mY),
+    mZ(cluster.mZ),
+    mSigmaY2(cluster.mSigmaY2),
+    mSigmaZ2(cluster.mSigmaZ2),
+    mSigmaYZ(cluster.mSigmaYZ),
+    mVolumeId(cluster.mVolumeId),
+    mCharge(cluster.mCharge),
+    mRecoInfo(cluster.mRecoInfo),
+    mNxNzN(cluster.mNxNzN)
 #ifdef _ClusterTopology_
-  ,fPatternNRows(cluster.fPatternNRows)
-  ,fPatternNCols(cluster.fPatternNCols)
-  ,fPatternMinRow(cluster.fPatternMinRow)
-  ,fPatternMinCol(cluster.fPatternMinCol)
+    ,
+    mPatternNRows(cluster.mPatternNRows),
+    mPatternNCols(cluster.mPatternNCols),
+    mPatternMinRow(cluster.mPatternMinRow),
+    mPatternMinCol(cluster.mPatternMinCol)
 #endif
 {
-  fTracks[0]=cluster.fTracks[0];
-  fTracks[1]=cluster.fTracks[1];
-  fTracks[2]=cluster.fTracks[2];
-  // copy constructor
+// copy constructor
 #ifdef _ClusterTopology_
-  memcpy(fPattern,cluster.fPattern,kMaxPatternBytes*sizeof(UChar_t));
+  memcpy(mPattern, cluster.mPattern, kMaxPatternBytes * sizeof(UChar_t));
 #endif
 }
 
 //______________________________________________________________________________
-const TGeoHMatrix*  Cluster::GetTracking2LocalMatrix() const
+const TGeoHMatrix* Cluster::getTracking2LocalMatrix() const
 {
   // get tracking to local matrix (sensor!!!)
-  return (TGeoHMatrix*)fgGeom->getMatrixT2L(GetVolumeId());
+  return (TGeoHMatrix*)sGeom->getMatrixT2L(getVolumeId());
 }
 
 //______________________________________________________________________________
-TGeoHMatrix* Cluster::GetMatrix(Bool_t ) const
+TGeoHMatrix* Cluster::getMatrix(Bool_t) const
 {
   // get chip matrix (sensor!)
-  return (TGeoHMatrix*)fgGeom->getMatrixSensor(GetVolumeId());
+  return (TGeoHMatrix*)sGeom->getMatrixSensor(getVolumeId());
 }
 
 //______________________________________________________________________________
-void Cluster::Print(Option_t* option) const
+void Cluster::print(Option_t* option) const
 {
   // Print cluster information.
-  TString str = option; 
+  TString str = option;
   str.ToLower();
-  printf("Cl.in mod %5d, nx:%3d nz:%3d n:%d |Err^2:%.3e %.3e %+.3e |",GetVolumeId(),GetNx(),GetNz(),
-	 GetNPix(),GetSigmaY2(),GetSigmaZ2(),GetSigmaYZ());
-  printf("XYZ: (%+.4e %+.4e %+.4e ",GetX(),GetY(),GetZ());
-  if      (IsFrameLoc()) printf("LOC)");
-  else if (IsFrameGlo()) printf("GLO)");
-  else if (IsFrameTrk()) printf("TRK)");
-  if (str.Contains("glo") && !IsFrameGlo() && fgGeom) {
+  printf("Cl.in mod %5d, nx:%3d nz:%3d n:%d |Err^2:%.3e %.3e %+.3e |", getVolumeId(), getNx(), getNz(), getNPix(),
+         getSigmaY2(), getSigmaZ2(), getSigmaYZ());
+  printf("XYZ: (%+.4e %+.4e %+.4e ", getX(), getY(), getZ());
+  if (isFrameLoc())
+    printf("LOC)");
+  else if (isFrameGlo())
+    printf("GLO)");
+  else if (isFrameTrk())
+    printf("TRK)");
+  if (str.Contains("glo") && !isFrameGlo() && sGeom) {
     Float_t g[3];
-    GetGlobalXYZ(g);
-    printf(" (%+.4e %+.4e %+.4e GLO)",g[0],g[1],g[2]);
+    getGlobalXYZ(g);
+    printf(" (%+.4e %+.4e %+.4e GLO)", g[0], g[1], g[2]);
   }
   printf(" MClb:");
-  for (int i=0;i<3;i++) printf(" %5d",GetLabel(i));
-  if (TestBit(kSplit)) printf(" Spl");
+  for (int i = 0; i < 3; i++)
+    printf(" %5d", getLabel(i));
+  if (TestBit(kSplit))
+    printf(" Spl");
   printf("\n");
-  //
+//
 #ifdef _ClusterTopology_
   if (str.Contains("p")) { // print pattern
-    int nr = GetPatternRowSpan();
-    int nc = GetPatternColSpan();    
-    printf("Pattern: %d rows from %d",nr,fPatternMinRow);
-    if (IsPatternRowsTruncated()) printf("(truncated)");
-    printf(", %d columns from %d",nc,fPatternMinCol);
-    if (IsPatternColsTruncated()) printf("(truncated)");
+    int nr = getPatternRowSpan();
+    int nc = getPatternColSpan();
+    printf("Pattern: %d rows from %d", nr, mPatternMinRow);
+    if (isPatternRowsTruncated())
+      printf("(truncated)");
+    printf(", %d columns from %d", nc, mPatternMinCol);
+    if (isPatternColsTruncated())
+      printf("(truncated)");
     printf("\n");
-    for (int ir=0;ir<nr;ir++) {
-      for (int ic=0;ic<nc;ic++) printf("%c",TestPixel(ir,ic) ? '+':'-');
+    for (int ir = 0; ir < nr; ir++) {
+      for (int ic = 0; ic < nc; ic++)
+        printf("%c", testPixel(ir, ic) ? '+' : '-');
       printf("\n");
     }
   }
@@ -133,90 +143,102 @@ void Cluster::Print(Option_t* option) const
 
 #ifdef _ClusterTopology_
 //______________________________________________________________________________
-void Cluster::ResetPattern()
+void Cluster::resetPattern()
 {
   // reset pixels pattern
-  memset(fPattern,0,kMaxPatternBytes*sizeof(UChar_t));
+  memset(mPattern, 0, kMaxPatternBytes * sizeof(UChar_t));
 }
 
 //______________________________________________________________________________
-Bool_t Cluster::TestPixel(UShort_t row,UShort_t col) const
+Bool_t Cluster::testPixel(UShort_t row, UShort_t col) const
 {
   // test if pixel at relative row,col is fired
-  int nbits = row*GetPatternColSpan()+col;
-  if (nbits>=kMaxPatternBits) return kFALSE;
-  int bytn = nbits>>3; // 1/8  
-  int bitn = nbits%8;
-  return (fPattern[bytn]&(0x1<<bitn))!=0;
+  int nbits = row * getPatternColSpan() + col;
+  if (nbits >= kMaxPatternBits)
+    return kFALSE;
+  int bytn = nbits >> 3; // 1/8
+  int bitn = nbits % 8;
+  return (mPattern[bytn] & (0x1 << bitn)) != 0;
   //
 }
 
 //______________________________________________________________________________
-void Cluster::SetPixel(UShort_t row,UShort_t col, Bool_t fired) 
+void Cluster::setPixel(UShort_t row, UShort_t col, Bool_t fired)
 {
   // test if pixel at relative row,col is fired
-  int nbits = row*GetPatternColSpan()+col;
-  if (nbits>=kMaxPatternBits) return;
-  int bytn = nbits>>3; // 1/8  
-  int bitn = nbits%8;
-  if (nbits>=kMaxPatternBits) exit(1);
-  if (fired) fPattern[bytn] |= (0x1<<bitn);
-  else       fPattern[bytn] &= (0xff ^ (0x1<<bitn));
+  int nbits = row * getPatternColSpan() + col;
+  if (nbits >= kMaxPatternBits)
+    return;
+  int bytn = nbits >> 3; // 1/8
+  int bitn = nbits % 8;
+  if (nbits >= kMaxPatternBits)
+    exit(1);
+  if (fired)
+    mPattern[bytn] |= (0x1 << bitn);
+  else
+    mPattern[bytn] &= (0xff ^ (0x1 << bitn));
   //
 }
 
 //______________________________________________________________________________
-void Cluster::SetPatternRowSpan(UShort_t nr, Bool_t truncated)
+void Cluster::setPatternRowSpan(UShort_t nr, Bool_t truncated)
 {
   // set pattern span in rows, flag if truncated
-  fPatternNRows = kSpanMask&nr;
-  if (truncated) fPatternNRows |= kTruncateMask; 
+  mPatternNRows = kSpanMask & nr;
+  if (truncated)
+    mPatternNRows |= kTruncateMask;
 }
 
 //______________________________________________________________________________
-void Cluster::SetPatternColSpan(UShort_t nc, Bool_t truncated)
+void Cluster::setPatternColSpan(UShort_t nc, Bool_t truncated)
 {
   // set pattern span in columns, flag if truncated
-  fPatternNCols = kSpanMask&nc;
-  if (truncated) fPatternNCols |= kTruncateMask; 
+  mPatternNCols = kSpanMask & nc;
+  if (truncated)
+    mPatternNCols |= kTruncateMask;
 }
 
 #endif
 
 //______________________________________________________________________________
-Bool_t Cluster::GetGlobalXYZ(Float_t xyz[3]) const
+Bool_t Cluster::getGlobalXYZ(Float_t xyz[3]) const
 {
   // Get the global coordinates of the cluster
   // All the needed information is taken only
   // from TGeo (single precision).
-  if (IsFrameGlo()) {
-    xyz[0] = GetX();
-    xyz[1] = GetY();
-    xyz[2] = GetZ();
+  if (isFrameGlo()) {
+    xyz[0] = getX();
+    xyz[1] = getY();
+    xyz[2] = getZ();
     return kTRUE;
   }
   //
-  Double_t lxyz[3] = {0, 0, 0};
-  if (IsFrameTrk()) {
-    const TGeoHMatrix *mt = GetTracking2LocalMatrix();
-    if (!mt) return kFALSE;
-    Double_t txyz[3] = {GetX(), GetY(), GetZ()};
-    mt->LocalToMaster(txyz,lxyz);
-  }
-  else {
-    lxyz[0] = GetX(); lxyz[1] = GetY(); lxyz[2] = GetZ();
+  Double_t lxyz[3] = { 0, 0, 0 };
+  if (isFrameTrk()) {
+    const TGeoHMatrix* mt = getTracking2LocalMatrix();
+    if (!mt)
+      return kFALSE;
+    Double_t txyz[3] = { getX(), getY(), getZ() };
+    mt->LocalToMaster(txyz, lxyz);
+  } else {
+    lxyz[0] = getX();
+    lxyz[1] = getY();
+    lxyz[2] = getZ();
   }
   //
-  TGeoHMatrix *ml = GetMatrix();
-  if (!ml) return kFALSE;
-  Double_t gxyz[3] = {0, 0, 0};
-  ml->LocalToMaster(lxyz,gxyz);
-  xyz[0] = gxyz[0]; xyz[1] = gxyz[1]; xyz[2] = gxyz[2];
+  TGeoHMatrix* ml = getMatrix();
+  if (!ml)
+    return kFALSE;
+  Double_t gxyz[3] = { 0, 0, 0 };
+  ml->LocalToMaster(lxyz, gxyz);
+  xyz[0] = gxyz[0];
+  xyz[1] = gxyz[1];
+  xyz[2] = gxyz[2];
   return kTRUE;
 }
 
 //______________________________________________________________________________
-Bool_t Cluster::GetGlobalCov(Float_t cov[6]) const
+Bool_t Cluster::getGlobalCov(Float_t cov[6]) const
 {
   // Get the global covariance matrix of the cluster coordinates
   // All the needed information is taken only
@@ -224,38 +246,45 @@ Bool_t Cluster::GetGlobalCov(Float_t cov[6]) const
   // Note: regardless on in which frame the coordinates are, the errors are always in tracking frame
   //
 
-  const TGeoHMatrix *mt = GetTracking2LocalMatrix();
-  if (!mt) return kFALSE;
+  const TGeoHMatrix* mt = getTracking2LocalMatrix();
+  if (!mt)
+    return kFALSE;
 
-  TGeoHMatrix *ml = GetMatrix();
-  if (!ml) return kFALSE;
+  TGeoHMatrix* ml = getMatrix();
+  if (!ml)
+    return kFALSE;
 
   TGeoHMatrix m;
-  Double_t tcov[9] = { 0, 0, 0, 0, fSigmaY2, fSigmaYZ, 0, fSigmaYZ, fSigmaZ2 };
+  Double_t tcov[9] = { 0, 0, 0, 0, mSigmaY2, mSigmaYZ, 0, mSigmaYZ, mSigmaZ2 };
   m.SetRotation(tcov);
   m.Multiply(&mt->Inverse());
   m.Multiply(&ml->Inverse());
   m.MultiplyLeft(mt);
   m.MultiplyLeft(ml);
-  Double_t *ncov = m.GetRotationMatrix();
-  cov[0] = ncov[0]; cov[1] = ncov[1]; cov[2] = ncov[2];
-  cov[3] = ncov[4]; cov[4] = ncov[5];
+  Double_t* ncov = m.GetRotationMatrix();
+  cov[0] = ncov[0];
+  cov[1] = ncov[1];
+  cov[2] = ncov[2];
+  cov[3] = ncov[4];
+  cov[4] = ncov[5];
   cov[5] = ncov[8];
 
   return kTRUE;
 }
 
 //______________________________________________________________________________
-Bool_t Cluster::GetXRefPlane(Float_t &xref) const
+Bool_t Cluster::getXRefPlane(Float_t& xref) const
 {
   // Get the distance between the origin and the ref.plane.
   // All the needed information is taken only from TGeo.
 
-  const TGeoHMatrix *mt = GetTracking2LocalMatrix();
-  if (!mt) return kFALSE;
+  const TGeoHMatrix* mt = getTracking2LocalMatrix();
+  if (!mt)
+    return kFALSE;
 
-  TGeoHMatrix *ml = GetMatrix();
-  if (!ml) return kFALSE;
+  TGeoHMatrix* ml = getMatrix();
+  if (!ml)
+    return kFALSE;
 
   TGeoHMatrix m = *mt;
   m.MultiplyLeft(ml);
@@ -265,189 +294,216 @@ Bool_t Cluster::GetXRefPlane(Float_t &xref) const
 }
 
 //______________________________________________________________________________
-void Cluster::GoToFrameGlo()
+void Cluster::goToFrameGlo()
 {
   // convert to global frame
-  if (IsFrameGlo()) return;
-  double loc[3],glo[3];
+  if (isFrameGlo())
+    return;
+  double loc[3], glo[3];
   //
-  if (IsFrameTrk()) {
-    double curr[3]={GetX(),GetY(),GetZ()};
-    GetTracking2LocalMatrix()->LocalToMaster(curr,loc);
+  if (isFrameTrk()) {
+    double curr[3] = { getX(), getY(), getZ() };
+    getTracking2LocalMatrix()->LocalToMaster(curr, loc);
     ResetBit(kFrameTrk);
-  }
-  else {
-    loc[0] = GetX(); loc[1] = GetY(); loc[2] = GetZ();
+  } else {
+    loc[0] = getX();
+    loc[1] = getY();
+    loc[2] = getZ();
     ResetBit(kFrameLoc);
   }
-  GetMatrix()->LocalToMaster(loc,glo);
-  SetX(glo[0]);  
-  SetY(glo[1]); 
-  SetZ(glo[2]);
+  getMatrix()->LocalToMaster(loc, glo);
+  setX(glo[0]);
+  setY(glo[1]);
+  setZ(glo[2]);
   SetBit(kFrameGlo);
   //
 }
 
 //______________________________________________________________________________
-void Cluster::GoToFrameLoc()
+void Cluster::goToFrameLoc()
 {
   // convert to local frame
-  if (IsFrameLoc()) return;
+  if (isFrameLoc())
+    return;
   //
-  double loc[3],glo[3];
-  if (IsFrameTrk()) {
-    double curr[3]={GetX(),GetY(),GetZ()};
-    GetTracking2LocalMatrix()->LocalToMaster(curr,loc);
+  double loc[3], glo[3];
+  if (isFrameTrk()) {
+    double curr[3] = { getX(), getY(), getZ() };
+    getTracking2LocalMatrix()->LocalToMaster(curr, loc);
     ResetBit(kFrameTrk);
-  }
-  else {
-    glo[0] = GetX(); glo[1] = GetY(); glo[2] = GetZ();
-    GetMatrix()->MasterToLocal(glo,loc);
+  } else {
+    glo[0] = getX();
+    glo[1] = getY();
+    glo[2] = getZ();
+    getMatrix()->MasterToLocal(glo, loc);
     ResetBit(kFrameLoc);
   }
   SetBit(kFrameLoc);
-  SetX(loc[0]); 
-  SetY(loc[1]); 
-  SetZ(loc[2]);
+  setX(loc[0]);
+  setY(loc[1]);
+  setZ(loc[2]);
   //
 }
 
 //______________________________________________________________________________
-void Cluster::GetLocalXYZ(Float_t xyz[3]) const
+void Cluster::getLocalXYZ(Float_t xyz[3]) const
 {
   // get local coordinates
-  if (IsFrameLoc()) {
-    xyz[0] = GetX(); xyz[1] = 0; xyz[2] = GetZ();
+  if (isFrameLoc()) {
+    xyz[0] = getX();
+    xyz[1] = 0;
+    xyz[2] = getZ();
     return;
   }
-  double loc[3],glo[3];
-  if (IsFrameTrk()) {
-    double curr[3]={GetX(),GetY(),GetZ()};
-    GetTracking2LocalMatrix()->LocalToMaster(curr,loc);
+  double loc[3], glo[3];
+  if (isFrameTrk()) {
+    double curr[3] = { getX(), getY(), getZ() };
+    getTracking2LocalMatrix()->LocalToMaster(curr, loc);
+  } else {
+    glo[0] = getX();
+    glo[1] = getY();
+    glo[2] = getZ();
+    getMatrix()->MasterToLocal(glo, loc);
   }
-  else {
-    glo[0] = GetX(); glo[1] = GetY(); glo[2] = GetZ();
-    GetMatrix()->MasterToLocal(glo,loc);
-  }
-  for (int i=3;i--;) xyz[i] = loc[i];
+  for (int i = 3; i--;)
+    xyz[i] = loc[i];
   //
 }
 
 //______________________________________________________________________________
-void Cluster::GoToFrameTrk()
+void Cluster::goToFrameTrk()
 {
   // convert to tracking frame
-  if (IsFrameTrk()) return;
+  if (isFrameTrk())
+    return;
   //
-  double loc[3],trk[3];
-  if (IsFrameGlo()) {
-    double glo[3]={GetX(),GetY(),GetZ()};
-    GetMatrix()->MasterToLocal(glo,loc);
+  double loc[3], trk[3];
+  if (isFrameGlo()) {
+    double glo[3] = { getX(), getY(), getZ() };
+    getMatrix()->MasterToLocal(glo, loc);
     ResetBit(kFrameGlo);
-  }
-  else {
-    loc[0] = GetX(); loc[1] = GetY(); loc[2] = GetZ();
-    ResetBit(kFrameLoc);    
+  } else {
+    loc[0] = getX();
+    loc[1] = getY();
+    loc[2] = getZ();
+    ResetBit(kFrameLoc);
   }
   // now in local frame
-  GetTracking2LocalMatrix()->MasterToLocal(loc,trk);
+  getTracking2LocalMatrix()->MasterToLocal(loc, trk);
   SetBit(kFrameTrk);
-  SetX(trk[0]);  
-  SetY(trk[1]); 
-  SetZ(trk[2]);
+  setX(trk[0]);
+  setY(trk[1]);
+  setZ(trk[2]);
   //
 }
 
 //______________________________________________________________________________
-void Cluster::GetTrackingXYZ(Float_t xyz[3]) const
+void Cluster::getTrackingXYZ(Float_t xyz[3]) const
 {
   // convert to tracking frame
-  if (IsFrameTrk()) {
-    xyz[0] = GetX(); xyz[1] = GetY(); xyz[2] = GetZ();
+  if (isFrameTrk()) {
+    xyz[0] = getX();
+    xyz[1] = getY();
+    xyz[2] = getZ();
     return;
   }
   //
-  double loc[3],trk[3];
-  if (IsFrameGlo()) {
-    double glo[3]={GetX(),GetY(),GetZ()};
-    GetMatrix()->MasterToLocal(glo,loc);
-  }
-  else {
-    loc[0] = GetX(); loc[1] = GetY(); loc[2] = GetZ();
+  double loc[3], trk[3];
+  if (isFrameGlo()) {
+    double glo[3] = { getX(), getY(), getZ() };
+    getMatrix()->MasterToLocal(glo, loc);
+  } else {
+    loc[0] = getX();
+    loc[1] = getY();
+    loc[2] = getZ();
   }
   // now in local frame
-  GetTracking2LocalMatrix()->MasterToLocal(loc,trk);
-  for (int i=3;i--;) xyz[i] = trk[i];
+  getTracking2LocalMatrix()->MasterToLocal(loc, trk);
+  for (int i = 3; i--;)
+    xyz[i] = trk[i];
   //
 }
 
 //______________________________________________________________________________
-Int_t Cluster::Compare(const TObject* obj)  const
+Int_t Cluster::Compare(const TObject* obj) const
 {
   // compare clusters accodring to specific mode
   const Cluster* px = (const Cluster*)obj;
-  float xyz[3],xyz1[3];
-  if (fgMode & kSortIdLocXZ) { // sorting in local frame
-    if (GetVolumeId()==px->GetVolumeId()) {
-      GetLocalXYZ(xyz);
-      px->GetLocalXYZ(xyz1);
-      if (xyz[0]<xyz1[0]) return -1; // sort in X
-      if (xyz[0]>xyz1[0]) return  1;
-      if (xyz[2]<xyz1[2]) return -1; // then in Z
-      if (xyz[2]>xyz1[2]) return  1;
+  float xyz[3], xyz1[3];
+  if (sMode & kSortIdLocXZ) { // sorting in local frame
+    if (getVolumeId() == px->getVolumeId()) {
+      getLocalXYZ(xyz);
+      px->getLocalXYZ(xyz1);
+      if (xyz[0] < xyz1[0])
+        return -1; // sort in X
+      if (xyz[0] > xyz1[0])
+        return 1;
+      if (xyz[2] < xyz1[2])
+        return -1; // then in Z
+      if (xyz[2] > xyz1[2])
+        return 1;
       return 0;
     }
-    return int(GetVolumeId())-int(px->GetVolumeId());
+    return int(getVolumeId()) - int(px->getVolumeId());
   }
-  if (fgMode & kSortIdTrkYZ) { // sorting in tracking frame
-    if (GetVolumeId()==px->GetVolumeId()) {
-      GetTrackingXYZ(xyz);
-      px->GetTrackingXYZ(xyz1);
-      if (xyz[1]<xyz1[1]) return -1; // sort in Y
-      if (xyz[1]>xyz1[1]) return  1;
-      if (xyz[2]<xyz1[2]) return -1; // then in Z
-      if (xyz[2]>xyz1[2]) return  1;
-      return 0;    
+  if (sMode & kSortIdTrkYZ) { // sorting in tracking frame
+    if (getVolumeId() == px->getVolumeId()) {
+      getTrackingXYZ(xyz);
+      px->getTrackingXYZ(xyz1);
+      if (xyz[1] < xyz1[1])
+        return -1; // sort in Y
+      if (xyz[1] > xyz1[1])
+        return 1;
+      if (xyz[2] < xyz1[2])
+        return -1; // then in Z
+      if (xyz[2] > xyz1[2])
+        return 1;
+      return 0;
     }
-    return int(GetVolumeId())-int(px->GetVolumeId());    
+    return int(getVolumeId()) - int(px->getVolumeId());
   }
-  LOG(FATAL)<<"Unknown mode for sorting: "<<fgMode<<FairLogger::endl;
+  LOG(FATAL) << "Unknown mode for sorting: " << sMode << FairLogger::endl;
   return 0;
 }
 
 //______________________________________________________________________________
-Bool_t Cluster::IsEqual(const TObject* obj)  const
+Bool_t Cluster::isEqual(const TObject* obj) const
 {
   // compare clusters accodring to specific mode
   const Cluster* px = (const Cluster*)obj;
   const Float_t kTol = 1e-5;
-  float xyz[3],xyz1[3];
-  if (fgMode & kSortIdLocXZ) { // sorting in local frame
-    if (GetVolumeId()!=px->GetVolumeId()) return kFALSE;
-    GetLocalXYZ(xyz);
-    px->GetLocalXYZ(xyz1);
-    return (Abs(xyz[0]-xyz1[0])<kTol && Abs(xyz[2]-xyz1[2])<kTol) ? kTRUE : kFALSE;
+  float xyz[3], xyz1[3];
+  if (sMode & kSortIdLocXZ) { // sorting in local frame
+    if (getVolumeId() != px->getVolumeId())
+      return kFALSE;
+    getLocalXYZ(xyz);
+    px->getLocalXYZ(xyz1);
+    return (Abs(xyz[0] - xyz1[0]) < kTol && Abs(xyz[2] - xyz1[2]) < kTol) ? kTRUE : kFALSE;
   }
-  if (fgMode & kSortIdTrkYZ) { // sorting in tracking frame
-    if (GetVolumeId()!=px->GetVolumeId()) return kFALSE;
-    GetTrackingXYZ(xyz);
-    px->GetTrackingXYZ(xyz1);
-    return (Abs(xyz[1]-xyz1[1])<kTol && Abs(xyz[2]-xyz1[2])<kTol) ? kTRUE : kFALSE;
+  if (sMode & kSortIdTrkYZ) { // sorting in tracking frame
+    if (getVolumeId() != px->getVolumeId())
+      return kFALSE;
+    getTrackingXYZ(xyz);
+    px->getTrackingXYZ(xyz1);
+    return (Abs(xyz[1] - xyz1[1]) < kTol && Abs(xyz[2] - xyz1[2]) < kTol) ? kTRUE : kFALSE;
   }
-  LOG(FATAL)<<"Unknown mode for sorting: "<<fgMode<<FairLogger::endl;
+  LOG(FATAL) << "Unknown mode for sorting: " << sMode << FairLogger::endl;
   return kFALSE;
 }
 
 //______________________________________________________________________________
-Bool_t Cluster::HasCommonTrack(const Cluster* cl) const
+Bool_t Cluster::hasCommonTrack(const Cluster* cl) const
 {
   // check if clusters have common tracks
-  int lbi,lbj;
-  for (int i=0;i<3;i++) {
-    if ((lbi=GetLabel(i))<0) break;
-    for (int j=0;j<3;j++) {
-      if ((lbj=cl->GetLabel(j))<0) break;
-      if (lbi==lbj) return kTRUE;
+  int lbi, lbj;
+  for (int i = 0; i < 3; i++) {
+    if ((lbi = getLabel(i)) < 0)
+      break;
+    for (int j = 0; j < 3; j++) {
+      if ((lbj = cl->getLabel(j)) < 0)
+        break;
+      if (lbi == lbj)
+        return kTRUE;
     }
   }
   return kFALSE;
