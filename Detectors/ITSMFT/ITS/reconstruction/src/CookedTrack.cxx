@@ -1,147 +1,126 @@
-//-------------------------------------------------------------------------
-//               Implementation of the ITSU track class
-//             based on the "cooked covariance" approach
-//-------------------------------------------------------------------------
-#include "AliITSUTrackCooked.h"
-#include "AliCluster.h"
-#include "AliESDtrack.h"
+/// \file CookedTrack.cxx
+/// \brief Implementation of the ITS cooked track
+/// \author iouri.belikov@cern.ch
 
-ClassImp(AliITSUTrackCooked)
+#include "ITSReconstruction/CookedTrack.h"
+#include "ITSReconstruction/Cluster.h"
 
-AliITSUTrackCooked::AliITSUTrackCooked(): 
-AliKalmanTrack()
+ClassImp(AliceO2::ITS::CookedTrack)
+
+  using namespace AliceO2::ITS;
+
+CookedTrack::CookedTrack() : TrackParCov(), mMass(0.14), mChi2(-1.)
 {
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
   //--------------------------------------------------------------------
-    for (Int_t i=0; i<2*AliITSUTrackerCooked::kNLayers; i++) {
-        fIndex[i]=0;
-    }
 }
 
-AliITSUTrackCooked::AliITSUTrackCooked(const AliITSUTrackCooked &t):
-AliKalmanTrack(t)
+CookedTrack::CookedTrack(float x,float alpha, const float *par, const float *cov) : TrackParCov(x,alpha,par,cov), mMass(0.14), mChi2(-1.)
 {
-    //--------------------------------------------------------------------
-    // Copy constructor
-    //--------------------------------------------------------------------
-    for (Int_t i=0; i<2*AliITSUTrackerCooked::kNLayers; i++) {
-        fIndex[i]=t.fIndex[i];
-    }
+  //--------------------------------------------------------------------
+  // Main constructor
+  //--------------------------------------------------------------------
 }
 
-AliITSUTrackCooked::AliITSUTrackCooked(const AliESDtrack &t):
-AliKalmanTrack()
+CookedTrack::CookedTrack(const CookedTrack& t) : TrackParCov(t), mMass(t.mMass), mChi2(t.mChi2), mIndex(t.mIndex)
 {
-    //--------------------------------------------------------------------
-    // Constructior from an ESD track
-    //--------------------------------------------------------------------
-    Set(t.GetX(), t.GetAlpha(), t.GetParameter(), t.GetCovariance());
-    SetLabel(t.GetITSLabel());
-    SetChi2(t.GetITSchi2());
-    SetNumberOfClusters(t.GetITSclusters(fIndex));
+  //--------------------------------------------------------------------
+  // Copy constructor
+  //--------------------------------------------------------------------
 }
 
-AliITSUTrackCooked &AliITSUTrackCooked::operator=(const AliITSUTrackCooked &o){
-    if (this != &o) {
-       AliKalmanTrack::operator=(o);
-       for (Int_t i=0; i<2*AliITSUTrackerCooked::kNLayers; i++)
-           fIndex[i]=o.fIndex[i];
-    }
-    return *this;
-}
-
-AliITSUTrackCooked::~AliITSUTrackCooked()
+CookedTrack::~CookedTrack()
 {
   //--------------------------------------------------------------------
   // Virtual destructor
   //--------------------------------------------------------------------
 }
 
-Int_t AliITSUTrackCooked::Compare(const TObject *o) const {
+Int_t CookedTrack::compare(const CookedTrack* o) const
+{
   //-----------------------------------------------------------------
   // This function compares tracks according to the their curvature
   //-----------------------------------------------------------------
-  const AliITSUTrackCooked *t=(const AliITSUTrackCooked*)o;
-  Double_t co=TMath::Abs(t->OneOverPt());
-  Double_t c =TMath::Abs(OneOverPt());
-  //Double_t co=t->GetSigmaY2()*t->GetSigmaZ2();
-  //Double_t c =GetSigmaY2()*GetSigmaZ2();
-  if (c>co) return 1;
-  else if (c<co) return -1;
+  Double_t co = TMath::Abs(o->GetPt());
+  Double_t c = TMath::Abs(GetPt());
+  // Double_t co=t->GetSigmaY2()*t->GetSigmaZ2();
+  // Double_t c =GetSigmaY2()*GetSigmaZ2();
+  if (c > co)
+    return -1;
+  else if (c < co)
+    return 1;
   return 0;
 }
 
-void AliITSUTrackCooked::ResetClusters() {
+void CookedTrack::resetClusters()
+{
   //------------------------------------------------------------------
   // Reset the array of attached clusters.
   //------------------------------------------------------------------
-  for (Int_t i=0; i<2*AliITSUTrackerCooked::kNLayers; i++) fIndex[i]=-1;
-  SetChi2(0.); 
-  SetNumberOfClusters(0);
-} 
-
-void AliITSUTrackCooked::SetClusterIndex(Int_t l, Int_t i)
-{
-    //--------------------------------------------------------------------
-    // Set the cluster index
-    //--------------------------------------------------------------------
-    Int_t idx = (l<<28) + i;
-    Int_t n=GetNumberOfClusters();
-    fIndex[n]=idx;
-    SetNumberOfClusters(n+1);
+  mChi2 = -1.;
+  mIndex.clear();
 }
 
-Double_t AliITSUTrackCooked::GetPredictedChi2(const AliCluster *c) const {
+void CookedTrack::setClusterIndex(Int_t l, Int_t i)
+{
+  //--------------------------------------------------------------------
+  // Set the cluster index
+  //--------------------------------------------------------------------
+  Int_t idx = (l << 28) + i;
+  mIndex.push_back(idx);
+}
+
+Double_t CookedTrack::getPredictedChi2(const Cluster* c) const
+{
   //-----------------------------------------------------------------
   // This function calculates a predicted chi2 increment.
   //-----------------------------------------------------------------
-  Double_t p[2]={c->GetY(), c->GetZ()};
-  Double_t cov[3]={c->GetSigmaY2(), 0., c->GetSigmaZ2()};
-  return AliExternalTrackParam::GetPredictedChi2(p,cov);
+  float p[2] = { c->getY(), c->getZ() };
+  float cov[3] = { c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
+  return TrackParCov::GetPredictedChi2(p, cov);
 }
 
-Bool_t AliITSUTrackCooked::PropagateTo(Double_t xk, Double_t t,Double_t x0rho) {
+Bool_t CookedTrack::propagateTo(Double_t xk, Double_t bz, Double_t t, Double_t x0rho)
+{
   //------------------------------------------------------------------
   // This function propagates a track
   // t is the material thicknes in units X/X0
   // x0rho is the material X0*density
   //------------------------------------------------------------------
-  Double_t xOverX0,xTimesRho; 
-  xOverX0 = t; xTimesRho = t*x0rho;
-  if (!CorrectForMeanMaterial(xOverX0,xTimesRho,GetMass(),kTRUE)) return kFALSE;
+  float xOverX0 = float(t), xTimesRho = float(t * x0rho), mass = float(mMass);
+  if (!CorrectForMaterial(xOverX0, xTimesRho, mass, kTRUE))
+    return kFALSE;
 
-  Double_t bz=GetBz();
-  if (!AliExternalTrackParam::PropagateTo(xk,bz)) return kFALSE;
-  //Double_t b[3]; GetBxByBz(b);
-  //if (!AliExternalTrackParam::PropagateToBxByBz(xk,b)) return kFALSE;
+  if (!TrackParCov::PropagateTo(float(xk), float(bz)))
+    return kFALSE;
 
   return kTRUE;
 }
 
-Bool_t AliITSUTrackCooked::Update(const AliCluster *c, Double_t chi2, Int_t idx)
+Bool_t CookedTrack::update(const Cluster* c, Double_t chi2, Int_t idx)
 {
   //--------------------------------------------------------------------
   // Update track params
   //--------------------------------------------------------------------
-  Double_t p[2]={c->GetY(), c->GetZ()};
-  Double_t cov[3]={c->GetSigmaY2(), c->GetSigmaYZ(), c->GetSigmaZ2()};
+  float p[2] = { c->getY(), c->getZ() };
+  float cov[3] = { c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
 
-  if (!AliExternalTrackParam::Update(p,cov)) return kFALSE;
+  if (!TrackParCov::Update(p, cov))
+    return kFALSE;
 
-  Int_t n=GetNumberOfClusters();
-  fIndex[n]=idx;
-  SetNumberOfClusters(n+1);
-  SetChi2(GetChi2()+chi2);
+  mChi2 += chi2;
+  mIndex.push_back(idx);
 
   return kTRUE;
 }
 
-Bool_t AliITSUTrackCooked::
-GetPhiZat(Double_t r, Double_t &phi, Double_t &z) const {
+/*
+Bool_t CookedTrack::getPhiZat(Double_t r, Double_t &phi, Double_t &z) const
+{
   //------------------------------------------------------------------
-  // This function returns the global cylindrical (phi,z) of the track 
-  // position estimated at the radius r. 
+  // This function returns the global cylindrical (phi,z) of the track
+  // position estimated at the radius r.
   // The track curvature is neglected.
   //------------------------------------------------------------------
   Double_t d=GetD(0., 0., GetBz());
@@ -152,7 +131,7 @@ GetPhiZat(Double_t r, Double_t &phi, Double_t &z) const {
 
   Double_t rcurr=TMath::Sqrt(GetX()*GetX() + GetY()*GetY());
   if (TMath::Abs(d) > rcurr) return kFALSE;
-  Double_t globXYZcurr[3]; GetXYZ(globXYZcurr); 
+  Double_t globXYZcurr[3]; GetXYZ(globXYZcurr);
   Double_t phicurr=TMath::ATan2(globXYZcurr[1],globXYZcurr[0]);
 
   if (GetX()>=0.) {
@@ -161,27 +140,27 @@ GetPhiZat(Double_t r, Double_t &phi, Double_t &z) const {
     phi=phicurr+TMath::ASin(d/r)+TMath::ASin(d/rcurr)-TMath::Pi();
   }
 
-  // return a phi in [0,2pi[ 
+  // return a phi in [0,2pi[
   if (phi<0.) phi+=2.*TMath::Pi();
   else if (phi>=2.*TMath::Pi()) phi-=2.*TMath::Pi();
   z=GetZ()+GetTgl()*(TMath::Sqrt((r-d)*(r+d))-TMath::Sqrt((rcurr-d)*(rcurr+d)));
 
   return kTRUE;
 }
+*/
 
-Bool_t
-AliITSUTrackCooked::IsBetter(const AliKalmanTrack *best, Double_t maxChi2)
-const {
-  Int_t ncl=GetNumberOfClusters();
-  Int_t nclb=best->GetNumberOfClusters();
+Bool_t CookedTrack::isBetter(const CookedTrack* best, Double_t maxChi2) const
+{
+  Int_t ncl = getNumberOfClusters();
+  Int_t nclb = best->getNumberOfClusters();
 
   if (ncl >= nclb) {
-     Double_t chi2=GetChi2();
-     if (chi2 < maxChi2) {
-        if (ncl > nclb || chi2 < best->GetChi2()) {
-	   return kTRUE;
-        }
-     }
+    Double_t chi2 = getChi2();
+    if (chi2 < maxChi2) {
+      if (ncl > nclb || chi2 < best->getChi2()) {
+        return kTRUE;
+      }
+    }
   }
   return kFALSE;
 }
