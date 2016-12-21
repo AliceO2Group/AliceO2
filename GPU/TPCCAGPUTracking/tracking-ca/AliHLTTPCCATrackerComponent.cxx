@@ -528,12 +528,13 @@ int AliHLTTPCCATrackerComponent::DoEvent
 
   //Prepare everything for all slices
 
+  int nClustersTotal = 0;
   for (int islice = 0;islice < fSliceCount;islice++)
   {
     int slice = fMinSlice + islice;
 
     // total n Hits
-    int nClustersTotal = 0;
+    int nClustersSliceTotal = 0;
 
     // sort patches
     const AliHLTTPCClusterXYZData *pcXYZ[fgkNPatches];
@@ -565,22 +566,27 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	continue;
       }
       pcN[i] = pcXYZ[i]->fCount;
-      nClustersTotal+=pcN[i];
+      nClustersSliceTotal+=pcN[i];
     }
+    nClustersTotal += nClustersSliceTotal;
 
     // pass event to CA Tracker
 
     Logging( kHLTLogDebug, "HLT::TPCCATracker::DoEvent", "Reading hits",
-      "Total %d hits to read for slice %d", nClustersTotal, slice );
+      "Total %d hits to read for slice %d", nClustersSliceTotal, slice );
 
-    if (nClustersTotal > 500000)
+    if (nClustersSliceTotal > 500000)
     {
-      HLTWarning( "Too many clusters in tracker input: Slice %d, Number of Clusters %d, slice not included in tracking", slice, nClustersTotal );
+      HLTWarning( "Too many clusters in tracker input: Slice %d, Number of Clusters %d, slice not included in tracking", slice, nClustersSliceTotal );
+      fClusterData[islice].StartReading( slice, 0 );
+    }
+    else if (nClustersSliceTotal == 0)
+    {
       fClusterData[islice].StartReading( slice, 0 );
     }
     else
     {
-      fClusterData[islice].StartReading( slice, nClustersTotal );
+      fClusterData[islice].StartReading( slice, nClustersSliceTotal );
       
       for( int patch=0; patch<fgkNPatches; patch++ ){
 
@@ -611,6 +617,13 @@ int AliHLTTPCCATrackerComponent::DoEvent
     }
   }
 
+  if (nClustersTotal == 0)
+  {
+    //No input, skip processing
+    fBenchmark.Stop(0);
+    return(0);
+  }
+  
   //Prepare Output
   AliHLTTPCCASliceOutput::outputControlStruct outputControl;
   outputControl.fEndOfSpace = 0;
