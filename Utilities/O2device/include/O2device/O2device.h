@@ -47,11 +47,10 @@ public:
     AliceO2::Header::Block headerBlock{std::move(incomingBlock)};
     FairMQMessagePtr dataMessage{std::move(incomingDataMessage)};
 
-    FairMQMessagePtr headerMessage =
-      fTransportFactory->CreateMessage(headerBlock.buffer.get(),
-                                       headerBlock.bufferSize,
-                                       &AliceO2::Header::Block::freefn,
-                                       headerBlock.buffer.get());
+    FairMQMessagePtr headerMessage = NewMessage(headerBlock.buffer.get(),
+                                                headerBlock.bufferSize,
+                                                &AliceO2::Header::Block::freefn,
+                                                headerBlock.buffer.get());
     headerBlock.buffer.release();
 
     parts.AddPart(std::move(headerMessage));
