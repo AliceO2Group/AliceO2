@@ -7,5 +7,6 @@
 #pragma link C++ class AliceO2::ITS::Cluster+;
 #pragma link C++ class AliceO2::ITS::Clusterer+;
 #pragma link C++ class AliceO2::ITS::ClustererTask+;
+#pragma link C++ class AliceO2::ITS::CookedTrack+;
 
 #endif
