@@ -41,6 +41,9 @@ const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionTracks  
 const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionConfig  ("CONFIG         ");
 const AliceO2::Header::DataDescription AliceO2::Header::gDataDescriptionInfo    ("INFO           ");
 
+//definitions for Block statics
+std::default_delete<byte[]> AliceO2::Header::Block::sDeleter;
+
 //storage for BaseHeader static members, all invalid
 const uint32_t AliceO2::Header::BaseHeader::sVersion = AliceO2::Header::gInvalidToken32;
 const AliceO2::Header::HeaderType AliceO2::Header::BaseHeader::sHeaderType = AliceO2::Header::gInvalidToken64;
