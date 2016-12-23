@@ -2,7 +2,6 @@
   #include <sstream>
 
   #include <TStopwatch.h>
-  #include <TGeoManager.h>
 
   #include "FairLogger.h"
   #include "FairRunAna.h"

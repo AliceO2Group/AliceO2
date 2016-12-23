@@ -3,7 +3,6 @@
   #include <TMath.h>
   #include <TString.h>
   #include <TStopwatch.h>
-  #include <TGeoManager.h>
 
   #include "FairRunSim.h"
   #include "FairRuntimeDb.h"
