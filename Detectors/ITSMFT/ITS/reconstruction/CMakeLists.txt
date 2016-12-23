@@ -6,11 +6,13 @@ set(SRCS
     src/Cluster.cxx
     src/ClustererTask.cxx
     src/CookedTrack.cxx
+    src/CookedTrackerTask.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Cluster.h
     include/${MODULE_NAME}/ClustererTask.h
     include/${MODULE_NAME}/CookedTrack.h
+    include/${MODULE_NAME}/CookedTrackerTask.h
     )
 set(NO_DICT_SRCS # sources not for the dictionary
     src/CAaux.cxx
