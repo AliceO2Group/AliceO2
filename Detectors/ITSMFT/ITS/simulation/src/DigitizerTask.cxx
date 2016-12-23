@@ -26,6 +26,7 @@ DigitizerTask::DigitizerTask(Bool_t useAlpide)
 DigitizerTask::~DigitizerTask()
 {
   if (mDigitsArray) {
+    mDigitsArray->Delete();
     delete mDigitsArray;
   }
 }
