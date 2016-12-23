@@ -5,7 +5,6 @@
 
 #include "ITSBase/GeometryTGeo.h"
 #include "Rtypes.h"  // for Clusterer::Class, Double_t, ClassDef, etc
-#include "TObject.h" // for TObject
 
 class TClonesArray;
 
@@ -13,7 +12,7 @@ namespace AliceO2
 {
 namespace ITS
 {
-class Clusterer : public TObject
+  class Clusterer
 {
  public:
   Clusterer();
@@ -32,7 +31,6 @@ class Clusterer : public TObject
 
   GeometryTGeo mGeometry; ///< ITS geometry
 
-  ClassDef(Clusterer, 2);
 };
 }
 }

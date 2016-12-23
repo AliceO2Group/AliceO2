@@ -8,8 +8,6 @@
 #include "FairLogger.h"   // for LOG
 #include "TClonesArray.h" // for TClonesArray
 
-ClassImp(AliceO2::ITS::Clusterer)
-
   using namespace AliceO2::ITS;
 
 Clusterer::Clusterer() {}
