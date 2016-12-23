@@ -2,9 +2,6 @@
 /// \brief Implementation of the ITS cluster finder task
 
 #include "ITSReconstruction/ClustererTask.h"
-#include "ITSBase/Digit.h"
-#include "ITSBase/SegmentationPixel.h"
-#include "ITSReconstruction/Cluster.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
@@ -20,8 +17,10 @@ ClustererTask::ClustererTask() : FairTask("ITSClustererTask"), mDigitsArray(null
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  if (mClustersArray)
+  if (mClustersArray) {
+    mClustersArray->Delete();
     delete mClustersArray;
+  }
 }
 
 //_____________________________________________________________________
