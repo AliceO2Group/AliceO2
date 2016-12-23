@@ -3,19 +3,18 @@
 
 #include "ITSReconstruction/Cluster.h"
 #include "FairLogger.h"
-#include "ITSBase/GeometryTGeo.h"
 
 #include <TGeoMatrix.h>
+#include <TMath.h>
 #include <TString.h>
 
 #include <cstdlib>
 
-using namespace TMath;
 using namespace AliceO2::ITS;
 
 ClassImp(AliceO2::ITS::Cluster)
 
-  GeometryTGeo* Cluster::sGeom = 0;
+GeometryTGeo* Cluster::sGeom = 0;
 UInt_t Cluster::sMode = 0;
 
 //_____________________________________________________
@@ -293,6 +292,38 @@ Bool_t Cluster::getXRefPlane(Float_t& xref) const
   return kTRUE;
 }
 
+Bool_t Cluster::getXAlphaRefPlane(Float_t& x, Float_t& alpha) const
+{
+  // Get the distance between the origin and the ref. plane together with
+  // the rotation anlge of the ref. plane.
+  // All the needed information is taken only
+  // from TGeo.
+  const TGeoHMatrix* mt = getTracking2LocalMatrix();
+  if (!mt)
+    return kFALSE;
+
+  const TGeoHMatrix* ml = getMatrix();
+  if (!ml)
+    return kFALSE;
+
+  TGeoHMatrix m(*ml);
+  m.Multiply(mt);
+  const Double_t txyz[3] = { 0. };
+  Double_t xyz[3] = { 0. };
+  m.LocalToMaster(txyz, xyz);
+
+  x = TMath::Sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1]);
+
+  Double_t a = TMath::ATan2(xyz[1], xyz[0]);
+  if (a < 0)
+    a += TMath::TwoPi();
+  else if (a >= TMath::TwoPi())
+    a -= TMath::TwoPi();
+  alpha = a;
+
+  return kTRUE;
+}
+
 //______________________________________________________________________________
 void Cluster::goToFrameGlo()
 {
@@ -478,14 +509,14 @@ Bool_t Cluster::isEqual(const TObject* obj) const
       return kFALSE;
     getLocalXYZ(xyz);
     px->getLocalXYZ(xyz1);
-    return (Abs(xyz[0] - xyz1[0]) < kTol && Abs(xyz[2] - xyz1[2]) < kTol) ? kTRUE : kFALSE;
+    return (TMath::Abs(xyz[0] - xyz1[0]) < kTol && TMath::Abs(xyz[2] - xyz1[2]) < kTol) ? kTRUE : kFALSE;
   }
   if (sMode & kSortIdTrkYZ) { // sorting in tracking frame
     if (getVolumeId() != px->getVolumeId())
       return kFALSE;
     getTrackingXYZ(xyz);
     px->getTrackingXYZ(xyz1);
-    return (Abs(xyz[1] - xyz1[1]) < kTol && Abs(xyz[2] - xyz1[2]) < kTol) ? kTRUE : kFALSE;
+    return (TMath::Abs(xyz[1] - xyz1[1]) < kTol && TMath::Abs(xyz[2] - xyz1[2]) < kTol) ? kTRUE : kFALSE;
   }
   LOG(FATAL) << "Unknown mode for sorting: " << sMode << FairLogger::endl;
   return kFALSE;

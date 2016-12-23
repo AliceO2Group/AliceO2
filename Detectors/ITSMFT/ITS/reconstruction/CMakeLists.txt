@@ -18,11 +18,13 @@ set(NO_DICT_SRCS # sources not for the dictionary
     src/CAaux.cxx
     src/CATracker.cxx
     src/CATrackingStation.cxx
+    src/CookedTracker.cxx
     )
 set(NO_DICT_HEADERS # sources not for the dictionary
     include/${MODULE_NAME}/CAaux.h
     include/${MODULE_NAME}/CATracker.h
     include/${MODULE_NAME}/CATrackingStation.h
+    include/${MODULE_NAME}/CookedTracker.h
     )
 Set(LINKDEF src/ITSReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
