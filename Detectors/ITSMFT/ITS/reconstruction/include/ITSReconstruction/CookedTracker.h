@@ -10,127 +10,142 @@
 //    The pattern recongintion based on the "cooked covariance" approach
 //-------------------------------------------------------------------------
 
-class std::vector;
+#include <vector>
 
-class TTree;
 class TClonesArray;
-class TObjArray;
 
+namespace AliceO2
+{
+namespace ITS
+{
+class Cluster;
 class CookedTrack;
 
-namespace AliceO2 {
-namespace ITS {
-
-class Cluster;
-
-class CookedTracker {
-public:
-  enum {
-     kNLayers=7, kMaxClusterPerLayer=150000, kMaxSelected=kMaxClusterPerLayer/10
-  };
+class CookedTracker
+{
+ public:
+  enum { kNLayers = 7, kMaxClusterPerLayer = 150000, kMaxSelected = kMaxClusterPerLayer / 10 };
   CookedTracker();
   virtual ~CookedTracker();
 
-  // These functions must be implemented 
-  Int_t Clusters2Tracks(std::vector *event);
-  Int_t PropagateBack(std::vector *event);
-  Int_t RefitInward(std::vector *event);
-  Int_t LoadClusters(TTree *ct);
-  void UnloadClusters();
-  Cluster *GetCluster(Int_t index) const;
+  void setVertex(const Double_t* xyz, const Double_t* ers = 0)
+  {
+    mX = xyz[0];
+    mY = xyz[1];
+    mZ = xyz[2];
+    if (ers) {
+      mSigmaX = ers[0];
+      mSigmaY = ers[1];
+      mSigmaZ = ers[2];
+    }
+  }
+  Double_t getX() const { return mX; }
+  Double_t getY() const { return mY; }
+  Double_t getZ() const { return mZ; }
+  Double_t getSigmaX() const { return mSigmaX; }
+  Double_t getSigmaY() const { return mSigmaY; }
+  Double_t getSigmaZ() const { return mSigmaZ; }
+  void cookLabel(CookedTrack& t, Float_t wrong) const;
+  static Double_t getBz();
 
-  // Other public functions
-  Bool_t
-  RefitAt(Double_t x, CookedTrack *seed, const CookedTrack *t);
-  void SetSAonly(Bool_t sa=kTRUE) {fSAonly=sa;}
-  Bool_t GetSAonly() const {return fSAonly;}
+  // These functions must be implemented
+  void process(const TClonesArray& clusters, TClonesArray& tracks);
+  // Int_t propagateBack(std::vector<CookedTrack> *event);
+  // Int_t RefitInward(std::vector<CookedTrack> *event);
+  // Bool_t refitAt(Double_t x, CookedTrack *seed, const CookedTrack *t);
+  Cluster* getCluster(Int_t index) const;
 
   // internal helper classes
-  class AliITSUthreadData;
-  class AliITSUlayer;
+  class ThreadData;
+  class Layer;
 
-protected:
+ protected:
   CookedTracker(const CookedTracker&);
   // Other protected functions
-  Int_t MakeSeeds();
-  Bool_t AddCookedSeed(const Float_t r1[3], Int_t l1, Int_t i1,
-                       const Float_t r2[3], Int_t l2, Int_t i2,
-                       const Cluster *c3,Int_t l3, Int_t i3);
+  void loadClusters(const TClonesArray& clusters);
+  void unloadClusters();
+  Int_t makeSeeds();
+  Bool_t addCookedSeed(const Float_t r1[3], Int_t l1, Int_t i1, const Float_t r2[3], Int_t l2, Int_t i2,
+                       const Cluster* c3, Int_t l3, Int_t i3);
 
-  void LoopOverSeeds(Int_t inx[], Int_t n);
+  void loopOverSeeds(Int_t inx[], Int_t n);
 
-  Bool_t AttachCluster(Int_t &volID, Int_t nl, Int_t ci,
-         AliKalmanTrack &t, const AliKalmanTrack &o) const;
+  Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const;
 
-private:
-  CookedTracker &operator=(const CookedTracker &tr);
+ private:
+  CookedTracker& operator=(const CookedTracker& tr);
 
   // Data members
   // Internal tracker arrays, layers, modules, etc
-  static AliITSUlayer fgLayers[kNLayers];// Layers
-    
-  TObjArray *fSeeds; // Track seeds
+  Double_t mX; ///< X-coordinate of the primary vertex
+  Double_t mY; ///< Y-coordinate of the primary vertex
+  Double_t mZ; ///< Z-coordinate of the primary vertex
 
-  Bool_t fSAonly; // kTRUE if the standalone tracking only
+  Double_t mSigmaX; ///< error of the primary vertex position in X
+  Double_t mSigmaY; ///< error of the primary vertex position in Y
+  Double_t mSigmaZ; ///< error of the primary vertex position in Z
 
+  static Layer sLayers[kNLayers];  ///< Layers filled with clusters
+  std::vector<CookedTrack> mSeeds; ///< Track seeds
 };
-
-
 
 // The helper classes
-class CookedTracker::AliITSUthreadData {
-  public:
-    AliITSUthreadData();
-   ~AliITSUthreadData() {}
-    void ResetSelectedClusters() {fI=0;}
-    Int_t *Index() {return fIndex;}
-    Int_t &Nsel() {return fNsel;}
-    Int_t GetNextClusterIndex() {
-      while (fI<fNsel) {
-         Int_t ci=fIndex[fI++];
-         if (!fUsed[ci]) return ci;
-      }
-      return -1;
+class CookedTracker::ThreadData
+{
+ public:
+  ThreadData();
+  ~ThreadData() {}
+  void resetSelectedClusters() { mI = 0; }
+  Int_t* Index() { return mIndex; }
+  Int_t& Nsel() { return mNsel; }
+  Int_t getNextClusterIndex()
+  {
+    while (mI < mNsel) {
+      Int_t ci = mIndex[mI++];
+      if (!mUsed[ci])
+        return ci;
     }
-    void UseCluster(Int_t i) { fUsed[i]=kTRUE; }
-
-  private:
-    AliITSUthreadData(const AliITSUthreadData&);
-    AliITSUthreadData &operator=(const AliITSUthreadData &tr);
-    Int_t fIndex[kMaxSelected]; // Indices of selected clusters
-    Int_t fNsel;      // Number of selected clusters
-    Int_t fI;         // Running index for the selected clusters
-    Bool_t fUsed[kMaxClusterPerLayer]; // Cluster usage flags
+    return -1;
+  }
+  void useCluster(Int_t i) { mUsed[i] = kTRUE; }
+ private:
+  ThreadData(const ThreadData&);
+  ThreadData& operator=(const ThreadData& tr);
+  Int_t mIndex[kMaxSelected];        ///< Indices of selected clusters
+  Int_t mNsel;                       ///< Number of selected clusters
+  Int_t mI;                          ///< Running index for the selected clusters
+  Bool_t mUsed[kMaxClusterPerLayer]; ///< Cluster usage flags
 };
 
-class CookedTracker::AliITSUlayer {
-  public:
-    AliITSUlayer();
+class CookedTracker::Layer
+{
+ public:
+  Layer();
 
-    void InsertClusters(TClonesArray *clusters, Bool_t seedingLayer, Bool_t sa);
-    void SetR(Double_t r) {fR=r;}
-    void DeleteClusters();
-    void SelectClusters(Int_t &i, Int_t idx[], Float_t phi, Float_t dy, Float_t z, Float_t dz);
-    Int_t FindClusterIndex(Double_t z) const;
-    Float_t GetR() const {return fR;}
-    Cluster *GetCluster(Int_t i) const { return fClusters[i]; } 
-    Float_t GetXRef(Int_t i) const { return fXRef[i]; } 
-    Float_t GetAlphaRef(Int_t i) const { return fAlphaRef[i]; } 
-    Float_t GetClusterPhi(Int_t i) const { return fPhi[i]; } 
-    Int_t GetNumberOfClusters() const {return fN;}
+  void init();
+  Bool_t insertCluster(Cluster* c);
+  void setR(Double_t r) { mR = r; }
+  void unloadClusters();
+  void selectClusters(Int_t& i, Int_t idx[], Float_t phi, Float_t dy, Float_t z, Float_t dz);
+  Int_t findClusterIndex(Double_t z) const;
+  Float_t getR() const { return mR; }
+  Cluster* getCluster(Int_t i) const { return mClusters[i]; }
+  Float_t getXRef(Int_t i) const { return mXRef[i]; }
+  Float_t getAlphaRef(Int_t i) const { return mAlphaRef[i]; }
+  Float_t getClusterPhi(Int_t i) const { return mPhi[i]; }
+  Int_t getNumberOfClusters() const { return mN; }
 
-  protected:
-    AliITSUlayer(const AliITSUlayer&);
-    AliITSUlayer &operator=(const AliITSUlayer &tr);  
-    Int_t InsertCluster(Cluster *c);
+ protected:
+  Layer(const Layer&);
+  Layer& operator=(const Layer& tr);
 
-    Float_t fR;                // mean radius of this layer
+  Float_t mR; ///< mean radius of this layer
 
-    Cluster *fClusters[kMaxClusterPerLayer]; // All clusters
-    Float_t fXRef[kMaxClusterPerLayer];     // x of the reference plane
-    Float_t fAlphaRef[kMaxClusterPerLayer]; // alpha of the reference plane
-    Float_t fPhi[kMaxClusterPerLayer]; // cluster phi 
-    Int_t fN; // Total number of clusters 
+  Cluster* mClusters[kMaxClusterPerLayer]; ///< All clusters
+  Float_t mXRef[kMaxClusterPerLayer];      ///< x of the reference plane
+  Float_t mAlphaRef[kMaxClusterPerLayer];  ///< alpha of the reference plane
+  Float_t mPhi[kMaxClusterPerLayer];       ///< cluster phi
+  Int_t mN;                                ///< Total number of clusters
 };
 }
 }

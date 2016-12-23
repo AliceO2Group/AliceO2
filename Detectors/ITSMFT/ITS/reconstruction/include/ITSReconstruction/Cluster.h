@@ -6,6 +6,7 @@
 #include "Rtypes.h" // for Double_t, ULong_t, etc
 
 #include "FairTimeStamp.h" // for FairTimeStamp
+#include "ITSBase/GeometryTGeo.h"
 
 class TGeoHMatrix;
 
@@ -21,8 +22,6 @@ namespace ITS
 /// \class Cluster
 /// \brief Cluster class for the ITS
 ///
-
-class GeometryTGeo;
 
 class Cluster : public FairTimeStamp
 {
@@ -95,6 +94,7 @@ class Cluster : public FairTimeStamp
   UShort_t getVolumeId() const { return mVolumeId; }
   //**************************************
 
+  Int_t getLayer() const { return sGeom->getLayer(mVolumeId); }
   //
   Bool_t isFrameLoc() const { return TestBit(kFrameLoc); }
   Bool_t isFrameGlo() const { return TestBit(kFrameGlo); }
@@ -152,6 +152,7 @@ class Cluster : public FairTimeStamp
   virtual Bool_t getGlobalXYZ(Float_t xyz[3]) const;
   virtual Bool_t getGlobalCov(Float_t cov[6]) const;
   virtual Bool_t getXRefPlane(Float_t& xref) const;
+  virtual Bool_t getXAlphaRefPlane(Float_t& x, Float_t& alpha) const;
   //
   virtual Bool_t isSortable() const { return kTRUE; }
   virtual Bool_t isEqual(const TObject* obj) const;

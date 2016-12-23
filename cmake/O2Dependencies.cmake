@@ -297,6 +297,7 @@ o2_define_bucket(
     RIO
     Hist
     ParBase
+    Field
 
     INCLUDE_DIRECTORIES
 )
