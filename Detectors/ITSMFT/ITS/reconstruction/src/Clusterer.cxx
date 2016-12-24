@@ -14,11 +14,9 @@ Clusterer::Clusterer() {}
 
 Clusterer::~Clusterer() {}
 
-void Clusterer::init(Bool_t build) { mGeometry.Build(build); }
-
-void Clusterer::process(const TClonesArray* digits, TClonesArray* clusters)
+void
+Clusterer::process(const SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters)
 {
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
   Float_t sigma2 = seg->cellSizeX() * seg->cellSizeX() / 12.;
 
   TClonesArray& clref = *clusters;
