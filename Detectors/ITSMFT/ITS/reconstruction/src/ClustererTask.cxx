@@ -44,7 +44,7 @@ InitStatus ClustererTask::Init()
   mClustersArray = new TClonesArray("AliceO2::ITS::Cluster");
   mgr->Register("ITSCluster", "ITS", mClustersArray, kTRUE);
 
-  mClusterer.init(kTRUE);
+  mGeometry.Build(kTRUE);
 
   return kSUCCESS;
 }
@@ -55,5 +55,7 @@ void ClustererTask::Exec(Option_t* option)
   mClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-  mClusterer.process(mDigitsArray, mClustersArray);
+  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
+
+  mClusterer.process(seg, mDigitsArray, mClustersArray);
 }

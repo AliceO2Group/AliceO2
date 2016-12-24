@@ -7,6 +7,7 @@
 #include "FairTask.h" // for FairTask, InitStatus
 #include "Rtypes.h"   // for ClustererTask::Class, ClassDef, etc
 
+#include "ITSBase/GeometryTGeo.h"
 #include "ITSReconstruction/Clusterer.h"
 
 class TClonesArray;
@@ -25,7 +26,8 @@ class ClustererTask : public FairTask
   virtual void Exec(Option_t* option);
 
  private:
-  Clusterer mClusterer; ///< Cluster finder
+  GeometryTGeo mGeometry; ///< ITS geometry
+  Clusterer mClusterer;   ///< Cluster finder
 
   TClonesArray* mDigitsArray;   ///< Array of digits
   TClonesArray* mClustersArray; ///< Array of clusters
