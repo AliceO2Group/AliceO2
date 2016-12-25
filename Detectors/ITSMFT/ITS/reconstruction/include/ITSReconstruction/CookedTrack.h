@@ -7,7 +7,7 @@
 
 #include <vector>
 
-#include <Rtypes.h>
+#include <TObject.h>
 
 #include "DetectorsBase/Track.h"
 
@@ -19,7 +19,7 @@ namespace ITS
 {
 class Cluster;
 
-class CookedTrack : public TrackParCov
+class CookedTrack : public TObject 
 {
  public:
   CookedTrack();
@@ -49,12 +49,18 @@ class CookedTrack : public TrackParCov
   Int_t getLabel() const { return mLabel; }
   Bool_t isBetter(const CookedTrack& best, Double_t maxChi2) const;
 
-  // The fuctions below address the naming conventions in the base class
-  Double_t getX() const { return GetX(); }
-  Double_t getY() const { return GetY(); }
-  Double_t getZ() const { return GetZ(); }
-  void resetCovariance(Float_t s2 = 0.) { ResetCovariance(s2); }
+  Double_t getCurvature(Double_t bz) const { return mTrack.GetCurvature(float(bz)); }
+  Double_t getAlpha() const { return mTrack.GetAlpha(); }
+  Double_t getX() const { return mTrack.GetX(); }
+  Double_t getY() const { return mTrack.GetY(); }
+  Double_t getZ() const { return mTrack.GetZ(); }
+  Double_t getSnp() const { return mTrack.GetSnp(); }
+  Double_t getTgl() const { return mTrack.GetTgl(); }
+  Double_t getPt() const { return mTrack.GetPt(); }
+  void resetCovariance(Double_t s2 = 0.) { mTrack.ResetCovariance(float(s2)); }
+  
  private:
+  TrackParCov mTrack;        ///< Base track
   Int_t mLabel;              ///< Monte Carlo label for this track
   Double_t mMass;            ///< Assumed mass for this track
   Double_t mChi2;            ///< Chi2 for this track

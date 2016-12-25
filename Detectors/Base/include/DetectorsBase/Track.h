@@ -10,6 +10,8 @@
 #include <iostream>
 #include <string.h>
 
+#include <Rtypes.h>
+
 #include "DetectorsBase/Constants.h"
 #include "DetectorsBase/Utils.h"
 
@@ -138,7 +140,9 @@ namespace AliceO2 {
         protected:
           float mC[kCovMatSize] = {0.f};  // 15 covariance matrix elements
 
-      };
+          static const float kCalcdEdxAuto; // value indicating request for dedx calculation
+          ClassDef(TrackParCov, 1)
+    };
 
       class TrackPar final : public TrackParBase { // track parameterization only
         public:
