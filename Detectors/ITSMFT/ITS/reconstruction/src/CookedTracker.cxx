@@ -385,7 +385,7 @@ void CookedTracker::loopOverSeeds(Int_t idx[], Int_t n)
 
     Double_t x = track.getX();
     Double_t y = track.getY();
-    Double_t phi = track.GetAlpha() + TMath::ATan2(y, x);
+    Double_t phi = track.getAlpha() + TMath::ATan2(y, x);
     const Float_t pi2 = 2. * TMath::Pi();
     if (phi < 0.)
       phi += pi2;
@@ -393,8 +393,8 @@ void CookedTracker::loopOverSeeds(Int_t idx[], Int_t n)
       phi -= pi2;
 
     Double_t z = track.getZ();
-    Double_t crv = track.GetCurvature(getBz());
-    Double_t tgl = track.GetTgl();
+    Double_t crv = track.getCurvature(getBz());
+    Double_t tgl = track.getTgl();
     Double_t r1 = sLayers[kSeedingLayer2].getR();
 
     for (Int_t l = kSeedingLayer2 - 1; l >= 0; l--) {

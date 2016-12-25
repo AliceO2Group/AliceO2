@@ -13,7 +13,7 @@ ClassImp(AliceO2::ITS::CookedTrack)
 using namespace AliceO2::ITS;
 using namespace AliceO2::Base::Constants;
 
-CookedTrack::CookedTrack() : TrackParCov(), mLabel(-1), mMass(0.14), mChi2(-1.)
+CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2(-1.)
 {
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
@@ -21,7 +21,7 @@ CookedTrack::CookedTrack() : TrackParCov(), mLabel(-1), mMass(0.14), mChi2(-1.)
 }
 
 CookedTrack::CookedTrack(float x, float alpha, const float* par, const float* cov)
-  : TrackParCov(x, alpha, par, cov), mLabel(-1), mMass(0.14), mChi2(-1.)
+  : TObject(), mTrack(x, alpha, par, cov), mLabel(-1), mMass(0.14), mChi2(-1.)
 {
   //--------------------------------------------------------------------
   // Main constructor
@@ -29,7 +29,7 @@ CookedTrack::CookedTrack(float x, float alpha, const float* par, const float* co
 }
 
 CookedTrack::CookedTrack(const CookedTrack& t)
-  : TrackParCov(t), mLabel(t.mLabel), mMass(t.mMass), mChi2(t.mChi2), mIndex(t.mIndex)
+  : TObject(t), mTrack(t.mTrack), mLabel(t.mLabel), mMass(t.mMass), mChi2(t.mChi2), mIndex(t.mIndex)
 {
   //--------------------------------------------------------------------
   // Copy constructor
@@ -39,7 +39,8 @@ CookedTrack::CookedTrack(const CookedTrack& t)
 CookedTrack& CookedTrack::operator=(const CookedTrack& t)
 {
   if (&t != this) {
-    TrackParCov::operator=(t);
+    TObject::operator=(t);
+    mTrack=t.mTrack;
     mLabel = t.mLabel;
     mMass = t.mMass;
     mChi2 = t.mChi2;
@@ -60,8 +61,8 @@ bool CookedTrack::operator<(const CookedTrack& o) const
   //-----------------------------------------------------------------
   // This function compares tracks according to the their curvature
   //-----------------------------------------------------------------
-  Double_t co = TMath::Abs(o.GetPt());
-  Double_t c = TMath::Abs(GetPt());
+  Double_t co = TMath::Abs(o.getPt());
+  Double_t c = TMath::Abs(getPt());
   // Double_t co=o.GetSigmaY2()*o.GetSigmaZ2();
   // Double_t c =GetSigmaY2()*GetSigmaZ2();
 
@@ -75,19 +76,19 @@ void CookedTrack::getImpactParams(Double_t x, Double_t y, Double_t z, Double_t b
   // with respect to a point with global coordinates (x,y,0)
   // in the magnetic field "bz" (kG)
   //------------------------------------------------------------------
-  Double_t f1 = GetSnp(), r1 = TMath::Sqrt((1. - f1) * (1. + f1));
-  Double_t xt = GetX(), yt = GetY();
-  Double_t sn = TMath::Sin(GetAlpha()), cs = TMath::Cos(GetAlpha());
+  Double_t f1 = getSnp(), r1 = TMath::Sqrt((1. - f1) * (1. + f1));
+  Double_t xt = getX(), yt = getY();
+  Double_t sn = TMath::Sin(getAlpha()), cs = TMath::Cos(getAlpha());
   Double_t a = x * cs + y * sn;
   y = -x * sn + y * cs;
   x = a;
   xt -= x;
   yt -= y;
 
-  Double_t rp4 = GetCurvature(bz);
+  Double_t rp4 = getCurvature(bz);
   if ((TMath::Abs(bz) < kAlmost0) || (TMath::Abs(rp4) < kAlmost0)) {
     ip[0] = -(xt * f1 - yt * r1);
-    ip[1] = GetZ() + (ip[0] * f1 - xt) / r1 * GetTgl() - z;
+    ip[1] = getZ() + (ip[0] * f1 - xt) / r1 * getTgl() - z;
     return;
   }
 
@@ -97,7 +98,7 @@ void CookedTrack::getImpactParams(Double_t x, Double_t y, Double_t z, Double_t b
   Double_t rr = TMath::Sqrt(sn * sn + cs * cs);
   ip[0] = -a / (1 + rr);
   Double_t f2 = -sn / rr, r2 = TMath::Sqrt((1. - f2) * (1. + f2));
-  ip[1] = GetZ() + GetTgl() / rp4 * TMath::ASin(f2 * r1 - f1 * r2) - z;
+  ip[1] = getZ() + getTgl() / rp4 * TMath::ASin(f2 * r1 - f1 * r2) - z;
 }
 
 void CookedTrack::resetClusters()
@@ -125,13 +126,13 @@ Double_t CookedTrack::getPredictedChi2(const Cluster* c) const
   //-----------------------------------------------------------------
   float p[2] = { c->getY(), c->getZ() };
   float cov[3] = { c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
-  return TrackParCov::GetPredictedChi2(p, cov);
+  return mTrack.GetPredictedChi2(p, cov);
 }
 
 Bool_t CookedTrack::propagate(Double_t alpha, Double_t x, Double_t bz)
 {
-  if (Rotate(float(alpha)))
-    if (PropagateTo(float(x), float(bz)))
+  if (mTrack.Rotate(float(alpha)))
+    if (mTrack.PropagateTo(float(x), float(bz)))
       return kTRUE;
 
   return kFALSE;
@@ -139,7 +140,7 @@ Bool_t CookedTrack::propagate(Double_t alpha, Double_t x, Double_t bz)
 
 Bool_t CookedTrack::correctForMeanMaterial(Double_t x2x0, Double_t xrho, Bool_t anglecorr)
 {
-  return CorrectForMaterial(float(x2x0), float(xrho), float(mMass), anglecorr);
+  return mTrack.CorrectForMaterial(float(x2x0), float(xrho), float(mMass), anglecorr);
 }
 
 Bool_t CookedTrack::update(const Cluster* c, Double_t chi2, Int_t idx)
@@ -150,7 +151,7 @@ Bool_t CookedTrack::update(const Cluster* c, Double_t chi2, Int_t idx)
   float p[2] = { c->getY(), c->getZ() };
   float cov[3] = { c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
 
-  if (!TrackParCov::Update(p, cov))
+  if (!mTrack.Update(p, cov))
     return kFALSE;
 
   mChi2 += chi2;
