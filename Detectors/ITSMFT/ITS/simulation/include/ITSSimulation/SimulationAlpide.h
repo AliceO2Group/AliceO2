@@ -14,6 +14,7 @@
 #include <TObject.h>
 
 #include "ITSBase/SensMap.h"
+#include "ITSSimulation/Chip.h"
 
 class TLorentzVector;
 class TClonesArray;
@@ -23,7 +24,6 @@ class TSeqCollection;
 namespace AliceO2 {
 namespace ITS {
 
-class Chip;
 class SegmentationPixel;
   
 //-------------------------------------------------------------------
@@ -50,8 +50,8 @@ public:
     void      DigitiseChip(TClonesArray*);
     Bool_t    AddSDigitsToChip(TSeqCollection*, Int_t);
     void      GenerateCluster();
-    void      ClearMap() {fSensMap->Clear();}
-
+    void      clearSimulation() { fSensMap->clear(); fChip->Clear(); }
+    
 private:
     void      FrompListToDigits(TClonesArray*);
     void      WriteSDigits(TClonesArray*);

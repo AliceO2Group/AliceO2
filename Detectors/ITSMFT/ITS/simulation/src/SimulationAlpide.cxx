@@ -16,7 +16,6 @@
 #include "ITSBase/SegmentationPixel.h"
 #include "ITSSimulation/SimulationAlpide.h"
 #include "ITSSimulation/SimuClusterShaper.h"
-#include "ITSSimulation/Chip.h"
 #include "ITSSimulation/Point.h"
 
 
@@ -143,7 +142,7 @@ Bool_t SimulationAlpide::AddSDigitsToChip(TSeqCollection *pItemArr, Int_t mask) 
 void SimulationAlpide::FinishSDigitiseChip(TClonesArray *detDigits) {
   //  This function calls SDigitsToDigits which creates Digits from SDigits
   FrompListToDigits(detDigits);
-  ClearMap();
+  clearSimulation();
 }
 
 
