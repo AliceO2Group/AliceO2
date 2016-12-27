@@ -13,7 +13,7 @@ ClassImp(AliceO2::ITS::CookedTrack)
 using namespace AliceO2::ITS;
 using namespace AliceO2::Base::Constants;
 
-CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2(-1.)
+CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2(0.)
 {
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
@@ -21,7 +21,7 @@ CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2
 }
 
 CookedTrack::CookedTrack(float x, float alpha, const float* par, const float* cov)
-  : TObject(), mTrack(x, alpha, par, cov), mLabel(-1), mMass(0.14), mChi2(-1.)
+  : TObject(), mTrack(x, alpha, par, cov), mLabel(-1), mMass(0.14), mChi2(0.)
 {
   //--------------------------------------------------------------------
   // Main constructor
