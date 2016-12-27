@@ -552,7 +552,7 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
 
     cookLabel(track, 0.); // For comparison only
     Int_t label = track.getLabel();
-    if (label > 0)
+    if (label >= 0)
       ngood++;
 
     new (tracks[tracks.GetEntriesFast()]) CookedTrack(track);
@@ -776,12 +776,10 @@ void CookedTracker::Layer::init()
   const Float_t pi2 = 2. * TMath::Pi();
   for (Int_t i = 0; i < mN; i++) {
     Cluster* c = mClusters[i];
-    Double_t x = c->getX(), y = c->getY();
-    r += TMath::Sqrt(x * x + y * y);
-
     c->getXAlphaRefPlane(mXRef[i], mAlphaRef[i]);
     Float_t xyz[3];
     c->getGlobalXYZ(xyz);
+    r += TMath::Sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1]);
     Float_t phi = TMath::ATan2(xyz[1], xyz[0]);
     if (phi < 0.)
       phi += pi2;
