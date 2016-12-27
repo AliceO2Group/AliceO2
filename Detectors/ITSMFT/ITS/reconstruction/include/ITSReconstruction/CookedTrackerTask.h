@@ -25,6 +25,7 @@ class CookedTrackerTask : public FairTask
 
   virtual InitStatus Init();
   virtual void Exec(Option_t* option);
+  void setBz(Double_t bz) { mTracker.setBz(bz); }
 
  private:
   GeometryTGeo mGeometry; ///< ITS geometry

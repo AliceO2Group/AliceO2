@@ -46,7 +46,8 @@ class CookedTracker
   Double_t getSigmaY() const { return mSigmaY; }
   Double_t getSigmaZ() const { return mSigmaZ; }
   void cookLabel(CookedTrack& t, Float_t wrong) const;
-  static Double_t getBz();
+  Double_t getBz() const;
+  void setBz(Double_t bz) { mBz = bz; }
 
   // These functions must be implemented
   void process(const TClonesArray& clusters, TClonesArray& tracks);
@@ -77,6 +78,7 @@ class CookedTracker
 
   // Data members
   // Internal tracker arrays, layers, modules, etc
+  Double_t mBz;///< Effective Z-component of the magnetic field (kG)
   Double_t mX; ///< X-coordinate of the primary vertex
   Double_t mY; ///< Y-coordinate of the primary vertex
   Double_t mZ; ///< Z-coordinate of the primary vertex

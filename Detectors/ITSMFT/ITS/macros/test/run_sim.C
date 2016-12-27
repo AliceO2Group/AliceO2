@@ -9,6 +9,7 @@
   #include "FairPrimaryGenerator.h"
   #include "FairBoxGenerator.h"
   #include "FairParRootFileIo.h"
+  #include "FairConstField.h"
 
   #include "DetectorsPassive/Cave.h"
 
@@ -74,8 +75,10 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-
-  //TGeoGlobalMagField::Instance()->SetField(new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagneticField::k5kG));
+  FairConstField field;
+  field.SetField(0., 0., 5.); //in kG
+  field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in cm
+  run->SetField(&field);
 
   AliceO2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
   run->AddModule(its);
@@ -176,11 +179,11 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
-  FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 100); //protons
+  FairBoxGenerator* boxGen = new FairBoxGenerator(211, 100); //pions
 
   //boxGen->SetThetaRange(0.0, 90.0);
   boxGen->SetEtaRange(-0.9,0.9);
-  boxGen->SetPRange(100, 100.01);
+  boxGen->SetPtRange(1, 1.01);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kTRUE);
 
