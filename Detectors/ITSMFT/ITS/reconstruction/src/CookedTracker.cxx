@@ -58,7 +58,7 @@ const Int_t kminNumberOfClusters = 4;
 
 CookedTracker::Layer CookedTracker::sLayers[CookedTracker::kNLayers];
 
-CookedTracker::CookedTracker()
+CookedTracker::CookedTracker() : mBz(0.)
 {
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
@@ -138,8 +138,10 @@ void CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
   t.setLabel(lab);
 }
 
-Double_t CookedTracker::getBz()
+Double_t CookedTracker::getBz() const
 {
+  return mBz;
+  /*
   MagneticField* fld = (MagneticField*)TGeoGlobalMagField::Instance()->GetField();
   if (!fld) {
     LOG(FATAL) << "Field is not loaded !" << FairLogger::endl;
@@ -147,6 +149,7 @@ Double_t CookedTracker::getBz()
   }
   Double_t bz = fld->solenoidField();
   return TMath::Sign(kAlmost0, bz) + bz;
+  */
 }
 
 static Double_t f1(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t x3, Double_t y3)
@@ -487,7 +490,7 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
   std::sort(mSeeds.begin(), mSeeds.end());
 
   Int_t nSeeds = mSeeds.size();
-  Info("Clusters2Tracks", "Seeds: %d", nSeeds);
+  LOG(INFO)<<"CookedTracker::process(), number of seeds:"<<nSeeds<<FairLogger::endl;
 
 #ifdef _OPENMP
   Int_t nThreads = 1;
@@ -556,7 +559,7 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
   }
 
   if (nSeeds)
-    Info("Clusters2Tracks", "Good tracks/seeds: %f", Float_t(ngood) / nSeeds);
+    LOG(INFO)<<"CookedTracker::process(), good_tracks/seeds: "<<Float_t(ngood)/nSeeds<<FairLogger::endl;
 
   unloadClusters();
 }

@@ -42,6 +42,7 @@ void run_trac(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
 
         // Setup tracker
         AliceO2::ITS::CookedTrackerTask *trac = new AliceO2::ITS::CookedTrackerTask;
+        trac->setBz(5.); //in kG
         fRun->AddTask(trac);
 
         fRun->Init();
