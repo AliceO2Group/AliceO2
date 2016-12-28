@@ -57,6 +57,7 @@ class CookedTrack : public TObject
   Double_t getSnp() const { return mTrack.GetSnp(); }
   Double_t getTgl() const { return mTrack.GetTgl(); }
   Double_t getPt() const { return mTrack.GetPt(); }
+  Bool_t getPxPyPz(float pxyz[3]) const { return mTrack.GetPxPyPz(pxyz); }
   void resetCovariance(Double_t s2 = 0.) { mTrack.ResetCovariance(float(s2)); }
   
  private:
