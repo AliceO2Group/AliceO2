@@ -6,9 +6,7 @@
   #include <TTree.h>
   #include <TClonesArray.h>
   #include <TH2F.h>
-  #include <TTree.h>
   #include <TNtuple.h>
-  #include <TGeoManager.h>
   #include <TCanvas.h>
 
   #include "ITSBase/GeometryTGeo.h"
@@ -20,8 +18,8 @@
 void CheckClusters() {
   using namespace AliceO2::ITS;
 
-  TFile *f=TFile::Open("cluster_xyz.root","recreate");
-  TNtuple *nt=new TNtuple("nt","my ntuple","x:y:z:dx:dz");
+  TFile *f=TFile::Open("CheckClusters.root","recreate");
+  TNtuple *nt=new TNtuple("ntc","cluster ntuple","x:y:z:dx:dz");
 
   // Geometry
   TFile *file = TFile::Open("AliceO2_TGeant3.params_10.root");
@@ -79,4 +77,6 @@ void CheckClusters() {
   }
   new TCanvas; nt->Draw("y:x");
   new TCanvas; nt->Draw("dx:dz");
+  f->Write();
+  f->Close();
 }
