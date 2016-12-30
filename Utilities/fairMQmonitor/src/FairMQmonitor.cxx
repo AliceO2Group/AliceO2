@@ -27,7 +27,7 @@ using namespace std;
 using namespace AliceO2::Header;
 using namespace AliceO2::Base;
 
-using NameHeader48 = NameHeader<48>; //header holding 16 characters
+using NameHeader48 = NameHeader<48>; //header holding 48 characters
 
 //__________________________________________________________________________________________________
 FairMQmonitor::FairMQmonitor()
@@ -92,8 +92,8 @@ void FairMQmonitor::Run()
 }
 
 //__________________________________________________________________________________________________
-bool FairMQmonitor::HandleO2frame(byte* headerBuffer, size_t headerBufferSize,
-    byte* dataBuffer,   size_t dataBufferSize)
+bool FairMQmonitor::HandleO2frame(const byte* headerBuffer, size_t headerBufferSize,
+    const byte* dataBuffer,   size_t dataBufferSize)
 {
 
   hexDump("headerBuffer", headerBuffer, headerBufferSize);

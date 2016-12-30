@@ -54,9 +54,14 @@ const uint32_t AliceO2::Header::DataHeader::sVersion = 1;
 const AliceO2::Header::HeaderType AliceO2::Header::DataHeader::sHeaderType = String2uint64("DataHead");
 const AliceO2::Header::SerializationMethod AliceO2::Header::DataHeader::sSerializationMethod = AliceO2::Header::gSerializationMethodNone;
 
-//storage fr NameHeader static
+//storage for NameHeader static
 template <>
 const AliceO2::Header::HeaderType AliceO2::Header::NameHeader<0>::sHeaderType = "NameHead";
+
+//storage for BoostShmHeader static memebrs
+const uint32_t AliceO2::Header::BoostShmHeader::sVersion = 1;
+const AliceO2::Header::HeaderType AliceO2::Header::BoostShmHeader::sHeaderType = String2uint64("BoostShm");
+const AliceO2::Header::SerializationMethod AliceO2::Header::BoostShmHeader::sSerializationMethod = AliceO2::Header::gSerializationMethodNone;
 
 using namespace AliceO2::Header;
 

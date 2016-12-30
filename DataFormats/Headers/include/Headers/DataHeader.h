@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <memory>
+#include <cstring>
+#include <boost/interprocess/managed_shared_memory.hpp>
 
 // enum class byte : unsigned char
 // {
@@ -242,9 +244,9 @@ struct BaseHeader
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static const BaseHeader* get(byte* b, size_t /*len*/=0) {
-    return (*(reinterpret_cast<uint32_t*>(b))==sMagicString) ?
-      reinterpret_cast<BaseHeader*>(b) :
+  inline static const BaseHeader* get(const byte* b, size_t /*len*/=0) {
+    return (*(reinterpret_cast<const uint32_t*>(b))==sMagicString) ?
+      reinterpret_cast<const BaseHeader*>(b) :
       nullptr;
   }
 
@@ -264,7 +266,7 @@ struct BaseHeader
 /// use like this:
 /// HeaderType* h = get<HeaderType>(buffer)
 template<typename HeaderType>
-const HeaderType* get(byte* buffer, size_t /*len*/=0) {
+const HeaderType* get(const byte* buffer, size_t /*len*/=0) {
   const BaseHeader* current = BaseHeader::get(buffer);
   if (!current) return nullptr;
   if (current->description==HeaderType::sHeaderType)
@@ -294,6 +296,9 @@ struct Block {
   // This is ugly and needs fixing BUT:
   // we need a static deleter for fairmq.
   // TODO: template the class with allocators
+  // a custom allocator would allow us to e.g. avoid
+  // heap allocations. Shared memory would also be an option (not for headers,
+  // those would always be sent via fairMQ in my current understanding).
   //
   using Buffer = std::unique_ptr<byte[]>;
   static std::default_delete<byte[]> sDeleter;
@@ -304,8 +309,8 @@ struct Block {
   size_t bufferSize;
   Buffer buffer;
 
-  byte* data() {return buffer.get();}
-  size_t size() {return bufferSize;}
+  byte* data() const {return buffer.get();}
+  size_t size() const {return bufferSize;}
 
   ///The magic constructor: takes arbitrary number of arguments and serialized them
   /// into the buffer.
@@ -412,6 +417,56 @@ const SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMe
 
 template <size_t N>
 const uint32_t NameHeader<N>::sVersion = 1;
+
+//__________________________________________________________________________________________________
+/// @struct ShmHeader
+/// @brief an example of how shared memory could be transparently intergrated (per message)
+///
+/// the header would contain one of these guys, based on their presence the higher level
+/// API would present the user with the pointer to the correct data.
+/// Also higher level API would need to take care of consistent construction of the data.
+/// As this would be a universal solution (i.e. it would transparently work) the data in shm
+/// could not be a boost::shared_datastuff, just regular array data or serialized buffers.
+/// Currently this just holds a handle string (null terminated).
+/// @ingroup aliceo2_dataformats_dataheader
+struct BoostShmHeader : public BaseHeader {
+
+  static const uint32_t sVersion;
+  static const AliceO2::Header::HeaderType sHeaderType;
+  static const AliceO2::Header::SerializationMethod sSerializationMethod;
+  //static constexpr int sMaxSegmentNameLength = 16;
+
+  using HandleType = boost::interprocess::managed_shared_memory::handle_t;
+  using IdType = uint32_t;
+
+  //these data members are just a first idea - maybe it would make more sense
+  //to send this in the payload, that way this header would only serve as
+  //a marker, carry no data.
+  //char segmentName[sMaxSegmentNameLength]; //name of the shared memory segment
+  HandleType handle; //handle to a shared pointer
+  IdType id; //unique ID
+
+  BoostShmHeader()
+  : BaseHeader{sizeof(BoostShmHeader), sHeaderType, sSerializationMethod, sVersion}
+  //, segmentName{'\0'}
+  , handle{0}
+  , id{0}
+  {
+  }
+
+  BoostShmHeader(HandleType handleIn, IdType uid)
+  : BaseHeader(sizeof(BoostShmHeader), sHeaderType, sSerializationMethod, sVersion)
+  //, segmentName{}
+  , handle{handleIn}
+  , id{uid}
+  {
+    //std::copy(in.begin(), in.begin()+sMaxSegmentNameLength, segmentName);
+    // here we actually need a null terminated strings
+    //strncpy(segmentName,inMemHandle.c_str(),sMaxSegmentNameLength);
+    //segmentName[sMaxSegmentNameLength-1] = '\0';
+  }
+
+};
 
 //__________________________________________________________________________________________________
 /// this 128 bit type for a header field describing the payload data type
