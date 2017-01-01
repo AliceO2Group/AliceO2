@@ -20,7 +20,7 @@ namespace ITS
 class CookedTrackerTask : public FairTask
 {
  public:
-  CookedTrackerTask();
+  CookedTrackerTask(Int_t nThreads=1);
   virtual ~CookedTrackerTask();
 
   virtual InitStatus Init();
@@ -28,6 +28,7 @@ class CookedTrackerTask : public FairTask
   void setBz(Double_t bz) { mTracker.setBz(bz); }
 
  private:
+  Int_t mNumOfThreads;    ///< Number of threads
   GeometryTGeo mGeometry; ///< ITS geometry
   CookedTracker mTracker; ///< Track finder
 

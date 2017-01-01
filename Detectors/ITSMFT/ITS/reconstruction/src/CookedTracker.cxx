@@ -6,6 +6,8 @@
 //                     A stand-alone ITS tracker
 //    The pattern recongintion based on the "cooked covariance" approach
 //-------------------------------------------------------------------------
+#include <future>
+#include <chrono>
 
 #include <TClonesArray.h>
 #include <TGeoGlobalMagField.h>
@@ -18,10 +20,6 @@
 #include "ITSReconstruction/Cluster.h"
 #include "ITSReconstruction/CookedTrack.h"
 #include "ITSReconstruction/CookedTracker.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 using namespace AliceO2::ITS;
 using namespace AliceO2::Base::Constants;
@@ -58,7 +56,7 @@ const Int_t kminNumberOfClusters = 4;
 
 CookedTracker::Layer CookedTracker::sLayers[CookedTracker::kNLayers];
 
-CookedTracker::CookedTracker() : mBz(0.)
+CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
 {
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
@@ -192,21 +190,18 @@ static Double_t f3(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t 
   return (z1 - z2) / sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
-Bool_t CookedTracker::addCookedSeed(const Float_t r1[3], Int_t l1, Int_t i1, const Float_t r2[3], Int_t l2, Int_t i2,
-                                    const Cluster* c3, Int_t l3, Int_t i3)
+static CookedTrack cookSeed
+(const Float_t r1[4], const Float_t r2[4], const Float_t tr3[4], Double_t alpha, Double_t bz)
 {
   //--------------------------------------------------------------------
   // This is the main cooking function.
   // Creates seed parameters out of provided clusters.
   //--------------------------------------------------------------------
-  Float_t x, a;
-  if (!c3->getXAlphaRefPlane(x, a))
-    return kFALSE;
-
-  Double_t ca = TMath::Cos(a), sa = TMath::Sin(a);
+  
+  Double_t ca = TMath::Cos(alpha), sa = TMath::Sin(alpha);
   Double_t x1 = r1[0] * ca + r1[1] * sa, y1 = -r1[0] * sa + r1[1] * ca, z1 = r1[2];
   Double_t x2 = r2[0] * ca + r2[1] * sa, y2 = -r2[0] * sa + r2[1] * ca, z2 = r2[2];
-  Double_t x3 = x, y3 = c3->getY(), z3 = c3->getZ();
+  Double_t x3 = tr3[0], y3 = tr3[1], z3 = tr3[2];
 
   Float_t par[5];
   par[0] = y3;
@@ -216,13 +211,10 @@ Bool_t CookedTracker::addCookedSeed(const Float_t r1[3], Int_t l1, Int_t i1, con
   Double_t tgl12 = f3(x1, y1, x2, y2, z1, z2);
   Double_t tgl23 = f3(x2, y2, x3, y3, z2, z3);
 
-  Double_t sf = crv * (x - x0);
-  if (TMath::Abs(sf) >= kAlmost1)
-    return kFALSE;
+  Double_t sf = crv * (x3 - x0);  //FIXME: sf must never be >= kAlmost1
   par[2] = sf;
 
   par[3] = 0.5 * (tgl12 + tgl23);
-  Double_t bz = getBz();
   par[4] = (TMath::Abs(bz) < kAlmost0) ? kAlmost0 : crv / (bz * kB2C);
 
   Float_t cov[15];
@@ -235,7 +227,7 @@ Bool_t CookedTracker::addCookedSeed(const Float_t r1[3], Int_t l1, Int_t i1, con
   cov[14]=0.1*0.1*10;
   */
   const Double_t dlt = 0.0005;
-  Double_t fy = 1. / (sLayers[kSeedingLayer3].getR() - sLayers[kSeedingLayer2].getR());
+  Double_t fy = 1. / (r2[3] - tr3[3]);
   Double_t tz = fy;
   Double_t cy = (f1(x1, y1, x2, y2 + dlt, x3, y3) - crv) / dlt / bz / kB2C;
   cy *= 20; // FIXME: MS contribution to the cov[14]
@@ -256,38 +248,18 @@ Bool_t CookedTracker::addCookedSeed(const Float_t r1[3], Int_t l1, Int_t i1, con
   cov[12] = s2 * fy * cy;
   cov[13] = 0.;
   cov[14] = s2 * cy * cy;
-
-  CookedTrack seed(x, a, par, cov);
-
-  Double_t dz[2];
-  seed.getImpactParams(getX(), getY(), getZ(), getBz(), dz);
-  if (TMath::Abs(dz[0]) > kmaxDCAxy)
-    return kFALSE;
-  if (TMath::Abs(dz[1]) > kmaxDCAz)
-    return kFALSE;
-
-  Double_t xx0 = 0.008; // Rough layer thickness
-  Double_t radl = 9.36; // Radiation length of Si [cm]
-  Double_t rho = 2.33;  // Density of Si [g/cm^3]
-  if (!seed.correctForMeanMaterial(xx0, xx0 * radl * rho, kTRUE))
-    return kFALSE;
-
-  seed.setClusterIndex(l1, i1);
-  seed.setClusterIndex(l2, i2);
-  seed.setClusterIndex(l3, i3);
-
-#pragma omp critical
-  mSeeds.push_back(seed);
-
-  return kTRUE;
+  
+  return CookedTrack(x3, alpha, par, cov);
 }
 
-Int_t CookedTracker::makeSeeds()
+std::vector<CookedTrack> CookedTracker::makeSeeds(Int_t first, Int_t last)
 {
   //--------------------------------------------------------------------
   // This is the main pattern recongition function.
   // Creates seeds out of two clusters and another point.
   //--------------------------------------------------------------------
+  std::vector<CookedTrack> seeds;   
+
   const Double_t zv = getZ();
 
   Layer& layer1 = sLayers[kSeedingLayer1];
@@ -297,11 +269,11 @@ Int_t CookedTracker::makeSeeds()
   const Double_t maxC = TMath::Abs(getBz() * kB2C / kminPt);
   const Double_t kpWin = TMath::ASin(0.5 * maxC * layer1.getR()) - TMath::ASin(0.5 * maxC * layer2.getR());
 
-  Int_t nClusters1 = layer1.getNumberOfClusters();
+  //Int_t nClusters1 = layer1.getNumberOfClusters();
   Int_t nClusters2 = layer2.getNumberOfClusters();
   Int_t nClusters3 = layer3.getNumberOfClusters();
-#pragma omp parallel for
-  for (Int_t n1 = 0; n1 < nClusters1; n1++) {
+
+  for (Int_t n1 = first; n1 < last; n1++) {
     Cluster* c1 = layer1.getCluster(n1);
     //
     // Int_t lab=c1->getLabel(0);
@@ -327,7 +299,7 @@ Int_t CookedTracker::makeSeeds()
       if (TMath::Abs(phi2 - phi1) > kpWin)
         continue; // check in Phi
 
-      Float_t xyz2[3];
+      Float_t xyz2[4];
       c2->getGlobalXYZ(xyz2);
       Double_t r2 = TMath::Sqrt(xyz2[0] * xyz2[0] + xyz2[1] * xyz2[1]);
       Double_t crv = f1(xyz1[0], xyz1[1], xyz2[0], xyz2[1], getX(), getY());
@@ -350,15 +322,36 @@ Int_t CookedTracker::makeSeeds()
         if (TMath::Abs(phir3 - phi3) > kpWin / 100)
           continue; // check in Phi
 
-        Cluster cc(*((Cluster*)c2));
-        cc.goToFrameTrk();
-        Float_t xyz3[3];
+        Float_t txyz2[4];
+        c2->getTrackingXYZ(txyz2);
+        txyz2[0]= layer2.getXRef(n2);
+        txyz2[3]= layer2.getR();
+
+        Float_t xyz3[4];
         c3->getGlobalXYZ(xyz3);
-        addCookedSeed(xyz1, kSeedingLayer1, n1, xyz3, kSeedingLayer3, n3, &cc, kSeedingLayer2, n2);
+	xyz3[3] = layer3.getR();
+
+	CookedTrack seed = cookSeed(xyz1, xyz3, txyz2, layer2.getAlphaRef(n2), getBz());
+
+	Double_t ip[2];
+        seed.getImpactParams(getX(), getY(), getZ(), getBz(), ip);
+        if (TMath::Abs(ip[0]) > kmaxDCAxy) continue;
+        if (TMath::Abs(ip[1]) > kmaxDCAz ) continue;
+	{
+        Double_t xx0 = 0.008; // Rough layer thickness
+        Double_t radl = 9.36; // Radiation length of Si [cm]
+        Double_t rho = 2.33;  // Density of Si [g/cm^3]
+        if (!seed.correctForMeanMaterial(xx0, xx0 * radl * rho, kTRUE)) continue;
+	}
+        seed.setClusterIndex(kSeedingLayer1, n1);
+        seed.setClusterIndex(kSeedingLayer3, n3);
+        seed.setClusterIndex(kSeedingLayer2, n2);
+
+        seeds.push_back(seed);
       }
     }
   }
-
+  /*
   for (Int_t n1 = 0; n1 < nClusters1; n1++) {
     Cluster* c1 = layer1.getCluster(n1);
     ((Cluster*)c1)->goToFrameTrk();
@@ -371,21 +364,18 @@ Int_t CookedTracker::makeSeeds()
     Cluster* c3 = layer3.getCluster(n3);
     ((Cluster*)c3)->goToFrameTrk();
   }
-
-  return mSeeds.size();
+  */
+  return seeds;
 }
 
-void CookedTracker::loopOverSeeds(Int_t idx[], Int_t n)
+void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
 {
   //--------------------------------------------------------------------
   // Loop over a subset of track seeds
   //--------------------------------------------------------------------
-  ThreadData* data = new ThreadData[kSeedingLayer2];
+  std::vector<ThreadData> data(kSeedingLayer2);
 
-  for (Int_t i = 0; i < n; i++) {
-    Int_t s = idx[i];
-    const CookedTrack& track = mSeeds[s];
-
+  for (auto &track : seeds) {
     Double_t x = track.getX();
     Double_t y = track.getY();
     Double_t phi = track.getAlpha() + TMath::ATan2(y, x);
@@ -454,9 +444,19 @@ void CookedTracker::loopOverSeeds(Int_t idx[], Int_t n)
         data[l].useCluster(c);
       }
     }
-    mSeeds[s] = best;
+    track = best;
   }
-  delete[] data;
+
+}
+
+std::vector<CookedTrack> CookedTracker::trackInThread(Int_t first, Int_t last)
+{
+  std::vector<CookedTrack> seeds = makeSeeds(first, last);
+  std::sort(seeds.begin(), seeds.end());
+
+  trackSeeds(seeds);
+  
+  return seeds;
 }
 
 void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
@@ -464,15 +464,14 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
   //--------------------------------------------------------------------
   // This is the main tracking function
   //--------------------------------------------------------------------
+  LOG(INFO)<<"CookedTracker::process(), number of threads: "<<mNumOfThreads<<FairLogger::endl;
 
   loadClusters(clusters);
-
-  mSeeds.clear();
 
   // Seeding with the triggered primary vertex
   Double_t xyz[3]{ 0, 0, 0 }; // FIXME
   setVertex(xyz);
-  makeSeeds();
+  //mSeeds = makeSeeds(0, sLayers[kSeedingLayer1].getNumberOfClusters());
 
   // Seeding with the pileup primary vertices
   /* FIXME
@@ -487,81 +486,41 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
   }
   */
 
-  std::sort(mSeeds.begin(), mSeeds.end());
+  auto start = std::chrono::system_clock::now();
 
-  Int_t nSeeds = mSeeds.size();
-  LOG(INFO)<<"CookedTracker::process(), number of seeds:"<<nSeeds<<FairLogger::endl;
-
-#ifdef _OPENMP
-  Int_t nThreads = 1;
-
-#pragma omp parallel
-  nThreads = omp_get_num_threads();
-
-  Int_t* idx = new Int_t[nThreads * nSeeds];
-  Int_t* n = new Int_t[nThreads];
-  for (Int_t i = 0; i < nThreads; i++)
-    n[i] = 0;
-
-  for (Int_t i = 0; i < nSeeds; i++) {
-    CookedTrack& track = mSeeds[i];
-
-    Int_t noc = track.getNumberOfClusters();
-    Int_t ci = track.getClusterIndex(noc - 1);
-    Int_t l = (ci & 0xf0000000) >> 28, c = (ci & 0x0fffffff);
-    Float_t phi = sLayers[l].getClusterPhi(c);
-    Float_t bin = 2 * TMath::Pi() / nThreads;
-
-    bin = 2 * (2 * TMath::Pi()) / nThreads;
-    if (track.getZ() > 0)
-      phi += 2 * TMath::Pi();
-
-    Int_t id = phi / bin;
-
-    idx[id * nSeeds + n[id]] = i;
-    n[id]++;
+  std::vector<std::future<std::vector<CookedTrack>>> futures(mNumOfThreads);
+  std::vector<std::vector<CookedTrack>> seedArray(mNumOfThreads);
+  
+  Int_t numOfClusters = sLayers[kSeedingLayer1].getNumberOfClusters();
+  for (Int_t t=0,first=0; t<mNumOfThreads; t++) {
+    Int_t rem = t < (numOfClusters % mNumOfThreads) ? 1 : 0;
+    Int_t last = first + (numOfClusters/mNumOfThreads) + rem;
+    futures[t] = std::async(std::launch::async, &CookedTracker::trackInThread, this, first, last);
+    first = last;
+  }
+  
+  Int_t nSeeds = 0, ngood=0;
+  for (Int_t t=0; t<mNumOfThreads; t++) {
+    seedArray[t] = futures[t].get();
+    nSeeds += seedArray[t].size();
+    for (auto track : seedArray[t]) {
+      if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
+      cookLabel(track, 0.); // For comparison only
+      Int_t label = track.getLabel();
+      if (label >= 0) ngood++;
+      new (tracks[tracks.GetEntriesFast()]) CookedTrack(track);
+    }
   }
 
-#pragma omp parallel
-  {
-    Int_t id = omp_get_thread_num();
-
-    Float_t f = n[id] / Float_t(nSeeds);
-#pragma omp critical
-    Info("Clusters2Tracks", "ThreadID %d  Seed fraction %f", id, f);
-
-    loopOverSeeds((idx + id * nSeeds), n[id]);
-  }
-
-  delete[] idx;
-  delete[] n;
-#else
-  Int_t* idx = new Int_t[nSeeds];
-  for (Int_t i = 0; i < nSeeds; i++)
-    idx[i] = i;
-  loopOverSeeds(idx, nSeeds);
-  delete[] idx;
-#endif
-
-  Int_t ngood = 0;
-  for (Int_t s = 0; s < nSeeds; s++) {
-    CookedTrack& track = mSeeds[s];
-
-    if (track.getNumberOfClusters() < kminNumberOfClusters)
-      continue;
-
-    cookLabel(track, 0.); // For comparison only
-    Int_t label = track.getLabel();
-    if (label >= 0)
-      ngood++;
-
-    new (tracks[tracks.GetEntriesFast()]) CookedTrack(track);
-  }
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> diff = end-start;
+  std::cout<<"Timing: "<<diff.count()<<" s\n";
 
   if (nSeeds)
-    LOG(INFO)<<"CookedTracker::process(), good_tracks/seeds: "<<Float_t(ngood)/nSeeds<<FairLogger::endl;
+    LOG(INFO)<<"CookedTracker::process(), good_tracks/seeds: "<<Float_t(ngood)/nSeeds<<'\n'<<FairLogger::endl;
 
   unloadClusters();
+  
 }
 
 /*
@@ -574,7 +533,6 @@ Int_t CookedTracker::propagateBack(std::vector<CookedTrack> *tracks) {
   Int_t ntrk=0;
   Int_t ngood=0;
 
-#pragma omp parallel for reduction (+:ntrk,ngood)
   for (Int_t i=0; i<n; i++) {
       CookedTrack *esdTrack=tracks->GetTrack(i);
 
@@ -669,7 +627,6 @@ Int_t CookedTracker::RefitInward(std::vector<CookedTrack> *tracks) {
   Int_t ntrk=0;
   Int_t ngood=0;
 
-#pragma omp parallel for reduction (+:ntrk,ngood)
   for (Int_t i=0; i<n; i++) {
       CookedTrack *esdTrack=tracks->GetTrack(i);
 
@@ -713,7 +670,6 @@ void CookedTracker::loadClusters(const TClonesArray& clusters)
     return;
   }
 
-#pragma omp parallel for
   for (Int_t i = 0; i < numOfClusters; i++) {
     Cluster* c = (Cluster*)clusters.UncheckedAt(i);
     c->goToFrameTrk();
