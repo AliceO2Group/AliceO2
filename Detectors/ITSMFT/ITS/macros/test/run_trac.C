@@ -41,6 +41,7 @@ void run_trac(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         rtdb->setFirstInput(parInput1);
 
         // Setup tracker
+        // To run with n threads call AliceO2::ITS::CookedTrackerTask(n)
         AliceO2::ITS::CookedTrackerTask *trac = new AliceO2::ITS::CookedTrackerTask;
         trac->setBz(5.); //in kG
         fRun->AddTask(trac);

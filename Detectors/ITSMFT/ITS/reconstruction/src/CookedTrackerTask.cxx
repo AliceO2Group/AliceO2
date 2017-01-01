@@ -14,7 +14,7 @@ ClassImp(AliceO2::ITS::CookedTrackerTask)
   using namespace AliceO2::ITS;
 
 //_____________________________________________________________________
-CookedTrackerTask::CookedTrackerTask() : FairTask("ITSCookedTrackerTask"), mClustersArray(nullptr), mTracksArray(nullptr) {}
+CookedTrackerTask::CookedTrackerTask(Int_t n) : FairTask("ITSCookedTrackerTask"), mNumOfThreads(n), mClustersArray(nullptr), mTracksArray(nullptr) {}
 
 //_____________________________________________________________________
 CookedTrackerTask::~CookedTrackerTask()
@@ -48,6 +48,8 @@ InitStatus CookedTrackerTask::Init()
 
   mGeometry.Build(kTRUE);
   Cluster::setGeom(&mGeometry);
+
+  mTracker.setNumberOfThreads(mNumOfThreads);
   
   return kSUCCESS;
 }

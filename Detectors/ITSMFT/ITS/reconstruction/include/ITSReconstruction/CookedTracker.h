@@ -25,7 +25,9 @@ class CookedTracker
 {
  public:
   enum { kNLayers = 7, kMaxClusterPerLayer = 150000, kMaxSelected = kMaxClusterPerLayer / 10 };
-  CookedTracker();
+  CookedTracker(Int_t nThreads=1);
+  CookedTracker(const CookedTracker&) = delete;
+  CookedTracker& operator=(const CookedTracker& tr) = delete;
   virtual ~CookedTracker();
 
   void setVertex(const Double_t* xyz, const Double_t* ers = 0)
@@ -49,6 +51,9 @@ class CookedTracker
   Double_t getBz() const;
   void setBz(Double_t bz) { mBz = bz; }
 
+  void setNumberOfThreads(Int_t n) { mNumOfThreads=n; }
+  Int_t getNumberOfThreads() const { return mNumOfThreads; }
+  
   // These functions must be implemented
   void process(const TClonesArray& clusters, TClonesArray& tracks);
   // Int_t propagateBack(std::vector<CookedTrack> *event);
@@ -61,23 +66,18 @@ class CookedTracker
   class Layer;
 
  protected:
-  CookedTracker(const CookedTracker&);
-  // Other protected functions
   void loadClusters(const TClonesArray& clusters);
   void unloadClusters();
-  Int_t makeSeeds();
-  Bool_t addCookedSeed(const Float_t r1[3], Int_t l1, Int_t i1, const Float_t r2[3], Int_t l2, Int_t i2,
-                       const Cluster* c3, Int_t l3, Int_t i3);
-
-  void loopOverSeeds(Int_t inx[], Int_t n);
+  
+  std::vector<CookedTrack> trackInThread(Int_t first, Int_t last);
+  std::vector<CookedTrack> makeSeeds(Int_t first, Int_t last);
+  void trackSeeds(std::vector<CookedTrack> &seeds);
 
   Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const;
 
  private:
-  CookedTracker& operator=(const CookedTracker& tr);
-
-  // Data members
-  // Internal tracker arrays, layers, modules, etc
+  Int_t mNumOfThreads; ///< Number of tracking threads
+  
   Double_t mBz;///< Effective Z-component of the magnetic field (kG)
   Double_t mX; ///< X-coordinate of the primary vertex
   Double_t mY; ///< Y-coordinate of the primary vertex
