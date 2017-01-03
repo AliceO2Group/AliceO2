@@ -451,6 +451,9 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
 
 std::vector<CookedTrack> CookedTracker::trackInThread(Int_t first, Int_t last)
 {
+  //--------------------------------------------------------------------
+  // This function is passed to a tracking thread
+  //--------------------------------------------------------------------
   std::vector<CookedTrack> seeds = makeSeeds(first, last);
   std::sort(seeds.begin(), seeds.end());
 
@@ -514,7 +517,7 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> diff = end-start;
-  std::cout<<"Timing: "<<diff.count()<<" s\n";
+  LOG(INFO)<<"Tracking time: "<<diff.count()<<" s"<<FairLogger::endl;
 
   if (nSeeds)
     LOG(INFO)<<"CookedTracker::process(), good_tracks/seeds: "<<Float_t(ngood)/nSeeds<<'\n'<<FairLogger::endl;
@@ -726,8 +729,13 @@ CookedTracker::ThreadData::ThreadData() : mNsel(0), mI(0)
 void CookedTracker::Layer::init()
 {
   //--------------------------------------------------------------------
-  // Load clusters to this layer
+  // Sort clusters and cache their reference plane info
   //--------------------------------------------------------------------
+
+  std::sort(mClusters, mClusters+mN,
+	    [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
+  );
+  
   Double_t r = 0.;
   const Float_t pi2 = 2. * TMath::Pi();
   for (Int_t i = 0; i < mN; i++) {
@@ -750,7 +758,7 @@ void CookedTracker::Layer::init()
 void CookedTracker::Layer::unloadClusters()
 {
   //--------------------------------------------------------------------
-  // Load clusters to this layer
+  // Unload clusters from this layer
   //--------------------------------------------------------------------
   // for (Int_t i=0; i<mN; i++) {delete mClusters[i]; mClusters[i]=0;}
   mN = 0;
@@ -759,21 +767,13 @@ void CookedTracker::Layer::unloadClusters()
 Bool_t CookedTracker::Layer::insertCluster(Cluster* c)
 {
   //--------------------------------------------------------------------
-  // This function inserts a cluster to this layer in increasing
-  // order of the cluster's fZ
+  // This function inserts a cluster to this layer
   //--------------------------------------------------------------------
   if (mN >= kMaxClusterPerLayer) {
-    ::Error("InsertCluster", "Too many clusters !\n");
+    LOG(ERROR)<<"Layer::insertCluster(): Too many clusters !"<<FairLogger::endl;
     return kFALSE;
   }
-  if (mN == 0)
-    mClusters[0] = c;
-  else {
-    Int_t i = findClusterIndex(c->getZ());
-    Int_t k = mN - i;
-    memmove(mClusters + i + 1, mClusters + i, k * sizeof(Cluster*));
-    mClusters[i] = c;
-  }
+  mClusters[mN] = c;
   mN++;
   return kTRUE;
 }
@@ -781,28 +781,15 @@ Bool_t CookedTracker::Layer::insertCluster(Cluster* c)
 Int_t CookedTracker::Layer::findClusterIndex(Double_t z) const
 {
   //--------------------------------------------------------------------
-  // This function returns the index of the first
-  // with its fZ >= "z".
+  // This function returns the index of the first cluster with its fZ >= "z".
   //--------------------------------------------------------------------
   if (mN == 0)
     return 0;
 
-  Int_t b = 0;
-  if (z <= mClusters[b]->getZ())
-    return b;
-
-  Int_t e = b + mN - 1;
-  if (z > mClusters[e]->getZ())
-    return e + 1;
-
-  Int_t m = (b + e) / 2;
-  for (; b < e; m = (b + e) / 2) {
-    if (z > mClusters[m]->getZ())
-      b = m + 1;
-    else
-      e = m;
-  }
-  return m;
+  Cluster *const *found = std::upper_bound(mClusters, mClusters+mN, z,
+    [](Double_t zc, const Cluster *c){ return (zc < c->getZ()); }
+  );
+  return found-mClusters;
 }
 
 void CookedTracker::Layer::selectClusters(Int_t& n, Int_t idx[], Float_t phi, Float_t dy, Float_t z, Float_t dz)
@@ -832,6 +819,9 @@ void CookedTracker::Layer::selectClusters(Int_t& n, Int_t idx[], Float_t phi, Fl
 
 Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const
 {
+  //--------------------------------------------------------------------
+  // Try to attach a clusters with index ci to running track hypothesis
+  //--------------------------------------------------------------------
   Layer& layer = sLayers[nl];
   Cluster* c = layer.getCluster(ci);
 
