@@ -686,7 +686,7 @@ void CookedTracker::loadClusters(const TClonesArray& clusters)
   }
 
   for (Int_t l = 0; l < kNLayers; l++)
-    sLayers[l].init();
+    sLayers[l].init(mNumOfThreads);
 }
 
 void CookedTracker::unloadClusters()
@@ -731,20 +731,14 @@ inline bool compareClusters(const Cluster *c1, const Cluster *c2)
 return (c1->getZ() < c2->getZ());
 }
 
-void CookedTracker::Layer::init()
+Double_t CookedTracker::Layer::initInThread(Int_t first, Int_t last)
 {
   //--------------------------------------------------------------------
-  // Sort clusters and cache their reference plane info
+  // Sort clusters and cache their reference plane info in a thread
   //--------------------------------------------------------------------
-
-  std::sort(mClusters, mClusters+mN,
-  //	    [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
-  compareClusters
-  );
-  
   Double_t r = 0.;
   const Float_t pi2 = 2. * TMath::Pi();
-  for (Int_t i = 0; i < mN; i++) {
+  for (Int_t i = first; i < last; i++) {
     Cluster* c = mClusters[i];
     c->getXAlphaRefPlane(mXRef[i], mAlphaRef[i]);
     Float_t xyz[3];
@@ -757,6 +751,34 @@ void CookedTracker::Layer::init()
       phi -= pi2;
     mPhi[i] = phi;
   }
+  return r;
+}
+
+void CookedTracker::Layer::init(Int_t nThreads)
+{
+  //--------------------------------------------------------------------
+  // Sort clusters and cache their reference plane info
+  //--------------------------------------------------------------------
+
+  std::sort(mClusters, mClusters+mN,
+  //	    [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
+  compareClusters
+  );
+
+  std::vector<std::future<Double_t>> futures(nThreads);
+
+  for (Int_t t=0,first=0; t<nThreads; t++) {
+    Int_t rem = t < (mN % nThreads) ? 1 : 0;
+    Int_t last = first + (mN/nThreads) + rem;
+    futures[t] = std::async(std::launch::async, &CookedTracker::Layer::initInThread, this, first, last);
+    first = last;
+  }
+
+  Double_t r = 0.;
+  for (Int_t t=0; t<nThreads; t++) {
+    r += futures[t].get();
+  }
+
   if (mN)
     mR = r / mN;
 }
