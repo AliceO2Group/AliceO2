@@ -405,7 +405,7 @@ const AliceO2::Header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
 // dirty trick to always have access to the headertypeID of a templated header type
 // TODO: find out if this can be done in a nicer way + is this realy necessary?
 template <>
-const AliceO2::Header::HeaderType NameHeader<0>::sHeaderType = "NameHead";
+const AliceO2::Header::HeaderType NameHeader<0>::sHeaderType;
 
 template <size_t N>
 const SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMethodNone;
