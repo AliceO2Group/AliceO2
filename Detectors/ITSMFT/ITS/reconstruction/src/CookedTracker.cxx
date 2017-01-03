@@ -726,6 +726,11 @@ CookedTracker::ThreadData::ThreadData() : mNsel(0), mI(0)
     mUsed[i] = kFALSE;
 }
 
+inline bool compareClusters(const Cluster *c1, const Cluster *c2)
+{
+return (c1->getZ() < c2->getZ());
+}
+
 void CookedTracker::Layer::init()
 {
   //--------------------------------------------------------------------
@@ -733,7 +738,8 @@ void CookedTracker::Layer::init()
   //--------------------------------------------------------------------
 
   std::sort(mClusters, mClusters+mN,
-	    [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
+  //	    [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
+  compareClusters
   );
   
   Double_t r = 0.;
@@ -778,6 +784,11 @@ Bool_t CookedTracker::Layer::insertCluster(Cluster* c)
   return kTRUE;
 }
 
+inline bool compareClusterZ(Double_t zc, const Cluster *c)
+{
+return (zc < c->getZ());
+}
+
 Int_t CookedTracker::Layer::findClusterIndex(Double_t z) const
 {
   //--------------------------------------------------------------------
@@ -787,7 +798,8 @@ Int_t CookedTracker::Layer::findClusterIndex(Double_t z) const
     return 0;
 
   Cluster *const *found = std::upper_bound(mClusters, mClusters+mN, z,
-    [](Double_t zc, const Cluster *c){ return (zc < c->getZ()); }
+  //  [](Double_t zc, const Cluster *c){ return (zc < c->getZ()); }
+  compareClusterZ
   );
   return found-mClusters;
 }
