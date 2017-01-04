@@ -7,6 +7,8 @@
 
 #include "DetectorsBase/Constants.h"
 #include <math.h>
+#include <array>
+using std::array;
 
 namespace AliceO2 {
   namespace Base {
@@ -42,7 +44,7 @@ namespace AliceO2 {
         c = cos(ang);
       }
 
-      inline void RotateZ(float *xy, float alpha) {
+      inline void RotateZ(array<float,3> &xy, float alpha) {
         // transforms vector in tracking frame alpha to global frame
         float sn,cs, x=xy[0];
         sincosf(alpha,sn,cs);

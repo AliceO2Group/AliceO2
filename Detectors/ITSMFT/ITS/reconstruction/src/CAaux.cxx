@@ -4,23 +4,13 @@
 using namespace AliceO2::ITS::CA;
 using AliceO2::Base::Constants::kPI;
 
-Cell::Cell(int xx,int yy, int zz, int dd0, int dd1, float curv, float n[3])
-  : m1OverR(curv),
-  md0(dd0),
-  md1(dd1),
-  mN(),
-  mVector() {
-    mVector.reserve(4);
-    mVector.push_back(xx);
-    mVector.push_back(yy);
-    mVector.push_back(zz);
-    mVector.push_back(1u);
-    if(n) {
-      mN[0] = n[0];
-      mN[1] = n[1];
-      mN[2] = n[2];
-    }
-  }
+Cell::Cell(int xx,int yy, int zz, int dd0, int dd1, float curv, array<float,3> n)
+  : m1OverR{curv},
+  md0{dd0},
+  md1{dd1},
+  mN{n[0],n[1],n[2]},
+  mVector{xx,yy,zz,1u} {
+}
 
 bool Cell::Combine(Cell &neigh, int idd) {
   // From outside inward
@@ -34,7 +24,7 @@ bool Cell::Combine(Cell &neigh, int idd) {
   return false;
 }
 
-Track::Track(float x, float a, float* p, float* c, int *cl) :
+Track::Track(float x, float a, array<float,Base::Track::kNParams> p, array<float,Base::Track::kCovMatSize> c, int *cl) :
   mT{x,a,p,c},
   mCl{},
   mLabel{-1},
@@ -43,7 +33,7 @@ Track::Track(float x, float a, float* p, float* c, int *cl) :
   }
 
 bool Track::Update(const Cluster *cl) {
-  float p[2] = {cl->y,cl->z};
+  array<float,2> p{cl->y,cl->z};
   if (!mT.Update(p,cl->cov)) return false;
   SetChi2(mT.GetPredictedChi2(p,cl->cov));
   return true;

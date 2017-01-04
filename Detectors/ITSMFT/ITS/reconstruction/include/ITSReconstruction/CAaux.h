@@ -2,9 +2,12 @@
 #define ALIITSUCACELL_H
 
 #include <vector>
+#include <array>
 #include <cmath>
 #include "DetectorsBase/Track.h"
 #include "DetectorsBase/Constants.h"
+using std::array;
+using std::vector;
 
 using AliceO2::Base::Constants::k2PI;
 
@@ -15,7 +18,7 @@ namespace AliceO2 {
       class Cell {
         public:
           Cell(int xx = 0u,int yy = 0u, int zz = 0u, int dd0 = 0,
-              int dd1 = 0, float curv = 0.f, float n[3] = 0x0);
+              int dd1 = 0, float curv = 0.f, array<float,3> n = {0.f});
 
           int x() const { return mVector[0]; }
           int y() const { return mVector[1]; }
@@ -24,21 +27,21 @@ namespace AliceO2 {
           int d1() const { return md1; }
           int GetLevel() const { return mVector[3]; }
           float GetCurvature() const { return m1OverR; }
-          float* GetN() { return mN; }
+          array<float,3>& GetN() { return mN; }
 
           void SetLevel(int lev) { mVector[3] = lev; }
 
           int operator()(const int i) { return mVector[4 + i]; }
 
-          std::vector<int>::size_type NumberOfNeighbours() { return (mVector.size() - 4u); }
+          vector<int>::size_type NumberOfNeighbours() { return (mVector.size() - 4u); }
 
           bool Combine(Cell &neigh, int idd);
 
         private:
           float m1OverR;
           int md0,md1;
-          float mN[3];
-          std::vector<int> mVector;
+          array<float,3> mN;
+          vector<int> mVector;
       };
 
       class Road {
@@ -80,7 +83,7 @@ namespace AliceO2 {
 
       struct Cluster {  // cluster info, optionally XY origin at vertex
         float x,y,z,phi,r;    // lab params
-        float cov[3];
+        array<float,3> cov;
         int   zphibin; // bins is z,phi
         int   detid;          // detector index //RS ??? Do we need it?
         int   label;
@@ -91,10 +94,10 @@ namespace AliceO2 {
 
       class Track {
         public:
-          Track(float x, float a, float* p, float* c, int *cl);
+          Track(float x, float a, array<float,Base::Track::kNParams> p, array<float,Base::Track::kCovMatSize> c, int *cl);
 
           int* Clusters() { return mCl; }
-          AliceO2::Base::Track::TrackParCov& Param() { return mT; }
+          Base::Track::TrackParCov& Param() { return mT; }
 
           int GetLabel() const { return mLabel; }
           float GetChi2() const { return mChi2; }
@@ -105,7 +108,7 @@ namespace AliceO2 {
           bool Update(const Cluster* cl);
           bool GetPhiZat(float r, float bfield,float &phi, float &z) const;
         private:
-          AliceO2::Base::Track::TrackParCov mT;
+          Base::Track::TrackParCov mT;
           int mCl[7];
           int mLabel;
           float mChi2;

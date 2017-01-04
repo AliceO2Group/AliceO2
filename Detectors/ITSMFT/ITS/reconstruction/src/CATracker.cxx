@@ -79,7 +79,7 @@ const float kDoublPhi1 = 0.2f;
    }
 
 bool Tracker::CellParams(int l, ClsInfo_t* c1, ClsInfo_t* c2, ClsInfo_t* c3,
-    float &curv, float n[3]) {
+    float &curv, array<float,3> &n) {
   // Calculation of cell params and filtering using a DCA cut wrt beam line position.
   // The hit are mapped on a paraboloid space: there a circle is described as plane.
   // The parameter n of the cells is the normal vector to the plane describing the circle in the
@@ -296,15 +296,15 @@ void Tracker::FindTracksCA(int iteration) {
       ITSDetInfo_t det = (*mLayer[last + 2]).GetDetInfo(cl2->detid);
       float x = det.xTF + cl2->x; // I'd like to avoit using AliITSUClusterPix...
       float alp = det.phiTF;
-      float par[5] = {cl2->y,cl2->z,0,tgl,cv};
-      float cov[15] = {
+      std::array<float,5> par {cl2->y,cl2->z,0,tgl,cv};
+      std::array<float,15> cov {
         5*5,
         0,  5*5,
         0,  0  , 0.7*0.7,
         0,  0,   0,       0.7*0.7,
         0,  0,   0,       0,       10
       };
-      Track tt = Track(x,alp,par,cov,indices);
+      Track tt{x,alp,par,cov,indices};
       if (RefitAt(2.1, &tt))
         mCandidates[level - 2].push_back(tt);
     }
@@ -402,7 +402,8 @@ void Tracker::MakeCells(int iteration) {
           const float extz = -tan * (*mLayer[iD])[mDoublets[iD][iD0].x]->r +
             (*mLayer[iD])[mDoublets[iD][iD0].x]->z;
           if (fabs(extz - GetZ()) < mCDCAz[iD]) {
-            float curv, n[3];
+            float curv = 0.f;
+            array<float,3> n {0.f};
             if (CellParams(iD,(*mLayer[iD])[mDoublets[iD][iD0].x],(*mLayer[iD + 1])[mDoublets[iD][iD0].y],
                   (*mLayer[iD + 2])[mDoublets[iD + 1][iD1].y],curv,n)) {
               if (first && iD > 0) {
@@ -430,8 +431,8 @@ void Tracker::MakeCells(int iteration) {
       if (tLUT[iD][idx] == -1) continue;
       for (size_t c1 = tLUT[iD][idx]; c1 < mCells[iD + 1].size(); ++c1) {
         if (idx != mCells[iD + 1][c1].d0()) break;
-        float* n0 = mCells[iD][c0].GetN();
-        float* n1 = mCells[iD + 1][c1].GetN();
+        auto& n0 = mCells[iD][c0].GetN();
+        auto& n1 = mCells[iD + 1][c1].GetN();
         const float dn2 = ((n0[0] - n1[0]) * (n0[0] - n1[0]) + (n0[1] - n1[1]) * (n0[1] - n1[1]) +
             (n0[2] - n1[2]) * (n0[2] - n1[2]));
         const float dp = fabs(mCells[iD][c0].GetCurvature() - mCells[iD + 1][c1].GetCurvature());

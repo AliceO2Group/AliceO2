@@ -20,12 +20,16 @@ namespace AliceO2 {
       using namespace std;
 
       // aliases for track elements
-      enum {kY,kZ,kSnp,kTgl,kQ2Pt};
-      enum {kSigY2,
+      enum ParLabels : int {
+        kY,kZ,kSnp,kTgl,kQ2Pt
+      };
+      enum CovLabels : int {
+        kSigY2,
         kSigZY,kSigZ2,
         kSigSnpY,kSigSnpZ,kSigSnp2,
         kSigTglY,kSigTglZ,kSigTglSnp,kSigTgl2,
-        kSigQ2PtY,kSigQ2PtZ,kSigQ2PtSnp,kSigQ2PtTgl,kSigQ2Pt2};
+        kSigQ2PtY,kSigQ2PtZ,kSigQ2PtSnp,kSigQ2PtTgl,kSigQ2Pt2
+      };
 
       constexpr int
         kNParams=5,
@@ -43,13 +47,13 @@ namespace AliceO2 {
       // helper function
       float BetheBlochSolid(float bg, float rho=2.33f,float kp1=0.20f,float kp2=3.00f,
 			    float meanI=173e-9f,float meanZA=0.49848f);
-      void g3helx3(float qfield, float step,float vect[7]);
+      void g3helx3(float qfield, float step,array<float,7> &vect);
 
 
       class TrackParBase { // track parameterization, kinematics only. This base class cannot be instantiated
         public:
 
-          const float* GetParam()              const { return mP; }
+          ///const float* GetParam()              const { return mP; }
           float GetX()                         const { return mX; }
           float GetAlpha()                     const { return mAlpha; }
           float GetY()                         const { return mP[kY]; }
@@ -66,41 +70,41 @@ namespace AliceO2 {
 
           float GetP()                         const;
           float GetPt()                        const;
-          void  GetXYZ(float xyz[3])           const;
-          bool  GetPxPyPz(float pxyz[3])       const;
-          bool  GetPosDir(float posdirp[9])    const;
+          void  GetXYZ(array<float,3> &xyz)           const;
+          bool  GetPxPyPz(array<float,3> &pxyz)       const;
+          bool  GetPosDir(array<float,9> &posdirp)    const;
 
           // parameters manipulation
           bool  RotateParam(float alpha);
           bool  PropagateParamTo(float xk, float b);
-          bool  PropagateParamTo(float xk, const float b[3]);
+          bool  PropagateParamTo(float xk, const array<float,3> &b);
           void  InvertParam();
 
           void  PrintParam()                   const;
 
         protected:
           // to keep this class non-virtual but derivable the c-tors and d-tor are protected
-          TrackParBase() : mX{0.},mAlpha{0.},mP{0.f} {}
-          TrackParBase(float x,float alpha, const float par[kNParams]);
-          TrackParBase(const float xyz[3],const float pxpypz[3],int sign, bool sectorAlpha=true);
+          TrackParBase() : mX{0.},mAlpha{0.} {}
+          TrackParBase(float x,float alpha, const array<float,kNParams> &par);
+          TrackParBase(const array<float,3> &xyz,const array<float,3> &pxpypz, int sign, bool sectorAlpha=true);
           TrackParBase(const TrackParBase&) = default;
           TrackParBase(TrackParBase&&) = default;
           TrackParBase& operator=(const TrackParBase& src) = default;
           ~TrackParBase() = default;
           //
-          float mX;               /// X of track evaluation
-          float mAlpha;           /// track frame angle
-          float mP[kNParams];     /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
+          float mX;                   /// X of track evaluation
+          float mAlpha;               /// track frame angle
+          float mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
       };
 
       // rootcint does not swallow final keyword here
       class TrackParCov final : public TrackParBase { // track+error parameterization
         public:
-          TrackParCov() : TrackParBase{}, mC{0.f} { }
-          TrackParCov(float x,float alpha, const float par[kNParams], const float cov[kCovMatSize]);
-          TrackParCov(const float xyz[3],const float pxpypz[3],const float[kLabCovMatSize], int sign, bool sectorAlpha=true);
+          TrackParCov() : TrackParBase{} { }
+          TrackParCov(float x, float alpha, const array<float,kNParams> &par, const array<float,kCovMatSize> &cov);
+          TrackParCov(const array<float,3> &xyz,const array<float,3> &pxpypz,const array<float,kLabCovMatSize> &cv, int sign, bool sectorAlpha=true);
 
-          const float* GetCov()                const { return mC; }
+          ///const float* GetCov()                const { return mC; }
           float GetSigmaY2()                   const { return mC[kSigY2]; }
           float GetSigmaZY()                   const { return mC[kSigZY]; }
           float GetSigmaZ2()                   const { return mC[kSigZ2]; }
@@ -122,11 +126,11 @@ namespace AliceO2 {
           // parameters + covmat manipulation
           bool  Rotate(float alpha);
           bool  PropagateTo(float xk, float b);
-          bool  PropagateTo(float xk, const float b[3]);
+          bool  PropagateTo(float xk, const array<float,3> &b);
           void  Invert();
 
-          float GetPredictedChi2(const float p[2], const float cov[3]) const;
-          bool  Update(const float p[2], const float cov[3]);
+          float GetPredictedChi2(const array<float,2> &p, const array<float,3> &cov) const;
+          bool  Update(const array<float,2> &p, const array<float,3> &cov);
 
           bool  CorrectForMaterial(float x2x0,float xrho,float mass,bool anglecorr=false,float dedx=kCalcdEdxAuto);
 
@@ -134,28 +138,27 @@ namespace AliceO2 {
           void  CheckCovariance();
 
         protected:
-          float mC[kCovMatSize];  // x, alpha + 5 parameters + 15 errors
+          float mC[kCovMatSize] = {0.f};  // 15 covariance matrix elements
 
       };
 
       class TrackPar final : public TrackParBase { // track parameterization only
         public:
           TrackPar() {}
-          TrackPar(float x,float alpha, const float par[kNParams]) : TrackParBase{x,alpha,par} {}
-          TrackPar(const float xyz[3], const float pxpypz[3],int sign, bool sectorAlpha=true);
-          TrackPar(const TrackParCov& src) : TrackParBase{static_cast<const TrackParBase&>(src)} {}
+          TrackPar(float x,float alpha, const array<float,kNParams> &par) : TrackParBase{x,alpha,par} {}
+          TrackPar(const array<float,3> &xyz, const array<float,3> &pxpypz,int sign, bool sectorAlpha=true);
           //
           void  Print() const {PrintParam();}
       };
 
       //____________________________________________________________
-      inline TrackParBase::TrackParBase(float x, float alpha, const float par[kNParams]) : mX{x}, mAlpha{alpha} {
+      inline TrackParBase::TrackParBase(float x, float alpha, const array<float, kNParams> &par) : mX{x}, mAlpha{alpha} {
         // explicit constructor
-        std::copy(par, par + kNParams, mP);
+        std::copy(par.begin(), par.end(), mP);
       }
 
       //_______________________________________________________
-      inline void TrackParBase::GetXYZ(float xyz[3]) const {
+      inline void TrackParBase::GetXYZ(array<float,3> &xyz) const {
         // track coordinates in lab frame
         xyz[0] = GetX();
         xyz[1] = GetY();
@@ -187,16 +190,16 @@ namespace AliceO2 {
       //============================================================
 
       //____________________________________________________________
-      inline TrackParCov::TrackParCov(float x, float alpha, const float par[kNParams], const float cov[kCovMatSize])
+      inline TrackParCov::TrackParCov(float x, float alpha, const array<float,kNParams> &par, const array<float,kCovMatSize> &cov)
 	: TrackParBase{x,alpha,par} {
         // explicit constructor
-        std::copy(cov, cov + kCovMatSize, mC);
+        std::copy(cov.begin(), cov.end(), mC);
       }
 
       //============================================================
 
       //____________________________________________________________
-      inline TrackPar::TrackPar(const float xyz[3], const float pxpypz[3],int sign, bool sectorAlpha)
+      inline TrackPar::TrackPar(const array<float,3> &xyz, const array<float,3> &pxpypz,int sign, bool sectorAlpha)
 	: TrackParBase{xyz,pxpypz,sign,sectorAlpha} {
         // explicit constructor
       }

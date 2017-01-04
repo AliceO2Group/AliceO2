@@ -10,12 +10,14 @@
 #define ALIITSUCATRACKER_H
 
 #include <vector>
+#include <array>
 
 #include "ITSReconstruction/CAaux.h"
 #include "ITSReconstruction/CATrackingStation.h"
 #include "DetectorsBase/Track.h"
 
 using std::vector;
+using std::array;
 
 namespace AliceO2 {
   namespace ITS {
@@ -47,7 +49,7 @@ namespace AliceO2 {
           Tracker(const Tracker&);
           Tracker &operator=(const Tracker &tr);
           //
-          bool   CellParams(int l, Cluster* c1, Cluster* c2, Cluster* c3, float &curv, float np[3]);
+          bool   CellParams(int l, Cluster* c1, Cluster* c2, Cluster* c3, float &curv, array<float,3> &np);
           void   CellsTreeTraversal(vector<Road> &roads, const int &iD, const int &doubl);
           void   FindTracksCA(int iteration);
           void   MakeCells(int iteration);
