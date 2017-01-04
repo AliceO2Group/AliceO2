@@ -78,7 +78,7 @@ const float kDoublPhi1 = 0.2f;
      // This default constructor needs to be provided
    }
 
-bool Tracker::CellParams(int l, ClsInfo_t* c1, ClsInfo_t* c2, ClsInfo_t* c3,
+bool Tracker::CellParams(int l, const ClsInfo_t& c1, const ClsInfo_t& c2, const ClsInfo_t& c3,
     float &curv, array<float,3> &n) {
   // Calculation of cell params and filtering using a DCA cut wrt beam line position.
   // The hit are mapped on a paraboloid space: there a circle is described as plane.
@@ -86,12 +86,12 @@ bool Tracker::CellParams(int l, ClsInfo_t* c1, ClsInfo_t* c2, ClsInfo_t* c3,
   // paraboloid.
 
   // Mapping the hits
-  const float mHit0[3] = {c1->x, c1->y, c1->r * c1->r};
-  const float mHit1[3] = {c2->x, c2->y, c2->r * c2->r};
-  const float mHit2[3] = {c3->x, c3->y, c3->r * c3->r};
+  const array<float,3> mHit0{c1.x, c1.y, c1.r * c1.r};
+  const array<float,3> mHit1{c2.x, c2.y, c2.r * c2.r};
+  const array<float,3> mHit2{c3.x, c3.y, c3.r * c3.r};
   // Computing the deltas
-  const float mD10[3] = {mHit1[0] - mHit0[0],mHit1[1] - mHit0[1],mHit1[2] - mHit0[2]};
-  const float mD20[3] = {mHit2[0] - mHit0[0],mHit2[1] - mHit0[1],mHit2[2] - mHit0[2]};
+  const array<float,3> mD10{mHit1[0] - mHit0[0],mHit1[1] - mHit0[1],mHit1[2] - mHit0[2]};
+  const array<float,3> mD20{mHit2[0] - mHit0[0],mHit2[1] - mHit0[1],mHit2[2] - mHit0[2]};
   // External product of the deltas -> n
   n[0] = (mD10[1] * mD20[2]) - (mD10[2] * mD20[1]);
   n[1] = (mD10[2] * mD20[0]) - (mD10[0] * mD20[2]);
@@ -106,7 +106,7 @@ bool Tracker::CellParams(int l, ClsInfo_t* c1, ClsInfo_t* c2, ClsInfo_t* c3,
   n[1] *= norm;
   n[2] *= norm;
   // Center of the circle
-  const float c[2] = {-0.5f * n[0] / n[2], -0.5f * n[1] / n[2]};
+  const float c[2]{-0.5f * n[0] / n[2], -0.5f * n[1] / n[2]};
   // Constant
   const float k = - n[0] * mHit1[0] - n[1] * mHit1[1] - n[2] * mHit1[2];
   // Radius of the circle
@@ -272,13 +272,11 @@ void Tracker::FindTracksCA(int iteration) {
         continue;
       int indices[7] = {-1};
       int first = -1,last = -1;
-      ClsInfo_t *cl0 = 0x0,*cl1 = 0x0,*cl2 = 0x0;
       for(int i = 0; i < 5; ++i) {
         if (roads[iR][i] < 0)
           continue;
 
         if (first < 0) {
-          cl0 = (*mLayer[i])[mCells[i][roads[iR][i]].x()];
           indices[i] = mCells[i][roads[iR][i]].x();
           indices[i + 1] = mCells[i][roads[iR][i]].y();
           first = i;
@@ -286,23 +284,24 @@ void Tracker::FindTracksCA(int iteration) {
         indices[i + 2] = mCells[i][roads[iR][i]].z();
         last = i;
       }
-      cl2 = (*mLayer[last + 2])[mCells[last][roads[iR][last]].z()];
-      first = (last + first) / 2;
-      cl1 = (*mLayer[first + 1])[mCells[first][roads[iR][first]].y()];
+      const int mid = (last + first) / 2;
+      const Cluster& cl0 = (*mLayer[first])[mCells[first][roads[iR][first]].x()];
+      const Cluster& cl1 = (*mLayer[mid + 1])[mCells[mid][roads[iR][mid]].y()];
+      const Cluster& cl2 = (*mLayer[last + 2])[mCells[last][roads[iR][last]].z()];
       // Init track parameters
-      float cv = Curvature(cl0->x,cl0->y,cl1->x,cl1->y,cl2->x,cl2->y);
-      float tgl = TanLambda(cl0->x,cl0->y,cl2->x,cl2->y,cl0->z,cl2->z);
+      float cv  = Curvature(cl0.x,cl0.y,cl1.x,cl1.y,cl2.x,cl2.y);
+      float tgl = TanLambda(cl0.x,cl0.y,cl2.x,cl2.y,cl0.z,cl2.z);
 
-      ITSDetInfo_t det = (*mLayer[last + 2]).GetDetInfo(cl2->detid);
-      float x = det.xTF + cl2->x; // I'd like to avoit using AliITSUClusterPix...
+      ITSDetInfo_t det = (*mLayer[last + 2]).GetDetInfo(cl2.detid);
+      float x = det.xTF + cl2.x; // I'd like to avoit using AliITSUClusterPix...
       float alp = det.phiTF;
-      std::array<float,5> par {cl2->y,cl2->z,0,tgl,cv};
+      std::array<float,5> par {cl2.y,cl2.z,0,tgl,cv};
       std::array<float,15> cov {
-        5*5,
-        0,  5*5,
-        0,  0  , 0.7*0.7,
-        0,  0,   0,       0.7*0.7,
-        0,  0,   0,       0,       10
+        5.f*5.f,
+        0.f,  5.f*5.f,
+        0.f,  0.f  , 0.7f*0.7f,
+        0.f,  0.f,   0.f,       0.7f*0.7f,
+        0.f,  0.f,   0.f,       0.f,       10.f
       };
       Track tt{x,alp,par,cov,indices};
       if (RefitAt(2.1, &tt))
@@ -346,30 +345,30 @@ void Tracker::MakeCells(int iteration) {
     if (dLUT[iL - 1].size() == 0u)
       continue;
     for (int iC = 0; iC < mLayer[iL]->GetNClusters(); ++iC) {
-      ClsInfo_t* cls = mLayer[iL]->GetClusterInfo(iC);
+      const ClsInfo_t& cls = mLayer[iL]->GetClusterInfo(iC);
       if (mUsedClusters[iL][iC]) {
         continue;
       }
-      const float tanL = (cls->z - GetZ()) / cls->r;
-      const float extz = tanL * (mkR[iL + 1] - cls->r) + cls->z;
+      const float tanL = (cls.z - GetZ()) / cls.r;
+      const float extz = tanL * (mkR[iL + 1] - cls.r) + cls.z;
       const int nClust = mLayer[iL + 1]->SelectClusters(extz - 2 * mCZ, extz + 2 * mCZ,
-          cls->phi - mCPhi, cls->phi + mCPhi);
+          cls.phi - mCPhi, cls.phi + mCPhi);
       bool first = true;
 
       for (int iC2 = 0; iC2 < nClust; ++iC2) {
         const int iD2 = mLayer[iL + 1]->GetNextClusterInfoID();
-        ClsInfo_t* cls2 = mLayer[iL + 1]->GetClusterInfo(iD2);
+        const ClsInfo_t& cls2 = mLayer[iL + 1]->GetClusterInfo(iD2);
         if (mUsedClusters[iL + 1][iC2]) {
           continue;
         }
-        const float dz = tanL * (cls2->r - cls->r) + cls->z - cls2->z;
-        if (fabs(dz) < mCDZ[iL] && CompareAngles(cls->phi, cls2->phi, mCPhi)) {
+        const float dz = tanL * (cls2.r - cls.r) + cls.z - cls2.z;
+        if (fabs(dz) < mCDZ[iL] && CompareAngles(cls.phi, cls2.phi, mCPhi)) {
           if (first && iL > 0) {
             dLUT[iL - 1][iC] = mDoublets[iL].size();
             first = false;
           }
-          const float dTanL = (cls->z - cls2->z) / (cls->r - cls2->r);
-          const float phi = atan2(cls->y - cls2->y, cls->x - cls2->x);
+          const float dTanL = (cls.z - cls2.z) / (cls.r - cls2.r);
+          const float phi = atan2(cls.y - cls2.y, cls.x - cls2.x);
           mDoublets[iL].push_back(Doublets(iC,iD2,dTanL,phi));
         }
       }
@@ -399,8 +398,8 @@ void Tracker::MakeCells(int iteration) {
         if (fabs(mDoublets[iD][iD0].tanL - mDoublets[iD + 1][iD1].tanL) < mCDTanL &&
             fabs(mDoublets[iD][iD0].phi - mDoublets[iD + 1][iD1].phi) < mCDPhi) {
           const float tan = 0.5f * (mDoublets[iD][iD0].tanL + mDoublets[iD + 1][iD1].tanL);
-          const float extz = -tan * (*mLayer[iD])[mDoublets[iD][iD0].x]->r +
-            (*mLayer[iD])[mDoublets[iD][iD0].x]->z;
+          const float extz = -tan * (*mLayer[iD])[mDoublets[iD][iD0].x].r +
+            (*mLayer[iD])[mDoublets[iD][iD0].x].z;
           if (fabs(extz - GetZ()) < mCDCAz[iD]) {
             float curv = 0.f;
             array<float,3> n {0.f};
@@ -501,8 +500,8 @@ bool Tracker::RefitAt(float xx, Track *track) {
   for (int i = from; i != to; i += step) {
     int idx = index[i];
     if (idx >= 0) {
-      const Cluster *cl = (*mLayer[i])[idx];
-      float xr = cl->x,ar = mLayer[i]->GetDetInfo(cl->detid).phiTF;
+      const Cluster &cl = (*mLayer[i])[idx];
+      float xr = cl.x, ar = mLayer[i]->GetDetInfo(cl.detid).phiTF;
       if (!t->Rotate(ar) || !t->PropagateTo(xr, mBz)) {
         return false;
       }

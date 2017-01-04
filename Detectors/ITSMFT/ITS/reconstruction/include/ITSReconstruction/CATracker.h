@@ -49,7 +49,7 @@ namespace AliceO2 {
           Tracker(const Tracker&);
           Tracker &operator=(const Tracker &tr);
           //
-          bool   CellParams(int l, Cluster* c1, Cluster* c2, Cluster* c3, float &curv, array<float,3> &np);
+          bool   CellParams(int l, const Cluster& c1, const Cluster& c2, const Cluster& c3, float &curv, array<float,3> &np);
           void   CellsTreeTraversal(vector<Road> &roads, const int &iD, const int &doubl);
           void   FindTracksCA(int iteration);
           void   MakeCells(int iteration);

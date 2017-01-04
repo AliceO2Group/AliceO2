@@ -105,7 +105,7 @@ namespace AliceO2 {
           void SetLabel(int label) { mLabel = label; }
           void SetChi2(float chi) { mChi2 = chi; }
 
-          bool Update(const Cluster* cl);
+          bool Update(const Cluster& cl);
           bool GetPhiZat(float r, float bfield,float &phi, float &z) const;
         private:
           Base::Track::TrackParCov mT;
