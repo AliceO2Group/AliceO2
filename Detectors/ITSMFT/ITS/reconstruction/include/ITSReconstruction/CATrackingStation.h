@@ -34,8 +34,7 @@ namespace AliceO2 {
           TrackingStation(int id,float zMin, float zMax, int nzbins,int nphibins);
 
           virtual ~TrackingStation();
-          ClsInfo_t* operator[](int i) const
-          {return (ClsInfo_t*)&mSortedClInfo[i];}
+          const ClsInfo_t& operator[](int i)    const {return mSortedClInfo[i];}
           //
           int     GetVIDOffset()                const {return mVIDOffset;}
           int     GetNClusters()                const {return mNClusters;}
@@ -64,8 +63,7 @@ namespace AliceO2 {
           int  GetFoundBin(int i)               const {return mFoundBins[i];}
           int  GetFoundBinClusters(int i, int &first)  const;
           void ResetFoundIterator();
-          ClsInfo_t* GetClusterInfo(int i) const
-          {return (ClsInfo_t*)&mSortedClInfo[i];}
+          const ClsInfo_t& GetClusterInfo(int i) const {return mSortedClInfo[i];}
           ClsInfo_t* GetNextClusterInfo();
           int                     GetNextClusterInfoID();
           //

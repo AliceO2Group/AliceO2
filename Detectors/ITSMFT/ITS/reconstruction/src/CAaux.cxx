@@ -32,10 +32,11 @@ Track::Track(float x, float a, array<float,Base::Track::kNParams> p, array<float
     for (int i = 0; i < 7; ++i) mCl[i] = cl[i];
   }
 
-bool Track::Update(const Cluster *cl) {
-  array<float,2> p{cl->y,cl->z};
-  if (!mT.Update(p,cl->cov)) return false;
-  SetChi2(mT.GetPredictedChi2(p,cl->cov));
+bool Track::Update(const Cluster &cl) {
+  array<float,2> p{cl.y,cl.z};
+  const float dChi2 = mT.GetPredictedChi2(p,cl.cov);
+  if (!mT.Update(p,cl.cov)) return false;
+  else mChi2 += dChi2;
   return true;
 }
 
