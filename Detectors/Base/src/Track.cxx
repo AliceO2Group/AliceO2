@@ -3,7 +3,7 @@
 using namespace AliceO2::Base;
 
 //______________________________________________________________
-Track::TrackParBase::TrackParBase(const float xyz[3],const float pxpypz[3], int charge, bool sectorAlpha) :
+Track::TrackParBase::TrackParBase(const array<float,3> &xyz,const array<float,3> &pxpypz, int charge, bool sectorAlpha) :
   mX{0.f},mAlpha{0.f},mP{0.f}
 {
   // construct track param from kinematics
@@ -35,8 +35,8 @@ Track::TrackParBase::TrackParBase(const float xyz[3],const float pxpypz[3], int 
     sincosf(alp,sn,cs);
   }
   // Get the vertex of origin and the momentum
-  float ver[3] = {xyz[0],xyz[1],xyz[2]};
-  float mom[3] = {pxpypz[0],pxpypz[1],pxpypz[2]};
+  array<float,3> ver {xyz[0],xyz[1],xyz[2]};
+  array<float,3> mom {pxpypz[0],pxpypz[1],pxpypz[2]};
   //
   // Rotate to the local coordinate system
   RotateZ(ver,-alp);
@@ -58,7 +58,7 @@ Track::TrackParBase::TrackParBase(const float xyz[3],const float pxpypz[3], int 
 
 
 //_______________________________________________________
-bool Track::TrackParBase::GetPxPyPz(float pxyz[3]) const
+bool Track::TrackParBase::GetPxPyPz(array<float,3> &pxyz) const
 {
   // track momentum
   if (fabs(GetQ2Pt())<kAlmost0 || fabs(GetSnp())>kAlmost1) return false;
@@ -72,7 +72,7 @@ bool Track::TrackParBase::GetPxPyPz(float pxyz[3]) const
 }
 
 //____________________________________________________
-bool Track::TrackParBase::GetPosDir(float posdirp[9]) const
+bool Track::TrackParBase::GetPosDir(array<float,9> &posdirp) const
 {
   // fill vector with lab x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha
   float ptI = fabs(GetQ2Pt());
@@ -133,7 +133,7 @@ bool Track::TrackParBase::RotateParam(float alpha)
 
 
 //____________________________________________________________
-bool Track::TrackParBase::PropagateParamTo(float xk, const float b[3])
+bool Track::TrackParBase::PropagateParamTo(float xk, const array<float,3> &b)
 {
   //----------------------------------------------------------------
   // Extrapolate this track params (w/o cov matrix) to the plane X=xk in the field b[].
@@ -163,7 +163,7 @@ bool Track::TrackParBase::PropagateParamTo(float xk, const float b[3])
   step *= sqrtf(1.f+ GetTgl()*GetTgl());
   //
   // Get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
-  float vecLab[9];
+  array<float,9> vecLab {0.f};
   if (!GetPosDir(vecLab)) return false;
 
   // Rotate to the system where Bx=By=0.
@@ -180,7 +180,7 @@ bool Track::TrackParBase::PropagateParamTo(float xk, const float b[3])
     costet=b[2]/bb;
     sintet=bt/bb;
   }
-  float vect[7] = {
+  array<float,7> vect{
     costet*cosphi*vecLab[0] + costet*sinphi*vecLab[1] - sintet*vecLab[2],
     -sinphi*vecLab[0] + cosphi*vecLab[1],
     sintet*cosphi*vecLab[0] + sintet*sinphi*vecLab[1] + costet*vecLab[2],
@@ -461,8 +461,8 @@ bool Track::TrackParCov::Rotate(float alpha)
 
 
 //______________________________________________________________
-Track::TrackParCov::TrackParCov(const float xyz[3],const float pxpypz[3],
-				const float cv[kLabCovMatSize], int charge, bool sectorAlpha)
+Track::TrackParCov::TrackParCov(const array<float,3> &xyz,const array<float,3> &pxpypz,
+				const array<float,kLabCovMatSize> &cv, int charge, bool sectorAlpha)
 {
   // construct track param and covariance from kinematics and lab errors
 
@@ -493,8 +493,8 @@ Track::TrackParCov::TrackParCov(const float xyz[3],const float pxpypz[3],
     sincosf(alp,sn,cs);
   }
   // Get the vertex of origin and the momentum
-  float ver[3] = {xyz[0],xyz[1],xyz[2]};
-  float mom[3] = {pxpypz[0],pxpypz[1],pxpypz[2]};
+  array<float,3> ver{xyz[0],xyz[1],xyz[2]};
+  array<float,3> mom{pxpypz[0],pxpypz[1],pxpypz[2]};
   //
   // Rotate to the local coordinate system
   RotateZ(ver,-alp);
@@ -602,7 +602,7 @@ Track::TrackParCov::TrackParCov(const float xyz[3],const float pxpypz[3],
 
 
 //____________________________________________________________
-bool Track::TrackParCov::PropagateTo(float xk, const float b[3])
+bool Track::TrackParCov::PropagateTo(float xk, const array<float,3> &b)
 {
   //----------------------------------------------------------------
   // Extrapolate this track to the plane X=xk in the field b[].
@@ -632,7 +632,7 @@ bool Track::TrackParCov::PropagateTo(float xk, const float b[3])
   step *= sqrtf(1.f+ GetTgl()*GetTgl());
   //
   // Get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
-  float vecLab[9];
+  array<float,9> vecLab{0.f};
   if (!GetPosDir(vecLab)) return false;
   //
   // matrix transformed with Bz component only
@@ -699,7 +699,7 @@ bool Track::TrackParCov::PropagateTo(float xk, const float b[3])
     costet=b[2]/bb;
     sintet=bt/bb;
   }
-  float vect[7] = {
+  array<float,7> vect{
     costet*cosphi*vecLab[0] + costet*sinphi*vecLab[1] - sintet*vecLab[2],
     -sinphi*vecLab[0] + cosphi*vecLab[1],
     sintet*cosphi*vecLab[0] + sintet*sinphi*vecLab[1] + costet*vecLab[2],
@@ -834,7 +834,7 @@ void Track::TrackParCov::ResetCovariance(float s2)
 }
 
 //______________________________________________
-float Track::TrackParCov::GetPredictedChi2(const float p[2], const float cov[3]) const
+float Track::TrackParCov::GetPredictedChi2(const array<float,2> &p, const array<float,3> &cov) const
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
   float sdd = GetSigmaY2() + cov[0];
@@ -851,7 +851,7 @@ float Track::TrackParCov::GetPredictedChi2(const float p[2], const float cov[3])
 
 }
 
-bool Track::TrackParCov::Update(const float p[2], const float cov[3])
+bool Track::TrackParCov::Update(const array<float,2> &p, const array<float,3> &cov)
 {
   // Update the track parameters with the space point "p" having
   // the covariance matrix "cov"
@@ -1033,7 +1033,7 @@ void Track::TrackParCov::Print() const
 //
 //=================================================
 
-void Track::g3helx3(float qfield, float step,float vect[7])
+void Track::g3helx3(float qfield, float step,array<float,7> &vect)
 {
 /******************************************************************
  *                                                                *
