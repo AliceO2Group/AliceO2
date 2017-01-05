@@ -265,7 +265,7 @@ void EventSampler::samplerLoop()
     }
 
     for (int iOutput=0; iOutput<numOutputs; iOutput++) {
-      fChannels["data-out"].at(iOutput).Send(msg.get());
+      fChannels["data-out"].at(iOutput).Send(msg);
     }
 
     mNEvents++;
