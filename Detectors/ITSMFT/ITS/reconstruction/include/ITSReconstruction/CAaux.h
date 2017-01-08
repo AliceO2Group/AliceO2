@@ -6,8 +6,6 @@
 #include <cmath>
 #include "DetectorsBase/Track.h"
 #include "DetectorsBase/Constants.h"
-using std::array;
-using std::vector;
 
 using AliceO2::Base::Constants::k2PI;
 
@@ -18,7 +16,7 @@ namespace AliceO2 {
       class Cell {
         public:
           Cell(int xx = 0u,int yy = 0u, int zz = 0u, int dd0 = 0,
-              int dd1 = 0, float curv = 0.f, array<float,3> n = {0.f});
+              int dd1 = 0, float curv = 0.f, std::array<float,3> n = {0.f});
 
           int x() const { return mVector[0]; }
           int y() const { return mVector[1]; }
@@ -27,21 +25,21 @@ namespace AliceO2 {
           int d1() const { return md1; }
           int GetLevel() const { return mVector[3]; }
           float GetCurvature() const { return m1OverR; }
-          array<float,3>& GetN() { return mN; }
+          std::array<float,3>& GetN() { return mN; }
 
           void SetLevel(int lev) { mVector[3] = lev; }
 
           int operator()(const int i) { return mVector[4 + i]; }
 
-          vector<int>::size_type NumberOfNeighbours() { return (mVector.size() - 4u); }
+          std::vector<int>::size_type NumberOfNeighbours() { return (mVector.size() - 4u); }
 
           bool Combine(Cell &neigh, int idd);
 
         private:
           float m1OverR;
           int md0,md1;
-          array<float,3> mN;
-          vector<int> mVector;
+          std::array<float,3> mN;
+          std::vector<int> mVector;
       };
 
       class Road {
@@ -83,7 +81,7 @@ namespace AliceO2 {
 
       struct Cluster {  // cluster info, optionally XY origin at vertex
         float x,y,z,phi,r;    // lab params
-        array<float,3> cov;
+        std::array<float,3> cov;
         int   zphibin; // bins is z,phi
         int   detid;          // detector index //RS ??? Do we need it?
         int   label;
@@ -94,7 +92,7 @@ namespace AliceO2 {
 
       class Track {
         public:
-          Track(float x, float a, array<float,Base::Track::kNParams> p, array<float,Base::Track::kCovMatSize> c, int *cl);
+          Track(float x, float a, std::array<float,Base::Track::kNParams> p, std::array<float,Base::Track::kCovMatSize> c, int *cl);
 
           int* Clusters() { return mCl; }
           Base::Track::TrackParCov& Param() { return mT; }

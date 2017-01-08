@@ -8,43 +8,40 @@
 #include "DetectorsBase/Constants.h"
 #include <math.h>
 #include <array>
-using std::array;
 
 namespace AliceO2 {
   namespace Base {
     namespace Utils {
 
-      using namespace AliceO2::Base::Constants;
-
       inline void  BringTo02Pi(float &phi) {
         // ensure angle in [0:2pi] for the input in [-pi:pi] or [0:pi]
-        if (phi < 0) phi += k2PI;
+        if (phi < 0) phi += Constants::k2PI;
       }
 
       inline void  BringTo02PiGen(float &phi) {
         // ensure angle in [0:2pi] for the any input angle
-        while(phi<0)    {phi += k2PI;}
-        while(phi>k2PI) {phi -= k2PI;}
+        while(phi<0)           {phi += Constants::k2PI;}
+        while(phi>Constants::k2PI) {phi -= Constants::k2PI;}
       }
 
       inline void  BringToPMPi(float &phi) {
         // ensure angle in [-pi:pi] for the input in [-pi:pi] or [0:pi]
-        if (phi > kPI) phi -= k2PI;
+        if (phi > Constants::kPI) phi -= Constants::k2PI;
       }
 
       inline void  BringToPMPiGen(float &phi) {
         // ensure angle in [-pi:pi] for any input angle
-        while(phi<-kPI)   {phi += k2PI;}
-        while(phi> kPI)   {phi -= k2PI;}
+        while(phi<-Constants::kPI)   {phi += Constants::k2PI;}
+        while(phi> Constants::kPI)   {phi -= Constants::k2PI;}
       }
 
       inline void sincosf(float ang, float& s, float &c) {
         // consider speedup for simultaneus calculation
-        s = sin(ang);
-        c = cos(ang);
+        s = sinf(ang);
+        c = cosf(ang);
       }
 
-      inline void RotateZ(array<float,3> &xy, float alpha) {
+      inline void RotateZ(std::array<float,3> &xy, float alpha) {
         // transforms vector in tracking frame alpha to global frame
         float sn,cs, x=xy[0];
         sincosf(alpha,sn,cs);
@@ -54,14 +51,14 @@ namespace AliceO2 {
 
       inline int Angle2Sector(float phi) {
         // convert angle to sector ID
-        int sect = (phi*kRad2Deg)/kSectorSpan;
-        sect %= kNSectors;
-        return (sect<0) ? sect+kNSectors-1 : sect;
+        int sect = (phi*Constants::kRad2Deg)/Constants::kSectorSpan;
+        sect %= Constants::kNSectors;
+        return (sect<0) ? sect+Constants::kNSectors-1 : sect;
       }
 
       inline float Sector2Angle(int sect) {
         // convert sector to its angle center
-        return kSectorSpan/2.f + (sect%kNSectors)*kSectorSpan;
+        return Constants::kSectorSpan/2.f + (sect%Constants::kNSectors)*Constants::kSectorSpan;
       }
 
       inline float Angle2Alpha(float phi) {
