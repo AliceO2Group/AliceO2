@@ -16,9 +16,6 @@
 #include "ITSReconstruction/CATrackingStation.h"
 #include "DetectorsBase/Track.h"
 
-using std::vector;
-using std::array;
-
 namespace AliceO2 {
   namespace ITS {
     namespace CA {
@@ -49,8 +46,8 @@ namespace AliceO2 {
           Tracker(const Tracker&);
           Tracker &operator=(const Tracker &tr);
           //
-          bool   CellParams(int l, const Cluster& c1, const Cluster& c2, const Cluster& c3, float &curv, array<float,3> &np);
-          void   CellsTreeTraversal(vector<Road> &roads, const int &iD, const int &doubl);
+          bool   CellParams(int l, const Cluster& c1, const Cluster& c2, const Cluster& c3, float &curv, std::array<float,3> &np);
+          void   CellsTreeTraversal(std::vector<Road> &roads, const int &iD, const int &doubl);
           void   FindTracksCA(int iteration);
           void   MakeCells(int iteration);
           bool   RefitAt(float xx, Track* t);
@@ -58,13 +55,13 @@ namespace AliceO2 {
           void   SetLabel(Track &t, float wrong);
           //
           TrackingStation**     mLayer;
-          vector<bool>          mUsedClusters[7];
+          std::vector<bool>          mUsedClusters[7];
           float                 mChi2Cut;
           float                 mPhiCut;
           float                 mZCut;
-          vector<Doublets>      mDoublets[6];
-          vector<Cell>          mCells[5];
-          vector<Track>         mCandidates[4];
+          std::vector<Doublets>      mDoublets[6];
+          std::vector<Cell>          mCells[5];
+          std::vector<Track>         mCandidates[4];
           bool                  mSAonly;             // true if the standalone tracking only
           // Cuts
           float mCPhi;

@@ -36,6 +36,8 @@ using std::sort;
 using std::cout;
 using std::endl;
 using std::flush;
+using std::vector;
+using std::array;
 
 // tolerance for layer on-surface check
 const float Tracker::mkChi2Cut =  600.f;
