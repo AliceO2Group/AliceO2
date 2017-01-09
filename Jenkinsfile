@@ -8,10 +8,14 @@ node {
     "PatrykLesiak",
     "bovulpes",
     "dberzano",
+    "iouribelikov",
     "ktf",
     "matthiasrichter",
+    "mkrzewic",
+    "mpuccio",
     "rbx",
-    "wiechula",
+    "sawanzel",
+    "wiechula"
   ]
   echo "Changeset from " + env.CHANGE_AUTHOR
   if (power_users.contains(env.CHANGE_AUTHOR)) {
