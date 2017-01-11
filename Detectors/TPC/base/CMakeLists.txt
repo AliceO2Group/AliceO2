@@ -3,6 +3,7 @@ set(MODULE_NAME "TPCBase")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
+   src/CalDet.cxx
    src/ContainerFactory.cxx
    src/CRU.cxx
    src/DigitPos.cxx
@@ -19,6 +20,7 @@ set(SRCS
 )
 
 set(HEADERS
+   include/TPCBase/CalDet.h
    include/TPCBase/ContainerFactory.h
    include/TPCBase/CRU.h
 #    include/TPCBase/Defs.h
