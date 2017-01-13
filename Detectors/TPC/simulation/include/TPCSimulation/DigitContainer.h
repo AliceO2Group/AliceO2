@@ -5,8 +5,9 @@
 
 #include "TPCSimulation/Digit.h"
 #include "TPCSimulation/DigitCRU.h"
+#include "TPCSimulation/CommonMode.h"
+#include "TPCSimulation/Constants.h"
 #include "Rtypes.h"
-#include <map>
 
 class TClonesArray;
 
@@ -16,21 +17,29 @@ namespace AliceO2 {
     class DigitPad;
     class DigitRow;
     class DigitCRU;
-    
+
     /// \class DigitContainer
     /// \brief Digit container class
-    
+
     class DigitContainer{
     public:
-      
+
       /// Default constructor
       DigitContainer();
-      
+
       /// Destructor
       ~DigitContainer();
-      
+
       void reset();
-      
+
+      /// Get the size of the container
+      /// @return Size of the CRU container
+      Int_t getSize() {return mCRU.size();}
+
+      /// Get the number of entires in the container
+      /// @return Number of entries in the CRU container
+      Int_t getNentries();
+
       /// Add digit to the container
       /// @param cru CRU of the digit
       /// @param row Pad row of digit
@@ -38,24 +47,43 @@ namespace AliceO2 {
       /// @param timeBin Time bin of the digit
       /// @param charge Charge of the digit
       void addDigit(Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t charge);
-      
+
       /// Fill output TClonesArray
-      /// @param outputcont Output container
+      /// @param output Output container
       void fillOutputContainer(TClonesArray *output);
-      
+
+      /// Fill output TClonesArray
+      /// @param output Output container
+      void fillOutputContainer(TClonesArray *output, std::vector<CommonMode> commonModeContainer);
+
+      /// Process Common Mode Information
+      /// @param output Output container
+      void processCommonMode(std::vector<CommonMode> &);
+
     private:
       UShort_t mNCRU;
       std::vector<DigitCRU*> mCRU;
     };
-    
+
     inline
     void DigitContainer::reset() {
       for(auto &aCRU : mCRU) {
         if(aCRU == nullptr) continue;
         aCRU->reset();
       }
+//       mCRU.clear();
     }
-       
+
+    inline
+    Int_t DigitContainer::getNentries() {
+      Int_t counter = 0;
+      for(auto &aCRU : mCRU) {
+        if(aCRU == nullptr) continue;
+        ++counter;
+      }
+      return counter;
+    }
+
   }
 }
 

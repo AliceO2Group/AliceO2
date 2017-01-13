@@ -23,4 +23,5 @@
 
 #pragma link C++ class AliceO2::TPC::PadResponse+;
 
+#pragma link C++ class AliceO2::TPC::CommonMode+;
 #endif

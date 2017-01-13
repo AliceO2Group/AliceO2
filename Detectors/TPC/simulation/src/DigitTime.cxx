@@ -3,12 +3,14 @@
 #include "TPCBase/Mapper.h"
 #include "TClonesArray.h"
 #include "FairLogger.h"
+#include <iostream>
 using namespace AliceO2::TPC;
 
 DigitTime::DigitTime(Int_t timeBin, Int_t nrows):
 mTimeBin(timeBin),
 mNRows(nrows),
-mRows(nrows)
+mRows(nrows),
+mTotalChargeTimeBin(0.)
 {}
 
 DigitTime::~DigitTime() {
@@ -34,5 +36,20 @@ void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeB
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
     aRow->fillOutputContainer(output, cru, timeBin, aRow->getRow());
+  }
+}
+
+void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, std::vector<CommonMode> commonModeContainer) {
+  for(auto &aRow : mRows) {
+    if(aRow == nullptr) continue;
+    aRow->fillOutputContainer(output, cru, timeBin, aRow->getRow(), commonModeContainer);
+  }
+}
+
+void DigitTime::processCommonMode(Int_t cru, Int_t timeBin) {
+  for(auto &aRow : mRows) {
+    if(aRow == nullptr) continue;
+    aRow->processCommonMode(cru, timeBin, aRow->getRow());
+    mTotalChargeTimeBin += aRow->getTotalChargeRow();
   }
 }
