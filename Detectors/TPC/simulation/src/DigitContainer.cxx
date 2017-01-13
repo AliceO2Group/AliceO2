@@ -1,8 +1,10 @@
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/DigitCRU.h"
+#include "TPCSimulation/CommonMode.h"
+#include "TPCSimulation/Digitizer.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CRU.h"
-
+#include <iostream>
 #include "FairLogger.h"
 
 #include "TClonesArray.h"
@@ -35,8 +37,28 @@ void DigitContainer::addDigit(Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Fl
 
 
 void DigitContainer::fillOutputContainer(TClonesArray *output) {
-    for(auto &aCRU : mCRU) {
+  for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;
     aCRU->fillOutputContainer(output, aCRU->getCRUID());
   }
+}
+
+void DigitContainer::fillOutputContainer(TClonesArray *output, std::vector<CommonMode> commonModeContainer) {
+  for(auto &aCRU : mCRU) {
+    if(aCRU == nullptr) continue;
+    aCRU->fillOutputContainer(output, aCRU->getCRUID(), commonModeContainer);
+  }
+}
+
+
+void DigitContainer::processCommonMode(std::vector<CommonMode> & commonModeContainer) {
+  
+  std::vector<CommonMode> summedCharges(0);
+  for(auto &aCRU : mCRU) {
+    if(aCRU == nullptr) continue;
+    aCRU->processCommonMode(summedCharges, aCRU->getCRUID());
+  }
+  
+  CommonMode c;
+  c.computeCommonMode(summedCharges, commonModeContainer);
 }

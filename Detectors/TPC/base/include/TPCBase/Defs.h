@@ -25,6 +25,8 @@ const double SECPHIWIDTH = TWOPI/18;
 enum RocType {IROC=0, OROC=1};
 // enum class RocType {IROC=0, OROC=1};
 
+/// TPC GEM stack types
+enum GEMstack {IROCgem=0, OROC1gem=1, OROC2gem=2, OROC3gem=3};
 
 /// Pad centres as 2D float
 typedef Point2D<float> PadCentre;

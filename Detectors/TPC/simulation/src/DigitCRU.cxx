@@ -42,3 +42,19 @@ void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru) {
     aTime->fillOutputContainer(output, cru, aTime->getTimeBin());
   }
 }
+
+void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<CommonMode> commonModeContainer) {
+  for(auto &aTime : mTimeBins) {
+    if(aTime == nullptr) continue;
+    aTime->fillOutputContainer(output, cru, aTime->getTimeBin(), commonModeContainer);
+  }
+}
+
+void DigitCRU::processCommonMode(std::vector<CommonMode> & commonModeCRU, Int_t cru) {
+  for(auto &aTime : mTimeBins) {
+    if(aTime == nullptr) continue;
+    aTime->processCommonMode(cru, aTime->getTimeBin());
+    CommonMode commonMode(cru, aTime->getTimeBin(), aTime->getTotalChargeTimeBin());
+    commonModeCRU.emplace_back(commonMode);
+  }
+}

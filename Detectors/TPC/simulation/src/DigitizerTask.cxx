@@ -1,7 +1,6 @@
 #include "TPCSimulation/DigitizerTask.h"
 #include "TPCSimulation/DigitContainer.h"  // for DigitContainer
 #include "TPCSimulation/Digitizer.h"       // for Digitizer
-
 #include "TObject.h"
 #include "TClonesArray.h"
 #include "FairLogger.h"
@@ -55,5 +54,7 @@ void DigitizerTask::Exec(Option_t *option)
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
   
   DigitContainer *digits = mDigitizer->Process(mPointsArray);
-  digits->fillOutputContainer(mDigitsArray);
+  std::vector<CommonMode> commonModeContainer(0);
+  digits->processCommonMode(commonModeContainer);
+  digits->fillOutputContainer(mDigitsArray, commonModeContainer);
 }

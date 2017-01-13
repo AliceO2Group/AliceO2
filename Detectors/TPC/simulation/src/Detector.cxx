@@ -1,5 +1,6 @@
 #include "TPCSimulation/Detector.h"
 #include "TPCSimulation/Point.h"
+#include "TPCSimulation/Constants.h"
 
 #include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"

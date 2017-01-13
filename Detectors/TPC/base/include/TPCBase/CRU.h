@@ -6,6 +6,8 @@
 #include "TPCBase/ROC.h"
 //using namespace AliceO2::TPC;
 
+
+#include <iostream>
 namespace AliceO2 {
 namespace TPC {
 //   enum RocType {ICRU=0, OCRU=1};
@@ -35,6 +37,7 @@ namespace TPC {
       unsigned char region()    const { return (mCRU%CRUperSector); }
       const Sector  sector()    const { return Sector(mCRU/CRUperSector); }
       const RocType rocType()   const { return mCRU%CRUperSector < CRUperIROC ? RocType::IROC : RocType::OROC; }
+      const GEMstack gemStack() const;
 
       bool    looped()    const { return mLoop; }
 
@@ -43,6 +46,16 @@ namespace TPC {
       unsigned short mCRU{};    /// CRU representation 0-MaxCRU
       bool           mLoop{};   /// if operator execution resulted in looping
   };
+
+  inline
+  const GEMstack CRU::gemStack() const {
+    const int reg = int(region());
+
+    if(reg < CRUperIROC) return GEMstack::IROCgem;
+    else if(reg-CRUperIROC < CRUperPartition) return GEMstack::OROC1gem;
+    else if(reg-CRUperIROC-CRUperPartition < CRUperPartition) return GEMstack::OROC2gem;
+    else return GEMstack::OROC3gem;
+  }
 }
 }
 
