@@ -15,6 +15,7 @@ set(SRCS
    src/PadSecPos.cxx
    src/Point2D.cxx
    src/Point3D.cxx
+   src/RandomRing.cxx
    src/ROC.cxx
    src/Sector.cxx
 )
@@ -33,6 +34,7 @@ set(HEADERS
    include/TPCBase/PadSecPos.h
    include/TPCBase/Point2D.h
    include/TPCBase/Point3D.h
+   include/TPCBase/RandomRing.h
    include/TPCBase/ROC.h
    include/TPCBase/Defs.h
    include/TPCBase/Sector.h
