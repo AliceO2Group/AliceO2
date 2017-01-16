@@ -23,6 +23,7 @@ set(SRCS
    src/ClustererTask.cxx
    src/PadResponse.cxx
    src/CommonMode.cxx
+   src/Baseline.cxx
 )
 
 set(HEADERS
@@ -44,6 +45,7 @@ set(HEADERS
    include/${MODULE_NAME}/ClustererTask.h
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/CommonMode.h
+   include/${MODULE_NAME}/Baseline.h
 )
 Set(LINKDEF src/TPCSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
