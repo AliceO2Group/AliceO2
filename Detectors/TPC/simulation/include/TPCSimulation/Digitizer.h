@@ -155,6 +155,7 @@ namespace AliceO2{
     inline
     void Digitizer::getPadResponse(Float_t xabs, Float_t yabs, std::vector<PadResponse> &response){
       response.resize(0);
+      // TODO: include actual response, this is now only for a signal on the central pad (0, 0) with weight 1.
       response.emplace_back(0, 0, 1);
     }
 

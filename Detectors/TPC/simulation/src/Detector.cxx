@@ -144,11 +144,8 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   
   Float_t betaGamma = mMomentum.Rho()/TVirtualMC::GetMC()->TrackMass();
   betaGamma = TMath::Max(betaGamma,(Float_t)7.e-3); // protection against too small bg
-
-//   TVectorD *bbpar = fTPCParam->GetBetheBlochParametersMC(); //get parametrization from OCDB
-//   pp=prim*BetheBlochAleph(betaGamma,(*bbpar)(0),(*bbpar)(1),(*bbpar)(2),(*bbpar)(3),(*bbpar)(4));         
   
-  pp=prim*BetheBlochAleph(betaGamma,0.76176e-1, 10.632, 0.13279e-4, 1.8631, 1.9479);  // params hardcoded for the time being...
+  pp=NPRIM*BetheBlochAleph(betaGamma, BBPARAM[0], BBPARAM[1], BBPARAM[2], BBPARAM[3], BBPARAM[4]);
   
   Double_t rnd = TVirtualMC::GetMC()->GetRandom()->Rndm();
   TVirtualMC::GetMC()->SetMaxStep(-TMath::Log(rnd)/pp);
