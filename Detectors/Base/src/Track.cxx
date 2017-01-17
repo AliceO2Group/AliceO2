@@ -1,10 +1,10 @@
 #include "DetectorsBase/Track.h"
 
-ClassImp(AliceO2::Base::Track::TrackParCov)
-
-using namespace AliceO2::Base;
-
-const float Track::TrackParCov::kCalcdEdxAuto = -999.f;
+using std::array;
+using AliceO2::Base::Track::TrackParBase;
+using AliceO2::Base::Track::TrackPar;
+using AliceO2::Base::Track::TrackParCov;
+using namespace AliceO2::Base::Constants;
 
 //______________________________________________________________
 TrackParBase::TrackParBase(const array<float,3> &xyz,const array<float,3> &pxpypz, int charge, bool sectorAlpha) :

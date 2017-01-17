@@ -203,7 +203,7 @@ static CookedTrack cookSeed
   Double_t x2 = r2[0] * ca + r2[1] * sa, y2 = -r2[0] * sa + r2[1] * ca, z2 = r2[2];
   Double_t x3 = tr3[0], y3 = tr3[1], z3 = tr3[2];
 
-  Float_t par[5];
+  std::array<float,5> par;
   par[0] = y3;
   par[1] = z3;
   Double_t crv = f1(x1, y1, x2, y2, x3, y3); // curvature
@@ -217,7 +217,7 @@ static CookedTrack cookSeed
   par[3] = 0.5 * (tgl12 + tgl23);
   par[4] = (TMath::Abs(bz) < kAlmost0) ? kAlmost0 : crv / (bz * kB2C);
 
-  Float_t cov[15];
+  std::array<float,15> cov;
   /*
   for (Int_t i=0; i<15; i++) cov[i]=0.;
   cov[0] =kSigma2*10;

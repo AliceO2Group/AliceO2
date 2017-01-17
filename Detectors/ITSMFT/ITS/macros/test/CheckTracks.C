@@ -2,6 +2,8 @@
 /// \brief Simple macro to check ITSU tracks
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
+  #include <array>
+
   #include <TFile.h>
   #include <TTree.h>
   #include <TClonesArray.h>
@@ -67,7 +69,7 @@ void CheckTracks() {
          CookedTrack *recTrack = (CookedTrack *)recArr.UncheckedAt(i);
 	 Int_t lab = recTrack->getLabel();
 	 if (TMath::Abs(lab) != nmc) continue;
-	 float p[3];
+	 std::array<float,3> p;
 	 recTrack->getPxPyPz(p);
 	 recPt = recTrack->getPt();
          recPhi = TMath::ATan2(p[1],p[0]);
