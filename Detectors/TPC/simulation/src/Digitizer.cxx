@@ -74,6 +74,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
       ElectronDrift(posEle);
 
       // remove electrons that end up outside the active volume
+      // TODO should go to mapper?
       if(TMath::Abs(posEle[2]) > 250.) continue;
 
       const GlobalPosition3D posElePad (posEle[0], posEle[1], posEle[2]);
@@ -82,11 +83,10 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
       if(!digiPadPos.isValid()) continue;
        
       // GEM amplification
-      // Gain values taken from TDR addendum - to be put someplace else
-      Int_t nEleGEM1 = SingleGEMAmplification(1, EFFGAINGEM1);
-      Int_t nEleGEM2 = SingleGEMAmplification(nEleGEM1, EFFGAINGEM2);
-      Int_t nEleGEM3 = SingleGEMAmplification(nEleGEM2, EFFGAINGEM3);
-      Int_t nEleGEM4 = SingleGEMAmplification(nEleGEM3, EFFGAINGEM4);
+      const Int_t nEleGEM1 = SingleGEMAmplification(1, EFFGAINGEM1);
+      const Int_t nEleGEM2 = SingleGEMAmplification(nEleGEM1, EFFGAINGEM2);
+      const Int_t nEleGEM3 = SingleGEMAmplification(nEleGEM2, EFFGAINGEM3);
+      const Int_t nEleGEM4 = SingleGEMAmplification(nEleGEM3, EFFGAINGEM4);
       
       // Loop over all individual pads with signal due to pad response function
       getPadResponse(posEle[0], posEle[1], mPadResponse);
@@ -95,11 +95,14 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
         const Int_t row = digiPadPos.getPadPos().getRow() + padresp.getRow();
         const Float_t weight = padresp.getWeight();
         
+        // TODO Time management in continuous mode (adding the time of the event?)
         const Float_t startTime = getTime(posEle[2]);
         
         // Loop over all time bins with signal due to time response
         for(Float_t bin = 0; bin<5; ++bin){
-          Double_t signal = 55*Gamma4(startTime+bin*ZBINWIDTH, startTime, nEleGEM4*weight);
+          // TODO check how the SAMPA digitisation is applied
+//           Double_t signal = 55*Gamma4(startTime+bin*ZBINWIDTH, startTime, nEleGEM4*weight);
+          Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(startTime) + bin + 0.5), startTime, nEleGEM4*weight);
           if(signal <= 0.) continue;
           mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(startTime+bin*ZBINWIDTH), row, pad, signal);
         }
