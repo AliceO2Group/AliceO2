@@ -20,7 +20,7 @@ CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2
   //--------------------------------------------------------------------
 }
 
-CookedTrack::CookedTrack(float x, float alpha, const float* par, const float* cov)
+CookedTrack::CookedTrack(float x, float alpha, const std::array<float,kNParams> &par, const std::array<float,kCovMatSize> &cov)
   : TObject(), mTrack(x, alpha, par, cov), mLabel(-1), mMass(0.14), mChi2(0.)
 {
   //--------------------------------------------------------------------
@@ -124,8 +124,8 @@ Double_t CookedTrack::getPredictedChi2(const Cluster* c) const
   //-----------------------------------------------------------------
   // This function calculates a predicted chi2 increment.
   //-----------------------------------------------------------------
-  float p[2] = { c->getY(), c->getZ() };
-  float cov[3] = { c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
+  std::array<float,2> p{ c->getY(), c->getZ() };
+  std::array<float,3> cov{ c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
   return mTrack.GetPredictedChi2(p, cov);
 }
 
@@ -148,8 +148,8 @@ Bool_t CookedTrack::update(const Cluster* c, Double_t chi2, Int_t idx)
   //--------------------------------------------------------------------
   // Update track params
   //--------------------------------------------------------------------
-  float p[2] = { c->getY(), c->getZ() };
-  float cov[3] = { c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
+  std::array<float,2> p{ c->getY(), c->getZ() };
+  std::array<float,3> cov{ c->getSigmaY2(), c->getSigmaYZ(), c->getSigmaZ2() };
 
   if (!mTrack.Update(p, cov))
     return kFALSE;

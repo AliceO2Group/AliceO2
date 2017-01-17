@@ -10,8 +10,6 @@
 #include <iostream>
 #include <string.h>
 
-#include <Rtypes.h>
-
 #include "DetectorsBase/Constants.h"
 #include "DetectorsBase/Utils.h"
 
@@ -100,65 +98,30 @@ namespace AliceO2 {
       // rootcint does not swallow final keyword here
       class TrackParCov final : public TrackParBase { // track+error parameterization
         public:
-          TrackParCov() { memset(mPC,0,kTrackPCSize*sizeof(float)); }
-          TrackParCov(float x,float alpha, const float par[kNParams], const float cov[kCovMatSize]);
-          TrackParCov(const float xyz[3],const float pxpypz[3],const float[kLabCovMatSize],
-              int sign, bool sectorAlpha=true);
+          TrackParCov() : TrackParBase{} { }
+          TrackParCov(float x, float alpha, const std::array<float,kNParams> &par, const std::array<float,kCovMatSize> &cov);
+          TrackParCov(const std::array<float,3> &xyz,const std::array<float,3> &pxpypz,const std::array<float,kLabCovMatSize> &cv, int sign, bool sectorAlpha=true);
 
-	  /* I. Belikov: Dangerous casts !
-          operator TrackPar*() { return reinterpret_cast<TrackPar*>(this); }
-          operator TrackPar()  { return *reinterpret_cast<TrackPar*>(this); }
-          operator TrackPar&() { return *reinterpret_cast<TrackPar*>(this); }
-	  */
+          ///const float* GetCov()                const { return mC; }
+          float GetSigmaY2()                   const { return mC[kSigY2]; }
+          float GetSigmaZY()                   const { return mC[kSigZY]; }
+          float GetSigmaZ2()                   const { return mC[kSigZ2]; }
+          float GetSigmaSnpY()                 const { return mC[kSigSnpY]; }
+          float GetSigmaSnpZ()                 const { return mC[kSigSnpZ]; }
+          float GetSigmaSnp2()                 const { return mC[kSigSnp2]; }
+          float GetSigmaTglY()                 const { return mC[kSigTglY]; }
+          float GetSigmaTglZ()                 const { return mC[kSigTglZ]; }
+          float GetSigmaTglSnp()               const { return mC[kSigTglSnp]; }
+          float GetSigmaTgl2()                 const { return mC[kSigTgl2]; }
+          float GetSigma1PtY()                 const { return mC[kSigQ2PtY]; }
+          float GetSigma1PtZ()                 const { return mC[kSigQ2PtZ]; }
+          float GetSigma1PtSnp()               const { return mC[kSigQ2PtSnp]; }
+          float GetSigma1PtTgl()               const { return mC[kSigQ2PtTgl]; }
+          float GetSigma1Pt2()                 const { return mC[kSigQ2Pt2]; }
 
-          float& operator[](int i)                   { return mPC[i]; }
-          float  operator[](int i)             const { return mPC[i]; }
-          operator float*()                    const { return (float*)mPC; }
-          const float* GetParam()              const { return &mPC[kY]; }
-          const float* GetCov()                const { return &mPC[kSigY2]; }
+          void  Print()                        const;
 
-          float GetX()                         const { return mPC[kX]; }
-          float GetAlpha()                     const { return mPC[kAlpha]; }
-          float GetY()                         const { return mPC[kY]; }
-          float GetZ()                         const { return mPC[kZ]; }
-          float GetSnp()                       const { return mPC[kSnp]; }
-          float GetTgl()                       const { return mPC[kTgl]; }
-          float GetQ2Pt()                      const { return mPC[kQ2Pt]; }
-
-
-          float GetSigmaY2()                   const { return mPC[kSigY2]; }
-          float GetSigmaZY()                   const { return mPC[kSigZY]; }
-          float GetSigmaZ2()                   const { return mPC[kSigZ2]; }
-          float GetSigmaSnpY()                 const { return mPC[kSigSnpY]; }
-          float GetSigmaSnpZ()                 const { return mPC[kSigSnpZ]; }
-          float GetSigmaSnp2()                 const { return mPC[kSigSnp2]; }
-          float GetSigmaTglY()                 const { return mPC[kSigTglY]; }
-          float GetSigmaTglZ()                 const { return mPC[kSigTglZ]; }
-          float GetSigmaTglSnp()               const { return mPC[kSigTglSnp]; }
-          float GetSigmaTgl2()                 const { return mPC[kSigTgl2]; }
-          float GetSigma1PtY()                 const { return mPC[kSigQ2PtY]; }
-          float GetSigma1PtZ()                 const { return mPC[kSigQ2PtZ]; }
-          float GetSigma1PtSnp()               const { return mPC[kSigQ2PtSnp]; }
-          float GetSigma1PtTgl()               const { return mPC[kSigQ2PtTgl]; }
-          float GetSigma1Pt2()                 const { return mPC[kSigQ2Pt2]; }
-
-          // derived getters
-          float GetCurvature(float b)          const { return mPC[kQ2Pt]*b*kB2C;}
-          float GetSign()                      const { return mPC[kQ2Pt]>0 ? 1.f:-1.f;}
-          float GetP()                         const { return Param()->GetP(); }
-          float GetPt()                        const { return Param()->GetPt(); }
-          float GetPhi()                       const { return Param()->GetPhi(); }
-          float GetPhiPos()                    const { return Param()->GetPhiPos(); }
-          void  GetXYZ(float xyz[3])           const { Param()->GetXYZ(xyz); }
-          bool  GetPxPyPz(float pxyz[3])       const { return Param()->GetPxPyPz(pxyz); }
-          bool  GetPosDir(float posdirp[9])    const { return Param()->GetPosDir(posdirp); }
-
-          // parameters manipulation
-          bool  RotateParam(float alpha)             { return Param()->RotateParam(alpha); }
-          bool  PropagateParamTo(float xk, float b)  { return Param()->PropagateParamTo(xk,b); }
-          bool  PropagateParamTo(float xk, const float b[3]) {return Param()->PropagateParamTo(xk,b); }
-          void  InvertParam()                        { Param()->InvertParam(); }
-
+          // parameters + covmat manipulation
           bool  Rotate(float alpha);
           bool  PropagateTo(float xk, float b);
           bool  PropagateTo(float xk, const std::array<float,3> &b);
@@ -173,21 +136,9 @@ namespace AliceO2 {
           void  CheckCovariance();
 
         protected:
-          // internal cast to TrackPar
-	  /* I. Belikov: Dangerous casts !
-          const TrackPar* Param()              const { return reinterpret_cast<const TrackPar*>(this); }
-          TrackPar* Param()                          { return reinterpret_cast<TrackPar*>(this); }
-	  */
-          const TrackPar* Param()              const { return (const TrackPar*)mPC; }
-          TrackPar* Param()                          { return (TrackPar*)mPC; }
-          bool TrackPar2Momentum(float p[3], float alpha);
+          float mC[kCovMatSize] = {0.f};  // 15 covariance matrix elements
 
-        protected:
-          float mPC[kTrackPCSize];  // x, alpha + 5 parameters + 15 errors
-
-          static const float kCalcdEdxAuto; // value indicating request for dedx calculation
-          ClassDef(TrackParCov, 1)
-    };
+      };
 
       class TrackPar final : public TrackParBase { // track parameterization only
         public:
