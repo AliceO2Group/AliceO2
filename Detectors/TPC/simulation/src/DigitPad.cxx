@@ -26,9 +26,8 @@ void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
   const Float_t mADC = d.ADCvalue(mTotalChargePad);
   
   if(mADC > 0) {
-    Digit *digit = new Digit(cru, mADC, row, pad, timeBin);
     TClonesArray &clref = *output;
-    new(clref[clref.GetEntriesFast()]) Digit(*(digit));
+    new(clref[clref.GetEntriesFast()]) Digit(cru, mADC, row, pad, timeBin);
   }
 }
 
@@ -45,9 +44,9 @@ void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
     for (auto &aCommonMode :commonModeContainer){
       if(aCommonMode.getCRU() == cru && aCommonMode.getTimeBin() == timeBin) commonMode = aCommonMode.getCommonMode();
     }
-    Digit *digit = new Digit(cru, mADC, row, pad, timeBin, commonMode);
+//     Digit *digit = new Digit(cru, mADC, row, pad, timeBin, commonMode);
     TClonesArray &clref = *output;
-    new(clref[clref.GetEntriesFast()]) Digit(*(digit));
+    new(clref[clref.GetEntriesFast()]) Digit(cru, mADC, row, pad, timeBin, commonMode);
   }
 }
 
