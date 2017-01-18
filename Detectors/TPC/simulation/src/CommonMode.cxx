@@ -29,7 +29,7 @@ Float_t CommonMode::computeCommonMode(std::vector<CommonMode> & summedChargesCon
   for(auto &aSummedCharges : summedChargesContainer) {
     const int currentCRU = aSummedCharges.getCRU();
     const int timeBin = aSummedCharges.getTimeBin();
-    float commonModeSignal = -(aSummedCharges.getCommonMode());
+    float commonModeSignal = aSummedCharges.getCommonMode();
     
     CRU cru(currentCRU);
     int sector = int(cru.sector().getSector());
@@ -51,7 +51,7 @@ Float_t CommonMode::computeCommonMode(std::vector<CommonMode> & summedChargesCon
       // sum up charges in other CRUs of that GEM stack, but avoiding any double counting of signals from the very same CRU
       if(bSummedCharges.getCRU() >= cruLower && bSummedCharges.getCRU() <= cruUpper && bSummedCharges.getCRU() != currentCRU) {
         if(timeBin == bSummedCharges.getTimeBin()) {
-          commonModeSignal -= bSummedCharges.getCommonMode();
+          commonModeSignal += bSummedCharges.getCommonMode();
         }
         if(bSummedCharges.getCRU() > cruUpper) break;
       }
