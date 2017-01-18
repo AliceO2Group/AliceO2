@@ -35,7 +35,7 @@ class Baseline {
     };
 
     /// Default constructor
-    Baseline() : mBaselineType{BaselineType::Random}, mMeanNoise{0.8}, mMeanPedestal{70}, mPedestalSpread{10} {};
+    Baseline() : mBaselineType{BaselineType::Random}, mMeanNoise{0.8}, mMeanPedestal{70}, mPedestalSpread{10}, mRandomNoiseRing(RandomRing::RandomType::Gaus) {};
 
     /// setter for mean noise
     void setMeanNoise(float meanNoise)
