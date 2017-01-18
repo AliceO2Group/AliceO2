@@ -536,6 +536,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     root_base_bucket
+    Hist
     common_vc_bucket
     fairroot_geom
     MathCore
