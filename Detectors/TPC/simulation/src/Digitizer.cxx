@@ -24,29 +24,34 @@ using namespace AliceO2::TPC;
 
 Digitizer::Digitizer():
 TObject(),
-mPolya(nullptr),
 mDigitContainer(nullptr)
 {}
 
 Digitizer::~Digitizer(){
   delete mDigitContainer;
-  delete mPolya;
+//   delete mRandomGaus;
+//   delete mRandomPolya;
 }
 
 void Digitizer::init(){
   mDigitContainer = new DigitContainer();
+  
+  mRandomGaus = new RandomRing();
   
   Float_t kappa = 1/(SIGMAOVERMU*SIGMAOVERMU);
   Float_t s = 1/kappa;
   
   char strPolya[1000];
   snprintf(strPolya,1000,"1/(TMath::Gamma(%e)*%e) *pow(x/%e, (%e)) *exp(-x/%e)", kappa, s, s, kappa-1, s);
-//   mPolya = new TF1("polya", "1/x", 0, 1000);
+  TF1 mPolya("polya", strPolya, 0, 100);
+  mRandomPolya = new RandomRing(mPolya, size_t(500000));
 }
 
 DigitContainer *Digitizer::Process(TClonesArray *points){
   
   mDigitContainer->reset();
+  
+  RandomRing randomFlat(RandomRing::RandomType::Flat);
 
   Float_t posEle[4] = {0., 0., 0., 0.};
 
@@ -68,7 +73,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
       
       // Attachment
       const Float_t attProb = ATTCOEF * OXYCONT * getTime(posEle[2]);
-      if((gRandom->Rndm(0)) < attProb) continue;
+      if(randomFlat.getNextValue() < attProb) continue;
 
       // Drift and Diffusion
       ElectronDrift(posEle);
@@ -101,8 +106,8 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
         // Loop over all time bins with signal due to time response
         for(Float_t bin = 0; bin<5; ++bin){
           // TODO check how the SAMPA digitisation is applied
-//           Double_t signal = 55*Gamma4(startTime+bin*ZBINWIDTH, startTime, nEleGEM4*weight);
-          Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(startTime) + bin + 0.5), startTime, nEleGEM4*weight);
+          Double_t signal = 55*Gamma4(startTime+bin*ZBINWIDTH, startTime, nEleGEM4*weight);
+//           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(startTime) + bin + 0.5), startTime, nEleGEM4*weight);
           if(signal <= 0.) continue;
           mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(startTime+bin*ZBINWIDTH), row, pad, signal);
         }
@@ -125,7 +130,7 @@ void Digitizer::ElectronDrift(Float_t *posEle) const {
   driftl=TMath::Sqrt(driftl);
   Float_t sigT = driftl*DIFFT;
   Float_t sigL = driftl*DIFFL;
-  posEle[0]=gRandom->Gaus(posEle[0],sigT);
-  posEle[1]=gRandom->Gaus(posEle[1],sigT);
-  posEle[2]=gRandom->Gaus(posEle[2],sigL);
+  posEle[0]=(mRandomGaus->getNextValue() * sigT) + posEle[0];
+  posEle[1]=(mRandomGaus->getNextValue() * sigT) + posEle[1];
+  posEle[2]=(mRandomGaus->getNextValue() * sigL) + posEle[2];
 }

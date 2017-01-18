@@ -7,6 +7,8 @@
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Constants.h"
 
+#include "TPCBase/RandomRing.h"
+
 #include "Rtypes.h"
 #include "TObject.h"
 #include "TF1.h"
@@ -99,9 +101,12 @@ namespace AliceO2{
       Digitizer(const Digitizer &);
       Digitizer &operator=(const Digitizer &);
 
-      TF1                     *mPolya;
       DigitContainer          *mDigitContainer;
       std::vector<PadResponse> mPadResponse;
+      
+      RandomRing              *mRandomGaus;
+      RandomRing              *mRandomPolya;
+      
       ClassDef(Digitizer, 1);
     };
 
@@ -109,8 +114,7 @@ namespace AliceO2{
 
     inline
     Int_t Digitizer::SingleGEMAmplification(Int_t nEle, Float_t gain) const {
-      //   return static_cast<int>(static_cast<float>(nEle)*gain*mPolya->GetRandom());
-      return static_cast<int>(static_cast<float>(nEle)*gain);
+      return static_cast<int>(static_cast<float>(nEle)*gain*mRandomPolya->getNextValue());
     }
 
     inline
