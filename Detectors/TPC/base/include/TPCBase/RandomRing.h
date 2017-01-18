@@ -14,8 +14,8 @@
 /// origin: TPC
 /// @author Jens Wiechula, Jens.Wiechula@cern.ch
 
-#ifndef AliceO2_TPC_RandomRing_H
-#define AliceO2_TPC_RandomRing_H
+#ifndef ALICEO2_TPC_RANDOMRING_H_
+#define ALICEO2_TPC_RANDOMRING_H_
 
 #include <boost/format.hpp>
 
@@ -36,15 +36,32 @@ class RandomRing
     enum class RandomType : char {
       Gaus,                  ///< Gaussian distribution
       Flat,                  ///< Flat distribution
-      CustomTF1              ///< Custom TF1 function to be used
+      CustomTF1,             ///< Custom TF1 function to be used
+      None                   ///< Not selected, yet
     };
     /// constructor
     /// @param [in] size size of the ring buffer
-    RandomRing(const RandomType randomType = RandomType::Gaus, const size_t size = 500000);
+    RandomRing();
+
+    /// constructor
+    /// @param [in] randomType type of the random generator
+    /// @param [in] size size of the ring buffer
+    RandomRing(const RandomType randomType, const size_t size = 500000);
 
     /// constructor accepting TF1
     /// @param [in] function TF1 function
-    RandomRing(TF1 &function, const size_t size);
+    /// @param [in] size size of the ring buffer
+    RandomRing(TF1 &function, const size_t size = 500000);
+
+    /// initialisation of the random ring
+    /// @param [in] randomType type of the random generator
+    /// @param [in] size size of the ring buffer
+    void initialize(const RandomType randomType = RandomType::Gaus, const size_t size = 500000);
+
+    /// initialisation of the random ring
+    /// @param [in] randomType type of the random generator
+    /// @param [in] size size of the ring buffer
+    void initialize(TF1 &function, const size_t size = 500000);
 
     /// next random value from the ring buffer
     /// This function return a value from the ring buffer
@@ -96,11 +113,38 @@ class RandomRing
 }; // end class RandomRing
 
 //______________________________________________________________________________
+inline RandomRing::RandomRing()
+  : mRandomType(RandomType::None),
+    mRandomNumbers(),
+    mRingPosition(float_v::size())
+{
+  initialize(RandomType::None, float_v::size());
+}
+
+//______________________________________________________________________________
 inline RandomRing::RandomRing(const RandomType randomType, const size_t size)
   : mRandomType(randomType),
     mRandomNumbers(size),
     mRingPosition(0)
+
 {
+  initialize(randomType, size);
+}
+
+//______________________________________________________________________________
+inline RandomRing::RandomRing(TF1 &function, const size_t size)
+  : mRandomType(RandomType::CustomTF1),
+    mRandomNumbers(size),
+    mRingPosition(0)
+{
+  initialize(function, size);
+}
+
+//______________________________________________________________________________
+inline void RandomRing::initialize(const RandomType randomType, const size_t size)
+{
+  mRandomNumbers.resize(size);
+
   for (auto &v : mRandomNumbers) {
     // TODO: configurable mean and sigma
     switch (randomType) {
@@ -112,7 +156,7 @@ inline RandomRing::RandomRing(const RandomType randomType, const size_t size)
         v = gRandom->Rndm();
         break;
       }
-      case RandomType::CustomTF1: {
+      default: {
         v = 0;
         break;
       }
@@ -121,15 +165,15 @@ inline RandomRing::RandomRing(const RandomType randomType, const size_t size)
 }
 
 //______________________________________________________________________________
-inline RandomRing::RandomRing(TF1 &function, const size_t size)
-  : mRandomType(RandomType::CustomTF1),
-    mRandomNumbers(size),
-    mRingPosition(0)
+inline void RandomRing::initialize(TF1 &function, const size_t size)
 {
+  mRandomNumbers.resize(size);
+
   for (auto &v : mRandomNumbers) {
     v = function.GetRandom();
   }
 }
+
 
 } // namespace TPC
 } // namespace AliceO2
