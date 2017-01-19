@@ -79,61 +79,101 @@ struct DataHeader;
 struct DataIdentifier;
 
 //__________________________________________________________________________________________________
+// internal implementation
+/// @ingroup aliceo2_dataformat_tools
+namespace Internal {
+// terminating initializer implementation
+template <typename T>
+constexpr T String2__()
+{
+  return 0;
+}
+// recursive initializer implementation
+template <typename T, typename... Targs>
+constexpr T String2__(char c, Targs... Fargs)
+{
+  return (T) c | String2__<T>(Fargs...) << 8;
+}
+
+/// compile time evaluation of the number of arguments in argument pack
+template<typename T, typename... Targs>
+struct getnargs {
+  static int const value = getnargs<Targs...>::value + 1;
+};
+template<typename T>
+struct getnargs<T> {
+  static int const value = 1;
+};
+};
+
+//__________________________________________________________________________________________________
 /// constexpr intializer, evaluated at compile time
+/// generic intializer for variable char argument list
+template <typename T, typename... Targs>
+constexpr T String2(char c, Targs... Fargs)
+{
+  // number of arguments has either to match the size of the type, or the last element is treated
+  // as '0' if missing
+  static_assert(Internal::getnargs<T, Targs...>::value == sizeof(T) ||
+		Internal::getnargs<T, Targs...>::value == sizeof(T) - 1,
+		"number of arguments does not match the uint type width"
+		);
+  return Internal::String2__<T>(c, Fargs...);
+}
+
+/// constexpr intializer, evaluated at compile time
+/// backward compatibility, might be removed in the future
 constexpr uint64_t String2uint64(char c1, char c2, char c3, char c4,
                                  char c5, char c6, char c7, char c8)
 {
-	return((uint64_t) c1 | (uint64_t) c2 << 8 | (uint64_t) c3 << 16 | (uint64_t) c4 << 24 |
-      (uint64_t) c5 << 32 | (uint64_t) c6 << 40 | (uint64_t) c7 << 48 | (uint64_t) c8 << 56);
+  return String2<uint64_t>(c1, c2, c3, c4, c5, c6, c7, c8);
 }
 
 /// constexpr intializer, evaluated at compile time
-constexpr uint64_t String2uint64(const char* str, int pos=0)
+/// generic initializer, convert a string to unsigned integer of different width
+/// Example usage: String2<uint64_t>("IDENTIFY")
+/// @ingroup aliceo2_dataformat_tools
+template <typename T>
+constexpr T String2(const char* str, int pos=0)
 {
-	return((uint64_t) str[0+pos] |
-         (str[0+pos] ? ((uint64_t) str[1+pos] << 8  |
-         (str[1+pos] ? ((uint64_t) str[2+pos] << 16 |
-         (str[2+pos] ? ((uint64_t) str[3+pos] << 24 |
-         (str[3+pos] ? ((uint64_t) str[4+pos] << 32 |
-         (str[4+pos] ? ((uint64_t) str[5+pos] << 40 |
-         (str[5+pos] ? ((uint64_t) str[6+pos] << 48 |
-         (str[6+pos] ? ((uint64_t) str[7+pos] << 56 )
+  return((T) str[0+pos] |
+         (str[0+pos] && sizeof(T) >= 2 ? ((T) str[1+pos] << (sizeof(T) >= 2 ? 8  : 0) |
+         (str[1+pos] && sizeof(T) >= 4 ? ((T) str[2+pos] << (sizeof(T) >= 4 ? 16 : 0) |
+         (str[2+pos] && sizeof(T) >= 4 ? ((T) str[3+pos] << (sizeof(T) >= 4 ? 24 : 0) |
+         (str[3+pos] && sizeof(T) >= 8 ? ((T) str[4+pos] << (sizeof(T) >= 8 ? 32 : 0) |
+         (str[4+pos] && sizeof(T) >= 8 ? ((T) str[5+pos] << (sizeof(T) >= 8 ? 40 : 0) |
+         (str[5+pos] && sizeof(T) >= 8 ? ((T) str[6+pos] << (sizeof(T) >= 8 ? 48 : 0) |
+         (str[6+pos] && sizeof(T) >= 8 ? ((T) str[7+pos] << (sizeof(T) >= 8 ? 56 : 0) )
           : 0)) : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
 }
 
+/// backward compatibility, can be removed
+/// forwards to generic function
+constexpr uint64_t String2uint64(const char* str, int pos=0)
+{
+  return String2<uint64_t>(str, pos);
+}
+
+/// backward compatibility, can be removed
+/// forwards to generic function
+constexpr uint32_t String2uint32(const char* str, int pos=0)
+{
+  return String2<uint32_t>(str, pos);
+}
+
+
 /// constexpr intializer, evaluated at compile time
+/// backward compatibility, might be removed in the future
 constexpr uint32_t String2uint32(char c1, char c2, char c3)
 {
-	return((uint32_t) c1 | (uint32_t) c2 << 8 | (uint32_t) c3 << 16);
+  return String2<uint32_t>(c1, c2, c3);
 }
 
 /// constexpr intializer, evaluated at compile time
-constexpr uint32_t String2uint32(const char* str)
-{
-	return((uint32_t) str[0] |
-         (str[0] ? ((uint32_t) str[1] << 8  |
-         (str[1] ? ((uint32_t) str[2] << 16 |
-         (str[2] ? ((uint32_t) str[3] << 24 )
-          :0 )) : 0)) : 0));
-}
-
-/// constexpr intializer, evaluated at compile time
+/// backward compatibility, might be removed in the future
 constexpr uint32_t CharArr2uint32(char c1, char c2, char c3, char c4)
 {
-	return((uint32_t) c1 |
-         (uint32_t) c2 << 8 |
-         (uint32_t) c3 << 16 |
-         (uint32_t) c4 << 24);
-}
-
-/// constexpr intializer, evaluated at compile time
-constexpr uint32_t CharArr2uint32(const char* str)
-{
-	return((uint32_t) str[0] |
-         (str[0] ? ((uint32_t) str[1] << 8 |
-         (str[1] ? ((uint32_t) str[2] << 16 |
-         (str[2] ? ((uint32_t) str[3] << 24)
-          : 0)) : 0)) : 0));
+  return String2<uint32_t>(c1, c2, c3, c4);
 }
 
 //__________________________________________________________________________________________________
