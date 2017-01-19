@@ -92,8 +92,8 @@ void FairMQmonitor::Run()
 }
 
 //__________________________________________________________________________________________________
-bool FairMQmonitor::HandleO2frame(byte* headerBuffer, size_t headerBufferSize,
-    byte* dataBuffer,   size_t dataBufferSize)
+bool FairMQmonitor::HandleO2frame(const byte* headerBuffer, size_t headerBufferSize,
+    const byte* dataBuffer,   size_t dataBufferSize)
 {
 
   hexDump("headerBuffer", headerBuffer, headerBufferSize);

@@ -38,8 +38,8 @@ protected:
   virtual void Run();
   void InitTask();
   bool HandleData(AliceO2::Base::O2message& parts, int index);
-  bool HandleO2frame(byte* headerBuffer, size_t headerBufferSize,
-      byte* dataBuffer,   size_t dataBufferSize);
+  bool HandleO2frame(const byte* headerBuffer, size_t headerBufferSize,
+      const byte* dataBuffer,   size_t dataBufferSize);
 
 private:
   AliceO2::Header::DataHeader mDataHeader;
