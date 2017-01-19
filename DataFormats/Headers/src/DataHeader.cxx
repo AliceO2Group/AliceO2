@@ -15,7 +15,7 @@
 #include <cstring> // strncpy
 
 //the answer to life and everything
-const uint32_t AliceO2::Header::BaseHeader::sMagicString = CharArr2uint32("O2O2");
+const uint32_t AliceO2::Header::BaseHeader::sMagicString = String2<uint32_t>("O2O2");
 
 //possible serialization types
 const AliceO2::Header::SerializationMethod AliceO2::Header::gSerializationMethodAny    ("*******");
