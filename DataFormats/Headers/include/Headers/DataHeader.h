@@ -242,9 +242,9 @@ struct BaseHeader
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static const BaseHeader* get(byte* b, size_t /*len*/=0) {
-    return (*(reinterpret_cast<uint32_t*>(b))==sMagicString) ?
-      reinterpret_cast<BaseHeader*>(b) :
+  inline static const BaseHeader* get(const byte* b, size_t /*len*/=0) {
+    return (*(reinterpret_cast<const uint32_t*>(b))==sMagicString) ?
+      reinterpret_cast<const BaseHeader*>(b) :
       nullptr;
   }
 
@@ -264,7 +264,7 @@ struct BaseHeader
 /// use like this:
 /// HeaderType* h = get<HeaderType>(buffer)
 template<typename HeaderType>
-const HeaderType* get(byte* buffer, size_t /*len*/=0) {
+const HeaderType* get(const byte* buffer, size_t /*len*/=0) {
   const BaseHeader* current = BaseHeader::get(buffer);
   if (!current) return nullptr;
   if (current->description==HeaderType::sHeaderType)
@@ -304,8 +304,8 @@ struct Block {
   size_t bufferSize;
   Buffer buffer;
 
-  byte* data() {return buffer.get();}
-  size_t size() {return bufferSize;}
+  byte* data() const {return buffer.get();}
+  size_t size() const {return bufferSize;}
 
   ///The magic constructor: takes arbitrary number of arguments and serialized them
   /// into the buffer.
