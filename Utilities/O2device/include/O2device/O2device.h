@@ -62,12 +62,11 @@ public:
   /// currently this is old school: buf,len pairs;
   /// In the end I'd like to move to array_view
   /// when this becomes available (either with C++17 or via GSL)
-  template<typename T>
-  bool ForEach(O2message& parts,
-               bool (T::* memberFunction)(byte* headerBuffer, size_t headerBufferSize,
-                                          byte* dataBuffer,   size_t dataBufferSize)) {
-
-    if ((parts.Size()%2) != 0)
+  template <typename T>
+  bool ForEach(O2message& parts, bool (T::*memberFunction)(const byte* headerBuffer, size_t headerBufferSize,
+                                                           const byte* dataBuffer, size_t dataBufferSize))
+  {
+    if ((parts.Size() % 2) != 0)
       throw std::invalid_argument("number of parts in message not even (n%2 != 0)");
 
     for (auto it = parts.fParts.begin(); it != parts.fParts.end(); ++it) {
