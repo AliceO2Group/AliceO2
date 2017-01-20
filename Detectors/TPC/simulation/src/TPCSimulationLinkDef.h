@@ -24,4 +24,6 @@
 #pragma link C++ class AliceO2::TPC::PadResponse+;
 
 #pragma link C++ class AliceO2::TPC::CommonMode+;
+
+#pragma link C++ class AliceO2::TPC::GEMAmplification+;
 #endif

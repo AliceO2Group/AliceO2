@@ -24,6 +24,7 @@ set(SRCS
    src/PadResponse.cxx
    src/CommonMode.cxx
    src/Baseline.cxx
+   src/GEMAmplification.cxx
 )
 
 set(HEADERS
@@ -46,6 +47,7 @@ set(HEADERS
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/CommonMode.h
    include/${MODULE_NAME}/Baseline.h
+   include/${MODULE_NAME}/GEMAmplification.h
 )
 Set(LINKDEF src/TPCSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
