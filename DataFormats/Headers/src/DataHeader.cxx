@@ -176,16 +176,7 @@ bool AliceO2::Header::DataHeader::operator==(const DataHeader& that) const
 }
 
 //__________________________________________________________________________________________________
-AliceO2::Header::DataOrigin::DataOrigin() : itg(gInvalidToken32) {}
-
-//__________________________________________________________________________________________________
-bool AliceO2::Header::DataOrigin::operator==(const DataOrigin& other) const
-{
-  return itg == other.itg;
-}
-
-//__________________________________________________________________________________________________
-void AliceO2::Header::DataOrigin::print() const
+void AliceO2::Header::printDataOrigin::operator()(const char* str) const
 {
   printf("Data origin  : %s\n", str);
 }
