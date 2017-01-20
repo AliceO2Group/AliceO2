@@ -79,7 +79,7 @@ struct DataHeader;
 struct DataIdentifier;
 
 //__________________________________________________________________________________________________
-// internal implementation
+// internal implementations
 /// @ingroup aliceo2_dataformat_tools
 namespace Internal {
 // terminating initializer implementation
@@ -103,6 +103,50 @@ struct getnargs {
 template<typename T>
 struct getnargs<T> {
   static int const value = 1;
+};
+
+/// get the number of active bits (set to 1) in a bitfield
+template <unsigned int N>
+struct NumberOfActiveBits {
+  static int const value = NumberOfActiveBits<(N >> 1)>::value + (N & 0x1);
+};
+template <>
+struct NumberOfActiveBits<0> {
+  static int const value = 0;
+};
+
+/// evaluate the array size necessary to hold a N-byte number with type T
+ template <int N, typename T>
+struct ArraySize {
+  static_assert(N >= sizeof(T), "get this code to work first");
+  static int const value = 1;
+  //static int const value = std::conditional<(N > sizeof(T)), ArraySize<(N - sizeof(T)), T>, ArraySize<0, T>>::value + 1;
+};
+template <typename T>
+struct ArraySize<0, T> {
+  static int const value = 0;
+};
+
+/// select uint type depending on size, default is uint64_t
+template <int N>
+struct TraitsIntType {
+  typedef uint64_t type;
+};
+template <>
+struct TraitsIntType<1> {
+  typedef uint8_t type;
+};
+template <>
+struct TraitsIntType<2> {
+  typedef uint16_t type;
+};
+template <>
+struct TraitsIntType<4> {
+  typedef uint32_t type;
+};
+
+struct defaultPrinter {
+  void operator()(const char* str) const {}
 };
 };
 
@@ -175,6 +219,45 @@ constexpr uint32_t CharArr2uint32(char c1, char c2, char c3, char c4)
 {
   return String2<uint32_t>(c1, c2, c3, c4);
 }
+
+//__________________________________________________________________________________________________
+/// generic descriptor class faturing the union of a char and a uint element
+/// of the same size
+/// this is currently working only for up to 8 bytes aka uint64_t, the general
+/// solution is working also for multiples of 64 bit, but then the itg member needs
+/// to be an array for all. This has not been enabled yet, first the implications
+/// have to be studied.
+template <int N, typename PrinterPolicy = Internal::defaultPrinter>
+struct Descriptor {
+  static_assert(Internal::NumberOfActiveBits<N>::value == 1 && N <= 8,
+		"size is required to be 1 or a multiple of 2");
+  static int const size = N;
+  static int const bitcount = size*8;
+  static int const arraySize = 1; //Internal::ArraySize<size, uint64_t>::value;
+  typedef typename Internal::TraitsIntType<N>::type ItgType;
+
+  union {
+    char     str[N];
+    ItgType  itg; // for extension > 64 bit: [arraySize];
+  };
+  Descriptor() {};
+  Descriptor(const Descriptor& other) : itg(other.itg) {}
+  Descriptor& operator=(const Descriptor& other) {
+    if (&other != this) itg = other.itg;
+    return *this;
+  }
+  // note: no operator=(const char*) as this potentially runs into trouble with this
+  // general pointer type, use: somedescriptor = Descriptor("DESCRIPTION")
+  constexpr Descriptor(const char* origin) : itg(String2<ItgType>(origin)) {};
+  bool operator==(const Descriptor& other) const {return itg == other.itg;}
+  bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
+  // print function needs to be implemented for every derivation
+  PrinterPolicy printer;
+  void print() const {
+    // eventually terminate string before printing
+    printer(str);
+  };
+};
 
 //__________________________________________________________________________________________________
 /// default int representation of 'invalid' token for 4-byte char field
@@ -479,24 +562,10 @@ struct DataDescription {
 
 //__________________________________________________________________________________________________
 // 32bit (4 characters) for data origin, ex. the detector or subsystem name
-struct DataOrigin {
-  union {
-    char     str[gSizeDataOriginString];
-    uint32_t itg;
-  };
-  DataOrigin();
-  DataOrigin(const DataOrigin& other) : itg(other.itg) {}
-  DataOrigin& operator=(const DataOrigin& other) {
-    if (&other != this) itg = other.itg;
-    return *this;
-  }
-  // note: no operator=(const char*) as this potentially runs into trouble with this
-  // general pointer type, use: someorigin = DataOrigin("BLA")
-  constexpr DataOrigin(const char* origin) : itg{String2uint32(origin)} {};
-  bool operator==(const DataOrigin&) const;
-  bool operator!=(const DataOrigin& other) const {return not this->operator==(other);}
-  void print() const;
+struct printDataOrigin {
+  void operator()(const char* str) const;
 };
+typedef Descriptor<gSizeDataOriginString, printDataOrigin> DataOrigin;
 
 //__________________________________________________________________________________________________
 /// @struct DataHeader
