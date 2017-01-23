@@ -6,6 +6,7 @@
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Constants.h"
 #include "TPCSimulation/GEMAmplification.h"
+#include "TPCSimulation/ElectronTransport.h"
 
 #include "TPCBase/Mapper.h"
 
@@ -48,16 +49,18 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
   mDigitContainer->reset();
   
   RandomRing randomFlat(RandomRing::RandomType::Flat);
-  /// @todo GlobalPosition3d + nEle instead?
-  Float_t posEle[4] = {0., 0., 0., 0.};
+  /// @todo GlobalPosition3D + nEle instead?
+  /// @todo no possibility to modify GlobalPosition3D
+  Float_t posEle[4] = {0., 0., 0., 0.};  
 
   const Mapper& mapper = Mapper::instance();
 
-  GEMAmplification g(EFFGAINGEM1, EFFGAINGEM2, EFFGAINGEM3, EFFGAINGEM4);
+  GEMAmplification gemStack(EFFGAINGEM1, EFFGAINGEM2, EFFGAINGEM3, EFFGAINGEM4);
+  ElectronTransport electronTransport;
   
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
     Point *inputpoint = static_cast<Point *>(*pointiter);
-    
+        
     posEle[0] = inputpoint->GetX();
     posEle[1] = inputpoint->GetY();
     posEle[2] = inputpoint->GetZ();
@@ -68,13 +71,15 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     /// @todo split transport and signal formation in two separate loop?
     for(Int_t iEle=0; iEle < posEle[3]; ++iEle) {
       
-      // Attachment
-      /// @todo simple scaling possible outside this loop? or after diffusion...
-      const Float_t attProb = ATTCOEF * OXYCONT * getTime(posEle[2]);
-      if(randomFlat.getNextValue() < attProb) continue;
-
       // Drift and Diffusion
-      ElectronDrift(posEle);
+      electronTransport.getElectronDrift(posEle);
+      
+      /// @todo Time management in continuous mode (adding the time of the event?)
+      const Float_t driftTime = getTime(posEle[2]);
+
+      // Attachment
+      /// @todo simple scaling possible outside this loop?
+      if(randomFlat.getNextValue() < electronTransport.getAttachmentProbability(driftTime)) continue;
 
       // remove electrons that end up outside the active volume
       /// @todo should go to mapper?
@@ -85,7 +90,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
        
       if(!digiPadPos.isValid()) continue;
 
-      const Int_t nElectronsGEM = g.getStackAmplification();
+      const Int_t nElectronsGEM = gemStack.getStackAmplification(1);
       
       // Loop over all individual pads with signal due to pad response function
       /// @todo modularization -> own class
@@ -96,20 +101,15 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
         const Int_t row = digiPadPos.getPadPos().getRow() + padresp.getRow();
         const Float_t weight = padresp.getWeight();
         
-        /// @todo Time management in continuous mode (adding the time of the event?)
-        const Float_t startTime = getTime(posEle[2]);
-//         std::cout << startTime << " " << getTimeBinFromTime(startTime) << " " << getTimeFromBin(int(getTimeBinFromTime(startTime) + 0.5)) << " " << getTimeFromBin(getTimeBinFromTime(startTime) + 0.5) << " " << posEle[2] << "\n";
-        
         // Loop over all time bins with signal due to time response
         for(Float_t bin = 0; bin<5; ++bin) {
           /// @todo check how the SAMPA digitisation is applied
           /// @todo modularization -> own SAMPA class
           /// @todo conversion to ADC counts already here? How about saturation?
-          Double_t signal = 55*Gamma4(startTime+bin*ZBINWIDTH, startTime, nElectronsGEM*weight);
-//           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(startTime) + bin + 0.5), startTime, nElectronsGEM*weight);
+          Double_t signal = 55*Gamma4(driftTime+bin*ZBINWIDTH, driftTime, nElectronsGEM*weight);
+//           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(driftTime) + bin + 0.5), driftTime, nElectronsGEM*weight);
           if(signal <= 0.) continue;
-          mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(startTime+bin*ZBINWIDTH), row, pad, signal);
-//           std::cout << getTimeBinFromTime(getTimeFromBin(getTimeBinFromTime(startTime) + bin + 0.5)) << "\n";
+          mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(driftTime+bin*ZBINWIDTH), row, pad, signal);
         }
         // end of loop over time bins
       }
@@ -120,19 +120,4 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
   // end of loop over points
 
   return mDigitContainer;
-}
-
-
-void Digitizer::ElectronDrift(Float_t *posEle)
-{
-  /// @todo Should go to a separate class
-  
-  Float_t driftl=posEle[2];
-  if(driftl<0.01) driftl=0.01;
-  driftl=TMath::Sqrt(driftl);
-  Float_t sigT = driftl*DIFFT;
-  Float_t sigL = driftl*DIFFL;
-  posEle[0]=(mRandomGaus.getNextValue() * sigT) + posEle[0];
-  posEle[1]=(mRandomGaus.getNextValue() * sigT) + posEle[1];
-  posEle[2]=(mRandomGaus.getNextValue() * sigL) + posEle[2];
 }

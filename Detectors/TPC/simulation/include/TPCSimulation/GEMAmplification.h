@@ -33,7 +33,12 @@ class GEMAmplification
    
     /// Compute the number of electrons after amplification in a full stack of four GEM foils
     /// @return Number of electrons after amplification in a full stack of four GEM foils
-    Int_t getStackAmplification();
+    Int_t getStackAmplification();    
+    
+    /// Compute the number of electrons after amplification in a full stack of four GEM foils
+    /// @param nElectrons Number of electrons arriving at the first amplification stage (GEM1)
+    /// @return Number of electrons after amplification in a full stack of four GEM foils
+    Int_t getStackAmplification(Int_t nElectrons);
       
     /// Compute the number of electrons after amplification in a single GEM foil
     /// @param nElectrons Number of electrons to be amplified

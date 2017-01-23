@@ -37,8 +37,13 @@ GEMAmplification::~GEMAmplification()
 
 
 Int_t GEMAmplification::getStackAmplification()
+{
+  return getStackAmplification(1);
+}
+
+Int_t GEMAmplification::getStackAmplification(Int_t nElectrons)
 {  
-  const Int_t nElectronsGEM1 = getSingleGEMAmplification(1, mEffGainGEM1);
+  const Int_t nElectronsGEM1 = getSingleGEMAmplification(nElectrons, mEffGainGEM1);
   const Int_t nElectronsGEM2 = getSingleGEMAmplification(nElectronsGEM1, mEffGainGEM2);
   const Int_t nElectronsGEM3 = getSingleGEMAmplification(nElectronsGEM2, mEffGainGEM3);
   const Int_t nElectronsGEM4 = getSingleGEMAmplification(nElectronsGEM3, mEffGainGEM4);

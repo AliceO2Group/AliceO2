@@ -9,6 +9,7 @@
 #include "TPCSimulation/Constants.h"
 
 #include "TPCBase/RandomRing.h"
+#include "TPCBase/Mapper.h"
 
 #include "Rtypes.h"
 #include "TObject.h"
@@ -45,11 +46,6 @@ class Digitizer : public TObject {
     /// @param points Container with TPC points
     /// @return digits container
     DigitContainer *Process(TClonesArray *points);
-
-    /// Drift of electrons in electric field taking into account diffusion
-    /// @param *xyz Array with 3d position of the electrons
-    /// @return Array with 3d position of the electrons after the drift taking into account diffusion
-    void ElectronDrift(Float_t *xyz);
 
     /// Pad Response
     /// @param xabs Position in x

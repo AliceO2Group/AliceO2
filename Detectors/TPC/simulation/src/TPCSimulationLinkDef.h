@@ -21,6 +21,7 @@
 #pragma link C++ class AliceO2::TPC::DigitPad+;
 #pragma link C++ class AliceO2::TPC::DigitRow+;
 #pragma link C++ class AliceO2::TPC::DigitTime+;
+#pragma link C++ class AliceO2::TPC::ElectronTransport+;
 #pragma link C++ class AliceO2::TPC::GEMAmplification+;
 #pragma link C++ class AliceO2::TPC::PadResponse+;
 #pragma link C++ class AliceO2::TPC::Point+;

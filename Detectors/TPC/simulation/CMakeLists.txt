@@ -22,6 +22,7 @@ set(SRCS
    src/DigitPad.cxx
    src/DigitRow.cxx
    src/DigitTime.cxx
+   src/ElectronTransport.cxx
    src/GEMAmplification.cxx
    src/PadResponse.cxx
    src/Point.cxx
@@ -45,6 +46,7 @@ set(HEADERS
    include/${MODULE_NAME}/DigitPad.h
    include/${MODULE_NAME}/DigitRow.h
    include/${MODULE_NAME}/DigitTime.h
+   include/${MODULE_NAME}/ElectronTransport.h
    include/${MODULE_NAME}/GEMAmplification.h
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/Point.h
