@@ -1,21 +1,18 @@
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/CommonMode.h"
-#include "TPCSimulation/Digitizer.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CRU.h"
 #include <iostream>
-#include "FairLogger.h"
-
-#include "TClonesArray.h"
 
 using namespace AliceO2::TPC;
 
-DigitContainer::DigitContainer():
-mCRU(CRU::MaxCRU)
+DigitContainer::DigitContainer()
+  : mCRU(CRU::MaxCRU)
 {}
 
-DigitContainer::~DigitContainer() {
+DigitContainer::~DigitContainer()
+{
   for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;
     delete aCRU;
@@ -36,14 +33,16 @@ void DigitContainer::addDigit(Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Fl
 }
 
 
-void DigitContainer::fillOutputContainer(TClonesArray *output) {
+void DigitContainer::fillOutputContainer(TClonesArray *output)
+{
   for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;
     aCRU->fillOutputContainer(output, aCRU->getCRUID());
   }
 }
 
-void DigitContainer::fillOutputContainer(TClonesArray *output, std::vector<CommonMode> commonModeContainer) {
+void DigitContainer::fillOutputContainer(TClonesArray *output, std::vector<CommonMode> commonModeContainer)
+{
   for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;
     aCRU->fillOutputContainer(output, aCRU->getCRUID(), commonModeContainer);
@@ -51,8 +50,8 @@ void DigitContainer::fillOutputContainer(TClonesArray *output, std::vector<Commo
 }
 
 
-void DigitContainer::processCommonMode(std::vector<CommonMode> & commonModeContainer) {
-  
+void DigitContainer::processCommonMode(std::vector<CommonMode> & commonModeContainer)
+{
   std::vector<CommonMode> summedCharges(0);
   for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;

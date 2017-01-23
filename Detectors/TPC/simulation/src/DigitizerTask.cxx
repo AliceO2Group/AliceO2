@@ -1,8 +1,6 @@
 #include "TPCSimulation/DigitizerTask.h"
-#include "TPCSimulation/DigitContainer.h"  // for DigitContainer
-#include "TPCSimulation/Digitizer.h"       // for Digitizer
-#include "TObject.h"
-#include "TClonesArray.h"
+#include "TPCSimulation/DigitContainer.h"
+#include "TPCSimulation/Digitizer.h"
 #include "FairLogger.h"
 #include "FairRootManager.h"
 
@@ -10,19 +8,23 @@ ClassImp(AliceO2::TPC::DigitizerTask)
 
 using namespace AliceO2::TPC;
 
-DigitizerTask::DigitizerTask():
-FairTask("TPCDigitizerTask"),
-mDigitizer(nullptr),
-mPointsArray(nullptr),
-mDigitsArray(nullptr)
+
+DigitizerTask::DigitizerTask()
+  : FairTask("TPCDigitizerTask"),
+    mDigitizer(nullptr),
+    mPointsArray(nullptr),
+    mDigitsArray(nullptr)
 {
+  /// @todo get rid of new
   mDigitizer = new Digitizer;
 }
 
 DigitizerTask::~DigitizerTask()
 {
   delete mDigitizer;
-  if (mDigitsArray) delete mDigitsArray;
+  if (mDigitsArray){
+    delete mDigitsArray;
+  }
 }
 
 
@@ -54,6 +56,7 @@ void DigitizerTask::Exec(Option_t *option)
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
   
   DigitContainer *digits = mDigitizer->Process(mPointsArray);
+  /// @todo: Digitizer.getDigitContainer()
   std::vector<CommonMode> commonModeContainer(0);
   digits->processCommonMode(commonModeContainer);
   digits->fillOutputContainer(mDigitsArray, commonModeContainer);
