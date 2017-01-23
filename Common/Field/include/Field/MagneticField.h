@@ -5,22 +5,27 @@
 #ifndef ALICEO2_FIELD_MAGNETICFIELD_H_
 #define ALICEO2_FIELD_MAGNETICFIELD_H_
 
-#include <TVirtualMagField.h>  // for TVirtualMagField
+#include "FairField.h"         // for FairField
+#include "FairParGenericSet.h"
+#include "Field/MagneticWrapperChebyshev.h" // for MagneticWrapperChebyshev
 #include "TSystem.h"
 #include "Rtypes.h"            // for Double_t, Char_t, Int_t, Float_t, etc
 #include "TNamed.h"            // for TNamed
 
 class FairLogger;  // lines 14-14
+class FairParamList;
+
 namespace AliceO2 { namespace Field { class MagneticWrapperChebyshev; }}  // lines 19-19
 namespace AliceO2 {
 namespace Field {
 
+class MagFieldParam;
 class MagneticWrapperChebyshev;
-
+ 
 /// Interface between the TVirtualMagField and MagneticWrapperChebyshev: wrapper to the set of magnetic field data +
 /// Tosca
 /// parametrization by Chebyshev polynomials
-class MagneticField : public TVirtualMagField
+class MagneticField : public FairField
 {
 
   public:
@@ -53,16 +58,48 @@ class MagneticField : public TVirtualMagField
                                                                std::string("/Common/maps/mfchebKGI_sym.root")
     );
 
-    MagneticField(const MagneticField &src);
+
+    MagneticField(const MagFieldParam& param);
 
     MagneticField &operator=(const MagneticField &src);
 
     /// Default destructor
-    virtual ~MagneticField();
+    virtual ~MagneticField() {}
+
+    /// real field creation is here
+    void CreateField();
+
+    /// Virtual methods from FairField
+
+    /// X component, avoid using since slow
+    virtual Double_t GetBx(Double_t x, Double_t y, Double_t z) {
+      double xyz[3]={x,y,z},b[3];
+      GetFieldValue(xyz,b);
+      return b[0];
+    } 
+
+    /// Y component, avoid using since slow
+    virtual Double_t GetBy(Double_t x, Double_t y, Double_t z) {
+      double xyz[3]={x,y,z},b[3];
+      GetFieldValue(xyz,b);
+      return b[1];
+    }
+
+    /// Z component
+    virtual Double_t GetBz(Double_t x, Double_t y, Double_t z) {
+      double xyz[3]={x,y,z};
+      return getBz(xyz); 
+    } 
 
     /// Method to calculate the field at point xyz
-    virtual void Field(const Double_t *x, Double_t *b);
+    virtual void GetFieldValue(const Double_t point[3], Double_t* bField);
 
+    /// 3d field query alias for Alias Method to calculate the field at point xyz
+    virtual void GetBxyz(const Double_t p[3], Double_t* b) {Field(p,b);}
+
+    /// Fill Paramater
+    virtual void FillParContainer();
+    
     /// Method to calculate the integral_0^z of br,bt,bz
     void getTPCIntegral(const Double_t *xyz, Double_t *b) const;
 
@@ -79,10 +116,7 @@ class MagneticField : public TVirtualMagField
     /// Method to calculate the field at point xyz
     Double_t getBz(const Double_t *xyz) const;
 
-    MagneticWrapperChebyshev *getMeasuredMap() const
-    {
-      return mMeasuredMap;
-    }
+    MagneticWrapperChebyshev *getMeasuredMap() const { return mMeasuredMap.get();}
 
     // Former MagF methods or their aliases
 
@@ -215,7 +249,7 @@ class MagneticField : public TVirtualMagField
     }
 
   protected:
-    MagneticWrapperChebyshev *mMeasuredMap; //! Measured part of the field map
+    std::unique_ptr<MagneticWrapperChebyshev> mMeasuredMap; //! Measured part of the field map
     BMap_t mMapType;                        ///< field map type
     Double_t mSolenoid;                     ///< Solenoid field setting
     BeamType_t mBeamType;                   ///< Beam type: A-A (mBeamType=0) or p-p (mBeamType=1)
@@ -234,15 +268,52 @@ class MagneticField : public TVirtualMagField
     Double_t mCompensatorField1A; ///< Side A 1st compensator field
     Double_t mCompensatorField2A; ///< Side A 2nd compensator field
 
-    TNamed mParameterNames; ///< file and parameterization loadad
+    TNamed mParameterNames; ///< file and parameterization loaded
 
     static const Double_t sSolenoidToDipoleZ;  ///< conventional Z of transition from L3 to Dipole field
     static const UShort_t sPolarityConvention; ///< convention for the mapping of the curr.sign on main component sign
 
     FairLogger *mLogger;
 
+   private:
+    MagneticField(const MagneticField &src);
+
+
+    
     ClassDef(AliceO2::Field::MagneticField,
     2) // Class for all Alice MagField wrapper for measured data + Tosca parameterization
+};
+
+class MagFieldParam : public FairParGenericSet
+{
+  public:
+    MagFieldParam(const char* name="", const char* title="", const char* context="");
+
+    void SetParam(const MagneticField* field);
+    
+    MagneticField::BMap_t     GetMapType()   const {return mMapType;}
+    MagneticField::BeamType_t GetBeamType()  const {return mBeamType;}
+    Int_t                     GetDefInt()    const {return mDefaultIntegration;}
+    Double_t                  GetFactorSol() const {return mFactorSol;}
+    Double_t                  GetFactorDip() const {return mFactorDip;}
+    Double_t                  GetBeamEnergy() const {return mBeamEnergy;}
+    Double_t                  GetMaxField()   const {return mMaxField;}
+    const char*               GetMapPath()    const {return mMapPath.Data();}
+
+    virtual void   putParams(FairParamList* list);
+    virtual Bool_t getParams(FairParamList* list);
+    
+  protected:
+    MagneticField::BMap_t     mMapType;  ///< map type ID
+    MagneticField::BeamType_t mBeamType; ///< beam type ID
+    Int_t    mDefaultIntegration;        ///< field integration type for MC
+    Double_t mFactorSol;                 ///< solenoid current factor
+    Double_t mFactorDip;                 ///< dipole current factor
+    Double_t mBeamEnergy;                ///< beam energy
+    Double_t mMaxField;                  ///< max field for geant
+    TString  mMapPath;                   ///< path to map file
+    
+    ClassDef(MagFieldParam,1)
 };
 }
 }
