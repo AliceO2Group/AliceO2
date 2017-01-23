@@ -1,5 +1,5 @@
 /// \file Digit.cxx
-/// \brief Digits structure for TPC digits
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/Digit.h"
 

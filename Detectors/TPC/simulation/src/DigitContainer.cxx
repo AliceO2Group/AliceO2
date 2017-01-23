@@ -1,3 +1,6 @@
+/// \file DigitContainer.cxx
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/CommonMode.h"

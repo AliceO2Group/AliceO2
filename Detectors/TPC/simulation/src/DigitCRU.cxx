@@ -1,3 +1,6 @@
+/// \file DigitCRU.cxx
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/DigitTime.h"
 #include "TPCBase/Mapper.h"
@@ -6,7 +9,8 @@ using namespace AliceO2::TPC;
 
 DigitCRU::DigitCRU(Int_t cru)
   : mCRU(cru),
-    mTimeBins(500)
+    mNTimeBins(500),
+    mTimeBins(mNTimeBins)
 {}
 
 DigitCRU::~DigitCRU()
@@ -21,7 +25,7 @@ void DigitCRU::setDigit(Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
 {
   //if time bin outside specified range, the range of the vector is extended by one full drift time.
   while(getSize() <= timeBin) {
-    mTimeBins.resize(getSize() + 500);
+    mTimeBins.resize(getSize() + mNTimeBins);
   }
   
   DigitTime *result = mTimeBins[timeBin];

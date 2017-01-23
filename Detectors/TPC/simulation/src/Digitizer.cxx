@@ -1,5 +1,6 @@
 /// \file Digitizer.cxx
-/// \brief Digitizer for the TPC
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/PadResponse.h"
@@ -124,6 +125,8 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 
 void Digitizer::ElectronDrift(Float_t *posEle)
 {
+  /// @todo Should go to a separate class
+  
   Float_t driftl=posEle[2];
   if(driftl<0.01) driftl=0.01;
   driftl=TMath::Sqrt(driftl);

@@ -1,3 +1,6 @@
+/// \file DigitTime.cxx
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/DigitTime.h"
 #include "TPCSimulation/DigitRow.h"
 #include "TPCBase/Mapper.h"

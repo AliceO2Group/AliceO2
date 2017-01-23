@@ -1,3 +1,6 @@
+/// \file GEMAmplification.cxx
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/GEMAmplification.h"
 #include "TPCSimulation/Constants.h"
 
@@ -22,13 +25,10 @@ GEMAmplification::GEMAmplification(Float_t effGainGEM1, Float_t effGainGEM2, Flo
   Float_t kappa = 1/(SIGMAOVERMU*SIGMAOVERMU);
   Float_t s = 1/kappa;
   
-  char strPolya[1000];
-  snprintf(strPolya,1000,"1/(TMath::Gamma(%e)*%e) *pow(x/%e, (%e)) *exp(-x/%e)", kappa, s, s, kappa-1, s);
-  
   boost::format polya("1/(TMath::Gamma(%1%)*%2%) *pow(x/%3%, %4%) *exp(-x/%5%)");
   polya % kappa % s % s % (kappa-1) % s;
   
-  TF1 polyaDistribution("polya", strPolya, 0, 100);
+  TF1 polyaDistribution("polya", (polya.str()).data(), 0, 100);
   mRandomPolya.initialize(polyaDistribution);  
 }
 

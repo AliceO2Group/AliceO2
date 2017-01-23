@@ -129,4 +129,3 @@ class Detector: public AliceO2::Base::Detector {
 }
 
 #endif // AliceO2_TPC_Detector_H_
-

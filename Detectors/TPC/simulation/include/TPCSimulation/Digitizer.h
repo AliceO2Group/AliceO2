@@ -95,9 +95,8 @@ class Digitizer : public TObject {
     Digitizer(const Digitizer &);
     Digitizer &operator=(const Digitizer &);
 
-    DigitContainer          *mDigitContainer;
-      
-    RandomRing              mRandomGaus;
+    DigitContainer          *mDigitContainer;   ///< Container for the Digits      
+    RandomRing              mRandomGaus;        ///< Random generator for the Diffusion
     
   ClassDef(Digitizer, 1);
 };

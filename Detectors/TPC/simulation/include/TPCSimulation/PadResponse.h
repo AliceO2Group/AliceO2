@@ -40,9 +40,9 @@ class PadResponse {
     Float_t getWeight() const { return mWeight; }
       
   private:
-    UChar_t           mPad;
-    UChar_t           mRow;
-    Float_t           mWeight;
+    UChar_t           mPad;     ///< Pad with signal, wrt to the central pad above which the electron arrives
+    UChar_t           mRow;     ///< Row with signal, wrt to the central pad above which the electron arrives
+    Float_t           mWeight;  ///< Weight of the signal on the specific pad, wrt to the central pad above which the electron arrives
 };
 
 }
