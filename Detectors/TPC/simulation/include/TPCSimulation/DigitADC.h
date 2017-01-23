@@ -30,7 +30,7 @@ class DigitADC{
     Float_t getADC() {return mADC;}
       
   private:
-    Float_t mADC;
+    Float_t mADC;       ///< ADC value of the digit
 };
 }
 }

@@ -1,3 +1,6 @@
+/// \file DigitPad.cxx
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/DigitPad.h"
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Digit.h"
@@ -6,7 +9,8 @@ using namespace AliceO2::TPC;
 
 DigitPad::DigitPad(Int_t pad)
   : mPad(pad),
-    mTotalChargePad(0.)
+    mTotalChargePad(0.),
+    mADCCounts()
 {}
 
 DigitPad::~DigitPad()

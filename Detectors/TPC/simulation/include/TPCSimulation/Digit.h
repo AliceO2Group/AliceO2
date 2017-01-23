@@ -94,5 +94,3 @@ class Digit : public FairTimeStamp {
 }
 
 #endif // ALICEO2_TPC_Digit_H_
-
-

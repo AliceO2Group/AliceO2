@@ -1,3 +1,6 @@
+/// \file DigitizerTask.cxx
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/DigitizerTask.h"
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/Digitizer.h"

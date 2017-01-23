@@ -72,10 +72,10 @@ class DigitRow{
     void processCommonMode(Int_t cru, Int_t timeBin, Int_t row);
 
   private:
-    UChar_t                mRow;
-    UChar_t                mNPads;
-    Float_t                mTotalChargeRow;
-    std::vector<DigitPad*> mPads;
+    UChar_t                mRow;                ///< Row of the ADC value
+    UChar_t                mNPads;              ///< Number of pads in that pad row
+    Float_t                mTotalChargeRow;     ///< Total accumulated charge in that pad row for a given time bin
+    std::vector<DigitPad*> mPads;               ///< Pad Container for the ADC value
   
 };
 

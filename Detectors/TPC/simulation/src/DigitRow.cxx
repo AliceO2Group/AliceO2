@@ -1,3 +1,6 @@
+/// \file DigitRow.cxx
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/DigitRow.h"
 #include "TPCSimulation/DigitPad.h"
 

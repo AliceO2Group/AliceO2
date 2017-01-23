@@ -41,10 +41,10 @@ class DigitizerTask : public FairTask{
     virtual void Exec(Option_t *option);
       
   private:
-    Digitizer           *mDigitizer;
+    Digitizer           *mDigitizer;    ///< Digitization process
       
-    TClonesArray        *mPointsArray;
-    TClonesArray        *mDigitsArray;
+    TClonesArray        *mPointsArray;  ///< Array of detector hits, passed to the digitization
+    TClonesArray        *mDigitsArray;  ///< Array of the Digits, passed from the digitization
     
   ClassDef(DigitizerTask, 1);
 };

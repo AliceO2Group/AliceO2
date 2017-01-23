@@ -1,5 +1,6 @@
 /// \file CommonMode.h
 /// \brief Container class for the ADC values
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
 #ifndef ALICEO2_TPC_CommonMode_H_
 #define ALICEO2_TPC_CommonMode_H_
 

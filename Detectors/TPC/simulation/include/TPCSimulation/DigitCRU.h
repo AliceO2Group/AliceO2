@@ -41,10 +41,6 @@ class DigitCRU{
     /// @return CRU ID
     Int_t getCRUID() {return mCRU;}
 
-    /// Get the accumulated charge in one time bin per CRU
-    /// @return Accumulated charge in one time bin per CRU
-    Float_t getChargeCRU() {return mChargeCRU;}
-
     /// Add digit to the row container
     /// @param row Pad row of digit
     /// @param pad Pad of digit
@@ -68,10 +64,9 @@ class DigitCRU{
     void processCommonMode(std::vector<CommonMode> &, Int_t cru);
 
   private:
-    UShort_t                 mCRU;
-    Int_t                    mNTimeBins;
-    Float_t                  mChargeCRU;
-    std::vector <DigitTime*> mTimeBins;
+    UShort_t                 mCRU;              ///< CRU of the ADC value
+    Int_t                    mNTimeBins;        ///< Maximal number of time bins in that CRU
+    std::vector <DigitTime*> mTimeBins;         ///< Time bin Container for the ADC value
 };
     
     

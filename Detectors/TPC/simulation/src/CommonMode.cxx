@@ -1,3 +1,6 @@
+/// \file CommonMode.cxx
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/CommonMode.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CRU.h"
