@@ -1,8 +1,8 @@
 /// \file GEMAmplification.h
 /// \brief This class handles the amplification of electrons in the 4-GEM stack
 /// \author Andi Mathis, andreas.mathis@ph.tum.de
-#ifndef _ALICEO2_TPC_GEMAmplification_H_
-#define _ALICEO2_TPC_GEMAmplification_H_
+#ifndef ALICEO2_TPC_GEMAmplification_H_
+#define ALICEO2_TPC_GEMAmplification_H_
 
 #include "Rtypes.h"
 #include "TPCSimulation/Constants.h"
@@ -47,8 +47,6 @@ class GEMAmplification
     Float_t        mEffGainGEM3;      ///<  Effective gain of GEM 3
     Float_t        mEffGainGEM4;      ///<  Effective gain of GEM 4
     RandomRing     mRandomPolya;      ///<  Circular random buffer containing random values of the polya distribution for gain fluctuations in a single GEM
-      
-    ClassDef(GEMAmplification, 1);
 };
     
 inline
@@ -64,4 +62,4 @@ Int_t GEMAmplification::getSingleGEMAmplification(Int_t nElectrons, Float_t GEMg
 }
 }
 
-#endif
+#endif // ALICEO2_TPC_GEMAmplification_H_

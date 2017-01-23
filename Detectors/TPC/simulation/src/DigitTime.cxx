@@ -1,26 +1,26 @@
 #include "TPCSimulation/DigitTime.h"
 #include "TPCSimulation/DigitRow.h"
 #include "TPCBase/Mapper.h"
-#include "TClonesArray.h"
-#include "FairLogger.h"
-#include <iostream>
+
 using namespace AliceO2::TPC;
 
-DigitTime::DigitTime(Int_t timeBin, Int_t nrows):
-mTimeBin(timeBin),
-mNRows(nrows),
-mRows(nrows),
-mTotalChargeTimeBin(0.)
+DigitTime::DigitTime(Int_t timeBin, Int_t nrows)
+  : mTimeBin(timeBin),
+    mNRows(nrows),
+    mRows(nrows),
+    mTotalChargeTimeBin(0.)
 {}
 
-DigitTime::~DigitTime() {
+DigitTime::~DigitTime()
+{
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
     delete aRow;
   }
 }
 
-void DigitTime::setDigit(Int_t cru, Int_t row, Int_t pad, Float_t charge) {
+void DigitTime::setDigit(Int_t cru, Int_t row, Int_t pad, Float_t charge)
+{
   DigitRow *result = mRows[row];
   if(result != nullptr) {
     mRows[row]->setDigit(pad, charge);
@@ -32,21 +32,24 @@ void DigitTime::setDigit(Int_t cru, Int_t row, Int_t pad, Float_t charge) {
   }
 }
 
-void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin) {
+void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin)
+{
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
     aRow->fillOutputContainer(output, cru, timeBin, aRow->getRow());
   }
 }
 
-void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, std::vector<CommonMode> commonModeContainer) {
+void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, std::vector<CommonMode> commonModeContainer)
+{
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
     aRow->fillOutputContainer(output, cru, timeBin, aRow->getRow(), commonModeContainer);
   }
 }
 
-void DigitTime::processCommonMode(Int_t cru, Int_t timeBin) {
+void DigitTime::processCommonMode(Int_t cru, Int_t timeBin)
+{
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
     aRow->processCommonMode(cru, timeBin, aRow->getRow());

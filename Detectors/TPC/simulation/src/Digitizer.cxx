@@ -4,6 +4,7 @@
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Constants.h"
+#include "TPCSimulation/GEMAmplification.h"
 
 #include "TPCBase/Mapper.h"
 
@@ -15,52 +16,45 @@
 
 #include "FairLogger.h"
 
-#include <cmath>
 #include <iostream>
 
 ClassImp(AliceO2::TPC::Digitizer)
 
 using namespace AliceO2::TPC;
 
-Digitizer::Digitizer():
-TObject(),
-mDigitContainer(nullptr)
+Digitizer::Digitizer()
+  : TObject(),
+    mDigitContainer(nullptr),
+    mRandomGaus()
 {}
 
-Digitizer::~Digitizer(){
+Digitizer::~Digitizer()
+{
   delete mDigitContainer;
-//   delete mRandomGaus;
-//   delete mRandomPolya;
 }
 
-void Digitizer::init(){
+void Digitizer::init()
+{
+  /// @todo get rid of new? check with Mohammad
   mDigitContainer = new DigitContainer();
   
-  mRandomGaus = new RandomRing();
-  
-  Float_t kappa = 1/(SIGMAOVERMU*SIGMAOVERMU);
-  Float_t s = 1/kappa;
-  
-  char strPolya[1000];
-  snprintf(strPolya,1000,"1/(TMath::Gamma(%e)*%e) *pow(x/%e, (%e)) *exp(-x/%e)", kappa, s, s, kappa-1, s);
-  TF1 mPolya("polya", strPolya, 0, 100);
-  mRandomPolya = new RandomRing(mPolya, size_t(500000));
+  mRandomGaus.initialize(RandomRing::RandomType::Gaus);
 }
 
-DigitContainer *Digitizer::Process(TClonesArray *points){
-  
+DigitContainer *Digitizer::Process(TClonesArray *points)
+{
+  /// @todo Containers?
   mDigitContainer->reset();
   
   RandomRing randomFlat(RandomRing::RandomType::Flat);
-
+  /// @todo GlobalPosition3d + nEle instead?
   Float_t posEle[4] = {0., 0., 0., 0.};
 
   const Mapper& mapper = Mapper::instance();
+
+  GEMAmplification g(EFFGAINGEM1, EFFGAINGEM2, EFFGAINGEM3, EFFGAINGEM4);
   
-  Int_t A = 0;
-  Int_t C = 0;
-  
-  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter){
+  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
     Point *inputpoint = static_cast<Point *>(*pointiter);
     
     posEle[0] = inputpoint->GetX();
@@ -69,9 +63,12 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
     posEle[3] = static_cast<int>(inputpoint->GetEnergyLoss()/WION);
     
     //Loop over electrons
-    for(Int_t iEle=0; iEle < posEle[3]; ++iEle){
+    /// @todo can be vectorized?
+    /// @todo split transport and signal formation in two separate loop?
+    for(Int_t iEle=0; iEle < posEle[3]; ++iEle) {
       
       // Attachment
+      /// @todo simple scaling possible outside this loop? or after diffusion...
       const Float_t attProb = ATTCOEF * OXYCONT * getTime(posEle[2]);
       if(randomFlat.getNextValue() < attProb) continue;
 
@@ -79,37 +76,39 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
       ElectronDrift(posEle);
 
       // remove electrons that end up outside the active volume
-      // TODO should go to mapper?
-      if(TMath::Abs(posEle[2]) > 250.) continue;
+      /// @todo should go to mapper?
+      if(TMath::Abs(posEle[2]) > TPCLENGTH) continue;
 
       const GlobalPosition3D posElePad (posEle[0], posEle[1], posEle[2]);
       const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posElePad);
        
       if(!digiPadPos.isValid()) continue;
-       
-      // GEM amplification
-      const Int_t nEleGEM1 = SingleGEMAmplification(1, EFFGAINGEM1);
-      const Int_t nEleGEM2 = SingleGEMAmplification(nEleGEM1, EFFGAINGEM2);
-      const Int_t nEleGEM3 = SingleGEMAmplification(nEleGEM2, EFFGAINGEM3);
-      const Int_t nEleGEM4 = SingleGEMAmplification(nEleGEM3, EFFGAINGEM4);
+
+      const Int_t nElectronsGEM = g.getStackAmplification();
       
       // Loop over all individual pads with signal due to pad response function
-      getPadResponse(posEle[0], posEle[1], mPadResponse);
-      for(auto &padresp : mPadResponse ) {
+      /// @todo modularization -> own class
+      std::vector<PadResponse> padResponseContainer;
+      getPadResponse(posEle[0], posEle[1], padResponseContainer);
+      for(auto &padresp : padResponseContainer ) {
         const Int_t pad = digiPadPos.getPadPos().getPad() + padresp.getPad();
         const Int_t row = digiPadPos.getPadPos().getRow() + padresp.getRow();
         const Float_t weight = padresp.getWeight();
         
-        // TODO Time management in continuous mode (adding the time of the event?)
+        /// @todo Time management in continuous mode (adding the time of the event?)
         const Float_t startTime = getTime(posEle[2]);
+//         std::cout << startTime << " " << getTimeBinFromTime(startTime) << " " << getTimeFromBin(int(getTimeBinFromTime(startTime) + 0.5)) << " " << getTimeFromBin(getTimeBinFromTime(startTime) + 0.5) << " " << posEle[2] << "\n";
         
         // Loop over all time bins with signal due to time response
-        for(Float_t bin = 0; bin<5; ++bin){
-          // TODO check how the SAMPA digitisation is applied
-          Double_t signal = 55*Gamma4(startTime+bin*ZBINWIDTH, startTime, nEleGEM4*weight);
-//           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(startTime) + bin + 0.5), startTime, nEleGEM4*weight);
+        for(Float_t bin = 0; bin<5; ++bin) {
+          /// @todo check how the SAMPA digitisation is applied
+          /// @todo modularization -> own SAMPA class
+          /// @todo conversion to ADC counts already here? How about saturation?
+          Double_t signal = 55*Gamma4(startTime+bin*ZBINWIDTH, startTime, nElectronsGEM*weight);
+//           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(startTime) + bin + 0.5), startTime, nElectronsGEM*weight);
           if(signal <= 0.) continue;
           mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(startTime+bin*ZBINWIDTH), row, pad, signal);
+//           std::cout << getTimeBinFromTime(getTimeFromBin(getTimeBinFromTime(startTime) + bin + 0.5)) << "\n";
         }
         // end of loop over time bins
       }
@@ -123,14 +122,14 @@ DigitContainer *Digitizer::Process(TClonesArray *points){
 }
 
 
-void Digitizer::ElectronDrift(Float_t *posEle) const {
- 
+void Digitizer::ElectronDrift(Float_t *posEle)
+{
   Float_t driftl=posEle[2];
   if(driftl<0.01) driftl=0.01;
   driftl=TMath::Sqrt(driftl);
   Float_t sigT = driftl*DIFFT;
   Float_t sigL = driftl*DIFFL;
-  posEle[0]=(mRandomGaus->getNextValue() * sigT) + posEle[0];
-  posEle[1]=(mRandomGaus->getNextValue() * sigT) + posEle[1];
-  posEle[2]=(mRandomGaus->getNextValue() * sigL) + posEle[2];
+  posEle[0]=(mRandomGaus.getNextValue() * sigT) + posEle[0];
+  posEle[1]=(mRandomGaus.getNextValue() * sigT) + posEle[1];
+  posEle[2]=(mRandomGaus.getNextValue() * sigL) + posEle[2];
 }

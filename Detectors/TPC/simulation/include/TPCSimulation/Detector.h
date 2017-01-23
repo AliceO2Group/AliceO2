@@ -1,3 +1,4 @@
+
 #ifndef AliceO2_TPC_Detector_H_
 #define AliceO2_TPC_Detector_H_
 
@@ -126,4 +127,6 @@ class Detector: public AliceO2::Base::Detector {
 };
 }
 }
-#endif
+
+#endif // AliceO2_TPC_Detector_H_
+

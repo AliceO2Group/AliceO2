@@ -2,6 +2,7 @@
 #include "TPCSimulation/Constants.h"
 
 using namespace AliceO2::TPC;
+using boost::format;
 
 GEMAmplification::GEMAmplification()
   : mEffGainGEM1(0),
@@ -22,8 +23,11 @@ GEMAmplification::GEMAmplification(Float_t effGainGEM1, Float_t effGainGEM2, Flo
   Float_t s = 1/kappa;
   
   char strPolya[1000];
-  // TODO TString or boost::format
   snprintf(strPolya,1000,"1/(TMath::Gamma(%e)*%e) *pow(x/%e, (%e)) *exp(-x/%e)", kappa, s, s, kappa-1, s);
+  
+  boost::format polya("1/(TMath::Gamma(%1%)*%2%) *pow(x/%3%, %4%) *exp(-x/%5%)");
+  polya % kappa % s % s % (kappa-1) % s;
+  
   TF1 polyaDistribution("polya", strPolya, 0, 100);
   mRandomPolya.initialize(polyaDistribution);  
 }

@@ -1,90 +1,93 @@
 /// \file DigitPad.h
 /// \brief Digit container for the Digits
-#ifndef _ALICEO2_TPC_DigitPad_
-#define _ALICEO2_TPC_DigitPad_
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+#ifndef ALICEO2_TPC_DigitPad_H_
+#define ALICEO2_TPC_DigitPad_H_
 
 #include "Rtypes.h"
 #include "TPCSimulation/DigitADC.h"
 #include "TPCSimulation/CommonMode.h"
-
-class TClonesArray;
+#include <TClonesArray.h>
 
 namespace AliceO2 {
-  namespace TPC {
+namespace TPC {
 
-    /// \class DigitPad
-    /// \brief Digit container class for the digits    
+/// \class DigitPad
+/// \brief Digit container class for the digits    
 
-    class DigitPad{
-    public:
+class DigitPad{
+  public:
 
-      /// Constructor
-      /// @param mPad Pad ID
-      DigitPad(Int_t mPad);
+    /// Constructor
+    /// @param mPad Pad ID
+    DigitPad(Int_t mPad);
 
-      /// Destructor
-      ~DigitPad();
+    /// Destructor
+    ~DigitPad();
 
-      /// Resets the container
-      void reset();
+    /// Resets the container
+    void reset();
 
-      /// Get the size of the container
-      /// @return Size of the ADC container
-      Int_t getSize() {return mADCCounts.size();}
+    /// Get the size of the container
+    /// @return Size of the ADC container
+    Int_t getSize() {return mADCCounts.size();}
 
-      /// Get the Pad ID
-      /// @return Pad ID
-      Int_t getPad() {return mPad;}
+    /// Get the Pad ID
+    /// @return Pad ID
+    Int_t getPad() {return mPad;}
 
-      /// Get the accumulated charge on that pad
-      /// @return Accumulated charge
-      Float_t getTotalChargePad() {return mTotalChargePad;}
+    /// Get the accumulated charge on that pad
+    /// @return Accumulated charge
+    Float_t getTotalChargePad() {return mTotalChargePad;}
 
-      /// Add digit to the time bin container
-      /// @param charge Charge of the digit
-      void setDigit(Float_t charge);
+    /// Add digit to the time bin container
+    /// @param charge Charge of the digit
+    void setDigit(Float_t charge);
 
-      /// Fill output TClonesArray
-      /// @param output Output container
-      /// @param cru CRU ID
-      /// @param timeBin Time bin
-      /// @param row Row ID
-      /// @param pad pad ID
-      void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad);
+    /// Fill output TClonesArray
+    /// @param output Output container
+    /// @param cru CRU ID
+    /// @param timeBin Time bin
+    /// @param row Row ID
+    /// @param pad pad ID
+    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad);
 
-      /// Fill output TClonesArray
-      /// @param output Output container
-      /// @param cru CRU ID
-      /// @param timeBin Time bin
-      /// @param row Row ID
-      /// @param pad pad ID
-      void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, std::vector<CommonMode> commonModeContainer);
+    /// Fill output TClonesArray
+    /// @param output Output container
+    /// @param cru CRU ID
+    /// @param timeBin Time bin
+    /// @param row Row ID
+    /// @param pad pad ID
+    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, std::vector<CommonMode> commonModeContainer);
 
-      // Process Common Mode Information
-      /// @param output Output container
-      /// @param cruID CRU ID
-      /// @param timeBin TimeBin
-      /// @param rowID Row ID
-      /// @param pad pad ID
-      void processCommonMode(Int_t cru, Int_t timeBin, Int_t row, Int_t pad);
+    // Process Common Mode Information
+    /// @param output Output container
+    /// @param cruID CRU ID
+    /// @param timeBin TimeBin
+    /// @param rowID Row ID
+    /// @param pad pad ID
+    void processCommonMode(Int_t cru, Int_t timeBin, Int_t row, Int_t pad);
 
-    private:
-      UChar_t                  mPad;
-      Float_t                  mTotalChargePad;
-      std::vector <DigitADC>   mADCCounts;
-    };
+  private:
+    UChar_t                  mPad;
+    Float_t                  mTotalChargePad;
+    std::vector <DigitADC>   mADCCounts;
+};
 
-    inline 
-    void DigitPad::setDigit(Float_t charge) {
-      DigitADC digitAdc(charge);
-      mADCCounts.emplace_back(digitAdc);
-    }
-
-    inline
-    void DigitPad::reset() {
-      mADCCounts.clear();
-    }
-  }
+inline 
+void DigitPad::setDigit(Float_t charge) 
+{
+  DigitADC digitAdc(charge);
+  mADCCounts.emplace_back(digitAdc);
 }
 
-#endif
+inline
+void DigitPad::reset()
+{
+  mADCCounts.clear();
+}
+  
+}
+}
+
+#endif // ALICEO2_TPC_DigitPad_H_

@@ -285,7 +285,7 @@ void Detector::CreateMaterials()
   TString names[6]={"Ne","Ar","CO2","N","CF4","CH4"};
   TString gname;
 
-  // TODO: Gas mixture is hard coded here, this should be moved to some kind of parameter
+  /// @todo: Gas mixture is hard coded here, this should be moved to some kind of parameter
   //       container in the future
   Float_t comp[6]={90./105., 0., 10./105., 5./105., 0., 0.};
   // indices:
@@ -1734,7 +1734,7 @@ void Detector::ConstructTPCGeometry()
 
   // sensitive strips - strip "0" is always set
   // conditional
-  // TODO: Hard coded numbers. Will need to be changed!
+  /// @todo: Hard coded numbers. Will need to be changed!
   Int_t totrows=159;
 //   totrows = mParam->GetNRowLow() + mParam->GetNRowUp();
   Double_t *upar;
@@ -1749,7 +1749,7 @@ void Detector::ConstructTPCGeometry()
   upar[4]=-124.8;
   upar[7]=124.8;
 
-  //TODO: hard coded value
+  /// @todo: hard coded value
 //   Double_t rlow=mParam->GetPadRowRadiiLow(0);
   Double_t rlow=85.225; //cm
 

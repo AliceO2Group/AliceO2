@@ -1,39 +1,38 @@
 /// \file DigitADC.h
 /// \brief Container class for the ADC values
-#ifndef _ALICEO2_TPC_DigitADC_
-#define _ALICEO2_TPC_DigitADC_
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+#ifndef ALICEO2_TPC_DigitADC_H_
+#define ALICEO2_TPC_DigitADC_H_
 
 #include "Rtypes.h"
 
 namespace AliceO2 {
-  namespace TPC {
+namespace TPC {
     
-    class Digit;
+/// \class DigitADC
+/// \brief Digit container class for the ADC values
     
-    /// \class DigitADC
-    /// \brief Digit container class for the ADC values
-    
-    class DigitADC{
-    public:
+class DigitADC{
+  public:
       
-      /// Default constructor
-      DigitADC();
+    /// Default constructor
+    DigitADC();
       
-      /// Constructor 
-      /// @param charge Charge
-      DigitADC(Float_t charge);
+    /// Constructor 
+    /// @param charge Charge
+    DigitADC(Float_t charge);
       
-      /// Destructor
-      ~DigitADC();
+    /// Destructor
+    ~DigitADC();
       
-      /// Get the ADC value
-      /// @return ADC value
-      Float_t getADC() {return mADC;}
+    /// Get the ADC value
+    /// @return ADC value
+    Float_t getADC() {return mADC;}
       
-    private:
-      Float_t mADC;
-    };
-  }
+  private:
+    Float_t mADC;
+};
 }
+}
+#endif // ALICEO2_TPC_DigitADC_H_
 
-#endif

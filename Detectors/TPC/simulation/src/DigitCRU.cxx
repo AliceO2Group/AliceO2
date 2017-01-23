@@ -2,24 +2,23 @@
 #include "TPCSimulation/DigitTime.h"
 #include "TPCBase/Mapper.h"
 
-#include "FairLogger.h"
 using namespace AliceO2::TPC;
 
-#include <iostream>
-
-DigitCRU::DigitCRU(Int_t cru):
-mCRU(cru),
-mTimeBins(500)
+DigitCRU::DigitCRU(Int_t cru)
+  : mCRU(cru),
+    mTimeBins(500)
 {}
 
-DigitCRU::~DigitCRU() {
+DigitCRU::~DigitCRU()
+{
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
     delete aTime;
   }
 }
 
-void DigitCRU::setDigit(Int_t timeBin, Int_t row, Int_t pad, Float_t charge) {
+void DigitCRU::setDigit(Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
+{
   //if time bin outside specified range, the range of the vector is extended by one full drift time.
   while(getSize() <= timeBin) {
     mTimeBins.resize(getSize() + 500);
@@ -36,21 +35,24 @@ void DigitCRU::setDigit(Int_t timeBin, Int_t row, Int_t pad, Float_t charge) {
   }
 }
 
-void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru) {
+void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru)
+{
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
     aTime->fillOutputContainer(output, cru, aTime->getTimeBin());
   }
 }
 
-void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<CommonMode> commonModeContainer) {
+void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<CommonMode> commonModeContainer)
+{
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
     aTime->fillOutputContainer(output, cru, aTime->getTimeBin(), commonModeContainer);
   }
 }
 
-void DigitCRU::processCommonMode(std::vector<CommonMode> & commonModeCRU, Int_t cru) {
+void DigitCRU::processCommonMode(std::vector<CommonMode> & commonModeCRU, Int_t cru)
+{
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
     aTime->processCommonMode(cru, aTime->getTimeBin());
