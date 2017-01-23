@@ -11,6 +11,7 @@
 #include "TSystem.h"
 #include "Rtypes.h"            // for Double_t, Char_t, Int_t, Float_t, etc
 #include "TNamed.h"            // for TNamed
+#include <memory>              // for str::unique_ptr
 
 class FairLogger;  // lines 14-14
 class FairParamList;
