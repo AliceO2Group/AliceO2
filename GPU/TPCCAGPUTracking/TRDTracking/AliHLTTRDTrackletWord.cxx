@@ -28,6 +28,7 @@
 #include "AliTRDpadPlane.h"
 #include "AliLog.h"
 #include "AliTRDtrackletWord.h"
+#include "AliTRDtrackletMCM.h"
 
 AliTRDgeometry* AliHLTTRDTrackletWord::fgGeo = 0x0;
 
@@ -69,12 +70,29 @@ AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs) :
     fgGeo = new AliTRDgeometry;
 }
 
+AliHLTTRDTrackletWord::AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs) :
+  fId(-1),
+  fHCId(rhs.GetHCId()),
+  fTrackletWord(rhs.GetTrackletWord())
+{
+
+  if (!fgGeo)
+    fgGeo = new AliTRDgeometry;
+}
+
 AliHLTTRDTrackletWord::~AliHLTTRDTrackletWord()
 {
 
 }
 
 AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliHLTTRDTrackletWord &rhs)
+{
+  this->~AliHLTTRDTrackletWord();
+  new(this) AliHLTTRDTrackletWord(rhs);
+  return *this;
+}
+
+AliHLTTRDTrackletWord& AliHLTTRDTrackletWord::operator=(const AliTRDtrackletMCM &rhs)
 {
   this->~AliHLTTRDTrackletWord();
   new(this) AliHLTTRDTrackletWord(rhs);

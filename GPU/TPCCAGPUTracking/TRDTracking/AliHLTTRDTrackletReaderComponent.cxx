@@ -27,6 +27,7 @@
 #include "AliTRDrawStream.h"
 #include "AliHLTTRDTrackletWord.h"
 #include "AliTRDtrackletWord.h"
+#include "TTree.h"
 
 ClassImp(AliHLTTRDTrackletReaderComponent)
 
@@ -56,6 +57,7 @@ const char* AliHLTTRDTrackletReaderComponent::GetComponentID() {
 
 void AliHLTTRDTrackletReaderComponent::GetInputDataTypes( vector<AliHLTComponentDataType>& list) {
   list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD);
+  list.push_back(kAliHLTDataTypeAliTreeD|kAliHLTDataOriginTRD);
 }
 
 AliHLTComponentDataType AliHLTTRDTrackletReaderComponent::GetOutputDataType() {
@@ -214,84 +216,122 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
 
   // event processing function
   int iResult = 0;
-  UInt_t sourceSectors = 0;
 
   fTrackletArray->Clear();
+  fRawReaderMem->ClearBuffers();
 
   if (!IsDataEvent()) { // process data events only
     HLTInfo("### END   DoEvent [event id: %llu, %d blocks, size: %d] (skipped: no data event)",
-	     hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
+	    hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
     return iResult;
   }
 
-  TString infoStr("");
-
-  // loop over all incoming TRD raw data blocks
-  for (const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD);
-       pBlock != NULL && iResult >= 0;
-       pBlock = GetNextInputBlock()) {
-
-    int trdSector = -1;
-
-    // determine sector from block specification
-    for (unsigned pos = 0; pos < 8*sizeof(AliHLTUInt32_t); pos++) {
-      if (pBlock->fSpecification & (0x1 << pos)) {
-	      if (trdSector >= 0) {
-	        HLTWarning("Cannot uniquely identify DDL number from specification, skipping data block %s 0x%08x",
-	            	     DataType2Text(pBlock->fDataType).c_str(),
-	            	     pBlock->fSpecification);
-	        trdSector = -1;
-	        break;
-	      }
-	      trdSector = pos;
-      }
-    }
-    if (trdSector < 0) continue;
-
-    // add data block to rawreader
-    infoStr += Form("%02d, ", trdSector);
-    sourceSectors |= pBlock->fSpecification;
-    if(!fRawReaderMem->AddBuffer((UChar_t*) pBlock->fPtr, pBlock->fSize, trdSector + 1024)){
-      LogError("Could not add buffer of data block  %s, 0x%08x to rawreader",
-	       DataType2Text(pBlock->fDataType).c_str(),
-	       pBlock->fSpecification);
-      continue;
-    }
-
-  } // loop over all incoming TRD raw data blocks
-
-  if (sourceSectors){
-    infoStr.Remove(infoStr.Length() - 2, 2);
-    LogDebug("preprocessing data from sectors: %s...", infoStr.Data());
-  } else {
-    LogDebug("### END   DoEvent [event id: %llu, %d blocks, size: %d] (skipping: no TRD data)",
-			hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
-    return iResult;
-  }
-
-  // extract header info and TRD tracklets from raw data
-  fRawReaderTrd->ReadEvent();
-
-  // read and process TRD tracklets
   std::vector<AliHLTTRDTrackletWord> outputTrkls;
-  int nTracklets = fTrackletArray->GetEntriesFast();
+  
+  { // read raw data
+    
+    TString infoStr("");
+    UInt_t sourceSectors = 0;
 
-  HLTInfo("There are %i tracklets in this event\n", nTracklets);
-  for (int iTracklet = 0; iTracklet < nTracklets; ++iTracklet){
-    AliHLTTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
-    trkl.SetId(iTracklet);
-    outputTrkls.push_back(trkl);
+    // loop over all incoming TRD raw data blocks
+    for (const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD);
+	 pBlock != NULL && iResult >= 0;
+	 pBlock = GetNextInputBlock()) {
+
+      int trdSector = -1;
+
+      // determine sector from block specification
+      for (unsigned pos = 0; pos < 8*sizeof(AliHLTUInt32_t); pos++) {
+	if (pBlock->fSpecification & (0x1 << pos)) {
+	  if (trdSector >= 0) {
+	    HLTWarning("Cannot uniquely identify DDL number from specification, skipping data block %s 0x%08x",
+		       DataType2Text(pBlock->fDataType).c_str(),
+		       pBlock->fSpecification);
+	    trdSector = -1;
+	    break;
+	  }
+	  trdSector = pos;
+	}
+      }
+      if (trdSector < 0) continue;
+
+      // add data block to rawreader
+      infoStr += Form("%02d, ", trdSector);
+      sourceSectors |= pBlock->fSpecification;
+      if(!fRawReaderMem->AddBuffer((UChar_t*) pBlock->fPtr, pBlock->fSize, trdSector + 1024)){
+	LogError("Could not add buffer of data block  %s, 0x%08x to rawreader",
+		 DataType2Text(pBlock->fDataType).c_str(),
+		 pBlock->fSpecification);
+	continue;
+      }
+    } // loop over all incoming TRD raw data blocks
+
+    if (sourceSectors){
+      infoStr.Remove(infoStr.Length() - 2, 2);
+      LogDebug("preprocessing raw data from sectors: %s...", infoStr.Data());
+ 
+      // extract header info and TRD tracklets from raw data
+      fRawReaderTrd->ReadEvent();
+
+      // read and process TRD tracklets
+      int nTracklets = fTrackletArray->GetEntriesFast();
+
+      HLTInfo("There are %i tracklets in this event\n", nTracklets);
+      for (int iTracklet = 0; iTracklet < nTracklets; ++iTracklet){
+	AliHLTTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
+	trkl.SetId(iTracklet);
+	outputTrkls.push_back(trkl);
+      } 
+      LogDebug("pushing data for sectors: 0x%05x", sourceSectors);
+    }  
+    fRawReaderMem->ClearBuffers();
   }
 
-  fRawReaderMem->ClearBuffers();
 
-  if (sourceSectors){
-    LogDebug("pushing data for sectors: 0x%05x", sourceSectors);
-    iResult += PushBack(&outputTrkls[0], outputTrkls.size() * sizeof(outputTrkls[0]), AliHLTTRDDefinitions::fgkTRDTrackletDataType, 0);
+  { // loop over all incoming TRD MC tracklets data blocks
+
+    for ( const TObject *iter = GetFirstInputObject( kAliHLTDataTypeAliTreeD|kAliHLTDataOriginTRD ); iter != NULL; iter = GetNextInputObject() ) {  
+      TTree *trackletTree = dynamic_cast<TTree*>(const_cast<TObject*>( iter ) );
+      if(!trackletTree){
+	HLTFatal("No Tracklet Tree found");
+	return -EINVAL;
+      }    
+      cout<<"SG: tree entries: "<<trackletTree->GetEntriesFast()<<" / "<<trackletTree->GetEntries()<<endl;
+      TBranch *trklbranch = trackletTree->GetBranch("mcmtrklbranch");
+      if (!trklbranch ) {
+	HLTFatal("No tracklet branch found in tracklet tree");
+	return -EINVAL;     
+      }
+      Int_t nTracklets = trklbranch->GetEntries();
+      HLTInfo("Input %d TRD MCM tracklets", nTracklets);
+
+      AliTRDtrackletMCM *trkl = 0x0;
+      trklbranch->SetAddress(&trkl);
+      for (Int_t iTracklet = 0; iTracklet < nTracklets; iTracklet++) {
+	int nbytes = trklbranch->GetEntry(iTracklet);
+	if( !trkl || nbytes<=0 ){
+	  //HLTWarning("Can not read entry %d of %d from tracklet branch", &iTracklet, &nTracklets);
+	  HLTWarning("Can not read entry from tracklet branch");
+	  continue;dd
+	}
+	AliHLTTRDTrackletWord hltTrkl = *trkl;
+	hltTrkl.SetId(iTracklet);
+	outputTrkls.push_back(hltTrkl);	        
+      }
+    }    
   }
+  
+  HLTInfo("Output %d TRD tracklets", outputTrkls.size() );
 
-  LogDebug("### END   DoEvent [event id: %llu, %d blocks, size: %d]",
-		      hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize);
+ if( outputTrkls.size()>0 ){
+   iResult = PushBack(&outputTrkls[0], outputTrkls.size() * sizeof(outputTrkls[0]), AliHLTTRDDefinitions::fgkTRDTrackletDataType, 0);  
+   LogDebug("### END   DoEvent [event id: %llu, %d blocks, size: %d, tracklets: %d]",
+	    hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize, outputTrkls.size() );   
+ } else {
+   LogDebug("### END   DoEvent [event id: %llu, %d blocks, size: %d] (skipping: no TRD data)",
+	    hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize); 
+ }
+
 
   return iResult;
 }

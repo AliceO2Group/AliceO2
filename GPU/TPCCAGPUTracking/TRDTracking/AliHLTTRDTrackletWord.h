@@ -16,6 +16,7 @@
 #include "AliTRDpadPlane.h"
 
 class AliTRDtrackletWord;
+class AliTRDtrackletMCM;
 
 class AliHLTTRDTrackletWord {
  public:
@@ -23,8 +24,10 @@ class AliHLTTRDTrackletWord {
   AliHLTTRDTrackletWord(UInt_t trackletWord, Int_t hcid, Int_t id);
   AliHLTTRDTrackletWord(const AliHLTTRDTrackletWord &rhs);
   AliHLTTRDTrackletWord(const AliTRDtrackletWord &rhs);
+  AliHLTTRDTrackletWord(const AliTRDtrackletMCM &rhs);
   ~AliHLTTRDTrackletWord();
   AliHLTTRDTrackletWord& operator=(const AliHLTTRDTrackletWord &rhs);
+  AliHLTTRDTrackletWord& operator=(const AliTRDtrackletMCM &rhs);
 
   // ----- Override operators < and > to enable tracklet sorting by HCId -----
   bool operator<(const AliHLTTRDTrackletWord &t) const { return (GetHCId() < t.GetHCId()); }
