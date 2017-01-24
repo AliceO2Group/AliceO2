@@ -72,7 +72,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     for(Int_t iEle=0; iEle < posEle[3]; ++iEle) {
       
       // Drift and Diffusion
-      electronTransport.getElectronDrift(posEle);
+      electronTransport.getElectronDriftVc(posEle);
       
       /// @todo Time management in continuous mode (adding the time of the event?)
       const Float_t driftTime = getTime(posEle[2]);
