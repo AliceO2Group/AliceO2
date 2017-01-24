@@ -312,7 +312,7 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
 	if( !trkl || nbytes<=0 ){
 	  //HLTWarning("Can not read entry %d of %d from tracklet branch", &iTracklet, &nTracklets);
 	  HLTWarning("Can not read entry from tracklet branch");
-	  continue;dd
+	  continue;
 	}
 	AliHLTTRDTrackletWord hltTrkl = *trkl;
 	hltTrkl.SetId(iTracklet);
