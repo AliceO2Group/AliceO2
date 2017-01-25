@@ -436,7 +436,7 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
     }
 
     if (best.getNumberOfClusters() >= kminNumberOfClusters) {
-      // useClusters(best);
+      cookLabel(best, 0.); // For comparison only
       Int_t noc = best.getNumberOfClusters();
       for (Int_t ic = 3; ic < noc; ic++) {
         Int_t index = best.getClusterIndex(ic);
@@ -469,6 +469,8 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
   //--------------------------------------------------------------------
   LOG(INFO)<<"CookedTracker::process(), number of threads: "<<mNumOfThreads<<FairLogger::endl;
 
+  auto start = std::chrono::system_clock::now();
+
   loadClusters(clusters);
 
   // Seeding with the triggered primary vertex
@@ -489,7 +491,10 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
   }
   */
 
-  auto start = std::chrono::system_clock::now();
+  auto end = std::chrono::system_clock::now();
+  std::chrono::duration<double> diff = end-start;
+  LOG(INFO)<<"Loading time: "<<diff.count()<<" s"<<FairLogger::endl;
+
 
   std::vector<std::future<std::vector<CookedTrack>>> futures(mNumOfThreads);
   std::vector<std::vector<CookedTrack>> seedArray(mNumOfThreads);
@@ -508,16 +513,15 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
     nSeeds += seedArray[t].size();
     for (auto track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
-      cookLabel(track, 0.); // For comparison only
       Int_t label = track.getLabel();
       if (label >= 0) ngood++;
       new (tracks[tracks.GetEntriesFast()]) CookedTrack(track);
     }
   }
 
-  auto end = std::chrono::system_clock::now();
-  std::chrono::duration<double> diff = end-start;
-  LOG(INFO)<<"Tracking time: "<<diff.count()<<" s"<<FairLogger::endl;
+  end = std::chrono::system_clock::now();
+  diff = end-start;
+  LOG(INFO)<<"Processing time: "<<diff.count()<<" s"<<FairLogger::endl;
 
   if (nSeeds)
     LOG(INFO)<<"CookedTracker::process(), good_tracks/seeds: "<<Float_t(ngood)/nSeeds<<'\n'<<FairLogger::endl;
@@ -685,8 +689,15 @@ void CookedTracker::loadClusters(const TClonesArray& clusters)
       continue;
   }
 
-  for (Int_t l = 0; l < kNLayers; l++)
-    sLayers[l].init(mNumOfThreads);
+  std::vector<std::future<void>> fut;
+  for (Int_t l = 0; l < kNLayers; l+=mNumOfThreads) {
+    for (Int_t t = 0; t < mNumOfThreads; t++) {
+      if (l+t >= kNLayers) break;
+      auto f=std::async(std::launch::async, &CookedTracker::Layer::init, sLayers+(l+t));
+      fut.push_back(std::move(f));
+    }
+    for (Int_t t = 0; t < fut.size(); t++) fut[t].wait();
+  }
 }
 
 void CookedTracker::unloadClusters()
@@ -731,14 +742,19 @@ inline bool compareClusters(const Cluster *c1, const Cluster *c2)
 return (c1->getZ() < c2->getZ());
 }
 
-Double_t CookedTracker::Layer::initInThread(Int_t first, Int_t last)
+void CookedTracker::Layer::init()
 {
   //--------------------------------------------------------------------
   // Sort clusters and cache their reference plane info in a thread
   //--------------------------------------------------------------------
+  std::sort(mClusters, mClusters+mN,
+  //	    [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
+  compareClusters
+  );
+
   Double_t r = 0.;
   const Float_t pi2 = 2. * TMath::Pi();
-  for (Int_t i = first; i < last; i++) {
+  for (Int_t i = 0; i < mN; i++) {
     Cluster* c = mClusters[i];
     c->getXAlphaRefPlane(mXRef[i], mAlphaRef[i]);
     Float_t xyz[3];
@@ -751,36 +767,8 @@ Double_t CookedTracker::Layer::initInThread(Int_t first, Int_t last)
       phi -= pi2;
     mPhi[i] = phi;
   }
-  return r;
-}
 
-void CookedTracker::Layer::init(Int_t nThreads)
-{
-  //--------------------------------------------------------------------
-  // Sort clusters and cache their reference plane info
-  //--------------------------------------------------------------------
-
-  std::sort(mClusters, mClusters+mN,
-  //	    [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
-  compareClusters
-  );
-
-  std::vector<std::future<Double_t>> futures(nThreads);
-
-  for (Int_t t=0,first=0; t<nThreads; t++) {
-    Int_t rem = t < (mN % nThreads) ? 1 : 0;
-    Int_t last = first + (mN/nThreads) + rem;
-    futures[t] = std::async(std::launch::async, &CookedTracker::Layer::initInThread, this, first, last);
-    first = last;
-  }
-
-  Double_t r = 0.;
-  for (Int_t t=0; t<nThreads; t++) {
-    r += futures[t].get();
-  }
-
-  if (mN)
-    mR = r / mN;
+  if (mN) mR = r/mN;
 }
 
 void CookedTracker::Layer::unloadClusters()
