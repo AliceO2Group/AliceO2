@@ -124,8 +124,7 @@ class CookedTracker::Layer
  public:
   Layer();
 
-  void init(Int_t nThreads);
-  Double_t initInThread(Int_t first, Int_t last);
+  void init();
   Bool_t insertCluster(Cluster* c);
   void setR(Double_t r) { mR = r; }
   void unloadClusters();
