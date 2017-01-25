@@ -28,6 +28,7 @@
 #include "AliHLTTRDTrackletWord.h"
 #include "AliTRDtrackletWord.h"
 #include "TTree.h"
+#include "TEventList.h"
 
 ClassImp(AliHLTTRDTrackletReaderComponent)
 
@@ -296,19 +297,19 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
 	HLTFatal("No Tracklet Tree found");
 	return -EINVAL;
       }    
-      cout<<"SG: tree entries: "<<trackletTree->GetEntriesFast()<<" / "<<trackletTree->GetEntries()<<endl;
       TBranch *trklbranch = trackletTree->GetBranch("mcmtrklbranch");
       if (!trklbranch ) {
 	HLTFatal("No tracklet branch found in tracklet tree");
 	return -EINVAL;     
       }
       Int_t nTracklets = trklbranch->GetEntries();
-      HLTInfo("Input %d TRD MCM tracklets", nTracklets);
+      HLTInfo("Input tree with %d TRD MCM tracklets", nTracklets );
 
       AliTRDtrackletMCM *trkl = 0x0;
       trklbranch->SetAddress(&trkl);
+      
       for (Int_t iTracklet = 0; iTracklet < nTracklets; iTracklet++) {
-	int nbytes = trklbranch->GetEntry(iTracklet);
+	int nbytes = trklbranch->GetEntry(iTracklet,1);
 	if( !trkl || nbytes<=0 ){
 	  //HLTWarning("Can not read entry %d of %d from tracklet branch", &iTracklet, &nTracklets);
 	  HLTWarning("Can not read entry from tracklet branch");
@@ -321,17 +322,13 @@ int AliHLTTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hl
     }    
   }
   
-  HLTInfo("Output %d TRD tracklets", outputTrkls.size() );
 
  if( outputTrkls.size()>0 ){
    iResult = PushBack(&outputTrkls[0], outputTrkls.size() * sizeof(outputTrkls[0]), AliHLTTRDDefinitions::fgkTRDTrackletDataType, 0);  
-   LogDebug("### END   DoEvent [event id: %llu, %d blocks, size: %d, tracklets: %d]",
-	    hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize, outputTrkls.size() );   
- } else {
-   LogDebug("### END   DoEvent [event id: %llu, %d blocks, size: %d] (skipping: no TRD data)",
-	    hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize); 
  }
 
+ HLTInfo("### END   DoEvent [event id: %llu, %d blocks, size: %d, output tracklets: %d]",
+	 hltEventData.fEventID, hltEventData.fBlockCnt, hltEventData.fStructSize, outputTrkls.size() );   
 
-  return iResult;
+ return iResult;
 }
