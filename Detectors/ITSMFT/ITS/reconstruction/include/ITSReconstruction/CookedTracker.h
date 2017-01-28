@@ -24,7 +24,6 @@ class CookedTrack;
 class CookedTracker
 {
  public:
-  enum {kNLayers=7, kNSectors=21, kMaxClusterPerLayer=150000, kMaxSelected=kMaxClusterPerLayer/10};
   CookedTracker(Int_t nThreads=1);
   CookedTracker(const CookedTracker&) = delete;
   CookedTracker& operator=(const CookedTracker& tr) = delete;
@@ -66,11 +65,12 @@ class CookedTracker
   class Layer;
 
  protected:
+  enum {kNLayers=7};
   void loadClusters(const TClonesArray& clusters);
   void unloadClusters();
   
   std::vector<CookedTrack> trackInThread(Int_t first, Int_t last);
-  std::vector<CookedTrack> makeSeeds(Int_t first, Int_t last);
+  void makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_t last);
   void trackSeeds(std::vector<CookedTrack> &seeds);
 
   Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const;
@@ -91,63 +91,35 @@ class CookedTracker
   std::vector<CookedTrack> mSeeds; ///< Track seeds
 };
 
-// The helper classes
-class CookedTracker::ThreadData
-{
- public:
-  ThreadData();
-  ~ThreadData() {}
-  void resetSelectedClusters() { mI = 0; }
-  Int_t* Index() { return mIndex; }
-  Int_t& Nsel() { return mNsel; }
-  Int_t getNextClusterIndex()
-  {
-    while (mI < mNsel) {
-      Int_t ci = mIndex[mI++];
-      if (!mUsed[ci])
-        return ci;
-    }
-    return -1;
-  }
-  void useCluster(Int_t i) { mUsed[i] = kTRUE; }
- private:
-  ThreadData(const ThreadData&);
-  ThreadData& operator=(const ThreadData& tr);
-  Int_t mIndex[kMaxSelected];        ///< Indices of selected clusters
-  Int_t mNsel;                       ///< Number of selected clusters
-  Int_t mI;                          ///< Running index for the selected clusters
-  Bool_t mUsed[kMaxClusterPerLayer]; ///< Cluster usage flags
-};
-
 class CookedTracker::Layer
 {
  public:
   Layer();
+  Layer(const Layer&) = delete;
+  Layer& operator=(const Layer& tr) = delete;
 
   void init();
   Bool_t insertCluster(Cluster* c);
   void setR(Double_t r) { mR = r; }
   void unloadClusters();
-  void selectClusters(Int_t& i, Int_t idx[], Float_t phi, Float_t dy, Float_t z, Float_t dz);
+  void selectClusters(std::vector<Int_t> &s, Float_t phi, Float_t dy, Float_t z, Float_t dz);
   Int_t findClusterIndex(Double_t z) const;
   Float_t getR() const { return mR; }
   Cluster* getCluster(Int_t i) const { return mClusters[i]; }
   Float_t getXRef(Int_t i) const { return mXRef[i]; }
   Float_t getAlphaRef(Int_t i) const { return mAlphaRef[i]; }
   Float_t getClusterPhi(Int_t i) const { return mPhi[i]; }
-  Int_t getNumberOfClusters() const { return mN; }
+  Int_t getNumberOfClusters() const { return mClusters.size(); }
 
  protected:
-  Layer(const Layer&);
-  Layer& operator=(const Layer& tr);
+  enum {kNSectors=21};
 
   Float_t mR; ///< mean radius of this layer
 
-  Cluster* mClusters[kMaxClusterPerLayer]; ///< All clusters
-  Float_t mXRef[kMaxClusterPerLayer];      ///< x of the reference plane
-  Float_t mAlphaRef[kMaxClusterPerLayer];  ///< alpha of the reference plane
-  Float_t mPhi[kMaxClusterPerLayer];       ///< cluster phi
-  Int_t mN;                                ///< Total number of clusters
+  std::vector<Cluster*>mClusters;          ///< All clusters
+  std::vector<Float_t> mXRef;              ///< x of the reference plane
+  std::vector<Float_t> mAlphaRef;          ///< alpha of the reference plane
+  std::vector<Float_t> mPhi;               ///< cluster phi
   std::vector<Int_t> mSectors[kNSectors];  ///< Cluster indices sector-by-sector
 };
 }

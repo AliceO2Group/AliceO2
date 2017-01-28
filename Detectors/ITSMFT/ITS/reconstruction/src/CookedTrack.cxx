@@ -18,6 +18,7 @@ CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
   //--------------------------------------------------------------------
+  mIndex.reserve(7);
 }
 
 CookedTrack::CookedTrack(float x, float alpha, const std::array<float,kNParams> &par, const std::array<float,kCovMatSize> &cov)
