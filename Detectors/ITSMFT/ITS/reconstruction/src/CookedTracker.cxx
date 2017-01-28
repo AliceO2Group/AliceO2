@@ -766,6 +766,8 @@ void CookedTracker::Layer::init()
     else if (phi >= pi2)
       phi -= pi2;
     mPhi[i] = phi;
+    Int_t s=phi*kNSectors/pi2;
+    mSectors[s].push_back(i);
   }
 
   if (mN) mR = r/mN;
@@ -776,7 +778,7 @@ void CookedTracker::Layer::unloadClusters()
   //--------------------------------------------------------------------
   // Unload clusters from this layer
   //--------------------------------------------------------------------
-  // for (Int_t i=0; i<mN; i++) {delete mClusters[i]; mClusters[i]=0;}
+  for (Int_t s=0; s<kNSectors; s++) mSectors[s].clear();
   mN = 0;
 }
 
@@ -819,24 +821,42 @@ void CookedTracker::Layer::selectClusters(Int_t& n, Int_t idx[], Float_t phi, Fl
   //--------------------------------------------------------------------
   // This function selects clusters within the "road"
   //--------------------------------------------------------------------
-  Float_t dphi = dy / mR;
-  Float_t phiMin = phi - dphi;
-  Float_t phiMax = phi + dphi;
   Float_t zMin = z - dz;
   Float_t zMax = z + dz;
 
-  Int_t imin = findClusterIndex(zMin), imax = findClusterIndex(zMax);
-  for (Int_t i = imin; i < imax; i++) {
-    Float_t cphi = mPhi[i];
-    if (cphi <= phiMin)
-      continue;
-    if (cphi > phiMax)
-      continue;
+  const Float_t pi2 = 2. * TMath::Pi();
+  Float_t dphi = dy / mR;
+  
+  Float_t phiMin = phi - dphi;
+  Float_t phiMax = phi + dphi;
+  Float_t phiRange[2]{phiMin, phiMax};
 
-    idx[n++] = i;
-    if (n >= kMaxSelected)
-      return;
+  Int_t sector=-1;
+  for (auto phiM : phiRange) {
+    Int_t s = phiM*kNSectors/pi2;
+    if (s<0) s+=kNSectors;
+    else if (s>=kNSectors) s-=kNSectors;
+    
+    if (s==sector) return;
+    sector=s;
+    
+    auto imin = std::upper_bound(begin(mSectors[s]), end(mSectors[s]), zMin,
+      [this](Double_t zc, Int_t ic){ return (zc < mClusters[ic]->getZ()); }
+    ); 
+    auto imax = std::upper_bound(imin, end(mSectors[s]), zMax,
+      [this](Double_t zc, Int_t ic){ return (zc < mClusters[ic]->getZ()); }
+    );
+    for ( ; imin != imax; imin++) {
+      Int_t i = *imin; 
+      Float_t cphi = mPhi[i];
+      if (cphi <= phiMin) continue;
+      if (cphi > phiMax) continue;
+    
+      idx[n++] = i;
+      if (n >= kMaxSelected) return;
+    }
   }
+
 }
 
 Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const

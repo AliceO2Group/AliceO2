@@ -24,7 +24,7 @@ class CookedTrack;
 class CookedTracker
 {
  public:
-  enum { kNLayers = 7, kMaxClusterPerLayer = 150000, kMaxSelected = kMaxClusterPerLayer / 10 };
+  enum {kNLayers=7, kNSectors=21, kMaxClusterPerLayer=150000, kMaxSelected=kMaxClusterPerLayer/10};
   CookedTracker(Int_t nThreads=1);
   CookedTracker(const CookedTracker&) = delete;
   CookedTracker& operator=(const CookedTracker& tr) = delete;
@@ -148,6 +148,7 @@ class CookedTracker::Layer
   Float_t mAlphaRef[kMaxClusterPerLayer];  ///< alpha of the reference plane
   Float_t mPhi[kMaxClusterPerLayer];       ///< cluster phi
   Int_t mN;                                ///< Total number of clusters
+  std::vector<Int_t> mSectors[kNSectors];  ///< Cluster indices sector-by-sector
 };
 }
 }
