@@ -252,14 +252,12 @@ static CookedTrack cookSeed
   return CookedTrack(x3, alpha, par, cov);
 }
 
-std::vector<CookedTrack> CookedTracker::makeSeeds(Int_t first, Int_t last)
+void CookedTracker::makeSeeds(std::vector<CookedTrack> &seeds, Int_t first, Int_t last)
 {
   //--------------------------------------------------------------------
   // This is the main pattern recongition function.
   // Creates seeds out of two clusters and another point.
   //--------------------------------------------------------------------
-  std::vector<CookedTrack> seeds;   
-
   const Double_t zv = getZ();
 
   Layer& layer1 = sLayers[kSeedingLayer1];
@@ -365,7 +363,6 @@ std::vector<CookedTrack> CookedTracker::makeSeeds(Int_t first, Int_t last)
     ((Cluster*)c3)->goToFrameTrk();
   }
   */
-  return seeds;
 }
 
 void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
@@ -373,7 +370,13 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
   //--------------------------------------------------------------------
   // Loop over a subset of track seeds
   //--------------------------------------------------------------------
-  std::vector<ThreadData> data(kSeedingLayer2);
+  std::vector<bool>  used[kSeedingLayer2];
+  std::vector<Int_t> selec[kSeedingLayer2];
+  for (Int_t l = kSeedingLayer2 - 1; l >= 0; l--) {
+    Int_t n=sLayers[l].getNumberOfClusters();
+    used[l].resize(n,false);
+    selec[l].reserve(n/100);
+  }
 
   for (auto &track : seeds) {
     Double_t x = track.getX();
@@ -394,9 +397,8 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
       Double_t r2 = sLayers[l].getR();
       phi += 0.5 * crv * (r2 - r1);
       z += tgl / (0.5 * crv) * (TMath::ASin(0.5 * crv * r2) - TMath::ASin(0.5 * crv * r1));
-      data[l].Nsel() = 0;
-      data[l].resetSelectedClusters();
-      sLayers[l].selectClusters(data[l].Nsel(), data[l].Index(), phi, kRoadY, z, kRoadZ);
+      selec[l].clear();
+      sLayers[l].selectClusters(selec[l], phi, kRoadY, z, kRoadZ);
       r1 = r2;
     }
 
@@ -405,34 +407,35 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
     Int_t volID = -1;
     Int_t ci = -1;
     CookedTrack t3(track);
-    while ((ci = data[3].getNextClusterIndex()) >= 0) {
-      if (!attachCluster(volID, 3, ci, t3, track))
+    for ( auto &ci3 : selec[3] ) {
+      if (used[3][ci3]) continue;
+      if (!attachCluster(volID, 3, ci3, t3, track))
         continue;
 
       CookedTrack t2(t3);
-      while ((ci = data[2].getNextClusterIndex()) >= 0) {
-        if (!attachCluster(volID, 2, ci, t2, t3))
+      for ( auto &ci2 : selec[2] ) {
+	if (used[2][ci2]) continue;
+        if (!attachCluster(volID, 2, ci2, t2, t3))
           continue;
 
         CookedTrack t1(t2);
-        while ((ci = data[1].getNextClusterIndex()) >= 0) {
-          if (!attachCluster(volID, 1, ci, t1, t2))
+        for ( auto &ci1 : selec[1] ) {
+	  if (used[1][ci1]) continue;
+          if (!attachCluster(volID, 1, ci1, t1, t2))
             continue;
 
           CookedTrack t0(t1);
-          while ((ci = data[0].getNextClusterIndex()) >= 0) {
-            if (!attachCluster(volID, 0, ci, t0, t1))
+          for ( auto &ci0 : selec[0] ) {
+	    if (used[0][ci0]) continue;
+            if (!attachCluster(volID, 0, ci0, t0, t1))
               continue;
             if (t0.isBetter(best, kmaxChi2PerTrack)) {
               best = t0;
             }
             volID = -1;
           }
-          data[0].resetSelectedClusters();
         }
-        data[1].resetSelectedClusters();
       }
-      data[2].resetSelectedClusters();
     }
 
     if (best.getNumberOfClusters() >= kminNumberOfClusters) {
@@ -441,7 +444,7 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
       for (Int_t ic = 3; ic < noc; ic++) {
         Int_t index = best.getClusterIndex(ic);
         Int_t l = (index & 0xf0000000) >> 28, c = (index & 0x0fffffff);
-        data[l].useCluster(c);
+        used[l][c]=true;
       }
     }
     track = best;
@@ -454,7 +457,10 @@ std::vector<CookedTrack> CookedTracker::trackInThread(Int_t first, Int_t last)
   //--------------------------------------------------------------------
   // This function is passed to a tracking thread
   //--------------------------------------------------------------------
-  std::vector<CookedTrack> seeds = makeSeeds(first, last);
+  std::vector<CookedTrack> seeds;
+  seeds.reserve(last-first+1);
+  
+  makeSeeds(seeds, first, last);
   std::sort(seeds.begin(), seeds.end());
 
   trackSeeds(seeds);
@@ -719,22 +725,11 @@ Cluster* CookedTracker::getCluster(Int_t index) const
   return sLayers[l].getCluster(c);
 }
 
-CookedTracker::Layer::Layer() : mR(0), mN(0)
+CookedTracker::Layer::Layer() : mR(0)
 {
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
   //--------------------------------------------------------------------
-  for (Int_t i = 0; i < kMaxClusterPerLayer; i++)
-    mClusters[i] = 0;
-}
-
-CookedTracker::ThreadData::ThreadData() : mNsel(0), mI(0)
-{
-  //--------------------------------------------------------------------
-  // Default constructor
-  //--------------------------------------------------------------------
-  for (Int_t i = 0; i < kMaxClusterPerLayer; i++)
-    mUsed[i] = kFALSE;
 }
 
 inline bool compareClusters(const Cluster *c1, const Cluster *c2)
@@ -747,16 +742,20 @@ void CookedTracker::Layer::init()
   //--------------------------------------------------------------------
   // Sort clusters and cache their reference plane info in a thread
   //--------------------------------------------------------------------
-  std::sort(mClusters, mClusters+mN,
+  std::sort(begin(mClusters), end(mClusters),
   //	    [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
   compareClusters
   );
 
   Double_t r = 0.;
   const Float_t pi2 = 2. * TMath::Pi();
-  for (Int_t i = 0; i < mN; i++) {
+  Int_t m=mClusters.size();
+  for (Int_t i = 0; i < m; i++) {
     Cluster* c = mClusters[i];
-    c->getXAlphaRefPlane(mXRef[i], mAlphaRef[i]);
+    Float_t xRef, aRef; 
+    c->getXAlphaRefPlane(xRef, aRef);
+    mXRef.push_back(xRef);
+    mAlphaRef.push_back(aRef);
     Float_t xyz[3];
     c->getGlobalXYZ(xyz);
     r += TMath::Sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1]);
@@ -765,12 +764,12 @@ void CookedTracker::Layer::init()
       phi += pi2;
     else if (phi >= pi2)
       phi -= pi2;
-    mPhi[i] = phi;
+    mPhi.push_back(phi);
     Int_t s=phi*kNSectors/pi2;
     mSectors[s].push_back(i);
   }
 
-  if (mN) mR = r/mN;
+  if (m) mR = r/m;
 }
 
 void CookedTracker::Layer::unloadClusters()
@@ -778,8 +777,11 @@ void CookedTracker::Layer::unloadClusters()
   //--------------------------------------------------------------------
   // Unload clusters from this layer
   //--------------------------------------------------------------------
+  mClusters.clear();
+  mXRef.clear();
+  mAlphaRef.clear();
+  mPhi.clear();
   for (Int_t s=0; s<kNSectors; s++) mSectors[s].clear();
-  mN = 0;
 }
 
 Bool_t CookedTracker::Layer::insertCluster(Cluster* c)
@@ -787,12 +789,7 @@ Bool_t CookedTracker::Layer::insertCluster(Cluster* c)
   //--------------------------------------------------------------------
   // This function inserts a cluster to this layer
   //--------------------------------------------------------------------
-  if (mN >= kMaxClusterPerLayer) {
-    LOG(ERROR)<<"Layer::insertCluster(): Too many clusters !"<<FairLogger::endl;
-    return kFALSE;
-  }
-  mClusters[mN] = c;
-  mN++;
+  mClusters.push_back(c);
   return kTRUE;
 }
 
@@ -806,17 +803,15 @@ Int_t CookedTracker::Layer::findClusterIndex(Double_t z) const
   //--------------------------------------------------------------------
   // This function returns the index of the first cluster with its fZ >= "z".
   //--------------------------------------------------------------------
-  if (mN == 0)
-    return 0;
-
-  Cluster *const *found = std::upper_bound(mClusters, mClusters+mN, z,
+  auto found = std::upper_bound(begin(mClusters), end(mClusters), z,
   //  [](Double_t zc, const Cluster *c){ return (zc < c->getZ()); }
   compareClusterZ
   );
-  return found-mClusters;
+  return found-begin(mClusters);
 }
 
-void CookedTracker::Layer::selectClusters(Int_t& n, Int_t idx[], Float_t phi, Float_t dy, Float_t z, Float_t dz)
+void
+CookedTracker::Layer::selectClusters(std::vector<Int_t>&selec, Float_t phi, Float_t dy, Float_t z, Float_t dz)
 {
   //--------------------------------------------------------------------
   // This function selects clusters within the "road"
@@ -831,13 +826,14 @@ void CookedTracker::Layer::selectClusters(Int_t& n, Int_t idx[], Float_t phi, Fl
   Float_t phiMax = phi + dphi;
   Float_t phiRange[2]{phiMin, phiMax};
 
+  Int_t n=0;
   Int_t sector=-1;
   for (auto phiM : phiRange) {
     Int_t s = phiM*kNSectors/pi2;
     if (s<0) s+=kNSectors;
     else if (s>=kNSectors) s-=kNSectors;
     
-    if (s==sector) return;
+    if (s==sector) break;
     sector=s;
     
     auto imin = std::upper_bound(begin(mSectors[s]), end(mSectors[s]), zMin,
@@ -852,11 +848,9 @@ void CookedTracker::Layer::selectClusters(Int_t& n, Int_t idx[], Float_t phi, Fl
       if (cphi <= phiMin) continue;
       if (cphi > phiMax) continue;
     
-      idx[n++] = i;
-      if (n >= kMaxSelected) return;
+      selec.push_back(i);
     }
   }
-
 }
 
 Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, CookedTrack& t, const CookedTrack& o) const
