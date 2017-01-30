@@ -7,8 +7,6 @@
 
 #include "CCDB/Backend.h"
 
-using namespace std;
-
 namespace AliceO2 {
 namespace CDB {
 

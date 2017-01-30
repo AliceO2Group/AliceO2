@@ -32,6 +32,9 @@
 
 using std::string;
 using std::vector;
+using std::unique_ptr;
+using std::cerr;
+using std::endl;
 
 // time reference for the timestamp of events is the beginning of the day
 using std::chrono::system_clock;
