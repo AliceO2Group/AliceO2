@@ -9,10 +9,13 @@
 #include "TMath.h"
 
 using namespace AliceO2::TPC;
-using Vc::float_v;
+
+using float_v = Vc::Vector<float>;
+using sfloat_v = Vc::Scalar::Vector<float>;
 
 ElectronTransport::ElectronTransport()
-  : mRandomGaus()
+  : mRandomGaus(),
+    mVc_size(float_v::Size)
 {
   mRandomGaus.initialize(RandomRing::RandomType::Gaus);
 }
@@ -40,7 +43,7 @@ void ElectronTransport::getElectronDriftVc(Float_t *posEle)
   const Float_t sigT = driftl*DIFFT;
   const Float_t sigL = driftl*DIFFL;
   const Float_t sig[3] = {sigT, sigT, sigL};
-  for(int i = 0; i < 3; i += float_v::Size) {
+  for(int i = 0; i < 3; i += mVc_size) {
     diffusion(mRandomGaus.getNextValueVc(), float_v(&sig[i]), float_v(&posEle[i])).store(&posEle[i]);
   }
 }

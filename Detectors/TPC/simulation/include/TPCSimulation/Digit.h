@@ -4,13 +4,17 @@
 #ifndef ALICEO2_TPC_Digit_H_
 #define ALICEO2_TPC_Digit_H_
 
-// #ifndef __CINT__
-// #include <boost/serialization/base_object.hpp>
-// #endif
+#ifndef __CINT__
+#include <boost/serialization/base_object.hpp>
+#endif
 
 #include "FairTimeStamp.h"
 #include "Rtypes.h"
-// namespace boost { namespace serialization { class access; } }
+namespace boost {
+namespace serialization {
+class access; 
+}
+}
 
 namespace AliceO2 {
 namespace TPC {
@@ -78,9 +82,9 @@ class Digit : public FairTimeStamp {
     std::ostream &Print(std::ostream &output) const;
 
   private:
-//     #ifndef __CINT__
-//     friend class boost::serialization::access;
-//     #endif
+    #ifndef __CINT__
+    friend class boost::serialization::access;
+    #endif
       
     UShort_t                  mCRU;             ///< CRU of the digit
     Float_t                   mCharge;          ///< ADC value of the digit

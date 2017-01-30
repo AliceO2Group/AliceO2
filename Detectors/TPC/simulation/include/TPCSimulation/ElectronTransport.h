@@ -48,7 +48,8 @@ class ElectronTransport
     
         
   private:
-    RandomRing     mRandomGaus;        ///<  Circular random buffer containing random values of the Gauss distribution to take into account diffusion of the electrons
+    RandomRing     mRandomGaus;        ///< Circular random buffer containing random values of the Gauss distribution to take into account diffusion of the electrons
+    Int_t          mVc_size;           ///< Size of the vectorization array
 };
 }
 }
