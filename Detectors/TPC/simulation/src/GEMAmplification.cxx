@@ -28,7 +28,7 @@ GEMAmplification::GEMAmplification(Float_t effGainGEM1, Float_t effGainGEM2, Flo
   boost::format polya("1/(TMath::Gamma(%1%)*%2%) *pow(x/%3%, %4%) *exp(-x/%5%)");
   polya % kappa % s % s % (kappa-1) % s;
   
-  TF1 polyaDistribution("polya", (polya.str()).data(), 0, 100);
+  TF1 polyaDistribution("polya", (polya.str()).data(), 0, 10);
   mRandomPolya.initialize(polyaDistribution);  
 }
 
