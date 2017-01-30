@@ -25,8 +25,7 @@ void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
     mTotalChargePad += aADCCounts.getADC();
   }
   
-  Digitizer d;
-  const Float_t mADC = d.ADCvalue(mTotalChargePad);
+  const Float_t mADC = Digitizer::ADCvalue(mTotalChargePad);
   
   if(mADC > 0) {
     TClonesArray &clref = *output;
@@ -34,20 +33,15 @@ void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
   }
 }
 
-void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, std::vector<CommonMode> commonModeContainer)
+void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t commonMode)
 {  
   for(auto &aADCCounts : mADCCounts) {
     mTotalChargePad += aADCCounts.getADC();
   }
   
-  Digitizer d;
-  const Float_t mADC = d.ADCvalue(mTotalChargePad);
+  const Float_t mADC = Digitizer::ADCvalue(mTotalChargePad);
   
   if(mADC > 0) {
-    Float_t commonMode =0;
-    for (auto &aCommonMode :commonModeContainer){
-      if(aCommonMode.getCRU() == cru && aCommonMode.getTimeBin() == timeBin) commonMode = aCommonMode.getCommonMode();
-    }
     TClonesArray &clref = *output;
     new(clref[clref.GetEntriesFast()]) Digit(cru, mADC, row, pad, timeBin, commonMode);
   }

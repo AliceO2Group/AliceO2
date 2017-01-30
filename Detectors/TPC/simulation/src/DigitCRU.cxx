@@ -47,7 +47,7 @@ void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru)
   }
 }
 
-void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<CommonMode> commonModeContainer)
+void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<CommonMode> &commonModeContainer)
 {
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;

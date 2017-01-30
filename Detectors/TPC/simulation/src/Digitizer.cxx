@@ -26,8 +26,7 @@ using namespace AliceO2::TPC;
 
 Digitizer::Digitizer()
   : TObject(),
-    mDigitContainer(nullptr),
-    mRandomGaus()
+    mDigitContainer(nullptr)
 {}
 
 Digitizer::~Digitizer()
@@ -39,8 +38,6 @@ void Digitizer::init()
 {
   /// @todo get rid of new? check with Mohammad
   mDigitContainer = new DigitContainer();
-  
-  mRandomGaus.initialize(RandomRing::RandomType::Gaus);
 }
 
 DigitContainer *Digitizer::Process(TClonesArray *points)
@@ -55,11 +52,15 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 
   const Mapper& mapper = Mapper::instance();
 
-  GEMAmplification gemStack(EFFGAINGEM1, EFFGAINGEM2, EFFGAINGEM3, EFFGAINGEM4);
-  ElectronTransport electronTransport;
+  // static_thread for thread savety?
+  // avid multiple creation of the random lookup tables inside
+  static GEMAmplification gemStack(EFFGAINGEM1, EFFGAINGEM2, EFFGAINGEM3, EFFGAINGEM4);
+  static ElectronTransport electronTransport;
+
+  static std::vector<PadResponse> padResponseContainer;
   
-  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
-    Point *inputpoint = static_cast<Point *>(*pointiter);
+  for (auto pointObject: *points) {
+    Point *inputpoint = static_cast<Point *>(pointObject);
         
     posEle[0] = inputpoint->GetX();
     posEle[1] = inputpoint->GetY();
@@ -94,7 +95,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       
       // Loop over all individual pads with signal due to pad response function
       /// @todo modularization -> own class
-      std::vector<PadResponse> padResponseContainer;
+
       getPadResponse(posEle[0], posEle[1], padResponseContainer);
       for(auto &padresp : padResponseContainer ) {
         const Int_t pad = digiPadPos.getPadPos().getPad() + padresp.getPad();
@@ -102,15 +103,37 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
         const Float_t weight = padresp.getWeight();
         
         // Loop over all time bins with signal due to time response
-        for(Float_t bin = 0; bin<5; ++bin) {
+//         for(Float_t bin = 0; bin<5; ++bin) {
+//           /// @todo check how the SAMPA digitisation is applied
+//           /// @todo modularization -> own SAMPA class
+//           /// @todo conversion to ADC counts already here? How about saturation?
+//           Double_t signal = 55*Gamma4(driftTime+bin*ZBINWIDTH, driftTime, nElectronsGEM*weight);
+// //           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(driftTime) + bin + 0.5), driftTime, nElectronsGEM*weight);
+//           if(signal <= 0.) continue;
+//           mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(driftTime+bin*ZBINWIDTH), row, pad, signal);
+//         }
+
+        // 8 chosen to fit with SSE registers
+        for(Float_t bin = 0; bin<8; bin+=Vc::float_v::Size) {
           /// @todo check how the SAMPA digitisation is applied
           /// @todo modularization -> own SAMPA class
           /// @todo conversion to ADC counts already here? How about saturation?
-          Double_t signal = 55*Gamma4(driftTime+bin*ZBINWIDTH, driftTime, nElectronsGEM*weight);
-//           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(driftTime) + bin + 0.5), driftTime, nElectronsGEM*weight);
-          if(signal <= 0.) continue;
-          mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(driftTime+bin*ZBINWIDTH), row, pad, signal);
-        }
+          Vc::float_v binvector;
+          for (int i=0;i<Vc::float_v::Size;++i) { binvector[i]=bin+i; }
+          Vc::float_v time = driftTime + binvector*ZBINWIDTH;
+
+          Vc::float_v signal = 55.f*Gamma4_v(time, Vc::float_v(driftTime), Vc::float_v(nElectronsGEM*weight));
+          //           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(driftTime) + bin + 0.5), driftTime, nElectronsGEM*weight);
+
+          Vc::float_m signalcondition = signal <= 0.f;
+
+          for (int i=0;i<Vc::float_v::Size;++i) {
+            if(signalcondition[i]) continue;
+            mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(time[i]), row, pad, signal[i]);
+          }
+
+         }
+
         // end of loop over time bins
       }
       // end of loop over pads

@@ -17,8 +17,10 @@
 #include "TRandom.h"
 #include "TMath.h"
 #include <iostream>
+#include <Vc/Vc>
 
 using std::vector;
+
 
 class TClonesArray;
 
@@ -59,7 +61,7 @@ class Digitizer : public TObject {
     /// Conversion from a given number of electrons into ADC value
     /// @param nElectrons Number of electrons in time bin
     /// @return ADC value
-    Float_t ADCvalue(Float_t nElectrons) const;
+    static Float_t ADCvalue(Float_t nElectrons);
 
     /// Compute time bin from z position
     /// @param zPos z position of the charge
@@ -87,20 +89,22 @@ class Digitizer : public TObject {
     /// @param ADC ADC value of the corresponding time bin
     Float_t Gamma4(Float_t time, Float_t startTime, Float_t ADC) const;
 
+    using float_v = Vc::float_v;
+    float_v Gamma4_v(float_v time, float_v startTime, float_v ADC) const;
+
   private:
     Digitizer(const Digitizer &);
     Digitizer &operator=(const Digitizer &);
 
     DigitContainer          *mDigitContainer;   ///< Container for the Digits      
-    RandomRing              mRandomGaus;        ///< Random generator for the Diffusion
-    
+
   ClassDef(Digitizer, 1);
 };
 
 // inline implementations
 
 inline
-Float_t Digitizer::ADCvalue(Float_t nElectrons) const
+Float_t Digitizer::ADCvalue(Float_t nElectrons)
 {
   Float_t adcValue = nElectrons*QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE;
   if(adcValue > ADCSAT) adcValue = ADCSAT;// saturation
@@ -142,6 +146,17 @@ Float_t Digitizer::Gamma4(Float_t time, Float_t startTime, Float_t ADC) const
   if (time<0) return 0;
   return ADC*TMath::Exp(-4.*(time-startTime)/PEAKINGTIME)*TMath::Power((time-startTime)/PEAKINGTIME,4);
 }
+
+inline
+float_v Digitizer::Gamma4_v(float_v time, float_v startTime, float_v ADC) const
+{
+  // not doing if because disregarded later in digitization
+  // if (time<0) return 0;
+  float_v tmp = (time-startTime)/PEAKINGTIME;
+  float_v tmp2=tmp*tmp;
+  return ADC*Vc::exp(-4.f*tmp)*tmp2*tmp2;
+}
+
 
 inline
 void Digitizer::getPadResponse(Float_t xabs, Float_t yabs, std::vector<PadResponse> &response)

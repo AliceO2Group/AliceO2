@@ -63,6 +63,7 @@ static GlobalPosition3D LocalToGlobal(const LocalPosition3D pos, const double al
 
 static LocalPosition3D GlobalToLocal(const GlobalPosition3D& pos, const double alpha)
 {
+  ///@todo: Lookup over sector number
   const double cs=cos(-alpha), sn=sin(-alpha);
   return LocalPosition3D(float(double(pos.getX())*cs-double(pos.getY())*sn),
                          float(double(pos.getX())*sn+double(pos.getY()*cs)),

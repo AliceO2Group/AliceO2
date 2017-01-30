@@ -62,7 +62,7 @@ class DigitRow{
     /// @param cru CRU
     /// @param timeBin Time bin
     /// @param row Row
-    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, std::vector<CommonMode> commonModeContainer);
+    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Float_t commonMode);
 
     /// Process Common Mode Information
     /// @param output Output container

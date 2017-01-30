@@ -58,7 +58,7 @@ class DigitPad{
     /// @param timeBin Time bin
     /// @param row Row ID
     /// @param pad pad ID
-    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, std::vector<CommonMode> commonModeContainer);
+    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t commonMode);
 
     // Process Common Mode Information
     /// @param output Output container
