@@ -41,11 +41,11 @@ void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
   }
 }
 
-void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, std::vector<CommonMode> commonModeContainer)
+void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Float_t commonMode)
 {
   for(auto &aPad : mPads) {
     if(aPad == nullptr) continue;
-    aPad->fillOutputContainer(output, cru, timeBin, row, aPad->getPad(), commonModeContainer);
+    aPad->fillOutputContainer(output, cru, timeBin, row, aPad->getPad(), commonMode);
   }
 }
 

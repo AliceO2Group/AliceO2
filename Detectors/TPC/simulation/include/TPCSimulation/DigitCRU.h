@@ -56,7 +56,7 @@ class DigitCRU{
     /// Fill output TClonesArray
     /// @param output Output container
     /// @param cruID CRU ID
-    void fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<CommonMode> commonModeContainer);
+    void fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<CommonMode> &commonModeContainer);
 
     /// Process Common Mode Information
     /// @param output Output container

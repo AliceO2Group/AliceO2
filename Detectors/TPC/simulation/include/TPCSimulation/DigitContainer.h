@@ -51,7 +51,7 @@ class DigitContainer{
 
     /// Fill output TClonesArray
     /// @param output Output container
-    void fillOutputContainer(TClonesArray *output, std::vector<CommonMode> commonModeContainer);
+    void fillOutputContainer(TClonesArray *output, std::vector<CommonMode> &commonModeContainer);
 
     /// Process Common Mode Information
     /// @param output Output container

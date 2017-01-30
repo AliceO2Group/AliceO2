@@ -62,7 +62,7 @@ class DigitTime{
     /// @param output Output container
     /// @param cru CRU
     /// @param timeBin Time bin
-    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, std::vector<CommonMode> commonModeContainer);
+    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, std::vector<CommonMode> &commonModeContainer);
 
     /// Process Common Mode Information
     /// @param output Output container

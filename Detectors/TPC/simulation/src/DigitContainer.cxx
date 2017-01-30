@@ -44,7 +44,7 @@ void DigitContainer::fillOutputContainer(TClonesArray *output)
   }
 }
 
-void DigitContainer::fillOutputContainer(TClonesArray *output, std::vector<CommonMode> commonModeContainer)
+void DigitContainer::fillOutputContainer(TClonesArray *output, std::vector<CommonMode> &commonModeContainer)
 {
   for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;

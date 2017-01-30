@@ -43,11 +43,19 @@ void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeB
   }
 }
 
-void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, std::vector<CommonMode> commonModeContainer)
+void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, std::vector<CommonMode> &commonModeContainer)
 {
+  Float_t commonMode =0;
+  for (auto &aCommonMode :commonModeContainer){
+    if(aCommonMode.getCRU() == cru && aCommonMode.getTimeBin() == timeBin) {
+      commonMode = aCommonMode.getCommonMode();
+      break;
+    }
+  }
+
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
-    aRow->fillOutputContainer(output, cru, timeBin, aRow->getRow(), commonModeContainer);
+    aRow->fillOutputContainer(output, cru, timeBin, aRow->getRow(), commonMode);
   }
 }
 
