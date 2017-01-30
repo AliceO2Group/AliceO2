@@ -30,6 +30,7 @@
 
 using std::string;
 using std::vector;
+using std::unique_ptr;
 using namespace ALICE::HLT;
 
 // the chrono lib needs C++11

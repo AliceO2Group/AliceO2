@@ -10,8 +10,6 @@
 #include <iostream>
 #include <memory>
 
-using namespace std;
-
 namespace AliceO2 {
 namespace CDB {
 

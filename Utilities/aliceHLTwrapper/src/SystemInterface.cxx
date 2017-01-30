@@ -24,6 +24,11 @@
 #include <dlfcn.h>
 using namespace ALICE::HLT;
 
+using std::cerr;
+using std::cout;
+using std::endl;
+using std::string;
+
 SystemInterface::SystemInterface()
   : mpAliHLTExtFctInitSystem(NULL)
   , mpAliHLTExtFctDeinitSystem(NULL)

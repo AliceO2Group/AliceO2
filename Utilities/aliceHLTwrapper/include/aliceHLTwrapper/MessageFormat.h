@@ -80,34 +80,34 @@ public:
   // add list of messages
   // this will extract the block descriptors from the message
   // the descriptors refer to data in the original message buffer
-  int addMessages(const vector<BufferDesc_t>& list);
+  int addMessages(const std::vector<BufferDesc_t>& list);
 
   // add a block descriptor and its payload to the message
   // planned for future extension
   //int AddOutput(AliHLTComponentBlockData* db);
 
-  vector<AliHLTComponentBlockData>& getBlockDescriptors()
+  std::vector<AliHLTComponentBlockData>& getBlockDescriptors()
   {
     return mBlockDescriptors;
   }
 
-  const vector<AliHLTComponentBlockData>& getBlockDescriptors() const
+  const std::vector<AliHLTComponentBlockData>& getBlockDescriptors() const
   {
     return mBlockDescriptors;
   }
 
   // create message payloads in the internal buffer and return list
   // of decriptors
-  vector<BufferDesc_t> createMessages(const AliHLTComponentBlockData* blocks, unsigned count,
-                                      unsigned totalPayloadSize, const AliHLTComponentEventData& evtData,
-                                      boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate=nullptr);
+  std::vector<BufferDesc_t> createMessages(const AliHLTComponentBlockData* blocks, unsigned count,
+                                           unsigned totalPayloadSize, const AliHLTComponentEventData& evtData,
+                                           boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate=nullptr);
 
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
-  int readBlockSequence(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& descriptorList) const;
+  int readBlockSequence(AliHLTUInt8_t* buffer, unsigned size, std::vector<AliHLTComponentBlockData>& descriptorList) const;
 
   // read message payload in HOMER format
-  int readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, vector<AliHLTComponentBlockData>& descriptorList) const;
+  int readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, std::vector<AliHLTComponentBlockData>& descriptorList) const;
 
   // create HOMER format from the output blocks
   AliHLTHOMERWriter* createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
@@ -117,7 +117,7 @@ public:
   int insertEvtData(const AliHLTComponentEventData& evtData);
 
   // get event header list
-  const vector<AliHLTComponentEventData>& getEvtDataList() const {
+  const std::vector<AliHLTComponentEventData>& getEvtDataList() const {
     return mListEvtData;
   }
 
@@ -132,17 +132,17 @@ private:
   // assignment operator prohibited
   MessageFormat& operator=(const MessageFormat&);
 
-  vector<AliHLTComponentBlockData> mBlockDescriptors;
+  std::vector<AliHLTComponentBlockData> mBlockDescriptors;
   /// internal buffer to assemble message data
-  vector<AliHLTUInt8_t>            mDataBuffer;
+  std::vector<AliHLTUInt8_t>            mDataBuffer;
   /// list of message payload descriptors
-  vector<BufferDesc_t>             mMessages;
+  std::vector<BufferDesc_t>             mMessages;
   /// HOMER factory for creation and deletion of HOMER readers and writers
   ALICE::HLT::HOMERFactory*        mpFactory;
   /// output mode: HOMER, multi-message, sequential
   int mOutputMode;
   /// list of event descriptors
-  vector<AliHLTComponentEventData> mListEvtData;
+  std::vector<AliHLTComponentEventData> mListEvtData;
 };
 
 } // namespace AliceHLT
