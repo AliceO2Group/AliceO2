@@ -21,7 +21,7 @@ DigitCRU::~DigitCRU()
   }
 }
 
-void DigitCRU::setDigit(Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
+void DigitCRU::setDigit(Int_t eventID, Int_t trackID, Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
 {
   //if time bin outside specified range, the range of the vector is extended by one full drift time.
   while(getSize() <= timeBin) {
@@ -30,12 +30,12 @@ void DigitCRU::setDigit(Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
   
   DigitTime *result = mTimeBins[timeBin];
   if(result != nullptr) {
-    mTimeBins[timeBin]->setDigit(mCRU, row, pad, charge);
+    mTimeBins[timeBin]->setDigit(eventID, trackID, mCRU, row, pad, charge);
   }
   else {
     const Mapper& mapper = Mapper::instance();
     mTimeBins[timeBin] = new DigitTime(timeBin, mapper.getPadRegionInfo(CRU(mCRU).region()).getNumberOfPadRows());
-    mTimeBins[timeBin]->setDigit(mCRU, row, pad, charge);
+    mTimeBins[timeBin]->setDigit(eventID, trackID, mCRU, row, pad, charge);
   }
 }
 

@@ -47,10 +47,13 @@ class DigitTime{
     Float_t getTotalChargeTimeBin() {return mTotalChargeTimeBin;}
 
     /// Add digit to the row container
+    /// @param eventID MC ID of the event
+    /// @param trackID MC ID of the track
+    /// @param cru CRU of the digit
     /// @param row Pad row of digit
     /// @param pad Pad of digit
     /// @param charge Charge of the digit
-    void setDigit(Int_t cru, Int_t row, Int_t pad, Float_t charge);
+    void setDigit(Int_t eventID, Int_t trackID, Int_t cru, Int_t row, Int_t pad, Float_t charge);
 
     /// Fill output TClonesArray
     /// @param output Output container

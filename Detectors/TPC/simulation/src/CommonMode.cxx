@@ -5,7 +5,7 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CRU.h"
 #include "TPCSimulation/Constants.h"
-#include "TPCSimulation/Digitizer.h"
+#include "TPCSimulation/SAMPAProcessing.h"
 
 using namespace AliceO2::TPC;
 
@@ -77,8 +77,7 @@ Float_t CommonMode::computeCommonMode(std::vector<CommonMode> & summedChargesCon
     }
     
     commonModeSignal *= CPAD/(float(nPads)*CPAD);
-    Digitizer d;
-    const Float_t CommonModeADC = d.ADCvalue(commonModeSignal);
+    const Float_t CommonModeADC = SAMPAProcessing::getADCSaturation(commonModeSignal);
     CommonMode commonModeSummed(currentCRU, timeBin, CommonModeADC);
     commonModeContainer.emplace_back(commonModeSummed);
   }  

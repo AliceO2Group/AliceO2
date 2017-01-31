@@ -10,12 +10,9 @@
 
 using namespace AliceO2::TPC;
 
-using float_v = Vc::Vector<float>;
-using sfloat_v = Vc::Scalar::Vector<float>;
-
 ElectronTransport::ElectronTransport()
   : mRandomGaus(),
-    mVc_size(float_v::Size)
+    mVc_size(Vc::float_v::Size)
 {
   mRandomGaus.initialize(RandomRing::RandomType::Gaus);
 }
@@ -27,7 +24,7 @@ void ElectronTransport::getElectronDrift(Float_t *posEle)
 {
   Float_t driftl=posEle[2];
   if(driftl<0.01) driftl=0.01;
-  driftl=TMath::Sqrt(driftl);
+  driftl=std::sqrt(driftl);
   const Float_t sigT = driftl*DIFFT;
   const Float_t sigL = driftl*DIFFL;
   posEle[0]=(mRandomGaus.getNextValue() * sigT) + posEle[0];
@@ -39,11 +36,11 @@ void ElectronTransport::getElectronDriftVc(Float_t *posEle)
 {
   Float_t driftl=posEle[2];
   if(driftl<0.01) driftl=0.01;
-  driftl=TMath::Sqrt(driftl);
+  driftl=std::sqrt(driftl);
   const Float_t sigT = driftl*DIFFT;
   const Float_t sigL = driftl*DIFFL;
   const Float_t sig[3] = {sigT, sigT, sigL};
   for(int i = 0; i < 3; i += mVc_size) {
-    diffusion(mRandomGaus.getNextValueVc(), float_v(&sig[i]), float_v(&posEle[i])).store(&posEle[i]);
+    diffusion(mRandomGaus.getNextValueVc(), Vc::float_v(&sig[i]), Vc::float_v(&posEle[i])).store(&posEle[i]);
   }
 }

@@ -22,16 +22,16 @@ DigitTime::~DigitTime()
   }
 }
 
-void DigitTime::setDigit(Int_t cru, Int_t row, Int_t pad, Float_t charge)
+void DigitTime::setDigit(Int_t eventID, Int_t trackID, Int_t cru, Int_t row, Int_t pad, Float_t charge)
 {
   DigitRow *result = mRows[row];
   if(result != nullptr) {
-    mRows[row]->setDigit(pad, charge);
+    mRows[row]->setDigit(eventID, trackID, pad, charge);
   }
   else{
     const Mapper& mapper = Mapper::instance();
     mRows[row] = new DigitRow(row, mapper.getPadRegionInfo(CRU(cru).region()).getPadsInRowRegion(row));
-    mRows[row]->setDigit(pad, charge);
+    mRows[row]->setDigit(eventID, trackID, pad, charge);
   }
 }
 

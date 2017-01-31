@@ -9,6 +9,8 @@ using namespace AliceO2::TPC;
 
 Digit::Digit()
   : FairTimeStamp(),
+    mMCEventID(-1),
+    mMCTrackID(-1),
     mCRU(-1),
     mCharge(0.),
     mRow(-1),
@@ -16,8 +18,10 @@ Digit::Digit()
     mCommonMode(-1.)
 {}
 
-Digit::Digit(Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time)
+Digit::Digit(Int_t eventID, Int_t trackID, Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time)
   : FairTimeStamp(time),
+    mMCEventID(eventID),
+    mMCTrackID(trackID),
     mCRU(cru),
     mCharge(charge),
     mRow(row),
@@ -26,8 +30,10 @@ Digit::Digit(Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time)
 {
 }
 
-Digit::Digit(Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time, Float_t commonMode)
+Digit::Digit(Int_t eventID, Int_t trackID, Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time, Float_t commonMode)
   : FairTimeStamp(time),
+    mMCEventID(eventID),
+    mMCTrackID(trackID),
     mCRU(cru),
     mCharge(charge),
     mRow(row),

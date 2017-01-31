@@ -42,11 +42,13 @@ class DigitCRU{
     Int_t getCRUID() {return mCRU;}
 
     /// Add digit to the row container
+    /// @param eventID MC ID of the event
+    /// @param trackID MC ID of the track
+    /// @param timeBin Time bin of the digit
     /// @param row Pad row of digit
     /// @param pad Pad of digit
-    /// @param timeBin Time bin of the digit
     /// @param charge Charge of the digit
-    void setDigit(Int_t timeBin, Int_t row, Int_t pad, Float_t charge);
+    void setDigit(Int_t eventID, Int_t trackID, Int_t timeBin, Int_t row, Int_t pad, Float_t charge);
 
     /// Fill output TClonesArray
     /// @param output Output container

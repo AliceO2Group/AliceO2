@@ -29,24 +29,36 @@ class Digit : public FairTimeStamp {
     Digit();
 
     /// Constructor, initializing values for position, charge and time
+    /// @param eventID MC ID of the event
+    /// @param trackID MC ID of the track
     /// @param cru CRU of the digit
     /// @param charge Accumulated charge of digit
     /// @param row Row in which the digit was created
     /// @param pad Pad in which the digit was created
     /// @param time Time at which the digit was created
-    Digit(Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time);
+    Digit(Int_t eventID, Int_t trackID, Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time);
 
     /// Constructor, initializing values for position, charge, time and common mode
+    /// @param eventID MC ID of the event
+    /// @param trackID MC ID of the track
     /// @param cru CRU of the digit
     /// @param charge Accumulated charge of digit
     /// @param row Row in which the digit was created
     /// @param pad Pad in which the digit was created
     /// @param time Time at which the digit was created
     /// @param commonMode Common mode signal on that ROC in the time bin of the digit
-    Digit(Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time, Float_t commonMode);
+    Digit(Int_t eventID, Int_t trackID, Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time, Float_t commonMode);
 
     /// Destructor
     virtual ~Digit();
+
+    /// Get the event ID
+    /// @return event ID
+    Int_t getMCEventID() {return mMCEventID;}
+
+    /// Get the track ID
+    /// @return track ID
+    Int_t getMCTrackID() {return mMCTrackID;}
 
     /// Get the accumulated charged of the digit
     /// @return charge of the digit
@@ -91,6 +103,8 @@ class Digit : public FairTimeStamp {
     UChar_t                   mRow;             ///< Row of the digit
     UChar_t                   mPad;             ///< Pad of the digit
     Float_t                   mCommonMode;      ///< Common mode value of the digit
+    Int_t                     mMCEventID;       ///< MC Event ID;
+    Int_t                     mMCTrackID;       ///< MC Track ID;
       
   ClassDef(Digit, 3);
 };

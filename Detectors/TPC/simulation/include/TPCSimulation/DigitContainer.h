@@ -38,12 +38,14 @@ class DigitContainer{
     Int_t getNentries();
 
     /// Add digit to the container
+    /// @param eventID MC ID of the event
+    /// @param trackID MC ID of the track
     /// @param cru CRU of the digit
     /// @param row Pad row of digit
     /// @param pad Pad of digit
     /// @param timeBin Time bin of the digit
     /// @param charge Charge of the digit
-    void addDigit(Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t charge);
+    void addDigit(Int_t eventID, Int_t trackID, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t charge);
 
     /// Fill output TClonesArray
     /// @param output Output container

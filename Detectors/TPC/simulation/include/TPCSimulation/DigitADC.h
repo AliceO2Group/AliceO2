@@ -20,16 +20,26 @@ class DigitADC{
       
     /// Constructor 
     /// @param charge Charge
-    DigitADC(Float_t charge);
-      
+    DigitADC(Int_t eventID, Int_t trackID, Float_t charge);
+
     /// Destructor
     ~DigitADC();
-      
+
+    /// Get the event ID
+    /// @return event ID
+    Int_t getMCEventID() {return mEventID;}
+
+    /// Get the track ID
+    /// @return track ID
+    Int_t getMCTrackID() {return mTrackID;}
+
     /// Get the ADC value
     /// @return ADC value
     Float_t getADC() {return mADC;}
-      
+
   private:
+    Int_t mEventID;     ///< MC Event ID
+    Int_t mTrackID;     ///< MC Track ID
     Float_t mADC;       ///< ADC value of the digit
 };
 }
