@@ -48,7 +48,7 @@ class DigitRow{
     /// Add digit to the pad container
     /// @param pad Pad of the digit
     /// @param charge Charge of the digit
-    void setDigit(Int_t pad, Float_t charge);
+    void setDigit(Int_t eventID, Int_t trackID, Int_t pad, Float_t charge);
 
     /// Fill output TClonesArray
     /// @param output Output container

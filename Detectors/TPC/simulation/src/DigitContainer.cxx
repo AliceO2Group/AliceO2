@@ -22,16 +22,16 @@ DigitContainer::~DigitContainer()
   }
 }
 
-void DigitContainer::addDigit(Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
+void DigitContainer::addDigit(Int_t eventID, Int_t trackID, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
 {
   DigitCRU *result = mCRU[cru];
   if(result != nullptr){
-    mCRU[cru]->setDigit(timeBin, row, pad, charge);
+    mCRU[cru]->setDigit(eventID, trackID, timeBin, row, pad, charge);
   }
   else{
     const Mapper& mapper = Mapper::instance();
     mCRU[cru] = new DigitCRU(cru);
-    mCRU[cru]->setDigit(timeBin, row, pad, charge);
+    mCRU[cru]->setDigit(eventID, trackID, timeBin, row, pad, charge);
   }
 }
 

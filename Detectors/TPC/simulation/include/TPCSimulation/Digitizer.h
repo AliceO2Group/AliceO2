@@ -58,11 +58,6 @@ class Digitizer : public TObject {
     /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     /// Conversion functions that at some point should go someplace else
 
-    /// Conversion from a given number of electrons into ADC value
-    /// @param nElectrons Number of electrons in time bin
-    /// @return ADC value
-    static Float_t ADCvalue(Float_t nElectrons);
-
     /// Compute time bin from z position
     /// @param zPos z position of the charge
     /// @return Time bin of the charge
@@ -83,14 +78,6 @@ class Digitizer : public TObject {
     /// @return Time of the charge
     Float_t getTime(Float_t zPos) const;
 
-    /// Gamma4 shaping function
-    /// @param time Time of the ADC value with respect to the first bin in the pulse
-    /// @param startTime First bin in the pulse
-    /// @param ADC ADC value of the corresponding time bin
-    Float_t Gamma4(Float_t time, Float_t startTime, Float_t ADC) const;
-
-    using float_v = Vc::float_v;
-    float_v Gamma4_v(float_v time, float_v startTime, float_v ADC) const;
 
   private:
     Digitizer(const Digitizer &);
@@ -102,16 +89,6 @@ class Digitizer : public TObject {
 };
 
 // inline implementations
-
-inline
-Float_t Digitizer::ADCvalue(Float_t nElectrons)
-{
-  Float_t adcValue = nElectrons*QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE;
-  if(adcValue > ADCSAT) adcValue = ADCSAT;// saturation
-  
-  return adcValue;
-}
-
 inline
 Int_t Digitizer::getTimeBin(Float_t zPos) const 
 {
@@ -139,24 +116,6 @@ Float_t Digitizer::getTime(Float_t zPos) const
   Float_t time = (TPCLENGTH-TMath::Abs(zPos))/DRIFTV;
   return time;
 }
-
-inline
-Float_t Digitizer::Gamma4(Float_t time, Float_t startTime, Float_t ADC) const 
-{
-  if (time<0) return 0;
-  return ADC*TMath::Exp(-4.*(time-startTime)/PEAKINGTIME)*TMath::Power((time-startTime)/PEAKINGTIME,4);
-}
-
-inline
-float_v Digitizer::Gamma4_v(float_v time, float_v startTime, float_v ADC) const
-{
-  // not doing if because disregarded later in digitization
-  // if (time<0) return 0;
-  float_v tmp = (time-startTime)/PEAKINGTIME;
-  float_v tmp2=tmp*tmp;
-  return ADC*Vc::exp(-4.f*tmp)*tmp2*tmp2;
-}
-
 
 inline
 void Digitizer::getPadResponse(Float_t xabs, Float_t yabs, std::vector<PadResponse> &response)

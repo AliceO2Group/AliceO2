@@ -20,15 +20,15 @@ DigitRow::~DigitRow()
   }
 }
 
-void DigitRow::setDigit(Int_t pad, Float_t charge)
+void DigitRow::setDigit(Int_t eventID, Int_t trackID, Int_t pad, Float_t charge)
 {
   DigitPad *result = mPads[pad];
   if(result != nullptr) {
-    mPads[pad]->setDigit(charge);
+    mPads[pad]->setDigit(eventID, trackID, charge);
   }
   else{
     mPads[pad] = new DigitPad(pad);
-    mPads[pad]->setDigit(charge);
+    mPads[pad]->setDigit(eventID, trackID, charge);
   }
 }
 

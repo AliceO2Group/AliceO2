@@ -41,8 +41,10 @@ class DigitPad{
     Float_t getTotalChargePad() {return mTotalChargePad;}
 
     /// Add digit to the time bin container
+    /// @param eventID MC ID of the event
+    /// @param trackID MC ID of the track
     /// @param charge Charge of the digit
-    void setDigit(Float_t charge);
+    void setDigit(Int_t eventID, Int_t trackID, Float_t charge);
 
     /// Fill output TClonesArray
     /// @param output Output container
@@ -75,9 +77,9 @@ class DigitPad{
 };
 
 inline 
-void DigitPad::setDigit(Float_t charge) 
+void DigitPad::setDigit(Int_t eventID, Int_t trackID, Float_t charge)
 {
-  DigitADC digitAdc(charge);
+  DigitADC digitAdc(eventID, trackID, charge);
   mADCCounts.emplace_back(digitAdc);
 }
 

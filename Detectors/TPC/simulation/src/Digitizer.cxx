@@ -7,6 +7,7 @@
 #include "TPCSimulation/Constants.h"
 #include "TPCSimulation/GEMAmplification.h"
 #include "TPCSimulation/ElectronTransport.h"
+#include "TPCSimulation/SAMPAProcessing.h"
 
 #include "TPCBase/Mapper.h"
 
@@ -67,6 +68,9 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     posEle[2] = inputpoint->GetZ();
     posEle[3] = static_cast<int>(inputpoint->GetEnergyLoss()/WION);
     
+    Int_t MCEventID = inputpoint->GetEventID();
+    Int_t MCTrackID = inputpoint->GetTrackID();
+
     //Loop over electrons
     /// @todo can be vectorized?
     /// @todo split transport and signal formation in two separate loop?
@@ -91,7 +95,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
        
       if(!digiPadPos.isValid()) continue;
 
-      const Int_t nElectronsGEM = gemStack.getStackAmplification(1);
+      const Int_t nElectronsGEM = gemStack.getStackAmplification();
       
       // Loop over all individual pads with signal due to pad response function
       /// @todo modularization -> own class
@@ -116,20 +120,17 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
         // 8 chosen to fit with SSE registers
         for(Float_t bin = 0; bin<8; bin+=Vc::float_v::Size) {
           /// @todo check how the SAMPA digitisation is applied
-          /// @todo modularization -> own SAMPA class
-          /// @todo conversion to ADC counts already here? How about saturation?
           Vc::float_v binvector;
           for (int i=0;i<Vc::float_v::Size;++i) { binvector[i]=bin+i; }
           Vc::float_v time = driftTime + binvector*ZBINWIDTH;
 
-          Vc::float_v signal = 55.f*Gamma4_v(time, Vc::float_v(driftTime), Vc::float_v(nElectronsGEM*weight));
-          //           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(driftTime) + bin + 0.5), driftTime, nElectronsGEM*weight);
-
+          Vc::float_v signal = SAMPAProcessing::getGamma4Vc(time, Vc::float_v(driftTime), Vc::float_v(nElectronsGEM*weight));
+          Vc::float_v ADCsignal = SAMPAProcessing::getADCvalueVc(signal);
           Vc::float_m signalcondition = signal <= 0.f;
 
           for (int i=0;i<Vc::float_v::Size;++i) {
             if(signalcondition[i]) continue;
-            mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(time[i]), row, pad, signal[i]);
+            mDigitContainer->addDigit(MCEventID, MCTrackID, digiPadPos.getCRU().number(), getTimeBinFromTime(time[i]), row, pad, ADCsignal[i]);
           }
 
          }
