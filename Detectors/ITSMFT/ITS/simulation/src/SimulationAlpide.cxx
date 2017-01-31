@@ -1,5 +1,5 @@
 /// \file SimulationAlpide.cxx
-/// \brief Simulation of the ALIPIDE chip response 
+/// \brief Simulation of the ALIPIDE chip response
 
 #include <TF1.h>
 #include <TF2.h>
@@ -35,21 +35,21 @@ fChip(0)
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide
 (Double_t par[NumberOfParameters], SegmentationPixel *seg, Chip *chip):
-  fSeg(seg),
-  fChip(chip)
+fSeg(seg),
+fChip(chip)
 {
-   for (Int_t i=0; i<NumberOfParameters; i++) fParam[i]=par[i];
-   fSensMap=new SensMap("AliceO2::ITS::SDigit",
-			seg->getNumberOfColumns(), seg->getNumberOfRows());
+  for (Int_t i=0; i<NumberOfParameters; i++) fParam[i]=par[i];
+  fSensMap=new SensMap("AliceO2::ITS::SDigit",
+  seg->getNumberOfColumns(), seg->getNumberOfRows());
 }
 
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide(const SimulationAlpide &s):
-  fSeg(s.fSeg),
-  fChip(s.fChip)
+fSeg(s.fSeg),
+fChip(s.fChip)
 {
-   for (Int_t i=0; i<NumberOfParameters; i++) fParam[i]=s.fParam[i];
-   fSensMap=new SensMap(*(s.fSensMap));
+  for (Int_t i=0; i<NumberOfParameters; i++) fParam[i]=s.fParam[i];
+  fSensMap=new SensMap(*(s.fSensMap));
 }
 
 //______________________________________________________________________
@@ -66,7 +66,7 @@ void SimulationAlpide::Init
   fSeg=seg;
   fChip=chip;
   fSensMap=new SensMap("AliceO2::ITS::SDigit",
-			seg->getNumberOfColumns(), seg->getNumberOfRows());
+  seg->getNumberOfColumns(), seg->getNumberOfRows());
 }
 
 //______________________________________________________________________
@@ -88,20 +88,20 @@ void SimulationAlpide::FrompListToDigits(TClonesArray *detDigits) {
   static Digit dig;
 
   for (int i = 0; i < nsd; ++i) {
-      SDigit* sd = (SDigit*) fSensMap->At(i); // ordered in index
-      if (fSensMap->isDisabled(sd)) continue;
+    SDigit* sd = (SDigit*) fSensMap->At(i); // ordered in index
+    if (fSensMap->isDisabled(sd)) continue;
 
-      fSensMap->getMapIndex(sd->GetUniqueID(),col,row,iCycle);
-      dig.setPixelIndex(row,col);
-      dig.setChipIndex(modId);
-      
-      //dig.SetROCycle(iCycle);
-      dig.setCharge(sd->getSumSignal());
-      for (Int_t j=0; j<3; j++) dig.setLabel(j,sd->getTrack(j));
-      
-      TClonesArray &ldigits = *detDigits;
-      int nd = ldigits.GetEntriesFast();
-      new (ldigits[nd]) Digit(dig);
+    fSensMap->getMapIndex(sd->GetUniqueID(),col,row,iCycle);
+    dig.setPixelIndex(row,col);
+    dig.setChipIndex(modId);
+
+    //dig.SetROCycle(iCycle);
+    dig.setCharge(sd->getSumSignal());
+    for (Int_t j=0; j<3; j++) dig.setLabel(j,sd->getTrack(j));
+
+    TClonesArray &ldigits = *detDigits;
+    int nd = ldigits.GetEntriesFast();
+    new (ldigits[nd]) Digit(dig);
   }
 }
 
@@ -129,7 +129,7 @@ Bool_t SimulationAlpide::AddSDigitsToChip(TSeqCollection *pItemArr, Int_t mask) 
   for( Int_t i=0; i<nItems; i++ ) {
     SDigit * pItem = (SDigit *)(pItemArr->At( i ));
     if(pItem->getChip() != int(fChip->GetChipIndex()) )
-      LOG(FATAL)<<"SDigits chip "<<pItem->getChip()<<" != current chip "<<fChip->GetChipIndex()<<": exit"<<FairLogger::endl;
+    LOG(FATAL)<<"SDigits chip "<<pItem->getChip()<<" != current chip "<<fChip->GetChipIndex()<<": exit"<<FairLogger::endl;
 
     SDigit* oldItem = (SDigit*)fSensMap->getItem(pItem);
     if (!oldItem) oldItem = (SDigit*)fSensMap->registerItem( new(fSensMap->getFree()) SDigit(*pItem) );
@@ -176,7 +176,7 @@ Int_t SimulationAlpide::GetPixelPositionResponse(Int_t idPadX, Int_t idPadZ, Flo
   Double_t offc  = acs; // WARNING: this is just temporary! (a function for this is ready but need further testing)
 
   TF2 *respf = new TF2("respf", "([1]-1)*(1-TMath::Gaus(x,0,[0])*TMath::Gaus(y,0,[0]))+1",
-                       -fSeg->cellSizeX()/2, fSeg->cellSizeX()/2, -fSeg->cellSizeZ(0)/2, fSeg->cellSizeZ(0)/2);
+  -fSeg->cellSizeX()/2, fSeg->cellSizeX()/2, -fSeg->cellSizeZ(0)/2, fSeg->cellSizeZ(0)/2);
   respf->SetParameter(0, sigma);
   respf->SetParameter(1, offc);
   Int_t cs = (Int_t) round(respf->Eval(Dx, Dy));
@@ -247,7 +247,7 @@ void SimulationAlpide::GenerateCluster() {
     pz=hit->GetPz();
     etot = hit->GetTotalEnergy();
     idtrack=hit->GetTrackID();
-    
+
     TLorentzVector momen;
     momen.SetPxPyPzE(px, py, pz, etot);
     beta = momen.Beta();
@@ -287,7 +287,7 @@ void SimulationAlpide::GenerateCluster() {
       nz = iz - cz + r;
       CreateDigi(nz, nx, idtrack, h);
     }
-    
+
     delete[] cshape;
     delete csManager;
   }
