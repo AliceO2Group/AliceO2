@@ -10,15 +10,15 @@
 using namespace AliceO2::TPC;
 
 CommonMode::CommonMode() 
-  : mCRU(),
-    mTimeBin(),
-    mCommonMode()
+  : mCRU()
+  , mTimeBin()
+  , mCommonMode()
 {}
 
 CommonMode::CommonMode(Int_t cru, Int_t timeBin, Float_t commonMode)
-  : mCRU(cru),
-    mTimeBin(timeBin),
-    mCommonMode(commonMode)
+  : mCRU(cru)
+  , mTimeBin(timeBin)
+  , mCommonMode(commonMode)
 {}
 
 CommonMode::~CommonMode() 
