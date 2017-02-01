@@ -60,7 +60,6 @@ class DigitContainer{
     void processCommonMode(std::vector<CommonMode> &);
 
   private:
-    UShort_t mNCRU;                     ///< CRU of the ADC value
     std::vector<DigitCRU*> mCRU;        ///< CRU Container for the ADC value
 };
 

@@ -66,7 +66,7 @@ class Digit : public FairTimeStamp {
 
     /// Get the accumulated charged of the digit as a float
     /// @return charge of the digit as a float
-    Int_t getChargeFloat() const { return mCharge; }
+    Float_t getChargeFloat() const { return mCharge; }
 
     /// Get the CRU of the digit
     /// @return CRU of the digit
@@ -98,13 +98,13 @@ class Digit : public FairTimeStamp {
     friend class boost::serialization::access;
     #endif
       
-    UShort_t                  mCRU;             ///< CRU of the digit
     Float_t                   mCharge;          ///< ADC value of the digit
-    UChar_t                   mRow;             ///< Row of the digit
-    UChar_t                   mPad;             ///< Pad of the digit
     Float_t                   mCommonMode;      ///< Common mode value of the digit
     Int_t                     mMCEventID;       ///< MC Event ID;
     Int_t                     mMCTrackID;       ///< MC Track ID;
+    UShort_t                  mCRU;             ///< CRU of the digit
+    UChar_t                   mRow;             ///< Row of the digit
+    UChar_t                   mPad;             ///< Pad of the digit
       
   ClassDef(Digit, 3);
 };

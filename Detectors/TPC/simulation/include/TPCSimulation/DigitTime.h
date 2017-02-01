@@ -74,9 +74,8 @@ class DigitTime{
     void processCommonMode(Int_t cru, Int_t timeBin);
 
   private:
-    UShort_t                mTimeBin;                   ///< Time bin of that ADC value
-    UChar_t                 mNRows;                     ///< Number of pad rows in that CRU for a given time bin
     Float_t                 mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
+    UShort_t                mTimeBin;                   ///< Time bin of that ADC value
     std::vector <DigitRow*> mRows;                      ///< Row Container for the ADC value
 };
 

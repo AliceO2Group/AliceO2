@@ -6,15 +6,15 @@
 using namespace AliceO2::TPC;
 
 DigitADC::DigitADC()
-  : mEventID(),
-    mTrackID(),
-    mADC()
+  : mADC(),
+    mEventID(),
+    mTrackID()
 {}
 
 DigitADC::DigitADC(Int_t eventID, Int_t trackID, Float_t charge)
-  : mEventID(eventID),
-    mTrackID(trackID),
-    mADC(charge)
+  : mADC(charge),
+    mEventID(eventID),
+    mTrackID(trackID)
 {}
 
 DigitADC::~DigitADC() 

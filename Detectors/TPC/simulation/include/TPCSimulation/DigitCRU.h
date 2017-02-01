@@ -66,8 +66,8 @@ class DigitCRU{
     void processCommonMode(std::vector<CommonMode> &, Int_t cru);
 
   private:
-    UShort_t                 mCRU;              ///< CRU of the ADC value
     Int_t                    mNTimeBins;        ///< Maximal number of time bins in that CRU
+    UShort_t                 mCRU;              ///< CRU of the ADC value
     std::vector <DigitTime*> mTimeBins;         ///< Time bin Container for the ADC value
 };
     

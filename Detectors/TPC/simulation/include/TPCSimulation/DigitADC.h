@@ -38,9 +38,9 @@ class DigitADC{
     Float_t getADC() {return mADC;}
 
   private:
+    Float_t mADC;       ///< ADC value of the digit
     Int_t mEventID;     ///< MC Event ID
     Int_t mTrackID;     ///< MC Track ID
-    Float_t mADC;       ///< ADC value of the digit
 };
 }
 }

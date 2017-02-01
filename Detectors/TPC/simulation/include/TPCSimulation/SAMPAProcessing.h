@@ -81,7 +81,7 @@ Float_t SAMPAProcessing::getGamma4(Float_t time, Float_t startTime, Float_t ADC)
 //   if (time<0) return 0;
   float_t tmp = (time-startTime)/PEAKINGTIME;
   float_t tmp2=tmp*tmp;
-  return 55.f*ADC*exp(-4.f*tmp)*tmp2*tmp2;
+  return 55.f*ADC*std::exp(-4.f*tmp)*tmp2*tmp2;
 }
 
 inline

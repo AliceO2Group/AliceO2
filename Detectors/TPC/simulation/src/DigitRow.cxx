@@ -7,9 +7,9 @@
 using namespace AliceO2::TPC;
 
 DigitRow::DigitRow(Int_t row, Int_t npads)
-  : mRow(row),
-    mPads(npads),
-    mTotalChargeRow(0.)
+  : mTotalChargeRow(0.),
+    mRow(row),
+    mPads(npads)
 {}
 
 DigitRow::~DigitRow()

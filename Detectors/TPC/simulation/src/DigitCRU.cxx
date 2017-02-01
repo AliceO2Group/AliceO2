@@ -8,8 +8,8 @@
 using namespace AliceO2::TPC;
 
 DigitCRU::DigitCRU(Int_t cru)
-  : mCRU(cru),
-    mNTimeBins(500),
+  : mNTimeBins(500),
+    mCRU(cru),
     mTimeBins(mNTimeBins)
 {}
 

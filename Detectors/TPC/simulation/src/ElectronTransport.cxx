@@ -5,8 +5,7 @@
 #include "TPCSimulation/Constants.h"
 
 #include <Vc/Vc>
-
-#include "TMath.h"
+#include <cmath>
 
 using namespace AliceO2::TPC;
 

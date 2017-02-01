@@ -88,7 +88,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 
       // remove electrons that end up outside the active volume
       /// @todo should go to mapper?
-      if(TMath::Abs(posEle[2]) > TPCLENGTH) continue;
+      if(fabs(posEle[2]) > TPCLENGTH) continue;
 
       const GlobalPosition3D posElePad (posEle[0], posEle[1], posEle[2]);
       const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posElePad);
