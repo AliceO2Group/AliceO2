@@ -69,6 +69,7 @@ set(BUCKET_NAME tpc_simulation_bucket)
 
 O2_GENERATE_LIBRARY()
 
+
 Set(Exe_Names
   tpc-run-sim
 )
@@ -97,3 +98,13 @@ foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lis
       BUCKET_NAME ${BUCKET_NAME}
   )
 endforeach (_file RANGE 0 ${_length})
+
+set(TEST_SRCS
+   test/testTPCGEMAmplification.cxx
+)
+
+O2_GENERATE_TESTS(
+  BUCKET_NAME ${BUCKET_NAME}
+  MODULE_LIBRARY_NAME ${MODULE_NAME}
+  TEST_SRCS ${TEST_SRCS}
+)
