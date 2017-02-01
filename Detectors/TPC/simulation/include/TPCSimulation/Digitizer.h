@@ -13,9 +13,8 @@
 
 #include "Rtypes.h"
 #include "TObject.h"
-#include "TF1.h"
-#include "TRandom.h"
-#include "TMath.h"
+
+#include <cmath>
 #include <iostream>
 #include <Vc/Vc>
 
@@ -92,7 +91,7 @@ class Digitizer : public TObject {
 inline
 Int_t Digitizer::getTimeBin(Float_t zPos) const 
 {
-  Float_t timeBin = (TPCLENGTH-TMath::Abs(zPos))/(DRIFTV*ZBINWIDTH);
+  Float_t timeBin = (TPCLENGTH-std::fabs(zPos))/(DRIFTV*ZBINWIDTH);
   return static_cast<int>(timeBin);
 }
 
@@ -113,7 +112,7 @@ Float_t Digitizer::getTimeFromBin(Int_t timeBin) const
 inline
 Float_t Digitizer::getTime(Float_t zPos) const 
 {
-  Float_t time = (TPCLENGTH-TMath::Abs(zPos))/DRIFTV;
+  Float_t time = (TPCLENGTH-std::fabs(zPos))/DRIFTV;
   return time;
 }
 

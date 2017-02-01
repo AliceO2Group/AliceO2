@@ -71,8 +71,8 @@ class DigitPad{
     void processCommonMode(Int_t cru, Int_t timeBin, Int_t row, Int_t pad);
 
   private:
-    UChar_t                  mPad;              ///< Pad of the ADC value
     Float_t                  mTotalChargePad;   ///< Total accumulated charge on that pad for a given time bin
+    UChar_t                  mPad;              ///< Pad of the ADC value
     std::vector <DigitADC>   mADCCounts;        ///< Vector with ADC values
 };
 

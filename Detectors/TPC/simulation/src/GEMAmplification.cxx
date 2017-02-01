@@ -25,7 +25,7 @@ GEMAmplification::GEMAmplification(Float_t effGainGEM1, Float_t effGainGEM2, Flo
   Float_t kappa = 1/(SIGMAOVERMU*SIGMAOVERMU);
   Float_t s = 1/kappa;
   
-  boost::format polya("1/(TMath::Gamma(%1%)*%2%) *pow(x/%3%, %4%) *exp(-x/%5%)");
+  boost::format polya("1/(TMath::Gamma(%1%)*%2%) *std::pow(x/%3%, %4%) *std::exp(-x/%5%)");
   polya % kappa % s % s % (kappa-1) % s;
   
   TF1 polyaDistribution("polya", (polya.str()).data(), 0, 10);

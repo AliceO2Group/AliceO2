@@ -8,8 +8,8 @@
 using namespace AliceO2::TPC;
 
 DigitPad::DigitPad(Int_t pad)
-  : mPad(pad),
-    mTotalChargePad(0.),
+  : mTotalChargePad(0.),
+    mPad(pad),
     mADCCounts()
 {}
 

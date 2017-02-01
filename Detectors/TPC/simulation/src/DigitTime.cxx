@@ -8,10 +8,9 @@
 using namespace AliceO2::TPC;
 
 DigitTime::DigitTime(Int_t timeBin, Int_t nrows)
-  : mTimeBin(timeBin),
-    mNRows(nrows),
-    mRows(nrows),
-    mTotalChargeTimeBin(0.)
+  : mTotalChargeTimeBin(0.),
+    mTimeBin(timeBin),
+    mRows(nrows)
 {}
 
 DigitTime::~DigitTime()
