@@ -10,8 +10,8 @@
 using namespace AliceO2::TPC;
 
 ElectronTransport::ElectronTransport()
-  : mRandomGaus(),
-    mVc_size(Vc::float_v::Size)
+  : mRandomGaus()
+  , mVc_size(Vc::float_v::Size)
 {
   mRandomGaus.initialize(RandomRing::RandomType::Gaus);
 }

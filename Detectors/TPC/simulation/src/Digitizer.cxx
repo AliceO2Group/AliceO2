@@ -26,8 +26,8 @@ ClassImp(AliceO2::TPC::Digitizer)
 using namespace AliceO2::TPC;
 
 Digitizer::Digitizer()
-  : TObject(),
-    mDigitContainer(nullptr)
+  : TObject()
+  , mDigitContainer(nullptr)
 {}
 
 Digitizer::~Digitizer()
