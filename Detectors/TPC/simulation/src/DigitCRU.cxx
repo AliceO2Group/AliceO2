@@ -16,7 +16,6 @@ DigitCRU::DigitCRU(Int_t cru)
 DigitCRU::~DigitCRU()
 {
   for(auto &aTime : mTimeBins) {
-    if(aTime == nullptr) continue;
     delete aTime;
   }
 }

@@ -5,6 +5,7 @@
 #define ALICEO2_TPC_DigitizerTask_H_
 
 #include <stdio.h>
+#include <string>
 #include "FairTask.h"
 #include "Rtypes.h"
 #include "TPCSimulation/Digitizer.h"
@@ -35,17 +36,22 @@ class DigitizerTask : public FairTask{
       
     /// Inititializes the digitizer and connects input and output container
     virtual InitStatus Init();
+
+    void setHitFileName(std::string name) { mHitFileName = name; }
       
     /// Digitization
     /// @param option Option
     virtual void Exec(Option_t *option);
       
   private:
+    void fillHitArrayFromFile();
+
     Digitizer           *mDigitizer;    ///< Digitization process
       
     TClonesArray        *mPointsArray;  ///< Array of detector hits, passed to the digitization
     TClonesArray        *mDigitsArray;  ///< Array of the Digits, passed from the digitization
     
+    std::string          mHitFileName;  ///< External hit file exported from AliRoot
   ClassDef(DigitizerTask, 1);
 };
   

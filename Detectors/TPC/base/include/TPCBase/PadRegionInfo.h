@@ -38,6 +38,7 @@ public:
   const unsigned char getPadsInRow      (const int row)        const { return mPadsPerRow[row-mGlobalRowOffset]; }
   const unsigned char getPadsInRowRegion(const int row)        const { return mPadsPerRow[row]; }
 
+  //TODO check function
   const bool isInRegion(float localX, float border=0.f) const { return localX-mRadiusFirstRow-border>0.f && localX-mRadiusFirstRow<(mNumberOfPadRows+1)*mPadHeight+border; }
 
   const PadPos findPad(const LocalPosition3D& pos) const;
@@ -60,7 +61,7 @@ private:
   unsigned short mNumberOfPads{0};     /// total number of pads in region
 
   void init();
-  std::vector<unsigned char> mPadsPerRow{}; /// number of pad in each row
+  std::vector<unsigned char> mPadsPerRow; /// number of pad in each row
 };
 
 }

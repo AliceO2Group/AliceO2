@@ -13,12 +13,12 @@ namespace TPC {
 enum Side {A=0, C=1};
 //   enum class Side {A=0, C=1};
 //  Problem with root cint. does not seem to support enum class ...
-const unsigned char SECTORSPERSIDE=18;
-const unsigned char SIDES=2;
+constexpr unsigned char SECTORSPERSIDE=18;
+constexpr unsigned char SIDES=2;
 
-const double PI          = 3.14159265358979323846;
-const double TWOPI       = 2*PI;
-const double SECPHIWIDTH = TWOPI/18;
+constexpr double PI          = 3.14159265358979323846;
+constexpr double TWOPI       = 2*PI;
+constexpr double SECPHIWIDTH = TWOPI/18;
 
 
 /// TPC ROC types

@@ -111,10 +111,10 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 //           /// @todo check how the SAMPA digitisation is applied
 //           /// @todo modularization -> own SAMPA class
 //           /// @todo conversion to ADC counts already here? How about saturation?
-//           Double_t signal = 55*Gamma4(driftTime+bin*ZBINWIDTH, driftTime, nElectronsGEM*weight);
+//           Double_t signal = SAMPAProcessing::getGamma4(driftTime+bin*ZBINWIDTH, driftTime, nElectronsGEM*weight);
 // //           Double_t signal = 55*Gamma4(getTimeFromBin(getTimeBinFromTime(driftTime) + bin + 0.5), driftTime, nElectronsGEM*weight);
 //           if(signal <= 0.) continue;
-//           mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(driftTime+bin*ZBINWIDTH), row, pad, signal);
+//           mDigitContainer->addDigit(MCEventID, MCTrackID, digiPadPos.getCRU().number(), getTimeBinFromTime(driftTime+bin*ZBINWIDTH), row, pad, signal);
 //         }
 
         // 8 chosen to fit with SSE registers
@@ -124,7 +124,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
           for (int i=0;i<Vc::float_v::Size;++i) { binvector[i]=bin+i; }
           Vc::float_v time = driftTime + binvector*ZBINWIDTH;
 
-          Vc::float_v signal = SAMPAProcessing::getGamma4Vc(time, Vc::float_v(driftTime), Vc::float_v(nElectronsGEM*weight));
+          Vc::float_v signal = SAMPAProcessing::getGamma4(time, Vc::float_v(driftTime), Vc::float_v(nElectronsGEM*weight));
           Vc::float_v ADCsignal = SAMPAProcessing::getADCvalueVc(signal);
           Vc::float_m signalcondition = signal <= 0.f;
 

@@ -27,7 +27,7 @@ GEMAmplification::GEMAmplification(Float_t effGainGEM1, Float_t effGainGEM2, Flo
   
   boost::format polya("1/(TMath::Gamma(%1%)*%2%) *std::pow(x/%3%, %4%) *std::exp(-x/%5%)");
   polya % kappa % s % s % (kappa-1) % s;
-  
+  // TODO Get from root file or write own random generator
   TF1 polyaDistribution("polya", (polya.str()).data(), 0, 10);
   // this dramatically alters the speed with which the filling is executed... without this, the distribution makes discrete steps at every int
   polyaDistribution.SetNpx(100000);

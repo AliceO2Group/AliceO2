@@ -15,7 +15,6 @@ DigitRow::DigitRow(Int_t row, Int_t npads)
 DigitRow::~DigitRow()
 {
   for(auto &aPad : mPads) {
-    if(aPad == nullptr) continue;
     delete aPad;
   }
 }
