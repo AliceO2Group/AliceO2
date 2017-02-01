@@ -10,3 +10,4 @@ SAMPAProcessing::SAMPAProcessing()
 
 SAMPAProcessing::~SAMPAProcessing()
 {}
+

@@ -17,7 +17,6 @@ DigitContainer::DigitContainer()
 DigitContainer::~DigitContainer()
 {
   for(auto &aCRU : mCRU) {
-    if(aCRU == nullptr) continue;
     delete aCRU;
   }
 }

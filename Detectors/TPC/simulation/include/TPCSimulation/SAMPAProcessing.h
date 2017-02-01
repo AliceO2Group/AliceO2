@@ -44,13 +44,15 @@ class SAMPAProcessing
     /// @param time Time of the ADC value with respect to the first bin in the pulse
     /// @param startTime First bin in the pulse
     /// @param ADC ADC value of the corresponding time bin
-    static Float_t getGamma4(Float_t time, Float_t startTime, Float_t ADC);
+//     static Float_t getGamma4(Float_t time, Float_t startTime, Float_t ADC);
 
     /// Gamma4 shaping function, vectorized
     /// @param time Time of the ADC value with respect to the first bin in the pulse
     /// @param startTime First bin in the pulse
     /// @param ADC ADC value of the corresponding time bin
-    static Vc::float_v getGamma4Vc(Vc::float_v time, Vc::float_v startTime, Vc::float_v ADC);
+//     __attribute__((noinline))
+    template<typename T>
+    static T getGamma4(T time, T startTime, T ADC);
 };
 
 inline
@@ -75,17 +77,19 @@ Float_t SAMPAProcessing::getADCSaturation(Float_t signal)
   return signal;
 }
 
-inline
-Float_t SAMPAProcessing::getGamma4(Float_t time, Float_t startTime, Float_t ADC)
-{
-//   if (time<0) return 0;
-  float_t tmp = (time-startTime)/PEAKINGTIME;
-  float_t tmp2=tmp*tmp;
-  return 55.f*ADC*std::exp(-4.f*tmp)*tmp2*tmp2;
-}
+// inline
+// Float_t SAMPAProcessing::getGamma4(Float_t time, Float_t startTime, Float_t ADC)
+// {
+// //   if (time<0) return 0;
+//   float_t tmp = (time-startTime)/PEAKINGTIME;
+//   float_t tmp2=tmp*tmp;
+//   return 55.f*ADC*exp(-4.f*tmp)*tmp2*tmp2;
+// }
 
-inline
-Vc::float_v SAMPAProcessing::getGamma4Vc(Vc::float_v time, Vc::float_v startTime, Vc::float_v ADC)
+// inline
+template<typename T>
+__attribute__((noinline))
+T SAMPAProcessing::getGamma4(T time, T startTime, T ADC)
 {
   // not doing if because disregarded later in digitization
   // if (time<0) return 0;

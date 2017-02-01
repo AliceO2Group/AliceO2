@@ -77,7 +77,8 @@ void DigitCRU::reset()
 {
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
-    aTime->reset();
+//     aTime->reset();
+    delete aTime;
   }
   mTimeBins.clear();
 }

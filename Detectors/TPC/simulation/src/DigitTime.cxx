@@ -16,7 +16,6 @@ DigitTime::DigitTime(Int_t timeBin, Int_t nrows)
 DigitTime::~DigitTime()
 {
   for(auto &aRow : mRows) {
-    if(aRow == nullptr) continue;
     delete aRow;
   }
 }
