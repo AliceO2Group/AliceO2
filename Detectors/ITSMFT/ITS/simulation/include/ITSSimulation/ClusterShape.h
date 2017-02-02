@@ -12,6 +12,7 @@
 
 #include <TObject.h>
 #include <sstream>
+#include <vector>
 
 namespace AliceO2 {
   namespace ITS {
@@ -20,45 +21,54 @@ namespace AliceO2 {
 
     public:
       ClusterShape();
-      ClusterShape(UInt_t, UInt_t, UInt_t);
+      ClusterShape(UInt_t, UInt_t);
       virtual ~ClusterShape();
 
+      // Set the number of rows
       inline void SetNRows(UInt_t Nrows) {fNrows = Nrows;}
-      inline void SetNCols(UInt_t Ncols) {fNcols = Ncols;}
-      inline void SetNFiredPixels(UInt_t NFPix) {
-        fNFPix = NFPix;
-        fShape = new UInt_t[fNFPix];
-      }
-      inline void SetShapeValue(UInt_t index, UInt_t value) {
-        fShape[index] = value;
-      }
 
-      // returns an unique ID based on the cluster size and shape
+      // Set the number of cols
+      inline void SetNCols(UInt_t Ncols) {fNcols = Ncols;}
+
+      // Add a pixel position to the shape [0, r*c[
+      inline void AddShapeValue(UInt_t pos) {fShape.push_back(pos);}
+
+      // Check whether the shape has the
+      Bool_t IsValidShape();
+
+      // Return an unique ID based on the cluster size and shape
       Long64_t GetShapeID();
 
+      // Get the number of rows of the cluster
       inline UInt_t GetNRows() const {return fNrows;}
+
+      // Get the number of cols of the cluster
       inline UInt_t GetNCols() const {return fNcols;}
-      inline UInt_t GetNFiredPixels() const {return fNFPix;}
-      inline UInt_t GetShapeValue(UInt_t index) {return fShape[index];}
-      inline UInt_t* GetShape() const {return fShape;}
 
-      inline Bool_t HasElement(UInt_t value) {
-        for (UInt_t i = 0; i < fNFPix; ++i) {
-          if (fShape[i] > value) break;
-          if (fShape[i] == value) return true;
-        }
-        return false;
-      }
+      // Get the number of fired pixels of the cluster
+      inline UInt_t GetNFiredPixels() const {return fShape.size();}
 
+      // Get the position of the pixel with the specified index
+      inline UInt_t GetValue(UInt_t index) const {return fShape[index];}
+
+      // Get the shape of the cluster
+      inline void GetShape(std::vector<UInt_t>& v) const {v = fShape;}
+
+      // Check whether the cluster has the specified pixel on
+      Bool_t HasElement(UInt_t) const;
+
+      // Return a string with the positions of the fired pixels in the cluster
       inline std::string ShapeSting() const {
-        return ShapeSting(fNFPix, fShape);
+        return ShapeSting(fShape);
       }
 
-      static std::string ShapeSting(UInt_t nFPix, UInt_t *shape) {
+      // Static function to get a string with the positions of the fired pixels
+      // in the passed shape vector
+      static std::string ShapeSting(const std::vector<UInt_t>& shape) {
         std::stringstream out;
-        for (UInt_t i = 0; i < nFPix; ++i) {
+        for (UInt_t i = 0; i < shape.size(); ++i) {
           out << shape[i];
-          if (i < nFPix-1) out << " ";
+          if (i < shape.size()-1) out << " ";
         }
         return out.str();
       }
@@ -66,8 +76,7 @@ namespace AliceO2 {
     private:
       UInt_t  fNrows;
       UInt_t  fNcols;
-      UInt_t  fNFPix;
-      UInt_t *fShape;
+      std::vector<UInt_t> fShape;
 
       ClassDef(ClusterShape,1)
     };

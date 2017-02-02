@@ -25,7 +25,7 @@ SimuClusterShaper::SimuClusterShaper(const UInt_t &cs) {
     nRows += 1;
     nCols += 1;
   }
-  fCShape = new ClusterShape(nRows, nCols, fNpixOn);
+  fCShape = new ClusterShape(nRows, nCols);
 }
 
 
@@ -52,7 +52,7 @@ void SimuClusterShaper::FillClusterRandomly() {
   Int_t bit = 0;
   for (i = 0; i < fNpixOn; ++i) {
     UInt_t j = bits->FirstSetBit(bit);
-    fCShape->SetShapeValue(i, j);
+    fCShape->AddShapeValue(j);
     bit = j+1;
   }
   delete bits;

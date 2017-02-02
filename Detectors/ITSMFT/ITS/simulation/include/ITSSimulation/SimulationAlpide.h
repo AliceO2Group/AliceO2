@@ -62,10 +62,11 @@ namespace AliceO2 {
       void      CreateDigi(UInt_t, UInt_t, Int_t, Int_t);
 
     protected:
-      Double_t fParam[NumberOfParameters]; // Chip response parameters
-      SegmentationPixel  *fSeg;      //! Segmentation
-      SensMap      *fSensMap;        //! Sensor map for hits manipulations
-      Chip *fChip;                   //! Chip being processed
+      Double_t           fParam[NumberOfParameters]; // Chip response parameters
+      SegmentationPixel *fSeg;      //! Segmentation
+      SensMap           *fSensMap;  //! Sensor map for hits manipulations
+      Chip              *fChip;     //! Chip being processed
+
       ClassDef(SimulationAlpide,1)   // Simulation of pixel clusters
     };
   }
