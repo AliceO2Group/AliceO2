@@ -33,7 +33,13 @@ AliceO2_TGeant3.mc_1ev_100mu.root
 
 (one event with 100 muons)
 
-Reconstruction:
+Simple reconstruction:
+
+```bash
+root.exe -b -q run_reco_mft.C
+```
+
+Reconstruction with MQ devices:
 
 * "points" to "hits"
 
@@ -65,7 +71,7 @@ samplers, two processors, a merger and a sink. First do two simulations and the
 and then:
 
 ```bash
- ./"execdir"/mft-reco-sampler --transport zeromq --id sampler1 --mq-config reco_merger.json --file-name hits_1.root --branch-name MFTHits --branch-name EventHeader. --out-channel data-out
+./"execdir"/mft-reco-sampler --transport zeromq --id sampler1 --mq-config reco_merger.json --file-name hits_1.root --branch-name MFTHits --branch-name EventHeader. --out-channel data-out
 
 ./"execdir"/mft-reco-sampler --transport zeromq --id sampler2 --mq-config reco_merger.json --file-name hits_2.root --branch-name MFTHits --branch-name EventHeader. --out-channel data-out
 
