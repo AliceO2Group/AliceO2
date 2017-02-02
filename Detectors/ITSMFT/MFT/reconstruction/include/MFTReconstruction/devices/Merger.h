@@ -15,6 +15,8 @@ namespace AliceO2 {
 
 namespace MFT {
 
+typedef std::multimap<std::pair<std::pair<int,int>,int>,TObject*> MultiMapDef;
+
 class Merger : public FairMQDevice
 {
 
@@ -28,16 +30,26 @@ class Merger : public FairMQDevice
  protected:
 
   virtual void Init();
-  virtual void Run();
+  bool MergeData(FairMQParts&, int);
   
  private:
   
   EventHeader* fEventHeader;
   int fNofParts;
   
-  std::map     <std::pair<int,int>,int>                     fNofPartsPerEventMap;  // number of parts for pair<event number,run id>
-  std::multimap<std::pair<std::pair<int,int>,int>,TObject*> fObjectMap;            // TObjects for given pair<pair<event number, run,id>part>
+  std::map<std::pair<int,int>,int> fNofPartsPerEventMap;  // number of parts for pair<event number,run id>
+  MultiMapDef fObjectMap;            // TObjects for given pair<pair<event number, run,id>part>
   
+  std::pair<int, int> fEvRIPair;
+  std::pair<std::pair<int,int>,int> fEvRIPartTrio;
+  std::pair<MultiMapDef::iterator, MultiMapDef::iterator> fRet;
+
+  std::string fInputChannelName;
+  std::string fOutputChannelName;
+
+  int fNofReceivedMessages;
+  int fNofSentMessages;
+
   Merger(const Merger&);
   Merger& operator=(const Merger&);
   
