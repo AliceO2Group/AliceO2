@@ -1,9 +1,8 @@
 #ifndef TASKPROCESSOR_H_
 #define TASKPROCESSOR_H_
 
-#include <string>
-
 #include "FairMQDevice.h"
+#include "FairMQParts.h"
 
 #include "MFTBase/EventHeader.h"
 
@@ -28,16 +27,19 @@ class TaskProcessor : public FairMQDevice
 
   void SetInputChannelName (std::string tstr) {fInputChannelName = tstr;}
   void SetOutputChannelName(std::string tstr) {fOutputChannelName = tstr;}
+  void SetParamChannelName (std::string tstr) {fParamChannelName  = tstr;}
 
  protected:
 
-  virtual void Run();
+  bool ProcessData(FairMQParts&, int);
   virtual void Init();
+  virtual void PostRun();
 
  private:
   
   std::string     fInputChannelName;
   std::string     fOutputChannelName;
+  std::string     fParamChannelName;
   
   EventHeader*     fEventHeader;
   TList*           fInput;
@@ -48,6 +50,9 @@ class TaskProcessor : public FairMQDevice
   
   std::string fDataToKeep;
   
+  int fReceivedMsgs = 0;
+  int fSentMsgs = 0;
+
   T* fFairTask;
 
   TaskProcessor(const TaskProcessor&);    
