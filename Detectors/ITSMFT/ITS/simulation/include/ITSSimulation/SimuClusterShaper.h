@@ -29,7 +29,7 @@ namespace AliceO2 {
 
       inline UInt_t  GetNRows() {return fCShape->GetNRows();}
       inline UInt_t  GetNCols() {return fCShape->GetNCols();}
-      inline UInt_t* GetShape() {return fCShape->GetShape();}
+      inline void    GetShape(std::vector<UInt_t>& v) {fCShape->GetShape(v);}
 
       inline std::string ShapeSting(UInt_t cs, UInt_t *cshape) const {
         std::stringstream out;

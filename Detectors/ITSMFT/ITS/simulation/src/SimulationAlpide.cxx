@@ -129,7 +129,7 @@ Bool_t SimulationAlpide::AddSDigitsToChip(TSeqCollection *pItemArr, Int_t mask) 
   for( Int_t i=0; i<nItems; i++ ) {
     SDigit * pItem = (SDigit *)(pItemArr->At( i ));
     if(pItem->getChip() != int(fChip->GetChipIndex()) )
-    LOG(FATAL)<<"SDigits chip "<<pItem->getChip()<<" != current chip "<<fChip->GetChipIndex()<<": exit"<<FairLogger::endl;
+    LOG(FATAL) << "SDigits chip " << pItem->getChip() << " != current chip " << fChip->GetChipIndex() << ": exit" << FairLogger::endl;
 
     SDigit* oldItem = (SDigit*)fSensMap->getItem(pItem);
     if (!oldItem) oldItem = (SDigit*)fSensMap->registerItem( new(fSensMap->getFree()) SDigit(*pItem) );
@@ -249,6 +249,7 @@ void SimulationAlpide::GenerateCluster() {
     idtrack=hit->GetTrackID();
 
     TLorentzVector momen;
+    std::vector<UInt_t> cshape;
     momen.SetPxPyPzE(px, py, pz, etot);
     beta = momen.Beta();
     if (beta > 0.99999) beta=0.99999;
@@ -261,24 +262,23 @@ void SimulationAlpide::GenerateCluster() {
 
     acs = ACSFromBetaGamma(beta*gamma, theta);
     cs = GetPixelPositionResponse(ix, iz, x, z, acs);
-    UInt_t *cshape = new UInt_t[cs];
     SimuClusterShaper *csManager = new SimuClusterShaper(cs);
     csManager->FillClusterRandomly();
-    cshape = csManager->GetShape();
+    csManager->GetShape(cshape);
     nrows = csManager->GetNRows();
     ncols = csManager->GetNCols();
     cx = gRandom->Integer(ncols);
     cz = gRandom->Integer(nrows);
 
-    LOG(DEBUG)<<"_/_/_/_/_/_/_/_/_/_/_/_/_/_/"<<FairLogger::endl;
-    LOG(DEBUG)<<"_/_/_/ pALPIDE debug  _/_/_/"<<FairLogger::endl;
-    LOG(DEBUG)<<"_/_/_/_/_/_/_/_/_/_/_/_/_/_/"<<FairLogger::endl;
-    LOG(DEBUG)<<" Beta*Gamma: "<<beta*gamma<<FairLogger::endl;
-    LOG(DEBUG)<<"        ACS: "<<acs<<FairLogger::endl;
-    LOG(DEBUG)<<"         CS: "<< cs<<FairLogger::endl;
-    LOG(DEBUG)<<"      Shape: "<<csManager->ShapeSting(cs, cshape).c_str()<<FairLogger::endl;
-    LOG(DEBUG)<<"     Center: "<<cx<<' '<<cz<<FairLogger::endl;
-    LOG(DEBUG)<<"_/_/_/_/_/_/_/_/_/_/_/_/_/_/"<<FairLogger::endl;
+    LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
+    LOG(DEBUG) << "_/_/_/ pALPIDE debug  _/_/_/" << FairLogger::endl;
+    LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
+    LOG(DEBUG) << " Beta*Gamma: " << beta*gamma << FairLogger::endl;
+    LOG(DEBUG) << "        ACS: " << acs << FairLogger::endl;
+    LOG(DEBUG) << "         CS: " <<  cs << FairLogger::endl;
+    LOG(DEBUG) << "      Shape: " << ClusterShape::ShapeSting(cshape).c_str() << FairLogger::endl;
+    LOG(DEBUG) << "     Center: " << cx << ' ' << cz << FairLogger::endl;
+    LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
 
     for (Int_t ipix = 0; ipix < cs; ++ipix) {
       UInt_t r = (Int_t) cshape[ipix] / nrows;
@@ -288,7 +288,6 @@ void SimulationAlpide::GenerateCluster() {
       CreateDigi(nz, nx, idtrack, h);
     }
 
-    delete[] cshape;
     delete csManager;
   }
 }

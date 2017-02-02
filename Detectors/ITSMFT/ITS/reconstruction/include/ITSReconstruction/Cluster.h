@@ -54,10 +54,10 @@ class Cluster : public FairTimeStamp
     kMaskClUse = 0x7f
   };
 //
-#ifdef _ClusterTopology_
+//#ifdef _ClusterTopology_
   enum { kMaxPatternBits = 32 * 16, kMaxPatternBytes = kMaxPatternBits / 8, kSpanMask = 0x7fff,
          kTruncateMask = 0x8000 };
-#endif
+//#endif
  public:
   Cluster();
   Cluster(const Cluster& cluster);
@@ -178,7 +178,7 @@ class Cluster : public FairTimeStamp
   static SortMode_t sortModeIdTrkYZ() { return kSortIdTrkYZ; }
   static SortMode_t sortModeIdLocXZ() { return kSortIdLocXZ; }
 //
-#ifdef _ClusterTopology_
+//#ifdef _ClusterTopology_
   Int_t getPatternRowSpan() const { return mPatternNRows & kSpanMask; }
   Int_t getPatternColSpan() const { return mPatternNCols & kSpanMask; }
   Bool_t isPatternRowsTruncated() const { return mPatternNRows & kTruncateMask; }
@@ -198,7 +198,7 @@ class Cluster : public FairTimeStamp
   }
   Int_t getPatternMinRow() const { return mPatternMinRow; }
   Int_t getPatternMinCol() const { return mPatternMinCol; }
-#endif
+//#endif
   //
  protected:
   //
@@ -220,7 +220,7 @@ class Cluster : public FairTimeStamp
   static UInt_t sMode;        //!< general mode (sorting mode etc)
   static GeometryTGeo* sGeom; //!< pointer on the geometry data
 
-#ifdef _ClusterTopology_
+//#ifdef _ClusterTopology_
   UShort_t mPatternNRows;             ///< pattern span in rows
   UShort_t mPatternNCols;             ///< pattern span in columns
   UShort_t mPatternMinRow;            ///< pattern start row
@@ -228,9 +228,9 @@ class Cluster : public FairTimeStamp
   UChar_t mPattern[kMaxPatternBytes]; ///< cluster topology
   //
   ClassDef(Cluster, CLUSTER_VERSION + 1)
-#else
-  ClassDef(Cluster, CLUSTER_VERSION)
-#endif
+//#else
+//  ClassDef(Cluster, CLUSTER_VERSION)
+//#endif
 };
 //______________________________________________________
 inline void Cluster::decreaseClusterUsage()

@@ -30,18 +30,18 @@ Cluster::Cluster()
     mCharge(0),
     mRecoInfo(0),
     mNxNzN(0)
-#ifdef _ClusterTopology_
+//#ifdef _ClusterTopology_
     ,
     mPatternNRows(0),
     mPatternNCols(0),
     mPatternMinRow(0),
     mPatternMinCol(0)
-#endif
+//#endif
 {
 // default constructor
-#ifdef _ClusterTopology_
+//#ifdef _ClusterTopology_
   memset(mPattern, 0, kMaxPatternBytes * sizeof(UChar_t));
-#endif
+//#endif
 }
 
 //_____________________________________________________
@@ -64,18 +64,18 @@ Cluster::Cluster(const Cluster& cluster)
     mCharge(cluster.mCharge),
     mRecoInfo(cluster.mRecoInfo),
     mNxNzN(cluster.mNxNzN)
-#ifdef _ClusterTopology_
+//#ifdef _ClusterTopology_
     ,
     mPatternNRows(cluster.mPatternNRows),
     mPatternNCols(cluster.mPatternNCols),
     mPatternMinRow(cluster.mPatternMinRow),
     mPatternMinCol(cluster.mPatternMinCol)
-#endif
+//#endif
 {
 // copy constructor
-#ifdef _ClusterTopology_
+//#ifdef _ClusterTopology_
   memcpy(mPattern, cluster.mPattern, kMaxPatternBytes * sizeof(UChar_t));
-#endif
+//#endif
 }
 
 //______________________________________________________________________________
@@ -119,7 +119,7 @@ void Cluster::print(Option_t* option) const
     printf(" Spl");
   printf("\n");
 //
-#ifdef _ClusterTopology_
+//#ifdef _ClusterTopology_
   if (str.Contains("p")) { // print pattern
     int nr = getPatternRowSpan();
     int nc = getPatternColSpan();
@@ -136,11 +136,11 @@ void Cluster::print(Option_t* option) const
       printf("\n");
     }
   }
-#endif
+//#endif
   //
 }
 
-#ifdef _ClusterTopology_
+//#ifdef _ClusterTopology_
 //______________________________________________________________________________
 void Cluster::resetPattern()
 {
@@ -197,7 +197,7 @@ void Cluster::setPatternColSpan(UShort_t nc, Bool_t truncated)
     mPatternNCols |= kTruncateMask;
 }
 
-#endif
+//#endif
 
 //______________________________________________________________________________
 Bool_t Cluster::getGlobalXYZ(Float_t xyz[3]) const
