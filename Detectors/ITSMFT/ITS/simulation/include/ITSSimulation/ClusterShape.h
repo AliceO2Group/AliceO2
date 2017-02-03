@@ -22,6 +22,7 @@ namespace AliceO2 {
     public:
       ClusterShape();
       ClusterShape(UInt_t, UInt_t);
+      ClusterShape(UInt_t, UInt_t, const std::vector<UInt_t>&);
       virtual ~ClusterShape();
 
       // Set the number of rows
@@ -71,6 +72,27 @@ namespace AliceO2 {
           if (i < shape.size()-1) out << " ";
         }
         return out.str();
+      }
+
+      friend std::ostream &operator<<(std::ostream &out, const ClusterShape &v) {
+        UInt_t index = 0;
+        for (Int_t r = -1; r < (Int_t) v.fNrows; ++r) {
+          for (UInt_t c = 0; c < v.fNcols; ++c) {
+            if (r == -1) {
+              if (c == 0) out << "  ";
+              out << c;
+              if (c < v.fNcols-1) out << " ";
+            } else {
+              if (c == 0) out << r << " ";
+              index = r*v.fNcols + c;
+              if (find(begin(v.fShape), end(v.fShape), index) != end(v.fShape)) out << "X";
+              else out << " ";
+              if (c < v.fNcols-1) out << " ";
+            }
+          }
+          out << std::endl;
+        }
+        return out;
       }
 
     private:

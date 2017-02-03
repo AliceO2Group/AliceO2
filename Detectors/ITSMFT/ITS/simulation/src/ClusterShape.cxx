@@ -28,6 +28,14 @@ fNcols(Ncols) {
 
 
 //______________________________________________________________________
+ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols, const std::vector<UInt_t>& Shape) :
+fNrows(Nrows),
+fNcols(Ncols) {
+  fShape = Shape;
+}
+
+
+//______________________________________________________________________
 ClusterShape::~ClusterShape() {}
 
 
@@ -62,9 +70,9 @@ Long64_t ClusterShape::GetShapeID() const {
 
 //______________________________________________________________________
 Bool_t ClusterShape::HasElement(UInt_t value) const {
-  for (UInt_t i = 0; i < fShape.size(); ++i) {
-    if (fShape[i] > value) break;
-    if (fShape[i] == value) return true;
+  for (auto & el : fShape) {
+    if (el > value) break;
+    if (el == value) return true;
   }
   return false;
 }
