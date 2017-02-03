@@ -48,9 +48,11 @@ Bool_t ClusterShape::IsValidShape() {
 
 
 //______________________________________________________________________
-Long64_t ClusterShape::GetShapeID() {
+Long64_t ClusterShape::GetShapeID() const {
   // DJBX33X
   Long64_t id = 5381;
+  id = ((id << 5) + id) ^ fNrows;
+  id = ((id << 5) + id) ^ fNcols;
   for (UInt_t i = 0; i < fShape.size(); ++i) {
     id = ((id << 5) + id) ^ fShape[i];
   }
