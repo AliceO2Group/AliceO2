@@ -37,7 +37,7 @@ namespace AliceO2 {
       Bool_t IsValidShape();
 
       // Return an unique ID based on the cluster size and shape
-      Long64_t GetShapeID();
+      Long64_t GetShapeID() const;
 
       // Get the number of rows of the cluster
       inline UInt_t GetNRows() const {return fNrows;}

@@ -261,7 +261,7 @@ void SimulationAlpide::GenerateCluster() {
     if(!fSeg->localToDetector(x,z,ix,iz)) return;
 
     acs = ACSFromBetaGamma(beta*gamma, theta);
-    cs = GetPixelPositionResponse(ix, iz, x, z, acs);
+    cs = GetPixelPositionResponse(ix, iz, x, z, acs) * 2; ///// FIX ME
     SimuClusterShaper *csManager = new SimuClusterShaper(cs);
     csManager->FillClusterRandomly();
     csManager->GetShape(cshape);
