@@ -227,53 +227,45 @@ void SimulationAlpide::GenerateCluster() {
   Int_t nhits = hits->GetEntriesFast();
   if (nhits <= 0) return;
 
-  Float_t px, py, pz, x,  y,  z;
-  Double_t etot, beta, gamma, acs, theta;
-  Double_t tof, x0, x1, y0, y1, z0, z1, el, de;
-  UInt_t cs, nrows, ncols;
-  Int_t ix, iz, nx, nz, cx, cz, idtrack;
-
-  for (Int_t h=0; h < nhits; ++h) {
+  for (Int_t h = 0; h < nhits; ++h) {
+    Double_t x0, x1, y0, y1, z0, z1, tof, de;
     if (!fChip->LineSegmentLocal(h, x0, x1, y0, y1, z0, z1, tof, de)) continue;
 
-    // local coordinates
-    x = x0 + 0.5*x1;
-    y = y0 + 0.5*y1;
-    z = z0 + 0.5*z1;
+    // To local coordinates
+    Float_t x = x0 + 0.5*x1;
+    Float_t y = y0 + 0.5*y1;
+    Float_t z = z0 + 0.5*z1;
+
 
     Point *hit = static_cast<Point*>(hits->UncheckedAt(h));
-    px=hit->GetPx();
-    py=hit->GetPy();
-    pz=hit->GetPz();
-    etot = hit->GetTotalEnergy();
-    idtrack=hit->GetTrackID();
-
-    TLorentzVector momen;
-    std::vector<UInt_t> cshape;
-    momen.SetPxPyPzE(px, py, pz, etot);
-    beta = momen.Beta();
-    if (beta > 0.99999) beta=0.99999;
-    gamma = momen.Gamma();
-    if (beta*gamma < 0.1) return;
-    theta = ComputeIncidenceAngle(momen);
+    TLorentzVector trackP4;
+    trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
+    Double_t beta = std::min(0.99999, trackP4.Beta());
+    Double_t bgamma = beta / sqrt(1 - pow(beta, 2));
+    if (bgamma < 0.1) bgamma = 0.1;
+    Double_t theta = ComputeIncidenceAngle(trackP4);
 
     // Get the pixel ID
-    if(!fSeg->localToDetector(x,z,ix,iz)) return;
+    Int_t ix, iz;
+    if (!fSeg->localToDetector(x, z, ix, iz)) return;
 
-    acs = ACSFromBetaGamma(beta*gamma, theta);
-    cs = GetPixelPositionResponse(ix, iz, x, z, acs) * 2; ///// FIX ME
+    Double_t acs = ACSFromBetaGamma(bgamma, theta);
+    UInt_t cs = 6;//GetPixelPositionResponse(ix, iz, x, z, acs);
+
+    // Create the shape
+    std::vector<UInt_t> cshape;
     SimuClusterShaper *csManager = new SimuClusterShaper(cs);
     csManager->FillClusterRandomly();
     csManager->GetShape(cshape);
-    nrows = csManager->GetNRows();
-    ncols = csManager->GetNCols();
-    cx = gRandom->Integer(ncols);
-    cz = gRandom->Integer(nrows);
+    UInt_t nrows = csManager->GetNRows();
+    UInt_t ncols = csManager->GetNCols();
+    Int_t cx = gRandom->Integer(ncols);
+    Int_t cz = gRandom->Integer(nrows);
 
     LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
     LOG(DEBUG) << "_/_/_/ pALPIDE debug  _/_/_/" << FairLogger::endl;
     LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
-    LOG(DEBUG) << " Beta*Gamma: " << beta*gamma << FairLogger::endl;
+    LOG(DEBUG) << " Beta*Gamma: " << bgamma << FairLogger::endl;
     LOG(DEBUG) << "        ACS: " << acs << FairLogger::endl;
     LOG(DEBUG) << "         CS: " <<  cs << FairLogger::endl;
     LOG(DEBUG) << "      Shape: " << ClusterShape::ShapeSting(cshape).c_str() << FairLogger::endl;
@@ -281,13 +273,14 @@ void SimulationAlpide::GenerateCluster() {
     LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
 
     for (Int_t ipix = 0; ipix < cs; ++ipix) {
-      UInt_t r = (Int_t) cshape[ipix] / nrows;
-      UInt_t c = cshape[ipix] % nrows;
-      nx = ix - cx + c;
-      nz = iz - cz + r;
-      CreateDigi(nz, nx, idtrack, h);
+      Int_t r = (Int_t) cshape[ipix] / nrows;
+      Int_t c = (Int_t) cshape[ipix] % nrows;
+      Int_t nx = ix - cx + c;
+      Int_t nz = iz - cz + r;
+      CreateDigi(nz, nx, hit->GetTrackID(), h);
     }
 
+    delete hit;
     delete csManager;
   }
 }
