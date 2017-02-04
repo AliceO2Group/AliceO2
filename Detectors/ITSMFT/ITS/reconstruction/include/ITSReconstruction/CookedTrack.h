@@ -43,6 +43,7 @@ class CookedTrack : public TObject
   // Bool_t getPhiZat(Double_t r,Double_t &phi,Double_t &z) const;
 
   void setClusterIndex(Int_t layer, Int_t index);
+  void setExternalClusterIndex(Int_t layer, Int_t idx);
   void resetClusters();
 
   void setLabel(Int_t lab) { mLabel = lab; }
