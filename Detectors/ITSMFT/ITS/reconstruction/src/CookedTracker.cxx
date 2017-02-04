@@ -136,6 +136,21 @@ void CookedTracker::cookLabel(CookedTrack& t, Float_t wrong) const
   t.setLabel(lab);
 }
 
+//__________________________________________________________________________
+void CookedTracker::setExternalIndices(CookedTrack& t) const
+{
+  //--------------------------------------------------------------------
+  // Set the indices within the external cluster array.
+  //--------------------------------------------------------------------
+  Int_t noc = t.getNumberOfClusters();
+  for (Int_t i = 0; i < noc; i++) {
+    Int_t index = t.getClusterIndex(i);
+    Cluster *c = getCluster(index);
+    Int_t idx=c->GetUniqueID();
+    t.setExternalClusterIndex(i,idx);
+  }
+}
+
 Double_t CookedTracker::getBz() const
 {
   return mBz;
@@ -446,6 +461,7 @@ void CookedTracker::trackSeeds(std::vector<CookedTrack> &seeds)
         Int_t l = (index & 0xf0000000) >> 28, c = (index & 0x0fffffff);
         used[l][c]=true;
       }
+      setExternalIndices(best);
     }
     track = best;
   }
@@ -517,7 +533,7 @@ void CookedTracker::process(const TClonesArray& clusters, TClonesArray& tracks)
   for (Int_t t=0; t<mNumOfThreads; t++) {
     seedArray[t] = futures[t].get();
     nSeeds += seedArray[t].size();
-    for (auto track : seedArray[t]) {
+    for (auto &track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters) continue;
       Int_t label = track.getLabel();
       if (label >= 0) ngood++;
@@ -685,6 +701,7 @@ void CookedTracker::loadClusters(const TClonesArray& clusters)
 
   for (Int_t i = 0; i < numOfClusters; i++) {
     Cluster* c = (Cluster*)clusters.UncheckedAt(i);
+    c->SetUniqueID(i);
     c->goToFrameTrk();
 
     Int_t layer = c->getLayer();

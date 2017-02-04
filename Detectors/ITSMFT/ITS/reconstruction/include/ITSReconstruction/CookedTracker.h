@@ -47,6 +47,7 @@ class CookedTracker
   Double_t getSigmaY() const { return mSigmaY; }
   Double_t getSigmaZ() const { return mSigmaZ; }
   void cookLabel(CookedTrack& t, Float_t wrong) const;
+  void setExternalIndices(CookedTrack& t) const;
   Double_t getBz() const;
   void setBz(Double_t bz) { mBz = bz; }
 

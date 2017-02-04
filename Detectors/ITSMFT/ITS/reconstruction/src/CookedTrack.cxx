@@ -120,6 +120,14 @@ void CookedTrack::setClusterIndex(Int_t l, Int_t i)
   mIndex.push_back(idx);
 }
 
+void CookedTrack::setExternalClusterIndex(Int_t layer, Int_t idx)
+{
+  //--------------------------------------------------------------------
+  // Set the cluster index within an external cluster array 
+  //--------------------------------------------------------------------
+  mIndex.at(layer)=idx;
+}
+
 Double_t CookedTrack::getPredictedChi2(const Cluster* c) const
 {
   //-----------------------------------------------------------------
