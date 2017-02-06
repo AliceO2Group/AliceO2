@@ -33,7 +33,7 @@ class SinkTMessage : public TMessage
 FileSink::FileSink()
   : FairMQDevice()
   , fInputChannelName("data-in")
-  , fAckChannelName("ack")
+  , fAckChannelName("")
   , fFileName()
   , fTreeName()
  
@@ -82,6 +82,7 @@ void FileSink::Init()
   fClassNames = fConfig->GetValue<std::vector<std::string>>("class-name");
   fBranchNames = fConfig->GetValue<std::vector<std::string>>("branch-name");
   fInputChannelName = fConfig->GetValue<std::string>("in-channel");
+  fAckChannelName = fConfig->GetValue<std::string>("ack-channel");
 
   LOG(INFO) << "FileSink::Init >>>>> SHOULD CREATE THE FILE AND TREE";
   
