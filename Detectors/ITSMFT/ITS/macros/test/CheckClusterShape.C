@@ -142,7 +142,7 @@ private:
 
 //////////////////////////////////////////
 //////////////////////////////////////////
-void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F *freqDist) {
+void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F *freqDist, TH1F *cSizeDist) {
   cout << ">>> Event " << nev << endl;
   Float_t x,z;
   Long64_t shapeId;
@@ -156,6 +156,7 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F *freq
       if (pv.size() == 0) continue;
       ClusterShape *cs = Cluster::PixelsToClusterShape(pv);
       shapeId = cs->GetShapeID();
+      cSizeDist->Fill(cs->GetNFiredPixels());
       cout << endl << shapeId << ":" << endl << *cs << endl << endl;
 
       if (csFrequency.find(shapeId) == csFrequency.end()) csFrequency[shapeId] = 0;
@@ -197,16 +198,14 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F *freq
 
 
 void CheckClusterShape() {
-  TFile *f=TFile::Open("Shapes.root","recreate");
-
   // Geometry
-  TFile *file = TFile::Open("AliceO2_TGeant3.params.root");
+  TFile *file = TFile::Open("AliceO2_TGeant3.params_10.root");
   gFile->Get("FairGeoParSet");
   gman = new GeometryTGeo(kTRUE);
   seg = (SegmentationPixel*) gman->getSegmentationById(0);
 
   // Digits
-  TFile *file1 = TFile::Open("AliceO2_TGeant3.digi.root");
+  TFile *file1 = TFile::Open("AliceO2_TGeant3.digi_10_event.root");
   TTree *digTree=(TTree*)gFile->Get("cbmsim");
   TClonesArray digArr("AliceO2::ITS::Digit"), *pdigArr(&digArr);
   digTree->SetBranchAddress("ITSDigit",&pdigArr);
@@ -214,6 +213,9 @@ void CheckClusterShape() {
   TH1F *freqDist = new TH1F("freqDist", "", 300, 0, 300);
   //freqDist->GetXaxis()->SetTitle("Shape ID");
   //freqDist->GetYaxis()->SetTitle("Frequency");
+
+  TH1F *cSizeDist = new TH1F("cSizeDist", "", 19, 1, 20);
+  cSizeDist->GetXaxis()->SetTitle("Cluster Size");
 
   Int_t nev=digTree->GetEntries();
   while (nev--) {
@@ -234,13 +236,12 @@ void CheckClusterShape() {
       }
       clusters[d->getLabel(0)].AddPixel(layer, pixels);
     }
-    AnalyzeClusters(nev, clusters, freqDist);
+    AnalyzeClusters(nev, clusters, freqDist, cSizeDist);
   }
 
   freqDist->GetXaxis()->SetLabelSize(0.02);
   freqDist->Draw("HIST");
 
-
-  f->Write();
-  f->Close();
+  new TCanvas;
+  cSizeDist->Draw("HIST");
 }
