@@ -81,7 +81,7 @@ and then:
 
 ./"execdir"/mft-reco-merger --transport zeromq --id merger1 --mq-config reco_merger.json
 
-./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco.json --file-name tracks.root --class-name "TClonesArray(AliceO2::MFT::Track)" --branch-name MFTTracks --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
+./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco_merge.json --file-name tracks.root --class-name "TClonesArray(AliceO2::MFT::Track)" --branch-name MFTTracks --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
 ```
 
 
