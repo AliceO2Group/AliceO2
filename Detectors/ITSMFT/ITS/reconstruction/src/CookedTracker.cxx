@@ -749,19 +749,13 @@ CookedTracker::Layer::Layer() : mR(0)
   //--------------------------------------------------------------------
 }
 
-inline bool compareClusters(const Cluster *c1, const Cluster *c2)
-{
-return (c1->getZ() < c2->getZ());
-}
-
 void CookedTracker::Layer::init()
 {
   //--------------------------------------------------------------------
   // Sort clusters and cache their reference plane info in a thread
   //--------------------------------------------------------------------
-  std::sort(begin(mClusters), end(mClusters),
-  //	    [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
-  compareClusters
+  std::sort(std::begin(mClusters), std::end(mClusters),
+     [](const Cluster *c1, const Cluster *c2){ return (c1->getZ() < c2->getZ()); }
   );
 
   Double_t r = 0.;
@@ -810,21 +804,15 @@ Bool_t CookedTracker::Layer::insertCluster(Cluster* c)
   return kTRUE;
 }
 
-inline bool compareClusterZ(Double_t zc, const Cluster *c)
-{
-return (zc < c->getZ());
-}
-
 Int_t CookedTracker::Layer::findClusterIndex(Double_t z) const
 {
   //--------------------------------------------------------------------
   // This function returns the index of the first cluster with its fZ >= "z".
   //--------------------------------------------------------------------
-  auto found = std::upper_bound(begin(mClusters), end(mClusters), z,
-  //  [](Double_t zc, const Cluster *c){ return (zc < c->getZ()); }
-  compareClusterZ
+  auto found = std::upper_bound(std::begin(mClusters), std::end(mClusters), z,
+    [](Double_t zc, const Cluster *c){ return (zc < c->getZ()); }
   );
-  return found-begin(mClusters);
+  return found - std::begin(mClusters);
 }
 
 void
@@ -852,13 +840,10 @@ CookedTracker::Layer::selectClusters(std::vector<Int_t>&selec, Float_t phi, Floa
     
     if (s==sector) break;
     sector=s;
-    
-    auto imin = std::upper_bound(begin(mSectors[s]), end(mSectors[s]), zMin,
-      [this](Double_t zc, Int_t ic){ return (zc < mClusters[ic]->getZ()); }
-    ); 
-    auto imax = std::upper_bound(imin, end(mSectors[s]), zMax,
-      [this](Double_t zc, Int_t ic){ return (zc < mClusters[ic]->getZ()); }
-    );
+
+    auto cmp = [this](Double_t zc, Int_t ic){ return (zc < mClusters[ic]->getZ()); };
+    auto imin = std::upper_bound(std::begin(mSectors[s]), std::end(mSectors[s]), zMin, cmp); 
+    auto imax = std::upper_bound(imin, std::end(mSectors[s]), zMax, cmp);
     for ( ; imin != imax; imin++) {
       Int_t i = *imin; 
       Float_t cphi = mPhi[i];
