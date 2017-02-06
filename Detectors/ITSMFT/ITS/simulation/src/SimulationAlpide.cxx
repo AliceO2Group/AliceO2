@@ -250,7 +250,7 @@ void SimulationAlpide::GenerateCluster() {
     if (!fSeg->localToDetector(x, z, ix, iz)) return;
 
     Double_t acs = ACSFromBetaGamma(bgamma, theta);
-    UInt_t cs = 6;//GetPixelPositionResponse(ix, iz, x, z, acs);
+    UInt_t cs = GetPixelPositionResponse(ix, iz, x, z, acs);
 
     // Create the shape
     std::vector<UInt_t> cshape;
