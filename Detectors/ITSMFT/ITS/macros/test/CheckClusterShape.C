@@ -20,6 +20,25 @@ using namespace AliceO2::ITS;
 GeometryTGeo *gman;
 SegmentationPixel *seg;
 
+
+//////////////////////////////////////////
+//////////////////////////////////////////
+template<typename A, typename B>
+std::pair<B,A> flip_pair(const std::pair<A,B> &p) {
+    return std::pair<B,A>(p.second, p.first);
+}
+
+template<typename A, typename B>
+std::multimap<B,A> flip_map(const std::map<A,B> &src) {
+    std::multimap<B,A> dst;
+    std::transform(src.begin(), src.end(), std::inserter(dst, dst.begin()),
+                   flip_pair<A,B>);
+    return dst;
+}
+//////////////////////////////////////////
+//////////////////////////////////////////
+
+
 //////////////////////////////////////////
 //////////////////////////////////////////
 class Pixel {
@@ -79,8 +98,18 @@ public:
     return m_pixels[l];
   }
 
-  static ClusterShape* PixelsToClusterShape(const std::vector<Pixel>& v) {
+  static ClusterShape* PixelsToClusterShape(std::vector<Pixel> v) {
     if (v.size() == 0) return new ClusterShape();
+
+    // To remove the multiple hits problem
+    Pixel p0 = v[0];
+    for (auto p = v.begin()+1; p != v.end(); ++p) {
+      if (fabs(p0.GetRow() - p->GetRow()) > v.size() || fabs(p0.GetCol() - p->GetCol()) > v.size()) {
+        v.erase(p);
+        p--;
+      }
+    }
+
     vector<UInt_t> r;
     vector<UInt_t> c;
     UInt_t min_r = UINT_MAX, min_c = UINT_MAX;
@@ -103,6 +132,7 @@ public:
 
     return new ClusterShape(rows, cols, pindex);
   }
+
 private:
   map<UInt_t, vector<Pixel> > m_pixels;
 };
@@ -112,18 +142,24 @@ private:
 
 //////////////////////////////////////////
 //////////////////////////////////////////
-void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters) {
+void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F *freqDist) {
   cout << ">>> Event " << nev << endl;
   Float_t x,z;
+  Long64_t shapeId;
+  map<Long64_t, Int_t> csFrequency;
   for (auto const& it : clusters) {
     Cluster cls = it.second;
-    cout << "id: " << it.first << " Ndigit: ";
+    //cout << "id: " << it.first << " Ndigit: ";
     for (auto i = 0; i < 7; ++i) {
-      cout << cls.GetNClusters(i);
+      //cout << cls.GetNClusters(i);
       vector<Pixel> pv = cls.GetPixels(i);
+      if (pv.size() == 0) continue;
       ClusterShape *cs = Cluster::PixelsToClusterShape(pv);
+      shapeId = cs->GetShapeID();
+      cout << endl << shapeId << ":" << endl << *cs << endl << endl;
 
-      cout << endl << endl << *cs << endl << endl;
+      if (csFrequency.find(shapeId) == csFrequency.end()) csFrequency[shapeId] = 0;
+      csFrequency[shapeId] += 1;
 
       // if (cls.GetNClusters(i) > 0) {
       //   cout << " [";
@@ -137,11 +173,24 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters) {
       //   cout << "]";
       // }
 
-      if (i < 6) cout << ", ";
-      else cout << endl;
+      //if (i < 6) cout << ", ";
+      //else cout << endl;
     }
-}
+  }
   cout << ">>>>>>>>>>>>>>>>>" << endl << endl;
+
+
+  int i = 0;
+  std::multimap<Int_t, Long64_t> fmap = flip_map(csFrequency);
+  for (auto e = fmap.rbegin(); e != fmap.rend(); ++e) {
+    freqDist->Fill(i, e->first);
+    string s = to_string(e->second);
+    freqDist->GetXaxis()->SetBinLabel(i+1, s.c_str());
+    i++;
+  }
+  freqDist->GetXaxis()->SetRangeUser(0, fmap.size());
+
+
 }
 //////////////////////////////////////////
 //////////////////////////////////////////
@@ -162,6 +211,10 @@ void CheckClusterShape() {
   TClonesArray digArr("AliceO2::ITS::Digit"), *pdigArr(&digArr);
   digTree->SetBranchAddress("ITSDigit",&pdigArr);
 
+  TH1F *freqDist = new TH1F("freqDist", "", 300, 0, 300);
+  //freqDist->GetXaxis()->SetTitle("Shape ID");
+  //freqDist->GetYaxis()->SetTitle("Frequency");
+
   Int_t nev=digTree->GetEntries();
   while (nev--) {
     map<UInt_t, Cluster> clusters;
@@ -181,8 +234,12 @@ void CheckClusterShape() {
       }
       clusters[d->getLabel(0)].AddPixel(layer, pixels);
     }
-    AnalyzeClusters(nev, clusters);
+    AnalyzeClusters(nev, clusters, freqDist);
   }
+
+  freqDist->GetXaxis()->SetLabelSize(0.02);
+  freqDist->Draw("HIST");
+
 
   f->Write();
   f->Close();
