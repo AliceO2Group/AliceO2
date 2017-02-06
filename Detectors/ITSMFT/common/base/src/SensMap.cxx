@@ -1,13 +1,12 @@
 /// \file SensMap.cxx
-/// \brief Implementation of hte ITS sensor map
+/// \brief Implementation of hte ITSMFT sensor map
 
 //***********************************************************************
 //
 // It consist of a TClonesArray of
 // SensMapItem objects
-// This array can be accessed via 2 indexed
-// it is used at digitization level by
-// all the 3 ITS subdetectors
+// This array can be accessed via 2 indexes
+// it is used at digitization level
 //
 //
 // The items should be added to the map like this:
@@ -18,12 +17,12 @@
 //
 // ***********************************************************************
 
-#include "ITSBase/SensMap.h"
+#include "ITSMFTBase/SensMap.h"
 #include "FairLogger.h"
 
-ClassImp(AliceO2::ITS::SensMap)
+ClassImp(AliceO2::ITSMFT::SensMap)
 
-  using namespace AliceO2::ITS;
+  using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
 SensMap::SensMap() : mDimCol(0), mDimRow(0), mDimCycle(0), mItems(0), mBTree(0)
