@@ -55,9 +55,9 @@ const UShort_t MagneticField::sPolarityConvention = MagneticField::kConvLHC;
 MagneticField::MagneticField()
   : FairField(),
     mMeasuredMap(nullptr),
-    mMapType(k5kG),
+    mMapType(MagFieldParam::k5kG),
     mSolenoid(0),
-    mBeamType(kNoBeamField),
+    mBeamType(MagFieldParam::kNoBeamField),
     mBeamEnergy(0),
     mDefaultIntegration(0),
     mPrecisionInteg(0),
@@ -77,8 +77,8 @@ MagneticField::MagneticField()
 }
 
 MagneticField::MagneticField(const char *name, const char *title, Double_t factorSol, Double_t factorDip,
-                             BMap_t maptype, BeamType_t bt, Double_t be, Int_t integ, Double_t fmax,
-                             const std::string path)
+                             MagFieldParam::BMap_t maptype, MagFieldParam::BeamType_t bt,
+			     Double_t be, Int_t integ, Double_t fmax,const std::string path)
   : FairField(name,title),
     mMeasuredMap(nullptr),
     mMapType(maptype),
@@ -140,10 +140,10 @@ void MagneticField::CreateField()
   }
   if (mDefaultIntegration == 0) mPrecisionInteg = 0;
 
-  if (mBeamEnergy <= 0 && mBeamType != kNoBeamField) {
-    if (mBeamType == kBeamTypepp) mBeamEnergy = 7000.; // max proton energy
-    else if (mBeamType == kBeamTypeAA) mBeamEnergy = 2760; // max PbPb energy
-    else if (mBeamType == kBeamTypepA || mBeamType == kBeamTypeAp) 
+  if (mBeamEnergy <= 0 && mBeamType != MagFieldParam::kNoBeamField) {
+    if (mBeamType == MagFieldParam::kBeamTypepp) mBeamEnergy = 7000.; // max proton energy
+    else if (mBeamType == MagFieldParam::kBeamTypeAA) mBeamEnergy = 2760; // max PbPb energy
+    else if (mBeamType == MagFieldParam::kBeamTypepA || mBeamType == MagFieldParam::kBeamTypeAp) 
       mBeamEnergy = 2760; // same rigitiy max PbPb energy
     //
     FairLogger::GetLogger()->Info(MESSAGE_ORIGIN, "Maximim possible beam energy for requested beam is assumed");
@@ -151,11 +151,11 @@ void MagneticField::CreateField()
 
   const char *parname = 0;
 
-  if (mMapType == k2kG) {
+  if (mMapType == MagFieldParam::k2kG) {
     parname = mDipoleOnOffFlag ? "Sol12_Dip0_Hole" : "Sol12_Dip6_Hole";
-  } else if (mMapType == k5kG) {
+  } else if (mMapType == MagFieldParam::k5kG) {
     parname = mDipoleOnOffFlag ? "Sol30_Dip0_Hole" : "Sol30_Dip6_Hole";
-  } else if (mMapType == k5kGUniform) {
+  } else if (mMapType == MagFieldParam::k5kGUniform) {
     parname = "Sol30_Dip6_Uniform";
   } else {
     mLogger->Fatal(MESSAGE_ORIGIN, "Unknown field identifier %d is requested\n", mMapType);
@@ -276,16 +276,16 @@ MagneticField &MagneticField::operator=(const MagneticField &src)
   return *this;
 }
 
-void MagneticField::initializeMachineField(BeamType_t btype, Double_t benergy)
+void MagneticField::initializeMachineField(MagFieldParam::BeamType_t btype, Double_t benergy)
 {
-  if (btype == kNoBeamField) {
+  if (btype == MagFieldParam::kNoBeamField) {
     mQuadrupoleGradient = mDipoleField = mCompensatorField2C = mCompensatorField1A = mCompensatorField2A = 0.;
     return;
   }
 
   double rigScale = benergy / 7000.; // scale according to ratio of E/Enominal
   // for ions assume PbPb (with energy provided per nucleon) and account for A/Z
-  if (btype == kBeamTypeAA /* || btype==kBeamTypepA || btype==kBeamTypeAp */) {
+  if (btype == MagFieldParam::kBeamTypeAA /* || btype==kBeamTypepA || btype==kBeamTypeAp */) {
     rigScale *= 208. / 82.;
   }
   // Attention: in p-Pb the energy recorded in the GRP is the PROTON energy, no rigidity
@@ -483,7 +483,7 @@ MagneticField *MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
   const Float_t tolerance = 0.03; // relative current tolerance
   const Float_t zero = 77.f;       // "zero" current (A)
 
-  BMap_t map = k5kG;
+  MagFieldParam::BMap_t map = MagFieldParam::k5kG;
   double sclL3, sclDip;
 
   Float_t l3Pol = l3Cur > 0 ? 1 : -1;
@@ -503,23 +503,23 @@ MagneticField *MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
   if (uniform) {
     // special treatment of special MC with uniform mag field (normalized to 0.5 T)
     // no check for scaling/polarities are done
-    map = k5kGUniform;
+    map = MagFieldParam::k5kGUniform;
     sclL3 = l3Cur / l3NominalCurrent1;
   } else {
     if (TMath::Abs((sclL3 = l3Cur / l3NominalCurrent1) - 1.) < tolerance) {
-      map = k5kG;
+      map = MagFieldParam::k5kG;
     } else if (TMath::Abs((sclL3 = l3Cur / l3NominalCurrent2) - 1.) < tolerance) {
-      map = k2kG;
+      map = MagFieldParam::k2kG;
     } else if (l3Cur <= zero && diCur <= zero) {
       sclL3 = 0;
       sclDip = 0;
-      map = k5kGUniform;
+      map = MagFieldParam::k5kGUniform;
     } else {
       FairLogger::GetLogger()->Fatal(MESSAGE_ORIGIN, "Wrong L3 current (%f A)!", l3Cur);
     }
   }
 
-  if (sclDip != 0 && map != k5kGUniform) {
+  if (sclDip != 0 && map != MagFieldParam::k5kGUniform) {
     if ((l3Cur <= zero) ||
         ((convention == kConvLHC && l3Pol != diPol) || (convention == kConvDCS2008 && l3Pol == diPol))) {
       FairLogger::GetLogger()->Fatal(MESSAGE_ORIGIN,
@@ -535,7 +535,7 @@ MagneticField *MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
     sclDip = -sclDip;
   }
 
-  BeamType_t btype = kNoBeamField;
+  MagFieldParam::BeamType_t btype = MagFieldParam::kNoBeamField;
   TString btypestr = beamtype;
   btypestr.ToLower();
   TPRegexp protonBeam("(proton|p)\\s*-?\\s*\\1");
@@ -543,13 +543,13 @@ MagneticField *MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
   TPRegexp protonionBeam("(proton|p)\\s*-?\\s*(lead|pb|ion|a|A)");
   TPRegexp ionprotonBeam("(lead|pb|ion|a|A)\\s*-?\\s*(proton|p)");
   if (btypestr.Contains(ionBeam)) {
-    btype = kBeamTypeAA;
+    btype = MagFieldParam::kBeamTypeAA;
   } else if (btypestr.Contains(protonBeam)) {
-    btype = kBeamTypepp;
+    btype = MagFieldParam::kBeamTypepp;
   } else if (btypestr.Contains(protonionBeam)) {
-    btype = kBeamTypepA;
+    btype = MagFieldParam::kBeamTypepA;
   } else if (btypestr.Contains(ionprotonBeam)) {
-    btype = kBeamTypeAp;
+    btype = MagFieldParam::kBeamTypeAp;
   } else {
     FairLogger::GetLogger()->Info(MESSAGE_ORIGIN, "Assume no LHC magnet field for the beam type %s,", beamtype);
   }
@@ -573,15 +573,15 @@ const char *MagneticField::getBeamTypeText() const
   const char *beamPPb = "p-A";
   const char *beamPbP = "A-p";
   switch (mBeamType) {
-    case kBeamTypepp:
+    case MagFieldParam::kBeamTypepp:
       return beamPP;
-    case kBeamTypeAA:
+    case MagFieldParam::kBeamTypeAA:
       return beamPbPb;
-    case kBeamTypepA:
+    case MagFieldParam::kBeamTypepA:
       return beamPPb;
-    case kBeamTypeAp:
+    case MagFieldParam::kBeamTypeAp:
       return beamPbP;
-    case kNoBeamField:
+    case MagFieldParam::kNoBeamField:
     default:
       return beamNA;
   }
@@ -593,8 +593,9 @@ void MagneticField::Print(Option_t *opt) const
   opts.ToLower();
   mLogger->Info(MESSAGE_ORIGIN, "%s:%s", GetName(), GetTitle());
   mLogger->Info(MESSAGE_ORIGIN, "Solenoid (%+.2f*)%.0f kG, Dipole %s (%+.2f) %s", getFactorSolenoid(),
-                (mMapType == k5kG || mMapType == k5kGUniform) ? 5. : 2., mDipoleOnOffFlag ? "OFF" : "ON",
-                getFactorDipole(), mMapType == k5kGUniform ? " |Constant Field!" : "");
+                (mMapType == MagFieldParam::k5kG || mMapType == MagFieldParam::k5kGUniform) ? 5. : 2.,
+		mDipoleOnOffFlag ? "OFF" : "ON",
+                getFactorDipole(), mMapType == MagFieldParam::k5kGUniform ? " |Constant Field!" : "");
   if (opts.Contains("a")) {
     mLogger->Info(MESSAGE_ORIGIN, "Machine B fields for %s beam (%.0f GeV): QGrad: %.4f Dipole: %.4f",
                   getBeamTypeText(), mBeamEnergy, mQuadrupoleGradient, mDipoleField);
@@ -612,77 +613,3 @@ void MagneticField::FillParContainer()
   par->setChanged();
 }
 
-
-//========================================
-ClassImp(MagFieldParam);
-
-MagFieldParam::MagFieldParam(const char* name, const char* title, const char* context)
-  :FairParGenericSet(name, title, context)
-  ,mMapType(MagneticField::k5kG)
-  ,mBeamType(MagneticField::kNoBeamField)
-  ,mDefaultIntegration(0)
-  ,mFactorSol(0.)
-  ,mFactorDip(0.)
-  ,mBeamEnergy(0.)
-  ,mMaxField(0.)
-  ,mMapPath()
-{
-  /// create param for alice mag. field
-}
-
-void MagFieldParam::SetParam(const MagneticField* field)
-{
-  /// fill parameters from the initialized field
-  //  SetName(field->GetName()); ? is this needed
-  //  SetTitle(field->GetTitle());
-  mMapType = field->getMapType();
-  mBeamType = field->getBeamType();
-  mDefaultIntegration = field->Integral();
-  mFactorSol = field->getFactorSolenoid();
-  mFactorDip = field->getFactorDipole();
-  mBeamEnergy = field->getBeamEnergy();
-  mMaxField = field->Max();
-  mMapPath = field->getDataFileName();
-  //
-}
-
-void MagFieldParam::putParams(FairParamList* list)
-{
-  /// store parameters in the list
-  if (!list) return;
-  list->add("Map  Type  ID", int(mMapType));
-  list->add("Beam Type  ID", int(mBeamType));
-  list->add("Integral Type", mDefaultIntegration);
-  list->add("Fact.Solenoid", mFactorSol);
-  list->add("Fact.Dipole  ", mFactorDip);
-  list->add("Beam Energy  ", mBeamEnergy);
-  list->add("Max. Field   ", mMaxField);
-  list->add("Path to map  ", mMapPath.Data());
-  //
-}
-
-Bool_t MagFieldParam::getParams(FairParamList* list)
-{
-  /// retried parameters
-  int int2enum=0;
-  if (!list->fill("Map  Type  ID", &int2enum)) return kFALSE;
-  mMapType = static_cast<MagneticField::BMap_t>(int2enum);
-  if (!list->fill("Beam Type  ID", &int2enum)) return kFALSE;
-  mBeamType = static_cast<MagneticField::BeamType_t>(int2enum);
-  //
-  if (!list->fill("Integral Type", &mDefaultIntegration)) return kFALSE;
-  if (!list->fill("Fact.Solenoid", &mFactorSol)) return kFALSE;
-  if (!list->fill("Fact.Dipole  ", &mFactorDip)) return kFALSE;
-  if (!list->fill("Beam Energy  ", &mBeamEnergy)) return kFALSE;
-  if (!list->fill("Max. Field   ", &mMaxField)) return kFALSE;
-  FairParamObj* parpath = list->find("Path to map  ");
-  if (!parpath) return kFALSE;
-  int lgt = parpath->getLength();
-  // RS: is there a bug in FairParamList::fill(const Text_t* name,Text_t* value,const Int_t length)?
-  // I think the "if (l<length-1)" should be "if (l<length)"
-  char cbuff[lgt+2];
-  memset(cbuff,0,sizeof(char)*(lgt+2));
-  if (!list->fill("Path to map  ", cbuff, lgt+2)) return kFALSE;
-  mMapPath = cbuff;
-  return kTRUE;
-}

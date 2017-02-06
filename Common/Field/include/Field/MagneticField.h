@@ -6,7 +6,7 @@
 #define ALICEO2_FIELD_MAGNETICFIELD_H_
 
 #include "FairField.h"         // for FairField
-#include "FairParGenericSet.h"
+#include "Field/MagFieldParam.h"
 #include "Field/MagneticWrapperChebyshev.h" // for MagneticWrapperChebyshev
 #include "TSystem.h"
 #include "Rtypes.h"            // for Double_t, Char_t, Int_t, Float_t, etc
@@ -20,7 +20,6 @@ namespace AliceO2 { namespace Field { class MagneticWrapperChebyshev; }}  // lin
 namespace AliceO2 {
 namespace Field {
 
-class MagFieldParam;
 class MagneticWrapperChebyshev;
  
 /// Interface between the TVirtualMagField and MagneticWrapperChebyshev: wrapper to the set of magnetic field data +
@@ -30,14 +29,6 @@ class MagneticField : public FairField
 {
 
   public:
-    enum BMap_t
-    {
-        k2kG, k5kG, k5kGUniform
-    };
-    enum BeamType_t
-    {
-        kNoBeamField, kBeamTypepp, kBeamTypeAA, kBeamTypepA, kBeamTypeAp
-    };
     enum PolarityConvention_t
     {
         kConvLHC, kConvDCS2008, kConvMap2005
@@ -54,7 +45,9 @@ class MagneticField : public FairField
     /// Impose scaling of parameterized L3 field by factorSol and of dipole by factorDip.
     /// The "be" is the energy of the beam in GeV/nucleon
     MagneticField(const char *name, const char *title, Double_t factorSol = 1., Double_t factorDip = 1.,
-                  BMap_t maptype = k5kG, BeamType_t btype = kBeamTypepp, Double_t benergy = -1, Int_t integ = 2,
+                  MagFieldParam::BMap_t maptype = MagFieldParam::k5kG,
+		  MagFieldParam::BeamType_t btype = MagFieldParam::kBeamTypepp,
+		  Double_t benergy = -1, Int_t integ = 2,
                   Double_t fmax = 15, const std::string path = std::string(gSystem->Getenv("VMCWORKDIR")) +
                                                                std::string("/Common/maps/mfchebKGI_sym.root")
     );
@@ -140,7 +133,7 @@ class MagneticField : public FairField
 
     Double_t getCurrentSolenoid() const
     {
-      return getFactorSolenoid() * (mMapType == k2kG ? 12000 : 30000);
+      return getFactorSolenoid() * (mMapType == MagFieldParam::k2kG ? 12000 : 30000);
     }
 
     Double_t getCurrentDipole() const
@@ -150,17 +143,17 @@ class MagneticField : public FairField
 
     Bool_t IsUniform() const
     {
-      return mMapType == k5kGUniform;
+      return mMapType == MagFieldParam::k5kGUniform;
     }
 
     void MachineField(const Double_t *x, Double_t *b) const;
 
-    BMap_t getMapType() const
+    MagFieldParam::BMap_t getMapType() const
     {
       return mMapType;
     }
 
-    BeamType_t getBeamType() const
+    MagFieldParam::BeamType_t getBeamType() const
     {
       return mBeamType;
     }
@@ -237,9 +230,9 @@ class MagneticField : public FairField
 
   protected:
     // not supposed to be changed during the run, set only at the initialization via constructor
-    void initializeMachineField(BeamType_t btype, Double_t benergy);
+    void initializeMachineField(MagFieldParam::BeamType_t btype, Double_t benergy);
 
-    void setBeamType(BeamType_t type)
+    void setBeamType(MagFieldParam::BeamType_t type)
     {
       mBeamType = type;
     }
@@ -251,9 +244,9 @@ class MagneticField : public FairField
 
   protected:
     std::unique_ptr<MagneticWrapperChebyshev> mMeasuredMap; //! Measured part of the field map
-    BMap_t mMapType;                        ///< field map type
+    MagFieldParam::BMap_t mMapType;         ///< field map type
     Double_t mSolenoid;                     ///< Solenoid field setting
-    BeamType_t mBeamType;                   ///< Beam type: A-A (mBeamType=0) or p-p (mBeamType=1)
+    MagFieldParam::BeamType_t mBeamType;    ///< Beam type: A-A (mBeamType=0) or p-p (mBeamType=1)
     Double_t mBeamEnergy;                   ///< Beam energy in GeV
 
     Int_t mDefaultIntegration;             ///< Default integration method as indicated in Geant
@@ -282,39 +275,7 @@ class MagneticField : public FairField
 
     
     ClassDef(AliceO2::Field::MagneticField,
-    2) // Class for all Alice MagField wrapper for measured data + Tosca parameterization
-};
-
-class MagFieldParam : public FairParGenericSet
-{
-  public:
-    MagFieldParam(const char* name="", const char* title="", const char* context="");
-
-    void SetParam(const MagneticField* field);
-    
-    MagneticField::BMap_t     GetMapType()   const {return mMapType;}
-    MagneticField::BeamType_t GetBeamType()  const {return mBeamType;}
-    Int_t                     GetDefInt()    const {return mDefaultIntegration;}
-    Double_t                  GetFactorSol() const {return mFactorSol;}
-    Double_t                  GetFactorDip() const {return mFactorDip;}
-    Double_t                  GetBeamEnergy() const {return mBeamEnergy;}
-    Double_t                  GetMaxField()   const {return mMaxField;}
-    const char*               GetMapPath()    const {return mMapPath.Data();}
-
-    virtual void   putParams(FairParamList* list);
-    virtual Bool_t getParams(FairParamList* list);
-    
-  protected:
-    MagneticField::BMap_t     mMapType;  ///< map type ID
-    MagneticField::BeamType_t mBeamType; ///< beam type ID
-    Int_t    mDefaultIntegration;        ///< field integration type for MC
-    Double_t mFactorSol;                 ///< solenoid current factor
-    Double_t mFactorDip;                 ///< dipole current factor
-    Double_t mBeamEnergy;                ///< beam energy
-    Double_t mMaxField;                  ///< max field for geant
-    TString  mMapPath;                   ///< path to map file
-    
-    ClassDef(MagFieldParam,1)
+    3) // Class for all Alice MagField wrapper for measured data + Tosca parameterization
 };
 }
 }
