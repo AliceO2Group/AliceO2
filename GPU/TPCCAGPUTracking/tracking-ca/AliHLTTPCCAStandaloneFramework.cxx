@@ -21,6 +21,7 @@
 #include "AliHLTTPCCATrackParam.h"
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCCAClusterData.h"
+#include "AliHLTTPCGeometry.h"
 #include "TStopwatch.h"
 
 #ifdef HLTCA_STANDALONE
@@ -119,11 +120,6 @@ void AliHLTTPCCAStandaloneFramework::FinishDataReading()
   }
   outfile.close();
 
-  sprintf(filename, "events/settings.%d.dump", event_number);
-  outfile.open(filename);
-  WriteSettings(outfile);
-  outfile.close();
-
   event_number++;*/
   
   /*std::ifstream infile(filename, std::ifstream::binary);
@@ -180,7 +176,6 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
   if (fRunMerger)
   {
 	  fMerger.Clear();
-	  fMerger.SetSliceParam( fTracker.Param(0) );
 
 	  for ( int i = 0; i < fgkNSlices; i++ ) {
 		//printf("slice %d clusters %d tracks %d\n", i, fClusterData[i].NumberOfClusters(), fSliceOutput[i]->NTracks());
@@ -304,27 +299,79 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 }
 
 
-void AliHLTTPCCAStandaloneFramework::WriteSettings( std::ostream &out ) const
+void AliHLTTPCCAStandaloneFramework::SetSettings( )
 {
-  //* write settings to the file
-  out << NSlices() << std::endl;
-  for ( int iSlice = 0; iSlice < NSlices(); iSlice++ ) {
-    fTracker.Param(iSlice).WriteSettings( out );
-  }
-}
+	float solenoidBz = -5.00668;
+	
+	for (int slice = 0;slice < fgkNSlices;slice++)
+    {
+      int iSec = slice;
+      float inRmin = 83.65;
+      float outRmax = 247.7;
+      float plusZmin = 0.0529937;
+      float plusZmax = 249.778;
+      float minusZmin = -249.645;
+      float minusZmax = -0.0799937;
+      float dalpha = 0.349066;
+      float alpha = 0.174533 + dalpha * iSec;
 
-void AliHLTTPCCAStandaloneFramework::ReadSettings( std::istream &in )
-{
-  //* Read settings from the file
-  int nSlices = 0;
-  in >> nSlices;
-  if( nSlices>0 && nSlices<100 ){
-    for ( int iSlice = 0; iSlice < nSlices; iSlice++ ) {
+      bool zPlus = ( iSec < 18 );
+      float zMin =  zPlus ? plusZmin : minusZmin;
+      float zMax =  zPlus ? plusZmax : minusZmax;
+      int nRows = HLTCA_ROW_COUNT;
+
+      float padPitch = 0.4;
+      float sigmaZ = 0.228808;
+
+      float *rowX = new float [nRows];
+      for ( int irow = 0; irow < nRows; irow++ ) {
+        rowX[irow] = AliHLTTPCGeometry::Row2X( irow );
+      }
+
       AliHLTTPCCAParam param;
-      param.ReadSettings ( in );
-	  fTracker.InitializeSliceParam(iSlice, param);
+
+      param.Initialize( iSec, nRows, rowX, alpha, dalpha,
+        inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, solenoidBz );
+      param.SetHitPickUpFactor( 2 );
+      param.SetMinNTrackClusters( 30 );
+      param.SetMinTrackPt( 0.05 );
+
+      param.Update();
+      fTracker.InitializeSliceParam( slice, param );
+      delete[] rowX;
+    }
+
+	{
+	  AliHLTTPCCAParam param;
+	  // get gemetry
+	  int iSec = 0;
+	  float inRmin = 83.65;
+	  float outRmax = 247.7;
+	  float plusZmin = 0.0529937;
+	  float plusZmax = 249.778;
+	  float dalpha = 0.349066;
+	  float alpha = 0.174533 + dalpha * iSec;
+	  float zMin =  plusZmin;
+	  float zMax =  plusZmax;
+	  int nRows = HLTCA_ROW_COUNT;
+	  float padPitch = 0.4;
+	  float sigmaZ = 0.228808;
+	  float *rowX = new float [nRows];
+	  for ( int irow = 0; irow < nRows; irow++ ) {
+		rowX[irow] = AliHLTTPCGeometry::Row2X( irow );
+	  }
+
+	  param.Initialize( iSec, nRows, rowX, alpha, dalpha,
+						inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, solenoidBz );
+
+	  param.SetClusterError2CorrectionZ( 1.1 );
+	  param.Update();
+
+	  delete[] rowX;
+	  
+	  fMerger.SetSliceParam(param);
 	}
-  }
+
 }
 
 void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &out ) const

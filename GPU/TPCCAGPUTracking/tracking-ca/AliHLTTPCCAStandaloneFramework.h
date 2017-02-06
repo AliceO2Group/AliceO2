@@ -77,11 +77,10 @@ class AliHLTTPCCAStandaloneFramework
     double StatTime( int iTimer ) const { return fStatTime[iTimer]; }
     int StatNEvents() const { return fStatNEvents; }
 
-    void WriteSettings( std::ostream &out ) const;
     void WriteEvent( std::ostream &out ) const;
     void WriteTracks( std::ostream &out ) const;
 
-    void ReadSettings( std::istream &in );
+    void SetSettings( );
     void ReadEvent( std::istream &in );
     void ReadTracks( std::istream &in );
 

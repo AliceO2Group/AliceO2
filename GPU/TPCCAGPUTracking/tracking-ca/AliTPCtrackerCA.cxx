@@ -469,7 +469,7 @@ int AliTPCtrackerCA::Clusters2Tracks( AliESDEvent *event )
       fstream geo;
       geo.open( "CAEvents/settings.dat", ios::out );
       if ( geo.is_open() ) {
-        hlt.WriteSettings( geo );
+        //hlt.WriteSettings( geo );
       }
       geo.close();
     }
