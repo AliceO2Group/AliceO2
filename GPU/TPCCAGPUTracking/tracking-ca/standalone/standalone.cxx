@@ -221,11 +221,8 @@ int main(int argc, char** argv)
 	sliceCount = hlt.GetGPUMaxSliceCount();
 	hlt.SetGPUTracker(RUNGPU);
 
-	printf("Reading Settings\n");
-	std::ifstream in("events/settings.dump");
-	hlt.ReadSettings(in);
-	in.close();
-
+	hlt.SetSettings();
+	
 	for( int i=0; i < argc; i++ ){
 		if ( !strcmp( argv[i], "-GPUOPT" ) && argc >= i + 1 ) 
 		{
@@ -246,6 +243,7 @@ int main(int argc, char** argv)
 	for (int jj = 0;jj < runs2;jj++) {if (runs2 > 1) printf("RUN2: %d\n", jj);
 	for (i = StartEvent;i < NEvents || NEvents == -1;i++)
 	{
+		std::ifstream in;
 		char filename[256];
 		sprintf(filename, "events%s/event.%d.dump", EventsDir, i);
 		in.open(filename, std::ifstream::binary);
