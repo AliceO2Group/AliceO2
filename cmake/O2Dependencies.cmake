@@ -290,7 +290,7 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    its_base_bucket
+    itsmft_base_bucket
 
     DEPENDENCIES
     fairroot_base_bucket
@@ -300,6 +300,17 @@ o2_define_bucket(
     Hist
     ParBase
     Field
+
+    INCLUDE_DIRECTORIES
+)
+
+o2_define_bucket(
+    NAME
+    its_base_bucket
+
+    DEPENDENCIES
+    itsmft_base_bucket
+    ITSMFTBase
 
     INCLUDE_DIRECTORIES
 )
@@ -318,6 +329,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
 )
 

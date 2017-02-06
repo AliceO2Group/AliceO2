@@ -1,21 +1,20 @@
 /// \file SensMap.h
-/// \brief Definition of the ITS sensor map
+/// \brief Definition of the ITSMFT sensor map
 
 //***********************************************************************
 //
 // It consist of a TClonesArray of objects
 // and B-tree for fast sorted access
-// This array can be accessed via 2 indexed
-// it is used at digitization level by
-// all the ITS subdetectors
+// This array can be accessed via 2 indexes
+// it is used at digitization level
 //
 // The items should be added to the map like this:
 // map->RegisterItem( new(map->GetFree()) ItemConstructor(...) );
 //
 // ***********************************************************************
 
-#ifndef ALICEO2_ITS_SENSMAP_H
-#define ALICEO2_ITS_SENSMAP_H
+#ifndef ALICEO2_ITSMFT_SENSMAP_H
+#define ALICEO2_ITSMFT_SENSMAP_H
 
 #include <TBtree.h>
 #include <TClonesArray.h>
@@ -23,7 +22,7 @@
 
 namespace AliceO2
 {
-namespace ITS
+namespace ITSMFT
 {
 class SensMap : public TObject
 {

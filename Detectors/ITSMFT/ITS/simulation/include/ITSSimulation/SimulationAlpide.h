@@ -13,13 +13,14 @@
 
 #include <TObject.h>
 
-#include "ITSBase/SensMap.h"
+#include "ITSMFTBase/SensMap.h"
 #include "ITSSimulation/Chip.h"
 
 class TLorentzVector;
 class TClonesArray;
 class TSeqCollection;
 
+using AliceO2::ITSMFT::SensMap;
 
 namespace AliceO2 {
   namespace ITS {

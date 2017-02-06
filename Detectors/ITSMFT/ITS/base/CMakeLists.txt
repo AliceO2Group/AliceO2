@@ -5,7 +5,6 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/SDigit.cxx
     src/Digit.cxx
-    src/SensMap.cxx
     src/GeometryTGeo.cxx
     src/GeometryManager.cxx
     src/Segmentation.cxx
@@ -17,7 +16,6 @@ set(SRCS
 set(HEADERS
     include/${MODULE_NAME}/SDigit.h
     include/${MODULE_NAME}/Digit.h
-    include/${MODULE_NAME}/SensMap.h
     include/${MODULE_NAME}/GeometryTGeo.h
     include/${MODULE_NAME}/GeometryManager.h
     include/${MODULE_NAME}/Segmentation.h
