@@ -24,7 +24,7 @@ DigitWriteoutBuffer::DigitWriteoutBuffer() :
 }
 
 DigitWriteoutBuffer::DigitWriteoutBuffer(TString branchname, TString foldername, Bool_t persistance) :
-  FairWriteoutBuffer(branchname, "AliceO2::ITS::Digit", foldername, persistance),
+  FairWriteoutBuffer(branchname, "AliceO2::ITSMFT::Digit", foldername, persistance),
   fData_map()
 {
 

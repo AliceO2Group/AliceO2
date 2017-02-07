@@ -2,7 +2,7 @@
 /// \brief Implementation of the ITS DigitContainer class
 //
 #include "ITSSimulation/DigitContainer.h"
-#include "ITSBase/Digit.h"
+#include "ITSMFTBase/Digit.h"
 
 #include "FairLogger.h" // for LOG
 

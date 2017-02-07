@@ -1,17 +1,17 @@
 /// \file SDigit.cxx
-/// \brief Implementation of the ITS summable digit class
+/// \brief Implementation of the ITSMFT summable digit class
 
 #include <FairLogger.h>
 #include <TMath.h>
 
-#include "ITSBase/SDigit.h"
+#include "ITSMFTBase/SDigit.h"
 
 using std::istream;
 using std::swap;
 
-ClassImp(AliceO2::ITS::SDigit)
+ClassImp(AliceO2::ITSMFT::SDigit)
 
-  using namespace AliceO2::ITS;
+  using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
 SDigit::SDigit() : mChip(0), mNumOfTracks(0), mROCycle(0), mTotalSignal(0.0), mNoise(0.0), mSignalAfterElect(0.0)

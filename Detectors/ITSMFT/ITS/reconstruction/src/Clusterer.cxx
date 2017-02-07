@@ -1,13 +1,14 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the ITS cluster finder
 #include "ITSReconstruction/Clusterer.h"
-#include "ITSBase/Digit.h"
+#include "ITSMFTBase/Digit.h"
 #include "ITSBase/SegmentationPixel.h"
 #include "ITSReconstruction/Cluster.h"
 
 #include "FairLogger.h"   // for LOG
 #include "TClonesArray.h" // for TClonesArray
 
+  using AliceO2::ITSMFT::Digit;
   using namespace AliceO2::ITS;
 
 Clusterer::Clusterer() {}

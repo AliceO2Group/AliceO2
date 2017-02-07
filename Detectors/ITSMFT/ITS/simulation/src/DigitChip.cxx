@@ -2,12 +2,13 @@
 /// \brief Implementation of the ITS DigitChip class
 
 #include "ITSSimulation/DigitChip.h"
-#include "ITSBase/Digit.h"
+#include "ITSMFTBase/Digit.h"
 
 #include "FairLogger.h" // for LOG
 
 #include "TClonesArray.h"
 
+using AliceO2::ITSMFT::Digit;
 using namespace AliceO2::ITS;
 
 Int_t DigitChip::sNumOfRows = 650;
