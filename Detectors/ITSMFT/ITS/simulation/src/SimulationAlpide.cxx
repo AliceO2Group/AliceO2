@@ -244,12 +244,12 @@ void SimulationAlpide::GenerateCluster() {
     trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
     Double_t beta = std::min(0.99999, trackP4.Beta());
     Double_t bgamma = beta / sqrt(1 - pow(beta, 2));
-    if (bgamma < 0.1) bgamma = 0.1;
+    if (bgamma < 0.001) continue;
     Double_t theta = ComputeIncidenceAngle(trackP4);
 
     // Get the pixel ID
     Int_t ix, iz;
-    if (!fSeg->localToDetector(x, z, ix, iz)) return;
+    if (!fSeg->localToDetector(x, z, ix, iz)) continue;
 
     Double_t acs = ACSFromBetaGamma(bgamma, theta);
     UInt_t cs = GetPixelPositionResponse(ix, iz, x, z, acs);
@@ -282,7 +282,6 @@ void SimulationAlpide::GenerateCluster() {
       CreateDigi(nz, nx, hit->GetTrackID(), h);
     }
 
-    delete hit;
     delete csManager;
   }
 }
