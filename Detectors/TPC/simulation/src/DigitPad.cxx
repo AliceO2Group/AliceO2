@@ -7,7 +7,7 @@
 
 using namespace AliceO2::TPC;
 
-DigitPad::DigitPad(Int_t pad)
+DigitPad::DigitPad(int pad)
   : mTotalChargePad(0.)
   , mPad(pad)
   , mADCCounts()
@@ -19,14 +19,14 @@ DigitPad::~DigitPad()
   mTotalChargePad = 0;
 }
 
-void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad)
+void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad)
 {  
-  Float_t totalADC = 0;
+  float totalADC = 0;
   for(auto &aADCCounts : mADCCounts) {
     totalADC += aADCCounts.getADC();
   }
   
-  const Float_t mADC = SAMPAProcessing::getADCSaturation(totalADC);
+  const float mADC = SAMPAProcessing::getADCSaturation(totalADC);
   
   if(mADC > 0) {
     TClonesArray &clref = *output;
@@ -34,15 +34,15 @@ void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
   }
 }
 
-void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t commonMode)
+void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode)
 {
-  Float_t totalADC = 0;
-  Int_t MCEventIDOld = -1;
-  Int_t MCTrackIDOld = -1;
+  float totalADC = 0;
+  int MCEventIDOld = -1;
+  int MCTrackIDOld = -1;
   for(auto &aADCCounts : mADCCounts) {
     totalADC += aADCCounts.getADC();
-//     Int_t currentMCEvent = aADCCounts.getMCEventID();
-//     Int_t currentMCTrack = aADCCounts.getMCTrackID();
+//     int currentMCEvent = aADCCounts.getMCEventID();
+//     int currentMCTrack = aADCCounts.getMCTrackID();
 //     if(MCEventIDOld != currentMCEvent) {
 //       MCEventIDOld = currentMCEvent;
 //     }
@@ -51,7 +51,7 @@ void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
 //     }
   }
   
-  const Float_t mADC = SAMPAProcessing::getADCSaturation(totalADC);
+  const float mADC = SAMPAProcessing::getADCSaturation(totalADC);
   
   if(mADC > 0) {
     TClonesArray &clref = *output;
@@ -59,7 +59,7 @@ void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
   }
 }
 
-void DigitPad::processCommonMode(Int_t cru, Int_t timeBin, Int_t row, Int_t pad)
+void DigitPad::processCommonMode(int cru, int timeBin, int row, int pad)
 {  
   for(auto &aADCCounts : mADCCounts) {
     mTotalChargePad += aADCCounts.getADC();

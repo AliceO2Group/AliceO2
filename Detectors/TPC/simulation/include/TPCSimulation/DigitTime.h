@@ -4,7 +4,6 @@
 #ifndef ALICEO2_TPC_DigitTime_H_
 #define ALICEO2_TPC_DigitTime_H_
 
-#include "Rtypes.h"
 #include "TPCSimulation/DigitRow.h"
 #include "TPCSimulation/CommonMode.h"
 
@@ -22,7 +21,7 @@ class DigitTime{
     /// Constructor
     /// @param mTimeBin time bin
     /// @param npads Number of pads in the row
-    DigitTime(Int_t mTimeBin, Int_t nrows);
+    DigitTime(int mTimeBin, int nrows);
 
     /// Destructor
     ~DigitTime();
@@ -32,19 +31,19 @@ class DigitTime{
 
     /// Get the size of the container
     /// @return Size of the Row container
-    Int_t getSize() {return mRows.size();}
+    int getSize() {return mRows.size();}
 
     /// Get the number of entries in the container
     /// @return Number of entries in the Row container
-    Int_t getNentries();
+    int getNentries();
 
     /// Get the time bin
     /// @return time bin          
-    Int_t getTimeBin() {return mTimeBin;}
+    int getTimeBin() {return mTimeBin;}
 
     /// Get the accumulated charge in one time bin
     /// @return Accumulated charge in one time bin
-    Float_t getTotalChargeTimeBin() {return mTotalChargeTimeBin;}
+    float getTotalChargeTimeBin() {return mTotalChargeTimeBin;}
 
     /// Add digit to the row container
     /// @param eventID MC ID of the event
@@ -53,29 +52,29 @@ class DigitTime{
     /// @param row Pad row of digit
     /// @param pad Pad of digit
     /// @param charge Charge of the digit
-    void setDigit(Int_t eventID, Int_t trackID, Int_t cru, Int_t row, Int_t pad, Float_t charge);
+    void setDigit(int eventID, int trackID, int cru, int row, int pad, float charge);
 
     /// Fill output TClonesArray
     /// @param output Output container
     /// @param cru CRU
     /// @param timeBin Time bin
-    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin);
+    void fillOutputContainer(TClonesArray *output, int cru, int timeBin);
 
     /// Fill output TClonesArray
     /// @param output Output container
     /// @param cru CRU
     /// @param timeBin Time bin
-    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, std::vector<CommonMode> &commonModeContainer);
+    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, std::vector<CommonMode> &commonModeContainer);
 
     /// Process Common Mode Information
     /// @param output Output container
     /// @param cru CRU
     /// @param timeBin Time bin
-    void processCommonMode(Int_t cru, Int_t timeBin);
+    void processCommonMode(int cru, int timeBin);
 
   private:
-    Float_t                 mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
-    UShort_t                mTimeBin;                   ///< Time bin of that ADC value
+    float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
+    unsigned short          mTimeBin;                   ///< Time bin of that ADC value
     std::vector <DigitRow*> mRows;                      ///< Row Container for the ADC value
 };
 
@@ -90,9 +89,9 @@ void DigitTime::reset()
 }
 
 inline    
-Int_t DigitTime::getNentries() 
+int DigitTime::getNentries()
 {
-  Int_t counter = 0;
+  int counter = 0;
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
     ++ counter;

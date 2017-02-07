@@ -11,7 +11,6 @@
 #include "TPCBase/RandomRing.h"
 #include "TPCBase/Mapper.h"
 
-#include "Rtypes.h"
 #include "TObject.h"
 
 #include <cmath>
@@ -52,7 +51,7 @@ class Digitizer : public TObject {
     /// @param xabs Position in x
     /// @param yabs Position in y
     /// @return Vector with PadResponse objects with pad and row position and the correponding fraction of the induced signal
-    void getPadResponse(Float_t xabs, Float_t yabs, vector<PadResponse> &);
+    void getPadResponse(float xabs, float yabs, vector<PadResponse> &);
 
     /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     /// Conversion functions that at some point should go someplace else
@@ -60,22 +59,22 @@ class Digitizer : public TObject {
     /// Compute time bin from z position
     /// @param zPos z position of the charge
     /// @return Time bin of the charge
-    Int_t getTimeBin(Float_t zPos) const;
+    int getTimeBin(float zPos) const;
 
     /// Compute time bin from time
     /// @param time time of the charge
     /// @return Time bin of the charge
-    Int_t getTimeBinFromTime(Float_t time) const;
+    int getTimeBinFromTime(float time) const;
 
     /// Compute time from time bin
     /// @param timeBin time bin of the charge
     /// @return Time of the charge      
-    Float_t getTimeFromBin(Int_t timeBin) const;
+    float getTimeFromBin(int timeBin) const;
 
     /// Compute time from z position
     /// @param zPos z position of the charge
     /// @return Time of the charge
-    Float_t getTime(Float_t zPos) const;
+    float getTime(float zPos) const;
 
 
   private:
@@ -89,35 +88,35 @@ class Digitizer : public TObject {
 
 // inline implementations
 inline
-Int_t Digitizer::getTimeBin(Float_t zPos) const 
+int Digitizer::getTimeBin(float zPos) const
 {
-  Float_t timeBin = (TPCLENGTH-std::fabs(zPos))/(DRIFTV*ZBINWIDTH);
+  float timeBin = (TPCLENGTH-std::fabs(zPos))/(DRIFTV*ZBINWIDTH);
   return static_cast<int>(timeBin);
 }
 
 inline
-Int_t Digitizer::getTimeBinFromTime(Float_t time) const 
+int Digitizer::getTimeBinFromTime(float time) const
 {
-  Float_t timeBin = time / ZBINWIDTH;
+  float timeBin = time / ZBINWIDTH;
   return static_cast<int>(timeBin);
 }
 
 inline
-Float_t Digitizer::getTimeFromBin(Int_t timeBin) const 
+float Digitizer::getTimeFromBin(int timeBin) const
 {
-  Float_t time = static_cast<float>(timeBin)*ZBINWIDTH;
+  float time = static_cast<float>(timeBin)*ZBINWIDTH;
   return time;
 }
 
 inline
-Float_t Digitizer::getTime(Float_t zPos) const 
+float Digitizer::getTime(float zPos) const
 {
-  Float_t time = (TPCLENGTH-std::fabs(zPos))/DRIFTV;
+  float time = (TPCLENGTH-std::fabs(zPos))/DRIFTV;
   return time;
 }
 
 inline
-void Digitizer::getPadResponse(Float_t xabs, Float_t yabs, std::vector<PadResponse> &response)
+void Digitizer::getPadResponse(float xabs, float yabs, std::vector<PadResponse> &response)
 {
   response.resize(0);
   /// @todo include actual response, this is now only for a signal on the central pad (0, 0) with weight 1.

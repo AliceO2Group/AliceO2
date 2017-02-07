@@ -6,7 +6,6 @@
 
 #include <Vc/Vc>
 
-#include "Rtypes.h"
 #include "TPCSimulation/Constants.h"
 
 namespace AliceO2 {
@@ -28,7 +27,7 @@ class SAMPAProcessing
     /// Conversion from a given number of electrons into ADC value without taking into account saturation
     /// @param nElectrons Number of electrons in time bin
     /// @return ADC value
-    static Float_t getADCvalue(Float_t nElectrons);
+    static float getADCvalue(float nElectrons);
 
     /// Conversion from a given number of electrons into ADC value without taking into account saturation, vectorized
     /// @param nElectrons Number of electrons in time bin
@@ -38,13 +37,13 @@ class SAMPAProcessing
     /// Saturation of the ADC
     /// @param signal Incoming signal in ADC counts
     /// @return ADC value
-    static Float_t getADCSaturation(Float_t signal);
+    static float getADCSaturation(float signal);
 
     /// Gamma4 shaping function
     /// @param time Time of the ADC value with respect to the first bin in the pulse
     /// @param startTime First bin in the pulse
     /// @param ADC ADC value of the corresponding time bin
-//     static Float_t getGamma4(Float_t time, Float_t startTime, Float_t ADC);
+//     static float getGamma4(float time, float startTime, float ADC);
 
     /// Gamma4 shaping function, vectorized
     /// @param time Time of the ADC value with respect to the first bin in the pulse
@@ -56,9 +55,9 @@ class SAMPAProcessing
 };
 
 inline
-Float_t SAMPAProcessing::getADCvalue(Float_t nElectrons)
+float SAMPAProcessing::getADCvalue(float nElectrons)
 {
-  Float_t adcValue = nElectrons*QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE;
+  float adcValue = nElectrons*QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE;
   return adcValue;
 }
 
@@ -71,14 +70,14 @@ Vc::float_v SAMPAProcessing::getADCvalueVc(Vc::float_v nElectrons)
 }
 
 inline
-Float_t SAMPAProcessing::getADCSaturation(Float_t signal)
+float SAMPAProcessing::getADCSaturation(float signal)
 {
   if(signal > ADCSAT) signal = ADCSAT;
   return signal;
 }
 
 // inline
-// Float_t SAMPAProcessing::getGamma4(Float_t time, Float_t startTime, Float_t ADC)
+// float SAMPAProcessing::getGamma4(float time, float startTime, float ADC)
 // {
 // //   if (time<0) return 0;
 //   float_t tmp = (time-startTime)/PEAKINGTIME;

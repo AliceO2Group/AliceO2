@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <string>
 #include "FairTask.h"
-#include "Rtypes.h"
 #include "TPCSimulation/Digitizer.h"
 #include <TClonesArray.h>
 

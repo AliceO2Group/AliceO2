@@ -4,7 +4,6 @@
 #ifndef ALICEO2_TPC_DigitCRU_H_
 #define ALICEO2_TPC_DigitCRU_H_
 
-#include "Rtypes.h"
 #include "DigitTime.h"
 #include "CommonMode.h"
 
@@ -21,7 +20,7 @@ class DigitCRU{
     
     /// Constructor
     /// @param mCRU CRU ID
-    DigitCRU(Int_t mCRU);
+    DigitCRU(int mCRU);
 
     /// Destructor
     ~DigitCRU();
@@ -31,15 +30,15 @@ class DigitCRU{
 
     /// Get the number of entries in the container
     /// @return Number of entries in the time bin container
-    Int_t getNentries();
+    int getNentries();
 
     /// Get the size of the container
     /// @return Size of the time bin container
-    Int_t getSize() {return mTimeBins.size();}
+    int getSize() {return mTimeBins.size();}
 
     /// Get the CRU ID
     /// @return CRU ID
-    Int_t getCRUID() {return mCRU;}
+    int getCRUID() {return mCRU;}
 
     /// Add digit to the row container
     /// @param eventID MC ID of the event
@@ -48,26 +47,26 @@ class DigitCRU{
     /// @param row Pad row of digit
     /// @param pad Pad of digit
     /// @param charge Charge of the digit
-    void setDigit(Int_t eventID, Int_t trackID, Int_t timeBin, Int_t row, Int_t pad, Float_t charge);
+    void setDigit(int eventID, int trackID, int timeBin, int row, int pad, float charge);
 
     /// Fill output TClonesArray
     /// @param output Output container
     /// @param cruID CRU ID
-    void fillOutputContainer(TClonesArray *output, Int_t cru);
+    void fillOutputContainer(TClonesArray *output, int cru);
 
     /// Fill output TClonesArray
     /// @param output Output container
     /// @param cruID CRU ID
-    void fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<CommonMode> &commonModeContainer);
+    void fillOutputContainer(TClonesArray *output, int cru, std::vector<CommonMode> &commonModeContainer);
 
     /// Process Common Mode Information
     /// @param output Output container
     /// @param cruID CRU ID
-    void processCommonMode(std::vector<CommonMode> &, Int_t cru);
+    void processCommonMode(std::vector<CommonMode> &, int cru);
 
   private:
-    Int_t                    mNTimeBins;        ///< Maximal number of time bins in that CRU
-    UShort_t                 mCRU;              ///< CRU of the ADC value
+    int                    mNTimeBins;        ///< Maximal number of time bins in that CRU
+    unsigned short         mCRU;              ///< CRU of the ADC value
     std::vector <DigitTime*> mTimeBins;         ///< Time bin Container for the ADC value
 };
     
@@ -84,9 +83,9 @@ void DigitCRU::reset()
 }
     
 inline 
-Int_t DigitCRU::getNentries() 
+int DigitCRU::getNentries()
 {
-  Int_t counter = 0;
+  int counter = 0;
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
     ++counter;

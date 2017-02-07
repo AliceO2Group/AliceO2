@@ -15,15 +15,15 @@ GEMAmplification::GEMAmplification()
   , mRandomPolya()
 {}
 
-GEMAmplification::GEMAmplification(Float_t effGainGEM1, Float_t effGainGEM2, Float_t effGainGEM3, Float_t effGainGEM4)
+GEMAmplification::GEMAmplification(float effGainGEM1, float effGainGEM2, float effGainGEM3, float effGainGEM4)
   : mEffGainGEM1(effGainGEM1)
   , mEffGainGEM2(effGainGEM2)
   , mEffGainGEM3(effGainGEM3)
   , mEffGainGEM4(effGainGEM4)
   , mRandomPolya()
 {
-  Float_t kappa = 1/(SIGMAOVERMU*SIGMAOVERMU);
-  Float_t s = 1/kappa;
+  float kappa = 1/(SIGMAOVERMU*SIGMAOVERMU);
+  float s = 1/kappa;
   
   boost::format polya("1/(TMath::Gamma(%1%)*%2%) *std::pow(x/%3%, %4%) *std::exp(-x/%5%)");
   polya % kappa % s % s % (kappa-1) % s;
@@ -38,18 +38,18 @@ GEMAmplification::~GEMAmplification()
 {}
 
 
-Int_t GEMAmplification::getStackAmplification()
+int GEMAmplification::getStackAmplification()
 {
-  const Int_t nElectronsGEM1 = getSingleGEMAmplification(1, mEffGainGEM1);
-  const Int_t nElectronsGEM2 = getSingleGEMAmplification(nElectronsGEM1, mEffGainGEM2);
-  const Int_t nElectronsGEM3 = getSingleGEMAmplification(nElectronsGEM2, mEffGainGEM3);
-  const Int_t nElectronsGEM4 = getSingleGEMAmplification(nElectronsGEM3, mEffGainGEM4);
+  const int nElectronsGEM1 = getSingleGEMAmplification(1, mEffGainGEM1);
+  const int nElectronsGEM2 = getSingleGEMAmplification(nElectronsGEM1, mEffGainGEM2);
+  const int nElectronsGEM3 = getSingleGEMAmplification(nElectronsGEM2, mEffGainGEM3);
+  const int nElectronsGEM4 = getSingleGEMAmplification(nElectronsGEM3, mEffGainGEM4);
   return nElectronsGEM4;
 }
 
-Int_t GEMAmplification::getStackAmplification(Int_t nElectrons)
+int GEMAmplification::getStackAmplification(int nElectrons)
 {
-  Int_t nElectronsAmplified = 0;
+  int nElectronsAmplified = 0;
   for(int i=0; i< nElectrons; ++i) {
     nElectronsAmplified += getStackAmplification();
   }

@@ -6,7 +6,6 @@
 #ifndef ALICEO2_TPC_ElectronTransport_H_
 #define ALICEO2_TPC_ElectronTransport_H_
 
-#include "Rtypes.h"
 #include "TPCSimulation/Constants.h"
 #include "TPCBase/RandomRing.h"
 
@@ -34,22 +33,22 @@ class ElectronTransport
     /// Drift of electrons in electric field taking into account diffusion
     /// @param *xyz Array with 3d position of the electrons
     /// @return Array with 3d position of the electrons after the drift taking into account diffusion
-    void getElectronDrift(Float_t *posEle);
+    void getElectronDrift(float *posEle);
     
     /// Drift of electrons in electric field taking into account diffusion using Vc
     /// @param *xyz Array with 3d position of the electrons
     /// @return Array with 3d position of the electrons after the drift taking into account diffusion
-    void getElectronDriftVc(Float_t *posEle);
+    void getElectronDriftVc(float *posEle);
     
     /// Attachment probability for a given drift time
     /// @param driftTime Drift time of the electron
     /// @return Probability for attachment during the drift
-    Float_t getAttachmentProbability(Float_t driftTime) const { return ATTCOEF * OXYCONT * driftTime; }
+    float getAttachmentProbability(float driftTime) const { return ATTCOEF * OXYCONT * driftTime; }
     
         
   private:
     RandomRing     mRandomGaus;        ///< Circular random buffer containing random values of the Gauss distribution to take into account diffusion of the electrons
-    Int_t          mVc_size;           ///< Size of the vectorization array
+    int            mVc_size;           ///< Size of the vectorization array
 };
 }
 }

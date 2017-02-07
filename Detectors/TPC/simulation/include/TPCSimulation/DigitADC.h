@@ -4,8 +4,6 @@
 #ifndef ALICEO2_TPC_DigitADC_H_
 #define ALICEO2_TPC_DigitADC_H_
 
-#include "Rtypes.h"
-
 namespace AliceO2 {
 namespace TPC {
     
@@ -20,27 +18,27 @@ class DigitADC{
       
     /// Constructor 
     /// @param charge Charge
-    DigitADC(Int_t eventID, Int_t trackID, Float_t charge);
+    DigitADC(int eventID, int trackID, float charge);
 
     /// Destructor
     ~DigitADC();
 
     /// Get the event ID
     /// @return event ID
-    Int_t getMCEventID() {return mEventID;}
+    int getMCEventID() {return mEventID;}
 
     /// Get the track ID
     /// @return track ID
-    Int_t getMCTrackID() {return mTrackID;}
+    int getMCTrackID() {return mTrackID;}
 
     /// Get the ADC value
     /// @return ADC value
-    Float_t getADC() {return mADC;}
+    float getADC() {return mADC;}
 
   private:
-    Float_t mADC;       ///< ADC value of the digit
-    Int_t mEventID;     ///< MC Event ID
-    Int_t mTrackID;     ///< MC Track ID
+    float       mADC;       ///< ADC value of the digit
+    int         mEventID;     ///< MC Event ID
+    int         mTrackID;     ///< MC Track ID
 };
 }
 }
