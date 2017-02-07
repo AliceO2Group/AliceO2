@@ -16,6 +16,8 @@
   #include "ITSBase/GeometryTGeo.h"
   #include "ITSBase/SegmentationPixel.h"
   #include "ITSSimulation/Detector.h"
+
+  #include "Field/MagneticField.h"
 #endif
 
 extern TSystem *gSystem;
@@ -75,9 +77,11 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  FairConstField field;
-  field.SetField(0., 0., 5.); //in kG
-  field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in cm
+  AliceO2::Field::MagneticField field("field","field +5kG");
+  /*  FairConstField field;
+      field.SetField(0., 0., 5.); //in kG
+      field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in cm
+  */
   run->SetField(&field);
 
   AliceO2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
