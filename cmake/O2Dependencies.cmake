@@ -1,4 +1,5 @@
 
+
 ########## DEPENDENCIES lookup ############
 
 find_package(ROOT 6.06.00 REQUIRED)
@@ -186,9 +187,11 @@ o2_define_bucket(
     common_field_bucket
 
     DEPENDENCIES
-    Core RIO MathUtils Geom
+    fairroot_base_bucket
+    Base ParBase Core RIO MathUtils Geom
 
     INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
