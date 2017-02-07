@@ -14,9 +14,15 @@
 class TClonesArray;
 
 namespace AliceO2 {
-namespace ITS {
+  namespace ITSMFT {
+    class Digit;
+  }
+}
 
-class Digit;
+using AliceO2::ITSMFT::Digit;
+
+namespace AliceO2 {
+namespace ITS {
 
 class DigitStave;
 

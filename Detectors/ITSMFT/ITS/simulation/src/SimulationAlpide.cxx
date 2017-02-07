@@ -10,9 +10,9 @@
 
 #include "FairLogger.h"
 
-#include "ITSBase/SDigit.h"
+#include "ITSMFTBase/SDigit.h"
+#include "ITSMFTBase/Digit.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSBase/Digit.h"
 #include "ITSBase/SegmentationPixel.h"
 #include "ITSSimulation/SimulationAlpide.h"
 #include "ITSSimulation/SimuClusterShaper.h"
@@ -21,6 +21,8 @@
 
 ClassImp(AliceO2::ITS::SimulationAlpide)
 
+using AliceO2::ITSMFT::SDigit;
+using AliceO2::ITSMFT::Digit;
 using namespace AliceO2::ITS;
 
 //______________________________________________________________________
@@ -39,7 +41,7 @@ fSeg(seg),
 fChip(chip)
 {
   for (Int_t i=0; i<NumberOfParameters; i++) fParam[i]=par[i];
-  fSensMap=new SensMap("AliceO2::ITS::SDigit",
+  fSensMap=new SensMap("AliceO2::ITSMFT::SDigit",
   seg->getNumberOfColumns(), seg->getNumberOfRows());
 }
 
@@ -65,7 +67,7 @@ void SimulationAlpide::Init
   for (Int_t i=0; i<NumberOfParameters; i++) fParam[i]=par[i];
   fSeg=seg;
   fChip=chip;
-  fSensMap=new SensMap("AliceO2::ITS::SDigit",
+  fSensMap=new SensMap("AliceO2::ITSMFT::SDigit",
   seg->getNumberOfColumns(), seg->getNumberOfRows());
 }
 

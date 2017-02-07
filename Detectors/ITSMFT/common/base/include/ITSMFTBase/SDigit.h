@@ -1,14 +1,14 @@
 /// \file SDigit.h
-/// \brief Definition of the ITS summable digit class
+/// \brief Definition of the ITSMFT summable digit class
 
-#ifndef ALICEO2_ITS_SDIGIT_H
-#define ALICEO2_ITS_SDIGIT_H
+#ifndef ALICEO2_ITSMFT_SDIGIT_H
+#define ALICEO2_ITSMFT_SDIGIT_H
 
 #include <TObject.h>
 
 namespace AliceO2
 {
-namespace ITS
+namespace ITSMFT
 {
 class SDigit : public TObject
 {

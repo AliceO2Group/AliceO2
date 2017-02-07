@@ -1,7 +1,7 @@
 /// \file Digi.h
-/// \brief Definition of the ITS digit
-#ifndef ALICEO2_ITS_DIGIT_H
-#define ALICEO2_ITS_DIGIT_H
+/// \brief Definition of the ITSMFT digit
+#ifndef ALICEO2_ITSMFT_DIGIT_H
+#define ALICEO2_ITSMFT_DIGIT_H
 
 #ifndef __CLING__
 
@@ -22,7 +22,7 @@ class access;
 
 namespace AliceO2
 {
-namespace ITS
+namespace ITSMFT
 {
 /// \class Digit
 /// \brief Digit class for the ITS
@@ -164,4 +164,4 @@ class Digit : public FairTimeStamp
 }
 }
 
-#endif /* ALICEO2_ITS_DIGIT_H */
+#endif /* ALICEO2_ITSMFT_DIGIT_H */

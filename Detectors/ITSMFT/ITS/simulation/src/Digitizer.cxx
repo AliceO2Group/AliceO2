@@ -1,7 +1,7 @@
-/// \file AliITSDigitizer.cxx
+/// \file Digitizer.cxx
 /// \brief Implementation of the ITS digitizer
 
-#include "ITSBase/Digit.h"
+#include "ITSMFTBase/Digit.h"
 #include "ITSBase/SegmentationPixel.h"
 #include "ITSSimulation/Chip.h"
 #include "ITSSimulation/DigitChip.h"
@@ -14,6 +14,7 @@
 
 ClassImp(AliceO2::ITS::Digitizer)
 
+  using AliceO2::ITSMFT::Digit;
   using namespace AliceO2::ITS;
 
 Digitizer::Digitizer() : mGeometry(), mNumOfChips(0), mChips(), mSimulations(), mDigitContainer() {}

@@ -13,10 +13,16 @@ class TClonesArray;
 
 namespace AliceO2
 {
-  namespace ITS
+  namespace ITSMFT
   {
     class Digit;
+  }
+}
 
+namespace AliceO2
+{
+  namespace ITS
+  {
     class DigitContainer
     {
     public:

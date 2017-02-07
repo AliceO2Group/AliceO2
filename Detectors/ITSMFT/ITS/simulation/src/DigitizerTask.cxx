@@ -49,7 +49,7 @@ InitStatus DigitizerTask::Init()
   }
 
   // Register output container
-  mDigitsArray = new TClonesArray("AliceO2::ITS::Digit");
+  mDigitsArray = new TClonesArray("AliceO2::ITSMFT::Digit");
   mgr->Register("ITSDigit", "ITS", mDigitsArray, kTRUE);
 
   mDigitizer.init(kTRUE);

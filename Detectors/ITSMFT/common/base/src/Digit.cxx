@@ -1,11 +1,11 @@
 /// \file Digit.cxx
-/// \brief Implementation of the ITS digit
+/// \brief Implementation of the ITSMFT digit
 
-#include "ITSBase/Digit.h"
+#include "ITSMFTBase/Digit.h"
 
-ClassImp(AliceO2::ITS::Digit)
+ClassImp(AliceO2::ITSMFT::Digit)
 
-  using namespace AliceO2::ITS;
+  using namespace AliceO2::ITSMFT;
 
 Digit::Digit() : FairTimeStamp(), mChipIndex(0), mRow(0), mCol(0), mCharge(0.), mLabels{ -1, -1, -1 } {}
 Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Double_t charge, Double_t time)
@@ -30,7 +30,7 @@ const Digit Digit::operator+(const Digit& other)
 
 std::ostream& Digit::print(std::ostream& output) const
 {
-  output << "ITS Digit of chip index [" << mChipIndex << "] and pixel [" << mRow << ',' << mCol << "] with charge "
+  output << "ITSMFT Digit of chip index [" << mChipIndex << "] and pixel [" << mRow << ',' << mCol << "] with charge "
          << mCharge << " at time stamp" << fTimeStamp;
   return output;
 }
