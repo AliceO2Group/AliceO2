@@ -47,9 +47,6 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
   mDigitContainer->reset();
   
   RandomRing randomFlat(RandomRing::RandomType::Flat);
-  /// @todo GlobalPosition3D + nEle instead?
-  /// @todo no possibility to modify GlobalPosition3D
-  float posEle[4] = {0., 0., 0., 0.};
 
   const Mapper& mapper = Mapper::instance();
 
@@ -62,11 +59,9 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
   
   for (auto pointObject: *points) {
     Point *inputpoint = static_cast<Point *>(pointObject);
-        
-    posEle[0] = inputpoint->GetX();
-    posEle[1] = inputpoint->GetY();
-    posEle[2] = inputpoint->GetZ();
-    posEle[3] = static_cast<int>(inputpoint->GetEnergyLoss()/WION);
+    
+    const GlobalPosition3D posEle(inputpoint->GetX(), inputpoint->GetY(), inputpoint->GetZ());
+    int nPrimaryElectrons = static_cast<int>(inputpoint->GetEnergyLoss()/WION);
     
     int MCEventID = inputpoint->GetEventID();
     int MCTrackID = inputpoint->GetTrackID();
@@ -74,25 +69,22 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     //Loop over electrons
     /// @todo can be vectorized?
     /// @todo split transport and signal formation in two separate loop?
-    for(int iEle=0; iEle < posEle[3]; ++iEle) {
-      
+    for(int iEle=0; iEle < nPrimaryElectrons; ++iEle) {
+            
       // Drift and Diffusion
-      electronTransport.getElectronDriftVc(posEle);
+      const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle);
       
       /// @todo Time management in continuous mode (adding the time of the event?)
-      const float driftTime = getTime(posEle[2]);
+      const float driftTime = getTime(posEleDiff.getZ());
 
       // Attachment
-      /// @todo simple scaling possible outside this loop?
       if(randomFlat.getNextValue() < electronTransport.getAttachmentProbability(driftTime)) continue;
 
       // remove electrons that end up outside the active volume
       /// @todo should go to mapper?
-      if(fabs(posEle[2]) > TPCLENGTH) continue;
+      if(fabs(posEleDiff.getZ()) > TPCLENGTH) continue;
 
-      const GlobalPosition3D posElePad (posEle[0], posEle[1], posEle[2]);
-      const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posElePad);
-       
+      const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
       if(!digiPadPos.isValid()) continue;
 
       const int nElectronsGEM = gemStack.getStackAmplification();
@@ -100,7 +92,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       // Loop over all individual pads with signal due to pad response function
       /// @todo modularization -> own class
 
-      getPadResponse(posEle[0], posEle[1], padResponseContainer);
+      getPadResponse(posEleDiff.getX(), posEleDiff.getY(), padResponseContainer);
       for(auto &padresp : padResponseContainer ) {
         const int pad = digiPadPos.getPadPos().getPad() + padresp.getPad();
         const int row = digiPadPos.getPadPos().getRow() + padresp.getRow();
