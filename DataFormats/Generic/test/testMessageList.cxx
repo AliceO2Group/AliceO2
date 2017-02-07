@@ -58,9 +58,7 @@ public:
   operator uint8_t*() { return get();}
 
   void clear() {
-    if (mBuffer) {
-      delete mBuffer;
-    }
+    delete[] mBuffer;
     mBuffer = NULL;
     mBufferSize = 0;
   }
