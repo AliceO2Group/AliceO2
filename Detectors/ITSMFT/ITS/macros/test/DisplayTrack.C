@@ -1,0 +1,166 @@
+/// \file DisplayTrack.C
+/// \brief Simple macro to display ITSU tracks
+
+#if !defined(__CINT__) || defined(__MAKECINT__)
+  #include <string>
+
+  #include <TFile.h>
+  #include <TTree.h>
+  #include <TGeoManager.h>
+  #include <TGLViewer.h>
+  #include <TEveManager.h>
+  #include <TEveGeoShapeExtract.h>
+  #include <TEveGeoShape.h>
+  #include <TEveGeoNode.h>
+  #include <TEvePointSet.h>
+  #include <TClonesArray.h>
+  #include <TMath.h>
+
+  #include "ITSSimulation/Point.h"
+  #include "ITSReconstruction/Cluster.h"
+  #include "ITSReconstruction/CookedTrack.h"
+#endif
+
+extern TGeoManager *gGeoManager;
+
+void DisplayTrack(int event=0, int track=0) {
+  using namespace AliceO2::ITS;
+
+  TEveManager::Create();
+
+  // Full geometry
+  TFile *f = TFile::Open("AliceO2_TGeant3.params_10.root");
+  f->Get("FairGeoParSet");
+  f->Close();
+  
+  gGeoManager->GetVolume("obSuppCyl")->SetInvisible();
+  gGeoManager->GetVolume("ibSuppCyl")->SetInvisible();
+  gGeoManager->GetVolume("ITSUStave0_StaveStruct")->SetInvisible();
+  gGeoManager->GetVolume("ITSUStave1_StaveStruct")->SetInvisible();
+  gGeoManager->GetVolume("ITSUStave2_StaveStruct")->SetInvisible();
+
+  gGeoManager->GetVolume("ITSUHalfStave0")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave1")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave2")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave3")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave4")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave5")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave6")->SetTransparency(50);
+  
+  TGeoNode* tnode = gGeoManager->GetTopVolume()->FindNode("ITSV_2");
+  TEveGeoTopNode *evenode = new TEveGeoTopNode(gGeoManager, tnode); 
+  evenode->SetVisLevel(4);
+  gEve->AddGlobalElement(evenode);
+  
+  TGLViewer *view=gEve->GetDefaultGLViewer();
+  Double_t center[3]{0};
+  view->CurrentCamera().Reset();
+  view->CurrentCamera().Configure(3., 1200., center, 0., 89*3.14/180);
+  
+  gEve->Redraw3D();
+  
+  /*
+  // Simplified geometry
+  f = TFile::Open("simple_geom_ITS.root");
+  TEveGeoShapeExtract* gse = (TEveGeoShapeExtract*) f->Get("ITS");
+  TEveGeoShape* gsre = TEveGeoShape::ImportShapeExtract(gse);
+  gEve->AddElement(gsre,0);
+  f->Close();
+  */
+  
+  // Hits
+  f = TFile::Open("AliceO2_TGeant3.mc_10_event.root");
+  TTree *tree = (TTree *)gDirectory->Get("cbmsim");
+
+  string s{"hits"};
+  s+=std::to_string(track);
+  TEvePointSet* points = new TEvePointSet(s.data());
+  points->SetMarkerColor(kBlue);
+
+  TClonesArray pntArr("AliceO2::ITS::Point"), *ppntArr(&pntArr);
+  tree->SetBranchAddress("ITSPoint",&ppntArr);
+
+  tree->GetEvent(event);
+
+  Int_t nc=pntArr.GetEntriesFast(), n=0;
+  while(nc--) {
+      Point *c=static_cast<Point *>(pntArr.UncheckedAt(nc));
+      if (c->GetTrackID() == track) {
+         points->SetNextPoint(c->GetX(),c->GetY(),c->GetZ());
+         n++;
+      }      
+  } 
+  cout<<"Number of points: "<<n<<endl;
+
+  gEve->AddElement(points,0);
+  f->Close();
+
+
+  // Clusters
+  f = TFile::Open("AliceO2_TGeant3.clus_10_event.root");
+  tree = (TTree *)gDirectory->Get("cbmsim");
+
+  s="clusters";
+  s+=std::to_string(track);
+  points = new TEvePointSet(s.data());
+  points->SetMarkerColor(kMagenta);
+  
+  TClonesArray clusArr("AliceO2::ITS::Cluster"), *pclusArr(&clusArr);
+  tree->SetBranchAddress("ITSCluster",&pclusArr);
+
+  tree->GetEvent(event);
+
+  GeometryTGeo *gman = new GeometryTGeo(kTRUE);
+  Cluster::setGeom(gman);  
+
+  nc=clusArr.GetEntriesFast(); n=0;
+  while(nc--) {
+      Cluster *c=static_cast<Cluster *>(clusArr.UncheckedAt(nc));
+      c->goToFrameGlo();
+      if (c->getLabel(0) == track) {
+         points->SetNextPoint(c->getX(),c->getY(),c->getZ());
+         n++;
+      }      
+  } 
+  cout<<"Number of clusters: "<<n<<endl;
+
+  gEve->AddElement(points,0);
+  f->Close();
+
+
+  
+  // Track
+  f = TFile::Open("AliceO2_TGeant3.trac_10_event.root");
+  tree = (TTree *)gDirectory->Get("cbmsim");
+
+  s="track";
+  s+=std::to_string(track);
+  points = new TEvePointSet(s.data());
+  points->SetMarkerColor(kGreen);
+  
+  TClonesArray trkArr("AliceO2::ITS::CookedTrack"), *ptrkArr(&trkArr);
+  tree->SetBranchAddress("ITSTrack",&ptrkArr);
+
+  tree->GetEvent(event);
+
+  Int_t nt=trkArr.GetEntriesFast(); n=0;
+  while(nt--) {
+      CookedTrack *t=static_cast<CookedTrack *>(trkArr.UncheckedAt(nt));
+      if (TMath::Abs(t->getLabel()) != track) continue;
+      Int_t nc=t->getNumberOfClusters();
+      while (n<nc) {
+	Int_t idx=t->getClusterIndex(n);
+        Cluster *c=static_cast<Cluster *>(clusArr.UncheckedAt(idx));
+        c->goToFrameGlo();
+        points->SetNextPoint(c->getX(),c->getY(),c->getZ());
+        n++;
+      }      
+      break;
+  } 
+  cout<<"Number of attached clusters: "<<n<<endl;
+
+  gEve->AddElement(points,0);
+  f->Close();
+  
+}
+

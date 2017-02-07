@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 namespace AliceO2 {
 namespace CDB {
 

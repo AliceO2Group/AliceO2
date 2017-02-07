@@ -14,8 +14,6 @@
 #include <google/protobuf/stubs/common.h>
 #include "request.pb.h"
 
-using namespace std;
-
 namespace AliceO2 {
 namespace CDB {
 

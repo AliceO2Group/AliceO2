@@ -16,36 +16,36 @@
 #include "ITSSimulation/ClusterShape.h"
 
 namespace AliceO2 {
-namespace ITS {
+  namespace ITS {
 
-class SimuClusterShaper : public TObject {
+    class SimuClusterShaper : public TObject {
 
- public:
-  SimuClusterShaper();
-  SimuClusterShaper(const UInt_t &cs);
-  virtual ~SimuClusterShaper();
-  void FillClusterRandomly();
-  void AddNoisePixel();
+    public:
+      SimuClusterShaper();
+      SimuClusterShaper(const UInt_t &cs);
+      virtual ~SimuClusterShaper();
+      void FillClusterRandomly();
+      void AddNoisePixel();
 
-  inline UInt_t  GetNRows() {return fCShape->GetNRows();}
-  inline UInt_t  GetNCols() {return fCShape->GetNCols();}
-  inline UInt_t* GetShape() {return fCShape->GetShape();}
+      inline UInt_t  GetNRows() {return fCShape->GetNRows();}
+      inline UInt_t  GetNCols() {return fCShape->GetNCols();}
+      inline void    GetShape(std::vector<UInt_t>& v) {fCShape->GetShape(v);}
 
-  inline std::string ShapeSting(UInt_t cs, UInt_t *cshape) const {
-    std::stringstream out;
-    for (Int_t i = 0; i < cs; ++i) {
-      out << cshape[i];
-      if (i < cs-1) out << " ";
-    }
-    return out.str();
+      inline std::string ShapeSting(UInt_t cs, UInt_t *cshape) const {
+        std::stringstream out;
+        for (Int_t i = 0; i < cs; ++i) {
+          out << cshape[i];
+          if (i < cs-1) out << " ";
+        }
+        return out.str();
+      }
+
+    private:
+      UInt_t fNpixOn;
+      ClusterShape *fCShape;
+
+      ClassDef(SimuClusterShaper,1)
+    };
   }
-
- private:
-  UInt_t fNpixOn;
-  ClusterShape *fCShape;
-
-  ClassDef(SimuClusterShaper,1)
-};
-}
 }
 #endif

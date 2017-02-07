@@ -14,18 +14,24 @@ using namespace AliceO2::ITS;
 //______________________________________________________________________
 ClusterShape::ClusterShape() :
 fNrows(0),
-fNcols(0),
-fNFPix(0),
-fShape(0)
-{}
+fNcols(0) {
+  fShape.clear();
+}
 
 
 //______________________________________________________________________
-ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols, UInt_t NFPix) {
-  fNrows = Nrows;
-  fNcols = Ncols;
-  fNFPix = NFPix;
-  fShape = new UInt_t[fNFPix];
+ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols) :
+fNrows(Nrows),
+fNcols(Ncols) {
+  fShape.clear();
+}
+
+
+//______________________________________________________________________
+ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols, const std::vector<UInt_t>& Shape) :
+fNrows(Nrows),
+fNcols(Ncols) {
+  fShape = Shape;
 }
 
 
@@ -34,11 +40,39 @@ ClusterShape::~ClusterShape() {}
 
 
 //______________________________________________________________________
-Long64_t ClusterShape::GetShapeID() {
+Bool_t ClusterShape::IsValidShape() {
+  // Check the size
+  if (fShape.size() > fNrows*fNcols) return false;
+
+  // Check for duplicates and the validity of the position
+  std::sort(fShape.begin(), fShape.end());
+  for (size_t i = 0; i < fShape.size() - 1; i++) {
+    if (fShape[i] >= fNrows*fNcols || fShape[i+1] >= fNrows*fNcols) return false;
+    if (fShape[i] == fShape[i+1]) return false;
+  }
+
+  return true;
+}
+
+
+//______________________________________________________________________
+Long64_t ClusterShape::GetShapeID() const {
   // DJBX33X
   Long64_t id = 5381;
-  for (UInt_t i = 0; i < fNFPix; ++i) {
+  id = ((id << 5) + id) ^ fNrows;
+  id = ((id << 5) + id) ^ fNcols;
+  for (UInt_t i = 0; i < fShape.size(); ++i) {
     id = ((id << 5) + id) ^ fShape[i];
   }
   return id;
+}
+
+
+//______________________________________________________________________
+Bool_t ClusterShape::HasElement(UInt_t value) const {
+  for (auto & el : fShape) {
+    if (el > value) break;
+    if (el == value) return true;
+  }
+  return false;
 }

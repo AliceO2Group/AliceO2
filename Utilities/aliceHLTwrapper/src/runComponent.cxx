@@ -25,9 +25,13 @@
 #include <memory>
 #include <cstring>
 
-using std::cout;
 using std::cerr;
+using std::cout;
+using std::endl;
+using std::ofstream;
+using std::string;
 using std::stringstream;
+using std::vector;
 
 int main(int argc, char** argv)
 {

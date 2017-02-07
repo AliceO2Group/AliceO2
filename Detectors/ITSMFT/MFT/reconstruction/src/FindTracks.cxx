@@ -214,11 +214,12 @@ void FindTracks::Exec(Option_t* /*opt*/)
 void FindTracks::ExecMQ(TList* inputList,TList* outputList) 
 {
 
-  LOG(INFO) << "FindTracks::ExecMQ >>>>> (" << inputList->GetName() << "," << outputList->GetName() << "), Event " << fTNofEvents << "";
+  LOG(INFO) << "FindTracks::ExecMQ >>>>> add MFTHits for event " << fTNofEvents << "";
 
   fHits = (TClonesArray*)inputList->FindObject("MFTHits");
-
   outputList->Add(fTracks);
+
+  LOG(INFO) << "FindTracks::ExecMQ >>>>> add EventHeader. for event " << fTNofEvents << "";
 
   fEventHeader = (EventHeader*)inputList->FindObject("EventHeader.");
   outputList->Add(fEventHeader);

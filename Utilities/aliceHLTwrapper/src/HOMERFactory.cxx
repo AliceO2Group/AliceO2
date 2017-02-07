@@ -46,6 +46,10 @@
 
 using namespace ALICE::HLT;
 
+using std::cerr;
+using std::cout;
+using std::endl;
+
 // global flag of the library status
 int HOMERFactory::fgLibraryStatus=0;
 // This list must be NULL terminated, since we use it as a marker to identify

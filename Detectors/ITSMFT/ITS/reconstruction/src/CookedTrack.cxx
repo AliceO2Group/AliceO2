@@ -18,6 +18,7 @@ CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2
   //--------------------------------------------------------------------
   // This default constructor needs to be provided
   //--------------------------------------------------------------------
+  mIndex.reserve(7);
 }
 
 CookedTrack::CookedTrack(float x, float alpha, const std::array<float,kNParams> &par, const std::array<float,kCovMatSize> &cov)
@@ -117,6 +118,14 @@ void CookedTrack::setClusterIndex(Int_t l, Int_t i)
   //--------------------------------------------------------------------
   Int_t idx = (l << 28) + i;
   mIndex.push_back(idx);
+}
+
+void CookedTrack::setExternalClusterIndex(Int_t layer, Int_t idx)
+{
+  //--------------------------------------------------------------------
+  // Set the cluster index within an external cluster array 
+  //--------------------------------------------------------------------
+  mIndex.at(layer)=idx;
 }
 
 Double_t CookedTrack::getPredictedChi2(const Cluster* c) const

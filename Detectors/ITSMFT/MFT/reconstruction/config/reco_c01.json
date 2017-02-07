@@ -17,19 +17,27 @@
                                 "rateLogging": 1
                             }
                         ]
-                    },
+                    }
+                ]
+            },
+            {
+                "_______COMMENT:": "SAMPLER CONFIG",
+                "id": "sampler2",
+                "channels": [
                     {
-                        "name": "ack",
+                        "name": "data-out",
                         "sockets": [
                             {
-                                "type": "pull",
+                                "type": "push",
                                 "method": "bind",
-                                "address": "tcp://*:5556",
+                                "address": "tcp://*:5566",
+                                "sndBufSize": 1000,
+                                "rcvBufSize": 1000,
                                 "rateLogging": 1
                             }
                         ]
                     }
-                ]
+               ]
             },
             {
                 "_______COMMENT:": "PROCESSOR(S) CONFIG",
@@ -41,7 +49,7 @@
                             {
                                 "type": "pull",
                                 "method": "connect",
-                                "address": "tcp://localhost:5565",
+                                "address": "tcp://172.17.5.6:5565",
                                 "sndBufSize": 1000,
                                 "rcvBufSize": 1000,
                                 "rateLogging": 1
@@ -54,7 +62,39 @@
                             {
                                 "type": "push",
                                 "method": "connect",
-                                "address": "tcp://localhost:5572",
+                                "address": "tcp://172.17.5.9:5569",
+                                "sndBufSize": 1000,
+                                "rcvBufSize": 1000,
+                                "rateLogging": 1
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "_______COMMENT:": "PROCESSOR(S) CONFIG",
+                "id": "processor2",
+                "channels": [
+                    {
+                        "name": "data-in",
+                        "sockets": [
+                            {
+                                "type": "pull",
+                                "method": "connect",
+                                "address": "tcp://172.17.5.6:5566",
+                                "sndBufSize": 1000,
+                                "rcvBufSize": 1000,
+                                "rateLogging": 1
+                            }
+                        ]
+                    },
+                    {
+                        "name": "data-out",
+                        "sockets": [
+                            {
+                                "type": "push",
+                                "method": "connect",
+                                "address": "tcp://172.17.5.9:5570",
                                 "sndBufSize": 1000,
                                 "rcvBufSize": 1000,
                                 "rateLogging": 1
@@ -101,8 +141,8 @@
                         "sockets": [
                             {
                                 "type": "push",
-                                "method": "bind",
-                                "address": "tcp://*:5572",
+                                "method": "connect",
+                                "address": "tcp://localhost:5572",
                                 "sndBufSize": 1000,
                                 "rcvBufSize": 1000,
                                 "rateLogging": 1
@@ -124,17 +164,6 @@
                                 "address": "tcp://*:5572",
                                 "sndBufSize": 1000,
                                 "rcvBufSize": 1000,
-                                "rateLogging": 1
-                            }
-                        ]
-                    },
-                    {
-                        "name": "ack",
-                        "sockets": [
-                            {
-                                "type": "push",
-                                "method": "connect",
-                                "address": "tcp://localhost:5556",
                                 "rateLogging": 1
                             }
                         ]

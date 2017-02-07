@@ -29,6 +29,10 @@
 
 using namespace AliceO2::AliceHLT;
 using namespace ALICE::HLT;
+using std::cerr;
+using std::endl;
+using std::unique_ptr;
+using std::vector;
 
 // TODO: central logging to be implemented
 

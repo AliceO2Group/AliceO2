@@ -7,22 +7,24 @@
 #include "TClonesArray.h"
 
 #include "FairEventHeader.h"
+#include "FairMQProgOptions.h"
 
 #include "MFTBase/EventHeader.h"
 #include "MFTReconstruction/devices/FileSink.h"
 #include "MFTReconstruction/Hit.h"
 
 using namespace AliceO2::MFT;
+using namespace std;
 
 // special class to expose protected TMessage constructor
 //_____________________________________________________________________________
-class TMessage2 : public TMessage
+class SinkTMessage : public TMessage
 {
   public:
-  TMessage2(void* buf, Int_t len)
+  SinkTMessage(void* buf, Int_t len)
     : TMessage(buf, len)
   {
-    LOG(INFO) << "FileSink::TMessage2 >>>>> create message of length " << len << "";
+    LOG(INFO) << "FileSink::TMessage >>>>> create message of length " << len << "";
     ResetBit(kIsOwner);
   }
 };
@@ -76,7 +78,13 @@ FileSink::~FileSink()
 void FileSink::Init()
 {
 
-  LOG(INFO) << "SHOULD CREATE THE FILE AND TREE";
+  fFileName = fConfig->GetValue<std::string>("file-name");
+  fClassNames = fConfig->GetValue<std::vector<std::string>>("class-name");
+  fBranchNames = fConfig->GetValue<std::vector<std::string>>("branch-name");
+  fInputChannelName = fConfig->GetValue<std::string>("in-channel");
+  fAckChannelName = fConfig->GetValue<std::string>("ack-channel");
+
+  LOG(INFO) << "FileSink::Init >>>>> SHOULD CREATE THE FILE AND TREE";
   
   fFileOption = "RECREATE";
   fTreeName = "o2sim";  
@@ -130,75 +138,53 @@ void FileSink::Init()
   BranchNameList->Delete();
   delete BranchNameList;
 
+  OnData(fInputChannelName, &FileSink::StoreData);
+
 }
 
 //_____________________________________________________________________________
-void FileSink::Run()
+bool FileSink::StoreData(FairMQParts& parts, int index)
 {
 
-  FairMQParts parts;
   TObject* tempObjects[10];
 
-  LOG(INFO) << "FileSink::Run >>>>>" << "";
-
-  while (CheckCurrentState(RUNNING)) {
+  LOG(INFO) << "FileSink::StoreData >>>>> receive " << parts.Size() << " parts" << "";
       
-    LOG(INFO) << "FileSink::Run >>>>> RUNNING" << "";
+  for (int ipart = 0; ipart < parts.Size(); ipart++) { 
+    
+    SinkTMessage tm(parts.At(ipart)->GetData(), parts.At(ipart)->GetSize());
+    tempObjects[ipart] = (TObject*)tm.ReadObject(tm.GetClass());
 
-    if (Receive(parts, fInputChannelName) >= 0) {
-
-      LOG(INFO) << "FileSink::Run >>>>> receive " << parts.Size() << " parts" << "";
-      
-      for (int ipart = 0; ipart < parts.Size(); ipart++) { 
-	
-	TMessage2 tm(parts.At(ipart)->GetData(), parts.At(ipart)->GetSize());
-	tempObjects[ipart] = (TObject*)tm.ReadObject(tm.GetClass());
-
-	for (unsigned int ibr = 0; ibr < fBranchNames.size(); ibr++) { 
+    for (unsigned int ibr = 0; ibr < fBranchNames.size(); ibr++) { 
 	  
-          //LOG(INFO) << "FileSink::Run >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << " " << tempObjects[ipart]->GetName() << "";
+      LOG(INFO) << "FileSink::Run >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << " " << tempObjects[ipart]->GetName() << "";
 
-	  // !!! force ???
-	  //if (kFALSE || (strcmp(tempObjects[ipart]->GetName(),fBranchNames[ibr].c_str()) == 0)) { 
+      // !!! force ???
+      //if (kFALSE || (strcmp(tempObjects[ipart]->GetName(),fBranchNames[ibr].c_str()) == 0)) { 
 
-	  if ((strcmp(tempObjects[ipart]->GetName(),fBranchNames[ibr].c_str()) == 0) || (strncmp(fBranchNames[ibr].c_str(),"MFT",3) == 0 && strncmp(tempObjects[ipart]->GetName(),"AliceO2",7) == 0)) {
+      if ((strcmp(tempObjects[ipart]->GetName(),fBranchNames[ibr].c_str()) == 0) || (strncmp(fBranchNames[ibr].c_str(),"MFT",3) == 0 && strncmp(tempObjects[ipart]->GetName(),"AliceO2",7) == 0)) {
 
-	    fOutputObjects[ibr] = tempObjects[ipart];
+	fOutputObjects[ibr] = tempObjects[ipart];
 
-	    LOG(INFO) << "FileSink::Run >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << " " << tempObjects[ipart]->GetName() << "";
-	    //LOG(INFO) << "FileSink::Run >>>>> out object branch " << ibr << " part " << ipart << "";	    
+	LOG(INFO) << "FileSink::Run >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << " " << tempObjects[ipart]->GetName() << "";
+	//LOG(INFO) << "FileSink::Run >>>>> out object branch " << ibr << " part " << ipart << "";	    
 
-	    //fOutputObjects[ibr]->Dump();
-	    fTree->SetBranchAddress(fBranchNames[ibr].c_str(),&fOutputObjects[ibr]);
-
-	  }
-	}
+	//fOutputObjects[ibr]->Dump();
+	fTree->SetBranchAddress(fBranchNames[ibr].c_str(),&fOutputObjects[ibr]);
+	
       }
-      //fTree->Print();
-      fTree->Fill();
-      
-      if (strcmp(fAckChannelName.data(),"") != 0) {
-	std::unique_ptr<FairMQMessage> msg(NewMessage());
-	Send(msg, fAckChannelName);
-      }
-      
     }
   }
+  //fTree->Print();
+  fTree->Fill();
+      
+  if (strcmp(fAckChannelName.data(),"") != 0) {
+    LOG(INFO) << "FileSink::StoreData >>>>> Send acknowldege" << "";
+    unique_ptr<FairMQMessage> msg(NewMessage());
+    Send(msg, fAckChannelName);
+  }
+      
+  return true;
 
-}
-
-//_____________________________________________________________________________
-void FileSink::SetProperty(const int key, const std::string& value)
-{
-    switch (key)
-    {
-        case OutputFileName :
-          SetOutputFileName(value);
-            break;
-
-        default:
-            FairMQDevice::SetProperty(key, value);
-            break;
-    }
 }
 
