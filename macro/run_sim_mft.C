@@ -1,7 +1,7 @@
 void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGeant3")
 {
 
-  gRandom->SetSeed(0);	
+  gRandom->SetSeed(0);
 
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
@@ -48,7 +48,7 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   AliceO2::MFT::Detector* mft = new AliceO2::MFT::Detector();
 
   run->AddModule(mft);
-  
+
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
   FairBoxGenerator* boxGen = new FairBoxGenerator(13, nMuons);
@@ -62,9 +62,9 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   primGen->AddGenerator(boxGen);
 
   run->SetGenerator(primGen);
-  
+
   run->Init();
-  
+
   // Runtime database
   Bool_t kParameterMerged = kTRUE;
   FairParRootFileIo* parOut = new FairParRootFileIo(kParameterMerged);
@@ -72,7 +72,7 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   rtdb->setOutput(parOut);
   rtdb->saveOutput();
   rtdb->print();
-  
+
   //AliceO2::MFT::GeometryTGeo *geom = mft->GetGeometryTGeo();
   //printf("MFT has %d disks.\n",geom->GetNofDisks());
 
@@ -84,7 +84,7 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   Double_t rtime = timer.RealTime();
   Double_t ctime = timer.CpuTime();
   cout << endl << endl;
-  cout << "Macro finished succesfully." << endl;
+  cout << "Macro finished succesfully" << endl;
   cout << "Output file is " << outFile << endl;
   cout << "Parameter file is " << parFile << endl;
   cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
