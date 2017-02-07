@@ -26,7 +26,7 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, runs2 = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1;
+	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, runs2 = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1, writeoutput = 0;
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
@@ -67,6 +67,11 @@ int main(int argc, char** argv)
 		if ( !strcmp( argv[i], "-CONTINUE" ) ) 
 		{
 			continueOnError=1;        
+		}
+		
+		if ( !strcmp( argv[i], "-WRITE" ) ) 
+		{
+			writeoutput=1;        
 		}
 
 		if ( !strcmp( argv[i], "-DEBUG" ) && argc > i + 1)
@@ -309,13 +314,39 @@ int main(int argc, char** argv)
 			if (merger)
 			{
 				const AliHLTTPCGMMerger& merger = hlt.Merger();
+				if (writeoutput)
+				{
+					char filename[1024];
+					sprintf(filename, "output.%d.txt", i);
+					printf("Creating output file %s\n", filename);
+					FILE* foutput = fopen(filename, "w+");
+					if (foutput == NULL)
+					{
+						printf("Error creating file\n");
+						exit(1);
+					}
+					fprintf(foutput, "Event %d\n", i);
+					for (int k = 0;k < merger.NOutputTracks();k++)
+					{
+						const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[k];
+						const AliHLTTPCGMTrackParam& param = track.GetParam();
+						fprintf(foutput, "Track %d: %4s Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f q/Pt %f - Clusters ", k, track.OK() ? "OK" : "FAIL", track.GetAlpha(), param.GetX(), param.GetY(), param.GetZ(), param.GetSinPhi(), param.GetDzDs(), param.GetQPt());
+						for (int l = 0;l < track.NClusters();l++)
+						{
+							fprintf(foutput, "%d ", merger.OutputClusterIds()[track.FirstClusterRef() + l]);
+						}
+						fprintf(foutput, "\n");
+					}
+					fclose(foutput);
+				}
+				
 				if (clusterstats)
 				{
 					unsigned int minid = 2000000000, maxid = 0;
-					for (int i = 0;i < merger.NOutputTrackClusters();i++)
+					for (int k = 0;k < merger.NOutputTrackClusters();k++)
 					{
-						if (merger.OutputClusterIds()[i] < minid) minid = merger.OutputClusterIds()[i];
-						if (merger.OutputClusterIds()[i] > maxid) maxid = merger.OutputClusterIds()[i];
+						if (merger.OutputClusterIds()[k] < minid) minid = merger.OutputClusterIds()[k];
+						if (merger.OutputClusterIds()[k] > maxid) maxid = merger.OutputClusterIds()[k];
 					}
 					printf("\nCluster id range: %d %d\n", minid, maxid);
 					char* idused = new char[maxid - minid + 1];
@@ -331,28 +362,28 @@ int main(int argc, char** argv)
 						}
 					}
 					int nClustersUsed = 0;
-					for (unsigned int i = 0;i < maxid - minid;i++)
+					for (unsigned int k = 0;k < maxid - minid;k++)
 					{
-						nClustersUsed += idused[i];
+						nClustersUsed += idused[k];
 					}
 					delete[] idused;
 					int totalclusters = 0;
-					for (int i = 0;i < hlt.NSlices();i++)
+					for (int k = 0;k < hlt.NSlices();k++)
 					{
-						totalclusters += hlt.ClusterData(i).NumberOfClusters();
+						totalclusters += hlt.ClusterData(k).NumberOfClusters();
 					}
 					printf("Clusters used: %d of %d, %4.2f%%\n", nClustersUsed, totalclusters, 100. * (float) nClustersUsed / (float) totalclusters);
 				}
 
 				if (clusterstats >= 2)
 				{
-					for (int i = 0;i < merger.NOutputTracks();i++)
+					for (int k = 0;k < merger.NOutputTracks();k++)
 					{
 						const AliHLTTPCGMMergedTrack* tracks = merger.OutputTracks();
-						int nCluster = tracks[i].NClusters();
+						int nCluster = tracks[k].NClusters();
 						if (nCluster < 0)
 						{
-							printf("Error in Merger: Track %d contains %d clusters\n", i, nCluster);
+							printf("Error in Merger: Track %d contains %d clusters\n", k, nCluster);
 							return(1);
 						}
 						else
