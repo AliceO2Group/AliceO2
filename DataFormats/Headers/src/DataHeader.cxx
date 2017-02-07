@@ -102,9 +102,9 @@ void AliceO2::Header::DataHeader::print() const
   printf("  origin       : %s\n", dataOrigin.str);
   printf("  serialization: %s\n", payloadSerializationMethod.str);
   printf("  description  : %s\n", dataDescription.str);
-  printf("  sub spec.    : %llu\n", subSpecification);
+  printf("  sub spec.    : %llu\n", (long long unsigned int)subSpecification);
   printf("  header size  : %i\n", headerSize);
-  printf("  payloadSize  : %llu\n", payloadSize);
+  printf("  payloadSize  : %llu\n", (long long unsigned int)payloadSize);
 }
 
 //__________________________________________________________________________________________________
