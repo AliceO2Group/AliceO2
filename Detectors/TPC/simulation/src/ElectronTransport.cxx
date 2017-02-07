@@ -19,26 +19,26 @@ ElectronTransport::ElectronTransport()
 ElectronTransport::~ElectronTransport()
 {}
 
-void ElectronTransport::getElectronDrift(Float_t *posEle)
+void ElectronTransport::getElectronDrift(float *posEle)
 {
-  Float_t driftl=posEle[2];
+  float driftl=posEle[2];
   if(driftl<0.01) driftl=0.01;
   driftl=std::sqrt(driftl);
-  const Float_t sigT = driftl*DIFFT;
-  const Float_t sigL = driftl*DIFFL;
+  const float sigT = driftl*DIFFT;
+  const float sigL = driftl*DIFFL;
   posEle[0]=(mRandomGaus.getNextValue() * sigT) + posEle[0];
   posEle[1]=(mRandomGaus.getNextValue() * sigT) + posEle[1];
   posEle[2]=(mRandomGaus.getNextValue() * sigL) + posEle[2];
 }
 
-void ElectronTransport::getElectronDriftVc(Float_t *posEle)
+void ElectronTransport::getElectronDriftVc(float *posEle)
 {
-  Float_t driftl=posEle[2];
+  float driftl=posEle[2];
   if(driftl<0.01) driftl=0.01;
   driftl=std::sqrt(driftl);
-  const Float_t sigT = driftl*DIFFT;
-  const Float_t sigL = driftl*DIFFL;
-  const Float_t sig[3] = {sigT, sigT, sigL};
+  const float sigT = driftl*DIFFT;
+  const float sigL = driftl*DIFFL;
+  const float sig[3] = {sigT, sigT, sigL};
   for(int i = 0; i < 3; i += mVc_size) {
     diffusion(mRandomGaus.getNextValueVc(), Vc::float_v(&sig[i]), Vc::float_v(&posEle[i])).store(&posEle[i]);
   }

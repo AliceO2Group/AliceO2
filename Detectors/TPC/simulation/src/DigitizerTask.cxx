@@ -88,19 +88,19 @@ void DigitizerTask::Exec(Option_t *option)
 
 void DigitizerTask::fillHitArrayFromFile()
 {
-  static Int_t eventNumber = 0;
+  static int eventNumber = 0;
   printf("Process Hits from %s event %d\n", mHitFileName.c_str(), eventNumber);
 
   TFile fIn(mHitFileName.c_str());
   TTree *tIn = static_cast<TTree*>(fIn.Get("tHit"));
 
-  Int_t   fEvent =0;
-  Float_t fQ     =0.f;
-  Float_t fTime  =0.f;
-  Int_t   fTrack =0.f;
-  Float_t fX     =0.f;
-  Float_t fY     =0.f;
-  Float_t fZ     =0.f;
+  int   fEvent =0;
+  float fQ     =0.f;
+  float fTime  =0.f;
+  int   fTrack =0.f;
+  float fX     =0.f;
+  float fY     =0.f;
+  float fZ     =0.f;
 
   tIn->SetBranchAddress("fEvent",  &fEvent );
   tIn->SetBranchAddress("fQ",      &fQ     );
@@ -121,14 +121,14 @@ void DigitizerTask::fillHitArrayFromFile()
 
 
 //   printf("%p: %d\n", tIn, tIn->GetEntries());
-  for (Int_t ihit=0; ihit<tIn->GetEntries(); ++ihit) {
+  for (int ihit=0; ihit<tIn->GetEntries(); ++ihit) {
 //     printf("Processing hit %d (event %d)\n", ihit, fEvent);
     tIn->GetEntry(ihit);
     if (fEvent<eventNumber) continue;
     if (fEvent>eventNumber) break;
 //     printf("Filling hit %d (event %d)\n", ihit, fEvent);
 
-    const Int_t size = dummy.GetEntriesFast();
+    const int size = dummy.GetEntriesFast();
     new(dummy[size]) Point(fTrack, 98, TVector3(fX, fY, fZ), TVector3(0,0,0),
                            fTime, 0., fQ*WION);
   }

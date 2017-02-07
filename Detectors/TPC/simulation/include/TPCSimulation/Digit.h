@@ -9,7 +9,7 @@
 #endif
 
 #include "FairTimeStamp.h"
-#include "Rtypes.h"
+
 namespace boost {
 namespace serialization {
 class access; 
@@ -36,7 +36,7 @@ class Digit : public FairTimeStamp {
     /// @param row Row in which the digit was created
     /// @param pad Pad in which the digit was created
     /// @param time Time at which the digit was created
-    Digit(Int_t eventID, Int_t trackID, Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time);
+    Digit(int eventID, int trackID, int cru, float charge, int row, int pad, int time);
 
     /// Constructor, initializing values for position, charge, time and common mode
     /// @param eventID MC ID of the event
@@ -47,46 +47,46 @@ class Digit : public FairTimeStamp {
     /// @param pad Pad in which the digit was created
     /// @param time Time at which the digit was created
     /// @param commonMode Common mode signal on that ROC in the time bin of the digit
-    Digit(Int_t eventID, Int_t trackID, Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time, Float_t commonMode);
+    Digit(int eventID, int trackID, int cru, float charge, int row, int pad, int time, float commonMode);
 
     /// Destructor
     virtual ~Digit();
 
     /// Get the event ID
     /// @return event ID
-    Int_t getMCEventID() {return mMCEventID;}
+    int getMCEventID() {return mMCEventID;}
 
     /// Get the track ID
     /// @return track ID
-    Int_t getMCTrackID() {return mMCTrackID;}
+    int getMCTrackID() {return mMCTrackID;}
 
     /// Get the accumulated charged of the digit
     /// @return charge of the digit
-    Int_t getCharge() const { return int(mCharge); }
+    int getCharge() const { return int(mCharge); }
 
     /// Get the accumulated charged of the digit as a float
     /// @return charge of the digit as a float
-    Float_t getChargeFloat() const { return mCharge; }
+    float getChargeFloat() const { return mCharge; }
 
     /// Get the CRU of the digit
     /// @return CRU of the digit
-    Int_t getCRU() const { return mCRU; }
+    int getCRU() const { return mCRU; }
 
     /// Get the pad row of the digit
     /// @return pad row of the digit
-    Int_t getRow() const { return mRow; }
+    int getRow() const { return mRow; }
 
     /// Get the pad of the digit
     /// @return pad of the digit
-    Int_t getPad() const { return mPad; }
+    int getPad() const { return mPad; }
 
     /// Get the timeBin of the digit
     /// @return timeBin of the digit
-    Int_t getTimeStamp() const { return int(FairTimeStamp::GetTimeStamp()); }
+    int getTimeStamp() const { return int(FairTimeStamp::GetTimeStamp()); }
 
     /// Get the common mode signal of the digit
     /// @return common mode signal of the digit
-    Float_t getCommonMode() const { return mCommonMode; }
+    float getCommonMode() const { return mCommonMode; }
 
     /// Print function: Print basic digit information on the  output stream
     /// @param output Stream to put the digit on
@@ -98,13 +98,13 @@ class Digit : public FairTimeStamp {
     friend class boost::serialization::access;
     #endif
       
-    Float_t                   mCharge;          ///< ADC value of the digit
-    Float_t                   mCommonMode;      ///< Common mode value of the digit
-    Int_t                     mMCEventID;       ///< MC Event ID;
-    Int_t                     mMCTrackID;       ///< MC Track ID;
-    UShort_t                  mCRU;             ///< CRU of the digit
-    UChar_t                   mRow;             ///< Row of the digit
-    UChar_t                   mPad;             ///< Pad of the digit
+    float                   mCharge;          ///< ADC value of the digit
+    float                   mCommonMode;      ///< Common mode value of the digit
+    int                     mMCEventID;       ///< MC Event ID;
+    int                     mMCTrackID;       ///< MC Track ID;
+    unsigned short          mCRU;             ///< CRU of the digit
+    unsigned char           mRow;             ///< Row of the digit
+    unsigned char           mPad;             ///< Pad of the digit
       
   ClassDef(Digit, 3);
 };

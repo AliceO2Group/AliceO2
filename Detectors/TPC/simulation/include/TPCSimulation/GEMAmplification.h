@@ -4,7 +4,6 @@
 #ifndef ALICEO2_TPC_GEMAmplification_H_
 #define ALICEO2_TPC_GEMAmplification_H_
 
-#include "Rtypes.h"
 #include "TPCSimulation/Constants.h"
 #include "TPCBase/RandomRing.h"
 
@@ -26,36 +25,36 @@ class GEMAmplification
     /// @param effGainGEM2 Effective gain of GEM 2
     /// @param effGainGEM3 Effective gain of GEM 3
     /// @param effGainGEM4 Effective gain of GEM 4
-    GEMAmplification(Float_t effGainGEM1, Float_t effGainGEM2, Float_t effGainGEM3, Float_t effGainGEM4);
+    GEMAmplification(float effGainGEM1, float effGainGEM2, float effGainGEM3, float effGainGEM4);
 
     /// Destructor
     ~GEMAmplification();
    
     /// Compute the number of electrons after amplification in a full stack of four GEM foils
     /// @return Number of electrons after amplification in a full stack of four GEM foils
-    Int_t getStackAmplification();    
+    int getStackAmplification();
     
     /// Compute the number of electrons after amplification in a full stack of four GEM foils
     /// @param nElectrons Number of electrons arriving at the first amplification stage (GEM1)
     /// @return Number of electrons after amplification in a full stack of four GEM foils
-    Int_t getStackAmplification(Int_t nElectrons);
+    int getStackAmplification(int nElectrons);
       
     /// Compute the number of electrons after amplification in a single GEM foil
     /// @param nElectrons Number of electrons to be amplified
     /// @param GEMgain Effective gain of that specific GEM
     /// @return Number of electrons after amplification in a single GEM foil
-    Int_t getSingleGEMAmplification(Int_t nElectrons, Float_t GEMgain);
+    int getSingleGEMAmplification(int nElectrons, float GEMgain);
       
   private:
-    Float_t        mEffGainGEM1;      ///<  Effective gain of GEM 1
-    Float_t        mEffGainGEM2;      ///<  Effective gain of GEM 2
-    Float_t        mEffGainGEM3;      ///<  Effective gain of GEM 3
-    Float_t        mEffGainGEM4;      ///<  Effective gain of GEM 4
+    float          mEffGainGEM1;      ///<  Effective gain of GEM 1
+    float          mEffGainGEM2;      ///<  Effective gain of GEM 2
+    float          mEffGainGEM3;      ///<  Effective gain of GEM 3
+    float          mEffGainGEM4;      ///<  Effective gain of GEM 4
     RandomRing     mRandomPolya;      ///<  Circular random buffer containing random values of the polya distribution for gain fluctuations in a single GEM
 };
     
 inline
-Int_t GEMAmplification::getSingleGEMAmplification(Int_t nElectrons, Float_t GEMgain)
+int GEMAmplification::getSingleGEMAmplification(int nElectrons, float GEMgain)
 {
   // the incoming number of electrons from the foil above is multiplied 
   // by the effective gain and the fluctuations which follow a Polya

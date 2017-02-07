@@ -8,7 +8,6 @@
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/CommonMode.h"
 #include "TPCSimulation/Constants.h"
-#include "Rtypes.h"
 
 class TClonesArray;
 
@@ -31,11 +30,11 @@ class DigitContainer{
 
     /// Get the size of the container
     /// @return Size of the CRU container
-    Int_t getSize() {return mCRU.size();}
+    int getSize() {return mCRU.size();}
 
     /// Get the number of entires in the container
     /// @return Number of entries in the CRU container
-    Int_t getNentries();
+    int getNentries();
 
     /// Add digit to the container
     /// @param eventID MC ID of the event
@@ -45,7 +44,7 @@ class DigitContainer{
     /// @param pad Pad of digit
     /// @param timeBin Time bin of the digit
     /// @param charge Charge of the digit
-    void addDigit(Int_t eventID, Int_t trackID, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t charge);
+    void addDigit(int eventID, int trackID, int cru, int timeBin, int row, int pad, float charge);
 
     /// Fill output TClonesArray
     /// @param output Output container
@@ -74,9 +73,9 @@ void DigitContainer::reset()
 }
 
 inline
-Int_t DigitContainer::getNentries() 
+int DigitContainer::getNentries()
 {
-  Int_t counter = 0;
+  int counter = 0;
   for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;
     ++counter;

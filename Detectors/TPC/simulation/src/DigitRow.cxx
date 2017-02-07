@@ -6,7 +6,7 @@
 
 using namespace AliceO2::TPC;
 
-DigitRow::DigitRow(Int_t row, Int_t npads)
+DigitRow::DigitRow(int row, int npads)
   : mTotalChargeRow(0.)
   , mRow(row)
   , mPads(npads)
@@ -19,7 +19,7 @@ DigitRow::~DigitRow()
   }
 }
 
-void DigitRow::setDigit(Int_t eventID, Int_t trackID, Int_t pad, Float_t charge)
+void DigitRow::setDigit(int eventID, int trackID, int pad, float charge)
 {
   DigitPad *result = mPads[pad];
   if(result != nullptr) {
@@ -32,7 +32,7 @@ void DigitRow::setDigit(Int_t eventID, Int_t trackID, Int_t pad, Float_t charge)
 }
 
 
-void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row)
+void DigitRow::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row)
 {
   for(auto &aPad : mPads) {
     if(aPad == nullptr) continue;
@@ -40,7 +40,7 @@ void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
   }
 }
 
-void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Float_t commonMode)
+void DigitRow::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, float commonMode)
 {
   for(auto &aPad : mPads) {
     if(aPad == nullptr) continue;
@@ -48,7 +48,7 @@ void DigitRow::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
   }
 }
 
-void DigitRow::processCommonMode(Int_t cru, Int_t timeBin, Int_t row)
+void DigitRow::processCommonMode(int cru, int timeBin, int row)
 {
   for(auto &aPad : mPads) {
     if(aPad == nullptr) continue;

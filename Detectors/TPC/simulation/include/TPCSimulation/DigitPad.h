@@ -4,7 +4,6 @@
 #ifndef ALICEO2_TPC_DigitPad_H_
 #define ALICEO2_TPC_DigitPad_H_
 
-#include "Rtypes.h"
 #include "TPCSimulation/DigitADC.h"
 #include "TPCSimulation/CommonMode.h"
 #include <TClonesArray.h>
@@ -20,7 +19,7 @@ class DigitPad{
 
     /// Constructor
     /// @param mPad Pad ID
-    DigitPad(Int_t mPad);
+    DigitPad(int mPad);
 
     /// Destructor
     ~DigitPad();
@@ -30,21 +29,21 @@ class DigitPad{
 
     /// Get the size of the container
     /// @return Size of the ADC container
-    Int_t getSize() {return mADCCounts.size();}
+    int getSize() {return mADCCounts.size();}
 
     /// Get the Pad ID
     /// @return Pad ID
-    Int_t getPad() {return mPad;}
+    int getPad() {return mPad;}
 
     /// Get the accumulated charge on that pad
     /// @return Accumulated charge
-    Float_t getTotalChargePad() {return mTotalChargePad;}
+    float getTotalChargePad() {return mTotalChargePad;}
 
     /// Add digit to the time bin container
     /// @param eventID MC ID of the event
     /// @param trackID MC ID of the track
     /// @param charge Charge of the digit
-    void setDigit(Int_t eventID, Int_t trackID, Float_t charge);
+    void setDigit(int eventID, int trackID, float charge);
 
     /// Fill output TClonesArray
     /// @param output Output container
@@ -52,7 +51,7 @@ class DigitPad{
     /// @param timeBin Time bin
     /// @param row Row ID
     /// @param pad pad ID
-    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad);
+    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad);
 
     /// Fill output TClonesArray
     /// @param output Output container
@@ -60,7 +59,7 @@ class DigitPad{
     /// @param timeBin Time bin
     /// @param row Row ID
     /// @param pad pad ID
-    void fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t commonMode);
+    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode);
 
     // Process Common Mode Information
     /// @param output Output container
@@ -68,16 +67,16 @@ class DigitPad{
     /// @param timeBin TimeBin
     /// @param rowID Row ID
     /// @param pad pad ID
-    void processCommonMode(Int_t cru, Int_t timeBin, Int_t row, Int_t pad);
+    void processCommonMode(int cru, int timeBin, int row, int pad);
 
   private:
-    Float_t                  mTotalChargePad;   ///< Total accumulated charge on that pad for a given time bin
-    UChar_t                  mPad;              ///< Pad of the ADC value
+    float                  mTotalChargePad;   ///< Total accumulated charge on that pad for a given time bin
+    unsigned char          mPad;              ///< Pad of the ADC value
     std::vector <DigitADC>   mADCCounts;        ///< Vector with ADC values
 };
 
 inline 
-void DigitPad::setDigit(Int_t eventID, Int_t trackID, Float_t charge)
+void DigitPad::setDigit(int eventID, int trackID, float charge)
 {
   DigitADC digitAdc(eventID, trackID, charge);
   mADCCounts.emplace_back(digitAdc);

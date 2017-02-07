@@ -15,7 +15,7 @@ CommonMode::CommonMode()
   , mCommonMode()
 {}
 
-CommonMode::CommonMode(Int_t cru, Int_t timeBin, Float_t commonMode)
+CommonMode::CommonMode(int cru, int timeBin, float commonMode)
   : mCRU(cru)
   , mTimeBin(timeBin)
   , mCommonMode(commonMode)
@@ -25,7 +25,7 @@ CommonMode::~CommonMode()
 {}
 
 
-Float_t CommonMode::computeCommonMode(std::vector<CommonMode> & summedChargesContainer, std::vector<CommonMode> & commonModeContainer)
+float CommonMode::computeCommonMode(std::vector<CommonMode> & summedChargesContainer, std::vector<CommonMode> & commonModeContainer)
 { 
   const Mapper& mapper = Mapper::instance();
   
@@ -77,7 +77,7 @@ Float_t CommonMode::computeCommonMode(std::vector<CommonMode> & summedChargesCon
     }
     
     commonModeSignal *= CPAD/(float(nPads)*CPAD);
-    const Float_t CommonModeADC = SAMPAProcessing::getADCSaturation(commonModeSignal);
+    const float CommonModeADC = SAMPAProcessing::getADCSaturation(commonModeSignal);
     CommonMode commonModeSummed(currentCRU, timeBin, CommonModeADC);
     commonModeContainer.emplace_back(commonModeSummed);
   }  

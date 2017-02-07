@@ -49,7 +49,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
   RandomRing randomFlat(RandomRing::RandomType::Flat);
   /// @todo GlobalPosition3D + nEle instead?
   /// @todo no possibility to modify GlobalPosition3D
-  Float_t posEle[4] = {0., 0., 0., 0.};  
+  float posEle[4] = {0., 0., 0., 0.};
 
   const Mapper& mapper = Mapper::instance();
 
@@ -68,19 +68,19 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     posEle[2] = inputpoint->GetZ();
     posEle[3] = static_cast<int>(inputpoint->GetEnergyLoss()/WION);
     
-    Int_t MCEventID = inputpoint->GetEventID();
-    Int_t MCTrackID = inputpoint->GetTrackID();
+    int MCEventID = inputpoint->GetEventID();
+    int MCTrackID = inputpoint->GetTrackID();
 
     //Loop over electrons
     /// @todo can be vectorized?
     /// @todo split transport and signal formation in two separate loop?
-    for(Int_t iEle=0; iEle < posEle[3]; ++iEle) {
+    for(int iEle=0; iEle < posEle[3]; ++iEle) {
       
       // Drift and Diffusion
       electronTransport.getElectronDriftVc(posEle);
       
       /// @todo Time management in continuous mode (adding the time of the event?)
-      const Float_t driftTime = getTime(posEle[2]);
+      const float driftTime = getTime(posEle[2]);
 
       // Attachment
       /// @todo simple scaling possible outside this loop?
@@ -95,19 +95,19 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
        
       if(!digiPadPos.isValid()) continue;
 
-      const Int_t nElectronsGEM = gemStack.getStackAmplification();
+      const int nElectronsGEM = gemStack.getStackAmplification();
       
       // Loop over all individual pads with signal due to pad response function
       /// @todo modularization -> own class
 
       getPadResponse(posEle[0], posEle[1], padResponseContainer);
       for(auto &padresp : padResponseContainer ) {
-        const Int_t pad = digiPadPos.getPadPos().getPad() + padresp.getPad();
-        const Int_t row = digiPadPos.getPadPos().getRow() + padresp.getRow();
-        const Float_t weight = padresp.getWeight();
+        const int pad = digiPadPos.getPadPos().getPad() + padresp.getPad();
+        const int row = digiPadPos.getPadPos().getRow() + padresp.getRow();
+        const float weight = padresp.getWeight();
         
         // Loop over all time bins with signal due to time response
-//         for(Float_t bin = 0; bin<5; ++bin) {
+//         for(float bin = 0; bin<5; ++bin) {
 //           /// @todo check how the SAMPA digitisation is applied
 //           /// @todo modularization -> own SAMPA class
 //           /// @todo conversion to ADC counts already here? How about saturation?
@@ -118,7 +118,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 //         }
 
         // 8 chosen to fit with SSE registers
-        for(Float_t bin = 0; bin<8; bin+=Vc::float_v::Size) {
+        for(float bin = 0; bin<8; bin+=Vc::float_v::Size) {
           /// @todo check how the SAMPA digitisation is applied
           Vc::float_v binvector;
           for (int i=0;i<Vc::float_v::Size;++i) { binvector[i]=bin+i; }

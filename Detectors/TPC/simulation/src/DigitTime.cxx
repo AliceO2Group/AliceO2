@@ -7,7 +7,7 @@
 
 using namespace AliceO2::TPC;
 
-DigitTime::DigitTime(Int_t timeBin, Int_t nrows)
+DigitTime::DigitTime(int timeBin, int nrows)
   : mTotalChargeTimeBin(0.)
   , mTimeBin(timeBin)
   , mRows(nrows)
@@ -20,7 +20,7 @@ DigitTime::~DigitTime()
   }
 }
 
-void DigitTime::setDigit(Int_t eventID, Int_t trackID, Int_t cru, Int_t row, Int_t pad, Float_t charge)
+void DigitTime::setDigit(int eventID, int trackID, int cru, int row, int pad, float charge)
 {
   DigitRow *result = mRows[row];
   if(result != nullptr) {
@@ -33,7 +33,7 @@ void DigitTime::setDigit(Int_t eventID, Int_t trackID, Int_t cru, Int_t row, Int
   }
 }
 
-void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin)
+void DigitTime::fillOutputContainer(TClonesArray *output, int cru, int timeBin)
 {
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
@@ -41,9 +41,9 @@ void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeB
   }
 }
 
-void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBin, std::vector<CommonMode> &commonModeContainer)
+void DigitTime::fillOutputContainer(TClonesArray *output, int cru, int timeBin, std::vector<CommonMode> &commonModeContainer)
 {
-  Float_t commonMode =0;
+  float commonMode =0;
   for (auto &aCommonMode :commonModeContainer){
     if(aCommonMode.getCRU() == cru && aCommonMode.getTimeBin() == timeBin) {
       commonMode = aCommonMode.getCommonMode();
@@ -57,7 +57,7 @@ void DigitTime::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeB
   }
 }
 
-void DigitTime::processCommonMode(Int_t cru, Int_t timeBin)
+void DigitTime::processCommonMode(int cru, int timeBin)
 {
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;

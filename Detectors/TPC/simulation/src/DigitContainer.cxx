@@ -21,7 +21,7 @@ DigitContainer::~DigitContainer()
   }
 }
 
-void DigitContainer::addDigit(Int_t eventID, Int_t trackID, Int_t cru, Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
+void DigitContainer::addDigit(int eventID, int trackID, int cru, int timeBin, int row, int pad, float charge)
 {
   DigitCRU *result = mCRU[cru];
   if(result != nullptr){

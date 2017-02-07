@@ -18,7 +18,7 @@ Digit::Digit()
   , mPad(-1)
 {}
 
-Digit::Digit(Int_t eventID, Int_t trackID, Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time)
+Digit::Digit(int eventID, int trackID, int cru, float charge, int row, int pad, int time)
   : FairTimeStamp(time)
   , mCharge(charge)
   , mCommonMode(-1.)
@@ -30,7 +30,7 @@ Digit::Digit(Int_t eventID, Int_t trackID, Int_t cru, Float_t charge, Int_t row,
 {
 }
 
-Digit::Digit(Int_t eventID, Int_t trackID, Int_t cru, Float_t charge, Int_t row, Int_t pad, Int_t time, Float_t commonMode)
+Digit::Digit(int eventID, int trackID, int cru, float charge, int row, int pad, int time, float commonMode)
   : FairTimeStamp(time)
   , mCharge(charge)
   , mCommonMode(commonMode)

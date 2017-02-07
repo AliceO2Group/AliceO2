@@ -11,7 +11,7 @@ DigitADC::DigitADC()
   , mTrackID()
 {}
 
-DigitADC::DigitADC(Int_t eventID, Int_t trackID, Float_t charge)
+DigitADC::DigitADC(int eventID, int trackID, float charge)
   : mADC(charge)
   , mEventID(eventID)
   , mTrackID(trackID)

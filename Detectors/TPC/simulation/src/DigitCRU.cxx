@@ -7,7 +7,7 @@
 
 using namespace AliceO2::TPC;
 
-DigitCRU::DigitCRU(Int_t cru)
+DigitCRU::DigitCRU(int cru)
   : mNTimeBins(500)
   , mCRU(cru)
   , mTimeBins(mNTimeBins)
@@ -20,7 +20,7 @@ DigitCRU::~DigitCRU()
   }
 }
 
-void DigitCRU::setDigit(Int_t eventID, Int_t trackID, Int_t timeBin, Int_t row, Int_t pad, Float_t charge)
+void DigitCRU::setDigit(int eventID, int trackID, int timeBin, int row, int pad, float charge)
 {
   //if time bin outside specified range, the range of the vector is extended by one full drift time.
   while(getSize() <= timeBin) {
@@ -38,7 +38,7 @@ void DigitCRU::setDigit(Int_t eventID, Int_t trackID, Int_t timeBin, Int_t row, 
   }
 }
 
-void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru)
+void DigitCRU::fillOutputContainer(TClonesArray *output, int cru)
 {
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
@@ -46,7 +46,7 @@ void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru)
   }
 }
 
-void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<CommonMode> &commonModeContainer)
+void DigitCRU::fillOutputContainer(TClonesArray *output, int cru, std::vector<CommonMode> &commonModeContainer)
 {
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
@@ -54,7 +54,7 @@ void DigitCRU::fillOutputContainer(TClonesArray *output, Int_t cru, std::vector<
   }
 }
 
-void DigitCRU::processCommonMode(std::vector<CommonMode> & commonModeCRU, Int_t cru)
+void DigitCRU::processCommonMode(std::vector<CommonMode> & commonModeCRU, int cru)
 {
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;

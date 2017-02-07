@@ -4,8 +4,6 @@
 #ifndef ALICEO2_TPC_PadResponse_H_
 #define ALICEO2_TPC_PadResponse_H_
 
-#include "Rtypes.h"
-
 namespace AliceO2 {
 namespace TPC {
     
@@ -22,27 +20,27 @@ class PadResponse {
     /// @param pad Pad of the signal
     /// @param row Row of the signal
     /// @param weight Weight of the signal
-    PadResponse(Int_t pad, Int_t row, Float_t weight);
+    PadResponse(int pad, int row, float weight);
       
     /// Destructor
     virtual ~PadResponse();
       
     /// Get the pad
     /// @return Pad
-    Float_t getPad() const { return mPad; }
+    float getPad() const { return mPad; }
       
     /// Get the row
     /// @return Row
-    Float_t getRow() const { return mRow; }
+    float getRow() const { return mRow; }
       
     /// Get the weighted signal
     /// @return Weighted signal
-    Float_t getWeight() const { return mWeight; }
+    float getWeight() const { return mWeight; }
       
   private:
-    Float_t           mWeight;  ///< Weight of the signal on the specific pad, wrt to the central pad above which the electron arrives
-    UChar_t           mPad;     ///< Pad with signal, wrt to the central pad above which the electron arrives
-    UChar_t           mRow;     ///< Row with signal, wrt to the central pad above which the electron arrives
+    float             mWeight;  ///< Weight of the signal on the specific pad, wrt to the central pad above which the electron arrives
+    unsigned char     mPad;     ///< Pad with signal, wrt to the central pad above which the electron arrives
+    unsigned char     mRow;     ///< Row with signal, wrt to the central pad above which the electron arrives
 };
 
 }

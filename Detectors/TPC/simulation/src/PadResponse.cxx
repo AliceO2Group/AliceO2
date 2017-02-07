@@ -11,7 +11,7 @@ PadResponse::PadResponse()
   , mRow()
 {}
 
-PadResponse::PadResponse(Int_t pad, Int_t row, Float_t weight)
+PadResponse::PadResponse(int pad, int row, float weight)
   : mWeight(weight)
   , mPad(pad)
   , mRow(row)
