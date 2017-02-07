@@ -7,9 +7,9 @@ void run_clusterer(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Input and output file name
   std::stringstream inputfile, outputfile, paramfile;
-  inputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
-  paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
-  outputfile << "AliceO2_" << mcEngine << ".clusters_" << nEvents << "_event.root";
+  inputfile << "AliceO2_" << mcEngine << ".tpc.digi_" << nEvents << "_event.root";
+  paramfile << "AliceO2_" << mcEngine << ".tpc.params_" << nEvents << ".root";
+  outputfile << "AliceO2_" << mcEngine << ".tpc.clusters_" << nEvents << "_event.root";
 
   // Setup timer
   TStopwatch timer;
