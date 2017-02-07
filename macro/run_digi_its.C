@@ -1,4 +1,19 @@
-void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
+#if !defined(__CINT__) || defined(__MAKECINT__)
+  #include <sstream>
+
+  #include <TStopwatch.h>
+
+  #include "FairLogger.h"
+  #include "FairRunAna.h"
+  #include "FairFileSource.h"
+  #include "FairRuntimeDb.h"
+  #include "FairParRootFileIo.h"
+  #include "FairSystemInfo.h"
+
+  #include "ITSSimulation/DigitizerTask.h"
+#endif
+
+void run_digi_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         // Initialize logger
         FairLogger *logger = FairLogger::GetLogger();
         logger->SetLogVerbosityLevel("LOW");
@@ -6,9 +21,9 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
 
         // Input and output file name
         std::stringstream inputfile, outputfile, paramfile;
-        inputfile << "AliceO2_" << mcEngine << ".tpc.mc_" << nEvents << "_event.root";
-        paramfile << "AliceO2_" << mcEngine << ".tpc.params_" << nEvents << ".root";
-        outputfile << "AliceO2_" << mcEngine << ".tpc.digi_" << nEvents << "_event.root";
+        inputfile << "AliceO2_" << mcEngine << ".mc_" << nEvents << "_event.root";
+        paramfile << "AliceO2_" << mcEngine << ".params_" << nEvents << ".root";
+        outputfile << "AliceO2_" << mcEngine << ".digi_" << nEvents << "_event.root";
 
         // Setup timer
         TStopwatch timer;
@@ -25,14 +40,10 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         parInput1->open(paramfile.str().c_str());
         rtdb->setFirstInput(parInput1);
 
-      //  TGeoManager::Import("geofile_full.root");
-
         // Setup digitizer
+        // Call AliceO2::ITS::DigitizerTask(kTRUE) to activate the ALPIDE simulation
         AliceO2::ITS::DigitizerTask *digi = new AliceO2::ITS::DigitizerTask;
         fRun->AddTask(digi);
-
-        AliceO2::TPC::DigitizerTask *digiTPC = new AliceO2::TPC::DigitizerTask;
-        fRun->AddTask(digiTPC);
 
         fRun->Init();
 
@@ -58,7 +69,8 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         cout << cpuUsage;
         cout << "</DartMeasurement>" << endl;
         cout << endl << endl;
-        std::cout << "Macro finished succesfully." << std::endl;
+        std::cout << "Macro finished succesfully" << std::endl;
+
         std::cout << endl << std::endl;
         std::cout << "Output file is "    << outputfile.str() << std::endl;
         //std::cout << "Parameter file is " << parFile << std::endl;
