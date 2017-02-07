@@ -11,7 +11,6 @@ using namespace AliceO2::TPC;
 
 ElectronTransport::ElectronTransport()
   : mRandomGaus()
-  , mVc_size(Vc::float_v::Size)
 {
   mRandomGaus.initialize(RandomRing::RandomType::Gaus);
 }
@@ -39,7 +38,23 @@ void ElectronTransport::getElectronDriftVc(float *posEle)
   const float sigT = driftl*DIFFT;
   const float sigL = driftl*DIFFL;
   const float sig[3] = {sigT, sigT, sigL};
-  for(int i = 0; i < 3; i += mVc_size) {
+  for(int i = 0; i < 3; i += Vc::float_v::Size) {
     diffusion(mRandomGaus.getNextValueVc(), Vc::float_v(&sig[i]), Vc::float_v(&posEle[i])).store(&posEle[i]);
   }
+}
+
+GlobalPosition3D ElectronTransport::getElectronDrift(GlobalPosition3D posEle)
+{
+  float driftl = posEle.getZ();
+  if(driftl<0.01) {
+    driftl=0.01;
+  }
+  driftl = std::sqrt(driftl);
+  const float sigT = driftl*DIFFT;
+  const float sigL = driftl*DIFFL;
+  
+  GlobalPosition3D posEleDiffusion((mRandomGaus.getNextValue() * sigT) + posEle.getX(),
+                                   (mRandomGaus.getNextValue() * sigT) + posEle.getY(),
+                                   (mRandomGaus.getNextValue() * sigL) + posEle.getZ());
+  return posEleDiffusion;
 }

@@ -7,7 +7,9 @@
 #define ALICEO2_TPC_ElectronTransport_H_
 
 #include "TPCSimulation/Constants.h"
+
 #include "TPCBase/RandomRing.h"
+#include "TPCBase/Mapper.h"
 
 namespace AliceO2 {
 namespace TPC {
@@ -40,6 +42,9 @@ class ElectronTransport
     /// @return Array with 3d position of the electrons after the drift taking into account diffusion
     void getElectronDriftVc(float *posEle);
     
+    
+    GlobalPosition3D getElectronDrift(GlobalPosition3D posEle);
+    
     /// Attachment probability for a given drift time
     /// @param driftTime Drift time of the electron
     /// @return Probability for attachment during the drift
@@ -48,7 +53,6 @@ class ElectronTransport
         
   private:
     RandomRing     mRandomGaus;        ///< Circular random buffer containing random values of the Gauss distribution to take into account diffusion of the electrons
-    int            mVc_size;           ///< Size of the vectorization array
 };
 }
 }
