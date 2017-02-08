@@ -23,9 +23,15 @@ class TSeqCollection;
 using AliceO2::ITSMFT::SensMap;
 
 namespace AliceO2 {
-  namespace ITS {
-
+  namespace ITSMFT {
     class SegmentationPixel;
+  }
+}
+using AliceO2::ITSMFT::SegmentationPixel;
+
+
+namespace AliceO2 {
+  namespace ITS {
 
     //-------------------------------------------------------------------
 

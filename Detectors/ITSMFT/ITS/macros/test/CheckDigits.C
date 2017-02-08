@@ -10,12 +10,14 @@
   #include <TCanvas.h>
 
   #include "ITSBase/GeometryTGeo.h"
-  #include "ITSBase/SegmentationPixel.h"
-  #include "ITSBase/Digit.h"
+  #include "ITSMFTBase/SegmentationPixel.h"
+  #include "ITSMFTBase/Digit.h"
   #include "ITSSimulation/Point.h"
 #endif
 
 void CheckDigits() {
+  using AliceO2::ITSMFT::SegmentationPixel;
+  using AliceO2::ITSMFT::Digit;
   using namespace AliceO2::ITS;
 
   TFile *f=TFile::Open("CheckDigits.root","recreate");
@@ -37,7 +39,7 @@ void CheckDigits() {
   // Digits
   TFile *file1 = TFile::Open("AliceO2_TGeant3.digi_10_event.root");
   TTree *digTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray digArr("AliceO2::ITS::Digit"), *pdigArr(&digArr);
+  TClonesArray digArr("AliceO2::ITSMFT::Digit"), *pdigArr(&digArr);
   digTree->SetBranchAddress("ITSDigit",&pdigArr);
   
   Int_t nev=hitTree->GetEntries();

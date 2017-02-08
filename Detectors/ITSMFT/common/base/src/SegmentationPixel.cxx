@@ -1,7 +1,7 @@
 /// \file SegmentationPixel.cxx
 /// \brief Implementation of the SegmentationPixel class
 
-#include "ITSBase/SegmentationPixel.h"
+#include "ITSMFTBase/SegmentationPixel.h"
 //#include "ITSBase/GeometryTGeo.h"
 
 #include <TFile.h>     // for TFile
@@ -13,9 +13,9 @@
 #include "TObject.h"   // for TObject
 
 using namespace TMath;
-using namespace AliceO2::ITS;
+using namespace AliceO2::ITSMFT;
 
-ClassImp(AliceO2::ITS::SegmentationPixel)
+ClassImp(AliceO2::ITSMFT::SegmentationPixel)
 
   const char* SegmentationPixel::sSegmentationsListName = "Segmentations";
 

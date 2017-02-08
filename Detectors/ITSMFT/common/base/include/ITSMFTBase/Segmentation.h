@@ -1,8 +1,8 @@
 /// \file Segmentation.h
 /// \brief Definition of the Segmentation class
 
-#ifndef ALICEO2_ITS_SEGMENTATION_H_
-#define ALICEO2_ITS_SEGMENTATION_H_
+#ifndef ALICEO2_ITSMFT_SEGMENTATION_H_
+#define ALICEO2_ITSMFT_SEGMENTATION_H_
 
 #include <exception>
 #include <sstream>
@@ -15,9 +15,9 @@ class TF1;
 
 namespace AliceO2
 {
-namespace ITS
+namespace ITSMFT
 {
-/// ITS segmentation virtual base class
+/// ITSMFT segmentation virtual base class
 /// All methods implemented in the derived classes are set = 0 in the header file
 /// so this class cannot be instantiated methods implemented in a part of the derived
 /// classes are implemented here as TObject::MayNotUse
@@ -138,7 +138,7 @@ class Segmentation : public TObject
   /// Default destructor
   virtual ~Segmentation();
 
-  AliceO2::ITS::Segmentation& operator=(const AliceO2::ITS::Segmentation& source);
+  Segmentation& operator=(const Segmentation& source);
 
   /// Set Detector Segmentation Parameters
 

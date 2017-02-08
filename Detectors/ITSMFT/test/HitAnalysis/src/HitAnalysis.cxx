@@ -16,7 +16,7 @@
 
 #include "ITSSimulation/Chip.h"
 #include "ITSSimulation/Point.h"
-#include "ITSBase/Segmentation.h"
+#include "ITSMFTBase/Segmentation.h"
 #include "ITSBase/GeometryTGeo.h"
 
 using namespace AliceO2::ITS;

@@ -13,7 +13,7 @@
 #include "ITSMFTBase/SDigit.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSBase/SegmentationPixel.h"
+#include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSSimulation/SimulationAlpide.h"
 #include "ITSSimulation/SimuClusterShaper.h"
 #include "ITSSimulation/Point.h"
@@ -23,6 +23,7 @@ ClassImp(AliceO2::ITS::SimulationAlpide)
 
 using AliceO2::ITSMFT::SDigit;
 using AliceO2::ITSMFT::Digit;
+using AliceO2::ITSMFT::SegmentationPixel;
 using namespace AliceO2::ITS;
 
 //______________________________________________________________________
