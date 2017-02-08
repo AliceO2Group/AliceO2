@@ -12,13 +12,11 @@
 #include <exception>
 #include <sstream>
 #include <TObjArray.h>  // for TObjArray
-#include "Rtypes.h"     // for Double_t, Int_t, ULong_t, Bool_t, etc
-#include "TObject.h"    // for TObject
+#include <TObject.h>    // for TObject
+#include <TGeoMatrix.h>   
 
-#include "ITSBase/GeometryTGeo.h"
 
 namespace AliceO2 { namespace ITS { class Point; }}  // lines 22-22
-namespace AliceO2 { namespace ITS { class GeometryTGeo; }}  // lines 23-23
 
 namespace AliceO2 {
 
@@ -90,8 +88,8 @@ class Chip : public TObject
 
     /// Main constructor
     /// @param chipindex Index of the chip
-    /// @param geometry Geometry of the ITS
-    Chip(Int_t index, GeometryTGeo *geo);
+    /// @param mat Transformation matrix
+    Chip(Int_t index, const TGeoHMatrix *mat);
 
     /// Copy constructor
     /// @param ref Reference for the copy
@@ -137,6 +135,9 @@ class Chip : public TObject
     void SetChipIndex(Int_t index)
     { fChipIndex = index; }
 
+    void Init(Int_t index, const TGeoHMatrix *mat)
+    { fChipIndex = index; fMat=mat; }
+
     /// Get the chip index
     /// @return Index of the chip
     Int_t GetChipIndex() const
@@ -162,7 +163,7 @@ class Chip : public TObject
     Point *GetPointAt(Int_t index) const;
 
     void globalToLocalVector(Double_t glob[3], Double_t loc[3]) const {
-       fGeometry->globalToLocalVector(fChipIndex, glob, loc);
+       fMat->MasterToLocalVect(glob, loc);
     }
     
     /// Get the line segment of a given point (from start to current position)
@@ -222,9 +223,9 @@ class Chip : public TObject
 
     Int_t fChipIndex;     ///< Chip ID
     TObjArray fPoints;        ///< Hits connnected to the given chip
-    GeometryTGeo *fGeometry;     ///< Geometry of the ITS
+    const TGeoHMatrix *fMat;     ///< Transformation matrix
 
-  ClassDef(Chip, 1);
+  ClassDef(Chip, 2);
 };
 }
 }

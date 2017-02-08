@@ -26,7 +26,7 @@ void Digitizer::init(Bool_t build)
   mGeometry.Build(build);
   mNumOfChips = mGeometry.getNumberOfChips();
 
-  mChips.resize(mNumOfChips, Chip(0, &mGeometry));
+  mChips.resize(mNumOfChips);
   mSimulations.resize(mNumOfChips);
   mDigitContainer.resize(mNumOfChips);
 
@@ -40,7 +40,7 @@ void Digitizer::init(Bool_t build)
     1.084   // ACSFromBGPar2
   };
   for (Int_t i = 0; i < mNumOfChips; i++) {
-    mChips[i].SetChipIndex(i);
+    mChips[i].Init(i, mGeometry.getMatrixSensor(i));
     mSimulations[i].Init(param, seg, &mChips[i]);
   }
 }

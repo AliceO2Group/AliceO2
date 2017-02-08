@@ -20,16 +20,16 @@ Chip::Chip() :
   TObject(),
   fChipIndex(-1),
   fPoints(),
-  fGeometry(nullptr)
+  fMat(nullptr)
 {
   fPoints.SetOwner(kFALSE);
 }
 
-Chip::Chip(Int_t chipindex, GeometryTGeo *geometry) :
+Chip::Chip(Int_t chipindex, const TGeoHMatrix *mat) :
   TObject(),
   fChipIndex(chipindex),
   fPoints(),
-  fGeometry(geometry)
+  fMat(mat)
 {
   fPoints.SetOwner(kFALSE);
 }
@@ -38,7 +38,7 @@ Chip::Chip(const Chip &ref) :
   TObject(ref),
   fChipIndex(ref.fChipIndex),
   fPoints(ref.fPoints),
-  fGeometry(ref.fGeometry)
+  fMat(ref.fMat)
 {
 }
 
@@ -46,7 +46,7 @@ Chip &Chip::operator=(const Chip &ref)
 {
   TObject::operator=(ref);
   if (this != &ref) {
-    fGeometry = ref.fGeometry;
+    fMat = ref.fMat;
     fChipIndex = ref.fChipIndex;
     fPoints = ref.fPoints;
   }
@@ -108,6 +108,7 @@ Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
   if (hitindex >= fPoints.GetEntriesFast()) {
     return kFALSE;
   }
+
   Point *tmp = static_cast<Point *>(fPoints.At(hitindex));
   if (tmp->IsEntering()) {
     return kFALSE;
@@ -119,8 +120,8 @@ Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
   memset(poslocStart, 0, sizeof(Double_t) * 3);
 
   // convert to local position
-  fGeometry->globalToLocal(fChipIndex, posglob, posloc);
-  fGeometry->globalToLocal(fChipIndex, posglobStart, poslocStart);
+  fMat->MasterToLocal(posglob, posloc);
+  fMat->MasterToLocal(posglobStart, poslocStart);
 
   // Prepare output, hit point relative to starting point
   xstart = poslocStart[0];
@@ -185,7 +186,7 @@ void Chip::MedianHitGlobal(const Point *p1, const Point *p2, Double_t &x, Double
   }
 
   // Convert to global coordinates
-  fGeometry->localToGlobal(fChipIndex, posMedianLocal, posMedianGlobal);
+  fMat->LocalToMaster(posMedianLocal, posMedianGlobal);
   x = posMedianGlobal[0];
   y = posMedianGlobal[1];
   z = posMedianGlobal[2];
@@ -196,8 +197,8 @@ void Chip::MedianHitLocal(const Point *p1, const Point *p2, Double_t &x, Double_
   // Convert hit positions into local positions inside the chip
   Double_t pos1Glob[3] = {p1->GetX(), p1->GetY(), p1->GetZ()},
     pos2Glob[3] = {p2->GetX(), p2->GetY(), p2->GetZ()}, pos1Loc[3], pos2Loc[3];
-  fGeometry->globalToLocal(fChipIndex, pos1Glob, pos1Loc);
-  fGeometry->globalToLocal(fChipIndex, pos2Glob, pos2Loc);
+  fMat->MasterToLocal(pos1Glob, pos1Loc);
+  fMat->MasterToLocal(pos2Glob, pos2Loc);
 
   // Calculate mean positions
   y = 0.;
