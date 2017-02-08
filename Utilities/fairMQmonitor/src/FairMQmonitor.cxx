@@ -27,7 +27,7 @@ using namespace std;
 using namespace AliceO2::Header;
 using namespace AliceO2::Base;
 
-using NameHeader48 = NameHeader<48>; //header holding 16 characters
+using NameHeader48 = NameHeader<48>; //header holding 48 characters
 
 //__________________________________________________________________________________________________
 FairMQmonitor::FairMQmonitor()

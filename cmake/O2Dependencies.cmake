@@ -116,6 +116,8 @@ o2_define_bucket(
     fairmq_logger
     pthread
     dl
+    rt
+    O2device
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
