@@ -2,7 +2,7 @@
 /// \brief Implementation of the SegmentationPixel class
 
 #include "ITSBase/SegmentationPixel.h"
-#include "ITSBase/GeometryTGeo.h"
+//#include "ITSBase/GeometryTGeo.h"
 
 #include <TFile.h>     // for TFile
 #include <TObjArray.h> // for TObjArray
@@ -48,9 +48,9 @@ SegmentationPixel::SegmentationPixel(UInt_t id, int nchips, int ncol, int nrow, 
 {
   // Default constructor, sizes in cm
 
-  if (nchips) {
-    SetUniqueID(GeometryTGeo::composeChipTypeId(id));
-  }
+//  if (nchips) {
+//    SetUniqueID(GeometryTGeo::composeChipTypeId(id));
+//  }
 
   mChipSizeDZ = (mNumberOfColumnsPerChip - 2) * mPitchZ + mPitchZLeftColumn + mPitchZRightColumn;
   mDxActive = mNumberOfRows * mPitchX;
