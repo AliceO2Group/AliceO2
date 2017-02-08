@@ -9,6 +9,7 @@
   #include "FairRuntimeDb.h"
   #include "FairParRootFileIo.h"
   #include "FairSystemInfo.h"
+  #include "Field/MagneticField.h"
 
   #include "ITSReconstruction/CookedTrackerTask.h"
 #endif
@@ -43,10 +44,17 @@ void run_trac_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         // Setup tracker
         // To run with n threads call AliceO2::ITS::CookedTrackerTask(n)
         AliceO2::ITS::CookedTrackerTask *trac = new AliceO2::ITS::CookedTrackerTask;
-        trac->setBz(5.); //in kG
+
         fRun->AddTask(trac);
 
         fRun->Init();
+
+        AliceO2::Field::MagneticField* fld = (AliceO2::Field::MagneticField*)fRun->GetField();
+      	if (!fld) {
+      	  std::cout << "Failed to get field instance from FairRunAna" << std::endl;
+      	  return;
+      	}
+      	trac->setBz(fld->solenoidField()); //in kG
 
         timer.Start();
         fRun->Run();
