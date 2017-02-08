@@ -124,7 +124,7 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    fairMQmonitor_bucket
+    O2MessageMonitor_bucket
 
     DEPENDENCIES
     O2Device_bucket

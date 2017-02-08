@@ -10,7 +10,7 @@
 /// granted to it by virtue of its status as an Intergovernmental Organization
 /// or submit itself to any jurisdiction.
 
-/// @file FairMQmonitor.cxx
+/// @file O2MessageMonitor.cxx
 ///
 /// @since 2014-12-10
 /// @author M. Krzewicki <mkrzewic@cern.ch>
@@ -18,7 +18,7 @@
 #include <thread> // this_thread::sleep_for
 #include <chrono>
 
-#include "fairMQmonitor/FairMQmonitor.h"
+#include "O2MessageMonitor/O2MessageMonitor.h"
 #include "FairMQProgOptions.h"
 #include "FairMQLogger.h"
 #include "Headers/DataHeader.h"
@@ -30,7 +30,7 @@ using namespace AliceO2::Base;
 using NameHeader48 = NameHeader<48>; //header holding 16 characters
 
 //__________________________________________________________________________________________________
-FairMQmonitor::FairMQmonitor()
+O2MessageMonitor::O2MessageMonitor()
   : mDataHeader()
   , mPayload("I am the info payload")
   , mName("My name is \"gDataDescriptionInfo\"")
@@ -44,7 +44,7 @@ FairMQmonitor::FairMQmonitor()
 }
 
 //__________________________________________________________________________________________________
-void FairMQmonitor::InitTask()
+void O2MessageMonitor::InitTask()
 {
   mDelay = fConfig->GetValue<int>("sleep");
   mIterations = fConfig->GetValue<int>("n");
@@ -55,7 +55,7 @@ void FairMQmonitor::InitTask()
 }
 
 //__________________________________________________________________________________________________
-void FairMQmonitor::Run()
+void O2MessageMonitor::Run()
 {
   //check socket type of data channel
   std::string type;
@@ -79,7 +79,7 @@ void FairMQmonitor::Run()
     //message in;
     Receive(message, "data");
     LOG(INFO) << "== New message=============================";
-    ForEach(message, &FairMQmonitor::HandleO2frame);
+    ForEach(message, &O2MessageMonitor::HandleO2frame);
     message.fParts.clear();
 
     //maybe a reply message
@@ -92,7 +92,7 @@ void FairMQmonitor::Run()
 }
 
 //__________________________________________________________________________________________________
-bool FairMQmonitor::HandleO2frame(const byte* headerBuffer, size_t headerBufferSize,
+bool O2MessageMonitor::HandleO2frame(const byte* headerBuffer, size_t headerBufferSize,
     const byte* dataBuffer,   size_t dataBufferSize)
 {
 

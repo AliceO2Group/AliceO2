@@ -10,13 +10,13 @@
 /// granted to it by virtue of its status as an Intergovernmental Organization
 /// or submit itself to any jurisdiction.
 
-/// @file FairMQmonitor.h
+/// @file O2MessageMonitor.h
 ///
 /// @since 2014-12-10
 /// @author M. Krzewicki <mkrzewic@cern.ch>
 
-#ifndef FAIRMQMONITOR_H_
-#define FAIRMQMONITOR_H_
+#ifndef O2MESSAGEMONITOR_H_
+#define O2MESSAGEMONITOR_H_
 
 #include "O2Device/O2Device.h"
 #include "Headers/DataHeader.h"
@@ -28,11 +28,11 @@
 /// it will appropriately send requests, send/receive messages or send replies.
 /// All incoming traffic is dumped on screen in the form of a hex dump for both
 /// the header block and payload block.
-class FairMQmonitor : public AliceO2::Base::O2Device
+class O2MessageMonitor : public AliceO2::Base::O2Device
 {
 public:
-  FairMQmonitor();
-  virtual ~FairMQmonitor() {};
+  O2MessageMonitor();
+  virtual ~O2MessageMonitor() {};
 
 protected:
   virtual void Run();
@@ -50,4 +50,4 @@ private:
   long long mLimitOutputCharacters;
 };
 
-#endif /* FAIRMQMONITOR_H_ */
+#endif /* O2MESSAGEMONITOR_H_ */
