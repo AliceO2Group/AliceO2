@@ -12,7 +12,7 @@
   #include "FairConstField.h"
 
   #include "DetectorsPassive/Cave.h"
-
+  #include "Field/MagneticField.h"
   #include "ITSBase/GeometryTGeo.h"
   #include "ITSBase/SegmentationPixel.h"
   #include "ITSSimulation/Detector.h"
@@ -26,7 +26,7 @@ double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
   return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
 }
 
-void run_sim_its(Int_t nEvents = 5, TString mcEngine = "TGeant3")
+void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
@@ -75,9 +75,12 @@ void run_sim_its(Int_t nEvents = 5, TString mcEngine = "TGeant3")
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  FairConstField field;
-  field.SetField(0., 0., 5.); //in kG
-  field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in cm
+  /*FairConstField field;
+   field.SetField(0., 0., 5.); //in kG
+   field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in c
+  */
+  AliceO2::Field::MagneticField field("field","field +5kG");
+
   run->SetField(&field);
 
   AliceO2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
