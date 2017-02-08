@@ -67,7 +67,7 @@ void FairMQmonitor::Run()
   while (CheckCurrentState(RUNNING) && (--mIterations)!=0) {
     this_thread::sleep_for(chrono::milliseconds(mDelay));
 
-    O2message message;
+    O2Message message;
     NameHeader48 nameHeader;
 
     //maybe send a request

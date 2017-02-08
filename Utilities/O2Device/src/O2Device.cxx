@@ -10,9 +10,9 @@
 /// granted to it by virtue of its status as an Intergovernmental Organization
 /// or submit itself to any jurisdiction.
 
-/// @file O2device.cpp
+/// @file O2Device.cpp
 ///
 /// @since 2014-12-10
 /// @author M.Krzewicki <mkrzewic@cern.ch>
 
-#include "O2device/O2device.h"
+#include "O2Device/O2Device.h"

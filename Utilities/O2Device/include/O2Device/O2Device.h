@@ -10,7 +10,7 @@
 /// granted to it by virtue of its status as an Intergovernmental Organization
 /// or submit itself to any jurisdiction.
 
-/// @headerfile O2device.h
+/// @headerfile O2Device.h
 ///
 /// @since 2014-12-10
 /// @author M. Krzewicki <mkrzewic@cern.ch>
@@ -27,19 +27,19 @@ namespace Base {
 
 /// just a typedef to express the fact that it is not just a FairMQParts vector,
 /// it has to follow the O2 convention of header-payload-header-payload
-using O2message = FairMQParts;
+using O2Message = FairMQParts;
 
-class O2device : public FairMQDevice
+class O2Device : public FairMQDevice
 {
 public:
   using FairMQDevice::FairMQDevice;
-  virtual ~O2device() {}
+  virtual ~O2Device() {}
 
   /// Here is how to add an annotated data part (with header);
   /// @param[in,out] parts is a reference to the message;
   /// @param[] incomingBlock header block must be MOVED in (rvalue ref)
   /// @param[] dataMessage the data message must be MOVED in (unique_ptr by value)
-  bool AddMessage(O2message& parts,
+  bool AddMessage(O2Message& parts,
                   AliceO2::Header::Block&& incomingBlock,
                   FairMQMessagePtr incomingDataMessage) {
 
@@ -63,7 +63,7 @@ public:
   /// In the end I'd like to move to array_view
   /// when this becomes available (either with C++17 or via GSL)
   template <typename T>
-  bool ForEach(O2message& parts, bool (T::*memberFunction)(const byte* headerBuffer, size_t headerBufferSize,
+  bool ForEach(O2Message& parts, bool (T::*memberFunction)(const byte* headerBuffer, size_t headerBufferSize,
                                                            const byte* dataBuffer, size_t dataBufferSize))
   {
     if ((parts.Size() % 2) != 0)

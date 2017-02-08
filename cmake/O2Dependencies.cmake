@@ -99,7 +99,7 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    O2device_bucket
+    O2Device_bucket
 
     DEPENDENCIES
     common_boost_bucket
@@ -127,8 +127,8 @@ o2_define_bucket(
     fairMQmonitor_bucket
 
     DEPENDENCIES
-    O2device_bucket
-    O2device
+    O2Device_bucket
+    O2Device
 )
 
 o2_define_bucket(
