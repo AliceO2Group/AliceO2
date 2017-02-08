@@ -73,7 +73,7 @@ InitStatus HitAnalysis::Init()
 
   if (fProcessChips) {
     for (int chipid = 0; chipid < fGeometry->getNumberOfChips(); chipid++) {
-      fChips[chipid] = new Chip(chipid, fGeometry);
+      fChips[chipid] = new Chip(chipid, fGeometry->getMatrixSensor(chipid));
     }
     LOG(DEBUG) << "Created " << fChips.size() << " chips." << FairLogger::endl;
 
