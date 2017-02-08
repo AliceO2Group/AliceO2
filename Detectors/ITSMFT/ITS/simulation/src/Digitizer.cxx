@@ -2,7 +2,7 @@
 /// \brief Implementation of the ITS digitizer
 
 #include "ITSMFTBase/Digit.h"
-#include "ITSBase/SegmentationPixel.h"
+#include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSSimulation/Chip.h"
 #include "ITSSimulation/DigitChip.h"
 #include "ITSSimulation/Digitizer.h"

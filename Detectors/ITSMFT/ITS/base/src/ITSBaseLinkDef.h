@@ -6,8 +6,6 @@
 
 #pragma link C++ class AliceO2::ITS::GeometryTGeo+;
 #pragma link C++ class AliceO2::ITS::GeometryManager+;
-#pragma link C++ class AliceO2::ITS::Segmentation+;
-#pragma link C++ class AliceO2::ITS::SegmentationPixel+;
 #pragma link C++ class AliceO2::ITS::ContainerFactory;
 #pragma link C++ class AliceO2::ITS::MisalignmentParameter+;
 

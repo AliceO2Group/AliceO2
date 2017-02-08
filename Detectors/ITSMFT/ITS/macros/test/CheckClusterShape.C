@@ -2,6 +2,8 @@
 /// \brief Simple macro to check ITSU digits
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
+#include <climits>
+
 #include <TFile.h>
 #include <TTree.h>
 #include <TClonesArray.h>
@@ -10,12 +12,14 @@
 #include <TCanvas.h>
 
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSBase/SegmentationPixel.h"
-#include "ITSBase/Digit.h"
+#include "ITSMFTBase/SegmentationPixel.h"
+#include "ITSMFTBase/Digit.h"
 #include "ITSSimulation/Point.h"
 #include "ITSSimulation/ClusterShape.h"
 #endif
 
+using AliceO2::ITSMFT::SegmentationPixel;
+using AliceO2::ITSMFT::Digit;
 using namespace AliceO2::ITS;
 GeometryTGeo *gman;
 SegmentationPixel *seg;

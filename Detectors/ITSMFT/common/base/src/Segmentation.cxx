@@ -1,12 +1,12 @@
 /// \file Segmentation.cxx
 /// \brief Implementation of the Segmentation class
 
-#include "ITSBase/Segmentation.h"
+#include "ITSMFTBase/Segmentation.h"
 #include "TF1.h" // for TF1
 
-using namespace AliceO2::ITS;
+using namespace AliceO2::ITSMFT;
 
-ClassImp(AliceO2::ITS::Segmentation)
+ClassImp(AliceO2::ITSMFT::Segmentation)
 
   Segmentation::Segmentation()
   : mDx(0), mDz(0), mDy(0), mCorrection(0)
@@ -48,3 +48,4 @@ Segmentation::Segmentation(const Segmentation& source) : TObject(source), mDx(0)
   // copy constructor
   source.Copy(*this);
 }
+

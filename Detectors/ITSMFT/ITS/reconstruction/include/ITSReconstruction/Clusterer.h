@@ -7,11 +7,17 @@
 
 class TClonesArray;
 
+namespace AliceO2 {
+  namespace ITSMFT {
+    class SegmentationPixel;
+  }
+}
+using AliceO2::ITSMFT::SegmentationPixel;
+
 namespace AliceO2
 {
 namespace ITS
 {
-  class SegmentationPixel;
   class Clusterer
 {
  public:

@@ -1,20 +1,20 @@
 /// \file SegmentationPixel.h
 /// \brief Definition of the SegmentationPixel class
 
-#ifndef ALICEO2_ITS_SEGMENTATIONPIXEL_H_
-#define ALICEO2_ITS_SEGMENTATIONPIXEL_H_
+#ifndef ALICEO2_ITSMFT_SEGMENTATIONPIXEL_H_
+#define ALICEO2_ITSMFT_SEGMENTATIONPIXEL_H_
 
 #include "FairLogger.h"           // for LOG
-#include "ITSBase/Segmentation.h" // for Segmentation
+#include "ITSMFTBase/Segmentation.h" // for Segmentation
 #include "Rtypes.h"               // for Int_t, Float_t, Double_t, UInt_t, etc
 
 class TObjArray;
 
 namespace AliceO2
 {
-namespace ITS
+namespace ITSMFT
 {
-/// Segmentation and response for pixels in ITS upgrade
+/// Segmentation and response for pixels in ITSMFT upgrade
 /// Questions to solve: are guardrings needed and do they belong to the sensor or to the chip in
 /// TGeo. At the moment assume that the local coord syst. is located at bottom left corner
 /// of the ACTIVE matrix. If the guardring to be accounted in the local coords, in

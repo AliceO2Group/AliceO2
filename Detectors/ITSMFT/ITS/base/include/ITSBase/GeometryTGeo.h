@@ -16,12 +16,19 @@ class TGeoPNEntry; // lines 17-17
 
 namespace AliceO2
 {
+  namespace ITSMFT
+  {
+    class Segmentation;
+  }
+}
+using AliceO2::ITSMFT::Segmentation;
+
+namespace AliceO2
+{
 namespace ITS
 {
 // Adapted from the AliITSUAux class
 const UInt_t gMaxLayers = 15; ///< max number of active layers
-
-class Segmentation;
 
 /// GeometryTGeo is a simple interface class to TGeoManager. It is used in the simulation
 /// and reconstruction in order to query the TGeo ITS geometry.

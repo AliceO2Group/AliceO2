@@ -6,8 +6,8 @@
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSBase/GeometryManager.h"
-#include "ITSBase/Segmentation.h"
-#include "ITSBase/SegmentationPixel.h"
+#include "ITSMFTBase/Segmentation.h"
+#include "ITSMFTBase/SegmentationPixel.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -29,6 +29,7 @@
 #include <stdio.h>  // for snprintf, NULL, printf
 #include <string.h> // for strstr, strlen
 
+using AliceO2::ITSMFT::SegmentationPixel;
 using namespace TMath;
 using namespace AliceO2::ITS;
 
