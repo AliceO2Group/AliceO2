@@ -12,7 +12,6 @@
 
 #include "ITSMFTBase/SDigit.h"
 #include "ITSMFTBase/Digit.h"
-#include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSSimulation/SimulationAlpide.h"
 #include "ITSSimulation/SimuClusterShaper.h"
@@ -215,8 +214,7 @@ Double_t SimulationAlpide::ComputeIncidenceAngle(TLorentzVector dir) const {
   glob[1] = dir.Py()/dir.P();
   glob[2] = dir.Pz()/dir.P();
 
-  GeometryTGeo* geomTG = fChip->GetGeometry();
-  geomTG->globalToLocalVector(fChip->GetChipIndex(), glob, loc);
+  fChip->globalToLocalVector(glob, loc);
 
   TVector3 pdirection(loc[0], loc[1], loc[2]);
   TVector3 normal(0., -1., 0.);

@@ -15,6 +15,8 @@
 #include "Rtypes.h"     // for Double_t, Int_t, ULong_t, Bool_t, etc
 #include "TObject.h"    // for TObject
 
+#include "ITSBase/GeometryTGeo.h"
+
 namespace AliceO2 { namespace ITS { class Point; }}  // lines 22-22
 namespace AliceO2 { namespace ITS { class GeometryTGeo; }}  // lines 23-23
 
@@ -23,8 +25,6 @@ namespace AliceO2 {
 namespace ITS {
 
 class Point;
-
-class GeometryTGeo;
 
 /// @class Chip
 /// @brief Container for similated points connected to a given chip
@@ -146,8 +146,6 @@ class Chip : public TObject
     /// @param p Point to be added
     void InsertPoint(Point *p);
 
-    GeometryTGeo *GetGeometry() const { return fGeometry; }
-
     /// Get the number of point assigned to the chip
     /// @return Number of points assigned to the chip
     Int_t GetNumberOfPoints() const
@@ -163,6 +161,10 @@ class Chip : public TObject
     /// @return Point at given index (nullptr if index is out of bounds)
     Point *GetPointAt(Int_t index) const;
 
+    void globalToLocalVector(Double_t glob[3], Double_t loc[3]) const {
+       fGeometry->globalToLocalVector(fChipIndex, glob, loc);
+    }
+    
     /// Get the line segment of a given point (from start to current position)
     /// in local coordinates.
     /// Function derived from AliITSUChip
