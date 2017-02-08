@@ -18,17 +18,17 @@
 #ifndef FAIRMQMONITOR_H_
 #define FAIRMQMONITOR_H_
 
-#include "O2device/O2device.h"
+#include "O2Device/O2Device.h"
 #include "Headers/DataHeader.h"
 
 /// This is a simple FairMQ monitoring class
 /// assumption is the messages are O@ messages (constructed supported
-/// methods in O2device).
+/// methods in O2Device).
 /// The "data" channel can be configured as any socket type,
 /// it will appropriately send requests, send/receive messages or send replies.
 /// All incoming traffic is dumped on screen in the form of a hex dump for both
 /// the header block and payload block.
-class FairMQmonitor : public AliceO2::Base::O2device
+class FairMQmonitor : public AliceO2::Base::O2Device
 {
 public:
   FairMQmonitor();
@@ -37,7 +37,7 @@ public:
 protected:
   virtual void Run();
   void InitTask();
-  bool HandleData(AliceO2::Base::O2message& parts, int index);
+  bool HandleData(AliceO2::Base::O2Message& parts, int index);
   bool HandleO2frame(const byte* headerBuffer, size_t headerBufferSize,
       const byte* dataBuffer,   size_t dataBufferSize);
 
