@@ -8,4 +8,4 @@ xterm -geometry 80x25+0+0 -hold -e epnReceiver --id epnReceiver --mq-config conf
 
 xterm -geometry 80x25+0+0 -hold -e flpSender --id flpSender --mq-config confBasicSetup.json --in-chan-name input --out-chan-name output --num-epns 1 &
 
-xterm -geometry 80x25+0+0 -hold -e SubframeBuilderDevice --id subframeBuilder --mq-config confBasicSetup.json &
+xterm -geometry 80x25+0+0 -hold -e SubframeBuilderDevice --id subframeBuilder --mq-config confBasicSetup.json --self-triggered &
