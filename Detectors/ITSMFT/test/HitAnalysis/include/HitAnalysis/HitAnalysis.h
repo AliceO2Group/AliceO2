@@ -23,9 +23,14 @@ class TH1;
 class TClonesArray;
 
 namespace AliceO2 {
-namespace ITS {
-
+namespace ITSMFT {
 class Chip;
+}
+}
+using AliceO2::ITSMFT::Chip;
+
+namespace AliceO2 {
+namespace ITS {
 
 class HitAnalysis : public FairTask
 {

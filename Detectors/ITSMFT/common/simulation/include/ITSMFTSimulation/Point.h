@@ -1,8 +1,8 @@
 /// \file Point.h
-/// \brief Definition of the Point class
+/// \brief Definition of the ITSMFT Point class
 
-#ifndef ALICEO2_ITS_POINT_H_
-#define ALICEO2_ITS_POINT_H_
+#ifndef ALICEO2_ITSMFT_POINT_H_
+#define ALICEO2_ITSMFT_POINT_H_
 
 #include "FairMCPoint.h"  // for FairMCPoint
 #include "Rtypes.h"       // for Bool_t, Double_t, Int_t, Double32_t, etc
@@ -10,7 +10,7 @@
 #include <iostream>
 
 namespace AliceO2 {
-namespace ITS {
+namespace ITSMFT {
 
 class Point : public FairMCPoint
 {

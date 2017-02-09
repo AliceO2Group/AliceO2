@@ -1,8 +1,8 @@
 /// \file SimuClusterShaper.h
 /// \brief Cluster shaper for the ALPIDE response simulation
 
-#ifndef ALICEO2_ITS_SIMUCLUSTERSHAPER_H_
-#define ALICEO2_ITS_SIMUCLUSTERSHAPER_H_
+#ifndef ALICEO2_ITSMFT_SIMUCLUSTERSHAPER_H_
+#define ALICEO2_ITSMFT_SIMUCLUSTERSHAPER_H_
 
 ///////////////////////////////////////////////////////////////////
 //                                                               //
@@ -13,10 +13,10 @@
 #include <TObject.h>
 #include <sstream>
 
-#include "ITSSimulation/ClusterShape.h"
+#include "ITSMFTSimulation/ClusterShape.h"
 
 namespace AliceO2 {
-  namespace ITS {
+  namespace ITSMFT {
 
     class SimuClusterShaper : public TObject {
 

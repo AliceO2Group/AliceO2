@@ -20,16 +20,17 @@ class TGeoVolume;
 class TParticle;
 
 class TString;
+
+namespace AliceO2 { namespace ITSMFT { class Point; }}  // lines 22-22
+using AliceO2::ITSMFT::Point;
+
 namespace AliceO2 { namespace ITS { class GeometryHandler; }}
 namespace AliceO2 { namespace ITS { class MisalignmentParameter; }}
-namespace AliceO2 { namespace ITS { class Point; }}  // lines 22-22
 namespace AliceO2 { namespace ITS { class GeometryTGeo; }}
 namespace AliceO2 { namespace ITS { class V1Layer; }}  // lines 23-23
 
 namespace AliceO2 {
 namespace ITS {
-
-class Point;
 
 class V1Layer;
 

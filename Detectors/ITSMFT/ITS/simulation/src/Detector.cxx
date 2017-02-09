@@ -1,11 +1,11 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
+#include "ITSMFTSimulation/Point.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/GeometryHandler.h"
-#include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/V1Layer.h"
-#include "ITSSimulation/Point.h"
 
 #include "ITSBase/MisalignmentParameter.h"  // for MisalignmentParameter
 
@@ -54,7 +54,7 @@ Detector::Detector()
     mLength(-1.),
     mEnergyLoss(-1),
     mShunt(),
-    mPointCollection(new TClonesArray("AliceO2::ITS::Point")),
+    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
     mGeometryHandler(new GeometryHandler()),
     mMisalignmentParameter(NULL),
     mNumberOfDetectors(-1),
@@ -101,7 +101,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mLength(-1.),
     mEnergyLoss(-1),
     mShunt(),
-    mPointCollection(new TClonesArray("AliceO2::ITS::Point")),
+    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
     mGeometryHandler(new GeometryHandler()),
     mMisalignmentParameter(NULL),
     mNumberOfDetectors(-1),

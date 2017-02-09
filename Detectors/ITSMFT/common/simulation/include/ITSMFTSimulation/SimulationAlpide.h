@@ -1,8 +1,8 @@
 /// \file SimulationAlpide.h
 /// \brief Simulation of the ALIPIDE chip response
 
-#ifndef ALICEO2_ITS_ALPIDE_H
-#define ALICEO2_ITS_ALPIDE_H
+#ifndef ALICEO2_ITSMFT_ALPIDE_H
+#define ALICEO2_ITSMFT_ALPIDE_H
 
 ////////////////////////////////////////////////////////////
 // Simulation class for Alpide upgrade pixels (2016)      //
@@ -14,27 +14,19 @@
 #include <TObject.h>
 
 #include "ITSMFTBase/SensMap.h"
-#include "ITSSimulation/Chip.h"
+#include "ITSMFTSimulation/Chip.h"
 
 class TLorentzVector;
 class TClonesArray;
 class TSeqCollection;
 
-using AliceO2::ITSMFT::SensMap;
-
 namespace AliceO2 {
   namespace ITSMFT {
-    class SegmentationPixel;
-  }
-}
-using AliceO2::ITSMFT::SegmentationPixel;
-
-
-namespace AliceO2 {
-  namespace ITS {
 
     //-------------------------------------------------------------------
 
+    class SegmentationPixel;
+    
     class SimulationAlpide : public TObject {
     public:
       enum {
