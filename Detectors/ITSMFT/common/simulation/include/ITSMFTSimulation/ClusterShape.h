@@ -1,8 +1,8 @@
 /// \file ClusterShape.h
 /// \brief Cluster shape class for the ALPIDE response simulation
 
-#ifndef ALICEO2_ITS_CLUSTERSHAPE_H_
-#define ALICEO2_ITS_CLUSTERSHAPE_H_
+#ifndef ALICEO2_ITSMFT_CLUSTERSHAPE_H_
+#define ALICEO2_ITSMFT_CLUSTERSHAPE_H_
 
 ///////////////////////////////////////////////////////////////////
 //                                                               //
@@ -15,7 +15,7 @@
 #include <vector>
 
 namespace AliceO2 {
-  namespace ITS {
+  namespace ITSMFT {
 
     class ClusterShape : public TObject {
 

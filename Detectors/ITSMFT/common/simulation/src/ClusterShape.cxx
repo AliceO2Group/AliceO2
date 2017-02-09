@@ -5,11 +5,11 @@
 #include <TBits.h>
 #include <TRandom.h>
 
-#include "ITSSimulation/ClusterShape.h"
+#include "ITSMFTSimulation/ClusterShape.h"
 
-ClassImp(AliceO2::ITS::ClusterShape)
+ClassImp(AliceO2::ITSMFT::ClusterShape)
 
-using namespace AliceO2::ITS;
+using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
 ClusterShape::ClusterShape() :

@@ -13,17 +13,14 @@
 #include "ITSMFTBase/SDigit.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTBase/SegmentationPixel.h"
-#include "ITSSimulation/SimulationAlpide.h"
-#include "ITSSimulation/SimuClusterShaper.h"
-#include "ITSSimulation/Point.h"
+#include "ITSMFTSimulation/SimulationAlpide.h"
+#include "ITSMFTSimulation/SimuClusterShaper.h"
+#include "ITSMFTSimulation/Point.h"
 
 
-ClassImp(AliceO2::ITS::SimulationAlpide)
+ClassImp(AliceO2::ITSMFT::SimulationAlpide)
 
-using AliceO2::ITSMFT::SDigit;
-using AliceO2::ITSMFT::Digit;
-using AliceO2::ITSMFT::SegmentationPixel;
-using namespace AliceO2::ITS;
+using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide():

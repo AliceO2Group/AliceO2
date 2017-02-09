@@ -8,18 +8,20 @@
 #include "Rtypes.h"  // for Digitizer::Class, Double_t, ClassDef, etc
 #include "TObject.h" // for TObject
 
+#include "ITSMFTSimulation/Chip.h"
+#include "ITSMFTSimulation/SimulationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/DigitContainer.h"
 
 class TClonesArray;
 
+using AliceO2::ITSMFT::Chip;
+using AliceO2::ITSMFT::SimulationAlpide;
+
 namespace AliceO2
 {
   namespace ITS
   {
-    class Chip;
-    class SimulationAlpide;
-
     class Digitizer : public TObject
     {
     public:

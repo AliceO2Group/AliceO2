@@ -16,7 +16,7 @@
   #include <TClonesArray.h>
   #include <TMath.h>
 
-  #include "ITSSimulation/Point.h"
+  #include "ITSMFTSimulation/Point.h"
   #include "ITSReconstruction/Cluster.h"
   #include "ITSReconstruction/CookedTrack.h"
 #endif
@@ -24,6 +24,7 @@
 extern TGeoManager *gGeoManager;
 
 void DisplayTrack(int event=0, int track=0) {
+  using AliceO2::ITSMFT::Point;
   using namespace AliceO2::ITS;
 
   TEveManager::Create();
@@ -77,7 +78,7 @@ void DisplayTrack(int event=0, int track=0) {
   TEvePointSet* points = new TEvePointSet(s.data());
   points->SetMarkerColor(kBlue);
 
-  TClonesArray pntArr("AliceO2::ITS::Point"), *ppntArr(&pntArr);
+  TClonesArray pntArr("AliceO2::ITSMFT::Point"), *ppntArr(&pntArr);
   tree->SetBranchAddress("ITSPoint",&ppntArr);
 
   tree->GetEvent(event);

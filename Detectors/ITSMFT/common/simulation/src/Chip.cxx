@@ -6,15 +6,17 @@
 //  Adapted from AliITSUChip by Massimo Masera
 //
 
-#include "ITSSimulation/Chip.h"
-#include <TMath.h>                    // for Sqrt
 #include <string.h>                   // for memset
+
+#include <TMath.h>                    // for Sqrt
 #include "TObjArray.h"                // for TObjArray
-#include "ITSSimulation/Point.h"
 
-ClassImp(AliceO2::ITS::Chip)
+#include "ITSMFTSimulation/Chip.h"
+#include "ITSMFTSimulation/Point.h"
 
-using namespace AliceO2::ITS;
+ClassImp(AliceO2::ITSMFT::Chip)
+
+using namespace AliceO2::ITSMFT;
 
 Chip::Chip() :
   TObject(),
@@ -161,7 +163,7 @@ Bool_t Chip::LineSegmentGlobal(Int_t hitindex, Double_t &xstart, Double_t &xpoin
   return kTRUE;
 }
 
-Double_t Chip::PathLength(const AliceO2::ITS::Point *p1, const AliceO2::ITS::Point *p2) const
+Double_t Chip::PathLength(const Point *p1, const Point *p2) const
 {
   Double_t xdiff = p2->GetX() - p1->GetX(),
     ydiff = p2->GetY() - p1->GetY(),

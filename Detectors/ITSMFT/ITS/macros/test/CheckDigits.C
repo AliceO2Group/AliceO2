@@ -9,15 +9,16 @@
   #include <TNtuple.h>
   #include <TCanvas.h>
 
-  #include "ITSBase/GeometryTGeo.h"
   #include "ITSMFTBase/SegmentationPixel.h"
   #include "ITSMFTBase/Digit.h"
-  #include "ITSSimulation/Point.h"
+  #include "ITSMFTSimulation/Point.h"
+  #include "ITSBase/GeometryTGeo.h"
 #endif
 
 void CheckDigits() {
   using AliceO2::ITSMFT::SegmentationPixel;
   using AliceO2::ITSMFT::Digit;
+  using AliceO2::ITSMFT::Point;
   using namespace AliceO2::ITS;
 
   TFile *f=TFile::Open("CheckDigits.root","recreate");
@@ -33,7 +34,7 @@ void CheckDigits() {
   // Hits
   TFile *file0 = TFile::Open("AliceO2_TGeant3.mc_10_event.root");
   TTree *hitTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray hitArr("AliceO2::ITS::Point"), *phitArr(&hitArr);
+  TClonesArray hitArr("AliceO2::ITSMFT::Point"), *phitArr(&hitArr);
   hitTree->SetBranchAddress("ITSPoint",&phitArr);
 
   // Digits

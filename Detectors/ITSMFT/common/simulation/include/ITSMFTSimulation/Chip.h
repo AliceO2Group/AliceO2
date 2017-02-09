@@ -6,8 +6,8 @@
 //  Adapted from AliITSUChip by Massimo Masersa
 //
 
-#ifndef ALICEO2_ITS_CHIP_
-#define ALICEO2_ITS_CHIP_
+#ifndef ALICEO2_ITSMFT_CHIP_
+#define ALICEO2_ITSMFT_CHIP_
 
 #include <exception>
 #include <sstream>
@@ -16,11 +16,11 @@
 #include <TGeoMatrix.h>   
 
 
-namespace AliceO2 { namespace ITS { class Point; }}  // lines 22-22
+namespace AliceO2 { namespace ITSMFT { class Point; }}  // lines 22-22
 
 namespace AliceO2 {
 
-namespace ITS {
+namespace ITSMFT {
 
 class Point;
 
@@ -143,7 +143,7 @@ class Chip : public TObject
     Int_t GetChipIndex() const
     { return fChipIndex; }
 
-    /// Insert new ITS point into the Chip
+    /// Insert new ITSMFT point into the Chip
     /// @param p Point to be added
     void InsertPoint(Point *p);
 
@@ -230,4 +230,4 @@ class Chip : public TObject
 }
 }
 
-#endif /* defined(ALICEO2_ITS_CHIP_) */
+#endif /* defined(ALICEO2_ITSMFT_CHIP_) */

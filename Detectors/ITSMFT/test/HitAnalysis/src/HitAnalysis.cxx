@@ -14,11 +14,12 @@
 #include "TH1.h"                      // for TH1, TH1D, TH1F
 #include "TMath.h"
 
-#include "ITSSimulation/Chip.h"
-#include "ITSSimulation/Point.h"
+#include "ITSMFTSimulation/Chip.h"
+#include "ITSMFTSimulation/Point.h"
 #include "ITSMFTBase/Segmentation.h"
 #include "ITSBase/GeometryTGeo.h"
 
+using AliceO2::ITSMFT::Point;
 using namespace AliceO2::ITS;
 
 HitAnalysis::HitAnalysis() :

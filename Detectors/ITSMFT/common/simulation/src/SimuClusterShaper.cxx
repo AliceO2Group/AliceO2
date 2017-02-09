@@ -5,11 +5,11 @@
 #include <TBits.h>
 #include <TRandom.h>
 
-#include "ITSSimulation/SimuClusterShaper.h"
+#include "ITSMFTSimulation/SimuClusterShaper.h"
 
-ClassImp(AliceO2::ITS::SimuClusterShaper)
+ClassImp(AliceO2::ITSMFT::SimuClusterShaper)
 
-using namespace AliceO2::ITS;
+using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper() :

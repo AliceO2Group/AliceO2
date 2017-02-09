@@ -25,7 +25,7 @@
 #include <TGeoMatrix.h>
 #include <TClonesArray.h>
 
-#include "ITSSimulation/Point.h"
+#include "ITSMFTSimulation/Point.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/Utils.h"
 
@@ -33,6 +33,7 @@
 using namespace AliceO2::ITS::CA;
 using AliceO2::Base::Constants::k2PI;
 using AliceO2::Base::Utils::BringTo02Pi;
+using AliceO2::ITSMFT::Point;
 
 TrackingStation::TrackingStation() :
   mID(-1)

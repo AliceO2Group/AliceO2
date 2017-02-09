@@ -1,13 +1,15 @@
 /// \file Point.cxx
 /// \brief Implementation of the Point class
 
-#include "ITSSimulation/Point.h"
+#include "ITSMFTSimulation/Point.h"
 
 #include <iostream>
 
+ClassImp(AliceO2::ITSMFT::Point)
+
 using std::cout;
 using std::endl;
-using namespace AliceO2::ITS;
+using namespace AliceO2::ITSMFT;
 
 Point::Point() : FairMCPoint(),
                  fTrackStatus(0),
@@ -46,4 +48,3 @@ void Point::Print(const Option_t *opt) const
 }
 
 
-ClassImp(AliceO2::ITS::Point)
