@@ -19,9 +19,9 @@
 #define _DLFCN_H
 #endif
 
-#include "Basics.h"          // for RndmEngine
+//#include "Pythia8/Basics.h"          // for RndmEngine
 #include "FairGenerator.h"   // for FairGenerator
-#include "Pythia8/Pythia.h"  // for Pythia
+#include "Pythia.h"  // for Pythia
 #include "Rtypes.h"          // for Double_t, Bool_t, Int_t, etc
 #include "TRandom.h"         // for TRandom
 #include "TRandom1.h"        // for TRandom1
@@ -36,9 +36,9 @@ class PyTr1Rng : public RndmEngine
  public:
   PyTr1Rng() {  rng = new TRandom1(gRandom->GetSeed()); };
   virtual ~PyTr1Rng() {};
-  
+
   Double_t flat() { return rng->Rndm(); };
-  
+
  private:
   TRandom1 *rng; //!
 };
@@ -48,9 +48,9 @@ class PyTr3Rng : public RndmEngine
  public:
   PyTr3Rng() {  rng = new TRandom3(gRandom->GetSeed()); };
   virtual ~PyTr3Rng() {};
-  
+
   Double_t flat() { return rng->Rndm(); };
-  
+
  private:
   TRandom3 *rng; //!
 };
@@ -61,20 +61,20 @@ class PyTr3Rng : public RndmEngine
 class Pythia8Generator : public FairGenerator
 {
  public:
-  
+
   /** default constructor **/
   Pythia8Generator();
-  
+
   /** destructor **/
   virtual ~Pythia8Generator();
-  
+
   /** public method ReadEvent **/
   Bool_t ReadEvent(FairPrimaryGenerator*);
   void SetParameters(char*);
   void Print(); //!
-  
+
   virtual Bool_t Init(); //!
-  
+
   void SetMom(Double_t mom) { fMom = mom; };
   void SetId(Double_t id) { fId  = id; };
   void SetHNLId(Int_t id) { fHNL = id; };
@@ -83,12 +83,12 @@ class Pythia8Generator : public FairGenerator
   void GetPythiaInstance(int);
 
  private:
-  
+
   Pythia fPythia;             //!
   RndmEngine* fRandomEngine;  //!
-  
+
  protected:
-  
+
   Double_t fMom;       // proton momentum
   Int_t    fHNL;       // HNL ID
   Int_t    fId;       // target type
