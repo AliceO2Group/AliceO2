@@ -16,6 +16,7 @@ AliceO2::Utilities::DataPublisherDevice::DataPublisherDevice()
   , mDataDescription()
   , mDataOrigin()
   , mSubSpecification(~(SubSpecificationT)0)
+  , mFileName()
 {
 }
 
@@ -30,31 +31,122 @@ void AliceO2::Utilities::DataPublisherDevice::InitTask()
   mDataDescription = AliceO2::Header::DataDescription(fConfig->GetValue<std::string>(OptionKeyDataDescription).c_str());
   mDataOrigin = AliceO2::Header::DataOrigin(fConfig->GetValue<std::string>(OptionKeyDataOrigin).c_str());
   mSubSpecification = fConfig->GetValue<SubSpecificationT>(OptionKeySubspecification);
+  mFileName = fConfig->GetValue<std::string>(OptionKeyFileName);
 
   OnData(mInputChannelName.c_str(), &AliceO2::Utilities::DataPublisherDevice::HandleData);
+
+  // reserve space for the HBH at the beginning
+  mFileBuffer.resize(sizeof(AliceO2::Header::HeartbeatHeader));
+
+  if (!mFileName.empty()) {
+    AppendFile(mFileName.c_str(), mFileBuffer);
+  }
+  mFileBuffer.resize(mFileBuffer.size() + sizeof(AliceO2::Header::HeartbeatTrailer));
+  auto* hbhOut = reinterpret_cast<AliceO2::Header::HeartbeatHeader*>(&mFileBuffer[0]);
+  auto* hbtOut = reinterpret_cast<AliceO2::Header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(AliceO2::Header::HeartbeatTrailer)]);
+  *hbhOut = AliceO2::Header::HeartbeatHeader();
+  *hbtOut = AliceO2::Header::HeartbeatTrailer();
 }
 
 bool AliceO2::Utilities::DataPublisherDevice::HandleData(FairMQParts& msgParts, int index)
 {
+  ForEach(msgParts, &DataPublisherDevice::HandleO2LogicalBlock);
+
+  return true;
+}
+
+bool AliceO2::Utilities::DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
+								   size_t headerBufferSize,
+								   const byte* dataBuffer,
+								   size_t dataBufferSize)
+{
+  AliceO2::Header::hexDump("data buffer", dataBuffer, dataBufferSize);
+  const auto* dataHeader = AliceO2::Header::get<AliceO2::Header::DataHeader>(headerBuffer);
+  const auto* hbfEnvelope = AliceO2::Header::get<AliceO2::Header::HeartbeatFrameEnvelope>(headerBuffer);
+
+  // TODO: not sure what the return value is supposed to indicate, it's
+  // not handled in O2Device::ForEach at the moment
+  // indicate that the block has not been processed by a 'false'
+  if (!dataHeader ||
+      (dataHeader->dataDescription) != AliceO2::Header::gDataDescriptionHeartbeatFrame) return false;
+
+  if (!hbfEnvelope) {
+    LOG(ERROR) << "no heartbeat frame envelope header found";
+    return false;
+  }
+
+  // TODO: consistency checks
+  //  hbfEnvelope->header;
+  //  hbfEnvelope->trailer;
+  // - block type in both HBH and HBT
+  // - HBH size + payload size (specified in HBT) + HBT size == dataBufferSize
+  // - dynamically adjust start of the trailer (if this contains more than one
+  //   64 bit word
+
+  // TODO: make tool for reading and manipulation of the HeartbeatFrame/Envelop
+
+  // assume everything valid
+  // write the HBH and HBT as envelop to the buffer of the file data
+  auto* hbhOut = reinterpret_cast<AliceO2::Header::HeartbeatHeader*>(&mFileBuffer[0]);
+  auto* hbtOut = reinterpret_cast<AliceO2::Header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(AliceO2::Header::HeartbeatTrailer)]);
+
+  // copy HBH and HBT, but set the length explicitely to 1
+  // TODO: handle all kinds of corner cases, or add an assert
+  *hbhOut = hbfEnvelope->header;
+  hbhOut->headerLength = 1;
+  *hbtOut = hbfEnvelope->trailer;
+  hbtOut->trailerLength;
+  hbtOut->dataLength = mFileBuffer.size() - sizeof(AliceO2::Header::HeartbeatFrameEnvelope);
+
   // top level subframe header, the DataHeader is going to be used with
-  // description "SUBTIMEFRAMEMETA"
-  // this should be defined in a common place, and also the origin
-  // the origin can probably name a detector identifier, but not sure if
-  // all CRUs of a FLP in all cases serve a single detector
+  // configured description, origin and sub specification
   AliceO2::Header::DataHeader dh;
   dh.dataDescription = mDataDescription;
   dh.dataOrigin = mDataOrigin;
   dh.subSpecification = mSubSpecification;
-  dh.payloadSize = 0;
+  dh.payloadSize = mFileBuffer.size();
 
   O2Message outgoing;
 
+  AliceO2::Header::hexDump("send buffer", &mFileBuffer, mFileBuffer.size());
   // build multipart message from header and payload
-  AddMessage(outgoing, dh, NULL);
+  // TODO: obviously there is a lot to do here, avoid copying etc, this
+  // is just a proof of principle
+  // NewSimpleMessage(mFileBuffer) does not work with the vector
+  std::unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+  msg->Rebuild(mFileBuffer.size());
+  memcpy(msg->GetData(), &mFileBuffer[0], mFileBuffer.size());
+  AddMessage(outgoing, dh, move(msg));
 
   // send message
   Send(outgoing, mOutputChannelName.c_str());
   outgoing.fParts.clear();
 
   return true;
+}
+
+bool AliceO2::Utilities::DataPublisherDevice::AppendFile(const char* name, std::vector<byte>& buffer)
+{
+  bool result = true;
+  std::ifstream ifile(name, std::ifstream::binary);
+  if (ifile.bad()) return false;
+
+  // get length of file:
+  ifile.seekg (0, ifile.end);
+  int length = ifile.tellg();
+  ifile.seekg (0, ifile.beg);
+
+  // allocate memory:
+  int position = buffer.size();
+  buffer.resize(buffer.size() + length);
+
+  // read data as a block:
+  ifile.read(reinterpret_cast<char*>(&buffer[position]),length);
+  if (!(result = ifile.good())) {
+    LOG(ERROR) << "failed to read " << length << " byte(s) from file " << name << std::endl;
+  }
+
+  ifile.close();
+
+  return result;
 }

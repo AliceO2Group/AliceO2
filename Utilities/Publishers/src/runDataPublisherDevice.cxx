@@ -15,6 +15,9 @@ void addCustomOptions(bpo::options_description& options)
     (AliceO2::Utilities::DataPublisherDevice::OptionKeySubspecification,
      bpo::value<AliceO2::Utilities::DataPublisherDevice::SubSpecificationT>()->default_value(~(AliceO2::Utilities::DataPublisherDevice::SubSpecificationT)0),
      "default sub specification")
+    (AliceO2::Utilities::DataPublisherDevice::OptionKeyFileName,
+     bpo::value<std::string>()->default_value(""),
+     "File name")
     (AliceO2::Utilities::DataPublisherDevice::OptionKeyInputChannelName,
      bpo::value<std::string>()->default_value("input"),
      "Name of the input channel")
