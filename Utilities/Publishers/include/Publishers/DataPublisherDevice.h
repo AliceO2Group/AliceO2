@@ -12,6 +12,7 @@
 #include "Headers/HeartbeatFrame.h"
 #include "O2Device/O2Device.h"
 #include <cstring>
+#include <vector>
 
 class FairMQParts;
 
@@ -21,6 +22,7 @@ namespace Utilities {
 /// @class DataPublisherDevice
 /// Utility device for data publishing
 ///
+/// TODO: Generalize with an input policy
 class DataPublisherDevice : public Base::O2Device
 {
 public:
@@ -33,6 +35,7 @@ public:
   static constexpr const char* OptionKeyDataDescription = "data-description";
   static constexpr const char* OptionKeyDataOrigin = "data-origin";
   static constexpr const char* OptionKeySubspecification = "sub-specification";
+  static constexpr const char* OptionKeyFileName = "filename";
 
   /// Default constructor
   DataPublisherDevice();
@@ -52,6 +55,13 @@ protected:
   /// FairMQParts object.
   bool HandleData(FairMQParts& msgParts, int index);
 
+  /// handle one logical O2 block of the input, consists of header and payload
+  bool HandleO2LogicalBlock(const byte* headerBuffer, size_t headerBufferSize,
+			    const byte* dataBuffer, size_t dataBufferSize);
+
+  /// Read file and append to the buffer
+  static bool AppendFile(const char* name, std::vector<byte>& buffer);
+
 private:
   /// configurable name of input channel
   std::string mInputChannelName;
@@ -65,6 +75,10 @@ private:
   AliceO2::Header::DataOrigin mDataOrigin;
   /// the default data sub specification
   SubSpecificationT mSubSpecification;
+  /// buffer for the file to read
+  /// Note the shift by sizeof(HeartbeatHeader)
+  std::vector<byte> mFileBuffer;
+  std::string mFileName;
 };
 
 }; // namespace DataFlow
