@@ -1,21 +1,21 @@
-/// \file  ClustererTask.cxx
+/// \file  TrivialClustererTask.cxx
 /// \brief Implementation of the ITS cluster finder task
 
-#include "ITSReconstruction/ClustererTask.h"
+#include "ITSReconstruction/TrivialClustererTask.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 #include "TClonesArray.h"    // for TClonesArray
 
-ClassImp(AliceO2::ITS::ClustererTask)
+ClassImp(AliceO2::ITS::TrivialClustererTask)
 
   using namespace AliceO2::ITS;
 
 //_____________________________________________________________________
-ClustererTask::ClustererTask() : FairTask("ITSClustererTask"), mDigitsArray(nullptr), mClustersArray(nullptr) {}
+TrivialClustererTask::TrivialClustererTask() : FairTask("ITSTrivialClustererTask"), mDigitsArray(nullptr), mClustersArray(nullptr) {}
 
 //_____________________________________________________________________
-ClustererTask::~ClustererTask()
+TrivialClustererTask::~TrivialClustererTask()
 {
   if (mClustersArray) {
     mClustersArray->Delete();
@@ -26,7 +26,7 @@ ClustererTask::~ClustererTask()
 //_____________________________________________________________________
 /// \brief Init function
 /// Inititializes the clusterer and connects input and output container
-InitStatus ClustererTask::Init()
+InitStatus TrivialClustererTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
@@ -50,12 +50,12 @@ InitStatus ClustererTask::Init()
 }
 
 //_____________________________________________________________________
-void ClustererTask::Exec(Option_t* option)
+void TrivialClustererTask::Exec(Option_t* option)
 {
   mClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
   const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
 
-  mClusterer.process(seg, mDigitsArray, mClustersArray);
+  mTrivialClusterer.process(seg, mDigitsArray, mClustersArray);
 }

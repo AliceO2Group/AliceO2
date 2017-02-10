@@ -10,7 +10,7 @@
   #include "FairParRootFileIo.h"
   #include "FairSystemInfo.h"
 
-  #include "ITSReconstruction/ClustererTask.h"
+  #include "ITSReconstruction/TrivialClustererTask.h"
 #endif
 
 void run_clus(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
@@ -41,7 +41,7 @@ void run_clus(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         rtdb->setFirstInput(parInput1);
 
         // Setup digitizer
-        AliceO2::ITS::ClustererTask *clus = new AliceO2::ITS::ClustererTask;
+        AliceO2::ITS::TrivialClustererTask *clus = new AliceO2::ITS::TrivialClustererTask;
         fRun->AddTask(clus);
 
         //AliceO2::TPC::DigitizerTask *digiTPC = new AliceO2::TPC::DigitizerTask;
