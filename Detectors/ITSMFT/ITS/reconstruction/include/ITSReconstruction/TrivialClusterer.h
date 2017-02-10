@@ -1,9 +1,9 @@
-/// \file Clusterer.h
+/// \file TrivialClusterer.h
 /// \brief Definition of the ITS cluster finder
-#ifndef ALICEO2_ITS_CLUSTERER_H
-#define ALICEO2_ITS_CLUSTERER_H
+#ifndef ALICEO2_ITS_TRIVIALCLUSTERER_H
+#define ALICEO2_ITS_TRIVIALCLUSTERER_H
 
-#include "Rtypes.h"  // for Clusterer::Class, Double_t, ClassDef, etc
+#include "Rtypes.h"  // for TrivialClusterer::Class, Double_t, ClassDef, etc
 
 class TClonesArray;
 
@@ -18,22 +18,22 @@ namespace AliceO2
 {
 namespace ITS
 {
-  class Clusterer
+  class TrivialClusterer
 {
  public:
-  Clusterer();
-  ~Clusterer();
+  TrivialClusterer();
+  ~TrivialClusterer();
+
+  TrivialClusterer(const TrivialClusterer&) = delete;
+  TrivialClusterer& operator=(const TrivialClusterer&) = delete;
 
   /// Steer conversion of points to digits
   /// @param points Container with ITS points
   /// @return digits container
   void process(const SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters);
 
- private:
-  Clusterer(const Clusterer&);
-  Clusterer& operator=(const Clusterer&);
 };
 }
 }
 
-#endif /* ALICEO2_ITS_CLUSTERER_H */
+#endif /* ALICEO2_ITS_TRIVIALCLUSTERER_H */

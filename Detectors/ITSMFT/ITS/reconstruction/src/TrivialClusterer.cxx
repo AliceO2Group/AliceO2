@@ -1,8 +1,8 @@
-/// \file Clusterer.cxx
+/// \file TrivialClusterer.cxx
 /// \brief Implementation of the ITS cluster finder
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTBase/SegmentationPixel.h"
-#include "ITSReconstruction/Clusterer.h"
+#include "ITSReconstruction/TrivialClusterer.h"
 #include "ITSReconstruction/Cluster.h"
 
 #include "FairLogger.h"   // for LOG
@@ -11,12 +11,12 @@
 using AliceO2::ITSMFT::Digit;
 using namespace AliceO2::ITS;
 
-Clusterer::Clusterer() {}
+TrivialClusterer::TrivialClusterer() {}
 
-Clusterer::~Clusterer() {}
+TrivialClusterer::~TrivialClusterer() {}
 
 void
-Clusterer::process(const SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters)
+TrivialClusterer::process(const SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters)
 {
   Float_t sigma2 = seg->cellSizeX() * seg->cellSizeX() / 12.;
 

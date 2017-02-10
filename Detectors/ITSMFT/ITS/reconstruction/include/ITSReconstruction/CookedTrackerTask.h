@@ -5,7 +5,6 @@
 #ifndef ALICEO2_ITS_COOKEDTRACKERTASK_H
 #define ALICEO2_ITS_COOKEDTRACKERTASK_H
 
-#include "Rtypes.h"   
 #include "FairTask.h" 
 
 #include "ITSBase/GeometryTGeo.h"
