@@ -323,6 +323,22 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    itsmft_reconstruction_bucket
+
+    DEPENDENCIES
+    itsmft_base_bucket
+    Graf
+    Gpad
+    DetectorsBase
+    ITSMFTBase
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+)
+
+o2_define_bucket(
+    NAME
     its_base_bucket
 
     DEPENDENCIES
@@ -359,12 +375,16 @@ o2_define_bucket(
 
     DEPENDENCIES
     its_base_bucket
+    ITSMFTBase
+    ITSMFTReconstruction
     ITSBase
     ITSSimulation
     DetectorsBase
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/reconstruction/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/simulation/include
 )
