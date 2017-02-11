@@ -85,6 +85,4 @@ void run_trac_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         //std::cout << "Parameter file is " << parFile << std::endl;
         std::cout << "Real time " << rtime << " s, CPU time " << ctime
                   << "s" << endl << endl;
-
-
 }

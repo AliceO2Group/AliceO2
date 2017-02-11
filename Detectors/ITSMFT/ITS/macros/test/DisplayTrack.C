@@ -15,6 +15,7 @@
   #include <TEvePointSet.h>
   #include <TClonesArray.h>
   #include <TMath.h>
+  #include <TString.h>
 
   #include "ITSMFTSimulation/Point.h"
   #include "ITSReconstruction/Cluster.h"
@@ -23,14 +24,17 @@
 
 extern TGeoManager *gGeoManager;
 
-void DisplayTrack(int event=0, int track=0) {
+void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=0, Int_t track=0) {
   using AliceO2::ITSMFT::Point;
   using namespace AliceO2::ITS;
+
+  char filename[100];
 
   TEveManager::Create();
 
   // Full geometry
-  TFile *f = TFile::Open("AliceO2_TGeant3.params_10.root");
+  sprintf(filename, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
+  TFile *f = TFile::Open(filename);
   f->Get("FairGeoParSet");
   f->Close();
   
@@ -70,7 +74,8 @@ void DisplayTrack(int event=0, int track=0) {
   */
   
   // Hits
-  f = TFile::Open("AliceO2_TGeant3.mc_10_event.root");
+  sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
+  f = TFile::Open(filename);
   TTree *tree = (TTree *)gDirectory->Get("cbmsim");
 
   string s{"hits"};
@@ -98,7 +103,8 @@ void DisplayTrack(int event=0, int track=0) {
 
 
   // Clusters
-  f = TFile::Open("AliceO2_TGeant3.clus_10_event.root");
+  sprintf(filename, "AliceO2_%s.clus_%i_event.root", mcEngine.Data(), nEvents);
+  f = TFile::Open(filename);
   tree = (TTree *)gDirectory->Get("cbmsim");
 
   s="clusters";
@@ -131,7 +137,8 @@ void DisplayTrack(int event=0, int track=0) {
 
   
   // Track
-  f = TFile::Open("AliceO2_TGeant3.trac_10_event.root");
+  sprintf(filename, "AliceO2_%s.trac_%i_event.root", mcEngine.Data(), nEvents);
+  f = TFile::Open(filename);
   tree = (TTree *)gDirectory->Get("cbmsim");
 
   s="track";

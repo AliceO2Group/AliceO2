@@ -20,6 +20,12 @@
      sprintf(inc8, " -I%s/Common/MathUtils/include/",dir.Data());
      char inc9[100];
      sprintf(inc9, " -I%s/Detectors/ITSMFT/ITS/reconstruction/include/",dir.Data());
+     char inc10[100];
+     sprintf(inc10, " -I%s/Detectors/ITSMFT/common/base/include/",dir.Data());
+     char inc11[100];
+     sprintf(inc11, " -I%s/Detectors/ITSMFT/common/simulation/include/",dir.Data());
+     char inc12[100];
+     sprintf(inc12, " -I%s/Detectors/ITSMFT/common/reconstruction/include/",dir.Data());
 
      TString includePath= inc1;
      includePath+=inc2;
@@ -30,6 +36,9 @@
      includePath+=inc7;
      includePath+=inc8;
      includePath+=inc9;
+     includePath+=inc10;
+     includePath+=inc11;
+     includePath+=inc12;
 
      gSystem->AddIncludePath(includePath.Data());
      cout << "Added " << endl << includePath.Data() <<  endl << " to include paths" << endl;
