@@ -10,7 +10,7 @@
   #include "FairParRootFileIo.h"
   #include "FairSystemInfo.h"
 
-  #include "ITSReconstruction/ClustererTask.h"
+  #include "ITSReconstruction/TrivialClustererTask.h"
 #endif
 
 void run_clus_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
@@ -40,12 +40,9 @@ void run_clus_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         parInput1->open(paramfile.str().c_str());
         rtdb->setFirstInput(parInput1);
 
-        // Setup digitizer
-        AliceO2::ITS::ClustererTask *clus = new AliceO2::ITS::ClustererTask;
+        // Setup clusterizer
+        AliceO2::ITS::TrivialClustererTask *clus = new AliceO2::ITS::TrivialClustererTask;
         fRun->AddTask(clus);
-
-        //AliceO2::TPC::DigitizerTask *digiTPC = new AliceO2::TPC::DigitizerTask;
-        //fRun->AddTask(digiTPC);
 
         fRun->Init();
 
@@ -76,6 +73,4 @@ void run_clus_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         //std::cout << "Parameter file is " << parFile << std::endl;
         std::cout << "Real time " << rtime << " s, CPU time " << ctime
                   << "s" << endl << endl;
-
-
 }

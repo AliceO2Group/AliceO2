@@ -8,6 +8,7 @@
   #include <TH2F.h>
   #include <TNtuple.h>
   #include <TCanvas.h>
+  #include <TString.h>
 
   #include "ITSMFTBase/SegmentationPixel.h"
   #include "ITSMFTBase/Digit.h"
@@ -15,7 +16,7 @@
   #include "ITSBase/GeometryTGeo.h"
 #endif
 
-void CheckDigits() {
+void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   using AliceO2::ITSMFT::SegmentationPixel;
   using AliceO2::ITSMFT::Digit;
   using AliceO2::ITSMFT::Point;
@@ -24,21 +25,26 @@ void CheckDigits() {
   TFile *f=TFile::Open("CheckDigits.root","recreate");
   TNtuple *nt=new TNtuple("ntd","digit ntuple","x:y:z:dx:dz");
 
+  char filename[100];
+
   // Geometry
-  TFile *file = TFile::Open("AliceO2_TGeant3.params_10.root");
+  sprintf(filename, "AliceO2_%s.params_%i.root", mcEngine.Data(), nEvents);
+  TFile *file = TFile::Open(filename);
   gFile->Get("FairGeoParSet");
   GeometryTGeo *gman = new GeometryTGeo(kTRUE);
   SegmentationPixel *seg =
     (SegmentationPixel*)gman->getSegmentationById(0);
 
   // Hits
-  TFile *file0 = TFile::Open("AliceO2_TGeant3.mc_10_event.root");
+  sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
+  TFile *file0 = TFile::Open(filename);
   TTree *hitTree=(TTree*)gFile->Get("cbmsim");
   TClonesArray hitArr("AliceO2::ITSMFT::Point"), *phitArr(&hitArr);
   hitTree->SetBranchAddress("ITSPoint",&phitArr);
 
   // Digits
-  TFile *file1 = TFile::Open("AliceO2_TGeant3.digi_10_event.root");
+  sprintf(filename, "AliceO2_%s.digi_%i_event.root", mcEngine.Data(), nEvents);
+  TFile *file1 = TFile::Open(filename);
   TTree *digTree=(TTree*)gFile->Get("cbmsim");
   TClonesArray digArr("AliceO2::ITSMFT::Digit"), *pdigArr(&digArr);
   digTree->SetBranchAddress("ITSDigit",&pdigArr);

@@ -11,27 +11,32 @@
   #include <TNtuple.h>
   #include <TCanvas.h>
   #include <TMath.h>
+  #include <TString.h>
 
   #include "SimulationDataFormat/MCTrack.h"
   #include "ITSReconstruction/Cluster.h"
   #include "ITSReconstruction/CookedTrack.h"
 #endif
 
-void CheckTracks() {
+void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   using namespace AliceO2::ITS;
 
   TFile *f=TFile::Open("CheckTracks.root","recreate");
   TNtuple *nt=new TNtuple("ntt","track ntuple",
 			  "mcPhi:mcLam:mcPt:recPhi:recLam:recPt:ipD:ipZ:label");
 
+  char filename[100];
+
   // MC tracks
-  TFile *file0 = TFile::Open("AliceO2_TGeant3.mc_10_event.root");
+  sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
+  TFile *file0 = TFile::Open(filename);
   TTree *mcTree=(TTree*)gFile->Get("cbmsim");
   TClonesArray mcArr("MCTrack"), *pmcArr(&mcArr);
   mcTree->SetBranchAddress("MCTrack",&pmcArr);
 
   // Reconstructed tracks
-  TFile *file1 = TFile::Open("AliceO2_TGeant3.trac_10_event.root");
+  sprintf(filename, "AliceO2_%s.trac_%i_event.root", mcEngine.Data(), nEvents);
+  TFile *file1 = TFile::Open(filename);
   TTree *recTree=(TTree*)gFile->Get("cbmsim");
   TClonesArray recArr("AliceO2::ITS::CookedTrack"), *precArr(&recArr);
   recTree->SetBranchAddress("ITSTrack",&precArr);

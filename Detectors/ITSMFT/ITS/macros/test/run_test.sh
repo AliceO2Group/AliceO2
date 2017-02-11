@@ -1,10 +1,15 @@
 #
-root.exe -b -q run_sim.C+ >& sim.log
-root.exe -b -q run_digi.C+ >& digi.log
-root.exe -b -q CheckDigits.C+ >& CheckDigits.log
-root.exe -b -q run_clus.C+ >& clus.log
-root.exe -b -q CheckClusters.C+ >& CheckClusters.log
-root.exe -b -q run_trac.C+ >& trac.log
-root.exe -b -q CheckTracks.C+ >& CheckTracks.log
-root.exe DisplayTrack.C+
+nEvents=10
+mcEngine=\"TGeant3\"
+#To activate the ALPIDE response, set alp=kTRUE
+alp=kFALSE
+#
+root.exe -b -q $O2_ROOT/share/macro/run_sim_its.C+\($nEvents,$mcEngine\) >& sim.log
+root.exe -b -q $O2_ROOT/share/macro/run_digi_its.C+\($nEvents,$mcEngine,$alp\) >& digi.log
+root.exe -b -q CheckDigits.C+\($nEvents,$mcEngine\) >& CheckDigits.log
+root.exe -b -q $O2_ROOT/share/macro/run_clus_its.C+\($nEvents,$mcEngine\) >& clus.log
+root.exe -b -q CheckClusters.C+\($nEvents,$mcEngine\) >& CheckClusters.log
+root.exe -b -q $O2_ROOT/share/macro/run_trac_its.C+\($nEvents,$mcEngine\) >& trac.log
+root.exe -b -q CheckTracks.C+\($nEvents,$mcEngine\) >& CheckTracks.log
+root.exe DisplayTrack.C+\($nEvents,$mcEngine\)
 
