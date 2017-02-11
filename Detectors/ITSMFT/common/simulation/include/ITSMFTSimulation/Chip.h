@@ -11,7 +11,7 @@
 
 #include <exception>
 #include <sstream>
-#include <TObjArray.h>  // for TObjArray
+#include <vector>
 #include <TObject.h>    // for TObject
 #include <TGeoMatrix.h>   
 
@@ -100,11 +100,6 @@ class Chip : public TObject
     /// @return Chip after assignment
     Chip &operator=(const Chip &ref);
 
-    /// Access operator for point inside chip
-    /// @param index Index of the point within the chip
-    /// @return Point at the given index (nullptr if out of bounds)
-    Point *operator[](Int_t index) const;
-
     /// Comparison operator, checking for equalness
     /// Comparison done on chip index
     /// @param other Chip to compare with
@@ -145,22 +140,17 @@ class Chip : public TObject
 
     /// Insert new ITSMFT point into the Chip
     /// @param p Point to be added
-    void InsertPoint(Point *p);
+    void InsertPoint(const Point *p);
 
     /// Get the number of point assigned to the chip
     /// @return Number of points assigned to the chip
     Int_t GetNumberOfPoints() const
-    { return fPoints.GetEntriesFast(); }
-
-    /// Get the list of points assigned to this chip
-    /// @return TObjArray of points
-    TObjArray *GetPoints()
-    { return &fPoints; }
+    { return fPoints.size(); }
 
     /// Access Point assigned to chip at a given index
     /// @param index Index of the point
     /// @return Point at given index (nullptr if index is out of bounds)
-    Point *GetPointAt(Int_t index) const;
+    const Point *GetPointAt(Int_t index) const;
 
     void globalToLocalVector(Double_t glob[3], Double_t loc[3]) const {
        fMat->MasterToLocalVect(glob, loc);
@@ -222,7 +212,7 @@ class Chip : public TObject
   protected:
 
     Int_t fChipIndex;     ///< Chip ID
-    TObjArray fPoints;        ///< Hits connnected to the given chip
+    std::vector<const Point *>fPoints;        ///< Hits connnected to the given chip
     const TGeoHMatrix *fMat;     ///< Transformation matrix
 
   ClassDef(Chip, 2);

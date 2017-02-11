@@ -24,7 +24,6 @@ Chip::Chip() :
   fPoints(),
   fMat(nullptr)
 {
-  fPoints.SetOwner(kFALSE);
 }
 
 Chip::Chip(Int_t chipindex, const TGeoHMatrix *mat) :
@@ -33,7 +32,6 @@ Chip::Chip(Int_t chipindex, const TGeoHMatrix *mat) :
   fPoints(),
   fMat(mat)
 {
-  fPoints.SetOwner(kFALSE);
 }
 
 Chip::Chip(const Chip &ref) :
@@ -70,36 +68,30 @@ Bool_t Chip::operator<(const Chip &other) const
   return fChipIndex < other.fChipIndex;
 }
 
-Point *Chip::operator[](Int_t i) const
-{
-  return GetPointAt(i);
-}
-
 Chip::~Chip()
 {
 
 }
 
-void Chip::InsertPoint(Point *p)
+void Chip::InsertPoint(const Point *p)
 {
   if (p->GetDetectorID() != fChipIndex) {
     throw IndexException(fChipIndex, p->GetDetectorID());
   }
-  fPoints.AddLast(p);
+  fPoints.push_back(p);
 }
 
-Point *Chip::GetPointAt(Int_t i) const
+const Point *Chip::GetPointAt(Int_t i) const
 {
-  Point *result = nullptr;
-  if (i < fPoints.GetEntriesFast()) {
-    result = static_cast<Point *>(fPoints.At(i));
+  if (i < fPoints.size()) {
+    return fPoints[i];
   }
-  return result;
+  return nullptr;
 }
 
 void Chip::Clear(Option_t *opt)
 {
-  fPoints.Clear();
+  fPoints.clear();
 }
 
 Bool_t Chip::LineSegmentLocal(Int_t hitindex,
@@ -107,11 +99,11 @@ Double_t &xstart, Double_t &xpoint,
 Double_t &ystart, Double_t &ypoint,
 Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
 {
-  if (hitindex >= fPoints.GetEntriesFast()) {
+  if (hitindex >= fPoints.size()) {
     return kFALSE;
   }
 
-  Point *tmp = static_cast<Point *>(fPoints.At(hitindex));
+  const Point *tmp = fPoints[hitindex];
   if (tmp->IsEntering()) {
     return kFALSE;
   }
@@ -142,10 +134,10 @@ Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
 Bool_t Chip::LineSegmentGlobal(Int_t hitindex, Double_t &xstart, Double_t &xpoint, Double_t &ystart, Double_t &ypoint,
                                Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
 {
-  if (hitindex >= fPoints.GetEntriesFast()) {
+  if (hitindex >= fPoints.size()) {
     return kFALSE;
   }
-  Point *tmp = static_cast<Point *>(fPoints.At(hitindex));
+  const Point *tmp = fPoints[hitindex];
   if (tmp->IsEntering()) {
     return kFALSE;
   }
