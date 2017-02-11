@@ -184,7 +184,7 @@ void HitAnalysis::ProcessChips()
     }
     //LOG(DEBUG) << "Processing chip with index " << mychip.GetChipIndex() << FairLogger::endl;
     for (int ihit = 0; ihit < mychip.GetNumberOfPoints(); ihit++) {
-      if (mychip[ihit]->IsEntering()) { continue; }
+      if (mychip.GetPointAt(ihit)->IsEntering()) { continue; }
       mychip.LineSegmentLocal(ihit, x0, x1, y0, y1, z0, z1, tof, edep);
       steplength = TMath::Sqrt(x1 * x1 + y1 * y1 + z1 * z1);
       fLineSegment->Fill(steplength);

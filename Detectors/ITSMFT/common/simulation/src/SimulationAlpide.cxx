@@ -221,8 +221,7 @@ Double_t SimulationAlpide::ComputeIncidenceAngle(TLorentzVector dir) const {
 
 //______________________________________________________________________
 void SimulationAlpide::GenerateCluster() {
-  TObjArray *hits = fChip->GetPoints();
-  Int_t nhits = hits->GetEntriesFast();
+  Int_t nhits = fChip->GetNumberOfPoints();
   if (nhits <= 0) return;
 
   for (Int_t h = 0; h < nhits; ++h) {
@@ -235,7 +234,7 @@ void SimulationAlpide::GenerateCluster() {
     Float_t z = z0 + 0.5*z1;
 
 
-    Point *hit = static_cast<Point*>(hits->UncheckedAt(h));
+    const Point *hit = fChip->GetPointAt(h);
     TLorentzVector trackP4;
     trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
     Double_t beta = std::min(0.99999, trackP4.Beta());
