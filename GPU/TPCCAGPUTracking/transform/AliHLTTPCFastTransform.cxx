@@ -204,6 +204,7 @@ Int_t AliHLTTPCFastTransform::ReadFromObject( const AliHLTTPCFastTransformObject
   // read fast transformation from ROOT object in database
   //
 
+  if (fgkUseOrigTransform) return 0;
   DeInit();
   fInitialisationMode = 0;
 
@@ -338,6 +339,8 @@ Int_t AliHLTTPCFastTransform::SetCurrentTimeStamp( Long_t TimeStamp )
   fOrigTransform->SetCorrectionMapMode(kTRUE); //If the simulation set this to false to simulate distortions, we need to reverse it for the transformation
   fOrigTransform->SetCurrentTimeStamp( static_cast<UInt_t>(TimeStamp) );
   fLastTimeStamp = TimeStamp;  
+  
+  if (fgkUseOrigTransform) return(0);
 
   // find last calibrated time bin
   
