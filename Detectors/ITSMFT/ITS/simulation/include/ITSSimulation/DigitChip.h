@@ -17,8 +17,6 @@ namespace AliceO2
   }
 }
 
-using AliceO2::ITSMFT::Digit;
-
 namespace AliceO2
 {
   namespace ITS
@@ -33,16 +31,16 @@ namespace AliceO2
       static void setNumberOfRows(Int_t nr) { sNumOfRows = nr; }
       void reset();
 
-      Digit* getDigit(UShort_t row, UShort_t col);
+      AliceO2::ITSMFT::Digit* getDigit(UShort_t row, UShort_t col);
 
-      Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
+      AliceO2::ITSMFT::Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
 
       void fillOutputContainer(TClonesArray* outputcont);
 
     private:
-      Digit* findDigit(Int_t idx);
+      AliceO2::ITSMFT::Digit* findDigit(Int_t idx);
       static Int_t sNumOfRows;         ///< Number of rows in the pixel matrix
-      std::map<Int_t, Digit*> mPixels; ///< Map of fired pixels
+      std::map<Int_t, AliceO2::ITSMFT::Digit*> mPixels; ///< Map of fired pixels
     };
   }
 }

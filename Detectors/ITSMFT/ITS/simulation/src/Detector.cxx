@@ -39,6 +39,7 @@ class TParticle;
 using std::cout;
 using std::endl;
 
+using AliceO2::ITSMFT::Point;
 using namespace AliceO2::ITS;
 
 Detector::Detector()

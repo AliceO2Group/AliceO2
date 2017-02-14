@@ -12,6 +12,7 @@ ClassImp(AliceO2::ITS::CookedTrack)
 
 using namespace AliceO2::ITS;
 using namespace AliceO2::Base::Constants;
+using namespace AliceO2::Base::Track;
 
 CookedTrack::CookedTrack() : TObject(), mTrack(), mLabel(-1), mMass(0.14), mChi2(0.)
 {

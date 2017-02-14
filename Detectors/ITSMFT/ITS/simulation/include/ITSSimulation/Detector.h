@@ -22,7 +22,6 @@ class TParticle;
 class TString;
 
 namespace AliceO2 { namespace ITSMFT { class Point; }}  // lines 22-22
-using AliceO2::ITSMFT::Point;
 
 namespace AliceO2 { namespace ITS { class GeometryHandler; }}
 namespace AliceO2 { namespace ITS { class MisalignmentParameter; }}
@@ -143,7 +142,7 @@ class Detector : public AliceO2::Base::Detector
                                     UInt_t &dettype) const;
 
     /// This method is an example of how to add your own point of type Point to the clones array
-    Point *addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom, Double_t startTime,
+    AliceO2::ITSMFT::Point *addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom, Double_t startTime,
                   Double_t time, Double_t length, Double_t eLoss, Int_t shunt, Int_t status, Int_t statusStart);
 
     /// Book arrays for wrapper volumes

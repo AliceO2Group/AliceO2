@@ -20,8 +20,6 @@ namespace AliceO2 {
    }
 }
 
-using AliceO2::ITSMFT::Digit;
-
 namespace AliceO2 {
 namespace ITS {
 
@@ -34,14 +32,14 @@ class DigitStave
 
     void Reset();
 
-    Digit *FindDigit(Int_t pixel);
+    AliceO2::ITSMFT::Digit *FindDigit(Int_t pixel);
 
-    void SetDigit(int pixel, Digit *digi);
+    void SetDigit(int pixel, AliceO2::ITSMFT::Digit *digi);
 
     void FillOutputContainer(TClonesArray *outputcont);
 
   private:
-    std::map<int, Digit *> fPixels;
+    std::map<int, AliceO2::ITSMFT::Digit *> fPixels;
 };
 }
 }

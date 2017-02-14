@@ -30,8 +30,8 @@ namespace AliceO2
       ~DigitContainer() {}
       void reset();
       void resize(Int_t n) { mChips.resize(n); }
-      Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
-      Digit* getDigit(Int_t chipID, UShort_t row, UShort_t col);
+      AliceO2::ITSMFT::Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
+      AliceO2::ITSMFT::Digit* getDigit(Int_t chipID, UShort_t row, UShort_t col);
 
       void fillOutputContainer(TClonesArray* output);
 

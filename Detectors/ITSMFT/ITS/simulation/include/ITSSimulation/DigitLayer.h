@@ -19,8 +19,6 @@ namespace AliceO2 {
   }
 }
 
-using AliceO2::ITSMFT::Digit;
-
 namespace AliceO2 {
 namespace ITS {
 
@@ -35,9 +33,9 @@ class DigitLayer
 
     void Reset();
 
-    void SetDigit(Digit *digi, Int_t stave, Int_t pixel);
+    void SetDigit(AliceO2::ITSMFT::Digit *digi, Int_t stave, Int_t pixel);
 
-    Digit *FindDigit(Int_t stave, Int_t pixel);
+    AliceO2::ITSMFT::Digit *FindDigit(Int_t stave, Int_t pixel);
 
     void FillOutputContainer(TClonesArray *output);
 
