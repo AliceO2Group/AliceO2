@@ -13,6 +13,8 @@
 ClassImp(AliceO2::ITS::Digitizer)
 
 using AliceO2::ITSMFT::Point;
+using AliceO2::ITSMFT::Chip;
+using AliceO2::ITSMFT::SimulationAlpide;
 using AliceO2::ITSMFT::Digit;
 using AliceO2::ITSMFT::SegmentationPixel;
 

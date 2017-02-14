@@ -29,6 +29,7 @@
 #include <stdio.h>  // for snprintf, NULL, printf
 #include <string.h> // for strstr, strlen
 
+using AliceO2::ITSMFT::Segmentation;
 using AliceO2::ITSMFT::SegmentationPixel;
 using namespace TMath;
 using namespace AliceO2::ITS;

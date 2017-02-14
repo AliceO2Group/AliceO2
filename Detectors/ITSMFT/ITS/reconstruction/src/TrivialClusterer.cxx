@@ -8,6 +8,7 @@
 #include "FairLogger.h"   // for LOG
 #include "TClonesArray.h" // for TClonesArray
 
+using AliceO2::ITSMFT::SegmentationPixel;
 using AliceO2::ITSMFT::Digit;
 using namespace AliceO2::ITS;
 

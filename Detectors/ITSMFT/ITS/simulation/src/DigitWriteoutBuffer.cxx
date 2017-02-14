@@ -14,6 +14,7 @@ class FairTimeStamp;
 
 ClassImp(AliceO2::ITS::DigitWriteoutBuffer)
 
+using AliceO2::ITSMFT::Digit;
 using namespace AliceO2::ITS;
 
 DigitWriteoutBuffer::DigitWriteoutBuffer() :

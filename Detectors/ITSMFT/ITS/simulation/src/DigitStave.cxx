@@ -12,6 +12,7 @@
 
 #include "TClonesArray.h"
 
+using AliceO2::ITSMFT::Digit;
 using namespace AliceO2::ITS;
 
 DigitStave::DigitStave()

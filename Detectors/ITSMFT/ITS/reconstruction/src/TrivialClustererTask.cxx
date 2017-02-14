@@ -9,7 +9,8 @@
 
 ClassImp(AliceO2::ITS::TrivialClustererTask)
 
-  using namespace AliceO2::ITS;
+using AliceO2::ITSMFT::SegmentationPixel;
+using namespace AliceO2::ITS;
 
 //_____________________________________________________________________
 TrivialClustererTask::TrivialClustererTask() : FairTask("ITSTrivialClustererTask"), mDigitsArray(nullptr), mClustersArray(nullptr) {}

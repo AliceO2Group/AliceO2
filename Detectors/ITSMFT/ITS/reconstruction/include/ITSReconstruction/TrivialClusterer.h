@@ -12,7 +12,6 @@ namespace AliceO2 {
     class SegmentationPixel;
   }
 }
-using AliceO2::ITSMFT::SegmentationPixel;
 
 namespace AliceO2
 {
@@ -30,7 +29,7 @@ namespace ITS
   /// Steer conversion of points to digits
   /// @param points Container with ITS points
   /// @return digits container
-  void process(const SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters);
+  void process(const AliceO2::ITSMFT::SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters);
 
 };
 }

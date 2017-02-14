@@ -27,7 +27,6 @@ namespace ITSMFT {
 class Chip;
 }
 }
-using AliceO2::ITSMFT::Chip;
 
 namespace AliceO2 {
 namespace ITS {
@@ -59,7 +58,7 @@ class HitAnalysis : public FairTask
   private:
     Bool_t fIsInitialized;       ///< Check whether task is initialized
     Bool_t fProcessChips;        ///< Process chips or hits
-    std::map<int, Chip *> fChips;               ///< lookup map for ITS chips
+    std::map<int, AliceO2::ITSMFT::Chip *> fChips; ///< lookup map for ITS chips
     TClonesArray *fPointsArray;        ///< Array with ITS space points, filled by the FairRootManager
     GeometryTGeo *fGeometry;           ///<  geometry
     TH1 *fLineSegment;        ///< Histogram for line segment
