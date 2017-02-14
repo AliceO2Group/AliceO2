@@ -48,9 +48,10 @@ SegmentationPixel::SegmentationPixel(UInt_t id, int nchips, int ncol, int nrow, 
 {
   // Default constructor, sizes in cm
 
-//  if (nchips) {
-//    SetUniqueID(GeometryTGeo::composeChipTypeId(id));
-//  }
+ if (nchips) {
+//   SetUniqueID(GeometryTGeo::composeChipTypeId(id));
+   SetUniqueID(id);
+ }
 
   mChipSizeDZ = (mNumberOfColumnsPerChip - 2) * mPitchZ + mPitchZLeftColumn + mPitchZRightColumn;
   mDxActive = mNumberOfRows * mPitchX;
