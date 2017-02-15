@@ -5,6 +5,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
+   src/AdcClockMonitor.cxx 
    src/Baseline.cxx
    src/BoxCluster.cxx
    src/BoxClusterer.cxx
@@ -23,7 +24,10 @@ set(SRCS
    src/DigitRow.cxx
    src/DigitTime.cxx
    src/ElectronTransport.cxx
+   src/GBTFrame.cxx
+   src/GBTFrameContainer.cxx
    src/GEMAmplification.cxx
+   src/HalfSAMPAData.cxx
    src/HwCluster.cxx
    src/HwClusterer.cxx
    src/HwClusterFinder.cxx
@@ -31,9 +35,11 @@ set(SRCS
    src/PadResponse.cxx
    src/Point.cxx
    src/SAMPAProcessing.cxx
+   src/SyncPatternMonitor.cxx
 )
 
 set(HEADERS
+   include/${MODULE_NAME}/AdcClockMonitor.h
    include/${MODULE_NAME}/Baseline.h
    include/${MODULE_NAME}/BoxCluster.h
    include/${MODULE_NAME}/BoxClusterer.h
@@ -52,7 +58,10 @@ set(HEADERS
    include/${MODULE_NAME}/DigitRow.h
    include/${MODULE_NAME}/DigitTime.h
    include/${MODULE_NAME}/ElectronTransport.h
+   include/${MODULE_NAME}/GBTFrame.h
+   include/${MODULE_NAME}/GBTFrameContainer.h
    include/${MODULE_NAME}/GEMAmplification.h
+   include/${MODULE_NAME}/HalfSAMPAData.h
    include/${MODULE_NAME}/HwCluster.h
    include/${MODULE_NAME}/HwClusterer.h
    include/${MODULE_NAME}/HwClusterFinder.h
@@ -60,6 +69,7 @@ set(HEADERS
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/Point.h
    include/${MODULE_NAME}/SAMPAProcessing.h
+   include/${MODULE_NAME}/SyncPatternMonitor.h
 )
 Set(LINKDEF src/TPCSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
@@ -74,10 +84,14 @@ install(
 
 Set(Exe_Names
   tpc-run-sim
+  tpc-test-GBT
+  tpc-read-GBTFrames
 )
 
 Set(Exe_Source
   run/runSim.cxx
+  run/testGBT.cxx
+  run/readGBTFrames.cxx
 )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
