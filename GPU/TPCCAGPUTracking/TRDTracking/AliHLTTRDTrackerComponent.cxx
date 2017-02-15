@@ -155,18 +155,17 @@ int AliHLTTRDTrackerComponent::ReadConfigurationString(  const char* arguments )
 // #################################################################################
 int AliHLTTRDTrackerComponent::DoInit( int argc, const char** argv ) {
   // see header file for class documentation
-  printf("AliHLTTRDTrackerComponent::DoInit\n");
 
   int iResult=0;
-  if ( fTracker ) return -EINPROGRESS;
+  if ( fTracker ) {
+    return -EINPROGRESS;
+  }
 
   fTrackList = new TList();
-  if (!fTrackList)
+  if (!fTrackList) {
     return -ENOMEM;
+  }
   fTrackList->SetOwner(kFALSE);
-
-  fTracker = new AliHLTTRDTracker();
-  fTracker->Init();
 
   TString arguments = "";
   for ( int i = 0; i < argc; i++ ) {
@@ -175,6 +174,15 @@ int AliHLTTRDTrackerComponent::DoInit( int argc, const char** argv ) {
   }
 
   iResult = ReadConfigurationString( arguments.Data() );
+
+  fTracker = new AliHLTTRDTracker();
+  if (!fTracker) {
+    return -ENOMEM;
+  }
+  if (fVerboseDebugOutput) {
+    fTracker->EnableDebugOutput();
+  }
+  fTracker->Init();
 
   return iResult;
 }
@@ -282,7 +290,7 @@ int AliHLTTRDTrackerComponent::DoEvent
   }// end read input blocks
 
   if (fVerboseDebugOutput) {
-    printf("TRDTrackerComponent recieved %i tracklets\n", nTrackletsTotal);
+    HLTInfo("TRDTrackerComponent received %i tracklets\n", nTrackletsTotal);
   }
 
   fTracker->Reset();
