@@ -23,6 +23,7 @@ set(SRCS
    src/DigitRow.cxx
    src/DigitTime.cxx
    src/ElectronTransport.cxx
+   src/GBTFrame.cxx
    src/GEMAmplification.cxx
    src/HwCluster.cxx
    src/HwClusterer.cxx
@@ -52,6 +53,7 @@ set(HEADERS
    include/${MODULE_NAME}/DigitRow.h
    include/${MODULE_NAME}/DigitTime.h
    include/${MODULE_NAME}/ElectronTransport.h
+   include/${MODULE_NAME}/GBTFrame.h
    include/${MODULE_NAME}/GEMAmplification.h
    include/${MODULE_NAME}/HwCluster.h
    include/${MODULE_NAME}/HwClusterer.h

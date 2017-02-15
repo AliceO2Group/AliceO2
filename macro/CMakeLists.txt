@@ -48,6 +48,7 @@
     Set_Tests_Properties(run_clusterer_TGeant4 PROPERTIES TIMEOUT "30")
     Set_Tests_Properties(run_clusterer_TGeant4 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
 
+  GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/test_GBTFrame.C)
 GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/compare_cluster.C)
 
   Add_Test(comp_clusterer_TGeant3
@@ -55,6 +56,10 @@ GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/compare_cluster.C)
   Set_Tests_Properties(comp_clusterer_TGeant3 PROPERTIES DEPENDS run_clusterer_TGeant3)
   Set_Tests_Properties(comp_clusterer_TGeant3 PROPERTIES TIMEOUT "30")
   Set_Tests_Properties(comp_clusterer_TGeant3 PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
+    Add_Test(test_GBTFrame
+      ${CMAKE_BINARY_DIR}/macro/test_GBTFrame.sh)
+    Set_Tests_Properties(test_GBTFrame PROPERTIES TIMEOUT "30")
+    Set_Tests_Properties(test_GBTFrame PROPERTIES PASS_REGULAR_EXPRESSION "Macro finished succesfully")
 
 GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/load_all_libs.C)
 
