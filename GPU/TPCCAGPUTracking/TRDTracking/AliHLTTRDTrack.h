@@ -29,6 +29,7 @@ class AliHLTTRDTrack : public AliKalmanTrack
   void SetNtracklets( Int_t nTrklts) { fNtracklets = nTrklts; }
 
   using AliExternalTrackParam::GetPredictedChi2;
+  using AliExternalTrackParam::Update;
 
   //methods below need to be implemented from abstract base class
   Double_t GetPredictedChi2(const AliCluster *c) { Error("AliHLTTRDTrack", "This is a dummy method and should never be used"); return -1.0; }
