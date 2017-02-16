@@ -527,7 +527,7 @@ int AliHLTTRDTracker::GetDetectorNumber(const double zPos, double alpha, int lay
 {
   int stack = fTRDgeometry->GetStack(zPos, layer);
   if (stack < 0) {
-    Info("GetDetectorNumber", "Stack determination failed for layer %i, z=%f", layer, zPos);
+    Info("GetDetectorNumber", "Stack determination failed for layer %i, alpha=%f, z=%f", layer, alpha, zPos);
     return -1;
   }
   double alphaTmp = (alpha > 0) ? alpha : alpha + 2. * TMath::Pi();
