@@ -34,6 +34,7 @@ set(SRCS
    src/PadResponse.cxx
    src/Point.cxx
    src/SAMPAProcessing.cxx
+   src/SyncPatternMonitor.cxx
 )
 
 set(HEADERS
@@ -66,6 +67,7 @@ set(HEADERS
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/Point.h
    include/${MODULE_NAME}/SAMPAProcessing.h
+   include/${MODULE_NAME}/SyncPatternMonitor.h
 )
 Set(LINKDEF src/TPCSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})

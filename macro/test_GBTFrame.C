@@ -2,6 +2,11 @@ using namespace AliceO2::TPC;
 
 void test_GBTFrame()
 {
+  // Initialize logger
+//  FairLogger *logger = FairLogger::GetLogger();
+//  logger->SetLogVerbosityLevel("HIGH");
+//  logger->SetLogScreenLevel("DEBUG");
+
 
   GBTFrame a;
   GBTFrame b(11,25,37,41);
@@ -155,7 +160,7 @@ void test_GBTFrame()
     sscanf(str.substr(10,8).c_str(), "%x", &word2);
     sscanf(str.substr(18,8).c_str(), "%x", &word1);
     sscanf(str.substr(26,8).c_str(), "%x", &word0);
-    fifoFrames.push_back(GBTFrame(word3,word2,word1,word0));
+    fifoFrames.emplace_back(word3,word2,word1,word0);
   }
 
 
@@ -184,6 +189,7 @@ void test_GBTFrame()
 
   timer.Start();
   GBTFrameContainer container;//(5000);
+  container.setEnableSyncPatternWarning(false);
   for (std::vector<GBTFrame>::iterator it = frames.begin(); it != frames.end(); it++) {
     container.addGBTFrame(
           it->getHalfWord(0,0,0),it->getHalfWord(0,1,0),it->getHalfWord(0,2,0),it->getHalfWord(0,3,0),
@@ -266,6 +272,14 @@ void test_GBTFrame()
 
   std::cout << container.getSize() << " " << container.getNentries() << std::endl;
   
+  container.reset();
+  container.setEnableAdcClockWarning(false);
+
+  for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){
+//    std::cout << *it << std::endl;
+    container.addGBTFrame(*it);
+  }
+
 
   return;
 }

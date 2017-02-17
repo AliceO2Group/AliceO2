@@ -4,7 +4,9 @@
 #ifndef ALICEO2_TPC_ADCCLOCKMONITOR_H_
 #define ALICEO2_TPC_ADCCLOCKMONITOR_H_
 
+#include "FairLogger.h"
 #include <iostream>
+#include <iomanip>
 
 namespace AliceO2 {
 namespace TPC {
@@ -17,6 +19,12 @@ class AdcClockMonitor {
 
     /// Default Constructor
     AdcClockMonitor();
+
+    /// Constructor
+    AdcClockMonitor(int sampa);
+
+    /// Copy Constructor
+    AdcClockMonitor(const AdcClockMonitor& other);
 
     /// Destructor
     ~AdcClockMonitor();
@@ -36,6 +44,7 @@ class AdcClockMonitor {
   private:
     enum state{locked = 0, error = 1};
 
+    int mSampa;                 ///< Store SAMPA ID
     char mPrevSequence;         ///< Store previous 4 bits
     char mTransition0;          ///< 1st transition to look for
     char mTransition1;          ///< 2nd transition to look for

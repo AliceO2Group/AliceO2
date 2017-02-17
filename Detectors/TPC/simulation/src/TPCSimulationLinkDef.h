@@ -36,5 +36,6 @@
 #pragma link C++ class AliceO2::TPC::PadResponse+;
 #pragma link C++ class AliceO2::TPC::Point+;
 #pragma link C++ class AliceO2::TPC::SAMPAProcessing+;
+#pragma link C++ class AliceO2::TPC::SyncPatternMonitor.h+;
 
 #endif

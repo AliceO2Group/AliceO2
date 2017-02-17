@@ -6,6 +6,7 @@
 
 #include "TPCSimulation/GBTFrame.h"
 #include "TPCSimulation/AdcClockMonitor.h"
+#include "TPCSimulation/SyncPatternMonitor.h"
 #include <TClonesArray.h>  
 #include <vector>
 #include "FairLogger.h"
@@ -87,34 +88,27 @@ class GBTFrameContainer {
     /// @param output Output container
     void fillOutputContainer(TClonesArray* output);
 
+    /// Set enable the ADC clock warnings
+    /// @param val Set it to true or false
+    void setEnableAdcClockWarning(bool val) { mEnableAdcClockWarning = val; };
+
+    /// Set enable the sync pattern position warnings
+    /// @param val Set it to true or false
+    void setEnableSyncPatternWarning(bool val) { mEnableSyncPatternWarning = val; };
+
+
   private:
     /// Processes the last inserted frame, monitors ADC clock, searches for sync pattern,...
     void processLastFrame();
 
-    std::vector<GBTFrame> mGBTFrames;   ///< GBT Frames container
-    AdcClockMonitor *mAdcClock;       ///< ADC clock monitor classes for the 3 SAMPAs
+    std::vector<GBTFrame> mGBTFrames;               ///< GBT Frames container
+    std::vector<AdcClockMonitor> mAdcClock;         ///< ADC clock monitor for the 3 SAMPAs
+    std::vector<SyncPatternMonitor> mSyncPattern;   ///< Synchronization pattern monitor for the 3 SAMPAs
+    std::vector<int> mPosition;                     ///< Start position of data for all 5 half SAMPAs
+
+    bool mEnableAdcClockWarning;                    ///< enables the ADC clock warnings
+    bool mEnableSyncPatternWarning;                 ///< enables the Sync Pattern warnings
 };
-
-inline
-void GBTFrameContainer::reset() 
-{
-  mGBTFrames.clear();
-//  for (auto &aGBTFrame : mGBTFrames) {
-//    if (aGBTFrame == nullptr) continue;
-//    aGBTFrame->reset();
-//  }
-}
-
-inline 
-int GBTFrameContainer::getNentries() 
-{
-  int counter = 0;
-  for (auto &aGBTFrame : mGBTFrames) {
-    ++counter;
-  }
-  return counter;
-}
-
 }
 }
 

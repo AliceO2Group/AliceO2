@@ -6,19 +6,42 @@
 using namespace AliceO2::TPC;
 
 GBTFrameContainer::GBTFrameContainer()
+  : mEnableAdcClockWarning(true)
+  , mEnableSyncPatternWarning(true)
 {
-  mAdcClock = new AdcClockMonitor [3];
+  for (int i = 0; i < 3; ++i){
+    mAdcClock.emplace_back(i);
+  }
+  
+  mSyncPattern.emplace_back(0,0);
+  mSyncPattern.emplace_back(0,1);
+  mSyncPattern.emplace_back(1,0);
+  mSyncPattern.emplace_back(1,1);
+  mSyncPattern.emplace_back(2,0);
+
+  mPosition.resize(5);
 }
 
 GBTFrameContainer::GBTFrameContainer(int amount)
+  : mEnableAdcClockWarning(true)
+  , mEnableSyncPatternWarning(true)
 {
-  mAdcClock = new AdcClockMonitor [3];
   mGBTFrames.reserve(amount);
+  for (int i = 0; i < 3; ++i){
+    mAdcClock.emplace_back();
+  }
+
+  mSyncPattern.emplace_back(0,0);
+  mSyncPattern.emplace_back(0,1);
+  mSyncPattern.emplace_back(1,0);
+  mSyncPattern.emplace_back(1,1);
+  mSyncPattern.emplace_back(2,0);
+
+  mPosition.resize(5);
 }
 
 GBTFrameContainer::~GBTFrameContainer()
 {
-  delete[] mAdcClock;
 }
 
 void GBTFrameContainer::addGBTFrame(GBTFrame& frame) 
@@ -58,10 +81,85 @@ void GBTFrameContainer::fillOutputContainer(TClonesArray* output)
 
 void GBTFrameContainer::processLastFrame()
 {
-  if (mAdcClock[0].addSequence(mGBTFrames.back().getAdcClock(0))) 
-    LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << getNentries() << FairLogger::endl;
-  if (mAdcClock[1].addSequence(mGBTFrames.back().getAdcClock(1))) 
-    LOG(WARNING) << "ADC clock error of SAMPA 1 in GBT Frame " << getNentries() << FairLogger::endl;
-  if (mAdcClock[2].addSequence(mGBTFrames.back().getAdcClock(2))) 
-    LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << getNentries() << FairLogger::endl;
+  if (mAdcClock[0].addSequence(mGBTFrames.back().getAdcClock(0))) { 
+    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << getNentries() << FairLogger::endl;}}
+  if (mAdcClock[1].addSequence(mGBTFrames.back().getAdcClock(1))) {
+    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 1 in GBT Frame " << getNentries() << FairLogger::endl;}}
+  if (mAdcClock[2].addSequence(mGBTFrames.back().getAdcClock(2))) {
+    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << getNentries() << FairLogger::endl;}}
+
+  mPosition[0] = mSyncPattern[0].addSequence(
+      mGBTFrames.back().getHalfWord(0,0,0),
+      mGBTFrames.back().getHalfWord(0,1,0),
+      mGBTFrames.back().getHalfWord(0,2,0),
+      mGBTFrames.back().getHalfWord(0,3,0));
+
+  mPosition[1] = mSyncPattern[1].addSequence(
+      mGBTFrames.back().getHalfWord(0,0,1),
+      mGBTFrames.back().getHalfWord(0,1,1),
+      mGBTFrames.back().getHalfWord(0,2,1),
+      mGBTFrames.back().getHalfWord(0,3,1));
+
+  mPosition[2] = mSyncPattern[2].addSequence(
+      mGBTFrames.back().getHalfWord(1,0,0),
+      mGBTFrames.back().getHalfWord(1,1,0),
+      mGBTFrames.back().getHalfWord(1,2,0),
+      mGBTFrames.back().getHalfWord(1,3,0));
+
+  mPosition[3] = mSyncPattern[3].addSequence(
+      mGBTFrames.back().getHalfWord(1,0,1),
+      mGBTFrames.back().getHalfWord(1,1,1),
+      mGBTFrames.back().getHalfWord(1,2,1),
+      mGBTFrames.back().getHalfWord(1,3,1));
+
+  mPosition[4] = mSyncPattern[4].addSequence(
+      mGBTFrames.back().getHalfWord(2,0),
+      mGBTFrames.back().getHalfWord(2,1),
+      mGBTFrames.back().getHalfWord(2,2),
+      mGBTFrames.back().getHalfWord(2,3));
+
+  if (mPosition[0] != mPosition[1]) {
+    if (mEnableSyncPatternWarning) { 
+      LOG(WARNING) << "The two half words from SAMPA 0 don't start at the same position, lower bits start at "
+        << mPosition[0] << ", higher bits at " << mPosition[1] << FairLogger::endl;
+    }
+  }
+  if (mPosition[2] != mPosition[3]) {
+    if (mEnableSyncPatternWarning) {
+      LOG(WARNING) << "The two half words from SAMPA 1 don't start at the same position, lower bits start at "
+        << mPosition[2] << ", higher bits at " << mPosition[3] << FairLogger::endl;
+    }
+  }
+  if (mPosition[0] != mPosition[2] || mPosition[0] != mPosition[4]) {
+    if (mEnableSyncPatternWarning) {
+      LOG(WARNING) << "The three SAMPAs don't have the same position, SAMPA0 = " << mPosition[0] 
+        << ", SAMPA1 = " << mPosition[2] << ", SAMPA2 = " << mPosition[4] << FairLogger::endl;
+    }
+  }
+
+}
+
+void GBTFrameContainer::reset() 
+{
+  LOG(INFO) << "Resetting GBT-Frame container" << FairLogger::endl;
+  mGBTFrames.clear();
+  for (auto &aAdcClock : mAdcClock) {
+    aAdcClock.reset();
+  }
+  for (auto &aSyncPattern : mSyncPattern) {
+    aSyncPattern.reset();
+  }
+//  for (auto &aGBTFrame : mGBTFrames) {
+//    if (aGBTFrame == nullptr) continue;
+//    aGBTFrame->reset();
+//  }
+}
+
+int GBTFrameContainer::getNentries() 
+{
+  int counter = 0;
+  for (auto &aGBTFrame : mGBTFrames) {
+    ++counter;
+  }
+  return counter;
 }
