@@ -4,6 +4,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class AliceO2::TPC::AdcClockMonitor+;
 #pragma link C++ class AliceO2::TPC::Baseline+;
 #pragma link C++ class AliceO2::TPC::BoxCluster+;
 #pragma link C++ class AliceO2::TPC::BoxClusterer+;
@@ -25,6 +26,8 @@
 #pragma link C++ class AliceO2::TPC::DigitRow+;
 #pragma link C++ class AliceO2::TPC::DigitTime+;
 #pragma link C++ class AliceO2::TPC::ElectronTransport+;
+#pragma link C++ class AliceO2::TPC::GBTFrame+;
+#pragma link C++ class AliceO2::TPC::GBTFrameContainer+;
 #pragma link C++ class AliceO2::TPC::GEMAmplification+;
 #pragma link C++ class AliceO2::TPC::HwCluster+;
 #pragma link C++ class AliceO2::TPC::HwClusterer+;

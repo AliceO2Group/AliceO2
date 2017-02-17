@@ -21,7 +21,7 @@ class GBTFrame : public TObject {
     GBTFrame();
 
     /// Constructor
-    /// @param word3 Word 3 of GBT frame, contains bit [127: 96], [127:112] are unused
+    /// @param word3 Word 3 of GBT frame, contains bit [127: 96], [127:112] are not part of the actual frame
     /// @param word2 Word 2 of GBT frame, contains bit [ 95: 64]
     /// @param word1 Word 1 of GBT frame, contains bit [ 63: 32]
     /// @param word0 Word 0 of GBT frame, contains bit [ 31:  0]
@@ -51,12 +51,17 @@ class GBTFrame : public TObject {
     /// @param s0adc ADC clock from SAMPA 0
     /// @param s1adc ADC clock from SAMPA 1
     /// @param s2adc ADC clock from SAMPA 2
+    /// @param marker additional 16 bit marker which is not part of the actual frame
     GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
              char s0hw0h, char s0hw1h, char s0hw2h, char s0hw3h,
              char s1hw0l, char s1hw1l, char s1hw2l, char s1hw3l,
              char s1hw0h, char s1hw1h, char s1hw2h, char s1hw3h,
              char s2hw0, char s2hw1, char s2hw2, char s2hw3, 
              char s0adc, char s1adc, char s2adc, unsigned marker = 0);
+
+    /// Copy Contructor
+    /// @param other GBT Frame to be copied
+    GBTFrame(const GBTFrame& other);
 
     /// Destructor
     ~GBTFrame();

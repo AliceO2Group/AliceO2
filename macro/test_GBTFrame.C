@@ -159,26 +159,113 @@ void test_GBTFrame()
   }
 
 
-  for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){
-    int s00 = ((int)it->getHalfWord(0,1,0) << 5) + (int)it->getHalfWord(0,0,0);
-    int s01 = ((int)it->getHalfWord(0,3,0) << 5) + (int)it->getHalfWord(0,2,0);
-    int s02 = ((int)it->getHalfWord(0,1,1) << 5) + (int)it->getHalfWord(0,0,1);
-    int s03 = ((int)it->getHalfWord(0,3,1) << 5) + (int)it->getHalfWord(0,2,1);
-    int s10 = ((int)it->getHalfWord(1,1,0) << 5) + (int)it->getHalfWord(1,0,0);
-    int s11 = ((int)it->getHalfWord(1,3,0) << 5) + (int)it->getHalfWord(1,2,0);
-    int s12 = ((int)it->getHalfWord(1,1,1) << 5) + (int)it->getHalfWord(1,0,1);
-    int s13 = ((int)it->getHalfWord(1,3,1) << 5) + (int)it->getHalfWord(1,2,1);
-    int s20 = ((int)it->getHalfWord(2,1,0) << 5) + (int)it->getHalfWord(2,0,0);
-    int s21 = ((int)it->getHalfWord(2,3,0) << 5) + (int)it->getHalfWord(2,2,0);
-    std::cout << *it << " : " << std::hex
-      << "[ " << "0x" << std::setfill('0') << std::setw(3) << s00 << " " << "0x" << std::setfill('0') << std::setw(3) << s01 << " ][ " << "0x" << std::setfill('0') << std::setw(3) << s02 << " " << "0x" << std::setfill('0') << std::setw(3) << s03 << " ] | " 
-      << "[ " << "0x" << std::setfill('0') << std::setw(3) << s10 << " " << "0x" << std::setfill('0') << std::setw(3) << s11 << " ][ " << "0x" << std::setfill('0') << std::setw(3) << s12 << " " << "0x" << std::setfill('0') << std::setw(3) << s13 << " ] | " 
-      << "[ " << "0x" << std::setfill('0') << std::setw(3) << s20 << " " << "0x" << std::setfill('0') << std::setw(3) << s21 << " ]"
-      << std::dec << std::endl;
+//  for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){
+//    int s00 = ((int)it->getHalfWord(0,1,0) << 5) + (int)it->getHalfWord(0,0,0);
+//    int s01 = ((int)it->getHalfWord(0,3,0) << 5) + (int)it->getHalfWord(0,2,0);
+//    int s02 = ((int)it->getHalfWord(0,1,1) << 5) + (int)it->getHalfWord(0,0,1);
+//    int s03 = ((int)it->getHalfWord(0,3,1) << 5) + (int)it->getHalfWord(0,2,1);
+//    int s10 = ((int)it->getHalfWord(1,1,0) << 5) + (int)it->getHalfWord(1,0,0);
+//    int s11 = ((int)it->getHalfWord(1,3,0) << 5) + (int)it->getHalfWord(1,2,0);
+//    int s12 = ((int)it->getHalfWord(1,1,1) << 5) + (int)it->getHalfWord(1,0,1);
+//    int s13 = ((int)it->getHalfWord(1,3,1) << 5) + (int)it->getHalfWord(1,2,1);
+//    int s20 = ((int)it->getHalfWord(2,1,0) << 5) + (int)it->getHalfWord(2,0,0);
+//    int s21 = ((int)it->getHalfWord(2,3,0) << 5) + (int)it->getHalfWord(2,2,0);
+//    std::cout << *it << " : " << std::hex
+//      << "[ " << "0x" << std::setfill('0') << std::setw(3) << s00 << " " << "0x" << std::setfill('0') << std::setw(3) << s01 << " ][ " << "0x" << std::setfill('0') << std::setw(3) << s02 << " " << "0x" << std::setfill('0') << std::setw(3) << s03 << " ] | " 
+//      << "[ " << "0x" << std::setfill('0') << std::setw(3) << s10 << " " << "0x" << std::setfill('0') << std::setw(3) << s11 << " ][ " << "0x" << std::setfill('0') << std::setw(3) << s12 << " " << "0x" << std::setfill('0') << std::setw(3) << s13 << " ] | " 
+//      << "[ " << "0x" << std::setfill('0') << std::setw(3) << s20 << " " << "0x" << std::setfill('0') << std::setw(3) << s21 << " ]"
+//      << std::dec << std::endl;
+//
+//  }
 
+
+  TStopwatch timer;
+
+
+  timer.Start();
+  GBTFrameContainer container;//(5000);
+  for (std::vector<GBTFrame>::iterator it = frames.begin(); it != frames.end(); it++) {
+    container.addGBTFrame(
+          it->getHalfWord(0,0,0),it->getHalfWord(0,1,0),it->getHalfWord(0,2,0),it->getHalfWord(0,3,0),
+          it->getHalfWord(0,0,1),it->getHalfWord(0,1,1),it->getHalfWord(0,2,1),it->getHalfWord(0,3,1),
+          it->getHalfWord(1,0,0),it->getHalfWord(1,1,0),it->getHalfWord(1,2,0),it->getHalfWord(1,3,0),
+          it->getHalfWord(1,0,1),it->getHalfWord(1,1,1),it->getHalfWord(1,2,1),it->getHalfWord(1,3,1),
+          it->getHalfWord(2,0),  it->getHalfWord(2,1),  it->getHalfWord(2,2),  it->getHalfWord(2,3),
+          it->getAdcClock(0),    it->getAdcClock(1),    it->getAdcClock(2), 0xDEF1
+        );
   }
 
+  for (int i = 0; i < 1000; i++) {
+    container.addGBTFrame(
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0x7, 0x3, 0x1, 0xDEF1
+        );
+    for (int j = 0; j < 3; j++) {
+      container.addGBTFrame(
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0xF, 0xF, 0xF, 0xDEF1
+          );
+    }
+    container.addGBTFrame(
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0x8, 0xC, 0xE, 0xDEF1
+        );
+    for (int j = 0; j < 3; j++) {
+      container.addGBTFrame(
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0x0, 0x0, 0x0, 0xDEF1
+          );
+    }
 
+    if (i == 7) {
+      container.addGBTFrame(
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0x8, 0xC, 0xE, 0xDEF1
+          );
+    }
+  }
+  timer.Stop();
+
+  std::cout << std::endl << std::endl;
+  std::cout << std::endl << std::endl;
+
+  FairSystemInfo sysInfo;
+  Float_t maxMemory=sysInfo.GetMaxMemory();
+  std::cout << "<DartMeasurement name=\"MaxMemory\" type=\"numeric/double\">";
+  std::cout << maxMemory;
+  std::cout << "</DartMeasurement>" << std::endl;
+
+  Double_t rtime = timer.RealTime();
+  Double_t ctime = timer.CpuTime();
+
+  Float_t cpuUsage=ctime/rtime;
+  std::cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
+  std::cout << cpuUsage;
+  std::cout << "</DartMeasurement>" << std::endl;
+  std::cout << rtime << std::endl;
+
+  std::cout << container.getSize() << " " << container.getNentries() << std::endl;
+  
 
   return;
 }

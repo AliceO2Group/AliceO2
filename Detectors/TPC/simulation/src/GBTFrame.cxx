@@ -79,6 +79,15 @@ GBTFrame::GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
 
 }
 
+GBTFrame::GBTFrame(const GBTFrame& other)
+  : TObject(other)
+{
+  mWords[3] = other.mWords[3];
+  mWords[2] = other.mWords[2];
+  mWords[1] = other.mWords[1];
+  mWords[0] = other.mWords[0];
+}
+
 GBTFrame::~GBTFrame()
 {}
 
