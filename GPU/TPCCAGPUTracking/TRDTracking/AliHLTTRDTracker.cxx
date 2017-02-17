@@ -545,7 +545,7 @@ bool AliHLTTRDTracker::AdjustSector(AliHLTTRDTrack *t)
   double alphaCurr = t->GetAlpha();
 
   if (TMath::Abs(y) > 2. * yMax) {
-    Info("AdjustSector", "Track %i with pT = %f crossing two sector boundaries at x = %f\n", t->GetTPCtrackId(), t->Pt(), t->GetX());
+    Info("AdjustSector", "Track %i with pT = %f crossing two sector boundaries at x = %f", t->GetTPCtrackId(), t->Pt(), t->GetX());
     return false;
   }
 
