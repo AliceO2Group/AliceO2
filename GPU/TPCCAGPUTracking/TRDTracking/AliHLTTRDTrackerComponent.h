@@ -16,6 +16,7 @@
 #define ALIHLTTRDTRACKERCOMPONENT_H
 
 #include "AliHLTProcessor.h"
+#include "AliHLTComponentBenchmark.h"
 #include "AliHLTDataTypes.h"
 
 class TH1F;
@@ -127,6 +128,7 @@ private:
   TList* fTrackList;
   bool fDebugTrackOutput; // output AliHLTTRDTracks instead AliHLTExternalTrackParam
   bool fVerboseDebugOutput; // more verbose information is printed
+  AliHLTComponentBenchmark fBenchmark; // benchmark
 
   ClassDef(AliHLTTRDTrackerComponent, 0)
 };

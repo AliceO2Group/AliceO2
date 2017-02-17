@@ -56,7 +56,8 @@ AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent() :
   fTracker(0x0),
   fTrackList(0x0),
   fDebugTrackOutput(false),
-  fVerboseDebugOutput(false)
+  fVerboseDebugOutput(false),
+  fBenchmark("TRDTracker")
 {
 }
 
@@ -66,7 +67,8 @@ AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent( const AliHLTTRDTrackerComp
   fTrackList(0x0),
   AliHLTProcessor(),
   fDebugTrackOutput(false),
-  fVerboseDebugOutput(false)
+  fVerboseDebugOutput(false),
+  fBenchmark("TRDTracker")
 {
   // see header file for class documentation
   HLTFatal( "copy constructor untested" );
@@ -161,6 +163,10 @@ int AliHLTTRDTrackerComponent::DoInit( int argc, const char** argv ) {
     return -EINPROGRESS;
   }
 
+  fBenchmark.Reset();
+  fBenchmark.SetTimer(0,"total");
+  fBenchmark.SetTimer(1,"reco");
+
   fTrackList = new TList();
   if (!fTrackList) {
     return -ENOMEM;
@@ -216,6 +222,9 @@ int AliHLTTRDTrackerComponent::DoEvent
     return 0;
   }
 
+  fBenchmark.StartNewEvent();
+  fBenchmark.Start(0);
+
   AliHLTUInt32_t maxBufferSize = size;
   size = 0; // output size  
 
@@ -256,6 +265,7 @@ int AliHLTTRDTrackerComponent::DoEvent
       else {
         HLTWarning("data mismatch in block %s (0x%08x): count %d, size %d -> ignoring track MC information", DataType2Text(pBlock->fDataType).c_str(), pBlock->fSpecification, dataPtr->fCount, pBlock->fSize);
       }
+      fBenchmark.AddInput(pBlock->fSize);
     }
 
 
@@ -278,6 +288,7 @@ int AliHLTTRDTrackerComponent::DoEvent
 	      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + currOutTrack->fNPoints * sizeof( unsigned int );
 	      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
       }
+      fBenchmark.AddInput(iter->fSize);
     }
 
     // Read TRD tracklets
@@ -285,6 +296,7 @@ int AliHLTTRDTrackerComponent::DoEvent
     if ( iter->fDataType == (AliHLTTRDDefinitions::fgkTRDTrackletDataType) ){
       tracklets = reinterpret_cast<AliHLTTRDTrackletWord*>( iter->fPtr );
       nTrackletsTotal = iter->fSize / sizeof(AliHLTTRDTrackletWord);
+      fBenchmark.AddInput(iter->fSize);
     }
 
   }// end read input blocks
@@ -301,7 +313,9 @@ int AliHLTTRDTrackerComponent::DoEvent
 	  fTracker->LoadTracklet(tracklets[iTracklet]);
   }
 
+  fBenchmark.Start(1);
   fTracker->DoTracking(&(tracksTPC[0]), &(tracksTPCLab[0]), tracksTPC.size());
+  fBenchmark.Stop(1);
 
   AliHLTTRDTrack *trackArray = fTracker->Tracks();
   int nTracks = fTracker->NTracks();
@@ -343,6 +357,7 @@ int AliHLTTRDTrackerComponent::DoEvent
     resultData.fSize = blockSize;
     resultData.fDataType = AliHLTTRDDefinitions::fgkTRDTrackDataType;
     outputBlocks.push_back( resultData );
+    fBenchmark.AddOutput(resultData.fSize);
 
     size += blockSize;
     outputPtr += resultData.fSize;
@@ -390,11 +405,15 @@ int AliHLTTRDTrackerComponent::DoEvent
     resultDataSP.fSize = blockSize;
     resultDataSP.fDataType = AliHLTTRDDefinitions::fgkTRDTrackPointDataType|kAliHLTDataOriginTRD;
     outputBlocks.push_back( resultDataSP );
+    fBenchmark.AddOutput(resultData.fSize);
     size += blockSize;
     outputPtr += resultDataSP.fSize;
 
     HLTInfo("TRD tracker: output %d tracks and %d track points",outTracks->fCount, outTrackPoints->fCount);
   }
+
+  fBenchmark.Stop(0);
+  HLTInfo( fBenchmark.GetStatistics() );
 
   return iResult;
 }
