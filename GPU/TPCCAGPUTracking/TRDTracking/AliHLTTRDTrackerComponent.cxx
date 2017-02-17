@@ -48,6 +48,8 @@
 #include "AliHLTTrackMCLabel.h"
 #include "AliHLTTRDTrackData.h"
 #include <map>
+#include <vector>
+#include <algorithm>
 
 
 ClassImp(AliHLTTRDTrackerComponent)
@@ -57,6 +59,7 @@ AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent() :
   fTrackList(0x0),
   fDebugTrackOutput(false),
   fVerboseDebugOutput(false),
+  fRequireITStrack(false),
   fBenchmark("TRDTracker")
 {
 }
@@ -68,6 +71,7 @@ AliHLTTRDTrackerComponent::AliHLTTRDTrackerComponent( const AliHLTTRDTrackerComp
   AliHLTProcessor(),
   fDebugTrackOutput(false),
   fVerboseDebugOutput(false),
+  fRequireITStrack(false),
   fBenchmark("TRDTracker")
 {
   // see header file for class documentation
@@ -91,6 +95,7 @@ const char* AliHLTTRDTrackerComponent::GetComponentID() {
 
 void AliHLTTRDTrackerComponent::GetInputDataTypes( std::vector<AliHLTComponentDataType>& list) {
   list.clear();
+  list.push_back( kAliHLTDataTypeTrack|kAliHLTDataOriginITS );
   list.push_back( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC );
   list.push_back( kAliHLTDataTypeTrackMC|kAliHLTDataOriginTPC );
   list.push_back( AliHLTTRDDefinitions::fgkTRDTrackletDataType );
@@ -142,11 +147,19 @@ int AliHLTTRDTrackerComponent::ReadConfigurationString(  const char* arguments )
     if ( argument.CompareTo("-debugOutput") == 0 ) {
       fDebugTrackOutput = true;
       fVerboseDebugOutput = true;
-      HLTWarning( "Tracks are dumped in the AliHLTTRDTrack format" );
+      HLTInfo( "Tracks are dumped in the AliHLTTRDTrack format" );
       continue;
     }
+
+    if ( argument.CompareTo("-requireITStrack") == 0 ) {
+      fRequireITStrack = true;
+      HLTInfo( "TRD tracker requires seeds (TPC tracks) to have an ITS match" );
+      continue;
+    }
+
     HLTError( "Unknown option \"%s\"", argument.Data() );
     iResult = -EINVAL;
+
   }
   delete pTokens;
 
@@ -239,6 +252,7 @@ int AliHLTTRDTrackerComponent::DoEvent
   std::vector< AliExternalTrackParam > tracksTPC;
   std::vector< int > tracksTPCLab;
   std::vector< int > tracksTPCId;
+  std::vector< int > tracksITSId;
 
   int nTrackletsTotal = 0;
   AliHLTTRDTrackletWord *tracklets = NULL;
@@ -246,8 +260,8 @@ int AliHLTTRDTrackerComponent::DoEvent
 
   for (int ndx=0; ndx<nBlocks && iResult>=0; ndx++) {
 
-    if (ndx > 2)
-      HLTWarning("unexpected number of blocks (%i) for this component, expected 2", ndx);
+    if (ndx > 4)
+      HLTWarning("unexpected number of blocks (%i) for this component, expected 4", ndx);
 
     const AliHLTComponentBlockData* iter = blocks+ndx;
 
@@ -270,6 +284,20 @@ int AliHLTTRDTrackerComponent::DoEvent
 
 
 
+    // Read ITS tracks and store only the track IDs
+
+    if( iter->fDataType == ( kAliHLTDataTypeTrack|kAliHLTDataOriginITS ) ){
+      AliHLTTracksData* dataPtr = ( AliHLTTracksData* ) iter->fPtr;
+      int nTracks = dataPtr->fCount;
+      AliHLTExternalTrackParam* currOutTrack = dataPtr->fTracklets;
+      for( int itr=0; itr<nTracks; itr++ ){
+	      tracksITSId.push_back( currOutTrack->fTrackID );
+	      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + currOutTrack->fNPoints * sizeof( unsigned int );
+	      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
+      }
+      fBenchmark.AddInput(iter->fSize);
+    }
+
     // Read TPC tracks
 
     if( iter->fDataType == ( kAliHLTDataTypeTrack|kAliHLTDataOriginTPC ) ){
@@ -282,9 +310,9 @@ int AliHLTTRDTrackerComponent::DoEvent
         if (mcLabels.find(currOutTrack->fTrackID) != mcLabels.end() ) {
           mcLabel = mcLabels[currOutTrack->fTrackID];
         }
-	      tracksTPC.push_back( t );
+        tracksTPC.push_back( t );
         tracksTPCLab.push_back(mcLabel);
-	      tracksTPCId.push_back( currOutTrack->fTrackID );
+        tracksTPCId.push_back( currOutTrack->fTrackID );
 	      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + currOutTrack->fNPoints * sizeof( unsigned int );
 	      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
       }
@@ -303,6 +331,20 @@ int AliHLTTRDTrackerComponent::DoEvent
 
   if (fVerboseDebugOutput) {
     HLTInfo("TRDTrackerComponent received %i tracklets\n", nTrackletsTotal);
+  }
+
+  // remove tracks without ITS match
+  if (fRequireITStrack) {
+    int iTPCtrack = 0;
+    for (vector<AliExternalTrackParam>::iterator it = tracksTPC.begin(); it != tracksTPC.end(); ) {
+      if (std::find(tracksITSId.begin(), tracksITSId.end(), iTPCtrack) == tracksITSId.end()) {
+        it = tracksTPC.erase(it);
+      }
+      else {
+        ++it;
+      }
+      ++iTPCtrack;
+    }
   }
 
   fTracker->Reset();
