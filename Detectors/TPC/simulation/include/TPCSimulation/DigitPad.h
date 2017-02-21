@@ -4,7 +4,6 @@
 #ifndef ALICEO2_TPC_DigitPad_H_
 #define ALICEO2_TPC_DigitPad_H_
 
-#include "TPCSimulation/DigitADC.h"
 #include "TPCSimulation/CommonMode.h"
 #include <TClonesArray.h>
 
@@ -27,17 +26,13 @@ class DigitPad{
     /// Resets the container
     void reset();
 
-    /// Get the size of the container
-    /// @return Size of the ADC container
-    int getSize() {return mADCCounts.size();}
-
     /// Get the Pad ID
     /// @return Pad ID
     int getPad() {return mPad;}
 
     /// Get the accumulated charge on that pad
     /// @return Accumulated charge
-    float getTotalChargePad() {return mTotalChargePad;}
+    float getChargePad() {return mChargePad;}
 
     /// Add digit to the time bin container
     /// @param eventID MC ID of the event
@@ -61,31 +56,29 @@ class DigitPad{
     /// @param pad pad ID
     void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode);
 
-    // Process Common Mode Information
-    /// @param output Output container
-    /// @param cruID CRU ID
-    /// @param timeBin TimeBin
-    /// @param rowID Row ID
-    /// @param pad pad ID
-    void processCommonMode(int cru, int timeBin, int row, int pad);
-
+    void processMClabels(std::vector<long> &sortedMCLabels);
+    
   private:
-    float                  mTotalChargePad;   ///< Total accumulated charge on that pad for a given time bin
-    unsigned char          mPad;              ///< Pad of the ADC value
-    std::vector <DigitADC>   mADCCounts;        ///< Vector with ADC values
+    float                  mChargePad;   ///< Total accumulated charge on that pad for a given time bin
+    unsigned char          mPad;         ///< Pad of the ADC value
+    std::vector<long>      mMCID;        ///< vector containing the MC ID encoded as described below
 };
 
 inline 
 void DigitPad::setDigit(int eventID, int trackID, float charge)
 {
-  DigitADC digitAdc(eventID, trackID, charge);
-  mADCCounts.emplace_back(digitAdc);
+  // the MC ID is encoded such that we can have 999,999 tracks
+  // numbers larger than 1000000 correspond to the event ID
+  // i.e. 12000010 corresponds to event 12 with track ID 10
+  mMCID.emplace_back((eventID)*1000000.f + trackID);
+  mChargePad += charge;
 }
 
 inline
 void DigitPad::reset()
 {
-  mADCCounts.clear();
+  mChargePad = 0;
+  mMCID.resize(0);
 }
   
 }

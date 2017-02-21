@@ -8,6 +8,9 @@
 #pragma link C++ class AliceO2::TPC::BoxCluster+;
 #pragma link C++ class AliceO2::TPC::BoxClusterer+;
 #pragma link C++ class AliceO2::TPC::CommonMode+;
+#pragma link C++ class AliceO2::TPC::CommonModeContainer+;
+#pragma link C++ class AliceO2::TPC::CommonModeCRU+;
+#pragma link C++ class AliceO2::TPC::CommonModeTime+;
 #pragma link C++ class AliceO2::TPC::Cluster+;
 #pragma link C++ class AliceO2::TPC::Clusterer+;
 #pragma link C++ class AliceO2::TPC::ClusterContainer+;
@@ -15,7 +18,6 @@
 #pragma link C++ class AliceO2::TPC::Detector+;
 #pragma link C++ class AliceO2::TPC::Digit+;
 #pragma link C++ class AliceO2::TPC::DigitContainer+;
-#pragma link C++ class AliceO2::TPC::DigitADC+;
 #pragma link C++ class AliceO2::TPC::DigitCRU+;
 #pragma link C++ class AliceO2::TPC::Digitizer+;
 #pragma link C++ class AliceO2::TPC::DigitizerTask+;

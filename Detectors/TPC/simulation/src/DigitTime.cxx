@@ -31,6 +31,7 @@ void DigitTime::setDigit(int eventID, int trackID, int cru, int row, int pad, fl
     mRows[row] = new DigitRow(row, mapper.getPadRegionInfo(CRU(cru).region()).getPadsInRowRegion(row));
     mRows[row]->setDigit(eventID, trackID, pad, charge);
   }
+  mTotalChargeTimeBin+=charge;
 }
 
 void DigitTime::fillOutputContainer(TClonesArray *output, int cru, int timeBin)
@@ -54,14 +55,5 @@ void DigitTime::fillOutputContainer(TClonesArray *output, int cru, int timeBin, 
   for(auto &aRow : mRows) {
     if(aRow == nullptr) continue;
     aRow->fillOutputContainer(output, cru, timeBin, aRow->getRow(), commonMode);
-  }
-}
-
-void DigitTime::processCommonMode(int cru, int timeBin)
-{
-  for(auto &aRow : mRows) {
-    if(aRow == nullptr) continue;
-    aRow->processCommonMode(cru, timeBin, aRow->getRow());
-    mTotalChargeTimeBin += aRow->getTotalChargeRow();
   }
 }

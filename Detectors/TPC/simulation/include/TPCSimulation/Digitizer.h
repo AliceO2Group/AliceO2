@@ -8,7 +8,6 @@
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Constants.h"
 
-#include "TPCBase/RandomRing.h"
 #include "TPCBase/Mapper.h"
 
 #include "TObject.h"

@@ -66,12 +66,6 @@ class DigitTime{
     /// @param timeBin Time bin
     void fillOutputContainer(TClonesArray *output, int cru, int timeBin, std::vector<CommonMode> &commonModeContainer);
 
-    /// Process Common Mode Information
-    /// @param output Output container
-    /// @param cru CRU
-    /// @param timeBin Time bin
-    void processCommonMode(int cru, int timeBin);
-
   private:
     float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
     unsigned short          mTimeBin;                   ///< Time bin of that ADC value
@@ -85,6 +79,7 @@ void DigitTime::reset()
     if(aRow == nullptr) continue;
     aRow->reset();
   }
+  mTotalChargeTimeBin=0.;
   mRows.clear();
 }
 

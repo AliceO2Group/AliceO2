@@ -29,10 +29,10 @@ constexpr float CPAD = 0.1;               ///< Capacitance of a single pad in pF
 constexpr float TPCLENGTH = 250.;         ///< Maximal drift length in the TPC
 
 //electronics parameters
-constexpr float ADCSAT = 1023;            ///< ADC saturation
+constexpr float ADCSAT = 1024;            ///< ADC saturation
 constexpr float QEL = 1.602e-19;          ///< Electron charge
-constexpr float CHIPGAIN = 20;            ///<
-constexpr float ADCDYNRANGE = 2000;       ///< Dynamic range of the ADC
+constexpr float CHIPGAIN = 20;            ///< mV/fC - should be a switch as it may be either 20 or 30, depending on the configuration
+constexpr float ADCDYNRANGE = 2200;       ///< Dynamic range of the ADC in mV
 constexpr float PEAKINGTIME = 160e-3;     ///< Peaking time of the SAMPA, in us
 
 constexpr float ZBINWIDTH = 0.19379844961; ///< Width of a z bin in us

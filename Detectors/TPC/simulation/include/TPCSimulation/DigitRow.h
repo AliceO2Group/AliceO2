@@ -40,10 +40,6 @@ class DigitRow{
     /// @return Row ID
     int getRow() {return mRow;}
 
-    /// Get the accumulated charge in that row
-    /// @return Accumulated charge in that row
-    float getTotalChargeRow() {return mTotalChargeRow;}
-
     /// Add digit to the pad container
     /// @param pad Pad of the digit
     /// @param charge Charge of the digit
@@ -63,15 +59,7 @@ class DigitRow{
     /// @param row Row
     void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, float commonMode);
 
-    /// Process Common Mode Information
-    /// @param output Output container
-    /// @param cruID CRU ID
-    /// @param timeBin TimeBin
-    /// @param rowID Row ID
-    void processCommonMode(int cru, int timeBin, int row);
-
   private:
-    float                  mTotalChargeRow;     ///< Total accumulated charge in that pad row for a given time bin
     unsigned char          mRow;                ///< Row of the ADC value
     std::vector<DigitPad*> mPads;               ///< Pad Container for the ADC value
   

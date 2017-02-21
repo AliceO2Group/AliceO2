@@ -9,33 +9,30 @@ using namespace AliceO2::TPC;
 
 Digit::Digit()
   : FairTimeStamp()
+  , mMClabel(0)
   , mCharge(0.)
   , mCommonMode(-1.)
-  , mMCEventID(-1)
-  , mMCTrackID(-1)
   , mCRU(-1)
   , mRow(-1)
   , mPad(-1)
 {}
 
-Digit::Digit(int eventID, int trackID, int cru, float charge, int row, int pad, int time)
+Digit::Digit(std::vector<long> &MClabel, int cru, float charge, int row, int pad, int time)
   : FairTimeStamp(time)
+  , mMClabel(MClabel)
   , mCharge(charge)
   , mCommonMode(-1.)
-  , mMCEventID(eventID)
-  , mMCTrackID(trackID)
   , mCRU(cru)
   , mRow(row)
   , mPad(pad)
 {
 }
 
-Digit::Digit(int eventID, int trackID, int cru, float charge, int row, int pad, int time, float commonMode)
+Digit::Digit(std::vector<long> &MClabel, int cru, float charge, int row, int pad, int time, float commonMode)
   : FairTimeStamp(time)
+  , mMClabel(MClabel)
   , mCharge(charge)
   , mCommonMode(commonMode)
-  , mMCEventID(eventID)
-  , mMCTrackID(trackID)
   , mCRU(cru)
   , mRow(row)
   , mPad(pad)
