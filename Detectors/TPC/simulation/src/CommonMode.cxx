@@ -72,8 +72,8 @@ float CommonMode::computeCommonMode(std::vector<CommonMode> & summedChargesConta
         if(timeBin == bSummedCharges.getTimeBin()) {
           commonModeSignal += bSummedCharges.getCommonMode();
         }
-        if(bSummedCharges.getCRU() > cruUpper) break;
       }
+      if(bSummedCharges.getCRU() > cruUpper) break;
     }
     
     commonModeSignal *= CPAD/(float(nPads)*CPAD);

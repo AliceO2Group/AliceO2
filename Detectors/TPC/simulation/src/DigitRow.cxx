@@ -7,8 +7,7 @@
 using namespace AliceO2::TPC;
 
 DigitRow::DigitRow(int row, int npads)
-  : mTotalChargeRow(0.)
-  , mRow(row)
+  : mRow(row)
   , mPads(npads)
 {}
 
@@ -45,14 +44,5 @@ void DigitRow::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
   for(auto &aPad : mPads) {
     if(aPad == nullptr) continue;
     aPad->fillOutputContainer(output, cru, timeBin, row, aPad->getPad(), commonMode);
-  }
-}
-
-void DigitRow::processCommonMode(int cru, int timeBin, int row)
-{
-  for(auto &aPad : mPads) {
-    if(aPad == nullptr) continue;
-    aPad->processCommonMode(cru, timeBin, row, aPad->getPad());
-    mTotalChargeRow += aPad->getTotalChargePad();
   }
 }

@@ -5,63 +5,63 @@
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCSimulation/Digit.h"
 
+#include <boost/range/adaptor/reversed.hpp>
+#include <boost/bind.hpp>
+
 using namespace AliceO2::TPC;
 
 DigitPad::DigitPad(int pad)
-  : mTotalChargePad(0.)
+  : mChargePad(0.)
   , mPad(pad)
-  , mADCCounts()
+  , mMCID()
 {}
 
 DigitPad::~DigitPad()
 {
-  mADCCounts.resize(0);
-  mTotalChargePad = 0;
+  mMCID.resize(0);
+  mChargePad = 0;
 }
 
 void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad)
 {  
-  float totalADC = 0;
-  for(auto &aADCCounts : mADCCounts) {
-    totalADC += aADCCounts.getADC();
-  }
-  
+  float totalADC = mChargePad;
+  std::vector<long> MClabel;
+  processMClabels(MClabel);
   const float mADC = SAMPAProcessing::getADCSaturation(totalADC);
-  
   if(mADC > 0) {
     TClonesArray &clref = *output;
-    new(clref[clref.GetEntriesFast()]) Digit(-1, -1, cru, mADC, row, pad, timeBin);
+    new(clref[clref.GetEntriesFast()]) Digit(MClabel, cru, mADC, row, pad, timeBin);
   }
 }
 
 void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode)
 {
-  float totalADC = 0;
-  int MCEventIDOld = -1;
-  int MCTrackIDOld = -1;
-  for(auto &aADCCounts : mADCCounts) {
-    totalADC += aADCCounts.getADC();
-//     int currentMCEvent = aADCCounts.getMCEventID();
-//     int currentMCTrack = aADCCounts.getMCTrackID();
-//     if(MCEventIDOld != currentMCEvent) {
-//       MCEventIDOld = currentMCEvent;
-//     }
-//     if(MCTrackIDOld != currentMCTrack) {
-//       MCTrackIDOld = currentMCTrack;
-//     }
-  }
-  
+  float totalADC = mChargePad;
+  std::vector<long> MClabel;
+  processMClabels(MClabel);
   const float mADC = SAMPAProcessing::getADCSaturation(totalADC);
-  
   if(mADC > 0) {
     TClonesArray &clref = *output;
-    new(clref[clref.GetEntriesFast()]) Digit(-1, -1, cru, mADC, row, pad, timeBin, commonMode);
+    new(clref[clref.GetEntriesFast()]) Digit(MClabel, cru, mADC, row, pad, timeBin, commonMode);
   }
 }
 
-void DigitPad::processCommonMode(int cru, int timeBin, int row, int pad)
-{  
-  for(auto &aADCCounts : mADCCounts) {
-    mTotalChargePad += aADCCounts.getADC();
+void DigitPad::processMClabels(std::vector<long> &sortedMCLabels)
+{
+  // The MC labels encoded as described in the header are sorted by the number of occurence and a vector with the such sorted labels is returned
+  
+  std::map<long, int> frequencyMap;   //map containing the MC labels (key) and the according number of occurrence (value)
+  // dump the MC labels in a map and increase the value with the number of occurrences.
+  for (auto &aMCID : mMCID) {
+    ++frequencyMap[aMCID];
+  } 
+  // Dump the map into a vector of pairs
+  std::vector<std::pair<long, int> > pairMClabels(frequencyMap.begin(), frequencyMap.end());
+  // Sort by the number of occurrences
+  std::sort(pairMClabels.begin(), pairMClabels.end(), 
+            boost::bind(&std::pair<long, int>::second, _1) < boost::bind(&std::pair<long, int>::second, _2));
+  // iterate backwards over the vector and hence write MC with largest number of occurrences as first into the sortedMClabels vector
+  for(auto &aMCIDreversed : boost::adaptors::reverse(pairMClabels)) {
+    sortedMCLabels.emplace_back(aMCIDreversed.first);
   }
 }

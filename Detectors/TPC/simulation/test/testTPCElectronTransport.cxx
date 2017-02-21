@@ -11,7 +11,6 @@
 
 #include "TH1D.h"
 #include "TF1.h"
-#include "TCanvas.h"
 
 namespace AliceO2 {
 namespace TPC {
@@ -20,7 +19,8 @@ namespace TPC {
   /// A defined position is given to the getElectronDrift function
   /// in which the position is randomly smeared according to a Gaussian
   /// We then compare the resulting mean and width to the expected one
-  /// allowing for a deviation of 0.5 %.
+  ///
+  /// Precision: 0.5 %.
   BOOST_AUTO_TEST_CASE(ElectronDiffusion_test1)
   {
     const GlobalPosition3D posEle(10.f, 10.f, 250.f);
@@ -63,6 +63,8 @@ namespace TPC {
   /// We drift the electrons by one cm, then the width of
   /// the smeared distributions should be exactly the same
   /// as the diffusion coefficients
+  ///
+  /// Precision: 0.5 %.
   BOOST_AUTO_TEST_CASE(ElectronDiffusion_test2)
   {
     const GlobalPosition3D posEle(1.f, 1.f, 1.f);
@@ -98,12 +100,25 @@ namespace TPC {
     BOOST_CHECK_CLOSE(gausZ.GetParameter(2), DIFFL, 0.5);
   }
   
-  /// @brief Test of the getElectronAttachment function
-  /// @todo
-  BOOST_AUTO_TEST_CASE(ElectronAttatchment_test)
+  /// @brief Test of the isElectronAttachment function
+  /// We let the electrons drift for 100 us and compare the fraction
+  /// of lost electrons to the expected value
+  ///
+  /// Precision: 0.1 %.
+  BOOST_AUTO_TEST_CASE(ElectronAttatchment_test_1)
   {
-    BOOST_CHECK(false); 
+    static ElectronTransport electronTransport;
+
+    float driftTime = 100.f;
+    float lostElectrons = 0;
+    float nEvents = 500000;
+    for(int i=0; i<nEvents; ++i) {
+      if(electronTransport.isElectronAttachment(driftTime)) {
+        ++ lostElectrons;
+      }
+    }
+
+    BOOST_CHECK_CLOSE(lostElectrons/nEvents, ATTCOEF * OXYCONT * driftTime, 0.1); 
   }
-  
 }
 }

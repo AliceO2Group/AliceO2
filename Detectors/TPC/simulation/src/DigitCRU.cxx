@@ -58,7 +58,6 @@ void DigitCRU::processCommonMode(std::vector<CommonMode> & commonModeCRU, int cr
 {
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
-    aTime->processCommonMode(cru, aTime->getTimeBin());
     CommonMode commonMode(cru, aTime->getTimeBin(), aTime->getTotalChargeTimeBin());
     commonModeCRU.emplace_back(commonMode);
   }
