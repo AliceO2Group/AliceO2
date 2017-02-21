@@ -24,77 +24,60 @@ class SAMPAProcessing
     /// Destructor
     ~SAMPAProcessing();
 
-    /// Conversion from a given number of electrons into ADC value without taking into account saturation
-    /// @param nElectrons Number of electrons in time bin
-    /// @return ADC value
-    static float getADCvalue(float nElectrons);
-
     /// Conversion from a given number of electrons into ADC value without taking into account saturation, vectorized
     /// @param nElectrons Number of electrons in time bin
     /// @return ADC value
-    static Vc::float_v getADCvalueVc(Vc::float_v nElectrons);
+    template<typename T>
+    static T getADCvalue(T nElectrons);
 
     /// Saturation of the ADC
     /// @param signal Incoming signal in ADC counts
     /// @return ADC value
-    static float getADCSaturation(float signal);
+    template<typename T>
+    static T getADCSaturation(T signal);
 
-    /// Gamma4 shaping function
-    /// @param time Time of the ADC value with respect to the first bin in the pulse
-    /// @param startTime First bin in the pulse
-    /// @param ADC ADC value of the corresponding time bin
-//     static float getGamma4(float time, float startTime, float ADC);
+    static float getADCSaturation(float signal);
 
     /// Gamma4 shaping function, vectorized
     /// @param time Time of the ADC value with respect to the first bin in the pulse
     /// @param startTime First bin in the pulse
     /// @param ADC ADC value of the corresponding time bin
-//     __attribute__((noinline))
     template<typename T>
     static T getGamma4(T time, T startTime, T ADC);
 };
 
+template<typename T>
 inline
-float SAMPAProcessing::getADCvalue(float nElectrons)
+T SAMPAProcessing::getADCvalue(T nElectrons)
 {
-  float adcValue = nElectrons*QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE;
-  return adcValue;
+  Vc::float_v conversion = QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE; // 1E-15 is to convert Coulomb in fC
+  return nElectrons*conversion;
 }
 
+template<typename T>
 inline
-Vc::float_v SAMPAProcessing::getADCvalueVc(Vc::float_v nElectrons)
+T SAMPAProcessing::getADCSaturation(T signal)
 {
-  Vc::float_v tmp = QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE;
-  Vc::float_v adcValue = nElectrons*tmp;
-  return adcValue;
+  Vc::float_v signalOut = signal;
+  Vc::float_m saturation = signal > Vc::float_v(ADCSAT);
+  signalOut(saturation) = Vc::float_v(ADCSAT);
+  return signalOut;
 }
 
 inline
 float SAMPAProcessing::getADCSaturation(float signal)
 {
-  if(signal > ADCSAT) signal = ADCSAT;
+  if(signal > ADCSAT-1) signal = ADCSAT-1;
   return signal;
 }
 
-// inline
-// float SAMPAProcessing::getGamma4(float time, float startTime, float ADC)
-// {
-// //   if (time<0) return 0;
-//   float_t tmp = (time-startTime)/PEAKINGTIME;
-//   float_t tmp2=tmp*tmp;
-//   return 55.f*ADC*exp(-4.f*tmp)*tmp2*tmp2;
-// }
-
-// inline
 template<typename T>
-__attribute__((noinline))
+inline
 T SAMPAProcessing::getGamma4(T time, T startTime, T ADC)
 {
-  // not doing if because disregarded later in digitization
-  // if (time<0) return 0;
   Vc::float_v tmp = (time-startTime)/PEAKINGTIME;
   Vc::float_v tmp2=tmp*tmp;
-  return 55.f*ADC*Vc::exp(-4.f*tmp)*tmp2*tmp2;
+  return 55.f*ADC*Vc::exp(-4.f*tmp)*tmp2*tmp2; // 55 is for normalization: 1/Integral(Gamma4)
 }
   
 }
