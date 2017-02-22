@@ -158,6 +158,9 @@ constexpr T String2(char c, Targs... Fargs)
 {
   // number of arguments has either to match the size of the type, or the last element is treated
   // as '0' if missing
+  // TODO: this is a bit of a question, do we allow the number of characters to
+  // be smaller than the size of the type and just pad with 0 like in the case
+  // of a char array argument?
   static_assert(Internal::getnargs<T, Targs...>::value == sizeof(T) ||
 		Internal::getnargs<T, Targs...>::value == sizeof(T) - 1,
 		"number of arguments does not match the uint type width"
@@ -166,20 +169,17 @@ constexpr T String2(char c, Targs... Fargs)
 }
 
 /// constexpr intializer, evaluated at compile time
-/// backward compatibility, might be removed in the future
-constexpr uint64_t String2uint64(char c1, char c2, char c3, char c4,
-                                 char c5, char c6, char c7, char c8)
-{
-  return String2<uint64_t>(c1, c2, c3, c4, c5, c6, c7, c8);
-}
-
-/// constexpr intializer, evaluated at compile time
 /// generic initializer, convert a string to unsigned integer of different width
 /// Example usage: String2<uint64_t>("IDENTIFY")
 /// @ingroup aliceo2_dataformat_tools
-template <typename T>
-constexpr T String2(const char* str, int pos=0)
+template <typename T, std::size_t N, std::size_t pos = 0, bool suppressAssert = false>
+constexpr T String2(const char (&str)[N])
 {
+  static_assert(std::is_integral<T>::value, "Non integral types not compatible with String2<type>");
+  static_assert(N >= pos, "Position is larger than the length of string");
+  static_assert(suppressAssert || N - pos <= sizeof(T) + 1,
+		"String parameter is longer than the size of the data type"
+		);
   return((T) str[0+pos] |
          (str[0+pos] && sizeof(T) >= 2 ? ((T) str[1+pos] << (sizeof(T) >= 2 ? 8  : 0) |
          (str[1+pos] && sizeof(T) >= 4 ? ((T) str[2+pos] << (sizeof(T) >= 4 ? 16 : 0) |
@@ -189,35 +189,6 @@ constexpr T String2(const char* str, int pos=0)
          (str[5+pos] && sizeof(T) >= 8 ? ((T) str[6+pos] << (sizeof(T) >= 8 ? 48 : 0) |
          (str[6+pos] && sizeof(T) >= 8 ? ((T) str[7+pos] << (sizeof(T) >= 8 ? 56 : 0) )
           : 0)) : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
-}
-
-/// backward compatibility, can be removed
-/// forwards to generic function
-constexpr uint64_t String2uint64(const char* str, int pos=0)
-{
-  return String2<uint64_t>(str, pos);
-}
-
-/// backward compatibility, can be removed
-/// forwards to generic function
-constexpr uint32_t String2uint32(const char* str, int pos=0)
-{
-  return String2<uint32_t>(str, pos);
-}
-
-
-/// constexpr intializer, evaluated at compile time
-/// backward compatibility, might be removed in the future
-constexpr uint32_t String2uint32(char c1, char c2, char c3)
-{
-  return String2<uint32_t>(c1, c2, c3);
-}
-
-/// constexpr intializer, evaluated at compile time
-/// backward compatibility, might be removed in the future
-constexpr uint32_t CharArr2uint32(char c1, char c2, char c3, char c4)
-{
-  return String2<uint32_t>(c1, c2, c3, c4);
 }
 
 //__________________________________________________________________________________________________
@@ -248,7 +219,8 @@ struct Descriptor {
   }
   // note: no operator=(const char*) as this potentially runs into trouble with this
   // general pointer type, use: somedescriptor = Descriptor("DESCRIPTION")
-  constexpr Descriptor(const char* origin) : itg(String2<ItgType>(origin)) {};
+  template<std::size_t NN>
+  constexpr Descriptor(const char (&origin)[NN]) : itg(String2<ItgType>(origin)) {};
   bool operator==(const Descriptor& other) const {return itg == other.itg;}
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
   // print function needs to be implemented for every derivation
@@ -271,7 +243,8 @@ struct HeaderType {
     uint64_t itg;
   };
   constexpr HeaderType(uint64_t v) : itg{v} {}
-  constexpr HeaderType(const char* s) : itg{String2uint64(s)} {}
+  template<std::size_t N>
+  constexpr HeaderType(const char (&s)[N]) : itg{String2<uint64_t>(s)} {}
   constexpr HeaderType(const HeaderType& that) : itg{that.itg} {}
   bool operator==(const HeaderType& that) const {return that.itg==itg;}
   bool operator==(const uint64_t& that) const {return that==itg;}
@@ -283,7 +256,8 @@ struct SerializationMethod {
     uint64_t  itg;
   };
   constexpr SerializationMethod(uint64_t v) : itg{v} {}
-  constexpr SerializationMethod(const char* s) : itg{String2uint64(s)} {}
+  template<std::size_t N>
+  constexpr SerializationMethod(const char (&s)[N]) : itg{String2<uint64_t>(s)} {}
   constexpr SerializationMethod(const SerializationMethod& that) : itg{that.itg} {}
   bool operator==(const SerializationMethod& that) const {return that.itg==itg;}
   bool operator==(const uint64_t& that) const {return that==itg;}
@@ -554,7 +528,8 @@ struct DataDescription {
   }
   // note: no operator=(const char*) as this potentially runs into trouble with this
   // general pointer type, use: somedesc = DataDescription("SOMEDESCRIPTION")
-  constexpr DataDescription(const char* desc) : itg{String2uint64(desc),String2uint64(desc,8)} {}
+  template<std::size_t N>
+  constexpr DataDescription(const char (&desc)[N]) : itg{String2<uint64_t, N, 0, true>(desc),String2<uint64_t, N, 8>(desc)} {}
   bool operator==(const DataDescription&) const;
   bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
   void print() const;
@@ -677,7 +652,12 @@ struct DataIdentifier
   DataOrigin dataOrigin;
   DataIdentifier();
   DataIdentifier(const DataIdentifier&);
-  DataIdentifier(const char* desc, const char* origin);
+  template<std::size_t N, std::size_t M>
+  DataIdentifier(const char (&desc)[N], const char (&origin)[M])
+    : dataDescription(desc), dataOrigin(origin)
+  {
+  }
+
   bool operator==(const DataIdentifier&) const;
   void print() const;
 };
