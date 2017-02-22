@@ -34,12 +34,14 @@ public:
   void CalculateSpacePoints();
   int FollowProlongation(AliHLTTRDTrack *t, double mass);
   void EnableDebugOutput() { fEnableDebugOutput = true; }
+  void SetPtThreshold(float minPt) { fMinPt = minPt; }
   void Rotate(const double alpha, const double * const loc, double *glb);
   int GetDetectorNumber(const double zPos, double alpha, int layer);
   bool AdjustSector(AliHLTTRDTrack *t);
 
   // for testing
   bool IsTrackletSortingOk();
+  float GetPtThreshold() { return fMinPt; }
 
 
   AliHLTTRDTrack *Tracks() const { return fTracks;}
@@ -74,6 +76,7 @@ protected:
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
   AliTRDgeometry *fTRDgeometry;               // TRD geometry
   bool fEnableDebugOutput;                    // store debug output
+  float fMinPt;
   TTreeSRedirector *fStreamer;                // debug output stream
 
 private:
