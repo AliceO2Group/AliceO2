@@ -51,7 +51,7 @@ const AliceO2::Header::SerializationMethod AliceO2::Header::BaseHeader::sSeriali
 
 //storage for DataHeader static members
 const uint32_t AliceO2::Header::DataHeader::sVersion = 1;
-const AliceO2::Header::HeaderType AliceO2::Header::DataHeader::sHeaderType = String2uint64("DataHead");
+const AliceO2::Header::HeaderType AliceO2::Header::DataHeader::sHeaderType = String2<uint64_t>("DataHead");
 const AliceO2::Header::SerializationMethod AliceO2::Header::DataHeader::sSerializationMethod = AliceO2::Header::gSerializationMethodNone;
 
 //storage fr NameHeader static
@@ -204,12 +204,6 @@ void AliceO2::Header::DataDescription::print() const
 //__________________________________________________________________________________________________
 AliceO2::Header::DataIdentifier::DataIdentifier()
   : dataDescription(), dataOrigin()
-{
-}
-
-//__________________________________________________________________________________________________
-AliceO2::Header::DataIdentifier::DataIdentifier(const char* desc, const char* origin)
-  : dataDescription(desc), dataOrigin(origin)
 {
 }
 
