@@ -18,6 +18,7 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fSpacePoints(0x0),
   fTRDgeometry(0x0),
   fEnableDebugOutput(false),
+  fMinPt(2.5),
   fStreamer(0x0)
 {
   for (int iDet=0; iDet<540; ++iDet) {
@@ -37,6 +38,7 @@ AliHLTTRDTracker::AliHLTTRDTracker(const AliHLTTRDTracker &tracker) :
   fSpacePoints(0x0),
   fTRDgeometry(0x0),
   fEnableDebugOutput(false),
+  fMinPt(2.5),
   fStreamer(0x0)
 {
   //Copy constructor
@@ -268,7 +270,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
 
   // introduce momentum cut on tracks
   // particles with pT < 0.9 GeV highly unlikely to have matching online TRD tracklets
-  if (t->Pt() < 1.0) {
+  if (t->Pt() < fMinPt) {
     return result;
   }
 
@@ -276,6 +278,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
   const int nSector = fTRDgeometry->Nsector();
   const int nStack  = fTRDgeometry->Nstack();
   const int nLayer  = fTRDgeometry->Nlayer();
+  const int nCols   = fTRDgeometry->Colmax();
 
   AliTRDpadPlane *pad = 0x0;
 
@@ -295,7 +298,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
     pad = fTRDgeometry->GetPadPlane(iLayer, 0);
 
     const float zMaxTRD = pad->GetRowPos(0);
-    const float yMax    = pad->GetColPos(143) + pad->GetColSize(143);
+    const float yMax    = pad->GetColPos(nCols-1) + pad->GetColSize(nCols-1);
     const float xLayer  = fTRDgeometry->GetTime0(iLayer);
 
     if (!PropagateTrackToBxByBz(t, xLayer, mass, 5.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/) || (abs(t->GetZ()) >= (zMaxTRD + 10.)) ) {
@@ -342,14 +345,9 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
         zCenter = padTmp->GetRowPos(8);
       }
       if ( t->GetZ() > (padTmp->GetRowPos(0) - 10.) || t->GetZ() < (padTmp->GetRowPos(lastPadRow) + 10) ) {
-        if ( !(initialStack == 0 && t->GetZ() > 0) && !(initialStack == nStack-1 && t->GetZ() < 0) ) {
-          // track not close to outer end of TRD -> add neighbouring stack
-          if (t->GetZ() > zCenter) {
-            det.push_back(fTRDgeometry->GetDetector(iLayer, initialStack-1, initialSector));
-          }
-          else {
-            det.push_back(fTRDgeometry->GetDetector(iLayer, initialStack+1, initialSector));
-          }
+        int extStack = t->GetZ() > zCenter ? initialStack - 1 : initialStack + 1;
+        if (extStack < nStack && extStack > -1) {
+          det.push_back(fTRDgeometry->GetDetector(iLayer, extStack, initialSector));
         }
       }
     }
@@ -447,7 +445,9 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
       int sectorToSearch = fTRDgeometry->GetSector(detToSearch);
       if (sectorToSearch != initialSector && !wasTrackRotated) {
         float alphaToSearch = 2.0 * TMath::Pi() / (float) nSector * ((float) sectorToSearch + 0.5);
-        t->Rotate(alphaToSearch);
+        if (!t->Rotate(alphaToSearch)) {
+          return result;
+        }
         wasTrackRotated = true; // tracks need to be rotated max once per layer
       }
       for (int iTrklt=0; iTrklt<fTrackletIndexArray[detToSearch][1]; ++iTrklt) {
@@ -498,7 +498,10 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
       cov[0] = TMath::Power(0.03, 2);
       cov[1] = 0;
       cov[2] = TMath::Power(9./TMath::Sqrt(12), 2);
-      t->Update(p, cov);
+      if (!t->Update(p, cov)) {
+        Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);
+        return result;
+      }
       ++result;
     }
   }
