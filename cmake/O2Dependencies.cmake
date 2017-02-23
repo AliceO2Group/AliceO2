@@ -667,3 +667,37 @@ o2_define_bucket(
 
 )
 
+o2_define_bucket(
+    NAME
+    emcal_base_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    fairroot_base_bucket
+    ParBase
+    
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    emcal_simulation_bucket
+
+    DEPENDENCIES
+    emcal_base_bucket
+    root_base_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    EMCALBase
+    DetectorsBase
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/EMCAL/base/include
+)
+
