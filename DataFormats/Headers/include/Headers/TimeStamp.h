@@ -30,19 +30,26 @@ namespace LHCClockParameter {
   const int gBunchSpacingNanoSec = 25;
   const int gOrbitTimeNanoSec = std::ratio<gNumberOfBunches*gBunchSpacingNanoSec>::num;
 
+  typedef AliceO2::Header::Internal::intWrapper<0> OrbitPrecision;
+  typedef AliceO2::Header::Internal::intWrapper<1> BunchPrecision;
+
   // the type of the clock tick depends on whether to use also the bunches
   // as substructure of the orbit.
   // a trait class to extrat the properties of the clock, namely the type
   // of the tick and the period
-  template <bool BunchPrecision>
+  template <typename T>
   struct Property {
+    // the default does not specify anything and is never going to be used
+  };
+  template <>
+  struct Property<OrbitPrecision> {
     typedef uint32_t rep;
     // avoid rounding errors by using the integral numbers in the std::ratio
     // template to define the period
     typedef std::ratio_multiply<std::ratio<gOrbitTimeNanoSec>, std::nano> period;
   };
   template <>
-  struct Property<true> {
+  struct Property<BunchPrecision> {
     typedef uint64_t rep;
     // this is effectively the LHC clock and the ratio is the
     // bunch spacing
@@ -55,7 +62,7 @@ namespace LHCClockParameter {
 // - need run start to calculate the epoch
 // - based on revolution frequency and number of bunches
 // TODO: the reference time is probably the start of the fill
-template <typename RefTimePoint, bool BunchPrecision = false>
+template <typename RefTimePoint, typename Precision = LHCClockParameter::OrbitPrecision>
 class LHCClock {
 public:
   LHCClock(const RefTimePoint& start) : mReference(start) {}
@@ -65,10 +72,11 @@ public:
   LHCClock(const LHCClock&) = default;
   LHCClock& operator=(const LHCClock&) = default;
 
-  typedef typename LHCClockParameter::Property<BunchPrecision>::rep    rep;
-  typedef typename LHCClockParameter::Property<BunchPrecision>::period period;
+  typedef typename LHCClockParameter::Property<Precision>::rep    rep;
+  typedef typename LHCClockParameter::Property<Precision>::period period;
   typedef std::chrono::duration<rep, period> duration;
   typedef std::chrono::time_point<LHCClock>  time_point;
+  // this follows the naming convention of std chrono
   static const bool is_steady =              true;
 
   /// the now() function is the main characteristics of the clock
