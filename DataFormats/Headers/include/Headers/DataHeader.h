@@ -130,19 +130,19 @@ struct ArraySize<0, T> {
 /// select uint type depending on size, default is uint64_t
 template <int N>
 struct TraitsIntType {
-  typedef uint64_t type;
+  typedef uint64_t Type;
 };
 template <>
 struct TraitsIntType<1> {
-  typedef uint8_t type;
+  typedef uint8_t Type;
 };
 template <>
 struct TraitsIntType<2> {
-  typedef uint16_t type;
+  typedef uint16_t Type;
 };
 template <>
 struct TraitsIntType<4> {
-  typedef uint32_t type;
+  typedef uint32_t Type;
 };
 
 struct defaultPrinter {
@@ -234,7 +234,7 @@ struct Descriptor {
   static int const size = N;
   static int const bitcount = size*8;
   static int const arraySize = 1; //Internal::ArraySize<size, uint64_t>::value;
-  typedef typename Internal::TraitsIntType<N>::type ItgType;
+  typedef typename Internal::TraitsIntType<N>::Type ItgType;
 
   union {
     char     str[N];
@@ -553,7 +553,7 @@ struct DataDescription {
     return *this;
   }
   // note: no operator=(const char*) as this potentially runs into trouble with this
-  // general pointer type, use: somedesc = DataOrigin("SOMEDESCRIPTION")
+  // general pointer type, use: somedesc = DataDescription("SOMEDESCRIPTION")
   constexpr DataDescription(const char* desc) : itg{String2uint64(desc),String2uint64(desc,8)} {}
   bool operator==(const DataDescription&) const;
   bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
