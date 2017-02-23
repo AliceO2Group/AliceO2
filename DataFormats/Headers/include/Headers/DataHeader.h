@@ -116,7 +116,7 @@ struct NumberOfActiveBits<0> {
 };
 
 /// evaluate the array size necessary to hold a N-byte number with type T
- template <int N, typename T>
+template <int N, typename T>
 struct ArraySize {
   static_assert(N >= sizeof(T), "get this code to work first");
   static int const value = 1;
@@ -148,6 +148,20 @@ struct TraitsIntType<4> {
 struct defaultPrinter {
   void operator()(const char* str) const {}
 };
+
+/// helper wrapper to define a type from an integer, which can than
+/// be used as template argument
+template <int N>
+struct intWrapper {
+  static const int value = N;
+};
+
+/// compile time evaluation of a string length, which is either N - 1 or
+/// shorter if one character in the array has been set to 0.
+template <int N>
+constexpr std::size_t strLength(const char (&str)[N], std::size_t pos = 0) {
+  return ((pos >= N || str[pos] == 0) ? 0 : 1 + strLength(str, pos + 1));
+}
 };
 
 //__________________________________________________________________________________________________
@@ -529,7 +543,19 @@ struct DataDescription {
   // note: no operator=(const char*) as this potentially runs into trouble with this
   // general pointer type, use: somedesc = DataDescription("SOMEDESCRIPTION")
   template<std::size_t N>
-  constexpr DataDescription(const char (&desc)[N]) : itg{String2<uint64_t, N, 0, true>(desc),String2<uint64_t, N, 8>(desc)} {}
+  constexpr DataDescription(const char (&desc)[N]) : itg{String2<uint64_t, N, 0, true>(desc), (Internal::strLength(desc) > 8 ? String2<uint64_t, N, std::conditional< (N > 8), Internal::intWrapper<8>, Internal::intWrapper<N-1>>::type::value >(desc) : 0)} {
+    // the initializer implements a number of compile time checks
+    // - for the conversion of the first part of the string to the first 64bit field
+    //   the check for the string length needs to be disabled as it is naturally longer
+    //   then the type size
+    // - the second field only has to be filled if the string is longer than 8 chars, padding
+    //   with 0 otherwize, this catches the rare case that one character within the array
+    //   has been explicitely set to 0, but the compile time length is longer
+    // - depending on the length of the char field, either the offset 8 can be chosen or the
+    //   offset is set to the maximum, which will lead also to 0
+    // - it's probably given that N > 0
+    static_assert(N > 0, "Strange error, that should not happen at all");
+  }
   bool operator==(const DataDescription&) const;
   bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
   void print() const;
