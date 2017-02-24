@@ -8,13 +8,8 @@ ClassImp(AliceO2::TPC::GBTFrame)
 using namespace AliceO2::TPC;
 
 GBTFrame::GBTFrame()
-  : TObject()
-{
-  mWords[3] = 0;
-  mWords[2] = 0;
-  mWords[1] = 0;
-  mWords[0] = 0;
-}
+  : GBTFrame(0,0,0,0)
+{}
 
 GBTFrame::GBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
   : TObject()
@@ -91,7 +86,7 @@ GBTFrame::GBTFrame(const GBTFrame& other)
 GBTFrame::~GBTFrame()
 {}
 
-char GBTFrame::getHalfWord(char sampa, char hw, char chan)
+char GBTFrame::getHalfWord(char sampa, char hw, char chan) const
 {
   sampa %= 3;
   hw %= 5;
@@ -142,7 +137,7 @@ char GBTFrame::getHalfWord(char sampa, char hw, char chan)
   return 0;
 }
 
-char GBTFrame::getAdcClock(char sampa)
+char GBTFrame::getAdcClock(char sampa) const
 {
   sampa = sampa % 3;
 
@@ -153,7 +148,7 @@ char GBTFrame::getAdcClock(char sampa)
   }
 }
 
-void GBTFrame::getGBTFrame(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0)
+void GBTFrame::getGBTFrame(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0) const
 {
   word3 = mWords[3];
   word2 = mWords[2];
@@ -172,22 +167,22 @@ std::ostream& GBTFrame::Print(std::ostream& output) const
   return output;
 }
 
-bool GBTFrame::getBit(unsigned word, unsigned lsb)
+bool GBTFrame::getBit(unsigned word, unsigned lsb) const
 {
   return (word >> lsb) & 0x1;
 }
 
-char GBTFrame::getBits(char word, unsigned width, unsigned lsb)
+char GBTFrame::getBits(char word, unsigned width, unsigned lsb) const
 {
   return ((width >= 8) ? word : (word >> lsb) & (((1 << width) - 1)));
 }
 
-unsigned GBTFrame::getBits(unsigned word, unsigned width, unsigned lsb)
+unsigned GBTFrame::getBits(unsigned word, unsigned width, unsigned lsb) const
 {
   return ((width >= 32) ? word : (word >> lsb) & (((1 << width) - 1)));
 }
 
-unsigned GBTFrame::combineBitsOfFrame(std::vector<char> bits)
+unsigned GBTFrame::combineBitsOfFrame(std::vector<char> bits) const
 {
   unsigned res = 0;
   for (std::vector<char>::iterator it = bits.begin(); it != bits.end(); it++) {
@@ -195,7 +190,8 @@ unsigned GBTFrame::combineBitsOfFrame(std::vector<char> bits)
   }
   return res;
 }
-unsigned GBTFrame::combineBits(std::vector<bool> bits)
+
+unsigned GBTFrame::combineBits(std::vector<bool> bits) const
 {
   unsigned res = 0;
   for (std::vector<bool>::iterator it = bits.begin(); it != bits.end(); it++) {

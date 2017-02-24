@@ -7,8 +7,11 @@
 #include "TPCSimulation/GBTFrame.h"
 #include "TPCSimulation/AdcClockMonitor.h"
 #include "TPCSimulation/SyncPatternMonitor.h"
+#include "TPCSimulation/Digit.h"
 #include <TClonesArray.h>  
 #include <vector>
+#include <deque>
+#include <iterator>
 #include "FairLogger.h"
 
 namespace AliceO2{
@@ -23,9 +26,16 @@ class GBTFrameContainer {
     /// Default constructor
     GBTFrameContainer();
 
+    /// Default constructor
+    /// @param cru CRU ID
+    /// @param link Link ID
+    GBTFrameContainer(int cru, int link);
+
     /// Constructor
     /// @param amount Forseen amount of GBT frames
-    GBTFrameContainer(int amount);
+    /// @param cru CRU ID
+    /// @param link Link ID
+    GBTFrameContainer(int amount, int cru, int link);
 
     /// Destructor
     ~GBTFrameContainer();
@@ -96,18 +106,49 @@ class GBTFrameContainer {
     /// @param val Set it to true or false
     void setEnableSyncPatternWarning(bool val) { mEnableSyncPatternWarning = val; };
 
+    /// Extracts the digits after all 32 channel were transmitted
+    /// &param digitContainer Digit Container to store the digits in
+    /// @return If true, at least one digit was added.
+    bool getDigits(std::vector<Digit> *digitContainer);
+
+    /// Sets the timebin
+    /// @param vat Set to this timebin
+    void setTimebin(int val) { mTimebin = val; };
+
+    /// Gets the timebin
+    /// @return Timebin for next digits
+    int getTimebin() const { return mTimebin; };
+
 
   private:
+    /// Processes the all frame, monitors ADC clock, searches for sync pattern,...
+    void processAllFrames();
+
     /// Processes the last inserted frame, monitors ADC clock, searches for sync pattern,...
-    void processLastFrame();
+    /// @param iFrame GBT Frame to be processed (ordering is important!!)
+    void processFrame(std::vector<GBTFrame>::iterator iFrame);
+
+    /// Checks the ADC clock;
+    /// @param iFrame GBT Frame to be processed (ordering is important!!)
+    void checkAdcClock(const GBTFrame* iFrame);
+
+    /// Searches for the synchronization pattern
+    /// @param iFrame GBT Frame to be processed (ordering is important!!)
+    /// @return Returns the old Position of low bits of SAMPA 0
+    int searchSyncPattern(const GBTFrame* iFrame);
+
 
     std::vector<GBTFrame> mGBTFrames;               ///< GBT Frames container
     std::vector<AdcClockMonitor> mAdcClock;         ///< ADC clock monitor for the 3 SAMPAs
     std::vector<SyncPatternMonitor> mSyncPattern;   ///< Synchronization pattern monitor for the 3 SAMPAs
-    std::vector<int> mPosition;                     ///< Start position of data for all 5 half SAMPAs
+    std::vector<int> mPositionForHalfSampa;         ///< Start position of data for all 5 half SAMPAs
+    std::vector<std::deque<int>> mAdcValues;        ///< Vector to buffer the decoded ADC values, one deque per half SAMPA 
 
     bool mEnableAdcClockWarning;                    ///< enables the ADC clock warnings
     bool mEnableSyncPatternWarning;                 ///< enables the Sync Pattern warnings
+    int mCRU;                                       ///< CRU ID of the GBT frames
+    int mLink;                                      ///< Link ID of the GBT frames
+    int mTimebin;                                   ///< Timebin of last digits extraction 
 };
 }
 }

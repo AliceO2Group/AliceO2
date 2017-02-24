@@ -6,18 +6,8 @@
 using namespace AliceO2::TPC;
 
 SyncPatternMonitor::SyncPatternMonitor()
-  : mCurrentState(state::lookForSeq0)
-  , mPatternFound(false)
-  , mPosition(-1)
-  , mTempPosition(-1)
-  , mLastHw0(0)
-  , mLastHw1(0)
-  , mLastHw2(0)
-  , mLastHw3(0)
-  , mSampa(-1)
-  , mLowHigh(-1)
+  : SyncPatternMonitor(-1,-1)
 {}
-
 
 SyncPatternMonitor::SyncPatternMonitor(int sampa, int lowHigh)
   : mCurrentState(state::lookForSeq0)
@@ -155,7 +145,7 @@ int SyncPatternMonitor::addSequence(char hw0, char hw1, char hw2, char hw3)
         if (mCurrentState == state::lookForSeq7) 
         {
           LOG(INFO) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? "low" : "high") << " bits): "
-            << "Synchronization pattern found" << FairLogger::endl;
+            << "Synchronization pattern found, started at position " << mTempPosition << FairLogger::endl;
           if (mPatternFound == true) {
             LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? "low" : "high") << " bits): "
                          << "Synchronization was already found" << FairLogger::endl;

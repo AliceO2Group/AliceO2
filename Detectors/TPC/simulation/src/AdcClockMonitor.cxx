@@ -6,13 +6,7 @@
 using namespace AliceO2::TPC;
 
 AdcClockMonitor::AdcClockMonitor()
-  : mSampa(-1)
-  , mPrevSequence(0)
-  , mTransition0(0)
-  , mTransition1(0)
-  , mSequenceCompleted(false)
-  , mSequencePosition(0)
-  , mState(state::error)
+  : AdcClockMonitor(-1)
 {}
 
 AdcClockMonitor::AdcClockMonitor(int sampa)

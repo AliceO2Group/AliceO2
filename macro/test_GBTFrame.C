@@ -188,7 +188,8 @@ void test_GBTFrame()
 
 
   timer.Start();
-  GBTFrameContainer container;//(5000);
+  GBTFrameContainer container(5000,1,0);
+  container.setEnableAdcClockWarning(false);
   container.setEnableSyncPatternWarning(false);
   for (std::vector<GBTFrame>::iterator it = frames.begin(); it != frames.end(); it++) {
     container.addGBTFrame(
@@ -252,6 +253,11 @@ void test_GBTFrame()
   }
   timer.Stop();
 
+  std::vector<Digit> digits;
+  while (container.getDigits(&digits)) {
+    std::cout << digits.size() << std::endl;
+  }
+
   std::cout << std::endl << std::endl;
   std::cout << std::endl << std::endl;
 
@@ -275,11 +281,14 @@ void test_GBTFrame()
   container.reset();
   container.setEnableAdcClockWarning(false);
 
-  for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){
-//    std::cout << *it << std::endl;
+  //for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){
+  for (std::vector<GBTFrame>::iterator it = frames.begin(); it != frames.end(); it++){
+    std::cout << *it << std::endl;
     container.addGBTFrame(*it);
   }
 
+  std::vector<Digit> digits2;
+  std::cout << container.getDigits(&digits2) << std::endl;
 
   return;
 }

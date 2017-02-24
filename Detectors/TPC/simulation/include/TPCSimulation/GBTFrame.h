@@ -68,26 +68,26 @@ class GBTFrame : public TObject {
 
     /// Get the marker of the frame
     /// @return marker of the frame
-    char getMarker() { return (mWords[3] >> 16) & 0xFFFF; };
+    char getMarker() const { return (mWords[3] >> 16) & 0xFFFF; };
 
     /// Get a half-word of a SAMPA chip (5 bit of data)
     /// @param sampa half-word this SAMPA chip (0-2, 3=0, 4=1)
     /// @param halfword this half-word of the SAMPA (4 are included in GBT frame)
     /// @param chan which channels, 0 for channel 0-15, 1 for channel 16-31, ignored for SAMPA 2
     /// @return requested half-word
-    char getHalfWord(char sampa, char halfword, char chan = 0);
+    char getHalfWord(char sampa, char halfword, char chan = 0) const;
 
     /// Get ADC sampling clock of a SAMPA chip (4 time bits)
     /// @param sampa ADC clock of this SAMPA chip (0-2, 3=0, 4=1)
     /// @return requested ADC sampling clock bits
-    char getAdcClock(char sampa);
+    char getAdcClock(char sampa) const;
 
     /// Get the GBT frame
     /// @param word3 bit [127: 96] of GBT frame is written to this
     /// @param word2 bit [ 95: 64] of GBT frame is written to this
     /// @param word1 bit [ 63: 32] of GBT frame is written to this
     /// @param word0 bit [ 31:  0] of GBT frame is written to this
-    void getGBTFrame(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0);
+    void getGBTFrame(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0) const;
 
     /// Print function: Print GBT frame on the output stream
     /// @param output Stream to put the GBT frame on
@@ -97,11 +97,11 @@ class GBTFrame : public TObject {
 
   private:
 
-    bool getBit(unsigned word, unsigned lsb);
-    char getBits(char word, unsigned width, unsigned lsb);
-    unsigned getBits(unsigned word, unsigned width, unsigned lsb);
-    unsigned combineBits(std::vector<bool> bits);
-    unsigned combineBitsOfFrame(std::vector<char> bits);
+    bool getBit(unsigned word, unsigned lsb) const;
+    char getBits(char word, unsigned width, unsigned lsb) const;
+    unsigned getBits(unsigned word, unsigned width, unsigned lsb) const;
+    unsigned combineBits(std::vector<bool> bits) const;
+    unsigned combineBitsOfFrame(std::vector<char> bits) const;
 
     unsigned    mWords[4];
                 // Word 3 of GBT frame contains bits [127: 96], [127:112] are unused
