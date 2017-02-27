@@ -51,7 +51,7 @@ node {
                         --debug                                            \
                         --jobs 16                                          \
                         --remote-store rsync://repo.marathon.mesos/store/  \
-                        --disable DDS                                      \
+                        --defaults o2                                      \
                         -d build O2 || BUILDERR=$?
 
       rm -f $WORKAREA/$WORKAREA_INDEX/current_slave
