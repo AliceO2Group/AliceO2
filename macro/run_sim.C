@@ -1,3 +1,26 @@
+#if !defined(__CINT__) || defined(__MAKECINT__)
+  #include <Rtypes.h>
+  #include <TSystem.h>
+  #include <TMath.h>
+  #include <TString.h>
+  #include <TStopwatch.h>
+  #include <TGeoManager.h>
+
+  #include "FairRunSim.h"
+  #include "FairRuntimeDb.h"
+  #include "FairPrimaryGenerator.h"
+  #include "FairBoxGenerator.h"
+  #include "FairParRootFileIo.h"
+
+  #include "DetectorsPassive/Cave.h"
+
+  #include "ITSBase/GeometryTGeo.h"
+  #include "ITSMFTBase/SegmentationPixel.h"
+  #include "ITSSimulation/Detector.h"
+
+  #include "TPCSimulation/Detector.h"
+#endif
+
 double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 {
   // compute turbo angle from radii and sensor width
@@ -160,7 +183,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 */
   // ===| Add TPC |============================================================
   AliceO2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
-  tpc->SetGeoFileName("TPCGeometry.root");
+  //tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 
   // Create PrimaryGenerator
