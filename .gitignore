@@ -46,9 +46,11 @@ CMakeCache.txt
 CMakeFiles
 Makefile
 cmake_install.cmake
+compile_commands.json
 
 # IDEs files
 .cproject
 .project
 .idea
 .settings
+.ycm_extra_conf.py
