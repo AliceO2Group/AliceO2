@@ -12,17 +12,19 @@
 #include "TPCBase/DigitPos.h"
 #include "TPCBase/FECInfo.h"
 #include "TPCBase/PadRegionInfo.h"
+#include "TPCBase/PartitionInfo.h"
 #include "TPCBase/Sector.h"
 
 using AliceO2::TPC::PadRegionInfo;
+using AliceO2::TPC::PartitionInfo;
 
 namespace AliceO2 {
 namespace TPC {
 
 class Mapper {
 public:
-  static Mapper& instance() {
-    static Mapper mapper;
+  static Mapper& instance(const std::string mappingDir="") {
+    static Mapper mapper(mappingDir);
     return mapper;
   }
 
@@ -32,14 +34,70 @@ public:
 
   const GlobalPadNumber globalPadNumber(const PadPos& padPosition) const { return mMapPadPosGlobalPad.find(padPosition)->second; }
 
+  const GlobalPadNumber globalPadNumber(const FECInfo& fec) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fec.getIndex(), fec.getSampaChip(), fec.getSampaChannel())]; }
+  const GlobalPadNumber globalPadNumber(const int fecInSector, const int sampaOnFEC, const int channelOnSAMPA) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fecInSector, sampaOnFEC, channelOnSAMPA)]; }
+
+  // ===| global sector mappings |==============================================
+  const PadPos&  padPos(const FECInfo& fec) const
+  {
+    const GlobalPadNumber padNumber = globalPadNumber(fec);
+    return padPos(padNumber);
+  }
+
+  const PadPos&  padPos(const int fecInSector, const int sampaOnFEC, const int channelOnSAMPA) const
+  {
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    return padPos(padNumber);
+  }
+
+  const PadCentre& padCentre(const FECInfo& fec) const
+  {
+    const GlobalPadNumber padNumber = globalPadNumber(fec);
+    return padCentre(padNumber);
+  }
+
+  const PadCentre& padCentre(const int fecInSector, const int sampaOnFEC, const int channelOnSAMPA) const
+  {
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    return padCentre(padNumber);
+  }
+
+  // ===| partition mappings |==================================================
+  const PadPos&  padPos(const int partition, const int fecInPartition, const int sampaOnFEC, const int channelOnSAMPA) const
+  {
+    const int fecInSector = mMapPartitionInfo[partition].getSectorFECOffset() + fecInPartition;
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    return padPos(padNumber);
+  }
+
+  const PadPos padPosLocal(const int partition, const int fecInPartition, const int sampaOnFEC, const int channelOnSAMPA) const
+  {
+    const PartitionInfo& partInfo = mMapPartitionInfo[partition];
+    const int fecInSector = partInfo.getSectorFECOffset() + fecInPartition;
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    PadPos pos = padPos(padNumber);
+    pos.setRow(pos.getRow()-partInfo.getSectorPadRowOffset());
+    return pos;
+  }
+
+  const PadCentre& padCentre(const int partition, const int fecInPartition, const int sampaOnFEC, const int channelOnSAMPA) const
+  {
+    const int fecInSector = mMapPartitionInfo[partition].getSectorFECOffset() + fecInPartition;
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    return padCentre(padNumber);
+  }
+
   const PadRegionInfo& getPadRegionInfo(const unsigned char region) const { return mMapPadRegionInfo[region]; }
+  const std::array<PadRegionInfo,10>& getMapPadRegionInfo() const { return mMapPadRegionInfo; }
+  const int getNumberOfPadRegions() const { return int(mMapPadRegionInfo.size()); }
+
+  const PartitionInfo& getPartitionInfo(const unsigned char region) const { return mMapPartitionInfo[region]; }
+  const std::array<PartitionInfo,5>& getMapPartitionInfo() const { return mMapPartitionInfo; }
+  const int getNumberOfPartitions() const { return int(mMapPartitionInfo.size()); }
 
   const DigitPos findDigitPosFromLocalPosition(const LocalPosition3D& pos, const Sector& sec) const;
   const DigitPos findDigitPosFromGlobalPosition(const GlobalPosition3D& pos) const;
 
-  const std::vector<PadRegionInfo>& getMapPadRegionInfo() const { return mMapPadRegionInfo; }
-
-  const int getNumberOfPadRegions() { return int(mMapPadRegionInfo.size()); }
 
   static const unsigned short getPadsInIROC  () { return mPadsInIROC  ; }
   static const unsigned short getPadsInOROC1 () { return mPadsInOROC1 ; }
@@ -91,13 +149,13 @@ public:
   }
 
 private:
-  Mapper() : mMapGlobalPadToPadPos(mPadsInSector),  mMapGlobalPadCentre(mPadsInSector), mMapPadPosGlobalPad(), mMapGlobalPadFECInfo(mPadsInSector), mMapPadRegionInfo(10) {load();}
+  Mapper(const std::string& mappingDir);
   // use old c++03 due to root
   Mapper(const Mapper&) {}
   void operator=(const Mapper&) {}
 
-  void load();
-  void initPadRegions();
+  void load(const std::string& mappingDir);
+  void initPadRegionsAndPartitions();
   bool readMappingFile(std::string file);
 
   static constexpr unsigned short mPadsInIROC  {5280};  ///< number of pads in IROC
@@ -155,13 +213,15 @@ private:
   }};
 
   // ===| Pad Mappings |========================================================
-  std::vector<PadPos>               mMapGlobalPadToPadPos; ///< mapping of global pad number to row and pad
-  std::vector<PadCentre>            mMapGlobalPadCentre;   ///< pad coordinates
-  std::map<PadPos, GlobalPadNumber> mMapPadPosGlobalPad;   ///< mapping pad position to global pad number, most probably needs to be changed to speed up
-  std::vector<FECInfo>              mMapGlobalPadFECInfo;  ///< map global pad number to FEC info
+  std::vector<PadPos>                mMapGlobalPadToPadPos; ///< mapping of global pad number to row and pad
+  std::vector<PadCentre>             mMapGlobalPadCentre;   ///< pad coordinates
+  std::map<PadPos, GlobalPadNumber>  mMapPadPosGlobalPad;   ///< mapping pad position to global pad number, most probably needs to be changed to speed up
+  std::vector<int>                   mMapFECIDGlobalPad;    ///< mapping sector global FEC id to global pad number
+  std::vector<FECInfo>               mMapGlobalPadFECInfo;  ///< map global pad number to FEC info
 
-  // ===| Pad region mappings |=================================================
-  std::vector<PadRegionInfo>        mMapPadRegionInfo;     ///< pad region information
+  // ===| Pad region and partition mappings |===================================
+  std::array<PadRegionInfo,10>      mMapPadRegionInfo;     ///< pad region information
+  std::array<PartitionInfo,5>       mMapPartitionInfo;     ///< partition information
 
 };
 

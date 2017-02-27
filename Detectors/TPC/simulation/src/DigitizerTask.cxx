@@ -13,7 +13,7 @@
 #include "FairLogger.h"
 #include "FairRootManager.h"
 
-#include "valgrind/callgrind.h"
+//#include "valgrind/callgrind.h"
 
 ClassImp(AliceO2::TPC::DigitizerTask)
 
@@ -29,7 +29,7 @@ DigitizerTask::DigitizerTask()
 {
   /// @todo get rid of new
   mDigitizer = new Digitizer;
-  CALLGRIND_START_INSTRUMENTATION;
+  //CALLGRIND_START_INSTRUMENTATION;
 }
 
 DigitizerTask::~DigitizerTask()
@@ -44,8 +44,8 @@ DigitizerTask::~DigitizerTask()
     delete mPointsArray;
   }
 
-  CALLGRIND_STOP_INSTRUMENTATION;
-  CALLGRIND_DUMP_STATS;
+  //CALLGRIND_STOP_INSTRUMENTATION;
+  //CALLGRIND_DUMP_STATS;
 }
 
 

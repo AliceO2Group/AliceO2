@@ -1,8 +1,15 @@
+///
+/// @file   Point3D.h
+/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+///
+
+/// @brief  Simple templated 3D point
+///
+/// origin: TPC
+/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+
 #ifndef AliceO2_TPC_Point3D_H
 #define AliceO2_TPC_Point3D_H
-
-// TODO: For some reason the code does not compile if I inlude Point2D here
-// #inclule "Point2D.h"
 
 namespace AliceO2 {
 namespace TPC {
@@ -12,7 +19,6 @@ class Point3D {
   public:
     Point3D() {}
     Point3D(const T &x, const T &y, const T&z) : mX(x), mY(y), mZ(z) {}
-//     Point3D(const Point2D<T> &p, const T&z) : mX(p.getX()), mY(p.GetY()), mZ(z)) {}
 
     const T& getX() const { return mX; }
     const T& getY() const { return mY; }

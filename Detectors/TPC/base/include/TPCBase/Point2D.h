@@ -1,3 +1,13 @@
+///
+/// @file   Point2D.h
+/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+///
+
+/// @brief  Simple templated 2D point
+///
+/// origin: TPC
+/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+
 #ifndef AliceO2_TPC_Point2D_H
 #define AliceO2_TPC_Point2D_H
 
