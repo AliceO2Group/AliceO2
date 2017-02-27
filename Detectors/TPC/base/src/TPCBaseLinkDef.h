@@ -20,6 +20,7 @@
 #pragma link C++ class AliceO2::TPC::PadPos;
 #pragma link C++ class AliceO2::TPC::PadRegionInfo;
 #pragma link C++ class AliceO2::TPC::PadSecPos;
+#pragma link C++ class AliceO2::TPC::PartitionInfo;
 //#pragma link C++ class AliceO2::TPC::RandomRing;
 #pragma link C++ class AliceO2::TPC::ROC;
 #pragma link C++ class AliceO2::TPC::Sector;

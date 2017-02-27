@@ -13,6 +13,7 @@ set(SRCS
    src/PadPos.cxx
    src/PadRegionInfo.cxx
    src/PadSecPos.cxx
+   src/PartitionInfo.cxx
    src/Point2D.cxx
    src/Point3D.cxx
    src/RandomRing.cxx
@@ -32,6 +33,7 @@ set(HEADERS
    include/TPCBase/PadPos.h
    include/TPCBase/PadRegionInfo.h
    include/TPCBase/PadSecPos.h
+   include/TPCBase/PartitionInfo.h
    include/TPCBase/Point2D.h
    include/TPCBase/Point3D.h
    include/TPCBase/RandomRing.h
@@ -54,4 +56,9 @@ O2_GENERATE_TESTS(
   BUCKET_NAME ${BUCKET_NAME}
   MODULE_LIBRARY_NAME ${MODULE_NAME}
   TEST_SRCS ${TEST_SRCS}
+)
+
+install(
+  DIRECTORY files
+  DESTINATION share/Detectors/TPC/
 )
