@@ -13,9 +13,6 @@ set(SRCS
    src/ClusterContainer.cxx
    src/ClustererTask.cxx
    src/CommonMode.cxx
-   src/CommonModeContainer.cxx
-   src/CommonModeCRU.cxx
-   src/CommonModeTime.cxx
    src/Detector.cxx
    src/Digit.cxx
    src/DigitContainer.cxx
@@ -45,9 +42,6 @@ set(HEADERS
    include/${MODULE_NAME}/ClusterContainer.h
    include/${MODULE_NAME}/ClustererTask.h
    include/${MODULE_NAME}/CommonMode.h
-   include/${MODULE_NAME}/CommonModeContainer.h
-   include/${MODULE_NAME}/CommonModeCRU.h
-   include/${MODULE_NAME}/CommonModeTime.h
    include/${MODULE_NAME}/Detector.h
    include/${MODULE_NAME}/Digit.h
    include/${MODULE_NAME}/DigitContainer.h
@@ -106,7 +100,6 @@ endforeach (_file RANGE 0 ${_length})
 set(TEST_SRCS
    test/testTPCGEMAmplification.cxx
    test/testTPCElectronTransport.cxx
-   test/testTPCSampaProcessing.cxx
 )
 
 O2_GENERATE_TESTS(
