@@ -111,33 +111,34 @@ class TimeStamp
   static TimeUnitID const sClockLHC;
   static TimeUnitID const sMicroSeconds;
 
-  // TODO: define operators
   operator uint64_t() const {return mTimeStamp64;}
 
   template<class Clock>
-  std::chrono::time_point<typename Clock::duration> get() const {
-    typedef std::chrono::duration<typename Clock::duration> duration;
+  typename Clock::duration get() const {
+    typedef typename Clock::duration duration;
     if (mUnit == sClockLHC) {
       // cast each part individually, if the precision of the return type
       // is smaller the values are simply truncated
-      return std::chrono::duration_cast<duration>(LHCOrbitClock::duration(mPeriod))
-	+ std::chrono::duration_cast<duration>(LHCBunchClock::duration(mBCNumber));
+      return std::chrono::duration_cast<duration>(LHCOrbitClock::duration(mPeriod) + LHCBunchClock::duration(mBCNumber));
     }
     if (mUnit == sMicroSeconds) {
       // TODO: is there a better way to mark the subticks invalid for the
       // micro seconds representation? First step is probably to remove/rename the
       // variable
       assert(mSubTicks == 0);
-      return std::chrono::duration_cast<duration>(std::chrono::duration<std::chrono::microseconds>(mTicks));
+      return std::chrono::duration_cast<duration>(std::chrono::microseconds(mTicks));
     }
     // invalid time unit identifier
     // TODO: define error policy
     assert(0);
-    return std::chrono::duration_cast<duration>(std::chrono::duration<std::chrono::seconds>(0));
+    return std::chrono::duration_cast<duration>(std::chrono::seconds(0));
   }
 
-  template <typename TimeUnit>
-  operator std::chrono::time_point<TimeUnit>() const {return get<TimeUnit>();}
+  // TODO: implement transformation from one unit to the other
+  //void transform(const TimeUnitID& unit) {
+  //  if (mUnit == unit) return;
+  //  ...
+  //}
 
  private:
   union {

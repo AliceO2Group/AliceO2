@@ -8,11 +8,13 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
   src/DataHeader.cxx
   src/HeartbeatFrame.cxx
+  src/TimeStamp.cxx
 )
 
 set(HEADERS
   include/${MODULE_NAME}/DataHeader.h
   include/${MODULE_NAME}/HeartbeatFrame.h
+  include/${MODULE_NAME}/TimeStamp.h
 )
 
 set(LIBRARY_NAME ${MODULE_NAME})
@@ -22,6 +24,7 @@ O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
   test/dataHeaderTest.cxx
+  test/testTimeStamp.cxx
 )
 
 O2_GENERATE_TESTS(
