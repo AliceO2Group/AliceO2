@@ -1,6 +1,6 @@
 ///
 /// @file   RandomRing.h
-/// @author Jens Wiechula, Jens.Wiechula@cern.ch
+/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 ///
 
 /// @brief  Ring with random number following a gaussian distribution

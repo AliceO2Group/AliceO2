@@ -12,7 +12,7 @@ PadRegionInfo::PadRegionInfo(const unsigned char region,
                              const float         padHeight,
                              const float         padWidth,
                              const float         radiusFirstRow,
-                             const unsigned char rowOffet,
+                             const unsigned char rowOffset,
                              const float         xhelper,
                              const unsigned char globalRowOffset
                             )
@@ -22,7 +22,7 @@ PadRegionInfo::PadRegionInfo(const unsigned char region,
   , mPadHeight{padHeight}
   , mPadWidth{padWidth}
   , mRadiusFirstRow{radiusFirstRow}
-  , mRowOffet{rowOffet}
+  , mRowOffset{rowOffset}
   , mXhelper{xhelper}
   , mNumberOfPads{0}
   , mGlobalRowOffset{globalRowOffset}
@@ -37,7 +37,7 @@ void PadRegionInfo::init()
   const float ks=mPadHeight/mPadWidth*tan(1.74532925199432948e-01); // tan(10deg)
   // initialize number of pads per row
   for (unsigned char irow=0; irow<mNumberOfPadRows; ++irow) {
-     mPadsPerRow[irow]=2*std::floor(ks*(irow+mRowOffet)+mXhelper);
+     mPadsPerRow[irow]=2*std::floor(ks*(irow+mRowOffset)+mXhelper);
      mNumberOfPads+=mPadsPerRow[irow];
   }
 }

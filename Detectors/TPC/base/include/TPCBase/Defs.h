@@ -1,3 +1,10 @@
+///
+/// @file   Defs.h
+/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+///
+
+/// @brief  Global TPC definitions and constants
+
 #ifndef AliceO2_TPC_Defs_H
 #define AliceO2_TPC_Defs_H
 
@@ -17,8 +24,8 @@ constexpr unsigned char SECTORSPERSIDE=18;
 constexpr unsigned char SIDES=2;
 
 constexpr double PI          = 3.14159265358979323846;
-constexpr double TWOPI       = 2*PI;
-constexpr double SECPHIWIDTH = TWOPI/18;
+constexpr double TWOPI       = 2.*PI;
+constexpr double SECPHIWIDTH = TWOPI/18.;
 
 
 /// TPC ROC types
