@@ -1,4 +1,4 @@
-#if !defined(__CINT__) || defined(__MAKECINT__)
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
   #include <Rtypes.h>
   #include <TSystem.h>
   #include <TMath.h>
@@ -84,8 +84,9 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
 //  TGeoGlobalMagField::Instance()->SetField(new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagneticField::k5kG));
 
-//  AliceO2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
-//  run->AddModule(its);
+/*
+  AliceO2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
+  run->AddModule(its);
 
   // build ITS upgrade detector
   // sensitive area 13x15mm (X,Z) with 20x20 micron pitch, 2mm dead zone on readout side and 50
@@ -123,7 +124,7 @@ void run_sim(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   gSystem->Exec(" rm itsSegmentations.root ");
 
   // create segmentations:
-  /*AliceO2::ITS::SegmentationPixel* seg0 = new AliceO2::ITS::SegmentationPixel(
+  AliceO2::ITS::SegmentationPixel* seg0 = new AliceO2::ITS::SegmentationPixel(
     0,           // segID (0:9)
     1,           // chips per module
     kNCol,       // ncols (total for module)
