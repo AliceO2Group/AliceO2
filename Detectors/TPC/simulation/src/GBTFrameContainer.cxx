@@ -16,7 +16,7 @@ GBTFrameContainer::GBTFrameContainer(int cru, int link)
 GBTFrameContainer::GBTFrameContainer(int amount, int cru, int link)
   : mEnableAdcClockWarning(true)
   , mEnableSyncPatternWarning(true)
-  , mPositionForHalfSampa(5)
+  , mPositionForHalfSampa(5,-1)
   , mAdcValues(5)
   , mCRU(cru)
   , mLink(link)
@@ -42,13 +42,13 @@ GBTFrameContainer::~GBTFrameContainer()
 void GBTFrameContainer::addGBTFrame(GBTFrame& frame) 
 {
   mGBTFrames.emplace_back(frame);
-  processFrame(mGBTFrames.end());
+  processFrame(mGBTFrames.end()-1);
 }
 
 void GBTFrameContainer::addGBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
 {
   mGBTFrames.emplace_back(word3, word2, word1, word0);
-  processFrame(mGBTFrames.end());
+  processFrame(mGBTFrames.end()-1);
 }
 
 void GBTFrameContainer::addGBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
@@ -61,7 +61,7 @@ void GBTFrameContainer::addGBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char 
   mGBTFrames.emplace_back(s0hw0l, s0hw1l, s0hw2l, s0hw3l, s0hw0h, s0hw1h, s0hw2h, s0hw3h,
                           s1hw0l, s1hw1l, s1hw2l, s1hw3l, s1hw0h, s1hw1h, s1hw2h, s1hw3h,
                           s2hw0, s2hw1, s2hw2, s2hw3, s0adc, s1adc, s2adc, marker);
-  processFrame(mGBTFrames.end());
+  processFrame(mGBTFrames.end()-1);
 }
 
 
@@ -102,9 +102,9 @@ void GBTFrameContainer::processAllFrames()
 
 void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
 {
-  checkAdcClock(&(*iFrame));
+  checkAdcClock(iFrame);
 
-  int iOldPosition = searchSyncPattern(&(*iFrame));
+  int iOldPosition = searchSyncPattern(iFrame);
 
   for (auto it = mPositionForHalfSampa.begin(); it != mPositionForHalfSampa.end(); it++) {
     int iPosition = *it;
@@ -160,17 +160,23 @@ void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
   }
 }
 
-void GBTFrameContainer::checkAdcClock(const GBTFrame* iFrame)
+void GBTFrameContainer::checkAdcClock(std::vector<GBTFrame>::iterator iFrame)
 {
-  if (mAdcClock[0].addSequence(iFrame->getAdcClock(0))) { 
-    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << iFrame << FairLogger::endl;}}
-  if (mAdcClock[1].addSequence(iFrame->getAdcClock(1))) {
-    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 1 in GBT Frame " << iFrame << FairLogger::endl;}}
-  if (mAdcClock[2].addSequence(iFrame->getAdcClock(2))) {
-    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << iFrame << FairLogger::endl;}}
+  if (mAdcClock[0].addSequence(iFrame->getAdcClock(0))) 
+  { 
+    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << *iFrame << FairLogger::endl;}
+  }
+  if (mAdcClock[1].addSequence(iFrame->getAdcClock(1))) 
+  {
+    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 1 in GBT Frame " << *iFrame << FairLogger::endl;}
+  }
+  if (mAdcClock[2].addSequence(iFrame->getAdcClock(2))) 
+  {
+    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << *iFrame << FairLogger::endl;}
+  }
 }
 
-int GBTFrameContainer::searchSyncPattern(const GBTFrame* iFrame)
+int GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
 {
   int iOldPosition = mPositionForHalfSampa[0];
 
@@ -203,6 +209,8 @@ int GBTFrameContainer::searchSyncPattern(const GBTFrame* iFrame)
       iFrame->getHalfWord(2,1),
       iFrame->getHalfWord(2,2),
       iFrame->getHalfWord(2,3));
+
+//  std::cout << mPositionForHalfSampa[0] << " " << mPositionForHalfSampa[1] << " " << mPositionForHalfSampa[2] << " " << mPositionForHalfSampa[3] << " " << mPositionForHalfSampa[4] << std::endl;
 
   if (mPositionForHalfSampa[0] != mPositionForHalfSampa[1]) {
     if (mEnableSyncPatternWarning) { 
@@ -314,7 +322,10 @@ void GBTFrameContainer::resetSyncPattern()
   for (auto &aSyncPattern : mSyncPattern) {
     aSyncPattern.reset();
   }
-  mPositionForHalfSampa.clear();
+  for (auto &aPositionForHalfSampa : mPositionForHalfSampa) {
+    aPositionForHalfSampa = -1;
+  }
+//  mPositionForHalfSampa.clear();
 }
 
 void GBTFrameContainer::resetAdcValues()

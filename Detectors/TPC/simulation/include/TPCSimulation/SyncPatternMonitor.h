@@ -5,6 +5,7 @@
 #define ALICEO2_TPC_SYNCPATTERNMONITOR_H_
 
 #include "FairLogger.h"
+#include <iostream>
 
 namespace AliceO2 {
 namespace TPC {
@@ -52,6 +53,8 @@ class SyncPatternMonitor {
 
     /// increments mCurrentState
     void incState();
+
+    void printState(state stateToPrint);
 
     state mCurrentState;    ///< store current state
     bool mPatternFound;     ///< store whether pattern was already found

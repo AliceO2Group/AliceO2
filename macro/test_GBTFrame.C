@@ -190,8 +190,8 @@ void test_GBTFrame()
   timer.Start();
   GBTFrameContainer container(5000,1,0);
   container.setEnableAdcClockWarning(false);
-  container.setEnableSyncPatternWarning(false);
-  for (std::vector<GBTFrame>::iterator it = frames.begin(); it != frames.end(); it++) {
+//  container.setEnableSyncPatternWarning(false);
+  for (std::vector<GBTFrame>::iterator it = frames.begin(); it != frames.end(); ++it) {
     container.addGBTFrame(
           it->getHalfWord(0,0,0),it->getHalfWord(0,1,0),it->getHalfWord(0,2,0),it->getHalfWord(0,3,0),
           it->getHalfWord(0,0,1),it->getHalfWord(0,1,1),it->getHalfWord(0,2,1),it->getHalfWord(0,3,1),
@@ -202,61 +202,56 @@ void test_GBTFrame()
         );
   }
 
-  for (int i = 0; i < 1000; i++) {
-    container.addGBTFrame(
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0x7, 0x3, 0x1, 0xDEF1
-        );
-    for (int j = 0; j < 3; j++) {
-      container.addGBTFrame(
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0xF, 0xF, 0xF, 0xDEF1
-          );
-    }
-    container.addGBTFrame(
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0x8, 0xC, 0xE, 0xDEF1
-        );
-    for (int j = 0; j < 3; j++) {
-      container.addGBTFrame(
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0x0, 0x0, 0x0, 0xDEF1
-          );
-    }
-
-    if (i == 7) {
-      container.addGBTFrame(
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0, 0, 0, 0,
-          0x8, 0xC, 0xE, 0xDEF1
-          );
-    }
-  }
+//  for (int i = 0; i < 1000; i++) {
+//    container.addGBTFrame(
+//        0, 0, 0, 0,
+//        0, 0, 0, 0,
+//        0, 0, 0, 0,
+//        0, 0, 0, 0,
+//        0, 0, 0, 0,
+//        0x7, 0x3, 0x1, 0xDEF1
+//        );
+//    for (int j = 0; j < 3; j++) {
+//      container.addGBTFrame(
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0xF, 0xF, 0xF, 0xDEF1
+//          );
+//    }
+//    container.addGBTFrame(
+//        0, 0, 0, 0,
+//        0, 0, 0, 0,
+//        0, 0, 0, 0,
+//        0, 0, 0, 0,
+//        0, 0, 0, 0,
+//        0x8, 0xC, 0xE, 0xDEF1
+//        );
+//    for (int j = 0; j < 3; j++) {
+//      container.addGBTFrame(
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0x0, 0x0, 0x0, 0xDEF1
+//          );
+//    }
+//
+//    if (i == 7) {
+//      container.addGBTFrame(
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0, 0, 0, 0,
+//          0x8, 0xC, 0xE, 0xDEF1
+//          );
+//    }
+//  }
   timer.Stop();
-
-  std::vector<SAMPAData> data(5);
-  std::cout << "get data " << container.getData(&data) << std::endl;
-  for (auto &d : data)
-    std::cout << d << std::endl;
 
 //  std::vector<Digit> digits;
 //  while (container.getDigits(&digits)) {
@@ -287,26 +282,44 @@ void test_GBTFrame()
   container.reset();
   container.setEnableAdcClockWarning(false);
 
-  //for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){
-  for (std::vector<GBTFrame>::iterator it = frames.begin(); it != frames.end(); it++){
+//  std::ofstream ofile;
+//  ofile.open("./out_3.txt");
+  for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){
+//  for (std::vector<GBTFrame>::iterator it = frames.begin(); it != frames.end(); it++){
     std::cout << *it << std::endl;
+//    ofile << *it << std::endl;
     container.addGBTFrame(*it);
   }
+//  ofile.close();
 
-//  std::vector<Digit> digits2;
-//  std::cout << container.getDigits(&digits2) << std::endl;
-
-  for (std::vector<GBTFrame>::iterator it = container.begin(); it != container.end(); ++it) {
-    std::cout << *it << std::endl;
-  }
-  std::cout << std::endl;
-
-  container[14] = container[2];
-  for (std::vector<GBTFrame>::iterator it = container.begin(); it != container.end(); ++it) {
-    std::cout << *it << std::endl;
+  std::vector<std::vector<SAMPAData>> allData;
+  std::vector<SAMPAData> data(5);
+  while (container.getData(&data)) {
+    allData.push_back(data);
+    data.clear();
   }
 
-  container.reProcessAllFrames();
+  for (auto &d : allData[0])
+    std::cout << d << std::endl;
+
+  std::cout << allData.size() << std::endl;
+
+//
+//
+////  std::vector<Digit> digits2;
+////  std::cout << container.getDigits(&digits2) << std::endl;
+//
+//  for (std::vector<GBTFrame>::iterator it = container.begin(); it != container.end(); ++it) {
+//    std::cout << *it << std::endl;
+//  }
+//  std::cout << std::endl;
+//
+//  container[14] = container[2];
+//  for (std::vector<GBTFrame>::iterator it = container.begin(); it != container.end(); ++it) {
+//    std::cout << *it << std::endl;
+//  }
+//
+//  container.reProcessAllFrames();
 
   return;
 }

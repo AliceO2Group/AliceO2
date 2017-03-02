@@ -13,6 +13,7 @@ GBTFrame::GBTFrame()
 
 GBTFrame::GBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
   : TObject()
+  , mWords(4)
 {
   mWords[3] = word3;
   mWords[2] = word2;
@@ -27,6 +28,7 @@ GBTFrame::GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
                    char s2hw0, char s2hw1, char s2hw2, char s2hw3, 
                    char s0adc, char s1adc, char s2adc, unsigned marker)
   : TObject()
+  , mWords(4)
 {
   mWords[0] = combineBits(std::vector<bool>{
       getBit(s0hw0h,2), getBit(s0hw1h,2), getBit(s0hw2h,2), getBit(s0hw3h,2), 
@@ -76,11 +78,13 @@ GBTFrame::GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
 
 GBTFrame::GBTFrame(const GBTFrame& other)
   : TObject(other)
+//  , mWords(4)
 {
-  mWords[3] = other.mWords[3];
-  mWords[2] = other.mWords[2];
-  mWords[1] = other.mWords[1];
-  mWords[0] = other.mWords[0];
+  mWords = other.mWords;
+//  mWords[3] = other.mWords[3];
+//  mWords[2] = other.mWords[2];
+//  mWords[1] = other.mWords[1];
+//  mWords[0] = other.mWords[0];
 }
 
 GBTFrame::~GBTFrame()
@@ -139,12 +143,13 @@ char GBTFrame::getHalfWord(char sampa, char hw, char chan) const
 
 char GBTFrame::getAdcClock(char sampa) const
 {
-  sampa = sampa % 3;
+  sampa %= 3;
 
   switch (sampa) {
     case 0: return (mWords[1] >> 8) & 0xF;
     case 1: return (mWords[2] >> 20) & 0xF;
     case 2: return (mWords[3] >> 12) & 0xF;
+    default: std::cout << "don't know SAMPA " << sampa << std::endl; return 0; 
   }
 }
 

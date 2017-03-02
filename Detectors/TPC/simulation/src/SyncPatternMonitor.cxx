@@ -60,6 +60,7 @@ int SyncPatternMonitor::addSequence(char hw0, char hw1, char hw2, char hw3)
   hw2 %= 0x1F;
   hw3 %= 0x1F;
  
+//  std::cout <<  (int)hw0 << " " << (int)hw1 << " " << (int)hw2 << " " << (int)hw3 << std::endl;
   char iCheckPos0, iCheckPos1, iCheckPos2, iCheckPos3;
 
   if (mCurrentState != state::lookForSeq0) 
@@ -165,6 +166,8 @@ int SyncPatternMonitor::addSequence(char hw0, char hw1, char hw2, char hw3)
                  << "Position of synchronization pattern changed from " << iLastPosition << " to " << mPosition << FairLogger::endl;
   }
 
+//  printState(mCurrentState);
+
   mLastHw0 = hw0;
   mLastHw1 = hw1;
   mLastHw2 = hw2;
@@ -184,5 +187,20 @@ void SyncPatternMonitor::incState()
     case state::lookForSeq5: mCurrentState = state::lookForSeq6; break;
     case state::lookForSeq6: mCurrentState = state::lookForSeq7; break;
     case state::lookForSeq7: mCurrentState = state::lookForSeq0; break;
+  }
+}
+
+void SyncPatternMonitor::printState(state stateToPrint)
+{
+  switch(stateToPrint) 
+  {
+    case state::lookForSeq0: std::cout << "lookForSeq0" << std::endl; break;
+    case state::lookForSeq1: std::cout << "lookForSeq1" << std::endl; break;
+    case state::lookForSeq2: std::cout << "lookForSeq2" << std::endl; break;
+    case state::lookForSeq3: std::cout << "lookForSeq3" << std::endl; break;
+    case state::lookForSeq4: std::cout << "lookForSeq4" << std::endl; break;
+    case state::lookForSeq5: std::cout << "lookForSeq5" << std::endl; break;
+    case state::lookForSeq6: std::cout << "lookForSeq6" << std::endl; break;
+    case state::lookForSeq7: std::cout << "lookForSeq7" << std::endl; break;
   }
 }

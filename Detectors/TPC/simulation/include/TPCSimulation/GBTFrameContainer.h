@@ -156,12 +156,12 @@ class GBTFrameContainer {
 
     /// Checks the ADC clock;
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
-    void checkAdcClock(const GBTFrame* iFrame);
+    void checkAdcClock(std::vector<GBTFrame>::iterator iFrame);
 
     /// Searches for the synchronization pattern
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
     /// @return Returns the old Position of low bits of SAMPA 0
-    int searchSyncPattern(const GBTFrame* iFrame);
+    int searchSyncPattern(std::vector<GBTFrame>::iterator iFrame);
 
     void resetAdcClock();
     void resetSyncPattern();
