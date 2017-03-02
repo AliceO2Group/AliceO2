@@ -253,10 +253,15 @@ void test_GBTFrame()
   }
   timer.Stop();
 
-  std::vector<Digit> digits;
-  while (container.getDigits(&digits)) {
-    std::cout << digits.size() << std::endl;
-  }
+  std::vector<SAMPAData> data(5);
+  std::cout << "get data " << container.getData(&data) << std::endl;
+  for (auto &d : data)
+    std::cout << d << std::endl;
+
+//  std::vector<Digit> digits;
+//  while (container.getDigits(&digits)) {
+//    std::cout << digits.size() << std::endl;
+//  }
 
   std::cout << std::endl << std::endl;
   std::cout << std::endl << std::endl;
@@ -278,6 +283,7 @@ void test_GBTFrame()
 
   std::cout << container.getSize() << " " << container.getNentries() << std::endl;
   
+
   container.reset();
   container.setEnableAdcClockWarning(false);
 
@@ -287,8 +293,20 @@ void test_GBTFrame()
     container.addGBTFrame(*it);
   }
 
-  std::vector<Digit> digits2;
-  std::cout << container.getDigits(&digits2) << std::endl;
+//  std::vector<Digit> digits2;
+//  std::cout << container.getDigits(&digits2) << std::endl;
+
+  for (std::vector<GBTFrame>::iterator it = container.begin(); it != container.end(); ++it) {
+    std::cout << *it << std::endl;
+  }
+  std::cout << std::endl;
+
+  container[14] = container[2];
+  for (std::vector<GBTFrame>::iterator it = container.begin(); it != container.end(); ++it) {
+    std::cout << *it << std::endl;
+  }
+
+  container.reProcessAllFrames();
 
   return;
 }

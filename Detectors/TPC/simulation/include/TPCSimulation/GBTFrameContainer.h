@@ -8,6 +8,7 @@
 #include "TPCSimulation/AdcClockMonitor.h"
 #include "TPCSimulation/SyncPatternMonitor.h"
 #include "TPCSimulation/Digit.h"
+#include "TPCSimulation/SAMPAData.h"
 #include <TClonesArray.h>  
 #include <vector>
 #include <deque>
@@ -107,21 +108,46 @@ class GBTFrameContainer {
     void setEnableSyncPatternWarning(bool val) { mEnableSyncPatternWarning = val; };
 
     /// Extracts the digits after all 32 channel were transmitted
-    /// &param digitContainer Digit Container to store the digits in
+    /// @param digitContainer Digit Container to store the digits in
     /// @return If true, at least one digit was added.
     bool getDigits(std::vector<Digit> *digitContainer);
 
+    bool getData(std::vector<SAMPAData> *container);
+
+    /// Returns a GBT frame
+    /// @param index
+    /// @return GBT frame
+    GBTFrame getGBTFrame(int index) const { return mGBTFrames[index]; };
+    GBTFrame operator[] (int index) const { return mGBTFrames[index]; };
+    GBTFrame& operator[] (int index)      { return mGBTFrames[index]; };
+
+    std::vector<GBTFrame>::iterator begin()               { return mGBTFrames.begin(); };
+    std::vector<GBTFrame>::const_iterator begin()   const { return mGBTFrames.begin(); };
+    std::vector<GBTFrame>::const_iterator cbegin()  const { return mGBTFrames.cbegin(); };
+    std::vector<GBTFrame>::iterator end()                 { return mGBTFrames.end(); };
+    std::vector<GBTFrame>::const_iterator end()     const { return mGBTFrames.end(); };
+    std::vector<GBTFrame>::const_iterator cend()    const { return mGBTFrames.cend(); };
+
+    std::vector<GBTFrame>::reverse_iterator rbegin()               { return mGBTFrames.rbegin(); };
+    std::vector<GBTFrame>::const_reverse_iterator rbegin()   const { return mGBTFrames.rbegin(); };
+    std::vector<GBTFrame>::const_reverse_iterator crbegin()  const { return mGBTFrames.crbegin(); };
+    std::vector<GBTFrame>::reverse_iterator rend()                 { return mGBTFrames.rend(); };
+    std::vector<GBTFrame>::const_reverse_iterator rend()     const { return mGBTFrames.rend(); };
+    std::vector<GBTFrame>::const_reverse_iterator crend()    const { return mGBTFrames.crend(); };
+
     /// Sets the timebin
-    /// @param vat Set to this timebin
+    /// @param val Set to this timebin
     void setTimebin(int val) { mTimebin = val; };
 
     /// Gets the timebin
     /// @return Timebin for next digits
     int getTimebin() const { return mTimebin; };
 
+    /// Re-Processes all frames after resetting ADC clock and sync Pattern
+    void reProcessAllFrames();
 
   private:
-    /// Processes the all frame, monitors ADC clock, searches for sync pattern,...
+    /// Processes all frames, monitors ADC clock, searches for sync pattern,...
     void processAllFrames();
 
     /// Processes the last inserted frame, monitors ADC clock, searches for sync pattern,...
@@ -136,6 +162,10 @@ class GBTFrameContainer {
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
     /// @return Returns the old Position of low bits of SAMPA 0
     int searchSyncPattern(const GBTFrame* iFrame);
+
+    void resetAdcClock();
+    void resetSyncPattern();
+    void resetAdcValues();
 
 
     std::vector<GBTFrame> mGBTFrames;               ///< GBT Frames container

@@ -104,7 +104,7 @@ class GBTFrame : public TObject {
     unsigned combineBitsOfFrame(std::vector<char> bits) const;
 
     unsigned    mWords[4];
-                // Word 3 of GBT frame contains bits [127: 96], [127:112] are unused
+                // Word 3 of GBT frame contains bits [127: 96], [127:112] are reserved for marker
                 // Word 2 of GBT frame contains bits [ 95: 64]
                 // Word 1 of GBT frame contains bits [ 63: 32]
                 // Word 0 of GBT frame contains bits [ 31:  0]

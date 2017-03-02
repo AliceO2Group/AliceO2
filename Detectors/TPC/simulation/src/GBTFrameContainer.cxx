@@ -74,10 +74,26 @@ void GBTFrameContainer::fillOutputContainer(TClonesArray* output)
   }
 }
 
+void GBTFrameContainer::reProcessAllFrames()
+{
+  resetAdcClock();
+  resetSyncPattern();
+  resetAdcValues();
+
+  processAllFrames();
+
+}
+
 void GBTFrameContainer::processAllFrames()
 {
-  if (mAdcValues.size() > 0)
-    LOG(WARNING) << "There are already some ADC values, maybe the frames were already processed." << FairLogger::endl;
+
+  for (std::vector<std::deque<int>>::iterator it = mAdcValues.begin(); it != mAdcValues.end(); ++it) {
+    if (it->size() > 0) {
+      LOG(WARNING) << "There are already some ADC values for half SAMPA " 
+        << std::distance(mAdcValues.begin(),it) 
+        << " , maybe the frames were already processed." << FairLogger::endl;
+    }
+  }
   for (auto it = mGBTFrames.begin(); it != mGBTFrames.end(); ++it) {
     processFrame(it);
   }
@@ -227,11 +243,11 @@ bool GBTFrameContainer::getDigits(std::vector<Digit> *digitContainer)
     int iSampaChannel = (iHalfSampa == 4) ?     // 5th half SAMPA corresponds to  SAMPA2
         ((mCRU%2) ? 16 : 0) :                   // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
         ((iHalfSampa%2) ? 16 : 0);              // every even half SAMPA containes channel 0-15, the odd ones channel 16-31 
-    std::cout << mCRU << " " << iHalfSampa << " " << iHalfSampa%2 << std::endl;
     for (int iChannel = 0; iChannel < 16; ++iChannel)
     {
       std::cout << iSampaChannel << std::endl;
-      charge = mAdcValues[iHalfSampa].at(0); mAdcValues[iHalfSampa].pop_front();
+      charge = mAdcValues[iHalfSampa].at(0); 
+      mAdcValues[iHalfSampa].pop_front();
       digitContainer->emplace_back(eventID, trackID, cru, charge, row, pad, timeBin);
       digitsAdded = true;
       ++pad;
@@ -242,23 +258,70 @@ bool GBTFrameContainer::getDigits(std::vector<Digit> *digitContainer)
   return digitsAdded;
 }
 
+bool GBTFrameContainer::getData(std::vector<SAMPAData>* container)
+{
+  if (container->size() != 5) {
+    LOG(WARNING) << "Container had the wrong size, set it to 5" << FairLogger::endl;
+    container->resize(5);
+  }
+
+  bool dataAdded = false;
+
+  int iSampaChannel;
+  int iSampa;
+  for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
+  {
+    if (mAdcValues[iHalfSampa].size() < 16) continue;
+
+    iSampaChannel = (iHalfSampa == 4) ?         // 5th half SAMPA corresponds to  SAMPA2
+        ((mCRU%2) ? 16 : 0) :                   // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
+        ((iHalfSampa%2) ? 16 : 0);              // every even half SAMPA containes channel 0-15, the odd ones channel 16-31 
+    iSampa =  (iHalfSampa == 4) ?
+        2 :
+        (mCRU%2) ? iHalfSampa/2+3 : iHalfSampa/2;
+
+    for (int iChannel = 0; iChannel < 16; ++iChannel)
+    {
+      container->at(iSampa).setChannel(iSampaChannel,mAdcValues[iHalfSampa].at(0));
+      mAdcValues[iHalfSampa].pop_front();
+      ++iSampaChannel;
+      dataAdded = true;
+    }
+
+  }
+  return dataAdded;
+}
+
 void GBTFrameContainer::reset() 
 {
   LOG(INFO) << "Resetting GBT-Frame container" << FairLogger::endl;
+  resetAdcClock();
+  resetSyncPattern();
+  resetAdcValues();
+
   mGBTFrames.clear();
+}
+
+void GBTFrameContainer::resetAdcClock()
+{
   for (auto &aAdcClock : mAdcClock) {
     aAdcClock.reset();
   }
+}
+
+void GBTFrameContainer::resetSyncPattern()
+{
   for (auto &aSyncPattern : mSyncPattern) {
     aSyncPattern.reset();
   }
+  mPositionForHalfSampa.clear();
+}
+
+void GBTFrameContainer::resetAdcValues()
+{
   for (auto &aAdcValues : mAdcValues) {
     aAdcValues.clear();
   }
-//  for (auto &aGBTFrame : mGBTFrames) {
-//    if (aGBTFrame == nullptr) continue;
-//    aGBTFrame->reset();
-//  }
 }
 
 int GBTFrameContainer::getNentries() 

@@ -33,6 +33,7 @@ set(SRCS
    src/HwFixedPoint.cxx
    src/PadResponse.cxx
    src/Point.cxx
+   src/SAMPAData.cxx
    src/SAMPAProcessing.cxx
    src/SyncPatternMonitor.cxx
 )
@@ -66,6 +67,7 @@ set(HEADERS
    include/${MODULE_NAME}/HwFixedPoint.h
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/Point.h
+   include/${MODULE_NAME}/SAMPAData.h
    include/${MODULE_NAME}/SAMPAProcessing.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
 )
