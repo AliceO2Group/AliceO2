@@ -18,7 +18,7 @@ DigitPad::DigitPad(int pad)
 
 DigitPad::~DigitPad()
 {
-  mMCID.resize(0);
+  mMCID.clear();
   mChargePad = 0;
 }
 
@@ -48,18 +48,10 @@ void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
 
 void DigitPad::processMClabels(std::vector<long> &sortedMCLabels)
 {
-  // The MC labels encoded as described in the header are sorted by the number of occurence and a vector with the such sorted labels is returned
-  
-  std::map<long, int> frequencyMap;   //map containing the MC labels (key) and the according number of occurrence (value)
-  // dump the MC labels in a map and increase the value with the number of occurrences.
-  for (auto &aMCID : mMCID) {
-    ++frequencyMap[aMCID];
-  } 
   // Dump the map into a vector of pairs
-  std::vector<std::pair<long, int> > pairMClabels(frequencyMap.begin(), frequencyMap.end());
+  std::vector<std::pair<long, int> > pairMClabels(mMCID.begin(), mMCID.end());
   // Sort by the number of occurrences
-  std::sort(pairMClabels.begin(), pairMClabels.end(), 
-            boost::bind(&std::pair<long, int>::second, _1) < boost::bind(&std::pair<long, int>::second, _2));
+  std::sort(pairMClabels.begin(), pairMClabels.end(), boost::bind(&std::pair<long, int>::second, _1) < boost::bind(&std::pair<long, int>::second, _2));
   // iterate backwards over the vector and hence write MC with largest number of occurrences as first into the sortedMClabels vector
   for(auto &aMCIDreversed : boost::adaptors::reverse(pairMClabels)) {
     sortedMCLabels.emplace_back(aMCIDreversed.first);
