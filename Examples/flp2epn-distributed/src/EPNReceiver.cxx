@@ -135,10 +135,6 @@ void EPNReceiver::Run()
       }
 
       if (fTimeframeBuffer[id].parts.Size() == fNumFLPs) {
-        // LOG(INFO) << "Collected all parts for timeframe #" << id;
-        // when all parts are collected send then to the output channel
-        Send(fTimeframeBuffer[id].parts, fOutChannelName);
-
         if (fTestMode > 0) {
           // Send an acknowledgement back to the sampler to measure the round trip time
           unique_ptr<FairMQMessage> ack(NewMessage(sizeof(uint16_t)));
@@ -147,6 +143,12 @@ void EPNReceiver::Run()
           if (ackOutChannel.Send(ack, 0) <= 0) {
             LOG(ERROR) << "Could not send acknowledgement without blocking";
           }
+        }
+        else
+        {
+          // LOG(INFO) << "Collected all parts for timeframe #" << id;
+          // when all parts are collected send them to the output channel
+          Send(fTimeframeBuffer[id].parts, fOutChannelName);
         }
 
         // fTimeframeBuffer[id].end = steady_clock::now();
