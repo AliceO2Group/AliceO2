@@ -188,8 +188,10 @@ void test_GBTFrame()
 
 
   timer.Start();
-  GBTFrameContainer container(5000,1,0);
+  GBTFrameContainer container(5000,0,0);
+  GBTFrameContainer container2(5000,1,0);
   container.setEnableAdcClockWarning(false);
+  container2.setEnableAdcClockWarning(false);
 //  container.setEnableSyncPatternWarning(false);
   for (std::vector<GBTFrame>::iterator it = frames.begin(); it != frames.end(); ++it) {
     container.addGBTFrame(
@@ -200,6 +202,15 @@ void test_GBTFrame()
           it->getHalfWord(2,0),  it->getHalfWord(2,1),  it->getHalfWord(2,2),  it->getHalfWord(2,3),
           it->getAdcClock(0),    it->getAdcClock(1),    it->getAdcClock(2), 0xDEF1
         );
+    container2.addGBTFrame(
+          it->getHalfWord(0,0,0),it->getHalfWord(0,1,0),it->getHalfWord(0,2,0),it->getHalfWord(0,3,0),
+          it->getHalfWord(0,0,1),it->getHalfWord(0,1,1),it->getHalfWord(0,2,1),it->getHalfWord(0,3,1),
+          it->getHalfWord(1,0,0),it->getHalfWord(1,1,0),it->getHalfWord(1,2,0),it->getHalfWord(1,3,0),
+          it->getHalfWord(1,0,1),it->getHalfWord(1,1,1),it->getHalfWord(1,2,1),it->getHalfWord(1,3,1),
+          it->getHalfWord(2,0),  it->getHalfWord(2,1),  it->getHalfWord(2,2),  it->getHalfWord(2,3),
+          it->getAdcClock(0),    it->getAdcClock(1),    it->getAdcClock(2), 0xDEF2
+        );
+
   }
 
 //  for (int i = 0; i < 1000; i++) {
@@ -281,6 +292,8 @@ void test_GBTFrame()
 
   container.reset();
   container.setEnableAdcClockWarning(false);
+  container2.reset();
+  container2.setEnableAdcClockWarning(false);
 
 //  std::ofstream ofile;
 //  ofile.open("./out_3.txt");
@@ -289,12 +302,13 @@ void test_GBTFrame()
     std::cout << *it << std::endl;
 //    ofile << *it << std::endl;
     container.addGBTFrame(*it);
+    container2.addGBTFrame(*it);
   }
 //  ofile.close();
 
   std::vector<std::vector<SAMPAData>> allData;
   std::vector<SAMPAData> data(5);
-  while (container.getData(&data)) {
+  while (container.getData(&data) && container2.getData(&data)) {
     allData.push_back(data);
     data.clear();
   }
