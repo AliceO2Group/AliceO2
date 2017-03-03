@@ -28,8 +28,22 @@ void AliceO2::Utilities::DataPublisherDevice::InitTask()
 {
   mInputChannelName = fConfig->GetValue<std::string>(OptionKeyInputChannelName);
   mOutputChannelName = fConfig->GetValue<std::string>(OptionKeyOutputChannelName);
-  mDataDescription = AliceO2::Header::DataDescription(fConfig->GetValue<std::string>(OptionKeyDataDescription).c_str());
-  mDataOrigin = AliceO2::Header::DataOrigin(fConfig->GetValue<std::string>(OptionKeyDataOrigin).c_str());
+  // TODO: this turned out to be a missing feature in the description fields of
+  // the different headers. The idea is to use a field of n bytes as an integer
+  // but create the integers from a char sequence. This was thought to be done
+  // at compile time, but here we want to have it configurable at runtime.
+  //
+  // fConfig->GetValue<std::string>(OptionKeyDataDescription).c_str()
+  // fConfig->GetValue<std::string>(OptionKeyDataOrigin).c_str()
+  //
+  // Still needed:
+  // * a registry for descriptors (probably for different descriptor types of
+  //   even the same size) to ensure uniqueness
+  // * create the unsigned integer value once from the configurable string and
+  //   check in the registry
+  // * constructors and assignment operators taking the integer type as argument
+  mDataDescription = AliceO2::Header::DataDescription("FILEDATA");
+  mDataOrigin = AliceO2::Header::DataOrigin("TEST");
   mSubSpecification = fConfig->GetValue<SubSpecificationT>(OptionKeySubspecification);
   mFileName = fConfig->GetValue<std::string>(OptionKeyFileName);
 
