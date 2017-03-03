@@ -4,6 +4,8 @@
 #ifndef ALICEO2_TPC_DigitPad_H_
 #define ALICEO2_TPC_DigitPad_H_
 
+#include <map>
+
 #include "TPCSimulation/CommonMode.h"
 #include <TClonesArray.h>
 
@@ -61,7 +63,7 @@ class DigitPad{
   private:
     float                  mChargePad;   ///< Total accumulated charge on that pad for a given time bin
     unsigned char          mPad;         ///< Pad of the ADC value
-    std::vector<long>      mMCID;        ///< vector containing the MC ID encoded as described below
+    std::map<long, int>    mMCID;        ///< Map containing the MC labels (key) and the according number of occurrence (value)
 };
 
 inline 
@@ -70,7 +72,8 @@ void DigitPad::setDigit(int eventID, int trackID, float charge)
   // the MC ID is encoded such that we can have 999,999 tracks
   // numbers larger than 1000000 correspond to the event ID
   // i.e. 12000010 corresponds to event 12 with track ID 10
-  mMCID.emplace_back((eventID)*1000000.f + trackID);
+  /// @todo Faster would be a bit shift
+  ++mMCID[(eventID)*1000000 + trackID];
   mChargePad += charge;
 }
 
@@ -78,7 +81,7 @@ inline
 void DigitPad::reset()
 {
   mChargePad = 0;
-  mMCID.resize(0);
+  mMCID.clear();
 }
   
 }
