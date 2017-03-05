@@ -21,10 +21,6 @@ set(BUCKET_NAME alicehlt_bucket)
 
 O2_GENERATE_LIBRARY()
 
-# todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME alicehlt_bucket)
-
 Set(Exe_Names
     aliceHLTWrapperApp
     aliceHLTEventSampler
