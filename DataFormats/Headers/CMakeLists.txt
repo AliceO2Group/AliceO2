@@ -18,9 +18,6 @@ set(BUCKET_NAME fairroot_base_bucket)
 
 O2_GENERATE_LIBRARY()
 
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME fairroot_base_bucket)
-
 set(TEST_SRCS
   test/dataHeaderTest.cxx
 )

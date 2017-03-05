@@ -280,14 +280,6 @@ macro(O2_GENERATE_LIBRARY)
   # Install all the public headers
   install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
 
-  Set(LIBRARY_NAME)
-  Set(DICTIONARY)
-  Set(LINKDEF)
-  Set(SRCS)
-  Set(HEADERS)
-  Set(NO_DICT_SRCS)
-  Set(DEPENDENCIES)
-
 endmacro(O2_GENERATE_LIBRARY)
 
 #------------------------------------------------------------------------------

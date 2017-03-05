@@ -34,10 +34,6 @@ set(Exe_Source
     src/runProxy.cxx
     )
 
-# todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME flp2epn_bucket)
-
 list(LENGTH Exe_Names _length)
 math(EXPR _length ${_length}-1)
 

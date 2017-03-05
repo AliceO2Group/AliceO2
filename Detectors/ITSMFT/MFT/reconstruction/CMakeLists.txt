@@ -49,10 +49,6 @@ Set(Exe_Source
   src/runMFTrecoMerger.cxx
 )
 
-# todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
-set(BUCKET_NAME mft_reconstruction_bucket)
-set(LIBRARY_NAME ${MODULE_NAME})
-
 list(LENGTH Exe_Names _length)
 math(EXPR _length ${_length}-1)
 
