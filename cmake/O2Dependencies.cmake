@@ -47,6 +47,11 @@ if(Pythia6_FOUND)
       ${Pythia6_LIBRARY_DIR}
   )
 endif()
+if(PYTHIA8_FOUND)
+  link_directories(
+      ${PYTHIA8_LIB_DIR}
+  )
+endif()
 
 ########## General definitions and flags ##########
 
@@ -524,7 +529,7 @@ o2_define_bucket(
     generators_bucket
 
     DEPENDENCIES
-    Base SimulationDataFormat Pythia6 pythia8 MathCore
+    Base SimulationDataFormat pythia6 pythia8 MathCore
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}

@@ -12,7 +12,7 @@
 
 #include <math.h>
 #include "TROOT.h"
-#include "Pythia.h"
+#include "Pythia8/Pythia.h"
 #include "FairPrimaryGenerator.h"
 //#include "FairGenerator.h"
 
