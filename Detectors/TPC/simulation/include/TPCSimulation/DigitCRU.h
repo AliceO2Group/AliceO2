@@ -67,7 +67,7 @@ class DigitCRU{
   private:
     int                    mNTimeBins;        ///< Maximal number of time bins in that CRU
     unsigned short         mCRU;              ///< CRU of the ADC value
-    std::vector <DigitTime*> mTimeBins;         ///< Time bin Container for the ADC value
+    std::vector<std::unique_ptr<DigitTime>> mTimeBins;         ///< Time bin Container for the ADC value
 };
     
     
@@ -76,8 +76,7 @@ void DigitCRU::reset()
 {
   for(auto &aTime : mTimeBins) {
     if(aTime == nullptr) continue;
-//     aTime->reset();
-    delete aTime;
+    aTime->reset();
   }
   mTimeBins.clear();
 }

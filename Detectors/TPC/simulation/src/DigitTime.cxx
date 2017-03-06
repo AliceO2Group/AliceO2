@@ -15,20 +15,20 @@ DigitTime::DigitTime(int timeBin, int nrows)
 
 DigitTime::~DigitTime()
 {
-  for(auto &aRow : mRows) {
-    delete aRow;
-  }
+  mTotalChargeTimeBin = 0;
+  mTimeBin = 0;
+  mRows.resize(0);
 }
 
 void DigitTime::setDigit(int eventID, int trackID, int cru, int row, int pad, float charge)
 {
-  DigitRow *result = mRows[row];
+  DigitRow *result = mRows[row].get();
   if(result != nullptr) {
     mRows[row]->setDigit(eventID, trackID, pad, charge);
   }
   else{
     const Mapper& mapper = Mapper::instance();
-    mRows[row] = new DigitRow(row, mapper.getPadRegionInfo(CRU(cru).region()).getPadsInRowRegion(row));
+    mRows[row] = std::unique_ptr<DigitRow> (new DigitRow(row, mapper.getPadRegionInfo(CRU(cru).region()).getPadsInRowRegion(row)));
     mRows[row]->setDigit(eventID, trackID, pad, charge);
   }
   mTotalChargeTimeBin+=charge;

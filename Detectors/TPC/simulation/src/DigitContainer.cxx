@@ -11,25 +11,23 @@
 using namespace AliceO2::TPC;
 
 DigitContainer::DigitContainer()
-  : mCRU(CRU::MaxCRU)
+  : mCRU()
 {}
 
 DigitContainer::~DigitContainer()
 {
-  for(auto &aCRU : mCRU) {
-    delete aCRU;
-  }
+  std::fill(mCRU.begin(),mCRU.end(), nullptr);
 }
 
 void DigitContainer::addDigit(int eventID, int trackID, int cru, int timeBin, int row, int pad, float charge)
 {
-  DigitCRU *result = mCRU[cru];
+  DigitCRU *result = mCRU[cru].get();
   if(result != nullptr){
     mCRU[cru]->setDigit(eventID, trackID, timeBin, row, pad, charge);
   }
   else{
     const Mapper& mapper = Mapper::instance();
-    mCRU[cru] = new DigitCRU(cru);
+    mCRU[cru] = std::unique_ptr<DigitCRU> (new DigitCRU(cru));
     mCRU[cru]->setDigit(eventID, trackID, timeBin, row, pad, charge);
   }
 }

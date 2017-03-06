@@ -13,19 +13,18 @@ DigitRow::DigitRow(int row, int npads)
 
 DigitRow::~DigitRow()
 {
-  for(auto &aPad : mPads) {
-    delete aPad;
-  }
+  mRow = 0;
+  mPads.resize(0);
 }
 
 void DigitRow::setDigit(int eventID, int trackID, int pad, float charge)
 {
-  DigitPad *result = mPads[pad];
+  DigitPad *result =  mPads[pad].get();
   if(result != nullptr) {
     mPads[pad]->setDigit(eventID, trackID, charge);
   }
   else{
-    mPads[pad] = new DigitPad(pad);
+    mPads[pad] = std::unique_ptr<DigitPad> (new DigitPad(pad));
     mPads[pad]->setDigit(eventID, trackID, charge);
   }
 }

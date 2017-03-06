@@ -15,9 +15,9 @@ DigitCRU::DigitCRU(int cru)
 
 DigitCRU::~DigitCRU()
 {
-  for(auto &aTime : mTimeBins) {
-    delete aTime;
-  }
+  mNTimeBins = 0;
+  mCRU = 0;
+  mTimeBins.resize(0);
 }
 
 void DigitCRU::setDigit(int eventID, int trackID, int timeBin, int row, int pad, float charge)
@@ -27,13 +27,13 @@ void DigitCRU::setDigit(int eventID, int trackID, int timeBin, int row, int pad,
     mTimeBins.resize(getSize() + mNTimeBins);
   }
   
-  DigitTime *result = mTimeBins[timeBin];
+  DigitTime *result = mTimeBins[timeBin].get();
   if(result != nullptr) {
     mTimeBins[timeBin]->setDigit(eventID, trackID, mCRU, row, pad, charge);
   }
   else {
     const Mapper& mapper = Mapper::instance();
-    mTimeBins[timeBin] = new DigitTime(timeBin, mapper.getPadRegionInfo(CRU(mCRU).region()).getNumberOfPadRows());
+    mTimeBins[timeBin] = std::unique_ptr<DigitTime> (new DigitTime(timeBin, mapper.getPadRegionInfo(CRU(mCRU).region()).getNumberOfPadRows()));
     mTimeBins[timeBin]->setDigit(eventID, trackID, mCRU, row, pad, charge);
   }
 }
