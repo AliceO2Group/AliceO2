@@ -5,6 +5,8 @@
 #define ALICEO2_TPC_DigitRow_H_
 
 #include "TPCSimulation/DigitPad.h"
+#include <memory>
+#include <iostream>
 
 class TClonesArray;
 
@@ -61,7 +63,7 @@ class DigitRow{
 
   private:
     unsigned char          mRow;                ///< Row of the ADC value
-    std::vector<DigitPad*> mPads;               ///< Pad Container for the ADC value
+    std::vector<std::unique_ptr<DigitPad>> mPads;               ///< Pad Container for the ADC value
   
 };
 

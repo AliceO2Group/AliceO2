@@ -69,7 +69,7 @@ class DigitTime{
   private:
     float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
     unsigned short          mTimeBin;                   ///< Time bin of that ADC value
-    std::vector <DigitRow*> mRows;                      ///< Row Container for the ADC value
+    std::vector <std::unique_ptr<DigitRow>> mRows;                      ///< Row Container for the ADC value
 };
 
 inline    

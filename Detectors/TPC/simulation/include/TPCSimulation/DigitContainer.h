@@ -5,6 +5,7 @@
 #define ALICEO2_TPC_DigitContainer_H_
 
 #include "TPCSimulation/Digit.h"
+#include "TPCBase/CRU.h"
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/CommonMode.h"
 #include "TPCSimulation/Constants.h"
@@ -59,7 +60,7 @@ class DigitContainer{
     void processCommonMode(std::vector<CommonMode> &);
 
   private:
-    std::vector<DigitCRU*> mCRU;        ///< CRU Container for the ADC value
+    std::array<std::unique_ptr<DigitCRU> , CRU::MaxCRU> mCRU;   ///< CRU Container for the ADC value
 };
 
 inline
@@ -69,7 +70,7 @@ void DigitContainer::reset()
     if(aCRU == nullptr) continue;
     aCRU->reset();
   }
-//       mCRU.clear();
+  std::fill(mCRU.begin(),mCRU.end(), nullptr);
 }
 
 inline
