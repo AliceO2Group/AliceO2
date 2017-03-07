@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <memory>
+#include <cassert>
 
 // enum class byte : unsigned char
 // {
@@ -225,16 +226,39 @@ struct Descriptor {
     char     str[N];
     ItgType  itg; // for extension > 64 bit: [arraySize];
   };
-  Descriptor() {};
-  Descriptor(const Descriptor& other) : itg(other.itg) {}
+  constexpr Descriptor() : itg(0) {};
+  constexpr Descriptor(ItgType initializer) : itg(initializer) {};
+  constexpr Descriptor(const Descriptor& other) : itg(other.itg) {}
   Descriptor& operator=(const Descriptor& other) {
     if (&other != this) itg = other.itg;
     return *this;
   }
-  // note: no operator=(const char*) as this potentially runs into trouble with this
-  // general pointer type, use: somedescriptor = Descriptor("DESCRIPTION")
+  // Note: don't need to define operator=(ItgType v) because the compiler
+  // can use Descriptor(ItgType initializer) for conversion
+
+  // type cast operator for simplified usage of the descriptor's integer member
+  operator ItgType() const {return itg;}
+
+  /// constructor from a compile-time string
   template<std::size_t NN>
   constexpr Descriptor(const char (&origin)[NN]) : itg(String2<ItgType>(origin)) {};
+
+  /// Init descriptor from string at runtime
+  /// In contrast to all other functions which are fixed at compile time, this is
+  /// available at runtime and must be used with care
+  ///
+  /// Note: no assignment operator operator=(const char*) as this potentially runs
+  /// into trouble with this general pointer type.
+  void runtimeInit(const char* string) {
+    char* target = str;
+    char* targetEnd = target + N;
+    const char* source = string;
+    for ( ; source != nullptr && target < targetEnd && *source !=0; ++target, ++source) *target = *source;
+    for ( ; target < targetEnd; ++target) *target = 0;
+    // require the string to be maximum the descriptor size
+    assert(source != nullptr && *source == 0);
+  }
+
   bool operator==(const Descriptor& other) const {return itg == other.itg;}
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
   // print function needs to be implemented for every derivation
@@ -527,8 +551,9 @@ const uint32_t NameHeader<N>::sVersion = 1;
 //__________________________________________________________________________________________________
 /// this 128 bit type for a header field describing the payload data type
 struct DataDescription {
+  static const std::size_t N = gSizeDataDescriptionString;
   union {
-    char     str[gSizeDataDescriptionString];
+    char     str[N];
     uint64_t itg[2];
   };
   DataDescription();
@@ -542,8 +567,8 @@ struct DataDescription {
   }
   // note: no operator=(const char*) as this potentially runs into trouble with this
   // general pointer type, use: somedesc = DataDescription("SOMEDESCRIPTION")
-  template<std::size_t N>
-  constexpr DataDescription(const char (&desc)[N]) : itg{String2<uint64_t, N, 0, true>(desc), (Internal::strLength(desc) > 8 ? String2<uint64_t, N, std::conditional< (N > 8), Internal::intWrapper<8>, Internal::intWrapper<N-1>>::type::value >(desc) : 0)} {
+  template<std::size_t NN>
+  constexpr DataDescription(const char (&desc)[NN]) : itg{String2<uint64_t, NN, 0, true>(desc), (Internal::strLength(desc) > 8 ? String2<uint64_t, NN, std::conditional< (NN > 8), Internal::intWrapper<8>, Internal::intWrapper<NN-1>>::type::value >(desc) : 0)} {
     // the initializer implements a number of compile time checks
     // - for the conversion of the first part of the string to the first 64bit field
     //   the check for the string length needs to be disabled as it is naturally longer
@@ -556,6 +581,23 @@ struct DataDescription {
     // - it's probably given that N > 0
     static_assert(N > 0, "Strange error, that should not happen at all");
   }
+
+  /// Init from string at runtime
+  /// In contrast to all other functions which are fixed at compile time, this is
+  /// available at runtime and must be used with care
+  ///
+  /// Note: no assignment operator operator=(const char*) as this potentially runs
+  /// into trouble with this general pointer type.
+  void runtimeInit(const char* string) {
+    char* target = str;
+    char* targetEnd = target + N;
+    const char* source = string;
+    for ( ; source != nullptr && target < targetEnd && *source !=0; ++target, ++source) *target = *source;
+    for ( ; target < targetEnd; ++target) *target = 0;
+    // require the string to be maximum the descriptor size
+    assert(source != nullptr && *source == 0);
+  }
+
   bool operator==(const DataDescription&) const;
   bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
   void print() const;
@@ -582,6 +624,9 @@ typedef Descriptor<gSizeDataOriginString, printDataOrigin> DataOrigin;
 /// @ingroup aliceo2_dataformats_dataheader
 struct DataHeader : public BaseHeader
 {
+  // allows DataHeader::SubSpecificationType to be used as generic type in the code
+  typedef uint64_t SubSpecificationType;
+
   //static data for this header type/version
   static const uint32_t sVersion;
   static const AliceO2::Header::HeaderType sHeaderType;
@@ -611,7 +656,7 @@ struct DataHeader : public BaseHeader
   ///
   /// sub specification (e.g. link number)
   ///
-  uint64_t    subSpecification;
+  SubSpecificationType subSpecification;
 
   ///
   /// size of the associated data
