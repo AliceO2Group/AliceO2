@@ -388,8 +388,8 @@ const HeaderType* get(const byte* buffer, size_t /*len*/=0) {
 }
 
 //__________________________________________________________________________________________________
-/// @struct Block
-/// @brief a move-only header block with serialized headers
+/// @struct Stack
+/// @brief a move-only header stack with serialized headers
 /// This is the flat buffer where all the headers in a multi-header go.
 /// This guy knows how to move the serialized content to FairMQ
 /// and inform it how to release when all is sent.
@@ -397,10 +397,10 @@ const HeaderType* get(const byte* buffer, size_t /*len*/=0) {
 /// intended use:
 ///   - as a variadic intializer list (as an argument to a function)
 ///
-///   One can also use Block::compose(const T& header1, const T& header2, ...)
+///   One can also use Stack::compose(const T& header1, const T& header2, ...)
 ///   - T are derived from BaseHeader, arbirtary number of arguments/headers
 ///   - return is a unique_ptr holding the serialized buffer ready to be shipped.
-struct Block {
+struct Stack {
 
   // This is ugly and needs fixing BUT:
   // we need a static deleter for fairmq.
@@ -409,7 +409,7 @@ struct Block {
   using Buffer = std::unique_ptr<byte[]>;
   static std::default_delete<byte[]> sDeleter;
   static void freefn(void* /*data*/, void* hint) {
-    Block::sDeleter(static_cast<byte*>(hint));
+    Stack::sDeleter(static_cast<byte*>(hint));
   }
 
   size_t bufferSize;
@@ -424,23 +424,23 @@ struct Block {
   /// TODO: maybe add a static_assert requiring first arg to be DataHeader
   /// or maybe even require all these to be derived form BaseHeader
   template<typename... Headers>
-  Block(Headers... headers)
+  Stack(const Headers&... headers)
     : bufferSize{size(headers...)}
     , buffer{new byte[bufferSize]}
   {
     inject(buffer.get(), headers...);
   }
-  Block() = default;
-  Block(Block&&) = default;
-  Block(Block&) = delete;
-  Block& operator=(Block&) = delete;
-  Block& operator=(Block&&) = default;
+  Stack() = default;
+  Stack(Stack&&) = default;
+  Stack(Stack&) = delete;
+  Stack& operator=(Stack&) = delete;
+  Stack& operator=(Stack&&) = default;
 
   /// the magic compose - serialize (almost) anything into the buffer
   /// (works with headers, strings and arrays)
   template<typename... Args>
-  static Block compose(const Args... args) {
-    Block b;
+  static Stack compose(const Args&... args) {
+    Stack b;
     b.bufferSize = size(args...);
     b.buffer.reset(new byte[b.bufferSize]);
     inject(b.buffer.get(), args...);
@@ -573,7 +573,7 @@ typedef Descriptor<gSizeDataOriginString, printDataOrigin> DataOrigin;
 /// @brief the main header struct
 ///
 /// The main O2 data header struct. All messages should have it, preferably at the beginning
-/// of the header block.
+/// of the header stack.
 /// It contains the fields that describe the buffer size, data type,
 /// origin and serialization method used to construct the buffer.
 /// The member subSpecification might be defined differently for each type/origin,
