@@ -271,6 +271,7 @@ macro(O2_GENERATE_LIBRARY)
       PUBLIC
       ${CMAKE_CURRENT_SOURCE_DIR}/include
       PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src # internal headers
       ${CMAKE_CURRENT_SOURCE_DIR}   # For the modules that generate a dictionary
   )
 
@@ -278,7 +279,9 @@ macro(O2_GENERATE_LIBRARY)
   install(TARGETS ${Int_LIB} DESTINATION lib)
 
   # Install all the public headers
-  install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
+  if(EXISTS include/${MODULE_NAME})
+    install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
+  endif()
 
 endmacro(O2_GENERATE_LIBRARY)
 
@@ -420,6 +423,7 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   set(Int_SYSTEMINC "")
   GET_BUCKET_CONTENT(${BUCKET_NAME} RESULT_libs Int_INC Int_SYSTEMINC)
   set(Int_INC ${Int_INC} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  set(Int_INC ${Int_INC} ${CMAKE_CURRENT_SOURCE_DIR}/src) # internal headers
   set(Int_INC ${Int_INC} ${GLOBAL_ALL_MODULES_INCLUDE_DIRECTORIES})
   set(Int_INC ${Int_INC} ${Int_SYSTEMINC})
 
