@@ -415,13 +415,17 @@ const HeaderType* get(const void* buffer, size_t len=0) {
 ///   - as a variadic intializer list (as an argument to a function)
 ///
 ///   One can also use Stack::compose(const T& header1, const T& header2, ...)
-///   - T are derived from BaseHeader, arbirtary number of arguments/headers
-///   - return is a unique_ptr holding the serialized buffer ready to be shipped.
+//    - arguments can be headers, or stacks, all will be concatenated in a new Stack
+///   - returns a Stack ready to be shipped.
 struct Stack {
 
   // This is ugly and needs fixing BUT:
   // we need a static deleter for fairmq.
-  // TODO: template the class with allocators
+  // TODO: maybe use allocator_traits if custom allocation is desired
+  //       the deallocate function is then static.
+  //       In the case of special transports is is cheap to copy the header stack into a message, so no problem there.
+  //       The copy can be avoided if we construct in place inside a FairMQMessage directly (instead of
+  //       allocating a unique_ptr we would hold a FairMQMessage which for the large part has similar semantics).
   //
   using Buffer = std::unique_ptr<byte[]>;
   static std::default_delete<byte[]> sDeleter;
