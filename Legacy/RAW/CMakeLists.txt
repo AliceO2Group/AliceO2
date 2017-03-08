@@ -12,7 +12,6 @@ set(SRCS
   src/AliRawDataErrorLog.cxx
   src/AliRawEquipmentHeader.cxx
   src/AliRawEventHeaderBase.cxx
-  src/AliRawReaderChain.cxx
   src/AliRawReader.cxx
   src/AliRawReaderDate.cxx
   src/AliRawReaderFile.cxx
@@ -23,6 +22,13 @@ set(SRCS
   src/AliRawEventV2.cxx
 )
 
+if (HAVE_TGRID)
+  set(SRCS
+    ${SRCS}
+    src/AliRawReaderChain.cxx
+  )
+endif ()
+
 set(HEADERS
   src/AliDAQ.h
   src/AliLog.h
@@ -32,7 +38,6 @@ set(HEADERS
   src/AliRawDataErrorLog.h
   src/AliRawEquipmentHeader.h
   src/AliRawEventHeaderBase.h
-  src/AliRawReaderChain.h
   src/AliRawReader.h
   src/AliRawReaderDate.h
   src/AliRawReaderFile.h
@@ -42,6 +47,13 @@ set(HEADERS
   src/AliRawVEvent.h
   src/AliRawEventV2.h
 )
+
+if (HAVE_TGRID)
+  set(HEADERS
+    ${HEADERS}
+    src/AliRawReaderChain.h
+  )
+endif ()
 
 set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME legacy_raw_bucket)

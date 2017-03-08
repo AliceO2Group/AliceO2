@@ -83,7 +83,9 @@ AliRawReaderRoot::AliRawReaderRoot(const char* fileName, Int_t eventNumber) :
 
   TDirectory* dir = gDirectory;
   TString flStr = fileName;
+#ifdef HAVE_TGRID
   if (flStr.BeginsWith("alien://") && !gGrid) TGrid::Connect("alien://");
+#endif //HAVE_TGRID
   fFile = TFile::Open(fileName);
   dir->cd();
   if (!fFile || !fFile->IsOpen()) {

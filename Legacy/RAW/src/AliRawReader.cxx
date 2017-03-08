@@ -251,6 +251,7 @@ AliRawReader* AliRawReader::Create(const char *uri)
     AliInfoClass("Creating raw-reader in order to read events sent by AMORE");
     rawReader = new AliRawReaderDate((void *)NULL);
   }
+#ifdef HAVE_TGRID
   else if (fileURI.BeginsWith("collection://")) {
     fileURI.ReplaceAll("collection://","");
     AliInfoClass(Form("Creating raw-reader in order to read raw-data files collection defined in %s",fileURI.Data()));
@@ -267,6 +268,7 @@ AliRawReader* AliRawReader::Create(const char *uri)
       return NULL;
     }
   }
+#endif //HAVE_TGRID
   else {
     AliInfoClass(Form("Creating raw-reader in order to read raw-data file: %s",fileURI.Data()));
     TString filename(gSystem->ExpandPathName(fileURI.Data()));
