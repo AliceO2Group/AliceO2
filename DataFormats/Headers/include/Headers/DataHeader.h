@@ -411,6 +411,11 @@ const HeaderType* get(const byte* buffer, size_t /*len*/=0) {
   return nullptr;
 }
 
+template<typename HeaderType>
+const HeaderType* get(const void* buffer, size_t len=0) {
+  return get<HeaderType>(reinterpret_cast<const byte *>(buffer), len);
+}
+
 //__________________________________________________________________________________________________
 /// @struct Stack
 /// @brief a move-only header stack with serialized headers
