@@ -281,6 +281,15 @@ macro(O2_GENERATE_LIBRARY)
   ############### install the library ###################
   install(TARGETS ${Int_LIB} DESTINATION lib)
 
+  # public header files must be in include/${MODULE_NAME}, make sure there
+  # are no header files directly in include
+  # TODO: this should probably be combined with what has been defined as
+  # HEADERS.
+  file(GLOB PUBLIC_HEADERS_IN_WRONG_PLACE ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
+  if(PUBLIC_HEADERS_IN_WRONG_PLACE)
+    Message("found header files: ${PUBLIC_HEADERS_IN_WRONG_PLACE}")
+    Message(FATAL_ERROR "public header files required to be in 'include/<modulename>'")
+  endif()
   # Install all the public headers
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/include/${MODULE_NAME})
     install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
