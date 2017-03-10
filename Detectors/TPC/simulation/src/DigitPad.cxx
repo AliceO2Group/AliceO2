@@ -24,10 +24,11 @@ DigitPad::~DigitPad()
 
 void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad)
 {  
+  const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   float totalADC = mChargePad;
   std::vector<long> MClabel;
   processMClabels(MClabel);
-  const float mADC = SAMPAProcessing::getADCSaturation(totalADC);
+  const float mADC = sampa.getADCSaturation(totalADC);
   if(mADC > 0) {
     TClonesArray &clref = *output;
     new(clref[clref.GetEntriesFast()]) Digit(MClabel, cru, mADC, row, pad, timeBin);
@@ -36,10 +37,11 @@ void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
 
 void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode)
 {
+  const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   float totalADC = mChargePad;
   std::vector<long> MClabel;
   processMClabels(MClabel);
-  const float mADC = SAMPAProcessing::getADCSaturation(totalADC);
+  const float mADC = sampa.getADCSaturation(totalADC-commonMode); // we substract the common mode here in order to properly apply the saturation of the FECs
   if(mADC > 0) {
     TClonesArray &clref = *output;
     new(clref[clref.GetEntriesFast()]) Digit(MClabel, cru, mADC, row, pad, timeBin, commonMode);

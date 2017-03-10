@@ -8,6 +8,8 @@
 
 #include "TPCSimulation/Constants.h"
 
+#include "TSpline.h"
+
 namespace AliceO2 {
 namespace TPC {
     
@@ -17,10 +19,10 @@ namespace TPC {
 class SAMPAProcessing
 {
   public:
-
-    /// Default constructor
-    SAMPAProcessing();
-
+    static SAMPAProcessing& instance() {
+      static SAMPAProcessing sampaProcessing;
+      return sampaProcessing;
+    }
     /// Destructor
     ~SAMPAProcessing();
 
@@ -30,13 +32,13 @@ class SAMPAProcessing
     template<typename T>
     static T getADCvalue(T nElectrons);
 
-    /// Saturation of the ADC
-    /// @param signal Incoming signal in ADC counts
-    /// @return ADC value
-    template<typename T>
-    static T getADCSaturation(T signal);
+    const float getADCSaturation(const float signal) const;
 
-    static float getADCSaturation(float signal);
+    /// Shaping of the signal
+    /// @param ADCsignal Signal of the incoming charge
+    /// @param driftTime t0 of the incoming charge
+    /// @return Array with the shaped signal
+    static void getShapedSignal(float ADCsignal, float driftTime, std::array<float, 8> &signalArray);
 
     /// Gamma4 shaping function, vectorized
     /// @param time Time of the ADC value with respect to the first bin in the pulse
@@ -44,31 +46,36 @@ class SAMPAProcessing
     /// @param ADC ADC value of the corresponding time bin
     template<typename T>
     static T getGamma4(T time, T startTime, T ADC);
+
+  private:
+    SAMPAProcessing();
+    // use old c++03 due to root
+    SAMPAProcessing(const SAMPAProcessing&) {}
+    void operator=(const SAMPAProcessing&) {}
+
+    std::unique_ptr<TSpline3>   mSaturationSpline;   ///< TSpline3 which holds the saturation curve
+
+    /// Import the saturation curve from a .dat file to a TSpline3
+    /// @param file Name of the .dat file
+    /// @param spline TSpline3 to which the saturation curve will be written
+    /// @return Boolean if succesful or not
+    bool importSaturationCurve(std::string file);
 };
 
 template<typename T>
 inline
 T SAMPAProcessing::getADCvalue(T nElectrons)
 {
-  Vc::float_v conversion = QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE; // 1E-15 is to convert Coulomb in fC
+  T conversion = QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE; // 1E-15 is to convert Coulomb in fC
   return nElectrons*conversion;
 }
 
-template<typename T>
 inline
-T SAMPAProcessing::getADCSaturation(T signal)
+const float SAMPAProcessing::getADCSaturation(const float signal) const
 {
-  Vc::float_v signalOut = signal;
-  Vc::float_m saturation = signal > Vc::float_v(ADCSAT);
-  signalOut(saturation) = Vc::float_v(ADCSAT);
-  return signalOut;
-}
-
-inline
-float SAMPAProcessing::getADCSaturation(float signal)
-{
-  if(signal > ADCSAT-1) signal = ADCSAT-1;
-  return signal;
+  const float saturatedSignal = mSaturationSpline->Eval(signal);
+  if(saturatedSignal > ADCSAT-1) return ADCSAT-1;
+  return saturatedSignal;
 }
 
 template<typename T>
@@ -79,7 +86,6 @@ T SAMPAProcessing::getGamma4(T time, T startTime, T ADC)
   Vc::float_v tmp2=tmp*tmp;
   return 55.f*ADC*Vc::exp(-4.f*tmp)*tmp2*tmp2; // 55 is for normalization: 1/Integral(Gamma4)
 }
-  
 }
 }
 
