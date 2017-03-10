@@ -84,10 +84,12 @@ install(
 
 Set(Exe_Names
   tpc-run-sim
+  tpc-test-GBT
 )
 
 Set(Exe_Source
   run/runSim.cxx
+  run/testGBT.cxx
 )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.

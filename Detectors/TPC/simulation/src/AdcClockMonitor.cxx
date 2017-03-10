@@ -42,7 +42,7 @@ void AdcClockMonitor::reset()
 
 int AdcClockMonitor::addSequence(char seq)
 {
-  seq = seq & 0xF;
+//  seq = seq & 0xF;
 //  std::cout << "SAMPA " << mSampa << ": " << std::hex << "0x" << std::setw(1) << (int)seq << std::dec << std::endl;
 
   switch(mState) {

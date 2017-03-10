@@ -55,10 +55,10 @@ void SyncPatternMonitor::reset()
 int SyncPatternMonitor::addSequence(char hw0, char hw1, char hw2, char hw3)
 {
   int iLastPosition = mPosition;
-  hw0 %= 0x1F;
-  hw1 %= 0x1F;
-  hw2 %= 0x1F;
-  hw3 %= 0x1F;
+//  hw0 %= 0x1F;
+//  hw1 %= 0x1F;
+//  hw2 %= 0x1F;
+//  hw3 %= 0x1F;
  
 //  std::cout <<  (int)hw0 << " " << (int)hw1 << " " << (int)hw2 << " " << (int)hw3 << std::endl;
   char iCheckPos0, iCheckPos1, iCheckPos2, iCheckPos3;

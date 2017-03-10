@@ -19,6 +19,8 @@ GBTFrame::GBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word
   mWords[2] = word2;
   mWords[1] = word1;
   mWords[0] = word0;
+
+  calculateHalfWords();
 }
 
 GBTFrame::GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
@@ -74,76 +76,66 @@ GBTFrame::GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
       getBit(s2hw0,2), getBit(s2hw1,2), getBit(s2hw2,2), getBit(s2hw3,2) 
       });
 
+  calculateHalfWords();
 }
 
 GBTFrame::GBTFrame(const GBTFrame& other)
   : TObject(other)
-//  , mWords(4)
+  , mWords(other.mWords)
+  , mHalfWords(other.mHalfWords)
 {
-  mWords = other.mWords;
-//  mWords[3] = other.mWords[3];
-//  mWords[2] = other.mWords[2];
-//  mWords[1] = other.mWords[1];
-//  mWords[0] = other.mWords[0];
 }
 
 GBTFrame::~GBTFrame()
 {}
 
-char GBTFrame::getHalfWord(char sampa, char hw, char chan) const
+//char GBTFrame::getHalfWord(char sampa, char halfword, char chan) const
+//{
+////  sampa %= 3;
+////  halfword %= 5;
+////  chan %= 2;
+//
+//  return mHalfWords[sampa][chan][halfword];
+//}
+
+void GBTFrame::calculateHalfWords() 
 {
-  sampa %= 3;
-  hw %= 5;
-  chan %= 2;
 
-  char result = 0;
-  if (sampa == 0 && chan == 0) {
-    switch(hw) {
-      case 0: return combineBitsOfFrame(std::vector<char>{19,15,11,7,3});
-      case 1: return combineBitsOfFrame(std::vector<char>{18,14,10,6,2});
-      case 2: return combineBitsOfFrame(std::vector<char>{17,13, 9,5,1});
-      case 3: return combineBitsOfFrame(std::vector<char>{16,12, 8,4,0});
-    }
-  }
-  if (sampa == 0 && chan == 1) {
-    switch(hw) {
-      case 0: return combineBitsOfFrame(std::vector<char>{39,35,31,27,23});
-      case 1: return combineBitsOfFrame(std::vector<char>{38,34,30,26,22});
-      case 2: return combineBitsOfFrame(std::vector<char>{37,33,29,25,21});
-      case 3: return combineBitsOfFrame(std::vector<char>{36,32,28,24,20});
-    }
-  }
-  if (sampa == 1 && chan == 0) {
-    switch(hw) {
-      case 0: return combineBitsOfFrame(std::vector<char>{63,59,55,51,47});
-      case 1: return combineBitsOfFrame(std::vector<char>{62,58,54,50,46});
-      case 2: return combineBitsOfFrame(std::vector<char>{61,57,53,49,45});
-      case 3: return combineBitsOfFrame(std::vector<char>{60,56,52,48,44});
-    }
-  }
-  if (sampa == 1 && chan == 1) {
-    switch(hw) {
-      case 0: return combineBitsOfFrame(std::vector<char>{83,79,75,71,67});
-      case 1: return combineBitsOfFrame(std::vector<char>{82,78,74,70,66});
-      case 2: return combineBitsOfFrame(std::vector<char>{81,77,73,69,65});
-      case 3: return combineBitsOfFrame(std::vector<char>{80,76,72,68,64});
-    }
-  }
-  if (sampa == 2) {
-    switch(hw) {
-      case 0: return combineBitsOfFrame(std::vector<char>{107,103,99,95,91});
-      case 1: return combineBitsOfFrame(std::vector<char>{106,102,98,94,90});
-      case 2: return combineBitsOfFrame(std::vector<char>{105,101,97,93,89});
-      case 3: return combineBitsOfFrame(std::vector<char>{104,100,96,92,88});
-    }
-  }
+  mHalfWords[0][0][0] = combineBitsOfFrame(19,15,11,7,3);
+  mHalfWords[0][0][1] = combineBitsOfFrame(18,14,10,6,2);
+  mHalfWords[0][0][2] = combineBitsOfFrame(17,13, 9,5,1);
+  mHalfWords[0][0][3] = combineBitsOfFrame(16,12, 8,4,0);
 
-  return 0;
+  mHalfWords[0][1][0] = combineBitsOfFrame(39,35,31,27,23);
+  mHalfWords[0][1][1] = combineBitsOfFrame(38,34,30,26,22);
+  mHalfWords[0][1][2] = combineBitsOfFrame(37,33,29,25,21);
+  mHalfWords[0][1][3] = combineBitsOfFrame(36,32,28,24,20);
+
+  mHalfWords[1][0][0] = combineBitsOfFrame(63,59,55,51,47);
+  mHalfWords[1][0][1] = combineBitsOfFrame(62,58,54,50,46);
+  mHalfWords[1][0][2] = combineBitsOfFrame(61,57,53,49,45);
+  mHalfWords[1][0][3] = combineBitsOfFrame(60,56,52,48,44);
+
+  mHalfWords[1][1][0] = combineBitsOfFrame(83,79,75,71,67);
+  mHalfWords[1][1][1] = combineBitsOfFrame(82,78,74,70,66);
+  mHalfWords[1][1][2] = combineBitsOfFrame(81,77,73,69,65);
+  mHalfWords[1][1][3] = combineBitsOfFrame(80,76,72,68,64);
+
+  mHalfWords[2][0][0] = combineBitsOfFrame(107,103,99,95,91);
+  mHalfWords[2][0][1] = combineBitsOfFrame(106,102,98,94,90);
+  mHalfWords[2][0][2] = combineBitsOfFrame(105,101,97,93,89);
+  mHalfWords[2][0][3] = combineBitsOfFrame(104,100,96,92,88);
+
+  mHalfWords[2][1][0] = mHalfWords[2][0][0];
+  mHalfWords[2][1][1] = mHalfWords[2][0][1];
+  mHalfWords[2][1][2] = mHalfWords[2][0][2];
+  mHalfWords[2][1][3] = mHalfWords[2][0][3];
+
 }
 
 char GBTFrame::getAdcClock(char sampa) const
 {
-  sampa %= 3;
+//  sampa %= 3;
 
   switch (sampa) {
     case 0: return (mWords[1] >> 8) & 0xF;
@@ -172,7 +164,7 @@ std::ostream& GBTFrame::Print(std::ostream& output) const
   return output;
 }
 
-bool GBTFrame::getBit(unsigned word, unsigned lsb) const
+inline bool GBTFrame::getBit(unsigned word, unsigned lsb) const
 {
   return (word >> lsb) & 0x1;
 }
@@ -184,16 +176,26 @@ char GBTFrame::getBits(char word, unsigned width, unsigned lsb) const
 
 unsigned GBTFrame::getBits(unsigned word, unsigned width, unsigned lsb) const
 {
-  return ((width >= 32) ? word : (word >> lsb) & (((1 << width) - 1)));
+//  return ((width >= 32) ? word : (word >> lsb) & (((1 << width) - 1)));
+  return (word >> lsb) & (((1 << width) - 1));
 }
 
-unsigned GBTFrame::combineBitsOfFrame(std::vector<char> bits) const
+inline unsigned int GBTFrame::combineBitsOfFrame(char bit0, char bit1, char bit2, char bit3, char bit4) const
 {
-  unsigned res = 0;
-  for (std::vector<char>::iterator it = bits.begin(); it != bits.end(); it++) {
-    res = (res << 1) + getBits(mWords[(*it)/32],1,*it);
-  }
-  return res;
+//  unsigned res = 0;
+//  for (std::vector<char>::iterator it = bits.begin(); it != bits.end(); it++) {
+//    res <<= 1;
+//    res += getBit(mWords[(*it)/32],(*it)%32);
+//  }
+
+//
+//  ">> 5"      is equivalent to "/ 32"
+//  "& 0x1F"    is equivalent to "% 32"
+  return    ( getBit(mWords[bit0 >> 5],bit0 & 0x1F) << 4 ) |
+            ( getBit(mWords[bit1 >> 5],bit1 & 0x1F) << 3 ) |
+            ( getBit(mWords[bit2 >> 5],bit2 & 0x1F) << 2 ) |
+            ( getBit(mWords[bit3 >> 5],bit3 & 0x1F) << 1 ) |
+            ( getBit(mWords[bit4 >> 5],bit4 & 0x1F) );
 }
 
 unsigned GBTFrame::combineBits(std::vector<bool> bits) const

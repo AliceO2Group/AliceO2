@@ -7,6 +7,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <array>
 #include "TObject.h"
 
 namespace AliceO2 {
@@ -75,7 +76,7 @@ class GBTFrame : public TObject {
     /// @param halfword this half-word of the SAMPA (4 are included in GBT frame)
     /// @param chan which channels, 0 for channel 0-15, 1 for channel 16-31, ignored for SAMPA 2
     /// @return requested half-word
-    char getHalfWord(char sampa, char halfword, char chan = 0) const;
+    char getHalfWord(char sampa, char halfword, char chan = 0) const {return mHalfWords[sampa][chan][halfword];};
 
     /// Get ADC sampling clock of a SAMPA chip (4 time bits)
     /// @param sampa ADC clock of this SAMPA chip (0-2, 3=0, 4=1)
@@ -101,13 +102,19 @@ class GBTFrame : public TObject {
     char getBits(char word, unsigned width, unsigned lsb) const;
     unsigned getBits(unsigned word, unsigned width, unsigned lsb) const;
     unsigned combineBits(std::vector<bool> bits) const;
-    unsigned combineBitsOfFrame(std::vector<char> bits) const;
+    unsigned int combineBitsOfFrame(char bit0, char bit1, char bit2, char bit3, char bit4) const;
+    void calculateHalfWords();
 
     std::vector<unsigned> mWords;
                 // Word 3 of GBT frame contains bits [127: 96], [127:112] are reserved for marker
                 // Word 2 of GBT frame contains bits [ 95: 64]
                 // Word 1 of GBT frame contains bits [ 63: 32]
                 // Word 0 of GBT frame contains bits [ 31:  0]
+                
+    std::array<std::array<std::array<char,  5>, 2>, 3> mHalfWords;
+                //                          halfWord
+                //                              channels (low or high)
+                //                                  sampa
 
   ClassDef(GBTFrame, 1);
 };

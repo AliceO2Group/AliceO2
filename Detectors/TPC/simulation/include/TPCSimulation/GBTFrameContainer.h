@@ -9,9 +9,11 @@
 #include "TPCSimulation/SyncPatternMonitor.h"
 #include "TPCSimulation/Digit.h"
 #include "TPCSimulation/SAMPAData.h"
+#include "TPCBase/Mapper.h" 
 #include <TClonesArray.h>  
 #include <vector>
 #include <deque>
+#include <mutex>
 #include <iterator>
 #include "FairLogger.h"
 
@@ -110,9 +112,9 @@ class GBTFrameContainer {
     /// Extracts the digits after all 32 channel were transmitted
     /// @param digitContainer Digit Container to store the digits in
     /// @return If true, at least one digit was added.
-    bool getDigits(std::vector<Digit> *digitContainer);
+    bool getDigits(std::vector<Digit> *digitContainer, bool removeChannel = true);
 
-    bool getData(std::vector<SAMPAData> *container);
+    bool getData(std::vector<SAMPAData> *container, bool removeChannel = true);
 
     /// Returns a GBT frame
     /// @param index
@@ -167,12 +169,13 @@ class GBTFrameContainer {
     void resetSyncPattern();
     void resetAdcValues();
 
+    std::mutex mtx;
 
     std::vector<GBTFrame> mGBTFrames;               ///< GBT Frames container
     std::vector<AdcClockMonitor> mAdcClock;         ///< ADC clock monitor for the 3 SAMPAs
     std::vector<SyncPatternMonitor> mSyncPattern;   ///< Synchronization pattern monitor for the 3 SAMPAs
     std::vector<int> mPositionForHalfSampa;         ///< Start position of data for all 5 half SAMPAs
-    std::vector<std::deque<int>> mAdcValues;        ///< Vector to buffer the decoded ADC values, one deque per half SAMPA 
+    std::vector<std::deque<int>*> mAdcValues;       ///< Vector to buffer the decoded ADC values, one deque per half SAMPA 
 
     bool mEnableAdcClockWarning;                    ///< enables the ADC clock warnings
     bool mEnableSyncPatternWarning;                 ///< enables the Sync Pattern warnings
