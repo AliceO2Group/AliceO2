@@ -54,13 +54,12 @@ void readDataCont(GBTFrameContainer& container)
 };
 
 
-void test_GBTFrame()
+void test_GBTFrame(std::string infile = "/misc/alidata120/alice_u/sklewin/alice/fifo_data_0")
 {
 
-  std::string file = "/misc/alidata120/alice_u/sklewin/alice/fifo_data_0";
-  std::cout << file << std::endl;
+  std::cout << infile << std::endl;
 
-  std::ifstream fifofile(file);
+  std::ifstream fifofile(infile);
   int word0, word1, word2, word3;
   int c;
   char cc;

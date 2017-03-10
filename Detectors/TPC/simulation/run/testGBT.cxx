@@ -20,7 +20,8 @@ int main(int argc, char *argv[])
   bpo::variables_map vm; 
   bpo::options_description desc("Allowed options");
   desc.add_options()
-    ("help,h", "Produce help message.");
+    ("help,h", "Produce help message.")
+    ("infile,i",    bpo::value<std::string>()->default_value("/misc/alidata120/alice_u/sklewin/alice/fifo_data_0"), "Input data file");
   bpo::store(parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);
 
@@ -31,8 +32,9 @@ int main(int argc, char *argv[])
   }
 
   // Actual "work"
+  std::string infile = vm["infile"].as<std::string>();
 
-  test_GBTFrame();
+  test_GBTFrame(infile);
 
   return EXIT_SUCCESS;
 }
