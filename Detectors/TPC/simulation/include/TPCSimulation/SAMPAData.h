@@ -43,6 +43,8 @@ class SAMPAData {
     std::ostream& Print(std::ostream& output) const;
     friend std::ostream& operator<< (std::ostream& out, const SAMPAData& s) { return s.Print(out); }
 
+    bool operator== (const SAMPAData& rhs) const { return mID == rhs.mID && mData == rhs.mData; };
+
   private:
 
     int mID;                    ///< SMAPA ID on FEC (0-4)

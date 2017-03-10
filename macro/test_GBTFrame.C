@@ -10,11 +10,11 @@ void addData(std::vector<GBTFrame>& data, GBTFrameContainer& container)
   unsigned long count = 0;
   for (std::vector<GBTFrame>::iterator it = data.begin(); it != data.end(); it++){
     container.addGBTFrame(*it);
-    std::cout << *it << std::endl;
+//    std::cout << *it << std::endl;
     ++count;
   }
   mtx.lock();
-  std::cout << "Added " << count << " GBT Frames" << std::endl;
+  std::cout << "Inserted " << count << " GBT Frames" << std::endl;
   mtx.unlock();
 };
 
@@ -28,33 +28,35 @@ void addDataCont(std::vector<GBTFrame>& data, GBTFrameContainer& container)
     }
   }
   mtx.lock();
-  std::cout << "Added " << count << " GBT Frames" << std::endl;
+  std::cout << "Inserted " << count << " GBT Frames" << std::endl;
   mtx.unlock();
 };
 
 void readDataCont(GBTFrameContainer& container)
 {
   std::vector<SAMPAData> data(5);
+  std::vector<SAMPAData> lastData(5);
   unsigned long count = 0;
   while (run_read) {
       std::this_thread::sleep_for(std::chrono::microseconds{10});
     while (container.getData(&data)){
       ++count;
-    }// else {
-    //}
+      if (data == lastData) std::cout << "Same data twice" << std::endl;
+      lastData = data;
+    }
   }
   mtx.lock();
-  std::cout << "Read " << count << " x 5 x 16 (" << count*5*16 << ") values" << std::endl;
+  std::cout << "Read " << count << " x 80 (" << count*80 << ") values" << std::endl;
   std::cout << "last data:" << std::endl;
   for (std::vector<SAMPAData>::iterator it = data.begin(); it != data.end(); ++it) {
     std::cout << *it << std::endl;
   }
-  std::cout << container.getSize() << std::endl;
+  std::cout << container.getSize() << " " << container.getNentries() << std::endl;
   mtx.unlock();
 };
 
 
-void test_GBTFrame(std::string infile = "/misc/alidata120/alice_u/sklewin/alice/fifo_data_0")
+void test_GBTFrame(std::string infile , int time)
 {
 
   std::cout << infile << std::endl;
@@ -65,8 +67,8 @@ void test_GBTFrame(std::string infile = "/misc/alidata120/alice_u/sklewin/alice/
   char cc;
   std::string str;
   std::vector<GBTFrame> fifoFrames;
-              //  counter :  data
-  while (fifofile >> c >> cc >> str) {
+              //     counter    :     data
+  while (fifofile >> c       >> cc >> str) {
     sscanf(str.substr( 2,8).c_str(), "%x", &word3);
     sscanf(str.substr(10,8).c_str(), "%x", &word2);
     sscanf(str.substr(18,8).c_str(), "%x", &word1);
@@ -77,8 +79,8 @@ void test_GBTFrame(std::string infile = "/misc/alidata120/alice_u/sklewin/alice/
   std::vector<GBTFrame> fifoFrames_withSyncPattern(fifoFrames.begin(), fifoFrames.begin()+ 80);
   std::vector<GBTFrame> fifoFrames_justData(fifoFrames.begin()+80, fifoFrames.end());
 
-  GBTFrameContainer container(5000,0,1);
-  GBTFrameContainer container2(5000,1,1);
+  GBTFrameContainer container(0,1);
+  GBTFrameContainer container2(1,1);
   container.setEnableAdcClockWarning(false);
   container2.setEnableAdcClockWarning(false);
 
@@ -90,14 +92,19 @@ void test_GBTFrame(std::string infile = "/misc/alidata120/alice_u/sklewin/alice/
 
   addData(fifoFrames_withSyncPattern,container);
   std::thread t1(addDataCont,std::ref(fifoFrames_justData),std::ref(container));
-//  std::thread t2(readDataCont,std::ref(container));
+  std::thread t2(readDataCont,std::ref(container));
 
-  sleep(1);
+  for (int i = 0; i < time; ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds{100});
+    std::cout << i << " " << container.getNentries() << std::endl;
+  }
+
   run_write = false;
+  sleep(2);
   sleep(2);
   run_read = false;
   t1.join();
-//  t2.join();
+  t2.join();
 
 //  int counter = 0;
 //  for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){

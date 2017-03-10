@@ -10,14 +10,15 @@ GBTFrameContainer::GBTFrameContainer()
 {}
 
 GBTFrameContainer::GBTFrameContainer(int cru, int link)
-  : GBTFrameContainer(1024,cru,link)
+  : GBTFrameContainer(0,cru,link)
 {}
 
 GBTFrameContainer::GBTFrameContainer(int amount, int cru, int link)
-  : mEnableAdcClockWarning(true)
+  : mtx()
+  , mEnableAdcClockWarning(true)
   , mEnableSyncPatternWarning(true)
   , mPositionForHalfSampa(5,-1)
-  , mAdcValues(5,new std::deque<int>)
+  , mAdcValues(5)
   , mCRU(cru)
   , mLink(link)
   , mTimebin(0)
@@ -33,6 +34,10 @@ GBTFrameContainer::GBTFrameContainer(int amount, int cru, int link)
   mSyncPattern.emplace_back(1,0);
   mSyncPattern.emplace_back(1,1);
   mSyncPattern.emplace_back(2,0);
+
+  for (auto &aAdcValues : mAdcValues) {
+    aAdcValues = new std::deque<int>;
+  }
 }
 
 GBTFrameContainer::~GBTFrameContainer()
@@ -108,6 +113,7 @@ void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
 
   int iOldPosition = searchSyncPattern(iFrame);
 
+  mtx.lock();
   for (auto it = mPositionForHalfSampa.begin(); it != mPositionForHalfSampa.end(); it++) {
     int iPosition = *it;
     if (iPosition != -1) {
@@ -156,10 +162,8 @@ void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
             LOG(ERROR) << "Position " << iPosition << " not known." << FairLogger::endl;
             return;
         }
-        mtx.lock();
         mAdcValues[iHalfSampa]->push_back(value1);
         mAdcValues[iHalfSampa]->push_back(value2);
-        mtx.unlock();
 
 //      std::cout << iHalfSampa << " " << std::hex
 //         << "0x" << std::setfill('0') << std::setw(3) << *(mAdcValues[iHalfSampa].rbegin()+1) << " "
@@ -167,6 +171,7 @@ void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
       }
     }
   }
+  mtx.unlock();
 }
 
 void GBTFrameContainer::checkAdcClock(std::vector<GBTFrame>::iterator iFrame)
@@ -316,7 +321,9 @@ bool GBTFrameContainer::getData(std::vector<SAMPAData>* container, bool removeCh
     for (int iChannel = 0; iChannel < 16; ++iChannel)
     {
       iData[iHalfSampa].push_back(mAdcValues[iHalfSampa]->at(position));
-      if (removeChannel) mAdcValues[iHalfSampa]->pop_front();
+      if (removeChannel) {
+        mAdcValues[iHalfSampa]->pop_front();
+      }
       else ++position;
     }
   }
@@ -336,7 +343,7 @@ bool GBTFrameContainer::getData(std::vector<SAMPAData>* container, bool removeCh
         2 :
         (mCRU%2) ? iHalfSampa/2+3 : iHalfSampa/2;
 
-    std::cout << iHalfSampa << " " << iData[iHalfSampa].size() << " " << mAdcValues[iHalfSampa]->size() << std::endl;
+//    std::cout << iHalfSampa << " " << iData[iHalfSampa].size() << " " << mAdcValues[iHalfSampa]->size() << std::endl;
     for (std::vector<int>::iterator it = iData[iHalfSampa].begin(); it != iData[iHalfSampa].end(); ++it)
     {
       container->at(iSampa).setChannel(iSampaChannel,*it);
@@ -378,19 +385,19 @@ void GBTFrameContainer::resetSyncPattern()
 void GBTFrameContainer::resetAdcValues()
 {
   mtx.lock();
-  std::cout << "resetting ";
   for (std::vector<std::deque<int>*>::iterator it = mAdcValues.begin(); it != mAdcValues.end(); ++it) {
     (*it)->clear();
   }
-  std::cout << "done" << std::endl;
   mtx.unlock();
 }
 
 int GBTFrameContainer::getNentries() 
 {
   int counter = 0;
-  for (auto &aGBTFrame : mGBTFrames) {
-    ++counter;
+  mtx.lock();
+  for (auto &aAdcValues : mAdcValues) {
+    counter += aAdcValues->size();
   }
+  mtx.unlock();
   return counter;
 }

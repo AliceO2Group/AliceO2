@@ -21,7 +21,8 @@ int main(int argc, char *argv[])
   bpo::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "Produce help message.")
-    ("infile,i",    bpo::value<std::string>()->default_value("/misc/alidata120/alice_u/sklewin/alice/fifo_data_0"), "Input data file");
+    ("infile,i",    bpo::value<std::string>()->default_value("/misc/alidata120/alice_u/sklewin/alice/fifo_data_0"), "Input data file")
+    ("time,t",      bpo::value<int>()->default_value(100), "time to simulate");
   bpo::store(parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);
 
@@ -33,8 +34,9 @@ int main(int argc, char *argv[])
 
   // Actual "work"
   std::string infile = vm["infile"].as<std::string>();
+  int time = vm["time"].as<int>();
 
-  test_GBTFrame(infile);
+  test_GBTFrame(infile,time);
 
   return EXIT_SUCCESS;
 }
