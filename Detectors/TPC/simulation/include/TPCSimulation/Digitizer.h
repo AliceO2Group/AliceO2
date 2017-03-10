@@ -114,14 +114,6 @@ float Digitizer::getTime(float zPos) const
   return time;
 }
 
-inline
-void Digitizer::getPadResponse(float xabs, float yabs, std::vector<PadResponse> &response)
-{
-  response.resize(0);
-  /// @todo include actual response, this is now only for a signal on the central pad (0, 0) with weight 1.
-  response.emplace_back(0, 0, 1);
-}
-
 }
 }
 

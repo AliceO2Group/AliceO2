@@ -67,6 +67,11 @@ set(BUCKET_NAME tpc_simulation_bucket)
 
 O2_GENERATE_LIBRARY()
 
+install(
+  DIRECTORY files
+  DESTINATION share/Detectors/TPC/
+)
+
 Set(Exe_Names
   tpc-run-sim
 )
@@ -99,6 +104,7 @@ endforeach (_file RANGE 0 ${_length})
 set(TEST_SRCS
    test/testTPCGEMAmplification.cxx
    test/testTPCElectronTransport.cxx
+   test/testTPCSAMPAProcessing.cxx
 )
 
 O2_GENERATE_TESTS(
