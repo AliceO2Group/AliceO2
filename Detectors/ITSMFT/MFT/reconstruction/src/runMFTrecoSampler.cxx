@@ -1,6 +1,6 @@
 #include "runFairMQDevice.h"
 
-#include "MFTBase/EventHeader.h"
+#include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/FindHits.h"
 #include "MFTReconstruction/devices/Sampler.h"
 

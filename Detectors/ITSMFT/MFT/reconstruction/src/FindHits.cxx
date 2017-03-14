@@ -4,7 +4,8 @@
 /// \date 10/10/2016
 
 #include "MFTBase/Constants.h"
-#include "MFTBase/EventHeader.h"
+#include "MFTBase/Geometry.h"
+#include "MFTSimulation/EventHeader.h"
 #include "MFTSimulation/Point.h"
 #include "MFTReconstruction/Hit.h"
 #include "MFTReconstruction/FindHits.h"
@@ -112,8 +113,8 @@ void FindHits::Exec(Option_t* /*opt*/)
   AliceO2::MFT::Point *point;
   TVector3 pos, dpos;
   Int_t detID, trackID;
-  Double_t dx = Constants::kXPixelPitch/TMath::Sqrt(12);
-  Double_t dy = Constants::kYPixelPitch/TMath::Sqrt(12);
+  Double_t dx = Geometry::kXPixelPitch/TMath::Sqrt(12);
+  Double_t dy = Geometry::kYPixelPitch/TMath::Sqrt(12);
   Double_t dz = 0.;
 
   // Loop over fPoints

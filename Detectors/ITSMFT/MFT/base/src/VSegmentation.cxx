@@ -2,7 +2,7 @@
 /// \brief Abstract base class for MFT Segmentation description
 /// \author Raphael Tieulent <raphael.tieulent@cern.ch>
 
-#include "MFTSimulation/VSegmentation.h"
+#include "MFTBase/VSegmentation.h"
 
 using namespace AliceO2::MFT;
 

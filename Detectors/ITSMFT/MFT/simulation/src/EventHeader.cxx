@@ -1,4 +1,4 @@
-#include "MFTBase/EventHeader.h"
+#include "MFTSimulation/EventHeader.h"
 
 using namespace AliceO2::MFT;
 

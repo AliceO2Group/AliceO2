@@ -15,7 +15,7 @@
 #include "FairLogger.h"
 
 #include "MFTBase/Constants.h"
-#include "MFTSimulation/Plane.h"
+#include "MFTBase/Plane.h"
 
 using namespace AliceO2::MFT;
 

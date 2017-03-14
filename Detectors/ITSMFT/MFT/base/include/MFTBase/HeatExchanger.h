@@ -10,8 +10,6 @@
 #include "TGeoVolume.h"
 #include "TGeoMatrix.h"
 
-namespace AliceO2 { namespace MFT { class Constants; } }
-
 namespace AliceO2 {
 namespace MFT {
 
@@ -31,6 +29,7 @@ class HeatExchanger : public TNamed {
   void CreateHalfDisk2(Int_t half);
   void CreateHalfDisk3(Int_t half);
   void CreateHalfDisk4(Int_t half);
+  void CreateManyfold(Int_t disk);
 
   Double_t GetWaterRadius() { return fRWater; }
   void SetWaterRadius(Double_t &Rwater) { fRWater = Rwater; }
@@ -52,18 +51,16 @@ class HeatExchanger : public TNamed {
 
  private:
 
-  enum EMedia{kAir, kSi, kReadout, kSupport, kCarbon, kAlu, kWater, kSiO2, kInox, kPEEK, kFR4, kCu, kRohacell};  // media IDs used in CreateMaterials
+  void InitParameters();
+
+  const static Int_t fNMaxDisks;
 
   enum {kBottom, kTop, kNHalves};
-
-  Int_t fNMaxDisks;
 
   TGeoVolumeAssembly *fHalfDisk;
   
   TGeoRotation ***fHalfDiskRotation;
   TGeoCombiTrans ***fHalfDiskTransformation;
-
-  void InitParameters();
 
   Double_t fRWater;  // Radius of the water 
   Double_t fDRPipe;  // Thickness of the pipe
@@ -74,6 +71,7 @@ class HeatExchanger : public TNamed {
   Double_t fRohacellThickness;
 
   //Parameters for carbon and Rohacell
+  Int_t fNDisks;  //number of planes
   Int_t fnPart[5]; //number of part of each half-disk
   Double_t fRMin[5]; // radius of the central hole of each disk
   Double_t fZPlan[5]; //position on z axis of each plane
@@ -111,7 +109,7 @@ class HeatExchanger : public TNamed {
   Double_t fradius4fifth[4]; // radius of torus for fifth pipe of disk 4
 
   /// \cond CLASSIMP
-  ClassDef(HeatExchanger, 1);
+  ClassDef(HeatExchanger, 2);
   /// \endcond
 
 };

@@ -8,8 +8,8 @@
 
 #include "TClonesArray.h"
 
-#include "MFTSimulation/VSegmentation.h"
-#include "MFTSimulation/ChipSegmentation.h"
+#include "MFTBase/VSegmentation.h"
+#include "MFTBase/ChipSegmentation.h"
 
 namespace AliceO2 {
 namespace MFT {

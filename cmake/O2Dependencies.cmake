@@ -592,20 +592,22 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    mft_base_bucket
+    mft_simulation_bucket
 
     DEPENDENCIES
     ParBase
+    MFTBase
     DetectorsBase
+    SimulationDataFormat
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
-    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
 )
 
 o2_define_bucket(
     NAME
-    mft_simulation_bucket
+    mft_base_bucket
 
     DEPENDENCIES
     root_base_bucket
@@ -618,12 +620,10 @@ o2_define_bucket(
     fairroot_base_bucket
     root_physics_bucket
     ParBase
-    MFTBase
     DetectorsBase
-    SimulationDataFormat
 
     INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${FAIRROOT_INCLUDE_DIR}
 )
 
 o2_define_bucket(

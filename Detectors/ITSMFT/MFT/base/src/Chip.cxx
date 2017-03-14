@@ -6,9 +6,9 @@
 #include "TGeoBBox.h"
 
 #include "MFTBase/Constants.h"
-#include "MFTSimulation/LadderSegmentation.h"
-#include "MFTSimulation/ChipSegmentation.h"
-#include "MFTSimulation/Chip.h"
+#include "MFTBase/LadderSegmentation.h"
+#include "MFTBase/ChipSegmentation.h"
+#include "MFTBase/Chip.h"
 
 using namespace AliceO2::MFT;
 

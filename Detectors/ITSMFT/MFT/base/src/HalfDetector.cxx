@@ -6,11 +6,11 @@
 
 #include "FairLogger.h"
 
-#include "MFTSimulation/HalfDiskSegmentation.h"
-#include "MFTSimulation/HalfSegmentation.h"
-#include "MFTSimulation/HalfDisk.h"
-#include "MFTSimulation/Geometry.h"
-#include "MFTSimulation/HalfDetector.h"
+#include "MFTBase/HalfDiskSegmentation.h"
+#include "MFTBase/HalfSegmentation.h"
+#include "MFTBase/HalfDisk.h"
+#include "MFTBase/Geometry.h"
+#include "MFTBase/HalfDetector.h"
 
 using namespace AliceO2::MFT;
 
@@ -42,9 +42,8 @@ fSegmentation(seg)
   
   SetUniqueID(fSegmentation->GetUniqueID());
   
-  SetName(Form("MFT_H_%d",mftGeom->GetHalfID(GetUniqueID())));
-  
-  
+  SetName(Form("MFT_H_%d",mftGeom->GetHalfMFTID(GetUniqueID())));
+    
   Info("HalfDetector",Form("Creating : %s ",GetName()),0,0);
 
   fHalfVolume = new TGeoVolumeAssembly(GetName());

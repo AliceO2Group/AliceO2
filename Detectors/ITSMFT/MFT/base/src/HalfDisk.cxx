@@ -8,12 +8,12 @@
 
 #include "FairLogger.h"
 
-#include "MFTSimulation/HalfDiskSegmentation.h"
-#include "MFTSimulation/Ladder.h"
-#include "MFTSimulation/HalfDisk.h"
-#include "MFTSimulation/Geometry.h"
-#include "MFTSimulation/HeatExchanger.h"
-#include "MFTSimulation/Support.h"
+#include "MFTBase/HalfDiskSegmentation.h"
+#include "MFTBase/Ladder.h"
+#include "MFTBase/HalfDisk.h"
+#include "MFTBase/Geometry.h"
+#include "MFTBase/HeatExchanger.h"
+#include "MFTBase/Support.h"
 
 using namespace AliceO2::MFT;
 
@@ -44,27 +44,24 @@ HalfDisk::HalfDisk(HalfDiskSegmentation *segmentation):TNamed(segmentation->GetN
 {
   Geometry * mftGeom = Geometry::Instance();
   SetUniqueID(fSegmentation->GetUniqueID());
-//  Int_t halfDiskID = mftGeom->GetHalfDiskID(GetUniqueID());
-//  SetName(Form("D%d",halfDiskID));
 
   LOG(DEBUG1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName()) << FairLogger::endl;
 
   fHalfDiskVolume = new TGeoVolumeAssembly(GetName());
   
   // Building MFT Support and PCBs
-  
+  /*  
   fSupport = new Support();
-  TGeoVolumeAssembly * mftSupport = fSupport->CreateVolume(mftGeom->GetHalfID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()));
-  // BV: is empty!
-  //fHalfDiskVolume->AddNode(mftSupport,1);
-  
+  TGeoVolumeAssembly * mftSupport = fSupport->CreateVolume(mftGeom->GetHalfMFTID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()));  
+  fHalfDiskVolume->AddNode(mftSupport,1);
+  */
   // Building Heat Exchanger Between faces
   TGeoVolumeAssembly * heatExchangerVol = CreateHeatExchanger();
   fHalfDiskVolume->AddNode(heatExchangerVol,1);
-	
+  	
   // Building Front Face of the Half Disk
   CreateLadders();
-
+  
 }
 
 //_____________________________________________________________________________
@@ -86,7 +83,7 @@ TGeoVolumeAssembly * HalfDisk::CreateHeatExchanger()
 
   fHeatExchanger = new HeatExchanger();
   
-  TGeoVolumeAssembly * vol = fHeatExchanger->Create(mftGeom->GetHalfID(GetUniqueID()), mftGeom->GetHalfDiskID(GetUniqueID()));
+  TGeoVolumeAssembly * vol = fHeatExchanger->Create(mftGeom->GetHalfMFTID(GetUniqueID()), mftGeom->GetHalfDiskID(GetUniqueID()));
   
   return vol;
   

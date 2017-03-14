@@ -13,8 +13,8 @@
 #include "FairLogger.h"
 
 #include "MFTBase/Constants.h"
-#include "MFTSimulation/HeatExchanger.h"
-#include "MFTSimulation/Geometry.h"
+#include "MFTBase/HeatExchanger.h"
+#include "MFTBase/Geometry.h"
 
 using namespace AliceO2::MFT;
 
@@ -22,18 +22,16 @@ using namespace AliceO2::MFT;
 ClassImp(AliceO2::MFT::HeatExchanger)
 /// \endcond
 
-const Int_t fNMaxDisks = Constants::fNMaxPlanes;
-
 //_____________________________________________________________________________
 HeatExchanger::HeatExchanger() : 
 TNamed(),
-fNMaxDisks(Constants::kNDisks),
 fHalfDisk(NULL),
+fHalfDiskRotation(NULL),
 fHalfDiskTransformation(NULL),
-fRWater(0.1/2.),
-fDRPipe(0.005),
-fHeatExchangerThickness(1.4),
-fCarbonThickness(0.0290/2.),
+fRWater(0.),
+fDRPipe(0.),
+fHeatExchangerThickness(0.),
+fCarbonThickness(0.),
 fHalfDiskGap(0.),
 fRohacellThickness(0.),
 fnPart(),
@@ -63,9 +61,11 @@ fangle4fifth(),
 fradius4fifth()
 {
 
-  //fHeatExchangerThickness = 1.618; // to get a 13.4 mm thickness for the rohacell... don't implement this value yet! overlapping issue!
-  //fHeatExchangerThickness = 1.4; // initial value
-  //fCarbonThickness = (0.0290)/2.;  // total thickness of the carbon plate
+  fRWater = 0.1/2.;
+  fDRPipe = 0.005;
+  //fHeatExchangerThickness = 1.398; // to get a 13.4 mm thickness for the rohacell... but the water pipes are not inside it, then its density must be increased
+  fHeatExchangerThickness = 1.4 + 2*Geometry::kRohacell; // kRohacell is used to link the rohacell thickness and the ladder positionning
+  fCarbonThickness = (0.0290)/2.;  // half thickness of the carbon plate
 
   InitParameters();
 
@@ -77,8 +77,8 @@ HeatExchanger::HeatExchanger(Double_t rWater,
 			     Double_t heatExchangerThickness,
 			     Double_t carbonThickness) : 
 TNamed(), 
-fNMaxDisks(Constants::kNDisks),
 fHalfDisk(NULL),
+fHalfDiskRotation(NULL),
 fHalfDiskTransformation(NULL),
 fRWater(rWater),
 fDRPipe(dRPipe),
@@ -121,7 +121,7 @@ fradius4fifth()
 TGeoVolumeAssembly* HeatExchanger::Create(Int_t half, Int_t disk) 
 {
 	
-  //Info("Create",Form("Creating HeatExchanger_%d_%d", disk, half),0,0);
+  Info("Create",Form("Creating HeatExchanger_%d_%d", disk, half),0,0);
   
   fHalfDisk = new TGeoVolumeAssembly(Form("HeatExchanger_%d_%d", disk, half));
     switch (disk) {
@@ -137,8 +137,55 @@ TGeoVolumeAssembly* HeatExchanger::Create(Int_t half, Int_t disk)
         break;
     }
   
+  Info("Create",Form("... done HeatExchanger_%d_%d", disk, half),0,0);
+  
   return fHalfDisk;
   
+}
+
+//_____________________________________________________________________________
+void HeatExchanger::CreateManyfold(Int_t disk)
+{
+
+  TGeoCombiTrans  *transformation1 = 0;
+  TGeoCombiTrans  *transformation2 = 0;
+  TGeoRotation    *rotation       = 0;
+  TGeoCombiTrans  *transformation = 0;
+
+  // **************************************** Manyfolds right and left, fm  ****************************************
+  
+  Double_t deltay = 0.2;  // shift respect to the median plan of the MFT
+  Double_t mfX = 2.2;     // width
+  Double_t mfY = 6.8;     // height
+  Double_t mfZ = 1.7;     // thickness
+  Double_t fShift=0;
+  if(disk==3 || disk==4)fShift=0.015; // to avoid overlap with the 2 curved water pipes on the 2 upstream chambers
+
+  TGeoMedium *kMedPeek    = gGeoManager->GetMedium("MFT_PEEK$");
+  
+  TGeoBBox *boxmanyfold = new TGeoBBox("boxmanyfold", mfX/2, mfY/2, mfZ/2);
+  TGeoBBox *remove = new TGeoBBox("remove", 0.45/2 + Geometry::kEpsilon, mfY/2 + Geometry::kEpsilon, 0.6/2 + Geometry::kEpsilon);
+  TGeoTranslation *tL= new TGeoTranslation ("tL", mfX/2-0.45/2, 0., -mfZ/2+0.6/2);
+  TGeoSubtraction *boxManyFold = new TGeoSubtraction(boxmanyfold, remove, NULL, tL);
+  TGeoCompositeShape *BoxManyFold = new TGeoCompositeShape("BoxManyFold", boxManyFold);
+
+  TGeoTranslation *tR= new TGeoTranslation ("tR", -mfX/2+0.45/2, 0., -mfZ/2+0.6/2);
+  TGeoSubtraction *boxManyFold1 = new TGeoSubtraction(BoxManyFold, remove, NULL, tR);
+  TGeoCompositeShape *BoxManyFold1 = new TGeoCompositeShape("BoxManyFold1", boxManyFold1);
+
+  TGeoVolume *MF01 = new TGeoVolume(Form("MF%d1",disk), BoxManyFold1, kMedPeek);
+
+  rotation = new TGeoRotation ("rotation", 90., 90., 90.);
+  transformation1 = new TGeoCombiTrans(fSupportXDimensions[disk][0]/2+mfZ/2+fShift, mfY/2+deltay, fZPlan[disk], rotation);
+
+  fHalfDisk->AddNode(MF01, 1, transformation1);
+    
+  TGeoVolume *MF02 = new TGeoVolume(Form("MF%d2",disk), BoxManyFold1, kMedPeek);
+  transformation2 = new TGeoCombiTrans(fSupportXDimensions[disk][0]/2+mfZ/2+fShift, -mfY/2-deltay, fZPlan[disk], rotation);
+
+  fHalfDisk->AddNode(MF02, 1, transformation2);
+    
+  // ********************************************************************************************************
 }
 
 //_____________________________________________________________________________
@@ -401,41 +448,7 @@ void HeatExchanger::CreateHalfDisk0(Int_t half) {
     fHalfDisk->AddNode(rohacellPlate, 1, transformation);
 //  }
  
-
-
-    // **************************************** Manyfolds right and left, fm  ****************************************
-    /*
-    Double_t deltay = 0.2;     // ecart par rapport au plan median du MFT
-    Double_t mfX = 2.2; // largeur
-    Double_t mfY = 6.8; // hauteur
-    Double_t mfZ = 1.7; // epaisseur
-
-    TGeoMedium *kMedPeek    = gGeoManager->GetMedium("MFT_PEEK$");
-
-
-    TGeoBBox *boxmanyfold = new TGeoBBox("boxmanyfold", mfX/2, mfY/2, mfZ/2);
-    TGeoBBox *remove = new TGeoBBox("remove", 0.45/2 + Constants::kEpsilon, mfY/2 + Constants::kEpsilon, 0.6/2 + Constants::kEpsilon);
-    TGeoTranslation *tL= new TGeoTranslation ("tL", mfX/2-0.45/2, 0., -mfZ/2+0.6/2);
-    TGeoSubtraction *boxManyFold = new TGeoSubtraction(boxmanyfold, remove, NULL, tL);
-    TGeoCompositeShape *BoxManyFold = new TGeoCompositeShape("BoxManyFold", boxManyFold);
-
-    TGeoTranslation *tR= new TGeoTranslation ("tR", -mfX/2+0.45/2, 0., -mfZ/2+0.6/2);
-    TGeoSubtraction *boxManyFold1 = new TGeoSubtraction(BoxManyFold, remove, NULL, tR);
-    TGeoCompositeShape *BoxManyFold1 = new TGeoCompositeShape("BoxManyFold1", boxManyFold1);
-
-    TGeoVolume *MF1 = new TGeoVolume("MF1", BoxManyFold1, kMedPeek);
-
-    rotation = new TGeoRotation ("rotation", 90., 90., 90.);
-    transformation1 = new TGeoCombiTrans(fSupportXDimensions[disk][0]/2+mfZ/2, mfY/2+deltay, fZPlan[disk], rotation);
-
-    fHalfDisk->AddNode(MF1, 1, transformation1);
-    
-    TGeoVolume *MF2 = new TGeoVolume("MF2", BoxManyFold1, kMedPeek);
-    transformation2 = new TGeoCombiTrans(fSupportXDimensions[disk][0]/2+mfZ/2, -mfY/2-deltay, fZPlan[disk], rotation);
-
-    fHalfDisk->AddNode(MF2, 1, transformation2);
-    */
-    // ********************************************************************************************************
+    CreateManyfold(disk);
  
 }
 
@@ -1856,11 +1869,12 @@ void HeatExchanger::CreateHalfDisk4(Int_t half) {
 }
 
 //_____________________________________________________________________________
-void HeatExchanger::InitParameters() {
+void HeatExchanger::InitParameters() 
+{
   
-  fHalfDiskRotation = new TGeoRotation**[fNMaxDisks];
-  fHalfDiskTransformation = new TGeoCombiTrans**[fNMaxDisks];
-  for (Int_t idisk = 0; idisk < fNMaxDisks; idisk++) {
+  fHalfDiskRotation = new TGeoRotation**[Geometry::kNDisks];
+  fHalfDiskTransformation = new TGeoCombiTrans**[Geometry::kNDisks];
+  for (Int_t idisk = 0; idisk < Geometry::kNDisks; idisk++) {
     fHalfDiskRotation[idisk] = new TGeoRotation*[kNHalves];
     fHalfDiskTransformation[idisk] = new TGeoCombiTrans*[kNHalves];
     for (Int_t ihalf = 0; ihalf < kNHalves; ihalf++) {
@@ -1868,14 +1882,7 @@ void HeatExchanger::InitParameters() {
       fHalfDiskTransformation[idisk][ihalf] = new TGeoCombiTrans(Form("transformation%d%d", idisk, ihalf), 0., 0., 0., fHalfDiskRotation[idisk][ihalf]);
     }
   } 
-  /*
-  for (Int_t idisk = 0; idisk < fNMaxDisks; idisk++) {
-    for (Int_t ihalf = 0; ihalf < kNHalves; ihalf++) {
-      fHalfDiskRotation[idisk][ihalf] = new TGeoRotation(Form("rotation%d%d", idisk, ihalf), 0., 0., 0.);
-      fHalfDiskTransformation[idisk][ihalf] = new TGeoCombiTrans(Form("transformation%d%d", idisk, ihalf), 0., 0., 0., fHalfDiskRotation[idisk][ihalf]);
-    }
-  }
-  */
+
   fRohacellThickness = fHeatExchangerThickness/2. - 2.*fCarbonThickness - 2*(fRWater + fDRPipe);//thickness of Rohacell plate over 2
   printf("Rohacell thickness %f \n",fRohacellThickness);
   
@@ -1905,10 +1912,10 @@ void HeatExchanger::InitParameters() {
   fZPlan[3] = 0;
   fZPlan[4] = 0;
     
-  fSupportXDimensions= new Double_t*[Constants::kNDisks];
-  fSupportYDimensions= new Double_t*[Constants::kNDisks];
+  fSupportXDimensions= new Double_t*[Geometry::kNDisks];
+  fSupportYDimensions= new Double_t*[Geometry::kNDisks];
   
-  for(Int_t i = 0; i < Constants::kNDisks; i++) {
+  for(Int_t i = 0; i < Geometry::kNDisks; i++) {
     fSupportXDimensions[i]= new double[fnPart[i]];
     fSupportYDimensions[i]= new double[fnPart[i]];
   }

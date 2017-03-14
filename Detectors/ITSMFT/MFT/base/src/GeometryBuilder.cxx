@@ -3,12 +3,13 @@
 /// \author Raphael Tieulent <raphael.tieulent@cern.ch>
 
 #include "MFTBase/Constants.h"
-#include "MFTSimulation/Geometry.h"
-#include "MFTSimulation/GeometryTGeo.h"
-#include "MFTSimulation/GeometryBuilder.h"
-#include "MFTSimulation/Segmentation.h"
-#include "MFTSimulation/HalfSegmentation.h"
-#include "MFTSimulation/HalfDetector.h"
+#include "MFTBase/Geometry.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "MFTBase/GeometryBuilder.h"
+#include "MFTBase/Segmentation.h"
+#include "MFTBase/HalfSegmentation.h"
+#include "MFTBase/HalfDetector.h"
+#include "MFTBase/HalfCone.h"
 
 #include "TGeoVolume.h"
 #include "TGeoManager.h"
@@ -44,12 +45,10 @@ void GeometryBuilder::BuildGeometry()
 
   LOG(INFO) << "GeometryBuilder::BuildGeometry volume name = " << GeometryTGeo::GetVolumeName() << FairLogger::endl;
 
- TGeoVolume *vALIC = gGeoManager->GetVolume("cave");
+  TGeoVolume *vALIC = gGeoManager->GetVolume("cave");
   if (!vALIC) {
     LOG(FATAL) << "Could not find the top volume" << FairLogger::endl;
   }
-
-  vALIC->AddNode(volMFT,0);
 
   Info("BuildGeometry",Form("gGeoManager name is %s title is %s \n",gGeoManager->GetName(),gGeoManager->GetTitle()),0,0);
 
@@ -62,5 +61,15 @@ void GeometryBuilder::BuildGeometry()
     delete halfMFT;
   }
 
- }
+  /// \todo Add the service, Barrel, etc Those objects will probably be defined into the COMMON ITSMFT area.
+  
+  HalfCone * halfCone = new HalfCone();
+  TGeoVolumeAssembly * halfCone1 = halfCone->CreateHalfCone(0);
+  TGeoVolumeAssembly * halfCone2 = halfCone->CreateHalfCone(1);
+  volMFT->AddNode(halfCone1,1);
+  volMFT->AddNode(halfCone2,1);
+  
+  vALIC->AddNode(volMFT,0);
+
+}
 
