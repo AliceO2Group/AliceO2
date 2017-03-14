@@ -453,7 +453,6 @@ void GBTFrameContainer::overwriteAdcClock(int sampa, int phase)
   unsigned shift = 28;
   for (std::deque<GBTFrame>::iterator it = mGBTFrames.begin(); it != mGBTFrames.end(); ++it) {
     it->setAdcClock(sampa,clock >> shift);
-    std::cout << shift << " " << /*std::hex << std::setfill('0') << std::setw(8) <<*/ (clock>>shift) << std::dec << std::endl;
     shift = (shift - 4) % 32;
   }
 }
