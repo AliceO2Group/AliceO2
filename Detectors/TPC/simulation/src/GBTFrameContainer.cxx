@@ -13,17 +13,19 @@ GBTFrameContainer::GBTFrameContainer(int cru, int link)
   : GBTFrameContainer(0,cru,link)
 {}
 
-GBTFrameContainer::GBTFrameContainer(int amount, int cru, int link)
+GBTFrameContainer::GBTFrameContainer(int size, int cru, int link)
   : mtx()
   , mEnableAdcClockWarning(true)
   , mEnableSyncPatternWarning(true)
+  , mEnableStoreGBTFrames(true)
   , mPositionForHalfSampa(5,-1)
+  , mGBTFrames(size)
   , mAdcValues(5)
   , mCRU(cru)
   , mLink(link)
   , mTimebin(0)
 {
-  mGBTFrames.reserve(amount);
+//  mGBTFrames.reserve(amount);
 
   for (int i = 0; i < 3; ++i){
     mAdcClock.emplace_back(i);
@@ -48,12 +50,19 @@ void GBTFrameContainer::addGBTFrame(GBTFrame& frame)
 {
   mGBTFrames.emplace_back(frame);
   processFrame(mGBTFrames.end()-1);
+
+  if (!mEnableStoreGBTFrames) {
+    if (mGBTFrames.size() > 2) mGBTFrames.pop_front();
+  }
 }
 
 void GBTFrameContainer::addGBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
 {
   mGBTFrames.emplace_back(word3, word2, word1, word0);
   processFrame(mGBTFrames.end()-1);
+  if (!mEnableStoreGBTFrames) {
+    if (mGBTFrames.size() > 2) mGBTFrames.pop_front();
+  }
 }
 
 void GBTFrameContainer::addGBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
@@ -67,17 +76,58 @@ void GBTFrameContainer::addGBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char 
                           s1hw0l, s1hw1l, s1hw2l, s1hw3l, s1hw0h, s1hw1h, s1hw2h, s1hw3h,
                           s2hw0, s2hw1, s2hw2, s2hw3, s0adc, s1adc, s2adc, marker);
   processFrame(mGBTFrames.end()-1);
-}
-
-
-void GBTFrameContainer::fillOutputContainer(TClonesArray* output)
-{
-
-  TClonesArray &clref = *output;
-  for (auto &aGBTFrame : mGBTFrames) {
-    new(clref[clref.GetEntriesFast()]) GBTFrame(aGBTFrame);
+  if (!mEnableStoreGBTFrames) {
+    if (mGBTFrames.size() > 2) mGBTFrames.pop_front();
   }
 }
+
+void GBTFrameContainer::addGBTFramesFromFile(std::string fileName)
+{
+  std::cout << "Reading from file " << fileName << std::endl;
+  std::ifstream file(fileName);
+
+  if (!file.is_open()) {
+    LOG(ERROR) << "Can't read file " << fileName << FairLogger::endl;
+    return;
+  }
+
+  /* Expected format in file is
+   *
+   * decimal-counter : hex-GBTframe
+   * e.g.
+   *
+   * ...
+   *  0016 : 0x00000da2d80702e17aaeb0f0052faaa5
+   *  0017 : 0x0000078a7805825272261050870502f0
+   *  0018 : 0x000007207a0722e1da0bc0520f0582da
+   * ...
+   * 
+   */
+
+  int counter;
+  char colon;
+  std::string frameString;
+  int word0, word1, word2, word3;
+
+  while (file >> counter >> colon >> frameString) {
+    sscanf(frameString.substr( 2,8).c_str(), "%x", &word3);
+    sscanf(frameString.substr(10,8).c_str(), "%x", &word2);
+    sscanf(frameString.substr(18,8).c_str(), "%x", &word1);
+    sscanf(frameString.substr(26,8).c_str(), "%x", &word0);
+
+    addGBTFrame(word3,word2,word1,word0);
+  }
+}
+
+
+//void GBTFrameContainer::fillOutputContainer(TClonesArray* output)
+//{
+//
+//  TClonesArray &clref = *output;
+//  for (auto &aGBTFrame : mGBTFrames) {
+//    new(clref[clref.GetEntriesFast()]) GBTFrame(aGBTFrame);
+//  }
+//}
 
 void GBTFrameContainer::reProcessAllFrames()
 {
@@ -107,7 +157,7 @@ void GBTFrameContainer::processAllFrames()
 
 }
 
-void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
+void GBTFrameContainer::processFrame(std::deque<GBTFrame>::iterator iFrame)
 {
   checkAdcClock(iFrame);
 
@@ -119,78 +169,73 @@ void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
     if (iPosition != -1) {
       int iHalfSampa = std::distance(mPositionForHalfSampa.begin(),it);
       if (iOldPosition != -1) {
-        int value1;
-        int value2;
         switch(iPosition) {
           case 0:
-            value1 = 
+            mAdcValues[iHalfSampa]->emplace_back(
                 (int)(iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) +
-                (int)iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
-            value2 = 
+                (int)iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2));
+            mAdcValues[iHalfSampa]->emplace_back(
                 (int)(iFrame->getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) + 
-                (int)iFrame->getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
+                (int)iFrame->getHalfWord(iHalfSampa/2,2,iHalfSampa%2));
             break;
   
           case 1:
-            value1 = 
+            mAdcValues[iHalfSampa]->emplace_back(
                 (int)((iFrame-1)->getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) +
-                (int)(iFrame-1)->getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
-            value2 = 
+                (int)(iFrame-1)->getHalfWord(iHalfSampa/2,1,iHalfSampa%2));
+            mAdcValues[iHalfSampa]->emplace_back(
                 (int)(iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) +
-                (int)(iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
+                (int)(iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2));
             break;
   
           case 2:
-            value1 = 
+            mAdcValues[iHalfSampa]->emplace_back(
                 (int)((iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) +
-                (int)(iFrame-1)->getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
-            value2 = 
+                (int)(iFrame-1)->getHalfWord(iHalfSampa/2,2,iHalfSampa%2));
+            mAdcValues[iHalfSampa]->emplace_back(
                 (int)(iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) + 
-                (int)iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
+                (int)iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2));
             break;
   
           case 3:
-            value1 = 
+            mAdcValues[iHalfSampa]->emplace_back(
                 (int)(iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) +
-                (int)(iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
-            value2 = 
+                (int)(iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2));
+            mAdcValues[iHalfSampa]->emplace_back(
                 (int)(iFrame->getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) + 
-                (int)iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
+                (int)iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2));
             break;
   
           default:
             LOG(ERROR) << "Position " << iPosition << " not known." << FairLogger::endl;
             return;
         }
-        mAdcValues[iHalfSampa]->push_back(value1);
-        mAdcValues[iHalfSampa]->push_back(value2);
-
 //      std::cout << iHalfSampa << " " << std::hex
-//         << "0x" << std::setfill('0') << std::setw(3) << *(mAdcValues[iHalfSampa].rbegin()+1) << " "
-//         << "0x" << std::setfill('0') << std::setw(3) << *(mAdcValues[iHalfSampa].rbegin()) << std::dec << std::endl;
+//         << "0x" << std::setfill('0') << std::setw(3) << *(mAdcValues[iHalfSampa]->rbegin()+1) << " "
+//         << "0x" << std::setfill('0') << std::setw(3) << *(mAdcValues[iHalfSampa]->rbegin()) << std::dec << std::endl;
       }
     }
   }
   mtx.unlock();
 }
 
-void GBTFrameContainer::checkAdcClock(std::vector<GBTFrame>::iterator iFrame)
+void GBTFrameContainer::checkAdcClock(std::deque<GBTFrame>::iterator iFrame)
 {
   if (mAdcClock[0].addSequence(iFrame->getAdcClock(0))) 
   { 
-    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << *iFrame << FairLogger::endl;}
+    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << std::distance(mGBTFrames.begin(),iFrame) << FairLogger::endl;}
   }
   if (mAdcClock[1].addSequence(iFrame->getAdcClock(1))) 
   {
-    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 1 in GBT Frame " << *iFrame << FairLogger::endl;}
+    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 1 in GBT Frame " << std::distance(mGBTFrames.begin(),iFrame) << FairLogger::endl;}
   }
   if (mAdcClock[2].addSequence(iFrame->getAdcClock(2))) 
   {
-    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << *iFrame << FairLogger::endl;}
+    if (mEnableAdcClockWarning) { LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << std::distance(mGBTFrames.begin(),iFrame) << FairLogger::endl;}
   }
 }
 
-int GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
+int GBTFrameContainer::searchSyncPattern(std::deque<GBTFrame>::iterator iFrame)
 {
   int iOldPosition = mPositionForHalfSampa[0];
 
@@ -320,7 +365,7 @@ bool GBTFrameContainer::getData(std::vector<SAMPAData>* container, bool removeCh
     int position = 0;
     for (int iChannel = 0; iChannel < 16; ++iChannel)
     {
-      iData[iHalfSampa].push_back(mAdcValues[iHalfSampa]->at(position));
+      iData[iHalfSampa].emplace_back(mAdcValues[iHalfSampa]->at(position));
       if (removeChannel) {
         mAdcValues[iHalfSampa]->pop_front();
       }
@@ -400,4 +445,15 @@ int GBTFrameContainer::getNentries()
   }
   mtx.unlock();
   return counter;
+}
+
+void GBTFrameContainer::overwriteAdcClock(int sampa, int phase)
+{
+  unsigned clock = (0xFFFF0000 >> phase);
+  unsigned shift = 28;
+  for (std::deque<GBTFrame>::iterator it = mGBTFrames.begin(); it != mGBTFrames.end(); ++it) {
+    it->setAdcClock(sampa,clock >> shift);
+    std::cout << shift << " " << /*std::hex << std::setfill('0') << std::setw(8) <<*/ (clock>>shift) << std::dec << std::endl;
+    shift = (shift - 4) % 32;
+  }
 }

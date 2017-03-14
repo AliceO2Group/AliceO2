@@ -10,11 +10,15 @@
 #include "TPCSimulation/Digit.h"
 #include "TPCSimulation/SAMPAData.h"
 #include "TPCBase/Mapper.h" 
-#include <TClonesArray.h>  
+//#include <TClonesArray.h>  
 #include <vector>
 #include <deque>
 #include <mutex>
+#include <thread>
 #include <iterator>
+#include <fstream>
+#include <iostream>
+#include <iomanip>
 #include "FairLogger.h"
 
 namespace AliceO2{
@@ -35,10 +39,10 @@ class GBTFrameContainer {
     GBTFrameContainer(int cru, int link);
 
     /// Constructor
-    /// @param amount Forseen amount of GBT frames
+    /// @param size Size of GBT frame container to avoid unnecessary reallocation of memory
     /// @param cru CRU ID
     /// @param link Link ID
-    GBTFrameContainer(int amount, int cru, int link);
+    GBTFrameContainer(int size, int cru, int link);
 
     /// Destructor
     ~GBTFrameContainer();
@@ -97,17 +101,25 @@ class GBTFrameContainer {
                      char s2hw0, char s2hw1, char s2hw2, char s2hw3, 
                      char s0adc, char s1adc, char s2adc, unsigned marker = 0);
 
-    /// Fill output TClonesArray
-    /// @param output Output container
-    void fillOutputContainer(TClonesArray* output);
+    /// Add all frames from file to conatiner
+    /// @param fileName Path to file
+    void addGBTFramesFromFile(std::string fileName);
+
+//    /// Fill output TClonesArray
+//    /// @param output Output container
+//    void fillOutputContainer(TClonesArray* output);
 
     /// Set enable the ADC clock warnings
     /// @param val Set it to true or false
-    void setEnableAdcClockWarning(bool val) { mEnableAdcClockWarning = val; };
+    void setEnableAdcClockWarning(bool val)     { mEnableAdcClockWarning = val; };
 
     /// Set enable the sync pattern position warnings
     /// @param val Set it to true or false
-    void setEnableSyncPatternWarning(bool val) { mEnableSyncPatternWarning = val; };
+    void setEnableSyncPatternWarning(bool val)  { mEnableSyncPatternWarning = val; };
+
+    /// Option to store the inserted GBT frames
+    /// @param val Set it to true or false
+    void setEnableStoreGBTFrames(bool val)      { mEnableStoreGBTFrames = val; };
 
     /// Extracts the digits after all 32 channel were transmitted
     /// @param digitContainer Digit Container to store the digits in
@@ -123,19 +135,19 @@ class GBTFrameContainer {
     GBTFrame operator[] (int index) const { return mGBTFrames[index]; };
     GBTFrame& operator[] (int index)      { return mGBTFrames[index]; };
 
-    std::vector<GBTFrame>::iterator begin()               { return mGBTFrames.begin(); };
-    std::vector<GBTFrame>::const_iterator begin()   const { return mGBTFrames.begin(); };
-    std::vector<GBTFrame>::const_iterator cbegin()  const { return mGBTFrames.cbegin(); };
-    std::vector<GBTFrame>::iterator end()                 { return mGBTFrames.end(); };
-    std::vector<GBTFrame>::const_iterator end()     const { return mGBTFrames.end(); };
-    std::vector<GBTFrame>::const_iterator cend()    const { return mGBTFrames.cend(); };
+    std::deque<GBTFrame>::iterator begin()               { return mGBTFrames.begin(); };
+    std::deque<GBTFrame>::const_iterator begin()   const { return mGBTFrames.begin(); };
+    std::deque<GBTFrame>::const_iterator cbegin()  const { return mGBTFrames.cbegin(); };
+    std::deque<GBTFrame>::iterator end()                 { return mGBTFrames.end(); };
+    std::deque<GBTFrame>::const_iterator end()     const { return mGBTFrames.end(); };
+    std::deque<GBTFrame>::const_iterator cend()    const { return mGBTFrames.cend(); };
 
-    std::vector<GBTFrame>::reverse_iterator rbegin()               { return mGBTFrames.rbegin(); };
-    std::vector<GBTFrame>::const_reverse_iterator rbegin()   const { return mGBTFrames.rbegin(); };
-    std::vector<GBTFrame>::const_reverse_iterator crbegin()  const { return mGBTFrames.crbegin(); };
-    std::vector<GBTFrame>::reverse_iterator rend()                 { return mGBTFrames.rend(); };
-    std::vector<GBTFrame>::const_reverse_iterator rend()     const { return mGBTFrames.rend(); };
-    std::vector<GBTFrame>::const_reverse_iterator crend()    const { return mGBTFrames.crend(); };
+    std::deque<GBTFrame>::reverse_iterator rbegin()               { return mGBTFrames.rbegin(); };
+    std::deque<GBTFrame>::const_reverse_iterator rbegin()   const { return mGBTFrames.rbegin(); };
+    std::deque<GBTFrame>::const_reverse_iterator crbegin()  const { return mGBTFrames.crbegin(); };
+    std::deque<GBTFrame>::reverse_iterator rend()                 { return mGBTFrames.rend(); };
+    std::deque<GBTFrame>::const_reverse_iterator rend()     const { return mGBTFrames.rend(); };
+    std::deque<GBTFrame>::const_reverse_iterator crend()    const { return mGBTFrames.crend(); };
 
     /// Sets the timebin
     /// @param val Set to this timebin
@@ -148,22 +160,27 @@ class GBTFrameContainer {
     /// Re-Processes all frames after resetting ADC clock and sync Pattern
     void reProcessAllFrames();
 
+    /// Overwrites the ADC clock in all stored frames with a valid sequence
+    /// @param sampa ADC clock of this given SAMPA, -1 for all SAMPAs
+    /// @param phase Defines which (of the 4 bits) has the rising edge
+    void overwriteAdcClock(int sampa, int phase);
+
   private:
     /// Processes all frames, monitors ADC clock, searches for sync pattern,...
     void processAllFrames();
 
     /// Processes the last inserted frame, monitors ADC clock, searches for sync pattern,...
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
-    void processFrame(std::vector<GBTFrame>::iterator iFrame);
+    void processFrame(std::deque<GBTFrame>::iterator iFrame);
 
     /// Checks the ADC clock;
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
-    void checkAdcClock(std::vector<GBTFrame>::iterator iFrame);
+    void checkAdcClock(std::deque<GBTFrame>::iterator iFrame);
 
     /// Searches for the synchronization pattern
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
     /// @return Returns the old Position of low bits of SAMPA 0
-    int searchSyncPattern(std::vector<GBTFrame>::iterator iFrame);
+    int searchSyncPattern(std::deque<GBTFrame>::iterator iFrame);
 
     void resetAdcClock();
     void resetSyncPattern();
@@ -171,7 +188,7 @@ class GBTFrameContainer {
 
     std::mutex mtx;
 
-    std::vector<GBTFrame> mGBTFrames;               ///< GBT Frames container
+    std::deque<GBTFrame> mGBTFrames;                ///< GBT Frames container
     std::vector<AdcClockMonitor> mAdcClock;         ///< ADC clock monitor for the 3 SAMPAs
     std::vector<SyncPatternMonitor> mSyncPattern;   ///< Synchronization pattern monitor for the 3 SAMPAs
     std::vector<int> mPositionForHalfSampa;         ///< Start position of data for all 5 half SAMPAs
@@ -179,6 +196,7 @@ class GBTFrameContainer {
 
     bool mEnableAdcClockWarning;                    ///< enables the ADC clock warnings
     bool mEnableSyncPatternWarning;                 ///< enables the Sync Pattern warnings
+    bool mEnableStoreGBTFrames;                     ///< if true, GBT frames are stored
     int mCRU;                                       ///< CRU ID of the GBT frames
     int mLink;                                      ///< Link ID of the GBT frames
     int mTimebin;                                   ///< Timebin of last digits extraction 

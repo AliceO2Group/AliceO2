@@ -3,8 +3,6 @@
 
 #include "TPCSimulation/GBTFrame.h"
 
-ClassImp(AliceO2::TPC::GBTFrame)
-
 using namespace AliceO2::TPC;
 
 GBTFrame::GBTFrame()
@@ -12,8 +10,7 @@ GBTFrame::GBTFrame()
 {}
 
 GBTFrame::GBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
-  : TObject()
-  , mWords(4)
+  : mWords(4)
 {
   mWords[3] = word3;
   mWords[2] = word2;
@@ -29,8 +26,7 @@ GBTFrame::GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
                    char s1hw0h, char s1hw1h, char s1hw2h, char s1hw3h,
                    char s2hw0, char s2hw1, char s2hw2, char s2hw3, 
                    char s0adc, char s1adc, char s2adc, unsigned marker)
-  : TObject()
-  , mWords(4)
+  : mWords(4)
 {
   mWords[0] = combineBits(std::vector<bool>{
       getBit(s0hw0h,2), getBit(s0hw1h,2), getBit(s0hw2h,2), getBit(s0hw3h,2), 
@@ -80,8 +76,7 @@ GBTFrame::GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
 }
 
 GBTFrame::GBTFrame(const GBTFrame& other)
-  : TObject(other)
-  , mWords(other.mWords)
+  : mWords(other.mWords)
   , mHalfWords(other.mHalfWords)
 {
 }
@@ -142,6 +137,19 @@ char GBTFrame::getAdcClock(char sampa) const
     case 1: return (mWords[2] >> 20) & 0xF;
     case 2: return (mWords[3] >> 12) & 0xF;
     default: std::cout << "don't know SAMPA " << sampa << std::endl; return 0; 
+  }
+}
+
+void GBTFrame::setAdcClock(int sampa, int clock)
+{
+  switch (sampa) {
+    case  0: mWords[1] = (mWords[1] & 0xFFFFF0FF) | ((clock & 0xF) <<  8); break;
+    case  1: mWords[2] = (mWords[2] & 0xFF0FFFFF) | ((clock & 0xF) << 20); break;
+    case  2: mWords[3] = (mWords[3] & 0xFFFF0FFF) | ((clock & 0xF) << 12); break;
+    case -1: mWords[1] = (mWords[1] & 0xFFFFF0FF) | ((clock & 0xF) <<  8);
+             mWords[2] = (mWords[2] & 0xFF0FFFFF) | ((clock & 0xF) << 20);
+             mWords[3] = (mWords[3] & 0xFFFF0FFF) | ((clock & 0xF) << 12); break;
+    default: std::cout << "don't know SAMPA " << sampa << std::endl; break; 
   }
 }
 

@@ -8,8 +8,10 @@ std::mutex mtx;
 void addData(std::vector<GBTFrame>& data, GBTFrameContainer& container)
 {
   unsigned long count = 0;
+  unsigned int word0, word1, word2, word3;
   for (std::vector<GBTFrame>::iterator it = data.begin(); it != data.end(); it++){
-    container.addGBTFrame(*it);
+    it->getGBTFrame(word3,word2,word1,word0);
+    container.addGBTFrame(word3,word2,word1,word0);
 //    std::cout << *it << std::endl;
     ++count;
   }
@@ -21,9 +23,12 @@ void addData(std::vector<GBTFrame>& data, GBTFrameContainer& container)
 void addDataCont(std::vector<GBTFrame>& data, GBTFrameContainer& container)
 {
   unsigned long count = 0;
+  unsigned int word0, word1, word2, word3;
   while(run_write) {
     for (std::vector<GBTFrame>::iterator it = data.begin(); it != data.end(); it++){
-      container.addGBTFrame(*it);
+      it->getGBTFrame(word3,word2,word1,word0);
+      container.addGBTFrame(word3,word2,word1,word0);
+//      container.addGBTFrame(*it);
       ++count;
     }
   }
@@ -38,7 +43,7 @@ void readDataCont(GBTFrameContainer& container)
   std::vector<SAMPAData> lastData(5);
   unsigned long count = 0;
   while (run_read) {
-      std::this_thread::sleep_for(std::chrono::microseconds{10});
+    std::this_thread::sleep_for(std::chrono::microseconds{10});
     while (container.getData(&data)){
       ++count;
       if (data == lastData) std::cout << "Same data twice" << std::endl;
@@ -62,49 +67,59 @@ void test_GBTFrame(std::string infile , int time)
   std::cout << infile << std::endl;
 
   std::ifstream fifofile(infile);
-  int word0, word1, word2, word3;
-  int c;
-  char cc;
-  std::string str;
-  std::vector<GBTFrame> fifoFrames;
-              //     counter    :     data
-  while (fifofile >> c       >> cc >> str) {
-    sscanf(str.substr( 2,8).c_str(), "%x", &word3);
-    sscanf(str.substr(10,8).c_str(), "%x", &word2);
-    sscanf(str.substr(18,8).c_str(), "%x", &word1);
-    sscanf(str.substr(26,8).c_str(), "%x", &word0);
-    fifoFrames.emplace_back(word3,word2,word1,word0);
+  if (fifofile.is_open()) {
+    int word0, word1, word2, word3;
+    int c;
+    char cc;
+    std::string str;
+    std::vector<GBTFrame> fifoFrames;
+                //     counter    :     data
+    while (fifofile >> c       >> cc >> str) {
+      sscanf(str.substr( 2,8).c_str(), "%x", &word3);
+      sscanf(str.substr(10,8).c_str(), "%x", &word2);
+      sscanf(str.substr(18,8).c_str(), "%x", &word1);
+      sscanf(str.substr(26,8).c_str(), "%x", &word0);
+      fifoFrames.emplace_back(word3,word2,word1,word0);
+    }
+    fifofile.close();
+
+    std::vector<GBTFrame> fifoFrames_withSyncPattern(fifoFrames.begin(), fifoFrames.begin()+ 80);
+    std::vector<GBTFrame> fifoFrames_justData(fifoFrames.begin()+80, fifoFrames.end());
+
+    //GBTFrameContainer container(3*10e6,1,1);
+    GBTFrameContainer container(1,1);
+
+
+    container.reset();
+    container.setEnableAdcClockWarning(false);
+    container.setEnableStoreGBTFrames(true);
+
+    addData(fifoFrames_withSyncPattern,container);
+    std::thread t1(addDataCont,std::ref(fifoFrames_justData),std::ref(container));
+//    std::thread t2(readDataCont,std::ref(container));
+
+    for (int i = 0; i < time; ++i) {
+      std::this_thread::sleep_for(std::chrono::milliseconds{100});
+      std::cout << i << " " << container.getNentries() << std::endl;
+    }
+
+    run_write = false;
+    sleep(2);
+//    sleep(2);
+    run_read = false;
+    t1.join();
+//    t2.join();
+
   }
 
-  std::vector<GBTFrame> fifoFrames_withSyncPattern(fifoFrames.begin(), fifoFrames.begin()+ 80);
-  std::vector<GBTFrame> fifoFrames_justData(fifoFrames.begin()+80, fifoFrames.end());
-
-  GBTFrameContainer container(0,1);
   GBTFrameContainer container2(1,1);
-  container.setEnableAdcClockWarning(false);
-  container2.setEnableAdcClockWarning(false);
-
-
-  container.reset();
-  container.setEnableAdcClockWarning(false);
-  container2.reset();
-  container2.setEnableAdcClockWarning(false);
-
-  addData(fifoFrames_withSyncPattern,container);
-  std::thread t1(addDataCont,std::ref(fifoFrames_justData),std::ref(container));
-  std::thread t2(readDataCont,std::ref(container));
-
-  for (int i = 0; i < time; ++i) {
-    std::this_thread::sleep_for(std::chrono::milliseconds{100});
-    std::cout << i << " " << container.getNentries() << std::endl;
-  }
-
-  run_write = false;
-  sleep(2);
-  sleep(2);
-  run_read = false;
-  t1.join();
-  t2.join();
+  container2.addGBTFramesFromFile(infile);
+  container2.overwriteAdcClock(-1,3);
+  container2.reProcessAllFrames();
+  if (container2[13103].getAdcClock(1) == 0) container2[13103].setAdcClock(1,0xF);
+  else container2[13103].setAdcClock(1,0);
+  container2.reProcessAllFrames();
+  std::cout << container2.getSize() << " " << container2.getNentries() << std::endl;
 
 //  int counter = 0;
 //  for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){

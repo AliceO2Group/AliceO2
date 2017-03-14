@@ -8,14 +8,13 @@
 #include <iomanip>
 #include <vector>
 #include <array>
-#include "TObject.h"
 
 namespace AliceO2 {
 namespace TPC {
 
 /// \class GBTFrame
 /// \brief GBTFrame class for the TPC
-class GBTFrame : public TObject {
+class GBTFrame {
   public:
 
     /// Default Constructor
@@ -83,6 +82,11 @@ class GBTFrame : public TObject {
     /// @return requested ADC sampling clock bits
     char getAdcClock(char sampa) const;
 
+    /// Set Adc sampling clock of a SAMPA chip
+    /// @param sampa ADC clock of this SAMPA chip (0-2, 3=0, 4=1), -1 for all SAMPAs 
+    /// @param clock 4 sampling clock bits
+    void setAdcClock(int sampa, int clock);
+
     /// Get the GBT frame
     /// @param word3 bit [127: 96] of GBT frame is written to this
     /// @param word2 bit [ 95: 64] of GBT frame is written to this
@@ -116,7 +120,6 @@ class GBTFrame : public TObject {
                 //                              channels (low or high)
                 //                                  sampa
 
-  ClassDef(GBTFrame, 1);
 };
 }
 }
