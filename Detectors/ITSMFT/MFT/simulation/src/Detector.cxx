@@ -3,13 +3,14 @@
 /// \author antonio.uras@cern.ch, bogdan.vulpescu@cern.ch 
 /// \date 01/08/2016
 
-#include "MFTSimulation/Geometry.h"
-#include "MFTSimulation/GeometryTGeo.h"
+#include "MFTBase/Geometry.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "MFTBase/HalfSegmentation.h"
+#include "MFTBase/HalfDiskSegmentation.h"
+#include "MFTBase/LadderSegmentation.h"
+
 #include "MFTSimulation/Detector.h"
 #include "MFTSimulation/Point.h"
-#include "MFTSimulation/HalfSegmentation.h"
-#include "MFTSimulation/HalfDiskSegmentation.h"
-#include "MFTSimulation/LadderSegmentation.h"
 
 #include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"
@@ -207,8 +208,7 @@ Point* Detector::AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, 
 void Detector::CreateMaterials()
 {
   
-  // data from PDG booklet 2002                 
-  // density [gr/cm^3], rad len [cm], abs len [cm]
+  // data from PDG booklet 2002                 density [gr/cm^3]     rad len [cm]           abs len [cm]
   Float_t   aSi = 28.085 ,    zSi   = 14. ,     dSi      =  2.329 ,   radSi   =  21.82/dSi , absSi   = 108.4/dSi  ;    // Silicon
   Float_t   aCarb = 12.01 ,   zCarb =  6. ,     dCarb    =  2.265 ,   radCarb =  18.8 ,      absCarb = 49.9       ;    // Carbon
   Float_t   aAlu = 26.98 ,    zAlu  = 13. ,     dAlu     =  2.70  ,   radAlu  =  8.897 ,     absAlu  = 39.70      ;    // Aluminum
@@ -257,7 +257,8 @@ void Detector::CreateMaterials()
   Float_t aCM55J[4]={12.0107,14.0067,15.9994,1.00794};
   Float_t zCM55J[4]={6.,7.,8.,1.};
   Float_t wCM55J[4]={0.908508078,0.010387573,0.055957585,0.025146765};
-  Float_t dCM55J = 1.33; // new value for MFT, from J.M. Buhour infos
+  //Float_t dCM55J = 1.33; // from J.M. Buhour infos
+  Float_t dCM55J = 1.548;// increase by 16.4% to account that water pipes are outside the rohacell plate
 
   // Rohacell mixture
   const Int_t nRohacell = 3;
@@ -289,7 +290,7 @@ void Detector::CreateMaterials()
 
 
   //======================== From ITS code ===================================
-  // X7R capacitors - updated from F.Tosello's web page - M.S. 18 Oct 10
+  //X7R capacitors - updated from F.Tosello's web page - M.S. 18 Oct 10
   // 58.6928 --> innner electrodes (mainly Ni)
   // 63.5460 --> terminaisons (Cu) 
   // 118.710 --> terminaisons (Sn)
@@ -300,6 +301,7 @@ void Detector::CreateMaterials()
   Float_t dX7R = 6.07914;
   
   //X7R weld, i.e. Sn 60% Pb 40% (from F.Tosello's web page - M.S. 15 Oct 10)
+  
   Float_t aX7Rweld[2]={118.71 , 207.20};
   Float_t zX7Rweld[2]={ 50.   ,  82.  };
   Float_t wX7Rweld[2]={  0.60 ,   0.40};
@@ -325,15 +327,15 @@ void Detector::CreateMaterials()
   
   //Int_t    fieldType        = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Integral();     // Field type
   //Double_t maxField         = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Max();     // Field max.
-  
+
   Int_t fieldType = 2;
   Float_t maxField = 10.0;
 
-  AliceO2::Base::Detector::Mixture(kAir,"Air$", aAir, zAir, dAir, nAir, wAir);
-  AliceO2::Base::Detector::Medium(kAir,    "Air$", kAir, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
-  
-  AliceO2::Base::Detector::Mixture(kVacuum, "Vacuum$", aAir, zAir, dAirVacuum, nAir, wAir);
-  AliceO2::Base::Detector::Medium(kVacuum,  "Vacuum$", kVacuum, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  AliceO2::Base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
+  AliceO2::Base::Detector::Medium(kAir,     "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
+
+  AliceO2::Base::Detector::Mixture(++matId, "Vacuum$", aAir, zAir, dAirVacuum, nAir, wAir);
+  AliceO2::Base::Detector::Medium(kVacuum,  "Vacuum$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
   AliceO2::Base::Detector::Material(++matId, "Si$", aSi, zSi, dSi, radSi, absSi);
   AliceO2::Base::Detector::Medium(kSi,       "Si$", matId, sens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
@@ -360,9 +362,12 @@ void Detector::CreateMaterials()
   maxStepSize      = .01;
   precision        = .003;
   minStepSize      = .003;
-  AliceO2::Base::Detector::Material(matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb);
+  AliceO2::Base::Detector::Material(++matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb);
   AliceO2::Base::Detector::Medium(kCarbon, "Carbon$", matId,0,fieldType,maxField,maxBending,maxStepSize,maxEnergyLoss,precision,minStepSize);
 
+  //AliceO2::Base::Detector::Material(++matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb );
+  //AliceO2::Base::Detector::Medium(kCarbon,   "Carbon$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  
   AliceO2::Base::Detector::Material(++matId, "Be$", aBe, zBe, dBe, radBe, absBe );
   AliceO2::Base::Detector::Medium(kBe,   "Be$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
   
@@ -415,6 +420,8 @@ void Detector::CreateMaterials()
   AliceO2::Base::Detector::Material(++matId,"CarbonFleece$",12.0107,6,0.4,radCarb,absCarb);          // 999,999);  why 999???
   AliceO2::Base::Detector::Medium(kCarbonFleece,  "CarbonFleece$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
+  LOG(INFO) << "Detector::CreateMaterials -----> matId = " << matId << "\n";
+
 }
 
 //_____________________________________________________________________________
@@ -454,7 +461,7 @@ void Detector::DefineSensitiveVolumes()
       for (Int_t iLadder = 0; iLadder < halfDiskSeg->GetNLadders(); iLadder++) {
 	LadderSegmentation* ladderSeg = halfDiskSeg->GetLadder(iLadder);
 	TString volumeName = Form("MFT_S_%d_%d_%d",
-	  mftGeo->GetHalfID(ladderSeg->GetUniqueID()),
+	  mftGeo->GetHalfMFTID(ladderSeg->GetUniqueID()),
 	  mftGeo->GetHalfDiskID(ladderSeg->GetUniqueID()),
 	  mftGeo->GetLadderID(ladderSeg->GetUniqueID()));
 	vol = gGeoManager->GetVolume(volumeName.Data());

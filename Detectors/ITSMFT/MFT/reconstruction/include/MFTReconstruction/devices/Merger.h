@@ -9,11 +9,11 @@
 
 #include "FairMQDevice.h"
 
-#include "MFTBase/EventHeader.h"
-
 namespace AliceO2 {
 
 namespace MFT {
+
+class EventHeader;
 
 typedef std::multimap<std::pair<std::pair<int,int>,int>,TObject*> MultiMapDef;
 

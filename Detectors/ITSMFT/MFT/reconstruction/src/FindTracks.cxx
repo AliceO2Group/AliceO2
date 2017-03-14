@@ -3,7 +3,7 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 07/10/2016
 
-#include "MFTBase/EventHeader.h"
+#include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/Hit.h"
 #include "MFTReconstruction/Track.h"
 #include "MFTReconstruction/FindTracks.h"

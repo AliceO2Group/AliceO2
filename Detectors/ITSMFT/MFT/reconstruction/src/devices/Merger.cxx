@@ -5,7 +5,7 @@
 
 #include "TMessage.h"
 
-#include "MFTBase/EventHeader.h"
+#include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/devices/Merger.h"
 
 using namespace AliceO2::MFT;

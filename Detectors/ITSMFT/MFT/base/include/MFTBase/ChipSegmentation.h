@@ -6,7 +6,7 @@
 #ifndef ALICEO2_MFT_CHIPSEGMENTATION_H_
 #define ALICEO2_MFT_CHIPSEGMENTATION_H_
 
-#include "MFTSimulation/VSegmentation.h"
+#include "MFTBase/VSegmentation.h"
 
 namespace AliceO2 {
 namespace MFT {

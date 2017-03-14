@@ -7,10 +7,10 @@
 #include "FairLogger.h"
 
 #include "MFTBase/Constants.h"
-#include "MFTSimulation/HalfDiskSegmentation.h"
-#include "MFTSimulation/HalfSegmentation.h"
-#include "MFTSimulation/Geometry.h"
-#include "MFTSimulation/GeometryTGeo.h"
+#include "MFTBase/HalfDiskSegmentation.h"
+#include "MFTBase/HalfSegmentation.h"
+#include "MFTBase/Geometry.h"
+#include "MFTBase/GeometryTGeo.h"
 
 using namespace AliceO2::MFT;
 
@@ -158,7 +158,7 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
     
     //AliDebug(1,Form("Creating Half-Disk %d with %d Ladders at the position (%.2f,%.2f,%.2f) with angles  (%.2f,%.2f,%.2f)",idisk,nladder,pos[0],pos[1],pos[2],ang[0],ang[1],ang[2]));
     
-    UInt_t diskUniqueID = mftGeom->GetObjectID(Geometry::kHalfDiskType,mftGeom->GetHalfID(GetUniqueID()),idisk );
+    UInt_t diskUniqueID = mftGeom->GetObjectID(Geometry::kHalfDiskType,mftGeom->GetHalfMFTID(GetUniqueID()),idisk );
     
     HalfDiskSegmentation *halfDisk = new HalfDiskSegmentation(diskUniqueID);
     halfDisk->SetPosition(pos);
@@ -238,7 +238,7 @@ void HalfSegmentation::FindHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
     }
     
     Geometry * mftGeom = Geometry::Instance();
-    if(isTop == mftGeom->GetHalfID(GetUniqueID())) {
+    if(isTop == mftGeom->GetHalfMFTID(GetUniqueID())) {
       //AliDebug(1,Form("Setting up %s Half-MFT  %d Disk(s) at the position (%.2f,%.2f,%.2f) with angles (%.2f,%.2f,%.2f)",(isTop?"Top":"Bottom"),ndisk,pos[0],pos[1],pos[2],ang[0],ang[1],ang[2]));
       SetPosition(pos);
       SetRotationAngles(ang);

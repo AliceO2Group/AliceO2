@@ -9,8 +9,8 @@
 #include "TNamed.h"
 #include "TXMLEngine.h"
 
-#include "MFTSimulation/Segmentation.h"
-#include "MFTSimulation/VSegmentation.h"
+#include "MFTBase/Segmentation.h"
+#include "MFTBase/VSegmentation.h"
 
 namespace AliceO2 { namespace MFT { class HalfDiskSegmentation; } }
 

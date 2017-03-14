@@ -16,46 +16,7 @@ public:
 
   // Geometry
   static const Int_t kNDisks = 5;             ///< \brief Number of Disk
-  static const Double_t kSensorLength;        ///< \brief CMOS Sensor Length
-  static const Double_t kSensorHeight;        ///< \brief CMOS Sensor Height
-  static const Double_t kSensorActiveHeight;  ///< \brief CMOS Sensor Active height
-  static const Double_t kSensorActiveWidth;   ///< \brief CMOS Sensor Active width
-  static const Double_t kSensorThickness;     ///< \brief CMOS Sensor Thickness
-  static const Double_t kXPixelPitch;         ///< \brief Pixel pitch along X
-  static const Double_t kYPixelPitch;         ///< \brief Pixel pitch along Y
-  static const Int_t kNPixelX = 1024;         ///< \brief Number of Pixel along X
-  static const Int_t kNPixelY = 512;          ///< \brief Number of Pixel along Y
-  static const Double_t kSensorMargin;        ///< \brief Inactive margin around active area
 
-  static const Double_t kSensorInterspace;    ///< \brief Interspace between 2 sensors on a ladder
-  static const Double_t kSensorSideOffset;    ///< \brief Offset of sensor compare to ladder edge (close to the beam pipe)
-  static const Double_t kSensorTopOffset;     ///< \brief Offset of sensor compare to ladder top edge
-  static const Double_t kLadderOffsetToEnd;   ///< \brief Offset of sensor compare to ladder connector edge
-  static const Double_t kFlexThickness;       ///< \brief Flex Thickness
-  static const Double_t kFlexHeight;          ///< \brief Flex Height 
-  static const Double_t kLineWidth; 
-  static const Double_t kVarnishThickness;  
-  static const Double_t kAluThickness;    
-  static const Double_t kKaptonThickness;
-  static const Double_t kClearance;          
-  static const Double_t kRadiusHole1;          
-  static const Double_t kRadiusHole2;          
-  static const Double_t kHoleShift1;          
-  static const Double_t kHoleShift2;          
-  static const Double_t kConnectorOffset;          
-  static const Double_t kCapacitorDz;        
-  static const Double_t kCapacitorDy;        
-  static const Double_t kCapacitorDx; 
-  static const Double_t kConnectorLength;
-  static const Double_t kConnectorWidth;
-  static const Double_t kConnectorHeight;
-  static const Double_t kConnectorThickness;
-  static const Double_t kEpsilon;
-  static const Double_t kGlueThickness;
-  static const Double_t kGlueEdge;
-  static const Double_t kShiftDDGNDline;
-  static const Double_t kShiftline;
-	
   /// Return Disk thickness in X0
   static Double_t DiskThicknessInX0(Int_t Id) { return (Id >= 0 && Id < kNDisks) ? fgDiskThicknessInX0[Id] : 0.; }
   
@@ -122,9 +83,7 @@ protected:
   static Double_t  fgDiskThicknessInX0[kNDisks]; ///< default disk thickness in X0 for reconstruction
   static Double_t  fgPlaneZPos[2*kNDisks]; ///< default Plane Z position for reconstruction
 
-  /// \cond CLASSIMP
   ClassDef(Constants, 1);
-  /// \endcond
 
 };
 

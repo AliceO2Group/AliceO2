@@ -7,9 +7,9 @@
 #include "FairLogger.h"
 
 #include "MFTBase/Constants.h"
-#include "MFTSimulation/HalfDiskSegmentation.h"
-#include "MFTSimulation/Geometry.h"
-#include "MFTSimulation/GeometryTGeo.h"
+#include "MFTBase/HalfDiskSegmentation.h"
+#include "MFTBase/Geometry.h"
+#include "MFTBase/GeometryTGeo.h"
 
 using namespace AliceO2::MFT;
 
@@ -46,7 +46,7 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID):
   
   Geometry * mftGeom = Geometry::Instance();
   
-  SetName(Form("%s_%d_%d",GeometryTGeo::GetHalfDiskName(),mftGeom->GetHalfID(GetUniqueID()), mftGeom->GetHalfDiskID(GetUniqueID()) ));
+  SetName(Form("%s_%d_%d",GeometryTGeo::GetHalfDiskName(),mftGeom->GetHalfMFTID(GetUniqueID()), mftGeom->GetHalfDiskID(GetUniqueID()) ));
   
   fLadders  = new TClonesArray("AliceO2::MFT::LadderSegmentation");
   fLadders -> SetOwner(kTRUE);
@@ -151,7 +151,7 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
     //if ((plane==0 && pos[2]<0.) || (plane==1 && pos[2]>0.))
     //AliFatal(Form(" Wrong Z Position or ladder number ???  :  z= %f ladder id = %d",pos[2],ladderID));
 
-    UInt_t ladderUniqueID = mftGeom->GetObjectID(Geometry::kLadderType,mftGeom->GetHalfID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()),ladderID);
+    UInt_t ladderUniqueID = mftGeom->GetObjectID(Geometry::kLadderType,mftGeom->GetHalfMFTID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()),ladderID);
 
     //UInt_t ladderUniqueID = (Geometry::kLadderType<<13) +  (((GetUniqueID()>>9) & 0xF)<<9) + (plane<<8) + (ladderID<<3);
     
@@ -164,9 +164,9 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
     /// Need to put in the XML file the position of the ladder coordinate center
     // Find the position of the corner of the flex which is the ladder corrdinate system center.
     
-    pos[0] = -Constants::kSensorSideOffset;
-    pos[1] = -Constants::kSensorTopOffset - Constants::kSensorHeight;
-    pos[2] = -Constants::kFlexThickness - Constants::kSensorThickness;
+    pos[0] = -Geometry::kSensorSideOffset;
+    pos[1] = -Geometry::kSensorTopOffset - Geometry::kSensorHeight;
+    pos[2] = -Geometry::kFlexThickness - Geometry::kSensorThickness;
     Double_t master[3];
     ladder->GetTransformation()->LocalToMaster(pos, master);
     ladder->SetPosition(master);

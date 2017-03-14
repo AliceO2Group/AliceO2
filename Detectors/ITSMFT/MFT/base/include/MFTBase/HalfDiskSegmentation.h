@@ -8,8 +8,8 @@
 
 #include "TXMLEngine.h"
 
-#include "MFTSimulation/LadderSegmentation.h"
-#include "MFTSimulation/VSegmentation.h"
+#include "MFTBase/LadderSegmentation.h"
+#include "MFTBase/VSegmentation.h"
 
 class TClonesArray;
 

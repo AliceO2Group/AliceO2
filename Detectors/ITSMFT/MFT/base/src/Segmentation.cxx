@@ -4,10 +4,10 @@
 
 #include "FairLogger.h"
 
-#include "MFTSimulation/LadderSegmentation.h"
-#include "MFTSimulation/HalfDiskSegmentation.h"
-#include "MFTSimulation/HalfSegmentation.h"
-#include "MFTSimulation/Segmentation.h"
+#include "MFTBase/LadderSegmentation.h"
+#include "MFTBase/HalfDiskSegmentation.h"
+#include "MFTBase/HalfSegmentation.h"
+#include "MFTBase/Segmentation.h"
 
 using namespace AliceO2::MFT;
 

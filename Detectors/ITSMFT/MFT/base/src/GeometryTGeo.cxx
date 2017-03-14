@@ -4,11 +4,11 @@
 /// \date 01/08/2016
 
 #include "MFTBase/Constants.h"
-#include "MFTSimulation/Geometry.h"
-#include "MFTSimulation/GeometryTGeo.h"
-#include "MFTSimulation/HalfSegmentation.h"
-#include "MFTSimulation/HalfDiskSegmentation.h"
-#include "MFTSimulation/LadderSegmentation.h"
+#include "MFTBase/Geometry.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "MFTBase/HalfSegmentation.h"
+#include "MFTBase/HalfDiskSegmentation.h"
+#include "MFTBase/LadderSegmentation.h"
 
 using namespace AliceO2::MFT;
 

@@ -9,7 +9,7 @@
 #include "FairEventHeader.h"
 #include "FairMQProgOptions.h"
 
-#include "MFTBase/EventHeader.h"
+#include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/devices/FileSink.h"
 #include "MFTReconstruction/Hit.h"
 

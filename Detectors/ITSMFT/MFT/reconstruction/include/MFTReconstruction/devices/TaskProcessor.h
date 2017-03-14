@@ -4,9 +4,9 @@
 #include "FairMQDevice.h"
 #include "FairMQParts.h"
 
-#include "MFTBase/EventHeader.h"
-
 #include "TMessage.h"
+
+#include "MFTSimulation/EventHeader.h"
 
 class TList;
 

@@ -5,10 +5,10 @@
 #include "FairLogger.h"
 
 #include "MFTBase/Constants.h"
-#include "MFTSimulation/LadderSegmentation.h"
-#include "MFTSimulation/ChipSegmentation.h"
-#include "MFTSimulation/Geometry.h"
-#include "MFTSimulation/GeometryTGeo.h"
+#include "MFTBase/LadderSegmentation.h"
+#include "MFTBase/ChipSegmentation.h"
+#include "MFTBase/Geometry.h"
+#include "MFTBase/GeometryTGeo.h"
 
 using namespace AliceO2::MFT;
 
@@ -41,7 +41,7 @@ LadderSegmentation::LadderSegmentation(UInt_t uniqueID):
   Geometry * mftGeom = Geometry::Instance();
   
   SetName(Form("%s_%d_%d_%d",GeometryTGeo::GetLadderName(),
-               mftGeom->GetHalfID(GetUniqueID()),
+               mftGeom->GetHalfMFTID(GetUniqueID()),
                mftGeom->GetHalfDiskID(GetUniqueID()),
                mftGeom->GetLadderID(GetUniqueID()) ));
 
@@ -79,7 +79,7 @@ void LadderSegmentation::CreateSensors() {
 
   for (Int_t iSensor=0; iSensor<fNSensors; iSensor++) {
     UInt_t sensorUniqueID = mftGeom->GetObjectID(Geometry::kSensorType,
-                                                 mftGeom->GetHalfID(GetUniqueID()),
+                                                 mftGeom->GetHalfMFTID(GetUniqueID()),
                                                  mftGeom->GetHalfDiskID(GetUniqueID()),
                                                  mftGeom->GetLadderID(GetUniqueID()),
                                                  iSensor);
