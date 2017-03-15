@@ -46,12 +46,12 @@ O2MessageMonitor::O2MessageMonitor()
 //__________________________________________________________________________________________________
 void O2MessageMonitor::InitTask()
 {
-  mDelay = fConfig->GetValue<int>("sleep");
-  mIterations = fConfig->GetValue<int>("n");
-  mPayload = fConfig->GetValue<std::string>("payload");
-  std::string tmp = fConfig->GetValue<std::string>("name");
+  mDelay = GetConfig()->GetValue<int>("sleep");
+  mIterations = GetConfig()->GetValue<int>("n");
+  mPayload = GetConfig()->GetValue<std::string>("payload");
+  std::string tmp = GetConfig()->GetValue<std::string>("name");
   if (!tmp.empty()) mName = tmp;
-  mLimitOutputCharacters = fConfig->GetValue<int>("limit");
+  mLimitOutputCharacters = GetConfig()->GetValue<int>("limit");
 }
 
 //__________________________________________________________________________________________________

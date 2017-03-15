@@ -40,12 +40,12 @@ EPNReceiver::~EPNReceiver()
 
 void EPNReceiver::InitTask()
 {
-  fNumFLPs = fConfig->GetValue<int>("num-flps");
-  fBufferTimeoutInMs = fConfig->GetValue<int>("buffer-timeout");
-  fTestMode = fConfig->GetValue<int>("test-mode");
-  fInChannelName = fConfig->GetValue<string>("in-chan-name");
-  fOutChannelName = fConfig->GetValue<string>("out-chan-name");
-  fAckChannelName = fConfig->GetValue<string>("ack-chan-name");
+  fNumFLPs = GetConfig()->GetValue<int>("num-flps");
+  fBufferTimeoutInMs = GetConfig()->GetValue<int>("buffer-timeout");
+  fTestMode = GetConfig()->GetValue<int>("test-mode");
+  fInChannelName = GetConfig()->GetValue<string>("in-chan-name");
+  fOutChannelName = GetConfig()->GetValue<string>("out-chan-name");
+  fAckChannelName = GetConfig()->GetValue<string>("ack-chan-name");
 }
 
 void EPNReceiver::PrintBuffer(const unordered_map<uint16_t, TFBuffer>& buffer) const

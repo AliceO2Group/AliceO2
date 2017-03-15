@@ -78,11 +78,11 @@ FileSink::~FileSink()
 void FileSink::Init()
 {
 
-  fFileName = fConfig->GetValue<std::string>("file-name");
-  fClassNames = fConfig->GetValue<std::vector<std::string>>("class-name");
-  fBranchNames = fConfig->GetValue<std::vector<std::string>>("branch-name");
-  fInputChannelName = fConfig->GetValue<std::string>("in-channel");
-  fAckChannelName = fConfig->GetValue<std::string>("ack-channel");
+  fFileName = GetConfig()->GetValue<std::string>("file-name");
+  fClassNames = GetConfig()->GetValue<std::vector<std::string>>("class-name");
+  fBranchNames = GetConfig()->GetValue<std::vector<std::string>>("branch-name");
+  fInputChannelName = GetConfig()->GetValue<std::string>("in-channel");
+  fAckChannelName = GetConfig()->GetValue<std::string>("ack-channel");
 
   LOG(INFO) << "FileSink::Init >>>>> SHOULD CREATE THE FILE AND TREE";
   

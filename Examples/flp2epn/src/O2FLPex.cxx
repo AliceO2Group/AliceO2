@@ -27,7 +27,7 @@ void O2FLPex::InitTask()
 {
   srand(time(NULL));
 
-  fNumContent = fConfig->GetValue<int>("num-content");
+  fNumContent = GetConfig()->GetValue<int>("num-content");
   LOG(INFO) << "Message size (num-content * sizeof(O2FLPExContent)): " << fNumContent * sizeof(O2FLPExContent) << " bytes.";
 }
 

@@ -59,8 +59,8 @@ void TaskProcessor<T>::Init()
 
   fFairTask = new T();
   
-  fInputChannelName  = fConfig->GetValue<std::string>("in-channel");
-  fOutputChannelName = fConfig->GetValue<std::string>("out-channel");
+  fInputChannelName  = GetConfig()->GetValue<std::string>("in-channel");
+  fOutputChannelName = GetConfig()->GetValue<std::string>("out-channel");
 
   fOutput = new TList();
   fInput = new TList();

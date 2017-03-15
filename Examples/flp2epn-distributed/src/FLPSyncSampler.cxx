@@ -41,11 +41,11 @@ void FLPSyncSampler::InitTask()
   // LOG(INFO) << "Waiting 10 seconds...";
   // this_thread::sleep_for(seconds(10));
   // LOG(INFO) << "Done!";
-  fEventRate = fConfig->GetValue<int>("event-rate");
-  fMaxEvents = fConfig->GetValue<int>("max-events");
-  fStoreRTTinFile = fConfig->GetValue<int>("store-rtt-in-file");
-  fAckChannelName = fConfig->GetValue<string>("ack-chan-name");
-  fOutChannelName = fConfig->GetValue<string>("out-chan-name");
+  fEventRate = GetConfig()->GetValue<int>("event-rate");
+  fMaxEvents = GetConfig()->GetValue<int>("max-events");
+  fStoreRTTinFile = GetConfig()->GetValue<int>("store-rtt-in-file");
+  fAckChannelName = GetConfig()->GetValue<string>("ack-chan-name");
+  fOutChannelName = GetConfig()->GetValue<string>("out-chan-name");
 }
 
 void FLPSyncSampler::PreRun()

@@ -25,10 +25,10 @@ AliceO2::DataFlow::SubframeBuilderDevice::~SubframeBuilderDevice()
 
 void AliceO2::DataFlow::SubframeBuilderDevice::InitTask()
 {
-  mDuration = fConfig->GetValue<uint32_t>(OptionKeyDuration);
-  mIsSelfTriggered = fConfig->GetValue<bool>(OptionKeySelfTriggered);
-  mInputChannelName = fConfig->GetValue<std::string>(OptionKeyInputChannelName);
-  mOutputChannelName = fConfig->GetValue<std::string>(OptionKeyOutputChannelName);
+  mDuration = GetConfig()->GetValue<uint32_t>(OptionKeyDuration);
+  mIsSelfTriggered = GetConfig()->GetValue<bool>(OptionKeySelfTriggered);
+  mInputChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
+  mOutputChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
 
   if (!mIsSelfTriggered) {
     // depending on whether the device is self-triggered or expects input,
