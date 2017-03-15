@@ -350,7 +350,7 @@ int main(int argc, char** argv)
     device.SetTransport(transportFactory);
     device.SetProperty(FairMQDevice::Id, id.c_str());
     device.SetProperty(FairMQDevice::NumIoThreads, numIoThreads);
-    device.SetProperty(FairMQDevice::LogIntervalInMs, deviceLogInterval);
+    // device.SetProperty(FairMQDevice::LogIntervalInMs, deviceLogInterval);
     if (pollingTimeout > 0) device.SetProperty(ALICE::HLT::EventSampler::PollingTimeout, pollingTimeout);
     if (eventPeriod > 0) device.SetProperty(ALICE::HLT::EventSampler::EventPeriod, eventPeriod);
     if (initialDelay > 0) device.SetProperty(ALICE::HLT::EventSampler::InitialDelay, initialDelay);
