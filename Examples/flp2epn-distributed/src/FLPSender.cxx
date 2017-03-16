@@ -45,14 +45,14 @@ FLPSender::~FLPSender()
 
 void FLPSender::InitTask()
 {
-  fIndex = fConfig->GetValue<int>("flp-index");
-  fEventSize = fConfig->GetValue<int>("event-size");
-  fNumEPNs = fConfig->GetValue<int>("num-epns");
-  fTestMode = fConfig->GetValue<int>("test-mode");
-  fSendOffset = fConfig->GetValue<int>("send-offset");
-  fSendDelay = fConfig->GetValue<int>("send-delay");
-  fInChannelName = fConfig->GetValue<string>("in-chan-name");
-  fOutChannelName = fConfig->GetValue<string>("out-chan-name");
+  fIndex = GetConfig()->GetValue<int>("flp-index");
+  fEventSize = GetConfig()->GetValue<int>("event-size");
+  fNumEPNs = GetConfig()->GetValue<int>("num-epns");
+  fTestMode = GetConfig()->GetValue<int>("test-mode");
+  fSendOffset = GetConfig()->GetValue<int>("send-offset");
+  fSendDelay = GetConfig()->GetValue<int>("send-delay");
+  fInChannelName = GetConfig()->GetValue<string>("in-chan-name");
+  fOutChannelName = GetConfig()->GetValue<string>("out-chan-name");
 }
 
 void FLPSender::Run()

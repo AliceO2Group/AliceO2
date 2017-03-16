@@ -34,10 +34,10 @@ void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hi
 
 void ConditionsMQClient::InitTask()
 {
-  fParameterName = fConfig->GetValue<string>("parameter-name");
-  fOperationType = fConfig->GetValue<string>("operation-type");
-  fDataSource = fConfig->GetValue<string>("data-source");
-  fObjectPath = fConfig->GetValue<string>("object-path");
+  fParameterName = GetConfig()->GetValue<string>("parameter-name");
+  fOperationType = GetConfig()->GetValue<string>("operation-type");
+  fDataSource = GetConfig()->GetValue<string>("data-source");
+  fObjectPath = GetConfig()->GetValue<string>("object-path");
 }
 
 void ConditionsMQClient::Run()

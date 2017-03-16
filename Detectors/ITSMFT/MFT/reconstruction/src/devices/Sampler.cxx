@@ -50,11 +50,11 @@ void Sampler::InitTask()
 
   LOG(INFO) << "Sampler::InitTask >>>>>" << "";
   
-  fFileNames = fConfig->GetValue<std::vector<std::string>>("file-name");
-  fMaxIndex = fConfig->GetValue<int64_t>("max-index");
-  fBranchNames = fConfig->GetValue<std::vector<std::string>>("branch-name");
-  fOutputChannelName = fConfig->GetValue<std::string>("out-channel");
-  fAckChannelName = fConfig->GetValue<std::string>("ack-channel");
+  fFileNames = GetConfig()->GetValue<std::vector<std::string>>("file-name");
+  fMaxIndex = GetConfig()->GetValue<int64_t>("max-index");
+  fBranchNames = GetConfig()->GetValue<std::vector<std::string>>("branch-name");
+  fOutputChannelName = GetConfig()->GetValue<std::string>("out-channel");
+  fAckChannelName = GetConfig()->GetValue<std::string>("ack-channel");
 
   fRunAna = new FairRunAna();
   

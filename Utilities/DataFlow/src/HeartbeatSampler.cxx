@@ -24,8 +24,8 @@ AliceO2::DataFlow::HeartbeatSampler::~HeartbeatSampler()
 
 void AliceO2::DataFlow::HeartbeatSampler::InitTask()
 {
-  mPeriod = fConfig->GetValue<uint32_t>(OptionKeyPeriod);
-  mOutputChannelName = fConfig->GetValue<std::string>(OptionKeyOutputChannelName);
+  mPeriod = GetConfig()->GetValue<uint32_t>(OptionKeyPeriod);
+  mOutputChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
 }
 
 bool AliceO2::DataFlow::HeartbeatSampler::ConditionalRun()
