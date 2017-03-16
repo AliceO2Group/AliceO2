@@ -102,7 +102,7 @@ class TimeStamp
   typedef AliceO2::Header::Descriptor<2> TimeUnitID;
   // TODO: typedefs for the types of ticks and subticks
 
-  TimeStamp();
+  TimeStamp() = default;
   TimeStamp(uint64_t ts) : mTimeStamp64(ts) {}
   TimeStamp(const TimeUnitID& unit, uint32_t tick, uint16_t subtick = 0)
     : mUnit(unit), mTicks(tick), mSubTicks(subtick) {}
