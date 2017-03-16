@@ -27,13 +27,13 @@ set(SRCS
    src/GBTFrame.cxx
    src/GBTFrameContainer.cxx
    src/GEMAmplification.cxx
+   src/HalfSAMPAData.cxx
    src/HwCluster.cxx
    src/HwClusterer.cxx
    src/HwClusterFinder.cxx
    src/HwFixedPoint.cxx
    src/PadResponse.cxx
    src/Point.cxx
-   src/SAMPAData.cxx
    src/SAMPAProcessing.cxx
    src/SyncPatternMonitor.cxx
 )
@@ -61,13 +61,13 @@ set(HEADERS
    include/${MODULE_NAME}/GBTFrame.h
    include/${MODULE_NAME}/GBTFrameContainer.h
    include/${MODULE_NAME}/GEMAmplification.h
+   include/${MODULE_NAME}/HalfSAMPAData.h
    include/${MODULE_NAME}/HwCluster.h
    include/${MODULE_NAME}/HwClusterer.h
    include/${MODULE_NAME}/HwClusterFinder.h
    include/${MODULE_NAME}/HwFixedPoint.h
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/Point.h
-   include/${MODULE_NAME}/SAMPAData.h
    include/${MODULE_NAME}/SAMPAProcessing.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
 )
@@ -85,11 +85,13 @@ install(
 Set(Exe_Names
   tpc-run-sim
   tpc-test-GBT
+  tpc-read-GBTFrames
 )
 
 Set(Exe_Source
   run/runSim.cxx
   run/testGBT.cxx
+  run/readGBTFrames.cxx
 )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.

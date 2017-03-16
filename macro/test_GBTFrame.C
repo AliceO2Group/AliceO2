@@ -39,8 +39,8 @@ void addDataCont(std::vector<GBTFrame>& data, GBTFrameContainer& container)
 
 void readDataCont(GBTFrameContainer& container)
 {
-  std::vector<SAMPAData> data(5);
-  std::vector<SAMPAData> lastData(5);
+  std::vector<HalfSAMPAData> data(5);
+  std::vector<HalfSAMPAData> lastData(5);
   unsigned long count = 0;
   while (run_read) {
     std::this_thread::sleep_for(std::chrono::microseconds{10});
@@ -53,7 +53,7 @@ void readDataCont(GBTFrameContainer& container)
   mtx.lock();
   std::cout << "Read " << count << " x 80 (" << count*80 << ") values" << std::endl;
   std::cout << "last data:" << std::endl;
-  for (std::vector<SAMPAData>::iterator it = data.begin(); it != data.end(); ++it) {
+  for (std::vector<HalfSAMPAData>::iterator it = data.begin(); it != data.end(); ++it) {
     std::cout << *it << std::endl;
   }
   std::cout << container.getSize() << " " << container.getNentries() << std::endl;
@@ -65,21 +65,56 @@ void test_GBTFrame(std::string infile , int time)
 {
 
   std::cout << infile << std::endl;
+//  std::ifstream file(infile);
+//
+//  int frame_idx;
+//  int numGBTXframes = 1000;
+//  uint32_t rawData32b;
+//  uint16_t gbtx_id;
+//  uint32_t gbtx_frame_w3;
+//  uint32_t gbtx_frame_w2;
+//  uint32_t gbtx_frame_w1;
+//  uint32_t gbtx_frame_w0;
+//  if (file.is_open()){
+//    std::cout << "Reading file : " << infile << std::endl;
+//    frame_idx = 0;
+//    // read the GBTx Frames
+//    while( frame_idx < numGBTXframes && !file.eof() ){
+//     file.read( (char*)&rawData32b, sizeof(rawData32b) );
+//
+//     gbtx_id = (rawData32b >> 16) & 0xFFFF;
+//     if( (gbtx_id == 0xdef1) || (gbtx_id == 0xdef4)) {
+//       gbtx_frame_w3 = rawData32b;
+//       file.read((char*)&gbtx_frame_w2, sizeof(gbtx_frame_w2));
+//       file.read((char*)&gbtx_frame_w1, sizeof(gbtx_frame_w1));
+//       file.read((char*)&gbtx_frame_w0, sizeof(gbtx_frame_w0));
+//     }
+//   }
+//  }
+//  file.close();
+
 
   std::ifstream fifofile(infile);
+  std::vector<GBTFrame> fifoFrames;
   if (fifofile.is_open()) {
     int word0, word1, word2, word3;
     int c;
     char cc;
+    unsigned rawData;
+    int gbt_marker;
     std::string str;
-    std::vector<GBTFrame> fifoFrames;
                 //     counter    :     data
-    while (fifofile >> c       >> cc >> str) {
-      sscanf(str.substr( 2,8).c_str(), "%x", &word3);
-      sscanf(str.substr(10,8).c_str(), "%x", &word2);
-      sscanf(str.substr(18,8).c_str(), "%x", &word1);
-      sscanf(str.substr(26,8).c_str(), "%x", &word0);
-      fifoFrames.emplace_back(word3,word2,word1,word0);
+//    while (fifofile >> c       >> cc >> str) {
+    while(!fifofile.eof()) {
+      fifofile.read((char*)&rawData, sizeof(rawData));
+      gbt_marker =  (rawData >> 16) & 0xFFFF;
+      if ((gbt_marker == 0xdef1) || (gbt_marker == 0xdef4)) {
+        word3 = rawData;
+        fifofile.read((char*)&word2, sizeof(word2));
+        fifofile.read((char*)&word1, sizeof(word1));
+        fifofile.read((char*)&word0, sizeof(word0));
+        fifoFrames.emplace_back(word3,word2,word1,word0);
+      }
     }
     fifofile.close();
 
@@ -113,53 +148,17 @@ void test_GBTFrame(std::string infile , int time)
   }
 
   GBTFrameContainer container2(1,1);
-  container2.addGBTFramesFromFile(infile);
-  container2.overwriteAdcClock(-1,3);
+  container2.setEnableAdcClockWarning(false);
+  container2.addGBTFramesFromBinaryFile(infile);
+  container2.overwriteAdcClock(-1,0);
+  container2.setEnableAdcClockWarning(true);
   container2.reProcessAllFrames();
-  if (container2[13103].getAdcClock(1) == 0) container2[13103].setAdcClock(1,0xF);
-  else container2[13103].setAdcClock(1,0);
+  if (container2[13103].getAdcClock(1) == 0) 
+    container2[13103].setAdcClock(1,0xF);
+  else 
+    container2[13103].setAdcClock(1,0);
   container2.reProcessAllFrames();
   std::cout << container2.getSize() << " " << container2.getNentries() << std::endl;
-
-//  int counter = 0;
-//  for (std::vector<GBTFrame>::iterator it = fifoFrames.begin(); it != fifoFrames.end(); it++){
-//    std::cout << counter++ << ": " << *it << std::endl;
-//    container.addGBTFrame(*it);
-//    container2.addGBTFrame(*it);
-//  }
-//
-//  std::vector<std::vector<SAMPAData>> allData;
-//  std::vector<SAMPAData> data(5);
-//  std::vector<Digit> digits;
-//  container.getDigits(&digits,false);
-//  while (container.getData(&data) && container2.getData(&data)) {
-//    allData.push_back(data);
-//    data.clear();
-//    container.getDigits(&digits,false);
-//  }
-//
-//  for (auto &d : allData[0])
-//    std::cout << d << std::endl;
-//
-//  std::cout << digits.size() << std::endl;
-//  std::cout << allData.size() << std::endl;
-//
-//
-//
-////  std::vector<Digit> digits2;
-////  std::cout << container.getDigits(&digits2) << std::endl;
-//
-//  for (std::vector<GBTFrame>::iterator it = container.begin(); it != container.end(); ++it) {
-//    std::cout << *it << std::endl;
-//  }
-//  std::cout << std::endl;
-//
-//  container[14] = container[2];
-//  for (std::vector<GBTFrame>::iterator it = container.begin(); it != container.end(); ++it) {
-//    std::cout << *it << std::endl;
-//  }
-//
-//  container.reProcessAllFrames();
 
   return;
 };

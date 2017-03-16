@@ -130,8 +130,6 @@ void GBTFrame::calculateHalfWords()
 
 char GBTFrame::getAdcClock(char sampa) const
 {
-//  sampa %= 3;
-
   switch (sampa) {
     case 0: return (mWords[1] >> 8) & 0xF;
     case 1: return (mWords[2] >> 20) & 0xF;
@@ -184,18 +182,11 @@ char GBTFrame::getBits(char word, unsigned width, unsigned lsb) const
 
 unsigned GBTFrame::getBits(unsigned word, unsigned width, unsigned lsb) const
 {
-//  return ((width >= 32) ? word : (word >> lsb) & (((1 << width) - 1)));
   return (word >> lsb) & (((1 << width) - 1));
 }
 
 inline unsigned int GBTFrame::combineBitsOfFrame(char bit0, char bit1, char bit2, char bit3, char bit4) const
 {
-//  unsigned res = 0;
-//  for (std::vector<char>::iterator it = bits.begin(); it != bits.end(); it++) {
-//    res <<= 1;
-//    res += getBit(mWords[(*it)/32],(*it)%32);
-//  }
-
 //
 //  ">> 5"      is equivalent to "/ 32"
 //  "& 0x1F"    is equivalent to "% 32"

@@ -29,13 +29,13 @@
 #pragma link C++ class AliceO2::TPC::GBTFrame+;
 #pragma link C++ class AliceO2::TPC::GBTFrameContainer+;
 #pragma link C++ class AliceO2::TPC::GEMAmplification+;
+#pragma link C++ class AliceO2::TPC::HalfSAMPAData+;
 #pragma link C++ class AliceO2::TPC::HwCluster+;
 #pragma link C++ class AliceO2::TPC::HwClusterer+;
 #pragma link C++ class AliceO2::TPC::HwClusterFinder+;
 #pragma link C++ class AliceO2::TPC::HwFixedPoint+;
 #pragma link C++ class AliceO2::TPC::PadResponse+;
 #pragma link C++ class AliceO2::TPC::Point+;
-#pragma link C++ class AliceO2::TPC::SAMPAData+;
 #pragma link C++ class AliceO2::TPC::SAMPAProcessing+;
 #pragma link C++ class AliceO2::TPC::SyncPatternMonitor.h+;
 

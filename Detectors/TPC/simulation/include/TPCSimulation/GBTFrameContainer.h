@@ -8,7 +8,7 @@
 #include "TPCSimulation/AdcClockMonitor.h"
 #include "TPCSimulation/SyncPatternMonitor.h"
 #include "TPCSimulation/Digit.h"
-#include "TPCSimulation/SAMPAData.h"
+#include "TPCSimulation/HalfSAMPAData.h"
 #include "TPCBase/Mapper.h" 
 //#include <TClonesArray.h>  
 #include <vector>
@@ -44,6 +44,10 @@ class GBTFrameContainer {
     /// @param link Link ID
     GBTFrameContainer(int size, int cru, int link);
 
+//    /// Copy Constructor
+//    /// @param other Other GBTFrameContainer
+//    GBTFrameContainer(const GBTFrameContainer& other);
+
     /// Destructor
     ~GBTFrameContainer();
 
@@ -52,7 +56,7 @@ class GBTFrameContainer {
 
     /// Get the size of the container
     /// @return Size of GBT frame container
-    int getSize() { return mGBTFrames.size(); };
+    int getSize() { mGBTMutex.lock(); int ret = mGBTFrames.size(); mGBTMutex.unlock(); return ret; };
 
     /// Get the number of entries in the container
     /// @return Number of entries in the GBT frame container
@@ -105,6 +109,10 @@ class GBTFrameContainer {
     /// @param fileName Path to file
     void addGBTFramesFromFile(std::string fileName);
 
+    /// Add all frames from file to conatiner
+    /// @param fileName Path to file
+    void addGBTFramesFromBinaryFile(std::string fileName);
+
 //    /// Fill output TClonesArray
 //    /// @param output Output container
 //    void fillOutputContainer(TClonesArray* output);
@@ -126,7 +134,9 @@ class GBTFrameContainer {
     /// @return If true, at least one digit was added.
     bool getDigits(std::vector<Digit> *digitContainer, bool removeChannel = true);
 
-    bool getData(std::vector<SAMPAData> *container, bool removeChannel = true);
+    bool getData(std::vector<HalfSAMPAData> *container, bool removeChannel = true);
+
+    int getNFramesAnalyzed() const { return mGBTFramesAnalyzed; };
 
     /// Returns a GBT frame
     /// @param index
@@ -186,7 +196,8 @@ class GBTFrameContainer {
     void resetSyncPattern();
     void resetAdcValues();
 
-    std::mutex mtx;
+    std::mutex mAdcMutex;
+    std::mutex mGBTMutex;
 
     std::deque<GBTFrame> mGBTFrames;                ///< GBT Frames container
     std::vector<AdcClockMonitor> mAdcClock;         ///< ADC clock monitor for the 3 SAMPAs
@@ -200,6 +211,9 @@ class GBTFrameContainer {
     int mCRU;                                       ///< CRU ID of the GBT frames
     int mLink;                                      ///< Link ID of the GBT frames
     int mTimebin;                                   ///< Timebin of last digits extraction 
+    int mGBTFramesAnalyzed;                         
+
+    std::vector<std::vector<int>> mTmpData; 
 };
 }
 }
