@@ -98,7 +98,7 @@ Int_t AliHLTTRDTrack::GetTracklet(Int_t iLayer) const
 void AliHLTTRDTrack::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
 {
   // convert to HLT structure
-  
+
   t.fAlpha = GetAlpha();
   t.fX = GetX();
   t.fY = GetY();
@@ -107,10 +107,10 @@ void AliHLTTRDTrack::ConvertTo( AliHLTTRDTrackDataRecord &t ) const
   t.fSinPsi = GetSnp();
   t.fTgl = GetTgl();
   for( int i=0; i<15; i++ ) t.fC[i] = GetCovariance()[i];
-  t.fTPCTrackID = GetTPCtrackId();  
+  t.fTPCTrackID = GetTPCtrackId();
   for ( int i = 0; i <6; i++ ){
     t.fAttachedTracklets[ i ] = GetTracklet( i );
-  }  
+  }
 }
 
 void AliHLTTRDTrack::ConvertFrom( const AliHLTTRDTrackDataRecord &t )

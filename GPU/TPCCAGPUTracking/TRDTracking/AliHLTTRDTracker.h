@@ -19,6 +19,12 @@ class AliESDtrack;
 class AliHLTTRDTracker : public AliTracker {
 public:
 
+  enum EHLTTRDTracker {
+    kNLayers = 6,
+    kNSectors = 18,
+    kNChambers = 540
+  };
+
   // struct to hold the information on the space points
   struct AliHLTTRDSpacePointInternal {
     double fX[3];
@@ -35,6 +41,7 @@ public:
   int FollowProlongation(AliHLTTRDTrack *t, double mass);
   void EnableDebugOutput() { fEnableDebugOutput = true; }
   void SetPtThreshold(float minPt) { fMinPt = minPt; }
+  void SetChi2Threshold(float maxChi2) { fMaxChi2 = maxChi2; }
   void Rotate(const double alpha, const double * const loc, double *glb);
   int GetDetectorNumber(const double zPos, double alpha, int layer);
   bool AdjustSector(AliHLTTRDTrack *t);
@@ -42,6 +49,7 @@ public:
   // for testing
   bool IsTrackletSortingOk();
   float GetPtThreshold() { return fMinPt; }
+  float GetChi2Threshold() { return fMaxChi2; }
 
 
   AliHLTTRDTrack *Tracks() const { return fTracks;}
@@ -64,24 +72,29 @@ public:
 
 protected:
 
+  static const double fgkX0[kNLayers];        // default values of anode wires
+  double fR[kNLayers];                        // rough radial position of each TRD layer
 
+  bool fIsInitialized;                        // flag is set upon initialization
   AliHLTTRDTrack *fTracks;                    // array of trd-updated tracks
   int fNTracks;                               // number of TPC tracks to be matched
   int fNEvents;                               // number of processed events
   AliHLTTRDTrackletWord *fTracklets;          // array of all tracklets, later sorted by HCId
   int fNtrackletsMax;                         // max number of tracklets
   int fNTracklets;                            // total number of tracklets in event
-  int fTrackletIndexArray[540][2];            // index of first tracklet of each detector [iDet][0]
+  int fTrackletIndexArray[kNChambers][2];     // index of first tracklet of each detector [iDet][0]
                                               // and number of tracklets in detector [iDet][1]
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
   AliTRDgeometry *fTRDgeometry;               // TRD geometry
   bool fEnableDebugOutput;                    // store debug output
-  float fMinPt;
+  float fMinPt;                               // min pt of TPC tracks for tracking
+  float fMaxChi2;                             // max chi2 for tracklets
   TTreeSRedirector *fStreamer;                // debug output stream
 
 private:
   AliHLTTRDTracker(const AliHLTTRDTracker &tracker);
   AliHLTTRDTracker & operator=(const AliHLTTRDTracker &tracker);
+
   ClassDef(AliHLTTRDTracker,0)   //HLT ITS tracker
 };
 

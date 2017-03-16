@@ -1,5 +1,5 @@
 // $Id$
-//* This file is property of and copyright by the ALICE HLT Project        * 
+//* This file is property of and copyright by the ALICE HLT Project        *
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
@@ -10,7 +10,7 @@
 #include "AliHLTStdIncludes.h"
 
 /**
- * @struct AliHLTTRDTrackData 
+ * @struct AliHLTTRDTrackData
  * This is a flat data structure (w/o virtual methods, i.e w/o pointer to virtual table) for transporting TRD tracks via network between the components.
  */
 
@@ -24,7 +24,7 @@ struct AliHLTTRDTrackDataRecord
   AliHLTFloat32_t fTgl;    // tangent of the track momentum dip angle
   AliHLTFloat32_t fq1Pt;   // 1/pt (1/(GeV/c))
   AliHLTFloat32_t fC[15];  // covariance matrix
-  AliHLTInt32_t   fTPCTrackID;// id of corresponding TPC track  
+  AliHLTInt32_t   fTPCTrackID;// id of corresponding TPC track
   AliHLTInt32_t   fAttachedTracklets[6];  // IDs for attached tracklets sorted by layer
 
   int GetNTracklets() const {

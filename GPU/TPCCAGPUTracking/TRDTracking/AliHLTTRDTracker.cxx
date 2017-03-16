@@ -8,7 +8,11 @@
 
 ClassImp(AliHLTTRDTracker)
 
+// default values taken from AliTRDtrackerV1.cxx
+const Double_t AliHLTTRDTracker::fgkX0[kNLayers]    = { 300.2, 312.8, 325.4, 338.0, 350.6, 363.2 };
+
 AliHLTTRDTracker::AliHLTTRDTracker() :
+  fIsInitialized(false),
   fTracks(0x0),
   fNTracks(0),
   fNEvents(0),
@@ -18,10 +22,14 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fSpacePoints(0x0),
   fTRDgeometry(0x0),
   fEnableDebugOutput(false),
-  fMinPt(2.5),
+  fMinPt(1.0),
+  fMaxChi2(35.0),
   fStreamer(0x0)
 {
-  for (int iDet=0; iDet<540; ++iDet) {
+  for (int iLy=0; iLy<kNLayers; iLy++) {
+    fR[iLy] = fgkX0[iLy];
+  }
+  for (int iDet=0; iDet<kNChambers; ++iDet) {
     fTrackletIndexArray[iDet][0] = -1;
     fTrackletIndexArray[iDet][1] = 0;
   }
@@ -29,6 +37,7 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
 }
 
 AliHLTTRDTracker::AliHLTTRDTracker(const AliHLTTRDTracker &tracker) :
+  fIsInitialized(false),
   fTracks(0x0),
   fNTracks(0),
   fNEvents(0),
@@ -38,12 +47,16 @@ AliHLTTRDTracker::AliHLTTRDTracker(const AliHLTTRDTracker &tracker) :
   fSpacePoints(0x0),
   fTRDgeometry(0x0),
   fEnableDebugOutput(false),
-  fMinPt(2.5),
+  fMinPt(1.0),
+  fMaxChi2(35.0),
   fStreamer(0x0)
 {
   //Copy constructor
   //Dummy!
-  for (int iDet=0; iDet<540; ++iDet) {
+  for (int iLy=0; iLy<kNLayers; iLy++) {
+    fR[iLy] = fgkX0[iLy];
+  }
+  for (int iDet=0; iDet<kNChambers; ++iDet) {
     fTrackletIndexArray[iDet][0] = tracker.fTrackletIndexArray[iDet][0];
     fTrackletIndexArray[iDet][1] = tracker.fTrackletIndexArray[iDet][1];
   }
@@ -59,29 +72,56 @@ AliHLTTRDTracker & AliHLTTRDTracker::operator=(const AliHLTTRDTracker &tracker){
 AliHLTTRDTracker::~AliHLTTRDTracker()
 {
   //Destructor
-  delete[] fTracklets;
-  delete[] fTracks;
-  delete[] fSpacePoints;
-  delete fTRDgeometry;
-  if (fEnableDebugOutput) {
-    delete fStreamer;
+  if (fIsInitialized) {
+    delete[] fTracklets;
+    delete[] fTracks;
+    delete[] fSpacePoints;
+    delete fTRDgeometry;
+    if (fEnableDebugOutput) {
+      delete fStreamer;
+    }
   }
 }
 
 
 void AliHLTTRDTracker::Init()
 {
+  if(!AliGeomManager::GetGeometry()){
+    Error("Init", "Could not get geometry.");
+  }
+
   fTracklets = new AliHLTTRDTrackletWord[fNtrackletsMax];
   fSpacePoints = new AliHLTTRDSpacePointInternal[fNtrackletsMax];
 
   fTRDgeometry = new AliTRDgeometry();
   if (!fTRDgeometry) {
-    Error("Init", "TRD geometry could not be loaded\n");
+    Error("Init", "TRD geometry could not be loaded");
+  }
+
+  fTRDgeometry->CreateClusterMatrixArray();
+  TGeoHMatrix *matrix = 0x0;
+  double loc[3] = { AliTRDgeometry::AnodePos(), 0., 0. };
+  double glb[3] = { 0., 0., 0. };
+  for (int iLy=0; iLy<kNLayers; iLy++) {
+    for (int iSec=0; iSec<kNSectors; iSec++) {
+      matrix = fTRDgeometry->GetClusterMatrix(fTRDgeometry->GetDetector(iLy, 2, iSec));
+      if (matrix) {
+        break;
+      }
+    }
+    if (!matrix) {
+      Error("Init", "Could not get transformation matrix for layer %i. Using default x pos instead", iLy);
+      continue;
+    }
+    matrix->LocalToMaster(loc, glb);
+    fR[iLy] = glb[0];
   }
 
   if (fEnableDebugOutput) {
     fStreamer = new TTreeSRedirector("debug.root", "recreate");
   }
+
+  fIsInitialized = true;
 }
 
 void AliHLTTRDTracker::Reset()
@@ -115,7 +155,7 @@ void AliHLTTRDTracker::StartLoadTracklets(const int nTrklts)
 void AliHLTTRDTracker::LoadTracklet(const AliHLTTRDTrackletWord &tracklet)
 {
   if (fNTracklets >= fNtrackletsMax ) {
-    Error("LoadTracklet", "running out of memory for tracklets, skipping tracklet(s). This should actually never happen.\n");
+    Error("LoadTracklet", "running out of memory for tracklets, skipping tracklet(s). This should actually never happen.");
     return;
   }
   fTracklets[fNTracklets++] = tracklet;
@@ -134,7 +174,7 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
   // sort tracklets and fill index array
   std::sort(fTracklets, fTracklets + fNTracklets);
   int trkltCounter = 0;
-  for (int iDet=0; iDet<540; ++iDet) {
+  for (int iDet=0; iDet<kNChambers; ++iDet) {
     if (fTrackletIndexArray[iDet][1] != 0) {
       fTrackletIndexArray[iDet][0] = trkltCounter;
       trkltCounter += fTrackletIndexArray[iDet][1];
@@ -144,7 +184,7 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
   // test the correctness of the tracklet index array
   // this can be deleted later...
   if (!IsTrackletSortingOk()) {
-    Error("DoTracking", "bug in tracklet index array\n");
+    Error("DoTracking", "bug in tracklet index array");
   }
 
   CalculateSpacePoints();
@@ -193,7 +233,7 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
 bool AliHLTTRDTracker::IsTrackletSortingOk()
 {
   int nTrklts = 0;
-  for (int iDet=0; iDet<540; iDet++) {
+  for (int iDet=0; iDet<kNChambers; iDet++) {
     for (int iTrklt=0; iTrklt<fTrackletIndexArray[iDet][1]; iTrklt++) {
       ++nTrklts;
       int detTracklet = fTracklets[fTrackletIndexArray[iDet][0]+iTrklt].GetDetector();
@@ -216,7 +256,7 @@ void AliHLTTRDTracker::CalculateSpacePoints()
   // in sector tracking coordinates for all tracklets
   //--------------------------------------------------------------------
 
-  for (int iDet=0; iDet<540; ++iDet) {
+  for (int iDet=0; iDet<kNChambers; ++iDet) {
 
     int layer = fTRDgeometry->GetLayer(iDet);
     int stack = fTRDgeometry->GetStack(iDet);
@@ -228,7 +268,7 @@ void AliHLTTRDTracker::CalculateSpacePoints()
 
     TGeoHMatrix *matrix = fTRDgeometry->GetClusterMatrix(iDet);
     if (!matrix){
-	    Error("CalculateSpacePoints", "invalid TRD cluster matrix, skipping detector  %i\n", iDet);
+	    Error("CalculateSpacePoints", "invalid TRD cluster matrix, skipping detector  %i", iDet);
 	    continue;
     }
     AliTRDpadPlane *padPlane = fTRDgeometry->GetPadPlane(layer, stack);
@@ -259,9 +299,10 @@ void AliHLTTRDTracker::CalculateSpacePoints()
 int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
 {
   //--------------------------------------------------------------------
-  // This function propagates found tracks with pT > 1.0 GeV
+  // This function propagates found tracks with pT > fMinPt
   // through the TRD and picks up the closest tracklet in each
   // layer on the way.
+  // the tracks are currently not updated with the assigned tracklets
   // returns variable result = number of assigned tracklets
   //--------------------------------------------------------------------
 
@@ -299,9 +340,8 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
 
     const float zMaxTRD = pad->GetRowPos(0);
     const float yMax    = pad->GetColPos(nCols-1) + pad->GetColSize(nCols-1);
-    const float xLayer  = fTRDgeometry->GetTime0(iLayer);
 
-    if (!PropagateTrackToBxByBz(t, xLayer, mass, 5.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/) || (abs(t->GetZ()) >= (zMaxTRD + 10.)) ) {
+    if (!PropagateTrackToBxByBz(t, fR[iLayer], mass, 5.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/) || (abs(t->GetZ()) >= (zMaxTRD + 10.)) ) {
       return result;
     }
 
@@ -433,7 +473,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
     }
 
     // look for tracklets in chamber(s)
-    double bestGuessChi2 = 100.; // TODO define meaningful chi2 cut 
+    double bestGuessChi2 = fMaxChi2; // TODO define meaningful chi2 cut
     int bestGuessIdx = -1;
     int bestGuessDet = -1;
     double p[2] = { 0. };
@@ -459,7 +499,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
           p[0] = fSpacePoints[trkltIdx].fX[1];
           p[1] = fSpacePoints[trkltIdx].fX[2];
           if (TMath::Abs(p[0]) > 1000) {
-            Error("FollowProlongation", "impossible y-value of tracklet: y=%.12f\n", p[0]);
+            Error("FollowProlongation", "impossible y-value of tracklet: y=%.12f", p[0]);
             return result;
           }
           cov[0] = TMath::Power(0.03, 2);
@@ -471,6 +511,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
             bestGuessIdx = trkltIdx;
             bestGuessDet = detToSearch;
           }
+          float dX = t->GetX() - fSpacePoints[trkltIdx].fX[0];
           float dY = t->GetY() - fSpacePoints[trkltIdx].fX[1];
           float dZ = t->GetZ() - fSpacePoints[trkltIdx].fX[2];
           if (fEnableDebugOutput) {
@@ -481,12 +522,13 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
               "iTrklt=" << iTrklt <<
               "stack=" << stackToSearch <<
               "det=" << detToSearch <<
+              "dX=" << dX <<
               "dY=" << dY <<
               "dZ=" << dZ <<
               "\n";
           }
           if (TMath::Abs(dZ) > 160) {
-            Error("FollowProlongation", "impossible dZ-value of tracklet: track z = %f, tracklet z = %f, detToSearch = %i\n", t->GetZ(), fSpacePoints[trkltIdx].fX[2], detToSearch);
+            Error("FollowProlongation", "impossible dZ-value of tracklet: track z = %f, tracklet z = %f, detToSearch = %i", t->GetZ(), fSpacePoints[trkltIdx].fX[2], detToSearch);
           }
         }
       }
@@ -498,14 +540,20 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
       cov[0] = TMath::Power(0.03, 2);
       cov[1] = 0;
       cov[2] = TMath::Power(9./TMath::Sqrt(12), 2);
-      if (!t->Update(p, cov)) {
-        Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);
-        return result;
-      }
+      t->AddTracklet(iLayer, bestGuessIdx);
+      //FIXME uncomment following lines to update track with tracklet information
+      //if (!t->Update(p, cov)) {
+      //  Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);
+      //  return result;
+      //}
       ++result;
+      if (TMath::Abs(fSpacePoints[bestGuessIdx].fX[0] - fR[iLayer]) > 5) {
+        Error("FollowProlongation", "tracklet from wrong layer added to track. fR[iLayer]=%f, xTracklet=%f", fR[iLayer], fSpacePoints[bestGuessIdx].fX[0]);
+      }
     }
   }
   // after propagation, propagate track back to inner radius of TPC
+  //FIXME do not propagate back -> for this, the track matching to offline tracks needs to be adjusted
   float xInnerParam = 83.65;
   if (!PropagateTrackToBxByBz(t, xInnerParam, mass, 5.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/)) {
     Warning("FollowProlongation", "Back propagation for track %i failed", iTrack);
@@ -513,7 +561,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
   }
 
   // rotate track back in old sector in case of sector crossing
-  AdjustSector(t);
+  AdjustSector(t); //FIXME not necessary if track is not back propagated
 
   return result;
 }
@@ -553,7 +601,7 @@ bool AliHLTTRDTracker::AdjustSector(AliHLTTRDTrack *t)
   }
 
   if (y > yMax) {
-    
+
     if (!t->Rotate(alphaCurr+alpha)) {
       return false;
     }

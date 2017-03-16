@@ -239,7 +239,7 @@ int AliHLTTRDTrackerComponent::DoEvent
   fBenchmark.Start(0);
 
   AliHLTUInt32_t maxBufferSize = size;
-  size = 0; // output size  
+  size = 0; // output size
 
   int iResult=0;
 
@@ -376,20 +376,20 @@ int AliHLTTRDTrackerComponent::DoEvent
   }
   // push back AliHLTExternalTrackParam (default)
   else {
- 
+
     AliHLTUInt32_t blockSize = AliHLTTRDTrackData::GetSize( nTracks );
     if (size + blockSize > maxBufferSize) {
       HLTWarning( "Output buffer exceeded for tracks" );
       return -ENOSPC;
     }
-    
+
     AliHLTTRDTrackData* outTracks = ( AliHLTTRDTrackData* )( outputPtr );
     outTracks->fCount = 0;
-      
+
     for (int iTrk=0; iTrk<nTracks; ++iTrk) {
       AliHLTTRDTrack &t = trackArray[iTrk];
       AliHLTTRDTrackDataRecord &currOutTrack = outTracks->fTracks[outTracks->fCount];
-      t.ConvertTo(currOutTrack);      
+      t.ConvertTo(currOutTrack);
       outTracks->fCount++;
     }
 
@@ -403,7 +403,7 @@ int AliHLTTRDTrackerComponent::DoEvent
 
     size += blockSize;
     outputPtr += resultData.fSize;
-    
+
     blockSize = 0;
 
     // space points calculated from tracklets
@@ -422,7 +422,7 @@ int AliHLTTRDTrackerComponent::DoEvent
       AliHLTTRDTrackPoint empty;
       empty.fX[0] = 0;
       empty.fX[1] = 0;
-      empty.fX[2] = 0;      
+      empty.fX[2] = 0;
       empty.fVolumeId = 0;
       for (int i=0; i<nTrackletsTotal; ++i) {
 	outTrackPoints->fPoints[i] = empty;
