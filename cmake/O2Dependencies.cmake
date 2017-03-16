@@ -151,6 +151,21 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    TimeFrame_bucket
+
+    DEPENDENCIES
+    Base
+    Headers
+    fairroot_base_bucket
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${ZeroMQ_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
+)
+
+o2_define_bucket(
+    NAME
     flp2epn_bucket
 
     DEPENDENCIES
@@ -240,7 +255,7 @@ o2_define_bucket(
     root_base_bucket
 
     DEPENDENCIES
-    Core # ROOT
+    Core RIO # ROOT
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
@@ -265,6 +280,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     root_base_bucket
+    ${ZeroMQ_LIBRARY_SHARED}
     Base FairMQ FairTools fairmq_logger Base
     common_boost_bucket
     ${Boost_THREAD_LIBRARY} pthread
