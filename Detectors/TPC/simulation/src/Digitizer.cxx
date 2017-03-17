@@ -44,11 +44,11 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 
   // static_thread for thread savety?
   // avid multiple creation of the random lookup tables inside
-  static GEMAmplification gemStack(EFFGAINGEM1, EFFGAINGEM2, EFFGAINGEM3, EFFGAINGEM4);
+  static GEMAmplification gemStack;
   static ElectronTransport electronTransport;
   static PadResponse padResp;
 
-  static std::array<float, 8> signalArray;
+  static std::array<float, mNShapedPoints> signalArray;
 
   for(auto pointObject : *points) {
     Point *inputpoint = static_cast<Point *>(pointObject);
@@ -85,24 +85,21 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       // Loop over all individual pads with signal due to pad response function
       // PRF does not yet work as there is a massive discrepancy between the computed Pad Centre and the actual electron
       // position, therefore prf = 0;
-      //       for(int ipad = -2; ipad<3; ++ipad) {
-      //         for(int irow = -2; irow<3; ++irow) {
-      //           PadPos padPos(digiPadPos.getPadPos().getRow() + irow, digiPadPos.getPadPos().getPad() + ipad);
+      // for(int ipad = -2; ipad<3; ++ipad) {
+      //   for(int irow = -2; irow<3; ++irow) {
+      //     PadPos padPos(digiPadPos.getPadPos().getRow() + irow, digiPadPos.getPadPos().getPad() + ipad);
       DigitPos digiPos = digiPadPos;
-      //           DigitPos digiPos(digiPadPos.getCRU(), padPos); /// @todo this is not at all optimal - in principle
-      //           the next pad row could be in the next cru - to be changed!
-      if (!digiPos.isValid())
-        continue;
-      //           const PadCentre padCentre = mapper.padCentre(mapper.globalPadNumber(digiPadPos.getPadPos()));
+      //     DigitPos digiPos(digiPadPos.getCRU(), padPos); /// @todo this is not at all optimal - in principle the next pad row could be in the next cru - to be changed!
+      if (!digiPos.isValid()) continue;
       const float prfWeight = 1.f;
-      //           const float prfWeight = padResp.getPadResponse(posEleDiff, digiPos);
-      //           if (prfWeight <= 0) continue;
+//      const float prfWeight = padResp.getPadResponse(posEleDiff, digiPos);
+      if (prfWeight <= 0) continue;
       const int pad = digiPos.getPadPos().getPad();
       const int row = digiPos.getPadPos().getRow();
       const float ADCsignal = SAMPAProcessing::getADCvalue(nElectronsGEM * prfWeight);
       SAMPAProcessing::getShapedSignal(ADCsignal, driftTime, signalArray);
 
-      for(float i=0; i<8; ++i) {
+      for(float i=0; i<mNShapedPoints; ++i) {
         float time = driftTime + i * ZBINWIDTH;
         mDigitContainer->addDigit(MCEventID, MCTrackID, digiPos.getCRU().number(), getTimeBinFromTime(time), row, pad, signalArray[i]);
       }
