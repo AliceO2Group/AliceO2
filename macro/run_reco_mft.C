@@ -51,6 +51,17 @@ void run_reco_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine="TGean
 
   fRun->Init();
 
+  AliceO2::Field::MagneticField* fld = (AliceO2::Field::MagneticField*)fRun->GetField();
+  if (!fld) {
+    std::cout << "Failed to get field instance from FairRunAna" << std::endl;
+    return;
+  }
+  printf("Field solenoid = %f [kG] \n",fld->solenoidField());
+  printf("Field Bx,By,Bz in (0,0,0) = %f %f %f [kG] \n",
+	 fld->GetBx(0.,0.,0.),
+	 fld->GetBy(0.,0.,0.),
+	 fld->GetBz(0.,0.,0.));
+
   timer.Start();
 
   fRun->Run();

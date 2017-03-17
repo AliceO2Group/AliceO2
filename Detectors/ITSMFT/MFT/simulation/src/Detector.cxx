@@ -14,6 +14,7 @@
 
 #include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"
+#include "Field/MagneticField.h"
 
 #include "TVirtualMC.h"
 #include "TGeoGlobalMagField.h"
@@ -325,11 +326,12 @@ void Detector::CreateMaterials()
   Float_t epsilSi  =  0.5e-4;                // tracking precision [cm]
   Float_t stminSi  = -0.001;                 // minimum step due to continuous processes [cm] (negative value: choose it automatically)
   
-  //Int_t    fieldType        = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Integral();     // Field type
-  //Double_t maxField         = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Max();     // Field max.
+  AliceO2::Field::MagneticField *fld = (AliceO2::Field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
 
-  Int_t fieldType = 2;
-  Float_t maxField = 10.0;
+  Int_t fieldType = fld->GetType();
+  Float_t maxField = fld->Max();
+
+  LOG(INFO) << "Detector::CreateMaterials >>>>> fieldType " << fieldType << " maxField " << maxField << "\n"; 
 
   AliceO2::Base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
   AliceO2::Base::Detector::Medium(kAir,     "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);

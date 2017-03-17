@@ -1,7 +1,7 @@
 void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGeant3")
 {
 
-  gRandom->SetSeed(0);
+  gRandom->SetSeed(0);	
 
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
@@ -43,12 +43,12 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  //TGeoGlobalMagField::Instance()->SetField(new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagneticField::k5kG));
+  AliceO2::Field::MagneticField field("field","field +5kG");
+  run->SetField(&field);
 
   AliceO2::MFT::Detector* mft = new AliceO2::MFT::Detector();
-
   run->AddModule(mft);
-
+  
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
   FairBoxGenerator* boxGen = new FairBoxGenerator(13, nMuons);
@@ -62,9 +62,9 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   primGen->AddGenerator(boxGen);
 
   run->SetGenerator(primGen);
-
+  
   run->Init();
-
+  
   // Runtime database
   Bool_t kParameterMerged = kTRUE;
   FairParRootFileIo* parOut = new FairParRootFileIo(kParameterMerged);
@@ -72,19 +72,17 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   rtdb->setOutput(parOut);
   rtdb->saveOutput();
   rtdb->print();
-
-  //AliceO2::MFT::GeometryTGeo *geom = mft->GetGeometryTGeo();
-  //printf("MFT has %d disks.\n",geom->GetNofDisks());
-
+  
   run->Run(nEvents);
   run->CreateGeometryFile("geofile_mft.root");
 
   // Finish
   timer.Stop();
+
   Double_t rtime = timer.RealTime();
   Double_t ctime = timer.CpuTime();
   cout << endl << endl;
-  cout << "Macro finished succesfully" << endl;
+  cout << "Macro finished succesfully." << endl;
   cout << "Output file is " << outFile << endl;
   cout << "Parameter file is " << parFile << endl;
   cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
