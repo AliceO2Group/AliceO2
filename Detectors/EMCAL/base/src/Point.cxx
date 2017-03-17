@@ -9,7 +9,7 @@ Point::Point():
 {
 }
 
-Point::Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy, TVector3 pos, TVector3 mom,
+Point::Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy, Double_t *pos, Double_t *mom,
              Double_t tof, Double_t eLoss, UInt_t EventId):
   FairMCPoint(trackID, detID, pos, mom, tof, 0., eLoss, EventId),
   mShunt(shunt),

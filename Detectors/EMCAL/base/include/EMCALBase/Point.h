@@ -30,7 +30,7 @@ namespace AliceO2 {
       /// \param tof Time of the hit
       /// \param length Length of the segment
       /// \param EventId Event ID
-      Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy, TVector3 pos, TVector3 mom,
+      Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy, Double_t *pos, Double_t *mom,
             Double_t tof, Double_t eLoss, UInt_t EventId=0);
       
       /// \brief Check whether the points are from the same parent and in the same detector volume

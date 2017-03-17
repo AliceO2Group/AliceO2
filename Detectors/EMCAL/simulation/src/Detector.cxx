@@ -35,7 +35,7 @@ Bool_t Detector::ProcessHits( FairVolume* v) {
 }
 
 Point *Detector::AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy,
-              Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t eLoss){
+              Int_t detID, Double_t *pos, Double_t *mom, Double_t time, Double_t eLoss){
   
   TClonesArray& refCollection = *mPointCollection;
   Int_t size = refCollection.GetEntriesFast();
