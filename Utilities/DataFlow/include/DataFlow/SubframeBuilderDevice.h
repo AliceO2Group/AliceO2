@@ -18,17 +18,6 @@ class FairMQParts;
 namespace AliceO2 {
 namespace DataFlow {
 
-// TODO: this definition has to go to some common place
-// maybe also an identifier for the time constant should be added
-struct SubframeMetadata
-{
-  // TODO: replace with timestamp struct
-  uint64_t startTime = ~(uint64_t)0;
-  uint64_t duration = ~(uint64_t)0;
-
-  //further meta data to be added
-};
-
 /// @class SubframeBuilderDevice
 /// A demonstrator device for building of sub timeframes
 ///
@@ -54,12 +43,21 @@ class SubframeBuilderDevice : public Base::O2Device
 public:
   typedef AliceO2::Base::O2Message O2Message;
 
-  static constexpr const char* OptionKeyInputChannelName = "input-channel-name";
-  static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";
+  static constexpr const char* OptionKeyInputChannelName = "in-chan-name";
+  static constexpr const char* OptionKeyOutputChannelName = "out-chan-name";
   static constexpr const char* OptionKeyDuration = "duration";
   static constexpr const char* OptionKeySelfTriggered = "self-triggered";
+  static constexpr const char* OptionKeyInDataFile = "indatafile-name";
+  static constexpr const char* OptionKeyDetector = "detector-name";
+
   // TODO: this is just a first mockup, remove it
-  static constexpr uint32_t DefaultDuration = 10000;
+  // Default duration is for now harcoded to 22 milliseconds.
+  // Default start time for all the producers is 8/4/1977
+  // Timeframe start time will be ((N * duration) + start time) where
+  // N is the incremental number of timeframes being sent out.
+  // TODO: replace this with a unique Heartbeat from a common device.
+  static constexpr uint32_t DefaultDuration = 22000000;
+  static constexpr uint64_t DefaultHeartbeatStart = 229314600000000000LL;
 
   /// Default constructor
   SubframeBuilderDevice();
@@ -70,9 +68,6 @@ public:
 protected:
   /// overloading the InitTask() method of FairMQDevice
   void InitTask() final;
-
-   /// overloading ConditionalRun method of FairMQDevice
-  virtual bool ConditionalRun() final;
 
   /// data handling method to be registered as handler in the
   /// FairMQDevice API method OnData
@@ -85,14 +80,36 @@ protected:
   /// Build the frame and send it
   /// For the moment a simple mockup composing a DataHeader and adding it
   /// to the multipart message together with the SubframeMetadata as payload
-  bool BuildAndSendFrame();
+  bool BuildAndSendFrame(FairMQParts &parts);
 
 private:
-  unsigned mFrameNumber;
-  uint32_t mDuration;
-  std::string mInputChannelName;
-  std::string mOutputChannelName;
-  bool mIsSelfTriggered;
+  unsigned mFrameNumber = 0;
+  constexpr static uint32_t mOrbitsPerTimeframe = 1;
+  constexpr static uint32_t mOrbitDuration = 1000000000;
+  constexpr static uint32_t mDuration = mOrbitsPerTimeframe * mOrbitDuration;
+  std::string mInputChannelName = "";
+  std::string mOutputChannelName = "";
+  bool mIsSelfTriggered = false;
+  uint64_t mHeartbeatStart = DefaultHeartbeatStart;
+
+  template <typename T>
+  size_t fakeHBHPayloadHBT(char **buffer, std::function<void(T&,int)> filler, int numOfElements) {
+    // LOG(INFO) << "SENDING TPC PAYLOAD\n";
+    auto payloadSize = sizeof(Header::HeartbeatHeader)+sizeof(T)*numOfElements+sizeof(Header::HeartbeatTrailer);
+    *buffer = new char[payloadSize];
+    auto *hbh = reinterpret_cast<Header::HeartbeatHeader*>(*buffer);
+    assert(payloadSize > 0);
+    assert(payloadSize - sizeof(Header::HeartbeatTrailer) > 0);
+    auto *hbt = reinterpret_cast<Header::HeartbeatTrailer*>(payloadSize - sizeof(Header::HeartbeatTrailer));
+
+    T *payload = reinterpret_cast<T*>(*buffer + sizeof(Header::HeartbeatHeader));
+    for (int i = 0; i < numOfElements; ++i) {
+      new (payload + i) T;
+      // put some random toy time stamp to each cluster
+      filler(payload[i], i);
+    }
+    return payloadSize;
+  }
 };
 
 }; // namespace DataFlow

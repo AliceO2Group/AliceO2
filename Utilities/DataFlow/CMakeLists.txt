@@ -12,14 +12,17 @@ set(MODULE_NAME "DataFlow")
 # runSimpleMQStateMachine.h uses dlopen etc. Probably this hidden
 # dependency can be avoided by including the to some compiled FairMQ
 # library
-set(MODULE_BUCKET_NAME O2DeviceApplication_bucket)
 
+set(MODULE_BUCKET_NAME O2DeviceApplication_bucket)
 
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/HeartbeatSampler.cxx
     src/SubframeBuilderDevice.cxx
+    src/TimeframeValidatorDevice.cxx
+    src/EPNReceiverDevice.cxx
+    src/FLPSenderDevice.cxx
     )
 
 set(LIBRARY_NAME ${MODULE_NAME})
@@ -35,11 +38,17 @@ set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 Set(Exe_Names
     heartbeatSampler
     SubframeBuilderDevice
-    )
+    TimeframeValidatorDevice
+    EPNReceiverDevice
+    FLPSenderDevice
+   )
 
 set(Exe_Source
     src/runHeartbeatSampler.cxx
     src/runSubframeBuilderDevice.cxx
+    src/runTimeframeValidatorDevice.cxx
+    src/runEPNReceiver.cxx
+    src/runFLPSender.cxx
     )
 
 list(LENGTH Exe_Names _length)
@@ -52,6 +61,6 @@ ForEach (_file RANGE 0 ${_length})
       EXE_NAME ${_name}
       SOURCES ${_src}
       MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-      BUCKET_NAME ${BUCKET_NAME}
+      BUCKET_NAME ${MODULE_BUCKET_NAME}
   )
 EndForEach (_file RANGE 0 ${_length})
