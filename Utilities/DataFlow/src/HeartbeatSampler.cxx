@@ -10,18 +10,6 @@
 #include "Headers/HeartbeatFrame.h"
 #include "FairMQProgOptions.h"
 
-AliceO2::DataFlow::HeartbeatSampler::HeartbeatSampler()
-  : O2Device()
-  , mPeriod(89100)
-  , mOutputChannelName("output")
-  , mCount(0)
-{
-}
-
-AliceO2::DataFlow::HeartbeatSampler::~HeartbeatSampler()
-{
-}
-
 void AliceO2::DataFlow::HeartbeatSampler::InitTask()
 {
   mPeriod = GetConfig()->GetValue<uint32_t>(OptionKeyPeriod);

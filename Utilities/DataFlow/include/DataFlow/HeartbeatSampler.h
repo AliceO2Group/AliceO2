@@ -31,14 +31,11 @@ class HeartbeatSampler : public Base::O2Device
 public:
   typedef AliceO2::Base::O2Message O2Message;
 
-  static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";
+  static constexpr const char* OptionKeyOutputChannelName = "out-chan-name";
   static constexpr const char* OptionKeyPeriod = "period";
 
-  /// Default constructor
-  HeartbeatSampler();
-
-  /// Default destructor
-  virtual ~HeartbeatSampler() final;
+  HeartbeatSampler() = default;
+  virtual ~HeartbeatSampler() final = default;
 
 protected:
   /// overloading the InitTask() method of FairMQDevice
@@ -49,11 +46,11 @@ protected:
 
 private:
   /// publishing period (configurable)
-  uint32_t mPeriod;
+  uint32_t mPeriod = 1000000000;
   /// name of the (configurable)
-  std::string mOutputChannelName;
+  std::string mOutputChannelName = "output";
   /// number of elapsed periods
-  int mCount;
+  int mCount = 0;
 };
 
 }; // namespace DataFlow
