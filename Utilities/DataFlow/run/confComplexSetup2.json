@@ -1,0 +1,345 @@
+{
+    "fairMQOptions":
+    {
+        "devices":
+        [
+        {
+            "id": "heartbeatSampler",
+            "channels":
+            [
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "sockets":
+                [
+                 { "address": "tcp://*:5450" }
+                ],
+                "sndBufSize": "10"
+            }
+            ]
+        },
+        {
+            "id": "DataPublisherDeviceTPC",
+            "channels":
+            [
+            {
+                "name": "input",
+                "type": "sub",
+                "method": "connect",
+                "sockets":[
+                  {"address": "tcp://127.0.0.1:5450"}
+                ]
+            },
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "sockets":
+                [
+                 { "address": "tcp://*:6550" }
+                ],
+                "sndBufSize": "10"
+            }]
+        },
+        {
+            "id": "DataPublisherDeviceITS",
+            "channels":
+            [
+            {
+                "name": "input",
+                "type": "sub",
+                "method": "connect",
+                "sockets":[
+                  {"address": "tcp://127.0.0.1:5450"}
+                ]
+            },
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "sockets":
+                [
+                 { "address": "tcp://*:7550" }
+                ],
+                "sndBufSize": "10"
+            }]
+        },
+        {
+            "id": "subframeBuilderTPC",
+            "channels":
+            [
+            {
+                "name": "input",
+                "type": "sub",
+                "method": "connect",
+                "sockets":[
+                  {"address": "tcp://127.0.0.1:6550"}
+                ]
+            },
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "sockets":
+                [
+                 { "address": "tcp://*:5550" }
+                ],
+                "sndBufSize": "10"
+            }]
+        },
+        {
+            "id": "flpSenderTPC",
+            "channels":
+            [
+            {
+                "name": "input-channel-name",
+                "type": "sub",
+                "method": "connect",
+                "sockets":[
+                  {"address": "tcp://127.0.0.1:5450"}
+                ]
+            },
+            {
+                "name": "input",
+                "type": "sub",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5550" }
+		],
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "output",
+                "type": "push",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5570" },
+                 { "address": "tcp://127.0.0.1:5571" },
+                 { "address": "tcp://127.0.0.1:5572" },
+                 { "address": "tcp://127.0.0.1:5573" }
+                ],                
+                "sndBufSize": "10"
+            }]
+        },
+    {
+            "id": "subframeBuilderITS",
+            "channels":
+            [
+            {
+                "name": "input",
+                "type": "sub",
+                "method": "connect",
+                "sockets":[
+                  {"address": "tcp://127.0.0.1:7550"}
+                ]
+            },
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "sockets":
+                [
+                 { "address": "tcp://*:5551" }
+                ],
+                "sndBufSize": "10"
+            }]
+        },
+        {
+            "id": "flpSenderITS",
+            "channels":
+            [{
+                "name": "input",
+                "type": "sub",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5551" }
+                ],
+                "rcvBufSize": "10"
+            },
+            {
+                "name": "output",
+                "type": "push",
+                "method": "connect",
+                "sockets":
+                [
+                 { "address": "tcp://127.0.0.1:5570" },
+                 { "address": "tcp://127.0.0.1:5571" },
+                 { "address": "tcp://127.0.0.1:5572" },
+                 { "address": "tcp://127.0.0.1:5573" }
+                ],                
+                "sndBufSize": "10"
+            }]
+        },
+        {
+            "id": "epnReceiver1",
+            "channels":
+            [
+	    {
+                "name": "input",
+                "type": "pull",
+                "method": "bind",
+                "sockets":
+                [
+                  { "address": "tcp://*:5570"}
+		],
+                "sndBufSize": "10"
+            },
+            {
+                "name": "ack",
+                "type": "push",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5990",
+                "rateLogging": "0"
+            },
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5580",
+                "sndBufSize": "10"
+            }
+	    ]
+        },
+{
+            "id": "epnReceiver1",
+            "channels":
+            [
+	    {
+                "name": "input",
+                "type": "pull",
+                "method": "bind",
+                "sockets":
+                [
+                  { "address": "tcp://*:5570"}
+		],
+                "sndBufSize": "10"
+            },
+            {
+                "name": "ack",
+                "type": "push",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5990",
+                "rateLogging": "0"
+            },
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5580",
+                "sndBufSize": "10"
+            }
+	    ]
+        },
+        {
+            "id": "epnReceiver2",
+            "channels":
+            [
+	    {
+                "name": "input",
+                "type": "pull",
+                "method": "bind",
+                "sockets":
+                [
+                  { "address": "tcp://*:5571"}
+		],
+                "sndBufSize": "10"
+            },
+            {
+                "name": "ack",
+                "type": "push",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5990",
+                "rateLogging": "0"
+            },
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5580",
+                "sndBufSize": "10"
+            }
+	    ]
+        },
+        {
+            "id": "epnReceiver3",
+            "channels":
+            [
+	    {
+                "name": "input",
+                "type": "pull",
+                "method": "bind",
+                "sockets":
+                [
+                  { "address": "tcp://*:5572"}
+		],
+                "sndBufSize": "10"
+            },
+            {
+                "name": "ack",
+                "type": "push",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5990",
+                "rateLogging": "0"
+            },
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5580",
+                "sndBufSize": "10"
+            }
+	    ]
+        },
+{
+            "id": "epnReceiver4",
+            "channels":
+            [
+	    {
+                "name": "input",
+                "type": "pull",
+                "method": "bind",
+                "sockets":
+                [
+                  { "address": "tcp://*:5573"}
+		],
+                "sndBufSize": "10"
+            },
+            {
+                "name": "ack",
+                "type": "push",
+                "method": "connect",
+                "address": "tcp://127.0.0.1:5990",
+                "rateLogging": "0"
+            },
+            {
+                "name": "output",
+                "type": "pub",
+                "method": "bind",
+                "address": "tcp://127.0.0.1:5580",
+                "sndBufSize": "10"
+            }
+	    ]
+        },
+        {
+            "id": "timeframeValidator",
+            "channels":
+            [
+	    {
+                "name": "input",
+                "type": "sub",
+                "method": "connect",
+                "sockets":
+                [
+                  { "address": "tcp://127.0.0.1:5580"}
+	        ],
+               "sndBufSize": "10"
+            }
+	    ]
+        }
+      ]
+    }
+}
