@@ -20,22 +20,22 @@ namespace AliceO2 {
       
       virtual ~Detector();
       
-      virtual void   Initialize();
+      virtual void   Initialize() final;
       
-      virtual Bool_t ProcessHits( FairVolume* v=0);
+      virtual Bool_t ProcessHits( FairVolume* v=0) final;
       
       Point *AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy,
-                    Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length);
+                    Int_t detID, Double_t *pos, Double_t *mom, Double_t time, Double_t length);
       
       virtual void   Register();
       
-      virtual TClonesArray* GetCollection(Int_t iColl) const ;
+      virtual TClonesArray* GetCollection(Int_t iColl) const final;
       
-      virtual void   Reset();
+      virtual void   Reset() final;
       
     protected:
       
-      virtual void CreateMaterials();
+      virtual void CreateMaterials() final;
       
     private:
     

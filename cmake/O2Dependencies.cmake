@@ -674,8 +674,10 @@ o2_define_bucket(
     DEPENDENCIES
     root_base_bucket
     fairroot_base_bucket
+    MathCore
+    Matrix
     ParBase
-    
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
 )
@@ -691,6 +693,7 @@ o2_define_bucket(
     RIO
     Graf
     Gpad
+    Matrix
     EMCALBase
     DetectorsBase
     SimulationDataFormat
@@ -700,4 +703,3 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/EMCAL/base/include
 )
-
