@@ -58,22 +58,27 @@ class Digitizer : public TObject {
     /// Compute time bin from z position
     /// @param zPos z position of the charge
     /// @return Time bin of the charge
-    int getTimeBin(float zPos) const;
+    static int getTimeBin(float zPos);
 
     /// Compute time bin from time
     /// @param time time of the charge
     /// @return Time bin of the charge
-    int getTimeBinFromTime(float time) const;
+    static int getTimeBinFromTime(float time);
 
     /// Compute time from time bin
     /// @param timeBin time bin of the charge
     /// @return Time of the charge      
-    float getTimeFromBin(int timeBin) const;
+    static float getTimeFromBin(int timeBin);
 
     /// Compute time from z position
     /// @param zPos z position of the charge
     /// @return Time of the charge
-    float getTime(float zPos) const;
+    static float getTime(float zPos);
+
+    /// Compute the time of a given time bin
+    /// @param time Time of the charge
+    /// @return Time of the time bin of the charge
+    static float getTimeBinTime(float time);
 
 
   private:
@@ -87,31 +92,39 @@ class Digitizer : public TObject {
 
 // inline implementations
 inline
-int Digitizer::getTimeBin(float zPos) const
+int Digitizer::getTimeBin(float zPos)
 {
   float timeBin = (TPCLENGTH-std::fabs(zPos))/(DRIFTV*ZBINWIDTH);
   return static_cast<int>(timeBin);
 }
 
 inline
-int Digitizer::getTimeBinFromTime(float time) const
+int Digitizer::getTimeBinFromTime(float time)
 {
   float timeBin = time / ZBINWIDTH;
   return static_cast<int>(timeBin);
 }
 
 inline
-float Digitizer::getTimeFromBin(int timeBin) const
+float Digitizer::getTimeFromBin(int timeBin)
 {
   float time = static_cast<float>(timeBin)*ZBINWIDTH;
   return time;
 }
 
 inline
-float Digitizer::getTime(float zPos) const
+float Digitizer::getTime(float zPos)
 {
   float time = (TPCLENGTH-std::fabs(zPos))/DRIFTV;
   return time;
+}
+
+inline
+float Digitizer::getTimeBinTime(float time)
+{
+  int timeBin = getTimeBinFromTime(time);
+  return getTimeFromBin(timeBin);
+
 }
 
 }

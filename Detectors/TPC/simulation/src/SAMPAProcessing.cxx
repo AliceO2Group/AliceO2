@@ -2,6 +2,7 @@
 /// \author Andi Mathis, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "TPCSimulation/Digitizer.h"
 
 #include <fstream>
 #include <iostream>
@@ -53,17 +54,18 @@ bool SAMPAProcessing::importSaturationCurve(std::string file)
   return true;
 }
 
-void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::array<float, 8>& signalArray)
+void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::array<float, mNShapedPoints>& signalArray)
 {
-  /// @todo add misalignment of the incoming charge with the shaping
+  float timeBinTime = Digitizer::getTimeBinTime(driftTime);
+  float offset = driftTime - timeBinTime;
   signalArray.fill(0);
-  for (float bin = 0; bin < 8; bin += Vc::float_v::Size) {
+  for (float bin = 0; bin < mNShapedPoints; bin += Vc::float_v::Size) {
     Vc::float_v binvector;
     for (int i = 0; i < Vc::float_v::Size; ++i) {
       binvector[i] = bin + i;
     }
-    Vc::float_v time = driftTime + binvector * ZBINWIDTH;
-    Vc::float_v signal = getGamma4(time, Vc::float_v(driftTime), Vc::float_v(ADCsignal));
+    Vc::float_v time = timeBinTime + binvector * ZBINWIDTH;
+    Vc::float_v signal = getGamma4(time, Vc::float_v(timeBinTime+offset), Vc::float_v(ADCsignal));
     for (int i = 0; i < Vc::float_v::Size; ++i) {
       signalArray[bin+i] = signal[i];
     }

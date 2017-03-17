@@ -5,6 +5,7 @@
 #define AliceO2_TPC_Constants_H_
 
 #include <vector>
+#include <array>
 
 namespace AliceO2 {
 namespace TPC {
@@ -25,10 +26,16 @@ constexpr float EFFGAINGEM1 = 9.1;        ///< Effective gain in GEM1, value fro
 constexpr float EFFGAINGEM2 = 0.88;       ///< Effective gain in GEM2, value from TDR addendum
 constexpr float EFFGAINGEM3 = 1.66;       ///< Effective gain in GEM3, value from TDR addendum
 constexpr float EFFGAINGEM4 = 144;        ///< Effective gain in GEM4, value from TDR addendum
+constexpr std::array<float, 4> GAIN{{EFFGAINGEM1, EFFGAINGEM2, EFFGAINGEM3, EFFGAINGEM4}};
+constexpr std::array<float, 4> MULTIPLICATION{{14.f, 8.f, 53.f, 240.f}};
+constexpr std::array<float, 4> COLLECTION{{1.f, 0.2, 0.25, 1.f}};
+constexpr std::array<float, 4> EXTRACTION{{0.65, 0.55, 0.12, 0.6}};
+
 constexpr float CPAD = 0.1;               ///< Capacitance of a single pad in pF
 constexpr float TPCLENGTH = 250.;         ///< Maximal drift length in the TPC
 
 //electronics parameters
+constexpr int mNShapedPoints = 8;         ///< Number of points taken into account for shaping (8 chosen to fit into SSE registers)
 constexpr float ADCSAT = 1024;            ///< ADC saturation
 constexpr float QEL = 1.602e-19;          ///< Electron charge
 constexpr float CHIPGAIN = 20;            ///< mV/fC - should be a switch as it may be either 20 or 30, depending on the configuration
