@@ -37,7 +37,7 @@ class SyncPatternMonitor {
     /// @param hw2 3th (timewise) half word
     /// @param hw3 4th (timewise) half word
     /// @return Position of first part of the synchronization pattern, -1 if no pattern was found
-    int addSequence(char hw0, char hw1, char hw2, char hw3);
+    int addSequence(const short& hw0, const short& hw1, const short& hw2, const short& hw3);
 
     /// Get position
     /// @return Position of first part of the synchronization pattern, -1 if no patter was found
@@ -45,8 +45,8 @@ class SyncPatternMonitor {
 
   private:
 
-    const static char PATTERN_A = 0x15;
-    const static char PATTERN_B = 0x0A;
+    const static short PATTERN_A = 0x15;
+    const static short PATTERN_B = 0x0A;
 
     enum state {lookForSeq0, lookForSeq1, lookForSeq2, lookForSeq3,
                 lookForSeq4, lookForSeq5, lookForSeq6, lookForSeq7};
@@ -60,10 +60,10 @@ class SyncPatternMonitor {
     bool mPatternFound;     ///< store whether pattern was already found
     int mPosition;          ///< position of last part of the pattern
     int mTempPosition;      ///< temporary postion storage during sequence
-    char mLastHw0;          ///< store last half-word 0
-    char mLastHw1;          ///< store last half-word 1
-    char mLastHw2;          ///< store last half-word 2
-    char mLastHw3;          ///< store last half-word 3
+    short mLastHw0;          ///< store last half-word 0
+    short mLastHw1;          ///< store last half-word 1
+    short mLastHw2;          ///< store last half-word 2
+    short mLastHw3;          ///< store last half-word 3
     int mSampa;             ///< SAMPA number
     int mLowHigh;           ///< Low or high bits
 

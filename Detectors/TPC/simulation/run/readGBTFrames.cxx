@@ -1,5 +1,5 @@
 ///
-/// @file   runSim.cxx
+/// @file   readGBTFrames.cxx
 /// @author Sebastian Klewin
 ///
 
@@ -29,12 +29,22 @@ void addData(AliceO2::TPC::GBTFrameContainer& container, std::string& infile, in
 void readData(AliceO2::TPC::GBTFrameContainer& container, std::vector<std::ofstream*>& outfiles, int& run, int& done) {
   done = 0;
   std::vector<AliceO2::TPC::HalfSAMPAData> data(5);
+  int i;
   while (!run) {
     while (container.getData(&data)){
-      for (int i = 0; i < 5; ++i) {
-        //std::copy(data[i].getData().begin(), data[i].getData().end(), std::ostreambuf_iterator<char>(*outfiles[i]));
-        std::copy(data[i].getData().begin(), data[i].getData().end(), std::ostream_iterator<int>(*outfiles[i],"\t"));
-        (*outfiles[i]) << "\n";
+      for (i = 0; i < 5; ++i) {
+//        std::copy(data[i].getData().begin(), data[i].getData().end(), std::ostreambuf_iterator<char>(*outfiles[i]));
+          outfiles[i]->write(reinterpret_cast<const char*>(&data[i].getData()[0]), 16*sizeof(data[i].getData()[0]));
+//        outfiles[i]->write((char*)&data[i].getData(),16*sizeof(short));
+//        outfiles[i]->put('\n');
+
+//        std::fprintf(outfiles[i], "%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\n",
+//            data[i][0], data[i][1], data[i][2], data[i][3], data[i][4], data[i][5], data[i][6], data[i][7],
+//            data[i][8], data[i][9], data[i][10], data[i][11], data[i][12], data[i][13], data[i][14], data[i][15]);
+
+//        (*outfiles[i]) << data[i] << '\n';
+//        //std::copy(data[i].getData().begin(), data[i].getData().end(), std::ostreambuf_iterator<char>(*outfiles[i]));
+//        (*outfiles[i]) << "\n";
       }
 
 //      std::cout 
@@ -49,7 +59,7 @@ void readData(AliceO2::TPC::GBTFrameContainer& container, std::vector<std::ofstr
 //      std::cout << data[3] << std::endl << std::endl;
 //      std::cout << data[4] << std::endl << std::endl;
     }
-    std::this_thread::sleep_for(std::chrono::microseconds{10});
+    std::this_thread::sleep_for(std::chrono::microseconds{1000});
   }
   done = 1;
 }
@@ -62,6 +72,7 @@ int main(int argc, char *argv[])
   std::vector<unsigned> link(1,0);
   std::vector<std::string> infile(1,"NOFILE");
   std::vector<std::string> outfile(1,"NOFILE");
+  std::string adcInFile = "NOFILE";
 
   bpo::variables_map vm; 
   bpo::options_description desc("Allowed options");
@@ -71,7 +82,8 @@ int main(int argc, char *argv[])
     ("outfile,o",   bpo::value<std::vector<std::string>>(&outfile),  "Output data files")
     (",n",          bpo::value<std::vector<unsigned>>(&size),        "Container sizes")
     ("CRU",         bpo::value<std::vector<unsigned>>(&CRU),         "CRUs")
-    ("link",        bpo::value<std::vector<unsigned>>(&link),        "links");
+    ("link",        bpo::value<std::vector<unsigned>>(&link),        "links")
+    (",a",          bpo::value<std::string>(&adcInFile),             "ADC input file");
   bpo::store(parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);
 
@@ -80,6 +92,8 @@ int main(int argc, char *argv[])
     std::cout << desc << std::endl;
     return EXIT_SUCCESS;
   }
+
+  if (adcInFile == "NOFILE") {
 
   // Actual "work"
   std::vector<AliceO2::TPC::GBTFrameContainer*> container;
@@ -125,8 +139,8 @@ int main(int argc, char *argv[])
       outname += "_LOW";
       outname += ".adc";
 
-      out = new std::ofstream(outname, std::ios::out | std::ofstream::binary);
-      outfiles[i].push_back(out);//, std::ofstream::out);
+      out = new std::ofstream(outname, std::ios::out | std::ios::binary);
+      outfiles[i].push_back(out);
 
       if (j == 2) continue;
       outname = "";
@@ -142,8 +156,8 @@ int main(int argc, char *argv[])
       outname += "_HIGH";
       outname += ".adc";
 
-      out = new std::ofstream(outname, std::ios::out | std::ofstream::binary);
-      outfiles[i].push_back(out);//, std::ofstream::out);
+      out = new std::ofstream(outname, std::ios::out | std::ios::binary);
+      outfiles[i].push_back(out);
     }
     threads.emplace_back(readData,std::ref(*container[i]), std::ref(outfiles[i]), std::ref(addData_done[i]), std::ref(reading_done[i]));
   }
@@ -170,6 +184,28 @@ int main(int argc, char *argv[])
     for (std::vector<std::ofstream*>::iterator itt = (*it).begin(); itt != (*it).end(); ++itt) {
       (*itt)->close();
       delete (*itt);
+    }
+  }
+
+  } else {
+    std::cout << "Reading from file " << adcInFile << std::endl;
+    std::ifstream inFile(adcInFile, std::ios::in | std::ios::binary);
+
+    if (!inFile.is_open()) { 
+      std::cout << "ERROR: can't read file " << adcInFile << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    short adcValues[16];
+    int i;
+//    while (!inFile.eof()) {
+    for (int j = 0; j < 100; ++j){
+      inFile.read(reinterpret_cast<char*>(&adcValues[0]), 16*sizeof(adcValues[0]));
+//      inFile.read((char*)&adcValues,16*sizeof(short));
+      for (i=0; i < 16; ++i) {
+        std::cout << adcValues[i] << "\t";
+      }
+      std::cout << std::endl;
     }
   }
 

@@ -52,12 +52,12 @@ class GBTFrame {
     /// @param s1adc ADC clock from SAMPA 1
     /// @param s2adc ADC clock from SAMPA 2
     /// @param marker additional 16 bit marker which is not part of the actual frame
-    GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
-             char s0hw0h, char s0hw1h, char s0hw2h, char s0hw3h,
-             char s1hw0l, char s1hw1l, char s1hw2l, char s1hw3l,
-             char s1hw0h, char s1hw1h, char s1hw2h, char s1hw3h,
-             char s2hw0, char s2hw1, char s2hw2, char s2hw3, 
-             char s0adc, char s1adc, char s2adc, unsigned marker = 0);
+    GBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
+             short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
+             short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
+             short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
+             short s2hw0, short s2hw1, short s2hw2, short s2hw3, 
+             short s0adc, short s1adc, short s2adc, unsigned marker = 0);
 
     /// Copy Contructor
     /// @param other GBT Frame to be copied
@@ -68,24 +68,63 @@ class GBTFrame {
 
     /// Get the marker of the frame
     /// @return marker of the frame
-    char getMarker() const { return (mWords[3] >> 16) & 0xFFFF; };
+    short getMarker() const { return (mWords[3] >> 16) & 0xFFFF; };
 
     /// Get a half-word of a SAMPA chip (5 bit of data)
     /// @param sampa half-word this SAMPA chip (0-2, 3=0, 4=1)
     /// @param halfword this half-word of the SAMPA (4 are included in GBT frame)
     /// @param chan which channels, 0 for channel 0-15, 1 for channel 16-31, ignored for SAMPA 2
     /// @return requested half-word
-    char getHalfWord(char sampa, char halfword, char chan = 0) const {return mHalfWords[sampa][chan][halfword];};
+    const short& getHalfWord(short sampa, short halfword, short chan = 0) const { return mHalfWords[sampa][chan][halfword]; };
 
     /// Get ADC sampling clock of a SAMPA chip (4 time bits)
     /// @param sampa ADC clock of this SAMPA chip (0-2, 3=0, 4=1)
     /// @return requested ADC sampling clock bits
-    char getAdcClock(char sampa) const;
+    const short& getAdcClock(short sampa) const { return mAdcClock[sampa]; };
 
     /// Set Adc sampling clock of a SAMPA chip
     /// @param sampa ADC clock of this SAMPA chip (0-2, 3=0, 4=1), -1 for all SAMPAs 
     /// @param clock 4 sampling clock bits
     void setAdcClock(int sampa, int clock);
+
+    /// Set data
+    /// @param word3 Word 3 of GBT frame, contains bit [127: 96], [127:112] are not part of the actual frame
+    /// @param word2 Word 2 of GBT frame, contains bit [ 95: 64]
+    /// @param word1 Word 1 of GBT frame, contains bit [ 63: 32]
+    /// @param word0 Word 0 of GBT frame, contains bit [ 31:  0]
+    void setData(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0);
+
+    /// Set Data
+    /// @param s0hw0l half-word 0 from SAMPA 0 low channel numbers 
+    /// @param s0hw1l half-word 1 from SAMPA 0 low channel numbers 
+    /// @param s0hw2l half-word 2 from SAMPA 0 low channel numbers 
+    /// @param s0hw3l half-word 3 from SAMPA 0 low channel numbers 
+    /// @param s0hw0h half-word 0 from SAMPA 0 high channel numbers 
+    /// @param s0hw1h half-word 1 from SAMPA 0 high channel numbers 
+    /// @param s0hw2h half-word 2 from SAMPA 0 high channel numbers 
+    /// @param s0hw3h half-word 3 from SAMPA 0 high channel numbers 
+    /// @param s1hw0l half-word 0 from SAMPA 1 low channel numbers 
+    /// @param s1hw1l half-word 1 from SAMPA 1 low channel numbers 
+    /// @param s1hw2l half-word 2 from SAMPA 1 low channel numbers 
+    /// @param s1hw3l half-word 3 from SAMPA 1 low channel numbers 
+    /// @param s1hw0h half-word 0 from SAMPA 1 high channel numbers 
+    /// @param s1hw1h half-word 1 from SAMPA 1 high channel numbers 
+    /// @param s1hw2h half-word 2 from SAMPA 1 high channel numbers 
+    /// @param s1hw3h half-word 3 from SAMPA 1 high channel numbers 
+    /// @param s2hw0 half-word 0 from SAMPA 2
+    /// @param s2hw1 half-word 1 from SAMPA 2
+    /// @param s2hw2 half-word 2 from SAMPA 2
+    /// @param s2hw3 half-word 3 from SAMPA 2
+    /// @param s0adc ADC clock from SAMPA 0
+    /// @param s1adc ADC clock from SAMPA 1
+    /// @param s2adc ADC clock from SAMPA 2
+    /// @param marker additional 16 bit marker which is not part of the actual frame
+    void setData(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
+                 short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
+                 short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
+                 short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
+                 short s2hw0, short s2hw1, short s2hw2, short s2hw3, 
+                 short s0adc, short s1adc, short s2adc, unsigned marker = 0);
 
     /// Get the GBT frame
     /// @param word3 bit [127: 96] of GBT frame is written to this
@@ -103,11 +142,12 @@ class GBTFrame {
   private:
 
     bool getBit(unsigned word, unsigned lsb) const;
-    char getBits(char word, unsigned width, unsigned lsb) const;
+    short getBits(short word, unsigned width, unsigned lsb) const;
     unsigned getBits(unsigned word, unsigned width, unsigned lsb) const;
     unsigned combineBits(std::vector<bool> bits) const;
-    unsigned int combineBitsOfFrame(char bit0, char bit1, char bit2, char bit3, char bit4) const;
+    short combineBitsOfFrame(short bit0, short bit1, short bit2, short bit3, short bit4) const;
     void calculateHalfWords();
+    void calculateAdcClock();
 
     std::vector<unsigned> mWords;
                 // Word 3 of GBT frame contains bits [127: 96], [127:112] are reserved for marker
@@ -115,11 +155,12 @@ class GBTFrame {
                 // Word 1 of GBT frame contains bits [ 63: 32]
                 // Word 0 of GBT frame contains bits [ 31:  0]
                 
-    std::array<std::array<std::array<char,  5>, 2>, 3> mHalfWords;
+    std::array<std::array<std::array<short,  5>, 2>, 3> mHalfWords;
                 //                          halfWord
                 //                              channels (low or high)
                 //                                  sampa
 
+    std::vector<short> mAdcClock;
 };
 }
 }

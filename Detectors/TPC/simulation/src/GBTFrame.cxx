@@ -11,6 +11,7 @@ GBTFrame::GBTFrame()
 
 GBTFrame::GBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
   : mWords(4)
+  , mAdcClock(3)
 {
   mWords[3] = word3;
   mWords[2] = word2;
@@ -20,13 +21,14 @@ GBTFrame::GBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word
   calculateHalfWords();
 }
 
-GBTFrame::GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
-                   char s0hw0h, char s0hw1h, char s0hw2h, char s0hw3h,
-                   char s1hw0l, char s1hw1l, char s1hw2l, char s1hw3l,
-                   char s1hw0h, char s1hw1h, char s1hw2h, char s1hw3h,
-                   char s2hw0, char s2hw1, char s2hw2, char s2hw3, 
-                   char s0adc, char s1adc, char s2adc, unsigned marker)
+GBTFrame::GBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
+                   short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
+                   short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
+                   short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
+                   short s2hw0, short s2hw1, short s2hw2, short s2hw3, 
+                   short s0adc, short s1adc, short s2adc, unsigned marker)
   : mWords(4)
+  , mAdcClock(3)
 {
   mWords[0] = combineBits(std::vector<bool>{
       getBit(s0hw0h,2), getBit(s0hw1h,2), getBit(s0hw2h,2), getBit(s0hw3h,2), 
@@ -78,13 +80,14 @@ GBTFrame::GBTFrame(char s0hw0l, char s0hw1l, char s0hw2l, char s0hw3l,
 GBTFrame::GBTFrame(const GBTFrame& other)
   : mWords(other.mWords)
   , mHalfWords(other.mHalfWords)
+  , mAdcClock(other.mAdcClock)
 {
 }
 
 GBTFrame::~GBTFrame()
 {}
 
-//char GBTFrame::getHalfWord(char sampa, char halfword, char chan) const
+//short GBTFrame::getHalfWord(short sampa, short halfword, short chan) const
 //{
 ////  sampa %= 3;
 ////  halfword %= 5;
@@ -126,16 +129,79 @@ void GBTFrame::calculateHalfWords()
   mHalfWords[2][1][2] = mHalfWords[2][0][2];
   mHalfWords[2][1][3] = mHalfWords[2][0][3];
 
+  calculateAdcClock();
 }
 
-char GBTFrame::getAdcClock(char sampa) const
+void GBTFrame::calculateAdcClock()
 {
-  switch (sampa) {
-    case 0: return (mWords[1] >> 8) & 0xF;
-    case 1: return (mWords[2] >> 20) & 0xF;
-    case 2: return (mWords[3] >> 12) & 0xF;
-    default: std::cout << "don't know SAMPA " << sampa << std::endl; return 0; 
-  }
+  mAdcClock[0] = (mWords[1] >> 8) & 0xF;
+  mAdcClock[1] = (mWords[2] >> 20) & 0xF;
+  mAdcClock[2] = (mWords[3] >> 12) & 0xF;
+
+}
+
+void GBTFrame::setData(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0)
+{
+  mWords[3] = word3;
+  mWords[2] = word2;
+  mWords[1] = word1;
+  mWords[0] = word0;
+
+  calculateHalfWords();
+}
+
+void GBTFrame::setData(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
+                       short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
+                       short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
+                       short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
+                       short s2hw0, short s2hw1, short s2hw2, short s2hw3, 
+                       short s0adc, short s1adc, short s2adc, unsigned marker)
+{
+  mWords[0] = combineBits(std::vector<bool>{
+      getBit(s0hw0h,2), getBit(s0hw1h,2), getBit(s0hw2h,2), getBit(s0hw3h,2), 
+      getBit(s0hw0h,1), getBit(s0hw1h,1), getBit(s0hw2h,1), getBit(s0hw3h,1), 
+      getBit(s0hw0h,0), getBit(s0hw1h,0), getBit(s0hw2h,0), getBit(s0hw3h,0),
+      getBit(s0hw0l,4), getBit(s0hw1l,4), getBit(s0hw2l,4), getBit(s0hw3l,4), 
+      getBit(s0hw0l,3), getBit(s0hw1l,3), getBit(s0hw2l,3), getBit(s0hw3l,3),
+      getBit(s0hw0l,2), getBit(s0hw1l,2), getBit(s0hw2l,2), getBit(s0hw3l,2), 
+      getBit(s0hw0l,1), getBit(s0hw1l,1), getBit(s0hw2l,1), getBit(s0hw3l,1), 
+      getBit(s0hw0l,0), getBit(s0hw1l,0), getBit(s0hw2l,0), getBit(s0hw3l,0)
+      });
+
+  mWords[1] = combineBits(std::vector<bool>{
+      getBit(s1hw0l,4), getBit(s1hw1l,4), getBit(s1hw2l,4), getBit(s1hw3l,4), 
+      getBit(s1hw0l,3), getBit(s1hw1l,3), getBit(s1hw2l,3), getBit(s1hw3l,3),
+      getBit(s1hw0l,2), getBit(s1hw1l,2), getBit(s1hw2l,2), getBit(s1hw3l,2), 
+      getBit(s1hw0l,1), getBit(s1hw1l,1), getBit(s1hw2l,1), getBit(s1hw3l,1), 
+      getBit(s1hw0l,0), getBit(s1hw1l,0), getBit(s1hw2l,0), getBit(s1hw3l,0),
+      getBit(s0adc,3),  getBit(s0adc,2),  getBit(s0adc,1),  getBit(s0adc,0),
+      getBit(s0hw0h,4), getBit(s0hw1h,4), getBit(s0hw2h,4), getBit(s0hw3h,4), 
+      getBit(s0hw0h,3), getBit(s0hw1h,3), getBit(s0hw2h,3), getBit(s0hw3h,3)
+      });
+
+  mWords[2] = combineBits(std::vector<bool>{
+      getBit(s2hw0,1), getBit(s2hw1,1), getBit(s2hw2,1), getBit(s2hw3,1), 
+      getBit(s2hw0,0), getBit(s2hw1,0), getBit(s2hw2,0), getBit(s2hw3,0), 
+      getBit(s1adc,3), getBit(s1adc,2), getBit(s1adc,1), getBit(s1adc,0),
+      getBit(s1hw0h,4), getBit(s1hw1h,4), getBit(s1hw2h,4), getBit(s1hw3h,4), 
+      getBit(s1hw0h,3), getBit(s1hw1h,3), getBit(s1hw2h,3), getBit(s1hw3h,3),
+      getBit(s1hw0h,2), getBit(s1hw1h,2), getBit(s1hw2h,2), getBit(s1hw3h,2), 
+      getBit(s1hw0h,1), getBit(s1hw1h,1), getBit(s1hw2h,1), getBit(s1hw3h,1), 
+      getBit(s1hw0h,0), getBit(s1hw1h,0), getBit(s1hw2h,0), getBit(s1hw3h,0)
+      });
+
+  mWords[3] = combineBits(std::vector<bool>{
+      getBit(marker,15), getBit(marker,14), getBit(marker,13), getBit(marker,12),
+      getBit(marker,11), getBit(marker,10), getBit(marker, 9), getBit(marker, 8), 
+      getBit(marker, 7), getBit(marker, 6), getBit(marker, 5), getBit(marker, 4), 
+      getBit(marker, 3), getBit(marker, 2), getBit(marker, 1), getBit(marker, 0),
+      getBit(s2adc,3), getBit(s2adc,2), getBit(s2adc,1), getBit(s2adc,0),
+      getBit(s2hw0,4), getBit(s2hw1,4), getBit(s2hw2,4), getBit(s2hw3,4), 
+      getBit(s2hw0,3), getBit(s2hw1,3), getBit(s2hw2,3), getBit(s2hw3,3), 
+      getBit(s2hw0,2), getBit(s2hw1,2), getBit(s2hw2,2), getBit(s2hw3,2) 
+      });
+
+  calculateHalfWords();
 }
 
 void GBTFrame::setAdcClock(int sampa, int clock)
@@ -149,6 +215,7 @@ void GBTFrame::setAdcClock(int sampa, int clock)
              mWords[3] = (mWords[3] & 0xFFFF0FFF) | ((clock & 0xF) << 12); break;
     default: std::cout << "don't know SAMPA " << sampa << std::endl; break; 
   }
+  calculateAdcClock();
 }
 
 void GBTFrame::getGBTFrame(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0) const
@@ -175,7 +242,7 @@ inline bool GBTFrame::getBit(unsigned word, unsigned lsb) const
   return (word >> lsb) & 0x1;
 }
 
-char GBTFrame::getBits(char word, unsigned width, unsigned lsb) const
+short GBTFrame::getBits(short word, unsigned width, unsigned lsb) const
 {
   return ((width >= 8) ? word : (word >> lsb) & (((1 << width) - 1)));
 }
@@ -185,7 +252,7 @@ unsigned GBTFrame::getBits(unsigned word, unsigned width, unsigned lsb) const
   return (word >> lsb) & (((1 << width) - 1));
 }
 
-inline unsigned int GBTFrame::combineBitsOfFrame(char bit0, char bit1, char bit2, char bit3, char bit4) const
+short GBTFrame::combineBitsOfFrame(short bit0, short bit1, short bit2, short bit3, short bit4) const
 {
 //
 //  ">> 5"      is equivalent to "/ 32"

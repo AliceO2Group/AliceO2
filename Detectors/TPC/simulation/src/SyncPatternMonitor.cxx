@@ -52,7 +52,7 @@ void SyncPatternMonitor::reset()
     << "was resetted" << FairLogger::endl;
 }
 
-int SyncPatternMonitor::addSequence(char hw0, char hw1, char hw2, char hw3)
+int SyncPatternMonitor::addSequence(const short& hw0, const short& hw1, const short& hw2, const short& hw3)
 {
   int iLastPosition = mPosition;
 //  hw0 %= 0x1F;
@@ -61,7 +61,7 @@ int SyncPatternMonitor::addSequence(char hw0, char hw1, char hw2, char hw3)
 //  hw3 %= 0x1F;
  
 //  std::cout <<  (int)hw0 << " " << (int)hw1 << " " << (int)hw2 << " " << (int)hw3 << std::endl;
-  char iCheckPos0, iCheckPos1, iCheckPos2, iCheckPos3;
+  short iCheckPos0, iCheckPos1, iCheckPos2, iCheckPos3;
 
   if (mCurrentState != state::lookForSeq0) 
   {

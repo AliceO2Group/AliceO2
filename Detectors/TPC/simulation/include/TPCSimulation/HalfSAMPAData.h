@@ -30,7 +30,7 @@ class HalfSAMPAData {
     /// @param id SAMPA ID
     /// @param low Which half of SAMPA channels, true for low, false for high
     /// @param data 32 ADC values
-    HalfSAMPAData(int id, bool low, std::vector<int>* data);
+    HalfSAMPAData(int id, bool low, std::vector<short>& data);
 
     /// Destructor
     ~HalfSAMPAData();
@@ -38,11 +38,13 @@ class HalfSAMPAData {
     /// Sets ADC value of SAMPA channel
     /// @param channel SAMPA channel
     /// @param value ADC value
-    void setChannel(int channel, int value)   { mData[channel] = value; };
+    void setChannel(int channel, short value)   { mData[channel] = value; };
 
     /// Returns ADC value of SAMPA channel
     /// @param channel SAMPA channel
-    int getChannel(int channel) const { return mData[channel]; };
+    short getChannel(int channel)   const { return mData[channel]; };
+    short operator[] (int index)    const { return mData[index]; };
+    short& operator[] (int index)         { return mData[index]; };
 
     /// Sets SAMPA channel to Low or High
     /// @param val SAMPA channel
@@ -61,7 +63,7 @@ class HalfSAMPAData {
 
     /// Returns reference to data vector
     /// @return Reference to data vector
-    std::vector<int>& getData() { return mData; };
+    std::vector<short>& getData() { return mData; };
 
 
     /// Print function
@@ -76,7 +78,7 @@ class HalfSAMPAData {
 
     int mID;                    ///< SMAPA ID on FEC (0-4)
     bool mLow;                  ///< True for low half of channel, false for high half of channels
-    std::vector<int> mData;     ///< vector to store data
+    std::vector<short> mData;     ///< vector to store data
 };
 }
 }

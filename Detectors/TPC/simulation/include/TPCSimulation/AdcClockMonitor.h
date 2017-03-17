@@ -35,7 +35,7 @@ class AdcClockMonitor {
     /// Checks whether new sequence is valid
     /// @param seq New sequence of 4 bits
     /// @return Returns outcome of the check, 1 for an error, 0 otherwise
-    int addSequence(char seq);
+    int addSequence(const short& seq);
 
     /// Get the state of the ADC monitor
     /// @return Returns outcome of monitor, 1 for an error, 0 otherwise
@@ -45,9 +45,9 @@ class AdcClockMonitor {
     enum state{locked = 0, error = 1};
 
     int mSampa;                 ///< Store SAMPA ID
-    char mPrevSequence;         ///< Store previous 4 bits
-    char mTransition0;          ///< 1st transition to look for
-    char mTransition1;          ///< 2nd transition to look for
+    short mPrevSequence;         ///< Store previous 4 bits
+    short mTransition0;          ///< 1st transition to look for
+    short mTransition1;          ///< 2nd transition to look for
     bool mSequenceCompleted;    ///< Store whether sequence was completed at least once
     int mSequencePosition;      ///< current position in sequence
     state mState;               ///< current state
