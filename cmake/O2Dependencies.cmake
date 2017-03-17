@@ -22,7 +22,9 @@ find_package(IWYU)
 find_package(DDS)
 
 find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time REQUIRED)
+set (ZeroMQ_NO_DEPRECATED 1) # no deprecation warning since we have converted to new variables
 find_package(ZeroMQ)
+
 
 find_package(AliRoot)
 find_package(FairRoot REQUIRED)
