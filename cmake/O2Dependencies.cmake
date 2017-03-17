@@ -112,7 +112,7 @@ o2_define_bucket(
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_RANDOM_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${ZMQ_LIBRARY_SHARED}
+    ${ZeroMQ_LIBRARY_SHARED}
     ${OPTIONAL_DDS_LIBRARIES}
     Base
     Headers
@@ -159,7 +159,7 @@ o2_define_bucket(
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_RANDOM_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${ZMQ_LIBRARY_SHARED}
+    ${ZeroMQ_LIBRARY_SHARED}
     ${OPTIONAL_DDS_LIBRARIES}
     Base
     Headers
@@ -232,7 +232,7 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
     ${PROTOBUF_INCLUDE_DIR}
-    ${ZMQ_INCLUDE_DIR}
+    ${ZeroMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -445,7 +445,7 @@ o2_define_bucket(
     ${DDS_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
-    ${ZMQ_INCLUDE_DIR}
+    ${ZeroMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -465,7 +465,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
-    ${ZMQ_INCLUDE_DIR}
+    ${ZeroMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -495,7 +495,7 @@ o2_define_bucket(
     DEPENDENCIES
     QC_apps_bucket
     INCLUDE_DIRECTORIES
-    ${ZMQ_INCLUDE_DIR}
+    ${ZeroMQ_INCLUDE_DIR}
 
    )
 
@@ -573,7 +573,7 @@ o2_define_bucket(
     ${OPTIONAL_DDS_INCLUDE_DIR}
 
     SYSTEMINCLUDE_DIRECTORIES
-    ${ZMQ_INCLUDE_DIR}
+    ${ZeroMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -650,7 +650,7 @@ o2_define_bucket(
     ${Boost_DATE_TIME_LIBRARY}
     ${Boost_RANDOM_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${ZMQ_LIBRARY_SHARED}
+    ${ZeroMQ_LIBRARY_SHARED}
     ${OPTIONAL_DDS_LIBRARIES}
     Base
     FairTools
