@@ -30,8 +30,8 @@ public:
   /// TODO: use type alias when it has been added to DataHeader.h
   typedef uint64_t SubSpecificationT;
 
-  static constexpr const char* OptionKeyInputChannelName = "input-channel-name";
-  static constexpr const char* OptionKeyOutputChannelName = "output-channel-name";
+  static constexpr const char* OptionKeyInputChannelName = "in-chan-name";
+  static constexpr const char* OptionKeyOutputChannelName = "out-chan-name";
   static constexpr const char* OptionKeyDataDescription = "data-description";
   static constexpr const char* OptionKeyDataOrigin = "data-origin";
   static constexpr const char* OptionKeySubspecification = "sub-specification";
