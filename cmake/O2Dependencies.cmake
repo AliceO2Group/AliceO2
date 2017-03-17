@@ -592,38 +592,37 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    mft_simulation_bucket
+    mft_base_bucket
 
     DEPENDENCIES
-    ParBase
-    MFTBase
-    DetectorsBase
-    SimulationDataFormat
-    common_boost_bucket
+    itsmft_base_bucket
+    ITSMFTBase
+    Graf
+    Gpad
+    XMLIO
 
     INCLUDE_DIRECTORIES
-    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+
 )
 
 o2_define_bucket(
     NAME
-    mft_base_bucket
+    mft_simulation_bucket
 
     DEPENDENCIES
-    root_base_bucket
-    fairroot_geom
-    Hist
-    Graf
-    Gpad
-    RIO
-    XMLIO
-    fairroot_base_bucket
-    root_physics_bucket
-    ParBase
+    mft_base_bucket
+    ITSMFTBase
+    ITSMFTSimulation
+    MFTBase
     DetectorsBase
+    SimulationDataFormat
 
     INCLUDE_DIRECTORIES
-    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/base/include
+
 )
 
 o2_define_bucket(
@@ -631,45 +630,21 @@ o2_define_bucket(
     mft_reconstruction_bucket
 
     DEPENDENCIES
-    root_base_bucket
-    fairroot_geom
-    Hist
-    Graf
-    Gpad
-    RIO
-    XMLIO
-    fairroot_base_bucket
-    root_physics_bucket
-    ParBase
+    mft_base_bucket
+    ITSMFTBase
+    ITSMFTReconstruction
     MFTBase
     MFTSimulation
-    DetectorsBase
-    SimulationDataFormat
-    common_boost_bucket
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_RANDOM_LIBRARY}
-    ${Boost_REGEX_LIBRARY}
-    ${ZeroMQ_LIBRARY_SHARED}
-    ${OPTIONAL_DDS_LIBRARIES}
-    Base
-    FairTools
-    ParBase
-    FairMQ
-    ParMQ
-    fairmq_logger
-    pthread
-    Core
+    O2Device_bucket
     Tree
-    XMLParser
-    Hist
     Net
-    RIO
-    dl
 
     INCLUDE_DIRECTORIES
-    ${FAIRROOT_INCLUDE_DIR}
-    ${OPTIONAL_DDS_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/MFT/simulation/include
 
 )
 
