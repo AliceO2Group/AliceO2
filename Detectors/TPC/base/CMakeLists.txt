@@ -4,6 +4,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
    src/CalDet.cxx
+   src/CalArray.cxx
    src/ContainerFactory.cxx
    src/CRU.cxx
    src/DigitPos.cxx
@@ -22,7 +23,7 @@ set(SRCS
 )
 
 set(HEADERS
-   include/TPCBase/CalDet.h
+   include/TPCBase/CalArray.h
    include/TPCBase/ContainerFactory.h
    include/TPCBase/CRU.h
 #    include/TPCBase/Defs.h

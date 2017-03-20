@@ -10,6 +10,7 @@
 #pragma link C++ class AliceO2::TPC::LocalPosition3D;
 
 #pragma link C++ class AliceO2::TPC::CalDet;
+#pragma link C++ class AliceO2::TPC::CalArray;
 #pragma link C++ class AliceO2::TPC::ContainerFactory;
 #pragma link C++ class AliceO2::TPC::CRU;
 #pragma link C++ class AliceO2::TPC::DigitPos;
