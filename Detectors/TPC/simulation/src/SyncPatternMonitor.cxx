@@ -52,9 +52,9 @@ void SyncPatternMonitor::reset()
     << "was resetted" << FairLogger::endl;
 }
 
-int SyncPatternMonitor::addSequence(const short& hw0, const short& hw1, const short& hw2, const short& hw3)
+short SyncPatternMonitor::addSequence(const short& hw0, const short& hw1, const short& hw2, const short& hw3)
 {
-  int iLastPosition = mPosition;
+  short iLastPosition = mPosition;
 //  hw0 %= 0x1F;
 //  hw1 %= 0x1F;
 //  hw2 %= 0x1F;

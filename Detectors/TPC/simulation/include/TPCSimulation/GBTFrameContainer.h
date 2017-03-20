@@ -11,14 +11,19 @@
 #include "TPCSimulation/HalfSAMPAData.h"
 #include "TPCBase/Mapper.h" 
 //#include <TClonesArray.h>  
+
+#include <iterator>
 #include <vector>
 #include <queue>
+#include <array>
 #include <mutex>
+
 #include <thread>
-#include <iterator>
+
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+
 #include "FairLogger.h"
 
 namespace AliceO2{
@@ -56,54 +61,57 @@ class GBTFrameContainer {
 
     /// Get the size of the container
     /// @return Size of GBT frame container
-    int getSize() { mGBTMutex.lock(); int ret = mGBTFrames.size(); mGBTMutex.unlock(); return ret; };
+    int getSize() { return mGBTFrames.size(); };
 
     /// Get the number of entries in the container
     /// @return Number of entries in the GBT frame container
     int getNentries();
 
-    /// Add copy of frame to the container
-    /// @param frame GBT Frame
-    void addGBTFrame(GBTFrame& frame);
+//    /// Add copy of frame to the container
+//    /// @param frame GBT Frame
+//    void addGBTFrame(GBTFrame& frame);
+//
+//    /// Add frame to the container
+//    /// @param word3 Word 3 of GBT frame, contains bit [127: 96], [127:112] are not part of the actual frame
+//    /// @param word2 Word 2 of GBT frame, contains bit [ 95: 64]
+//    /// @param word1 Word 1 of GBT frame, contains bit [ 63: 32]
+//    /// @param word0 Word 0 of GBT frame, contains bit [ 31:  0]
+//    void addGBTFrame(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0);
+//
+//    /// Add frame to the container
+//    /// @param s0hw0l half-word 0 from SAMPA 0 low channel numbers 
+//    /// @param s0hw1l half-word 1 from SAMPA 0 low channel numbers 
+//    /// @param s0hw2l half-word 2 from SAMPA 0 low channel numbers 
+//    /// @param s0hw3l half-word 3 from SAMPA 0 low channel numbers 
+//    /// @param s0hw0h half-word 0 from SAMPA 0 high channel numbers 
+//    /// @param s0hw1h half-word 1 from SAMPA 0 high channel numbers 
+//    /// @param s0hw2h half-word 2 from SAMPA 0 high channel numbers 
+//    /// @param s0hw3h half-word 3 from SAMPA 0 high channel numbers 
+//    /// @param s1hw0l half-word 0 from SAMPA 1 low channel numbers 
+//    /// @param s1hw1l half-word 1 from SAMPA 1 low channel numbers 
+//    /// @param s1hw2l half-word 2 from SAMPA 1 low channel numbers 
+//    /// @param s1hw3l half-word 3 from SAMPA 1 low channel numbers 
+//    /// @param s1hw0h half-word 0 from SAMPA 1 high channel numbers 
+//    /// @param s1hw1h half-word 1 from SAMPA 1 high channel numbers 
+//    /// @param s1hw2h half-word 2 from SAMPA 1 high channel numbers 
+//    /// @param s1hw3h half-word 3 from SAMPA 1 high channel numbers 
+//    /// @param s2hw0 half-word 0 from SAMPA 2
+//    /// @param s2hw1 half-word 1 from SAMPA 2
+//    /// @param s2hw2 half-word 2 from SAMPA 2
+//    /// @param s2hw3 half-word 3 from SAMPA 2
+//    /// @param s0adc ADC clock from SAMPA 0
+//    /// @param s1adc ADC clock from SAMPA 1
+//    /// @param s2adc ADC clock from SAMPA 2
+//    /// @param marker additional 16 bit marker which is not part of the actual frame
+//    void addGBTFrame(short& s0hw0l, short& s0hw1l, short& s0hw2l, short& s0hw3l,
+//                     short& s0hw0h, short& s0hw1h, short& s0hw2h, short& s0hw3h,
+//                     short& s1hw0l, short& s1hw1l, short& s1hw2l, short& s1hw3l,
+//                     short& s1hw0h, short& s1hw1h, short& s1hw2h, short& s1hw3h,
+//                     short& s2hw0,  short& s2hw1,  short& s2hw2,  short& s2hw3, 
+//                     short& s0adc,  short& s1adc,  short& s2adc,  unsigned marker = 0);
 
-    /// Add frame to the container
-    /// @param word3 Word 3 of GBT frame, contains bit [127: 96], [127:112] are not part of the actual frame
-    /// @param word2 Word 2 of GBT frame, contains bit [ 95: 64]
-    /// @param word1 Word 1 of GBT frame, contains bit [ 63: 32]
-    /// @param word0 Word 0 of GBT frame, contains bit [ 31:  0]
-    void addGBTFrame(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0);
-
-    /// Add frame to the container
-    /// @param s0hw0l half-word 0 from SAMPA 0 low channel numbers 
-    /// @param s0hw1l half-word 1 from SAMPA 0 low channel numbers 
-    /// @param s0hw2l half-word 2 from SAMPA 0 low channel numbers 
-    /// @param s0hw3l half-word 3 from SAMPA 0 low channel numbers 
-    /// @param s0hw0h half-word 0 from SAMPA 0 high channel numbers 
-    /// @param s0hw1h half-word 1 from SAMPA 0 high channel numbers 
-    /// @param s0hw2h half-word 2 from SAMPA 0 high channel numbers 
-    /// @param s0hw3h half-word 3 from SAMPA 0 high channel numbers 
-    /// @param s1hw0l half-word 0 from SAMPA 1 low channel numbers 
-    /// @param s1hw1l half-word 1 from SAMPA 1 low channel numbers 
-    /// @param s1hw2l half-word 2 from SAMPA 1 low channel numbers 
-    /// @param s1hw3l half-word 3 from SAMPA 1 low channel numbers 
-    /// @param s1hw0h half-word 0 from SAMPA 1 high channel numbers 
-    /// @param s1hw1h half-word 1 from SAMPA 1 high channel numbers 
-    /// @param s1hw2h half-word 2 from SAMPA 1 high channel numbers 
-    /// @param s1hw3h half-word 3 from SAMPA 1 high channel numbers 
-    /// @param s2hw0 half-word 0 from SAMPA 2
-    /// @param s2hw1 half-word 1 from SAMPA 2
-    /// @param s2hw2 half-word 2 from SAMPA 2
-    /// @param s2hw3 half-word 3 from SAMPA 2
-    /// @param s0adc ADC clock from SAMPA 0
-    /// @param s1adc ADC clock from SAMPA 1
-    /// @param s2adc ADC clock from SAMPA 2
-    /// @param marker additional 16 bit marker which is not part of the actual frame
-    void addGBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
-                     short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
-                     short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
-                     short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
-                     short s2hw0, short s2hw1, short s2hw2, short s2hw3, 
-                     short s0adc, short s1adc, short s2adc, unsigned marker = 0);
+    template<typename... Args>
+      void addGBTFrame(Args&&... args);
 
     /// Add all frames from file to conatiner
     /// @param fileName Path to file
@@ -125,6 +133,11 @@ class GBTFrameContainer {
     /// @param val Set it to true or false
     void setEnableSyncPatternWarning(bool val)  { mEnableSyncPatternWarning = val; };
 
+    /// Set enable compilation of ADC values
+    /// @param val Set it to true or false
+    void setEnableCompileAdcValues(bool val)    { mEnableCompileAdcValues = val; };
+
+    /// Option to store the inserted GBT frames
     /// Option to store the inserted GBT frames
     /// @param val Set it to true or false
     void setEnableStoreGBTFrames(bool val)      { mEnableStoreGBTFrames = val; };
@@ -192,28 +205,32 @@ class GBTFrameContainer {
     /// @return Returns the old Position of low bits of SAMPA 0
     int searchSyncPattern(std::deque<GBTFrame>::iterator iFrame);
 
+    // Compiles the ADC values
+    /// @param iFrame GBT Frame to be processed (ordering is important!!)
+    void compileAdcValues(std::deque<GBTFrame>::iterator iFrame);
+
     void resetAdcClock();
     void resetSyncPattern();
     void resetAdcValues();
 
     std::mutex mAdcMutex;
-    std::mutex mGBTMutex;
 
     std::deque<GBTFrame> mGBTFrames;                ///< GBT Frames container
-    std::vector<AdcClockMonitor> mAdcClock;         ///< ADC clock monitor for the 3 SAMPAs
-    std::vector<SyncPatternMonitor> mSyncPattern;   ///< Synchronization pattern monitor for the 3 SAMPAs
-    std::vector<int> mPositionForHalfSampa;         ///< Start position of data for all 5 half SAMPAs
-    std::vector<std::queue<short>*> mAdcValues;       ///< Vector to buffer the decoded ADC values, one deque per half SAMPA 
+    std::array<AdcClockMonitor,3> mAdcClock;        ///< ADC clock monitor for the 3 SAMPAs
+    std::array<SyncPatternMonitor,5> mSyncPattern;  ///< Synchronization pattern monitor for the 5 half SAMPAs
+    std::array<short,5> mPositionForHalfSampa;      ///< Start position of data for all 5 half SAMPAs
+    std::array<std::queue<short>*,5> mAdcValues;    ///< Vector to buffer the decoded ADC values, one deque per half SAMPA 
 
     bool mEnableAdcClockWarning;                    ///< enables the ADC clock warnings
     bool mEnableSyncPatternWarning;                 ///< enables the Sync Pattern warnings
     bool mEnableStoreGBTFrames;                     ///< if true, GBT frames are stored
+    bool mEnableCompileAdcValues;                   ///<
     int mCRU;                                       ///< CRU ID of the GBT frames
     int mLink;                                      ///< Link ID of the GBT frames
     int mTimebin;                                   ///< Timebin of last digits extraction 
     int mGBTFramesAnalyzed;                         
 
-    std::vector<std::vector<short>> mTmpData; 
+    std::array<std::array<short,16>,5> mTmpData; 
 };
 }
 }

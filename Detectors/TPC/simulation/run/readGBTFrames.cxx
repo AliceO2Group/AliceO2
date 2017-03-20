@@ -33,8 +33,9 @@ void readData(AliceO2::TPC::GBTFrameContainer& container, std::vector<std::ofstr
   while (!run) {
     while (container.getData(&data)){
       for (i = 0; i < 5; ++i) {
-//        std::copy(data[i].getData().begin(), data[i].getData().end(), std::ostreambuf_iterator<char>(*outfiles[i]));
-          outfiles[i]->write(reinterpret_cast<const char*>(&data[i].getData()[0]), 16*sizeof(data[i].getData()[0]));
+//          outfiles[i]->write(reinterpret_cast<const char*>(&data[i].getData()[0]), 16*sizeof(data[i].getData()[0]));
+
+
 //        outfiles[i]->write((char*)&data[i].getData(),16*sizeof(short));
 //        outfiles[i]->put('\n');
 
@@ -73,6 +74,9 @@ int main(int argc, char *argv[])
   std::vector<std::string> infile(1,"NOFILE");
   std::vector<std::string> outfile(1,"NOFILE");
   std::string adcInFile = "NOFILE";
+  bool checkAdcClock = false;
+  bool compileAdcValues = false;
+  bool keepGbtFrames = false;
 
   bpo::variables_map vm; 
   bpo::options_description desc("Allowed options");
@@ -83,7 +87,10 @@ int main(int argc, char *argv[])
     (",n",          bpo::value<std::vector<unsigned>>(&size),        "Container sizes")
     ("CRU",         bpo::value<std::vector<unsigned>>(&CRU),         "CRUs")
     ("link",        bpo::value<std::vector<unsigned>>(&link),        "links")
-    (",a",          bpo::value<std::string>(&adcInFile),             "ADC input file");
+    ("clock,c",     bpo::bool_switch(&checkAdcClock),                "check ADC clock")
+    ("ADC,a",       bpo::bool_switch(&compileAdcValues),             "compiles the ADC values")
+    ("keep,k",      bpo::bool_switch(&keepGbtFrames),                "keeps the GBT frames in memory")
+    ("file,f",      bpo::value<std::string>(&adcInFile),             "ADC input file");
   bpo::store(parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);
 
@@ -111,8 +118,9 @@ int main(int argc, char *argv[])
     else iLink = link[0];
 
     container.push_back(new AliceO2::TPC::GBTFrameContainer(iSize,iCRU,iLink));
-    container.back()->setEnableAdcClockWarning(false);
-    container.back()->setEnableStoreGBTFrames(false);
+    container.back()->setEnableAdcClockWarning(checkAdcClock);
+    container.back()->setEnableStoreGBTFrames(keepGbtFrames);
+    container.back()->setEnableCompileAdcValues(compileAdcValues);
   }
 
   std::vector<std::thread> threads;
