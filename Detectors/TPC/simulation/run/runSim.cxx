@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
   const std::string mode = vm["mode"].as<std::string>();
 
   std::cout << "####" << std::endl;
-  std::cout << "#### Staring TPC simulation tool for" << std::endl;
+  std::cout << "#### Starting TPC simulation tool for" << std::endl;
   std::cout << "#### " << events << " events and " << engine << " as MC engine" << std::endl;
   std::cout << "####" << std::endl;
   std::cout << std::endl << std::endl;

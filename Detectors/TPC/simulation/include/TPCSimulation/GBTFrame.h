@@ -87,6 +87,11 @@ class GBTFrame {
     /// @param clock 4 sampling clock bits
     void setAdcClock(int sampa, int clock);
 
+    ///
+    /// Set data
+    /// @param other Other GBT Frame
+    void setData(const GBTFrame& other);
+
     /// Set data
     /// @param word3 Word 3 of GBT frame, contains bit [127: 96], [127:112] are not part of the actual frame
     /// @param word2 Word 2 of GBT frame, contains bit [ 95: 64]
