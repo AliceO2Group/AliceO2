@@ -153,19 +153,19 @@ class GBTFrameContainer {
     GBTFrame operator[] (int index) const { return mGBTFrames[index]; };
     GBTFrame& operator[] (int index)      { return mGBTFrames[index]; };
 
-    std::deque<GBTFrame>::iterator begin()               { return mGBTFrames.begin(); };
-    std::deque<GBTFrame>::const_iterator begin()   const { return mGBTFrames.begin(); };
-    std::deque<GBTFrame>::const_iterator cbegin()  const { return mGBTFrames.cbegin(); };
-    std::deque<GBTFrame>::iterator end()                 { return mGBTFrames.end(); };
-    std::deque<GBTFrame>::const_iterator end()     const { return mGBTFrames.end(); };
-    std::deque<GBTFrame>::const_iterator cend()    const { return mGBTFrames.cend(); };
+    std::vector<GBTFrame>::iterator begin()               { return mGBTFrames.begin(); };
+    std::vector<GBTFrame>::const_iterator begin()   const { return mGBTFrames.begin(); };
+    std::vector<GBTFrame>::const_iterator cbegin()  const { return mGBTFrames.cbegin(); };
+    std::vector<GBTFrame>::iterator end()                 { return mGBTFrames.end(); };
+    std::vector<GBTFrame>::const_iterator end()     const { return mGBTFrames.end(); };
+    std::vector<GBTFrame>::const_iterator cend()    const { return mGBTFrames.cend(); };
 
-    std::deque<GBTFrame>::reverse_iterator rbegin()               { return mGBTFrames.rbegin(); };
-    std::deque<GBTFrame>::const_reverse_iterator rbegin()   const { return mGBTFrames.rbegin(); };
-    std::deque<GBTFrame>::const_reverse_iterator crbegin()  const { return mGBTFrames.crbegin(); };
-    std::deque<GBTFrame>::reverse_iterator rend()                 { return mGBTFrames.rend(); };
-    std::deque<GBTFrame>::const_reverse_iterator rend()     const { return mGBTFrames.rend(); };
-    std::deque<GBTFrame>::const_reverse_iterator crend()    const { return mGBTFrames.crend(); };
+    std::vector<GBTFrame>::reverse_iterator rbegin()               { return mGBTFrames.rbegin(); };
+    std::vector<GBTFrame>::const_reverse_iterator rbegin()   const { return mGBTFrames.rbegin(); };
+    std::vector<GBTFrame>::const_reverse_iterator crbegin()  const { return mGBTFrames.crbegin(); };
+    std::vector<GBTFrame>::reverse_iterator rend()                 { return mGBTFrames.rend(); };
+    std::vector<GBTFrame>::const_reverse_iterator rend()     const { return mGBTFrames.rend(); };
+    std::vector<GBTFrame>::const_reverse_iterator crend()    const { return mGBTFrames.crend(); };
 
     /// Sets the timebin
     /// @param val Set to this timebin
@@ -189,20 +189,20 @@ class GBTFrameContainer {
 
     /// Processes the last inserted frame, monitors ADC clock, searches for sync pattern,...
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
-    void processFrame(std::deque<GBTFrame>::iterator iFrame);
+    void processFrame(std::vector<GBTFrame>::iterator iFrame);
 
     /// Checks the ADC clock;
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
-    void checkAdcClock(std::deque<GBTFrame>::iterator iFrame);
+    void checkAdcClock(std::vector<GBTFrame>::iterator iFrame);
 
     /// Searches for the synchronization pattern
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
     /// @return Returns the old Position of low bits of SAMPA 0
-    int searchSyncPattern(std::deque<GBTFrame>::iterator iFrame);
+    int searchSyncPattern(std::vector<GBTFrame>::iterator iFrame);
 
     // Compiles the ADC values
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
-    void compileAdcValues(std::deque<GBTFrame>::iterator iFrame);
+    void compileAdcValues(std::vector<GBTFrame>::iterator iFrame);
 
     void resetAdcClock();
     void resetSyncPattern();
@@ -210,7 +210,7 @@ class GBTFrameContainer {
 
     std::mutex mAdcMutex;
 
-    std::deque<GBTFrame> mGBTFrames;                ///< GBT Frames container
+    std::vector<GBTFrame> mGBTFrames;                ///< GBT Frames container
     std::array<AdcClockMonitor,3> mAdcClock;        ///< ADC clock monitor for the 3 SAMPAs
     std::array<SyncPatternMonitor,5> mSyncPattern;  ///< Synchronization pattern monitor for the 5 half SAMPAs
     std::array<short,5> mPositionForHalfSampa;      ///< Start position of data for all 5 half SAMPAs

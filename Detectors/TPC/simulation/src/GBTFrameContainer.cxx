@@ -30,12 +30,14 @@ GBTFrameContainer::GBTFrameContainer(int size, int cru, int link)
       SyncPatternMonitor(1,1),
       SyncPatternMonitor(2,0)})
   , mPositionForHalfSampa({-1,-1,-1,-1,-1})
-  , mGBTFrames(size)
+  , mGBTFrames()
   , mGBTFramesAnalyzed(0)
   , mCRU(cru)
   , mLink(link)
   , mTimebin(0)
 {
+  mGBTFrames.reserve(size);
+
   for (auto &aAdcValues : mAdcValues) {
     aAdcValues = new std::queue<short>;
   }
@@ -207,7 +209,7 @@ void GBTFrameContainer::processAllFrames()
   }
 }
 
-void GBTFrameContainer::processFrame(std::deque<GBTFrame>::iterator iFrame)
+void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
 {
   ++mGBTFramesAnalyzed;
 
@@ -219,7 +221,7 @@ void GBTFrameContainer::processFrame(std::deque<GBTFrame>::iterator iFrame)
   if (mEnableCompileAdcValues) compileAdcValues(iFrame);
 }
 
-void GBTFrameContainer::compileAdcValues(std::deque<GBTFrame>::iterator iFrame)
+void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
 {
   short value1;
   short value2;
@@ -282,7 +284,7 @@ void GBTFrameContainer::compileAdcValues(std::deque<GBTFrame>::iterator iFrame)
   mAdcMutex.unlock();
 }
 
-void GBTFrameContainer::checkAdcClock(std::deque<GBTFrame>::iterator iFrame)
+void GBTFrameContainer::checkAdcClock(std::vector<GBTFrame>::iterator iFrame)
 {
   if (mAdcClock[0].addSequence(iFrame->getAdcClock(0))) 
     LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << std::distance(mGBTFrames.begin(),iFrame) << FairLogger::endl;
@@ -292,7 +294,7 @@ void GBTFrameContainer::checkAdcClock(std::deque<GBTFrame>::iterator iFrame)
     LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << std::distance(mGBTFrames.begin(),iFrame) << FairLogger::endl;
 }
 
-int GBTFrameContainer::searchSyncPattern(std::deque<GBTFrame>::iterator iFrame)
+int GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
 {
   int iOldPosition = mPositionForHalfSampa[0];
 
@@ -509,7 +511,7 @@ void GBTFrameContainer::overwriteAdcClock(int sampa, int phase)
   unsigned clock = (0xFFFF0000 >> phase);
   unsigned shift = 28;
 
-  for (std::deque<GBTFrame>::iterator it = mGBTFrames.begin(); it != mGBTFrames.end(); ++it) {
+  for (std::vector<GBTFrame>::iterator it = mGBTFrames.begin(); it != mGBTFrames.end(); ++it) {
     it->setAdcClock(sampa,clock >> shift);
     shift = (shift - 4) % 32;
   }
