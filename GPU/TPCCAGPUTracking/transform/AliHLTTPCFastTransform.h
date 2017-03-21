@@ -143,6 +143,7 @@ class AliHLTTPCFastTransform{
   Float_t fTimeBorder2; //! transient
   Float_t *fAlignment; // alignment matrices translation,rotation,reverse rotation
   AliHLTTPCReverseTransformInfoV1 fReverseTransformInfo;
+  bool fUseCorrectionMap;
 
   AliHLTTPCFastTransform::AliRowTransform *fRows[fkNSec][fkNRows]; //! transient
   
