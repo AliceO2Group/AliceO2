@@ -64,6 +64,7 @@ ClassImp(AliHLTTPCClusterStatComponent)
 	fPrintClustersScaled(0),
 	fDumpClusters(0),
 	fAggregate(0),
+	fSort(0),
 	fEvent(0)
 {
 }
@@ -102,6 +103,10 @@ int AliHLTTPCClusterStatComponent::ProcessOption(TString option, TString value)
 	else if (option.EqualTo("aggregate"))
 	{
 		fAggregate = 1;
+	}
+	else if (option.EqualTo("sort"))
+	{
+		fSort = 1;
 	}
 	else if (option.EqualTo("print-clusters-scaled"))
 	{
@@ -364,6 +369,17 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 		float correctionY = revInfo->fCorrectY1 + revInfo->fCorrectY2 * xyz[0] + revInfo->fCorrectY3 * (AliHLTTPCGeometry::GetZLength() - fabs(xyz[2]));
 		xyz[1] += correctionY;
 	}
+}
+
+static bool AliHLTTPCClusterStat_sorthelper(AliHLTTPCRawCluster& a, AliHLTTPCRawCluster& b)
+{
+	if (a.GetPadRow() < b.GetPadRow()) return(true);
+	if (a.GetPadRow() > b.GetPadRow()) return(false);
+	if (a.GetPad() < b.GetPad()) return(true);
+	if (a.GetPad() > b.GetPad()) return(false);
+	if (a.GetTime() < b.GetTime()) return(true);
+	if (a.GetTime() > b.GetTime()) return(false);
+	return(false);
 }
 
 int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtData, const AliHLTComponentBlockData *blocks, AliHLTComponentTriggerData & /*trigData*/, AliHLTUInt8_t * /*outputPtr*/, AliHLTUInt32_t & /*size*/, AliHLTComponentBlockDataList & /*outputBlocks*/)
@@ -660,6 +676,15 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				HLTError("Cluster cound not equal");
 				continue;
 			}
+			
+			AliHLTTPCRawCluster* sortedClusters;
+			if (fSort)
+			{
+				if (fCompressionStudy) HLTFatal("Cannot sort when compressionstudy is enabled");
+				sortedClusters = (AliHLTTPCRawCluster*) malloc(sizeof(AliHLTTPCRawCluster) * clusters->fCount);
+				memcpy(sortedClusters, clusters->fClusters, sizeof(AliHLTTPCRawCluster) * clusters->fCount);
+				std::sort(sortedClusters, sortedClusters + clusters->fCount, AliHLTTPCClusterStat_sorthelper);
+			}
 
 			for (UInt_t iCluster = 0; iCluster < clusters->fCount; iCluster++)
 			{
@@ -709,12 +734,15 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				if (cluster.GetFlagSplitAny()) fSplitPadOrTime++;
 				if (cluster.GetFlagSplitPad() && cluster.GetFlagSplitTime()) fSplitPadTime++;
 				
-				if (fPrintClusters) HLTImportant("Slice %d, Patch %d, Row %d, Pad %.2f, Time %.2f, SPad %.2f, STime %.2f, QMax %d, QTot %d, SplitPad %d, SplitTime %d, Edge %d, TrackId %d, ResPad %.2f ResTime %.2f AvgQTot %d AvgQMax %d",
-				                                 is, ip, (int) cluster.GetPadRow(), cluster.GetPad(), cluster.GetTime(), cluster.GetSigmaPad2(), cluster.GetSigmaTime2(), (int) cluster.GetQMax(), (int) cluster.GetCharge(),
-				                                 (int) cluster.GetFlagSplitPad(), (int) cluster.GetFlagSplitTime(), (int) cluster.GetFlagEdge(), (int) clusterTrack.fID, clusterTrack.fResidualPad, clusterTrack.fResidualTime, (int) clusterTrack.fAverageQTot, (int) clusterTrack.fAverageQMax);
+				AliHLTTPCRawCluster& cluster2 = fSort ? sortedClusters[iCluster] : cluster;
+				
+				if (fPrintClusters) HLTImportant("Event %d Slice %d, Patch %d, Row %d, Pad %.2f, Time %.2f, SPad %.2f, STime %.2f, QMax %d, QTot %d, SplitPad %d, SplitTime %d, Edge %d, TrackId %d, ResPad %.2f ResTime %.2f AvgQTot %d AvgQMax %d",
+				                                 fEvent, is, ip, (int) cluster2.GetPadRow(), cluster2.GetPad(), cluster2.GetTime(), cluster2.GetSigmaPad2(), cluster2.GetSigmaTime2(), (int) cluster2.GetQMax(), (int) cluster2.GetCharge(),
+				                                 (int) cluster2.GetFlagSplitPad(), (int) cluster2.GetFlagSplitTime(), (int) cluster2.GetFlagEdge(), (int) clusterTrack.fID, clusterTrack.fResidualPad, clusterTrack.fResidualTime, (int) clusterTrack.fAverageQTot, (int) clusterTrack.fAverageQMax);
 
 				if (fCompressionStudy && clusterTrack.fID == -1) PrintDumpClustersScaled(is, ip, cluster, clusterTransformed, clusterTrack);
 			}
+			if (fSort) free(sortedClusters);
 		}
 	}
 
