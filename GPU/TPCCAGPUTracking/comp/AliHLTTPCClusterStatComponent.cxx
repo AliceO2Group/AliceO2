@@ -708,7 +708,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 				if (cluster.GetFlagSplitTime()) fSplitTime++;
 				if (cluster.GetFlagSplitAny()) fSplitPadOrTime++;
 				if (cluster.GetFlagSplitPad() && cluster.GetFlagSplitTime()) fSplitPadTime++;
-
+				
 				if (fPrintClusters) HLTImportant("Slice %d, Patch %d, Row %d, Pad %.2f, Time %.2f, SPad %.2f, STime %.2f, QMax %d, QTot %d, SplitPad %d, SplitTime %d, Edge %d, TrackId %d, ResPad %.2f ResTime %.2f AvgQTot %d AvgQMax %d",
 				                                 is, ip, (int) cluster.GetPadRow(), cluster.GetPad(), cluster.GetTime(), cluster.GetSigmaPad2(), cluster.GetSigmaTime2(), (int) cluster.GetQMax(), (int) cluster.GetCharge(),
 				                                 (int) cluster.GetFlagSplitPad(), (int) cluster.GetFlagSplitTime(), (int) cluster.GetFlagEdge(), (int) clusterTrack.fID, clusterTrack.fResidualPad, clusterTrack.fResidualTime, (int) clusterTrack.fAverageQTot, (int) clusterTrack.fAverageQMax);
@@ -745,14 +745,15 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 		for (int ip = 0; ip < 6; ip++)
 			if (clustersTrackIDArray[is][ip]) delete[] clustersTrackIDArray[is][ip];
 
+	int total = fTotal == 0 ? 1 : fTotal;
 	fAssigned += nClusterTracks;
 	HLTImportant("Total %d Assigned %d (%2.0f\%) SplitPad %d (%2.0f\%) SplitTime %d (%2.0f\%) SplitPadTime %d (%2.0f\%) SplitPadOrTime %d (%2.0f\%) Edge %d (%2.0f\%)", fTotal,
-		fAssigned, (float) fAssigned / (float) fTotal * 100.f,
-		fSplitPad, (float) fSplitTime / (float) fTotal * 100.f,
-		fSplitTime, (float) fSplitTime / (float) fTotal * 100.f,
-		fSplitPadTime, (float) fSplitPadTime / (float) fTotal * 100.f,
-		fSplitPadOrTime, (float) fSplitPadOrTime / (float) fTotal * 100.f,
-		fEdge, (float) fEdge / (float) fTotal * 100.f);
+		fAssigned, (float) fAssigned / (float) total * 100.f,
+		fSplitPad, (float) fSplitTime / (float) total * 100.f,
+		fSplitTime, (float) fSplitTime / (float) total * 100.f,
+		fSplitPadTime, (float) fSplitPadTime / (float) total * 100.f,
+		fSplitPadOrTime, (float) fSplitPadOrTime / (float) total * 100.f,
+		fEdge, (float) fEdge / (float) total * 100.f);
 
 	if (nClusterTracks)
 	{
