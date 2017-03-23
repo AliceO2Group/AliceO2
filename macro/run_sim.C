@@ -124,7 +124,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   gSystem->Exec(" rm itsSegmentations.root ");
 
   // create segmentations:
-  AliceO2::ITS::SegmentationPixel* seg0 = new AliceO2::ITS::SegmentationPixel(
+  AliceO2::ITSMFT::SegmentationPixel* seg0 = new AliceO2::ITSMFT::SegmentationPixel(
     0,           // segID (0:9)
     1,           // chips per module
     kNCol,       // ncols (total for module)

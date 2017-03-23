@@ -106,6 +106,8 @@ class Detector: public AliceO2::Base::Detector {
 
     /// Create the detector materials
     virtual void CreateMaterials();
+    /// Geant settings hack
+    void GeantHack();
 
     /// Construct the detector geometry
     void LoadGeometryFromFile();
