@@ -18,13 +18,22 @@
 
 using std::vector;
 
-
+class TTree;
 class TClonesArray;
 
-namespace AliceO2{
-namespace TPC{
+namespace AliceO2 {
+namespace TPC {
 
 class DigitContainer;
+
+typedef struct {
+    float CRU;
+    float time;
+    float row;
+    float pad;
+    float nElectrons;
+} GEMRESPONSE;
+static GEMRESPONSE GEMresponse;
 
 /// \class Digitizer
 /// \brief Digitizer class for the TPC
@@ -46,11 +55,9 @@ class Digitizer : public TObject {
     /// @return digits container
     DigitContainer *Process(TClonesArray *points);
 
-    /// Pad Response
-    /// @param xabs Position in x
-    /// @param yabs Position in y
-    /// @return Vector with PadResponse objects with pad and row position and the correponding fraction of the induced signal
-    void getPadResponse(float xabs, float yabs, vector<PadResponse> &);
+    /// Enable the debug output after application of the PRF
+    /// Can be set via DigitizerTask::setDebugOutput("PRFdebug")
+    static void setPRFDebug() { mDebugFlagPRF = true; }
 
     /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     /// Conversion functions that at some point should go someplace else
@@ -59,6 +66,12 @@ class Digitizer : public TObject {
     /// @param zPos z position of the charge
     /// @return Time bin of the charge
     static int getTimeBin(float zPos);
+
+    /// Compute z position from time bin
+    /// @param Time bin of the charge
+    /// @param
+    /// @return zPos z position of the charge
+    static float getZfromTimeBin(float timeBin, Side s);
 
     /// Compute time bin from time
     /// @param time time of the charge
@@ -80,12 +93,14 @@ class Digitizer : public TObject {
     /// @return Time of the time bin of the charge
     static float getTimeBinTime(float time);
 
-
   private:
     Digitizer(const Digitizer &);
     Digitizer &operator=(const Digitizer &);
 
-    DigitContainer          *mDigitContainer;   ///< Container for the Digits      
+    DigitContainer          *mDigitContainer;   ///< Container for the Digits
+
+    std::unique_ptr<TTree>  mDebugTreePRF;      ///< Output tree for the output after the PRF
+    static bool             mDebugFlagPRF;      ///< Flag for debug output after the PRF
 
   ClassDef(Digitizer, 1);
 };
@@ -96,6 +111,14 @@ int Digitizer::getTimeBin(float zPos)
 {
   float timeBin = (TPCLENGTH-std::fabs(zPos))/(DRIFTV*ZBINWIDTH);
   return static_cast<int>(timeBin);
+}
+
+inline
+float Digitizer::getZfromTimeBin(float timeBin, Side s)
+{
+  float zSign = (s==0) ? 1 : -1;
+  float zAbs =  zSign * (TPCLENGTH- (timeBin*DRIFTV*ZBINWIDTH));
+  return zAbs;
 }
 
 inline

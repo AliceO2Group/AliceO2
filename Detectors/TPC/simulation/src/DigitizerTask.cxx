@@ -21,11 +21,11 @@ using namespace AliceO2::TPC;
 
 
 DigitizerTask::DigitizerTask()
-  : FairTask("TPCDigitizerTask"),
-    mDigitizer(nullptr),
-    mPointsArray(nullptr),
-    mDigitsArray(nullptr),
-    mHitFileName()
+  : FairTask("TPCDigitizerTask")
+  , mDigitizer(nullptr)
+  , mPointsArray(nullptr)
+  , mDigitsArray(nullptr)
+  , mHitFileName()
 {
   /// @todo get rid of new
   mDigitizer = new Digitizer;
