@@ -101,7 +101,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   if(TMath::Abs(TVirtualMC::GetMC()->TrackCharge())<=0.) return kFALSE; // take only charged particles
 
   //Set parameters at entrance of volume. Reset ELoss.
-  
+
   if ( TVirtualMC::GetMC()->IsTrackEntering() ) {
     mEnergyLoss  = 0.;
     mTime   = TVirtualMC::GetMC()->TrackTime() * 1.0e09;
@@ -109,6 +109,16 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     TVirtualMC::GetMC()->TrackPosition(mPosition);
     TVirtualMC::GetMC()->TrackMomentum(mMomentum);
   }
+
+    double r = TMath::Sqrt(mPosition.X() * mPosition.X() + mPosition.Y()*mPosition.Y());
+    mTrackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+    mVolumeID = vol->getMCid();
+    LOG(INFO) << "TPC::AddHit" << FairLogger::endl
+    << "   -- " << mTrackNumberID <<","  << mVolumeID << " " << vol->GetName()
+    << ", Pos: (" << mPosition.X() << ", "  << mPosition.Y() <<", "<<  mPosition.Z() << ", " << r <<") "
+    << ", Mom: (" << mMomentum.Px() << ", " << mMomentum.Py() << ", "  <<  mMomentum.Pz() << ") "
+    << " Time: "<<  mTime <<", Len: " << mLength << ", Eloss: " <<
+    mEnergyLoss << FairLogger::endl;
 
   // Sum energy loss for all steps in the active volume
   mEnergyLoss += TVirtualMC::GetMC()->Edep();
@@ -123,34 +133,35 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     AddHit(mTrackNumberID, mVolumeID, TVector3(mPosition.X(),  mPosition.Y(),  mPosition.Z()),
            TVector3(mMomentum.Px(), mMomentum.Py(), mMomentum.Pz()), mTime, mLength,
            mEnergyLoss);
-//     LOG(INFO) << "TPC::AddHit" << FairLogger::endl
-//     << "   -- " << mTrackNumberID <<","  << mVolumeID
-//     << ", Pos: (" << mPosition.X() << ", "  << mPosition.Y() <<", "<<  mPosition.Z() << ") "
-//     << ", Mom: (" << mMomentum.Px() << ", " << mMomentum.Py() << ", "  <<  mMomentum.Pz() << ") "
-//     << " Time: "<<  mTime <<", Len: " << mLength << ", Eloss: " <<
-//     mEnergyLoss << FairLogger::endl;
+    //LOG(INFO) << "TPC::AddHit" << FairLogger::endl
+    //<< "   -- " << mTrackNumberID <<","  << mVolumeID << " " << vol->GetName()
+    //<< ", Pos: (" << mPosition.X() << ", "  << mPosition.Y() <<", "<<  mPosition.Z() << ") "
+    //<< ", Mom: (" << mMomentum.Px() << ", " << mMomentum.Py() << ", "  <<  mMomentum.Pz() << ") "
+    //<< " Time: "<<  mTime <<", Len: " << mLength << ", Eloss: " <<
+    //mEnergyLoss << FairLogger::endl;
 
     // Increment number of Detector det points in TParticle
     AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)TVirtualMC::GetMC()->GetStack();
     stack->AddPoint(kAliTpc);
 
   }
-  
+
+  //return kTRUE;
   // ________________________________________________________________________________________________
   // Energy loss à la NA49
-  
-  Float_t prim = 14; // number of electron/ion pairs per MIP and cm. Should go to parameter space. 
-  
+
+  Float_t prim = 14; // number of electron/ion pairs per MIP and cm. Should go to parameter space.
+
   Float_t pp;
-  
+
   Float_t betaGamma = mMomentum.Rho()/TVirtualMC::GetMC()->TrackMass();
   betaGamma = TMath::Max(betaGamma,(Float_t)7.e-3); // protection against too small bg
-  
+
   pp=NPRIM*BetheBlochAleph(betaGamma, BBPARAM[0], BBPARAM[1], BBPARAM[2], BBPARAM[3], BBPARAM[4]);
-  
+
   Double_t rnd = TVirtualMC::GetMC()->GetRandom()->Rndm();
   TVirtualMC::GetMC()->SetMaxStep(-TMath::Log(rnd)/pp);
- 
+
   return kTRUE;
 }
 
@@ -202,6 +213,8 @@ void Detector::ConstructGeometry()
   // Define the list of sensitive volumes
   DefineSensitiveVolumes();
 
+  // GeantHack
+  //GeantHack();
 }
 
 void Detector::CreateMaterials()
@@ -2906,6 +2919,8 @@ void Detector::DefineSensitiveVolumes()
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* v=nullptr;
 
+  //const Int_t nSensitive=2;
+  //const char* volumeNames[nSensitive]={"TPC_Drift","TPC_Strip"};
   const Int_t nSensitive=1;
   const char* volumeNames[nSensitive]={"TPC_Drift"};
 
@@ -2943,8 +2958,85 @@ Double_t Detector::BetheBlochAleph(Double_t bg, Double_t kp1, Double_t kp2, Doub
   Double_t bb = TMath::Power(1./bg,kp5);
 
   bb=TMath::Log(kp3+bb);
-  
+
   return (kp2-aa-bb)*kp1/aa;
+}
+
+#include <sstream>
+#include <string>
+#include "TVirtualMC.h"
+void Detector::GeantHack()
+{
+  //   Med  GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA ANNI BREM COMP DCAY DRAY HADR LOSS MULS PAIR PHOT RAYL STRA
+  std::stringstream data("\
+  TPC    0    -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC     1 1e-5  1e-5  1e-3 1e-3  1e-5   1e-5   1e-5  1e-5 1e-5    -1.   1    1    1    1    1    1    3    1    1    1    1\n\
+  TPC     2 1e-5  1e-5  1e-3 1e-3  1e-5   1e-5   1e-5  1e-5 1e-5    -1.   1    1    1    1    1    1    5    1    1    1    1\n\
+  TPC     3 1e-5  1e-5  1e-3 1e-3  1e-5   1e-5   1e-5  1e-5 1e-5    -1.  -1   -1   -1    1    1    1    3    1    1    1    1 \n\
+  TPC    20 1e-6  1e-6  1e-3 1e-3  1e-6   1e-6   1e-6  1e-6 1e-6    -1.   1    1    1    1    1    1    5    1    1    1    1\n\
+  TPC     4   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC     5   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC     6   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC     7   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC     8   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC     9   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC    10   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC    11   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC    12   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC    13   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC    14   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1\n\
+  TPC    15   -1.   -1.   -1.  -1.   -1.    -1.   -1.  -1.    -1.   -1.  -1   -1   -1    1    1    1    3    1    1    1    1");
+
+  const Int_t kncuts=10;
+  const Int_t knflags=12;
+  const Int_t knpars=kncuts+knflags;
+  const char kpars[knpars][7] = {"CUTGAM" ,"CUTELE","CUTNEU","CUTHAD","CUTMUO",
+    "BCUTE","BCUTM","DCUTE","DCUTM","PPCUTM","ANNI",
+    "BREM","COMP","DCAY","DRAY","HADR","LOSS",
+    "MULS","PAIR","PHOT","RAYL","STRA"};
+  std::string detName;
+  char* filtmp;
+  Float_t cut[kncuts];
+  Int_t flag[knflags];
+  Int_t i, itmed, iret, jret, ktmed, kz;
+
+  std::string line;
+  while (std::getline(data,line)) {
+    std::cout << line << endl;
+    for(i=0;i<kncuts;i++) cut[i]=-99;
+    for(i=0;i<knflags;i++) flag[i]=-99;
+    itmed=0;
+
+    std::stringstream linedata(line);
+    linedata >> detName >> itmed >> cut[0] >> cut[1] >> cut[2] >> cut[3] >> cut[4]
+             >> cut[5] >> cut[6] >> cut[7] >> cut[8] >> cut[9]
+             >> flag[0] >> flag[1] >> flag[2] >> flag[3] >> flag[4] >> flag[5]
+             >> flag[6] >> flag[7] >> flag[8] >> flag[9] >> flag[10] >> flag[11];
+
+    if(0<=itmed && itmed < 100) {
+      ktmed=getMedium(itmed);
+      if(!ktmed) {
+        LOG(INFO) << Form("Invalid tracking medium code %d for %s",itmed,GetName()) << FairLogger::endl;;
+        continue;
+      }
+      // Set energy thresholds
+      for(kz=0;kz<kncuts;kz++) {
+        if(cut[kz]>=0) {
+          LOG(INFO) << Form("%-6s set to %10.3E for tracking medium code %4d (%4d) for %s",
+                kpars[kz],cut[kz],itmed,ktmed,GetName()) << FairLogger::endl;
+          TVirtualMC::GetMC()->Gstpar(ktmed,kpars[kz],cut[kz]);
+        }
+      }
+      // Set transport mechanisms
+      for(kz=0;kz<knflags;kz++) {
+        if(flag[kz]>=0) {
+          LOG(INFO) << Form("%-6s set to %10d for tracking medium code %4d (%4d) for %s",
+                kpars[kncuts+kz],flag[kz],itmed,ktmed,GetName()) << FairLogger::endl;
+          TVirtualMC::GetMC()->Gstpar(ktmed,kpars[kncuts+kz],Float_t(flag[kz]));
+        }
+      }
+    }
+  }
 }
 
 ClassImp(AliceO2::TPC::Detector)

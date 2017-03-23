@@ -16,17 +16,24 @@ using namespace AliceO2::Base;
 Float_t Detector::mDensityFactor = 1.0;
 
 Detector::Detector()
-  : FairDetector()
+  : FairDetector(),
+    mMapMaterial(new std::vector<int>(100)),
+    mMapMedium(new std::vector<int>(100))
 {
 }
 
 Detector::Detector(const char *name, Bool_t Active, Int_t DetId)
-  : FairDetector(name, Active, DetId)
+  : FairDetector(name, Active, DetId),
+    mMapMaterial(new std::vector<int>(100)),
+    mMapMedium(new std::vector<int>(100))
 {
 }
 
 Detector::Detector(const Detector &rhs)
-  = default;
+  : FairDetector(rhs),
+    mMapMaterial(new std::vector<int>(*rhs.mMapMaterial.get())),
+    mMapMedium(new std::vector<int>(*rhs.mMapMedium.get()))
+{ }
 
 Detector::~Detector()
 = default;
@@ -50,7 +57,9 @@ void Detector::Material(Int_t imat, const char *name, Float_t a, Float_t z, Floa
   uniquename.Append(name);
 
   // Check this!!!
-  TVirtualMC::GetMC()->Material(imat, uniquename.Data(), a, z, dens * mDensityFactor, radl, absl, buf, nwbuf);
+  int kmat=-1;
+  TVirtualMC::GetMC()->Material(kmat, uniquename.Data(), a, z, dens * mDensityFactor, radl, absl, buf, nwbuf);
+  (*mMapMaterial.get())[imat] = kmat;
 }
 
 void Detector::Mixture(Int_t imat, const char *name, Float_t *a, Float_t *z, Float_t dens,
@@ -61,7 +70,9 @@ void Detector::Mixture(Int_t imat, const char *name, Float_t *a, Float_t *z, Flo
   uniquename.Append(name);
 
   // Check this!!!
-  TVirtualMC::GetMC()->Mixture(imat, uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat);
+  int kmat=-1;
+  TVirtualMC::GetMC()->Mixture(kmat, uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat);
+  (*mMapMaterial.get())[imat] = kmat;
 }
 
 void Detector::Medium(Int_t numed, const char *name, Int_t nmat, Int_t isvol, Int_t ifield,
@@ -73,8 +84,11 @@ void Detector::Medium(Int_t numed, const char *name, Int_t nmat, Int_t isvol, In
   uniquename.Append(name);
 
   // Check this!!!
-  TVirtualMC::GetMC()->Medium(numed, uniquename.Data(), nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
+  int kmed = -1;
+  const int kmat = (*mMapMaterial.get())[nmat];
+  TVirtualMC::GetMC()->Medium(kmed, uniquename.Data(), kmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
                               stmin, ubuf, nbuf);
+  (*mMapMedium.get())[numed] = kmed;
 }
 
 void Detector::Matrix(Int_t &nmat, Float_t theta1, Float_t phi1, Float_t theta2, Float_t phi2,
