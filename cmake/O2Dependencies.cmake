@@ -257,7 +257,7 @@ o2_define_bucket(
     root_base_bucket
 
     DEPENDENCIES
-    Core RIO # ROOT
+    Core RIO GenVector # ROOT
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
