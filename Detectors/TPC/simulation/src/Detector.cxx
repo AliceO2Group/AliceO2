@@ -110,15 +110,15 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     TVirtualMC::GetMC()->TrackMomentum(mMomentum);
   }
 
-    double r = TMath::Sqrt(mPosition.X() * mPosition.X() + mPosition.Y()*mPosition.Y());
-    mTrackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-    mVolumeID = vol->getMCid();
-    LOG(INFO) << "TPC::AddHit" << FairLogger::endl
-    << "   -- " << mTrackNumberID <<","  << mVolumeID << " " << vol->GetName()
-    << ", Pos: (" << mPosition.X() << ", "  << mPosition.Y() <<", "<<  mPosition.Z() << ", " << r <<") "
-    << ", Mom: (" << mMomentum.Px() << ", " << mMomentum.Py() << ", "  <<  mMomentum.Pz() << ") "
-    << " Time: "<<  mTime <<", Len: " << mLength << ", Eloss: " <<
-    mEnergyLoss << FairLogger::endl;
+    //double r = TMath::Sqrt(mPosition.X() * mPosition.X() + mPosition.Y()*mPosition.Y());
+    //mTrackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+    //mVolumeID = vol->getMCid();
+    //LOG(INFO) << "TPC::AddHit" << FairLogger::endl
+    //<< "   -- " << mTrackNumberID <<","  << mVolumeID << " " << vol->GetName()
+    //<< ", Pos: (" << mPosition.X() << ", "  << mPosition.Y() <<", "<<  mPosition.Z() << ", " << r <<") "
+    //<< ", Mom: (" << mMomentum.Px() << ", " << mMomentum.Py() << ", "  <<  mMomentum.Pz() << ") "
+    //<< " Time: "<<  mTime <<", Len: " << mLength << ", Eloss: " <<
+    //mEnergyLoss << FairLogger::endl;
 
   // Sum energy loss for all steps in the active volume
   mEnergyLoss += TVirtualMC::GetMC()->Edep();
