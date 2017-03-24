@@ -157,7 +157,7 @@ bool FileSink::StoreData(FairMQParts& parts, int index)
 
     for (unsigned int ibr = 0; ibr < fBranchNames.size(); ibr++) { 
 	  
-      LOG(INFO) << "FileSink::Run >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << " " << tempObjects[ipart]->GetName() << "";
+      LOG(INFO) << "FileSink::StoreData >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << " part " << ipart << " " << tempObjects[ipart]->GetName() << "";
 
       // !!! force ???
       //if (kFALSE || (strcmp(tempObjects[ipart]->GetName(),fBranchNames[ibr].c_str()) == 0)) { 
@@ -166,8 +166,7 @@ bool FileSink::StoreData(FairMQParts& parts, int index)
 
 	fOutputObjects[ibr] = tempObjects[ipart];
 
-	LOG(INFO) << "FileSink::Run >>>>> branch " << ibr << "   " << fBranchNames[ibr].c_str() << " " << tempObjects[ipart]->GetName() << "";
-	//LOG(INFO) << "FileSink::Run >>>>> out object branch " << ibr << " part " << ipart << "";	    
+	LOG(INFO) << "FileSink::StoreData >>>>> branch selected for output " << ibr << "   " << fBranchNames[ibr].c_str() << " part " << ipart << " " << tempObjects[ipart]->GetName() << "";
 
 	//fOutputObjects[ibr]->Dump();
 	fTree->SetBranchAddress(fBranchNames[ibr].c_str(),&fOutputObjects[ibr]);
