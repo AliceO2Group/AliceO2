@@ -6,6 +6,8 @@
 
 #include "FairLogger.h"
 #include <iostream>
+#include <iomanip>
+#include <array>
 
 namespace AliceO2 {
 namespace TPC {
@@ -41,29 +43,41 @@ class SyncPatternMonitor {
 
     /// Get position
     /// @return Position of first part of the synchronization pattern, -1 if no patter was found
-    short getPosition() { return mPatternFound ? mPosition : -1; };
+    short getPosition() { return mPatternFound ? mHwWithPattern : -1; };
 
   private:
 
+    const static short SYNC_START = 2;
     const static short PATTERN_A = 0x15;
     const static short PATTERN_B = 0x0A;
+    static constexpr std::array<short,32> SYNC_PATTERN {{
+      PATTERN_A, PATTERN_A, PATTERN_B, PATTERN_B, PATTERN_A, PATTERN_A, PATTERN_B, PATTERN_B,
+      PATTERN_A, PATTERN_A, PATTERN_B, PATTERN_B, PATTERN_A, PATTERN_A, PATTERN_B, PATTERN_B,
+      PATTERN_A, PATTERN_A, PATTERN_A, PATTERN_A, PATTERN_B, PATTERN_B, PATTERN_B, PATTERN_B,
+      PATTERN_A, PATTERN_A, PATTERN_A, PATTERN_A, PATTERN_B, PATTERN_B, PATTERN_B, PATTERN_B
+    }};
 
-    enum state {lookForSeq0, lookForSeq1, lookForSeq2, lookForSeq3,
-                lookForSeq4, lookForSeq5, lookForSeq6, lookForSeq7};
+    void patternFound(const short& hw) { 
+      LOG(INFO) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? "low" : "high") << " bits): "
+         << "Synchronization pattern found, started at position " << hw << FairLogger::endl;
+      if (mPatternFound) {
+        LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? "low" : "high") << " bits): "
+          << "Synchronization was already found" << FairLogger::endl;
+      }
+      mPatternFound = true; 
+      mPosition = SYNC_START; 
+      mHwWithPattern = hw;
+    };
 
-    /// increments mCurrentState
-    void incState();
+    void checkWord(const short& hw, const short& pos) {
+      if (hw == SYNC_PATTERN[mPosition]) ++mPosition;
+      else mPosition = SYNC_START;
+      if (mPosition == 31) patternFound(pos); 
+    }
 
-    void printState(state stateToPrint);
-
-    state mCurrentState;    ///< store current state
     bool mPatternFound;     ///< store whether pattern was already found
     short mPosition;        ///< position of last part of the pattern
-    short mTempPosition;    ///< temporary postion storage during sequence
-    short mLastHw0;         ///< store last half-word 0
-    short mLastHw1;         ///< store last half-word 1
-    short mLastHw2;         ///< store last half-word 2
-    short mLastHw3;         ///< store last half-word 3
+    short mHwWithPattern;   ///< Half word which startet with the pattern
     int mSampa;             ///< SAMPA number
     int mLowHigh;           ///< Low or high bits
 

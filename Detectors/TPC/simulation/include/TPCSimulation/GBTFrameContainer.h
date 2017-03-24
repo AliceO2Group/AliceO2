@@ -106,7 +106,7 @@ class GBTFrameContainer {
                      short& s2hw0,  short& s2hw1,  short& s2hw2,  short& s2hw3, 
                      short& s0adc,  short& s1adc,  short& s2adc,  unsigned marker = 0);
 
-    template<typename... Args> void addGBTFrame(Args&&... args);
+//    template<typename... Args> void addGBTFrame(Args&&... args);
 
     /// Add all frames from file to conatiner
     /// @param fileName Path to file
