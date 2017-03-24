@@ -48,7 +48,7 @@ Reconstruction with MQ devices:
 
 ./"execdir"/mft-reco-processor --transport zeromq --id processor1 --mq-config reco.json --task-name FindHits --in-channel data-in --out-channel data-out
 
-./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco.json --file-name hits.root --class-name "TClonesArray(AliceO2::MFT::Hit)" --branch-name MFTHits --in-channel data-in
+./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco.json --file-name hits.root --class-name "TClonesArray(AliceO2::MFT::Hit)" --branch-name MFTHits --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
 ```
 
 with the output file "hits.root"
