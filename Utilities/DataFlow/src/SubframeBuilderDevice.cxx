@@ -13,6 +13,10 @@
 #include "Headers/DataHeader.h"
 #include "FairMQProgOptions.h"
 
+// temporary hack to solve issue 279; linking problem for this constexpr
+// variable
+constexpr uint32_t AliceO2::DataFlow::SubframeBuilderDevice::mDuration;
+
 using HeartbeatHeader = AliceO2::Header::HeartbeatHeader;
 using HeartbeatTrailer = AliceO2::Header::HeartbeatTrailer;
 using DataHeader = AliceO2::Header::DataHeader;
