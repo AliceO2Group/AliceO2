@@ -16,6 +16,7 @@ SyncPatternMonitor::SyncPatternMonitor(int sampa, int lowHigh)
   , mHwWithPattern(-1)
   , mSampa(sampa)
   , mLowHigh(lowHigh)
+  , mCheckedWords(0)
 {}
 
 SyncPatternMonitor::SyncPatternMonitor(const SyncPatternMonitor& other)
@@ -24,6 +25,7 @@ SyncPatternMonitor::SyncPatternMonitor(const SyncPatternMonitor& other)
   , mHwWithPattern(other.mHwWithPattern)
   , mSampa(other.mSampa)
   , mLowHigh(other.mLowHigh)
+  , mCheckedWords(other.mCheckedWords)
 {}
 
 SyncPatternMonitor::~SyncPatternMonitor()
@@ -34,6 +36,7 @@ void SyncPatternMonitor::reset()
   mPatternFound = false;
   mPosition = SYNC_START;
   mHwWithPattern = -1;
+  mCheckedWords = 0;
   LOG(INFO) << "Sync pattern monitoring for SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? "low" : "high") << " bits) "
     << "was resetted" << FairLogger::endl;
 }

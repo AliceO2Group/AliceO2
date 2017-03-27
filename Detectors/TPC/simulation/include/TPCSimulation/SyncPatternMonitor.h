@@ -58,11 +58,11 @@ class SyncPatternMonitor {
     }};
 
     void patternFound(const short& hw) { 
-      LOG(INFO) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? "low" : "high") << " bits): "
-         << "Synchronization pattern found, started at position " << hw << FairLogger::endl;
+      LOG(INFO) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
+         << "SYNC found at " << hw << " in " << mCheckedWords << FairLogger::endl;
       if (mPatternFound) {
-        LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? "low" : "high") << " bits): "
-          << "Synchronization was already found" << FairLogger::endl;
+        LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
+          << "SYNC was already found" << FairLogger::endl;
       }
       mPatternFound = true; 
       mPosition = SYNC_START; 
@@ -70,6 +70,7 @@ class SyncPatternMonitor {
     };
 
     void checkWord(const short& hw, const short& pos) {
+      ++mCheckedWords;
       if (hw == SYNC_PATTERN[mPosition]) ++mPosition;
       else mPosition = SYNC_START;
       if (mPosition == 31) patternFound(pos); 
@@ -80,6 +81,7 @@ class SyncPatternMonitor {
     short mHwWithPattern;   ///< Half word which startet with the pattern
     int mSampa;             ///< SAMPA number
     int mLowHigh;           ///< Low or high bits
+    unsigned mCheckedWords; ///< Counter for half words got checked
 
 };
 }
