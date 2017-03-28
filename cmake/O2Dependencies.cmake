@@ -2,6 +2,7 @@
 ########## DEPENDENCIES lookup ############
 
 find_package(ROOT 6.06.00 REQUIRED)
+find_package(Vc REQUIRED)
 find_package(Pythia8)
 find_package(Pythia6)
 if (ALICEO2_MODULAR_BUILD)
@@ -64,6 +65,16 @@ elseif(UNIX)
 endif()
 
 ########## Bucket definitions ############
+o2_define_bucket(
+    NAME
+    common_vc_bucket
+
+    DEPENDENCIES
+    ${Vc_LIBRARIES}
+
+    INCLUDE_DIRECTORIES
+    ${Vc_INCLUDE_DIR}
+)
 
 o2_define_bucket(
     NAME
@@ -533,6 +544,7 @@ o2_define_bucket(
     DEPENDENCIES
     root_base_bucket
     fairroot_base_bucket
+    common_vc_bucket
     ParBase
 )
 
@@ -541,18 +553,29 @@ o2_define_bucket(
     tpc_simulation_bucket
 
     DEPENDENCIES
-    root_base_bucket
-    fairroot_geom
+    tpc_base_bucket
+    DetectorsBase
+    TPCBase
+    SimulationDataFormat
+    Geom
     MathCore
     RIO
-    TPCBase
-    DetectorsBase
-    SimulationDataFormat
-    ${GENERATORS_LIBRARY}
+    Hist
+    DetectorsPassive
+    its_reconstruction_bucket
+    Gen
+    Base
+    TreePlayer
+    #   Core
+    #    root_base_bucket
+    #    fairroot_geom
+    #    ${GENERATORS_LIBRARY}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Passive/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
 )
 
 o2_define_bucket(

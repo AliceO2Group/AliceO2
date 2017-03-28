@@ -4,7 +4,7 @@
 #define ALICEO2_TPC_BoxClusterer_H_
 
 #include "Rtypes.h"
-#include "TObject.h"
+#include "TPCSimulation/Clusterer.h"
 
 class TClonesArray;
 
@@ -14,7 +14,7 @@ namespace AliceO2{
     
     class ClusterContainer;
     
-    class BoxClusterer : public TObject {
+    class BoxClusterer : public Clusterer {
     public:
       BoxClusterer();
       
@@ -40,8 +40,8 @@ namespace AliceO2{
       void GetPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin);
       Int_t Update(const Int_t iCRU, const Int_t iRow, const Int_t iPad, 
 		   const Int_t iTimeBin, Float_t signal);
-      Float_t GetQ(const Float_t* adcArray, const Short_t time, 
-		   const Short_t pad, Short_t& timeMin, Short_t& timeMax, 
+      Float_t GetQ(const Float_t* adcArray, const Short_t pad,
+           const Short_t time, Short_t& timeMin, Short_t& timeMax, 
 		   Short_t& padMin, Short_t& padMax) const;
       Bool_t UpdateCluster(Float_t charge, Int_t deltaPad, Int_t deltaTime, 
 			   Float_t& qTotal, Double_t& meanPad, 
@@ -49,14 +49,6 @@ namespace AliceO2{
 			   Double_t& sigmaTime);
       
       
-      ClusterContainer* mClusterContainer; ///< Internal cluster storage
-      
-      Int_t mRowsMax;          //!<! Maximum row number
-      Int_t mPadsMax;          //!<! Maximum pad number
-      Int_t mTimeBinsMax;      //!<! Maximum time bin
-      Float_t mMinQMax;        //|<| Minimun Qmax for cluster
-      Bool_t  mRequirePositiveCharge;  //|<|If true, require charge > 0 (else all clusters are automatic 5x5)
-      Bool_t  mRequireNeighbouringPad; //|<|If true, require 2+ pads minimum
       //
       //  Expand buffer
       //

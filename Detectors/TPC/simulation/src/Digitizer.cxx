@@ -1,135 +1,132 @@
 /// \file Digitizer.cxx
-/// \brief Digitizer for the TPC
+/// \author Andi Mathis, andreas.mathis@ph.tum.de
+
 #include "TPCSimulation/Digitizer.h"
-#include "TPCSimulation/Point.h"
+#include "TPCSimulation/Constants.h"
+#include "TPCSimulation/ElectronTransport.h"
+#include "TPCSimulation/GEMAmplification.h"
 #include "TPCSimulation/PadResponse.h"
+#include "TPCSimulation/Point.h"
+#include "TPCSimulation/SAMPAProcessing.h"
 
 #include "TPCBase/Mapper.h"
 
-#include "TRandom.h"
-#include "TF1.h"
-#include "TClonesArray.h"
-#include "TCollection.h"
-#include "TMath.h"
-
 #include "FairLogger.h"
-
-#include <cmath>
-#include <iostream>
 
 ClassImp(AliceO2::TPC::Digitizer)
 
 using namespace AliceO2::TPC;
 
-Digitizer::Digitizer():
-TObject(),
-mPolya(nullptr),
-mDigitContainer(nullptr)
+bool AliceO2::TPC::Digitizer::mDebugFlagPRF = false;
+
+Digitizer::Digitizer()
+  : TObject()
+  , mDigitContainer(nullptr)
+  , mDebugTreePRF(nullptr)
 {}
 
-Digitizer::~Digitizer(){
+Digitizer::~Digitizer()
+{
   delete mDigitContainer;
-  delete mPolya;
 }
 
-void Digitizer::init(){
+void Digitizer::init()
+{
+  /// @todo get rid of new? check with Mohammad
   mDigitContainer = new DigitContainer();
-  Float_t SigmaOverMu = 0.78;
-  Float_t kappa = 1/(SigmaOverMu*SigmaOverMu);
-  Float_t s = 1/kappa;
-  
-  char strPolya[1000];
-  snprintf(strPolya,1000,"1/(TMath::Gamma(%e)*%e) *pow(x/%e, (%e)) *exp(-x/%e)", kappa, s, s, kappa-1, s);
-//   mPolya = new TF1("polya", "1/x", 0, 1000);
+
+//  mDebugTreePRF = std::unique_ptr<TTree> (new TTree("PRFdebug", "PRFdebug"));
+//  mDebugTreePRF->Branch("GEMresponse", &GEMresponse, "CRU:timeBin:row:pad:nElectrons");
 }
 
-DigitContainer *Digitizer::Process(TClonesArray *points){
-  // TODO should be parametrized
-  Float_t wIon = 37.3e-6;
-  Float_t attCoef = 250.;
-  Float_t OxyCont = 5.e-6;
-  Float_t driftV = 2.58;
-  Float_t zBinWidth = 0.19379844961;
-  
+DigitContainer *Digitizer::Process(TClonesArray *points)
+{
   mDigitContainer->reset();
-
-  Float_t posEle[4] = {0., 0., 0., 0.};
-
   const Mapper& mapper = Mapper::instance();
-  
-  Int_t A = 0;
-  Int_t C = 0;
-  
-  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter){
-    Point *inputpoint = static_cast<Point *>(*pointiter);
-    
-    posEle[0] = inputpoint->GetX();
-    posEle[1] = inputpoint->GetY();
-    posEle[2] = inputpoint->GetZ();
-    posEle[3] = static_cast<int>(inputpoint->GetEnergyLoss()/wIon);
-    
-    //Loop over electrons
-    for(Int_t iEle=0; iEle < posEle[3]; ++iEle){
-      
-      // Attachment
-      const Float_t attProb = attCoef * OxyCont * getTime(posEle[2]);
-      if((gRandom->Rndm(0)) < attProb) continue;
 
-      // Drift and Diffusion
-      ElectronDrift(posEle);
+  /// @todo static_thread for thread savety?
+  static GEMAmplification gemAmplification;
+  static ElectronTransport electronTransport;
+  static PadResponse padResponse;
 
-      // remove electrons that end up outside the active volume
-      if(TMath::Abs(posEle[2]) > 250.) continue;
+  static std::array<float, mNShapedPoints> signalArray;
 
-      const GlobalPosition3D posElePad (posEle[0], posEle[1], posEle[2]);
-      const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posElePad);
-       
+  for(auto pointObject : *points) {
+    Point *inputpoint = static_cast<Point *>(pointObject);
+
+    const GlobalPosition3D posEle(inputpoint->GetX(), inputpoint->GetY(), inputpoint->GetZ());
+    int nPrimaryElectrons = static_cast<int>(inputpoint->GetEnergyLoss()/WION);
+
+    int MCEventID = inputpoint->GetEventID();
+    int MCTrackID = inputpoint->GetTrackID();
+
+    /// Loop over electrons
+    /// @todo can be vectorized?
+    /// @todo split transport and signal formation in two separate loops?
+    for(int iEle=0; iEle < nPrimaryElectrons; ++iEle) {
+
+      /// Drift and Diffusion
+      const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle);
+
+      /// @todo Time management in continuous mode (adding the time of the event?)
+      const float driftTime = getTime(posEleDiff.getZ());
+
+      /// Attachment
+      if(electronTransport.isElectronAttachment(driftTime)) continue;
+
+      /// Remove electrons that end up outside the active volume
+      /// @todo should go to mapper?
+      if(fabs(posEleDiff.getZ()) > TPCLENGTH) continue;
+
+      const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleDiff);
       if(!digiPadPos.isValid()) continue;
-       
-      // GEM amplification
-      // Gain values taken from TDR addendum - to be put someplace else
-      Int_t nEleGEM1 = SingleGEMAmplification(1, 9.1);
-      Int_t nEleGEM2 = SingleGEMAmplification(nEleGEM1, 0.88);
-      Int_t nEleGEM3 = SingleGEMAmplification(nEleGEM2, 1.66);
-      Int_t nEleGEM4 = SingleGEMAmplification(nEleGEM3, 144);
-      
-      // Loop over all individual pads with signal due to pad response function
-      getPadResponse(posEle[0], posEle[1], mPadResponse);
-      for(auto &padresp : mPadResponse ) {
-        const Int_t pad = digiPadPos.getPadPos().getPad() + padresp.getPad();
-        const Int_t row = digiPadPos.getPadPos().getRow() + padresp.getRow();
-        const Float_t weight = padresp.getWeight();
-        
-        const Float_t startTime = getTime(posEle[2]);
-        
-        // Loop over all time bins with signal due to time response
-        for(Float_t bin = 0; bin<5; ++bin){
-          Double_t signal = 55*Gamma4(startTime+bin*zBinWidth, startTime, nEleGEM4*weight);
-          mDigitContainer->addDigit(digiPadPos.getCRU().number(), getTimeBinFromTime(startTime+bin*zBinWidth), row, pad, signal);
-        }
-        // end of loop over time bins
+
+      const int nElectronsGEM = gemAmplification.getStackAmplification();
+
+      /// Loop over all individual pads with signal due to pad response function
+      /// Currently the PRF is not applied yet due to some problems with the mapper
+      /// which results in most of the cases in a normalized pad response = 0
+      /// @todo Problems of the mapper to be fixed
+      /// @todo Mapper should provide a functionality which finds the adjacent pads of a given pad
+      // for(int ipad = -2; ipad<3; ++ipad) {
+      //   for(int irow = -2; irow<3; ++irow) {
+      //     PadPos padPos(digiPadPos.getPadPos().getRow() + irow, digiPadPos.getPadPos().getPad() + ipad);
+      //     DigitPos digiPos(digiPadPos.getCRU(), padPos);
+
+      DigitPos digiPos = digiPadPos;
+      if (!digiPos.isValid()) continue;
+      // const float normalizedPadResponse = padResponse.getPadResponse(posEleDiff, digiPos);
+
+      const float normalizedPadResponse = 1.f;
+      if (normalizedPadResponse <= 0) continue;
+      const int pad = digiPos.getPadPos().getPad();
+      const int row = digiPos.getPadPos().getRow();
+
+      if(mDebugFlagPRF) {
+        /// @todo Write out the debug output
+        GEMresponse.CRU = digiPos.getCRU().number();
+        GEMresponse.time = driftTime;
+        GEMresponse.row = row;
+        GEMresponse.pad = pad;
+        GEMresponse.nElectrons = nElectronsGEM * normalizedPadResponse;
+        //mDebugTreePRF->Fill();
       }
-      // end of loop over pads
+
+      const float ADCsignal = SAMPAProcessing::getADCvalue(nElectronsGEM * normalizedPadResponse);
+      SAMPAProcessing::getShapedSignal(ADCsignal, driftTime, signalArray);
+
+      for(float i=0; i<mNShapedPoints; ++i) {
+        float time = driftTime + i * ZBINWIDTH;
+        mDigitContainer->addDigit(MCEventID, MCTrackID, digiPos.getCRU().number(), getTimeBinFromTime(time), row, pad, signalArray[i]);
+      }
+
+      // }
+      // }
+      /// end of loop over prf
     }
-    //end of loop over electrons
+    /// end of loop over electrons
   }
-  // end of loop over points
+  /// end of loop over points
 
   return mDigitContainer;
-}
-
-
-void Digitizer::ElectronDrift(Float_t *posEle) const {
-  // TODO parameters to be stored someplace else
-  Float_t DiffT = 0.0209;
-  Float_t DiffL = 0.0221;
-  
-  Float_t driftl=posEle[2];
-  if(driftl<0.01) driftl=0.01;
-  driftl=TMath::Sqrt(driftl);
-  Float_t sigT = driftl*DiffT;
-  Float_t sigL = driftl*DiffL;
-  posEle[0]=gRandom->Gaus(posEle[0],sigT);
-  posEle[1]=gRandom->Gaus(posEle[1],sigT);
-  posEle[2]=gRandom->Gaus(posEle[2],sigL);
 }

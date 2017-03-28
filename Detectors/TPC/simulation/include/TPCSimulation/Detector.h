@@ -1,3 +1,4 @@
+
 #ifndef AliceO2_TPC_Detector_H_
 #define AliceO2_TPC_Detector_H_
 
@@ -105,6 +106,8 @@ class Detector: public AliceO2::Base::Detector {
 
     /// Create the detector materials
     virtual void CreateMaterials();
+    /// Geant settings hack
+    void GeantHack();
 
     /// Construct the detector geometry
     void LoadGeometryFromFile();
@@ -126,4 +129,5 @@ class Detector: public AliceO2::Base::Detector {
 };
 }
 }
-#endif
+
+#endif // AliceO2_TPC_Detector_H_

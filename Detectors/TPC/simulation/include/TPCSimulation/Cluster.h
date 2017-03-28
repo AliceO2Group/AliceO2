@@ -9,6 +9,7 @@
 
 #include "FairTimeStamp.h"                      // for FairTimeStamp
 #include "Rtypes.h"                             // for Double_t, ULong_t, etc
+#include "TMath.h"
 namespace boost { namespace serialization { class access; } }
 
 namespace AliceO2{
@@ -39,6 +40,31 @@ namespace AliceO2{
       /// Destructor
       virtual ~Cluster();
 
+      /// Copy Constructor
+      Cluster(const Cluster& other);
+
+
+      friend bool operator==(const Cluster& lhs, const Cluster& rhs) {
+        if (lhs.getRow()        != rhs.getRow())        return false;
+        if (lhs.getCRU()        != rhs.getCRU())        return false;
+        if (lhs.getQmax()       != rhs.getQmax())       return false;
+        if (lhs.getQ()          != rhs.getQ())          return false;
+        if (lhs.getPadMean()    != rhs.getPadMean())    return false;
+        if (lhs.getTimeMean()   != rhs.getTimeMean())   return false;
+        return true;
+      }
+
+      bool sim(const Cluster& rhs) {
+        if (mRow        != rhs.getRow())        return false;
+        if (mCRU        != rhs.getCRU())        return false;
+        if (mQmax       != rhs.getQmax())       return false;
+        if (mQ          != rhs.getQ())          return false;
+        if (TMath::Abs(mPadMean - rhs.getPadMean()) > diffThreshold)    return false;
+        if (TMath::Abs(mTimeMean - rhs.getTimeMean()) > diffThreshold)   return false;
+        return true;
+      }
+
+
       void setParameters(Short_t cru, Short_t row, Float_t q, Float_t qmax, 
 			 Float_t padmean, Float_t padsigma,
 			 Float_t timemean, Float_t timesigma);
@@ -55,25 +81,31 @@ namespace AliceO2{
       /// Print function: Print basic digit information on the  output stream
       /// @param output Stream to put the digit on
       /// @return The output stream
-      std::ostream &Print(std::ostream &output) const;
+      friend std::ostream& operator<< (std::ostream& out, const Cluster &c) { return c.Print(out); }; 
+//      std::ostream& Print(std::ostream &output) const;
+
+    protected:      
+      std::ostream& Print(std::ostream& out) const;
       
     private:
 #ifndef __CINT__
       friend class boost::serialization::access;
 #endif
+
+      static constexpr Double_t diffThreshold = 0.0001;
       
-      Short_t                   mCRU;
-      Short_t                   mRow;
-      Float_t                   mQ;
-      Float_t                   mQmax;
-      Float_t                   mPadMean;
-      Float_t                   mPadSigma;
-      Float_t                   mTimeMean;
-      Float_t                   mTimeSigma;
+      Short_t   mCRU;
+      Short_t   mRow;
+      Float_t   mQ;
+      Float_t   mQmax;
+      Float_t   mPadMean;
+      Float_t   mPadSigma;
+      Float_t   mTimeMean;
+      Float_t   mTimeSigma;
             
       ClassDef(Cluster, 1);
     };
   }
 }
 
-#endif /* ALICEO2_TPC_CLUSTER_H */
+#endif /* ALICEO2_TPC_CLUSTER_H */   

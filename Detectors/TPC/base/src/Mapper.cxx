@@ -13,7 +13,61 @@
 #include "TPCBase/Mapper.h"
 namespace AliceO2 {
 namespace TPC {
+  constexpr std::array<double, SECTORSPERSIDE> Mapper::SinsPerSector/*{{
+    0,
+    0.3420201433256687129080830800376133993268,
+    0.6427876096865392518964199553010985255241,
+    0.8660254037844385965883020617184229195118,
+    0.9848077530122080203156542665965389460325,
+    0.9848077530122080203156542665965389460325,
+    0.866025403784438707610604524234076961875,
+    0.6427876096865394739410248803324066102505,
+    0.3420201433256688794415367738110944628716,
+    0.,
+    -0.3420201433256686573969318487797863781452,
+    -0.6427876096865392518964199553010985255241,
+    -0.8660254037844383745436971366871148347855,
+    -0.9848077530122080203156542665965389460325,
+    -0.9848077530122081313379567291121929883957,
+    -0.8660254037844385965883020617184229195118,
+    -0.6427876096865395849633273428480606526136,
+    -0.3420201433256686018857806175219593569636
+  }}*/;
 
+  //     static constexpr std::array<int, 2> test{1,2};
+
+  constexpr std::array<double, SECTORSPERSIDE> Mapper::CosinsPerSector/*{{
+    1,
+    0.9396926207859084279050421173451468348503,
+    0.7660444431189780134516809084743726998568,
+    0.5000000000000001110223024625156540423632,
+    0.1736481776669304144533612088707741349936,
+    -0.1736481776669303034310587463551200926304,
+    -0.4999999999999997779553950749686919152737,
+    -0.7660444431189779024293784459587186574936,
+    -0.9396926207859083168827396548294927924871,
+    -1,
+    -0.9396926207859084279050421173451468348503,
+    -0.7660444431189780134516809084743726998568,
+    -0.5000000000000004440892098500626161694527,
+    -0.1736481776669303311866343619840336032212,
+    0.1736481776669299703641513588081579655409,
+    0.5000000000000001110223024625156540423632,
+    0.7660444431189777914070759834430646151304,
+    0.9396926207859084279050421173451468348503
+  }}*/;
+
+Mapper::Mapper(const std::string& mappingDir)
+  : mMapGlobalPadToPadPos(mPadsInSector),
+    mMapGlobalPadCentre(mPadsInSector),
+    mMapPadPosGlobalPad(),
+    mMapFECIDGlobalPad(FECInfo::globalSAMPAId(91,0,0)),
+    mMapGlobalPadFECInfo(mPadsInSector),
+    mMapPadRegionInfo(),
+    mMapPartitionInfo()
+{
+  load(mappingDir);
+}
 bool Mapper::readMappingFile(std::string file)
 {
   // ===| Mapping file layout |=================================================
@@ -89,47 +143,58 @@ bool Mapper::readMappingFile(std::string file)
 
       mMapGlobalPadToPadPos[padIndex]         = PadPos(padRow,pad);
       mMapPadPosGlobalPad[PadPos(padRow,pad)] = padIndex;
-      mMapGlobalPadFECInfo[padIndex]          = FECInfo(fecIndex, fecConnector, fecChannel, sampaChip, sampaChannel);
+      mMapGlobalPadFECInfo[padIndex]          = FECInfo(fecIndex, /*fecConnector, fecChannel,*/ sampaChip, sampaChannel);
+      mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fecIndex, sampaChip, sampaChannel)] = padIndex;
       mMapGlobalPadCentre[padIndex]           = PadCentre(localX, localY);
 
-//       std::cout
-//       << padIndex<< " "
-//       << padRow<< " "
-//       << pad<< " "
-//       << xPos<< " "
-//       << yPos<< " "
-//       << " "
-//       // pad plane info<< " "
-//       << connector<< " "
-//       << pin<< " "
-//       << partion<< " "
-//       << region<< " "
-//       << " "
-//       // FEC info<< " "
-//       << fecIndex<< " "
-//       << fecConnector<< " "
-//       << fecChannel<< " "
-//       << sampaChip<< " "
-//       << sampaChannel << std::endl;
+      //std::cout
+      //<< padIndex<< " "
+      //<< padRow<< " "
+      //<< pad<< " "
+      //<< xPos<< " "
+      //<< yPos<< " "
+      //<< " "
+      //// pad plane info<< " "
+      //<< connector<< " "
+      //<< pin<< " "
+      //<< partion<< " "
+      //<< region<< " "
+      //<< " "
+      //// FEC info<< " "
+      //<< fecIndex<< " "
+      //<< fecConnector<< " "
+      //<< fecChannel<< " "
+      //<< sampaChip<< " "
+      //<< sampaChannel << std::endl;
   }
 }
 
-void Mapper::load()
+void Mapper::load(const std::string& mappingDir)
 {
 
 //   std::string inputDir(std::getenv("ALICEO2"));
-  std::string inputDir;
-  const char* aliceO2env=std::getenv("ALICEO2");
-  if (aliceO2env) inputDir=aliceO2env;
-  readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-IROC.txt");
-  readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC1.txt");
-  readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC2.txt");
-  readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC3.txt");
+  std::string inputDir=mappingDir;
+  if (!inputDir.size()) {
+    //const char* aliceO2env=std::getenv("ALICEO2");
+    //if (aliceO2env) inputDir=aliceO2env;
+    //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-IROC.txt");
+    //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC1.txt");
+    //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC2.txt");
+    //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC3.txt");
 
-  initPadRegions();
+    const char* aliceO2env=std::getenv("O2_ROOT");
+    if (aliceO2env) inputDir=aliceO2env;
+    inputDir+="/share/Detectors/TPC/files";
+  }
+  readMappingFile(inputDir+"/TABLE-IROC.txt");
+  readMappingFile(inputDir+"/TABLE-OROC1.txt");
+  readMappingFile(inputDir+"/TABLE-OROC2.txt");
+  readMappingFile(inputDir+"/TABLE-OROC3.txt");
+
+  initPadRegionsAndPartitions();
 }
 
-void Mapper::initPadRegions()
+void Mapper::initPadRegionsAndPartitions()
 {
   // original values for pad widht and height and pad row position are in mm
   // the ALICE coordinate system is in cm
@@ -144,6 +209,11 @@ void Mapper::initPadRegions()
   mMapPadRegionInfo[8]=PadRegionInfo(4, 8, 13, 15/10. , 6.04/10., 2089.0/10.,  0, 59.39, 127);
   mMapPadRegionInfo[9]=PadRegionInfo(4, 9, 12, 15/10. , 6.07/10., 2284.0/10.,  0, 64.70, 140);
 
+  mMapPartitionInfo[0]=PartitionInfo(15, 0          , 32, 0          , 2400 );
+  mMapPartitionInfo[1]=PartitionInfo(18, 15         , 31, 32         , 2879 );
+  mMapPartitionInfo[2]=PartitionInfo(18, 15+18      , 34, 32+31      , 2880 );
+  mMapPartitionInfo[3]=PartitionInfo(20, 15+18+18   , 30, 32+31+34   , 3200 );
+  mMapPartitionInfo[4]=PartitionInfo(20, 15+18+18+20, 25, 32+31+34+30, 3200 );
 }
 
 }

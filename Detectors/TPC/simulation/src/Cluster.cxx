@@ -38,6 +38,20 @@ FairTimeStamp()
 }
 
 //________________________________________________________________________
+Cluster::Cluster(const Cluster& other):
+  mCRU(other.mCRU),
+  mRow(other.mRow),
+  mQ(other.mQ),
+  mQmax(other.mQmax),
+  mPadMean(other.mPadMean),
+  mPadSigma(other.mPadSigma),
+  mTimeMean(other.mTimeMean),
+  mTimeSigma(other.mTimeSigma),
+  FairTimeStamp(other)
+{
+}
+
+//________________________________________________________________________
 Cluster::~Cluster()
 {
 }
@@ -59,11 +73,14 @@ void Cluster::setParameters(Short_t cru, Short_t row, Float_t q, Float_t qmax,
 
 
 //________________________________________________________________________
-std::ostream &Cluster::Print(std::ostream &output) const
-{
-  output << "TPC Cluster in CRU [" << mCRU << "], pad row ["
+std::ostream& Cluster::Print(std::ostream& out) const {
+//std::ostream &Cluster::Print(std::ostream &output) const
+//{
+  out << "TPC Cluster in CRU [" << mCRU << "], pad row ["
 	 << mRow << "] with charge/maxCharge " << mQ << "/" << mQmax
-	 << "and coordinates (" << mPadMean << ", " << mTimeMean << ")"
-	 << "and width (" << mPadSigma << ", " << mTimeSigma << ")";
-  return output;
+	 << " and coordinates (" << mPadMean << ", " << mTimeMean << ")"
+	 << " and width (" << mPadSigma << ", " << mTimeSigma << ")";
+  return out;
 }
+
+
