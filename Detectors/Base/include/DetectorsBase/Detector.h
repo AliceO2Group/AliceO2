@@ -76,15 +76,22 @@ class Detector : public FairDetector
     int getMedium  (int imed) const { return (*mMapMedium  .get())[imed]; }
 
     const std::vector<int>& getMapMaterial() const { return *mMapMaterial.get(); }
-    const std::vector<int>& getMapMedium()   const { return *mMapMedium  .get();   }
+    const std::vector<int>& getMapMedium()   const { return *mMapMedium  .get(); }
 
   protected:
     Detector(const Detector &origin);
 
     Detector &operator=(const Detector &);
 
-    std::unique_ptr<std::vector<int>> mMapMaterial; //! material mapping
-    std::unique_ptr<std::vector<int>> mMapMedium;   //! medium mapping
+
+    /// Mapping of the ALICE internal material number to the one
+    /// automatically assigned by geant.
+    /// This is required for easily being able to copy the geometry setup
+    /// used in AliRoot
+    std::unique_ptr<std::vector<int>> mMapMaterial; //!< material mapping
+
+    /// See comment for mMapMaterial
+    std::unique_ptr<std::vector<int>> mMapMedium;   //!< medium mapping
 
     static Float_t mDensityFactor; //! factor that is multiplied to all material densities (ONLY for
     // systematic studies)

@@ -11,6 +11,9 @@
 namespace AliceO2 {
 namespace TPC {
 
+/// Class to hold calibration data on a pad level
+///
+/// Might be removed again
 template <class T>
 class CalDet {
 //using T = float;

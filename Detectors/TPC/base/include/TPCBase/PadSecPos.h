@@ -29,7 +29,7 @@ class PadSecPos
 
     Sector getSector() const { return mSector; }
 
-    Sector &sector() { return mSector; }
+    Sector &getSector() { return mSector; }
 
     PadPos getPadPos() const { return mPadPos; }
 

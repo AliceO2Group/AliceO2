@@ -39,13 +39,13 @@ class Sector
     Sector(unsigned char sec) : mSector(sec % MaxSector) { ; }
 
     /// comparison operator
-    bool operator==(const Sector &other) { return mSector == other.mSector; }
+    bool operator==(const Sector &other) const { return mSector == other.mSector; }
 
     /// unequal operator
-    bool operator!=(const Sector &other) { return mSector != other.mSector; }
+    bool operator!=(const Sector &other) const { return mSector != other.mSector; }
 
     /// smaller operator
-    bool operator<(const Sector &other) { return mSector < other.mSector; }
+    bool operator<(const Sector &other) const { return mSector < other.mSector; }
 
     /// increment operator
     /// This operator can be used to iterate over all sectors e.g.

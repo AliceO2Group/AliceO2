@@ -23,11 +23,11 @@ ClustererTask::ClustererTask():
   FairTask("TPCClustererTask"),
   mBoxClustererEnable(false),
   mHwClustererEnable(false),
-  fBoxClusterer(nullptr),
-  fHwClusterer(nullptr),
-  fDigitsArray(nullptr),
-  fClustersArray(nullptr),
-  fHwClustersArray(nullptr)
+  mBoxClusterer(nullptr),
+  mHwClusterer(nullptr),
+  mDigitsArray(nullptr),
+  mClustersArray(nullptr),
+  mHwClustersArray(nullptr)
 {
 }
 
@@ -36,13 +36,13 @@ ClustererTask::~ClustererTask()
 {
   LOG(DEBUG) << "Enter Destructor of ClustererTask" << FairLogger::endl;
 
-  if (mBoxClustererEnable)  delete fBoxClusterer;
-  if (mHwClustererEnable)   delete fHwClusterer;
+  if (mBoxClustererEnable)  delete mBoxClusterer;
+  if (mHwClustererEnable)   delete mHwClusterer;
 
-  if (fClustersArray)
-    delete fClustersArray;
-  if (fHwClustersArray)
-    delete fHwClustersArray;
+  if (mClustersArray)
+    delete mClustersArray;
+  if (mHwClustersArray)
+    delete mHwClustersArray;
 }
 
 //_____________________________________________________________________
@@ -59,28 +59,28 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  fDigitsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCDigit"));
-  if( !fDigitsArray ) {
+  mDigitsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCDigit"));
+  if( !mDigitsArray ) {
     LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
   if (mBoxClustererEnable) {
-    fBoxClusterer = new BoxClusterer();
-    fBoxClusterer->Init();
+    mBoxClusterer = new BoxClusterer();
+    mBoxClusterer->Init();
     
     // Register output container
-    fClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
-    mgr->Register("TPC_Cluster", "TPC", fClustersArray, kTRUE);
+    mClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
+    mgr->Register("TPC_Cluster", "TPC", mClustersArray, kTRUE);
   }
 
   if (mHwClustererEnable) {
-    fHwClusterer = new HwClusterer();
-    fHwClusterer->Init();
+    mHwClusterer = new HwClusterer();
+    mHwClusterer->Init();
 
     // Register output container
-    fHwClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
-    mgr->Register("TPC_HW_Cluster", "TPC", fHwClustersArray, kTRUE);
+    mHwClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
+    mgr->Register("TPC_HW_Cluster", "TPC", mHwClustersArray, kTRUE);
   }
 
   return kSUCCESS;
@@ -92,15 +92,15 @@ void ClustererTask::Exec(Option_t *option)
   LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
 
   if (mBoxClustererEnable) {
-    fClustersArray->Clear();
-    ClusterContainer* clusters = fBoxClusterer->Process(fDigitsArray);
-    clusters->FillOutputContainer(fClustersArray);
+    mClustersArray->Clear();
+    ClusterContainer* clusters = mBoxClusterer->Process(mDigitsArray);
+    clusters->FillOutputContainer(mClustersArray);
   }
 
   if (mHwClustererEnable) {
-    fHwClustersArray->Clear();
-    ClusterContainer* hwClusters = fHwClusterer->Process(fDigitsArray);
-    hwClusters->FillOutputContainer(fHwClustersArray);
+    mHwClustersArray->Clear();
+    ClusterContainer* hwClusters = mHwClusterer->Process(mDigitsArray);
+    hwClusters->FillOutputContainer(mHwClustersArray);
   }
 
 }

@@ -45,25 +45,25 @@ namespace AliceO2 {
 
       Clusterer* getClusterer(ClustererType type) { 
         switch (type) {
-          case ClustererType::HW:   return fHwClusterer;
-          case ClustererType::Box:  return fBoxClusterer;
+          case ClustererType::HW:   return mHwClusterer;
+          case ClustererType::Box:  return mBoxClusterer;
         };
       };
       
-      BoxClusterer* getBoxClusterer()   const { return fBoxClusterer; };
-      HwClusterer* getHwClusterer()     const { return fHwClusterer; };
+      BoxClusterer* getBoxClusterer()   const { return mBoxClusterer; };
+      HwClusterer* getHwClusterer()     const { return mHwClusterer; };
       //             Clusterer *GetClusterer() const { return fClusterer; }
       
     private:
       bool          mBoxClustererEnable;
       bool          mHwClustererEnable;
 
-      BoxClusterer        *fBoxClusterer;
-      HwClusterer         *fHwClusterer;
+      BoxClusterer        *mBoxClusterer;
+      HwClusterer         *mHwClusterer;
       
-      TClonesArray        *fDigitsArray;
-      TClonesArray        *fClustersArray;
-      TClonesArray        *fHwClustersArray;
+      TClonesArray        *mDigitsArray;
+      TClonesArray        *mClustersArray;
+      TClonesArray        *mHwClustersArray;
       
       ClassDef(ClustererTask, 1)
     };
