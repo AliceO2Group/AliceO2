@@ -23,7 +23,7 @@ ClassImp(HalfSegmentation);
 //_____________________________________________________________________________
 HalfSegmentation::HalfSegmentation():
   VSegmentation(),
-  mHalfDisks(NULL)
+  mHalfDisks(nullptr)
 { 
 
 
@@ -34,7 +34,7 @@ HalfSegmentation::HalfSegmentation():
 //_____________________________________________________________________________
 HalfSegmentation::HalfSegmentation(const HalfSegmentation& source):
 VSegmentation(source),
-mHalfDisks(NULL)
+mHalfDisks(nullptr)
 {
   
   if (source.mHalfDisks) mHalfDisks = new TClonesArray(*(source.mHalfDisks));
@@ -50,7 +50,7 @@ mHalfDisks(NULL)
 //_____________________________________________________________________________
 HalfSegmentation::HalfSegmentation(const Char_t *nameGeomFile, const Short_t id):
 VSegmentation(),
-mHalfDisks(NULL)
+mHalfDisks(nullptr)
 {
 
   Geometry * mftGeom = Geometry::Instance();
@@ -67,7 +67,7 @@ mHalfDisks(NULL)
   
   // take access to main node
   XMLDocPointer_t  xmldoc   = geomFile->ParseFile(nameGeomFile);
-  if (xmldoc==0) {
+  if (xmldoc==nullptr) {
     delete geomFile;
     LOG(FATAL) << "Could not parse Geometry XML File named " << nameGeomFile << FairLogger::endl;
   }
@@ -101,7 +101,7 @@ void HalfSegmentation::Clear(const Option_t* /*opt*/) {
 
   if (mHalfDisks) mHalfDisks->Delete();
   delete mHalfDisks; 
-  mHalfDisks = NULL;
+  mHalfDisks = nullptr;
   
 }
 
@@ -121,7 +121,7 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
   TString nodeName = xml->GetNodeName(node);
   if (!nodeName.CompareTo("disk")) {
     XMLAttrPointer_t attr = xml->GetFirstAttr(node);
-    while (attr != 0) {
+    while (attr != nullptr) {
       TString attrName = xml->GetAttrName(attr);
       TString attrVal  = xml->GetAttrValue(attr);
       if(!attrName.CompareTo("idisk")) {
@@ -176,7 +176,7 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
 
   // display all child nodes
   XMLNodePointer_t child = xml->GetChild(node);
-  while (child!=0) {
+  while (child!=nullptr) {
     CreateHalfDisks(xml, child);
     child = xml->GetNext(child);
   }
@@ -197,7 +197,7 @@ void HalfSegmentation::FindHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
   TString nodeName = xml->GetNodeName(node);
   if (!nodeName.CompareTo("half")) {
     XMLAttrPointer_t attr = xml->GetFirstAttr(node);
-    while (attr!=0) {
+    while (attr!=nullptr) {
       TString attrName = xml->GetAttrName(attr);
       TString attrVal  = xml->GetAttrValue(attr);
       if(!attrName.CompareTo("top")){
@@ -250,7 +250,7 @@ void HalfSegmentation::FindHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
   
   // display all child nodes
   XMLNodePointer_t child = xml->GetChild(node);
-  while (child!=0) {
+  while (child!=nullptr) {
     FindHalf(xml, child, retnode);
     child = xml->GetNext(child);
   }

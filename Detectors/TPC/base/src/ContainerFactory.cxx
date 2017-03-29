@@ -51,5 +51,5 @@ FairParSet* ContainerFactory::createContainer(FairContainer* c)
   }
   return p;
      */
-  return 0;
+  return nullptr;
 }

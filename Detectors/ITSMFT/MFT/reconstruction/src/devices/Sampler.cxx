@@ -25,8 +25,8 @@ Sampler::Sampler()
   : FairMQDevice()
   , mOutputChannelName("data-out")
   , mAckChannelName("")
-  , mRunAna(NULL)
-  , mSource(NULL)
+  , mRunAna(nullptr)
+  , mSource(nullptr)
   , mInputObjects()
   , mNObjects(0)
   , mMaxIndex(-1)
@@ -56,7 +56,7 @@ void Sampler::InitTask()
 
   mRunAna = new FairRunAna();
   
-  if (mSource == NULL) {
+  if (mSource == nullptr) {
     mSource = new FairFileSource(mFileNames.at(0).c_str());
     for (unsigned int ifile = 1 ; ifile < mFileNames.size() ; ifile++) 
       ((FairFileSource*)mSource)->AddFile(mFileNames.at(ifile));

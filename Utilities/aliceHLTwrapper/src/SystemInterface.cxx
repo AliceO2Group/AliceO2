@@ -30,15 +30,15 @@ using std::endl;
 using std::string;
 
 SystemInterface::SystemInterface()
-  : mpAliHLTExtFctInitSystem(NULL)
-  , mpAliHLTExtFctDeinitSystem(NULL)
-  , mpAliHLTExtFctLoadLibrary(NULL)
-  , mpAliHLTExtFctUnloadLibrary(NULL)
-  , mpAliHLTExtFctCreateComponent(NULL)
-  , mpAliHLTExtFctDestroyComponent(NULL)
-  , mpAliHLTExtFctProcessEvent(NULL)
-  , mpAliHLTExtFctGetOutputDataType(NULL)
-  , mpAliHLTExtFctGetOutputSize(NULL)
+  : mpAliHLTExtFctInitSystem(nullptr)
+  , mpAliHLTExtFctDeinitSystem(nullptr)
+  , mpAliHLTExtFctLoadLibrary(nullptr)
+  , mpAliHLTExtFctUnloadLibrary(nullptr)
+  , mpAliHLTExtFctCreateComponent(nullptr)
+  , mpAliHLTExtFctDestroyComponent(nullptr)
+  , mpAliHLTExtFctProcessEvent(nullptr)
+  , mpAliHLTExtFctGetOutputDataType(nullptr)
+  , mpAliHLTExtFctGetOutputSize(nullptr)
   , mEnvironment()
 {
   memset(&mEnvironment, 0, sizeof(mEnvironment));
@@ -82,7 +82,7 @@ const char* gInterfaceCallSignatures[] = {
   // int AliHLTAnalysisGetOutputSize( AliHLTComponentHandle handle, unsigned long* constEventBase, unsigned long* constBlockBase, double* inputBlockMultiplier)
   "int AliHLTAnalysisGetOutputSize(AliHLTComponentHandle,unsigned long*,unsigned long*,double*)",
 
-  NULL
+  nullptr
 };
 
 int SystemInterface::initSystem(unsigned long runNo)
@@ -113,9 +113,9 @@ int SystemInterface::initSystem(unsigned long runNo)
   }
 
   const char** arrayCalls = gInterfaceCallSignatures;
-  for (int i = 0; arrayCalls[i] != NULL; i++) {
+  for (int i = 0; arrayCalls[i] != nullptr; i++) {
     AliHLTExtFctInitSystem call = (AliHLTExtFctInitSystem) (*fctGetSystemCall)(arrayCalls[i]);
-    if (call == NULL) {
+    if (call == nullptr) {
       cerr << "error: can not find function signature '" << arrayCalls[i] << "' in " << libraryPath.c_str() << endl;
     } else {
       cout << "function '" << arrayCalls[i] << "' loaded from " << libraryPath.c_str() << endl;
@@ -154,7 +154,7 @@ int SystemInterface::initSystem(unsigned long runNo)
   }
 
   if (mpAliHLTExtFctInitSystem) {
-    if ((iResult = (*mpAliHLTExtFctInitSystem)(ALIHLT_DATA_TYPES_VERSION, &mEnvironment, runNo, NULL)) != 0) {
+    if ((iResult = (*mpAliHLTExtFctInitSystem)(ALIHLT_DATA_TYPES_VERSION, &mEnvironment, runNo, nullptr)) != 0) {
       cerr << "error: AliHLTAnalysisInitSystem failed with error " << iResult << endl;
       return -ENOSYS;
     }
@@ -234,15 +234,15 @@ int SystemInterface::getOutputSize(AliHLTComponentHandle handle, unsigned long* 
 void SystemInterface::clear(const char* /*option*/)
 {
   /// clear the object and reset pointer references
-  mpAliHLTExtFctInitSystem        = NULL;
-  mpAliHLTExtFctDeinitSystem      = NULL;
-  mpAliHLTExtFctLoadLibrary       = NULL;
-  mpAliHLTExtFctUnloadLibrary     = NULL;
-  mpAliHLTExtFctCreateComponent   = NULL;
-  mpAliHLTExtFctDestroyComponent  = NULL;
-  mpAliHLTExtFctProcessEvent      = NULL;
-  mpAliHLTExtFctGetOutputDataType = NULL;
-  mpAliHLTExtFctGetOutputSize     = NULL;
+  mpAliHLTExtFctInitSystem        = nullptr;
+  mpAliHLTExtFctDeinitSystem      = nullptr;
+  mpAliHLTExtFctLoadLibrary       = nullptr;
+  mpAliHLTExtFctUnloadLibrary     = nullptr;
+  mpAliHLTExtFctCreateComponent   = nullptr;
+  mpAliHLTExtFctDestroyComponent  = nullptr;
+  mpAliHLTExtFctProcessEvent      = nullptr;
+  mpAliHLTExtFctGetOutputDataType = nullptr;
+  mpAliHLTExtFctGetOutputSize     = nullptr;
 }
 
 void SystemInterface::print(const char* /*option*/) const
@@ -259,6 +259,6 @@ void* SystemInterface::alloc(void* /*param*/, unsigned long size)
 void SystemInterface::dealloc(void* buffer, unsigned long /*size*/)
 {
   // deallocate memory
-  if (buffer == NULL) return;
+  if (buffer == nullptr) return;
   free(buffer);
 }

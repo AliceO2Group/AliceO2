@@ -21,7 +21,7 @@ ClassImp(AliceO2::MFT::Support)
 //_____________________________________________________________________________
 Support::Support():
 TNamed(),
-mSupportVolume(NULL),
+mSupportVolume(nullptr),
 mSupportThickness(0.8), // cm
 mPCBThickness(0.1) // cm
 {

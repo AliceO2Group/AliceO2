@@ -28,7 +28,7 @@ class MergerTMessage : public TMessage
 //_____________________________________________________________________________
 Merger::Merger()
   : FairMQDevice()
-  , mEventHeader(NULL)
+  , mEventHeader(nullptr)
   , mNofParts(2)
   , mNofPartsPerEventMap()
   , mObjectMap()

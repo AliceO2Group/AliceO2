@@ -20,14 +20,14 @@ ClassImp(AliceO2::MFT::FindTracks)
 
 //_____________________________________________________________________________
 FindTracks::FindTracks():
-mHits(NULL),
-mTracks(NULL),
+mHits(nullptr),
+mTracks(nullptr),
 mNHits(0),
 mNTracks(0),
 mTNofEvents(0),
 mTNofHits(0),
 mTNofTracks(0),
-mEventHeader(NULL)
+mEventHeader(nullptr)
 {
 
 }
@@ -35,14 +35,14 @@ mEventHeader(NULL)
 //_____________________________________________________________________________
 FindTracks::FindTracks(Int_t iVerbose)
   : FairTask("MFT Track Finder", iVerbose),
-    mHits(NULL),
-    mTracks(NULL),
+    mHits(nullptr),
+    mTracks(nullptr),
     mNHits(0),
     mNTracks(0),
     mTNofEvents(0),
     mTNofHits(0),
     mTNofTracks(0),
-    mEventHeader(NULL)
+    mEventHeader(nullptr)
 {
 
 }
@@ -171,13 +171,13 @@ void FindTracks::Exec(Option_t* /*opt*/)
 
     if (nTrackHits[iTrack] < 4) continue; 
 
-    trackXZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], xPos[iTrack], 0, xPosErr[iTrack]);
+    trackXZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], xPos[iTrack], nullptr, xPosErr[iTrack]);
     trackXZ->Fit("f1", "Q");
     slopeX = f1->GetParameter(0);
     offX = f1->GetParameter(1);
     chi2X = f1->GetChisquare();
 
-    trackYZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], yPos[iTrack], 0, yPosErr[iTrack]);
+    trackYZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], yPos[iTrack], nullptr, yPosErr[iTrack]);
     trackYZ->Fit("f1", "Q");
     slopeY = f1->GetParameter(0);
     offY = f1->GetParameter(1);

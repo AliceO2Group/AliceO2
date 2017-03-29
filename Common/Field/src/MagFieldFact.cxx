@@ -20,7 +20,7 @@ static MagFieldFact gMagFieldFact;
 
 MagFieldFact::MagFieldFact()
   :FairFieldFactory(),
-   mFieldPar(NULL)
+   mFieldPar(nullptr)
 {
 	fCreator=this;
 }
@@ -37,11 +37,11 @@ void MagFieldFact::SetParm()
 
 FairField* MagFieldFact::createFairField()
 { 
-  FairField *fMagneticField=0;
+  FairField *fMagneticField=nullptr;
   
   if ( !mFieldPar ) {
     FairLogger::GetLogger()->Error(MESSAGE_ORIGIN, "No field parameters available");
-    return 0;
+    return nullptr;
   }
   // since we have just 1 field class, we don't need to consider fFieldPar->GetType()
   fMagneticField = new MagneticField(*mFieldPar);

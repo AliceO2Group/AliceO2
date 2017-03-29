@@ -22,13 +22,13 @@ ClassImp(AliceO2::MFT::FindHits)
 
 //_____________________________________________________________________________
 FindHits::FindHits():
-mPoints(NULL),
-mHits(NULL),
+mPoints(nullptr),
+mHits(nullptr),
 mNHits(0),
 mTNofEvents(0),
 mTNofHits(0),
-mMCEventHeader(NULL),
-mEventHeader(NULL)
+mMCEventHeader(nullptr),
+mEventHeader(nullptr)
 {
 
 }

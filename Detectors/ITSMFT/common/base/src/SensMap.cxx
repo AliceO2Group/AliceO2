@@ -25,7 +25,7 @@ ClassImp(AliceO2::ITSMFT::SensMap)
   using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
-SensMap::SensMap() : mDimCol(0), mDimRow(0), mDimCycle(0), mItems(0), mBTree(0)
+SensMap::SensMap() : mDimCol(0), mDimRow(0), mDimCycle(0), mItems(nullptr), mBTree(nullptr)
 {
   // Default constructor
 }
@@ -55,8 +55,8 @@ SensMap::SensMap(const SensMap& source)
     mDimCol(source.mDimCol),
     mDimRow(source.mDimRow),
     mDimCycle(source.mDimCycle),
-    mItems(source.mItems ? new TClonesArray(*source.mItems) : 0),
-    mBTree(0)
+    mItems(source.mItems ? new TClonesArray(*source.mItems) : nullptr),
+    mBTree(nullptr)
 {
   if (source.mBTree) {
     mBTree = new TBtree();

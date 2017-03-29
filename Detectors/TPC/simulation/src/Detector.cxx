@@ -183,7 +183,7 @@ void Detector::Register()
 TClonesArray* Detector::GetCollection(Int_t iColl) const
 {
   if (iColl == 0) { return mPointCollection; }
-  else { return NULL; }
+  else { return nullptr; }
 }
 
 void Detector::Reset()
@@ -1739,7 +1739,7 @@ void Detector::ConstructTPCGeometry()
   Int_t totrows=159;
 //   totrows = mParam->GetNRowLow() + mParam->GetNRowUp();
   Double_t *upar;
-  upar=NULL;
+  upar=nullptr;
   gGeoManager->Volume("TPC_Strip","PGON",m5->GetId(),upar);
   upar=new Double_t [10];
   upar[0]=0.;
@@ -2905,7 +2905,7 @@ void Detector::LoadGeometryFromFile()
 void Detector::DefineSensitiveVolumes()
 {
   TGeoManager* geoManager = gGeoManager;
-  TGeoVolume* v=0x0;
+  TGeoVolume* v=nullptr;
 
   const Int_t nSensitive=1;
   const char* volumeNames[nSensitive]={"TPC_Drift"};

@@ -43,11 +43,11 @@ FileSink::FileSink()
   , mFlowMode(false)
   , mWrite(false)
 
-  , mOutFile(NULL)
-  , mTree(NULL)
+  , mOutFile(nullptr)
+  , mTree(nullptr)
   , mNObjects(0)
   , mOutputObjects(new TObject*[1000])
-  , mFolder(NULL)
+  , mFolder(nullptr)
 {
 
 }

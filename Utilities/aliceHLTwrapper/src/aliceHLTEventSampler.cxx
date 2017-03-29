@@ -75,7 +75,7 @@ struct SocketProperties_t {
     = default;
 };
 
-FairMQDevice* gDevice = NULL;
+FairMQDevice* gDevice = nullptr;
 
 int preprocessSockets(vector<SocketProperties_t>& sockets);
 int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networkPrefix="");
@@ -108,7 +108,7 @@ int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets);
     /*[MAXPORT]   = */ "max-port",
     /*[DDSGLOBAL] = */ "global",
     /*[DDSLOCAL]  = */ "local",
-    NULL
+    nullptr
   };
 
 
@@ -138,18 +138,18 @@ int main(int argc, char** argv)
   bool bUseDDS = false;
 
   static struct option programOptions[] = {
-    { "input",       required_argument, 0, 'i' }, // input socket
-    { "output",      required_argument, 0, 'o' }, // output socket
-    { "latency-log", required_argument, 0, 'l' }, // output file name for logging of latency
-    { "factory-type",required_argument, 0, '4' }, // type of the factory "zmq", "nanomsg"
-    { "verbosity",   required_argument, 0, 'v' }, // verbosity
-    { "loginterval", required_argument, 0, '5' }, // logging interval
-    { "polltimeout", required_argument, 0, '1' }, // polling timeout of the device in ms
-    { "eventperiod", required_argument, 0, '2' }, // event period in us
-    { "initialdelay",required_argument, 0, '3' }, // initial delay in ms
-    { "dry-run",     no_argument      , 0, 'n' }, // skip the component processing
-    { "dds",         no_argument      , 0, 'd' }, // run in dds mode
-    { 0, 0, 0, 0 }
+    { "input",       required_argument, nullptr, 'i' }, // input socket
+    { "output",      required_argument, nullptr, 'o' }, // output socket
+    { "latency-log", required_argument, nullptr, 'l' }, // output file name for logging of latency
+    { "factory-type",required_argument, nullptr, '4' }, // type of the factory "zmq", "nanomsg"
+    { "verbosity",   required_argument, nullptr, 'v' }, // verbosity
+    { "loginterval", required_argument, nullptr, '5' }, // logging interval
+    { "polltimeout", required_argument, nullptr, '1' }, // polling timeout of the device in ms
+    { "eventperiod", required_argument, nullptr, '2' }, // event period in us
+    { "initialdelay",required_argument, nullptr, '3' }, // initial delay in ms
+    { "dry-run",     no_argument      , nullptr, 'n' }, // skip the component processing
+    { "dds",         no_argument      , nullptr, 'd' }, // run in dds mode
+    { nullptr, 0, nullptr, 0 }
   };
 
   char c = 0;
@@ -163,9 +163,9 @@ int main(int argc, char** argv)
   // two colons after the option indicate an optional argument
   std::string optstring = "-";
   for (struct option* programOption = programOptions;
-       programOption != NULL && programOption->name != NULL;
+       programOption != nullptr && programOption->name != nullptr;
        programOption++) {
-    if (programOption->flag == NULL) {
+    if (programOption->flag == nullptr) {
       // programOption->val uniquely identifies particular long option
       optstring += ((char)programOption->val);
       if (programOption->has_arg == required_argument) optstring += ":";  // one colon to indicate required argument
@@ -181,7 +181,7 @@ int main(int argc, char** argv)
       case 'i':
       case 'o': {
         char* subopts = optarg;
-        char* value = NULL;
+        char* value = nullptr;
         int keynum = 0;
         SocketProperties_t prop;
         while (subopts && *subopts != 0 && *subopts != ' ') {
@@ -309,7 +309,7 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  FairMQTransportFactory* transportFactory = NULL;
+  FairMQTransportFactory* transportFactory = nullptr;
   if (strcmp(factoryType, "nanomsg") == 0) {
 #ifdef NANOMSG
     transportFactory = new FairMQTransportFactoryNN();
@@ -422,7 +422,7 @@ int main(int argc, char** argv)
   } // scope for the device reference variable
 
   FairMQDevice* almostdead = gDevice;
-  gDevice = NULL;
+  gDevice = nullptr;
   delete almostdead;
 
   return iResult;
