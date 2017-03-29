@@ -252,14 +252,14 @@ void Tracker::FindTracksCA(int iteration) {
         if (mCells[iCL][iCell].GetLevel() != level)
           continue;
         // [1] Add current cell to road
-        roads.push_back(Road(iCL,iCell));
+        roads.emplace_back(iCL,iCell);
         // [2] Loop on current cell neighbours
         for(size_t iN = 0; iN < mCells[iCL][iCell].NumberOfNeighbours(); ++iN) {
           const int currD = iCL - 1;
           const int neigh = mCells[iCL][iCell](iN);
           // [3] if more than one neighbour => more than one road, one road for each neighbour
           if(iN > 0) {
-            roads.push_back(Road(iCL,iCell));
+            roads.emplace_back(iCL,iCell);
           }
           // [4] Essentially the neighbour became the current cell and then go to [1]
           CellsTreeTraversal(roads,neigh,currD);
@@ -371,7 +371,7 @@ void Tracker::MakeCells(int iteration) {
           }
           const float dTanL = (cls.z - cls2.z) / (cls.r - cls2.r);
           const float phi = atan2(cls.y - cls2.y, cls.x - cls2.x);
-          mDoublets[iL].push_back(Doublets(iC,iD2,dTanL,phi));
+          mDoublets[iL].emplace_back(iC,iD2,dTanL,phi);
         }
       }
       mLayer[iL + 1]->ResetFoundIterator();
@@ -411,8 +411,8 @@ void Tracker::MakeCells(int iteration) {
                 tLUT[iD - 1][iD0] = mCells[iD].size();
                 first = false;
               }
-              mCells[iD].push_back(Cell(mDoublets[iD][iD0].x,mDoublets[iD][iD0].y,
-                    mDoublets[iD + 1][iD1].y,iD0,iD1,curv,n));
+              mCells[iD].emplace_back(mDoublets[iD][iD0].x,mDoublets[iD][iD0].y,
+                    mDoublets[iD + 1][iD1].y,iD0,iD1,curv,n);
             }
           }
         }

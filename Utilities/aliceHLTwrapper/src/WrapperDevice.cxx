@@ -197,7 +197,7 @@ void WrapperDevice::Run()
       for (vector<unique_ptr<FairMQMessage>>::iterator msg=inputMessages.begin();
            msg!=inputMessages.end(); msg++) {
         void* buffer=(*msg)->GetData();
-        dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
+        dataArray.emplace_back(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize());
       }
 
       // create a signal with the callback to the buffer allocation, the component

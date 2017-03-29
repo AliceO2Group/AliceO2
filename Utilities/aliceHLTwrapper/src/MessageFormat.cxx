@@ -235,7 +235,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
       pWriter->Copy(pTarget + offset, 0, 0, 0, 0);
       mpFactory->DeleteWriter(pWriter);
       offset+=payloadSize;
-      mMessages.push_back(MessageFormat::BufferDesc_t(pTarget, offset));
+      mMessages.emplace_back(pTarget, offset);
     }
   } else if (mOutputMode == kOutputModeMultiPart || mOutputMode == kOutputModeSequence) {
     // the output blocks are assempled in the internal buffer, for each
@@ -323,7 +323,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
         offset += pOutputBlock->fSize;
         if (mOutputMode == kOutputModeMultiPart) {
           // send one descriptor per block back to device
-          mMessages.push_back(MessageFormat::BufferDesc_t(pTarget, offset));
+          mMessages.emplace_back(pTarget, offset);
           position+=offset;
         }
 	pOutputBlock++;
@@ -332,7 +332,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     while (++bi<count);
     if (mOutputMode == kOutputModeSequence || count==0) {
       // send one single descriptor for all concatenated blocks
-      mMessages.push_back(MessageFormat::BufferDesc_t(pTarget, offset));
+      mMessages.emplace_back(pTarget, offset);
     }
   } else {
     // invalid output mode
