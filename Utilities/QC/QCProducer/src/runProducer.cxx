@@ -66,7 +66,7 @@ int main(int argc, char** argv)
     producer = make_shared<TreeProducer>(name, title, numberOfBranches, numberOfEntriesInEachBranch);
   }
   else {
-    LOG(ERROR) << "Unknown type of producer: \"" << producerType << "\", number of provided arguments: " << (argc - 1);
+    LOG(ERROR) << R"(Unknown type of producer: ")" << producerType << R"(", number of provided arguments: )" << (argc - 1);
     return -1;
   }
 

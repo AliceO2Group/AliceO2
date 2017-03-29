@@ -33,7 +33,7 @@ using NameHeader48 = NameHeader<48>; //header holding 16 characters
 O2MessageMonitor::O2MessageMonitor()
   : mDataHeader()
   , mPayload("I am the info payload")
-  , mName("My name is \"gDataDescriptionInfo\"")
+  , mName(R"(My name is "gDataDescriptionInfo")")
   , mDelay(1000)
   , mIterations(10)
   , mLimitOutputCharacters(1024)

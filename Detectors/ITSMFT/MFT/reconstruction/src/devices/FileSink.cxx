@@ -101,7 +101,7 @@ void FileSink::Init()
   
   for ( mNObjects = 0 ; mNObjects < mBranchNames.size() ; mNObjects++ ) {
 
-    LOG(INFO) << "FileSink::Init >>>>> Creating output branch \"" << mClassNames[mNObjects] << "\" with name \"" << mBranchNames[mNObjects] << "\"";
+    LOG(INFO) << R"(FileSink::Init >>>>> Creating output branch ")" << mClassNames[mNObjects] << R"(" with name ")" << mBranchNames[mNObjects] << R"(")";
 
     if (mClassNames[mNObjects].find("TClonesArray(") == 0) {
 
@@ -128,7 +128,7 @@ void FileSink::Init()
 
     } else {
 
-      LOG(ERROR) << "!!! Unknown output object \"" << mClassNames[mNObjects] << "\" !!!";
+      LOG(ERROR) << R"(!!! Unknown output object ")" << mClassNames[mNObjects] << R"(" !!!)";
 
     }
   }  
