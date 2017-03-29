@@ -25,7 +25,7 @@ ClassImp(AliceO2::ITS::GeometryManager)
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
 /// collects several static methods
 GeometryManager::GeometryManager() : TObject() {}
-GeometryManager::~GeometryManager() {}
+GeometryManager::~GeometryManager() = default;
 Bool_t GeometryManager::getOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m)
 {
   m.Clear();

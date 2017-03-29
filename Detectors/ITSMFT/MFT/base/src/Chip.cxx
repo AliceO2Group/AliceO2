@@ -33,9 +33,7 @@ Chip::Chip(ChipSegmentation *segmentation, const char * ladderName):TNamed(ladde
 
 //_____________________________________________________________________________
 Chip::~Chip() 
-{
-  
-}
+= default;
 
 //_____________________________________________________________________________
 void Chip::GetPosition(LadderSegmentation * ladderSeg, Int_t iChip, Double_t *pos)

@@ -43,8 +43,7 @@ AliceO2::Utilities::DataPublisherDevice::DataPublisherDevice()
 }
 
 AliceO2::Utilities::DataPublisherDevice::~DataPublisherDevice()
-{
-}
+= default;
 
 void AliceO2::Utilities::DataPublisherDevice::InitTask()
 {

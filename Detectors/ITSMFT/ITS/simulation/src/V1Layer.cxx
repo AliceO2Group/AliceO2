@@ -221,8 +221,7 @@ V1Layer &V1Layer::operator=(const V1Layer &s)
 }
 
 V1Layer::~V1Layer()
-{
-}
+= default;
 
 void V1Layer::createLayer(TGeoVolume *motherVolume)
 {

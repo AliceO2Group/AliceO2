@@ -27,6 +27,4 @@ Hit::Hit(Int_t detID, TVector3& pos, TVector3& dpos, Int_t mcindex) :
 
 //_____________________________________________________________________________
 Hit::~Hit()
-{
-
-}
+= default;

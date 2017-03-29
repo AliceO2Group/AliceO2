@@ -64,8 +64,7 @@ WrapperDevice::WrapperDevice(int argc, char** argv, int verbosity)
 }
 
 WrapperDevice::~WrapperDevice()
-{
-}
+= default;
 
 void WrapperDevice::Init()
 {

@@ -32,9 +32,7 @@ DigitWriteoutBuffer::DigitWriteoutBuffer(TString branchname, TString foldername,
 }
 
 DigitWriteoutBuffer::~DigitWriteoutBuffer()
-{
-
-}
+= default;
 
 void DigitWriteoutBuffer::AddNewDataToTClonesArray(FairTimeStamp *timestamp)
 {

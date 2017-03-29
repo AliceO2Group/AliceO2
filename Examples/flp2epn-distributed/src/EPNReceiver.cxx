@@ -35,8 +35,7 @@ EPNReceiver::EPNReceiver()
 }
 
 EPNReceiver::~EPNReceiver()
-{
-}
+= default;
 
 void EPNReceiver::InitTask()
 {

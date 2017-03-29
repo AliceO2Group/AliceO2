@@ -20,8 +20,7 @@ O2FLPex::O2FLPex() :
 }
 
 O2FLPex::~O2FLPex()
-{
-}
+= default;
 
 void O2FLPex::InitTask()
 {

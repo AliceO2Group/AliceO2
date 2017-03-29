@@ -39,8 +39,7 @@ Point::Point(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVecto
 }
 
 Point::~Point()
-{
-}
+= default;
 
 void Point::Print(const Option_t *opt) const
 {

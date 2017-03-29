@@ -80,16 +80,7 @@ struct SocketProperties_t {
     , validParams(0)
   {}
   SocketProperties_t(const SocketProperties_t& other)
-    : type(other.type)
-    , size(other.size)
-    , method(other.method)
-    , address(other.address)
-    , ddsprop(other.ddsprop)
-    , ddscount(other.ddscount)
-    , ddsminport(other.ddsminport)
-    , ddsmaxport(other.ddsmaxport)
-    , validParams(other.validParams)
-  {}
+    = default;
 };
 
 ostream& operator<<(ostream &out, const SocketProperties_t& me)

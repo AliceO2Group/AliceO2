@@ -34,9 +34,7 @@ mHalfCone(NULL)
 
 //_____________________________________________________________________________
 HalfCone::~HalfCone() 
-{
-  
-}
+= default;
 
 //_____________________________________________________________________________
 TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)

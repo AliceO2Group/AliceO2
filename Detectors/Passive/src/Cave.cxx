@@ -41,9 +41,7 @@ Cave::Cave()
 }
 
 Cave::~Cave()
-{
-
-}
+= default;
 Cave::Cave(const char* name,  const char* Title)
   : FairModule(name ,Title)
 {
