@@ -85,8 +85,7 @@ int main(int argc, char** argv)
       inputBuffer = new char[length];
       input.read(inputBuffer, length);
       input.close();
-      blockData.push_back(
-        AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(inputBuffer), length));
+      blockData.emplace_back(reinterpret_cast<unsigned char*>(inputBuffer), length);
     }
   }
   if ((iResult = component.process(blockData)) < 0) {
