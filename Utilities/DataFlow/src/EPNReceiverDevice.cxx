@@ -71,9 +71,9 @@ void EPNReceiverDevice::Run()
   FairMQChannel& ackOutChannel = fChannels.at(mAckChannelName).at(0);
 
   // Simple multi timeframe index
-  typedef int PartPosition;
-  typedef int TimeframeId;
-  typedef int FlpId;
+  using PartPosition = int;
+  using TimeframeId = int;
+  using FlpId = int;
   typedef std::pair<Header::DataHeader, PartPosition> IndexElement;
   std::multimap<TimeframeId, IndexElement> index;
   std::multimap<TimeframeId, FlpId> flpIds;

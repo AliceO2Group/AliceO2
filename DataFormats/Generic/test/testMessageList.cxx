@@ -16,7 +16,7 @@ using namespace AliceO2;
 using namespace Format;
 
 // a simple message type, just a pointer to some payload
-typedef const uint8_t* SimpleMsg_t;
+using SimpleMsg_t = const uint8_t *;
 
 // a simple header definition
 struct SimpleHeader_t {

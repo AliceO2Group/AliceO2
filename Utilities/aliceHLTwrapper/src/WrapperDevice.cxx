@@ -42,7 +42,7 @@ using namespace ALICE::HLT;
 #ifdef USE_CHRONO
 #include <chrono>
 using std::chrono::system_clock;
-typedef std::chrono::milliseconds TimeScale;
+using TimeScale = std::chrono::milliseconds;
 #endif // USE_CHRONO
 
 WrapperDevice::WrapperDevice(int argc, char** argv, int verbosity)

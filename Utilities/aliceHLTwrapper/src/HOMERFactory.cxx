@@ -216,7 +216,7 @@ int HOMERFactory::LoadHOMERLibrary()
 
   if (iResult>0 && *library!=NULL) {
     // print compile info
-    typedef void (*CompileInfo)( char*& date, char*& time);
+    using CompileInfo = void (*)(char *&, char *&);
 
     fFctCreateReaderFromTCPPort=(void (*)())dlsym(fHandle, ALIHLTHOMERREADER_CREATE_FROM_TCPPORT);
     fFctCreateReaderFromTCPPorts=(void (*)())dlsym(fHandle, ALIHLTHOMERREADER_CREATE_FROM_TCPPORTS);
