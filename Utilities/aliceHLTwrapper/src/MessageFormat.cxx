@@ -101,7 +101,7 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
 	return -ENODATA;
       }
     }
-  } while (0);
+  } while (false);
 
   int result=0;
   if (evtData && (result=insertEvtData(*evtData))<0) {

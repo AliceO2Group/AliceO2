@@ -357,7 +357,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
   TGeoMedium *kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
 
   auto *lineslayer = new TGeoVolume(Form("lineslayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layern[kTotalLinesNb-1], kMedAlu);
-  lineslayer->SetVisibility(1);
+  lineslayer->SetVisibility(true);
   lineslayer->SetLineColor(kBlue);
 
   return lineslayer;
@@ -418,7 +418,7 @@ TGeoVolume* Flex::Make_AGND_DGND(Double_t length, Double_t widthflex,  Double_t 
 
   TGeoMedium *kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
   auto *alulayer = new TGeoVolume(Form("alulayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layern[2], kMedAlu);
-  alulayer->SetVisibility(1);
+  alulayer->SetVisibility(true);
   alulayer->SetLineColor(kBlue);
 
   return alulayer;
@@ -449,7 +449,7 @@ TGeoVolume* Flex::Make_Kapton(Double_t length, Double_t widthflex, Double_t thic
 
   TGeoMedium *kMedKapton = gGeoManager->GetMedium("MFT_Kapton$");
   auto *kaptonlayer = new TGeoVolume(Form("kaptonlayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layerhole2, kMedKapton);
-  kaptonlayer->SetVisibility(1);
+  kaptonlayer->SetVisibility(true);
   kaptonlayer->SetLineColor(kYellow);
 
   return kaptonlayer;
@@ -482,7 +482,7 @@ TGeoVolume* Flex::Make_Varnish(Double_t length, Double_t widthflex,  Double_t th
   TGeoMaterial *kMatVarnish = kMedVarnish->GetMaterial();
   //kMatVarnish->Dump();
   auto *varnishlayer = new TGeoVolume(Form("varnishlayer_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,iflag), layerhole2, kMedVarnish);
-  varnishlayer->SetVisibility(1);
+  varnishlayer->SetVisibility(true);
   varnishlayer->SetLineColor(kGreen-1);
 
   return varnishlayer;
