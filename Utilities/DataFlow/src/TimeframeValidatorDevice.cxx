@@ -15,7 +15,7 @@
 using DataHeader = AliceO2::Header::DataHeader;
 
 // FIXME: this should really be in a central place
-typedef int PartPosition;
+using PartPosition = int;
 typedef std::pair<AliceO2::Header::DataHeader, PartPosition> IndexElement;
 
 AliceO2::DataFlow::TimeframeValidatorDevice::TimeframeValidatorDevice()

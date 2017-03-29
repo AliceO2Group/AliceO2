@@ -11,7 +11,7 @@ namespace AliceO2 {
     {
       // test for the templated Descriptor struct
       constexpr int descriptorSize = 8;
-      typedef Descriptor<descriptorSize> TestDescriptorT;
+      using TestDescriptorT = Descriptor<descriptorSize>;
       BOOST_CHECK(TestDescriptorT::size == descriptorSize);
       BOOST_CHECK(TestDescriptorT::bitcount == descriptorSize * 8);
       BOOST_CHECK(sizeof(TestDescriptorT::ItgType) == descriptorSize);
