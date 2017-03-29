@@ -80,7 +80,6 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
    field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in c
   */
   AliceO2::Field::MagneticField field("field","field +5kG");
-
   run->SetField(&field);
 
   AliceO2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
@@ -210,6 +209,8 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Start run
   run->Run(nEvents);
+
+  delete run;
 
   // Finish
   timer.Stop();
