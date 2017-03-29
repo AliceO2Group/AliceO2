@@ -20,11 +20,11 @@ void g3libs()
 {
   cout << "Loading Geant3 libraries ..." << endl;
 
-  if (isLibrary("libdummies.so"))
+  if (isLibrary("libdummies"))
      gSystem->Load("libdummies.so");
                    // libdummies.so needed from geant3_+vmc version 0.5
 
-  gSystem->Load("libgeant321.so");
+  gSystem->Load("libgeant321");
 
   cout << "Loading Geant3 libraries ... finished" << endl;
 }
