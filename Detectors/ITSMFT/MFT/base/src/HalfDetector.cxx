@@ -54,10 +54,7 @@ mSegmentation(seg)
 
 //_____________________________________________________________________________
 HalfDetector::~HalfDetector() 
-{
-
-  
-}
+= default;
 
 /// \brief Creates the Half-disks composing the Half-MFT 
 

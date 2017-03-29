@@ -13,7 +13,7 @@ Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Double_t charge, Do
 {
 }
 
-Digit::~Digit() {}
+Digit::~Digit() = default;
 
 Digit& Digit::operator+=(const Digit& other)
 {

@@ -26,8 +26,7 @@ MagFieldFact::MagFieldFact()
 }
 
 MagFieldFact::~MagFieldFact()
-{
-}
+= default;
 
 void MagFieldFact::SetParm()
 {

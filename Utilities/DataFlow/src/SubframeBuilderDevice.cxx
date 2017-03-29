@@ -28,8 +28,7 @@ AliceO2::DataFlow::SubframeBuilderDevice::SubframeBuilderDevice()
 }
 
 AliceO2::DataFlow::SubframeBuilderDevice::~SubframeBuilderDevice()
-{
-}
+= default;
 
 void AliceO2::DataFlow::SubframeBuilderDevice::InitTask()
 {

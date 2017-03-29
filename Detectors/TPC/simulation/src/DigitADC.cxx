@@ -11,4 +11,4 @@ DigitADC::DigitADC(Float_t charge) :
 mADC(charge)
 {}
 
-DigitADC::~DigitADC() {}
+DigitADC::~DigitADC() = default;

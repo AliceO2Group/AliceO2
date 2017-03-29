@@ -22,7 +22,7 @@ using namespace AliceO2::ITS;
 
 Digitizer::Digitizer() : mGeometry(), mNumOfChips(0), mChips(), mSimulations(), mDigitContainer() {}
 
-Digitizer::~Digitizer() {}
+Digitizer::~Digitizer() = default;
 
 void Digitizer::init(Bool_t build)
 {

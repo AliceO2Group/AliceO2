@@ -40,8 +40,7 @@ FLPSender::FLPSender()
 }
 
 FLPSender::~FLPSender()
-{
-}
+= default;
 
 void FLPSender::InitTask()
 {

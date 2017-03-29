@@ -55,8 +55,7 @@ EventSampler::EventSampler(int verbosity)
 }
 
 EventSampler::~EventSampler()
-{
-}
+= default;
 
 void EventSampler::Init()
 {

@@ -26,7 +26,7 @@ mPad(pad)
 {
 }
 
-Digit::~Digit(){}
+Digit::~Digit()= default;
 
 std::ostream &Digit::Print(std::ostream &output) const{
   output << "TPC Digit in CRU [" << mCRU << "], pad row [" << mRow << "] and pad [" << mPad << "] with charge " << mCharge << " at time stamp" /* << mTimeStamp*/;

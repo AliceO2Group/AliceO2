@@ -21,8 +21,7 @@
 using namespace AliceO2::Passive;
 
 Pipe::~Pipe()
-{
-}
+= default;
 Pipe::Pipe()
   : FairModule()
 {
@@ -34,9 +33,7 @@ Pipe::Pipe(const char * name, const char * title)
 }
 
 Pipe::Pipe(const Pipe& rhs)
-  : FairModule(rhs)
-{
-}
+  = default;
 
 Pipe& Pipe::operator=(const Pipe& rhs)
 {

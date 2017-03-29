@@ -14,6 +14,4 @@ EventHeader::EventHeader()
 
 //_____________________________________________________________________________
 EventHeader::~EventHeader()
-{
-
-}
+= default;

@@ -12,10 +12,10 @@ namespace Examples {
 namespace ExampleModule1 {
 
 Bar::Bar()
-{ }
+= default;
 
 Bar::~Bar()
-{}
+= default;
 
 void Bar::greet()
 {

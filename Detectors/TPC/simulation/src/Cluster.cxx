@@ -39,8 +39,7 @@ FairTimeStamp()
 
 //________________________________________________________________________
 Cluster::~Cluster()
-{
-}
+= default;
 
 //________________________________________________________________________
 void Cluster::setParameters(Short_t cru, Short_t row, Float_t q, Float_t qmax,

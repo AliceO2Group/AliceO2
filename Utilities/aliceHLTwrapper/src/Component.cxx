@@ -45,8 +45,7 @@ Component::Component()
 }
 
 Component::~Component()
-{
-}
+= default;
 
 int Component::init(int argc, char** argv)
 {

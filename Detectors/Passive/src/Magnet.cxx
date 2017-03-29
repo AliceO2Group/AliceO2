@@ -27,8 +27,7 @@ using namespace AliceO2::Passive;
 
 
 Magnet::~Magnet()
-{
-}
+= default;
 Magnet::Magnet()
   : FairModule("Magnet", "")
 {
@@ -40,9 +39,7 @@ Magnet::Magnet(const char* name, const char* Title)
 }
 
 Magnet::Magnet(const Magnet& rhs)
-  : FairModule(rhs)
-{
-}
+  = default;
 
 Magnet& Magnet::operator=(const Magnet& rhs)
 {

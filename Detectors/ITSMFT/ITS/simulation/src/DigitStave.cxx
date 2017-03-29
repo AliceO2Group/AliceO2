@@ -21,7 +21,7 @@ DigitStave::DigitStave()
 }
 
 DigitStave::~DigitStave()
-{ }
+= default;
 
 void DigitStave::Reset()
 {

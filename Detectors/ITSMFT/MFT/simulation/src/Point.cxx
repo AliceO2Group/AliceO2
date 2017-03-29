@@ -25,7 +25,5 @@ FairMCPoint(trackID, detID, pos, mom, tof, length, eLoss)
 
 //_____________________________________________________________________________
 Point::~Point()
-{
-
-}
+= default;
 

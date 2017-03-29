@@ -41,19 +41,7 @@ MCTrack::MCTrack(Int_t pdgCode, Int_t motherId, Double_t px, Double_t py, Double
 }
 
 MCTrack::MCTrack(const MCTrack &track)
-  : TObject(track),
-    mPdgCode(track.mPdgCode),
-    mMotherTrackId(track.mMotherTrackId),
-    mStartVertexMomentumX(track.mStartVertexMomentumX),
-    mStartVertexMomentumY(track.mStartVertexMomentumY),
-    mStartVertexMomentumZ(track.mStartVertexMomentumZ),
-    mStartVertexCoordinatesX(track.mStartVertexCoordinatesX),
-    mStartVertexCoordinatesY(track.mStartVertexCoordinatesY),
-    mStartVertexCoordinatesZ(track.mStartVertexCoordinatesZ),
-    mStartVertexCoordinatesT(track.mStartVertexCoordinatesT),
-    mNumberOfPoints(track.mNumberOfPoints)
-{
-}
+  = default;
 
 MCTrack::MCTrack(TParticle *part)
   : TObject(),
@@ -71,8 +59,7 @@ MCTrack::MCTrack(TParticle *part)
 }
 
 MCTrack::~MCTrack()
-{
-}
+= default;
 
 void MCTrack::Print(Int_t trackId) const
 {
