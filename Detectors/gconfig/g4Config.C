@@ -37,14 +37,14 @@ void Config()
 /// character: eg. stepLimit+specialCuts.
 
    // Geant4 VMC 2.x
-   TG4RunConfiguration* runConfiguration
-           = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT", "stepLimiter+specialCuts+specialControls+stackPopper");
+   // TG4RunConfiguration* runConfiguration
+   //         = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT", "stepLimiter+specialCuts+specialControls+stackPopper");
 
-   // Geant4 VMC 3.0
-   //Bool_t mtMode = true;
-   //TG4RunConfiguration* runConfiguration
-   //  = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT", "stepLimiter+specialCuts",
-   //                            false, mtMode);
+   //Geant4 VMC 3.x
+   Bool_t mtMode = false;
+   TG4RunConfiguration* runConfiguration
+    = new TG4RunConfiguration("geomRoot", "QGSP_FTFP_BERT", "stepLimiter+specialCuts",
+                              false, mtMode);
 
 /// Create the G4 VMC
    TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
@@ -65,11 +65,12 @@ void Config()
 /// (verbose level, global range cut, ..)
 
    TString configm(gSystem->Getenv("VMCWORKDIR"));
-   configm1 = configm + "/gconfig/g4config.in";
-   cout << " -I g4Config() using g4conf  macro: " << configm1 << endl;
+   configm1 = configm + "/Detectors/gconfig/g4config.in";
 
    //set geant4 specific stuff
-  geant4->SetMaxNStep(10000);  // default is 30000
+  // geant4->SetMaxNStep(10000);  // default is 30000
+        // causes failure !! (TO DO: investigate)
   geant4->ProcessGeantMacro(configm1.Data());
 
+  cout << "g4Config.C finished" << endl;
 }
