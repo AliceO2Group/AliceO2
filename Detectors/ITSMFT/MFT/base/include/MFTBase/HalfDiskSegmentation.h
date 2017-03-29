@@ -33,18 +33,18 @@ public:
   void CreateLadders(TXMLEngine* xml, XMLNodePointer_t node);
   
   /// \brief Get the number of Ladder on the Half-Disk really constructed 
-  Int_t    GetNLaddersBuild()  const {return fLadders->GetEntriesFast();};
+  Int_t    GetNLaddersBuild()  const {return mLadders->GetEntriesFast();};
 
   /// \brief Get the number of Ladder on the Half-Disk
-  Int_t    GetNLadders()  const {return fNLadders;};
+  Int_t    GetNLadders()  const {return mNLadders;};
   
   /// \brief Set the number of Ladder on the Half-Disk
-  void    SetNLadders(Int_t val)   {fNLadders = val;};
+  void    SetNLadders(Int_t val)   {mNLadders = val;};
 
   
   /// \brief Returns pointer to the ladder segmentation object
   /// \param iLadder Int_t : ladder number on the Half-Disk
-  LadderSegmentation* GetLadder(Int_t iLadder) { return ( (iLadder>=0 && iLadder<GetNLadders())  ? (LadderSegmentation*) fLadders->At(iLadder) : NULL )  ; }
+  LadderSegmentation* GetLadder(Int_t iLadder) { return ( (iLadder>=0 && iLadder<GetNLadders())  ? (LadderSegmentation*) mLadders->At(iLadder) : NULL )  ; }
   
   /// \brief Returns the Z position of the half-disk
   Double_t GetZ() const {const Double_t *pos = GetTransformation()->GetTranslation(); return pos[2];};
@@ -53,9 +53,9 @@ public:
   
 private:
   
-  Int_t fNLadders; ///< \brief Number of ladder holded by the half-disk
+  Int_t mNLadders; ///< \brief Number of ladder holded by the half-disk
 
-  TClonesArray *fLadders; ///< \brief Array of pointer to LadderSegmentation
+  TClonesArray *mLadders; ///< \brief Array of pointer to LadderSegmentation
   
   /// \cond CLASSIMP
   ClassDef(HalfDiskSegmentation, 1);

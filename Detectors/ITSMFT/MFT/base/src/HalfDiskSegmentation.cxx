@@ -22,8 +22,8 @@ ClassImp(HalfDiskSegmentation);
 //_____________________________________________________________________________
 HalfDiskSegmentation::HalfDiskSegmentation():
   VSegmentation(),
-  fNLadders(0),
-  fLadders(NULL)
+  mNLadders(0),
+  mLadders(NULL)
 {
 
 
@@ -35,8 +35,8 @@ HalfDiskSegmentation::HalfDiskSegmentation():
 //_____________________________________________________________________________
 HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID):
   VSegmentation(),
-  fNLadders(0),
-  fLadders(NULL)
+  mNLadders(0),
+  mLadders(NULL)
 {
 
   // constructor
@@ -48,8 +48,8 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID):
   
   SetName(Form("%s_%d_%d",GeometryTGeo::GetHalfDiskName(),mftGeom->GetHalfMFTID(GetUniqueID()), mftGeom->GetHalfDiskID(GetUniqueID()) ));
   
-  fLadders  = new TClonesArray("AliceO2::MFT::LadderSegmentation");
-  fLadders -> SetOwner(kTRUE);
+  mLadders  = new TClonesArray("AliceO2::MFT::LadderSegmentation");
+  mLadders -> SetOwner(kTRUE);
     
 }
 
@@ -58,13 +58,13 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID):
 //_____________________________________________________________________________
 HalfDiskSegmentation::HalfDiskSegmentation(const HalfDiskSegmentation& input):
   VSegmentation(input),
-  fNLadders(input.fNLadders)
+  mNLadders(input.mNLadders)
 {
   
   // copy constructor
-  if(input.fLadders) fLadders  = new TClonesArray(*(input.fLadders));
-  else fLadders = new TClonesArray("AliceO2::MFT::LadderSegmentation");
-  fLadders -> SetOwner(kTRUE);
+  if(input.mLadders) mLadders  = new TClonesArray(*(input.mLadders));
+  else mLadders = new TClonesArray("AliceO2::MFT::LadderSegmentation");
+  mLadders -> SetOwner(kTRUE);
 
 }
 
@@ -83,9 +83,9 @@ HalfDiskSegmentation::~HalfDiskSegmentation()
 void HalfDiskSegmentation::Clear(const Option_t* /*opt*/) 
 {
 
-  if (fLadders) fLadders->Delete();
-  delete fLadders; 
-  fLadders = NULL;
+  if (mLadders) mLadders->Delete();
+  delete mLadders; 
+  mLadders = NULL;
 
 }
 
@@ -174,7 +174,7 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
     
     ladder->CreateSensors();
 
-    new ((*fLadders)[iladder]) LadderSegmentation(*ladder);
+    new ((*mLadders)[iladder]) LadderSegmentation(*ladder);
     delete ladder;
 
     //GetLadder(iladder)->Print();
@@ -197,9 +197,9 @@ Int_t HalfDiskSegmentation::GetNChips() {
 
   Int_t nChips = 0;
 
-  for (Int_t iLadder=0; iLadder<fLadders->GetEntries(); iLadder++) {
+  for (Int_t iLadder=0; iLadder<mLadders->GetEntries(); iLadder++) {
 
-    LadderSegmentation *ladder = (LadderSegmentation*) fLadders->At(iLadder);
+    LadderSegmentation *ladder = (LadderSegmentation*) mLadders->At(iLadder);
     nChips += ladder -> GetNSensors();
 
   }

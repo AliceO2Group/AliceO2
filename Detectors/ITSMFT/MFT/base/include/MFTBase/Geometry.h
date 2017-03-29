@@ -90,12 +90,12 @@ class Geometry : public TNamed {
   UInt_t GetObjectID(ObjectTypes type, Int_t half=0, Int_t disk=0, Int_t ladder=0, Int_t chip=0) const;
   
   /// \brief Returns TGeo ID of the volume describing the sensors
-  Int_t GetSensorVolumeID()    const {return fSensorVolumeID;};
+  Int_t GetSensorVolumeID()    const {return mSensorVolumeID;};
   /// \brief Set the TGeo ID of the volume describing the sensors
-  void  SetSensorVolumeID(Int_t val)   { fSensorVolumeID= val;};
+  void  SetSensorVolumeID(Int_t val)   { mSensorVolumeID= val;};
 
   /// \brief Returns pointer to the segmentation
-  Segmentation * GetSegmentation() const {return fSegmentation;};
+  Segmentation * GetSegmentation() const {return mSegmentation;};
 
   Bool_t Hit2PixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t detElemID, Int_t &xPixel, Int_t &yPixel) const;
   void GetPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Double_t &xCenter, Double_t &yCenter, Double_t &zCenter ) const ;
@@ -107,9 +107,9 @@ private:
   static Geometry* fgInstance;    ///< \brief  Singleton instance
   Geometry();
 
-  GeometryBuilder* fBuilder;      ///< \brief Geometry Builder
-  Segmentation*    fSegmentation; ///< \brief Segmentation of the detector
-  Int_t fSensorVolumeID; ///< \brief ID of the volume describing the CMOS Sensor
+  GeometryBuilder* mBuilder;      ///< \brief Geometry Builder
+  Segmentation*    mSegmentation; ///< \brief Segmentation of the detector
+  Int_t mSensorVolumeID; ///< \brief ID of the volume describing the CMOS Sensor
 
   /// \cond CLASSIMP
   ClassDef(Geometry, 1)

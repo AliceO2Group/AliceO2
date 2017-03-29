@@ -21,9 +21,9 @@ ClassImp(AliceO2::MFT::Support)
 //_____________________________________________________________________________
 Support::Support():
 TNamed(),
-fSupportVolume(NULL),
-fSupportThickness(0.8), // cm
-fPCBThickness(0.1) // cm
+mSupportVolume(NULL),
+mSupportThickness(0.8), // cm
+mPCBThickness(0.1) // cm
 {
   
   // default constructor
@@ -34,7 +34,7 @@ fPCBThickness(0.1) // cm
 Support::~Support() 
 {
   
-  delete fSupportVolume;
+  delete mSupportVolume;
 
 }
 
@@ -44,20 +44,20 @@ TGeoVolumeAssembly* Support::CreateVolume(Int_t half, Int_t disk)
 
   Info("CreateVolume",Form("Creating support and PCB for half %d and disk %d)",half, disk),0,0);
   
-  fSupportVolume = new TGeoVolumeAssembly(Form("SupportPCB_%d_%d", half, disk));
+  mSupportVolume = new TGeoVolumeAssembly(Form("SupportPCB_%d_%d", half, disk));
   
   TGeoVolume * supportVolume =  CreateSupport(half, disk);
   //TGeoVolumeAssembly * pcbVolume =  CreatePCBs(half, disk);
   
   // Place the core of the support
-  fSupportVolume->AddNode(supportVolume, 1);
+  mSupportVolume->AddNode(supportVolume, 1);
   /* 
   // Place the front PCB
   fSupportVolume->AddNode(pcbVolume, 1,new TGeoTranslation(0.,0.,(fSupportThickness+ fPCBThickness)/2.));
   // Place the back PCB (supposing both fron and back are the same shapes)
   fSupportVolume->AddNode(pcbVolume, 2,new TGeoCombiTrans (0.,0.,-(fSupportThickness+ fPCBThickness)/2., new TGeoRotation("rot",0.,180.,0.)));
   */
-  return fSupportVolume;
+  return mSupportVolume;
 
 }
 
@@ -96,9 +96,9 @@ TGeoVolumeAssembly* Support::PCB_00_01(Int_t half, Int_t disk){
   Double_t phiMin =0., phiMax=180.;
   Double_t rMin =0., rMax=17.5; // units are cm
   Double_t copperThickness = 0.05; //units are cm
-  Double_t fr4Thickness = fPCBThickness - copperThickness;
+  Double_t fr4Thickness = mPCBThickness - copperThickness;
   Double_t t_delta = 0.01;
-  Double_t z_excess=2.0*fPCBThickness;
+  Double_t z_excess=2.0*mPCBThickness;
 
   TGeoTubeSeg *varnishShape = new TGeoTubeSeg("tube_varnish_00",rMin, rMax, fr4Thickness/2., phiMin+180., phiMax+180.);
   TGeoTubeSeg *copperShape = new TGeoTubeSeg("tube_copper_00",rMin, rMax, copperThickness/2., phiMin+180., phiMax+180.);
@@ -244,9 +244,9 @@ TGeoVolumeAssembly* Support::PCB_02(Int_t half, Int_t disk){
   Double_t phiMin =180., phiMax=360.;
   Double_t rMin =0., rMax=17.5; // units are cm
   Double_t copperThickness = 0.05; //units are cm
-  Double_t fr4Thickness = fPCBThickness - copperThickness;
+  Double_t fr4Thickness = mPCBThickness - copperThickness;
   Double_t t_delta = 0.01;
-  Double_t z_excess=2.0*fPCBThickness;
+  Double_t z_excess=2.0*mPCBThickness;
 
   // ========================== inner box out PCB_01 ===========================================
   
@@ -421,9 +421,9 @@ TGeoVolumeAssembly* Support::PCB_03(Int_t half, Int_t disk){
   Double_t phiMin =180., phiMax=360.;
   Double_t rMin =0., rMax=25.5; // units are cm
   Double_t copperThickness = 0.05; //units are cm
-  Double_t fr4Thickness = fPCBThickness - copperThickness;
+  Double_t fr4Thickness = mPCBThickness - copperThickness;
   Double_t t_delta = 0.01;
-  Double_t z_excess=2.0*fPCBThickness;
+  Double_t z_excess=2.0*mPCBThickness;
 
 // ========================== inner box out PCB_02 ===========================================
 
@@ -654,9 +654,9 @@ TGeoVolumeAssembly* Support::PCB_04(Int_t half, Int_t disk){
   Double_t phiMin =180., phiMax=360.;
   Double_t rMin =0., rMax=25.5; // units are cm
   Double_t copperThickness = 0.05; //units are cm
-  Double_t fr4Thickness = fPCBThickness - copperThickness;
+  Double_t fr4Thickness = mPCBThickness - copperThickness;
   Double_t t_delta = 0.01;
-  Double_t z_excess=2.0*fPCBThickness;
+  Double_t z_excess=2.0*mPCBThickness;
 
 // ========================== inner box out PCB_03 ===========================================
 
@@ -897,9 +897,9 @@ TGeoVolumeAssembly* Support::PCB_PSU(Int_t half, Int_t disk){
   Double_t phiMin =180., phiMax=360.;
   Double_t rMin =0., rMax=25.5; // units are cm
   Double_t copperThickness = 0.05; //units are cm
-  Double_t fr4Thickness = fPCBThickness - copperThickness;
+  Double_t fr4Thickness = mPCBThickness - copperThickness;
   Double_t t_delta = 0.01;
-  Double_t z_excess=2.0*fPCBThickness;
+  Double_t z_excess=2.0*mPCBThickness;
 
 // ========================== inner box out PCB_0 4 ===========================================
 

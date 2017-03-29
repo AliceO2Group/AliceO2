@@ -36,7 +36,7 @@ class DigitWriteoutBuffer : public FairWriteoutBuffer
     virtual void EraseDataFromDataMap(FairTimeStamp *data);
 
   protected:
-    std::map<AliceO2::ITSMFT::Digit, double> fData_map;
+    std::map<AliceO2::ITSMFT::Digit, double> mData_map;
 
   ClassDef(DigitWriteoutBuffer, 1);
 };

@@ -20,7 +20,7 @@ static MagFieldFact gMagFieldFact;
 
 MagFieldFact::MagFieldFact()
   :FairFieldFactory(),
-   fFieldPar(NULL)
+   mFieldPar(NULL)
 {
 	fCreator=this;
 }
@@ -33,19 +33,19 @@ void MagFieldFact::SetParm()
 {
   FairRunAna *Run = FairRunAna::Instance();
   FairRuntimeDb *RunDB = Run->GetRuntimeDb();
-  fFieldPar = (MagFieldParam*) RunDB->getContainer("MagFieldParam");
+  mFieldPar = (MagFieldParam*) RunDB->getContainer("MagFieldParam");
 }
 
 FairField* MagFieldFact::createFairField()
 { 
   FairField *fMagneticField=0;
   
-  if ( !fFieldPar ) {
+  if ( !mFieldPar ) {
     FairLogger::GetLogger()->Error(MESSAGE_ORIGIN, "No field parameters available");
     return 0;
   }
   // since we have just 1 field class, we don't need to consider fFieldPar->GetType()
-  fMagneticField = new MagneticField(*fFieldPar);
+  fMagneticField = new MagneticField(*mFieldPar);
   return fMagneticField;
 }
 

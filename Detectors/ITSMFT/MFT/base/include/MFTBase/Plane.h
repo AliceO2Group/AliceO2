@@ -41,50 +41,50 @@ public:
   
   Bool_t CreateStructure();
 
-  Int_t GetNActiveElements()  const { return fActiveElements->GetEntries();  }
-  Int_t GetNReadoutElements() const { return fReadoutElements->GetEntries(); }
-  Int_t GetNSupportElements() const { return fSupportElements->GetEntries(); }
+  Int_t GetNActiveElements()  const { return mActiveElements->GetEntries();  }
+  Int_t GetNReadoutElements() const { return mReadoutElements->GetEntries(); }
+  Int_t GetNSupportElements() const { return mSupportElements->GetEntries(); }
 
-  TClonesArray* GetActiveElements()  { return fActiveElements;  }
-  TClonesArray* GetReadoutElements() { return fReadoutElements; }
-  TClonesArray* GetSupportElements() { return fSupportElements; }
+  TClonesArray* GetActiveElements()  { return mActiveElements;  }
+  TClonesArray* GetReadoutElements() { return mReadoutElements; }
+  TClonesArray* GetSupportElements() { return mSupportElements; }
 
   THnSparseC* GetActiveElement(Int_t id);
   THnSparseC* GetReadoutElement(Int_t id);
   THnSparseC* GetSupportElement(Int_t id);
 
-  Bool_t IsFront(THnSparseC *element) const { return (element->GetAxis(2)->GetXmin() < fZCenter); }
+  Bool_t IsFront(THnSparseC *element) const { return (element->GetAxis(2)->GetXmin() < mZCenter); }
 
   void DrawPlane(Option_t *opt="");
 
-  Double_t GetRMinSupport() const { return fRMinSupport; }
-  Double_t GetRMaxSupport() const { return fRMaxSupport; }
+  Double_t GetRMinSupport() const { return mRMinSupport; }
+  Double_t GetRMaxSupport() const { return mRMaxSupport; }
   Double_t GetThicknessSupport() { return GetSupportElement(0)->GetAxis(2)->GetXmax() - GetSupportElement(0)->GetAxis(2)->GetXmin(); }
   
-  Double_t GetZCenter()            const { return fZCenter; }
-  Double_t GetZCenterActiveFront() const { return fZCenterActiveFront; }
-  Double_t GetZCenterActiveBack()  const { return fZCenterActiveBack; }
+  Double_t GetZCenter()            const { return mZCenter; }
+  Double_t GetZCenterActiveFront() const { return mZCenterActiveFront; }
+  Double_t GetZCenterActiveBack()  const { return mZCenterActiveBack; }
 
-  void SetEquivalentSilicon(Double_t equivalentSilicon)                       { fEquivalentSilicon            = equivalentSilicon; }
-  void SetEquivalentSiliconBeforeFront(Double_t equivalentSiliconBeforeFront) { fEquivalentSiliconBeforeFront = equivalentSiliconBeforeFront; }
-  void SetEquivalentSiliconBeforeBack(Double_t equivalentSiliconBeforeBack)   { fEquivalentSiliconBeforeBack  = equivalentSiliconBeforeBack; }
-  Double_t GetEquivalentSilicon()            const { return fEquivalentSilicon; }
-  Double_t GetEquivalentSiliconBeforeFront() const { return fEquivalentSiliconBeforeFront; }
-  Double_t GetEquivalentSiliconBeforeBack()  const { return fEquivalentSiliconBeforeBack; }
+  void SetEquivalentSilicon(Double_t equivalentSilicon)                       { mEquivalentSilicon            = equivalentSilicon; }
+  void SetEquivalentSiliconBeforeFront(Double_t equivalentSiliconBeforeFront) { mEquivalentSiliconBeforeFront = equivalentSiliconBeforeFront; }
+  void SetEquivalentSiliconBeforeBack(Double_t equivalentSiliconBeforeBack)   { mEquivalentSiliconBeforeBack  = equivalentSiliconBeforeBack; }
+  Double_t GetEquivalentSilicon()            const { return mEquivalentSilicon; }
+  Double_t GetEquivalentSiliconBeforeFront() const { return mEquivalentSiliconBeforeFront; }
+  Double_t GetEquivalentSiliconBeforeBack()  const { return mEquivalentSiliconBeforeBack; }
 
   Int_t GetNumberOfChips(Option_t *opt);
-  Bool_t HasPixelRectangularPatternAlongY() { return fHasPixelRectangularPatternAlongY; }
+  Bool_t HasPixelRectangularPatternAlongY() { return mHasPixelRectangularPatternAlongY; }
   
 private:
 
-  Int_t fPlaneNumber;
+  Int_t mPlaneNumber;
 
-  Double_t fZCenter, fRMinSupport, fRMax, fRMaxSupport, fPixelSizeX, fPixelSizeY, fThicknessActive, fThicknessSupport, fThicknessReadout;
-  Double_t fZCenterActiveFront, fZCenterActiveBack, fEquivalentSilicon, fEquivalentSiliconBeforeFront, fEquivalentSiliconBeforeBack;
+  Double_t mZCenter, mRMinSupport, mRMax, mRMaxSupport, mPixelSizeX, mPixelSizeY, mThicknessActive, mThicknessSupport, mThicknessReadout;
+  Double_t mZCenterActiveFront, mZCenterActiveBack, mEquivalentSilicon, mEquivalentSiliconBeforeFront, mEquivalentSiliconBeforeBack;
 
-  TClonesArray *fActiveElements, *fReadoutElements, *fSupportElements;
+  TClonesArray *mActiveElements, *mReadoutElements, *mSupportElements;
 
-  Bool_t fHasPixelRectangularPatternAlongY, fPlaneIsOdd;
+  Bool_t mHasPixelRectangularPatternAlongY, mPlaneIsOdd;
 
   ClassDef(Plane, 1)
 

@@ -30,16 +30,16 @@ public:
   
   Bool_t GetID() const {return (GetUniqueID()>>12);};
   
-  Int_t GetNHalfDisks() const { return fHalfDisks->GetEntries(); }
+  Int_t GetNHalfDisks() const { return mHalfDisks->GetEntries(); }
 
-  HalfDiskSegmentation* GetHalfDisk(Int_t iDisk) const { if (iDisk>=0 && iDisk<fHalfDisks->GetEntries()) return (HalfDiskSegmentation*) fHalfDisks->At(iDisk); else return NULL; }
+  HalfDiskSegmentation* GetHalfDisk(Int_t iDisk) const { if (iDisk>=0 && iDisk<mHalfDisks->GetEntries()) return (HalfDiskSegmentation*) mHalfDisks->At(iDisk); else return NULL; }
  
 private:
   
   void FindHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodePointer_t &retnode);
   void CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node);
 
-  TClonesArray *fHalfDisks; ///< \brief Array of pointer to HalfDiskSegmentation
+  TClonesArray *mHalfDisks; ///< \brief Array of pointer to HalfDiskSegmentation
 
   /// \cond CLASSIMP
   ClassDef(HalfSegmentation, 1);

@@ -12,14 +12,14 @@ using std::endl;
 using namespace AliceO2::ITSMFT;
 
 Point::Point() : FairMCPoint(),
-                 fTrackStatus(0),
-                 fTrackStatusStart(0),
-                 fShunt(0),
-                 fStartX(0.),
-                 fStartY(0.),
-                 fStartZ(0.),
-                 fStartTime(0.),
-                 fTotalEnergy(0.)
+                 mTrackStatus(0),
+                 mTrackStatusStart(0),
+                 mShunt(0),
+                 mStartX(0.),
+                 mStartY(0.),
+                 mStartZ(0.),
+                 mStartTime(0.),
+                 mTotalEnergy(0.)
 {
 }
 
@@ -27,14 +27,14 @@ Point::Point(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVecto
              Double_t startTime, Double_t time, Double_t length, Double_t eLoss, Int_t shunt, Int_t status,
              Int_t statusStart)
   : FairMCPoint(trackID, detID, pos, mom, time, length, eLoss),
-    fTrackStatus(status),
-    fTrackStatusStart(statusStart),
-    fShunt(shunt),
-    fStartX(startPos.X()),
-    fStartY(startPos.Y()),
-    fStartZ(startPos.Z()),
-    fStartTime(startTime),
-    fTotalEnergy(0.)
+    mTrackStatus(status),
+    mTrackStatusStart(statusStart),
+    mShunt(shunt),
+    mStartX(startPos.X()),
+    mStartY(startPos.Y()),
+    mStartZ(startPos.Z()),
+    mStartTime(startTime),
+    mTotalEnergy(0.)
 {
 }
 

@@ -23,11 +23,11 @@ class TaskProcessor : public FairMQDevice
   TaskProcessor();
   virtual ~TaskProcessor();
 
-  void SetDataToKeep(std::string tStr) { fDataToKeep = tStr;}
+  void SetDataToKeep(std::string tStr) { mDataToKeep = tStr;}
 
-  void SetInputChannelName (std::string tstr) {fInputChannelName = tstr;}
-  void SetOutputChannelName(std::string tstr) {fOutputChannelName = tstr;}
-  void SetParamChannelName (std::string tstr) {fParamChannelName  = tstr;}
+  void SetInputChannelName (std::string tstr) {mInputChannelName = tstr;}
+  void SetOutputChannelName(std::string tstr) {mOutputChannelName = tstr;}
+  void SetParamChannelName (std::string tstr) {mParamChannelName  = tstr;}
 
  protected:
 
@@ -37,23 +37,23 @@ class TaskProcessor : public FairMQDevice
 
  private:
   
-  std::string     fInputChannelName;
-  std::string     fOutputChannelName;
-  std::string     fParamChannelName;
+  std::string     mInputChannelName;
+  std::string     mOutputChannelName;
+  std::string     mParamChannelName;
   
-  EventHeader*     fEventHeader;
-  TList*           fInput;
-  TList*           fOutput;
+  EventHeader*     mEventHeader;
+  TList*           mInput;
+  TList*           mOutput;
   
-  int fNewRunId;
-  int fCurrentRunId;
+  int mNewRunId;
+  int mCurrentRunId;
   
-  std::string fDataToKeep;
+  std::string mDataToKeep;
   
-  int fReceivedMsgs = 0;
-  int fSentMsgs = 0;
+  int mReceivedMsgs = 0;
+  int mSentMsgs = 0;
 
-  T* fFairTask;
+  T* mFairTask;
 
   TaskProcessor(const TaskProcessor&);    
   TaskProcessor& operator=(const TaskProcessor&);    

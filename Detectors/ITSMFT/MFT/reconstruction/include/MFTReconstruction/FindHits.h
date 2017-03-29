@@ -39,16 +39,16 @@ class FindHits : public FairTask
   FindHits(const FindHits&);
   FindHits& operator=(const FindHits&);
 
-  TClonesArray* fPoints; //!
-  TClonesArray* fHits;   //!
+  TClonesArray* mPoints; //!
+  TClonesArray* mHits;   //!
 
-  Int_t fNHits;
+  Int_t mNHits;
 
-  Int_t fTNofEvents;
-  Int_t fTNofHits;
+  Int_t mTNofEvents;
+  Int_t mTNofHits;
 
-  FairMCEventHeader *fMCEventHeader;
-  EventHeader *fEventHeader;
+  FairMCEventHeader *mMCEventHeader;
+  EventHeader *mEventHeader;
 
   ClassDef(FindHits,1);
 

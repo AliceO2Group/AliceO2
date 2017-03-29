@@ -39,7 +39,7 @@ class DigitStave
     void FillOutputContainer(TClonesArray *outputcont);
 
   private:
-    std::map<int, AliceO2::ITSMFT::Digit *> fPixels;
+    std::map<int, AliceO2::ITSMFT::Digit *> mPixels;
 };
 }
 }

@@ -19,8 +19,8 @@ class EventHeader : public FairEventHeader
   EventHeader();
   virtual ~EventHeader();
 
-  void  SetPartNo(Int_t ipart) { fPartNo = ipart;}
-  Int_t GetPartNo()            { return fPartNo; }
+  void  SetPartNo(Int_t ipart) { mPartNo = ipart;}
+  Int_t GetPartNo()            { return mPartNo; }
   
   template <class Archive>
     void serialize(Archive& ar, const unsigned int /*version*/)
@@ -30,7 +30,7 @@ class EventHeader : public FairEventHeader
   
  private:
 
-  Int_t fPartNo;
+  Int_t mPartNo;
   
 #ifndef __CINT__ // for BOOST serialization
   friend class boost::serialization::access;

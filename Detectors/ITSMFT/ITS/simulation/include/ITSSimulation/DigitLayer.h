@@ -40,9 +40,9 @@ class DigitLayer
     void FillOutputContainer(TClonesArray *output);
 
   private:
-    Int_t fLayerID;           ///< Layer ID
-    Int_t fNStaves;           ///< Number of staves in Layer
-    DigitStave **fStaves;          ///< Container of staves
+    Int_t mLayerID;           ///< Layer ID
+    Int_t mNStaves;           ///< Number of staves in Layer
+    DigitStave **mStaves;          ///< Container of staves
 };
 }
 }

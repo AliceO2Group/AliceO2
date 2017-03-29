@@ -26,26 +26,26 @@ ClassImp(AliceO2::MFT::Plane)
 //_____________________________________________________________________________
 Plane::Plane():
   TNamed(),
-  fPlaneNumber(-1),
-  fZCenter(0), 
-  fRMinSupport(0), 
-  fRMax(0),
-  fRMaxSupport(0),
-  fPixelSizeX(0), 
-  fPixelSizeY(0), 
-  fThicknessActive(0), 
-  fThicknessSupport(0), 
-  fThicknessReadout(0),
-  fZCenterActiveFront(0),
-  fZCenterActiveBack(0),
-  fEquivalentSilicon(0),
-  fEquivalentSiliconBeforeFront(0),
-  fEquivalentSiliconBeforeBack(0),
-  fActiveElements(0),
-  fReadoutElements(0),
-  fSupportElements(0),
-  fHasPixelRectangularPatternAlongY(kFALSE),
-  fPlaneIsOdd(kFALSE)
+  mPlaneNumber(-1),
+  mZCenter(0), 
+  mRMinSupport(0), 
+  mRMax(0),
+  mRMaxSupport(0),
+  mPixelSizeX(0), 
+  mPixelSizeY(0), 
+  mThicknessActive(0), 
+  mThicknessSupport(0), 
+  mThicknessReadout(0),
+  mZCenterActiveFront(0),
+  mZCenterActiveBack(0),
+  mEquivalentSilicon(0),
+  mEquivalentSiliconBeforeFront(0),
+  mEquivalentSiliconBeforeBack(0),
+  mActiveElements(0),
+  mReadoutElements(0),
+  mSupportElements(0),
+  mHasPixelRectangularPatternAlongY(kFALSE),
+  mPlaneIsOdd(kFALSE)
 {
 
   // default constructor
@@ -55,70 +55,70 @@ Plane::Plane():
 //_____________________________________________________________________________
 Plane::Plane(const Char_t *name, const Char_t *title):
   TNamed(name, title),
-  fPlaneNumber(-1),
-  fZCenter(0), 
-  fRMinSupport(0), 
-  fRMax(0),
-  fRMaxSupport(0),
-  fPixelSizeX(0), 
-  fPixelSizeY(0), 
-  fThicknessActive(0), 
-  fThicknessSupport(0), 
-  fThicknessReadout(0),
-  fZCenterActiveFront(0),
-  fZCenterActiveBack(0),
-  fEquivalentSilicon(0),
-  fEquivalentSiliconBeforeFront(0),
-  fEquivalentSiliconBeforeBack(0),
-  fActiveElements(0),
-  fReadoutElements(0),
-  fSupportElements(0),
-  fHasPixelRectangularPatternAlongY(kFALSE),
-  fPlaneIsOdd(kFALSE)
+  mPlaneNumber(-1),
+  mZCenter(0), 
+  mRMinSupport(0), 
+  mRMax(0),
+  mRMaxSupport(0),
+  mPixelSizeX(0), 
+  mPixelSizeY(0), 
+  mThicknessActive(0), 
+  mThicknessSupport(0), 
+  mThicknessReadout(0),
+  mZCenterActiveFront(0),
+  mZCenterActiveBack(0),
+  mEquivalentSilicon(0),
+  mEquivalentSiliconBeforeFront(0),
+  mEquivalentSiliconBeforeBack(0),
+  mActiveElements(0),
+  mReadoutElements(0),
+  mSupportElements(0),
+  mHasPixelRectangularPatternAlongY(kFALSE),
+  mPlaneIsOdd(kFALSE)
 {
 
   // constructor
-  fActiveElements  = new TClonesArray("THnSparseC");
-  fReadoutElements = new TClonesArray("THnSparseC");
-  fSupportElements = new TClonesArray("THnSparseC");
-  fActiveElements->SetOwner(kTRUE);
-  fReadoutElements->SetOwner(kTRUE);
-  fSupportElements->SetOwner(kTRUE);
+  mActiveElements  = new TClonesArray("THnSparseC");
+  mReadoutElements = new TClonesArray("THnSparseC");
+  mSupportElements = new TClonesArray("THnSparseC");
+  mActiveElements->SetOwner(kTRUE);
+  mReadoutElements->SetOwner(kTRUE);
+  mSupportElements->SetOwner(kTRUE);
   
 }
 
 //_____________________________________________________________________________
 Plane::Plane(const Plane& plane):
   TNamed(plane),
-  fPlaneNumber(plane.fPlaneNumber),
-  fZCenter(plane.fZCenter), 
-  fRMinSupport(plane.fRMinSupport), 
-  fRMax(plane.fRMax),
-  fRMaxSupport(plane.fRMaxSupport),
-  fPixelSizeX(plane.fPixelSizeX), 
-  fPixelSizeY(plane.fPixelSizeY), 
-  fThicknessActive(plane.fThicknessActive), 
-  fThicknessSupport(plane.fThicknessSupport), 
-  fThicknessReadout(plane.fThicknessReadout),
-  fZCenterActiveFront(plane.fZCenterActiveFront),
-  fZCenterActiveBack(plane.fZCenterActiveBack),
-  fEquivalentSilicon(plane.fEquivalentSilicon),
-  fEquivalentSiliconBeforeFront(plane.fEquivalentSiliconBeforeFront),
-  fEquivalentSiliconBeforeBack(plane.fEquivalentSiliconBeforeBack),
-  fActiveElements(0),
-  fReadoutElements(0),
-  fSupportElements(0),
-  fHasPixelRectangularPatternAlongY(plane.fHasPixelRectangularPatternAlongY),
-  fPlaneIsOdd(plane.fPlaneIsOdd)
+  mPlaneNumber(plane.mPlaneNumber),
+  mZCenter(plane.mZCenter), 
+  mRMinSupport(plane.mRMinSupport), 
+  mRMax(plane.mRMax),
+  mRMaxSupport(plane.mRMaxSupport),
+  mPixelSizeX(plane.mPixelSizeX), 
+  mPixelSizeY(plane.mPixelSizeY), 
+  mThicknessActive(plane.mThicknessActive), 
+  mThicknessSupport(plane.mThicknessSupport), 
+  mThicknessReadout(plane.mThicknessReadout),
+  mZCenterActiveFront(plane.mZCenterActiveFront),
+  mZCenterActiveBack(plane.mZCenterActiveBack),
+  mEquivalentSilicon(plane.mEquivalentSilicon),
+  mEquivalentSiliconBeforeFront(plane.mEquivalentSiliconBeforeFront),
+  mEquivalentSiliconBeforeBack(plane.mEquivalentSiliconBeforeBack),
+  mActiveElements(0),
+  mReadoutElements(0),
+  mSupportElements(0),
+  mHasPixelRectangularPatternAlongY(plane.mHasPixelRectangularPatternAlongY),
+  mPlaneIsOdd(plane.mPlaneIsOdd)
 {
 
   // copy constructor
-  fActiveElements  = new TClonesArray(*(plane.fActiveElements));
-  fActiveElements  -> SetOwner(kTRUE);
-  fReadoutElements = new TClonesArray(*(plane.fReadoutElements));
-  fReadoutElements -> SetOwner(kTRUE);
-  fSupportElements = new TClonesArray(*(plane.fSupportElements));
-  fSupportElements -> SetOwner(kTRUE);
+  mActiveElements  = new TClonesArray(*(plane.mActiveElements));
+  mActiveElements  -> SetOwner(kTRUE);
+  mReadoutElements = new TClonesArray(*(plane.mReadoutElements));
+  mReadoutElements -> SetOwner(kTRUE);
+  mSupportElements = new TClonesArray(*(plane.mSupportElements));
+  mSupportElements -> SetOwner(kTRUE);
 
 	
 }
@@ -128,12 +128,12 @@ Plane::~Plane()
 {
 
   Info("~Plane","Delete Plane",0,0);
-  if(fActiveElements) fActiveElements->Delete();
-  delete fActiveElements; 
-  if(fReadoutElements) fReadoutElements->Delete();
-  delete fReadoutElements; 
-  if(fSupportElements) fSupportElements->Delete();
-  delete fSupportElements; 
+  if(mActiveElements) mActiveElements->Delete();
+  delete mActiveElements; 
+  if(mReadoutElements) mReadoutElements->Delete();
+  delete mReadoutElements; 
+  if(mSupportElements) mSupportElements->Delete();
+  delete mSupportElements; 
 
 }
 
@@ -142,12 +142,12 @@ void Plane::Clear(const Option_t* /*opt*/)
 {
 
   Info("Clear","Clear Plane",0,0);
-  if(fActiveElements) fActiveElements->Delete();
-  delete fActiveElements; fActiveElements=NULL;
-  if(fReadoutElements) fReadoutElements->Delete();
-  delete fReadoutElements;  fReadoutElements=NULL; 
-  if(fSupportElements) fSupportElements->Delete();
-  delete fSupportElements;   fSupportElements=NULL;
+  if(mActiveElements) mActiveElements->Delete();
+  delete mActiveElements; mActiveElements=NULL;
+  if(mReadoutElements) mReadoutElements->Delete();
+  delete mReadoutElements;  mReadoutElements=NULL; 
+  if(mSupportElements) mSupportElements->Delete();
+  delete mSupportElements;   mSupportElements=NULL;
 
 }
 
@@ -166,29 +166,29 @@ Plane& Plane::operator=(const Plane& plane)
     // clear memory
     Clear("");
     
-    fPlaneNumber                      = plane.fPlaneNumber;
-    fZCenter                          = plane.fZCenter; 
-    fRMinSupport                      = plane.fRMinSupport; 
-    fRMax                             = plane.fRMax;
-    fRMaxSupport                      = plane.fRMaxSupport;
-    fPixelSizeX                       = plane.fPixelSizeX;
-    fPixelSizeY                       = plane.fPixelSizeY; 
-    fThicknessActive                  = plane.fThicknessActive; 
-    fThicknessSupport                 = plane.fThicknessSupport; 
-    fThicknessReadout                 = plane.fThicknessReadout;
-    fZCenterActiveFront               = plane.fZCenterActiveFront;
-    fZCenterActiveBack                = plane.fZCenterActiveBack;
-    fEquivalentSilicon                = plane.fEquivalentSilicon;
-    fEquivalentSiliconBeforeFront     = plane.fEquivalentSiliconBeforeFront;
-    fEquivalentSiliconBeforeBack      = plane.fEquivalentSiliconBeforeBack;
-    fActiveElements = new TClonesArray(*(plane.fActiveElements));
-    fActiveElements -> SetOwner(kTRUE);
-    fReadoutElements = new TClonesArray(*(plane.fReadoutElements));
-    fReadoutElements -> SetOwner(kTRUE);
-    fSupportElements = new TClonesArray(*(plane.fSupportElements));
-    fSupportElements -> SetOwner(kTRUE);
-    fHasPixelRectangularPatternAlongY = plane.fHasPixelRectangularPatternAlongY;
-    fPlaneIsOdd                       = plane.fPlaneIsOdd;
+    mPlaneNumber                      = plane.mPlaneNumber;
+    mZCenter                          = plane.mZCenter; 
+    mRMinSupport                      = plane.mRMinSupport; 
+    mRMax                             = plane.mRMax;
+    mRMaxSupport                      = plane.mRMaxSupport;
+    mPixelSizeX                       = plane.mPixelSizeX;
+    mPixelSizeY                       = plane.mPixelSizeY; 
+    mThicknessActive                  = plane.mThicknessActive; 
+    mThicknessSupport                 = plane.mThicknessSupport; 
+    mThicknessReadout                 = plane.mThicknessReadout;
+    mZCenterActiveFront               = plane.mZCenterActiveFront;
+    mZCenterActiveBack                = plane.mZCenterActiveBack;
+    mEquivalentSilicon                = plane.mEquivalentSilicon;
+    mEquivalentSiliconBeforeFront     = plane.mEquivalentSiliconBeforeFront;
+    mEquivalentSiliconBeforeBack      = plane.mEquivalentSiliconBeforeBack;
+    mActiveElements = new TClonesArray(*(plane.mActiveElements));
+    mActiveElements -> SetOwner(kTRUE);
+    mReadoutElements = new TClonesArray(*(plane.mReadoutElements));
+    mReadoutElements -> SetOwner(kTRUE);
+    mSupportElements = new TClonesArray(*(plane.mSupportElements));
+    mSupportElements -> SetOwner(kTRUE);
+    mHasPixelRectangularPatternAlongY = plane.mHasPixelRectangularPatternAlongY;
+    mPlaneIsOdd                       = plane.mPlaneIsOdd;
 
   }
   
@@ -211,31 +211,31 @@ Bool_t Plane::Init(Int_t    planeNumber,
 
   LOG(DEBUG1) << "Init: " << Form("initializing plane structure for plane %s", GetName()) << FairLogger::endl;
 
-  fPlaneNumber      = planeNumber;
-  fZCenter          = zCenter;
-  fRMinSupport      = rMin;
-  fRMax             = rMax;
-  fPixelSizeX       = pixelSizeX;
-  fPixelSizeY       = pixelSizeY;
-  fThicknessActive  = thicknessActive;
-  fThicknessSupport = thicknessSupport;
-  fThicknessReadout = thicknessReadout;
+  mPlaneNumber      = planeNumber;
+  mZCenter          = zCenter;
+  mRMinSupport      = rMin;
+  mRMax             = rMax;
+  mPixelSizeX       = pixelSizeX;
+  mPixelSizeY       = pixelSizeY;
+  mThicknessActive  = thicknessActive;
+  mThicknessSupport = thicknessSupport;
+  mThicknessReadout = thicknessReadout;
 
-  fHasPixelRectangularPatternAlongY = hasPixelRectangularPatternAlongY;
+  mHasPixelRectangularPatternAlongY = hasPixelRectangularPatternAlongY;
 
-  fZCenterActiveFront = fZCenter - 0.5*fThicknessSupport - 0.5*fThicknessActive;
-  fZCenterActiveBack  = fZCenter + 0.5*fThicknessSupport + 0.5*fThicknessActive;
+  mZCenterActiveFront = mZCenter - 0.5*mThicknessSupport - 0.5*mThicknessActive;
+  mZCenterActiveBack  = mZCenter + 0.5*mThicknessSupport + 0.5*mThicknessActive;
 
-  if (fRMax < fRMinSupport+Constants::fHeightActive) fRMax = fRMinSupport + Constants::fHeightActive;
+  if (mRMax < mRMinSupport+Constants::fHeightActive) mRMax = mRMinSupport + Constants::fHeightActive;
 
-  Int_t nLaddersWithinPipe = Int_t(fRMinSupport/(Constants::fHeightActive-Constants::fActiveSuperposition));
-  if (fRMinSupport-nLaddersWithinPipe*(Constants::fHeightActive-Constants::fActiveSuperposition) > 0.5*(Constants::fHeightActive-2*Constants::fActiveSuperposition)) fPlaneIsOdd = kTRUE;
-  else fPlaneIsOdd = kFALSE;
+  Int_t nLaddersWithinPipe = Int_t(mRMinSupport/(Constants::fHeightActive-Constants::fActiveSuperposition));
+  if (mRMinSupport-nLaddersWithinPipe*(Constants::fHeightActive-Constants::fActiveSuperposition) > 0.5*(Constants::fHeightActive-2*Constants::fActiveSuperposition)) mPlaneIsOdd = kTRUE;
+  else mPlaneIsOdd = kFALSE;
 
-  fRMax = fRMinSupport + (Constants::fHeightActive-Constants::fActiveSuperposition) * 
-    (Int_t((fRMax-fRMinSupport-Constants::fHeightActive)/(Constants::fHeightActive-Constants::fActiveSuperposition))+1) + Constants::fHeightActive;
+  mRMax = mRMinSupport + (Constants::fHeightActive-Constants::fActiveSuperposition) * 
+    (Int_t((mRMax-mRMinSupport-Constants::fHeightActive)/(Constants::fHeightActive-Constants::fActiveSuperposition))+1) + Constants::fHeightActive;
 
-  fRMaxSupport = TMath::Sqrt(Constants::fHeightActive*(2.*rMax-Constants::fHeightActive) + fRMax*fRMax) + Constants::fSupportExtMargin;
+  mRMaxSupport = TMath::Sqrt(Constants::fHeightActive*(2.*rMax-Constants::fHeightActive) + mRMax*mRMax) + Constants::fSupportExtMargin;
    
   return kTRUE;
  
@@ -250,26 +250,26 @@ Bool_t Plane::CreateStructure()
   
   // ------------------- det elements: active + readout ----------------------------------
 
-  Double_t lowEdgeActive = -1.*fRMax;
+  Double_t lowEdgeActive = -1.*mRMax;
   Double_t supEdgeActive = lowEdgeActive + Constants::fHeightActive;
-  Double_t zMinFront = fZCenter - 0.5*fThicknessSupport - fThicknessActive;
-  Double_t zMinBack  = fZCenter + 0.5*fThicknessSupport;
+  Double_t zMinFront = mZCenter - 0.5*mThicknessSupport - mThicknessActive;
+  Double_t zMinBack  = mZCenter + 0.5*mThicknessSupport;
   Double_t zMin = 0.;
   Bool_t isFront = kTRUE;
   
   while (lowEdgeActive < 0) {
     
-    Double_t extLimitAtLowEdgeActive = TMath::Sqrt((fRMax-TMath::Abs(lowEdgeActive)) * TMath::Abs(2*fRMax - (fRMax-TMath::Abs(lowEdgeActive))));
-    Double_t extLimitAtSupEdgeActive = TMath::Sqrt((fRMax-TMath::Abs(supEdgeActive)) * TMath::Abs(2*fRMax - (fRMax-TMath::Abs(supEdgeActive))));
+    Double_t extLimitAtLowEdgeActive = TMath::Sqrt((mRMax-TMath::Abs(lowEdgeActive)) * TMath::Abs(2*mRMax - (mRMax-TMath::Abs(lowEdgeActive))));
+    Double_t extLimitAtSupEdgeActive = TMath::Sqrt((mRMax-TMath::Abs(supEdgeActive)) * TMath::Abs(2*mRMax - (mRMax-TMath::Abs(supEdgeActive))));
 
     // creating new det element: active + readout
     
     Double_t extLimitDetElem = TMath::Max(extLimitAtLowEdgeActive, extLimitAtSupEdgeActive);
     
-    if (supEdgeActive<-1.*fRMinSupport+0.01 || lowEdgeActive>1.*fRMinSupport-0.01) {     // single element covering the row
+    if (supEdgeActive<-1.*mRMinSupport+0.01 || lowEdgeActive>1.*mRMinSupport-0.01) {     // single element covering the row
       
-      nBins[0] = TMath::Nint(2.*extLimitDetElem/fPixelSizeX);
-      nBins[1] = TMath::Nint(Constants::fHeightActive/fPixelSizeY);
+      nBins[0] = TMath::Nint(2.*extLimitDetElem/mPixelSizeX);
+      nBins[1] = TMath::Nint(Constants::fHeightActive/mPixelSizeY);
       nBins[2] = 1;
 
       // element below the pipe
@@ -283,22 +283,22 @@ Bool_t Plane::CreateStructure()
       
       maxPosition[0] = +1.*extLimitDetElem;
       maxPosition[1] = supEdgeActive;
-      maxPosition[2] = zMin+fThicknessActive; 
+      maxPosition[2] = zMin+mThicknessActive; 
       
-      new ((*fActiveElements)[fActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
-									 Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
+      new ((*mActiveElements)[mActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
+									 Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
 									 3, nBins, minPosition, maxPosition);
 
       minPosition[1] = lowEdgeActive-Constants::fHeightReadout;
       maxPosition[1] = lowEdgeActive;
       
-      new ((*fReadoutElements)[fReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
-									   Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
+      new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
+									   Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
 									   3, nBins, minPosition, maxPosition);
 
       // specular element above the pipe
 
-      if (fPlaneIsOdd) {
+      if (mPlaneIsOdd) {
 	if (isFront) zMin = zMinBack;
 	else         zMin = zMinFront;
       }
@@ -309,17 +309,17 @@ Bool_t Plane::CreateStructure()
       
       maxPosition[0] = +1.*extLimitDetElem;
       maxPosition[1] = -1.*lowEdgeActive;
-      maxPosition[2] = zMin+fThicknessActive; 
+      maxPosition[2] = zMin+mThicknessActive; 
       
-      new ((*fActiveElements)[fActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
-									 Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
+      new ((*mActiveElements)[mActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
+									 Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
 									 3, nBins, minPosition, maxPosition);
 
       minPosition[1] = -1.*lowEdgeActive;
       maxPosition[1] = -1.*(lowEdgeActive-Constants::fHeightReadout);
 
-      new ((*fReadoutElements)[fReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
-									   Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
+      new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
+									   Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
 									   3, nBins, minPosition, maxPosition);
 
     }
@@ -327,12 +327,12 @@ Bool_t Plane::CreateStructure()
     else {     // two elements covering the row
       
       Double_t intLimitAtLowEdge = 0., intLimitAtSupEdge = 0.;
-      if (fRMinSupport-TMath::Abs(lowEdgeActive)>0.) intLimitAtLowEdge = TMath::Sqrt((fRMinSupport-TMath::Abs(lowEdgeActive)) * TMath::Abs(2*fRMinSupport - (fRMinSupport-TMath::Abs(lowEdgeActive))));
-      if (fRMinSupport-TMath::Abs(supEdgeActive)>0.) intLimitAtSupEdge = TMath::Sqrt((fRMinSupport-TMath::Abs(supEdgeActive)) * TMath::Abs(2*fRMinSupport - (fRMinSupport-TMath::Abs(supEdgeActive))));
+      if (mRMinSupport-TMath::Abs(lowEdgeActive)>0.) intLimitAtLowEdge = TMath::Sqrt((mRMinSupport-TMath::Abs(lowEdgeActive)) * TMath::Abs(2*mRMinSupport - (mRMinSupport-TMath::Abs(lowEdgeActive))));
+      if (mRMinSupport-TMath::Abs(supEdgeActive)>0.) intLimitAtSupEdge = TMath::Sqrt((mRMinSupport-TMath::Abs(supEdgeActive)) * TMath::Abs(2*mRMinSupport - (mRMinSupport-TMath::Abs(supEdgeActive))));
       Double_t intLimitDetElem = TMath::Max(intLimitAtLowEdge, intLimitAtSupEdge);
       
-      nBins[0] = TMath::Nint((extLimitDetElem-intLimitDetElem)/fPixelSizeX);
-      nBins[1] = TMath::Nint(Constants::fHeightActive/fPixelSizeY);
+      nBins[0] = TMath::Nint((extLimitDetElem-intLimitDetElem)/mPixelSizeX);
+      nBins[1] = TMath::Nint(Constants::fHeightActive/mPixelSizeY);
       nBins[2] = 1;
       
       // left element: y < 0
@@ -346,24 +346,24 @@ Bool_t Plane::CreateStructure()
       
       maxPosition[0] = -1.*intLimitDetElem;
       maxPosition[1] = supEdgeActive;
-      maxPosition[2] = zMin+fThicknessActive; 
+      maxPosition[2] = zMin+mThicknessActive; 
       
-      new ((*fActiveElements)[fActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
-									 Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
+      new ((*mActiveElements)[mActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
+									 Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
 									 3, nBins, minPosition, maxPosition);	
       
       minPosition[1] = lowEdgeActive-Constants::fHeightReadout;
       maxPosition[1] = lowEdgeActive;
       
-      new ((*fReadoutElements)[fReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
-									   Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
+      new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
+									   Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
 									   3, nBins, minPosition, maxPosition);
 
       // left element: y > 0
       
       if (supEdgeActive < 0.5*Constants::fHeightActive) {
 	
-	if (fPlaneIsOdd) {
+	if (mPlaneIsOdd) {
 	  if (isFront) zMin = zMinBack;
 	  else         zMin = zMinFront;
 	}
@@ -374,17 +374,17 @@ Bool_t Plane::CreateStructure()
 	
 	maxPosition[0] = -1.*intLimitDetElem;
 	maxPosition[1] = -1.*lowEdgeActive;
-	maxPosition[2] = zMin+fThicknessActive; 
+	maxPosition[2] = zMin+mThicknessActive; 
 	
-	new ((*fActiveElements)[fActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
-									   Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
+	new ((*mActiveElements)[mActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
+									   Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
 									   3, nBins, minPosition, maxPosition);	
 	
 	minPosition[1] = -1.*lowEdgeActive;
 	maxPosition[1] = -1.*(lowEdgeActive-Constants::fHeightReadout);
 	
-	new ((*fReadoutElements)[fReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
-									     Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
+	new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
+									     Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
 									     3, nBins, minPosition, maxPosition);
       
       }
@@ -400,24 +400,24 @@ Bool_t Plane::CreateStructure()
       
       maxPosition[0] = +1.*extLimitDetElem;
       maxPosition[1] = supEdgeActive;
-      maxPosition[2] = zMin+fThicknessActive; 
+      maxPosition[2] = zMin+mThicknessActive; 
       
-      new ((*fActiveElements)[fActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
-									 Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
+      new ((*mActiveElements)[mActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
+									 Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
 									 3, nBins, minPosition, maxPosition);	
       
       minPosition[1] = lowEdgeActive-Constants::fHeightReadout;
       maxPosition[1] = lowEdgeActive;
 
-      new ((*fReadoutElements)[fReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
-									   Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
+      new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
+									   Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
 									   3, nBins, minPosition, maxPosition);
 
       // right element: y > 0
       
       if (supEdgeActive < 0.5*Constants::fHeightActive) {
 
-	if (fPlaneIsOdd) {
+	if (mPlaneIsOdd) {
 	  if (isFront) zMin = zMinBack;
 	  else         zMin = zMinFront;
 	}
@@ -428,17 +428,17 @@ Bool_t Plane::CreateStructure()
 	
 	maxPosition[0] = +1.*extLimitDetElem;
 	maxPosition[1] = -1.*lowEdgeActive;
-	maxPosition[2] = zMin+fThicknessActive; 
+	maxPosition[2] = zMin+mThicknessActive; 
 	
-	new ((*fActiveElements)[fActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
-									   Form("MFTActiveElemHist_%02d%03d", fPlaneNumber, fActiveElements->GetEntries()), 
+	new ((*mActiveElements)[mActiveElements->GetEntries()]) THnSparseC(Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
+									   Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
 									   3, nBins, minPosition, maxPosition);	
 	
 	minPosition[1] = -1.*lowEdgeActive;
 	maxPosition[1] = -1.*(lowEdgeActive-Constants::fHeightReadout);
 	
-	new ((*fReadoutElements)[fReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
-									     Form("MFTReadoutElemHist_%02d%03d", fPlaneNumber, fReadoutElements->GetEntries()), 
+	new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
+									     Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
 									     3, nBins, minPosition, maxPosition);
 
       }
@@ -457,16 +457,16 @@ Bool_t Plane::CreateStructure()
   nBins[1] = 1;
   nBins[2] = 1;
   
-  minPosition[0] = -1.*fRMaxSupport;
-  minPosition[1] = -1.*fRMaxSupport;
-  minPosition[2] = fZCenter - 0.5*fThicknessSupport;
+  minPosition[0] = -1.*mRMaxSupport;
+  minPosition[1] = -1.*mRMaxSupport;
+  minPosition[2] = mZCenter - 0.5*mThicknessSupport;
   
-  maxPosition[0] = +1.*fRMaxSupport;
-  maxPosition[1] = +1.*fRMaxSupport;
-  maxPosition[2] = fZCenter + 0.5*fThicknessSupport;
+  maxPosition[0] = +1.*mRMaxSupport;
+  maxPosition[1] = +1.*mRMaxSupport;
+  maxPosition[2] = mZCenter + 0.5*mThicknessSupport;
   
-  new ((*fSupportElements)[fSupportElements->GetEntries()]) THnSparseC(Form("MFTSupportElemHist_%02d%03d", fPlaneNumber, fSupportElements->GetEntries()), 
-								       Form("MFTSupportElemHist_%02d%03d", fPlaneNumber, fSupportElements->GetEntries()), 
+  new ((*mSupportElements)[mSupportElements->GetEntries()]) THnSparseC(Form("MFTSupportElemHist_%02d%03d", mPlaneNumber, mSupportElements->GetEntries()), 
+								       Form("MFTSupportElemHist_%02d%03d", mPlaneNumber, mSupportElements->GetEntries()), 
 								       3, nBins, minPosition, maxPosition);
 
   // --------------------------------------------------------------------------------------
@@ -482,7 +482,7 @@ THnSparseC* Plane::GetActiveElement(Int_t id)
 {
 
   if (id<0 || id>=GetNActiveElements()) return NULL;
-  else return (THnSparseC*) fActiveElements->At(id);
+  else return (THnSparseC*) mActiveElements->At(id);
 
 }
 
@@ -491,7 +491,7 @@ THnSparseC* Plane::GetReadoutElement(Int_t id)
 {
 
   if (id<0 || id>=GetNReadoutElements()) return NULL;
-  else return (THnSparseC*) fReadoutElements->At(id);
+  else return (THnSparseC*) mReadoutElements->At(id);
 
 }
 
@@ -501,7 +501,7 @@ THnSparseC* Plane::GetSupportElement(Int_t id)
 {
 
   if (id<0 || id>=GetNSupportElements()) return NULL;
-  else return (THnSparseC*) fSupportElements->At(id);
+  else return (THnSparseC*) mSupportElements->At(id);
 
 }
 
@@ -525,8 +525,8 @@ void Plane::DrawPlane(Option_t *opt)
 
     Info("DrawPlane","Created hist",0,0);
 
-    TEllipse *supportExt = new TEllipse(0.0, 0.0, fRMaxSupport, fRMaxSupport);
-    TEllipse *supportInt = new TEllipse(0.0, 0.0, fRMinSupport, fRMinSupport);
+    TEllipse *supportExt = new TEllipse(0.0, 0.0, mRMaxSupport, mRMaxSupport);
+    TEllipse *supportInt = new TEllipse(0.0, 0.0, mRMinSupport, mRMinSupport);
     supportExt->SetFillColor(kCyan-10);
     supportExt -> Draw("same");
     supportInt -> Draw("same");
@@ -567,8 +567,8 @@ void Plane::DrawPlane(Option_t *opt)
     h->SetYTitle("y [cm]");
     h->Draw();
 
-    TEllipse *supportExt = new TEllipse(0.0, 0.0, fRMaxSupport, fRMaxSupport);
-    TEllipse *supportInt = new TEllipse(0.0, 0.0, fRMinSupport, fRMinSupport);
+    TEllipse *supportExt = new TEllipse(0.0, 0.0, mRMaxSupport, mRMaxSupport);
+    TEllipse *supportInt = new TEllipse(0.0, 0.0, mRMinSupport, mRMinSupport);
     supportExt -> SetFillColor(kCyan-10);
     supportExt -> Draw("same");
     supportInt -> Draw("same");
@@ -609,8 +609,8 @@ void Plane::DrawPlane(Option_t *opt)
     h->SetYTitle("y [cm]");
     h->Draw();
 
-    TEllipse *supportExt = new TEllipse(0.0, 0.0, fRMaxSupport, fRMaxSupport);
-    TEllipse *supportInt = new TEllipse(0.0, 0.0, fRMinSupport, fRMinSupport);
+    TEllipse *supportExt = new TEllipse(0.0, 0.0, mRMaxSupport, mRMaxSupport);
+    TEllipse *supportInt = new TEllipse(0.0, 0.0, mRMinSupport, mRMinSupport);
     supportExt -> SetFillColor(kCyan-10);
     supportExt -> Draw("same");
     supportInt -> Draw("same");
@@ -663,16 +663,16 @@ void Plane::DrawPlane(Option_t *opt)
     cnv->Draw();
 
     TH2D *h = new TH2D("tmp", GetName(), 
-		       1, fZCenter-0.5, fZCenter+0.5, 
+		       1, mZCenter-0.5, mZCenter+0.5, 
 		       1, 1.1*GetSupportElement(0)->GetAxis(1)->GetXmin(), 1.1*GetSupportElement(0)->GetAxis(1)->GetXmax());
     h->SetXTitle("z [cm]");
     h->SetYTitle("y [cm]");
     h->Draw();
 
-    TPave *supportExt = new TPave(GetSupportElement(0)->GetAxis(2)->GetXmin(), -fRMaxSupport, 
-				  GetSupportElement(0)->GetAxis(2)->GetXmax(),  fRMaxSupport);
-    TPave *supportInt = new TPave(GetSupportElement(0)->GetAxis(2)->GetXmin(), -fRMinSupport, 
-				  GetSupportElement(0)->GetAxis(2)->GetXmax(),  fRMinSupport);
+    TPave *supportExt = new TPave(GetSupportElement(0)->GetAxis(2)->GetXmin(), -mRMaxSupport, 
+				  GetSupportElement(0)->GetAxis(2)->GetXmax(),  mRMaxSupport);
+    TPave *supportInt = new TPave(GetSupportElement(0)->GetAxis(2)->GetXmin(), -mRMinSupport, 
+				  GetSupportElement(0)->GetAxis(2)->GetXmax(),  mRMinSupport);
     supportExt -> SetFillColor(kCyan-10);
     supportInt -> SetFillColor(kCyan-10);
     supportExt -> SetBorderSize(1);

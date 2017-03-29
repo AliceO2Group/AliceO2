@@ -18,17 +18,17 @@ using namespace std::chrono;
 using namespace AliceO2::Devices;
 
 FLPSyncSampler::FLPSyncSampler()
-  : fTimeframeRTT()
-  , fEventRate(1)
-  , fMaxEvents(0)
-  , fStoreRTTinFile(0)
-  , fEventCounter(0)
-  , fTimeFrameId(0)
-  , fAckListener()
-  , fResetEventCounter()
-  , fLeaving(false)
-  , fAckChannelName()
-  , fOutChannelName()
+  : mTimeframeRTT()
+  , mEventRate(1)
+  , mMaxEvents(0)
+  , mStoreRTTinFile(0)
+  , mEventCounter(0)
+  , mTimeFrameId(0)
+  , mAckListener()
+  , mResetEventCounter()
+  , mLeaving(false)
+  , mAckChannelName()
+  , mOutChannelName()
 {
 }
 
@@ -41,40 +41,40 @@ void FLPSyncSampler::InitTask()
   // LOG(INFO) << "Waiting 10 seconds...";
   // this_thread::sleep_for(seconds(10));
   // LOG(INFO) << "Done!";
-  fEventRate = GetConfig()->GetValue<int>("event-rate");
-  fMaxEvents = GetConfig()->GetValue<int>("max-events");
-  fStoreRTTinFile = GetConfig()->GetValue<int>("store-rtt-in-file");
-  fAckChannelName = GetConfig()->GetValue<string>("ack-chan-name");
-  fOutChannelName = GetConfig()->GetValue<string>("out-chan-name");
+  mEventRate = GetConfig()->GetValue<int>("event-rate");
+  mMaxEvents = GetConfig()->GetValue<int>("max-events");
+  mStoreRTTinFile = GetConfig()->GetValue<int>("store-rtt-in-file");
+  mAckChannelName = GetConfig()->GetValue<string>("ack-chan-name");
+  mOutChannelName = GetConfig()->GetValue<string>("out-chan-name");
 }
 
 void FLPSyncSampler::PreRun()
 {
-  fLeaving = false;
-  fAckListener = thread(&FLPSyncSampler::ListenForAcks, this);
-  fResetEventCounter = thread(&FLPSyncSampler::ResetEventCounter, this);
+  mLeaving = false;
+  mAckListener = thread(&FLPSyncSampler::ListenForAcks, this);
+  mResetEventCounter = thread(&FLPSyncSampler::ResetEventCounter, this);
 }
 
 bool FLPSyncSampler::ConditionalRun()
 {
-  FairMQMessagePtr msg(NewSimpleMessage(fTimeFrameId));
+  FairMQMessagePtr msg(NewSimpleMessage(mTimeFrameId));
 
-  if (fChannels.at(fOutChannelName).at(0).Send(msg) >= 0) {
-    fTimeframeRTT[fTimeFrameId].start = steady_clock::now();
+  if (fChannels.at(mOutChannelName).at(0).Send(msg) >= 0) {
+    mTimeframeRTT[mTimeFrameId].start = steady_clock::now();
 
-    if (++fTimeFrameId == UINT16_MAX - 1) {
-      fTimeFrameId = 0;
+    if (++mTimeFrameId == UINT16_MAX - 1) {
+      mTimeFrameId = 0;
     }
   }
 
   // rate limiting
-  --fEventCounter;
-  while (fEventCounter == 0) {
+  --mEventCounter;
+  while (mEventCounter == 0) {
     this_thread::sleep_for(milliseconds(1));
   }
 
-  if (fMaxEvents > 0 && fTimeFrameId >= fMaxEvents) {
-    LOG(INFO) << "Reached configured maximum number of events (" << fMaxEvents << "). Exiting Run().";
+  if (mMaxEvents > 0 && mTimeFrameId >= mMaxEvents) {
+    LOG(INFO) << "Reached configured maximum number of events (" << mMaxEvents << "). Exiting Run().";
     return false;
   }
 
@@ -83,9 +83,9 @@ bool FLPSyncSampler::ConditionalRun()
 
 void FLPSyncSampler::PostRun()
 {
-    fLeaving = true;
-    fResetEventCounter.join();
-    fAckListener.join();
+    mLeaving = true;
+    mResetEventCounter.join();
+    mAckListener.join();
 }
 
 void FLPSyncSampler::ListenForAcks()
@@ -96,7 +96,7 @@ void FLPSyncSampler::ListenForAcks()
   ofstream ofsTimes;
 
   // store round trip time measurements in a file
-  if (fStoreRTTinFile > 0) {
+  if (mStoreRTTinFile > 0) {
     std::time_t t = system_clock::to_time_t(system_clock::now());
     tm utc = *gmtime(&t);
     std::stringstream s;
@@ -106,16 +106,16 @@ void FLPSyncSampler::ListenForAcks()
     ofsTimes.open(name + "-times.log");
   }
 
-  while (!fLeaving) {
+  while (!mLeaving) {
     FairMQMessagePtr idMsg(NewMessage());
 
-    if (Receive(idMsg, fAckChannelName, 0, 1000) >= 0) {
+    if (Receive(idMsg, mAckChannelName, 0, 1000) >= 0) {
       id = *(static_cast<uint16_t*>(idMsg->GetData()));
-      fTimeframeRTT.at(id).end = steady_clock::now();
+      mTimeframeRTT.at(id).end = steady_clock::now();
       // store values in a file
-      auto elapsed = duration_cast<microseconds>(fTimeframeRTT.at(id).end - fTimeframeRTT.at(id).start);
+      auto elapsed = duration_cast<microseconds>(mTimeframeRTT.at(id).end - mTimeframeRTT.at(id).start);
 
-      if (fStoreRTTinFile > 0) {
+      if (mStoreRTTinFile > 0) {
         ofsFrames << id << "\n";
         ofsTimes  << elapsed.count() << "\n";
       }
@@ -125,7 +125,7 @@ void FLPSyncSampler::ListenForAcks()
   }
 
   // store round trip time measurements in a file
-  if (fStoreRTTinFile > 0) {
+  if (mStoreRTTinFile > 0) {
     ofsFrames.close();
     ofsTimes.close();
   }
@@ -134,8 +134,8 @@ void FLPSyncSampler::ListenForAcks()
 
 void FLPSyncSampler::ResetEventCounter()
 {
-  while (!fLeaving) {
-    fEventCounter = fEventRate / 100;
+  while (!mLeaving) {
+    mEventCounter = mEventRate / 100;
     this_thread::sleep_for(milliseconds(10));
   }
   LOG(INFO) << "Exiting ResetEventCounter";

@@ -24,7 +24,7 @@ class MagFieldFact : public FairFieldFactory
   virtual void SetParm();
   
  protected:
-  MagFieldParam* fFieldPar;
+  MagFieldParam* mFieldPar;
   
  private:
   MagFieldFact(const MagFieldFact&);

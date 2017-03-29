@@ -49,7 +49,7 @@ namespace AliceO2 {
       void      DigitiseChip(TClonesArray*);
       Bool_t    AddSDigitsToChip(TSeqCollection*, Int_t);
       void      GenerateCluster();
-      void      clearSimulation() { fSensMap->clear(); fChip->Clear(); }
+      void      clearSimulation() { mSensMap->clear(); mChip->Clear(); }
 
     private:
       void      FrompListToDigits(TClonesArray*);
@@ -61,10 +61,10 @@ namespace AliceO2 {
       void      CreateDigi(UInt_t, UInt_t, Int_t, Int_t);
 
     protected:
-      Double_t           fParam[NumberOfParameters]; // Chip response parameters
-      SegmentationPixel *fSeg;      //! Segmentation
-      SensMap           *fSensMap;  //! Sensor map for hits manipulations
-      Chip              *fChip;     //! Chip being processed
+      Double_t           mParam[NumberOfParameters]; // Chip response parameters
+      SegmentationPixel *mSeg;      //! Segmentation
+      SensMap           *mSensMap;  //! Sensor map for hits manipulations
+      Chip              *mChip;     //! Chip being processed
 
       ClassDef(SimulationAlpide,1)   // Simulation of pixel clusters
     };

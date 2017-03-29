@@ -87,8 +87,8 @@ class Detector: public AliceO2::Base::Detector {
     virtual void   PreTrack() {;}
     virtual void   BeginEvent() {;}
 
-    void SetGeoFileName(const TString file) { fGeoFileName=file;   }
-    const TString& GetGeoFileName() const   { return fGeoFileName; }
+    void SetGeoFileName(const TString file) { mGeoFileName=file;   }
+    const TString& GetGeoFileName() const   { return mGeoFileName; }
 
   private:
 
@@ -117,7 +117,7 @@ class Detector: public AliceO2::Base::Detector {
     /** container for data points */
     TClonesArray*  mPointCollection;
 
-    TString fGeoFileName;                  /// Name of the file containing the TPC geometry
+    TString mGeoFileName;                  /// Name of the file containing the TPC geometry
 
     Detector(const Detector&);
     Detector& operator=(const Detector&);

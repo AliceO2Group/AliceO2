@@ -38,7 +38,7 @@ public:
 
 private:
 
-  TClonesArray *fHalves; ///< \brief Array of pointer to HalfSegmentation
+  TClonesArray *mHalves; ///< \brief Array of pointer to HalfSegmentation
 
   /// \cond CLASSIMP
   ClassDef(Segmentation, 1);

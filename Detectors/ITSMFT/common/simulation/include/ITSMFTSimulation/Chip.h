@@ -43,7 +43,7 @@ class Chip : public TObject
         /// Default constructor
         /// Initializes indices with -1. Not to be used when throwing the
         /// exception. Use other constructor instead
-        IndexException() : fDetIdChip(-1), fDetIdHit(-1)
+        IndexException() : mDetIdChip(-1), mDetIdHit(-1)
         { }
 
         /// Constructor
@@ -51,7 +51,7 @@ class Chip : public TObject
         /// @param indexChip Chip index stored in chip itself
         /// @param indexHit Chip index stored in the hit
         IndexException(ULong_t indexChip, ULong_t indexHit) :
-          fDetIdChip(indexChip), fDetIdHit(indexHit)
+          mDetIdChip(indexChip), mDetIdHit(indexHit)
         { }
 
         /// Destructor
@@ -64,23 +64,23 @@ class Chip : public TObject
         const char *what() const throw()
         {
           std::stringstream message;
-          message << "Chip ID " << fDetIdHit << " from hit different compared to this ID " << fDetIdChip;
+          message << "Chip ID " << mDetIdHit << " from hit different compared to this ID " << mDetIdChip;
           return message.str().c_str();
         }
 
         /// Get the chip index stored in the chip
         /// @return Chip index stored in the chip
         ULong_t GetChipIndexChip() const
-        { return fDetIdChip; }
+        { return mDetIdChip; }
 
         /// Fet the chip index stored in the hit
         /// @return Chip index stored in the hit
         ULong_t GetChipIndexHit() const
-        { return fDetIdHit; }
+        { return mDetIdHit; }
 
       private:
-        ULong_t fDetIdChip;               ///< Index of the chip stored in the chip
-        ULong_t fDetIdHit;                ///< Index of the chip stored in the hit
+        ULong_t mDetIdChip;               ///< Index of the chip stored in the chip
+        ULong_t mDetIdHit;                ///< Index of the chip stored in the hit
     };
 
     /// Default constructor
@@ -128,15 +128,15 @@ class Chip : public TObject
     /// Change the chip index
     /// @param index New chip index
     void SetChipIndex(Int_t index)
-    { fChipIndex = index; }
+    { mChipIndex = index; }
 
     void Init(Int_t index, const TGeoHMatrix *mat)
-    { fChipIndex = index; fMat=mat; }
+    { mChipIndex = index; mMat=mat; }
 
     /// Get the chip index
     /// @return Index of the chip
     Int_t GetChipIndex() const
-    { return fChipIndex; }
+    { return mChipIndex; }
 
     /// Insert new ITSMFT point into the Chip
     /// @param p Point to be added
@@ -145,7 +145,7 @@ class Chip : public TObject
     /// Get the number of point assigned to the chip
     /// @return Number of points assigned to the chip
     Int_t GetNumberOfPoints() const
-    { return fPoints.size(); }
+    { return mPoints.size(); }
 
     /// Access Point assigned to chip at a given index
     /// @param index Index of the point
@@ -153,7 +153,7 @@ class Chip : public TObject
     const Point *GetPointAt(Int_t index) const;
 
     void globalToLocalVector(Double_t glob[3], Double_t loc[3]) const {
-       fMat->MasterToLocalVect(glob, loc);
+       mMat->MasterToLocalVect(glob, loc);
     }
     
     /// Get the line segment of a given point (from start to current position)
@@ -211,9 +211,9 @@ class Chip : public TObject
 
   protected:
 
-    Int_t fChipIndex;     ///< Chip ID
-    std::vector<const Point *>fPoints;        ///< Hits connnected to the given chip
-    const TGeoHMatrix *fMat;     ///< Transformation matrix
+    Int_t mChipIndex;     ///< Chip ID
+    std::vector<const Point *>mPoints;        ///< Hits connnected to the given chip
+    const TGeoHMatrix *mMat;     ///< Transformation matrix
 
   ClassDef(Chip, 2);
 };

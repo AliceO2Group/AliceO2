@@ -22,19 +22,19 @@ using namespace AliceO2::TPC;
 //_____________________________________________________________________
 ClustererTask::ClustererTask():
   FairTask("TPCClustererTask"),
-  fClusterer(nullptr),
-  fDigitsArray(nullptr),
-  fClustersArray(nullptr)
+  mClusterer(nullptr),
+  mDigitsArray(nullptr),
+  mClustersArray(nullptr)
 {
-  fClusterer = new BoxClusterer();
+  mClusterer = new BoxClusterer();
 }
 
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  delete fClusterer;
-  if (fClustersArray)
-    delete fClustersArray;
+  delete mClusterer;
+  if (mClustersArray)
+    delete mClustersArray;
 }
 
 //_____________________________________________________________________
@@ -49,27 +49,27 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  fDigitsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCDigit"));
-  if( !fDigitsArray ) {
+  mDigitsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCDigit"));
+  if( !mDigitsArray ) {
     LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
   // Register output container
 //   fClustersArray = new TClonesArray("AliceO2::TPC::BoxCluster");
-  fClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
-  mgr->Register("TPCCluster", "TPC", fClustersArray, kTRUE);
+  mClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
+  mgr->Register("TPCCluster", "TPC", mClustersArray, kTRUE);
 
-  fClusterer->Init();
+  mClusterer->Init();
   return kSUCCESS;
 }
 
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t *option)
 {
-  fClustersArray->Clear();
+  mClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-  ClusterContainer* clusters = fClusterer->Process(fDigitsArray);
-  clusters->FillOutputContainer(fClustersArray);
+  ClusterContainer* clusters = mClusterer->Process(mDigitsArray);
+  clusters->FillOutputContainer(mClustersArray);
 }

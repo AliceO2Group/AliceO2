@@ -27,7 +27,7 @@ public:
   /// Default destructor
   virtual ~Detector();
 
-  Int_t IsVersion() const { return fVersion; }
+  Int_t IsVersion() const { return mVersion; }
 
   /// Initialization of the detector is done here
   virtual void Initialize();
@@ -55,7 +55,7 @@ public:
   virtual void BeginEvent() {;}
   virtual void SetSpecialPhysicsCuts() {;}
 
-  GeometryTGeo* GetGeometryTGeo() const { return fGeometryTGeo; }
+  GeometryTGeo* GetGeometryTGeo() const { return mGeometryTGeo; }
   
   /// Creating materials for the detector
 
@@ -64,8 +64,8 @@ public:
   enum EMedia{kZero, kAir, kVacuum, kSi, kReadout, kSupport, kCarbon, kBe, kAlu, kWater, kSiO2, kInox, kKapton, kEpoxy, kCarbonFiber, kCarbonEpoxy, kRohacell, kPolyimide, kPEEK, kFR4, kCu, kX7R, kX7Rw, kCarbonFleece, kSE4445};  // media IDs used in CreateMaterials
 
   void SetDensitySupportOverSi(Double_t density) { 
-    if (density > 1e-6) fDensitySupportOverSi = density; 
-    else fDensitySupportOverSi = 1e-6; 
+    if (density > 1e-6) mDensitySupportOverSi = density; 
+    else mDensitySupportOverSi = 1e-6; 
   }
 
   /// Constructing the geometry
@@ -76,10 +76,10 @@ public:
 
 protected:
 
-  Int_t fVersion;                  //
-  GeometryTGeo *fGeometryTGeo;     //!
-  Double_t fDensitySupportOverSi;  //
-  TClonesArray *fPoints;           //!
+  Int_t mVersion;                  //
+  GeometryTGeo *mGeometryTGeo;     //!
+  Double_t mDensitySupportOverSi;  //
+  TClonesArray *mPoints;           //!
  
 private:
 

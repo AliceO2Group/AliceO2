@@ -44,20 +44,20 @@ class FLPSender : public FairMQDevice
     /// Sends the "oldest" element from the sub-timeframe container
     void sendFrontData();
 
-    std::queue<FairMQParts> fSTFBuffer; ///< Buffer for sub-timeframes
-    std::queue<std::chrono::steady_clock::time_point> fArrivalTime; ///< Stores arrival times of sub-timeframes
+    std::queue<FairMQParts> mSTFBuffer; ///< Buffer for sub-timeframes
+    std::queue<std::chrono::steady_clock::time_point> mArrivalTime; ///< Stores arrival times of sub-timeframes
 
-    int fNumEPNs; ///< Number of epnReceivers
-    unsigned int fIndex; ///< Index of the flpSender among other flpSenders
-    unsigned int fSendOffset; ///< Offset for staggering output
-    unsigned int fSendDelay; ///< Delay for staggering output
+    int mNumEPNs; ///< Number of epnReceivers
+    unsigned int mIndex; ///< Index of the flpSender among other flpSenders
+    unsigned int mSendOffset; ///< Offset for staggering output
+    unsigned int mSendDelay; ///< Delay for staggering output
 
-    int fEventSize; ///< Size of the sub-timeframe body (only for test mode)
-    int fTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
-    uint16_t fTimeFrameId;
+    int mEventSize; ///< Size of the sub-timeframe body (only for test mode)
+    int mTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
+    uint16_t mTimeFrameId;
 
-    std::string fInChannelName;
-    std::string fOutChannelName;
+    std::string mInChannelName;
+    std::string mOutChannelName;
 };
 
 } // namespace Devices

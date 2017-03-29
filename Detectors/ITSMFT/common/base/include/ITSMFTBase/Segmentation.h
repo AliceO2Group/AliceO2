@@ -42,43 +42,43 @@ class Segmentation : public TObject
     /// @param lower Lower limit in the direction
     /// @param upper Upper limit in the direction
     OutOfActiveAreaException(Direction dir, Double_t val, Double_t lower, Double_t upper)
-      : fErrorMessage(), fDirection(dir), fValue(val), fLower(lower), fUpper(upper)
+      : mErrorMessage(), mDirection(dir), mValue(val), mLower(lower), mUpper(upper)
     {
       std::stringstream errormessage;
-      errormessage << "Range exceeded in " << (fDirection == kX ? "x" : "z") << "-direction, value " << fValue
-                   << ", limits [" << fLower << "|" << fUpper << "]";
-      fErrorMessage = errormessage.str();
+      errormessage << "Range exceeded in " << (mDirection == kX ? "x" : "z") << "-direction, value " << mValue
+                   << ", limits [" << mLower << "|" << mUpper << "]";
+      mErrorMessage = errormessage.str();
     }
 
     /// Destructor
     virtual ~OutOfActiveAreaException() throw() {}
     /// Get the value for which the exception was raised
     /// @return Value (point in one direction)
-    Double_t GetValue() const { return fValue; }
+    Double_t GetValue() const { return mValue; }
     /// Get the lower limit in direction for which the exception
     /// was raised
     /// @return Lower limit of the direction
-    Double_t GetLowerLimit() const { return fLower; }
+    Double_t GetLowerLimit() const { return mLower; }
     /// Get the upper limit in direction for which the exception
     /// was raised
     /// @return Upper limit of the direction
-    Double_t GetUpperLimit() const { return fUpper; }
+    Double_t GetUpperLimit() const { return mUpper; }
     /// Check whether exception was raised in x-directon
     /// @return True if exception was raised in x-direction, false otherwise
-    Bool_t IsX() const { return fDirection == kX; }
+    Bool_t IsX() const { return mDirection == kX; }
     /// Check whether exception was raised in z-direction
     /// @return True if exception was raised in z-direction, false otherwise
-    Bool_t IsZ() const { return fDirection == kZ; }
+    Bool_t IsZ() const { return mDirection == kZ; }
     /// Provide error message string containing direction,
     /// value of the point, and limits
     /// @return Error message
-    const char* what() const noexcept { return fErrorMessage.c_str(); }
+    const char* what() const noexcept { return mErrorMessage.c_str(); }
    private:
-    std::string fErrorMessage; ///< Error message connected to the exception
-    Direction fDirection;      ///< Direction in which the exception was raised
-    Double_t fValue;           ///< Value which exceeds limit
-    Double_t fLower;           ///< Lower limit in direction
-    Double_t fUpper;           ///< Upper limit in direction
+    std::string mErrorMessage; ///< Error message connected to the exception
+    Direction mDirection;      ///< Direction in which the exception was raised
+    Double_t mValue;           ///< Value which exceeds limit
+    Double_t mLower;           ///< Lower limit in direction
+    Double_t mUpper;           ///< Upper limit in direction
   };
 
   /// Error handling in case of access to an invalid pixel ID
@@ -98,36 +98,36 @@ class Segmentation : public TObject
     /// @param pixelID Index of the pixel (in direction) which is out of scope
     /// @param maxPixelID Maximum amount of pixels in direction
     InvalidPixelException(Direction dir, Int_t pixelID, Int_t maxPixelID)
-      : fErrorMessage(), fDirection(dir), fValue(pixelID), fMaxPixelID(maxPixelID)
+      : mErrorMessage(), mDirection(dir), mValue(pixelID), mMaxPixelID(maxPixelID)
     {
       std::stringstream errormessage;
-      errormessage << "Obtained " << (fDirection == kX ? "row" : "col") << " " << fValue
-                   << " is not in range [0:" << fMaxPixelID << ")";
-      fErrorMessage = errormessage.str();
+      errormessage << "Obtained " << (mDirection == kX ? "row" : "col") << " " << mValue
+                   << " is not in range [0:" << mMaxPixelID << ")";
+      mErrorMessage = errormessage.str();
     }
 
     /// Destructor
     virtual ~InvalidPixelException() {}
     /// Get the ID of the pixel which raised the exception
     /// @return ID of the pixel
-    Int_t GetPixelID() const { return fValue; }
+    Int_t GetPixelID() const { return mValue; }
     /// Get the maximum number of pixels in a given direction
     /// @return Max. number of pixels
-    Int_t GetMaxNumberOfPixels() const { return fMaxPixelID; }
+    Int_t GetMaxNumberOfPixels() const { return mMaxPixelID; }
     /// Check whether exception was raised in x-directon
     /// @return True if exception was raised in x-direction, false otherwise
-    Bool_t IsX() const { return fDirection == kX; }
+    Bool_t IsX() const { return mDirection == kX; }
     /// Check whether exception was raised in z-direction
     /// @return True if exception was raised in z-direction, false otherwise
-    Bool_t IsZ() const { return fDirection == kZ; }
+    Bool_t IsZ() const { return mDirection == kZ; }
     /// Provide error message string containing direction,
     /// index of the pixel out of range, and the maximum pixel ID
-    const char* what() const noexcept { return fErrorMessage.c_str(); }
+    const char* what() const noexcept { return mErrorMessage.c_str(); }
    private:
-    std::string fErrorMessage; ///< Error message connected to this exception
-    Direction fDirection;      ///< Direction in which the pixel index is out of range
-    Int_t fValue;              ///< Value of the pixel ID which is out of range
-    Int_t fMaxPixelID;         ///< Maximum amount of pixels in direction;
+    std::string mErrorMessage; ///< Error message connected to this exception
+    Direction mDirection;      ///< Direction in which the pixel index is out of range
+    Int_t mValue;              ///< Value of the pixel ID which is out of range
+    Int_t mMaxPixelID;         ///< Maximum amount of pixels in direction;
   };
 
   /// Default constructor

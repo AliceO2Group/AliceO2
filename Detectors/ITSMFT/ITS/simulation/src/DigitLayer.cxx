@@ -17,53 +17,53 @@ using AliceO2::ITSMFT::Digit;
 using namespace AliceO2::ITS;
 
 DigitLayer::DigitLayer(Int_t layerID, Int_t nstaves) :
-  fLayerID(layerID),
-  fNStaves(nstaves),
-  fStaves(nullptr)
+  mLayerID(layerID),
+  mNStaves(nstaves),
+  mStaves(nullptr)
 {
-  fStaves = new DigitStave *[fNStaves];
-  for (int istave = 0; istave < fNStaves; istave++) {
-    fStaves[istave] = new DigitStave();
+  mStaves = new DigitStave *[mNStaves];
+  for (int istave = 0; istave < mNStaves; istave++) {
+    mStaves[istave] = new DigitStave();
   }
 }
 
 DigitLayer::~DigitLayer()
 {
   for (int istave = 0; istave < 0; istave++) {
-    delete fStaves[istave];
+    delete mStaves[istave];
   }
 }
 
 void DigitLayer::SetDigit(Digit *digi, Int_t stave, Int_t pixel)
 {
-  if (stave >= fNStaves) {
-    LOG(ERROR) << "Stave index " << stave << " out of range for layer " << fLayerID << ", maximum " << fNStaves <<
+  if (stave >= mNStaves) {
+    LOG(ERROR) << "Stave index " << stave << " out of range for layer " << mLayerID << ", maximum " << mNStaves <<
                FairLogger::endl;
   } else {
-    fStaves[stave]->SetDigit(pixel, digi);
+    mStaves[stave]->SetDigit(pixel, digi);
   }
 }
 
 Digit *DigitLayer::FindDigit(Int_t stave, Int_t pixel)
 {
-  if (stave > fNStaves) {
-    LOG(ERROR) << "Stave index " << stave << " out of range for layer " << fLayerID << ", maximum " << fNStaves <<
+  if (stave > mNStaves) {
+    LOG(ERROR) << "Stave index " << stave << " out of range for layer " << mLayerID << ", maximum " << mNStaves <<
                FairLogger::endl;
     return nullptr;
   }
-  return fStaves[stave]->FindDigit(pixel);
+  return mStaves[stave]->FindDigit(pixel);
 }
 
 void DigitLayer::Reset()
 {
-  for (DigitStave **staveIter = fStaves; staveIter < fStaves + fNStaves; staveIter++) {
+  for (DigitStave **staveIter = mStaves; staveIter < mStaves + mNStaves; staveIter++) {
     (*staveIter)->Reset();
   }
 }
 
 void DigitLayer::FillOutputContainer(TClonesArray *output)
 {
-  for (DigitStave **staveIter = fStaves; staveIter < fStaves + fNStaves; staveIter++) {
+  for (DigitStave **staveIter = mStaves; staveIter < mStaves + mNStaves; staveIter++) {
     (*staveIter)->FillOutputContainer(output);
   }
 }

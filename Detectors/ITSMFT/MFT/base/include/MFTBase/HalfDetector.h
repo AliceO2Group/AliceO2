@@ -24,15 +24,15 @@ public:
   virtual ~HalfDetector();
   
   /// \brief Returns the Volume holding the Half-MFT
-  TGeoVolumeAssembly * GetVolume() {return fHalfVolume;};
+  TGeoVolumeAssembly * GetVolume() {return mHalfVolume;};
   
 protected:
 
-  TGeoVolumeAssembly * fHalfVolume;
+  TGeoVolumeAssembly * mHalfVolume;
 
 private:
 
-  HalfSegmentation * fSegmentation; ///< \brief Pointer to the half-MFT segmentation
+  HalfSegmentation * mSegmentation; ///< \brief Pointer to the half-MFT segmentation
   void CreateHalfDisks();
   
   /// \cond CLASSIMP

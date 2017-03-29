@@ -46,73 +46,73 @@ class Point : public FairMCPoint
     // Default Destructor
     virtual ~Point();
 
-    void SetTotalEnergy(Double_t e) { fTotalEnergy=e; }
-    Double_t GetTotalEnergy() const { return fTotalEnergy; }
+    void SetTotalEnergy(Double_t e) { mTotalEnergy=e; }
+    Double_t GetTotalEnergy() const { return mTotalEnergy; }
 
     Double_t GetStartX() const
-    { return fStartX; }
+    { return mStartX; }
 
     Double_t GetStartY() const
-    { return fStartY; }
+    { return mStartY; }
 
     Double_t GetStartZ() const
-    { return fStartZ; }
+    { return mStartZ; }
 
     /// Get Position at the start of the hit
     template<typename F> void GetStartPosition(F &x, F &y, F &z) const
     {
-      x = fStartX;
-      y = fStartY;
-      z = fStartZ;
+      x = mStartX;
+      y = mStartY;
+      z = mStartZ;
     }
 
     Double_t GetStartTime() const
-    { return fStartTime; }
+    { return mStartTime; }
 
     Int_t GetShunt() const
-    { return fShunt; }
+    { return mShunt; }
 
     Int_t GetStatus() const
-    { return fTrackStatus; }
+    { return mTrackStatus; }
 
     Int_t GetStatusStart() const
-    { return fTrackStatusStart; }
+    { return mTrackStatusStart; }
 
     Bool_t IsEntering() const
-    { return fTrackStatus & (1 << kTrackEntering); }
+    { return mTrackStatus & (1 << kTrackEntering); }
 
     Bool_t IsInsideDetector() const
-    { return fTrackStatus & (1 << kTrackInside); }
+    { return mTrackStatus & (1 << kTrackInside); }
 
     Bool_t IsExiting() const
-    { return fTrackStatus & (1 << kTrackExiting); }
+    { return mTrackStatus & (1 << kTrackExiting); }
 
     Bool_t IsOut() const
-    { return fTrackStatus & (1 << kTrackOut); }
+    { return mTrackStatus & (1 << kTrackOut); }
 
     Bool_t IsStopped() const
-    { return fTrackStatus & (1 << kTrackStopped); }
+    { return mTrackStatus & (1 << kTrackStopped); }
 
     Bool_t IsAlive() const
-    { return fTrackStatus & (1 << kTrackAlive); }
+    { return mTrackStatus & (1 << kTrackAlive); }
 
     Bool_t IsEnteringStart() const
-    { return fTrackStatusStart & (1 << kTrackEntering); }
+    { return mTrackStatusStart & (1 << kTrackEntering); }
 
     Bool_t IsInsideDetectorStart() const
-    { return fTrackStatusStart & (1 << kTrackInside); }
+    { return mTrackStatusStart & (1 << kTrackInside); }
 
     Bool_t IsExitingStart() const
-    { return fTrackStatusStart & (1 << kTrackExiting); }
+    { return mTrackStatusStart & (1 << kTrackExiting); }
 
     Bool_t IsOutStart() const
-    { return fTrackStatusStart & (1 << kTrackOut); }
+    { return mTrackStatusStart & (1 << kTrackOut); }
 
     Bool_t IsStoppedStart() const
-    { return fTrackStatusStart & (1 << kTrackStopped); }
+    { return mTrackStatusStart & (1 << kTrackStopped); }
 
     Bool_t IsAliveStart() const
-    { return fTrackStatusStart & (1 << kTrackAlive); }
+    { return mTrackStatusStart & (1 << kTrackAlive); }
 
 
     /// Output to screen
@@ -134,12 +134,12 @@ class Point : public FairMCPoint
 
     Point operator=(const Point &point);
 
-    Int_t fTrackStatus;                     ///< MC status flag at hit
-    Int_t fTrackStatusStart;                ///< MC status at starting point
-    Int_t fShunt;                           ///< Shunt
-    Double32_t fStartX, fStartY, fStartZ;   ///< Position at the entrance of the active volume
-    Double32_t fStartTime;     ///< Time at the entrance of the active volume
-    Double32_t fTotalEnergy;   ///< Total energy
+    Int_t mTrackStatus;                     ///< MC status flag at hit
+    Int_t mTrackStatusStart;                ///< MC status at starting point
+    Int_t mShunt;                           ///< Shunt
+    Double32_t mStartX, mStartY, mStartZ;   ///< Position at the entrance of the active volume
+    Double32_t mStartTime;     ///< Time at the entrance of the active volume
+    Double32_t mTotalEnergy;   ///< Total energy
 
   ClassDef(Point, 2)
 };

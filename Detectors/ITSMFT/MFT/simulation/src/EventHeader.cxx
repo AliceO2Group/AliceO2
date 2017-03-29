@@ -7,7 +7,7 @@ ClassImp(AliceO2::MFT::EventHeader)
 //_____________________________________________________________________________
 EventHeader::EventHeader()
 : FairEventHeader()
-  , fPartNo(0)
+  , mPartNo(0)
 {
 
 }

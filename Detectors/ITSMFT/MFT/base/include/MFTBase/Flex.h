@@ -31,8 +31,8 @@ private:
   TGeoVolume*  Make_Varnish(Double_t length, Double_t width, Double_t thickness, Int_t iflag);
   TGeoVolumeAssembly*  Make_ElectricComponent(Double_t dx, Double_t dy, Double_t dz, Int_t iflag);
 
-  Double_t *fFlexOrigin;
-  LadderSegmentation * fLadderSeg;
+  Double_t *mFlexOrigin;
+  LadderSegmentation * mLadderSeg;
 
   ClassDef(Flex,1)
 
