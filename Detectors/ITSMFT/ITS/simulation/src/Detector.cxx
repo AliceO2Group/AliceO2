@@ -28,7 +28,7 @@
 #include "TVirtualMC.h"             // for gMC, TVirtualMC
 #include "TVirtualMCStack.h"        // for TVirtualMCStack
 
-#include <stdio.h>                  // for NULL, snprintf
+#include <cstdio>                  // for NULL, snprintf
 
 class FairModule;
 

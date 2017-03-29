@@ -21,7 +21,7 @@
 #include "TMathBase.h"            // for Abs
 #include <TMath.h>                // for Sin, RadToDeg, DegToRad, Cos, Tan, etc
 
-#include <stdio.h>                // for snprintf
+#include <cstdio>                // for snprintf
 
 class TGeoMedium;
 

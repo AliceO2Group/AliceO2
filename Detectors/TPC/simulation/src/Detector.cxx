@@ -9,7 +9,7 @@
 #include "TClonesArray.h"       // for TClonesArray
 #include "TVirtualMC.h"         // for TVirtualMC, gMC
 
-#include <stddef.h>             // for NULL
+#include <cstddef>             // for NULL
 
 #include "FairGeoVolume.h"
 #include "FairGeoNode.h"

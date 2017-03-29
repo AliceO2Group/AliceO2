@@ -25,9 +25,9 @@
 #include "TObjArray.h"        // for TObjArray
 #include "TObject.h"          // for TObject
 
-#include <ctype.h>  // for isdigit
-#include <stdio.h>  // for snprintf, NULL, printf
-#include <string.h> // for strstr, strlen
+#include <cctype>  // for isdigit
+#include <cstdio>  // for snprintf, NULL, printf
+#include <cstring> // for strstr, strlen
 
 using AliceO2::ITSMFT::Segmentation;
 using AliceO2::ITSMFT::SegmentationPixel;

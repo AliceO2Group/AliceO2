@@ -20,7 +20,7 @@
 #include "TGeoMedium.h"          // for TGeoMedium
 #include "TGeoTube.h"            // for TGeoTubeSeg
 #include "TGeoVolume.h"          // for TGeoVolume
-#include <stddef.h>                     // for NULL
+#include <cstddef>                     // for NULL
 #include <iostream>                     // for operator<<, basic_ostream, etc
 
 using namespace AliceO2::Passive;

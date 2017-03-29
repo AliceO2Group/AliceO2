@@ -13,7 +13,7 @@
 #include "TObjArray.h"        // for TObjArray
 #include "TObject.h"          // for TObject
 
-#include "stddef.h" // for NULL
+#include <cstddef> // for NULL
 
 using namespace AliceO2::ITS;
 

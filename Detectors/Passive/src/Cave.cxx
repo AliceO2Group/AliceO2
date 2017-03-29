@@ -16,7 +16,7 @@
 #include "FairGeoLoader.h"     // for FairGeoLoader
 #include "include/DetectorsPassive/GeoCave.h"
 #include "TString.h"           // for TString
-#include <stddef.h>            // for NULL
+#include <cstddef>            // for NULL
 
 using namespace AliceO2::Passive;
 

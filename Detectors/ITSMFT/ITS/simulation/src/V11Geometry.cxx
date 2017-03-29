@@ -22,7 +22,7 @@
 #include "TMathBase.h"     // for Max, Min, Abs
 #include <TGeoTube.h>      // for TGeoTubeSeg
 
-#include <stdio.h>         // for printf, snprintf
+#include <cstdio>         // for printf, snprintf
 #include <Riostream.h>
 
 using std::endl;

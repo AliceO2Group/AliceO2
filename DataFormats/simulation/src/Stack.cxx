@@ -16,7 +16,7 @@
 #include "TParticle.h"        // for TParticle
 #include "TRefArray.h"        // for TRefArray
 
-#include <stddef.h>           // for NULL
+#include <cstddef>           // for NULL
 
 using std::cout;
 using std::endl;

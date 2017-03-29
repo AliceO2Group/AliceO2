@@ -6,8 +6,8 @@
  */
 
 #include <vector>
-#include <stdlib.h>     /* srand, rand */
-#include <time.h>       /* time */
+#include <cstdlib>     /* srand, rand */
+#include <ctime>       /* time */
 
 #include "FairMQLogger.h"
 #include "FairMQProgOptions.h"
