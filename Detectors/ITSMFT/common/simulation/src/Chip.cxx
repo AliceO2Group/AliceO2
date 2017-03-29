@@ -6,7 +6,7 @@
 //  Adapted from AliITSUChip by Massimo Masera
 //
 
-#include <string.h>                   // for memset
+#include <cstring>                   // for memset
 
 #include <TMath.h>                    // for Sqrt
 #include "TObjArray.h"                // for TObjArray

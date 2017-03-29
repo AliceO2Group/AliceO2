@@ -8,7 +8,7 @@
 #include <TObjArray.h> // for TObjArray
 #include <TString.h>   // for TString
 #include <TSystem.h>   // for TSystem, gSystem
-#include <stdio.h>     // for printf
+#include <cstdio>     // for printf
 #include "TMathBase.h" // for Abs, Max, Min
 #include "TObject.h"   // for TObject
 

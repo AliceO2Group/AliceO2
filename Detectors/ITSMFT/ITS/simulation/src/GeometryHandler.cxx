@@ -12,8 +12,8 @@
 #include "TGeoVolume.h"  // for TGeoVolume
 #include "TVirtualMC.h"  // for TVirtualMC, gMC
 
-#include <stdio.h>  // for printf
-#include <string.h> // for NULL, strlen, strncpy
+#include <cstdio>  // for printf
+#include <cstring> // for NULL, strlen, strncpy
 #include <iostream> // for cout, endl
 #include <map>      // for map
 #include <utility>  // for pair

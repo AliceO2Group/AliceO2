@@ -6,8 +6,8 @@
 #include <TArrayF.h>     // for TArrayF
 #include <TArrayI.h>     // for TArrayI
 #include <TSystem.h>     // for TSystem, gSystem
-#include <stdio.h>       // for printf, fprintf, fclose, fopen, FILE
-#include <string.h>      // for memcpy
+#include <cstdio>       // for printf, fprintf, fclose, fopen, FILE
+#include <cstring>      // for memcpy
 #include "FairLogger.h"  // for FairLogger, MESSAGE_ORIGIN
 #include "TMath.h"       // for BinarySearch, Sort
 #include "TMathBase.h"   // for Abs

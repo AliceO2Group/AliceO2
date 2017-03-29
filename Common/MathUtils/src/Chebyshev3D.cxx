@@ -10,7 +10,7 @@
 #include <TRandom.h>          // for TRandom, gRandom
 #include <TString.h>          // for TString
 #include <TSystem.h>          // for TSystem, gSystem
-#include <stdio.h>            // for printf, fprintf, FILE, fclose, fflush, etc
+#include <cstdio>            // for printf, fprintf, FILE, fclose, fflush, etc
 #include "MathUtils/Chebyshev3DCalc.h"  // for Chebyshev3DCalc, etc
 #include "FairLogger.h"       // for FairLogger, MESSAGE_ORIGIN
 #include "TMathBase.h"        // for Max, Abs

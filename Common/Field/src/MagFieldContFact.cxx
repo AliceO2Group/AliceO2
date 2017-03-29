@@ -2,7 +2,7 @@
 /// \brief Implementation of the MagFieldContFact: factory for ALICE mag. field
 /// \author ruben.shahoyan@cern.ch
 
-#include <string.h> // for strcmp, NULL
+#include <cstring> // for strcmp, NULL
 #include "FairLogger.h"                // for FairLogger, MESSAGE_ORIGIN
 #include "FairRuntimeDb.h"          // for FairRuntimeD
 #include "FairParSet.h"
