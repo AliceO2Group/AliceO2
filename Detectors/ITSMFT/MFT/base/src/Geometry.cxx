@@ -67,7 +67,7 @@ const Double_t Geometry::kShift=-0.0013; // to be checked
 const Double_t Geometry::kGlueThickness=100.e-4; // 100 microns of SE4445 to be confirmed
 const Double_t Geometry::kGlueEdge=300.e-4; // in case the glue is not spreaded on the whole surface of the sensor
 
-Geometry* Geometry::fgInstance = 0;
+Geometry* Geometry::fgInstance = nullptr;
 
 /// \brief Singleton access
 
@@ -85,8 +85,8 @@ Geometry* Geometry::Instance()
 //_____________________________________________________________________________
 Geometry::Geometry():
 TNamed("MFT", "Muon Forward Tracker"),
-mBuilder(0),
-mSegmentation(0),
+mBuilder(nullptr),
+mSegmentation(nullptr),
 mSensorVolumeID(0)
 {
   // default constructor

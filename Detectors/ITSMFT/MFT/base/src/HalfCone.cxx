@@ -25,7 +25,7 @@ ClassImp(AliceO2::MFT::HalfCone)
 //_____________________________________________________________________________
 HalfCone::HalfCone():
 TNamed(),
-mHalfCone(NULL)
+mHalfCone(nullptr)
 {
   
   // default constructor
@@ -42,10 +42,10 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
   
   //AliInfo(Form("Creating Half Cone for half %d ",half));
   
-  TGeoVolumeAssembly *HalfConeVolume = new TGeoVolumeAssembly("HalfConeVolume");
+  auto *HalfConeVolume = new TGeoVolumeAssembly("HalfConeVolume");
   
   //Left Support Rail
-  TGeoVolumeAssembly *Half_0 = new TGeoVolumeAssembly("Half_0");
+  auto *Half_0 = new TGeoVolumeAssembly("Half_0");
   
   TGeoMedium *kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
 
@@ -83,7 +83,7 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
   Float_t trap_z =1.0;
 
   //Angle of the Middle Piece
-  TGeoRotation *MiddleAngle = new TGeoRotation("MiddleAngle",90.,40.,90.);
+  auto *MiddleAngle = new TGeoRotation("MiddleAngle",90.,40.,90.);
 
   //X distance from the center
   Float_t z_Upper_distance = (Upper_z + 9.759)/2.;  //Upper z-length and the distance from Upper to Lower borders
@@ -92,23 +92,23 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
   Float_t UpperLowerDistance = 8.8;
 
   //Upper center Distance
-  TGeoTranslation *TUpper = new TGeoTranslation("TUpper",UpperLowerDistance/2.,0.,z_Upper_distance);
+  auto *TUpper = new TGeoTranslation("TUpper",UpperLowerDistance/2.,0.,z_Upper_distance);
   //Lower center Distance
-  TGeoTranslation *TLower = new TGeoTranslation("TLower",-UpperLowerDistance/2.,0.,z_Lower_distance);
+  auto *TLower = new TGeoTranslation("TLower",-UpperLowerDistance/2.,0.,z_Lower_distance);
   //Lower cut distance coordinates
-  TGeoTranslation *TCutUpper = new TGeoTranslation("TCutUpper",4.0,.8+0.000001,(z_Upper_distance+Upper_z/2.)+(Upper_cut_z/2.)-1.2);
+  auto *TCutUpper = new TGeoTranslation("TCutUpper",4.0,.8+0.000001,(z_Upper_distance+Upper_z/2.)+(Upper_cut_z/2.)-1.2);
   //Upper cut distance coordinates
-  TGeoTranslation *TCutLower = new TGeoTranslation("TCutLower",-4.4-1.5,0.,(z_Lower_distance+Lower_z/2.)-(Lower_cut_z/2.) );
+  auto *TCutLower = new TGeoTranslation("TCutLower",-4.4-1.5,0.,(z_Lower_distance+Lower_z/2.)-(Lower_cut_z/2.) );
   //Trapezoid center Distance (the trapezoid for the upper piece is defined in two parts)
-  TGeoTranslation *TTrap_0 = new TGeoTranslation("TTrap_0",2.9,0.,z_Upper_distance+Upper_z/2.-(trap_xmax/2.));
-  TGeoTranslation *TTrap_1 = new TGeoTranslation("TTrap_1",2.9,0.,z_Upper_distance+Upper_z/2.-(trap_xmax+trap_xmin)/4.);
+  auto *TTrap_0 = new TGeoTranslation("TTrap_0",2.9,0.,z_Upper_distance+Upper_z/2.-(trap_xmax/2.));
+  auto *TTrap_1 = new TGeoTranslation("TTrap_1",2.9,0.,z_Upper_distance+Upper_z/2.-(trap_xmax+trap_xmin)/4.);
 
   //Rotations
-  TGeoRotation *Ry90 = new TGeoRotation("Ry90",90.,90.,90.);
+  auto *Ry90 = new TGeoRotation("Ry90",90.,90.,90.);
 
   //Combined transformations for the trapezoid
-  TGeoCombiTrans *cTrap_0 = new TGeoCombiTrans(*TTrap_0, *Ry90);
-  TGeoCombiTrans *cTrap_1 = new TGeoCombiTrans(*TTrap_1, *Ry90);
+  auto *cTrap_0 = new TGeoCombiTrans(*TTrap_0, *Ry90);
+  auto *cTrap_1 = new TGeoCombiTrans(*TTrap_1, *Ry90);
 
   MiddleAngle->RegisterYourself();
   TUpper->RegisterYourself();
@@ -133,9 +133,9 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
   TGeoShape *Half_0_LowerCut = new TGeoBBox("Half_0_LowerCut", Lower_cut_x/2., Lower_cut_y/2., Lower_cut_z/2.);
 
   //Composite shapes for Half_0
-  TGeoCompositeShape * Half_0_Shape_0 = new TGeoCompositeShape("Half_0_Shape_0","Half_0_Middle:MiddleAngle+Half_0_Lower:TLower+Half_0_Upper:TUpper");
-  TGeoCompositeShape * Half_0_Shape_1 = new TGeoCompositeShape("Half_0_Shape_1","Half_0_Shape_0+Half_0_Trap_0:cTrap_0+Half_0_Trap_1:cTrap_1");
-  TGeoCompositeShape * Half_0_Shape_2 = new TGeoCompositeShape("Half_0_Shape_2","Half_0_Shape_1-(Half_0_UpperCut:TCutUpper+Half_0_LowerCut:TCutLower)");
+  auto * Half_0_Shape_0 = new TGeoCompositeShape("Half_0_Shape_0","Half_0_Middle:MiddleAngle+Half_0_Lower:TLower+Half_0_Upper:TUpper");
+  auto * Half_0_Shape_1 = new TGeoCompositeShape("Half_0_Shape_1","Half_0_Shape_0+Half_0_Trap_0:cTrap_0+Half_0_Trap_1:cTrap_1");
+  auto * Half_0_Shape_2 = new TGeoCompositeShape("Half_0_Shape_2","Half_0_Shape_1-(Half_0_UpperCut:TCutUpper+Half_0_LowerCut:TCutLower)");
   /*
   //Holes
 
@@ -228,39 +228,39 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
   TGeoCompositeShape * Half_0_Holes = new TGeoCompositeShape("Half_0_Holes","Half_0_Hole0:cHalf_0_Hole0+Half_0_Hole1:cHalf_0_Hole1+Half_0_Hole2:cHalf_0_Hole2+Half_0_Hole3:cHalf_0_Hole3+Half_0_Hole4:cHalf_0_Hole4+Half_0_Hole5:cHalf_0_Hole5+Half_0_Hole6:cHalf_0_Hole6+Half_0_Hole7:cHalf_0_Hole7+Half_0_Hole8:cHalf_0_Hole8+Half_0_Hole9:cHalf_0_Hole9+Half_0_Hole10:cHalf_0_Hole10+Half_0_Hole11:cHalf_0_Hole11+Half_0_Hole12:cHalf_0_Hole12+Half_0_Hole13:cHalf_0_Hole13");
   TGeoCompositeShape * Half_0_Shape_3 = new TGeoCompositeShape("Half_0_Shape_3","Half_0_Shape_2+Half_0_Holes");
   */
-  TGeoVolume * Half_0_Volume = new TGeoVolume("Half_0_Volume",Half_0_Shape_2,kMedAlu);
+  auto * Half_0_Volume = new TGeoVolume("Half_0_Volume",Half_0_Shape_2,kMedAlu);
   //Position of the piece relative to the origin which for this code is the center of the the Framework piece (See Half_2)
   Half_0->AddNode(Half_0_Volume,1,new TGeoTranslation(25.6-5.4-.05,-1.15/2. + 7.3+.35,-34.55/2.-4.591/2.-.25 ));
 
   //Right Support Rail (the distances and rotations are the same, just mirrored with respect to the yz-plane)
   //See the definition of the distances in the Half_0 piece
-  TGeoVolumeAssembly *Half_1 = new TGeoVolumeAssembly("Half_1");
+  auto *Half_1 = new TGeoVolumeAssembly("Half_1");
 
   //Angle of the Middle Piece
-  TGeoRotation *MiddleAngle_inv = new TGeoRotation("MiddleAngle_inv",90.,-40.,90.);
+  auto *MiddleAngle_inv = new TGeoRotation("MiddleAngle_inv",90.,-40.,90.);
 
   //X distance from the center
   Float_t z_Upper_distance_inv = -(Upper_z + 9.759)/2.;  //Upper x-length and the distance from Upper to Lower borders
   Float_t z_Lower_distance_inv = (Lower_z + 9.759)/2.;     //Lower x-length and the distance from Upper to Lower borders
 
   //Upper center Distance
-  TGeoTranslation *TUpper_inv = new TGeoTranslation("TUpper_inv",-4.4,0.,z_Upper_distance);
+  auto *TUpper_inv = new TGeoTranslation("TUpper_inv",-4.4,0.,z_Upper_distance);
   //Lower center Distance
-  TGeoTranslation *TLower_inv = new TGeoTranslation("TLower_inv",4.4,0.,z_Lower_distance);
+  auto *TLower_inv = new TGeoTranslation("TLower_inv",4.4,0.,z_Lower_distance);
   //Lower cut distance
-  TGeoTranslation *TCutUpper_inv = new TGeoTranslation("TCutUpper_inv",-4.0,.8+0.000001,(z_Upper_distance+Upper_z/2.)+(Upper_cut_z/2.)-1.2);
+  auto *TCutUpper_inv = new TGeoTranslation("TCutUpper_inv",-4.0,.8+0.000001,(z_Upper_distance+Upper_z/2.)+(Upper_cut_z/2.)-1.2);
   //Upper cut distance
-  TGeoTranslation *TCutLower_inv = new TGeoTranslation("TCutLower_inv",4.4+1.5,0.,(z_Lower_distance+Lower_z/2.)-(Lower_cut_z/2.) );
+  auto *TCutLower_inv = new TGeoTranslation("TCutLower_inv",4.4+1.5,0.,(z_Lower_distance+Lower_z/2.)-(Lower_cut_z/2.) );
   //Trapezoid center Distance (the trapezoid for the upper piece is defined in two parts)
-  TGeoTranslation *TTrap_0_inv = new TGeoTranslation("TTrap_0_inv",-2.9,0.,z_Upper_distance+Upper_z/2.-(trap_xmax/2.));
-  TGeoTranslation *TTrap_1_inv = new TGeoTranslation("TTrap_1_inv",-2.9,0.,z_Upper_distance+Upper_z/2.-(trap_xmax+trap_xmin)/4.);
+  auto *TTrap_0_inv = new TGeoTranslation("TTrap_0_inv",-2.9,0.,z_Upper_distance+Upper_z/2.-(trap_xmax/2.));
+  auto *TTrap_1_inv = new TGeoTranslation("TTrap_1_inv",-2.9,0.,z_Upper_distance+Upper_z/2.-(trap_xmax+trap_xmin)/4.);
 
   //Rotations
-  TGeoRotation *Ry90_inv = new TGeoRotation("Ry90_inv",90.,-90.,90.);
+  auto *Ry90_inv = new TGeoRotation("Ry90_inv",90.,-90.,90.);
 
   //Combined transformations for the trapezoid
-  TGeoCombiTrans *cTrap_0_inv = new TGeoCombiTrans(*TTrap_0_inv, *Ry90_inv);
-  TGeoCombiTrans *cTrap_1_inv = new TGeoCombiTrans(*TTrap_1_inv, *Ry90_inv);
+  auto *cTrap_0_inv = new TGeoCombiTrans(*TTrap_0_inv, *Ry90_inv);
+  auto *cTrap_1_inv = new TGeoCombiTrans(*TTrap_1_inv, *Ry90_inv);
 
   MiddleAngle_inv->RegisterYourself();
   TUpper_inv->RegisterYourself();
@@ -276,16 +276,16 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
   cTrap_1_inv->RegisterYourself();
 
   //Composite shapes for Half_1
-  TGeoCompositeShape * Half_1_Shape_0 = new TGeoCompositeShape("Half_1_Shape_0","Half_0_Middle:MiddleAngle_inv+Half_0_Lower:TLower_inv+Half_0_Upper:TUpper_inv");
-  TGeoCompositeShape * Half_1_Shape_1 = new TGeoCompositeShape("Half_1_Shape_1","Half_1_Shape_0+Half_0_Trap_0:cTrap_0_inv+Half_0_Trap_1:cTrap_1_inv");
-  TGeoCompositeShape * Half_1_Shape_2 = new TGeoCompositeShape("Half_1_Shape_2","Half_1_Shape_1-(Half_0_UpperCut:TCutUpper_inv+Half_0_LowerCut:TCutLower_inv)");
+  auto * Half_1_Shape_0 = new TGeoCompositeShape("Half_1_Shape_0","Half_0_Middle:MiddleAngle_inv+Half_0_Lower:TLower_inv+Half_0_Upper:TUpper_inv");
+  auto * Half_1_Shape_1 = new TGeoCompositeShape("Half_1_Shape_1","Half_1_Shape_0+Half_0_Trap_0:cTrap_0_inv+Half_0_Trap_1:cTrap_1_inv");
+  auto * Half_1_Shape_2 = new TGeoCompositeShape("Half_1_Shape_2","Half_1_Shape_1-(Half_0_UpperCut:TCutUpper_inv+Half_0_LowerCut:TCutLower_inv)");
 
-  TGeoVolume * Half_1_Volume = new TGeoVolume("Half_1_Volume",Half_1_Shape_2,kMedAlu);
+  auto * Half_1_Volume = new TGeoVolume("Half_1_Volume",Half_1_Shape_2,kMedAlu);
   //Position of the piece relative to the origin which for this code is the center of the the Framework piece (See Half_2)
   Half_1->AddNode(Half_1_Volume,1,new TGeoTranslation(-25.6+5.4+.05,-1.15/2. + 7.3+.35,-34.55/2.-4.591/2.-.25 ));
 
   //Framework
-  TGeoVolumeAssembly *Half_2 = new TGeoVolumeAssembly("Half_2");
+  auto *Half_2 = new TGeoVolumeAssembly("Half_2");
 
   //Definitions
   Float_t Framework_rmin=23.6;
@@ -319,16 +319,16 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
 
   //Translations
   //Distances for the cuts of the upper central hole.
-  TGeoTranslation *tHole3 = new TGeoTranslation("tHole3",8.0,30.,0.);
-  TGeoTranslation *tHole3m = new TGeoTranslation("tHole3m",-8.0,30.,0.);
+  auto *tHole3 = new TGeoTranslation("tHole3",8.0,30.,0.);
+  auto *tHole3m = new TGeoTranslation("tHole3m",-8.0,30.,0.);
   //Distances for the bottom and bottom limit cuts.
-  TGeoTranslation *tLimit = new TGeoTranslation("tLimit",0.,9.3+6.5,-(Framework_z+Hole_z+2.)/2.-0.00001); //Half the y-direction of the box
-  TGeoTranslation *tLimit_2 = new TGeoTranslation("tLimit_2",0.,9.3,(Framework_z+Hole_z+2.)/2.-0.00001); //Half the y-direction of the box
-  TGeoTranslation *tLimitm = new TGeoTranslation("tLimitm",0.,9.3+6.5,(Framework_z+Hole_z+2.)/2.+0.00001); //Half the y-direction of the box
-  TGeoTranslation *tBottom = new TGeoTranslation("tBottom",0.,0.,-.175);
+  auto *tLimit = new TGeoTranslation("tLimit",0.,9.3+6.5,-(Framework_z+Hole_z+2.)/2.-0.00001); //Half the y-direction of the box
+  auto *tLimit_2 = new TGeoTranslation("tLimit_2",0.,9.3,(Framework_z+Hole_z+2.)/2.-0.00001); //Half the y-direction of the box
+  auto *tLimitm = new TGeoTranslation("tLimitm",0.,9.3+6.5,(Framework_z+Hole_z+2.)/2.+0.00001); //Half the y-direction of the box
+  auto *tBottom = new TGeoTranslation("tBottom",0.,0.,-.175);
   //Distance for the steps
-  TGeoTranslation *tStep_0 = new TGeoTranslation("tStep_0",0.,0.,-.3);
-  TGeoTranslation *tStep_1 = new TGeoTranslation("tStep_1",0.,0.,.15/2.);
+  auto *tStep_0 = new TGeoTranslation("tStep_0",0.,0.,-.3);
+  auto *tStep_1 = new TGeoTranslation("tStep_1",0.,0.,.15/2.);
 
   tHole3m->RegisterYourself();
   tHole3->RegisterYourself();
@@ -367,40 +367,40 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
   //The second term is the three other holes in the arc.
   //The third term is just the upper center hole. I also include here the limits to shape the ends of the framework arc.
   //This can be done with smaller pieces, but more of them. I don't know which is better.
-  TGeoCompositeShape * Half_2_Shape_0 = new TGeoCompositeShape("Half_2_Shape_0","Hole_Framework_3-(Hole3_Limit:tHole3m+Hole3_Limit:tHole3)");
-  TGeoCompositeShape * Half_2_Shape_1 = new TGeoCompositeShape("Half_2_Shape_1","(Framework+Framework_Bottom_0:tBottom+Framework_Bottom_1:tBottom) - (Hole_Framework_0+Hole_Framework_1+Hole_Framework_2)-(Half_2_Shape_0+Framework_Limit_1:tLimit_2+Framework_Limit_0:tLimit+Framework_Limit_0:tLimitm+Framework_Limit_0+Framework_Limit_1) ");
+  auto * Half_2_Shape_0 = new TGeoCompositeShape("Half_2_Shape_0","Hole_Framework_3-(Hole3_Limit:tHole3m+Hole3_Limit:tHole3)");
+  auto * Half_2_Shape_1 = new TGeoCompositeShape("Half_2_Shape_1","(Framework+Framework_Bottom_0:tBottom+Framework_Bottom_1:tBottom) - (Hole_Framework_0+Hole_Framework_1+Hole_Framework_2)-(Half_2_Shape_0+Framework_Limit_1:tLimit_2+Framework_Limit_0:tLimit+Framework_Limit_0:tLimitm+Framework_Limit_0+Framework_Limit_1) ");
   //Add square behind the step in the middle
-  TGeoCompositeShape * Half_2_Shape_2 = new TGeoCompositeShape("Half_2_Shape_2","Half_2_Shape_1+Framework_Step_0:tStep_0+Framework_Step_1:tStep_1");
+  auto * Half_2_Shape_2 = new TGeoCompositeShape("Half_2_Shape_2","Half_2_Shape_1+Framework_Step_0:tStep_0+Framework_Step_1:tStep_1");
 
-  TGeoVolume * Half_2_Volume = new TGeoVolume("Half_2_Volume",Half_2_Shape_2,kMedAlu);
+  auto * Half_2_Volume = new TGeoVolume("Half_2_Volume",Half_2_Shape_2,kMedAlu);
 
   Half_2->AddNode(Half_2_Volume,1,new TGeoTranslation(0., 0., 0. ));
 
   //Shell
   //This piece is not coded exactly, 
 
-  TGeoVolumeAssembly *Half_3 = new TGeoVolumeAssembly("Half_3");
+  auto *Half_3 = new TGeoVolumeAssembly("Half_3");
 
   //Shell radii
   Float_t Shell_rmax = 60.6+.7;
   Float_t Shell_rmin = 37.5+.7;
 
   //Rotations and translations
-  TGeoTranslation *tShell_0 = new TGeoTranslation("tShell_0",0.,0.,3.1+(25.15+1.)/2.);
-  TGeoTranslation *tShell_1 = new TGeoTranslation("tShell_1",0.,0.,-1.6-(25.15+1.)/2.);
-  TGeoTranslation *tShellHole = new TGeoTranslation("tShellHole",0.,0.,2./2.+(25.15+1.)/2.);
-  TGeoTranslation *tShellHole_0 = new TGeoTranslation("tShellHole_0",0.,-6.9,-26.1/2.-6.2/2.-.1);
-  TGeoTranslation *tShellHole_1 = new TGeoTranslation("tShellHole_1",0.,0.,-26.1/2.-6.2/2.-.1);
-  TGeoTranslation *tShell_Cut = new TGeoTranslation("tShell_Cut",0.,25./2.,0.);
-  TGeoTranslation *tShell_Cut_1 = new TGeoTranslation("tShell_Cut_1",-23.,0.,-8.);
-  TGeoTranslation *tShell_Cut_1_inv = new TGeoTranslation("tShell_Cut_1_inv",23.,0.,-8.);
-  TGeoRotation *Rz = new TGeoRotation("Rz",50.,0.,0.);
-  TGeoRotation *Rz_inv = new TGeoRotation("Rz_inv",-50.,0.,0.);
-  TGeoRotation *RShell_Cut = new TGeoRotation("RShell_Cut",90.,90.-24.,-7.5);
-  TGeoRotation *RShell_Cut_inv = new TGeoRotation("RShell_Cut_inv",90.,90.+24.,-7.5);
+  auto *tShell_0 = new TGeoTranslation("tShell_0",0.,0.,3.1+(25.15+1.)/2.);
+  auto *tShell_1 = new TGeoTranslation("tShell_1",0.,0.,-1.6-(25.15+1.)/2.);
+  auto *tShellHole = new TGeoTranslation("tShellHole",0.,0.,2./2.+(25.15+1.)/2.);
+  auto *tShellHole_0 = new TGeoTranslation("tShellHole_0",0.,-6.9,-26.1/2.-6.2/2.-.1);
+  auto *tShellHole_1 = new TGeoTranslation("tShellHole_1",0.,0.,-26.1/2.-6.2/2.-.1);
+  auto *tShell_Cut = new TGeoTranslation("tShell_Cut",0.,25./2.,0.);
+  auto *tShell_Cut_1 = new TGeoTranslation("tShell_Cut_1",-23.,0.,-8.);
+  auto *tShell_Cut_1_inv = new TGeoTranslation("tShell_Cut_1_inv",23.,0.,-8.);
+  auto *Rz = new TGeoRotation("Rz",50.,0.,0.);
+  auto *Rz_inv = new TGeoRotation("Rz_inv",-50.,0.,0.);
+  auto *RShell_Cut = new TGeoRotation("RShell_Cut",90.,90.-24.,-7.5);
+  auto *RShell_Cut_inv = new TGeoRotation("RShell_Cut_inv",90.,90.+24.,-7.5);
 
-  TGeoCombiTrans *cShell_Cut = new TGeoCombiTrans(*tShell_Cut_1, *RShell_Cut);
-  TGeoCombiTrans *cShell_Cut_inv = new TGeoCombiTrans(*tShell_Cut_1_inv, *RShell_Cut_inv);
+  auto *cShell_Cut = new TGeoCombiTrans(*tShell_Cut_1, *RShell_Cut);
+  auto *cShell_Cut_inv = new TGeoCombiTrans(*tShell_Cut_1_inv, *RShell_Cut_inv);
 
   tShell_0->RegisterYourself();
   tShell_1->RegisterYourself();
@@ -431,13 +431,13 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
   TGeoShape *Shell_Cut_1 = new TGeoBBox("Shell_Cut_1", 7./2., 25./2., 5./2.);
 
   //Composite shapes for Half_3
-  TGeoCompositeShape * Half_3_Shape_0 = new TGeoCompositeShape("Half_3_Shape_0","Shell_Cut_0+Shell_Cut_1:tShell_Cut");
-  TGeoCompositeShape * Half_3_Shape_1 = new TGeoCompositeShape("Half_3_Shape_1","Shell_2-Half_3_Shape_0:cShell_Cut-Half_3_Shape_0:cShell_Cut_inv");
-  TGeoCompositeShape * Half_3_Shape_2 = new TGeoCompositeShape("Half_3_Shape_2","ShellHole_0+ShellHole_1:tShellHole");
-  TGeoCompositeShape * Half_3_Shape_3 = new TGeoCompositeShape("Half_3_Shape_3","Shell_3:tShellHole_1 - (ShellHole_2:tShellHole_1+ShellHole_3:tShellHole_0)");
-  TGeoCompositeShape * Half_3_Shape_4 = new TGeoCompositeShape("Half_3_Shape_4","(Shell_0:tShell_0 + Half_3_Shape_1+ Shell_1:tShell_1) - (Half_3_Shape_2 + Half_3_Shape_2:Rz + Half_3_Shape_2:Rz_inv)+Half_3_Shape_3");
+  auto * Half_3_Shape_0 = new TGeoCompositeShape("Half_3_Shape_0","Shell_Cut_0+Shell_Cut_1:tShell_Cut");
+  auto * Half_3_Shape_1 = new TGeoCompositeShape("Half_3_Shape_1","Shell_2-Half_3_Shape_0:cShell_Cut-Half_3_Shape_0:cShell_Cut_inv");
+  auto * Half_3_Shape_2 = new TGeoCompositeShape("Half_3_Shape_2","ShellHole_0+ShellHole_1:tShellHole");
+  auto * Half_3_Shape_3 = new TGeoCompositeShape("Half_3_Shape_3","Shell_3:tShellHole_1 - (ShellHole_2:tShellHole_1+ShellHole_3:tShellHole_0)");
+  auto * Half_3_Shape_4 = new TGeoCompositeShape("Half_3_Shape_4","(Shell_0:tShell_0 + Half_3_Shape_1+ Shell_1:tShell_1) - (Half_3_Shape_2 + Half_3_Shape_2:Rz + Half_3_Shape_2:Rz_inv)+Half_3_Shape_3");
 
-  TGeoVolume * Half_3_Volume = new TGeoVolume("Half_3_Volume",Half_3_Shape_4,kMedAlu);
+  auto * Half_3_Volume = new TGeoVolume("Half_3_Volume",Half_3_Shape_4,kMedAlu);
   //Position of the piece relative to the origin which for this code is the center of the the Framework piece (See Half_2)
   Half_3->AddNode(Half_3_Volume,1,new TGeoTranslation(0., 0., -19. ));
 
@@ -446,7 +446,7 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
 
   //The part is the arc, the two legs of the sides, and 4 cuts.
 
-  TGeoVolumeAssembly *Half_4 = new TGeoVolumeAssembly("Half_4");
+  auto *Half_4 = new TGeoVolumeAssembly("Half_4");
 
   //Front dimensions
   Float_t Front_rmin=19.7;
@@ -467,13 +467,13 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
 
   //Translations
   //The position of the legs
-  TGeoTranslation *tLeg_Right = new TGeoTranslation("tLeg_Right",Distance_Leg_x+Leg_x/2.,Distance_Leg_y+Leg_y/2.,0.);
-  TGeoTranslation *tLeg_Left = new TGeoTranslation("tLeg_Left",-Distance_Leg_x-Leg_x/2.,Distance_Leg_y+Leg_y/2.,0.);
+  auto *tLeg_Right = new TGeoTranslation("tLeg_Right",Distance_Leg_x+Leg_x/2.,Distance_Leg_y+Leg_y/2.,0.);
+  auto *tLeg_Left = new TGeoTranslation("tLeg_Left",-Distance_Leg_x-Leg_x/2.,Distance_Leg_y+Leg_y/2.,0.);
   //Distances to the center of the piece to make the cut.
-  TGeoTranslation *tLeg_Cut_Right = new TGeoTranslation("tLeg_Cut_Right",-Distance_Leg_x-(Leg_x-Leg_Lateral_Cut_x)-Leg_Lateral_Cut_x/2.,Distance_Leg_y+Leg_Lateral_Cut_y/2.,0.);
-  TGeoTranslation *tLeg_Cut_Left = new TGeoTranslation("tLeg_Cut_Left",Distance_Leg_x+(Leg_x-Leg_Lateral_Cut_x)+Leg_Lateral_Cut_x/2.,Distance_Leg_y+Leg_Lateral_Cut_y/2.,0.);
+  auto *tLeg_Cut_Right = new TGeoTranslation("tLeg_Cut_Right",-Distance_Leg_x-(Leg_x-Leg_Lateral_Cut_x)-Leg_Lateral_Cut_x/2.,Distance_Leg_y+Leg_Lateral_Cut_y/2.,0.);
+  auto *tLeg_Cut_Left = new TGeoTranslation("tLeg_Cut_Left",Distance_Leg_x+(Leg_x-Leg_Lateral_Cut_x)+Leg_Lateral_Cut_x/2.,Distance_Leg_y+Leg_Lateral_Cut_y/2.,0.);
   //y-length to the upper cut, plus half the y-length of the leg_Upper_Cut
-  TGeoTranslation *tLeg_Cut_Upper = new TGeoTranslation("tLeg_Cut_Upper",0.,21.4+.25,0.);
+  auto *tLeg_Cut_Upper = new TGeoTranslation("tLeg_Cut_Upper",0.,21.4+.25,0.);
 
   tLeg_Right->RegisterYourself();
   tLeg_Left->RegisterYourself();
@@ -493,16 +493,16 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
   TGeoShape *leg_Upper_Cut = new TGeoBBox("leg_Upper_Cut",4./2.,.5/2.,Leg_z/2.+0.001);
 
   //The front piece + the 2 legs, and then making the 4 cuts
-  TGeoCompositeShape * Half_4_Shape_0 = new TGeoCompositeShape("Half_4_Shape_0","(Front+leg:tLeg_Right+leg:tLeg_Left)-(leg_Central_Cut+leg_Lateral_Cut:tLeg_Cut_Right+leg_Lateral_Cut:tLeg_Cut_Left+leg_Upper_Cut:tLeg_Cut_Upper)");
+  auto * Half_4_Shape_0 = new TGeoCompositeShape("Half_4_Shape_0","(Front+leg:tLeg_Right+leg:tLeg_Left)-(leg_Central_Cut+leg_Lateral_Cut:tLeg_Cut_Right+leg_Lateral_Cut:tLeg_Cut_Left+leg_Upper_Cut:tLeg_Cut_Upper)");
 
-  TGeoVolume * Half_4_Volume = new TGeoVolume("Half_4_Volume",Half_4_Shape_0,kMedAlu);
+  auto * Half_4_Volume = new TGeoVolume("Half_4_Volume",Half_4_Shape_0,kMedAlu);
   //Position of the piece relative to the origin which for this code is the center of the the Framework piece (See Half_2)
   Half_4->AddNode(Half_4_Volume,1,new TGeoTranslation(0., 0., -25. ));
 
   //Half_5
 
   //Support PCB
-  TGeoVolumeAssembly *Half_5 = new TGeoVolumeAssembly("Half_5");
+  auto *Half_5 = new TGeoVolumeAssembly("Half_5");
 
   //Dimensions
 
@@ -524,15 +524,15 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
 
   //Translations, rotations and combinations
 
-  TGeoRotation * RxPCB  = new TGeoRotation("RxPCB" ,   0.,  -PCB_Angle,   0.) ;
+  auto * RxPCB  = new TGeoRotation("RxPCB" ,   0.,  -PCB_Angle,   0.) ;
   //Distance of one support to the other one. (this refers to the whole piece)
-  TGeoTranslation *tPCB = new TGeoTranslation("tPCB",.6,0.,0.);
-  TGeoTranslation *tPCB_inv = new TGeoTranslation("tPCB_inv",-.6,0.,0.);
+  auto *tPCB = new TGeoTranslation("tPCB",.6,0.,0.);
+  auto *tPCB_inv = new TGeoTranslation("tPCB_inv",-.6,0.,0.);
   //Distance of the Left and Right piece from the center piece. (this refers to parts of the piece)
-  TGeoTranslation *tPCB_Right = new TGeoTranslation("tPCB_Right",0.,-(12.4-(PCB_Right_y+PCB_Left_y))/2.,-(PCB_Central_Projection+PCB_Right_z)/2.);
-  TGeoTranslation *tPCB_Left = new TGeoTranslation("tPCB_Left",0.,(12.4-(PCB_Right_y+PCB_Left_y))/2.,(PCB_Central_Projection+PCB_Left_z)/2.);
+  auto *tPCB_Right = new TGeoTranslation("tPCB_Right",0.,-(12.4-(PCB_Right_y+PCB_Left_y))/2.,-(PCB_Central_Projection+PCB_Right_z)/2.);
+  auto *tPCB_Left = new TGeoTranslation("tPCB_Left",0.,(12.4-(PCB_Right_y+PCB_Left_y))/2.,(PCB_Central_Projection+PCB_Left_z)/2.);
   //Distance of the cut
-  TGeoTranslation *tPCB_Cut = new TGeoTranslation("tPCB_Cut",0.,-(12.4/2.-3.6+2./2.),-(PCB_Central_Projection/2.-(10.1-PCB_Right_z)-2./2.));
+  auto *tPCB_Cut = new TGeoTranslation("tPCB_Cut",0.,-(12.4/2.-3.6+2./2.),-(PCB_Central_Projection/2.-(10.1-PCB_Right_z)-2./2.));
 
   RxPCB->RegisterYourself();
   tPCB->RegisterYourself();
@@ -547,11 +547,11 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
 
   TGeoShape *Cut_PCB = new TGeoBBox("Cut_PCB",4./2.,2./2.,2./2.);
 
-  TGeoCompositeShape * Half_5_Shape_0 = new TGeoCompositeShape("Half_5_Shape_0","Central_PCB:RxPCB+Right_PCB:tPCB_Right+Left_PCB:tPCB_Left");
-  TGeoCompositeShape * Half_5_Shape_1 = new TGeoCompositeShape("Half_5_Shape_1","Half_5_Shape_0:tPCB + Half_5_Shape_0:tPCB_inv");
-  TGeoCompositeShape * Half_5_Shape_2 = new TGeoCompositeShape("Half_5_Shape_2","Half_5_Shape_1 - Cut_PCB:tPCB_Cut");
+  auto * Half_5_Shape_0 = new TGeoCompositeShape("Half_5_Shape_0","Central_PCB:RxPCB+Right_PCB:tPCB_Right+Left_PCB:tPCB_Left");
+  auto * Half_5_Shape_1 = new TGeoCompositeShape("Half_5_Shape_1","Half_5_Shape_0:tPCB + Half_5_Shape_0:tPCB_inv");
+  auto * Half_5_Shape_2 = new TGeoCompositeShape("Half_5_Shape_2","Half_5_Shape_1 - Cut_PCB:tPCB_Cut");
 
-  TGeoVolume * Half_5_Volume = new TGeoVolume("Half_5_Volume",Half_5_Shape_2,kMedAlu);
+  auto * Half_5_Volume = new TGeoVolume("Half_5_Volume",Half_5_Shape_2,kMedAlu);
   Half_5->AddNode(Half_5_Volume,1,new TGeoTranslation(0., 30.283-6.2,-(28.35/2.+3.2)-.9-.6-.5));
 
   //The final translation and rotation of the Half Cone to its final position, this are the parameters of the function
@@ -585,9 +585,9 @@ TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
 
   }
 
-  TGeoTranslation *tTotal = new TGeoTranslation("tTotal",tTotal_x,tTotal_y,tTotal_z);
-  TGeoRotation *rTotal = new TGeoRotation("rTotal",rTotal_x,rTotal_y,rTotal_z);
-  TGeoCombiTrans *cTotal = new TGeoCombiTrans(*tTotal, *rTotal);  
+  auto *tTotal = new TGeoTranslation("tTotal",tTotal_x,tTotal_y,tTotal_z);
+  auto *rTotal = new TGeoRotation("rTotal",rTotal_x,rTotal_y,rTotal_z);
+  auto *cTotal = new TGeoCombiTrans(*tTotal, *rTotal);  
 
   // overlap problem
   //HalfConeVolume->AddNode(Half_0, 0,cTotal); // barres intérieures horizontales fm

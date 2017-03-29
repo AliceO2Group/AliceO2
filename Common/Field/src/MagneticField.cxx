@@ -149,7 +149,7 @@ void MagneticField::CreateField()
     FairLogger::GetLogger()->Info(MESSAGE_ORIGIN, "Maximim possible beam energy for requested beam is assumed");
   }
 
-  const char *parname = 0;
+  const char *parname = nullptr;
 
   if (mMapType == MagFieldParam::k2kG) {
     parname = mDipoleOnOffFlag ? "Sol12_Dip0_Hole" : "Sol12_Dip6_Hole";
@@ -538,10 +538,10 @@ MagneticField *MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
   MagFieldParam::BeamType_t btype = MagFieldParam::kNoBeamField;
   TString btypestr = beamtype;
   btypestr.ToLower();
-  TPRegexp protonBeam("(proton|p)\\s*-?\\s*\\1");
-  TPRegexp ionBeam("(lead|pb|ion|a|A)\\s*-?\\s*\\1");
-  TPRegexp protonionBeam("(proton|p)\\s*-?\\s*(lead|pb|ion|a|A)");
-  TPRegexp ionprotonBeam("(lead|pb|ion|a|A)\\s*-?\\s*(proton|p)");
+  TPRegexp protonBeam(R"((proton|p)\s*-?\s*\1)");
+  TPRegexp ionBeam(R"((lead|pb|ion|a|A)\s*-?\s*\1)");
+  TPRegexp protonionBeam(R"((proton|p)\s*-?\s*(lead|pb|ion|a|A))");
+  TPRegexp ionprotonBeam(R"((lead|pb|ion|a|A)\s*-?\s*(proton|p))");
   if (btypestr.Contains(ionBeam)) {
     btype = MagFieldParam::kBeamTypeAA;
   } else if (btypestr.Contains(protonBeam)) {

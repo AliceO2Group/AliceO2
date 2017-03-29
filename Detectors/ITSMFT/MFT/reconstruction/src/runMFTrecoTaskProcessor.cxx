@@ -39,7 +39,7 @@ FairMQDevicePtr getDevice(const FairMQProgOptions& config)
     return new TrackFinder();
   }
 
-  return 0;
+  return nullptr;
   
 }
 

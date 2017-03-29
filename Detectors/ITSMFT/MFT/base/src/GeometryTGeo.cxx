@@ -25,7 +25,7 @@ GeometryTGeo::GeometryTGeo() :
 TObject(),
 mNDisks(0),
 mNChips(0),
-mNLaddersHalfDisk(0)
+mNLaddersHalfDisk(nullptr)
 {
   // default constructor
 

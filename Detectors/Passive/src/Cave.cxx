@@ -28,7 +28,7 @@ void Cave::ConstructGeometry()
 {
   FairGeoLoader* loader=FairGeoLoader::Instance();
   FairGeoInterface* GeoInterface =loader->getGeoInterface();
-  GeoCave* MGeo=new GeoCave();
+  auto* MGeo=new GeoCave();
   MGeo->setGeomFile(GetGeometryFileName());
   GeoInterface->addGeoModule(MGeo);
   Bool_t rc = GeoInterface->readSet(MGeo);

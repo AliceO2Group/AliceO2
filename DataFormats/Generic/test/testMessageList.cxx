@@ -59,7 +59,7 @@ public:
 
   void clear() {
     delete[] mBuffer;
-    mBuffer = NULL;
+    mBuffer = nullptr;
     mBufferSize = 0;
   }
 

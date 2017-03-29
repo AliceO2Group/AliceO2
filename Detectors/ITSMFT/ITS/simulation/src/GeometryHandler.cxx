@@ -30,10 +30,10 @@ GeometryHandler::GeometryHandler()
     mIsSimulation(kFALSE),
     mLastUsedDetectorId(0),
     mGeometryPathHash(0),
-    mCurrentVolume(NULL),
-    mVolumeShape(NULL),
+    mCurrentVolume(nullptr),
+    mVolumeShape(nullptr),
     mGlobalCentre(),
-    mGlobalMatrix(NULL)
+    mGlobalMatrix(nullptr)
 {
 }
 
@@ -165,7 +165,7 @@ const char *GeometryHandler::currentVolumeOffName(Int_t off) const
     return TVirtualMC::GetMC()->CurrentVolOffName(off);
   } else {
     if (off < 0 || off > gGeoManager->GetLevel()) {
-      return 0;
+      return nullptr;
     }
 
     if (off == 0) {
@@ -175,7 +175,7 @@ const char *GeometryHandler::currentVolumeOffName(Int_t off) const
     TGeoNode *node = gGeoManager->GetMother(off);
 
     if (!node) {
-      return 0;
+      return nullptr;
     }
 
     return node->GetVolume()->GetName();

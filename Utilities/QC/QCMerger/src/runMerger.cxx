@@ -42,7 +42,7 @@ namespace
     }
 
     while (!feof(pipe.get())) {
-      if (fgets(buffer, 128, pipe.get()) != NULL) {
+      if (fgets(buffer, 128, pipe.get()) != nullptr) {
         result += buffer;
       }
     }

@@ -25,65 +25,65 @@ MagneticWrapperChebyshev::MagneticWrapperChebyshev()
     mNumberOfDistinctZSegmentsSolenoid(0),
     mNumberOfDistinctPSegmentsSolenoid(0),
     mNumberOfDistinctRSegmentsSolenoid(0),
-    mCoordinatesSegmentsZSolenoid(0),
-    mCoordinatesSegmentsPSolenoid(0),
-    mCoordinatesSegmentsRSolenoid(0),
-    mBeginningOfSegmentsPSolenoid(0),
-    mNumberOfSegmentsPSolenoid(0),
-    mBeginningOfSegmentsRSolenoid(0),
-    mNumberOfRSegmentsSolenoid(0),
-    mSegmentIdSolenoid(0),
+    mCoordinatesSegmentsZSolenoid(nullptr),
+    mCoordinatesSegmentsPSolenoid(nullptr),
+    mCoordinatesSegmentsRSolenoid(nullptr),
+    mBeginningOfSegmentsPSolenoid(nullptr),
+    mNumberOfSegmentsPSolenoid(nullptr),
+    mBeginningOfSegmentsRSolenoid(nullptr),
+    mNumberOfRSegmentsSolenoid(nullptr),
+    mSegmentIdSolenoid(nullptr),
     mMinZSolenoid(1.e6),
     mMaxZSolenoid(-1.e6),
-    mParameterizationSolenoid(0),
+    mParameterizationSolenoid(nullptr),
     mMaxRadiusSolenoid(0),
     mNumberOfParameterizationTPC(0),
     mNumberOfDistinctZSegmentsTPC(0),
     mNumberOfDistinctPSegmentsTPC(0),
     mNumberOfDistinctRSegmentsTPC(0),
-    mCoordinatesSegmentsZTPC(0),
-    mCoordinatesSegmentsPTPC(0),
-    mCoordinatesSegmentsRTPC(0),
-    mBeginningOfSegmentsPTPC(0),
-    mNumberOfSegmentsPTPC(0),
-    mBeginningOfSegmentsRTPC(0),
-    mNumberOfRSegmentsTPC(0),
-    mSegmentIdTPC(0),
+    mCoordinatesSegmentsZTPC(nullptr),
+    mCoordinatesSegmentsPTPC(nullptr),
+    mCoordinatesSegmentsRTPC(nullptr),
+    mBeginningOfSegmentsPTPC(nullptr),
+    mNumberOfSegmentsPTPC(nullptr),
+    mBeginningOfSegmentsRTPC(nullptr),
+    mNumberOfRSegmentsTPC(nullptr),
+    mSegmentIdTPC(nullptr),
     mMinZTPC(1.e6),
     mMaxZTPC(-1.e6),
-    mParameterizationTPC(0),
+    mParameterizationTPC(nullptr),
     mMaxRadiusTPC(0),
     mNumberOfParameterizationTPCRat(0),
     mNumberOfDistinctZSegmentsTPCRat(0),
     mNumberOfDistinctPSegmentsTPCRat(0),
     mNumberOfDistinctRSegmentsTPCRat(0),
-    mCoordinatesSegmentsZTPCRat(0),
-    mCoordinatesSegmentsPTPCRat(0),
-    mCoordinatesSegmentsRTPCRat(0),
-    mBeginningOfSegmentsPTPCRat(0),
-    mNumberOfSegmentsPTPCRat(0),
-    mBeginningOfSegmentsRTPCRat(0),
-    mNumberOfRSegmentsTPCRat(0),
-    mSegmentIdTPCRat(0),
+    mCoordinatesSegmentsZTPCRat(nullptr),
+    mCoordinatesSegmentsPTPCRat(nullptr),
+    mCoordinatesSegmentsRTPCRat(nullptr),
+    mBeginningOfSegmentsPTPCRat(nullptr),
+    mNumberOfSegmentsPTPCRat(nullptr),
+    mBeginningOfSegmentsRTPCRat(nullptr),
+    mNumberOfRSegmentsTPCRat(nullptr),
+    mSegmentIdTPCRat(nullptr),
     mMinZTPCRat(1.e6),
     mMaxZTPCRat(-1.e6),
-    mParameterizationTPCRat(0),
+    mParameterizationTPCRat(nullptr),
     mMaxRadiusTPCRat(0),
     mNumberOfParameterizationDipole(0),
     mNumberOfDistinctZSegmentsDipole(0),
     mNumberOfDistinctYSegmentsDipole(0),
     mNumberOfDistinctXSegmentsDipole(0),
-    mCoordinatesSegmentsZDipole(0),
-    mCoordinatesSegmentsYDipole(0),
-    mCoordinatesSegmentsXDipole(0),
-    mBeginningOfSegmentsYDipole(0),
-    mNumberOfSegmentsYDipole(0),
-    mBeginningOfSegmentsXDipole(0),
-    mNumberOfSegmentsXDipole(0),
-    mSegmentIdDipole(0),
+    mCoordinatesSegmentsZDipole(nullptr),
+    mCoordinatesSegmentsYDipole(nullptr),
+    mCoordinatesSegmentsXDipole(nullptr),
+    mBeginningOfSegmentsYDipole(nullptr),
+    mNumberOfSegmentsYDipole(nullptr),
+    mBeginningOfSegmentsXDipole(nullptr),
+    mNumberOfSegmentsXDipole(nullptr),
+    mSegmentIdDipole(nullptr),
     mMinDipoleZ(1.e6),
     mMaxDipoleZ(-1.e6),
-    mParameterizationDipole(0),
+    mParameterizationDipole(nullptr),
     mLogger(FairLogger::GetLogger())
 {
 }
@@ -94,65 +94,65 @@ MagneticWrapperChebyshev::MagneticWrapperChebyshev(const MagneticWrapperChebyshe
     mNumberOfDistinctZSegmentsSolenoid(0),
     mNumberOfDistinctPSegmentsSolenoid(0),
     mNumberOfDistinctRSegmentsSolenoid(0),
-    mCoordinatesSegmentsZSolenoid(0),
-    mCoordinatesSegmentsPSolenoid(0),
-    mCoordinatesSegmentsRSolenoid(0),
-    mBeginningOfSegmentsPSolenoid(0),
-    mNumberOfSegmentsPSolenoid(0),
-    mBeginningOfSegmentsRSolenoid(0),
-    mNumberOfRSegmentsSolenoid(0),
-    mSegmentIdSolenoid(0),
+    mCoordinatesSegmentsZSolenoid(nullptr),
+    mCoordinatesSegmentsPSolenoid(nullptr),
+    mCoordinatesSegmentsRSolenoid(nullptr),
+    mBeginningOfSegmentsPSolenoid(nullptr),
+    mNumberOfSegmentsPSolenoid(nullptr),
+    mBeginningOfSegmentsRSolenoid(nullptr),
+    mNumberOfRSegmentsSolenoid(nullptr),
+    mSegmentIdSolenoid(nullptr),
     mMinZSolenoid(1.e6),
     mMaxZSolenoid(-1.e6),
-    mParameterizationSolenoid(0),
+    mParameterizationSolenoid(nullptr),
     mMaxRadiusSolenoid(0),
     mNumberOfParameterizationTPC(0),
     mNumberOfDistinctZSegmentsTPC(0),
     mNumberOfDistinctPSegmentsTPC(0),
     mNumberOfDistinctRSegmentsTPC(0),
-    mCoordinatesSegmentsZTPC(0),
-    mCoordinatesSegmentsPTPC(0),
-    mCoordinatesSegmentsRTPC(0),
-    mBeginningOfSegmentsPTPC(0),
-    mNumberOfSegmentsPTPC(0),
-    mBeginningOfSegmentsRTPC(0),
-    mNumberOfRSegmentsTPC(0),
-    mSegmentIdTPC(0),
+    mCoordinatesSegmentsZTPC(nullptr),
+    mCoordinatesSegmentsPTPC(nullptr),
+    mCoordinatesSegmentsRTPC(nullptr),
+    mBeginningOfSegmentsPTPC(nullptr),
+    mNumberOfSegmentsPTPC(nullptr),
+    mBeginningOfSegmentsRTPC(nullptr),
+    mNumberOfRSegmentsTPC(nullptr),
+    mSegmentIdTPC(nullptr),
     mMinZTPC(1.e6),
     mMaxZTPC(-1.e6),
-    mParameterizationTPC(0),
+    mParameterizationTPC(nullptr),
     mMaxRadiusTPC(0),
     mNumberOfParameterizationTPCRat(0),
     mNumberOfDistinctZSegmentsTPCRat(0),
     mNumberOfDistinctPSegmentsTPCRat(0),
     mNumberOfDistinctRSegmentsTPCRat(0),
-    mCoordinatesSegmentsZTPCRat(0),
-    mCoordinatesSegmentsPTPCRat(0),
-    mCoordinatesSegmentsRTPCRat(0),
-    mBeginningOfSegmentsPTPCRat(0),
-    mNumberOfSegmentsPTPCRat(0),
-    mBeginningOfSegmentsRTPCRat(0),
-    mNumberOfRSegmentsTPCRat(0),
-    mSegmentIdTPCRat(0),
+    mCoordinatesSegmentsZTPCRat(nullptr),
+    mCoordinatesSegmentsPTPCRat(nullptr),
+    mCoordinatesSegmentsRTPCRat(nullptr),
+    mBeginningOfSegmentsPTPCRat(nullptr),
+    mNumberOfSegmentsPTPCRat(nullptr),
+    mBeginningOfSegmentsRTPCRat(nullptr),
+    mNumberOfRSegmentsTPCRat(nullptr),
+    mSegmentIdTPCRat(nullptr),
     mMinZTPCRat(1.e6),
     mMaxZTPCRat(-1.e6),
-    mParameterizationTPCRat(0),
+    mParameterizationTPCRat(nullptr),
     mMaxRadiusTPCRat(0),
     mNumberOfParameterizationDipole(0),
     mNumberOfDistinctZSegmentsDipole(0),
     mNumberOfDistinctYSegmentsDipole(0),
     mNumberOfDistinctXSegmentsDipole(0),
-    mCoordinatesSegmentsZDipole(0),
-    mCoordinatesSegmentsYDipole(0),
-    mCoordinatesSegmentsXDipole(0),
-    mBeginningOfSegmentsYDipole(0),
-    mNumberOfSegmentsYDipole(0),
-    mBeginningOfSegmentsXDipole(0),
-    mNumberOfSegmentsXDipole(0),
-    mSegmentIdDipole(0),
+    mCoordinatesSegmentsZDipole(nullptr),
+    mCoordinatesSegmentsYDipole(nullptr),
+    mCoordinatesSegmentsXDipole(nullptr),
+    mBeginningOfSegmentsYDipole(nullptr),
+    mNumberOfSegmentsYDipole(nullptr),
+    mBeginningOfSegmentsXDipole(nullptr),
+    mNumberOfSegmentsXDipole(nullptr),
+    mSegmentIdDipole(nullptr),
     mMinDipoleZ(1.e6),
     mMaxDipoleZ(-1.e6),
-    mParameterizationDipole(0),
+    mParameterizationDipole(nullptr),
     mLogger(FairLogger::GetLogger())
 {
   copyFrom(src);
@@ -298,23 +298,23 @@ void MagneticWrapperChebyshev::Clear(const Option_t *)
   if (mNumberOfParameterizationSolenoid) {
     mParameterizationSolenoid->SetOwner(kTRUE);
     delete mParameterizationSolenoid;
-    mParameterizationSolenoid = 0;
+    mParameterizationSolenoid = nullptr;
     delete[] mCoordinatesSegmentsZSolenoid;
-    mCoordinatesSegmentsZSolenoid = 0;
+    mCoordinatesSegmentsZSolenoid = nullptr;
     delete[] mCoordinatesSegmentsPSolenoid;
-    mCoordinatesSegmentsPSolenoid = 0;
+    mCoordinatesSegmentsPSolenoid = nullptr;
     delete[] mCoordinatesSegmentsRSolenoid;
-    mCoordinatesSegmentsRSolenoid = 0;
+    mCoordinatesSegmentsRSolenoid = nullptr;
     delete[] mBeginningOfSegmentsPSolenoid;
-    mBeginningOfSegmentsPSolenoid = 0;
+    mBeginningOfSegmentsPSolenoid = nullptr;
     delete[] mNumberOfSegmentsPSolenoid;
-    mNumberOfSegmentsPSolenoid = 0;
+    mNumberOfSegmentsPSolenoid = nullptr;
     delete[] mBeginningOfSegmentsRSolenoid;
-    mBeginningOfSegmentsRSolenoid = 0;
+    mBeginningOfSegmentsRSolenoid = nullptr;
     delete[] mNumberOfRSegmentsSolenoid;
-    mNumberOfRSegmentsSolenoid = 0;
+    mNumberOfRSegmentsSolenoid = nullptr;
     delete[] mSegmentIdSolenoid;
-    mSegmentIdSolenoid = 0;
+    mSegmentIdSolenoid = nullptr;
   }
 
   mNumberOfParameterizationSolenoid = mNumberOfDistinctZSegmentsSolenoid = mNumberOfDistinctPSegmentsSolenoid =
@@ -326,23 +326,23 @@ void MagneticWrapperChebyshev::Clear(const Option_t *)
   if (mNumberOfParameterizationTPC) {
     mParameterizationTPC->SetOwner(kTRUE);
     delete mParameterizationTPC;
-    mParameterizationTPC = 0;
+    mParameterizationTPC = nullptr;
     delete[] mCoordinatesSegmentsZTPC;
-    mCoordinatesSegmentsZTPC = 0;
+    mCoordinatesSegmentsZTPC = nullptr;
     delete[] mCoordinatesSegmentsPTPC;
-    mCoordinatesSegmentsPTPC = 0;
+    mCoordinatesSegmentsPTPC = nullptr;
     delete[] mCoordinatesSegmentsRTPC;
-    mCoordinatesSegmentsRTPC = 0;
+    mCoordinatesSegmentsRTPC = nullptr;
     delete[] mBeginningOfSegmentsPTPC;
-    mBeginningOfSegmentsPTPC = 0;
+    mBeginningOfSegmentsPTPC = nullptr;
     delete[] mNumberOfSegmentsPTPC;
-    mNumberOfSegmentsPTPC = 0;
+    mNumberOfSegmentsPTPC = nullptr;
     delete[] mBeginningOfSegmentsRTPC;
-    mBeginningOfSegmentsRTPC = 0;
+    mBeginningOfSegmentsRTPC = nullptr;
     delete[] mNumberOfRSegmentsTPC;
-    mNumberOfRSegmentsTPC = 0;
+    mNumberOfRSegmentsTPC = nullptr;
     delete[] mSegmentIdTPC;
-    mSegmentIdTPC = 0;
+    mSegmentIdTPC = nullptr;
   }
 
   mNumberOfParameterizationTPC = mNumberOfDistinctZSegmentsTPC = mNumberOfDistinctPSegmentsTPC =
@@ -354,23 +354,23 @@ void MagneticWrapperChebyshev::Clear(const Option_t *)
   if (mNumberOfParameterizationTPCRat) {
     mParameterizationTPCRat->SetOwner(kTRUE);
     delete mParameterizationTPCRat;
-    mParameterizationTPCRat = 0;
+    mParameterizationTPCRat = nullptr;
     delete[] mCoordinatesSegmentsZTPCRat;
-    mCoordinatesSegmentsZTPCRat = 0;
+    mCoordinatesSegmentsZTPCRat = nullptr;
     delete[] mCoordinatesSegmentsPTPCRat;
-    mCoordinatesSegmentsPTPCRat = 0;
+    mCoordinatesSegmentsPTPCRat = nullptr;
     delete[] mCoordinatesSegmentsRTPCRat;
-    mCoordinatesSegmentsRTPCRat = 0;
+    mCoordinatesSegmentsRTPCRat = nullptr;
     delete[] mBeginningOfSegmentsPTPCRat;
-    mBeginningOfSegmentsPTPCRat = 0;
+    mBeginningOfSegmentsPTPCRat = nullptr;
     delete[] mNumberOfSegmentsPTPCRat;
-    mNumberOfSegmentsPTPCRat = 0;
+    mNumberOfSegmentsPTPCRat = nullptr;
     delete[] mBeginningOfSegmentsRTPCRat;
-    mBeginningOfSegmentsRTPCRat = 0;
+    mBeginningOfSegmentsRTPCRat = nullptr;
     delete[] mNumberOfRSegmentsTPCRat;
-    mNumberOfRSegmentsTPCRat = 0;
+    mNumberOfRSegmentsTPCRat = nullptr;
     delete[] mSegmentIdTPCRat;
-    mSegmentIdTPCRat = 0;
+    mSegmentIdTPCRat = nullptr;
   }
 
   mNumberOfParameterizationTPCRat = mNumberOfDistinctZSegmentsTPCRat = mNumberOfDistinctPSegmentsTPCRat =
@@ -382,23 +382,23 @@ void MagneticWrapperChebyshev::Clear(const Option_t *)
   if (mNumberOfParameterizationDipole) {
     mParameterizationDipole->SetOwner(kTRUE);
     delete mParameterizationDipole;
-    mParameterizationDipole = 0;
+    mParameterizationDipole = nullptr;
     delete[] mCoordinatesSegmentsZDipole;
-    mCoordinatesSegmentsZDipole = 0;
+    mCoordinatesSegmentsZDipole = nullptr;
     delete[] mCoordinatesSegmentsYDipole;
-    mCoordinatesSegmentsYDipole = 0;
+    mCoordinatesSegmentsYDipole = nullptr;
     delete[] mCoordinatesSegmentsXDipole;
-    mCoordinatesSegmentsXDipole = 0;
+    mCoordinatesSegmentsXDipole = nullptr;
     delete[] mBeginningOfSegmentsYDipole;
-    mBeginningOfSegmentsYDipole = 0;
+    mBeginningOfSegmentsYDipole = nullptr;
     delete[] mNumberOfSegmentsYDipole;
-    mNumberOfSegmentsYDipole = 0;
+    mNumberOfSegmentsYDipole = nullptr;
     delete[] mBeginningOfSegmentsXDipole;
-    mBeginningOfSegmentsXDipole = 0;
+    mBeginningOfSegmentsXDipole = nullptr;
     delete[] mNumberOfSegmentsXDipole;
-    mNumberOfSegmentsXDipole = 0;
+    mNumberOfSegmentsXDipole = nullptr;
     delete[] mSegmentIdDipole;
-    mSegmentIdDipole = 0;
+    mSegmentIdDipole = nullptr;
   }
 
   mNumberOfParameterizationDipole = mNumberOfDistinctZSegmentsDipole = mNumberOfDistinctYSegmentsDipole =
@@ -508,7 +508,7 @@ Int_t MagneticWrapperChebyshev::findDipoleSegment(const Double_t *xyz) const
                                           (Float_t) xyz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
-  while (1) {
+  while (true) {
     int ysegBeg = mBeginningOfSegmentsYDipole[zid];
 
     for (yid = 0; yid < mNumberOfSegmentsYDipole[zid]; yid++) {
@@ -554,7 +554,7 @@ Int_t MagneticWrapperChebyshev::findSolenoidSegment(const Double_t *rpz) const
                                           (Float_t) rpz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
-  while (1) {
+  while (true) {
     int psegBeg = mBeginningOfSegmentsPSolenoid[zid];
     for (pid = 0; pid < mNumberOfSegmentsPSolenoid[zid]; pid++) {
       if (rpz[1] < mCoordinatesSegmentsPSolenoid[psegBeg + pid]) {
@@ -598,7 +598,7 @@ Int_t MagneticWrapperChebyshev::findTPCSegment(const Double_t *rpz) const
                                           (Float_t) rpz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
-  while (1) {
+  while (true) {
     int psegBeg = mBeginningOfSegmentsPTPC[zid];
 
     for (pid = 0; pid < mNumberOfSegmentsPTPC[zid]; pid++) {
@@ -643,7 +643,7 @@ Int_t MagneticWrapperChebyshev::findTPCRatSegment(const Double_t *rpz) const
                                           (Float_t) rpz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
-  while (1) {
+  while (true) {
     int psegBeg = mBeginningOfSegmentsPTPCRat[zid];
 
     for (pid = 0; pid < mNumberOfSegmentsPTPCRat[zid]; pid++) {
@@ -832,7 +832,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   int nparSol = buffs.Atoi();
 
   for (int ip = 0; ip < nparSol; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    auto* cheb = new Chebyshev3D();
     cheb->loadData(stream);
     addParameterSolenoid(cheb);
   }
@@ -853,7 +853,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   int nparTPCInt = buffs.Atoi();
 
   for (int ip = 0; ip < nparTPCInt; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    auto* cheb = new Chebyshev3D();
     cheb->loadData(stream);
     addParameterTPCIntegral(cheb);
   }
@@ -877,7 +877,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   int nparTPCRatInt = buffs.Atoi();
 
   for (int ip = 0; ip < nparTPCRatInt; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    auto* cheb = new Chebyshev3D();
     cheb->loadData(stream);
     addParameterTPCRatIntegral(cheb);
   }
@@ -901,7 +901,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   int nparDip = buffs.Atoi();
 
   for (int ip = 0; ip < nparDip; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    auto* cheb = new Chebyshev3D();
     cheb->loadData(stream);
     addParameterDipole(cheb);
   }
@@ -972,65 +972,65 @@ MagneticWrapperChebyshev::MagneticWrapperChebyshev(const char* inputFile)
     mNumberOfDistinctZSegmentsSolenoid(0),
     mNumberOfDistinctPSegmentsSolenoid(0),
     mNumberOfDistinctRSegmentsSolenoid(0),
-    mCoordinatesSegmentsZSolenoid(0),
-    mCoordinatesSegmentsPSolenoid(0),
-    mCoordinatesSegmentsRSolenoid(0),
-    mBeginningOfSegmentsPSolenoid(0),
-    mNumberOfSegmentsPSolenoid(0),
-    mBeginningOfSegmentsRSolenoid(0),
-    mNumberOfRSegmentsSolenoid(0),
-    mSegmentIdSolenoid(0),
+    mCoordinatesSegmentsZSolenoid(nullptr),
+    mCoordinatesSegmentsPSolenoid(nullptr),
+    mCoordinatesSegmentsRSolenoid(nullptr),
+    mBeginningOfSegmentsPSolenoid(nullptr),
+    mNumberOfSegmentsPSolenoid(nullptr),
+    mBeginningOfSegmentsRSolenoid(nullptr),
+    mNumberOfRSegmentsSolenoid(nullptr),
+    mSegmentIdSolenoid(nullptr),
     mMinZSolenoid(1.e6),
     mMaxZSolenoid(-1.e6),
-    mParameterizationSolenoid(0),
+    mParameterizationSolenoid(nullptr),
     mMaxRadiusSolenoid(0),
     mNumberOfParameterizationTPC(0),
     mNumberOfDistinctZSegmentsTPC(0),
     mNumberOfDistinctPSegmentsTPC(0),
     mNumberOfDistinctRSegmentsTPC(0),
-    mCoordinatesSegmentsZTPC(0),
-    mCoordinatesSegmentsPTPC(0),
-    mCoordinatesSegmentsRTPC(0),
-    mBeginningOfSegmentsPTPC(0),
-    mNumberOfSegmentsPTPC(0),
-    mBeginningOfSegmentsRTPC(0),
-    mNumberOfRSegmentsTPC(0),
-    mSegmentIdTPC(0),
+    mCoordinatesSegmentsZTPC(nullptr),
+    mCoordinatesSegmentsPTPC(nullptr),
+    mCoordinatesSegmentsRTPC(nullptr),
+    mBeginningOfSegmentsPTPC(nullptr),
+    mNumberOfSegmentsPTPC(nullptr),
+    mBeginningOfSegmentsRTPC(nullptr),
+    mNumberOfRSegmentsTPC(nullptr),
+    mSegmentIdTPC(nullptr),
     mMinZTPC(1.e6),
     mMaxZTPC(-1.e6),
-    mParameterizationTPC(0),
+    mParameterizationTPC(nullptr),
     mMaxRadiusTPC(0),
     mNumberOfParameterizationTPCRat(0),
     mNumberOfDistinctZSegmentsTPCRat(0),
     mNumberOfDistinctPSegmentsTPCRat(0),
     mNumberOfDistinctRSegmentsTPCRat(0),
-    mCoordinatesSegmentsZTPCRat(0),
-    mCoordinatesSegmentsPTPCRat(0),
-    mCoordinatesSegmentsRTPCRat(0),
-    mBeginningOfSegmentsPTPCRat(0),
-    mNumberOfSegmentsPTPCRat(0),
-    mBeginningOfSegmentsRTPCRat(0),
-    mNumberOfRSegmentsTPCRat(0),
-    mSegmentIdTPCRat(0),
+    mCoordinatesSegmentsZTPCRat(nullptr),
+    mCoordinatesSegmentsPTPCRat(nullptr),
+    mCoordinatesSegmentsRTPCRat(nullptr),
+    mBeginningOfSegmentsPTPCRat(nullptr),
+    mNumberOfSegmentsPTPCRat(nullptr),
+    mBeginningOfSegmentsRTPCRat(nullptr),
+    mNumberOfRSegmentsTPCRat(nullptr),
+    mSegmentIdTPCRat(nullptr),
     mMinZTPCRat(1.e6),
     mMaxZTPCRat(-1.e6),
-    mParameterizationTPCRat(0),
+    mParameterizationTPCRat(nullptr),
     mMaxRadiusTPCRat(0),
     mNumberOfParameterizationDipole(0),
     mNumberOfDistinctZSegmentsDipole(0),
     mNumberOfDistinctYSegmentsDipole(0),
     mNumberOfDistinctXSegmentsDipole(0),
-    mCoordinatesSegmentsZDipole(0),
-    mCoordinatesSegmentsYDipole(0),
-    mCoordinatesSegmentsXDipole(0),
-    mBeginningOfSegmentsYDipole(0),
-    mNumberOfSegmentsYDipole(0),
-    mBeginningOfSegmentsXDipole(0),
-    mNumberOfSegmentsXDipole(0),
-    mSegmentIdDipole(0),
+    mCoordinatesSegmentsZDipole(nullptr),
+    mCoordinatesSegmentsYDipole(nullptr),
+    mCoordinatesSegmentsXDipole(nullptr),
+    mBeginningOfSegmentsYDipole(nullptr),
+    mNumberOfSegmentsYDipole(nullptr),
+    mBeginningOfSegmentsXDipole(nullptr),
+    mNumberOfSegmentsXDipole(nullptr),
+    mSegmentIdDipole(nullptr),
     mMinDipoleZ(1.e6),
     mMaxDipoleZ(-1.e6),
-    mParameterizationDipole(0)
+    mParameterizationDipole(nullptr)
 {
   loadData(inputFile);
 }
@@ -1084,23 +1084,23 @@ void MagneticWrapperChebyshev::resetDipole()
 {
   if (mNumberOfParameterizationDipole) {
     delete mParameterizationDipole;
-    mParameterizationDipole = 0;
+    mParameterizationDipole = nullptr;
     delete[] mCoordinatesSegmentsZDipole;
-    mCoordinatesSegmentsZDipole = 0;
+    mCoordinatesSegmentsZDipole = nullptr;
     delete[] mCoordinatesSegmentsXDipole;
-    mCoordinatesSegmentsXDipole = 0;
+    mCoordinatesSegmentsXDipole = nullptr;
     delete[] mCoordinatesSegmentsYDipole;
-    mCoordinatesSegmentsYDipole = 0;
+    mCoordinatesSegmentsYDipole = nullptr;
     delete[] mBeginningOfSegmentsYDipole;
-    mBeginningOfSegmentsYDipole = 0;
+    mBeginningOfSegmentsYDipole = nullptr;
     delete[] mNumberOfSegmentsYDipole;
-    mNumberOfSegmentsYDipole = 0;
+    mNumberOfSegmentsYDipole = nullptr;
     delete[] mBeginningOfSegmentsXDipole;
-    mBeginningOfSegmentsXDipole = 0;
+    mBeginningOfSegmentsXDipole = nullptr;
     delete[] mNumberOfSegmentsXDipole;
-    mNumberOfSegmentsXDipole = 0;
+    mNumberOfSegmentsXDipole = nullptr;
     delete[] mSegmentIdDipole;
-    mSegmentIdDipole = 0;
+    mSegmentIdDipole = nullptr;
   }
   mNumberOfParameterizationDipole = mNumberOfDistinctZSegmentsDipole = mNumberOfDistinctXSegmentsDipole =
     mNumberOfDistinctYSegmentsDipole = 0;
@@ -1112,23 +1112,23 @@ void MagneticWrapperChebyshev::resetSolenoid()
 {
   if (mNumberOfParameterizationSolenoid) {
     delete mParameterizationSolenoid;
-    mParameterizationSolenoid = 0;
+    mParameterizationSolenoid = nullptr;
     delete[] mCoordinatesSegmentsZSolenoid;
-    mCoordinatesSegmentsZSolenoid = 0;
+    mCoordinatesSegmentsZSolenoid = nullptr;
     delete[] mCoordinatesSegmentsPSolenoid;
-    mCoordinatesSegmentsPSolenoid = 0;
+    mCoordinatesSegmentsPSolenoid = nullptr;
     delete[] mCoordinatesSegmentsRSolenoid;
-    mCoordinatesSegmentsRSolenoid = 0;
+    mCoordinatesSegmentsRSolenoid = nullptr;
     delete[] mBeginningOfSegmentsPSolenoid;
-    mBeginningOfSegmentsPSolenoid = 0;
+    mBeginningOfSegmentsPSolenoid = nullptr;
     delete[] mNumberOfSegmentsPSolenoid;
-    mNumberOfSegmentsPSolenoid = 0;
+    mNumberOfSegmentsPSolenoid = nullptr;
     delete[] mBeginningOfSegmentsRSolenoid;
-    mBeginningOfSegmentsRSolenoid = 0;
+    mBeginningOfSegmentsRSolenoid = nullptr;
     delete[] mNumberOfRSegmentsSolenoid;
-    mNumberOfRSegmentsSolenoid = 0;
+    mNumberOfRSegmentsSolenoid = nullptr;
     delete[] mSegmentIdSolenoid;
-    mSegmentIdSolenoid = 0;
+    mSegmentIdSolenoid = nullptr;
   }
   mNumberOfParameterizationSolenoid = mNumberOfDistinctZSegmentsSolenoid = mNumberOfDistinctPSegmentsSolenoid =
     mNumberOfDistinctRSegmentsSolenoid = 0;
@@ -1141,23 +1141,23 @@ void MagneticWrapperChebyshev::resetTPCIntegral()
 {
   if (mNumberOfParameterizationTPC) {
     delete mParameterizationTPC;
-    mParameterizationTPC = 0;
+    mParameterizationTPC = nullptr;
     delete[] mCoordinatesSegmentsZTPC;
-    mCoordinatesSegmentsZTPC = 0;
+    mCoordinatesSegmentsZTPC = nullptr;
     delete[] mCoordinatesSegmentsPTPC;
-    mCoordinatesSegmentsPTPC = 0;
+    mCoordinatesSegmentsPTPC = nullptr;
     delete[] mCoordinatesSegmentsRTPC;
-    mCoordinatesSegmentsRTPC = 0;
+    mCoordinatesSegmentsRTPC = nullptr;
     delete[] mBeginningOfSegmentsPTPC;
-    mBeginningOfSegmentsPTPC = 0;
+    mBeginningOfSegmentsPTPC = nullptr;
     delete[] mNumberOfSegmentsPTPC;
-    mNumberOfSegmentsPTPC = 0;
+    mNumberOfSegmentsPTPC = nullptr;
     delete[] mBeginningOfSegmentsRTPC;
-    mBeginningOfSegmentsRTPC = 0;
+    mBeginningOfSegmentsRTPC = nullptr;
     delete[] mNumberOfRSegmentsTPC;
-    mNumberOfRSegmentsTPC = 0;
+    mNumberOfRSegmentsTPC = nullptr;
     delete[] mSegmentIdTPC;
-    mSegmentIdTPC = 0;
+    mSegmentIdTPC = nullptr;
   }
   mNumberOfParameterizationTPC = mNumberOfDistinctZSegmentsTPC = mNumberOfDistinctPSegmentsTPC =
     mNumberOfDistinctRSegmentsTPC = 0;
@@ -1170,23 +1170,23 @@ void MagneticWrapperChebyshev::resetTPCRatIntegral()
 {
   if (mNumberOfParameterizationTPCRat) {
     delete mParameterizationTPCRat;
-    mParameterizationTPCRat = 0;
+    mParameterizationTPCRat = nullptr;
     delete[] mCoordinatesSegmentsZTPCRat;
-    mCoordinatesSegmentsZTPCRat = 0;
+    mCoordinatesSegmentsZTPCRat = nullptr;
     delete[] mCoordinatesSegmentsPTPCRat;
-    mCoordinatesSegmentsPTPCRat = 0;
+    mCoordinatesSegmentsPTPCRat = nullptr;
     delete[] mCoordinatesSegmentsRTPCRat;
-    mCoordinatesSegmentsRTPCRat = 0;
+    mCoordinatesSegmentsRTPCRat = nullptr;
     delete[] mBeginningOfSegmentsPTPCRat;
-    mBeginningOfSegmentsPTPCRat = 0;
+    mBeginningOfSegmentsPTPCRat = nullptr;
     delete[] mNumberOfSegmentsPTPCRat;
-    mNumberOfSegmentsPTPCRat = 0;
+    mNumberOfSegmentsPTPCRat = nullptr;
     delete[] mBeginningOfSegmentsRTPCRat;
-    mBeginningOfSegmentsRTPCRat = 0;
+    mBeginningOfSegmentsRTPCRat = nullptr;
     delete[] mNumberOfRSegmentsTPCRat;
-    mNumberOfRSegmentsTPCRat = 0;
+    mNumberOfRSegmentsTPCRat = nullptr;
     delete[] mSegmentIdTPCRat;
-    mSegmentIdTPCRat = 0;
+    mSegmentIdTPCRat = nullptr;
   }
   mNumberOfParameterizationTPCRat = mNumberOfDistinctZSegmentsTPCRat = mNumberOfDistinctPSegmentsTPCRat =
     mNumberOfDistinctRSegmentsTPCRat = 0;
@@ -1444,8 +1444,8 @@ void MagneticWrapperChebyshev::saveData(const char* outfile) const
 Int_t MagneticWrapperChebyshev::segmentDimension(float** seg, const TObjArray* par, int npar, int dim, float xmn,
                                                  float xmx, float ymn, float ymx, float zmn, float zmx)
 {
-  float* tmpC = new float[2 * npar];
-  int* tmpInd = new int[2 * npar];
+  auto* tmpC = new float[2 * npar];
+  auto* tmpInd = new int[2 * npar];
   int nseg0 = 0;
   for (int ip = 0; ip < npar; ip++) {
     Chebyshev3D* cheb = (Chebyshev3D*)par->At(ip);

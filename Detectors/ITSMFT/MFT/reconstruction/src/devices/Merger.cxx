@@ -28,7 +28,7 @@ class MergerTMessage : public TMessage
 //_____________________________________________________________________________
 Merger::Merger()
   : FairMQDevice()
-  , mEventHeader(NULL)
+  , mEventHeader(nullptr)
   , mNofParts(2)
   , mNofPartsPerEventMap()
   , mObjectMap()
@@ -161,7 +161,7 @@ bool Merger::MergeData(FairMQParts& parts, int index)
     int currentEventPart = mEventHeader->GetPartNo();
     for (int iarray = 0 ; iarray < nofArrays; iarray++) {
       
-      LOG(INFO) << "Merger::MergeData::printInfo >>>>> before adding, TCA \"" << tempArrays[iarray]->GetName() << "\" has " << tempArrays[iarray]->GetEntries() << " entries.";
+      LOG(INFO) << R"(Merger::MergeData::printInfo >>>>> before adding, TCA ")" << tempArrays[iarray]->GetName() << R"(" has )" << tempArrays[iarray]->GetEntries() << " entries.";
 
       TClonesArray* arrayToAdd;
       
@@ -172,7 +172,7 @@ bool Merger::MergeData(FairMQParts& parts, int index)
 	mEvRIPartTrio.second = ieventpart;
 	mRet = mObjectMap.equal_range(mEvRIPartTrio);
 	
-	for (MultiMapDef::iterator it = mRet.first; it != mRet.second; ++it) {
+	for (auto it = mRet.first; it != mRet.second; ++it) {
 	  
 	  if (strcmp(tempArrays[iarray]->GetName(),it->second->GetName()) == 0) {
 	    

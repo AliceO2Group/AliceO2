@@ -16,7 +16,7 @@ int main(int argc, char** argv)
   }
   ViewerDevice viewerDevice("Viewer_1", 1, drawingOptions);
   viewerDevice.CatchSignals();
-  TApplication *app = new TApplication("app1", &argc, argv);
+  auto *app = new TApplication("app1", &argc, argv);
 
   LOG(INFO) << "PID: " << getpid();
   LOG(INFO) << "Viewer id: "

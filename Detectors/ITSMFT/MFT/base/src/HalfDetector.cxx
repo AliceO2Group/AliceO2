@@ -23,8 +23,8 @@ ClassImp(AliceO2::MFT::HalfDetector)
 //_____________________________________________________________________________
 HalfDetector::HalfDetector():
 TNamed(),
-mHalfVolume(NULL),
-mSegmentation(NULL)
+mHalfVolume(nullptr),
+mSegmentation(nullptr)
 {
   
 }
@@ -34,7 +34,7 @@ mSegmentation(NULL)
 //_____________________________________________________________________________
 HalfDetector::HalfDetector(HalfSegmentation *seg):
 TNamed(),
-mHalfVolume(NULL),
+mHalfVolume(nullptr),
 mSegmentation(seg)
 {
   
@@ -66,7 +66,7 @@ void HalfDetector::CreateHalfDisks()
   
   for (Int_t iDisk = 0 ; iDisk < mSegmentation->GetNHalfDisks(); iDisk++) {
     HalfDiskSegmentation * halfDiskSeg = mSegmentation->GetHalfDisk(iDisk);    
-    HalfDisk * halfDisk = new HalfDisk(halfDiskSeg);
+    auto * halfDisk = new HalfDisk(halfDiskSeg);
     Int_t halfDiskId = Geometry::Instance()->GetHalfDiskID(halfDiskSeg->GetUniqueID());
     mHalfVolume->AddNode(halfDisk->GetVolume(),halfDiskId,halfDiskSeg->GetTransformation());
     delete halfDisk;

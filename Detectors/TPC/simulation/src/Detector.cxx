@@ -183,7 +183,7 @@ void Detector::Register()
 TClonesArray* Detector::GetCollection(Int_t iColl) const
 {
   if (iColl == 0) { return mPointCollection; }
-  else { return NULL; }
+  else { return nullptr; }
 }
 
 void Detector::Reset()
@@ -846,7 +846,7 @@ void Detector::ConstructTPCGeometry()
   // here I define a volume TPC
   // retrive the medium name with "TPC_" as a leading string
   //
-  TGeoPcon *tpc = new TGeoPcon(0.,360.,30); //30 sections
+  auto *tpc = new TGeoPcon(0.,360.,30); //30 sections
   //
   tpc->DefineSection(0,-289.6,77.,278.);
   tpc->DefineSection(1,-262.1,77.,278.);
@@ -894,12 +894,12 @@ void Detector::ConstructTPCGeometry()
   tpc->DefineSection(29,289.6,77.,278.);
   //
   TGeoMedium *m1 = gGeoManager->GetMedium("TPC_Air");
-  TGeoVolume *v1 = new TGeoVolume("TPC_M",tpc,m1);
+  auto *v1 = new TGeoVolume("TPC_M",tpc,m1);
   //
   // drift volume - sensitive volume, extended beyond the
   // endcaps, because of the alignment
   //
-  TGeoPcon *dvol = new TGeoPcon(0.,360.,6);
+  auto *dvol = new TGeoPcon(0.,360.,6);
   dvol->DefineSection(0,-260.,74.5,264.4);
   dvol->DefineSection(1,-253.6,74.5,264.4);
   //
@@ -910,13 +910,13 @@ void Detector::ConstructTPCGeometry()
   dvol->DefineSection(5,260.,74.5,264.4);
   //
   TGeoMedium *m5 = gGeoManager->GetMedium("TPC_DriftGas2");
-  TGeoVolume *v9 = new TGeoVolume("TPC_Drift",dvol,m5);
+  auto *v9 = new TGeoVolume("TPC_Drift",dvol,m5);
   //
   v1->AddNode(v9,1);
   //
   // outer insulator
   //
-  TGeoPcon *tpco = new TGeoPcon(0.,360.,6); //insulator
+  auto *tpco = new TGeoPcon(0.,360.,6); //insulator
   //
   tpco->DefineSection(0,-256.6,264.8,278.);
   tpco->DefineSection(1,-253.6,264.8,278.);
@@ -928,13 +928,13 @@ void Detector::ConstructTPCGeometry()
   tpco->DefineSection(5,253.6,258.,275.5);
   //
   TGeoMedium *m2 = gGeoManager->GetMedium("TPC_CO2");
-  TGeoVolume *v2 = new TGeoVolume("TPC_OI",tpco,m2);
+  auto *v2 = new TGeoVolume("TPC_OI",tpco,m2);
   //
   TGeoRotation *segrot;//segment rotations
   //
   // outer containment vessel
   //
-  TGeoPcon *tocv = new TGeoPcon(0.,360.,6);  // containment vessel
+  auto *tocv = new TGeoPcon(0.,360.,6);  // containment vessel
   //
   tocv->DefineSection(0,-256.6,264.8,278.);
   tocv->DefineSection(1,-253.6,264.8,278.);
@@ -946,13 +946,13 @@ void Detector::ConstructTPCGeometry()
   tocv->DefineSection(5,250.6,270.4,278.);
   //
   TGeoMedium *m3 = gGeoManager->GetMedium("TPC_Al");
-  TGeoVolume *v3 = new TGeoVolume("TPC_OCV",tocv,m3);
+  auto *v3 = new TGeoVolume("TPC_OCV",tocv,m3);
   //
-  TGeoTubeSeg *to1 = new TGeoTubeSeg(274.8174,277.995,252.1,0.,59.9); //epoxy
-  TGeoTubeSeg *to2 = new TGeoTubeSeg(274.8274,277.985,252.1,0.,59.9); //tedlar
-  TGeoTubeSeg *to3 = new TGeoTubeSeg(274.8312,277.9812,252.1,0.,59.9);//prepreg2
-  TGeoTubeSeg *to4 = new TGeoTubeSeg(274.9062,277.9062,252.1,0.,59.9);//nomex
-  TGeoTubeSeg *tog5 = new TGeoTubeSeg(274.8174,277.995,252.1,59.9,60.);//epoxy
+  auto *to1 = new TGeoTubeSeg(274.8174,277.995,252.1,0.,59.9); //epoxy
+  auto *to2 = new TGeoTubeSeg(274.8274,277.985,252.1,0.,59.9); //tedlar
+  auto *to3 = new TGeoTubeSeg(274.8312,277.9812,252.1,0.,59.9);//prepreg2
+  auto *to4 = new TGeoTubeSeg(274.9062,277.9062,252.1,0.,59.9);//nomex
+  auto *tog5 = new TGeoTubeSeg(274.8174,277.995,252.1,59.9,60.);//epoxy
   //
   TGeoMedium *sm1 = gGeoManager->GetMedium("TPC_Epoxy");
   TGeoMedium *sm2 = gGeoManager->GetMedium("TPC_Tedlar");
@@ -961,11 +961,11 @@ void Detector::ConstructTPCGeometry()
   //
   TGeoMedium *smep = gGeoManager->GetMedium("TPC_Epoxy1");
   //
-  TGeoVolume *tov1 = new TGeoVolume("TPC_OCV1",to1,sm1);
-  TGeoVolume *tov2 = new TGeoVolume("TPC_OCV2",to2,sm2);
-  TGeoVolume *tov3 = new TGeoVolume("TPC_OCV3",to3,sm3);
-  TGeoVolume *tov4 = new TGeoVolume("TPC_OCV4",to4,sm4);
-  TGeoVolume *togv5 = new TGeoVolume("TPC_OCVG5",tog5,sm1);
+  auto *tov1 = new TGeoVolume("TPC_OCV1",to1,sm1);
+  auto *tov2 = new TGeoVolume("TPC_OCV2",to2,sm2);
+  auto *tov3 = new TGeoVolume("TPC_OCV3",to3,sm3);
+  auto *tov4 = new TGeoVolume("TPC_OCV4",to4,sm4);
+  auto *togv5 = new TGeoVolume("TPC_OCVG5",tog5,sm1);
   //
   TGeoMedium *mhs = gGeoManager->GetMedium("TPC_Steel");
   TGeoMedium *m12 =  gGeoManager->GetMedium("TPC_Water");
@@ -974,7 +974,7 @@ void Detector::ConstructTPCGeometry()
   //  daughters - composite (sandwich)
   //-------------------------------------------------------
 
-  TGeoPcon *tofc = new TGeoPcon(0.,360.,6);
+  auto *tofc = new TGeoPcon(0.,360.,6);
   //
   tofc->DefineSection(0,-253.6,258.,269.6);
   tofc->DefineSection(1,-250.6,258.,269.6);
@@ -985,19 +985,19 @@ void Detector::ConstructTPCGeometry()
   tofc->DefineSection(4,250.6,258.,275.5);
   tofc->DefineSection(5,253.6,258.,275.5);
   //
-  TGeoVolume *v4 = new TGeoVolume("TPC_TOFC",tofc,m3);
+  auto *v4 = new TGeoVolume("TPC_TOFC",tofc,m3);
   //sandwich
-  TGeoTubeSeg *tf1 = new TGeoTubeSeg(258.0,260.0676,252.1,0.,59.9); //tedlar
-  TGeoTubeSeg *tf2 = new TGeoTubeSeg(258.0038,260.0638,252.1,0.,59.9); //prepreg3
-  TGeoTubeSeg *tf3 = new TGeoTubeSeg(258.0338,260.0338,252.1,0.,59.9);//nomex
-  TGeoTubeSeg *tfg4 = new TGeoTubeSeg(258.0,260.0676,252.1,59.9,60.); //epoxy glue
+  auto *tf1 = new TGeoTubeSeg(258.0,260.0676,252.1,0.,59.9); //tedlar
+  auto *tf2 = new TGeoTubeSeg(258.0038,260.0638,252.1,0.,59.9); //prepreg3
+  auto *tf3 = new TGeoTubeSeg(258.0338,260.0338,252.1,0.,59.9);//nomex
+  auto *tfg4 = new TGeoTubeSeg(258.0,260.0676,252.1,59.9,60.); //epoxy glue
   //
   TGeoMedium *sm5 = gGeoManager->GetMedium("TPC_Prepreg3");
   //
-  TGeoVolume *tf1v = new TGeoVolume("TPC_OFC1",tf1,sm2);
-  TGeoVolume *tf2v = new TGeoVolume("TPC_OFC2",tf2,sm5);
-  TGeoVolume *tf3v = new TGeoVolume("TPC_OFC3",tf3,sm4);
-  TGeoVolume *tfg4v = new TGeoVolume("TPC_OFCG4",tfg4,smep);
+  auto *tf1v = new TGeoVolume("TPC_OFC1",tf1,sm2);
+  auto *tf2v = new TGeoVolume("TPC_OFC2",tf2,sm5);
+  auto *tf3v = new TGeoVolume("TPC_OFC3",tf3,sm4);
+  auto *tfg4v = new TGeoVolume("TPC_OFCG4",tfg4,smep);
   //
   // outer part - positioning
   //
@@ -1005,8 +1005,8 @@ void Detector::ConstructTPCGeometry()
   //
   tf1v->AddNode(tf2v,1); tf2v->AddNode(tf3v,1);//ofc
   //
-  TGeoVolumeAssembly *t200 = new TGeoVolumeAssembly("TPC_OCVSEG");
-  TGeoVolumeAssembly *t300 = new TGeoVolumeAssembly("TPC_OFCSEG");
+  auto *t200 = new TGeoVolumeAssembly("TPC_OCVSEG");
+  auto *t300 = new TGeoVolumeAssembly("TPC_OFCSEG");
   //
   // assembly OCV and OFC
   //
@@ -1049,7 +1049,7 @@ void Detector::ConstructTPCGeometry()
   // the cones, the central drum and the inner f.c. sandwich with a piece
   // of the flane will be placed in the TPC
   //--------------------------------------------------------------------
-  TGeoPcon *tpci = new TGeoPcon(0.,360.,4);
+  auto *tpci = new TGeoPcon(0.,360.,4);
   //
   tpci->DefineSection(0,-253.6,68.4,76.6774);
   tpci->DefineSection(1,-74.0,61.2,76.6774);
@@ -1058,17 +1058,17 @@ void Detector::ConstructTPCGeometry()
   //
   tpci->DefineSection(3,253.6,65.9,76.6774);
   //
-  TGeoVolume *v5 = new TGeoVolume("TPC_INI",tpci,m2);
+  auto *v5 = new TGeoVolume("TPC_INI",tpci,m2);
   //
   // now the inner field cage - only part of flanges (2 copies)
   //
-  TGeoTube *tif1 = new TGeoTube(69.9,76.6774,1.5);
-  TGeoVolume *v6 = new TGeoVolume("TPC_IFC1",tif1,m3);
+  auto *tif1 = new TGeoTube(69.9,76.6774,1.5);
+  auto *v6 = new TGeoVolume("TPC_IFC1",tif1,m3);
   //
   //---------------------------------------------------------
   // Tpc Inner Containment vessel - Muon side
   //---------------------------------------------------------
-  TGeoPcon *tcms = new TGeoPcon(0.,360.,10);
+  auto *tcms = new TGeoPcon(0.,360.,10);
   //
   tcms->DefineSection(0,-259.1,68.1,74.2);
   tcms->DefineSection(1,-253.6,68.1,74.2);
@@ -1085,21 +1085,21 @@ void Detector::ConstructTPCGeometry()
   tcms->DefineSection(8,-73.0,56.9,58.8);
   tcms->DefineSection(9,-71.3,56.9,58.8);
   //
-  TGeoVolume *v7 = new TGeoVolume("TPC_ICVM",tcms,m3);
+  auto *v7 = new TGeoVolume("TPC_ICVM",tcms,m3);
   //------------------------------------------------
   //  Heat screen muon side
   //------------------------------------------------
 
-  TGeoCone *thsm = new TGeoCone(89.8,67.88,68.1,60.68,60.9);
-  TGeoCone *thsmw = new TGeoCone(89.8,67.94,68.04,60.74,60.84);
-  TGeoVolume *hvsm = new TGeoVolume("TPC_HSM",thsm,mhs); //steel
-  TGeoVolume *hvsmw = new TGeoVolume("TPC_HSMW",thsmw,m12); //water
+  auto *thsm = new TGeoCone(89.8,67.88,68.1,60.68,60.9);
+  auto *thsmw = new TGeoCone(89.8,67.94,68.04,60.74,60.84);
+  auto *hvsm = new TGeoVolume("TPC_HSM",thsm,mhs); //steel
+  auto *hvsmw = new TGeoVolume("TPC_HSMW",thsmw,m12); //water
   // assembly heat screen muon
   hvsm->AddNode(hvsmw,1);
   //-----------------------------------------------
   // inner containment vessel - shaft side
   //-----------------------------------------------
-  TGeoPcon *tcss = new TGeoPcon(0.,360.,10);
+  auto *tcss = new TGeoPcon(0.,360.,10);
   //
   tcss->DefineSection(0,71.3,56.9,58.8);
   tcss->DefineSection(1,73.0,56.9,58.8);
@@ -1116,14 +1116,14 @@ void Detector::ConstructTPCGeometry()
   tcss->DefineSection(8,253.6,65.6,74.2);
   tcss->DefineSection(9,258.1,65.6,74.2);
   //
-  TGeoVolume *v8 = new TGeoVolume("TPC_ICVS",tcss,m3);
+  auto *v8 = new TGeoVolume("TPC_ICVS",tcss,m3);
   //-------------------------------------------------
   //  Heat screen shaft side
   //--------------------------------------------------
-  TGeoCone *thss = new TGeoCone(89.8,60.68,60.9,65.38,65.6);
-  TGeoCone *thssw = new TGeoCone(89.8,60.74,60.84,65.44,65.54);
-  TGeoVolume *hvss = new TGeoVolume("TPC_HSS",thss,mhs); //steel
-  TGeoVolume *hvssw = new TGeoVolume("TPC_HSSW",thssw,m12); //water
+  auto *thss = new TGeoCone(89.8,60.68,60.9,65.38,65.6);
+  auto *thssw = new TGeoCone(89.8,60.74,60.84,65.44,65.54);
+  auto *hvss = new TGeoVolume("TPC_HSS",thss,mhs); //steel
+  auto *hvssw = new TGeoVolume("TPC_HSSW",thssw,m12); //water
   //assembly heat screen shaft
   hvss->AddNode(hvssw,1);
   //-----------------------------------------------
@@ -1131,59 +1131,59 @@ void Detector::ConstructTPCGeometry()
   //  define 4 parts and make an assembly
   //-----------------------------------------------
   // part1 - Al - 2 copies
-  TGeoTube *t1 = new TGeoTube(76.6774,78.845,0.75);
-  TGeoVolume *tv1 = new TGeoVolume("TPC_IFC2",t1,m3);
+  auto *t1 = new TGeoTube(76.6774,78.845,0.75);
+  auto *tv1 = new TGeoVolume("TPC_IFC2",t1,m3);
   // sandwich - outermost parts - 2 copies
   //
   // segment outermost
   //
-  TGeoTubeSeg *t2 = new TGeoTubeSeg(76.6774,78.845,74.175,350.,109.4); // tedlar 38 microns
-  TGeoTubeSeg *t3 = new TGeoTubeSeg(76.6812,78.8412,74.175,350.,109.4); // prepreg2 500 microns
-  TGeoTubeSeg *t4 = new TGeoTubeSeg(76.7312,78.7912,74.175,350.,109.4); // prepreg3 300 microns
-  TGeoTubeSeg *t5 = new TGeoTubeSeg(76.7612,78.7612,74.175,350.,109.4); // nomex 2 cm
-  TGeoTubeSeg *tepox1 = new TGeoTubeSeg(76.6774,78.845,74.175,109.4,110.);//epoxy
-  TGeoTubeSeg *tpr1 = new TGeoTubeSeg(78.845,78.885,74.175,109.,111.);
+  auto *t2 = new TGeoTubeSeg(76.6774,78.845,74.175,350.,109.4); // tedlar 38 microns
+  auto *t3 = new TGeoTubeSeg(76.6812,78.8412,74.175,350.,109.4); // prepreg2 500 microns
+  auto *t4 = new TGeoTubeSeg(76.7312,78.7912,74.175,350.,109.4); // prepreg3 300 microns
+  auto *t5 = new TGeoTubeSeg(76.7612,78.7612,74.175,350.,109.4); // nomex 2 cm
+  auto *tepox1 = new TGeoTubeSeg(76.6774,78.845,74.175,109.4,110.);//epoxy
+  auto *tpr1 = new TGeoTubeSeg(78.845,78.885,74.175,109.,111.);
 
   // volumes for the outer part
-  TGeoVolume *tv2 = new TGeoVolume("TPC_IFC3",t2,sm2);
-  TGeoVolume *tv3 = new TGeoVolume("TPC_IFC4",t3,sm3);
-  TGeoVolume *tv4 = new TGeoVolume("TPC_IFC5",t4,sm5);
-  TGeoVolume *tv5 = new TGeoVolume("TPC_IFC6",t5,sm4);
-  TGeoVolume *tvep1 = new TGeoVolume("TPC_IFEPOX1",tepox1,smep);
-  TGeoVolume *tvpr1 = new TGeoVolume("TPC_PRSTR1",tpr1,sm2);
+  auto *tv2 = new TGeoVolume("TPC_IFC3",t2,sm2);
+  auto *tv3 = new TGeoVolume("TPC_IFC4",t3,sm3);
+  auto *tv4 = new TGeoVolume("TPC_IFC5",t4,sm5);
+  auto *tv5 = new TGeoVolume("TPC_IFC6",t5,sm4);
+  auto *tvep1 = new TGeoVolume("TPC_IFEPOX1",tepox1,smep);
+  auto *tvpr1 = new TGeoVolume("TPC_PRSTR1",tpr1,sm2);
   //
   // middle parts - 2 copies
   //
   // segment middle
   //
-  TGeoTubeSeg *t6 = new TGeoTubeSeg(76.6774,78.795,5.,350.,109.4); // tedlar 38 microns
-  TGeoTubeSeg *t7 = new TGeoTubeSeg(76.6812,78.7912,5.,350.,109.4); // prepreg2 250 microns
-  TGeoTubeSeg *t8 = new TGeoTubeSeg(76.7062,78.7662,5.,350.,109.4); // prepreg3 300 microns
-  TGeoTubeSeg *t9 = new TGeoTubeSeg(76.7362,78.7362,5.,350.,109.4); // nomex 2 cm
-  TGeoTubeSeg *tepox2 = new TGeoTubeSeg(76.6774,78.795,5.,109.4,110.);//epoxy
-  TGeoTubeSeg *tpr2 = new TGeoTubeSeg(78.795,78.835,5.,109.,111.);
+  auto *t6 = new TGeoTubeSeg(76.6774,78.795,5.,350.,109.4); // tedlar 38 microns
+  auto *t7 = new TGeoTubeSeg(76.6812,78.7912,5.,350.,109.4); // prepreg2 250 microns
+  auto *t8 = new TGeoTubeSeg(76.7062,78.7662,5.,350.,109.4); // prepreg3 300 microns
+  auto *t9 = new TGeoTubeSeg(76.7362,78.7362,5.,350.,109.4); // nomex 2 cm
+  auto *tepox2 = new TGeoTubeSeg(76.6774,78.795,5.,109.4,110.);//epoxy
+  auto *tpr2 = new TGeoTubeSeg(78.795,78.835,5.,109.,111.);
   // volumes for the middle part
-  TGeoVolume *tv6 = new TGeoVolume("TPC_IFC7",t6,sm2);
-  TGeoVolume *tv7 = new TGeoVolume("TPC_IFC8",t7,sm3);
-  TGeoVolume *tv8 = new TGeoVolume("TPC_IFC9",t8,sm5);
-  TGeoVolume *tv9 = new TGeoVolume("TPC_IFC10",t9,sm4);
-  TGeoVolume *tvep2 = new TGeoVolume("TPC_IFEPOX2",tepox2,smep);
-  TGeoVolume *tvpr2 = new TGeoVolume("TPC_PRSTR2",tpr2,sm2);
+  auto *tv6 = new TGeoVolume("TPC_IFC7",t6,sm2);
+  auto *tv7 = new TGeoVolume("TPC_IFC8",t7,sm3);
+  auto *tv8 = new TGeoVolume("TPC_IFC9",t8,sm5);
+  auto *tv9 = new TGeoVolume("TPC_IFC10",t9,sm4);
+  auto *tvep2 = new TGeoVolume("TPC_IFEPOX2",tepox2,smep);
+  auto *tvpr2 = new TGeoVolume("TPC_PRSTR2",tpr2,sm2);
   // central part - 1 copy
   //
   // segment central part
   //
-  TGeoTubeSeg *t10 = new TGeoTubeSeg(76.6774,78.785,93.75,350.,109.4); // tedlar 38 microns
-  TGeoTubeSeg *t11 = new TGeoTubeSeg(76.6812,78.7812,93.75,350.,109.4); // prepreg3 500 microns
-  TGeoTubeSeg *t12 = new TGeoTubeSeg(76.7312,78.7312,93.75,350.,109.4); // nomex 2 cm
-  TGeoTubeSeg *tepox3 = new TGeoTubeSeg(76.6774,78.785,93.75,109.4,110.);//epoxy
-  TGeoTubeSeg *tpr3 = new TGeoTubeSeg(78.785,78.825,93.75,109.,111.);
+  auto *t10 = new TGeoTubeSeg(76.6774,78.785,93.75,350.,109.4); // tedlar 38 microns
+  auto *t11 = new TGeoTubeSeg(76.6812,78.7812,93.75,350.,109.4); // prepreg3 500 microns
+  auto *t12 = new TGeoTubeSeg(76.7312,78.7312,93.75,350.,109.4); // nomex 2 cm
+  auto *tepox3 = new TGeoTubeSeg(76.6774,78.785,93.75,109.4,110.);//epoxy
+  auto *tpr3 = new TGeoTubeSeg(78.785,78.825,93.75,109.,111.);
   // volumes for the central part
-  TGeoVolume *tv10 = new TGeoVolume("TPC_IFC11",t10,sm2);
-  TGeoVolume *tv11 = new TGeoVolume("TPC_IFC12",t11,sm5);
-  TGeoVolume *tv12 = new TGeoVolume("TPC_IFC13",t12,sm4);
-  TGeoVolume *tvep3 = new TGeoVolume("TPC_IFEPOX3",tepox3,smep);
-  TGeoVolume *tvpr3 = new TGeoVolume("TPC_PRSTR3",tpr3,sm2);
+  auto *tv10 = new TGeoVolume("TPC_IFC11",t10,sm2);
+  auto *tv11 = new TGeoVolume("TPC_IFC12",t11,sm5);
+  auto *tv12 = new TGeoVolume("TPC_IFC13",t12,sm4);
+  auto *tvep3 = new TGeoVolume("TPC_IFEPOX3",tepox3,smep);
+  auto *tvpr3 = new TGeoVolume("TPC_PRSTR3",tpr3,sm2);
   //
   // creating a sandwich for the outer par,t tv2 is the mother
   //
@@ -1197,7 +1197,7 @@ void Detector::ConstructTPCGeometry()
   //
   tv10->AddNode(tv11,1); tv11->AddNode(tv12,1);
   //
-  TGeoVolumeAssembly *tv100 = new TGeoVolumeAssembly("TPC_IFC"); // ifc itself - 3 segments
+  auto *tv100 = new TGeoVolumeAssembly("TPC_IFC"); // ifc itself - 3 segments
 
   //
   // first segment - no rotation
@@ -1283,7 +1283,7 @@ void Detector::ConstructTPCGeometry()
   //
   // flange + sandwich
   //
-  TGeoPcon *cfl = new TGeoPcon(0.,360.,6);
+  auto *cfl = new TGeoPcon(0.,360.,6);
   cfl->DefineSection(0,-71.1,59.7,61.2);
   cfl->DefineSection(1,-68.6,59.7,61.2);
   //
@@ -1293,33 +1293,33 @@ void Detector::ConstructTPCGeometry()
   cfl->DefineSection(4,68.6,59.7,61.2);
   cfl->DefineSection(5,71.1,59.7,61.2);
   //
-  TGeoVolume *cflv = new TGeoVolume("TPC_CDR",cfl,m3);
+  auto *cflv = new TGeoVolume("TPC_CDR",cfl,m3);
   // sandwich
-  TGeoTubeSeg *cd1 = new TGeoTubeSeg(60.6224,61.19,71.1,0.2,119.2);
-  TGeoTubeSeg *cd2 = new TGeoTubeSeg(60.6262,61.1862,71.1,0.2,119.2);
-  TGeoTubeSeg *cd3 = new TGeoTubeSeg(60.6462,61.1662,71.1,0.2,119.2);
-  TGeoTubeSeg *cd4 = new TGeoTubeSeg(60.6562,61.1562,71.1,0.2,119.2);
-  TGeoTubeSeg *tepox4 = new TGeoTubeSeg(60.6224,61.19,71.1,359.8,0.8);
+  auto *cd1 = new TGeoTubeSeg(60.6224,61.19,71.1,0.2,119.2);
+  auto *cd2 = new TGeoTubeSeg(60.6262,61.1862,71.1,0.2,119.2);
+  auto *cd3 = new TGeoTubeSeg(60.6462,61.1662,71.1,0.2,119.2);
+  auto *cd4 = new TGeoTubeSeg(60.6562,61.1562,71.1,0.2,119.2);
+  auto *tepox4 = new TGeoTubeSeg(60.6224,61.19,71.1,359.8,0.8);
   //
   TGeoMedium *sm6 = gGeoManager->GetMedium("TPC_Prepreg1");
   TGeoMedium *sm8 = gGeoManager->GetMedium("TPC_Epoxyfm");
-  TGeoVolume *cd1v = new TGeoVolume("TPC_CDR1",cd1,sm2); //tedlar
-  TGeoVolume *cd2v = new TGeoVolume("TPC_CDR2",cd2,sm6);// prepreg1
-  TGeoVolume *cd3v = new TGeoVolume("TPC_CDR3",cd3,sm8); //epoxy film
-  TGeoVolume *cd4v = new TGeoVolume("TPC_CDR4",cd4,sm4); //nomex
-  TGeoVolume *tvep4 = new TGeoVolume("TPC_IFEPOX4",tepox4,smep);
+  auto *cd1v = new TGeoVolume("TPC_CDR1",cd1,sm2); //tedlar
+  auto *cd2v = new TGeoVolume("TPC_CDR2",cd2,sm6);// prepreg1
+  auto *cd3v = new TGeoVolume("TPC_CDR3",cd3,sm8); //epoxy film
+  auto *cd4v = new TGeoVolume("TPC_CDR4",cd4,sm4); //nomex
+  auto *tvep4 = new TGeoVolume("TPC_IFEPOX4",tepox4,smep);
 
   //
   // seals for central drum 2 copies
   //
-  TGeoTube *cs = new TGeoTube(56.9,61.2,0.1);
+  auto *cs = new TGeoTube(56.9,61.2,0.1);
   TGeoMedium *sm7 = gGeoManager->GetMedium("TPC_Mylar");
-  TGeoVolume *csv = new TGeoVolume("TPC_CDRS",cs,sm7);
+  auto *csv = new TGeoVolume("TPC_CDRS",cs,sm7);
   v1->AddNode(csv,1,new TGeoTranslation(0.,0.,-71.2));
   v1->AddNode(csv,2,new TGeoTranslation(0.,0.,71.2));
   //
   // seal collars
-  TGeoPcon *se = new TGeoPcon(0.,360.,6);
+  auto *se = new TGeoPcon(0.,360.,6);
   se->DefineSection(0,-72.8,59.7,61.2);
   se->DefineSection(1,-72.3,59.7,61.2);
   //
@@ -1329,14 +1329,14 @@ void Detector::ConstructTPCGeometry()
   se->DefineSection(4,-71.6,59.7,61.2);
   se->DefineSection(5,-71.3,59.7,61.2);
   //
-  TGeoVolume *sev = new TGeoVolume("TPC_CDCE",se,m3);
+  auto *sev = new TGeoVolume("TPC_CDCE",se,m3);
   //
-  TGeoTube *si = new TGeoTube(56.9,58.8,1.);
-  TGeoVolume *siv = new TGeoVolume("TPC_CDCI",si,m3);
+  auto *si = new TGeoTube(56.9,58.8,1.);
+  auto *siv = new TGeoVolume("TPC_CDCI",si,m3);
   //
   // define reflection matrix
   //
-  TGeoRotation *ref = new TGeoRotation("ref",90.,0.,90.,90.,180.,0.);
+  auto *ref = new TGeoRotation("ref",90.,0.,90.,90.,180.,0.);
   //
   cd1v->AddNode(cd2v,1); cd2v->AddNode(cd3v,1); cd3v->AddNode(cd4v,1); //sandwich
   // first segment
@@ -1356,19 +1356,19 @@ void Detector::ConstructTPCGeometry()
   //
   // central membrane - 2 rings and a mylar membrane - assembly
   //
-  TGeoTube *ih = new TGeoTube(81.05,84.05,0.3);
-  TGeoTube *oh = new TGeoTube(250.,256.,0.5);
-  TGeoTube *mem = new TGeoTube(84.05,250.,0.00115);
+  auto *ih = new TGeoTube(81.05,84.05,0.3);
+  auto *oh = new TGeoTube(250.,256.,0.5);
+  auto *mem = new TGeoTube(84.05,250.,0.00115);
 
   //
   TGeoMedium *m4 = gGeoManager->GetMedium("TPC_G10");
   //
-  TGeoVolume *ihv = new TGeoVolume("TPC_IHVH",ih,m3);
-  TGeoVolume *ohv = new TGeoVolume("TPC_OHVH",oh,m3);
+  auto *ihv = new TGeoVolume("TPC_IHVH",ih,m3);
+  auto *ohv = new TGeoVolume("TPC_OHVH",oh,m3);
 
-  TGeoVolume *memv = new TGeoVolume("TPC_HV",mem,sm7);
+  auto *memv = new TGeoVolume("TPC_HV",mem,sm7);
   //
-  TGeoVolumeAssembly *cm = new TGeoVolumeAssembly("TPC_HVMEM");
+  auto *cm = new TGeoVolumeAssembly("TPC_HVMEM");
   cm->AddNode(ihv,1);
   cm->AddNode(ohv,1);
   cm->AddNode(memv,1);
@@ -1387,7 +1387,7 @@ void Detector::ConstructTPCGeometry()
   //
   new TGeoTubeSeg("sec",74.5,264.4,3.,0.,20.);
   //
-  TGeoPgon *hole = new TGeoPgon("hole",0.,20.,1,4);
+  auto *hole = new TGeoPgon("hole",0.,20.,1,4);
   //
   hole->DefineSection(0,-3.5,lowEdge-shift,upEdge-shift);
   hole->DefineSection(1,-1.5,lowEdge-shift,upEdge-shift);
@@ -1397,15 +1397,15 @@ void Detector::ConstructTPCGeometry()
   //
   Double_t ys = shift*TMath::Sin(openingAngle);
   Double_t xs = shift*TMath::Cos(openingAngle);
-  TGeoTranslation *tr = new TGeoTranslation("tr",xs,ys,0.);
+  auto *tr = new TGeoTranslation("tr",xs,ys,0.);
   tr->RegisterYourself();
-  TGeoCompositeShape *chamber = new TGeoCompositeShape("sec-hole:tr");
-  TGeoVolume *sv = new TGeoVolume("TPC_WSEG",chamber,m3);
-  TGeoPgon *bar = new TGeoPgon("bar",0.,20.,1,2);
+  auto *chamber = new TGeoCompositeShape("sec-hole:tr");
+  auto *sv = new TGeoVolume("TPC_WSEG",chamber,m3);
+  auto *bar = new TGeoPgon("bar",0.,20.,1,2);
   bar->DefineSection(0,-3.,131.5-shift,136.5-shift);
   bar->DefineSection(1,1.5,131.5-shift,136.5-shift);
-  TGeoVolume *barv = new TGeoVolume("TPC_WBAR",bar,m3);
-  TGeoVolumeAssembly *ch = new TGeoVolumeAssembly("TPC_WCH");//empty segment
+  auto *barv = new TGeoVolume("TPC_WBAR",bar,m3);
+  auto *ch = new TGeoVolumeAssembly("TPC_WCH");//empty segment
   //
   ch->AddNode(sv,1); ch->AddNode(barv,1,tr);
   //
@@ -1413,35 +1413,35 @@ void Detector::ConstructTPCGeometry()
   //
   // IROC first
   //
-  TGeoTrd1 *ibody = new TGeoTrd1(13.8742,21.3328,4.29,21.15);
-  TGeoVolume *ibdv = new TGeoVolume("TPC_IROCB",ibody,m3);
+  auto *ibody = new TGeoTrd1(13.8742,21.3328,4.29,21.15);
+  auto *ibdv = new TGeoVolume("TPC_IROCB",ibody,m3);
   // empty space
-  TGeoTrd1 *emp = new TGeoTrd1(12.3742,19.8328,3.99,19.65);
-  TGeoVolume *empv = new TGeoVolume("TPC_IROCE",emp,m1);
+  auto *emp = new TGeoTrd1(12.3742,19.8328,3.99,19.65);
+  auto *empv = new TGeoVolume("TPC_IROCE",emp,m1);
   ibdv->AddNode(empv,1,new TGeoTranslation(0.,-0.3,0.));
   //bars
   Double_t tga = (19.8328-12.3742)/39.3;
   Double_t xmin,xmax;
   xmin = 9.55*tga+12.3742;
   xmax = 9.95*tga+12.3742;
-  TGeoTrd1 *ib1 = new TGeoTrd1(xmin,xmax,3.29,0.2);
-  TGeoVolume *ib1v = new TGeoVolume("TPC_IRB1",ib1,m3);
+  auto *ib1 = new TGeoTrd1(xmin,xmax,3.29,0.2);
+  auto *ib1v = new TGeoVolume("TPC_IRB1",ib1,m3);
   empv->AddNode(ib1v,1,new TGeoTranslation("tt1",0.,0.7,-9.9));
   xmin=19.4*tga+12.3742;
   xmax=19.9*tga+12.3742;
-  TGeoTrd1 *ib2 = new TGeoTrd1(xmin,xmax,3.29,0.25);
-  TGeoVolume *ib2v = new TGeoVolume("TPC_TRB2",ib2,m3);
+  auto *ib2 = new TGeoTrd1(xmin,xmax,3.29,0.25);
+  auto *ib2v = new TGeoVolume("TPC_TRB2",ib2,m3);
   empv->AddNode(ib2v,1,new TGeoTranslation(0.,0.7,0.));
   xmin=29.35*tga+12.3742;
   xmax=29.75*tga+12.3742;
-  TGeoTrd1 *ib3 = new TGeoTrd1(xmin,xmax,3.29,0.2);
-  TGeoVolume *ib3v = new TGeoVolume("TPC_IRB3",ib3,m3);
+  auto *ib3 = new TGeoTrd1(xmin,xmax,3.29,0.2);
+  auto *ib3v = new TGeoVolume("TPC_IRB3",ib3,m3);
   empv->AddNode(ib3v,1,new TGeoTranslation(0.,0.7,9.9));
   //
   // holes for connectors
   //
-  TGeoBBox *conn = new TGeoBBox(0.4,0.3,4.675); // identical for iroc and oroc
-  TGeoVolume *connv = new TGeoVolume("TPC_RCCON",conn,m1);
+  auto *conn = new TGeoBBox(0.4,0.3,4.675); // identical for iroc and oroc
+  auto *connv = new TGeoVolume("TPC_RCCON",conn,m1);
   TString fileName(gSystem->Getenv("VMCWORKDIR"));
   fileName += "/Detectors/Geometry/TPC/conn_iroc.dat";
   ifstream in;
@@ -1464,21 +1464,21 @@ void Detector::ConstructTPCGeometry()
   new TGeoTrd1("icap",14.5974,23.3521,1.19,24.825);
   // "hole"
   new TGeoTrd1("ihole",13.8742,21.3328,1.2,21.15);
-  TGeoTranslation *tr1 = new TGeoTranslation("tr1",0.,0.,1.725);
+  auto *tr1 = new TGeoTranslation("tr1",0.,0.,1.725);
   tr1->RegisterYourself();
-  TGeoCompositeShape *ic = new TGeoCompositeShape("icap-ihole:tr1");
-  TGeoVolume *icv = new TGeoVolume("TPC_IRCAP",ic,m3);
+  auto *ic = new TGeoCompositeShape("icap-ihole:tr1");
+  auto *icv = new TGeoVolume("TPC_IRCAP",ic,m3);
   //
   // pad plane and wire fixations
   //
-  TGeoTrd1 *pp = new TGeoTrd1(14.5974,23.3521,0.3,24.825); //pad+iso
-  TGeoVolume *ppv = new TGeoVolume("TPC_IRPP",pp,m4);
-  TGeoPara *f1 = new TGeoPara(.6,.5,24.825,0.,-10.,0.);
-  TGeoVolume *f1v = new TGeoVolume("TPC_IRF1",f1,m4);
-  TGeoPara *f2 = new TGeoPara(.6,.5,24.825,0.,10.,0.);
-  TGeoVolume *f2v = new TGeoVolume("TPC_IRF2",f2,m4);
+  auto *pp = new TGeoTrd1(14.5974,23.3521,0.3,24.825); //pad+iso
+  auto *ppv = new TGeoVolume("TPC_IRPP",pp,m4);
+  auto *f1 = new TGeoPara(.6,.5,24.825,0.,-10.,0.);
+  auto *f1v = new TGeoVolume("TPC_IRF1",f1,m4);
+  auto *f2 = new TGeoPara(.6,.5,24.825,0.,10.,0.);
+  auto *f2v = new TGeoVolume("TPC_IRF2",f2,m4);
   //
-  TGeoVolumeAssembly *iroc = new TGeoVolumeAssembly("TPC_IROC");
+  auto *iroc = new TGeoVolumeAssembly("TPC_IROC");
   //
   iroc->AddNode(ibdv,1);
   iroc->AddNode(icv,1,new TGeoTranslation(0.,3.1,-1.725));
@@ -1490,47 +1490,47 @@ void Detector::ConstructTPCGeometry()
   //
   // OROC
   //
-  TGeoTrd1 *obody = new TGeoTrd1(22.2938,40.5084,4.19,51.65);
-  TGeoVolume *obdv = new TGeoVolume("TPC_OROCB",obody,m3);
-  TGeoTrd1 *oemp = new TGeoTrd1(20.2938,38.5084,3.89,49.65);
-  TGeoVolume *oempv = new TGeoVolume("TPC_OROCE",oemp,m1);
+  auto *obody = new TGeoTrd1(22.2938,40.5084,4.19,51.65);
+  auto *obdv = new TGeoVolume("TPC_OROCB",obody,m3);
+  auto *oemp = new TGeoTrd1(20.2938,38.5084,3.89,49.65);
+  auto *oempv = new TGeoVolume("TPC_OROCE",oemp,m1);
   obdv->AddNode(oempv,1,new TGeoTranslation(0.,-0.3,0.));
   //horizontal bars
   tga=(38.5084-20.2938)/99.3;
   xmin=tga*10.2+20.2938;
   xmax=tga*10.6+20.2938;
-  TGeoTrd1 *ob1 = new TGeoTrd1(xmin,xmax,2.915,0.2);
-  TGeoVolume *ob1v = new TGeoVolume("TPC_ORB1",ob1,m3);
+  auto *ob1 = new TGeoTrd1(xmin,xmax,2.915,0.2);
+  auto *ob1v = new TGeoVolume("TPC_ORB1",ob1,m3);
   //
   xmin=22.55*tga+20.2938;
   xmax=24.15*tga+20.2938;
-  TGeoTrd1 *ob2 = new TGeoTrd1(xmin,xmax,2.915,0.8);
-  TGeoVolume *ob2v = new TGeoVolume("TPC_ORB2",ob2,m3);
+  auto *ob2 = new TGeoTrd1(xmin,xmax,2.915,0.8);
+  auto *ob2v = new TGeoVolume("TPC_ORB2",ob2,m3);
   //
   xmin=36.1*tga+20.2938;
   xmax=36.5*tga+20.2938;
-  TGeoTrd1 *ob3 = new TGeoTrd1(xmin,xmax,2.915,0.2);
-  TGeoVolume *ob3v = new TGeoVolume("TPC_ORB3",ob3,m3);
+  auto *ob3 = new TGeoTrd1(xmin,xmax,2.915,0.2);
+  auto *ob3v = new TGeoVolume("TPC_ORB3",ob3,m3);
   //
   xmin=49.0*tga+20.2938;
   xmax=50.6*tga+20.2938;
-  TGeoTrd1 *ob4 = new TGeoTrd1(xmin,xmax,2.915,0.8);
-  TGeoVolume *ob4v = new TGeoVolume("TPC_ORB4",ob4,m3);
+  auto *ob4 = new TGeoTrd1(xmin,xmax,2.915,0.8);
+  auto *ob4v = new TGeoVolume("TPC_ORB4",ob4,m3);
   //
   xmin=63.6*tga+20.2938;
   xmax=64.0*tga+20.2938;
-  TGeoTrd1 *ob5 = new TGeoTrd1(xmin,xmax,2.915,0.2);
-  TGeoVolume *ob5v = new TGeoVolume("TPC_ORB5",ob5,m3);
+  auto *ob5 = new TGeoTrd1(xmin,xmax,2.915,0.2);
+  auto *ob5v = new TGeoVolume("TPC_ORB5",ob5,m3);
   //
   xmin=75.5*tga+20.2938;
   xmax=77.15*tga+20.2938;
-  TGeoTrd1 *ob6 = new TGeoTrd1(xmin,xmax,2.915,0.8);
-  TGeoVolume *ob6v = new TGeoVolume("TPC_ORB6",ob6,m3);
+  auto *ob6 = new TGeoTrd1(xmin,xmax,2.915,0.8);
+  auto *ob6v = new TGeoVolume("TPC_ORB6",ob6,m3);
   //
   xmin=88.7*tga+20.2938;
   xmax=89.1*tga+20.2938;
-  TGeoTrd1 *ob7 = new TGeoTrd1(xmin,xmax,2.915,0.2);
-  TGeoVolume *ob7v = new TGeoVolume("TPC_ORB7",ob7,m3);
+  auto *ob7 = new TGeoTrd1(xmin,xmax,2.915,0.2);
+  auto *ob7v = new TGeoVolume("TPC_ORB7",ob7,m3);
   //
   oempv->AddNode(ob1v,1,new TGeoTranslation(0.,0.975,-39.25));
   oempv->AddNode(ob2v,1,new TGeoTranslation(0.,0.975,-26.3));
@@ -1540,17 +1540,17 @@ void Detector::ConstructTPCGeometry()
   oempv->AddNode(ob6v,1,new TGeoTranslation(0.,0.975,26.7));
   oempv->AddNode(ob7v,1,new TGeoTranslation(0.,0.975,39.25));
   // vertical bars
-  TGeoBBox *ob8 = new TGeoBBox(0.8,2.915,5.1);
-  TGeoBBox *ob9 = new TGeoBBox(0.8,2.915,5.975);
-  TGeoBBox *ob10 = new TGeoBBox(0.8,2.915,5.775);
-  TGeoBBox *ob11 = new TGeoBBox(0.8,2.915,6.25);
-  TGeoBBox *ob12 = new TGeoBBox(0.8,2.915,6.5);
+  auto *ob8 = new TGeoBBox(0.8,2.915,5.1);
+  auto *ob9 = new TGeoBBox(0.8,2.915,5.975);
+  auto *ob10 = new TGeoBBox(0.8,2.915,5.775);
+  auto *ob11 = new TGeoBBox(0.8,2.915,6.25);
+  auto *ob12 = new TGeoBBox(0.8,2.915,6.5);
   //
-  TGeoVolume *ob8v = new TGeoVolume("TPC_ORB8",ob8,m3);
-  TGeoVolume *ob9v = new TGeoVolume("TPC_ORB9",ob9,m3);
-  TGeoVolume *ob10v = new TGeoVolume("TPC_ORB10",ob10,m3);
-  TGeoVolume *ob11v = new TGeoVolume("TPC_ORB11",ob11,m3);
-  TGeoVolume *ob12v = new TGeoVolume("TPC_ORB12",ob12,m3);
+  auto *ob8v = new TGeoVolume("TPC_ORB8",ob8,m3);
+  auto *ob9v = new TGeoVolume("TPC_ORB9",ob9,m3);
+  auto *ob10v = new TGeoVolume("TPC_ORB10",ob10,m3);
+  auto *ob11v = new TGeoVolume("TPC_ORB11",ob11,m3);
+  auto *ob12v = new TGeoVolume("TPC_ORB12",ob12,m3);
   //
   oempv->AddNode(ob8v,1,new TGeoTranslation(0.,0.975,-44.55));
   oempv->AddNode(ob8v,2,new TGeoTranslation(0.,0.975,44.55));
@@ -1592,24 +1592,24 @@ void Detector::ConstructTPCGeometry()
   // cap
   new TGeoTrd1("ocap",23.3874,43.5239,1.09,57.1);
   new TGeoTrd1("ohole",22.2938,40.5084,1.09,51.65);
-  TGeoTranslation *tr5 = new TGeoTranslation("tr5",0.,0.,-2.15);
+  auto *tr5 = new TGeoTranslation("tr5",0.,0.,-2.15);
   tr5->RegisterYourself();
-  TGeoCompositeShape *oc = new TGeoCompositeShape("ocap-ohole:tr5");
-  TGeoVolume *ocv = new TGeoVolume("TPC_ORCAP",oc,m3);
+  auto *oc = new TGeoCompositeShape("ocap-ohole:tr5");
+  auto *ocv = new TGeoVolume("TPC_ORCAP",oc,m3);
   //
   // pad plane and wire fixations
   //
-  TGeoTrd1 *opp = new TGeoTrd1(23.3874,43.5239,0.3,57.1);
-  TGeoVolume *oppv = new TGeoVolume("TPC_ORPP",opp,m4);
+  auto *opp = new TGeoTrd1(23.3874,43.5239,0.3,57.1);
+  auto *oppv = new TGeoVolume("TPC_ORPP",opp,m4);
   //
   tga=(43.5239-23.3874)/114.2;
-  TGeoPara *f3 = new TGeoPara(.7,.6,57.1,0.,-10.,0.);
-  TGeoPara *f4 = new TGeoPara(.7,.6,57.1,0.,10.,0.);
+  auto *f3 = new TGeoPara(.7,.6,57.1,0.,-10.,0.);
+  auto *f4 = new TGeoPara(.7,.6,57.1,0.,10.,0.);
   xx = 57.1*tga+23.3874-0.7;
-  TGeoVolume *f3v = new TGeoVolume("TPC_ORF1",f3,m4);
-  TGeoVolume *f4v = new TGeoVolume("TPC_ORF2",f4,m4);
+  auto *f3v = new TGeoVolume("TPC_ORF1",f3,m4);
+  auto *f4v = new TGeoVolume("TPC_ORF2",f4,m4);
   //
-  TGeoVolumeAssembly *oroc = new TGeoVolumeAssembly("TPC_OROC");
+  auto *oroc = new TGeoVolumeAssembly("TPC_OROC");
   //
   oroc->AddNode(obdv,1);
   oroc->AddNode(ocv,1,new TGeoTranslation(0.,3.1,2.15));
@@ -1619,23 +1619,23 @@ void Detector::ConstructTPCGeometry()
   //
   // now iroc and oroc are placed into a sector...
   //
-  TGeoVolumeAssembly *secta = new TGeoVolumeAssembly("TPC_SECT"); // a-side
-  TGeoVolumeAssembly *sectc = new TGeoVolumeAssembly("TPC_SECT"); // c-side
+  auto *secta = new TGeoVolumeAssembly("TPC_SECT"); // a-side
+  auto *sectc = new TGeoVolumeAssembly("TPC_SECT"); // c-side
   TGeoRotation rot1("rot1",90.,90.,0.);
   TGeoRotation rot2("rot2");
   rot2.RotateY(10.);
-  TGeoRotation *rot = new TGeoRotation("rot");
+  auto *rot = new TGeoRotation("rot");
   *rot=rot1*rot2;
   //
   Double_t x0,y0;
   x0=110.2*TMath::Cos(openingAngle);
   y0=110.2*TMath::Sin(openingAngle);
-  TGeoCombiTrans *combi1a = new TGeoCombiTrans("combi1",x0,y0,1.09+0.195,rot); //a-side
-  TGeoCombiTrans *combi1c = new TGeoCombiTrans("combi1",x0,y0,1.09+0.222,rot); //c-side
+  auto *combi1a = new TGeoCombiTrans("combi1",x0,y0,1.09+0.195,rot); //a-side
+  auto *combi1c = new TGeoCombiTrans("combi1",x0,y0,1.09+0.222,rot); //c-side
   x0=188.45*TMath::Cos(openingAngle);
   y0=188.45*TMath::Sin(openingAngle);
-  TGeoCombiTrans *combi2a = new TGeoCombiTrans("combi2",x0,y0,0.99+0.195,rot); //a-side
-  TGeoCombiTrans *combi2c = new TGeoCombiTrans("combi2",x0,y0,0.99+0.222,rot); //c-side
+  auto *combi2a = new TGeoCombiTrans("combi2",x0,y0,0.99+0.195,rot); //a-side
+  auto *combi2c = new TGeoCombiTrans("combi2",x0,y0,0.99+0.222,rot); //c-side
   //
   //
   // A-side
@@ -1652,8 +1652,8 @@ void Detector::ConstructTPCGeometry()
   //
   // now I try to make  wheels...
   //
-  TGeoVolumeAssembly *wheela = new TGeoVolumeAssembly("TPC_ENDCAP");
-  TGeoVolumeAssembly *wheelc = new TGeoVolumeAssembly("TPC_ENDCAP");
+  auto *wheela = new TGeoVolumeAssembly("TPC_ENDCAP");
+  auto *wheelc = new TGeoVolumeAssembly("TPC_ENDCAP");
   //
   TGeoRotation *rwh[18];
   for(Int_t i =0;i<18;i++){
@@ -1666,29 +1666,29 @@ void Detector::ConstructTPCGeometry()
   }
   // wheels in the drift volume!
 
-  TGeoCombiTrans *combi3 = new TGeoCombiTrans("combi3",0.,0.,256.6,ref);
+  auto *combi3 = new TGeoCombiTrans("combi3",0.,0.,256.6,ref);
   v9->AddNode(wheela,1,combi3);
   v9->AddNode(wheelc,2,new TGeoTranslation(0.,0.,-256.6));
   //_____________________________________________________________
   // service support wheel
   //_____________________________________________________________
-  TGeoPgon *sw = new TGeoPgon(0.,20.,1,2);
+  auto *sw = new TGeoPgon(0.,20.,1,2);
   sw->DefineSection(0,-4.,80.5,251.75);
   sw->DefineSection(1,4.,80.5,251.75);
-  TGeoVolume *swv = new TGeoVolume("TPC_SWSEG",sw,m3); //Al
+  auto *swv = new TGeoVolume("TPC_SWSEG",sw,m3); //Al
   //
   thick=1.;
   shift = thick/TMath::Sin(openingAngle);
-  TGeoPgon *sh = new TGeoPgon(0.,20.,1,2);
+  auto *sh = new TGeoPgon(0.,20.,1,2);
   sh->DefineSection(0,-4.,81.5-shift,250.75-shift);
   sh->DefineSection(1,4.,81.5-shift,250.75-shift);
-  TGeoVolume *shv = new TGeoVolume("TPC_SWS1",sh,m1); //Air
+  auto *shv = new TGeoVolume("TPC_SWS1",sh,m1); //Air
   //
   TGeoMedium *m9 =  gGeoManager->GetMedium("TPC_Si");
-  TGeoPgon *el = new TGeoPgon(0.,20.,1,2);
+  auto *el = new TGeoPgon(0.,20.,1,2);
   el->DefineSection(0,-1.872,81.5-shift,250.75-shift);
   el->DefineSection(1,1.872,81.5-shift,250.75-shift);
-  TGeoVolume *elv = new TGeoVolume("TPC_ELEC",el,m9); //Si
+  auto *elv = new TGeoVolume("TPC_ELEC",el,m9); //Si
   //
   shv->AddNode(elv,1);
   //
@@ -1697,17 +1697,17 @@ void Detector::ConstructTPCGeometry()
   xs = shift*TMath::Cos(openingAngle);
   swv->AddNode(shv,1,new TGeoTranslation(xs,ys,0.));
   // cover
-  TGeoPgon *co = new TGeoPgon(0.,20.,1,2);
+  auto *co = new TGeoPgon(0.,20.,1,2);
   co->DefineSection(0,-0.5,77.,255.25);
   co->DefineSection(1,0.5,77.,255.25);
-  TGeoVolume *cov = new TGeoVolume("TPC_SWC1",co,m3);//Al
+  auto *cov = new TGeoVolume("TPC_SWC1",co,m3);//Al
   // hole in a cover
-  TGeoPgon *coh = new TGeoPgon(0.,20.,1,2);
+  auto *coh = new TGeoPgon(0.,20.,1,2);
   shift=4./TMath::Sin(openingAngle);
   coh->DefineSection(0,-0.5,85.-shift,247.25-shift);
   coh->DefineSection(1,0.5,85.-shift,247.25-shift);
   //
-  TGeoVolume *cohv = new TGeoVolume("TPC_SWC2",coh,m1);
+  auto *cohv = new TGeoVolume("TPC_SWC2",coh,m1);
   //
   ys = shift*TMath::Sin(openingAngle);
   xs = shift*TMath::Cos(openingAngle);
@@ -1715,7 +1715,7 @@ void Detector::ConstructTPCGeometry()
   //
   // Sector as an Assembly
   //
-  TGeoVolumeAssembly *swhs = new TGeoVolumeAssembly("TPC_SSWSEC");
+  auto *swhs = new TGeoVolumeAssembly("TPC_SSWSEC");
   swhs->AddNode(swv,1);
   swhs->AddNode(cov,1,new TGeoTranslation(0.,0.,-4.5));
   swhs->AddNode(cov,2,new TGeoTranslation(0.,0.,4.5));
@@ -1723,7 +1723,7 @@ void Detector::ConstructTPCGeometry()
   // SSW as an Assembly of sectors
   //
   TGeoRotation *rsw[18];
-  TGeoVolumeAssembly *swheel = new TGeoVolumeAssembly("TPC_SSWHEEL");
+  auto *swheel = new TGeoVolumeAssembly("TPC_SSWHEEL");
   for(Int_t i =0;i<18;i++){
     Double_t phi = (20.*i);
     rsw[i] = new TGeoRotation();
@@ -1739,7 +1739,7 @@ void Detector::ConstructTPCGeometry()
   Int_t totrows=159;
 //   totrows = mParam->GetNRowLow() + mParam->GetNRowUp();
   Double_t *upar;
-  upar=NULL;
+  upar=nullptr;
   gGeoManager->Volume("TPC_Strip","PGON",m5->GetId(),upar);
   upar=new Double_t [10];
   upar[0]=0.;
@@ -1807,7 +1807,7 @@ void Detector::ConstructTPCGeometry()
   //
   // tpc rod long
   //
-  TGeoPcon *rod = new TGeoPcon("rod",0.,360.,6);
+  auto *rod = new TGeoPcon("rod",0.,360.,6);
   rod->DefineSection(0,-10.43,1.92,2.08);
   rod->DefineSection(1,-9.75,1.92,2.08);
 
@@ -1817,11 +1817,11 @@ void Detector::ConstructTPCGeometry()
   rod->DefineSection(4,9.75,1.92,2.08);
   rod->DefineSection(5,10.43,1.92,2.08);
   //
-  TGeoVolume *mrodl = new TGeoVolume("TPC_mrodl",rod,m6);
+  auto *mrodl = new TGeoVolume("TPC_mrodl",rod,m6);
   //
   // tpc rod short
   //
-  TGeoPcon *rod1 = new TGeoPcon("rod1",0.,360.,6);
+  auto *rod1 = new TGeoPcon("rod1",0.,360.,6);
   rod1->DefineSection(0,-8.93,1.92,2.08);
   rod1->DefineSection(1,-8.25,1.92,2.08);
 
@@ -1831,7 +1831,7 @@ void Detector::ConstructTPCGeometry()
   rod1->DefineSection(4,8.25,1.92,2.08);
   rod1->DefineSection(5,8.93,1.92,2.08);
   //
-  TGeoVolume *mrods = new TGeoVolume("TPC_mrods",rod1,m6);
+  auto *mrods = new TGeoVolume("TPC_mrods",rod1,m6);
   //
   // below is for the resistor rod
   //
@@ -1843,7 +1843,7 @@ void Detector::ConstructTPCGeometry()
   //transformations for holes - initialy they
   // are placed at x=0 and negative y
   //
-  TGeoRotation *rhole = new TGeoRotation();
+  auto *rhole = new TGeoRotation();
   rhole->RotateX(90.);
   TGeoCombiTrans *transf[13];
   Char_t name[30];
@@ -1868,34 +1868,34 @@ void Detector::ConstructTPCGeometry()
   new TGeoCompositeShape("hlv",operl.Data());
   new TGeoCompositeShape("hsv",opers.Data());
   //
-  TGeoCompositeShape *rodl = new TGeoCompositeShape("rodl","rod-hlv");
-  TGeoCompositeShape *rods = new TGeoCompositeShape("rods","rod1-hsv");
+  auto *rodl = new TGeoCompositeShape("rodl","rod-hlv");
+  auto *rods = new TGeoCompositeShape("rods","rod1-hsv");
   //rods - volumes - makrolon rods with holes
-  TGeoVolume *rodlv = new TGeoVolume("TPC_rodl",rodl,m6);
-  TGeoVolume *rodsv = new TGeoVolume("TPC_rods",rods,m6);
+  auto *rodlv = new TGeoVolume("TPC_rodl",rodl,m6);
+  auto *rodsv = new TGeoVolume("TPC_rods",rods,m6);
   //brass connectors
   //connectors
-  TGeoTube *bcon = new TGeoTube(0.,0.3,0.3);//connectors
-  TGeoVolume *bconv = new TGeoVolume("TPC_bcon",bcon,m13);
+  auto *bcon = new TGeoTube(0.,0.3,0.3);//connectors
+  auto *bconv = new TGeoVolume("TPC_bcon",bcon,m13);
   //
   // hooks holding strips
   //
   new TGeoBBox("hk1",0.625,0.015,0.75);
   new TGeoBBox("hk2",0.625,0.015,0.15);
-  TGeoTranslation *tr21 = new TGeoTranslation("tr21",0.,-0.03,-0.6);
-  TGeoTranslation *tr12 = new TGeoTranslation("tr12",0.,-0.03,0.6);
+  auto *tr21 = new TGeoTranslation("tr21",0.,-0.03,-0.6);
+  auto *tr12 = new TGeoTranslation("tr12",0.,-0.03,0.6);
   tr21->RegisterYourself();
   tr12->RegisterYourself();
 
-  TGeoCompositeShape *hook = new TGeoCompositeShape("hook","hk1+hk2:tr21+hk2:tr12");
-  TGeoVolume *hookv = new TGeoVolume("TPC_hook",hook,m13);
+  auto *hook = new TGeoCompositeShape("hook","hk1+hk2:tr21+hk2:tr12");
+  auto *hookv = new TGeoVolume("TPC_hook",hook,m13);
   //
   // assembly of the short rod with connectors and hooks
   //
   //
   // short rod
   //
-  TGeoVolumeAssembly *spart = new TGeoVolumeAssembly("TPC_spart");
+  auto *spart = new TGeoVolumeAssembly("TPC_spart");
   //
   spart->AddNode( rodsv,1);
   for(Int_t i=1;i<12;i++){
@@ -1907,7 +1907,7 @@ void Detector::ConstructTPCGeometry()
   //
   // long rod
   //
-  TGeoVolumeAssembly *lpart = new TGeoVolumeAssembly("TPC_lpart");
+  auto *lpart = new TGeoVolumeAssembly("TPC_lpart");
   //
   lpart->AddNode( rodlv,1);
   for(Int_t i=0;i<13;i++){
@@ -1922,13 +1922,13 @@ void Detector::ConstructTPCGeometry()
   new TGeoTube("ring1",2.1075,2.235,0.53);
   new TGeoTube("ring2",1.7925,1.89,0.43);
   new TGeoTube("ring3",1.89,2.1075,0.05);
-  TGeoCompositeShape *ring = new TGeoCompositeShape("ring","ring1+ring2+ring3");
-  TGeoVolume *ringv = new TGeoVolume("TPC_ring",ring,m3);
+  auto *ring = new TGeoCompositeShape("ring","ring1+ring2+ring3");
+  auto *ringv = new TGeoVolume("TPC_ring",ring,m3);
   //
   // rod assembly
   //
-  TGeoVolumeAssembly *tpcrrod = new TGeoVolumeAssembly("TPC_rrod");//rrod
-  TGeoVolumeAssembly *tpcmrod = new TGeoVolumeAssembly("TPC_mrod");//makrolon rod
+  auto *tpcrrod = new TGeoVolumeAssembly("TPC_rrod");//rrod
+  auto *tpcmrod = new TGeoVolumeAssembly("TPC_mrod");//makrolon rod
   //long pieces
   for(Int_t i=0;i<11;i++){
     tpcrrod->AddNode(ringv,i+1,new TGeoTranslation(0.,0.,-105.+i*21));
@@ -1941,7 +1941,7 @@ void Detector::ConstructTPCGeometry()
   //
   // right plug - identical for all rods
   //
-  TGeoPcon *tpcrp = new TGeoPcon(0.,360.,6);
+  auto *tpcrp = new TGeoPcon(0.,360.,6);
   //
   tpcrp->DefineSection(0,123.05,1.89,2.1075);
   tpcrp->DefineSection(1,123.59,1.89,2.1075);
@@ -1952,7 +1952,7 @@ void Detector::ConstructTPCGeometry()
   tpcrp->DefineSection(4,127.,0.,2.2);
   tpcrp->DefineSection(5,127.5,0.,2.2);
   //
-  TGeoVolume *tpcrpv = new TGeoVolume("TPC_RP",tpcrp,m6);
+  auto *tpcrpv = new TGeoVolume("TPC_RP",tpcrp,m6);
   //
   // adding short pieces and right plug
   //
@@ -1973,19 +1973,19 @@ void Detector::ConstructTPCGeometry()
   //
   //
   //HV rods - makrolon + 0.58cm (diameter) Cu ->check the length
-  TGeoTube *hvr = new TGeoTube(0.,1.465,123.);
-  TGeoTube *hvc = new TGeoTube(0.,0.29,123.);
+  auto *hvr = new TGeoTube(0.,1.465,123.);
+  auto *hvc = new TGeoTube(0.,0.29,123.);
   //
-  TGeoVolume *hvrv = new TGeoVolume("TPC_HV_Rod",hvr,m6);
-  TGeoVolume *hvcv = new TGeoVolume("TPC_HV_Cable",hvc,m7);
+  auto *hvrv = new TGeoVolume("TPC_HV_Rod",hvr,m6);
+  auto *hvcv = new TGeoVolume("TPC_HV_Cable",hvc,m7);
   hvrv->AddNode(hvcv,1);
   //
   //resistor rod
   //
-  TGeoTube *cr = new TGeoTube(0.,0.45,123.);
-  TGeoTube *cw = new TGeoTube(0.,0.15,123.);
-  TGeoVolume *crv = new TGeoVolume("TPC_CR",cr,m10);
-  TGeoVolume *cwv = new TGeoVolume("TPC_W",cw,m12);
+  auto *cr = new TGeoTube(0.,0.45,123.);
+  auto *cw = new TGeoTube(0.,0.15,123.);
+  auto *crv = new TGeoVolume("TPC_CR",cr,m10);
+  auto *cwv = new TGeoVolume("TPC_W",cw,m12);
   //
   // ceramic rod with water
   //
@@ -1993,8 +1993,8 @@ void Detector::ConstructTPCGeometry()
   //
   //peek rod
   //
-  TGeoTube *pr =new TGeoTube(0.2,0.35,123.);
-  TGeoVolume *prv = new TGeoVolume("TPC_PR",pr,m11);
+  auto *pr =new TGeoTube(0.2,0.35,123.);
+  auto *prv = new TGeoVolume("TPC_PR",pr,m11);
   //
   // copper plates with connectors
   //
@@ -2038,25 +2038,25 @@ void Detector::ConstructTPCGeometry()
   new TGeoTube("h1",0.,0.5,0.025);
   new TGeoTube("h2",0.,0.35,0.025);
   //translations:
-  TGeoTranslation *ttr11 = new TGeoTranslation("ttr11",-0.866,0.5,0.);
-  TGeoTranslation *ttr22 = new TGeoTranslation("ttr22",0.866,0.5,0.);
+  auto *ttr11 = new TGeoTranslation("ttr11",-0.866,0.5,0.);
+  auto *ttr22 = new TGeoTranslation("ttr22",0.866,0.5,0.);
   ttr11->RegisterYourself();
   ttr22->RegisterYourself();
   // elastic connector
   new TGeoBBox("elcon",0.72,0.005,0.3);
-  TGeoRotation *crr1 = new TGeoRotation();
+  auto *crr1 = new TGeoRotation();
   crr1->RotateZ(-22.);
-  TGeoCombiTrans *ctr1 = new TGeoCombiTrans("ctr1",-0.36011, -1.09951,-0.325,crr1);
+  auto *ctr1 = new TGeoCombiTrans("ctr1",-0.36011, -1.09951,-0.325,crr1);
   ctr1->RegisterYourself();
-  TGeoCompositeShape *cs1 = new TGeoCompositeShape("cs1",
+  auto *cs1 = new TGeoCompositeShape("cs1",
                                                    "(((((tub-h1:ttr11)-h1:ttr22)-sp1)-sp2)-h2)+elcon:ctr1");
   //
-  TGeoVolume *csvv = new TGeoVolume("TPC_RR_CU",cs1,m7);
+  auto *csvv = new TGeoVolume("TPC_RR_CU",cs1,m7);
   //
   // resistor rod assembly 2 ceramic rods, peak rod, Cu plates
   // and resistors
   //
-  TGeoVolumeAssembly *rrod = new TGeoVolumeAssembly("TPC_RRIN");
+  auto *rrod = new TGeoVolumeAssembly("TPC_RRIN");
   // rods
   rrod->AddNode(crv,1,ttr11);
   rrod->AddNode(crv,2,ttr22);
@@ -2066,15 +2066,15 @@ void Detector::ConstructTPCGeometry()
     rrod->AddNode(csvv,i+1,new TGeoTranslation(0.,0.,-122.675+i*1.5));
   }
   //resistors
-  TGeoTube *res = new TGeoTube(0.,0.15,0.5);
-  TGeoVolume *resv = new TGeoVolume("TPC_RES",res,m14);
-  TGeoVolumeAssembly *ress = new TGeoVolumeAssembly("TPC_RES_CH");
+  auto *res = new TGeoTube(0.,0.15,0.5);
+  auto *resv = new TGeoVolume("TPC_RES",res,m14);
+  auto *ress = new TGeoVolumeAssembly("TPC_RES_CH");
   ress->AddNode(resv,1,new TGeoTranslation(0.2,0.,0.));
   ress->AddNode(resv,2,new TGeoTranslation(-0.2,0.,0.));
   //
-  TGeoRotation *crr2 = new TGeoRotation();
+  auto *crr2 = new TGeoRotation();
   crr2->RotateY(30.);
-  TGeoRotation *crr3 = new TGeoRotation();
+  auto *crr3 = new TGeoRotation();
   crr3->RotateY(-30.);
   //
   for(Int_t i=0;i<164;i+=2){
@@ -2112,7 +2112,7 @@ void Detector::ConstructTPCGeometry()
   pointstrap[14]= 3.38;
   pointstrap[15]= 0.0;
   //
-  TGeoArb8 *tpcihs5 = new TGeoArb8("tpcihs5", 0.6, pointstrap);
+  auto *tpcihs5 = new TGeoArb8("tpcihs5", 0.6, pointstrap);
   //
   //  half space - cutting "legs"
   //
@@ -2129,23 +2129,23 @@ void Detector::ConstructTPCGeometry()
   //
   // transformations
   //
-  TGeoTranslation *trans2 = new TGeoTranslation("trans2", 0.0, 2.84, 2.25);
+  auto *trans2 = new TGeoTranslation("trans2", 0.0, 2.84, 2.25);
   trans2->RegisterYourself();
-  TGeoTranslation*trans3= new TGeoTranslation("trans3", 0.0, 2.84, -2.25);
+  auto*trans3= new TGeoTranslation("trans3", 0.0, 2.84, -2.25);
   trans3->RegisterYourself();
   //support - composite volume
   //
-  TGeoCompositeShape *tpcihs6 = new TGeoCompositeShape("tpcihs6", "tpcihs1-(tpcihs2+tpcihs3)-(tpcihs4:trans2)-(tpcihs4:trans3)-cutil1");
+  auto *tpcihs6 = new TGeoCompositeShape("tpcihs6", "tpcihs1-(tpcihs2+tpcihs3)-(tpcihs4:trans2)-(tpcihs4:trans3)-cutil1");
   //
   // volumes - all makrolon
   //
-  TGeoVolume *tpcihss = new TGeoVolume("TPC_IHSS", tpcihs6, m6); //support
-  TGeoVolume *tpcihst = new TGeoVolume("TPC_IHSTR",tpcihs5 , m6); //trapesoid
+  auto *tpcihss = new TGeoVolume("TPC_IHSS", tpcihs6, m6); //support
+  auto *tpcihst = new TGeoVolume("TPC_IHSTR",tpcihs5 , m6); //trapesoid
   //now assembly
-  TGeoRotation *rot111 = new TGeoRotation();
+  auto *rot111 = new TGeoRotation();
   rot111->RotateY(180.0);
   //
-  TGeoVolumeAssembly *tpcihs = new TGeoVolumeAssembly("TPC_IHS");    // assembly of the support
+  auto *tpcihs = new TGeoVolumeAssembly("TPC_IHS");    // assembly of the support
   tpcihs->AddNode(tpcihss, 1);
   tpcihs->AddNode(tpcihst, 1, new TGeoTranslation(-4.7, 0.66, 0.0));
   tpcihs->AddNode(tpcihst, 2, new TGeoCombiTrans(4.7, 0.66, 0.0, rot111));
@@ -2167,14 +2167,14 @@ void Detector::ConstructTPCGeometry()
   new TGeoBBox("tpcirh4", 1.9, 0.25, 0.5, shift1);
   new TGeoTube("tpcirh5", 0, 1.9, 5);
   //
-  TGeoTranslation *trans4 = new TGeoTranslation("trans4", 0, 0.83, 0.0);
+  auto *trans4 = new TGeoTranslation("trans4", 0, 0.83, 0.0);
   trans4->RegisterYourself();
   //
-  TGeoCompositeShape *tpcirh6 = new TGeoCompositeShape("tpcirh6", "tpcirh1-tpcirh2-tpcirh3-(tpcirh5:trans4)-tpcirh4");
+  auto *tpcirh6 = new TGeoCompositeShape("tpcirh6", "tpcirh1-tpcirh2-tpcirh3-(tpcirh5:trans4)-tpcirh4");
   //
   // now volume
   //
-  TGeoVolume *tpcirh = new TGeoVolume("TPC_IRH", tpcirh6, m6);
+  auto *tpcirh = new TGeoVolume("TPC_IRH", tpcirh6, m6);
   //
   // and all together...
   //
@@ -2185,7 +2185,7 @@ void Detector::ConstructTPCGeometry()
   //
   // and now left inner "head"
   //
-  TGeoPcon *inplug = new TGeoPcon("inplug", 0.0, 360.0, 14);
+  auto *inplug = new TGeoPcon("inplug", 0.0, 360.0, 14);
 
   inplug->DefineSection(0, 0.3, 0.0, 2.2);
   inplug->DefineSection(1, 0.6, 0.0, 2.2);
@@ -2214,8 +2214,8 @@ void Detector::ConstructTPCGeometry()
   //
   new TGeoBBox("pcuti", 1.5, 0.11, 1.075, shift1);
   //
-  TGeoCompositeShape *inplleft = new TGeoCompositeShape("inplleft", "inplug-pcuti");
-  TGeoVolume *tpcinlplug = new TGeoVolume("TPC_INPLL", inplleft, m6);
+  auto *inplleft = new TGeoCompositeShape("inplleft", "inplug-pcuti");
+  auto *tpcinlplug = new TGeoVolume("TPC_INPLL", inplleft, m6);
   //
   //  holder + plugs
   //
@@ -2245,11 +2245,11 @@ void Detector::ConstructTPCGeometry()
   pointstrap[14]= 3.1;
   pointstrap[15]= 0.0;
   //
-  TGeoArb8 *tpcomh1 = new TGeoArb8("tpcomh1", 1.05, pointstrap);
-  TGeoBBox *tpcomh2 = new TGeoBBox("tpcomh2", 0.8, 1.4, 6);
+  auto *tpcomh1 = new TGeoArb8("tpcomh1", 1.05, pointstrap);
+  auto *tpcomh2 = new TGeoBBox("tpcomh2", 0.8, 1.4, 6);
   //
-  TGeoVolume *tpcomh1v = new TGeoVolume("TPC_OMH1", tpcomh1, m7);
-  TGeoVolume *tpcomh2v = new TGeoVolume("TPC_OMH2", tpcomh2, m7);
+  auto *tpcomh1v = new TGeoVolume("TPC_OMH1", tpcomh1, m7);
+  auto *tpcomh2v = new TGeoVolume("TPC_OMH2", tpcomh2, m7);
   //
   TGeoVolume *tpcomh3v = new TGeoVolumeAssembly("TPC_OMH3");    // assembly1
   tpcomh3v->AddNode(tpcomh1v, 1, new TGeoTranslation(0.8, -1.4, 4.95));
@@ -2261,7 +2261,7 @@ void Detector::ConstructTPCGeometry()
   shift1[2] = 0.0;
   //
   new TGeoBBox("tpcomh3", 1.65, 1.15, 3.4);
-  TGeoBBox *tpcomh4 = new TGeoBBox("tpcomh4", 0.75, 0.7, 3.4, shift1);
+  auto *tpcomh4 = new TGeoBBox("tpcomh4", 0.75, 0.7, 3.4, shift1);
   //
   // halfspace 1
   //
@@ -2323,18 +2323,18 @@ void Detector::ConstructTPCGeometry()
   //
   new TGeoHalfSpace("cutomh5", p, n);
   //
-  TGeoCompositeShape *tpcomh5 = new TGeoCompositeShape("tpcomh5", "tpcomh3-cutomh1-cutomh2-cutomh3-cutomh4-cutomh5");
+  auto *tpcomh5 = new TGeoCompositeShape("tpcomh5", "tpcomh3-cutomh1-cutomh2-cutomh3-cutomh4-cutomh5");
   //
-  TGeoVolume *tpcomh5v = new TGeoVolume("TPC_OMH5",tpcomh5,m6);
-  TGeoVolume *tpcomh4v = new TGeoVolume("TPC_OMH6",tpcomh4,m6);
+  auto *tpcomh5v = new TGeoVolume("TPC_OMH5",tpcomh5,m6);
+  auto *tpcomh4v = new TGeoVolume("TPC_OMH6",tpcomh4,m6);
   //
-  TGeoVolumeAssembly *tpcomh7v = new TGeoVolumeAssembly("TPC_OMH7");
+  auto *tpcomh7v = new TGeoVolumeAssembly("TPC_OMH7");
   tpcomh7v->AddNode(tpcomh5v,1);
   tpcomh7v->AddNode(tpcomh4v,1);
   //
   // full membrane holder - tpcomh3v + tpcomh7v
   //
-  TGeoVolumeAssembly *tpcomh = new TGeoVolumeAssembly("TPC_OMH");
+  auto *tpcomh = new TGeoVolumeAssembly("TPC_OMH");
   tpcomh->AddNode(tpcomh3v,1,new TGeoTranslation(1.5,0.,0.));
   tpcomh->AddNode(tpcomh3v,2,new TGeoCombiTrans(-1.5,0.,0.,rot111));
   tpcomh->AddNode(tpcomh7v,1,new TGeoTranslation(0.65+1.5, 2.55, 0.0));
@@ -2355,9 +2355,9 @@ void Detector::ConstructTPCGeometry()
   shift1[1] = -1.175;
   shift1[2] = 0.0;
   //
-  TGeoBBox *tpcohs4 = new TGeoBBox("tpsohs4", 3.1, 0.5, 0.7, shift1);
+  auto *tpcohs4 = new TGeoBBox("tpsohs4", 3.1, 0.5, 0.7, shift1);
   //
-  TGeoVolume *tpcohs4v = new TGeoVolume("TPC_OHS4", tpcohs4, m6);
+  auto *tpcohs4v = new TGeoVolume("TPC_OHS4", tpcohs4, m6);
   //
   p[0] = 0.0;
   p[1] = -0.186;
@@ -2369,10 +2369,10 @@ void Detector::ConstructTPCGeometry()
   //
   new TGeoHalfSpace("cutohs1", p, n);
   //
-  TGeoCompositeShape *tpcohs5 = new TGeoCompositeShape("tpcohs5", "tpcohs1-tpcohs2-tpcohs3-cutohs1");
-  TGeoVolume *tpcohs5v = new TGeoVolume("TPC_OHS5", tpcohs5, m6);
+  auto *tpcohs5 = new TGeoCompositeShape("tpcohs5", "tpcohs1-tpcohs2-tpcohs3-cutohs1");
+  auto *tpcohs5v = new TGeoVolume("TPC_OHS5", tpcohs5, m6);
   //
-  TGeoVolumeAssembly *tpcohs = new TGeoVolumeAssembly("TPC_OHS");
+  auto *tpcohs = new TGeoVolumeAssembly("TPC_OHS");
   tpcohs->AddNode(tpcohs5v, 1);
   tpcohs->AddNode(tpcohs4v, 1);
   //
@@ -2416,23 +2416,23 @@ void Detector::ConstructTPCGeometry()
   new TGeoTube("tpcorh7", 0, 1.95, 0.85);
   new TGeoTube("tpcorh8", 0, 2.4, 0.6);
   //
-  TGeoTranslation *trans33 = new TGeoTranslation("trans33", 0.0, 0.0, 0.55);
+  auto *trans33 = new TGeoTranslation("trans33", 0.0, 0.0, 0.55);
   trans33->RegisterYourself();
   //
-  TGeoCompositeShape *tpcorh9 = new TGeoCompositeShape("tpcorh9", "tpcorh1-tpcorh2-tpcorh3-tpcorh4-tpcorh5-tpcorh6-(tpcorh8:trans33)-tpcorh7");
+  auto *tpcorh9 = new TGeoCompositeShape("tpcorh9", "tpcorh1-tpcorh2-tpcorh3-tpcorh4-tpcorh5-tpcorh6-(tpcorh8:trans33)-tpcorh7");
   //
-  TGeoVolume *tpcorh9v = new TGeoVolume("TPC_ORH",tpcorh9,m6); //outer rod holder
+  auto *tpcorh9v = new TGeoVolume("TPC_ORH",tpcorh9,m6); //outer rod holder
   //
   // now 2 holders together
   //
-  TGeoVolumeAssembly *tpcorh = new TGeoVolumeAssembly("TPC_ORH2");
+  auto *tpcorh = new TGeoVolumeAssembly("TPC_ORH2");
   //
   tpcorh->AddNode(tpcorh9v,1,new TGeoTranslation(0.0, 0.0, 1.25));
   tpcorh->AddNode(tpcorh9v,2,new TGeoCombiTrans(0.0, 0.0, -1.25,rot111));
   //
   // outer rod plug left
   //
-  TGeoPcon *outplug = new TGeoPcon("outplug", 0.0, 360.0, 14);
+  auto *outplug = new TGeoPcon("outplug", 0.0, 360.0, 14);
 
   outplug->DefineSection(0, 0.5, 0.0, 2.2);
   outplug->DefineSection(1, 0.7, 0.0, 2.2);
@@ -2462,14 +2462,14 @@ void Detector::ConstructTPCGeometry()
   new TGeoBBox("cutout", 2.5, 0.11, 1.01, shift1);
   //
 
-  TGeoCompositeShape *outplleft = new TGeoCompositeShape("outplleft", "outplug-cutout");
-  TGeoVolume *outplleftv = new TGeoVolume("TPC_OPLL", outplleft, m6);
+  auto *outplleft = new TGeoCompositeShape("outplleft", "outplug-cutout");
+  auto *outplleftv = new TGeoVolume("TPC_OPLL", outplleft, m6);
   //
   //  support + holder + plug
   //
 
 
-  TGeoVolumeAssembly *tpcohpl = new TGeoVolumeAssembly("TPC_OHPL");
+  auto *tpcohpl = new TGeoVolumeAssembly("TPC_OHPL");
   //
   tpcohpl->AddNode(outplleftv,1); //plug
   tpcohpl->AddNode(outplleftv,2,ref); //plug reflected
@@ -2497,13 +2497,13 @@ void Detector::ConstructTPCGeometry()
   pointstrap[14]= 3.1;
   pointstrap[15]= 0.0;
   //
-  TGeoArb8 *tpcmmh1 = new TGeoArb8("tpcmmh1", 1.75, pointstrap);
-  TGeoBBox *tpcmmh2 = new TGeoBBox("tpcmmh2", 0.8, 1.4, 12.5);
+  auto *tpcmmh1 = new TGeoArb8("tpcmmh1", 1.75, pointstrap);
+  auto *tpcmmh2 = new TGeoBBox("tpcmmh2", 0.8, 1.4, 12.5);
   //
-  TGeoVolume *tpcmmh1v = new TGeoVolume("TPC_MMH1", tpcmmh1, m6);
-  TGeoVolume *tpcmmh2v = new TGeoVolume("TPC_MMH2", tpcmmh2, m6);
+  auto *tpcmmh1v = new TGeoVolume("TPC_MMH1", tpcmmh1, m6);
+  auto *tpcmmh2v = new TGeoVolume("TPC_MMH2", tpcmmh2, m6);
   //
-  TGeoVolumeAssembly *tpcmmhs = new TGeoVolumeAssembly("TPC_MMHS");
+  auto *tpcmmhs = new TGeoVolumeAssembly("TPC_MMHS");
   tpcmmhs->AddNode(tpcmmh1v,1,new TGeoTranslation(0.8, -1.4, 10.75));
   tpcmmhs->AddNode(tpcmmh1v,2,new TGeoTranslation(0.8, -1.4, -10.75));
   tpcmmhs->AddNode(tpcmmh2v,1);
@@ -2579,9 +2579,9 @@ void Detector::ConstructTPCGeometry()
   //
   new TGeoHalfSpace("cutmmh6", p, n);
 
-  TGeoCompositeShape *tpcmmhc = new TGeoCompositeShape("TPC_MMHC", "tpcmmhc1-tpcmmhc2-cutmmh1-cutmmh2-cutmmh3-cutmmh4-cutmmh5-cutmmh6");
+  auto *tpcmmhc = new TGeoCompositeShape("TPC_MMHC", "tpcmmhc1-tpcmmhc2-cutmmh1-cutmmh2-cutmmh3-cutmmh4-cutmmh5-cutmmh6");
 
-  TGeoVolume *tpcmmhcv = new TGeoVolume("TPC_MMHC",tpcmmhc,m6);
+  auto *tpcmmhcv = new TGeoVolume("TPC_MMHC",tpcmmhc,m6);
   //
   TGeoVolume *tpcmmh = new TGeoVolumeAssembly("TPC_MMH");
   //
@@ -2598,9 +2598,9 @@ void Detector::ConstructTPCGeometry()
   // guard ring resistor chain
   //
 
-  TGeoTube *gres1 = new TGeoTube(0.,0.375,125.);// inside ifc
+  auto *gres1 = new TGeoTube(0.,0.375,125.);// inside ifc
   //
-  TGeoVolume *vgres1 = new TGeoVolume("TPC_GRES1",gres1,m14);
+  auto *vgres1 = new TGeoVolume("TPC_GRES1",gres1,m14);
 
   //
   Double_t xrc,yrc;
@@ -2626,8 +2626,8 @@ void Detector::ConstructTPCGeometry()
   //
   // clamps holding rods
   //
-  TGeoBBox *clampi1 = new TGeoBBox("clampi1",0.2,3.1,0.8);
-  TGeoVolume *clampi1v = new TGeoVolume("TPC_clampi1v",clampi1,m6);
+  auto *clampi1 = new TGeoBBox("clampi1",0.2,3.1,0.8);
+  auto *clampi1v = new TGeoVolume("TPC_clampi1v",clampi1,m6);
   //
   pointstrap[0]=0.49;
   pointstrap[1]=0.375;
@@ -2653,10 +2653,10 @@ void Detector::ConstructTPCGeometry()
   pointstrap[14]=-0.49;
   pointstrap[15]=1.225;
   //
-  TGeoArb8 *clitrap = new TGeoArb8("clitrap",0.25,pointstrap);
-  TGeoVolume *clitrapv = new TGeoVolume("TPC_clitrapv",clitrap,m6);
+  auto *clitrap = new TGeoArb8("clitrap",0.25,pointstrap);
+  auto *clitrapv = new TGeoVolume("TPC_clitrapv",clitrap,m6);
   //
-  TGeoRotation *clamprot = new TGeoRotation();
+  auto *clamprot = new TGeoRotation();
   clamprot->RotateX(180.);
   //
   new TGeoBBox("clibox",1.125,3.1,.1);
@@ -2664,10 +2664,10 @@ void Detector::ConstructTPCGeometry()
   //
   // copmisite shape for the clamp holder
   //
-  TGeoTranslation *clitr1 = new TGeoTranslation("clitr1",1.125,0.,0.);
+  auto *clitr1 = new TGeoTranslation("clitr1",1.125,0.,0.);
   clitr1->RegisterYourself();
-  TGeoCompositeShape *clihold = new TGeoCompositeShape("clihold","clibox-clitub:clitr1");
-  TGeoVolume *cliholdv = new TGeoVolume("TPC_cliholdv",clihold,m6);
+  auto *clihold = new TGeoCompositeShape("clihold","clibox-clitub:clitr1");
+  auto *cliholdv = new TGeoVolume("TPC_cliholdv",clihold,m6);
   //
   // now assembly the whole inner clamp
   //
@@ -2682,13 +2682,13 @@ void Detector::ConstructTPCGeometry()
   //
   //  outer clamps
   //
-  TGeoBBox *clampo1 = new TGeoBBox("clampo1",0.25,3.1,1.);
-  TGeoBBox *clampo2 = new TGeoBBox("clampo2",0.4,0.85,1.);
+  auto *clampo1 = new TGeoBBox("clampo1",0.25,3.1,1.);
+  auto *clampo2 = new TGeoBBox("clampo2",0.4,0.85,1.);
   //
-  TGeoVolume *clampo1v = new TGeoVolume("TPC_clampo1v",clampo1,m6);
-  TGeoVolume *clampo2v = new TGeoVolume("TPC_clampo2v",clampo2,m6);
+  auto *clampo1v = new TGeoVolume("TPC_clampo1v",clampo1,m6);
+  auto *clampo2v = new TGeoVolume("TPC_clampo2v",clampo2,m6);
   //
-  TGeoVolumeAssembly *oclamp = new TGeoVolumeAssembly("TPC_oclamp");
+  auto *oclamp = new TGeoVolumeAssembly("TPC_oclamp");
   //
   oclamp->AddNode(clampo1v,1);
   //
@@ -2714,22 +2714,22 @@ void Detector::ConstructTPCGeometry()
   pointstrap[14]=-0.375;
   pointstrap[15]=0.35;
   //
-  TGeoArb8 *clotrap = new TGeoArb8("clotrap",0.25,pointstrap);
-  TGeoVolume *clotrapv = new TGeoVolume("TPC_clotrapv",clotrap,m6);
+  auto *clotrap = new TGeoArb8("clotrap",0.25,pointstrap);
+  auto *clotrapv = new TGeoVolume("TPC_clotrapv",clotrap,m6);
   //
   oclamp->AddNode(clotrapv,1,new TGeoTranslation(-0.625,-2.75,0.35));
   oclamp->AddNode(clotrapv,2,new TGeoTranslation(-0.625,-2.75,-0.35));
   oclamp->AddNode(clotrapv,3,new TGeoCombiTrans(-0.625,2.75,0.35,clamprot));
   oclamp->AddNode(clotrapv,4,new TGeoCombiTrans(-0.625,2.75,-0.35,clamprot));
   //
-  TGeoBBox *clampo3 = new TGeoBBox("clampo3",1.6,0.45,.1);
-  TGeoVolume *clampo3v = new TGeoVolume("TPC_clampo3v",clampo3,m6);
+  auto *clampo3 = new TGeoBBox("clampo3",1.6,0.45,.1);
+  auto *clampo3v = new TGeoVolume("TPC_clampo3v",clampo3,m6);
   //
   oclamp->AddNode(clampo3v,1,new TGeoTranslation(-1.85,2.625,0.));
   oclamp->AddNode(clampo3v,2,new TGeoTranslation(-1.85,-2.625,0));
   //
-  TGeoTubeSeg *clampo4 = new TGeoTubeSeg("clampo4",2.2,3.1,0.1,90.,270.);
-  TGeoVolume *clampo4v = new TGeoVolume("TPC_clampo4v",clampo4,m6);
+  auto *clampo4 = new TGeoTubeSeg("clampo4",2.2,3.1,0.1,90.,270.);
+  auto *clampo4v = new TGeoVolume("TPC_clampo4v",clampo4,m6);
   //
   oclamp->AddNode(clampo4v,1,new TGeoTranslation(-3.45,0.,0.));
 
@@ -2749,7 +2749,7 @@ void Detector::ConstructTPCGeometry()
     x=r * TMath::Cos(angle);
     y=r * TMath::Sin(angle);
     z = 126.;
-    TGeoRotation *rot12 = new TGeoRotation();
+    auto *rot12 = new TGeoRotation();
     rot12->RotateZ(-90.0+i*20.);
     v9->AddNode(tpcihpl,i+1,new TGeoCombiTrans(x, y, 0., rot12));
     //
@@ -2803,7 +2803,7 @@ void Detector::ConstructTPCGeometry()
     // outer rod holder + outer left plug
     //
 
-    TGeoRotation *rot33 = new TGeoRotation();
+    auto *rot33 = new TGeoRotation();
     rot33->RotateZ(-90+i*20.);
     //
     v9->AddNode(tpcohpl,i+1,new TGeoCombiTrans(x, y, 0., rot33));
@@ -2813,10 +2813,10 @@ void Detector::ConstructTPCGeometry()
     //
     TGeoRotation rot101("rot101");
     rot101.RotateZ(90.+i*20.+10.);
-    TGeoRotation *rot103 = new TGeoRotation("rot103");
+    auto *rot103 = new TGeoRotation("rot103");
     *rot103 = rot101*rot102;
     //
-    TGeoCombiTrans *trh100 = new TGeoCombiTrans(xxx,yyy,0.,rot103);
+    auto *trh100 = new TGeoCombiTrans(xxx,yyy,0.,rot103);
     //
     if(i==2) {
       //main membrane holder
@@ -2905,14 +2905,14 @@ void Detector::LoadGeometryFromFile()
 void Detector::DefineSensitiveVolumes()
 {
   TGeoManager* geoManager = gGeoManager;
-  TGeoVolume* v=0x0;
+  TGeoVolume* v=nullptr;
 
   const Int_t nSensitive=1;
   const char* volumeNames[nSensitive]={"TPC_Drift"};
 
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...mNumberLayers-1)
-  for (Int_t ivol = 0; ivol < nSensitive; ++ivol) {
-    TString volumeName = volumeNames[ivol];
+  for (auto & ivol : volumeNames) {
+    TString volumeName = ivol;
     v = geoManager->GetVolume(volumeName.Data());
     if (!v) {
       LOG(ERROR) << "Could not find volume '" << volumeName << "'" << FairLogger::endl;

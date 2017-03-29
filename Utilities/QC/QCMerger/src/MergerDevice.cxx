@@ -203,7 +203,7 @@ void MergerDevice::updateMetrics()
 
 TMessage* MergerDevice::createTMessageForViewer(const TObject * objectToSend) const
 {
-  TMessage* viewerMessage = new TMessage(kMESS_OBJECT);
+  auto* viewerMessage = new TMessage(kMESS_OBJECT);
   viewerMessage->WriteObject(objectToSend);
   return viewerMessage;
 }

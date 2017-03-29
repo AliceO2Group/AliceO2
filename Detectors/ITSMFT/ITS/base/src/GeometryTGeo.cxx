@@ -53,19 +53,19 @@ GeometryTGeo::GeometryTGeo(Bool_t build, Bool_t loadSegmentations)
   : mVersion(kITSVNA),
     mNumberOfLayers(0),
     mNumberOfChips(0),
-    mNumberOfStaves(0),
-    mNumberOfHalfStaves(0),
-    mNumberOfModules(0),
-    mNumberOfChipsPerModule(0),
-    mNumberOfChipRowsPerModule(0),
-    mNumberOfChipsPerHalfStave(0),
-    mNumberOfChipsPerStave(0),
-    mNumberOfChipsPerLayer(0),
-    mLayerChipType(0),
-    mLastChipIndex(0),
-    mSensorMatrices(0),
-    mTrackingToLocalMatrices(0),
-    mSegmentations(0)
+    mNumberOfStaves(nullptr),
+    mNumberOfHalfStaves(nullptr),
+    mNumberOfModules(nullptr),
+    mNumberOfChipsPerModule(nullptr),
+    mNumberOfChipRowsPerModule(nullptr),
+    mNumberOfChipsPerHalfStave(nullptr),
+    mNumberOfChipsPerStave(nullptr),
+    mNumberOfChipsPerLayer(nullptr),
+    mLayerChipType(nullptr),
+    mLastChipIndex(nullptr),
+    mSensorMatrices(nullptr),
+    mTrackingToLocalMatrices(nullptr),
+    mSegmentations(nullptr)
 {
   // default c-tor
   for (int i = gMaxLayers; i--;) {
@@ -81,19 +81,19 @@ GeometryTGeo::GeometryTGeo(const GeometryTGeo& src)
     mVersion(src.mVersion),
     mNumberOfLayers(src.mNumberOfLayers),
     mNumberOfChips(src.mNumberOfChips),
-    mNumberOfStaves(0),
-    mNumberOfHalfStaves(0),
-    mNumberOfModules(0),
-    mNumberOfChipsPerModule(0),
-    mNumberOfChipRowsPerModule(0),
-    mNumberOfChipsPerHalfStave(0),
-    mNumberOfChipsPerStave(0),
-    mNumberOfChipsPerLayer(0),
-    mLayerChipType(0),
-    mLastChipIndex(0),
-    mSensorMatrices(0),
-    mTrackingToLocalMatrices(0),
-    mSegmentations(0)
+    mNumberOfStaves(nullptr),
+    mNumberOfHalfStaves(nullptr),
+    mNumberOfModules(nullptr),
+    mNumberOfChipsPerModule(nullptr),
+    mNumberOfChipRowsPerModule(nullptr),
+    mNumberOfChipsPerHalfStave(nullptr),
+    mNumberOfChipsPerStave(nullptr),
+    mNumberOfChipsPerLayer(nullptr),
+    mLayerChipType(nullptr),
+    mLastChipIndex(nullptr),
+    mSensorMatrices(nullptr),
+    mTrackingToLocalMatrices(nullptr),
+    mSegmentations(nullptr)
 {
   // copy c-tor
   if (mNumberOfLayers) {
@@ -185,7 +185,7 @@ GeometryTGeo& GeometryTGeo::operator=(const GeometryTGeo& src)
     delete[] mNumberOfChipsPerLayer;
     delete[] mLastChipIndex;
     mNumberOfStaves = mNumberOfHalfStaves = mNumberOfModules = mLayerChipType = mNumberOfChipsPerModule =
-      mLastChipIndex = 0;
+      mLastChipIndex = nullptr;
     mVersion = src.mVersion;
     mNumberOfLayers = src.mNumberOfLayers;
     mNumberOfChips = src.mNumberOfChips;
@@ -389,7 +389,7 @@ const char* GeometryTGeo::getSymbolicName(Int_t index) const
 {
   Int_t lay, index2;
   if (!getLayer(index, lay, index2)) {
-    return NULL;
+    return nullptr;
   }
   // return
   // GeometryManager::SymName((GeometryManager::ELayerID)((lay-1)+GeometryManager::kSPD1),index2);
@@ -401,7 +401,7 @@ const char* GeometryTGeo::getSymbolicName(Int_t index) const
   if (!pne) {
     LOG(ERROR) << "Failed to find alignable entry with index " << index << ": (Lr" << lay << " Chip:" << index2 << ") !"
                << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
   return pne->GetName();
 }
@@ -439,7 +439,7 @@ TGeoHMatrix* GeometryTGeo::GetMatrix(Int_t index) const
   static TGeoHMatrix matTmp;
   TGeoPNEntry* pne = getPNEntry(index);
   if (!pne) {
-    return NULL;
+    return nullptr;
   }
 
   TGeoPhysicalNode* pnode = pne->GetPhysicalNode();
@@ -452,7 +452,7 @@ TGeoHMatrix* GeometryTGeo::GetMatrix(Int_t index) const
   if (!gGeoManager->cd(path)) {
     gGeoManager->PopPath();
     LOG(ERROR) << "Volume path " << path << " not valid!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
   matTmp = *gGeoManager->GetCurrentMatrix();
   gGeoManager->PopPath();
@@ -535,7 +535,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixTrackingToLocal(Int_t index) const
 {
   TGeoPNEntry* pne = getPNEntry(index);
   if (!pne) {
-    return NULL;
+    return nullptr;
   }
 
   TGeoHMatrix* m = (TGeoHMatrix*)pne->GetMatrix();
@@ -597,7 +597,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(Int_t index) const
   if (!gGeoManager->cd(path.Data())) {
     gGeoManager->PopPath();
     LOG(ERROR) << "Error in cd-ing to " << path.Data() << FairLogger::endl;
-    return 0;
+    return nullptr;
   } // end if !gGeoManager
 
   matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
@@ -613,12 +613,12 @@ TGeoPNEntry* GeometryTGeo::getPNEntry(Int_t index) const
 {
   if (index >= mNumberOfChips) {
     LOG(ERROR) << "Invalid ITS chip index: " << index << " (0 -> " << mNumberOfChips << ") !" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   if (!gGeoManager || !gGeoManager->IsClosed()) {
     LOG(ERROR) << "Can't get the matrix! gGeoManager doesn't exist or it is still opened!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(chipVolUID(index));
   //  TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(getSymbolicName(index));
@@ -785,7 +785,7 @@ Int_t GeometryTGeo::extractNumberOfModules(Int_t lay) const
   }
 
   char stavnam[30];
-  TGeoVolume* volLd = 0;
+  TGeoVolume* volLd = nullptr;
 
   if (!mHalfStaveName.IsNull()) {
     snprintf(stavnam, 30, "%s%d", getITSHalfStavePattern(), lay);
@@ -816,7 +816,7 @@ Int_t GeometryTGeo::extractNumberOfChipsPerModule(Int_t lay, int& nrow) const
 {
   Int_t numberOfChips = 0;
   char stavnam[30];
-  TGeoVolume* volLd = 0;
+  TGeoVolume* volLd = nullptr;
 
   if (!mModuleName.IsNull()) {
     snprintf(stavnam, 30, "%s%d", getITSModulePattern(), lay);
@@ -960,7 +960,7 @@ void GeometryTGeo::createT2LMatrices()
     double dx = gloB[0] - gloA[0];
     double dy = gloB[1] - gloA[1];
     double t = (gloB[0] * dx + gloB[1] * dy) / (dx * dx + dy * dy), x = gloB[0] - dx * t, y = gloB[1] - dy * t;
-    TGeoHMatrix* t2l = new TGeoHMatrix();
+    auto* t2l = new TGeoHMatrix();
     t2l->RotateZ(ATan2(y, x) * RadToDeg()); // rotate in direction of normal to the sensor plane
     t2l->SetDx(x);
     t2l->SetDy(y);

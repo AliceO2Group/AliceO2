@@ -11,8 +11,8 @@ using namespace AliceO2::ITS;
 
 void DigitContainer::reset()
 {
-  for (Int_t i = 0; i < mChips.size(); i++)
-    mChips[i].reset();
+  for (auto & mChip : mChips)
+    mChip.reset();
 }
 
 Digit* DigitContainer::getDigit(Int_t chipID, UShort_t row, UShort_t col) { return mChips[chipID].getDigit(row, col); }
@@ -24,7 +24,7 @@ Digit* DigitContainer::addDigit(UShort_t chipID, UShort_t row, UShort_t col, Dou
 
 void DigitContainer::fillOutputContainer(TClonesArray* output)
 {
-  for (Int_t i = 0; i < mChips.size(); i++) {
-    mChips[i].fillOutputContainer(output);
+  for (auto & mChip : mChips) {
+    mChip.fillOutputContainer(output);
   }
 }

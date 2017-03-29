@@ -14,7 +14,7 @@ using namespace AliceO2::ITS;
 
 ClassImp(AliceO2::ITS::Cluster)
 
-GeometryTGeo* Cluster::sGeom = 0;
+GeometryTGeo* Cluster::sGeom = nullptr;
 UInt_t Cluster::sMode = 0;
 
 //_____________________________________________________

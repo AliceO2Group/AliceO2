@@ -16,7 +16,7 @@ namespace DataFormat
 BOOST_AUTO_TEST_CASE(MessageSizePair_test)
 {
   size_t S = 100;
-  char* buffer = new char[S];
+  auto* buffer = new char[S];
 
   // fill the buffer with something
   buffer[0] = 'a';
@@ -59,7 +59,7 @@ inline static void SimpleMsgCleanup(void* /*data*/, void* obj)
 template<typename Factory, typename T>
 inline static FairMQMessagePtr NewSimpleMessage(Factory const &f, const T& data)
 {
-  T* dataCopy = new T(data);
+  auto* dataCopy = new T(data);
   return f.CreateMessage(dataCopy, sizeof(T), SimpleMsgCleanup<T>, dataCopy);
 }
 

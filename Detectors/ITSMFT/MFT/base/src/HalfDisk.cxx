@@ -26,10 +26,10 @@ ClassImp(AliceO2::MFT::HalfDisk)
 //_____________________________________________________________________________
 HalfDisk::HalfDisk():
 TNamed(), 
-mSupport(NULL),
-mHeatExchanger(NULL),
-mHalfDiskVolume(NULL),
-mSegmentation(NULL)
+mSupport(nullptr),
+mHeatExchanger(nullptr),
+mHalfDiskVolume(nullptr),
+mSegmentation(nullptr)
 {
   
 }
@@ -38,8 +38,8 @@ mSegmentation(NULL)
 
 //_____________________________________________________________________________
 HalfDisk::HalfDisk(HalfDiskSegmentation *segmentation):TNamed(segmentation->GetName(),segmentation->GetName()),
-  mSupport(NULL),
-  mHeatExchanger(NULL),
+  mSupport(nullptr),
+  mHeatExchanger(nullptr),
   mSegmentation(segmentation)
 {
   Geometry * mftGeom = Geometry::Instance();
@@ -100,7 +100,7 @@ void HalfDisk::CreateLadders()
     
     LadderSegmentation * ladderSeg = mSegmentation->GetLadder(iLadder);
     if(!ladderSeg) Fatal("CreateLadders",Form("No Segmentation found for ladder %d ",iLadder),0,0);
-    Ladder * ladder = new Ladder(ladderSeg);
+    auto * ladder = new Ladder(ladderSeg);
     TGeoVolume * ladVol = ladder->CreateVolume();
     
     // Position of the center on the ladder volume in the ladder coordinate system

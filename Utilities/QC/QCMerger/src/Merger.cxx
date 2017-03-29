@@ -44,7 +44,7 @@ void Merger::addReceivedObjectToMapByName(TObject* receivedObject)
 
 void Merger::eraseCollection(const char* title)
 {
-  TCollectionMap::iterator foundCollection = mTitlesToDataObjectsMap.find(title);
+  auto foundCollection = mTitlesToDataObjectsMap.find(title);
   foundCollection->second->Delete();
   delete foundCollection->second;
   mTitlesToDataObjectsMap.erase(foundCollection);
@@ -52,7 +52,7 @@ void Merger::eraseCollection(const char* title)
 
 void Merger::dumpObjectsCollectionToFile(const char* title)
 {
-  TCollectionMap::iterator foundCollection = mTitlesToDataObjectsMap.find(title);
+  auto foundCollection = mTitlesToDataObjectsMap.find(title);
 
   ostringstream fileName;
   fileName << ++mNumberOfDumpedObjects << "_" << title << ".root";
