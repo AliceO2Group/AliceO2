@@ -13,8 +13,12 @@
 #include "Headers/DataHeader.h"
 #include "FairMQProgOptions.h"
 
-// temporary hack to solve issue 279; linking problem for this constexpr
-// variable
+// From C++11 on, constexpr static data members are implicitly inlined. Redeclaration
+// is still permitted, but deprecated. Some compilers do not implement this standard
+// correctly. It also has to be noticed that this error does not occur for all the
+// other public constexpr members
+constexpr uint32_t AliceO2::DataFlow::SubframeBuilderDevice::mOrbitsPerTimeframe;
+constexpr uint32_t AliceO2::DataFlow::SubframeBuilderDevice::mOrbitDuration;
 constexpr uint32_t AliceO2::DataFlow::SubframeBuilderDevice::mDuration;
 
 using HeartbeatHeader = AliceO2::Header::HeartbeatHeader;
