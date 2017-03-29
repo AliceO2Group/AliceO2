@@ -508,7 +508,7 @@ Int_t MagneticWrapperChebyshev::findDipoleSegment(const Double_t *xyz) const
                                           (Float_t) xyz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
-  while (1) {
+  while (true) {
     int ysegBeg = mBeginningOfSegmentsYDipole[zid];
 
     for (yid = 0; yid < mNumberOfSegmentsYDipole[zid]; yid++) {
@@ -554,7 +554,7 @@ Int_t MagneticWrapperChebyshev::findSolenoidSegment(const Double_t *rpz) const
                                           (Float_t) rpz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
-  while (1) {
+  while (true) {
     int psegBeg = mBeginningOfSegmentsPSolenoid[zid];
     for (pid = 0; pid < mNumberOfSegmentsPSolenoid[zid]; pid++) {
       if (rpz[1] < mCoordinatesSegmentsPSolenoid[psegBeg + pid]) {
@@ -598,7 +598,7 @@ Int_t MagneticWrapperChebyshev::findTPCSegment(const Double_t *rpz) const
                                           (Float_t) rpz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
-  while (1) {
+  while (true) {
     int psegBeg = mBeginningOfSegmentsPTPC[zid];
 
     for (pid = 0; pid < mNumberOfSegmentsPTPC[zid]; pid++) {
@@ -643,7 +643,7 @@ Int_t MagneticWrapperChebyshev::findTPCRatSegment(const Double_t *rpz) const
                                           (Float_t) rpz[2]); // find zsegment
 
   Bool_t reCheck = kFALSE;
-  while (1) {
+  while (true) {
     int psegBeg = mBeginningOfSegmentsPTPCRat[zid];
 
     for (pid = 0; pid < mNumberOfSegmentsPTPCRat[zid]; pid++) {

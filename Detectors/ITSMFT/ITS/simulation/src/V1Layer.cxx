@@ -91,7 +91,7 @@ V1Layer::V1Layer()
     mNumberOfModules(0),
     mNumberOfChips(0),
     mChipTypeID(0),
-    mIsTurbo(0),
+    mIsTurbo(false),
     mBuildLevel(0),
     mStaveModel(Detector::kIBModelDummy)
 {
@@ -114,7 +114,7 @@ V1Layer::V1Layer(Int_t debug)
     mNumberOfModules(0),
     mNumberOfChips(0),
     mChipTypeID(0),
-    mIsTurbo(0),
+    mIsTurbo(false),
     mBuildLevel(0),
     mStaveModel(Detector::kIBModelDummy)
 {
@@ -137,7 +137,7 @@ V1Layer::V1Layer(Int_t lay, Int_t debug)
     mNumberOfModules(0),
     mNumberOfChips(0),
     mChipTypeID(0),
-    mIsTurbo(0),
+    mIsTurbo(false),
     mBuildLevel(0),
     mStaveModel(Detector::kIBModelDummy)
 {
