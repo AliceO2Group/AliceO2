@@ -573,7 +573,7 @@ struct DataDescription {
   // note: no operator=(const char*) as this potentially runs into trouble with this
   // general pointer type, use: somedesc = DataDescription("SOMEDESCRIPTION")
   template<std::size_t NN>
-  constexpr DataDescription(const char (&desc)[NN]) : itg{String2<uint64_t, NN, 0, true>(desc), (Internal::strLength(desc) > 8 ? String2<uint64_t, NN, std::conditional< (NN > 8), Internal::intWrapper<8>, Internal::intWrapper<NN-1>>::type::value >(desc) : 0)} {
+  constexpr DataDescription(const char (&desc)[NN]) : itg{String2<uint64_t, NN, 0, true>(desc), (Internal::strLength(desc) > 8 ? String2<uint64_t, NN, std::conditional< (NN > 8), Internal::intWrapper<8>, Internal::intWrapper<0>>::type::value >(desc) : 0)} {
     // the initializer implements a number of compile time checks
     // - for the conversion of the first part of the string to the first 64bit field
     //   the check for the string length needs to be disabled as it is naturally longer

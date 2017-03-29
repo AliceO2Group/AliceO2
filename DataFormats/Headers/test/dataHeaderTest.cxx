@@ -60,10 +60,20 @@ namespace AliceO2 {
       DataDescription desc("ITSRAW");
       BOOST_CHECK(strcmp(desc.str, "ITSRAW")==0);
 
+      // checking the corresponding integer value
+      // the upper part must be 0 since the string has only up tp 8 chars
+      // lower part corresponds to reverse ITSRAW
+      //                       W A R S T I
+      uint64_t itgDesc = 0x0000574152535449;
+      BOOST_CHECK(desc.itg[0] == itgDesc);
+      BOOST_CHECK(desc.itg[1] == 0);
+
       BOOST_CHECK(desc == "ITSRAW");
 
       DataDescription desc2(test);
       BOOST_CHECK(strcmp(desc2.str, "ITSRAW")==0);
+      // the upper part must be 0 since the string has only up tp 8 chars
+      BOOST_CHECK(desc2.itg[1] == 0);
 
       BOOST_CHECK(desc2 == "ITSRAW");
 
