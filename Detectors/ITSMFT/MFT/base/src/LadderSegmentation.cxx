@@ -84,7 +84,7 @@ void LadderSegmentation::CreateSensors() {
                                                  mftGeom->GetLadderID(GetUniqueID()),
                                                  iSensor);
     
-    ChipSegmentation *chip = new ChipSegmentation(sensorUniqueID);
+    auto *chip = new ChipSegmentation(sensorUniqueID);
 
     new ((*mChips)[iSensor]) ChipSegmentation(*chip);
     delete chip;

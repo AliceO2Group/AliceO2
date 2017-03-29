@@ -100,7 +100,7 @@ void HalfDisk::CreateLadders()
     
     LadderSegmentation * ladderSeg = mSegmentation->GetLadder(iLadder);
     if(!ladderSeg) Fatal("CreateLadders",Form("No Segmentation found for ladder %d ",iLadder),0,0);
-    Ladder * ladder = new Ladder(ladderSeg);
+    auto * ladder = new Ladder(ladderSeg);
     TGeoVolume * ladVol = ladder->CreateVolume();
     
     // Position of the center on the ladder volume in the ladder coordinate system

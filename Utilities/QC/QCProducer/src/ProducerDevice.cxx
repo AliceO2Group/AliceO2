@@ -34,7 +34,7 @@ void ProducerDevice::Run()
 {
   while (CheckCurrentState(RUNNING)) {
     TObject* newDataObject = mProducer->produceData();
-    TMessage* message = new TMessage(kMESS_OBJECT);
+    auto* message = new TMessage(kMESS_OBJECT);
     message->WriteObject(newDataObject);
 
     unique_ptr<FairMQMessage> request(NewMessage(message->Buffer(), message->BufferSize(), deleteTMessage, message));

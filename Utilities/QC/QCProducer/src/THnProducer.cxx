@@ -17,9 +17,9 @@ TObject* THnProducer::produceData() const
   Double_t xmax[] = { 10,     10,     10,     10};
 
   const Int_t valuesNumber = 1000;
-  Double_t * values = new Double_t[valuesNumber];
+  auto * values = new Double_t[valuesNumber];
 
-  THnF * histogram = new THnF(mHistogramName,
+  auto * histogram = new THnF(mHistogramName,
                               mHistogramTitle,
                               dim,
                               bins,

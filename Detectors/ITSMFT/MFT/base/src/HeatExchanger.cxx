@@ -163,24 +163,24 @@ void HeatExchanger::CreateManyfold(Int_t disk)
 
   TGeoMedium *kMedPeek    = gGeoManager->GetMedium("MFT_PEEK$");
   
-  TGeoBBox *boxmanyfold = new TGeoBBox("boxmanyfold", mfX/2, mfY/2, mfZ/2);
-  TGeoBBox *remove = new TGeoBBox("remove", 0.45/2 + Geometry::kEpsilon, mfY/2 + Geometry::kEpsilon, 0.6/2 + Geometry::kEpsilon);
-  TGeoTranslation *tL= new TGeoTranslation ("tL", mfX/2-0.45/2, 0., -mfZ/2+0.6/2);
-  TGeoSubtraction *boxManyFold = new TGeoSubtraction(boxmanyfold, remove, NULL, tL);
-  TGeoCompositeShape *BoxManyFold = new TGeoCompositeShape("BoxManyFold", boxManyFold);
+  auto *boxmanyfold = new TGeoBBox("boxmanyfold", mfX/2, mfY/2, mfZ/2);
+  auto *remove = new TGeoBBox("remove", 0.45/2 + Geometry::kEpsilon, mfY/2 + Geometry::kEpsilon, 0.6/2 + Geometry::kEpsilon);
+  auto *tL= new TGeoTranslation ("tL", mfX/2-0.45/2, 0., -mfZ/2+0.6/2);
+  auto *boxManyFold = new TGeoSubtraction(boxmanyfold, remove, NULL, tL);
+  auto *BoxManyFold = new TGeoCompositeShape("BoxManyFold", boxManyFold);
 
-  TGeoTranslation *tR= new TGeoTranslation ("tR", -mfX/2+0.45/2, 0., -mfZ/2+0.6/2);
-  TGeoSubtraction *boxManyFold1 = new TGeoSubtraction(BoxManyFold, remove, NULL, tR);
-  TGeoCompositeShape *BoxManyFold1 = new TGeoCompositeShape("BoxManyFold1", boxManyFold1);
+  auto *tR= new TGeoTranslation ("tR", -mfX/2+0.45/2, 0., -mfZ/2+0.6/2);
+  auto *boxManyFold1 = new TGeoSubtraction(BoxManyFold, remove, NULL, tR);
+  auto *BoxManyFold1 = new TGeoCompositeShape("BoxManyFold1", boxManyFold1);
 
-  TGeoVolume *MF01 = new TGeoVolume(Form("MF%d1",disk), BoxManyFold1, kMedPeek);
+  auto *MF01 = new TGeoVolume(Form("MF%d1",disk), BoxManyFold1, kMedPeek);
 
   rotation = new TGeoRotation ("rotation", 90., 90., 90.);
   transformation1 = new TGeoCombiTrans(mSupportXDimensions[disk][0]/2+mfZ/2+fShift, mfY/2+deltay, mZPlan[disk], rotation);
 
   mHalfDisk->AddNode(MF01, 1, transformation1);
     
-  TGeoVolume *MF02 = new TGeoVolume(Form("MF%d2",disk), BoxManyFold1, kMedPeek);
+  auto *MF02 = new TGeoVolume(Form("MF%d2",disk), BoxManyFold1, kMedPeek);
   transformation2 = new TGeoCombiTrans(mSupportXDimensions[disk][0]/2+mfZ/2+fShift, -mfY/2-deltay, mZPlan[disk], rotation);
 
   mHalfDisk->AddNode(MF02, 1, transformation2);
@@ -204,7 +204,7 @@ void HeatExchanger::CreateHalfDisk0(Int_t half) {
   rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   pipe     = gGeoManager->GetMedium("MFT_Polyimide");
   
-  TGeoVolumeAssembly *cooling = new TGeoVolumeAssembly(Form("cooling_D0_H%d",half));
+  auto *cooling = new TGeoVolumeAssembly(Form("cooling_D0_H%d",half));
   
   Float_t lMiddle = mSupportXDimensions[disk][0] - 2.*mLWater;  // length of central part
   
@@ -354,20 +354,20 @@ void HeatExchanger::CreateHalfDisk0(Int_t half) {
 
   // **************************************** Carbon Plates ****************************************
   
-  TGeoVolumeAssembly *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D0_H%d",half));
+  auto *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D0_H%d",half));
   
-  TGeoBBox *carbonBase0 = new TGeoBBox (Form("carbonBase0_D0_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
-  TGeoTranslation *t01= new TGeoTranslation ("t01",0., (mSupportYDimensions[disk][0])/2. + mHalfDiskGap , 0.);
+  auto *carbonBase0 = new TGeoBBox (Form("carbonBase0_D0_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
+  auto *t01= new TGeoTranslation ("t01",0., (mSupportYDimensions[disk][0])/2. + mHalfDiskGap , 0.);
   t01-> RegisterYourself();
   
-  TGeoTubeSeg *holeCarbon0 = new TGeoTubeSeg(Form("holeCarbon0_D0_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
-  TGeoTranslation *t02= new TGeoTranslation ("t02",0., - mHalfDiskGap , 0.);
+  auto *holeCarbon0 = new TGeoTubeSeg(Form("holeCarbon0_D0_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
+  auto *t02= new TGeoTranslation ("t02",0., - mHalfDiskGap , 0.);
   t02-> RegisterYourself();
   
   ///TGeoCompositeShape *cs0 = new TGeoCompositeShape(Form("cs0_D0_H%d",half), Form("(carbonBase0_D0_H%d:t01)-(holeCarbon0_D0_H%d:t02)",half,half));
-  TGeoSubtraction    *carbonhole0 = new TGeoSubtraction(carbonBase0, holeCarbon0, t01, t02);
-  TGeoCompositeShape *ch0 = new TGeoCompositeShape(Form("Carbon0_D0_H%d",half), carbonhole0);
-  TGeoVolume *carbonBaseWithHole0 = new TGeoVolume(Form("carbonBaseWithHole_D0_H%d", half), ch0, carbon);
+  auto    *carbonhole0 = new TGeoSubtraction(carbonBase0, holeCarbon0, t01, t02);
+  auto *ch0 = new TGeoCompositeShape(Form("Carbon0_D0_H%d",half), carbonhole0);
+  auto *carbonBaseWithHole0 = new TGeoVolume(Form("carbonBaseWithHole_D0_H%d", half), ch0, carbon);
   
 
   carbonBaseWithHole0->SetLineColor(kGray+3);
@@ -381,7 +381,7 @@ void HeatExchanger::CreateHalfDisk0(Int_t half) {
     ty += mSupportYDimensions[disk][ipart]/2.;
     TGeoVolume *partCarbon = gGeoManager->MakeBox(Form("partCarbon_D0_H%d_%d", half,ipart), carbon, mSupportXDimensions[disk][ipart]/2., mSupportYDimensions[disk][ipart]/2., mCarbonThickness);
     partCarbon->SetLineColor(kGray+3);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     carbonPlate -> AddNode(partCarbon, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }
@@ -405,20 +405,20 @@ void HeatExchanger::CreateHalfDisk0(Int_t half) {
 
   // **************************************** Rohacell Plate ****************************************
   
-  TGeoVolumeAssembly *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D0_H%d",half));
+  auto *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D0_H%d",half));
   
-  TGeoBBox *rohacellBase0 = new TGeoBBox (Form("rohacellBase0_D0_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
+  auto *rohacellBase0 = new TGeoBBox (Form("rohacellBase0_D0_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
   // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
   // t3 -> RegisterYourself();
   
-  TGeoTubeSeg *holeRohacell0 = new TGeoTubeSeg(Form("holeRohacell0_D0_H%d",half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
+  auto *holeRohacell0 = new TGeoTubeSeg(Form("holeRohacell0_D0_H%d",half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
   // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
   // t4-> RegisterYourself();
   
   ///cs0 = new TGeoCompositeShape("cs0", Form("(rohacellBase0_D0_H%d:t01)-(holeRohacell0_D0_H%d:t02)",half,half));
-  TGeoSubtraction    *rohacellhole0 = new TGeoSubtraction(rohacellBase0, holeRohacell0, t01, t02);
-  TGeoCompositeShape *rh0 = new TGeoCompositeShape(Form("rohacellBase0_D0_H%d",half), rohacellhole0);
-  TGeoVolume *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D0_H%d",half), rh0, rohacell);
+  auto    *rohacellhole0 = new TGeoSubtraction(rohacellBase0, holeRohacell0, t01, t02);
+  auto *rh0 = new TGeoCompositeShape(Form("rohacellBase0_D0_H%d",half), rohacellhole0);
+  auto *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D0_H%d",half), rh0, rohacell);
 
 
   rohacellBaseWithHole->SetLineColor(kGray);
@@ -432,7 +432,7 @@ void HeatExchanger::CreateHalfDisk0(Int_t half) {
     ty += mSupportYDimensions[disk][ipart]/2.;
     TGeoVolume *partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D0_H%d_%d", half,ipart), rohacell, mSupportXDimensions[disk][ipart]/2., mSupportYDimensions[disk][ipart]/2., mRohacellThickness);
     partRohacell->SetLineColor(kGray);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     rohacellPlate -> AddNode(partRohacell, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }
@@ -468,7 +468,7 @@ void HeatExchanger::CreateHalfDisk1(Int_t half) {
   rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   pipe     = gGeoManager->GetMedium("MFT_Polyimide");
     
-  TGeoVolumeAssembly *cooling = new TGeoVolumeAssembly(Form("cooling_D1_H%d",half));
+  auto *cooling = new TGeoVolumeAssembly(Form("cooling_D1_H%d",half));
   
   Float_t lMiddle = mSupportXDimensions[disk][0] - 2.*mLWater;  // length of central part
   
@@ -615,21 +615,21 @@ void HeatExchanger::CreateHalfDisk1(Int_t half) {
   
    
 
-  TGeoVolumeAssembly *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D1_H%d",half));
+  auto *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D1_H%d",half));
   
-  TGeoBBox *carbonBase1 = new TGeoBBox (Form("carbonBase1_D1_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
-  TGeoTranslation *t11= new TGeoTranslation ("t11",0., (mSupportYDimensions[disk][0])/2. + mHalfDiskGap , 0.);
+  auto *carbonBase1 = new TGeoBBox (Form("carbonBase1_D1_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
+  auto *t11= new TGeoTranslation ("t11",0., (mSupportYDimensions[disk][0])/2. + mHalfDiskGap , 0.);
   t11-> RegisterYourself();
   
-  TGeoTubeSeg *holeCarbon1 = new TGeoTubeSeg(Form("holeCarbon1_D1_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
-  TGeoTranslation *t12= new TGeoTranslation ("t12",0., - mHalfDiskGap , 0.);
+  auto *holeCarbon1 = new TGeoTubeSeg(Form("holeCarbon1_D1_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
+  auto *t12= new TGeoTranslation ("t12",0., - mHalfDiskGap , 0.);
   t12-> RegisterYourself();
   
   
   ////TGeoCompositeShape *cs1 = new TGeoCompositeShape(Form("Carbon1_D1_H%d",half), Form("(carbonBase1_D1_H%d:t11)-(holeCarbon1_D1_H%d:t12)",half,half));
-  TGeoSubtraction    *carbonhole1 = new TGeoSubtraction(carbonBase1, holeCarbon1, t11, t12);
-  TGeoCompositeShape *ch1 = new TGeoCompositeShape(Form("Carbon1_D1_H%d",half), carbonhole1);
-  TGeoVolume *carbonBaseWithHole1 = new TGeoVolume(Form("carbonBaseWithHole_D1_H%d",half), ch1, carbon);
+  auto    *carbonhole1 = new TGeoSubtraction(carbonBase1, holeCarbon1, t11, t12);
+  auto *ch1 = new TGeoCompositeShape(Form("Carbon1_D1_H%d",half), carbonhole1);
+  auto *carbonBaseWithHole1 = new TGeoVolume(Form("carbonBaseWithHole_D1_H%d",half), ch1, carbon);
 
 
   carbonBaseWithHole1->SetLineColor(kGray+3);
@@ -644,7 +644,7 @@ void HeatExchanger::CreateHalfDisk1(Int_t half) {
     TGeoVolume *partCarbon = gGeoManager->MakeBox(Form("partCarbon_D1_H%d_%d", half,ipart), carbon, mSupportXDimensions[disk][ipart]/2.,
                                                   mSupportYDimensions[disk][ipart]/2., mCarbonThickness);
     partCarbon->SetLineColor(kGray+3);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     carbonPlate -> AddNode(partCarbon, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }
@@ -667,20 +667,20 @@ void HeatExchanger::CreateHalfDisk1(Int_t half) {
   
   // **************************************** Rohacell Plate ****************************************
   
-  TGeoVolumeAssembly *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D1_H%d",half));
+  auto *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D1_H%d",half));
   
-  TGeoBBox *rohacellBase1 = new TGeoBBox ("rohacellBase1",  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
+  auto *rohacellBase1 = new TGeoBBox ("rohacellBase1",  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
   // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
   // t3 -> RegisterYourself();
   
-  TGeoTubeSeg *holeRohacell1 = new TGeoTubeSeg("holeRohacell1", 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
+  auto *holeRohacell1 = new TGeoTubeSeg("holeRohacell1", 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
   // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
   // t4-> RegisterYourself();
   
   //////cs1 = new TGeoCompositeShape(Form("rohacell_D1_H%d",half), "(rohacellBase1:t11)-(holeRohacell1:t12)");
-  TGeoSubtraction    *rohacellhole1 = new TGeoSubtraction(rohacellBase1, holeRohacell1, t11, t12);
-  TGeoCompositeShape *rh1 = new TGeoCompositeShape(Form("rohacellBase1_D1_H%d",half), rohacellhole1);
-  TGeoVolume *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D1_H%d",half), rh1, rohacell);
+  auto    *rohacellhole1 = new TGeoSubtraction(rohacellBase1, holeRohacell1, t11, t12);
+  auto *rh1 = new TGeoCompositeShape(Form("rohacellBase1_D1_H%d",half), rohacellhole1);
+  auto *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D1_H%d",half), rh1, rohacell);
 
 
   rohacellBaseWithHole->SetLineColor(kGray);
@@ -695,7 +695,7 @@ void HeatExchanger::CreateHalfDisk1(Int_t half) {
     TGeoVolume *partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D1_H%d_%d",half, ipart), rohacell, mSupportXDimensions[disk][ipart]/2.,
                                                     mSupportYDimensions[disk][ipart]/2., mRohacellThickness);
     partRohacell->SetLineColor(kGray);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     rohacellPlate -> AddNode(partRohacell, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }
@@ -732,7 +732,7 @@ void HeatExchanger::CreateHalfDisk2(Int_t half) {
   rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   pipe     = gGeoManager->GetMedium("MFT_Polyimide");
  
-  TGeoVolumeAssembly *cooling = new TGeoVolumeAssembly(Form("cooling_D2_H%d",half));
+  auto *cooling = new TGeoVolumeAssembly(Form("cooling_D2_H%d",half));
   
   Float_t lMiddle = mSupportXDimensions[disk][0] - 2.*mLWater;  // length of central part
   
@@ -877,21 +877,21 @@ void HeatExchanger::CreateHalfDisk2(Int_t half) {
   
   // **************************************** Carbon Plates ****************************************
   
-  TGeoVolumeAssembly *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D2_H%d",half));
+  auto *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D2_H%d",half));
   
-  TGeoBBox *carbonBase2 = new TGeoBBox (Form("carbonBase2_D2_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
-  TGeoTranslation *t21= new TGeoTranslation ("t21",0., (mSupportYDimensions[disk][0])/2. + mHalfDiskGap , 0.);
+  auto *carbonBase2 = new TGeoBBox (Form("carbonBase2_D2_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
+  auto *t21= new TGeoTranslation ("t21",0., (mSupportYDimensions[disk][0])/2. + mHalfDiskGap , 0.);
   t21-> RegisterYourself();
   
-  TGeoTubeSeg *holeCarbon2 = new TGeoTubeSeg(Form("holeCarbon2_D2_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
-  TGeoTranslation *t22= new TGeoTranslation ("t22",0., - mHalfDiskGap , 0.);
+  auto *holeCarbon2 = new TGeoTubeSeg(Form("holeCarbon2_D2_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
+  auto *t22= new TGeoTranslation ("t22",0., - mHalfDiskGap , 0.);
   t22-> RegisterYourself();
  
 
   ////TGeoCompositeShape *cs2 = new TGeoCompositeShape(Form("carbon2_D2_H%d",half),Form("(carbonBase2_D2_H%d:t21)-(holeCarbon2_D2_H%d:t22)",half,half));
-  TGeoSubtraction    *carbonhole2 = new TGeoSubtraction(carbonBase2, holeCarbon2, t21, t22);
-  TGeoCompositeShape *cs2 = new TGeoCompositeShape(Form("Carbon2_D2_H%d",half), carbonhole2);
-  TGeoVolume *carbonBaseWithHole2 = new TGeoVolume(Form("carbonBaseWithHole_D2_H%d", half), cs2, carbon);
+  auto    *carbonhole2 = new TGeoSubtraction(carbonBase2, holeCarbon2, t21, t22);
+  auto *cs2 = new TGeoCompositeShape(Form("Carbon2_D2_H%d",half), carbonhole2);
+  auto *carbonBaseWithHole2 = new TGeoVolume(Form("carbonBaseWithHole_D2_H%d", half), cs2, carbon);
 
   carbonBaseWithHole2->SetLineColor(kGray+3);
   rotation = new TGeoRotation ("rotation", 0., 0., 0.);
@@ -904,7 +904,7 @@ void HeatExchanger::CreateHalfDisk2(Int_t half) {
     ty += mSupportYDimensions[disk][ipart]/2.;
     TGeoVolume *partCarbon = gGeoManager->MakeBox(Form("partCarbon_D2_H%d_%d", half, ipart), carbon, mSupportXDimensions[disk][ipart]/2., mSupportYDimensions[disk][ipart]/2., mCarbonThickness);
     partCarbon->SetLineColor(kGray+3);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     carbonPlate -> AddNode(partCarbon, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }
@@ -927,21 +927,21 @@ void HeatExchanger::CreateHalfDisk2(Int_t half) {
 
   // **************************************** Rohacell Plate ****************************************
   
-  TGeoVolumeAssembly *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D2_H%d",half));
+  auto *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D2_H%d",half));
   
-  TGeoBBox *rohacellBase2 = new TGeoBBox (Form("rohacellBase2_D2_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
+  auto *rohacellBase2 = new TGeoBBox (Form("rohacellBase2_D2_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
   // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
   // t3 -> RegisterYourself();
   
-  TGeoTubeSeg *holeRohacell2 = new TGeoTubeSeg(Form("holeRohacell2_D2_H%d",half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
+  auto *holeRohacell2 = new TGeoTubeSeg(Form("holeRohacell2_D2_H%d",half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
   // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
   // t4-> RegisterYourself()
   ;
   
   ///cs2 = new TGeoCompositeShape(Form("rohacell_D2_H%d",half), Form("(rohacellBase2_D2_H%d:t21)-(holeRohacell2_D2_H%d:t22)",half,half));
-  TGeoSubtraction    *rohacellhole2 = new TGeoSubtraction(rohacellBase2, holeRohacell2, t21, t22);
-  TGeoCompositeShape *rh2 = new TGeoCompositeShape(Form("rohacellBase2_D2_H%d",half), rohacellhole2);
-  TGeoVolume *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D2_H%d",half), rh2, rohacell);
+  auto    *rohacellhole2 = new TGeoSubtraction(rohacellBase2, holeRohacell2, t21, t22);
+  auto *rh2 = new TGeoCompositeShape(Form("rohacellBase2_D2_H%d",half), rohacellhole2);
+  auto *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D2_H%d",half), rh2, rohacell);
 
 
 
@@ -956,7 +956,7 @@ void HeatExchanger::CreateHalfDisk2(Int_t half) {
     ty += mSupportYDimensions[disk][ipart]/2.;
     TGeoVolume *partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D2_H%d_%d", half,ipart), rohacell, mSupportXDimensions[disk][ipart]/2., mSupportYDimensions[disk][ipart]/2., mRohacellThickness);
     partRohacell->SetLineColor(kGray);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     rohacellPlate -> AddNode(partRohacell, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }
@@ -990,7 +990,7 @@ void HeatExchanger::CreateHalfDisk3(Int_t half)  {
   rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   pipe     = gGeoManager->GetMedium("MFT_Polyimide");
   
-  TGeoVolumeAssembly *cooling = new TGeoVolumeAssembly(Form("cooling_D3_H%d",half));
+  auto *cooling = new TGeoVolumeAssembly(Form("cooling_D3_H%d",half));
   
   Double_t deltaz= mHeatExchangerThickness - mCarbonThickness*2; //distance between pair of carbon plans
   Double_t lMiddle3[3] = {mSupportXDimensions[3][0] - 2.*mLWater3[0], mSupportXDimensions[3][0] - 2.*mLWater3[0], 0.};//distance between tube part
@@ -1302,21 +1302,21 @@ void HeatExchanger::CreateHalfDisk3(Int_t half)  {
 	
   // **************************************** Carbon Plates ****************************************
   
-  TGeoVolumeAssembly *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D3_H%d",half));
+  auto *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D3_H%d",half));
   
-  TGeoBBox *carbonBase3 = new TGeoBBox (Form("carbonBase3_D3_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
-  TGeoTranslation *t31= new TGeoTranslation ("t31",0., (mSupportYDimensions[disk][0])/2.+ mHalfDiskGap , 0.);
+  auto *carbonBase3 = new TGeoBBox (Form("carbonBase3_D3_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
+  auto *t31= new TGeoTranslation ("t31",0., (mSupportYDimensions[disk][0])/2.+ mHalfDiskGap , 0.);
   t31-> RegisterYourself();
   
-  TGeoTubeSeg *holeCarbon3 = new TGeoTubeSeg(Form("holeCarbon3_D3_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
-  TGeoTranslation *t32= new TGeoTranslation ("t32",0., - mHalfDiskGap , 0.);
+  auto *holeCarbon3 = new TGeoTubeSeg(Form("holeCarbon3_D3_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
+  auto *t32= new TGeoTranslation ("t32",0., - mHalfDiskGap , 0.);
   t32-> RegisterYourself();
   
 
   ///TGeoCompositeShape *cs3 = new TGeoCompositeShape(Form("Carbon3_D3_H%d",half),Form("(carbonBase3_D3_H%d:t31)-(holeCarbon3_D3_H%d:t32)",half,half) );
-  TGeoSubtraction    *carbonhole3 = new TGeoSubtraction(carbonBase3, holeCarbon3, t31, t32);
-  TGeoCompositeShape *cs3 = new TGeoCompositeShape(Form("Carbon3_D3_H%d",half), carbonhole3);
-  TGeoVolume *carbonBaseWithHole3 = new TGeoVolume(Form("carbonBaseWithHole_D3_H%d",half), cs3, carbon);
+  auto    *carbonhole3 = new TGeoSubtraction(carbonBase3, holeCarbon3, t31, t32);
+  auto *cs3 = new TGeoCompositeShape(Form("Carbon3_D3_H%d",half), carbonhole3);
+  auto *carbonBaseWithHole3 = new TGeoVolume(Form("carbonBaseWithHole_D3_H%d",half), cs3, carbon);
 
 
   carbonBaseWithHole3->SetLineColor(kGray+3);
@@ -1331,7 +1331,7 @@ void HeatExchanger::CreateHalfDisk3(Int_t half)  {
     TGeoVolume *partCarbon = gGeoManager->MakeBox(Form("partCarbon_D3_H%d_%d", half,ipart), carbon, mSupportXDimensions[disk][ipart]/2.,
                                                   mSupportYDimensions[disk][ipart]/2., mCarbonThickness);
     partCarbon->SetLineColor(kGray+3);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     carbonPlate -> AddNode(partCarbon, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }
@@ -1354,20 +1354,20 @@ void HeatExchanger::CreateHalfDisk3(Int_t half)  {
 
   // **************************************** Rohacell Plate ****************************************
   
-  TGeoVolumeAssembly *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D3_H%d",half));
+  auto *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D3_H%d",half));
   
-  TGeoBBox *rohacellBase3 = new TGeoBBox (Form("rohacellBase3_D3_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
+  auto *rohacellBase3 = new TGeoBBox (Form("rohacellBase3_D3_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
   // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
   // t3 -> RegisterYourself();
   
-  TGeoTubeSeg *holeRohacell3 = new TGeoTubeSeg(Form("holeRohacell3_D3_H%d",half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
+  auto *holeRohacell3 = new TGeoTubeSeg(Form("holeRohacell3_D3_H%d",half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
   // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
   // t4-> RegisterYourself();
   
   ///cs3 = new TGeoCompositeShape(Form("rohacell_D3_H%d",half), Form("(rohacellBase3_D3_H%d:t31)-(holeRohacell3_D3_H%d:t32)",half,half));
-  TGeoSubtraction    *rohacellhole3 = new TGeoSubtraction(rohacellBase3, holeRohacell3, t31, t32);
-  TGeoCompositeShape *rh3 = new TGeoCompositeShape(Form("rohacellBase3_D3_H%d",half), rohacellhole3);
-  TGeoVolume *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D3_H%d",half), rh3, rohacell);
+  auto    *rohacellhole3 = new TGeoSubtraction(rohacellBase3, holeRohacell3, t31, t32);
+  auto *rh3 = new TGeoCompositeShape(Form("rohacellBase3_D3_H%d",half), rohacellhole3);
+  auto *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D3_H%d",half), rh3, rohacell);
 
 
   rohacellBaseWithHole->SetLineColor(kGray);
@@ -1382,7 +1382,7 @@ void HeatExchanger::CreateHalfDisk3(Int_t half)  {
     TGeoVolume *partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D3_H%d_%d", half, ipart), rohacell, mSupportXDimensions[disk][ipart]/2.,
                                                     mSupportYDimensions[disk][ipart]/2., mRohacellThickness);
     partRohacell->SetLineColor(kGray);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     rohacellPlate -> AddNode(partRohacell, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }
@@ -1418,7 +1418,7 @@ void HeatExchanger::CreateHalfDisk4(Int_t half) {
   rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   pipe     = gGeoManager->GetMedium("MFT_Polyimide");
     
-  TGeoVolumeAssembly *cooling = new TGeoVolumeAssembly(Form("cooling_D4_H%d",half));
+  auto *cooling = new TGeoVolumeAssembly(Form("cooling_D4_H%d",half));
   Double_t deltaz= mHeatExchangerThickness - mCarbonThickness*2; //distance between pair of carbon plans
   
   TGeoTranslation *translation    = 0;
@@ -1772,21 +1772,21 @@ void HeatExchanger::CreateHalfDisk4(Int_t half) {
 	
   // **************************************** Carbon Plates ****************************************
   
-  TGeoVolumeAssembly *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D4_H%d",half));
+  auto *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D4_H%d",half));
   
-  TGeoBBox *carbonBase4 = new TGeoBBox (Form("carbonBase4_D4_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
-  TGeoTranslation *t41= new TGeoTranslation ("t41",0., (mSupportYDimensions[disk][0])/2. + mHalfDiskGap, 0.);
+  auto *carbonBase4 = new TGeoBBox (Form("carbonBase4_D4_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mCarbonThickness);
+  auto *t41= new TGeoTranslation ("t41",0., (mSupportYDimensions[disk][0])/2. + mHalfDiskGap, 0.);
   t41-> RegisterYourself();
   
-  TGeoTubeSeg *holeCarbon4 = new TGeoTubeSeg(Form("holeCarbon4_D4_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
-  TGeoTranslation *t42= new TGeoTranslation ("t42",0., - mHalfDiskGap , 0.);
+  auto *holeCarbon4 = new TGeoTubeSeg(Form("holeCarbon4_D4_H%d",half), 0., mRMin[disk], mCarbonThickness + 0.000001, 0, 180.);
+  auto *t42= new TGeoTranslation ("t42",0., - mHalfDiskGap , 0.);
   t42-> RegisterYourself();
   
   
   ///TGeoCompositeShape *cs4 = new TGeoCompositeShape(Form("Carbon4_D4_H%d",half),Form("(carbonBase4_D4_H%d:t41)-(holeCarbon4_D4_H%d:t42)",half,half));
-  TGeoSubtraction    *carbonhole4 = new TGeoSubtraction(carbonBase4, holeCarbon4, t41, t42);
-  TGeoCompositeShape *cs4 = new TGeoCompositeShape(Form("Carbon4_D4_H%d",half), carbonhole4);
-  TGeoVolume *carbonBaseWithHole4 = new TGeoVolume(Form("carbonBaseWithHole_D4_H%d",half), cs4, carbon);
+  auto    *carbonhole4 = new TGeoSubtraction(carbonBase4, holeCarbon4, t41, t42);
+  auto *cs4 = new TGeoCompositeShape(Form("Carbon4_D4_H%d",half), carbonhole4);
+  auto *carbonBaseWithHole4 = new TGeoVolume(Form("carbonBaseWithHole_D4_H%d",half), cs4, carbon);
 
   carbonBaseWithHole4->SetLineColor(kGray+3);
   rotation = new TGeoRotation ("rotation", 0., 0., 0.);
@@ -1800,7 +1800,7 @@ void HeatExchanger::CreateHalfDisk4(Int_t half) {
     TGeoVolume *partCarbon = gGeoManager->MakeBox(Form("partCarbon_D4_H%d_%d", half,ipart), carbon, mSupportXDimensions[disk][ipart]/2.,
                                                   mSupportYDimensions[disk][ipart]/2., mCarbonThickness);
     partCarbon->SetLineColor(kGray+3);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     carbonPlate -> AddNode(partCarbon, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }
@@ -1823,20 +1823,20 @@ void HeatExchanger::CreateHalfDisk4(Int_t half) {
 	
   // **************************************** Rohacell Plate ****************************************
   
-  TGeoVolumeAssembly *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D4_H%d",half));
+  auto *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D4_H%d",half));
   
-  TGeoBBox *rohacellBase4 = new TGeoBBox (Form("rohacellBase4_D4_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
+  auto *rohacellBase4 = new TGeoBBox (Form("rohacellBase4_D4_H%d",half),  (mSupportXDimensions[disk][0])/2., (mSupportYDimensions[disk][0])/2., mRohacellThickness);
   // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
   // t3 -> RegisterYourself();
   
-  TGeoTubeSeg *holeRohacell4 = new TGeoTubeSeg(Form("holeRohacell4_D4_H%d",half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
+  auto *holeRohacell4 = new TGeoTubeSeg(Form("holeRohacell4_D4_H%d",half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
   // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
   // t4-> RegisterYourself();
   
   ///cs4 = new TGeoCompositeShape(Form("rohacell_D4_H%d",half), Form("(rohacellBase4_D4_H%d:t41)-(holeRohacell4_D4_H%d:t42)",half,half));
-  TGeoSubtraction    *rohacellhole4 = new TGeoSubtraction(rohacellBase4, holeRohacell4, t41, t42);
-  TGeoCompositeShape *rh4 = new TGeoCompositeShape(Form("rohacellBase4_D4_H%d",half), rohacellhole4);
-  TGeoVolume *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D4_H%d",half), rh4, rohacell);
+  auto    *rohacellhole4 = new TGeoSubtraction(rohacellBase4, holeRohacell4, t41, t42);
+  auto *rh4 = new TGeoCompositeShape(Form("rohacellBase4_D4_H%d",half), rohacellhole4);
+  auto *rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D4_H%d",half), rh4, rohacell);
 
   rohacellBaseWithHole->SetLineColor(kGray);
   rotation = new TGeoRotation ("rotation", 0., 0., 0.);
@@ -1850,7 +1850,7 @@ void HeatExchanger::CreateHalfDisk4(Int_t half) {
     TGeoVolume *partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D4_H%d_%d", half, ipart), rohacell, mSupportXDimensions[disk][ipart]/2.,
                                                     mSupportYDimensions[disk][ipart]/2., mRohacellThickness);
     partRohacell->SetLineColor(kGray);
-    TGeoTranslation *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
+    auto *t = new TGeoTranslation ("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
     rohacellPlate -> AddNode(partRohacell, ipart, t);
     ty += mSupportYDimensions[disk][ipart]/2.;
   }

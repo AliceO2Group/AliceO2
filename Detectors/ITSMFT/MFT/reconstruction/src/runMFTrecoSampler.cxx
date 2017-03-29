@@ -28,7 +28,7 @@ FairMQDevicePtr getDevice(const FairMQProgOptions& config)
   std::vector<std::string> filename = config.GetValue<std::vector<std::string>>("file-name");
   std::vector<std::string> branchname = config.GetValue<std::vector<std::string>>("branch-name");
 
-  Sampler* sampler = new Sampler();
+  auto* sampler = new Sampler();
 
   for (UInt_t ielem = 0; ielem < filename.size(); ielem++) {
     sampler->AddInputFileName(filename.at(ielem));

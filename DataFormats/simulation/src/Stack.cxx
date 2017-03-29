@@ -129,7 +129,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   Int_t nPoints = 0;
   Int_t daughter1Id = -1;
   Int_t daughter2Id = -1;
-  TParticle *particle = new(partArray[mNumberOfEntriesInParticles++])
+  auto *particle = new(partArray[mNumberOfEntriesInParticles++])
     TParticle(pdgCode, trackId, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   particle->SetPolarisation(polx, poly, polz);
   particle->SetWeight(weight);
@@ -215,7 +215,7 @@ TParticle *Stack::GetCurrentTrack() const
 void Stack::AddParticle(TParticle *oldPart)
 {
   TClonesArray &array = *mParticles;
-  TParticle *newPart = new(array[mIndex]) TParticle(*oldPart);
+  auto *newPart = new(array[mIndex]) TParticle(*oldPart);
   newPart->SetWeight(oldPart->GetWeight());
   newPart->SetUniqueID(oldPart->GetUniqueID());
   mIndex++;
@@ -249,7 +249,7 @@ void Stack::FillTrackArray()
     Bool_t store = (*mStoreIterator).second;
 
     if (store) {
-      MCTrack *track = new((*mTracks)[mNumberOfEntriesInTracks]) MCTrack(GetParticle(iPart));
+      auto *track = new((*mTracks)[mNumberOfEntriesInTracks]) MCTrack(GetParticle(iPart));
       mIndexMap[iPart] = mNumberOfEntriesInTracks;
       // Set the number of points in the detectors for this track
       for (Int_t iDet = kAliIts; iDet < kSTOPHERE; iDet++) {

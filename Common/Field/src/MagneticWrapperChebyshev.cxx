@@ -832,7 +832,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   int nparSol = buffs.Atoi();
 
   for (int ip = 0; ip < nparSol; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    auto* cheb = new Chebyshev3D();
     cheb->loadData(stream);
     addParameterSolenoid(cheb);
   }
@@ -853,7 +853,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   int nparTPCInt = buffs.Atoi();
 
   for (int ip = 0; ip < nparTPCInt; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    auto* cheb = new Chebyshev3D();
     cheb->loadData(stream);
     addParameterTPCIntegral(cheb);
   }
@@ -877,7 +877,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   int nparTPCRatInt = buffs.Atoi();
 
   for (int ip = 0; ip < nparTPCRatInt; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    auto* cheb = new Chebyshev3D();
     cheb->loadData(stream);
     addParameterTPCRatIntegral(cheb);
   }
@@ -901,7 +901,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   int nparDip = buffs.Atoi();
 
   for (int ip = 0; ip < nparDip; ip++) {
-    Chebyshev3D* cheb = new Chebyshev3D();
+    auto* cheb = new Chebyshev3D();
     cheb->loadData(stream);
     addParameterDipole(cheb);
   }
@@ -1444,8 +1444,8 @@ void MagneticWrapperChebyshev::saveData(const char* outfile) const
 Int_t MagneticWrapperChebyshev::segmentDimension(float** seg, const TObjArray* par, int npar, int dim, float xmn,
                                                  float xmx, float ymn, float ymx, float zmn, float zmx)
 {
-  float* tmpC = new float[2 * npar];
-  int* tmpInd = new int[2 * npar];
+  auto* tmpC = new float[2 * npar];
+  auto* tmpInd = new int[2 * npar];
   int nseg0 = 0;
   for (int ip = 0; ip < npar; ip++) {
     Chebyshev3D* cheb = (Chebyshev3D*)par->At(ip);

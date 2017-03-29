@@ -97,7 +97,7 @@ void FileSink::Init()
   TFolder* foldEventHeader = mFolder->AddFolder("EvtHeader","EvtHeader");
   TFolder* foldMFT         = mFolder->AddFolder("MFT","MFT");
   
-  TList* BranchNameList = new TList();
+  auto* BranchNameList = new TList();
   
   for ( mNObjects = 0 ; mNObjects < mBranchNames.size() ; mNObjects++ ) {
 

@@ -154,7 +154,7 @@ void SimulationAlpide::DigitiseChip(TClonesArray *detDigits) {
 
 //______________________________________________________________________
 Double_t SimulationAlpide::ACSFromBetaGamma(Double_t x, Double_t theta) const {
-  TF1 *acs = new TF1("acs", "[0]*((1+TMath::Power(x, 2))/TMath::Power(x, 2))*(0.5*TMath::Log([1]*TMath::Power(x, 2)) - (TMath::Power(x, 2)/(1+TMath::Power(x, 2))) - [2]*TMath::Log(x))", 0, 10000);
+  auto *acs = new TF1("acs", "[0]*((1+TMath::Power(x, 2))/TMath::Power(x, 2))*(0.5*TMath::Log([1]*TMath::Power(x, 2)) - (TMath::Power(x, 2)/(1+TMath::Power(x, 2))) - [2]*TMath::Log(x))", 0, 10000);
   acs->SetParameter(0, mParam[ACSFromBGPar0]);
   acs->SetParameter(1, mParam[ACSFromBGPar1]);
   acs->SetParameter(2, mParam[ACSFromBGPar2]);
@@ -174,7 +174,7 @@ Int_t SimulationAlpide::GetPixelPositionResponse(Int_t idPadX, Int_t idPadZ, Flo
   Double_t sigma = 0.001; // = 10 um
   Double_t offc  = acs; // WARNING: this is just temporary! (a function for this is ready but need further testing)
 
-  TF2 *respf = new TF2("respf", "([1]-1)*(1-TMath::Gaus(x,0,[0])*TMath::Gaus(y,0,[0]))+1",
+  auto *respf = new TF2("respf", "([1]-1)*(1-TMath::Gaus(x,0,[0])*TMath::Gaus(y,0,[0]))+1",
   -mSeg->cellSizeX()/2, mSeg->cellSizeX()/2, -mSeg->cellSizeZ(0)/2, mSeg->cellSizeZ(0)/2);
   respf->SetParameter(0, sigma);
   respf->SetParameter(1, offc);
@@ -186,7 +186,7 @@ Int_t SimulationAlpide::GetPixelPositionResponse(Int_t idPadX, Int_t idPadZ, Flo
 
 //______________________________________________________________________
 Int_t SimulationAlpide::CSSampleFromLandau(Double_t mpv, Double_t w) const {
-  TF1 *landauDistr = new TF1("landauDistr","TMath::Landau(x,[0],[1])", 0, 20);
+  auto *landauDistr = new TF1("landauDistr","TMath::Landau(x,[0],[1])", 0, 20);
   landauDistr->SetParameter(0, mpv);
   landauDistr->SetParameter(1, w);
 
@@ -251,7 +251,7 @@ void SimulationAlpide::GenerateCluster() {
 
     // Create the shape
     std::vector<UInt_t> cshape;
-    SimuClusterShaper *csManager = new SimuClusterShaper(cs);
+    auto *csManager = new SimuClusterShaper(cs);
     csManager->FillClusterRandomly();
     csManager->GetShape(cshape);
     UInt_t nrows = csManager->GetNRows();

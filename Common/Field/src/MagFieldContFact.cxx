@@ -27,7 +27,7 @@ void MagFieldContFact::setAllContainers()
 {
   //  Creates the Container objects and adds it to the list of containers
   
-  FairContainer* p = new FairContainer("MagFieldParam", "Mag. Field Parameters", "Default Field");
+  auto* p = new FairContainer("MagFieldParam", "Mag. Field Parameters", "Default Field");
   containers->Add(p);
 }
 

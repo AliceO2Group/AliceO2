@@ -828,7 +828,7 @@ TGeoVolume *Detector::createWrapperVolume(Int_t id)
   }
 
   // Now create the actual shape and volume
-  TGeoTube *tube =
+  auto *tube =
     new TGeoTube(mWrapperMinRadius[id], mWrapperMaxRadius[id], mWrapperZSpan[id] / 2.);
 
   TGeoMedium *medAir = gGeoManager->GetMedium("ITS_AIR$");
@@ -836,7 +836,7 @@ TGeoVolume *Detector::createWrapperVolume(Int_t id)
   char volnam[30];
   snprintf(volnam, 29, "%s%d", GeometryTGeo::getITSWrapVolPattern(), id);
 
-  TGeoVolume *wrapper = new TGeoVolume(volnam, tube, medAir);
+  auto *wrapper = new TGeoVolume(volnam, tube, medAir);
 
   return wrapper;
 }
@@ -1021,13 +1021,13 @@ void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume *dest,
   if (innerBarrel) {
     zLenOB = ((TGeoTube *) (dest->GetShape()))->GetDz();
     //    TGeoTube*ibSuppSh = new TGeoTubeSeg(rminIB,rminIB+cInt,zLenOB,phi1,phi2);
-    TGeoTube *ibSuppSh = new TGeoTube(rminIB, rminIB + cInt, zLenOB);
-    TGeoVolume *ibSupp = new TGeoVolume("ibSuppCyl", ibSuppSh, medCarbonFleece);
+    auto *ibSuppSh = new TGeoTube(rminIB, rminIB + cInt, zLenOB);
+    auto *ibSupp = new TGeoVolume("ibSuppCyl", ibSuppSh, medCarbonFleece);
     dest->AddNode(ibSupp, 1);
   } else {
     zLenOB = ((TGeoTube *) (dest->GetShape()))->GetDz();
-    TGeoTube *obSuppSh = new TGeoTube(rminOB, rminOB + cExt, zLenOB);
-    TGeoVolume *obSupp = new TGeoVolume("obSuppCyl", obSuppSh, medCarbonFleece);
+    auto *obSuppSh = new TGeoTube(rminOB, rminOB + cExt, zLenOB);
+    auto *obSupp = new TGeoVolume("obSuppCyl", obSuppSh, medCarbonFleece);
     dest->AddNode(obSupp, 1);
   }
 

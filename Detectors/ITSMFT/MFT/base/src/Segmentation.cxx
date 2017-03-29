@@ -35,8 +35,8 @@ Segmentation::Segmentation(const Char_t *nameGeomFile):
   mHalves = new TClonesArray("AliceO2::MFT::HalfSegmentation", 2);
   mHalves->SetOwner(kTRUE);
   
-  HalfSegmentation *halfBottom = new HalfSegmentation(nameGeomFile, kBottom);
-  HalfSegmentation *halfTop    = new HalfSegmentation(nameGeomFile, kTop);
+  auto *halfBottom = new HalfSegmentation(nameGeomFile, kBottom);
+  auto *halfTop    = new HalfSegmentation(nameGeomFile, kTop);
 
   new ((*mHalves)[kBottom]) HalfSegmentation(*halfBottom);
   new ((*mHalves)[kTop])    HalfSegmentation(*halfTop);

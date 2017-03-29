@@ -64,7 +64,7 @@ void FLPSender::Run()
 
   while (CheckCurrentState(RUNNING)) {
     // initialize f2e header
-    f2eHeader* header = new f2eHeader;
+    auto* header = new f2eHeader;
     if (mTestMode > 0) {
       // test-mode: receive and store id part in the buffer.
       FairMQMessagePtr id(NewMessage());
