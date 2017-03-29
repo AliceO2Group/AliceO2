@@ -17,4 +17,4 @@ mRow(row),
 mWeight(weight)
 {}
 
-PadResponse::~PadResponse(){}
+PadResponse::~PadResponse()= default;

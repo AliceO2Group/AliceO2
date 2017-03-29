@@ -252,14 +252,14 @@ void Tracker::FindTracksCA(int iteration) {
         if (mCells[iCL][iCell].GetLevel() != level)
           continue;
         // [1] Add current cell to road
-        roads.push_back(Road(iCL,iCell));
+        roads.emplace_back(iCL,iCell);
         // [2] Loop on current cell neighbours
         for(size_t iN = 0; iN < mCells[iCL][iCell].NumberOfNeighbours(); ++iN) {
           const int currD = iCL - 1;
           const int neigh = mCells[iCL][iCell](iN);
           // [3] if more than one neighbour => more than one road, one road for each neighbour
           if(iN > 0) {
-            roads.push_back(Road(iCL,iCell));
+            roads.emplace_back(iCL,iCell);
           }
           // [4] Essentially the neighbour became the current cell and then go to [1]
           CellsTreeTraversal(roads,neigh,currD);
@@ -269,27 +269,27 @@ void Tracker::FindTracksCA(int iteration) {
     }
 
     // Roads fitting
-    for (size_t iR = 0; iR < roads.size(); ++iR) {
-      if (roads[iR].N != level)
+    for (auto & road : roads) {
+      if (road.N != level)
         continue;
       int indices[7] = {-1};
       int first = -1,last = -1;
       for(int i = 0; i < 5; ++i) {
-        if (roads[iR][i] < 0)
+        if (road[i] < 0)
           continue;
 
         if (first < 0) {
-          indices[i] = mCells[i][roads[iR][i]].x();
-          indices[i + 1] = mCells[i][roads[iR][i]].y();
+          indices[i] = mCells[i][road[i]].x();
+          indices[i + 1] = mCells[i][road[i]].y();
           first = i;
         }
-        indices[i + 2] = mCells[i][roads[iR][i]].z();
+        indices[i + 2] = mCells[i][road[i]].z();
         last = i;
       }
       const int mid = (last + first) / 2;
-      const Cluster& cl0 = (*mLayer[first])[mCells[first][roads[iR][first]].x()];
-      const Cluster& cl1 = (*mLayer[mid + 1])[mCells[mid][roads[iR][mid]].y()];
-      const Cluster& cl2 = (*mLayer[last + 2])[mCells[last][roads[iR][last]].z()];
+      const Cluster& cl0 = (*mLayer[first])[mCells[first][road[first]].x()];
+      const Cluster& cl1 = (*mLayer[mid + 1])[mCells[mid][road[mid]].y()];
+      const Cluster& cl2 = (*mLayer[last + 2])[mCells[last][road[last]].z()];
       // Init track parameters
       float cv  = Curvature(cl0.x,cl0.y,cl1.x,cl1.y,cl2.x,cl2.y);
       float tgl = TanLambda(cl0.x,cl0.y,cl2.x,cl2.y,cl0.z,cl2.z);
@@ -329,10 +329,10 @@ void Tracker::MakeCells(int iteration) {
 
   SetCuts(iteration);
   if (iteration >= 1) {
-    for (int i = 0; i < 5; ++i)
-      vector<Cell>().swap(mCells[i]);
-    for (int i = 0; i < 6; ++i)
-      vector<Doublets>().swap(mDoublets[i]);
+    for (auto & mCell : mCells)
+      vector<Cell>().swap(mCell);
+    for (auto & mDoublet : mDoublets)
+      vector<Doublets>().swap(mDoublet);
   }
 
   // Trick to speed up the navigation of the doublets array. The lookup table is build like:
@@ -371,7 +371,7 @@ void Tracker::MakeCells(int iteration) {
           }
           const float dTanL = (cls.z - cls2.z) / (cls.r - cls2.r);
           const float phi = atan2(cls.y - cls2.y, cls.x - cls2.x);
-          mDoublets[iL].push_back(Doublets(iC,iD2,dTanL,phi));
+          mDoublets[iL].emplace_back(iC,iD2,dTanL,phi);
         }
       }
       mLayer[iL + 1]->ResetFoundIterator();
@@ -411,8 +411,8 @@ void Tracker::MakeCells(int iteration) {
                 tLUT[iD - 1][iD0] = mCells[iD].size();
                 first = false;
               }
-              mCells[iD].push_back(Cell(mDoublets[iD][iD0].x,mDoublets[iD][iD0].y,
-                    mDoublets[iD + 1][iD1].y,iD0,iD1,curv,n));
+              mCells[iD].emplace_back(mDoublets[iD][iD0].x,mDoublets[iD][iD0].y,
+                    mDoublets[iD + 1][iD1].y,iD0,iD1,curv,n);
             }
           }
         }
@@ -608,13 +608,13 @@ void Tracker::SetCuts(int it) {
 
 void Tracker::UnloadClusters() {
   /// This function unloads ITSU clusters from the memory
-  for (int i = 0;i < 7;++i)
-    mUsedClusters[i].clear();
-  for (int i = 0; i < 6; ++i)
-    mDoublets[i].clear();
-  for (int i = 0; i < 5; ++i)
-    mCells[i].clear();
-  for (int i = 0; i < 4; ++i)
-    mCandidates[i].clear();
+  for (auto & mUsedCluster : mUsedClusters)
+    mUsedCluster.clear();
+  for (auto & mDoublet : mDoublets)
+    mDoublet.clear();
+  for (auto & mCell : mCells)
+    mCell.clear();
+  for (auto & mCandidate : mCandidates)
+    mCandidate.clear();
 }
 

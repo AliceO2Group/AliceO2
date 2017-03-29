@@ -20,14 +20,14 @@ ClassImp(AliceO2::MFT::FindTracks)
 
 //_____________________________________________________________________________
 FindTracks::FindTracks():
-mHits(NULL),
-mTracks(NULL),
+mHits(nullptr),
+mTracks(nullptr),
 mNHits(0),
 mNTracks(0),
 mTNofEvents(0),
 mTNofHits(0),
 mTNofTracks(0),
-mEventHeader(NULL)
+mEventHeader(nullptr)
 {
 
 }
@@ -35,14 +35,14 @@ mEventHeader(NULL)
 //_____________________________________________________________________________
 FindTracks::FindTracks(Int_t iVerbose)
   : FairTask("MFT Track Finder", iVerbose),
-    mHits(NULL),
-    mTracks(NULL),
+    mHits(nullptr),
+    mTracks(nullptr),
     mNHits(0),
     mNTracks(0),
     mTNofEvents(0),
     mTNofHits(0),
     mTNofTracks(0),
-    mEventHeader(NULL)
+    mEventHeader(nullptr)
 {
 
 }
@@ -126,19 +126,19 @@ void FindTracks::Exec(Option_t* /*opt*/)
   const Int_t nMaxTracks = 1000;
   mNHits = mHits->GetEntriesFast();
 
-  Float_t **xPos = new Float_t*[nMaxTracks];
+  auto **xPos = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) xPos[i] = new Float_t[mNHits];
-  Float_t **yPos = new Float_t*[nMaxTracks];
+  auto **yPos = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) yPos[i] = new Float_t[mNHits];
-  Float_t **zPos = new Float_t*[nMaxTracks];
+  auto **zPos = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) zPos[i] = new Float_t[mNHits];
-  Float_t **xPosErr = new Float_t*[nMaxTracks];
+  auto **xPosErr = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) xPosErr[i] = new Float_t[mNHits];
-  Float_t **yPosErr = new Float_t*[nMaxTracks];
+  auto **yPosErr = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) yPosErr[i] = new Float_t[mNHits];
 
   Int_t nTrackHits[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) nTrackHits[i] = 0;
+  for (int & nTrackHit : nTrackHits) nTrackHit = 0;
 
   AliceO2::MFT::Hit *hit;
   Int_t iMCindex;
@@ -163,7 +163,7 @@ void FindTracks::Exec(Option_t* /*opt*/)
 
   // a simple fit through the hits
   
-  TF1* f1 = new TF1("f1", "[0]*x + [1]");
+  auto* f1 = new TF1("f1", "[0]*x + [1]");
   TGraphErrors *trackXZ, *trackYZ;
 
   Double_t slopeX, offX, chi2X, slopeY, offY, chi2Y;
@@ -171,19 +171,19 @@ void FindTracks::Exec(Option_t* /*opt*/)
 
     if (nTrackHits[iTrack] < 4) continue; 
 
-    trackXZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], xPos[iTrack], 0, xPosErr[iTrack]);
+    trackXZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], xPos[iTrack], nullptr, xPosErr[iTrack]);
     trackXZ->Fit("f1", "Q");
     slopeX = f1->GetParameter(0);
     offX = f1->GetParameter(1);
     chi2X = f1->GetChisquare();
 
-    trackYZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], yPos[iTrack], 0, yPosErr[iTrack]);
+    trackYZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], yPos[iTrack], nullptr, yPosErr[iTrack]);
     trackYZ->Fit("f1", "Q");
     slopeY = f1->GetParameter(0);
     offY = f1->GetParameter(1);
     chi2Y = f1->GetChisquare();
 
-    Track* track = new Track();
+    auto* track = new Track();
     track->SetX(offX);
     track->SetY(offY);
     track->SetZ(0.);

@@ -43,8 +43,7 @@ AliceO2::Utilities::DataPublisherDevice::DataPublisherDevice()
 }
 
 AliceO2::Utilities::DataPublisherDevice::~DataPublisherDevice()
-{
-}
+= default;
 
 void AliceO2::Utilities::DataPublisherDevice::InitTask()
 {
@@ -165,7 +164,7 @@ bool AliceO2::Utilities::DataPublisherDevice::HandleO2LogicalBlock(const byte* h
 
 
   // TODO: fix payload size in dh
-  char *buffer = new char[mFileBuffer.size()];
+  auto *buffer = new char[mFileBuffer.size()];
   memcpy(buffer, mFileBuffer.data(), mFileBuffer.size());
   AddMessage(outgoing, dh, NewMessage(buffer, mFileBuffer.size(),
                         [](void* data, void* hint) { delete[] reinterpret_cast<char *>(data); }, nullptr));

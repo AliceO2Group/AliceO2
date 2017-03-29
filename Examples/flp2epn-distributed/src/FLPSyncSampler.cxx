@@ -33,8 +33,7 @@ FLPSyncSampler::FLPSyncSampler()
 }
 
 FLPSyncSampler::~FLPSyncSampler()
-{
-}
+= default;
 
 void FLPSyncSampler::InitTask()
 {

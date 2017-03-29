@@ -32,9 +32,7 @@ DigitWriteoutBuffer::DigitWriteoutBuffer(TString branchname, TString foldername,
 }
 
 DigitWriteoutBuffer::~DigitWriteoutBuffer()
-{
-
-}
+= default;
 
 void DigitWriteoutBuffer::AddNewDataToTClonesArray(FairTimeStamp *timestamp)
 {
@@ -47,7 +45,7 @@ void DigitWriteoutBuffer::AddNewDataToTClonesArray(FairTimeStamp *timestamp)
 double DigitWriteoutBuffer::FindTimeForData(FairTimeStamp *timestamp)
 {
   Digit itsdigit = *(static_cast<Digit *>(timestamp));
-  std::map<Digit, double>::iterator result = mData_map.find(itsdigit);
+  auto result = mData_map.find(itsdigit);
   if (result != mData_map.end()) {
     return result->second;
   }

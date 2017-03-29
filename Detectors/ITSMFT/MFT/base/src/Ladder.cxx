@@ -34,9 +34,9 @@ const Double_t Ladder::kLadderDeltaZ = Geometry::kFlexThickness + Geometry::kSen
 //_____________________________________________________________________________
 Ladder::Ladder():
 TNamed(), 
-mSegmentation(NULL),
-mFlex(NULL),
-mLadderVolume(NULL)
+mSegmentation(nullptr),
+mFlex(nullptr),
+mLadderVolume(nullptr)
 {
     
 }
@@ -47,7 +47,7 @@ mLadderVolume(NULL)
 Ladder::Ladder(LadderSegmentation *segmentation):
 TNamed(segmentation->GetName(),segmentation->GetName()),
 mSegmentation(segmentation), 
-mFlex(NULL)
+mFlex(nullptr)
 {
 
   LOG(DEBUG1) << "Ladder " << Form("creating : %s", GetName()) << FairLogger::endl;
@@ -95,10 +95,10 @@ void Ladder::CreateSensors()
   // Create Shapes
   
   // The sensor part
-  TGeoBBox *sensor = new TGeoBBox(Geometry::kSensorLength/2., Geometry::kSensorActiveHeight/2., Geometry::kSensorThickness/2.);
+  auto *sensor = new TGeoBBox(Geometry::kSensorLength/2., Geometry::kSensorActiveHeight/2., Geometry::kSensorThickness/2.);
   
   // The readout part
-  TGeoBBox *readout = new TGeoBBox(Geometry::kSensorLength/2.,(Geometry::kSensorHeight-Geometry::kSensorActiveHeight)/2.,  Geometry::kSensorThickness/2.);
+  auto *readout = new TGeoBBox(Geometry::kSensorLength/2.,(Geometry::kSensorHeight-Geometry::kSensorActiveHeight)/2.,  Geometry::kSensorThickness/2.);
   
   // Get Mediums
   TGeoMedium *medSensorSi  = gGeoManager->GetMedium("MFT_Si$");
@@ -127,7 +127,7 @@ void Ladder::CreateSensors()
   chipVol->SetVisibility(kTRUE);
 
   // The sensor Volume
-  TGeoVolume *sensorVol = new TGeoVolume("MFTSensor", sensor, medSensorSi);
+  auto *sensorVol = new TGeoVolume("MFTSensor", sensor, medSensorSi);
   sensorVol->SetVisibility(kTRUE);
   
   sensorVol->SetLineColor(kGreen+1);
@@ -142,7 +142,7 @@ void Ladder::CreateSensors()
   }
   
   // The Readout Volume
-  TGeoVolume *readoutVol = new TGeoVolume("Readout", readout, medReadoutSi);
+  auto *readoutVol = new TGeoVolume("Readout", readout, medReadoutSi);
   readoutVol->SetVisibility(kTRUE);
   readoutVol->SetLineColor(kRed-6);
   readoutVol->SetLineWidth(1);

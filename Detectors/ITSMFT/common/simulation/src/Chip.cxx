@@ -6,7 +6,7 @@
 //  Adapted from AliITSUChip by Massimo Masera
 //
 
-#include <string.h>                   // for memset
+#include <cstring>                   // for memset
 
 #include <TMath.h>                    // for Sqrt
 #include "TObjArray.h"                // for TObjArray
@@ -34,13 +34,7 @@ Chip::Chip(Int_t chipindex, const TGeoHMatrix *mat) :
 {
 }
 
-Chip::Chip(const Chip &ref) :
-  TObject(ref),
-  mChipIndex(ref.mChipIndex),
-  mPoints(ref.mPoints),
-  mMat(ref.mMat)
-{
-}
+Chip::Chip(const Chip &ref) = default;
 
 Chip &Chip::operator=(const Chip &ref)
 {
@@ -69,9 +63,7 @@ Bool_t Chip::operator<(const Chip &other) const
 }
 
 Chip::~Chip()
-{
-
-}
+= default;
 
 void Chip::InsertPoint(const Point *p)
 {

@@ -37,7 +37,7 @@ using std::vector;
 
 Component::Component()
   : mOutputBuffer()
-  , mpSystem(NULL)
+  , mpSystem(nullptr)
   , mProcessor(kEmptyHLTComponentHandle)
   , mFormatHandler()
   , mEventCount(-1)
@@ -45,8 +45,7 @@ Component::Component()
 }
 
 Component::~Component()
-{
-}
+= default;
 
 int Component::init(int argc, char** argv)
 {
@@ -54,14 +53,14 @@ int Component::init(int argc, char** argv)
 
   // parse options
   static struct option programOptions[] = {
-    {"library",     required_argument, 0, 'l'},
-    {"component",   required_argument, 0, 'c'},
-    {"parameter",   required_argument, 0, 'p'},
-    {"run",         required_argument, 0, 'r'},
-    {"msgsize",     required_argument, 0, 's'},
-    {"output-mode", required_argument, 0, 'm'},
-    {"instance-id", required_argument, 0, 'i'},
-    {0, 0, 0, 0}
+    {"library",     required_argument, nullptr, 'l'},
+    {"component",   required_argument, nullptr, 'c'},
+    {"parameter",   required_argument, nullptr, 'p'},
+    {"run",         required_argument, nullptr, 'r'},
+    {"msgsize",     required_argument, nullptr, 's'},
+    {"output-mode", required_argument, nullptr, 'm'},
+    {"instance-id", required_argument, nullptr, 'i'},
+    {nullptr, 0, nullptr, 0}
   };
 
   /* getopt_long stores the option index here. */
@@ -119,7 +118,7 @@ int Component::init(int argc, char** argv)
     }
   }
 
-  if (componentLibrary == NULL || componentLibrary[0] == 0 || componentId == NULL || componentId[0] == 0 ||
+  if (componentLibrary == nullptr || componentLibrary[0] == 0 || componentId == nullptr || componentId[0] == 0 ||
       runNumber < 0) {
     cerr << "missing argument" << endl;
     return -EINVAL;
@@ -128,7 +127,7 @@ int Component::init(int argc, char** argv)
   int iResult = 0;
   // TODO: make the SystemInterface a singleton
   unique_ptr<ALICE::HLT::SystemInterface> iface(new SystemInterface);
-  if (iface.get() == NULL || ((iResult = iface->initSystem(runNumber))) < 0) {
+  if (iface.get() == nullptr || ((iResult = iface->initSystem(runNumber))) < 0) {
     // LOG(ERROR) << "failed to set up SystemInterface " << iface.get() << " (" << iResult << ")";
     return -ENOSYS;
   }
@@ -143,7 +142,7 @@ int Component::init(int argc, char** argv)
   vector<const char*> parameters;
   unsigned parameterLength = strlen(componentParameter);
   unique_ptr<char> parameterBuffer(new char[parameterLength + 1]);
-  if (parameterLength > 0 && parameterBuffer.get() != NULL) {
+  if (parameterLength > 0 && parameterBuffer.get() != nullptr) {
     strcpy(parameterBuffer.get(), componentParameter);
     char* iterator = parameterBuffer.get();
     parameters.push_back(iterator);
@@ -157,7 +156,7 @@ int Component::init(int argc, char** argv)
   // create component
   string description;
   description+=" chainid="; description+=instanceId;
-  if ((iResult=mpSystem->createComponent(componentId, NULL, parameters.size(), &parameters[0], &mProcessor, description.c_str()))<0) {
+  if ((iResult=mpSystem->createComponent(componentId, nullptr, parameters.size(), &parameters[0], &mProcessor, description.c_str()))<0) {
     // the ALICE HLT external interface uses the following error definition
     // 0 success
     // >0 error number
@@ -191,8 +190,8 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   trigData.fStructSize = sizeof(trigData);
 
   AliHLTUInt32_t outputBlockCnt = 0;
-  AliHLTComponentBlockData* pOutputBlocks = NULL;
-  AliHLTComponentEventDoneData* pEventDoneData = NULL;
+  AliHLTComponentBlockData* pOutputBlocks = nullptr;
+  AliHLTComponentEventDoneData* pEventDoneData = nullptr;
 
   // prepare input structure for the ALICE HLT component
   mFormatHandler.clear();
@@ -248,9 +247,9 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
     // TODO: check if that is working with the corresponding allocation method of the
     // component environment
     if (pOutputBlocks) delete[] pOutputBlocks;
-    pOutputBlocks = NULL;
+    pOutputBlocks = nullptr;
     if (pEventDoneData) delete pEventDoneData;
-    pEventDoneData = NULL;
+    pEventDoneData = nullptr;
 
     iResult = mpSystem->processEvent(mProcessor, &evtData, &inputBlocks[0], &trigData,
                                      &mOutputBuffer[0], &outputBufferSize,
@@ -296,7 +295,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
       // calculate the data reference
       AliHLTUInt8_t* pStart =
-        pOutputBlock->fPtr != NULL ? reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr) : &mOutputBuffer[0];
+        pOutputBlock->fPtr != nullptr ? reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr) : &mOutputBuffer[0];
       pStart += pOutputBlock->fOffset;
       AliHLTUInt8_t* pEnd = pStart + pOutputBlock->fSize;
       pOutputBlock->fPtr = pStart;
@@ -342,9 +341,9 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   inputBlocks.clear();
   outputBlockCnt = 0;
   if (pOutputBlocks) delete[] pOutputBlocks;
-  pOutputBlocks = NULL;
+  pOutputBlocks = nullptr;
   if (pEventDoneData) delete pEventDoneData;
-  pEventDoneData = NULL;
+  pEventDoneData = nullptr;
 
   return -iResult;
 }

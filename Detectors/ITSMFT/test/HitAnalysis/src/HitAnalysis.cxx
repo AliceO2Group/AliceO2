@@ -41,8 +41,8 @@ HitAnalysis::HitAnalysis() :
 HitAnalysis::~HitAnalysis()
 {
   // Delete chips
-  for (std::map<int, Chip *>::iterator chipiter = mChips.begin(); chipiter != mChips.end(); ++chipiter) {
-    delete chipiter->second;
+  for (auto & mChip : mChips) {
+    delete mChip.second;
   }
   // Delete geometry
   delete mGeometry;
@@ -199,8 +199,8 @@ void HitAnalysis::ProcessChips()
     }
   }
   // Clear all chips
-  for (std::map<int, Chip *>::iterator chipiter = mChips.begin(); chipiter != mChips.end(); ++chipiter) {
-    chipiter->second->Clear();
+  for (auto & mChip : mChips) {
+    mChip.second->Clear();
   }
 }
 

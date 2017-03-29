@@ -55,8 +55,7 @@ EventSampler::EventSampler(int verbosity)
 }
 
 EventSampler::~EventSampler()
-{
-}
+= default;
 
 void EventSampler::Init()
 {
@@ -111,10 +110,9 @@ void EventSampler::Run()
     auto seconds = std::chrono::duration_cast<std::chrono::seconds>(timestamp - dayref);
     auto useconds = std::chrono::duration_cast<std::chrono::microseconds>(timestamp  - dayref - seconds);
 
-    for (vector<unique_ptr<FairMQMessage>>::iterator mit=inputMessages.begin();
-         mit!=inputMessages.end(); mit++) {
-      AliHLTComponentEventData* evtData=reinterpret_cast<AliHLTComponentEventData*>((*mit)->GetData());
-      if ((*mit)->GetSize() >= sizeof(AliHLTComponentEventData) &&
+    for (auto & inputMessage : inputMessages) {
+      AliHLTComponentEventData* evtData=reinterpret_cast<AliHLTComponentEventData*>(inputMessage->GetData());
+      if (inputMessage->GetSize() >= sizeof(AliHLTComponentEventData) &&
           evtData && evtData->fStructSize == sizeof(AliHLTComponentEventData) &&
           (evtData->fEventCreation_s>0 || evtData->fEventCreation_us>0)) {
         unsigned latencySeconds=seconds.count() - evtData->fEventCreation_s;
@@ -147,9 +145,8 @@ void EventSampler::Run()
       }
     }
     inputMessages.clear();
-    for (vector<int>::iterator mcit=inputMessageCntPerSocket.begin();
-         mcit!=inputMessageCntPerSocket.end(); mcit++) {
-      *mcit=0;
+    for (int & mcit : inputMessageCntPerSocket) {
+      mcit=0;
     }
   }
 

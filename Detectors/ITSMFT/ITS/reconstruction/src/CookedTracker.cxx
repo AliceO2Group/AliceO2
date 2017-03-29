@@ -719,7 +719,7 @@ void CookedTracker::loadClusters(const TClonesArray& clusters)
       auto f=std::async(std::launch::async, &CookedTracker::Layer::init, sLayers+(l+t));
       fut.push_back(std::move(f));
     }
-    for (Int_t t = 0; t < fut.size(); t++) fut[t].wait();
+    for (auto & t : fut) t.wait();
   }
 }
 
@@ -728,8 +728,8 @@ void CookedTracker::unloadClusters()
   //--------------------------------------------------------------------
   // This function unloads ITSU clusters from the RAM
   //--------------------------------------------------------------------
-  for (Int_t i = 0; i < kNLayers; i++)
-    sLayers[i].unloadClusters();
+  for (auto & sLayer : sLayers)
+    sLayer.unloadClusters();
 }
 
 Cluster* CookedTracker::getCluster(Int_t index) const
@@ -792,7 +792,7 @@ void CookedTracker::Layer::unloadClusters()
   mXRef.clear();
   mAlphaRef.clear();
   mPhi.clear();
-  for (Int_t s=0; s<kNSectors; s++) mSectors[s].clear();
+  for (auto & mSector : mSectors) mSector.clear();
 }
 
 Bool_t CookedTracker::Layer::insertCluster(Cluster* c)

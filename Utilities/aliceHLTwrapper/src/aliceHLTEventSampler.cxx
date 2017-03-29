@@ -72,19 +72,10 @@ struct SocketProperties_t {
     , validParams(0)
   {}
   SocketProperties_t(const SocketProperties_t& other)
-    : type(other.type)
-    , size(other.size)
-    , method(other.method)
-    , address(other.address)
-    , ddsprop(other.ddsprop)
-    , ddscount(other.ddscount)
-    , ddsminport(other.ddsminport)
-    , ddsmaxport(other.ddsmaxport)
-    , validParams(other.validParams)
-  {}
+    = default;
 };
 
-FairMQDevice* gDevice = NULL;
+FairMQDevice* gDevice = nullptr;
 
 int preprocessSockets(vector<SocketProperties_t>& sockets);
 int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networkPrefix="");
@@ -117,7 +108,7 @@ int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets);
     /*[MAXPORT]   = */ "max-port",
     /*[DDSGLOBAL] = */ "global",
     /*[DDSLOCAL]  = */ "local",
-    NULL
+    nullptr
   };
 
 
@@ -147,18 +138,18 @@ int main(int argc, char** argv)
   bool bUseDDS = false;
 
   static struct option programOptions[] = {
-    { "input",       required_argument, 0, 'i' }, // input socket
-    { "output",      required_argument, 0, 'o' }, // output socket
-    { "latency-log", required_argument, 0, 'l' }, // output file name for logging of latency
-    { "factory-type",required_argument, 0, '4' }, // type of the factory "zmq", "nanomsg"
-    { "verbosity",   required_argument, 0, 'v' }, // verbosity
-    { "loginterval", required_argument, 0, '5' }, // logging interval
-    { "polltimeout", required_argument, 0, '1' }, // polling timeout of the device in ms
-    { "eventperiod", required_argument, 0, '2' }, // event period in us
-    { "initialdelay",required_argument, 0, '3' }, // initial delay in ms
-    { "dry-run",     no_argument      , 0, 'n' }, // skip the component processing
-    { "dds",         no_argument      , 0, 'd' }, // run in dds mode
-    { 0, 0, 0, 0 }
+    { "input",       required_argument, nullptr, 'i' }, // input socket
+    { "output",      required_argument, nullptr, 'o' }, // output socket
+    { "latency-log", required_argument, nullptr, 'l' }, // output file name for logging of latency
+    { "factory-type",required_argument, nullptr, '4' }, // type of the factory "zmq", "nanomsg"
+    { "verbosity",   required_argument, nullptr, 'v' }, // verbosity
+    { "loginterval", required_argument, nullptr, '5' }, // logging interval
+    { "polltimeout", required_argument, nullptr, '1' }, // polling timeout of the device in ms
+    { "eventperiod", required_argument, nullptr, '2' }, // event period in us
+    { "initialdelay",required_argument, nullptr, '3' }, // initial delay in ms
+    { "dry-run",     no_argument      , nullptr, 'n' }, // skip the component processing
+    { "dds",         no_argument      , nullptr, 'd' }, // run in dds mode
+    { nullptr, 0, nullptr, 0 }
   };
 
   char c = 0;
@@ -172,9 +163,9 @@ int main(int argc, char** argv)
   // two colons after the option indicate an optional argument
   std::string optstring = "-";
   for (struct option* programOption = programOptions;
-       programOption != NULL && programOption->name != NULL;
+       programOption != nullptr && programOption->name != nullptr;
        programOption++) {
-    if (programOption->flag == NULL) {
+    if (programOption->flag == nullptr) {
       // programOption->val uniquely identifies particular long option
       optstring += ((char)programOption->val);
       if (programOption->has_arg == required_argument) optstring += ":";  // one colon to indicate required argument
@@ -190,7 +181,7 @@ int main(int argc, char** argv)
       case 'i':
       case 'o': {
         char* subopts = optarg;
-        char* value = NULL;
+        char* value = nullptr;
         int keynum = 0;
         SocketProperties_t prop;
         while (subopts && *subopts != 0 && *subopts != ' ') {
@@ -318,7 +309,7 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  FairMQTransportFactory* transportFactory = NULL;
+  FairMQTransportFactory* transportFactory = nullptr;
   if (strcmp(factoryType, "nanomsg") == 0) {
 #ifdef NANOMSG
     transportFactory = new FairMQTransportFactoryNN();
@@ -431,7 +422,7 @@ int main(int argc, char** argv)
   } // scope for the device reference variable
 
   FairMQDevice* almostdead = gDevice;
-  gDevice = NULL;
+  gDevice = nullptr;
   delete almostdead;
 
   return iResult;
@@ -441,11 +432,10 @@ int preprocessSockets(vector<SocketProperties_t>& sockets)
 {
   // check consistency of socket parameters
   int iResult=0;
-  for (vector<SocketProperties_t>::iterator sit=sockets.begin();
-       sit!=sockets.end(); sit++) {
+  for (auto & socket : sockets) {
     unsigned maskRequiredParams=(0x1<<SIZE)|(0x1<<TYPE)|(0x1<<METHOD)|(0x1<<ADDRESS);
-    if ((sit->validParams&maskRequiredParams)!=maskRequiredParams) {
-      cerr << buildSocketParameterErrorMsg(maskRequiredParams, sit->validParams, "Error: missing socket parameter(s)") << endl;
+    if ((socket.validParams&maskRequiredParams)!=maskRequiredParams) {
+      cerr << buildSocketParameterErrorMsg(maskRequiredParams, socket.validParams, "Error: missing socket parameter(s)") << endl;
       iResult=-1;
       break;
     }
@@ -470,22 +460,21 @@ int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networ
   // - add address
   int iResult=0;
   vector<SocketProperties_t> ddsduplicates;
-  for (vector<SocketProperties_t>::iterator sit=sockets.begin();
-       sit!=sockets.end(); sit++) {
-    if (sit->method.compare("bind")==0) {
+  for (auto & socket : sockets) {
+    if (socket.method.compare("bind")==0) {
       unsigned maskRequiredParams=(0x1<<SIZE)|(0x1<<TYPE)|(0x1<<PROPERTY)|(0x1<<MINPORT);
-      if ((sit->validParams&maskRequiredParams)!=maskRequiredParams) {
-	cerr << buildSocketParameterErrorMsg(maskRequiredParams, sit->validParams, "Error: missing parameter(s) for binding socket") << endl;
+      if ((socket.validParams&maskRequiredParams)!=maskRequiredParams) {
+	cerr << buildSocketParameterErrorMsg(maskRequiredParams, socket.validParams, "Error: missing parameter(s) for binding socket") << endl;
 	iResult=-1;
 	break;
       }
       // the port will be selected by the FairMQ framework during the
       // bind process, the address is a placeholder at the moment
-      sit->address="tcp://"+networkPrefix+":";
-    } else if (sit->method.compare("connect")==0) {
+      socket.address="tcp://"+networkPrefix+":";
+    } else if (socket.method.compare("connect")==0) {
       unsigned maskRequiredParams=(0x1<<SIZE)|(0x1<<PROPERTY)|(0x1<<COUNT);
-      if ((sit->validParams&maskRequiredParams)!=maskRequiredParams) {
-	cerr << buildSocketParameterErrorMsg(maskRequiredParams, sit->validParams, "Error: missing parameter(s) for connecting socket") << endl;
+      if ((socket.validParams&maskRequiredParams)!=maskRequiredParams) {
+	cerr << buildSocketParameterErrorMsg(maskRequiredParams, socket.validParams, "Error: missing parameter(s) for connecting socket") << endl;
 	iResult=-1;
 	break;
       }
@@ -494,14 +483,14 @@ int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networ
       // properties on the same hostwhen using local mode
       // the actual number of input ports is spefified by the count argument, the
       // corresponding number of properties is expected from DDS
-      sit->address=networkPrefix;
+      socket.address=networkPrefix;
       // add n-1 duplicates of the port configuration
-      for (int i=0; i<sit->ddscount-1; i++) {
-	ddsduplicates.push_back(*sit);
+      for (int i=0; i<socket.ddscount-1; i++) {
+	ddsduplicates.push_back(socket);
 	ddsduplicates.back().ddscount=0;
       }
     } else {
-      cerr << "Error: invalid socket method '" << sit->method << "'" << endl;
+      cerr << "Error: invalid socket method '" << socket.method << "'" << endl;
       iResult=-1; // TODO: find error codes
       break;
     }
@@ -516,9 +505,8 @@ int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networ
 int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
 {
   // send dds property for all binding sockets
-  for (vector<SocketProperties_t>::iterator sit=sockets.begin();
-       sit!=sockets.end(); sit++) {
-    if (sit->method.compare("bind")==1) continue;
+  for (auto & socket : sockets) {
+    if (socket.method.compare("bind")==1) continue;
     std::stringstream ddsmsg;
     // TODO: send the complete socket configuration to allow the counterpart to
     // set the relevant options
@@ -526,14 +514,14 @@ int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
     //ddsmsg << socketkeys[METHOD]  << "=" << sit->method << ",";
     //ddsmsg << socketkeys[SIZE]    << "=" << sit->size << ",";
     //ddsmsg << socketkeys[ADDRESS] << "=" << sit->address;
-    ddsmsg << sit->address;
+    ddsmsg << socket.address;
 
 #ifdef ENABLE_DDS
     dds::intercom_api::CKeyValue ddsKeyValue;
     ddsKeyValue.putValue(sit->ddsprop, ddsmsg.str());
 #endif
 
-    cout << "DDS putValue: " << sit->ddsprop.c_str() << " " << ddsmsg.str() << endl;
+    cout << "DDS putValue: " << socket.ddsprop.c_str() << " " << ddsmsg.str() << endl;
   }
   return 0;
 }
@@ -541,10 +529,9 @@ int sendSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
 int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets)
 {
   // read dds properties for connecting sockets
-  for (vector<SocketProperties_t>::iterator sit=sockets.begin();
-       sit!=sockets.end(); sit++) {
-    if (sit->method.compare("connect")==1) continue;
-    if (sit->ddscount==0) continue; // the previously inserted duplicates
+  for (auto & socket : sockets) {
+    if (socket.method.compare("connect")==1) continue;
+    if (socket.ddscount==0) continue; // the previously inserted duplicates
 
 #ifdef ENABLE_DDS
     dds::intercom_api::CKeyValue ddsKeyValue;

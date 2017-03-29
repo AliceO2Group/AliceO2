@@ -13,19 +13,19 @@
 #include "TObjArray.h"        // for TObjArray
 #include "TObject.h"          // for TObject
 
-#include "stddef.h" // for NULL
+#include <cstddef> // for NULL
 
 using namespace AliceO2::ITS;
 
 ClassImp(AliceO2::ITS::GeometryManager)
 
-  TGeoManager* GeometryManager::mGeometry = 0x0;
+  TGeoManager* GeometryManager::mGeometry = nullptr;
 
 /// Implementation of GeometryManager, the geometry manager class which interfaces to TGeo and
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
 /// collects several static methods
 GeometryManager::GeometryManager() : TObject() {}
-GeometryManager::~GeometryManager() {}
+GeometryManager::~GeometryManager() = default;
 Bool_t GeometryManager::getOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m)
 {
   m.Clear();
@@ -48,7 +48,7 @@ Bool_t GeometryManager::getOriginalGlobalMatrix(const char* symname, TGeoHMatrix
   }
 
   TGeoPNEntry* pne = mGeometry->GetAlignableEntry(symname);
-  const char* path = NULL;
+  const char* path = nullptr;
 
   if (pne) {
     m = *pne->GetGlobalOrig();
@@ -81,7 +81,7 @@ Bool_t GeometryManager::getOriginalGlobalMatrixFromPath(const char* path, TGeoHM
   mGeometry->cd(path);
 
   while (mGeometry->GetLevel()) {
-    TGeoPhysicalNode* physNode = NULL;
+    TGeoPhysicalNode* physNode = nullptr;
     next.Reset();
     TGeoNode* node = mGeometry->GetCurrentNode();
 
@@ -91,7 +91,7 @@ Bool_t GeometryManager::getOriginalGlobalMatrixFromPath(const char* path, TGeoHM
       }
     }
 
-    TGeoMatrix* lm = NULL;
+    TGeoMatrix* lm = nullptr;
     if (physNode) {
       lm = physNode->GetOriginalMatrix();
       if (!lm) {

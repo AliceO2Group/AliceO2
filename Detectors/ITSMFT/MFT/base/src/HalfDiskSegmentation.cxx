@@ -23,7 +23,7 @@ ClassImp(HalfDiskSegmentation);
 HalfDiskSegmentation::HalfDiskSegmentation():
   VSegmentation(),
   mNLadders(0),
-  mLadders(NULL)
+  mLadders(nullptr)
 {
 
 
@@ -36,7 +36,7 @@ HalfDiskSegmentation::HalfDiskSegmentation():
 HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID):
   VSegmentation(),
   mNLadders(0),
-  mLadders(NULL)
+  mLadders(nullptr)
 {
 
   // constructor
@@ -85,7 +85,7 @@ void HalfDiskSegmentation::Clear(const Option_t* /*opt*/)
 
   if (mLadders) mLadders->Delete();
   delete mLadders; 
-  mLadders = NULL;
+  mLadders = nullptr;
 
 }
 
@@ -104,7 +104,7 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
   TString nodeName = xml->GetNodeName(node);
   if (!nodeName.CompareTo("ladder")) {
     XMLAttrPointer_t attr = xml->GetFirstAttr(node);
-    while (attr != 0) {
+    while (attr != nullptr) {
       TString attrName = xml->GetAttrName(attr);
       TString attrVal  = xml->GetAttrValue(attr);
       if(!attrName.CompareTo("iladder")) {
@@ -155,7 +155,7 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
 
     //UInt_t ladderUniqueID = (Geometry::kLadderType<<13) +  (((GetUniqueID()>>9) & 0xF)<<9) + (plane<<8) + (ladderID<<3);
     
-    LadderSegmentation * ladder = new LadderSegmentation(ladderUniqueID);
+    auto * ladder = new LadderSegmentation(ladderUniqueID);
     ladder->SetNSensors(nsensor);
     ladder->SetPosition(pos);
     ladder->SetRotationAngles(ang);
@@ -183,7 +183,7 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
   
   // display all child nodes
   XMLNodePointer_t child = xml->GetChild(node);
-  while (child!=0) {
+  while (child!=nullptr) {
     CreateLadders(xml, child);
     child = xml->GetNext(child);
   }

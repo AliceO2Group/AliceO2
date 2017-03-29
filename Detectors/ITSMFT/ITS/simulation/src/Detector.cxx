@@ -28,7 +28,7 @@
 #include "TVirtualMC.h"             // for gMC, TVirtualMC
 #include "TVirtualMCStack.h"        // for TVirtualMCStack
 
-#include <stdio.h>                  // for NULL, snprintf
+#include <cstdio>                  // for NULL, snprintf
 
 class FairModule;
 
@@ -44,7 +44,7 @@ using namespace AliceO2::ITS;
 
 Detector::Detector()
   : AliceO2::Base::Detector("ITS", kTRUE, kAliIts),
-    mLayerID(0),
+    mLayerID(nullptr),
     mTrackNumberID(-1),
     mVolumeID(-1),
     mEntrancePosition(),
@@ -57,7 +57,7 @@ Detector::Detector()
     mShunt(),
     mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
     mGeometryHandler(new GeometryHandler()),
-    mMisalignmentParameter(NULL),
+    mMisalignmentParameter(nullptr),
     mNumberOfDetectors(-1),
     mShiftX(),
     mShiftY(),
@@ -67,23 +67,23 @@ Detector::Detector()
     mRotZ(),
     mModifyGeometry(kFALSE),
     mNumberOfWrapperVolumes(0),
-    mWrapperMinRadius(0),
-    mWrapperMaxRadius(0),
-    mWrapperZSpan(0),
-    mWrapperLayerId(0),
-    mTurboLayer(0),
-    mLayerPhi0(0),
-    mLayerRadii(0),
-    mLayerZLength(0),
-    mStavePerLayer(0),
-    mUnitPerStave(0),
-    mStaveThickness(0),
-    mStaveWidth(0),
-    mStaveTilt(0),
-    mDetectorThickness(0),
-    mChipTypeID(0),
-    mBuildLevel(0),
-    mGeometry(0),
+    mWrapperMinRadius(nullptr),
+    mWrapperMaxRadius(nullptr),
+    mWrapperZSpan(nullptr),
+    mWrapperLayerId(nullptr),
+    mTurboLayer(nullptr),
+    mLayerPhi0(nullptr),
+    mLayerRadii(nullptr),
+    mLayerZLength(nullptr),
+    mStavePerLayer(nullptr),
+    mUnitPerStave(nullptr),
+    mStaveThickness(nullptr),
+    mStaveWidth(nullptr),
+    mStaveTilt(nullptr),
+    mDetectorThickness(nullptr),
+    mChipTypeID(nullptr),
+    mBuildLevel(nullptr),
+    mGeometry(nullptr),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -91,7 +91,7 @@ Detector::Detector()
 
 Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
   : AliceO2::Base::Detector(name, active, kAliIts),
-    mLayerID(0),
+    mLayerID(nullptr),
     mTrackNumberID(-1),
     mVolumeID(-1),
     mEntrancePosition(),
@@ -104,7 +104,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mShunt(),
     mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
     mGeometryHandler(new GeometryHandler()),
-    mMisalignmentParameter(NULL),
+    mMisalignmentParameter(nullptr),
     mNumberOfDetectors(-1),
     mShiftX(),
     mShiftY(),
@@ -114,23 +114,23 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mRotZ(),
     mModifyGeometry(kFALSE),
     mNumberOfWrapperVolumes(0),
-    mWrapperMinRadius(0),
-    mWrapperMaxRadius(0),
-    mWrapperZSpan(0),
-    mWrapperLayerId(0),
-    mTurboLayer(0),
-    mLayerPhi0(0),
-    mLayerRadii(0),
-    mLayerZLength(0),
-    mStavePerLayer(0),
-    mUnitPerStave(0),
-    mStaveThickness(0),
-    mStaveWidth(0),
-    mStaveTilt(0),
-    mDetectorThickness(0),
-    mChipTypeID(0),
-    mBuildLevel(0),
-    mGeometry(0),
+    mWrapperMinRadius(nullptr),
+    mWrapperMaxRadius(nullptr),
+    mWrapperZSpan(nullptr),
+    mWrapperLayerId(nullptr),
+    mTurboLayer(nullptr),
+    mLayerPhi0(nullptr),
+    mLayerRadii(nullptr),
+    mLayerZLength(nullptr),
+    mStavePerLayer(nullptr),
+    mUnitPerStave(nullptr),
+    mStaveThickness(nullptr),
+    mStaveWidth(nullptr),
+    mStaveTilt(nullptr),
+    mDetectorThickness(nullptr),
+    mChipTypeID(nullptr),
+    mBuildLevel(nullptr),
+    mGeometry(nullptr),
     mNumberLayers(nlay),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
@@ -167,14 +167,14 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
       mDetectorThickness[j] = 0.;
       mChipTypeID[j] = 0;
       mBuildLevel[j] = 0;
-      mGeometry[j] = 0;
+      mGeometry[j] = nullptr;
     }
   }
 }
 
 Detector::Detector(const Detector &rhs)
   : AliceO2::Base::Detector(rhs),
-    mLayerID(0),
+    mLayerID(nullptr),
     mNumberLayers(rhs.mNumberLayers),
     mStatus(rhs.mStatus),
     mModule(rhs.mModule),
@@ -192,7 +192,7 @@ Detector::Detector(const Detector &rhs)
     mPositionX(rhs.mPositionX),
     mPositionY(rhs.mPositionY),
     mPositionZ(rhs.mPositionZ),
-    mLayerName(0),
+    mLayerName(nullptr),
     mTrackNumberID(rhs.mTrackNumberID),
     mVolumeID(rhs.mVolumeID),
     mShunt(rhs.mShunt),
@@ -217,30 +217,30 @@ Detector::Detector(const Detector &rhs)
     mNumberOfWrapperVolumes(rhs.mNumberOfWrapperVolumes),
   // the following parameters may be shared with master if needed
   // let's try not to set them and keep dtor simple
-    mWrapperMinRadius(0),
-    mWrapperMaxRadius(0),
-    mWrapperZSpan(0),
-    mWrapperLayerId(0),
-    mTurboLayer(0),
-    mLayerPhi0(0),
-    mLayerRadii(0),
-    mLayerZLength(0),
-    mStavePerLayer(0),
-    mUnitPerStave(0),
-    mStaveThickness(0),
-    mStaveWidth(0),
-    mStaveTilt(0),
-    mDetectorThickness(0),
-    mChipTypeID(0),
-    mBuildLevel(0),
+    mWrapperMinRadius(nullptr),
+    mWrapperMaxRadius(nullptr),
+    mWrapperZSpan(nullptr),
+    mWrapperLayerId(nullptr),
+    mTurboLayer(nullptr),
+    mLayerPhi0(nullptr),
+    mLayerRadii(nullptr),
+    mLayerZLength(nullptr),
+    mStavePerLayer(nullptr),
+    mUnitPerStave(nullptr),
+    mStaveThickness(nullptr),
+    mStaveWidth(nullptr),
+    mStaveTilt(nullptr),
+    mDetectorThickness(nullptr),
+    mChipTypeID(nullptr),
+    mBuildLevel(nullptr),
 
   /// Container for data points
-    mPointCollection(0),
+    mPointCollection(nullptr),
 
-    mGeometryHandler(0),
-    mMisalignmentParameter(0),
+    mGeometryHandler(nullptr),
+    mMisalignmentParameter(nullptr),
 
-    mGeometry(0),
+    mGeometry(nullptr),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelInnerBarrel)
 {
@@ -296,7 +296,7 @@ Detector &Detector::operator=(const Detector &rhs)
   // base class assignment
   Base::Detector::operator=(rhs);
 
-  mLayerID = 0;
+  mLayerID = nullptr;
   mNumberLayers = rhs.mNumberLayers;
   mStatus = rhs.mStatus;
   mModule = rhs.mModule;
@@ -314,7 +314,7 @@ Detector &Detector::operator=(const Detector &rhs)
   mPositionX = rhs.mPositionX;
   mPositionY = rhs.mPositionY;
   mPositionZ = rhs.mPositionZ;
-  mLayerName = 0;
+  mLayerName = nullptr;
   mTrackNumberID = rhs.mTrackNumberID;
   mVolumeID = rhs.mVolumeID;
   mShunt = rhs.mShunt;
@@ -333,30 +333,30 @@ Detector &Detector::operator=(const Detector &rhs)
   mNumberOfWrapperVolumes = rhs.mNumberOfWrapperVolumes;
   // the following parameters may be shared with master if needed
   // let's try not to set them and keep dtor simple
-  mWrapperMinRadius = 0;
-  mWrapperMaxRadius = 0;
-  mWrapperZSpan = 0;
-  mWrapperLayerId = 0;
-  mTurboLayer = 0;
-  mLayerPhi0 = 0;
-  mLayerRadii = 0;
-  mLayerZLength = 0;
-  mStavePerLayer = 0;
-  mUnitPerStave = 0;
-  mStaveThickness = 0;
-  mStaveWidth = 0;
-  mStaveTilt = 0;
-  mDetectorThickness = 0;
-  mChipTypeID = 0;
-  mBuildLevel = 0;
+  mWrapperMinRadius = nullptr;
+  mWrapperMaxRadius = nullptr;
+  mWrapperZSpan = nullptr;
+  mWrapperLayerId = nullptr;
+  mTurboLayer = nullptr;
+  mLayerPhi0 = nullptr;
+  mLayerRadii = nullptr;
+  mLayerZLength = nullptr;
+  mStavePerLayer = nullptr;
+  mUnitPerStave = nullptr;
+  mStaveThickness = nullptr;
+  mStaveWidth = nullptr;
+  mStaveTilt = nullptr;
+  mDetectorThickness = nullptr;
+  mChipTypeID = nullptr;
+  mBuildLevel = nullptr;
 
   /// Container for data points
-  mPointCollection = 0;
+  mPointCollection = nullptr;
 
-  mGeometryHandler = 0;
-  mMisalignmentParameter = 0;
+  mGeometryHandler = nullptr;
+  mMisalignmentParameter = nullptr;
 
-  mGeometry = 0;
+  mGeometry = nullptr;
   mStaveModelInnerBarrel = rhs.mStaveModelInnerBarrel;
   mStaveModelOuterBarrel = rhs.mStaveModelInnerBarrel;
 
@@ -642,7 +642,7 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
   if (iColl == 0) {
     return mPointCollection;
   } else {
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -828,7 +828,7 @@ TGeoVolume *Detector::createWrapperVolume(Int_t id)
   }
 
   // Now create the actual shape and volume
-  TGeoTube *tube =
+  auto *tube =
     new TGeoTube(mWrapperMinRadius[id], mWrapperMaxRadius[id], mWrapperZSpan[id] / 2.);
 
   TGeoMedium *medAir = gGeoManager->GetMedium("ITS_AIR$");
@@ -836,7 +836,7 @@ TGeoVolume *Detector::createWrapperVolume(Int_t id)
   char volnam[30];
   snprintf(volnam, 29, "%s%d", GeometryTGeo::getITSWrapVolPattern(), id);
 
-  TGeoVolume *wrapper = new TGeoVolume(volnam, tube, medAir);
+  auto *wrapper = new TGeoVolume(volnam, tube, medAir);
 
   return wrapper;
 }
@@ -867,7 +867,7 @@ void Detector::constructDetectorGeometry()
   new TGeoVolumeAssembly(GeometryTGeo::getITSVolPattern());
   TGeoVolume *vITSV = geoManager->GetVolume(GeometryTGeo::getITSVolPattern());
   vITSV->SetUniqueID(GeometryTGeo::getUIDShift()); // store modID -> midUUID bitshift
-  vALIC->AddNode(vITSV, 2, 0); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
+  vALIC->AddNode(vITSV, 2, nullptr); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
 
   const Int_t kLength = 100;
   Char_t vstrng[kLength] = "xxxRS"; //?
@@ -926,13 +926,13 @@ void Detector::constructDetectorGeometry()
   }
 
   // Create the wrapper volumes
-  TGeoVolume **wrapVols = 0;
+  TGeoVolume **wrapVols = nullptr;
 
   if (mNumberOfWrapperVolumes) {
     wrapVols = new TGeoVolume *[mNumberOfWrapperVolumes];
     for (int id = 0; id < mNumberOfWrapperVolumes; id++) {
       wrapVols[id] = createWrapperVolume(id);
-      vITSV->AddNode(wrapVols[id], 1, 0);
+      vITSV->AddNode(wrapVols[id], 1, nullptr);
     }
   }
 
@@ -1021,13 +1021,13 @@ void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume *dest,
   if (innerBarrel) {
     zLenOB = ((TGeoTube *) (dest->GetShape()))->GetDz();
     //    TGeoTube*ibSuppSh = new TGeoTubeSeg(rminIB,rminIB+cInt,zLenOB,phi1,phi2);
-    TGeoTube *ibSuppSh = new TGeoTube(rminIB, rminIB + cInt, zLenOB);
-    TGeoVolume *ibSupp = new TGeoVolume("ibSuppCyl", ibSuppSh, medCarbonFleece);
+    auto *ibSuppSh = new TGeoTube(rminIB, rminIB + cInt, zLenOB);
+    auto *ibSupp = new TGeoVolume("ibSuppCyl", ibSuppSh, medCarbonFleece);
     dest->AddNode(ibSupp, 1);
   } else {
     zLenOB = ((TGeoTube *) (dest->GetShape()))->GetDz();
-    TGeoTube *obSuppSh = new TGeoTube(rminOB, rminOB + cExt, zLenOB);
-    TGeoVolume *obSupp = new TGeoVolume("obSuppCyl", obSuppSh, medCarbonFleece);
+    auto *obSuppSh = new TGeoTube(rminOB, rminOB + cExt, zLenOB);
+    auto *obSupp = new TGeoVolume("obSuppCyl", obSuppSh, medCarbonFleece);
     dest->AddNode(obSupp, 1);
   }
 

@@ -31,8 +31,7 @@ BoxCluster::BoxCluster(Short_t cru, Short_t row, Short_t pad, Short_t time,
 
 //________________________________________________________________________
 BoxCluster::~BoxCluster()
-{
-}
+= default;
 
 //________________________________________________________________________
 void BoxCluster::setBoxParameters(Short_t pad, Short_t time, Short_t size)

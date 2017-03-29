@@ -26,12 +26,10 @@ Detector::Detector(const char *name, Bool_t Active, Int_t DetId)
 }
 
 Detector::Detector(const Detector &rhs)
-  : FairDetector(rhs)
-{ }
+  = default;
 
 Detector::~Detector()
-{
-}
+= default;
 
 Detector &Detector::operator=(const Detector &rhs)
 {

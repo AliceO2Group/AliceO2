@@ -8,7 +8,7 @@
 #include <TObjArray.h> // for TObjArray
 #include <TString.h>   // for TString
 #include <TSystem.h>   // for TSystem, gSystem
-#include <stdio.h>     // for printf
+#include <cstdio>     // for printf
 #include "TMathBase.h" // for Abs, Max, Min
 #include "TObject.h"   // for TObject
 
@@ -43,8 +43,8 @@ SegmentationPixel::SegmentationPixel(UInt_t id, int nchips, int ncol, int nrow, 
     mDiodShiftMatNColumn(0),
     mDiodShiftMatNRow(0),
     mDiodShiftMatDimension(0),
-    mDiodShiftMatX(0),
-    mDiodShiftMatZ(0)
+    mDiodShiftMatX(nullptr),
+    mDiodShiftMatZ(nullptr)
 {
   // Default constructor, sizes in cm
 
@@ -156,9 +156,9 @@ SegmentationPixel& SegmentationPixel::operator=(const SegmentationPixel& src)
   mDiodShiftMatNRow = src.mDiodShiftMatNRow;
   mDiodShiftMatDimension = src.mDiodShiftMatDimension;
   delete mDiodShiftMatX;
-  mDiodShiftMatX = 0;
+  mDiodShiftMatX = nullptr;
   delete mDiodShiftMatZ;
-  mDiodShiftMatZ = 0;
+  mDiodShiftMatZ = nullptr;
   if (mDiodShiftMatDimension) {
     mDiodShiftMatX = new Float_t[mDiodShiftMatDimension];
     mDiodShiftMatZ = new Float_t[mDiodShiftMatDimension];
@@ -192,8 +192,8 @@ SegmentationPixel::SegmentationPixel(const SegmentationPixel& src)
     mDiodShiftMatNColumn(src.mDiodShiftMatNColumn),
     mDiodShiftMatNRow(src.mDiodShiftMatNRow),
     mDiodShiftMatDimension(src.mDiodShiftMatDimension),
-    mDiodShiftMatX(0),
-    mDiodShiftMatZ(0)
+    mDiodShiftMatX(nullptr),
+    mDiodShiftMatZ(nullptr)
 {
   // copy constructor
   if (mDiodShiftMatDimension) {
@@ -406,23 +406,23 @@ SegmentationPixel* SegmentationPixel::loadWithId(UInt_t id, const char* inpf)
   gSystem->ExpandPathName(fns);
   if (fns.IsNull()) {
     LOG(FATAL) << "LoadWithId: No file name provided" << FairLogger::endl;
-    return 0;
+    return nullptr;
   }
   TFile* finp = TFile::Open(fns.Data());
   if (!finp) {
     LOG(FATAL) << "LoadWithId: Failed to open file " << inpf << FairLogger::endl;
-    return 0;
+    return nullptr;
   }
   TObjArray* arr = (TObjArray*)finp->Get(sSegmentationsListName);
   if (!arr) {
     LOG(FATAL) << "LoadWithId: Failed to find segmenation array " << sSegmentationsListName << " in " << inpf
                << FairLogger::endl;
-    return 0;
+    return nullptr;
   }
   SegmentationPixel* segm = dynamic_cast<SegmentationPixel*>(arr->At(id));
   if (!segm || segm->GetUniqueID() != id) {
     LOG(FATAL) << "LoadWithId: Failed to find segmenation " << id << " in " << inpf << FairLogger::endl;
-    return 0;
+    return nullptr;
   }
 
   arr->RemoveAt(id);
@@ -454,7 +454,7 @@ void SegmentationPixel::loadSegmentations(TObjArray* dest, const char* inpf)
                << FairLogger::endl;
   }
   int nent = arr->GetEntriesFast();
-  TObject* segm = 0;
+  TObject* segm = nullptr;
   for (int i = nent; i--;) {
     if ((segm = arr->At(i))) {
       dest->AddAtAndExpand(segm, segm->GetUniqueID());
@@ -473,7 +473,7 @@ void SegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Float_t
   if (mDiodShiftMatDimension) {
     delete mDiodShiftMatX;
     delete mDiodShiftMatZ;
-    mDiodShiftMatX = mDiodShiftMatZ = 0;
+    mDiodShiftMatX = mDiodShiftMatZ = nullptr;
   }
   mDiodShiftMatNColumn = ncol;
   mDiodShiftMatNRow = nrow;
@@ -496,7 +496,7 @@ void SegmentationPixel::setDiodShiftMatrix(Int_t nrow, Int_t ncol, const Double_
   if (mDiodShiftMatDimension) {
     delete mDiodShiftMatX;
     delete mDiodShiftMatZ;
-    mDiodShiftMatX = mDiodShiftMatZ = 0;
+    mDiodShiftMatX = mDiodShiftMatZ = nullptr;
   }
 
   mDiodShiftMatNColumn = ncol;

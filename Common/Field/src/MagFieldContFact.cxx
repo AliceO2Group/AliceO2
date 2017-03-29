@@ -2,7 +2,7 @@
 /// \brief Implementation of the MagFieldContFact: factory for ALICE mag. field
 /// \author ruben.shahoyan@cern.ch
 
-#include <string.h> // for strcmp, NULL
+#include <cstring> // for strcmp, NULL
 #include "FairLogger.h"                // for FairLogger, MESSAGE_ORIGIN
 #include "FairRuntimeDb.h"          // for FairRuntimeD
 #include "FairParSet.h"
@@ -27,7 +27,7 @@ void MagFieldContFact::setAllContainers()
 {
   //  Creates the Container objects and adds it to the list of containers
   
-  FairContainer* p = new FairContainer("MagFieldParam", "Mag. Field Parameters", "Default Field");
+  auto* p = new FairContainer("MagFieldParam", "Mag. Field Parameters", "Default Field");
   containers->Add(p);
 }
 
@@ -36,7 +36,7 @@ FairParSet* MagFieldContFact::createContainer(FairContainer* c)
   // calls the constructor of the corresponding parameter container.
   const char* name = c->GetName();
   FairLogger::GetLogger()->Info(MESSAGE_ORIGIN, "Creating mag.field container %s",name);
-  FairParSet* p = NULL;
+  FairParSet* p = nullptr;
   if (strcmp(name, "MagFieldParam") == 0) {
     p = new MagFieldParam(c->getConcatName().Data(), c->GetTitle(), c->getContext());
   }

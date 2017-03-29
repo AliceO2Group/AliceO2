@@ -56,14 +56,14 @@ void GeometryBuilder::BuildGeometry()
   
   for (int iHalf = 0; iHalf < 2; iHalf++) {
     HalfSegmentation *halfSeg = seg->GetHalf(iHalf);
-    HalfDetector *halfMFT = new HalfDetector(halfSeg);
+    auto *halfMFT = new HalfDetector(halfSeg);
     volMFT->AddNode(halfMFT->GetVolume(),iHalf,halfSeg->GetTransformation());
     delete halfMFT;
   }
 
   /// \todo Add the service, Barrel, etc Those objects will probably be defined into the COMMON ITSMFT area.
   
-  HalfCone * halfCone = new HalfCone();
+  auto * halfCone = new HalfCone();
   TGeoVolumeAssembly * halfCone1 = halfCone->CreateHalfCone(0);
   TGeoVolumeAssembly * halfCone2 = halfCone->CreateHalfCone(1);
   volMFT->AddNode(halfCone1,1);

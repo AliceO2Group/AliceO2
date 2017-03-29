@@ -32,16 +32,14 @@ ClassImp(AliceO2::MFT::Flex)
 Flex::Flex():
 TNamed(),
 mFlexOrigin(),
-mLadderSeg(NULL)
+mLadderSeg(nullptr)
 {
   // Constructor
 }
 
 //_____________________________________________________________________________
 Flex::~Flex() 
-{
-
-}
+= default;
 
 //_____________________________________________________________________________
 Flex::Flex(LadderSegmentation *ladder):
@@ -67,7 +65,7 @@ TGeoVolumeAssembly* Flex::MakeFlex(Int_t nbsensors, Double_t length)
 
   // First a global pointer for the flex
   TGeoMedium *kMedAir = gGeoManager->GetMedium("MFT_Air$");
-  TGeoVolumeAssembly*  flex  = new TGeoVolumeAssembly(Form("flex_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder));
+  auto*  flex  = new TGeoVolumeAssembly(Form("flex_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder));
 
   // Defining one single layer for the strips and the AVDD and DVDD
   TGeoVolume* lines = Make_Lines(nbsensors,length-Geometry::kClearance, Geometry::kFlexHeight - Geometry::kClearance, Geometry::kAluThickness);
@@ -114,11 +112,11 @@ void Flex::Make_ElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, D
   // 2 components on the connector side
   Int_t total;
 
-  TGeoRotation *rotation = new TGeoRotation ("rotation", 90., 0., 0.);
-  TGeoRotation *rotationpi = new TGeoRotation ("rotationpi", 180., 0., 0.);
-  TGeoCombiTrans *transformation0 = new TGeoCombiTrans(length/2 - 0.1, Geometry::kFlexHeight/2-0.2, 
+  auto *rotation = new TGeoRotation ("rotation", 90., 0., 0.);
+  auto *rotationpi = new TGeoRotation ("rotationpi", 180., 0., 0.);
+  auto *transformation0 = new TGeoCombiTrans(length/2 - 0.1, Geometry::kFlexHeight/2-0.2, 
 						      zvarnish-Geometry::kVarnishThickness/2-Geometry::kCapacitorDz/2, rotation);
-  TGeoCombiTrans *transformation1 = new TGeoCombiTrans(length/2 - 0.1, Geometry::kFlexHeight/2-0.6, 
+  auto *transformation1 = new TGeoCombiTrans(length/2 - 0.1, Geometry::kFlexHeight/2-0.6, 
 						      zvarnish-Geometry::kVarnishThickness/2-Geometry::kCapacitorDz/2, rotation);
 
   for(Int_t id=0; id < 2; id++)electric[id] = Make_ElectricComponent(Geometry::kCapacitorDy, Geometry::kCapacitorDx, Geometry::kCapacitorDz, id);
@@ -166,14 +164,14 @@ void Flex::Make_ElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, D
   TGeoMedium *kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
   TGeoMedium *kMedPeek = gGeoManager->GetMedium("MFT_PEEK$");
 
-  TGeoBBox *connect = new TGeoBBox("connect", Geometry::kConnectorLength/2, Geometry::kConnectorWidth/2, Geometry::kConnectorHeight/2);
-  TGeoBBox *remov = new TGeoBBox("remov", Geometry::kConnectorLength/2, Geometry::kConnectorWidth/2+Geometry::kEpsilon, 
+  auto *connect = new TGeoBBox("connect", Geometry::kConnectorLength/2, Geometry::kConnectorWidth/2, Geometry::kConnectorHeight/2);
+  auto *remov = new TGeoBBox("remov", Geometry::kConnectorLength/2, Geometry::kConnectorWidth/2+Geometry::kEpsilon, 
 				 Geometry::kConnectorHeight/2+Geometry::kEpsilon);
 
-  TGeoTranslation    *t1= new TGeoTranslation ("t1", Geometry::kConnectorThickness, 0., -0.01);
-  TGeoSubtraction    *connecto = new TGeoSubtraction(connect, remov, NULL, t1);
-  TGeoCompositeShape *connector = new TGeoCompositeShape("connector", connecto);
-  TGeoVolume *connectord = new TGeoVolume("connectord", connector, kMedAlu);
+  auto    *t1= new TGeoTranslation ("t1", Geometry::kConnectorThickness, 0., -0.01);
+  auto    *connecto = new TGeoSubtraction(connect, remov, nullptr, t1);
+  auto *connector = new TGeoCompositeShape("connector", connecto);
+  auto *connectord = new TGeoVolume("connectord", connector, kMedAlu);
   connectord->SetVisibility(kTRUE);
   connectord->SetLineColor(kRed);
   connectord->SetLineWidth(1);
@@ -186,7 +184,7 @@ void Flex::Make_ElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, D
     flex->AddNode(connectord,id+total,new TGeoTranslation(length/2+interspace/2+Geometry::kConnectorLength/2-Geometry::kConnectorOffset, 
 							  id*step-Geometry::kFlexHeight/2 + 0.1, zvarnish - Geometry::kVarnishThickness/2 
 							  - Geometry::kConnectorHeight/2));
-    TGeoCombiTrans *transformationpi = new TGeoCombiTrans(length/2-interspace/2-Geometry::kConnectorLength/2-Geometry::kConnectorOffset, 
+    auto *transformationpi = new TGeoCombiTrans(length/2-interspace/2-Geometry::kConnectorLength/2-Geometry::kConnectorOffset, 
 							  id*step-Geometry::kFlexHeight/2 + 0.1, zvarnish - Geometry::kVarnishThickness/2 - 
 							  Geometry::kConnectorHeight/2, rotationpi);
   flex->AddNode(connectord,id+total+37, transformationpi);
@@ -194,13 +192,13 @@ void Flex::Make_ElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, D
   
 
   Double_t boxthickness = 0.05;
-  TGeoBBox *boxconnect = new TGeoBBox("boxconnect", (2*Geometry::kConnectorThickness+interspace+boxthickness)/2, Geometry::kFlexHeight/2-0.04, 
+  auto *boxconnect = new TGeoBBox("boxconnect", (2*Geometry::kConnectorThickness+interspace+boxthickness)/2, Geometry::kFlexHeight/2-0.04, 
 				      Geometry::kConnectorHeight/2);
-  TGeoBBox *boxremov = new TGeoBBox("boxremov", (2*Geometry::kConnectorThickness+interspace)/2, (Geometry::kFlexHeight-0.1-step)/2, 
+  auto *boxremov = new TGeoBBox("boxremov", (2*Geometry::kConnectorThickness+interspace)/2, (Geometry::kFlexHeight-0.1-step)/2, 
 				    Geometry::kConnectorHeight/2+0.001);
-  TGeoSubtraction *boxconnecto = new TGeoSubtraction(boxconnect, boxremov, NULL, NULL);
-  TGeoCompositeShape *boxconnector = new TGeoCompositeShape("boxconnector", boxconnecto);
-  TGeoVolume *boxconnectord = new TGeoVolume("boxconnectord", boxconnector, kMedPeek);
+  auto *boxconnecto = new TGeoSubtraction(boxconnect, boxremov, nullptr, nullptr);
+  auto *boxconnector = new TGeoCompositeShape("boxconnector", boxconnecto);
+  auto *boxconnectord = new TGeoVolume("boxconnectord", boxconnector, kMedPeek);
   flex->AddNode(boxconnectord,1,new TGeoTranslation(length/2-Geometry::kConnectorOffset, -step/2, zvarnish-Geometry::kVarnishThickness/2
 						    -Geometry::kConnectorHeight/2-Geometry::kConnectorThickness));
   
@@ -218,13 +216,13 @@ TGeoVolumeAssembly* Flex::Make_ElectricComponent(Double_t dx, Double_t dy,  Doub
   TGeoMedium *kmedX7R  = gGeoManager->GetMedium("MFT_X7Rcapacitors$");
   TGeoMedium *kmedX7Rw = gGeoManager->GetMedium("MFT_X7Rweld$");
 
-  TGeoVolumeAssembly* X7R0402 = new TGeoVolumeAssembly(Form("X7R_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,id));
+  auto* X7R0402 = new TGeoVolumeAssembly(Form("X7R_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,id));
 
-  TGeoBBox *capacit = new TGeoBBox("capacitor", dx/2, dy/2, dz/2);
-  TGeoBBox *weld = new TGeoBBox("weld", (dx/4)/2, dy/2, (dz/2)/2);
-  TGeoVolume*  capacitor = new TGeoVolume(Form("capacitor_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,id), capacit, kmedX7R);
-  TGeoVolume*  welding0 = new TGeoVolume(Form("welding0_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,id), weld, kmedX7Rw);
-  TGeoVolume*  welding1 = new TGeoVolume(Form("welding1_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,id), weld, kmedX7Rw);
+  auto *capacit = new TGeoBBox("capacitor", dx/2, dy/2, dz/2);
+  auto *weld = new TGeoBBox("weld", (dx/4)/2, dy/2, (dz/2)/2);
+  auto*  capacitor = new TGeoVolume(Form("capacitor_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,id), capacit, kmedX7R);
+  auto*  welding0 = new TGeoVolume(Form("welding0_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,id), weld, kmedX7Rw);
+  auto*  welding1 = new TGeoVolume(Form("welding1_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,id), weld, kmedX7Rw);
   capacitor->SetVisibility(kTRUE);
   capacitor->SetLineColor(kRed);
   capacitor->SetLineWidth(1);
@@ -278,19 +276,19 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
   // One line is built by removing 3 lines of aluminium in the TGeoBBox *layer_def layer. Then one line is made by the 2 remaining aluminium strips. 
 
   // the initial layer of aluminium
-  TGeoBBox *layer_def = new TGeoBBox("layer_def", length/2, widthflex/2, thickness/2);
+  auto *layer_def = new TGeoBBox("layer_def", length/2, widthflex/2, thickness/2);
 
   // Two holes for fixing and positionning of the FPC on the cold plate
-  TGeoTube *hole1 = new TGeoTube("hole1", 0., Geometry::kRadiusHole1, thickness/2 + Geometry::kEpsilon);
-  TGeoTube *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2 + Geometry::kEpsilon);
+  auto *hole1 = new TGeoTube("hole1", 0., Geometry::kRadiusHole1, thickness/2 + Geometry::kEpsilon);
+  auto *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2 + Geometry::kEpsilon);
 
-  TGeoTranslation    *t1= new TGeoTranslation ("t1", length/2 - Geometry::kHoleShift1, 0., 0.);
-  TGeoSubtraction    *layerholesub1 = new TGeoSubtraction(layer_def, hole1, NULL, t1);
-  TGeoCompositeShape *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
+  auto    *t1= new TGeoTranslation ("t1", length/2 - Geometry::kHoleShift1, 0., 0.);
+  auto    *layerholesub1 = new TGeoSubtraction(layer_def, hole1, nullptr, t1);
+  auto *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
 
-  TGeoTranslation    *t2= new TGeoTranslation ("t2", length/2 - Geometry::kHoleShift2, 0., 0.);
-  TGeoSubtraction    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, NULL, t2);
-  TGeoCompositeShape *layer = new TGeoCompositeShape("layerhole2", layerholesub2);
+  auto    *t2= new TGeoTranslation ("t2", length/2 - Geometry::kHoleShift2, 0., 0.);
+  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
+  auto *layer = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   TGeoBBox *line[25];
   TGeoTranslation *t[6],*ts[15],*tvdd, *tl[2];
@@ -306,7 +304,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
   t[0] = new TGeoTranslation ("t0", Geometry::kSensorLength/2-Geometry::kConnectorOffset/2, -widthflex/2 + 2*Geometry::kLineWidth, 0.);    
   line[0]  = new TGeoBBox("line0",  length/2 - Geometry::kConnectorOffset/2 - Geometry::kSensorLength/2, Geometry::kLineWidth/2, 
 			  thickness/2 + Geometry::kEpsilon);
-  layerl[0] = new TGeoSubtraction(layer, line[0], NULL, t[0]);
+  layerl[0] = new TGeoSubtraction(layer, line[0], nullptr, t[0]);
   layern[0] = new TGeoCompositeShape(Form("layer%d",0), layerl[0]);
 
   istart = 1; istop = 6;
@@ -315,7 +313,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
 				    -widthflex/2 + 2*(iline+1)*Geometry::kLineWidth, 0.);
     line[iline]  = new TGeoBBox(Form("line%d",iline),  length/2 - Geometry::kConnectorOffset/2 - Geometry::kSensorLength/2, Geometry::kLineWidth/2, 
 				  thickness/2 + Geometry::kEpsilon);
-    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], NULL, t[iline]);
+    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], nullptr, t[iline]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d",iline), layerl[iline]);
     kTotalLinesNb++;
   }
@@ -326,7 +324,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
     length_line=length - Geometry::kConnectorOffset - TMath::Nint((iline-6)/3)*Geometry::kSensorLength - Geometry::kSensorLength/2;
     ts[iline] = new TGeoTranslation (Form("t%d",iline), length/2-length_line/2-Geometry::kConnectorOffset, -2*(iline-6)*Geometry::kLineWidth+0.5-widthflex/2, 0.);
     line[iline]  = new TGeoBBox(Form("line%d",iline), length_line/2, Geometry::kLineWidth/2, thickness/2 + Geometry::kEpsilon);
-    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], NULL, ts[iline]);
+    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], nullptr, ts[iline]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d",iline), layerl[iline]);
     kTotalLinesNb++;
   }
@@ -335,7 +333,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
   kTotalLinesNb++;
   tvdd = new TGeoTranslation ("tvdd", 0., widthflex/2-Geometry::kShiftDDGNDline, 0.);    
   line[kTotalLinesNb]  = new TGeoBBox(Form("line%d",kTotalLinesNb),  length/2, 2*Geometry::kLineWidth/2, thickness/2 + Geometry::kEpsilon);
-  layerl[kTotalLinesNb] = new TGeoSubtraction(layern[kTotalLinesNb-1], line[kTotalLinesNb], NULL, tvdd);
+  layerl[kTotalLinesNb] = new TGeoSubtraction(layern[kTotalLinesNb-1], line[kTotalLinesNb], nullptr, tvdd);
   layern[kTotalLinesNb] = new TGeoCompositeShape(Form("layer%d",kTotalLinesNb), layerl[kTotalLinesNb]);
   kTotalLinesNb++;
 
@@ -346,7 +344,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
     tl[iline-istart] = new TGeoTranslation (Form("tl%d",iline), length/2-length_line/2-Geometry::kConnectorOffset, 
 					    widthflex/2-Geometry::kShiftline-2.*(iline-istart)*Geometry::kLineWidth, 0.);
     line[iline]  = new TGeoBBox(Form("line%d",iline), length_line/2, Geometry::kLineWidth/2, thickness/2 + Geometry::kEpsilon);
-    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], NULL, tl[iline-istart]);
+    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], nullptr, tl[iline-istart]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d",iline), layerl[iline]);
     kTotalLinesNb++;
   }
@@ -358,8 +356,8 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
 
   TGeoMedium *kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
 
-  TGeoVolume *lineslayer = new TGeoVolume(Form("lineslayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layern[kTotalLinesNb-1], kMedAlu);
-  lineslayer->SetVisibility(1);
+  auto *lineslayer = new TGeoVolume(Form("lineslayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layern[kTotalLinesNb-1], kMedAlu);
+  lineslayer->SetVisibility(true);
   lineslayer->SetLineColor(kBlue);
 
   return lineslayer;
@@ -371,17 +369,17 @@ TGeoVolume* Flex::Make_AGND_DGND(Double_t length, Double_t widthflex,  Double_t 
 {  
 
   // AGND and DGND layers
-  TGeoBBox *layer = new TGeoBBox("layer", length/2, widthflex/2, thickness/2);
-  TGeoTube *hole1 = new TGeoTube("hole1", 0., Geometry::kRadiusHole1, thickness/2 + Geometry::kEpsilon);
-  TGeoTube *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2 + Geometry::kEpsilon);
+  auto *layer = new TGeoBBox("layer", length/2, widthflex/2, thickness/2);
+  auto *hole1 = new TGeoTube("hole1", 0., Geometry::kRadiusHole1, thickness/2 + Geometry::kEpsilon);
+  auto *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2 + Geometry::kEpsilon);
   
-  TGeoTranslation    *t1= new TGeoTranslation ("t1", length/2-Geometry::kHoleShift1, 0., 0.);
-  TGeoSubtraction    *layerholesub1 = new TGeoSubtraction(layer, hole1, NULL, t1);
-  TGeoCompositeShape *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
+  auto    *t1= new TGeoTranslation ("t1", length/2-Geometry::kHoleShift1, 0., 0.);
+  auto    *layerholesub1 = new TGeoSubtraction(layer, hole1, nullptr, t1);
+  auto *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
 
-  TGeoTranslation    *t2= new TGeoTranslation ("t2", length/2-Geometry::kHoleShift2, 0., 0.);
-  TGeoSubtraction    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, NULL, t2);
-  TGeoCompositeShape *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
+  auto    *t2= new TGeoTranslation ("t2", length/2-Geometry::kHoleShift2, 0., 0.);
+  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
+  auto *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   //--------------
   TGeoBBox *line[3];
@@ -394,21 +392,21 @@ TGeoVolume* Flex::Make_AGND_DGND(Double_t length, Double_t widthflex,  Double_t 
   // First, the two lines along the FPC side
   t[0] = new TGeoTranslation("t0", length/2-length_line/2-Geometry::kConnectorOffset, widthflex/2 - Geometry::kShiftline, 0.);
   line[0]  = new TGeoBBox("line0",  length/2 - Geometry::kConnectorOffset/2, Geometry::kLineWidth/2, thickness/2 + Geometry::kEpsilon);
-  layerl[0] = new TGeoSubtraction(layerhole2, line[0], NULL, t[0]);
+  layerl[0] = new TGeoSubtraction(layerhole2, line[0], nullptr, t[0]);
   layern[0] = new TGeoCompositeShape(Form("layer%d",0), layerl[0]);
 
   t[1] = new TGeoTranslation("t1", length/2-length_line/2-Geometry::kConnectorOffset, 
 			     widthflex/2 - Geometry::kShiftline - 2*Geometry::kLineWidth, 0.);
   line[1]  = new TGeoBBox("line1",  length/2 - Geometry::kConnectorOffset/2, Geometry::kLineWidth/2, 
 			  thickness/2 + Geometry::kEpsilon);
-  layerl[1] = new TGeoSubtraction(layern[0], line[1], NULL, t[1]);
+  layerl[1] = new TGeoSubtraction(layern[0], line[1], nullptr, t[1]);
   layern[1] = new TGeoCompositeShape(Form("layer%d",1), layerl[1]);
 
   // Now the interspace to separate the AGND et DGND --> same interspace compare the AVDD et DVDD
   t[2] = new TGeoTranslation("t2", length/2-length_line/2, widthflex/2 - Geometry::kShiftDDGNDline, 0.);
   line[2]  = new TGeoBBox("line2",  length/2 - Geometry::kConnectorOffset/2, Geometry::kLineWidth, 
 			  thickness/2 + Geometry::kEpsilon);
-  layerl[2] = new TGeoSubtraction(layern[1], line[2], NULL, t[2]);
+  layerl[2] = new TGeoSubtraction(layern[1], line[2], nullptr, t[2]);
   layern[2] = new TGeoCompositeShape(Form("layer%d",2), layerl[2]);
 
   //--------------
@@ -419,8 +417,8 @@ TGeoVolume* Flex::Make_AGND_DGND(Double_t length, Double_t widthflex,  Double_t 
   Int_t idLadder = mftGeom->GetLadderID(mLadderSeg->GetUniqueID());
 
   TGeoMedium *kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
-  TGeoVolume *alulayer = new TGeoVolume(Form("alulayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layern[2], kMedAlu);
-  alulayer->SetVisibility(1);
+  auto *alulayer = new TGeoVolume(Form("alulayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layern[2], kMedAlu);
+  alulayer->SetVisibility(true);
   alulayer->SetLineColor(kBlue);
 
   return alulayer;
@@ -431,18 +429,18 @@ TGeoVolume* Flex::Make_AGND_DGND(Double_t length, Double_t widthflex,  Double_t 
 TGeoVolume* Flex::Make_Kapton(Double_t length, Double_t widthflex, Double_t thickness)
 {
 
-  TGeoBBox *layer = new TGeoBBox("layer", length/2, widthflex/2, thickness/2);
+  auto *layer = new TGeoBBox("layer", length/2, widthflex/2, thickness/2);
   // Two holes for fixing and positionning of the FPC on the cold plate
-  TGeoTube *hole1 = new TGeoTube("hole1", 0., Geometry::kRadiusHole1, thickness/2+Geometry::kEpsilon);
-  TGeoTube *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2+Geometry::kEpsilon);
+  auto *hole1 = new TGeoTube("hole1", 0., Geometry::kRadiusHole1, thickness/2+Geometry::kEpsilon);
+  auto *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2+Geometry::kEpsilon);
   
-  TGeoTranslation    *t1= new TGeoTranslation ("t1", length/2-Geometry::kHoleShift1, 0., 0.);
-  TGeoSubtraction    *layerholesub1 = new TGeoSubtraction(layer, hole1, NULL, t1);
-  TGeoCompositeShape *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
+  auto    *t1= new TGeoTranslation ("t1", length/2-Geometry::kHoleShift1, 0., 0.);
+  auto    *layerholesub1 = new TGeoSubtraction(layer, hole1, nullptr, t1);
+  auto *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
 
-  TGeoTranslation    *t2= new TGeoTranslation ("t2", length/2-Geometry::kHoleShift2, 0., 0.);
-  TGeoSubtraction    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, NULL, t2);
-  TGeoCompositeShape *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
+  auto    *t2= new TGeoTranslation ("t2", length/2-Geometry::kHoleShift2, 0., 0.);
+  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
+  auto *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   Geometry * mftGeom = Geometry::Instance();
   Int_t idHalfMFT = mftGeom->GetHalfMFTID(mLadderSeg->GetUniqueID());
@@ -450,8 +448,8 @@ TGeoVolume* Flex::Make_Kapton(Double_t length, Double_t widthflex, Double_t thic
   Int_t idLadder = mftGeom->GetLadderID(mLadderSeg->GetUniqueID());
 
   TGeoMedium *kMedKapton = gGeoManager->GetMedium("MFT_Kapton$");
-  TGeoVolume *kaptonlayer = new TGeoVolume(Form("kaptonlayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layerhole2, kMedKapton);
-  kaptonlayer->SetVisibility(1);
+  auto *kaptonlayer = new TGeoVolume(Form("kaptonlayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layerhole2, kMedKapton);
+  kaptonlayer->SetVisibility(true);
   kaptonlayer->SetLineColor(kYellow);
 
   return kaptonlayer;
@@ -462,18 +460,18 @@ TGeoVolume* Flex::Make_Kapton(Double_t length, Double_t widthflex, Double_t thic
 TGeoVolume* Flex::Make_Varnish(Double_t length, Double_t widthflex,  Double_t thickness, Int_t iflag)
 {
 
-  TGeoBBox *layer = new TGeoBBox("layer", length/2, widthflex/2, thickness/2);
+  auto *layer = new TGeoBBox("layer", length/2, widthflex/2, thickness/2);
   // Two holes for fixing and positionning of the FPC on the cold plate
-  TGeoTube *hole1 = new TGeoTube("hole1", 0., Geometry::kRadiusHole1, thickness/2+Geometry::kEpsilon);
-  TGeoTube *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2+Geometry::kEpsilon);
+  auto *hole1 = new TGeoTube("hole1", 0., Geometry::kRadiusHole1, thickness/2+Geometry::kEpsilon);
+  auto *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2+Geometry::kEpsilon);
   
-  TGeoTranslation    *t1= new TGeoTranslation ("t1", length/2-Geometry::kHoleShift1, 0., 0.);
-  TGeoSubtraction    *layerholesub1 = new TGeoSubtraction(layer, hole1, NULL, t1);
-  TGeoCompositeShape *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
+  auto    *t1= new TGeoTranslation ("t1", length/2-Geometry::kHoleShift1, 0., 0.);
+  auto    *layerholesub1 = new TGeoSubtraction(layer, hole1, nullptr, t1);
+  auto *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
 
-  TGeoTranslation    *t2= new TGeoTranslation ("t2", length/2-Geometry::kHoleShift2, 0., 0.);
-  TGeoSubtraction    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, NULL, t2);
-  TGeoCompositeShape *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
+  auto    *t2= new TGeoTranslation ("t2", length/2-Geometry::kHoleShift2, 0., 0.);
+  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
+  auto *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   Geometry * mftGeom = Geometry::Instance();
   Int_t idHalfMFT = mftGeom->GetHalfMFTID(mLadderSeg->GetUniqueID());
@@ -483,8 +481,8 @@ TGeoVolume* Flex::Make_Varnish(Double_t length, Double_t widthflex,  Double_t th
   TGeoMedium *kMedVarnish = gGeoManager->GetMedium("MFT_Epoxy$");  // we assume that varnish = epoxy ...
   TGeoMaterial *kMatVarnish = kMedVarnish->GetMaterial();
   //kMatVarnish->Dump();
-  TGeoVolume *varnishlayer = new TGeoVolume(Form("varnishlayer_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,iflag), layerhole2, kMedVarnish);
-  varnishlayer->SetVisibility(1);
+  auto *varnishlayer = new TGeoVolume(Form("varnishlayer_%d_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder,iflag), layerhole2, kMedVarnish);
+  varnishlayer->SetVisibility(true);
   varnishlayer->SetLineColor(kGreen-1);
 
   return varnishlayer;

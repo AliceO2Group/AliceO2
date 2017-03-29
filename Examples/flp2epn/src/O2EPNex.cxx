@@ -27,5 +27,4 @@ bool O2EPNex::Process(FairMQMessagePtr& msg, int index)
 }
 
 O2EPNex::~O2EPNex()
-{
-}
+= default;

@@ -17,13 +17,13 @@ Chebyshev3DCalc::Chebyshev3DCalc()
     mNumberOfColumns(0),
     mNumberOfElementsBound2D(0),
     mPrecision(0),
-    mNumberOfColumnsAtRow(0),
-    mColumnAtRowBeginning(0),
-    mCoefficientBound2D0(0),
-    mCoefficientBound2D1(0),
-    mCoefficients(0),
-    mTemporaryCoefficients2D(0),
-    mTemporaryCoefficients1D(0)
+    mNumberOfColumnsAtRow(nullptr),
+    mColumnAtRowBeginning(nullptr),
+    mCoefficientBound2D0(nullptr),
+    mCoefficientBound2D1(nullptr),
+    mCoefficients(nullptr),
+    mTemporaryCoefficients2D(nullptr),
+    mTemporaryCoefficients1D(nullptr)
 {
 }
 
@@ -34,13 +34,13 @@ Chebyshev3DCalc::Chebyshev3DCalc(const Chebyshev3DCalc &src)
     mNumberOfColumns(src.mNumberOfColumns),
     mNumberOfElementsBound2D(src.mNumberOfElementsBound2D),
     mPrecision(src.mPrecision),
-    mNumberOfColumnsAtRow(0),
-    mColumnAtRowBeginning(0),
-    mCoefficientBound2D0(0),
-    mCoefficientBound2D1(0),
-    mCoefficients(0),
-    mTemporaryCoefficients2D(0),
-    mTemporaryCoefficients1D(0)
+    mNumberOfColumnsAtRow(nullptr),
+    mColumnAtRowBeginning(nullptr),
+    mCoefficientBound2D0(nullptr),
+    mCoefficientBound2D1(nullptr),
+    mCoefficients(nullptr),
+    mTemporaryCoefficients2D(nullptr),
+    mTemporaryCoefficients1D(nullptr)
 {
   if (src.mNumberOfColumnsAtRow) {
     mNumberOfColumnsAtRow = new UShort_t[mNumberOfRows];
@@ -86,13 +86,13 @@ Chebyshev3DCalc::Chebyshev3DCalc(FILE *stream)
     mNumberOfColumns(0),
     mNumberOfElementsBound2D(0),
     mPrecision(0),
-    mNumberOfColumnsAtRow(0),
-    mColumnAtRowBeginning(0),
-    mCoefficientBound2D0(0),
-    mCoefficientBound2D1(0),
-    mCoefficients(0),
-    mTemporaryCoefficients2D(0),
-    mTemporaryCoefficients1D(0)
+    mNumberOfColumnsAtRow(nullptr),
+    mColumnAtRowBeginning(nullptr),
+    mCoefficientBound2D0(nullptr),
+    mCoefficientBound2D1(nullptr),
+    mCoefficients(nullptr),
+    mTemporaryCoefficients2D(nullptr),
+    mTemporaryCoefficients1D(nullptr)
 {
   loadData(stream);
 }
@@ -151,31 +151,31 @@ void Chebyshev3DCalc::Clear(const Option_t *)
 {
   if (mTemporaryCoefficients2D) {
     delete[] mTemporaryCoefficients2D;
-    mTemporaryCoefficients2D = 0;
+    mTemporaryCoefficients2D = nullptr;
   }
   if (mTemporaryCoefficients1D) {
     delete[] mTemporaryCoefficients1D;
-    mTemporaryCoefficients1D = 0;
+    mTemporaryCoefficients1D = nullptr;
   }
   if (mCoefficients) {
     delete[] mCoefficients;
-    mCoefficients = 0;
+    mCoefficients = nullptr;
   }
   if (mCoefficientBound2D0) {
     delete[] mCoefficientBound2D0;
-    mCoefficientBound2D0 = 0;
+    mCoefficientBound2D0 = nullptr;
   }
   if (mCoefficientBound2D1) {
     delete[] mCoefficientBound2D1;
-    mCoefficientBound2D1 = 0;
+    mCoefficientBound2D1 = nullptr;
   }
   if (mNumberOfColumnsAtRow) {
     delete[] mNumberOfColumnsAtRow;
-    mNumberOfColumnsAtRow = 0;
+    mNumberOfColumnsAtRow = nullptr;
   }
   if (mColumnAtRowBeginning) {
     delete[] mColumnAtRowBeginning;
-    mColumnAtRowBeginning = 0;
+    mColumnAtRowBeginning = nullptr;
   }
 }
 
@@ -388,15 +388,15 @@ void Chebyshev3DCalc::initializeRows(int nr)
 {
   if (mNumberOfColumnsAtRow) {
     delete[] mNumberOfColumnsAtRow;
-    mNumberOfColumnsAtRow = 0;
+    mNumberOfColumnsAtRow = nullptr;
   }
   if (mColumnAtRowBeginning) {
     delete[] mColumnAtRowBeginning;
-    mColumnAtRowBeginning = 0;
+    mColumnAtRowBeginning = nullptr;
   }
   if (mTemporaryCoefficients1D) {
     delete[] mTemporaryCoefficients1D;
-    mTemporaryCoefficients1D = 0;
+    mTemporaryCoefficients1D = nullptr;
   }
   mNumberOfRows = nr;
   if (mNumberOfRows) {
@@ -414,7 +414,7 @@ void Chebyshev3DCalc::initializeColumns(int nc)
   mNumberOfColumns = nc;
   if (mTemporaryCoefficients2D) {
     delete[] mTemporaryCoefficients2D;
-    mTemporaryCoefficients2D = 0;
+    mTemporaryCoefficients2D = nullptr;
   }
   if (mNumberOfColumns) { mTemporaryCoefficients2D = new Float_t[mNumberOfColumns]; }
 }
@@ -423,11 +423,11 @@ void Chebyshev3DCalc::initializeElementBound2D(int ne)
 {
   if (mCoefficientBound2D0) {
     delete[] mCoefficientBound2D0;
-    mCoefficientBound2D0 = 0;
+    mCoefficientBound2D0 = nullptr;
   }
   if (mCoefficientBound2D1) {
     delete[] mCoefficientBound2D1;
-    mCoefficientBound2D1 = 0;
+    mCoefficientBound2D1 = nullptr;
   }
   mNumberOfElementsBound2D = ne;
   if (mNumberOfElementsBound2D) {
@@ -443,7 +443,7 @@ void Chebyshev3DCalc::initializeCoefficients(int nc)
 {
   if (mCoefficients) {
     delete[] mCoefficients;
-    mCoefficients = 0;
+    mCoefficients = nullptr;
   }
   mNumberOfCoefficients = nc;
   if (mNumberOfCoefficients) {

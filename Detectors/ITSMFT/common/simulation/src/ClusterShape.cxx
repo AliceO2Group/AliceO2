@@ -36,7 +36,7 @@ mNcols(Ncols) {
 
 
 //______________________________________________________________________
-ClusterShape::~ClusterShape() {}
+ClusterShape::~ClusterShape() = default;
 
 
 //______________________________________________________________________
@@ -61,8 +61,8 @@ Long64_t ClusterShape::GetShapeID() const {
   Long64_t id = 5381;
   id = ((id << 5) + id) ^ mNrows;
   id = ((id << 5) + id) ^ mNcols;
-  for (UInt_t i = 0; i < mShape.size(); ++i) {
-    id = ((id << 5) + id) ^ mShape[i];
+  for (unsigned int i : mShape) {
+    id = ((id << 5) + id) ^ i;
   }
   return id;
 }

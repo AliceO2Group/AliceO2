@@ -21,7 +21,7 @@ ClassImp(LadderSegmentation);
 //_____________________________________________________________________________
 LadderSegmentation::LadderSegmentation():
   VSegmentation(),
-  mChips(NULL)
+  mChips(nullptr)
 {
 
 
@@ -33,7 +33,7 @@ LadderSegmentation::LadderSegmentation():
 //_____________________________________________________________________________
 LadderSegmentation::LadderSegmentation(UInt_t uniqueID):
   VSegmentation(),
-  mChips(NULL)
+  mChips(nullptr)
 {
 
   SetUniqueID(uniqueID);
@@ -84,7 +84,7 @@ void LadderSegmentation::CreateSensors() {
                                                  mftGeom->GetLadderID(GetUniqueID()),
                                                  iSensor);
     
-    ChipSegmentation *chip = new ChipSegmentation(sensorUniqueID);
+    auto *chip = new ChipSegmentation(sensorUniqueID);
 
     new ((*mChips)[iSensor]) ChipSegmentation(*chip);
     delete chip;
@@ -98,7 +98,7 @@ void LadderSegmentation::CreateSensors() {
 //_____________________________________________________________________________
 ChipSegmentation* LadderSegmentation::GetSensor(Int_t sensorID) const {
   
-  if (sensorID<0 || sensorID>=mNSensors) return NULL;
+  if (sensorID<0 || sensorID>=mNSensors) return nullptr;
   
   ChipSegmentation *chip = (ChipSegmentation*) mChips->At(sensorID);
   

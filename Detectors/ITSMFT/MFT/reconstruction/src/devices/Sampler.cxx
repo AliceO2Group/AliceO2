@@ -25,8 +25,8 @@ Sampler::Sampler()
   : FairMQDevice()
   , mOutputChannelName("data-out")
   , mAckChannelName("")
-  , mRunAna(NULL)
-  , mSource(NULL)
+  , mRunAna(nullptr)
+  , mSource(nullptr)
   , mInputObjects()
   , mNObjects(0)
   , mMaxIndex(-1)
@@ -40,9 +40,7 @@ Sampler::Sampler()
 
 //_____________________________________________________________________________
 Sampler::~Sampler()
-{
-
-}
+= default;
 
 //_____________________________________________________________________________
 void Sampler::InitTask()
@@ -58,7 +56,7 @@ void Sampler::InitTask()
 
   mRunAna = new FairRunAna();
   
-  if (mSource == NULL) {
+  if (mSource == nullptr) {
     mSource = new FairFileSource(mFileNames.at(0).c_str());
     for (unsigned int ifile = 1 ; ifile < mFileNames.size() ; ifile++) 
       ((FairFileSource*)mSource)->AddFile(mFileNames.at(ifile));
@@ -68,19 +66,19 @@ void Sampler::InitTask()
 
   LOG(INFO) << "Sampler::InitTask >>>>> going to request " << mBranchNames.size() << "  branches:";
 
-  for (unsigned int ibrn = 0; ibrn < mBranchNames.size(); ibrn++ ) {
+  for (auto & mBranchName : mBranchNames) {
 
-    LOG(INFO) << "Sampler::InitTask >>>>> requesting branch \"" << mBranchNames[ibrn] << "\"";
+    LOG(INFO) << R"(Sampler::InitTask >>>>> requesting branch ")" << mBranchName << R"(")";
 
-    int branchStat = mSource->ActivateObject((TObject**)&mInputObjects[mNObjects],mBranchNames[ibrn].c_str()); // should check the status...
+    int branchStat = mSource->ActivateObject((TObject**)&mInputObjects[mNObjects],mBranchName.c_str()); // should check the status...
 
     if (mInputObjects[mNObjects]) {
 
-      LOG(INFO) << "Sampler::InitTask >>>>> activated object " << mInputObjects[mNObjects] << " with name " << mBranchNames[ibrn] << " (" << branchStat << "), it got name: " << mInputObjects[mNObjects]->GetName() << "";
+      LOG(INFO) << "Sampler::InitTask >>>>> activated object " << mInputObjects[mNObjects] << " with name " << mBranchName << " (" << branchStat << "), it got name: " << mInputObjects[mNObjects]->GetName() << "";
 
-      if (strcmp(mInputObjects[mNObjects]->GetName(),mBranchNames[ibrn].c_str()))
+      if (strcmp(mInputObjects[mNObjects]->GetName(),mBranchName.c_str()))
         if (strcmp(mInputObjects[mNObjects]->ClassName(),"TClonesArray") == 0) 
-          ((TClonesArray*)mInputObjects[mNObjects])->SetName(mBranchNames[ibrn].c_str());
+          ((TClonesArray*)mInputObjects[mNObjects])->SetName(mBranchName.c_str());
       mNObjects++;
 
     }
