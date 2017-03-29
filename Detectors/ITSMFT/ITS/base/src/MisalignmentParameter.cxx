@@ -21,8 +21,8 @@ ClassImp(AliceO2::ITS::MisalignmentParameter)
 {
 }
 
-MisalignmentParameter::~MisalignmentParameter(void) {}
-void MisalignmentParameter::Clear(void) {}
+MisalignmentParameter::~MisalignmentParameter() {}
+void MisalignmentParameter::Clear() {}
 void MisalignmentParameter::putParams(FairParamList* list)
 {
   if (!list) {
