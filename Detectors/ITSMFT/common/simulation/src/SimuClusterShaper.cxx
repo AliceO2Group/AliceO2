@@ -13,7 +13,7 @@ using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper() :
-mCShape(0) {}
+mCShape(nullptr) {}
 
 
 //______________________________________________________________________

@@ -881,9 +881,9 @@ void V11Geometry::drawCrossSection(const TGeoPcon *p, Int_t fillc, Int_t fills, 
                                    Float_t marksize) const
 {
   Int_t n = 0, m = 0, i = 0;
-  Double_t *z = 0, *r = 0;
-  TPolyMarker *pts = 0;
-  TPolyLine *line = 0;
+  Double_t *z = nullptr, *r = nullptr;
+  TPolyMarker *pts = nullptr;
+  TPolyLine *line = nullptr;
 
   n = p->GetNz();
   if (n <= 0) {

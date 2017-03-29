@@ -25,9 +25,9 @@ ClassImp(AliceO2::MFT::HeatExchanger)
 //_____________________________________________________________________________
 HeatExchanger::HeatExchanger() : 
 TNamed(),
-mHalfDisk(NULL),
-mHalfDiskRotation(NULL),
-mHalfDiskTransformation(NULL),
+mHalfDisk(nullptr),
+mHalfDiskRotation(nullptr),
+mHalfDiskTransformation(nullptr),
 mRWater(0.),
 mDRPipe(0.),
 mHeatExchangerThickness(0.),
@@ -77,9 +77,9 @@ HeatExchanger::HeatExchanger(Double_t rWater,
 			     Double_t heatExchangerThickness,
 			     Double_t carbonThickness) : 
 TNamed(), 
-mHalfDisk(NULL),
-mHalfDiskRotation(NULL),
-mHalfDiskTransformation(NULL),
+mHalfDisk(nullptr),
+mHalfDiskRotation(nullptr),
+mHalfDiskTransformation(nullptr),
 mRWater(rWater),
 mDRPipe(dRPipe),
 mHeatExchangerThickness(heatExchangerThickness),
@@ -147,10 +147,10 @@ TGeoVolumeAssembly* HeatExchanger::Create(Int_t half, Int_t disk)
 void HeatExchanger::CreateManyfold(Int_t disk)
 {
 
-  TGeoCombiTrans  *transformation1 = 0;
-  TGeoCombiTrans  *transformation2 = 0;
-  TGeoRotation    *rotation       = 0;
-  TGeoCombiTrans  *transformation = 0;
+  TGeoCombiTrans  *transformation1 = nullptr;
+  TGeoCombiTrans  *transformation2 = nullptr;
+  TGeoRotation    *rotation       = nullptr;
+  TGeoCombiTrans  *transformation = nullptr;
 
   // **************************************** Manyfolds right and left, fm  ****************************************
   
@@ -166,11 +166,11 @@ void HeatExchanger::CreateManyfold(Int_t disk)
   auto *boxmanyfold = new TGeoBBox("boxmanyfold", mfX/2, mfY/2, mfZ/2);
   auto *remove = new TGeoBBox("remove", 0.45/2 + Geometry::kEpsilon, mfY/2 + Geometry::kEpsilon, 0.6/2 + Geometry::kEpsilon);
   auto *tL= new TGeoTranslation ("tL", mfX/2-0.45/2, 0., -mfZ/2+0.6/2);
-  auto *boxManyFold = new TGeoSubtraction(boxmanyfold, remove, NULL, tL);
+  auto *boxManyFold = new TGeoSubtraction(boxmanyfold, remove, nullptr, tL);
   auto *BoxManyFold = new TGeoCompositeShape("BoxManyFold", boxManyFold);
 
   auto *tR= new TGeoTranslation ("tR", -mfX/2+0.45/2, 0., -mfZ/2+0.6/2);
-  auto *boxManyFold1 = new TGeoSubtraction(BoxManyFold, remove, NULL, tR);
+  auto *boxManyFold1 = new TGeoSubtraction(BoxManyFold, remove, nullptr, tR);
   auto *BoxManyFold1 = new TGeoCompositeShape("BoxManyFold1", boxManyFold1);
 
   auto *MF01 = new TGeoVolume(Form("MF%d1",disk), BoxManyFold1, kMedPeek);
@@ -208,12 +208,12 @@ void HeatExchanger::CreateHalfDisk0(Int_t half) {
   
   Float_t lMiddle = mSupportXDimensions[disk][0] - 2.*mLWater;  // length of central part
   
-  TGeoTranslation *translation    = 0;
-  TGeoRotation    *rotation       = 0;
-  TGeoCombiTrans  *transformation = 0;
+  TGeoTranslation *translation    = nullptr;
+  TGeoRotation    *rotation       = nullptr;
+  TGeoCombiTrans  *transformation = nullptr;
 
-  TGeoCombiTrans  *transformation1 = 0;
-  TGeoCombiTrans  *transformation2 = 0;
+  TGeoCombiTrans  *transformation1 = nullptr;
+  TGeoCombiTrans  *transformation2 = nullptr;
 
 
   // **************************************** Water part ****************************************
@@ -472,9 +472,9 @@ void HeatExchanger::CreateHalfDisk1(Int_t half) {
   
   Float_t lMiddle = mSupportXDimensions[disk][0] - 2.*mLWater;  // length of central part
   
-  TGeoTranslation *translation    = 0;
-  TGeoRotation    *rotation       = 0;
-  TGeoCombiTrans  *transformation = 0;
+  TGeoTranslation *translation    = nullptr;
+  TGeoRotation    *rotation       = nullptr;
+  TGeoCombiTrans  *transformation = nullptr;
   
   
   // **************************************** Water part ****************************************
@@ -736,9 +736,9 @@ void HeatExchanger::CreateHalfDisk2(Int_t half) {
   
   Float_t lMiddle = mSupportXDimensions[disk][0] - 2.*mLWater;  // length of central part
   
-  TGeoTranslation *translation    = 0;
-  TGeoRotation    *rotation       = 0;
-  TGeoCombiTrans  *transformation = 0;
+  TGeoTranslation *translation    = nullptr;
+  TGeoRotation    *rotation       = nullptr;
+  TGeoCombiTrans  *transformation = nullptr;
   
   // **************************************** Water part ****************************************
   
@@ -995,9 +995,9 @@ void HeatExchanger::CreateHalfDisk3(Int_t half)  {
   Double_t deltaz= mHeatExchangerThickness - mCarbonThickness*2; //distance between pair of carbon plans
   Double_t lMiddle3[3] = {mSupportXDimensions[3][0] - 2.*mLWater3[0], mSupportXDimensions[3][0] - 2.*mLWater3[0], 0.};//distance between tube part
   
-  TGeoTranslation *translation    = 0;
-  TGeoRotation    *rotation       = 0;
-  TGeoCombiTrans  *transformation = 0;
+  TGeoTranslation *translation    = nullptr;
+  TGeoRotation    *rotation       = nullptr;
+  TGeoCombiTrans  *transformation = nullptr;
   
   Double_t beta3rad[3] = {0., 0., 0.};
   for (Int_t i=0; i<3; i++) {
@@ -1421,9 +1421,9 @@ void HeatExchanger::CreateHalfDisk4(Int_t half) {
   auto *cooling = new TGeoVolumeAssembly(Form("cooling_D4_H%d",half));
   Double_t deltaz= mHeatExchangerThickness - mCarbonThickness*2; //distance between pair of carbon plans
   
-  TGeoTranslation *translation    = 0;
-  TGeoRotation    *rotation       = 0;
-  TGeoCombiTrans  *transformation = 0;
+  TGeoTranslation *translation    = nullptr;
+  TGeoRotation    *rotation       = nullptr;
+  TGeoCombiTrans  *transformation = nullptr;
   
   Double_t lMiddle4[3] = {mSupportXDimensions[4][0] - 2*mLwater4[0], mSupportXDimensions[4][0] - 2*mLwater4[1], mSupportXDimensions[4][0] - 2*mLwater4[2]};                 //distance between tube part
   fangle4[5] = (fangle4[3] - fangle4[4]);

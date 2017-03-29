@@ -303,7 +303,7 @@ void V1Layer::createLayer(TGeoVolume *motherVolume)
   }
 
   // Finally put everything in the mother volume
-  motherVolume->AddNode(layerVolume, 1, 0);
+  motherVolume->AddNode(layerVolume, 1, nullptr);
 
   //  geometry is served
   return;
@@ -347,7 +347,7 @@ void V1Layer::createLayerTurbo(TGeoVolume *motherVolume)
   }
 
   // Finally put everything in the mother volume
-  motherVolume->AddNode(layerVolume, 1, 0);
+  motherVolume->AddNode(layerVolume, 1, nullptr);
 
   return;
 }
@@ -388,7 +388,7 @@ TGeoVolume *V1Layer::createStave(const TGeoManager * /*mgr*/)
   //  staveVol->SetVisibility(kFALSE);
   staveVol->SetVisibility(kTRUE);
   staveVol->SetLineColor(2);
-  TGeoVolume *mechStaveVol = 0;
+  TGeoVolume *mechStaveVol = nullptr;
 
   // Now build up the stave
   if (mLayerNumber < sNumberOmInnerLayers) {
@@ -489,7 +489,7 @@ TGeoVolume *V1Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
 TGeoVolume *V1Layer::createStaveStructInnerB(const Double_t xsta, const Double_t zsta,
                                                     const TGeoManager *mgr)
 {
-  TGeoVolume *mechStavVol = 0;
+  TGeoVolume *mechStavVol = nullptr;
 
   switch (mStaveModel) {
     case Detector::kIBModelDummy:
@@ -521,7 +521,7 @@ TGeoVolume *V1Layer::createStaveModelInnerBDummy(const Double_t, const Double_t,
                                                         const TGeoManager *) const
 {
   // Done, return the stave structur
-  return 0;
+  return nullptr;
 }
 
 TGeoVolume *V1Layer::createStaveModelInnerB0(const Double_t xsta, const Double_t zsta,
@@ -563,7 +563,7 @@ TGeoVolume *V1Layer::createStaveModelInnerB0(const Double_t xsta, const Double_t
 
   Double_t z = 0, y = -0.011 + 0.0150, x = 0;
 
-  TGeoVolume *mechStavVol = 0;
+  TGeoVolume *mechStavVol = nullptr;
 
   if (mBuildLevel < 5) {
 
@@ -759,7 +759,7 @@ TGeoVolume *V1Layer::createStaveModelInnerB1(const Double_t xsta, const Double_t
   Double_t kBeta = kThe2 * TMath::RadToDeg();
   Int_t loop = (Int_t) ((kStaveLength / (2 * kL1)) / 2);
 
-  TGeoVolume *mechStavVol = 0;
+  TGeoVolume *mechStavVol = nullptr;
 
   char volumeName[30];
   snprintf(volumeName, 30, "%s%d_StaveStruct", GeometryTGeo::getITSStavePattern(),
@@ -980,7 +980,7 @@ TGeoVolume *V1Layer::createStaveModelInnerB21(const Double_t xsta, const Double_
 
   Double_t z = 0, y = -(kConeOutRadius + 0.03) + 0.0385, x = 0;
 
-  TGeoVolume *mechStavVol = 0;
+  TGeoVolume *mechStavVol = nullptr;
 
   if (mBuildLevel < 5) {
     // world (trapezoid)
@@ -1284,7 +1284,7 @@ TGeoVolume *V1Layer::createStaveModelInnerB22(const Double_t xsta, const Double_
 
   Double_t z = 0, y = -(2 * kConeOutRadius) + klay1 + klay2 + mSensorThickness / 2 - 0.0004, x = 0;
 
-  TGeoVolume *mechStavVol = 0;
+  TGeoVolume *mechStavVol = nullptr;
 
   if (mBuildLevel < 5) {
     // world (trapezoid)
@@ -1619,7 +1619,7 @@ TGeoVolume *V1Layer::createStaveModelInnerB3(const Double_t xsta, const Double_t
   Int_t nb = (Int_t) (kStaveWidth / 0.1) + 1;
   Double_t xstaMC = (nb * 0.1 - 0.08) / 2;
 
-  TGeoVolume *mechStavVol = 0;
+  TGeoVolume *mechStavVol = nullptr;
   if (mBuildLevel < 5) {
     // world (trapezoid)
     auto *mechStruct = new TGeoXtru(2); // z sections
@@ -2063,7 +2063,7 @@ TGeoVolume *V1Layer::createStaveModelInnerB3(const Double_t xsta, const Double_t
 
 TGeoVolume *V1Layer::createStaveOuterB(const TGeoManager *mgr)
 {
-  TGeoVolume *mechStavVol = 0;
+  TGeoVolume *mechStavVol = nullptr;
 
   switch (mStaveModel) {
     case Detector::kOBModelDummy:
@@ -2085,7 +2085,7 @@ TGeoVolume *V1Layer::createStaveOuterB(const TGeoManager *mgr)
 TGeoVolume *V1Layer::createStaveModelOuterBDummy(const TGeoManager *) const
 {
   // Done, return the stave structure
-  return 0;
+  return nullptr;
 }
 
 TGeoVolume *V1Layer::createStaveModelOuterB0(const TGeoManager *mgr)
@@ -2325,7 +2325,7 @@ TGeoVolume *V1Layer::createStaveModelOuterB1(const TGeoManager *mgr)
   ypos -= (ymod + coldPlate->GetDY());
   halmStaveVol->AddNode(coldPlateVol, 1, new TGeoTranslation(0, ypos, 0));
 
-  coolTubeVol->AddNode(coolWaterVol, 1, 0);
+  coolTubeVol->AddNode(coolWaterVol, 1, nullptr);
 
   xpos = sOBCoolTubeXDist / 2;
   ypos1 = ypos - (coldPlate->GetDY() + coolTube->GetRmax());
@@ -2415,7 +2415,7 @@ TGeoVolume *V1Layer::createStaveModelOuterB1(const TGeoManager *mgr)
 
 TGeoVolume *V1Layer::createSpaceFrameOuterB(const TGeoManager *mgr)
 {
-  TGeoVolume *mechStavVol = 0;
+  TGeoVolume *mechStavVol = nullptr;
 
   switch (mStaveModel) {
     case Detector::kOBModelDummy:
@@ -2436,7 +2436,7 @@ TGeoVolume *V1Layer::createSpaceFrameOuterB(const TGeoManager *mgr)
 TGeoVolume *V1Layer::createSpaceFrameOuterBDummy(const TGeoManager *) const
 {
   // Done, return the stave structur
-  return 0;
+  return nullptr;
 }
 
 TGeoVolume *V1Layer::createSpaceFrameOuterB1(const TGeoManager *mgr)

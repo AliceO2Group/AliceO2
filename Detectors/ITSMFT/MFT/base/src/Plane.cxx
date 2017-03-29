@@ -41,9 +41,9 @@ Plane::Plane():
   mEquivalentSilicon(0),
   mEquivalentSiliconBeforeFront(0),
   mEquivalentSiliconBeforeBack(0),
-  mActiveElements(0),
-  mReadoutElements(0),
-  mSupportElements(0),
+  mActiveElements(nullptr),
+  mReadoutElements(nullptr),
+  mSupportElements(nullptr),
   mHasPixelRectangularPatternAlongY(kFALSE),
   mPlaneIsOdd(kFALSE)
 {
@@ -70,9 +70,9 @@ Plane::Plane(const Char_t *name, const Char_t *title):
   mEquivalentSilicon(0),
   mEquivalentSiliconBeforeFront(0),
   mEquivalentSiliconBeforeBack(0),
-  mActiveElements(0),
-  mReadoutElements(0),
-  mSupportElements(0),
+  mActiveElements(nullptr),
+  mReadoutElements(nullptr),
+  mSupportElements(nullptr),
   mHasPixelRectangularPatternAlongY(kFALSE),
   mPlaneIsOdd(kFALSE)
 {
@@ -105,9 +105,9 @@ Plane::Plane(const Plane& plane):
   mEquivalentSilicon(plane.mEquivalentSilicon),
   mEquivalentSiliconBeforeFront(plane.mEquivalentSiliconBeforeFront),
   mEquivalentSiliconBeforeBack(plane.mEquivalentSiliconBeforeBack),
-  mActiveElements(0),
-  mReadoutElements(0),
-  mSupportElements(0),
+  mActiveElements(nullptr),
+  mReadoutElements(nullptr),
+  mSupportElements(nullptr),
   mHasPixelRectangularPatternAlongY(plane.mHasPixelRectangularPatternAlongY),
   mPlaneIsOdd(plane.mPlaneIsOdd)
 {
@@ -143,11 +143,11 @@ void Plane::Clear(const Option_t* /*opt*/)
 
   Info("Clear","Clear Plane",0,0);
   if(mActiveElements) mActiveElements->Delete();
-  delete mActiveElements; mActiveElements=NULL;
+  delete mActiveElements; mActiveElements=nullptr;
   if(mReadoutElements) mReadoutElements->Delete();
-  delete mReadoutElements;  mReadoutElements=NULL; 
+  delete mReadoutElements;  mReadoutElements=nullptr; 
   if(mSupportElements) mSupportElements->Delete();
-  delete mSupportElements;   mSupportElements=NULL;
+  delete mSupportElements;   mSupportElements=nullptr;
 
 }
 
@@ -481,7 +481,7 @@ Bool_t Plane::CreateStructure()
 THnSparseC* Plane::GetActiveElement(Int_t id) 
 {
 
-  if (id<0 || id>=GetNActiveElements()) return NULL;
+  if (id<0 || id>=GetNActiveElements()) return nullptr;
   else return (THnSparseC*) mActiveElements->At(id);
 
 }
@@ -490,7 +490,7 @@ THnSparseC* Plane::GetActiveElement(Int_t id)
 THnSparseC* Plane::GetReadoutElement(Int_t id) 
 {
 
-  if (id<0 || id>=GetNReadoutElements()) return NULL;
+  if (id<0 || id>=GetNReadoutElements()) return nullptr;
   else return (THnSparseC*) mReadoutElements->At(id);
 
 }
@@ -500,7 +500,7 @@ THnSparseC* Plane::GetReadoutElement(Int_t id)
 THnSparseC* Plane::GetSupportElement(Int_t id) 
 {
 
-  if (id<0 || id>=GetNSupportElements()) return NULL;
+  if (id<0 || id>=GetNSupportElements()) return nullptr;
   else return (THnSparseC*) mSupportElements->At(id);
 
 }
@@ -681,7 +681,7 @@ void Plane::DrawPlane(Option_t *opt)
     supportInt -> Draw("same");
 
     for (Int_t iEl=0; iEl<GetNActiveElements(); iEl++) {
-      TPave * pave = 0;
+      TPave * pave = nullptr;
       if (IsFront(GetActiveElement(iEl))) {
 	pave = new TPave(GetActiveElement(iEl)->GetAxis(2)->GetXmax() - 
 			 5*(GetActiveElement(iEl)->GetAxis(2)->GetXmax()-GetActiveElement(iEl)->GetAxis(2)->GetXmin()), 
@@ -701,7 +701,7 @@ void Plane::DrawPlane(Option_t *opt)
     }
     
     for (Int_t iEl=0; iEl<GetNReadoutElements(); iEl++) {
-      TPave *pave = 0;
+      TPave *pave = nullptr;
       if (IsFront(GetReadoutElement(iEl))) {
 	pave = new TPave(GetReadoutElement(iEl)->GetAxis(2)->GetXmax() - 
 			 5*(GetReadoutElement(iEl)->GetAxis(2)->GetXmax()-GetReadoutElement(iEl)->GetAxis(2)->GetXmin()), 

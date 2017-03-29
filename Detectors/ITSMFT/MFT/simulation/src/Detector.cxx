@@ -35,7 +35,7 @@ ClassImp(AliceO2::MFT::Detector)
 Detector::Detector()
 : AliceO2::Base::Detector("MFT", kTRUE, kAliMft),
   mVersion(1),
-  mGeometryTGeo(0),
+  mGeometryTGeo(nullptr),
   mDensitySupportOverSi(0.036),
   mPoints(new TClonesArray("AliceO2::MFT::Point"))
 {
@@ -48,7 +48,7 @@ Detector::Detector(const Detector& src)
     mVersion(src.mVersion),
     mGeometryTGeo(src.mGeometryTGeo),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
-    mPoints(0)
+    mPoints(nullptr)
 {
   
 }
@@ -67,7 +67,7 @@ Detector &Detector::operator=(const Detector &src)
   mVersion = src.mVersion;
   mGeometryTGeo = src.mGeometryTGeo;
   mDensitySupportOverSi = src.mDensitySupportOverSi;
-  mPoints = 0;
+  mPoints = nullptr;
 
 }
 
@@ -509,7 +509,7 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
   if (iColl == 0) {
     return mPoints;
   } else {
-    return NULL;
+    return nullptr;
   }
 
 }

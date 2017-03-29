@@ -49,7 +49,7 @@ Bool_t GeoCave::read(fstream& fin,FairGeoMedia* media)
   if (!media) { return kFALSE; }
   const Int_t maxbuf=256;
   char buf[maxbuf];
-  FairGeoNode* volu=0;
+  FairGeoNode* volu=nullptr;
   FairGeoMedium* medium;
   Bool_t rc=kTRUE;
   do {
@@ -83,7 +83,7 @@ Bool_t GeoCave::read(fstream& fin,FairGeoMedia* media)
     masterNodes->Add(new FairGeoNode(*volu));
   } else {
     delete volu;
-    volu=0;
+    volu=nullptr;
     rc=kFALSE;
   }
   return rc;

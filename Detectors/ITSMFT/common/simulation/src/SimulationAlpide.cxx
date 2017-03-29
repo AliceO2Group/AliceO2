@@ -24,9 +24,9 @@ using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide():
-mSeg(0),
-mSensMap(0),
-mChip(0)
+mSeg(nullptr),
+mSensMap(nullptr),
+mChip(nullptr)
 {
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=0.;
 }

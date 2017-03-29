@@ -149,7 +149,7 @@ void MagneticField::CreateField()
     FairLogger::GetLogger()->Info(MESSAGE_ORIGIN, "Maximim possible beam energy for requested beam is assumed");
   }
 
-  const char *parname = 0;
+  const char *parname = nullptr;
 
   if (mMapType == MagFieldParam::k2kG) {
     parname = mDipoleOnOffFlag ? "Sol12_Dip0_Hole" : "Sol12_Dip6_Hole";

@@ -37,8 +37,8 @@ int main(int argc, char** argv)
 {
   int iResult = 0;
   // parse options
-  const char* inputFileName = NULL;
-  const char* outputFileName = NULL;
+  const char* inputFileName = nullptr;
+  const char* outputFileName = nullptr;
 
   vector<char*> componentOptions;
   for (int i = 0; i < argc; i++) {
@@ -72,7 +72,7 @@ int main(int argc, char** argv)
   }
 
   vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> blockData;
-  char* inputBuffer = NULL;
+  char* inputBuffer = nullptr;
   if (inputFileName) {
     std::ifstream input(inputFileName, std::ifstream::binary);
     if (input) {
@@ -92,12 +92,12 @@ int main(int argc, char** argv)
     cerr << "error: init failed with " << iResult << endl;
   }
   if (inputBuffer) delete[] inputBuffer;
-  inputBuffer = NULL;
+  inputBuffer = nullptr;
   if (iResult < 0) return -iResult;
 
   // for now, only the first buffer is written
   if (blockData.size() > 0) {
-    if (outputFileName != NULL) {
+    if (outputFileName != nullptr) {
       ofstream outputFile(outputFileName);
       if (outputFile.good()) {
         outputFile.write(reinterpret_cast<const char*>(blockData[0].mP), blockData[0].mSize);

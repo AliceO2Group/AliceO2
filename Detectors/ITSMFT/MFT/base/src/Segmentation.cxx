@@ -18,7 +18,7 @@ ClassImp(AliceO2::MFT::Segmentation)
 //_____________________________________________________________________________
 Segmentation::Segmentation():
   TNamed(),
-  mHalves(NULL)
+  mHalves(nullptr)
 { 
 
 
@@ -27,7 +27,7 @@ Segmentation::Segmentation():
 //_____________________________________________________________________________
 Segmentation::Segmentation(const Char_t *nameGeomFile): 
   TNamed(),
-  mHalves(NULL)
+  mHalves(nullptr)
 { 
 
   // constructor
@@ -66,7 +66,7 @@ HalfSegmentation* Segmentation::GetHalf(Int_t iHalf) const
 
   Info("GetHalf",Form("Ask for half %d (of %d and %d)",iHalf,kBottom,kTop),0,0);
 
-  return ((iHalf==kTop || iHalf==kBottom) ? ( (HalfSegmentation*) mHalves->At(iHalf)) :  NULL); 
+  return ((iHalf==kTop || iHalf==kBottom) ? ( (HalfSegmentation*) mHalves->At(iHalf)) :  nullptr); 
 
 }
 
@@ -77,7 +77,7 @@ void Segmentation::Clear(const Option_t* /*opt*/) {
 
   if (mHalves) mHalves->Delete();
   delete mHalves; 
-  mHalves = NULL;
+  mHalves = nullptr;
   
 }
 

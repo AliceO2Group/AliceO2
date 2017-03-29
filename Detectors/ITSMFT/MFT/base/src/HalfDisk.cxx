@@ -26,10 +26,10 @@ ClassImp(AliceO2::MFT::HalfDisk)
 //_____________________________________________________________________________
 HalfDisk::HalfDisk():
 TNamed(), 
-mSupport(NULL),
-mHeatExchanger(NULL),
-mHalfDiskVolume(NULL),
-mSegmentation(NULL)
+mSupport(nullptr),
+mHeatExchanger(nullptr),
+mHalfDiskVolume(nullptr),
+mSegmentation(nullptr)
 {
   
 }
@@ -38,8 +38,8 @@ mSegmentation(NULL)
 
 //_____________________________________________________________________________
 HalfDisk::HalfDisk(HalfDiskSegmentation *segmentation):TNamed(segmentation->GetName(),segmentation->GetName()),
-  mSupport(NULL),
-  mHeatExchanger(NULL),
+  mSupport(nullptr),
+  mHeatExchanger(nullptr),
   mSegmentation(segmentation)
 {
   Geometry * mftGeom = Geometry::Instance();

@@ -29,10 +29,10 @@ Chebyshev3D::Chebyshev3D()
     mPrecision(sMinimumPrecision),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
-    mTemporaryUserResults(0),
-    mTemporaryChebyshevGrid(0),
+    mTemporaryUserResults(nullptr),
+    mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(0),
+    mUserMacro(nullptr),
     mLogger(FairLogger::GetLogger())
 {
   // Default constructor
@@ -50,10 +50,10 @@ Chebyshev3D::Chebyshev3D(const Chebyshev3D &src)
     mPrecision(src.mPrecision),
     mChebyshevParameter(1),
     mMaxCoefficients(src.mMaxCoefficients),
-    mTemporaryUserResults(0),
-    mTemporaryChebyshevGrid(0),
+    mTemporaryUserResults(nullptr),
+    mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(src.mUserFunctionName),
-    mUserMacro(0),
+    mUserMacro(nullptr),
     mLogger(FairLogger::GetLogger())
 {
   // read coefs from text file
@@ -79,10 +79,10 @@ Chebyshev3D::Chebyshev3D(const char *inpFile)
     mPrecision(0),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
-    mTemporaryUserResults(0),
-    mTemporaryChebyshevGrid(0),
+    mTemporaryUserResults(nullptr),
+    mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(0),
+    mUserMacro(nullptr),
     mLogger(FairLogger::GetLogger())
 {
   // read coefs from text file
@@ -100,10 +100,10 @@ Chebyshev3D::Chebyshev3D(FILE *stream)
     mPrecision(0),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
-    mTemporaryUserResults(0),
-    mTemporaryChebyshevGrid(0),
+    mTemporaryUserResults(nullptr),
+    mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(0),
+    mUserMacro(nullptr),
     mLogger(FairLogger::GetLogger())
 {
   // read coefs from stream
@@ -124,10 +124,10 @@ Chebyshev3D::Chebyshev3D(const char* funName, int dimOut, const Float_t* bmin, c
     mPrecision(TMath::Max(sMinimumPrecision, prec)),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
-    mTemporaryUserResults(0),
-    mTemporaryChebyshevGrid(0),
+    mTemporaryUserResults(nullptr),
+    mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(0),
+    mUserMacro(nullptr),
     mLogger(FairLogger::GetLogger())
 {
   if (dimOut < 1) {
@@ -155,10 +155,10 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t*
     mPrecision(TMath::Max(sMinimumPrecision, prec)),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
-    mTemporaryUserResults(0),
-    mTemporaryChebyshevGrid(0),
+    mTemporaryUserResults(nullptr),
+    mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(0),
+    mUserMacro(nullptr),
     mLogger(FairLogger::GetLogger())
 {
   if (dimOut < 1) {
@@ -186,10 +186,10 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t*
     mPrecision(TMath::Max(sMinimumPrecision, prec)),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
-    mTemporaryUserResults(0),
-    mTemporaryChebyshevGrid(0),
+    mTemporaryUserResults(nullptr),
+    mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(0),
+    mUserMacro(nullptr),
     mLogger(FairLogger::GetLogger())
 {
   if (dimOut < 1) {
@@ -222,10 +222,10 @@ Chebyshev3D::Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t*
     mPrecision(TMath::Max(sMinimumPrecision, prec)),
     mChebyshevParameter(1),
     mMaxCoefficients(0),
-    mTemporaryUserResults(0),
-    mTemporaryChebyshevGrid(0),
+    mTemporaryUserResults(nullptr),
+    mTemporaryChebyshevGrid(nullptr),
     mUserFunctionName(""),
-    mUserMacro(0),
+    mUserMacro(nullptr),
     mLogger(FairLogger::GetLogger())
 {
   if (dimOut != 3) {
@@ -268,7 +268,7 @@ Chebyshev3D &Chebyshev3D::operator=(const Chebyshev3D &rhs)
     mPrecision = rhs.mPrecision;
     mMaxCoefficients = rhs.mMaxCoefficients;
     mUserFunctionName = rhs.mUserFunctionName;
-    mUserMacro = 0;
+    mUserMacro = nullptr;
     for (int i = 3; i--;) {
       mMinBoundaries[i] = rhs.mMinBoundaries[i];
       mMaxBoundaries[i] = rhs.mMaxBoundaries[i];
@@ -291,15 +291,15 @@ void Chebyshev3D::Clear(const Option_t *)
   // clear all dynamic structures
   if (mTemporaryUserResults) {
     delete[] mTemporaryUserResults;
-    mTemporaryUserResults = 0;
+    mTemporaryUserResults = nullptr;
   }
   if (mTemporaryChebyshevGrid) {
     delete[] mTemporaryChebyshevGrid;
-    mTemporaryChebyshevGrid = 0;
+    mTemporaryChebyshevGrid = nullptr;
   }
   if (mUserMacro) {
     delete mUserMacro;
-    mUserMacro = 0;
+    mUserMacro = nullptr;
   }
   mChebyshevParameter.SetOwner(kTRUE);
   mChebyshevParameter.Delete();
@@ -357,7 +357,7 @@ void Chebyshev3D::evaluateUserFunction()
 void Chebyshev3D::setuserFunction(const char* name)
 {
   // load user macro with function definition and compile it
-  gUsrFunChebyshev3D = 0;
+  gUsrFunChebyshev3D = nullptr;
   mUserFunctionName = name;
   gSystem->ExpandPathName(mUserFunctionName);
 
@@ -395,7 +395,7 @@ void Chebyshev3D::setuserFunction(void (*ptr)(float*, float*))
   if (mUserMacro) {
     delete mUserMacro;
   }
-  mUserMacro = 0;
+  mUserMacro = nullptr;
   mUserFunctionName = "";
   gUsrFunChebyshev3D = ptr;
 }
@@ -857,7 +857,7 @@ TH1* Chebyshev3D::TestRMS(int idim, int npoints, TH1* histo)
   // If the hostgram was not supplied, it will be created. It is up to the user to delete it!
   if (!mUserMacro) {
     printf("No user function is set\n");
-    return 0;
+    return nullptr;
   }
   if (!histo) {
     histo = new TH1D(GetName(), "Control: Function - Parametrization", 100, -2 * mPrecision, 2 * mPrecision);
@@ -1003,7 +1003,7 @@ int* Chebyshev3D::getNcNeeded(float xyz[3], int DimVar, float mn, float mx, floa
   // The values for two other dimensions must be set beforehand
   static int retNC[3];
   static int npChLast = 0;
-  static float* gridVal = 0, *coefs = 0;
+  static float* gridVal = nullptr, *coefs = nullptr;
   if (npCheck < 3) {
     npCheck = 3;
   }

@@ -231,7 +231,7 @@ void AliceO2::Header::hexDump (const char* desc, const void* voidaddr, size_t le
   const byte* addr = reinterpret_cast<const byte*>(voidaddr);
 
   // Output description if given.
-  if (desc != NULL)
+  if (desc != nullptr)
     printf ("%s, ", desc);
   printf("%zu bytes:", len);
   if (max>0 && len>max) {

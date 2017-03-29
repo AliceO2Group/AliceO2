@@ -40,7 +40,7 @@ MessageFormat::MessageFormat()
   : mBlockDescriptors()
   , mDataBuffer()
   , mMessages()
-  , mpFactory(NULL)
+  , mpFactory(nullptr)
   , mOutputMode(kOutputModeSequence)
   , mListEvtData()
 {
@@ -49,7 +49,7 @@ MessageFormat::MessageFormat()
 MessageFormat::~MessageFormat()
 {
   if (mpFactory) delete mpFactory;
-  mpFactory = NULL;
+  mpFactory = nullptr;
 }
 
 void MessageFormat::clear()
@@ -79,7 +79,7 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
     position += sizeof(AliHLTComponentEventData);
   } else {
     // one of the criteria does not match -> no event descriptor
-    evtData=NULL;
+    evtData=nullptr;
   }
   do {
     if (evtData && evtData->fBlockCnt==0 && size<sizeof(AliHLTComponentBlockData)) {
@@ -87,15 +87,15 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
       break;
     }
     if (readBlockSequence(buffer+position, size-position, mBlockDescriptors) < 0 ||
-	(evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
+	(evtData!=nullptr && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
       // not in the format of a single block, check if its a HOMER block
       if (readHOMERFormat(buffer+position, size-position, mBlockDescriptors) < 0 ||
-	 (evtData!=NULL && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
+	 (evtData!=nullptr && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
 	// not in HOMER format either
 	if (position>0) {
 	  // try once more without the assumption of event data header
 	  position=0;
-	  evtData=NULL;
+	  evtData=nullptr;
 	  continue;
 	}
 	return -ENODATA;
@@ -139,7 +139,7 @@ int MessageFormat::readBlockSequence(AliHLTUInt8_t* buffer, unsigned size,
 {
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
-  if (buffer == NULL) return 0;
+  if (buffer == nullptr) return 0;
   unsigned position = 0;
   vector<AliHLTComponentBlockData> input;
   while (position + sizeof(AliHLTComponentBlockData) < size) {
@@ -160,7 +160,7 @@ int MessageFormat::readBlockSequence(AliHLTUInt8_t* buffer, unsigned size,
       position += p->fSize;
     } else {
       // Note: also a valid block, payload is optional
-      input.back().fPtr = NULL;
+      input.back().fPtr = nullptr;
     }
     // offset always 0 for iput blocks
     input.back().fOffset = 0;
@@ -174,10 +174,10 @@ int MessageFormat::readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size,
                                    vector<AliHLTComponentBlockData>& descriptorList) const
 {
   // read message payload in HOMER format
-  if (mpFactory == NULL) const_cast<MessageFormat*>(this)->mpFactory = new ALICE::HLT::HOMERFactory;
-  if (buffer == NULL || mpFactory == NULL) return -EINVAL;
+  if (mpFactory == nullptr) const_cast<MessageFormat*>(this)->mpFactory = new ALICE::HLT::HOMERFactory;
+  if (buffer == nullptr || mpFactory == nullptr) return -EINVAL;
   unique_ptr<AliHLTHOMERReader> reader(mpFactory->OpenReaderBuffer(buffer, size));
-  if (reader.get() == NULL) return -ENOMEM;
+  if (reader.get() == nullptr) return -ENOMEM;
 
   unsigned nofBlocks = 0;
   if (reader->ReadNextEvent() == 0) {
@@ -317,7 +317,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
         auto* bdTarget = reinterpret_cast<AliHLTComponentBlockData*>(pTarget + offset);
         memcpy(bdTarget, pOutputBlock, sizeof(AliHLTComponentBlockData));
         bdTarget->fOffset = 0;
-        bdTarget->fPtr = NULL;
+        bdTarget->fPtr = nullptr;
         offset += sizeof(AliHLTComponentBlockData);
         memcpy(pTarget + offset, pData, pOutputBlock->fSize);
         offset += pOutputBlock->fSize;
@@ -346,17 +346,17 @@ AliHLTHOMERWriter* MessageFormat::createHOMERFormat(const AliHLTComponentBlockDa
 {
   // send data blocks in HOMER format in one message
   int iResult = 0;
-  if (mpFactory == NULL) const_cast<MessageFormat*>(this)->mpFactory = new ALICE::HLT::HOMERFactory;
-  if (!mpFactory) return NULL;
+  if (mpFactory == nullptr) const_cast<MessageFormat*>(this)->mpFactory = new ALICE::HLT::HOMERFactory;
+  if (!mpFactory) return nullptr;
   unique_ptr<AliHLTHOMERWriter> writer(mpFactory->OpenWriter());
-  if (writer.get() == NULL) return NULL;
+  if (writer.get() == nullptr) return nullptr;
 
   homer_uint64 homerHeader[kCount_64b_Words];
   HOMERBlockDescriptor homerDescriptor(homerHeader);
 
   const AliHLTComponentBlockData* pOutputBlock = pOutputBlocks;
   for (unsigned blockIndex = 0; blockIndex < outputBlockCnt; blockIndex++, pOutputBlock++) {
-    if (pOutputBlock->fPtr == NULL && pOutputBlock->fSize > 0) {
+    if (pOutputBlock->fPtr == nullptr && pOutputBlock->fSize > 0) {
       cerr << "warning: ignoring block " << blockIndex << " because of missing data pointer" << endl;
     }
     memset(homerHeader, 0, sizeof(homer_uint64) * kCount_64b_Words);

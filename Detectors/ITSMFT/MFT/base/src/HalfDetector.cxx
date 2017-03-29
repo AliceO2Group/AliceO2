@@ -23,8 +23,8 @@ ClassImp(AliceO2::MFT::HalfDetector)
 //_____________________________________________________________________________
 HalfDetector::HalfDetector():
 TNamed(),
-mHalfVolume(NULL),
-mSegmentation(NULL)
+mHalfVolume(nullptr),
+mSegmentation(nullptr)
 {
   
 }
@@ -34,7 +34,7 @@ mSegmentation(NULL)
 //_____________________________________________________________________________
 HalfDetector::HalfDetector(HalfSegmentation *seg):
 TNamed(),
-mHalfVolume(NULL),
+mHalfVolume(nullptr),
 mSegmentation(seg)
 {
   

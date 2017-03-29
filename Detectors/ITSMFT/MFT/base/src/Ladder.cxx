@@ -34,9 +34,9 @@ const Double_t Ladder::kLadderDeltaZ = Geometry::kFlexThickness + Geometry::kSen
 //_____________________________________________________________________________
 Ladder::Ladder():
 TNamed(), 
-mSegmentation(NULL),
-mFlex(NULL),
-mLadderVolume(NULL)
+mSegmentation(nullptr),
+mFlex(nullptr),
+mLadderVolume(nullptr)
 {
     
 }
@@ -47,7 +47,7 @@ mLadderVolume(NULL)
 Ladder::Ladder(LadderSegmentation *segmentation):
 TNamed(segmentation->GetName(),segmentation->GetName()),
 mSegmentation(segmentation), 
-mFlex(NULL)
+mFlex(nullptr)
 {
 
   LOG(DEBUG1) << "Ladder " << Form("creating : %s", GetName()) << FairLogger::endl;

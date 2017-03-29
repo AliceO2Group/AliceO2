@@ -32,7 +32,7 @@ ClassImp(AliceO2::MFT::Flex)
 Flex::Flex():
 TNamed(),
 mFlexOrigin(),
-mLadderSeg(NULL)
+mLadderSeg(nullptr)
 {
   // Constructor
 }
@@ -169,7 +169,7 @@ void Flex::Make_ElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, D
 				 Geometry::kConnectorHeight/2+Geometry::kEpsilon);
 
   auto    *t1= new TGeoTranslation ("t1", Geometry::kConnectorThickness, 0., -0.01);
-  auto    *connecto = new TGeoSubtraction(connect, remov, NULL, t1);
+  auto    *connecto = new TGeoSubtraction(connect, remov, nullptr, t1);
   auto *connector = new TGeoCompositeShape("connector", connecto);
   auto *connectord = new TGeoVolume("connectord", connector, kMedAlu);
   connectord->SetVisibility(kTRUE);
@@ -196,7 +196,7 @@ void Flex::Make_ElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, D
 				      Geometry::kConnectorHeight/2);
   auto *boxremov = new TGeoBBox("boxremov", (2*Geometry::kConnectorThickness+interspace)/2, (Geometry::kFlexHeight-0.1-step)/2, 
 				    Geometry::kConnectorHeight/2+0.001);
-  auto *boxconnecto = new TGeoSubtraction(boxconnect, boxremov, NULL, NULL);
+  auto *boxconnecto = new TGeoSubtraction(boxconnect, boxremov, nullptr, nullptr);
   auto *boxconnector = new TGeoCompositeShape("boxconnector", boxconnecto);
   auto *boxconnectord = new TGeoVolume("boxconnectord", boxconnector, kMedPeek);
   flex->AddNode(boxconnectord,1,new TGeoTranslation(length/2-Geometry::kConnectorOffset, -step/2, zvarnish-Geometry::kVarnishThickness/2
@@ -283,11 +283,11 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
   auto *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2 + Geometry::kEpsilon);
 
   auto    *t1= new TGeoTranslation ("t1", length/2 - Geometry::kHoleShift1, 0., 0.);
-  auto    *layerholesub1 = new TGeoSubtraction(layer_def, hole1, NULL, t1);
+  auto    *layerholesub1 = new TGeoSubtraction(layer_def, hole1, nullptr, t1);
   auto *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
 
   auto    *t2= new TGeoTranslation ("t2", length/2 - Geometry::kHoleShift2, 0., 0.);
-  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, NULL, t2);
+  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
   auto *layer = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   TGeoBBox *line[25];
@@ -304,7 +304,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
   t[0] = new TGeoTranslation ("t0", Geometry::kSensorLength/2-Geometry::kConnectorOffset/2, -widthflex/2 + 2*Geometry::kLineWidth, 0.);    
   line[0]  = new TGeoBBox("line0",  length/2 - Geometry::kConnectorOffset/2 - Geometry::kSensorLength/2, Geometry::kLineWidth/2, 
 			  thickness/2 + Geometry::kEpsilon);
-  layerl[0] = new TGeoSubtraction(layer, line[0], NULL, t[0]);
+  layerl[0] = new TGeoSubtraction(layer, line[0], nullptr, t[0]);
   layern[0] = new TGeoCompositeShape(Form("layer%d",0), layerl[0]);
 
   istart = 1; istop = 6;
@@ -313,7 +313,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
 				    -widthflex/2 + 2*(iline+1)*Geometry::kLineWidth, 0.);
     line[iline]  = new TGeoBBox(Form("line%d",iline),  length/2 - Geometry::kConnectorOffset/2 - Geometry::kSensorLength/2, Geometry::kLineWidth/2, 
 				  thickness/2 + Geometry::kEpsilon);
-    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], NULL, t[iline]);
+    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], nullptr, t[iline]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d",iline), layerl[iline]);
     kTotalLinesNb++;
   }
@@ -324,7 +324,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
     length_line=length - Geometry::kConnectorOffset - TMath::Nint((iline-6)/3)*Geometry::kSensorLength - Geometry::kSensorLength/2;
     ts[iline] = new TGeoTranslation (Form("t%d",iline), length/2-length_line/2-Geometry::kConnectorOffset, -2*(iline-6)*Geometry::kLineWidth+0.5-widthflex/2, 0.);
     line[iline]  = new TGeoBBox(Form("line%d",iline), length_line/2, Geometry::kLineWidth/2, thickness/2 + Geometry::kEpsilon);
-    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], NULL, ts[iline]);
+    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], nullptr, ts[iline]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d",iline), layerl[iline]);
     kTotalLinesNb++;
   }
@@ -333,7 +333,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
   kTotalLinesNb++;
   tvdd = new TGeoTranslation ("tvdd", 0., widthflex/2-Geometry::kShiftDDGNDline, 0.);    
   line[kTotalLinesNb]  = new TGeoBBox(Form("line%d",kTotalLinesNb),  length/2, 2*Geometry::kLineWidth/2, thickness/2 + Geometry::kEpsilon);
-  layerl[kTotalLinesNb] = new TGeoSubtraction(layern[kTotalLinesNb-1], line[kTotalLinesNb], NULL, tvdd);
+  layerl[kTotalLinesNb] = new TGeoSubtraction(layern[kTotalLinesNb-1], line[kTotalLinesNb], nullptr, tvdd);
   layern[kTotalLinesNb] = new TGeoCompositeShape(Form("layer%d",kTotalLinesNb), layerl[kTotalLinesNb]);
   kTotalLinesNb++;
 
@@ -344,7 +344,7 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
     tl[iline-istart] = new TGeoTranslation (Form("tl%d",iline), length/2-length_line/2-Geometry::kConnectorOffset, 
 					    widthflex/2-Geometry::kShiftline-2.*(iline-istart)*Geometry::kLineWidth, 0.);
     line[iline]  = new TGeoBBox(Form("line%d",iline), length_line/2, Geometry::kLineWidth/2, thickness/2 + Geometry::kEpsilon);
-    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], NULL, tl[iline-istart]);
+    layerl[iline] = new TGeoSubtraction(layern[iline-1], line[iline], nullptr, tl[iline-istart]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d",iline), layerl[iline]);
     kTotalLinesNb++;
   }
@@ -374,11 +374,11 @@ TGeoVolume* Flex::Make_AGND_DGND(Double_t length, Double_t widthflex,  Double_t 
   auto *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2 + Geometry::kEpsilon);
   
   auto    *t1= new TGeoTranslation ("t1", length/2-Geometry::kHoleShift1, 0., 0.);
-  auto    *layerholesub1 = new TGeoSubtraction(layer, hole1, NULL, t1);
+  auto    *layerholesub1 = new TGeoSubtraction(layer, hole1, nullptr, t1);
   auto *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
 
   auto    *t2= new TGeoTranslation ("t2", length/2-Geometry::kHoleShift2, 0., 0.);
-  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, NULL, t2);
+  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
   auto *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   //--------------
@@ -392,21 +392,21 @@ TGeoVolume* Flex::Make_AGND_DGND(Double_t length, Double_t widthflex,  Double_t 
   // First, the two lines along the FPC side
   t[0] = new TGeoTranslation("t0", length/2-length_line/2-Geometry::kConnectorOffset, widthflex/2 - Geometry::kShiftline, 0.);
   line[0]  = new TGeoBBox("line0",  length/2 - Geometry::kConnectorOffset/2, Geometry::kLineWidth/2, thickness/2 + Geometry::kEpsilon);
-  layerl[0] = new TGeoSubtraction(layerhole2, line[0], NULL, t[0]);
+  layerl[0] = new TGeoSubtraction(layerhole2, line[0], nullptr, t[0]);
   layern[0] = new TGeoCompositeShape(Form("layer%d",0), layerl[0]);
 
   t[1] = new TGeoTranslation("t1", length/2-length_line/2-Geometry::kConnectorOffset, 
 			     widthflex/2 - Geometry::kShiftline - 2*Geometry::kLineWidth, 0.);
   line[1]  = new TGeoBBox("line1",  length/2 - Geometry::kConnectorOffset/2, Geometry::kLineWidth/2, 
 			  thickness/2 + Geometry::kEpsilon);
-  layerl[1] = new TGeoSubtraction(layern[0], line[1], NULL, t[1]);
+  layerl[1] = new TGeoSubtraction(layern[0], line[1], nullptr, t[1]);
   layern[1] = new TGeoCompositeShape(Form("layer%d",1), layerl[1]);
 
   // Now the interspace to separate the AGND et DGND --> same interspace compare the AVDD et DVDD
   t[2] = new TGeoTranslation("t2", length/2-length_line/2, widthflex/2 - Geometry::kShiftDDGNDline, 0.);
   line[2]  = new TGeoBBox("line2",  length/2 - Geometry::kConnectorOffset/2, Geometry::kLineWidth, 
 			  thickness/2 + Geometry::kEpsilon);
-  layerl[2] = new TGeoSubtraction(layern[1], line[2], NULL, t[2]);
+  layerl[2] = new TGeoSubtraction(layern[1], line[2], nullptr, t[2]);
   layern[2] = new TGeoCompositeShape(Form("layer%d",2), layerl[2]);
 
   //--------------
@@ -435,11 +435,11 @@ TGeoVolume* Flex::Make_Kapton(Double_t length, Double_t widthflex, Double_t thic
   auto *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2+Geometry::kEpsilon);
   
   auto    *t1= new TGeoTranslation ("t1", length/2-Geometry::kHoleShift1, 0., 0.);
-  auto    *layerholesub1 = new TGeoSubtraction(layer, hole1, NULL, t1);
+  auto    *layerholesub1 = new TGeoSubtraction(layer, hole1, nullptr, t1);
   auto *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
 
   auto    *t2= new TGeoTranslation ("t2", length/2-Geometry::kHoleShift2, 0., 0.);
-  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, NULL, t2);
+  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
   auto *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   Geometry * mftGeom = Geometry::Instance();
@@ -466,11 +466,11 @@ TGeoVolume* Flex::Make_Varnish(Double_t length, Double_t widthflex,  Double_t th
   auto *hole2 = new TGeoTube("hole2", 0., Geometry::kRadiusHole2, thickness/2+Geometry::kEpsilon);
   
   auto    *t1= new TGeoTranslation ("t1", length/2-Geometry::kHoleShift1, 0., 0.);
-  auto    *layerholesub1 = new TGeoSubtraction(layer, hole1, NULL, t1);
+  auto    *layerholesub1 = new TGeoSubtraction(layer, hole1, nullptr, t1);
   auto *layerhole1 = new TGeoCompositeShape("layerhole1", layerholesub1);
 
   auto    *t2= new TGeoTranslation ("t2", length/2-Geometry::kHoleShift2, 0., 0.);
-  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, NULL, t2);
+  auto    *layerholesub2 = new TGeoSubtraction(layerhole1, hole2, nullptr, t2);
   auto *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   Geometry * mftGeom = Geometry::Instance();

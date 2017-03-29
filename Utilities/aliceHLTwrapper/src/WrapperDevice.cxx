@@ -46,7 +46,7 @@ using TimeScale = std::chrono::milliseconds;
 #endif // USE_CHRONO
 
 WrapperDevice::WrapperDevice(int argc, char** argv, int verbosity)
-  : mComponent(NULL)
+  : mComponent(nullptr)
   , mArgv()
   , mMessages()
   , mPollingPeriod(10)

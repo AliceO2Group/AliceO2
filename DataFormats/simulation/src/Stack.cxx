@@ -49,8 +49,8 @@ Stack::Stack(Int_t size)
 Stack::Stack(const Stack &rhs)
   : FairGenericStack(rhs),
     mStack(),
-    mParticles(0),
-    mTracks(0),
+    mParticles(nullptr),
+    mTracks(nullptr),
     mStoreMap(),
     mStoreIterator(),
     mIndexMap(),
@@ -65,7 +65,7 @@ Stack::Stack(const Stack &rhs)
     mStoreSecondaries(rhs.mStoreSecondaries),
     mMinPoints(rhs.mMinPoints),
     mEnergyCut(rhs.mEnergyCut),
-    mLogger(0)
+    mLogger(nullptr)
 {
   mParticles = new TClonesArray("TParticle", rhs.mParticles->GetSize());
   mTracks = new TClonesArray("MCTrack", rhs.mTracks->GetSize());
@@ -103,7 +103,7 @@ Stack &Stack::operator=(const Stack &rhs)
   mStoreSecondaries = rhs.mStoreSecondaries;
   mMinPoints = rhs.mMinPoints;
   mEnergyCut = rhs.mEnergyCut;
-  mLogger = 0;
+  mLogger = nullptr;
 
   return *this;
 }
@@ -155,7 +155,7 @@ TParticle *Stack::PopNextTrack(Int_t &iTrack)
   // If end of stack: Return empty pointer
   if (mStack.empty()) {
     iTrack = -1;
-    return NULL;
+    return nullptr;
   }
 
   // If not, get next particle from stack
@@ -164,7 +164,7 @@ TParticle *Stack::PopNextTrack(Int_t &iTrack)
 
   if (!thisParticle) {
     iTrack = 0;
-    return NULL;
+    return nullptr;
   }
 
   mIndexOfCurrentTrack = thisParticle->GetStatusCode();
@@ -292,7 +292,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     track->SetMotherTrackId((*mIndexIterator).second);
   }
 
-  if (fDetList == 0) {
+  if (fDetList == nullptr) {
     // Now iterate through all active detectors
     fDetIter = detList->MakeIterator();
     fDetIter->Reset();
@@ -300,7 +300,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     fDetIter->Reset();
   }
 
-  FairDetector *det = NULL;
+  FairDetector *det = nullptr;
   while ((det = (FairDetector *) fDetIter->Next())) {
 
     // Get hit collections from detector

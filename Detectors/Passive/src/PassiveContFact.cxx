@@ -71,5 +71,5 @@ FairParSet* PassiveContFact::createContainer(FairContainer* c)
   }
   return p;
 */
-  return 0;
+  return nullptr;
 }
