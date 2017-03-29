@@ -8,7 +8,7 @@
 #include "FairDetector.h"     // for FairDetector
 #include "FairLogger.h"       // for MESSAGE_ORIGIN, FairLogger
 #include "FairMCPoint.h"      // for FairMCPoint
-#include "FairRootManager.h"  // for FairRootManager
+#include "FairGenericRootManager.h"  // for FairGenericRootManager
 
 #include "TClonesArray.h"     // for TClonesArray
 #include "TIterator.h"        // for TIterator
@@ -44,6 +44,7 @@ Stack::Stack(Int_t size)
     mEnergyCut(0.),
     mLogger(FairLogger::GetLogger())
 {
+  // LOG(INFO) << "Stack::Stack(Int_t) " << this << " mTracks " << mTracks << std::endl;
 }
 
 Stack::Stack(const Stack &rhs)
@@ -65,10 +66,12 @@ Stack::Stack(const Stack &rhs)
     mStoreSecondaries(rhs.mStoreSecondaries),
     mMinPoints(rhs.mMinPoints),
     mEnergyCut(rhs.mEnergyCut),
-    mLogger(nullptr)
+    mLogger(FairLogger::GetLogger())
 {
   mParticles = new TClonesArray("TParticle", rhs.mParticles->GetSize());
   mTracks = new TClonesArray("MCTrack", rhs.mTracks->GetSize());
+
+  // LOG(INFO) << "Stack::Stack(rhs) " << this << " mTracks " << mTracks << std::endl;
 }
 
 Stack::~Stack()
@@ -350,7 +353,10 @@ void Stack::Reset()
 
 void Stack::Register()
 {
-  FairRootManager::Instance()->Register("MCTrack", "Stack", mTracks, kTRUE);
+  // LOG(INFO) << this << " register in "
+  //   << FairGenericRootManager::Instance() << " mTracks: " <<  mTracks << std::endl;
+
+  FairGenericRootManager::Instance()->Register("MCTrack", "Stack", mTracks, kTRUE);
 }
 
 void Stack::Print(Int_t iVerbose) const
@@ -363,6 +369,13 @@ void Stack::Print(Int_t iVerbose) const
       ((MCTrack *) mTracks->At(iTrack))->Print(iTrack);
     }
   }
+}
+
+void Stack::Print(Option_t* option) const
+{
+  Int_t verbose = 0;
+  if ( option ) verbose = 1;
+  Print(verbose);
 }
 
 void Stack::AddPoint(DetectorId detId)
@@ -417,6 +430,8 @@ void Stack::SelectTracks()
 
   // Clear storage map
   mStoreMap.clear();
+
+  // LOG(INFO) << "mPointsMap.size(): " << mPointsMap.size() << std::endl;
 
   // Check particles in the fParticle array
   for (Int_t i = 0; i < mNumberOfEntriesInParticles; i++) {

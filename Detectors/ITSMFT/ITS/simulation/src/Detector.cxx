@@ -15,7 +15,7 @@
 //FairRoot includes
 #include "FairDetector.h"           // for FairDetector
 #include "FairLogger.h"             // for LOG, LOG_IF
-#include "FairRootManager.h"        // for FairRootManager
+#include "FairGenericRootManager.h"        // for FairGenericRootManager
 #include "FairRun.h"                // for FairRun
 #include "FairRuntimeDb.h"          // for FairRuntimeDb
 #include "FairVolume.h"             // for FairVolume
@@ -235,12 +235,11 @@ Detector::Detector(const Detector &rhs)
     mBuildLevel(nullptr),
 
   /// Container for data points
-    mPointCollection(nullptr),
-
-    mGeometryHandler(nullptr),
+    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
+    mGeometryHandler(rhs.mGeometryHandler), // CHECK
     mMisalignmentParameter(nullptr),
 
-    mGeometry(nullptr),
+    mGeometry(rhs.mGeometry),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelInnerBarrel)
 {
@@ -632,8 +631,8 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  if (FairRootManager::Instance()) {
-    FairRootManager::Instance()->Register("ITSPoint", "ITS", mPointCollection, kTRUE);
+  if (FairGenericRootManager::Instance()) {
+    FairGenericRootManager::Instance()->Register("ITSPoint", "ITS", mPointCollection, kTRUE);
   }
 }
 

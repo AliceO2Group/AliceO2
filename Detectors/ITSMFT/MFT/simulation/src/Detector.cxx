@@ -24,7 +24,7 @@
 #include "TGeoManager.h"
 
 #include "FairLogger.h"
-#include "FairRootManager.h"
+#include "FairGenericRootManager.h"
 #include "FairVolume.h"
 
 using namespace AliceO2::MFT;
@@ -497,8 +497,8 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  if (FairRootManager::Instance()) {
-    FairRootManager::Instance()->Register("MFTPoints", "MFT", mPoints, kTRUE);
+  if (FairGenericRootManager::Instance()) {
+    FairGenericRootManager::Instance()->Register("MFTPoints", "MFT", mPoints, kTRUE);
   }
 
 }

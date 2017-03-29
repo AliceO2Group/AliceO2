@@ -145,6 +145,10 @@ class Stack : public FairGenericStack
 
     virtual void Print(Int_t iVerbose = 0) const;
 
+    /// Output to screen (derived from base class)
+    /// \param option: 0=events summary, non0=track info
+    virtual void Print(Option_t* option = 0) const;
+
     /// Modifiers
     void StoreSecondaries(Bool_t choice = kTRUE)
     {
@@ -179,7 +183,7 @@ class Stack : public FairGenericStack
     /// Accessors
     TParticle *GetParticle(Int_t trackId) const;
 
-    TClonesArray *GetListOmParticles()
+    TClonesArray *GetListOfParticles()
     {
       return mParticles;
     }
