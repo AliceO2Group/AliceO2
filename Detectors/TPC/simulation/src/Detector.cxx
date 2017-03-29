@@ -94,6 +94,91 @@ void Detector::Initialize()
 //     LOG(INFO) << "Initialize" << FairLogger::endl;
 }
 
+void Detector::SetSpecialPhysicsCuts()
+{
+  FairRun* fRun = FairRun::Instance();
+  
+  //check for GEANT3, else abort
+  if (strcmp(fRun->GetName(),"TGeant3") == 0) {
+
+    //get material ID for customs settings
+    std::string fMixture("TPC_DriftGas2");
+    bool fAliMC = true;
+    std::cout<<"TpcDetector::SetSpecialPhysicsCuts() "
+             <<"Working on medium "<<fMixture.c_str()<<std::endl;
+    int matIdVMC = gGeoManager->GetMedium(fMixture.c_str())->GetId();
+    
+    double tofmax = 1.E10;    // (s)
+    
+    // Set new properties, physics cuts etc. for the TPCmixture
+    
+    
+    //gMC->Gstpar(matIdVMC,"PAIR",1); /** pair production*/
+    //gMC->Gstpar(matIdVMC,"COMP",1); /**Compton scattering*/
+    //gMC->Gstpar(matIdVMC,"PHOT",1); /** photo electric effect */
+    //gMC->Gstpar(matIdVMC,"PFIS",0); /**photofission*/
+    //gMC->Gstpar(matIdVMC,"DRAY",1); /**delta-ray*/
+    //gMC->Gstpar(matIdVMC,"ANNI",1); /**annihilation*/
+    //gMC->Gstpar(matIdVMC,"BREM",1); /**bremsstrahlung*/
+    //gMC->Gstpar(matIdVMC,"HADR",1); /**hadronic process*/
+    //gMC->Gstpar(matIdVMC,"MUNU",1); /**muon nuclear interaction*/
+    //gMC->Gstpar(matIdVMC,"DCAY",1); /**decay*/
+    //gMC->Gstpar(matIdVMC,"LOSS",1); /**energy loss*/
+    //gMC->Gstpar(matIdVMC,"MULS",1); /**multiple scattering*/
+    //gMC->Gstpar(matIdVMC,"STRA",0); 
+    //gMC->Gstpar(matIdVMC,"RAYL",1);
+    
+    //gMC->Gstpar(matIdVMC,"CUTGAM",fCut_el); /** gammas (GeV)*/
+    //gMC->Gstpar(matIdVMC,"CUTELE",fCut_el); /** electrons (GeV)*/
+    //gMC->Gstpar(matIdVMC,"CUTNEU",fCut_had); /** neutral hadrons (GeV)*/
+    //gMC->Gstpar(matIdVMC,"CUTHAD",fCut_had); /** charged hadrons (GeV)*/
+    //gMC->Gstpar(matIdVMC,"CUTMUO",fCut_el); /** muons (GeV)*/
+    //gMC->Gstpar(matIdVMC,"BCUTE",fCut_el);  /** electron bremsstrahlung (GeV)*/
+    //gMC->Gstpar(matIdVMC,"BCUTM",fCut_el);  /** muon and hadron bremsstrahlung(GeV)*/ 
+    //gMC->Gstpar(matIdVMC,"DCUTE",fCut_el);  /** delta-rays by electrons (GeV)*/
+    //gMC->Gstpar(matIdVMC,"DCUTM",fCut_el);  /** delta-rays by muons (GeV)*/
+    //gMC->Gstpar(matIdVMC,"PPCUTM",fCut_el); /** direct pair production by muons (GeV)*/
+     gMC->Gstpar(matIdVMC,"PAIR",1); 
+     gMC->Gstpar(matIdVMC,"COMP",1); 
+     gMC->Gstpar(matIdVMC,"PHOT",1); 
+     gMC->Gstpar(matIdVMC,"PFIS",0); 
+     gMC->Gstpar(matIdVMC,"DRAY",1); 
+     gMC->Gstpar(matIdVMC,"ANNI",1); 
+     gMC->Gstpar(matIdVMC,"BREM",1); 
+     gMC->Gstpar(matIdVMC,"HADR",1); 
+     gMC->Gstpar(matIdVMC,"MUNU",1); 
+     gMC->Gstpar(matIdVMC,"DCAY",1); 
+     gMC->Gstpar(matIdVMC,"LOSS",1); 
+     gMC->Gstpar(matIdVMC,"MULS",1); 
+     Double_t cut1 = 1.0E-5;         // GeV --> 1 MeV
+     Double_t cutel = 1.0E-5;
+     
+     gMC->SetCut("CUTGAM",cutel);   
+     gMC->SetCut("CUTELE",cutel);   
+     gMC->SetCut("CUTNEU",cut1);   
+     gMC->SetCut("CUTHAD",cut1);   
+     gMC->SetCut("CUTMUO",cut1);   
+     gMC->SetCut("BCUTE",cutel);    
+     gMC->SetCut("BCUTM",cut1);    
+     gMC->SetCut("DCUTE",cutel);    
+     gMC->SetCut("DCUTM",cut1);    
+     gMC->SetCut("PPCUTM",cut1);   
+     gMC->SetCut("TOFMAX",tofmax); 
+     gMC->SetMaxNStep((int)1E6);
+    
+    std::cout<<"\n************************************************************\n"
+             <<"TpcDetector::SetSpecialPhysicsCuts():\n"
+             <<"   using special physics cuts ...\n";
+    if(fAliMC) {
+      std::cout<<"   using LOSS=5 for ALICE MC model\n";
+      gMC->Gstpar(matIdVMC,"LOSS",5); 
+    }
+    std::cout<<"************************************************************"
+             <<std::endl;
+
+  }
+}
+
 Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
   /** This method is called from the MC stepping */
@@ -103,12 +188,12 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   //Set parameters at entrance of volume. Reset ELoss.
 
   if ( TVirtualMC::GetMC()->IsTrackEntering() ) {
-    mEnergyLoss  = 0.;
+    //mEnergyLoss  = 0.;
+  }
     mTime   = TVirtualMC::GetMC()->TrackTime() * 1.0e09;
     mLength = TVirtualMC::GetMC()->TrackLength();
     TVirtualMC::GetMC()->TrackPosition(mPosition);
     TVirtualMC::GetMC()->TrackMomentum(mMomentum);
-  }
 
     //double r = TMath::Sqrt(mPosition.X() * mPosition.X() + mPosition.Y()*mPosition.Y());
     //mTrackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
@@ -121,21 +206,22 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     //mEnergyLoss << FairLogger::endl;
 
   // Sum energy loss for all steps in the active volume
-  mEnergyLoss += TVirtualMC::GetMC()->Edep();
+  mEnergyLoss = TVirtualMC::GetMC()->Edep();
 
   // Create DetectorPoint at exit of active volume
-  if ( TVirtualMC::GetMC()->IsTrackExiting()    ||
-       TVirtualMC::GetMC()->IsTrackStop()       ||
-       TVirtualMC::GetMC()->IsTrackDisappeared()   ) {
+  //if ( TVirtualMC::GetMC()->IsTrackExiting()    ||
+       //TVirtualMC::GetMC()->IsTrackStop()       ||
+       //TVirtualMC::GetMC()->IsTrackDisappeared()   ) {
     mTrackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
     mVolumeID = vol->getMCid();
     if (mEnergyLoss == 0. ) { return kFALSE; }
     AddHit(mTrackNumberID, mVolumeID, TVector3(mPosition.X(),  mPosition.Y(),  mPosition.Z()),
            TVector3(mMomentum.Px(), mMomentum.Py(), mMomentum.Pz()), mTime, mLength,
            mEnergyLoss);
+    //double r = TMath::Sqrt(mPosition.X() * mPosition.X() + mPosition.Y()*mPosition.Y());
     //LOG(INFO) << "TPC::AddHit" << FairLogger::endl
     //<< "   -- " << mTrackNumberID <<","  << mVolumeID << " " << vol->GetName()
-    //<< ", Pos: (" << mPosition.X() << ", "  << mPosition.Y() <<", "<<  mPosition.Z() << ") "
+    //<< ", Pos: (" << mPosition.X() << ", "  << mPosition.Y() <<", "<<  mPosition.Z()<< ", " << r << ") "
     //<< ", Mom: (" << mMomentum.Px() << ", " << mMomentum.Py() << ", "  <<  mMomentum.Pz() << ") "
     //<< " Time: "<<  mTime <<", Len: " << mLength << ", Eloss: " <<
     //mEnergyLoss << FairLogger::endl;
@@ -144,7 +230,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)TVirtualMC::GetMC()->GetStack();
     stack->AddPoint(kAliTpc);
 
-  }
+  //}
 
   //return kTRUE;
   // ________________________________________________________________________________________________
