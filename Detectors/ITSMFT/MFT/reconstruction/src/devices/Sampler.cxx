@@ -68,7 +68,7 @@ void Sampler::InitTask()
 
   for (unsigned int ibrn = 0; ibrn < mBranchNames.size(); ibrn++ ) {
 
-    LOG(INFO) << "Sampler::InitTask >>>>> requesting branch \"" << mBranchNames[ibrn] << "\"";
+    LOG(INFO) << R"(Sampler::InitTask >>>>> requesting branch ")" << mBranchNames[ibrn] << R"(")";
 
     int branchStat = mSource->ActivateObject((TObject**)&mInputObjects[mNObjects],mBranchNames[ibrn].c_str()); // should check the status...
 
