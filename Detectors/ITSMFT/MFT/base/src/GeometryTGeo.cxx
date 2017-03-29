@@ -23,9 +23,9 @@ TString GeometryTGeo::fgSensorName   = "MFT_S";
 //_____________________________________________________________________________
 GeometryTGeo::GeometryTGeo() : 
 TObject(),
-fNDisks(0),
-fNChips(0),
-fNLaddersHalfDisk(0)
+mNDisks(0),
+mNChips(0),
+mNLaddersHalfDisk(0)
 {
   // default constructor
 
@@ -38,23 +38,23 @@ GeometryTGeo::~GeometryTGeo()
 {
   // destructor
 
-  delete [] fNLaddersHalfDisk;
+  delete [] mNLaddersHalfDisk;
 
 }
 
 //_____________________________________________________________________________
 GeometryTGeo::GeometryTGeo(const GeometryTGeo& src)
   : TObject(src),
-    fNDisks(src.fNDisks),
-    fNChips(src.fNChips)
+    mNDisks(src.mNDisks),
+    mNChips(src.mNChips)
 {
   // copy constructor
 
-  fNLaddersHalfDisk = new Int_t[2*src.fNDisks];
+  mNLaddersHalfDisk = new Int_t[2*src.mNDisks];
 
   for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
-    for (Int_t iDisk = 0; iDisk < (src.fNDisks); iDisk++) {
-      fNLaddersHalfDisk[iHalf*(src.fNDisks)+iDisk] = src.fNLaddersHalfDisk[iHalf*(src.fNDisks)+iDisk];
+    for (Int_t iDisk = 0; iDisk < (src.mNDisks); iDisk++) {
+      mNLaddersHalfDisk[iHalf*(src.mNDisks)+iDisk] = src.mNLaddersHalfDisk[iHalf*(src.mNDisks)+iDisk];
     }
   }
 
@@ -69,14 +69,14 @@ GeometryTGeo &GeometryTGeo::operator=(const GeometryTGeo &src)
   }
 
   TObject::operator=(src);
-  fNDisks = src.fNDisks;
-  fNChips = src.fNChips;
+  mNDisks = src.mNDisks;
+  mNChips = src.mNChips;
 
-  fNLaddersHalfDisk = new Int_t[2*src.fNDisks];
+  mNLaddersHalfDisk = new Int_t[2*src.mNDisks];
 
   for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
-    for (Int_t iDisk = 0; iDisk < (src.fNDisks); iDisk++) {
-      fNLaddersHalfDisk[iHalf*(src.fNDisks)+iDisk] = src.fNLaddersHalfDisk[iHalf*(src.fNDisks)+iDisk];
+    for (Int_t iDisk = 0; iDisk < (src.mNDisks); iDisk++) {
+      mNLaddersHalfDisk[iHalf*(src.mNDisks)+iDisk] = src.mNLaddersHalfDisk[iHalf*(src.mNDisks)+iDisk];
     }
   }
 
@@ -86,20 +86,20 @@ GeometryTGeo &GeometryTGeo::operator=(const GeometryTGeo &src)
 void GeometryTGeo::Build()
 {
 
-  fNDisks = Constants::kNDisks;
-  fNLaddersHalfDisk = new Int_t[2*fNDisks];
+  mNDisks = Constants::kNDisks;
+  mNLaddersHalfDisk = new Int_t[2*mNDisks];
 
   // extract the total number of sensors (chips)
   Geometry *mftGeo = Geometry::Instance();
   Segmentation *seg = mftGeo->GetSegmentation();
   for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
     HalfSegmentation * halfSeg = seg->GetHalf(iHalf);
-    for (Int_t iDisk = 0; iDisk < fNDisks; iDisk++) {
+    for (Int_t iDisk = 0; iDisk < mNDisks; iDisk++) {
       HalfDiskSegmentation* halfDiskSeg = halfSeg->GetHalfDisk(iDisk);
-      fNLaddersHalfDisk[iHalf*fNDisks+iDisk] = halfDiskSeg->GetNLadders();
+      mNLaddersHalfDisk[iHalf*mNDisks+iDisk] = halfDiskSeg->GetNLadders();
       for (Int_t iLadder = 0; iLadder < halfDiskSeg->GetNLadders(); iLadder++) {
 	LadderSegmentation* ladderSeg = halfDiskSeg->GetLadder(iLadder);
-	fNChips += ladderSeg->GetNSensors();
+	mNChips += ladderSeg->GetNSensors();
       }
     }
   }

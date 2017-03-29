@@ -23,16 +23,16 @@ void free_tmessage2(void* /*data*/, void *hint)
 //_____________________________________________________________________________
 Sampler::Sampler()
   : FairMQDevice()
-  , fOutputChannelName("data-out")
-  , fAckChannelName("")
-  , fRunAna(NULL)
-  , fSource(NULL)
-  , fInputObjects()
-  , fNObjects(0)
-  , fMaxIndex(-1)
-  , fEventCounter(0)
-  , fBranchNames()
-  , fFileNames()
+  , mOutputChannelName("data-out")
+  , mAckChannelName("")
+  , mRunAna(NULL)
+  , mSource(NULL)
+  , mInputObjects()
+  , mNObjects(0)
+  , mMaxIndex(-1)
+  , mEventCounter(0)
+  , mBranchNames()
+  , mFileNames()
 
 {
 
@@ -50,49 +50,49 @@ void Sampler::InitTask()
 
   LOG(INFO) << "Sampler::InitTask >>>>>" << "";
   
-  fFileNames = GetConfig()->GetValue<std::vector<std::string>>("file-name");
-  fMaxIndex = GetConfig()->GetValue<int64_t>("max-index");
-  fBranchNames = GetConfig()->GetValue<std::vector<std::string>>("branch-name");
-  fOutputChannelName = GetConfig()->GetValue<std::string>("out-channel");
-  fAckChannelName = GetConfig()->GetValue<std::string>("ack-channel");
+  mFileNames = GetConfig()->GetValue<std::vector<std::string>>("file-name");
+  mMaxIndex = GetConfig()->GetValue<int64_t>("max-index");
+  mBranchNames = GetConfig()->GetValue<std::vector<std::string>>("branch-name");
+  mOutputChannelName = GetConfig()->GetValue<std::string>("out-channel");
+  mAckChannelName = GetConfig()->GetValue<std::string>("ack-channel");
 
-  fRunAna = new FairRunAna();
+  mRunAna = new FairRunAna();
   
-  if (fSource == NULL) {
-    fSource = new FairFileSource(fFileNames.at(0).c_str());
-    for (unsigned int ifile = 1 ; ifile < fFileNames.size() ; ifile++) 
-      ((FairFileSource*)fSource)->AddFile(fFileNames.at(ifile));
+  if (mSource == NULL) {
+    mSource = new FairFileSource(mFileNames.at(0).c_str());
+    for (unsigned int ifile = 1 ; ifile < mFileNames.size() ; ifile++) 
+      ((FairFileSource*)mSource)->AddFile(mFileNames.at(ifile));
   }
 
-  fSource->Init();
+  mSource->Init();
 
-  LOG(INFO) << "Sampler::InitTask >>>>> going to request " << fBranchNames.size() << "  branches:";
+  LOG(INFO) << "Sampler::InitTask >>>>> going to request " << mBranchNames.size() << "  branches:";
 
-  for (unsigned int ibrn = 0; ibrn < fBranchNames.size(); ibrn++ ) {
+  for (unsigned int ibrn = 0; ibrn < mBranchNames.size(); ibrn++ ) {
 
-    LOG(INFO) << "Sampler::InitTask >>>>> requesting branch \"" << fBranchNames[ibrn] << "\"";
+    LOG(INFO) << "Sampler::InitTask >>>>> requesting branch \"" << mBranchNames[ibrn] << "\"";
 
-    int branchStat = fSource->ActivateObject((TObject**)&fInputObjects[fNObjects],fBranchNames[ibrn].c_str()); // should check the status...
+    int branchStat = mSource->ActivateObject((TObject**)&mInputObjects[mNObjects],mBranchNames[ibrn].c_str()); // should check the status...
 
-    if (fInputObjects[fNObjects]) {
+    if (mInputObjects[mNObjects]) {
 
-      LOG(INFO) << "Sampler::InitTask >>>>> activated object " << fInputObjects[fNObjects] << " with name " << fBranchNames[ibrn] << " (" << branchStat << "), it got name: " << fInputObjects[fNObjects]->GetName() << "";
+      LOG(INFO) << "Sampler::InitTask >>>>> activated object " << mInputObjects[mNObjects] << " with name " << mBranchNames[ibrn] << " (" << branchStat << "), it got name: " << mInputObjects[mNObjects]->GetName() << "";
 
-      if (strcmp(fInputObjects[fNObjects]->GetName(),fBranchNames[ibrn].c_str()))
-        if (strcmp(fInputObjects[fNObjects]->ClassName(),"TClonesArray") == 0) 
-          ((TClonesArray*)fInputObjects[fNObjects])->SetName(fBranchNames[ibrn].c_str());
-      fNObjects++;
+      if (strcmp(mInputObjects[mNObjects]->GetName(),mBranchNames[ibrn].c_str()))
+        if (strcmp(mInputObjects[mNObjects]->ClassName(),"TClonesArray") == 0) 
+          ((TClonesArray*)mInputObjects[mNObjects])->SetName(mBranchNames[ibrn].c_str());
+      mNObjects++;
 
     }
 
   }
 
-  LOG(INFO) << "Sampler::InitTask >>>>> nof objects = " << fNObjects << "";
+  LOG(INFO) << "Sampler::InitTask >>>>> nof objects = " << mNObjects << "";
   
-  if ( fMaxIndex < 0 )
-    fMaxIndex = fSource->CheckMaxEventNo();
+  if ( mMaxIndex < 0 )
+    mMaxIndex = mSource->CheckMaxEventNo();
 
-  LOG(INFO) << "Sampler::InitTask >>>>> input source has " << fMaxIndex << " event(s).";
+  LOG(INFO) << "Sampler::InitTask >>>>> input source has " << mMaxIndex << " event(s).";
 
 }
 
@@ -102,21 +102,21 @@ bool Sampler::ConditionalRun()
 
   LOG(INFO) << "Sampler::ConditionalRun >>>>> run" << "";
   
-  if ( fEventCounter == fMaxIndex ) return false;
+  if ( mEventCounter == mMaxIndex ) return false;
   
-  Int_t readEventReturn = fSource->ReadEvent(fEventCounter);
+  Int_t readEventReturn = mSource->ReadEvent(mEventCounter);
 
   if (readEventReturn != 0) return false;
 
   TMessage* message[1000];
   FairMQParts parts;
   
-  for (int iobj = 0; iobj < fNObjects; iobj++) {
+  for (int iobj = 0; iobj < mNObjects; iobj++) {
 
-    LOG(INFO) << "Sampler::ConditionalRun >>>>> object " << iobj << " event " << fEventCounter << "";
+    LOG(INFO) << "Sampler::ConditionalRun >>>>> object " << iobj << " event " << mEventCounter << "";
     //fInputObjects[iobj]->Dump();
     message[iobj] = new TMessage(kMESS_OBJECT);
-    message[iobj]->WriteObject(fInputObjects[iobj]);
+    message[iobj]->WriteObject(mInputObjects[iobj]);
     parts.AddPart(NewMessage(message[iobj]->Buffer(),
                              message[iobj]->BufferSize(),
                              [](void* /*data*/, void* hint) { delete (TMessage*)hint;},
@@ -124,9 +124,9 @@ bool Sampler::ConditionalRun()
     
   }
     
-  Send(parts, fOutputChannelName);
+  Send(parts, mOutputChannelName);
 
-  fEventCounter++;
+  mEventCounter++;
 
   return true;
 
@@ -137,7 +137,7 @@ void Sampler::PreRun()
 {
   LOG(INFO) << "Sampler::PreRun >>>>> started!";
 
-  fAckListener = new boost::thread(boost::bind(&Sampler::ListenForAcks, this));
+  mAckListener = new boost::thread(boost::bind(&Sampler::ListenForAcks, this));
 
 }
 
@@ -145,10 +145,10 @@ void Sampler::PreRun()
 void Sampler::PostRun() 
 {
   
-  if ( strcmp(fAckChannelName.data(),"") != 0 ) {
+  if ( strcmp(mAckChannelName.data(),"") != 0 ) {
     try
       {
-        fAckListener->join();
+        mAckListener->join();
       }
     catch(boost::thread_resource_error& e)
       {
@@ -165,10 +165,10 @@ void Sampler::PostRun()
 void Sampler::ListenForAcks()
 {
 
-  if (strcmp(fAckChannelName.data(),"") != 0) {
-    for (Long64_t eventNr = 0; eventNr < fMaxIndex ; ++eventNr) {
+  if (strcmp(mAckChannelName.data(),"") != 0) {
+    for (Long64_t eventNr = 0; eventNr < mMaxIndex ; ++eventNr) {
       unique_ptr<FairMQMessage> ack(NewMessage());
-      if (Receive(ack,fAckChannelName.data())) {
+      if (Receive(ack,mAckChannelName.data())) {
 	// do not need to do anything
       }
 
@@ -177,7 +177,7 @@ void Sampler::ListenForAcks()
       }
     }
 
-    LOG(INFO) << "Sampler::ListenForAcks >>>>> Acknowledged " << fMaxIndex << " messages.";
+    LOG(INFO) << "Sampler::ListenForAcks >>>>> Acknowledged " << mMaxIndex << " messages.";
   }
 
 }

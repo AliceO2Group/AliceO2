@@ -18,19 +18,19 @@ using TPCTestCluster = AliceO2::DataFlow::TPCTestCluster;
 
 void EPNReceiverDevice::InitTask()
 {
-  fNumFLPs = GetConfig()->GetValue<int>("num-flps");
-  fBufferTimeoutInMs = GetConfig()->GetValue<int>("buffer-timeout");
-  fTestMode = GetConfig()->GetValue<int>("test-mode");
-  fInChannelName = GetConfig()->GetValue<string>("in-chan-name");
-  fOutChannelName = GetConfig()->GetValue<string>("out-chan-name");
-  fAckChannelName = GetConfig()->GetValue<string>("ack-chan-name");
+  mNumFLPs = GetConfig()->GetValue<int>("num-flps");
+  mBufferTimeoutInMs = GetConfig()->GetValue<int>("buffer-timeout");
+  mTestMode = GetConfig()->GetValue<int>("test-mode");
+  mInChannelName = GetConfig()->GetValue<string>("in-chan-name");
+  mOutChannelName = GetConfig()->GetValue<string>("out-chan-name");
+  mAckChannelName = GetConfig()->GetValue<string>("ack-chan-name");
 }
 
 void EPNReceiverDevice::PrintBuffer(const unordered_map<uint16_t, TFBuffer>& buffer) const
 {
   string header = "===== ";
 
-  for (int i = 1; i <= fNumFLPs; ++i) {
+  for (int i = 1; i <= mNumFLPs; ++i) {
     stringstream out;
     out << i % 10;
     header += out.str();
@@ -49,14 +49,14 @@ void EPNReceiverDevice::PrintBuffer(const unordered_map<uint16_t, TFBuffer>& buf
 
 void EPNReceiverDevice::DiscardIncompleteTimeframes()
 {
-  auto it = fTimeframeBuffer.begin();
+  auto it = mTimeframeBuffer.begin();
 
-  while (it != fTimeframeBuffer.end()) {
-    if (duration_cast<milliseconds>(steady_clock::now() - (it->second).start).count() > fBufferTimeoutInMs) {
-      LOG(WARN) << "Timeframe #" << it->first << " incomplete after " << fBufferTimeoutInMs << " milliseconds, discarding";
-      fDiscardedSet.insert(it->first);
-      fTimeframeBuffer.erase(it++);
-      LOG(WARN) << "Number of discarded timeframes: " << fDiscardedSet.size();
+  while (it != mTimeframeBuffer.end()) {
+    if (duration_cast<milliseconds>(steady_clock::now() - (it->second).start).count() > mBufferTimeoutInMs) {
+      LOG(WARN) << "Timeframe #" << it->first << " incomplete after " << mBufferTimeoutInMs << " milliseconds, discarding";
+      mDiscardedSet.insert(it->first);
+      mTimeframeBuffer.erase(it++);
+      LOG(WARN) << "Number of discarded timeframes: " << mDiscardedSet.size();
     } else {
       // LOG(INFO) << "Timeframe #" << it->first << " within timeout, buffering...";
       ++it;
@@ -68,7 +68,7 @@ void EPNReceiverDevice::Run()
 {
   uint16_t id = 0; // holds the timeframe id of the currently arrived sub-timeframe.
 
-  FairMQChannel& ackOutChannel = fChannels.at(fAckChannelName).at(0);
+  FairMQChannel& ackOutChannel = fChannels.at(mAckChannelName).at(0);
 
   // Simple multi timeframe index
   typedef int PartPosition;
@@ -80,7 +80,7 @@ void EPNReceiverDevice::Run()
 
   while (CheckCurrentState(RUNNING)) {
     FairMQParts subtimeframeParts;
-    if (Receive(subtimeframeParts, fInChannelName, 0, 100) <= 0)
+    if (Receive(subtimeframeParts, mInChannelName, 0, 100) <= 0)
       continue;
 
     assert(subtimeframeParts.Size() >= 2);
@@ -110,12 +110,12 @@ void EPNReceiverDevice::Run()
       }
     }
 
-    if (fDiscardedSet.find(id) == fDiscardedSet.end())
+    if (mDiscardedSet.find(id) == mDiscardedSet.end())
     {
-      if (fTimeframeBuffer.find(id) == fTimeframeBuffer.end())
+      if (mTimeframeBuffer.find(id) == mTimeframeBuffer.end())
       {
         // if this is the first part with this ID, save the receive time.
-        fTimeframeBuffer[id].start = steady_clock::now();
+        mTimeframeBuffer[id].start = steady_clock::now();
       }
       flpIds.insert(std::make_pair(id, flpId));
       LOG(INFO) << "Timeframe ID " << id << " for startTime " << sfm->startTime  << "\n";
@@ -134,7 +134,7 @@ void EPNReceiverDevice::Run()
           auto ie = std::make_pair(*adh, index.count(id)*2);
           index.insert(std::make_pair(id, ie));
         }
-        fTimeframeBuffer[id].parts.AddPart(move(subtimeframeParts.At(i)));
+        mTimeframeBuffer[id].parts.AddPart(move(subtimeframeParts.At(i)));
       }
     }
     else
@@ -143,7 +143,7 @@ void EPNReceiverDevice::Run()
       LOG(WARN) << "Received part from an already discarded timeframe with id " << id;
     }
 
-    if (flpIds.count(id) == fNumFLPs) {
+    if (flpIds.count(id) == mNumFLPs) {
       LOG(INFO) << "Timeframe " << id << " complete. Publishing.\n";
       AliceO2::Header::DataHeader tih;
       std::vector<IndexElement> flattenedIndex;
@@ -160,18 +160,18 @@ void EPNReceiverDevice::Run()
       }
       memcpy(indexData, flattenedIndex.data(), tih.payloadSize);
 
-      fTimeframeBuffer[id].parts.AddPart(NewSimpleMessage(tih));
-      fTimeframeBuffer[id].parts.AddPart(NewMessage(indexData, tih.payloadSize,
+      mTimeframeBuffer[id].parts.AddPart(NewSimpleMessage(tih));
+      mTimeframeBuffer[id].parts.AddPart(NewMessage(indexData, tih.payloadSize,
                          [](void* data, void* hint){ free(data); }, nullptr));
       // LOG(INFO) << "Collected all parts for timeframe #" << id;
       // when all parts are collected send then to the output channel
-      Send(fTimeframeBuffer[id].parts, fOutChannelName);
+      Send(mTimeframeBuffer[id].parts, mOutChannelName);
       LOG(INFO) << "Index count for " << id << " " << index.count(id) << "\n";
       index.erase(id);
       LOG(INFO) << "Index count for " << id << " " << index.count(id) << "\n";
       flpIds.erase(id);
 
-      if (fTestMode > 0) {
+      if (mTestMode > 0) {
         // Send an acknowledgement back to the sampler to measure the round trip time
         unique_ptr<FairMQMessage> ack(NewMessage(sizeof(uint16_t)));
         memcpy(ack->GetData(), &id, sizeof(uint16_t));
@@ -181,7 +181,7 @@ void EPNReceiverDevice::Run()
         }
       }
 
-      fTimeframeBuffer.erase(id);
+      mTimeframeBuffer.erase(id);
     }
 
     // LOG(WARN) << "Buffer size: " << fTimeframeBuffer.size();

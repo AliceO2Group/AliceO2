@@ -2880,24 +2880,24 @@ void Detector::ConstructTPCGeometry()
 void Detector::LoadGeometryFromFile()
 {
   // ===| Read the TPC geometry from file |=====================================
-  if (fGeoFileName.IsNull()) {
+  if (mGeoFileName.IsNull()) {
     LOG(FATAL) << "TPC geometry file name not set" << FairLogger::endl;
     return;
   }
 
-  TFile *fGeoFile = TFile::Open(fGeoFileName);
+  TFile *fGeoFile = TFile::Open(mGeoFileName);
   if (!fGeoFile|| !fGeoFile->IsOpen() || fGeoFile->IsZombie()) {
-    LOG(FATAL) << "Could not open TPC geometry file '" << fGeoFileName << "'"<< FairLogger::endl;
+    LOG(FATAL) << "Could not open TPC geometry file '" << mGeoFileName << "'"<< FairLogger::endl;
     return;
   }
 
   TGeoVolume *tpcVolume = dynamic_cast<TGeoVolume*>(fGeoFile->Get("TPC_M"));
   if (!tpcVolume) {
-    LOG(FATAL) << "Could not retrieve TPC geometry from file '" << fGeoFileName << "'"<< FairLogger::endl;
+    LOG(FATAL) << "Could not retrieve TPC geometry from file '" << mGeoFileName << "'"<< FairLogger::endl;
     return;
   }
 
-  LOG(INFO) << "Loaded TPC geometry from file '" << fGeoFileName << "'"<< FairLogger::endl;
+  LOG(INFO) << "Loaded TPC geometry from file '" << mGeoFileName << "'"<< FairLogger::endl;
   TGeoVolume *alice = gGeoManager->GetVolume("cave");
   alice->AddNode(tpcVolume,1);
 }

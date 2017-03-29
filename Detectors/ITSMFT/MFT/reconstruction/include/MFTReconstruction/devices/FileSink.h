@@ -20,17 +20,17 @@ class FileSink : public FairMQDevice
   FileSink();
   virtual ~FileSink();
   
-  void SetOutputFileName(std::string tempString) { fFileName = tempString; }
+  void SetOutputFileName(std::string tempString) { mFileName = tempString; }
   void AddOutputBranch  (std::string classString, std::string branchString) 
   { 
-    fClassNames .push_back(classString); 
-    fBranchNames.push_back(branchString); 
+    mClassNames .push_back(classString); 
+    mBranchNames.push_back(branchString); 
     LOG(INFO) << "AddOutput class " << classString.c_str() << " branch " << branchString.c_str() << ""; 
   }
-  std::string GetOutputFileName () { return fFileName;}
+  std::string GetOutputFileName () { return mFileName;}
 
-  void SetInputChannelName (std::string tstr) {fInputChannelName = tstr;}
-  void SetAckChannelName(std::string tstr) {fAckChannelName = tstr;}
+  void SetInputChannelName (std::string tstr) {mInputChannelName = tstr;}
+  void SetAckChannelName(std::string tstr) {mAckChannelName = tstr;}
 
  protected:
 
@@ -39,26 +39,26 @@ class FileSink : public FairMQDevice
 
  private:
 
-  std::string     fInputChannelName;
-  std::string     fAckChannelName;
+  std::string     mInputChannelName;
+  std::string     mAckChannelName;
   
-  std::string fFileName;
-  std::string fTreeName;
+  std::string mFileName;
+  std::string mTreeName;
   
-  std::vector<std::string> fBranchNames;
-  std::vector<std::string> fClassNames;
+  std::vector<std::string> mBranchNames;
+  std::vector<std::string> mClassNames;
   
-  std::string fFileOption;
-  bool fFlowMode;
-  bool fWrite;
+  std::string mFileOption;
+  bool mFlowMode;
+  bool mWrite;
   
-  TFile* fOutFile;
-  TTree* fTree;
-  unsigned int    fNObjects;
-  TObject**       fOutputObjects;
+  TFile* mOutFile;
+  TTree* mTree;
+  unsigned int    mNObjects;
+  TObject**       mOutputObjects;
   /* FairEventHeader* fEventHeader; */
   /* TClonesArray*    fOutput; */
-  TFolder* fFolder;
+  TFolder* mFolder;
   
   FileSink(const FileSink&);
   FileSink& operator=(const FileSink&);

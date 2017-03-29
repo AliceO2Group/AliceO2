@@ -31,17 +31,17 @@ class HeatExchanger : public TNamed {
   void CreateHalfDisk4(Int_t half);
   void CreateManyfold(Int_t disk);
 
-  Double_t GetWaterRadius() { return fRWater; }
-  void SetWaterRadius(Double_t &Rwater) { fRWater = Rwater; }
+  Double_t GetWaterRadius() { return mRWater; }
+  void SetWaterRadius(Double_t &Rwater) { mRWater = Rwater; }
 
-  Double_t GetPipeThickness() { return fDRPipe; }
-  void SetPipeThickness(Double_t &DRPipe) { fDRPipe = DRPipe; }
+  Double_t GetPipeThickness() { return mDRPipe; }
+  void SetPipeThickness(Double_t &DRPipe) { mDRPipe = DRPipe; }
 
-  Double_t GetExchangerWidth() { return fHeatExchangerThickness; }
-  void SetExchangerWidth(Double_t &HeatExchangerThickness) { fHeatExchangerThickness = HeatExchangerThickness; }
+  Double_t GetExchangerWidth() { return mHeatExchangerThickness; }
+  void SetExchangerWidth(Double_t &HeatExchangerThickness) { mHeatExchangerThickness = HeatExchangerThickness; }
 
-  Double_t GetCarbonThickness() { return fCarbonThickness; }
-  void SetCarbonThickness(Double_t &CarbonThickness) { fCarbonThickness = CarbonThickness; }
+  Double_t GetCarbonThickness() { return mCarbonThickness; }
+  void SetCarbonThickness(Double_t &CarbonThickness) { mCarbonThickness = CarbonThickness; }
 
   TGeoMaterial *material;
   TGeoMedium *water;
@@ -57,54 +57,54 @@ class HeatExchanger : public TNamed {
 
   enum {kBottom, kTop, kNHalves};
 
-  TGeoVolumeAssembly *fHalfDisk;
+  TGeoVolumeAssembly *mHalfDisk;
   
-  TGeoRotation ***fHalfDiskRotation;
-  TGeoCombiTrans ***fHalfDiskTransformation;
+  TGeoRotation ***mHalfDiskRotation;
+  TGeoCombiTrans ***mHalfDiskTransformation;
 
-  Double_t fRWater;  // Radius of the water 
-  Double_t fDRPipe;  // Thickness of the pipe
-  Double_t fHeatExchangerThickness; //width of the heat exchanger
-  Double_t fCarbonThickness; //thickness of carbon plate over 2
-  Double_t fHalfDiskGap; //gap between half disks
+  Double_t mRWater;  // Radius of the water 
+  Double_t mDRPipe;  // Thickness of the pipe
+  Double_t mHeatExchangerThickness; //width of the heat exchanger
+  Double_t mCarbonThickness; //thickness of carbon plate over 2
+  Double_t mHalfDiskGap; //gap between half disks
 
-  Double_t fRohacellThickness;
+  Double_t mRohacellThickness;
 
   //Parameters for carbon and Rohacell
-  Int_t fNDisks;  //number of planes
+  Int_t mNDisks;  //number of planes
   Int_t fnPart[5]; //number of part of each half-disk
-  Double_t fRMin[5]; // radius of the central hole of each disk
-  Double_t fZPlan[5]; //position on z axis of each plane
+  Double_t mRMin[5]; // radius of the central hole of each disk
+  Double_t mZPlan[5]; //position on z axis of each plane
 
   //Dimensions of carbon and Rohacell planes
-  Double_t **fSupportXDimensions;
-  Double_t **fSupportYDimensions;
+  Double_t **mSupportXDimensions;
+  Double_t **mSupportYDimensions;
 
   //Parameters for disk0, disk1 and disk2
-  Double_t fLWater; // Length of tube part
-  Double_t fXPosition0[3]; //position on x axis of each tube for disk 0, 1 and 2 
+  Double_t mLWater; // Length of tube part
+  Double_t mXPosition0[3]; //position on x axis of each tube for disk 0, 1 and 2 
   Double_t fangle0; //angle of the sides torus part of each pipe for disk 0, 1 and 2
   Double_t fradius0; // radius of the sides torus part for disk 0, 1 and 2
-  Double_t fLpartial0; // length of partial tube part
+  Double_t mLpartial0; // length of partial tube part
 
    //Parameters for disk3 
-  Double_t fLWater3[3]; // length of tube part for third plan 
-  Double_t fXPosition3[4]; // tube position on x axe of each tube for disk 3
+  Double_t mLWater3[3]; // length of tube part for third plan 
+  Double_t mXPosition3[4]; // tube position on x axe of each tube for disk 3
   Double_t fangle3[3]; // angle of sides torus of each pipe for disk 3
   Double_t fradius3[3]; // radius of the sides torus for disk 3
   Double_t fangleThirdPipe3; // angle with x axe of tube part of third pipe
-  Double_t fLpartial3[2]; // length of partial tube
+  Double_t mLpartial3[2]; // length of partial tube
 
   Double_t fradius3fourth[4]; // radius of fourth pipe torus of fourth pipe
   Double_t fangle3fourth[4]; // angle of fourth pipe torus of fourth pipe
   Double_t fbeta3fourth[3]; // shift angle of different torus part of fourth pipe of disk 3
 
   //Parameters for disk4
-  Double_t fLwater4[3]; // length of tube part for fourth plan
-  Double_t fXposition4[5]; // tube position on x axe of each tube for disk 4
+  Double_t mLwater4[3]; // length of tube part for fourth plan
+  Double_t mXposition4[5]; // tube position on x axe of each tube for disk 4
   Double_t fangle4[6]; // angle of sides torus of each pipe for disk 4
   Double_t fradius4[5]; // radius of the sides torus for disk 4
-  Double_t fLpartial4[2]; // length of partial tube for first and second pipe of disk 4
+  Double_t mLpartial4[2]; // length of partial tube for first and second pipe of disk 4
   Double_t fangle4fifth[4]; // angle of torus for fifth pipe of disk 4
   Double_t fradius4fifth[4]; // radius of torus for fifth pipe of disk 4
 

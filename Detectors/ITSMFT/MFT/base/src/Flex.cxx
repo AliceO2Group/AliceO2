@@ -31,8 +31,8 @@ ClassImp(AliceO2::MFT::Flex)
 //_____________________________________________________________________________
 Flex::Flex():
 TNamed(),
-fFlexOrigin(),
-fLadderSeg(NULL)
+mFlexOrigin(),
+mLadderSeg(NULL)
 {
   // Constructor
 }
@@ -46,8 +46,8 @@ Flex::~Flex()
 //_____________________________________________________________________________
 Flex::Flex(LadderSegmentation *ladder):
 TNamed(),
-fFlexOrigin(),
-fLadderSeg(ladder)
+mFlexOrigin(),
+mLadderSeg(ladder)
 {
   // Constructor
 }
@@ -61,9 +61,9 @@ TGeoVolumeAssembly* Flex::MakeFlex(Int_t nbsensors, Double_t length)
 
   // For the naming
   Geometry * mftGeom = Geometry::Instance();
-  Int_t idHalfMFT = mftGeom->GetHalfMFTID(fLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->GetHalfDiskID(fLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->GetLadderID(fLadderSeg->GetUniqueID());
+  Int_t idHalfMFT = mftGeom->GetHalfMFTID(mLadderSeg->GetUniqueID());
+  Int_t idHalfDisk = mftGeom->GetHalfDiskID(mLadderSeg->GetUniqueID());
+  Int_t idLadder = mftGeom->GetLadderID(mLadderSeg->GetUniqueID());
 
   // First a global pointer for the flex
   TGeoMedium *kMedAir = gGeoManager->GetMedium("MFT_Air$");
@@ -211,9 +211,9 @@ TGeoVolumeAssembly* Flex::Make_ElectricComponent(Double_t dx, Double_t dy,  Doub
 {
   
   Geometry * mftGeom = Geometry::Instance();
-  Int_t idHalfMFT = mftGeom->GetHalfMFTID(fLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->GetHalfDiskID(fLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->GetLadderID(fLadderSeg->GetUniqueID());
+  Int_t idHalfMFT = mftGeom->GetHalfMFTID(mLadderSeg->GetUniqueID());
+  Int_t idHalfDisk = mftGeom->GetHalfDiskID(mLadderSeg->GetUniqueID());
+  Int_t idLadder = mftGeom->GetLadderID(mLadderSeg->GetUniqueID());
   //------------------------------------------------------
   TGeoMedium *kmedX7R  = gGeoManager->GetMedium("MFT_X7Rcapacitors$");
   TGeoMedium *kmedX7Rw = gGeoManager->GetMedium("MFT_X7Rweld$");
@@ -352,9 +352,9 @@ TGeoVolume* Flex::Make_Lines(Int_t nbsensors, Double_t length, Double_t widthfle
   }
 
   Geometry * mftGeom = Geometry::Instance();
-  Int_t idHalfMFT = mftGeom->GetHalfMFTID(fLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->GetHalfDiskID(fLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->GetLadderID(fLadderSeg->GetUniqueID());
+  Int_t idHalfMFT = mftGeom->GetHalfMFTID(mLadderSeg->GetUniqueID());
+  Int_t idHalfDisk = mftGeom->GetHalfDiskID(mLadderSeg->GetUniqueID());
+  Int_t idLadder = mftGeom->GetLadderID(mLadderSeg->GetUniqueID());
 
   TGeoMedium *kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
 
@@ -414,9 +414,9 @@ TGeoVolume* Flex::Make_AGND_DGND(Double_t length, Double_t widthflex,  Double_t 
   //--------------
 
   Geometry * mftGeom = Geometry::Instance();
-  Int_t idHalfMFT = mftGeom->GetHalfMFTID(fLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->GetHalfDiskID(fLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->GetLadderID(fLadderSeg->GetUniqueID());
+  Int_t idHalfMFT = mftGeom->GetHalfMFTID(mLadderSeg->GetUniqueID());
+  Int_t idHalfDisk = mftGeom->GetHalfDiskID(mLadderSeg->GetUniqueID());
+  Int_t idLadder = mftGeom->GetLadderID(mLadderSeg->GetUniqueID());
 
   TGeoMedium *kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
   TGeoVolume *alulayer = new TGeoVolume(Form("alulayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layern[2], kMedAlu);
@@ -445,9 +445,9 @@ TGeoVolume* Flex::Make_Kapton(Double_t length, Double_t widthflex, Double_t thic
   TGeoCompositeShape *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   Geometry * mftGeom = Geometry::Instance();
-  Int_t idHalfMFT = mftGeom->GetHalfMFTID(fLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->GetHalfDiskID(fLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->GetLadderID(fLadderSeg->GetUniqueID());
+  Int_t idHalfMFT = mftGeom->GetHalfMFTID(mLadderSeg->GetUniqueID());
+  Int_t idHalfDisk = mftGeom->GetHalfDiskID(mLadderSeg->GetUniqueID());
+  Int_t idLadder = mftGeom->GetLadderID(mLadderSeg->GetUniqueID());
 
   TGeoMedium *kMedKapton = gGeoManager->GetMedium("MFT_Kapton$");
   TGeoVolume *kaptonlayer = new TGeoVolume(Form("kaptonlayer_%d_%d_%d",idHalfMFT,idHalfDisk,idLadder), layerhole2, kMedKapton);
@@ -476,9 +476,9 @@ TGeoVolume* Flex::Make_Varnish(Double_t length, Double_t widthflex,  Double_t th
   TGeoCompositeShape *layerhole2 = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   Geometry * mftGeom = Geometry::Instance();
-  Int_t idHalfMFT = mftGeom->GetHalfMFTID(fLadderSeg->GetUniqueID());
-  Int_t idHalfDisk = mftGeom->GetHalfDiskID(fLadderSeg->GetUniqueID());
-  Int_t idLadder = mftGeom->GetLadderID(fLadderSeg->GetUniqueID());
+  Int_t idHalfMFT = mftGeom->GetHalfMFTID(mLadderSeg->GetUniqueID());
+  Int_t idHalfDisk = mftGeom->GetHalfDiskID(mLadderSeg->GetUniqueID());
+  Int_t idLadder = mftGeom->GetLadderID(mLadderSeg->GetUniqueID());
 
   TGeoMedium *kMedVarnish = gGeoManager->GetMedium("MFT_Epoxy$");  // we assume that varnish = epoxy ...
   TGeoMaterial *kMatVarnish = kMedVarnish->GetMaterial();

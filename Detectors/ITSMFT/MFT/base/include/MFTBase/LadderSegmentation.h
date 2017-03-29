@@ -22,25 +22,25 @@ public:
   LadderSegmentation(UInt_t uniqueID);
   LadderSegmentation(const LadderSegmentation& ladder);
 
-  virtual ~LadderSegmentation() { if(fChips){fChips->Delete(); delete fChips; fChips=NULL;} }
+  virtual ~LadderSegmentation() { if(mChips){mChips->Delete(); delete mChips; mChips=NULL;} }
   virtual void Print(Option_t* opt="");
-  virtual void Clear(const Option_t* /*opt*/) { if(fChips){fChips->Clear();} }
+  virtual void Clear(const Option_t* /*opt*/) { if(mChips){mChips->Clear();} }
   
   ChipSegmentation* GetSensor(Int_t sensor) const ;
 
   void CreateSensors();
   
   /// \brief Returns number of Sensor on the ladder
-  Int_t GetNSensors() const { return fNSensors; };
+  Int_t GetNSensors() const { return mNSensors; };
   /// \brief Set number of Sensor on the ladder
-  void SetNSensors(Int_t val) {fNSensors = val;};
+  void SetNSensors(Int_t val) {mNSensors = val;};
   
   ChipSegmentation* GetChip(Int_t chipNumber) const {return GetSensor(chipNumber);};
 
 private:
   
-  Int_t fNSensors;      ///< \brief Number of Sensors holded by the ladder
-  TClonesArray *fChips; ///< \brief Array of pointer to ChipSegmentation
+  Int_t mNSensors;      ///< \brief Number of Sensors holded by the ladder
+  TClonesArray *mChips; ///< \brief Array of pointer to ChipSegmentation
 
   /// \cond CLASSIMP
   ClassDef(LadderSegmentation, 1);

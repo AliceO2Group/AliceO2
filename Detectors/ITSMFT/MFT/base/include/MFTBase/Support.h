@@ -49,9 +49,9 @@ public:
   
 protected:
   
-  TGeoVolumeAssembly * fSupportVolume;
-  Double_t fSupportThickness;
-  Double_t fPCBThickness;
+  TGeoVolumeAssembly * mSupportVolume;
+  Double_t mSupportThickness;
+  Double_t mPCBThickness;
 
 private:
   

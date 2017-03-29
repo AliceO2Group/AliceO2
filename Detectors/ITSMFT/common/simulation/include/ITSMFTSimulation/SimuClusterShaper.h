@@ -27,9 +27,9 @@ namespace AliceO2 {
       void FillClusterRandomly();
       void AddNoisePixel();
 
-      inline UInt_t  GetNRows() {return fCShape->GetNRows();}
-      inline UInt_t  GetNCols() {return fCShape->GetNCols();}
-      inline void    GetShape(std::vector<UInt_t>& v) {fCShape->GetShape(v);}
+      inline UInt_t  GetNRows() {return mCShape->GetNRows();}
+      inline UInt_t  GetNCols() {return mCShape->GetNCols();}
+      inline void    GetShape(std::vector<UInt_t>& v) {mCShape->GetShape(v);}
 
       inline std::string ShapeSting(UInt_t cs, UInt_t *cshape) const {
         std::stringstream out;
@@ -41,8 +41,8 @@ namespace AliceO2 {
       }
 
     private:
-      UInt_t fNpixOn;
-      ClusterShape *fCShape;
+      UInt_t mNpixOn;
+      ClusterShape *mCShape;
 
       ClassDef(SimuClusterShaper,1)
     };

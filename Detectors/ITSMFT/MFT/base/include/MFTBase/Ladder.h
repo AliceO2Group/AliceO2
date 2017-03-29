@@ -31,9 +31,9 @@ private:
 
   const static Double_t kLadderDeltaY;      ///< \brief Ladder size along Y direction (height)
   const static Double_t kLadderDeltaZ;      ///< \brief Ladder size along Z direction (thickness)
-  LadderSegmentation *fSegmentation;  ///< \brief Virtual Segmentation object of the ladder
-  Flex      * fFlex;               ///< \brief Flex object (\todo to be removed ?)
-  TGeoVolumeAssembly * fLadderVolume;               ///< \brief Pointer to the Volume holding the ladder geometry
+  LadderSegmentation *mSegmentation;  ///< \brief Virtual Segmentation object of the ladder
+  Flex      * mFlex;               ///< \brief Flex object (\todo to be removed ?)
+  TGeoVolumeAssembly * mLadderVolume;               ///< \brief Pointer to the Volume holding the ladder geometry
   
   /// \cond CLASSIMP
   ClassDef(Ladder, 1);

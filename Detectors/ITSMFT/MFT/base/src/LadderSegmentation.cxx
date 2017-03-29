@@ -21,7 +21,7 @@ ClassImp(LadderSegmentation);
 //_____________________________________________________________________________
 LadderSegmentation::LadderSegmentation():
   VSegmentation(),
-  fChips(NULL)
+  mChips(NULL)
 {
 
 
@@ -33,7 +33,7 @@ LadderSegmentation::LadderSegmentation():
 //_____________________________________________________________________________
 LadderSegmentation::LadderSegmentation(UInt_t uniqueID):
   VSegmentation(),
-  fChips(NULL)
+  mChips(NULL)
 {
 
   SetUniqueID(uniqueID);
@@ -54,14 +54,14 @@ LadderSegmentation::LadderSegmentation(UInt_t uniqueID):
 //_____________________________________________________________________________
 LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder):
   VSegmentation(ladder),
-  fNSensors(ladder.fNSensors)
+  mNSensors(ladder.mNSensors)
 {
   // copy constructor
   
-  if (ladder.fChips) fChips = new TClonesArray(*(ladder.fChips));
-  else fChips = new TClonesArray("AliceO2::MFT::ChipSegmentation",fNSensors);
+  if (ladder.mChips) mChips = new TClonesArray(*(ladder.mChips));
+  else mChips = new TClonesArray("AliceO2::MFT::ChipSegmentation",mNSensors);
 
-  fChips->SetOwner(kTRUE);
+  mChips->SetOwner(kTRUE);
 	
 }
 
@@ -70,14 +70,14 @@ LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder):
 //_____________________________________________________________________________
 void LadderSegmentation::CreateSensors() {
   
-  if (!fChips) {
-    fChips = new TClonesArray("AliceO2::MFT::ChipSegmentation",fNSensors);
-    fChips -> SetOwner(kTRUE);
+  if (!mChips) {
+    mChips = new TClonesArray("AliceO2::MFT::ChipSegmentation",mNSensors);
+    mChips -> SetOwner(kTRUE);
   }
 
   Geometry * mftGeom = Geometry::Instance();
 
-  for (Int_t iSensor=0; iSensor<fNSensors; iSensor++) {
+  for (Int_t iSensor=0; iSensor<mNSensors; iSensor++) {
     UInt_t sensorUniqueID = mftGeom->GetObjectID(Geometry::kSensorType,
                                                  mftGeom->GetHalfMFTID(GetUniqueID()),
                                                  mftGeom->GetHalfDiskID(GetUniqueID()),
@@ -86,7 +86,7 @@ void LadderSegmentation::CreateSensors() {
     
     ChipSegmentation *chip = new ChipSegmentation(sensorUniqueID);
 
-    new ((*fChips)[iSensor]) ChipSegmentation(*chip);
+    new ((*mChips)[iSensor]) ChipSegmentation(*chip);
     delete chip;
   }
 
@@ -98,9 +98,9 @@ void LadderSegmentation::CreateSensors() {
 //_____________________________________________________________________________
 ChipSegmentation* LadderSegmentation::GetSensor(Int_t sensorID) const {
   
-  if (sensorID<0 || sensorID>=fNSensors) return NULL;
+  if (sensorID<0 || sensorID>=mNSensors) return NULL;
   
-  ChipSegmentation *chip = (ChipSegmentation*) fChips->At(sensorID);
+  ChipSegmentation *chip = (ChipSegmentation*) mChips->At(sensorID);
   
   return chip;
   

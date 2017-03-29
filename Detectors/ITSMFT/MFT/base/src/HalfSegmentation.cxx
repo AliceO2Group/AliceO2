@@ -23,7 +23,7 @@ ClassImp(HalfSegmentation);
 //_____________________________________________________________________________
 HalfSegmentation::HalfSegmentation():
   VSegmentation(),
-  fHalfDisks(NULL)
+  mHalfDisks(NULL)
 { 
 
 
@@ -34,10 +34,10 @@ HalfSegmentation::HalfSegmentation():
 //_____________________________________________________________________________
 HalfSegmentation::HalfSegmentation(const HalfSegmentation& source):
 VSegmentation(source),
-fHalfDisks(NULL)
+mHalfDisks(NULL)
 {
   
-  if (source.fHalfDisks) fHalfDisks = new TClonesArray(*(source.fHalfDisks));
+  if (source.mHalfDisks) mHalfDisks = new TClonesArray(*(source.mHalfDisks));
 
 	
 }
@@ -50,7 +50,7 @@ fHalfDisks(NULL)
 //_____________________________________________________________________________
 HalfSegmentation::HalfSegmentation(const Char_t *nameGeomFile, const Short_t id):
 VSegmentation(),
-fHalfDisks(NULL)
+mHalfDisks(NULL)
 {
 
   Geometry * mftGeom = Geometry::Instance();
@@ -59,8 +59,8 @@ fHalfDisks(NULL)
   SetUniqueID(halfUniqueID);
   SetName(Form("%s_%d",GeometryTGeo::GetHalfDetName(),id));
     
-  fHalfDisks = new TClonesArray("AliceO2::MFT::HalfDiskSegmentation", Constants::kNDisks);
-  fHalfDisks -> SetOwner(kTRUE);
+  mHalfDisks = new TClonesArray("AliceO2::MFT::HalfDiskSegmentation", Constants::kNDisks);
+  mHalfDisks -> SetOwner(kTRUE);
 
   // Create XML engine
   TXMLEngine* geomFile = new TXMLEngine;
@@ -89,8 +89,8 @@ fHalfDisks(NULL)
 //_____________________________________________________________________________
 HalfSegmentation::~HalfSegmentation() {
 
-  if (fHalfDisks) fHalfDisks->Delete();
-  delete fHalfDisks; 
+  if (mHalfDisks) mHalfDisks->Delete();
+  delete mHalfDisks; 
   
 }
 
@@ -99,9 +99,9 @@ HalfSegmentation::~HalfSegmentation() {
 //_____________________________________________________________________________
 void HalfSegmentation::Clear(const Option_t* /*opt*/) {
 
-  if (fHalfDisks) fHalfDisks->Delete();
-  delete fHalfDisks; 
-  fHalfDisks = NULL;
+  if (mHalfDisks) mHalfDisks->Delete();
+  delete mHalfDisks; 
+  mHalfDisks = NULL;
   
 }
 
@@ -168,7 +168,7 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
     if(halfDisk->GetNLaddersBuild() != halfDisk->GetNLadders()) {
       LOG(FATAL) << "Number of ladder build " << halfDisk->GetNLaddersBuild() << " does not correspond to the number declared " << halfDisk->GetNLadders() << " Check XML file" << FairLogger::endl;
     }
-    new ((*fHalfDisks)[idisk]) HalfDiskSegmentation(*halfDisk);
+    new ((*mHalfDisks)[idisk]) HalfDiskSegmentation(*halfDisk);
     delete halfDisk;
     //GetHalfDisk(idisk)->Print("ls");
 

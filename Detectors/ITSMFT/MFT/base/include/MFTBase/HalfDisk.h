@@ -29,14 +29,14 @@ public:
   virtual ~HalfDisk();
   
   /// \brief Returns a pointer to the Volume Assembly describing the entire half-disk
-  TGeoVolumeAssembly * GetVolume() {return fHalfDiskVolume;};
+  TGeoVolumeAssembly * GetVolume() {return mHalfDiskVolume;};
   
 private:
 
-  Support    * fSupport;             ///< \brief Disk Support
-  HeatExchanger * fHeatExchanger;    ///< \brief Heat Exchanger
-  TGeoVolumeAssembly * fHalfDiskVolume;       ///< \brief Half-Disk Volume
-  HalfDiskSegmentation * fSegmentation; ///< \brief Virtual Segmentation of the half-disk
+  Support    * mSupport;             ///< \brief Disk Support
+  HeatExchanger * mHeatExchanger;    ///< \brief Heat Exchanger
+  TGeoVolumeAssembly * mHalfDiskVolume;       ///< \brief Half-Disk Volume
+  HalfDiskSegmentation * mSegmentation; ///< \brief Virtual Segmentation of the half-disk
 
   /// \cond CLASSIMP
   ClassDef(HalfDisk, 1);

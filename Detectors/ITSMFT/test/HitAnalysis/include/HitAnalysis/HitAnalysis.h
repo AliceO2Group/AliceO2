@@ -45,10 +45,10 @@ class HitAnalysis : public FairTask
     virtual void FinishTask();
 
     void SetProcessHits()
-    { fProcessChips = kFALSE; }
+    { mProcessChips = kFALSE; }
 
     void SetProcessChips()
-    { fProcessChips = kTRUE; }
+    { mProcessChips = kTRUE; }
 
   protected:
     void ProcessChips();
@@ -56,19 +56,19 @@ class HitAnalysis : public FairTask
     void ProcessHits();
 
   private:
-    Bool_t fIsInitialized;       ///< Check whether task is initialized
-    Bool_t fProcessChips;        ///< Process chips or hits
-    std::map<int, AliceO2::ITSMFT::Chip *> fChips; ///< lookup map for ITS chips
-    TClonesArray *fPointsArray;        ///< Array with ITS space points, filled by the FairRootManager
-    GeometryTGeo *fGeometry;           ///<  geometry
-    TH1 *fLineSegment;        ///< Histogram for line segment
-    TH1 *fLocalX0;            ///< Histogram for Starting X position in local coordinates
-    TH1 *fLocalX1;            ///< Histogram for Hit X position in local coordinates
-    TH1 *fLocalY0;            ///< Histogram for Starting Y position in local coordinates
-    TH1 *fLocalY1;            ///< Histogram for Hit Y position in local coordinates
-    TH1 *fLocalZ0;            ///< Histogram for Starting Z position in local coordinates
-    TH1 *fLocalZ1;            ///< Histogram for Hit Z position in local coordinates
-    TH1 *fHitCounter;         ///< simple hit counter histogram
+    Bool_t mIsInitialized;       ///< Check whether task is initialized
+    Bool_t mProcessChips;        ///< Process chips or hits
+    std::map<int, AliceO2::ITSMFT::Chip *> mChips; ///< lookup map for ITS chips
+    TClonesArray *mPointsArray;        ///< Array with ITS space points, filled by the FairRootManager
+    GeometryTGeo *mGeometry;           ///<  geometry
+    TH1 *mLineSegment;        ///< Histogram for line segment
+    TH1 *mLocalX0;            ///< Histogram for Starting X position in local coordinates
+    TH1 *mLocalX1;            ///< Histogram for Hit X position in local coordinates
+    TH1 *mLocalY0;            ///< Histogram for Starting Y position in local coordinates
+    TH1 *mLocalY1;            ///< Histogram for Hit Y position in local coordinates
+    TH1 *mLocalZ0;            ///< Histogram for Starting Z position in local coordinates
+    TH1 *mLocalZ1;            ///< Histogram for Hit Z position in local coordinates
+    TH1 *mHitCounter;         ///< simple hit counter histogram
 
   ClassDef(HitAnalysis, 1);
 };

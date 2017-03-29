@@ -85,9 +85,9 @@ Geometry* Geometry::Instance()
 //_____________________________________________________________________________
 Geometry::Geometry():
 TNamed("MFT", "Muon Forward Tracker"),
-fBuilder(0),
-fSegmentation(0),
-fSensorVolumeID(0)
+mBuilder(0),
+mSegmentation(0),
+mSensorVolumeID(0)
 {
   // default constructor
 
@@ -98,8 +98,8 @@ Geometry::~Geometry()
 {
   // destructor
 
-  delete fBuilder;
-  delete fSegmentation;
+  delete mBuilder;
+  delete mSegmentation;
 
 }
 
@@ -108,12 +108,12 @@ void Geometry::Build()
 {
 
   // load the detector segmentation
-  if(!fSegmentation) fSegmentation = new Segmentation(gSystem->ExpandPathName("$(ALICE_ROOT)/ITSMFT/MFT/data/AliMFTGeometry.xml" ));
+  if(!mSegmentation) mSegmentation = new Segmentation(gSystem->ExpandPathName("$(ALICE_ROOT)/ITSMFT/MFT/data/AliMFTGeometry.xml" ));
 
   // build the geometry
-  if (!fBuilder) fBuilder = new GeometryBuilder();
-  fBuilder->BuildGeometry();
-  delete fBuilder;
+  if (!mBuilder) mBuilder = new GeometryBuilder();
+  mBuilder->BuildGeometry();
+  delete mBuilder;
 
 }
 
@@ -150,7 +150,7 @@ UInt_t Geometry::GetObjectID(ObjectTypes type, Int_t half, Int_t disk, Int_t lad
 Bool_t Geometry::Hit2PixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t detElemID, Int_t &xPixel, Int_t &yPixel) const
 {
 
-  return (fSegmentation->Hit2PixelID(xHit, yHit, zHit, GetHalfMFTID(detElemID), GetHalfDiskID(detElemID), GetLadderID(detElemID), GetSensorID(detElemID), xPixel, yPixel));
+  return (mSegmentation->Hit2PixelID(xHit, yHit, zHit, GetHalfMFTID(detElemID), GetHalfDiskID(detElemID), GetLadderID(detElemID), GetSensorID(detElemID), xPixel, yPixel));
 
 }
 
@@ -172,7 +172,7 @@ void Geometry::GetPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Doubl
 
   Double_t master[3];
   
-  HalfSegmentation * halfSeg = fSegmentation->GetHalf(GetHalfMFTID(detElemID));
+  HalfSegmentation * halfSeg = mSegmentation->GetHalf(GetHalfMFTID(detElemID));
   HalfDiskSegmentation * diskSeg = halfSeg->GetHalfDisk(GetHalfDiskID(detElemID));
   LadderSegmentation * ladderSeg = diskSeg->GetLadder(GetLadderID(detElemID));
   ChipSegmentation * chipSeg = ladderSeg->GetSensor(GetSensorID(detElemID));
@@ -200,7 +200,7 @@ Int_t Geometry::GetDiskNSensors(Int_t diskId) const
 
   Int_t nSensors = 0;
   for (int iHalf=0; iHalf<2; iHalf++) {
-    HalfDiskSegmentation * diskSeg = fSegmentation->GetHalf(iHalf)->GetHalfDisk(diskId);
+    HalfDiskSegmentation * diskSeg = mSegmentation->GetHalf(iHalf)->GetHalfDisk(diskId);
     if(diskSeg) nSensors += diskSeg->GetNChips();
 
   }
@@ -214,7 +214,7 @@ Int_t Geometry::GetDiskNSensors(Int_t diskId) const
 Int_t Geometry::GetDetElemLocalID(Int_t detElemID) const
 {
   
-  return  fSegmentation->GetDetElemLocalID(GetHalfMFTID(detElemID), GetHalfDiskID(detElemID), GetLadderID(detElemID), GetSensorID(detElemID));
+  return  mSegmentation->GetDetElemLocalID(GetHalfMFTID(detElemID), GetHalfDiskID(detElemID), GetLadderID(detElemID), GetSensorID(detElemID));
   
 }
 

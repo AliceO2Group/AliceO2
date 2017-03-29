@@ -34,10 +34,10 @@ ClassImp(AliceO2::MFT::Detector)
 //_____________________________________________________________________________
 Detector::Detector()
 : AliceO2::Base::Detector("MFT", kTRUE, kAliMft),
-  fVersion(1),
-  fGeometryTGeo(0),
-  fDensitySupportOverSi(0.036),
-  fPoints(new TClonesArray("AliceO2::MFT::Point"))
+  mVersion(1),
+  mGeometryTGeo(0),
+  mDensitySupportOverSi(0.036),
+  mPoints(new TClonesArray("AliceO2::MFT::Point"))
 {
 
 }
@@ -45,10 +45,10 @@ Detector::Detector()
 //_____________________________________________________________________________
 Detector::Detector(const Detector& src)
   : AliceO2::Base::Detector(src),
-    fVersion(src.fVersion),
-    fGeometryTGeo(src.fGeometryTGeo),
-    fDensitySupportOverSi(src.fDensitySupportOverSi),
-    fPoints(0)
+    mVersion(src.mVersion),
+    mGeometryTGeo(src.mGeometryTGeo),
+    mDensitySupportOverSi(src.mDensitySupportOverSi),
+    mPoints(0)
 {
   
 }
@@ -64,10 +64,10 @@ Detector &Detector::operator=(const Detector &src)
   // base class assignment
   Base::Detector::operator=(src);
 
-  fVersion = src.fVersion;
-  fGeometryTGeo = src.fGeometryTGeo;
-  fDensitySupportOverSi = src.fDensitySupportOverSi;
-  fPoints = 0;
+  mVersion = src.mVersion;
+  mGeometryTGeo = src.mGeometryTGeo;
+  mDensitySupportOverSi = src.mDensitySupportOverSi;
+  mPoints = 0;
 
 }
 
@@ -75,11 +75,11 @@ Detector &Detector::operator=(const Detector &src)
 Detector::~Detector()
 {
 
-  delete fGeometryTGeo;
+  delete mGeometryTGeo;
 
-  if (fPoints) {
-    fPoints->Delete();
-    delete fPoints;
+  if (mPoints) {
+    mPoints->Delete();
+    delete mPoints;
   }
   
 }
@@ -198,7 +198,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 Point* Detector::AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length, Double_t eLoss)
 {
 
-  TClonesArray &clref = *fPoints;
+  TClonesArray &clref = *mPoints;
   Int_t size = clref.GetEntriesFast();
 
   return new(clref[size]) Point(trackID, detID, pos, mom, time, length, eLoss);
@@ -345,7 +345,7 @@ void Detector::CreateMaterials()
   AliceO2::Base::Detector::Material(++matId, "Readout$", aSi, zSi, dSi, radSi, absSi);
   AliceO2::Base::Detector::Medium(kReadout,  "Readout$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   
-  AliceO2::Base::Detector::Material(++matId, "Support$", aSi, zSi, dSi*fDensitySupportOverSi, radSi/fDensitySupportOverSi, absSi/fDensitySupportOverSi);
+  AliceO2::Base::Detector::Material(++matId, "Support$", aSi, zSi, dSi*mDensitySupportOverSi, radSi/mDensitySupportOverSi, absSi/mDensitySupportOverSi);
   AliceO2::Base::Detector::Medium(kSupport,  "Support$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   
   Double_t maxBending       = 0;     // Max Angle
@@ -432,7 +432,7 @@ void Detector::CreateGeometry()
 
   Geometry *mftGeom = Geometry::Instance();
   mftGeom->Build();
-  fGeometryTGeo = new GeometryTGeo();
+  mGeometryTGeo = new GeometryTGeo();
 
 }
 
@@ -484,8 +484,8 @@ void Detector::DefineSensitiveVolumes()
 void Detector::EndOfEvent()
 {
 
-  if (fPoints) { 
-    fPoints->Clear(); 
+  if (mPoints) { 
+    mPoints->Clear(); 
   }
 
 }
@@ -498,7 +498,7 @@ void Detector::Register()
   // it will exist only during the simulation
 
   if (FairRootManager::Instance()) {
-    FairRootManager::Instance()->Register("MFTPoints", "MFT", fPoints, kTRUE);
+    FairRootManager::Instance()->Register("MFTPoints", "MFT", mPoints, kTRUE);
   }
 
 }
@@ -507,7 +507,7 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 {
 
   if (iColl == 0) {
-    return fPoints;
+    return mPoints;
   } else {
     return NULL;
   }
@@ -518,6 +518,6 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 void Detector::Reset()
 {
 
-  fPoints->Clear();
+  mPoints->Clear();
 
 }

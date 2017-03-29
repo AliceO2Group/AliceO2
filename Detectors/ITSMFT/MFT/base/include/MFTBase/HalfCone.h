@@ -25,7 +25,7 @@ public:
 
 protected:
 
-  TGeoVolumeAssembly * fHalfCone;
+  TGeoVolumeAssembly * mHalfCone;
 
 private:
   

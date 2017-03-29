@@ -34,9 +34,9 @@ const Double_t Ladder::kLadderDeltaZ = Geometry::kFlexThickness + Geometry::kSen
 //_____________________________________________________________________________
 Ladder::Ladder():
 TNamed(), 
-fSegmentation(NULL),
-fFlex(NULL),
-fLadderVolume(NULL)
+mSegmentation(NULL),
+mFlex(NULL),
+mLadderVolume(NULL)
 {
     
 }
@@ -46,12 +46,12 @@ fLadderVolume(NULL)
 //_____________________________________________________________________________
 Ladder::Ladder(LadderSegmentation *segmentation):
 TNamed(segmentation->GetName(),segmentation->GetName()),
-fSegmentation(segmentation), 
-fFlex(NULL)
+mSegmentation(segmentation), 
+mFlex(NULL)
 {
 
   LOG(DEBUG1) << "Ladder " << Form("creating : %s", GetName()) << FairLogger::endl;
-  fLadderVolume = new TGeoVolumeAssembly(GetName());
+  mLadderVolume = new TGeoVolumeAssembly(GetName());
   
 }
 
@@ -60,7 +60,7 @@ fFlex(NULL)
 Ladder::~Ladder() 
 {
 
-  delete fFlex;
+  delete mFlex;
   
 }
 
@@ -70,19 +70,19 @@ Ladder::~Ladder()
 TGeoVolume * Ladder::CreateVolume() 
 {
 
-  Int_t nChips = fSegmentation->GetNSensors();
+  Int_t nChips = mSegmentation->GetNSensors();
   
   // Create the flex
-  fFlex = new Flex(fSegmentation);     
+  mFlex = new Flex(mSegmentation);     
   Double_t kFlexLength = nChips*(Geometry::kSensorLength+Geometry::kSensorInterspace)+Geometry::kLadderOffsetToEnd + Geometry::kSensorSideOffset;
   Double_t kShiftY = 2*Geometry::kSensorTopOffset+Geometry::kSensorHeight-Geometry::kFlexHeight/2; // strange
-  TGeoVolumeAssembly * flexVol = fFlex->MakeFlex(fSegmentation->GetNSensors(), kFlexLength);                               
-  fLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(kFlexLength/2+Geometry::kSensorSideOffset/2, kShiftY, Geometry::kFlexThickness/2));     
+  TGeoVolumeAssembly * flexVol = mFlex->MakeFlex(mSegmentation->GetNSensors(), kFlexLength);                               
+  mLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(kFlexLength/2+Geometry::kSensorSideOffset/2, kShiftY, Geometry::kFlexThickness/2));     
   
   // Create the CMOS Sensors
   CreateSensors();
 
-  return fLadderVolume;
+  return mLadderVolume;
   
 }
 
@@ -110,9 +110,9 @@ void Ladder::CreateSensors()
   Geometry * mftGeom = Geometry::Instance();
   
   TString namePrefix = Form("MFT_S_%d_%d_%d",
-	  mftGeom->GetHalfMFTID(fSegmentation->GetUniqueID()),
-	  mftGeom->GetHalfDiskID(fSegmentation->GetUniqueID()),
-	  mftGeom->GetLadderID(fSegmentation->GetUniqueID()) );
+	  mftGeom->GetHalfMFTID(mSegmentation->GetUniqueID()),
+	  mftGeom->GetHalfDiskID(mSegmentation->GetUniqueID()),
+	  mftGeom->GetLadderID(mSegmentation->GetUniqueID()) );
   
   TGeoVolume * chipVol = gGeoManager->MakeBox(namePrefix.Data(), medAir,Geometry::kSensorLength/2.,Geometry::kSensorHeight/2., Geometry::kSensorThickness/2.);
   TGeoVolume * glue = gGeoManager->MakeBox(namePrefix.Data(), kMedGlue, (Geometry::kSensorLength-Geometry::kGlueEdge)/2., (Geometry::kSensorHeight-Geometry::kGlueEdge)/2., Geometry::kGlueThickness/2.);
@@ -153,8 +153,8 @@ void Ladder::CreateSensors()
   chipVol->AddNode(readoutVol, 1, new TGeoTranslation(0.,-Geometry::kSensorHeight/2.+readout->GetDY(),  0.));
   chipVol->AddNode(sensorVol, 1, new TGeoTranslation( 0., Geometry::kSensorHeight/2.-sensor->GetDY(),0.));
 
-  for (int ichip = 0; ichip < fSegmentation->GetNSensors(); ichip++) {
-    ChipSegmentation * chipSeg = fSegmentation->GetSensor(ichip);
+  for (int ichip = 0; ichip < mSegmentation->GetNSensors(); ichip++) {
+    ChipSegmentation * chipSeg = mSegmentation->GetSensor(ichip);
     TGeoCombiTrans * chipPos = chipSeg->GetTransformation();
     TGeoCombiTrans * chipPosGlue = chipSeg->GetTransformation();
     // Position of the center on the chip in the chip coordinate system
@@ -165,7 +165,7 @@ void Ladder::CreateSensors()
     chipPos->LocalToMaster(pos, master);
     chipPosGlue->LocalToMaster(posglue, masterglue);
     
-    TGeoBBox* shape = (TGeoBBox*)fLadderVolume->GetShape();
+    TGeoBBox* shape = (TGeoBBox*)mLadderVolume->GetShape();
     master[0] -= shape->GetDX();
     master[1] -= shape->GetDY();
     master[2] -= shape->GetDZ();
@@ -175,8 +175,8 @@ void Ladder::CreateSensors()
     masterglue[2] -= shape->GetDZ();
 
     LOG(DEBUG1) << "CreateSensors " << Form("adding chip %s_%d ",namePrefix.Data(),ichip) << FairLogger::endl;
-    fLadderVolume->AddNode(chipVol, ichip, new TGeoTranslation(master[0],master[1],master[2]));
-    fLadderVolume->AddNode(glue, ichip, new TGeoTranslation(masterglue[0],masterglue[1],masterglue[2]));
+    mLadderVolume->AddNode(chipVol, ichip, new TGeoTranslation(master[0],master[1],master[2]));
+    mLadderVolume->AddNode(glue, ichip, new TGeoTranslation(masterglue[0],masterglue[1],masterglue[2]));
 
   }
 

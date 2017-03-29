@@ -30,10 +30,10 @@ namespace AliceO2 {
       //             Clusterer *GetClusterer() const { return fClusterer; }
       
     private:
-      BoxClusterer        *fClusterer;
+      BoxClusterer        *mClusterer;
       
-      TClonesArray        *fDigitsArray;
-      TClonesArray        *fClustersArray;
+      TClonesArray        *mDigitsArray;
+      TClonesArray        *mClustersArray;
       
       ClassDef(ClustererTask, 1)
         };

@@ -13,25 +13,25 @@ using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
 ClusterShape::ClusterShape() :
-fNrows(0),
-fNcols(0) {
-  fShape.clear();
+mNrows(0),
+mNcols(0) {
+  mShape.clear();
 }
 
 
 //______________________________________________________________________
 ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols) :
-fNrows(Nrows),
-fNcols(Ncols) {
-  fShape.clear();
+mNrows(Nrows),
+mNcols(Ncols) {
+  mShape.clear();
 }
 
 
 //______________________________________________________________________
 ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols, const std::vector<UInt_t>& Shape) :
-fNrows(Nrows),
-fNcols(Ncols) {
-  fShape = Shape;
+mNrows(Nrows),
+mNcols(Ncols) {
+  mShape = Shape;
 }
 
 
@@ -42,13 +42,13 @@ ClusterShape::~ClusterShape() {}
 //______________________________________________________________________
 Bool_t ClusterShape::IsValidShape() {
   // Check the size
-  if (fShape.size() > fNrows*fNcols) return false;
+  if (mShape.size() > mNrows*mNcols) return false;
 
   // Check for duplicates and the validity of the position
-  std::sort(fShape.begin(), fShape.end());
-  for (size_t i = 0; i < fShape.size() - 1; i++) {
-    if (fShape[i] >= fNrows*fNcols || fShape[i+1] >= fNrows*fNcols) return false;
-    if (fShape[i] == fShape[i+1]) return false;
+  std::sort(mShape.begin(), mShape.end());
+  for (size_t i = 0; i < mShape.size() - 1; i++) {
+    if (mShape[i] >= mNrows*mNcols || mShape[i+1] >= mNrows*mNcols) return false;
+    if (mShape[i] == mShape[i+1]) return false;
   }
 
   return true;
@@ -59,10 +59,10 @@ Bool_t ClusterShape::IsValidShape() {
 Long64_t ClusterShape::GetShapeID() const {
   // DJBX33X
   Long64_t id = 5381;
-  id = ((id << 5) + id) ^ fNrows;
-  id = ((id << 5) + id) ^ fNcols;
-  for (UInt_t i = 0; i < fShape.size(); ++i) {
-    id = ((id << 5) + id) ^ fShape[i];
+  id = ((id << 5) + id) ^ mNrows;
+  id = ((id << 5) + id) ^ mNcols;
+  for (UInt_t i = 0; i < mShape.size(); ++i) {
+    id = ((id << 5) + id) ^ mShape[i];
   }
   return id;
 }
@@ -70,7 +70,7 @@ Long64_t ClusterShape::GetShapeID() const {
 
 //______________________________________________________________________
 Bool_t ClusterShape::HasElement(UInt_t value) const {
-  for (auto & el : fShape) {
+  for (auto & el : mShape) {
     if (el > value) break;
     if (el == value) return true;
   }

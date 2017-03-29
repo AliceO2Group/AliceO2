@@ -25,7 +25,7 @@ ClassImp(AliceO2::MFT::HalfCone)
 //_____________________________________________________________________________
 HalfCone::HalfCone():
 TNamed(),
-fHalfCone(NULL)
+mHalfCone(NULL)
 {
   
   // default constructor

@@ -26,13 +26,13 @@ namespace AliceO2 {
       virtual ~ClusterShape();
 
       // Set the number of rows
-      inline void SetNRows(UInt_t Nrows) {fNrows = Nrows;}
+      inline void SetNRows(UInt_t Nrows) {mNrows = Nrows;}
 
       // Set the number of cols
-      inline void SetNCols(UInt_t Ncols) {fNcols = Ncols;}
+      inline void SetNCols(UInt_t Ncols) {mNcols = Ncols;}
 
       // Add a pixel position to the shape [0, r*c[
-      inline void AddShapeValue(UInt_t pos) {fShape.push_back(pos);}
+      inline void AddShapeValue(UInt_t pos) {mShape.push_back(pos);}
 
       // Check whether the shape has the
       Bool_t IsValidShape();
@@ -41,26 +41,26 @@ namespace AliceO2 {
       Long64_t GetShapeID() const;
 
       // Get the number of rows of the cluster
-      inline UInt_t GetNRows() const {return fNrows;}
+      inline UInt_t GetNRows() const {return mNrows;}
 
       // Get the number of cols of the cluster
-      inline UInt_t GetNCols() const {return fNcols;}
+      inline UInt_t GetNCols() const {return mNcols;}
 
       // Get the number of fired pixels of the cluster
-      inline UInt_t GetNFiredPixels() const {return fShape.size();}
+      inline UInt_t GetNFiredPixels() const {return mShape.size();}
 
       // Get the position of the pixel with the specified index
-      inline UInt_t GetValue(UInt_t index) const {return fShape[index];}
+      inline UInt_t GetValue(UInt_t index) const {return mShape[index];}
 
       // Get the shape of the cluster
-      inline void GetShape(std::vector<UInt_t>& v) const {v = fShape;}
+      inline void GetShape(std::vector<UInt_t>& v) const {v = mShape;}
 
       // Check whether the cluster has the specified pixel on
       Bool_t HasElement(UInt_t) const;
 
       // Return a string with the positions of the fired pixels in the cluster
       inline std::string ShapeSting() const {
-        return ShapeSting(fShape);
+        return ShapeSting(mShape);
       }
 
       // Static function to get a string with the positions of the fired pixels
@@ -76,18 +76,18 @@ namespace AliceO2 {
 
       friend std::ostream &operator<<(std::ostream &out, const ClusterShape &v) {
         UInt_t index = 0;
-        for (Int_t r = -1; r < (Int_t) v.fNrows; ++r) {
-          for (UInt_t c = 0; c < v.fNcols; ++c) {
+        for (Int_t r = -1; r < (Int_t) v.mNrows; ++r) {
+          for (UInt_t c = 0; c < v.mNcols; ++c) {
             if (r == -1) {
               if (c == 0) out << "  ";
               out << c;
-              if (c < v.fNcols-1) out << " ";
+              if (c < v.mNcols-1) out << " ";
             } else {
               if (c == 0) out << r << " ";
-              index = r*v.fNcols + c;
-              if (find(begin(v.fShape), end(v.fShape), index) != end(v.fShape)) out << "X";
+              index = r*v.mNcols + c;
+              if (find(begin(v.mShape), end(v.mShape), index) != end(v.mShape)) out << "X";
               else out << " ";
-              if (c < v.fNcols-1) out << " ";
+              if (c < v.mNcols-1) out << " ";
             }
           }
           out << std::endl;
@@ -96,9 +96,9 @@ namespace AliceO2 {
       }
 
     private:
-      UInt_t  fNrows;
-      UInt_t  fNcols;
-      std::vector<UInt_t> fShape;
+      UInt_t  mNrows;
+      UInt_t  mNcols;
+      std::vector<UInt_t> mShape;
 
       ClassDef(ClusterShape,1)
     };

@@ -18,7 +18,7 @@ ClassImp(AliceO2::MFT::Segmentation)
 //_____________________________________________________________________________
 Segmentation::Segmentation():
   TNamed(),
-  fHalves(NULL)
+  mHalves(NULL)
 { 
 
 
@@ -27,19 +27,19 @@ Segmentation::Segmentation():
 //_____________________________________________________________________________
 Segmentation::Segmentation(const Char_t *nameGeomFile): 
   TNamed(),
-  fHalves(NULL)
+  mHalves(NULL)
 { 
 
   // constructor
   
-  fHalves = new TClonesArray("AliceO2::MFT::HalfSegmentation", 2);
-  fHalves->SetOwner(kTRUE);
+  mHalves = new TClonesArray("AliceO2::MFT::HalfSegmentation", 2);
+  mHalves->SetOwner(kTRUE);
   
   HalfSegmentation *halfBottom = new HalfSegmentation(nameGeomFile, kBottom);
   HalfSegmentation *halfTop    = new HalfSegmentation(nameGeomFile, kTop);
 
-  new ((*fHalves)[kBottom]) HalfSegmentation(*halfBottom);
-  new ((*fHalves)[kTop])    HalfSegmentation(*halfTop);
+  new ((*mHalves)[kBottom]) HalfSegmentation(*halfBottom);
+  new ((*mHalves)[kTop])    HalfSegmentation(*halfTop);
 
   delete halfBottom;
   delete halfTop;
@@ -51,8 +51,8 @@ Segmentation::Segmentation(const Char_t *nameGeomFile):
 //_____________________________________________________________________________
 Segmentation::~Segmentation() {
 
-  if (fHalves) fHalves->Delete();
-  delete fHalves; 
+  if (mHalves) mHalves->Delete();
+  delete mHalves; 
   
 }
 
@@ -66,7 +66,7 @@ HalfSegmentation* Segmentation::GetHalf(Int_t iHalf) const
 
   Info("GetHalf",Form("Ask for half %d (of %d and %d)",iHalf,kBottom,kTop),0,0);
 
-  return ((iHalf==kTop || iHalf==kBottom) ? ( (HalfSegmentation*) fHalves->At(iHalf)) :  NULL); 
+  return ((iHalf==kTop || iHalf==kBottom) ? ( (HalfSegmentation*) mHalves->At(iHalf)) :  NULL); 
 
 }
 
@@ -75,9 +75,9 @@ HalfSegmentation* Segmentation::GetHalf(Int_t iHalf) const
 //_____________________________________________________________________________
 void Segmentation::Clear(const Option_t* /*opt*/) {
 
-  if (fHalves) fHalves->Delete();
-  delete fHalves; 
-  fHalves = NULL;
+  if (mHalves) mHalves->Delete();
+  delete mHalves; 
+  mHalves = NULL;
   
 }
 
@@ -101,7 +101,7 @@ Bool_t Segmentation::Hit2PixelID(Double_t xHit, Double_t yHit, Double_t zHit, In
 
   Double_t master[3] = {xHit, yHit, zHit};
   Double_t local[3];
-  HalfSegmentation * halfSeg = ((HalfSegmentation*)fHalves->At(half));
+  HalfSegmentation * halfSeg = ((HalfSegmentation*)mHalves->At(half));
   if(!halfSeg) return kFALSE;
   HalfDiskSegmentation * diskSeg = halfSeg->GetHalfDisk(disk);
   if(!diskSeg) return kFALSE;

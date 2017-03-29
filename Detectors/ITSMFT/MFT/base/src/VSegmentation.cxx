@@ -13,7 +13,7 @@ ClassImp(AliceO2::MFT::VSegmentation);
 //_____________________________________________________________________________
 VSegmentation::VSegmentation():
 TNamed(),
-fTransformation(new TGeoCombiTrans())
+mTransformation(new TGeoCombiTrans())
 {
   /// Default constructor
 }
@@ -21,7 +21,7 @@ fTransformation(new TGeoCombiTrans())
 //_____________________________________________________________________________
 VSegmentation::VSegmentation(const VSegmentation& input): 
 TNamed(),
-fTransformation(input.fTransformation)
+mTransformation(input.mTransformation)
 {
   /// Copy constructor
   
@@ -35,10 +35,10 @@ void VSegmentation::SetRotationAngles(const Double_t *ang)
 {
 
   /// Set Rotation Angles
-  if(!fTransformation) fTransformation = new TGeoCombiTrans();
+  if(!mTransformation) mTransformation = new TGeoCombiTrans();
   TGeoRotation *rot = new TGeoRotation();
   rot->SetAngles(ang[0], ang[1], ang[2]); // all angles in degrees
-  fTransformation->SetRotation(rot);
+  mTransformation->SetRotation(rot);
   
 }
 

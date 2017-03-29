@@ -13,36 +13,36 @@ using namespace AliceO2::ITSMFT;
 
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper() :
-fCShape(0) {}
+mCShape(0) {}
 
 
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper(const UInt_t &cs) {
-  fNpixOn = cs;
+  mNpixOn = cs;
   UInt_t nRows = 0;
   UInt_t nCols = 0;
   while (nRows*nCols < cs) {
     nRows += 1;
     nCols += 1;
   }
-  fCShape = new ClusterShape(nRows, nCols);
+  mCShape = new ClusterShape(nRows, nCols);
 }
 
 
 //______________________________________________________________________
 SimuClusterShaper::~SimuClusterShaper() {
-  delete fCShape;
+  delete mCShape;
 }
 
 
 //______________________________________________________________________
 void SimuClusterShaper::FillClusterRandomly() {
-  Int_t matrixSize = fCShape->GetNRows()*fCShape->GetNCols();
+  Int_t matrixSize = mCShape->GetNRows()*mCShape->GetNCols();
 
   // generate UNIQUE random numbers
   UInt_t i = 0;
-  TBits *bits = new TBits(fNpixOn);
-  while (i < fNpixOn) {
+  TBits *bits = new TBits(mNpixOn);
+  while (i < mNpixOn) {
     UInt_t j = gRandom->Integer(matrixSize); // [0, matrixSize-1]
     if (bits->TestBitNumber(j)) continue;
     bits->SetBitNumber(j);
@@ -50,9 +50,9 @@ void SimuClusterShaper::FillClusterRandomly() {
   }
 
   Int_t bit = 0;
-  for (i = 0; i < fNpixOn; ++i) {
+  for (i = 0; i < mNpixOn; ++i) {
     UInt_t j = bits->FirstSetBit(bit);
-    fCShape->AddShapeValue(j);
+    mCShape->AddShapeValue(j);
     bit = j+1;
   }
   delete bits;
@@ -61,9 +61,9 @@ void SimuClusterShaper::FillClusterRandomly() {
 
 //______________________________________________________________________
 void SimuClusterShaper::AddNoisePixel() {
-  Int_t matrixSize = fCShape->GetNRows()*fCShape->GetNCols();
+  Int_t matrixSize = mCShape->GetNRows()*mCShape->GetNCols();
   UInt_t j = gRandom->Integer(matrixSize); // [0, matrixSize-1]
-  while (fCShape->HasElement(j)) {
+  while (mCShape->HasElement(j)) {
     j = gRandom->Integer(matrixSize);
   }
   //fCShape->SetShapeValue(i, j);

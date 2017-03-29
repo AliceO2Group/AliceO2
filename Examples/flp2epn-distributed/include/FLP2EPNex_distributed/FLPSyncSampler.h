@@ -54,18 +54,18 @@ class FLPSyncSampler : public FairMQDevice
     virtual void PreRun();
     virtual void PostRun();
 
-    std::array<timeframeDuration, UINT16_MAX> fTimeframeRTT; ///< Container for the roundtrip values per timeframe ID
-    int fEventRate; ///< Publishing rate of the timeframe IDs
-    int fMaxEvents; ///< Maximum number of events to send (0 - unlimited)
-    int fStoreRTTinFile; ///< Store round trip time measurements in a file.
-    int fEventCounter; ///< Controls the send rate of the timeframe IDs
-    uint16_t fTimeFrameId;
-    std::thread fAckListener;
-    std::thread fResetEventCounter;
-    std::atomic<bool> fLeaving;
+    std::array<timeframeDuration, UINT16_MAX> mTimeframeRTT; ///< Container for the roundtrip values per timeframe ID
+    int mEventRate; ///< Publishing rate of the timeframe IDs
+    int mMaxEvents; ///< Maximum number of events to send (0 - unlimited)
+    int mStoreRTTinFile; ///< Store round trip time measurements in a file.
+    int mEventCounter; ///< Controls the send rate of the timeframe IDs
+    uint16_t mTimeFrameId;
+    std::thread mAckListener;
+    std::thread mResetEventCounter;
+    std::atomic<bool> mLeaving;
 
-    std::string fAckChannelName;
-    std::string fOutChannelName;
+    std::string mAckChannelName;
+    std::string mOutChannelName;
 };
 
 } // namespace Devices

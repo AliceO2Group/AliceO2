@@ -19,14 +19,14 @@ using namespace AliceO2::ITS;
 
 DigitWriteoutBuffer::DigitWriteoutBuffer() :
   FairWriteoutBuffer(),
-  fData_map()
+  mData_map()
 {
 
 }
 
 DigitWriteoutBuffer::DigitWriteoutBuffer(TString branchname, TString foldername, Bool_t persistance) :
   FairWriteoutBuffer(branchname, "AliceO2::ITSMFT::Digit", foldername, persistance),
-  fData_map()
+  mData_map()
 {
 
 }
@@ -47,8 +47,8 @@ void DigitWriteoutBuffer::AddNewDataToTClonesArray(FairTimeStamp *timestamp)
 double DigitWriteoutBuffer::FindTimeForData(FairTimeStamp *timestamp)
 {
   Digit itsdigit = *(static_cast<Digit *>(timestamp));
-  std::map<Digit, double>::iterator result = fData_map.find(itsdigit);
-  if (result != fData_map.end()) {
+  std::map<Digit, double>::iterator result = mData_map.find(itsdigit);
+  if (result != mData_map.end()) {
     return result->second;
   }
   return -1;
@@ -57,13 +57,13 @@ double DigitWriteoutBuffer::FindTimeForData(FairTimeStamp *timestamp)
 void DigitWriteoutBuffer::FillDataMap(FairTimeStamp *data, double activeTime)
 {
   Digit itsdigit = *(static_cast<Digit *>(data));
-  fData_map[itsdigit] = activeTime;
+  mData_map[itsdigit] = activeTime;
 }
 
 void DigitWriteoutBuffer::EraseDataFromDataMap(FairTimeStamp *data)
 {
   Digit itsdigit = *(static_cast<Digit *>(data));
-  if (fData_map.find(itsdigit) != fData_map.end()) {
-    fData_map.erase(itsdigit);
+  if (mData_map.find(itsdigit) != mData_map.end()) {
+    mData_map.erase(itsdigit);
   }
 }

@@ -20,9 +20,9 @@ public:
   ~GeometryTGeo();
 
   /// The number of disks
-  Int_t GetNofDisks() const { return fNDisks; }
+  Int_t GetNofDisks() const { return mNDisks; }
   /// The number of chips (sensors)
-  Int_t  GetNChips() const {return fNChips;}  
+  Int_t  GetNChips() const {return mNChips;}  
 
   static const Char_t* GetVolumeName()   { return fgVolumeName.Data();   }
   static const Char_t* GetHalfDetName()  { return fgHalfDetName.Data();  }
@@ -37,9 +37,9 @@ private:
 
   void Build();
 
-  Int_t  fNDisks;
-  Int_t  fNChips;
-  Int_t *fNLaddersHalfDisk;         //![2*fNDisks]
+  Int_t  mNDisks;
+  Int_t  mNChips;
+  Int_t *mNLaddersHalfDisk;         //![2*fNDisks]
 
   static TString fgVolumeName;      ///< \brief MFT-mother volume name
   static TString fgHalfDetName;     ///< \brief MFT-half prefix
