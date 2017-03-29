@@ -110,7 +110,7 @@ bool AliceO2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &in
     LOG(INFO) << "Payload of size " << payloadSize << "received\n";
   }
 
-  char *payload = new char[payloadSize]();
+  auto *payload = new char[payloadSize]();
   memcpy(payload, sourcePayload, payloadSize);
   DataHeader payloadheader(*AliceO2::Header::get<DataHeader>((byte*)inParts.At(0)->GetData()));
 

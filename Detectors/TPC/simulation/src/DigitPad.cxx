@@ -24,7 +24,7 @@ void DigitPad::fillOutputContainer(TClonesArray *output, Int_t cru, Int_t timeBi
   const Int_t mADC = d.ADCvalue(mCharge);
   
   if(mADC > 0) {
-    Digit *digit = new Digit(cru, mADC, row, pad, timeBin);
+    auto *digit = new Digit(cru, mADC, row, pad, timeBin);
     TClonesArray &clref = *output;
     new(clref[clref.GetEntriesFast()]) Digit(*(digit));
   }

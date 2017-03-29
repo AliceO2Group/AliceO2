@@ -63,7 +63,7 @@ mHalfDisks(NULL)
   mHalfDisks -> SetOwner(kTRUE);
 
   // Create XML engine
-  TXMLEngine* geomFile = new TXMLEngine;
+  auto* geomFile = new TXMLEngine;
   
   // take access to main node
   XMLDocPointer_t  xmldoc   = geomFile->ParseFile(nameGeomFile);
@@ -160,7 +160,7 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
     
     UInt_t diskUniqueID = mftGeom->GetObjectID(Geometry::kHalfDiskType,mftGeom->GetHalfMFTID(GetUniqueID()),idisk );
     
-    HalfDiskSegmentation *halfDisk = new HalfDiskSegmentation(diskUniqueID);
+    auto *halfDisk = new HalfDiskSegmentation(diskUniqueID);
     halfDisk->SetPosition(pos);
     halfDisk->SetRotationAngles(ang);
     halfDisk->SetNLadders(nladder);

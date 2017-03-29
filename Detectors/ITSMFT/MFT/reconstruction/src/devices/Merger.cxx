@@ -172,7 +172,7 @@ bool Merger::MergeData(FairMQParts& parts, int index)
 	mEvRIPartTrio.second = ieventpart;
 	mRet = mObjectMap.equal_range(mEvRIPartTrio);
 	
-	for (MultiMapDef::iterator it = mRet.first; it != mRet.second; ++it) {
+	for (auto it = mRet.first; it != mRet.second; ++it) {
 	  
 	  if (strcmp(tempArrays[iarray]->GetName(),it->second->GetName()) == 0) {
 	    

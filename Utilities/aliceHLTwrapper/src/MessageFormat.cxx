@@ -118,7 +118,7 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
   // add list of messages
   int totalCount = 0;
   int i = 0;
-  for (vector<BufferDesc_t>::const_iterator data = list.begin(); data != list.end(); data++, i++) {
+  for (auto data = list.begin(); data != list.end(); data++, i++) {
     if (data->mSize > 0) {
       unsigned nofEventHeaders=mListEvtData.size();
       int result = addMessage(data->mP, data->mSize);
@@ -380,7 +380,7 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
   if (mListEvtData.size()==0) {
     mListEvtData.push_back(evtData);
   } else {
-    vector<AliHLTComponentEventData>::iterator it=mListEvtData.begin();
+    auto it=mListEvtData.begin();
     for (; it!=mListEvtData.end(); it++) {
       if ((it->fEventCreation_us*1e3 + it->fEventCreation_us/1e3)>
 	  (evtData.fEventCreation_us*1e3 + evtData.fEventCreation_us/1e3)) {

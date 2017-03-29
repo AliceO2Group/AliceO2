@@ -41,7 +41,7 @@ void SimuClusterShaper::FillClusterRandomly() {
 
   // generate UNIQUE random numbers
   UInt_t i = 0;
-  TBits *bits = new TBits(mNpixOn);
+  auto *bits = new TBits(mNpixOn);
   while (i < mNpixOn) {
     UInt_t j = gRandom->Integer(matrixSize); // [0, matrixSize-1]
     if (bits->TestBitNumber(j)) continue;

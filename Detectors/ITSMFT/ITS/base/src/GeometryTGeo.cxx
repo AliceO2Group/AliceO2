@@ -960,7 +960,7 @@ void GeometryTGeo::createT2LMatrices()
     double dx = gloB[0] - gloA[0];
     double dy = gloB[1] - gloA[1];
     double t = (gloB[0] * dx + gloB[1] * dy) / (dx * dx + dy * dy), x = gloB[0] - dx * t, y = gloB[1] - dy * t;
-    TGeoHMatrix* t2l = new TGeoHMatrix();
+    auto* t2l = new TGeoHMatrix();
     t2l->RotateZ(ATan2(y, x) * RadToDeg()); // rotate in direction of normal to the sensor plane
     t2l->SetDx(x);
     t2l->SetDy(y);

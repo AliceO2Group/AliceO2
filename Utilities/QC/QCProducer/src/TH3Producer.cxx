@@ -17,7 +17,7 @@ TH3Producer::TH3Producer(const char * histogramName, const char * histogramTitle
 
 TObject* TH3Producer::produceData() const
 {
-  TH3F * histogram = new TH3F(mHistogramName,
+  auto * histogram = new TH3F(mHistogramName,
   							 						  mHistogramTitle,
   							 						  mNbinsx,
   							 						  mXlow,

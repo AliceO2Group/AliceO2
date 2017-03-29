@@ -16,7 +16,7 @@ TH2Producer::TH2Producer(const char * histogramName, const char * histogramTitle
 
 TObject* TH2Producer::produceData() const
 {
-  TH2F * histogram = new TH2F(mHistogramName,
+  auto * histogram = new TH2F(mHistogramName,
                               mHistogramTitle,
                               mNbinsx,
                               mXlow,

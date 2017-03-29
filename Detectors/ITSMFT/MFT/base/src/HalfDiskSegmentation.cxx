@@ -155,7 +155,7 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
 
     //UInt_t ladderUniqueID = (Geometry::kLadderType<<13) +  (((GetUniqueID()>>9) & 0xF)<<9) + (plane<<8) + (ladderID<<3);
     
-    LadderSegmentation * ladder = new LadderSegmentation(ladderUniqueID);
+    auto * ladder = new LadderSegmentation(ladderUniqueID);
     ladder->SetNSensors(nsensor);
     ladder->SetPosition(pos);
     ladder->SetRotationAngles(ang);

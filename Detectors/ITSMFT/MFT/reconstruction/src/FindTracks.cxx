@@ -126,15 +126,15 @@ void FindTracks::Exec(Option_t* /*opt*/)
   const Int_t nMaxTracks = 1000;
   mNHits = mHits->GetEntriesFast();
 
-  Float_t **xPos = new Float_t*[nMaxTracks];
+  auto **xPos = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) xPos[i] = new Float_t[mNHits];
-  Float_t **yPos = new Float_t*[nMaxTracks];
+  auto **yPos = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) yPos[i] = new Float_t[mNHits];
-  Float_t **zPos = new Float_t*[nMaxTracks];
+  auto **zPos = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) zPos[i] = new Float_t[mNHits];
-  Float_t **xPosErr = new Float_t*[nMaxTracks];
+  auto **xPosErr = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) xPosErr[i] = new Float_t[mNHits];
-  Float_t **yPosErr = new Float_t*[nMaxTracks];
+  auto **yPosErr = new Float_t*[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) yPosErr[i] = new Float_t[mNHits];
 
   Int_t nTrackHits[nMaxTracks];
@@ -163,7 +163,7 @@ void FindTracks::Exec(Option_t* /*opt*/)
 
   // a simple fit through the hits
   
-  TF1* f1 = new TF1("f1", "[0]*x + [1]");
+  auto* f1 = new TF1("f1", "[0]*x + [1]");
   TGraphErrors *trackXZ, *trackYZ;
 
   Double_t slopeX, offX, chi2X, slopeY, offY, chi2Y;
@@ -183,7 +183,7 @@ void FindTracks::Exec(Option_t* /*opt*/)
     offY = f1->GetParameter(1);
     chi2Y = f1->GetChisquare();
 
-    Track* track = new Track();
+    auto* track = new Track();
     track->SetX(offX);
     track->SetY(offY);
     track->SetZ(0.);

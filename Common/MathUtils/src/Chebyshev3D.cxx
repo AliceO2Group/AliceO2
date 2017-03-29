@@ -512,10 +512,10 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
       maxDim = mNumberOfPoints[i];
     }
   }
-  Float_t* fvals = new Float_t[mNumberOfPoints[0]];
-  Float_t* tmpCoef3D = new Float_t[mNumberOfPoints[0] * mNumberOfPoints[1] * mNumberOfPoints[2]];
-  Float_t* tmpCoef2D = new Float_t[mNumberOfPoints[0] * mNumberOfPoints[1]];
-  Float_t* tmpCoef1D = new Float_t[maxDim];
+  auto* fvals = new Float_t[mNumberOfPoints[0]];
+  auto* tmpCoef3D = new Float_t[mNumberOfPoints[0] * mNumberOfPoints[1] * mNumberOfPoints[2]];
+  auto* tmpCoef2D = new Float_t[mNumberOfPoints[0] * mNumberOfPoints[1]];
+  auto* tmpCoef1D = new Float_t[maxDim];
 
   // 1D Cheb.fit for 0-th dimension at current steps of remaining dimensions
   int ncmax = 0;
@@ -580,7 +580,7 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
 
   // now find 2D surface which separates significant coefficients of 3D matrix from nonsignificant ones (up to
   // prec)
-  UShort_t* tmpCoefSurf = new UShort_t[mNumberOfPoints[0] * mNumberOfPoints[1]];
+  auto* tmpCoefSurf = new UShort_t[mNumberOfPoints[0] * mNumberOfPoints[1]];
   for (int id0 = mNumberOfPoints[0]; id0--;) {
     for (int id1 = mNumberOfPoints[1]; id1--;) {
       tmpCoefSurf[id1 + id0 * mNumberOfPoints[1]] = 0;
@@ -622,7 +622,7 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
 
   // see if there are rows to reject, find max.significant column at each row
   int nRows = mNumberOfPoints[0];
-  UShort_t* tmpCols = new UShort_t[nRows];
+  auto* tmpCols = new UShort_t[nRows];
   for (int id0 = mNumberOfPoints[0]; id0--;) {
     int id1 = mNumberOfPoints[1];
     while (id1 > 0 && tmpCoefSurf[(id1 - 1) + id0 * mNumberOfPoints[1]] == 0) {
@@ -831,7 +831,7 @@ void Chebyshev3D::setDimOut(const int d, const float *prec)
   mTemporaryUserResults = new Float_t[mOutputArrayDimension];
   mChebyshevParameter.Delete();
   for (int i = 0; i < d; i++) {
-    Chebyshev3DCalc *clc = new Chebyshev3DCalc();
+    auto *clc = new Chebyshev3DCalc();
     clc->setPrecision(prec && prec[i] > sMinimumPrecision ? prec[i] : mPrecision);
     mChebyshevParameter.AddAtAndExpand(new Chebyshev3DCalc(), i);
   }
