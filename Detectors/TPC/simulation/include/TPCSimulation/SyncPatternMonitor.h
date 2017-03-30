@@ -39,7 +39,7 @@ class SyncPatternMonitor {
     /// @param hw2 3th (timewise) half word
     /// @param hw3 4th (timewise) half word
     /// @return Position of first part of the synchronization pattern, -1 if no pattern was found
-    short addSequence(const short& hw0, const short& hw1, const short& hw2, const short& hw3);
+    short addSequence(const short hw0, const short hw1, const short hw2, const short hw3);
 
     /// Get position
     /// @return Position of first part of the synchronization pattern, -1 if no patter was found
@@ -57,7 +57,7 @@ class SyncPatternMonitor {
       PATTERN_A, PATTERN_A, PATTERN_A, PATTERN_A, PATTERN_B, PATTERN_B, PATTERN_B, PATTERN_B
     }};
 
-    void patternFound(const short& hw) { 
+    void patternFound(const short hw) { 
       LOG(INFO) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
          << "SYNC found at " << hw << " in " << mCheckedWords << FairLogger::endl;
       if (mPatternFound) {
@@ -69,7 +69,7 @@ class SyncPatternMonitor {
       mHwWithPattern = hw;
     };
 
-    void checkWord(const short& hw, const short& pos) {
+    void checkWord(const short hw, const short pos) {
       ++mCheckedWords;
       if (hw == SYNC_PATTERN[mPosition]) ++mPosition;
       else mPosition = SYNC_START;

@@ -75,12 +75,12 @@ class GBTFrame {
     /// @param halfword this half-word of the SAMPA (4 are included in GBT frame)
     /// @param chan which channels, 0 for channel 0-15, 1 for channel 16-31, ignored for SAMPA 2
     /// @return requested half-word
-    const short& getHalfWord(const short& sampa, const short& halfword, const short& chan = 0) const { return mHalfWords[sampa][chan][halfword]; };
+    short getHalfWord(const short sampa, const short halfword, const short chan = 0) const { return mHalfWords[sampa][chan][halfword]; };
 
     /// Get ADC sampling clock of a SAMPA chip (4 time bits)
     /// @param sampa ADC clock of this SAMPA chip (0-2, 3=0, 4=1)
     /// @return requested ADC sampling clock bits
-    const short& getAdcClock(short sampa) const { return mAdcClock[sampa]; };
+    short getAdcClock(short sampa) const { return mAdcClock[sampa]; };
 
     /// Set Adc sampling clock of a SAMPA chip
     /// @param sampa ADC clock of this SAMPA chip (0-2, 3=0, 4=1), -1 for all SAMPAs 
@@ -90,14 +90,14 @@ class GBTFrame {
     ///
     /// Set data
     /// @param other Other GBT Frame
-    void setData(const GBTFrame& other);
+//    void setData(const GBTFrame& other);
 
     /// Set data
     /// @param word3 Word 3 of GBT frame, contains bit [127: 96], [127:112] are not part of the actual frame
     /// @param word2 Word 2 of GBT frame, contains bit [ 95: 64]
     /// @param word1 Word 1 of GBT frame, contains bit [ 63: 32]
     /// @param word0 Word 0 of GBT frame, contains bit [ 31:  0]
-    void setData(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0);
+    void setData(unsigned word3, unsigned word2, unsigned word1, unsigned word0);
 
     /// Set Data
     /// @param s0hw0l half-word 0 from SAMPA 0 low channel numbers 
@@ -124,12 +124,12 @@ class GBTFrame {
     /// @param s1adc ADC clock from SAMPA 1
     /// @param s2adc ADC clock from SAMPA 2
     /// @param marker additional 16 bit marker which is not part of the actual frame
-    void setData(short& s0hw0l, short& s0hw1l, short& s0hw2l, short& s0hw3l,
-                 short& s0hw0h, short& s0hw1h, short& s0hw2h, short& s0hw3h,
-                 short& s1hw0l, short& s1hw1l, short& s1hw2l, short& s1hw3l,
-                 short& s1hw0h, short& s1hw1h, short& s1hw2h, short& s1hw3h,
-                 short& s2hw0,  short& s2hw1,  short& s2hw2,  short& s2hw3, 
-                 short& s0adc,  short& s1adc,  short& s2adc,  unsigned marker = 0);
+    void setData(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
+                 short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
+                 short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
+                 short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
+                 short s2hw0,  short s2hw1,  short s2hw2,  short s2hw3, 
+                 short s0adc,  short s1adc,  short s2adc,  unsigned marker = 0);
 
     /// Get the GBT frame
     /// @param word3 bit [127: 96] of GBT frame is written to this

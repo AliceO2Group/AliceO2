@@ -74,7 +74,7 @@ void GBTFrameContainer::addGBTFrame(GBTFrame& frame)
   processFrame(mGBTFrames.end()-1);
 }
 
-void GBTFrameContainer::addGBTFrame(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0)
+void GBTFrameContainer::addGBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
 {
   if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
     mGBTFrames[0] = mGBTFrames[1];
@@ -87,12 +87,12 @@ void GBTFrameContainer::addGBTFrame(unsigned& word3, unsigned& word2, unsigned& 
 
 }
 
-void GBTFrameContainer::addGBTFrame(short& s0hw0l, short& s0hw1l, short& s0hw2l, short& s0hw3l,
-                                    short& s0hw0h, short& s0hw1h, short& s0hw2h, short& s0hw3h,
-                                    short& s1hw0l, short& s1hw1l, short& s1hw2l, short& s1hw3l,
-                                    short& s1hw0h, short& s1hw1h, short& s1hw2h, short& s1hw3h,
-                                    short& s2hw0,  short& s2hw1,  short& s2hw2,  short& s2hw3, 
-                                    short& s0adc,  short& s1adc,  short& s2adc,  unsigned marker)
+void GBTFrameContainer::addGBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
+                                    short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
+                                    short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
+                                    short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
+                                    short s2hw0,  short s2hw1,  short s2hw2,  short s2hw3, 
+                                    short s0adc,  short s1adc,  short s2adc,  unsigned marker)
 {
   if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
     mGBTFrames[0] = mGBTFrames[1];

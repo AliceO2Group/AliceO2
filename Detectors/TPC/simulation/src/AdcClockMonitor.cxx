@@ -41,7 +41,7 @@ void AdcClockMonitor::reset()
   LOG(INFO) << "ADC clock monitoring for SAMPA " << mSampa << " was resetted" << FairLogger::endl; 
 }
 
-int AdcClockMonitor::addSequence(const short& seq)
+int AdcClockMonitor::addSequence(const short seq)
 {
 //  seq = seq & 0xF;
 //  std::cout << "SAMPA " << mSampa << ": " << std::hex << "0x" << std::setw(1) << (int)seq << std::dec << std::endl;

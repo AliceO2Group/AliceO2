@@ -35,7 +35,7 @@ class AdcClockMonitor {
     /// Checks whether new sequence is valid
     /// @param seq New sequence of 4 bits
     /// @return Returns outcome of the check, 1 for an error, 0 otherwise
-    int addSequence(const short& seq);
+    int addSequence(const short seq);
 
     /// Get the state of the ADC monitor
     /// @return Returns outcome of monitor, 1 for an error, 0 otherwise

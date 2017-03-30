@@ -41,7 +41,7 @@ void SyncPatternMonitor::reset()
     << "was resetted" << FairLogger::endl;
 }
 
-short SyncPatternMonitor::addSequence(const short& hw0, const short& hw1, const short& hw2, const short& hw3)
+short SyncPatternMonitor::addSequence(const short hw0, const short hw1, const short hw2, const short hw3)
 {
 //  std::cout << std::hex
 //    << "0x" << std::setw(2) << (int) hw0 << " "

@@ -204,7 +204,7 @@ void GBTFrame::calculateAdcClock()
 
 }
 
-void GBTFrame::setData(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0)
+void GBTFrame::setData(unsigned word3, unsigned word2, unsigned word1, unsigned word0)
 {
   mWords[3] = word3;
   mWords[2] = word2;
@@ -214,12 +214,12 @@ void GBTFrame::setData(unsigned& word3, unsigned& word2, unsigned& word1, unsign
   calculateHalfWords();
 }
 
-void GBTFrame::setData(short& s0hw0l, short& s0hw1l, short& s0hw2l, short& s0hw3l,
-                       short& s0hw0h, short& s0hw1h, short& s0hw2h, short& s0hw3h,
-                       short& s1hw0l, short& s1hw1l, short& s1hw2l, short& s1hw3l,
-                       short& s1hw0h, short& s1hw1h, short& s1hw2h, short& s1hw3h,
-                       short& s2hw0,  short& s2hw1,  short& s2hw2,  short& s2hw3, 
-                       short& s0adc,  short& s1adc,  short& s2adc,  unsigned marker)
+void GBTFrame::setData(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
+                       short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
+                       short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
+                       short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
+                       short s2hw0,  short s2hw1,  short s2hw2,  short s2hw3, 
+                       short s0adc,  short s1adc,  short s2adc,  unsigned marker)
 {
   mWords[0] = combineBits(std::vector<bool>{
       getBit(s0hw0h,2), getBit(s0hw1h,2), getBit(s0hw2h,2), getBit(s0hw3h,2), 
