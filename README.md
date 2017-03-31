@@ -24,9 +24,9 @@ Turn it on in cmake (`cmake -DBUILD_DOXYGEN=ON ...`) before building (`make`) an
 
 Doxygen documentation is also available online [here](http://aliceo2group.github.io/AliceO2/)
 
-### Build system and directory structure
-The build system and directory structure are described in
-[docs/doxygen/CMakeInstructions.md](@ref CodeOrganizationAndBuild).
+### Build system (cmake) and directory structure
+The code organisation is described [here](docs/CodeOrganization.md).
+The build system (cmake) is described [here](docs/CMakeInstructions.md).
 
 ### Formatting
 ##### Using clang-format
