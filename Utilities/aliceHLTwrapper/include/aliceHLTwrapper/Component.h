@@ -5,8 +5,8 @@
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or	     *
-//* (at your option) any later version.					     *
+//* the Free Software Foundation, either version 3 of the License, or        *
+//* (at your option) any later version.                                      *
 //*                                                                          *
 //* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
 //*                                                                          *
@@ -23,8 +23,11 @@
 #include "MessageFormat.h"
 #include <vector>
 #include <boost/signals2.hpp>
+#include <boost/program_options.hpp>
 //using boost::signals2::signal;
 typedef boost::signals2::signal<unsigned char* (unsigned int)> cballoc_signal_t;
+
+namespace bpo = boost::program_options;
 
 namespace ALICE {
 namespace HLT {
@@ -65,6 +68,39 @@ public:
   Component();
   /// destructor
   ~Component();
+
+  /// get description of options
+  static bpo::options_description GetOptionsDescription();
+
+  // TODO: have been trying to use strongly typed enums, however
+  // the problem starts with the iteration over all elements (which
+  // doen't seem to work without specialized coding in the enum class)
+  // Furthermore, one would need to use a map which can not be used in
+  // a constexpr because of the non-trivial destructor
+  // Keep the solution with the simple const char array for the OptionKeys
+  // and live with the fact that changing the sequence causes a runtime
+  // error, and a compile time check is not possible
+  enum /*class*/ OptionKeyIds /*: int*/ {
+    OptionKeyLibrary = 0,
+    OptionKeyComponent,
+    OptionKeyParameter,
+    OptionKeyRun,
+    OptionKeyMsgsize,
+    OptionKeyOutputMode,
+    OptionKeyInstanceId,
+    OptionKeyLast
+  };
+
+  constexpr static const char* OptionKeys[] = {
+    "library",
+    "component",
+    "parameter",
+    "run",
+    "msgsize",
+    "output-mode",
+    "instance-id",
+    nullptr
+  };
 
   /// Init the component
   int init(int argc, char** argv);
