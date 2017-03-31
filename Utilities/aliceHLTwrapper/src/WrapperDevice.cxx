@@ -33,17 +33,8 @@ using std::vector;
 using std::unique_ptr;
 using namespace ALICE::HLT;
 
-// the chrono lib needs C++11
-#if __cplusplus < 201103L
-#warning statistics measurement for WrapperDevice disabled: need C++11 standard
-#else
-#define USE_CHRONO
-#endif
-#ifdef USE_CHRONO
-#include <chrono>
 using std::chrono::system_clock;
 using TimeScale = std::chrono::milliseconds;
-#endif // USE_CHRONO
 
 WrapperDevice::WrapperDevice(int argc, char** argv, int verbosity)
   : mComponent(nullptr)
@@ -108,9 +99,7 @@ void WrapperDevice::Run()
   /// inherited from FairMQDevice
   int iResult=0;
 
-#ifdef USE_CHRONO
   static system_clock::time_point refTime = system_clock::now();
-#endif // USE_CHRONO
 
   unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels["data-in"]));
 
@@ -162,7 +151,7 @@ void WrapperDevice::Run()
     //   LOG(INFO) << "------ recieved complete Msg from " << numInputs << " input(s) after " << nReadCycles << " read cycles" ;
     // }
     nReadCycles=0;
-#ifdef USE_CHRONO
+
     auto duration = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - refTime);
 
     if (mLastSampleTime>=0) {
@@ -189,7 +178,6 @@ void WrapperDevice::Run()
       mMaxReadCycles=-1;
       mLastCalcTime=duration.count();
     }
-#endif //USE_CHRONO
 
     if (!mSkipProcessing) {
       // prepare input from messages
