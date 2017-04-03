@@ -8,6 +8,8 @@
 #ifndef ALIHLTTPCTRANSFORM_H
 #define ALIHLTTPCTRANSFORM_H
 
+#include "AliHLTTPCGeometry.h"
+
 #ifdef use_aliroot
   class AliRunLoader;
 #endif
@@ -20,13 +22,10 @@ class AliHLTTPCTransform {
     AliHLTTPCTransform();
   enum VersionType { kVdefault=0, kVdeprecated=1, kValiroot=10, kVcosmics=100};
 
- private:
-  static Double_t fgX[159];  //X position in local coordinates
-
  public:
   virtual ~AliHLTTPCTransform() {}
 
-  static Double_t Row2X(Int_t slicerow);
+  static Double_t Row2X(Int_t slicerow) {return AliHLTTPCGeometry::Row2X(slicerow);}
   
   ClassDef(AliHLTTPCTransform,1)
 };
