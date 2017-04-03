@@ -30,13 +30,15 @@ O2_GENERATE_EXECUTABLE(
 
 ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK)
 
-set(TEST_SRCS
-    test/MergerDeviceTestSuite.cxx
-    test/MergerTestSuite.cxx
-    )
+if(FALSE)
+  set(TEST_SRCS
+      test/MergerDeviceTestSuite.cxx
+      test/MergerTestSuite.cxx
+      )
 
-O2_GENERATE_TESTS(
-    MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-    BUCKET_NAME ${BUCKET_NAME}
-    TEST_SRCS ${TEST_SRCS}
-)
+  O2_GENERATE_TESTS(
+      MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+      BUCKET_NAME ${BUCKET_NAME}
+      TEST_SRCS ${TEST_SRCS}
+  )
+endif()
