@@ -133,9 +133,8 @@ class GBTFrameContainer {
     void setEnableCompileAdcValues(bool val)    { mEnableCompileAdcValues = val; };
 
     /// Option to store the inserted GBT frames
-    /// Option to store the inserted GBT frames
     /// @param val Set it to true or false
-    void setEnableStoreGBTFrames(bool val)      { mEnableStoreGBTFrames = val; };
+    void setEnableStoreGBTFrames(bool val)      { mEnableStoreGBTFrames = val; if(!mEnableStoreGBTFrames) mGBTFrames.resize(2);  };
 
     /// Extracts the digits after all 32 channel were transmitted
     /// @param digitContainer Digit Container to store the digits in

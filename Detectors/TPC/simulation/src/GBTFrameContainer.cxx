@@ -231,8 +231,8 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
   for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
     if (mPositionForHalfSampa[iHalfSampa] == -1) continue;
 
-    iHalfSampaPer2 = iHalfSampa >> 1; // iHalfSampa/2;
-    iHalfSampaMod2 = iHalfSampa & 0x1; // iHalfSampa%2;
+    iHalfSampaPer2 = iHalfSampa/2;
+    iHalfSampaMod2 = iHalfSampa%2;
     switch(mPositionForHalfSampa[iHalfSampa]) {
       case 0:
         value1 = 
