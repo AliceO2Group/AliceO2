@@ -53,6 +53,25 @@ BOOST_AUTO_TEST_CASE(BasicXYZHit_ROOTIO)
     BOOST_CHECK(obj != nullptr);
     fin.Close();
   }
+
+  // same for double valued hits
+  using HitTypeD = BasicXYZEHit<double, double>;
+  HitTypeD hitD(1., 2., 3., 0.01, -1.1, -1, 1);
+
+  // try writing hit to a TBuffer
+  {
+    TFile fout("HitsIO.root", "RECREATE");
+    fout.WriteTObject(&hitD, "TestObject");
+    fout.Close();
+  }
+
+  {
+    TFile fin("HitsIO.root");
+    TObject* obj = (TObject*)fin.Get("TestObject");
+
+    BOOST_CHECK(obj != nullptr);
+    fin.Close();
+  }
 }
 
 } // end namespace Base
