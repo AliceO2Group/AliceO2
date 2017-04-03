@@ -1,5 +1,6 @@
 /// \file SAMPAProcessing.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Implementation of the SAMPA response
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCSimulation/Digitizer.h"

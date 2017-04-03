@@ -1,6 +1,7 @@
 /// \file Constants.h
 /// \brief Definition of constants that should go to a (yet to be defined) parameter space
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+///
 #ifndef AliceO2_TPC_Constants_H_
 #define AliceO2_TPC_Constants_H_
 

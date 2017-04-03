@@ -1,12 +1,12 @@
 /// \file DigitRow.h
-/// \brief Container class for the Pad Digits
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Definition of the Row container
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+
 #ifndef ALICEO2_TPC_DigitRow_H_
 #define ALICEO2_TPC_DigitRow_H_
 
 #include "TPCSimulation/DigitPad.h"
 #include <memory>
-#include <iostream>
 
 class TClonesArray;
 
@@ -14,14 +14,16 @@ namespace AliceO2 {
 namespace TPC {
 
 /// \class DigitRow
-/// \brief Digit container class for the pad digits    
+/// This is the forth class of the intermediate Digit Containers, in which all incoming electrons from the hits are sorted into after amplification
+/// The structure assures proper sorting of the Digits when later on written out for further processing.
+/// This class holds the individual Pad containers and is contained within the Time Bin Container.
 
 class DigitRow{
   public:
 
     /// Constructor
-    /// @param mRow Row ID
-    /// @param npads Number of pads in the row
+    /// \param mRow Row ID
+    /// \param npads Number of pads in the row
     DigitRow(int mRow, int npads);
 
     ///Destructor
@@ -31,34 +33,34 @@ class DigitRow{
     void reset();
 
     /// Get the size of the container
-    /// @return Size of the pad container
-    int getSize() {return mPads.size();}
+    /// \return Size of the pad container
+    size_t getSize() const {return mPads.size();}
 
     /// Get the number of entries in the container
-    /// @return Number of entries in the pad container
-    int getNentries();
+    /// \return Number of entries in the pad container
+    int getNentries() const;
 
     /// Get the Row ID
-    /// @return Row ID
-    int getRow() {return mRow;}
+    /// \return Row ID
+    int getRow() const {return mRow;}
 
     /// Add digit to the pad container
-    /// @param pad Pad of the digit
-    /// @param charge Charge of the digit
+    /// \param pad Pad of the digit
+    /// \param charge Charge of the digit
     void setDigit(int eventID, int trackID, int pad, float charge);
 
     /// Fill output TClonesArray
-    /// @param output Output container
-    /// @param cru CRU
-    /// @param timeBin Time bin
-    /// @param row Row
+    /// \param output Output container
+    /// \param cru CRU
+    /// \param timeBin Time bin
+    /// \param row Row
     void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row);
 
     /// Fill output TClonesArray
-    /// @param output Output container
-    /// @param cru CRU
-    /// @param timeBin Time bin
-    /// @param row Row
+    /// \param output Output container
+    /// \param cru CRU
+    /// \param timeBin Time bin
+    /// \param row Row
     void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, float commonMode);
 
   private:
@@ -78,7 +80,7 @@ void DigitRow::reset()
 }
 
 inline
-int DigitRow::getNentries()
+int DigitRow::getNentries() const
 {
   int counter = 0;
   for(auto &aPad : mPads) {

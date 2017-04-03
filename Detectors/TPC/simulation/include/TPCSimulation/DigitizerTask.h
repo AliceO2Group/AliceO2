@@ -1,6 +1,7 @@
-/// \file DigitizerTask.h
-/// \brief Task for ALICE TPC digitization
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \file Digitizer.h
+/// \brief Definition of the ALICE TPC digitizer task
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+
 #ifndef ALICEO2_TPC_DigitizerTask_H_
 #define ALICEO2_TPC_DigitizerTask_H_
 
@@ -13,17 +14,12 @@
 
 namespace AliceO2 {
 namespace TPC { 
-class Digitizer;
-} 
-}
 
-namespace AliceO2 {
-namespace TPC {
-    
-// class Digitizer;
+class Digitizer;
     
 /// \class DigitizerTask
-/// \brief Digitizer task for the TPC
+/// This task steers the digitization process and takes care of the input and output
+/// Furthermore, it allows for switching debug output on/off
     
 class DigitizerTask : public FairTask{
   public:
@@ -40,12 +36,12 @@ class DigitizerTask : public FairTask{
     void setHitFileName(std::string name) { mHitFileName = name; }
 
     /// Sets the debug flags for the sub-tasks
-    /// @param debugsString String containing the debug flags
+    /// \param debugsString String containing the debug flags
     ///        o PRFdebug - Debug output after application of the PRF
     void setDebugOutput(TString debugString);
       
     /// Digitization
-    /// @param option Option
+    /// \param option Option
     virtual void Exec(Option_t *option);
       
   private:

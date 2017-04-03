@@ -1,6 +1,7 @@
 /// \file SAMPAProcessing.h
-/// \brief This class handles the shaping and digitization on the FECs
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Definition of the SAMPA response
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+
 #ifndef ALICEO2_TPC_SAMPAProcessing_H_
 #define ALICEO2_TPC_SAMPAProcessing_H_
 
@@ -14,7 +15,8 @@ namespace AliceO2 {
 namespace TPC {
     
 /// \class SAMPAProcessing
-/// \brief Class taking care of the signal processing in the FEC, i.e. the shaping and the digitization
+/// This class takes care of the signal processing in the Front-End Cards (FECs), i.e. the shaping and the digitization.
+/// Further effects such as saturation of the FECs are implemented.
     
 class SAMPAProcessing
 {
@@ -26,27 +28,28 @@ class SAMPAProcessing
     /// Destructor
     ~SAMPAProcessing();
 
-    /// Conversion from a given number of electrons into ADC value without taking into account saturation, vectorized
-    /// @param nElectrons Number of electrons in time bin
-    /// @return ADC value
+    /// Conversion from a given number of electrons into ADC value without taking into account saturation (vectorized)
+    /// \param nElectrons Number of electrons in time bin
+    /// \return ADC value
     template<typename T>
     static T getADCvalue(T nElectrons);
 
     /// For larger input values the SAMPA response is not linear which is taken into account by this function
-    /// @param signal Input signal
-    /// @return ADC value of the (saturated) SAMPA
+    /// \param signal Input signal
+    /// \return ADC value of the (saturated) SAMPA
     const float getADCSaturation(const float signal) const;
 
-    /// Shaping of the signal
-    /// @param ADCsignal Signal of the incoming charge
-    /// @param driftTime t0 of the incoming charge
-    /// @return Array with the shaped signal
+    /// A delta signal is shaped by the FECs and thus spread over several time bins
+    /// This function returns an array with the signal spread into the following time bins
+    /// \param ADCsignal Signal of the incoming charge
+    /// \param driftTime t0 of the incoming charge
+    /// \return Array with the shaped signal
     static void getShapedSignal(float ADCsignal, float driftTime, std::array<float, mNShapedPoints> &signalArray);
 
-    /// Gamma4 shaping function, vectorized
-    /// @param time Time of the ADC value with respect to the first bin in the pulse
-    /// @param startTime First bin in the pulse
-    /// @param ADC ADC value of the corresponding time bin
+    /// Value of the Gamma4 shaping function at a given time (vectorized)
+    /// \param time Time of the ADC value with respect to the first bin in the pulse
+    /// \param startTime First bin in the pulse
+    /// \param ADC ADC value of the corresponding time bin
     template<typename T>
     static T getGamma4(T time, T startTime, T ADC);
 
@@ -59,9 +62,9 @@ class SAMPAProcessing
     std::unique_ptr<TSpline3>   mSaturationSpline;   ///< TSpline3 which holds the saturation curve
 
     /// Import the saturation curve from a .dat file to a TSpline3
-    /// @param file Name of the .dat file
-    /// @param spline TSpline3 to which the saturation curve will be written
-    /// @return Boolean if succesful or not
+    /// \param file Name of the .dat file
+    /// \param spline TSpline3 to which the saturation curve will be written
+    /// \return Boolean if succesful or not
     bool importSaturationCurve(std::string file);
 };
 
@@ -76,6 +79,7 @@ T SAMPAProcessing::getADCvalue(T nElectrons)
 inline
 const float SAMPAProcessing::getADCSaturation(const float signal) const
 {
+  /// \todo Performance of TSpline?
   const float saturatedSignal = mSaturationSpline->Eval(signal);
   if(saturatedSignal > ADCSAT-1) return ADCSAT-1;
   return saturatedSignal;
@@ -90,7 +94,7 @@ T SAMPAProcessing::getGamma4(T time, T startTime, T ADC)
   Vc::float_v tmp;
   tmp(cond) = tmp0;
   Vc::float_v tmp2=tmp*tmp;
-  return 55.f*ADC*Vc::exp(-4.f*tmp)*tmp2*tmp2; // 55 is for normalization: 1/Integral(Gamma4)
+  return 55.f*ADC*Vc::exp(-4.f*tmp)*tmp2*tmp2; /// 55 is for normalization: 1/Integral(Gamma4)
 }
 }
 }

@@ -1,6 +1,7 @@
 /// \file DigitCRU.h
-/// \brief Digit container for the Time bin Digits
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Definition of the CRU container
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+
 #ifndef ALICEO2_TPC_DigitCRU_H_
 #define ALICEO2_TPC_DigitCRU_H_
 
@@ -13,13 +14,15 @@ namespace AliceO2 {
 namespace TPC {
 
 /// \class DigitCRU
-/// \brief Digit container class for the time bin digits        
+/// This is the second class of the intermediate Digit Containers, in which all incoming electrons from the hits are sorted into after amplification
+/// The structure assures proper sorting of the Digits when later on written out for further processing.
+/// This class holds the Time Bin containers and is contained within the Digit Container.
 
 class DigitCRU{
   public:
     
     /// Constructor
-    /// @param mCRU CRU ID
+    /// \param mCRU CRU ID
     DigitCRU(int mCRU);
 
     /// Destructor
@@ -29,39 +32,39 @@ class DigitCRU{
     void reset();
 
     /// Get the number of entries in the container
-    /// @return Number of entries in the time bin container
+    /// \return Number of entries in the time bin container
     int getNentries() const;
 
     /// Get the size of the container
-    /// @return Size of the time bin container
+    /// \return Size of the time bin container
     size_t getSize() const {return mTimeBins.size();}
 
     /// Get the CRU ID
-    /// @return CRU ID
+    /// \return CRU ID
     int getCRUID() const {return mCRU;}
 
     /// Add digit to the row container
-    /// @param eventID MC ID of the event
-    /// @param trackID MC ID of the track
-    /// @param timeBin Time bin of the digit
-    /// @param row Pad row of digit
-    /// @param pad Pad of digit
-    /// @param charge Charge of the digit
+    /// \param eventID MC ID of the event
+    /// \param trackID MC ID of the track
+    /// \param timeBin Time bin of the digit
+    /// \param row Pad row of digit
+    /// \param pad Pad of digit
+    /// \param charge Charge of the digit
     void setDigit(int eventID, int trackID, int timeBin, int row, int pad, float charge);
 
     /// Fill output TClonesArray
-    /// @param output Output container
-    /// @param cruID CRU ID
+    /// \param output Output container
+    /// \param cruID CRU ID
     void fillOutputContainer(TClonesArray *output, int cru);
 
     /// Fill output TClonesArray
-    /// @param output Output container
-    /// @param cruID CRU ID
+    /// \param output Output container
+    /// \param cruID CRU ID
     void fillOutputContainer(TClonesArray *output, int cru, std::vector<CommonMode> &commonModeContainer);
 
     /// Process Common Mode Information
-    /// @param output Output container
-    /// @param cruID CRU ID
+    /// \param output Output container
+    /// \param cruID CRU ID
     void processCommonMode(std::vector<CommonMode> &, int cru);
 
   private:

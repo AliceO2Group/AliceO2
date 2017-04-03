@@ -1,5 +1,6 @@
 /// \file Digit.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Implementation of the Digit
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/Digit.h"
 

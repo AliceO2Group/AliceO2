@@ -1,5 +1,6 @@
-/// \file DigitizerTask.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \file Digitizer.cxx
+/// \brief Implementation of the ALICE TPC digitizer task
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TFile.h"
 #include "TTree.h"
@@ -27,7 +28,7 @@ DigitizerTask::DigitizerTask()
   , mDigitsArray(nullptr)
   , mHitFileName()
 {
-  /// @todo get rid of new
+  /// \todo get rid of new
   mDigitizer = new Digitizer;
   //CALLGRIND_START_INSTRUMENTATION;
 }
@@ -51,6 +52,7 @@ DigitizerTask::~DigitizerTask()
 
 InitStatus DigitizerTask::Init()
 {
+  /// Initialize the task and the input and output containers
   FairRootManager *mgr = FairRootManager::Instance();
   if(!mgr){
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
@@ -73,13 +75,14 @@ InitStatus DigitizerTask::Init()
 
 void DigitizerTask::Exec(Option_t *option)
 {
+  /// Execute the digitization
   if (mHitFileName.size()) fillHitArrayFromFile();
 
   mDigitsArray->Delete();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
   
   DigitContainer *digits = mDigitizer->Process(mPointsArray);
-  /// @todo: Digitizer.getDigitContainer()
+  /// \todo: Digitizer.getDigitContainer()
   std::vector<CommonMode> commonModeContainer(0);
   digits->processCommonMode(commonModeContainer);
   digits->fillOutputContainer(mDigitsArray, commonModeContainer);

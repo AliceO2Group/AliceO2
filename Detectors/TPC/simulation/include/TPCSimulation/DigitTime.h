@@ -1,6 +1,7 @@
 /// \file DigitTime.h
-/// \brief Container class for the Row Digits
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Definition of the Time Bin container
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+
 #ifndef ALICEO2_TPC_DigitTime_H_
 #define ALICEO2_TPC_DigitTime_H_
 
@@ -13,14 +14,16 @@ namespace AliceO2 {
 namespace TPC {
     
 /// \class DigitTime
-/// \brief Digit container class for the Row digits    
+/// This is the third class of the intermediate Digit Containers, in which all incoming electrons from the hits are sorted into after amplification
+/// The structure assures proper sorting of the Digits when later on written out for further processing.
+/// This class holds the individual Pad Row containers and is contained within the CRU Container.
     
 class DigitTime{
   public:
     
     /// Constructor
-    /// @param mTimeBin time bin
-    /// @param npads Number of pads in the row
+    /// \param mTimeBin time bin
+    /// \param npads Number of pads in the row
     DigitTime(int mTimeBin, int nrows);
 
     /// Destructor
@@ -30,46 +33,46 @@ class DigitTime{
     void reset();
 
     /// Get the size of the container
-    /// @return Size of the Row container
-    int getSize() {return mRows.size();}
+    /// \return Size of the Row container
+    size_t getSize() const {return mRows.size();}
 
     /// Get the number of entries in the container
-    /// @return Number of entries in the Row container
-    int getNentries();
+    /// \return Number of entries in the Row container
+    int getNentries() const;
 
     /// Get the time bin
-    /// @return time bin          
-    int getTimeBin() {return mTimeBin;}
+    /// \return time bin
+    int getTimeBin() const {return mTimeBin;}
 
     /// Get the accumulated charge in one time bin
-    /// @return Accumulated charge in one time bin
-    float getTotalChargeTimeBin() {return mTotalChargeTimeBin;}
+    /// \return Accumulated charge in one time bin
+    float getTotalChargeTimeBin() const {return mTotalChargeTimeBin;}
 
     /// Add digit to the row container
-    /// @param eventID MC ID of the event
-    /// @param trackID MC ID of the track
-    /// @param cru CRU of the digit
-    /// @param row Pad row of digit
-    /// @param pad Pad of digit
-    /// @param charge Charge of the digit
+    /// \param eventID MC ID of the event
+    /// \param trackID MC ID of the track
+    /// \param cru CRU of the digit
+    /// \param row Pad row of digit
+    /// \param pad Pad of digit
+    /// \param charge Charge of the digit
     void setDigit(int eventID, int trackID, int cru, int row, int pad, float charge);
 
     /// Fill output TClonesArray
-    /// @param output Output container
-    /// @param cru CRU
-    /// @param timeBin Time bin
+    /// \param output Output container
+    /// \param cru CRU
+    /// \param timeBin Time bin
     void fillOutputContainer(TClonesArray *output, int cru, int timeBin);
 
     /// Fill output TClonesArray
-    /// @param output Output container
-    /// @param cru CRU
-    /// @param timeBin Time bin
+    /// \param output Output container
+    /// \param cru CRU
+    /// \param timeBin Time bin
     void fillOutputContainer(TClonesArray *output, int cru, int timeBin, std::vector<CommonMode> &commonModeContainer);
 
   private:
     float                   mTotalChargeTimeBin;        ///< Total accumulated charge in that time bin
     unsigned short          mTimeBin;                   ///< Time bin of that ADC value
-    std::vector <std::unique_ptr<DigitRow>> mRows;                      ///< Row Container for the ADC value
+    std::vector <std::unique_ptr<DigitRow>> mRows;      ///< Row Container for the ADC value
 };
 
 inline    
@@ -84,7 +87,7 @@ void DigitTime::reset()
 }
 
 inline    
-int DigitTime::getNentries()
+int DigitTime::getNentries() const
 {
   int counter = 0;
   for(auto &aRow : mRows) {

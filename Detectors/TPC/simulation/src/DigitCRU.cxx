@@ -1,5 +1,6 @@
 /// \file DigitCRU.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Implementation of the CRU container
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/DigitTime.h"
@@ -22,11 +23,11 @@ DigitCRU::~DigitCRU()
 
 void DigitCRU::setDigit(int eventID, int trackID, int timeBin, int row, int pad, float charge)
 {
-  //if time bin outside specified range, the range of the vector is extended by one full drift time.
+  /// If time bin outside specified range, the range of the vector is extended by one full drift time.
   while(getSize() <= timeBin) {
     mTimeBins.resize(getSize() + mNTimeBins);
   }
-  
+  /// Check whether the container at this spot already contains an entry
   DigitTime *result = mTimeBins[timeBin].get();
   if(result != nullptr) {
     mTimeBins[timeBin]->setDigit(eventID, trackID, mCRU, row, pad, charge);

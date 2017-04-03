@@ -1,5 +1,6 @@
 /// \file DigitRow.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Implementation of the Row container
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitRow.h"
 #include "TPCSimulation/DigitPad.h"
@@ -19,6 +20,7 @@ DigitRow::~DigitRow()
 
 void DigitRow::setDigit(int eventID, int trackID, int pad, float charge)
 {
+  /// Check whether the container at this spot already contains an entry
   DigitPad *result =  mPads[pad].get();
   if(result != nullptr) {
     mPads[pad]->setDigit(eventID, trackID, charge);

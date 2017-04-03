@@ -1,5 +1,6 @@
 /// \file GEMAmplification.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Implementation of the GEM amplification
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/GEMAmplification.h"
 #include "TPCSimulation/Constants.h"
@@ -18,7 +19,7 @@ GEMAmplification::GEMAmplification()
   for(int i=0; i<4; ++i) {
     float s = MULTIPLICATION[i]/kappa;
     polya % kappa % s % s % (kappa-1) % s;
-    /// @todo Get from root file or write own random generator
+    /// \todo Get from root file or write own random generator
     TF1 polyaDistribution("polya", (polya.str()).data(), 0, 10.f*MULTIPLICATION[i]);
     /// this dramatically alters the speed with which the filling is executed... without this, the distribution makes discrete steps at every int
     polyaDistribution.SetNpx(100000);
@@ -34,19 +35,8 @@ GEMAmplification::~GEMAmplification()
 int GEMAmplification::getStackAmplification(int nElectrons)
 {
   /// We start with an arbitrary number of electrons given to the first amplification stage
-  /// The amplification in the GEM stack is handled for each electron individually.
+  /// The amplification in the GEM stack is handled for each electron individually and the resulting amplified electrons are passed to the next amplification stage.
   const int nElectronsGEM1 = getSingleGEMAmplification(nElectrons, 1);
-  const int nElectronsGEM2 = getSingleGEMAmplification(nElectronsGEM1, 2);
-  const int nElectronsGEM3 = getSingleGEMAmplification(nElectronsGEM2, 3);
-  const int nElectronsGEM4 = getSingleGEMAmplification(nElectronsGEM3, 4);
-  return nElectronsGEM4;
-}
-
-int GEMAmplification::getStackAmplification()
-{
-  /// We start with a single electrons given to the first amplification stage.
-  /// The amplification in each GEM foil is handled individually and the resulting amplified electrons are passed to the next amplification stage
-  const int nElectronsGEM1 = getSingleGEMAmplification(1, 1);
   const int nElectronsGEM2 = getSingleGEMAmplification(nElectronsGEM1, 2);
   const int nElectronsGEM3 = getSingleGEMAmplification(nElectronsGEM2, 3);
   const int nElectronsGEM4 = getSingleGEMAmplification(nElectronsGEM3, 4);
@@ -56,11 +46,11 @@ int GEMAmplification::getStackAmplification()
 int GEMAmplification::getSingleGEMAmplification(int nElectrons, int GEM)
 {
   /// The effective gain of the GEM foil is given by three components
-  /// 1. Collection of the electrons, which is related to the collection efficiency e_coll
-  /// 2. Amplification of the charges in the GEM holes, which is related to the GEM absolute gain G_abs
-  /// 3. Extraction of the electrons, which is related to the extraction efficiency e_extr
+  /// -# Collection of the electrons, which is related to the collection efficiency ε_coll
+  /// -# Amplification of the charges in the GEM holes, which is related to the GEM absolute gain G_abs
+  /// -# Extraction of the electrons, which is related to the extraction efficiency ε_extr
   /// The effective gain, and thus the overall amplification of the GEM is then given by
-  /// G_eff  = e_coll * G_abs * e_extr
+  /// G_eff  = ε_coll * G_abs * ε_extr
   /// Each of the three processes is handled by a sub-routine
   int collectionGEM    = getElectronLosses(nElectrons, COLLECTION[GEM-1]);
   int amplificationGEM = getGEMMultiplication(collectionGEM, GEM);
@@ -77,7 +67,7 @@ int GEMAmplification::getGEMMultiplication(int nElectrons, int GEM)
     return 0;
   }
   else if(nElectrons > 500) {
-   /// For this condition the central value theorem holds and we can approximate the amplification fluctuations by a Gaussian for all electrons
+   /// For this condition the central limit theorem holds and we can approximate the amplification fluctuations by a Gaussian for all electrons
    /// The mean is given by nElectrons * G_abs and the width by sqrt(nElectrons) * Sigma/Mu (Polya) * G_abs
     return ((mRandomGaus.getNextValue() * std::sqrt(static_cast<float>(nElectrons)) * SIGMAOVERMU) + nElectrons) * MULTIPLICATION[GEM-1];
   }
@@ -109,7 +99,7 @@ int GEMAmplification::getElectronLosses(int nElectrons, float probability)
   }
   else {
     /// Explicit handling of the probability for each individual electron
-    /// @todo For further amplification of the process one could also just draw a random number from a binomial distribution, but it should be checked whether this is faster
+    /// \todo For further amplification of the process one could also just draw a random number from a binomial distribution, but it should be checked whether this is faster
     int nElectronsOut = 0;
     for(int i=0; i<nElectrons; ++i) {
       if(mRandomFlat.getNextValue() < probability) {

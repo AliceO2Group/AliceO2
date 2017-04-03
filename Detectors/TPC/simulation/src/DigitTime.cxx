@@ -1,5 +1,6 @@
 /// \file DigitTime.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Implementation of the Time Bin container
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitTime.h"
 #include "TPCSimulation/DigitRow.h"
@@ -22,6 +23,7 @@ DigitTime::~DigitTime()
 
 void DigitTime::setDigit(int eventID, int trackID, int cru, int row, int pad, float charge)
 {
+  /// Check whether the container at this spot already contains an entry
   DigitRow *result = mRows[row].get();
   if(result != nullptr) {
     mRows[row]->setDigit(eventID, trackID, pad, charge);

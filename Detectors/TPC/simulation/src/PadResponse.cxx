@@ -1,5 +1,6 @@
 /// \file PadResponse.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Implementation of the Pad Response
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/PadResponse.h"
 
@@ -27,7 +28,7 @@ PadResponse::PadResponse()
   importPRF("PRF_OROC3.dat", mOROC3);
 }
 
-bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D> & grPRF)
+bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D> & grPRF) const
 {
   std::string inputDir;
   const char* aliceO2env=std::getenv("O2_ROOT");
@@ -50,9 +51,9 @@ bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D> & grPRF)
   return true;
 }
 
-float PadResponse::getPadResponse(GlobalPosition3D posEle, DigitPos digiPadPos)
+float PadResponse::getPadResponse(GlobalPosition3D posEle, DigitPos digiPadPos) const
 {
-  /// @todo The procedure to find the global position of the pad centre should be made easier
+  /// \todo The procedure to find the global position of the pad centre should be made easier
   const Mapper& mapper = Mapper::instance();
   const PadCentre padCentre = mapper.padCentre(mapper.globalPadNumber(digiPadPos.getPadPos()));
   const CRU cru(digiPadPos.getCRU());
@@ -60,11 +61,11 @@ float PadResponse::getPadResponse(GlobalPosition3D posEle, DigitPos digiPadPos)
   const LocalPosition3D padCentreLocal(padCentre.getX(), padCentre.getY(), posEle.getZ());
   const GlobalPosition3D padCentrePos = mapper.LocalToGlobal(padCentreLocal, sector);
 
-  std::cout << padCentrePos.getX() << " " << posEle.getX() << " " << padCentrePos.getY() << " " << posEle.getY() << "\n";
+  ///std::cout << padCentrePos.getX() << " " << posEle.getX() << " " << padCentrePos.getY() << " " << posEle.getY() << "\n";
 
   const int gemStack = int(cru.gemStack());
-  const float offsetX = std::fabs(posEle.getX() - padCentre.getX())*10.f; // GlobalPosition3D and DigitPos in cm, PRF in mm
-  const float offsetY = std::fabs(posEle.getY() - padCentre.getY())*10.f; // GlobalPosition3D and DigitPos in cm, PRF in mm
+  const float offsetX = std::fabs(posEle.getX() - padCentre.getX())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
+  const float offsetY = std::fabs(posEle.getY() - padCentre.getY())*10.f; /// GlobalPosition3D and DigitPos in cm, PRF in mm
   float normalizedPadResponse = 0;
   if(gemStack == 0) {
     normalizedPadResponse = mIROC->Interpolate(offsetX, offsetY);

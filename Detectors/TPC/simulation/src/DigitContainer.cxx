@@ -1,5 +1,6 @@
 /// \file DigitContainer.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Implementation of the Digit Container
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/DigitCRU.h"
@@ -21,6 +22,7 @@ DigitContainer::~DigitContainer()
 
 void DigitContainer::addDigit(int eventID, int trackID, int cru, int timeBin, int row, int pad, float charge)
 {
+  /// Check whether the container at this spot already contains an entry
   DigitCRU *result = mCRU[cru].get();
   if(result != nullptr){
     mCRU[cru]->setDigit(eventID, trackID, timeBin, row, pad, charge);

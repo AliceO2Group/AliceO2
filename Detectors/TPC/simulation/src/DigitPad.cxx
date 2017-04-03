@@ -1,5 +1,6 @@
 /// \file DigitPad.cxx
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \brief Implementation of the Pad container
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/DigitPad.h"
 #include "TPCSimulation/SAMPAProcessing.h"
@@ -22,21 +23,9 @@ DigitPad::~DigitPad()
   mChargePad = 0;
 }
 
-void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad)
-{  
-  const SAMPAProcessing& sampa = SAMPAProcessing::instance();
-  float totalADC = mChargePad;
-  std::vector<long> MClabel;
-  processMClabels(MClabel);
-  const float mADC = sampa.getADCSaturation(totalADC);
-  if(mADC > 0) {
-    TClonesArray &clref = *output;
-    new(clref[clref.GetEntriesFast()]) Digit(MClabel, cru, mADC, row, pad, timeBin);
-  }
-}
-
 void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode)
 {
+  /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is created in written out
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   float totalADC = mChargePad;
   std::vector<long> MClabel;
@@ -50,9 +39,9 @@ void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
 
 void DigitPad::processMClabels(std::vector<long> &sortedMCLabels)
 {
-  // Dump the map into a vector of pairs
+  /// Dump the map into a vector of pairs
   std::vector<std::pair<long, int> > pairMClabels(mMCID.begin(), mMCID.end());
-  // Sort by the number of occurrences
+  /// Sort by the number of occurrences
   std::sort(pairMClabels.begin(), pairMClabels.end(), boost::bind(&std::pair<long, int>::second, _1) < boost::bind(&std::pair<long, int>::second, _2));
   // iterate backwards over the vector and hence write MC with largest number of occurrences as first into the sortedMClabels vector
   for(auto &aMCIDreversed : boost::adaptors::reverse(pairMClabels)) {
