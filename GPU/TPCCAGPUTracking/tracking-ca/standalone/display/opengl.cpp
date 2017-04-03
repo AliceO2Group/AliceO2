@@ -610,7 +610,7 @@ int DrawGLScene(bool doAnimation = false)									// Here's Where We Do All The 
 				const int cid = cdata.Id(i);
 				if (cid >= maxClusters)
 				{
-					printf("Cluster Buffer Size exceeded\n");
+					printf("Cluster Buffer Size exceeded (id %d max %d)\n", cid, maxClusters);
 					exit(1);
 				}
 				float4 *ptr = &globalPos[cid];
