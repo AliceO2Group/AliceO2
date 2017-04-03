@@ -39,7 +39,7 @@ public:
   void DoTracking(AliExternalTrackParam *tracksTPC, int *tracksTPCLab, int nTPCTracks);
   void CalculateSpacePoints();
   int FollowProlongation(AliHLTTRDTrack *t, double mass);
-  void EnableDebugOutput() { fEnableDebugOutput = true; }
+  void EnableDebugOutput() { fDebugOutput = true; }
   void SetPtThreshold(float minPt) { fMinPt = minPt; }
   void SetChi2Threshold(float maxChi2) { fMaxChi2 = maxChi2; }
   void Rotate(const double alpha, const double * const loc, double *glb);
@@ -86,7 +86,7 @@ protected:
                                               // and number of tracklets in detector [iDet][1]
   AliHLTTRDSpacePointInternal *fSpacePoints;  // array with tracklet coordinates in global tracking frame
   AliTRDgeometry *fTRDgeometry;               // TRD geometry
-  bool fEnableDebugOutput;                    // store debug output
+  bool fDebugOutput;                          // store debug output
   float fMinPt;                               // min pt of TPC tracks for tracking
   float fMaxChi2;                             // max chi2 for tracklets
   TTreeSRedirector *fStreamer;                // debug output stream
