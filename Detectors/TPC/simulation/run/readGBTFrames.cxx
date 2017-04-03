@@ -11,6 +11,7 @@
 #include <mutex>
 #include "TPCSimulation/GBTFrameContainer.h"
 #include "TPCSimulation/HalfSAMPAData.h"
+#include "TPCSimulation/Digit.h"
 
 namespace bpo = boost::program_options;
 
@@ -36,40 +37,19 @@ void addData(AliceO2::TPC::GBTFrameContainer& container, std::string& infile, in
 
 void readData(AliceO2::TPC::GBTFrameContainer& container, std::vector<std::ofstream*>& outfiles, int& run, int& done) {
   done = 0;
-  std::vector<AliceO2::TPC::HalfSAMPAData> data(5);
+  std::vector<AliceO2::TPC::HalfSAMPAData> data;
+//  std::vector<AliceO2::TPC::Digit> data;
   int i;
   while (!run) {
     std::this_thread::sleep_for(std::chrono::microseconds{100});
-    while (container.getData(&data)){
-      for (i = 0; i < 5; ++i) {
-        if (outfiles[i] != nullptr) {
-          outfiles[i]->write(reinterpret_cast<const char*>(&data[i].getData()[0]), 16*sizeof(data[i].getData()[0]));
-
-
-//          outfiles[i]->write((char*)&data[i].getData(),16*sizeof(short));
-//          outfiles[i]->put('\n');
-        }
-
-//        std::fprintf(outfiles[i], "%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\n",
-//            data[i][0], data[i][1], data[i][2], data[i][3], data[i][4], data[i][5], data[i][6], data[i][7],
-//            data[i][8], data[i][9], data[i][10], data[i][11], data[i][12], data[i][13], data[i][14], data[i][15]);
-
-//        (*outfiles[i]) << data[i] << '\n';
-//        //std::copy(data[i].getData().begin(), data[i].getData().end(), std::ostreambuf_iterator<char>(*outfiles[i]));
-//        (*outfiles[i]) << "\n";
-      }
-
-//      std::cout 
-//        << data[0].getID() << " "
-//        << data[1].getID() << " "
-//        << data[2].getID() << " "
-//        << data[3].getID() << " "
-//        << data[4].getID() << std::endl;
-//      std::cout << data[0] << std::endl << std::endl;
-//      std::cout << data[1] << std::endl << std::endl;
-//      std::cout << data[2] << std::endl << std::endl;
-//      std::cout << data[3] << std::endl << std::endl;
-//      std::cout << data[4] << std::endl << std::endl;
+    while (container.getData(data)){
+//      for (i = 0; i < 5; ++i) {
+//        if (outfiles[i] != nullptr) {
+//          outfiles[i]->write(reinterpret_cast<const char*>(&data[i].getData()[0]), 16*sizeof(data[i].getData()[0]));
+////          outfiles[i]->write((char*)&data[i].getData(),16*sizeof(short));
+//        }
+//      }
+      data.clear();
     }
   }
   done = 1;

@@ -114,7 +114,8 @@ class GBTFrameContainer {
 
     /// Add all frames from file to conatiner
     /// @param fileName Path to file
-    void addGBTFramesFromBinaryFile(std::string fileName);
+    /// @param frames Frames to read from file
+    void addGBTFramesFromBinaryFile(std::string fileName, int frames = -1);
 
 //    /// Fill output TClonesArray
 //    /// @param output Output container
@@ -136,12 +137,12 @@ class GBTFrameContainer {
     /// @param val Set it to true or false
     void setEnableStoreGBTFrames(bool val)      { mEnableStoreGBTFrames = val; if(!mEnableStoreGBTFrames) mGBTFrames.resize(2);  };
 
-    /// Extracts the digits after all 32 channel were transmitted
-    /// @param digitContainer Digit Container to store the digits in
+    /// Extracts the digits after all 80 channels were transmitted (5*16)
+    /// @param container Digit Container to store the digits in
     /// @return If true, at least one digit was added.
-    bool getDigits(std::vector<Digit> *digitContainer, bool removeChannel = true);
+    bool getData(std::vector<Digit>& container);
 
-    bool getData(std::vector<HalfSAMPAData> *container, bool removeChannel = true);
+    bool getData(std::vector<HalfSAMPAData>& container);
 
     int getNFramesAnalyzed() const { return mGBTFramesAnalyzed; };
 

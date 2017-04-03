@@ -12,16 +12,16 @@ HalfSAMPAData::HalfSAMPAData()
 HalfSAMPAData::HalfSAMPAData(int id, bool low)
   : mID(id)
   , mLow(low)
-  , mData(16,0)
+//  , mData(16,0)
 {
 }
 
-HalfSAMPAData::HalfSAMPAData(int id, bool low, std::vector<short>& data)
+HalfSAMPAData::HalfSAMPAData(int id, bool low, std::array<short,16>& data)
   : mID(id)
   , mLow(low)
 {
-  if (data.size() != 16)
-    LOG(ERROR) << "Vector does not contain 16 elements." << FairLogger::endl;
+//  if (data.size() != 16)
+//    LOG(ERROR) << "Vector does not contain 16 elements." << FairLogger::endl;
 
   mData = data;
 }

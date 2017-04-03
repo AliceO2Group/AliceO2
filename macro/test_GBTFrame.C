@@ -44,7 +44,7 @@ void readDataCont(GBTFrameContainer& container)
   unsigned long count = 0;
   while (run_read) {
     std::this_thread::sleep_for(std::chrono::microseconds{10});
-    while (container.getData(&data)){
+    while (container.getData(data)){
       ++count;
       if (data == lastData) std::cout << "Same data twice" << std::endl;
       lastData = data;

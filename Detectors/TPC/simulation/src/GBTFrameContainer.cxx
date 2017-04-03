@@ -147,7 +147,7 @@ void GBTFrameContainer::addGBTFramesFromFile(std::string fileName)
   }
 }
 
-void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName)
+void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, int frames)
 {
   std::cout << "Reading from file " << fileName << std::endl;
   std::ifstream file(fileName);
@@ -160,7 +160,7 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName)
   uint32_t rawData;
   uint32_t rawMarker;
   uint32_t words[3];
-  while (!file.eof()) {
+  while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
     file.read((char*)&rawData,sizeof(rawData));
     rawMarker = rawData & 0xFFFF0000;
     if ((rawMarker == 0xDEF10000) || (rawMarker == 0xDEF40000)) {
@@ -348,73 +348,20 @@ int GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
   return iOldPosition;
 }
 
-bool GBTFrameContainer::getDigits(std::vector<Digit> *digitContainer, bool removeChannel)
+bool GBTFrameContainer::getData(std::vector<Digit>& container)
 {
-  std::vector<std::vector<int>> iData(5);
-  mAdcMutex.lock();
-  for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
-  {
-    if (mAdcValues[iHalfSampa]->size() < 16) continue;
-    for (int iChannel = 0; iChannel < 16; ++iChannel)
-    {
-      iData[iHalfSampa].push_back(mAdcValues[iHalfSampa]->front());
-      mAdcValues[iHalfSampa]->pop();
-    }
-  }
-  mAdcMutex.unlock();
-
-  const Mapper& mapper = Mapper::instance();
-  bool digitsAdded = false;
-  int iTimeBin = mTimebin;
-  int iSampaChannel;
-  int iSampa;
-  float iCharge;
-  int iRow;
-  int iPad;
-  std::vector<long> iMcLabel;
-  for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
-  {
-    iSampaChannel = (iHalfSampa == 4) ?     // 5th half SAMPA corresponds to  SAMPA2
-        ((mCRU%2) ? 16 : 0) :                   // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
-        ((iHalfSampa%2) ? 16 : 0);              // every even half SAMPA containes channel 0-15, the odd ones channel 16-31 
-    iSampa =  (iHalfSampa == 4) ?
-        2 :
-        (mCRU%2) ? iHalfSampa/2+3 : iHalfSampa/2;
-    int position = 0;
-    for (std::vector<int>::iterator it = iData[iHalfSampa].begin(); it != iData[iHalfSampa].end(); ++it)
-    {
-      const PadPos& padPos = mapper.padPos(
-          mCRU/2 /*partition*/, 
-          mLink /*FEC in partition*/,
-          iSampa,
-          iSampaChannel);
-      iRow = padPos.getRow();
-      iPad = padPos.getPad();
-      iCharge = *it; 
-//      std::cout << mCRU/2 << " " << mLink << " " << iSampa << " " << iSampaChannel << " " << iRow << " " << iPad << " " << iTimeBin << " " << iCharge << std::endl;
-
-      digitContainer->emplace_back(iMcLabel, mCRU, iCharge, iRow, iPad, iTimeBin);
-      digitsAdded = true;
-      ++iSampaChannel;
-    }
-  }
-
-  if (digitsAdded) ++mTimebin;
-  return digitsAdded;
-}
-
-bool GBTFrameContainer::getData(std::vector<HalfSAMPAData>* container, bool removeChannel)
-{
-  if (container->size() != 5) {
-    LOG(INFO) << "Container had the wrong size, set it to 5" << FairLogger::endl;
-    container->resize(5);
-  }
-  container->at(0).reset();
-  container->at(1).reset();
-  container->at(2).reset();
-  container->at(3).reset();
-  container->at(4).reset();
-
+//  std::vector<std::vector<int>> iData(5);
+//  mAdcMutex.lock();
+//  for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
+//  {
+//    if (mAdcValues[iHalfSampa]->size() < 16) continue;
+//    for (int iChannel = 0; iChannel < 16; ++iChannel)
+//    {
+//      iData[iHalfSampa].push_back(mAdcValues[iHalfSampa]->front());
+//      mAdcValues[iHalfSampa]->pop();
+//    }
+//  }
+//  mAdcMutex.unlock();
   bool dataAvailable = false;
 
   mAdcMutex.lock();
@@ -432,12 +379,78 @@ bool GBTFrameContainer::getData(std::vector<HalfSAMPAData>* container, bool remo
 
   if (!dataAvailable) return dataAvailable;
 
+  const Mapper& mapper = Mapper::instance();
+  int iTimeBin = mTimebin;
+  int iSampaChannel;
+  int iSampa;
+  float iCharge;
+  int iRow;
+  int iPad;
+  std::vector<long> iMcLabel;
+  for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
+  {
+    iSampaChannel = (iHalfSampa == 4) ?     // 5th half SAMPA corresponds to  SAMPA2
+        ((mCRU%2) ? 16 : 0) :                   // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
+        ((iHalfSampa%2) ? 16 : 0);              // every even half SAMPA containes channel 0-15, the odd ones channel 16-31 
+    iSampa =  (iHalfSampa == 4) ?
+        2 :
+        (mCRU%2) ? iHalfSampa/2+3 : iHalfSampa/2;
+    for (std::array<short,16>::iterator it = mTmpData[iHalfSampa].begin(); it != mTmpData[iHalfSampa].end(); ++it)
+    {
+      const PadPos& padPos = mapper.padPos(
+          mCRU/2 /*partition*/, 
+          mLink /*FEC in partition*/,
+          iSampa,
+          iSampaChannel);
+      iRow = padPos.getRow();
+      iPad = padPos.getPad();
+      iCharge = *it; 
+//      std::cout << mCRU/2 << " " << mLink << " " << iSampa << " " << iSampaChannel << " " << iRow << " " << iPad << " " << iTimeBin << " " << iCharge << std::endl;
+
+      container.emplace_back(iMcLabel, mCRU, iCharge, iRow, iPad, iTimeBin);
+      ++iSampaChannel;
+    }
+  }
+
+  if (dataAvailable) ++mTimebin;
+  return dataAvailable;
+}
+
+bool GBTFrameContainer::getData(std::vector<HalfSAMPAData>& container)
+{
+  bool dataAvailable = false;
+
+  mAdcMutex.lock();
+  for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
+  {
+    if (mAdcValues[iHalfSampa]->size() < 16) continue;
+    dataAvailable = true;
+    for (int iChannel = 0; iChannel < 16; ++iChannel)
+    {
+      mTmpData[iHalfSampa][iChannel] = mAdcValues[iHalfSampa]->front();
+      mAdcValues[iHalfSampa]->pop();
+    }
+  }
+  mAdcMutex.unlock();
+
+  if (!dataAvailable) return dataAvailable;
+
+//  if (container.size() != 5) {
+////    LOG(INFO) << "Container had the wrong size, set it to 5" << FairLogger::endl;
+//    container.resize(5);
+//  }
+//  container.at(0).reset();
+//  container.at(1).reset();
+//  container.at(2).reset();
+//  container.at(3).reset();
+//  container.at(4).reset();
+
   int iSampaChannel;
   int iSampa;
 
   for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
   {
-    iSampaChannel = 0;
+//    iSampaChannel = 0;
 //    iSampaChannel = (iHalfSampa == 4) ?         // 5th half SAMPA corresponds to  SAMPA2
 //        ((mCRU%2) ? 16 : 0) :                   // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
 //        ((iHalfSampa%2) ? 16 : 0);              // every even half SAMPA containes channel 0-15, the odd ones channel 16-31 
@@ -445,13 +458,13 @@ bool GBTFrameContainer::getData(std::vector<HalfSAMPAData>* container, bool remo
         2 :
         (mCRU%2) ? iHalfSampa/2+3 : iHalfSampa/2;
 
-//    std::cout << iHalfSampa << " " << iData[iHalfSampa].size() << " " << mAdcValues[iHalfSampa]->size() << std::endl;
-    container->at(iHalfSampa).setID(iSampa);
-    for (std::array<short,16>::iterator it = mTmpData[iHalfSampa].begin(); it != mTmpData[iHalfSampa].end(); ++it)
-    {
-      container->at(iHalfSampa).setChannel(iSampaChannel,*it);
-      ++iSampaChannel;
-    }
+    container.emplace_back(iSampa,!((bool)mCRU%2),mTmpData[iHalfSampa]);
+//    container.at(iHalfSampa).setID(iSampa);
+//    for (std::array<short,16>::iterator it = mTmpData[iHalfSampa].begin(); it != mTmpData[iHalfSampa].end(); ++it)
+//    {
+//      container.at(iHalfSampa).setChannel(iSampaChannel,*it);
+//      ++iSampaChannel;
+//    }
   }
   return dataAvailable;
 }

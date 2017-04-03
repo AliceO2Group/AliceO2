@@ -4,7 +4,7 @@
 #ifndef ALICE_O2_TPC_HALFSAMPADATA_H_
 #define ALICE_O2_TPC_HALFSAMPADATA_H_
 
-#include <vector>
+#include <array>
 #include <iostream> 
 #include <iomanip>
 #include "FairLogger.h" 
@@ -30,7 +30,7 @@ class HalfSAMPAData {
     /// @param id SAMPA ID
     /// @param low Which half of SAMPA channels, true for low, false for high
     /// @param data 32 ADC values
-    HalfSAMPAData(int id, bool low, std::vector<short>& data);
+    HalfSAMPAData(int id, bool low, std::array<short,16>& data);
 
     /// Destructor
     ~HalfSAMPAData();
@@ -61,9 +61,9 @@ class HalfSAMPAData {
     /// Resets internal storage
     void reset() { mID = -1; mLow = true; };// mData.clear(); };
 
-    /// Returns reference to data vector
-    /// @return Reference to data vector
-    std::vector<short>& getData() { return mData; };
+    /// Returns reference to data
+    /// @return Reference to data
+    std::array<short,16>& getData() { return mData; };
 
 
     /// Print function
@@ -78,7 +78,7 @@ class HalfSAMPAData {
 
     int mID;                    ///< SMAPA ID on FEC (0-4)
     bool mLow;                  ///< True for low half of channel, false for high half of channels
-    std::vector<short> mData;     ///< vector to store data
+    std::array<short,16> mData; ///< array to store data
 };
 }
 }
