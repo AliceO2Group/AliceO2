@@ -35,8 +35,7 @@ CXXFILES					= standalone.cxx \
 								merger-ca/AliHLTTPCGMMerger.cxx \
 								merger-ca/AliHLTTPCGMSliceTrack.cxx \
 								merger-ca/AliHLTTPCGMTrackParam.cxx \
-								standalone/AliHLTLogging.cxx \
-								standalone/AliHLTTPCTransform.cxx
+								standalone/AliHLTLogging.cxx
 
 ifeq ($(BUILD_EVENT_DISPLAY), 1)
 CPPFILES					+= display/opengl.cpp
