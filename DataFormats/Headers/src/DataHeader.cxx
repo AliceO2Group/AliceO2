@@ -14,7 +14,6 @@
 #include <cstdio> // printf
 #include <cstring> // strncpy
 
-
 //the answer to life and everything
 const uint32_t AliceO2::Header::BaseHeader::sMagicString = String2<uint32_t>("O2O2");
 
