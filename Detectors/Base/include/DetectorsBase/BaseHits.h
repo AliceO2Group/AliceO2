@@ -35,11 +35,14 @@ class BasicXYZEHit : public FairMultiLinkedData_Interface
   short mDetectorID; // the detector/sensor id
 
  public:
+  BasicXYZEHit() = default; // for ROOT IO
+
   // constructor
  BasicXYZEHit(T x, T y, T z, E time, E e, int trackid, short did)
     :  mPos(x, y, z), mTime(time), mELoss(e), mTrackID(trackid), mDetectorID(did)
   {
   }
+
 
   // getting the cartesian coordinates
   T GetX() const { return mPos.X(); }
@@ -70,6 +73,8 @@ class BasicXYZEHit : public FairMultiLinkedData_Interface
   }
   void SetPos(Point3D<T> const &p) { mPos = p; }
 
+
+  ClassDef(BasicXYZEHit, 1);
 };
 
 } // end namespace Base
