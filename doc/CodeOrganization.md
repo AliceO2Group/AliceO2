@@ -15,13 +15,14 @@ A typical submodule looks like :
 |   |-- doc
 |   |   `-- All documentation files
 |   |-- include
-|   |   `-- CCDB
+|   |   `-- Common
 |   |       `-- Factory.h
 |   |-- src
 |   |   |-- Internal.h
 |   |   `-- Factory.cxx
 |   `-- test
 |       `-- TestFactory.cxx
+
 ~~~~
 
 Depending on the case, some subdirectories can be voluntarily left out or added.
@@ -52,7 +53,7 @@ A number of principles were agreed on that resulted in the above code organisati
   * What is repeated / structural starts with a lower case letter (e.g. src, include, test).
   * The rest (labels, unique names) start with an upper case letter (e.g. Common, Detectors).
 * Why are headers in `MyModule/include/MyModule` and not directly in `MyModule/include ?`
- * A: The difficulty here is that we have a number of constraints. First the headers must be installed in a directory
+  * The difficulty here is that we have a number of constraints. First the headers must be installed in a directory
  named after the module. Second the code which uses the headers must include `MyModule/xyz.h` and it must work
  whether it is inside AliceO2 or in a different repo, i.e. whether the headers are installed or they are internal.
  When evaluating the different options we ended up with this not-totally-perfect solution because all other solutions

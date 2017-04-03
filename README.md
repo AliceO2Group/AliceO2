@@ -19,8 +19,10 @@ The Coding Guidelines are [here](https://github.com/AliceO2Group/CodingGuideline
 See [below](###Formatting) how to format your code accordingly.
 
 ### Doxygen
-Turn it on in cmake (`cmake -DBUILD_DOXYGEN=ON ...`) before building (`make`) and then open
-`docs/doxygen/doc/html/index.html` from the build directory.
+`make doc` will generate the doxygen documentation.
+To access the resulting documentation, open doc/html/index.html in your
+build directory. To install the documentation when calling `make install`
+turn on the variable `DOC_INSTALL`.
 
 Doxygen documentation is also available online [here](http://aliceo2group.github.io/AliceO2/)
 
