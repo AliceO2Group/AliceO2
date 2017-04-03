@@ -166,13 +166,7 @@ add_subdirectory(Detectors)
 add_subdirectory(Examples)
 add_subdirectory(macro)
 add_subdirectory(Utilities)
-
-Option(BUILD_DOXYGEN "Build Doxygen" OFF)
-IF (BUILD_DOXYGEN)
-  MESSAGE(STATUS "Building the Doxygen documentation")
-  ADD_SUBDIRECTORY(docs)
-ENDIF (BUILD_DOXYGEN)
-
+add_subdirectory(doc)
 
 IF (IWYU_FOUND)
   ADD_CUSTOM_TARGET(checkHEADERS

@@ -4,11 +4,11 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = @DOXYGEN_PROJECT_NAME@
+PROJECT_NAME           = @PROJECT_NAME@
 PROJECT_NUMBER         =
 PROJECT_BRIEF          =
-PROJECT_LOGO           = "@CMAKE_SOURCE_DIR@/docs/doxygen/o2_logo.png"
-OUTPUT_DIRECTORY       = "@CMAKE_CURRENT_BINARY_DIR@/doc"
+PROJECT_LOGO           = "@CMAKE_SOURCE_DIR@/doc/images/o2_logo.png"
+OUTPUT_DIRECTORY       = "@DOC_OUTPUT_DIR@"
 CREATE_SUBDIRS         = YES
 ALLOW_UNICODE_NAMES    = NO
 OUTPUT_LANGUAGE        = English
@@ -138,7 +138,7 @@ CLANG_OPTIONS          =
 #---------------------------------------------------------------------------
 ALPHABETICAL_INDEX     = YES
 COLS_IN_ALPHA_INDEX    = 5
-IGNORE_PREFIX          = @DOXYGEN_IGNORE_PREFIX@
+IGNORE_PREFIX          = .git
 #---------------------------------------------------------------------------
 # Configuration options related to the HTML output
 #---------------------------------------------------------------------------
