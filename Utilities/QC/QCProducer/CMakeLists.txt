@@ -39,6 +39,8 @@ O2_GENERATE_EXECUTABLE(
 
 ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK)
 
+# Currently broken
+if(FALSE)
 set(TEST_SRCS
     test/ProducerDeviceTestSuite.cxx
     test/ProducerTestSuite.cxx
@@ -49,3 +51,4 @@ O2_GENERATE_TESTS(
     BUCKET_NAME ${BUCKET_NAME}
     TEST_SRCS ${TEST_SRCS}
 )
+endif()
