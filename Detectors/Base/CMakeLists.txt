@@ -14,7 +14,9 @@ Set(HEADERS
   include/${MODULE_NAME}/Track.h
   include/${MODULE_NAME}/TrackReference.h
   include/${MODULE_NAME}/Utils.h
+  include/${MODULE_NAME}/BaseHits.h
 )
+
 Set(LINKDEF src/BaseLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME detectors_base)

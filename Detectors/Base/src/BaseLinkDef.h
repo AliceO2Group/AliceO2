@@ -10,5 +10,7 @@
 #pragma link C++ class AliceO2::Base::Track::TrackPar+;
 #pragma link C++ class AliceO2::Base::Track::TrackParCov+;
 #pragma link C++ class AliceO2::Base::TrackReference+;
+#pragma link C++ class ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<float>,ROOT::Math::DefaultCoordinateSystemTag>+;
+#pragma link C++ class AliceO2::Base::BasicXYZEHit<float,float>+;
 
 #endif
