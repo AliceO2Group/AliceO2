@@ -21,7 +21,7 @@ AliHLTTRDTracker::AliHLTTRDTracker() :
   fNTracklets(0),
   fSpacePoints(0x0),
   fTRDgeometry(0x0),
-  fEnableDebugOutput(false),
+  fDebugOutput(false),
   fMinPt(1.0),
   fMaxChi2(35.0),
   fStreamer(0x0)
@@ -46,7 +46,7 @@ AliHLTTRDTracker::AliHLTTRDTracker(const AliHLTTRDTracker &tracker) :
   fNTracklets(0),
   fSpacePoints(0x0),
   fTRDgeometry(0x0),
-  fEnableDebugOutput(false),
+  fDebugOutput(false),
   fMinPt(1.0),
   fMaxChi2(35.0),
   fStreamer(0x0)
@@ -77,7 +77,7 @@ AliHLTTRDTracker::~AliHLTTRDTracker()
     delete[] fTracks;
     delete[] fSpacePoints;
     delete fTRDgeometry;
-    if (fEnableDebugOutput) {
+    if (fDebugOutput) {
       delete fStreamer;
     }
   }
@@ -117,7 +117,7 @@ void AliHLTTRDTracker::Init()
     fR[iLy] = glb[0];
   }
 
-  if (fEnableDebugOutput) {
+  if (fDebugOutput) {
     fStreamer = new TTreeSRedirector("debug.root", "recreate");
   }
 
@@ -199,7 +199,7 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
     AliHLTTRDTrack tMI(tracksTPC[i]);
     AliHLTTRDTrack *t = &tMI;
     t->SetTPCtrackId(i);
-    t->SetLabel(0); // use for monte carlo tracks later TODO: set correct label
+    t->SetLabel(tracksTPCLab[i]);
     t->SetMass(piMass);
 
     int result = FollowProlongation(t, piMass);
@@ -209,7 +209,7 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
     double pT = t->Pt();
     double alpha = t->GetAlpha();
 
-    if (fEnableDebugOutput) {
+    if (fDebugOutput) {
       (*fStreamer) << "tracksFinal" <<
         "ev=" << fNEvents <<
         "iTrk=" << i <<
@@ -221,7 +221,7 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
     }
   }
 
-  if (fEnableDebugOutput) {
+  if (fDebugOutput) {
     (*fStreamer) << "statistics" <<
       "nEvents=" << fNEvents <<
       "nTrackletsTotal=" << fNTracklets <<
@@ -309,10 +309,28 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
   int result = 0;
   int iTrack = t->GetTPCtrackId(); // for debugging individual tracks
 
+  // only propagate tracks within TRD acceptance
+  if (TMath::Abs(t->Eta()) > 0.9) {
+    return result;
+  }
+
   // introduce momentum cut on tracks
   // particles with pT < 0.9 GeV highly unlikely to have matching online TRD tracklets
   if (t->Pt() < fMinPt) {
     return result;
+  }
+
+  if (fDebugOutput) {
+    double xDebug = t->GetX();
+    double eta = t->Eta();
+    double pt = t->Pt();
+    AliExternalTrackParam debugParam(*t);
+    (*fStreamer) << "initialTracks" <<
+      "x=" << xDebug <<
+      "pt=" << pt <<
+      "eta=" << eta <<
+      "track.=" << &debugParam <<
+      "\n";
   }
 
   // define some constants
@@ -341,7 +359,12 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
     const float zMaxTRD = pad->GetRowPos(0);
     const float yMax    = pad->GetColPos(nCols-1) + pad->GetColSize(nCols-1);
 
-    if (!PropagateTrackToBxByBz(t, fR[iLayer], mass, 5.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/) || (abs(t->GetZ()) >= (zMaxTRD + 10.)) ) {
+    if (!PropagateTrackToBxByBz(t, fR[iLayer], mass, 2.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/)) {
+      return result;
+    }
+
+    if (abs(t->GetZ()) >= (zMaxTRD + 10.)) {
+      Warning("FollowProlongation", "track out of TRD acceptance with z=%f in layer %i", t->GetZ(), iLayer);
       return result;
     }
 
@@ -351,10 +374,10 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
     }
 
     // debug purposes only -> store track information
-    double sigmaY = TMath::Sqrt(t->GetSigmaY2());
-    double sigmaZ = TMath::Sqrt(t->GetSigmaZ2());
-    AliExternalTrackParam param(*t);
-    if (fEnableDebugOutput) {
+    if (fDebugOutput) {
+      double sigmaY = TMath::Sqrt(t->GetSigmaY2());
+      double sigmaZ = TMath::Sqrt(t->GetSigmaZ2());
+      AliExternalTrackParam param(*t);
       (*fStreamer) << "trackInfoLayerwise" <<
         "iEv=" << fNEvents <<
         "iTrk=" << iTrack <<
@@ -451,7 +474,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
       }
     }
 
-    if (fEnableDebugOutput) {
+    if (fDebugOutput) {
       int nDetToSearch = det.size();
       (*fStreamer) << "chambersToSearch" <<
         "nChambers=" << nDetToSearch <<
@@ -464,7 +487,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
     double deltaY = 7. * TMath::Sqrt(t->GetSigmaY2() + TMath::Power(0.03, 2)) + 2; // add constant to the road for better efficiency
     double deltaZ = 7. * TMath::Sqrt(t->GetSigmaZ2() + TMath::Power(9./TMath::Sqrt(12), 2));
 
-    if (fEnableDebugOutput) {
+    if (fDebugOutput) {
       (*fStreamer) << "searchWindow" <<
         "layer=" << iLayer <<
         "dY=" << deltaY <<
@@ -481,14 +504,36 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
     bool wasTrackRotated = false;
     for (iDet = det.begin(); iDet != det.end(); ++iDet) {
       int detToSearch = *iDet;
-      int stackToSearch = detToSearch / nLayer; // global stack number
+      int stackToSearch = (detToSearch % 30) / nLayer;
+      int stackToSearchGlobal = detToSearch / nLayer; // global stack number (0..89)
       int sectorToSearch = fTRDgeometry->GetSector(detToSearch);
+      if (fTRDgeometry->IsHole(iLayer, stackToSearch, sectorToSearch) || detToSearch == 538) {
+        // skip PHOS hole and non-existing chamber 17_4_4
+        continue;
+      }
       if (sectorToSearch != initialSector && !wasTrackRotated) {
         float alphaToSearch = 2.0 * TMath::Pi() / (float) nSector * ((float) sectorToSearch + 0.5);
         if (!t->Rotate(alphaToSearch)) {
           return result;
         }
         wasTrackRotated = true; // tracks need to be rotated max once per layer
+      }
+      // TODO
+      // - get parameter at x of chamber
+      // - for each tracklet: get parameter at x of tracklet and compare y and z at this position
+      double xOfChamberLoc[3] = {AliTRDgeometry::AnodePos(), 0., 0.};
+      double xOfChamberGlb[3];
+      TGeoHMatrix *matrix = fTRDgeometry->GetClusterMatrix(detToSearch);
+      if (!matrix) {
+        Error("FollowProlongation", "invalid TRD cluster matrix, skipping detector %i", detToSearch);
+        continue;
+      }
+      matrix->LocalToMaster(xOfChamberLoc, xOfChamberGlb);
+      if (TMath::Abs(xOfChamberGlb[0] - t->GetX()) > 1.) {
+        if (!PropagateTrackToBxByBz(t, xOfChamberGlb[0], mass, 1.0, kFALSE, 0.8)) {
+          Error("FollowProlongation", "track propagation failed while fine tuning track parameter for chamber");
+          return result;
+        }
       }
       for (int iTrklt=0; iTrklt<fTrackletIndexArray[detToSearch][1]; ++iTrklt) {
         int trkltIdx = fTrackletIndexArray[detToSearch][0] + iTrklt;
@@ -500,11 +545,11 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
           p[1] = fSpacePoints[trkltIdx].fX[2];
           if (TMath::Abs(p[0]) > 1000) {
             Error("FollowProlongation", "impossible y-value of tracklet: y=%.12f", p[0]);
-            return result;
+            continue;
           }
           cov[0] = TMath::Power(0.03, 2);
           cov[1] = 0;
-          cov[2] = TMath::Power(9./TMath::Sqrt(12), 2);
+          cov[2] = TMath::Power(9.,2) / 12.;
           double chi2 = t->GetPredictedChi2(p, cov);
           if (chi2 < bestGuessChi2) {
             bestGuessChi2 = chi2;
@@ -514,13 +559,13 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
           float dX = t->GetX() - fSpacePoints[trkltIdx].fX[0];
           float dY = t->GetY() - fSpacePoints[trkltIdx].fX[1];
           float dZ = t->GetZ() - fSpacePoints[trkltIdx].fX[2];
-          if (fEnableDebugOutput) {
+          if (fDebugOutput) {
             (*fStreamer) << "residuals" <<
               "iEv=" << fNEvents <<
               "iTrk=" << iTrack <<
               "layer=" << iLayer <<
               "iTrklt=" << iTrklt <<
-              "stack=" << stackToSearch <<
+              "stack=" << stackToSearchGlobal <<
               "det=" << detToSearch <<
               "dX=" << dX <<
               "dY=" << dY <<
@@ -552,17 +597,6 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
       }
     }
   }
-  // after propagation, propagate track back to inner radius of TPC
-  //FIXME do not propagate back -> for this, the track matching to offline tracks needs to be adjusted
-  float xInnerParam = 83.65;
-  if (!PropagateTrackToBxByBz(t, xInnerParam, mass, 5.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/)) {
-    Warning("FollowProlongation", "Back propagation for track %i failed", iTrack);
-    return result;
-  }
-
-  // rotate track back in old sector in case of sector crossing
-  AdjustSector(t); //FIXME not necessary if track is not back propagated
-
   return result;
 }
 
