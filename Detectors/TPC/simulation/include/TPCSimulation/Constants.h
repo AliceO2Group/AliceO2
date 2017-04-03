@@ -11,7 +11,7 @@ namespace AliceO2 {
 namespace TPC {
 
 // gas parameters
-constexpr float WION = 37.3e-6;           ///< Effective ionization potential of Ne-CO2-N2 (90-10-5), value from TDR
+constexpr float WION = 37.3e-9;           ///< Effective ionization potential of Ne-CO2-N2 (90-10-5), value from TDR
 constexpr float ATTCOEF = 250.;           ///< Attachement coefficient of Ne-CO2-N2 (90-10-5), value from TDR
 constexpr float OXYCONT = 5.e-6;          ///< Oxygen content, value from current AliRoot TPCParam
 constexpr float DRIFTV = 2.58;            ///< Drift velocity of Ne-CO2-N2 (90-10-5), value from TDR
