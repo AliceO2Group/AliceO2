@@ -676,6 +676,7 @@ o2_define_bucket(
     fairroot_base_bucket
     MathCore
     Matrix
+    Physics
     ParBase
 
     INCLUDE_DIRECTORIES
@@ -694,6 +695,7 @@ o2_define_bucket(
     Graf
     Gpad
     Matrix
+    Physics
     EMCALBase
     DetectorsBase
     SimulationDataFormat
