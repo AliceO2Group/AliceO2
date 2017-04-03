@@ -10,8 +10,6 @@
 
 #include "TPCBase/Mapper.h"
 
-#include "TObject.h"
-
 #include <cmath>
 #include <iostream>
 #include <Vc/Vc>
@@ -38,7 +36,7 @@ static GEMRESPONSE GEMresponse;
 /// \class Digitizer
 /// \brief Digitizer class for the TPC
 
-class Digitizer : public TObject {
+class Digitizer {
   public:
 
     /// Default constructor

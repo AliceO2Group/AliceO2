@@ -30,15 +30,15 @@ class DigitCRU{
 
     /// Get the number of entries in the container
     /// @return Number of entries in the time bin container
-    int getNentries();
+    int getNentries() const;
 
     /// Get the size of the container
     /// @return Size of the time bin container
-    int getSize() {return mTimeBins.size();}
+    size_t getSize() const {return mTimeBins.size();}
 
     /// Get the CRU ID
     /// @return CRU ID
-    int getCRUID() {return mCRU;}
+    int getCRUID() const {return mCRU;}
 
     /// Add digit to the row container
     /// @param eventID MC ID of the event
@@ -82,7 +82,7 @@ void DigitCRU::reset()
 }
     
 inline 
-int DigitCRU::getNentries()
+int DigitCRU::getNentries() const
 {
   int counter = 0;
   for(auto &aTime : mTimeBins) {

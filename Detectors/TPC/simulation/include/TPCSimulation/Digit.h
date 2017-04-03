@@ -48,7 +48,7 @@ class Digit : public FairTimeStamp {
     Digit(std::vector<long> &MClabel, int cru, float charge, int row, int pad, int time, float commonMode);
 
     /// Destructor
-    virtual ~Digit();
+    virtual ~Digit()= default;
 
     /// Get the accumulated charged of the digit in ADC counts. 
     /// The conversion is such that the decimals are simply stripped

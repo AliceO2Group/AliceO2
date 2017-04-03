@@ -39,14 +39,6 @@ Digit::Digit(std::vector<long> &MClabel, int cru, float charge, int row, int pad
 {
 }
 
-Digit::~Digit()
-{}
-
-std::ostream &Digit::Print(std::ostream &output) const
-{
-}
-
-Digit::~Digit()= default;
 
 std::ostream &Digit::Print(std::ostream &output) const{
   output << "TPC Digit in CRU [" << mCRU << "], pad row [" << mRow << "] and pad [" << mPad << "] with charge " << mCharge << " at time stamp" /* << mTimeStamp*/;

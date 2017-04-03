@@ -27,10 +27,6 @@ PadResponse::PadResponse()
   importPRF("PRF_OROC3.dat", mOROC3);
 }
 
-PadResponse::~PadResponse()
-{}
-
-
 bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D> & grPRF)
 {
   std::string inputDir;
@@ -81,4 +77,3 @@ float PadResponse::getPadResponse(GlobalPosition3D posEle, DigitPos digiPadPos)
   }
   return normalizedPadResponse;
 }
-PadResponse::~PadResponse()= default;

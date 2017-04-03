@@ -18,7 +18,7 @@ class PadResponse {
     PadResponse();
 
     /// Destructor
-    virtual ~PadResponse();
+    virtual ~PadResponse()=default;
 
     /// Import the PRF from a .dat file to a TGraph2D
     /// @param file Name of the .dat file

@@ -20,8 +20,7 @@ using namespace AliceO2::TPC;
 bool AliceO2::TPC::Digitizer::mDebugFlagPRF = false;
 
 Digitizer::Digitizer()
-  : TObject()
-  , mDigitContainer(nullptr)
+  : mDigitContainer(nullptr)
   , mDebugTreePRF(nullptr)
 {}
 

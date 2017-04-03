@@ -31,7 +31,7 @@ class CommonMode{
       
     /// Get the ADC value
     /// @return ADC value
-    float getCommonMode() {return mCommonMode;}
+    float getCommonMode() const {return mCommonMode;}
             
     /// Get the ADC value for a given CRU and Time bin from the Digits array
     /// @param summedChargesContainer Container containing the summed charges per pad and time bin
@@ -40,11 +40,11 @@ class CommonMode{
       
     /// Get the CRU ID
     /// @return CRU ID
-    int getCRU() {return mCRU;}
+    int getCRU() const {return mCRU;}
       
     /// Get the Time bin
     /// @return Time Bin
-    int getTimeBin() {return mTimeBin;}
+    int getTimeBin() const {return mTimeBin;}
       
   private:
     unsigned short      mCRU;
