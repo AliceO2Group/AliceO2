@@ -1,8 +1,10 @@
-#if !defined(__CINT__) || defined(__MAKECINT__)
-  #include <Rtypes.h>
-  #include <TString.h>
-  #include <TStopwatch.h>
-  #include <TGeoManager.h>
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+  #include <iostream>
+
+  #include "Rtypes.h"
+  #include "TString.h"
+  #include "TStopwatch.h"
+  #include "TGeoManager.h"
 
   #include "FairLogger.h"
   #include "FairRunAna.h"
@@ -14,7 +16,7 @@
   #include "TPCSimulation/ClustererTask.h"
 #endif
 
-void run_clusterer(Int_t nEvents = 2, TString mcEngine = "TGeant3")
+void run_clusterer_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   // Initialize logger
   FairLogger *logger = FairLogger::GetLogger();
@@ -31,13 +33,13 @@ void run_clusterer(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   TStopwatch timer;
 
   // Setup FairRoot analysis manager
-  FairRunAna * fRun = new FairRunAna;
+  FairRunAna * run = new FairRunAna;
   FairFileSource *fFileSource = new FairFileSource(inputfile.str().c_str());
-  fRun->SetSource(fFileSource);
-  fRun->SetOutputFile(outputfile.str().c_str());
+  run->SetSource(fFileSource);
+  run->SetOutputFile(outputfile.str().c_str());
 
   // Setup Runtime DB
-  FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
+  FairRuntimeDb* rtdb = run->GetRuntimeDb();
   FairParRootFileIo* parInput1 = new FairParRootFileIo();
   parInput1->open(paramfile.str().c_str());
   rtdb->setFirstInput(parInput1);
@@ -49,19 +51,19 @@ void run_clusterer(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   clustTPC->setClustererEnable(AliceO2::TPC::ClustererTask::ClustererType::Box,true);
   clustTPC->setClustererEnable(AliceO2::TPC::ClustererTask::ClustererType::HW,true);
 
-  fRun->AddTask(clustTPC);
+  run->AddTask(clustTPC);
 
   // Initialize everything
-  fRun->Init();
+  run->Init();
 
   clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Parallel);
   //clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Sequential);
 
   // Start simulation
   timer.Start();
-  fRun->Run();
+  run->Run();
 
-  fRun->TerminateRun();
+  run->TerminateRun();
   // we are done, cleanup
   delete clustTPC;
 

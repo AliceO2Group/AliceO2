@@ -564,7 +564,6 @@ o2_define_bucket(
     RIO
     Hist
     DetectorsPassive
-    its_reconstruction_bucket
     Gen
     Base
     TreePlayer

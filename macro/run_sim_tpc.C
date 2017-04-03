@@ -1,3 +1,24 @@
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+  #include <iostream>
+
+  #include "Rtypes.h"
+  #include "TSystem.h"
+  #include "TMath.h"
+  #include "TString.h"
+  #include "TStopwatch.h"
+  #include "TGeoManager.h"
+
+  #include "FairRunSim.h"
+  #include "FairRuntimeDb.h"
+  #include "FairPrimaryGenerator.h"
+  #include "FairBoxGenerator.h"
+  #include "FairParRootFileIo.h"
+
+  #include "DetectorsPassive/Cave.h"
+
+  #include "TPCSimulation/Detector.h"
+#endif
+
 void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   TString dir = getenv("VMCWORKDIR");
@@ -78,15 +99,16 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Start run
   run->Run(nEvents);
+  delete run;
 //  run->CreateGeometryFile("geofile_full.root");
 
   // Finish
   timer.Stop();
   Double_t rtime = timer.RealTime();
   Double_t ctime = timer.CpuTime();
-  cout << endl << endl;
-  cout << "Macro finished succesfully." << endl;
-  cout << "Output file is " << outFile << endl;
-  cout << "Parameter file is " << parFile << endl;
-  cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
+  std::cout << std::endl << std::endl;
+  std::cout << "Macro finished succesfully." << std::endl;
+  std::cout << "Output file is " << outFile << std::endl;
+  std::cout << "Parameter file is " << parFile << std::endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl << std::endl;
 }
