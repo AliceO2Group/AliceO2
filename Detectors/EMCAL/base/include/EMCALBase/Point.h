@@ -52,7 +52,7 @@ namespace AliceO2 {
       Point operator+(const Point &rhs) const;
       
       /// \brief Destructor
-      virtual ~Point();
+      virtual ~Point() = default;
       
       /// \brief Get the initial energy of the primary particle entering EMCAL
       /// \return Energy of the primary particle entering EMCAL

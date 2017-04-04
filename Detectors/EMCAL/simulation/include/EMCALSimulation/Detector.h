@@ -18,7 +18,7 @@ namespace AliceO2 {
       
       Detector(const char* Name, Bool_t Active);
       
-      virtual ~Detector();
+      virtual ~Detector() = default;
       
       virtual void   Initialize() final;
       
