@@ -35,6 +35,12 @@ enum RocType {IROC=0, OROC=1};
 /// TPC GEM stack types
 enum GEMstack {IROCgem=0, OROC1gem=1, OROC2gem=2, OROC3gem=3};
 
+/// Definition of the different pad subsets
+enum class PadSubset : char {
+  ROC,        ///< ROCs (up to 72)
+  Partition,  ///< Partitions (up to 36*5)
+  Region      ///< Regions (up to 36*10)
+};
 /// Pad centres as 2D float
 typedef Point2D<float> PadCentre;
 typedef Point2D<float> GlobalPosition2D;

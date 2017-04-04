@@ -9,8 +9,18 @@
 #pragma link C++ class AliceO2::TPC::LocalPosition2D;
 #pragma link C++ class AliceO2::TPC::LocalPosition3D;
 
-#pragma link C++ class AliceO2::TPC::CalDet;
-#pragma link C++ class AliceO2::TPC::CalArray;
+#pragma link C++ class AliceO2::TPC::CalArray<float>+;
+#pragma link C++ class AliceO2::TPC::CalArray<double>+;
+#pragma link C++ class AliceO2::TPC::CalArray<int>+;
+#pragma link C++ class AliceO2::TPC::CalArray<unsigned>+;
+#pragma link C++ class AliceO2::TPC::CalArray<short>+;
+#pragma link C++ class AliceO2::TPC::CalArray<bool>+;
+#pragma link C++ class AliceO2::TPC::CalDet<float>+;
+#pragma link C++ class AliceO2::TPC::CalDet<double>+;
+#pragma link C++ class AliceO2::TPC::CalDet<int>+;
+#pragma link C++ class AliceO2::TPC::CalDet<unsigned>+;
+#pragma link C++ class AliceO2::TPC::CalDet<short>+;
+#pragma link C++ class AliceO2::TPC::CalDet<bool>+;
 #pragma link C++ class AliceO2::TPC::ContainerFactory;
 #pragma link C++ class AliceO2::TPC::CRU;
 #pragma link C++ class AliceO2::TPC::Digit+;
@@ -26,5 +36,17 @@
 //#pragma link C++ class AliceO2::TPC::RandomRing;
 #pragma link C++ class AliceO2::TPC::ROC;
 #pragma link C++ class AliceO2::TPC::Sector;
+
+#pragma link C++ namespace AliceO2::TPC::Painter;
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalArray<float>);
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalArray<double>);
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalArray<int>);
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalArray<short>);
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalArray<bool>);
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalDet<float>);
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalDet<double>);
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalDet<int>);
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalDet<short>);
+#pragma link C++ function AliceO2::TPC::Painter::Draw(CalDet<bool>);
 
 #endif

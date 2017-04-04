@@ -8,7 +8,6 @@
 #include <type_traits>
 #include <boost/format.hpp>
 
-#include "TPCBase/CalArray.h"
 #include "TPCBase/Mapper.h"
 
 using boost::format;
@@ -22,16 +21,13 @@ namespace TPC {
 /// Full readout chamber, readout partition, or pad region
 template <class T>
 class CalArray {
-//using T = float;
 public:
-  enum class PadSubset : char {
-    ROC,        ///< ROCs (up to 72)
-    Partition,  ///< Partitions (up to 36*5)
-    Region      ///< Regions (up to 36*10)
-  };
+  /// Default constructor
+  CalArray() = default;
 
-  CalArray() {};
-  ~CalArray() {};
+  /// Default destructor
+  ~CalArray() = default;
+
   CalArray(PadSubset padSubset, int padSubsetNumber);
 
   CalArray(const std::string name) :
@@ -49,6 +45,9 @@ public:
     mData(calDet.mData)
   {}
 
+  PadSubset getPadSubset() const { return mPadSubset; }
+  int getPadSubsetNumber() const { return mPadSubsetNumber; }
+
   void setValue(const size_t channel, const T value) { mData[channel] = value; }
   const T& getValue(const size_t channel) const { return mData[channel]; }
 
@@ -56,6 +55,7 @@ public:
   const std::string& getName() const { return mName; }
 
   const std::vector<T>& getData() const { return mData; }
+  std::vector<T>& getData() { return mData; }
 
   const CalArray& operator+= (const CalArray& other);
 private:
@@ -66,6 +66,8 @@ private:
   std::vector<T> mData;       ///< calibration data
   PadSubset mPadSubset;       ///< Subset type
   int       mPadSubsetNumber; ///< Number of the pad subset, e.g. ROC 0 is IROC A00
+
+  //ClassDef(CalArray, 1);
 };
 
 // ===| pad region etc. initialisation |========================================
@@ -95,6 +97,9 @@ CalArray<T>::CalArray(PadSubset padSubset, int padSubsetNumber)
 template <class T>
 inline const CalArray<T>& CalArray<T>::operator+= (const CalArray& other)
 {
+  if ( !((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber) ) ){
+    return *this;
+  }
 }
 
 using CalROC = CalArray<float>;

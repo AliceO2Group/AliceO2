@@ -3,8 +3,8 @@ set(MODULE_NAME "TPCBase")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-   src/CalDet.cxx
    src/CalArray.cxx
+   src/CalDet.cxx
    src/ContainerFactory.cxx
    src/CRU.cxx
    src/Digit.cxx
@@ -15,6 +15,7 @@ set(SRCS
    src/PadPos.cxx
    src/PadRegionInfo.cxx
    src/PadSecPos.cxx
+   src/Painter.cxx
    src/PartitionInfo.cxx
    src/Point2D.cxx
    src/Point3D.cxx
@@ -25,6 +26,7 @@ set(SRCS
 
 set(HEADERS
    include/TPCBase/CalArray.h
+   include/TPCBase/CalDet.h
    include/TPCBase/ContainerFactory.h
    include/TPCBase/CRU.h
 #    include/TPCBase/Defs.h
@@ -36,6 +38,7 @@ set(HEADERS
    include/TPCBase/PadPos.h
    include/TPCBase/PadRegionInfo.h
    include/TPCBase/PadSecPos.h
+   include/TPCBase/Painter.h
    include/TPCBase/PartitionInfo.h
    include/TPCBase/Point2D.h
    include/TPCBase/Point3D.h
@@ -53,6 +56,7 @@ O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
    test/testTPCBase.cxx
+   test/testTPCCalDet.cxx
 )
 
 O2_GENERATE_TESTS(
