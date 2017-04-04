@@ -302,9 +302,15 @@ int main(int argc, char** argv)
 				hlt.SetOutputControl((char*) outputmemory, outputcontrolmem);
 			}
 
-			if (hlt.ProcessEvent(forceSlice) && !continueOnError)
+			int tmpRetVal = hlt.ProcessEvent(forceSlice);
+			if (tmpRetVal == 2)
 			{
-				printf("Error occured\n");
+				continueOnError = 0; //Forced exit from event display loop
+				noprompt = 1;
+			}
+			if (tmpRetVal && !continueOnError)
+			{
+				if (tmpRetVal != 2) printf("Error occured\n");
 #ifdef BROKEN_EVENTS
 				continue;
 #endif
