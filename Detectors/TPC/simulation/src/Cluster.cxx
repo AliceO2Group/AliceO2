@@ -8,57 +8,45 @@ ClassImp(AliceO2::TPC::Cluster)
 using namespace AliceO2::TPC;
 
 //________________________________________________________________________
-Cluster::Cluster():
-mCRU(-1),
-mRow(-1),
-mQ(-1),
-mQmax(-1),
-mPadMean(-1),
-mPadSigma(-1),
-mTimeMean(-1),
-mTimeSigma(-1),
-FairTimeStamp()
+Cluster::Cluster()
+  : Cluster(-1, -1, -1, -1, -1, -1, -1, -1)
 {
 }
 
 //________________________________________________________________________
-Cluster::Cluster(Short_t cru, Short_t row, Float_t q, Float_t qmax,
-		 Float_t padmean, Float_t padsigma,
-		 Float_t timemean, Float_t timesigma):
-mCRU(cru),
-mRow(row),
-mQ(q),
-mQmax(qmax),
-mPadMean(padmean),
-mPadSigma(padsigma),
-mTimeMean(timemean),
-mTimeSigma(timesigma),
-FairTimeStamp()
+Cluster::Cluster(short cru, short row, float q, float qmax,
+		 float padmean, float padsigma,
+		 float timemean, float timesigma)
+  : mCRU(cru)
+  , mRow(row)
+  , mQ(q)
+  , mQmax(qmax)
+  , mPadMean(padmean)
+  , mPadSigma(padsigma)
+  , mTimeMean(timemean)
+  , mTimeSigma(timesigma)
+  , FairTimeStamp()
 {
 }
 
 //________________________________________________________________________
-Cluster::Cluster(const Cluster& other):
-  mCRU(other.mCRU),
-  mRow(other.mRow),
-  mQ(other.mQ),
-  mQmax(other.mQmax),
-  mPadMean(other.mPadMean),
-  mPadSigma(other.mPadSigma),
-  mTimeMean(other.mTimeMean),
-  mTimeSigma(other.mTimeSigma),
-  FairTimeStamp(other)
+Cluster::Cluster(const Cluster& other)
+  : mCRU(other.mCRU)
+  , mRow(other.mRow)
+  , mQ(other.mQ)
+  , mQmax(other.mQmax)
+  , mPadMean(other.mPadMean)
+  , mPadSigma(other.mPadSigma)
+  , mTimeMean(other.mTimeMean)
+  , mTimeSigma(other.mTimeSigma)
+  , FairTimeStamp(other)
 {
 }
 
 //________________________________________________________________________
-Cluster::~Cluster()
-= default;
-
-//________________________________________________________________________
-void Cluster::setParameters(Short_t cru, Short_t row, Float_t q, Float_t qmax,
-			    Float_t padmean, Float_t padsigma,
-			    Float_t timemean, Float_t timesigma)
+void Cluster::setParameters(short cru, short row, float q, float qmax,
+			    float padmean, float padsigma,
+			    float timemean, float timesigma)
 {
   mCRU = cru;
   mRow = row;

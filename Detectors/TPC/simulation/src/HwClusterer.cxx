@@ -15,24 +15,28 @@
 #include <thread>
 #include <mutex>
 
-ClassImp(AliceO2::TPC::HwClusterer)
-
 std::mutex g_display_mutex;
 
 using namespace AliceO2::TPC;
 
+HwClusterer::HwClusterer()
+  : HwClusterer(Processing::Parallel, 0, 360, 0, false, 8, 8, 0, true)
+{
+}
+
 //________________________________________________________________________
-HwClusterer::HwClusterer(Int_t globalTime):
-  Clusterer(),
-  mProcessingType(Processing::Parallel),
-  mGlobalTime(globalTime),
-  mCRUs(360),
-  mMinQDiff(0),
-  mAssignChargeUnique(kFALSE),
-  mPadsPerCF(8),
-  mTimebinsPerCF(8),
-  mCfPerRow(0),
-  mEnableCommonMode(kTRUE)
+HwClusterer::HwClusterer(Processing processingType, int globalTime, int cru, float minQDiff,
+    bool assignChargeUnique, int padsPerCF, int timebinsPerCF, int cfPerRow, bool enableCM)
+  : Clusterer()
+  , mProcessingType(processingType)
+  , mGlobalTime(globalTime)
+  , mCRUs(cru)
+  , mMinQDiff(minQDiff)
+  , mAssignChargeUnique(assignChargeUnique)
+  , mPadsPerCF(padsPerCF)
+  , mTimebinsPerCF(timebinsPerCF)
+  , mCfPerRow(cfPerRow)
+  , mEnableCommonMode(enableCM)
 {
 }
 
@@ -63,14 +67,14 @@ void HwClusterer::Init()
   /*
    * initalize all cluster finder
    */
-  mCfPerRow = (Int_t)ceil((Double_t)(mPadsMax+2+2)/(mPadsPerCF-2-2));
+  mCfPerRow = (int)ceil((Double_t)(mPadsMax+2+2)/(mPadsPerCF-2-2));
   mClusterFinder.resize(mCRUs);
-  for (Int_t iCRU = 0; iCRU < mCRUs; iCRU++){
+  for (int iCRU = 0; iCRU < mCRUs; iCRU++){
     mClusterFinder[iCRU].resize(mRowsMax);
-    for (Int_t iRow = 0; iRow < mRowsMax; iRow++){
+    for (int iRow = 0; iRow < mRowsMax; iRow++){
       mClusterFinder[iCRU][iRow].resize(mCfPerRow);
-      for (Int_t iCF = 0; iCF < mCfPerRow; iCF++){
-        Int_t padOffset = iCF*(mPadsPerCF-2-2)-2;
+      for (int iCF = 0; iCF < mCfPerRow; iCF++){
+        int padOffset = iCF*(mPadsPerCF-2-2)-2;
         mClusterFinder[iCRU][iRow][iCF] = new HwClusterFinder(iCRU,iRow,iCF,padOffset,mPadsPerCF,mTimebinsPerCF,mMinQDiff,mMinQMax,mRequirePositiveCharge);
         mClusterFinder[iCRU][iRow][iCF]->setAssignChargeUnique(mAssignChargeUnique);
 
@@ -113,11 +117,11 @@ void HwClusterer::processDigits(
     const std::vector<std::vector<DigitMC*>>& digits,
     const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
           std::vector<HwCluster>& cluster,
-          Int_t iCRU,
-          Int_t maxRows,
-          Int_t maxPads, 
-          Int_t maxTime,
-          Bool_t enableCM)
+          int iCRU,
+          int maxRows,
+          int maxPads, 
+          int maxTime,
+          bool enableCM)
 {
 //  std::thread::id this_id = std::this_thread::get_id();
 //  g_display_mutex.lock();
@@ -127,20 +131,20 @@ void HwClusterer::processDigits(
   /*
    * prepare local storage
    */
-  Float_t iAllBins[maxTime][maxPads];
-  for (Int_t t = 0; t < maxTime; ++t) {
-    for (Int_t p = 0; p < maxPads; ++p) {
+  float iAllBins[maxTime][maxPads];
+  for (int t = 0; t < maxTime; ++t) {
+    for (int p = 0; p < maxPads; ++p) {
       iAllBins[t][p] = 0.0;
     }
   }
-//  Float_t iAllBins[maxTime][maxPads];
-//  for (Float_t (&timebin)[maxPads] : iAllBins) {
-//    for (Float_t &pad : timebin) {
+//  float iAllBins[maxTime][maxPads];
+//  for (float (&timebin)[maxPads] : iAllBins) {
+//    for (float &pad : timebin) {
 //        pad = 0.0;
 //    }
 //  }
 
-  for (Int_t iRow = 0; iRow < maxRows; iRow++){
+  for (int iRow = 0; iRow < maxRows; iRow++){
 
     /*
      * fill in digits
@@ -164,8 +168,8 @@ void HwClusterer::processDigits(
     const Short_t iPadsPerCF = clusterFinder[iRow][0]->getNpads();
     const Short_t iTimebinsPerCF = clusterFinder[iRow][0]->getNtimebins();
     std::vector<std::vector<HwClusterFinder*>::const_reverse_iterator> cfWithCluster;
-    for (Int_t time = 0; time < maxTime; time++){
-      for (Int_t pad = 0; pad < maxPads; pad = pad + (iPadsPerCF -2 -2 )) {
+    for (int time = 0; time < maxTime; time++){
+      for (int pad = 0; pad < maxPads; pad = pad + (iPadsPerCF -2 -2 )) {
         const Short_t cf = pad / (iPadsPerCF-2-2);
         clusterFinder[iRow][cf]->AddTimebin(&iAllBins[time][pad],time,(maxPads-pad)>=iPadsPerCF?iPadsPerCF:(maxPads-pad));
       }
@@ -234,11 +238,11 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
               for (std::vector<DigitMC*>& dcc : dc) dcc.clear();
   }
 
-  Int_t cru = 0;
-  Int_t iRow;
-  Int_t iPad;
-  Int_t iTimeBin;
-  Float_t charge;
+  int cru = 0;
+  int iRow;
+  int iPad;
+  int iTimeBin;
+  float charge;
 
   if (mProcessingType == Processing::Parallel)
     LOG(DEBUG) << std::thread::hardware_concurrency() << " concurrent threads are supported." << FairLogger::endl;
@@ -255,7 +259,7 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
      * one and the current one.
      */
     if (cru != digit->getCRU()) {
-      for (Int_t iCRU = cru; iCRU < digit->getCRU(); iCRU++) {
+      for (int iCRU = cru; iCRU < digit->getCRU(); iCRU++) {
 //        std::cout << "starting CRU " << iCRU << std::endl;
         if (mProcessingType == Processing::Parallel)
           thread_vector.push_back(
@@ -297,7 +301,7 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
   /*
    * process all remaining CRUs
    */
-  for (Int_t iCRU = cru; iCRU < mCRUs; iCRU++) {
+  for (int iCRU = cru; iCRU < mCRUs; iCRU++) {
 //    std::cout << "starting CRU " << iCRU << " at the end" << std::endl;
     if (mProcessingType == Processing::Parallel)
       thread_vector.push_back(

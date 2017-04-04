@@ -5,9 +5,6 @@
 #define ALICE_O2_TPC_HALFSAMPADATA_H_
 
 #include <array>
-#include <iostream> 
-#include <iomanip>
-#include "FairLogger.h" 
 
 namespace AliceO2 {
 namespace TPC {
@@ -38,13 +35,13 @@ class HalfSAMPAData {
     /// Sets ADC value of SAMPA channel
     /// @param channel SAMPA channel
     /// @param value ADC value
-    void setChannel(int channel, short value)   { mData[channel] = value; };
+    void setChannel(int channel, short value) { mData[channel] = value; };
 
     /// Returns ADC value of SAMPA channel
     /// @param channel SAMPA channel
-    short getChannel(int channel)   const { return mData[channel]; };
-    short operator[] (int index)    const { return mData[index]; };
-    short& operator[] (int index)         { return mData[index]; };
+    short getChannel(int channel) const { return mData[channel]; };
+    short operator[] (int index) const { return mData[index]; };
+    short& operator[] (int index) { return mData[index]; };
 
     /// Sets SAMPA channel to Low or High
     /// @param val SAMPA channel

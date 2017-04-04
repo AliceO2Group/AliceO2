@@ -1,82 +1,91 @@
 /// \file HwClusterer.h
 /// \brief Class for TPC HW cluster finding
+/// \author Sebastian Klewin
 #ifndef ALICEO2_TPC_HWClusterer_H_
 #define ALICEO2_TPC_HWClusterer_H_
 
-#include "Rtypes.h"
 #include "TPCSimulation/Clusterer.h"
-#include "FairTask.h"  // for FairTask, InitStatus
-
 #include <vector>
-
 
 class TClonesArray;
 
 namespace AliceO2{
-  
-  namespace TPC {
+namespace TPC {
     
-    class ClusterContainer;
-    class ClustererTask;
-    class HwClusterFinder;
-    class HwCluster;
-    class DigitMC;
+class ClusterContainer;
+class ClustererTask;
+class HwClusterFinder;
+class HwCluster;
+class DigitMC;
+
+/// \class HwClusterer
+/// \brief Class for TPC HW cluster finding
+class HwClusterer : public Clusterer {
+  public:
+    enum class Processing : int { Sequential, Parallel};
+
+    /// Default Constructor
+    HwClusterer();
+
+    /// Constructor
+    /// \param processingType parallel or sequential
+    /// \param globalTime value of first timebin
+    /// \param cru Number of CRUs to process
+    /// \param minQDiff Min charge differece 
+    /// \param assignChargeUnique Avoid using same charge for multiple nearby clusters
+    /// \param padsPerCF Pads per cluster finder
+    /// \param timebinsPerCF Timebins per cluster finder
+    /// \param cfPerRow Number of cluster finder in each row
+    /// \param enableCM Enables common mode simulation
+    HwClusterer(Processing processingType, int globalTime, int cru, float minQDiff,
+      bool assignChargeUnique, int padsPerCF, int timebinsPerCF, int cfPerRow, bool enableCM);
     
-    class HwClusterer : public Clusterer {
-    public:
-      HwClusterer(Int_t globalTime = 0);
-      
-      /// Destructor
-      ~HwClusterer();
-      
-      // Should this really be a public member?
-      // Maybe better to just call by process
-      void Init();
-      
-      /// Steer conversion of points to digits
-      /// @param digits Container with TPC digits
-      /// @return Container with clusters
-      ClusterContainer* Process(TClonesArray *digits);
+    /// Destructor
+    ~HwClusterer();
+    
+    // Should this really be a public member?
+    // Maybe better to just call by process
+    void Init() override;
+    
+    /// Steer conversion of points to digits
+    /// @param digits Container with TPC digits
+    /// @return Container with clusters
+    ClusterContainer* Process(TClonesArray *digits) override;
 
-      enum class Processing : int { Sequential, Parallel};
-      void setProcessingType(Processing processing)    { mProcessingType = processing; };   
-      
-    private:
-      // To be done
-      /* BoxClusterer(const BoxClusterer &); */
-      /* BoxClusterer &operator=(const BoxClusterer &); */
-      
-      static void processDigits(
-          const std::vector<std::vector<DigitMC*>>& digits,
-          const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
-                std::vector<HwCluster>& cluster, 
-                Int_t iCRU,
-                Int_t maxRows,
-                Int_t maxPads, 
-                Int_t maxTime,
-                Bool_t enableCM);
-      
-//      HwClusterFinder**** mClusterFinder;
-      //    CRU         Row         CF
-      std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
-      std::vector<std::vector<std::vector<DigitMC*>>> mDigitContainer;
+    void setProcessingType(Processing processing)    { mProcessingType = processing; };   
+    
+  private:
+    // To be done
+    /* BoxClusterer(const BoxClusterer &); */
+    /* BoxClusterer &operator=(const BoxClusterer &); */
+    
+    static void processDigits(
+        const std::vector<std::vector<Digit*>>& digits, 
+        const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
+              std::vector<HwCluster>& cluster, 
+              int iCRU,
+              int maxRows,
+              int maxPads, 
+              int maxTime,
+              bool enableCM);
+    
+    std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
+    std::vector<std::vector<std::vector<Digit*>>> mDigitContainer;
 
-      std::vector<std::vector<HwCluster>> mClusterStorage;
-      
-      Processing    mProcessingType; 
+    std::vector<std::vector<HwCluster>> mClusterStorage;
+    
+    Processing    mProcessingType; 
 
-      Int_t     mGlobalTime;
-      Int_t     mCRUs;
-      Float_t   mMinQDiff;
-      Bool_t    mAssignChargeUnique;
-      Int_t     mPadsPerCF;
-      Int_t     mTimebinsPerCF;
-      Int_t     mCfPerRow;
-      Bool_t    mEnableCommonMode;
-      
-      ClassDef(HwClusterer, 1);
-    };
-  }
+    int     mGlobalTime;
+    int     mCRUs;
+    float   mMinQDiff;
+    bool    mAssignChargeUnique;
+    int     mPadsPerCF;
+    int     mTimebinsPerCF;
+    int     mCfPerRow;
+    bool    mEnableCommonMode;
+  };
+}
 }
 
 

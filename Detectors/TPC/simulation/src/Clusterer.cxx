@@ -3,33 +3,25 @@
 
 
 #include "TPCSimulation/Clusterer.h"
-#include "TPCSimulation/ClusterContainer.h"
 
-ClassImp(AliceO2::TPC::Clusterer)
 
 using namespace AliceO2::TPC;
 
-//________________________________________________________________________
-Clusterer::Clusterer(
-    Int_t rowsMax,
-    Int_t padsMax,
-    Int_t timeBinsMax,
-    Int_t minQMax,
-    Bool_t requirePositiveCharge,
-    Bool_t requireNeighbouringPad):
-  TObject(),
-  mClusterContainer(nullptr),
-  mRowsMax(rowsMax),
-  mPadsMax(padsMax),
-  mTimeBinsMax(timeBinsMax),
-  mMinQMax(minQMax),
-  mRequirePositiveCharge(requirePositiveCharge),
-  mRequireNeighbouringPad(requireNeighbouringPad)
+Clusterer::Clusterer()
+  : Clusterer(18, 138, 1024, 5, true, true)
 {
 }
 
 //________________________________________________________________________
-Clusterer::~Clusterer()
+Clusterer::Clusterer(int rowsMax, int padsMax, int timeBinsMax, int minQMax,
+    bool requirePositiveCharge, bool requireNeighbouringPad)
+  : mClusterContainer(nullptr)
+  , mRowsMax(rowsMax)
+  , mPadsMax(padsMax)
+  , mTimeBinsMax(timeBinsMax)
+  , mMinQMax(minQMax)
+  , mRequirePositiveCharge(requirePositiveCharge)
+  , mRequireNeighbouringPad(requireNeighbouringPad)
 {
 }
 

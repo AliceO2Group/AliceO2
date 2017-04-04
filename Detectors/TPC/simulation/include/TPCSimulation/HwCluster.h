@@ -1,74 +1,86 @@
 /// \file HwCluster.h
 /// \brief Class to have some more info about the HwClusterer clusters
+/// \author Sebastian Klewin
 #ifndef ALICEO2_TPC_HWCLUSTER_H
 #define ALICEO2_TPC_HWCLUSTER_H
 
-//#ifndef __CINT__
-//#include <boost/serialization/base_object.hpp>  // for base_object
-//#endif
-
 #include "TPCSimulation/Cluster.h"
-#include "Rtypes.h"                             // for Double_t, ULong_t, etc
-#include "TPCSimulation/HwFixedPoint.h" 
+#include <vector>
 
 namespace boost { namespace serialization { class access; } }
 
-namespace AliceO2{
-  namespace TPC{
+namespace AliceO2 {
+namespace TPC{
 
-    class HwCluster : public Cluster {
-    public:
+/// \class HwCluster
+/// \brief Class to store HW clusters with cluster data
+class HwCluster : public Cluster {
+  public:
 
-      // Constructors
-      HwCluster(
-          Short_t sizeP = 5, 
-          Short_t sizeT = 5,
-          UShort_t fpTotalWidth = 23,
-          UShort_t fpDecPrec = 12);
-      HwCluster(
-          Short_t cru, Short_t row, 
-          Short_t sizeP, Short_t sizeT, 
-          Float_t** clusterData, 
-          Short_t maxPad, Short_t maxTime,
-          UShort_t fpTotalWidth = 23,
-          UShort_t fpDecPrec = 12);
+    /// Default Constructors
+    HwCluster();
 
-      // Destructor
-      ~HwCluster();
+    /// Constructor
+    /// \param sizeP Cluster size in pad direction
+    /// \param sizeT Cluster size in time direction
+    HwCluster(short sizeP, short sizeT);
 
-      // Copy Constructor
-      HwCluster(const HwCluster& other);
+    /// Constructor
+    /// \param cru CRU
+    /// \param row Row
+    /// \param sizeP Cluster size in pad direction
+    /// \param sizeT Cluster size in time direction
+    /// \param clusterData 2D array of size sizeT x sizeP with cluster data
+    /// \param maxPad Pad with max charge value
+    /// \param maxTime Timebin with max charge value
+    HwCluster(short cru, short row, short sizeP, short sizeT, 
+        float** clusterData, short maxPad, short maxTime);
 
-      Short_t getPad()      const { return mPad; }
-      Short_t getTime()     const { return mTime; }
-      Short_t getSizeP()    const { return mSizeP; }
-      Short_t getSizeT()    const { return mSizeT; }
+    /// Destructor
+    ~HwCluster() = default;
 
-      void setClusterData(Short_t cru, Short_t row, Short_t sizeP, Short_t sizeT, 
-                          Float_t** clusterData, Short_t maxPad, Short_t maxTime);
-      void calculateClusterProperties(Short_t cru, Short_t row);
-      friend std::ostream& operator<< (std::ostream& out, const HwCluster &c) { return c.Print(out); }
-      std::ostream& Print(std::ostream &output) const;
-      std::ostream& PrintDetails(std::ostream &output) const;
-//      void Print();
+    /// Copy Constructor
+    /// \param other HwCluster to be copied
+    HwCluster(const HwCluster& other);
 
-    private:
+    short getPad() const { return mPad; }
+    short getTime() const { return mTime; }
+    short getSizeP() const { return mSizeP; }
+    short getSizeT() const { return mSizeT; }
 
-      Bool_t        mPropertiesCalculatd;
-      Short_t       mPad;
-      Short_t       mTime;
-      Short_t       mSizeP;
-      Short_t       mSizeT;
-      Short_t       mSize;
+    /// Set all cluster data
+    /// \param cru CRU
+    /// \param row Row
+    /// \param sizeP Cluster size in pad direction
+    /// \param sizeT Cluster size in time direction
+    /// \param clusterData 2D array of size sizeT x sizeP with cluster data
+    /// \param maxPad Pad with max charge value
+    /// \param maxTime Timebin with max charge value
+    void setClusterData(short cru, short row, short sizeP, short sizeT, 
+                        float** clusterData, short maxPad, short maxTime);
 
-      UShort_t mFixedPointTotalWidth;
-      UShort_t mFixedPointDecPrec;
+    /// Print function
+    /// \param output Stream to put the HwCluster on
+    /// \return The output stream
+    friend std::ostream& operator<< (std::ostream& out, const HwCluster &c) { return c.Print(out); }
+    std::ostream& Print(std::ostream &output) const;
+    std::ostream& PrintDetails(std::ostream &output) const;
 
-      HwFixedPoint**     mClusterData;
+  private:
+    /// Calculates the cluster properties according to locally stored data
+    void calculateClusterProperties();
 
-      ClassDef(HwCluster, 1);
-    };
-  }
+    short   mPad;       ///< Pad with max charge
+    short   mTime;      ///< Timebin with max charge
+    short   mSizeP;     ///< Cluster size in pad direction
+    short   mSizeT;     ///< Cluster size in time direction
+    short   mSize;      ///< Actual size of cluster
+
+    std::vector<std::vector<float>> mClusterData;  ///< CLuster data
+
+    ClassDef(HwCluster, 1);
+  };
+}
 }
 
 #endif
