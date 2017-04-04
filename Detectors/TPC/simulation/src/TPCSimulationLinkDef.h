@@ -17,7 +17,7 @@
 #pragma link C++ class AliceO2::TPC::ClusterContainer+;
 #pragma link C++ class AliceO2::TPC::ClustererTask+;
 #pragma link C++ class AliceO2::TPC::Detector+;
-#pragma link C++ class AliceO2::TPC::Digit+;
+#pragma link C++ class AliceO2::TPC::DigitMC+;
 #pragma link C++ class AliceO2::TPC::DigitContainer+;
 #pragma link C++ class AliceO2::TPC::DigitCRU+;
 #pragma link C++ class AliceO2::TPC::Digitizer+;

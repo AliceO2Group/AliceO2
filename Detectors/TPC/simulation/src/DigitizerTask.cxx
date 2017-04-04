@@ -66,8 +66,8 @@ InitStatus DigitizerTask::Init()
   }
   
   // Register output container
-  mDigitsArray = new TClonesArray("AliceO2::TPC::Digit");
-  mgr->Register("TPCDigit", "TPC", mDigitsArray, kTRUE);
+  mDigitsArray = new TClonesArray("AliceO2::TPC::DigitMC");
+  mgr->Register("TPCDigitMC", "TPC", mDigitsArray, kTRUE);
   
   mDigitizer->init();
   return kSUCCESS;

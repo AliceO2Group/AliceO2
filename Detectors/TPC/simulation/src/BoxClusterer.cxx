@@ -80,7 +80,7 @@
 
 
 #include "TPCSimulation/BoxClusterer.h"
-#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
 #include "TPCSimulation/BoxCluster.h"
 
@@ -152,7 +152,7 @@ ClusterContainer* BoxClusterer::Process(TClonesArray *digits)
 
   for (TIter digititer = TIter(digits).Begin(); digititer != TIter::End(); ++digititer)
     {
-      Digit* digit = dynamic_cast<Digit*>(*digititer);
+      DigitMC* digit = dynamic_cast<DigitMC*>(*digititer);
 
                   iCRU     = digit->getCRU();
       const Int_t iRow     = digit->getRow();

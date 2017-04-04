@@ -4,7 +4,7 @@
 #include "TPCSimulation/HwCluster.h"
 #include "TPCSimulation/HwClusterer.h"
 #include "TPCSimulation/HwClusterFinder.h"
-#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
 
 #include "FairLogger.h"
@@ -101,7 +101,7 @@ void HwClusterer::Init()
    * CRU (thread)
    */
   mDigitContainer.resize(mCRUs);
-  for (std::vector<std::vector<Digit*>>& dc : mDigitContainer ) dc.resize(mRowsMax);
+  for (std::vector<std::vector<DigitMC*>>& dc : mDigitContainer ) dc.resize(mRowsMax);
   
 
   mClusterContainer = new ClusterContainer();
@@ -110,7 +110,7 @@ void HwClusterer::Init()
 
 //________________________________________________________________________
 void HwClusterer::processDigits(
-    const std::vector<std::vector<Digit*>>& digits, 
+    const std::vector<std::vector<DigitMC*>>& digits,
     const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
           std::vector<HwCluster>& cluster,
           Int_t iCRU,
@@ -145,7 +145,7 @@ void HwClusterer::processDigits(
     /*
      * fill in digits
      */
-    for (std::vector<Digit*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
+    for (std::vector<DigitMC*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
       const Int_t iTime         = (*it)->getTimeStamp();
       const Int_t iPad          = (*it)->getPad() + 2;  // offset to have 2 empty pads on the "left side"
       const Float_t charge      = (*it)->getCharge();
@@ -200,7 +200,7 @@ void HwClusterer::processDigits(
     /* 
      * remove digits again from storage
      */
-    for (std::vector<Digit*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
+    for (std::vector<DigitMC*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
       const Int_t iTime       = (*it)->getTimeStamp();
       const Int_t iPad        = (*it)->getPad() + 2;  // offset to have 2 empty pads on the "left side"
   
@@ -230,8 +230,8 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
    * clear old storages
    */
   for (std::vector<HwCluster>& cs : mClusterStorage) cs.clear();
-  for (std::vector<std::vector<Digit*>>& dc : mDigitContainer ) {
-              for (std::vector<Digit*>& dcc : dc) dcc.clear();
+  for (std::vector<std::vector<DigitMC*>>& dc : mDigitContainer ) {
+              for (std::vector<DigitMC*>& dcc : dc) dcc.clear();
   }
 
   Int_t cru = 0;
@@ -247,7 +247,7 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
    * Loop over digits
    */
   for (TIter digititer = TIter(digits).Begin(); digititer != TIter::End(); ++digititer) {
-    Digit* digit = dynamic_cast<Digit*>(*digititer);
+    DigitMC* digit = dynamic_cast<DigitMC*>(*digititer);
 
     /*
      * if CRU number of current digit changes, start processing (either

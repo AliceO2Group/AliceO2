@@ -11,7 +11,7 @@
 #include <mutex>
 #include "TPCSimulation/GBTFrameContainer.h"
 #include "TPCSimulation/HalfSAMPAData.h"
-#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/DigitMC.h"
 
 namespace bpo = boost::program_options;
 

@@ -13,6 +13,7 @@
 #pragma link C++ class AliceO2::TPC::CalArray;
 #pragma link C++ class AliceO2::TPC::ContainerFactory;
 #pragma link C++ class AliceO2::TPC::CRU;
+#pragma link C++ class AliceO2::TPC::Digit+;
 #pragma link C++ class AliceO2::TPC::DigitPos;
 #pragma link C++ class AliceO2::TPC::FECInfo;
 #pragma link C++ class AliceO2::TPC::Mapper;

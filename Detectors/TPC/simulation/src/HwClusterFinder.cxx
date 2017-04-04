@@ -4,7 +4,7 @@
 
 //#include "TPCSimulation/HwClusterer.h"
 #include "TPCSimulation/HwClusterFinder.h"
-#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
 #include "TPCSimulation/HwCluster.h"
 

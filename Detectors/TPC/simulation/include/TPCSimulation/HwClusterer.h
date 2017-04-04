@@ -20,7 +20,7 @@ namespace AliceO2{
     class ClustererTask;
     class HwClusterFinder;
     class HwCluster;
-    class Digit;
+    class DigitMC;
     
     class HwClusterer : public Clusterer {
     public:
@@ -47,7 +47,7 @@ namespace AliceO2{
       /* BoxClusterer &operator=(const BoxClusterer &); */
       
       static void processDigits(
-          const std::vector<std::vector<Digit*>>& digits, 
+          const std::vector<std::vector<DigitMC*>>& digits,
           const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
                 std::vector<HwCluster>& cluster, 
                 Int_t iCRU,
@@ -59,7 +59,7 @@ namespace AliceO2{
 //      HwClusterFinder**** mClusterFinder;
       //    CRU         Row         CF
       std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
-      std::vector<std::vector<std::vector<Digit*>>> mDigitContainer;
+      std::vector<std::vector<std::vector<DigitMC*>>> mDigitContainer;
 
       std::vector<std::vector<HwCluster>> mClusterStorage;
       

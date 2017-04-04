@@ -4,7 +4,7 @@
 
 #include "TPCSimulation/DigitPad.h"
 #include "TPCSimulation/SAMPAProcessing.h"
-#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/DigitMC.h"
 
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/bind.hpp>
@@ -33,7 +33,7 @@ void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
   const float mADC = sampa.getADCSaturation(totalADC-commonMode); // we substract the common mode here in order to properly apply the saturation of the FECs
   if(mADC > 0) {
     TClonesArray &clref = *output;
-    new(clref[clref.GetEntriesFast()]) Digit(MClabel, cru, mADC, row, pad, timeBin, commonMode);
+    new(clref[clref.GetEntriesFast()]) DigitMC(MClabel, cru, mADC, row, pad, timeBin, commonMode);
   }
 }
 

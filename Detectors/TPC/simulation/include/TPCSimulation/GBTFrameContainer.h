@@ -7,7 +7,7 @@
 #include "TPCSimulation/GBTFrame.h"
 #include "TPCSimulation/AdcClockMonitor.h"
 #include "TPCSimulation/SyncPatternMonitor.h"
-#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/HalfSAMPAData.h"
 #include "TPCBase/Mapper.h" 
 //#include <TClonesArray.h>  
@@ -140,7 +140,7 @@ class GBTFrameContainer {
     /// Extracts the digits after all 80 channels were transmitted (5*16)
     /// @param container Digit Container to store the digits in
     /// @return If true, at least one digit was added.
-    bool getData(std::vector<Digit>& container);
+    bool getData(std::vector<DigitMC>& container);
 
     bool getData(std::vector<HalfSAMPAData>& container);
 

@@ -5,7 +5,7 @@
 #ifndef ALICEO2_TPC_DigitContainer_H_
 #define ALICEO2_TPC_DigitContainer_H_
 
-#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/DigitMC.h"
 #include "TPCBase/CRU.h"
 #include "TPCSimulation/DigitCRU.h"
 #include "TPCSimulation/CommonMode.h"

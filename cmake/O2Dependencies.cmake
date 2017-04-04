@@ -579,6 +579,33 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
 )
 
+
+o2_define_bucket(
+    NAME
+    tpc_reconstruction_bucket
+
+    DEPENDENCIES
+    tpc_base_bucket
+    DetectorsBase
+    TPCBase
+    SimulationDataFormat
+    Geom
+    MathCore
+    RIO
+    Hist
+    DetectorsPassive
+    Gen
+    Base
+    TreePlayer
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/Passive/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
+)
+
+
 o2_define_bucket(
     NAME
     generators_bucket

@@ -7,6 +7,7 @@ set(SRCS
    src/CalArray.cxx
    src/ContainerFactory.cxx
    src/CRU.cxx
+   src/Digit.cxx
    src/DigitPos.cxx
    src/FECInfo.cxx
    src/Mapper.cxx
@@ -27,6 +28,7 @@ set(HEADERS
    include/TPCBase/ContainerFactory.h
    include/TPCBase/CRU.h
 #    include/TPCBase/Defs.h
+   include/TPCBase/Digit.h
    include/TPCBase/DigitPos.h
    include/TPCBase/FECInfo.h
    include/TPCBase/Mapper.h

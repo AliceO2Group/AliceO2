@@ -15,7 +15,7 @@ set(SRCS
    src/ClustererTask.cxx
    src/CommonMode.cxx
    src/Detector.cxx
-   src/Digit.cxx
+   src/DigitMC.cxx
    src/DigitContainer.cxx
    src/DigitCRU.cxx
    src/Digitizer.cxx
@@ -49,7 +49,7 @@ set(HEADERS
    include/${MODULE_NAME}/ClustererTask.h
    include/${MODULE_NAME}/CommonMode.h
    include/${MODULE_NAME}/Detector.h
-   include/${MODULE_NAME}/Digit.h
+   include/${MODULE_NAME}/DigitMC.h
    include/${MODULE_NAME}/DigitContainer.h
    include/${MODULE_NAME}/DigitCRU.h
    include/${MODULE_NAME}/Digitizer.h
