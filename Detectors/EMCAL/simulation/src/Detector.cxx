@@ -16,10 +16,6 @@ mPointCollection(new TClonesArray("AliceO2::EMCAL::Point"))
 {
 }
 
-Detector::~Detector()
-{
-}
-
 void Detector::Initialize(){
 }
 

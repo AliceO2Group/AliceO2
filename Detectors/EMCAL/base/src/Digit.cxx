@@ -13,9 +13,6 @@ mAmplitude(amplitude)
 {
 }
 
-Digit::~Digit() {
-}
-
 bool Digit::operator<(const Digit &other) const {
   return GetTimeStamp() < other.GetTimeStamp();
 }

@@ -15,10 +15,6 @@ Point::Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t de
   
 }
 
-Point::~Point() {
-
-}
-
 void Point::PrintStream(std::ostream &stream) const {
   stream  << "EMCAL point: Track " << fTrackID << " in detector segment " << fDetectorID
           << " at position (" << fX << "|" << fY << "|" << fZ << "), energy loss " << fELoss

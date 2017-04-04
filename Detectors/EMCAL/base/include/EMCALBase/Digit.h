@@ -20,7 +20,7 @@ namespace AliceO2 {
       Digit() = default;
       
       Digit(Int_t module, Int_t tower, Double_t amplitude, Double_t time);
-      virtual ~Digit();
+      virtual ~Digit() = default;
       
       bool operator<(const Digit &ref) const;
       
