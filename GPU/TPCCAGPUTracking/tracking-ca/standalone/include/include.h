@@ -6,6 +6,6 @@ extern HANDLE semLockDisplay;
 extern pthread_mutex_t semLockDisplay;
 extern void* OpenGLMain( void* );
 #endif
-
+extern void ShowNextEvent();
 extern volatile int buttonPressed;
 extern volatile int displayEventNr;

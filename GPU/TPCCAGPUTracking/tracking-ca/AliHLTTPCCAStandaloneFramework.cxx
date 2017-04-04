@@ -31,6 +31,8 @@
 #include <conio.h>
 #else
 #include <pthread.h>
+#include <unistd.h>
+#include "../cmodules/linux_helpers.h"
 #endif
 #endif
 
@@ -222,11 +224,10 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 #else
 		pthread_mutex_unlock(&semLockDisplay);
 #endif
+		ShowNextEvent();
 	}
 
-#ifdef R__WIN32
 	while (kbhit()) getch();
-#endif
 	printf("Press key for next event!\n");
 
 	int iKey;
@@ -234,12 +235,13 @@ int AliHLTTPCCAStandaloneFramework::ProcessEvent(int forceSingleSlice)
 	{
 #ifdef R__WIN32
 		Sleep(10);
-		iKey = kbhit() ? getch() : 0;
 #else
-		iKey = getchar();
+		usleep(10000);
 #endif
-		if (iKey == 'q') exit(0);
+		iKey = kbhit() ? getch() : 0;
+		if (iKey == 'q') return(2);
 	} while (iKey != 'n' && buttonPressed == 0);
+	if (buttonPressed == 2) return(2);
 	buttonPressed = 0;
 	printf("Loading next event\n");
 
