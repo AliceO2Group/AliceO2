@@ -5,14 +5,6 @@ using namespace AliceO2::EMCAL;
 
 ClassImp(Digit)
 
-Digit::Digit():
-FairTimeStamp(),
-mModule(-1),
-mTower(-1),
-mAmplitude(0.)
-{
-}
-
 Digit::Digit(Int_t module, Int_t tower, Double_t amplitude, Double_t time):
 FairTimeStamp(time),
 mModule(module),

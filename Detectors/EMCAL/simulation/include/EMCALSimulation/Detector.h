@@ -14,7 +14,7 @@ namespace AliceO2 {
     
     class Detector : public AliceO2::Base::Detector {
     public:
-      Detector();
+      Detector() = default;
       
       Detector(const char* Name, Bool_t Active);
       
