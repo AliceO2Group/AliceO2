@@ -33,15 +33,6 @@ class Digit : public FairTimeStamp {
     /// Default constructor
     Digit();
 
-    /// Constructor, initializing values for position, charge and time
-    /// \param eventID MClabel std::vector containing the MC event and track ID encoded in a long int
-    /// \param cru CRU of the digit
-    /// \param charge Accumulated charge of digit
-    /// \param row Row in which the digit was created
-    /// \param pad Pad in which the digit was created
-    /// \param time Time at which the digit was created
-    Digit(std::vector<long> &MClabel, int cru, float charge, int row, int pad, int time);
-
     /// Constructor, initializing values for position, charge, time and common mode
     /// \param MClabel std::vector containing the MC event and track ID encoded in a long int
     /// \param cru CRU of the digit
@@ -49,8 +40,8 @@ class Digit : public FairTimeStamp {
     /// \param row Row in which the digit was created
     /// \param pad Pad in which the digit was created
     /// \param time Time at which the digit was created
-    /// \param commonMode Common mode signal on that ROC in the time bin of the digit
-    Digit(std::vector<long> &MClabel, int cru, float charge, int row, int pad, int time, float commonMode);
+    /// \param commonMode Common mode signal on that ROC in the time bin of the digit. If not assigned, it is set to zero.
+    Digit(std::vector<long> &MClabel, int cru, float charge, int row, int pad, int time, float commonMode = 0.f);
 
     /// Destructor
     virtual ~Digit()= default;
@@ -58,7 +49,7 @@ class Digit : public FairTimeStamp {
     /// Get the accumulated charged of the digit in ADC counts. 
     /// The conversion is such that the decimals are simply stripped
     /// \return charge of the digit
-    int getCharge() const { return int(mCharge); }
+    int getCharge() const { return static_cast<int>(mCharge); }
 
     /// Get the accumulated charged of the digit as a float
     /// \return charge of the digit as a float
@@ -78,7 +69,7 @@ class Digit : public FairTimeStamp {
 
     /// Get the timeBin of the digit
     /// \return timeBin of the digit
-    int getTimeStamp() const { return int(FairTimeStamp::GetTimeStamp()); }
+    int getTimeStamp() const { return static_cast<int>(FairTimeStamp::GetTimeStamp()); }
 
     /// Get the common mode signal of the digit
     /// \return common mode signal of the digit
@@ -86,17 +77,17 @@ class Digit : public FairTimeStamp {
     
     /// Get the number of MC labels associated to the digit
     /// \return Number of MC labels associated to the digit
-    int getNumberOfMClabels() const {return mMClabel.size(); }
+    size_t getNumberOfMClabels() const { return mMClabel.size(); }
 
     /// Get a specific MC Event ID
     /// \param iOccurrence Sorted by occurrence, i.e. for iOccurrence=0 the MC event ID of the most dominant track
     /// \return MC Event ID
-    int getMCEvent(int iOccurrence) const {return int(mMClabel[iOccurrence]*1E-6);}
+    int getMCEvent(int iOccurrence) const { return static_cast<int>(mMClabel[iOccurrence]*1E-6); }
     
     /// Get a specific MC Track ID
     /// \param iOccurrence Sorted by occurrence, i.e. for iOccurrence=0 the MC ID of the most dominant track
     /// \return MC Track ID
-    int getMCTrack(int iOccurrence) const {return int((mMClabel[iOccurrence])%int(1E6));}
+    int getMCTrack(int iOccurrence) const { return static_cast<int>((mMClabel[iOccurrence])%int(1E6)); }
     
     /// Print function: Print basic digit information on the  output stream
     /// \param output Stream to put the digit on
@@ -117,6 +108,35 @@ class Digit : public FairTimeStamp {
       
   ClassDef(Digit, 3);
 };
+
+inline
+Digit::Digit()
+  : FairTimeStamp()
+  , mMClabel(0)
+  , mCharge(0.f)
+  , mCommonMode(0.f)
+  , mCRU(-1)
+  , mRow(-1)
+  , mPad(-1)
+{}
+
+inline
+Digit::Digit(std::vector<long> &MClabel, int cru, float charge, int row, int pad, int time, float commonMode)
+  : FairTimeStamp(time)
+  , mMClabel(MClabel)
+  , mCharge(charge)
+  , mCommonMode(commonMode)
+  , mCRU(cru)
+  , mRow(row)
+  , mPad(pad)
+{}
+
+inline
+std::ostream &Digit::Print(std::ostream &output) const{
+  output << "TPC Digit in CRU [" << mCRU << "], pad row [" << mRow << "] and pad [" << mPad << "] with charge " << mCharge << " at time stamp" /* << mTimeStamp*/;
+  return output;
+}
+
 }
 }
 
