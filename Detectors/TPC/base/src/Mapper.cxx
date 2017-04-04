@@ -210,7 +210,7 @@ void Mapper::initPadRegionsAndPartitions()
   mMapPadRegionInfo[9]=PadRegionInfo(4, 9, 12, 15/10. , 6.07/10., 2284.0/10.,  0, 64.70, 140);
 
   mMapPartitionInfo[0]=PartitionInfo(15, 0          , 32, 0          , 2400 );
-  mMapPartitionInfo[1]=PartitionInfo(18, 15         , 31, 32         , 2879 );
+  mMapPartitionInfo[1]=PartitionInfo(18, 15         , 31, 32         , 2880 );
   mMapPartitionInfo[2]=PartitionInfo(18, 15+18      , 34, 32+31      , 2880 );
   mMapPartitionInfo[3]=PartitionInfo(20, 15+18+18   , 30, 32+31+34   , 3200 );
   mMapPartitionInfo[4]=PartitionInfo(20, 15+18+18+20, 25, 32+31+34+30, 3200 );
