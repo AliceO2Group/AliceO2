@@ -1,6 +1,8 @@
-config_options.mak
-events*
-release
-ca
-makefiles/.svn
-cmodules/.svn
+/config_options.mak
+/events*
+/release
+/ca
+/makefiles/.svn
+/cmodules/.svn
+/glpos.tmp
+/output.*.txt
