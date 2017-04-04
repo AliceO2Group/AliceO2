@@ -17,7 +17,8 @@ namespace AliceO2 {
     /// \brief EMCAL digit implementation
     class Digit : public FairTimeStamp {
     public:
-      Digit();
+      Digit() = default;
+      
       Digit(Int_t module, Int_t tower, Double_t amplitude, Double_t time);
       virtual ~Digit();
       

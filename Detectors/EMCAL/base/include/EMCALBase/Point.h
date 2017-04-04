@@ -12,7 +12,7 @@ namespace AliceO2 {
     public:
       
       /// \brief Default constructor
-      Point();
+      Point() = default;
       
       /// \brief Point constructor
       ///

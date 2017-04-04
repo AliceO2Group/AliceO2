@@ -10,13 +10,6 @@ using namespace AliceO2::EMCAL;
 
 ClassImp(Detector)
 
-Detector::Detector():
-AliceO2::Base::Detector(),
-mPointCollection(nullptr)
-{
-}
-
-
 Detector::Detector(const char* Name, Bool_t Active):
 AliceO2::Base::Detector(Name, Active),
 mPointCollection(new TClonesArray("AliceO2::EMCAL::Point"))
