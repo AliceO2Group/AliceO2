@@ -2,14 +2,13 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "DetectorsBase/BaseHits.h"
+#include "SimulationDataFormat/BaseHits.h"
 #include "Math/GenVector/Transform3D.h"
 #include "TFile.h"
 
 namespace AliceO2
 {
-namespace Base
-{
+
 BOOST_AUTO_TEST_CASE(BasicXYZHit)
 {
   using HitType = BasicXYZEHit<float>;
@@ -74,5 +73,4 @@ BOOST_AUTO_TEST_CASE(BasicXYZHit_ROOTIO)
   }
 }
 
-} // end namespace Base
 } // end namespace AliceO2

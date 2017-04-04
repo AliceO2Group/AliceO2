@@ -15,4 +15,10 @@
 #pragma link C++ class AliceO2::Data::Stack+;
 #pragma link C++ class MCTrack+;
 
+#pragma link C++ class ROOT::Math::Cartesian3D<float>+;
+#pragma link C++ class ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<float>,ROOT::Math::DefaultCoordinateSystemTag>+;
+#pragma link C++ class AliceO2::BaseHit+;
+#pragma link C++ class AliceO2::BasicXYZEHit<float,float>+;
+#pragma link C++ class AliceO2::BasicXYZEHit<double,double>+;
+
 #endif

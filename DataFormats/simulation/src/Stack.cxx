@@ -2,12 +2,12 @@
 /// \brief Implementation of the Stack class
 /// \author M. Al-Turany - June 2014
 
-#include "include/SimulationDataFormat/Stack.h"
-#include "include/SimulationDataFormat/MCTrack.h"
+#include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/MCTrack.h"
 
 #include "FairDetector.h"     // for FairDetector
 #include "FairLogger.h"       // for MESSAGE_ORIGIN, FairLogger
-#include "FairMCPoint.h"      // for FairMCPoint
+#include "SimulationDataFormat/BaseHits.h"
 #include "FairGenericRootManager.h"  // for FairGenericRootManager
 
 #include "TClonesArray.h"     // for TClonesArray
@@ -315,7 +315,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
 
       // Update track index for all MCPoints in the collection
       for (Int_t iPoint = 0; iPoint < nPoints; iPoint++) {
-        FairMCPoint *point = (FairMCPoint *) hitArray->At(iPoint);
+        auto *point = (AliceO2::BaseHit *) hitArray->UncheckedAt(iPoint);
         Int_t iTrack = point->GetTrackID();
 
         mIndexIterator = mIndexMap.find(iTrack);

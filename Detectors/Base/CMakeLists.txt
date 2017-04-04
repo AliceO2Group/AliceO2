@@ -14,7 +14,6 @@ Set(HEADERS
   include/${MODULE_NAME}/Track.h
   include/${MODULE_NAME}/TrackReference.h
   include/${MODULE_NAME}/Utils.h
-  include/${MODULE_NAME}/BaseHits.h
 )
 
 Set(LINKDEF src/BaseLinkDef.h)
@@ -23,12 +22,3 @@ set(BUCKET_NAME detectors_base)
 
 O2_GENERATE_LIBRARY()
 
-set(TEST_SRCS
-  test/testBasicHits.cxx
-)
-
-O2_GENERATE_TESTS(
-  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-  BUCKET_NAME ${BUCKET_NAME}
-  TEST_SRCS ${TEST_SRCS}
-)
