@@ -36,9 +36,8 @@ class HwClusterer : public Clusterer {
     /// \param padsPerCF Pads per cluster finder
     /// \param timebinsPerCF Timebins per cluster finder
     /// \param cfPerRow Number of cluster finder in each row
-    /// \param enableCM Enables common mode simulation
     HwClusterer(Processing processingType, int globalTime, int cru, float minQDiff,
-      bool assignChargeUnique, int padsPerCF, int timebinsPerCF, int cfPerRow, bool enableCM);
+      bool assignChargeUnique, int padsPerCF, int timebinsPerCF, int cfPerRow);
     
     /// Destructor
     ~HwClusterer();
@@ -66,8 +65,7 @@ class HwClusterer : public Clusterer {
               int iCRU,
               int maxRows,
               int maxPads, 
-              int maxTime,
-              bool enableCM);
+              int maxTime);
     
     std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
     std::vector<std::vector<std::vector<DigitMC*>>> mDigitContainer;
@@ -83,7 +81,6 @@ class HwClusterer : public Clusterer {
     int     mPadsPerCF;
     int     mTimebinsPerCF;
     int     mCfPerRow;
-    bool    mEnableCommonMode;
   };
 }
 }

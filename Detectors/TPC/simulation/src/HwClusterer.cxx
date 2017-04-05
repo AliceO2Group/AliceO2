@@ -20,13 +20,13 @@ std::mutex g_display_mutex;
 using namespace AliceO2::TPC;
 
 HwClusterer::HwClusterer()
-  : HwClusterer(Processing::Parallel, 0, 360, 0, false, 8, 8, 0, true)
+  : HwClusterer(Processing::Parallel, 0, 360, 0, false, 8, 8, 0)
 {
 }
 
 //________________________________________________________________________
 HwClusterer::HwClusterer(Processing processingType, int globalTime, int cru, float minQDiff,
-    bool assignChargeUnique, int padsPerCF, int timebinsPerCF, int cfPerRow, bool enableCM)
+    bool assignChargeUnique, int padsPerCF, int timebinsPerCF, int cfPerRow)
   : Clusterer()
   , mProcessingType(processingType)
   , mGlobalTime(globalTime)
@@ -36,7 +36,6 @@ HwClusterer::HwClusterer(Processing processingType, int globalTime, int cru, flo
   , mPadsPerCF(padsPerCF)
   , mTimebinsPerCF(timebinsPerCF)
   , mCfPerRow(cfPerRow)
-  , mEnableCommonMode(enableCM)
 {
 }
 
@@ -120,8 +119,7 @@ void HwClusterer::processDigits(
           int iCRU,
           int maxRows,
           int maxPads, 
-          int maxTime,
-          bool enableCM)
+          int maxTime)
 {
 //  std::thread::id this_id = std::this_thread::get_id();
 //  g_display_mutex.lock();
@@ -153,13 +151,10 @@ void HwClusterer::processDigits(
       const Int_t iTime         = (*it)->getTimeStamp();
       const Int_t iPad          = (*it)->getPad() + 2;  // offset to have 2 empty pads on the "left side"
       const Float_t charge      = (*it)->getCharge();
-      const Float_t iCommonMode = (*it)->getCommonMode();
   
       //iAllBins[iTime][iPad] = charge;
       
-      if (iAllBins[iTime][iPad] != 0.0) LOG(ERROR) << "More then one digit of pad " << iPad << " with timestamp " << iTime << " in CRU " << iCRU << FairLogger::endl;
       iAllBins[iTime][iPad] += charge;
-      if (enableCM) iAllBins[iTime][iPad] += iCommonMode;
     }
   
     /*
@@ -183,7 +178,7 @@ void HwClusterer::processDigits(
          * ordering is important: from right to left, so that the CFs could inform each other if cluster was found
          */
         for (auto rit = clusterFinder[iRow].crbegin(); rit != clusterFinder[iRow].crend(); ++rit) {
-          if ((*rit)->FindCluster()) {
+          if ((*rit)->findCluster()) {
             cfWithCluster.push_back(rit);
           }
         }
@@ -271,12 +266,11 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
                 iCRU,                               // current CRU for deb. purposes
                 mRowsMax,                           // max. numbers of rows per CRU
                 mPadsMax+2+2,                       // max. numbers of pads in each row (+2 empty ones on each side)
-                mTimeBinsMax,                       // number of timebins to process
-                mEnableCommonMode                   
+                mTimeBinsMax                        // number of timebins to process
               )
             );
         else {
-          processDigits(mDigitContainer[iCRU],mClusterFinder[iCRU],mClusterStorage[iCRU],iCRU,mRowsMax,mPadsMax+2+2,mTimeBinsMax,mEnableCommonMode);
+          processDigits(mDigitContainer[iCRU],mClusterFinder[iCRU],mClusterStorage[iCRU],iCRU,mRowsMax,mPadsMax+2+2,mTimeBinsMax);
         }
       }
     }
@@ -313,12 +307,11 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
             iCRU,                               // current CRU for deb. purposes
             mRowsMax,                           // max. numbers of rows per CRU
             mPadsMax+2+2,                       // max. numbers of pads in each row (+2 empty ones on each side)
-            mTimeBinsMax,                       // number of timebins to process
-            mEnableCommonMode                   
+            mTimeBinsMax                        // number of timebins to process
           )
         );
     else {
-      processDigits(mDigitContainer[iCRU],mClusterFinder[iCRU],mClusterStorage[iCRU],iCRU,mRowsMax,mPadsMax+2+2,mTimeBinsMax,mEnableCommonMode);
+      processDigits(mDigitContainer[iCRU],mClusterFinder[iCRU],mClusterStorage[iCRU],iCRU,mRowsMax,mPadsMax+2+2,mTimeBinsMax);
     }
   }
 

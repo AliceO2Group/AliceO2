@@ -4,53 +4,43 @@
 
 //#include "TPCSimulation/HwClusterer.h"
 #include "TPCSimulation/HwClusterFinder.h"
-#include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
 #include "TPCSimulation/HwCluster.h"
 
-#include "TObject.h"
 #include "FairLogger.h"
-#include "TMath.h"
-#include "TError.h"   // for R__ASSERT()
 #include "TClonesArray.h"
 
-ClassImp(AliceO2::TPC::HwClusterFinder)
 
 using namespace AliceO2::TPC;
 
 
-
 //________________________________________________________________________
 HwClusterFinder::HwClusterFinder(
-    Short_t cru, Short_t row, Short_t id,
-    Short_t padOffset, Short_t pads, Short_t timebins, 
-    Float_t diffThreshold, Float_t chargeThreshold,
-    Bool_t requirePositiveCharge):
-  TObject(),
-  mGlobalTimeOfLast(0),
-  mTimebinsAfterLastProcessing(0),
-  mCRU(cru),
-  mRow(row),
-  mId(id),
-  mPadOffset(padOffset),
-  mPads(pads),
-  mTimebins(timebins),
-  mClusterSizePads(5),
-  mClusterSizeTime(5),
-  mDiffThreshold(diffThreshold),
-  mChargeThreshold(chargeThreshold),
-  mRequirePositiveCharge(requirePositiveCharge),
-  mRequireNeighbouringPad(kTRUE),
-  mRequireNeighbouringTimebin(kTRUE),
-  mAutoProcessing(kFALSE),
-  mAssignChargeUnique(kTRUE),
-  mProcessingType(kCharge),
-  mData(nullptr),
-  mSlopesP(nullptr),
-  mSlopesT(nullptr),
-  tmpCluster(nullptr),
-  mZeroTimebin(nullptr),
-  mNextCF(nullptr)
+    short cru, short row, short id,
+    short padOffset, short pads, short timebins, 
+    float diffThreshold, float chargeThreshold,
+    bool requirePositiveCharge)
+  : mGlobalTimeOfLast(0)
+  , mTimebinsAfterLastProcessing(0)
+  , mCRU(cru)
+  , mRow(row)
+  , mId(id)
+  , mPadOffset(padOffset)
+  , mPads(pads)
+  , mTimebins(timebins)
+  , mClusterSizePads(5)
+  , mClusterSizeTime(5)
+  , mDiffThreshold(diffThreshold)
+  , mChargeThreshold(chargeThreshold)
+  , mRequirePositiveCharge(requirePositiveCharge)
+  , mRequireNeighbouringPad(true)
+  , mRequireNeighbouringTimebin(true)
+  , mAutoProcessing(false)
+  , mAssignChargeUnique(true)
+  , mData(nullptr)
+  , tmpCluster(nullptr)
+  , mZeroTimebin(nullptr)
+  , mNextCF(nullptr)
 {
   if (mPads < mClusterSizePads) { 
     LOG(ERROR) << "Given width in pad direction is smaller than cluster size in pad direction."
@@ -67,67 +57,55 @@ HwClusterFinder::HwClusterFinder(
     LOG(WARNING) << "Bins in pad direction X bins in time direction is larger than 64." << FairLogger::endl;
   }
 
-  mData = new Float_t*[mTimebins];
-  mSlopesP = new Float_t*[mTimebins];
-  mSlopesT = new Float_t*[mTimebins];
-  for (Int_t t = 0; t < mTimebins; t++){
-    mData[t] = new Float_t[mPads]; 
-    mSlopesP[t] = new Float_t[mPads]; 
-    mSlopesT[t] = new Float_t[mPads]; 
-    for (Int_t p = 0; p < mPads; p++){
+  short t,p;
+  mData = new float*[mTimebins];
+  for (t = 0; t < mTimebins; t++){
+    mData[t] = new float[mPads]; 
+    for (p = 0; p < mPads; p++){
       mData[t][p] = 0;
-      mSlopesP[t][p] = 0;
-      mSlopesT[t][p] = 0;
     }
   }
 
-  tmpCluster = new Float_t*[mClusterSizeTime];
-  for (Int_t t=0; t<mClusterSizeTime; t++) {
-    tmpCluster[t] = new Float_t[mClusterSizePads];
+  tmpCluster = new float*[mClusterSizeTime];
+  for (t=0; t<mClusterSizeTime; t++) {
+    tmpCluster[t] = new float[mClusterSizePads];
   }
 }
 
 //________________________________________________________________________
-HwClusterFinder::HwClusterFinder(const HwClusterFinder& other):
-  TObject(other),
-  mGlobalTimeOfLast(other.mGlobalTimeOfLast),
-  mTimebinsAfterLastProcessing(other.mTimebinsAfterLastProcessing),
-  mCRU(other.mCRU),
-  mRow(other.mRow),
-  mId(other.mId),
-  mPadOffset(other.mPadOffset),
-  mPads(other.mPads),
-  mTimebins(other.mTimebins),
-  mClusterSizePads(other.mClusterSizePads),
-  mClusterSizeTime(other.mClusterSizeTime),
-  mDiffThreshold(other.mDiffThreshold),
-  mChargeThreshold(other.mChargeThreshold),
-  mRequirePositiveCharge(other.mRequirePositiveCharge),
-  mRequireNeighbouringPad(other.mRequireNeighbouringPad),
-  mRequireNeighbouringTimebin(other.mRequireNeighbouringTimebin),
-  mAutoProcessing(other.mAutoProcessing),
-  mAssignChargeUnique(other.mAssignChargeUnique),
-  mProcessingType(other.mProcessingType),
-  clusterContainer(other.clusterContainer),
-  mNextCF(other.mNextCF)
+HwClusterFinder::HwClusterFinder(const HwClusterFinder& other)
+  : mGlobalTimeOfLast(other.mGlobalTimeOfLast)
+  , mTimebinsAfterLastProcessing(other.mTimebinsAfterLastProcessing)
+  , mCRU(other.mCRU)
+  , mRow(other.mRow)
+  , mId(other.mId)
+  , mPadOffset(other.mPadOffset)
+  , mPads(other.mPads)
+  , mTimebins(other.mTimebins)
+  , mClusterSizePads(other.mClusterSizePads)
+  , mClusterSizeTime(other.mClusterSizeTime)
+  , mDiffThreshold(other.mDiffThreshold)
+  , mChargeThreshold(other.mChargeThreshold)
+  , mRequirePositiveCharge(other.mRequirePositiveCharge)
+  , mRequireNeighbouringPad(other.mRequireNeighbouringPad)
+  , mRequireNeighbouringTimebin(other.mRequireNeighbouringTimebin)
+  , mAutoProcessing(other.mAutoProcessing)
+  , mAssignChargeUnique(other.mAssignChargeUnique)
+  , clusterContainer(other.clusterContainer)
+  , mNextCF(other.mNextCF)
 {
-  mData = new Float_t*[mTimebins];
-  mSlopesP = new Float_t*[mTimebins];
-  mSlopesT = new Float_t*[mTimebins];
-  for (Int_t t = 0; t < mTimebins; t++){
-    mData[t] = new Float_t[mPads]; 
-    mSlopesP[t] = new Float_t[mPads]; 
-    mSlopesT[t] = new Float_t[mPads]; 
-    for (Int_t p = 0; p < mPads; p++){
+  short t,p;
+  mData = new float*[mTimebins];
+  for (t = 0; t < mTimebins; t++){
+    mData[t] = new float[mPads]; 
+    for (p = 0; p < mPads; p++){
       mData[t][p] = other.mData[t][p];
-      mSlopesP[t][p] = other.mSlopesP[t][p];
-      mSlopesT[t][p] = other.mSlopesT[t][p];
     }
   }
 
-  for (Int_t t=0; t<mClusterSizeTime; t++) {
-    tmpCluster[t] = new Float_t[mClusterSizePads];
-    for (Int_t p=0; p<mClusterSizePads; p++){
+  for (t=0; t<mClusterSizeTime; t++) {
+    tmpCluster[t] = new float[mClusterSizePads];
+    for (p=0; p<mClusterSizePads; p++){
       tmpCluster[t][p] = other.tmpCluster[t][p];
     }
   }
@@ -136,27 +114,24 @@ HwClusterFinder::HwClusterFinder(const HwClusterFinder& other):
 //________________________________________________________________________
 HwClusterFinder::~HwClusterFinder()
 {
-  for (Int_t t = 0; t < mTimebins; t++){
+  short t;
+  for (t = 0; t < mTimebins; t++){
     delete [] mData[t];
-    delete [] mSlopesP[t];
-    delete [] mSlopesT[t];
   }
   delete [] mData;
-  delete [] mSlopesP;
-  delete [] mSlopesT;
   delete [] mZeroTimebin;
 
-  for (Int_t t=0; t<mClusterSizeTime; t++) {
+  for (t=0; t<mClusterSizeTime; t++) {
     delete [] tmpCluster[t];
   }
   delete [] tmpCluster;
 }
 
 //________________________________________________________________________
-Bool_t HwClusterFinder::AddTimebin(Float_t* timebin, UInt_t globalTime, Int_t length)
+bool HwClusterFinder::AddTimebin(float* timebin, unsigned globalTime, int length)
 {
 //  printf("adding the following timebin: ");
-//  for (Int_t i=0; i<length; i++){
+//  for (int i=0; i<length; i++){
 //    printf("%.2f\t",timebin[i]);
 //  }
 //  printf("\n");
@@ -167,80 +142,68 @@ Bool_t HwClusterFinder::AddTimebin(Float_t* timebin, UInt_t globalTime, Int_t le
   //
   // reordering of the local arrays
   //
-  Float_t* data0 = mData[0];
-  Float_t* slopsP0 = mSlopesP[0];
-  Float_t* slopsT0 = mSlopesT[0];
-  for (Int_t t = 0; t<mTimebins-1; t++) {
+  float* data0 = mData[0];
+  short t,p;
+  for (t = 0; t<mTimebins-1; t++) {
     mData[t] = mData[t+1];
-    mSlopesP[t] = mSlopesP[t+1];
-    mSlopesT[t] = mSlopesT[t+1];
   }
   mData[mTimebins-1] = data0;
-  mSlopesP[mTimebins-1] = slopsP0;
-  mSlopesT[mTimebins-1] = slopsT0;
 
     //printf("%d\n",mGlobalTimeOfLast);
   if (length != mPads) {
     if (length < mPads) {
 //      LOG(INFO) << "Number of pads in timebin (" << length << ") doesn't correspond to setting (" << mPads << "), "
 //                << "filling remaining with 0." << FairLogger::endl;
-      for (Int_t p = 0; p < length; p++){
+      for (p = 0; p < length; p++){
         mData[mTimebins-1][p] = timebin[p];
       }
-      for (Int_t p = length; p < mPads; p++){
+      for (p = length; p < mPads; p++){
         mData[mTimebins-1][p] = 0;
       }
     } else {
 //      LOG(INFO) << "Number of pads in timebin (" << length << ") doesn't correspond to setting (" << mPads << "), "
 //                << "ignoring last ones." << FairLogger::endl;
-      for (Int_t p = 0; p < mPads; p++){
+      for (p = 0; p < mPads; p++){
         mData[mTimebins-1][p] = timebin[p];
       }
     }
   } else {
-    for (Int_t p = 0; p < mPads; p++){
+    for (p = 0; p < mPads; p++){
       mData[mTimebins-1][p] = timebin[p];
     }
   }
 
-//  for (Int_t p = 0; p < mPads-1; p++){
-//    mSlopesP[mTimebins-1][p] = 
-//      mData[mTimebins-1][p+1] - mData[mTimebins-1][p];
-//  }
-//  for (Int_t p = 0; p < mPads; p++){
-//    mSlopesT[mTimebins-1][p] = 
-//      mData[mTimebins-1][p] - mData[mTimebins-2][p];
-//  }
-  if (mAutoProcessing & (mTimebinsAfterLastProcessing >= (mTimebins -2 -2))) FindCluster();
-  return kTRUE;
+  if (mAutoProcessing & (mTimebinsAfterLastProcessing >= (mTimebins -2 -2))) findCluster();
+  return true;
 }
 
 //________________________________________________________________________
-Bool_t HwClusterFinder::AddTimebins(Int_t nBins, Float_t** timebins, UInt_t globalTimeOfLast, Int_t length)
+bool HwClusterFinder::AddTimebins(int nBins, float** timebins, unsigned globalTimeOfLast, int length)
 {
-  Bool_t ret = kFALSE;
-  for(Int_t n=0; n<nBins; n++){
+  bool ret = false;
+  for(short n=0; n<nBins; n++){
     ret = ret | !(AddTimebin(timebins[n],globalTimeOfLast,length));
   }
   return !ret;
 }
 
 //________________________________________________________________________
-void HwClusterFinder::AddZeroTimebin(UInt_t globalTime, Int_t length)
+void HwClusterFinder::AddZeroTimebin(unsigned globalTime, int length)
 {
   if (mZeroTimebin == nullptr) {
-    mZeroTimebin = new Float_t[length];
-    for (Int_t i = 0; i < length; i++) mZeroTimebin[i] = 0;
+    mZeroTimebin = new float[length];
+    for (short i = 0; i < length; i++) mZeroTimebin[i] = 0;
   }
-  Bool_t ret = AddTimebin(mZeroTimebin,globalTime,length);
+  bool ret = AddTimebin(mZeroTimebin,globalTime,length);
 }
 
 //________________________________________________________________________
 void HwClusterFinder::PrintLocalStorage()
 {
-  for (Int_t t = 0; t < mTimebins; t++){
+  short t,p;
+  for (t = 0; t < mTimebins; t++){
   printf("t %d:\t",t);
-    for (Int_t p = 0; p < mPads; p++){
+    for (p = 0; p < mPads; p++){
       printf("%.2f\t", mData[t][p]);
     }
     printf("\n");
@@ -249,31 +212,10 @@ void HwClusterFinder::PrintLocalStorage()
 }
 
 //________________________________________________________________________
-void HwClusterFinder::PrintLocalSlopes()
-{
-  printf("In Pad direction:\n");
-  for (Int_t t = 0; t < mTimebins; t++){
-  printf("t %d:\t",t);
-    for (Int_t p = 0; p < mPads; p++){
-      printf("%.2f\t", mSlopesP[t][p]);
-    }
-    printf("\n");
-  }
-  printf("\nIn Time direction:\n");
-  for (Int_t t = 0; t < mTimebins; t++){
-  printf("t %d:\t",t);
-    for (Int_t p = 0; p < mPads; p++){
-      printf("%.2f\t", mSlopesT[t][p]);
-    }
-    printf("\n");
-  }
-}
-
-//________________________________________________________________________
-Bool_t HwClusterFinder::FindCluster()
+bool HwClusterFinder::findCluster()
 {
   mTimebinsAfterLastProcessing = 0;
-  Int_t foundNclusters = 0;
+  int foundNclusters = 0;
 
   //
   // Set region to look in for peaks, max. array size +-2 in both dimensions
@@ -295,173 +237,164 @@ Bool_t HwClusterFinder::FindCluster()
   //
   // In time direction
   //
-  Short_t tMax = (mTimebins-1) - 2;
-  Short_t tMin = 2;
-  Short_t delTm = -2;
-  Short_t delTp = 2;
+  short tMax = (mTimebins-1) - 2;
+  short tMin = 2;
+  short delTm = -2;
+  short delTp = 2;
 
   //
   // In pad direction
   //
-  Int_t pMin = 2;
-  Int_t pMax = (mPads-1)-2;
-  Short_t delPm = -2;
-  Short_t delPp = 2;
+  int pMin = 2;
+  int pMax = (mPads-1)-2;
+  short delPm = -2;
+  short delPp = 2;
 
   //
   // peak finding
   //
-  switch (mProcessingType) {
-    // peaks according to ADC value
-    case kCharge: 
-      for (Int_t t=tMin; t<=tMax; t++) {
-        for (Int_t p=pMin; p<=pMax; p++) {
-            //printf("t:%d, p:%d\n",t,p);
-          //
-          // find peak in 3x3 matrix
-          //
-          //    --->  pad direction
-          //    o o o o o    |
-          //    o i i i o    |
-          //    o i C i o    V Time direction
-          //    o i i i o
-          //    o o o o o
-          //
-          if (mData[t  ][p  ] < mChargeThreshold) continue;
+  short t,p,tt,pp;
+  for (t=tMin; t<=tMax; t++) {
+    for (p=pMin; p<=pMax; p++) {
+        //printf("t:%d, p:%d\n",t,p);
+      //
+      // find peak in 3x3 matrix
+      //
+      //    --->  pad direction
+      //    o o o o o    |
+      //    o i i i o    |
+      //    o i C i o    V Time direction
+      //    o i i i o
+      //    o o o o o
+      //
+      if (mData[t  ][p  ] < mChargeThreshold) continue;
 
-          // Require at least one neighboring time bin with signal
-          if (mRequireNeighbouringTimebin   && (mData[t-1][p  ] + mData[t+1][p  ] <= 0)) continue;
-          // Require at least one neighboring pad with signal
-          if (mRequireNeighbouringPad       && (mData[t  ][p-1] + mData[t  ][p+1] <= 0)) continue;
+      // Require at least one neighboring time bin with signal
+      if (mRequireNeighbouringTimebin   && (mData[t-1][p  ] + mData[t+1][p  ] <= 0)) continue;
+      // Require at least one neighboring pad with signal
+      if (mRequireNeighbouringPad       && (mData[t  ][p-1] + mData[t  ][p+1] <= 0)) continue;
 
-          // check for local maximum
-          if (mData[t-1][p  ] >=  mData[t][p]) continue;
-          if (mData[t+1][p  ] >   mData[t][p]) continue;
-          if (mData[t  ][p-1] >=  mData[t][p]) continue;
-          if (mData[t  ][p+1] >   mData[t][p]) continue;
-          if (mData[t-1][p-1] >=  mData[t][p]) continue;
-          if (mData[t+1][p+1] >   mData[t][p]) continue;
-          if (mData[t+1][p-1] >   mData[t][p]) continue;
-          if (mData[t-1][p+1] >=  mData[t][p]) continue;
-//          printf("##\n");
-//          printf("## cluster found at t=%d, p=%d (in CF %d in row %d of CRU %d)\n",t,p,mId,mRow,mCRU);
-//          printf("##\n");
-//          printCluster(t,p);
-            
-          //
-          // cluster was found!!
-          //
-          
-          // prepare temp storage
-          for (Int_t tt=0; tt<mClusterSizeTime; tt++) {
-            for (Int_t pp=0; pp<mClusterSizePads; pp++){
-              tmpCluster[tt][pp] = 0;
-            }
-          }
+      // check for local maximum
+      if (mData[t-1][p  ] >=  mData[t][p]) continue;
+      if (mData[t+1][p  ] >   mData[t][p]) continue;
+      if (mData[t  ][p-1] >=  mData[t][p]) continue;
+      if (mData[t  ][p+1] >   mData[t][p]) continue;
+      if (mData[t-1][p-1] >=  mData[t][p]) continue;
+      if (mData[t+1][p+1] >   mData[t][p]) continue;
+      if (mData[t+1][p-1] >   mData[t][p]) continue;
+      if (mData[t-1][p+1] >=  mData[t][p]) continue;
+//      printf("##\n");
+//      printf("## cluster found at t=%d, p=%d (in CF %d in row %d of CRU %d)\n",t,p,mId,mRow,mCRU);
+//      printf("##\n");
+//      printCluster(t,p);
+        
+      //
+      // cluster was found!!
+      //
+      
+      // prepare temp storage
+      for (tt=0; tt<mClusterSizeTime; tt++) {
+        for (pp=0; pp<mClusterSizePads; pp++){
+          tmpCluster[tt][pp] = 0;
+        }
+      }
 
-          //
-          // Cluster peak (C) and surrounding inner 3x3 matrix (i) is always
-          // used taken for the found cluster
-          //
-          for (Int_t tt=1; tt<4; tt++) {
-            for (Int_t pp=1; pp<4; pp++) {
-              Float_t charge = mData[t+(tt-2)][p+(pp-2)];
-              if ( mRequirePositiveCharge && charge < 0) continue;
-              tmpCluster[tt][pp] = charge;
-//              mData[t+(tt-2)][p+(pp-2)] = 0;
-            }
-          }
-            
-          //
-          // The outer cells of the 5x5 matrix (o) are taken only if the
-          // neighboring inner cell (i) has a signal above threshold.
-          //
-          
-          //
-          // The cells of the "inner cross" have here only 1 neighbour.
-          // [t]                  
-          //  0         o          
-          //  1         i          
-          //  2     o i C i o      
-          //  3         i          
-          //  4         o          
-          //
-          //    [p] 0 1 2 3 4
-          
-        //tmpCluster[t][p]
-          tmpCluster[0][2] = chargeForCluster(&mData[t-2][p  ],&mData[t-1][p  ]);   // t-X -> older
-          tmpCluster[4][2] = chargeForCluster(&mData[t+2][p  ],&mData[t+1][p  ]);   // t+X -> newer
-          tmpCluster[2][0] = chargeForCluster(&mData[t  ][p-2],&mData[t  ][p-1]);
-          tmpCluster[2][4] = chargeForCluster(&mData[t  ][p+2],&mData[t  ][p+1]);
-          
-          
-          // The cells of the corners have 3 neighbours.
-          //    o o   o o
-          //    o i   i o
-          //        C    
-          //    o i   i o
-          //    o o   o o
-          
-          // bottom left
-          tmpCluster[3][0] = chargeForCluster(&mData[t+1][p-2],&mData[t+1][p-1]);
-          tmpCluster[4][0] = chargeForCluster(&mData[t+2][p-2],&mData[t+1][p-1]);
-          tmpCluster[4][1] = chargeForCluster(&mData[t+2][p-1],&mData[t+1][p-1]);
-          // bottom right
-          tmpCluster[4][3] = chargeForCluster(&mData[t+2][p+1],&mData[t+1][p+1]);
-          tmpCluster[4][4] = chargeForCluster(&mData[t+2][p+2],&mData[t+1][p+1]);
-          tmpCluster[3][4] = chargeForCluster(&mData[t+1][p+2],&mData[t+1][p+1]);
-          // top right
-          tmpCluster[1][4] = chargeForCluster(&mData[t-1][p+2],&mData[t-1][p+1]);
-          tmpCluster[0][4] = chargeForCluster(&mData[t-2][p+2],&mData[t-1][p+1]);
-          tmpCluster[0][3] = chargeForCluster(&mData[t-2][p+1],&mData[t-1][p+1]);
-          // top left
-          tmpCluster[0][1] = chargeForCluster(&mData[t-2][p-1],&mData[t-1][p-1]);
-          tmpCluster[0][0] = chargeForCluster(&mData[t-2][p-2],&mData[t-1][p-1]);
-          tmpCluster[1][0] = chargeForCluster(&mData[t-1][p-2],&mData[t-1][p-1]);
+      //
+      // Cluster peak (C) and surrounding inner 3x3 matrix (i) is always
+      // used taken for the found cluster
+      //
+      float charge;
+      for (tt=1; tt<4; tt++) {
+        for (pp=1; pp<4; pp++) {
+          charge = mData[t+(tt-2)][p+(pp-2)];
+          if ( mRequirePositiveCharge && charge < 0) continue;
+          tmpCluster[tt][pp] = charge;
+//          mData[t+(tt-2)][p+(pp-2)] = 0;
+        }
+      }
+        
+      //
+      // The outer cells of the 5x5 matrix (o) are taken only if the
+      // neighboring inner cell (i) has a signal above threshold.
+      //
+      
+      //
+      // The cells of the "inner cross" have here only 1 neighbour.
+      // [t]                  
+      //  0         o          
+      //  1         i          
+      //  2     o i C i o      
+      //  3         i          
+      //  4         o          
+      //
+      //    [p] 0 1 2 3 4
+      
+    //tmpCluster[t][p]
+      tmpCluster[0][2] = chargeForCluster(&mData[t-2][p  ],&mData[t-1][p  ]);   // t-X -> older
+      tmpCluster[4][2] = chargeForCluster(&mData[t+2][p  ],&mData[t+1][p  ]);   // t+X -> newer
+      tmpCluster[2][0] = chargeForCluster(&mData[t  ][p-2],&mData[t  ][p-1]);
+      tmpCluster[2][4] = chargeForCluster(&mData[t  ][p+2],&mData[t  ][p+1]);
+      
+      
+      // The cells of the corners have 3 neighbours.
+      //    o o   o o
+      //    o i   i o
+      //        C    
+      //    o i   i o
+      //    o o   o o
+      
+      // bottom left
+      tmpCluster[3][0] = chargeForCluster(&mData[t+1][p-2],&mData[t+1][p-1]);
+      tmpCluster[4][0] = chargeForCluster(&mData[t+2][p-2],&mData[t+1][p-1]);
+      tmpCluster[4][1] = chargeForCluster(&mData[t+2][p-1],&mData[t+1][p-1]);
+      // bottom right
+      tmpCluster[4][3] = chargeForCluster(&mData[t+2][p+1],&mData[t+1][p+1]);
+      tmpCluster[4][4] = chargeForCluster(&mData[t+2][p+2],&mData[t+1][p+1]);
+      tmpCluster[3][4] = chargeForCluster(&mData[t+1][p+2],&mData[t+1][p+1]);
+      // top right
+      tmpCluster[1][4] = chargeForCluster(&mData[t-1][p+2],&mData[t-1][p+1]);
+      tmpCluster[0][4] = chargeForCluster(&mData[t-2][p+2],&mData[t-1][p+1]);
+      tmpCluster[0][3] = chargeForCluster(&mData[t-2][p+1],&mData[t-1][p+1]);
+      // top left
+      tmpCluster[0][1] = chargeForCluster(&mData[t-2][p-1],&mData[t-1][p-1]);
+      tmpCluster[0][0] = chargeForCluster(&mData[t-2][p-2],&mData[t-1][p-1]);
+      tmpCluster[1][0] = chargeForCluster(&mData[t-1][p-2],&mData[t-1][p-1]);
 
-//          if ((mCRU == 179 && mRow == 1 && p+mPadOffset == 103 && mGlobalTimeOfLast-(mTimebins-1)+t == 170)/* ||
-//              (mCRU == 256 && mRow == 10 &&  p+mPadOffset == 27 && mGlobalTimeOfLast-(mTimebins-1)+t == 181)*/ ) {
-//            PrintLocalStorage();
-//          }
+//      if ((mCRU == 179 && mRow == 1 && p+mPadOffset == 103 && mGlobalTimeOfLast-(mTimebins-1)+t == 170)/* ||
+//          (mCRU == 256 && mRow == 10 &&  p+mPadOffset == 27 && mGlobalTimeOfLast-(mTimebins-1)+t == 181)*/ ) {
+//        PrintLocalStorage();
+//      }
 
-          HwCluster cl(mCRU, mRow, mClusterSizePads, mClusterSizeTime, tmpCluster,p+mPadOffset,mGlobalTimeOfLast-(mTimebins-1)+t);
-          foundNclusters++;
-          clusterContainer.push_back(cl);
+      HwCluster cl(mCRU, mRow, mClusterSizePads, mClusterSizeTime, tmpCluster,p+mPadOffset,mGlobalTimeOfLast-(mTimebins-1)+t);
+      foundNclusters++;
+      clusterContainer.push_back(cl);
 
-          if (mAssignChargeUnique) {
-            if (p < (pMin+4)) { 
-              // If the cluster peak is in one of the 6 leftmost pads, the Cluster Finder
-              // on the left has to know about it to ignore the already used pads.
-              if (mNextCF != nullptr) mNextCF->clusterAlreadyUsed(t,p+mPadOffset,tmpCluster);
-            }
-            
+      if (mAssignChargeUnique) {
+        if (p < (pMin+4)) { 
+          // If the cluster peak is in one of the 6 leftmost pads, the Cluster Finder
+          // on the left has to know about it to ignore the already used pads.
+          if (mNextCF != nullptr) mNextCF->clusterAlreadyUsed(t,p+mPadOffset,tmpCluster);
+        }
+        
 
-            //
-            // subtract found cluster from storage
-            //
-            for (Int_t tt=0; tt<5; tt++) {
-              for (Int_t pp=0; pp<5; pp++) {
-                mData[t+(tt-2)][p+(pp-2)] -= tmpCluster[tt][pp];
-              }
-            }
+        //
+        // subtract found cluster from storage
+        //
+        for (tt=0; tt<5; tt++) {
+          for (pp=0; pp<5; pp++) {
+            mData[t+(tt-2)][p+(pp-2)] -= tmpCluster[tt][pp];
           }
         }
       }
-      break;
-
-    // peaks according to slopes
-    case kSlope:
-      break; 
-    default:
-      LOG(WARNING) << "Wrong type for peak finding. Possible would be 0 (charge) or 1 (slope)." << FairLogger::endl;
+    }
   }
 
-  if (foundNclusters > 0) return kTRUE;
-  return kFALSE;
+  if (foundNclusters > 0) return true;
+  return false;
 }
 
 //________________________________________________________________________
-Float_t HwClusterFinder::chargeForCluster(Float_t* charge, Float_t* toCompare)
+float HwClusterFinder::chargeForCluster(float* charge, float* toCompare)
 {
   //printf("%.2f - %.2f = %.f compared to %.2f)?\n",toCompare,*charge,toCompare-*charge,-mDiffThreshold);
   if ((mRequirePositiveCharge && (*charge > 0)) &
@@ -496,13 +429,14 @@ void HwClusterFinder::setNextCF(HwClusterFinder* nextCF)
 }
 
 //________________________________________________________________________
-void HwClusterFinder::clusterAlreadyUsed(Short_t time, Short_t pad, Float_t** cluster)
+void HwClusterFinder::clusterAlreadyUsed(short time, short pad, float** cluster)
 {
-  Short_t localPad = pad - mPadOffset;
+  short localPad = pad - mPadOffset;
 
-  for (Int_t t=time-2; t<=time+2; t++){
+  short t,p;
+  for (t=time-2; t<=time+2; t++){
     if (t < 0 || t >= mTimebins) continue;
-    for (Int_t p=localPad-2; p<=localPad+2; p++){
+    for (p=localPad-2; p<=localPad+2; p++){
       if (p < 0 || p >= mPads) continue;
         
       mData[t][p] -= cluster[t-time+2][p-localPad+2];
@@ -511,13 +445,12 @@ void HwClusterFinder::clusterAlreadyUsed(Short_t time, Short_t pad, Float_t** cl
 }
 
 //________________________________________________________________________
-void HwClusterFinder::reset(UInt_t globalTimeAfterReset)
+void HwClusterFinder::reset(unsigned globalTimeAfterReset)
 {
-  for (Int_t t = 0; t < mTimebins; t++){
-    for (Int_t p = 0; p < mPads; p++){
+  short t,p;
+  for (t = 0; t < mTimebins; t++){
+    for (p = 0; p < mPads; p++){
       mData[t][p] = 0;
-      mSlopesP[t][p] = 0;
-      mSlopesT[t][p] = 0;
     }
   }
 
@@ -525,11 +458,12 @@ void HwClusterFinder::reset(UInt_t globalTimeAfterReset)
 }
 
 //________________________________________________________________________
-void HwClusterFinder::printCluster(Short_t time, Short_t pad)
+void HwClusterFinder::printCluster(short time, short pad)
 {
-  for (Int_t t = time-2; t <= time+2; t++) {
+  short t,p;
+  for (t = time-2; t <= time+2; t++) {
     printf("%d\t\t",t);
-    for (Int_t p = pad-2; p <= pad+2; p++) {
+    for (p = pad-2; p <= pad+2; p++) {
       printf("%.2f\t", mData[t][p]);
     }
     printf("\n");
