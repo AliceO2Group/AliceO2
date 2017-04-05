@@ -558,7 +558,7 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 	//Apply standard translation / rotation
 	glMultMatrixf(currentMatrice);
 
-	//Grafichs Options
+	//Graphichs Options
 	pointSize += (float) (keys[107] - keys[109] + keys[187] - keys[189]) * fpsscale * 0.05;
 	if (pointSize <= 0.01) pointSize = 0.01;
 
@@ -574,8 +574,12 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 
 		pointSize = 2.0;
 		drawSlice = -1;
+		
+		Xscale = 1;
+		Zadd = 0;
 
 		resetScene = 0;
+		updateDLList = true;
 	}
 
 	//Store position
@@ -1005,7 +1009,7 @@ void DoScreenshot(char *filename, int SCALE_X, unsigned char **mixBuffer = NULL,
 void PrintHelp()
 {
 	printf("[N]/[SPACE]\tNext event\n");
-	printf("[Q]\t\tQuit\n");
+	printf("[Q]/[ESC]\tQuit\n");
 	printf("[R]\t\tReset Display Settings\n");
 	printf("[L]\t\tDraw single slice (next slice)\n");
 	printf("[K]\t\tDraw single slice (previous slice)\n");
@@ -1027,9 +1031,11 @@ void PrintHelp()
 	printf("[H]\t\tPrint Help\n");
 	printf("[W]/[S]/[A]/[D]\tZoom / Move Left Right\n");
 	printf("[E]/[F]\t\tRotate\n");
+	printf("[+]/[-]\t\tMake points thicker / fainter\n");
 	printf("[MOUSE1]\tLook around\n");
 	printf("[MOUSE2]\tShift camera\n");
 	printf("[MOUSE1+2]\tZoom / Rotate\n");
+	printf("[SHIFT]\tSlow Zoom / Move / Rotate\n");
 }
 
 void HandleKeyRelease(int wParam)
@@ -1612,6 +1618,7 @@ int GetKey(int key)
 		wParam = 'N';
 		break;
 	case 24:
+	case 9:
 		wParam = 'Q';
 		break;
 	case 27:
@@ -1881,7 +1888,7 @@ void *OpenGLMain(void *ptr)
 				case KeyRelease:
 				{
 					int wParam = GetKey(event.xkey.keycode);
-					//fprintf(stderr, "KeyRelease event %d -> %d (%c)\n", event.xkey.keycode, wParam, (char) wParam);
+					fprintf(stderr, "KeyRelease event %d -> %d (%c)\n", event.xkey.keycode, wParam, (char) wParam);
 					HandleKeyRelease(wParam);
 				}
 				break;
