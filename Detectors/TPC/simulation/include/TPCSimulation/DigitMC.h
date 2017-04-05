@@ -50,7 +50,7 @@ class DigitMC : public FairTimeStamp, public Digit {
 
     /// Get the timeBin of the DigitMC
     /// \return timeBin of the DigitMC
-    int getTimeStamp() const { return static_cast<int>(FairTimeStamp::GetTimeStamp()); }
+    int getTimeStamp() const final { return static_cast<int>(FairTimeStamp::GetTimeStamp()); };
 
     /// Get the common mode signal of the DigitMC
     /// \return common mode signal of the DigitMC

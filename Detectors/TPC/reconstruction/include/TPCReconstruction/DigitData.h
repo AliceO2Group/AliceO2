@@ -37,7 +37,7 @@ class DigitData : public Digit {
 
     /// Get the timeBin of the DigitData
     /// \return timeBin of the DigitData
-    int getTimeStamp() const { return mTimeBin; }
+    int getTimeStamp() const final { return mTimeBin; };
 
   private:
     unsigned int            mTimeBin;        ///< Time bin of that Digit

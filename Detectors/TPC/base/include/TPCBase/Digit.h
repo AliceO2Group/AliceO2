@@ -50,6 +50,11 @@ class Digit {
     /// \return pad of the Digit
     int getPad() const { return mPad; }
 
+    /// Get the timeBin of the Digit
+    /// \return timeBin of the Digit
+    virtual int getTimeStamp() const = 0;
+
+
   protected:
 
     float                   mCharge;          ///< ADC value of the Digit
