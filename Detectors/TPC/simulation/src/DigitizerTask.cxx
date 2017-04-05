@@ -132,8 +132,7 @@ void DigitizerTask::fillHitArrayFromFile()
 //     printf("Filling hit %d (event %d)\n", ihit, fEvent);
 
     const int size = dummy.GetEntriesFast();
-    new(dummy[size]) Point(fTrack, 98, TVector3(fX, fY, fZ), TVector3(0,0,0),
-                           fTime, 0., fQ*WION);
+    new(dummy[size]) Point(fX, fY, fZ, fTime, fQ, fTrack, 98);
   }
 
   printf("Converted hits: %d\n", dummy.GetEntriesFast());

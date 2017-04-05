@@ -24,7 +24,6 @@
 #include "TSystem.h"
 #include "TClonesArray.h"
 #include "TVirtualMC.h"
-#include "TVectorD.h"
 
 #include "TFile.h"
 
@@ -176,12 +175,14 @@ void Detector::SetSpecialPhysicsCuts()
 
 Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
+  static auto *refMC = TVirtualMC::GetMC();
+
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
-  if(static_cast<int>(TVirtualMC::GetMC()->TrackCharge()) == 0) {
+  if(static_cast<int>(refMC->TrackCharge()) == 0) {
     
     // set a very large step size for neutral particles
-    TVirtualMC::GetMC()->SetMaxStep(1.e10);
+    refMC->SetMaxStep(1.e10);
     return kFALSE; // take only charged particles
   }
 
@@ -197,21 +198,21 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // https://indico.cern.ch/event/316891/contributions/732168/
   
   TLorentzVector momentum;
-  TVirtualMC::GetMC()->TrackMomentum(momentum);
-  const Double_t rnd = TVirtualMC::GetMC()->GetRandom()->Rndm();
+  refMC->TrackMomentum(momentum);
+  const Double_t rnd = refMC->GetRandom()->Rndm();
   if(mSimulationType == SimulationType::GEANT3) {
     
     // betagamma = p/m
-    Float_t betaGamma = momentum.P()/TVirtualMC::GetMC()->TrackMass();
+    Float_t betaGamma = momentum.P()/refMC->TrackMass();
     betaGamma = TMath::Max(betaGamma, static_cast<Float_t>(7.e-3)); // protection against too small bg
     
     // NPRIM etc. are defined in "TPCSimulation/Constants.h"
     const Float_t pp = NPRIM * BetheBlochAleph(betaGamma, BBPARAM[0], BBPARAM[1], BBPARAM[2], BBPARAM[3], BBPARAM[4]);
     
-    TVirtualMC::GetMC()->SetMaxStep(-TMath::Log(rnd)/pp);
+    refMC->SetMaxStep(-TMath::Log(rnd)/pp);
   } else {
     
-    TVirtualMC::GetMC()->SetMaxStep(0.2+(2.*rnd-1.)*0.05);  // 2 mm +- rndm*0.5mm step
+    refMC->SetMaxStep(0.2+(2.*rnd-1.)*0.05);  // 2 mm +- rndm*0.5mm step
   } 
   
   // CONVERT THE ENERGY LOSS TO IONIZATION
@@ -227,15 +228,15 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   Int_t nel=0;
   if(mSimulationType == SimulationType::GEANT3) {
     
-    nel = 1 + static_cast<int>((TVirtualMC::GetMC()->Edep()-IPOT) / WION);
+    nel = 1 + static_cast<int>((refMC->Edep()-IPOT) / WION);
     // LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "GEANT3: Nelectrons: " << nel << FairLogger::endl;
   } else {
     
-    const Double_t meanIon = TVirtualMC::GetMC()->Edep() / (WION*SCALEWIONG4);
+    const Double_t meanIon = refMC->Edep() / (WION*SCALEWIONG4);
     if(meanIon > 0)
       nel = static_cast<int>(FANOFACTORG4 * Gamma(meanIon/FANOFACTORG4)); 
     // LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "GEANT4: Eloss: " 
-    //	      << TVirtualMC::GetMC()->Edep() << ", Nelectrons: " 
+    //	      << refMC->Edep() << ", Nelectrons: "
     //	      << nel << FairLogger::endl;
   }
   
@@ -246,14 +247,12 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   
   // ADD HIT
   TLorentzVector position;
-  TVirtualMC::GetMC()->TrackPosition(position);
-  Double32_t time           = TVirtualMC::GetMC()->TrackTime() * 1.0e09;
-  Double32_t length         = TVirtualMC::GetMC()->TrackLength();
-  int        trackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-  int        volumeID       = vol->getMCid();
-  AddHit(trackNumberID, volumeID, TVector3(position.X(),  position.Y(),  position.Z()),
-	 TVector3(momentum.Px(), momentum.Py(), momentum.Pz()), time, length,
-	 nel);
+  refMC->TrackPosition(position);
+  float time    = refMC->TrackTime() * 1.0e09;
+  int trackID = refMC->GetStack()->GetCurrentTrackNumber();
+  int detID   = vol->getMCid();
+  addHit(position.X(),  position.Y(),  position.Z(), time, nel, trackID, detID);
+
   //LOG(INFO) << "TPC::AddHit" << FairLogger::endl
   //<< "   -- " << trackNumberID <<","  << volumeID << " " << vol->GetName()
   //<< ", Pos: (" << position.X() << ", "  << position.Y() <<", "<<  position.Z()<< ", " << r << ") "
@@ -262,7 +261,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   //nel << FairLogger::endl;
   
   // Increment number of Detector det points in TParticle
-  AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)TVirtualMC::GetMC()->GetStack();
+  AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)refMC->GetStack();
   stack->AddPoint(kAliTpc);
   
   return kTRUE;
@@ -288,7 +287,7 @@ void Detector::Register()
       only during the simulation.
   */
 
-  FairGenericRootManager::Instance()->Register("TPCPoint", "TPC",mPointCollection, kTRUE);
+  FairRootManager::Instance()->Register("TPCPoint", "TPC",mPointCollection, kTRUE);
 
 }
 
@@ -3040,19 +3039,6 @@ void Detector::DefineSensitiveVolumes()
     AddSensitiveVolume(v);
   }
 }
-
-
-Point* Detector::AddHit(Int_t trackID, Int_t detID,
-                                      TVector3 pos, TVector3 mom,
-                                      Double_t time, Double_t length,
-                                      Double_t eLoss)
-{
-  TClonesArray& clref = *mPointCollection;
-  Int_t size = clref.GetEntriesFast();
-  return new(clref[size]) Point(trackID, detID, pos, mom,
-         time, length, eLoss);
-}
-
 
 Double_t Detector::BetheBlochAleph(Double_t bg, Double_t kp1, Double_t kp2, Double_t kp3, Double_t kp4, Double_t kp5){
   Double_t beta = bg/TMath::Sqrt(1.+ bg*bg);

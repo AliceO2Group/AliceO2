@@ -5,18 +5,17 @@
 #include "DetectorsBase/Detector.h"   // for Detector
 #include "Rtypes.h"          // for Int_t, Double32_t, Double_t, Bool_t, etc
 #include "TLorentzVector.h"  // for TLorentzVector
-#include "TVector3.h"        // for TVector3
+#include "TClonesArray.h"
 #include "TString.h"
 
+#include "TPCSimulation/Point.h"
+
 class FairVolume;  // lines 10-10
-class TClonesArray;  // lines 11-11
-namespace AliceO2 { namespace TPC { class Point; } }  // lines 15-15
 
 class AliTPCParam;
 
 namespace AliceO2 {
 namespace TPC {
-class Point;
 
 class Detector: public AliceO2::Base::Detector {
 
@@ -63,10 +62,7 @@ class Detector: public AliceO2::Base::Detector {
     /**      This method is an example of how to add your own point
      *       of type DetectorPoint to the clones array
     */
-    Point* AddHit(Int_t trackID, Int_t detID,
-                             TVector3 pos, TVector3 mom,
-                             Double_t time, Double_t length,
-                             Double_t eLoss);
+    Point* addHit(float x, float y, float z, float time, float nElectrons, float trackID, float detID);
     
 
     /// Copied from AliRoot - should go to someplace else
@@ -131,6 +127,14 @@ class Detector: public AliceO2::Base::Detector {
 
     ClassDef(Detector,1)
 };
+
+inline
+Point* Detector::addHit(float x, float y, float z, float time, float nElectrons, float trackID, float detID)
+{
+  TClonesArray& clref = *mPointCollection;
+  Int_t size = clref.GetEntriesFast();
+  return new(clref[size]) Point(x, y, z, time, nElectrons, trackID, detID);
+}
 }
 }
 

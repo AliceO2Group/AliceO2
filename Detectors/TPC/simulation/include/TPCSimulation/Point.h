@@ -3,20 +3,18 @@
 #ifndef ALICEO2_TPC_POINT_H
 #define ALICEO2_TPC_POINT_H
 
+#include "SimulationDataFormat/BaseHits.h"
 
-#include "FairMCPoint.h"  // for FairMCPoint
-#include "Rtypes.h"       // for Double_t, Int_t, Point::Class, ClassDef, etc
-#include "TVector3.h"     // for TVector3
 namespace AliceO2 {
 namespace TPC {
 
-class Point : public FairMCPoint
+class Point : public AliceO2::BasicXYZEHit<float>
 {
 
   public:
 
     /// Default constructor
-    Point();
+    Point() = default;
 
     /// Constructor with arguments
     /// @param trackID  Index of MCTrack
@@ -26,21 +24,27 @@ class Point : public FairMCPoint
     /// @param tof      Time since event start [ns]
     /// @param length   Track length since creation [cm]
     /// @param eLoss    Energy deposit [GeV]
-    Point(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t tof, Double_t length, Double_t eLoss);
+    Point(float x, float y, float z, float time, float nElectrons, float trackID, float detID);
 
     /// Destructor
-    virtual ~Point();
+    virtual ~Point() = default;
 
     /// Output to screen
-    virtual void Print(const Option_t* opt) const;
+    virtual void Print(const Option_t* opt) const override;
 
   private:
     /// Copy constructor
     Point(const Point& point);
     Point operator=(const Point& point);
 
-  ClassDef(AliceO2::TPC::Point,1)
+  ClassDefOverride(AliceO2::TPC::Point,1)
 };
+
+inline
+Point::Point(float x, float y, float z, float time, float nElectrons, float trackID, float detID)
+  : BasicXYZEHit<float>(x, y, z, time, nElectrons, trackID, detID)
+{}
+
 }
 }
 

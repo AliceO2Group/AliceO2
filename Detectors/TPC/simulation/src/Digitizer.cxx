@@ -44,11 +44,16 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 {
   mDigitContainer->reset();
   const Mapper& mapper = Mapper::instance();
+  FairRootManager *mgr = FairRootManager::Instance();
+
+  const float eventTime = mgr->GetEventTime() * 0.001; /// transform in us
 
   /// \todo static_thread for thread savety?
   static GEMAmplification gemAmplification;
   static ElectronTransport electronTransport;
   static PadResponse padResponse;
+
+  const int MCEventID = mgr->GetEntryNr();
 
   static std::array<float, mNShapedPoints> signalArray;
 
@@ -58,10 +63,9 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     const GlobalPosition3D posEle(inputpoint->GetX(), inputpoint->GetY(), inputpoint->GetZ());
 
     // The energy loss stored is really nElectrons
-    int nPrimaryElectrons = static_cast<int>(inputpoint->GetEnergyLoss());
+    const int nPrimaryElectrons = static_cast<int>(inputpoint->GetEnergyLoss());
 
-    int MCEventID = inputpoint->GetEventID();
-    int MCTrackID = inputpoint->GetTrackID();
+    const int MCTrackID = inputpoint->GetTrackID();
 
     /// Loop over electrons
     /// \todo can be vectorized?
@@ -72,7 +76,8 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle);
 
       /// \todo Time management in continuous mode (adding the time of the event?)
-      const float driftTime = getTime(posEleDiff.getZ());
+      const float driftTime = getTime(posEleDiff.getZ()) + inputpoint->GetTime() * 0.001; /// in us
+      const float absoluteTime = driftTime + eventTime;
 
       /// Attachment
       if(electronTransport.isElectronAttachment(driftTime)) continue;
@@ -108,7 +113,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       if(mDebugFlagPRF) {
         /// \todo Write out the debug output
         GEMresponse.CRU = digiPos.getCRU().number();
-        GEMresponse.time = driftTime;
+        GEMresponse.time = absoluteTime;
         GEMresponse.row = row;
         GEMresponse.pad = pad;
         GEMresponse.nElectrons = nElectronsGEM * normalizedPadResponse;
@@ -116,10 +121,10 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       }
 
       const float ADCsignal = SAMPAProcessing::getADCvalue(nElectronsGEM * normalizedPadResponse);
-      SAMPAProcessing::getShapedSignal(ADCsignal, driftTime, signalArray);
+      SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
 
       for(float i=0; i<mNShapedPoints; ++i) {
-        float time = driftTime + i * ZBINWIDTH;
+        const float time = absoluteTime + i * ZBINWIDTH;
         mDigitContainer->addDigit(MCEventID, MCTrackID, digiPos.getCRU().number(), getTimeBinFromTime(time), row, pad, signalArray[i]);
       }
 
