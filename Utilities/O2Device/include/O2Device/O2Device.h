@@ -18,7 +18,7 @@
 #ifndef O2DEVICE_H_
 #define O2DEVICE_H_
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 #include "Headers/DataHeader.h"
 #include <stdexcept>
 

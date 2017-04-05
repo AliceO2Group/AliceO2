@@ -12,7 +12,7 @@
 #include "TF1.h"
 #include "TGraphErrors.h"
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 
 using namespace AliceO2::MFT;
 

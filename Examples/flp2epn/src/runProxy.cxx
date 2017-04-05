@@ -1,5 +1,5 @@
 #include "runFairMQDevice.h"
-#include "FairMQProxy.h"
+#include <devices/FairMQProxy.h>
 
 namespace bpo = boost::program_options;
 

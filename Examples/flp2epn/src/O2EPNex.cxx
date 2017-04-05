@@ -5,7 +5,7 @@
  * @author D. Klein, A. Rybalchenko, M.Al-Turany
  */
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 #include "flp2epn/O2EPNex.h"
 #include "O2FLPExContent.h"
 

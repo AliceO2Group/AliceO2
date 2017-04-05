@@ -8,7 +8,7 @@
 #ifndef O2EPNEX_H_
 #define O2EPNEX_H_
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 class O2EPNex : public FairMQDevice
 {

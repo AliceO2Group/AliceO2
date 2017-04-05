@@ -4,7 +4,7 @@
 
 #include <TSystem.h>
 #include <FairMQLogger.h>
-#include <FairMQTransportFactoryZMQ.h>
+#include <zeromq/FairMQTransportFactoryZMQ.h>
 
 #include "QCViewer/ViewerDevice.h"
 #include "QCCommon/TMessageWrapper.h"

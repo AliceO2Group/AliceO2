@@ -8,8 +8,8 @@
 #include <cstddef> // size_t
 #include <fstream> // writing to file (DEBUG)
 
-#include "FairMQLogger.h"
-#include "FairMQProgOptions.h"
+#include <FairMQLogger.h>
+#include <options/FairMQProgOptions.h>
 
 #include "FLP2EPNex_distributed/EPNReceiver.h"
 

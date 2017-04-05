@@ -1,7 +1,7 @@
 #ifndef FILESINK_H_
 #define FILESINK_H_
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 class TFile;
 class TTree;

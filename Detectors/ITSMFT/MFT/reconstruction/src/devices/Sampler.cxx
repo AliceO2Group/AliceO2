@@ -4,9 +4,9 @@
 #include "TClonesArray.h"
 #include "TMessage.h"
 
-#include "FairMQLogger.h"
-#include "FairMQMessage.h"
-#include "FairMQProgOptions.h"
+#include <FairMQLogger.h>
+#include <FairMQMessage.h>
+#include <options/FairMQProgOptions.h>
 
 #include "MFTReconstruction/devices/Sampler.h"
 

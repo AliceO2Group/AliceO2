@@ -19,7 +19,7 @@
 //  @since  2014-05-08
 //  @brief  FairRoot/ALFA device running ALICE HLT code
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 #include <vector>
 
 class FairMQMessage;

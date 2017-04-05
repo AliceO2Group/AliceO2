@@ -19,8 +19,8 @@
 #include <chrono>
 
 #include "O2MessageMonitor/O2MessageMonitor.h"
-#include "FairMQProgOptions.h"
-#include "FairMQLogger.h"
+#include <options/FairMQProgOptions.h>
+#include <FairMQLogger.h>
 #include "Headers/DataHeader.h"
 
 using namespace std;

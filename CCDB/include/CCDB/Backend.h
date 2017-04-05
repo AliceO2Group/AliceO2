@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 // Google protocol buffers headers
 #include <google/protobuf/stubs/common.h>

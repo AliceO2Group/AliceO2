@@ -19,7 +19,7 @@
 //  @since  2015-03-15
 //  @brief  Sampler device for Alice HLT events in FairRoot/ALFA
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 #include <vector>
 
 namespace ALICE {

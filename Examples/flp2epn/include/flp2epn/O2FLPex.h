@@ -8,7 +8,7 @@
 #ifndef O2FLPEX_H_
 #define O2FLPEX_H_
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 class O2FLPex : public FairMQDevice
 {

@@ -13,7 +13,7 @@
 #include "TClonesArray.h"
 #include "TMath.h"
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 #include "FairMCEventHeader.h"
 
 using namespace AliceO2::MFT;

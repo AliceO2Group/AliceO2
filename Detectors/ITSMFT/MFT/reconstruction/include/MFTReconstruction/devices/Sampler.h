@@ -7,7 +7,7 @@
 
 #include "FairFileSource.h"
 #include "FairRunAna.h"
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 namespace AliceO2 {
 

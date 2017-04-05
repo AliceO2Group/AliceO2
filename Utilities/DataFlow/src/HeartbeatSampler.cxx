@@ -8,7 +8,7 @@
 
 #include "DataFlow/HeartbeatSampler.h"
 #include "Headers/HeartbeatFrame.h"
-#include "FairMQProgOptions.h"
+#include <options/FairMQProgOptions.h>
 
 void AliceO2::DataFlow::HeartbeatSampler::InitTask()
 {

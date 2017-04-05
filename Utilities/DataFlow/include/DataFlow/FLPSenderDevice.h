@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <chrono>
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 namespace AliceO2 {
 namespace Devices {

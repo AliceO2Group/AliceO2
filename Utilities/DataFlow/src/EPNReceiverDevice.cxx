@@ -2,8 +2,8 @@
 #include <fstream> // writing to file (DEBUG)
 #include <cstring>
 
-#include "FairMQLogger.h"
-#include "FairMQProgOptions.h"
+#include <FairMQLogger.h>
+#include <options/FairMQProgOptions.h>
 
 #include "DataFlow/EPNReceiverDevice.h"
 #include "Headers/DataHeader.h"

@@ -1,10 +1,9 @@
 #include <cstdint>
 #include <cassert>
 
-#include "FairMQLogger.h"
-#include "FairMQMessage.h"
-#include "FairMQTransportFactory.h"
-#include "FairMQProgOptions.h"
+#include <FairMQLogger.h>
+#include <FairMQMessage.h>
+#include <options/FairMQProgOptions.h>
 
 #include "Headers/DataHeader.h"
 #include "Headers/SubframeMetadata.h"

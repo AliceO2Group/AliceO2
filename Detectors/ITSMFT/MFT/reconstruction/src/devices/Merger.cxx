@@ -1,7 +1,7 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 
 #include "TMessage.h"
 

@@ -8,8 +8,8 @@
 #include <fstream>
 #include <ctime>
 
-#include "FairMQLogger.h"
-#include "FairMQProgOptions.h"
+#include <FairMQLogger.h>
+#include <options/FairMQProgOptions.h>
 
 #include "FLP2EPNex_distributed/FLPSyncSampler.h"
 
