@@ -1,14 +1,14 @@
 #ifndef ALICEO2_EMCAL_POINT_H
 #define ALICEO2_EMCAL_POINT_H
 
-#include "DetectorsBase/BaseHits.h"
+#include "SimulationDataFormat/BaseHits.h"
 
 namespace AliceO2 {
   namespace EMCAL {
     
     /// \class Point
     /// \brief EMCAL simulation point information
-    class Point : public AliceO2::Base::BasicXYZEHit<float> {
+    class Point : public AliceO2::BasicXYZEHit<float> {
     public:
       
       /// \brief Default constructor
@@ -31,7 +31,7 @@ namespace AliceO2 {
       /// \param length Length of the segment
       Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy, Double_t *pos, Double_t *mom,
             Double_t tof, Double_t eLoss):
-      AliceO2::Base::BasicXYZEHit<float>(pos[0], pos[1], pos[2], tof, eLoss, trackID, detID),
+      AliceO2::BasicXYZEHit<float>(pos[0], pos[1], pos[2], tof, eLoss, trackID, detID),
       mPvector(mom[0], mom[1], mom[2]),
       mShunt(shunt),
       mPrimary(primary),

@@ -678,11 +678,11 @@ o2_define_bucket(
     Matrix
     Physics
     ParBase
-    DetectorsBase
+    SimulationDataFormat
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
 )
 
 o2_define_bucket(
