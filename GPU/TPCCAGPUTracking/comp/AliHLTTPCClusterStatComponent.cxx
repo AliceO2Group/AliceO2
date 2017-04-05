@@ -371,7 +371,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
 	}
 }
 
-static bool AliHLTTPCClusterStat_sorthelper(AliHLTTPCRawCluster& a, AliHLTTPCRawCluster& b)
+static bool AliHLTTPCClusterStat_sorthelper(const AliHLTTPCRawCluster& a, const AliHLTTPCRawCluster& b)
 {
 	if (a.GetPadRow() < b.GetPadRow()) return(true);
 	if (a.GetPadRow() > b.GetPadRow()) return(false);
