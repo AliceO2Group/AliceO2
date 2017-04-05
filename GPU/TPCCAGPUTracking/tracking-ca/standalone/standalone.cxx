@@ -20,13 +20,14 @@
 #endif
 
 #include "AliHLTTPCGMMergedTrack.h"
+#include "interface/outputtrack.h"
 
 //#define BROKEN_EVENTS
 
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, runs2 = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1, writeoutput = 0;
+	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, runs2 = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1, writeoutput = 0, writebinary = 0;
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
@@ -72,6 +73,11 @@ int main(int argc, char** argv)
 		if ( !strcmp( argv[i], "-WRITE" ) ) 
 		{
 			writeoutput=1;        
+		}
+
+		if ( !strcmp( argv[i], "-WRITEBINARY" ) ) 
+		{
+			writebinary=1;        
 		}
 
 		if ( !strcmp( argv[i], "-DEBUG" ) && argc > i + 1)
@@ -191,12 +197,21 @@ int main(int argc, char** argv)
 #endif
 	}	
 	std::ofstream CPUOut, GPUOut;
+	FILE* fpBinaryOutput = NULL;
 
 	if (DebugLevel >= 4)
 	{
 		CPUOut.open("CPU.out");
 		GPUOut.open("GPU.out");
 		omp_set_num_threads(1);
+	}
+	if (writebinary)
+	{
+		if ((fpBinaryOutput = fopen("output.bin", "w+b")) == NULL)
+		{
+			printf("Error opening output file\n");
+			exit(1);
+		}
 	}
 
 	if (outputcontrolmem)
@@ -346,6 +361,31 @@ int main(int argc, char** argv)
 					fclose(foutput);
 				}
 				
+				if (writebinary)
+				{
+					int numTracks = merger.NOutputTracks();
+					fwrite(&numTracks, sizeof(numTracks), 1, fpBinaryOutput);
+					for (int k = 0;k < numTracks;k++)
+					{
+						OutputTrack tmpTrack;
+						const AliHLTTPCGMMergedTrack& track = merger.OutputTracks()[k];
+						const AliHLTTPCGMTrackParam& param = track.GetParam();
+						
+						tmpTrack.Alpha = track.GetAlpha();
+						tmpTrack.X = param.GetX();
+						tmpTrack.Y = param.GetY();
+						tmpTrack.Z = param.GetZ();
+						tmpTrack.SinPhi = param.GetSinPhi();
+						tmpTrack.DzDs = param.GetDzDs();
+						tmpTrack.QPt = param.GetQPt();
+						tmpTrack.NClusters = track.NClusters();
+						tmpTrack.FitOK = track.OK();
+						fwrite(&tmpTrack, sizeof(tmpTrack), 1, fpBinaryOutput);
+						const unsigned int* hitIds = merger.OutputClusterIds() + track.FirstClusterRef();
+						fwrite(hitIds, sizeof(hitIds[0]), track.NClusters(), fpBinaryOutput);
+					}
+				}
+				
 				if (clusterstats)
 				{
 					unsigned int minid = 2000000000, maxid = 0;
@@ -416,6 +456,10 @@ breakrun:
 	{
 		CPUOut.close();
 		GPUOut.close();
+	}
+	if (writebinary)
+	{
+		fclose(fpBinaryOutput);
 	}
 
 	hlt.Merger().Clear();
