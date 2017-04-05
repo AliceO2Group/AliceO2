@@ -25,15 +25,16 @@ class PadSecPos
   public:
     PadSecPos() {};
 
+    PadSecPos(const int sector, const int rowInSector, const int padInRow) : mSector(sector), mPadPos(PadPos(rowInSector, padInRow)) {}
     PadSecPos(const Sector &sec, const PadPos &padPosition) : mSector(sec), mPadPos(padPosition) {}
 
     Sector getSector() const { return mSector; }
 
     Sector &getSector() { return mSector; }
 
-    PadPos getPadPos() const { return mPadPos; }
+    const PadPos& getPadPos() const { return mPadPos; }
 
-    PadPos &padPos() { return mPadPos; }
+    PadPos& getPadPos() { return mPadPos; }
 
   private:
     Sector mSector{};

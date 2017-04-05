@@ -36,6 +36,10 @@ namespace TPC {
       const RocType rocType()   const { return mCRU%CRUperSector < CRUperIROC ? RocType::IROC : RocType::OROC; }
       const GEMstack gemStack() const;
 
+      /// int return operator to use similar as integer
+      /// \return cru number
+      operator int() const  { return int(mCRU); }
+
       bool    looped()    const { return mLoop; }
 
 

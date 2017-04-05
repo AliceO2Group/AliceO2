@@ -45,7 +45,7 @@ class ROC
     /// constructor from sector and ROC type
     /// @param [in] sec sector
     /// @param [in] type ROC type
-    ROC(const Sector &sec, const RocType type) : mROC(sec.getSector() + (type == RocType::IROC) * SECTORSPERSIDE) {}
+    ROC(const Sector &sec, const RocType type) : mROC(sec.getSector() + (type == RocType::OROC) * SECTORSPERSIDE) {}
 
     /// comparison operator
     bool operator==(const ROC &other) { return mROC == other.mROC; }
@@ -67,24 +67,31 @@ class ROC
       return mLoop;
     }
 
-    // numerical ROC value
-    // @return numerical ROC value
+    /// int return operator to use similar as integer
+    /// \return roc number
+    operator int() const { return int(mROC); }
+
+    /// numerical ROC value
+    /// \return numerical ROC value
     unsigned char getRoc() const { return mROC; }
 
-    // side of the ROC
-    // @return side of the sector
+    /// side of the ROC
+    /// \return side of the sector
     Side side() const { return (mROC / SECTORSPERSIDE) % SIDES ? Side::C : Side::A; }
 
-    // ROC type
-    // @return ROC type
+    /// ROC type
+    /// \return ROC type
     RocType rocType() const { return mROC < MaxROC / SIDES ? RocType::IROC : RocType::OROC; }
 
-    // if increment operator went above MaxROC
+    /// get sector
+    Sector getSector() const { return Sector(mROC%SECTORSPERSIDE); }
+
+    /// if increment operator went above MaxROC
     bool looped() const { return mLoop; }
 
   private:
-    unsigned char mROC{};    ///< ROC representation 0-MaxROC-1
-    bool mLoop{};            ///< if increment operator resulted in looping
+    unsigned char mROC{0};   ///< ROC representation 0-MaxROC-1
+    bool mLoop{false};       ///< if increment operator resulted in looping
 };
 }
 }

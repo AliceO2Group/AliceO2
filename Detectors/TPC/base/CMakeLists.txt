@@ -14,6 +14,7 @@ set(SRCS
    src/PadInfo.cxx
    src/PadPos.cxx
    src/PadRegionInfo.cxx
+   src/PadROCPos.cxx
    src/PadSecPos.cxx
    src/Painter.cxx
    src/PartitionInfo.cxx
@@ -37,6 +38,7 @@ set(HEADERS
    include/TPCBase/PadInfo.h
    include/TPCBase/PadPos.h
    include/TPCBase/PadRegionInfo.h
+   include/TPCBase/PadROCPos.h
    include/TPCBase/PadSecPos.h
    include/TPCBase/Painter.h
    include/TPCBase/PartitionInfo.h

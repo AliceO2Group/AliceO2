@@ -26,21 +26,21 @@ class PartitionInfo {
     PartitionInfo(const unsigned char  numberOfFECs,
                   const unsigned char  sectorFECOffset,
                   const unsigned char  numberOfPadRows,
-                  const unsigned char  sectorPadRowOffset,
+                  const unsigned char  globalRowOffset,
                   const unsigned short numberOfPads
                  );
 
-    unsigned char  getNumberOfFECs()       const { return mNumberOfFECs;       }
-    unsigned char  getSectorFECOffset()    const { return mSectorFECOffset;    }
-    unsigned char  getNumberOfPadRows()    const { return mNumberOfPadRows;    }
-    unsigned char  getSectorPadRowOffset() const { return mSectorPadRowOffset; }
-    unsigned short getNumberOfPads()       const { return mNumberOfPads;       }
+    unsigned char  getNumberOfFECs()    const { return mNumberOfFECs;    }
+    unsigned char  getSectorFECOffset() const { return mSectorFECOffset; }
+    unsigned char  getNumberOfPadRows() const { return mNumberOfPadRows; }
+    unsigned char  getGlobalRowOffset() const { return mGlobalRowOffset; }
+    unsigned short getNumberOfPads()    const { return mNumberOfPads;    }
   private:
-    unsigned char  mNumberOfFECs      {0};
-    unsigned char  mSectorFECOffset   {0};
-    unsigned char  mNumberOfPadRows   {0};
-    unsigned char  mSectorPadRowOffset{0};
-    unsigned short mNumberOfPads      {0};
+    unsigned char  mNumberOfFECs   {0};
+    unsigned char  mSectorFECOffset{0};
+    unsigned char  mNumberOfPadRows{0};
+    unsigned char  mGlobalRowOffset{0};
+    unsigned short mNumberOfPads   {0};
 
 };
 

@@ -9,11 +9,11 @@ PartitionInfo::PartitionInfo(const unsigned char  numberOfFECs,
                              const unsigned char  sectorPadRowOffset,
                              const unsigned short numberOfPads
                             )
-  : mNumberOfFECs      {numberOfFECs      },
-    mSectorFECOffset   {sectorFECOffset   },
-    mNumberOfPadRows   {numberOfPadRows   },
-    mSectorPadRowOffset{sectorPadRowOffset},
-    mNumberOfPads      {numberOfPads      }
+  : mNumberOfFECs   {numberOfFECs      },
+    mSectorFECOffset{sectorFECOffset   },
+    mNumberOfPadRows{numberOfPadRows   },
+    mGlobalRowOffset{sectorPadRowOffset},
+    mNumberOfPads   {numberOfPads      }
 {
 }
 
