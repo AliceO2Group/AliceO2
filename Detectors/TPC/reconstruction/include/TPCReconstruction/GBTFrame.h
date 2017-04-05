@@ -160,10 +160,10 @@ class GBTFrame {
                 // Word 1 of GBT frame contains bits [ 63: 32]
                 // Word 0 of GBT frame contains bits [ 31:  0]
                 
-    std::array<std::array<std::array<short,  5>, 2>, 3> mHalfWords;
-                //                          halfWord
-                //                              channels (low or high)
-                //                                  sampa
+    std::array<std::array<std::array<short,  4>, 2>, 3> mHalfWords;
+                //                           halfWord
+                //                               channels (low or high)
+                //                                   sampa
 
     std::array<short, 3> mAdcClock;
 };
