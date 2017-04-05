@@ -45,19 +45,15 @@ using namespace AliceO2::ITS;
 Detector::Detector()
   : AliceO2::Base::Detector("ITS", kTRUE, kAliIts),
     mLayerID(nullptr),
-    mTrackNumberID(-1),
-    mVolumeID(-1),
-    mEntrancePosition(),
-    mPosition(),
-    mMomentum(),
-    mEntranceTime(-1.),
-    mTime(-1.),
-    mLength(-1.),
-    mEnergyLoss(-1),
-    mShunt(),
-    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
-    mGeometryHandler(new GeometryHandler()),
-    mMisalignmentParameter(nullptr),
+    mNumberLayers(),
+    mTrackData(),
+    /*
+    mHitStarted(false),
+    mTrkStatusStart(),
+    mPositionStart(),
+    mMomentumStart(),
+    mEnergyLoss(),
+    */
     mNumberOfDetectors(-1),
     mShiftX(),
     mShiftY(),
@@ -83,6 +79,10 @@ Detector::Detector()
     mDetectorThickness(nullptr),
     mChipTypeID(nullptr),
     mBuildLevel(nullptr),
+    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
+    
+    mGeometryHandler(new GeometryHandler()),
+    mMisalignmentParameter(nullptr),
     mGeometry(nullptr),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
@@ -92,19 +92,16 @@ Detector::Detector()
 Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
   : AliceO2::Base::Detector(name, active, kAliIts),
     mLayerID(nullptr),
-    mTrackNumberID(-1),
-    mVolumeID(-1),
-    mEntrancePosition(),
-    mPosition(),
-    mMomentum(),
-    mEntranceTime(-1.),
-    mTime(-1.),
-    mLength(-1.),
-    mEnergyLoss(-1),
-    mShunt(),
-    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
-    mGeometryHandler(new GeometryHandler()),
-    mMisalignmentParameter(nullptr),
+    mNumberLayers(nlay),
+    mLayerName(new TString[nlay]),
+    mTrackData(),
+    /*
+    mHitStarted(false),
+    mTrkStatusStart(),
+    mPositionStart(),
+    mMomentumStart(),
+    mEnergyLoss(),
+    */
     mNumberOfDetectors(-1),
     mShiftX(),
     mShiftY(),
@@ -130,12 +127,15 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mDetectorThickness(nullptr),
     mChipTypeID(nullptr),
     mBuildLevel(nullptr),
+
+    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
+    mGeometryHandler(new GeometryHandler()),
+    mMisalignmentParameter(nullptr),
+    
     mGeometry(nullptr),
-    mNumberLayers(nlay),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
-  mLayerName = new TString[mNumberLayers];
 
   for (Int_t j = 0; j < mNumberLayers; j++) {
     mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V1Layer
@@ -176,34 +176,15 @@ Detector::Detector(const Detector &rhs)
   : AliceO2::Base::Detector(rhs),
     mLayerID(nullptr),
     mNumberLayers(rhs.mNumberLayers),
-    mStatus(rhs.mStatus),
-    mModule(rhs.mModule),
-    mParticlePx(rhs.mParticlePx),
-    mParticlePy(rhs.mParticlePy),
-    mParticlePz(rhs.mParticlePz),
-    mEnergyDepositionStep(rhs.mEnergyDepositionStep),
-    mTof(rhs.mTof),
-    mStatus0(rhs.mStatus0),
-    mStartingStepX(rhs.mStartingStepX),
-    mStartingStepY(rhs.mStartingStepY),
-    mStartingStepZ(rhs.mStartingStepZ),
-    mStartingStepT(rhs.mStartingStepT),
-    mTrackNumber(rhs.mTrackNumber),
-    mPositionX(rhs.mPositionX),
-    mPositionY(rhs.mPositionY),
-    mPositionZ(rhs.mPositionZ),
     mLayerName(nullptr),
-    mTrackNumberID(rhs.mTrackNumberID),
-    mVolumeID(rhs.mVolumeID),
-    mShunt(rhs.mShunt),
-    mPosition(rhs.mPosition),
-    mEntrancePosition(rhs.mEntrancePosition),
-    mMomentum(rhs.mMomentum),
-    mEntranceTime(rhs.mEntranceTime),
-    mTime(rhs.mTime),
-    mLength(rhs.mLength),
-    mEnergyLoss(rhs.mEnergyLoss),
-
+    mTrackData(),
+    /*    
+    mHitStarted(false),
+    mTrkStatusStart(),
+    mPositionStart(),
+    mMomentumStart(),
+    mEnergyLoss(),
+    */
     mNumberOfDetectors(rhs.mNumberOfDetectors),
     mShiftX(),
     mShiftY(),
@@ -297,33 +278,7 @@ Detector &Detector::operator=(const Detector &rhs)
 
   mLayerID = nullptr;
   mNumberLayers = rhs.mNumberLayers;
-  mStatus = rhs.mStatus;
-  mModule = rhs.mModule;
-  mParticlePx = rhs.mParticlePx;
-  mParticlePy = rhs.mParticlePy;
-  mParticlePz = rhs.mParticlePz;
-  mEnergyDepositionStep = rhs.mEnergyDepositionStep;
-  mTof = rhs.mTof;
-  mStatus0 = rhs.mStatus0;
-  mStartingStepX = rhs.mStartingStepX;
-  mStartingStepY = rhs.mStartingStepY;
-  mStartingStepZ = rhs.mStartingStepZ;
-  mStartingStepT = rhs.mStartingStepT;
-  mTrackNumber = rhs.mTrackNumber;
-  mPositionX = rhs.mPositionX;
-  mPositionY = rhs.mPositionY;
-  mPositionZ = rhs.mPositionZ;
   mLayerName = nullptr;
-  mTrackNumberID = rhs.mTrackNumberID;
-  mVolumeID = rhs.mVolumeID;
-  mShunt = rhs.mShunt;
-  mPosition = rhs.mPosition;
-  mEntrancePosition = rhs.mEntrancePosition;
-  mMomentum = rhs.mMomentum;
-  mEntranceTime = rhs.mEntranceTime;
-  mTime = rhs.mTime;
-  mLength = rhs.mLength;
-  mEnergyLoss = rhs.mEnergyLoss;
 
   mNumberOfDetectors = rhs.mNumberOfDetectors;
 
@@ -416,74 +371,70 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
     return kFALSE;
   }
 
-  // FIXME: Is copy actually needed?
-  Int_t copy = vol->getCopyNo();
-  Int_t id = vol->getMCid();
-  Int_t lay = 0;
+  Int_t lay=0, volID = vol->getMCid();
 
   // FIXME: Determine the layer number. Is this information available directly from the FairVolume?
-  while ((lay < mNumberLayers) && id != mLayerID[lay]) {
+  bool notSens = false;
+  while ((lay < mNumberLayers) && (notSens=(volID != mLayerID[lay]))) {
     ++lay;
   }
-
+  if (notSens) return kFALSE; //RS: can this happen? This method must be called for sensors only?
+  
   // FIXME: Is it needed to keep a track reference when the outer ITS volume is encountered?
   // if(TVirtualMC::GetMC()->IsTrackExiting()) {
   //  AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kITS);
   // } // if Outer ITS mother Volume
+  bool startHit=false, stopHit=false;
+  unsigned char status = 0;
+  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Point::kTrackEntering; }
+  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Point::kTrackInside; }
+  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Point::kTrackExiting; }
+  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Point::kTrackOut; }
+  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Point::kTrackStopped; }
+  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Point::kTrackAlive; }
 
-  // Retrieve the indices with the volume path
-  int stave(0), halfstave(0), chipinmodule(0), module;
-  TVirtualMC::GetMC()->CurrentVolOffID(1, chipinmodule);
-  TVirtualMC::GetMC()->CurrentVolOffID(2, module);
-  TVirtualMC::GetMC()->CurrentVolOffID(3, halfstave);
-  TVirtualMC::GetMC()->CurrentVolOffID(4, stave);
-  int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
-
-  // Record information on the points
-  mEnergyLoss = TVirtualMC::GetMC()->Edep();
-  mTime = TVirtualMC::GetMC()->TrackTime();
-  mTrackNumberID = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-  mVolumeID = vol->getMCid();
-
-  // FIXME: Set a temporary value to mShunt for now, determine its use at a later stage
-  Int_t trackStatus = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering()) { trackStatus |= 1 << Point::kTrackEntering; }
-  if (TVirtualMC::GetMC()->IsTrackInside()) { trackStatus |= 1 << Point::kTrackInside; }
-  if (TVirtualMC::GetMC()->IsTrackExiting()) { trackStatus |= 1 << Point::kTrackExiting; }
-  if (TVirtualMC::GetMC()->IsTrackOut()) { trackStatus |= 1 << Point::kTrackOut; }
-  if (TVirtualMC::GetMC()->IsTrackStop()) { trackStatus |= 1 << Point::kTrackStopped; }
-  if (TVirtualMC::GetMC()->IsTrackAlive()) { trackStatus |= 1 << Point::kTrackAlive; }
-  mStatus = trackStatus;
-
-  TVirtualMC::GetMC()->TrackPosition(mPosition);
-  TVirtualMC::GetMC()->TrackMomentum(mMomentum);
-
-  // mLength = TVirtualMC::GetMC()->TrackLength();
-
-  if (TVirtualMC::GetMC()->IsTrackEntering()) {
-    mEntrancePosition = mPosition;
-    mEntranceTime = mTime;
-    mStatus0 = mStatus;
-    return kFALSE; // don't save entering hit.
+  // track is entering or created in the volume
+  if ( (status & Point::kTrackEntering) || (status & Point::kTrackInside && !mTrackData.mHitStarted) ) {
+    startHit = true;
+  }
+  else if ( (status & (Point::kTrackExiting|Point::kTrackOut|Point::kTrackStopped)) ) {
+    stopHit = true;
   }
 
-  // Create Point on every step of the active volume
-  Point *p=addHit(mTrackNumberID, chipindex, //mVolumeID,
-         TVector3(mEntrancePosition.X(), mEntrancePosition.Y(), mEntrancePosition.Z()),
-         TVector3(mPosition.X(), mPosition.Y(), mPosition.Z()),
-         TVector3(mMomentum.Px(), mMomentum.Py(), mMomentum.Pz()), mEntranceTime, mTime, mLength,
-         mEnergyLoss, mShunt, mStatus, mStatus0);
-  p->SetTotalEnergy(TVirtualMC::GetMC()->Etot());
+  // increment energy loss at all steps except entrance
+  if (!startHit) mTrackData.mEnergyLoss += TVirtualMC::GetMC()->Edep();
+  if (!(startHit|stopHit)) return kFALSE; // do noting
+
+  if (startHit) {
+    mTrackData.mEnergyLoss = 0.;
+    TVirtualMC::GetMC()->TrackMomentum(mTrackData.mMomentumStart);
+    TVirtualMC::GetMC()->TrackPosition(mTrackData.mPositionStart);
+    mTrackData.mTrkStatusStart = status;
+    mTrackData.mHitStarted = true;
+  }
+  if (stopHit) {
+    TLorentzVector positionStop;
+    TVirtualMC::GetMC()->TrackPosition(positionStop);
+    // Retrieve the indices with the volume path
+    int stave(0), halfstave(0), chipinmodule(0), module;
+    TVirtualMC::GetMC()->CurrentVolOffID(1, chipinmodule);
+    TVirtualMC::GetMC()->CurrentVolOffID(2, module);
+    TVirtualMC::GetMC()->CurrentVolOffID(3, halfstave);
+    TVirtualMC::GetMC()->CurrentVolOffID(4, stave);
+    int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
+    
+    Point *p = addHit(TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber(), chipindex,
+		      mTrackData.mPositionStart.Vect(),positionStop.Vect(),mTrackData.mMomentumStart.Vect(),
+		      mTrackData.mMomentumStart.E(),positionStop.T(),mTrackData.mEnergyLoss,
+		      mTrackData.mTrkStatusStart,status);
+    //p->SetTotalEnergy(TVirtualMC::GetMC()->Etot());
+
+    // RS: not sure this is needed
+    // Increment number of Detector det points in TParticle
+    AliceO2::Data::Stack *stack = (AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+    stack->AddPoint(kAliIts);
+  }
   
-  // Increment number of Detector det points in TParticle
-  AliceO2::Data::Stack *stack = (AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
-  stack->AddPoint(kAliIts);
-
-  // Save old position for the next hit.
-  mEntrancePosition = mPosition;
-  mEntranceTime = mTime;
-  mStatus0 = mStatus;
-
   return kTRUE;
 }
 
@@ -1048,15 +999,12 @@ void Detector::defineSensitiveVolumes()
   }
 }
 
-Point *Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos,
-                        TVector3 mom, Double_t startTime, Double_t time,
-                        Double_t length, Double_t eLoss, Int_t shunt,
-                        Int_t status, Int_t statusStart)
+Point *Detector::addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE,
+			double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
   TClonesArray &clref = *mPointCollection;
   Int_t size = clref.GetEntriesFast();
-  return new(clref[size])
-    Point(trackID, detID, startPos, pos, mom, startTime, time, length, eLoss, shunt, status, statusStart);
+  return new(clref[size]) Point(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
 }
 
 TParticle *Detector::GetParticle() const
@@ -1070,8 +1018,8 @@ TParticle *Detector::GetParticle() const
   //   none.
   // Return:
   //   The TParticle of the track that created this hit.
-
-  return ((AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack())->GetParticle(GetTrack());
+  int trc = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+  return ((AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack())->GetParticle(trc);
 }
 
 void Detector::Print(std::ostream *os) const
@@ -1097,18 +1045,16 @@ void Detector::Print(std::ostream *os) const
   Int_t fmt;
 #endif
 #endif
-
-  fmt = os->setf(std::ios::scientific); // set scientific floating point output
-  *os << mTrackNumber << " " << mPositionX << " " << mPositionY << " " << mPositionZ << " ";
-  fmt = os->setf(std::ios::hex); // set hex for mStatus only.
-  *os << mStatus << " ";
-  fmt = os->setf(std::ios::dec); // every thing else decimel.
-  *os << mModule << " ";
-  *os << mParticlePx << " " << mParticlePy << " " << mParticlePz << " ";
-  *os << mEnergyDepositionStep << " " << mTof;
-  *os << " " << mStartingStepX << " " << mStartingStepY << " " << mStartingStepZ;
+  // RS: why do we need to pring this garbage?
+  
+  //fmt = os->setf(std::ios::scientific); // set scientific floating point output
+  //fmt = os->setf(std::ios::hex); // set hex for mStatus only.
+  //fmt = os->setf(std::ios::dec); // every thing else decimel.
+  //  *os << mModule << " ";
+  //  *os << mEnergyDepositionStep << " " << mTof;
+  //  *os << " " << mStartingStepX << " " << mStartingStepY << " " << mStartingStepZ;
   //    *os << " " << endl;
-  os->flags(fmt); // reset back to old formating.
+  //os->flags(fmt); // reset back to old formating.
   return;
 }
 
@@ -1121,11 +1067,7 @@ void Detector::Read(std::istream *is)
   //   none.
   // Return:
   //   none.
-
-  *is >> mTrackNumber >> mPositionX >> mPositionY >> mPositionZ;
-  *is >> mStatus >> mModule >> mParticlePx >> mParticlePy >> mParticlePz >> mEnergyDepositionStep >>
-  mTof;
-  *is >> mStartingStepX >> mStartingStepY >> mStartingStepZ;
+  // RS no need to read garbage
   return;
 }
 
