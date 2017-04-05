@@ -60,7 +60,7 @@ class HwClusterer : public Clusterer {
     /* BoxClusterer &operator=(const BoxClusterer &); */
     
     static void processDigits(
-        const std::vector<std::vector<Digit*>>& digits, 
+        const std::vector<std::vector<DigitMC*>>& digits, 
         const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
               std::vector<HwCluster>& cluster, 
               int iCRU,
@@ -70,7 +70,7 @@ class HwClusterer : public Clusterer {
               bool enableCM);
     
     std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
-    std::vector<std::vector<std::vector<Digit*>>> mDigitContainer;
+    std::vector<std::vector<std::vector<DigitMC*>>> mDigitContainer;
 
     std::vector<std::vector<HwCluster>> mClusterStorage;
     
