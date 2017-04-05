@@ -9,5 +9,6 @@
 #pragma link C++ class AliceO2::ITSMFT::ClusterShape+;
 #pragma link C++ class AliceO2::ITSMFT::SimuClusterShaper+;
 #pragma link C++ class AliceO2::ITSMFT::SimulationAlpide+;
+#pragma link C++ class ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<float>,ROOT::Math::DefaultCoordinateSystemTag>+;
 
 #endif

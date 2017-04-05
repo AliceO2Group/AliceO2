@@ -117,7 +117,7 @@ Double_t &zstart, Double_t &zpoint, Double_t &timestart, Double_t &eloss) const
   ypoint = posloc[1] - poslocStart[1];
   zpoint = posloc[2] - poslocStart[2];
 
-  timestart = tmp->GetStartTime();
+  timestart = tmp->GetTime();
   eloss = tmp->GetEnergyLoss();
 
   return kTRUE;
@@ -141,7 +141,7 @@ Bool_t Chip::LineSegmentGlobal(Int_t hitindex, Double_t &xstart, Double_t &xpoin
   xpoint = tmp->GetX() - xstart;
   ypoint = tmp->GetY() - ystart;
   zpoint = tmp->GetY() - zstart;
-  timestart = tmp->GetStartTime();
+  timestart = tmp->GetTime();
   eloss = tmp->GetEnergyLoss();
 
   return kTRUE;

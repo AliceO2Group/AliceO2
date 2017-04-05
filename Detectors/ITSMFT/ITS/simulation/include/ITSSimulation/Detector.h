@@ -142,8 +142,9 @@ class Detector : public AliceO2::Base::Detector
                                     UInt_t &dettype) const;
 
     /// This method is an example of how to add your own point of type Point to the clones array
-    AliceO2::ITSMFT::Point *addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom, Double_t startTime,
-                  Double_t time, Double_t length, Double_t eLoss, Int_t shunt, Int_t status, Int_t statusStart);
+    AliceO2::ITSMFT::Point *addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,
+				   double startE, double endTime, double eLoss,
+				   unsigned char startStatus, unsigned char endStatus);
 
     /// Book arrays for wrapper volumes
     virtual void setNumberOfWrapperVolumes(Int_t n);
@@ -201,18 +202,6 @@ class Detector : public AliceO2::Base::Detector
     /// particle can be found. See the TParticle class.
     virtual TParticle *GetParticle() const;
 
-    // SetTrack and GetTrack methods from AliHit.h
-
-    virtual void SetTrack(Int_t track)
-    {
-      mTrackNumber = track;
-    }
-
-    virtual Int_t GetTrack() const
-    {
-      return mTrackNumber;
-    }
-
     /// Prints out the content of this class in ASCII format
     /// \param ostream *os The output stream
     void Print(std::ostream *os) const;
@@ -255,39 +244,18 @@ class Detector : public AliceO2::Base::Detector
   protected:
     Int_t *mLayerID;               //! [mNumberLayers] layer identifier
     Int_t mNumberLayers;           //! Number of layers
-    Int_t mStatus;                 //! Track Status
-    Int_t mModule;                 //! Module number
-    Float_t mParticlePx;           //! PX of particle at the point of the hit
-    Float_t mParticlePy;           //! PY of particle at the point of the hit
-    Float_t mParticlePz;           //! PZ of particle at the point of the hit
-    Float_t mEnergyDepositionStep; //! Energy deposited in the current step
-    Float_t mTof;                  //! Time of flight at the point of the hit
-    Int_t mStatus0;                //! Track Status of Starting point
-    Float_t mStartingStepX;        //! Starting point of this step
-    Float_t mStartingStepY;        //! Starting point of this step
-    Float_t mStartingStepZ;        //! Starting point of this step
-    Float_t mStartingStepT;        //! Starting point of this step
-    Int_t mTrackNumber;            //! Track number
-    Float_t mPositionX;            //! X position of the hit
-    Float_t mPositionY;            //! Y position of the hit
-    Float_t mPositionZ;            //! Z position of the hit
-    TString *mLayerName;           //![mNumberLayers] layer identifier
+    TString *mLayerName;           //! [mNumberLayers] layer identifier
 
   private:
-    /// Track information to be stored until the track leaves the
-    /// active volume.
-    Int_t mTrackNumberID;             //! track index
-    Int_t mVolumeID;                  //! volume id
-    Int_t mShunt;                     //! shunt
-    Int_t mTrkStatusFlag;             //! track status flag
-    TLorentzVector mPosition;         //! position
-    TLorentzVector mEntrancePosition; //! position at entrance
-    TLorentzVector mMomentum;         //! momentum
-    Double32_t mEntranceTime;         //! time at entrance
-    Double32_t mTime;                 //! time
-    Double32_t mLength;               //! length
-    Double32_t mEnergyLoss;           //! energy loss
-
+    /// this is transient data about track passing the sensor
+    struct TrackData {                  // this is transient 
+      bool  mHitStarted;                //! hit creation started
+      unsigned char mTrkStatusStart;    //! track status flag
+      TLorentzVector mPositionStart;    //! position at entrance
+      TLorentzVector mMomentumStart;    //! momentum
+      double mEnergyLoss;               //! energy loss
+    } mTrackData; //! 
+    
     Int_t mNumberOfDetectors;
     TArrayD mShiftX;
     TArrayD mShiftY;
