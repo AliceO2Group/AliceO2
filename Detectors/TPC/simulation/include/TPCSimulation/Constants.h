@@ -13,6 +13,9 @@ namespace TPC {
 
 // gas parameters
 constexpr float WION = 37.3e-9;           ///< Effective ionization potential of Ne-CO2-N2 (90-10-5), value from TDR
+constexpr float IPOT = 20.77e-9;          ///< Effective ionization potential of Ne-CO2 (90-10), value from ORIGINAL TDR
+constexpr float SCALEWIONG4 = 0.85;       ///< scale factor to tune WION for GEANT4 
+constexpr float FANOFACTORG4 = 0.7;       ///< parameter for smearing the number of ionizations (nel) using GEANT4
 constexpr float ATTCOEF = 250.;           ///< Attachement coefficient of Ne-CO2-N2 (90-10-5), value from TDR
 constexpr float OXYCONT = 5.e-6;          ///< Oxygen content, value from current AliRoot TPCParam
 constexpr float DRIFTV = 2.58;            ///< Drift velocity of Ne-CO2-N2 (90-10-5), value from TDR

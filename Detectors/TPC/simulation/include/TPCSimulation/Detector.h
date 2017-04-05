@@ -21,6 +21,11 @@ class Point;
 class Detector: public AliceO2::Base::Detector {
 
   public:
+  enum class SimulationType : char {
+    GEANT3,    ///< GEANT3 simulation
+    Other      ///< Other simulation, e.g. GEANT4
+      };
+
 
     /**      Name :  Detector Name
      *       Active: kTRUE for active detectors (ProcessHits() will be called)
@@ -72,6 +77,14 @@ class Detector: public AliceO2::Base::Detector {
     /// @return Bethe-Bloch value in MIP units
     Double_t BetheBlochAleph(Double_t bg, Double_t kp1, Double_t kp2, Double_t kp3, Double_t kp4, Double_t kp5);
 
+    /// Copied from AliRoot - should go to someplace else
+    /// Function to generate random numbers according to Gamma function 
+    /// From Hisashi Tanizaki:
+    /// http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.158.3866&rep=rep1&type=pdf
+    /// Implemented by A. Morsch 14/01/2014    
+    /// @k is the mean and variance
+    Double_t Gamma(Double_t k);
+
     
     /** The following methods can be implemented if you need to make
      *  any optional action in your detector during the transport.
@@ -92,17 +105,8 @@ class Detector: public AliceO2::Base::Detector {
     const TString& GetGeoFileName() const   { return mGeoFileName; }
 
   private:
-
-    /** Track information to be stored until the track leaves the
-    active volume.
-    */
-    Int_t          mTrackNumberID;           //!  track index
-    Int_t          mVolumeID;          //!  volume id
-    TLorentzVector mPosition;               //!  position at entrance
-    TLorentzVector mMomentum;               //!  momentum at entrance
-    Double32_t     mTime;              //!  time
-    Double32_t     mLength;            //!  length
-    Double32_t     mEnergyLoss;             //!  energy loss
+    
+    SimulationType mSimulationType;       ///< Type of simulation
 
     /// Create the detector materials
     virtual void CreateMaterials();

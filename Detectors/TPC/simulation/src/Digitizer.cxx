@@ -56,7 +56,9 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
     Point *inputpoint = static_cast<Point *>(pointObject);
 
     const GlobalPosition3D posEle(inputpoint->GetX(), inputpoint->GetY(), inputpoint->GetZ());
-    int nPrimaryElectrons = static_cast<int>(inputpoint->GetEnergyLoss()/WION);
+
+    // The energy loss stored is really nElectrons
+    int nPrimaryElectrons = static_cast<int>(inputpoint->GetEnergyLoss());
 
     int MCEventID = inputpoint->GetEventID();
     int MCTrackID = inputpoint->GetTrackID();

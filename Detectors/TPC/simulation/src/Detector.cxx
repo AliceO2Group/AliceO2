@@ -55,26 +55,14 @@ using namespace AliceO2::TPC;
 
 Detector::Detector()
   : AliceO2::Base::Detector("TPC", kTRUE, kAliTpc),
-    mTrackNumberID(-1),
-    mVolumeID(-1),
-    mPosition(),
-    mMomentum(),
-    mTime(-1.),
-    mLength(-1.),
-    mEnergyLoss(-1),
+    mSimulationType(SimulationType::Other),
     mPointCollection(new TClonesArray("AliceO2::TPC::Point"))
 {
 }
 
 Detector::Detector(const char* name, Bool_t active)
   : AliceO2::Base::Detector(name, active, kAliTpc),
-    mTrackNumberID(-1),
-    mVolumeID(-1),
-    mPosition(),
-    mMomentum(),
-    mTime(-1.),
-    mLength(-1.),
-    mEnergyLoss(-1),
+    mSimulationType(SimulationType::Other),
     mPointCollection(new TClonesArray("AliceO2::TPC::Point"))
 {
 
@@ -90,8 +78,15 @@ Detector::~Detector()
 
 void Detector::Initialize()
 {
-    AliceO2::Base::Detector::Initialize();
-//     LOG(INFO) << "Initialize" << FairLogger::endl;
+  AliceO2::Base::Detector::Initialize();
+  //     LOG(INFO) << "Initialize" << FairLogger::endl;
+  
+  // Set the simulation type
+  FairRun* fRun = FairRun::Instance();
+  if (strcmp(fRun->GetName(),"TGeant3") == 0)
+    mSimulationType = SimulationType::GEANT3;
+  else 
+    mSimulationType = SimulationType::Other;
 }
 
 void Detector::SetSpecialPhysicsCuts()
@@ -181,77 +176,99 @@ void Detector::SetSpecialPhysicsCuts()
 
 Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
-  /** This method is called from the MC stepping */
+  /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
-  if(TMath::Abs(TVirtualMC::GetMC()->TrackCharge())<=0.) return kFALSE; // take only charged particles
-
-  //Set parameters at entrance of volume. Reset ELoss.
-
-  if ( TVirtualMC::GetMC()->IsTrackEntering() ) {
-    //mEnergyLoss  = 0.;
+  if(static_cast<int>(TVirtualMC::GetMC()->TrackCharge()) == 0) {
+    
+    // set a very large step size for neutral particles
+    TVirtualMC::GetMC()->SetMaxStep(1.e10);
+    return kFALSE; // take only charged particles
   }
-    mTime   = TVirtualMC::GetMC()->TrackTime() * 1.0e09;
-    mLength = TVirtualMC::GetMC()->TrackLength();
-    TVirtualMC::GetMC()->TrackPosition(mPosition);
-    TVirtualMC::GetMC()->TrackMomentum(mMomentum);
 
-    //double r = TMath::Sqrt(mPosition.X() * mPosition.X() + mPosition.Y()*mPosition.Y());
-    //mTrackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-    //mVolumeID = vol->getMCid();
-    //LOG(INFO) << "TPC::AddHit" << FairLogger::endl
-    //<< "   -- " << mTrackNumberID <<","  << mVolumeID << " " << vol->GetName()
-    //<< ", Pos: (" << mPosition.X() << ", "  << mPosition.Y() <<", "<<  mPosition.Z() << ", " << r <<") "
-    //<< ", Mom: (" << mMomentum.Px() << ", " << mMomentum.Py() << ", "  <<  mMomentum.Pz() << ") "
-    //<< " Time: "<<  mTime <<", Len: " << mLength << ", Eloss: " <<
-    //mEnergyLoss << FairLogger::endl;
+  // SET THE LENGTH OF THE NEXT ENERGY LOSS STEP 
+  // (We do this first so we can skip out of the method in the following
+  // Eloss->Ionization part.)
+  //
+  // In the case of GEANT3 we use the ILOSS model 5 (in gfluct.F), which gives
+  // the energy loss in a single collision (NA49 model).
+  //
+  // In all other cases we have multiple collisions and we use 2mm (+ some
+  // random shift to avoid binning effects), which was tuned for GEANT4, see
+  // https://indico.cern.ch/event/316891/contributions/732168/
+  
+  TLorentzVector momentum;
+  TVirtualMC::GetMC()->TrackMomentum(momentum);
+  const Double_t rnd = TVirtualMC::GetMC()->GetRandom()->Rndm();
+  if(mSimulationType == SimulationType::GEANT3) {
+    
+    // betagamma = p/m
+    Float_t betaGamma = momentum.P()/TVirtualMC::GetMC()->TrackMass();
+    betaGamma = TMath::Max(betaGamma, static_cast<Float_t>(7.e-3)); // protection against too small bg
+    
+    // NPRIM etc. are defined in "TPCSimulation/Constants.h"
+    const Float_t pp = NPRIM * BetheBlochAleph(betaGamma, BBPARAM[0], BBPARAM[1], BBPARAM[2], BBPARAM[3], BBPARAM[4]);
+    
+    TVirtualMC::GetMC()->SetMaxStep(-TMath::Log(rnd)/pp);
+  } else {
+    
+    TVirtualMC::GetMC()->SetMaxStep(0.2+(2.*rnd-1.)*0.05);  // 2 mm +- rndm*0.5mm step
+  } 
+  
+  // CONVERT THE ENERGY LOSS TO IONIZATION
+  //
+  // In the case of GEANT3 it is simple because it is the energy loss in a
+  // single collision (NA49 model).
+  //
+  // In all other cases we have multiple collisions and we have to add
+  // fluctuations. We smear nel using gamma distr with mean = meanIon and
+  // variance = meanIon/FANOFACTORG4
+  // These parameters were tuned for GEANT4
 
-  // Sum energy loss for all steps in the active volume
-  mEnergyLoss = TVirtualMC::GetMC()->Edep();
-
-  // Create DetectorPoint at exit of active volume
-  //if ( TVirtualMC::GetMC()->IsTrackExiting()    ||
-       //TVirtualMC::GetMC()->IsTrackStop()       ||
-       //TVirtualMC::GetMC()->IsTrackDisappeared()   ) {
-    mTrackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-    mVolumeID = vol->getMCid();
-    if (mEnergyLoss == 0. ) { return kFALSE; }
-    AddHit(mTrackNumberID, mVolumeID, TVector3(mPosition.X(),  mPosition.Y(),  mPosition.Z()),
-           TVector3(mMomentum.Px(), mMomentum.Py(), mMomentum.Pz()), mTime, mLength,
-           mEnergyLoss);
-    //double r = TMath::Sqrt(mPosition.X() * mPosition.X() + mPosition.Y()*mPosition.Y());
-    //LOG(INFO) << "TPC::AddHit" << FairLogger::endl
-    //<< "   -- " << mTrackNumberID <<","  << mVolumeID << " " << vol->GetName()
-    //<< ", Pos: (" << mPosition.X() << ", "  << mPosition.Y() <<", "<<  mPosition.Z()<< ", " << r << ") "
-    //<< ", Mom: (" << mMomentum.Px() << ", " << mMomentum.Py() << ", "  <<  mMomentum.Pz() << ") "
-    //<< " Time: "<<  mTime <<", Len: " << mLength << ", Eloss: " <<
-    //mEnergyLoss << FairLogger::endl;
-
-    // Increment number of Detector det points in TParticle
-    AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)TVirtualMC::GetMC()->GetStack();
-    stack->AddPoint(kAliTpc);
-
-  //}
-
-  //return kTRUE;
-  // ________________________________________________________________________________________________
-  // Energy loss à la NA49
-
-  Float_t prim = 14; // number of electron/ion pairs per MIP and cm. Should go to parameter space.
-
-  Float_t pp;
-
-  Float_t betaGamma = mMomentum.Rho()/TVirtualMC::GetMC()->TrackMass();
-  betaGamma = TMath::Max(betaGamma,(Float_t)7.e-3); // protection against too small bg
-
-  pp=NPRIM*BetheBlochAleph(betaGamma, BBPARAM[0], BBPARAM[1], BBPARAM[2], BBPARAM[3], BBPARAM[4]);
-
-  Double_t rnd = TVirtualMC::GetMC()->GetRandom()->Rndm();
-  TVirtualMC::GetMC()->SetMaxStep(-TMath::Log(rnd)/pp);
-
+  Int_t nel=0;
+  if(mSimulationType == SimulationType::GEANT3) {
+    
+    nel = 1 + static_cast<int>((TVirtualMC::GetMC()->Edep()-IPOT) / WION);
+    // LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "GEANT3: Nelectrons: " << nel << FairLogger::endl;
+  } else {
+    
+    const Double_t meanIon = TVirtualMC::GetMC()->Edep() / (WION*SCALEWIONG4);
+    if(meanIon > 0)
+      nel = static_cast<int>(FANOFACTORG4 * Gamma(meanIon/FANOFACTORG4)); 
+    // LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "GEANT4: Eloss: " 
+    //	      << TVirtualMC::GetMC()->Edep() << ", Nelectrons: " 
+    //	      << nel << FairLogger::endl;
+  }
+  
+  nel=TMath::Min(nel, 300); // 300 electrons corresponds to 10 keV where
+			    // delta-electrons form instead
+  if(nel <= 0) // Could maybe be smaller than 0 due to the Gamma function
+    return kFALSE;
+  
+  // ADD HIT
+  TLorentzVector position;
+  TVirtualMC::GetMC()->TrackPosition(position);
+  Double32_t time           = TVirtualMC::GetMC()->TrackTime() * 1.0e09;
+  Double32_t length         = TVirtualMC::GetMC()->TrackLength();
+  int        trackNumberID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+  int        volumeID       = vol->getMCid();
+  AddHit(trackNumberID, volumeID, TVector3(position.X(),  position.Y(),  position.Z()),
+	 TVector3(momentum.Px(), momentum.Py(), momentum.Pz()), time, length,
+	 nel);
+  //LOG(INFO) << "TPC::AddHit" << FairLogger::endl
+  //<< "   -- " << trackNumberID <<","  << volumeID << " " << vol->GetName()
+  //<< ", Pos: (" << position.X() << ", "  << position.Y() <<", "<<  position.Z()<< ", " << r << ") "
+  //<< ", Mom: (" << momentum.Px() << ", " << momentum.Py() << ", "  <<  momentum.Pz() << ") "
+  //<< " Time: "<<  time <<", Len: " << length << ", Nelectrons: " <<
+  //nel << FairLogger::endl;
+  
+  // Increment number of Detector det points in TParticle
+  AliceO2::Data::Stack* stack = (AliceO2::Data::Stack*)TVirtualMC::GetMC()->GetStack();
+  stack->AddPoint(kAliTpc);
+  
   return kTRUE;
 }
-
-
+  
+  
 
 void Detector::EndOfEvent()
 {
@@ -3047,6 +3064,41 @@ Double_t Detector::BetheBlochAleph(Double_t bg, Double_t kp1, Double_t kp2, Doub
 
   return (kp2-aa-bb)*kp1/aa;
 }
+
+Double_t Detector::Gamma(Double_t k)
+{
+  static Double_t n=0;
+  static Double_t c1=0;
+  static Double_t c2=0;
+  static Double_t b1=0;
+  static Double_t b2=0;
+  if (k > 0) {
+    if (k < 0.4) 
+      n = 1./k;
+    else if (k >= 0.4 && k < 4) 
+      n = 1./k + (k - 0.4)/k/3.6;
+    else if (k >= 4.) 
+      n = 1./TMath::Sqrt(k);
+    b1 = k - 1./n;
+    b2 = k + 1./n;
+    c1 = (k < 0.4)? 0 : b1 * (TMath::Log(b1) - 1.)/2.;
+    c2 = b2 * (TMath::Log(b2) - 1.)/2.;
+  }
+  Double_t x;
+  Double_t y = -1.;
+  while (1) {
+    Double_t nu1 = gRandom->Rndm();
+    Double_t nu2 = gRandom->Rndm();
+    Double_t w1 = c1 + TMath::Log(nu1);
+    Double_t w2 = c2 + TMath::Log(nu2);
+    y = n * (b1 * w2 - b2 * w1);
+    if (y < 0) continue;
+    x = n * (w2 - w1);
+    if (TMath::Log(y) >= x) break;
+  }
+  return TMath::Exp(x);
+}
+
 
 #include <sstream>
 #include <string>
