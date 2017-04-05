@@ -69,6 +69,9 @@ GCCFLAGSUSE						= $(GCCFLAGSOPT)
 CLANGFLAGSUSE					= $(CLANGFLAGSOPT)
 NVCCFLAGSUSE					= $(NVCCFLAGSOPT)
 endif
+ifeq ($(GCCCUDA), )
+GCCCUDA						= $(GCC)
+endif
 
 MKDIR							= $(HIDEECHOB) mkdir -p `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'` `echo $@ | sed 's,/[a-zA-Z0-9._-]*$$,,'`
 

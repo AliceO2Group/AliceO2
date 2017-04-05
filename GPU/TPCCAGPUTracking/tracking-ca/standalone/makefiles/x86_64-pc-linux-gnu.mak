@@ -109,7 +109,7 @@ CC_SELECTED						= $(CC_x86_64-pc-linux-gnu)
 
 CCCUDA							= $(GCC) -x c++ -Wno-effc++
 ASMPRE							= $(GCC3264)
-NVCC							= $(CUDAPATH)/bin/nvcc
+NVCC							= $(CUDAPATH)/bin/nvcc --compiler-bindir $(GCCCUDA)
 
 COMMONINCLUDEPATHS				=
 LIBPATHSUSE						=
