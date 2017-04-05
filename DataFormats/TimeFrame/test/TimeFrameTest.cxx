@@ -3,9 +3,9 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "TimeFrame/TimeFrame.h"
-#include "FairMQMessage.h"
-#include "FairMQParts.h"
-#include "FairMQTransportFactoryZMQ.h"
+#include <FairMQMessage.h>
+#include <FairMQParts.h>
+#include "zeromq/FairMQTransportFactoryZMQ.h"
 #include "Headers/DataHeader.h"
 #include "TFile.h"
 

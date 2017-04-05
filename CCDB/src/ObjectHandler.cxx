@@ -4,7 +4,7 @@
 #include "TBufferFile.h"
 #include "TFile.h"
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 
 #include <zlib.h>
 

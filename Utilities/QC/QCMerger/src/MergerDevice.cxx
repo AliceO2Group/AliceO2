@@ -6,7 +6,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <FairMQLogger.h>
-#include <FairMQTransportFactoryZMQ.h>
+#include <zeromq/FairMQTransportFactoryZMQ.h>
 
 #include <dds_intercom.h>
 

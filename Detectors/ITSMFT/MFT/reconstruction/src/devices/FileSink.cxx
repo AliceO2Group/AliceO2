@@ -7,7 +7,7 @@
 #include "TClonesArray.h"
 
 #include "FairEventHeader.h"
-#include "FairMQProgOptions.h"
+#include <options/FairMQProgOptions.h>
 
 #include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/devices/FileSink.h"

@@ -17,8 +17,8 @@
 
 #include "aliceHLTwrapper/WrapperDevice.h"
 #include "aliceHLTwrapper/Component.h"
-#include "FairMQLogger.h"
-#include "FairMQPoller.h"
+#include <FairMQLogger.h>
+#include <FairMQPoller.h>
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>

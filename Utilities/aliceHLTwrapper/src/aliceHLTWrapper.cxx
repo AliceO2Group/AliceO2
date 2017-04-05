@@ -23,12 +23,12 @@
 #include <sstream>
 #include <cerrno>
 #ifdef NANOMSG
-#include "FairMQTransportFactoryNN.h"
+#include <nanomsg/FairMQTransportFactoryNN.h>
 #endif
-#include "FairMQTransportFactoryZMQ.h"
-#include "FairMQTools.h"
+#include <zeromq/FairMQTransportFactoryZMQ.h>
+#include <tools/FairMQTools.h>
 
-#include "FairMQStateMachine.h"
+#include <FairMQStateMachine.h>
 #if defined(FAIRMQ_INTERFACE_VERSION) && FAIRMQ_INTERFACE_VERSION > 0
 // FairMQStateMachine interface supports strings as argument for the
 // ChangeState function from interface version 1 introduced Feb 2015

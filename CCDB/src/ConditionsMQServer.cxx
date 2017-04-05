@@ -18,8 +18,8 @@
 #include "CCDB/Condition.h"
 #include "CCDB/ConditionsMQServer.h"
 #include "CCDB/IdPath.h"
-#include "FairMQLogger.h"
-#include "FairMQPoller.h"
+#include <FairMQLogger.h>
+#include <FairMQPoller.h>
 
 // Google protocol buffers headers
 #include <google/protobuf/stubs/common.h>

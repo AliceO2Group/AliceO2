@@ -18,8 +18,8 @@
 #include "CCDB/BackendOCDB.h"
 #include "CCDB/BackendRiak.h"
 #include "CCDB/ConditionsMQClient.h"
-#include "FairMQLogger.h"
-#include "FairMQProgOptions.h"
+#include <FairMQLogger.h>
+#include <options/FairMQProgOptions.h>
 
 #include "boost/filesystem.hpp"
 

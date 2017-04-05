@@ -11,7 +11,7 @@
 #include "Headers/SubframeMetadata.h"
 #include "Headers/HeartbeatFrame.h"
 #include "Headers/DataHeader.h"
-#include "FairMQProgOptions.h"
+#include <options/FairMQProgOptions.h>
 
 // From C++11 on, constexpr static data members are implicitly inlined. Redeclaration
 // is still permitted, but deprecated. Some compilers do not implement this standard

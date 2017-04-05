@@ -8,7 +8,7 @@
 
 #include <TApplication.h>
 #include <FairMQLogger.h>
-#include <FairMQTransportFactoryZMQ.h>
+#include <zeromq/FairMQTransportFactoryZMQ.h>
 
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>

@@ -8,7 +8,7 @@
 
 #include <TMessage.h>
 #include <FairMQLogger.h>
-#include <FairMQTransportFactoryZMQ.h>
+#include <zeromq/FairMQTransportFactoryZMQ.h>
 
 #include "QCProducer/ProducerDevice.h"
 

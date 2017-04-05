@@ -8,7 +8,7 @@
 
 #include "TMessage.h"
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 
 #include <zlib.h>
 

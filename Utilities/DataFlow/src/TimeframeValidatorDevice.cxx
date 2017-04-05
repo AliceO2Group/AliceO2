@@ -9,7 +9,7 @@
 #include "DataFlow/TimeframeValidatorDevice.h"
 #include "Headers/SubframeMetadata.h"
 #include "Headers/DataHeader.h"
-#include "FairMQProgOptions.h"
+#include <options/FairMQProgOptions.h>
 
 
 using DataHeader = AliceO2::Header::DataHeader;

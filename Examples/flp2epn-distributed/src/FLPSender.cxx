@@ -8,10 +8,9 @@
 #include <cstdint> // UINT64_MAX
 #include <cassert>
 
-#include "FairMQLogger.h"
-#include "FairMQMessage.h"
-#include "FairMQTransportFactory.h"
-#include "FairMQProgOptions.h"
+#include <FairMQLogger.h>
+#include <FairMQMessage.h>
+#include <options/FairMQProgOptions.h>
 
 #include "FLP2EPNex_distributed/FLPSender.h"
 

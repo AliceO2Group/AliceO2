@@ -70,11 +70,11 @@ o2_define_bucket(
     common_boost_bucket
 
     DEPENDENCIES
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_LOG_LIBRARY}
-    ${Boost_LOG_SETUP_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_THREAD_LIBRARY}
+    Boost::system
+    Boost::log
+    Boost::log_setup
+    Boost::program_options
+    Boost::thread
 
     SYSTEMINCLUDE_DIRECTORIES
     ${Boost_INCLUDE_DIR}
@@ -110,17 +110,16 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_RANDOM_LIBRARY}
-    ${Boost_REGEX_LIBRARY}
+    Boost::chrono
+    Boost::date_time
+    Boost::random
+    Boost::regex
     ${ZeroMQ_LIBRARY_SHARED}
     ${OPTIONAL_DDS_LIBRARIES}
     Base
     Headers
     FairTools
-    FairMQ
-    fairmq_logger
+    FairRoot::FairMQ
     pthread
     dl
 
@@ -162,6 +161,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
+    ${FAIRROOT_INCLUDE_DIR}/fairmq # temporary fix, until bucket system works with imported targets
     ${ZeroMQ_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
 )
@@ -172,17 +172,16 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_RANDOM_LIBRARY}
-    ${Boost_REGEX_LIBRARY}
+    Boost::chrono
+    Boost::date_time
+    Boost::random
+    Boost::regex
     ${ZeroMQ_LIBRARY_SHARED}
     ${OPTIONAL_DDS_LIBRARIES}
     Base
     Headers
     FairTools
-    FairMQ
-    fairmq_logger
+    FairRoot::FairMQ
     pthread
     dl
 
@@ -209,7 +208,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    FairMQ fairmq_logger Base FairTools Core MathCore Hist
+    FairRoot::FairMQ Base FairTools Core MathCore Hist
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -237,13 +236,13 @@ o2_define_bucket(
     DEPENDENCIES
     dl
     common_boost_bucket
-    ${Boost_FILESYSTEM_LIBRARY}
+    Boost::filesystem
     ${PROTOBUF_LIBRARY}
     Base
     FairTools
     ParBase
-    FairMQ ParMQ
-    fairmq_logger pthread Core Tree XMLParser Hist Net RIO z
+    ParMQ
+    FairRoot::FairMQ pthread Core Tree XMLParser Hist Net RIO z
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -283,9 +282,12 @@ o2_define_bucket(
     DEPENDENCIES
     root_base_bucket
     ${ZeroMQ_LIBRARY_SHARED}
-    Base FairMQ FairTools fairmq_logger Base
+    Base
+    FairTools
+    FairRoot::FairMQ
     common_boost_bucket
-    ${Boost_THREAD_LIBRARY} pthread
+    Boost::thread
+    pthread
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -444,7 +446,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+    Boost::unit_test_framework
     RIO
     Core
     MathMore
@@ -454,10 +456,9 @@ o2_define_bucket(
     Gpad
     MathCore
     common_boost_bucket
-    FairMQ
-    fairmq_logger
+    FairRoot::FairMQ
     pthread
-    ${Boost_DATE_TIME_LIBRARY}
+    Boost::date_time
     ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
@@ -476,9 +477,8 @@ o2_define_bucket(
     Core
     Base
     Hist
-    FairMQ
     pthread
-    fairmq_logger
+    FairRoot::FairMQ
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
@@ -523,7 +523,7 @@ o2_define_bucket(
     QC_test_bucket
 
     DEPENDENCIES
-    dl Core Base Hist FairMQ
+    dl Core Base Hist FairRoot::FairMQ
     common_boost_bucket
 )
 
@@ -578,13 +578,12 @@ o2_define_bucket(
     DEPENDENCIES
     dl
     ${CMAKE_THREAD_LIBS_INIT}
-    ${FAIRMQ_DEPENDENCIES}
     common_boost_bucket
-    ${Boost_CHRONO_LIBRARY}
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_RANDOM_LIBRARY}
-    ${Boost_REGEX_LIBRARY}
-    FairMQ
+    Boost::chrono
+    Boost::date_time
+    Boost::random
+    Boost::regex
+    FairRoot::FairMQ
     ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
@@ -602,7 +601,7 @@ o2_define_bucket(
     DEPENDENCIES
     Core RIO Gpad Hist HLTbase AliHLTUtil AliHLTTPC AliHLTUtil
     common_boost_bucket
-    ${Boost_FILESYSTEM_LIBRARY}
+    Boost::filesystem
     dl
 
     INCLUDE_DIRECTORIES

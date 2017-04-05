@@ -7,7 +7,7 @@
 #include "Headers/DataHeader.h"
 #include "Headers/HeartbeatFrame.h"
 #include "Headers/SubframeMetadata.h"
-#include "FairMQProgOptions.h"
+#include <options/FairMQProgOptions.h>
 
 using HeartbeatHeader = AliceO2::Header::HeartbeatHeader;
 using HeartbeatTrailer = AliceO2::Header::HeartbeatTrailer;

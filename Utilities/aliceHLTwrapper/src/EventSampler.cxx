@@ -16,8 +16,8 @@
 //  @brief  Sampler device for Alice HLT events in FairRoot/ALFA
 
 #include "aliceHLTwrapper/EventSampler.h"
-#include "FairMQLogger.h"
-#include "FairMQPoller.h"
+#include <FairMQLogger.h>
+#include <FairMQPoller.h>
 #include "aliceHLTwrapper/AliHLTDataTypes.h"
 
 #include <boost/thread.hpp>

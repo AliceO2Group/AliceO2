@@ -1,8 +1,8 @@
 #ifndef TASKPROCESSOR_H_
 #define TASKPROCESSOR_H_
 
-#include "FairMQDevice.h"
-#include "FairMQParts.h"
+#include <FairMQDevice.h>
+#include <FairMQParts.h>
 
 #include "TMessage.h"
 

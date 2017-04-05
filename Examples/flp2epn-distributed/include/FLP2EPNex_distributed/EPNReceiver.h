@@ -13,7 +13,7 @@
 #include <unordered_set>
 #include <chrono>
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 namespace AliceO2 {
 namespace Devices {

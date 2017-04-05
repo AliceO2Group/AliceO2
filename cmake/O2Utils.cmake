@@ -359,7 +359,7 @@ function(O2_GENERATE_TESTS)
         BUCKET_NAME ${PARSED_ARGS_BUCKET_NAME}
         NO_INSTALL FALSE
     )
-    target_link_libraries(${test_name} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+    target_link_libraries(${test_name} Boost::unit_test_framework)
     add_test(NAME ${test_name} COMMAND ${test_name})
   endforeach ()
 endfunction()
