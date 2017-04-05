@@ -1,7 +1,7 @@
 /// \file GBTFrameContainer.cxx
 /// \author Sebastian Klewin
 
-#include "TPCSimulation/GBTFrameContainer.h"
+#include "TPCReconstruction/GBTFrameContainer.h"
 
 using namespace AliceO2::TPC;
 
@@ -348,7 +348,7 @@ int GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
   return iOldPosition;
 }
 
-bool GBTFrameContainer::getData(std::vector<DigitMC>& container)
+bool GBTFrameContainer::getData(std::vector<DigitData>& container)
 {
 //  std::vector<std::vector<int>> iData(5);
 //  mAdcMutex.lock();
@@ -386,7 +386,6 @@ bool GBTFrameContainer::getData(std::vector<DigitMC>& container)
   float iCharge;
   int iRow;
   int iPad;
-  std::vector<long> iMcLabel;
   for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
   {
     iSampaChannel = (iHalfSampa == 4) ?     // 5th half SAMPA corresponds to  SAMPA2
@@ -407,7 +406,7 @@ bool GBTFrameContainer::getData(std::vector<DigitMC>& container)
       iCharge = *it; 
 //      std::cout << mCRU/2 << " " << mLink << " " << iSampa << " " << iSampaChannel << " " << iRow << " " << iPad << " " << iTimeBin << " " << iCharge << std::endl;
 
-      container.emplace_back(iMcLabel, mCRU, iCharge, iRow, iPad, iTimeBin);
+      container.emplace_back(mCRU, iCharge, iRow, iPad, iTimeBin);
       ++iSampaChannel;
     }
   }

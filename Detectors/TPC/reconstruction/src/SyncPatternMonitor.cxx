@@ -1,7 +1,7 @@
 /// \file SyncPatternMonitor.cxx
 /// \author Sebastian Klewin
 
-#include "TPCSimulation/SyncPatternMonitor.h"
+#include "TPCReconstruction/SyncPatternMonitor.h"
 
 using namespace AliceO2::TPC;
 constexpr std::array<short,32> SyncPatternMonitor::SYNC_PATTERN;

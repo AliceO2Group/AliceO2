@@ -1,7 +1,7 @@
 /// \file HalfSAMPAData.cxx
 /// \author Sebastian Klewin
 
-#include "TPCSimulation/HalfSAMPAData.h"
+#include "TPCReconstruction/HalfSAMPAData.h"
 #include "FairLogger.h" 
 
 using namespace AliceO2::TPC;

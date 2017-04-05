@@ -9,9 +9,9 @@
 
 #include <thread>
 #include <mutex>
-#include "TPCSimulation/GBTFrameContainer.h"
-#include "TPCSimulation/HalfSAMPAData.h"
-#include "TPCSimulation/DigitMC.h"
+#include "TPCReconstruction/GBTFrameContainer.h"
+#include "TPCReconstruction/HalfSAMPAData.h"
+#include "TPCReconstruction/DigitData.h"
 
 namespace bpo = boost::program_options;
 
@@ -37,8 +37,8 @@ void addData(AliceO2::TPC::GBTFrameContainer& container, std::string& infile, in
 
 void readData(AliceO2::TPC::GBTFrameContainer& container, std::vector<std::ofstream*>& outfiles, int& run, int& done) {
   done = 0;
-  std::vector<AliceO2::TPC::HalfSAMPAData> data;
-//  std::vector<AliceO2::TPC::Digit> data;
+//  std::vector<AliceO2::TPC::HalfSAMPAData> data;
+  std::vector<AliceO2::TPC::DigitData> data;
   int i;
   while (!run) {
     std::this_thread::sleep_for(std::chrono::microseconds{100});
