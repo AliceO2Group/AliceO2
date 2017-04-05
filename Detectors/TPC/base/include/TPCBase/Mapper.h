@@ -9,14 +9,16 @@
 
 #include "TPCBase/Defs.h"
 #include "TPCBase/PadPos.h"
+#include "TPCBase/PadSecPos.h"
+#include "TPCBase/PadROCPos.h"
 #include "TPCBase/DigitPos.h"
 #include "TPCBase/FECInfo.h"
 #include "TPCBase/PadRegionInfo.h"
 #include "TPCBase/PartitionInfo.h"
 #include "TPCBase/Sector.h"
 
-using o2::TPC::PadRegionInfo;
-using o2::TPC::PartitionInfo;
+//using o2::TPC::PadRegionInfo;
+//using o2::TPC::PartitionInfo;
 
 namespace o2 {
 namespace TPC {
@@ -32,12 +34,74 @@ public:
   const PadCentre&  padCentre (GlobalPadNumber padNumber) const { return mMapGlobalPadCentre  [padNumber%mPadsInSector]; }
   const FECInfo&    fecInfo   (GlobalPadNumber padNumber) const { return mMapGlobalPadFECInfo [padNumber%mPadsInSector]; }
 
-  const GlobalPadNumber globalPadNumber(const PadPos& padPosition) const { return mMapPadPosGlobalPad.find(padPosition)->second; }
+  //const GlobalPadNumber globalPadNumber(const PadPos& padPosition) const { return mMapPadPosGlobalPad.find(padPosition)->second; }
+  const GlobalPadNumber globalPadNumber(const PadPos& globalPadPosition) const { return mMapPadOffsetPerRow[globalPadPosition.getRow()] + globalPadPosition.getPad(); }
+
+  /// return the global pad number in ROC for PadROCPos (ROC, row, pad)
+  /// \return global pad number of PadROCPos (ROC, row, pad)
+  /// \todo add check for row and pad limits
+  const GlobalPadNumber getPadNumberInROC(const PadROCPos& rocPadPosition) const
+  { 
+    const size_t padOffset = (rocPadPosition.getROCType() == RocType::IROC)? 0 : mPadsInIROC;
+    const size_t rowOffset = (rocPadPosition.getROCType() == RocType::IROC)? 0 : mNumberOfPadRowsIROC;
+
+    return mMapPadOffsetPerRow[rocPadPosition.getRow() + rowOffset] + rocPadPosition.getPad() - padOffset; 
+  }
+
+  /// return the global pad number in a partition for partition, row, pad
+  /// \return global pad number in a partition for partition, row, pad
+  /// \todo add check for row and pad limits
+  const GlobalPadNumber getPadNumberInPartition(int partition, int row, int pad) const
+  { 
+    const auto& info = mMapPartitionInfo[partition % mMapPartitionInfo.size()];
+    const size_t rowOffset = info.getGlobalRowOffset();
+    const size_t padOffset = mMapPadOffsetPerRow[rowOffset];
+
+    return mMapPadOffsetPerRow[row + rowOffset] + pad - padOffset; 
+  }
+
+
+  /// return the global pad number in a region for region, row, pad
+  /// \return global pad number in a region for region, row, pad
+  /// \todo add check for row and pad limits
+  const GlobalPadNumber getPadNumberInRegion(CRU cru, int row, int pad) const
+  { 
+    const auto& info = mMapPadRegionInfo[cru.region() % mMapPadRegionInfo.size()];
+    const size_t rowOffset = info.getGlobalRowOffset();
+    const size_t padOffset = mMapPadOffsetPerRow[rowOffset];
+
+    return mMapPadOffsetPerRow[row + rowOffset] + pad - padOffset; 
+  }
 
   const GlobalPadNumber globalPadNumber(const FECInfo& fec) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fec.getIndex(), fec.getSampaChip(), fec.getSampaChannel())]; }
   const GlobalPadNumber globalPadNumber(const int fecInSector, const int sampaOnFEC, const int channelOnSAMPA) const { return mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fecInSector, sampaOnFEC, channelOnSAMPA)]; }
 
+  const GlobalPosition2D getPadCentre(const PadSecPos& padSec) const
+  { 
+    const PadCentre& padcent = getPadCentre(padSec.getPadPos());
+    return LocalToGlobal(padcent, padSec.getSector().getSector());
+  }
+
+  const GlobalPosition2D getPadCentre(const PadROCPos& padRoc) const
+  {
+    const int row = (padRoc.getROCType() == RocType::IROC) ? padRoc.getRow() : padRoc.getRow()+mNumberOfPadRowsIROC;
+    const PadSecPos pos(padRoc.getSector(), PadPos(row, padRoc.getPad()));
+    return getPadCentre(pos);
+  }
+
+  const FECInfo& getFECInfo(const PadROCPos& padROC) const
+  { 
+    const PadPos globalPadPosition = getGlobalPadPos(padROC);
+    const GlobalPadNumber padNum = globalPadNumber(globalPadPosition);
+    return fecInfo(padNum);
+  }
+
   // ===| global sector mappings |==============================================
+  const PadCentre& getPadCentre(const PadPos& pad) const
+  {
+    const GlobalPadNumber padNumber = globalPadNumber(pad);
+    return padCentre(padNumber);
+  }
   const PadPos&  padPos(const FECInfo& fec) const
   {
     const GlobalPadNumber padNumber = globalPadNumber(fec);
@@ -76,7 +140,7 @@ public:
     const int fecInSector = partInfo.getSectorFECOffset() + fecInPartition;
     const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
     PadPos pos = padPos(padNumber);
-    pos.setRow(pos.getRow()-partInfo.getSectorPadRowOffset());
+    pos.setRow(pos.getRow()-partInfo.getGlobalRowOffset());
     return pos;
   }
 
@@ -87,6 +151,58 @@ public:
     return padCentre(padNumber);
   }
 
+  // ===| pad number and pad row mappings |=====================================
+  const int getNumberOfRows()                       const { return mNumberOfPadRowsIROC + mNumberOfPadRowsOROC; }
+  const int getNumberOfRowsROC(ROC roc)             const { return (roc.rocType() == RocType::IROC) ? mNumberOfPadRowsIROC : mNumberOfPadRowsOROC; }
+  const int getNumberOfRowsRegion(int region)       const { return mMapPadRegionInfo[region % getNumberOfPadRegions()].getNumberOfPadRows(); }
+  const int getNumberOfRowsPartition(CRU cru)       const { return mMapPartitionInfo[cru % getNumberOfPartitions()].getNumberOfPadRows(); }
+  const int getNumberOfPadRows(PadSubset padSubset, int position) const {
+    switch (padSubset) {
+      case PadSubset::ROC: {
+        return getNumberOfRowsROC(position);
+        break;
+      }
+      case PadSubset::Partition: {
+        return getNumberOfRowsPartition(position);
+        break;
+      }
+      case PadSubset::Region: {
+        return getNumberOfRowsRegion(position);
+        break;
+      }
+    }
+  }
+
+  const int getNumberOfPadsInRowSector(int row)                   const { return mMapNumberOfPadsPerRow[row]; }
+  const int getNumberOfPadsInRowROC(int roc, int row)             const { return mMapNumberOfPadsPerRow[row + (roc%72>=getNumberOfIROCs())*mNumberOfPadRowsIROC]; }
+  const int getNumberOfPadsInRowRegion(int region, int row)       const { return mMapNumberOfPadsPerRow[row + mMapPadRegionInfo[region    % getNumberOfPadRegions()].getGlobalRowOffset()]; }
+  const int getNumberOfPadsInRowPartition(int partition, int row) const { return mMapNumberOfPadsPerRow[row + mMapPartitionInfo[partition % getNumberOfPartitions()].getGlobalRowOffset()]; }
+  const int getNumberOfPadsInRow(PadSubset padSubset, int position, int row) const {
+    switch (padSubset) {
+      case PadSubset::ROC: {
+        return getNumberOfPadsInRowROC(position, row);
+        break;
+      }
+      case PadSubset::Partition: {
+        return getNumberOfPadsInRowPartition(position, row);
+        break;
+      }
+      case PadSubset::Region: {
+        return getNumberOfPadsInRowRegion(position, row);
+        break;
+      }
+    }
+  }
+
+  /// Convert sector, row, pad to global pad row in sector and pad number
+  const PadPos getGlobalPadPos(const PadROCPos& padROC) const
+  {
+    const char globalRow = padROC.getRow() + (padROC.getROCType() == RocType::OROC)*mNumberOfPadRowsIROC;
+    const char pad = padROC.getPad();
+    return PadPos(globalRow, pad);
+  }
+
+  // ===| Partition and Region mappings |=======================================
   const PadRegionInfo& getPadRegionInfo(const unsigned char region) const { return mMapPadRegionInfo[region]; }
   const std::array<PadRegionInfo,10>& getMapPadRegionInfo() const { return mMapPadRegionInfo; }
   const int getNumberOfPadRegions() const { return int(mMapPadRegionInfo.size()); }
@@ -99,6 +215,8 @@ public:
   const DigitPos findDigitPosFromGlobalPosition(const GlobalPosition3D& pos) const;
 
 
+  static constexpr unsigned short getNumberOfIROCs() { return 36; }
+  static constexpr unsigned short getNumberOfOROCs() { return 36; }
   static const unsigned short getPadsInIROC  () { return mPadsInIROC  ; }
   static const unsigned short getPadsInOROC1 () { return mPadsInOROC1 ; }
   static const unsigned short getPadsInOROC2 () { return mPadsInOROC2 ; }
@@ -114,6 +232,7 @@ public:
 //   Mapper(const Mapper&) = delete;
 //   void operator=(const Mapper&) = delete;
 
+  // ===| rotation functions |==================================================
   static GlobalPosition3D LocalToGlobal(const LocalPosition3D& pos, const double alpha)
   {
     const double cs=std::cos(alpha), sn=std::sin(alpha);
@@ -148,6 +267,36 @@ public:
                           pos.getZ());
   }
 
+  // --- 2D
+  static GlobalPosition2D LocalToGlobal(const LocalPosition2D& pos, const double alpha)
+  {
+    const double cs=std::cos(alpha), sn=std::sin(alpha);
+    return GlobalPosition2D(float(double(pos.getX())*cs-double(pos.getY())*sn),
+                            float(double(pos.getX())*sn+double(pos.getY()*cs)));
+  }
+
+  static LocalPosition2D GlobalToLocal(const GlobalPosition2D& pos, const double alpha)
+  {
+    ///@todo: Lookup over sector number
+    const double cs=std::cos(-alpha), sn=std::sin(-alpha);
+    return LocalPosition2D(float(double(pos.getX())*cs-double(pos.getY())*sn),
+                          float(double(pos.getX())*sn+double(pos.getY()*cs)));
+  }
+
+  static GlobalPosition2D LocalToGlobal(const LocalPosition2D& pos, const Sector sec)
+  {
+    const double cs=CosinsPerSector[sec.getSector()%SECTORSPERSIDE], sn=SinsPerSector[sec.getSector()%SECTORSPERSIDE];
+    return GlobalPosition2D(float(double(pos.getX())*cs-double(pos.getY())*sn),
+                            float(double(pos.getX())*sn+double(pos.getY()*cs)));
+  }
+
+  static LocalPosition2D GlobalToLocal(const GlobalPosition2D& pos, const Sector sec)
+  {
+    ///@todo: Lookup over sector number
+    const double cs=CosinsPerSector[sec.getSector()%SECTORSPERSIDE], sn=-SinsPerSector[sec.getSector()%SECTORSPERSIDE];
+    return LocalPosition2D(float(double(pos.getX())*cs-double(pos.getY())*sn),
+                          float(double(pos.getX())*sn+double(pos.getY()*cs)));
+  }
 private:
   Mapper(const std::string& mappingDir);
   // use old c++03 due to root
@@ -158,12 +307,14 @@ private:
   void initPadRegionsAndPartitions();
   bool readMappingFile(std::string file);
 
-  static constexpr unsigned short mPadsInIROC  {5280};  ///< number of pads in IROC
-  static constexpr unsigned short mPadsInOROC1 {2880};  ///< number of pads in OROC1
-  static constexpr unsigned short mPadsInOROC2 {3200};  ///< number of pads in OROC2
-  static constexpr unsigned short mPadsInOROC3 {3200};  ///< number of pads in OROC3
-  static constexpr unsigned short mPadsInOROC  {9280};  ///< number of pads in OROC
-  static constexpr unsigned short mPadsInSector{14560}; ///< number of pads in one sector
+  static constexpr unsigned short mPadsInIROC  {5280};      ///< number of pads in IROC
+  static constexpr unsigned short mPadsInOROC1 {2880};      ///< number of pads in OROC1
+  static constexpr unsigned short mPadsInOROC2 {3200};      ///< number of pads in OROC2
+  static constexpr unsigned short mPadsInOROC3 {3200};      ///< number of pads in OROC3
+  static constexpr unsigned short mPadsInOROC  {9280};      ///< number of pads in OROC
+  static constexpr unsigned short mPadsInSector{14560};     ///< number of pads in one sector
+  static constexpr unsigned short mNumberOfPadRowsIROC{63}; ///< number of pad rows in IROC
+  static constexpr unsigned short mNumberOfPadRowsOROC{89}; ///< number of pad rows in IROC
 
   // ===| lookup tables |=======================================================
   //   static constexpr std::array<double, SECTORSPERSIDE> SinsPerSector;   ///< Sinus values of sectors
@@ -225,6 +376,9 @@ private:
   std::array<PadRegionInfo,10>      mMapPadRegionInfo;     ///< pad region information
   std::array<PartitionInfo,5>       mMapPartitionInfo;     ///< partition information
 
+  // ===| Pad number and row mappings |=========================================
+  std::array<int, mNumberOfPadRowsIROC + mNumberOfPadRowsOROC> mMapNumberOfPadsPerRow; ///< number of pads per global pad row in sector
+  std::array<int, mNumberOfPadRowsIROC + mNumberOfPadRowsOROC> mMapPadOffsetPerRow;    ///< global pad number offset in a row
 };
 
 // ===| inline functions |======================================================

@@ -58,6 +58,13 @@ class Sector
       return mLoop;
     }
 
+    /// int return operator to use similar as integer
+    /// \return sector number
+    operator int() { return int(mSector); }
+
+    /// assignment operator with int
+    Sector& operator=(int sector) { mSector=sector%MaxSector; return *this; }
+
     unsigned char getSector() const { return mSector; }
 
     Side side() const { return (mSector < MaxSector / 2) ? Side::A : Side::C; }

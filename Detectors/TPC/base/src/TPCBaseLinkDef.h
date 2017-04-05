@@ -31,6 +31,7 @@
 #pragma link C++ class o2::TPC::PadInfo;
 #pragma link C++ class o2::TPC::PadPos;
 #pragma link C++ class o2::TPC::PadRegionInfo;
+#pragma link C++ class o2::TPC::PadROCPos;
 #pragma link C++ class o2::TPC::PadSecPos;
 #pragma link C++ class o2::TPC::PartitionInfo;
 //#pragma link C++ class o2::TPC::RandomRing;

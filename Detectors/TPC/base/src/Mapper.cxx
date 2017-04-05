@@ -214,6 +214,19 @@ void Mapper::initPadRegionsAndPartitions()
   mMapPartitionInfo[2]=PartitionInfo(18, 15+18      , 34, 32+31      , 2880 );
   mMapPartitionInfo[3]=PartitionInfo(20, 15+18+18   , 30, 32+31+34   , 3200 );
   mMapPartitionInfo[4]=PartitionInfo(20, 15+18+18+20, 25, 32+31+34+30, 3200 );
+
+  int globalRow=0;
+  int padsInRow=0;
+  int padOffset=0;
+  for (const auto& reg : mMapPadRegionInfo) {
+    for (int row=0; row<reg.getNumberOfPadRows(); ++row) {
+      mMapPadOffsetPerRow[globalRow] = padOffset;
+      padsInRow = reg.getPadsInRowRegion(row);
+      mMapNumberOfPadsPerRow[globalRow] = padsInRow;
+      ++globalRow;
+      padOffset += padsInRow;
+    }
+  }
 }
 
 }

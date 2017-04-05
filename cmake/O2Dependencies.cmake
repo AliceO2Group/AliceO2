@@ -207,7 +207,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    FairRoot::FairMQ Base FairTools Core MathCore Hist
+    FairRoot::FairMQ Base FairTools Core MathCore Matrix Minuit Hist
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -532,6 +532,7 @@ o2_define_bucket(
     fairroot_base_bucket
     common_vc_bucket
     ParBase
+    Core Hist Gpad
 )
 
 o2_define_bucket(

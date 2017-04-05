@@ -1,0 +1,76 @@
+/// \file   PadROCPos.h
+/// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+
+#ifndef ALICEO2_TPC_PADROCPOS_H_
+#define ALICEO2_TPC_PADROCPOS_H_
+
+#include "TPCBase/Defs.h"
+#include "TPCBase/ROC.h"
+#include "TPCBase/PadPos.h"
+
+namespace o2 {
+namespace TPC {
+
+/// \brief  Pad and row inside a ROC
+///
+/// This class encapsulates the pad and row inside a ROC
+/// \see TPCBase/PadPos.h
+/// \see TPCBase/ROC.h
+///
+/// origin: TPC
+/// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+
+class PadROCPos
+{
+  public:
+    /// default constructor
+    PadROCPos() = default;
+
+    /// constructor from roc, row and pad
+    /// \param roc ROC number
+    /// \param rowInROC row in the readout chamber
+    /// \param padInRow pad in row
+    PadROCPos(const int roc, const int rowInROC, const int padInRow) : mROC(roc), mPadPos(PadPos(rowInROC, padInRow)) {}
+
+    /// constructor from ROC and PadPos types
+    /// \param roc ROC type
+    /// \param padPosition row and pad
+    PadROCPos(const ROC &roc, const PadPos &padPosition) : mROC(roc), mPadPos(padPosition) {}
+
+    /// get ROC
+    /// \return ROC
+    const ROC& getROC() const { return mROC; }
+
+    /// get the sector
+    /// \return sector
+    const Sector getSector() const { return mROC.getSector(); }
+
+    /// get ROC
+    /// \return ROC
+    ROC &getROC() { return mROC; }
+
+    /// get ROC type
+    /// \return ROC type
+    RocType getROCType() const { return mROC.rocType(); }
+
+    /// get pad and row position
+    /// \return pad and row position
+    const PadPos& getPadPos() const { return mPadPos; }
+
+    /// get the pad row
+    /// \return pad row
+    int getRow() const { return mPadPos.getRow(); }
+
+    /// get the pad number
+    /// \return pad number
+    int getPad() const { return mPadPos.getPad(); }
+
+    PadPos& getPadPos() { return mPadPos; }
+
+  private:
+    ROC mROC{};
+    PadPos mPadPos{};
+};
+}
+}
+#endif
