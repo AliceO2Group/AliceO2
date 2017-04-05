@@ -1,14 +1,14 @@
 #ifndef ALICEO2_EMCAL_POINT_H
 #define ALICEO2_EMCAL_POINT_H
 
-#include <FairMCPoint.h>
+#include "DetectorsBase/BaseHits.h"
 
 namespace AliceO2 {
   namespace EMCAL {
     
     /// \class Point
     /// \brief EMCAL simulation point information
-    class Point : public FairMCPoint {
+    class Point : public AliceO2::Base::BasicXYZEHit<float> {
     public:
       
       /// \brief Default constructor
@@ -29,9 +29,16 @@ namespace AliceO2 {
       /// \param mom Momentum vector for the particle at the point
       /// \param tof Time of the hit
       /// \param length Length of the segment
-      /// \param EventId Event ID
       Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy, Double_t *pos, Double_t *mom,
-            Double_t tof, Double_t eLoss, UInt_t EventId=0);
+            Double_t tof, Double_t eLoss):
+      AliceO2::Base::BasicXYZEHit<float>(pos[0], pos[1], pos[2], tof, eLoss, trackID, detID),
+      mPvector(mom[0], mom[1], mom[2]),
+      mShunt(shunt),
+      mPrimary(primary),
+      mParent(parentID),
+      mInitialEnergy(initialEnergy)
+      {
+      }
       
       /// \brief Check whether the points are from the same parent and in the same detector volume
       /// \return True if points are the same (origin and detector), false otherwise
@@ -83,10 +90,11 @@ namespace AliceO2 {
       void PrintStream(std::ostream &stream) const;
       
     private:
-      Int_t         mShunt;             ///< Shunt (check if needed)
-      Int_t         mPrimary;           ///< Primary particles at the origin of the hit
-      Int_t         mParent;            ///< Parent particle that entered the EMCAL
-      Double32_t    mInitialEnergy;     ///< Energy of the parent particle that entered the EMCAL
+      Vector3D<float>   mPvector;           ///< Momentum Vector
+      Int_t             mShunt;             ///< Shunt (check if needed)
+      Int_t             mPrimary;           ///< Primary particles at the origin of the hit
+      Int_t             mParent;            ///< Parent particle that entered the EMCAL
+      Double32_t        mInitialEnergy;     ///< Energy of the parent particle that entered the EMCAL
       
       ClassDef(Point, 1);
     };

@@ -4,40 +4,29 @@ ClassImp(AliceO2::EMCAL::Point)
 
 using namespace AliceO2::EMCAL;
 
-Point::Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy, Double_t *pos, Double_t *mom,
-             Double_t tof, Double_t eLoss, UInt_t EventId):
-  FairMCPoint(trackID, detID, pos, mom, tof, 0., eLoss, EventId),
-  mShunt(shunt),
-  mPrimary(primary),
-  mParent(parentID),
-  mInitialEnergy(initialEnergy)
-{
-  
-}
-
 void Point::PrintStream(std::ostream &stream) const {
-  stream  << "EMCAL point: Track " << fTrackID << " in detector segment " << fDetectorID
-          << " at position (" << fX << "|" << fY << "|" << fZ << "), energy loss " << fELoss
+  stream  << "EMCAL point: Track " << GetTrackID() << " in detector segment " << GetDetectorID()
+          << " at position (" << GetX() << "|" << GetY() << "|" << GetZ() << "), energy loss " << GetEnergyLoss()
           << ", parent " << mParent << " with energy " << mInitialEnergy;
 }
 
 Bool_t Point::operator<(const Point &rhs) const {
   if(mParent != rhs.mParent) return mParent < rhs.mParent;
-  return fDetectorID < rhs.fDetectorID;
+  return GetDetectorID() < rhs.GetDetectorID();
 }
 
 Bool_t Point::operator==(const Point &rhs) const {
-  return (fDetectorID == rhs.fDetectorID) && (mParent == rhs.mParent);
+  return (GetDetectorID() == GetDetectorID()) && (mParent == rhs.mParent);
 }
 
 Point &Point::operator+=(const Point &rhs) {
-  fELoss += rhs.fELoss;
+  SetEnergyLoss(GetEnergyLoss() + rhs.GetEnergyLoss());
   return *this;
 }
 
 Point Point::operator+(const Point &rhs) const {
   Point result(*this);
-  result.fELoss += rhs.fELoss;
+  result.SetEnergyLoss(result.GetEnergyLoss() + rhs.GetEnergyLoss());
   return *this;
 }
 
