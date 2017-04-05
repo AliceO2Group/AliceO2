@@ -116,8 +116,9 @@ foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lis
 endforeach (_file RANGE 0 ${_length})
 
 set(TEST_SRCS
-   test/testTPCGEMAmplification.cxx
+   test/testTPCDigitContainer.cxx
    test/testTPCElectronTransport.cxx
+   test/testTPCGEMAmplification.cxx
    test/testTPCSAMPAProcessing.cxx
 )
 

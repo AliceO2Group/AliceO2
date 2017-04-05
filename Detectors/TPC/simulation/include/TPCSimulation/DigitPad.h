@@ -51,7 +51,7 @@ class DigitPad{
     /// \param timeBin Time bin
     /// \param row Row ID
     /// \param pad pad ID
-    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode = -1);
+    void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode = 0);
 
     /// The MC labels are sorted by occurrence such that the event/track combination with the largest number of occurrences is first
     /// This is then dumped into a std::vector and attached to the digits
