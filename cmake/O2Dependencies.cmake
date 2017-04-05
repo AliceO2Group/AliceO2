@@ -120,7 +120,6 @@ o2_define_bucket(
     Headers
     FairTools
     FairMQ
-    fairmq_logger
     pthread
     dl
 
@@ -182,7 +181,6 @@ o2_define_bucket(
     Headers
     FairTools
     FairMQ
-    fairmq_logger
     pthread
     dl
 
@@ -209,7 +207,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     common_boost_bucket
-    FairMQ fairmq_logger Base FairTools Core MathCore Hist
+    FairMQ Base FairTools Core MathCore Hist
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -243,7 +241,7 @@ o2_define_bucket(
     FairTools
     ParBase
     FairMQ ParMQ
-    fairmq_logger pthread Core Tree XMLParser Hist Net RIO z
+    pthread Core Tree XMLParser Hist Net RIO z
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -283,7 +281,7 @@ o2_define_bucket(
     DEPENDENCIES
     root_base_bucket
     ${ZeroMQ_LIBRARY_SHARED}
-    Base FairMQ FairTools fairmq_logger Base
+    Base FairMQ FairTools Base
     common_boost_bucket
     ${Boost_THREAD_LIBRARY} pthread
 
@@ -455,7 +453,6 @@ o2_define_bucket(
     MathCore
     common_boost_bucket
     FairMQ
-    fairmq_logger
     pthread
     ${Boost_DATE_TIME_LIBRARY}
     ${OPTIONAL_DDS_LIBRARIES}
@@ -478,7 +475,6 @@ o2_define_bucket(
     Hist
     FairMQ
     pthread
-    fairmq_logger
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
