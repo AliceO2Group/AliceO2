@@ -48,7 +48,7 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Setup clusterer
   AliceO2::TPC::ClustererTask *clustTPC = new AliceO2::TPC::ClustererTask;
-  clustTPC->setClustererEnable(AliceO2::TPC::ClustererTask::ClustererType::Box,true);
+  clustTPC->setClustererEnable(AliceO2::TPC::ClustererTask::ClustererType::Box,false);
   clustTPC->setClustererEnable(AliceO2::TPC::ClustererTask::ClustererType::HW,true);
 
   run->AddTask(clustTPC);
@@ -56,8 +56,8 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   // Initialize everything
   run->Init();
 
-//  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Parallel);
-  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Sequential);
+  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Parallel);
+//  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Sequential);
 
   // Start simulation
   timer.Start();

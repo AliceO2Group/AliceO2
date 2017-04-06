@@ -65,7 +65,8 @@ class HwClusterer : public Clusterer {
               int iCRU,
               int maxRows,
               int maxPads, 
-              int maxTime);
+              unsigned minTimeBin,
+              unsigned maxTimeBin);
     
     std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
     std::vector<std::vector<std::vector<DigitMC*>>> mDigitContainer;
@@ -81,6 +82,7 @@ class HwClusterer : public Clusterer {
     int     mPadsPerCF;
     int     mTimebinsPerCF;
     int     mCfPerRow;
+    int     mLastTimebin;
   };
 }
 }

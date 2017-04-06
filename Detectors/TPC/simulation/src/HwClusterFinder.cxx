@@ -33,8 +33,8 @@ HwClusterFinder::HwClusterFinder(
   , mDiffThreshold(diffThreshold)
   , mChargeThreshold(chargeThreshold)
   , mRequirePositiveCharge(requirePositiveCharge)
-  , mRequireNeighbouringPad(true)
-  , mRequireNeighbouringTimebin(true)
+  , mRequireNeighbouringPad(false)//true)
+  , mRequireNeighbouringTimebin(false)//true)
   , mAutoProcessing(false)
   , mAssignChargeUnique(true)
   , mData(nullptr)
@@ -130,7 +130,7 @@ HwClusterFinder::~HwClusterFinder()
 //________________________________________________________________________
 bool HwClusterFinder::AddTimebin(float* timebin, unsigned globalTime, int length)
 {
-//  printf("adding the following timebin: ");
+//  printf("adding the following timebin(%u)\t",globalTime);
 //  for (int i=0; i<length; i++){
 //    printf("%.2f\t",timebin[i]);
 //  }
