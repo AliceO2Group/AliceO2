@@ -14,9 +14,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(AliceO2::MFT::HalfDetector)
-/// \endcond
 
 /// \brief Default constructor
 

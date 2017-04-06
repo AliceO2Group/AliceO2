@@ -6,9 +6,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(AliceO2::MFT::VSegmentation);
-/// \endcond
 
 //_____________________________________________________________________________
 VSegmentation::VSegmentation():

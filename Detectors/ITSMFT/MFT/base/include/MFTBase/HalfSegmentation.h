@@ -41,9 +41,7 @@ private:
 
   TClonesArray *mHalfDisks; ///< \brief Array of pointer to HalfDiskSegmentation
 
-  /// \cond CLASSIMP
   ClassDef(HalfSegmentation, 1);
-  /// \endcond
   
 };
 

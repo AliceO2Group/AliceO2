@@ -24,11 +24,11 @@ public:
   /// The number of chips (sensors)
   Int_t  GetNChips() const {return mNChips;}  
 
-  static const Char_t* GetVolumeName()   { return fgVolumeName.Data();   }
-  static const Char_t* GetHalfDetName()  { return fgHalfDetName.Data();  }
-  static const Char_t* GetHalfDiskName() { return fgHalfDiskName.Data(); }
-  static const Char_t* GetLadderName()   { return fgLadderName.Data();   }
-  static const Char_t* GetSensorName()   { return fgSensorName.Data();   }
+  static const Char_t* GetVolumeName()   { return sVolumeName.Data();   }
+  static const Char_t* GetHalfDetName()  { return sHalfDetName.Data();  }
+  static const Char_t* GetHalfDiskName() { return sHalfDiskName.Data(); }
+  static const Char_t* GetLadderName()   { return sLadderName.Data();   }
+  static const Char_t* GetSensorName()   { return sSensorName.Data();   }
 
 private:
 
@@ -39,13 +39,13 @@ private:
 
   Int_t  mNDisks;
   Int_t  mNChips;
-  Int_t *mNLaddersHalfDisk;         //![2*fNDisks]
+  Int_t *mNLaddersHalfDisk;         //![2*mNDisks]
 
-  static TString fgVolumeName;      ///< \brief MFT-mother volume name
-  static TString fgHalfDetName;     ///< \brief MFT-half prefix
-  static TString fgHalfDiskName;    ///< \brief MFT-half disk prefix
-  static TString fgLadderName;      ///< \brief MFT-ladder prefix
-  static TString fgSensorName;      ///< \brief MFT-sensor (chip) prefix
+  static TString sVolumeName;      ///< \brief MFT-mother volume name
+  static TString sHalfDetName;     ///< \brief MFT-half prefix
+  static TString sHalfDiskName;    ///< \brief MFT-half disk prefix
+  static TString sLadderName;      ///< \brief MFT-ladder prefix
+  static TString sSensorName;      ///< \brief MFT-sensor (chip) prefix
 
   ClassDef(GeometryTGeo, 1) // MFT geometry based on TGeo
 

@@ -113,8 +113,8 @@ void FindHits::Exec(Option_t* /*opt*/)
   AliceO2::MFT::Point *point;
   TVector3 pos, dpos;
   Int_t detID, trackID;
-  Double_t dx = Geometry::kXPixelPitch/TMath::Sqrt(12);
-  Double_t dy = Geometry::kYPixelPitch/TMath::Sqrt(12);
+  Double_t dx = Geometry::sXPixelPitch/TMath::Sqrt(12);
+  Double_t dy = Geometry::sYPixelPitch/TMath::Sqrt(12);
   Double_t dz = 0.;
 
   // Loop over fPoints

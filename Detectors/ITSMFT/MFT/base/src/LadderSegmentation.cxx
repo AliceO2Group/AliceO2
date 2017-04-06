@@ -12,9 +12,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(LadderSegmentation);
-/// \endcond
 
 /// Default constructor
 
@@ -78,7 +76,7 @@ void LadderSegmentation::CreateSensors() {
   Geometry * mftGeom = Geometry::Instance();
 
   for (Int_t iSensor=0; iSensor<mNSensors; iSensor++) {
-    UInt_t sensorUniqueID = mftGeom->GetObjectID(Geometry::kSensorType,
+    UInt_t sensorUniqueID = mftGeom->GetObjectID(Geometry::SensorType,
                                                  mftGeom->GetHalfMFTID(GetUniqueID()),
                                                  mftGeom->GetHalfDiskID(GetUniqueID()),
                                                  mftGeom->GetLadderID(GetUniqueID()),

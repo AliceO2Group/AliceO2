@@ -13,9 +13,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(HalfDiskSegmentation);
-/// \endcond
 
 /// Default constructor
 
@@ -151,9 +149,9 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
     //if ((plane==0 && pos[2]<0.) || (plane==1 && pos[2]>0.))
     //AliFatal(Form(" Wrong Z Position or ladder number ???  :  z= %f ladder id = %d",pos[2],ladderID));
 
-    UInt_t ladderUniqueID = mftGeom->GetObjectID(Geometry::kLadderType,mftGeom->GetHalfMFTID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()),ladderID);
+    UInt_t ladderUniqueID = mftGeom->GetObjectID(Geometry::LadderType,mftGeom->GetHalfMFTID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()),ladderID);
 
-    //UInt_t ladderUniqueID = (Geometry::kLadderType<<13) +  (((GetUniqueID()>>9) & 0xF)<<9) + (plane<<8) + (ladderID<<3);
+    //UInt_t ladderUniqueID = (Geometry::LadderType<<13) +  (((GetUniqueID()>>9) & 0xF)<<9) + (plane<<8) + (ladderID<<3);
     
     auto * ladder = new LadderSegmentation(ladderUniqueID);
     ladder->SetNSensors(nsensor);
@@ -164,9 +162,9 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
     /// Need to put in the XML file the position of the ladder coordinate center
     // Find the position of the corner of the flex which is the ladder corrdinate system center.
     
-    pos[0] = -Geometry::kSensorSideOffset;
-    pos[1] = -Geometry::kSensorTopOffset - Geometry::kSensorHeight;
-    pos[2] = -Geometry::kFlexThickness - Geometry::kSensorThickness;
+    pos[0] = -Geometry::sSensorSideOffset;
+    pos[1] = -Geometry::sSensorTopOffset - Geometry::sSensorHeight;
+    pos[2] = -Geometry::sFlexThickness - Geometry::sSensorThickness;
     Double_t master[3];
     ladder->GetTransformation()->LocalToMaster(pos, master);
     ladder->SetPosition(master);
@@ -216,7 +214,7 @@ void HalfDiskSegmentation::Print(Option_t* opt){
 
   //AliInfo(Form("Half-Disk %s (Unique ID = %d)",GetName(),GetUniqueID()));
   GetTransformation()->Print();
-  //AliInfo(Form("N Ladders = %d",fNLadders));
+  //AliInfo(Form("N Ladders = %d",mNLadders));
   if(opt && (strstr(opt,"ladder")||strstr(opt,"l"))){
     for (int i=0; i<GetNLadders(); i++)  GetLadder(i)->Print(opt);
     
