@@ -28,9 +28,6 @@ SyncPatternMonitor::SyncPatternMonitor(const SyncPatternMonitor& other)
   , mCheckedWords(other.mCheckedWords)
 {}
 
-SyncPatternMonitor::~SyncPatternMonitor()
-{}
-
 void SyncPatternMonitor::reset()
 {
   mPatternFound = false;
@@ -41,21 +38,4 @@ void SyncPatternMonitor::reset()
     << "was resetted" << FairLogger::endl;
 }
 
-short SyncPatternMonitor::addSequence(const short hw0, const short hw1, const short hw2, const short hw3)
-{
-//  std::cout << std::hex
-//    << "0x" << std::setw(2) << (int) hw0 << " "
-//    << "0x" << std::setw(2) << (int) hw1 << " "
-//    << "0x" << std::setw(2) << (int) hw2 << " "
-//    << "0x" << std::setw(2) << (int) hw3 << " ";
-
-  checkWord(hw0,1);
-  checkWord(hw1,2);
-  checkWord(hw2,3);
-  checkWord(hw3,0);
-
-//  std::cout << std::dec << mPosition << " " << mPatternFound << " " << mHwWithPattern << " " << getPosition() << std::endl;
-
-  return getPosition();
-}
 

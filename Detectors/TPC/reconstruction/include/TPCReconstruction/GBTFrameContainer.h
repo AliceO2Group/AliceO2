@@ -227,6 +227,65 @@ class GBTFrameContainer {
 
     std::array<std::array<short,16>,5> mTmpData; 
 };
+
+//template<typename... Args>
+//inline
+//void GBTFrameContainer::addGBTFrame(Args&&... args)
+//{
+//  if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
+//    mGBTFrames[0] = mGBTFrames[1];
+//    mGBTFrames[1].setData(std::forward<Args>(args)...);
+//  } else {
+//    mGBTFrames.emplace_back(std::forward<Args>(args)...);
+//  }
+//  processFrame(mGBTFrames.end()-1);
+//};
+
+inline
+void GBTFrameContainer::addGBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word0) {
+  if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
+    mGBTFrames[0] = mGBTFrames[1];
+    mGBTFrames[1].setData(word3, word2, word1, word0);
+  } else {
+    mGBTFrames.emplace_back(word3, word2, word1, word0);
+  }
+  processFrame(mGBTFrames.end()-1);
+};
+
+inline
+void GBTFrameContainer::addGBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
+                                    short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,
+                                    short s1hw0l, short s1hw1l, short s1hw2l, short s1hw3l,
+                                    short s1hw0h, short s1hw1h, short s1hw2h, short s1hw3h,
+                                    short s2hw0,  short s2hw1,  short s2hw2,  short s2hw3, 
+                                    short s0adc,  short s1adc,  short s2adc,  unsigned marker) {
+  if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
+    mGBTFrames[0] = mGBTFrames[1];
+    mGBTFrames[1].setData(s0hw0l, s0hw1l, s0hw2l, s0hw3l, s0hw0h, s0hw1h, s0hw2h, s0hw3h,
+                          s1hw0l, s1hw1l, s1hw2l, s1hw3l, s1hw0h, s1hw1h, s1hw2h, s1hw3h,
+                          s2hw0, s2hw1, s2hw2, s2hw3, s0adc, s1adc, s2adc, marker);
+  } else {
+    mGBTFrames.emplace_back(s0hw0l, s0hw1l, s0hw2l, s0hw3l, s0hw0h, s0hw1h, s0hw2h, s0hw3h,
+                            s1hw0l, s1hw1l, s1hw2l, s1hw3l, s1hw0h, s1hw1h, s1hw2h, s1hw3h,
+                            s2hw0, s2hw1, s2hw2, s2hw3, s0adc, s1adc, s2adc, marker);
+  }
+  processFrame(mGBTFrames.end()-1);
+};
+
+inline
+void GBTFrameContainer::addGBTFrame(GBTFrame& frame) 
+{
+  if (!mEnableStoreGBTFrames && (mGBTFrames.size() > 1)) {
+    mGBTFrames[0] = mGBTFrames[1];
+    mGBTFrames[1] = frame;
+  } else {
+    mGBTFrames.emplace_back(frame);
+  }
+
+  processFrame(mGBTFrames.end()-1);
+};
+
+
 }
 }
 

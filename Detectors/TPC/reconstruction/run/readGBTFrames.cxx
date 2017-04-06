@@ -9,6 +9,8 @@
 
 #include <thread>
 #include <mutex>
+#include <chrono>
+
 #include "TPCReconstruction/GBTFrameContainer.h"
 #include "TPCReconstruction/HalfSAMPAData.h"
 #include "TPCReconstruction/DigitData.h"
@@ -93,6 +95,7 @@ int main(int argc, char *argv[])
   if (adcInFile == "NOFILE") {
 
   // Actual "work"
+  std::chrono::time_point<std::chrono::system_clock> start, end;
   std::vector<AliceO2::TPC::GBTFrameContainer*> container;
   unsigned iSize;
   unsigned iCRU;
@@ -116,6 +119,7 @@ int main(int argc, char *argv[])
 
   std::vector<std::thread> threads;
 
+  start = std::chrono::system_clock::now();
   for (int i = 0; i < infile.size(); ++i) {
     if (infile[i] != "NOFILE")
       threads.emplace_back(addData,std::ref(*container[i]), std::ref(infile[i]), std::ref(addData_done[i]));
@@ -181,14 +185,19 @@ int main(int argc, char *argv[])
   for (auto &aThread : threads) {
     aThread.join();
   }
+  end = std::chrono::system_clock::now();
 
   std::cout << std::endl << std::endl;
   std::cout << "Summary:" << std::endl;
 
+  unsigned framesProcessed = 0;
   for (std::vector<AliceO2::TPC::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
+    framesProcessed += (*it)->getNFramesAnalyzed();
     std::cout << "Container " << std::distance(container.begin(), it) << " analyzed " << (*it)->getNFramesAnalyzed() << " GBT Frames" << std::endl;
     delete (*it);
   }
+  std::chrono::duration<float> elapsed_seconds = end-start;
+  std::cout << "In total: " << framesProcessed << " Frames processed in " << elapsed_seconds.count() << "s => " << framesProcessed/elapsed_seconds.count()<< " frames/s" << std::endl;
 
   for (std::vector<std::vector<std::ofstream*>>::iterator it = outfiles.begin(); it != outfiles.end(); ++it) {
     for (std::vector<std::ofstream*>::iterator itt = (*it).begin(); itt != (*it).end(); ++itt) {

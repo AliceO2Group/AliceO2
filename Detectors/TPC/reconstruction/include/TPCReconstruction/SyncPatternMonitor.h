@@ -28,7 +28,7 @@ class SyncPatternMonitor {
     SyncPatternMonitor(const SyncPatternMonitor& other);
 
     /// Destructor
-    ~SyncPatternMonitor();
+    ~SyncPatternMonitor() = default;
 
     /// Reset function to clear history
     void reset();
@@ -57,24 +57,9 @@ class SyncPatternMonitor {
       PATTERN_A, PATTERN_A, PATTERN_A, PATTERN_A, PATTERN_B, PATTERN_B, PATTERN_B, PATTERN_B
     }};
 
-    void patternFound(const short hw) { 
-      LOG(INFO) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
-         << "SYNC found at " << hw << " in " << mCheckedWords << FairLogger::endl;
-      if (mPatternFound) {
-        LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
-          << "SYNC was already found" << FairLogger::endl;
-      }
-      mPatternFound = true; 
-      mPosition = SYNC_START; 
-      mHwWithPattern = hw;
-    };
+    void patternFound(const short hw); 
 
-    void checkWord(const short hw, const short pos) {
-      ++mCheckedWords;
-      if (hw == SYNC_PATTERN[mPosition]) ++mPosition;
-      else mPosition = SYNC_START;
-      if (mPosition == 31) patternFound(pos); 
-    }
+    void checkWord(const short hw, const short pos);
 
     bool mPatternFound;     ///< store whether pattern was already found
     short mPosition;        ///< position of last part of the pattern
@@ -84,6 +69,35 @@ class SyncPatternMonitor {
     unsigned mCheckedWords; ///< Counter for half words got checked
 
 };
+
+inline
+short SyncPatternMonitor::addSequence(const short hw0, const short hw1, const short hw2, const short hw3) {
+  checkWord(hw0,1); checkWord(hw1,2);
+  checkWord(hw2,3); checkWord(hw3,0);
+  return getPosition();
+};
+
+inline
+void SyncPatternMonitor::checkWord(const short hw, const short pos) {
+  ++mCheckedWords;
+  if (hw == SYNC_PATTERN[mPosition]) ++mPosition;
+  else mPosition = SYNC_START;
+  if (mPosition == 31) patternFound(pos); 
+};
+
+inline
+void SyncPatternMonitor::patternFound(const short hw) { 
+  LOG(INFO) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
+     << "SYNC found at " << hw << " in " << mCheckedWords << FairLogger::endl;
+  if (mPatternFound) {
+    LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
+      << "SYNC was already found" << FairLogger::endl;
+  }
+  mPatternFound = true; 
+  mPosition = SYNC_START; 
+  mHwWithPattern = hw;
+};
+
 }
 }
 #endif
