@@ -24,6 +24,7 @@ using namespace AliceO2::TPC;
 DigitizerTask::DigitizerTask()
   : FairTask("TPCDigitizerTask")
   , mDigitizer(nullptr)
+  , mDigitContainer(nullptr)
   , mPointsArray(nullptr)
   , mDigitsArray(nullptr)
   , mHitFileName()
@@ -70,23 +71,35 @@ InitStatus DigitizerTask::Init()
   mgr->Register("TPCDigitMC", "TPC", mDigitsArray, kTRUE);
   
   mDigitizer->init();
+  mDigitContainer = mDigitizer->getDigitContainer();
   return kSUCCESS;
 }
 
 void DigitizerTask::Exec(Option_t *option)
 {
+  FairRootManager *mgr = FairRootManager::Instance();
+
   /// Execute the digitization
   if (mHitFileName.size()) fillHitArrayFromFile();
 
-  mDigitsArray->Delete();
-  LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
-  
-  DigitContainer *digits = mDigitizer->Process(mPointsArray);
-  /// \todo: Digitizer.getDigitContainer()
-  std::vector<CommonMode> commonModeContainer(0);
-  digits->processCommonMode(commonModeContainer);
-  digits->fillOutputContainer(mDigitsArray, commonModeContainer);
+  const int eventTime = Digitizer::getTimeBinFromTime(mgr->GetEventTime() * 0.001);
 
+  LOG(DEBUG) << "Running digitization on new event at time bin " << eventTime << FairLogger::endl;
+  mDigitsArray->Delete();
+  mDigitContainer = mDigitizer->Process(mPointsArray);
+  mDigitContainer->fillOutputContainer(mDigitsArray, eventTime);
+  mgr->Fill();
+//  std::vector<CommonMode> commonModeContainer(0);
+//  digits->processCommonMode(commonModeContainer);
+//  digits->fillOutputContainer(mDigitsArray, commonModeContainer);
+}
+
+void DigitizerTask::FinishTask()
+{
+  FairRootManager *mgr = FairRootManager::Instance();
+  mDigitsArray->Delete();
+  mDigitContainer->fillOutputContainer(mDigitsArray, 1000000);
+  mgr->Fill();
 }
 
 void DigitizerTask::fillHitArrayFromFile()

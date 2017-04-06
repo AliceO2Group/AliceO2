@@ -31,7 +31,7 @@ class DigitizerTask : public FairTask{
     virtual ~DigitizerTask();
       
     /// Inititializes the digitizer and connects input and output container
-    virtual InitStatus Init();
+    virtual InitStatus Init() override;
 
     void setHitFileName(std::string name) { mHitFileName = name; }
 
@@ -42,19 +42,22 @@ class DigitizerTask : public FairTask{
       
     /// Digitization
     /// \param option Option
-    virtual void Exec(Option_t *option);
+    virtual void Exec(Option_t *option) override;
       
+    virtual void FinishTask() override;
+
   private:
     void fillHitArrayFromFile();
 
     Digitizer           *mDigitizer;    ///< Digitization process
+    DigitContainer      *mDigitContainer;
       
     TClonesArray        *mPointsArray;  ///< Array of detector hits, passed to the digitization
     TClonesArray        *mDigitsArray;  ///< Array of the Digits, passed from the digitization
     
     std::string         mHitFileName;  ///< External hit file exported from AliRoot
 
-  ClassDef(DigitizerTask, 1);
+  ClassDefOverride(DigitizerTask, 1);
 };
 
 inline

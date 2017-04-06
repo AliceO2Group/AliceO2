@@ -11,15 +11,6 @@
 
 using namespace AliceO2::TPC;
 
-DigitContainer::DigitContainer()
-  : mCRU()
-{}
-
-DigitContainer::~DigitContainer()
-{
-  std::fill(mCRU.begin(),mCRU.end(), nullptr);
-}
-
 void DigitContainer::addDigit(int eventID, int trackID, int cru, int timeBin, int row, int pad, float charge)
 {
   /// Check whether the container at this spot already contains an entry
@@ -35,11 +26,11 @@ void DigitContainer::addDigit(int eventID, int trackID, int cru, int timeBin, in
 }
 
 
-void DigitContainer::fillOutputContainer(TClonesArray *output)
+void DigitContainer::fillOutputContainer(TClonesArray *output, int eventTime)
 {
   for(auto &aCRU : mCRU) {
     if(aCRU == nullptr) continue;
-    aCRU->fillOutputContainer(output, aCRU->getCRUID());
+    aCRU->fillOutputContainer(output, aCRU->getCRUID(), eventTime);
   }
 }
 

@@ -11,18 +11,6 @@
 
 using namespace AliceO2::TPC;
 
-DigitPad::DigitPad(int pad)
-  : mChargePad(0.)
-  , mPad(pad)
-  , mMCID()
-{}
-
-DigitPad::~DigitPad()
-{
-  mMCID.clear();
-  mChargePad = 0;
-}
-
 void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode)
 {
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is created in written out

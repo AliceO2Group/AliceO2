@@ -42,7 +42,7 @@ void Digitizer::init()
 
 DigitContainer *Digitizer::Process(TClonesArray *points)
 {
-  mDigitContainer->reset();
+//  mDigitContainer->reset();
   const Mapper& mapper = Mapper::instance();
   FairRootManager *mgr = FairRootManager::Instance();
 
@@ -90,6 +90,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       if(!digiPadPos.isValid()) continue;
 
       const int nElectronsGEM = gemAmplification.getStackAmplification();
+      if ( nElectronsGEM ==0 ) continue;
 
       /// Loop over all individual pads with signal due to pad response function
       /// Currently the PRF is not applied yet due to some problems with the mapper
@@ -122,7 +123,6 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 
       const float ADCsignal = SAMPAProcessing::getADCvalue(nElectronsGEM * normalizedPadResponse);
       SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
-
       for(float i=0; i<mNShapedPoints; ++i) {
         const float time = absoluteTime + i * ZBINWIDTH;
         mDigitContainer->addDigit(MCEventID, MCTrackID, digiPos.getCRU().number(), getTimeBinFromTime(time), row, pad, signalArray[i]);

@@ -27,7 +27,7 @@ class DigitTime{
     DigitTime(int mTimeBin, int nrows);
 
     /// Destructor
-    ~DigitTime();
+    ~DigitTime() = default;
 
     /// Resets the container            
     void reset();
@@ -74,6 +74,13 @@ class DigitTime{
     unsigned short          mTimeBin;                   ///< Time bin of that ADC value
     std::vector <std::unique_ptr<DigitRow>> mRows;      ///< Row Container for the ADC value
 };
+
+inline
+DigitTime::DigitTime(int timeBin, int nrows)
+  : mTotalChargeTimeBin(0.)
+  , mTimeBin(timeBin)
+  , mRows(nrows)
+{}
 
 inline    
 void DigitTime::reset()

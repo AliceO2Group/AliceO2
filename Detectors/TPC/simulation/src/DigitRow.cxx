@@ -7,17 +7,6 @@
 
 using namespace AliceO2::TPC;
 
-DigitRow::DigitRow(int row, int npads)
-  : mRow(row)
-  , mPads(npads)
-{}
-
-DigitRow::~DigitRow()
-{
-  mRow = 0;
-  mPads.resize(0);
-}
-
 void DigitRow::setDigit(int eventID, int trackID, int pad, float charge)
 {
   /// Check whether the container at this spot already contains an entry

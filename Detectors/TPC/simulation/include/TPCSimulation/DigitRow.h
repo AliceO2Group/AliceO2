@@ -27,7 +27,7 @@ class DigitRow{
     DigitRow(int mRow, int npads);
 
     ///Destructor
-    ~DigitRow();
+    ~DigitRow() = default;
 
     /// Resets the container
     void reset();
@@ -68,6 +68,12 @@ class DigitRow{
     std::vector<std::unique_ptr<DigitPad>> mPads;               ///< Pad Container for the ADC value
   
 };
+
+inline
+DigitRow::DigitRow(int row, int npads)
+  : mRow(row)
+  , mPads(npads)
+{}
 
 inline
 void DigitRow::reset()

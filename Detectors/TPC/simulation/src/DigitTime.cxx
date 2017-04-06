@@ -8,19 +8,6 @@
 
 using namespace AliceO2::TPC;
 
-DigitTime::DigitTime(int timeBin, int nrows)
-  : mTotalChargeTimeBin(0.)
-  , mTimeBin(timeBin)
-  , mRows(nrows)
-{}
-
-DigitTime::~DigitTime()
-{
-  mTotalChargeTimeBin = 0;
-  mTimeBin = 0;
-  mRows.resize(0);
-}
-
 void DigitTime::setDigit(int eventID, int trackID, int cru, int row, int pad, float charge)
 {
   /// Check whether the container at this spot already contains an entry

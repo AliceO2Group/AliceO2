@@ -28,7 +28,7 @@ class DigitContainer{
     DigitContainer();
 
     /// Destructor
-    ~DigitContainer();
+    ~DigitContainer() = default;
 
     void reset();
 
@@ -52,7 +52,7 @@ class DigitContainer{
 
     /// Fill output TClonesArray
     /// \param output Output container
-    void fillOutputContainer(TClonesArray *output);
+    void fillOutputContainer(TClonesArray *output, int eventTime=0);
 
     /// Fill output TClonesArray
     /// \param output Output container
@@ -65,6 +65,12 @@ class DigitContainer{
   private:
     std::array<std::unique_ptr<DigitCRU> , CRU::MaxCRU> mCRU;   ///< CRU Container for the ADC value
 };
+
+inline
+DigitContainer::DigitContainer()
+  : mCRU()
+{}
+
 
 inline
 void DigitContainer::reset() 

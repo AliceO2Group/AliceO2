@@ -8,6 +8,8 @@
 #include "DigitTime.h"
 #include "CommonMode.h"
 
+#include <deque>
+
 class TClonesArray;
 
 namespace AliceO2 {
@@ -26,7 +28,7 @@ class DigitCRU{
     DigitCRU(int mCRU);
 
     /// Destructor
-    ~DigitCRU();
+    ~DigitCRU() = default;
 
     /// Resets the container
     void reset();
@@ -55,7 +57,7 @@ class DigitCRU{
     /// Fill output TClonesArray
     /// \param output Output container
     /// \param cruID CRU ID
-    void fillOutputContainer(TClonesArray *output, int cru);
+    void fillOutputContainer(TClonesArray *output, int cru, int eventTime=0);
 
     /// Fill output TClonesArray
     /// \param output Output container
@@ -68,11 +70,22 @@ class DigitCRU{
     void processCommonMode(std::vector<CommonMode> &, int cru);
 
   private:
+    int                    mFirstTimeBin;
+    int                    mTimeBinLastEvent;
+    int                    mEffectiveTimeBin;
     int                    mNTimeBins;        ///< Maximal number of time bins in that CRU
     unsigned short         mCRU;              ///< CRU of the ADC value
-    std::vector<std::unique_ptr<DigitTime>> mTimeBins;         ///< Time bin Container for the ADC value
+    std::deque<std::unique_ptr<DigitTime>> mTimeBins;         ///< Time bin Container for the ADC value
 };
     
+inline
+DigitCRU::DigitCRU(int CRU)
+  : mFirstTimeBin(0)
+  , mTimeBinLastEvent(0)
+  , mEffectiveTimeBin(0)
+  , mNTimeBins(500)
+  , mCRU(CRU)
+{}
     
 inline 
 void DigitCRU::reset()

@@ -26,7 +26,7 @@ class DigitPad{
     DigitPad(int mPad);
 
     /// Destructor
-    ~DigitPad();
+    ~DigitPad() = default;
 
     /// Resets the container
     void reset();
@@ -64,6 +64,13 @@ class DigitPad{
     unsigned char          mPad;         ///< Pad of the ADC value
     std::map<long, int>    mMCID;        ///< Map containing the MC labels (key) and the according number of occurrence (value)
 };
+
+inline
+DigitPad::DigitPad(int pad)
+  : mChargePad(0.)
+  , mPad(pad)
+  , mMCID()
+{}
 
 inline 
 void DigitPad::setDigit(int eventID, int trackID, float charge)

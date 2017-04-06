@@ -62,6 +62,8 @@ class Digitizer {
     /// \return digits container
     DigitContainer *Process(TClonesArray *points);
 
+    DigitContainer *getDigitContainer() const { return mDigitContainer; }
+
     /// Enable the debug output after application of the PRF
     /// Can be set via DigitizerTask::setDebugOutput("PRFdebug")
     static void setPRFDebug() { mDebugFlagPRF = true; }
