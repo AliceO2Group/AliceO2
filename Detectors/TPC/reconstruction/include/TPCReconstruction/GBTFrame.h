@@ -12,6 +12,39 @@
 namespace AliceO2 {
 namespace TPC {
 
+#define BIT00(x) ((x & 0x1) >> 0 )                                               
+#define BIT01(x) ((x & 0x2) >> 1 )                                               
+#define BIT02(x) ((x & 0x4) >> 2 )                                               
+#define BIT03(x) ((x & 0x8) >> 3 )                                               
+#define BIT04(x) ((x & 0x10) >> 4 )                                               
+#define BIT05(x) ((x & 0x20) >> 5 )                                               
+#define BIT06(x) ((x & 0x40) >> 6 )                                               
+#define BIT07(x) ((x & 0x80) >> 7 )                                               
+#define BIT08(x) ((x & 0x100) >> 8 )                                               
+#define BIT09(x) ((x & 0x200) >> 9 )                                               
+#define BIT10(x) ((x & 0x400) >> 10 )                                              
+#define BIT11(x) ((x & 0x800) >> 11 )                                              
+#define BIT12(x) ((x & 0x1000) >> 12 )                                              
+#define BIT13(x) ((x & 0x2000) >> 13 )                                              
+#define BIT14(x) ((x & 0x4000) >> 14 )                                              
+#define BIT15(x) ((x & 0x8000) >> 15 )                                              
+#define BIT16(x) ((x & 0x10000) >> 16 )                                              
+#define BIT17(x) ((x & 0x20000) >> 17 )                                              
+#define BIT18(x) ((x & 0x40000) >> 18 )                                              
+#define BIT19(x) ((x & 0x80000) >> 19 )                                              
+#define BIT20(x) ((x & 0x100000) >> 20 )                                              
+#define BIT21(x) ((x & 0x200000) >> 21 )                                              
+#define BIT22(x) ((x & 0x400000) >> 22 )                                              
+#define BIT23(x) ((x & 0x800000) >> 23 )                                              
+#define BIT24(x) ((x & 0x1000000) >> 24 )                                              
+#define BIT25(x) ((x & 0x2000000) >> 25 )                                              
+#define BIT26(x) ((x & 0x4000000) >> 26 )                                              
+#define BIT27(x) ((x & 0x8000000) >> 27 )                                              
+#define BIT28(x) ((x & 0x10000000) >> 28 )                                              
+#define BIT29(x) ((x & 0x20000000) >> 29 )                                              
+#define BIT30(x) ((x & 0x40000000) >> 30 )                                              
+#define BIT31(x) ((x & 0x80000000) >> 31 )
+
 /// \class GBTFrame
 /// \brief GBTFrame class for the TPC
 class GBTFrame {
@@ -64,7 +97,7 @@ class GBTFrame {
     GBTFrame(const GBTFrame& other);
 
     /// Destructor
-    ~GBTFrame();
+    ~GBTFrame() = default;
 
     /// Get the marker of the frame
     /// @return marker of the frame
@@ -146,11 +179,6 @@ class GBTFrame {
 
   private:
 
-    bool getBit(unsigned word, unsigned lsb) const;
-    short getBits(short word, unsigned width, unsigned lsb) const;
-    unsigned getBits(unsigned word, unsigned width, unsigned lsb) const;
-    unsigned combineBits(std::vector<bool> bits) const;
-    short combineBitsOfFrame(short bit0, short bit1, short bit2, short bit3, short bit4) const;
     void calculateHalfWords();
     void calculateAdcClock();
 

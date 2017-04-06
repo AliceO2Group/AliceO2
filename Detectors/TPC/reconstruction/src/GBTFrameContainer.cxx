@@ -225,49 +225,44 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
 {
   short value1;
   short value2;
-  short iHalfSampaPer2;
-  short iHalfSampaMod2;
   mAdcMutex.lock();
   for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
     if (mPositionForHalfSampa[iHalfSampa] == -1) continue;
-
-    iHalfSampaPer2 = iHalfSampa/2;
-    iHalfSampaMod2 = iHalfSampa%2;
     switch(mPositionForHalfSampa[iHalfSampa]) {
       case 0:
         value1 = 
-            (iFrame->getHalfWord(iHalfSampaPer2,1,iHalfSampaMod2) << 5) |
-             iFrame->getHalfWord(iHalfSampaPer2,0,iHalfSampaMod2);
+            (iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) |
+             iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
         value2 = 
-            (iFrame->getHalfWord(iHalfSampaPer2,3,iHalfSampaMod2) << 5) | 
-             iFrame->getHalfWord(iHalfSampaPer2,2,iHalfSampaMod2);
+            (iFrame->getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) | 
+             iFrame->getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
         break;
   
       case 1:
         value1 = 
-            ((iFrame-1)->getHalfWord(iHalfSampaPer2,2,iHalfSampaMod2) << 5) |
-             (iFrame-1)->getHalfWord(iHalfSampaPer2,1,iHalfSampaMod2);
+            ((iFrame-1)->getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) |
+             (iFrame-1)->getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
         value2 = 
-            (iFrame   ->getHalfWord(iHalfSampaPer2,0,iHalfSampaMod2) << 5) |
-            (iFrame-1)->getHalfWord(iHalfSampaPer2,3,iHalfSampaMod2);
+            (iFrame   ->getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
+            (iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
         break;
   
       case 2:
         value1 = 
-            ((iFrame-1)->getHalfWord(iHalfSampaPer2,3,iHalfSampaMod2) << 5) |
-             (iFrame-1)->getHalfWord(iHalfSampaPer2,2,iHalfSampaMod2);
+            ((iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) |
+             (iFrame-1)->getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
         value2 = 
-            (iFrame->getHalfWord(iHalfSampaPer2,1,iHalfSampaMod2) << 5) | 
-             iFrame->getHalfWord(iHalfSampaPer2,0,iHalfSampaMod2);
+            (iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) | 
+             iFrame->getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
         break;
   
       case 3:
         value1 = 
-            (iFrame   ->getHalfWord(iHalfSampaPer2,0,iHalfSampaMod2) << 5) |
-            (iFrame-1)->getHalfWord(iHalfSampaPer2,3,iHalfSampaMod2);
+            (iFrame   ->getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
+            (iFrame-1)->getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
         value2 = 
-            (iFrame->getHalfWord(iHalfSampaPer2,2,iHalfSampaMod2) << 5) | 
-             iFrame->getHalfWord(iHalfSampaPer2,1,iHalfSampaMod2);
+            (iFrame->getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) | 
+             iFrame->getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
         break;
   
       default:
