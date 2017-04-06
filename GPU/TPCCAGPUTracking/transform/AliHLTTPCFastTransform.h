@@ -107,6 +107,8 @@ class AliHLTTPCFastTransform{
   const AliHLTTPCReverseTransformInfoV1* GetReverseTransformInfo() {return &fReverseTransformInfo;}
   static const int GetUseOrigTransform() {return(fgkUseOrigTransform);}
 
+  AliTPCTransform *GetOrigTransform()  { return fOrigTransform; }
+
  private:
 
   /** copy constructor prohibited */
