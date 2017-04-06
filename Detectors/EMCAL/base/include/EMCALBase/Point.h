@@ -29,10 +29,10 @@ namespace AliceO2 {
       /// \param mom Momentum vector for the particle at the point
       /// \param tof Time of the hit
       /// \param length Length of the segment
-      Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy, Double_t *pos, Double_t *mom,
-            Double_t tof, Double_t eLoss):
-      AliceO2::BasicXYZEHit<float>(pos[0], pos[1], pos[2], tof, eLoss, trackID, detID),
-      mPvector(mom[0], mom[1], mom[2]),
+      Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy,
+            const Point3D<float> &pos, const Vector3D<float> &mom, Double_t tof, Double_t eLoss):
+      AliceO2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.X(), tof, eLoss, trackID, detID),
+      mPvector(mom),
       mShunt(shunt),
       mPrimary(primary),
       mParent(parentID),
