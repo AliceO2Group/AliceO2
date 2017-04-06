@@ -16,7 +16,7 @@
   #include "TPCSimulation/ClustererTask.h"
 #endif
 
-void run_clusterer_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   // Initialize logger
   FairLogger *logger = FairLogger::GetLogger();
@@ -56,8 +56,8 @@ void run_clusterer_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   // Initialize everything
   run->Init();
 
-  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Parallel);
-  //clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Sequential);
+//  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Parallel);
+  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Sequential);
 
   // Start simulation
   timer.Start();
