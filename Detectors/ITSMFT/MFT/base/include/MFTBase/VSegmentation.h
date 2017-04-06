@@ -54,9 +54,7 @@ private:
                                     /// angle phi, then a rotation with theta about the rotated X axis, and
                                     /// finally a rotation with psi about the new Z axis.
   
-  /// \cond CLASSIMP
   ClassDef(VSegmentation, 1);
-  /// \endcond
 
 };
 

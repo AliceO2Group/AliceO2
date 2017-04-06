@@ -11,9 +11,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(AliceO2::MFT::Segmentation)
-/// \endcond
 
 //_____________________________________________________________________________
 Segmentation::Segmentation():
@@ -35,11 +33,11 @@ Segmentation::Segmentation(const Char_t *nameGeomFile):
   mHalves = new TClonesArray("AliceO2::MFT::HalfSegmentation", 2);
   mHalves->SetOwner(kTRUE);
   
-  auto *halfBottom = new HalfSegmentation(nameGeomFile, kBottom);
-  auto *halfTop    = new HalfSegmentation(nameGeomFile, kTop);
+  auto *halfBottom = new HalfSegmentation(nameGeomFile, Bottom);
+  auto *halfTop    = new HalfSegmentation(nameGeomFile, Top);
 
-  new ((*mHalves)[kBottom]) HalfSegmentation(*halfBottom);
-  new ((*mHalves)[kTop])    HalfSegmentation(*halfTop);
+  new ((*mHalves)[Bottom]) HalfSegmentation(*halfBottom);
+  new ((*mHalves)[Top])    HalfSegmentation(*halfTop);
 
   delete halfBottom;
   delete halfTop;
@@ -64,9 +62,9 @@ Segmentation::~Segmentation() {
 HalfSegmentation* Segmentation::GetHalf(Int_t iHalf) const 
 { 
 
-  Info("GetHalf",Form("Ask for half %d (of %d and %d)",iHalf,kBottom,kTop),0,0);
+  Info("GetHalf",Form("Ask for half %d (of %d and %d)",iHalf,Bottom,Top),0,0);
 
-  return ((iHalf==kTop || iHalf==kBottom) ? ( (HalfSegmentation*) mHalves->At(iHalf)) :  nullptr); 
+  return ((iHalf==Top || iHalf==Bottom) ? ( (HalfSegmentation*) mHalves->At(iHalf)) :  nullptr); 
 
 }
 

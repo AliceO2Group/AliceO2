@@ -42,9 +42,7 @@ private:
   Int_t mNSensors;      ///< \brief Number of Sensors holded by the ladder
   TClonesArray *mChips; ///< \brief Array of pointer to ChipSegmentation
 
-  /// \cond CLASSIMP
   ClassDef(LadderSegmentation, 1);
-  /// \endcond
 
 };
 

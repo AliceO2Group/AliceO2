@@ -38,9 +38,7 @@ private:
   TGeoVolumeAssembly * mHalfDiskVolume;       ///< \brief Half-Disk Volume
   HalfDiskSegmentation * mSegmentation; ///< \brief Virtual Segmentation of the half-disk
 
-  /// \cond CLASSIMP
   ClassDef(HalfDisk, 1);
-  /// \endcond
  
 };
 

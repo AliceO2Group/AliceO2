@@ -14,9 +14,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(HalfSegmentation);
-/// \endcond
 
 /// Default constructor
 
@@ -55,11 +53,11 @@ mHalfDisks(nullptr)
 
   Geometry * mftGeom = Geometry::Instance();
   
-  UInt_t halfUniqueID = mftGeom->GetObjectID(Geometry::kHalfType, id);
+  UInt_t halfUniqueID = mftGeom->GetObjectID(Geometry::HalfType, id);
   SetUniqueID(halfUniqueID);
   SetName(Form("%s_%d",GeometryTGeo::GetHalfDetName(),id));
     
-  mHalfDisks = new TClonesArray("AliceO2::MFT::HalfDiskSegmentation", Constants::kNDisks);
+  mHalfDisks = new TClonesArray("AliceO2::MFT::HalfDiskSegmentation", Constants::sNDisks);
   mHalfDisks -> SetOwner(kTRUE);
 
   // Create XML engine
@@ -126,7 +124,7 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
       TString attrVal  = xml->GetAttrValue(attr);
       if(!attrName.CompareTo("idisk")) {
         idisk = attrVal.Atoi();
-        if (idisk >= Constants::kNDisks || idisk < 0) {
+        if (idisk >= Constants::sNDisks || idisk < 0) {
           LOG(FATAL) << "Wrong disk number : " << idisk << FairLogger::endl;
         }
       } else
@@ -158,7 +156,7 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
     
     //AliDebug(1,Form("Creating Half-Disk %d with %d Ladders at the position (%.2f,%.2f,%.2f) with angles  (%.2f,%.2f,%.2f)",idisk,nladder,pos[0],pos[1],pos[2],ang[0],ang[1],ang[2]));
     
-    UInt_t diskUniqueID = mftGeom->GetObjectID(Geometry::kHalfDiskType,mftGeom->GetHalfMFTID(GetUniqueID()),idisk );
+    UInt_t diskUniqueID = mftGeom->GetObjectID(Geometry::HalfDiskType,mftGeom->GetHalfMFTID(GetUniqueID()),idisk );
     
     auto *halfDisk = new HalfDiskSegmentation(diskUniqueID);
     halfDisk->SetPosition(pos);

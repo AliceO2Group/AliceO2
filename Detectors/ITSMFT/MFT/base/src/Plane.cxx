@@ -19,9 +19,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(AliceO2::MFT::Plane)
-/// \endcond
 
 //_____________________________________________________________________________
 Plane::Plane():
@@ -226,16 +224,16 @@ Bool_t Plane::Init(Int_t    planeNumber,
   mZCenterActiveFront = mZCenter - 0.5*mThicknessSupport - 0.5*mThicknessActive;
   mZCenterActiveBack  = mZCenter + 0.5*mThicknessSupport + 0.5*mThicknessActive;
 
-  if (mRMax < mRMinSupport+Constants::fHeightActive) mRMax = mRMinSupport + Constants::fHeightActive;
+  if (mRMax < mRMinSupport+Constants::sHeightActive) mRMax = mRMinSupport + Constants::sHeightActive;
 
-  Int_t nLaddersWithinPipe = Int_t(mRMinSupport/(Constants::fHeightActive-Constants::fActiveSuperposition));
-  if (mRMinSupport-nLaddersWithinPipe*(Constants::fHeightActive-Constants::fActiveSuperposition) > 0.5*(Constants::fHeightActive-2*Constants::fActiveSuperposition)) mPlaneIsOdd = kTRUE;
+  Int_t nLaddersWithinPipe = Int_t(mRMinSupport/(Constants::sHeightActive-Constants::sActiveSuperposition));
+  if (mRMinSupport-nLaddersWithinPipe*(Constants::sHeightActive-Constants::sActiveSuperposition) > 0.5*(Constants::sHeightActive-2*Constants::sActiveSuperposition)) mPlaneIsOdd = kTRUE;
   else mPlaneIsOdd = kFALSE;
 
-  mRMax = mRMinSupport + (Constants::fHeightActive-Constants::fActiveSuperposition) * 
-    (Int_t((mRMax-mRMinSupport-Constants::fHeightActive)/(Constants::fHeightActive-Constants::fActiveSuperposition))+1) + Constants::fHeightActive;
+  mRMax = mRMinSupport + (Constants::sHeightActive-Constants::sActiveSuperposition) * 
+    (Int_t((mRMax-mRMinSupport-Constants::sHeightActive)/(Constants::sHeightActive-Constants::sActiveSuperposition))+1) + Constants::sHeightActive;
 
-  mRMaxSupport = TMath::Sqrt(Constants::fHeightActive*(2.*rMax-Constants::fHeightActive) + mRMax*mRMax) + Constants::fSupportExtMargin;
+  mRMaxSupport = TMath::Sqrt(Constants::sHeightActive*(2.*rMax-Constants::sHeightActive) + mRMax*mRMax) + Constants::sSupportExtMargin;
    
   return kTRUE;
  
@@ -251,7 +249,7 @@ Bool_t Plane::CreateStructure()
   // ------------------- det elements: active + readout ----------------------------------
 
   Double_t lowEdgeActive = -1.*mRMax;
-  Double_t supEdgeActive = lowEdgeActive + Constants::fHeightActive;
+  Double_t supEdgeActive = lowEdgeActive + Constants::sHeightActive;
   Double_t zMinFront = mZCenter - 0.5*mThicknessSupport - mThicknessActive;
   Double_t zMinBack  = mZCenter + 0.5*mThicknessSupport;
   Double_t zMin = 0.;
@@ -269,7 +267,7 @@ Bool_t Plane::CreateStructure()
     if (supEdgeActive<-1.*mRMinSupport+0.01 || lowEdgeActive>1.*mRMinSupport-0.01) {     // single element covering the row
       
       nBins[0] = TMath::Nint(2.*extLimitDetElem/mPixelSizeX);
-      nBins[1] = TMath::Nint(Constants::fHeightActive/mPixelSizeY);
+      nBins[1] = TMath::Nint(Constants::sHeightActive/mPixelSizeY);
       nBins[2] = 1;
 
       // element below the pipe
@@ -289,7 +287,7 @@ Bool_t Plane::CreateStructure()
 									 Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
 									 3, nBins, minPosition, maxPosition);
 
-      minPosition[1] = lowEdgeActive-Constants::fHeightReadout;
+      minPosition[1] = lowEdgeActive-Constants::sHeightReadout;
       maxPosition[1] = lowEdgeActive;
       
       new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
@@ -316,7 +314,7 @@ Bool_t Plane::CreateStructure()
 									 3, nBins, minPosition, maxPosition);
 
       minPosition[1] = -1.*lowEdgeActive;
-      maxPosition[1] = -1.*(lowEdgeActive-Constants::fHeightReadout);
+      maxPosition[1] = -1.*(lowEdgeActive-Constants::sHeightReadout);
 
       new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
 									   Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
@@ -332,7 +330,7 @@ Bool_t Plane::CreateStructure()
       Double_t intLimitDetElem = TMath::Max(intLimitAtLowEdge, intLimitAtSupEdge);
       
       nBins[0] = TMath::Nint((extLimitDetElem-intLimitDetElem)/mPixelSizeX);
-      nBins[1] = TMath::Nint(Constants::fHeightActive/mPixelSizeY);
+      nBins[1] = TMath::Nint(Constants::sHeightActive/mPixelSizeY);
       nBins[2] = 1;
       
       // left element: y < 0
@@ -352,7 +350,7 @@ Bool_t Plane::CreateStructure()
 									 Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
 									 3, nBins, minPosition, maxPosition);	
       
-      minPosition[1] = lowEdgeActive-Constants::fHeightReadout;
+      minPosition[1] = lowEdgeActive-Constants::sHeightReadout;
       maxPosition[1] = lowEdgeActive;
       
       new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
@@ -361,7 +359,7 @@ Bool_t Plane::CreateStructure()
 
       // left element: y > 0
       
-      if (supEdgeActive < 0.5*Constants::fHeightActive) {
+      if (supEdgeActive < 0.5*Constants::sHeightActive) {
 	
 	if (mPlaneIsOdd) {
 	  if (isFront) zMin = zMinBack;
@@ -381,7 +379,7 @@ Bool_t Plane::CreateStructure()
 									   3, nBins, minPosition, maxPosition);	
 	
 	minPosition[1] = -1.*lowEdgeActive;
-	maxPosition[1] = -1.*(lowEdgeActive-Constants::fHeightReadout);
+	maxPosition[1] = -1.*(lowEdgeActive-Constants::sHeightReadout);
 	
 	new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
 									     Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
@@ -406,7 +404,7 @@ Bool_t Plane::CreateStructure()
 									 Form("MFTActiveElemHist_%02d%03d", mPlaneNumber, mActiveElements->GetEntries()), 
 									 3, nBins, minPosition, maxPosition);	
       
-      minPosition[1] = lowEdgeActive-Constants::fHeightReadout;
+      minPosition[1] = lowEdgeActive-Constants::sHeightReadout;
       maxPosition[1] = lowEdgeActive;
 
       new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
@@ -415,7 +413,7 @@ Bool_t Plane::CreateStructure()
 
       // right element: y > 0
       
-      if (supEdgeActive < 0.5*Constants::fHeightActive) {
+      if (supEdgeActive < 0.5*Constants::sHeightActive) {
 
 	if (mPlaneIsOdd) {
 	  if (isFront) zMin = zMinBack;
@@ -435,7 +433,7 @@ Bool_t Plane::CreateStructure()
 									   3, nBins, minPosition, maxPosition);	
 	
 	minPosition[1] = -1.*lowEdgeActive;
-	maxPosition[1] = -1.*(lowEdgeActive-Constants::fHeightReadout);
+	maxPosition[1] = -1.*(lowEdgeActive-Constants::sHeightReadout);
 	
 	new ((*mReadoutElements)[mReadoutElements->GetEntries()]) THnSparseC(Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
 									     Form("MFTReadoutElemHist_%02d%03d", mPlaneNumber, mReadoutElements->GetEntries()), 
@@ -445,8 +443,8 @@ Bool_t Plane::CreateStructure()
       
     }
     
-    lowEdgeActive += Constants::fHeightActive - Constants::fActiveSuperposition;
-    supEdgeActive = lowEdgeActive + Constants::fHeightActive;
+    lowEdgeActive += Constants::sHeightActive - Constants::sActiveSuperposition;
+    supEdgeActive = lowEdgeActive + Constants::sHeightActive;
     isFront = !isFront;
     
   }
@@ -734,7 +732,7 @@ Int_t Plane::GetNumberOfChips(Option_t *opt)
     for (Int_t iEl=0; iEl<GetNActiveElements(); iEl++) {
       if (!IsFront(GetActiveElement(iEl))) continue;
       Double_t length = GetActiveElement(iEl)->GetAxis(0)->GetXmax() - GetActiveElement(iEl)->GetAxis(0)->GetXmin();
-      nChips += Int_t (length/Constants::fWidthChip) + 1;
+      nChips += Int_t (length/Constants::sWidthChip) + 1;
     }
   }
 
@@ -742,7 +740,7 @@ Int_t Plane::GetNumberOfChips(Option_t *opt)
     for (Int_t iEl=0; iEl<GetNActiveElements(); iEl++) {
       if (IsFront(GetActiveElement(iEl))) continue;
       Double_t length = GetActiveElement(iEl)->GetAxis(0)->GetXmax() - GetActiveElement(iEl)->GetAxis(0)->GetXmin();
-      nChips += Int_t (length/Constants::fWidthChip) + 1;
+      nChips += Int_t (length/Constants::sWidthChip) + 1;
     }
   }
 

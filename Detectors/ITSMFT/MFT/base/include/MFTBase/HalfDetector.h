@@ -35,9 +35,7 @@ private:
   HalfSegmentation * mSegmentation; ///< \brief Pointer to the half-MFT segmentation
   void CreateHalfDisks();
   
-  /// \cond CLASSIMP
   ClassDef(HalfDetector, 1);
-  /// \endcond
 
 };
 

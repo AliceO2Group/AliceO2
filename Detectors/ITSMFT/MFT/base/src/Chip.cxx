@@ -12,9 +12,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(AliceO2::MFT::Chip)
-/// \endcond
 
 //_____________________________________________________________________________
 Chip::Chip():
@@ -44,9 +42,9 @@ void Chip::GetPosition(LadderSegmentation * ladderSeg, Int_t iChip, Double_t *po
 //  
 //  Info("GetPosition",Form("fFlexDimensions %f %f %f",fFlexDimensions[0],fFlexDimensions[1], fFlexDimensions[2]),0,0);
 //  
-//  pos[0] = Constants::fChipSideOffset + Constants::fChipWidth/2. + iChip*(Constants::fChipWidth+Constants::fChipInterspace);
-//  pos[1] = -(Constants::fChipTopOffset + fChipHeight/2.) ;
-//  pos[2] =  fFlexDimensions[2] + Constants::fChipThickness/2.;
+//  pos[0] = Constants::sChipSideOffset + Constants::sChipWidth/2. + iChip*(Constants::sChipWidth+Constants::sChipInterspace);
+//  pos[1] = -(Constants::sChipTopOffset + fChipHeight/2.) ;
+//  pos[2] =  fFlexDimensions[2] + Constants::sChipThickness/2.;
 //  Warning ("GetPosition","---- Z position of Chip to be worked out --- ",0,0);
 //  if (!ladderSeg->IsLeftType()) pos[0]  *= -1.;
     
@@ -59,10 +57,10 @@ TGeoVolume * Chip::CreateVolume()
 //  // Create Shapes
 //  
 //  // The sensor part
-//  TGeoBBox *sensor = new TGeoBBox(Constants::kSensorLength/2.,Constants::kSensorHeight/2.,  Constants::fChipThickness/2.);
+//  TGeoBBox *sensor = new TGeoBBox(Constants::kSensorLength/2.,Constants::kSensorHeight/2.,  Constants::sChipThickness/2.);
 //  
 //  // The readout part
-//  TGeoBBox *readout = new TGeoBBox(Constants::fChipWidth/2.,(fChipHeight-fSensorHeight)/2.,  Constants::fChipThickness/2.);
+//  TGeoBBox *readout = new TGeoBBox(Constants::sChipWidth/2.,(fChipHeight-fSensorHeight)/2.,  Constants::sChipThickness/2.);
 //  
 //  // Get Mediums
 //  TGeoMedium *medSensorSi  = gGeoManager->GetMedium("MFT_Si");

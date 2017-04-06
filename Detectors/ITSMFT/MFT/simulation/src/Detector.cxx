@@ -117,7 +117,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   TVirtualMC::GetMC()->CurrentVolOffID(++level,diskId);
   TVirtualMC::GetMC()->CurrentVolOffID(++level,halfId);
 
-  Int_t detElemID = mftGeo->GetObjectID(Geometry::kSensorType,halfId,diskId,ladderId,chipId);
+  Int_t detElemID = mftGeo->GetObjectID(Geometry::SensorType,halfId,diskId,ladderId,chipId);
 
   LOG(DEBUG1) << "Found hit into half = " << halfId << "; disk = " << diskId << "; ladder = " << ladderId << "; chip = " << chipId << FairLogger::endl;
 
@@ -266,7 +266,8 @@ void Detector::CreateMaterials()
   Float_t aRohacell[nRohacell] = {1.00794, 12.0107, 15.9994};
   Float_t zRohacell[nRohacell] = {1., 6., 8.};
   Float_t wRohacell[nRohacell] = {0.0858, 0.5964, 0.3178};
-  Float_t dRohacell = 0.032;  // 0.032 g/cm3 rohacell 31, 0.075 g/cm3 rohacell 71;
+  //Float_t dRohacell = 0.032;  // 0.032 g/cm3 rohacell 31, 0.075 g/cm3 rohacell 71;
+  Float_t dRohacell = 0.032/(1-0.3134);  // the density is increased since the water pipes are not inside the rohacell in the code ==> thickness decreased by 31.34%
   
   // Polyimide pipe mixture
   const Int_t nPolyimide = 4;
@@ -442,7 +443,7 @@ void Detector::ConstructGeometry()
 
   CreateMaterials();
   CreateGeometry();
-  DefineSensitiveVolumes();
+  //DefineSensitiveVolumes();
 
 }
 

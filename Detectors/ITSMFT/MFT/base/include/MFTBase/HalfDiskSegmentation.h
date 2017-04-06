@@ -57,9 +57,7 @@ private:
 
   TClonesArray *mLadders; ///< \brief Array of pointer to LadderSegmentation
   
-  /// \cond CLASSIMP
   ClassDef(HalfDiskSegmentation, 1);
-  /// \endcond
 
 };
 

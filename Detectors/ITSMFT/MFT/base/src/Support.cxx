@@ -14,9 +14,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(AliceO2::MFT::Support)
-/// \endcond
 
 //_____________________________________________________________________________
 Support::Support():
@@ -53,9 +51,9 @@ TGeoVolumeAssembly* Support::CreateVolume(Int_t half, Int_t disk)
   mSupportVolume->AddNode(supportVolume, 1);
   /* 
   // Place the front PCB
-  fSupportVolume->AddNode(pcbVolume, 1,new TGeoTranslation(0.,0.,(fSupportThickness+ fPCBThickness)/2.));
+  mSupportVolume->AddNode(pcbVolume, 1,new TGeoTranslation(0.,0.,(mSupportThickness+ mPCBThickness)/2.));
   // Place the back PCB (supposing both fron and back are the same shapes)
-  fSupportVolume->AddNode(pcbVolume, 2,new TGeoCombiTrans (0.,0.,-(fSupportThickness+ fPCBThickness)/2., new TGeoRotation("rot",0.,180.,0.)));
+  mSupportVolume->AddNode(pcbVolume, 2,new TGeoCombiTrans (0.,0.,-(mSupportThickness+ mPCBThickness)/2., new TGeoRotation("rot",0.,180.,0.)));
   */
   return mSupportVolume;
 
