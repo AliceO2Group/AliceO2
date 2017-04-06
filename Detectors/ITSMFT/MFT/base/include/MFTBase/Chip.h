@@ -32,9 +32,7 @@ public:
 
 private:
   
-  /// \cond CLASSIMP
   ClassDef(Chip, 1);
-  /// \endcond
 
 };
 

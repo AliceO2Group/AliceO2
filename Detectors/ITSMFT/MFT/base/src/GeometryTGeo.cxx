@@ -14,11 +14,11 @@ using namespace AliceO2::MFT;
 
 ClassImp(AliceO2::MFT::GeometryTGeo)
 
-TString GeometryTGeo::fgVolumeName   = "MFT";
-TString GeometryTGeo::fgHalfDetName  = "MFT_H";
-TString GeometryTGeo::fgHalfDiskName = "MFT_D";
-TString GeometryTGeo::fgLadderName   = "MFT_L";
-TString GeometryTGeo::fgSensorName   = "MFT_S";
+TString GeometryTGeo::sVolumeName   = "MFT";
+TString GeometryTGeo::sHalfDetName  = "MFT_H";
+TString GeometryTGeo::sHalfDiskName = "MFT_D";
+TString GeometryTGeo::sLadderName   = "MFT_L";
+TString GeometryTGeo::sSensorName   = "MFT_S";
 
 //_____________________________________________________________________________
 GeometryTGeo::GeometryTGeo() : 
@@ -86,7 +86,7 @@ GeometryTGeo &GeometryTGeo::operator=(const GeometryTGeo &src)
 void GeometryTGeo::Build()
 {
 
-  mNDisks = Constants::kNDisks;
+  mNDisks = Constants::sNDisks;
   mNLaddersHalfDisk = new Int_t[2*mNDisks];
 
   // extract the total number of sensors (chips)

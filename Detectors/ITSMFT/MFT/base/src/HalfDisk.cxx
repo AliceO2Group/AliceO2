@@ -17,9 +17,7 @@
 
 using namespace AliceO2::MFT;
 
-/// \cond CLASSIMP
 ClassImp(AliceO2::MFT::HalfDisk)
-/// \endcond
 
 /// \brief Default constructor
 
@@ -51,9 +49,9 @@ HalfDisk::HalfDisk(HalfDiskSegmentation *segmentation):TNamed(segmentation->GetN
   
   // Building MFT Support and PCBs
   /*  
-  fSupport = new Support();
-  TGeoVolumeAssembly * mftSupport = fSupport->CreateVolume(mftGeom->GetHalfMFTID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()));  
-  fHalfDiskVolume->AddNode(mftSupport,1);
+  mSupport = new Support();
+  TGeoVolumeAssembly * mftSupport = mSupport->CreateVolume(mftGeom->GetHalfMFTID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()));  
+  mHalfDiskVolume->AddNode(mftSupport,1);
   */
   // Building Heat Exchanger Between faces
   TGeoVolumeAssembly * heatExchangerVol = CreateHeatExchanger();

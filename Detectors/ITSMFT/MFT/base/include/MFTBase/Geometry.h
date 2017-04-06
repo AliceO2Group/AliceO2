@@ -18,51 +18,51 @@ class Geometry : public TNamed {
 
  public:
 
-  static const Int_t kNDisks = 5;             ///< \brief Number of Disk
-  static const Double_t kSensorLength;        ///< \brief CMOS Sensor Length
-  static const Double_t kSensorHeight;        ///< \brief CMOS Sensor Height
-  static const Double_t kSensorActiveHeight;  ///< \brief CMOS Sensor Active height
-  static const Double_t kSensorActiveWidth;   ///< \brief CMOS Sensor Active width
-  static const Double_t kSensorThickness;     ///< \brief CMOS Sensor Thickness
-  static const Double_t kXPixelPitch;         ///< \brief Pixel pitch along X
-  static const Double_t kYPixelPitch;         ///< \brief Pixel pitch along Y
-  static const Int_t kNPixelX = 1024;         ///< \brief Number of Pixel along X
-  static const Int_t kNPixelY = 512;          ///< \brief Number of Pixel along Y
-  static const Double_t kSensorMargin;        ///< \brief Inactive margin around active area
+  static const Int_t sNDisks = 5;             ///< \brief Number of Disk
 
-  static const Double_t kSensorInterspace;    ///< \brief Interspace between 2 sensors on a ladder
-  static const Double_t kSensorSideOffset;    ///< \brief Offset of sensor compare to ladder edge (close to the beam pipe)
-  static const Double_t kSensorTopOffset;     ///< \brief Offset of sensor compare to ladder top edge
-  static const Double_t kLadderOffsetToEnd;   ///< \brief Offset of sensor compare to ladder connector edge
-  static const Double_t fHeightActive;   ///< height of the active elements
-  static const Double_t fHeightReadout;  ///< height of the readout elements attached to the active ones
+  static const Double_t sSensorLength;        ///< \brief CMOS Sensor Length
+  static const Double_t sSensorHeight;        ///< \brief CMOS Sensor Height
+  static const Double_t sSensorActiveHeight;  ///< \brief CMOS Sensor Active height
+  static const Double_t sSensorActiveWidth;   ///< \brief CMOS Sensor Active width
+  static const Double_t sSensorThickness;     ///< \brief CMOS Sensor Thickness
+  static const Double_t sXPixelPitch;         ///< \brief Pixel pitch along X
+  static const Double_t sYPixelPitch;         ///< \brief Pixel pitch along Y
+  static const Int_t sNPixelX = 1024;         ///< \brief Number of Pixel along X
+  static const Int_t sNPixelY = 512;          ///< \brief Number of Pixel along Y
+  static const Double_t sSensorMargin;        ///< \brief Inactive margin around active area
 
-  static const Double_t kFlexHeight;          ///< \brief Flex Height 
-  static const Double_t kLineWidth; 
-  static const Double_t kVarnishThickness;  
-  static const Double_t kAluThickness;    
-  static const Double_t kKaptonThickness;
-  static const Double_t kFlexThickness;       ///< \brief Flex Thickness
-  static const Double_t kClearance;          
-  static const Double_t kRadiusHole1;          
-  static const Double_t kRadiusHole2;          
-  static const Double_t kHoleShift1;          
-  static const Double_t kHoleShift2;          
-  static const Double_t kConnectorOffset;          
-  static const Double_t kCapacitorDz;        
-  static const Double_t kCapacitorDy;        
-  static const Double_t kCapacitorDx; 
-  static const Double_t kConnectorLength;
-  static const Double_t kConnectorWidth;
-  static const Double_t kConnectorHeight;
-  static const Double_t kConnectorThickness;
-  static const Double_t kEpsilon;
-  static const Double_t kGlueThickness;
-  static const Double_t kGlueEdge;
-  static const Double_t kShiftDDGNDline;
-  static const Double_t kShiftline;
-  static const Double_t kRohacell;
-  static const Double_t kShift;
+  static const Double_t sSensorInterspace;    ///< \brief Interspace between 2 sensors on a ladder
+  static const Double_t sSensorSideOffset;    ///< \brief Offset of sensor compare to ladder edge (close to the beam pipe)
+  static const Double_t sSensorTopOffset;     ///< \brief Offset of sensor compare to ladder top edge
+  static const Double_t sLadderOffsetToEnd;   ///< \brief Offset of sensor compare to ladder connector edge
+  static const Double_t sHeightActive;   ///< height of the active elements
+  static const Double_t sHeightReadout;  ///< height of the readout elements attached to the active ones
+
+  static const Double_t sFlexHeight;          ///< \brief Flex Height 
+  static const Double_t sLineWidth; 
+  static const Double_t sVarnishThickness;  
+  static const Double_t sAluThickness;    
+  static const Double_t sKaptonThickness;
+  static const Double_t sFlexThickness;       ///< \brief Flex Thickness
+  static const Double_t sClearance;          
+  static const Double_t sRadiusHole1;          
+  static const Double_t sRadiusHole2;          
+  static const Double_t sHoleShift1;          
+  static const Double_t sHoleShift2;          
+  static const Double_t sConnectorOffset;          
+  static const Double_t sCapacitorDz;        
+  static const Double_t sCapacitorDy;        
+  static const Double_t sCapacitorDx; 
+  static const Double_t sConnectorLength;
+  static const Double_t sConnectorWidth;
+  static const Double_t sConnectorHeight;
+  static const Double_t sConnectorThickness;
+  static const Double_t sEpsilon;
+  static const Double_t sGlueThickness;
+  static const Double_t sGlueEdge;
+  static const Double_t sShiftDDGNDline;
+  static const Double_t sShiftline;
+  static const Double_t sRohacell;
 
   static Geometry* Instance();
 
@@ -70,7 +70,7 @@ class Geometry : public TNamed {
 
   void Build();
   
-  enum ObjectTypes {kHalfType, kHalfDiskType, kPlaneType, kLadderType, kSensorType};
+  enum ObjectTypes {HalfType, HalfDiskType, PlaneType, LadderType, SensorType};
   
   //virtual void GetGlobal(const RecPoint * p, TVector3 & pos, TMatrixF & mat) const {};
   //virtual void GetGlobal(const RecPoint * p, TVector3 & pos) const {};
@@ -104,16 +104,14 @@ class Geometry : public TNamed {
 
 private:
 
-  static Geometry* fgInstance;    ///< \brief  Singleton instance
+  static Geometry* sInstance;    ///< \brief  Singleton instance
   Geometry();
 
   GeometryBuilder* mBuilder;      ///< \brief Geometry Builder
   Segmentation*    mSegmentation; ///< \brief Segmentation of the detector
   Int_t mSensorVolumeID; ///< \brief ID of the volume describing the CMOS Sensor
 
-  /// \cond CLASSIMP
   ClassDef(Geometry, 1)
-  /// \endcond
 
 };
 

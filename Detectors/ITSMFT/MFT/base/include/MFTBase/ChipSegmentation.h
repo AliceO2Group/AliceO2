@@ -27,9 +27,7 @@ public:
   
 private:
   
-  /// \cond CLASSIMP
   ClassDef(ChipSegmentation, 1);
-  /// \endcond
 
 };
 

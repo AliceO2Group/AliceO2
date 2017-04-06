@@ -18,7 +18,7 @@ class Segmentation : public TNamed {
 
 public:
   
-  enum { kBottom, kTop };
+  enum { Bottom, Top };
 
   Segmentation();
   Segmentation(const Char_t *nameGeomFile);
@@ -40,9 +40,7 @@ private:
 
   TClonesArray *mHalves; ///< \brief Array of pointer to HalfSegmentation
 
-  /// \cond CLASSIMP
   ClassDef(Segmentation, 1);
-  /// \endcond
   
 };
 
