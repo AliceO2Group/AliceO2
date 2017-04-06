@@ -14,6 +14,9 @@
   #include "FairBoxGenerator.h"
   #include "FairParRootFileIo.h"
 
+  #include "TGeoGlobalMagField.h"
+  #include "Field/MagneticField.h"
+
   #include "DetectorsPassive/Cave.h"
 
   #include "TPCSimulation/Detector.h"
@@ -63,6 +66,8 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
+  AliceO2::Field::MagneticField *magField = new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagFieldParam::k5kG);
+  run->SetField(magField);
 
   // ===| Add TPC |============================================================
   AliceO2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
@@ -71,11 +76,11 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
-  FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 1); /*protons*/
+  FairBoxGenerator* boxGen = new FairBoxGenerator(211, 10); /*protons*/
 
   //boxGen->SetThetaRange(0.0, 90.0);
   boxGen->SetEtaRange(-0.9,0.9);
-  boxGen->SetPRange(100, 100.01);
+  boxGen->SetPRange(0.1, 5);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kTRUE);
 

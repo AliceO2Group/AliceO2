@@ -13,6 +13,9 @@
   #include "FairRuntimeDb.h"
   #include "FairParRootFileIo.h"
 
+  #include "TGeoGlobalMagField.h"
+  #include "Field/MagneticField.h"
+
   #include "TPCSimulation/DigitizerTask.h"
 #endif
 
@@ -20,7 +23,7 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         // Initialize logger
         FairLogger *logger = FairLogger::GetLogger();
         logger->SetLogVerbosityLevel("LOW");
-        logger->SetLogScreenLevel("INFO");
+        logger->SetLogScreenLevel("DEBUG");
 
         // Input and output file name
         std::stringstream inputfile, outputfile, paramfile;
@@ -43,7 +46,11 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         parInput1->open(paramfile.str().c_str());
         rtdb->setFirstInput(parInput1);
 
+        fFileSource->SetEventMeanTime(10*1000); //is in us
       //  TGeoManager::Import("geofile_full.root");
+
+        AliceO2::Field::MagneticField *magField = new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagFieldParam::k5kG);
+        run->SetField(magField);
 
         // Setup digitizer
         AliceO2::TPC::DigitizerTask *digiTPC = new AliceO2::TPC::DigitizerTask;

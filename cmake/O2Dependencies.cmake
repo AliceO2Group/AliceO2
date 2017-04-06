@@ -556,6 +556,7 @@ o2_define_bucket(
 
     DEPENDENCIES
     tpc_base_bucket
+    Field
     DetectorsBase
     TPCBase
     SimulationDataFormat
@@ -578,6 +579,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Passive/include
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/Field/include
 )
 
 
