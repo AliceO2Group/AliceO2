@@ -6,7 +6,6 @@
 #include <boost/algorithm/string.hpp>
 
 #include <FairMQLogger.h>
-#include <zeromq/FairMQTransportFactoryZMQ.h>
 
 #include <dds_intercom.h>
 
@@ -21,7 +20,7 @@ using namespace dds::intercom_api;
 
 MergerDevice::MergerDevice(unique_ptr<Merger> merger, string mergerId, int numIoThreads) : mMerger(move(merger)), ddsCustomCmd(new CCustomCmd(mService))
 {
-  this->SetTransport(new FairMQTransportFactoryZMQ);
+  this->SetTransport("zeromq");
   this->SetProperty(Id, mergerId);
   this->SetProperty(NumIoThreads, numIoThreads);
 
