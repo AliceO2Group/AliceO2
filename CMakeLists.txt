@@ -139,7 +139,7 @@ IF (NOT ALICEO2_MODULAR_BUILD)
 
   # Check IF the compilation flag -std=c++14 is set
   IF (NOT CMAKE_CXX_FLAGS)
-    Message(FATAL_ERROR "No C++14 support found. AliceO2 require C++14 be build.")
+    Message(FATAL_ERROR "No C++14 support found. AliceO2 requires C++14 be build.")
   EndIF (NOT CMAKE_CXX_FLAGS)
 
 ELSE (NOT ALICEO2_MODULAR_BUILD)
