@@ -21,6 +21,7 @@ public:
 
   enum EHLTTRDTracker {
     kNLayers = 6,
+    kNStacks = 5,
     kNSectors = 18,
     kNChambers = 540
   };
@@ -28,6 +29,7 @@ public:
   // struct to hold the information on the space points
   struct AliHLTTRDSpacePointInternal {
     double fX[3];
+    double fCov[2];
     int fId;
     unsigned short fVolumeId;
   };
