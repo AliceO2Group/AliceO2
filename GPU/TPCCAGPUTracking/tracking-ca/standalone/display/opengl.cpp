@@ -87,8 +87,9 @@ int drawFinal = false;
 int drawSlice = -1;
 int drawGrid = 0;
 int excludeClusters = 0;
+int projectxy = 0;
 
-float Xscale = 1;
+float Xadd = 0;
 float Zadd = 0;
 
 float4 *globalPos = NULL;
@@ -414,7 +415,7 @@ void DrawGrid(AliHLTTPCCATracker &tracker)
 		{
 			float z1 = row.Grid().ZMin();
 			float z2 = row.Grid().ZMax();
-			float x = row.X() * Xscale;
+			float x = row.X() + Xadd;
 			float y = row.Grid().YMin() + (float) j / row.Grid().StepYInv();
 			float zz1, zz2, yy1, yy2, xx1, xx2;
 			tracker.Param().Slice2Global(x, y, z1, &xx1, &yy1, &zz1);
@@ -436,7 +437,7 @@ void DrawGrid(AliHLTTPCCATracker &tracker)
 		{
 			float y1 = row.Grid().YMin();
 			float y2 = row.Grid().YMax();
-			float x = row.X() * Xscale;
+			float x = row.X() + Xadd;
 			float z = row.Grid().ZMin() + (float) j / row.Grid().StepZInv();
 			float zz1, zz2, yy1, yy2, xx1, xx2;
 			tracker.Param().Slice2Global(x, y1, z, &xx1, &yy1, &zz1);
@@ -575,7 +576,7 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 		pointSize = 2.0;
 		drawSlice = -1;
 		
-		Xscale = 1;
+		Xadd = 0;
 		Zadd = 0;
 
 		resetScene = 0;
@@ -628,7 +629,7 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 					exit(1);
 				}
 				float4 *ptr = &globalPos[cid];
-				hlt.fTracker.fCPUTrackers[iSlice].Param().Slice2Global(cdata.X(i) * Xscale, cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
+				hlt.fTracker.fCPUTrackers[iSlice].Param().Slice2Global(cdata.X(i) + Xadd, cdata.Y(i), cdata.Z(i), &ptr->x, &ptr->y, &ptr->z);
 				if (ptr->z >= 0)
 				{
 					ptr->z += Zadd;
@@ -1013,7 +1014,7 @@ void PrintHelp()
 	printf("[R]\t\tReset Display Settings\n");
 	printf("[L]\t\tDraw single slice (next slice)\n");
 	printf("[K]\t\tDraw single slice (previous slice)\n");
-	printf("[Z]\t\tShow splitting of TPC in slices\n");
+	printf("[Z]/[U]\t\tShow splitting of TPC in slices by extruding volume, [U] resets\n");
 	printf("[Y]\t\tStart Animation\n");
 	printf("[G]\t\tDraw Grid\n");
 	printf("[X]\t\tExclude Clusters used in the tracking steps enabled for visualization ([1]-[8])");
@@ -1060,15 +1061,28 @@ void HandleKeyRelease(int wParam)
 		else
 			drawSlice--;
 	}
+	else if (wParam == 'I')
+	{
+		updateDLList = true;
+		projectxy ^= 1;
+	}
 	else if (wParam == 'Z')
 	{
 		updateDLList = true;
-		Xscale++;
+		Xadd += 60;
 		Zadd += 60;
+	}
+	else if (wParam == 'U')
+	{
+		updateDLList = true;
+		Xadd -= 60;
+		Zadd -= 60;
+		if (Zadd < 0 || Xadd < 0) Zadd = Xadd = 0;
 	}
 	else if (wParam == 'Y')
 	{
 		animate = 1;
+		printf("Starting Animation\n");
 	}
 
 	else if (wParam == 'G') drawGrid ^= 1;
@@ -1090,13 +1104,11 @@ void HandleKeyRelease(int wParam)
 		drawGlobalTracks ^= 1;
 	else if (wParam == '8')
 		drawFinal ^= 1;
-#ifdef R__WIN32
 	else if (wParam == 'T')
 	{
 		printf("Taking Screenshot\n");
 		DoScreenshot("screenshot.bmp", 3);
 	}
-#endif
 	else if (wParam == 'O')
 	{
 		GLfloat tmp[16];
@@ -1660,6 +1672,12 @@ int GetKey(int key)
 	case 29:
 		wParam = 'Z';
 		break;
+	case 28:
+		wParam = 'T';
+		break;
+	case 30:
+		wParam = 'U';
+		break;
 	case 45:
 		wParam = 'K';
 		break;
@@ -1668,6 +1686,12 @@ int GetKey(int key)
 		break;
 	case 53:
 		wParam = 'X';
+		break;
+	case 31:
+		wParam = 'I';
+		break;
+	case 52:
+		wParam = 'Y';
 		break;
 	case 35:
 	case 86:
