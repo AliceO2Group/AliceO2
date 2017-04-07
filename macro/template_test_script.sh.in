@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# This macro is needed to start the Root macros used for automatic testing
+# from inside CMake using the add_test functionality.
+
+# Setup the needed environment
+
+# just add the modules from this AliceO2 build:
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:@CMAKE_BINARY_DIR@/lib
+export ROOTSYS=@ROOTSYS@
+export ROOTEXE=@ROOT_INSTALL_DIR@/bin/root.exe
+export ROOT_INCLUDE_PATH=@ROOT_INSTALL_DIR@/include
+
+# to find geometry files etc ... in our case they are in the source dir
+export VMCWORKDIR=@CMAKE_SOURCE_DIR@
+
+# the simulation libraries like G4 + G3 are already supposed to be setup
+# in the environment (alibuild/alienv has them)
+
+# Concatenate all parameters given on the command line to one 
+# comma separated string 
+parameters=""
+for i in $*; do 
+  if [ -z $parameters ]; then
+    parameters=$i
+  else
+    parameters=$(echo "$parameters,$i")
+  fi 
+done
+
+cd @new_path@
+
+# execute root with the defined macro and the command line parameters
+$ROOTEXE -q -b @my_script_name@\($parameters\)
