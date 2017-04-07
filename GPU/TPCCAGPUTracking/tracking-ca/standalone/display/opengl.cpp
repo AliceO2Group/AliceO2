@@ -47,11 +47,7 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 #include "AliHLTTPCCATrack.h"
 #include "AliHLTTPCCATracker.h"
 #include "AliHLTTPCCATrackerFramework.h"
-#ifdef HLTCA_STANDALONE_OLD_MERGER
-#include "AliHLTTPCCAMergerOutput.h"
-#else
 #include "AliHLTTPCGMMergedTrack.h"
-#endif
 #include "include.h"
 
 #define fgkNSlices 36
@@ -313,21 +309,6 @@ void DrawTracks(AliHLTTPCCATracker &tracker, int global)
 
 void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 {
-#ifdef HLTCA_STANDALONE_OLD_MERGER
-	const AliHLTTPCCAMerger &merger = hlt.Merger();
-	const AliHLTTPCCAMergerOutput &mergerOut = *merger.Output();
-	for (int i = 0; i < mergerOut.NTracks(); i++)
-	{
-		const AliHLTTPCCAMergedTrack &track = mergerOut.Track(i);
-		glBegin(GL_LINE_STRIP);
-		for (int j = 0; j < track.NClusters(); j++)
-		{
-			int cid = mergerOut.ClusterId(track.FirstClusterRef() + j);
-			drawPointLinestrip(cid, 7);
-		}
-		glEnd();
-	}
-#else
 	const AliHLTTPCGMMerger &merger = hlt.Merger();
 	for (int i = 0; i < merger.NOutputTracks(); i++)
 	{
@@ -402,7 +383,6 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 		glEnd();
 		delete[] clusterused;
 	}
-#endif
 }
 
 void DrawGrid(AliHLTTPCCATracker &tracker)
