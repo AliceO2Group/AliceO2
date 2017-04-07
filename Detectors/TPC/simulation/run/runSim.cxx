@@ -5,6 +5,7 @@
 
 #include <boost/program_options.hpp>
 #include <iostream>
+#include <sys/wait.h>
 
 #include "../../../../macro/run_sim_tpc.C"
 #include "../../../../macro/run_digi_tpc.C"
@@ -50,9 +51,21 @@ int main(int argc, char *argv[])
   } else if (mode == "clus") {
     run_clus_tpc(events,engine);
   } else if (mode == "all") {
-    run_sim_tpc(events,engine);
-    run_digi_tpc(events,engine);
-    run_clus_tpc(events,engine);
+    int status;
+    pid_t PID = fork();
+    if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
+    if (PID == 0)  { run_sim_tpc(events,engine); return EXIT_SUCCESS;}
+    else waitpid(PID,&status,0);
+    
+    PID = fork();
+    if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
+    if (PID == 0)  { run_digi_tpc(events,engine); return EXIT_SUCCESS;}
+    else waitpid(PID,&status,0);
+
+    PID = fork();
+    if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
+    if (PID == 0)  { run_clus_tpc(events,engine); return EXIT_SUCCESS;}
+    else waitpid(PID,&status,0);
   } else {
       std::cout << "Mode was not recognised" << std::endl;
       return EXIT_FAILURE;
