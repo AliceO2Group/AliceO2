@@ -4,7 +4,7 @@
 /// \author Adam Wegrzynek <adam.wegrzynek@cern.ch>
 ///
 
-auto glambda = [] (auto a) { return a; };
+auto glambda = [](auto a) { return a; };
 
 int main()
 {

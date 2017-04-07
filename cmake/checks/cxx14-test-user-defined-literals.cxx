@@ -4,9 +4,9 @@
 /// \author Adam Wegrzynek <adam.wegrzynek@cern.ch>
 ///
 
-#include <string>
 #include <chrono>
 #include <complex>
+#include <string>
 
 bool testString()
 {
@@ -15,7 +15,7 @@ bool testString()
   std::string str = "hello world";
   if (str.compare(strl) == 0) {
     return true;
-  } else { 
+  } else {
     return false;
   }
 }
@@ -28,14 +28,12 @@ bool testChrono()
   return (durl == dur);
 }
 
-bool testComplex() {
+bool testComplex()
+{
   using namespace std::literals::complex_literals;
-  auto zl = 1i; 
+  auto zl = 1i;
   std::complex<double> z(0, 1);
-  return (zl == z); 
+  return (zl == z);
 }
 
-int main()
-{
-  return (testComplex() && testString() && testChrono()) ? 0 : 1;
-}
+int main() { return (testComplex() && testString() && testChrono()) ? 0 : 1; }
