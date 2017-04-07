@@ -1,3 +1,27 @@
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+  #include <iostream>
+
+  #include "Rtypes.h"
+  #include "TSystem.h"
+  #include "TMath.h"
+  #include "TString.h"
+  #include "TStopwatch.h"
+  #include "TGeoManager.h"
+
+  #include "FairRunSim.h"
+  #include "FairRuntimeDb.h"
+  #include "FairPrimaryGenerator.h"
+  #include "FairBoxGenerator.h"
+  #include "FairParRootFileIo.h"
+
+  #include "TGeoGlobalMagField.h"
+  #include "Field/MagneticField.h"
+
+  #include "DetectorsPassive/Cave.h"
+
+  #include "TPCSimulation/Detector.h"
+#endif
+
 void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   TString dir = getenv("VMCWORKDIR");
@@ -42,6 +66,8 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
+  AliceO2::Field::MagneticField *magField = new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagFieldParam::k5kG);
+  run->SetField(magField);
 
   // ===| Add TPC |============================================================
   AliceO2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
@@ -50,11 +76,11 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
-  FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 1); /*protons*/
+  FairBoxGenerator* boxGen = new FairBoxGenerator(211, 10); /*protons*/
 
   //boxGen->SetThetaRange(0.0, 90.0);
   boxGen->SetEtaRange(-0.9,0.9);
-  boxGen->SetPRange(100, 100.01);
+  boxGen->SetPRange(0.1, 5);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kTRUE);
 
@@ -78,15 +104,16 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Start run
   run->Run(nEvents);
+  delete run;
 //  run->CreateGeometryFile("geofile_full.root");
 
   // Finish
   timer.Stop();
   Double_t rtime = timer.RealTime();
   Double_t ctime = timer.CpuTime();
-  cout << endl << endl;
-  cout << "Macro finished succesfully." << endl;
-  cout << "Output file is " << outFile << endl;
-  cout << "Parameter file is " << parFile << endl;
-  cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
+  std::cout << std::endl << std::endl;
+  std::cout << "Macro finished succesfully." << std::endl;
+  std::cout << "Output file is " << outFile << std::endl;
+  std::cout << "Parameter file is " << parFile << std::endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl << std::endl;
 }

@@ -19,7 +19,7 @@
 #define _DLFCN_H
 #endif
 
-//#include "Pythia8/Basics.h"          // for RndmEngine
+#include "Pythia8/Basics.h"          // for RndmEngine
 #include "FairGenerator.h"   // for FairGenerator
 #include "Pythia8/Pythia.h"  // for Pythia
 #include "Rtypes.h"          // for Double_t, Bool_t, Int_t, etc

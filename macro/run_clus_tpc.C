@@ -1,9 +1,27 @@
-void run_clusterer(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+  #include <iostream>
+
+  #include "Rtypes.h"
+  #include "TString.h"
+  #include "TStopwatch.h"
+  #include "TGeoManager.h"
+
+  #include "FairLogger.h"
+  #include "FairRunAna.h"
+  #include "FairFileSource.h"
+  #include "FairSystemInfo.h"
+  #include "FairRuntimeDb.h"
+  #include "FairParRootFileIo.h"
+
+  #include "TPCSimulation/ClustererTask.h"
+#endif
+
+void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   // Initialize logger
   FairLogger *logger = FairLogger::GetLogger();
-  logger->SetLogVerbosityLevel("LOW");
-  logger->SetLogScreenLevel("INFO");
+  logger->SetLogVerbosityLevel("HIGH");
+  logger->SetLogScreenLevel("DEBUG");
 
   // Input and output file name
   std::stringstream inputfile, outputfile, paramfile;
@@ -15,13 +33,13 @@ void run_clusterer(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   TStopwatch timer;
 
   // Setup FairRoot analysis manager
-  FairRunAna * fRun = new FairRunAna;
+  FairRunAna * run = new FairRunAna;
   FairFileSource *fFileSource = new FairFileSource(inputfile.str().c_str());
-  fRun->SetSource(fFileSource);
-  fRun->SetOutputFile(outputfile.str().c_str());
+  run->SetSource(fFileSource);
+  run->SetOutputFile(outputfile.str().c_str());
 
   // Setup Runtime DB
-  FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
+  FairRuntimeDb* rtdb = run->GetRuntimeDb();
   FairParRootFileIo* parInput1 = new FairParRootFileIo();
   parInput1->open(paramfile.str().c_str());
   rtdb->setFirstInput(parInput1);
@@ -30,12 +48,25 @@ void run_clusterer(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Setup clusterer
   AliceO2::TPC::ClustererTask *clustTPC = new AliceO2::TPC::ClustererTask;
-  fRun->AddTask(clustTPC);
+  clustTPC->setClustererEnable(AliceO2::TPC::ClustererTask::ClustererType::Box,false);
+  clustTPC->setClustererEnable(AliceO2::TPC::ClustererTask::ClustererType::HW,true);
 
-  fRun->Init();
+  run->AddTask(clustTPC);
 
+  // Initialize everything
+  run->Init();
+
+//  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Parallel);
+  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Sequential);
+
+  // Start simulation
   timer.Start();
-  fRun->Run();
+  run->Run();
+
+  run->TerminateRun();
+  // we are done, cleanup
+  delete clustTPC;
+
 
   std::cout << std::endl << std::endl;
 
@@ -52,14 +83,16 @@ void run_clusterer(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   Double_t ctime = timer.CpuTime();
 
   Float_t cpuUsage=ctime/rtime;
-  cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
-  cout << cpuUsage;
-  cout << "</DartMeasurement>" << endl;
+  std::cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
+  std::cout << cpuUsage;
+  std::cout << "</DartMeasurement>" << std::endl;
 
-  std::cout << endl << std::endl;
+  std::cout << std::endl << std::endl;
   std::cout << "Output file is "    << outputfile.str() << std::endl;
   //std::cout << "Parameter file is " << parFile << std::endl;
   std::cout << "Real time " << rtime << " s, CPU time " << ctime
-	    << "s" << endl << endl;
+	    << "s" << std::endl << std::endl;
   std::cout << "Macro finished succesfully." << std::endl;
+  return;
+
 }

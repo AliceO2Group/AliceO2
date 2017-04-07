@@ -1,8 +1,29 @@
+#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
+  #include <iostream>
+
+  #include "Rtypes.h"
+  #include "TString.h"
+  #include "TStopwatch.h"
+  #include "TGeoManager.h"
+
+  #include "FairLogger.h"
+  #include "FairRunAna.h"
+  #include "FairFileSource.h"
+  #include "FairSystemInfo.h"
+  #include "FairRuntimeDb.h"
+  #include "FairParRootFileIo.h"
+
+  #include "TGeoGlobalMagField.h"
+  #include "Field/MagneticField.h"
+
+  #include "TPCSimulation/DigitizerTask.h"
+#endif
+
 void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         // Initialize logger
         FairLogger *logger = FairLogger::GetLogger();
         logger->SetLogVerbosityLevel("LOW");
-        logger->SetLogScreenLevel("INFO");
+        logger->SetLogScreenLevel("DEBUG");
 
         // Input and output file name
         std::stringstream inputfile, outputfile, paramfile;
@@ -14,30 +35,32 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         TStopwatch timer;
 
         // Setup FairRoot analysis manager
-        FairRunAna * fRun = new FairRunAna();
+        FairRunAna * run = new FairRunAna();
         FairFileSource *fFileSource = new FairFileSource(inputfile.str().c_str());
-        fRun->SetSource(fFileSource);
-        fRun->SetOutputFile(outputfile.str().c_str());
+        run->SetSource(fFileSource);
+        run->SetOutputFile(outputfile.str().c_str());
 
         // Setup Runtime DB
-        FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
+        FairRuntimeDb* rtdb = run->GetRuntimeDb();
         FairParRootFileIo* parInput1 = new FairParRootFileIo();
         parInput1->open(paramfile.str().c_str());
         rtdb->setFirstInput(parInput1);
 
+        fFileSource->SetEventMeanTime(10*1000); //is in us
       //  TGeoManager::Import("geofile_full.root");
 
+        AliceO2::Field::MagneticField *magField = new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagFieldParam::k5kG);
+        run->SetField(magField);
+
         // Setup digitizer
-        AliceO2::ITS::DigitizerTask *digi = new AliceO2::ITS::DigitizerTask;
-        fRun->AddTask(digi);
-
         AliceO2::TPC::DigitizerTask *digiTPC = new AliceO2::TPC::DigitizerTask;
-        fRun->AddTask(digiTPC);
+        run->AddTask(digiTPC);
 
-        fRun->Init();
+        run->Init();
 
         timer.Start();
-        fRun->Run();
+        run->Run();
+        run->TerminateRun();
 
         std::cout << std::endl << std::endl;
 
@@ -54,16 +77,16 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         Double_t ctime = timer.CpuTime();
 
         Float_t cpuUsage=ctime/rtime;
-        cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
-        cout << cpuUsage;
-        cout << "</DartMeasurement>" << endl;
-        cout << endl << endl;
+        std::cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
+        std::cout << cpuUsage;
+        std::cout << "</DartMeasurement>" << std::endl;
+        std::cout << std::endl << std::endl;
         std::cout << "Macro finished succesfully." << std::endl;
-        std::cout << endl << std::endl;
+        std::cout << std::endl << std::endl;
         std::cout << "Output file is "    << outputfile.str() << std::endl;
         //std::cout << "Parameter file is " << parFile << std::endl;
         std::cout << "Real time " << rtime << " s, CPU time " << ctime
-                  << "s" << endl << endl;
+                  << "s" << std::endl << std::endl;
 
 
 }

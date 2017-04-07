@@ -12,7 +12,7 @@ PadRegionInfo::PadRegionInfo(const unsigned char region,
                              const float         padHeight,
                              const float         padWidth,
                              const float         radiusFirstRow,
-                             const unsigned char rowOffet,
+                             const unsigned char rowOffset,
                              const float         xhelper,
                              const unsigned char globalRowOffset
                             )
@@ -22,11 +22,11 @@ PadRegionInfo::PadRegionInfo(const unsigned char region,
   , mPadHeight{padHeight}
   , mPadWidth{padWidth}
   , mRadiusFirstRow{radiusFirstRow}
-  , mRowOffet{rowOffet}
+  , mRowOffset{rowOffset}
   , mXhelper{xhelper}
   , mNumberOfPads{0}
   , mGlobalRowOffset{globalRowOffset}
-  , mPadsPerRow{numberOfPadRows}
+  , mPadsPerRow(numberOfPadRows)
 {
   init();
 }
@@ -36,8 +36,8 @@ void PadRegionInfo::init()
 
   const float ks=mPadHeight/mPadWidth*tan(1.74532925199432948e-01); // tan(10deg)
   // initialize number of pads per row
-  for (int irow=0; irow<mNumberOfPadRows; ++irow) {
-     mPadsPerRow[irow]=2*floor(ks*(irow+mRowOffet)+mXhelper);
+  for (unsigned char irow=0; irow<mNumberOfPadRows; ++irow) {
+     mPadsPerRow[irow]=2*std::floor(ks*(irow+mRowOffset)+mXhelper);
      mNumberOfPads+=mPadsPerRow[irow];
   }
 }
@@ -60,11 +60,14 @@ const PadPos PadRegionInfo::findPad(const float localX, const float localY, cons
   // on the A-Side one looks from the back-side, therefore
   // the localY-sign must be changed
   const float localYfactor=(side==Side::A)?-1.f:1.f;
-  const unsigned int row  = floor((localX-mRadiusFirstRow)/mPadHeight);
+  const unsigned int row  = std::floor((localX-mRadiusFirstRow)/mPadHeight);
+  if (row<0 || row>= mNumberOfPadRows) return PadPos(255, 255);
+
   const unsigned int npads=getPadsInRowRegion(row);
   const unsigned int pad  =int((npads/2*mPadWidth-localYfactor*localY)/mPadWidth);
 
-  if (row<0 || row>= mNumberOfPadRows || pad<0 || pad>=npads) return PadPos(255, 255);
+  if (pad<0 || pad>=npads) return PadPos(255, 255);
+
   return PadPos(row, pad);
 }
 

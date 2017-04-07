@@ -80,7 +80,7 @@
 
 
 #include "TPCSimulation/BoxClusterer.h"
-#include "TPCSimulation/Digit.h"
+#include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
 #include "TPCSimulation/BoxCluster.h"
 
@@ -95,14 +95,7 @@ using namespace AliceO2::TPC;
 
 //________________________________________________________________________
 BoxClusterer::BoxClusterer():
-  TObject(),
-  mClusterContainer(nullptr),
-  mRowsMax(100),
-  mPadsMax(200),
-  mTimeBinsMax(1000),
-  mMinQMax(5),
-  mRequirePositiveCharge(kTRUE),
-  mRequireNeighbouringPad(kTRUE),
+  Clusterer(),
   mAllBins(nullptr),
   mAllSigBins(nullptr),
   mAllNSigBins(nullptr)
@@ -159,29 +152,27 @@ ClusterContainer* BoxClusterer::Process(TClonesArray *digits)
 
   for (TIter digititer = TIter(digits).Begin(); digititer != TIter::End(); ++digititer)
     {
-      Digit* digit = dynamic_cast<Digit*>(*digititer);
+      DigitMC* digit = dynamic_cast<DigitMC*>(*digititer);
 
                   iCRU     = digit->getCRU();
       const Int_t iRow     = digit->getRow();
       const Int_t iPad     = digit->getPad();
       const Int_t iTimeBin = digit->getTimeStamp();
       const Float_t charge = digit->getCharge();
-//       printf("digi: %d, %d, %d, %d, %.2f\n", iCRU, iRow, iPad, iTimeBin, charge);
+//      if (iCRU == 179) {
+//        printf("box: digi: %d, %d, %d, %d, %.2f\n", iCRU, iRow, iPad, iTimeBin, charge);
+//      }
       if(iCRU != lastCRU) {
-
-	if(nSignals>0) {
+        if(nSignals>0) {
           FindLocalMaxima(lastCRU);
-	  CleanArrays();
-	}
+          CleanArrays();
+        }
         lastCRU = iCRU;
         nSignals = 0;
-      } else { // add signal to array
-
-	// while we wait for the time bin
-// 	Update(iCRU, iRow, iPad, iPad, charge);
-        Update(iCRU, iRow, iPad, iTimeBin, charge);
-        ++nSignals;
-      }
+      } //else { // add signal to array
+      Update(iCRU, iRow, iPad, iTimeBin, charge);
+      ++nSignals;
+      //}
     }
 
     // processing of last CRU
@@ -244,6 +235,13 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
       if (qArray[+maxTimeBin-1] >= qMax) continue;
       if (qArray[-maxTimeBin+1] > qMax) continue;
 
+//      Short_t tb; Short_t pa;
+//      GetPadAndTimeBin(bin,pa,tb);
+//      if ((iCRU == 179 && iRow == 2 && pa == 104 && tb == 171) || (iCRU == 256 && iRow == 10 && pa == 27 && tb == 181) ) {
+//        std::cout << qArray[+maxTimeBin-1]  << " " << qArray[+maxTimeBin] << " "  << qArray[+maxTimeBin+1] << std::endl;
+//        std::cout << qArray[-1]             << " " << qArray[0]           << " "  << qArray[+1] << std::endl;
+//        std::cout << qArray[-maxTimeBin-1]  << " " << qArray[-maxTimeBin] << " "  << qArray[-maxTimeBin+1] << std::endl;
+//      }
       // We accept the local maximum as a cluster and calculates its
       // parameters
       ++nLocalMaxima;
@@ -268,8 +266,8 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
       Double_t sigmaP = 0; // sigma pad position
       Double_t sigmaT = 0; // sigma time position
       Float_t qTot = qMax; // total charge
-      for(Short_t dPad = -1; dPad<=1; dPad++) {      // delta pad
 	for(Short_t dTime = -1; dTime<=1; dTime++) { // delta time
+      for(Short_t dPad = -1; dPad<=1; dPad++) {      // delta pad
 
 	  if( dPad==0 && dTime==0 ) // central pad
 	    continue;
@@ -322,6 +320,22 @@ void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
 	  (mClusterContainer->AddCluster(iCRU, iRow, qTot, qMax, meanP, meanT,
 					 sigmaP, sigmaT));
 	cluster->setBoxParameters(pad, timebin, size);
+
+//    if ((iCRU == 179)) {// && iRow == 5)){// && (int)meanP == 103 && (int)meanT == 170) || 
+////        (iCRU == 256 && iRow == 10 && (int)meanP == 27 && (int)meanT == 181) ) {
+//    std::cout << "BoxCluster - ";
+//    cluster->Print(std::cout);
+//    std::cout << " " << std::endl;
+//	for(Short_t dTime = -2; dTime<=2; dTime++) { // delta time
+//      for(Short_t dPad = -2; dPad<=2; dPad++) {      // delta pad
+//        Float_t charge = GetQ(qArray, dPad, dTime, minT, maxT, minP, maxP);  
+//        std::cout << "\t" << charge;
+//      }
+//      std::cout << std::endl;
+//	}
+//      std::cout << std::endl;
+//    }
+////    LOG(INFO) << *cluster << FairLogger::endl;
       }
     } // end loop over signals
   } // end loop over rows
@@ -350,14 +364,14 @@ void BoxClusterer::CleanArrays()
 void BoxClusterer::GetPadAndTimeBin(Int_t bin, Short_t& iPad, Short_t& iTimeBin)
 {
   /// Return pad and timebin for a given bin
-  //  (where bin = iPad*(mTimeBinsMax+4) + iTimeBin)
+  //  (where bin = (iPad+2)*(mTimeBinsMax+4) + (iTimeBin+2)
   iTimeBin  = Short_t(bin%(mTimeBinsMax+4));
   iPad      = Short_t((bin-iTimeBin)/(mTimeBinsMax+4));
   iTimeBin -= 2;
   iPad     -= 2;
 
-  R__ASSERT(iPad>=0     && iPad<mPadsMax);
-  R__ASSERT(iTimeBin>=0 && iTimeBin<mTimeBinsMax);
+  R__ASSERT(iPad>=0     && iPad<(mPadsMax+4));
+  R__ASSERT(iTimeBin>=0 && iTimeBin<(mTimeBinsMax+4));
 }
 
 //_____________________________________________________________________
@@ -369,16 +383,17 @@ Int_t BoxClusterer::Update(const Int_t iCRU,
 {
   /// Signal filling method
 
-  // One could have a list of active chambers
+  // -ne could have a list of active chambers
   // if (!fActiveChambers[iSector]) return 0;
 
   // Stop processing if input is out of range
   R__ASSERT(iRow>=0     && iRow<mRowsMax);
-  R__ASSERT(iPad>=0     && iPad<mPadsMax);
-  R__ASSERT(iTimeBin>=0 && iTimeBin<mTimeBinsMax);
+  R__ASSERT(iPad>=0     && iPad<(mPadsMax+4));
+  R__ASSERT(iTimeBin>=0 && iTimeBin<(mTimeBinsMax+4));
 
-  if (mRequirePositiveCharge && signal <= 0)
+  if (mRequirePositiveCharge && (signal <= 0)){
     return 0; // signal was not accepted
+  }
 
   // Fill signal in array. Add 2 to pad and time to make sure that the 2D
   // array even for (0, 0) has a valid 5x5 matrix.
@@ -395,7 +410,7 @@ Int_t BoxClusterer::Update(const Int_t iCRU,
 
 //______________________________________________________________________________
 Float_t BoxClusterer::GetQ(const Float_t* adcArray,
-			   const Short_t time, const Short_t pad,
+			   const Short_t pad, const Short_t time, 
 			   Short_t& timeMin, Short_t& timeMax,
 			   Short_t& padMin,  Short_t& padMax) const
 {

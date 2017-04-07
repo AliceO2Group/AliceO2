@@ -279,6 +279,7 @@ macro(O2_GENERATE_LIBRARY)
   install(TARGETS ${Int_LIB} DESTINATION lib)
 
   # Install all the public headers
+  install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
   if(EXISTS include/${MODULE_NAME})
     install(DIRECTORY include/${MODULE_NAME} DESTINATION include)
   endif()

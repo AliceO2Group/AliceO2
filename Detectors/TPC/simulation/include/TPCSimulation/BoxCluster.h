@@ -10,6 +10,7 @@
 #include "TPCSimulation/Cluster.h"
 #include "FairTimeStamp.h"                      // for FairTimeStamp
 #include "Rtypes.h"                             // for Double_t, ULong_t, etc
+
 namespace boost { namespace serialization { class access; } }
 
 namespace AliceO2{
@@ -62,7 +63,8 @@ namespace AliceO2{
       /// Print function: Print basic information to the output stream
       /// @param output stream
       /// @return The output stream
-      std::ostream &Print(std::ostream &output) const;
+      friend std::ostream& operator<< (std::ostream& out, const BoxCluster &c) { return c.Print(out); }
+      std::ostream& Print(std::ostream &output) const;
 
     private:
 #ifndef __CINT__

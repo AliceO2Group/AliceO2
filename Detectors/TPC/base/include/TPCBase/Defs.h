@@ -1,3 +1,10 @@
+///
+/// @file   Defs.h
+/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+///
+
+/// @brief  Global TPC definitions and constants
+
 #ifndef AliceO2_TPC_Defs_H
 #define AliceO2_TPC_Defs_H
 
@@ -13,19 +20,27 @@ namespace TPC {
 enum Side {A=0, C=1};
 //   enum class Side {A=0, C=1};
 //  Problem with root cint. does not seem to support enum class ...
-const unsigned char SECTORSPERSIDE=18;
-const unsigned char SIDES=2;
+constexpr unsigned char SECTORSPERSIDE=18;
+constexpr unsigned char SIDES=2;
 
-const double PI          = 3.14159265358979323846;
-const double TWOPI       = 2*PI;
-const double SECPHIWIDTH = TWOPI/18;
+constexpr double PI          = 3.14159265358979323846;
+constexpr double TWOPI       = 2.*PI;
+constexpr double SECPHIWIDTH = TWOPI/18.;
 
 
 /// TPC ROC types
 enum RocType {IROC=0, OROC=1};
 // enum class RocType {IROC=0, OROC=1};
 
+/// TPC GEM stack types
+enum GEMstack {IROCgem=0, OROC1gem=1, OROC2gem=2, OROC3gem=3};
 
+/// Definition of the different pad subsets
+enum class PadSubset : char {
+  ROC,        ///< ROCs (up to 72)
+  Partition,  ///< Partitions (up to 36*5)
+  Region      ///< Regions (up to 36*10)
+};
 /// Pad centres as 2D float
 typedef Point2D<float> PadCentre;
 typedef Point2D<float> GlobalPosition2D;

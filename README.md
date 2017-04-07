@@ -49,3 +49,11 @@ clang-format -style=file -i SOURCEFILE
 
 ##### Using an IDE
 A number of config files are available [here](https://github.com/AliceO2Group/CodingGuidelines) for various IDEs.
+
+### Documentation
+
+The documentation single entry point is [here](https://alice-o2.web.cern.ch/).
+
+### Issue tracking system
+
+We use JIRA to track issues. Head [here](https://alice.its.cern.ch/jira) to create tickets.

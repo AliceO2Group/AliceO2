@@ -4,6 +4,9 @@
 #ifndef ALICEO2_BASE_DETECTOR_H_
 #define ALICEO2_BASE_DETECTOR_H_
 
+#include <vector>
+#include <memory>
+
 #include "FairDetector.h"  // for FairDetector
 #include "Rtypes.h"        // for Float_t, Int_t, Double_t, Detector::Class, etc
 
@@ -69,15 +72,31 @@ class Detector : public FairDetector
                                   Double_t width, Double_t tilt, Double_t lthick = 0., Double_t dthick = 0.,
                                   UInt_t detType = 0, Int_t buildFlag = 0);
 
+    int getMaterial(int imat) const { return (*mMapMaterial.get())[imat]; }
+    int getMedium  (int imed) const { return (*mMapMedium  .get())[imed]; }
+
+    const std::vector<int>& getMapMaterial() const { return *mMapMaterial.get(); }
+    const std::vector<int>& getMapMedium()   const { return *mMapMedium  .get(); }
+
   protected:
     Detector(const Detector &origin);
 
     Detector &operator=(const Detector &);
 
+
+    /// Mapping of the ALICE internal material number to the one
+    /// automatically assigned by geant.
+    /// This is required for easily being able to copy the geometry setup
+    /// used in AliRoot
+    std::unique_ptr<std::vector<int>> mMapMaterial; //!< material mapping
+
+    /// See comment for mMapMaterial
+    std::unique_ptr<std::vector<int>> mMapMedium;   //!< medium mapping
+
     static Float_t mDensityFactor; //! factor that is multiplied to all material densities (ONLY for
     // systematic studies)
 
-  ClassDef(Detector, 1) // Base class for ALICE Modules
+  ClassDef(Detector, 0) // Base class for ALICE Modules
 };
 }
 }
