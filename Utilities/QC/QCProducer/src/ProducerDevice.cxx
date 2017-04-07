@@ -8,7 +8,6 @@
 
 #include <TMessage.h>
 #include <FairMQLogger.h>
-#include <zeromq/FairMQTransportFactoryZMQ.h>
 
 #include "QCProducer/ProducerDevice.h"
 
@@ -18,7 +17,7 @@ using namespace dds::intercom_api;
 
 ProducerDevice::ProducerDevice(const char * producerId, const int numIoThreads, shared_ptr<Producer> & producer) : ddsCustomCmd(new CCustomCmd(mService))
 {
-  this->SetTransport(new FairMQTransportFactoryZMQ);
+  this->SetTransport("zeromq");
   this->SetProperty(Id, producerId);
   this->SetProperty(NumIoThreads, numIoThreads);
   mProducer = producer;

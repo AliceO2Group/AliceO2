@@ -4,7 +4,6 @@
 
 #include <TSystem.h>
 #include <FairMQLogger.h>
-#include <zeromq/FairMQTransportFactoryZMQ.h>
 
 #include "QCViewer/ViewerDevice.h"
 #include "QCCommon/TMessageWrapper.h"
@@ -13,7 +12,7 @@ using namespace std;
 
 ViewerDevice::ViewerDevice(std::string viewerId, int numIoThreads, string drawingOptions)
 {
-  this->SetTransport(new FairMQTransportFactoryZMQ);
+  this->SetTransport("zeromq");
   this->SetProperty(ViewerDevice::Id, viewerId);
   this->SetProperty(ViewerDevice::NumIoThreads, numIoThreads);
   mDrawingOptions = drawingOptions;

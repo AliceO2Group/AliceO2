@@ -22,10 +22,6 @@
 #include <cstring>
 #include <sstream>
 #include <cerrno>
-#ifdef NANOMSG
-#include <nanomsg/FairMQTransportFactoryNN.h>
-#endif
-#include <zeromq/FairMQTransportFactoryZMQ.h>
 #include <tools/FairMQTools.h>
 
 #include <FairMQStateMachine.h>
@@ -333,16 +329,11 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  FairMQTransportFactory* transportFactory = nullptr;
+  std::string transport;
   if (strcmp(factoryType, "nanomsg") == 0) {
-#ifdef NANOMSG
-    transportFactory = new FairMQTransportFactoryNN();
-#else
-    cerr << "can not create factory for NANOMSG: not enabled in build" << endl;
-    return -ENODEV;
-#endif
+    transport = "nanomsg";
   } else if (strcmp(factoryType, "zmq") == 0) {
-    transportFactory = new FairMQTransportFactoryZMQ();
+    transport = "zeromq";
   } else {
     cerr << "invalid factory type: " << factoryType << endl;
     return -ENODEV;
@@ -373,7 +364,7 @@ int main(int argc, char** argv)
   { // scope for the device reference variable
     FairMQDevice& device = *gDevice;
 
-    device.SetTransport(transportFactory);
+    device.SetTransport(transport);
     device.SetProperty(FairMQDevice::Id, id.c_str());
     device.SetProperty(FairMQDevice::NumIoThreads, numIoThreads);
     // device.SetProperty(FairMQDevice::LogIntervalInMs, deviceLogInterval);
