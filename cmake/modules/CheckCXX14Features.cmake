@@ -9,9 +9,13 @@
 #
 # When found it will set the following variables
 #
-#  CXX14_COMPILER_FLAGS         - the compiler flags needed to get C++14 features
+#  CXX14_COMPILER_FLAGS                 - the compiler flags needed to get C++14 features
 #
-#  HAS_CXX14_MAKE_UNIQUE         - auto keyword
+#  HAS_CXX14_MAKE_UNIQUE                - make_unique support
+#  HAS_CXX14_AGGREGATE-INITIALIZATION   - aggregate initialization support
+#  HAS_CXX14_BINARY-LITERALS            - binary literals support
+#  HAS_CXX14_GENERIC-LAMBDA             - generic lambdas support
+#  HAS_CXX14_USER-DEFINED-LITERALS      - user defined literals support
 
 #=============================================================================
 # Copyright 2011,2012 Rolf Eike Beer <eike@sf-mail.de>
