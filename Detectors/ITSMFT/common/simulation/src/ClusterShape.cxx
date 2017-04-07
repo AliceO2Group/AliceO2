@@ -2,6 +2,7 @@
 /// \brief Cluster shape class for the ALPIDE response simulation
 
 #include <iostream>
+#include <algorithm>
 #include <TBits.h>
 #include <TRandom.h>
 

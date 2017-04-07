@@ -13,6 +13,7 @@
 #include <TObject.h>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 
 namespace AliceO2 {
   namespace ITSMFT {
@@ -85,7 +86,7 @@ namespace AliceO2 {
             } else {
               if (c == 0) out << r << " ";
               index = r*v.mNcols + c;
-              if (find(begin(v.mShape), end(v.mShape), index) != end(v.mShape)) out << "X";
+              if (std::find(begin(v.mShape), end(v.mShape), index) != end(v.mShape)) out << "X";
               else out << " ";
               if (c < v.mNcols-1) out << " ";
             }
