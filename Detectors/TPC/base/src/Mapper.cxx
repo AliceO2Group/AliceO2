@@ -11,7 +11,7 @@
 // using boost::format;
 
 #include "TPCBase/Mapper.h"
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
   constexpr std::array<double, SECTORSPERSIDE> Mapper::SinsPerSector/*{{
     0,

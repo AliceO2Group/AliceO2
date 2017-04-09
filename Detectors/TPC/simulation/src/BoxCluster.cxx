@@ -4,9 +4,9 @@
 #include "TPCSimulation/BoxCluster.h"
 #include "TPCSimulation/Cluster.h"
 
-ClassImp(AliceO2::TPC::BoxCluster)
+ClassImp(o2::TPC::BoxCluster)
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 //________________________________________________________________________
 BoxCluster::BoxCluster():

@@ -2,7 +2,7 @@
 /// \author Sebastian Klewin
 
 #include "TPCReconstruction/GBTFrame.h"
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 GBTFrame::GBTFrame(short s0hw0l, short s0hw1l, short s0hw2l, short s0hw3l,
                    short s0hw0h, short s0hw1h, short s0hw2h, short s0hw3h,

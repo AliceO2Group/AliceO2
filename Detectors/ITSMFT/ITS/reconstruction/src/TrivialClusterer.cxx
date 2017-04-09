@@ -8,9 +8,9 @@
 #include "FairLogger.h"   // for LOG
 #include "TClonesArray.h" // for TClonesArray
 
-using AliceO2::ITSMFT::SegmentationPixel;
-using AliceO2::ITSMFT::Digit;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::SegmentationPixel;
+using o2::ITSMFT::Digit;
+using namespace o2::ITS;
 
 TrivialClusterer::TrivialClusterer() = default;
 

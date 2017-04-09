@@ -11,7 +11,7 @@
 
 #include "DetectorsBase/Track.h"
 
-namespace AliceO2
+namespace o2
 {
 namespace ITS
 {
@@ -21,7 +21,7 @@ class CookedTrack : public TObject
 {
  public:
   CookedTrack();
-  CookedTrack(float x, float alpha, const std::array<float,AliceO2::Base::Track::kNParams> &par, const std::array<float,AliceO2::Base::Track::kCovMatSize> &cov);
+  CookedTrack(float x, float alpha, const std::array<float,o2::Base::Track::kNParams> &par, const std::array<float,o2::Base::Track::kCovMatSize> &cov);
   CookedTrack(const CookedTrack& t);
   CookedTrack& operator=(const CookedTrack& tr);
   virtual ~CookedTrack();
@@ -60,7 +60,7 @@ class CookedTrack : public TObject
   void resetCovariance(Double_t s2 = 0.) { mTrack.ResetCovariance(float(s2)); }
   
  private:
-  AliceO2::Base::Track::TrackParCov mTrack; ///< Base track
+  o2::Base::Track::TrackParCov mTrack; ///< Base track
   Int_t mLabel;              ///< Monte Carlo label for this track
   Double_t mMass;            ///< Assumed mass for this track
   Double_t mChi2;            ///< Chi2 for this track

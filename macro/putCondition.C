@@ -1,4 +1,4 @@
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 void putCondition()
 {
   Manager *cdb = Manager::Instance();

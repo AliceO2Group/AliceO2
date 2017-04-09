@@ -17,8 +17,8 @@
 
 
 void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
-  using AliceO2::ITSMFT::Point;
-  using namespace AliceO2::ITS;
+  using o2::ITSMFT::Point;
+  using namespace o2::ITS;
 
   TFile *f=TFile::Open("CheckClusters.root","recreate");
   TNtuple *nt=new TNtuple("ntc","cluster ntuple","x:y:z:dx:dz");
@@ -37,14 +37,14 @@ void CheckClusters(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file0 = TFile::Open(filename);
   TTree *hitTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray hitArr("AliceO2::ITSMFT::Point"), *phitArr(&hitArr);
+  TClonesArray hitArr("o2::ITSMFT::Point"), *phitArr(&hitArr);
   hitTree->SetBranchAddress("ITSPoint",&phitArr);
 
   // Clusters
   sprintf(filename, "AliceO2_%s.clus_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
   TTree *clusTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray clusArr("AliceO2::ITS::Cluster"), *pclusArr(&clusArr);
+  TClonesArray clusArr("o2::ITS::Cluster"), *pclusArr(&clusArr);
   clusTree->SetBranchAddress("ITSCluster",&pclusArr);
   
   Int_t nev=hitTree->GetEntries();

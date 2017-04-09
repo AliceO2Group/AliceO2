@@ -21,19 +21,19 @@ class TParticle;
 
 class TString;
 
-namespace AliceO2 { namespace ITSMFT { class Point; }}  // lines 22-22
+namespace o2 { namespace ITSMFT { class Point; }}  // lines 22-22
 
-namespace AliceO2 { namespace ITS { class GeometryHandler; }}
-namespace AliceO2 { namespace ITS { class MisalignmentParameter; }}
-namespace AliceO2 { namespace ITS { class GeometryTGeo; }}
-namespace AliceO2 { namespace ITS { class V1Layer; }}  // lines 23-23
+namespace o2 { namespace ITS { class GeometryHandler; }}
+namespace o2 { namespace ITS { class MisalignmentParameter; }}
+namespace o2 { namespace ITS { class GeometryTGeo; }}
+namespace o2 { namespace ITS { class V1Layer; }}  // lines 23-23
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 class V1Layer;
 
-class Detector : public AliceO2::Base::Detector
+class Detector : public o2::Base::Detector
 {
 
   public:
@@ -142,7 +142,7 @@ class Detector : public AliceO2::Base::Detector
                                     UInt_t &dettype) const;
 
     /// This method is an example of how to add your own point of type Point to the clones array
-    AliceO2::ITSMFT::Point *addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,
+    o2::ITSMFT::Point *addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,
 				   double startE, double endTime, double eLoss,
 				   unsigned char startStatus, unsigned char endStatus);
 

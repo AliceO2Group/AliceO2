@@ -18,9 +18,9 @@
 
 #include "MFTBase/HalfCone.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::HalfCone)
+ClassImp(o2::MFT::HalfCone)
 
 //_____________________________________________________________________________
 HalfCone::HalfCone():

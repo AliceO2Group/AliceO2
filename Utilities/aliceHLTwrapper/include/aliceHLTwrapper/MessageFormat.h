@@ -27,7 +27,7 @@
 class AliHLTHOMERReader;
 class AliHLTHOMERWriter;
 
-namespace AliceO2 {
+namespace o2 {
 namespace AliceHLT {
 /// @class MessageFormat
 /// Helper class to format ALICE HLT data blocks for transport in

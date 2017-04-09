@@ -10,7 +10,7 @@
 
 #define CLUSTER_VERSION 2
 
-namespace AliceO2
+namespace o2
 {
 namespace ITSMFT
 {

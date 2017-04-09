@@ -74,7 +74,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  AliceO2::Passive::Cave* cave = new AliceO2::Passive::Cave("CAVE");
+  o2::Passive::Cave* cave = new AliceO2::Passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
@@ -85,7 +85,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
 //  TGeoGlobalMagField::Instance()->SetField(new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagneticField::k5kG));
 
 /*
-  AliceO2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
+  o2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
   run->AddModule(its);
 
   // build ITS upgrade detector
@@ -124,7 +124,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   gSystem->Exec(" rm itsSegmentations.root ");
 
   // create segmentations:
-  AliceO2::ITSMFT::SegmentationPixel* seg0 = new AliceO2::ITSMFT::SegmentationPixel(
+  o2::ITSMFT::SegmentationPixel* seg0 = new AliceO2::ITSMFT::SegmentationPixel(
     0,           // segID (0:9)
     1,           // chips per module
     kNCol,       // ncols (total for module)
@@ -139,14 +139,14 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
     kGuardRing,  // top
     kReadOutEdge // bottom
     );           // see UpgradeSegmentationPixel.h for extra options
-  seg0->Store(AliceO2::ITS::GeometryTGeo::getITSsegmentationFileName());
+  seg0->Store(o2::ITS::GeometryTGeo::getITSsegmentationFileName());
   seg0->Print();
 
   double dzLr, rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr, idLr;
 
-  its->setStaveModelIB(AliceO2::ITS::Detector::kIBModel22);
-  its->setStaveModelOB(AliceO2::ITS::Detector::kOBModel1);
+  its->setStaveModelIB(o2::ITS::Detector::kIBModel22);
+  its->setStaveModelOB(o2::ITS::Detector::kOBModel1);
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = { 2.1, 15.0, 32.0 };
@@ -183,7 +183,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   }
 */
   // ===| Add TPC |============================================================
-  AliceO2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
+  o2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
   //tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 

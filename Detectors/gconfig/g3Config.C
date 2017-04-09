@@ -27,7 +27,7 @@ void Config()
              << endl;
   }
   // create Fair Specific Stack
-  AliceO2::Data::Stack *st = new AliceO2::Data::Stack();
+  o2::Data::Stack *st = new AliceO2::Data::Stack();
   st->SetMinPoints(0);
   st->StoreSecondaries(kTRUE);
   geant3->SetStack( st ) ;

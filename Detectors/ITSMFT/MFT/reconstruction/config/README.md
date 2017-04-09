@@ -17,6 +17,6 @@ Run on a CC OpenStack cluster (4 machines)
 
 [centos@vulpescu-aliceo2-wn-3 build_o2]$ ./bin/mft-reco-merger --transport zeromq --id merger1 --mq-config reco_c01.json
 
-[centos@vulpescu-aliceo2-wn-3 build_o2]$ ./bin/mft-reco-sink --transport zeromq --id sink1 --mq-config reco_c01.json --file-name tracks.root --class-name "TClonesArray(AliceO2::MFT::Track)" --branch-name MFTTracks --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
+[centos@vulpescu-aliceo2-wn-3 build_o2]$ ./bin/mft-reco-sink --transport zeromq --id sink1 --mq-config reco_c01.json --file-name tracks.root --class-name "TClonesArray(o2::MFT::Track)" --branch-name MFTTracks --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
 
 ```

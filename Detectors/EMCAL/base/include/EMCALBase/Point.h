@@ -3,12 +3,12 @@
 
 #include "SimulationDataFormat/BaseHits.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace EMCAL {
     
     /// \class Point
     /// \brief EMCAL simulation point information
-    class Point : public AliceO2::BasicXYZEHit<float> {
+    class Point : public o2::BasicXYZEHit<float> {
     public:
       
       /// \brief Default constructor
@@ -31,7 +31,7 @@ namespace AliceO2 {
       /// \param length Length of the segment
       Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy,
             const Point3D<float> &pos, const Vector3D<float> &mom, Double_t tof, Double_t eLoss):
-      AliceO2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.X(), tof, eLoss, trackID, detID),
+      o2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.X(), tof, eLoss, trackID, detID),
       mPvector(mom),
       mShunt(shunt),
       mPrimary(primary),

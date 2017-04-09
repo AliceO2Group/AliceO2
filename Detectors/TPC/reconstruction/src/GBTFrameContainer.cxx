@@ -3,7 +3,7 @@
 
 #include "TPCReconstruction/GBTFrameContainer.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 GBTFrameContainer::GBTFrameContainer()
   : GBTFrameContainer(0,0)

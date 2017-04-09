@@ -8,7 +8,7 @@
 #include "TH1D.h"
 #include "TF1.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
   BOOST_AUTO_TEST_CASE(GEMamplification_test)

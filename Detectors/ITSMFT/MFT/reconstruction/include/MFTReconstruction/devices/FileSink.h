@@ -8,7 +8,7 @@ class TTree;
 class TObject;
 class TFolder;
 
-namespace AliceO2 {
+namespace o2 {
 
 namespace MFT {
 

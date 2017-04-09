@@ -71,7 +71,7 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  AliceO2::Passive::Cave* cave = new AliceO2::Passive::Cave("CAVE");
+  o2::Passive::Cave* cave = new AliceO2::Passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
@@ -79,10 +79,10 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
    field.SetField(0., 0., 5.); //in kG
    field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in c
   */
-  AliceO2::Field::MagneticField field("field","field +5kG");
+  o2::Field::MagneticField field("field","field +5kG");
   run->SetField(&field);
 
-  AliceO2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
+  o2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
   run->AddModule(its);
 
   // build ITS upgrade detector
@@ -121,7 +121,7 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   gSystem->Exec(" rm itsSegmentations.root ");
 
   // create segmentations:
-  AliceO2::ITSMFT::SegmentationPixel* seg0 = new AliceO2::ITSMFT::SegmentationPixel(
+  o2::ITSMFT::SegmentationPixel* seg0 = new AliceO2::ITSMFT::SegmentationPixel(
     0,           // segID (0:9)
     1,           // chips per module
     kNCol,       // ncols (total for module)
@@ -136,14 +136,14 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     kGuardRing,  // top
     kReadOutEdge // bottom
     );           // see SegmentationPixel.h for extra options
-  seg0->Store(AliceO2::ITS::GeometryTGeo::getITSsegmentationFileName());
+  seg0->Store(o2::ITS::GeometryTGeo::getITSsegmentationFileName());
   seg0->Print();
 
   double dzLr, rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr, idLr;
 
-  its->setStaveModelIB(AliceO2::ITS::Detector::kIBModel22);
-  its->setStaveModelOB(AliceO2::ITS::Detector::kOBModel1);
+  its->setStaveModelIB(o2::ITS::Detector::kIBModel22);
+  its->setStaveModelOB(o2::ITS::Detector::kOBModel1);
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = { 2.1, 15.0, 32.0 };

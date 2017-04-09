@@ -5,7 +5,7 @@
 #ifndef ALICEO2_BASE_CONSTANTS
 #define ALICEO2_BASE_CONSTANTS
 
-namespace AliceO2 {
+namespace o2 {
   namespace Base {
     namespace Constants {
 

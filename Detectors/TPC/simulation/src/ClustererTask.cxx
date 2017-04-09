@@ -14,9 +14,9 @@
 #include "FairLogger.h"          // for LOG
 #include "FairRootManager.h"     // for FairRootManager
 
-ClassImp(AliceO2::TPC::ClustererTask)
+ClassImp(o2::TPC::ClustererTask)
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 //_____________________________________________________________________
 ClustererTask::ClustererTask():
@@ -70,7 +70,7 @@ InitStatus ClustererTask::Init()
     mBoxClusterer->Init();
     
     // Register output container
-    mClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
+    mClustersArray = new TClonesArray("o2::TPC::Cluster");
     mgr->Register("TPC_Cluster", "TPC", mClustersArray, kTRUE);
   }
 
@@ -79,7 +79,7 @@ InitStatus ClustererTask::Init()
     mHwClusterer->Init();
 
     // Register output container
-    mHwClustersArray = new TClonesArray("AliceO2::TPC::Cluster");
+    mHwClustersArray = new TClonesArray("o2::TPC::Cluster");
     mgr->Register("TPC_HW_Cluster", "TPC", mHwClustersArray, kTRUE);
   }
 

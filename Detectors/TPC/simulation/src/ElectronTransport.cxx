@@ -7,7 +7,7 @@
 
 #include <cmath>
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 ElectronTransport::ElectronTransport()
   : mRandomGaus()

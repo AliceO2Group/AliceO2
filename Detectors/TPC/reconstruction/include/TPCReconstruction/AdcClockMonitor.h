@@ -8,7 +8,7 @@
 #include <iostream>
 #include <iomanip>
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 /// \class AdcClockMonitor

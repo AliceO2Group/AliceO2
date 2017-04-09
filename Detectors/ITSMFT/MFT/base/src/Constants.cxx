@@ -6,9 +6,9 @@
 
 #include <TString.h>
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Constants)
+ClassImp(o2::MFT::Constants)
 
 // Defaults parameters for track reconstruction
 Double_t Constants::sDiskThicknessInX0[Constants::sNDisks] = {0.008, 0.008, 0.008, 0.008, 0.008};

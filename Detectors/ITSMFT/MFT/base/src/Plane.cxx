@@ -17,9 +17,9 @@
 #include "MFTBase/Constants.h"
 #include "MFTBase/Plane.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Plane)
+ClassImp(o2::MFT::Plane)
 
 //_____________________________________________________________________________
 Plane::Plane():

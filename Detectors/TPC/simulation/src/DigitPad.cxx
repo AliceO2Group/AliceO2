@@ -9,7 +9,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/bind.hpp>
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode)
 {

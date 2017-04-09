@@ -44,7 +44,7 @@ void pushFifo(Fifo& fifo, T value) {
 
 int main()
 {
-  AliceO2::Test::Fifo<unsigned int> fifo;
+  o2::Test::Fifo<unsigned int> fifo;
 
   // start a consumer thread which pulls from the FIFO to the function
   // processValue with a simulated prcessing of one second.

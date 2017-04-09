@@ -21,7 +21,7 @@
 using std::cout;
 using std::endl;
 using std::pair;
-using namespace AliceO2::Data;
+using namespace o2::Data;
 
 Stack::Stack(Int_t size)
   : FairGenericStack(),
@@ -315,7 +315,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
 
       // Update track index for all MCPoints in the collection
       for (Int_t iPoint = 0; iPoint < nPoints; iPoint++) {
-        auto *point = (AliceO2::BaseHit *) hitArray->UncheckedAt(iPoint);
+        auto *point = (o2::BaseHit *) hitArray->UncheckedAt(iPoint);
         Int_t iTrack = point->GetTrackID();
 
         mIndexIterator = mIndexMap.find(iTrack);
@@ -492,7 +492,7 @@ void Stack::SelectTracks()
 
 FairGenericStack *Stack::CloneStack() const
 {
-  return new AliceO2::Data::Stack(*this);
+  return new o2::Data::Stack(*this);
 }
 
-ClassImp(AliceO2::Data::Stack)
+ClassImp(o2::Data::Stack)

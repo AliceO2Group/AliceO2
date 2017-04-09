@@ -22,7 +22,7 @@
 #include <fstream>                      // for fstream
 
 class FairGeoMedia;
-namespace AliceO2 {
+namespace o2 {
 namespace Passive {
 
 class  GeoCave : public FairGeoSet
@@ -37,7 +37,7 @@ class  GeoCave : public FairGeoSet
     void addRefNodes();
     void write(std::fstream&);
     void print();
-    ClassDef(AliceO2::Passive::GeoCave,0) // Class for the geometry of CAVE
+    ClassDef(o2::Passive::GeoCave,0) // Class for the geometry of CAVE
 };
 }
 }

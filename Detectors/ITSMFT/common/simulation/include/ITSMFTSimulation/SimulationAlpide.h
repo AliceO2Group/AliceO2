@@ -20,7 +20,7 @@ class TLorentzVector;
 class TClonesArray;
 class TSeqCollection;
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITSMFT {
 
     //-------------------------------------------------------------------

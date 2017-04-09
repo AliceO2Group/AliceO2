@@ -10,7 +10,7 @@
 #include "TGeoVolume.h"
 #include "TGeoMatrix.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class HeatExchanger : public TNamed {

@@ -8,7 +8,7 @@
 #include <TSystem.h>            // for TSystem, gSystem
 #include "CCDB/Condition.h"          // for Condition
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 
 ClassImp(LocalStorage)
 

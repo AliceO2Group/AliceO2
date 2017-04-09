@@ -11,10 +11,10 @@
 
 using namespace std;
 using namespace std::chrono;
-using namespace AliceO2::Devices;
-using SubframeMetadata = AliceO2::DataFlow::SubframeMetadata;
-using TPCTestPayload = AliceO2::DataFlow::TPCTestPayload;
-using TPCTestCluster = AliceO2::DataFlow::TPCTestCluster;
+using namespace o2::Devices;
+using SubframeMetadata = o2::DataFlow::SubframeMetadata;
+using TPCTestPayload = o2::DataFlow::TPCTestPayload;
+using TPCTestCluster = o2::DataFlow::TPCTestCluster;
 
 void EPNReceiverDevice::InitTask()
 {
@@ -88,7 +88,7 @@ void EPNReceiverDevice::Run()
     Header::DataHeader* dh = reinterpret_cast<Header::DataHeader*>(subtimeframeParts.At(0)->GetData());
     assert(strncmp(dh->dataDescription.str, "SUBTIMEFRAMEMD", 16) == 0);
     SubframeMetadata* sfm = reinterpret_cast<SubframeMetadata*>(subtimeframeParts.At(1)->GetData());
-    id = AliceO2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
+    id = o2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
     auto flpId = sfm->flpIndex;
 
     // in this case the subtime frame did send some data
@@ -145,11 +145,11 @@ void EPNReceiverDevice::Run()
 
     if (flpIds.count(id) == mNumFLPs) {
       LOG(INFO) << "Timeframe " << id << " complete. Publishing.\n";
-      AliceO2::Header::DataHeader tih;
+      o2::Header::DataHeader tih;
       std::vector<IndexElement> flattenedIndex;
 
-      tih.dataDescription = AliceO2::Header::DataDescription("TIMEFRAMEINDEX");
-      tih.dataOrigin = AliceO2::Header::DataOrigin("EPN");
+      tih.dataDescription = o2::Header::DataDescription("TIMEFRAMEINDEX");
+      tih.dataOrigin = o2::Header::DataOrigin("EPN");
       tih.subSpecification = 0;
       tih.payloadSize = index.count(id) * sizeof(flattenedIndex.front());
       void *indexData = malloc(tih.payloadSize);

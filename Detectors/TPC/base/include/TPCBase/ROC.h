@@ -23,7 +23,7 @@
 #include "TPCBase/Defs.h"
 #include "TPCBase/Sector.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 //   enum RocType {IROC=0, OROC=1};
 

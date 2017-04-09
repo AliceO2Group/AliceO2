@@ -5,7 +5,7 @@
 #include "TObject.h" // for ClassDef
 #include "Headers/TimeStamp.h"
 
-namespace AliceO2
+namespace o2
 {
 namespace DataFormat
 {

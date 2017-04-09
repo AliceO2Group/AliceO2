@@ -6,7 +6,7 @@
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 ///
 
-namespace AliceO2
+namespace o2
 {
 namespace TPC 
 {

@@ -12,7 +12,7 @@
 
 using boost::format;
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 /// Class to hold calibration data on a pad level

@@ -9,9 +9,9 @@
 #include "FairRootManager.h" // for FairRootManager
 #include "TClonesArray.h"    // for TClonesArray
 
-ClassImp(AliceO2::ITS::CookedTrackerTask)
+ClassImp(o2::ITS::CookedTrackerTask)
 
-  using namespace AliceO2::ITS;
+  using namespace o2::ITS;
 
 //_____________________________________________________________________
 CookedTrackerTask::CookedTrackerTask(Int_t n) : FairTask("ITSCookedTrackerTask"), mNumOfThreads(n), mClustersArray(nullptr), mTracksArray(nullptr) {}
@@ -43,7 +43,7 @@ InitStatus CookedTrackerTask::Init()
   }
 
   // Register output container
-  mTracksArray = new TClonesArray("AliceO2::ITS::CookedTrack");
+  mTracksArray = new TClonesArray("o2::ITS::CookedTrack");
   mgr->Register("ITSTrack", "ITS", mTracksArray, kTRUE);
 
   mGeometry.Build(kTRUE);

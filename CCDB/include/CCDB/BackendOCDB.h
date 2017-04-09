@@ -10,7 +10,7 @@
 #include <iostream>
 #include <memory>
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class BackendOCDB : public Backend {

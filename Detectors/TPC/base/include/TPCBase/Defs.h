@@ -13,7 +13,7 @@
 #include "Point2D.h"
 #include "Point3D.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 /// TPC readout sidE

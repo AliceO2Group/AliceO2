@@ -14,7 +14,7 @@
 #include <google/protobuf/stubs/common.h>
 #include "request.pb.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class Backend {

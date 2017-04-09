@@ -11,7 +11,7 @@ class FairParSet;
 
 class FairContainer;
 
-namespace AliceO2
+namespace o2
 {
 namespace ITS
 {

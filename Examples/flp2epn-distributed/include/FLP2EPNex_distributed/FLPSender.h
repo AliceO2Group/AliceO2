@@ -15,7 +15,7 @@
 
 #include <FairMQDevice.h>
 
-namespace AliceO2 {
+namespace o2 {
 namespace Devices {
 
 /// Sends sub-timframes to epnReceivers

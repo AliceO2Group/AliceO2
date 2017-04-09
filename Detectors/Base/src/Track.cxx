@@ -1,10 +1,10 @@
 #include "DetectorsBase/Track.h"
 
 using std::array;
-using AliceO2::Base::Track::TrackParBase;
-using AliceO2::Base::Track::TrackPar;
-using AliceO2::Base::Track::TrackParCov;
-using namespace AliceO2::Base::Constants;
+using o2::Base::Track::TrackParBase;
+using o2::Base::Track::TrackPar;
+using o2::Base::Track::TrackParCov;
+using namespace o2::Base::Constants;
 
 //______________________________________________________________
 TrackParBase::TrackParBase(const array<float,3> &xyz,const array<float,3> &pxpypz, int charge, bool sectorAlpha) :
@@ -1037,7 +1037,7 @@ void TrackParCov::Print() const
 //
 //=================================================
 
-void AliceO2::Base::Track::g3helx3(float qfield, float step,array<float,7> &vect)
+void o2::Base::Track::g3helx3(float qfield, float step,array<float,7> &vect)
 {
 /******************************************************************
  *                                                                *
@@ -1094,7 +1094,7 @@ void AliceO2::Base::Track::g3helx3(float qfield, float step,array<float,7> &vect
 }
 
 //____________________________________________________
-float AliceO2::Base::Track::BetheBlochSolid(float bg, float rho,float kp1,float kp2,float meanI,float meanZA)
+float o2::Base::Track::BetheBlochSolid(float bg, float rho,float kp1,float kp2,float meanI,float meanZA)
 {
   //
   // This is the parameterization of the Bethe-Bloch formula inspired by Geant.

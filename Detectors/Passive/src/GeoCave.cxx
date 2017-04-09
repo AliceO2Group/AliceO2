@@ -30,8 +30,8 @@
 #include <iostream>                     // for cout
 
 using namespace std;
-using namespace AliceO2::Passive;
-ClassImp(AliceO2::Passive::GeoCave)
+using namespace o2::Passive;
+ClassImp(o2::Passive::GeoCave)
 
 GeoCave::GeoCave()
   : FairGeoSet(),

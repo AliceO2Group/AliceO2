@@ -15,7 +15,7 @@
 
 class TClonesArray;
 
-namespace AliceO2
+namespace o2
 {
   namespace ITS
   {
@@ -39,8 +39,8 @@ namespace AliceO2
 
       GeometryTGeo mGeometry;                     ///< ITS upgrade geometry
       Int_t mNumOfChips;                          ///< Number of chips
-      std::vector<AliceO2::ITSMFT::Chip> mChips;  ///< Array of chips
-      std::vector<AliceO2::ITSMFT::SimulationAlpide> mSimulations; ///< Array of chips response simulations
+      std::vector<o2::ITSMFT::Chip> mChips;  ///< Array of chips
+      std::vector<o2::ITSMFT::SimulationAlpide> mSimulations; ///< Array of chips response simulations
       DigitContainer mDigitContainer;             ///< Internal digit storage
 
       ClassDef(Digitizer, 2);

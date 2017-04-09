@@ -10,15 +10,15 @@
 #include "FairLogger.h"   // for LOG
 #include "TClonesArray.h" // for TClonesArray
 
-ClassImp(AliceO2::ITS::Digitizer)
+ClassImp(o2::ITS::Digitizer)
 
-using AliceO2::ITSMFT::Point;
-using AliceO2::ITSMFT::Chip;
-using AliceO2::ITSMFT::SimulationAlpide;
-using AliceO2::ITSMFT::Digit;
-using AliceO2::ITSMFT::SegmentationPixel;
+using o2::ITSMFT::Point;
+using o2::ITSMFT::Chip;
+using o2::ITSMFT::SimulationAlpide;
+using o2::ITSMFT::Digit;
+using o2::ITSMFT::SegmentationPixel;
 
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
 Digitizer::Digitizer() : mGeometry(), mNumOfChips(0), mChips(), mSimulations(), mDigitContainer() {}
 

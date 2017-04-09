@@ -5,7 +5,7 @@
 #include "TPCBase/Sector.h"
 #include "TPCBase/ROC.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 //   enum RocType {ICRU=0, OCRU=1};
 

@@ -4,9 +4,9 @@
 #include "ITSMFTBase/Segmentation.h"
 #include "TF1.h" // for TF1
 
-using namespace AliceO2::ITSMFT;
+using namespace o2::ITSMFT;
 
-ClassImp(AliceO2::ITSMFT::Segmentation)
+ClassImp(o2::ITSMFT::Segmentation)
 
   Segmentation::Segmentation()
   : mDx(0), mDz(0), mDy(0), mCorrection(nullptr)

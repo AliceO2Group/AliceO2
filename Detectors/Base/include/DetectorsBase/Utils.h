@@ -9,7 +9,7 @@
 #include <cmath>
 #include <array>
 
-namespace AliceO2 {
+namespace o2 {
   namespace Base {
     namespace Utils {
 

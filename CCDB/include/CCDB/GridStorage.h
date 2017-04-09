@@ -13,11 +13,11 @@ class TList;
 class TObjArray;
 
 class TObject;
-namespace AliceO2 { namespace CDB { class Condition; }}
-namespace AliceO2 { namespace CDB { class ConditionId; }}
-namespace AliceO2 { namespace CDB { class ConditionMetaData; }}
+namespace o2 { namespace CDB { class Condition; }}
+namespace o2 { namespace CDB { class ConditionId; }}
+namespace o2 { namespace CDB { class ConditionMetaData; }}
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class GridStorage : public Storage

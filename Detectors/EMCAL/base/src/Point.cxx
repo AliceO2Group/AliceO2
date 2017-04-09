@@ -1,8 +1,8 @@
 #include "EMCALBase/Point.h"
 
-ClassImp(AliceO2::EMCAL::Point)
+ClassImp(o2::EMCAL::Point)
 
-using namespace AliceO2::EMCAL;
+using namespace o2::EMCAL;
 
 void Point::PrintStream(std::ostream &stream) const {
   stream  << "EMCAL point: Track " << GetTrackID() << " in detector segment " << GetDetectorID()

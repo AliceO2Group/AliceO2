@@ -4,5 +4,5 @@
 
 #include "TPCSimulation/DigitMC.h"
 
-ClassImp(AliceO2::TPC::DigitMC)
+ClassImp(o2::TPC::DigitMC)
 

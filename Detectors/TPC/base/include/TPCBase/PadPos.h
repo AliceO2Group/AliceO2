@@ -14,7 +14,7 @@
 #ifndef AliceO2_TPC_PadPos_H
 #define AliceO2_TPC_PadPos_H
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 class PadPos
 {

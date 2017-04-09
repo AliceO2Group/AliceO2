@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
   }
 
   // Actual "work"
-  AliceO2::Examples::ExampleModule1::Foo hello;
+  o2::Examples::ExampleModule1::Foo hello;
   hello.greet();
 
   return EXIT_SUCCESS;

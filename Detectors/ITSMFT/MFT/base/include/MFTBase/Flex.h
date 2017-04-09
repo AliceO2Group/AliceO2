@@ -10,7 +10,7 @@
 class TGeoVolume;
 class TGeoVolumeAssembly;
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class Flex : public TNamed {

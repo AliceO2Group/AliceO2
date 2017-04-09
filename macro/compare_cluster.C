@@ -61,9 +61,9 @@ struct range {
 };
 
 namespace std {
-  template <> struct hash<AliceO2::TPC::Cluster>
+  template <> struct hash<o2::TPC::Cluster>
     {
-      typedef AliceO2::TPC::Cluster     argument_type;
+      typedef o2::TPC::Cluster     argument_type;
       typedef std::size_t               result_type;
 
       result_type operator()(const argument_type& t) const
@@ -330,12 +330,12 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
     std::cout << nBclusters << " Box clusters and " << nHclusters << " HW clusters" << std::endl;
 
     // remove duplicate clusters in both arrays
-    std::unordered_set<AliceO2::TPC::Cluster> uniqueBoxClusters;
+    std::unordered_set<o2::TPC::Cluster> uniqueBoxClusters;
     for (int i = 0; i < bClusters->GetEntries(); i++){
 //      if (i%100 == 0) std::cout << "Checked " << i << " clusters of " << bClusters->GetEntries() << " for duplicates"  << std::endl;
 //      if (duplicateBcluster.find(i) != duplicateBcluster.end()) continue;
-      AliceO2::TPC::Cluster* bCluster = dynamic_cast<AliceO2::TPC::Cluster*>(bClusters->At(i));
-      std::pair<std::unordered_set<AliceO2::TPC::Cluster>::iterator,bool> ret = uniqueBoxClusters.insert(*bCluster);
+      o2::TPC::Cluster* bCluster = dynamic_cast<AliceO2::TPC::Cluster*>(bClusters->At(i));
+      std::pair<std::unordered_set<o2::TPC::Cluster>::iterator,bool> ret = uniqueBoxClusters.insert(*bCluster);
       if (ret.second == false) {
         std::cout << *(ret.first) << std::endl << "is very similar to which will be removed" << std::endl;
         std::cout << *bCluster << std::endl << std::endl;
@@ -360,12 +360,12 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
     }
     std::cout << "\t\tRemoved " <<  bClusters->GetEntries() - uniqueBoxClusters.size() << " duplicated Box Clusters" << std::endl << std::endl << std::endl;
 
-    std::unordered_set<AliceO2::TPC::Cluster> uniqueHwClusters;
+    std::unordered_set<o2::TPC::Cluster> uniqueHwClusters;
     for (int i = 0; i < hClusters->GetEntries(); i++){
 //      if (i%100 == 0) std::cout << "Checked " << i << " clusters of " << hClusters->GetEntries() << " for duplicates"  << std::endl;
 //      if (duplicateHcluster.find(i) != duplicateHcluster.end()) continue;
-      AliceO2::TPC::Cluster* hCluster = dynamic_cast<AliceO2::TPC::Cluster*>(hClusters->At(i));
-      std::pair<std::unordered_set<AliceO2::TPC::Cluster>::iterator,bool> ret = uniqueHwClusters.insert(*hCluster);
+      o2::TPC::Cluster* hCluster = dynamic_cast<AliceO2::TPC::Cluster*>(hClusters->At(i));
+      std::pair<std::unordered_set<o2::TPC::Cluster>::iterator,bool> ret = uniqueHwClusters.insert(*hCluster);
       if (ret.second == false) {
         std::cout << *(ret.first) << std::endl << "is very similar to which will be removed" << std::endl;
         std::cout << *hCluster << std::endl << std::endl;
@@ -393,10 +393,10 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
 //    nBclusters = bClusters->GetEntries();
 //    nHclusters = hClusters->GetEntries();
 
-    std::unordered_set<AliceO2::TPC::Cluster> hwClusterFound;
-    for (AliceO2::TPC::Cluster bc : uniqueBoxClusters) {
+    std::unordered_set<o2::TPC::Cluster> hwClusterFound;
+    for (o2::TPC::Cluster bc : uniqueBoxClusters) {
       bool hwFound = false;
-      for (AliceO2::TPC::Cluster hc : uniqueHwClusters) {
+      for (o2::TPC::Cluster hc : uniqueHwClusters) {
         if (bc.sim(hc)){
           hDiffPadMean->Fill(bc.getPadMean() - hc.getPadMean());
           hDiffTimeMean->Fill(bc.getTimeMean() - hc.getTimeMean());
@@ -434,7 +434,7 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
           std::cout << bc << std::endl;
       }
     }
-    for (AliceO2::TPC::Cluster hc : uniqueHwClusters) {
+    for (o2::TPC::Cluster hc : uniqueHwClusters) {
       if (hwClusterFound.find(hc) != hwClusterFound.end()) continue;
 
       hHwOnly[0]->Fill(hc.getCRU());

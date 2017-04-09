@@ -9,7 +9,7 @@
 #include "FairFieldFactory.h"
 class FairField;
 
-namespace AliceO2 {
+namespace o2 {
   namespace Field {
     
 class MagFieldParam;

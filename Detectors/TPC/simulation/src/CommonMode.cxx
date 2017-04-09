@@ -8,7 +8,7 @@
 #include "TPCSimulation/Constants.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 CommonMode::CommonMode()
   : mCRU()

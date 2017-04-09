@@ -9,9 +9,9 @@
 using std::istream;
 using std::swap;
 
-ClassImp(AliceO2::ITSMFT::SDigit)
+ClassImp(o2::ITSMFT::SDigit)
 
-  using namespace AliceO2::ITSMFT;
+  using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 SDigit::SDigit() : mChip(0), mNumOfTracks(0), mROCycle(0), mTotalSignal(0.0), mNoise(0.0), mSignalAfterElect(0.0)

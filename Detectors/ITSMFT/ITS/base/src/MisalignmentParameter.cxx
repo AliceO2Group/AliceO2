@@ -5,9 +5,9 @@
 
 #include "FairParamList.h"
 
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
-ClassImp(AliceO2::ITS::MisalignmentParameter)
+ClassImp(o2::ITS::MisalignmentParameter)
 
   MisalignmentParameter::MisalignmentParameter(const char* name, const char* title, const char* context)
   : FairParGenericSet(name, title, context),

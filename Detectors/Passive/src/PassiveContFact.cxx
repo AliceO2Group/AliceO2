@@ -30,9 +30,9 @@
 
 
 using namespace std;
-using namespace AliceO2::Passive;
+using namespace o2::Passive;
 
-ClassImp(AliceO2::Passive::PassiveContFact)
+ClassImp(o2::Passive::PassiveContFact)
 
 static PassiveContFact gPassiveContFact;
 

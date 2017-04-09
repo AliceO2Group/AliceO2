@@ -7,7 +7,7 @@
 
 #include "CCDB/Backend.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class BackendRiak : public Backend {

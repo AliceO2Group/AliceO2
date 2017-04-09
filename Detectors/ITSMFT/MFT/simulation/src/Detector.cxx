@@ -27,24 +27,24 @@
 #include "FairGenericRootManager.h"
 #include "FairVolume.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Detector)
+ClassImp(o2::MFT::Detector)
 
 //_____________________________________________________________________________
 Detector::Detector()
-: AliceO2::Base::Detector("MFT", kTRUE, kAliMft),
+: o2::Base::Detector("MFT", kTRUE, kAliMft),
   mVersion(1),
   mGeometryTGeo(nullptr),
   mDensitySupportOverSi(0.036),
-  mPoints(new TClonesArray("AliceO2::MFT::Point"))
+  mPoints(new TClonesArray("o2::MFT::Point"))
 {
 
 }
 
 //_____________________________________________________________________________
 Detector::Detector(const Detector& src)
-  : AliceO2::Base::Detector(src),
+  : o2::Base::Detector(src),
     mVersion(src.mVersion),
     mGeometryTGeo(src.mGeometryTGeo),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
@@ -187,7 +187,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   printf("\n");
   */
   // Increment number of Detector det points in TParticle
-  AliceO2::Data::Stack *stack = (AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+  o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
   stack->AddPoint(kAliMft);
 
   return kTRUE;
@@ -327,27 +327,27 @@ void Detector::CreateMaterials()
   Float_t epsilSi  =  0.5e-4;                // tracking precision [cm]
   Float_t stminSi  = -0.001;                 // minimum step due to continuous processes [cm] (negative value: choose it automatically)
   
-  AliceO2::Field::MagneticField *fld = (AliceO2::Field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
+  o2::Field::MagneticField *fld = (o2::Field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
 
   Int_t fieldType = fld->GetType();
   Float_t maxField = fld->Max();
 
   LOG(INFO) << "Detector::CreateMaterials >>>>> fieldType " << fieldType << " maxField " << maxField << "\n"; 
 
-  AliceO2::Base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
-  AliceO2::Base::Detector::Medium(kAir,     "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
+  o2::Base::Detector::Medium(kAir,     "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
 
-  AliceO2::Base::Detector::Mixture(++matId, "Vacuum$", aAir, zAir, dAirVacuum, nAir, wAir);
-  AliceO2::Base::Detector::Medium(kVacuum,  "Vacuum$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Vacuum$", aAir, zAir, dAirVacuum, nAir, wAir);
+  o2::Base::Detector::Medium(kVacuum,  "Vacuum$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
-  AliceO2::Base::Detector::Material(++matId, "Si$", aSi, zSi, dSi, radSi, absSi);
-  AliceO2::Base::Detector::Medium(kSi,       "Si$", matId, sens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::Base::Detector::Material(++matId, "Si$", aSi, zSi, dSi, radSi, absSi);
+  o2::Base::Detector::Medium(kSi,       "Si$", matId, sens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   
-  AliceO2::Base::Detector::Material(++matId, "Readout$", aSi, zSi, dSi, radSi, absSi);
-  AliceO2::Base::Detector::Medium(kReadout,  "Readout$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::Base::Detector::Material(++matId, "Readout$", aSi, zSi, dSi, radSi, absSi);
+  o2::Base::Detector::Medium(kReadout,  "Readout$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   
-  AliceO2::Base::Detector::Material(++matId, "Support$", aSi, zSi, dSi*mDensitySupportOverSi, radSi/mDensitySupportOverSi, absSi/mDensitySupportOverSi);
-  AliceO2::Base::Detector::Medium(kSupport,  "Support$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::Base::Detector::Material(++matId, "Support$", aSi, zSi, dSi*mDensitySupportOverSi, radSi/mDensitySupportOverSi, absSi/mDensitySupportOverSi);
+  o2::Base::Detector::Medium(kSupport,  "Support$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   
   Double_t maxBending       = 0;     // Max Angle
   Double_t maxStepSize      = 0.001; // Max step size
@@ -365,63 +365,63 @@ void Detector::CreateMaterials()
   maxStepSize      = .01;
   precision        = .003;
   minStepSize      = .003;
-  AliceO2::Base::Detector::Material(++matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb);
-  AliceO2::Base::Detector::Medium(kCarbon, "Carbon$", matId,0,fieldType,maxField,maxBending,maxStepSize,maxEnergyLoss,precision,minStepSize);
+  o2::Base::Detector::Material(++matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb);
+  o2::Base::Detector::Medium(kCarbon, "Carbon$", matId,0,fieldType,maxField,maxBending,maxStepSize,maxEnergyLoss,precision,minStepSize);
 
   //AliceO2::Base::Detector::Material(++matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb );
   //AliceO2::Base::Detector::Medium(kCarbon,   "Carbon$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Material(++matId, "Be$", aBe, zBe, dBe, radBe, absBe );
-  AliceO2::Base::Detector::Medium(kBe,   "Be$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Material(++matId, "Be$", aBe, zBe, dBe, radBe, absBe );
+  o2::Base::Detector::Medium(kBe,   "Be$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Material(++matId, "Alu$", aAlu, zAlu, dAlu, radAlu, absAlu);
-  AliceO2::Base::Detector::Medium(kAlu,      "Alu$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Material(++matId, "Alu$", aAlu, zAlu, dAlu, radAlu, absAlu);
+  o2::Base::Detector::Medium(kAlu,      "Alu$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
     
-  AliceO2::Base::Detector::Mixture(++matId, "Water$", aWater, zWater, dWater, nWater, wWater);
-  AliceO2::Base::Detector::Medium(kWater,   "Water$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Water$", aWater, zWater, dWater, nWater, wWater);
+  o2::Base::Detector::Medium(kWater,   "Water$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "SiO2$", aSiO2, zSiO2, dSiO2, nSiO2, wSiO2);
-  AliceO2::Base::Detector::Medium(kSiO2,    "SiO2$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "SiO2$", aSiO2, zSiO2, dSiO2, nSiO2, wSiO2);
+  o2::Base::Detector::Medium(kSiO2,    "SiO2$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "Inox$", aInox, zInox, dInox, nInox, wInox);
-  AliceO2::Base::Detector::Medium(kInox,    "Inox$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Inox$", aInox, zInox, dInox, nInox, wInox);
+  o2::Base::Detector::Medium(kInox,    "Inox$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "Kapton$", aKapton, zKapton, dKapton, 4, wKapton);
-  AliceO2::Base::Detector::Medium(kKapton,"Kapton$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Kapton$", aKapton, zKapton, dKapton, 4, wKapton);
+  o2::Base::Detector::Medium(kKapton,"Kapton$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "Epoxy$", aEpoxy, zEpoxy, dEpoxy, -3, wEpoxy);
-  AliceO2::Base::Detector::Medium(kEpoxy,"Epoxy$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Epoxy$", aEpoxy, zEpoxy, dEpoxy, -3, wEpoxy);
+  o2::Base::Detector::Medium(kEpoxy,"Epoxy$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "SE4445$", aSE4445, zSE4445, dSE4445, -5, wSE4445);
-  AliceO2::Base::Detector::Medium(kSE4445,"SE4445$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "SE4445$", aSE4445, zSE4445, dSE4445, -5, wSE4445);
+  o2::Base::Detector::Medium(kSE4445,"SE4445$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId,"CarbonFiber$",aCM55J,zCM55J,dCM55J,4,wCM55J);
-  AliceO2::Base::Detector::Medium(kCarbonEpoxy,"CarbonFiber$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId,"CarbonFiber$",aCM55J,zCM55J,dCM55J,4,wCM55J);
+  o2::Base::Detector::Medium(kCarbonEpoxy,"CarbonFiber$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId,  "Rohacell", aRohacell, zRohacell, dRohacell, nRohacell, wRohacell);
-  AliceO2::Base::Detector::Medium(kRohacell, "Rohacell", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId,  "Rohacell", aRohacell, zRohacell, dRohacell, nRohacell, wRohacell);
+  o2::Base::Detector::Medium(kRohacell, "Rohacell", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId,  "Polyimide", aPolyimide, zPolyimide, dPolyimide, nPolyimide, wPolyimide);
-  AliceO2::Base::Detector::Medium(kPolyimide, "Polyimide", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId,  "Polyimide", aPolyimide, zPolyimide, dPolyimide, nPolyimide, wPolyimide);
+  o2::Base::Detector::Medium(kPolyimide, "Polyimide", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 	
-  AliceO2::Base::Detector::Mixture(++matId, "PEEK$", aPEEK, zPEEK, dPEEK, nPEEK, wPEEK);
-  AliceO2::Base::Detector::Medium(kPEEK,    "PEEK$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "PEEK$", aPEEK, zPEEK, dPEEK, nPEEK, wPEEK);
+  o2::Base::Detector::Medium(kPEEK,    "PEEK$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "FR4$", aFR4, zFR4, dFR4, nFR4, wFR4);
-  AliceO2::Base::Detector::Medium(kFR4,    "FR4$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "FR4$", aFR4, zFR4, dFR4, nFR4, wFR4);
+  o2::Base::Detector::Medium(kFR4,    "FR4$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Material(++matId, "Cu$", aCu, zCu, dCu, radCu, absCu);
-  AliceO2::Base::Detector::Medium(kCu,       "Cu$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Material(++matId, "Cu$", aCu, zCu, dCu, radCu, absCu);
+  o2::Base::Detector::Medium(kCu,       "Cu$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
  
-  AliceO2::Base::Detector::Mixture(++matId, "X7Rcapacitors$",aX7R,zX7R,dX7R,6,wX7R);
-  AliceO2::Base::Detector::Medium(kX7R,     "X7Rcapacitors$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "X7Rcapacitors$",aX7R,zX7R,dX7R,6,wX7R);
+  o2::Base::Detector::Medium(kX7R,     "X7Rcapacitors$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
-  AliceO2::Base::Detector::Mixture(++matId, "X7Rweld$",aX7Rweld,zX7Rweld,dX7Rweld,2,wX7Rweld);
-  AliceO2::Base::Detector::Medium(kX7Rw,    "X7Rweld$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "X7Rweld$",aX7Rweld,zX7Rweld,dX7Rweld,2,wX7Rweld);
+  o2::Base::Detector::Medium(kX7Rw,    "X7Rweld$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Carbon fleece from AliITSSUv2.cxx
-  AliceO2::Base::Detector::Material(++matId,"CarbonFleece$",12.0107,6,0.4,radCarb,absCarb);          // 999,999);  why 999???
-  AliceO2::Base::Detector::Medium(kCarbonFleece,  "CarbonFleece$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Material(++matId,"CarbonFleece$",12.0107,6,0.4,radCarb,absCarb);          // 999,999);  why 999???
+  o2::Base::Detector::Medium(kCarbonFleece,  "CarbonFleece$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
   LOG(INFO) << "Detector::CreateMaterials -----> matId = " << matId << "\n";
 

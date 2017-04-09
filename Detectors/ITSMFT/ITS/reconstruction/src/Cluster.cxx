@@ -10,16 +10,16 @@
 
 #include <cstdlib>
 
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
-ClassImp(AliceO2::ITS::Cluster)
+ClassImp(o2::ITS::Cluster)
 
 GeometryTGeo* Cluster::sGeom = nullptr;
 UInt_t Cluster::sMode = 0;
 
 //_____________________________________________________
 Cluster::Cluster()
-  : AliceO2::ITSMFT::Cluster()
+  : o2::ITSMFT::Cluster()
 {
 // default constructor
 }
@@ -32,7 +32,7 @@ Cluster::~Cluster()
 
 //_____________________________________________________
 Cluster::Cluster(const Cluster& cluster)
-  : AliceO2::ITSMFT::Cluster(cluster)
+  : o2::ITSMFT::Cluster(cluster)
 {
 // copy constructor
 }

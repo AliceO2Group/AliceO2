@@ -7,7 +7,7 @@
 
 #include "TPCBase/Digit.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 /// \class DigitData

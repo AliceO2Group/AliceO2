@@ -8,7 +8,7 @@
 #include "TPCSimulation/Constants.h"
 #include "TPCBase/RandomRing.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
     
 /// \class GEMAmplification

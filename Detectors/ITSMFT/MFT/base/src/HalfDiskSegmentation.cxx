@@ -11,7 +11,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 ClassImp(HalfDiskSegmentation);
 
@@ -46,7 +46,7 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID):
   
   SetName(Form("%s_%d_%d",GeometryTGeo::GetHalfDiskName(),mftGeom->GetHalfMFTID(GetUniqueID()), mftGeom->GetHalfDiskID(GetUniqueID()) ));
   
-  mLadders  = new TClonesArray("AliceO2::MFT::LadderSegmentation");
+  mLadders  = new TClonesArray("o2::MFT::LadderSegmentation");
   mLadders -> SetOwner(kTRUE);
     
 }
@@ -61,7 +61,7 @@ HalfDiskSegmentation::HalfDiskSegmentation(const HalfDiskSegmentation& input):
   
   // copy constructor
   if(input.mLadders) mLadders  = new TClonesArray(*(input.mLadders));
-  else mLadders = new TClonesArray("AliceO2::MFT::LadderSegmentation");
+  else mLadders = new TClonesArray("o2::MFT::LadderSegmentation");
   mLadders -> SetOwner(kTRUE);
 
 }

@@ -8,7 +8,7 @@
 
 #include "MFTBase/VSegmentation.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class ChipSegmentation : public VSegmentation {

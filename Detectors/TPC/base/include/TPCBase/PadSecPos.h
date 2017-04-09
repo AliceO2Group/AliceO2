@@ -18,7 +18,7 @@
 #include "TPCBase/Sector.h"
 #include "TPCBase/PadPos.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 class PadSecPos
 {

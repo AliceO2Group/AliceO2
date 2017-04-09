@@ -13,9 +13,9 @@
 #include "TObject.h"   // for TObject
 
 using namespace TMath;
-using namespace AliceO2::ITSMFT;
+using namespace o2::ITSMFT;
 
-ClassImp(AliceO2::ITSMFT::SegmentationPixel)
+ClassImp(o2::ITSMFT::SegmentationPixel)
 
   const char* SegmentationPixel::sSegmentationsListName = "Segmentations";
 

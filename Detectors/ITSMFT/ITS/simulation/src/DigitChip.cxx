@@ -8,8 +8,8 @@
 
 #include "TClonesArray.h"
 
-using AliceO2::ITSMFT::Digit;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::Digit;
+using namespace o2::ITS;
 
 Int_t DigitChip::sNumOfRows = 650;
 

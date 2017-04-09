@@ -3,7 +3,7 @@
 
 #include "TPCReconstruction/AdcClockMonitor.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 AdcClockMonitor::AdcClockMonitor()
   : AdcClockMonitor(-1)

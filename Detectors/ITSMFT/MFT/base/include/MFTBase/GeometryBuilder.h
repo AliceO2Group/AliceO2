@@ -8,7 +8,7 @@
 
 #include "TNamed.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class GeometryBuilder : public TNamed {

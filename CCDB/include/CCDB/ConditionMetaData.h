@@ -6,7 +6,7 @@
 #include "Rtypes.h"   // for UInt_t, ConditionMetaData::Class, Bool_t, etc
 #include "TString.h"  // for TString
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 //  Set of data describing the object  				   //
 //  but not used to identify the object 			   //

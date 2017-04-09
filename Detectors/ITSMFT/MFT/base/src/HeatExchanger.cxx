@@ -16,10 +16,10 @@
 #include "MFTBase/HeatExchanger.h"
 #include "MFTBase/Geometry.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 /// \cond CLASSIMP
-ClassImp(AliceO2::MFT::HeatExchanger)
+ClassImp(o2::MFT::HeatExchanger)
 /// \endcond
 
 //_____________________________________________________________________________

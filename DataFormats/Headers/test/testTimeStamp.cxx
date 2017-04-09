@@ -5,7 +5,7 @@
 #include <chrono>
 #include "Headers/TimeStamp.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace Header {
 
     BOOST_AUTO_TEST_CASE(LHCClock_test)

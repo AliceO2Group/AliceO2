@@ -17,7 +17,7 @@
 
 #include <FairMQDevice.h>
 
-namespace AliceO2 {
+namespace o2 {
 namespace Devices {
 
 /// Stores measurment for roundtrip time of a timeframe

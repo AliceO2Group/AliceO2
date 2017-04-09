@@ -21,7 +21,7 @@
 
 using float_v = Vc::float_v;
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 class PadSecPos;

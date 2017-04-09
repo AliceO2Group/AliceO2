@@ -2,7 +2,7 @@
 
 #include "MFTReconstruction/devices/Merger.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 namespace bpo = boost::program_options;
 

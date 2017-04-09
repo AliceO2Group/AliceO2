@@ -4,7 +4,7 @@
 #include <TList.h>        // for TList
 #include <TXMLAttr.h>     // for TXMLAttr
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 ClassImp(XmlHandler)
 
 XmlHandler::XmlHandler() : TObject(), mRun(-1), mStartIdRunRange(-1), mEndIdRunRange(-1), mOCDBFolder("")

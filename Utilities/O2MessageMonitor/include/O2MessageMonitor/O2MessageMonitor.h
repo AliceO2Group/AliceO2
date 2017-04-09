@@ -28,7 +28,7 @@
 /// it will appropriately send requests, send/receive messages or send replies.
 /// All incoming traffic is dumped on screen in the form of a hex dump for both
 /// the header block and payload block.
-class O2MessageMonitor : public AliceO2::Base::O2Device
+class O2MessageMonitor : public o2::Base::O2Device
 {
 public:
   O2MessageMonitor();
@@ -37,12 +37,12 @@ public:
 protected:
   virtual void Run();
   void InitTask();
-  bool HandleData(AliceO2::Base::O2Message& parts, int index);
+  bool HandleData(o2::Base::O2Message& parts, int index);
   bool HandleO2frame(const byte* headerBuffer, size_t headerBufferSize,
       const byte* dataBuffer,   size_t dataBufferSize);
 
 private:
-  AliceO2::Header::DataHeader mDataHeader;
+  o2::Header::DataHeader mDataHeader;
   std::string mPayload;
   std::string mName;
   long long mDelay;

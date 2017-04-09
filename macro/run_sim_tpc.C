@@ -62,15 +62,15 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  AliceO2::Passive::Cave* cave = new AliceO2::Passive::Cave("CAVE");
+  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  AliceO2::Field::MagneticField *magField = new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagFieldParam::k5kG);
+  o2::Field::MagneticField *magField = new o2::Field::MagneticField("Maps","Maps", -1., -1., o2::Field::MagFieldParam::k5kG);
   run->SetField(magField);
 
   // ===| Add TPC |============================================================
-  AliceO2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
+  o2::TPC::Detector* tpc = new o2::TPC::Detector("TPC", kTRUE);
   tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 

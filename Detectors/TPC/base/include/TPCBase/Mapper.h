@@ -15,10 +15,10 @@
 #include "TPCBase/PartitionInfo.h"
 #include "TPCBase/Sector.h"
 
-using AliceO2::TPC::PadRegionInfo;
-using AliceO2::TPC::PartitionInfo;
+using o2::TPC::PadRegionInfo;
+using o2::TPC::PartitionInfo;
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 class Mapper {

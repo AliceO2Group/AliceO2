@@ -17,7 +17,7 @@
 
 #include "FairModule.h"                 // for FairModule
 #include "Rtypes.h"                     // for ClassDef, etc
-namespace AliceO2 {
+namespace o2 {
 namespace Passive {
 
 class Cave : public FairModule
@@ -36,7 +36,7 @@ class Cave : public FairModule
     Cave& operator=(const Cave&);
 
     Double_t mWorld[3];
-    ClassDef(AliceO2::Passive::Cave,1) //
+    ClassDef(o2::Passive::Cave,1) //
 };
 }
 }

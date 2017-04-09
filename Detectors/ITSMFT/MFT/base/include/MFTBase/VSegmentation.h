@@ -12,7 +12,7 @@
 #include "TNamed.h"
 #include "TGeoMatrix.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class VSegmentation : public TNamed {

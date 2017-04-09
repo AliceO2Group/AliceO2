@@ -8,9 +8,9 @@
 
 #include "ITSMFTSimulation/ClusterShape.h"
 
-ClassImp(AliceO2::ITSMFT::ClusterShape)
+ClassImp(o2::ITSMFT::ClusterShape)
 
-using namespace AliceO2::ITSMFT;
+using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 ClusterShape::ClusterShape() :

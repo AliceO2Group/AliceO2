@@ -10,11 +10,11 @@
 
 class TGeoVolumeAssembly;
 
-namespace AliceO2 { namespace MFT { class HalfDiskSegmentation; } }
-namespace AliceO2 { namespace MFT { class Support;              } }
-namespace AliceO2 { namespace MFT { class HeatExchanger;        } }
+namespace o2 { namespace MFT { class HalfDiskSegmentation; } }
+namespace o2 { namespace MFT { class Support;              } }
+namespace o2 { namespace MFT { class HeatExchanger;        } }
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class HalfDisk : public TNamed {

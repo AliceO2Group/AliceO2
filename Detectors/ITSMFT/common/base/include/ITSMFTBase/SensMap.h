@@ -20,7 +20,7 @@
 #include <TClonesArray.h>
 #define _ROWWISE_SORT_
 
-namespace AliceO2
+namespace o2
 {
 namespace ITSMFT
 {

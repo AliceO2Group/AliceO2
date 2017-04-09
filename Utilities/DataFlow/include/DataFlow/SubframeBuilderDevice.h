@@ -15,7 +15,7 @@
 
 class FairMQParts;
 
-namespace AliceO2 {
+namespace o2 {
 namespace DataFlow {
 
 /// @class SubframeBuilderDevice
@@ -41,7 +41,7 @@ namespace DataFlow {
 class SubframeBuilderDevice : public Base::O2Device
 {
 public:
-  typedef AliceO2::Base::O2Message O2Message;
+  typedef o2::Base::O2Message O2Message;
 
   static constexpr const char* OptionKeyInputChannelName = "in-chan-name";
   static constexpr const char* OptionKeyOutputChannelName = "out-chan-name";

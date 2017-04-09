@@ -23,7 +23,7 @@
 #include <cstddef>                     // for NULL
 #include <iostream>                     // for operator<<, basic_ostream, etc
 
-using namespace AliceO2::Passive;
+using namespace o2::Passive;
 
 
 Magnet::~Magnet()
@@ -108,4 +108,4 @@ FairModule* Magnet::CloneModule() const
   return new Magnet(*this);
 }
 
-ClassImp(AliceO2::Passive::Magnet)
+ClassImp(o2::Passive::Magnet)

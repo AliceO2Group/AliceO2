@@ -8,7 +8,7 @@
 #include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/devices/Merger.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 using namespace std;
 

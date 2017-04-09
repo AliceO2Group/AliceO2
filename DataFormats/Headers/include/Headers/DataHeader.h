@@ -32,7 +32,7 @@
 /// @typedef define a byte type
 using byte = unsigned char;
 
-namespace AliceO2 {
+namespace o2 {
 namespace Header {
 
 //__________________________________________________________________________________________________
@@ -302,11 +302,11 @@ struct SerializationMethod {
 };
 
 //possible serialization types
-extern const AliceO2::Header::SerializationMethod gSerializationMethodAny;
-extern const AliceO2::Header::SerializationMethod gSerializationMethodInvalid;
-extern const AliceO2::Header::SerializationMethod gSerializationMethodNone;
-extern const AliceO2::Header::SerializationMethod gSerializationMethodROOT;
-extern const AliceO2::Header::SerializationMethod gSerializationMethodFlatBuf;
+extern const o2::Header::SerializationMethod gSerializationMethodAny;
+extern const o2::Header::SerializationMethod gSerializationMethodInvalid;
+extern const o2::Header::SerializationMethod gSerializationMethodNone;
+extern const o2::Header::SerializationMethod gSerializationMethodROOT;
+extern const o2::Header::SerializationMethod gSerializationMethodFlatBuf;
 
 //__________________________________________________________________________________________________
 /// @struct BaseHeader
@@ -332,8 +332,8 @@ struct BaseHeader
   static const uint32_t sMagicString;
 
   static const uint32_t sVersion;
-  static const AliceO2::Header::HeaderType sHeaderType;
-  static const AliceO2::Header::SerializationMethod sSerializationMethod;
+  static const o2::Header::HeaderType sHeaderType;
+  static const o2::Header::SerializationMethod sSerializationMethod;
 
   //__the data layout:
 
@@ -360,10 +360,10 @@ struct BaseHeader
   uint32_t    headerVersion;
 
   /// header type description, set by derived header
-  AliceO2::Header::HeaderType description;
+  o2::Header::HeaderType description;
 
   /// header serialization method, set by derived header
-  AliceO2::Header::SerializationMethod serialization;
+  o2::Header::SerializationMethod serialization;
 
   //___the functions:
 
@@ -512,8 +512,8 @@ private:
 template <size_t N>
 struct NameHeader : public BaseHeader {
   static const uint32_t sVersion;
-  static const AliceO2::Header::HeaderType sHeaderType;
-  static const AliceO2::Header::SerializationMethod sSerializationMethod;
+  static const o2::Header::HeaderType sHeaderType;
+  static const o2::Header::SerializationMethod sSerializationMethod;
   NameHeader()
   : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion)
   , name()
@@ -540,12 +540,12 @@ private:
 };
 
 template <size_t N>
-const AliceO2::Header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
+const o2::Header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
 
 // dirty trick to always have access to the headertypeID of a templated header type
 // TODO: find out if this can be done in a nicer way + is this realy necessary?
 template <>
-const AliceO2::Header::HeaderType NameHeader<0>::sHeaderType;
+const o2::Header::HeaderType NameHeader<0>::sHeaderType;
 
 template <size_t N>
 const SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMethodNone;
@@ -634,8 +634,8 @@ struct DataHeader : public BaseHeader
 
   //static data for this header type/version
   static const uint32_t sVersion;
-  static const AliceO2::Header::HeaderType sHeaderType;
-  static const AliceO2::Header::SerializationMethod sSerializationMethod;
+  static const o2::Header::HeaderType sHeaderType;
+  static const o2::Header::SerializationMethod sSerializationMethod;
 
   ///
   /// data type descriptor
@@ -697,20 +697,20 @@ struct DataHeader : public BaseHeader
 
 //__________________________________________________________________________________________________
 //possible data origins
-extern const AliceO2::Header::DataOrigin gDataOriginAny;
-extern const AliceO2::Header::DataOrigin gDataOriginInvalid;
-extern const AliceO2::Header::DataOrigin gDataOriginTPC;
-extern const AliceO2::Header::DataOrigin gDataOriginTRD;
-extern const AliceO2::Header::DataOrigin gDataOriginTOF;
+extern const o2::Header::DataOrigin gDataOriginAny;
+extern const o2::Header::DataOrigin gDataOriginInvalid;
+extern const o2::Header::DataOrigin gDataOriginTPC;
+extern const o2::Header::DataOrigin gDataOriginTRD;
+extern const o2::Header::DataOrigin gDataOriginTOF;
 
 //possible data types
-extern const AliceO2::Header::DataDescription gDataDescriptionAny;
-extern const AliceO2::Header::DataDescription gDataDescriptionInvalid;
-extern const AliceO2::Header::DataDescription gDataDescriptionRawData;
-extern const AliceO2::Header::DataDescription gDataDescriptionClusters;
-extern const AliceO2::Header::DataDescription gDataDescriptionTracks;
-extern const AliceO2::Header::DataDescription gDataDescriptionConfig;
-extern const AliceO2::Header::DataDescription gDataDescriptionInfo;
+extern const o2::Header::DataDescription gDataDescriptionAny;
+extern const o2::Header::DataDescription gDataDescriptionInvalid;
+extern const o2::Header::DataDescription gDataDescriptionRawData;
+extern const o2::Header::DataDescription gDataDescriptionClusters;
+extern const o2::Header::DataDescription gDataDescriptionTracks;
+extern const o2::Header::DataDescription gDataDescriptionConfig;
+extern const o2::Header::DataDescription gDataDescriptionInfo;
 /// @} // end of doxygen group
 
 //__________________________________________________________________________________________________

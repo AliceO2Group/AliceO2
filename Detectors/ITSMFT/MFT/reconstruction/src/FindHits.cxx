@@ -16,9 +16,9 @@
 #include <FairMQLogger.h>
 #include "FairMCEventHeader.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::FindHits)
+ClassImp(o2::MFT::FindHits)
 
 //_____________________________________________________________________________
 FindHits::FindHits():
@@ -66,7 +66,7 @@ InitStatus FindHits::Init()
   }
 
   // Create and register output array
-  mHits = new TClonesArray("AliceO2::MFT::Hit");
+  mHits = new TClonesArray("o2::MFT::Hit");
   ioman->Register("MFTHits", "MFT", mHits, kTRUE);
 
   mEventHeader = new EventHeader();
@@ -95,7 +95,7 @@ void FindHits::InitMQ(TList* tempList)
 
   mEventHeader = new EventHeader();
   mEventHeader->SetName("EventHeader.");
-  mHits = new TClonesArray("AliceO2::MFT::Hit",10000);
+  mHits = new TClonesArray("o2::MFT::Hit",10000);
 
   return;
 
@@ -110,7 +110,7 @@ void FindHits::Exec(Option_t* /*opt*/)
 
   Reset();
 
-  AliceO2::MFT::Point *point;
+  o2::MFT::Point *point;
   TVector3 pos, dpos;
   Int_t detID, trackID;
   Double_t dx = Geometry::sXPixelPitch/TMath::Sqrt(12);
@@ -120,7 +120,7 @@ void FindHits::Exec(Option_t* /*opt*/)
   // Loop over fPoints
   Int_t nPoints = mPoints->GetEntriesFast();
   for (Int_t iPoint = 0; iPoint < nPoints; iPoint++) {
-    point = static_cast<AliceO2::MFT::Point*>(mPoints->At(iPoint));
+    point = static_cast<o2::MFT::Point*>(mPoints->At(iPoint));
     if (!point) continue;
     detID = point->GetDetectorID();
     trackID = point->GetTrackID();

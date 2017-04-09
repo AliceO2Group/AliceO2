@@ -11,7 +11,7 @@
 #include "TPCBase/ROC.h"
 #include "TPCBase/CalArray.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 /// Class to hold calibration data on a pad level

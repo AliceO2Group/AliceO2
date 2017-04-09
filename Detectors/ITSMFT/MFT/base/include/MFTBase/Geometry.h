@@ -8,10 +8,10 @@
 
 #include "TNamed.h"
 
-namespace AliceO2 { namespace MFT { class GeometryBuilder; } }
-namespace AliceO2 { namespace MFT { class Segmentation;    } }
+namespace o2 { namespace MFT { class GeometryBuilder; } }
+namespace o2 { namespace MFT { class Segmentation;    } }
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class Geometry : public TNamed {

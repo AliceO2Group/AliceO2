@@ -8,7 +8,7 @@
 #include "FairRun.h"
 #include "FairRuntimeDb.h"
 
-using namespace AliceO2::Field;
+using namespace o2::Field;
 
 
 //========================================

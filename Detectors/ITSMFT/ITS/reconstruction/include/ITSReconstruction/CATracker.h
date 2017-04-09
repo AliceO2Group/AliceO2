@@ -16,10 +16,10 @@
 #include "ITSReconstruction/CATrackingStation.h"
 #include "DetectorsBase/Track.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITS {
     namespace CA {
-      typedef AliceO2::Base::Track::TrackParCov TrackPC;
+      typedef o2::Base::Track::TrackParCov TrackPC;
 
       class Tracker {
         public:

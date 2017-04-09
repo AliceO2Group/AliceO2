@@ -8,7 +8,7 @@
 
 class TGeoHMatrix;
 
-namespace AliceO2
+namespace o2
 {
 namespace ITS
 {
@@ -16,7 +16,7 @@ namespace ITS
 /// \brief Cluster class for the ITS
 ///
 
-class Cluster : public AliceO2::ITSMFT::Cluster
+class Cluster : public o2::ITSMFT::Cluster
 {
  public:
   Cluster();

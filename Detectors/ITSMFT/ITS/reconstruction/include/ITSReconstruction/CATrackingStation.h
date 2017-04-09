@@ -16,7 +16,7 @@
 
 class TClonesArray;
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITS {
     class GeometryTGeo;
     namespace CA {
@@ -48,7 +48,7 @@ namespace AliceO2 {
           void    SetZMin(float v)                    {mZMin = v;}
           void    SetZMax(float v)                    {mZMax = v;}
           //
-          void Init(TClonesArray* points, AliceO2::ITS::GeometryTGeo* geom);
+          void Init(TClonesArray* points, o2::ITS::GeometryTGeo* geom);
           //
           void SortClusters(const float vertex[3]);
           int  GetPhiBin(float phi)             const {return phi * mDPhiInv;}

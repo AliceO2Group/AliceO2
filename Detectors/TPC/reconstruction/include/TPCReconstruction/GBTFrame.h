@@ -9,7 +9,7 @@
 #include <vector>
 #include <array>
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 #define BIT00(x) ((x & 0x1) >> 0 )                                               

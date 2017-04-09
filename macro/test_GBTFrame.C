@@ -1,4 +1,4 @@
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 bool run_write = true;
 bool run_read = true;

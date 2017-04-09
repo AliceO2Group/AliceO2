@@ -11,11 +11,11 @@
 class TList;
 
 class TObject;
-namespace AliceO2 { namespace CDB { class Condition; }}
-namespace AliceO2 { namespace CDB { class ConditionId; }}
-namespace AliceO2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace CDB { class Condition; }}
+namespace o2 { namespace CDB { class ConditionId; }}
+namespace o2 { namespace CDB { class IdRunRange; }}
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class LocalStorage : public Storage

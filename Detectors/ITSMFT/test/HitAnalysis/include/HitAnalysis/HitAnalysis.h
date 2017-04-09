@@ -15,20 +15,20 @@
 
 class TClonesArray;  // lines 17-17
 class TH1;  // lines 16-16
-namespace AliceO2 { namespace ITS { class GeometryTGeo; }}  // lines 23-23
+namespace o2 { namespace ITS { class GeometryTGeo; }}  // lines 23-23
 
 
 class TH1;
 
 class TClonesArray;
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITSMFT {
 class Chip;
 }
 }
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 class HitAnalysis : public FairTask
@@ -58,7 +58,7 @@ class HitAnalysis : public FairTask
   private:
     Bool_t mIsInitialized;       ///< Check whether task is initialized
     Bool_t mProcessChips;        ///< Process chips or hits
-    std::map<int, AliceO2::ITSMFT::Chip *> mChips; ///< lookup map for ITS chips
+    std::map<int, o2::ITSMFT::Chip *> mChips; ///< lookup map for ITS chips
     TClonesArray *mPointsArray;        ///< Array with ITS space points, filled by the FairRootManager
     GeometryTGeo *mGeometry;           ///<  geometry
     TH1 *mLineSegment;        ///< Histogram for line segment

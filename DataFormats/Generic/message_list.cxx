@@ -6,5 +6,5 @@
 #include "message_list.h"
 #include "memory-format.h"
 
-using namespace AliceO2;
+using namespace o2;
 using namespace Format;

@@ -13,13 +13,13 @@
 
 class TClonesArray;
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITSMFT {
     class Digit;
   }
 }
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 class DigitStave;
@@ -33,9 +33,9 @@ class DigitLayer
 
     void Reset();
 
-    void SetDigit(AliceO2::ITSMFT::Digit *digi, Int_t stave, Int_t pixel);
+    void SetDigit(o2::ITSMFT::Digit *digi, Int_t stave, Int_t pixel);
 
-    AliceO2::ITSMFT::Digit *FindDigit(Int_t stave, Int_t pixel);
+    o2::ITSMFT::Digit *FindDigit(Int_t stave, Int_t pixel);
 
     void FillOutputContainer(TClonesArray *output);
 

@@ -12,7 +12,7 @@
 #include "TH1D.h"
 #include "TF1.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
   /// @brief Test 1 of the getElectronDrift function

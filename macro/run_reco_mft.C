@@ -43,15 +43,15 @@ void run_reco_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine="TGean
   rtdb->saveOutput();
   rtdb->print();
 
-  AliceO2::MFT::FindHits* fhi = new AliceO2::MFT::FindHits();
+  o2::MFT::FindHits* fhi = new AliceO2::MFT::FindHits();
   fRun->AddTask(fhi);
 
-  AliceO2::MFT::FindTracks* ftr = new AliceO2::MFT::FindTracks();
+  o2::MFT::FindTracks* ftr = new AliceO2::MFT::FindTracks();
   fRun->AddTask(ftr);
 
   fRun->Init();
 
-  AliceO2::Field::MagneticField* fld = (AliceO2::Field::MagneticField*)fRun->GetField();
+  o2::Field::MagneticField* fld = (AliceO2::Field::MagneticField*)fRun->GetField();
   if (!fld) {
     std::cout << "Failed to get field instance from FairRunAna" << std::endl;
     return;

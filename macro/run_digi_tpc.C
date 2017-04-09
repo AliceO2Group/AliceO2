@@ -49,11 +49,11 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         fFileSource->SetEventMeanTime(10*1000); //is in us
       //  TGeoManager::Import("geofile_full.root");
 
-        AliceO2::Field::MagneticField *magField = new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagFieldParam::k5kG);
+        o2::Field::MagneticField *magField = new o2::Field::MagneticField("Maps","Maps", -1., -1., o2::Field::MagFieldParam::k5kG);
         run->SetField(magField);
 
         // Setup digitizer
-        AliceO2::TPC::DigitizerTask *digiTPC = new AliceO2::TPC::DigitizerTask;
+        o2::TPC::DigitizerTask *digiTPC = new o2::TPC::DigitizerTask;
         run->AddTask(digiTPC);
 
         run->Init();

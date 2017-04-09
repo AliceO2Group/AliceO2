@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-namespace AliceO2{
+namespace o2{
 namespace TPC{
 
     

@@ -8,7 +8,7 @@
 
 #include "FairTrackParam.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class Track : public FairTrackParam

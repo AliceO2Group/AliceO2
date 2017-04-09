@@ -4,7 +4,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliceO2::MathUtils::Chebyshev3D+;
-#pragma link C++ class AliceO2::MathUtils::Chebyshev3DCalc+;
+#pragma link C++ class o2::MathUtils::Chebyshev3D+;
+#pragma link C++ class o2::MathUtils::Chebyshev3DCalc+;
 
 #endif

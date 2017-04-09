@@ -25,8 +25,8 @@
 extern TGeoManager *gGeoManager;
 
 void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=0, Int_t track=0) {
-  using AliceO2::ITSMFT::Point;
-  using namespace AliceO2::ITS;
+  using o2::ITSMFT::Point;
+  using namespace o2::ITS;
 
   char filename[100];
 
@@ -83,7 +83,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   TEvePointSet* points = new TEvePointSet(s.data());
   points->SetMarkerColor(kBlue);
 
-  TClonesArray pntArr("AliceO2::ITSMFT::Point"), *ppntArr(&pntArr);
+  TClonesArray pntArr("o2::ITSMFT::Point"), *ppntArr(&pntArr);
   tree->SetBranchAddress("ITSPoint",&ppntArr);
 
   tree->GetEvent(event);
@@ -112,7 +112,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kMagenta);
   
-  TClonesArray clusArr("AliceO2::ITS::Cluster"), *pclusArr(&clusArr);
+  TClonesArray clusArr("o2::ITS::Cluster"), *pclusArr(&clusArr);
   tree->SetBranchAddress("ITSCluster",&pclusArr);
 
   tree->GetEvent(event);
@@ -146,7 +146,7 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kGreen);
   
-  TClonesArray trkArr("AliceO2::ITS::CookedTrack"), *ptrkArr(&trkArr);
+  TClonesArray trkArr("o2::ITS::CookedTrack"), *ptrkArr(&trkArr);
   tree->SetBranchAddress("ITSTrack",&ptrkArr);
 
   tree->GetEvent(event);

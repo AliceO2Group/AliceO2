@@ -9,21 +9,21 @@
 #include "TString.h"  // for TString
 
 class TFile;
-namespace AliceO2 { namespace CDB { class Condition; }}  // lines 20-20
-namespace AliceO2 { namespace CDB { class ConditionId; }}  // lines 21-21
-namespace AliceO2 { namespace CDB { class ConditionMetaData; }}  // lines 24-24
-namespace AliceO2 { namespace CDB { class IdPath; }}  // lines 22-22
-namespace AliceO2 { namespace CDB { class IdRunRange; }}  // lines 23-23
-namespace AliceO2 { namespace CDB { class Storage; }}  // lines 25-25
-namespace AliceO2 { namespace CDB { class StorageFactory; }}  // lines 26-26
-namespace AliceO2 { namespace CDB { class StorageParameters; }}  // lines 27-27
+namespace o2 { namespace CDB { class Condition; }}  // lines 20-20
+namespace o2 { namespace CDB { class ConditionId; }}  // lines 21-21
+namespace o2 { namespace CDB { class ConditionMetaData; }}  // lines 24-24
+namespace o2 { namespace CDB { class IdPath; }}  // lines 22-22
+namespace o2 { namespace CDB { class IdRunRange; }}  // lines 23-23
+namespace o2 { namespace CDB { class Storage; }}  // lines 25-25
+namespace o2 { namespace CDB { class StorageFactory; }}  // lines 26-26
+namespace o2 { namespace CDB { class StorageParameters; }}  // lines 27-27
 
 
 //  @file   Manager.h
 //  @author Raffaele Grosso
 //  @since  2014-12-02 
-//  @brief  Adapted to AliceO2 from the original AliCDBManager.h in AliRoot
-namespace AliceO2 {
+//  @brief  Adapted to o2 from the original AliCDBManager.h in AliRoot
+namespace o2 {
 namespace CDB {
 
 /// @class Manager

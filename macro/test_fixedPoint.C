@@ -1,4 +1,4 @@
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 void test_fixedPoint(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
 {

@@ -16,7 +16,7 @@
 #ifndef ALICEO2_TPC_PARTITIONINFO_H_
 #define ALICEO2_TPC_PARTITIONINFO_H_
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 class PartitionInfo {

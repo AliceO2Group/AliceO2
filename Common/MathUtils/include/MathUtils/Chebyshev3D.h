@@ -17,7 +17,7 @@ class TH1;  // lines 15-15
 class TMethodCall;  // lines 16-16
 
 
-namespace AliceO2 {
+namespace o2 {
 namespace MathUtils {
 
 /// Chebyshev3D produces the interpolation of the user 3D->NDimOut arbitrary function supplied in
@@ -244,7 +244,7 @@ class Chebyshev3D : public TNamed
 
     static const Float_t sMinimumPrecision; ///< minimum precision allowed
 
-    ClassDef(AliceO2::MathUtils::Chebyshev3D,
+    ClassDef(o2::MathUtils::Chebyshev3D,
     2) // Chebyshev parametrization for 3D->N function
 };
 

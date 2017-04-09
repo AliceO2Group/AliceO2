@@ -9,9 +9,9 @@
 #include "MFTBase/HalfSegmentation.h"
 #include "MFTBase/Segmentation.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Segmentation)
+ClassImp(o2::MFT::Segmentation)
 
 //_____________________________________________________________________________
 Segmentation::Segmentation():
@@ -30,7 +30,7 @@ Segmentation::Segmentation(const Char_t *nameGeomFile):
 
   // constructor
   
-  mHalves = new TClonesArray("AliceO2::MFT::HalfSegmentation", 2);
+  mHalves = new TClonesArray("o2::MFT::HalfSegmentation", 2);
   mHalves->SetOwner(kTRUE);
   
   auto *halfBottom = new HalfSegmentation(nameGeomFile, Bottom);

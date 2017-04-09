@@ -27,7 +27,7 @@
 #include <iostream>
 #include <memory>
 
-using namespace AliceO2::AliceHLT;
+using namespace o2::AliceHLT;
 using namespace ALICE::HLT;
 using std::cerr;
 using std::endl;

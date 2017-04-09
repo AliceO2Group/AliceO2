@@ -12,9 +12,9 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/HalfDetector.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::HalfDetector)
+ClassImp(o2::MFT::HalfDetector)
 
 /// \brief Default constructor
 

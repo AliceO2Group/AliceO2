@@ -15,7 +15,7 @@
 #include "Rtypes.h"              // for DigitWriteoutBuffer::Class, Bool_t, etc
 #include "ITSMFTBase/Digit.h"            // for Digit
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 class DigitWriteoutBuffer : public FairWriteoutBuffer
 {
@@ -36,7 +36,7 @@ class DigitWriteoutBuffer : public FairWriteoutBuffer
     virtual void EraseDataFromDataMap(FairTimeStamp *data);
 
   protected:
-    std::map<AliceO2::ITSMFT::Digit, double> mData_map;
+    std::map<o2::ITSMFT::Digit, double> mData_map;
 
   ClassDef(DigitWriteoutBuffer, 1);
 };

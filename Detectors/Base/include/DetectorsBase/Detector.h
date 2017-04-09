@@ -10,7 +10,7 @@
 #include "FairDetector.h"  // for FairDetector
 #include "Rtypes.h"        // for Float_t, Int_t, Double_t, Detector::Class, etc
 
-namespace AliceO2 {
+namespace o2 {
 namespace Base {
 
 /// This is the basic class for any AliceO2 detector module, whether it is

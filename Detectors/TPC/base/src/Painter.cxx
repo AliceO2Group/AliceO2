@@ -7,7 +7,7 @@
 #include "TPCBase/CalArray.h"
 #include "TPCBase/Painter.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 template <class T>
 void Painter::Draw(CalDet<T> calDet)

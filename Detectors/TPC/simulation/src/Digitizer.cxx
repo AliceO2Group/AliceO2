@@ -14,11 +14,11 @@
 
 #include "FairLogger.h"
 
-ClassImp(AliceO2::TPC::Digitizer)
+ClassImp(o2::TPC::Digitizer)
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
-bool AliceO2::TPC::Digitizer::mDebugFlagPRF = false;
+bool o2::TPC::Digitizer::mDebugFlagPRF = false;
 
 Digitizer::Digitizer()
   : mDigitContainer(nullptr)

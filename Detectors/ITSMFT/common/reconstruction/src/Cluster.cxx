@@ -9,9 +9,9 @@
 
 #include <cstdlib>
 
-using namespace AliceO2::ITSMFT;
+using namespace o2::ITSMFT;
 
-ClassImp(AliceO2::ITSMFT::Cluster)
+ClassImp(o2::ITSMFT::Cluster)
 
 //_____________________________________________________
 Cluster::Cluster()

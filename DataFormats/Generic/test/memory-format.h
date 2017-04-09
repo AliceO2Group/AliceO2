@@ -35,7 +35,7 @@ General header format
 - All basic header structs are defined with fixed endianess and padding
 - Header-stack concept: optional headers can follow the basic header
 */
-namespace AliceO2 {
+namespace o2 {
 namespace Format {
   /**
    * Data header to be commonly used for all in-memory data blocks

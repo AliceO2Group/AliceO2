@@ -8,7 +8,7 @@
 #include <boost/serialization/base_object.hpp>
 #endif
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class EventHeader : public FairEventHeader

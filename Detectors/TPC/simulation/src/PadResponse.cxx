@@ -12,7 +12,7 @@
 #include <sstream>
 #include "FairLogger.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 PadResponse::PadResponse()
   : mIROC()

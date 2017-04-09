@@ -12,10 +12,10 @@
 #include "TNamed.h"
 #include "TGeoVolume.h"
 
-namespace AliceO2 { namespace MFT { class LadderSegmentation; } }
-namespace AliceO2 { namespace MFT { class ChipSegmentation;   } }
+namespace o2 { namespace MFT { class LadderSegmentation; } }
+namespace o2 { namespace MFT { class ChipSegmentation;   } }
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class Chip : public TNamed {

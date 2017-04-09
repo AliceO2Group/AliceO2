@@ -11,7 +11,7 @@
 #include <string>
 #include "FairLogger.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 SAMPAProcessing::SAMPAProcessing()
   : mSaturationSpline()

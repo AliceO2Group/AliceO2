@@ -1,3 +1,3 @@
 #include "TPCBase/CalDet.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;

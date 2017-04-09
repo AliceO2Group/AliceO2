@@ -4,7 +4,7 @@
 #include <TObjString.h>   // for TObjString
 #include <TTimeStamp.h>   // for TTimeStamp
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 
 ClassImp(ConditionMetaData)
 

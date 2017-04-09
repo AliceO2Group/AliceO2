@@ -19,9 +19,9 @@
 #include "MFTBase/Ladder.h"
 #include "MFTBase/Geometry.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Ladder)
+ClassImp(o2::MFT::Ladder)
 
 // Units are cm
 const Double_t Ladder::sLadderDeltaY = Geometry::sSensorHeight + 2.*Geometry::sSensorTopOffset;

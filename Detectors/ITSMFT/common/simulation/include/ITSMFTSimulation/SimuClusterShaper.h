@@ -15,7 +15,7 @@
 
 #include "ITSMFTSimulation/ClusterShape.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITSMFT {
 
     class SimuClusterShaper : public TObject {

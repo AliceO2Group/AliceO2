@@ -9,7 +9,7 @@ using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::M
 template <typename T>
 using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 
-namespace AliceO2
+namespace o2
 {
 
 // Mother class of all hit classes for AliceO2

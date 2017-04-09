@@ -14,7 +14,7 @@
 
 class TClonesArray;
 
-namespace AliceO2
+namespace o2
 {
 namespace ITS
 {

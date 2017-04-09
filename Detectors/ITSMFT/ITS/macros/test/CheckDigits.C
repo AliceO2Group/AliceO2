@@ -17,10 +17,10 @@
 #endif
 
 void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
-  using AliceO2::ITSMFT::SegmentationPixel;
-  using AliceO2::ITSMFT::Digit;
-  using AliceO2::ITSMFT::Point;
-  using namespace AliceO2::ITS;
+  using o2::ITSMFT::SegmentationPixel;
+  using o2::ITSMFT::Digit;
+  using o2::ITSMFT::Point;
+  using namespace o2::ITS;
 
   TFile *f=TFile::Open("CheckDigits.root","recreate");
   TNtuple *nt=new TNtuple("ntd","digit ntuple","x:y:z:dx:dz");
@@ -39,14 +39,14 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file0 = TFile::Open(filename);
   TTree *hitTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray hitArr("AliceO2::ITSMFT::Point"), *phitArr(&hitArr);
+  TClonesArray hitArr("o2::ITSMFT::Point"), *phitArr(&hitArr);
   hitTree->SetBranchAddress("ITSPoint",&phitArr);
 
   // Digits
   sprintf(filename, "AliceO2_%s.digi_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
   TTree *digTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray digArr("AliceO2::ITSMFT::Digit"), *pdigArr(&digArr);
+  TClonesArray digArr("o2::ITSMFT::Digit"), *pdigArr(&digArr);
   digTree->SetBranchAddress("ITSDigit",&pdigArr);
   
   Int_t nev=hitTree->GetEntries();

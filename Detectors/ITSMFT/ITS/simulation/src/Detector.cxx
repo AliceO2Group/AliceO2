@@ -39,11 +39,11 @@ class TParticle;
 using std::cout;
 using std::endl;
 
-using AliceO2::ITSMFT::Point;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::Point;
+using namespace o2::ITS;
 
 Detector::Detector()
-  : AliceO2::Base::Detector("ITS", kTRUE, kAliIts),
+  : o2::Base::Detector("ITS", kTRUE, kAliIts),
     mLayerID(nullptr),
     mNumberLayers(),
     mTrackData(),
@@ -79,7 +79,7 @@ Detector::Detector()
     mDetectorThickness(nullptr),
     mChipTypeID(nullptr),
     mBuildLevel(nullptr),
-    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
+    mPointCollection(new TClonesArray("o2::ITSMFT::Point")),
     
     mGeometryHandler(new GeometryHandler()),
     mMisalignmentParameter(nullptr),
@@ -90,7 +90,7 @@ Detector::Detector()
 }
 
 Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
-  : AliceO2::Base::Detector(name, active, kAliIts),
+  : o2::Base::Detector(name, active, kAliIts),
     mLayerID(nullptr),
     mNumberLayers(nlay),
     mLayerName(new TString[nlay]),
@@ -128,7 +128,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mChipTypeID(nullptr),
     mBuildLevel(nullptr),
 
-    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
+    mPointCollection(new TClonesArray("o2::ITSMFT::Point")),
     mGeometryHandler(new GeometryHandler()),
     mMisalignmentParameter(nullptr),
     
@@ -173,7 +173,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
 }
 
 Detector::Detector(const Detector &rhs)
-  : AliceO2::Base::Detector(rhs),
+  : o2::Base::Detector(rhs),
     mLayerID(nullptr),
     mNumberLayers(rhs.mNumberLayers),
     mLayerName(nullptr),
@@ -216,7 +216,7 @@ Detector::Detector(const Detector &rhs)
     mBuildLevel(nullptr),
 
   /// Container for data points
-    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
+    mPointCollection(new TClonesArray("o2::ITSMFT::Point")),
     mGeometryHandler(rhs.mGeometryHandler), // CHECK
     mMisalignmentParameter(nullptr),
 
@@ -431,7 +431,7 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
 
     // RS: not sure this is needed
     // Increment number of Detector det points in TParticle
-    AliceO2::Data::Stack *stack = (AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+    o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
     stack->AddPoint(kAliIts);
   }
   
@@ -485,65 +485,65 @@ void Detector::createMaterials()
   Float_t wKapton[4] = {0.026362, 0.69113, 0.07327, 0.209235};
   Float_t dKapton = 1.42;
 
-  AliceO2::Base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
-  AliceO2::Base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir,
+  o2::Base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
+  o2::Base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir,
                                   epsilAir, stminAir);
 
-  AliceO2::Base::Detector::Mixture(2, "WATER$", aWater, zWater, dWater, 2, wWater);
-  AliceO2::Base::Detector::Medium(2, "WATER$", 2, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
+  o2::Base::Detector::Mixture(2, "WATER$", aWater, zWater, dWater, 2, wWater);
+  o2::Base::Detector::Medium(2, "WATER$", 2, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
                                   stmin);
 
-  AliceO2::Base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01,
+  o2::Base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01,
                                     0.99900E+03);
-  AliceO2::Base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
+  o2::Base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
                                   epsilSi, stminSi);
 
-  AliceO2::Base::Detector::Material(4, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7); // From AliPIPEv3
-  AliceO2::Base::Detector::Medium(4, "BERILLIUM$", 4, 0, ifield, fieldm, tmaxfd, stemax, deemax,
+  o2::Base::Detector::Material(4, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7); // From AliPIPEv3
+  o2::Base::Detector::Medium(4, "BERILLIUM$", 4, 0, ifield, fieldm, tmaxfd, stemax, deemax,
                                   epsil, stmin);
 
-  AliceO2::Base::Detector::Material(5, "COPPER$", 0.63546E+02, 0.29000E+02, 0.89600E+01,
+  o2::Base::Detector::Material(5, "COPPER$", 0.63546E+02, 0.29000E+02, 0.89600E+01,
                                     0.14300E+01, 0.99900E+03);
-  AliceO2::Base::Detector::Medium(5, "COPPER$", 5, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
+  o2::Base::Detector::Medium(5, "COPPER$", 5, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
                                   stmin);
 
   // needed for STAVE , Carbon, kapton, Epoxy, flexcable
 
   // AliceO2::Base::Detector::Material(6,"CARBON$",12.0107,6,2.210,999,999);
-  AliceO2::Base::Detector::Material(6, "CARBON$", 12.0107, 6, 2.210 / 1.3, 999, 999);
-  AliceO2::Base::Detector::Medium(6, "CARBON$", 6, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
+  o2::Base::Detector::Material(6, "CARBON$", 12.0107, 6, 2.210 / 1.3, 999, 999);
+  o2::Base::Detector::Medium(6, "CARBON$", 6, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
                                   epsilSi, stminSi);
 
-  AliceO2::Base::Detector::Mixture(7, "KAPTON(POLYCH2)$", aKapton, zKapton, dKapton, 4, wKapton);
-  AliceO2::Base::Detector::Medium(7, "KAPTON(POLYCH2)$", 7, 0, ifield, fieldm, tmaxfd, stemax,
+  o2::Base::Detector::Mixture(7, "KAPTON(POLYCH2)$", aKapton, zKapton, dKapton, 4, wKapton);
+  o2::Base::Detector::Medium(7, "KAPTON(POLYCH2)$", 7, 0, ifield, fieldm, tmaxfd, stemax,
                                   deemax, epsil, stmin);
 
   // values below modified as compared to source AliITSv11 !
 
   // All types of carbon
   // Unidirectional prepreg
-  AliceO2::Base::Detector::Material(8, "K13D2U2k$", 12.0107, 6, 1.643, 999, 999);
-  AliceO2::Base::Detector::Medium(8, "K13D2U2k$", 8, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
+  o2::Base::Detector::Material(8, "K13D2U2k$", 12.0107, 6, 1.643, 999, 999);
+  o2::Base::Detector::Medium(8, "K13D2U2k$", 8, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
                                   deemaxSi, epsilSi, stminSi);
   // Impregnated thread
-  AliceO2::Base::Detector::Material(9, "M60J3K$", 12.0107, 6, 2.21, 999, 999);
-  AliceO2::Base::Detector::Medium(9, "M60J3K$", 9, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
+  o2::Base::Detector::Material(9, "M60J3K$", 12.0107, 6, 2.21, 999, 999);
+  o2::Base::Detector::Medium(9, "M60J3K$", 9, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
                                   epsilSi, stminSi);
   // Impregnated thread
-  AliceO2::Base::Detector::Material(10, "M55J6K$", 12.0107, 6, 1.63, 999, 999);
-  AliceO2::Base::Detector::Medium(10, "M55J6K$", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
+  o2::Base::Detector::Material(10, "M55J6K$", 12.0107, 6, 1.63, 999, 999);
+  o2::Base::Detector::Medium(10, "M55J6K$", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
                                   deemaxSi, epsilSi, stminSi);
   // Fabric(0/90)
-  AliceO2::Base::Detector::Material(11, "T300$", 12.0107, 6, 1.725, 999, 999);
-  AliceO2::Base::Detector::Medium(11, "T300$", 11, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
+  o2::Base::Detector::Material(11, "T300$", 12.0107, 6, 1.725, 999, 999);
+  o2::Base::Detector::Medium(11, "T300$", 11, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
                                   epsilSi, stminSi);
   // AMEC Thermasol
-  AliceO2::Base::Detector::Material(12, "FGS003$", 12.0107, 6, 1.6, 999, 999);
-  AliceO2::Base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
+  o2::Base::Detector::Material(12, "FGS003$", 12.0107, 6, 1.6, 999, 999);
+  o2::Base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
                                   deemaxSi, epsilSi, stminSi);
   // Carbon fleece
-  AliceO2::Base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
-  AliceO2::Base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
+  o2::Base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
+  o2::Base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
                                   deemaxSi, epsilSi, stminSi);
 
   // Flex cable
@@ -554,20 +554,20 @@ void Detector::createMaterials()
   // Float_t dFCm = 2.55;   // conform with STAR
   Float_t dFCm = 2.595; // conform with Corrado
 
-  AliceO2::Base::Detector::Mixture(14, "FLEXCABLE$", aFCm, zFCm, dFCm, 5, wFCm);
-  AliceO2::Base::Detector::Medium(14, "FLEXCABLE$", 14, 0, ifield, fieldm, tmaxfd, stemax, deemax,
+  o2::Base::Detector::Mixture(14, "FLEXCABLE$", aFCm, zFCm, dFCm, 5, wFCm);
+  o2::Base::Detector::Medium(14, "FLEXCABLE$", 14, 0, ifield, fieldm, tmaxfd, stemax, deemax,
                                   epsil, stmin);
 
   // AliceO2::Base::Detector::Material(7,"GLUE$",0.12011E+02,0.60000E+01,0.1930E+01/2.015,999,999);
   // // original
-  AliceO2::Base::Detector::Material(15, "GLUE$", 12.011, 6, 1.93 / 2.015, 999,
+  o2::Base::Detector::Material(15, "GLUE$", 12.011, 6, 1.93 / 2.015, 999,
                                     999); // conform with ATLAS, Corrado, Stefan
-  AliceO2::Base::Detector::Medium(15, "GLUE$", 15, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
+  o2::Base::Detector::Medium(15, "GLUE$", 15, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
                                   stmin);
 
-  AliceO2::Base::Detector::Material(16, "ALUMINUM$", 0.26982E+02, 0.13000E+02, 0.26989E+01,
+  o2::Base::Detector::Material(16, "ALUMINUM$", 0.26982E+02, 0.13000E+02, 0.26989E+01,
                                     0.89000E+01, 0.99900E+03);
-  AliceO2::Base::Detector::Medium(16, "ALUMINUM$", 16, 0, ifield, fieldm, tmaxfd, stemax, deemax,
+  o2::Base::Detector::Medium(16, "ALUMINUM$", 16, 0, ifield, fieldm, tmaxfd, stemax, deemax,
                                   epsil, stmin);
 }
 
@@ -1019,7 +1019,7 @@ TParticle *Detector::GetParticle() const
   // Return:
   //   The TParticle of the track that created this hit.
   int trc = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-  return ((AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack())->GetParticle(trc);
+  return ((o2::Data::Stack *) TVirtualMC::GetMC()->GetStack())->GetParticle(trc);
 }
 
 void Detector::Print(std::ostream *os) const
@@ -1106,4 +1106,4 @@ std::istream &operator>>(std::istream &is, Detector &r)
   return is;
 }
 
-ClassImp(AliceO2::ITS::Detector)
+ClassImp(o2::ITS::Detector)

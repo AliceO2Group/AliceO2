@@ -47,9 +47,9 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   TGeoManager::Import("geofile_full.root");
 
   // Setup clusterer
-  AliceO2::TPC::ClustererTask *clustTPC = new AliceO2::TPC::ClustererTask;
-  clustTPC->setClustererEnable(AliceO2::TPC::ClustererTask::ClustererType::Box,false);
-  clustTPC->setClustererEnable(AliceO2::TPC::ClustererTask::ClustererType::HW,true);
+  o2::TPC::ClustererTask *clustTPC = new o2::TPC::ClustererTask;
+  clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::Box,false);
+  clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::HW,true);
 
   run->AddTask(clustTPC);
 
@@ -57,7 +57,7 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->Init();
 
 //  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Parallel);
-  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Sequential);
+  clustTPC->getHwClusterer()->setProcessingType(o2::TPC::HwClusterer::Processing::Sequential);
 
   // Start simulation
   timer.Start();

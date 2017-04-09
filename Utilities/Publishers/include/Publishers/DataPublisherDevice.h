@@ -16,7 +16,7 @@
 
 class FairMQParts;
 
-namespace AliceO2 {
+namespace o2 {
 namespace Utilities {
 
 /// @class DataPublisherDevice
@@ -26,7 +26,7 @@ namespace Utilities {
 class DataPublisherDevice : public Base::O2Device
 {
 public:
-  typedef AliceO2::Base::O2Message O2Message;
+  typedef o2::Base::O2Message O2Message;
   /// TODO: use type alias when it has been added to DataHeader.h
   typedef uint64_t SubSpecificationT;
 
@@ -70,9 +70,9 @@ private:
   /// index of the previously handled data channel in HandleData
   int mLastIndex;
   /// the default data description
-  AliceO2::Header::DataDescription mDataDescription;
+  o2::Header::DataDescription mDataDescription;
   /// the default data description
-  AliceO2::Header::DataOrigin mDataOrigin;
+  o2::Header::DataOrigin mDataOrigin;
   /// the default data sub specification
   SubSpecificationT mSubSpecification;
   /// buffer for the file to read

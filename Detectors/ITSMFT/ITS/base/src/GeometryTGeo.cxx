@@ -29,12 +29,12 @@
 #include <cstdio>  // for snprintf, NULL, printf
 #include <cstring> // for strstr, strlen
 
-using AliceO2::ITSMFT::Segmentation;
-using AliceO2::ITSMFT::SegmentationPixel;
+using o2::ITSMFT::Segmentation;
+using o2::ITSMFT::SegmentationPixel;
 using namespace TMath;
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
-ClassImp(AliceO2::ITS::GeometryTGeo)
+ClassImp(o2::ITS::GeometryTGeo)
 
   UInt_t GeometryTGeo::mUIDShift = 16; // bit shift to go from mod.id to modUUID for TGeo
 TString GeometryTGeo::mVolumeName = "ITSV";

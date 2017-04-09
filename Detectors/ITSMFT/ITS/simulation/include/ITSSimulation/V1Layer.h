@@ -17,7 +17,7 @@ class TGeoCombiTrans;
 
 class TGeoVolume;  // lines 15-15
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
@@ -187,7 +187,7 @@ class V1Layer : public V11Geometry
       mBuildLevel = buildLevel;
     }
 
-    void setStaveModel(AliceO2::ITS::Detector::Model model)
+    void setStaveModel(o2::ITS::Detector::Model model)
     {
       mStaveModel = model;
     }

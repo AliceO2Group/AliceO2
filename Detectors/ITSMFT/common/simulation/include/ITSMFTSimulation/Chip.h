@@ -16,9 +16,9 @@
 #include <TGeoMatrix.h>   
 
 
-namespace AliceO2 { namespace ITSMFT { class Point; }}  // lines 22-22
+namespace o2 { namespace ITSMFT { class Point; }}  // lines 22-22
 
-namespace AliceO2 {
+namespace o2 {
 
 namespace ITSMFT {
 

@@ -13,7 +13,7 @@
 #include "CCDB/Manager.h"
 #include "ParameterMQServer.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class ConditionsMQServer : public ParameterMQServer {

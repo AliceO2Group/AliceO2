@@ -9,10 +9,10 @@
 #include "TVector3.h"     // for TVector3
 #include <iostream>
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITSMFT {
 
-class Point : public AliceO2::BasicXYZEHit<Float_t,Float_t>
+class Point : public o2::BasicXYZEHit<Float_t,Float_t>
 {
 
   public:

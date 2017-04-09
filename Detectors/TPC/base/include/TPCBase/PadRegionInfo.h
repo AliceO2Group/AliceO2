@@ -21,7 +21,7 @@
 #include "TPCBase/Defs.h"
 #include "TPCBase/PadPos.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 class PadRegionInfo

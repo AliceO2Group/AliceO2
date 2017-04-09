@@ -14,9 +14,9 @@
 #include "ITSMFTSimulation/Chip.h"
 #include "ITSMFTSimulation/Point.h"
 
-ClassImp(AliceO2::ITSMFT::Chip)
+ClassImp(o2::ITSMFT::Chip)
 
-using namespace AliceO2::ITSMFT;
+using namespace o2::ITSMFT;
 
 Chip::Chip() :
   TObject(),

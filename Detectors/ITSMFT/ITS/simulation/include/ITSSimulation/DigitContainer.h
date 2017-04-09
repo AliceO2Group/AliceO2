@@ -11,7 +11,7 @@
 
 class TClonesArray;
 
-namespace AliceO2
+namespace o2
 {
   namespace ITSMFT
   {
@@ -19,7 +19,7 @@ namespace AliceO2
   }
 }
 
-namespace AliceO2
+namespace o2
 {
   namespace ITS
   {
@@ -30,8 +30,8 @@ namespace AliceO2
       ~DigitContainer() = default;
       void reset();
       void resize(Int_t n) { mChips.resize(n); }
-      AliceO2::ITSMFT::Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
-      AliceO2::ITSMFT::Digit* getDigit(Int_t chipID, UShort_t row, UShort_t col);
+      o2::ITSMFT::Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
+      o2::ITSMFT::Digit* getDigit(Int_t chipID, UShort_t row, UShort_t col);
 
       void fillOutputContainer(TClonesArray* output);
 

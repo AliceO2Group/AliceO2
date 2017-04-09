@@ -15,7 +15,7 @@
 #include <vector>
 #include <algorithm>
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITSMFT {
 
     class ClusterShape : public TObject {

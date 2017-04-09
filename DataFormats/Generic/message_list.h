@@ -25,7 +25,7 @@
 #include <cstring> // memset
 #include <functional> // std::function
 
-namespace AliceO2 {
+namespace o2 {
 namespace Format {
 
 // Ideally it does not matter for the implementation of the container class

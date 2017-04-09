@@ -13,9 +13,9 @@
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Geometry)
+ClassImp(o2::MFT::Geometry)
 
 const Double_t Geometry::sSensorLength=3.; //[cm]
 const Double_t Geometry::sSensorHeight=1.5; //[cm]

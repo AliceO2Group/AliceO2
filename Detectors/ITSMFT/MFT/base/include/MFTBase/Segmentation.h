@@ -9,9 +9,9 @@
 #include "TNamed.h"
 #include "TClonesArray.h"
 
-namespace AliceO2 { namespace MFT { class HalfSegmentation; } }
+namespace o2 { namespace MFT { class HalfSegmentation; } }
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class Segmentation : public TNamed {

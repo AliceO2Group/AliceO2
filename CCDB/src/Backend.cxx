@@ -4,7 +4,7 @@
 
 #include "CCDB/Backend.h"
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 using namespace std;
 
 void Backend::Serialize(std::string*& messageString, const std::string& key, const std::string& operationType,

@@ -15,7 +15,7 @@ class TGeoVolume;
 
 class TGeoHMatrix;
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 /// Helper class to extract information from the GeoManager which is needed in many other TOF

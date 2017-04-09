@@ -9,12 +9,12 @@
 #include "Headers/SubframeMetadata.h"
 #include <options/FairMQProgOptions.h>
 
-using HeartbeatHeader = AliceO2::Header::HeartbeatHeader;
-using HeartbeatTrailer = AliceO2::Header::HeartbeatTrailer;
-using TPCTestCluster = AliceO2::DataFlow::TPCTestCluster;
-using ITSRawData = AliceO2::DataFlow::ITSRawData;
+using HeartbeatHeader = o2::Header::HeartbeatHeader;
+using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
+using TPCTestCluster = o2::DataFlow::TPCTestCluster;
+using ITSRawData = o2::DataFlow::ITSRawData;
 
-using DataDescription = AliceO2::Header::DataDescription;
+using DataDescription = o2::Header::DataDescription;
 
 template <typename T>
 void fakePayload(std::vector<byte> &buffer, std::function<void(T&,int)> filler, int numOfElements) {
@@ -30,7 +30,7 @@ void fakePayload(std::vector<byte> &buffer, std::function<void(T&,int)> filler, 
   }
 }
 
-AliceO2::Utilities::DataPublisherDevice::DataPublisherDevice()
+o2::Utilities::DataPublisherDevice::DataPublisherDevice()
   : O2Device()
   , mInputChannelName("input")
   , mOutputChannelName("output")
@@ -42,10 +42,10 @@ AliceO2::Utilities::DataPublisherDevice::DataPublisherDevice()
 {
 }
 
-AliceO2::Utilities::DataPublisherDevice::~DataPublisherDevice()
+o2::Utilities::DataPublisherDevice::~DataPublisherDevice()
 = default;
 
-void AliceO2::Utilities::DataPublisherDevice::InitTask()
+void o2::Utilities::DataPublisherDevice::InitTask()
 {
   mInputChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
   mOutputChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
@@ -67,14 +67,14 @@ void AliceO2::Utilities::DataPublisherDevice::InitTask()
     mDataDescription = DataDescription("TPCCLUSTER");
   else if (GetConfig()->GetValue<std::string>(OptionKeyDataDescription) == "ITSRAW")
     mDataDescription = DataDescription("ITSRAW");
-  mDataOrigin = AliceO2::Header::DataOrigin("TEST");
+  mDataOrigin = o2::Header::DataOrigin("TEST");
   mSubSpecification = GetConfig()->GetValue<SubSpecificationT>(OptionKeySubspecification);
   mFileName = GetConfig()->GetValue<std::string>(OptionKeyFileName);
 
-  OnData(mInputChannelName.c_str(), &AliceO2::Utilities::DataPublisherDevice::HandleData);
+  OnData(mInputChannelName.c_str(), &o2::Utilities::DataPublisherDevice::HandleData);
 
   // reserve space for the HBH at the beginning
-  mFileBuffer.resize(sizeof(AliceO2::Header::HeartbeatHeader));
+  mFileBuffer.resize(sizeof(o2::Header::HeartbeatHeader));
 
   if (!mFileName.empty()) {
     AppendFile(mFileName.c_str(), mFileBuffer);
@@ -88,34 +88,34 @@ void AliceO2::Utilities::DataPublisherDevice::InitTask()
     fakePayload<ITSRawData>(mFileBuffer, f, 500);
   }
 
-  mFileBuffer.resize(mFileBuffer.size() + sizeof(AliceO2::Header::HeartbeatTrailer));
-  auto* hbhOut = reinterpret_cast<AliceO2::Header::HeartbeatHeader*>(&mFileBuffer[0]);
-  auto* hbtOut = reinterpret_cast<AliceO2::Header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(AliceO2::Header::HeartbeatTrailer)]);
-  *hbhOut = AliceO2::Header::HeartbeatHeader();
-  *hbtOut = AliceO2::Header::HeartbeatTrailer();
+  mFileBuffer.resize(mFileBuffer.size() + sizeof(o2::Header::HeartbeatTrailer));
+  auto* hbhOut = reinterpret_cast<o2::Header::HeartbeatHeader*>(&mFileBuffer[0]);
+  auto* hbtOut = reinterpret_cast<o2::Header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(o2::Header::HeartbeatTrailer)]);
+  *hbhOut = o2::Header::HeartbeatHeader();
+  *hbtOut = o2::Header::HeartbeatTrailer();
 }
 
-bool AliceO2::Utilities::DataPublisherDevice::HandleData(FairMQParts& msgParts, int index)
+bool o2::Utilities::DataPublisherDevice::HandleData(FairMQParts& msgParts, int index)
 {
   ForEach(msgParts, &DataPublisherDevice::HandleO2LogicalBlock);
 
   return true;
 }
 
-bool AliceO2::Utilities::DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
+bool o2::Utilities::DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
 								   size_t headerBufferSize,
 								   const byte* dataBuffer,
 								   size_t dataBufferSize)
 {
   //  AliceO2::Header::hexDump("data buffer", dataBuffer, dataBufferSize);
-  const auto* dataHeader = AliceO2::Header::get<AliceO2::Header::DataHeader>(headerBuffer);
-  const auto* hbfEnvelope = AliceO2::Header::get<AliceO2::Header::HeartbeatFrameEnvelope>(headerBuffer);
+  const auto* dataHeader = o2::Header::get<o2::Header::DataHeader>(headerBuffer);
+  const auto* hbfEnvelope = o2::Header::get<o2::Header::HeartbeatFrameEnvelope>(headerBuffer);
 
   // TODO: not sure what the return value is supposed to indicate, it's
   // not handled in O2Device::ForEach at the moment
   // indicate that the block has not been processed by a 'false'
   if (!dataHeader ||
-      (dataHeader->dataDescription) != AliceO2::Header::gDataDescriptionHeartbeatFrame) return false;
+      (dataHeader->dataDescription) != o2::Header::gDataDescriptionHeartbeatFrame) return false;
 
   if (!hbfEnvelope) {
     LOG(ERROR) << "no heartbeat frame envelope header found";
@@ -135,19 +135,19 @@ bool AliceO2::Utilities::DataPublisherDevice::HandleO2LogicalBlock(const byte* h
 
   // assume everything valid
   // write the HBH and HBT as envelop to the buffer of the file data
-  auto* hbhOut = reinterpret_cast<AliceO2::Header::HeartbeatHeader*>(&mFileBuffer[0]);
-  auto* hbtOut = reinterpret_cast<AliceO2::Header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(AliceO2::Header::HeartbeatTrailer)]);
+  auto* hbhOut = reinterpret_cast<o2::Header::HeartbeatHeader*>(&mFileBuffer[0]);
+  auto* hbtOut = reinterpret_cast<o2::Header::HeartbeatTrailer*>(&mFileBuffer[mFileBuffer.size() - sizeof(o2::Header::HeartbeatTrailer)]);
 
   // copy HBH and HBT, but set the length explicitely to 1
   // TODO: handle all kinds of corner cases, or add an assert
   *hbhOut = hbfEnvelope->header;
   hbhOut->headerLength = 1;
   *hbtOut = hbfEnvelope->trailer;
-  hbtOut->dataLength = mFileBuffer.size() - sizeof(AliceO2::Header::HeartbeatFrameEnvelope);
+  hbtOut->dataLength = mFileBuffer.size() - sizeof(o2::Header::HeartbeatFrameEnvelope);
 
   // top level subframe header, the DataHeader is going to be used with
   // configured description, origin and sub specification
-  AliceO2::Header::DataHeader dh;
+  o2::Header::DataHeader dh;
   dh.dataDescription = mDataDescription;
   dh.dataOrigin = mDataOrigin;
   dh.subSpecification = mSubSpecification;
@@ -176,7 +176,7 @@ bool AliceO2::Utilities::DataPublisherDevice::HandleO2LogicalBlock(const byte* h
   return true;
 }
 
-bool AliceO2::Utilities::DataPublisherDevice::AppendFile(const char* name, std::vector<byte>& buffer)
+bool o2::Utilities::DataPublisherDevice::AppendFile(const char* name, std::vector<byte>& buffer)
 {
   bool result = true;
   std::ifstream ifile(name, std::ifstream::binary);
