@@ -17,7 +17,7 @@ namespace TPC {
 template < class T >
 class Point2D {
   public:
-    Point2D() {}
+    Point2D() = default;
     Point2D(const T &x, const T &y) : mX(x), mY(y) {}
 
     const T& getX() const { return mX; }

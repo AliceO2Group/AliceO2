@@ -32,7 +32,7 @@ public:
   
   Int_t GetNHalfDisks() const { return mHalfDisks->GetEntries(); }
 
-  HalfDiskSegmentation* GetHalfDisk(Int_t iDisk) const { if (iDisk>=0 && iDisk<mHalfDisks->GetEntries()) return (HalfDiskSegmentation*) mHalfDisks->At(iDisk); else return NULL; }
+  HalfDiskSegmentation* GetHalfDisk(Int_t iDisk) const { if (iDisk>=0 && iDisk<mHalfDisks->GetEntries()) return (HalfDiskSegmentation*) mHalfDisks->At(iDisk); else return nullptr; }
  
 private:
   

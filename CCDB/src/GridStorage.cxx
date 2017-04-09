@@ -60,7 +60,7 @@ GridStorage::GridStorage(const char *gridUrl, const char *user, const char *dbFo
     TGridResult *res = gGrid->Command(Form("mkdir -p %s", mDBFolder.Data()));
     TString result = res->GetKey(0, "__result__");
     if (result == "0") {
-      LOG(FATAL) << "Cannot create folder \"" << mDBFolder.Data() << "\"!" << FairLogger::endl;
+      LOG(FATAL) << R"(Cannot create folder ")" << mDBFolder.Data() << R"("!)" << FairLogger::endl;
       return;
     }
   } else {
@@ -116,7 +116,7 @@ GridStorage::~GridStorage()
 {
   // destructor
   delete gGrid;
-  gGrid = 0;
+  gGrid = nullptr;
 }
 
 Bool_t GridStorage::filenameToId(TString &filename, ConditionId &id)
@@ -241,7 +241,7 @@ Bool_t GridStorage::prepareId(ConditionId &id)
       if (i == 1) {
 
       } else if (i == 2) {
-        LOG(DEBUG) << "Tagging level 2 folder with \"CDB\" and \"CDB_MD\" tag" << FairLogger::endl;
+        LOG(DEBUG) << R"(Tagging level 2 folder with "CDB" and "CDB_MD" tag)" << FairLogger::endl;
         if (!addTag(dirName, "CDB")) {
           LOG(ERROR) << "Could not tag folder " << dirName.Data() << " !" << FairLogger::endl;
           if (!gGrid->Rmdir(dirName.Data())) {
@@ -309,13 +309,13 @@ ConditionId *GridStorage::getId(const TObjArray &validFileIds, const ConditionId
   // look for the ConditionId that matches query's requests (highest or exact version)
 
   if (validFileIds.GetEntriesFast() < 1) {
-    return NULL;
+    return nullptr;
   }
 
   TIter iter(&validFileIds);
 
-  ConditionId *anIdPtr = 0;
-  ConditionId *result = 0;
+  ConditionId *anIdPtr = nullptr;
+  ConditionId *result = nullptr;
 
   while ((anIdPtr = dynamic_cast<ConditionId *>(iter.Next()))) {
     if (anIdPtr->getPathString() != query.getPathString()) {
@@ -331,7 +331,7 @@ ConditionId *GridStorage::getId(const TObjArray &validFileIds, const ConditionId
       if (result && result->getVersion() == anIdPtr->getVersion()) {
         LOG(ERROR) << "More than one object valid for run " << query.getFirstRun() << " version "
                    << anIdPtr->getVersion() << "!" << FairLogger::endl;
-        return NULL;
+        return nullptr;
       }
       result = new ConditionId(*anIdPtr);
     } else { // look for specified version
@@ -341,7 +341,7 @@ ConditionId *GridStorage::getId(const TObjArray &validFileIds, const ConditionId
       if (result && result->getVersion() == anIdPtr->getVersion()) {
         LOG(ERROR) << "More than one object valid for run " << query.getFirstRun() << " version "
                    << anIdPtr->getVersion() << "!" << FairLogger::endl;
-        return NULL;
+        return nullptr;
       }
       result = new ConditionId(*anIdPtr);
     }
@@ -355,7 +355,7 @@ ConditionId *GridStorage::getConditionId(const ConditionId &queryId)
   // get  ConditionId from the database
   // User must delete returned object
 
-  ConditionId *dataId = 0;
+  ConditionId *dataId = nullptr;
 
   ConditionId selectedId(queryId);
   if (!selectedId.hasVersion()) {
@@ -382,7 +382,7 @@ ConditionId *GridStorage::getConditionId(const ConditionId &queryId)
                << selectedId.getPathString().Data() << "!" << FairLogger::endl;
 
     TString filter;
-    makeQueryFilter(selectedId.getFirstRun(), selectedId.getLastRun(), 0, filter);
+    makeQueryFilter(selectedId.getFirstRun(), selectedId.getLastRun(), nullptr, filter);
 
     TString pattern = ".root";
     TString optionQuery = "-y -m";
@@ -413,7 +413,7 @@ ConditionId *GridStorage::getConditionId(const ConditionId &queryId)
       }
       delete res;
     } else {
-      return 0; // this should be only in case of file catalogue glitch
+      return nullptr; // this should be only in case of file catalogue glitch
     }
 
     dataId = getId(validFileIds, selectedId);
@@ -430,7 +430,7 @@ Condition *GridStorage::getCondition(const ConditionId &queryId)
 
   if (!dataId) {
     LOG(FATAL) << "No valid CDB object found! request was: " << queryId.ToString().Data() << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   TString filename;
@@ -478,7 +478,7 @@ Condition *GridStorage::getConditionFromFile(TString &filename, ConditionId *dat
   TFile *file = TFile::Open(filename, option);
   if (!file) {
     LOG(DEBUG) << "Can't open file <" << filename.Data() << ">!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   // get the only  Condition object from the file
@@ -489,7 +489,7 @@ Condition *GridStorage::getConditionFromFile(TString &filename, ConditionId *dat
   if (!anCondition) {
     LOG(DEBUG) << "Bad storage data: file does not contain an  Condition object!" << FairLogger::endl;
     file->Close();
-    return NULL;
+    return nullptr;
   }
 
   // The object's ConditionId is not reset during storage
@@ -516,7 +516,7 @@ Condition *GridStorage::getConditionFromFile(TString &filename, ConditionId *dat
   // close file, return retieved entry
   file->Close();
   delete file;
-  file = 0;
+  file = nullptr;
 
   return anCondition;
 }
@@ -537,18 +537,18 @@ TList *GridStorage::getAllEntries(const ConditionId &queryId)
   if (queryId.getFirstRun() == mRun && mPathFilter.isSupersetOf(queryId.getPathString()) && mVersion < 0 &&
       !mConditionMetaDataFilter) {
     // look into list of valid files previously loaded with  Storage::FillValidFileIds()
-    LOG(DEBUG) << "List of files valid for run " << queryId.getFirstRun() << " and for path \""
-               << queryId.getPathString().Data() << "\" was loaded. Looking there!" << FairLogger::endl;
+    LOG(DEBUG) << "List of files valid for run " << queryId.getFirstRun() << R"( and for path ")"
+               << queryId.getPathString().Data() << R"(" was loaded. Looking there!)" << FairLogger::endl;
 
     alreadyLoaded = kTRUE;
 
   } else {
     // List of files valid for reqested run was not loaded. Looking directly into CDB
-    LOG(DEBUG) << "List of files valid for run " << queryId.getFirstRun() << " and for path \""
+    LOG(DEBUG) << "List of files valid for run " << queryId.getFirstRun() << R"( and for path ")"
                << queryId.getPathString().Data() << " was not loaded. Looking directly into CDB!" << FairLogger::endl;
 
     TString filter;
-    makeQueryFilter(queryId.getFirstRun(), queryId.getLastRun(), 0, filter);
+    makeQueryFilter(queryId.getFirstRun(), queryId.getLastRun(), nullptr, filter);
 
     TString path = queryId.getPathString();
 
@@ -591,7 +591,7 @@ TList *GridStorage::getAllEntries(const ConditionId &queryId)
         }
       }
       delete tokenArr;
-      tokenArr = 0;
+      tokenArr = nullptr;
     }
 
     TString folderCopy(Form("%s%s", mDBFolder.Data(), addFolder.Data()));
@@ -603,7 +603,7 @@ TList *GridStorage::getAllEntries(const ConditionId &queryId)
 
     if (!res) {
       LOG(ERROR) << "GridStorage query failed" << FairLogger::endl;
-      return 0;
+      return nullptr;
     }
 
     for (int i = 0; i < res->GetEntries(); i++) {
@@ -619,7 +619,7 @@ TList *GridStorage::getAllEntries(const ConditionId &queryId)
     delete res;
   }
 
-  TIter *iter = 0;
+  TIter *iter = nullptr;
   if (alreadyLoaded) {
     iter = new TIter(&mValidFileIds);
   } else {
@@ -632,8 +632,8 @@ TList *GridStorage::getAllEntries(const ConditionId &queryId)
   // loop on list of valid Ids to select the right version to get.
   // According to query and to the selection criteria list, version can be the highest or exact
   IdPath pathCopy;
-  ConditionId *anIdPtr = 0;
-  ConditionId *dataId = 0;
+  ConditionId *anIdPtr = nullptr;
+  ConditionId *dataId = nullptr;
   IdPath queryPath = queryId.getPath();
   while ((anIdPtr = dynamic_cast<ConditionId *>(iter->Next()))) {
     IdPath thisCDBPath = anIdPtr->getPath();
@@ -660,7 +660,7 @@ TList *GridStorage::getAllEntries(const ConditionId &queryId)
   }
 
   delete iter;
-  iter = 0;
+  iter = nullptr;
 
   // selectedIds contains the Ids of the files matching all requests of query!
   // All the objects are now ready to be retrieved
@@ -679,7 +679,7 @@ TList *GridStorage::getAllEntries(const ConditionId &queryId)
     }
   }
   delete iter;
-  iter = 0;
+  iter = nullptr;
 
   return result;
 }
@@ -728,8 +728,8 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
   }
 
   // open file
-  TFile *file = 0;
-  TFile *reopenedFile = 0;
+  TFile *file = nullptr;
+  TFile *reopenedFile = nullptr;
   LOG(DEBUG) << "mNretry = " << mNretry << ", mInitRetrySeconds = " << mInitRetrySeconds << FairLogger::endl;
   TString targetSE("");
 
@@ -746,7 +746,7 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
         TObjString *target = (TObjString *) arraySEs->At(nSEs - remainingSEs);
         targetSE = target->String();
         if (!(targetSE.BeginsWith("ALICE::") && targetSE.CountChar(':') == 4)) {
-          LOG(ERROR) << "\"" << targetSE.Data() << "\" is an invalid storage element identifier." << FairLogger::endl;
+          LOG(ERROR) << R"(")" << targetSE.Data() << R"(" is an invalid storage element identifier.)" << FairLogger::endl;
           continue;
         }
         if (fullFilename.Contains('?')) {
@@ -767,7 +767,7 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
           if (file) { // file is not writable
             file->Close();
             delete file;
-            file = 0;
+            file = nullptr;
           }
           TString message(TString::Format("Attempt %d failed.", mNretry - remainingAttempts));
           if (remainingAttempts > 0) {
@@ -811,11 +811,10 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
       reopenedFile = TFile::Open(fullFilename.Data(), "READ");
       if (!reopenedFile) {
         reOpenResult = kFALSE;
-        LOG(INFO) << "The file \"" << fullFilename.Data()
-                  << "\" was closed successfully but cannot be reopened. Trying now to regenerate "
-                    "it (regeneration attempt number " << ++reOpenAttempts << FairLogger::endl;
+        LOG(INFO) << R"(The file ")" << fullFilename.Data()
+                  << R"(" was closed successfully but cannot be reopened. Trying now to regenerate it (regeneration attempt number )" << ++reOpenAttempts << FairLogger::endl;
         delete file;
-        file = 0;
+        file = nullptr;
         LOG(DEBUG) << "Removing file " << filename.Data() << FairLogger::endl;
         if (!gGrid->Rm(filename.Data()))
           LOG(ERROR) << "Can't delete file!" << FairLogger::endl;
@@ -825,7 +824,7 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
         if (!Manager::Instance()->isOcdbUploadMode()) {
           reopenedFile->Close();
           delete reopenedFile;
-          reopenedFile = 0;
+          reopenedFile = nullptr;
         }
       }
     }
@@ -836,12 +835,12 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
   } else
     gROOT->cd();
   delete file;
-  file = 0;
+  file = nullptr;
 
   if (result && reOpenResult) {
 
     if (!tagFileId(filename, &id)) {
-      LOG(INFO) << "CDB tagging failed. Deleting file \"" << filename.Data() << "\"!" << FairLogger::endl;
+      LOG(INFO) << R"(CDB tagging failed. Deleting file ")" << filename.Data() << R"("!)" << FairLogger::endl;
       if (!gGrid->Rm(filename.Data()))
         LOG(ERROR) << "Can't delete file!" << FairLogger::endl;
       return kFALSE;
@@ -855,7 +854,7 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
     return kFALSE;
   }
 
-  LOG(INFO) << "CDB object stored into file \"" << filename.Data() << "\" " << FairLogger::endl;
+  LOG(INFO) << R"(CDB object stored into file ")" << filename.Data() << R"(" )" << FairLogger::endl;
   if (nSEs == 0)
     LOG(INFO) << "Storage Element: " << mSE.Data() << FairLogger::endl;
   else
@@ -872,24 +871,24 @@ Bool_t GridStorage::putCondition(Condition *entry, const char *mirrors)
     TObjString *target = (TObjString *) arraySEs->At(i);
     TString mirrorSE(target->String());
     mirrorCmd += mirrorSE;
-    LOG(DEBUG) << "mirror command: \"" << mirrorCmd.Data() << "\"" << FairLogger::endl;
+    LOG(DEBUG) << R"(mirror command: ")" << mirrorCmd.Data() << R"(")" << FairLogger::endl;
     LOG(INFO) << "Mirroring to storage element: " << mirrorSE.Data() << FairLogger::endl;
     gGrid->Command(mirrorCmd.Data());
   }
   arraySEs->Delete();
-  arraySEs = 0;
+  arraySEs = nullptr;
 
   if (Manager::Instance()->isOcdbUploadMode()) { // if uploading to OCDBs, add to cvmfs too
     if (!filename.BeginsWith("/alice/data") && !filename.BeginsWith("/alice/simulation/2008/v4-15-Release")) {
-      LOG(ERROR) << "Cannot upload to CVMFS OCDBs a non official CDB object: \"" << filename.Data() << "\"!"
+      LOG(ERROR) << R"(Cannot upload to CVMFS OCDBs a non official CDB object: ")" << filename.Data() << R"("!)"
                  << FairLogger::endl;
     } else {
       if (!putInCvmfs(filename, reopenedFile))
-        LOG(ERROR) << "Could not upload AliEn file \"" << filename.Data() << "\" to CVMFS OCDB!" << FairLogger::endl;
+        LOG(ERROR) << R"(Could not upload AliEn file ")" << filename.Data() << R"(" to CVMFS OCDB!)" << FairLogger::endl;
     }
     reopenedFile->Close();
     delete reopenedFile;
-    reopenedFile = 0;
+    reopenedFile = nullptr;
   }
 
   return kTRUE;
@@ -919,7 +918,7 @@ Bool_t GridStorage::putInCvmfs(TString &filename, TFile *cdbFile) const
     return kFALSE;
   }
   // now cvmfsDirname is the full dirname in cvmfs
-  LOG(DEBUG) << "Publishing \"" << basename.Data() << "\" in \"" << cvmfsDirname.Data() << "\"" << FairLogger::endl;
+  LOG(DEBUG) << R"(Publishing ")" << basename.Data() << R"(" in ")" << cvmfsDirname.Data() << R"(")" << FairLogger::endl;
 
   // Tar the file with the right prefix path. Include the directory structure in the tarball
   // to cover the case of a containing directory being new in cvmfs, plus a container directory
@@ -929,7 +928,7 @@ Bool_t GridStorage::putInCvmfs(TString &filename, TFile *cdbFile) const
   gSystem->Exec(Form("rm -r %s > /dev/null 2>&1", tempDir.Data())); // to be sure not to publish other stuff in cvmfs
   Int_t result = gSystem->Exec(Form("mkdir -p %s/%s", tempDir.Data(), threeLevels.Data()));
   if (result != 0) {
-    LOG(ERROR) << "Could not create the directory \"" << tempDir.Data() << "/" << threeLevels.Data() << "\""
+    LOG(ERROR) << R"(Could not create the directory ")" << tempDir.Data() << "/" << threeLevels.Data() << R"(")"
                << FairLogger::endl;
     return kFALSE;
   }
@@ -943,14 +942,14 @@ Bool_t GridStorage::putInCvmfs(TString &filename, TFile *cdbFile) const
   result = gSystem->Exec(Form("tar --transform 's,^%s,%s,S' -cvzf %s %s", tempDir.Data(), cvmfsBaseFolder.Data(),
                               tarFileName.Data(), tempDir.Data()));
   if (result != 0) {
-    LOG(ERROR) << "Could not create the tarball for the object \"" << filename.Data() << "\"" << FairLogger::endl;
+    LOG(ERROR) << R"(Could not create the tarball for the object ")" << filename.Data() << R"(")" << FairLogger::endl;
     return kFALSE;
   }
 
   // Copy the file to cvmfs (requires to have the executable in the path and access to the server)
   result = gSystem->Exec(Form("ocdb-cvmfs %s", tarFileName.Data()));
   if (result != 0) {
-    LOG(ERROR) << "Could not execute \"ocdb-cvmfs " << filename.Data() << "\"" << FairLogger::endl;
+    LOG(ERROR) << R"(Could not execute "ocdb-cvmfs )" << filename.Data() << R"(")" << FairLogger::endl;
     return kFALSE;
   }
 
@@ -966,12 +965,12 @@ Bool_t GridStorage::addTag(TString &folderToTag, const char *tagname)
   // add "tagname" tag (CDB or CDB_MD) to folder where object will be stored
 
   Bool_t result = kTRUE;
-  LOG(DEBUG) << "adding " << tagname << " tag to folder \"" << folderToTag.Data() << "\"" << FairLogger::endl;
+  LOG(DEBUG) << "adding " << tagname << R"( tag to folder ")" << folderToTag.Data() << R"(")" << FairLogger::endl;
   TString addTagCommand = Form("addTag %s %s", folderToTag.Data(), tagname);
   TGridResult *gridres = gGrid->Command(addTagCommand.Data());
   const char *resCode = gridres->GetKey(0, "__result__"); // '1' if success
   if (resCode[0] != '1') {
-    LOG(ERROR) << "Couldn't add \"" << tagname << "\" tags to folder " << folderToTag.Data() << "!" << FairLogger::endl;
+    LOG(ERROR) << R"(Couldn't add ")" << tagname << R"(" tags to folder )" << folderToTag.Data() << "!" << FairLogger::endl;
     result = kFALSE;
   }
   delete gridres;
@@ -988,11 +987,11 @@ Bool_t GridStorage::tagFileId(TString &filename, const ConditionId *id)
   TString addTagValue1 = Form("addTagValue %s CDB ", filename.Data());
   TString addTagValue2 =
     Form("first_run=%d last_run=%d version=%d ", id->getFirstRun(), id->getLastRun(), id->getVersion());
-  TString addTagValue3 = Form("path_level_0=\"%s\" path_level_1=\"%s\" path_level_2=\"%s\" ",
+  TString addTagValue3 = Form(R"(path_level_0="%s" path_level_1="%s" path_level_2="%s" )",
                               id->getPathLevel(0).Data(), id->getPathLevel(1).Data(), id->getPathLevel(2).Data());
   // TString addTagValue4 = Form("version_path=\"%s\"
   // dir_number=%d",Form("%d_%s",id->getVersion(),filename.Data()),dirNumber);
-  TString addTagValue4 = Form("version_path=\"%09d%s\" dir_number=%d", id->getVersion(), filename.Data(), dirNumber);
+  TString addTagValue4 = Form(R"(version_path="%09d%s" dir_number=%d)", id->getVersion(), filename.Data(), dirNumber);
   TString addTagValue =
     Form("%s%s%s%s", addTagValue1.Data(), addTagValue2.Data(), addTagValue3.Data(), addTagValue4.Data());
 
@@ -1016,9 +1015,9 @@ Bool_t GridStorage::tagFileConditionMetaData(TString &filename, const ConditionM
   // tag stored object in CDB table using object ConditionId's parameters
 
   TString addTagValue1 = Form("addTagValue %s CDB_MD ", filename.Data());
-  TString addTagValue2 = Form("object_classname=\"%s\" responsible=\"%s\" beam_period=%d ", md->getObjectClassName(),
+  TString addTagValue2 = Form(R"(object_classname="%s" responsible="%s" beam_period=%d )", md->getObjectClassName(),
                               md->getResponsible(), md->getBeamPeriod());
-  TString addTagValue3 = Form("aliroot_version=\"%s\" comment=\"%s\"", md->getAliRootVersion(), md->getComment());
+  TString addTagValue3 = Form(R"(aliroot_version="%s" comment="%s")", md->getAliRootVersion(), md->getComment());
   TString addTagValue = Form("%s%s%s", addTagValue1.Data(), addTagValue2.Data(), addTagValue3.Data());
 
   Bool_t result = kFALSE;
@@ -1045,7 +1044,7 @@ TList *GridStorage::getIdListFromFile(const char *fileName)
   TFile *file = TFile::Open(turl);
   if (!file) {
     LOG(ERROR) << "Can't open selection file <" << turl.Data() << ">!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   TList *list = new TList();
@@ -1067,7 +1066,7 @@ TList *GridStorage::getIdListFromFile(const char *fileName)
   }
   file->Close();
   delete file;
-  file = 0;
+  file = nullptr;
 
   return list;
 }
@@ -1144,7 +1143,7 @@ void GridStorage::queryValidFiles()
       }
     }
     delete tokenArr;
-    tokenArr = 0;
+    tokenArr = nullptr;
   }
 
   TString folderCopy(Form("%s%s", mDBFolder.Data(), addFolder.Data()));
@@ -1206,19 +1205,19 @@ void GridStorage::makeQueryFilter(Int_t firstRun, Int_t lastRun, const Condition
 
   if (md) {
     if (md->getObjectClassName()[0] != '\0') {
-      result += Form(" and CDB_MD:object_classname=\"%s\"", md->getObjectClassName());
+      result += Form(R"( and CDB_MD:object_classname="%s")", md->getObjectClassName());
     }
     if (md->getResponsible()[0] != '\0') {
-      result += Form(" and CDB_MD:responsible=\"%s\"", md->getResponsible());
+      result += Form(R"( and CDB_MD:responsible="%s")", md->getResponsible());
     }
     if (md->getBeamPeriod() != 0) {
       result += Form(" and CDB_MD:beam_period=%d", md->getBeamPeriod());
     }
     if (md->getAliRootVersion()[0] != '\0') {
-      result += Form(" and CDB_MD:aliroot_version=\"%s\"", md->getAliRootVersion());
+      result += Form(R"( and CDB_MD:aliroot_version="%s")", md->getAliRootVersion());
     }
     if (md->getComment()[0] != '\0') {
-      result += Form(" and CDB_MD:comment=\"%s\"", md->getComment());
+      result += Form(R"( and CDB_MD:comment="%s")", md->getComment());
     }
   }
   LOG(DEBUG) << "filter: " << result.Data() << FairLogger::endl;
@@ -1246,7 +1245,7 @@ StorageParameters *GridStorageFactory::createStorageParameter(const char *gridSt
   // create  GridStorageParameters class from the URI string
 
   if (!validateStorageUri(gridString)) {
-    return NULL;
+    return nullptr;
   }
 
   TString buffer(gridString);
@@ -1262,7 +1261,7 @@ StorageParameters *GridStorageFactory::createStorageParameter(const char *gridSt
 
   TObjArray *arr = buffer.Tokenize('?');
   TIter iter(arr);
-  TObjString *str = 0;
+  TObjString *str = nullptr;
 
   while ((str = (TObjString *) iter.Next())) {
     TString entry(str->String());
@@ -1302,29 +1301,29 @@ StorageParameters *GridStorageFactory::createStorageParameter(const char *gridSt
         operateDisconnected = (Bool_t) value.Atoi();
       } else {
         LOG(ERROR) << "Invalid entry! " << entry.Data() << FairLogger::endl;
-        return NULL;
+        return nullptr;
       }
     } else if (key.Contains("cacheS", TString::kIgnoreCase)) {
       if (value.IsDigit()) {
         cacheSize = value.Atoi();
       } else {
         LOG(ERROR) << "Invalid entry! " << entry.Data() << FairLogger::endl;
-        return NULL;
+        return nullptr;
       }
     } else if (key.Contains("cleanupInt", TString::kIgnoreCase)) {
       if (value.IsDigit()) {
         cleanupInterval = value.Atoi();
       } else {
         LOG(ERROR) << "Invalid entry! " << entry.Data() << FairLogger::endl;
-        return NULL;
+        return nullptr;
       }
     } else {
       LOG(ERROR) << "Invalid entry! " << entry.Data() << FairLogger::endl;
-      return NULL;
+      return nullptr;
     }
   }
   delete arr;
-  arr = 0;
+  arr = nullptr;
 
   LOG(DEBUG) << "gridUrl:	" << gridUrl.Data() << FairLogger::endl;
   LOG(DEBUG) << "user:	" << user.Data() << FairLogger::endl;
@@ -1337,7 +1336,7 @@ StorageParameters *GridStorageFactory::createStorageParameter(const char *gridSt
 
   if (dbFolder == "") {
     LOG(ERROR) << "Base folder must be specified!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   return new GridStorageParameters(gridUrl.Data(), user.Data(), dbFolder.Data(), se.Data(), cacheFolder.Data(),
@@ -1348,7 +1347,7 @@ StorageParameters *GridStorageFactory::createStorageParameter(const char *gridSt
 Storage *GridStorageFactory::createStorage(const StorageParameters *param)
 {
   // create  GridStorage storage instance from parameters
-  GridStorage *grid = 0;
+  GridStorage *grid = nullptr;
   if (GridStorageParameters::Class() == param->IsA()) {
     const GridStorageParameters *gridParam = (const GridStorageParameters *) param;
     grid = new GridStorage(gridParam->GridUrl().Data(), gridParam->getUser().Data(), gridParam->getDBFolder().Data(),
@@ -1358,7 +1357,7 @@ Storage *GridStorageFactory::createStorage(const StorageParameters *param)
   }
   if (!gGrid && grid) {
     delete grid;
-    grid = 0;
+    grid = nullptr;
   }
   return grid;
 }

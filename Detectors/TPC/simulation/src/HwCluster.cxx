@@ -50,15 +50,7 @@ HwCluster::HwCluster(short cru, short row, short sizeP, short sizeT,
 
 //________________________________________________________________________
 HwCluster::HwCluster(const HwCluster& other)
-  : Cluster(other)
-  , mPad(other.mPad)
-  , mTime(other.mTime)
-  , mSizeP(other.mSizeP)
-  , mSizeT(other.mSizeT)
-  , mSize(other.mSize)
-  , mClusterData(other.mClusterData)
-{
-}
+  = default;
 
 //________________________________________________________________________
 void HwCluster::setClusterData(short cru, short row, short sizeP, short sizeT, 

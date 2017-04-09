@@ -19,7 +19,7 @@ namespace CDB {
 
 class Backend {
 public:
-  virtual ~Backend(){};
+  virtual ~Backend()= default;
 
   /// Pack
   virtual void Pack(const std::string& path, const std::string& key, std::string*& messageString) = 0;

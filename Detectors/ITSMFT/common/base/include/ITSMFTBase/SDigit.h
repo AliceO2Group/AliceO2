@@ -20,7 +20,7 @@ class SDigit : public TObject
   SDigit(UInt_t chip, UInt_t index, Double_t noise, Int_t roCycle = 0);
   SDigit(const SDigit& source);
   SDigit& operator=(const SDigit& source);
-  virtual ~SDigit() {}
+  virtual ~SDigit() = default;
   Double_t getSignal(Int_t i) const { return ((i >= 0 && i < kBuffSize) ? mSignal[i] : 0.0); }
   Double_t getSignal() const { return mTotalSignal; }
   Double_t getSignalAfterElect() const { return mSignalAfterElect; }

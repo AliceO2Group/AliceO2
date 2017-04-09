@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 #include "DetectorsBase/Constants.h"
 #include "DetectorsBase/Utils.h"

@@ -12,16 +12,16 @@ using namespace AliceO2::CDB;
 
 ClassImp(FileStorage)
 
-FileStorage::FileStorage(const char *dbFile, Bool_t readOnly) : mFile(NULL), mReadOnly(readOnly)
+FileStorage::FileStorage(const char *dbFile, Bool_t readOnly) : mFile(nullptr), mReadOnly(readOnly)
 {
   // constructor
 
   // opening file
   mFile = TFile::Open(dbFile, mReadOnly ? "READ" : "UPDATE");
   if (!mFile) {
-    LOG(ERROR) << "Can't open file \"" << dbFile << "\"" << FairLogger::endl;
+    LOG(ERROR) << R"(Can't open file ")" << dbFile << R"(")" << FairLogger::endl;
   } else {
-    LOG(ERROR) << "File \"" << dbFile << "\" opened" << FairLogger::endl;
+    LOG(ERROR) << R"(File ")" << dbFile << R"(" opened)" << FairLogger::endl;
     if (mReadOnly)
       LOG(DEBUG) << "in read-only mode" << FairLogger::endl;
   }
@@ -50,7 +50,7 @@ Bool_t FileStorage::keyNameToId(const char *keyname, IdRunRange &runRange, Int_t
   TRegexp keyPattern("^Run[0-9]+_[0-9]+_v[0-9]+_s[0-9]+$");
   keyPattern.Index(keyname, &mSize);
   if (!mSize) {
-    LOG(DEBUG) << "Bad keyname \"" << keyname << "\"." << FairLogger::endl;
+    LOG(DEBUG) << R"(Bad keyname ")" << keyname << R"(".)" << FairLogger::endl;
     return kFALSE;
   }
 
@@ -82,12 +82,12 @@ Bool_t FileStorage::idToKeyName(const IdRunRange &runRange, Int_t version, Int_t
   }
 
   if (version < 0) {
-    LOG(DEBUG) << "Invalid version \'" << version << "\'." << FairLogger::endl;
+    LOG(DEBUG) << R"(Invalid version ')" << version << R"('.)" << FairLogger::endl;
     return kFALSE;
   }
 
   if (subVersion < 0) {
-    LOG(DEBUG) << "Invalid subversion \'" << subVersion << "\'." << FairLogger::endl;
+    LOG(DEBUG) << R"(Invalid subversion ')" << subVersion << R"('.)" << FairLogger::endl;
     return kFALSE;
   }
 
@@ -124,7 +124,7 @@ Bool_t FileStorage::makeDir(const TString &path)
 
     TDirectory *aDir = gDirectory->mkdir(dirName, "");
     if (!aDir) {
-      LOG(ERROR) << "Can't create directory \"" << dirName.Data() << "\"!" << FairLogger::endl;
+      LOG(ERROR) << R"(Can't create directory ")" << dirName.Data() << R"("!)" << FairLogger::endl;
       delete strArray;
 
       return kFALSE;
@@ -272,7 +272,7 @@ ConditionId *FileStorage::getId(const ConditionId &query)
                    << aSubVersion << "!" << FairLogger::endl;
 
         delete result;
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -302,7 +302,7 @@ ConditionId *FileStorage::getId(const ConditionId &query)
         LOG(ERROR) << "More than one object valid for run " << query.getFirstRun() << " version " << aVersion << "_"
                    << aSubVersion << "!" << FairLogger::endl;
         delete result;
-        return NULL;
+        return nullptr;
       }
       if (result->getSubVersion() < aSubVersion) {
 
@@ -336,7 +336,7 @@ ConditionId *FileStorage::getId(const ConditionId &query)
         LOG(ERROR) << "More than one object valid for run " << query.getFirstRun() << " version " << aVersion << "_"
                    << aSubVersion << "!" << FairLogger::endl;
         delete result;
-        return NULL;
+        return nullptr;
       }
       result->setVersion(aVersion);
       result->setSubVersion(aSubVersion);
@@ -356,11 +356,11 @@ Condition *FileStorage::getCondition(const ConditionId &queryId)
 
   if (!(mFile && mFile->IsOpen())) {
     LOG(ERROR) << "FileStorage is not initialized properly" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   if (!gDirectory->cd(queryId.getPathString())) {
-    return NULL;
+    return nullptr;
   }
 
   ConditionId *dataId = getConditionId(queryId);
@@ -369,14 +369,14 @@ Condition *FileStorage::getCondition(const ConditionId &queryId)
     if (dataId) {
       delete dataId;
     }
-    return NULL;
+    return nullptr;
   }
 
   TString keyname;
   if (!idToKeyName(dataId->getIdRunRange(), dataId->getVersion(), dataId->getSubVersion(), keyname)) {
     LOG(DEBUG) << "Bad ID encountered! Subnormal error!" << FairLogger::endl;
     delete dataId;
-    return NULL;
+    return nullptr;
   }
 
   // get the only  Condition object from the file
@@ -387,13 +387,13 @@ Condition *FileStorage::getCondition(const ConditionId &queryId)
   if (!anObject) {
     LOG(DEBUG) << "Bad storage data: NULL entry object!" << FairLogger::endl;
     delete dataId;
-    return NULL;
+    return nullptr;
   }
 
   if (Condition::Class() != anObject->IsA()) {
     LOG(DEBUG) << "Bad storage data: Invalid entry object!" << FairLogger::endl;
     delete dataId;
-    return NULL;
+    return nullptr;
   }
 
   ((Condition *) anObject)->setLastStorage("dump");
@@ -410,14 +410,14 @@ ConditionId *FileStorage::getConditionId(const ConditionId &queryId)
 
   if (!(mFile && mFile->IsOpen())) {
     LOG(ERROR) << "FileStorage is not initialized properly" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   if (!gDirectory->cd(queryId.getPathString())) {
-    return NULL;
+    return nullptr;
   }
 
-  ConditionId *dataId = 0;
+  ConditionId *dataId = nullptr;
 
   // look for a filename matching query requests (path, runRange, version, subVersion)
   if (!queryId.hasVersion()) {
@@ -431,7 +431,7 @@ ConditionId *FileStorage::getConditionId(const ConditionId &queryId)
 
   if (dataId && !dataId->isSpecified()) {
     delete dataId;
-    return NULL;
+    return nullptr;
   }
 
   return dataId;
@@ -491,7 +491,7 @@ TList *FileStorage::getAllEntries(const ConditionId &queryId)
 
   if (!(mFile && mFile->IsOpen())) {
     LOG(ERROR) << "FileStorage is not initialized properly" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   TList *result = new TList();
@@ -539,7 +539,7 @@ Bool_t FileStorage::putCondition(Condition *entry, const char *mirrors)
 
   if (!gDirectory->cd(id.getPathString())) {
     if (!makeDir(id.getPathString())) {
-      LOG(ERROR) << "Can't open directory \"" << id.getPathString().Data() << "\"!" << FairLogger::endl;
+      LOG(ERROR) << R"(Can't open directory ")" << id.getPathString().Data() << R"("!)" << FairLogger::endl;
       return kFALSE;
     }
   }
@@ -559,7 +559,7 @@ Bool_t FileStorage::putCondition(Condition *entry, const char *mirrors)
   // write object (key name: Run#firstRun_#lastRun_v#version_s#subVersion)
   Bool_t result = gDirectory->WriteTObject(entry, keyname);
   if (!result) {
-    LOG(ERROR) << "Can't write entry to file \"" << mFile->GetName() << "\"" << FairLogger::endl;
+    LOG(ERROR) << R"(Can't write entry to file ")" << mFile->GetName() << R"(")" << FairLogger::endl;
   }
 
   if (result) {
@@ -580,7 +580,7 @@ TList *FileStorage::getIdListFromFile(const char *fileName)
   TFile *file = TFile::Open(turl);
   if (!file) {
     LOG(ERROR) << "Can't open selection file <" << turl.Data() << ">!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
   file->cd();
 
@@ -603,7 +603,7 @@ TList *FileStorage::getIdListFromFile(const char *fileName)
   }
   file->Close();
   delete file;
-  file = 0;
+  file = nullptr;
   return list;
 }
 
@@ -659,7 +659,7 @@ StorageParameters *FileStorageFactory::createStorageParameter(const char *dbStri
   // create  FileStorageParameters class from the URI string
 
   if (!validateStorageUri(dbString)) {
-    return NULL;
+    return nullptr;
   }
 
   TString pathname(dbString + sizeof("dump://") - 1);
@@ -690,7 +690,7 @@ Storage *FileStorageFactory::createStorage(const StorageParameters *param)
     FileStorage *dumpStorage = new FileStorage(dumpParam->getPathString(), dumpParam->isReadOnly());
     return dumpStorage;
   }
-  return NULL;
+  return nullptr;
 }
 
 // FileStorage parameter class

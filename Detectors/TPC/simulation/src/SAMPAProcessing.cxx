@@ -20,7 +20,7 @@ SAMPAProcessing::SAMPAProcessing()
 }
 
 SAMPAProcessing::~SAMPAProcessing()
-{}
+= default;
 
 bool SAMPAProcessing::importSaturationCurve(std::string file)
 {
@@ -41,7 +41,7 @@ bool SAMPAProcessing::importSaturationCurve(std::string file)
     float x, y;
     std::istringstream is(line);
     while (is >> x >> y) {
-      saturation.push_back(std::pair<float, float>(x, y));
+      saturation.emplace_back(x, y);
     }
   }
   const int nPoints = saturation.size();

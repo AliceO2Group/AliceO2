@@ -68,7 +68,7 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         // This line is filtered by CTest and the value send to CDash
         FairSystemInfo sysInfo;
         Float_t maxMemory=sysInfo.GetMaxMemory();
-        std::cout << "<DartMeasurement name=\"MaxMemory\" type=\"numeric/double\">";
+        std::cout << R"(<DartMeasurement name="MaxMemory" type="numeric/double">)";
         std::cout << maxMemory;
         std::cout << "</DartMeasurement>" << std::endl;
 
@@ -77,7 +77,7 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         Double_t ctime = timer.CpuTime();
 
         Float_t cpuUsage=ctime/rtime;
-        std::cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
+        std::cout << R"(<DartMeasurement name="CpuLoad" type="numeric/double">)";
         std::cout << cpuUsage;
         std::cout << "</DartMeasurement>" << std::endl;
         std::cout << std::endl << std::endl;

@@ -276,8 +276,7 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
   for (int iCRU = 0; iCRU < mCRUs; ++iCRU) {
 //        std::cout << "starting CRU " << iCRU << std::endl;
     if (mProcessingType == Processing::Parallel)
-      thread_vector.push_back(
-          std::thread(
+      thread_vector.emplace_back(
             processDigits,                      // function name
             std::ref(mDigitContainer[iCRU]),    // digit container for individual CRUs
             std::ref(mClusterFinder[iCRU]),     // cluster finder for individual CRUs
@@ -287,7 +286,7 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
             mPadsMax+2+2,                       // max. numbers of pads in each row (+2 empty ones on each side)
             iTimeBinMin,                        // Min timebin of digit
             iTimeBinMax                         // Max timebin of digits
-          )
+          
         );
     else {
       processDigits(mDigitContainer[iCRU],mClusterFinder[iCRU],mClusterStorage[iCRU],iCRU,mRowsMax,mPadsMax+2+2,iTimeBinMin,iTimeBinMax);

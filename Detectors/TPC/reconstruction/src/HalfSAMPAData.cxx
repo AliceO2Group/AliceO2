@@ -28,7 +28,7 @@ HalfSAMPAData::HalfSAMPAData(int id, bool low, std::array<short,16>& data)
 }
 
 HalfSAMPAData::~HalfSAMPAData()
-{}
+= default;
 
 std::ostream& HalfSAMPAData::Print(std::ostream& output) const
 {

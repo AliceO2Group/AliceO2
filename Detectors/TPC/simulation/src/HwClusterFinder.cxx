@@ -411,7 +411,7 @@ float HwClusterFinder::chargeForCluster(float* charge, float* toCompare)
 void HwClusterFinder::setNextCF(HwClusterFinder* nextCF)
 {
   if (nextCF == nullptr) {
-    LOG(WARNING) << "Got \"nullptrd\" as neighboring Cluster Finder." << FairLogger::endl;
+    LOG(WARNING) << R"(Got "nullptrd" as neighboring Cluster Finder.)" << FairLogger::endl;
     return;
   }
   if (mNextCF != nullptr) {

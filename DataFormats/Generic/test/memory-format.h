@@ -22,7 +22,7 @@
 ///         elsewhere, but this file is temporarily kept for the unit test
 
 // use the standard definitions of int variables
-#include <stdint.h>
+#include <cstdint>
 #include "header_versions.h"
 
 /**

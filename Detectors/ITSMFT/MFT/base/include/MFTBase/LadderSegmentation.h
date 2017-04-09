@@ -22,7 +22,7 @@ public:
   LadderSegmentation(UInt_t uniqueID);
   LadderSegmentation(const LadderSegmentation& ladder);
 
-  virtual ~LadderSegmentation() { if(mChips){mChips->Delete(); delete mChips; mChips=NULL;} }
+  virtual ~LadderSegmentation() { if(mChips){mChips->Delete(); delete mChips; mChips=nullptr;} }
   virtual void Print(Option_t* opt="");
   virtual void Clear(const Option_t* /*opt*/) { if(mChips){mChips->Clear();} }
   

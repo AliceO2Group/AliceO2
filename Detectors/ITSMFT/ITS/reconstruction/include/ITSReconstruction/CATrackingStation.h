@@ -11,7 +11,7 @@
 
 #include <algorithm>
 #include <vector>
-#include <assert.h>
+#include <cassert>
 #include "ITSReconstruction/CAaux.h"
 
 class TClonesArray;
@@ -118,7 +118,7 @@ namespace AliceO2 {
       inline ClsInfo_t* TrackingStation::GetNextClusterInfo() {
         // return cluster info for next matching cluster
         int id = GetNextClusterInfoID();
-        return id < 0 ? 0 : (ClsInfo_t*)&mSortedClInfo[id];
+        return id < 0 ? nullptr : (ClsInfo_t*)&mSortedClInfo[id];
       }
     } // namespace CA
   } // namespace ITS

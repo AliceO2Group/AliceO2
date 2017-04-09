@@ -29,7 +29,7 @@ class CookedTracker
   CookedTracker& operator=(const CookedTracker& tr) = delete;
   virtual ~CookedTracker();
 
-  void setVertex(const Double_t* xyz, const Double_t* ers = 0)
+  void setVertex(const Double_t* xyz, const Double_t* ers = nullptr)
   {
     mX = xyz[0];
     mY = xyz[1];

@@ -73,7 +73,7 @@ void ConditionMetaData::addDateToComment()
   // when the date of the file can be lost or when one is interested in the
   // date of creation, irrespective of a later copy of it
 
-  TTimeStamp ts(time(0));
+  TTimeStamp ts(time(nullptr));
   TString comment(getComment());
   comment += Form("\tDate of production: %s\n", ts.AsString());
   comment.Remove(comment.Last('+'));

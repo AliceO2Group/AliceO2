@@ -26,18 +26,18 @@
 using namespace AliceO2::CDB;
 using namespace std;
 
-ConditionsMQClient::ConditionsMQClient() : fRunId(0), fParameterName() {}
+ConditionsMQClient::ConditionsMQClient() : mRunId(0), mParameterName() {}
 
-ConditionsMQClient::~ConditionsMQClient() {}
+ConditionsMQClient::~ConditionsMQClient() = default;
 
 void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hint); }
 
 void ConditionsMQClient::InitTask()
 {
-  fParameterName = GetConfig()->GetValue<string>("parameter-name");
-  fOperationType = GetConfig()->GetValue<string>("operation-type");
-  fDataSource = GetConfig()->GetValue<string>("data-source");
-  fObjectPath = GetConfig()->GetValue<string>("object-path");
+  mParameterName = GetConfig()->GetValue<string>("parameter-name");
+  mOperationType = GetConfig()->GetValue<string>("operation-type");
+  mDataSource = GetConfig()->GetValue<string>("data-source");
+  mObjectPath = GetConfig()->GetValue<string>("object-path");
 }
 
 void ConditionsMQClient::Run()
@@ -49,16 +49,16 @@ void ConditionsMQClient::Run()
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
     boost::posix_time::ptime startTime = boost::posix_time::microsec_clock::local_time();
 
-    if (fDataSource == "OCDB") {
+    if (mDataSource == "OCDB") {
       backend = new BackendOCDB();
-    } else if (fDataSource == "Riak") {
+    } else if (mDataSource == "Riak") {
       backend = new BackendRiak();
     } else {
-      LOG(ERROR) << "\"" << fDataSource << "\" is not a valid Data Source";
+      LOG(ERROR) << R"(")" << mDataSource << R"(" is not a valid Data Source)";
       return;
     }
 
-    boost::filesystem::path dataPath(fObjectPath);
+    boost::filesystem::path dataPath(mObjectPath);
     boost::filesystem::recursive_directory_iterator endIterator;
 
     // Traverse the filesystem and retrieve the name of each root found
@@ -69,13 +69,13 @@ void ConditionsMQClient::Run()
 
           // Retrieve the key from the filename by erasing the directory structure and trimming the file extension
           std::string str = directoryIterator->path().string();
-          str.erase(0, fObjectPath.length());
+          str.erase(0, mObjectPath.length());
           std::size_t pos = str.rfind(".");
           std::string key = str.substr(0, pos);
 
-          if (fOperationType == "GET") {
+          if (mOperationType == "GET") {
             std::string* messageString = new string();
-            backend->Serialize(messageString, key, fOperationType, fDataSource);
+            backend->Serialize(messageString, key, mOperationType, mDataSource);
 
             unique_ptr<FairMQMessage> request(fTransportFactory->CreateMessage(
               const_cast<char*>(messageString->c_str()), messageString->length(), CustomCleanup, messageString));
@@ -87,7 +87,7 @@ void ConditionsMQClient::Run()
                 backend->UnPack(std::move(reply));
               }
             }
-          } else if (fOperationType == "PUT") {
+          } else if (mOperationType == "PUT") {
             std::string* messageString = new string();
             backend->Pack(directoryIterator->path().string(), key, messageString);
 
@@ -101,7 +101,7 @@ void ConditionsMQClient::Run()
         }
       }
     } else {
-      LOG(ERROR) << "Path " << fObjectPath << " not existing or not a directory";
+      LOG(ERROR) << "Path " << mObjectPath << " not existing or not a directory";
     }
 
     boost::posix_time::ptime endTime = boost::posix_time::microsec_clock::local_time();

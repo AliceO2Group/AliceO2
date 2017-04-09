@@ -60,8 +60,8 @@
 class AliHLTMonitoringWriter
     {
     public:
-        AliHLTMonitoringWriter() {}
-        virtual ~AliHLTMonitoringWriter() {}
+        AliHLTMonitoringWriter() = default;
+        virtual ~AliHLTMonitoringWriter() = default;
 
 	virtual void Clear() = 0;
 

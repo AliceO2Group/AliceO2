@@ -17,7 +17,7 @@ namespace TPC {
 template < class T >
 class Point3D {
   public:
-    Point3D() {}
+    Point3D() = default;
     Point3D(const T &x, const T &y, const T&z) : mX(x), mY(y), mZ(z) {}
 
     const T& getX() const { return mX; }

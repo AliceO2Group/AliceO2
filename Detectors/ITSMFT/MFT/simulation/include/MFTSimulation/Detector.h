@@ -33,7 +33,7 @@ public:
   virtual void Initialize();
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
-  virtual Bool_t ProcessHits(FairVolume* v = 0);
+  virtual Bool_t ProcessHits(FairVolume* v = nullptr);
 
   /// Has to be called after each event to reset the containers
   virtual void Reset();

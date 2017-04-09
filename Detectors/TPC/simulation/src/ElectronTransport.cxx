@@ -18,7 +18,7 @@ ElectronTransport::ElectronTransport()
 }
 
 ElectronTransport::~ElectronTransport()
-{}
+= default;
 
 GlobalPosition3D ElectronTransport::getElectronDrift(GlobalPosition3D posEle)
 {

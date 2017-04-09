@@ -9,7 +9,7 @@
 
 class TList;
 
-#include <stddef.h>      // for NULL
+#include <cstddef>      // for NULL
 
 namespace AliceO2 { namespace CDB { class IdRunRange; }}
 

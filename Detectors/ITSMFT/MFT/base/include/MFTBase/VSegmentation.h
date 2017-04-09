@@ -22,7 +22,7 @@ public:
   VSegmentation();
   VSegmentation(const VSegmentation& input);
 
-  virtual ~VSegmentation(){};
+  virtual ~VSegmentation()= default;
   
   /// Set Position of the Element. Unit is [cm]
   void SetPosition(const Double_t *pos){

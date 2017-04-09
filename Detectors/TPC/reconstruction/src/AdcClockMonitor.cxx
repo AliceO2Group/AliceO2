@@ -20,18 +20,11 @@ AdcClockMonitor::AdcClockMonitor(int sampa)
 {}
 
 AdcClockMonitor::AdcClockMonitor(const AdcClockMonitor& other)
-  : mSampa(other.mSampa)
-  , mPrevSequence(other.mPrevSequence)
-  , mTransition0(other.mTransition0)
-  , mTransition1(other.mTransition1)
-  , mSequenceCompleted(other.mSequenceCompleted)
-  , mSequencePosition(other.mSequencePosition)
-  , mState(other.mState)
-{}
+  = default;
 
 
 AdcClockMonitor::~AdcClockMonitor()
-{}
+= default;
 
 void AdcClockMonitor::reset()
 {

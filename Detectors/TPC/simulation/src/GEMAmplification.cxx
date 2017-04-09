@@ -30,7 +30,7 @@ GEMAmplification::GEMAmplification()
 }
 
 GEMAmplification::~GEMAmplification()
-{}
+= default;
 
 int GEMAmplification::getStackAmplification(int nElectrons)
 {

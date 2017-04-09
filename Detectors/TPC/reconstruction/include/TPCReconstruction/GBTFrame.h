@@ -265,10 +265,7 @@ GBTFrame::GBTFrame(unsigned word3, unsigned word2, unsigned word1, unsigned word
 
 inline
 GBTFrame::GBTFrame(const GBTFrame& other)
-  : mWords(other.mWords)
-  , mHalfWords(other.mHalfWords)
-  , mAdcClock(other.mAdcClock)
-{};
+  = default;
 
 inline
 void GBTFrame::getGBTFrame(unsigned& word3, unsigned& word2, unsigned& word1, unsigned& word0) const {

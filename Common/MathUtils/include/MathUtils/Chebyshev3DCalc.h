@@ -6,7 +6,7 @@
 #define ALICEO2_MATHUTILS_CHEBYSHEV3DCALC_H_
 
 #include <TNamed.h>  // for TNamed
-#include <stdio.h>   // for FILE, stdout
+#include <cstdio>   // for FILE, stdout
 #include "Rtypes.h"  // for Float_t, UShort_t, Int_t, Double_t, etc
 
 class TString;

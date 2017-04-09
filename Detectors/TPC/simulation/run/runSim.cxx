@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
   bpo::options_description desc("Allowed options");
   desc.add_options()
     ("help,h", "Produce help message.")
-    ("mode,m",      bpo::value<std::string>()->default_value("sim"),    "mode of processing, \"sim\", \"digi\", \"clus\" or \"all\".")
+    ("mode,m",      bpo::value<std::string>()->default_value("sim"),    R"(mode of processing, "sim", "digi", "clus" or "all".)")
     ("nEvents,n",   bpo::value<int>()->default_value(2),                "number of events to simulate.")
     ("mcEngine,e",  bpo::value<std::string>()->default_value("TGeant3"), "MC generator to be used.");
   bpo::store(parse_command_line(argc, argv, desc), vm);

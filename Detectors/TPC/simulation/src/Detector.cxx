@@ -1911,7 +1911,7 @@ void Detector::ConstructTPCGeometry()
   TGeoMedium *m6=gGeoManager->GetMedium("TPC_Makrolon");
   TGeoMedium *m7=gGeoManager->GetMedium("TPC_Cu");
   TGeoMedium *m10 =  gGeoManager->GetMedium("TPC_Alumina");
-  TGeoMedium *m11 =  gGeoManager->GetMedium("TPC_Peek");;
+  TGeoMedium *m11 =  gGeoManager->GetMedium("TPC_Peek");
   TGeoMedium *m13 = gGeoManager->GetMedium("TPC_Brass");
   TGeoMedium *m14 = gGeoManager->GetMedium("TPC_Alumina1");
   //
@@ -3140,7 +3140,7 @@ void Detector::GeantHack()
     if(0<=itmed && itmed < 100) {
       ktmed=getMedium(itmed);
       if(!ktmed) {
-        LOG(INFO) << Form("Invalid tracking medium code %d for %s",itmed,GetName()) << FairLogger::endl;;
+        LOG(INFO) << Form("Invalid tracking medium code %d for %s",itmed,GetName()) << FairLogger::endl;
         continue;
       }
       // Set energy thresholds

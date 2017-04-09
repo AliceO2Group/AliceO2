@@ -7,7 +7,7 @@
 
 #include <TNamed.h>           // for TNamed
 #include <TObjArray.h>        // for TObjArray
-#include <stdio.h>            // for FILE, stdout
+#include <cstdio>            // for FILE, stdout
 #include "MathUtils/Chebyshev3DCalc.h"  // for Chebyshev3DCalc, etc
 #include "Rtypes.h"           // for Float_t, Int_t, Double_t, Bool_t, etc
 #include "TString.h"          // for TString
@@ -73,7 +73,7 @@ class Chebyshev3D : public TNamed
     /// requested grid, common for all 1D components
     /// \param precD   : optional precison per component
     Chebyshev3D(const char* funName, Int_t dimOut, const Float_t* bmin, const Float_t* bmax, const Int_t* npoints,
-                Float_t prec = 1E-6, const Float_t* precD=0);
+                Float_t prec = 1E-6, const Float_t* precD=nullptr);
     /// Construct the parameterization for the function
     /// \param ptr     : pointer on the function: void fun(Float_t * inp,Float_t * out)
     /// \param DimOut  : dimension of the vector computed by the user function
@@ -84,7 +84,7 @@ class Chebyshev3D : public TNamed
     /// requested grid, common for all 1D components
     /// \param precD   : optional precison per component
     Chebyshev3D(void (*ptr)(float*, float*), Int_t dimOut, const Float_t* bmin, const Float_t* bmax, const Int_t* npoints,
-                Float_t prec = 1E-6, const Float_t* precD=0);
+                Float_t prec = 1E-6, const Float_t* precD=nullptr);
     /// Construct very economic  parameterization for the function
     /// \param ptr     : pointer on the function: void fun(Float_t * inp,Float_t * out)
     /// \param DimOut  : dimension of the vector computed by the user function
@@ -98,7 +98,7 @@ class Chebyshev3D : public TNamed
     /// \param precD   : optional precison per component
     Chebyshev3D(void (*ptr)(float*, float*), int dimOut, const Float_t* bmin, const Float_t* bmax,
           const Int_t* npX, const Int_t* npY, const Int_t* npZ,
-                Float_t prec = 1E-6, const Float_t* precD=0);
+                Float_t prec = 1E-6, const Float_t* precD=nullptr);
     /// Construct very economic  parameterization for the function with automatic calculation of the root's grid
     /// \param ptr     : pointer on the function: void fun(Float_t * inp,Float_t * out)
     /// \param DimOut  : dimension of the vector computed by the user function
@@ -108,7 +108,7 @@ class Chebyshev3D : public TNamed
     /// \param requested grid, common for all 1D components
     /// \param precD   : optional precison per component
     Chebyshev3D(void (*ptr)(float*, float*), int DimOut, const Float_t* bmin, const Float_t* bmax, Float_t prec = 1E-6,
-                Bool_t run = kTRUE, const Float_t* precD=0);
+                Bool_t run = kTRUE, const Float_t* precD=nullptr);
 #endif
 
     ~Chebyshev3D()
@@ -190,14 +190,14 @@ class Chebyshev3D : public TNamed
     void setuserFunction(const char* name);
     void setuserFunction(void (*ptr)(float*, float*));
     void evaluateUserFunction(const Float_t* x, Float_t* res);
-    TH1* TestRMS(int idim, int npoints = 1000, TH1* histo = 0);
+    TH1* TestRMS(int idim, int npoints = 1000, TH1* histo = nullptr);
     static Int_t calculateChebyshevCoefficients(const Float_t* funval, int np, Float_t* outCoefs, Float_t prec = -1);
 #endif
 
   protected:
     void Clear(const Option_t *option = "");
 
-    void setDimOut(const int d, const float *prec = 0);
+    void setDimOut(const int d, const float *prec = nullptr);
 
     void prepareBoundaries(const Float_t *bmin, const Float_t *bmax);
 

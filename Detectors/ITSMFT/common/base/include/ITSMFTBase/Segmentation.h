@@ -51,7 +51,7 @@ class Segmentation : public TObject
     }
 
     /// Destructor
-    virtual ~OutOfActiveAreaException() throw() {}
+    virtual ~OutOfActiveAreaException() throw() = default;
     /// Get the value for which the exception was raised
     /// @return Value (point in one direction)
     Double_t GetValue() const { return mValue; }
@@ -107,7 +107,7 @@ class Segmentation : public TObject
     }
 
     /// Destructor
-    virtual ~InvalidPixelException() {}
+    virtual ~InvalidPixelException() = default;
     /// Get the ID of the pixel which raised the exception
     /// @return ID of the pixel
     Int_t GetPixelID() const { return mValue; }

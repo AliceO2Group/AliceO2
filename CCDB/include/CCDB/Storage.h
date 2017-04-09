@@ -106,7 +106,7 @@ class Storage : public TObject
 
     virtual Bool_t idToFilename(const ConditionId &id, TString &filename) const = 0;
 
-    void queryStorages(Int_t run, const char *pathFilter = "*", Int_t version = -1, ConditionMetaData *mdFilter = 0);
+    void queryStorages(Int_t run, const char *pathFilter = "*", Int_t version = -1, ConditionMetaData *mdFilter = nullptr);
 
     void printrQueryStorages();
 

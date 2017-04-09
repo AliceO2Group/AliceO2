@@ -27,7 +27,7 @@ namespace AliceO2
     {
     public:
       DigitContainer() {}
-      ~DigitContainer() {}
+      ~DigitContainer() = default;
       void reset();
       void resize(Int_t n) { mChips.resize(n); }
       AliceO2::ITSMFT::Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);

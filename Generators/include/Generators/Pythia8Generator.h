@@ -35,7 +35,7 @@ class PyTr1Rng : public RndmEngine
 {
  public:
   PyTr1Rng() {  rng = new TRandom1(gRandom->GetSeed()); };
-  virtual ~PyTr1Rng() {};
+  virtual ~PyTr1Rng() = default;
 
   Double_t flat() { return rng->Rndm(); };
 
@@ -47,7 +47,7 @@ class PyTr3Rng : public RndmEngine
 {
  public:
   PyTr3Rng() {  rng = new TRandom3(gRandom->GetSeed()); };
-  virtual ~PyTr3Rng() {};
+  virtual ~PyTr3Rng() = default;
 
   Double_t flat() { return rng->Rndm(); };
 

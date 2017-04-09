@@ -4,7 +4,7 @@
 #include <TList.h>    // for TList
 #include <TMap.h>     // for TMap
 #include <TObject.h>  // for TObject
-#include <stddef.h>   // for NULL
+#include <cstddef>   // for NULL
 #include "Rtypes.h"   // for Int_t, Bool_t, kFALSE, kTRUE, ClassDef, etc
 #include "TString.h"  // for TString
 
@@ -79,7 +79,7 @@ class Manager : public TObject
 
     Bool_t isDefaultStorageSet() const
     {
-      return mDefaultStorage != 0;
+      return mDefaultStorage != nullptr;
     }
 
     Storage *getDefaultStorage() const
@@ -101,12 +101,12 @@ class Manager : public TObject
 
     void unsetdrainMode()
     {
-      mdrainStorage = 0x0;
+      mdrainStorage = nullptr;
     }
 
     Bool_t isdrainSet() const
     {
-      return mdrainStorage != 0;
+      return mdrainStorage != nullptr;
     }
 
     Bool_t drain(Condition *entry);
@@ -202,7 +202,7 @@ class Manager : public TObject
       return &mConditionCache;
     }
 
-    static Manager *Instance(TMap *entryCache = NULL, Int_t run = -1);
+    static Manager *Instance(TMap *entryCache = nullptr, Int_t run = -1);
 
     void init();
 
@@ -323,8 +323,7 @@ class StorageFactory : public TObject
 
   public:
     virtual ~StorageFactory()
-    {
-    }
+    = default;
 
     virtual Bool_t validateStorageUri(const char *dbString) = 0;
 

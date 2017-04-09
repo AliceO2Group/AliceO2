@@ -33,7 +33,7 @@ class O2Device : public FairMQDevice
 {
 public:
   using FairMQDevice::FairMQDevice;
-  virtual ~O2Device() {}
+  virtual ~O2Device() = default;
 
   /// Here is how to add an annotated data part (with header);
   /// @param[in,out] parts is a reference to the message;

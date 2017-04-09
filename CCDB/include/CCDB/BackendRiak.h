@@ -24,7 +24,7 @@ private:
 
 public:
   BackendRiak();
-  virtual ~BackendRiak(){};
+  virtual ~BackendRiak()= default;
 
   /// Compresses and serializes an object prior to transmission to server
   void Pack(const std::string& path, const std::string& key, std::string*& messageString);

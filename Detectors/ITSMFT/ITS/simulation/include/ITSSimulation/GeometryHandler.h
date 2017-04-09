@@ -29,7 +29,7 @@ class GeometryHandler : public TObject
 
     /// Default destructor
     ~GeometryHandler()
-    { };
+    = default;
 
     Int_t getUniqueDetectorId();
 

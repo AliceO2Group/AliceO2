@@ -32,7 +32,7 @@ class O2MessageMonitor : public AliceO2::Base::O2Device
 {
 public:
   O2MessageMonitor();
-  virtual ~O2MessageMonitor() {};
+  virtual ~O2MessageMonitor() = default;
 
 protected:
   virtual void Run();

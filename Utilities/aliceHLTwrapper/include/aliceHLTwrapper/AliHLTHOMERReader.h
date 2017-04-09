@@ -13,7 +13,7 @@
             2014-05-08 included to ALFA for HOMER support
 */
 
-#include <limits.h>
+#include <climits>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include "AliHLTHOMERData.h"
@@ -33,8 +33,8 @@ class AliHLTMonitoringReader
     {
     public:
 
-	AliHLTMonitoringReader() {};
-	virtual ~AliHLTMonitoringReader() {};
+	AliHLTMonitoringReader() = default;
+	virtual ~AliHLTMonitoringReader() = default;
 
 	/* Return the status of the connection as established by one of the constructors.
 	   0 means connection is ok, non-zero specifies the type of error that occured. */

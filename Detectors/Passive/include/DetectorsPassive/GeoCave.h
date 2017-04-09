@@ -31,7 +31,7 @@ class  GeoCave : public FairGeoSet
     TString name;
   public:
     GeoCave();
-    ~GeoCave() {}
+    ~GeoCave() = default;
     const char* getModuleName(Int_t) {return name.Data();}
     Bool_t read(std::fstream&,FairGeoMedia*);
     void addRefNodes();

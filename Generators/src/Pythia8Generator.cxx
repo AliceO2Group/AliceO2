@@ -10,7 +10,7 @@
 // -------------------------------------------------------------------------
 
 
-#include <math.h>
+#include <cmath>
 #include "TROOT.h"
 #include "Pythia8/Pythia.h"
 #include "FairPrimaryGenerator.h"
@@ -58,8 +58,7 @@ Bool_t Pythia8Generator::Init()
 
 // -----   Destructor   ----------------------------------------------------
 Pythia8Generator::~Pythia8Generator()
-{
-}
+= default;
 // -------------------------------------------------------------------------
 
 // -----   Passing the event   ---------------------------------------------
@@ -141,7 +140,7 @@ void Pythia8Generator::SetParameters(char* par)
 {
   // Set Parameters
     fPythia.readString(par);
-    cout<<"fPythia.readString(\""<<par<<"\")"<<endl;
+    cout<<R"(fPythia.readString(")"<<par<<R"("))"<<endl;
 }
 
 // -------------------------------------------------------------------------

@@ -29,7 +29,7 @@ class TimeFrame
   TimeFrame(FairMQParts& parts) : mParts()
   {
     for (int i = 0; i < parts.Size(); ++i) {
-      mParts.push_back(MessageSizePair(parts[i].GetSize(), (char*)parts[i].GetData()));
+      mParts.emplace_back(parts[i].GetSize(), (char*)parts[i].GetData());
     }
   }
 

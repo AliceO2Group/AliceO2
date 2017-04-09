@@ -18,7 +18,7 @@ class ContainerFactory : public FairContFact
     void setAllContainers();
   public:
     ContainerFactory();
-    ~ContainerFactory() {}
+    ~ContainerFactory() = default;
     FairParSet* createContainer(FairContainer*);
     ClassDef( AliceO2::TPC::ContainerFactory,0) // Factory for all tpc parameter containers
 };

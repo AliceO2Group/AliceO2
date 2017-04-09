@@ -58,7 +58,7 @@ class MagneticField : public FairField
     MagneticField &operator=(const MagneticField &src);
 
     /// Default destructor
-    virtual ~MagneticField() {}
+    virtual ~MagneticField() = default;
 
     /// real field creation is here
     void CreateField();

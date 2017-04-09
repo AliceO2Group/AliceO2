@@ -21,7 +21,7 @@
 #define ALICEO2_BASE_DATA_HEADER_
 
 #include <cstdint>
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <memory>
 #include <cassert>
