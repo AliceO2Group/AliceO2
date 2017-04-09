@@ -40,10 +40,10 @@ class messageList {
   /// apply a selection of elements
   typedef std::function<bool(const HdrT& hdr)> HdrComparison;
 
-  messageList() {}
+  messageList() = default;
   messageList(const messageList& other); // not yet implemented
   messageList& operator=(const messageList& other); // not yet implemented
-  ~messageList() {}
+  ~messageList() = default;
 
   /// add data block to list
   /// both header and payload message parts are required to add an entry

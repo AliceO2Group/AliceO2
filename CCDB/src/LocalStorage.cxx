@@ -20,14 +20,14 @@ LocalStorage::LocalStorage(const char *baseDir) : mBaseDirectory(baseDir)
 
   // check baseDire: trying to cd to baseDir; if it does not exist, create it
   void *dir = gSystem->OpenDirectory(baseDir);
-  if (dir == NULL) {
+  if (dir == nullptr) {
     if (gSystem->mkdir(baseDir, kTRUE)) {
-      LOG(ERROR) << "Can't open directory \"" << baseDir << "\"!"
+      LOG(ERROR) << R"(Can't open directory ")" << baseDir << R"("!)"
                  << FairLogger::endl; //!!!!!!!! to be commented out for testing
     }
 
   } else {
-    LOG(DEBUG) << "Folder \"" << mBaseDirectory.Data() << "\" found" << FairLogger::endl;
+    LOG(DEBUG) << R"(Folder ")" << mBaseDirectory.Data() << R"(" found)" << FairLogger::endl;
     gSystem->FreeDirectory(dir);
   }
   mType = "local";
@@ -80,7 +80,7 @@ Bool_t LocalStorage::idToFilename(const ConditionId &id, TString &filename) cons
   LOG(DEBUG) << "mBaseDirectory = " << mBaseDirectory.Data() << FairLogger::endl;
 
   if (!id.getIdRunRange().isValid()) {
-    LOG(DEBUG) << "Invalid run range \"" << id.getFirstRun() << "," << id.getLastRun() << "\"." << FairLogger::endl;
+    LOG(DEBUG) << R"(Invalid run range ")" << id.getFirstRun() << "," << id.getLastRun() << R"(".)" << FairLogger::endl;
     return kFALSE;
   }
 
@@ -114,7 +114,7 @@ Bool_t LocalStorage::prepareId(ConditionId &id)
     dirPtr = gSystem->OpenDirectory(dirName);
 
     if (!dirPtr) {
-      LOG(ERROR) << "Can't create directory \"" << dirName.Data() << "\"!" << FairLogger::endl;
+      LOG(ERROR) << R"(Can't create directory ")" << dirName.Data() << R"("!)" << FairLogger::endl;
       return kFALSE;
     }
   }
@@ -219,8 +219,8 @@ ConditionId *LocalStorage::getId(const ConditionId &query)
     // get id from mValidFileIds
     TIter iter(&mValidFileIds);
 
-    ConditionId *anIdPtr = 0;
-    ConditionId *result = 0;
+    ConditionId *anIdPtr = nullptr;
+    ConditionId *result = nullptr;
 
     while ((anIdPtr = dynamic_cast<ConditionId *>(iter.Next()))) {
       if (anIdPtr->getPathString() == query.getPathString()) {
@@ -238,7 +238,7 @@ ConditionId *LocalStorage::getId(const ConditionId &query)
   if (!dirPtr) {
     LOG(DEBUG) << "Directory <" << (query.getPathString()).Data() << "> not found" << FairLogger::endl;
     LOG(DEBUG) << "in DB folder " << mBaseDirectory.Data() << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   const char *filename;
@@ -288,7 +288,7 @@ ConditionId *LocalStorage::getId(const ConditionId &query)
                    << aSubVersion << "!" << FairLogger::endl;
         gSystem->FreeDirectory(dirPtr);
         delete result;
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -323,7 +323,7 @@ ConditionId *LocalStorage::getId(const ConditionId &query)
                    << aSubVersion << "!" << FairLogger::endl;
         gSystem->FreeDirectory(dirPtr);
         delete result;
-        return NULL;
+        return nullptr;
       }
       if (result->getSubVersion() < aSubVersion) {
 
@@ -385,7 +385,7 @@ Condition *LocalStorage::getCondition(const ConditionId &queryId)
   if (!dataId || !dataId->isSpecified()) {
     LOG(ERROR) << "No file found matching this id!" << FairLogger::endl;
     throw std::runtime_error(errMessage.Data());
-    return NULL;
+    return nullptr;
   }
 
   TString filename;
@@ -393,7 +393,7 @@ Condition *LocalStorage::getCondition(const ConditionId &queryId)
     LOG(ERROR) << "Bad data ID encountered!" << FairLogger::endl;
     delete dataId;
     throw std::runtime_error(errMessage.Data());
-    return NULL;
+    return nullptr;
   }
 
   TFile file(filename, "READ"); // open file
@@ -401,7 +401,7 @@ Condition *LocalStorage::getCondition(const ConditionId &queryId)
     LOG(ERROR) << "Can't open file <" << filename.Data() << ">!" << FairLogger::endl;
     delete dataId;
     throw std::runtime_error(errMessage.Data());
-    return NULL;
+    return nullptr;
   }
 
   // get the only  Condition object from the file
@@ -413,7 +413,7 @@ Condition *LocalStorage::getCondition(const ConditionId &queryId)
     file.Close();
     delete dataId;
     throw std::runtime_error(errMessage.Data());
-    return NULL;
+    return nullptr;
   }
 
   ConditionId &entryId = anCondition->getId();
@@ -446,7 +446,7 @@ ConditionId *LocalStorage::getConditionId(const ConditionId &queryId)
   // Via getId, select the CDB file matching the query and return
   // the contained  ConditionId
 
-  ConditionId *dataId = 0;
+  ConditionId *dataId = nullptr;
 
   // look for a filename matching query requests (path, runRange, version, subVersion)
   if (!queryId.hasVersion()) {
@@ -460,7 +460,7 @@ ConditionId *LocalStorage::getConditionId(const ConditionId &queryId)
 
   if (dataId && !dataId->isSpecified()) {
     delete dataId;
-    return NULL;
+    return nullptr;
   }
 
   return dataId;
@@ -490,7 +490,7 @@ void LocalStorage::getEntriesForLevel0(const char *level0, const ConditionId &qu
 
     TString fullPath = Form("%s/%s", level0Dir.Data(), level1);
 
-    Int_t res = gSystem->GetPathInfo(fullPath.Data(), 0, (Long64_t *) 0, &flag, 0);
+    Int_t res = gSystem->GetPathInfo(fullPath.Data(), nullptr, (Long64_t *) nullptr, &flag, nullptr);
 
     if (res) {
       LOG(DEBUG) << "Error reading entry " << level1Str.Data() << " !" << FairLogger::endl;
@@ -533,7 +533,7 @@ void LocalStorage::getEntriesForLevel1(const char *level0, const char *level1, c
 
     TString fullPath = Form("%s/%s", level1Dir.Data(), level2);
 
-    Int_t res = gSystem->GetPathInfo(fullPath.Data(), 0, (Long64_t *) 0, &flag, 0);
+    Int_t res = gSystem->GetPathInfo(fullPath.Data(), nullptr, (Long64_t *) nullptr, &flag, nullptr);
 
     if (res) {
       LOG(DEBUG) << "Error reading entry " << level2Str.Data() << " !" << FairLogger::endl;
@@ -561,7 +561,7 @@ void LocalStorage::getEntriesForLevel1(const char *level0, const char *level1, c
         TString fileName(level3);
         TString fullFileName = Form("%s/%s", fullPath.Data(), level3);
 
-        Int_t file_res = gSystem->GetPathInfo(fullFileName.Data(), 0, (Long64_t *) 0, &file_flag, 0);
+        Int_t file_res = gSystem->GetPathInfo(fullFileName.Data(), nullptr, (Long64_t *) nullptr, &file_flag, nullptr);
 
         if (file_res) {
           LOG(DEBUG) << "Error reading entry " << level2Str.Data() << " !" << FairLogger::endl;
@@ -608,7 +608,7 @@ void LocalStorage::getEntriesForLevel1(const char *level0, const char *level1, c
         Int_t version = versionStr.Atoi();
         Int_t subVersion = subvStr.Atoi();
 
-        Condition *anCondition = 0;
+        Condition *anCondition = nullptr;
         Bool_t versionOK = kTRUE, subVersionOK = kTRUE;
         if (queryId.hasVersion() && version != queryId.getVersion())
           versionOK = kFALSE;
@@ -641,8 +641,8 @@ TList *LocalStorage::getAllEntries(const ConditionId &queryId)
 
     // loop on list of valid Ids to select the right version to get.
     // According to query and to the selection criteria list, version can be the highest or exact
-    ConditionId *anIdPtr = 0;
-    ConditionId *dataId = 0;
+    ConditionId *anIdPtr = nullptr;
+    ConditionId *dataId = nullptr;
     IdPath queryPath = queryId.getPathString();
     while ((anIdPtr = dynamic_cast<ConditionId *>(iter->Next()))) {
       IdPath thisCDBPath = anIdPtr->getPathString();
@@ -658,7 +658,7 @@ TList *LocalStorage::getAllEntries(const ConditionId &queryId)
     }
 
     delete iter;
-    iter = 0;
+    iter = nullptr;
 
     // selectedIds contains the Ids of the files matching all requests of query!
     // All the objects are now ready to be retrieved
@@ -670,14 +670,14 @@ TList *LocalStorage::getAllEntries(const ConditionId &queryId)
       }
     }
     delete iter;
-    iter = 0;
+    iter = nullptr;
     return result;
   }
 
   void *storageDirPtr = gSystem->OpenDirectory(mBaseDirectory);
   if (!storageDirPtr) {
     LOG(DEBUG) << "Can't open storage directory <" << mBaseDirectory.Data() << ">" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   const char *level0;
@@ -692,7 +692,7 @@ TList *LocalStorage::getAllEntries(const ConditionId &queryId)
 
     TString fullPath = Form("%s/%s", mBaseDirectory.Data(), level0);
 
-    Int_t res = gSystem->GetPathInfo(fullPath.Data(), 0, (Long64_t *) 0, &flag, 0);
+    Int_t res = gSystem->GetPathInfo(fullPath.Data(), nullptr, (Long64_t *) nullptr, &flag, nullptr);
 
     if (res) {
       LOG(DEBUG) << "Error reading entry " << level0Str.Data() << " !" << FairLogger::endl;
@@ -757,7 +757,7 @@ Bool_t LocalStorage::putCondition(Condition *entry, const char *mirrors)
   file.Close();
   if (result) {
     if (!(id.getPathString().Contains("SHUTTLE/STATUS")))
-      LOG(INFO) << "CDB object stored into file \"" << filename.Data() << "\"" << FairLogger::endl;
+      LOG(INFO) << R"(CDB object stored into file ")" << filename.Data() << R"(")" << FairLogger::endl;
   }
 
   return result;
@@ -771,7 +771,7 @@ TList *LocalStorage::getIdListFromFile(const char *fileName)
   TFile *file = TFile::Open(fullFileName);
   if (!file) {
     LOG(ERROR) << "Can't open selection file <" << fullFileName.Data() << ">!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
   file->cd();
 
@@ -794,7 +794,7 @@ TList *LocalStorage::getIdListFromFile(const char *fileName)
   }
   file->Close();
   delete file;
-  file = 0;
+  file = nullptr;
   return list;
 }
 
@@ -830,7 +830,7 @@ void LocalStorage::queryValidFiles()
   if (mConditionMetaDataFilter) {
     LOG(WARNING) << "CDB meta data parameters are not used by local storage query!" << FairLogger::endl;
     delete mConditionMetaDataFilter;
-    mConditionMetaDataFilter = 0;
+    mConditionMetaDataFilter = nullptr;
   }
 
   // Check if in CVMFS case
@@ -939,7 +939,7 @@ void LocalStorage::queryValidCVMFSFiles(TString &cvmfsOcdbTag)
   //
 
   TString command = cvmfsOcdbTag;
-  LOG(DEBUG) << "Getting valid files from CVMFS-OCDB tag \"" << cvmfsOcdbTag.Data() << "\"" << FairLogger::endl;
+  LOG(DEBUG) << R"(Getting valid files from CVMFS-OCDB tag ")" << cvmfsOcdbTag.Data() << R"(")" << FairLogger::endl;
   // CVMFS-OCDB tag. This is the file $OCDB_PATH/catalogue/20??.list.gz
   // containing all CDB file paths (for the given AR tag)
   cvmfsOcdbTag.Strip(TString::kTrailing, '/');
@@ -961,7 +961,7 @@ void LocalStorage::queryValidCVMFSFiles(TString &cvmfsOcdbTag)
   uri.Remove(TString::kTrailing, '/');
   TObjArray *osArr = uri.Tokenize('/');
   TObjString *mcdata_os = dynamic_cast<TObjString *>(osArr->At(osArr->GetEntries() - 3));
-  TObjString *yeartype_os = 0;
+  TObjString *yeartype_os = nullptr;
   TString mcdata = mcdata_os->GetString();
   if (mcdata == TString("data")) {
     yeartype_os = dynamic_cast<TObjString *>(osArr->At(osArr->GetEntries() - 2));
@@ -987,10 +987,10 @@ void LocalStorage::queryValidCVMFSFiles(TString &cvmfsOcdbTag)
   runValidFile += '_';
   runValidFile += TString::Itoa(mRun, 10);
   command += runValidFile;
-  LOG(DEBUG) << "Running command: \"" << command.Data() << "\"" << FairLogger::endl;
+  LOG(DEBUG) << R"(Running command: ")" << command.Data() << R"(")" << FairLogger::endl;
   Int_t result = gSystem->Exec(command.Data());
   if (result != 0) {
-    LOG(ERROR) << "Was not able to execute \"" << command.Data() << "\"" << FairLogger::endl;
+    LOG(ERROR) << R"(Was not able to execute ")" << command.Data() << R"(")" << FairLogger::endl;
   }
 
   // We expect the file with valid paths for this run to be generated in the current directory
@@ -998,7 +998,7 @@ void LocalStorage::queryValidCVMFSFiles(TString &cvmfsOcdbTag)
   // Fill mValidFileIds from file
   std::ifstream file(runValidFile.Data());
   if (!file.is_open()) {
-    LOG(FATAL) << "Error opening file \"" << runValidFile.Data() << "\"!" << FairLogger::endl;
+    LOG(FATAL) << R"(Error opening file ")" << runValidFile.Data() << R"("!)" << FairLogger::endl;
   }
   TString filepath;
   while (filepath.ReadLine(file)) {
@@ -1009,7 +1009,7 @@ void LocalStorage::queryValidCVMFSFiles(TString &cvmfsOcdbTag)
     // extract three-level path and basename
     TObjArray *tokens = filepath.Tokenize('/');
     if (tokens->GetEntries() < 5) {
-      LOG(ERROR) << "\"" << filepath.Data() << "\" is not a valid cvmfs path for an OCDB object" << FairLogger::endl;
+      LOG(ERROR) << R"(")" << filepath.Data() << R"(" is not a valid cvmfs path for an OCDB object)" << FairLogger::endl;
       continue;
     }
     TObjString *baseNameOstr = (TObjString *) tokens->At(tokens->GetEntries() - 1);
@@ -1027,7 +1027,7 @@ void LocalStorage::queryValidCVMFSFiles(TString &cvmfsOcdbTag)
     IdRunRange aIdRunRange;          // the runRange got from filename
     Int_t aVersion, aSubVersion; // the version and subVersion got from filename
     if (!filenameToId(baseName, aIdRunRange, aVersion, aSubVersion))
-      LOG(ERROR) << "Could not create a valid CDB id from path: \"" << filepath.Data() << "\"" << FairLogger::endl;
+      LOG(ERROR) << R"(Could not create a valid CDB id from path: ")" << filepath.Data() << R"(")" << FairLogger::endl;
 
     IdRunRange runrg(mRun, mRun);
     if (!aIdRunRange.isSupersetOf(runrg)) {
@@ -1064,7 +1064,7 @@ StorageParameters *LocalStorageFactory::createStorageParameter(const char *dbStr
   // create  LocalStorageParameters class from the URI string
 
   if (!validateStorageUri(dbString)) {
-    return NULL;
+    return nullptr;
   }
 
   TString checkSS(dbString);
@@ -1079,7 +1079,7 @@ StorageParameters *LocalStorageFactory::createStorageParameter(const char *dbStr
   TString pathname(dbString + sizeof("local://") - 1);
 
   if (gSystem->ExpandPathName(pathname)) {
-    return NULL;
+    return nullptr;
   }
 
   if (pathname[0] != '/') {
@@ -1101,7 +1101,7 @@ Storage *LocalStorageFactory::createStorage(const StorageParameters *param)
     return new LocalStorage(localParam->getPathString());
   }
 
-  return NULL;
+  return nullptr;
 }
 
 void LocalStorage::setRetry(Int_t /* nretry */, Int_t /* initsec */)

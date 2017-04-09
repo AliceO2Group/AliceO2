@@ -18,7 +18,7 @@ class BackendOCDB : public Backend {
 private:
 public:
   BackendOCDB();
-  virtual ~BackendOCDB(){};
+  virtual ~BackendOCDB()= default;
 
   /// Prepares an object before transmission to CCDB server
   void Pack(const std::string& path, const std::string& key, std::string*& messageString);

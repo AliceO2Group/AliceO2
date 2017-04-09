@@ -44,7 +44,7 @@
 #ifdef USE_ROOT
 #include "Rtypes.h"
 #endif
-#include <limits.h>
+#include <climits>
 
 
 // Determine the sizes of the different integer type
@@ -207,7 +207,7 @@ class AliHLTHOMERBlockDescriptor
 		return sizeof(homer_uint64)*kCount_64b_Words;
 		}
 
-	AliHLTHOMERBlockDescriptor( void* header = 0 )
+	AliHLTHOMERBlockDescriptor( void* header = nullptr )
 	  : fHeader(header)
 		{
 		}

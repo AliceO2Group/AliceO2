@@ -20,7 +20,7 @@ class HeatExchanger : public TNamed {
   HeatExchanger();
   HeatExchanger(Double_t Rwater, Double_t DRPipe, Double_t HeatExchangerThickness, Double_t CarbonThickness);
   
-  virtual ~HeatExchanger() {};
+  virtual ~HeatExchanger() = default;
   
   TGeoVolumeAssembly* Create(Int_t kHalf, Int_t disk);
 

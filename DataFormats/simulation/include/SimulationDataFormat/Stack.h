@@ -132,7 +132,7 @@ class Stack : public FairGenericStack
     virtual void FillTrackArray();
 
     /// Update the track index in the MCTracks and MCPoints
-    virtual void UpdateTrackIndex(TRefArray *detArray = 0);
+    virtual void UpdateTrackIndex(TRefArray *detArray = nullptr);
 
     /// Resets arrays and stack and deletes particles and tracks
     virtual void Reset();
@@ -147,7 +147,7 @@ class Stack : public FairGenericStack
 
     /// Output to screen (derived from base class)
     /// \param option: 0=events summary, non0=track info
-    virtual void Print(Option_t* option = 0) const;
+    virtual void Print(Option_t* option = nullptr) const;
 
     /// Modifiers
     void StoreSecondaries(Bool_t choice = kTRUE)

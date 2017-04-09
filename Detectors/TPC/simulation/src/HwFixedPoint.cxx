@@ -66,7 +66,7 @@ HwFixedPoint::HwFixedPoint(const HwFixedPoint & val, unsigned short totalWidth, 
 
 //________________________________________________________________________
 HwFixedPoint::~HwFixedPoint()
-{}
+= default;
 
 //________________________________________________________________________
 void HwFixedPoint::setValue(T val) {

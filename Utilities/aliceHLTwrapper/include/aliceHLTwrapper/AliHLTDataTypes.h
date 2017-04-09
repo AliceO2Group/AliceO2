@@ -1387,7 +1387,7 @@ extern "C" {
   typedef void* AliHLTComponentHandle;
 
   /** @ingroup alihlt_wrapper_interface */
-  const AliHLTComponentHandle kEmptyHLTComponentHandle = 0;
+  const AliHLTComponentHandle kEmptyHLTComponentHandle = nullptr;
 
   /**
    * Get a system call of the interface.

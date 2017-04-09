@@ -44,7 +44,7 @@ public:
   
   /// \brief Returns pointer to the ladder segmentation object
   /// \param iLadder Int_t : ladder number on the Half-Disk
-  LadderSegmentation* GetLadder(Int_t iLadder) { return ( (iLadder>=0 && iLadder<GetNLadders())  ? (LadderSegmentation*) mLadders->At(iLadder) : NULL )  ; }
+  LadderSegmentation* GetLadder(Int_t iLadder) { return ( (iLadder>=0 && iLadder<GetNLadders())  ? (LadderSegmentation*) mLadders->At(iLadder) : nullptr )  ; }
   
   /// \brief Returns the Z position of the half-disk
   Double_t GetZ() const {const Double_t *pos = GetTransformation()->GetTranslation(); return pos[2];};

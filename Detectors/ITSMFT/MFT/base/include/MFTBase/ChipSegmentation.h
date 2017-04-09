@@ -18,7 +18,7 @@ public:
   ChipSegmentation();
   ChipSegmentation(UInt_t uniqueID);
   
-  virtual ~ChipSegmentation() {};
+  virtual ~ChipSegmentation() = default;
   virtual void Clear(const Option_t* /*opt*/) {;}
   virtual void Print(Option_t* /*option*/);
 

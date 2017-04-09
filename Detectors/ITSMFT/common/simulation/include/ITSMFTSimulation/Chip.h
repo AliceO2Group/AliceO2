@@ -55,8 +55,7 @@ class Chip : public TObject
         { }
 
         /// Destructor
-        virtual ~IndexException() throw()
-        { }
+	virtual ~IndexException() throw() {}
 
         /// Build error message
         /// The error message contains the indices stored in the chip and in the hit

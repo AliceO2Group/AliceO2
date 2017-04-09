@@ -68,7 +68,7 @@ public:
   LHCClock(const RefTimePoint& start) : mReference(start) {}
   /// forbidden, always need a reference
   LHCClock() = delete;
-  ~LHCClock() {}
+  ~LHCClock() = default;
   LHCClock(const LHCClock&) = default;
   LHCClock& operator=(const LHCClock&) = default;
 
@@ -106,7 +106,7 @@ class TimeStamp
   TimeStamp(uint64_t ts) : mTimeStamp64(ts) {}
   TimeStamp(const TimeUnitID& unit, uint32_t tick, uint16_t subtick = 0)
     : mUnit(unit), mTicks(tick), mSubTicks(subtick) {}
-  ~TimeStamp() {}
+  ~TimeStamp() = default;
 
   static TimeUnitID const sClockLHC;
   static TimeUnitID const sMicroSeconds;

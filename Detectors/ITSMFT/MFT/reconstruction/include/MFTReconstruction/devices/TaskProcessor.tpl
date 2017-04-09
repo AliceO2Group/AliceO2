@@ -18,15 +18,15 @@ TaskProcessor<T>::TaskProcessor()
   , mInputChannelName("data-in")
   , mOutputChannelName("data-out")
   , mParamChannelName("param")
-  , mEventHeader(NULL)
-  , mInput(NULL)
-  , mOutput(NULL)
+  , mEventHeader(nullptr)
+  , mInput(nullptr)
+  , mOutput(nullptr)
   , mNewRunId(1)
   , mCurrentRunId(-1)
   , mDataToKeep("")
   , mReceivedMsgs(0)
   , mSentMsgs(0)
-  , mFairTask(NULL)
+  , mFairTask(nullptr)
 {
 
 }
@@ -76,7 +76,7 @@ template <typename T>
 bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
 {
 
-  TObject* objectToKeep = NULL;
+  TObject* objectToKeep = nullptr;
   
   LOG(INFO) << "TaskProcessor::ProcessData >>>>> message received with " << parts.Size() << " parts.";
 
@@ -88,7 +88,7 @@ bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
     TMessage2 tm(parts.At(ipart)->GetData(), parts.At(ipart)->GetSize());
     tempObjects[ipart] = (TObject*)tm.ReadObject(tm.GetClass());
 
-    LOG(INFO) << "TaskProcessor::ProcessData >>>>> got TObject with name \"" << tempObjects[ipart]->GetName() << "\".";
+    LOG(INFO) << R"(TaskProcessor::ProcessData >>>>> got TObject with name ")" << tempObjects[ipart]->GetName() << R"(".)";
 
     if (strcmp(tempObjects[ipart]->GetName(),"EventHeader.") == 0 ) {
 
@@ -107,7 +107,7 @@ bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
 
   }
   
-  if (mEventHeader != NULL)	
+  if (mEventHeader != nullptr)	
     mNewRunId = mEventHeader->GetRunId();
   
   LOG(INFO)<<"TaskProcessor::ProcessData >>>>> got event header with run = " << mNewRunId;
@@ -137,7 +137,7 @@ bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
   TMessage* messageTCA[10];
   FairMQParts partsOut;
   
-  if (mEventHeader != NULL) {
+  if (mEventHeader != nullptr) {
 
     LOG(INFO) << "TaskProcessor::ProcessData >>>>> create message from EventHeader"  << "";
 

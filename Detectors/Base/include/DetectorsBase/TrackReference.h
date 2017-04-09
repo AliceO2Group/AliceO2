@@ -52,8 +52,7 @@ class TrackReference : public TObject
 
     /// Default Destructor
     virtual ~TrackReference()
-    {
-    }
+    = default;
 
     // static AliExternalTrackParam * MakeTrack(const TrackReference *ref, Double_t mass);
     virtual Int_t GetTrack() const

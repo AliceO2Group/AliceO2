@@ -45,7 +45,7 @@ class Detector: public AliceO2::Base::Detector {
      *       (see FairMCApplication::Stepping())
     */
 //     virtual Bool_t ProcessHitsOrig( FairVolume* v=0);
-    virtual Bool_t ProcessHits( FairVolume* v=0);
+    virtual Bool_t ProcessHits( FairVolume* v=nullptr);
 
     /**       Registers the produced collections in FAIRRootManager.     */
     virtual void   Register();

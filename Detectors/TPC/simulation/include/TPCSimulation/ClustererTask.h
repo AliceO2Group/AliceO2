@@ -8,7 +8,7 @@
 #ifndef __ALICEO2__ClustererTask__
 #define __ALICEO2__ClustererTask__
 
-#include <stdio.h>
+#include <cstdio>
 #include "FairTask.h"  // for FairTask, InitStatus
 #include "Rtypes.h"    // for ClustererTask::Class, ClassDef, etc
 #include "TPCSimulation/Clusterer.h"       // for Clusterer

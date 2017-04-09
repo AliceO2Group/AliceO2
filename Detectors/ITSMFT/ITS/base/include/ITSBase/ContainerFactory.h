@@ -28,7 +28,7 @@ class ContainerFactory : public FairContFact
   ContainerFactory();
 
   /// Default destructor
-  ~ContainerFactory() {}
+  ~ContainerFactory() = default;
   /// Calls the constructor of the corresponding parameter container.
   /// For an actual context, which is not an empty string and not
   /// the default context

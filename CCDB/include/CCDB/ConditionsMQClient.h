@@ -25,11 +25,11 @@ protected:
   virtual void Run();
 
 private:
-  int fRunId;
-  std::string fParameterName;
-  std::string fOperationType;
-  std::string fDataSource;
-  std::string fObjectPath;
+  int mRunId;
+  std::string mParameterName;
+  std::string mOperationType;
+  std::string mDataSource;
+  std::string mObjectPath;
 
 };
 }

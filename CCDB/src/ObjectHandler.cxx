@@ -9,9 +9,9 @@
 
 using namespace AliceO2::CDB;
 
-ObjectHandler::ObjectHandler() {}
+ObjectHandler::ObjectHandler() = default;
 
-ObjectHandler::~ObjectHandler() {}
+ObjectHandler::~ObjectHandler() = default;
 
 void ObjectHandler::GetObject(const std::string& path, std::string& object)
 {

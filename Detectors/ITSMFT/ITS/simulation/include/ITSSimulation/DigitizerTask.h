@@ -9,7 +9,7 @@
 #ifndef ALICEO2_ITS_DIGITIZERTASK_H
 #define ALICEO2_ITS_DIGITIZERTASK_H
 
-#include <stdio.h>
+#include <cstdio>
 #include "FairTask.h" // for FairTask, InitStatus
 #include "Rtypes.h"   // for DigitizerTask::Class, ClassDef, etc
 

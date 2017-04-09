@@ -23,7 +23,7 @@ class  MagFieldContFact : public FairContFact
 
   public:
     MagFieldContFact();
-    ~MagFieldContFact() {}
+    ~MagFieldContFact() = default;
     FairParSet* createContainer(FairContainer*);
     
     ClassDef(MagFieldContFact, 0) // Factory for Magnetic field parameters containers

@@ -81,12 +81,12 @@ class Enum
           m_value( value )
       { }
 
-        T operator*( void ) const
+        T operator*( ) const
         {
           return (T)m_value;
         }
 
-        void operator++( void )
+        void operator++( )
         {
           ++m_value;
         }

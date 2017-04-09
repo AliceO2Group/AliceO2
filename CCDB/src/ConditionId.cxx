@@ -46,7 +46,7 @@ ConditionId *ConditionId::makeFromString(const TString &idString)
 
   TObjArray *arr1 = idString.Tokenize(';');
   TIter iter1(arr1);
-  TObjString *objStr1 = 0;
+  TObjString *objStr1 = nullptr;
   while ((objStr1 = dynamic_cast<TObjString *>(iter1.Next()))) {
     TString buff(objStr1->GetName());
 
@@ -114,7 +114,7 @@ TString ConditionId::ToString() const
 {
   // returns a string of ConditionId data
 
-  TString result = Form("path: \"%s\"; run range: [%d,%d]", getPathString().Data(), getFirstRun(), getLastRun());
+  TString result = Form(R"(path: "%s"; run range: [%d,%d])", getPathString().Data(), getFirstRun(), getLastRun());
 
   if (getVersion() >= 0) {
     result += Form("; version: v%d", getVersion());

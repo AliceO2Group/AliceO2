@@ -20,13 +20,7 @@ SyncPatternMonitor::SyncPatternMonitor(int sampa, int lowHigh)
 {}
 
 SyncPatternMonitor::SyncPatternMonitor(const SyncPatternMonitor& other)
-  : mPatternFound(other.mPatternFound)
-  , mPosition(other.mPosition)
-  , mHwWithPattern(other.mHwWithPattern)
-  , mSampa(other.mSampa)
-  , mLowHigh(other.mLowHigh)
-  , mCheckedWords(other.mCheckedWords)
-{}
+  = default;
 
 void SyncPatternMonitor::reset()
 {

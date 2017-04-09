@@ -23,7 +23,7 @@ CommonMode::CommonMode(int cru, int timeBin, float commonMode)
 {}
 
 CommonMode::~CommonMode() 
-{}
+= default;
 
 
 float CommonMode::computeCommonMode(std::vector<CommonMode> & summedChargesContainer, std::vector<CommonMode> & commonModeContainer)

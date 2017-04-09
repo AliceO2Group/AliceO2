@@ -5,7 +5,7 @@
 #ifndef ALICEO2_TPC_DigitizerTask_H_
 #define ALICEO2_TPC_DigitizerTask_H_
 
-#include <stdio.h>
+#include <cstdio>
 #include <string>
 #include "FairTask.h"
 #include "FairLogger.h"

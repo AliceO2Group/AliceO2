@@ -36,7 +36,7 @@ namespace TPC {
       float x, y;
       std::istringstream is(line);
       while (is >> x >> y) {
-          saturation.push_back(std::pair<float, float>(x, y));
+          saturation.emplace_back(x, y);
       }
     }
 

@@ -121,8 +121,7 @@ class GridStorageFactory : public StorageFactory
     virtual StorageParameters *createStorageParameter(const char *gridString);
 
     virtual ~GridStorageFactory()
-    {
-    }
+    = default;
 
   protected:
     virtual Storage *createStorage(const StorageParameters *param);

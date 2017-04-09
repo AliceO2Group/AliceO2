@@ -40,8 +40,7 @@ class HwFixedPoint
     //
   template<typename TT>
     HwFixedPoint& operator =  (const TT& rhs)                   { setValue((T) (rhs*(1<<mDecPrecision))); return (*this); };
-    HwFixedPoint& operator =  (const HwFixedPoint& rhs)         { mValue = rhs.mValue; mMask = rhs.mMask; mTotalWidth = rhs.mTotalWidth; 
-                                                                  mDecPrecision = rhs.mDecPrecision; return (*this); };
+    HwFixedPoint& operator =  (const HwFixedPoint& rhs)         = default;
 
     //
     // Addition operators

@@ -35,7 +35,7 @@ class V11Geometry : public TObject
     { };
 
     virtual ~V11Geometry()
-    { };
+    = default;
 
     /// Sets the debug flag for debugging output
     void setDebug(Int_t level = 5)

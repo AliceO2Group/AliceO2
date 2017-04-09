@@ -22,7 +22,7 @@ ClassImp(StorageParameters)
 ClassImp(Manager)
 
 TString Manager::sOcdbFolderXmlFile("alien:///alice/data/OCDBFoldervsIdRunRange.xml");
-Manager *Manager::sInstance = 0x0;
+Manager *Manager::sInstance = nullptr;
 
 Manager *Manager::Instance(TMap *entryCache, Int_t run)
 {
@@ -60,7 +60,7 @@ void Manager::initFromCache(TMap *entryCache, Int_t run)
   setRun(run);
 
   TIter iter(entryCache->GetTable());
-  TPair *pair = 0;
+  TPair *pair = nullptr;
 
   while ((pair = dynamic_cast<TPair *>(iter.Next()))) {
     mConditionCache.Add(pair->Key(), pair->Value());
@@ -97,7 +97,7 @@ void Manager::dumpToSnapshotFile(const char *snapshotFileName, Bool_t singleKeys
   } else {
     // We write the entries one by one named by their calibration path
     TIter iter(mConditionCache.GetTable());
-    TPair *pair = 0;
+    TPair *pair = nullptr;
     while ((pair = dynamic_cast<TPair *>(iter.Next()))) {
       TObjString *os = dynamic_cast<TObjString *>(pair->Key());
       if (!os) {
@@ -169,7 +169,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
   }
 
   // retrieve entries' map from snapshot file
-  TMap *entriesMap = 0;
+  TMap *entriesMap = nullptr;
   TIter next(f->GetListOfKeys());
   TKey *key;
   while ((key = (TKey *) next())) {
@@ -185,7 +185,7 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
   }
 
   // retrieve ids' list from snapshot file
-  TList *idsList = 0;
+  TList *idsList = nullptr;
   TIter nextKey(f->GetListOfKeys());
   TKey *keyN;
   while ((keyN = (TKey *) nextKey())) {
@@ -206,14 +206,14 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
   // If "overwrite" is true: write the snapshot entry,id in any case. If something
   // was already there for that calibration type, remove it and issue a warning
   TIter iterObj(entriesMap->GetTable());
-  TPair *pair = 0;
+  TPair *pair = nullptr;
   Int_t nAdded = 0;
   while ((pair = dynamic_cast<TPair *>(iterObj.Next()))) {
     TObjString *os = (TObjString *) pair->Key();
     TString path = os->GetString();
     TIter iterId(idsList);
-    ConditionId *id = 0;
-    ConditionId *correspondingId = 0;
+    ConditionId *id = nullptr;
+    ConditionId *correspondingId = nullptr;
     while ((id = dynamic_cast<ConditionId *>(iterId.Next()))) {
       TString idpath(id->getPathString());
       if (idpath == path) {
@@ -222,14 +222,14 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
       }
     }
     if (!correspondingId) {
-      LOG(ERROR) << "id for \"" << path.Data()
-                 << "\" not found in the snapshot (while entry was). This entry is skipped!" << FairLogger::endl;
+      LOG(ERROR) << R"(id for ")" << path.Data()
+                 << R"(" not found in the snapshot (while entry was). This entry is skipped!)" << FairLogger::endl;
       break;
     }
     Bool_t cached = mConditionCache.Contains(path.Data());
     Bool_t registeredId = kFALSE;
     TIter iter(mIds);
-    ConditionId *idT = 0;
+    ConditionId *idT = nullptr;
     while ((idT = dynamic_cast<ConditionId *>(iter.Next()))) {
       if (idT->getPathString() == path) {
         registeredId = kTRUE;
@@ -239,8 +239,8 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
 
     if (overwrite) {
       if (cached || registeredId) {
-        LOG(WARNING) << "An entry was already cached for \"" << path.Data()
-                     << "\". Removing it before caching from snapshot" << FairLogger::endl;
+        LOG(WARNING) << R"(An entry was already cached for ")" << path.Data()
+                     << R"(". Removing it before caching from snapshot)" << FairLogger::endl;
         unloadFromCache(path.Data());
       }
       mConditionCache.Add(pair->Key(), pair->Value());
@@ -248,8 +248,8 @@ Bool_t Manager::initFromSnapshot(const char *snapshotFileName, Bool_t overwrite)
       nAdded++;
     } else {
       if (cached || registeredId) {
-        LOG(WARNING) << "An entry was already cached for \"" << path.Data()
-                     << "\". Not adding this object from snapshot" << FairLogger::endl;
+        LOG(WARNING) << R"(An entry was already cached for ")" << path.Data()
+                     << R"(". Not adding this object from snapshot)" << FairLogger::endl;
       } else {
         mConditionCache.Add(pair->Key(), pair->Value());
         mIds->Add(id);
@@ -277,7 +277,7 @@ void Manager::destroy()
 
   if (sInstance) {
     delete sInstance;
-    sInstance = 0x0;
+    sInstance = nullptr;
   }
 }
 
@@ -287,17 +287,17 @@ Manager::Manager()
     mActiveStorages(),
     mSpecificStorages(),
     mConditionCache(),
-    mIds(0),
-    mStorageMap(0),
-    mDefaultStorage(NULL),
-    mdrainStorage(NULL),
-    mOfficialStorageParameters(0),
-    mReferenceStorageParameters(0),
+    mIds(nullptr),
+    mStorageMap(nullptr),
+    mDefaultStorage(nullptr),
+    mdrainStorage(nullptr),
+    mOfficialStorageParameters(nullptr),
+    mReferenceStorageParameters(nullptr),
     mRun(-1),
     mCache(kTRUE),
     mLock(kFALSE),
     mSnapshotMode(kFALSE),
-    mSnapshotFile(0),
+    mSnapshotFile(nullptr),
     mOcdbUploadMode(kFALSE),
     mRaw(kFALSE),
     mCvmfsOcdb(""),
@@ -325,17 +325,17 @@ Manager::~Manager()
   clearCache();
   destroyActiveStorages();
   mFactories.Delete();
-  mdrainStorage = 0x0;
-  mDefaultStorage = 0x0;
+  mdrainStorage = nullptr;
+  mDefaultStorage = nullptr;
   delete mStorageMap;
-  mStorageMap = 0;
+  mStorageMap = nullptr;
   delete mIds;
-  mIds = 0;
+  mIds = nullptr;
   delete mOfficialStorageParameters;
   delete mReferenceStorageParameters;
   if (mSnapshotMode) {
     mSnapshotFile->Close();
-    mSnapshotFile = 0;
+    mSnapshotFile = nullptr;
   }
 }
 
@@ -362,7 +362,7 @@ Bool_t Manager::hasStorage(const char *dbString) const
 
   TIter iter(&mFactories);
 
-  StorageFactory *factory = 0;
+  StorageFactory *factory = nullptr;
   while ((factory = (StorageFactory *) iter.Next())) {
 
     if (factory->validateStorageUri(dbString)) {
@@ -385,7 +385,7 @@ StorageParameters *Manager::createStorageParameter(const char *dbString) const
 
   TIter iter(&mFactories);
 
-  StorageFactory *factory = 0;
+  StorageFactory *factory = nullptr;
   while ((factory = (StorageFactory *) iter.Next())) {
     StorageParameters *param = factory->createStorageParameter(uriString);
     if (param) {
@@ -393,7 +393,7 @@ StorageParameters *Manager::createStorageParameter(const char *dbString) const
     }
   }
 
-  return NULL;
+  return nullptr;
 }
 
 void Manager::alienToCvmfsUri(TString &uriString) const
@@ -402,7 +402,7 @@ void Manager::alienToCvmfsUri(TString &uriString) const
 
   TObjArray *arr = uriString.Tokenize('?');
   TIter iter(arr);
-  TObjString *str = 0;
+  TObjString *str = nullptr;
   TString entryKey = "";
   TString entryValue = "";
   TString newUriString = "";
@@ -458,7 +458,7 @@ Storage *Manager::getStorage(const char *dbString)
   StorageParameters *param = createStorageParameter(dbString);
   if (!param) {
     LOG(ERROR) << "Failed to activate requested storage! Check URI: " << dbString << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   Storage *aStorage = getStorage(param);
@@ -488,7 +488,7 @@ Storage *Manager::getStorage(const StorageParameters *param)
 
   // loop on the list of registered factories
   TIter iter(&mFactories);
-  StorageFactory *factory = 0;
+  StorageFactory *factory = nullptr;
   while ((factory = (StorageFactory *) iter.Next())) {
 
     // each factory tries to create its storage from the parameter
@@ -507,7 +507,7 @@ Storage *Manager::getStorage(const StorageParameters *param)
 
   LOG(ERROR) << "Failed to activate requested storage! Check URI: " << param->getUri().Data() << FairLogger::endl;
 
-  return NULL;
+  return nullptr;
 }
 
 Storage *Manager::getActiveStorage(const StorageParameters *param)
@@ -525,7 +525,7 @@ TList *Manager::getActiveStorages()
   TList *result = new TList();
 
   TIter iter(mActiveStorages.GetTable());
-  TPair *aPair = 0;
+  TPair *aPair = nullptr;
   while ((aPair = (TPair *) iter.Next())) {
     result->Add(aPair->Value());
   }
@@ -781,19 +781,19 @@ void Manager::getLHCPeriodAgainstCvmfsFile(Int_t run, TString &lhcPeriod, Int_t 
   command += ' ';
   command += TString::Itoa(run, 10);
   command += Form(" > %s", inoutFile.Data());
-  LOG(DEBUG) << "Running command: \"" << command.Data() << "\"" << FairLogger::endl;
+  LOG(DEBUG) << R"(Running command: ")" << command.Data() << R"(")" << FairLogger::endl;
   Int_t result = gSystem->Exec(command.Data());
   if (result != 0) {
-    LOG(FATAL) << "Was not able to execute \"" << command.Data() << "\"" << FairLogger::endl;
+    LOG(FATAL) << R"(Was not able to execute ")" << command.Data() << R"(")" << FairLogger::endl;
   }
 
   // now read the file with the uri and first and last run
   std::ifstream file(inoutFile.Data());
   if (!file.is_open()) {
-    LOG(FATAL) << "Error opening file \"" << inoutFile.Data() << "\"!" << FairLogger::endl;
+    LOG(FATAL) << R"(Error opening file ")" << inoutFile.Data() << R"("!)" << FairLogger::endl;
   }
   TString line;
-  TObjArray *oStringsArray = 0;
+  TObjArray *oStringsArray = nullptr;
   while (line.ReadLine(file)) {
     oStringsArray = line.Tokenize(' ');
   }
@@ -829,7 +829,7 @@ void Manager::unsetDefaultStorage()
   mRun = mStartRunLhcPeriod = mEndRunLhcPeriod = -1;
   mRaw = kFALSE;
 
-  mDefaultStorage = 0x0;
+  mDefaultStorage = nullptr;
 }
 
 void Manager::setSpecificStorage(const char *calibType, const char *dbString, Int_t version, Int_t subVersion)
@@ -868,7 +868,7 @@ void Manager::setSpecificStorage(const char *calibType, const StorageParameters 
 
   TObjString *objCalibType = new TObjString(aPath.getPathString());
   if (mSpecificStorages.Contains(objCalibType)) {
-    LOG(WARNING) << "Storage \"" << calibType << "\" already activated! It will be replaced by the new one"
+    LOG(WARNING) << R"(Storage ")" << calibType << R"(" already activated! It will be replaced by the new one)"
                  << FairLogger::endl;
     StorageParameters *checkPar = dynamic_cast<StorageParameters *>(mSpecificStorages.GetValue(calibType));
     if (checkPar) {
@@ -899,13 +899,13 @@ Storage *Manager::getSpecificStorage(const char *calibType)
 
   IdPath calibPath(calibType);
   if (!calibPath.isValid()) {
-    return NULL;
+    return nullptr;
   }
 
   StorageParameters *checkPar = (StorageParameters *) mSpecificStorages.GetValue(calibPath.getPathString());
   if (!checkPar) {
     LOG(ERROR) << calibType << " storage not found!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   } else {
     return getStorage(checkPar);
   }
@@ -917,13 +917,13 @@ StorageParameters *Manager::selectSpecificStorage(const TString &path)
 
   IdPath aPath(path);
   if (!aPath.isValid()) {
-    return NULL;
+    return nullptr;
   }
 
   TIter iter(&mSpecificStorages);
-  TObjString *aCalibType = 0;
+  TObjString *aCalibType = nullptr;
   IdPath tmpPath("null/null/null");
-  StorageParameters *aPar = 0;
+  StorageParameters *aPar = nullptr;
   while ((aCalibType = (TObjString *) iter.Next())) {
     IdPath calibTypePath(aCalibType->GetName());
     if (calibTypePath.isSupersetOf(aPath)) {
@@ -946,7 +946,7 @@ Condition *Manager::getObject(const IdPath &path, Int_t runNumber, Int_t version
     if (mRun < 0) {
       LOG(ERROR) << "Run number neither specified in query nor set in  Manager! Use  Manager::setRun."
                  << FairLogger::endl;
-      return NULL;
+      return nullptr;
     }
     runNumber = mRun;
   }
@@ -969,13 +969,13 @@ Condition *Manager::getObject(const ConditionId &queryId, Bool_t forceCaching)
   // queryId is invalid also if version is not specified and subversion is!
   if (!queryId.isValid()) {
     LOG(ERROR) << "Invalid query: " << queryId.ToString().Data() << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   // query is not specified if path contains wildcard or run range= [-1,-1]
   if (!queryId.isSpecified()) {
     LOG(ERROR) << "Unspecified query: " << queryId.ToString().Data() << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   if (mLock && !(mRun >= queryId.getFirstRun() && mRun <= queryId.getLastRun()))
@@ -984,7 +984,7 @@ Condition *Manager::getObject(const ConditionId &queryId, Bool_t forceCaching)
   if (mCache && !(mRun >= queryId.getFirstRun() && mRun <= queryId.getLastRun()))
     LOG(WARNING) << "Run number explicitly set in query: CDB cache temporarily disabled!" << FairLogger::endl;
 
-  Condition *entry = 0;
+  Condition *entry = nullptr;
 
   // first look into map of cached objects
   if (mCache && queryId.getFirstRun() == mRun) {
@@ -1002,7 +1002,7 @@ Condition *Manager::getObject(const ConditionId &queryId, Bool_t forceCaching)
     if (mSnapshotMode && queryId.getFirstRun() == mRun) {
       entry = getConditionFromSnapshot(queryId.getPathString());
       if (entry) {
-        LOG(INFO) << "Object \"" << queryId.getPathString().Data() << "\" retrieved from the snapshot."
+        LOG(INFO) << R"(Object ")" << queryId.getPathString().Data() << R"(" retrieved from the snapshot.)"
                   << FairLogger::endl;
         if (queryId.getFirstRun() == mRun) { // no need to check mCache, mSnapshotMode not possible otherwise
           cacheCondition(queryId.getPathString(), entry);
@@ -1021,11 +1021,11 @@ Condition *Manager::getObject(const ConditionId &queryId, Bool_t forceCaching)
   // => retrieve it from the storage and cache it!!
   if (!mDefaultStorage) {
     LOG(ERROR) << "No storage set!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   Int_t version = -1, subVersion = -1;
-  Storage *aStorage = 0;
+  Storage *aStorage = nullptr;
   if (aPar) {
     aStorage = getStorage(aPar);
     TString str = aPar->getUri();
@@ -1068,12 +1068,12 @@ Condition *Manager::getConditionFromSnapshot(const char *path)
   sPath.ReplaceAll("/", "*");
   if (!mSnapshotFile) {
     LOG(ERROR) << "No snapshot file is open!" << FairLogger::endl;
-    return 0;
+    return nullptr;
   }
   Condition *entry = dynamic_cast<Condition *>(mSnapshotFile->Get(sPath.Data()));
   if (!entry) {
-    LOG(DEBUG) << "Cannot get a CDB entry for \"" << path << "\" from snapshot file" << FairLogger::endl;
-    return 0;
+    LOG(DEBUG) << R"(Cannot get a CDB entry for ")" << path << R"(" from snapshot file)" << FairLogger::endl;
+    return nullptr;
   }
 
   return entry;
@@ -1116,7 +1116,7 @@ const char *Manager::getUri(const char *path)
   // return the URI of the storage where to look for path
 
   if (!isDefaultStorageSet()) {
-    return 0;
+    return nullptr;
   }
 
   StorageParameters *aPar = selectSpecificStorage(path);
@@ -1128,7 +1128,7 @@ const char *Manager::getUri(const char *path)
     return getDefaultStorage()->getUri().Data();
   }
 
-  return 0;
+  return nullptr;
 }
 
 Int_t Manager::getStartRunLHCPeriod()
@@ -1170,7 +1170,7 @@ ConditionId *Manager::getId(const IdPath &path, Int_t runNumber, Int_t version, 
     if (mRun < 0) {
       LOG(ERROR) << "Run number neither specified in query nor set in  Manager! Use  Manager::setRun."
                  << FairLogger::endl;
-      return NULL;
+      return nullptr;
     }
     runNumber = mRun;
   }
@@ -1193,26 +1193,26 @@ ConditionId *Manager::getId(const ConditionId &query)
 
   if (!mDefaultStorage) {
     LOG(ERROR) << "No storage set!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   // check if query's path and runRange are valid
   // query is invalid also if version is not specified and subversion is!
   if (!query.isValid()) {
     LOG(ERROR) << "Invalid query: " << query.ToString().Data() << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   // query is not specified if path contains wildcard or run range= [-1,-1]
   if (!query.isSpecified()) {
     LOG(ERROR) << "Unspecified query: " << query.ToString().Data() << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   if (mCache && query.getFirstRun() != mRun)
     LOG(WARNING) << "Run number explicitly set in query: CDB cache temporarily disabled!" << FairLogger::endl;
 
-  Condition *entry = 0;
+  Condition *entry = nullptr;
 
   // first look into map of cached objects
   if (mCache && query.getFirstRun() == mRun) {
@@ -1225,7 +1225,7 @@ ConditionId *Manager::getId(const ConditionId &query)
   }
 
   // Condition is not in cache -> retrieve it from CDB and cache it!!
-  Storage *aStorage = 0;
+  Storage *aStorage = nullptr;
   StorageParameters *aPar = selectSpecificStorage(query.getPathString());
 
   if (aPar) {
@@ -1250,7 +1250,7 @@ TList *Manager::getAllObjects(const IdPath &path, Int_t runNumber, Int_t version
     if (mRun < 0) {
       LOG(ERROR) << "Run number neither specified in query nor set in  Manager! Use  Manager::setRun."
                  << FairLogger::endl;
-      return NULL;
+      return nullptr;
     }
     runNumber = mRun;
   }
@@ -1275,23 +1275,23 @@ TList *Manager::getAllObjects(const ConditionId &query)
 
   if (!mDefaultStorage) {
     LOG(ERROR) << "No storage set!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   if (!query.isValid()) {
     LOG(ERROR) << "Invalid query: " << query.ToString().Data() << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   if ((mSpecificStorages.GetEntries() > 0) && query.getPathString().BeginsWith('*')) {
     // if specific storages are active a query with "*" is ambiguous
     LOG(ERROR) << "Query too generic in this context!" << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   if (query.isAnyRange()) {
     LOG(ERROR) << "Unspecified run or runrange: " << query.ToString().Data() << FairLogger::endl;
-    return NULL;
+    return nullptr;
   }
 
   if (mLock && query.getFirstRun() != mRun)
@@ -1309,12 +1309,12 @@ TList *Manager::getAllObjects(const ConditionId &query)
     LOG(DEBUG) << "Looking into default storage: " << aStorage->getUri().Data() << FairLogger::endl;
   }
 
-  TList *result = 0;
+  TList *result = nullptr;
   if (aStorage) {
     result = aStorage->getAllObjects(query);
   }
   if (!result) {
-    return 0;
+    return nullptr;
   }
 
   // loop on result to check whether entries should be re-queried with specific storages
@@ -1322,7 +1322,7 @@ TList *Manager::getAllObjects(const ConditionId &query)
     LOG(INFO) << "Now look into all other specific storages..." << FairLogger::endl;
 
     TIter iter(result);
-    Condition *chkCondition = 0;
+    Condition *chkCondition = nullptr;
 
     while ((chkCondition = dynamic_cast<Condition *>(iter.Next()))) {
       ConditionId &chkId = chkCondition->getId();
@@ -1350,7 +1350,7 @@ TList *Manager::getAllObjects(const ConditionId &query)
         chkId.setSubVersion(query.getSubVersion());
       }
 
-      Condition *newCondition = 0;
+      Condition *newCondition = nullptr;
 
       if (chkStorage) {
         newCondition = chkStorage->getObject(chkId);
@@ -1375,7 +1375,7 @@ TList *Manager::getAllObjects(const ConditionId &query)
 
   // caching entries
   TIter iter(result);
-  Condition *entry = 0;
+  Condition *entry = nullptr;
   while ((entry = dynamic_cast<Condition *>(iter.Next()))) {
 
     if (!mIds->Contains(&entry->getId())) {
@@ -1393,7 +1393,7 @@ Bool_t Manager::putObject(TObject *object, const ConditionId &id, ConditionMetaD
 {
   // store an  Condition object into the database
 
-  if (object == 0x0) {
+  if (object == nullptr) {
     LOG(ERROR) << "Null Condition! No storage will be done!" << FairLogger::endl;
     return kFALSE;
   }
@@ -1416,7 +1416,7 @@ Bool_t Manager::putObject(Condition *entry, const char *mirrors)
     return kFALSE;
   }
 
-  if (entry->getObject() == 0x0) {
+  if (entry->getObject() == nullptr) {
     LOG(ERROR) << "No valid object in CDB entry!" << FairLogger::endl;
     return kFALSE;
   }
@@ -1434,7 +1434,7 @@ Bool_t Manager::putObject(Condition *entry, const char *mirrors)
   ConditionId id = entry->getId();
   StorageParameters *aPar = selectSpecificStorage(id.getPathString());
 
-  Storage *aStorage = 0;
+  Storage *aStorage = nullptr;
 
   if (aPar) {
     aStorage = getStorage(aPar);
@@ -1463,8 +1463,7 @@ void Manager::setMirrorSEs(const char *mirrors)
 {
   // set mirror Storage Elements for the default storage, if it is of type "alien"
   if (mDefaultStorage->getStorageType() != "alien") {
-    LOG(INFO) << "The default storage is not of type \"alien\". Settings for Storage Elements are "
-      "not taken into account!" << FairLogger::endl;
+    LOG(INFO) << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)" << FairLogger::endl;
     return;
   }
   mDefaultStorage->setMirrorSEs(mirrors);
@@ -1474,8 +1473,7 @@ const char *Manager::getMirrorSEs() const
 {
   // get mirror Storage Elements for the default storage, if it is of type "alien"
   if (mDefaultStorage->getStorageType() != "alien") {
-    LOG(INFO) << "The default storage is not of type \"alien\". Settings for Storage Elements are "
-      "not taken into account!" << FairLogger::endl;
+    LOG(INFO) << R"(The default storage is not of type "alien". Settings for Storage Elements are not taken into account!)" << FairLogger::endl;
     return "";
   }
   return mDefaultStorage->getMirrorSEs();
@@ -1514,7 +1512,7 @@ void Manager::print(Option_t * /*option*/) const
   }
   if (mSpecificStorages.GetEntries() > 0) {
     TIter iter(mSpecificStorages.GetTable());
-    TPair *aPair = 0;
+    TPair *aPair = nullptr;
     Int_t i = 1;
     while ((aPair = (TPair *) iter.Next())) {
       output += Form("\t*** Specific storage %d: Path \"%s\" -> URI \"%s\"\n", i++,
@@ -1588,7 +1586,7 @@ void Manager::unloadFromCache(const char *path)
   // that is remove the entry from the cache and the id from the list of ids
   //
   if (!mActiveStorages.GetEntries()) {
-    LOG(DEBUG) << "No active storages. Object \"" << path << "\" is not unloaded from cache" << FairLogger::endl;
+    LOG(DEBUG) << R"(No active storages. Object ")" << path << R"(" is not unloaded from cache)" << FairLogger::endl;
     return;
   }
 
@@ -1599,7 +1597,7 @@ void Manager::unloadFromCache(const char *path)
 
   if (!queryPath.isWildcard()) { // path is not wildcard, get it directly from the cache and unload it!
     if (mConditionCache.Contains(path)) {
-      LOG(DEBUG) << "Unloading object \"" << path << "\" from cache and from list of ids" << FairLogger::endl;
+      LOG(DEBUG) << R"(Unloading object ")" << path << R"(" from cache and from list of ids)" << FairLogger::endl;
       TObjString pathStr(path);
       delete mConditionCache.Remove(&pathStr);
       // we do not remove from the list of ConditionId's (it's not very coherent but we leave the
@@ -1612,7 +1610,7 @@ void Manager::unloadFromCache(const char *path)
          delete mIds->Remove(id);
          }*/
     } else {
-      LOG(WARNING) << "Cache does not contain object \"" << path << "\"!" << FairLogger::endl;
+      LOG(WARNING) << R"(Cache does not contain object ")" << path << R"("!)" << FairLogger::endl;
     }
     LOG(DEBUG) << "Cache entries: " << mConditionCache.GetEntries() << FairLogger::endl;
     return;
@@ -1620,13 +1618,13 @@ void Manager::unloadFromCache(const char *path)
 
   // path is wildcard: loop on the cache and unload all comprised objects!
   TIter iter(mConditionCache.GetTable());
-  TPair *pair = 0;
+  TPair *pair = nullptr;
   Int_t removed = 0;
 
   while ((pair = dynamic_cast<TPair *>(iter.Next()))) {
     IdPath entryPath = pair->Key()->GetName();
     if (queryPath.isSupersetOf(entryPath)) {
-      LOG(DEBUG) << "Unloading object \"" << entryPath.getPathString().Data() << "\" from cache and from list of ids"
+      LOG(DEBUG) << R"(Unloading object ")" << entryPath.getPathString().Data() << R"(" from cache and from list of ids)"
                  << FairLogger::endl;
       TObjString pathStr(entryPath.getPathString());
       delete mConditionCache.Remove(&pathStr);
@@ -1693,8 +1691,8 @@ void Manager::queryStorages()
   }
 
   TIter iter(&mSpecificStorages);
-  TObjString *aCalibType = 0;
-  StorageParameters *aPar = 0;
+  TObjString *aCalibType = nullptr;
+  StorageParameters *aPar = nullptr;
   while ((aCalibType = dynamic_cast<TObjString *>(iter.Next()))) {
     aPar = (StorageParameters *) mSpecificStorages.GetValue(aCalibType);
     if (aPar) {
@@ -1725,23 +1723,23 @@ Bool_t Manager::diffObjects(const char *cdbFile1, const char *cdbFile2) const
 
   TFile *f1 = TFile::Open(cdbFile1);
   if (!f1) {
-    Printf("Cannot open file \"%s\"", cdbFile1);
+    Printf(R"(Cannot open file "%s")", cdbFile1);
     return kFALSE;
   }
   TFile *f2 = TFile::Open(cdbFile2);
   if (!f2) {
-    Printf("Cannot open file \"%s\"", cdbFile2);
+    Printf(R"(Cannot open file "%s")", cdbFile2);
     return kFALSE;
   }
 
   Condition *entry1 = (Condition *) f1->Get(" Condition");
   if (!entry1) {
-    Printf("Cannot get CDB entry from file \"%s\"", cdbFile1);
+    Printf(R"(Cannot get CDB entry from file "%s")", cdbFile1);
     return kFALSE;
   }
   Condition *entry2 = (Condition *) f2->Get(" Condition");
   if (!entry2) {
-    Printf("Cannot get CDB entry from file \"%s\"", cdbFile2);
+    Printf(R"(Cannot get CDB entry from file "%s")", cdbFile2);
     return kFALSE;
   }
 
@@ -1819,25 +1817,25 @@ void Manager::extractBaseFolder(TString &url)
   //
   //
   TString sbs;
-  if (!(sbs = url("\\?User=[^?]*")).IsNull()) {
+  if (!(sbs = url(R"(\?User=[^?]*)")).IsNull()) {
     url.ReplaceAll(sbs, "");
   }
-  if (!(sbs = url("\\?DBFolder=[^?]*")).IsNull()) {
+  if (!(sbs = url(R"(\?DBFolder=[^?]*)")).IsNull()) {
     url.ReplaceAll("?DB", "");
   }
-  if (!(sbs = url("\\?SE=[^?]*")).IsNull()) {
+  if (!(sbs = url(R"(\?SE=[^?]*)")).IsNull()) {
     url.ReplaceAll(sbs, "");
   }
-  if (!(sbs = url("\\?CacheFolder=[^?]*")).IsNull()) {
+  if (!(sbs = url(R"(\?CacheFolder=[^?]*)")).IsNull()) {
     url.ReplaceAll(sbs, "");
   }
-  if (!(sbs = url("\\?OperateDisconnected=[^?]*")).IsNull()) {
+  if (!(sbs = url(R"(\?OperateDisconnected=[^?]*)")).IsNull()) {
     url.ReplaceAll(sbs, "");
   }
-  if (!(sbs = url("\\?CacheSize=[^?]*")).IsNull()) {
+  if (!(sbs = url(R"(\?CacheSize=[^?]*)")).IsNull()) {
     url.ReplaceAll(sbs, "");
   }
-  if (!(sbs = url("\\?CleanupInterval=[^?]*")).IsNull()) {
+  if (!(sbs = url(R"(\?CleanupInterval=[^?]*)")).IsNull()) {
     url.ReplaceAll(sbs, "");
   }
   Bool_t slash = kFALSE, space = kFALSE;

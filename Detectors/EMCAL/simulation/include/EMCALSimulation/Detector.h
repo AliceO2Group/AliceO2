@@ -29,7 +29,7 @@ namespace AliceO2 {
       
       virtual void   Initialize() final;
       
-      virtual Bool_t ProcessHits( FairVolume* v=0) final;
+      virtual Bool_t ProcessHits( FairVolume* v=nullptr) final;
       
       Point *AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy,
                     Int_t detID, const Point3D<float> &pos, const Vector3D<float> &mom, Double_t time, Double_t length);
