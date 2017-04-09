@@ -6,7 +6,7 @@
 #include "TPCBase/Point2D.h"
 #include "TPCBase/FECInfo.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 class PadInfo {

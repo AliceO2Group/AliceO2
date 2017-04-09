@@ -11,7 +11,7 @@
 #include "MFTBase/VSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class LadderSegmentation : public VSegmentation {

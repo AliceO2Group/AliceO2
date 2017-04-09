@@ -5,7 +5,7 @@
 
 #include "Headers/TimeStamp.h"
 
-using namespace AliceO2::Header;
+using namespace o2::Header;
 
 // the only reason for the cxx file is the implementation of the
 // constants

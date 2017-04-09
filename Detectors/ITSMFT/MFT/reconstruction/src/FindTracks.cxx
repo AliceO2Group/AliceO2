@@ -14,9 +14,9 @@
 
 #include <FairMQLogger.h>
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::FindTracks)
+ClassImp(o2::MFT::FindTracks)
 
 //_____________________________________________________________________________
 FindTracks::FindTracks():
@@ -80,7 +80,7 @@ InitStatus FindTracks::Init()
     return kERROR;
   }
 
-  mTracks = new TClonesArray("AliceO2::MFT::Track", 100);
+  mTracks = new TClonesArray("o2::MFT::Track", 100);
   ioman->Register("MFTTracks","MFT",mTracks,kTRUE);
 
   // Do whatever else is needed at the initilization stage
@@ -107,7 +107,7 @@ void FindTracks::InitMQ(TList* tempList)
 
   LOG(INFO) << "FindTracks::InitMQ >>>>>" << "";
 
-  mTracks = new TClonesArray("AliceO2::MFT::Track",10000);
+  mTracks = new TClonesArray("o2::MFT::Track",10000);
   mTracks->Dump();
 
   return;
@@ -140,10 +140,10 @@ void FindTracks::Exec(Option_t* /*opt*/)
   Int_t nTrackHits[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) nTrackHits[i] = 0;
 
-  AliceO2::MFT::Hit *hit;
+  o2::MFT::Hit *hit;
   Int_t iMCindex;
   for (Int_t iHit = 0; iHit < mNHits; iHit++) {
-    hit = static_cast<AliceO2::MFT::Hit*>(mHits->At(iHit));
+    hit = static_cast<o2::MFT::Hit*>(mHits->At(iHit));
     if ( !hit) { continue; }
 
     iMCindex = hit->GetRefIndex();

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class ObjectHandler {

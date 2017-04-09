@@ -20,9 +20,9 @@
 #include "ITSMFTBase/SensMap.h"
 #include "FairLogger.h"
 
-ClassImp(AliceO2::ITSMFT::SensMap)
+ClassImp(o2::ITSMFT::SensMap)
 
-  using namespace AliceO2::ITSMFT;
+  using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 SensMap::SensMap() : mDimCol(0), mDimRow(0), mDimCycle(0), mItems(nullptr), mBTree(nullptr)

@@ -10,7 +10,7 @@
 #include "TPCBase/CalDet.h"
 #include "TFile.h"
 
-namespace AliceO2
+namespace o2
 {
 namespace TPC
 {

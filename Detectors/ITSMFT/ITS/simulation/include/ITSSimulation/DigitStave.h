@@ -14,13 +14,13 @@
 
 class TClonesArray;
 
-namespace AliceO2 {
+namespace o2 {
    namespace ITSMFT {
       class Digit;
    }
 }
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 class DigitStave
@@ -32,14 +32,14 @@ class DigitStave
 
     void Reset();
 
-    AliceO2::ITSMFT::Digit *FindDigit(Int_t pixel);
+    o2::ITSMFT::Digit *FindDigit(Int_t pixel);
 
-    void SetDigit(int pixel, AliceO2::ITSMFT::Digit *digi);
+    void SetDigit(int pixel, o2::ITSMFT::Digit *digi);
 
     void FillOutputContainer(TClonesArray *outputcont);
 
   private:
-    std::map<int, AliceO2::ITSMFT::Digit *> mPixels;
+    std::map<int, o2::ITSMFT::Digit *> mPixels;
 };
 }
 }

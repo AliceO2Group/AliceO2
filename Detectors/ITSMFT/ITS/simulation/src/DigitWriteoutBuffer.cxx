@@ -12,10 +12,10 @@
 
 class FairTimeStamp;
 
-ClassImp(AliceO2::ITS::DigitWriteoutBuffer)
+ClassImp(o2::ITS::DigitWriteoutBuffer)
 
-using AliceO2::ITSMFT::Digit;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::Digit;
+using namespace o2::ITS;
 
 DigitWriteoutBuffer::DigitWriteoutBuffer() :
   FairWriteoutBuffer(),
@@ -25,7 +25,7 @@ DigitWriteoutBuffer::DigitWriteoutBuffer() :
 }
 
 DigitWriteoutBuffer::DigitWriteoutBuffer(TString branchname, TString foldername, Bool_t persistance) :
-  FairWriteoutBuffer(branchname, "AliceO2::ITSMFT::Digit", foldername, persistance),
+  FairWriteoutBuffer(branchname, "o2::ITSMFT::Digit", foldername, persistance),
   mData_map()
 {
 

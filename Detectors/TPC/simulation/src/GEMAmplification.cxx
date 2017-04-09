@@ -5,7 +5,7 @@
 #include "TPCSimulation/GEMAmplification.h"
 #include "TPCSimulation/Constants.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 using boost::format;
 
 GEMAmplification::GEMAmplification()

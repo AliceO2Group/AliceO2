@@ -22,9 +22,9 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/Plane.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Flex)
+ClassImp(o2::MFT::Flex)
 
 //_____________________________________________________________________________
 Flex::Flex():

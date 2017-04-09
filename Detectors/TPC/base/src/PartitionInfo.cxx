@@ -1,6 +1,6 @@
 #include "TPCBase/PartitionInfo.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 PartitionInfo::PartitionInfo(const unsigned char  numberOfFECs,

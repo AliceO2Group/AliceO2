@@ -71,7 +71,7 @@ int main(int argc, char** argv)
     return -iResult;
   }
 
-  vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> blockData;
+  vector<o2::AliceHLT::MessageFormat::BufferDesc_t> blockData;
   char* inputBuffer = nullptr;
   if (inputFileName) {
     std::ifstream input(inputFileName, std::ifstream::binary);

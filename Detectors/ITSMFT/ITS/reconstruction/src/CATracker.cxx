@@ -29,7 +29,7 @@
 
 //TODO: setting Bz only once at the initialisation
 
-using namespace AliceO2::ITS::CA;
+using namespace o2::ITS::CA;
 
 using TMath::Sort;
 using std::sort;

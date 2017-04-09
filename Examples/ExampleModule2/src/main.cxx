@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
   }
 
   // Actual "work"
-  AliceO2::Examples::ExampleModule2::Foo hello;
+  o2::Examples::ExampleModule2::Foo hello;
   hello.greet();
   std::cout << "Class is " << hello.Class()->GetName() << std::endl;
 

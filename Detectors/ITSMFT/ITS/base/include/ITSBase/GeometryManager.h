@@ -10,7 +10,7 @@
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
 
-namespace AliceO2
+namespace o2
 {
 namespace ITS
 {

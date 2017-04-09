@@ -5,12 +5,12 @@
 
 #include <iostream>
 
-ClassImp(AliceO2::ITSMFT::Point)
+ClassImp(o2::ITSMFT::Point)
 
 using std::cout;
 using std::endl;
-using namespace AliceO2::ITSMFT;
-using namespace AliceO2; //::Base;
+using namespace o2::ITSMFT;
+using namespace o2; //::Base;
 
 
 void Point::Print(const Option_t *opt) const

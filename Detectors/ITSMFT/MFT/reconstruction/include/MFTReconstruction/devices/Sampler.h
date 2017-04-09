@@ -9,7 +9,7 @@
 #include "FairRunAna.h"
 #include <FairMQDevice.h>
 
-namespace AliceO2 {
+namespace o2 {
 
 namespace MFT {
 

@@ -5,9 +5,9 @@
 #include <FairLogger.h>  // for LOG
 #include <cstddef>      // for NULL
 
-namespace AliceO2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace CDB { class IdRunRange; }}
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 
 ClassImp(Condition)
 

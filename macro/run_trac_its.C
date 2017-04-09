@@ -43,13 +43,13 @@ void run_trac_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
 
         // Setup tracker
         // To run with n threads call AliceO2::ITS::CookedTrackerTask(n)
-        AliceO2::ITS::CookedTrackerTask *trac = new AliceO2::ITS::CookedTrackerTask;
+        o2::ITS::CookedTrackerTask *trac = new AliceO2::ITS::CookedTrackerTask;
 
         fRun->AddTask(trac);
 
         fRun->Init();
 
-        AliceO2::Field::MagneticField* fld = (AliceO2::Field::MagneticField*)fRun->GetField();
+        o2::Field::MagneticField* fld = (AliceO2::Field::MagneticField*)fRun->GetField();
       	if (!fld) {
       	  std::cout << "Failed to get field instance from FairRunAna" << std::endl;
       	  return;

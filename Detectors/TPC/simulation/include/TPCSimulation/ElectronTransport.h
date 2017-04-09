@@ -10,7 +10,7 @@
 #include "TPCBase/RandomRing.h"
 #include "TPCBase/Mapper.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 /// \class ElectronTransport

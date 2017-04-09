@@ -193,7 +193,7 @@ void WrapperDevice::Run()
 
     if (!mSkipProcessing) {
       // prepare input from messages
-      vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
+      vector<o2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
       for (vector<unique_ptr<FairMQMessage>>::iterator msg=inputMessages.begin();
            msg!=inputMessages.end(); msg++) {
         void* buffer=(*msg)->GetData();

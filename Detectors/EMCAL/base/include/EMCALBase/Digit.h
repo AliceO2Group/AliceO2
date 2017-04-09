@@ -10,7 +10,7 @@
 #endif
 
 
-namespace AliceO2 {
+namespace o2 {
   namespace EMCAL {
     
     /// \class Digit

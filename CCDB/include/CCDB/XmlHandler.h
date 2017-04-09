@@ -11,9 +11,9 @@ class TList;
 
 #include <cstddef>      // for NULL
 
-namespace AliceO2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace CDB { class IdRunRange; }}
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 class XmlHandler : public TObject
 {

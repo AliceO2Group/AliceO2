@@ -6,7 +6,7 @@
 #include "Math/GenVector/Transform3D.h"
 #include "TFile.h"
 
-namespace AliceO2
+namespace o2
 {
 
 BOOST_AUTO_TEST_CASE(BasicXYZHit)

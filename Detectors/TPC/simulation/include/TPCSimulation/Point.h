@@ -5,10 +5,10 @@
 
 #include "SimulationDataFormat/BaseHits.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
-class Point : public AliceO2::BasicXYZEHit<float>
+class Point : public o2::BasicXYZEHit<float>
 {
 
   public:
@@ -37,7 +37,7 @@ class Point : public AliceO2::BasicXYZEHit<float>
     Point(const Point& point);
     Point operator=(const Point& point);
 
-  ClassDefOverride(AliceO2::TPC::Point,1)
+  ClassDefOverride(o2::TPC::Point,1)
 };
 
 inline

@@ -18,7 +18,7 @@
 #include "FairModule.h"                 // for FairModule
 #include "Rtypes.h"                     // for Magnet::Class, Bool_t, etc
 #include <string>                       // for string
-namespace AliceO2 {
+namespace o2 {
 namespace Passive {
 
 class Magnet : public FairModule
@@ -36,7 +36,7 @@ class Magnet : public FairModule
     Magnet(const Magnet& orig);
     Magnet& operator=(const Magnet&);
 
-    ClassDef(AliceO2::Passive::Magnet,1)
+    ClassDef(o2::Passive::Magnet,1)
 
 };
 

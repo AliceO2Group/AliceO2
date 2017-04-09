@@ -11,8 +11,8 @@
 
 using namespace std;
 using namespace std::chrono;
-using namespace AliceO2::Devices;
-using SubframeMetadata = AliceO2::DataFlow::SubframeMetadata;
+using namespace o2::Devices;
+using SubframeMetadata = o2::DataFlow::SubframeMetadata;
 
 void FLPSenderDevice::InitTask()
 {
@@ -72,7 +72,7 @@ void FLPSenderDevice::Run()
 inline void FLPSenderDevice::sendFrontData()
 {
   SubframeMetadata *sfm = static_cast<SubframeMetadata*>(mSTFBuffer.front().At(1)->GetData());
-  uint16_t currentTimeframeId = AliceO2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
+  uint16_t currentTimeframeId = o2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
   if (mLastTimeframeId != -1) {
     if (currentTimeframeId == mLastTimeframeId) {
       LOG(ERROR) << "Sent same consecutive timeframe ids\n";

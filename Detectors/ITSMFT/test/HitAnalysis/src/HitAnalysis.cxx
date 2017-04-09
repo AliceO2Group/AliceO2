@@ -19,10 +19,10 @@
 #include "ITSMFTBase/Segmentation.h"
 #include "ITSBase/GeometryTGeo.h"
 
-using AliceO2::ITSMFT::Segmentation;
-using AliceO2::ITSMFT::Chip;
-using AliceO2::ITSMFT::Point;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::Segmentation;
+using o2::ITSMFT::Chip;
+using o2::ITSMFT::Point;
+using namespace o2::ITS;
 
 HitAnalysis::HitAnalysis() :
   FairTask(),

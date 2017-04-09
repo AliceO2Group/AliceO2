@@ -15,9 +15,9 @@
 
 #include <cstddef> // for NULL
 
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
-ClassImp(AliceO2::ITS::GeometryManager)
+ClassImp(o2::ITS::GeometryManager)
 
   TGeoManager* GeometryManager::mGeometry = nullptr;
 

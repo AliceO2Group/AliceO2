@@ -17,7 +17,7 @@
 #include "FairModule.h"  // for FairModule
 #include "Rtypes.h"      // for Pipe::Class, ClassDef, Pipe::Streamer
 
-namespace AliceO2 {
+namespace o2 {
 namespace Passive {
  
 

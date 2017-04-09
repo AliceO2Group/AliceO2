@@ -14,9 +14,9 @@
 #include "TClonesArray.h"    // for TClonesArray
 #include "TObject.h"         // for TObject
 
-ClassImp(AliceO2::ITS::DigitizerTask)
+ClassImp(o2::ITS::DigitizerTask)
 
-  using namespace AliceO2::ITS;
+  using namespace o2::ITS;
 
 DigitizerTask::DigitizerTask(Bool_t useAlpide)
   : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer(), mPointsArray(nullptr), mDigitsArray(nullptr)
@@ -49,7 +49,7 @@ InitStatus DigitizerTask::Init()
   }
 
   // Register output container
-  mDigitsArray = new TClonesArray("AliceO2::ITSMFT::Digit");
+  mDigitsArray = new TClonesArray("o2::ITSMFT::Digit");
   mgr->Register("ITSDigit", "ITS", mDigitsArray, kTRUE);
 
   mDigitizer.init(kTRUE);

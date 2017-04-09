@@ -3,7 +3,7 @@
 
 #include "TPCReconstruction/SyncPatternMonitor.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 constexpr std::array<short,32> SyncPatternMonitor::SYNC_PATTERN;
 
 SyncPatternMonitor::SyncPatternMonitor()

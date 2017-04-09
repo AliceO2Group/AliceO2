@@ -1,8 +1,8 @@
 #include "ITSReconstruction/CAaux.h"
 #include "DetectorsBase/Constants.h"
 
-using namespace AliceO2::ITS::CA;
-using AliceO2::Base::Constants::kPI;
+using namespace o2::ITS::CA;
+using o2::Base::Constants::kPI;
 using std::array;
 
 Cell::Cell(int xx,int yy, int zz, int dd0, int dd1, float curv, array<float,3> n)

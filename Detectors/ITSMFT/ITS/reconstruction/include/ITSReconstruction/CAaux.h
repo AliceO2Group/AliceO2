@@ -7,7 +7,7 @@
 #include "DetectorsBase/Track.h"
 #include "DetectorsBase/Constants.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITS {
     namespace CA {
 
@@ -159,7 +159,7 @@ namespace AliceO2 {
 
       inline bool CompareAngles(float alpha, float beta, float tolerance) {
         const float delta = fabs(alpha - beta);
-        return (delta < tolerance || fabs(delta - AliceO2::Base::Constants::k2PI) < tolerance);
+        return (delta < tolerance || fabs(delta - o2::Base::Constants::k2PI) < tolerance);
       }
     } // namespace CA
   } // namespace ITS

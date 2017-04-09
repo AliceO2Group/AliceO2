@@ -71,8 +71,8 @@ int main()
   // in the range [-1, 10] including the upper bound
   // the first definition is a data type, then an object of this type is
   // defined
-  typedef AliceO2::Test::normal_distribution<double> TestDistribution_t;
-  typedef AliceO2::Test::DataGenerator<int16_t, TestDistribution_t> DataGenerator_t;
+  typedef o2::Test::normal_distribution<double> TestDistribution_t;
+  typedef o2::Test::DataGenerator<int16_t, TestDistribution_t> DataGenerator_t;
   DataGenerator_t dg(-7.5, 10.5, 1., 0., 1.);
   typedef ContiguousAlphabet<DataGenerator_t::value_type, -7, 10> SimpleRangeAlphabet_t;
   SimpleRangeAlphabet_t alphabet;
@@ -84,9 +84,9 @@ int main()
   // the node type is defined to be HuffmanNode specialized to bitset<16>
   // third template parameter determines whether code has to be decoded
   // MSB to LSB (true) or LSB to MSB (false)
-  typedef AliceO2::HuffmanModel<
+  typedef o2::HuffmanModel<
     ProbabilityModel<SimpleRangeAlphabet_t>
-    , AliceO2::HuffmanNode<std::bitset<32> >
+    , o2::HuffmanNode<std::bitset<32> >
     , true
     > HuffmanModel_t;
   HuffmanModel_t huffmanmodel;
@@ -117,7 +117,7 @@ int main()
   std::cout << std::endl << "Generating binary tree and Huffman codes" << std::endl;
   huffmanmodel.GenerateHuffmanTree();
   huffmanmodel.print();
-  typedef AliceO2::HuffmanCodec<HuffmanModel_t > Codec_t;
+  typedef o2::HuffmanCodec<HuffmanModel_t > Codec_t;
   Codec_t codec(huffmanmodel);
 
   ////////////////////////////////////////////////////////////////////////////
@@ -151,10 +151,10 @@ int main()
   //
 
   // FIFO for the random numbers
-  AliceO2::Test::Fifo<DataGenerator_t::value_type> fifoRandvals;
+  o2::Test::Fifo<DataGenerator_t::value_type> fifoRandvals;
 
   // FIFO for encoded values
-  typedef AliceO2::Test::Fifo<uint32_t> FifoBuffer_t;
+  typedef o2::Test::Fifo<uint32_t> FifoBuffer_t;
   FifoBuffer_t fifoEncoded;
 
   const int nRolls = 1000000;

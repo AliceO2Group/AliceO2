@@ -19,7 +19,7 @@ class TString;
 // When _BRING_TO_BOUNDARY_ is defined, the point outside of the fitted folume is assumed to be on the surface
 // #define _BRING_TO_BOUNDARY_
 
-namespace AliceO2 {
+namespace o2 {
 namespace MathUtils {
 class Chebyshev3DCalc : public TNamed
 {
@@ -179,7 +179,7 @@ class Chebyshev3DCalc : public TNamed
     Float_t *mTemporaryCoefficients2D; //[mNumberOfColumns] temp. coeffs for 2d summation
     Float_t *mTemporaryCoefficients1D; //[mNumberOfRows] temp. coeffs for 1d summation
 
-    ClassDef(AliceO2::MathUtils::Chebyshev3DCalc,
+    ClassDef(o2::MathUtils::Chebyshev3DCalc,
     2) // Class for interpolation of 3D->1 function by Chebyshev parametrization
 };
 

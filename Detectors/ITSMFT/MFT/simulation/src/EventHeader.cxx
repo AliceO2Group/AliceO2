@@ -1,8 +1,8 @@
 #include "MFTSimulation/EventHeader.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::EventHeader)
+ClassImp(o2::MFT::EventHeader)
 
 //_____________________________________________________________________________
 EventHeader::EventHeader()

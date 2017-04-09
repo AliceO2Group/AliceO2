@@ -13,8 +13,8 @@
 
 #include "FairLogger.h"
 
-using AliceO2::ITSMFT::Digit;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::Digit;
+using namespace o2::ITS;
 
 DigitLayer::DigitLayer(Int_t layerID, Int_t nstaves) :
   mLayerID(layerID),

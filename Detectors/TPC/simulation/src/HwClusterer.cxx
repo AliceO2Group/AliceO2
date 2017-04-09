@@ -17,7 +17,7 @@
 
 std::mutex g_display_mutex;
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 HwClusterer::HwClusterer()
   : HwClusterer(Processing::Parallel, 0, 360, 0, false, 8, 8, 0)
@@ -106,7 +106,7 @@ void HwClusterer::Init()
   
 
   mClusterContainer = new ClusterContainer();
-  mClusterContainer->InitArray("AliceO2::TPC::HwCluster");
+  mClusterContainer->InitArray("o2::TPC::HwCluster");
 }
 
 //________________________________________________________________________

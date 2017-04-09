@@ -26,7 +26,7 @@
 class TGeoMedium;
 
 using namespace TMath;
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
 // General Parameters
 const Int_t V1Layer::sNumberOmInnerLayers = 3;

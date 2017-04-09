@@ -1,7 +1,7 @@
 #ifndef SUBFRAMEMETADATA_H
 #define SUBFRAMEMETADATA_H
 
-namespace AliceO2 {
+namespace o2 {
 namespace DataFlow {
 
 struct SubframeMetadata

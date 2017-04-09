@@ -2,7 +2,7 @@
 
 #include "TPCBase/PadRegionInfo.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 

@@ -10,7 +10,7 @@
 
 #include "Headers/DataHeader.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace Header {
 
 // The Heartbeat frame layout is specified in
@@ -30,7 +30,7 @@ namespace Header {
 // check if this is the correct term, we probably won't send what is referred to be
 // the heartbeat frame (composition of HBH - detector payload - HBT); instead, the
 // HBH and HBT can be added to the header stack
-extern const AliceO2::Header::DataDescription gDataDescriptionHeartbeatFrame;
+extern const o2::Header::DataDescription gDataDescriptionHeartbeatFrame;
 
 struct HeartbeatHeader
 {
@@ -88,8 +88,8 @@ struct HeartbeatFrameEnvelope : public BaseHeader
 {
   //static data for this header type/version
   static const uint32_t sVersion;
-  static const AliceO2::Header::HeaderType sHeaderType;
-  static const AliceO2::Header::SerializationMethod sSerializationMethod;
+  static const o2::Header::HeaderType sHeaderType;
+  static const o2::Header::SerializationMethod sSerializationMethod;
 
   HeartbeatHeader header;
   HeartbeatTrailer trailer;

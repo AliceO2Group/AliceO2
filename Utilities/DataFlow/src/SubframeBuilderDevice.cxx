@@ -17,24 +17,24 @@
 // is still permitted, but deprecated. Some compilers do not implement this standard
 // correctly. It also has to be noticed that this error does not occur for all the
 // other public constexpr members
-constexpr uint32_t AliceO2::DataFlow::SubframeBuilderDevice::mOrbitsPerTimeframe;
-constexpr uint32_t AliceO2::DataFlow::SubframeBuilderDevice::mOrbitDuration;
-constexpr uint32_t AliceO2::DataFlow::SubframeBuilderDevice::mDuration;
+constexpr uint32_t o2::DataFlow::SubframeBuilderDevice::mOrbitsPerTimeframe;
+constexpr uint32_t o2::DataFlow::SubframeBuilderDevice::mOrbitDuration;
+constexpr uint32_t o2::DataFlow::SubframeBuilderDevice::mDuration;
 
-using HeartbeatHeader = AliceO2::Header::HeartbeatHeader;
-using HeartbeatTrailer = AliceO2::Header::HeartbeatTrailer;
-using DataHeader = AliceO2::Header::DataHeader;
+using HeartbeatHeader = o2::Header::HeartbeatHeader;
+using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
+using DataHeader = o2::Header::DataHeader;
 
-AliceO2::DataFlow::SubframeBuilderDevice::SubframeBuilderDevice()
+o2::DataFlow::SubframeBuilderDevice::SubframeBuilderDevice()
   : O2Device()
 {
-  LOG(INFO) << "AliceO2::DataFlow::SubframeBuilderDevice::SubframeBuilderDevice " << mDuration << "\n";
+  LOG(INFO) << "o2::DataFlow::SubframeBuilderDevice::SubframeBuilderDevice " << mDuration << "\n";
 }
 
-AliceO2::DataFlow::SubframeBuilderDevice::~SubframeBuilderDevice()
+o2::DataFlow::SubframeBuilderDevice::~SubframeBuilderDevice()
 = default;
 
-void AliceO2::DataFlow::SubframeBuilderDevice::InitTask()
+void o2::DataFlow::SubframeBuilderDevice::InitTask()
 {
 //  mDuration = GetConfig()->GetValue<uint32_t>(OptionKeyDuration);
   mIsSelfTriggered = GetConfig()->GetValue<bool>(OptionKeySelfTriggered);
@@ -47,11 +47,11 @@ void AliceO2::DataFlow::SubframeBuilderDevice::InitTask()
     // ConditionalRun is not called anymore from the base class if the
     // callback is registered
     LOG(INFO) << "Obtaining data from DataPublisher\n";
-    OnData(mInputChannelName.c_str(), &AliceO2::DataFlow::SubframeBuilderDevice::HandleData);
+    OnData(mInputChannelName.c_str(), &o2::DataFlow::SubframeBuilderDevice::HandleData);
   } else {
     LOG(INFO) << "Self triggered mode. Doing nothing for now.\n";
   }
-  LOG(INFO) << "AliceO2::DataFlow::SubframeBuilderDevice::InitTask " << mDuration << "\n";
+  LOG(INFO) << "o2::DataFlow::SubframeBuilderDevice::InitTask " << mDuration << "\n";
 }
 
 // FIXME: how do we actually find out the payload size???
@@ -60,9 +60,9 @@ int64_t extractDetectorPayload(char **payload, char *buffer, size_t bufferSize) 
   return bufferSize - sizeof(HeartbeatHeader) - sizeof(HeartbeatTrailer);
 }
 
-bool AliceO2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts)
+bool o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts)
 {
-  LOG(INFO) << "AliceO2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame" << mDuration << "\n";
+  LOG(INFO) << "o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame" << mDuration << "\n";
   char *incomingBuffer = (char *)inParts.At(1)->GetData();
   HeartbeatHeader *hbh = reinterpret_cast<HeartbeatHeader*>(incomingBuffer);
 
@@ -71,9 +71,9 @@ bool AliceO2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &in
   // this should be defined in a common place, and also the origin
   // the origin can probably name a detector identifier, but not sure if
   // all CRUs of a FLP in all cases serve a single detector
-  AliceO2::Header::DataHeader dh;
-  dh.dataDescription = AliceO2::Header::DataDescription("SUBTIMEFRAMEMD");
-  dh.dataOrigin = AliceO2::Header::DataOrigin("TEST");
+  o2::Header::DataHeader dh;
+  dh.dataDescription = o2::Header::DataDescription("SUBTIMEFRAMEMD");
+  dh.dataOrigin = o2::Header::DataOrigin("TEST");
   dh.subSpecification = 0;
   dh.payloadSize = sizeof(SubframeMetadata);
 
@@ -116,7 +116,7 @@ bool AliceO2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &in
 
   auto *payload = new char[payloadSize]();
   memcpy(payload, sourcePayload, payloadSize);
-  DataHeader payloadheader(*AliceO2::Header::get<DataHeader>((byte*)inParts.At(0)->GetData()));
+  DataHeader payloadheader(*o2::Header::get<DataHeader>((byte*)inParts.At(0)->GetData()));
 
   payloadheader.subSpecification = 0;
   payloadheader.payloadSize = payloadSize;
@@ -132,7 +132,7 @@ bool AliceO2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &in
   return true;
 }
 
-bool AliceO2::DataFlow::SubframeBuilderDevice::HandleData(FairMQParts& msgParts, int /*index*/)
+bool o2::DataFlow::SubframeBuilderDevice::HandleData(FairMQParts& msgParts, int /*index*/)
 {
   // loop over header payload pairs in the incoming multimessage
   // for each pair

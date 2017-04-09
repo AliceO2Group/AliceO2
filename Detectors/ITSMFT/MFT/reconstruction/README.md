@@ -48,7 +48,7 @@ Reconstruction with MQ devices:
 
 ./"execdir"/mft-reco-processor --transport zeromq --id processor1 --mq-config reco.json --task-name FindHits --in-channel data-in --out-channel data-out
 
-./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco.json --file-name hits.root --class-name "TClonesArray(AliceO2::MFT::Hit)" --branch-name MFTHits --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
+./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco.json --file-name hits.root --class-name "TClonesArray(o2::MFT::Hit)" --branch-name MFTHits --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
 ```
 
 with the output file "hits.root"
@@ -60,7 +60,7 @@ with the output file "hits.root"
 
 ./"execdir"/mft-reco-processor --transport zeromq --id processor1 --mq-config reco.json --task-name FindTracks --in-channel data-in --out-channel data-out
 
-./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco.json --file-name tracks.root --class-name "TClonesArray(AliceO2::MFT::Track)" --branch-name MFTTracks --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
+./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco.json --file-name tracks.root --class-name "TClonesArray(o2::MFT::Track)" --branch-name MFTTracks --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
 ```
 
 with the output file "tracks.root"
@@ -81,7 +81,7 @@ and then:
 
 ./"execdir"/mft-reco-merger --transport zeromq --id merger1 --mq-config reco_merger.json
 
-./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco_merge.json --file-name tracks.root --class-name "TClonesArray(AliceO2::MFT::Track)" --branch-name MFTTracks --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
+./"execdir"/mft-reco-sink --transport zeromq --id sink1 --mq-config reco_merge.json --file-name tracks.root --class-name "TClonesArray(o2::MFT::Track)" --branch-name MFTTracks --class-name "AliceO2::MFT::EventHeader" --branch-name EventHeader. --in-channel data-in
 ```
 
 

@@ -3,9 +3,9 @@
 
 #include "TPCSimulation/Cluster.h"
 
-ClassImp(AliceO2::TPC::Cluster)
+ClassImp(o2::TPC::Cluster)
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 //________________________________________________________________________
 Cluster::Cluster()

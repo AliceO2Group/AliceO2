@@ -5,9 +5,9 @@
 
 #include "MFTReconstruction/Track.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Track)
+ClassImp(o2::MFT::Track)
 
 //_____________________________________________________________________________
 Track::Track() : 

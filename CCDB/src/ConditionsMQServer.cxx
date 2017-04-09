@@ -27,12 +27,12 @@
 
 #include <boost/algorithm/string.hpp>
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 using std::endl;
 using std::cout;
 using std::string;
 
-ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), fCdbManager(AliceO2::CDB::Manager::Instance()) {}
+ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), fCdbManager(o2::CDB::Manager::Instance()) {}
 
 void ConditionsMQServer::InitTask()
 {

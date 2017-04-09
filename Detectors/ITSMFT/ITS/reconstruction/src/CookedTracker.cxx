@@ -21,9 +21,9 @@
 #include "ITSReconstruction/CookedTrack.h"
 #include "ITSReconstruction/CookedTracker.h"
 
-using namespace AliceO2::ITS;
-using namespace AliceO2::Base::Constants;
-using AliceO2::Field::MagneticField;
+using namespace o2::ITS;
+using namespace o2::Base::Constants;
+using o2::Field::MagneticField;
 
 //************************************************
 // Constants hardcoded for the moment:

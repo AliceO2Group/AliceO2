@@ -6,7 +6,7 @@
 #include "TPCSimulation/DigitRow.h"
 #include "TPCBase/Mapper.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 void DigitTime::setDigit(int eventID, int trackID, int cru, int row, int pad, float charge)
 {

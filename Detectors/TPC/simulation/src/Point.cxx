@@ -3,7 +3,7 @@
 using std::cout;
 using std::endl;
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 void Point::Print(const Option_t* opt) const
 {

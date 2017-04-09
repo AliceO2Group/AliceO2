@@ -51,7 +51,7 @@ void Config()
    cout << "Geant4 has been created." << endl;
 
 /// create the Specific stack
-   AliceO2::Data::Stack *stack = new AliceO2::Data::Stack(1000);
+   o2::Data::Stack *stack = new AliceO2::Data::Stack(1000);
    stack->StoreSecondaries(kTRUE);
    stack->SetMinPoints(0);
    geant4->SetStack(stack);

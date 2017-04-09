@@ -16,7 +16,7 @@
 #include "ITSSimulation/Digitizer.h"
 
 class TClonesArray;
-namespace AliceO2
+namespace o2
 {
   namespace ITS
   {
@@ -24,7 +24,7 @@ namespace AliceO2
   }
 } // lines 19-19
 
-namespace AliceO2
+namespace o2
 {
   namespace ITS
   {

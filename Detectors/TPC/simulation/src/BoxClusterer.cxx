@@ -89,9 +89,9 @@
 #include "TError.h"   // for R__ASSERT()
 #include "TClonesArray.h"
 
-ClassImp(AliceO2::TPC::BoxClusterer)
+ClassImp(o2::TPC::BoxClusterer)
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 //________________________________________________________________________
 BoxClusterer::BoxClusterer():
@@ -123,7 +123,7 @@ void BoxClusterer::Init()
   R__ASSERT(!mClusterContainer);
 
   mClusterContainer = new ClusterContainer();
-  mClusterContainer->InitArray("AliceO2::TPC::BoxCluster");
+  mClusterContainer->InitArray("o2::TPC::BoxCluster");
 
   mAllBins = new Float_t*[mRowsMax];
   mAllSigBins = new Int_t*[mRowsMax];

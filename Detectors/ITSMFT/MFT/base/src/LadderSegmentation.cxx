@@ -10,7 +10,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 ClassImp(LadderSegmentation);
 
@@ -57,7 +57,7 @@ LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder):
   // copy constructor
   
   if (ladder.mChips) mChips = new TClonesArray(*(ladder.mChips));
-  else mChips = new TClonesArray("AliceO2::MFT::ChipSegmentation",mNSensors);
+  else mChips = new TClonesArray("o2::MFT::ChipSegmentation",mNSensors);
 
   mChips->SetOwner(kTRUE);
 	
@@ -69,7 +69,7 @@ LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder):
 void LadderSegmentation::CreateSensors() {
   
   if (!mChips) {
-    mChips = new TClonesArray("AliceO2::MFT::ChipSegmentation",mNSensors);
+    mChips = new TClonesArray("o2::MFT::ChipSegmentation",mNSensors);
     mChips -> SetOwner(kTRUE);
   }
 

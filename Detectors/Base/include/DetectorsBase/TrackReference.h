@@ -9,7 +9,7 @@
 #include "TMath.h"       // for Pi, Sqrt, ATan2, Cos, Sin, ACos
 #include "TObject.h"     // for TObject
 
-namespace AliceO2 {
+namespace o2 {
 namespace Base {
 
 /// Track Reference object is created every time particle is

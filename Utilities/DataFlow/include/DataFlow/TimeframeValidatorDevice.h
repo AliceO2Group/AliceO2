@@ -3,7 +3,7 @@
 
 #include "O2Device/O2Device.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace DataFlow {
 
 /// A validating device for time frame data (coming from EPN)

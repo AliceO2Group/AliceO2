@@ -32,8 +32,8 @@ int main()
   //AliceO2::Test::DataGenerator<TestDistribution_t::result_type, TestDistribution_t> dg(-7.5, 7.5, 1., 0., 1.);
   //typedef AliceO2::Test::poisson_distribution<int> TestDistribution_t;
   //AliceO2::Test::DataGenerator<TestDistribution_t::result_type, TestDistribution_t> dg(0, 15, 1, 3);
-  typedef AliceO2::Test::geometric_distribution<int> TestDistribution_t;
-  AliceO2::Test::DataGenerator<TestDistribution_t::result_type, TestDistribution_t> dg(0, 31, 1, 0.3);
+  typedef o2::Test::geometric_distribution<int> TestDistribution_t;
+  o2::Test::DataGenerator<TestDistribution_t::result_type, TestDistribution_t> dg(0, 31, 1, 0.3);
 
   typedef TestDistribution_t::result_type value_type;
 

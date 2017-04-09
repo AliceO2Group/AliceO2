@@ -12,9 +12,9 @@
 #include "MFTBase/Constants.h"
 #include "MFTBase/Support.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Support)
+ClassImp(o2::MFT::Support)
 
 //_____________________________________________________________________________
 Support::Support():

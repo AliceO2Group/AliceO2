@@ -29,9 +29,9 @@ using std::endl;
 using std::cout;
 using std::cin;
 
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
-ClassImp(AliceO2::ITS::V11Geometry)
+ClassImp(o2::ITS::V11Geometry)
 
 const Double_t V11Geometry::sMicron = 1.0E-4;
 const Double_t V11Geometry::sMm = 0.10;

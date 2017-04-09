@@ -10,14 +10,14 @@
 #include "TObject.h"    // for TObject
 #include "TString.h"    // for TString
 
-namespace AliceO2 { namespace CDB { class Condition; }}  // lines 18-18
-namespace AliceO2 { namespace CDB { class ConditionId; }}
-namespace AliceO2 { namespace CDB { class ConditionMetaData; }}
-namespace AliceO2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace CDB { class Condition; }}  // lines 18-18
+namespace o2 { namespace CDB { class ConditionId; }}
+namespace o2 { namespace CDB { class ConditionMetaData; }}
+namespace o2 { namespace CDB { class IdRunRange; }}
 
 class TFile;
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class Condition;

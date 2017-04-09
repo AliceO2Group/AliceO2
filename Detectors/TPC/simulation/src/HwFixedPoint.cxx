@@ -3,7 +3,7 @@
 
 #include "TPCSimulation/HwFixedPoint.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 //________________________________________________________________________
 HwFixedPoint::HwFixedPoint(unsigned short totalWidth, unsigned short decPrec)

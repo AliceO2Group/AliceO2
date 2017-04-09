@@ -12,7 +12,7 @@
 #include <cstring> // memset
 #include <iostream>
 
-using namespace AliceO2;
+using namespace o2;
 using namespace Format;
 
 // a simple message type, just a pointer to some payload

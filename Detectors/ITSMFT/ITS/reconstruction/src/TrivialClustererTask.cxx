@@ -7,10 +7,10 @@
 #include "FairRootManager.h" // for FairRootManager
 #include "TClonesArray.h"    // for TClonesArray
 
-ClassImp(AliceO2::ITS::TrivialClustererTask)
+ClassImp(o2::ITS::TrivialClustererTask)
 
-using AliceO2::ITSMFT::SegmentationPixel;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::SegmentationPixel;
+using namespace o2::ITS;
 
 //_____________________________________________________________________
 TrivialClustererTask::TrivialClustererTask() : FairTask("ITSTrivialClustererTask"), mDigitsArray(nullptr), mClustersArray(nullptr) {}
@@ -42,7 +42,7 @@ InitStatus TrivialClustererTask::Init()
   }
 
   // Register output container
-  mClustersArray = new TClonesArray("AliceO2::ITS::Cluster");
+  mClustersArray = new TClonesArray("o2::ITS::Cluster");
   mgr->Register("ITSCluster", "ITS", mClustersArray, kTRUE);
 
   mGeometry.Build(kTRUE);

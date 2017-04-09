@@ -4,7 +4,7 @@
 #include <boost/test/unit_test.hpp>
 #include "TPCBase/Point3D.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace TPC {
     
     BOOST_AUTO_TEST_CASE(Point3D_test)

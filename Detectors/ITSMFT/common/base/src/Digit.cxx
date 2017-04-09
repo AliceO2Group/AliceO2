@@ -3,9 +3,9 @@
 
 #include "ITSMFTBase/Digit.h"
 
-ClassImp(AliceO2::ITSMFT::Digit)
+ClassImp(o2::ITSMFT::Digit)
 
-  using namespace AliceO2::ITSMFT;
+  using namespace o2::ITSMFT;
 
 Digit::Digit() : FairTimeStamp(), mChipIndex(0), mRow(0), mCol(0), mCharge(0.), mLabels{ -1, -1, -1 } {}
 Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Double_t charge, Double_t time)

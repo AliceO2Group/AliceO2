@@ -6,9 +6,9 @@
 #include "CCDB/Condition.h"          // for Condition
 #include "CCDB/Manager.h"            // for Manager
 
-namespace AliceO2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace CDB { class IdRunRange; }}
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 
 ClassImp(Storage)
 

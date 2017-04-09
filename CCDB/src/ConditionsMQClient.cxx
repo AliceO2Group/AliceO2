@@ -23,7 +23,7 @@
 
 #include "boost/filesystem.hpp"
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 using namespace std;
 
 ConditionsMQClient::ConditionsMQClient() : mRunId(0), mParameterName() {}

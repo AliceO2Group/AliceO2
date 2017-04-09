@@ -18,9 +18,9 @@
 #include "ITSMFTSimulation/Point.h"
 
 
-ClassImp(AliceO2::ITSMFT::SimulationAlpide)
+ClassImp(o2::ITSMFT::SimulationAlpide)
 
-using namespace AliceO2::ITSMFT;
+using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide():
@@ -38,7 +38,7 @@ mSeg(seg),
 mChip(chip)
 {
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=par[i];
-  mSensMap=new SensMap("AliceO2::ITSMFT::SDigit",
+  mSensMap=new SensMap("o2::ITSMFT::SDigit",
   seg->getNumberOfColumns(), seg->getNumberOfRows());
 }
 
@@ -64,7 +64,7 @@ void SimulationAlpide::Init
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=par[i];
   mSeg=seg;
   mChip=chip;
-  mSensMap=new SensMap("AliceO2::ITSMFT::SDigit",
+  mSensMap=new SensMap("o2::ITSMFT::SDigit",
   seg->getNumberOfColumns(), seg->getNumberOfRows());
 }
 

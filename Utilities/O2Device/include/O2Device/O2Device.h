@@ -22,7 +22,7 @@
 #include "Headers/DataHeader.h"
 #include <stdexcept>
 
-namespace AliceO2 {
+namespace o2 {
 namespace Base {
 
 /// just a typedef to express the fact that it is not just a FairMQParts vector,
@@ -40,16 +40,16 @@ public:
   /// @param[] incomingStack header block must be MOVED in (rvalue ref)
   /// @param[] dataMessage the data message must be MOVED in (unique_ptr by value)
   bool AddMessage(O2Message& parts,
-                  AliceO2::Header::Stack&& incomingStack,
+                  o2::Header::Stack&& incomingStack,
                   FairMQMessagePtr incomingDataMessage) {
 
     //we have to move the incoming data
-    AliceO2::Header::Stack headerStack{std::move(incomingStack)};
+    o2::Header::Stack headerStack{std::move(incomingStack)};
     FairMQMessagePtr dataMessage{std::move(incomingDataMessage)};
 
     FairMQMessagePtr headerMessage = NewMessage(headerStack.buffer.get(),
                                                 headerStack.bufferSize,
-                                                &AliceO2::Header::Stack::freefn,
+                                                &o2::Header::Stack::freefn,
                                                 headerStack.buffer.get());
     headerStack.buffer.release();
 

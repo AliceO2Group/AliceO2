@@ -24,13 +24,13 @@ typedef boost::mpl::vector<
  * from the list of alphabet types, but did not manage so far (see below)
  */
 typedef boost::mpl::vector<
-  AliceO2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t,  6 , boost::mpl::string < 'p','a','d','r','o','w' >    >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  AliceO2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 14 , boost::mpl::string < 'p','a','d' >                >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  AliceO2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 15 , boost::mpl::string < 't','i','m','e' >            >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  AliceO2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t,  8 , boost::mpl::string < 's','i','g','m','a','Y','2' >>>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  AliceO2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t,  8 , boost::mpl::string < 's','i','g','m','a','Z','2' >>>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  AliceO2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 16 , boost::mpl::string < 'c','h','a','r','g','e' >    >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  AliceO2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 10 , boost::mpl::string < 'q','m','a','x' >            >>, AliceO2::HuffmanNode<std::bitset<64>>, true>
+  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t,  6 , boost::mpl::string < 'p','a','d','r','o','w' >    >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
+  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 14 , boost::mpl::string < 'p','a','d' >                >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
+  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 15 , boost::mpl::string < 't','i','m','e' >            >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
+  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t,  8 , boost::mpl::string < 's','i','g','m','a','Y','2' >>>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
+  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t,  8 , boost::mpl::string < 's','i','g','m','a','Z','2' >>>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
+  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 16 , boost::mpl::string < 'c','h','a','r','g','e' >    >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
+  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 10 , boost::mpl::string < 'q','m','a','x' >            >>, AliceO2::HuffmanNode<std::bitset<64>>, true>
   > tpccluster_parameter_models;
 
 /**

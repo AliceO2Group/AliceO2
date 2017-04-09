@@ -12,24 +12,24 @@
 #include <options/FairMQProgOptions.h>
 
 
-using DataHeader = AliceO2::Header::DataHeader;
+using DataHeader = o2::Header::DataHeader;
 
 // FIXME: this should really be in a central place
 using PartPosition = int;
-typedef std::pair<AliceO2::Header::DataHeader, PartPosition> IndexElement;
+typedef std::pair<o2::Header::DataHeader, PartPosition> IndexElement;
 
-AliceO2::DataFlow::TimeframeValidatorDevice::TimeframeValidatorDevice()
+o2::DataFlow::TimeframeValidatorDevice::TimeframeValidatorDevice()
   : O2Device()
   , mInChannelName()
 {
 }
 
-void AliceO2::DataFlow::TimeframeValidatorDevice::InitTask()
+void o2::DataFlow::TimeframeValidatorDevice::InitTask()
 {
   mInChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
 }
 
-void AliceO2::DataFlow::TimeframeValidatorDevice::Run()
+void o2::DataFlow::TimeframeValidatorDevice::Run()
 {
   while (CheckCurrentState(RUNNING)) {
     FairMQParts timeframeParts;
@@ -39,7 +39,7 @@ void AliceO2::DataFlow::TimeframeValidatorDevice::Run()
     if (timeframeParts.Size() < 2)
       LOG(ERROR) << "Expecting at least 2 parts\n";
 
-    auto indexHeader = AliceO2::Header::get<Header::DataHeader>(timeframeParts.At(timeframeParts.Size() - 2)->GetData());
+    auto indexHeader = o2::Header::get<Header::DataHeader>(timeframeParts.At(timeframeParts.Size() - 2)->GetData());
     // FIXME: Provide iterator pair API for the index
     //        Index should really be something which provides an
     //        iterator pair API so that we can sort / find / lower_bound

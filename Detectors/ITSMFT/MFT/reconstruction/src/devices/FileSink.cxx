@@ -13,7 +13,7 @@
 #include "MFTReconstruction/devices/FileSink.h"
 #include "MFTReconstruction/Hit.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 using namespace std;
 
 // special class to expose protected TMessage constructor
@@ -117,12 +117,12 @@ void FileSink::Init()
       foldMFT->Add(mOutputObjects[mNObjects]);
       BranchNameList->AddLast(new TObjString(mBranchNames[mNObjects].c_str()));
 
-    } else if ( mClassNames[mNObjects].find("AliceO2::MFT::EventHeader") == 0 ) {
+    } else if ( mClassNames[mNObjects].find("o2::MFT::EventHeader") == 0 ) {
 
       LOG(INFO) << "FileSink::Init >>>>> Create the branch EventHeader" << "";
 
       mOutputObjects            [mNObjects] = new EventHeader();
-      mTree->Branch(mBranchNames[mNObjects].c_str(),"AliceO2::MFT::EventHeader", &mOutputObjects[mNObjects]);
+      mTree->Branch(mBranchNames[mNObjects].c_str(),"o2::MFT::EventHeader", &mOutputObjects[mNObjects]);
       foldEventHeader->Add(mOutputObjects[mNObjects]);
       BranchNameList->AddLast(new TObjString(mBranchNames[mNObjects].c_str()));
 

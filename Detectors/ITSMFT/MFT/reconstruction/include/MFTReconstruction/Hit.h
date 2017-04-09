@@ -10,7 +10,7 @@
 
 class TVector3;
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class Hit : public FairHit

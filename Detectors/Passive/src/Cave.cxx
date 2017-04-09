@@ -18,9 +18,9 @@
 #include "TString.h"           // for TString
 #include <cstddef>            // for NULL
 
-using namespace AliceO2::Passive;
+using namespace o2::Passive;
 
-ClassImp(AliceO2::Passive::Cave)
+ClassImp(o2::Passive::Cave)
 
 
 

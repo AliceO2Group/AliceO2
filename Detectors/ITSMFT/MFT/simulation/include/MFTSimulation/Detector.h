@@ -11,13 +11,13 @@
 class TClonesArray;
 class TVector3;
 
-namespace AliceO2 { namespace MFT { class GeometryTGeo; } }
-namespace AliceO2 { namespace MFT { class Point; } }
+namespace o2 { namespace MFT { class GeometryTGeo; } }
+namespace o2 { namespace MFT { class Point; } }
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
-class Detector : public AliceO2::Base::Detector {
+class Detector : public o2::Base::Detector {
 
 public:
 

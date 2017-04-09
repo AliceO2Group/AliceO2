@@ -26,7 +26,7 @@ bool isVector1 (std::vector<int>& vec) {
   return true;
 }
 
-void addData(AliceO2::TPC::GBTFrameContainer& container, std::string& infile, int& done) {
+void addData(o2::TPC::GBTFrameContainer& container, std::string& infile, int& done) {
   done = 0;
   mtx.lock();
   std::cout << infile << std::endl;
@@ -37,10 +37,10 @@ void addData(AliceO2::TPC::GBTFrameContainer& container, std::string& infile, in
   done = 1;
 }
 
-void readData(AliceO2::TPC::GBTFrameContainer& container, std::vector<std::ofstream*>& outfiles, int& run, int& done) {
+void readData(o2::TPC::GBTFrameContainer& container, std::vector<std::ofstream*>& outfiles, int& run, int& done) {
   done = 0;
 //  std::vector<AliceO2::TPC::HalfSAMPAData> data;
-  std::vector<AliceO2::TPC::DigitData> data;
+  std::vector<o2::TPC::DigitData> data;
   int i;
   while (!run) {
     std::this_thread::sleep_for(std::chrono::microseconds{100});
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 
   // Actual "work"
   std::chrono::time_point<std::chrono::system_clock> start, end;
-  std::vector<AliceO2::TPC::GBTFrameContainer*> container;
+  std::vector<o2::TPC::GBTFrameContainer*> container;
   unsigned iSize;
   unsigned iCRU;
   unsigned iLink;
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     if (link.size() >= infile.size()) iLink = link[i];
     else iLink = link[0];
 
-    container.push_back(new AliceO2::TPC::GBTFrameContainer(iSize,iCRU,iLink));
+    container.push_back(new o2::TPC::GBTFrameContainer(iSize,iCRU,iLink));
     container.back()->setEnableAdcClockWarning(checkAdcClock);
     container.back()->setEnableSyncPatternWarning(false);
     container.back()->setEnableStoreGBTFrames(keepGbtFrames);
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
   std::cout << "-----------|---------------|------------------|-------------------" << std::endl;
   while (not isVector1(reading_done)) {
     std::this_thread::sleep_for(std::chrono::seconds{1});
-    for (std::vector<AliceO2::TPC::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
+    for (std::vector<o2::TPC::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
       mtx.lock();
       std::cout << " " << std::right 
         << std::setw(9) << std::distance(container.begin(), it) << " | " 
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
   std::cout << "Summary:" << std::endl;
 
   unsigned framesProcessed = 0;
-  for (std::vector<AliceO2::TPC::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
+  for (std::vector<o2::TPC::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
     framesProcessed += (*it)->getNFramesAnalyzed();
     std::cout << "Container " << std::distance(container.begin(), it) << " analyzed " << (*it)->getNFramesAnalyzed() << " GBT Frames" << std::endl;
     delete (*it);

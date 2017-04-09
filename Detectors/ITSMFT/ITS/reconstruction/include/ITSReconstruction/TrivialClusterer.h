@@ -7,13 +7,13 @@
 
 class TClonesArray;
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITSMFT {
     class SegmentationPixel;
   }
 }
 
-namespace AliceO2
+namespace o2
 {
 namespace ITS
 {
@@ -29,7 +29,7 @@ namespace ITS
   /// Steer conversion of points to digits
   /// @param points Container with ITS points
   /// @return digits container
-  void process(const AliceO2::ITSMFT::SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters);
+  void process(const o2::ITSMFT::SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters);
 
 };
 }

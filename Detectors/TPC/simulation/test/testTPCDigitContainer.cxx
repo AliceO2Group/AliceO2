@@ -11,7 +11,7 @@
 #include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
   /// \brief Test of the DigitContainer
@@ -33,7 +33,7 @@ namespace TPC {
       mDigitContainer->addDigit(MCevent[i], MCtrack[i], CRU[i], Time[i], Row[i], Pad[i], nEle[i]);
     }
 
-    auto *mDigitsArray = new TClonesArray("AliceO2::TPC::DigitMC");
+    auto *mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
     mDigitContainer->fillOutputContainer(mDigitsArray);
 
     BOOST_CHECK(CRU.size() == mDigitsArray->GetEntriesFast());
@@ -79,7 +79,7 @@ namespace TPC {
       nEleSum += nEle[i];
     }
 
-    auto *mDigitsArray = new TClonesArray("AliceO2::TPC::DigitMC");
+    auto *mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
     mDigitContainer->fillOutputContainer(mDigitsArray);
 
     BOOST_CHECK(mDigitsArray->GetEntriesFast() == 1);

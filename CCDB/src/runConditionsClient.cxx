@@ -2,7 +2,7 @@
 
 #include "CCDB/ConditionsMQClient.h"
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 using namespace std;
 
 namespace bpo = boost::program_options;

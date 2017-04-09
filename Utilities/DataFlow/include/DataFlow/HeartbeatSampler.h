@@ -13,7 +13,7 @@
 #include "O2Device/O2Device.h"
 #include <string>
 
-namespace AliceO2 {
+namespace o2 {
 namespace DataFlow {
 
 /// @class HeartbeatSampler
@@ -29,7 +29,7 @@ namespace DataFlow {
 class HeartbeatSampler : public Base::O2Device
 {
 public:
-  typedef AliceO2::Base::O2Message O2Message;
+  typedef o2::Base::O2Message O2Message;
 
   static constexpr const char* OptionKeyOutputChannelName = "out-chan-name";
   static constexpr const char* OptionKeyPeriod = "period";

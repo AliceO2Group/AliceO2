@@ -5,7 +5,7 @@
 #include "TPCSimulation/Clusterer.h"
 
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 Clusterer::Clusterer()
   : Clusterer(18, 138, 1024, 5, true, true)

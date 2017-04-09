@@ -1,7 +1,7 @@
 #include <iostream>
 #include "EMCALBase/Digit.h"
 
-using namespace AliceO2::EMCAL;
+using namespace o2::EMCAL;
 
 ClassImp(Digit)
 

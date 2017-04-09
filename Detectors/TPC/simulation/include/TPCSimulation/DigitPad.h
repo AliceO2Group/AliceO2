@@ -10,7 +10,7 @@
 #include "TPCSimulation/CommonMode.h"
 #include <TClonesArray.h>
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 /// \class DigitPad

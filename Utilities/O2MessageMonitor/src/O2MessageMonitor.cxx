@@ -24,8 +24,8 @@
 #include "Headers/DataHeader.h"
 
 using namespace std;
-using namespace AliceO2::Header;
-using namespace AliceO2::Base;
+using namespace o2::Header;
+using namespace o2::Base;
 
 using NameHeader48 = NameHeader<48>; //header holding 16 characters
 

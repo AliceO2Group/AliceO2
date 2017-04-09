@@ -3,7 +3,7 @@
 #include "FairRuntimeDb.h"  // for FairRuntimeDb
 
 class FairParSet;
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 ClassImp(ContainerFactory)
 

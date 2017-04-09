@@ -5,7 +5,7 @@
 #include "TPCSimulation/DigitRow.h"
 #include "TPCSimulation/DigitPad.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 void DigitRow::setDigit(int eventID, int trackID, int pad, float charge)
 {

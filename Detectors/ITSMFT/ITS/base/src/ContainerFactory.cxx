@@ -7,9 +7,9 @@
 
 class FairParSet;
 
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
-ClassImp(AliceO2::ITS::ContainerFactory)
+ClassImp(o2::ITS::ContainerFactory)
 
   static ContainerFactory gO2itsContFact;
 

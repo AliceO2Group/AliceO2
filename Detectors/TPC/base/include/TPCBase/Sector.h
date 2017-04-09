@@ -19,7 +19,7 @@
 #include "TPCBase/Defs.h"
 //using namespace AliceO2::TPC;
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 //   enum RocType {ISector=0, OSector=1};
 

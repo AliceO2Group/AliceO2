@@ -16,9 +16,9 @@
 
 //#include "valgrind/callgrind.h"
 
-ClassImp(AliceO2::TPC::DigitizerTask)
+ClassImp(o2::TPC::DigitizerTask)
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 
 DigitizerTask::DigitizerTask()
@@ -67,7 +67,7 @@ InitStatus DigitizerTask::Init()
   }
   
   // Register output container
-  mDigitsArray = new TClonesArray("AliceO2::TPC::DigitMC");
+  mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
   mgr->Register("TPCDigitMC", "TPC", mDigitsArray, kTRUE);
   
   mDigitizer->init();
@@ -127,7 +127,7 @@ void DigitizerTask::fillHitArrayFromFile()
   tIn->SetBranchAddress("fZ",      &fZ     );
 
   if (eventNumber==0) {
-    mPointsArray = new TClonesArray("AliceO2::TPC::Point");
+    mPointsArray = new TClonesArray("o2::TPC::Point");
   }
   else {
     mPointsArray->Clear();

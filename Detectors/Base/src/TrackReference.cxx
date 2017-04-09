@@ -9,9 +9,9 @@
 using std::endl;
 using std::cout;
 
-using namespace AliceO2::Base;
+using namespace o2::Base;
 
-ClassImp(AliceO2::Base::TrackReference)
+ClassImp(o2::Base::TrackReference)
 
 TrackReference::TrackReference()
   : TObject(),

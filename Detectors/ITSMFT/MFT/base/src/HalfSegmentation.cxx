@@ -12,7 +12,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 ClassImp(HalfSegmentation);
 
@@ -57,7 +57,7 @@ mHalfDisks(nullptr)
   SetUniqueID(halfUniqueID);
   SetName(Form("%s_%d",GeometryTGeo::GetHalfDetName(),id));
     
-  mHalfDisks = new TClonesArray("AliceO2::MFT::HalfDiskSegmentation", Constants::sNDisks);
+  mHalfDisks = new TClonesArray("o2::MFT::HalfDiskSegmentation", Constants::sNDisks);
   mHalfDisks -> SetOwner(kTRUE);
 
   // Create XML engine

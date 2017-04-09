@@ -20,7 +20,7 @@ class access;
 }
 }
 
-namespace AliceO2
+namespace o2
 {
 namespace ITSMFT
 {

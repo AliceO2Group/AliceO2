@@ -4,8 +4,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliceO2::MFT::Detector+;
-#pragma link C++ class AliceO2::MFT::EventHeader+;
-#pragma link C++ class AliceO2::MFT::Point+;
+#pragma link C++ class o2::MFT::Detector+;
+#pragma link C++ class o2::MFT::EventHeader+;
+#pragma link C++ class o2::MFT::Point+;
 
 #endif

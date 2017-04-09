@@ -8,7 +8,7 @@
 
 #include "FairLogger.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 void DigitCRU::setDigit(int eventID, int trackID, int timeBin, int row, int pad, float charge)
 {

@@ -11,7 +11,7 @@
 #ifndef AliceO2_TPC_Point2D_H
 #define AliceO2_TPC_Point2D_H
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 template < class T >

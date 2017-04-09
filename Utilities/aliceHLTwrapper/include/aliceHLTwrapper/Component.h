@@ -74,7 +74,7 @@ public:
   /// the AliHLTComponentBlockData header immediately followed by the block
   /// payload. After processing, handles to output blocks are provided in this
   /// list.
-  int process(std::vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray,
+  int process(std::vector<o2::AliceHLT::MessageFormat::BufferDesc_t>& dataArray,
               cballoc_signal_t* cbAllocate=nullptr);
 
   int getEventCount() const {return mEventCount;}
@@ -95,7 +95,7 @@ private:
   /// handle of the processing component
   AliHLTComponentHandle mProcessor;
   /// container for handling the i/o buffers
-  AliceO2::AliceHLT::MessageFormat mFormatHandler;
+  o2::AliceHLT::MessageFormat mFormatHandler;
   int mEventCount;
 };
 

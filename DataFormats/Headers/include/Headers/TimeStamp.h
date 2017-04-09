@@ -11,7 +11,7 @@
 #include <chrono>
 #include <cassert>
 
-namespace AliceO2 {
+namespace o2 {
 namespace Header {
 
 // https://lhc-machine-outreach.web.cern.ch/lhc-machine-outreach/collisions.htm
@@ -30,8 +30,8 @@ namespace LHCClockParameter {
   const int gBunchSpacingNanoSec = 25;
   const int gOrbitTimeNanoSec = std::ratio<gNumberOfBunches*gBunchSpacingNanoSec>::num;
 
-  typedef AliceO2::Header::Internal::intWrapper<0> OrbitPrecision;
-  typedef AliceO2::Header::Internal::intWrapper<1> BunchPrecision;
+  typedef o2::Header::Internal::intWrapper<0> OrbitPrecision;
+  typedef o2::Header::Internal::intWrapper<1> BunchPrecision;
 
   // the type of the clock tick depends on whether to use also the bunches
   // as substructure of the orbit.
@@ -99,7 +99,7 @@ typedef LHCClock<std::chrono::system_clock::time_point, LHCClockParameter::Bunch
 class TimeStamp
 {
  public:
-  typedef AliceO2::Header::Descriptor<2> TimeUnitID;
+  typedef o2::Header::Descriptor<2> TimeUnitID;
   // TODO: typedefs for the types of ticks and subticks
 
   TimeStamp() = default;

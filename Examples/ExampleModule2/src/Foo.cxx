@@ -9,16 +9,16 @@
 
 #include <iostream>
 
-namespace AliceO2 {
+namespace o2 {
 namespace Examples {
 namespace ExampleModule2 {
 
 void Foo::greet()
 {
   std::cout << "Hello world from ExampleModule2::Foo" << std::endl;
-  AliceO2::Examples::ExampleModule1::Foo otherFoo;
+  o2::Examples::ExampleModule1::Foo otherFoo;
   otherFoo.greet();
-  AliceO2::Examples::ExampleModule2::Bar bar;
+  o2::Examples::ExampleModule2::Bar bar;
   bar.greet();
 }
 

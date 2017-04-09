@@ -27,7 +27,7 @@
 #include <getopt.h>
 #include <memory>
 using namespace ALICE::HLT;
-using namespace AliceO2::AliceHLT;
+using namespace o2::AliceHLT;
 
 using std::cerr;
 using std::endl;

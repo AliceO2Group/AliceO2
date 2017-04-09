@@ -5,9 +5,9 @@
 
 #include "MFTSimulation/Point.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Point)
+ClassImp(o2::MFT::Point)
 
 //_____________________________________________________________________________
 Point::Point() : 

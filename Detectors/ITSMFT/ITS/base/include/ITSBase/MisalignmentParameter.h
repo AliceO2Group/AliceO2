@@ -12,7 +12,7 @@
 
 class FairParamList;
 
-namespace AliceO2
+namespace o2
 {
 namespace ITS
 {

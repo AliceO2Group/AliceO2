@@ -6,7 +6,7 @@
 #include "TPCBase/PadPos.h"
 #include "TPCBase/PadSecPos.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 class DigitPos {

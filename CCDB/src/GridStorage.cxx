@@ -11,7 +11,7 @@
 #include "CCDB/Condition.h"          // for Condition
 #include "TSystem.h"            // for TSystem, gSystem
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 
 ClassImp(GridStorage)
 

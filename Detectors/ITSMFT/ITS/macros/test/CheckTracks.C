@@ -19,7 +19,7 @@
 #endif
 
 void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
-  using namespace AliceO2::ITS;
+  using namespace o2::ITS;
 
   TFile *f=TFile::Open("CheckTracks.root","recreate");
   TNtuple *nt=new TNtuple("ntt","track ntuple",
@@ -38,7 +38,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.trac_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file1 = TFile::Open(filename);
   TTree *recTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray recArr("AliceO2::ITS::CookedTrack"), *precArr(&recArr);
+  TClonesArray recArr("o2::ITS::CookedTrack"), *precArr(&recArr);
   recTree->SetBranchAddress("ITSTrack",&precArr);
   
   Int_t nev=mcTree->GetEntries();

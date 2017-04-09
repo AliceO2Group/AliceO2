@@ -13,7 +13,7 @@ class TF1; // lines 12-12
 
 class TF1;
 
-namespace AliceO2
+namespace o2
 {
 namespace ITSMFT
 {

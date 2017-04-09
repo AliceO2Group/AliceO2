@@ -6,9 +6,9 @@
 
 #include <cmath>
 
-ClassImp(AliceO2::TPC::HwCluster)
+ClassImp(o2::TPC::HwCluster)
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 //________________________________________________________________________
 HwCluster::HwCluster()

@@ -6,8 +6,8 @@
 
 #include "FairLogger.h" // for LOG
 
-using AliceO2::ITSMFT::Digit;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::Digit;
+using namespace o2::ITS;
 
 void DigitContainer::reset()
 {

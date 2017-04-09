@@ -10,9 +10,9 @@
 #include "MFTBase/HalfDiskSegmentation.h"
 #include "MFTBase/LadderSegmentation.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::GeometryTGeo)
+ClassImp(o2::MFT::GeometryTGeo)
 
 TString GeometryTGeo::sVolumeName   = "MFT";
 TString GeometryTGeo::sHalfDetName  = "MFT_H";

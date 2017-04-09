@@ -9,7 +9,7 @@
 #include "Headers/DataHeader.h"
 #include "TFile.h"
 
-namespace AliceO2
+namespace o2
 {
 namespace DataFormat
 {
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(TimeFrame_test)
   FairMQTransportFactoryZMQ zmq;
   messages.AddPart(zmq.CreateMessage(1000));
 
-  AliceO2::Header::DataHeader dh;
+  o2::Header::DataHeader dh;
   messages.AddPart(NewSimpleMessage(zmq, dh));
 
   TimeFrame frame(messages);

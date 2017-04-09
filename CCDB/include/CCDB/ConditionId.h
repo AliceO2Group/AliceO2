@@ -9,7 +9,7 @@
 #include "Rtypes.h"      // for Int_t, Bool_t, ConditionId::Class, ClassDef, etc
 #include "TString.h"     // for TString
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class ConditionId : public TObject

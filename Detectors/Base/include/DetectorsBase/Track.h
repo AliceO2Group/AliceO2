@@ -13,7 +13,7 @@
 #include "DetectorsBase/Constants.h"
 #include "DetectorsBase/Utils.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace Base {
     namespace Track {
 

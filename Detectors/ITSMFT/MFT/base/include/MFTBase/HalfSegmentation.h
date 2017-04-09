@@ -12,9 +12,9 @@
 #include "MFTBase/Segmentation.h"
 #include "MFTBase/VSegmentation.h"
 
-namespace AliceO2 { namespace MFT { class HalfDiskSegmentation; } }
+namespace o2 { namespace MFT { class HalfDiskSegmentation; } }
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class HalfSegmentation : public VSegmentation {

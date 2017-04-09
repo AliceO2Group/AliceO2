@@ -8,7 +8,7 @@
 #include <TString.h>  // for TString
 #include "Rtypes.h"   // for Bool_t, IdPath::Class, ClassDef, etc
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class IdPath : public TObject

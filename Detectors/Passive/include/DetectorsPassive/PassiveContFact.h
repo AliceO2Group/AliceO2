@@ -20,7 +20,7 @@
 
 class FairParSet;
 
-namespace AliceO2 {
+namespace o2 {
 namespace Passive {
 
 class PassiveContFact : public FairContFact
@@ -31,7 +31,7 @@ class PassiveContFact : public FairContFact
     PassiveContFact();
     virtual ~PassiveContFact() {;}
     FairParSet* createContainer(FairContainer*);
-    ClassDef(AliceO2::Passive::PassiveContFact,0) // Factory for all Passive parameter containers
+    ClassDef(o2::Passive::PassiveContFact,0) // Factory for all Passive parameter containers
 };
 }
 }

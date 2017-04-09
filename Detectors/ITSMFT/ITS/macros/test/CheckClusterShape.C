@@ -18,9 +18,9 @@
 #include "ITSSimulation/ClusterShape.h"
 #endif
 
-using AliceO2::ITSMFT::SegmentationPixel;
-using AliceO2::ITSMFT::Digit;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::SegmentationPixel;
+using o2::ITSMFT::Digit;
+using namespace o2::ITS;
 GeometryTGeo *gman;
 SegmentationPixel *seg;
 
@@ -211,7 +211,7 @@ void CheckClusterShape() {
   // Digits
   TFile *file1 = TFile::Open("AliceO2_TGeant3.digi_10_event.root");
   TTree *digTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray digArr("AliceO2::ITS::Digit"), *pdigArr(&digArr);
+  TClonesArray digArr("o2::ITS::Digit"), *pdigArr(&digArr);
   digTree->SetBranchAddress("ITSDigit",&pdigArr);
 
   TH1F *freqDist = new TH1F("freqDist", "", 300, 0, 300);

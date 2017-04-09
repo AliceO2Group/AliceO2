@@ -42,7 +42,7 @@ void run_digi_its(Int_t nEvents = 10, TString mcEngine = "TGeant3", Bool_t alp=k
 
         // Setup digitizer
         // Call AliceO2::ITS::DigitizerTask(kTRUE) to activate the ALPIDE simulation
-        AliceO2::ITS::DigitizerTask *digi = new AliceO2::ITS::DigitizerTask(alp);
+        o2::ITS::DigitizerTask *digi = new AliceO2::ITS::DigitizerTask(alp);
         fRun->AddTask(digi);
 
         fRun->Init();

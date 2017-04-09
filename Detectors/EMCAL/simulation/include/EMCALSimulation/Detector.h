@@ -14,12 +14,12 @@ using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, RO
 
 class FairVolume;
 class TClonesArray;
-namespace AliceO2 { namespace EMCAL { class Point; } }
+namespace o2 { namespace EMCAL { class Point; } }
 
-namespace AliceO2 {
+namespace o2 {
   namespace EMCAL {
     
-    class Detector : public AliceO2::Base::Detector {
+    class Detector : public o2::Base::Detector {
     public:
       Detector() = default;
       

@@ -6,13 +6,13 @@
 #include "EMCALBase/Point.h"
 #include "EMCALSimulation/Detector.h"
 
-using namespace AliceO2::EMCAL;
+using namespace o2::EMCAL;
 
 ClassImp(Detector)
 
 Detector::Detector(const char* Name, Bool_t Active):
-AliceO2::Base::Detector(Name, Active),
-mPointCollection(new TClonesArray("AliceO2::EMCAL::Point"))
+o2::Base::Detector(Name, Active),
+mPointCollection(new TClonesArray("o2::EMCAL::Point"))
 {
 }
 

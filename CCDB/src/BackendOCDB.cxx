@@ -12,7 +12,7 @@
 
 #include <zlib.h>
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 using namespace std;
 
 // special class to expose protected TMessage constructor

@@ -9,7 +9,7 @@
 #include "TObject.h"
 #include "TString.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class GeometryTGeo : public TObject {

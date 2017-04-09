@@ -9,7 +9,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 ClassImp(ChipSegmentation);
 

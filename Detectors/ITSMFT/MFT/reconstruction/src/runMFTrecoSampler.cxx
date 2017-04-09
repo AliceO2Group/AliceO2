@@ -4,7 +4,7 @@
 #include "MFTReconstruction/FindHits.h"
 #include "MFTReconstruction/devices/Sampler.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 namespace bpo = boost::program_options;
 

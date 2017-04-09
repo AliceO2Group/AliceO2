@@ -18,7 +18,7 @@
 #include "TGeoPcon.h"      // for TGeoPcon
 #include "TGeoVolume.h"    // for TGeoVolume
 
-using namespace AliceO2::Passive;
+using namespace o2::Passive;
 
 Pipe::~Pipe()
 = default;
@@ -93,4 +93,4 @@ FairModule* Pipe::CloneModule() const
   return new Pipe(*this);
 }
 
-ClassImp(AliceO2::Passive::Pipe)
+ClassImp(o2::Passive::Pipe)

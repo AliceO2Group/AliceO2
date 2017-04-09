@@ -4,7 +4,7 @@
 #include <boost/test/unit_test.hpp>
 #include "Headers/DataHeader.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace Header {
 
     BOOST_AUTO_TEST_CASE(Description_test)

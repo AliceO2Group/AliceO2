@@ -7,7 +7,7 @@
 
 #include <zlib.h>
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 
 ObjectHandler::ObjectHandler() = default;
 

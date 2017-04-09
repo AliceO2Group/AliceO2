@@ -10,7 +10,7 @@
 #include <string>
 #include "FairLogger.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
   // read in the file on which the spline for the SAMPA saturation are based and compare the final spline to the contents of the file

@@ -15,7 +15,7 @@ class TGeoPcon;  // lines 12-12
 class TGeoTube;  // lines 13-13
 class TGeoTubeSeg;  // lines 14-14
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 /// This class is a base class for the ITS geometry version 11. It contains common/standard

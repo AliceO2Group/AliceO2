@@ -11,10 +11,10 @@
 #include "TObject.h"            // for TObject
 #include "TString.h"            // for TString
 
-namespace AliceO2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace CDB { class IdRunRange; }}
 
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 /// Class containing the condition (a ROOT TObject) and the metadata identifying it (ConditionId)

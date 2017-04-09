@@ -9,7 +9,7 @@
 /// @brief    Here you put a short description of the namespace
 /// Extended documentation for this namespace
 /// @author  	Barthelemy von Haller
-namespace AliceO2 {
+namespace o2 {
 namespace Examples {
 namespace ExampleModule2 {
 

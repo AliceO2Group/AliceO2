@@ -14,10 +14,10 @@ class FairVolume;  // lines 10-10
 
 class AliTPCParam;
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
-class Detector: public AliceO2::Base::Detector {
+class Detector: public o2::Base::Detector {
 
   public:
   enum class SimulationType : char {

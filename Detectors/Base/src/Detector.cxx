@@ -11,7 +11,7 @@ using std::fstream;
 using std::ios;
 using std::ostream;
 
-using namespace AliceO2::Base;
+using namespace o2::Base;
 
 Float_t Detector::mDensityFactor = 1.0;
 
@@ -118,4 +118,4 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t 
 {
 }
 
-ClassImp(AliceO2::Base::Detector)
+ClassImp(o2::Base::Detector)

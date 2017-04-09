@@ -7,7 +7,7 @@
 
 #include "TPCBase/PadSecPos.h"
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 float Baseline::getNoise(const PadSecPos& padSecPos)
 {

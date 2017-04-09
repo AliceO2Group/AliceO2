@@ -7,9 +7,9 @@
 
 #include "ITSMFTSimulation/SimuClusterShaper.h"
 
-ClassImp(AliceO2::ITSMFT::SimuClusterShaper)
+ClassImp(o2::ITSMFT::SimuClusterShaper)
 
-using namespace AliceO2::ITSMFT;
+using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper() :

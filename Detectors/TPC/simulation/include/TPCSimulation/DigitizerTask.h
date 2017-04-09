@@ -12,7 +12,7 @@
 #include "TPCSimulation/Digitizer.h"
 #include <TClonesArray.h>
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC { 
 
 class Digitizer;
@@ -66,7 +66,7 @@ void DigitizerTask::setDebugOutput(TString debugString)
   LOG(INFO) << "TPC - Debug output enabled for: ";
   if (debugString.Contains("PRFdebug")) {
     LOG(INFO) << "Pad response function, ";
-    AliceO2::TPC::Digitizer::setPRFDebug();
+    o2::TPC::Digitizer::setPRFDebug();
   }
   LOG(INFO) << "\n";
 }

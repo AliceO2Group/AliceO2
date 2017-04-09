@@ -9,7 +9,7 @@
 #include "TPCBase/CRU.h"
 #include <iostream>
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 void DigitContainer::addDigit(int eventID, int trackID, int cru, int timeBin, int row, int pad, float charge)
 {

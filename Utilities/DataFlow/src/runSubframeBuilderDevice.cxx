@@ -9,21 +9,21 @@ void addCustomOptions(bpo::options_description& options)
 //    (AliceO2::DataFlow::SubframeBuilderDevice::OptionKeyDuration,
 //     bpo::value<uint32_t>()->default_value(10000),
 //     "Time frame duration")
-    (AliceO2::DataFlow::SubframeBuilderDevice::OptionKeySelfTriggered,
+    (o2::DataFlow::SubframeBuilderDevice::OptionKeySelfTriggered,
      bpo::bool_switch()->default_value(false),
      "Time frame duration")
-    (AliceO2::DataFlow::SubframeBuilderDevice::OptionKeyInputChannelName,
+    (o2::DataFlow::SubframeBuilderDevice::OptionKeyInputChannelName,
      bpo::value<std::string>()->default_value("input"),
      "Name of the input channel")
-    (AliceO2::DataFlow::SubframeBuilderDevice::OptionKeyOutputChannelName,
+    (o2::DataFlow::SubframeBuilderDevice::OptionKeyOutputChannelName,
      bpo::value<std::string>()->default_value("output"),
      "Name of the output channel")
-    (AliceO2::DataFlow::SubframeBuilderDevice::OptionKeyDetector,
+    (o2::DataFlow::SubframeBuilderDevice::OptionKeyDetector,
      bpo::value<std::string>()->default_value("TPC"),
      "Name of detector as data source");
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)
 {
-  return new AliceO2::DataFlow::SubframeBuilderDevice();
+  return new o2::DataFlow::SubframeBuilderDevice();
 }

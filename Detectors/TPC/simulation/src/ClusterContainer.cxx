@@ -6,7 +6,7 @@
 #include "TClonesArray.h"
 #include "TError.h"                // for R__ASSERT
 
-using namespace AliceO2::TPC;
+using namespace o2::TPC;
 
 //________________________________________________________________________
 ClusterContainer::ClusterContainer():

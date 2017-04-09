@@ -49,7 +49,7 @@ void run_digi(Int_t nEvents = 2, TString mcEngine = "TGeant3"){
         //AliceO2::ITS::DigitizerTask *digi = new AliceO2::ITS::DigitizerTask;
         //fRun->AddTask(digi);
 
-        AliceO2::TPC::DigitizerTask *digiTPC = new AliceO2::TPC::DigitizerTask;
+        o2::TPC::DigitizerTask *digiTPC = new AliceO2::TPC::DigitizerTask;
         //digiTPC->setHitFileName("/data/Work/software/aliroot/master/src/test/ppbench/HitDump.root");
         fRun->AddTask(digiTPC);
 

@@ -23,7 +23,7 @@ using std::pair;
 using std::cout;
 using std::endl;
 
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
 GeometryHandler::GeometryHandler()
   : TObject(),
@@ -199,4 +199,4 @@ void GeometryHandler::navigateTo(TString volumeName)
   }
 }
 
-ClassImp(AliceO2::ITS::GeometryHandler)
+ClassImp(o2::ITS::GeometryHandler)

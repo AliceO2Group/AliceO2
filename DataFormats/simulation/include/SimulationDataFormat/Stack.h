@@ -24,7 +24,7 @@ class TRefArray;
 
 class FairLogger;
 
-namespace AliceO2 {
+namespace o2 {
 namespace Data {
 
 /// This class handles the particle stack for the transport simulation.

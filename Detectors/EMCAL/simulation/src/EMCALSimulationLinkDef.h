@@ -4,6 +4,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliceO2::EMCAL::Detector+;
+#pragma link C++ class o2::EMCAL::Detector+;
 
 #endif
