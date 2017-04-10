@@ -1,20 +1,20 @@
-#ifndef ALICEO2_EMCAL_POINT_H
-#define ALICEO2_EMCAL_POINT_H
+#ifndef ALICEO2_EMCAL_HIT_H
+#define ALICEO2_EMCAL_HIT_H
 
 #include "SimulationDataFormat/BaseHits.h"
 
 namespace o2 {
   namespace EMCAL {
     
-    /// \class Point
-    /// \brief EMCAL simulation point information
-    class Point : public o2::BasicXYZEHit<float> {
+    /// \class Hit
+    /// \brief EMCAL simulation hit information
+    class Hit : public o2::BasicXYZEHit<float> {
     public:
       
       /// \brief Default constructor
-      Point() = default;
+      Hit() = default;
       
-      /// \brief Point constructor
+      /// \brief Hit constructor
       ///
       /// Fully defining information of the EMCAL point (position,
       /// momentum, energy, track, ...)
@@ -29,7 +29,7 @@ namespace o2 {
       /// \param mom Momentum vector for the particle at the point
       /// \param tof Time of the hit
       /// \param length Length of the segment
-      Point(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy,
+      Hit(Int_t shunt, Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy,
             const Point3D<float> &pos, const Vector3D<float> &mom, Double_t tof, Double_t eLoss):
       o2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.X(), tof, eLoss, trackID, detID),
       mPvector(mom),
@@ -42,24 +42,24 @@ namespace o2 {
       
       /// \brief Check whether the points are from the same parent and in the same detector volume
       /// \return True if points are the same (origin and detector), false otherwise
-      Bool_t operator==(const Point &rhs) const;
+      Bool_t operator==(const Hit &rhs) const;
       
       /// \brief Sorting points according to parent particle and detector volume
       /// \return True if this point is smaller, false otherwise
-      Bool_t operator<(const Point &rhs) const;
+      Bool_t operator<(const Hit &rhs) const;
       
       /// \brief Adds energy loss from the other point to this point
       /// \param rhs EMCAL point to add to this point
       /// \return This point with the summed energy loss
-      Point &operator+=(const Point &rhs);
+      Hit &operator+=(const Hit &rhs);
       
       /// \brief Creates a new point base on this point but adding the energy loss of the right hand side
       /// \param
       /// \return New EMAL point base on this point
-      Point operator+(const Point &rhs) const;
+      Hit operator+(const Hit &rhs) const;
       
       /// \brief Destructor
-      ~Point() override = default;
+      ~Hit() override = default;
       
       /// \brief Get the initial energy of the primary particle entering EMCAL
       /// \return Energy of the primary particle entering EMCAL
@@ -96,10 +96,10 @@ namespace o2 {
       Int_t             mParent;            ///< Parent particle that entered the EMCAL
       Double32_t        mInitialEnergy;     ///< Energy of the parent particle that entered the EMCAL
       
-      ClassDefOverride(Point, 1);
+      ClassDefOverride(Hit, 1);
     };
     
-    std::ostream &operator<<(std::ostream &stream, const Point &point);
+    std::ostream &operator<<(std::ostream &stream, const Hit &point);
   }
 }
 

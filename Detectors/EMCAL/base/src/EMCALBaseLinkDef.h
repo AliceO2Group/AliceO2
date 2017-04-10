@@ -5,6 +5,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::EMCAL::Digit;
-#pragma link C++ class o2::EMCAL::Point;
+#pragma link C++ class o2::EMCAL::Hit;
 
 #endif
