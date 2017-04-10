@@ -111,7 +111,7 @@ class Digitizer {
     std::unique_ptr<TTree>  mDebugTreePRF;      ///< Output tree for the output after the PRF
     static bool             mDebugFlagPRF;      ///< Flag for debug output after the PRF
 
-  ClassDef(Digitizer, 1);
+  ClassDefNV(Digitizer, 1);
 };
 
 // inline implementations

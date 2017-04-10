@@ -25,14 +25,14 @@ public:
   Chip();
   Chip(ChipSegmentation *segmentation, const char * ladderName);
   
-  virtual ~Chip();
+  ~Chip() override;
   
   TGeoVolume * CreateVolume();
   void GetPosition(LadderSegmentation * ladderSeg, Int_t iChip, Double_t *pos);
 
 private:
   
-  ClassDef(Chip, 1);
+  ClassDefOverride(Chip, 1);
 
 };
 

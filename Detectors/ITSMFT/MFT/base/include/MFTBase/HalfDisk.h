@@ -26,7 +26,7 @@ public:
   TGeoVolumeAssembly * CreateHeatExchanger();
   void CreateLadders();
 
-  virtual ~HalfDisk();
+  ~HalfDisk() override;
   
   /// \brief Returns a pointer to the Volume Assembly describing the entire half-disk
   TGeoVolumeAssembly * GetVolume() {return mHalfDiskVolume;};
@@ -38,7 +38,7 @@ private:
   TGeoVolumeAssembly * mHalfDiskVolume;       ///< \brief Half-Disk Volume
   HalfDiskSegmentation * mSegmentation; ///< \brief Virtual Segmentation of the half-disk
 
-  ClassDef(HalfDisk, 1);
+  ClassDefOverride(HalfDisk, 1);
  
 };
 

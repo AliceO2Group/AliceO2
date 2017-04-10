@@ -112,7 +112,7 @@ class AliHLTMonitoringReader
 	virtual unsigned long FindBlockNdx( char type[8], char origin[4], 
 				    homer_uint32 spec, unsigned long startNdx=0 ) const = 0;
 #ifdef USE_ROOT
-        ClassDef(AliHLTMonitoringReader,1);
+        ClassDefOverride(AliHLTMonitoringReader,1);
 #endif
     };
 
@@ -139,18 +139,18 @@ class AliHLTHOMERReader: public AliHLTMonitoringReader
 		     unsigned int shmCnt, const key_t* shmKey, const int* shmSize );
 	/* For reading from a buffer */
 	AliHLTHOMERReader( const void* pBuffer, int size );
-	virtual ~AliHLTHOMERReader();
+	~AliHLTHOMERReader() override;
 
 	/* Return the status of the connection as established by one of the constructors.
 	   0 means connection is ok, non-zero specifies the type of error that occured. */
-	int GetConnectionStatus() const
+	int GetConnectionStatus() const override
 		{
 		return fConnectionStatus;
 		}
 
 	/* Return the index of the connection for which an error given by the above
 	   function occured. */
-	unsigned int GetErrorConnectionNdx() const
+	unsigned int GetErrorConnectionNdx() const override
 		{
 		return fErrorConnection;
 		}
@@ -163,47 +163,47 @@ class AliHLTHOMERReader: public AliHLTMonitoringReader
 
 	/* Defined in AliHLTMonitoringReader */
 	/** Read in the next available event */
-	virtual int  ReadNextEvent();
+	int  ReadNextEvent() override;
 	/** Read in the next available event */
-	virtual int ReadNextEvent( unsigned long timeout );
+	int ReadNextEvent( unsigned long timeout ) override;
 
 	/** Return the type of the current event */
-	virtual homer_uint64 GetEventType() const
+	homer_uint64 GetEventType() const override
 		{
 		return fCurrentEventType;
 		}
 
 	/** Return the ID of the current event */
-	virtual homer_uint64 GetEventID() const
+	homer_uint64 GetEventID() const override
 		{
 		return fCurrentEventID;
 		}
 
 	/** Return the number of data blocks in the current event */
-	virtual unsigned long GetBlockCnt() const
+	unsigned long GetBlockCnt() const override
 		{
 		return fBlockCnt;
 		}
 
 	/** Return a pointer to the start of the current event's data
 	   block with the given block index (starting at 0). */
-	virtual const void* GetBlockData( unsigned long ndx ) const;
+	const void* GetBlockData( unsigned long ndx ) const override;
 	/** Return the size (in bytes) of the current event's data
 	   block with the given block index (starting at 0). */
-	virtual unsigned long GetBlockDataLength( unsigned long ndx ) const;
+	unsigned long GetBlockDataLength( unsigned long ndx ) const override;
 	/** Return IP address or hostname of node which sent the 
 	   current event's data block with the given block index 
 	   (starting at 0).
 	   For HOMER this is the ID of the node on which the subscriber 
 	   that provided this data runs/ran. */
-	virtual const char* GetBlockSendNodeID( unsigned long ndx ) const;
+	const char* GetBlockSendNodeID( unsigned long ndx ) const override;
 	/** Return byte order of the data stored in the 
 	   current event's data block with the given block 
 	   index (starting at 0). 
 	   0 is unknown alignment, 
 	   1 ist little endian, 
 	   2 is big endian. */
-	virtual homer_uint8 GetBlockByteOrder( unsigned long ndx ) const;
+	homer_uint8 GetBlockByteOrder( unsigned long ndx ) const override;
 	/** Return the alignment (in bytes) of the given datatype 
 	   in the data stored in the current event's data block
 	   with the given block index (starting at 0). 
@@ -215,20 +215,20 @@ class AliHLTHOMERReader: public AliHLTMonitoringReader
 	   4: double
 	   5: float
 	*/
-	virtual homer_uint8 GetBlockTypeAlignment( unsigned long ndx, homer_uint8 dataType ) const;
+	homer_uint8 GetBlockTypeAlignment( unsigned long ndx, homer_uint8 dataType ) const override;
 
-	virtual homer_uint64 GetBlockStatusFlags( unsigned long ndx ) const;
+	homer_uint64 GetBlockStatusFlags( unsigned long ndx ) const override;
 
 	/* HOMER specific */
 	/** Return the type of the data in the current event's data
 	   block with the given block index (starting at 0). */
-	homer_uint64 GetBlockDataType( unsigned long ndx ) const;
+	homer_uint64 GetBlockDataType( unsigned long ndx ) const override;
 	/** Return the origin of the data in the current event's data
 	   block with the given block index (starting at 0). */
-	homer_uint32 GetBlockDataOrigin( unsigned long ndx ) const;
+	homer_uint32 GetBlockDataOrigin( unsigned long ndx ) const override;
 	/** Return a specification of the data in the current event's data
 	   block with the given block index (starting at 0). */
-	homer_uint32 GetBlockDataSpec( unsigned long ndx ) const;
+	homer_uint32 GetBlockDataSpec( unsigned long ndx ) const override;
 
 	/** Return the time stamp of when the data block was created.
 	   This is a UNIX time stamp in seconds.
@@ -244,13 +244,13 @@ class AliHLTHOMERReader: public AliHLTMonitoringReader
 	   data type, origin, and specification. Returns the block's 
 	   index. */
 	unsigned long FindBlockNdx( homer_uint64 type, homer_uint32 origin, 
-				    homer_uint32 spec, unsigned long startNdx=0 ) const;
+				    homer_uint32 spec, unsigned long startNdx=0 ) const override;
 
 	/** Find the next data block in the current event with the given
 	   data type, origin, and specification. Returns the block's 
 	   index. */
 	unsigned long FindBlockNdx( char type[8], char origin[4], 
-				    homer_uint32 spec, unsigned long startNdx=0 ) const;
+				    homer_uint32 spec, unsigned long startNdx=0 ) const override;
 	
 	/** Return the ID of the node that actually produced this data block.
 	   This may be different from the node which sent the data to this
@@ -345,7 +345,7 @@ class AliHLTHOMERReader: public AliHLTMonitoringReader
       	AliHLTHOMERReader& operator=(const AliHLTHOMERReader&);
       	
 #ifdef USE_ROOT
-        ClassDef(AliHLTHOMERReader,2);
+        ClassDefOverride(AliHLTHOMERReader,2);
 #endif
     };
 

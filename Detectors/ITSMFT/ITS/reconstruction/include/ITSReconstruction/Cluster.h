@@ -21,7 +21,7 @@ class Cluster : public o2::ITSMFT::Cluster
  public:
   Cluster();
   Cluster(const Cluster& cluster);
-  virtual ~Cluster();
+  ~Cluster() override;
 
   Cluster& operator=(const Cluster& cluster) = delete;
 
@@ -54,14 +54,14 @@ class Cluster : public o2::ITSMFT::Cluster
   //
   virtual Bool_t isSortable() const { return kTRUE; }
   virtual Bool_t isEqual(const TObject* obj) const;
-  virtual Int_t Compare(const TObject* obj) const;
+  Int_t Compare(const TObject* obj) const override;
   //
  protected:
   //
   static UInt_t sMode;        //!< general mode (sorting mode etc)
   static GeometryTGeo* sGeom; //!< pointer on the geometry data
 
-  ClassDef(Cluster, 1)
+  ClassDefOverride(Cluster, 1)
 };
 }
 }

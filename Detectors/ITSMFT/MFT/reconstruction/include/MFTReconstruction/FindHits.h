@@ -23,13 +23,13 @@ class FindHits : public FairTask
  public:
 
   FindHits();
-  virtual ~FindHits();
+  ~FindHits() override;
 
   void Reset();
 
-  virtual InitStatus Init();
-  virtual InitStatus ReInit();
-  virtual void Exec(Option_t* opt);
+  InitStatus Init() override;
+  InitStatus ReInit() override;
+  void Exec(Option_t* opt) override;
 
   virtual void InitMQ(TList* tempList);
   virtual void ExecMQ(TList* inputList,TList* outputList);
@@ -50,7 +50,7 @@ class FindHits : public FairTask
   FairMCEventHeader *mMCEventHeader;
   EventHeader *mEventHeader;
 
-  ClassDef(FindHits,1);
+  ClassDefOverride(FindHits,1);
 
 };
 

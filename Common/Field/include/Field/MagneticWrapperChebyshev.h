@@ -48,7 +48,7 @@ class MagneticWrapperChebyshev : public TNamed
     /// Copy constructor
     MagneticWrapperChebyshev(const MagneticWrapperChebyshev &src);
 
-    ~MagneticWrapperChebyshev()
+    ~MagneticWrapperChebyshev() override
     {
       Clear();
     }
@@ -60,7 +60,7 @@ class MagneticWrapperChebyshev : public TNamed
     MagneticWrapperChebyshev &operator=(const MagneticWrapperChebyshev &rhs);
 
     /// Clears all dynamic parts
-    virtual void Clear(const Option_t * = "");
+    void Clear(const Option_t * = "") override;
 
     Int_t getNumberOfParametersSol() const
     {
@@ -193,7 +193,7 @@ class MagneticWrapperChebyshev : public TNamed
     }
 
     /// Prints info
-    virtual void Print(Option_t * = "") const;
+    void Print(Option_t * = "") const override;
 
     /// Computes field in cartesian coordinates. If point is outside of the parameterized region
     /// it gets it at closest valid point
@@ -404,7 +404,7 @@ class MagneticWrapperChebyshev : public TNamed
     TObjArray *mParameterizationDipole; ///< Parameterization pieces for Dipole field
 
     FairLogger *mLogger; //!
-    ClassDef(o2::Field::MagneticWrapperChebyshev,
+    ClassDefOverride(o2::Field::MagneticWrapperChebyshev,
     2) // Wrapper class for the set of Chebishev parameterizations of Alice mag.field
 };
 

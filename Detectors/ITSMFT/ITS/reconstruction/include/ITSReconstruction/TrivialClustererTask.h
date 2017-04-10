@@ -19,10 +19,10 @@ class TrivialClustererTask : public FairTask
 {
  public:
   TrivialClustererTask();
-  virtual ~TrivialClustererTask();
+  ~TrivialClustererTask() override;
 
-  virtual InitStatus Init();
-  virtual void Exec(Option_t* option);
+  InitStatus Init() override;
+  void Exec(Option_t* option) override;
 
  private:
   GeometryTGeo mGeometry; ///< ITS geometry
@@ -31,7 +31,7 @@ class TrivialClustererTask : public FairTask
   TClonesArray* mDigitsArray;   ///< Array of digits
   TClonesArray* mClustersArray; ///< Array of clusters
 
-  ClassDef(TrivialClustererTask, 2)
+  ClassDefOverride(TrivialClustererTask, 2)
 };
 }
 }

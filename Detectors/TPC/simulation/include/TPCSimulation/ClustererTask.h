@@ -23,10 +23,10 @@ namespace o2 {
     class ClustererTask : public FairTask{
     public:
       ClustererTask();
-      virtual ~ClustererTask();
+      ~ClustererTask() override;
       
-      virtual InitStatus Init();
-      virtual void Exec(Option_t *option);
+      InitStatus Init() override;
+      void Exec(Option_t *option) override;
 
       enum class ClustererType : int { HW, Box};
       void setClustererEnable(ClustererType type, bool val) {
@@ -65,7 +65,7 @@ namespace o2 {
       TClonesArray        *mClustersArray;
       TClonesArray        *mHwClustersArray;
       
-      ClassDef(ClustererTask, 1)
+      ClassDefOverride(ClustererTask, 1)
     };
   }
 }

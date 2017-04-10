@@ -36,13 +36,13 @@ class HitAnalysis : public FairTask
   public:
     HitAnalysis();
 
-    virtual ~HitAnalysis();
+    ~HitAnalysis() override;
 
-    virtual InitStatus Init();
+    InitStatus Init() override;
 
-    virtual void Exec(Option_t *option);
+    void Exec(Option_t *option) override;
 
-    virtual void FinishTask();
+    void FinishTask() override;
 
     void SetProcessHits()
     { mProcessChips = kFALSE; }
@@ -70,7 +70,7 @@ class HitAnalysis : public FairTask
     TH1 *mLocalZ1;            ///< Histogram for Hit Z position in local coordinates
     TH1 *mHitCounter;         ///< simple hit counter histogram
 
-  ClassDef(HitAnalysis, 1);
+  ClassDefOverride(HitAnalysis, 1);
 };
 }
 }

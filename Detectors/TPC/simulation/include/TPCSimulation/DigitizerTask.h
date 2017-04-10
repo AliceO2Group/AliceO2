@@ -28,10 +28,10 @@ class DigitizerTask : public FairTask{
     DigitizerTask();
       
     /// Destructor
-    virtual ~DigitizerTask();
+    ~DigitizerTask() override;
       
     /// Inititializes the digitizer and connects input and output container
-    virtual InitStatus Init() override;
+    InitStatus Init() override;
 
     void setHitFileName(std::string name) { mHitFileName = name; }
 
@@ -42,9 +42,9 @@ class DigitizerTask : public FairTask{
       
     /// Digitization
     /// \param option Option
-    virtual void Exec(Option_t *option) override;
+    void Exec(Option_t *option) override;
       
-    virtual void FinishTask() override;
+    void FinishTask() override;
 
   private:
     void fillHitArrayFromFile();

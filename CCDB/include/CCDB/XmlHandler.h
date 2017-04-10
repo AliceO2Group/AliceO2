@@ -25,7 +25,7 @@ class XmlHandler : public TObject
 
     XmlHandler(const XmlHandler &sh);
 
-    virtual ~XmlHandler();
+    ~XmlHandler() override;
 
     XmlHandler &operator=(const XmlHandler &sh);
 
@@ -76,7 +76,7 @@ class XmlHandler : public TObject
     Int_t mEndIdRunRange;   // end run corresponding to the request
     TString mOCDBFolder;  // OCDB folder corresponding to the request
 
-  ClassDef(XmlHandler, 0) // The XML file handler for the OCDB
+  ClassDefOverride(XmlHandler, 0) // The XML file handler for the OCDB
 };
 }
 }

@@ -29,7 +29,7 @@ class GeometryHandler : public TObject
 
     /// Default destructor
     ~GeometryHandler()
-    = default;
+    override = default;
 
     Int_t getUniqueDetectorId();
 
@@ -86,7 +86,7 @@ class GeometryHandler : public TObject
 
     GeometryHandler operator=(const GeometryHandler &);
 
-  ClassDef(GeometryHandler, 1)
+  ClassDefOverride(GeometryHandler, 1)
 };
 }
 }

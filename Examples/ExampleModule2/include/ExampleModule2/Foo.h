@@ -34,7 +34,7 @@ class Foo
     /// @return Returns the input number given.
     int returnsN(int n);
 
-  ClassDef(Foo, 1)
+  ClassDefNV(Foo, 1)
 };
 
 } // namespace ExampleModule2

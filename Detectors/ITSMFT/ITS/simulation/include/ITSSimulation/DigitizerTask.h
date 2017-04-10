@@ -35,11 +35,11 @@ namespace o2
     public:
       DigitizerTask(Bool_t useAlpide = kFALSE);
 
-      virtual ~DigitizerTask();
+      ~DigitizerTask() override;
 
-      virtual InitStatus Init();
+      InitStatus Init() override;
 
-      virtual void Exec(Option_t* option);
+      void Exec(Option_t* option) override;
 
       Digitizer& getDigitizer() { return mDigitizer; }
     private:
@@ -49,7 +49,7 @@ namespace o2
       TClonesArray* mPointsArray; ///< Array of MC hits
       TClonesArray* mDigitsArray; ///< Array of digits
 
-      ClassDef(DigitizerTask, 1)
+      ClassDefOverride(DigitizerTask, 1)
     };
   }
 }

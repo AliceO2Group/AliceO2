@@ -18,7 +18,7 @@ class FileSink : public FairMQDevice
  public:
 
   FileSink();
-  virtual ~FileSink();
+  ~FileSink() override;
   
   void SetOutputFileName(std::string tempString) { mFileName = tempString; }
   void AddOutputBranch  (std::string classString, std::string branchString) 
@@ -35,7 +35,7 @@ class FileSink : public FairMQDevice
  protected:
 
   bool StoreData(FairMQParts&, int);
-  virtual void Init();
+  void Init() override;
 
  private:
 

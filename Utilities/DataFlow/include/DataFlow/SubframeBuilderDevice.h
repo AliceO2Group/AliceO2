@@ -63,7 +63,7 @@ public:
   SubframeBuilderDevice();
 
   /// Default destructor
-  virtual ~SubframeBuilderDevice() final;
+  ~SubframeBuilderDevice() final;
 
 protected:
   /// overloading the InitTask() method of FairMQDevice

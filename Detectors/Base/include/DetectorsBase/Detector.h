@@ -25,7 +25,7 @@ class Detector : public FairDetector
     Detector();
 
     /// Default Destructor
-    virtual ~Detector();
+    ~Detector() override;
 
     // Module composition
     virtual void Material(Int_t imat, const char *name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
@@ -96,7 +96,7 @@ class Detector : public FairDetector
     static Float_t mDensityFactor; //! factor that is multiplied to all material densities (ONLY for
     // systematic studies)
 
-  ClassDef(Detector, 0) // Base class for ALICE Modules
+  ClassDefOverride(Detector, 0) // Base class for ALICE Modules
 };
 }
 }

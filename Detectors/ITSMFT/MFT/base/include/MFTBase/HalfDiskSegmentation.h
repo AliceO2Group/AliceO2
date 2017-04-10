@@ -24,9 +24,9 @@ public:
   HalfDiskSegmentation(UInt_t uniqueID);
   HalfDiskSegmentation(const HalfDiskSegmentation& pt);
   
-  virtual ~HalfDiskSegmentation();
+  ~HalfDiskSegmentation() override;
 
-  virtual void Clear(const Option_t* /*opt*/);
+  void Clear(const Option_t* /*opt*/) override;
   
   virtual void Print(Option_t* opt="");
   
@@ -57,7 +57,7 @@ private:
 
   TClonesArray *mLadders; ///< \brief Array of pointer to LadderSegmentation
   
-  ClassDef(HalfDiskSegmentation, 1);
+  ClassDefOverride(HalfDiskSegmentation, 1);
 
 };
 

@@ -33,7 +33,7 @@ class DigitData : public Digit {
     DigitData(int cru, float charge, int row, int pad, int time);
 
     /// Destructor
-    virtual ~DigitData()= default;
+    ~DigitData() override = default;
 
     /// Get the timeBin of the DigitData
     /// \return timeBin of the DigitData

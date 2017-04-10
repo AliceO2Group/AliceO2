@@ -56,7 +56,7 @@ class GeometryManager : public TObject
   static Bool_t getOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m);
 
   /// Default destructor
-  ~GeometryManager();
+  ~GeometryManager() override;
 
  private:
   /// Default constructor
@@ -69,7 +69,7 @@ class GeometryManager : public TObject
 
   static TGeoManager* mGeometry;
 
-  ClassDef(GeometryManager, 0); // Manager of geometry information for alignment
+  ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment
 };
 }
 }

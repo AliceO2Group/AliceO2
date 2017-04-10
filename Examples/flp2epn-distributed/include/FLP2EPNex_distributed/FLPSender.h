@@ -31,14 +31,14 @@ class FLPSender : public FairMQDevice
     FLPSender();
 
     /// Default destructor
-    virtual ~FLPSender();
+    ~FLPSender() override;
 
   protected:
     /// Overloads the InitTask() method of FairMQDevice
-    virtual void InitTask();
+    void InitTask() override;
 
     /// Overloads the Run() method of FairMQDevice
-    virtual void Run();
+    void Run() override;
 
   private:
     /// Sends the "oldest" element from the sub-timeframe container

@@ -57,7 +57,7 @@ class Cluster : public FairTimeStamp
  public:
   Cluster();
   Cluster(const Cluster& cluster);
-  virtual ~Cluster();
+  ~Cluster() override;
 
   Cluster& operator=(const Cluster& cluster) = delete;
 
@@ -189,9 +189,9 @@ class Cluster : public FairTimeStamp
   UShort_t mPatternMinCol;            ///< pattern start column
   UChar_t mPattern[kMaxPatternBytes]; ///< cluster topology
   //
-  ClassDef(Cluster, CLUSTER_VERSION + 1)
+  ClassDefOverride(Cluster, CLUSTER_VERSION + 1)
 #else
-  ClassDef(Cluster, CLUSTER_VERSION)
+  ClassDefOverride(Cluster, CLUSTER_VERSION)
 #endif
 };
 //______________________________________________________

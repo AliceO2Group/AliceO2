@@ -35,7 +35,7 @@ namespace o2{
 	      float padmean, float padsigma, float timemean, float timesigma);
       
       /// Destructor
-      ~Cluster() = default;
+      ~Cluster() override = default;
 
       /// Copy Constructor
       Cluster(const Cluster& other);
@@ -84,7 +84,7 @@ namespace o2{
       float   mTimeMean;
       float   mTimeSigma;
             
-      ClassDef(Cluster, 1);
+      ClassDefOverride(Cluster, 1);
     };
   }
 }

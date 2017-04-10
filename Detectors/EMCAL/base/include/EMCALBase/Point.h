@@ -59,7 +59,7 @@ namespace o2 {
       Point operator+(const Point &rhs) const;
       
       /// \brief Destructor
-      virtual ~Point() = default;
+      ~Point() override = default;
       
       /// \brief Get the initial energy of the primary particle entering EMCAL
       /// \return Energy of the primary particle entering EMCAL
@@ -96,7 +96,7 @@ namespace o2 {
       Int_t             mParent;            ///< Parent particle that entered the EMCAL
       Double32_t        mInitialEnergy;     ///< Energy of the parent particle that entered the EMCAL
       
-      ClassDef(Point, 1);
+      ClassDefOverride(Point, 1);
     };
     
     std::ostream &operator<<(std::ostream &stream, const Point &point);

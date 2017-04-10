@@ -40,7 +40,7 @@ namespace o2 {
       SimulationAlpide
       (Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);
       SimulationAlpide(const SimulationAlpide&);
-      virtual   ~SimulationAlpide();
+        ~SimulationAlpide() override;
 
       void Init(Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);
 
@@ -66,7 +66,7 @@ namespace o2 {
       SensMap           *mSensMap;  //! Sensor map for hits manipulations
       Chip              *mChip;     //! Chip being processed
 
-      ClassDef(SimulationAlpide,1)   // Simulation of pixel clusters
+      ClassDefOverride(SimulationAlpide,1)   // Simulation of pixel clusters
     };
   }
 }

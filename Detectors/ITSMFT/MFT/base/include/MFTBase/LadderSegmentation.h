@@ -22,9 +22,9 @@ public:
   LadderSegmentation(UInt_t uniqueID);
   LadderSegmentation(const LadderSegmentation& ladder);
 
-  virtual ~LadderSegmentation() { if(mChips){mChips->Delete(); delete mChips; mChips=nullptr;} }
+  ~LadderSegmentation() override { if(mChips){mChips->Delete(); delete mChips; mChips=nullptr;} }
   virtual void Print(Option_t* opt="");
-  virtual void Clear(const Option_t* /*opt*/) { if(mChips){mChips->Clear();} }
+  void Clear(const Option_t* /*opt*/) override { if(mChips){mChips->Clear();} }
   
   ChipSegmentation* GetSensor(Int_t sensor) const ;
 
@@ -42,7 +42,7 @@ private:
   Int_t mNSensors;      ///< \brief Number of Sensors holded by the ladder
   TClonesArray *mChips; ///< \brief Array of pointer to ChipSegmentation
 
-  ClassDef(LadderSegmentation, 1);
+  ClassDefOverride(LadderSegmentation, 1);
 
 };
 

@@ -118,7 +118,7 @@ class Storage : public TObject
     virtual void setRetry(Int_t nretry, Int_t initsec) = 0;
 
   protected:
-    virtual ~Storage();
+    ~Storage() override;
 
     void getSelection(/*const*/ ConditionId *id);
 
@@ -155,7 +155,7 @@ class Storage : public TObject
 
     Storage &operator=(const Storage &source);
 
-  ClassDef(Storage, 0)
+  ClassDefOverride(Storage, 0)
 };
 }
 }

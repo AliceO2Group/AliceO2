@@ -26,8 +26,8 @@ class EPNReceiverDevice : public FairMQDevice
 {
   public:
     EPNReceiverDevice() = default;
-    virtual ~EPNReceiverDevice() final = default;
-    virtual void InitTask() final;
+    ~EPNReceiverDevice() final = default;
+    void InitTask() final;
 
     /// Prints the contents of the timeframe container
     void PrintBuffer(const std::unordered_map<uint16_t, TFBuffer> &buffer) const;
@@ -37,7 +37,7 @@ class EPNReceiverDevice : public FairMQDevice
 
   protected:
     /// Overloads the Run() method of FairMQDevice
-    virtual void Run();
+    void Run() override;
 
     std::unordered_map<uint16_t, TFBuffer> mTimeframeBuffer; ///< Stores (sub-)timeframes
     std::unordered_set<uint16_t> mDiscardedSet; ///< Set containing IDs of dropped timeframes

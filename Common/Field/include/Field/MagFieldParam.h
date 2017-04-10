@@ -41,8 +41,8 @@ class MagFieldParam : public FairParGenericSet
     Double_t                  GetMaxField()   const {return mMaxField;}
     const char*               GetMapPath()    const {return mMapPath.Data();}
 
-    virtual void   putParams(FairParamList* list);
-    virtual Bool_t getParams(FairParamList* list);
+    void   putParams(FairParamList* list) override;
+    Bool_t getParams(FairParamList* list) override;
     
   protected:
     BMap_t     mMapType;  ///< map type ID
@@ -54,7 +54,7 @@ class MagFieldParam : public FairParGenericSet
     Double_t mMaxField;                  ///< max field for geant
     TString  mMapPath;                   ///< path to map file
     
-    ClassDef(MagFieldParam,1)
+    ClassDefOverride(MagFieldParam,1)
 };
 }
 }

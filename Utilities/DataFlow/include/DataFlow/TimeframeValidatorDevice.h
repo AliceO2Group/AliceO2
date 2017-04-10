@@ -16,13 +16,13 @@ public:
     TimeframeValidatorDevice();
 
     /// Default destructor
-    virtual ~TimeframeValidatorDevice() = default;
+    ~TimeframeValidatorDevice() override = default;
 
-    virtual void InitTask() final;
+    void InitTask() final;
 
   protected:
     /// Overloads the Run() method of FairMQDevice
-    virtual void Run() final;
+    void Run() final;
 
     std::string mInChannelName;
 };

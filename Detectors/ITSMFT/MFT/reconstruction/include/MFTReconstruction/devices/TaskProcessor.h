@@ -21,7 +21,7 @@ class TaskProcessor : public FairMQDevice
  public:
 
   TaskProcessor();
-  virtual ~TaskProcessor();
+  ~TaskProcessor() override;
 
   void SetDataToKeep(std::string tStr) { mDataToKeep = tStr;}
 
@@ -32,8 +32,8 @@ class TaskProcessor : public FairMQDevice
  protected:
 
   bool ProcessData(FairMQParts&, int);
-  virtual void Init();
-  virtual void PostRun();
+  void Init() override;
+  void PostRun() override;
 
  private:
   

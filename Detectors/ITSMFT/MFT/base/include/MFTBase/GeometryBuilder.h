@@ -16,13 +16,13 @@ class GeometryBuilder : public TNamed {
  public:
 
   GeometryBuilder();
-  virtual ~GeometryBuilder();
+  ~GeometryBuilder() override;
 
   void BuildGeometry();
 
  private:
 
-  ClassDef(GeometryBuilder, 1)
+  ClassDefOverride(GeometryBuilder, 1)
 
 };
 

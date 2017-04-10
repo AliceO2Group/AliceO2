@@ -23,7 +23,7 @@ namespace o2
     {
     public:
       Digitizer();
-      ~Digitizer();
+      ~Digitizer() override;
 
       void init(Bool_t build = kTRUE);
 
@@ -43,7 +43,7 @@ namespace o2
       std::vector<o2::ITSMFT::SimulationAlpide> mSimulations; ///< Array of chips response simulations
       DigitContainer mDigitContainer;             ///< Internal digit storage
 
-      ClassDef(Digitizer, 2);
+      ClassDefOverride(Digitizer, 2);
     };
   }
 }

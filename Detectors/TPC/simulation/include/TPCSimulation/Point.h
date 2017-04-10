@@ -27,10 +27,10 @@ class Point : public o2::BasicXYZEHit<float>
     Point(float x, float y, float z, float time, float nElectrons, float trackID, float detID);
 
     /// Destructor
-    virtual ~Point() = default;
+    ~Point() override = default;
 
     /// Output to screen
-    virtual void Print(const Option_t* opt) const override;
+    void Print(const Option_t* opt) const override;
 
   private:
     /// Copy constructor

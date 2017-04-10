@@ -20,7 +20,7 @@ class SDigit : public TObject
   SDigit(UInt_t chip, UInt_t index, Double_t noise, Int_t roCycle = 0);
   SDigit(const SDigit& source);
   SDigit& operator=(const SDigit& source);
-  virtual ~SDigit() = default;
+  ~SDigit() override = default;
   Double_t getSignal(Int_t i) const { return ((i >= 0 && i < kBuffSize) ? mSignal[i] : 0.0); }
   Double_t getSignal() const { return mTotalSignal; }
   Double_t getSignalAfterElect() const { return mSignalAfterElect; }
@@ -45,9 +45,9 @@ class SDigit : public TObject
   void print(Option_t* option = "") const;
   Int_t read(const char* name) { return TObject::Read(name); }
   //
-  virtual Bool_t IsSortable() const { return kTRUE; }
-  virtual Bool_t IsEqual(const TObject* obj) const { return GetUniqueID() == obj->GetUniqueID(); }
-  virtual Int_t Compare(const TObject* obj) const;
+  Bool_t IsSortable() const override { return kTRUE; }
+  Bool_t IsEqual(const TObject* obj) const override { return GetUniqueID() == obj->GetUniqueID(); }
+  Int_t Compare(const TObject* obj) const override;
   //
   static Int_t getBuffSize() { return kBuffSize; };
   //
@@ -62,7 +62,7 @@ class SDigit : public TObject
   Float_t mNoise;             ///< Total noise, coupling, ...
   Float_t mSignalAfterElect;  ///< Signal after electronics
   //
-  ClassDef(SDigit, 1) // Item list of signals and track numbers
+  ClassDefOverride(SDigit, 1) // Item list of signals and track numbers
 };
 }
 }

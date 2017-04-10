@@ -31,13 +31,13 @@ class  GeoCave : public FairGeoSet
     TString name;
   public:
     GeoCave();
-    ~GeoCave() = default;
-    const char* getModuleName(Int_t) {return name.Data();}
-    Bool_t read(std::fstream&,FairGeoMedia*);
-    void addRefNodes();
-    void write(std::fstream&);
-    void print();
-    ClassDef(o2::Passive::GeoCave,0) // Class for the geometry of CAVE
+    ~GeoCave() override = default;
+    const char* getModuleName(Int_t) override {return name.Data();}
+    Bool_t read(std::fstream&,FairGeoMedia*) override;
+    void addRefNodes() override;
+    void write(std::fstream&) override;
+    void print() override;
+    ClassDefOverride(o2::Passive::GeoCave,0) // Class for the geometry of CAVE
 };
 }
 }

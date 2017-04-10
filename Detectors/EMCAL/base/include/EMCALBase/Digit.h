@@ -20,7 +20,7 @@ namespace o2 {
       Digit() = default;
       
       Digit(Int_t module, Int_t tower, Double_t amplitude, Double_t time);
-      virtual ~Digit() = default;
+      ~Digit() override = default;
       
       bool operator<(const Digit &ref) const;
       
@@ -47,7 +47,7 @@ namespace o2 {
       Int_t             mTower;                 ///< Tower index inside supermodule
       Double_t          mAmplitude;             ///< Amplitude
       
-      ClassDef(Digit, 1);
+      ClassDefOverride(Digit, 1);
     };
     
     std::ostream &operator<<(std::ostream &stream, const Digit &dig);

@@ -25,35 +25,35 @@ public:
   Detector();
 
   /// Default destructor
-  virtual ~Detector();
+  ~Detector() override;
 
   Int_t IsVersion() const { return mVersion; }
 
   /// Initialization of the detector is done here
-  virtual void Initialize();
+  void Initialize() override;
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
-  virtual Bool_t ProcessHits(FairVolume* v = nullptr);
+  Bool_t ProcessHits(FairVolume* v = nullptr) override;
 
   /// Has to be called after each event to reset the containers
-  virtual void Reset();
+  void Reset() override;
 
   /// Registers the produced collections in FAIRRootManager
-  virtual void Register(); 
+  void Register() override; 
 
   /// Gets the produced collections
-  virtual TClonesArray* GetCollection(Int_t iColl) const;
+  TClonesArray* GetCollection(Int_t iColl) const override;
 
-  virtual void EndOfEvent();
+  void EndOfEvent() override;
 
-  virtual void CopyClones(TClonesArray* cl1, TClonesArray* cl2, Int_t offset) {;}
-  virtual void FinishPrimary() {;}
-  virtual void FinishRun() {;}
-  virtual void BeginPrimary() {;}
-  virtual void PostTrack() {;}
-  virtual void PreTrack() {;}
-  virtual void BeginEvent() {;}
-  virtual void SetSpecialPhysicsCuts() {;}
+  void CopyClones(TClonesArray* cl1, TClonesArray* cl2, Int_t offset) override {;}
+  void FinishPrimary() override {;}
+  void FinishRun() override {;}
+  void BeginPrimary() override {;}
+  void PostTrack() override {;}
+  void PreTrack() override {;}
+  void BeginEvent() override {;}
+  void SetSpecialPhysicsCuts() override {;}
 
   GeometryTGeo* GetGeometryTGeo() const { return mGeometryTGeo; }
   
@@ -70,7 +70,7 @@ public:
 
   /// Constructing the geometry
 
-  void ConstructGeometry();  // inherited from FairModule
+  void ConstructGeometry() override;  // inherited from FairModule
   void CreateGeometry();
   void DefineSensitiveVolumes();
 
@@ -88,7 +88,7 @@ private:
 
   Point* AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length, Double_t eLoss);
 
-  ClassDef(Detector,1)
+  ClassDefOverride(Detector,1)
 
 };
 

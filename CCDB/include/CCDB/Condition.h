@@ -58,7 +58,7 @@ class Condition : public TObject
               ConditionMetaData *metaData, Bool_t owner = kFALSE);
 
     /// Default destructor
-    virtual ~Condition();
+    ~Condition() override;
 
     /// Set the object identity from an ConditionId
     void setId(const ConditionId &id)
@@ -156,10 +156,10 @@ class Condition : public TObject
     };
 
     /// Method to compare two CDB objects, used for sorting in ROOT ordered containers
-    virtual Int_t Compare(const TObject *obj) const;
+    Int_t Compare(const TObject *obj) const override;
 
     /// Define this class sortable (via the Compare method) for ROOT ordered containers
-    virtual Bool_t IsSortable() const;
+    Bool_t IsSortable() const override;
 
   private:
     Condition(const Condition &other);          // no copy ctor
@@ -170,7 +170,7 @@ class Condition : public TObject
     ConditionMetaData *mConditionMetaData; ///< metaData
     Bool_t mOwner;     ///< Ownership flag
 
-  ClassDef(Condition, 1)
+  ClassDefOverride(Condition, 1)
 };
 }
 }

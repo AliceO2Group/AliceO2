@@ -21,7 +21,7 @@ public:
   
   Support();
   
-  virtual ~Support();
+  ~Support() override;
   
   TGeoVolumeAssembly* CreateVolume(Int_t half, Int_t disk);
   TGeoVolumeAssembly* CreatePCBs(Int_t half, Int_t disk);
@@ -55,7 +55,7 @@ protected:
 
 private:
   
-  ClassDef(Support,1)
+  ClassDefOverride(Support,1)
   
 };
 

@@ -78,12 +78,12 @@ public:
 protected:
 
   Constants() : TObject() {}
-  virtual ~Constants() = default;
+  ~Constants() override = default;
 
   static Double_t  sDiskThicknessInX0[sNDisks]; ///< default disk thickness in X0 for reconstruction
   static Double_t  sPlaneZPos[2*sNDisks]; ///< default Plane Z position for reconstruction
 
-  ClassDef(Constants, 1);
+  ClassDefOverride(Constants, 1);
 
 };
 

@@ -13,7 +13,7 @@ class ProducerDevice : public FairMQDevice
 {
 public:
   ProducerDevice(const char * producerId, const int numIoThreads, std::shared_ptr<Producer> & producer);
-  virtual ~ProducerDevice() = default;
+  ~ProducerDevice() override = default;
 
   static void deleteTMessage(void* data, void* hint);
   void executeRunLoop();
@@ -21,7 +21,7 @@ public:
 
 protected:
   ProducerDevice() = default;
-  virtual void Run() override;
+  void Run() override;
 
 private:
   std::shared_ptr<Producer> mProducer;
