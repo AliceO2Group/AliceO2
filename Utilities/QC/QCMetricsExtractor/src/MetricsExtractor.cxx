@@ -1,10 +1,10 @@
-#include <iostream>
-#include <thread>
 #include <algorithm>
-#include <string>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <iostream>
+#include <string>
+#include <thread>
 
 #include "QCMetricsExtractor/MetricsExtractor.h"
 
@@ -14,7 +14,11 @@ using namespace boost::posix_time;
 using namespace boost::gregorian;
 using namespace dds::intercom_api;
 
-MetricsExtractor::MetricsExtractor(const char * testName) : mTestName(testName), ddsCustomCmd(new CCustomCmd(mService))
+namespace o2
+{
+namespace qc
+{
+MetricsExtractor::MetricsExtractor(const char* testName) : mTestName(testName), ddsCustomCmd(new CCustomCmd(mService))
 {
   metricsOutputFile.open(string("/net/scratch/people/plglesiak/metrics_") + string(mTestName) + string(".json"));
   stateOutputFile.open(string("/net/scratch/people/plglesiak/state_") + string(mTestName) + string(".json"));
@@ -28,28 +32,25 @@ MetricsExtractor::~MetricsExtractor()
 
 void MetricsExtractor::runMetricsExtractor()
 {
-
   try {
-    mService.subscribeOnError([](const EErrorCode _errorCode, const string& _errorMsg) 
-      {
-        cout << "Error received: error code: " << _errorCode << ", error message: " << _errorMsg << endl;
-      });
+    mService.subscribeOnError([](const EErrorCode _errorCode, const string& _errorMsg) {
+      cout << "Error received: error code: " << _errorCode << ", error message: " << _errorMsg << endl;
+    });
 
-    ddsCustomCmd->subscribe([&](const string& command, const string& condition, uint64_t senderId)
-      {
-        stringstream ss;
-        ss << command;
-        ptree response;
-        read_json(ss, response);
+    ddsCustomCmd->subscribe([&](const string& command, const string& condition, uint64_t senderId) {
+      stringstream ss;
+      ss << command;
+      ptree response;
+      read_json(ss, response);
 
-        response.put("name", mTestName);
+      response.put("name", mTestName);
 
-        if (response.get<string>("command") == "state") {
-          stateOutputFile << convertToString(response) << endl;
-        } else if (response.get<string>("command") == "metrics") {
-          metricsOutputFile << convertToString(response) << endl;
-        }
-      });
+      if (response.get<string>("command") == "state") {
+        stateOutputFile << convertToString(response) << endl;
+      } else if (response.get<string>("command") == "metrics") {
+        metricsOutputFile << convertToString(response) << endl;
+      }
+    });
 
     ddsCustomCmd->subscribeOnReply([](const string& _msg) {});
 
@@ -60,13 +61,12 @@ void MetricsExtractor::runMetricsExtractor()
       sendCheckStateDdsCustomCommand();
       sendGetMetrics();
     }
-  }
-  catch (exception &ex) {
+  } catch (exception& ex) {
     cerr << "Error sending custom command: " << ex.what();
   }
 }
 
-string MetricsExtractor::convertToString(ptree & command)
+string MetricsExtractor::convertToString(ptree& command)
 {
   ostringstream commandStream;
   write_json(commandStream, command);
@@ -101,4 +101,6 @@ void MetricsExtractor::sendGetMetrics()
   write_json(ss, request);
 
   ddsCustomCmd->send(ss.str(), "");
+}
+}
 }

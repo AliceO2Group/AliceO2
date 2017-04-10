@@ -1,8 +1,8 @@
 #define BOOST_TEST_MODULE ProducerTest
 #define BOOST_TEST_MAIN
 
-#include <string>
 #include <memory>
+#include <string>
 
 #include <boost/test/unit_test.hpp>
 
@@ -12,27 +12,28 @@
 #include <THn.h>
 #include <TTree.h>
 
+#include "QCProducer/ProducerDevice.h"
 #include "QCProducer/TH1Producer.h"
 #include "QCProducer/TH2Producer.h"
 #include "QCProducer/TH3Producer.h"
 #include "QCProducer/THnProducer.h"
 #include "QCProducer/TreeProducer.h"
-#include "QCProducer/ProducerDevice.h"
 
 using namespace std;
 
 namespace
 {
-  const int NUMBER_OF_BINS = 10;
-  const char * NAME = "TEST_NAME";
-  const char * TITLE = "TEST_TITLE";
+const int NUMBER_OF_BINS = 10;
+const char* NAME = "TEST_NAME";
+const char* TITLE = "TEST_TITLE";
 
-  void validateHistogramParameters(TH1 * object)
-  {
-    BOOST_TEST(object->GetNbinsX() == NUMBER_OF_BINS, string("Invalid number of x bins: ").append(to_string(object->GetNbinsX())));
-    BOOST_TEST(object->GetName() == NAME, string("Invalid name of histogram: ").append(object->GetName()));
-    BOOST_TEST(object->GetTitle() == TITLE, string("Invalid title of histogram: ").append(object->GetTitle()));
-  }
+void validateHistogramParameters(TH1* object)
+{
+  BOOST_TEST(object->GetNbinsX() == NUMBER_OF_BINS,
+             string("Invalid number of x bins: ").append(to_string(object->GetNbinsX())));
+  BOOST_TEST(object->GetName() == NAME, string("Invalid name of histogram: ").append(object->GetName()));
+  BOOST_TEST(object->GetTitle() == TITLE, string("Invalid title of histogram: ").append(object->GetTitle()));
+}
 }
 
 BOOST_AUTO_TEST_SUITE(ProducerTestSuite)
@@ -51,7 +52,8 @@ BOOST_AUTO_TEST_CASE(produceTH2F)
   unique_ptr<TH2> histogram(dynamic_cast<TH2*>(histogramProducer->produceData()));
 
   validateHistogramParameters(histogram.get());
-  BOOST_TEST(histogram->GetNbinsY() == NUMBER_OF_BINS, string("Invalid number of y bins: ").append(to_string(histogram->GetNbinsX())));
+  BOOST_TEST(histogram->GetNbinsY() == NUMBER_OF_BINS,
+             string("Invalid number of y bins: ").append(to_string(histogram->GetNbinsX())));
 }
 
 BOOST_AUTO_TEST_CASE(produceTH3F)
@@ -60,8 +62,10 @@ BOOST_AUTO_TEST_CASE(produceTH3F)
   unique_ptr<TH3> histogram(dynamic_cast<TH3*>(histogramProducer->produceData()));
 
   validateHistogramParameters(histogram.get());
-  BOOST_TEST(histogram->GetNbinsY() == NUMBER_OF_BINS, string("Invalid number of y bins: ").append(to_string(histogram->GetNbinsX())));
-  BOOST_TEST(histogram->GetNbinsZ() == NUMBER_OF_BINS, string("Invalid number of z bins: ").append(to_string(histogram->GetNbinsX())));
+  BOOST_TEST(histogram->GetNbinsY() == NUMBER_OF_BINS,
+             string("Invalid number of y bins: ").append(to_string(histogram->GetNbinsX())));
+  BOOST_TEST(histogram->GetNbinsZ() == NUMBER_OF_BINS,
+             string("Invalid number of z bins: ").append(to_string(histogram->GetNbinsX())));
 }
 
 BOOST_AUTO_TEST_CASE(produceTHnF)
@@ -75,9 +79,9 @@ BOOST_AUTO_TEST_CASE(produceTHnF)
 
 BOOST_AUTO_TEST_CASE(produceTTree)
 {
-  const char * FIRST_BRANCH_NAME = "default_branch_name_0";
-  const char * SECOND_BRANCH_NAME = "default_branch_name_1";
-  const char * INVALID_BRANCH_NAME = "default_branch_name_2";
+  const char* FIRST_BRANCH_NAME = "default_branch_name_0";
+  const char* SECOND_BRANCH_NAME = "default_branch_name_1";
+  const char* INVALID_BRANCH_NAME = "default_branch_name_2";
   const int NUMBER_OF_BRANCHES = 2;
   const int NUMBER_OF_ENTRIES = 10;
 

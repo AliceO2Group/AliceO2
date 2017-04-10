@@ -10,7 +10,7 @@ Quality Control prototype for ALICE O2.
 
 It is a good practice to run config.sh script from AliceO2 build directory to set all others variables such as PATH etc.
 
-# Overwiev
+# Overview
 This is a merging prototype for AliceO2 project. It uses FairMQ framework to provide distributed environment.
 
 Project consists of four modules:

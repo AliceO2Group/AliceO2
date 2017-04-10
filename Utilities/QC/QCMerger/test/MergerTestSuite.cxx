@@ -1,26 +1,26 @@
 #define BOOST_TEST_MODULE Merger
 #define BOOST_TEST_MAIN
 
+#include <TH1F.h>
 #include <boost/test/unit_test.hpp>
 #include <memory>
 #include <vector>
-#include <TH1F.h>
 
-#include "QCMerger/MergerDevice.h"
 #include "QCMerger/Merger.h"
+#include "QCMerger/MergerDevice.h"
 
 using namespace std;
 
 namespace
 {
-  const int NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA = 2;
-  const char * HISTOGRAM_NAME = "TEST_NAME";
-  const char * HISTOGRAM_TITLE = "HISTOGRAM_TITLE";
-  const char * RANDOM_GENERATION_TYPE = "gaus";
-  const int NUMBER_OF_BINS = 100;
-  const int NUMBER_OF_ENTRIES = 100;
-  const double X_LOW = -10.0;
-  const double X_UP = 10.0;
+const int NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA = 2;
+const char* HISTOGRAM_NAME = "TEST_NAME";
+const char* HISTOGRAM_TITLE = "HISTOGRAM_TITLE";
+const char* RANDOM_GENERATION_TYPE = "gaus";
+const int NUMBER_OF_BINS = 100;
+const int NUMBER_OF_ENTRIES = 100;
+const double X_LOW = -10.0;
+const double X_UP = 10.0;
 }
 
 BOOST_AUTO_TEST_SUITE(MergerTestSuite)
@@ -37,11 +37,12 @@ BOOST_AUTO_TEST_CASE(mergeTenHistograms)
   }
 
   for (int i = 0; i < HISTOGRAMS_TO_TEST; ++i) {
-    TObject * mergedObject = merger->mergeObject(histograms.at(i));
+    TObject* mergedObject = merger->mergeObject(histograms.at(i));
 
     if (i % NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA != 0) {
       BOOST_TEST(mergedObject->GetName() == HISTOGRAM_NAME, "Wrong name of histogram: " << mergedObject->GetName());
-      BOOST_TEST(reinterpret_cast<TH1F*>(mergedObject)->GetEntries() == (NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA * NUMBER_OF_ENTRIES));
+      BOOST_TEST(reinterpret_cast<TH1F*>(mergedObject)->GetEntries() ==
+                 (NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA * NUMBER_OF_ENTRIES));
 
       delete mergedObject;
     } else {
@@ -50,7 +51,6 @@ BOOST_AUTO_TEST_CASE(mergeTenHistograms)
       }
     }
   }
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()
