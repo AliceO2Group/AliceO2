@@ -14,7 +14,7 @@ using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, RO
 
 class FairVolume;
 class TClonesArray;
-namespace o2 { namespace EMCAL { class Point; } }
+namespace o2 { namespace EMCAL { class Hit; } }
 
 namespace o2 {
   namespace EMCAL {
@@ -31,7 +31,7 @@ namespace o2 {
       
       Bool_t ProcessHits( FairVolume* v=nullptr) final;
       
-      Point *AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy,
+      Hit *AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy,
                     Int_t detID, const Point3D<float> &pos, const Vector3D<float> &mom, Double_t time, Double_t length);
       
       void   Register() override;
