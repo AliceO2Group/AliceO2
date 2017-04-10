@@ -72,6 +72,7 @@
 class FairPrimaryGenerator;  // lines 68-68
 
 
+
 class Pythia6Generator : public FairGenerator  
 {
 
