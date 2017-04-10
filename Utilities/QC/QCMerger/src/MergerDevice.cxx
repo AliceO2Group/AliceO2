@@ -1,16 +1,16 @@
-#include <thread>
 #include <ratio>
+#include <thread>
 
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <FairMQLogger.h>
 
 #include <dds_intercom.h>
 
-#include "QCMerger/MergerDevice.h"
 #include "QCCommon/TMessageWrapper.h"
+#include "QCMerger/MergerDevice.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -18,7 +18,12 @@ using namespace boost::property_tree;
 using namespace dds;
 using namespace dds::intercom_api;
 
-MergerDevice::MergerDevice(unique_ptr<Merger> merger, string mergerId, int numIoThreads) : mMerger(move(merger)), ddsCustomCmd(new CCustomCmd(mService))
+namespace o2
+{
+namespace qc
+{
+MergerDevice::MergerDevice(unique_ptr<Merger> merger, string mergerId, int numIoThreads)
+  : mMerger(move(merger)), ddsCustomCmd(new CCustomCmd(mService))
 {
   this->SetTransport("zeromq");
   this->SetProperty(Id, mergerId);
@@ -30,20 +35,9 @@ MergerDevice::MergerDevice(unique_ptr<Merger> merger, string mergerId, int numIo
   calculateNumberOfMergedObjectsPerSecond();
 }
 
-MergerDevice::~MergerDevice()
-{
-  procSelfStatus.close();
-}
-
-void MergerDevice::deleteTMessage(void* data, void* hint)
-{
-  delete static_cast<TMessage*>(hint);
-}
-
-void MergerDevice::establishChannel(string type, string method,
-                                    string address, 
-                                    string channelName, 
-                                    int receiveBuffer, 
+MergerDevice::~MergerDevice() { procSelfStatus.close(); }
+void MergerDevice::deleteTMessage(void* data, void* hint) { delete static_cast<TMessage*>(hint); }
+void MergerDevice::establishChannel(string type, string method, string address, string channelName, int receiveBuffer,
                                     int sendBuffer)
 {
   FairMQChannel channel(type, method, address);
@@ -85,33 +79,31 @@ void MergerDevice::subscribeDdsCommands()
 
 void MergerDevice::subscribeOnError()
 {
-  mService.subscribeOnError([](const dds::intercom_api::EErrorCode _errorCode, const string& _errorMsg) 
-    {
-      LOG(ERROR) << "Error received: error code: " << _errorCode << ", error message: " << _errorMsg;
-    });
+  mService.subscribeOnError([](const dds::intercom_api::EErrorCode _errorCode, const string& _errorMsg) {
+    LOG(ERROR) << "Error received: error code: " << _errorCode << ", error message: " << _errorMsg;
+  });
 }
 
 void MergerDevice::subscribeCustomCommands()
 {
-  ddsCustomCmd->subscribe([&](const string& command, const string& condition, uint64_t senderId)
-    {
-      stringstream ss;
-      ptree request;
+  ddsCustomCmd->subscribe([&](const string& command, const string& condition, uint64_t senderId) {
+    stringstream ss;
+    ptree request;
 
-      ss << command;
-      read_json(ss, request);
+    ss << command;
+    read_json(ss, request);
 
-      if (request.get<string>("command") == "check-state") {
-        const ptree response = createCheckStateResponse(request);
-        sendControlResponse(response, to_string(senderId));
-      } else if (request.get<string>("command") == "get-metrics") {
-        const ptree response = createGetMetricsResponse(request);
-        sendControlResponse(response, to_string(senderId));
-      }
-    });
+    if (request.get<string>("command") == "check-state") {
+      const ptree response = createCheckStateResponse(request);
+      sendControlResponse(response, to_string(senderId));
+    } else if (request.get<string>("command") == "get-metrics") {
+      const ptree response = createGetMetricsResponse(request);
+      sendControlResponse(response, to_string(senderId));
+    }
+  });
 }
 
-boost::property_tree::ptree MergerDevice::createCheckStateResponse(const ptree & request)
+boost::property_tree::ptree MergerDevice::createCheckStateResponse(const ptree& request)
 {
   using namespace boost::posix_time;
 
@@ -132,7 +124,7 @@ boost::property_tree::ptree MergerDevice::createCheckStateResponse(const ptree &
   return response;
 }
 
-boost::property_tree::ptree MergerDevice::createGetMetricsResponse(const ptree & request)
+boost::property_tree::ptree MergerDevice::createGetMetricsResponse(const ptree& request)
 {
   using namespace boost::posix_time;
 
@@ -153,7 +145,7 @@ boost::property_tree::ptree MergerDevice::createGetMetricsResponse(const ptree &
   return response;
 }
 
-void MergerDevice::sendControlResponse(const ptree & response, string senderId)
+void MergerDevice::sendControlResponse(const ptree& response, string senderId)
 {
   stringstream responseStream;
   write_json(responseStream, response);
@@ -170,37 +162,32 @@ void MergerDevice::Run()
 
 void MergerDevice::handleReceivedDataObject()
 {
-  TObject * receivedObject = receiveDataObjectFromProducer();
+  TObject* receivedObject = receiveDataObjectFromProducer();
 
   if (isObjectNotEmpty(receivedObject)) {
-    TObject * mergedObject = mMerger->mergeObject(receivedObject);
+    TObject* mergedObject = mMerger->mergeObject(receivedObject);
 
     if (isObjectNotEmpty(mergedObject)) {
       updateMetrics();
       size_t messageSize = sendMergedObjectToViewer(mergedObject);
       delete mergedObject;
     }
-
   }
 }
 
-bool MergerDevice::isObjectNotEmpty(const TObject *  object) const
-{
-  return object == nullptr ? false : true;
-}
-
+bool MergerDevice::isObjectNotEmpty(const TObject* object) const { return object == nullptr ? false : true; }
 void MergerDevice::updateMetrics()
 {
   mNumberOfMergedObjects++;
 
   if (mMergeTimes.size() >= LOGGED_MESSAGES) {
-     mMergeTimes.pop_back();
+    mMergeTimes.pop_back();
   }
 
   mMergeTimes.push_front(mMerger->getMergeTime());
 }
 
-TMessage* MergerDevice::createTMessageForViewer(const TObject * objectToSend) const
+TMessage* MergerDevice::createTMessageForViewer(const TObject* objectToSend) const
 {
   auto* viewerMessage = new TMessage(kMESS_OBJECT);
   viewerMessage->WriteObject(objectToSend);
@@ -224,12 +211,13 @@ TObject* MergerDevice::receiveDataObjectFromProducer()
       }
 
       mReceiveBufferOverloaded = false;
-      LOG(DEBUG) << "Buffer was released after " << double(clock() - mLastReceiveBufferOverloadTime) / CLOCKS_PER_SEC << " seconds.";
+      LOG(DEBUG) << "Buffer was released after " << double(clock() - mLastReceiveBufferOverloadTime) / CLOCKS_PER_SEC
+                 << " seconds.";
     }
   }
-  
+
   if (respondeCode >= 0) {
-    TMessage*  message = new TMessageWrapper(input->GetData(), input->GetSize());
+    TMessage* message = new TMessageWrapper(input->GetData(), input->GetSize());
     receivedDataObject = reinterpret_cast<TObject*>(message->ReadObject(message->GetClass()));
     delete message;
   } else {
@@ -243,24 +231,23 @@ TObject* MergerDevice::receiveDataObjectFromProducer()
 size_t MergerDevice::sendMergedObjectToViewer(TObject* dataObject)
 {
   int respondeCode;
-  TMessage * viewerMessage = createTMessageForViewer(dataObject);
-  unique_ptr<FairMQMessage> viewerRequest(fTransportFactory->CreateMessage(viewerMessage->Buffer(),
-                                                                           viewerMessage->BufferSize(),
-                                                                           deleteTMessage,
-                                                                           viewerMessage));
+  TMessage* viewerMessage = createTMessageForViewer(dataObject);
+  unique_ptr<FairMQMessage> viewerRequest(fTransportFactory->CreateMessage(
+    viewerMessage->Buffer(), viewerMessage->BufferSize(), deleteTMessage, viewerMessage));
   size_t messageSize = viewerRequest->GetSize();
   if ((respondeCode = fChannels.at("data-out").at(0).SendAsync(viewerRequest)) == -2) {
     if ((respondeCode = fChannels.at("data-out").at(0).SendAsync(viewerRequest)) == -2) {
       mLastSendBufferOverloadTime = clock();
       mSendBufferOverloaded = true;
-      LOG(DEBUG) <<"Buffer of data-out channel is full. Waiting for free buffer...";    
-    
+      LOG(DEBUG) << "Buffer of data-out channel is full. Waiting for free buffer...";
+
       while ((respondeCode = fChannels.at("data-out").at(0).SendAsync(viewerRequest)) == -2) {
         this_thread::sleep_for(chrono::milliseconds(10));
       }
 
       mSendBufferOverloaded = false;
-      LOG(DEBUG) << "Buffer was released after " << double(clock() - mLastSendBufferOverloadTime) / CLOCKS_PER_SEC << " seconds.";
+      LOG(DEBUG) << "Buffer was released after " << double(clock() - mLastSendBufferOverloadTime) / CLOCKS_PER_SEC
+                 << " seconds.";
     }
   }
 
@@ -307,7 +294,7 @@ string MergerDevice::calculateCpuUsage()
   auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(measureTime - lastCpuMeasuredTime).count();
   auto currentCpuClockTime = clock();
   auto elapsedCpuClockTics = currentCpuClockTime - lastCpuMeasuredValue;
-  
+
   lastCpuMeasuredTime = measureTime;
   lastCpuMeasuredValue = currentCpuClockTime;
 
@@ -319,7 +306,8 @@ string MergerDevice::calculateCpuUsage()
 double MergerDevice::calculateNumberOfMergedObjectsPerSecond()
 {
   auto measureTime = high_resolution_clock::now();
-  auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(measureTime - mLastNumberOfMergeObjectsTime).count();
+  auto elapsedTime =
+    std::chrono::duration_cast<std::chrono::microseconds>(measureTime - mLastNumberOfMergeObjectsTime).count();
 
   mLastNumberOfMergeObjectsTime = measureTime;
   double normalizeFactor = 1.0 / (elapsedTime / 1000000.0);
@@ -327,4 +315,6 @@ double MergerDevice::calculateNumberOfMergedObjectsPerSecond()
   mNumberOfMergedObjects = 0;
 
   return mergedObjectsPerSecond;
+}
+}
 }

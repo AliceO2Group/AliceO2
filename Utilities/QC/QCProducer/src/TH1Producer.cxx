@@ -2,10 +2,15 @@
 
 #include "QCProducer/TH1Producer.h"
 
-TH1Producer::TH1Producer(const char * histogramName, const char * histogramTitle, const int numberOfbins) : mBeansNumber(numberOfbins)
+namespace o2
 {
-	mHistogramName = histogramName;
-	mHistogramTitle = histogramTitle;
+namespace qc
+{
+TH1Producer::TH1Producer(const char* histogramName, const char* histogramTitle, const int numberOfbins)
+  : mBeansNumber(numberOfbins)
+{
+  mHistogramName = histogramName;
+  mHistogramTitle = histogramTitle;
 }
 
 TObject* TH1Producer::produceData() const
@@ -14,4 +19,6 @@ TObject* TH1Producer::produceData() const
   histogram->FillRandom("gaus", 1000);
 
   return histogram;
+}
+}
 }

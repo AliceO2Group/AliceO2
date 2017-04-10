@@ -6,6 +6,7 @@
 #include <boost/program_options/variables_map.hpp>
 
 namespace bpo = boost::program_options;
+using namespace o2::qc;
 
 int main(int argc, char* argv[])
 {
@@ -13,7 +14,7 @@ int main(int argc, char* argv[])
     std::cerr << "Invalid number of program arguments: " << argc << std::endl;
   }
 
-  const char * TEST_NAME = argv[1];
+  const char* TEST_NAME = argv[1];
 
   bpo::options_description options("ui-custom-cmd options");
   options.add_options()("help,h", "Produce help message");

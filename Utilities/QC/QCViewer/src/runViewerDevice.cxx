@@ -1,11 +1,11 @@
 #include <csignal>
 
-#include <TApplication.h>
 #include <FairMQLogger.h>
+#include <TApplication.h>
 
 #include "QCViewer/ViewerDevice.h"
 
-
+using namespace o2::qc;
 using namespace std;
 
 int main(int argc, char** argv)
@@ -16,11 +16,10 @@ int main(int argc, char** argv)
   }
   ViewerDevice viewerDevice("Viewer_1", 1, drawingOptions);
   viewerDevice.CatchSignals();
-  auto *app = new TApplication("app1", &argc, argv);
+  auto* app = new TApplication("app1", &argc, argv);
 
   LOG(INFO) << "PID: " << getpid();
-  LOG(INFO) << "Viewer id: "
-            << viewerDevice.GetProperty(ViewerDevice::Id, "default_id");
+  LOG(INFO) << "Viewer id: " << viewerDevice.GetProperty(ViewerDevice::Id, "default_id");
 
   viewerDevice.establishChannel("pull", "bind", "tcp://*:5004", "data-in");
   viewerDevice.executeRunLoop();
