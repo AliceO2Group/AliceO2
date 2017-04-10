@@ -46,7 +46,7 @@ IdPath::IdPath(const char *level0, const char *level1, const char *level2)
     mValid = kTRUE;
   } else {
     mValid = kFALSE;
-    LOG(ERROR) << "Invalid  Path \"" << level0 << "/" << level1 << "/" << level2 << "\"!" << FairLogger::endl;
+    LOG(ERROR) << R"(Invalid  Path ")" << level0 << "/" << level1 << "/" << level2 << R"("!)" << FairLogger::endl;
   }
 
   init();
@@ -122,7 +122,7 @@ void IdPath::InitPath()
   }
 
   if (!mValid) {
-    LOG(INFO) << "Invalid  Path \"" << mPath.Data() << "\"!" << FairLogger::endl;
+    LOG(INFO) << R"(Invalid  Path ")" << mPath.Data() << R"("!)" << FairLogger::endl;
   } else {
     mPath = Form("%s/%s/%s", mLevel0.Data(), mLevel1.Data(), mLevel2.Data());
   }
@@ -208,6 +208,6 @@ const char *IdPath::getLevel(Int_t i) const
       return mLevel2.Data();
       break;
     default:
-      return 0;
+      return nullptr;
   }
 }

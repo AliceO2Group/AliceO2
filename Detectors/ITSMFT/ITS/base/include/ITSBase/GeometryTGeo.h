@@ -484,13 +484,13 @@ inline void GeometryTGeo::setChipTypeName(Int_t i, const char* nm)
 /// Get segmentation by ID
  inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentationById(Int_t id) const
 {
-  return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(id) : 0;
+  return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(id) : nullptr;
 }
 
 /// Get segmentation of layer
  inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentation(Int_t lr) const
 {
-  return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(getLayerChipTypeId(lr)) : 0;
+  return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(getLayerChipTypeId(lr)) : nullptr;
 }
 }
 }

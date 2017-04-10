@@ -32,25 +32,25 @@ using std::endl;
 using std::cout;
 using std::string;
 
-ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), fCdbManager(o2::CDB::Manager::Instance()) {}
+ConditionsMQServer::ConditionsMQServer() : ParameterMQServer(), mCdbManager(o2::CDB::Manager::Instance()) {}
 
 void ConditionsMQServer::InitTask()
 {
   ParameterMQServer::InitTask();
   // Set first input
   if (GetProperty(FirstInputType, "") == "OCDB") {
-    fCdbManager->setDefaultStorage(GetProperty(FirstInputName, "").c_str());
+    mCdbManager->setDefaultStorage(GetProperty(FirstInputName, "").c_str());
   }
 
   // Set second input
   if (GetProperty(SecondInputType, "") == "OCDB") {
-    fCdbManager->setDefaultStorage(GetProperty(SecondInputName, "").c_str());
+    mCdbManager->setDefaultStorage(GetProperty(SecondInputName, "").c_str());
   }
 
   // Set output
   if (GetProperty(OutputName, "") != "") {
     if (GetProperty(OutputType, "") == "OCDB") {
-      fCdbManager->setDefaultStorage(GetProperty(OutputName, "").c_str());
+      mCdbManager->setDefaultStorage(GetProperty(OutputName, "").c_str());
     }
   }
 }
@@ -157,8 +157,8 @@ void ConditionsMQServer::getFromOCDB(std::string key)
 
   Condition* aCondition = nullptr;
 
-  fCdbManager->setRun(runId);
-  aCondition = fCdbManager->getObject(IdPath(identifier), runId);
+  mCdbManager->setRun(runId);
+  aCondition = mCdbManager->getObject(IdPath(identifier), runId);
 
   if (aCondition) {
     LOG(DEBUG) << "Sending following parameter to the client:";
@@ -171,8 +171,8 @@ void ConditionsMQServer::getFromOCDB(std::string key)
 
     fChannels.at("data-get").at(0).Send(message);
   } else {
-    LOG(ERROR) << "Could not get a condition for \"" << key << "\" and run " << runId << "!";
+    LOG(ERROR) << R"(Could not get a condition for ")" << key << R"(" and run )" << runId << "!";
   }
 }
 
-ConditionsMQServer::~ConditionsMQServer() { delete fCdbManager; }
+ConditionsMQServer::~ConditionsMQServer() { delete mCdbManager; }

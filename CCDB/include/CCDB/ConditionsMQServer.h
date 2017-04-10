@@ -27,7 +27,7 @@ public:
   void InitTask() override;
 
 private:
-  Manager* fCdbManager;
+  Manager* mCdbManager;
 
   void getFromOCDB(std::string key);
 
