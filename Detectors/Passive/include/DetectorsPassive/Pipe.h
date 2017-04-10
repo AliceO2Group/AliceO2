@@ -26,17 +26,17 @@ class Pipe : public FairModule {
     Pipe(const char * name, const char *Title="Alice Pipe");
     Pipe();
 
-    virtual ~Pipe();
-    virtual void ConstructGeometry();
+    ~Pipe() override;
+    void ConstructGeometry() override;
 
     /// Clone this object (used in MT mode only)
-    virtual FairModule* CloneModule() const;
+    FairModule* CloneModule() const override;
 
   private:
     Pipe(const Pipe& orig);
     Pipe& operator=(const Pipe&);
    
-  ClassDef(Pipe,1) //PIPE
+  ClassDefOverride(Pipe,1) //PIPE
 
 };
 }

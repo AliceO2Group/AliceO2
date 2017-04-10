@@ -35,14 +35,14 @@ public:
   static constexpr const char* OptionKeyPeriod = "period";
 
   HeartbeatSampler() = default;
-  virtual ~HeartbeatSampler() final = default;
+  ~HeartbeatSampler() final = default;
 
 protected:
   /// overloading the InitTask() method of FairMQDevice
-  virtual void InitTask() final;
+  void InitTask() final;
 
   /// overloading ConditionalRun method of FairMQDevice
-  virtual bool ConditionalRun() final;
+  bool ConditionalRun() final;
 
 private:
   /// publishing period (configurable)

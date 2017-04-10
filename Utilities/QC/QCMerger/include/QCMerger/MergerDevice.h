@@ -19,7 +19,7 @@ class MergerDevice : public FairMQDevice
 {
 public:
   MergerDevice(std::unique_ptr<Merger> merger, std::string producerId, int numIoThreads);
-  virtual ~MergerDevice();
+  ~MergerDevice() override;
 
   static void deleteTMessage(void* data, void* hint);
   void establishChannel(std::string type,
@@ -31,7 +31,7 @@ public:
   void executeRunLoop();
 
 protected:
-  virtual void Run() override;
+  void Run() override;
 
 private:
   void subscribeCustomCommands();

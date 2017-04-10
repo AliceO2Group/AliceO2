@@ -37,7 +37,7 @@ class FLPSyncSampler : public FairMQDevice
     FLPSyncSampler();
 
     /// Default destructor
-    virtual ~FLPSyncSampler();
+    ~FLPSyncSampler() override;
 
     /// Controls the send rate of the timeframe IDs
     void ResetEventCounter();
@@ -47,12 +47,12 @@ class FLPSyncSampler : public FairMQDevice
 
   protected:
     /// Overloads the InitTask() method of FairMQDevice
-    virtual void InitTask();
+    void InitTask() override;
 
     /// Overloads the Run() method of FairMQDevice
-    virtual bool ConditionalRun();
-    virtual void PreRun();
-    virtual void PostRun();
+    bool ConditionalRun() override;
+    void PreRun() override;
+    void PostRun() override;
 
     std::array<timeframeDuration, UINT16_MAX> mTimeframeRTT; ///< Container for the roundtrip values per timeframe ID
     int mEventRate; ///< Publishing rate of the timeframe IDs

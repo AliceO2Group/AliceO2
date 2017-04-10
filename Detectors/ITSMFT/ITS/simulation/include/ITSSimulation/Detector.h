@@ -59,25 +59,25 @@ class Detector : public o2::Base::Detector
     Detector();
 
     /// Default destructor
-    virtual ~Detector();
+    ~Detector() override;
 
     /// Initialization of the detector is done here
-    virtual void Initialize();
+    void Initialize() override;
 
     /// This method is called for each step during simulation (see FairMCApplication::Stepping())
-    virtual Bool_t ProcessHits(FairVolume *v = nullptr);
+    Bool_t ProcessHits(FairVolume *v = nullptr) override;
 
     /// Registers the produced collections in FAIRRootManager
-    virtual void Register();
+    void Register() override;
 
     /// Gets the produced collections
-    virtual TClonesArray *GetCollection(Int_t iColl) const;
+    TClonesArray *GetCollection(Int_t iColl) const override;
 
     /// Has to be called after each event to reset the containers
-    virtual void Reset();
+    void Reset() override;
 
     /// Base class to create the detector geometry
-    void ConstructGeometry();
+    void ConstructGeometry() override;
 
     /// Creates the Service Barrel (as a simple cylinder) for IB and OB
     /// \param innerBarrel if true, build IB service barrel, otherwise for OB
@@ -102,8 +102,8 @@ class Detector : public o2::Base::Detector
     /// \param dthick detector thickness (if omitted, defaults to 0)
     /// \param dettypeID ??
     /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-    virtual void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
-                             Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
+    void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+                             Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0) override;
 
     /// Sets the layer parameters for a "turbo" layer
     /// (i.e. a layer whose staves overlap in phi)
@@ -120,9 +120,9 @@ class Detector : public o2::Base::Detector
     /// \param dthick detector thickness (if omitted, defaults to 0)
     /// \param dettypeID ??
     /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-    virtual void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+    void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
                                   Double_t width, Double_t tilt, Double_t lthick = 0., Double_t dthick = 0.,
-                                  UInt_t detType = 0, Int_t buildFlag = 0);
+                                  UInt_t detType = 0, Int_t buildFlag = 0) override;
 
     /// Gets the layer parameters
     /// \param nlay layer number
@@ -147,27 +147,27 @@ class Detector : public o2::Base::Detector
 				   unsigned char startStatus, unsigned char endStatus);
 
     /// Book arrays for wrapper volumes
-    virtual void setNumberOfWrapperVolumes(Int_t n);
+    void setNumberOfWrapperVolumes(Int_t n) override;
 
     /// Set per wrapper volume parameters
-    virtual void defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan);
+    void defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan) override;
 
     // The following methods can be implemented if you need to make
     // any optional action in your detector during the transport
 
-    virtual void CopyClones(TClonesArray *cl1, TClonesArray *cl2, Int_t offset)
+    void CopyClones(TClonesArray *cl1, TClonesArray *cl2, Int_t offset) override
     {
       ;
     }
 
-    virtual void SetSpecialPhysicsCuts()
+    void SetSpecialPhysicsCuts() override
     {
       ;
     }
 
-    virtual void EndOfEvent();
+    void EndOfEvent() override;
 
-    virtual void FinishPrimary()
+    void FinishPrimary() override
     {
       ;
     }
@@ -177,22 +177,22 @@ class Detector : public o2::Base::Detector
       ;
     }
 
-    virtual void BeginPrimary()
+    void BeginPrimary() override
     {
       ;
     }
 
-    virtual void PostTrack()
+    void PostTrack() override
     {
       ;
     }
 
-    virtual void PreTrack()
+    void PreTrack() override
     {
       ;
     }
 
-    virtual void BeginEvent()
+    void BeginEvent() override
     {
       ;
     }
@@ -237,7 +237,7 @@ class Detector : public o2::Base::Detector
     }
 
     /// Clone this object (used in MT mode only)
-    virtual FairModule *CloneModule() const;
+    FairModule *CloneModule() const override;
 
     GeometryTGeo *mGeometryTGeo; //! access to geometry details
 
@@ -310,7 +310,7 @@ class Detector : public o2::Base::Detector
     Model mStaveModelInnerBarrel; //! The stave model for the Inner Barrel
     Model mStaveModelOuterBarrel; //! The stave model for the Outer Barrel
 
-  ClassDef(Detector, 1)
+  ClassDefOverride(Detector, 1)
 };
 
 // Input and output function for standard C++ input/output.

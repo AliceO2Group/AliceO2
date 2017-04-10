@@ -23,7 +23,7 @@ namespace o2 {
     public:
       SimuClusterShaper();
       SimuClusterShaper(const UInt_t &cs);
-      virtual ~SimuClusterShaper();
+      ~SimuClusterShaper() override;
       void FillClusterRandomly();
       void AddNoisePixel();
 
@@ -44,7 +44,7 @@ namespace o2 {
       UInt_t mNpixOn;
       ClusterShape *mCShape;
 
-      ClassDef(SimuClusterShaper,1)
+      ClassDefOverride(SimuClusterShaper,1)
     };
   }
 }

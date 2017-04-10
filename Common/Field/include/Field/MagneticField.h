@@ -58,7 +58,7 @@ class MagneticField : public FairField
     MagneticField &operator=(const MagneticField &src);
 
     /// Default destructor
-    virtual ~MagneticField() = default;
+    ~MagneticField() override = default;
 
     /// real field creation is here
     void CreateField();
@@ -66,33 +66,33 @@ class MagneticField : public FairField
     /// Virtual methods from FairField
 
     /// X component, avoid using since slow
-    virtual Double_t GetBx(Double_t x, Double_t y, Double_t z) {
+    Double_t GetBx(Double_t x, Double_t y, Double_t z) override {
       double xyz[3]={x,y,z},b[3];
       GetFieldValue(xyz,b);
       return b[0];
     } 
 
     /// Y component, avoid using since slow
-    virtual Double_t GetBy(Double_t x, Double_t y, Double_t z) {
+    Double_t GetBy(Double_t x, Double_t y, Double_t z) override {
       double xyz[3]={x,y,z},b[3];
       GetFieldValue(xyz,b);
       return b[1];
     }
 
     /// Z component
-    virtual Double_t GetBz(Double_t x, Double_t y, Double_t z) {
+    Double_t GetBz(Double_t x, Double_t y, Double_t z) override {
       double xyz[3]={x,y,z};
       return getBz(xyz); 
     } 
 
     /// Method to calculate the field at point xyz
-    virtual void GetFieldValue(const Double_t point[3], Double_t* bField);
+    void GetFieldValue(const Double_t point[3], Double_t* bField) override;
 
     /// 3d field query alias for Alias Method to calculate the field at point xyz
-    virtual void GetBxyz(const Double_t p[3], Double_t* b) {Field(p,b);}
+    void GetBxyz(const Double_t p[3], Double_t* b) override {Field(p,b);}
 
     /// Fill Paramater
-    virtual void FillParContainer();
+    void FillParContainer() override;
     
     /// Method to calculate the integral_0^z of br,bt,bz
     void getTPCIntegral(const Double_t *xyz, Double_t *b) const;
@@ -207,7 +207,7 @@ class MagneticField : public FairField
     }
 
     /// Prints short or long info
-    virtual void Print(Option_t *opt) const;
+    void Print(Option_t *opt) const override;
 
     Bool_t loadParameterization();
 
@@ -274,7 +274,7 @@ class MagneticField : public FairField
 
 
     
-    ClassDef(o2::Field::MagneticField,
+    ClassDefOverride(o2::Field::MagneticField,
     3) // Class for all Alice MagField wrapper for measured data + Tosca parameterization
 };
 }

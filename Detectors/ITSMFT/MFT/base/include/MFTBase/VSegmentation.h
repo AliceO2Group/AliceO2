@@ -22,7 +22,7 @@ public:
   VSegmentation();
   VSegmentation(const VSegmentation& input);
 
-  virtual ~VSegmentation()= default;
+  ~VSegmentation() override = default;
   
   /// Set Position of the Element. Unit is [cm]
   void SetPosition(const Double_t *pos){
@@ -54,7 +54,7 @@ private:
                                     /// angle phi, then a rotation with theta about the rotated X axis, and
                                     /// finally a rotation with psi about the new Z axis.
   
-  ClassDef(VSegmentation, 1);
+  ClassDefOverride(VSegmentation, 1);
 
 };
 

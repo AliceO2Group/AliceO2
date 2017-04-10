@@ -51,7 +51,7 @@ class V1Layer : public V11Geometry
     V1Layer &operator=(const V1Layer &source);
 
     /// Default destructor
-    virtual ~V1Layer();
+    ~V1Layer() override;
 
     Bool_t isTurbo() const
     {
@@ -397,7 +397,7 @@ class V1Layer : public V11Geometry
     static const Double_t sOBSFBotBeamAngle;    ///< OB SF bottom beam angle
     static const Double_t sOBSFrameBeamSidePhi; ///< OB SF side beam angle
 
-  ClassDef(V1Layer, 0) // ITS v1 geometry
+  ClassDefOverride(V1Layer, 0) // ITS v1 geometry
 };
 }
 }

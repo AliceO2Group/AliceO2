@@ -46,7 +46,7 @@ class DigitMC : public FairTimeStamp, public Digit {
     DigitMC(std::vector<long> &MClabel, int cru, float charge, int row, int pad, int time, float commonMode = 0.f);
 
     /// Destructor
-    virtual ~DigitMC()= default;
+    ~DigitMC() override = default;
 
     /// Get the timeBin of the DigitMC
     /// \return timeBin of the DigitMC
@@ -78,7 +78,7 @@ class DigitMC : public FairTimeStamp, public Digit {
     std::vector<long>       mMClabel;         ///< MC Event ID and track ID encoded in a long
     float                   mCommonMode;      ///< Common mode value of the DigitMC
       
-  ClassDef(DigitMC, 3);
+  ClassDefOverride(DigitMC, 3);
 };
 
 inline

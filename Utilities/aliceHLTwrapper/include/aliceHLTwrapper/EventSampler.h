@@ -36,29 +36,29 @@ public:
   /// default constructor
   EventSampler(int verbosity=0);
   /// destructor
-  ~EventSampler();
+  ~EventSampler() override;
 
   /////////////////////////////////////////////////////////////////
   // the FairMQDevice interface
 
   /// inherited from FairMQDevice
-  virtual void Init();
+  void Init() override;
   /// inherited from FairMQDevice
-  virtual void Run();
+  void Run() override;
   /// inherited from FairMQDevice
-  virtual void Pause();
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  virtual void SetProperty(const int key, const std::string& value);
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  virtual std::string GetProperty(const int key, const std::string& default_ = "");
+  void Pause() override;
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::SetProperty
-  virtual void SetProperty(const int key, const int value);
+  void SetProperty(const int key, const std::string& value) override;
   /// inherited from FairMQDevice
   /// handle device specific properties and forward to FairMQDevice::GetProperty
-  virtual int GetProperty(const int key, const int default_ = 0);
+  std::string GetProperty(const int key, const std::string& default_ = "") override;
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::SetProperty
+  void SetProperty(const int key, const int value) override;
+  /// inherited from FairMQDevice
+  /// handle device specific properties and forward to FairMQDevice::GetProperty
+  int GetProperty(const int key, const int default_ = 0) override;
 
   /// sampler loop started in a separate thread
   void samplerLoop();

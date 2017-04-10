@@ -37,7 +37,7 @@ class HwCluster : public Cluster {
         float** clusterData, short maxPad, short maxTime);
 
     /// Destructor
-    ~HwCluster() = default;
+    ~HwCluster() override = default;
 
     /// Copy Constructor
     /// \param other HwCluster to be copied
@@ -78,7 +78,7 @@ class HwCluster : public Cluster {
 
     std::vector<std::vector<float>> mClusterData;  ///< CLuster data
 
-    ClassDef(HwCluster, 1);
+    ClassDefOverride(HwCluster, 1);
   };
 }
 }

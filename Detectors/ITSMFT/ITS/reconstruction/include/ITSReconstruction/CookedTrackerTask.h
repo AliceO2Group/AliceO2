@@ -20,10 +20,10 @@ class CookedTrackerTask : public FairTask
 {
  public:
   CookedTrackerTask(Int_t nThreads=1);
-  virtual ~CookedTrackerTask();
+  ~CookedTrackerTask() override;
 
-  virtual InitStatus Init();
-  virtual void Exec(Option_t* option);
+  InitStatus Init() override;
+  void Exec(Option_t* option) override;
   void setBz(Double_t bz) { mTracker.setBz(bz); }
 
  private:
@@ -34,7 +34,7 @@ class CookedTrackerTask : public FairTask
   const TClonesArray* mClustersArray;   ///< Array of clusters
   TClonesArray* mTracksArray; ///< Array of tracks
 
-  ClassDef(CookedTrackerTask, 1)
+  ClassDefOverride(CookedTrackerTask, 1)
 };
 }
 }

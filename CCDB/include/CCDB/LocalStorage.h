@@ -23,32 +23,32 @@ class LocalStorage : public Storage
     friend class LocalStorageFactory;
 
   public:
-    virtual Bool_t isReadOnly() const
+    Bool_t isReadOnly() const override
     {
       return kFALSE;
     };
 
-    virtual Bool_t hasSubVersion() const
+    Bool_t hasSubVersion() const override
     {
       return kTRUE;
     };
 
-    virtual Bool_t hasConditionType(const char *path) const;
+    Bool_t hasConditionType(const char *path) const override;
 
-    virtual Bool_t idToFilename(const ConditionId &id, TString &filename) const;
+    Bool_t idToFilename(const ConditionId &id, TString &filename) const override;
 
-    virtual void setRetry(Int_t /* nretry */, Int_t /* initsec */);
+    void setRetry(Int_t /* nretry */, Int_t /* initsec */) override;
 
   protected:
-    virtual Condition *getCondition(const ConditionId &queryId);
+    Condition *getCondition(const ConditionId &queryId) override;
 
-    virtual ConditionId *getConditionId(const ConditionId &queryId);
+    ConditionId *getConditionId(const ConditionId &queryId) override;
 
-    virtual TList *getAllEntries(const ConditionId &queryId);
+    TList *getAllEntries(const ConditionId &queryId) override;
 
-    virtual Bool_t putCondition(Condition *entry, const char *mirrors = "");
+    Bool_t putCondition(Condition *entry, const char *mirrors = "") override;
 
-    virtual TList *getIdListFromFile(const char *fileName);
+    TList *getIdListFromFile(const char *fileName) override;
 
   private:
     LocalStorage(const LocalStorage &source);
@@ -57,7 +57,7 @@ class LocalStorage : public Storage
 
     LocalStorage(const char *baseDir);
 
-    virtual ~LocalStorage();
+    ~LocalStorage() override;
 
     Bool_t filenameToId(const char *filename, IdRunRange &runRange, Int_t &version, Int_t &subVersion);
 
@@ -66,7 +66,7 @@ class LocalStorage : public Storage
     //	Bool_t getId(const  ConditionId& query,  ConditionId& result);
     ConditionId *getId(const ConditionId &query);
 
-    virtual void queryValidFiles();
+    void queryValidFiles() override;
 
     void queryValidCVMFSFiles(TString &cvmfsOcdbTag);
 
@@ -76,21 +76,21 @@ class LocalStorage : public Storage
 
     TString mBaseDirectory; // path of the DB folder
 
-  ClassDef(LocalStorage, 0) // access class to a DataBase in a local storage
+  ClassDefOverride(LocalStorage, 0) // access class to a DataBase in a local storage
 };
 
 //  class  LocalStorageFactory
 class LocalStorageFactory : public StorageFactory
 {
   public:
-    virtual Bool_t validateStorageUri(const char *dbString);
+    Bool_t validateStorageUri(const char *dbString) override;
 
-    virtual StorageParameters *createStorageParameter(const char *dbString);
+    StorageParameters *createStorageParameter(const char *dbString) override;
 
   protected:
-    virtual Storage *createStorage(const StorageParameters *param);
+    Storage *createStorage(const StorageParameters *param) override;
 
-  ClassDef(LocalStorageFactory, 0)
+  ClassDefOverride(LocalStorageFactory, 0)
 };
 
 //  class  LocalStorageParameters
@@ -103,14 +103,14 @@ class LocalStorageParameters : public StorageParameters
 
     LocalStorageParameters(const char *dbPath, const char *uri);
 
-    virtual ~LocalStorageParameters();
+    ~LocalStorageParameters() override;
 
     const TString &getPathString() const
     {
       return mDBPath;
     };
 
-    virtual StorageParameters *cloneParam() const;
+    StorageParameters *cloneParam() const override;
 
     virtual ULong_t getHash() const;
 
@@ -118,7 +118,7 @@ class LocalStorageParameters : public StorageParameters
 
   private:
     TString mDBPath; // path of the DB folder
-  ClassDef(LocalStorageParameters, 0)
+  ClassDefOverride(LocalStorageParameters, 0)
 };
 }
 }

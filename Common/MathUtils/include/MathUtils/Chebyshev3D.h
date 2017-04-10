@@ -111,7 +111,7 @@ class Chebyshev3D : public TNamed
                 Bool_t run = kTRUE, const Float_t* precD=nullptr);
 #endif
 
-    ~Chebyshev3D()
+    ~Chebyshev3D() override
     {
       Clear();
     }
@@ -138,7 +138,7 @@ class Chebyshev3D : public TNamed
 
     void evaluateDerivative3D2(const Float_t *par, Float_t dbdrdr[3][3][3]);
 
-    void Print(const Option_t *opt = "") const;
+    void Print(const Option_t *opt = "") const override;
 
     Bool_t isInside(const Float_t *par) const;
 
@@ -195,7 +195,7 @@ class Chebyshev3D : public TNamed
 #endif
 
   protected:
-    void Clear(const Option_t *option = "");
+    void Clear(const Option_t *option = "") override;
 
     void setDimOut(const int d, const float *prec = nullptr);
 
@@ -244,7 +244,7 @@ class Chebyshev3D : public TNamed
 
     static const Float_t sMinimumPrecision; ///< minimum precision allowed
 
-    ClassDef(o2::MathUtils::Chebyshev3D,
+    ClassDefOverride(o2::MathUtils::Chebyshev3D,
     2) // Chebyshev parametrization for 3D->N function
 };
 

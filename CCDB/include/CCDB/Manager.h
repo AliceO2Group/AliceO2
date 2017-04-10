@@ -191,7 +191,7 @@ class Manager : public TObject
 
     static void destroy();
 
-    ~Manager();
+    ~Manager() override;
 
     void clearCache();
 
@@ -306,7 +306,7 @@ class Manager : public TObject
   private:
     ULong64_t mKey; //! Key for locking/unlocking
 
-  ClassDef(Manager, 0)
+  ClassDefOverride(Manager, 0)
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -322,8 +322,8 @@ class StorageFactory : public TObject
     friend class Manager;
 
   public:
-    virtual ~StorageFactory()
-    = default;
+    ~StorageFactory()
+    override = default;
 
     virtual Bool_t validateStorageUri(const char *dbString) = 0;
 
@@ -332,7 +332,7 @@ class StorageFactory : public TObject
   protected:
     virtual Storage *createStorage(const StorageParameters *param) = 0;
 
-  ClassDef(StorageFactory, 0)
+  ClassDefOverride(StorageFactory, 0)
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -347,7 +347,7 @@ class StorageParameters : public TObject
   public:
     StorageParameters();
 
-    virtual ~StorageParameters();
+    ~StorageParameters() override;
 
     const TString &getStorageType() const
     {
@@ -376,7 +376,7 @@ class StorageParameters : public TObject
     TString mType; //! CDB type
     TString mURI;  //! CDB URI
 
-  ClassDef(StorageParameters, 0)
+  ClassDefOverride(StorageParameters, 0)
 };
 
 }

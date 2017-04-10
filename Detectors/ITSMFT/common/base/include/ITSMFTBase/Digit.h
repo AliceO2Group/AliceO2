@@ -41,7 +41,7 @@ class Digit : public FairTimeStamp
   Digit(UShort_t chipindex, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
 
   /// Destructor
-  virtual ~Digit();
+  ~Digit() override;
 
   /// Addition operator
   /// Adds the charge of 2 digits
@@ -90,7 +90,7 @@ class Digit : public FairTimeStamp
   /// Comparison is done based on the chip index and pixel index
   /// @param other The digit to compare with
   /// @return True if digits are equal, false otherwise
-  virtual bool equal(FairTimeStamp* other)
+  bool equal(FairTimeStamp* other) override
   {
     Digit* mydigi = dynamic_cast<Digit*>(other);
     if (mydigi) {
@@ -159,7 +159,7 @@ class Digit : public FairTimeStamp
   Double_t mCharge;    ///< Accumulated charge
   Int_t mLabels[3];    ///< Particle labels associated to this digit
 
-  ClassDef(Digit, 2);
+  ClassDefOverride(Digit, 2);
 };
 }
 }

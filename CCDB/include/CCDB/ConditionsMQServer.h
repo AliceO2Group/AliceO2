@@ -20,11 +20,11 @@ class ConditionsMQServer : public ParameterMQServer {
 public:
   ConditionsMQServer();
 
-  virtual ~ConditionsMQServer();
+  ~ConditionsMQServer() override;
 
-  virtual void Run();
+  void Run() override;
 
-  virtual void InitTask();
+  void InitTask() override;
 
 private:
   Manager* fCdbManager;

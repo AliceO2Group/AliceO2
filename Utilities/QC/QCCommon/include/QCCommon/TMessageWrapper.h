@@ -11,5 +11,5 @@ public:
         ResetBit(kIsOwner);
     }
 
-    virtual ~TMessageWrapper() = default;
+    ~TMessageWrapper() override = default;
 };

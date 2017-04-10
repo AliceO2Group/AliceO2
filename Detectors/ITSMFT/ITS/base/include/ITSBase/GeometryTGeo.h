@@ -57,7 +57,7 @@ class GeometryTGeo : public TObject
   GeometryTGeo(Bool_t build = kFALSE, Bool_t loadSegmentationsentations = kTRUE);
 
   /// Default destructor
-  virtual ~GeometryTGeo();
+  ~GeometryTGeo() override;
 
   GeometryTGeo(const GeometryTGeo& src);
 
@@ -220,7 +220,7 @@ class GeometryTGeo : public TObject
   const o2::ITSMFT::Segmentation* getSegmentation(Int_t lr) const;
 
   TObjArray* getSegmentations() const { return (TObjArray*)mSegmentations; }
-  virtual void Print(Option_t* opt = "") const;
+  void Print(Option_t* opt = "") const override;
 
   static UInt_t getUIDShift() { return mUIDShift; }
   static void setUIDShift(UInt_t s = 16) { mUIDShift = s < 16 ? s : 16; }
@@ -356,7 +356,7 @@ class GeometryTGeo : public TObject
 
   static TString mSegmentationFileName; ///< file name for segmentations
 
-  ClassDef(GeometryTGeo, 1) // ITS geometry based on TGeo
+  ClassDefOverride(GeometryTGeo, 1) // ITS geometry based on TGeo
 };
 
 /// Returns ymbolic name

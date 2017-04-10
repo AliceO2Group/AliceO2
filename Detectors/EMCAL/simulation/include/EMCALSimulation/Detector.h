@@ -25,20 +25,20 @@ namespace o2 {
       
       Detector(const char* Name, Bool_t Active);
       
-      virtual ~Detector() = default;
+      ~Detector() override = default;
       
-      virtual void   Initialize() final;
+      void   Initialize() final;
       
-      virtual Bool_t ProcessHits( FairVolume* v=nullptr) final;
+      Bool_t ProcessHits( FairVolume* v=nullptr) final;
       
       Point *AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy,
                     Int_t detID, const Point3D<float> &pos, const Vector3D<float> &mom, Double_t time, Double_t length);
       
-      virtual void   Register();
+      void   Register() override;
       
-      virtual TClonesArray* GetCollection(Int_t iColl) const final;
+      TClonesArray* GetCollection(Int_t iColl) const final;
       
-      virtual void   Reset() final;
+      void   Reset() final;
       
     protected:
       
@@ -48,7 +48,7 @@ namespace o2 {
     
       TClonesArray        *mPointCollection;            ///< Collection of EMCAL points
       
-      ClassDef(Detector, 1)
+      ClassDefOverride(Detector, 1)
     };
   }
 }

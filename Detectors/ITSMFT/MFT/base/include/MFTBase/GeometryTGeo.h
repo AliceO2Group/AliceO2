@@ -17,7 +17,7 @@ class GeometryTGeo : public TObject {
 public:
 
   GeometryTGeo();
-  ~GeometryTGeo();
+  ~GeometryTGeo() override;
 
   /// The number of disks
   Int_t GetNofDisks() const { return mNDisks; }
@@ -47,7 +47,7 @@ private:
   static TString sLadderName;      ///< \brief MFT-ladder prefix
   static TString sSensorName;      ///< \brief MFT-sensor (chip) prefix
 
-  ClassDef(GeometryTGeo, 1) // MFT geometry based on TGeo
+  ClassDefOverride(GeometryTGeo, 1) // MFT geometry based on TGeo
 
 };
 

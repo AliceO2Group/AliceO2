@@ -41,7 +41,7 @@ public:
   DataPublisherDevice();
 
   /// Default destructor
-  virtual ~DataPublisherDevice() final;
+  ~DataPublisherDevice() final;
 
 protected:
   /// overloading the InitTask() method of FairMQDevice

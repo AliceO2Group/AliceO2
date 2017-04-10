@@ -19,7 +19,7 @@ public:
 
   Flex();
   Flex(LadderSegmentation *ladder);
-  virtual ~Flex();
+  ~Flex() override;
   TGeoVolumeAssembly*  MakeFlex(Int_t nbsensors, Double_t length);
   void Make_ElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, Double_t length, Double_t zvarnish);
 
@@ -34,7 +34,7 @@ private:
   Double_t *mFlexOrigin;
   LadderSegmentation * mLadderSeg;
 
-  ClassDef(Flex,1)
+  ClassDefOverride(Flex,1)
 
 };
 

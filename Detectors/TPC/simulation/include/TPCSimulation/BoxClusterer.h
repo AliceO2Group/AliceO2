@@ -23,12 +23,12 @@ namespace o2{
       
       // Should this really be a public member?
       // Maybe better to just call by process
-      void Init();
+      void Init() override;
       
       /// Steer conversion of points to digits
       /// @param digits Container with TPC digits
       /// @return Container with clusters
-      ClusterContainer* Process(TClonesArray *digits);
+      ClusterContainer* Process(TClonesArray *digits) override;
       
     private:
       // To be done
@@ -56,7 +56,7 @@ namespace o2{
       Int_t**   mAllSigBins;   //!<! Array of pointers to the indexes over threshold
       Int_t*    mAllNSigBins;  //!<! Array with number of signals in each row
       
-      ClassDef(BoxClusterer, 1);
+      ClassDefNV(BoxClusterer, 1);
     };
   }
 }

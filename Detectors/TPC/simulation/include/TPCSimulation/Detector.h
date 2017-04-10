@@ -36,28 +36,28 @@ class Detector: public o2::Base::Detector {
     Detector();
 
     /**       destructor     */
-    virtual ~Detector();
+    ~Detector() override;
 
     /**      Initialization of the detector is done here    */
-    virtual void   Initialize();
+    void   Initialize() override;
 
     /**       this method is called for each step during simulation
      *       (see FairMCApplication::Stepping())
     */
 //     virtual Bool_t ProcessHitsOrig( FairVolume* v=0);
-    virtual Bool_t ProcessHits( FairVolume* v=nullptr);
+    Bool_t ProcessHits( FairVolume* v=nullptr) override;
 
     /**       Registers the produced collections in FAIRRootManager.     */
-    virtual void   Register();
+    void   Register() override;
 
     /** Gets the produced collections */
-    virtual TClonesArray* GetCollection(Int_t iColl) const ;
+    TClonesArray* GetCollection(Int_t iColl) const override ;
 
     /**      has to be called after each event to reset the containers      */
-    virtual void   Reset();
+    void   Reset() override;
 
     /**      Create the detector geometry        */
-    void ConstructGeometry();
+    void ConstructGeometry() override;
 
     /**      This method is an example of how to add your own point
      *       of type DetectorPoint to the clones array
@@ -86,16 +86,16 @@ class Detector: public o2::Base::Detector {
      *  any optional action in your detector during the transport.
     */
 
-    virtual void   CopyClones( TClonesArray* cl1,  TClonesArray* cl2 ,
-                               Int_t offset) {;}
-    virtual void   SetSpecialPhysicsCuts();// {;}
-    virtual void   EndOfEvent();
-    virtual void   FinishPrimary() {;}
-    virtual void   FinishRun() {;}
-    virtual void   BeginPrimary() {;}
-    virtual void   PostTrack() {;}
-    virtual void   PreTrack() {;}
-    virtual void   BeginEvent() {;}
+    void   CopyClones( TClonesArray* cl1,  TClonesArray* cl2 ,
+                               Int_t offset) override {;}
+    void   SetSpecialPhysicsCuts() override;// {;}
+    void   EndOfEvent() override;
+    void   FinishPrimary() override {;}
+    void   FinishRun() override {;}
+    void   BeginPrimary() override {;}
+    void   PostTrack() override {;}
+    void   PreTrack() override {;}
+    void   BeginEvent() override {;}
 
     void SetGeoFileName(const TString file) { mGeoFileName=file;   }
     const TString& GetGeoFileName() const   { return mGeoFileName; }
@@ -125,7 +125,7 @@ class Detector: public o2::Base::Detector {
     Detector(const Detector&);
     Detector& operator=(const Detector&);
 
-    ClassDef(Detector,1)
+    ClassDefOverride(Detector,1)
 };
 
 inline

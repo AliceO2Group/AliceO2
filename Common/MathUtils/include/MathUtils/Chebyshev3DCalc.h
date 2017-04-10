@@ -36,7 +36,7 @@ class Chebyshev3DCalc : public TNamed
     Chebyshev3DCalc(FILE *stream);
 
     /// Default destructor
-    ~Chebyshev3DCalc()
+    ~Chebyshev3DCalc() override
     {
       Clear();
     }
@@ -45,7 +45,7 @@ class Chebyshev3DCalc : public TNamed
     Chebyshev3DCalc &operator=(const Chebyshev3DCalc &rhs);
 
     /// Prints info
-    void Print(const Option_t *opt = "") const;
+    void Print(const Option_t *opt = "") const override;
 
     /// Loads coefficients from the stream
     void loadData(FILE *stream);
@@ -133,7 +133,7 @@ class Chebyshev3DCalc : public TNamed
     }
 
     /// Deletes all dynamically allocated structures
-    void Clear(const Option_t *option = "");
+    void Clear(const Option_t *option = "") override;
 
     static Float_t chebyshevEvaluation1D(Float_t x, const Float_t *array, int ncf);
 
@@ -179,7 +179,7 @@ class Chebyshev3DCalc : public TNamed
     Float_t *mTemporaryCoefficients2D; //[mNumberOfColumns] temp. coeffs for 2d summation
     Float_t *mTemporaryCoefficients1D; //[mNumberOfRows] temp. coeffs for 1d summation
 
-    ClassDef(o2::MathUtils::Chebyshev3DCalc,
+    ClassDefOverride(o2::MathUtils::Chebyshev3DCalc,
     2) // Class for interpolation of 3D->1 function by Chebyshev parametrization
 };
 

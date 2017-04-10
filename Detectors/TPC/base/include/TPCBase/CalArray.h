@@ -67,7 +67,7 @@ private:
   PadSubset mPadSubset;       ///< Subset type
   int       mPadSubsetNumber; ///< Number of the pad subset, e.g. ROC 0 is IROC A00
 
-  //ClassDef(CalArray, 1);
+  //ClassDefOverride(CalArray, 1);
 };
 
 // ===| pad region etc. initialisation |========================================

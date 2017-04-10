@@ -34,7 +34,7 @@ class SensMap : public TObject
   SensMap(const SensMap& source);
   SensMap& operator=(const SensMap& source);
 
-  virtual ~SensMap();
+  ~SensMap() override;
 
   void clear(Option_t* option = "");
   void deleteItem(UInt_t col, UInt_t row, Int_t cycle);
@@ -85,7 +85,7 @@ class SensMap : public TObject
   //
   Bool_t isSortable() const { return kTRUE; }
   Bool_t isEqual(const TObject* obj) const { return GetUniqueID() == obj->GetUniqueID(); }
-  Int_t Compare(const TObject* obj) const
+  Int_t Compare(const TObject* obj) const override
   {
     return (GetUniqueID() < obj->GetUniqueID()) ? -1 : ((GetUniqueID() > obj->GetUniqueID()) ? 1 : 0);
   }
@@ -111,7 +111,7 @@ class SensMap : public TObject
   TClonesArray* mItems; ///< pListItems array
   TBtree* mBTree;       ///< tree for ordered access
   //
-  ClassDef(SensMap, 1) ///< list of sensor signals (should be sortable objects)
+  ClassDefOverride(SensMap, 1) ///< list of sensor signals (should be sortable objects)
 };
 
 //______________________________________________________________________

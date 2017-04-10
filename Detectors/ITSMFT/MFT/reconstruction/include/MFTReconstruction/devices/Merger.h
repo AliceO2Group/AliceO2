@@ -23,13 +23,13 @@ class Merger : public FairMQDevice
  public:
 
   Merger();
-  virtual ~Merger();
+  ~Merger() override;
   
   void SetNofParts(int iparts) { mNofParts = iparts; }
   
  protected:
 
-  virtual void Init();
+  void Init() override;
   bool MergeData(FairMQParts&, int);
   
  private:

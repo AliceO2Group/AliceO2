@@ -55,12 +55,12 @@ class Chip : public TObject
         { }
 
         /// Destructor
-	virtual ~IndexException() throw() {}
+	~IndexException() throw() override {}
 
         /// Build error message
         /// The error message contains the indices stored in the chip and in the hit
         /// @return Error message connected to this exception
-        const char *what() const throw()
+        const char *what() const throw() override
         {
           std::stringstream message;
           message << "Chip ID " << mDetIdHit << " from hit different compared to this ID " << mDetIdChip;
@@ -118,11 +118,11 @@ class Chip : public TObject
     Bool_t operator<(const Chip &other) const;
 
     /// Destructor
-    virtual ~Chip();
+    ~Chip() override;
 
     /// Empties the point container
     /// @param option unused
-    virtual void Clear(Option_t *opt = "");
+    void Clear(Option_t *opt = "") override;
 
     /// Change the chip index
     /// @param index New chip index
@@ -214,7 +214,7 @@ class Chip : public TObject
     std::vector<const Point *>mPoints;        ///< Hits connnected to the given chip
     const TGeoHMatrix *mMat;     ///< Transformation matrix
 
-  ClassDef(Chip, 2);
+  ClassDefOverride(Chip, 2);
 };
 }
 }

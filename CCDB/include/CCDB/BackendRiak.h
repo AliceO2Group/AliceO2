@@ -24,13 +24,13 @@ private:
 
 public:
   BackendRiak();
-  virtual ~BackendRiak()= default;
+  ~BackendRiak() override = default;
 
   /// Compresses and serializes an object prior to transmission to server
-  void Pack(const std::string& path, const std::string& key, std::string*& messageString);
+  void Pack(const std::string& path, const std::string& key, std::string*& messageString) override;
 
   /// Deserializes and uncompresses an incoming message from the CCDB server
-  void UnPack(std::unique_ptr<FairMQMessage> msg);
+  void UnPack(std::unique_ptr<FairMQMessage> msg) override;
 };
 }
 }

@@ -20,7 +20,7 @@ class HeatExchanger : public TNamed {
   HeatExchanger();
   HeatExchanger(Double_t Rwater, Double_t DRPipe, Double_t HeatExchangerThickness, Double_t CarbonThickness);
   
-  virtual ~HeatExchanger() = default;
+  ~HeatExchanger() override = default;
   
   TGeoVolumeAssembly* Create(Int_t kHalf, Int_t disk);
 
@@ -108,7 +108,7 @@ class HeatExchanger : public TNamed {
   Double_t mAngle4fifth[4]; // angle of torus for fifth pipe of disk 4
   Double_t mRadius4fifth[4]; // radius of torus for fifth pipe of disk 4
 
-  ClassDef(HeatExchanger, 2);
+  ClassDefOverride(HeatExchanger, 2);
 
 };
 

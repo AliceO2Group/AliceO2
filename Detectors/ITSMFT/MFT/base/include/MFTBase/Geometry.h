@@ -66,7 +66,7 @@ class Geometry : public TNamed {
 
   static Geometry* Instance();
 
-  virtual ~Geometry();
+  ~Geometry() override;
 
   void Build();
   
@@ -111,7 +111,7 @@ private:
   Segmentation*    mSegmentation; ///< \brief Segmentation of the detector
   Int_t mSensorVolumeID; ///< \brief ID of the volume describing the CMOS Sensor
 
-  ClassDef(Geometry, 1)
+  ClassDefOverride(Geometry, 1)
 
 };
 

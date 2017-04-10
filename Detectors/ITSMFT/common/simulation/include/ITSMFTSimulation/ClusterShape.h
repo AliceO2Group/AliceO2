@@ -24,7 +24,7 @@ namespace o2 {
       ClusterShape();
       ClusterShape(UInt_t, UInt_t);
       ClusterShape(UInt_t, UInt_t, const std::vector<UInt_t>&);
-      virtual ~ClusterShape();
+      ~ClusterShape() override;
 
       // Set the number of rows
       inline void SetNRows(UInt_t Nrows) {mNrows = Nrows;}
@@ -101,7 +101,7 @@ namespace o2 {
       UInt_t  mNcols;
       std::vector<UInt_t> mShape;
 
-      ClassDef(ClusterShape,1)
+      ClassDefOverride(ClusterShape,1)
     };
   }
 }

@@ -17,7 +17,7 @@ class EventHeader : public FairEventHeader
  public:
   
   EventHeader();
-  virtual ~EventHeader();
+  ~EventHeader() override;
 
   void  SetPartNo(Int_t ipart) { mPartNo = ipart;}
   Int_t GetPartNo()            { return mPartNo; }
@@ -36,7 +36,7 @@ class EventHeader : public FairEventHeader
   friend class boost::serialization::access;
 #endif // for BOOST serialization
   
-  ClassDef(EventHeader, 1);
+  ClassDefOverride(EventHeader, 1);
 
 };
 

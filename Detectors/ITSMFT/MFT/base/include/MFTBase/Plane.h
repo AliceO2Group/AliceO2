@@ -25,8 +25,8 @@ public:
   Plane(const Plane& pt);
   Plane& operator=(const Plane &source);
   
-  virtual ~Plane();  // destructor
-  virtual void Clear(const Option_t* /*opt*/);
+  ~Plane() override;  // destructor
+  void Clear(const Option_t* /*opt*/) override;
   
   Bool_t Init(Int_t    planeNumber,
 	      Double_t zCenter, 
@@ -86,7 +86,7 @@ private:
 
   Bool_t mHasPixelRectangularPatternAlongY, mPlaneIsOdd;
 
-  ClassDef(Plane, 1)
+  ClassDefOverride(Plane, 1)
 
 };
 

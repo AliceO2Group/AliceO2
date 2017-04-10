@@ -23,8 +23,8 @@ public:
   Segmentation();
   Segmentation(const Char_t *nameGeomFile);
   
-  virtual ~Segmentation();
-  virtual void Clear(const Option_t* /*opt*/);
+  ~Segmentation() override;
+  void Clear(const Option_t* /*opt*/) override;
 
   /// \brief Returns pointer to the segmentation of the half-MFT
   /// \param iHalf Integer : 0 = Bottom; 1 = Top
@@ -40,7 +40,7 @@ private:
 
   TClonesArray *mHalves; ///< \brief Array of pointer to HalfSegmentation
 
-  ClassDef(Segmentation, 1);
+  ClassDefOverride(Segmentation, 1);
   
 };
 

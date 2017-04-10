@@ -22,13 +22,13 @@ class FindTracks : public FairTask
 
   FindTracks();
   FindTracks(Int_t iVerbose);
-  virtual ~FindTracks();
+  ~FindTracks() override;
 
   void Reset();
 
-  virtual InitStatus Init();
-  virtual InitStatus ReInit();
-  virtual void Exec(Option_t* opt);
+  InitStatus Init() override;
+  InitStatus ReInit() override;
+  void Exec(Option_t* opt) override;
 
   virtual void InitMQ(TList* tempList);
   virtual void ExecMQ(TList* inputList,TList* outputList);
@@ -47,7 +47,7 @@ class FindTracks : public FairTask
 
   EventHeader *mEventHeader;
 
-  ClassDef(FindTracks,1);
+  ClassDefOverride(FindTracks,1);
 
 };
 

@@ -18,8 +18,8 @@ public:
   ChipSegmentation();
   ChipSegmentation(UInt_t uniqueID);
   
-  virtual ~ChipSegmentation() = default;
-  virtual void Clear(const Option_t* /*opt*/) {;}
+  ~ChipSegmentation() override = default;
+  void Clear(const Option_t* /*opt*/) override {;}
   virtual void Print(Option_t* /*option*/);
 
   /// \brief Transform (x,y) Hit coordinate into Pixel ID on the matrix
@@ -27,7 +27,7 @@ public:
   
 private:
   
-  ClassDef(ChipSegmentation, 1);
+  ClassDefOverride(ChipSegmentation, 1);
 
 };
 

@@ -21,14 +21,14 @@ class Hit : public FairHit
   Hit();
   Hit(Int_t detID, TVector3& pos, TVector3& dpos, Int_t mcindex);
   
-  virtual ~Hit();
+  ~Hit() override;
   
  private:
   
   Hit(const Hit&);
   Hit operator=(const Hit&);
 
-  ClassDef(Hit,1);
+  ClassDefOverride(Hit,1);
 
 };
 

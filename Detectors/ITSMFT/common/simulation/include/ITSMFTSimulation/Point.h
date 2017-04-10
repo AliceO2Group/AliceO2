@@ -82,7 +82,7 @@ class Point : public o2::BasicXYZEHit<Float_t,Float_t>
     Bool_t IsAliveStart()    const  { return mTrackStatusStart & kTrackAlive; }
 
     /// Output to screen
-    virtual void Print(const Option_t *opt) const;
+    void Print(const Option_t *opt) const override;
     friend std::ostream &operator<<(std::ostream &of, const Point &point)
     {
       of << "-I- Point: O2its point for track " << point.GetTrackID() << " in detector " << point.GetDetectorID() << std::endl;
@@ -105,7 +105,7 @@ class Point : public o2::BasicXYZEHit<Float_t,Float_t>
     UChar_t mTrackStatusEnd;                  ///< MC status flag at exit
     UChar_t mTrackStatusStart;                ///< MC status at starting point
 
-  ClassDef(Point, 3)
+  ClassDefOverride(Point, 3)
 };
 
 Point::Point(int trackID, unsigned short detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,

@@ -43,7 +43,7 @@ namespace o2{
 		 Short_t size);
 
       /// Destructor
-      virtual ~BoxCluster();
+      ~BoxCluster() override;
 
       /// Setter for special Box cluster parameters
       /// @param pad Pad with the maximum charge
@@ -75,7 +75,7 @@ namespace o2{
       Short_t                   mTime;
       Short_t                   mSize;
 
-      ClassDef(BoxCluster, 1);
+      ClassDefOverride(BoxCluster, 1);
     };
   }
 }

@@ -25,8 +25,8 @@ public:
   HalfSegmentation(const Char_t *initFile, const Short_t id);
   HalfSegmentation(const HalfSegmentation &source);
 
-  virtual ~HalfSegmentation();
-  virtual void Clear(const Option_t* /*opt*/);
+  ~HalfSegmentation() override;
+  void Clear(const Option_t* /*opt*/) override;
   
   Bool_t GetID() const {return (GetUniqueID()>>12);};
   
@@ -41,7 +41,7 @@ private:
 
   TClonesArray *mHalfDisks; ///< \brief Array of pointer to HalfDiskSegmentation
 
-  ClassDef(HalfSegmentation, 1);
+  ClassDefOverride(HalfSegmentation, 1);
   
 };
 

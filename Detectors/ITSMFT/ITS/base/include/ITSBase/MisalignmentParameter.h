@@ -23,13 +23,13 @@ class MisalignmentParameter : public FairParGenericSet
                         const char* title = "Misalignment parameter for AliceO2ITSHitProducerIdealMisallign Parameters",
                         const char* context = "TestDefaultContext");
 
-  ~MisalignmentParameter();
+  ~MisalignmentParameter() override;
 
   void Clear();
 
-  void putParams(FairParamList*);
+  void putParams(FairParamList*) override;
 
-  Bool_t getParams(FairParamList*);
+  Bool_t getParams(FairParamList*) override;
 
   TArrayD getShiftX() { return mShiftX; }
   TArrayD getShiftY() { return mShiftY; }
@@ -51,7 +51,7 @@ class MisalignmentParameter : public FairParGenericSet
 
   MisalignmentParameter& operator=(const MisalignmentParameter&);
 
-  ClassDef(MisalignmentParameter, 1)
+  ClassDefOverride(MisalignmentParameter, 1)
 };
 }
 }

@@ -18,9 +18,9 @@ class ContainerFactory : public FairContFact
     void setAllContainers();
   public:
     ContainerFactory();
-    ~ContainerFactory() = default;
-    FairParSet* createContainer(FairContainer*);
-    ClassDef( o2::TPC::ContainerFactory,0) // Factory for all tpc parameter containers
+    ~ContainerFactory() override = default;
+    FairParSet* createContainer(FairContainer*) override;
+    ClassDefOverride( o2::TPC::ContainerFactory,0) // Factory for all tpc parameter containers
 };
 }
 }

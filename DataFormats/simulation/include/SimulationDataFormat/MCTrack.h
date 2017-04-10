@@ -38,7 +38,7 @@ class MCTrack : public TObject
     MCTrack(TParticle *particle);
 
     ///  Destructor
-    virtual ~MCTrack();
+    ~MCTrack() override;
 
     ///  Output to screen
     void Print(Int_t iTrack = 0) const;
@@ -153,7 +153,7 @@ class MCTrack : public TObject
 
     Int_t mNumberOfPoints;
 
-  ClassDef(MCTrack, 1);
+  ClassDefOverride(MCTrack, 1);
 };
 
 inline Double_t MCTrack::GetEnergy() const

@@ -19,7 +19,7 @@ public:
   
   HalfCone();
   
-  virtual ~HalfCone();
+  ~HalfCone() override;
   
   TGeoVolumeAssembly* CreateHalfCone(Int_t half);
 
@@ -29,7 +29,7 @@ protected:
 
 private:
   
-  ClassDef(HalfCone,1)
+  ClassDefOverride(HalfCone,1)
   
 };
 

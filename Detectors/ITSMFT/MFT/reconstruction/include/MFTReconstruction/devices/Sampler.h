@@ -19,7 +19,7 @@ class Sampler : public FairMQDevice
  public:
 
   Sampler();
-  virtual ~Sampler();
+  ~Sampler() override;
   
   void AddInputFileName(std::string s) { mFileNames.push_back(s); }
   void AddInputBranchName(std::string s) { mBranchNames.push_back(s); }
@@ -35,10 +35,10 @@ class Sampler : public FairMQDevice
 
  protected:
 
-  virtual bool ConditionalRun();
-  virtual void PreRun();
-  virtual void PostRun();
-  virtual void InitTask();
+  bool ConditionalRun() override;
+  void PreRun() override;
+  void PostRun() override;
+  void InitTask() override;
  
  private:
 

@@ -19,9 +19,9 @@ class MagFieldFact : public FairFieldFactory
 
  public:
   MagFieldFact();
-  virtual ~MagFieldFact();
-  virtual FairField* createFairField();
-  virtual void SetParm();
+  ~MagFieldFact() override;
+  FairField* createFairField() override;
+  void SetParm() override;
   
  protected:
   MagFieldParam* mFieldPar;
@@ -30,7 +30,7 @@ class MagFieldFact : public FairFieldFactory
   MagFieldFact(const MagFieldFact&);
   MagFieldFact& operator=(const MagFieldFact&);
 
-  ClassDef(MagFieldFact,1)
+  ClassDefOverride(MagFieldFact,1)
 };
 
 }

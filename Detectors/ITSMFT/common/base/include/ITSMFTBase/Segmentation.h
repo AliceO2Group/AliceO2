@@ -51,7 +51,7 @@ class Segmentation : public TObject
     }
 
     /// Destructor
-    virtual ~OutOfActiveAreaException() throw() = default;
+    ~OutOfActiveAreaException() throw() override = default;
     /// Get the value for which the exception was raised
     /// @return Value (point in one direction)
     Double_t GetValue() const { return mValue; }
@@ -72,7 +72,7 @@ class Segmentation : public TObject
     /// Provide error message string containing direction,
     /// value of the point, and limits
     /// @return Error message
-    const char* what() const noexcept { return mErrorMessage.c_str(); }
+    const char* what() const noexcept override { return mErrorMessage.c_str(); }
    private:
     std::string mErrorMessage; ///< Error message connected to the exception
     Direction mDirection;      ///< Direction in which the exception was raised
@@ -107,7 +107,7 @@ class Segmentation : public TObject
     }
 
     /// Destructor
-    virtual ~InvalidPixelException() = default;
+    ~InvalidPixelException() override = default;
     /// Get the ID of the pixel which raised the exception
     /// @return ID of the pixel
     Int_t GetPixelID() const { return mValue; }
@@ -122,7 +122,7 @@ class Segmentation : public TObject
     Bool_t IsZ() const { return mDirection == kZ; }
     /// Provide error message string containing direction,
     /// index of the pixel out of range, and the maximum pixel ID
-    const char* what() const noexcept { return mErrorMessage.c_str(); }
+    const char* what() const noexcept override { return mErrorMessage.c_str(); }
    private:
     std::string mErrorMessage; ///< Error message connected to this exception
     Direction mDirection;      ///< Direction in which the pixel index is out of range
@@ -136,7 +136,7 @@ class Segmentation : public TObject
   Segmentation(const Segmentation& source);
 
   /// Default destructor
-  virtual ~Segmentation();
+  ~Segmentation() override;
 
   Segmentation& operator=(const Segmentation& source);
 
@@ -259,7 +259,7 @@ class Segmentation : public TObject
   virtual void printDefaultParameters() const = 0;
 
  protected:
-  virtual void Copy(TObject& obj) const;
+  void Copy(TObject& obj) const override;
 
   Float_t mDx; // SPD: Full width of the detector (x axis)- microns
   // SDD: Drift distance of the 1/2detector (x axis)-microns
@@ -272,7 +272,7 @@ class Segmentation : public TObject
   // SSD: Full thickness of the detector (y axis) -um
   TF1* mCorrection; // correction function
 
-  ClassDef(Segmentation, 1) // Segmentation virtual base class
+  ClassDefOverride(Segmentation, 1) // Segmentation virtual base class
 };
 }
 }

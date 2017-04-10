@@ -26,7 +26,7 @@ class ConditionId : public TObject
 
     static ConditionId *makeFromString(const TString &idString);
 
-    virtual ~ConditionId();
+    ~ConditionId() override;
 
     const IdPath &getPath() const
     {
@@ -151,11 +151,11 @@ class ConditionId : public TObject
 
     void print(Option_t *option = "") const;
 
-    virtual Int_t Compare(const TObject *obj) const;
+    Int_t Compare(const TObject *obj) const override;
 
-    virtual Bool_t IsSortable() const;
+    Bool_t IsSortable() const override;
 
-    virtual const char *GetName() const
+    const char *GetName() const override
     {
       return mPath.getPathString().Data();
     }
@@ -167,7 +167,7 @@ class ConditionId : public TObject
     Int_t mSubVersion;    // subversion
     TString mLastStorage; // previous storage place (new, grid, local, dump)
 
-  ClassDef(ConditionId, 1)
+  ClassDefOverride(ConditionId, 1)
 };
 }
 }

@@ -88,14 +88,14 @@ class Pythia6Generator : public FairGenerator
 
 
   /** Destructor. **/
-  virtual ~Pythia6Generator();
+  ~Pythia6Generator() override;
 
 	
   /** Reads on event from the input file and pushes the tracks onto
    ** the stack. Abstract method in base class.
    ** @param primGen  pointer to the CbmrimaryGenerator
    **/
-  virtual Bool_t ReadEvent(FairPrimaryGenerator* primGen);
+  Bool_t ReadEvent(FairPrimaryGenerator* primGen) override;
 
   void SetVerbose (Int_t verb) { fVerbose = verb; };
 
@@ -115,7 +115,7 @@ class Pythia6Generator : public FairGenerator
   
 //  TDatabasePDG *fPDG; //!
 
-  ClassDef(Pythia6Generator,1);
+  ClassDefOverride(Pythia6Generator,1);
 
 };
 

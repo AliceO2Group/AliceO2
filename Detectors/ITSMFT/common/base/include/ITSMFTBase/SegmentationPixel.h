@@ -30,25 +30,25 @@ class SegmentationPixel : public Segmentation
   //  SegmentationPixel(Option_t *opt="" );
   SegmentationPixel(const SegmentationPixel& source);
 
-  virtual ~SegmentationPixel();
+  ~SegmentationPixel() override;
 
   SegmentationPixel& operator=(const SegmentationPixel& source);
 
-  virtual void Init();
+  void Init() override;
 
-  virtual void setNumberOfPads(Int_t, Int_t) { MayNotUse("SetPadSize"); }
-  virtual Int_t getNumberOfPads() const { return mNumberOfColumns * mNumberOfRows; }
+  void setNumberOfPads(Int_t, Int_t) override { MayNotUse("SetPadSize"); }
+  Int_t getNumberOfPads() const override { return mNumberOfColumns * mNumberOfRows; }
   /// Returns pixel coordinates (ix,iz) for given coordinates (x,z counted from corner of col/row
   /// 0:0). Expects x, z in cm
-  virtual void getPadIxz(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const;
+  void getPadIxz(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const override;
 
   /// Transform from pixel to real local coordinates
   /// Eeturns x, z in cm. wrt corner of col/row 0:0
-  virtual void getPadCxz(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const;
+  void getPadCxz(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const override;
 
   /// Local transformation of real local coordinates (x,z)
   /// Expects x, z in cm (wrt corner of col/row 0:0
-  virtual void getPadTxz(Float_t& x, Float_t& z) const;
+  void getPadTxz(Float_t& x, Float_t& z) const override;
 
   /// Transformation from Geant detector centered local coordinates (cm) to
   /// Pixel cell numbers ix and iz.
@@ -61,7 +61,7 @@ class SegmentationPixel : public Segmentation
   /// the center of the sensitive volulme.
   /// \param Int_t ix Detector x cell coordinate. Has the range 0 <= ix < mNumberOfRows
   /// \param Int_t iz Detector z cell coordinate. Has the range 0 <= iz < mNumberOfColumns
-  virtual Bool_t localToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const;
+  Bool_t localToDetector(Float_t x, Float_t z, Int_t& ix, Int_t& iz) const override;
 
   /// Transformation from Detector cell coordiantes to Geant detector centered
   /// local coordinates (cm)
@@ -73,7 +73,7 @@ class SegmentationPixel : public Segmentation
   /// center of the sensitive volulme.
   /// If ix and or iz is outside of the segmentation range a value of -0.5*Dx()
   /// or -0.5*Dz() is returned.
-  virtual Bool_t detectorToLocal(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const;
+  Bool_t detectorToLocal(Int_t ix, Int_t iz, Float_t& x, Float_t& z) const override;
 
   /// Transformation from Detector cell coordiantes to Geant detector centered
   /// local coordinates (cm)
@@ -91,22 +91,22 @@ class SegmentationPixel : public Segmentation
   /// and -0.5*dxActive() or -0.5*dzActive() and -0.5*dzActive() are returned.
   virtual void cellBoundries(Int_t ix, Int_t iz, Double_t& xl, Double_t& xu, Double_t& zl, Double_t& zu) const;
 
-  virtual Int_t getNumberOfChips() const { return mNumberOfChips; }
-  virtual Int_t getMaximumChipIndex() const { return mNumberOfChips - 1; }
+  Int_t getNumberOfChips() const override { return mNumberOfChips; }
+  Int_t getMaximumChipIndex() const override { return mNumberOfChips - 1; }
   /// Returns chip number (in range 0-4) starting from local Geant coordinates
-  virtual Int_t getChipFromLocal(Float_t, Float_t zloc) const;
+  Int_t getChipFromLocal(Float_t, Float_t zloc) const override;
 
   /// Returns the number of chips containing a road defined by given local Geant coordinate limits
-  virtual Int_t getChipsInLocalWindow(Int_t* array, Float_t zmin, Float_t zmax, Float_t, Float_t) const;
+  Int_t getChipsInLocalWindow(Int_t* array, Float_t zmin, Float_t zmax, Float_t, Float_t) const override;
 
   /// Returns chip number (in range 0-4) starting from channel number
-  virtual Int_t getChipFromChannel(Int_t, Int_t iz) const;
+  Int_t getChipFromChannel(Int_t, Int_t iz) const override;
 
   /// Returs x pixel pitch for a give pixel
-  virtual Float_t cellSizeX(Int_t ix = 0) const;
+  Float_t cellSizeX(Int_t ix = 0) const override;
 
   /// Returns z pixel pitch for a given pixel (cols starts from 0)
-  virtual Float_t cellSizeZ(Int_t iz) const;
+  Float_t cellSizeZ(Int_t iz) const override;
 
   Float_t dxActive() const { return mDxActive; }
   Float_t dzActive() const { return mDzActive; }
@@ -118,17 +118,17 @@ class SegmentationPixel : public Segmentation
   Float_t getGuardBot() const { return mGuardBottom; }
   Int_t getNumberOfRows() const { return mNumberOfRows; }
   Int_t getNumberOfColumns() const { return mNumberOfColumns; }
-  virtual Int_t numberOfCellsInX() const { return getNumberOfRows(); }
-  virtual Int_t numberOfCellsInZ() const { return getNumberOfColumns(); }
+  Int_t numberOfCellsInX() const override { return getNumberOfRows(); }
+  Int_t numberOfCellsInZ() const override { return getNumberOfColumns(); }
   /// Returns the neighbouring pixels for use in Cluster Finders and the like.
-  virtual void neighbours(Int_t iX, Int_t iZ, Int_t* Nlist, Int_t Xlist[10], Int_t Zlist[10]) const;
+  void neighbours(Int_t iX, Int_t iZ, Int_t* Nlist, Int_t Xlist[10], Int_t Zlist[10]) const override;
 
-  virtual void printDefaultParameters() const
+  void printDefaultParameters() const override
   {
     LOG(WARNING) << "No def. parameters defined as const static data members" << FairLogger::endl;
   }
 
-  virtual void Print(Option_t* option = "") const;
+  void Print(Option_t* option = "") const override;
 
   virtual Int_t getChipTypeID() const { return GetUniqueID(); }
   /// Set matrix of periodic shifts of diod center. Provided arrays must be in the format
@@ -192,7 +192,7 @@ class SegmentationPixel : public Segmentation
 
   static const char* sSegmentationsListName; ///< pattern for segmentations list name
 
-  ClassDef(SegmentationPixel, 1) // Segmentation class upgrade pixels
+  ClassDefOverride(SegmentationPixel, 1) // Segmentation class upgrade pixels
 };
 }
 }

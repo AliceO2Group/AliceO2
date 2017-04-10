@@ -22,7 +22,7 @@ public:
   Ladder();
   Ladder(LadderSegmentation *segmentation);
   
-  virtual ~Ladder();
+  ~Ladder() override;
   
   TGeoVolume * CreateVolume();
   void CreateSensors();
@@ -35,7 +35,7 @@ private:
   Flex      * mFlex;               ///< \brief Flex object (\todo to be removed ?)
   TGeoVolumeAssembly * mLadderVolume;               ///< \brief Pointer to the Volume holding the ladder geometry
   
-  ClassDef(Ladder, 1);
+  ClassDefOverride(Ladder, 1);
 
 };
 

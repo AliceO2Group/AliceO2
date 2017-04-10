@@ -82,12 +82,12 @@ class AliHLTHOMERWriter : public AliHLTMonitoringWriter
     public:
 
 	AliHLTHOMERWriter();
-	virtual ~AliHLTHOMERWriter();
+	~AliHLTHOMERWriter() override;
 
         /**
 	 * Resets the writer and clears the block list.
          */
-	void Clear();
+	void Clear() override;
 
         /**
          * Add a data block to the writer.
@@ -96,7 +96,7 @@ class AliHLTHOMERWriter : public AliHLTMonitoringWriter
          * @param homerHeader    pointer to the header describing the block
 	 * @param data           pointer to data
          */
-	void AddBlock( const void* homerHeader, const void* data );
+	void AddBlock( const void* homerHeader, const void* data ) override;
 
         /**
          * Add a data block to the writer.
@@ -123,14 +123,14 @@ class AliHLTHOMERWriter : public AliHLTMonitoringWriter
         /**
          * Get the total buffer size required to write all data into one buffer
          */
-	homer_uint32 GetTotalMemorySize( bool includeData = true );
+	homer_uint32 GetTotalMemorySize( bool includeData = true ) override;
 
         /**
          * Copy the data into a buffer.
          * The buffer is supposed to be big enough, the capacity should be queried
          * by calling @ref GetTotalMemorySize.
          */
-	void Copy( void* destination, homer_uint64 eventType, homer_uint64 eventNr, homer_uint64 statusFlags, homer_uint64 nodeID, bool includeData = true );
+	void Copy( void* destination, homer_uint64 eventType, homer_uint64 eventNr, homer_uint64 statusFlags, homer_uint64 nodeID, bool includeData = true ) override;
 
         /** determine alignment of 64 bit variables */
 	static homer_uint8 DetermineUInt64Alignment();
@@ -236,7 +236,7 @@ class AliHLTHOMERWriter : public AliHLTMonitoringWriter
         /** list of data blocks */
         std::vector<TBlockData> fBlocks; //!transient
 #ifdef USE_ROOT
-      ClassDef(AliHLTHOMERWriter,0);
+      ClassDefOverride(AliHLTHOMERWriter,0);
 #endif
     };
 

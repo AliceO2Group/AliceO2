@@ -35,9 +35,9 @@ class PyTr1Rng : public RndmEngine
 {
  public:
   PyTr1Rng() {  rng = new TRandom1(gRandom->GetSeed()); };
-  virtual ~PyTr1Rng() = default;
+  ~PyTr1Rng() override = default;
 
-  Double_t flat() { return rng->Rndm(); };
+  Double_t flat() override { return rng->Rndm(); };
 
  private:
   TRandom1 *rng; //!
@@ -47,9 +47,9 @@ class PyTr3Rng : public RndmEngine
 {
  public:
   PyTr3Rng() {  rng = new TRandom3(gRandom->GetSeed()); };
-  virtual ~PyTr3Rng() = default;
+  ~PyTr3Rng() override = default;
 
-  Double_t flat() { return rng->Rndm(); };
+  Double_t flat() override { return rng->Rndm(); };
 
  private:
   TRandom3 *rng; //!
@@ -66,14 +66,14 @@ class Pythia8Generator : public FairGenerator
   Pythia8Generator();
 
   /** destructor **/
-  virtual ~Pythia8Generator();
+  ~Pythia8Generator() override;
 
   /** public method ReadEvent **/
-  Bool_t ReadEvent(FairPrimaryGenerator*);
+  Bool_t ReadEvent(FairPrimaryGenerator*) override;
   void SetParameters(char*);
   void Print(); //!
 
-  virtual Bool_t Init(); //!
+  Bool_t Init() override; //!
 
   void SetMom(Double_t mom) { fMom = mom; };
   void SetId(Double_t id) { fId  = id; };
@@ -95,7 +95,7 @@ class Pythia8Generator : public FairGenerator
   Bool_t fUseRandom1;  // flag to use TRandom1
   Bool_t fUseRandom3;  // flag to use TRandom3 (default)
 
-  ClassDef(Pythia8Generator,1);
+  ClassDefOverride(Pythia8Generator,1);
 };
 
 #endif /* !PNDP8GENERATOR_H */

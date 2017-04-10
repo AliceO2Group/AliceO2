@@ -34,8 +34,8 @@ class V11Geometry : public TObject
     V11Geometry(Int_t debug) : mDebug(debug)
     { };
 
-    virtual ~V11Geometry()
-    = default;
+    ~V11Geometry()
+    override = default;
 
     /// Sets the debug flag for debugging output
     void setDebug(Int_t level = 5)
@@ -441,7 +441,7 @@ class V11Geometry : public TObject
     Double_t angleForRoundedCorners1(Double_t dx, Double_t dy, Double_t sdr) const;
 
     Int_t mDebug;            //! Debug flag/level
-  ClassDef(V11Geometry, 1) // Base class for ITS v11 geometry
+  ClassDefOverride(V11Geometry, 1) // Base class for ITS v11 geometry
 };
 }
 }

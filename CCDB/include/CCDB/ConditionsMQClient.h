@@ -18,11 +18,11 @@ namespace CDB {
 class ConditionsMQClient : public FairMQDevice {
 public:
   ConditionsMQClient();
-  virtual ~ConditionsMQClient();
+  ~ConditionsMQClient() override;
 
 protected:
-  virtual void InitTask();
-  virtual void Run();
+  void InitTask() override;
+  void Run() override;
 
 private:
   int mRunId;

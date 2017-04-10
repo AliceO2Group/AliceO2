@@ -21,7 +21,7 @@ public:
   HalfDetector();
   HalfDetector(HalfSegmentation *segmentation);
   
-  virtual ~HalfDetector();
+  ~HalfDetector() override;
   
   /// \brief Returns the Volume holding the Half-MFT
   TGeoVolumeAssembly * GetVolume() {return mHalfVolume;};
@@ -35,7 +35,7 @@ private:
   HalfSegmentation * mSegmentation; ///< \brief Pointer to the half-MFT segmentation
   void CreateHalfDisks();
   
-  ClassDef(HalfDetector, 1);
+  ClassDefOverride(HalfDetector, 1);
 
 };
 

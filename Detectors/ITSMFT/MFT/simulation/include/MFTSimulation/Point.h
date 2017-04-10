@@ -18,11 +18,11 @@ class Point : public FairMCPoint
 
   Point();
   Point(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length, Double_t eLoss);
-  virtual ~Point();
+  ~Point() override;
 
  private:
 
-  ClassDef(Point, 1)
+  ClassDefOverride(Point, 1)
 
 };
 
