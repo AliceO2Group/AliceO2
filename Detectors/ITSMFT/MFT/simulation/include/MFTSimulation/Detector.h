@@ -6,13 +6,15 @@
 #ifndef ALICEO2_MFT_DETECTOR_H_
 #define ALICEO2_MFT_DETECTOR_H_
 
+#include "TLorentzVector.h"
+
 #include "DetectorsBase/Detector.h"
 
 class TClonesArray;
 class TVector3;
 
 namespace o2 { namespace MFT { class GeometryTGeo; } }
-namespace o2 { namespace MFT { class Point; } }
+namespace o2 { namespace ITSMFT { class Point; } }
 
 namespace o2 {
 namespace MFT {
@@ -86,7 +88,16 @@ private:
   Detector(const Detector&);
   Detector& operator=(const Detector&);
 
-  Point* AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length, Double_t eLoss);
+  o2::ITSMFT::Point* AddHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus);
+
+  /// this is transient data about track passing the sensor
+  struct TrackData {                  // this is transient 
+    bool  mHitStarted;                //! hit creation started
+    unsigned char mTrkStatusStart;    //! track status flag
+    TLorentzVector mPositionStart;    //! position at entrance
+    TLorentzVector mMomentumStart;    //! momentum
+    double mEnergyLoss;               //! energy loss
+  } mTrackData;                       //! 
 
   ClassDefOverride(Detector,1)
 

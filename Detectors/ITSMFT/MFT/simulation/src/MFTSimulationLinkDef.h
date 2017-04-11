@@ -6,6 +6,5 @@
 
 #pragma link C++ class o2::MFT::Detector+;
 #pragma link C++ class o2::MFT::EventHeader+;
-#pragma link C++ class o2::MFT::Point+;
 
 #endif

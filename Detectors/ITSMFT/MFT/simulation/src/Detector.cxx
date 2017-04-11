@@ -3,6 +3,8 @@
 /// \author antonio.uras@cern.ch, bogdan.vulpescu@cern.ch 
 /// \date 01/08/2016
 
+#include "ITSMFTSimulation/Point.h"
+
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 #include "MFTBase/HalfSegmentation.h"
@@ -10,7 +12,6 @@
 #include "MFTBase/LadderSegmentation.h"
 
 #include "MFTSimulation/Detector.h"
-#include "MFTSimulation/Point.h"
 
 #include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"
@@ -27,6 +28,7 @@
 #include "FairGenericRootManager.h"
 #include "FairVolume.h"
 
+using o2::ITSMFT::Point;
 using namespace o2::MFT;
 
 ClassImp(o2::MFT::Detector)
@@ -37,7 +39,8 @@ Detector::Detector()
   mVersion(1),
   mGeometryTGeo(nullptr),
   mDensitySupportOverSi(0.036),
-  mPoints(new TClonesArray("o2::MFT::Point"))
+  mPoints(new TClonesArray("o2::ITSMFT::Point")),
+  mTrackData()
 {
 
 }
@@ -48,7 +51,8 @@ Detector::Detector(const Detector& src)
     mVersion(src.mVersion),
     mGeometryTGeo(src.mGeometryTGeo),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
-    mPoints(nullptr)
+    mPoints(nullptr),
+    mTrackData()
 {
   
 }
@@ -68,6 +72,11 @@ Detector &Detector::operator=(const Detector &src)
   mGeometryTGeo = src.mGeometryTGeo;
   mDensitySupportOverSi = src.mDensitySupportOverSi;
   mPoints = nullptr;
+  mTrackData.mHitStarted = src.mTrackData.mHitStarted;
+  mTrackData.mTrkStatusStart = src.mTrackData.mTrkStatusStart;
+  mTrackData.mPositionStart = src.mTrackData.mPositionStart;
+  mTrackData.mMomentumStart = src.mTrackData.mMomentumStart;
+  mTrackData.mEnergyLoss = src.mTrackData.mEnergyLoss;
 
 }
 
@@ -97,6 +106,8 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
 
+  LOG(INFO) << "Detector::ProcessHits ----->" << "";
+
   // do not track neutral particles
   if (!(TVirtualMC::GetMC()->TrackCharge())) {
     return kFALSE;
@@ -119,89 +130,74 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   Int_t detElemID = mftGeo->GetObjectID(Geometry::SensorType,halfId,diskId,ladderId,chipId);
 
-  LOG(DEBUG1) << "Found hit into half = " << halfId << "; disk = " << diskId << "; ladder = " << ladderId << "; chip = " << chipId << FairLogger::endl;
+  LOG(INFO) << "Found hit into half = " << halfId << "; disk = " << diskId << "; ladder = " << ladderId << "; chip = " << chipId << FairLogger::endl;
 
-  if (TVirtualMC::GetMC()->IsTrackExiting()) {
-    //AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kMFT);
+  bool startHit=false, stopHit=false;
+  unsigned char status = 0;
+  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Point::kTrackEntering; }
+  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Point::kTrackInside; }
+  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Point::kTrackExiting; }
+  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Point::kTrackOut; }
+  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Point::kTrackStopped; }
+  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Point::kTrackAlive; }
+
+  // track is entering or created in the volume
+  if ( (status & Point::kTrackEntering) || (status & Point::kTrackInside && !mTrackData.mHitStarted) ) {
+    startHit = true;
   }
-  
-  static TLorentzVector position, momentum;
-  
-  Int_t  status = 0;
-  
-  // Track status
-  if (TVirtualMC::GetMC()->IsTrackInside())      status += 0x1<<0;
-  if (TVirtualMC::GetMC()->IsTrackEntering())    status += 0x1<<1;
-  if (TVirtualMC::GetMC()->IsTrackExiting())     status += 0x1<<2;
-  if (TVirtualMC::GetMC()->IsTrackOut())         status += 0x1<<3;
-  if (TVirtualMC::GetMC()->IsTrackDisappeared()) status += 0x1<<4;
-  if (TVirtualMC::GetMC()->IsTrackStop())        status += 0x1<<5;
-  if (TVirtualMC::GetMC()->IsTrackAlive())       status += 0x1<<6;
-  
-  // ---------- Fill hit structure
-  /*
-  hit.SetDetElemID(detElemID);
-  hit.SetPlane(diskId);
-  hit.SetTrack(gAlice->GetMCApp()->GetCurrentTrackNumber());
-  
-  TVirtualMC::GetMC()->TrackPosition(position);
-  TVirtualMC::GetMC()->TrackMomentum(momentum);
-  
-  LOG(DEBUG1) << TVirtualMC::GetMC()->CurrentVolName() << " Hit " << fNHits << " (x = " << position.X() << " , y = " << position.Y() << " , z = " << position.Z() << ") belongs to track " << gAlice->GetMCApp()->GetCurrentTrackNumber() << FairLogger::endl;
-  
-  hit.SetPosition(position);
-  hit.SetTOF(TVirtualMC::GetMC()->TrackTime());
-  hit.SetMomentum(momentum);
-  hit.SetStatus(status);
-  hit.SetEloss(TVirtualMC::GetMC()->Edep());
-  //hit.SetShunt(GetIshunt());
-  //if (TVirtualMC::GetMC()->IsTrackEntering()) {
-  //  hit.SetStartPosition(position);
-  //  hit.SetStartTime(TVirtualMC::GetMC()->TrackTime());
-  //  hit.SetStartStatus(status);
-  //  return; // don't save entering hit.
-  //}
-  
-  // Fill hit structure with this new hit.
-  new ((*fHits)[fNhits++]) AliMFTHit(hit);
-  
-  // Save old position... for next hit.
-  //   hit.SetStartPosition(position);
-  //   hit.SetStartTime(TVirtualMC::GetMC()->TrackTime());
-  //   hit.SetStartStatus(status);
-  */
-  if (!TVirtualMC::GetMC()->IsTrackExiting()) return kFALSE;
+  else if ( (status & (Point::kTrackExiting|Point::kTrackOut|Point::kTrackStopped)) ) {
+    stopHit = true;
+  }
 
-  Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-  Int_t detID = vol->getMCid();
-  TVirtualMC::GetMC()->TrackPosition(position);
-  TVirtualMC::GetMC()->TrackMomentum(momentum);
-  Double32_t time = TVirtualMC::GetMC()->TrackTime();
-  Double32_t length = TVirtualMC::GetMC()->TrackLength();
-  Double32_t eLoss = TVirtualMC::GetMC()->Edep();
+  // increment energy loss at all steps except entrance
+  if (!startHit) mTrackData.mEnergyLoss += TVirtualMC::GetMC()->Edep();
+  if (!(startHit|stopHit)) return kFALSE; // do noting
 
-  AddHit(trackID, detID, TVector3(position.X(),position.Y(),position.Z()), TVector3(momentum.X(),momentum.Y(),momentum.Z()), time, length, eLoss);
-  /*
-  printf("%5d %3d %10.4f %10.4f %10.4f %6.2f %6.2f %6.2f status ",trackID,detID,position.X(),position.Y(),position.Z(),momentum.X(),momentum.Y(),momentum.Z());
-  for (Int_t i = 7; i >= 0; i--) printf("%1d",((status >> i) & 0x1));
-  printf("\n");
-  */
-  // Increment number of Detector det points in TParticle
-  o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
-  stack->AddPoint(kAliMft);
+  if (startHit) {
+
+    mTrackData.mEnergyLoss = 0.;
+    TVirtualMC::GetMC()->TrackMomentum(mTrackData.mMomentumStart);
+    TVirtualMC::GetMC()->TrackPosition(mTrackData.mPositionStart);
+    mTrackData.mTrkStatusStart = status;
+    mTrackData.mHitStarted = true;
+
+  }
+
+  if (stopHit) {
+
+    TLorentzVector positionStop;
+    TVirtualMC::GetMC()->TrackPosition(positionStop);
+
+    Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+    Int_t detID = vol->getMCid();
+
+    Point *p = AddHit(trackID,detID,
+		      mTrackData.mPositionStart.Vect(),
+		      positionStop.Vect(),
+		      mTrackData.mMomentumStart.Vect(),
+		      mTrackData.mMomentumStart.E(),
+		      positionStop.T(),
+		      mTrackData.mEnergyLoss, 
+		      mTrackData.mTrkStatusStart,
+		      status);
+    
+    o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+    stack->AddPoint(kAliMft);
+    
+  }
 
   return kTRUE;
 
 }
 
 //_____________________________________________________________________________
-Point* Detector::AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length, Double_t eLoss)
+Point* Detector::AddHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
 
   TClonesArray &clref = *mPoints;
   Int_t size = clref.GetEntriesFast();
 
-  return new(clref[size]) Point(trackID, detID, pos, mom, time, length, eLoss);
+  return new(clref[size]) Point(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
 
 }
 
@@ -327,10 +323,13 @@ void Detector::CreateMaterials()
   Float_t epsilSi  =  0.5e-4;                // tracking precision [cm]
   Float_t stminSi  = -0.001;                 // minimum step due to continuous processes [cm] (negative value: choose it automatically)
   
-  o2::Field::MagneticField *fld = (o2::Field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
+  //o2::Field::MagneticField *fld = (o2::Field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
 
-  Int_t fieldType = fld->GetType();
-  Float_t maxField = fld->Max();
+  //Int_t fieldType = fld->GetType();
+  //Float_t maxField = fld->Max();
+
+  Int_t fieldType = 2;
+  Float_t maxField = 15;
 
   LOG(INFO) << "Detector::CreateMaterials >>>>> fieldType " << fieldType << " maxField " << maxField << "\n"; 
 

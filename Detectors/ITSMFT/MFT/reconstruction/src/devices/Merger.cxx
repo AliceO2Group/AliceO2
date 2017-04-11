@@ -12,6 +12,8 @@ using namespace o2::MFT;
 
 using namespace std;
 
+namespace o2 { namespace MFT {
+
 // special class to expose protected TMessage constructor
 //_____________________________________________________________________________
 class MergerTMessage : public TMessage
@@ -24,6 +26,9 @@ class MergerTMessage : public TMessage
     ResetBit(kIsOwner);
   }
 };
+
+}
+}
 
 //_____________________________________________________________________________
 Merger::Merger()

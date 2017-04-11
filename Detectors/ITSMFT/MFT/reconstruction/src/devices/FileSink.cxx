@@ -16,6 +16,8 @@
 using namespace o2::MFT;
 using namespace std;
 
+namespace o2 { namespace MFT {
+
 // special class to expose protected TMessage constructor
 //_____________________________________________________________________________
 class SinkTMessage : public TMessage
@@ -28,6 +30,9 @@ class SinkTMessage : public TMessage
     ResetBit(kIsOwner);
   }
 };
+
+}
+}
 
 //_____________________________________________________________________________
 FileSink::FileSink()
