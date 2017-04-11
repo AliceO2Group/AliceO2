@@ -10,7 +10,7 @@
 class FairField;
 
 namespace o2 {
-  namespace Field {
+  namespace field {
     
 class MagFieldParam;
 

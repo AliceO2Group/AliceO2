@@ -18,7 +18,7 @@ class TMethodCall;  // lines 16-16
 
 
 namespace o2 {
-namespace MathUtils {
+namespace mathUtils {
 
 /// Chebyshev3D produces the interpolation of the user 3D->NDimOut arbitrary function supplied in
 /// "void (*fcn)(float* inp,float* out)" format either in a separate macro file or as a function pointer. Only
@@ -244,7 +244,7 @@ class Chebyshev3D : public TNamed
 
     static const Float_t sMinimumPrecision; ///< minimum precision allowed
 
-    ClassDefOverride(o2::MathUtils::Chebyshev3D,
+    ClassDefOverride(o2::mathUtils::Chebyshev3D,
     2) // Chebyshev parametrization for 3D->N function
 };
 

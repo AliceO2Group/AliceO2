@@ -9,7 +9,7 @@
 #include "Field/MagFieldParam.h"           // for FairConstPar
 #include "Field/MagFieldContFact.h"
 
-using namespace o2::Field;
+using namespace o2::field;
 
 ClassImp(MagFieldContFact)
 static MagFieldContFact gMagFieldContFact;

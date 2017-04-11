@@ -57,7 +57,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   timer.Start();
 
   // CDB manager
-//   AliceO2::CDB::Manager *cdbManager = AliceO2::CDB::Manager::Instance();
+//   o2::CDB::Manager *cdbManager = o2::CDB::Manager::Instance();
 //   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
 //   cdbManager->setRun(0);
 
@@ -74,7 +74,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  o2::Passive::Cave* cave = new AliceO2::Passive::Cave("CAVE");
+  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
@@ -82,10 +82,10 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   //  tpc->SetGeometry();
   //  run->AddModule(tpc);
 
-//  TGeoGlobalMagField::Instance()->SetField(new AliceO2::Field::MagneticField("Maps","Maps", -1., -1., AliceO2::Field::MagneticField::k5kG));
+//  TGeoGlobalMagField::Instance()->SetField(new o2::field::MagneticField("Maps","Maps", -1., -1., o2::field::MagneticField::k5kG));
 
 /*
-  o2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
+  o2::ITS::Detector* its = new o2::ITS::Detector("ITS", kTRUE, 7);
   run->AddModule(its);
 
   // build ITS upgrade detector
@@ -124,7 +124,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   gSystem->Exec(" rm itsSegmentations.root ");
 
   // create segmentations:
-  o2::ITSMFT::SegmentationPixel* seg0 = new AliceO2::ITSMFT::SegmentationPixel(
+  o2::ITSMFT::SegmentationPixel* seg0 = new o2::ITSMFT::SegmentationPixel(
     0,           // segID (0:9)
     1,           // chips per module
     kNCol,       // ncols (total for module)
@@ -183,7 +183,7 @@ void run_sim(Int_t nEvents = 2, TString mcEngine = "TGeant3")
   }
 */
   // ===| Add TPC |============================================================
-  o2::TPC::Detector* tpc = new AliceO2::TPC::Detector("TPC", kTRUE);
+  o2::TPC::Detector* tpc = new o2::TPC::Detector("TPC", kTRUE);
   //tpc->SetGeoFileName("TPCGeometry.root");
   run->AddModule(tpc);
 

@@ -56,7 +56,7 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   // Initialize everything
   run->Init();
 
-//  clustTPC->getHwClusterer()->setProcessingType(AliceO2::TPC::HwClusterer::Processing::Parallel);
+//  clustTPC->getHwClusterer()->setProcessingType(o2::TPC::HwClusterer::Processing::Parallel);
   clustTPC->getHwClusterer()->setProcessingType(o2::TPC::HwClusterer::Processing::Sequential);
 
   // Start simulation

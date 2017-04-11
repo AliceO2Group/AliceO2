@@ -16,9 +16,9 @@
 class FairLogger;  // lines 14-14
 class FairParamList;
 
-namespace o2 { namespace Field { class MagneticWrapperChebyshev; }}  // lines 19-19
+namespace o2 { namespace field { class MagneticWrapperChebyshev; }}  // lines 19-19
 namespace o2 {
-namespace Field {
+namespace field {
 
 class MagneticWrapperChebyshev;
  
@@ -274,7 +274,7 @@ class MagneticField : public FairField
 
 
     
-    ClassDefOverride(o2::Field::MagneticField,
+    ClassDefOverride(o2::field::MagneticField,
     3) // Class for all Alice MagField wrapper for measured data + Tosca parameterization
 };
 }

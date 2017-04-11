@@ -20,7 +20,7 @@ class TString;
 // #define _BRING_TO_BOUNDARY_
 
 namespace o2 {
-namespace MathUtils {
+namespace mathUtils {
 class Chebyshev3DCalc : public TNamed
 {
 
@@ -179,7 +179,7 @@ class Chebyshev3DCalc : public TNamed
     Float_t *mTemporaryCoefficients2D; //[mNumberOfColumns] temp. coeffs for 2d summation
     Float_t *mTemporaryCoefficients1D; //[mNumberOfRows] temp. coeffs for 1d summation
 
-    ClassDefOverride(o2::MathUtils::Chebyshev3DCalc,
+    ClassDefOverride(o2::mathUtils::Chebyshev3DCalc,
     2) // Class for interpolation of 3D->1 function by Chebyshev parametrization
 };
 

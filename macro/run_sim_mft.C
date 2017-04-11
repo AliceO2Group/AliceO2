@@ -39,14 +39,14 @@ void run_sim_mft(Int_t nEvents = 1, Int_t nMuons = 100, TString mcEngine = "TGea
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  o2::Passive::Cave* cave = new AliceO2::Passive::Cave("CAVE");
+  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::Field::MagneticField field("field","field +5kG");
+  o2::field::MagneticField field("field","field +5kG");
   run->SetField(&field);
 
-  o2::MFT::Detector* mft = new AliceO2::MFT::Detector();
+  o2::MFT::Detector* mft = new o2::MFT::Detector();
   run->AddModule(mft);
   
   // Create PrimaryGenerator

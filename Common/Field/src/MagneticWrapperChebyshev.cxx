@@ -15,8 +15,8 @@
 #include "TObjArray.h"   // for TObjArray
 #include "TString.h"     // for TString
 
-using namespace o2::Field;
-using namespace o2::MathUtils;
+using namespace o2::field;
+using namespace o2::mathUtils;
 
 ClassImp(MagneticWrapperChebyshev)
 

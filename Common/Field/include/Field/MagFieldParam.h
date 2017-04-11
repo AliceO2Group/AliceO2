@@ -12,7 +12,7 @@ class FairParamList;
 
 
 namespace o2 {
-  namespace Field {
+  namespace field {
 
 class MagneticField;
     
