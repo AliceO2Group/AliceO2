@@ -11,7 +11,7 @@
 #include "FairRun.h"
 #include "FairRuntimeDb.h"
 
-using namespace o2::Field;
+using namespace o2::field;
 
 ClassImp(MagneticField)
 

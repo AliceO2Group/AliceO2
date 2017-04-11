@@ -41,7 +41,7 @@ void run_clus_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         rtdb->setFirstInput(parInput1);
 
         // Setup clusterizer
-        o2::ITS::TrivialClustererTask *clus = new AliceO2::ITS::TrivialClustererTask;
+        o2::ITS::TrivialClustererTask *clus = new o2::ITS::TrivialClustererTask;
         fRun->AddTask(clus);
 
         fRun->Init();

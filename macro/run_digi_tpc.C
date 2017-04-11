@@ -49,7 +49,7 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         fFileSource->SetEventMeanTime(10*1000); //is in us
       //  TGeoManager::Import("geofile_full.root");
 
-        o2::Field::MagneticField *magField = new o2::Field::MagneticField("Maps","Maps", -1., -1., o2::Field::MagFieldParam::k5kG);
+        o2::field::MagneticField *magField = new o2::field::MagneticField("Maps","Maps", -1., -1., o2::field::MagFieldParam::k5kG);
         run->SetField(magField);
 
         // Setup digitizer

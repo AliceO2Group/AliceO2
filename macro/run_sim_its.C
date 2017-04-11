@@ -56,7 +56,7 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   timer.Start();
 
   // CDB manager
-  //   AliceO2::CDB::Manager *cdbManager = AliceO2::CDB::Manager::Instance();
+  //   o2::CDB::Manager *cdbManager = o2::CDB::Manager::Instance();
   //   cdbManager->setDefaultStorage("local://$ALICEO2/tpc/dirty/o2cdb");
   //   cdbManager->setRun(0);
 
@@ -71,7 +71,7 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  o2::Passive::Cave* cave = new AliceO2::Passive::Cave("CAVE");
+  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
@@ -79,10 +79,10 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
    field.SetField(0., 0., 5.); //in kG
    field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in c
   */
-  o2::Field::MagneticField field("field","field +5kG");
+  o2::field::MagneticField field("field","field +5kG");
   run->SetField(&field);
 
-  o2::ITS::Detector* its = new AliceO2::ITS::Detector("ITS", kTRUE, 7);
+  o2::ITS::Detector* its = new o2::ITS::Detector("ITS", kTRUE, 7);
   run->AddModule(its);
 
   // build ITS upgrade detector
@@ -121,7 +121,7 @@ void run_sim_its(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   gSystem->Exec(" rm itsSegmentations.root ");
 
   // create segmentations:
-  o2::ITSMFT::SegmentationPixel* seg0 = new AliceO2::ITSMFT::SegmentationPixel(
+  o2::ITSMFT::SegmentationPixel* seg0 = new o2::ITSMFT::SegmentationPixel(
     0,           // segID (0:9)
     1,           // chips per module
     kNCol,       // ncols (total for module)

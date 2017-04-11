@@ -10,7 +10,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-using namespace o2::Field;
+using namespace o2::field;
 
 
 ClassImp(MagFieldFact)

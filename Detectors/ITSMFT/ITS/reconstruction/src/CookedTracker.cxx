@@ -23,7 +23,7 @@
 
 using namespace o2::ITS;
 using namespace o2::Base::Constants;
-using o2::Field::MagneticField;
+using o2::field::MagneticField;
 
 //************************************************
 // Constants hardcoded for the moment:

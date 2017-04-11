@@ -323,7 +323,7 @@ void Detector::CreateMaterials()
   Float_t epsilSi  =  0.5e-4;                // tracking precision [cm]
   Float_t stminSi  = -0.001;                 // minimum step due to continuous processes [cm] (negative value: choose it automatically)
   
-  //o2::Field::MagneticField *fld = (o2::Field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
+  //o2::field::MagneticField *fld = (o2::field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
 
   //Int_t fieldType = fld->GetType();
   //Float_t maxField = fld->Max();

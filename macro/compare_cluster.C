@@ -334,7 +334,7 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
     for (int i = 0; i < bClusters->GetEntries(); i++){
 //      if (i%100 == 0) std::cout << "Checked " << i << " clusters of " << bClusters->GetEntries() << " for duplicates"  << std::endl;
 //      if (duplicateBcluster.find(i) != duplicateBcluster.end()) continue;
-      o2::TPC::Cluster* bCluster = dynamic_cast<AliceO2::TPC::Cluster*>(bClusters->At(i));
+      o2::TPC::Cluster* bCluster = dynamic_cast<o2::TPC::Cluster*>(bClusters->At(i));
       std::pair<std::unordered_set<o2::TPC::Cluster>::iterator,bool> ret = uniqueBoxClusters.insert(*bCluster);
       if (ret.second == false) {
         std::cout << *(ret.first) << std::endl << "is very similar to which will be removed" << std::endl;
@@ -342,7 +342,7 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
       }
 //      for (int j = i+1; j < bClusters->GetEntries(); j++){
 //        if (stop_process) return;
-//        AliceO2::TPC::Cluster* bCluster2 = dynamic_cast<AliceO2::TPC::Cluster*>(bClusters->At(j));
+//        o2::TPC::Cluster* bCluster2 = dynamic_cast<o2::TPC::Cluster*>(bClusters->At(j));
 //
 //        if(bCluster->getRow() != bCluster2->getRow()) continue;
 //        if(bCluster->getCRU() != bCluster2->getCRU()) continue;
@@ -364,7 +364,7 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
     for (int i = 0; i < hClusters->GetEntries(); i++){
 //      if (i%100 == 0) std::cout << "Checked " << i << " clusters of " << hClusters->GetEntries() << " for duplicates"  << std::endl;
 //      if (duplicateHcluster.find(i) != duplicateHcluster.end()) continue;
-      o2::TPC::Cluster* hCluster = dynamic_cast<AliceO2::TPC::Cluster*>(hClusters->At(i));
+      o2::TPC::Cluster* hCluster = dynamic_cast<o2::TPC::Cluster*>(hClusters->At(i));
       std::pair<std::unordered_set<o2::TPC::Cluster>::iterator,bool> ret = uniqueHwClusters.insert(*hCluster);
       if (ret.second == false) {
         std::cout << *(ret.first) << std::endl << "is very similar to which will be removed" << std::endl;
@@ -372,7 +372,7 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
       }
 //      for (int j = i+1; j < hClusters->GetEntries(); j++){
 //        if (stop_process) return;
-//        AliceO2::TPC::Cluster* hCluster2 = dynamic_cast<AliceO2::TPC::Cluster*>(hClusters->At(j));
+//        o2::TPC::Cluster* hCluster2 = dynamic_cast<o2::TPC::Cluster*>(hClusters->At(j));
 //
 //        if(hCluster->getRow() != hCluster2->getRow()) continue;
 //        if(hCluster->getCRU() != hCluster2->getCRU()) continue;
@@ -456,12 +456,12 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
 //    for (int i = 0; i < nBclusters; i++){
 //      if (duplicateBcluster.find(i) != duplicateBcluster.end()) continue;
 //      bool hwFound = false;
-//      AliceO2::TPC::Cluster* bCluster = dynamic_cast<AliceO2::TPC::Cluster*>(bClusters->At(i));
+//      o2::TPC::Cluster* bCluster = dynamic_cast<o2::TPC::Cluster*>(bClusters->At(i));
 ////      std::cout << "BoxCluster - "; bCluster->Print(std::cout); std::cout << std::endl;
 //    
 //      for (int j = 0; j < nHclusters; j++){
 //        if (duplicateHcluster.find(j) != duplicateHcluster.end()) continue;
-//        AliceO2::TPC::Cluster* hwCluster = dynamic_cast<AliceO2::TPC::Cluster*>(hClusters->At(j));
+//        o2::TPC::Cluster* hwCluster = dynamic_cast<o2::TPC::Cluster*>(hClusters->At(j));
 //
 //        if(bCluster->getRow() != hwCluster->getRow()) continue;
 //        if(bCluster->getCRU() != hwCluster->getCRU()) continue;
@@ -504,7 +504,7 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
 //      if (hwClusterFound.find(j) != hwClusterFound.end()) {
 //        continue;
 //      }
-//      AliceO2::TPC::Cluster* hwCluster = dynamic_cast<AliceO2::TPC::Cluster*>(hClusters->At(j));
+//      o2::TPC::Cluster* hwCluster = dynamic_cast<o2::TPC::Cluster*>(hClusters->At(j));
 //      hHwOnly[0]->Fill(hwCluster->getCRU());
 //      hHwOnly[1]->Fill(hwCluster->getRow());
 //      hHwOnly[2]->Fill(hwCluster->getQ());
