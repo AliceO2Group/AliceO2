@@ -24,7 +24,7 @@
 #include <TClonesArray.h>
 
 #include "ITSMFTSimulation/Chip.h"
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "ITSMFTSimulation/DigiParams.h"
 
 using namespace o2::ITSMFT;
@@ -48,7 +48,7 @@ Chip &Chip::operator=(const Chip &ref)
   if (this != &ref) {
     mMat = ref.mMat;
     mChipIndex = ref.mChipIndex;
-    mPoints = ref.mPoints;
+    mHits = ref.Hits;
     mDigits = ref.mDigits;
   }
   return *this;
@@ -73,19 +73,19 @@ Bool_t Chip::operator<(const Chip &other) const
 }
 
 //_______________________________________________________________________
-void Chip::InsertPoint(const Point *p)
+void Chip::InsertHit(const Point *p)
 {
   if (p->GetDetectorID() != mChipIndex) {
     throw IndexException(mChipIndex, p->GetDetectorID());
   }
-  mPoints.push_back(p);
+  mHits.push_back(p);
 }
 
 //_______________________________________________________________________
-const Point *Chip::GetPointAt(Int_t i) const
+const Point *Chip::GetHitAt(Int_t i) const
 {
-  if (i < mPoints.size()) {
-    return mPoints[i];
+  if (i < mHits.size()) {
+    return mHits[i];
   }
   return nullptr;
 }
@@ -93,7 +93,7 @@ const Point *Chip::GetPointAt(Int_t i) const
 //_______________________________________________________________________
 void Chip::Clear()
 {
-  ClearPoints();
+  ClearHits();
 }
 
 
@@ -150,7 +150,7 @@ Bool_t Chip::LineSegmentGlobal(const Point* hit, Double_t &xstart, Double_t &xpo
 }
 
 //_______________________________________________________________________
-Double_t Chip::PathLength(const Point *p1, const Point *p2) const
+Double_t Chip::PathLength(const Hit *p1, const Hit *p2) const
 {
   Double_t xdiff = p2->GetX() - p1->GetX(),
     ydiff = p2->GetY() - p1->GetY(),
@@ -159,7 +159,7 @@ Double_t Chip::PathLength(const Point *p1, const Point *p2) const
 }
 
 //_______________________________________________________________________
-void Chip::MedianHitGlobal(const Point *p1, const Point *p2, Double_t &x, Double_t &y, Double_t &z) const
+void Chip::MedianHitGlobal(const Hit *p1, const Hit *p2, Double_t &x, Double_t &y, Double_t &z) const
 {
   // Get hit positions in global coordinates
   Double_t pos1Glob[3] = {p1->GetX(), p1->GetY(), p1->GetZ()},
@@ -183,7 +183,7 @@ void Chip::MedianHitGlobal(const Point *p1, const Point *p2, Double_t &x, Double
 }
 
 //_______________________________________________________________________
-void Chip::MedianHitLocal(const Point *p1, const Point *p2, Double_t &x, Double_t &y, Double_t &z) const
+void Chip::MedianHitLocal(const Hit *p1, const Hit *p2, Double_t &x, Double_t &y, Double_t &z) const
 {
   // Convert hit positions into local positions inside the chip
   Double_t pos1Glob[3] = {p1->GetX(), p1->GetY(), p1->GetZ()},

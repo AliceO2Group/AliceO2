@@ -3,7 +3,7 @@ set(MODULE_NAME "ITSMFTSimulation")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-    src/Point.cxx
+    src/Hit.cxx
     src/ClusterShape.cxx
     src/AlpideSimResponse.cxx
     src/Chip.cxx
@@ -12,7 +12,7 @@ set(SRCS
     src/DigiParams.cxx
     )
 set(HEADERS
-    include/${MODULE_NAME}/Point.h
+    include/${MODULE_NAME}/Hit.h
     include/${MODULE_NAME}/ClusterShape.h
     include/${MODULE_NAME}/AlpideSimResponse.h
     include/${MODULE_NAME}/DigiParams.h

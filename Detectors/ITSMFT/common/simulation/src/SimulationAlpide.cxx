@@ -23,7 +23,7 @@
 #include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSMFTSimulation/SimulationAlpide.h"
 #include "ITSMFTSimulation/SimuClusterShaper.h"
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "ITSMFTSimulation/DigiParams.h"
 
 

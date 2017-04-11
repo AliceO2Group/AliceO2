@@ -69,7 +69,7 @@ class HitAnalysis : public FairTask
     Bool_t mIsInitialized;       ///< Check whether task is initialized
     Bool_t mProcessChips;        ///< Process chips or hits
     std::map<int, o2::ITSMFT::Chip *> mChips; ///< lookup map for ITS chips
-    TClonesArray *mPointsArray;        ///< Array with ITS space points, filled by the FairRootManager
+    TClonesArray *mHitsArray;        ///< Array with ITS space points, filled by the FairRootManager
     GeometryTGeo *mGeometry;           ///<  geometry
     TH1 *mLineSegment;        ///< Histogram for line segment
     TH1 *mLocalX0;            ///< Histogram for Starting X position in local coordinates
