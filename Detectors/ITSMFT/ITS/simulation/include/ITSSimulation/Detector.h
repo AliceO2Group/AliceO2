@@ -31,7 +31,7 @@ class TParticle;
 
 class TString;
 
-namespace o2 { namespace ITSMFT { class Point; }}
+namespace o2 { namespace ITSMFT { class Hit; }}
 
 namespace o2 { namespace ITS { class GeometryHandler; }}
 namespace o2 { namespace ITS { class MisalignmentParameter; }}
@@ -153,8 +153,8 @@ class Detector : public o2::Base::Detector
                                     Double_t &width, Double_t &tilt, Double_t &lthick, Double_t &mthick,
                                     UInt_t &dettype) const;
 
-    /// This method is an example of how to add your own point of type Point to the clones array
-    o2::ITSMFT::Point *addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,
+    /// This method is an example of how to add your own point of type Hit to the clones array
+    o2::ITSMFT::Hit *addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,
 				   double startE, double endTime, double eLoss,
 				   unsigned char startStatus, unsigned char endStatus);
 
@@ -297,7 +297,7 @@ class Detector : public o2::Base::Detector
     Int_t *mBuildLevel;            //! Vector of Material Budget Studies
 
     /// Container for data points
-    TClonesArray *mPointCollection;
+    TClonesArray *mHitCollection;
 
     /// Creates an air-filled wrapper cylindrical volume
     TGeoVolume *createWrapperVolume(const Int_t nLay);

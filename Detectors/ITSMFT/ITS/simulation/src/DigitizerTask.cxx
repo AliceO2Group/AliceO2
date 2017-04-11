@@ -53,9 +53,9 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  mPointsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSPoint"));
-  if (!mPointsArray) {
-    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+  mHitsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSHit"));
+  if (!mHitsArray) {
+    LOG(ERROR) << "ITS hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
@@ -66,7 +66,7 @@ InitStatus DigitizerTask::Init()
   DigiParams param; // RS: TODO: Eventually load this from the CCDB
 
   param.setContinuous(mContinuous);
-  param.setPointDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
+  param.setHitDigitsMethod(mUseAlpideSim ? DigiParams::p2dCShape : DigiParams::p2dSimple);
   mDigitizer.setDigiParams(param);
 
   mDigitizer.setCoeffToNanoSecond(mFairTimeUnitInNS);
@@ -93,7 +93,7 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setCurrSrcID( mSourceID );
   mDigitizer.setCurrEvID( mEventID );
   
-  mDigitizer.process(mPointsArray,mDigitsArray);
+  mDigitizer.process(mHitsArray,mDigitsArray);
 
   mEventID++;
 }

@@ -72,7 +72,7 @@ namespace o2
       Int_t mSourceID = 0; ///< current source
       Int_t mEventID = 0;  ///< current event id from the source
       Digitizer mDigitizer; ///< Digitizer
-      TClonesArray* mPointsArray = nullptr; ///< Array of MC hits
+      TClonesArray* mHitsArray = nullptr; ///< Array of MC hits
       TClonesArray* mDigitsArray = nullptr; ///< Array of digits
 
       ClassDefOverride(DigitizerTask, 1)

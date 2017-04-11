@@ -28,13 +28,13 @@
 #include <ITSMFTBase/Digit.h>
 #include "SimulationDataFormat/MCCompLabel.h"
 
-namespace o2 { namespace ITSMFT { class Point; }}  // lines 22-22
+namespace o2 { namespace ITSMFT { class Hit; }}
 
 namespace o2 {
 
 namespace ITSMFT {
 
-class Point;
+class Hit;
 class DigiParams;
 
 /// @class Chip
@@ -151,13 +151,13 @@ class Chip
     { return mChipIndex; }
 
     /// Insert new ITSMFT point into the Chip
-    /// @param p Point to be added
-    void InsertPoint(const Point *p);
+    /// @param p Hit to be added
+    void InsertHit(const Hit *p);
 
     /// Get the number of point assigned to the chip
     /// @return Number of points assigned to the chip
-    Int_t GetNumberOfPoints() const
-    { return mPoints.size(); }
+    Int_t GetNumberOfHits() const
+    { return mHits.size(); }
 
     /// reset points container
     void ClearPoints() {
@@ -166,10 +166,10 @@ class Chip
 
     o2::ITSMFT::Digit* findDigit(ULong64_t key);
     
-    /// Access Point assigned to chip at a given index
+    /// Access Hit assigned to chip at a given index
     /// @param index Index of the point
-    /// @return Point at given index (nullptr if index is out of bounds)
-    const Point *GetPointAt(Int_t index) const;
+    /// @return Hit at given index (nullptr if index is out of bounds)
+    const Hit *GetHitAt(Int_t index) const;
 
     void globalToLocalVector(Double_t glob[3], Double_t loc[3]) const {
        mMat->MasterToLocalVect(glob, loc);
@@ -216,7 +216,7 @@ class Chip
     /// @param x Median x-position of the two hits in local coordinates
     /// @param y Median y-position of the two hits in local coordinates
     /// @param z Median z-position of the two hits in local coordinates
-    void MedianHitLocal(const Point *p1, const Point *p2, Double_t &x, Double_t &y, Double_t &z) const;
+    void MedianHitLocal(const Hit *p1, const Hit *p2, Double_t &x, Double_t &y, Double_t &z) const;
 
     /// Calculate median positoin of two hits
     /// @param p1 First point in the median calculation
@@ -224,7 +224,7 @@ class Chip
     /// @param x Median xposition of the two hits in global coordinates
     /// @param y Median xposition of the two hits in global coordinates
     /// @param z Median xposition of the two hits in global coordinates
-    void MedianHitGlobal(const Point *p1, const Point *p2, Double_t &x, Double_t &y, Double_t &z) const;
+    void MedianHitGlobal(const Hit *p1, const Hit *p2, Double_t &x, Double_t &y, Double_t &z) const;
 
     /// Calculate path length between two its points
     /// @param p1 First point for the path length calculation

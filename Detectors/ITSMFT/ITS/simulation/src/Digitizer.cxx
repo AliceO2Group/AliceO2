@@ -14,7 +14,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTBase/SegmentationPixel.h"
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "ITSSimulation/Digitizer.h"
 
 #include "FairLogger.h"   // for LOG
@@ -24,7 +24,7 @@
 
 ClassImp(o2::ITS::Digitizer)
 
-using o2::ITSMFT::Point;
+using o2::ITSMFT::Hit;
 using o2::ITSMFT::Chip;
 using o2::ITSMFT::SimulationAlpide;
 using o2::ITSMFT::SegmentationPixel;
@@ -51,7 +51,7 @@ void Digitizer::init(Bool_t build)
 }
 
 //_______________________________________________________________________
-void Digitizer::process(TClonesArray* points, TClonesArray* digits)
+void Digitizer::process(TClonesArray* hits, TClonesArray* digits)
 {
   // digitize single event
 
@@ -85,22 +85,22 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
     //    fillOutputContainer(digits, minNewROFrame-1);
   }
   
-  // accumulate points for every chip
-  TIter nextPoint(points);
-  Point* point = nullptr;
-  while ( (point = (Point*)nextPoint()) ) {
+  // accumulate hits for every chip
+  TIter nextPoint(hits);
+  Hit* hit = nullptr;
+  while ( (hit = (Hit*)nextPoint()) ) {
     
     // RS: ATTENTION: this is just a trick until we clarify how the hits from different source are
     // provided and identified. At the moment we just create a combined identifier from eventID
     // and sourceID and store it TEMPORARILY in the cached Point's TObject UniqueID  
-    point->SetSrcEvID(mCurrSrcID,mCurrEvID); 
-    mSimulations[point->GetDetectorID()].InsertPoint(point);
+    hit->SetSrcEvID(mCurrSrcID,mCurrEvID); 
+    mSimulations[hit->GetDetectorID()].InsertHit(hit);
   }
     
-  // Convert points to digits  
+  // Convert hits to digits  
   for (auto &simulation : mSimulations) {
-    simulation.Points2Digits(seg, mEventTime, mROFrameMin, mROFrameMax);
-    simulation.ClearPoints();
+    simulation.Hits2Digits(seg, mEventTime, mROFrameMin, mROFrameMax);
+    simulation.ClearHits();
   }
 
   // in the triggered mode store digits after every MC event

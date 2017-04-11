@@ -17,7 +17,7 @@
   #include <TMath.h>
   #include <TString.h>
 
-  #include "ITSMFTSimulation/Point.h"
+  #include "ITSMFTSimulation/Hit.h"
   #include "ITSReconstruction/Cluster.h"
   #include "ITSReconstruction/CookedTrack.h"
 #endif
@@ -25,7 +25,7 @@
 extern TGeoManager *gGeoManager;
 
 void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=0, Int_t track=0) {
-  using o2::ITSMFT::Point;
+  using o2::ITSMFT::Hit;
   using namespace o2::ITS;
 
   char filename[100];
@@ -83,14 +83,14 @@ void DisplayTrack(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t event=
   TEvePointSet* points = new TEvePointSet(s.data());
   points->SetMarkerColor(kBlue);
 
-  TClonesArray pntArr("o2::ITSMFT::Point"), *ppntArr(&pntArr);
-  tree->SetBranchAddress("ITSPoint",&ppntArr);
+  TClonesArray pntArr("o2::ITSMFT::Hit"), *ppntArr(&pntArr);
+  tree->SetBranchAddress("ITSHit",&ppntArr);
 
   tree->GetEvent(event);
 
   Int_t nc=pntArr.GetEntriesFast(), n=0;
   while(nc--) {
-      Point *c=static_cast<Point *>(pntArr.UncheckedAt(nc));
+      Hit *c=static_cast<Hit *>(pntArr.UncheckedAt(nc));
       if (c->GetTrackID() == track) {
          points->SetNextPoint(c->GetX(),c->GetY(),c->GetZ());
          n++;
