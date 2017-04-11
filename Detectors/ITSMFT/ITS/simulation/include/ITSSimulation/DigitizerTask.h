@@ -56,7 +56,7 @@ namespace o2
       Bool_t mUseAlpideSim; ///< ALPIDE simulation activation flag
       Digitizer mDigitizer; ///< Digitizer
 
-      TClonesArray* mPointsArray; ///< Array of MC hits
+      TClonesArray* mHitsArray; ///< Array of MC hits
       TClonesArray* mDigitsArray; ///< Array of digits
 
       ClassDefOverride(DigitizerTask, 1)

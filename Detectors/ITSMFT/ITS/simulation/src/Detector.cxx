@@ -11,7 +11,7 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/GeometryHandler.h"
@@ -49,7 +49,7 @@ class TParticle;
 using std::cout;
 using std::endl;
 
-using o2::ITSMFT::Point;
+using o2::ITSMFT::Hit;
 using namespace o2::ITS;
 
 Detector::Detector()
@@ -89,7 +89,7 @@ Detector::Detector()
     mDetectorThickness(nullptr),
     mChipTypeID(nullptr),
     mBuildLevel(nullptr),
-    mPointCollection(new TClonesArray("o2::ITSMFT::Point")),
+    mHitCollection(new TClonesArray("o2::ITSMFT::Hit")),
     
     mGeometryHandler(new GeometryHandler()),
     mMisalignmentParameter(nullptr),
@@ -138,7 +138,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mChipTypeID(nullptr),
     mBuildLevel(nullptr),
 
-    mPointCollection(new TClonesArray("o2::ITSMFT::Point")),
+    mHitCollection(new TClonesArray("o2::ITSMFT::Hit")),
     mGeometryHandler(new GeometryHandler()),
     mMisalignmentParameter(nullptr),
     
@@ -226,7 +226,7 @@ Detector::Detector(const Detector &rhs)
     mBuildLevel(nullptr),
 
   /// Container for data points
-    mPointCollection(new TClonesArray("o2::ITSMFT::Point")),
+    mHitCollection(new TClonesArray("o2::ITSMFT::Hit")),
     mGeometryHandler(rhs.mGeometryHandler), // CHECK
     mMisalignmentParameter(nullptr),
 
@@ -261,9 +261,9 @@ Detector::~Detector()
   delete[] mWrapperZSpan;
   delete[] mWrapperLayerId;
 
-  if (mPointCollection) {
-    mPointCollection->Delete();
-    delete mPointCollection;
+  if (mHitCollection) {
+    mHitCollection->Delete();
+    delete mHitCollection;
   }
 
   delete[] mLayerID;
@@ -315,7 +315,7 @@ Detector &Detector::operator=(const Detector &rhs)
   mBuildLevel = nullptr;
 
   /// Container for data points
-  mPointCollection = nullptr;
+  mHitCollection = nullptr;
 
   mGeometryHandler = nullptr;
   mMisalignmentParameter = nullptr;
@@ -396,18 +396,18 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
   // } // if Outer ITS mother Volume
   bool startHit=false, stopHit=false;
   unsigned char status = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Point::kTrackEntering; }
-  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Point::kTrackInside; }
-  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Point::kTrackExiting; }
-  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Point::kTrackOut; }
-  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Point::kTrackStopped; }
-  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Point::kTrackAlive; }
+  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Hit::kTrackEntering; }
+  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Hit::kTrackInside; }
+  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Hit::kTrackExiting; }
+  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Hit::kTrackOut; }
+  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Hit::kTrackStopped; }
+  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Hit::kTrackAlive; }
 
   // track is entering or created in the volume
-  if ( (status & Point::kTrackEntering) || (status & Point::kTrackInside && !mTrackData.mHitStarted) ) {
+  if ( (status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted) ) {
     startHit = true;
   }
-  else if ( (status & (Point::kTrackExiting|Point::kTrackOut|Point::kTrackStopped)) ) {
+  else if ( (status & (Hit::kTrackExiting|Hit::kTrackOut|Hit::kTrackStopped)) ) {
     stopHit = true;
   }
 
@@ -433,7 +433,7 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
     TVirtualMC::GetMC()->CurrentVolOffID(4, stave);
     int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
     
-    Point *p = addHit(TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber(), chipindex,
+    Hit *p = addHit(TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber(), chipindex,
 		      mTrackData.mPositionStart.Vect(),positionStop.Vect(),mTrackData.mMomentumStart.Vect(),
 		      mTrackData.mMomentumStart.E(),positionStop.T(),mTrackData.mEnergyLoss,
 		      mTrackData.mTrkStatusStart,status);
@@ -583,24 +583,24 @@ void Detector::createMaterials()
 
 void Detector::EndOfEvent()
 {
-  if (mPointCollection) { mPointCollection->Clear(); }
+  if (mHitCollection) { mHitCollection->Clear(); }
 }
 
 void Detector::Register()
 {
-  // This will create a branch in the output tree called Point, setting the last
+  // This will create a branch in the output tree called Hit, setting the last
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
   if (FairGenericRootManager::Instance()) {
-    FairGenericRootManager::Instance()->Register("ITSPoint", "ITS", mPointCollection, kTRUE);
+    FairGenericRootManager::Instance()->Register("ITSHit", "ITS", mHitCollection, kTRUE);
   }
 }
 
 TClonesArray *Detector::GetCollection(Int_t iColl) const
 {
   if (iColl == 0) {
-    return mPointCollection;
+    return mHitCollection;
   } else {
     return nullptr;
   }
@@ -608,7 +608,7 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 
 void Detector::Reset()
 {
-  mPointCollection->Clear();
+  mHitCollection->Clear();
 }
 
 void Detector::setNumberOfWrapperVolumes(Int_t n)
@@ -1008,12 +1008,12 @@ void Detector::defineSensitiveVolumes()
   }
 }
 
-Point *Detector::addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE,
+Hit *Detector::addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE,
 			double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
-  TClonesArray &clref = *mPointCollection;
+  TClonesArray &clref = *mHitCollection;
   Int_t size = clref.GetEntriesFast();
-  return new(clref[size]) Point(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  return new(clref[size]) Hit(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
 }
 
 TParticle *Detector::GetParticle() const

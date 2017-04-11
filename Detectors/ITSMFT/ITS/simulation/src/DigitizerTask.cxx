@@ -30,7 +30,7 @@ using o2::ITSMFT::DigitContainer;
 using namespace o2::ITS;
 
 DigitizerTask::DigitizerTask(Bool_t useAlpide)
-  : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer(), mPointsArray(nullptr), mDigitsArray(nullptr)
+  : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer(), mHitsArray(nullptr), mDigitsArray(nullptr)
 {
 }
 
@@ -53,8 +53,8 @@ InitStatus DigitizerTask::Init()
     return kERROR;
   }
 
-  mPointsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSPoint"));
-  if (!mPointsArray) {
+  mHitsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSHit"));
+  if (!mHitsArray) {
     LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
@@ -73,9 +73,9 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitsArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
   if (!mUseAlpideSim) {
-    DigitContainer& digits = mDigitizer.process(mPointsArray);
+    DigitContainer& digits = mDigitizer.process(mHitsArray);
     digits.fillOutputContainer(mDigitsArray);
   } else {
-    mDigitizer.process(mPointsArray, mDigitsArray); // ALPIDE response
+    mDigitizer.process(mHitsArray, mDigitsArray); // ALPIDE response
   }
 }

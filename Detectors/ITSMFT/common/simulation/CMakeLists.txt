@@ -3,11 +3,11 @@ set(MODULE_NAME "ITSMFTSimulation")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-    src/Point.cxx
+    src/Hit.cxx
     src/ClusterShape.cxx
     )
 set(HEADERS
-    include/${MODULE_NAME}/Point.h
+    include/${MODULE_NAME}/Hit.h
     include/${MODULE_NAME}/ClusterShape.h
     )
 set(NO_DICT_SRCS # sources not for the dictionary

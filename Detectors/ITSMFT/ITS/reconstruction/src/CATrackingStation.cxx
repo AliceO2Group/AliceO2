@@ -35,7 +35,7 @@
 #include <TGeoMatrix.h>
 #include <TClonesArray.h>
 
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/Utils.h"
 
@@ -43,7 +43,7 @@
 using namespace o2::ITS::CA;
 using o2::Base::Constants::k2PI;
 using o2::Base::Utils::BringTo02Pi;
-using o2::ITSMFT::Point;
+using o2::ITSMFT::Hit;
 
 TrackingStation::TrackingStation() :
   mID(-1)
@@ -116,7 +116,7 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
   mNClusters = points->GetEntriesFast();
   if(mNClusters == 0) return;
   mSortedClInfo.reserve(mNClusters);
-  mVIDOffset = ((Point*)points->UncheckedAt(0))->GetDetectorID();
+  mVIDOffset = ((Hit*)points->UncheckedAt(0))->GetDetectorID();
   // prepare detectors info
   int detID = -1;
   mIndex.resize(geo->getNumberOfChipsPerLayer(mID),-1);
@@ -126,7 +126,7 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
   mSortedClInfo.reserve(mNClusters);
   ClsInfo_t cl;
   for (int iCl = 0; iCl < points->GetEntriesFast(); ++iCl) { //Fill this layer with detectors
-    Point* c = (Point*)points->UncheckedAt(iCl);
+    Hit* c = (Hit*)points->UncheckedAt(iCl);
     if (detID == c->GetDetectorID()) {
       continue;
     }

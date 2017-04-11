@@ -12,14 +12,14 @@
 
   #include "ITSMFTBase/SegmentationPixel.h"
   #include "ITSMFTBase/Digit.h"
-  #include "ITSMFTSimulation/Point.h"
+  #include "ITSMFTSimulation/Hit.h"
   #include "ITSBase/GeometryTGeo.h"
 #endif
 
 void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   using o2::ITSMFT::SegmentationPixel;
   using o2::ITSMFT::Digit;
-  using o2::ITSMFT::Point;
+  using o2::ITSMFT::Hit;
   using namespace o2::ITS;
 
   TFile *f=TFile::Open("CheckDigits.root","recreate");
@@ -39,8 +39,8 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
   sprintf(filename, "AliceO2_%s.mc_%i_event.root", mcEngine.Data(), nEvents);
   TFile *file0 = TFile::Open(filename);
   TTree *hitTree=(TTree*)gFile->Get("cbmsim");
-  TClonesArray hitArr("o2::ITSMFT::Point"), *phitArr(&hitArr);
-  hitTree->SetBranchAddress("ITSPoint",&phitArr);
+  TClonesArray hitArr("o2::ITSMFT::Hit"), *phitArr(&hitArr);
+  hitTree->SetBranchAddress("ITSHit",&phitArr);
 
   // Digits
   sprintf(filename, "AliceO2_%s.digi_%i_event.root", mcEngine.Data(), nEvents);
@@ -69,7 +69,7 @@ void CheckDigits(Int_t nEvents = 10, TString mcEngine = "TGeant3") {
       gman->localToGlobal(chipID,loc,glo);
 
       for (Int_t i=0; i<nh; i++) {
-        Point *p=(Point *)hitArr.UncheckedAt(i);
+        Hit *p=(Hit *)hitArr.UncheckedAt(i);
 	if (p->GetDetectorID() != chipID) continue; 
 	if (p->GetTrackID() != lab) continue;
         Double_t x=0.5*(p->GetX() + p->GetStartX());
