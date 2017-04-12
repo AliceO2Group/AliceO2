@@ -106,8 +106,6 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
 
-  LOG(INFO) << "Detector::ProcessHits ----->" << "";
-
   // do not track neutral particles
   if (!(TVirtualMC::GetMC()->TrackCharge())) {
     return kFALSE;
@@ -130,7 +128,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   Int_t detElemID = mftGeo->GetObjectID(Geometry::SensorType,halfId,diskId,ladderId,chipId);
 
-  LOG(INFO) << "Found hit into half = " << halfId << "; disk = " << diskId << "; ladder = " << ladderId << "; chip = " << chipId << FairLogger::endl;
+  //LOG(INFO) << "Found hit into half = " << halfId << "; disk = " << diskId << "; ladder = " << ladderId << "; chip = " << chipId << FairLogger::endl;
 
   bool startHit=false, stopHit=false;
   unsigned char status = 0;
@@ -323,13 +321,10 @@ void Detector::CreateMaterials()
   Float_t epsilSi  =  0.5e-4;                // tracking precision [cm]
   Float_t stminSi  = -0.001;                 // minimum step due to continuous processes [cm] (negative value: choose it automatically)
   
-  //o2::field::MagneticField *fld = (o2::field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
+  o2::field::MagneticField *fld = (o2::field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
 
-  //Int_t fieldType = fld->GetType();
-  //Float_t maxField = fld->Max();
-
-  Int_t fieldType = 2;
-  Float_t maxField = 15;
+  Int_t fieldType = fld->GetType();
+  Float_t maxField = fld->Max();
 
   LOG(INFO) << "Detector::CreateMaterials >>>>> fieldType " << fieldType << " maxField " << maxField << "\n"; 
 
@@ -442,7 +437,7 @@ void Detector::ConstructGeometry()
 
   CreateMaterials();
   CreateGeometry();
-  //DefineSensitiveVolumes();
+  DefineSensitiveVolumes();
 
 }
 
