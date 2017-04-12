@@ -5,8 +5,8 @@
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or	     *
-//* (at your option) any later version.					     *
+//* the Free Software Foundation, either version 3 of the License, or        *
+//* (at your option) any later version.                                      *
 //*                                                                          *
 //* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
 //*                                                                          *
@@ -21,6 +21,9 @@
 
 #include <FairMQDevice.h>
 #include <vector>
+#include <boost/program_options.hpp>
+
+namespace bpo = boost::program_options;
 
 class FairMQMessage;
 
@@ -38,9 +41,12 @@ class Component;
 class WrapperDevice : public FairMQDevice {
 public:
   /// default constructor
-  WrapperDevice(int argc, char** argv, int verbosity = 0);
+  WrapperDevice(int verbosity = 0);
   /// destructor
   ~WrapperDevice() override;
+
+  /// get description of options
+  static bpo::options_description GetOptionsDescription();
 
   /////////////////////////////////////////////////////////////////
   // the FairMQDevice interface
@@ -82,7 +88,6 @@ private:
   unsigned char* createMessageBuffer(unsigned size);
 
   Component* mComponent;     // component instance
-  std::vector<char*> mArgv;       // array of arguments for the component
   std::vector<std::unique_ptr<FairMQMessage>> mMessages; // array of output messages
 
   int mPollingPeriod;        // period of polling on input sockets in ms
