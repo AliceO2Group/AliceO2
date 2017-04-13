@@ -7,6 +7,7 @@
 #include "FairTask.h" 
 
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSReconstruction/PixelReader.h"
 #include "ITSReconstruction/Clusterer.h"
 
 class TClonesArray;
@@ -25,10 +26,10 @@ class ClustererTask : public FairTask
   void Exec(Option_t* option) override;
 
  private:
-  GeometryTGeo mGeometry; ///< ITS geometry
-  Clusterer mClusterer;   ///< Cluster finder
+  GeometryTGeo mGeometry;    ///< ITS geometry
+  DigitPixelReader mReader;  ///< Pixel reader
+  Clusterer mClusterer;      ///< Cluster finder
 
-  TClonesArray* mDigitsArray;   ///< Array of digits
   TClonesArray* mClustersArray; ///< Array of clusters
 
   ClassDefOverride(ClustererTask, 1)

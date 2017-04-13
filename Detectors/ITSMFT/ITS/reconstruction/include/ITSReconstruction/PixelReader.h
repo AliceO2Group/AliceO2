@@ -5,6 +5,8 @@
 
 #include <Rtypes.h>
 
+class TClonesArray;
+
 namespace o2
 {
 namespace ITS
@@ -14,13 +16,14 @@ namespace ITS
 ///
 class PixelReader {
  public:
-  PixelReader();
+  PixelReader() {}
   PixelReader(const PixelReader& cluster) = delete;
   ~PixelReader() {};
 
   PixelReader& operator=(const PixelReader& cluster) = delete;
 
-  virtual Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col) = 0; 
+  virtual void init() = 0;
+  virtual Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col, Int_t &label) = 0; 
   //
  protected:
   //
@@ -32,7 +35,13 @@ class PixelReader {
 ///
 class DigitPixelReader : public PixelReader {
  public:
-  virtual Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col); 
+  DigitPixelReader() : mDigitArray(nullptr), mIdx(0) {}
+  void setDigitArray(const TClonesArray *a) { mDigitArray=a; mIdx=0; }
+  void init() {mIdx=0;}
+  virtual Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col, Int_t &label);
+ private:
+  const TClonesArray *mDigitArray;
+  Int_t mIdx;
 };
  
 /// \class RawPixelReader
@@ -40,7 +49,7 @@ class DigitPixelReader : public PixelReader {
 ///
 class RawPixelReader : public PixelReader {
  public:
-  virtual Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col); 
+  virtual Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col, Int_t &label); 
 };
 
  

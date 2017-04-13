@@ -1,6 +1,7 @@
 /// \file  ClustererTask.cxx
 /// \brief Implementation of the ITS cluster finder task
 
+#include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSReconstruction/ClustererTask.h"
 
 #include "FairLogger.h"      // for LOG
@@ -13,7 +14,7 @@ using o2::ITSMFT::SegmentationPixel;
 using namespace o2::ITS;
 
 //_____________________________________________________________________
-ClustererTask::ClustererTask() : FairTask("ITSClustererTask"), mDigitsArray(nullptr), mClustersArray(nullptr) {}
+ClustererTask::ClustererTask() : FairTask("ITSClustererTask"), mClustersArray(nullptr) {}
 
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
@@ -35,18 +36,25 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  mDigitsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSDigit"));
-  if (!mDigitsArray) {
-    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+  TClonesArray *arr = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSDigit"));
+  if (!arr) {
+    LOG(ERROR)<<"ITS digits not registered in the FairRootManager. Exiting ..."<<FairLogger::endl;
     return kERROR;
   }
-
+  mReader.setDigitArray(arr);
+  
   // Register output container
   mClustersArray = new TClonesArray("o2::ITS::Cluster");
   mgr->Register("ITSCluster", "ITS", mClustersArray, kTRUE);
 
   mGeometry.Build(kTRUE);
+  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
 
+  Float_t px = seg->cellSizeX();
+  Float_t pz = seg->cellSizeZ(1);  //FIXME
+  Float_t x0,z0; seg->detectorToLocal(0,0,x0,z0);
+  mClusterer.setPixelGeometry(px,pz,x0,z0);
+  
   return kSUCCESS;
 }
 
@@ -56,7 +64,5 @@ void ClustererTask::Exec(Option_t* option)
   mClustersArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
 
-  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
-
-  mClusterer.process(seg, mDigitsArray, mClustersArray);
+  mClusterer.process(mReader, *mClustersArray);
 }
