@@ -59,15 +59,15 @@ HwClusterFinder::HwClusterFinder(
 
   short t,p;
   mData = new float*[mTimebins];
-  for (t = 0; t < mTimebins; t++){
+  for (t = 0; t < mTimebins; ++t){
     mData[t] = new float[mPads]; 
-    for (p = 0; p < mPads; p++){
+    for (p = 0; p < mPads; ++p){
       mData[t][p] = 0;
     }
   }
 
   tmpCluster = new float*[mClusterSizeTime];
-  for (t=0; t<mClusterSizeTime; t++) {
+  for (t=0; t<mClusterSizeTime; ++t) {
     tmpCluster[t] = new float[mClusterSizePads];
   }
 }
@@ -96,16 +96,16 @@ HwClusterFinder::HwClusterFinder(const HwClusterFinder& other)
 {
   short t,p;
   mData = new float*[mTimebins];
-  for (t = 0; t < mTimebins; t++){
+  for (t = 0; t < mTimebins; ++t){
     mData[t] = new float[mPads]; 
-    for (p = 0; p < mPads; p++){
+    for (p = 0; p < mPads; ++p){
       mData[t][p] = other.mData[t][p];
     }
   }
 
-  for (t=0; t<mClusterSizeTime; t++) {
+  for (t=0; t<mClusterSizeTime; ++t) {
     tmpCluster[t] = new float[mClusterSizePads];
-    for (p=0; p<mClusterSizePads; p++){
+    for (p=0; p<mClusterSizePads; ++p){
       tmpCluster[t][p] = other.tmpCluster[t][p];
     }
   }
@@ -115,73 +115,23 @@ HwClusterFinder::HwClusterFinder(const HwClusterFinder& other)
 HwClusterFinder::~HwClusterFinder()
 {
   short t;
-  for (t = 0; t < mTimebins; t++){
+  for (t = 0; t < mTimebins; ++t){
     delete [] mData[t];
   }
   delete [] mData;
   delete [] mZeroTimebin;
 
-  for (t=0; t<mClusterSizeTime; t++) {
+  for (t=0; t<mClusterSizeTime; ++t) {
     delete [] tmpCluster[t];
   }
   delete [] tmpCluster;
 }
 
 //________________________________________________________________________
-bool HwClusterFinder::AddTimebin(float* timebin, unsigned globalTime, int length)
-{
-//  printf("adding the following timebin(%u)\t",globalTime);
-//  for (int i=0; i<length; i++){
-//    printf("%.2f\t",timebin[i]);
-//  }
-//  printf("\n");
-
-  mGlobalTimeOfLast = globalTime;
-  mTimebinsAfterLastProcessing++;
-
-  //
-  // reordering of the local arrays
-  //
-  float* data0 = mData[0];
-  short t,p;
-  for (t = 0; t<mTimebins-1; t++) {
-    mData[t] = mData[t+1];
-  }
-  mData[mTimebins-1] = data0;
-
-    //printf("%d\n",mGlobalTimeOfLast);
-  if (length != mPads) {
-    if (length < mPads) {
-//      LOG(INFO) << "Number of pads in timebin (" << length << ") doesn't correspond to setting (" << mPads << "), "
-//                << "filling remaining with 0." << FairLogger::endl;
-      for (p = 0; p < length; p++){
-        mData[mTimebins-1][p] = timebin[p];
-      }
-      for (p = length; p < mPads; p++){
-        mData[mTimebins-1][p] = 0;
-      }
-    } else {
-//      LOG(INFO) << "Number of pads in timebin (" << length << ") doesn't correspond to setting (" << mPads << "), "
-//                << "ignoring last ones." << FairLogger::endl;
-      for (p = 0; p < mPads; p++){
-        mData[mTimebins-1][p] = timebin[p];
-      }
-    }
-  } else {
-    for (p = 0; p < mPads; p++){
-      mData[mTimebins-1][p] = timebin[p];
-    }
-  }
-
-  if (mAutoProcessing & (mTimebinsAfterLastProcessing >= (mTimebins -2 -2))) findCluster();
-  return true;
-}
-
-//________________________________________________________________________
 bool HwClusterFinder::AddTimebins(int nBins, float** timebins, unsigned globalTimeOfLast, int length)
 {
   bool ret = false;
-  for(short n=0; n<nBins; n++){
+  for(short n=0; n<nBins; ++n){
     ret = ret | !(AddTimebin(timebins[n],globalTimeOfLast,length));
   }
   return !ret;
@@ -192,7 +142,7 @@ void HwClusterFinder::AddZeroTimebin(unsigned globalTime, int length)
 {
   if (mZeroTimebin == nullptr) {
     mZeroTimebin = new float[length];
-    for (short i = 0; i < length; i++) mZeroTimebin[i] = 0;
+    for (short i = 0; i < length; ++i) mZeroTimebin[i] = 0;
   }
   bool ret = AddTimebin(mZeroTimebin,globalTime,length);
 }
@@ -201,9 +151,9 @@ void HwClusterFinder::AddZeroTimebin(unsigned globalTime, int length)
 void HwClusterFinder::PrintLocalStorage()
 {
   short t,p;
-  for (t = 0; t < mTimebins; t++){
+  for (t = 0; t < mTimebins; ++t){
   printf("t %d:\t",t);
-    for (p = 0; p < mPads; p++){
+    for (p = 0; p < mPads; ++p){
       printf("%.2f\t", mData[t][p]);
     }
     printf("\n");
@@ -254,8 +204,8 @@ bool HwClusterFinder::findCluster()
   // peak finding
   //
   short t,p,tt,pp;
-  for (t=tMin; t<=tMax; t++) {
-    for (p=pMin; p<=pMax; p++) {
+  for (t=tMin; t<=tMax; ++t) {
+    for (p=pMin; p<=pMax; ++p) {
         //printf("t:%d, p:%d\n",t,p);
       //
       // find peak in 3x3 matrix
@@ -293,8 +243,8 @@ bool HwClusterFinder::findCluster()
       //
       
       // prepare temp storage
-      for (tt=0; tt<mClusterSizeTime; tt++) {
-        for (pp=0; pp<mClusterSizePads; pp++){
+      for (tt=0; tt<mClusterSizeTime; ++tt) {
+        for (pp=0; pp<mClusterSizePads; ++pp){
           tmpCluster[tt][pp] = 0;
         }
       }
@@ -304,8 +254,8 @@ bool HwClusterFinder::findCluster()
       // used taken for the found cluster
       //
       float charge;
-      for (tt=1; tt<4; tt++) {
-        for (pp=1; pp<4; pp++) {
+      for (tt=1; tt<4; ++tt) {
+        for (pp=1; pp<4; ++pp) {
           charge = mData[t+(tt-2)][p+(pp-2)];
           if ( mRequirePositiveCharge && charge < 0) continue;
           tmpCluster[tt][pp] = charge;
@@ -365,9 +315,8 @@ bool HwClusterFinder::findCluster()
 //        PrintLocalStorage();
 //      }
 
-      HwCluster cl(mCRU, mRow, mClusterSizePads, mClusterSizeTime, tmpCluster,p+mPadOffset,mGlobalTimeOfLast-(mTimebins-1)+t);
-      foundNclusters++;
-      clusterContainer.push_back(cl);
+      ++foundNclusters;
+      clusterContainer.emplace_back(mCRU, mRow, mClusterSizePads, mClusterSizeTime, tmpCluster,p+mPadOffset,mGlobalTimeOfLast-(mTimebins-1)+t);
 
       if (mAssignChargeUnique) {
         if (p < (pMin+4)) { 
@@ -380,8 +329,8 @@ bool HwClusterFinder::findCluster()
         //
         // subtract found cluster from storage
         //
-        for (tt=0; tt<5; tt++) {
-          for (pp=0; pp<5; pp++) {
+        for (tt=0; tt<5; ++tt) {
+          for (pp=0; pp<5; ++pp) {
             mData[t+(tt-2)][p+(pp-2)] -= tmpCluster[tt][pp];
           }
         }
@@ -434,9 +383,9 @@ void HwClusterFinder::clusterAlreadyUsed(short time, short pad, float** cluster)
   short localPad = pad - mPadOffset;
 
   short t,p;
-  for (t=time-2; t<=time+2; t++){
+  for (t=time-2; t<=time+2; ++t){
     if (t < 0 || t >= mTimebins) continue;
-    for (p=localPad-2; p<=localPad+2; p++){
+    for (p=localPad-2; p<=localPad+2; ++p){
       if (p < 0 || p >= mPads) continue;
         
       mData[t][p] -= cluster[t-time+2][p-localPad+2];
@@ -448,8 +397,8 @@ void HwClusterFinder::clusterAlreadyUsed(short time, short pad, float** cluster)
 void HwClusterFinder::reset(unsigned globalTimeAfterReset)
 {
   short t,p;
-  for (t = 0; t < mTimebins; t++){
-    for (p = 0; p < mPads; p++){
+  for (t = 0; t < mTimebins; ++t){
+    for (p = 0; p < mPads; ++p){
       mData[t][p] = 0;
     }
   }
@@ -461,9 +410,9 @@ void HwClusterFinder::reset(unsigned globalTimeAfterReset)
 void HwClusterFinder::printCluster(short time, short pad)
 {
   short t,p;
-  for (t = time-2; t <= time+2; t++) {
+  for (t = time-2; t <= time+2; ++t) {
     printf("%d\t\t",t);
-    for (p = pad-2; p <= pad+2; p++) {
+    for (p = pad-2; p <= pad+2; ++p) {
       printf("%.2f\t", mData[t][p]);
     }
     printf("\n");
