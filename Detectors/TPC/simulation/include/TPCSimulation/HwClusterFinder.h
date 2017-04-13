@@ -5,6 +5,7 @@
 #define ALICEO2_TPC_HWClusterFinder_H_
 
 #include <vector>
+#include <cstring>
 
 namespace o2{
 namespace TPC {
@@ -145,7 +146,31 @@ class HwClusterFinder {
 
     HwClusterFinder* mNextCF;
 
-  };
+};
+
+//________________________________________________________________________
+inline bool HwClusterFinder::AddTimebin(float* timebin, unsigned globalTime, int length)
+{
+  mGlobalTimeOfLast = globalTime;
+  ++mTimebinsAfterLastProcessing;
+
+  //
+  // reordering of the local arrays
+  //
+  float* data0 = mData[0];
+  std::memmove(mData,mData+1,(mTimebins-1)*sizeof(mData[0]));
+  mData[mTimebins-1] = data0;
+  if (length < mPads) {
+    std::memset(*(mData+mTimebins-1)+length,0 ,(mPads-length)*sizeof(mData[mTimebins-1][0]));
+    std::memcpy(*(mData+mTimebins-1),timebin,length*sizeof(timebin[0]));
+  } else {
+    std::memcpy(*(mData+mTimebins-1),timebin,mPads*sizeof(timebin[0]));
+  }
+
+  if (mAutoProcessing & (mTimebinsAfterLastProcessing >= (mTimebins -2 -2))) findCluster();
+  return true;
+}
+
 }
 }
 
