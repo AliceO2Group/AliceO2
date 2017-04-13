@@ -3,10 +3,11 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 10/10/2016
 
+#include "ITSMFTSimulation/Point.h"
+
 #include "MFTBase/Constants.h"
 #include "MFTBase/Geometry.h"
 #include "MFTSimulation/EventHeader.h"
-#include "MFTSimulation/Point.h"
 #include "MFTReconstruction/Hit.h"
 #include "MFTReconstruction/FindHits.h"
 
@@ -110,7 +111,7 @@ void FindHits::Exec(Option_t* /*opt*/)
 
   Reset();
 
-  o2::MFT::Point *point;
+  o2::ITSMFT::Point *point;
   TVector3 pos, dpos;
   Int_t detID, trackID;
   Double_t dx = Geometry::sXPixelPitch/TMath::Sqrt(12);
@@ -120,12 +121,12 @@ void FindHits::Exec(Option_t* /*opt*/)
   // Loop over fPoints
   Int_t nPoints = mPoints->GetEntriesFast();
   for (Int_t iPoint = 0; iPoint < nPoints; iPoint++) {
-    point = static_cast<o2::MFT::Point*>(mPoints->At(iPoint));
+    point = static_cast<o2::ITSMFT::Point*>(mPoints->At(iPoint));
     if (!point) continue;
     detID = point->GetDetectorID();
     trackID = point->GetTrackID();
     // copy the coordinates from point to hit
-    pos.SetXYZ(point->GetX(),point->GetY(),point->GetZ());
+    pos.SetXYZ(point->GetStartX(),point->GetStartY(),point->GetStartZ());
     dpos.SetXYZ(dx,dy,dz);
     //new ((*fHits)[nHits]) Hit(detID, pos, dpos, iPoint);
     new ((*mHits)[mNHits]) Hit(detID, pos, dpos, trackID);
