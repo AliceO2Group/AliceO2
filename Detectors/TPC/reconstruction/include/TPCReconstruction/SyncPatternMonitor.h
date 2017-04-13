@@ -45,6 +45,18 @@ class SyncPatternMonitor {
     /// @return Position of first part of the synchronization pattern, -1 if no patter was found
     short getPosition() { return mPatternFound ? mHwWithPattern : -1; };
 
+    /// Return a Pattern sync pattern
+    /// @return Pattern A
+    short getPatternA() const { return PATTERN_A; };
+
+    /// Return a Pattern sync pattern
+    /// @return Pattern B
+    short getPatternB() const { return PATTERN_B; };
+
+    // Return first position to look for in whole pattern
+    /// @return start
+    short getSyncStart() const { return SYNC_START; };
+
   private:
 
     const static short SYNC_START = 2;
@@ -81,8 +93,18 @@ inline
 void SyncPatternMonitor::checkWord(const short hw, const short pos) {
   ++mCheckedWords;
   if (hw == SYNC_PATTERN[mPosition]) ++mPosition;
-  else mPosition = SYNC_START;
-  if (mPosition == 31) patternFound(pos); 
+  else if (! (mPosition == SYNC_START+2 && hw == SYNC_PATTERN[mPosition-1])) mPosition = SYNC_START;
+  // Don't reset mPosition at the beginning to avoid missing of start of sync pattern in cases like
+  //
+  //
+  //       ... A  A  A  B  B ...
+  //       
+  //           ^  ^  ^
+  // random A _|  |  |_ would trigger reset
+  //              |
+  //             real start
+  
+  if (mPosition == 32) patternFound(pos); 
 };
 
 inline

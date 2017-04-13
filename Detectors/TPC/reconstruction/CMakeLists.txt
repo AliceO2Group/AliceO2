@@ -57,3 +57,12 @@ foreach (_file RANGE 0 ${_length}) # loop over a range because we traverse 2 lis
   )
 endforeach (_file RANGE 0 ${_length})
 
+set(TEST_SRCS
+  test/testTPCSyncPatternMonitor.cxx
+)
+
+O2_GENERATE_TESTS(
+  BUCKET_NAME ${BUCKET_NAME}
+  MODULE_LIBRARY_NAME ${MODULE_NAME}
+  TEST_SRCS ${TEST_SRCS}
+)
