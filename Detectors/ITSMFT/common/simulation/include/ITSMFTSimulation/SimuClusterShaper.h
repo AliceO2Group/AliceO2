@@ -65,8 +65,6 @@ namespace o2 {
       UInt_t  mNpixOn;
       const SegmentationPixel* mSeg;
       ClusterShape *mCShape;
-
-      ClassDefOverride(SimuClusterShaper,1)
     };
   }
 }

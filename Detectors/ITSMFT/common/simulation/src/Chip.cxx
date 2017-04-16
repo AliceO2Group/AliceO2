@@ -14,8 +14,6 @@
 #include "ITSMFTSimulation/Chip.h"
 #include "ITSMFTSimulation/Point.h"
 
-ClassImp(o2::ITSMFT::Chip)
-
 using namespace o2::ITSMFT;
 
 Chip::Chip() :

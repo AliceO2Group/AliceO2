@@ -8,8 +8,6 @@
 
 #include "ITSMFTSimulation/SimuClusterShaper.h"
 
-ClassImp(o2::ITSMFT::SimuClusterShaper)
-
 using namespace o2::ITSMFT;
 
 //______________________________________________________________________

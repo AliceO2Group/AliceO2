@@ -54,8 +54,6 @@ namespace o2 {
 
     protected:
       Double_t           mParam[NumberOfParameters]; // Chip response parameters
-
-      ClassDefOverride(SimulationAlpide,1)   // Simulation of pixel clusters
     };
   }
 }
