@@ -16,7 +16,7 @@
 #include "ITSMFTSimulation/SimulationAlpide.h"
 #include "ITSMFTSimulation/SimuClusterShaper.h"
 #include "ITSMFTSimulation/Point.h"
-
+#include "ITSMFTSimulation/DigitContainer.h"
 
 ClassImp(o2::ITSMFT::SimulationAlpide)
 
@@ -219,6 +219,81 @@ Double_t SimulationAlpide::ComputeIncidenceAngle(TLorentzVector dir) const {
   return pdirection.Angle(normal);
 }
 
+
+//______________________________________________________________________
+void SimulationAlpide::GenerateClusters(DigitContainer *digitContainer) {
+  Int_t nhits = mChip->GetNumberOfPoints();
+  if (nhits <= 0) return;
+
+  for (Int_t h = 0; h < nhits; ++h) {
+    Double_t x0, x1, y0, y1, z0, z1, tof, de;
+    if (!mChip->LineSegmentLocal(h, x0, x1, y0, y1, z0, z1, tof, de)) continue;
+
+    // To local coordinates
+    Float_t x = x0 + 0.5*x1;
+    Float_t y = y0 + 0.5*y1;
+    Float_t z = z0 + 0.5*z1;
+
+    const Point *hit = mChip->GetPointAt(h);
+    TLorentzVector trackP4;
+    trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
+    Double_t beta = std::min(0.99999, trackP4.Beta());
+    Double_t bgamma = beta / sqrt(1 - pow(beta, 2));
+    if (bgamma < 0.001) continue;
+    Double_t theta = ComputeIncidenceAngle(trackP4);
+
+    // Get the pixel ID
+    Int_t ix, iz;
+    if (!mSeg->localToDetector(x, z, ix, iz)) continue;
+
+    Double_t acs = ACSFromBetaGamma(bgamma, theta);
+    UInt_t cs = GetPixelPositionResponse(ix, iz, x, z, acs);
+    //cs = 3; // uncomment to set the cluster size manually
+
+    // Create the shape
+    std::vector<UInt_t> cshape;
+    auto *csManager = new SimuClusterShaper(cs);
+    csManager->SetFireCenter(true);
+    //csManager->FillClusterRandomly();
+
+    csManager->SetHit(ix, iz, x, z, mSeg);
+    csManager->FillClusterSorted();
+
+    cs = csManager->GetCS();
+    csManager->GetShape(cshape);
+    UInt_t nrows = csManager->GetNRows();
+    UInt_t ncols = csManager->GetNCols();
+    Int_t cx = csManager->GetCenterC();
+    Int_t cz = csManager->GetCenterR();
+
+    LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
+    LOG(DEBUG) << "_/_/_/ pALPIDE debug  _/_/_/" << FairLogger::endl;
+    LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
+    LOG(DEBUG) << " Beta*Gamma: " << bgamma << FairLogger::endl;
+    LOG(DEBUG) << "        ACS: " << acs << FairLogger::endl;
+    LOG(DEBUG) << "         CS: " <<  cs << FairLogger::endl;
+    LOG(DEBUG) << "      Shape: " << ClusterShape::ShapeSting(cshape).c_str() << FairLogger::endl;
+    LOG(DEBUG) << "     Center: " << cx << ' ' << cz << FairLogger::endl;
+    LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
+
+    for (Int_t ipix = 0; ipix < cs; ++ipix) {
+      Int_t r = (Int_t) cshape[ipix] / nrows;
+      Int_t c = (Int_t) cshape[ipix] % nrows;
+      Int_t nx = ix - cx + c;
+        if (nx<0) continue;
+        if (nx>=mSeg->getNumberOfRows()) continue;
+      Int_t nz = iz - cz + r;
+        if (nz<0) continue;
+        if (nz>=mSeg->getNumberOfColumns()) continue;
+      Int_t chipID = hit->GetDetectorID();
+      Double_t charge = hit->GetEnergyLoss();
+      Digit *digit = digitContainer->addDigit(chipID, nx, nz, charge, hit->GetTime());
+      digit->setLabel(0, hit->GetTrackID());
+    }
+
+    delete csManager;
+  }
+}
 
 //______________________________________________________________________
 void SimulationAlpide::GenerateCluster() {

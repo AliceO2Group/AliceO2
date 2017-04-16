@@ -1,8 +1,8 @@
 /// \file DigitChip.h
-/// \brief Definition of the ITS DigitChip class
+/// \brief Definition of the ITSMFT DigitChip class
 
-#ifndef ALICEO2_ITS_DIGITCHIP
-#define ALICEO2_ITS_DIGITCHIP
+#ifndef ALICEO2_ITSMFT_DIGITCHIP
+#define ALICEO2_ITSMFT_DIGITCHIP
 
 #include <map>
 #include "Rtypes.h"
@@ -13,15 +13,7 @@ namespace o2
 {
   namespace ITSMFT
   {
-  class Digit;
-  }
-}
-
-namespace o2
-{
-  namespace ITS
-  {
-
+    class Digit;
     class DigitChip
     {
     public:
@@ -45,4 +37,4 @@ namespace o2
   }
 }
 
-#endif /* ALICEO2_ITS_DIGITCHIP */
+#endif /* ALICEO2_ITSMFT_DIGITCHIP */

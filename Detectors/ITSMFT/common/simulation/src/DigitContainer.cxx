@@ -1,13 +1,12 @@
 /// \file DigitContainer.cxx
-/// \brief Implementation of the ITS DigitContainer class
+/// \brief Implementation of the ITSMFT DigitContainer class
 //
-#include "ITSSimulation/DigitContainer.h"
 #include "ITSMFTBase/Digit.h"
+#include "ITSMFTSimulation/DigitContainer.h"
 
 #include "FairLogger.h" // for LOG
 
-using o2::ITSMFT::Digit;
-using namespace o2::ITS;
+using namespace o2::ITSMFT;
 
 void DigitContainer::reset()
 {
