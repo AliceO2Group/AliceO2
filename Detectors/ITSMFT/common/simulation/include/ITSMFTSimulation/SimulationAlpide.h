@@ -26,6 +26,7 @@ namespace o2 {
     //-------------------------------------------------------------------
 
     class SegmentationPixel;
+    class DigitContainer;
     
     class SimulationAlpide : public TObject {
     public:
@@ -49,6 +50,7 @@ namespace o2 {
       void      DigitiseChip(TClonesArray*);
       Bool_t    AddSDigitsToChip(TSeqCollection*, Int_t);
       void      GenerateCluster();
+      void      GenerateClusters(DigitContainer *);
       void      clearSimulation() { mSensMap->clear(); mChip->Clear(); }
 
     private:

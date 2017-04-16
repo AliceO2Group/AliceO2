@@ -4,7 +4,8 @@
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTBase/SegmentationPixel.h"
 #include "ITSMFTSimulation/Point.h"
-#include "ITSSimulation/DigitChip.h"
+#include "ITSMFTSimulation/DigitChip.h"
+#include "ITSMFTSimulation/DigitContainer.h"
 #include "ITSSimulation/Digitizer.h"
 
 #include "FairLogger.h"   // for LOG
@@ -16,6 +17,8 @@ using o2::ITSMFT::Point;
 using o2::ITSMFT::Chip;
 using o2::ITSMFT::SimulationAlpide;
 using o2::ITSMFT::Digit;
+using o2::ITSMFT::DigitChip;
+using o2::ITSMFT::DigitContainer;
 using o2::ITSMFT::SegmentationPixel;
 
 using namespace o2::ITS;
@@ -50,6 +53,8 @@ void Digitizer::init(Bool_t build)
 
 void Digitizer::process(TClonesArray* points, TClonesArray* digits)
 {
+  mDigitContainer.reset();
+
   // Convert points to digits
   for (TIter iter = TIter(points).Begin(); iter != TIter::End(); ++iter) {
     Point* point = dynamic_cast<Point*>(*iter);
@@ -60,8 +65,11 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
   }
 
   for (Int_t i = 0; i < mNumOfChips; i++) {
-    mSimulations[i].DigitiseChip(digits);
+    mSimulations[i].GenerateClusters(&mDigitContainer);
+    mSimulations[i].clearSimulation();
   }
+  
+  mDigitContainer.fillOutputContainer(digits);
 }
 
 DigitContainer& Digitizer::process(TClonesArray* points)

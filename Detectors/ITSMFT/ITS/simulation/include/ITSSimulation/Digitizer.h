@@ -10,8 +10,8 @@
 
 #include "ITSMFTSimulation/Chip.h"
 #include "ITSMFTSimulation/SimulationAlpide.h"
+#include "ITSMFTSimulation/DigitContainer.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSSimulation/DigitContainer.h"
 
 class TClonesArray;
 
@@ -30,7 +30,7 @@ namespace o2
       /// Steer conversion of points to digits
       /// @param points Container with ITS points
       /// @return digits container
-      DigitContainer& process(TClonesArray* points);
+      o2::ITSMFT::DigitContainer& process(TClonesArray* points);
       void process(TClonesArray* points, TClonesArray* digits);
 
     private:
@@ -41,7 +41,7 @@ namespace o2
       Int_t mNumOfChips;                          ///< Number of chips
       std::vector<o2::ITSMFT::Chip> mChips;  ///< Array of chips
       std::vector<o2::ITSMFT::SimulationAlpide> mSimulations; ///< Array of chips response simulations
-      DigitContainer mDigitContainer;             ///< Internal digit storage
+      o2::ITSMFT::DigitContainer mDigitContainer; ///< Internal digit storage
 
       ClassDefOverride(Digitizer, 2);
     };

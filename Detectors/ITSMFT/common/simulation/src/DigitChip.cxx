@@ -1,15 +1,14 @@
 /// \file DigitChip.cxx
-/// \brief Implementation of the ITS DigitChip class
+/// \brief Implementation of the ITSMFT DigitChip class
 
-#include "ITSSimulation/DigitChip.h"
 #include "ITSMFTBase/Digit.h"
+#include "ITSMFTSimulation/DigitChip.h"
 
 #include "FairLogger.h" // for LOG
 
 #include "TClonesArray.h"
 
-using o2::ITSMFT::Digit;
-using namespace o2::ITS;
+using namespace o2::ITSMFT;
 
 Int_t DigitChip::sNumOfRows = 650;
 
@@ -65,3 +64,4 @@ void DigitChip::fillOutputContainer(TClonesArray* outputcont)
     new (clref[clref.GetEntriesFast()]) Digit(*(digit.second));
   }
 }
+

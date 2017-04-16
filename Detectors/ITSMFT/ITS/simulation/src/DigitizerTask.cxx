@@ -6,8 +6,8 @@
 //
 //
 
+#include "ITSMFTSimulation/DigitContainer.h"
 #include "ITSSimulation/DigitizerTask.h"
-#include "ITSSimulation/DigitContainer.h"
 
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
@@ -16,7 +16,8 @@
 
 ClassImp(o2::ITS::DigitizerTask)
 
-  using namespace o2::ITS;
+using o2::ITSMFT::DigitContainer;
+using namespace o2::ITS;
 
 DigitizerTask::DigitizerTask(Bool_t useAlpide)
   : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer(), mPointsArray(nullptr), mDigitsArray(nullptr)

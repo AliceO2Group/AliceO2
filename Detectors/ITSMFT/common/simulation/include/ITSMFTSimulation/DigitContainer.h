@@ -1,27 +1,19 @@
 /// \file DigitContainer.h
-/// \brief Definition of the ITS DigitContainer class
+/// \brief Definition of the ITSMFT DigitContainer class
 
-#ifndef ALICEO2_ITS_DIGITCONTAINER
-#define ALICEO2_ITS_DIGITCONTAINER
+#ifndef ALICEO2_ITSMFT_DIGITCONTAINER
+#define ALICEO2_ITSMFT_DIGITCONTAINER
 
 #include <vector>
 
-#include "ITSSimulation/DigitChip.h"
 #include "Rtypes.h"
+#include "ITSMFTSimulation/DigitChip.h"
 
 class TClonesArray;
 
 namespace o2
 {
   namespace ITSMFT
-  {
-    class Digit;
-  }
-}
-
-namespace o2
-{
-  namespace ITS
   {
     class DigitContainer
     {
@@ -41,4 +33,4 @@ namespace o2
   }
 }
 
-#endif /* ALICEO2_ITS_DIGITCONTAINER */
+#endif /* ALICEO2_ITSMFT_DIGITCONTAINER */
