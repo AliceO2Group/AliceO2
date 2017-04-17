@@ -13,7 +13,7 @@
 /// \author antonio.uras@cern.ch, bogdan.vulpescu@cern.ch 
 /// \date 01/08/2016
 
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -38,7 +38,7 @@
 #include "FairGenericRootManager.h"
 #include "FairVolume.h"
 
-using o2::ITSMFT::Point;
+using o2::ITSMFT::Hit;
 using namespace o2::MFT;
 
 ClassImp(o2::MFT::Detector)
@@ -49,7 +49,7 @@ Detector::Detector()
   mVersion(1),
   mGeometryTGeo(nullptr),
   mDensitySupportOverSi(0.036),
-  mPoints(new TClonesArray("o2::ITSMFT::Point")),
+  mPoints(new TClonesArray("o2::ITSMFT::Hit")),
   mTrackData()
 {
 
@@ -142,18 +142,18 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   bool startHit=false, stopHit=false;
   unsigned char status = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Point::kTrackEntering; }
-  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Point::kTrackInside; }
-  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Point::kTrackExiting; }
-  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Point::kTrackOut; }
-  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Point::kTrackStopped; }
-  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Point::kTrackAlive; }
+  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Hit::kTrackEntering; }
+  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Hit::kTrackInside; }
+  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Hit::kTrackExiting; }
+  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Hit::kTrackOut; }
+  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Hit::kTrackStopped; }
+  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Hit::kTrackAlive; }
 
   // track is entering or created in the volume
-  if ( (status & Point::kTrackEntering) || (status & Point::kTrackInside && !mTrackData.mHitStarted) ) {
+  if ( (status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted) ) {
     startHit = true;
   }
-  else if ( (status & (Point::kTrackExiting|Point::kTrackOut|Point::kTrackStopped)) ) {
+  else if ( (status & (Hit::kTrackExiting|Hit::kTrackOut|Hit::kTrackStopped)) ) {
     stopHit = true;
   }
 
@@ -179,7 +179,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
     Int_t detID = vol->getMCid();
 
-    Point *p = addHit(trackID,detID,
+    Hit *p = addHit(trackID,detID,
 		      mTrackData.mPositionStart.Vect(),
 		      positionStop.Vect(),
 		      mTrackData.mMomentumStart.Vect(),
@@ -199,13 +199,13 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 }
 
 //_____________________________________________________________________________
-Point* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
+Hit* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
 
   TClonesArray &clref = *mPoints;
   Int_t size = clref.GetEntriesFast();
 
-  return new(clref[size]) Point(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  return new(clref[size]) Hit(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
 
 }
 
