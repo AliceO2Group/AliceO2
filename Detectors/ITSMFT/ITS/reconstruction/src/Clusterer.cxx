@@ -106,10 +106,16 @@ void Clusterer::finishChip(TClonesArray &clusters)
   Int_t i=0;
   for (auto pre : mPreClusters) {
     Int_t npix = pre.size();
+    UShort_t xmax=0, xmin=65535;
+    UShort_t zmax=0, zmin=65535;
     Float_t x=0., z=0.;
     for (auto dig : pre) {
       x += dig.first;
       z += dig.second;
+      if (dig.first < xmin) xmin=dig.first;
+      if (dig.first > xmax) xmax=dig.first;
+      if (dig.second < zmin) zmin=dig.second;
+      if (dig.second > zmax) zmax=dig.second;
     }
     x /= npix;
     x = mX0 + x*mPitchX;
@@ -122,7 +128,7 @@ void Clusterer::finishChip(TClonesArray &clusters)
     c.setZ(z);
     c.setSigmaY2(sigmaX2);
     c.setSigmaZ2(sigmaY2);
-    c.setNxNzN(3,3,npix); //FIXME
+    c.setNxNzN(xmax-xmin+1,zmax-zmin+1,npix);
     c.setFrameLoc();
     c.setLabel(mLabels[i++], 0);
     new (clusters[clusters.GetEntriesFast()]) Cluster(c);
