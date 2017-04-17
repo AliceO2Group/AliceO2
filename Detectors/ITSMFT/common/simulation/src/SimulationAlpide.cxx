@@ -280,7 +280,11 @@ void SimulationAlpide::GenerateCluster() {
       Int_t r = (Int_t) cshape[ipix] / nrows;
       Int_t c = (Int_t) cshape[ipix] % nrows;
       Int_t nx = ix - cx + c;
+        if (nx<0) continue;
+        if (nx>=mSeg->getNumberOfRows()) continue;
       Int_t nz = iz - cz + r;
+        if (nz<0) continue;
+        if (nz>=mSeg->getNumberOfColumns()) continue;
       CreateDigi(nz, nx, hit->GetTrackID(), h);
     }
 
