@@ -44,7 +44,6 @@ public:
   void EnableDebugOutput() { fDebugOutput = true; }
   void SetPtThreshold(float minPt) { fMinPt = minPt; }
   void SetChi2Threshold(float maxChi2) { fMaxChi2 = maxChi2; }
-  void Rotate(const double alpha, const double * const loc, double *glb);
   int GetDetectorNumber(const double zPos, double alpha, int layer);
   bool AdjustSector(AliHLTTRDTrack *t);
 
