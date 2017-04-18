@@ -31,6 +31,7 @@ public:
     double fX[3];
     double fCov[2];
     int fId;
+    int fLabel;
     unsigned short fVolumeId;
   };
 

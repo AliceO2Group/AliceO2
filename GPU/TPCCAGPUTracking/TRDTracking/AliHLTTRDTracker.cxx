@@ -288,6 +288,7 @@ void AliHLTTRDTracker::CalculateSpacePoints()
       }
       matrix->LocalToMaster(xTrklt, fSpacePoints[trkltIdx].fX);
       fSpacePoints[trkltIdx].fId = fTracklets[trkltIdx].GetId();
+      fSpacePoints[trkltIdx].fLabel = fTracklets[trkltIdx].GetLabel();
       fSpacePoints[trkltIdx].fCov[0] = 0.03;
       fSpacePoints[trkltIdx].fCov[1] = padPlane->GetRowPos(fTracklets[trkltIdx].GetZbin()) / TMath::Sqrt(12);
 
