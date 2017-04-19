@@ -8,6 +8,8 @@
 #include <Vc/Vc>
 
 #include "TPCSimulation/Constants.h"
+#include "TPCBase/PadSecPos.h"
+#include "TPCSimulation/Baseline.h"
 
 #include "TSpline.h"
 
@@ -38,6 +40,12 @@ class SAMPAProcessing
     /// \param signal Input signal
     /// \return ADC value of the (saturated) SAMPA
     const float getADCSaturation(const float signal) const;
+
+    /// Make the full signal including noise and pedestals from the Baseline class
+    /// \param ADCcounts ADC value of the signal (common mode already subtracted)
+    /// \param padSecPos PadSecPos of the signal
+    /// \return ADC value after application of noise, pedestal and saturation
+    static float makeSignal(float ADCcounts, const PadSecPos &padSecPos);
 
     /// A delta signal is shaped by the FECs and thus spread over several time bins
     /// This function returns an array with the signal spread into the following time bins
@@ -74,6 +82,18 @@ T SAMPAProcessing::getADCvalue(T nElectrons)
 {
   T conversion = QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE; // 1E-15 is to convert Coulomb in fC
   return nElectrons*conversion;
+}
+
+inline
+float SAMPAProcessing::makeSignal(float ADCcounts, const PadSecPos& padSecPos)
+{
+  SAMPAProcessing &sampa = SAMPAProcessing::instance();
+  static Baseline baseline;
+  float signal = ADCcounts;
+  /// \todo Pedestal to be implemented in baseline class
+//  signal += baseline.getPedestal(padSecPos);
+  signal += baseline.getNoise(padSecPos);
+  return sampa.getADCSaturation(signal);
 }
 
 inline
