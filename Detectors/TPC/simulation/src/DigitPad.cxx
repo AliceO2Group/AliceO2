@@ -4,6 +4,9 @@
 
 #include "TPCSimulation/DigitPad.h"
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "TPCBase/PadPos.h"
+#include "TPCBase/PadSecPos.h"
+#include "TPCBase/CRU.h"
 #include "TPCSimulation/DigitMC.h"
 
 #include <boost/range/adaptor/reversed.hpp>
@@ -14,11 +17,10 @@ using namespace o2::TPC;
 void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode)
 {
   /// The charge accumulated on that pad is converted into ADC counts, saturation of the SAMPA is applied and a Digit is created in written out
-  const SAMPAProcessing& sampa = SAMPAProcessing::instance();
-  float totalADC = mChargePad;
+  const float totalADC = mChargePad - commonMode; // common mode is subtracted here in order to properly apply noise, pedestals and saturation of the SAMPA
   std::vector<long> MClabel;
   processMClabels(MClabel);
-  const float mADC = sampa.getADCSaturation(totalADC-commonMode); // we substract the common mode here in order to properly apply the saturation of the FECs
+  const float mADC = SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)));
   if(mADC > 0) {
     TClonesArray &clref = *output;
     new(clref[clref.GetEntriesFast()]) DigitMC(MClabel, cru, mADC, row, pad, timeBin, commonMode);
