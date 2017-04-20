@@ -23,15 +23,15 @@ class TaskProcessor : public FairMQDevice
   TaskProcessor();
   ~TaskProcessor() override;
 
-  void SetDataToKeep(std::string tStr) { mDataToKeep = tStr;}
+  void setDataToKeep(std::string tStr) { mDataToKeep = tStr;}
 
-  void SetInputChannelName (std::string tstr) {mInputChannelName = tstr;}
-  void SetOutputChannelName(std::string tstr) {mOutputChannelName = tstr;}
-  void SetParamChannelName (std::string tstr) {mParamChannelName  = tstr;}
+  void setInputChannelName (std::string tstr) {mInputChannelName = tstr;}
+  void setOutputChannelName(std::string tstr) {mOutputChannelName = tstr;}
+  void setParamChannelName (std::string tstr) {mParamChannelName  = tstr;}
 
  protected:
 
-  bool ProcessData(FairMQParts&, int);
+  bool processData(FairMQParts&, int);
   void Init() override;
   void PostRun() override;
 

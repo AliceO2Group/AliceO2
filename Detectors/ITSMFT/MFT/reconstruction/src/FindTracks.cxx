@@ -51,7 +51,7 @@ FindTracks::FindTracks(Int_t iVerbose)
 FindTracks::~FindTracks()
 {
 
-  Reset();
+  reset();
   if (mTracks) {
     mTracks->Delete();
     delete mTracks;
@@ -102,10 +102,10 @@ InitStatus FindTracks::ReInit()
 }
 
 //_____________________________________________________________________________
-void FindTracks::InitMQ(TList* tempList) 
+void FindTracks::initMQ(TList* tempList) 
 {
 
-  LOG(INFO) << "FindTracks::InitMQ >>>>>" << "";
+  LOG(INFO) << "FindTracks::initMQ >>>>>" << "";
 
   mTracks = new TClonesArray("o2::MFT::Track",10000);
   mTracks->Dump();
@@ -121,7 +121,7 @@ void FindTracks::Exec(Option_t* /*opt*/)
   //Info("Exec","Exec called",0,0);
   LOG(INFO) << "FindTracks::Exec >>>>>" << "";
 
-  Reset();
+  reset();
 
   const Int_t nMaxTracks = 1000;
   mNHits = mHits->GetEntriesFast();
@@ -211,15 +211,15 @@ void FindTracks::Exec(Option_t* /*opt*/)
 }
 
 //_____________________________________________________________________________
-void FindTracks::ExecMQ(TList* inputList,TList* outputList) 
+void FindTracks::execMQ(TList* inputList,TList* outputList) 
 {
 
-  LOG(INFO) << "FindTracks::ExecMQ >>>>> add MFTHits for event " << mTNofEvents << "";
+  LOG(INFO) << "FindTracks::execMQ >>>>> add MFTHits for event " << mTNofEvents << "";
 
   mHits = (TClonesArray*)inputList->FindObject("MFTHits");
   outputList->Add(mTracks);
 
-  LOG(INFO) << "FindTracks::ExecMQ >>>>> add EventHeader. for event " << mTNofEvents << "";
+  LOG(INFO) << "FindTracks::execMQ >>>>> add EventHeader. for event " << mTNofEvents << "";
 
   mEventHeader = (EventHeader*)inputList->FindObject("EventHeader.");
   outputList->Add(mEventHeader);
@@ -231,7 +231,7 @@ void FindTracks::ExecMQ(TList* inputList,TList* outputList)
 }
 
 //_____________________________________________________________________________
-void FindTracks::Reset() 
+void FindTracks::reset() 
 {
 
   mNTracks = mNHits = 0;

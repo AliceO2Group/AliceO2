@@ -27,8 +27,8 @@ public:
   
   ~Chip() override;
   
-  TGeoVolume * CreateVolume();
-  void GetPosition(LadderSegmentation * ladderSeg, Int_t iChip, Double_t *pos);
+  TGeoVolume * createVolume();
+  void getPosition(LadderSegmentation * ladderSeg, Int_t iChip, Double_t *pos);
 
 private:
   

@@ -38,7 +38,7 @@ mEventHeader(nullptr)
 FindHits::~FindHits()
 {
 
-  Reset();
+  reset();
   if (mHits) {
     mHits->Delete();
     delete mHits;
@@ -89,7 +89,7 @@ InitStatus FindHits::ReInit()
 }
 
 //_____________________________________________________________________________
-void FindHits::InitMQ(TList* tempList) 
+void FindHits::initMQ(TList* tempList) 
 {
 
   LOG(INFO) << "FindHits::InitMQ >>>>>" << "";
@@ -109,7 +109,7 @@ void FindHits::Exec(Option_t* /*opt*/)
   //Info("Exec","Exec called",0,0);
   LOG(INFO) << "FindHits::Exec >>>>>" << "";
 
-  Reset();
+  reset();
 
   o2::ITSMFT::Point *point;
   TVector3 pos, dpos;
@@ -142,7 +142,7 @@ void FindHits::Exec(Option_t* /*opt*/)
 }
 
 //_____________________________________________________________________________
-void FindHits::ExecMQ(TList* inputList,TList* outputList) {
+void FindHits::execMQ(TList* inputList,TList* outputList) {
 
   LOG(INFO) << "FindHits::ExecMQ >>>>> (" << inputList->GetName() << "," << outputList->GetName() << "), Event " << mTNofEvents << "";
 
@@ -154,7 +154,7 @@ void FindHits::ExecMQ(TList* inputList,TList* outputList) {
   mMCEventHeader = (FairMCEventHeader*)inputList->FindObject("MCEventHeader.");
   mEventHeader->SetRunId(mMCEventHeader->GetRunID());
   mEventHeader->SetMCEntryNumber(mMCEventHeader->GetEventID());
-  mEventHeader->SetPartNo(mMCEventHeader->GetNPrim());
+  mEventHeader->setPartNo(mMCEventHeader->GetNPrim());
   LOG(INFO) << "FindHits::ExecMQ >>>>> RunID " << mMCEventHeader->GetRunID() << " EventID " << mMCEventHeader->GetEventID() << " NPrim " << mMCEventHeader->GetNPrim() << "";
   outputList->Add(mEventHeader);
 
@@ -165,7 +165,7 @@ void FindHits::ExecMQ(TList* inputList,TList* outputList) {
 }
 
 //_____________________________________________________________________________
-void FindHits::Reset() 
+void FindHits::reset() 
 {
 
   mNHits = 0;

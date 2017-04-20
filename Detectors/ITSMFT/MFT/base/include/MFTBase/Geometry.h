@@ -64,43 +64,47 @@ class Geometry : public TNamed {
   static const Double_t sShiftline;
   static const Double_t sRohacell;
 
-  static Geometry* Instance();
+  static Geometry* instance();
 
   ~Geometry() override;
 
-  void Build();
+  void build();
   
   enum ObjectTypes {HalfType, HalfDiskType, PlaneType, LadderType, SensorType};
   
-  //virtual void GetGlobal(const RecPoint * p, TVector3 & pos, TMatrixF & mat) const {};
-  //virtual void GetGlobal(const RecPoint * p, TVector3 & pos) const {};
-  //virtual Bool_t Impact(const TParticle * particle) const {return kFALSE;};
-
   /// \brief Returns Object type based on Unique ID provided
-  Int_t GetObjectType(UInt_t uniqueID)  const {return ((uniqueID>>14)&0x7);};
+  Int_t getObjectType(UInt_t uniqueID)  const {return ((uniqueID>>14)&0x7);};
+
   /// \brief Returns Half-MFT ID based on Unique ID provided
-  Int_t GetHalfMFTID(UInt_t uniqueID)      const {return ((uniqueID>>13)&0x1);};
+  Int_t getHalfMFTID(UInt_t uniqueID)      const {return ((uniqueID>>13)&0x1);};
+
   /// \brief Returns Half-Disk ID based on Unique ID provided
-  Int_t GetHalfDiskID(UInt_t uniqueID)  const {return ((uniqueID>>10)&0x7);};
+  Int_t getHalfDiskID(UInt_t uniqueID)  const {return ((uniqueID>>10)&0x7);};
+
   /// \brief Returns Ladder ID based on Unique ID provided
-  Int_t GetLadderID(UInt_t uniqueID)    const {return ((uniqueID>>4)&0x3F);};
+  Int_t getLadderID(UInt_t uniqueID)    const {return ((uniqueID>>4)&0x3F);};
+
   /// \brief Returns Sensor ID based on Unique ID provided
-  Int_t GetSensorID(UInt_t uniqueID)    const {return (uniqueID&0xF);};
+  Int_t getSensorID(UInt_t uniqueID)    const {return (uniqueID&0xF);};
   
-  UInt_t GetObjectID(ObjectTypes type, Int_t half=0, Int_t disk=0, Int_t ladder=0, Int_t chip=0) const;
+  UInt_t getObjectID(ObjectTypes type, Int_t half=0, Int_t disk=0, Int_t ladder=0, Int_t chip=0) const;
   
   /// \brief Returns TGeo ID of the volume describing the sensors
-  Int_t GetSensorVolumeID()    const {return mSensorVolumeID;};
+  Int_t getSensorVolumeID()    const {return mSensorVolumeID;};
+
   /// \brief Set the TGeo ID of the volume describing the sensors
-  void  SetSensorVolumeID(Int_t val)   { mSensorVolumeID= val;};
+  void  setSensorVolumeID(Int_t val)   { mSensorVolumeID= val;};
 
   /// \brief Returns pointer to the segmentation
-  Segmentation * GetSegmentation() const {return mSegmentation;};
+  Segmentation * getSegmentation() const {return mSegmentation;};
 
-  Bool_t Hit2PixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t detElemID, Int_t &xPixel, Int_t &yPixel) const;
-  void GetPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Double_t &xCenter, Double_t &yCenter, Double_t &zCenter ) const ;
-  Int_t GetDiskNSensors(Int_t diskId) const;
-  Int_t GetDetElemLocalID(Int_t detElem) const;
+  Bool_t hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t detElemID, Int_t &xPixel, Int_t &yPixel) const;
+
+  void getPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Double_t &xCenter, Double_t &yCenter, Double_t &zCenter ) const ;
+
+  Int_t getDiskNSensors(Int_t diskId) const;
+
+  Int_t getDetElemLocalID(Int_t detElem) const;
 
 private:
 

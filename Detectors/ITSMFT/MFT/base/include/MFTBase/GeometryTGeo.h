@@ -20,22 +20,22 @@ public:
   ~GeometryTGeo() override;
 
   /// The number of disks
-  Int_t GetNofDisks() const { return mNDisks; }
+  Int_t getNDisks() const { return mNDisks; }
   /// The number of chips (sensors)
-  Int_t  GetNChips() const {return mNChips;}  
+  Int_t getNChips() const {return mNChips;}  
 
-  static const Char_t* GetVolumeName()   { return sVolumeName.Data();   }
-  static const Char_t* GetHalfDetName()  { return sHalfDetName.Data();  }
-  static const Char_t* GetHalfDiskName() { return sHalfDiskName.Data(); }
-  static const Char_t* GetLadderName()   { return sLadderName.Data();   }
-  static const Char_t* GetSensorName()   { return sSensorName.Data();   }
+  static const Char_t* getVolumeName()   { return sVolumeName.Data();   }
+  static const Char_t* getHalfDetName()  { return sHalfDetName.Data();  }
+  static const Char_t* getHalfDiskName() { return sHalfDiskName.Data(); }
+  static const Char_t* getLadderName()   { return sLadderName.Data();   }
+  static const Char_t* getSensorName()   { return sSensorName.Data();   }
 
 private:
 
   GeometryTGeo(const GeometryTGeo &src);
   GeometryTGeo& operator=(const GeometryTGeo &);
 
-  void Build();
+  void build();
 
   Int_t  mNDisks;
   Int_t  mNChips;

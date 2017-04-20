@@ -59,7 +59,7 @@ Segmentation::~Segmentation() {
 /// \return Pointer to a HalfSegmentation
 
 //_____________________________________________________________________________
-HalfSegmentation* Segmentation::GetHalf(Int_t iHalf) const 
+HalfSegmentation* Segmentation::getHalf(Int_t iHalf) const 
 { 
 
   Info("GetHalf",Form("Ask for half %d (of %d and %d)",iHalf,Bottom,Top),0,0);
@@ -95,34 +95,34 @@ void Segmentation::Clear(const Option_t* /*opt*/) {
 /// \retval <kFALSE> if hit outside the active part
 
 //_____________________________________________________________________________
-Bool_t Segmentation::Hit2PixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t half, Int_t disk, Int_t ladder, Int_t sensor, Int_t &xPixel, Int_t &yPixel){
+Bool_t Segmentation::hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t half, Int_t disk, Int_t ladder, Int_t sensor, Int_t &xPixel, Int_t &yPixel){
 
   Double_t master[3] = {xHit, yHit, zHit};
   Double_t local[3];
   HalfSegmentation * halfSeg = ((HalfSegmentation*)mHalves->At(half));
   if(!halfSeg) return kFALSE;
-  HalfDiskSegmentation * diskSeg = halfSeg->GetHalfDisk(disk);
+  HalfDiskSegmentation * diskSeg = halfSeg->getHalfDisk(disk);
   if(!diskSeg) return kFALSE;
-  LadderSegmentation * ladderSeg = diskSeg->GetLadder(ladder);
+  LadderSegmentation * ladderSeg = diskSeg->getLadder(ladder);
   if(!ladderSeg) return kFALSE;
-  ChipSegmentation * chipSeg = ladderSeg->GetSensor(sensor);
+  ChipSegmentation * chipSeg = ladderSeg->getSensor(sensor);
   if(!chipSeg) return kFALSE;
 
   //AliDebug(2,Form(" ->  Global %f %f %f",master[0],master[1],master[2]));
-  halfSeg->GetTransformation()->MasterToLocal(master, local);
+  halfSeg->getTransformation()->MasterToLocal(master, local);
   //AliDebug(2,Form(" ->  Half %f %f %f",local[0],local[1],local[2]));
   for (int i=0; i<3; i++) master[i] = local[i];
-  diskSeg->GetTransformation()->MasterToLocal(master, local);
+  diskSeg->getTransformation()->MasterToLocal(master, local);
   //AliDebug(2,Form(" ->  Disk %f %f %f",local[0],local[1],local[2]));
   for (int i=0; i<3; i++) master[i] = local[i];
-  ladderSeg->GetTransformation()->MasterToLocal(master, local);
+  ladderSeg->getTransformation()->MasterToLocal(master, local);
   //AliDebug(2,Form(" ->  Ladder %f %f %f",local[0],local[1],local[2]));
   for (int i=0; i<3; i++) master[i] = local[i];
-  chipSeg->GetTransformation()->MasterToLocal(master, local);
+  chipSeg->getTransformation()->MasterToLocal(master, local);
   //AliDebug(2,Form(" ->  Chip Pos %f %f %f",local[0],local[1],local[2]));
   
   
-   return (chipSeg->Hit2PixelID(local[0], local[1], xPixel, yPixel));
+   return (chipSeg->hitToPixelID(local[0], local[1], xPixel, yPixel));
 
 }
 
@@ -136,17 +136,17 @@ Bool_t Segmentation::Hit2PixelID(Double_t xHit, Double_t yHit, Double_t zHit, In
 /// \return A fixed number that represents the ID of the sensor on the disk. It goes from 0 to the max number of sensor on the disk
 
 //_____________________________________________________________________________
-Int_t Segmentation::GetDetElemLocalID(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const {
+Int_t Segmentation::getDetElemLocalID(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const {
 
   Int_t localId =0;
   
   
-  if (half==1) localId += GetHalf(0)->GetHalfDisk(disk)->GetNChips();
+  if (half==1) localId += getHalf(0)->getHalfDisk(disk)->getNChips();
   
-  for (int iLad=0; iLad<GetHalf(half)->GetHalfDisk(disk)->GetNLadders(); iLad++) {
-    if (iLad<ladder) localId += GetHalf(half)->GetHalfDisk(disk)->GetLadder(iLad)->GetNSensors();
+  for (int iLad=0; iLad<getHalf(half)->getHalfDisk(disk)->getNLadders(); iLad++) {
+    if (iLad<ladder) localId += getHalf(half)->getHalfDisk(disk)->getLadder(iLad)->getNSensors();
     else{
-      for (int iSens=0; iSens<GetHalf(half)->GetHalfDisk(disk)->GetLadder(iLad)->GetNSensors(); iSens++) {
+      for (int iSens=0; iSens<getHalf(half)->getHalfDisk(disk)->getLadder(iLad)->getNSensors(); iSens++) {
         if(iSens==sensor) return localId;
         localId++;
      }

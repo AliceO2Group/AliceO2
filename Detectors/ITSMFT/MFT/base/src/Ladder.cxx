@@ -65,20 +65,20 @@ Ladder::~Ladder()
 /// \brief Build the ladder
 
 //_____________________________________________________________________________
-TGeoVolume * Ladder::CreateVolume() 
+TGeoVolume * Ladder::createVolume() 
 {
 
-  Int_t nChips = mSegmentation->GetNSensors();
+  Int_t nChips = mSegmentation->getNSensors();
   
   // Create the flex
   mFlex = new Flex(mSegmentation);     
   Double_t flexLength = nChips*(Geometry::sSensorLength+Geometry::sSensorInterspace)+Geometry::sLadderOffsetToEnd + Geometry::sSensorSideOffset;
   Double_t shiftY = 2*Geometry::sSensorTopOffset+Geometry::sSensorHeight-Geometry::sFlexHeight/2; // strange
-  TGeoVolumeAssembly * flexVol = mFlex->MakeFlex(mSegmentation->GetNSensors(), flexLength);                               
+  TGeoVolumeAssembly * flexVol = mFlex->makeFlex(mSegmentation->getNSensors(), flexLength);                               
   mLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(flexLength/2+Geometry::sSensorSideOffset/2, shiftY, Geometry::sFlexThickness/2-Geometry::sRohacell));     
   
   // Create the CMOS Sensors
-  CreateSensors();
+  createSensors();
 
   return mLadderVolume;
   
@@ -87,7 +87,7 @@ TGeoVolume * Ladder::CreateVolume()
 /// \brief Build the sensors
 
 //_____________________________________________________________________________
-void Ladder::CreateSensors() 
+void Ladder::createSensors() 
 {
 
   // Create Shapes
@@ -105,12 +105,12 @@ void Ladder::CreateSensors()
   //TGeoMedium *kMedGlue = gGeoManager->GetMedium("MFT_Epoxy$"); 
   TGeoMedium *kMedGlue = gGeoManager->GetMedium("MFT_SE4445$"); 
   
-  Geometry * mftGeom = Geometry::Instance();
+  Geometry * mftGeom = Geometry::instance();
   
   TString namePrefix = Form("MFT_S_%d_%d_%d",
-	  mftGeom->GetHalfMFTID(mSegmentation->GetUniqueID()),
-	  mftGeom->GetHalfDiskID(mSegmentation->GetUniqueID()),
-	  mftGeom->GetLadderID(mSegmentation->GetUniqueID()) );
+	  mftGeom->getHalfMFTID(mSegmentation->GetUniqueID()),
+	  mftGeom->getHalfDiskID(mSegmentation->GetUniqueID()),
+	  mftGeom->getLadderID(mSegmentation->GetUniqueID()) );
   
   TGeoVolume * chipVol = gGeoManager->MakeBox(namePrefix.Data(), medAir,Geometry::sSensorLength/2.,Geometry::sSensorHeight/2., Geometry::sSensorThickness/2.);
   TGeoVolume * glue = gGeoManager->MakeBox(namePrefix.Data(), kMedGlue, (Geometry::sSensorLength-Geometry::sGlueEdge)/2., (Geometry::sSensorHeight-Geometry::sGlueEdge)/2., Geometry::sGlueThickness/2.);
@@ -133,9 +133,9 @@ void Ladder::CreateSensors()
   sensorVol->SetFillColor(sensorVol->GetLineColor());
   sensorVol->SetFillStyle(4000); // 0% transparent
   
-  if(!mftGeom->GetSensorVolumeID()){
-    mftGeom->SetSensorVolumeID(sensorVol->GetNumber());
-  } else if (mftGeom->GetSensorVolumeID() != sensorVol->GetNumber()){
+  if(!mftGeom->getSensorVolumeID()){
+    mftGeom->setSensorVolumeID(sensorVol->GetNumber());
+  } else if (mftGeom->getSensorVolumeID() != sensorVol->GetNumber()){
     Fatal("CreateSensors",Form("Different Sensor VOLUME ID in TGeo !!!!"),0,0);
   }
   
@@ -151,10 +151,10 @@ void Ladder::CreateSensors()
   chipVol->AddNode(readoutVol, 1, new TGeoTranslation(0.,-Geometry::sSensorHeight/2.+readout->GetDY(),  0.));
   chipVol->AddNode(sensorVol, 1, new TGeoTranslation( 0., Geometry::sSensorHeight/2.-sensor->GetDY(),0.));
 
-  for (int ichip = 0; ichip < mSegmentation->GetNSensors(); ichip++) {
-    ChipSegmentation * chipSeg = mSegmentation->GetSensor(ichip);
-    TGeoCombiTrans * chipPos = chipSeg->GetTransformation();
-    TGeoCombiTrans * chipPosGlue = chipSeg->GetTransformation();
+  for (int ichip = 0; ichip < mSegmentation->getNSensors(); ichip++) {
+    ChipSegmentation * chipSeg = mSegmentation->getSensor(ichip);
+    TGeoCombiTrans * chipPos = chipSeg->getTransformation();
+    TGeoCombiTrans * chipPosGlue = chipSeg->getTransformation();
     // Position of the center on the chip in the chip coordinate system
     Double_t pos[3] ={Geometry::sSensorLength/2., Geometry::sSensorHeight/2., Geometry::sSensorThickness/2. - Geometry::sGlueThickness - Geometry::sRohacell};
     Double_t posglue[3] ={Geometry::sSensorLength/2., Geometry::sSensorHeight/2., Geometry::sGlueThickness/2-Geometry::sSensorThickness-Geometry::sRohacell};

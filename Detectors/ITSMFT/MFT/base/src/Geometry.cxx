@@ -68,7 +68,7 @@ Geometry* Geometry::sInstance = nullptr;
 /// \brief Singleton access
 
 //____________________________________________________________________
-Geometry* Geometry::Instance()
+Geometry* Geometry::instance()
 {
 
   if (!sInstance) sInstance = new Geometry();
@@ -76,7 +76,7 @@ Geometry* Geometry::Instance()
 
 }
 
-/// \bried Constructor
+/// \brief Constructor
 
 //_____________________________________________________________________________
 Geometry::Geometry():
@@ -100,7 +100,7 @@ Geometry::~Geometry()
 }
 
 //_____________________________________________________________________________
-void Geometry::Build()
+void Geometry::build()
 {
 
   // load the detector segmentation
@@ -108,7 +108,7 @@ void Geometry::Build()
 
   // build the geometry
   if (!mBuilder) mBuilder = new GeometryBuilder();
-  mBuilder->BuildGeometry();
+  mBuilder->buildGeometry();
   delete mBuilder;
 
 }
@@ -121,7 +121,7 @@ void Geometry::Build()
 /// \param [in] chip: Sensor ID
 
 //_____________________________________________________________________________
-UInt_t Geometry::GetObjectID(ObjectTypes type, Int_t half, Int_t disk, Int_t ladder, Int_t chip) const
+UInt_t Geometry::getObjectID(ObjectTypes type, Int_t half, Int_t disk, Int_t ladder, Int_t chip) const
 {
 
   UInt_t uniqueID = (type<<14) +  (half<<13) + (disk<<10) + (ladder<<4) + chip;
@@ -143,10 +143,10 @@ UInt_t Geometry::GetObjectID(ObjectTypes type, Int_t half, Int_t disk, Int_t lad
 /// \retval <kFALSE> if hit outside the active part
 
 //_____________________________________________________________________________
-Bool_t Geometry::Hit2PixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t detElemID, Int_t &xPixel, Int_t &yPixel) const
+Bool_t Geometry::hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t detElemID, Int_t &xPixel, Int_t &yPixel) const
 {
 
-  return (mSegmentation->Hit2PixelID(xHit, yHit, zHit, GetHalfMFTID(detElemID), GetHalfDiskID(detElemID), GetLadderID(detElemID), GetSensorID(detElemID), xPixel, yPixel));
+  return (mSegmentation->hitToPixelID(xHit, yHit, zHit, getHalfMFTID(detElemID), getHalfDiskID(detElemID), getLadderID(detElemID), getSensorID(detElemID), xPixel, yPixel));
 
 }
 
@@ -158,7 +158,7 @@ Bool_t Geometry::Hit2PixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t 
 /// \param [out] xCenter,yCenter,zCenter Double_t : (x,y,z) Position of the Hit in ALICE global frame
 
 //_____________________________________________________________________________
-void Geometry::GetPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Double_t &xCenter, Double_t &yCenter, Double_t &zCenter ) const
+void Geometry::getPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Double_t &xCenter, Double_t &yCenter, Double_t &zCenter ) const
 {
 
   Double_t local[3];
@@ -168,18 +168,18 @@ void Geometry::GetPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Doubl
 
   Double_t master[3];
   
-  HalfSegmentation * halfSeg = mSegmentation->GetHalf(GetHalfMFTID(detElemID));
-  HalfDiskSegmentation * diskSeg = halfSeg->GetHalfDisk(GetHalfDiskID(detElemID));
-  LadderSegmentation * ladderSeg = diskSeg->GetLadder(GetLadderID(detElemID));
-  ChipSegmentation * chipSeg = ladderSeg->GetSensor(GetSensorID(detElemID));
+  HalfSegmentation * halfSeg = mSegmentation->getHalf(getHalfMFTID(detElemID));
+  HalfDiskSegmentation * diskSeg = halfSeg->getHalfDisk(getHalfDiskID(detElemID));
+  LadderSegmentation * ladderSeg = diskSeg->getLadder(getLadderID(detElemID));
+  ChipSegmentation * chipSeg = ladderSeg->getSensor(getSensorID(detElemID));
 
-  chipSeg->GetTransformation()->LocalToMaster(local, master);
+  chipSeg->getTransformation()->LocalToMaster(local, master);
   for (int i=0; i<3; i++) local[i] = master[i];
-  ladderSeg->GetTransformation()->LocalToMaster(local, master);
+  ladderSeg->getTransformation()->LocalToMaster(local, master);
   for (int i=0; i<3; i++) local[i] = master[i];
-  diskSeg->GetTransformation()->LocalToMaster(local, master);
+  diskSeg->getTransformation()->LocalToMaster(local, master);
   for (int i=0; i<3; i++) local[i] = master[i];
-  halfSeg->GetTransformation()->LocalToMaster(local, master);
+  halfSeg->getTransformation()->LocalToMaster(local, master);
 
   xCenter = master[0];
   yCenter = master[1];
@@ -191,13 +191,13 @@ void Geometry::GetPixelCenter(Int_t xPixel, Int_t yPixel, Int_t detElemID, Doubl
 /// \param [in] diskId Int_t: Disk ID = [0,4]
 
 //_____________________________________________________________________________
-Int_t Geometry::GetDiskNSensors(Int_t diskId) const
+Int_t Geometry::getDiskNSensors(Int_t diskId) const
 {
 
   Int_t nSensors = 0;
   for (int iHalf=0; iHalf<2; iHalf++) {
-    HalfDiskSegmentation * diskSeg = mSegmentation->GetHalf(iHalf)->GetHalfDisk(diskId);
-    if(diskSeg) nSensors += diskSeg->GetNChips();
+    HalfDiskSegmentation * diskSeg = mSegmentation->getHalf(iHalf)->getHalfDisk(diskId);
+    if(diskSeg) nSensors += diskSeg->getNChips();
 
   }
   return nSensors;
@@ -207,10 +207,10 @@ Int_t Geometry::GetDiskNSensors(Int_t diskId) const
 /// \param [in] detElemID Int_t: Sensor Unique ID
 
 //_____________________________________________________________________________
-Int_t Geometry::GetDetElemLocalID(Int_t detElemID) const
+Int_t Geometry::getDetElemLocalID(Int_t detElemID) const
 {
   
-  return  mSegmentation->GetDetElemLocalID(GetHalfMFTID(detElemID), GetHalfDiskID(detElemID), GetLadderID(detElemID), GetSensorID(detElemID));
+  return  mSegmentation->getDetElemLocalID(getHalfMFTID(detElemID), getHalfDiskID(detElemID), getLadderID(detElemID), getSensorID(detElemID));
   
 }
 

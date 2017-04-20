@@ -28,7 +28,7 @@ public:
   ~Plane() override;  // destructor
   void Clear(const Option_t* /*opt*/) override;
   
-  Bool_t Init(Int_t    planeNumber,
+  Bool_t init(Int_t    planeNumber,
 	      Double_t zCenter, 
 	      Double_t rMin, 
 	      Double_t rMax, 
@@ -39,41 +39,41 @@ public:
 	      Double_t thicknessReadout,
 	      Bool_t   hasPixelRectangularPatternAlongY);
   
-  Bool_t CreateStructure();
+  Bool_t createStructure();
 
-  Int_t GetNActiveElements()  const { return mActiveElements->GetEntries();  }
-  Int_t GetNReadoutElements() const { return mReadoutElements->GetEntries(); }
-  Int_t GetNSupportElements() const { return mSupportElements->GetEntries(); }
+  Int_t getNActiveElements()  const { return mActiveElements->GetEntries();  }
+  Int_t getNReadoutElements() const { return mReadoutElements->GetEntries(); }
+  Int_t getNSupportElements() const { return mSupportElements->GetEntries(); }
 
-  TClonesArray* GetActiveElements()  { return mActiveElements;  }
-  TClonesArray* GetReadoutElements() { return mReadoutElements; }
-  TClonesArray* GetSupportElements() { return mSupportElements; }
+  TClonesArray* getActiveElements()  { return mActiveElements;  }
+  TClonesArray* getReadoutElements() { return mReadoutElements; }
+  TClonesArray* getSupportElements() { return mSupportElements; }
 
-  THnSparseC* GetActiveElement(Int_t id);
-  THnSparseC* GetReadoutElement(Int_t id);
-  THnSparseC* GetSupportElement(Int_t id);
+  THnSparseC* getActiveElement(Int_t id);
+  THnSparseC* getReadoutElement(Int_t id);
+  THnSparseC* getSupportElement(Int_t id);
 
-  Bool_t IsFront(THnSparseC *element) const { return (element->GetAxis(2)->GetXmin() < mZCenter); }
+  Bool_t isFront(THnSparseC *element) const { return (element->GetAxis(2)->GetXmin() < mZCenter); }
 
-  void DrawPlane(Option_t *opt="");
+  void drawPlane(Option_t *opt="");
 
-  Double_t GetRMinSupport() const { return mRMinSupport; }
-  Double_t GetRMaxSupport() const { return mRMaxSupport; }
-  Double_t GetThicknessSupport() { return GetSupportElement(0)->GetAxis(2)->GetXmax() - GetSupportElement(0)->GetAxis(2)->GetXmin(); }
+  Double_t getRMinSupport() const { return mRMinSupport; }
+  Double_t getRMaxSupport() const { return mRMaxSupport; }
+  Double_t getThicknessSupport() { return getSupportElement(0)->GetAxis(2)->GetXmax() - getSupportElement(0)->GetAxis(2)->GetXmin(); }
   
-  Double_t GetZCenter()            const { return mZCenter; }
-  Double_t GetZCenterActiveFront() const { return mZCenterActiveFront; }
-  Double_t GetZCenterActiveBack()  const { return mZCenterActiveBack; }
+  Double_t getZCenter()            const { return mZCenter; }
+  Double_t getZCenterActiveFront() const { return mZCenterActiveFront; }
+  Double_t getZCenterActiveBack()  const { return mZCenterActiveBack; }
 
-  void SetEquivalentSilicon(Double_t equivalentSilicon)                       { mEquivalentSilicon            = equivalentSilicon; }
-  void SetEquivalentSiliconBeforeFront(Double_t equivalentSiliconBeforeFront) { mEquivalentSiliconBeforeFront = equivalentSiliconBeforeFront; }
-  void SetEquivalentSiliconBeforeBack(Double_t equivalentSiliconBeforeBack)   { mEquivalentSiliconBeforeBack  = equivalentSiliconBeforeBack; }
-  Double_t GetEquivalentSilicon()            const { return mEquivalentSilicon; }
-  Double_t GetEquivalentSiliconBeforeFront() const { return mEquivalentSiliconBeforeFront; }
-  Double_t GetEquivalentSiliconBeforeBack()  const { return mEquivalentSiliconBeforeBack; }
+  void setEquivalentSilicon(Double_t equivalentSilicon)                       { mEquivalentSilicon            = equivalentSilicon; }
+  void setEquivalentSiliconBeforeFront(Double_t equivalentSiliconBeforeFront) { mEquivalentSiliconBeforeFront = equivalentSiliconBeforeFront; }
+  void setEquivalentSiliconBeforeBack(Double_t equivalentSiliconBeforeBack)   { mEquivalentSiliconBeforeBack  = equivalentSiliconBeforeBack; }
+  Double_t getEquivalentSilicon()            const { return mEquivalentSilicon; }
+  Double_t getEquivalentSiliconBeforeFront() const { return mEquivalentSiliconBeforeFront; }
+  Double_t getEquivalentSiliconBeforeBack()  const { return mEquivalentSiliconBeforeBack; }
 
-  Int_t GetNumberOfChips(Option_t *opt);
-  Bool_t HasPixelRectangularPatternAlongY() { return mHasPixelRectangularPatternAlongY; }
+  Int_t getNumberOfChips(Option_t *opt);
+  Bool_t hasPixelRectangularPatternAlongY() { return mHasPixelRectangularPatternAlongY; }
   
 private:
 

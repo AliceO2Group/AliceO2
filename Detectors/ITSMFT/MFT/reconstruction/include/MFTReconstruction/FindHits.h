@@ -25,14 +25,14 @@ class FindHits : public FairTask
   FindHits();
   ~FindHits() override;
 
-  void Reset();
-
   InitStatus Init() override;
   InitStatus ReInit() override;
   void Exec(Option_t* opt) override;
 
-  virtual void InitMQ(TList* tempList);
-  virtual void ExecMQ(TList* inputList,TList* outputList);
+  void reset();
+
+  virtual void initMQ(TList* tempList);
+  virtual void execMQ(TList* inputList,TList* outputList);
 
  private:
 

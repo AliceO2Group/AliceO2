@@ -23,19 +23,19 @@ public:
   LadderSegmentation(const LadderSegmentation& ladder);
 
   ~LadderSegmentation() override { if(mChips){mChips->Delete(); delete mChips; mChips=nullptr;} }
-  virtual void Print(Option_t* opt="");
+  virtual void print(Option_t* opt="");
   void Clear(const Option_t* /*opt*/) override { if(mChips){mChips->Clear();} }
   
-  ChipSegmentation* GetSensor(Int_t sensor) const ;
+  ChipSegmentation* getSensor(Int_t sensor) const ;
 
-  void CreateSensors();
+  void createSensors();
   
   /// \brief Returns number of Sensor on the ladder
-  Int_t GetNSensors() const { return mNSensors; };
+  Int_t getNSensors() const { return mNSensors; };
   /// \brief Set number of Sensor on the ladder
-  void SetNSensors(Int_t val) {mNSensors = val;};
+  void setNSensors(Int_t val) {mNSensors = val;};
   
-  ChipSegmentation* GetChip(Int_t chipNumber) const {return GetSensor(chipNumber);};
+  ChipSegmentation* getChip(Int_t chipNumber) const {return getSensor(chipNumber);};
 
 private:
   

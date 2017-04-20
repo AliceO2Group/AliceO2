@@ -23,19 +23,19 @@ public:
   
   ~Support() override;
   
-  TGeoVolumeAssembly* CreateVolume(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* CreatePCBs(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* PCB_00_01(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* PCB_02(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* PCB_03(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* PCB_04(Int_t half, Int_t disk);
-  TGeoVolumeAssembly* PCB_PSU(Int_t half, Int_t disk);
-  TGeoVolume* CreateSupport(Int_t half, Int_t disk);
-  TGeoVolume * Disc_Support_00 ();
-  TGeoVolume * Disc_Support_01 ();
-  TGeoVolume * Disc_Support_02 ();
-  TGeoVolume * Disc_Support_03 ();
-  TGeoVolume * Disc_Support_04 ();
+  TGeoVolumeAssembly* createVolume(Int_t half, Int_t disk);
+  TGeoVolumeAssembly* createPCBs(Int_t half, Int_t disk);
+  TGeoVolumeAssembly* createPCB_00_01(Int_t half, Int_t disk);
+  TGeoVolumeAssembly* createPCB_02(Int_t half, Int_t disk);
+  TGeoVolumeAssembly* createPCB_03(Int_t half, Int_t disk);
+  TGeoVolumeAssembly* createPCB_04(Int_t half, Int_t disk);
+  TGeoVolumeAssembly* createPCB_PSU(Int_t half, Int_t disk);
+  TGeoVolume* createSupport(Int_t half, Int_t disk);
+  TGeoVolume * createDisc_Support_00 ();
+  TGeoVolume * createDisc_Support_01 ();
+  TGeoVolume * createDisc_Support_02 ();
+  TGeoVolume * createDisc_Support_03 ();
+  TGeoVolume * createDisc_Support_04 ();
 
   TGeoCompositeShape * screw_array (Int_t N, Double_t gap = 1.7);
   TGeoCompositeShape * screw_C ();

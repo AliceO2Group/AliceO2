@@ -23,13 +23,14 @@ public:
 
   HalfDisk();
   HalfDisk(HalfDiskSegmentation *segmentation);
-  TGeoVolumeAssembly * CreateHeatExchanger();
-  void CreateLadders();
+
+  TGeoVolumeAssembly * createHeatExchanger();
+  void createLadders();
 
   ~HalfDisk() override;
   
   /// \brief Returns a pointer to the Volume Assembly describing the entire half-disk
-  TGeoVolumeAssembly * GetVolume() {return mHalfDiskVolume;};
+  TGeoVolumeAssembly * getVolume() {return mHalfDiskVolume;};
   
 private:
 

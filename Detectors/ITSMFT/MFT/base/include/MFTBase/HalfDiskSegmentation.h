@@ -28,28 +28,28 @@ public:
 
   void Clear(const Option_t* /*opt*/) override;
   
-  virtual void Print(Option_t* opt="");
+  virtual void print(Option_t* opt="");
   
-  void CreateLadders(TXMLEngine* xml, XMLNodePointer_t node);
+  void createLadders(TXMLEngine* xml, XMLNodePointer_t node);
   
   /// \brief Get the number of Ladder on the Half-Disk really constructed 
-  Int_t    GetNLaddersBuild()  const {return mLadders->GetEntriesFast();};
+  Int_t    getNLaddersBuild()  const {return mLadders->GetEntriesFast();};
 
   /// \brief Get the number of Ladder on the Half-Disk
-  Int_t    GetNLadders()  const {return mNLadders;};
+  Int_t    getNLadders()  const {return mNLadders;};
   
   /// \brief Set the number of Ladder on the Half-Disk
-  void    SetNLadders(Int_t val)   {mNLadders = val;};
+  void    setNLadders(Int_t val)   {mNLadders = val;};
 
   
   /// \brief Returns pointer to the ladder segmentation object
   /// \param iLadder Int_t : ladder number on the Half-Disk
-  LadderSegmentation* GetLadder(Int_t iLadder) { return ( (iLadder>=0 && iLadder<GetNLadders())  ? (LadderSegmentation*) mLadders->At(iLadder) : nullptr )  ; }
+  LadderSegmentation* getLadder(Int_t iLadder) { return ( (iLadder>=0 && iLadder<getNLadders())  ? (LadderSegmentation*) mLadders->At(iLadder) : nullptr )  ; }
   
   /// \brief Returns the Z position of the half-disk
-  Double_t GetZ() const {const Double_t *pos = GetTransformation()->GetTranslation(); return pos[2];};
+  Double_t getZ() const {const Double_t *pos = getTransformation()->GetTranslation(); return pos[2];};
 
-  Int_t GetNChips();
+  Int_t getNChips();
   
 private:
   

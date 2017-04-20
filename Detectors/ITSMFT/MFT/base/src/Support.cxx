@@ -37,15 +37,15 @@ Support::~Support()
 }
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* Support::CreateVolume(Int_t half, Int_t disk)
+TGeoVolumeAssembly* Support::createVolume(Int_t half, Int_t disk)
 {
 
   Info("CreateVolume",Form("Creating support and PCB for half %d and disk %d)",half, disk),0,0);
   
   mSupportVolume = new TGeoVolumeAssembly(Form("SupportPCB_%d_%d", half, disk));
   
-  TGeoVolume * supportVolume =  CreateSupport(half, disk);
-  //TGeoVolumeAssembly * pcbVolume =  CreatePCBs(half, disk);
+  TGeoVolume * supportVolume =  createSupport(half, disk);
+  //TGeoVolumeAssembly * pcbVolume = createPCBs(half, disk);
   
   // Place the core of the support
   mSupportVolume->AddNode(supportVolume, 1);
@@ -60,7 +60,7 @@ TGeoVolumeAssembly* Support::CreateVolume(Int_t half, Int_t disk)
 }
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* Support::CreatePCBs(Int_t half, Int_t disk)
+TGeoVolumeAssembly* Support::createPCBs(Int_t half, Int_t disk)
 {
   
   Info("CreatePCBs",Form("Creating PCB for half %d and disk %d ",half, disk),0,0);
@@ -69,15 +69,15 @@ TGeoVolumeAssembly* Support::CreatePCBs(Int_t half, Int_t disk)
   
   // Create PCBs
   switch (disk) {
-  case 0: pcbVolume =  PCB_00_01(half, disk);
+  case 0: pcbVolume =  createPCB_00_01(half, disk);
     break;
-  case 1: pcbVolume =  PCB_00_01(half, disk);
+  case 1: pcbVolume =  createPCB_00_01(half, disk);
     break;
-  case 2: pcbVolume =  PCB_02(half, disk);
+  case 2: pcbVolume =  createPCB_02(half, disk);
     break;
-  case 3: pcbVolume =  PCB_03(half, disk);
+  case 3: pcbVolume =  createPCB_03(half, disk);
     break;
-  case 4: pcbVolume =  PCB_04(half, disk);
+  case 4: pcbVolume =  createPCB_04(half, disk);
     break;
   }
 
@@ -86,7 +86,7 @@ TGeoVolumeAssembly* Support::CreatePCBs(Int_t half, Int_t disk)
 }
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* Support::PCB_00_01(Int_t half, Int_t disk){
+TGeoVolumeAssembly* Support::createPCB_00_01(Int_t half, Int_t disk){
 
   auto * pcbVolume = new TGeoVolumeAssembly(Form("PCB_%d_%d", half, disk));
 
@@ -234,7 +234,7 @@ TGeoVolumeAssembly* Support::PCB_00_01(Int_t half, Int_t disk){
 //******************************* PCB_00 end *****************************************************
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* Support::PCB_02(Int_t half, Int_t disk){
+TGeoVolumeAssembly* Support::createPCB_02(Int_t half, Int_t disk){
 
   auto * pcbVolume = new TGeoVolumeAssembly(Form("PCB_%d_%d", half, disk));
 
@@ -411,7 +411,7 @@ TGeoVolumeAssembly* Support::PCB_02(Int_t half, Int_t disk){
 //******************************* PCB_01 end *****************************************************
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* Support::PCB_03(Int_t half, Int_t disk){
+TGeoVolumeAssembly* Support::createPCB_03(Int_t half, Int_t disk){
 
   auto * pcbVolume = new TGeoVolumeAssembly(Form("PCB_%d_%d", half, disk));
 
@@ -643,7 +643,7 @@ auto *holes_02 = new TGeoCompositeShape  ("holes_02", "Tubeh0A_PCB_02:PCB0tr_Tub
 //************************************* final PCB_02 ******************
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* Support::PCB_04(Int_t half, Int_t disk){
+TGeoVolumeAssembly* Support::createPCB_04(Int_t half, Int_t disk){
 
   auto * pcbVolume = new TGeoVolumeAssembly(Form("PCB_%d_%d", half, disk));
 
@@ -888,7 +888,7 @@ auto *boxesi03 = new TGeoCompositeShape  ("boxesi03", "Box3_PCB_03kk:PCB0tr_boxk
 // ========================== PCB_Psu ===========================================
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* Support::PCB_PSU(Int_t half, Int_t disk){
+TGeoVolumeAssembly* Support::createPCB_PSU(Int_t half, Int_t disk){
 
   auto * pcbVolume = new TGeoVolumeAssembly(Form("PCB_%d_%d", half, disk));
   // Create Shapes
@@ -1139,7 +1139,7 @@ auto *holes_04 = new TGeoCompositeShape  ("holes_04", "TPCB_04:PCB0tr_Tubh04A  +
 //****************************** 04 - end ************************************
 
 //_____________________________________________________________________________
-TGeoVolume* Support::CreateSupport(Int_t half, Int_t disk)
+TGeoVolume* Support::createSupport(Int_t half, Int_t disk)
 {
   
   Info("CreateSupport",Form("Creating PCB for half %d and disk %d ",half, disk),0,0);
@@ -1151,15 +1151,15 @@ TGeoVolume* Support::CreateSupport(Int_t half, Int_t disk)
   //TGeoVolume *supportVol = new TGeoVolume();
   TGeoVolume *supportVol;
   switch (disk) {
-    case 0: supportVol =  Disc_Support_00();
+    case 0: supportVol =  createDisc_Support_00();
       break;
-    case 1: supportVol =  Disc_Support_01();
+    case 1: supportVol =  createDisc_Support_01();
       break;
-    case 2: supportVol =  Disc_Support_02();
+    case 2: supportVol =  createDisc_Support_02();
       break;
-    case 3: supportVol =  Disc_Support_03();
+    case 3: supportVol =  createDisc_Support_03();
       break;
-    case 4: supportVol =  Disc_Support_04();
+    case 4: supportVol =  createDisc_Support_04();
       break;
   }
 
@@ -1178,7 +1178,7 @@ TGeoVolume* Support::CreateSupport(Int_t half, Int_t disk)
 }
 
 //_____________________________________________________________________________
-TGeoVolume* Support::Disc_Support_00 (){
+TGeoVolume* Support::createDisc_Support_00 (){
 
 
     double rMin = 0,
@@ -1191,14 +1191,14 @@ TGeoVolume* Support::Disc_Support_00 (){
 
 
 
-     // ================= Disk_Support_00 - base tube =============
+     // ================= Disc_Support_00 - base tube =============
 
 
      auto *base = new TGeoTubeSeg("D0base",rMin,rMax,thickness,phi0,phi1);
      //TGeoTranslation *tr  = new TGeoTranslation(0., 0., 0.);
      //tr->SetName("D0tr"); tr->RegisterYourself();
 
-     // ======= Disk_Support_00 - Inner cuts =========
+     // ======= Disc_Support_00 - Inner cuts =========
 
       auto   *IntCutBox1 = new TGeoBBox("D0IntCutBox1",rMax+t_delta, 2.8/2, thickness+t_delta);
   //    TGeoBBox   *IntCutBox2 = new TGeoBBox("D0IntCutBox2",25/2, 3.4/2,  thickness+t_delta);
@@ -1516,7 +1516,7 @@ TGeoVolume* Support::Disc_Support_00 (){
 }
 
 //_____________________________________________________________________________
-TGeoVolume* Support::Disc_Support_01 (){
+TGeoVolume* Support::createDisc_Support_01 (){
 
   double rMin = 0,
           rMax = 17.5,
@@ -1528,14 +1528,14 @@ TGeoVolume* Support::Disc_Support_01 (){
 
 
 
-   // ================= Disk_Support_01 - base tube =============
+   // ================= Disc_Support_01 - base tube =============
 
 
    auto *base = new TGeoTubeSeg("base",rMin,rMax,thickness,phi0,phi1);
    auto *tr  = new TGeoTranslation(0., 0., 0.);
    tr->SetName("tr"); tr->RegisterYourself();
 
-   // ======= Disk_Support_01 - Inner cuts =========
+   // ======= Disc_Support_01 - Inner cuts =========
 
     auto   *IntCutBox1 = new TGeoBBox("IntCutBox1",rMax+t_delta, 2.4/2, thickness+t_delta);
     auto   *IntCutBox2 = new TGeoBBox("IntCutBox2",25/2, 3.4/2,  thickness+t_delta);
@@ -1862,7 +1862,7 @@ TGeoVolume* Support::Disc_Support_01 (){
 }
 
 //_____________________________________________________________________________
-TGeoVolume* Support::Disc_Support_02 (){
+TGeoVolume* Support::createDisc_Support_02 (){
   // define shape components with names + positions
 
   // ================= constants ===========================
@@ -1882,7 +1882,7 @@ TGeoVolume* Support::Disc_Support_02 (){
   // =================  basic struture ===================
 
 
-  // ================= Disk_Support_02 - base =============
+  // ================= Disc_Support_02 - base =============
 
 
   auto *base2 = new TGeoTubeSeg("d2base",rMin,rMax,thickness,phi0,phi1);
@@ -2315,7 +2315,7 @@ TGeoVolume* Support::Disc_Support_02 (){
 }
 
 //_____________________________________________________________________________
-TGeoVolume* Support::Disc_Support_03 (){
+TGeoVolume* Support::createDisc_Support_03 (){
   // define shape components with names + positions
 
   // ================= constants ===========================
@@ -2332,7 +2332,7 @@ TGeoVolume* Support::Disc_Support_03 (){
   // =================  basic struture ===================
 
 
-  // ================= Disk_Support_03 - base =============
+  // ================= Disc_Support_03 - base =============
 
 
   auto *base3 = new TGeoTubeSeg("d3base",rMin,rMax,thickness,phi0,phi1);
@@ -2432,7 +2432,7 @@ TGeoVolume* Support::Disc_Support_03 (){
   "d3ssbox1:d3tr_ssbox1 + d3ssbox2:d3tr_ssbox2 + d3ssbox3:d3tr_ssbox3 + d3ssbox4:d3tr_ssbox4 + d3ssbox5:d3tr_ssbox5 + d3ssbox6:d3tr_ssbox6 + d3ssbox7:d3tr_ssbox7 + d3ssbox8:d3tr_ssbox8 + d3ssbox9:d3tr_ssbox9 + d3detailbox1:d3tr_detailbox1");
 
 
-  // Disk cuts
+  // Disc cuts
 
   auto   *d3_cut1 = new TGeoBBox("d3_cut1",rMax+ t_delta, 1.4, thickness+ t_delta);
   auto   *d3_cut2 = new TGeoBBox("d3_cut2",31.8/2, 13.82/2,thickness+ t_delta);
@@ -2587,7 +2587,7 @@ TGeoVolume* Support::Disc_Support_03 (){
 }
 
 //_____________________________________________________________________________
-TGeoVolume* Support::Disc_Support_04 (){
+TGeoVolume* Support::createDisc_Support_04 (){
   // define shape components with names + positions
 
   // ================= constants ===========================
@@ -2604,7 +2604,7 @@ TGeoVolume* Support::Disc_Support_04 (){
   // =================  basic struture ===================
 
 
-  // ================= Disk_Support_04 - base =============
+  // ================= Disc_Support_04 - base =============
 
 
   auto *base4 = new TGeoTubeSeg("d4base",rMin,rMax,thickness,phi0,phi1);
@@ -2704,7 +2704,7 @@ TGeoVolume* Support::Disc_Support_04 (){
   "d4ssbox1:d4tr_ssbox1 + d4ssbox2:d4tr_ssbox2 + d4ssbox3:d4tr_ssbox3 + d4ssbox4:d4tr_ssbox4 + d4ssbox5:d4tr_ssbox5 + d4ssbox6:d4tr_ssbox6 + d4ssbox7:d4tr_ssbox7 + d4ssbox8:d4tr_ssbox8 + d4ssbox9:d4tr_ssbox9 + d4detailbox1:d4tr_detailbox1");
 
 
-  // Disk cuts
+  // Disc cuts
 
   auto   *d4_cut1 = new TGeoBBox("d4_cut1",rMax+ t_delta, 1.4, thickness+ t_delta);
   auto   *d4_cut2 = new TGeoBBox("d4_cut2",31.8/2, 13.82/2,thickness+ t_delta);

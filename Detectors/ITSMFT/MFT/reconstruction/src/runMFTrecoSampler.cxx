@@ -31,11 +31,11 @@ FairMQDevicePtr getDevice(const FairMQProgOptions& config)
   auto* sampler = new Sampler();
 
   for (UInt_t ielem = 0; ielem < filename.size(); ielem++) {
-    sampler->AddInputFileName(filename.at(ielem));
+    sampler->addInputFileName(filename.at(ielem));
   }
   
   for (UInt_t ielem = 0; ielem < branchname.size(); ielem++) {
-    sampler->AddInputBranchName(branchname.at(ielem));
+    sampler->addInputBranchName(branchname.at(ielem));
     LOG(INFO) << "Run::Sampler >>>>> add input branch " << branchname.at(ielem).c_str() << "";
   }
 

@@ -143,17 +143,17 @@ void FileSink::Init()
   BranchNameList->Delete();
   delete BranchNameList;
 
-  OnData(mInputChannelName, &FileSink::StoreData);
+  OnData(mInputChannelName, &FileSink::storeData);
 
 }
 
 //_____________________________________________________________________________
-bool FileSink::StoreData(FairMQParts& parts, int index)
+bool FileSink::storeData(FairMQParts& parts, int index)
 {
 
   TObject* tempObjects[10];
 
-  LOG(INFO) << "FileSink::StoreData >>>>> receive " << parts.Size() << " parts" << "";
+  LOG(INFO) << "FileSink::storeData >>>>> receive " << parts.Size() << " parts" << "";
       
   for (int ipart = 0; ipart < parts.Size(); ipart++) { 
     
@@ -162,7 +162,7 @@ bool FileSink::StoreData(FairMQParts& parts, int index)
 
     for (unsigned int ibr = 0; ibr < mBranchNames.size(); ibr++) { 
 	  
-      LOG(INFO) << "FileSink::StoreData >>>>> branch " << ibr << "   " << mBranchNames[ibr].c_str() << " part " << ipart << " " << tempObjects[ipart]->GetName() << "";
+      LOG(INFO) << "FileSink::storeData >>>>> branch " << ibr << "   " << mBranchNames[ibr].c_str() << " part " << ipart << " " << tempObjects[ipart]->GetName() << "";
 
       // !!! force ???
       //if (kFALSE || (strcmp(tempObjects[ipart]->GetName(),fBranchNames[ibr].c_str()) == 0)) { 
@@ -171,7 +171,7 @@ bool FileSink::StoreData(FairMQParts& parts, int index)
 
 	mOutputObjects[ibr] = tempObjects[ipart];
 
-	LOG(INFO) << "FileSink::StoreData >>>>> branch selected for output " << ibr << "   " << mBranchNames[ibr].c_str() << " part " << ipart << " " << tempObjects[ipart]->GetName() << "";
+	LOG(INFO) << "FileSink::storeData >>>>> branch selected for output " << ibr << "   " << mBranchNames[ibr].c_str() << " part " << ipart << " " << tempObjects[ipart]->GetName() << "";
 
 	//fOutputObjects[ibr]->Dump();
 	mTree->SetBranchAddress(mBranchNames[ibr].c_str(),&mOutputObjects[ibr]);
@@ -183,7 +183,7 @@ bool FileSink::StoreData(FairMQParts& parts, int index)
   mTree->Fill();
       
   if (strcmp(mAckChannelName.data(),"") != 0) {
-    LOG(INFO) << "FileSink::StoreData >>>>> Send acknowldege" << "";
+    LOG(INFO) << "FileSink::storeData >>>>> Send acknowldege" << "";
     unique_ptr<FairMQMessage> msg(NewMessage());
     Send(msg, mAckChannelName);
   }

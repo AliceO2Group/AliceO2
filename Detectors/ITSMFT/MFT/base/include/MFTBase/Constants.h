@@ -18,10 +18,10 @@ public:
   static const Int_t sNDisks = 5;             ///< \brief Number of Disk
 
   /// Return Disk thickness in X0
-  static Double_t DiskThicknessInX0(Int_t Id) { return (Id >= 0 && Id < sNDisks) ? sDiskThicknessInX0[Id] : 0.; }
+  static Double_t diskThicknessInX0(Int_t Id) { return (Id >= 0 && Id < sNDisks) ? sDiskThicknessInX0[Id] : 0.; }
   
   /// Return Plane Z position
-  static Double_t DefaultPlaneZ(Int_t Id) { return (Id >= 0 && Id < sNDisks*2) ? sPlaneZPos[Id]+(-(Id%2)*2-1)*0.0025 : 0.; } // Move to the middle of the CMOS sensor in Z direction
+  static Double_t defaultPlaneZ(Int_t Id) { return (Id >= 0 && Id < sNDisks*2) ? sPlaneZPos[Id]+(-(Id%2)*2-1)*0.0025 : 0.; } // Move to the middle of the CMOS sensor in Z direction
 
   static const Int_t sNMaxPlanes = 20;
 

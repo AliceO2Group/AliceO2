@@ -36,12 +36,12 @@ LadderSegmentation::LadderSegmentation(UInt_t uniqueID):
 
   SetUniqueID(uniqueID);
 
-  Geometry * mftGeom = Geometry::Instance();
+  Geometry * mftGeom = Geometry::instance();
   
-  SetName(Form("%s_%d_%d_%d",GeometryTGeo::GetLadderName(),
-               mftGeom->GetHalfMFTID(GetUniqueID()),
-               mftGeom->GetHalfDiskID(GetUniqueID()),
-               mftGeom->GetLadderID(GetUniqueID()) ));
+  SetName(Form("%s_%d_%d_%d",GeometryTGeo::getLadderName(),
+               mftGeom->getHalfMFTID(GetUniqueID()),
+               mftGeom->getHalfDiskID(GetUniqueID()),
+               mftGeom->getLadderID(GetUniqueID()) ));
 
   // constructor
   
@@ -66,20 +66,20 @@ LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder):
 /// Creates the Sensors Segmentation array on the Ladder
 
 //_____________________________________________________________________________
-void LadderSegmentation::CreateSensors() {
+void LadderSegmentation::createSensors() {
   
   if (!mChips) {
     mChips = new TClonesArray("o2::MFT::ChipSegmentation",mNSensors);
     mChips -> SetOwner(kTRUE);
   }
 
-  Geometry * mftGeom = Geometry::Instance();
+  Geometry * mftGeom = Geometry::instance();
 
   for (Int_t iSensor=0; iSensor<mNSensors; iSensor++) {
-    UInt_t sensorUniqueID = mftGeom->GetObjectID(Geometry::SensorType,
-                                                 mftGeom->GetHalfMFTID(GetUniqueID()),
-                                                 mftGeom->GetHalfDiskID(GetUniqueID()),
-                                                 mftGeom->GetLadderID(GetUniqueID()),
+    UInt_t sensorUniqueID = mftGeom->getObjectID(Geometry::SensorType,
+                                                 mftGeom->getHalfMFTID(GetUniqueID()),
+                                                 mftGeom->getHalfDiskID(GetUniqueID()),
+                                                 mftGeom->getLadderID(GetUniqueID()),
                                                  iSensor);
     
     auto *chip = new ChipSegmentation(sensorUniqueID);
@@ -94,7 +94,7 @@ void LadderSegmentation::CreateSensors() {
 /// \param [in] sensorID Int_t: ID of the sensor on the ladder
 
 //_____________________________________________________________________________
-ChipSegmentation* LadderSegmentation::GetSensor(Int_t sensorID) const {
+ChipSegmentation* LadderSegmentation::getSensor(Int_t sensorID) const {
   
   if (sensorID<0 || sensorID>=mNSensors) return nullptr;
   
@@ -108,14 +108,11 @@ ChipSegmentation* LadderSegmentation::GetSensor(Int_t sensorID) const {
 /// \param [in] opt "s" or "sensor" -> The individual sensor information will be printed out as well
 
 //_____________________________________________________________________________
-void LadderSegmentation::Print(Option_t* opt){
+void LadderSegmentation::print(Option_t* opt){
   
-  //AliInfo(Form("Ladder %s (Unique ID = %d)",GetName(),GetUniqueID()));
-  GetTransformation()->Print();
-  //AliInfo(Form("N Sensors = %d",GetNSensors()));
+  getTransformation()->Print();
   if(opt && (strstr(opt,"sensor")||strstr(opt,"s"))){
-    for (int i=0; i<GetNSensors(); i++)  GetSensor(i)->Print("");
-
+    for (int i=0; i<getNSensors(); i++)  getSensor(i)->Print("");
   }
   
 }

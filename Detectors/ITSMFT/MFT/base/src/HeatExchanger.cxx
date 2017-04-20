@@ -67,7 +67,7 @@ mRadius4fifth()
   mHeatExchangerThickness = 1.4 + 2*Geometry::sRohacell; // mRohacell is used to link the rohacell thickness and the ladder positionning
   mCarbonThickness = (0.0290)/2.;  // half thickness of the carbon plate
 
-  InitParameters();
+  initParameters();
 
 }
 
@@ -113,27 +113,27 @@ mAngle4fifth(),
 mRadius4fifth()
 {
 
-  InitParameters();
+  initParameters();
   
 }
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* HeatExchanger::Create(Int_t half, Int_t disk) 
+TGeoVolumeAssembly* HeatExchanger::create(Int_t half, Int_t disk) 
 {
 	
   Info("Create",Form("Creating HeatExchanger_%d_%d", disk, half),0,0);
   
   mHalfDisk = new TGeoVolumeAssembly(Form("HeatExchanger_%d_%d", disk, half));
     switch (disk) {
-      case 0: CreateHalfDisk0(half);
+      case 0: createHalfDisk0(half);
         break;
-      case 1: CreateHalfDisk1(half);
+      case 1: createHalfDisk1(half);
         break;
-      case 2: CreateHalfDisk2(half);
+      case 2: createHalfDisk2(half);
         break;
-      case 3: CreateHalfDisk3(half);
+      case 3: createHalfDisk3(half);
         break;
-      case 4: CreateHalfDisk4(half);
+      case 4: createHalfDisk4(half);
         break;
     }
   
@@ -144,7 +144,7 @@ TGeoVolumeAssembly* HeatExchanger::Create(Int_t half, Int_t disk)
 }
 
 //_____________________________________________________________________________
-void HeatExchanger::CreateManyfold(Int_t disk)
+void HeatExchanger::createManyfold(Int_t disk)
 {
 
   TGeoCombiTrans  *transformation1 = nullptr;
@@ -189,7 +189,7 @@ void HeatExchanger::CreateManyfold(Int_t disk)
 }
 
 //_____________________________________________________________________________
-void HeatExchanger::CreateHalfDisk0(Int_t half) {
+void HeatExchanger::createHalfDisk0(Int_t half) {
   
   Int_t disk = 0;
   
@@ -448,12 +448,12 @@ void HeatExchanger::CreateHalfDisk0(Int_t half) {
     mHalfDisk->AddNode(rohacellPlate, 1, transformation);
 //  }
  
-    CreateManyfold(disk);
+    createManyfold(disk);
  
 }
 
 //_____________________________________________________________________________
-void HeatExchanger::CreateHalfDisk1(Int_t half) {
+void HeatExchanger::createHalfDisk1(Int_t half) {
 	
   Int_t disk = 1;
   
@@ -711,12 +711,12 @@ void HeatExchanger::CreateHalfDisk1(Int_t half) {
     mHalfDisk->AddNode(rohacellPlate, 2, transformation);
 //  }
   
-    CreateManyfold(disk);
+    createManyfold(disk);
 
 }
 
 //_____________________________________________________________________________
-void HeatExchanger::CreateHalfDisk2(Int_t half) {
+void HeatExchanger::createHalfDisk2(Int_t half) {
   
   Int_t disk = 2;
   
@@ -971,12 +971,12 @@ void HeatExchanger::CreateHalfDisk2(Int_t half) {
     mHalfDisk->AddNode(rohacellPlate, 2, transformation);
 //  }
   
-    CreateManyfold(disk);
+    createManyfold(disk);
 	
 }
 
 //_____________________________________________________________________________
-void HeatExchanger::CreateHalfDisk3(Int_t half)  {
+void HeatExchanger::createHalfDisk3(Int_t half)  {
   
   Int_t disk = 3;
   
@@ -1400,12 +1400,12 @@ void HeatExchanger::CreateHalfDisk3(Int_t half)  {
 //  }
 	
   
-    CreateManyfold(disk);
+    createManyfold(disk);
   
 }
 
 //_____________________________________________________________________________
-void HeatExchanger::CreateHalfDisk4(Int_t half) {
+void HeatExchanger::createHalfDisk4(Int_t half) {
   
   Int_t disk = 4;
   
@@ -1869,12 +1869,12 @@ void HeatExchanger::CreateHalfDisk4(Int_t half) {
     mHalfDisk->AddNode(rohacellPlate, 2, transformation);
 //  }
 	
-    CreateManyfold(disk);
+    createManyfold(disk);
 	
 }
 
 //_____________________________________________________________________________
-void HeatExchanger::InitParameters() 
+void HeatExchanger::initParameters() 
 {
   
   mHalfDiskRotation = new TGeoRotation**[Geometry::sNDisks];
