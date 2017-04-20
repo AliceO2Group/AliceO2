@@ -21,7 +21,7 @@ public:
   
   ~HalfCone() override;
   
-  TGeoVolumeAssembly* CreateHalfCone(Int_t half);
+  TGeoVolumeAssembly* createHalfCone(Int_t half);
 
 protected:
 

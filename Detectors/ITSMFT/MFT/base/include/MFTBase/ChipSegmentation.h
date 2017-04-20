@@ -20,10 +20,10 @@ public:
   
   ~ChipSegmentation() override = default;
   void Clear(const Option_t* /*opt*/) override {;}
-  virtual void Print(Option_t* /*option*/);
+  virtual void print(Option_t* /*option*/);
 
   /// \brief Transform (x,y) Hit coordinate into Pixel ID on the matrix
-  Bool_t Hit2PixelID(Double_t xHit, Double_t yHit, Int_t &xPixel, Int_t &yPixel);
+  Bool_t hitToPixelID(Double_t xHit, Double_t yHit, Int_t &xPixel, Int_t &yPixel);
   
 private:
   

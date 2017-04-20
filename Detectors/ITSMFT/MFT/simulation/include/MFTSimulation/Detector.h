@@ -29,8 +29,6 @@ public:
   /// Default destructor
   ~Detector() override;
 
-  Int_t IsVersion() const { return mVersion; }
-
   /// Initialization of the detector is done here
   void Initialize() override;
 
@@ -57,24 +55,27 @@ public:
   void BeginEvent() override {;}
   void SetSpecialPhysicsCuts() override {;}
 
-  GeometryTGeo* GetGeometryTGeo() const { return mGeometryTGeo; }
+  void ConstructGeometry() override;  // inherited from FairModule
+
+  //
+
+  Int_t isVersion() const { return mVersion; }
+
+  GeometryTGeo* getGeometryTGeo() const { return mGeometryTGeo; }
   
   /// Creating materials for the detector
 
-  void CreateMaterials();
+  void createMaterials();
 
-  enum EMedia{kZero, kAir, kVacuum, kSi, kReadout, kSupport, kCarbon, kBe, kAlu, kWater, kSiO2, kInox, kKapton, kEpoxy, kCarbonFiber, kCarbonEpoxy, kRohacell, kPolyimide, kPEEK, kFR4, kCu, kX7R, kX7Rw, kCarbonFleece, kSE4445};  // media IDs used in CreateMaterials
+  enum EMedia{Zero, Air, Vacuum, Si, Readout, Support, Carbon, Be, Alu, Water, SiO2, Inox, Kapton, Epoxy, CarbonFiber, CarbonEpoxy, Rohacell, Polyimide, PEEK, FR4, Cu, X7R, X7Rw, CarbonFleece, SE4445};  // media IDs used in CreateMaterials
 
-  void SetDensitySupportOverSi(Double_t density) { 
+  void setDensitySupportOverSi(Double_t density) { 
     if (density > 1e-6) mDensitySupportOverSi = density; 
     else mDensitySupportOverSi = 1e-6; 
   }
 
-  /// Constructing the geometry
-
-  void ConstructGeometry() override;  // inherited from FairModule
-  void CreateGeometry();
-  void DefineSensitiveVolumes();
+  void createGeometry();
+  void defineSensitiveVolumes();
 
 protected:
 
@@ -88,7 +89,7 @@ private:
   Detector(const Detector&);
   Detector& operator=(const Detector&);
 
-  o2::ITSMFT::Point* AddHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus);
+  o2::ITSMFT::Point* addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus);
 
   /// this is transient data about track passing the sensor
   struct TrackData {                  // this is transient 

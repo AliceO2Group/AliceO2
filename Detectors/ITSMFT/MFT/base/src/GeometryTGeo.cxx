@@ -29,7 +29,7 @@ mNLaddersHalfDisk(nullptr)
 {
   // default constructor
 
-  Build();
+  build();
 
 }
 
@@ -83,23 +83,23 @@ GeometryTGeo &GeometryTGeo::operator=(const GeometryTGeo &src)
 }
 
 //_____________________________________________________________________________
-void GeometryTGeo::Build()
+void GeometryTGeo::build()
 {
 
   mNDisks = Constants::sNDisks;
   mNLaddersHalfDisk = new Int_t[2*mNDisks];
 
   // extract the total number of sensors (chips)
-  Geometry *mftGeo = Geometry::Instance();
-  Segmentation *seg = mftGeo->GetSegmentation();
+  Geometry *mftGeo = Geometry::instance();
+  Segmentation *seg = mftGeo->getSegmentation();
   for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
-    HalfSegmentation * halfSeg = seg->GetHalf(iHalf);
+    HalfSegmentation * halfSeg = seg->getHalf(iHalf);
     for (Int_t iDisk = 0; iDisk < mNDisks; iDisk++) {
-      HalfDiskSegmentation* halfDiskSeg = halfSeg->GetHalfDisk(iDisk);
-      mNLaddersHalfDisk[iHalf*mNDisks+iDisk] = halfDiskSeg->GetNLadders();
-      for (Int_t iLadder = 0; iLadder < halfDiskSeg->GetNLadders(); iLadder++) {
-	LadderSegmentation* ladderSeg = halfDiskSeg->GetLadder(iLadder);
-	mNChips += ladderSeg->GetNSensors();
+      HalfDiskSegmentation* halfDiskSeg = halfSeg->getHalfDisk(iDisk);
+      mNLaddersHalfDisk[iHalf*mNDisks+iDisk] = halfDiskSeg->getNLadders();
+      for (Int_t iLadder = 0; iLadder < halfDiskSeg->getNLadders(); iLadder++) {
+	LadderSegmentation* ladderSeg = halfDiskSeg->getLadder(iLadder);
+	mNChips += ladderSeg->getNSensors();
       }
     }
   }

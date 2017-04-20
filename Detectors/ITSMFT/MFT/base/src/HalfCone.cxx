@@ -37,10 +37,8 @@ HalfCone::~HalfCone()
 = default;
 
 //_____________________________________________________________________________
-TGeoVolumeAssembly* HalfCone::CreateHalfCone(Int_t half)
+TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
 {
-  
-  //AliInfo(Form("Creating Half Cone for half %d ",half));
   
   auto *HalfConeVolume = new TGeoVolumeAssembly("HalfConeVolume");
   

@@ -29,7 +29,7 @@ mTransformation(input.mTransformation)
 }
 
 //_____________________________________________________________________________
-void VSegmentation::SetRotationAngles(const Double_t *ang)
+void VSegmentation::setRotationAngles(const Double_t *ang)
 {
 
   /// Set Rotation Angles

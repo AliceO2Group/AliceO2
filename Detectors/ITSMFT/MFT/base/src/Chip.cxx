@@ -34,7 +34,7 @@ Chip::~Chip()
 = default;
 
 //_____________________________________________________________________________
-void Chip::GetPosition(LadderSegmentation * ladderSeg, Int_t iChip, Double_t *pos)
+void Chip::getPosition(LadderSegmentation * ladderSeg, Int_t iChip, Double_t *pos)
 {
 
 //  Double_t * fFlexDimensions = new Double_t[3];
@@ -51,7 +51,7 @@ void Chip::GetPosition(LadderSegmentation * ladderSeg, Int_t iChip, Double_t *po
 }
 
 //_____________________________________________________________________________
-TGeoVolume * Chip::CreateVolume()
+TGeoVolume * Chip::createVolume()
 {
   
 //  // Create Shapes

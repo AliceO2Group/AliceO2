@@ -51,11 +51,11 @@ VSegmentation(),
 mHalfDisks(nullptr)
 {
 
-  Geometry * mftGeom = Geometry::Instance();
+  Geometry * mftGeom = Geometry::instance();
   
-  UInt_t halfUniqueID = mftGeom->GetObjectID(Geometry::HalfType, id);
+  UInt_t halfUniqueID = mftGeom->getObjectID(Geometry::HalfType, id);
   SetUniqueID(halfUniqueID);
-  SetName(Form("%s_%d",GeometryTGeo::GetHalfDetName(),id));
+  SetName(Form("%s_%d",GeometryTGeo::getHalfDetName(),id));
     
   mHalfDisks = new TClonesArray("o2::MFT::HalfDiskSegmentation", Constants::sNDisks);
   mHalfDisks -> SetOwner(kTRUE);
@@ -73,10 +73,10 @@ mHalfDisks(nullptr)
   
   // Find  Half-MFT node in the XML file
   XMLNodePointer_t halfnode ;
-  FindHalf(geomFile, mainnode, halfnode);
+  findHalf(geomFile, mainnode, halfnode);
 
   // Create Half Disks belonging to that Half-MFT
-  CreateHalfDisks(geomFile, halfnode);
+  createHalfDisks(geomFile, halfnode);
   
   // Release memory
   geomFile->FreeDoc(xmldoc);
@@ -106,7 +106,7 @@ void HalfSegmentation::Clear(const Option_t* /*opt*/) {
 ///Create the Half-Disks 
 
 //_____________________________________________________________________________
-void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
+void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
 {
   // this function display all accessible information about xml node and its children
   Int_t idisk;
@@ -114,7 +114,7 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
   Double_t pos[3]={0., 0., 0.};
   Double_t ang[3]={0., 0., 0.};
 
-  Geometry * mftGeom = Geometry::Instance();
+  Geometry * mftGeom = Geometry::instance();
     
   TString nodeName = xml->GetNodeName(node);
   if (!nodeName.CompareTo("disk")) {
@@ -156,26 +156,26 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
     
     //AliDebug(1,Form("Creating Half-Disk %d with %d Ladders at the position (%.2f,%.2f,%.2f) with angles  (%.2f,%.2f,%.2f)",idisk,nladder,pos[0],pos[1],pos[2],ang[0],ang[1],ang[2]));
     
-    UInt_t diskUniqueID = mftGeom->GetObjectID(Geometry::HalfDiskType,mftGeom->GetHalfMFTID(GetUniqueID()),idisk );
+    UInt_t diskUniqueID = mftGeom->getObjectID(Geometry::HalfDiskType,mftGeom->getHalfMFTID(GetUniqueID()),idisk );
     
     auto *halfDisk = new HalfDiskSegmentation(diskUniqueID);
-    halfDisk->SetPosition(pos);
-    halfDisk->SetRotationAngles(ang);
-    halfDisk->SetNLadders(nladder);
-    halfDisk->CreateLadders(xml, node);
-    if(halfDisk->GetNLaddersBuild() != halfDisk->GetNLadders()) {
-      LOG(FATAL) << "Number of ladder build " << halfDisk->GetNLaddersBuild() << " does not correspond to the number declared " << halfDisk->GetNLadders() << " Check XML file" << FairLogger::endl;
+    halfDisk->setPosition(pos);
+    halfDisk->setRotationAngles(ang);
+    halfDisk->setNLadders(nladder);
+    halfDisk->createLadders(xml, node);
+    if(halfDisk->getNLaddersBuild() != halfDisk->getNLadders()) {
+      LOG(FATAL) << "Number of ladder build " << halfDisk->getNLaddersBuild() << " does not correspond to the number declared " << halfDisk->getNLadders() << " Check XML file" << FairLogger::endl;
     }
     new ((*mHalfDisks)[idisk]) HalfDiskSegmentation(*halfDisk);
     delete halfDisk;
-    //GetHalfDisk(idisk)->Print("ls");
+    //getHalfDisk(idisk)->Print("ls");
 
   }
 
   // display all child nodes
   XMLNodePointer_t child = xml->GetChild(node);
   while (child!=nullptr) {
-    CreateHalfDisks(xml, child);
+    createHalfDisks(xml, child);
     child = xml->GetNext(child);
   }
 
@@ -184,7 +184,7 @@ void HalfSegmentation::CreateHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
 /// Find Half-Disk in the XML file (private)
 
 //_____________________________________________________________________________
-void HalfSegmentation::FindHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodePointer_t &retnode){
+void HalfSegmentation::findHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodePointer_t &retnode){
   // Find in the XML Geometry File the node corresponding to the Half-MFT being build
   // Set Position and Orientation of the Half-MFT
   Int_t isTop;
@@ -235,11 +235,11 @@ void HalfSegmentation::FindHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
       attr = xml->GetNextAttr(attr);
     }
     
-    Geometry * mftGeom = Geometry::Instance();
-    if(isTop == mftGeom->GetHalfMFTID(GetUniqueID())) {
+    Geometry * mftGeom = Geometry::instance();
+    if(isTop == mftGeom->getHalfMFTID(GetUniqueID())) {
       //AliDebug(1,Form("Setting up %s Half-MFT  %d Disk(s) at the position (%.2f,%.2f,%.2f) with angles (%.2f,%.2f,%.2f)",(isTop?"Top":"Bottom"),ndisk,pos[0],pos[1],pos[2],ang[0],ang[1],ang[2]));
-      SetPosition(pos);
-      SetRotationAngles(ang);
+      setPosition(pos);
+      setRotationAngles(ang);
       retnode = node;
       return;
     }
@@ -249,7 +249,7 @@ void HalfSegmentation::FindHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
   // display all child nodes
   XMLNodePointer_t child = xml->GetChild(node);
   while (child!=nullptr) {
-    FindHalf(xml, child, retnode);
+    findHalf(xml, child, retnode);
     child = xml->GetNext(child);
   }
 }

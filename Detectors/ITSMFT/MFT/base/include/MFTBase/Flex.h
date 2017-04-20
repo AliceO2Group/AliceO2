@@ -20,16 +20,16 @@ public:
   Flex();
   Flex(LadderSegmentation *ladder);
   ~Flex() override;
-  TGeoVolumeAssembly*  MakeFlex(Int_t nbsensors, Double_t length);
-  void Make_ElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, Double_t length, Double_t zvarnish);
+  TGeoVolumeAssembly*  makeFlex(Int_t nbsensors, Double_t length);
+  void makeElectricComponents(TGeoVolumeAssembly*  flex, Int_t nbsensors, Double_t length, Double_t zvarnish);
 
 private:
 
-  TGeoVolume*  Make_Lines(Int_t nbsensors, Double_t length, Double_t width, Double_t thickness);
-  TGeoVolume*  Make_AGND_DGND(Double_t length, Double_t width, Double_t thickness);
-  TGeoVolume*  Make_Kapton(Double_t length, Double_t width, Double_t thickness);
-  TGeoVolume*  Make_Varnish(Double_t length, Double_t width, Double_t thickness, Int_t iflag);
-  TGeoVolumeAssembly*  Make_ElectricComponent(Double_t dx, Double_t dy, Double_t dz, Int_t iflag);
+  TGeoVolume*  makeLines(Int_t nbsensors, Double_t length, Double_t width, Double_t thickness);
+  TGeoVolume*  makeAGNDandDGND(Double_t length, Double_t width, Double_t thickness);
+  TGeoVolume*  makeKapton(Double_t length, Double_t width, Double_t thickness);
+  TGeoVolume*  makeVarnish(Double_t length, Double_t width, Double_t thickness, Int_t iflag);
+  TGeoVolumeAssembly*  makeElectricComponent(Double_t dx, Double_t dy, Double_t dz, Int_t iflag);
 
   Double_t *mFlexOrigin;
   LadderSegmentation * mLadderSeg;

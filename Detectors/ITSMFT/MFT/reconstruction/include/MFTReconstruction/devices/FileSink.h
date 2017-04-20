@@ -20,21 +20,21 @@ class FileSink : public FairMQDevice
   FileSink();
   ~FileSink() override;
   
-  void SetOutputFileName(std::string tempString) { mFileName = tempString; }
-  void AddOutputBranch  (std::string classString, std::string branchString) 
+  void setOutputFileName(std::string tempString) { mFileName = tempString; }
+  void addOutputBranch  (std::string classString, std::string branchString) 
   { 
     mClassNames .push_back(classString); 
     mBranchNames.push_back(branchString); 
     LOG(INFO) << "AddOutput class " << classString.c_str() << " branch " << branchString.c_str() << ""; 
   }
-  std::string GetOutputFileName () { return mFileName;}
+  std::string getOutputFileName () { return mFileName;}
 
-  void SetInputChannelName (std::string tstr) {mInputChannelName = tstr;}
-  void SetAckChannelName(std::string tstr) {mAckChannelName = tstr;}
+  void setInputChannelName (std::string tstr) {mInputChannelName = tstr;}
+  void setAckChannelName(std::string tstr) {mAckChannelName = tstr;}
 
  protected:
 
-  bool StoreData(FairMQParts&, int);
+  bool storeData(FairMQParts&, int);
   void Init() override;
 
  private:
@@ -56,8 +56,8 @@ class FileSink : public FairMQDevice
   TTree* mTree;
   unsigned int    mNObjects;
   TObject**       mOutputObjects;
-  /* FairEventHeader* fEventHeader; */
-  /* TClonesArray*    fOutput; */
+  /* FairEventHeader* mEventHeader; */
+  /* TClonesArray*    mOutput; */
   TFolder* mFolder;
   
   FileSink(const FileSink&);

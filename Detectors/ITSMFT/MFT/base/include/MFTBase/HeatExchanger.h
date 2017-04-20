@@ -22,26 +22,26 @@ class HeatExchanger : public TNamed {
   
   ~HeatExchanger() override = default;
   
-  TGeoVolumeAssembly* Create(Int_t kHalf, Int_t disk);
+  TGeoVolumeAssembly* create(Int_t kHalf, Int_t disk);
 
-  void CreateHalfDisk0(Int_t half);
-  void CreateHalfDisk1(Int_t half);
-  void CreateHalfDisk2(Int_t half);
-  void CreateHalfDisk3(Int_t half);
-  void CreateHalfDisk4(Int_t half);
-  void CreateManyfold(Int_t disk);
+  void createHalfDisk0(Int_t half);
+  void createHalfDisk1(Int_t half);
+  void createHalfDisk2(Int_t half);
+  void createHalfDisk3(Int_t half);
+  void createHalfDisk4(Int_t half);
+  void createManyfold(Int_t disk);
 
-  Double_t GetWaterRadius() { return mRWater; }
-  void SetWaterRadius(Double_t &Rwater) { mRWater = Rwater; }
+  Double_t getWaterRadius() { return mRWater; }
+  void setWaterRadius(Double_t &Rwater) { mRWater = Rwater; }
 
-  Double_t GetPipeThickness() { return mDRPipe; }
-  void SetPipeThickness(Double_t &DRPipe) { mDRPipe = DRPipe; }
+  Double_t getPipeThickness() { return mDRPipe; }
+  void setPipeThickness(Double_t &DRPipe) { mDRPipe = DRPipe; }
 
-  Double_t GetExchangerWidth() { return mHeatExchangerThickness; }
-  void SetExchangerWidth(Double_t &HeatExchangerThickness) { mHeatExchangerThickness = HeatExchangerThickness; }
+  Double_t getExchangerWidth() { return mHeatExchangerThickness; }
+  void setExchangerWidth(Double_t &HeatExchangerThickness) { mHeatExchangerThickness = HeatExchangerThickness; }
 
-  Double_t GetCarbonThickness() { return mCarbonThickness; }
-  void SetCarbonThickness(Double_t &CarbonThickness) { mCarbonThickness = CarbonThickness; }
+  Double_t getCarbonThickness() { return mCarbonThickness; }
+  void setCarbonThickness(Double_t &CarbonThickness) { mCarbonThickness = CarbonThickness; }
 
   TGeoMaterial *mMaterial;
   TGeoMedium *mWater;
@@ -51,7 +51,7 @@ class HeatExchanger : public TNamed {
 
  private:
 
-  void InitParameters();
+  void initParameters();
 
   const static Int_t sNMaxDisks;
 

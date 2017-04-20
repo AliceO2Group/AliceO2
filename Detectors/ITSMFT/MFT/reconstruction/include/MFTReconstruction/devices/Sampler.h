@@ -21,17 +21,17 @@ class Sampler : public FairMQDevice
   Sampler();
   ~Sampler() override;
   
-  void AddInputFileName(std::string s) { mFileNames.push_back(s); }
-  void AddInputBranchName(std::string s) { mBranchNames.push_back(s); }
+  void addInputFileName(std::string s) { mFileNames.push_back(s); }
+  void addInputBranchName(std::string s) { mBranchNames.push_back(s); }
 
-  void SetMaxIndex(int64_t tempInt) {mMaxIndex=tempInt;}
+  void setMaxIndex(int64_t tempInt) {mMaxIndex=tempInt;}
   
-  void SetSource(FairSource* tempSource) {mSource = tempSource;}
+  void setSource(FairSource* tempSource) {mSource = tempSource;}
   
-  void ListenForAcks();
+  void listenForAcks();
   
-  void SetOutputChannelName(std::string tstr) {mOutputChannelName = tstr;}
-  void SetAckChannelName(std::string tstr) {mAckChannelName = tstr;}
+  void setOutputChannelName(std::string tstr) {mOutputChannelName = tstr;}
+  void setAckChannelName(std::string tstr) {mAckChannelName = tstr;}
 
  protected:
 

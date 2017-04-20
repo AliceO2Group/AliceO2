@@ -67,18 +67,18 @@ void TaskProcessor<T>::Init()
 
   LOG(INFO) << "TaskProcessor::Init >>>>> execute OnData callback on channel " << mInputChannelName.c_str() << "";	
 
-  OnData(mInputChannelName, &TaskProcessor<T>::ProcessData);
+  OnData(mInputChannelName, &TaskProcessor<T>::processData);
 
 }
 
 //_____________________________________________________________________________
 template <typename T>
-bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
+bool TaskProcessor<T>::processData(FairMQParts& parts, int index)
 {
 
   TObject* objectToKeep = nullptr;
   
-  LOG(INFO) << "TaskProcessor::ProcessData >>>>> message received with " << parts.Size() << " parts.";
+  LOG(INFO) << "TaskProcessor::processData >>>>> message received with " << parts.Size() << " parts.";
 
   mReceivedMsgs++;
 
@@ -88,7 +88,7 @@ bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
     TMessage2 tm(parts.At(ipart)->GetData(), parts.At(ipart)->GetSize());
     tempObjects[ipart] = (TObject*)tm.ReadObject(tm.GetClass());
 
-    LOG(INFO) << R"(TaskProcessor::ProcessData >>>>> got TObject with name ")" << tempObjects[ipart]->GetName() << R"(".)";
+    LOG(INFO) << R"(TaskProcessor::processData >>>>> got TObject with name ")" << tempObjects[ipart]->GetName() << R"(".)";
 
     if (strcmp(tempObjects[ipart]->GetName(),"EventHeader.") == 0 ) {
 
@@ -97,7 +97,7 @@ bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
 
       mInput->Add(tempObjects[ipart]);
 
-      LOG(INFO) << "TaskProcessor::ProcessData >>>>> read event header with run = " << mNewRunId << "";
+      LOG(INFO) << "TaskProcessor::processData >>>>> read event header with run = " << mNewRunId << "";
 
     } else {
 
@@ -110,21 +110,21 @@ bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
   if (mEventHeader != nullptr)	
     mNewRunId = mEventHeader->GetRunId();
   
-  LOG(INFO)<<"TaskProcessor::ProcessData >>>>> got event header with run = " << mNewRunId;
+  LOG(INFO)<<"TaskProcessor::processData >>>>> got event header with run = " << mNewRunId;
   
   if(mNewRunId != mCurrentRunId) {
 
     mCurrentRunId=mNewRunId;
-    mFairTask->InitMQ(nullptr);
+    mFairTask->initMQ(nullptr);
 
-    LOG(INFO) << "TaskProcessor::ProcessData >>>>> Parameters updated, back to ProcessData(" << parts.Size() << " parts!)";
+    LOG(INFO) << "TaskProcessor::processData >>>>> Parameters updated, back to processData(" << parts.Size() << " parts!)";
 
   }
     
   // Execute hit finder task
   mOutput->Clear();
   //LOG(INFO) << " The blocking line... analyzing event " << fEventHeader->GetMCEntryNumber();
-  mFairTask->ExecMQ(mInput,mOutput);
+  mFairTask->execMQ(mInput,mOutput);
   
   if (!mDataToKeep.empty()) {
 
@@ -139,7 +139,7 @@ bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
   
   if (mEventHeader != nullptr) {
 
-    LOG(INFO) << "TaskProcessor::ProcessData >>>>> create message from EventHeader"  << "";
+    LOG(INFO) << "TaskProcessor::processData >>>>> create message from EventHeader"  << "";
 
     messageFEH = new TMessage(kMESS_OBJECT);
     messageFEH->WriteObject(mEventHeader);
@@ -154,7 +154,7 @@ bool TaskProcessor<T>::ProcessData(FairMQParts& parts, int index)
     messageTCA[iobj] = new TMessage(kMESS_OBJECT);
     messageTCA[iobj]->WriteObject(mOutput->At(iobj));
 
-    LOG(INFO) << "TaskProcessor::ProcessData >>>>> out object " << iobj << "";
+    LOG(INFO) << "TaskProcessor::processData >>>>> out object " << iobj << "";
 
     //fOutput->At(iobj)->Dump();
     partsOut.AddPart(NewMessage(messageTCA[iobj]->Buffer(),

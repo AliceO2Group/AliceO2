@@ -28,23 +28,21 @@ ChipSegmentation::ChipSegmentation(UInt_t uniqueID):
   VSegmentation()
 {
   // constructor
-  Geometry * mftGeom = Geometry::Instance();
+  Geometry * mftGeom = Geometry::instance();
 
   SetUniqueID(uniqueID);
 
-  SetName(Form("%s_%d_%d_%d_%d",GeometryTGeo::GetSensorName(),
-               mftGeom->GetHalfMFTID(GetUniqueID()),
-               mftGeom->GetHalfDiskID(GetUniqueID()),
-               mftGeom->GetLadderID(GetUniqueID()),
-               mftGeom->GetSensorID(GetUniqueID()) ));
+  SetName(Form("%s_%d_%d_%d_%d",GeometryTGeo::getSensorName(),
+               mftGeom->getHalfMFTID(GetUniqueID()),
+               mftGeom->getHalfDiskID(GetUniqueID()),
+               mftGeom->getLadderID(GetUniqueID()),
+               mftGeom->getSensorID(GetUniqueID()) ));
 
   Double_t pos[3];
-  pos[0] = mftGeom->GetSensorID(GetUniqueID())*(Geometry::sSensorLength + Geometry::sSensorInterspace) + Geometry::sSensorSideOffset;
+  pos[0] = mftGeom->getSensorID(GetUniqueID())*(Geometry::sSensorLength + Geometry::sSensorInterspace) + Geometry::sSensorSideOffset;
   pos[1] = Geometry::sSensorTopOffset;
   pos[2] = Geometry::sFlexThickness;
-  SetPosition(pos);
-  
-  //AliDebug(2,Form("Creating %s, UniqueID = %d, Position = (%.2f, %.2f, %.2f)",GetName(), GetUniqueID(), pos[0], pos[1], pos[2]));
+  setPosition(pos);
   
 }
 
@@ -60,7 +58,7 @@ ChipSegmentation::ChipSegmentation(UInt_t uniqueID):
 //
 
 //_____________________________________________________________________________
-Bool_t ChipSegmentation::Hit2PixelID(Double_t xHit, Double_t yHit, Int_t &xPixel, Int_t &yPixel) {
+Bool_t ChipSegmentation::hitToPixelID(Double_t xHit, Double_t yHit, Int_t &xPixel, Int_t &yPixel) {
   // TODO Need to work on the Misalignment
   
   Double_t xHitLocal = xHit-Geometry::sSensorMargin;
@@ -84,8 +82,8 @@ Bool_t ChipSegmentation::Hit2PixelID(Double_t xHit, Double_t yHit, Int_t &xPixel
 /// \brief Print out Sensor information (Name, ID, position, orientation)
 
 //_____________________________________________________________________________
-void ChipSegmentation::Print(Option_t* /*option*/){
+void ChipSegmentation::print(Option_t* /*option*/){
   
   //AliInfo(Form("Sensor %s (Unique ID = %d)",GetName(),GetUniqueID()));
-  GetTransformation()->Print();
+  getTransformation()->Print();
 }

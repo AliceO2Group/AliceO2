@@ -29,12 +29,11 @@ public:
   /// \brief Returns pointer to the segmentation of the half-MFT
   /// \param iHalf Integer : 0 = Bottom; 1 = Top
   /// \return Pointer to a HalfSegmentation
-  HalfSegmentation* GetHalf(Int_t iHalf) const;
+  HalfSegmentation* getHalf(Int_t iHalf) const;
 
-  Int_t GetDetElemLocalID(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const;
+  Int_t getDetElemLocalID(Int_t half, Int_t disk, Int_t ladder, Int_t sensor) const;
   
-  Bool_t Hit2PixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t half, Int_t disk, Int_t ladder, Int_t sensor, Int_t &xPixel, Int_t &yPixel);
-
+  Bool_t hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, Int_t half, Int_t disk, Int_t ladder, Int_t sensor, Int_t &xPixel, Int_t &yPixel);
 
 private:
 

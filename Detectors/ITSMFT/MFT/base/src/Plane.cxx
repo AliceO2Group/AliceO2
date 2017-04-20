@@ -195,7 +195,7 @@ Plane& Plane::operator=(const Plane& plane)
 }
 
 //_____________________________________________________________________________
-Bool_t Plane::Init(Int_t    planeNumber,
+Bool_t Plane::init(Int_t    planeNumber,
 			 Double_t zCenter, 
 			 Double_t rMin, 
 			 Double_t rMax, 
@@ -204,7 +204,7 @@ Bool_t Plane::Init(Int_t    planeNumber,
 			 Double_t thicknessActive, 
 			 Double_t thicknessSupport, 
 			 Double_t thicknessReadout,
-			 Bool_t   hasPixelRectangularPatternAlongY) 
+			 Bool_t   pixelRectangularPatternAlongY) 
 {
 
   LOG(DEBUG1) << "Init: " << Form("initializing plane structure for plane %s", GetName()) << FairLogger::endl;
@@ -219,7 +219,7 @@ Bool_t Plane::Init(Int_t    planeNumber,
   mThicknessSupport = thicknessSupport;
   mThicknessReadout = thicknessReadout;
 
-  mHasPixelRectangularPatternAlongY = hasPixelRectangularPatternAlongY;
+  mHasPixelRectangularPatternAlongY = pixelRectangularPatternAlongY;
 
   mZCenterActiveFront = mZCenter - 0.5*mThicknessSupport - 0.5*mThicknessActive;
   mZCenterActiveBack  = mZCenter + 0.5*mThicknessSupport + 0.5*mThicknessActive;
@@ -240,7 +240,7 @@ Bool_t Plane::Init(Int_t    planeNumber,
 }
 
 //_____________________________________________________________________________
-Bool_t Plane::CreateStructure() 
+Bool_t Plane::createStructure() 
 {
 
   Int_t nBins[3]={0};
@@ -253,7 +253,7 @@ Bool_t Plane::CreateStructure()
   Double_t zMinFront = mZCenter - 0.5*mThicknessSupport - mThicknessActive;
   Double_t zMinBack  = mZCenter + 0.5*mThicknessSupport;
   Double_t zMin = 0.;
-  Bool_t isFront = kTRUE;
+  Bool_t   front = kTRUE;
   
   while (lowEdgeActive < 0) {
     
@@ -272,8 +272,8 @@ Bool_t Plane::CreateStructure()
 
       // element below the pipe
       
-      if (isFront) zMin = zMinFront;
-      else         zMin = zMinBack;
+      if (front) zMin = zMinFront;
+      else       zMin = zMinBack;
 
       minPosition[0] = -1.*extLimitDetElem;
       minPosition[1] = lowEdgeActive;
@@ -297,8 +297,8 @@ Bool_t Plane::CreateStructure()
       // specular element above the pipe
 
       if (mPlaneIsOdd) {
-	if (isFront) zMin = zMinBack;
-	else         zMin = zMinFront;
+	if (front) zMin = zMinBack;
+	else       zMin = zMinFront;
       }
 
       minPosition[0] = -1.*extLimitDetElem;
@@ -335,8 +335,8 @@ Bool_t Plane::CreateStructure()
       
       // left element: y < 0
       
-      if (isFront) zMin = zMinFront;
-      else         zMin = zMinBack;
+      if (front) zMin = zMinFront;
+      else       zMin = zMinBack;
 
       minPosition[0] = -1.*extLimitDetElem;
       minPosition[1] = lowEdgeActive;
@@ -362,8 +362,8 @@ Bool_t Plane::CreateStructure()
       if (supEdgeActive < 0.5*Constants::sHeightActive) {
 	
 	if (mPlaneIsOdd) {
-	  if (isFront) zMin = zMinBack;
-	  else         zMin = zMinFront;
+	  if (front) zMin = zMinBack;
+	  else       zMin = zMinFront;
 	}
 	
 	minPosition[0] = -1.*extLimitDetElem;
@@ -389,8 +389,8 @@ Bool_t Plane::CreateStructure()
 
       // right element: y < 0
       
-      if (isFront) zMin = zMinFront;
-      else         zMin = zMinBack;
+      if (front) zMin = zMinFront;
+      else       zMin = zMinBack;
 
       minPosition[0] = +1.*intLimitDetElem;
       minPosition[1] = lowEdgeActive;
@@ -416,8 +416,8 @@ Bool_t Plane::CreateStructure()
       if (supEdgeActive < 0.5*Constants::sHeightActive) {
 
 	if (mPlaneIsOdd) {
-	  if (isFront) zMin = zMinBack;
-	  else         zMin = zMinFront;
+	  if (front) zMin = zMinBack;
+	  else       zMin = zMinFront;
 	}
 	
 	minPosition[0] = +1.*intLimitDetElem;
@@ -445,7 +445,7 @@ Bool_t Plane::CreateStructure()
     
     lowEdgeActive += Constants::sHeightActive - Constants::sActiveSuperposition;
     supEdgeActive = lowEdgeActive + Constants::sHeightActive;
-    isFront = !isFront;
+    front = !front;
     
   }
   
@@ -476,35 +476,35 @@ Bool_t Plane::CreateStructure()
 }
 
 //_____________________________________________________________________________
-THnSparseC* Plane::GetActiveElement(Int_t id) 
+THnSparseC* Plane::getActiveElement(Int_t id) 
 {
 
-  if (id<0 || id>=GetNActiveElements()) return nullptr;
+  if (id<0 || id>=getNActiveElements()) return nullptr;
   else return (THnSparseC*) mActiveElements->At(id);
 
 }
 
 //_____________________________________________________________________________
-THnSparseC* Plane::GetReadoutElement(Int_t id) 
+THnSparseC* Plane::getReadoutElement(Int_t id) 
 {
 
-  if (id<0 || id>=GetNReadoutElements()) return nullptr;
+  if (id<0 || id>=getNReadoutElements()) return nullptr;
   else return (THnSparseC*) mReadoutElements->At(id);
 
 }
 
 
 //_____________________________________________________________________________
-THnSparseC* Plane::GetSupportElement(Int_t id) 
+THnSparseC* Plane::getSupportElement(Int_t id) 
 {
 
-  if (id<0 || id>=GetNSupportElements()) return nullptr;
+  if (id<0 || id>=getNSupportElements()) return nullptr;
   else return (THnSparseC*) mSupportElements->At(id);
 
 }
 
 //_____________________________________________________________________________
-void Plane::DrawPlane(Option_t *opt) 
+void Plane::drawPlane(Option_t *opt) 
 {
 
   // ------------------- "FRONT" option ------------------
@@ -515,8 +515,8 @@ void Plane::DrawPlane(Option_t *opt)
     cnv->Draw();
 
     auto *h = new TH2D("tmp", GetName(), 
-		       1, 1.1*GetSupportElement(0)->GetAxis(0)->GetXmin(), 1.1*GetSupportElement(0)->GetAxis(0)->GetXmax(), 
-		       1, 1.1*GetSupportElement(0)->GetAxis(1)->GetXmin(), 1.1*GetSupportElement(0)->GetAxis(1)->GetXmax());
+		       1, 1.1*getSupportElement(0)->GetAxis(0)->GetXmin(), 1.1*getSupportElement(0)->GetAxis(0)->GetXmax(), 
+		       1, 1.1*getSupportElement(0)->GetAxis(1)->GetXmin(), 1.1*getSupportElement(0)->GetAxis(1)->GetXmax());
     h->SetXTitle("x [cm]");
     h->SetYTitle("y [cm]");
     h->Draw();
@@ -529,22 +529,22 @@ void Plane::DrawPlane(Option_t *opt)
     supportExt -> Draw("same");
     supportInt -> Draw("same");
 
-    for (Int_t iEl=0; iEl<GetNActiveElements(); iEl++) {
-      if (!IsFront(GetActiveElement(iEl))) continue;
-      auto *pave = new TPave(GetActiveElement(iEl)->GetAxis(0)->GetXmin(), 
-			      GetActiveElement(iEl)->GetAxis(1)->GetXmin(), 
-			      GetActiveElement(iEl)->GetAxis(0)->GetXmax(), 
-			      GetActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
+    for (Int_t iEl=0; iEl<getNActiveElements(); iEl++) {
+      if (!isFront(getActiveElement(iEl))) continue;
+      auto *pave = new TPave(getActiveElement(iEl)->GetAxis(0)->GetXmin(), 
+			      getActiveElement(iEl)->GetAxis(1)->GetXmin(), 
+			      getActiveElement(iEl)->GetAxis(0)->GetXmax(), 
+			      getActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
       pave -> SetFillColor(kGreen);
       pave -> Draw("same");
     }
 
-    for (Int_t iEl=0; iEl<GetNReadoutElements(); iEl++) {
-      if (!IsFront(GetReadoutElement(iEl))) continue;
-      auto *pave = new TPave(GetReadoutElement(iEl)->GetAxis(0)->GetXmin(), 
-			      GetReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
-			      GetReadoutElement(iEl)->GetAxis(0)->GetXmax(), 
-			      GetReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
+    for (Int_t iEl=0; iEl<getNReadoutElements(); iEl++) {
+      if (!isFront(getReadoutElement(iEl))) continue;
+      auto *pave = new TPave(getReadoutElement(iEl)->GetAxis(0)->GetXmin(), 
+			      getReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
+			      getReadoutElement(iEl)->GetAxis(0)->GetXmax(), 
+			      getReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
       pave -> SetFillColor(kRed);
       pave -> Draw("same");
     }
@@ -559,8 +559,8 @@ void Plane::DrawPlane(Option_t *opt)
     cnv->Draw();
     
     auto *h = new TH2D("tmp", GetName(), 
-		       1, 1.1*GetSupportElement(0)->GetAxis(0)->GetXmin(), 1.1*GetSupportElement(0)->GetAxis(0)->GetXmax(), 
-		       1, 1.1*GetSupportElement(0)->GetAxis(1)->GetXmin(), 1.1*GetSupportElement(0)->GetAxis(1)->GetXmax());
+		       1, 1.1*getSupportElement(0)->GetAxis(0)->GetXmin(), 1.1*getSupportElement(0)->GetAxis(0)->GetXmax(), 
+		       1, 1.1*getSupportElement(0)->GetAxis(1)->GetXmin(), 1.1*getSupportElement(0)->GetAxis(1)->GetXmax());
     h->SetXTitle("x [cm]");
     h->SetYTitle("y [cm]");
     h->Draw();
@@ -571,22 +571,22 @@ void Plane::DrawPlane(Option_t *opt)
     supportExt -> Draw("same");
     supportInt -> Draw("same");
 
-    for (Int_t iEl=0; iEl<GetNActiveElements(); iEl++) {
-      if (IsFront(GetActiveElement(iEl))) continue;
-      auto *pave = new TPave(GetActiveElement(iEl)->GetAxis(0)->GetXmin(), 
-			      GetActiveElement(iEl)->GetAxis(1)->GetXmin(), 
-			      GetActiveElement(iEl)->GetAxis(0)->GetXmax(), 
-			      GetActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
+    for (Int_t iEl=0; iEl<getNActiveElements(); iEl++) {
+      if (isFront(getActiveElement(iEl))) continue;
+      auto *pave = new TPave(getActiveElement(iEl)->GetAxis(0)->GetXmin(), 
+			      getActiveElement(iEl)->GetAxis(1)->GetXmin(), 
+			      getActiveElement(iEl)->GetAxis(0)->GetXmax(), 
+			      getActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
       pave -> SetFillColor(kGreen);
       pave -> Draw("same");
     }
 
-    for (Int_t iEl=0; iEl<GetNReadoutElements(); iEl++) {
-      if (IsFront(GetReadoutElement(iEl))) continue;
-      auto *pave = new TPave(GetReadoutElement(iEl)->GetAxis(0)->GetXmin(), 
-			      GetReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
-			      GetReadoutElement(iEl)->GetAxis(0)->GetXmax(), 
-			      GetReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
+    for (Int_t iEl=0; iEl<getNReadoutElements(); iEl++) {
+      if (isFront(getReadoutElement(iEl))) continue;
+      auto *pave = new TPave(getReadoutElement(iEl)->GetAxis(0)->GetXmin(), 
+			      getReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
+			      getReadoutElement(iEl)->GetAxis(0)->GetXmax(), 
+			      getReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
       pave -> SetFillColor(kRed);
       pave -> Draw("same");
     }
@@ -601,8 +601,8 @@ void Plane::DrawPlane(Option_t *opt)
     cnv->Draw();
 
     auto *h = new TH2D("tmp", GetName(), 
-		       1, 1.1*GetSupportElement(0)->GetAxis(0)->GetXmin(), 1.1*GetSupportElement(0)->GetAxis(0)->GetXmax(), 
-		       1, 1.1*GetSupportElement(0)->GetAxis(1)->GetXmin(), 1.1*GetSupportElement(0)->GetAxis(1)->GetXmax());
+		       1, 1.1*getSupportElement(0)->GetAxis(0)->GetXmin(), 1.1*getSupportElement(0)->GetAxis(0)->GetXmax(), 
+		       1, 1.1*getSupportElement(0)->GetAxis(1)->GetXmin(), 1.1*getSupportElement(0)->GetAxis(1)->GetXmax());
     h->SetXTitle("x [cm]");
     h->SetYTitle("y [cm]");
     h->Draw();
@@ -613,39 +613,39 @@ void Plane::DrawPlane(Option_t *opt)
     supportExt -> Draw("same");
     supportInt -> Draw("same");
 
-    for (Int_t iEl=0; iEl<GetNActiveElements(); iEl++) {
-      if (IsFront(GetActiveElement(iEl)) && GetActiveElement(iEl)->GetAxis(0)->GetXmin()<0.) {
-	auto *pave = new TPave(GetActiveElement(iEl)->GetAxis(0)->GetXmin(), 
-				GetActiveElement(iEl)->GetAxis(1)->GetXmin(), 
-				TMath::Min(GetActiveElement(iEl)->GetAxis(0)->GetXmax(), 0.),
-				GetActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
+    for (Int_t iEl=0; iEl<getNActiveElements(); iEl++) {
+      if (isFront(getActiveElement(iEl)) && getActiveElement(iEl)->GetAxis(0)->GetXmin()<0.) {
+	auto *pave = new TPave(getActiveElement(iEl)->GetAxis(0)->GetXmin(), 
+				getActiveElement(iEl)->GetAxis(1)->GetXmin(), 
+				TMath::Min(getActiveElement(iEl)->GetAxis(0)->GetXmax(), 0.),
+				getActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
 	pave -> SetFillColor(kGreen);
 	pave -> Draw("same");
       }
-      else if (!IsFront(GetActiveElement(iEl)) && GetActiveElement(iEl)->GetAxis(0)->GetXmax()>0.) {
-	auto *pave = new TPave(TMath::Max(GetActiveElement(iEl)->GetAxis(0)->GetXmin(), 0.), 
-				GetActiveElement(iEl)->GetAxis(1)->GetXmin(), 
-				GetActiveElement(iEl)->GetAxis(0)->GetXmax(), 
-				GetActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
+      else if (!isFront(getActiveElement(iEl)) && getActiveElement(iEl)->GetAxis(0)->GetXmax()>0.) {
+	auto *pave = new TPave(TMath::Max(getActiveElement(iEl)->GetAxis(0)->GetXmin(), 0.), 
+				getActiveElement(iEl)->GetAxis(1)->GetXmin(), 
+				getActiveElement(iEl)->GetAxis(0)->GetXmax(), 
+				getActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
 	pave -> SetFillColor(kGreen);
 	pave -> Draw("same");
       }
     }
     
-    for (Int_t iEl=0; iEl<GetNReadoutElements(); iEl++) {
-      if (IsFront(GetReadoutElement(iEl)) && GetReadoutElement(iEl)->GetAxis(0)->GetXmin()<0.) {
-	auto *pave = new TPave(GetReadoutElement(iEl)->GetAxis(0)->GetXmin(), 
-				GetReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
-				TMath::Min(GetReadoutElement(iEl)->GetAxis(0)->GetXmax(), 0.), 
-				GetReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
+    for (Int_t iEl=0; iEl<getNReadoutElements(); iEl++) {
+      if (isFront(getReadoutElement(iEl)) && getReadoutElement(iEl)->GetAxis(0)->GetXmin()<0.) {
+	auto *pave = new TPave(getReadoutElement(iEl)->GetAxis(0)->GetXmin(), 
+				getReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
+				TMath::Min(getReadoutElement(iEl)->GetAxis(0)->GetXmax(), 0.), 
+				getReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
 	pave -> SetFillColor(kRed);
 	pave -> Draw("same");
       }
-      else if (!IsFront(GetReadoutElement(iEl)) && GetReadoutElement(iEl)->GetAxis(0)->GetXmax()>0.) {
-	auto *pave = new TPave(TMath::Max(GetReadoutElement(iEl)->GetAxis(0)->GetXmin(), 0.),  
-				GetReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
-				GetReadoutElement(iEl)->GetAxis(0)->GetXmax(), 
-				GetReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
+      else if (!isFront(getReadoutElement(iEl)) && getReadoutElement(iEl)->GetAxis(0)->GetXmax()>0.) {
+	auto *pave = new TPave(TMath::Max(getReadoutElement(iEl)->GetAxis(0)->GetXmin(), 0.),  
+				getReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
+				getReadoutElement(iEl)->GetAxis(0)->GetXmax(), 
+				getReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
 	pave -> SetFillColor(kRed);
 	pave -> Draw("same");
       }
@@ -662,15 +662,15 @@ void Plane::DrawPlane(Option_t *opt)
 
     auto *h = new TH2D("tmp", GetName(), 
 		       1, mZCenter-0.5, mZCenter+0.5, 
-		       1, 1.1*GetSupportElement(0)->GetAxis(1)->GetXmin(), 1.1*GetSupportElement(0)->GetAxis(1)->GetXmax());
+		       1, 1.1*getSupportElement(0)->GetAxis(1)->GetXmin(), 1.1*getSupportElement(0)->GetAxis(1)->GetXmax());
     h->SetXTitle("z [cm]");
     h->SetYTitle("y [cm]");
     h->Draw();
 
-    auto *supportExt = new TPave(GetSupportElement(0)->GetAxis(2)->GetXmin(), -mRMaxSupport, 
-				  GetSupportElement(0)->GetAxis(2)->GetXmax(),  mRMaxSupport);
-    auto *supportInt = new TPave(GetSupportElement(0)->GetAxis(2)->GetXmin(), -mRMinSupport, 
-				  GetSupportElement(0)->GetAxis(2)->GetXmax(),  mRMinSupport);
+    auto *supportExt = new TPave(getSupportElement(0)->GetAxis(2)->GetXmin(), -mRMaxSupport, 
+				  getSupportElement(0)->GetAxis(2)->GetXmax(),  mRMaxSupport);
+    auto *supportInt = new TPave(getSupportElement(0)->GetAxis(2)->GetXmin(), -mRMinSupport, 
+				  getSupportElement(0)->GetAxis(2)->GetXmax(),  mRMinSupport);
     supportExt -> SetFillColor(kCyan-10);
     supportInt -> SetFillColor(kCyan-10);
     supportExt -> SetBorderSize(1);
@@ -678,41 +678,41 @@ void Plane::DrawPlane(Option_t *opt)
     supportExt -> Draw("same");
     supportInt -> Draw("same");
 
-    for (Int_t iEl=0; iEl<GetNActiveElements(); iEl++) {
+    for (Int_t iEl=0; iEl<getNActiveElements(); iEl++) {
       TPave * pave = nullptr;
-      if (IsFront(GetActiveElement(iEl))) {
-	pave = new TPave(GetActiveElement(iEl)->GetAxis(2)->GetXmax() - 
-			 5*(GetActiveElement(iEl)->GetAxis(2)->GetXmax()-GetActiveElement(iEl)->GetAxis(2)->GetXmin()), 
-			 GetActiveElement(iEl)->GetAxis(1)->GetXmin(), 
-			 GetActiveElement(iEl)->GetAxis(2)->GetXmax(), 
-			 GetActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
+      if (isFront(getActiveElement(iEl))) {
+	pave = new TPave(getActiveElement(iEl)->GetAxis(2)->GetXmax() - 
+			 5*(getActiveElement(iEl)->GetAxis(2)->GetXmax()-getActiveElement(iEl)->GetAxis(2)->GetXmin()), 
+			 getActiveElement(iEl)->GetAxis(1)->GetXmin(), 
+			 getActiveElement(iEl)->GetAxis(2)->GetXmax(), 
+			 getActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
       }
       else {
-	pave = new TPave(GetActiveElement(iEl)->GetAxis(2)->GetXmin(), 
-			 GetActiveElement(iEl)->GetAxis(1)->GetXmin(), 
-			 GetActiveElement(iEl)->GetAxis(2)->GetXmin() + 
-			 5*(GetActiveElement(iEl)->GetAxis(2)->GetXmax()-GetActiveElement(iEl)->GetAxis(2)->GetXmin()), 
-			 GetActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
+	pave = new TPave(getActiveElement(iEl)->GetAxis(2)->GetXmin(), 
+			 getActiveElement(iEl)->GetAxis(1)->GetXmin(), 
+			 getActiveElement(iEl)->GetAxis(2)->GetXmin() + 
+			 5*(getActiveElement(iEl)->GetAxis(2)->GetXmax()-getActiveElement(iEl)->GetAxis(2)->GetXmin()), 
+			 getActiveElement(iEl)->GetAxis(1)->GetXmax(), 1);
       }	
       pave -> SetFillColor(kGreen);
       pave -> Draw("same");
     }
     
-    for (Int_t iEl=0; iEl<GetNReadoutElements(); iEl++) {
+    for (Int_t iEl=0; iEl<getNReadoutElements(); iEl++) {
       TPave *pave = nullptr;
-      if (IsFront(GetReadoutElement(iEl))) {
-	pave = new TPave(GetReadoutElement(iEl)->GetAxis(2)->GetXmax() - 
-			 5*(GetReadoutElement(iEl)->GetAxis(2)->GetXmax()-GetReadoutElement(iEl)->GetAxis(2)->GetXmin()), 
-			 GetReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
-			 GetReadoutElement(iEl)->GetAxis(2)->GetXmax(), 
-			 GetReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
+      if (isFront(getReadoutElement(iEl))) {
+	pave = new TPave(getReadoutElement(iEl)->GetAxis(2)->GetXmax() - 
+			 5*(getReadoutElement(iEl)->GetAxis(2)->GetXmax()-getReadoutElement(iEl)->GetAxis(2)->GetXmin()), 
+			 getReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
+			 getReadoutElement(iEl)->GetAxis(2)->GetXmax(), 
+			 getReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
       }
       else {
-	pave = new TPave(GetReadoutElement(iEl)->GetAxis(2)->GetXmin(), 
-			 GetReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
-			 GetReadoutElement(iEl)->GetAxis(2)->GetXmin() + 
-			 5*(GetReadoutElement(iEl)->GetAxis(2)->GetXmax()-GetReadoutElement(iEl)->GetAxis(2)->GetXmin()), 
-			 GetReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
+	pave = new TPave(getReadoutElement(iEl)->GetAxis(2)->GetXmin(), 
+			 getReadoutElement(iEl)->GetAxis(1)->GetXmin(), 
+			 getReadoutElement(iEl)->GetAxis(2)->GetXmin() + 
+			 5*(getReadoutElement(iEl)->GetAxis(2)->GetXmax()-getReadoutElement(iEl)->GetAxis(2)->GetXmin()), 
+			 getReadoutElement(iEl)->GetAxis(1)->GetXmax(), 1);
       }	
       pave -> SetFillColor(kRed);
       pave -> Draw("same");
@@ -723,23 +723,23 @@ void Plane::DrawPlane(Option_t *opt)
 }
 
 //_____________________________________________________________________________
-Int_t Plane::GetNumberOfChips(Option_t *opt) 
+Int_t Plane::getNumberOfChips(Option_t *opt) 
 {
 
   Int_t nChips = 0;
 
   if (!strcmp(opt, "front")) {
-    for (Int_t iEl=0; iEl<GetNActiveElements(); iEl++) {
-      if (!IsFront(GetActiveElement(iEl))) continue;
-      Double_t length = GetActiveElement(iEl)->GetAxis(0)->GetXmax() - GetActiveElement(iEl)->GetAxis(0)->GetXmin();
+    for (Int_t iEl=0; iEl<getNActiveElements(); iEl++) {
+      if (!isFront(getActiveElement(iEl))) continue;
+      Double_t length = getActiveElement(iEl)->GetAxis(0)->GetXmax() - getActiveElement(iEl)->GetAxis(0)->GetXmin();
       nChips += Int_t (length/Constants::sWidthChip) + 1;
     }
   }
 
   else if (!strcmp(opt, "back")) {
-    for (Int_t iEl=0; iEl<GetNActiveElements(); iEl++) {
-      if (IsFront(GetActiveElement(iEl))) continue;
-      Double_t length = GetActiveElement(iEl)->GetAxis(0)->GetXmax() - GetActiveElement(iEl)->GetAxis(0)->GetXmin();
+    for (Int_t iEl=0; iEl<getNActiveElements(); iEl++) {
+      if (isFront(getActiveElement(iEl))) continue;
+      Double_t length = getActiveElement(iEl)->GetAxis(0)->GetXmax() - getActiveElement(iEl)->GetAxis(0)->GetXmin();
       nChips += Int_t (length/Constants::sWidthChip) + 1;
     }
   }

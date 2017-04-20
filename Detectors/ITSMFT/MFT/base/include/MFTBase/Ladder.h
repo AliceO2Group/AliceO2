@@ -24,8 +24,8 @@ public:
   
   ~Ladder() override;
   
-  TGeoVolume * CreateVolume();
-  void CreateSensors();
+  TGeoVolume * createVolume();
+  void createSensors();
 
 private:
 

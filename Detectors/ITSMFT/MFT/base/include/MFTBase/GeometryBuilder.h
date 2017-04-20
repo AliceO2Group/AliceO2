@@ -18,7 +18,7 @@ class GeometryBuilder : public TNamed {
   GeometryBuilder();
   ~GeometryBuilder() override;
 
-  void BuildGeometry();
+  void buildGeometry();
 
  private:
 

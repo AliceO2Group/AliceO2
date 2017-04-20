@@ -36,14 +36,14 @@ GeometryBuilder::~GeometryBuilder()
 
 //_____________________________________________________________________________
 /// \brief Build the MFT Geometry
-void GeometryBuilder::BuildGeometry()
+void GeometryBuilder::buildGeometry()
 {
 
-  Geometry *mftGeo = Geometry::Instance();
+  Geometry *mftGeo = Geometry::instance();
 
-  TGeoVolume *volMFT = new TGeoVolumeAssembly(GeometryTGeo::GetVolumeName());
+  TGeoVolume *volMFT = new TGeoVolumeAssembly(GeometryTGeo::getVolumeName());
 
-  LOG(INFO) << "GeometryBuilder::BuildGeometry volume name = " << GeometryTGeo::GetVolumeName() << FairLogger::endl;
+  LOG(INFO) << "GeometryBuilder::BuildGeometry volume name = " << GeometryTGeo::getVolumeName() << FairLogger::endl;
 
   TGeoVolume *vALIC = gGeoManager->GetVolume("cave");
   if (!vALIC) {
@@ -52,20 +52,20 @@ void GeometryBuilder::BuildGeometry()
 
   Info("BuildGeometry",Form("gGeoManager name is %s title is %s \n",gGeoManager->GetName(),gGeoManager->GetTitle()),0,0);
 
-  Segmentation *seg = mftGeo->GetSegmentation();
+  Segmentation *seg = mftGeo->getSegmentation();
   
   for (int iHalf = 0; iHalf < 2; iHalf++) {
-    HalfSegmentation *halfSeg = seg->GetHalf(iHalf);
+    HalfSegmentation *halfSeg = seg->getHalf(iHalf);
     auto *halfMFT = new HalfDetector(halfSeg);
-    volMFT->AddNode(halfMFT->GetVolume(),iHalf,halfSeg->GetTransformation());
+    volMFT->AddNode(halfMFT->getVolume(),iHalf,halfSeg->getTransformation());
     delete halfMFT;
   }
 
   /// \todo Add the service, Barrel, etc Those objects will probably be defined into the COMMON ITSMFT area.
   /*
   auto * halfCone = new HalfCone();
-  TGeoVolumeAssembly * halfCone1 = halfCone->CreateHalfCone(0);
-  TGeoVolumeAssembly * halfCone2 = halfCone->CreateHalfCone(1);
+  TGeoVolumeAssembly * halfCone1 = halfCone->createHalfCone(0);
+  TGeoVolumeAssembly * halfCone2 = halfCone->createHalfCone(1);
   volMFT->AddNode(halfCone1,1);
   volMFT->AddNode(halfCone2,1);
   */

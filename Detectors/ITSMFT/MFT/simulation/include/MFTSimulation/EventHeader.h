@@ -19,8 +19,8 @@ class EventHeader : public FairEventHeader
   EventHeader();
   ~EventHeader() override;
 
-  void  SetPartNo(Int_t ipart) { mPartNo = ipart;}
-  Int_t GetPartNo()            { return mPartNo; }
+  void  setPartNo(Int_t ipart) { mPartNo = ipart;}
+  Int_t getPartNo()            { return mPartNo; }
   
   template <class Archive>
     void serialize(Archive& ar, const unsigned int /*version*/)

@@ -42,9 +42,9 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID):
 
   LOG(DEBUG1) << "Start creating half-disk UniqueID = " << GetUniqueID() << FairLogger::endl;
   
-  Geometry * mftGeom = Geometry::Instance();
+  Geometry * mftGeom = Geometry::instance();
   
-  SetName(Form("%s_%d_%d",GeometryTGeo::GetHalfDiskName(),mftGeom->GetHalfMFTID(GetUniqueID()), mftGeom->GetHalfDiskID(GetUniqueID()) ));
+  SetName(Form("%s_%d_%d",GeometryTGeo::getHalfDiskName(),mftGeom->getHalfMFTID(GetUniqueID()), mftGeom->getHalfDiskID(GetUniqueID()) ));
   
   mLadders  = new TClonesArray("o2::MFT::LadderSegmentation");
   mLadders -> SetOwner(kTRUE);
@@ -90,14 +90,14 @@ void HalfDiskSegmentation::Clear(const Option_t* /*opt*/)
 /// Creates the Ladders on this half-Disk based on the information contained in the XML file
 
 //_____________________________________________________________________________
-void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
+void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
 {
   Int_t iladder;
   Int_t nsensor;
   Double_t pos[3];
   Double_t ang[3]={0.,0.,0.};
 
-  Geometry * mftGeom = Geometry::Instance();
+  Geometry * mftGeom = Geometry::instance();
     
   TString nodeName = xml->GetNodeName(node);
   if (!nodeName.CompareTo("ladder")) {
@@ -107,7 +107,7 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
       TString attrVal  = xml->GetAttrValue(attr);
       if(!attrName.CompareTo("iladder")) {
         iladder = attrVal.Atoi();
-        if (iladder >= GetNLadders() || iladder < 0) {
+        if (iladder >= getNLadders() || iladder < 0) {
           LOG(FATAL) << "Wrong ladder number : " << iladder << FairLogger::endl;
         }
       } else
@@ -139,24 +139,24 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
     
     Int_t plane = -1;
     Int_t ladderID=iladder;
-    if( iladder < GetNLadders()/2) {
+    if( iladder < getNLadders()/2) {
       plane = 0;
     } else {
       plane = 1;
-      //ladderID -= GetNLadders()/2;
+      //ladderID -= getNLadders()/2;
     }
     
     //if ((plane==0 && pos[2]<0.) || (plane==1 && pos[2]>0.))
     //AliFatal(Form(" Wrong Z Position or ladder number ???  :  z= %f ladder id = %d",pos[2],ladderID));
 
-    UInt_t ladderUniqueID = mftGeom->GetObjectID(Geometry::LadderType,mftGeom->GetHalfMFTID(GetUniqueID()),mftGeom->GetHalfDiskID(GetUniqueID()),ladderID);
+    UInt_t ladderUniqueID = mftGeom->getObjectID(Geometry::LadderType,mftGeom->getHalfMFTID(GetUniqueID()),mftGeom->getHalfDiskID(GetUniqueID()),ladderID);
 
     //UInt_t ladderUniqueID = (Geometry::LadderType<<13) +  (((GetUniqueID()>>9) & 0xF)<<9) + (plane<<8) + (ladderID<<3);
     
     auto * ladder = new LadderSegmentation(ladderUniqueID);
-    ladder->SetNSensors(nsensor);
-    ladder->SetPosition(pos);
-    ladder->SetRotationAngles(ang);
+    ladder->setNSensors(nsensor);
+    ladder->setPosition(pos);
+    ladder->setRotationAngles(ang);
 
     /// @todo : In the XML geometry file, the position of the top-left corner of the chip closest to the pipe is given in the Halfdisk coordinate system.
     /// Need to put in the XML file the position of the ladder coordinate center
@@ -166,23 +166,22 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
     pos[1] = -Geometry::sSensorTopOffset - Geometry::sSensorHeight;
     pos[2] = -Geometry::sFlexThickness - Geometry::sSensorThickness;
     Double_t master[3];
-    ladder->GetTransformation()->LocalToMaster(pos, master);
-    ladder->SetPosition(master);
-    //AliDebug(2,Form("Creating Ladder %2d with %d Sensors at the position (%.2f,%.2f,%.2f) with angles (%.2f,%.2f,%.2f) and ID = %d",iladder,nsensor,master[0],master[1],master[2],ang[0],ang[1],ang[2], ladderUniqueID ) );
+    ladder->getTransformation()->LocalToMaster(pos, master);
+    ladder->setPosition(master);
     
-    ladder->CreateSensors();
+    ladder->createSensors();
 
     new ((*mLadders)[iladder]) LadderSegmentation(*ladder);
     delete ladder;
 
-    //GetLadder(iladder)->Print();
+    //getLadder(iladder)->Print();
     
   }
   
   // display all child nodes
   XMLNodePointer_t child = xml->GetChild(node);
   while (child!=nullptr) {
-    CreateLadders(xml, child);
+    createLadders(xml, child);
     child = xml->GetNext(child);
   }
 
@@ -191,14 +190,14 @@ void HalfDiskSegmentation::CreateLadders(TXMLEngine* xml, XMLNodePointer_t node)
 /// Returns the number of sensors on the Half-Disk
 
 //_____________________________________________________________________________
-Int_t HalfDiskSegmentation::GetNChips() {
+Int_t HalfDiskSegmentation::getNChips() {
 
   Int_t nChips = 0;
 
   for (Int_t iLadder=0; iLadder<mLadders->GetEntries(); iLadder++) {
 
     LadderSegmentation *ladder = (LadderSegmentation*) mLadders->At(iLadder);
-    nChips += ladder -> GetNSensors();
+    nChips += ladder->getNSensors();
 
   }
 
@@ -210,13 +209,11 @@ Int_t HalfDiskSegmentation::GetNChips() {
 /// \param [in] opt "l" or "ladder" -> The ladder information will be printed out as well
 
 //_____________________________________________________________________________
-void HalfDiskSegmentation::Print(Option_t* opt){
+void HalfDiskSegmentation::print(Option_t* opt){
 
-  //AliInfo(Form("Half-Disk %s (Unique ID = %d)",GetName(),GetUniqueID()));
-  GetTransformation()->Print();
-  //AliInfo(Form("N Ladders = %d",mNLadders));
+  getTransformation()->Print();
   if(opt && (strstr(opt,"ladder")||strstr(opt,"l"))){
-    for (int i=0; i<GetNLadders(); i++)  GetLadder(i)->Print(opt);
-    
+    for (int i=0; i<getNLadders(); i++)  getLadder(i)->Print(opt);    
   }
+
 }

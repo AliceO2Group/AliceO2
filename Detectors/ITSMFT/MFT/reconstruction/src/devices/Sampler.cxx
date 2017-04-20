@@ -135,7 +135,7 @@ void Sampler::PreRun()
 {
   LOG(INFO) << "Sampler::PreRun >>>>> started!";
 
-  mAckListener = new boost::thread(boost::bind(&Sampler::ListenForAcks, this));
+  mAckListener = new boost::thread(boost::bind(&Sampler::listenForAcks, this));
 
 }
 
@@ -160,7 +160,7 @@ void Sampler::PostRun()
 }
 
 //_____________________________________________________________________________
-void Sampler::ListenForAcks()
+void Sampler::listenForAcks()
 {
 
   if (strcmp(mAckChannelName.data(),"") != 0) {
@@ -175,7 +175,7 @@ void Sampler::ListenForAcks()
       }
     }
 
-    LOG(INFO) << "Sampler::ListenForAcks >>>>> Acknowledged " << mMaxIndex << " messages.";
+    LOG(INFO) << "Sampler::listenForAcks >>>>> Acknowledged " << mMaxIndex << " messages.";
   }
 
 }
