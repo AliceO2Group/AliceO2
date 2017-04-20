@@ -1,6 +1,6 @@
 /// \file testTPCSyncPatternMonitor.cxx
 /// \brief This task tests the SyncPatternMonitor module of the TPC GBT frame reader
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \author Sebastian Klewin
 
 #define BOOST_TEST_MODULE Test TPC SyncPatternMonitor
 #define BOOST_TEST_MAIN
