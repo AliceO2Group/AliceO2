@@ -59,6 +59,7 @@ endforeach (_file RANGE 0 ${_length})
 
 set(TEST_SRCS
   test/testTPCSyncPatternMonitor.cxx
+  test/testTPCAdcClockMonitor.cxx
 )
 
 O2_GENERATE_TESTS(

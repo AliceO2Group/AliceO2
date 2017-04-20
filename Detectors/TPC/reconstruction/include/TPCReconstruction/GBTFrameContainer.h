@@ -181,7 +181,7 @@ class GBTFrameContainer {
     /// Overwrites the ADC clock in all stored frames with a valid sequence
     /// @param sampa ADC clock of this given SAMPA, -1 for all SAMPAs
     /// @param phase Defines which (of the 4 bits) has the rising edge
-    void overwriteAdcClock(int sampa, int phase);
+    void overwriteAdcClock(int sampa, unsigned short phase);
 
   private:
     /// Processes all frames, monitors ADC clock, searches for sync pattern,...

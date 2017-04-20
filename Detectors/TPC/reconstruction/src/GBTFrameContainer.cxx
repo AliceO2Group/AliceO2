@@ -454,13 +454,13 @@ int GBTFrameContainer::getNentries()
   return counter;
 }
 
-void GBTFrameContainer::overwriteAdcClock(int sampa, int phase)
+void GBTFrameContainer::overwriteAdcClock(int sampa, unsigned short phase)
 {
+  phase %= 17;
   unsigned clock = (0xFFFF0000 >> phase);
-  unsigned shift = 28;
 
   for (std::vector<GBTFrame>::iterator it = mGBTFrames.begin(); it != mGBTFrames.end(); ++it) {
-    it->setAdcClock(sampa,clock >> shift);
-    shift = (shift - 4) % 32;
+    it->setAdcClock(sampa, (clock>>28)&0xF);
+    clock = (clock << 4) | (clock >> 28);
   }
 }
