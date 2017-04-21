@@ -108,21 +108,15 @@ Bool_t Segmentation::hitToPixelID(Double_t xHit, Double_t yHit, Double_t zHit, I
   ChipSegmentation * chipSeg = ladderSeg->getSensor(sensor);
   if(!chipSeg) return kFALSE;
 
-  //AliDebug(2,Form(" ->  Global %f %f %f",master[0],master[1],master[2]));
   halfSeg->getTransformation()->MasterToLocal(master, local);
-  //AliDebug(2,Form(" ->  Half %f %f %f",local[0],local[1],local[2]));
   for (int i=0; i<3; i++) master[i] = local[i];
   diskSeg->getTransformation()->MasterToLocal(master, local);
-  //AliDebug(2,Form(" ->  Disk %f %f %f",local[0],local[1],local[2]));
   for (int i=0; i<3; i++) master[i] = local[i];
   ladderSeg->getTransformation()->MasterToLocal(master, local);
-  //AliDebug(2,Form(" ->  Ladder %f %f %f",local[0],local[1],local[2]));
   for (int i=0; i<3; i++) master[i] = local[i];
   chipSeg->getTransformation()->MasterToLocal(master, local);
-  //AliDebug(2,Form(" ->  Chip Pos %f %f %f",local[0],local[1],local[2]));
   
-  
-   return (chipSeg->hitToPixelID(local[0], local[1], xPixel, yPixel));
+  return (chipSeg->hitToPixelID(local[0], local[1], xPixel, yPixel));
 
 }
 

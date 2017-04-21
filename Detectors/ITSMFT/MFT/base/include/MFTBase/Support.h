@@ -31,11 +31,11 @@ public:
   TGeoVolumeAssembly* createPCB_04(Int_t half, Int_t disk);
   TGeoVolumeAssembly* createPCB_PSU(Int_t half, Int_t disk);
   TGeoVolume* createSupport(Int_t half, Int_t disk);
-  TGeoVolume * createDisc_Support_00 ();
-  TGeoVolume * createDisc_Support_01 ();
-  TGeoVolume * createDisc_Support_02 ();
-  TGeoVolume * createDisc_Support_03 ();
-  TGeoVolume * createDisc_Support_04 ();
+  TGeoVolume * createDisk_Support_00 ();
+  TGeoVolume * createDisk_Support_01 ();
+  TGeoVolume * createDisk_Support_02 ();
+  TGeoVolume * createDisk_Support_03 ();
+  TGeoVolume * createDisk_Support_04 ();
 
   TGeoCompositeShape * screw_array (Int_t N, Double_t gap = 1.7);
   TGeoCompositeShape * screw_C ();

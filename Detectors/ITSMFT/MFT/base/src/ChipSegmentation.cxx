@@ -64,16 +64,11 @@ Bool_t ChipSegmentation::hitToPixelID(Double_t xHit, Double_t yHit, Int_t &xPixe
   Double_t xHitLocal = xHit-Geometry::sSensorMargin;
   Double_t yHitLocal = yHit-(Geometry::sSensorMargin + Geometry::sSensorHeight - Geometry::sSensorActiveHeight);
 
-  //Double_t xHitLocal = (xHit-(fActiveOrigin[0]+fMisalignmentShift[0]))*fSignLength[0];
-  //Double_t yHitLocal = (yHit-(fActiveOrigin[1]+fMisalignmentShift[1]))*fSignLength[1];
-  //AliDebug(2,Form("Hit %f %f --> Pixel Pitch %f  %f ",xHitLocal,yHitLocal,Geometry::sXPixelPitch,Geometry::sYPixelPitch));
-
   if (xHitLocal<0. || xHitLocal>Geometry::sSensorActiveWidth) return kFALSE;
   if (yHitLocal<0. || yHitLocal>Geometry::sSensorActiveHeight) return kFALSE;
 
   xPixel = Int_t( xHitLocal / Geometry::sXPixelPitch );
   yPixel = Int_t( yHitLocal / Geometry::sYPixelPitch );
-  //AliDebug(1,Form("--> Hit in Pixel %d ; %d ",xPixel,yPixel));
 
   return kTRUE;
 
@@ -84,6 +79,6 @@ Bool_t ChipSegmentation::hitToPixelID(Double_t xHit, Double_t yHit, Int_t &xPixe
 //_____________________________________________________________________________
 void ChipSegmentation::print(Option_t* /*option*/){
   
-  //AliInfo(Form("Sensor %s (Unique ID = %d)",GetName(),GetUniqueID()));
   getTransformation()->Print();
+
 }
