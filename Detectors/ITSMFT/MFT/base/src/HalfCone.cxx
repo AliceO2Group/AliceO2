@@ -50,17 +50,20 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   //Dimensions
 
   //Lower Piece (6 holes)
-  Float_t Lower_x = 2.0;
+  //Float_t Lower_x = 2.0;  // to avoid overlap with disks, fm, largeur des barres horizontales
+  Float_t Lower_x = 1.6;
   Float_t Lower_y = 1.15;
   Float_t Lower_z = 10.7;
 
   //Middle Piece
-  Float_t Middle_x = 2.0;
+  //Float_t Middle_x = 2.0; // to avoid overlap with disks, fm
+  Float_t Middle_x = 1.6;
   Float_t Middle_y = 1.15+0.00001;
   Float_t Middle_z = 14.45;
 
   //Upper Piece (8 holes)
-  Float_t Upper_x = 2.0;
+  //Float_t Upper_x = 2.0; // to avoid overlap with disks, fm
+  Float_t Upper_x = 0.2;
   Float_t Upper_y = 1.15;
   Float_t Upper_z = 15.291;
 
@@ -506,7 +509,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
 
   Float_t PCB_Angle = 24.3838;
 
-  Float_t PCB_Central_Projection = 25.15;
+  //Float_t PCB_Central_Projection = 25.15;  // overlap issue, fm
+  Float_t PCB_Central_Projection = 24.00;
 
   Float_t PCB_Central_x = .8;
   Float_t PCB_Central_y = .5;
@@ -569,7 +573,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
     rTotal_y = 180.;
     rTotal_z = 90.;
     tTotal_x = 0.;
-    tTotal_y = -0.1;  // to be defined
+    //tTotal_y = -0.1;  // to be defined
+    tTotal_y = -0.5;  // to avoid overlap with disks, fm, vertical position of the total
     tTotal_z = -80.0;  // position still to be defined
     
   }
@@ -578,7 +583,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
     rTotal_y = 180.;
     rTotal_z = -90.;
     tTotal_x = 0.;
-    tTotal_y = 0.1;    // to be defined
+    //tTotal_y = 0.1;    // to be defined
+    tTotal_y = 0.5;    // to avoid overlap with disks, fm, vertical position of the total
     tTotal_z = -80.0;  // position still to be defined
 
   }
@@ -588,12 +594,12 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   auto *cTotal = new TGeoCombiTrans(*tTotal, *rTotal);  
 
   // overlap problem
-  //HalfConeVolume->AddNode(Half_0, 0,cTotal); // barres intérieures horizontales fm
-  //HalfConeVolume->AddNode(Half_1, 0,cTotal); // barres intérieures horizontales fm
+  HalfConeVolume->AddNode(Half_0, 0,cTotal); // barres intérieures horizontales fm
+  HalfConeVolume->AddNode(Half_1, 0,cTotal); // barres intérieures horizontales fm
   HalfConeVolume->AddNode(Half_2, 0,cTotal);
   HalfConeVolume->AddNode(Half_3, 0,cTotal);
-  HalfConeVolume->AddNode(Half_4, 0,cTotal);
-  //HalfConeVolume->AddNode(Half_5, 0,cTotal); // barre médiane fm
+  HalfConeVolume->AddNode(Half_4, 0,cTotal); // support milieu perpendiculaire
+  HalfConeVolume->AddNode(Half_5, 0,cTotal); // barre médiane
   
   return HalfConeVolume;
 

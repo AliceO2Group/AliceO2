@@ -154,8 +154,6 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
       attr = xml->GetNextAttr(attr);
     }
     
-    //AliDebug(1,Form("Creating Half-Disk %d with %d Ladders at the position (%.2f,%.2f,%.2f) with angles  (%.2f,%.2f,%.2f)",idisk,nladder,pos[0],pos[1],pos[2],ang[0],ang[1],ang[2]));
-    
     UInt_t diskUniqueID = mftGeom->getObjectID(Geometry::HalfDiskType,mftGeom->getHalfMFTID(GetUniqueID()),idisk );
     
     auto *halfDisk = new HalfDiskSegmentation(diskUniqueID);
@@ -237,7 +235,6 @@ void HalfSegmentation::findHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
     
     Geometry * mftGeom = Geometry::instance();
     if(isTop == mftGeom->getHalfMFTID(GetUniqueID())) {
-      //AliDebug(1,Form("Setting up %s Half-MFT  %d Disk(s) at the position (%.2f,%.2f,%.2f) with angles (%.2f,%.2f,%.2f)",(isTop?"Top":"Bottom"),ndisk,pos[0],pos[1],pos[2],ang[0],ang[1],ang[2]));
       setPosition(pos);
       setRotationAngles(ang);
       retnode = node;
