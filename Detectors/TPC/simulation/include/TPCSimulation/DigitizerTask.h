@@ -39,6 +39,10 @@ class DigitizerTask : public FairTask{
     /// \param debugsString String containing the debug flags
     ///        o PRFdebug - Debug output after application of the PRF
     void setDebugOutput(TString debugString);
+
+    /// Set the maximal number of written out time bins
+    /// \param nTimeBinsMax Maximal number of time bins to be written out
+    void setMaximalTimeBinWriteOut(int i) { mTimeBinMax = i; }
       
     /// Digitization
     /// \param option Option
@@ -56,6 +60,8 @@ class DigitizerTask : public FairTask{
     TClonesArray        *mDigitsArray;  ///< Array of the Digits, passed from the digitization
     
     std::string         mHitFileName;  ///< External hit file exported from AliRoot
+
+    int                 mTimeBinMax;   ///< Maximum time bin to be written out
 
   ClassDefOverride(DigitizerTask, 1);
 };
