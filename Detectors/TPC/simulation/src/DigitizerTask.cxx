@@ -28,6 +28,7 @@ DigitizerTask::DigitizerTask()
   , mPointsArray(nullptr)
   , mDigitsArray(nullptr)
   , mHitFileName()
+  , mTimeBinMax(1000000)
 {
   /// \todo get rid of new
   mDigitizer = new Digitizer;
@@ -88,18 +89,14 @@ void DigitizerTask::Exec(Option_t *option)
   mDigitsArray->Delete();
   mDigitContainer = mDigitizer->Process(mPointsArray);
   mDigitContainer->fillOutputContainer(mDigitsArray, eventTime);
-  mgr->Fill();
-//  std::vector<CommonMode> commonModeContainer(0);
-//  digits->processCommonMode(commonModeContainer);
-//  digits->fillOutputContainer(mDigitsArray, commonModeContainer);
 }
 
 void DigitizerTask::FinishTask()
 {
   FairRootManager *mgr = FairRootManager::Instance();
+  mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   mDigitsArray->Delete();
-  mDigitContainer->fillOutputContainer(mDigitsArray, 1000000);
-  mgr->Fill();
+  mDigitContainer->fillOutputContainer(mDigitsArray, mTimeBinMax);
 }
 
 void DigitizerTask::fillHitArrayFromFile()

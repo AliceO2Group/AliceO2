@@ -60,7 +60,6 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
 
         timer.Start();
         run->Run();
-        run->TerminateRun();
 
         std::cout << std::endl << std::endl;
 
