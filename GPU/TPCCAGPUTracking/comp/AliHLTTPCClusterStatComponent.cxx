@@ -777,7 +777,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData &evtDa
 	fAssigned += nClusterTracks;
 	HLTImportant("Total %d Assigned %d (%2.0f\%) SplitPad %d (%2.0f\%) SplitTime %d (%2.0f\%) SplitPadTime %d (%2.0f\%) SplitPadOrTime %d (%2.0f\%) Edge %d (%2.0f\%)", fTotal,
 		fAssigned, (float) fAssigned / (float) total * 100.f,
-		fSplitPad, (float) fSplitTime / (float) total * 100.f,
+		fSplitPad, (float) fSplitPad / (float) total * 100.f,
 		fSplitTime, (float) fSplitTime / (float) total * 100.f,
 		fSplitPadTime, (float) fSplitPadTime / (float) total * 100.f,
 		fSplitPadOrTime, (float) fSplitPadOrTime / (float) total * 100.f,
