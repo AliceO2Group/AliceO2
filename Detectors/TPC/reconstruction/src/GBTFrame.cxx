@@ -189,10 +189,10 @@ void GBTFrame::setAdcClock(int sampa, int clock)
 std::ostream& GBTFrame::Print(std::ostream& output) const
 {
   output << "0x" << std::hex 
-    << std::setfill('0') << std::setw(8) << mWords[3]
-    << std::setfill('0') << std::setw(8) << mWords[2]
-    << std::setfill('0') << std::setw(8) << mWords[1]
-    << std::setfill('0') << std::setw(8) << mWords[0]
+    << std::setfill('0') << std::right << std::setw(8) << mWords[3]
+    << std::setfill('0') << std::right << std::setw(8) << mWords[2]
+    << std::setfill('0') << std::right << std::setw(8) << mWords[1]
+    << std::setfill('0') << std::right << std::setw(8) << mWords[0]
     << std::dec;
   return output;
 }
