@@ -115,7 +115,7 @@ class GBTFrameContainer {
     /// Add all frames from file to conatiner
     /// @param fileName Path to file
     /// @param frames Frames to read from file
-    void addGBTFramesFromBinaryFile(std::string fileName, int frames = -1);
+    void addGBTFramesFromBinaryFile(std::string fileName, int frames = -1, std::string type = "grorc");
 
 //    /// Fill output TClonesArray
 //    /// @param output Output container
@@ -197,8 +197,7 @@ class GBTFrameContainer {
 
     /// Searches for the synchronization pattern
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
-    /// @return Returns the old Position of low bits of SAMPA 0
-    int searchSyncPattern(std::vector<GBTFrame>::iterator iFrame);
+    void searchSyncPattern(std::vector<GBTFrame>::iterator iFrame);
 
     // Compiles the ADC values
     /// @param iFrame GBT Frame to be processed (ordering is important!!)
@@ -213,7 +212,7 @@ class GBTFrameContainer {
     std::vector<GBTFrame> mGBTFrames;                ///< GBT Frames container
     std::array<AdcClockMonitor,3> mAdcClock;        ///< ADC clock monitor for the 3 SAMPAs
     std::array<SyncPatternMonitor,5> mSyncPattern;  ///< Synchronization pattern monitor for the 5 half SAMPAs
-    std::array<short,5> mPositionForHalfSampa;      ///< Start position of data for all 5 half SAMPAs
+    std::array<short,10> mPositionForHalfSampa;      ///< Start position of data for all 5 half SAMPAs
     std::array<std::queue<short>*,5> mAdcValues;    ///< Vector to buffer the decoded ADC values, one deque per half SAMPA 
 
     bool mEnableAdcClockWarning;                    ///< enables the ADC clock warnings

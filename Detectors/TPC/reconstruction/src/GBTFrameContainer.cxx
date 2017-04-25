@@ -29,7 +29,7 @@ GBTFrameContainer::GBTFrameContainer(int size, int cru, int link)
       SyncPatternMonitor(1,0),
       SyncPatternMonitor(1,1),
       SyncPatternMonitor(2,0)})
-  , mPositionForHalfSampa({-1,-1,-1,-1,-1})
+  , mPositionForHalfSampa({-1,-1,-1,-1,-1,-1,-1,-1,-1,-1})
   , mGBTFrames()
   , mGBTFramesAnalyzed(0)
   , mCRU(cru)
@@ -88,7 +88,7 @@ void GBTFrameContainer::addGBTFramesFromFile(std::string fileName)
   }
 }
 
-void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, int frames)
+void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, int frames, std::string type)
 {
   std::cout << "Reading from file " << fileName << std::endl;
   std::ifstream file(fileName);
@@ -100,13 +100,20 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, int fra
 
   uint32_t rawData;
   uint32_t rawMarker;
-  uint32_t words[3];
-  while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
-    file.read((char*)&rawData,sizeof(rawData));
-    rawMarker = rawData & 0xFFFF0000;
-    if ((rawMarker == 0xDEF10000) || (rawMarker == 0xDEF40000)) {
-      file.read((char*)&words,3*sizeof(words[0]));
-      addGBTFrame(rawData,words[0],words[1],words[2]); 
+  uint32_t words[4];
+  if (type == "grorc") {
+    while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
+      file.read((char*)&rawData,sizeof(rawData));
+      rawMarker = rawData & 0xFFFF0000;
+      if ((rawMarker == 0xDEF10000) || (rawMarker == 0xDEF40000)) {
+        file.read((char*)&words,3*sizeof(words[0]));
+        addGBTFrame(rawData,words[0],words[1],words[2]); 
+      }
+    }
+  } else if (type == "trorc") {
+    while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
+      file.read((char*)&words,4*sizeof(words[0]));
+      addGBTFrame(words[0],words[1],words[2],words[3]); 
     }
   }
 }
@@ -156,8 +163,7 @@ void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
 
   if (mEnableAdcClockWarning) checkAdcClock(iFrame);
 
-  int iLastPosition = searchSyncPattern(iFrame);
-  if (iLastPosition == -1) return;
+  searchSyncPattern(iFrame);
 
   if (mEnableCompileAdcValues) compileAdcValues(iFrame);
 }
@@ -169,6 +175,8 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
   mAdcMutex.lock();
   for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
     if (mPositionForHalfSampa[iHalfSampa] == -1) continue;
+    if (mPositionForHalfSampa[iHalfSampa+5] == -1) continue;
+
     switch(mPositionForHalfSampa[iHalfSampa]) {
       case 0:
         value1 = 
@@ -230,9 +238,11 @@ void GBTFrameContainer::checkAdcClock(std::vector<GBTFrame>::iterator iFrame)
     LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << std::distance(mGBTFrames.begin(),iFrame) << FairLogger::endl;
 }
 
-int GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
+void GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
 {
-  int iOldPosition = mPositionForHalfSampa[0];
+  for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
+    mPositionForHalfSampa[iHalfSampa+5] =  mPositionForHalfSampa[iHalfSampa];
+  }
 
   mPositionForHalfSampa[0] = mSyncPattern[0].addSequence(
       iFrame->getHalfWord(0,0,0),
@@ -280,8 +290,6 @@ int GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
         << ", SAMPA1 = " << mPositionForHalfSampa[2] << ", SAMPA2 = " << mPositionForHalfSampa[4] << FairLogger::endl;
     }
   }
-
-  return iOldPosition;
 }
 
 bool GBTFrameContainer::getData(std::vector<DigitData>& container)
