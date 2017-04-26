@@ -57,10 +57,19 @@ WrapperDevice::WrapperDevice(int verbosity)
 WrapperDevice::~WrapperDevice()
 = default;
 
+constexpr const char* WrapperDevice::OptionKeys[];
+
 bpo::options_description WrapperDevice::GetOptionsDescription()
 {
   // assemble the options for the device class and component
   bpo::options_description od("WrapperDevice options");
+  od.add_options()
+    (OptionKeys[OptionKeyPollPeriod],
+     bpo::value<int>()->default_value(10),
+     "polling period")
+    ((std::string(OptionKeys[OptionKeyDryRun]) + ",n").c_str(),
+     bpo::value<bool>()->zero_tokens()->default_value(false),
+     "skip component processing");
   od.add(Component::GetOptionsDescription());
   return od;
 }
@@ -84,13 +93,13 @@ void WrapperDevice::InitTask()
   // option_description entires, but options_description does not
   // provide such a functionality
   vector<std::string> argstrings;
-  bpo::options_description descriptions = GetOptionsDescription();
+  bpo::options_description componentOptionDescriptions = Component::GetOptionsDescription();
   const auto * config = GetConfig();
   if (config) {
     const auto varmap = config->GetVarMap();
     for (const auto varit : varmap) {
       // check if this key belongs to the options of the device
-      const auto * description = descriptions.find_nothrow(varit.first, false);
+      const auto * description = componentOptionDescriptions.find_nothrow(varit.first, false);
       if (description && varmap.count(varit.first) && !varit.second.defaulted()) {
         argstrings.push_back("--");
         argstrings.back() += varit.first;
@@ -109,6 +118,8 @@ void WrapperDevice::InitTask()
         }
       }
     }
+    mPollingPeriod = config->GetValue<int>(OptionKeys[OptionKeyPollPeriod]);
+    mSkipProcessing = config->GetValue<bool>(OptionKeys[OptionKeyDryRun]);
   }
 
   // TODO: probably one can get rid of this option, the instance/device
