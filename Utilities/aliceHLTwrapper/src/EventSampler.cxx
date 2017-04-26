@@ -1,8 +1,8 @@
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or	     *
-//* (at your option) any later version.					     *
+//* the Free Software Foundation, either version 3 of the License, or        *
+//* (at your option) any later version.                                      *
 //*                                                                          *
 //* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
 //*                                                                          *
@@ -19,6 +19,7 @@
 #include <FairMQLogger.h>
 #include <FairMQPoller.h>
 #include "aliceHLTwrapper/AliHLTDataTypes.h"
+#include <options/FairMQProgOptions.h>
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
@@ -44,22 +45,55 @@ const std::chrono::time_point<system_clock, PeriodDay> dayref=std::chrono::time_
 using namespace ALICE::HLT;
 
 EventSampler::EventSampler(int verbosity)
-  : mEventPeriod(1000)
-  , mInitialDelay(1000)
+  : mEventPeriod(-1)
+  , mInitialDelay(-1)
   , mNEvents(-1)
-  , mPollingTimeout(10)
+  , mPollingTimeout(-1)
   , mSkipProcessing(0)
   , mVerbosity(verbosity)
-  , mOutputFile()
+  , mLatencyLogFileName()
 {
 }
 
 EventSampler::~EventSampler()
 = default;
 
-void EventSampler::Init()
+constexpr const char* EventSampler::OptionKeys[];
+
+bpo::options_description EventSampler::GetOptionsDescription()
+{
+  // assemble the options for the device class and component
+  bpo::options_description od("EventSampler options");
+  od.add_options()
+    (OptionKeys[OptionKeyEventPeriod],
+     bpo::value<int>()->default_value(1000),
+     "event period in us")
+    (OptionKeys[OptionKeyInitialDelay],
+     bpo::value<int>()->default_value(1000),
+     "initial delay before the first event in ms")
+    (OptionKeys[OptionKeyPollTimeout],
+     bpo::value<int>()->default_value(10),
+     "timeout for the input socket poller in ms")
+    ((std::string(OptionKeys[OptionKeyLatencyLog]) + ",l").c_str(),
+     bpo::value<std::string>()->default_value(""),
+     "output file name for logging of latency")
+    ((std::string(OptionKeys[OptionKeyDryRun]) + ",n").c_str(),
+     bpo::value<bool>()->zero_tokens()->default_value(false),
+     "skip component processing");
+  return od;
+}
+
+void EventSampler::InitTask()
 {
   /// inherited from FairMQDevice
+  const auto * config = GetConfig();
+  if (config) {
+    mEventPeriod = config->GetValue<int>(OptionKeys[OptionKeyEventPeriod]);
+    mInitialDelay =  config->GetValue<int>(OptionKeys[OptionKeyInitialDelay]);
+    mPollingTimeout = config->GetValue<int>(OptionKeys[OptionKeyPollTimeout]);
+    mSkipProcessing = config->GetValue<bool>(OptionKeys[OptionKeyDryRun]);
+    mLatencyLogFileName = config->GetValue<std::string>(OptionKeys[OptionKeyLatencyLog]);
+  }
   mNEvents=0;
 }
 
@@ -86,7 +120,7 @@ void EventSampler::Run()
   vector<int> inputMessageCntPerSocket(numInputs, 0);
   int nReadCycles=0;
 
-  std::ofstream latencyLog(mOutputFile);
+  std::ofstream latencyLog(mLatencyLogFileName);
 
   while (CheckCurrentState(RUNNING)) {
 
@@ -166,63 +200,6 @@ void EventSampler::Pause()
 
   // nothing to do
   FairMQDevice::Pause();
-}
-
-void EventSampler::SetProperty(const int key, const string& value)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  switch (key) {
-  case OutputFile:
-    mOutputFile = value;
-    return;
-  }
-  return FairMQDevice::SetProperty(key, value);
-}
-
-string EventSampler::GetProperty(const int key, const string& default_)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  return FairMQDevice::GetProperty(key, default_);
-}
-
-void EventSampler::SetProperty(const int key, const int value)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  switch (key) {
-  case EventPeriod:
-    mEventPeriod = value;
-    return;
-  case InitialDelay:
-    mInitialDelay = value;
-    return;
-  case PollingTimeout:
-    mPollingTimeout = value;
-    return;
-  case SkipProcessing:
-    mSkipProcessing = value;
-    return;
-  }
-  return FairMQDevice::SetProperty(key, value);
-}
-
-int EventSampler::GetProperty(const int key, const int default_)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  switch (key) {
-  case EventPeriod:
-    return mEventPeriod;
-  case InitialDelay:
-    return mInitialDelay;
-  case PollingTimeout:
-    return mPollingTimeout;
-  case SkipProcessing:
-    return mSkipProcessing;
-  }
-  return FairMQDevice::GetProperty(key, default_);
 }
 
 void EventSampler::samplerLoop()

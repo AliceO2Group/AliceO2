@@ -5,8 +5,8 @@
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or	     *
-//* (at your option) any later version.					     *
+//* the Free Software Foundation, either version 3 of the License, or        *
+//* (at your option) any later version.                                      *
 //*                                                                          *
 //* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
 //*                                                                          *
@@ -21,6 +21,9 @@
 
 #include <FairMQDevice.h>
 #include <vector>
+#include <boost/program_options.hpp>
+
+namespace bpo = boost::program_options;
 
 namespace ALICE {
 namespace HLT {
@@ -38,27 +41,36 @@ public:
   /// destructor
   ~EventSampler() override;
 
+  /// get description of options
+  static bpo::options_description GetOptionsDescription();
+
+  enum /*class*/ OptionKeyIds /*: int*/ {
+    OptionKeyEventPeriod = 0,
+    OptionKeyInitialDelay,
+    OptionKeyPollTimeout,
+    OptionKeyDryRun,
+    OptionKeyLatencyLog,
+    OptionKeyLast
+  };
+
+  constexpr static const char* OptionKeys[] = {
+    "eventperiod",
+    "initialdelay",
+    "polltimeout",
+    "dry-run",
+    "latency-log",
+    nullptr
+  };
+
   /////////////////////////////////////////////////////////////////
   // the FairMQDevice interface
 
   /// inherited from FairMQDevice
-  void Init() override;
+  void InitTask() override;
   /// inherited from FairMQDevice
   void Run() override;
   /// inherited from FairMQDevice
   void Pause() override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  void SetProperty(const int key, const std::string& value) override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  std::string GetProperty(const int key, const std::string& default_ = "") override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  void SetProperty(const int key, const int value) override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  int GetProperty(const int key, const int default_ = 0) override;
 
   /// sampler loop started in a separate thread
   void samplerLoop();
@@ -81,7 +93,7 @@ private:
   int mPollingTimeout;       // period of polling on input sockets in ms
   int mSkipProcessing;       // skip component processing
   int mVerbosity;            // verbosity level
-  std::string mOutputFile;   // output file for logging of latency
+  std::string mLatencyLogFileName;   // output file for logging of latency
 };
 
 } // namespace hlt
