@@ -57,6 +57,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 
   static std::array<float, mNShapedPoints> signalArray;
 
+  size_t hitCounter=0;
   for(auto pointObject : *points) {
     Point *inputpoint = static_cast<Point *>(pointObject);
 
@@ -125,7 +126,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       SAMPAProcessing::getShapedSignal(ADCsignal, absoluteTime, signalArray);
       for(float i=0; i<mNShapedPoints; ++i) {
         const float time = absoluteTime + i * ZBINWIDTH;
-        mDigitContainer->addDigit(MCEventID, MCTrackID, digiPos.getCRU().number(), getTimeBinFromTime(time), row, pad, signalArray[i]);
+        mDigitContainer->addDigit(hitCounter, digiPos.getCRU().number(), getTimeBinFromTime(time), row, pad, signalArray[i]);
       }
 
       // }
@@ -133,6 +134,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
       /// end of loop over prf
     }
     /// end of loop over electrons
+    ++hitCounter;
   }
   /// end of loop over points
 

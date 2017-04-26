@@ -41,6 +41,10 @@ class DigitCRU{
     /// \return Size of the time bin container
     size_t getSize() const {return mTimeBins.size();}
 
+    /// Get the container
+    /// \return container
+    const std::deque<std::unique_ptr<DigitTime>>& getContainer() const { return mTimeBins; }
+
     /// Get the CRU ID
     /// \return CRU ID
     int getCRUID() const {return mCRU;}
@@ -52,7 +56,7 @@ class DigitCRU{
     /// \param row Pad row of digit
     /// \param pad Pad of digit
     /// \param charge Charge of the digit
-    void setDigit(int eventID, int trackID, int timeBin, int row, int pad, float charge);
+    void setDigit(size_t hitID, int timeBin, int row, int pad, float charge);
 
     /// Fill output TClonesArray
     /// \param output Output container

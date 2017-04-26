@@ -10,12 +10,12 @@
 
 using namespace o2::TPC;
 
-void DigitCRU::setDigit(int eventID, int trackID, int timeBin, int row, int pad, float charge)
+void DigitCRU::setDigit(size_t hitID, int timeBin, int row, int pad, float charge)
 {
   mEffectiveTimeBin = timeBin - mFirstTimeBin;
   if(mEffectiveTimeBin < 0.) {
     LOG(FATAL) << "TPC DigitCRU buffer misaligned ";
-    LOG(DEBUG) << "for Event " << eventID << " CRU " <<mCRU << " TimeBin " << timeBin << " First TimeBin " << mFirstTimeBin << " Row " << row << " Pad " << pad;
+    LOG(DEBUG) << "for hit " << hitID << " CRU " <<mCRU << " TimeBin " << timeBin << " First TimeBin " << mFirstTimeBin << " Row " << row << " Pad " << pad;
     LOG(FATAL) << FairLogger::endl;
     return;
   }
@@ -26,12 +26,12 @@ void DigitCRU::setDigit(int eventID, int trackID, int timeBin, int row, int pad,
   /// Check whether the container at this spot already contains an entry
   DigitTime *result = mTimeBins[mEffectiveTimeBin].get();
   if(result != nullptr) {
-    mTimeBins[mEffectiveTimeBin]->setDigit(eventID, trackID, mCRU, row, pad, charge);
+    mTimeBins[mEffectiveTimeBin]->setDigit(hitID, mCRU, row, pad, charge);
   }
   else {
     const Mapper& mapper = Mapper::instance();
     mTimeBins[mEffectiveTimeBin] = std::unique_ptr<DigitTime> (new DigitTime(timeBin, mapper.getPadRegionInfo(CRU(mCRU).region()).getNumberOfPadRows()));
-    mTimeBins[mEffectiveTimeBin]->setDigit(eventID, trackID, mCRU, row, pad, charge);
+    mTimeBins[mEffectiveTimeBin]->setDigit(hitID, mCRU, row, pad, charge);
   }
 }
 

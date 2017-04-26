@@ -36,6 +36,10 @@ class DigitTime{
     /// \return Size of the Row container
     size_t getSize() const {return mRows.size();}
 
+    /// Get the container
+    /// \return container
+    const std::vector<std::unique_ptr<DigitRow>>& getContainer() const { return mRows; }
+
     /// Get the number of entries in the container
     /// \return Number of entries in the Row container
     int getNentries() const;
@@ -55,7 +59,7 @@ class DigitTime{
     /// \param row Pad row of digit
     /// \param pad Pad of digit
     /// \param charge Charge of the digit
-    void setDigit(int eventID, int trackID, int cru, int row, int pad, float charge);
+    void setDigit(size_t hitID, int cru, int row, int pad, float charge);
 
     /// Fill output TClonesArray
     /// \param output Output container
