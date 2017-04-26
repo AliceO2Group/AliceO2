@@ -101,7 +101,7 @@ void WrapperDevice::InitTask()
       // check if this key belongs to the options of the device
       const auto * description = componentOptionDescriptions.find_nothrow(varit.first, false);
       if (description && varmap.count(varit.first) && !varit.second.defaulted()) {
-        argstrings.push_back("--");
+        argstrings.emplace_back("--");
         argstrings.back() += varit.first;
         // check the semantics of the value
         auto semantic = description->semantic();
