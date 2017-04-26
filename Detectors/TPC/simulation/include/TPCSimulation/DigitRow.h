@@ -36,6 +36,10 @@ class DigitRow{
     /// \return Size of the pad container
     size_t getSize() const {return mPads.size();}
 
+    /// Get the container
+    /// \return container
+    const std::vector<std::unique_ptr<DigitPad>>& getPadContainer() const { return mPads; }
+
     /// Get the number of entries in the container
     /// \return Number of entries in the pad container
     int getNentries() const;
@@ -45,9 +49,10 @@ class DigitRow{
     int getRow() const {return mRow;}
 
     /// Add digit to the pad container
+    /// \param hitID MC Hit ID
     /// \param pad Pad of the digit
     /// \param charge Charge of the digit
-    void setDigit(int eventID, int trackID, int pad, float charge);
+    void setDigit(size_t hitID, int pad, float charge);
 
     /// Fill output TClonesArray
     /// \param output Output container

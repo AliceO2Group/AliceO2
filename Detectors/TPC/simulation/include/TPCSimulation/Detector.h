@@ -7,6 +7,7 @@
 #include "TLorentzVector.h"  // for TLorentzVector
 #include "TClonesArray.h"
 #include "TString.h"
+#include "FairLink.h"
 
 #include "TPCSimulation/Point.h"
 
@@ -120,7 +121,8 @@ class Detector: public o2::Base::Detector {
     /** container for data points */
     TClonesArray*  mPointCollection;
 
-    TString mGeoFileName;                  /// Name of the file containing the TPC geometry
+    TString mGeoFileName;                  ///< Name of the file containing the TPC geometry
+    size_t mEventNr;                       //!< current event number
 
     Detector(const Detector&);
     Detector& operator=(const Detector&);
@@ -133,7 +135,9 @@ Point* Detector::addHit(float x, float y, float z, float time, float nElectrons,
 {
   TClonesArray& clref = *mPointCollection;
   Int_t size = clref.GetEntriesFast();
-  return new(clref[size]) Point(x, y, z, time, nElectrons, trackID, detID);
+  Point *point = new(clref[size]) Point(x, y, z, time, nElectrons, trackID, detID);
+  point->SetLink(FairLink(-1, mEventNr, FairRootManager::Instance()->GetBranchId("MCTrack"), trackID)); 
+  return point;
 }
 }
 }

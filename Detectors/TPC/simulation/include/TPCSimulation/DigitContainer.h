@@ -41,14 +41,13 @@ class DigitContainer{
     int getNentries() const;
 
     /// Add digit to the container
-    /// \param eventID MC ID of the event
-    /// \param trackID MC ID of the track
+    /// \param hitID MC Hit ID
     /// \param cru CRU of the digit
     /// \param row Pad row of digit
     /// \param pad Pad of digit
     /// \param timeBin Time bin of the digit
     /// \param charge Charge of the digit
-    void addDigit(int eventID, int trackID, int cru, int timeBin, int row, int pad, float charge);
+    void addDigit(size_t hitID, int cru, int timeBin, int row, int pad, float charge);
 
     /// Fill output TClonesArray
     /// \param output Output container
