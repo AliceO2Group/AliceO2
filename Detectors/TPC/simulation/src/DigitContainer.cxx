@@ -11,17 +11,17 @@
 
 using namespace o2::TPC;
 
-void DigitContainer::addDigit(int eventID, int trackID, int cru, int timeBin, int row, int pad, float charge)
+void DigitContainer::addDigit(size_t hitID, int cru, int timeBin, int row, int pad, float charge)
 {
   /// Check whether the container at this spot already contains an entry
   DigitCRU *result = mCRU[cru].get();
   if(result != nullptr){
-    mCRU[cru]->setDigit(eventID, trackID, timeBin, row, pad, charge);
+    mCRU[cru]->setDigit(hitID, timeBin, row, pad, charge);
   }
   else{
     const Mapper& mapper = Mapper::instance();
     mCRU[cru] = std::unique_ptr<DigitCRU> (new DigitCRU(cru));
-    mCRU[cru]->setDigit(eventID, trackID, timeBin, row, pad, charge);
+    mCRU[cru]->setDigit(hitID, timeBin, row, pad, charge);
   }
 }
 

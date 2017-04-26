@@ -55,14 +55,18 @@ using namespace o2::TPC;
 Detector::Detector()
   : o2::Base::Detector("TPC", kTRUE, kAliTpc),
     mSimulationType(SimulationType::Other),
-    mPointCollection(new TClonesArray("o2::TPC::Point"))
+    mPointCollection(new TClonesArray("o2::TPC::Point")),
+    mGeoFileName(),
+    mEventNr(0)
 {
 }
 
 Detector::Detector(const char* name, Bool_t active)
   : o2::Base::Detector(name, active, kAliTpc),
     mSimulationType(SimulationType::Other),
-    mPointCollection(new TClonesArray("o2::TPC::Point"))
+    mPointCollection(new TClonesArray("o2::TPC::Point")),
+    mGeoFileName(),
+    mEventNr(0)
 {
 
 }
@@ -273,7 +277,7 @@ void Detector::EndOfEvent()
 {
 
   mPointCollection->Clear();
-
+  ++mEventNr;
 }
 
 
