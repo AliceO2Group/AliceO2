@@ -42,8 +42,11 @@
 #endif
 
 using std::cout;
+using std::endl;
 using std::cerr;
+using std::string;
 using std::stringstream;
+using std::vector;
 
 struct SocketProperties_t {
   std::string type;
