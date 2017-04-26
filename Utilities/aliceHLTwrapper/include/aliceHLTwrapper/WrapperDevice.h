@@ -48,6 +48,18 @@ public:
   /// get description of options
   static bpo::options_description GetOptionsDescription();
 
+  enum /*class*/ OptionKeyIds /*: int*/ {
+    OptionKeyPollPeriod = 0,
+    OptionKeyDryRun,
+    OptionKeyLast
+  };
+
+  constexpr static const char* OptionKeys[] = {
+    "poll-period",
+    "dry-run",
+    nullptr
+  };
+
   /////////////////////////////////////////////////////////////////
   // the FairMQDevice interface
 
