@@ -16,13 +16,12 @@ set(SRCS
 
 set(LIBRARY_NAME ${MODULE_NAME})
 
-# Bucket uses DDS depending on whether it's found.
-set(BUCKET_NAME alicehlt_bucket)
+set(BUCKET_NAME O2DeviceApplication_bucket)
 
 O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
-    aliceHLTWrapperApp
+    aliceHLTWrapper
     aliceHLTEventSampler
     runComponent
     )
