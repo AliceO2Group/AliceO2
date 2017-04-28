@@ -106,6 +106,7 @@ set(TEST_SRCS
    test/testTPCElectronTransport.cxx
    test/testTPCGEMAmplification.cxx
    test/testTPCSAMPAProcessing.cxx
+   test/testTPCSimulation.cxx
 )
 
 O2_GENERATE_TESTS(
