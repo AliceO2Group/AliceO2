@@ -92,7 +92,8 @@ float SAMPAProcessing::makeSignal(float ADCcounts, const PadSecPos& padSecPos)
   float signal = ADCcounts;
   /// \todo Pedestal to be implemented in baseline class
 //  signal += baseline.getPedestal(padSecPos);
-  signal += baseline.getNoise(padSecPos);
+  //signal += 70.f;
+  //signal += baseline.getNoise(padSecPos);
   return sampa.getADCSaturation(signal);
 }
 
