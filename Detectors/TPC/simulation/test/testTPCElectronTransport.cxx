@@ -1,6 +1,6 @@
 /// \file testTPCElectronTransport.cxx
 /// \brief This task tests the ElectronTransport module of the TPC digitization
-/// \author Andi Mathis, andreas.mathis@ph.tum.de
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #define BOOST_TEST_MODULE Test TPC ElectronTransport
 #define BOOST_TEST_MAIN
@@ -15,7 +15,7 @@
 namespace o2 {
 namespace TPC {
 
-  /// @brief Test 1 of the getElectronDrift function
+  /// \brief Test 1 of the getElectronDrift function
   /// A defined position is given to the getElectronDrift function
   /// in which the position is randomly smeared according to a Gaussian
   /// We then compare the resulting mean and width to the expected one
@@ -59,7 +59,7 @@ namespace TPC {
     BOOST_CHECK_CLOSE(gausZ.GetParameter(2), sigL, 0.5);
   }
 
-  /// @brief Test 2 of the getElectronDrift function
+  /// \brief Test 2 of the getElectronDrift function
   /// We drift the electrons by one cm, then the width of
   /// the smeared distributions should be exactly the same
   /// as the diffusion coefficients
@@ -100,7 +100,7 @@ namespace TPC {
     BOOST_CHECK_CLOSE(gausZ.GetParameter(2), DIFFL, 0.5);
   }
   
-  /// @brief Test of the isElectronAttachment function
+  /// \brief Test of the isElectronAttachment function
   /// We let the electrons drift for 100 us and compare the fraction
   /// of lost electrons to the expected value
   ///

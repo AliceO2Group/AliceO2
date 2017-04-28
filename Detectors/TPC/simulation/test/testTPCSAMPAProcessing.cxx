@@ -1,8 +1,13 @@
+/// \file testSAMPAProcessing.cxx
+/// \brief This task tests the SAMPAProcessing module of the TPC digitization
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+
 #define BOOST_TEST_MODULE Test TPC SAMPAProcessing
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "TPCSimulation/Constants.h"
 
 #include <fstream>
 #include <iostream>
@@ -13,7 +18,15 @@
 namespace o2 {
 namespace TPC {
 
-  // read in the file on which the spline for the SAMPA saturation are based and compare the final spline to the contents of the file
+  /// \brief Test of the conversion to ADC value
+  BOOST_AUTO_TEST_CASE(SAMPA_ADC_test)
+  {
+    const SAMPAProcessing& sampa = SAMPAProcessing::instance();
+    BOOST_CHECK_CLOSE(sampa.getADCvalue(1000.f), 1000.f*QEL*1.e15*CHIPGAIN*ADCSAT/ADCDYNRANGE, 1E-5);
+  }
+
+  /// \brief Test of the saturation effect
+  /// read in the file on which the spline for the SAMPA saturation are based and compare the final spline to the contents of the file
   BOOST_AUTO_TEST_CASE(SAMPA_saturation_test)
   {
     const SAMPAProcessing& sampa = SAMPAProcessing::instance();
@@ -42,6 +55,28 @@ namespace TPC {
 
     for(int i=0; i<saturation.size(); ++i) {
       BOOST_CHECK(saturation[i].second == sampa.getADCSaturation(saturation[i].first));
+    }
+  }
+
+  /// \brief Test of the Gamma4 function
+  BOOST_AUTO_TEST_CASE(SAMPA_Gamma4_test)
+  {
+    const SAMPAProcessing& sampa = SAMPAProcessing::instance();
+    float timeInit[4]      = {0.1, 3.3 , 1.f, 90.5};
+    float startTimeInit[4] = {0.f, 3.f, 0.f, 90.f};
+    float ADCinit[4]       = {1.f , 50.f , 100.f, 100.f};
+    Vc::float_v time;
+    Vc::float_v startTime;
+    Vc::float_v ADC;
+    for(int i =0; i<4; ++i) {
+      time[i] = timeInit[i];
+      startTime[i] = startTimeInit[i];
+      ADC[i] = ADCinit[i];
+    }
+    Vc::float_v adcValue = 55.f*ADC*Vc::exp(-4.f*(time-startTime)/PEAKINGTIME) *(time-startTime)/PEAKINGTIME *(time-startTime)/PEAKINGTIME *(time-startTime)/PEAKINGTIME *(time-startTime)/PEAKINGTIME;
+    Vc::float_v signal = sampa.getGamma4(time, startTime, ADC);
+    for(int i =0; i<4; ++i) {
+      BOOST_CHECK_CLOSE(signal[i], adcValue[i], 1E-3);
     }
   }
 }
