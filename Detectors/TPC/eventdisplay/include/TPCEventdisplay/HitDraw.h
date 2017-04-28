@@ -1,23 +1,7 @@
-/********************************************************************************
- *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
- *                                                                              *
- *              This software is distributed under the terms of the             *
- *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
- *                  copied verbatim in the file "LICENSE"                       *
- ********************************************************************************/
-/*
- * FairMCPointsDraw.h
- *
- *  Created on: Apr 17, 2009
- *      Author: stockman
- */
-
-#ifndef FAIRMCPOINTDRAW_H_
-#define FAIRMCPOINTDRAW_H_
+#ifndef ALICEO2_TPC_HITDRAW_H_
+#define ALICEO2_TPC_HITDRAW_H_
 
 #include "FairPointSetDraw.h"           // for FairPointSetDraw
-
-#include "Rtypes.h"                     // for HitDraw::Class, etc
 
 class TObject;
 class TVector3;
@@ -28,16 +12,17 @@ namespace TPC {
 class HitDraw: public FairPointSetDraw
 {
   public:
-    HitDraw();
+    HitDraw() = default;
     HitDraw(const char* name, Color_t color ,Style_t mstyle, Int_t iVerbose = 1):FairPointSetDraw(name, color, mstyle, iVerbose) {};
-    virtual ~HitDraw();
+    ~HitDraw() override = default;
 
   protected:
-    TVector3 GetVector(TObject* obj);
+    TVector3 GetVector(TObject* obj) override;
 
-    ClassDef(HitDraw,0);
+    ClassDefOverride(HitDraw,0);
 };
 
-};
-};
-#endif /* FAIRMCPOINTDRAW_H_ */
+}
+}
+
+#endif 
