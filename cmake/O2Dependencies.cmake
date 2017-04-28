@@ -23,9 +23,6 @@ find_package(IWYU)
 find_package(DDS)
 
 find_package(Boost 1.59 COMPONENTS thread system timer program_options random filesystem chrono exception regex serialization log log_setup unit_test_framework date_time REQUIRED)
-set (ZeroMQ_NO_DEPRECATED 1) # no deprecation warning since we have converted to new variables
-find_package(ZeroMQ)
-
 
 find_package(AliRoot)
 find_package(FairRoot REQUIRED)
@@ -125,8 +122,6 @@ o2_define_bucket(
     Boost::date_time
     Boost::random
     Boost::regex
-    ${ZeroMQ_LIBRARY_SHARED}
-    ${OPTIONAL_DDS_LIBRARIES}
     Base
     Headers
     FairTools
@@ -136,7 +131,6 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-    ${OPTIONAL_DDS_INCLUDE_DIR}
 )
 
 # a common bucket for the implementation of devices inherited
@@ -173,7 +167,6 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}/fairmq # temporary fix, until bucket system works with imported targets
-    ${ZeroMQ_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/Headers/include
 )
 
@@ -187,8 +180,6 @@ o2_define_bucket(
     Boost::date_time
     Boost::random
     Boost::regex
-    ${ZeroMQ_LIBRARY_SHARED}
-    ${OPTIONAL_DDS_LIBRARIES}
     Base
     Headers
     FairTools
@@ -198,7 +189,6 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-    ${OPTIONAL_DDS_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -207,10 +197,8 @@ o2_define_bucket(
 
     DEPENDENCIES
     flp2epn_bucket
-    ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
-    ${DDS_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -260,7 +248,6 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}/fairmq
     ${ROOT_INCLUDE_DIR}
     ${PROTOBUF_INCLUDE_DIR}
-    ${ZeroMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -293,7 +280,6 @@ o2_define_bucket(
 
     DEPENDENCIES
     root_base_bucket
-    ${ZeroMQ_LIBRARY_SHARED}
     Base
     FairTools
     FairRoot::FairMQ
@@ -478,7 +464,6 @@ o2_define_bucket(
     ${DDS_INCLUDE_DIR}
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
-    ${ZeroMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -497,7 +482,6 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
     ${FAIRROOT_INCLUDE_DIR}
-    ${ZeroMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
@@ -526,9 +510,8 @@ o2_define_bucket(
 
     DEPENDENCIES
     QC_apps_bucket
-    INCLUDE_DIRECTORIES
-    ${ZeroMQ_INCLUDE_DIR}
 
+    INCLUDE_DIRECTORIES
    )
 
 o2_define_bucket(
@@ -638,14 +621,10 @@ o2_define_bucket(
     Boost::random
     Boost::regex
     FairRoot::FairMQ
-    ${OPTIONAL_DDS_LIBRARIES}
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
-    ${OPTIONAL_DDS_INCLUDE_DIR}
 
-    SYSTEMINCLUDE_DIRECTORIES
-    ${ZeroMQ_INCLUDE_DIR}
 )
 
 o2_define_bucket(
