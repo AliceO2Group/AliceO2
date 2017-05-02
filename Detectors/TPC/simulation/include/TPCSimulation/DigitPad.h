@@ -7,6 +7,9 @@
 
 #include <map>
 
+#include "FairRootManager.h"
+#include "FairMultiLinkedData.h"
+#include "FairLink.h"
 #include "TPCSimulation/CommonMode.h"
 #include <TClonesArray.h>
 
@@ -39,11 +42,15 @@ class DigitPad{
     /// \return Accumulated charge
     float getChargePad() const {return mChargePad;}
 
+    /// Get the MC Links
+    /// \return MC Links
+    const FairMultiLinkedData& getMCLinks() const { return mMCLinks; }
+
     /// Add digit to the time bin container
     /// \param eventID MC ID of the event
     /// \param trackID MC ID of the track
     /// \param charge Charge of the digit
-    void setDigit(int eventID, int trackID, float charge);
+    void setDigit(size_t hitID, float charge);
 
     /// Fill output TClonesArray
     /// \param output Output container
@@ -53,33 +60,27 @@ class DigitPad{
     /// \param pad pad ID
     void fillOutputContainer(TClonesArray *output, int cru, int timeBin, int row, int pad, float commonMode = 0);
 
-    /// The MC labels are sorted by occurrence such that the event/track combination with the largest number of occurrences is first
-    /// This is then dumped into a std::vector and attached to the digits
-    /// \todo Find out how many different event/track combinations are relevant
-    /// \param std::vector containing the sorted MCLabels
-    void processMClabels(std::vector<long> &sortedMCLabels);
-    
   private:
     float                  mChargePad;   ///< Total accumulated charge on that pad for a given time bin
     unsigned char          mPad;         ///< Pad of the ADC value
-    std::map<long, int>    mMCID;        ///< Map containing the MC labels (key) and the according number of occurrence (value)
+    FairMultiLinkedData    mMCLinks;     ///< MC links
 };
 
 inline
 DigitPad::DigitPad(int pad)
   : mChargePad(0.)
   , mPad(pad)
-  , mMCID()
+  , mMCLinks()
 {}
 
 inline 
-void DigitPad::setDigit(int eventID, int trackID, float charge)
+void DigitPad::setDigit(size_t hitID, float charge)
 {
   /// the MC ID is encoded such that we can have 999,999 tracks
   /// numbers larger than 1000000 correspond to the event ID
   /// i.e. 12000010 corresponds to event 12 with track ID 10
   /// \todo Faster would be a bit shift
-  ++mMCID[(eventID)*1000000 + trackID];
+  mMCLinks.AddLink(FairLink(-1, FairRootManager::Instance()->GetEntryNr(), "TPCPoint", hitID));
   mChargePad += charge;
 }
 
@@ -87,7 +88,7 @@ inline
 void DigitPad::reset()
 {
   mChargePad = 0;
-  mMCID.clear();
+  mMCLinks.Reset();
 }
   
 }

@@ -7,16 +7,16 @@
 
 using namespace o2::TPC;
 
-void DigitRow::setDigit(int eventID, int trackID, int pad, float charge)
+void DigitRow::setDigit(size_t hitID, int pad, float charge)
 {
   /// Check whether the container at this spot already contains an entry
   DigitPad *result =  mPads[pad].get();
   if(result != nullptr) {
-    mPads[pad]->setDigit(eventID, trackID, charge);
+    mPads[pad]->setDigit(hitID, charge);
   }
   else{
     mPads[pad] = std::unique_ptr<DigitPad> (new DigitPad(pad));
-    mPads[pad]->setDigit(eventID, trackID, charge);
+    mPads[pad]->setDigit(hitID, charge);
   }
 }
 

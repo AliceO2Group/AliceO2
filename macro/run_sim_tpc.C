@@ -54,6 +54,9 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Create simulation run
   FairRunSim* run = new FairRunSim();
+  // enable usage of the fair link mechanism
+  run->SetUseFairLinks(kTRUE);
+
   run->SetName(mcEngine);      // Transport engine
   run->SetOutputFile(outFile); // Output file
   FairRuntimeDb* rtdb = run->GetRuntimeDb();
@@ -89,7 +92,7 @@ void run_sim_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->SetGenerator(primGen);
 
   // store track trajectories
-//  run->SetStoreTraj(kTRUE);
+ run->SetStoreTraj(kTRUE);
 
   // Initialize simulation run
   run->Init();
