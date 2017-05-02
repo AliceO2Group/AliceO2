@@ -593,6 +593,23 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
 )
 
+o2_define_bucket(
+    NAME
+    tpc_calibration_bucket
+
+    DEPENDENCIES
+    tpc_base_bucket
+    tpc_reconstruction_bucket
+    DetectorsBase
+    TPCBase
+    TPCReconstruction
+    MathUtils
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+)
 
 o2_define_bucket(
     NAME
