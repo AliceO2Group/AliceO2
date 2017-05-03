@@ -106,7 +106,7 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, int fra
       file.read((char*)&rawData,sizeof(rawData));
       rawMarker = rawData & 0xFFFF0000;
       if ((rawMarker == 0xDEF10000) || (rawMarker == 0xDEF40000)) {
-        file.read((char*)&words,7*sizeof(words[0]));
+        file.read((char*)&words,3*sizeof(words[0]));
         addGBTFrame(rawData,words[0],words[1],words[2]); 
       }
     }
