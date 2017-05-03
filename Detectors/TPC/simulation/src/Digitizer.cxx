@@ -19,6 +19,7 @@ ClassImp(o2::TPC::Digitizer)
 using namespace o2::TPC;
 
 bool o2::TPC::Digitizer::mDebugFlagPRF = false;
+bool o2::TPC::Digitizer::mIsContinuous = true;
 
 Digitizer::Digitizer()
   : mDigitContainer(nullptr)
@@ -46,7 +47,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
   const Mapper& mapper = Mapper::instance();
   FairRootManager *mgr = FairRootManager::Instance();
 
-  const float eventTime = mgr->GetEventTime() * 0.001; /// transform in us
+  const float eventTime = ( mIsContinuous) ? mgr->GetEventTime() * 0.001 : 0.f; /// transform in us
 
   /// \todo static_thread for thread savety?
   static GEMAmplification gemAmplification;

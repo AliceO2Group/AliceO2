@@ -20,7 +20,7 @@
   #include "TPCSimulation/DigitizerTask.h"
 #endif
 
-void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
+void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t isContinuous=1){
         // Initialize logger
         FairLogger *logger = FairLogger::GetLogger();
         logger->SetLogVerbosityLevel("LOW");
@@ -54,7 +54,7 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         parInput1->open(paramfile.str().c_str());
         rtdb->setFirstInput(parInput1);
 
-        fFileSource->SetEventMeanTime(10*1000); //is in us
+        fFileSource->SetEventMeanTime(20*1000); //is in us
       //  TGeoManager::Import("geofile_full.root");
 
         o2::field::MagneticField *magField = new o2::field::MagneticField("Maps","Maps", -1., -1., o2::field::MagFieldParam::k5kG);
@@ -62,6 +62,8 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
 
         // Setup digitizer
         o2::TPC::DigitizerTask *digiTPC = new o2::TPC::DigitizerTask;
+        digiTPC->setContinuousReadout(isContinuous);
+
         run->AddTask(digiTPC);
 
         run->Init();

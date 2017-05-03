@@ -29,6 +29,7 @@ DigitizerTask::DigitizerTask()
   , mDigitsArray(nullptr)
   , mHitFileName()
   , mTimeBinMax(1000000)
+  , mIsContinuousReadout(true)
 {
   /// \todo get rid of new
   mDigitizer = new Digitizer;
@@ -88,15 +89,16 @@ void DigitizerTask::Exec(Option_t *option)
   LOG(DEBUG) << "Running digitization on new event at time bin " << eventTime << FairLogger::endl;
   mDigitsArray->Delete();
   mDigitContainer = mDigitizer->Process(mPointsArray);
-  mDigitContainer->fillOutputContainer(mDigitsArray, eventTime);
+  mDigitContainer->fillOutputContainer(mDigitsArray, eventTime, mIsContinuousReadout);
 }
 
 void DigitizerTask::FinishTask()
 {
+  if(!mIsContinuousReadout) return;
   FairRootManager *mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
   mDigitsArray->Delete();
-  mDigitContainer->fillOutputContainer(mDigitsArray, mTimeBinMax);
+  mDigitContainer->fillOutputContainer(mDigitsArray, mTimeBinMax, mIsContinuousReadout);
 }
 
 void DigitizerTask::fillHitArrayFromFile()
