@@ -131,22 +131,27 @@ SET(_LIBDIR ${CMAKE_BINARY_DIR}/lib)
 SET(LD_LIBRARY_PATH ${_LIBDIR} ${LD_LIBRARY_PATH})
 
 IF (NOT ALICEO2_MODULAR_BUILD)
-  # Check IF the compiler support specific C++11 features
+  # Check IF the compiler support specific C++14 features
   # Up to now this is only a check since the code does not use
   # any of the features of the new standard
   # does not work straightforward
   include(CheckCXX11Features)
 
-  # Check IF the compilation flag -std=c++11 is set
+  # Check IF the compilation flag -std=c++14 is set
   IF (NOT CMAKE_CXX_FLAGS)
-    Message(FATAL_ERROR "No C++11 support found. AliceO2 require C++11 be build.")
+    Message(FATAL_ERROR "No C++14 support found. AliceO2 requires C++14 be build.")
   EndIF (NOT CMAKE_CXX_FLAGS)
 
 ELSE (NOT ALICEO2_MODULAR_BUILD)
   # This needs to be improved
   # (hopefully by making CheckCXX11Features working also with this build option)
-  set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
 ENDIF (NOT ALICEO2_MODULAR_BUILD)
+
+#check also C++14 features
+set(CheckCXX14SrcDir "${CMAKE_SOURCE_DIR}/cmake/checks")
+include(CheckCXX14Features)
+
 
 # Recurse into the given subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through
