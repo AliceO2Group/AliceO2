@@ -14,6 +14,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include "ITSMFTBase/SegmentationPixel.h"
 
 namespace o2 {
   namespace ITSMFT {
@@ -44,6 +45,17 @@ namespace o2 {
       // Get the number of rows of the cluster
       inline UInt_t GetNRows() const {return mNrows;}
 
+      // Get the center of rows of the cluster
+      inline UInt_t GetCenterR() const {return mCenterR;}
+
+      // Get the center of cols of the cluster
+      inline UInt_t GetCenterC() const {return mCenterC;}
+
+      // Get the index of the center (0-based)
+      inline UInt_t GetCenterIndex() const {
+        return RowColToIndex(mCenterR, mCenterC);
+      }
+
       // Get the number of cols of the cluster
       inline UInt_t GetNCols() const {return mNcols;}
 
@@ -62,6 +74,11 @@ namespace o2 {
       // Return a string with the positions of the fired pixels in the cluster
       inline std::string ShapeSting() const {
         return ShapeSting(mShape);
+      }
+
+      // r and c are 0-based. The returned index is 0-based as well
+      inline UInt_t RowColToIndex(UInt_t r, UInt_t c) const {
+        return r*mNcols + c;
       }
 
       // Static function to get a string with the positions of the fired pixels
@@ -97,8 +114,12 @@ namespace o2 {
       }
 
     private:
+      UInt_t ComputeCenter(UInt_t);
+
       UInt_t  mNrows;
       UInt_t  mNcols;
+      UInt_t  mCenterR;
+      UInt_t  mCenterC;
       std::vector<UInt_t> mShape;
 
       ClassDefOverride(ClusterShape,1)

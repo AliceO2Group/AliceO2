@@ -25,11 +25,17 @@ namespace o2 {
       SimuClusterShaper(const UInt_t &cs);
       ~SimuClusterShaper() override;
       void FillClusterRandomly();
+      inline void SetFireCenter(Bool_t v) {
+        mFireCenter = v;
+      }
       void AddNoisePixel();
 
       inline UInt_t  GetNRows() {return mCShape->GetNRows();}
       inline UInt_t  GetNCols() {return mCShape->GetNCols();}
       inline void    GetShape(std::vector<UInt_t>& v) {mCShape->GetShape(v);}
+      inline UInt_t  GetCenterR() {return mCShape->GetCenterR();}
+      inline UInt_t  GetCenterC() {return mCShape->GetCenterC();}
+      inline size_t  GetCS() {return mCShape->GetNFiredPixels();}
 
       inline std::string ShapeSting(UInt_t cs, UInt_t *cshape) const {
         std::stringstream out;
@@ -41,6 +47,7 @@ namespace o2 {
       }
 
     private:
+      Bool_t mFireCenter;
       UInt_t mNpixOn;
       ClusterShape *mCShape;
 

@@ -233,7 +233,6 @@ void SimulationAlpide::GenerateCluster() {
     Float_t y = y0 + 0.5*y1;
     Float_t z = z0 + 0.5*z1;
 
-
     const Point *hit = mChip->GetPointAt(h);
     TLorentzVector trackP4;
     trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
@@ -248,16 +247,19 @@ void SimulationAlpide::GenerateCluster() {
 
     Double_t acs = ACSFromBetaGamma(bgamma, theta);
     UInt_t cs = GetPixelPositionResponse(ix, iz, x, z, acs);
+    // cs = 5; // uncomment to set the cluster size manually
+
 
     // Create the shape
     std::vector<UInt_t> cshape;
     auto *csManager = new SimuClusterShaper(cs);
+    csManager->SetFireCenter(true);
     csManager->FillClusterRandomly();
     csManager->GetShape(cshape);
     UInt_t nrows = csManager->GetNRows();
     UInt_t ncols = csManager->GetNCols();
-    Int_t cx = gRandom->Integer(ncols);
-    Int_t cz = gRandom->Integer(nrows);
+    Int_t cx = csManager->GetCenterC();
+    Int_t cz = csManager->GetCenterR();
 
     LOG(DEBUG) << "_/_/_/_/_/_/_/_/_/_/_/_/_/_/" << FairLogger::endl;
     LOG(DEBUG) << "_/_/_/ pALPIDE debug  _/_/_/" << FairLogger::endl;
