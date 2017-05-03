@@ -7,4 +7,9 @@
 #pragma link C++ class o2::mathUtils::Chebyshev3D+;
 #pragma link C++ class o2::mathUtils::Chebyshev3DCalc+;
 
+#pragma link C++ namespace o2::mathUtils::mathBase;
+
+#pragma link C++ function o2::mathBase::mathBase::fitGaus<float>;
+#pragma link C++ function o2::mathBase::mathBase::fitGaus<double>;
+
 #endif
