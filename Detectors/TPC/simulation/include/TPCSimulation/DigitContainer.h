@@ -51,7 +51,7 @@ class DigitContainer{
 
     /// Fill output TClonesArray
     /// \param output Output container
-    void fillOutputContainer(TClonesArray *output, int eventTime=0);
+    void fillOutputContainer(TClonesArray *output, int eventTime=0, bool isContinuous=true);
 
     /// Fill output TClonesArray
     /// \param output Output container

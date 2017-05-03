@@ -40,6 +40,10 @@ class DigitizerTask : public FairTask{
     ///        o PRFdebug - Debug output after application of the PRF
     void setDebugOutput(TString debugString);
 
+    /// Switch for triggered / continuous readout
+    /// \param isContinuous - false for triggered readout, true for continuous readout
+    void setContinuousReadout(bool isContinuous);
+
     /// Set the maximal number of written out time bins
     /// \param nTimeBinsMax Maximal number of time bins to be written out
     void setMaximalTimeBinWriteOut(int i) { mTimeBinMax = i; }
@@ -62,6 +66,7 @@ class DigitizerTask : public FairTask{
     std::string         mHitFileName;  ///< External hit file exported from AliRoot
 
     int                 mTimeBinMax;   ///< Maximum time bin to be written out
+    bool                mIsContinuousReadout; ///< Switch for continuous readout
 
   ClassDefOverride(DigitizerTask, 1);
 };
@@ -77,6 +82,13 @@ void DigitizerTask::setDebugOutput(TString debugString)
   LOG(INFO) << "\n";
 }
   
+inline
+void DigitizerTask::setContinuousReadout(bool isContinuous)
+{
+  mIsContinuousReadout = isContinuous;
+  o2::TPC::Digitizer::setContinuousReadout(isContinuous);
+}
+
 }
 }
 

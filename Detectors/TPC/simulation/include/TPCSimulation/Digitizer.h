@@ -68,6 +68,10 @@ class Digitizer {
     /// Can be set via DigitizerTask::setDebugOutput("PRFdebug")
     static void setPRFDebug() { mDebugFlagPRF = true; }
 
+    /// Switch for triggered / continuous readout
+    /// \param isContinuous - false for triggered readout, true for continuous readout
+    static void setContinuousReadout(bool isContinuous) { mIsContinuous = isContinuous ; }
+
     /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     /// Conversion functions that at some point should go someplace else
 
@@ -110,6 +114,7 @@ class Digitizer {
 
     std::unique_ptr<TTree>  mDebugTreePRF;      ///< Output tree for the output after the PRF
     static bool             mDebugFlagPRF;      ///< Flag for debug output after the PRF
+    static bool             mIsContinuous;      ///< Switch for continuous readout
 
   ClassDefNV(Digitizer, 1);
 };

@@ -35,11 +35,13 @@ void DigitCRU::setDigit(size_t hitID, int timeBin, int row, int pad, float charg
   }
 }
 
-void DigitCRU::fillOutputContainer(TClonesArray *output, int cru, int eventTime)
+void DigitCRU::fillOutputContainer(TClonesArray *output, int cru, int eventTime, bool isContinuous)
 {
   int nProcessedTimeBins = 0;
   for(auto &aTime : mTimeBins) {
-    if(nProcessedTimeBins + mFirstTimeBin < eventTime) {
+    /// the time bins between the last event and the timing of this event are uncorrelated and can be written out
+    /// OR the readout is triggered (i.e. not continuous) and we can dump everything in any case
+    if( ( nProcessedTimeBins + mFirstTimeBin < eventTime ) || !isContinuous) {
       ++nProcessedTimeBins;
       if(aTime == nullptr) continue;
       aTime->fillOutputContainer(output, cru, aTime->getTimeBin());
@@ -52,7 +54,7 @@ void DigitCRU::fillOutputContainer(TClonesArray *output, int cru, int eventTime)
       mTimeBins.pop_front();
     }
   }
-  mTimeBinLastEvent = eventTime;
+  if(!isContinuous) mFirstTimeBin = 0;
 }
 
 void DigitCRU::fillOutputContainer(TClonesArray *output, int cru, std::vector<CommonMode> &commonModeContainer)

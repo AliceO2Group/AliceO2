@@ -60,7 +60,7 @@ class DigitCRU{
     /// Fill output TClonesArray
     /// \param output Output container
     /// \param cruID CRU ID
-    void fillOutputContainer(TClonesArray *output, int cru, int eventTime=0);
+    void fillOutputContainer(TClonesArray *output, int cru, int eventTime=0, bool isContinuous=true);
 
     /// Fill output TClonesArray
     /// \param output Output container
@@ -74,7 +74,6 @@ class DigitCRU{
 
   private:
     int                    mFirstTimeBin;
-    int                    mTimeBinLastEvent;
     int                    mEffectiveTimeBin;
     int                    mNTimeBins;        ///< Maximal number of time bins in that CRU
     unsigned short         mCRU;              ///< CRU of the ADC value
@@ -84,7 +83,6 @@ class DigitCRU{
 inline
 DigitCRU::DigitCRU(int CRU)
   : mFirstTimeBin(0)
-  , mTimeBinLastEvent(0)
   , mEffectiveTimeBin(0)
   , mNTimeBins(500)
   , mCRU(CRU)
@@ -93,10 +91,10 @@ DigitCRU::DigitCRU(int CRU)
 inline 
 void DigitCRU::reset()
 {
-  for(auto &aTime : mTimeBins) {
-    if(aTime == nullptr) continue;
-    aTime->reset();
-  }
+//  for(auto &aTime : mTimeBins) {
+//    if(aTime == nullptr) continue;
+//    aTime->reset();
+//  }
   mTimeBins.clear();
 }
     
