@@ -57,16 +57,25 @@ class HwClusterer : public Clusterer {
     // To be done
     /* BoxClusterer(const BoxClusterer &); */
     /* BoxClusterer &operator=(const BoxClusterer &); */
+
+    struct CfConfig {
+      int iCRU;
+      int iMaxRows;
+      int iMaxPads;
+      unsigned iMinTimeBin;
+      unsigned iMaxTimeBin;
+    };
     
     static void processDigits(
         const std::vector<std::vector<DigitMC*>>& digits, 
         const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
               std::vector<HwCluster>& cluster, 
-              int iCRU,
-              int maxRows,
-              int maxPads, 
-              unsigned minTimeBin,
-              unsigned maxTimeBin);
+              CfConfig config);
+//              int iCRU,
+//              int maxRows,
+//              int maxPads, 
+//              unsigned minTimeBin,
+//              unsigned maxTimeBin);
     
     std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
     std::vector<std::vector<std::vector<DigitMC*>>> mDigitContainer;
