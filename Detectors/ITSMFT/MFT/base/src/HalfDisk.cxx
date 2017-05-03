@@ -56,9 +56,8 @@ HalfDisk::HalfDisk(HalfDiskSegmentation *segmentation):TNamed(segmentation->GetN
   LOG(DEBUG1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName()) << FairLogger::endl;
 
   mHalfDiskVolume = new TGeoVolumeAssembly(GetName());
-  
-  // Building MFT Support and PCBs
   /*  
+  // Building MFT Support and PCBs
   mSupport = new Support();
   TGeoVolumeAssembly * mftSupport = mSupport->createVolume(mftGeom->getHalfMFTID(GetUniqueID()),mftGeom->getHalfDiskID(GetUniqueID()));  
   mHalfDiskVolume->AddNode(mftSupport,1);

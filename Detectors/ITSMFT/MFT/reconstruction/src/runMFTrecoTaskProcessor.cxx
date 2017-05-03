@@ -10,14 +10,14 @@
 
 #include "runFairMQDevice.h"
 
-#include "MFTReconstruction/FindHits.h"
+#include "MFTReconstruction/FindClusters.h"
 #include "MFTReconstruction/FindTracks.h"
 #include "MFTReconstruction/devices/TaskProcessor.h"
 
 using namespace o2::MFT;
 
-using HitFinder   = TaskProcessor<FindHits>;
-using TrackFinder = TaskProcessor<FindTracks>;
+using ClusterFinder = TaskProcessor<FindClusters>;
+using TrackFinder   = TaskProcessor<FindTracks>;
 
 namespace bpo = boost::program_options;
 
@@ -40,12 +40,12 @@ FairMQDevicePtr getDevice(const FairMQProgOptions& config)
   
   LOG(INFO) << "Run::getDevice >>>>> get device with setting!" << "";
 
-  if (strcmp(taskname.c_str(),"FindHits") == 0) {
-    LOG(INFO) << "Run::getDevice >>>>> HitFinder" << "";
-    return new HitFinder();
+  if (strcmp(taskname.c_str(),"FindClusters") == 0) {
+    LOG(INFO) << "Run::getDevice >>>>> Cluster finder" << "";
+    return new ClusterFinder();
   }
   if (strcmp(taskname.c_str(),"FindTracks") == 0) {
-    LOG(INFO) << "Run::getDevice >>>>> TrackFinder" << "";
+    LOG(INFO) << "Run::getDevice >>>>> Track finder" << "";
     return new TrackFinder();
   }
 

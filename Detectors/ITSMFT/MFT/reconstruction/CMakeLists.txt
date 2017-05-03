@@ -3,14 +3,14 @@ set(MODULE_NAME "MFTReconstruction")
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
-  src/Hit.cxx
-  src/FindHits.cxx
+  src/Cluster.cxx
+  src/FindClusters.cxx
   src/Track.cxx
   src/FindTracks.cxx
 )
 set(HEADERS
-  include/${MODULE_NAME}/Hit.h
-  include/${MODULE_NAME}/FindHits.h
+  include/${MODULE_NAME}/Cluster.h
+  include/${MODULE_NAME}/FindClusters.h
   include/${MODULE_NAME}/Track.h
   include/${MODULE_NAME}/FindTracks.h
 )

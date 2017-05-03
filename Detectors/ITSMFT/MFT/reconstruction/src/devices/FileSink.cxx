@@ -21,7 +21,7 @@
 
 #include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/devices/FileSink.h"
-#include "MFTReconstruction/Hit.h"
+#include "MFTReconstruction/Cluster.h"
 
 using namespace o2::MFT;
 using namespace std;

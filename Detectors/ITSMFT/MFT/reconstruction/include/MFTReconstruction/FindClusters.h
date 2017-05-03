@@ -8,13 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file FindHits.h
-/// \brief Simple hits finding from the points
+/// \file FindClusters.h
+/// \brief Cluster finding from digits
 /// \author bogdan.vulpescu@cern.ch 
-/// \date 10/10/2016
+/// \date 03/05/2017
 
-#ifndef ALICEO2_MFT_FINDHITS_H_
-#define ALICEO2_MFT_FINDHITS_H_
+#ifndef ALICEO2_MFT_FINDCLUSTERS_H_
+#define ALICEO2_MFT_FINDCLUSTERS_H_
 
 #include "FairTask.h"
 
@@ -27,13 +27,13 @@ namespace MFT {
 
 class EventHeader;
 
-class FindHits : public FairTask
+class FindClusters : public FairTask
 {
 
  public:
 
-  FindHits();
-  ~FindHits() override;
+  FindClusters();
+  ~FindClusters() override;
 
   InitStatus Init() override;
   InitStatus ReInit() override;
@@ -46,21 +46,18 @@ class FindHits : public FairTask
 
  private:
 
-  FindHits(const FindHits&);
-  FindHits& operator=(const FindHits&);
+  TClonesArray* mDigits; //!
+  TClonesArray* mClusters;   //!
 
-  TClonesArray* mPoints; //!
-  TClonesArray* mHits;   //!
-
-  Int_t mNHits;
+  Int_t mNClusters;
 
   Int_t mTNofEvents;
-  Int_t mTNofHits;
+  Int_t mTNofClusters;
 
   FairMCEventHeader *mMCEventHeader;
   EventHeader *mEventHeader;
 
-  ClassDefOverride(FindHits,1);
+  ClassDefOverride(FindClusters,1);
 
 };
 
