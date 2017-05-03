@@ -15,7 +15,9 @@ using namespace o2::ITSMFT;
 //______________________________________________________________________
 ClusterShape::ClusterShape() :
 mNrows(0),
-mNcols(0) {
+mNcols(0),
+mCenterR(0),
+mCenterC(0) {
   mShape.clear();
 }
 
@@ -24,6 +26,8 @@ mNcols(0) {
 ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols) :
 mNrows(Nrows),
 mNcols(Ncols) {
+  mCenterR = ComputeCenter(Nrows);
+  mCenterC = ComputeCenter(Ncols);
   mShape.clear();
 }
 
@@ -32,6 +36,8 @@ mNcols(Ncols) {
 ClusterShape::ClusterShape(UInt_t Nrows, UInt_t Ncols, const std::vector<UInt_t>& Shape) :
 mNrows(Nrows),
 mNcols(Ncols) {
+  mCenterR = ComputeCenter(Nrows);
+  mCenterC = ComputeCenter(Ncols);
   mShape = Shape;
 }
 
@@ -76,4 +82,17 @@ Bool_t ClusterShape::HasElement(UInt_t value) const {
     if (el == value) return true;
   }
   return false;
+}
+
+
+//______________________________________________________________________
+UInt_t ClusterShape::ComputeCenter(UInt_t n) {
+  UInt_t c = 0;
+  if (n % 2 == 0) {
+    UInt_t r = gRandom->Integer(2); // 0 or 1
+    c = (UInt_t) r+n/2;
+  } else {
+    c = (UInt_t) (n+1)/2;
+  }
+  return c-1; // 0-based
 }

@@ -13,11 +13,14 @@ using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper() :
+mFireCenter(false),
+mNpixOn(0),
 mCShape(nullptr) {}
 
 
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper(const UInt_t &cs) {
+  mFireCenter = false;
   mNpixOn = cs;
   UInt_t nRows = 0;
   UInt_t nCols = 0;
@@ -40,10 +43,15 @@ void SimuClusterShaper::FillClusterRandomly() {
   Int_t matrixSize = mCShape->GetNRows()*mCShape->GetNCols();
 
   // generate UNIQUE random numbers
-  UInt_t i = 0;
+  UInt_t i = 0, j = 0;
   auto *bits = new TBits(mNpixOn);
+
+  if (mFireCenter) {
+    bits->SetBitNumber(mCShape->GetCenterIndex());
+    i++;
+  }
   while (i < mNpixOn) {
-    UInt_t j = gRandom->Integer(matrixSize); // [0, matrixSize-1]
+    j = gRandom->Integer(matrixSize); // [0, matrixSize-1]
     if (bits->TestBitNumber(j)) continue;
     bits->SetBitNumber(j);
     i++;
@@ -51,7 +59,7 @@ void SimuClusterShaper::FillClusterRandomly() {
 
   Int_t bit = 0;
   for (i = 0; i < mNpixOn; ++i) {
-    UInt_t j = bits->FirstSetBit(bit);
+    j = bits->FirstSetBit(bit);
     mCShape->AddShapeValue(j);
     bit = j+1;
   }
