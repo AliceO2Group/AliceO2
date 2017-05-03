@@ -100,19 +100,24 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, int fra
 
   uint32_t rawData;
   uint32_t rawMarker;
-  uint32_t words[4];
+  uint32_t words[8];
   if (type == "grorc") {
     while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
       file.read((char*)&rawData,sizeof(rawData));
       rawMarker = rawData & 0xFFFF0000;
       if ((rawMarker == 0xDEF10000) || (rawMarker == 0xDEF40000)) {
-        file.read((char*)&words,3*sizeof(words[0]));
+        file.read((char*)&words,7*sizeof(words[0]));
         addGBTFrame(rawData,words[0],words[1],words[2]); 
       }
     }
   } else if (type == "trorc") {
     while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
       file.read((char*)&words,4*sizeof(words[0]));
+      addGBTFrame(words[0],words[1],words[2],words[3]); 
+    }
+  } else if (type == "trorc2") {
+    while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
+      file.read((char*)&words,8*sizeof(words[0]));
       addGBTFrame(words[0],words[1],words[2],words[3]); 
     }
   }
@@ -311,7 +316,10 @@ bool GBTFrameContainer::getData(std::vector<DigitData>& container)
   mAdcMutex.lock();
   for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
   {
-    if (mAdcValues[iHalfSampa]->size() < 16) continue;
+    if (mAdcValues[iHalfSampa]->size() < 16){ 
+      mTmpData[iHalfSampa].fill(0);
+      continue;
+    }
     dataAvailable = true;
     for (int iChannel = 0; iChannel < 16; ++iChannel)
     {
@@ -366,7 +374,10 @@ bool GBTFrameContainer::getData(std::vector<HalfSAMPAData>& container)
   mAdcMutex.lock();
   for (int iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa)
   {
-    if (mAdcValues[iHalfSampa]->size() < 16) continue;
+    if (mAdcValues[iHalfSampa]->size() < 16)  {
+      mTmpData[iHalfSampa].fill(0);
+      continue;
+    }
     dataAvailable = true;
     for (int iChannel = 0; iChannel < 16; ++iChannel)
     {

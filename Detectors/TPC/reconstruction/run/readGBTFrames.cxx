@@ -26,31 +26,32 @@ bool isVector1 (std::vector<int>& vec) {
   return true;
 }
 
-void addData(o2::TPC::GBTFrameContainer& container, std::string& infile, int& done) {
+void addData(o2::TPC::GBTFrameContainer& container, std::string& infile, int frames, std::string rorcFlavor, int& done) {
   done = 0;
   mtx.lock();
   std::cout << infile << std::endl;
   mtx.unlock();
 
-  container.addGBTFramesFromBinaryFile(infile);
+  container.addGBTFramesFromBinaryFile(infile, frames, rorcFlavor);
 
   done = 1;
 }
 
 void readData(o2::TPC::GBTFrameContainer& container, std::vector<std::ofstream*>& outfiles, int& run, int& done) {
   done = 0;
-//  std::vector<AliceO2::TPC::HalfSAMPAData> data;
-  std::vector<o2::TPC::DigitData> data;
+  std::vector<o2::TPC::HalfSAMPAData> data;
+//  std::vector<o2::TPC::DigitData> data;
   int i;
   while (!run) {
     std::this_thread::sleep_for(std::chrono::microseconds{100});
     while (container.getData(data)){
-//      for (i = 0; i < 5; ++i) {
+      for (i = 0; i < 5; ++i) {
+        std::cout << data[i] << std::endl;
 //        if (outfiles[i] != nullptr) {
 //          outfiles[i]->write(reinterpret_cast<const char*>(&data[i].getData()[0]), 16*sizeof(data[i].getData()[0]));
 ////          outfiles[i]->write((char*)&data[i].getData(),16*sizeof(short));
 //        }
-//      }
+      }
       data.clear();
     }
   }
@@ -66,9 +67,12 @@ int main(int argc, char *argv[])
   std::vector<std::string> infile(1,"NOFILE");
   std::vector<std::string> outfile(1,"NOFILE");
   std::string adcInFile = "NOFILE";
+  std::string rorcFlavor = "grorc";
   bool checkAdcClock = false;
   bool compileAdcValues = false;
   bool keepGbtFrames = false;
+  bool printGbtFrames = false;
+  int frames = -1;
 
   bpo::variables_map vm; 
   bpo::options_description desc("Allowed options");
@@ -76,12 +80,15 @@ int main(int argc, char *argv[])
     ("help,h", "Produce help message.")
     ("infile,i",    bpo::value<std::vector<std::string>>(&infile),   "Input data files")
     ("outfile,o",   bpo::value<std::vector<std::string>>(&outfile),  "Output data files")
-    (",n",          bpo::value<std::vector<unsigned>>(&size),        "Container sizes")
+    (",n",          bpo::value<int>(&frames),                        "Frames to read")
+    (",s",          bpo::value<std::vector<unsigned>>(&size),        "Container sizes")
     ("CRU",         bpo::value<std::vector<unsigned>>(&CRU),         "CRUs")
     ("link",        bpo::value<std::vector<unsigned>>(&link),        "links")
     ("clock,c",     bpo::bool_switch(&checkAdcClock),                "check ADC clock")
     ("ADC,a",       bpo::bool_switch(&compileAdcValues),             "compiles the ADC values")
     ("keep,k",      bpo::bool_switch(&keepGbtFrames),                "keeps the GBT frames in memory")
+    ("type,t",      bpo::value<std::string>(&rorcFlavor),            "Type of RORC which generated binary file (\"trorc\" or \"grorc\"")
+    ("print,p",     bpo::bool_switch(&printGbtFrames),               "print GBT frames")
     ("file,f",      bpo::value<std::string>(&adcInFile),             "ADC input file");
   bpo::store(parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);
@@ -122,7 +129,7 @@ int main(int argc, char *argv[])
   start = std::chrono::system_clock::now();
   for (int i = 0; i < infile.size(); ++i) {
     if (infile[i] != "NOFILE")
-      threads.emplace_back(addData,std::ref(*container[i]), std::ref(infile[i]), std::ref(addData_done[i]));
+      threads.emplace_back(addData,std::ref(*container[i]), std::ref(infile[i]), frames,rorcFlavor, std::ref(addData_done[i]));
   }
 
   std::vector<std::vector<std::ofstream*>> outfiles(infile.size());
@@ -198,6 +205,21 @@ int main(int argc, char *argv[])
   }
   std::chrono::duration<float> elapsed_seconds = end-start;
   std::cout << "In total: " << framesProcessed << " Frames processed in " << elapsed_seconds.count() << "s => " << framesProcessed/elapsed_seconds.count()<< " frames/s" << std::endl;
+
+  unsigned word3, word2, word1, word0;
+  if (printGbtFrames) {
+    for (std::vector<o2::TPC::GBTFrameContainer*>::iterator it = container.begin(); it != container.end(); ++it) {
+      std::cout << "Container " << std::distance(container.begin(), it) << ":" << std::endl;
+      for (std::vector<o2::TPC::GBTFrame>::iterator itt = (*it)->begin(); itt != (*it)->end(); ++itt) {
+        itt->getGBTFrame(word3, word2, word1, word0);
+        std::cout << *itt << " ";
+        std::cout << std::hex << std::setfill('0') << std::right << std::setw(8) << word3 << " " 
+                              << std::setfill('0') << std::right << std::setw(8) << word2 << " " 
+                              << std::setfill('0') << std::right << std::setw(8) << word1 << " " 
+                              << std::setfill('0') << std::right << std::setw(8) << word0 << std::dec << std::endl;
+      }
+    }
+  }
 
   for (std::vector<std::vector<std::ofstream*>>::iterator it = outfiles.begin(); it != outfiles.end(); ++it) {
     for (std::vector<std::ofstream*>::iterator itt = (*it).begin(); itt != (*it).end(); ++itt) {
