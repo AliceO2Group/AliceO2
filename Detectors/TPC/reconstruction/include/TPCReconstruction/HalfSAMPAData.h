@@ -62,6 +62,10 @@ class HalfSAMPAData {
     /// @return Reference to data
     std::array<short,16>& getData() { return mData; };
 
+    /// Assigns the given value to all elements in the container
+    /// @val value the value to assign to the elements
+    void fill(short val) { mData.fill(val); };
+
 
     /// Print function
     /// @param output stream to put the SAMPA data on
@@ -69,7 +73,8 @@ class HalfSAMPAData {
     std::ostream& Print(std::ostream& output) const;
     friend std::ostream& operator<< (std::ostream& out, const HalfSAMPAData& s) { return s.Print(out); }
 
-    bool operator== (const HalfSAMPAData& rhs) const { return mID == rhs.mID && mData == rhs.mData; };
+    bool operator== (const HalfSAMPAData& rhs) const { return mID == rhs.mID && mLow == rhs.mLow && mData == rhs.mData; };
+    bool operator!= (const HalfSAMPAData& rhs) const { return ! ((*this) == rhs); };
 
   private:
 
