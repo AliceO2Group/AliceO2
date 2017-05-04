@@ -73,8 +73,8 @@ class HwClusterer : public Clusterer {
       int iCRU;
       int iMaxRows;
       int iMaxPads;
-      unsigned iMinTimeBin;
-      unsigned iMaxTimeBin;
+      int iMinTimeBin;
+      int iMaxTimeBin;
       bool iEnableNoiseSim;
       bool iEnablePedestalSubtraction;
       bool iIsContinuousReadout;
