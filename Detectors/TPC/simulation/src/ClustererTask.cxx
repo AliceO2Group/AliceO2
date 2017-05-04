@@ -19,15 +19,16 @@ ClassImp(o2::TPC::ClustererTask)
 using namespace o2::TPC;
 
 //_____________________________________________________________________
-ClustererTask::ClustererTask():
-  FairTask("TPCClustererTask"),
-  mBoxClustererEnable(false),
-  mHwClustererEnable(false),
-  mBoxClusterer(nullptr),
-  mHwClusterer(nullptr),
-  mDigitsArray(nullptr),
-  mClustersArray(nullptr),
-  mHwClustersArray(nullptr)
+ClustererTask::ClustererTask()
+  : FairTask("TPCClustererTask")
+  , mBoxClustererEnable(false)
+  , mHwClustererEnable(false)
+  , mIsContinuousReadout(true)
+  , mBoxClusterer(nullptr)
+  , mHwClusterer(nullptr)
+  , mDigitsArray(nullptr)
+  , mClustersArray(nullptr)
+  , mHwClustersArray(nullptr)
 {
 }
 

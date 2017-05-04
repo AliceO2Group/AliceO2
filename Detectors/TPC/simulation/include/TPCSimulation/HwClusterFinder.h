@@ -64,6 +64,7 @@ class HwClusterFinder {
     
     // Getter functions
     int   getGlobalTimeOfLast() const             { return mGlobalTimeOfLast; }
+    int   getTimebinsAfterLastProcessing() const  { return mTimebinsAfterLastProcessing; };
     short getCRU() const                          { return mCRU; }
     short getRow() const                          { return mRow; }
     short getId() const                           { return mId; }
@@ -77,12 +78,13 @@ class HwClusterFinder {
     bool  getRequirePositiveCharge() const        { return mRequirePositiveCharge; }
     bool  getRequireNeighbouringPad() const       { return mRequireNeighbouringPad; }
     bool  getRequireNeighbouringTimebin() const   { return mRequireNeighbouringTimebin; }
-    bool  getAutProcessing() const                { return mAutoProcessing; } 
+    bool  getAutoProcessing() const                { return mAutoProcessing; } 
     bool  getmAssignChargeUnique() const          { return mAssignChargeUnique; }
     HwClusterFinder*          getNextCF() const     { return mNextCF; }
     std::vector<HwCluster>*   getClusterContainer() { return &clusterContainer; }
 
     // Setter functions
+    void  setTimebinsAfterLastProcessing(int val)       { mTimebinsAfterLastProcessing = val; };
     void  setCRU(short val)                             { mCRU = val; }
     void  setRow(short val)                             { mRow = val; }
     void  setId(short val)                              { mId = val; }

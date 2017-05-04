@@ -39,6 +39,7 @@ HwClusterer::HwClusterer(Processing processingType, int globalTime, int cru, flo
   , mAssignChargeUnique(assignChargeUnique)
   , mEnableNoiseSim(enableNoiseSim)
   , mEnablePedestalSubtraction(enablePedestalSubtraction)
+  , mIsContinuousReadout(true)
   , mPadsPerCF(padsPerCF)
   , mTimebinsPerCF(timebinsPerCF)
   , mCfPerRow(cfPerRow)
@@ -195,8 +196,7 @@ void HwClusterer::processDigits(
       /*
        * search for clusters and store reference to CF if one was found
        */
-      if ((time+config.iMinTimeBin) % (iTimebinsPerCF-2 -2) == 0)  {
-
+      if (clusterFinder[iRow][0]->getTimebinsAfterLastProcessing() == iTimebinsPerCF-2 -2)  {
         /*  
          * ordering is important: from right to left, so that the CFs could inform each other if cluster was found
          */
@@ -211,17 +211,29 @@ void HwClusterer::processDigits(
     /*
      * add empty timebins to find last clusters
      */
-    if (config.iEnableEventBased) {
-      for (t = 0; t < clusterFinder[iRow][0]->getNtimebins(); ++t) {
-        for (p = 0; p < config.iMaxPads; ++p) {
-          iAllBins[t][p] = 0.0;
+    if (config.iIsContinuousReadout) {
+      // +2 so that for sure all data is processed
+      for (time = 0; time < clusterFinder[iRow][0]->getNtimebins()+2; ++time){
+        for (auto rit = clusterFinder[iRow].crbegin(); rit != clusterFinder[iRow].crend(); ++rit) {
+          (*rit)->AddZeroTimebin(time+timeDiff+config.iMinTimeBin,iPadsPerCF);
+        }
+
+        /*
+         * search for clusters and store reference to CF if one was found
+         */
+        if (clusterFinder[iRow][0]->getTimebinsAfterLastProcessing() == iTimebinsPerCF-2 -2)  {
+          /*  
+           * ordering is important: from right to left, so that the CFs could inform each other if cluster was found
+           */
+          for (auto rit = clusterFinder[iRow].crbegin(); rit != clusterFinder[iRow].crend(); ++rit) {
+            if ((*rit)->findCluster()) {
+              cfWithCluster.push_back(rit);
+            }
+          }
         }
       }
-      for (time = 0; time < clusterFinder[iRow][0]->getNtimebins(); ++time){
-        for (pad = 0; pad < config.iMaxPads; pad = pad + (iPadsPerCF -2 -2 )) {
-          const Short_t cf = pad / (iPadsPerCF-2-2);
-          clusterFinder[iRow][cf]->AddTimebin(&iAllBins[time][pad],time+config.iMinTimeBin,(config.iMaxPads-pad)>=iPadsPerCF?iPadsPerCF:(config.iMaxPads-pad));
-        }
+      for (auto rit = clusterFinder[iRow].crbegin(); rit != clusterFinder[iRow].crend(); ++rit) {
+        (*rit)->setTimebinsAfterLastProcessing(0);
       }
     }
   
@@ -320,7 +332,7 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
       iTimeBinMax,
       mEnableNoiseSim,
       mEnablePedestalSubtraction,
-      mEnableEventBased,
+      mIsContinuousReadout,
       mNoiseObject,
       mPedestalObject
     };
