@@ -158,7 +158,7 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
     c->cd();
     c->SetLogy(1);
     std::string hist1name = "hist_" + *it + "_1";
-    std::string draw1 = "TPC_HW_Cluster." + *it + " >> " + hist1name;
+    std::string draw1 = "TPCCluster." + *it + " >> " + hist1name;
 
     tree->Draw(draw1.c_str(),"");
     hist1 = (TH1D*)gPad->GetPrimitive(hist1name.c_str());
@@ -198,7 +198,7 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
     }
  
     std::string hist2name = "hist_" + *it + "_2";
-    std::string draw2 = "TPC_Cluster." + *it + " >> " + hist2name;
+    std::string draw2 = "TPCCluster." + *it + " >> " + hist2name;
     tree->Draw(draw2.c_str(),"","same");
     hist2 = (TH1D*)gPad->GetPrimitive(hist2name.c_str());
     hist2->SetLineColor(4);
@@ -316,8 +316,8 @@ void compare_cluster(Int_t nEvents = 10, std::string mcEngine = "TGeant3")
   }
 
   TTreeReader myReader(treeName.c_str(), file);
-  TTreeReaderValue<TClonesArray> bClusters(myReader, "TPC_Cluster");
-  TTreeReaderValue<TClonesArray> hClusters(myReader, "TPC_HW_Cluster");
+  TTreeReaderValue<TClonesArray> bClusters(myReader, "TPCCluster");
+  TTreeReaderValue<TClonesArray> hClusters(myReader, "TPCCluster");
 
 //  std::set<int> duplicateBcluster;
 //  std::set<int> duplicateHcluster;
