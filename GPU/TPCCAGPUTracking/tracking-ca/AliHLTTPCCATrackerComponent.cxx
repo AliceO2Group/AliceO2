@@ -611,8 +611,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
 	}
 	fClusterData[islice].SetNumberOfClusters(pCluster - fClusterData[islice].Clusters());
       
-        Logging( kHLTLogInfo, "HLT::TPCCATracker::DoEvent", "Reading hits",
-		 "Read %d->%d hits for slice %d - patch %d", pcN[patch], fClusterData[islice].NumberOfClusters(), slice, patch );
+        HLTDebug("Read %d->%d hits for slice %d - patch %d", pcN[patch], fClusterData[islice].NumberOfClusters(), slice, patch );
       }
     }
   }
@@ -637,6 +636,7 @@ int AliHLTTPCCATrackerComponent::DoEvent
   fBenchmark.Start(1);
   fTracker->ProcessSlices(fMinSlice, fSliceCount, fClusterData, fSliceOutput);
   fBenchmark.Stop(1);
+  HLTInfo("Processed %d clusters", nClustersTotal);
 
   int ret = 0;
   size = 0;
