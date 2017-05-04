@@ -11,6 +11,7 @@ set(SRCS
    src/GBTFrameContainer.cxx
    src/HalfSAMPAData.cxx
    src/SyncPatternMonitor.cxx
+   src/TrackTPC.cxx
 )
 
 set(HEADERS
@@ -20,6 +21,7 @@ set(HEADERS
    include/${MODULE_NAME}/GBTFrameContainer.h
    include/${MODULE_NAME}/HalfSAMPAData.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
+   include/${MODULE_NAME}/TrackTPC.h
 )
 Set(LINKDEF src/TPCReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
