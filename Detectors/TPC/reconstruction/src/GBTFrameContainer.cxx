@@ -348,9 +348,9 @@ bool GBTFrameContainer::getData(std::vector<DigitData>& container)
         (mCRU%2) ? iHalfSampa/2+3 : iHalfSampa/2;
     for (std::array<short,16>::iterator it = mTmpData[iHalfSampa].begin(); it != mTmpData[iHalfSampa].end(); ++it)
     {
-      const PadPos& padPos = mapper.padPos(
-          mCRU/2 /*partition*/, 
-          mLink /*FEC in partition*/,
+      const PadPos& padPos = mapper.padPosRegion(
+          mCRU,     /* region */
+          mLink,    /* FEC in region*/
           iSampa,
           iSampaChannel);
       iRow = padPos.getRow();
