@@ -60,7 +60,9 @@ class HwClusterer : public Clusterer {
     void setNoiseObject(CalDet<float>* noiseObject) { mNoiseObject = noiseObject; };
     void setPedestalObject(CalDet<float>* pedestalObject) { mPedestalObject = pedestalObject; };
 
-    void setEnableEventBased(bool val) { mEnableEventBased = val; };
+    /// Switch for triggered / continuous readout
+    /// \param isContinuous - false for triggered readout, true for continuous readout
+    void setContinuousReadout(bool isContinuous) { mIsContinuousReadout = isContinuous; };
     
   private:
     // To be done
@@ -75,7 +77,7 @@ class HwClusterer : public Clusterer {
       unsigned iMaxTimeBin;
       bool iEnableNoiseSim;
       bool iEnablePedestalSubtraction;
-      bool iEnableEventBased;
+      bool iIsContinuousReadout;
       CalDet<float>* iNoiseObject;
       CalDet<float>* iPedestalObject;
     };
@@ -104,7 +106,7 @@ class HwClusterer : public Clusterer {
     bool    mAssignChargeUnique;
     bool    mEnableNoiseSim;
     bool    mEnablePedestalSubtraction;
-    bool    mEnableEventBased;
+    bool    mIsContinuousReadout; ///< Switch for continuous readout
     int     mPadsPerCF;
     int     mTimebinsPerCF;
     int     mCfPerRow;

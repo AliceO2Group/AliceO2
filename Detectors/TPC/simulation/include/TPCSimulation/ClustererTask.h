@@ -18,56 +18,69 @@
 class TClonesArray;
 
 namespace o2 {
-  namespace TPC{
+namespace TPC{
+  
+class ClustererTask : public FairTask{
+  public:
+    ClustererTask();
+    ~ClustererTask() override;
     
-    class ClustererTask : public FairTask{
-    public:
-      ClustererTask();
-      ~ClustererTask() override;
-      
-      InitStatus Init() override;
-      void Exec(Option_t *option) override;
+    InitStatus Init() override;
+    void Exec(Option_t *option) override;
 
-      enum class ClustererType : int { HW, Box};
-      void setClustererEnable(ClustererType type, bool val) {
-        switch (type) {
-          case ClustererType::HW:   mHwClustererEnable = val; break;
-          case ClustererType::Box:  mBoxClustererEnable = val; break;
-        };
+    enum class ClustererType : int { HW, Box};
+    void setClustererEnable(ClustererType type, bool val) {
+      switch (type) {
+        case ClustererType::HW:   mHwClustererEnable = val; break;
+        case ClustererType::Box:  mBoxClustererEnable = val; break;
       };
-
-      bool isClustererEnable(ClustererType type) const { 
-        switch (type) {
-          case ClustererType::HW:   return mHwClustererEnable;
-          case ClustererType::Box:  return mBoxClustererEnable;
-        };
-      };
-
-      Clusterer* getClusterer(ClustererType type) { 
-        switch (type) {
-          case ClustererType::HW:   return mHwClusterer;
-          case ClustererType::Box:  return mBoxClusterer;
-        };
-      };
-      
-      BoxClusterer* getBoxClusterer()   const { return mBoxClusterer; };
-      HwClusterer* getHwClusterer()     const { return mHwClusterer; };
-      //             Clusterer *GetClusterer() const { return fClusterer; }
-      
-    private:
-      bool          mBoxClustererEnable;
-      bool          mHwClustererEnable;
-
-      BoxClusterer        *mBoxClusterer;
-      HwClusterer         *mHwClusterer;
-      
-      TClonesArray        *mDigitsArray;
-      TClonesArray        *mClustersArray;
-      TClonesArray        *mHwClustersArray;
-      
-      ClassDefOverride(ClustererTask, 1)
     };
-  }
+
+    bool isClustererEnable(ClustererType type) const { 
+      switch (type) {
+        case ClustererType::HW:   return mHwClustererEnable;
+        case ClustererType::Box:  return mBoxClustererEnable;
+      };
+    };
+
+    Clusterer* getClusterer(ClustererType type) { 
+      switch (type) {
+        case ClustererType::HW:   return mHwClusterer;
+        case ClustererType::Box:  return mBoxClusterer;
+      };
+    };
+    
+    BoxClusterer* getBoxClusterer()   const { return mBoxClusterer; };
+    HwClusterer* getHwClusterer()     const { return mHwClusterer; };
+    //             Clusterer *GetClusterer() const { return fClusterer; }
+    
+  /// Switch for triggered / continuous readout
+  /// \param isContinuous - false for triggered readout, true for continuous readout
+  void setContinuousReadout(bool isContinuous);
+
+  private:
+    bool          mBoxClustererEnable;
+    bool          mHwClustererEnable;
+    bool          mIsContinuousReadout; ///< Switch for continuous readout
+
+    BoxClusterer        *mBoxClusterer;
+    HwClusterer         *mHwClusterer;
+    
+    TClonesArray        *mDigitsArray;
+    TClonesArray        *mClustersArray;
+    TClonesArray        *mHwClustersArray;
+    
+    ClassDefOverride(ClustererTask, 1)
+};
+
+inline
+void ClustererTask::setContinuousReadout(bool isContinuous)
+{
+  mIsContinuousReadout = isContinuous;
+  mHwClusterer->setContinuousReadout(isContinuous);
+}
+
+}
 }
 
 #endif
