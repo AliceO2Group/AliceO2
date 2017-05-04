@@ -5,6 +5,8 @@
 #define ALICEO2_TPC_HWClusterer_H_
 
 #include "TPCSimulation/Clusterer.h"
+#include "TPCBase/CalDet.h" 
+
 #include <vector>
 
 class TClonesArray;
@@ -33,11 +35,13 @@ class HwClusterer : public Clusterer {
     /// \param cru Number of CRUs to process
     /// \param minQDiff Min charge differece 
     /// \param assignChargeUnique Avoid using same charge for multiple nearby clusters
+    /// \param enableNoiseSim Enables the Noise simulation for empty pads (noise object has to be set)
+    /// \param enablePedestalSubtraction Enables the Pedestal subtraction (pedestal object has to be set)
     /// \param padsPerCF Pads per cluster finder
     /// \param timebinsPerCF Timebins per cluster finder
     /// \param cfPerRow Number of cluster finder in each row
     HwClusterer(Processing processingType, int globalTime, int cru, float minQDiff,
-      bool assignChargeUnique, int padsPerCF, int timebinsPerCF, int cfPerRow);
+      bool assignChargeUnique, bool enableNoiseSim, bool enablePedestalSubtraction, int padsPerCF, int timebinsPerCF, int cfPerRow);
     
     /// Destructor
     ~HwClusterer();
@@ -52,6 +56,11 @@ class HwClusterer : public Clusterer {
     ClusterContainer* Process(TClonesArray *digits) override;
 
     void setProcessingType(Processing processing)    { mProcessingType = processing; };   
+
+    void setNoiseObject(CalDet<float>* noiseObject) { mNoiseObject = noiseObject; };
+    void setPedestalObject(CalDet<float>* pedestalObject) { mPedestalObject = pedestalObject; };
+
+    void setEnableEventBased(bool val) { mEnableEventBased = val; };
     
   private:
     // To be done
@@ -64,6 +73,11 @@ class HwClusterer : public Clusterer {
       int iMaxPads;
       unsigned iMinTimeBin;
       unsigned iMaxTimeBin;
+      bool iEnableNoiseSim;
+      bool iEnablePedestalSubtraction;
+      bool iEnableEventBased;
+      CalDet<float>* iNoiseObject;
+      CalDet<float>* iPedestalObject;
     };
     
     static void processDigits(
@@ -88,10 +102,16 @@ class HwClusterer : public Clusterer {
     int     mCRUs;
     float   mMinQDiff;
     bool    mAssignChargeUnique;
+    bool    mEnableNoiseSim;
+    bool    mEnablePedestalSubtraction;
+    bool    mEnableEventBased;
     int     mPadsPerCF;
     int     mTimebinsPerCF;
     int     mCfPerRow;
     int     mLastTimebin;
+
+    CalDet<float>* mNoiseObject;
+    CalDet<float>* mPedestalObject;
   };
 }
 }

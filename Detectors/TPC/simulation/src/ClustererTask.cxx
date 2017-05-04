@@ -77,6 +77,9 @@ InitStatus ClustererTask::Init()
   if (mHwClustererEnable) {
     mHwClusterer = new HwClusterer();
     mHwClusterer->Init();
+// TODO: implement noise/pedestal objecta
+//    mHwClusterer->setNoiseObject();
+//    mHwClusterer->setPedestalObject();
 
     // Register output container
     mHwClustersArray = new TClonesArray("o2::TPC::Cluster");
