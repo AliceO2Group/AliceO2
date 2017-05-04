@@ -134,13 +134,26 @@ public:
     return padPos(padNumber);
   }
 
-  const PadPos padPosLocal(const int partition, const int fecInPartition, const int sampaOnFEC, const int channelOnSAMPA) const
+  const PadPos padPosPartition(const int partition, const int fecInPartition, const int sampaOnFEC, const int channelOnSAMPA) const
   {
     const PartitionInfo& partInfo = mMapPartitionInfo[partition];
     const int fecInSector = partInfo.getSectorFECOffset() + fecInPartition;
     const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
     PadPos pos = padPos(padNumber);
     pos.setRow(pos.getRow()-partInfo.getGlobalRowOffset());
+    return pos;
+  }
+
+  const PadPos padPosRegion(const int cruNumber, const int fecInRegion, const int sampaOnFEC, const int channelOnSAMPA) const
+
+  {
+    const CRU cru(cruNumber);
+    const PadRegionInfo& regionInfo = mMapPadRegionInfo[cru.region()];
+    const PartitionInfo& partInfo = mMapPartitionInfo[cru.partition()];
+    const int fecInSector = partInfo.getSectorFECOffset() + fecInRegion;
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    PadPos pos = padPos(padNumber);
+    pos.setRow(pos.getRow()-regionInfo.getGlobalRowOffset());
     return pos;
   }
 
