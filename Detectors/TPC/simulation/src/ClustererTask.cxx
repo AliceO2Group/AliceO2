@@ -72,7 +72,7 @@ InitStatus ClustererTask::Init()
     
     // Register output container
     mClustersArray = new TClonesArray("o2::TPC::Cluster");
-    mgr->Register("TPC_Cluster", "TPC", mClustersArray, kTRUE);
+    mgr->Register("TPCCluster", "TPC", mClustersArray, kTRUE);
   }
 
   if (mHwClustererEnable) {
@@ -84,7 +84,7 @@ InitStatus ClustererTask::Init()
 
     // Register output container
     mHwClustersArray = new TClonesArray("o2::TPC::Cluster");
-    mgr->Register("TPC_HW_Cluster", "TPC", mHwClustersArray, kTRUE);
+    mgr->Register("TPCClusterHW", "TPC", mHwClustersArray, kTRUE);
   }
 
   return kSUCCESS;
