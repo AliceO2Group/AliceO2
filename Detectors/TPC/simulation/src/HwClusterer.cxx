@@ -6,9 +6,10 @@
 #include "TPCSimulation/HwClusterFinder.h"
 #include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
-#include "TPCSimulation/Baseline.h"
 #include "TPCBase/PadPos.h"
+#include "TPCBase/CRU.h"
 #include "TPCBase/PadSecPos.h"
+#include "TPCBase/CalArray.h" 
 
 #include "FairLogger.h"
 #include "TMath.h"
@@ -23,23 +24,27 @@ std::mutex g_display_mutex;
 using namespace o2::TPC;
 
 HwClusterer::HwClusterer()
-  : HwClusterer(Processing::Parallel, 0, 360, 0, false, 8, 8, 0)
+  : HwClusterer(Processing::Parallel, 0, 360, 0, false, true, true, 8, 8, 0)
 {
 }
 
 //________________________________________________________________________
 HwClusterer::HwClusterer(Processing processingType, int globalTime, int cru, float minQDiff,
-    bool assignChargeUnique, int padsPerCF, int timebinsPerCF, int cfPerRow)
+    bool assignChargeUnique, bool enableNoiseSim, bool enablePedestalSubtraction, int padsPerCF, int timebinsPerCF, int cfPerRow)
   : Clusterer()
   , mProcessingType(processingType)
   , mGlobalTime(globalTime)
   , mCRUs(cru)
   , mMinQDiff(minQDiff)
   , mAssignChargeUnique(assignChargeUnique)
+  , mEnableNoiseSim(enableNoiseSim)
+  , mEnablePedestalSubtraction(enablePedestalSubtraction)
   , mPadsPerCF(padsPerCF)
   , mTimebinsPerCF(timebinsPerCF)
   , mCfPerRow(cfPerRow)
   , mLastTimebin(-1)
+  , mNoiseObject(nullptr)
+  , mPedestalObject(nullptr)
 {
 }
 
@@ -139,7 +144,7 @@ void HwClusterer::processDigits(
 //  }
 
   float iAllBins[timeDiff][config.iMaxPads];
-  Baseline baseline;
+
   for (int iRow = 0; iRow < config.iMaxRows; iRow++){
 
     /*
@@ -149,9 +154,10 @@ void HwClusterer::processDigits(
     float noise;
     for (t = 0; t < timeDiff; ++t) {
       for (p = 0; p < config.iMaxPads; ++p) {
-//        PadPos padPos(iRow,p);
-        noise = baseline.getNoise(PadSecPos(config.iCRU/10,PadPos(iRow,p)));
-        iAllBins[t][p] = noise;
+        if (config.iEnableNoiseSim && config.iNoiseObject != nullptr)
+          iAllBins[t][p] = config.iNoiseObject->getValue(CRU(config.iCRU),iRow,p);
+        else
+          iAllBins[t][p] = 0.0;
       }
     }
 
@@ -165,7 +171,12 @@ void HwClusterer::processDigits(
       const Float_t charge      = (*it)->getChargeFloat();
   
 //      std::cout << iCRU << " " << iRow << " " << iPad << " " << iTime << " (" << iTime-minTime << "," << timeDiff << ") " << charge << std::endl;
-      iAllBins[iTime-config.iMinTimeBin][iPad] += charge;
+      iAllBins[iTime-config.iMinTimeBin][iPad] = charge;
+      if (config.iEnablePedestalSubtraction && config.iPedestalObject != nullptr) {
+        const float pedestal = config.iPedestalObject->getValue(CRU(config.iCRU),iRow,iPad-2);
+        //printf("digit: %.2f, pedestal: %.2f\n", iAllBins[iTime-config.iMinTimeBin][iPad], pedestal);
+        iAllBins[iTime-config.iMinTimeBin][iPad] -= pedestal;
+      }
     }
   
     /*
@@ -175,7 +186,7 @@ void HwClusterer::processDigits(
     const Short_t iTimebinsPerCF = clusterFinder[iRow][0]->getNtimebins();
     std::vector<std::vector<HwClusterFinder*>::const_reverse_iterator> cfWithCluster;
     unsigned time,pad;
-    for (time = 0; time < timeDiff; time++){
+    for (time = 0; time < timeDiff; ++time){
       for (pad = 0; pad < config.iMaxPads; pad = pad + (iPadsPerCF -2 -2 )) {
         const Short_t cf = pad / (iPadsPerCF-2-2);
         clusterFinder[iRow][cf]->AddTimebin(&iAllBins[time][pad],time+config.iMinTimeBin,(config.iMaxPads-pad)>=iPadsPerCF?iPadsPerCF:(config.iMaxPads-pad));
@@ -193,6 +204,23 @@ void HwClusterer::processDigits(
           if ((*rit)->findCluster()) {
             cfWithCluster.push_back(rit);
           }
+        }
+      }
+    }
+
+    /*
+     * add empty timebins to find last clusters
+     */
+    if (config.iEnableEventBased) {
+      for (t = 0; t < clusterFinder[iRow][0]->getNtimebins(); ++t) {
+        for (p = 0; p < config.iMaxPads; ++p) {
+          iAllBins[t][p] = 0.0;
+        }
+      }
+      for (time = 0; time < clusterFinder[iRow][0]->getNtimebins(); ++time){
+        for (pad = 0; pad < config.iMaxPads; pad = pad + (iPadsPerCF -2 -2 )) {
+          const Short_t cf = pad / (iPadsPerCF-2-2);
+          clusterFinder[iRow][cf]->AddTimebin(&iAllBins[time][pad],time+config.iMinTimeBin,(config.iMaxPads-pad)>=iPadsPerCF?iPadsPerCF:(config.iMaxPads-pad));
         }
       }
     }
@@ -284,7 +312,18 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
    */
 
   for (int iCRU = 0; iCRU < mCRUs; ++iCRU) {
-    struct CfConfig cfConfig = {iCRU,mRowsMax,mPadsMax+2+2,iTimeBinMin,iTimeBinMax};
+    struct CfConfig cfConfig = {
+      iCRU,
+      mRowsMax,
+      mPadsMax+2+2,
+      iTimeBinMin,
+      iTimeBinMax,
+      mEnableNoiseSim,
+      mEnablePedestalSubtraction,
+      mEnableEventBased,
+      mNoiseObject,
+      mPedestalObject
+    };
 //        std::cout << "starting CRU " << iCRU << std::endl;
     if (mProcessingType == Processing::Parallel)
       thread_vector.emplace_back(
