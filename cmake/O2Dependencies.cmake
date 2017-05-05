@@ -598,7 +598,7 @@ o2_define_bucket(
     generators_bucket
 
     DEPENDENCIES
-    Base SimulationDataFormat pythia6 pythia8 MathCore
+    Base SimulationDataFormat Pythia6 pythia8 MathCore
 
     INCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
