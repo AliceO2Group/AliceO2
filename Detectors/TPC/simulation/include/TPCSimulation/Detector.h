@@ -72,7 +72,8 @@ class Detector: public o2::Base::Detector {
     /// @param bg Beta*Gamma of the incident particle
     /// @param kp* Parameters for the ALICE TPC
     /// @return Bethe-Bloch value in MIP units
-    Double_t BetheBlochAleph(Double_t bg, Double_t kp1, Double_t kp2, Double_t kp3, Double_t kp4, Double_t kp5);
+    template <typename T>
+    T BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5);
 
     /// Copied from AliRoot - should go to someplace else
     /// Function to generate random numbers according to Gamma function 
@@ -139,6 +140,19 @@ Point* Detector::addHit(float x, float y, float z, float time, float nElectrons,
   point->SetLink(FairLink(-1, mEventNr, FairRootManager::Instance()->GetBranchId("MCTrack"), trackID)); 
   return point;
 }
+
+template<typename T>
+inline
+T Detector::BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5){
+  T beta = bg/std::sqrt(static_cast<T>(1.)+ bg*bg);
+
+  T aa = std::pow(beta,kp4);
+  T bb = std::pow(static_cast<T>(1.)/bg,kp5);
+  bb=std::log(kp3+bb);
+
+  return (kp2-aa-bb)*kp1/aa;
+}
+
 }
 }
 

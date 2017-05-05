@@ -3043,17 +3043,6 @@ void Detector::DefineSensitiveVolumes()
   }
 }
 
-Double_t Detector::BetheBlochAleph(Double_t bg, Double_t kp1, Double_t kp2, Double_t kp3, Double_t kp4, Double_t kp5){
-  Double_t beta = bg/TMath::Sqrt(1.+ bg*bg);
-
-  Double_t aa = TMath::Power(beta,kp4);
-  Double_t bb = TMath::Power(1./bg,kp5);
-
-  bb=TMath::Log(kp3+bb);
-
-  return (kp2-aa-bb)*kp1/aa;
-}
-
 Double_t Detector::Gamma(Double_t k)
 {
   static Double_t n=0;
