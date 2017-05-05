@@ -200,12 +200,11 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   // In all other cases we have multiple collisions and we use 2mm (+ some
   // random shift to avoid binning effects), which was tuned for GEANT4, see
   // https://indico.cern.ch/event/316891/contributions/732168/
-  
-  TLorentzVector momentum;
+
+  static TLorentzVector momentum; // static to make avoid creation/deletion of this expensive object
   refMC->TrackMomentum(momentum);
   const Double_t rnd = refMC->GetRandom()->Rndm();
   if(mSimulationType == SimulationType::GEANT3) {
-    
     // betagamma = p/m
     Float_t betaGamma = momentum.P()/refMC->TrackMass();
     betaGamma = TMath::Max(betaGamma, static_cast<Float_t>(7.e-3)); // protection against too small bg
@@ -250,7 +249,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     return kFALSE;
   
   // ADD HIT
-  TLorentzVector position;
+  static TLorentzVector position;
   refMC->TrackPosition(position);
   float time    = refMC->TrackTime() * 1.0e09;
   int trackID = refMC->GetStack()->GetCurrentTrackNumber();
