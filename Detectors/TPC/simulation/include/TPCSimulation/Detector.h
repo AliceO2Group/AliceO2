@@ -125,6 +125,8 @@ class Detector: public o2::Base::Detector {
     TString mGeoFileName;                  ///< Name of the file containing the TPC geometry
     size_t mEventNr;                       //!< current event number
 
+    int mMCTrackBranchId; //! cache for the MCTrackBranchID (to avoid string based query)
+
     Detector(const Detector&);
     Detector& operator=(const Detector&);
 
@@ -137,7 +139,7 @@ Point* Detector::addHit(float x, float y, float z, float time, float nElectrons,
   TClonesArray& clref = *mPointCollection;
   Int_t size = clref.GetEntriesFast();
   Point *point = new(clref[size]) Point(x, y, z, time, nElectrons, trackID, detID);
-  point->SetLink(FairLink(-1, mEventNr, FairRootManager::Instance()->GetBranchId("MCTrack"), trackID)); 
+  point->SetLink(FairLink(-1, mEventNr, mMCTrackBranchId, trackID));
   return point;
 }
 
