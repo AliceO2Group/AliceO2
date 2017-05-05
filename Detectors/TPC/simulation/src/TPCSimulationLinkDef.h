@@ -32,6 +32,9 @@
 #pragma link C++ class o2::TPC::HwFixedPoint+;
 #pragma link C++ class o2::TPC::PadResponse+;
 #pragma link C++ class o2::TPC::Point+;
+#pragma link C++ class o2::TPC::ElementalHit+;
+#pragma link C++ class std::vector<o2::TPC::ElementalHit>+;
+#pragma link C++ class o2::TPC::LinkableHitGroup+;
 #pragma link C++ class o2::TPC::SAMPAProcessing+;
 
 #endif

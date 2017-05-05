@@ -52,10 +52,13 @@ using std::ios_base;
 using std::ifstream;
 using namespace o2::TPC;
 
+//#define NEWHIT 1
+
 Detector::Detector()
   : o2::Base::Detector("TPC", kTRUE, kAliTpc),
     mSimulationType(SimulationType::Other),
     mPointCollection(new TClonesArray("o2::TPC::Point")),
+    mHitGroupCollection(new TClonesArray("o2::TPC::LinkableHitGroup")),
     mGeoFileName(),
     mEventNr(0)
 {
@@ -65,6 +68,7 @@ Detector::Detector(const char* name, Bool_t active)
   : o2::Base::Detector(name, active, kAliTpc),
     mSimulationType(SimulationType::Other),
     mPointCollection(new TClonesArray("o2::TPC::Point")),
+    mHitGroupCollection(new TClonesArray("o2::TPC::LinkableHitGroup")),
     mGeoFileName(),
     mEventNr(0)
 {
@@ -254,7 +258,36 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   float time    = refMC->TrackTime() * 1.0e09;
   int trackID = refMC->GetStack()->GetCurrentTrackNumber();
   int detID   = vol->getMCid();
+
+#ifdef NEWHIT
+  static int oldTrackId = trackID;
+  static int oldDetId = detID;
+  static int groupCounter = 0;
+
+  //  a new group is starting -> put it into the container
+  static LinkableHitGroup *currentgroup = nullptr;
+  if (groupCounter == 0) {
+    TClonesArray& clref = *mHitGroupCollection;
+
+    // push-back in place
+    Int_t size = clref.GetEntriesFast();
+    currentgroup = new(clref[size]) LinkableHitGroup(trackID);
+
+    // set the MC truth link for this group
+    currentgroup->SetLink(FairLink(-1, mEventNr, mMCTrackBranchId, trackID)); 
+  }
+  if ( trackID == oldTrackId && oldDetId == detID ){
+    groupCounter++;
+    currentgroup->addHit(position.X(), position.Y(), position.Z(), time, nel);
+  }
+  // finish group
+  else {
+    oldTrackId = trackID;
+    groupCounter = 0;
+  }
+#else
   addHit(position.X(),  position.Y(),  position.Z(), time, nel, trackID, detID);
+#endif
 
   //LOG(INFO) << "TPC::AddHit" << FairLogger::endl
   //<< "   -- " << trackNumberID <<","  << volumeID << " " << vol->GetName()
@@ -274,36 +307,44 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
 
 void Detector::EndOfEvent()
 {
-
+  mHitGroupCollection->Clear();
   mPointCollection->Clear();
   ++mEventNr;
 }
 
-
-
 void Detector::Register()
 {
-
   /** This will create a branch in the output tree called
       DetectorPoint, setting the last parameter to kFALSE means:
       this collection will not be written to the file, it will exist
       only during the simulation.
   */
-
-  FairRootManager::Instance()->Register("TPCPoint", "TPC",mPointCollection, kTRUE);
-
+  auto *mgr=FairRootManager::Instance();
+#ifdef NEWHIT
+  mgr->Register("TPCGroupedHits", "TPC", mHitGroupCollection, kTRUE);
+#else
+  mgr->Register("TPCPoint", "TPC", mPointCollection, kTRUE);
+#endif
+  mMCTrackBranchId=mgr->GetBranchId("MCTrack");
 }
-
 
 TClonesArray* Detector::GetCollection(Int_t iColl) const
 {
+#ifdef NEWHIT
+  if (iColl == 0) { return mHitGroupCollection; }
+#else
   if (iColl == 0) { return mPointCollection; }
+#endif
   else { return nullptr; }
 }
 
 void Detector::Reset()
 {
+#ifdef NEWHIT
+  mHitGroupCollection->Clear();
+#else
   mPointCollection->Clear();
+#endif
 }
 
 void Detector::ConstructGeometry()

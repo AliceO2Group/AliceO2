@@ -1,4 +1,6 @@
+
 #include "TPCSimulation/Point.h"
+#include <iostream>
 
 using std::cout;
 using std::endl;
@@ -15,3 +17,5 @@ void Point::Print(const Option_t* opt) const
 }
 
 ClassImp(Point)
+ClassImp(LinkableHitGroup)
+ClassImp(ElementalHit)
