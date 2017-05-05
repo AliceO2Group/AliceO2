@@ -45,6 +45,11 @@ namespace o2 {
       // Get the number of rows of the cluster
       inline UInt_t GetNRows() const {return mNrows;}
 
+      inline void SetCenter(UInt_t r, UInt_t c) {
+        mCenterR = r;
+        mCenterC = c;
+      }
+
       // Get the center of rows of the cluster
       inline UInt_t GetCenterR() const {return mCenterR;}
 

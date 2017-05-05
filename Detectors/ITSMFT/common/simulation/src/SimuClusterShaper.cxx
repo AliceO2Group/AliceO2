@@ -2,6 +2,7 @@
 /// \brief Cluster shaper for the ALPIDE response simulation
 
 #include <iostream>
+#include <map>
 #include <TBits.h>
 #include <TRandom.h>
 
@@ -13,13 +14,22 @@ using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper() :
+mHitX(0.f),
+mHitZ(0.f),
+mHitC(0),
+mHitR(0),
 mFireCenter(false),
 mNpixOn(0),
+mSeg(nullptr),
 mCShape(nullptr) {}
 
 
 //______________________________________________________________________
 SimuClusterShaper::SimuClusterShaper(const UInt_t &cs) {
+  mHitX = 0.f;
+  mHitZ = 0.f;
+  mHitC = 0;
+  mHitR = 0;
   mFireCenter = false;
   mNpixOn = cs;
   UInt_t nRows = 0;
@@ -28,6 +38,7 @@ SimuClusterShaper::SimuClusterShaper(const UInt_t &cs) {
     nRows += 1;
     nCols += 1;
   }
+  mSeg = nullptr;
   mCShape = new ClusterShape(nRows, nCols);
 }
 
@@ -68,6 +79,30 @@ void SimuClusterShaper::FillClusterRandomly() {
 
 
 //______________________________________________________________________
+void SimuClusterShaper::FillClusterSorted() {
+  ReComputeCenters();
+  UInt_t matrixSize = mCShape->GetNRows()*mCShape->GetNCols();
+
+  std::map<Double_t, UInt_t> sortedpix;
+  Float_t pX = 0.f, pZ = 0.f;
+
+  for (UInt_t i = 0; i < matrixSize; ++i) {
+    UInt_t r = i / mCShape->GetNRows();
+    UInt_t c = i % mCShape->GetNRows();
+    UInt_t nx = mHitC - mCShape->GetCenterC() + c;
+    UInt_t nz = mHitR - mCShape->GetCenterR() + r;
+    mSeg->detectorToLocal(nx, nz, pX, pZ);
+    Double_t d = sqrt(pow(mHitX-pX,2)+pow(mHitZ-pZ,2));
+    sortedpix[d] = i;
+  }
+
+  for (std::map<Double_t, UInt_t>::iterator it = sortedpix.begin(); it != std::next(sortedpix.begin(),mNpixOn); ++it) {
+    mCShape->AddShapeValue(it->second);
+  }
+}
+
+
+//______________________________________________________________________
 void SimuClusterShaper::AddNoisePixel() {
   Int_t matrixSize = mCShape->GetNRows()*mCShape->GetNCols();
   UInt_t j = gRandom->Integer(matrixSize); // [0, matrixSize-1]
@@ -75,4 +110,43 @@ void SimuClusterShaper::AddNoisePixel() {
     j = gRandom->Integer(matrixSize);
   }
   //fCShape->SetShapeValue(i, j);
+}
+
+
+//______________________________________________________________________
+void SimuClusterShaper::ReComputeCenters() {
+  UInt_t  r  = 0,   c = 0;
+  Float_t pX = 0.f, pZ = 0.f;
+  mSeg->detectorToLocal(mHitC, mHitR, pX, pZ);
+
+  // c is even
+  if (mCShape->GetNCols() % 2 == 0) {
+
+    // n/2 - 1
+    if (mHitX > pX) {
+      c = mCShape->GetNCols()/2 - 1;
+    } else { // n/2
+      c = mCShape->GetNCols()/2;
+    }
+
+  } else { // c is odd
+    c = (mCShape->GetNCols()-1)/2;
+  }
+
+
+  // r is even
+  if (mCShape->GetNRows() % 2 == 0) {
+
+    // n/2 - 1
+    if (mHitZ > pZ) {
+      r = mCShape->GetNRows()/2 - 1;
+    } else { // n/2
+      r = mCShape->GetNRows()/2;
+    }
+
+  } else { // r is odd
+    r = (mCShape->GetNRows()-1)/2;
+  }
+
+  mCShape->SetCenter(r, c);
 }

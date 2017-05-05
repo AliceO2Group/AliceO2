@@ -247,14 +247,18 @@ void SimulationAlpide::GenerateCluster() {
 
     Double_t acs = ACSFromBetaGamma(bgamma, theta);
     UInt_t cs = GetPixelPositionResponse(ix, iz, x, z, acs);
-    // cs = 5; // uncomment to set the cluster size manually
+    //cs = 2; // uncomment to set the cluster size manually
 
 
     // Create the shape
     std::vector<UInt_t> cshape;
     auto *csManager = new SimuClusterShaper(cs);
     csManager->SetFireCenter(true);
-    csManager->FillClusterRandomly();
+    //csManager->FillClusterRandomly();
+
+    csManager->SetHit(ix, iz, x, z, mSeg);
+    csManager->FillClusterSorted();
+
     csManager->GetShape(cshape);
     UInt_t nrows = csManager->GetNRows();
     UInt_t ncols = csManager->GetNCols();
