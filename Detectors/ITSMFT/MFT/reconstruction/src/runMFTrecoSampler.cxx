@@ -11,7 +11,7 @@
 #include "runFairMQDevice.h"
 
 #include "MFTSimulation/EventHeader.h"
-#include "MFTReconstruction/FindClusters.h"
+#include "MFTReconstruction/ClusterizerTask.h"
 #include "MFTReconstruction/devices/Sampler.h"
 
 using namespace o2::MFT;

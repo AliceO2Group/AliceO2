@@ -19,7 +19,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/Cluster.h"
-#include "MFTReconstruction/FindClusters.h"
+#include "MFTReconstruction/ClusterizerTask.h"
 
 #include "TClonesArray.h"
 #include "TMath.h"
@@ -29,10 +29,10 @@
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::FindClusters)
+ClassImp(o2::MFT::ClusterizerTask)
 
 //_____________________________________________________________________________
-FindClusters::FindClusters():
+ClusterizerTask::ClusterizerTask():
 mDigits(nullptr),
 mClusters(nullptr),
 mNClusters(0),
@@ -45,7 +45,7 @@ mEventHeader(nullptr)
 }
 
 //_____________________________________________________________________________
-FindClusters::~FindClusters()
+ClusterizerTask::~ClusterizerTask()
 {
 
   reset();
@@ -57,10 +57,10 @@ FindClusters::~FindClusters()
 }
 
 //_____________________________________________________________________________
-InitStatus FindClusters::Init()
+InitStatus ClusterizerTask::Init()
 {
 
-  LOG(INFO) << "FindClusters::Init >>>>" << "";
+  LOG(INFO) << "ClusterizerTask::Init >>>>" << "";
 
   // Get RootManager
   FairRootManager* man = FairRootManager::Instance();
@@ -89,20 +89,20 @@ InitStatus FindClusters::Init()
 }
 
 //_____________________________________________________________________________
-InitStatus FindClusters::ReInit()
+InitStatus ClusterizerTask::ReInit()
 {
 
-  LOG(DEBUG) << "Re-Initilization of FindClusters" << "";
+  LOG(DEBUG) << "Re-Initilization of ClusterizerTask" << "";
 
   return kSUCCESS;
 
 }
 
 //_____________________________________________________________________________
-void FindClusters::initMQ(TList* tempList) 
+void ClusterizerTask::initMQ(TList* tempList) 
 {
 
-  LOG(INFO) << "FindClusters::InitMQ >>>>>" << "";
+  LOG(INFO) << "ClusterizerTask::InitMQ >>>>>" << "";
 
   mEventHeader = new EventHeader();
   mEventHeader->SetName("EventHeader.");
@@ -113,11 +113,11 @@ void FindClusters::initMQ(TList* tempList)
 }
 
 //_____________________________________________________________________________
-void FindClusters::Exec(Option_t* /*opt*/) 
+void ClusterizerTask::Exec(Option_t* /*opt*/) 
 {
 
   //Info("Exec","Exec called",0,0);
-  LOG(INFO) << "FindClusters::Exec >>>>>" << "";
+  LOG(INFO) << "ClusterizerTask::Exec >>>>>" << "";
 
   reset();
   /*
@@ -152,9 +152,9 @@ void FindClusters::Exec(Option_t* /*opt*/)
 }
 
 //_____________________________________________________________________________
-void FindClusters::execMQ(TList* inputList,TList* outputList) {
+void ClusterizerTask::execMQ(TList* inputList,TList* outputList) {
 
-  LOG(INFO) << "FindClusters::ExecMQ >>>>> (" << inputList->GetName() << "," << outputList->GetName() << "), Event " << mTNofEvents << "";
+  LOG(INFO) << "ClusterizerTask::ExecMQ >>>>> (" << inputList->GetName() << "," << outputList->GetName() << "), Event " << mTNofEvents << "";
 
   mDigits = (TClonesArray*)inputList->FindObject("MFTDigits");
 
@@ -165,7 +165,7 @@ void FindClusters::execMQ(TList* inputList,TList* outputList) {
   mEventHeader->SetRunId(mMCEventHeader->GetRunID());
   mEventHeader->SetMCEntryNumber(mMCEventHeader->GetEventID());
   mEventHeader->setPartNo(mMCEventHeader->GetNPrim());
-  LOG(INFO) << "FindClusters::ExecMQ >>>>> RunID " << mMCEventHeader->GetRunID() << " EventID " << mMCEventHeader->GetEventID() << " NPrim " << mMCEventHeader->GetNPrim() << "";
+  LOG(INFO) << "ClusterizerTask::ExecMQ >>>>> RunID " << mMCEventHeader->GetRunID() << " EventID " << mMCEventHeader->GetEventID() << " NPrim " << mMCEventHeader->GetNPrim() << "";
   outputList->Add(mEventHeader);
 
   Exec("");
@@ -175,7 +175,7 @@ void FindClusters::execMQ(TList* inputList,TList* outputList) {
 }
 
 //_____________________________________________________________________________
-void FindClusters::reset() 
+void ClusterizerTask::reset() 
 {
 
   mNClusters = 0;

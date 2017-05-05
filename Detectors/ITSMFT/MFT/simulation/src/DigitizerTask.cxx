@@ -3,6 +3,8 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 03/05/2017
 
+#include "FairLogger.h"
+
 #include "MFTSimulation/DigitizerTask.h"
 
 ClassImp(o2::MFT::DigitizerTask)

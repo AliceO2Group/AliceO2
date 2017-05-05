@@ -10,13 +10,13 @@
 
 #include "runFairMQDevice.h"
 
-#include "MFTReconstruction/FindClusters.h"
+#include "MFTReconstruction/ClusterizerTask.h"
 #include "MFTReconstruction/FindTracks.h"
 #include "MFTReconstruction/devices/TaskProcessor.h"
 
 using namespace o2::MFT;
 
-using ClusterFinder = TaskProcessor<FindClusters>;
+using ClusterFinder = TaskProcessor<ClusterizerTask>;
 using TrackFinder   = TaskProcessor<FindTracks>;
 
 namespace bpo = boost::program_options;

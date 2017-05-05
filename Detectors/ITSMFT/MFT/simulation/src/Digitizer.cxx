@@ -1,9 +1,13 @@
 /// \file Digitizer.h
-/// \brief Implementation of the convertion from Point to Digit
+/// \brief Implementation of the conversion from points to digits
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 03/05/2017
 
+#include "FairLogger.h"
+
 #include "MFTSimulation/Digitizer.h"
+
+#include "ITSMFTSimulation/Point.h"
 
 ClassImp(o2::MFT::Digitizer)
 
@@ -51,7 +55,7 @@ DigitContainer& Digitizer::process(TClonesArray* points)
 {
 
   mDigitContainer.reset();
-
+  /*
   // Convert points to digits
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
     Point* point = dynamic_cast<Point*>(*pointiter);
@@ -81,7 +85,7 @@ DigitContainer& Digitizer::process(TClonesArray* points)
     Digit* digit = mDigitContainer.addDigit(chipID, ix, iz, charge, point->GetTime());
     digit->setLabel(0, label);
   }
-
+  */
   return mDigitContainer;
 
 }
