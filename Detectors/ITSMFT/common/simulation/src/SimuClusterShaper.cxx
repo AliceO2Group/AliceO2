@@ -80,8 +80,13 @@ void SimuClusterShaper::FillClusterRandomly() {
 
 //______________________________________________________________________
 void SimuClusterShaper::FillClusterSorted() {
-  ReComputeCenters();
   UInt_t matrixSize = mCShape->GetNRows()*mCShape->GetNCols();
+  if (matrixSize == 1) {
+    mCShape->AddShapeValue(mCShape->GetCenterIndex());
+    return;
+  }
+
+  ReComputeCenters();
 
   std::map<Double_t, UInt_t> sortedpix;
   Float_t pX = 0.f, pZ = 0.f;
@@ -93,10 +98,16 @@ void SimuClusterShaper::FillClusterSorted() {
     UInt_t nz = mHitR - mCShape->GetCenterR() + r;
     mSeg->detectorToLocal(nx, nz, pX, pZ);
     Double_t d = sqrt(pow(mHitX-pX,2)+pow(mHitZ-pZ,2));
+
+    // what to do when you reached the border?
+    if (d > 1.) continue;
     sortedpix[d] = i;
   }
 
+  // border case
+  if (sortedpix.size() < mNpixOn) mNpixOn = sortedpix.size();
   for (std::map<Double_t, UInt_t>::iterator it = sortedpix.begin(); it != std::next(sortedpix.begin(),mNpixOn); ++it) {
+    // std::cout << "  " << it->second << std::endl;
     mCShape->AddShapeValue(it->second);
   }
 }
@@ -121,29 +132,22 @@ void SimuClusterShaper::ReComputeCenters() {
 
   // c is even
   if (mCShape->GetNCols() % 2 == 0) {
-
-    // n/2 - 1
-    if (mHitX > pX) {
+    if (mHitX > pX) { // n/2 - 1
       c = mCShape->GetNCols()/2 - 1;
     } else { // n/2
       c = mCShape->GetNCols()/2;
     }
-
   } else { // c is odd
     c = (mCShape->GetNCols()-1)/2;
   }
 
-
   // r is even
   if (mCShape->GetNRows() % 2 == 0) {
-
-    // n/2 - 1
-    if (mHitZ > pZ) {
+    if (mHitZ > pZ) { // n/2 - 1
       r = mCShape->GetNRows()/2 - 1;
     } else { // n/2
       r = mCShape->GetNRows()/2;
     }
-
   } else { // r is odd
     r = (mCShape->GetNRows()-1)/2;
   }
