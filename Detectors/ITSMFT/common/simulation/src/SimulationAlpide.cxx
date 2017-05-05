@@ -219,6 +219,7 @@ Double_t SimulationAlpide::ComputeIncidenceAngle(TLorentzVector dir) const {
   return pdirection.Angle(normal);
 }
 
+
 //______________________________________________________________________
 void SimulationAlpide::GenerateCluster() {
   Int_t nhits = mChip->GetNumberOfPoints();
@@ -247,8 +248,7 @@ void SimulationAlpide::GenerateCluster() {
 
     Double_t acs = ACSFromBetaGamma(bgamma, theta);
     UInt_t cs = GetPixelPositionResponse(ix, iz, x, z, acs);
-    //cs = 2; // uncomment to set the cluster size manually
-
+    //cs = 4; // uncomment to set the cluster size manually
 
     // Create the shape
     std::vector<UInt_t> cshape;
@@ -259,6 +259,7 @@ void SimulationAlpide::GenerateCluster() {
     csManager->SetHit(ix, iz, x, z, mSeg);
     csManager->FillClusterSorted();
 
+    cs = csManager->GetCS();
     csManager->GetShape(cshape);
     UInt_t nrows = csManager->GetNRows();
     UInt_t ncols = csManager->GetNCols();
