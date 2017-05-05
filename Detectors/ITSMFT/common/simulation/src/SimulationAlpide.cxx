@@ -248,7 +248,7 @@ void SimulationAlpide::GenerateCluster() {
 
     Double_t acs = ACSFromBetaGamma(bgamma, theta);
     UInt_t cs = GetPixelPositionResponse(ix, iz, x, z, acs);
-    //cs = 4; // uncomment to set the cluster size manually
+    //cs = 3; // uncomment to set the cluster size manually
 
     // Create the shape
     std::vector<UInt_t> cshape;

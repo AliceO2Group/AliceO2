@@ -32,12 +32,9 @@ SimuClusterShaper::SimuClusterShaper(const UInt_t &cs) {
   mHitR = 0;
   mFireCenter = false;
   mNpixOn = cs;
-  UInt_t nRows = 0;
-  UInt_t nCols = 0;
-  while (nRows*nCols < cs) {
-    nRows += 1;
-    nCols += 1;
-  }
+  UInt_t nRows = cs;
+  UInt_t nCols = cs;
+
   mSeg = nullptr;
   mCShape = new ClusterShape(nRows, nCols);
 }
