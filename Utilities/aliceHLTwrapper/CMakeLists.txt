@@ -21,8 +21,8 @@ set(BUCKET_NAME O2DeviceApplication_bucket)
 O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
-    aliceHLTWrapper
-    aliceHLTEventSampler
+    AliceHLTWrapperDevice
+    AliceHLTEventSamplerDevice
     runComponent
     )
 
