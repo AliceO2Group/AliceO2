@@ -23,25 +23,21 @@ using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide():
-mSeg(nullptr),
-mChip(nullptr)
+  Chip()
 {
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=0.;
 }
 
 //______________________________________________________________________
-SimulationAlpide::SimulationAlpide
-(Double_t par[NumberOfParameters], SegmentationPixel *seg, Chip *chip):
-mSeg(seg),
-mChip(chip)
+SimulationAlpide::SimulationAlpide(Double_t par[NumberOfParameters], Int_t n, const TGeoHMatrix *m):
+  Chip(n,m)
 {
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=par[i];
 }
 
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide(const SimulationAlpide &s):
-mSeg(s.mSeg),
-mChip(s.mChip)
+Chip(s)
 {
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=s.mParam[i];
 }
@@ -59,9 +55,9 @@ Double_t SimulationAlpide::getACSFromBetaGamma(Double_t x, Double_t theta) const
 
 
 //______________________________________________________________________
-Int_t SimulationAlpide::getPixelPositionResponse(Int_t idPadX, Int_t idPadZ, Float_t locx, Float_t locz, Double_t acs) const {
+Int_t SimulationAlpide::getPixelPositionResponse(const SegmentationPixel *seg, Int_t idPadX, Int_t idPadZ, Float_t locx, Float_t locz, Double_t acs) const {
   Float_t centerX, centerZ;
-  mSeg->detectorToLocal(idPadX, idPadZ, centerX, centerZ);
+  seg->detectorToLocal(idPadX, idPadZ, centerX, centerZ);
 
   Double_t Dx = locx-centerX;
   Double_t Dy = locz-centerZ;
@@ -69,7 +65,7 @@ Int_t SimulationAlpide::getPixelPositionResponse(Int_t idPadX, Int_t idPadZ, Flo
   Double_t offc  = acs; // WARNING: this is just temporary! (a function for this is ready but need further testing)
 
   auto *respf = new TF2("respf", "([1]-1)*(1-TMath::Gaus(x,0,[0])*TMath::Gaus(y,0,[0]))+1",
-  -mSeg->cellSizeX()/2, mSeg->cellSizeX()/2, -mSeg->cellSizeZ(0)/2, mSeg->cellSizeZ(0)/2);
+  -seg->cellSizeX()/2, seg->cellSizeX()/2, -seg->cellSizeZ(0)/2, seg->cellSizeZ(0)/2);
   respf->SetParameter(0, sigma);
   respf->SetParameter(1, offc);
   Int_t cs = (Int_t) round(respf->Eval(Dx, Dy));
@@ -105,7 +101,7 @@ Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const {
   glob[1] = dir.Py()/dir.P();
   glob[2] = dir.Pz()/dir.P();
 
-  mChip->globalToLocalVector(glob, loc);
+  Chip::globalToLocalVector(glob, loc);
 
   TVector3 pdirection(loc[0], loc[1], loc[2]);
   TVector3 normal(0., -1., 0.);
@@ -115,20 +111,21 @@ Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const {
 
 
 //______________________________________________________________________
-void SimulationAlpide::generateClusters(DigitContainer *digitContainer) {
-  Int_t nhits = mChip->GetNumberOfPoints();
+void
+SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitContainer *digitContainer) {
+  Int_t nhits = Chip::GetNumberOfPoints();
   if (nhits <= 0) return;
 
   for (Int_t h = 0; h < nhits; ++h) {
     Double_t x0, x1, y0, y1, z0, z1, tof, de;
-    if (!mChip->LineSegmentLocal(h, x0, x1, y0, y1, z0, z1, tof, de)) continue;
+    if (!Chip::LineSegmentLocal(h, x0, x1, y0, y1, z0, z1, tof, de)) continue;
 
     // To local coordinates
     Float_t x = x0 + 0.5*x1;
     Float_t y = y0 + 0.5*y1;
     Float_t z = z0 + 0.5*z1;
 
-    const Point *hit = mChip->GetPointAt(h);
+    const Point *hit = Chip::GetPointAt(h);
     TLorentzVector trackP4;
     trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
     Double_t beta = std::min(0.99999, trackP4.Beta());
@@ -138,10 +135,10 @@ void SimulationAlpide::generateClusters(DigitContainer *digitContainer) {
 
     // Get the pixel ID
     Int_t ix, iz;
-    if (!mSeg->localToDetector(x, z, ix, iz)) continue;
+    if (!seg->localToDetector(x, z, ix, iz)) continue;
 
     Double_t acs = getACSFromBetaGamma(bgamma, theta);
-    UInt_t cs = getPixelPositionResponse(ix, iz, x, z, acs);
+    UInt_t cs = getPixelPositionResponse(seg, ix, iz, x, z, acs);
     //cs = 3; // uncomment to set the cluster size manually
 
     // Create the shape
@@ -150,7 +147,7 @@ void SimulationAlpide::generateClusters(DigitContainer *digitContainer) {
     csManager->SetFireCenter(true);
     //csManager->FillClusterRandomly();
 
-    csManager->SetHit(ix, iz, x, z, mSeg);
+    csManager->SetHit(ix, iz, x, z, seg);
     csManager->FillClusterSorted();
 
     cs = csManager->GetCS();
@@ -175,10 +172,10 @@ void SimulationAlpide::generateClusters(DigitContainer *digitContainer) {
       Int_t c = (Int_t) cshape[ipix] % nrows;
       Int_t nx = ix - cx + c;
         if (nx<0) continue;
-        if (nx>=mSeg->getNumberOfRows()) continue;
+        if (nx>=seg->getNumberOfRows()) continue;
       Int_t nz = iz - cz + r;
         if (nz<0) continue;
-        if (nz>=mSeg->getNumberOfColumns()) continue;
+        if (nz>=seg->getNumberOfColumns()) continue;
       Int_t chipID = hit->GetDetectorID();
       Double_t charge = hit->GetEnergyLoss();
       Digit *digit = digitContainer->addDigit(chipID, nx, nz, charge, hit->GetTime());

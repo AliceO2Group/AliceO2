@@ -8,7 +8,6 @@
 #include "Rtypes.h"  // for Digitizer::Class, Double_t, ClassDef, etc
 #include "TObject.h" // for TObject
 
-#include "ITSMFTSimulation/Chip.h"
 #include "ITSMFTSimulation/SimulationAlpide.h"
 #include "ITSMFTSimulation/DigitContainer.h"
 #include "ITSBase/GeometryTGeo.h"
@@ -24,6 +23,9 @@ namespace o2
     public:
       Digitizer();
       ~Digitizer() override;
+      Digitizer(const Digitizer&) = delete;
+      Digitizer& operator=(const Digitizer&) = delete;
+
 
       void init(Bool_t build = kTRUE);
 
@@ -34,12 +36,7 @@ namespace o2
       void process(TClonesArray* points, TClonesArray* digits);
 
     private:
-      Digitizer(const Digitizer&);
-      Digitizer& operator=(const Digitizer&);
-
       GeometryTGeo mGeometry;                     ///< ITS upgrade geometry
-      Int_t mNumOfChips;                          ///< Number of chips
-      std::vector<o2::ITSMFT::Chip> mChips;  ///< Array of chips
       std::vector<o2::ITSMFT::SimulationAlpide> mSimulations; ///< Array of chips response simulations
       o2::ITSMFT::DigitContainer mDigitContainer; ///< Internal digit storage
 

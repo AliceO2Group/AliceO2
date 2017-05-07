@@ -31,7 +31,7 @@ namespace o2 {
       }
       void AddNoisePixel();
 
-      inline void    SetHit(Int_t ix, Int_t iz, Float_t x, Float_t z, SegmentationPixel* seg) {
+      inline void    SetHit(Int_t ix, Int_t iz, Float_t x, Float_t z, const SegmentationPixel* seg) {
         mHitC = ix;
         mHitR = iz;
         mHitX = x;
@@ -63,7 +63,7 @@ namespace o2 {
       Int_t   mHitR;
       Bool_t  mFireCenter;
       UInt_t  mNpixOn;
-      SegmentationPixel* mSeg;
+      const SegmentationPixel* mSeg;
       ClusterShape *mCShape;
 
       ClassDefOverride(SimuClusterShaper,1)
