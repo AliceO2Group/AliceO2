@@ -27,7 +27,7 @@ namespace o2 {
     class SegmentationPixel;
     class DigitContainer;
     
-    class SimulationAlpide : public TObject {
+    class SimulationAlpide : public Chip {
     public:
       enum {
         Threshold,
@@ -37,25 +37,23 @@ namespace o2 {
         NumberOfParameters
       };
       SimulationAlpide();
-      SimulationAlpide(Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);
+      SimulationAlpide(Double_t param[NumberOfParameters], Int_t index, const TGeoHMatrix *m);
       SimulationAlpide(const SimulationAlpide&);
       ~SimulationAlpide() override {}
 
       SimulationAlpide& operator=(const SimulationAlpide&) = delete;
 
-      void      generateClusters(DigitContainer *);
-      void      clearSimulation() { mChip->Clear(); }
+      void      generateClusters(const SegmentationPixel *, DigitContainer *);
+      void      clearSimulation() { Chip::Clear(); }
 
     private:
       Double_t  getACSFromBetaGamma(Double_t, Double_t) const; // Returns the average cluster size from the betagamma value
       Int_t     sampleCSFromLandau(Double_t, Double_t) const; // Sample the actual cluster size from a Landau distribution
       Double_t  computeIncidenceAngle(TLorentzVector) const; // Compute the angle between the particle and the normal to the chip
-      Int_t     getPixelPositionResponse(Int_t, Int_t, Float_t, Float_t, Double_t) const;
+      Int_t     getPixelPositionResponse(const SegmentationPixel *, Int_t, Int_t, Float_t, Float_t, Double_t) const;
 
     protected:
       Double_t           mParam[NumberOfParameters]; // Chip response parameters
-      SegmentationPixel *mSeg;      //! Segmentation
-      Chip              *mChip;     //! Chip being processed
 
       ClassDefOverride(SimulationAlpide,1)   // Simulation of pixel clusters
     };

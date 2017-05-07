@@ -23,17 +23,16 @@ using o2::ITSMFT::SegmentationPixel;
 
 using namespace o2::ITS;
 
-Digitizer::Digitizer() : mGeometry(), mNumOfChips(0), mChips(), mSimulations(), mDigitContainer() {}
+Digitizer::Digitizer() : mGeometry(), mSimulations(), mDigitContainer() {}
 
 Digitizer::~Digitizer() = default;
 
 void Digitizer::init(Bool_t build)
 {
   mGeometry.Build(build);
-  mNumOfChips = mGeometry.getNumberOfChips();
+  const Int_t numOfChips = mGeometry.getNumberOfChips();
 
-  mChips.resize(mNumOfChips);
-  mDigitContainer.resize(mNumOfChips);
+  mDigitContainer.resize(numOfChips);
 
   SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
   DigitChip::setNumberOfRows(seg->getNumberOfRows());
@@ -44,28 +43,29 @@ void Digitizer::init(Bool_t build)
     0.5018, // ACSFromBGPar1
     1.084   // ACSFromBGPar2
   };
-  for (Int_t i = 0; i < mNumOfChips; i++) {
-    mChips[i].Init(i, mGeometry.getMatrixSensor(i));
-    mSimulations.emplace_back(param, seg, &mChips[i]);
+  for (Int_t i = 0; i < numOfChips; i++) {
+    mSimulations.emplace_back(param, i, mGeometry.getMatrixSensor(i));
   }
 }
 
 void Digitizer::process(TClonesArray* points, TClonesArray* digits)
 {
+  const Int_t numOfChips = mGeometry.getNumberOfChips();
   mDigitContainer.reset();
 
   // Convert points to digits
+  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
   for (TIter iter = TIter(points).Begin(); iter != TIter::End(); ++iter) {
     Point* point = dynamic_cast<Point*>(*iter);
     Int_t chipID = point->GetDetectorID();
-    if (chipID >= mNumOfChips)
+    if (chipID >= numOfChips)
       continue;
-    mChips[chipID].InsertPoint(point);
+    mSimulations[chipID].InsertPoint(point);
   }
 
-  for (Int_t i = 0; i < mNumOfChips; i++) {
-    mSimulations[i].generateClusters(&mDigitContainer);
-    mSimulations[i].clearSimulation();
+  for (auto &simulation : mSimulations) {
+    simulation.generateClusters(seg, &mDigitContainer);
+    simulation.clearSimulation();
   }
   
   mDigitContainer.fillOutputContainer(digits);
@@ -76,6 +76,7 @@ DigitContainer& Digitizer::process(TClonesArray* points)
   mDigitContainer.reset();
 
   // Convert points to digits
+  const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
     Point* point = dynamic_cast<Point*>(*pointiter);
 
@@ -94,7 +95,6 @@ DigitContainer& Digitizer::process(TClonesArray* points)
     const Double_t glo[3] = { x, y, z };
     Double_t loc[3] = { 0., 0., 0. };
     mGeometry.globalToLocal(chipID, glo, loc);
-    const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
     Int_t ix, iz;
     seg->localToDetector(loc[0], loc[2], ix, iz);
     if ((ix < 0) || (iz < 0)) {
