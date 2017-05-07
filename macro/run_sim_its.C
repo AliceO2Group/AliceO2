@@ -9,7 +9,6 @@
   #include "FairPrimaryGenerator.h"
   #include "FairBoxGenerator.h"
   #include "FairParRootFileIo.h"
-  #include "FairConstField.h"
 
   #include "DetectorsPassive/Cave.h"
   #include "Field/MagneticField.h"
