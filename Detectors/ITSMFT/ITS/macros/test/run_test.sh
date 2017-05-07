@@ -4,7 +4,8 @@ mcEngine=\"TGeant3\"
 #To activate the ALPIDE response, set alp=kTRUE
 alp=kFALSE
 #
-root.exe -b -q $O2_ROOT/share/macro/run_sim_its.C+\($nEvents,$mcEngine\) >& sim.log
+root.exe -b -q $O2_ROOT/share/macro/run_sim_its_ALP3.C+\($nEvents,$mcEngine\) >& sim.log
+#root.exe -b -q $O2_ROOT/share/macro/run_sim_its.C+\($nEvents,$mcEngine\) >& sim.log
 root.exe -b -q $O2_ROOT/share/macro/run_digi_its.C+\($nEvents,$mcEngine,$alp\) >& digi.log
 root.exe -b -q CheckDigits.C+\($nEvents,$mcEngine\) >& CheckDigits.log
 root.exe -b -q $O2_ROOT/share/macro/run_clus_its.C+\($nEvents,$mcEngine\) >& clus.log
