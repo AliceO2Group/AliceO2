@@ -13,7 +13,6 @@
 
 #include <TObject.h>
 
-#include "ITSMFTBase/SensMap.h"
 #include "ITSMFTSimulation/Chip.h"
 
 class TLorentzVector;
@@ -38,34 +37,24 @@ namespace o2 {
         NumberOfParameters
       };
       SimulationAlpide();
-      SimulationAlpide
-      (Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);
+      SimulationAlpide(Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);
       SimulationAlpide(const SimulationAlpide&);
-        ~SimulationAlpide() override;
+      ~SimulationAlpide() override {}
 
-      void Init(Double_t param[NumberOfParameters], SegmentationPixel *, Chip *);
+      SimulationAlpide& operator=(const SimulationAlpide&) = delete;
 
-      void      SDigitiseChip(TClonesArray*);
-      void      FinishSDigitiseChip(TClonesArray*);
-      void      DigitiseChip(TClonesArray*);
-      Bool_t    AddSDigitsToChip(TSeqCollection*, Int_t);
-      void      GenerateCluster();
-      void      GenerateClusters(DigitContainer *);
-      void      clearSimulation() { mSensMap->clear(); mChip->Clear(); }
+      void      generateClusters(DigitContainer *);
+      void      clearSimulation() { mChip->Clear(); }
 
     private:
-      void      FrompListToDigits(TClonesArray*);
-      void      WriteSDigits(TClonesArray*);
-      Double_t  ACSFromBetaGamma(Double_t, Double_t) const; // Returns the average cluster size from the betagamma value
-      Int_t     CSSampleFromLandau(Double_t, Double_t) const; // Sample the actual cluster size from a Landau distribution
-      Double_t  ComputeIncidenceAngle(TLorentzVector) const; // Compute the angle between the particle and the normal to the chip
-      Int_t     GetPixelPositionResponse(Int_t, Int_t, Float_t, Float_t, Double_t) const;
-      void      CreateDigi(UInt_t, UInt_t, Int_t, Int_t);
+      Double_t  getACSFromBetaGamma(Double_t, Double_t) const; // Returns the average cluster size from the betagamma value
+      Int_t     sampleCSFromLandau(Double_t, Double_t) const; // Sample the actual cluster size from a Landau distribution
+      Double_t  computeIncidenceAngle(TLorentzVector) const; // Compute the angle between the particle and the normal to the chip
+      Int_t     getPixelPositionResponse(Int_t, Int_t, Float_t, Float_t, Double_t) const;
 
     protected:
       Double_t           mParam[NumberOfParameters]; // Chip response parameters
       SegmentationPixel *mSeg;      //! Segmentation
-      SensMap           *mSensMap;  //! Sensor map for hits manipulations
       Chip              *mChip;     //! Chip being processed
 
       ClassDefOverride(SimulationAlpide,1)   // Simulation of pixel clusters
