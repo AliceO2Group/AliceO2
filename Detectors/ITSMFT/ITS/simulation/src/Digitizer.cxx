@@ -33,7 +33,6 @@ void Digitizer::init(Bool_t build)
   mNumOfChips = mGeometry.getNumberOfChips();
 
   mChips.resize(mNumOfChips);
-  mSimulations.resize(mNumOfChips);
   mDigitContainer.resize(mNumOfChips);
 
   SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
@@ -47,7 +46,7 @@ void Digitizer::init(Bool_t build)
   };
   for (Int_t i = 0; i < mNumOfChips; i++) {
     mChips[i].Init(i, mGeometry.getMatrixSensor(i));
-    mSimulations[i].Init(param, seg, &mChips[i]);
+    mSimulations.emplace_back(param, seg, &mChips[i]);
   }
 }
 
@@ -65,7 +64,7 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
   }
 
   for (Int_t i = 0; i < mNumOfChips; i++) {
-    mSimulations[i].GenerateClusters(&mDigitContainer);
+    mSimulations[i].generateClusters(&mDigitContainer);
     mSimulations[i].clearSimulation();
   }
   
