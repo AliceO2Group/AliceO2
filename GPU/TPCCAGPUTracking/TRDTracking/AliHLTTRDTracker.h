@@ -47,6 +47,7 @@ public:
   void SetChi2Threshold(float maxChi2) { fMaxChi2 = maxChi2; }
   int GetDetectorNumber(const double zPos, double alpha, int layer);
   bool AdjustSector(AliHLTTRDTrack *t);
+  int GetSector(double alpha);
 
   // for testing
   bool IsTrackletSortingOk();
