@@ -21,20 +21,23 @@ exit_with_message () {
 
 start_device () {
     echo "starting $1 for specification $spec in screen \"$sessiontitle\""
+    # Note: there seems to be a limit how many characters are sent to the
+    # screen with the -X option. Both environment and channel configuration
+    # are thus split into multiple commands
+
     # start the screen session
     screen -S "$sessiontitle" -t 0 -A -d -m
-    # propagate the environment to the screen window
-    env | sed -e '/^[A-Z]/!d' -e 's|=|="|' -e 's|\(.\)$|\1"|' | while read line ; do screen -S "$sessiontitle" -p 0 -X stuff $"export ${line}\n"; done
     # change to the directory
     screen -S "$sessiontitle" -p 0 -X stuff $"cd ${PWD}\n"
+    # propagate the environment to the screen window
+    env | sed -e '/^[A-Z].*=/!d' | while read line ; do variable=${line/=*/}; screen -S "$sessiontitle" -p 0 -X stuff $"unset ${variable}\n"; unset delimiter; echo ${line/${variable}=/} | tr ':' '\n' | while read token ; do screen -S "$sessiontitle" -p 0 -X stuff $"export ${variable}${delimiter/:/+}=\"$delimiter${token}\"\n"; delimiter=':'; done; done
     # start the device
-    # Note: there seems to be a limit how many characters are sent
-    # to the screen with the -X option. Probably one has to break down the
-    # socket configuration string
-    echo $command $sockets $parameters
+    echo $command $channels $parameters
     screen -S "$sessiontitle" -p 0 -X stuff $"${command} "
-    screen -S "$sessiontitle" -p 0 -X stuff $"${sockets} "
+    screen -S "$sessiontitle" -p 0 -X stuff $"${channels} "
+    #echo $channels | tr ' ' '\n' | while read channelconfig; do screen -S "$sessiontitle" -p 0 -X stuff $"${channelconfig} "; done
     screen -S "$sessiontitle" -p 0 -X stuff $"${parameters}\n"
+    screen -S "$sessiontitle" -p 0 -X stuff $"\n"
 }
 
 
@@ -50,16 +53,16 @@ for ((slice=minSlice; slice<=maxSlice; slice++)); do
     command="$WrapperDeviceApplication --id=ClusterPublisher_$spec --channel-config name=data-out,type=push,method=bind,address=tcp://*:$socketNo --library libAliHLTUtil.so --component FilePublisher --run 167808 --parameter '-datafilelist emulated-tpc-clusters_$spec.txt'"
     sessiontitle="ClusterPublisher_$spec"
     start_device ClusterPublisher
-    trackerInputSockets=`echo "$trackerInputSockets $socketNo"`
+    trackerInputSockets+="${trackerInputSockets:+ }$socketNo"
     let socketNo++
   done
 done
 
 command="$WrapperDeviceApplication --id=Tracker"
 parameters="--library libAliHLTTPC.so --component TPCCATracker --run $runNo --parameter '-GlobalTracking'"
-sockets=""
+unset channels
 for socket in $trackerInputSockets; do
-    sockets=`echo "$sockets --channel-config name=input,type=pull,method=connect,address=tcp://localhost:$socket"`
+    channels+="${channels:+ }--channel-config name=data-in,type=pull,method=connect,address=tcp://localhost:$socket"
 done
 spec=`printf 0x%02x%02x%02x%02x $maxSlice $minSlice $maxPart $minPart`
 sessiontitle="Tracker"
