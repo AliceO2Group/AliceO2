@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # very simple helper script to create the commands for starting several processes
+# in multiple screen sessions
 
 minSlice=0
 maxSlice=0
@@ -12,6 +13,11 @@ msgSize=1000
 firstSocketNo=45000
 let socketNo=firstSocketNo
 trackerInputSockets=
+
+exit_with_message () {
+    echo $1
+    exit
+}
 
 start_device () {
     echo "starting $1 for specification $spec in screen \"$sessiontitle\""
@@ -31,10 +37,17 @@ start_device () {
     screen -S "$sessiontitle" -p 0 -X stuff $"${parameters}\n"
 }
 
+
+WrapperDeviceApplication=AliceHLTWrapperDevice
+
+# check whether the required executables are available
+which screen > /dev/null 2>&1 || exit_with_message "This script requires the 'screen' command to be installed"
+which $WrapperDeviceApplication > /dev/null 2>&1 || exit_with_message "Can not find the $WrapperDeviceApplication executable"
+
 for ((slice=minSlice; slice<=maxSlice; slice++)); do
   for ((part=minPart; part<=maxPart; part++)); do
     spec=`printf 0x%02x%02x%02x%02x $slice $slice $part $part`
-    command="aliceHLTWrapper ClusterPublisher_$spec 1 --output type=push,size=$msgSize,method=bind,address=tcp://*:$socketNo --library libAliHLTUtil.so --component FilePublisher --run 167808 --parameter '-datafilelist emulated-tpc-clusters_$spec.txt'"
+    command="$WrapperDeviceApplication --id=ClusterPublisher_$spec --channel-config name=data-out,type=push,method=bind,address=tcp://*:$socketNo --library libAliHLTUtil.so --component FilePublisher --run 167808 --parameter '-datafilelist emulated-tpc-clusters_$spec.txt'"
     sessiontitle="ClusterPublisher_$spec"
     start_device ClusterPublisher
     trackerInputSockets=`echo "$trackerInputSockets $socketNo"`
@@ -42,12 +55,12 @@ for ((slice=minSlice; slice<=maxSlice; slice++)); do
   done
 done
 
-command="aliceHLTWrapper Tracker 1 "
+command="$WrapperDeviceApplication --id=Tracker"
+parameters="--library libAliHLTTPC.so --component TPCCATracker --run $runNo --parameter '-GlobalTracking'"
 sockets=""
 for socket in $trackerInputSockets; do
-    sockets=`echo "$sockets --input type=pull,size=$msgSize,method=connect,address=tcp://localhost:$socket"`
+    sockets=`echo "$sockets --channel-config name=input,type=pull,method=connect,address=tcp://localhost:$socket"`
 done
-parameters="--library libAliHLTTPC.so --component TPCCATracker --run $runNo --parameter '-GlobalTracking'"
 spec=`printf 0x%02x%02x%02x%02x $maxSlice $minSlice $maxPart $minPart`
 sessiontitle="Tracker"
 start_device Tracker
