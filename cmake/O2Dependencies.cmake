@@ -592,6 +592,24 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
 )
 
+o2_define_bucket(
+    NAME
+    tpc_eventdisplay_bucket
+
+    DEPENDENCIES
+    tpc_base_bucket
+    tpc_simulation_bucket
+    EventDisplay
+    #   Core
+    #    root_base_bucket
+    #    fairroot_geom
+    #    ${GENERATORS_LIBRARY}
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/TPC/simulation/include
+)
+
 
 o2_define_bucket(
     NAME
