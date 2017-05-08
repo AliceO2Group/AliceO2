@@ -322,7 +322,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
       pOutputBlock->fOffset = 0;
 
       // first search in the output buffer
-      bValid = bValid || pStart >= pOutputBufferStart && pEnd <= pOutputBufferEnd;
+      bValid = bValid || (pStart >= pOutputBufferStart && pEnd <= pOutputBufferEnd);
 
       // possibly a forwarded data block, try the input buffers
       if (!bValid) {
