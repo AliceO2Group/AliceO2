@@ -289,7 +289,7 @@ void AliHLTTRDTracker::CalculateSpacePoints()
       matrix->LocalToMaster(xTrklt, fSpacePoints[trkltIdx].fX);
       fSpacePoints[trkltIdx].fId = fTracklets[trkltIdx].GetId();
       fSpacePoints[trkltIdx].fLabel = fTracklets[trkltIdx].GetLabel();
-      fSpacePoints[trkltIdx].fCov[0] = TMath::Power(0.18, 2);
+      fSpacePoints[trkltIdx].fCov[0] = TMath::Power(0.05, 2);
       fSpacePoints[trkltIdx].fCov[1] = TMath::Power(padPlane->GetRowSize(fTracklets[trkltIdx].GetZbin()), 2) / 12.;
 
       AliGeomManager::ELayerID iLayer = AliGeomManager::ELayerID(AliGeomManager::kTRD1+fTRDgeometry->GetLayer(iDet));
@@ -365,11 +365,6 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
       return result;
     }
 
-    if (abs(t->GetZ()) >= (zMaxTRD + 10.)) {
-      Info("FollowProlongation", "track out of TRD acceptance with z=%f in layer %i (eta=%f)", t->GetZ(), iLayer, t->Eta());
-      return result;
-    }
-
     // rotate track in new sector in case of sector crossing
     if (!AdjustSector(t)) {
       return result;
@@ -394,6 +389,11 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
     // define search window for tracklets
     double deltaY = 7. * TMath::Sqrt(t->GetSigmaY2() + TMath::Power(0.05, 2)) + 2; // add constant to the road for better efficiency
     double deltaZ = 7. * TMath::Sqrt(t->GetSigmaZ2() + TMath::Power(9./TMath::Sqrt(12), 2)); // take longest pad length first
+
+    if (abs(t->GetZ()) - deltaZ >= zMaxTRD ) {
+      Info("FollowProlongation", "track out of TRD acceptance with z=%f in layer %i (eta=%f)", t->GetZ(), iLayer, t->Eta());
+      return result;
+    }
 
     // determine initial chamber where the track ends up
     // add more chambers of the same sector if track is close to edge of the chamber
@@ -423,8 +423,8 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
     else {
       if (TMath::Abs(t->GetZ()) > zMaxTRD) {
         t->GetZ() > 0 ? // shift track in z so it is in the TRD acceptance
-          detector = GetDetectorNumber(t->GetZ()-10., t->GetAlpha(), iLayer) :
-          detector = GetDetectorNumber(t->GetZ()+10., t->GetAlpha(), iLayer);
+          detector = GetDetectorNumber(t->GetZ()- deltaZ, t->GetAlpha(), iLayer) :
+          detector = GetDetectorNumber(t->GetZ()+ deltaZ, t->GetAlpha(), iLayer);
         if (detector != -1) {
           det.push_back(detector);
           initialStack = fTRDgeometry->GetStack(detector);
@@ -632,9 +632,9 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
       }
       p[0] = fSpacePoints[bestGuessIdx].fX[1];
       p[1] = fSpacePoints[bestGuessIdx].fX[2];
-      cov[0] = TMath::Power(fSpacePoints[bestGuessIdx].fCov[0], 2);
+      cov[0] = fSpacePoints[bestGuessIdx].fCov[0];
       cov[1] = 0;
-      cov[2] = TMath::Power(fSpacePoints[bestGuessIdx].fCov[1], 2);
+      cov[2] = fSpacePoints[bestGuessIdx].fCov[1];
 
       if (!PropagateTrackToBxByBz(t, fSpacePoints[bestGuessIdx].fX[0], mass, 2.0 /*max step*/, kFALSE /*rotateTo*/, 0.8 /*maxSnp*/)){
         Error("FollowProlongation", "Final track propagation for update failed\n");
@@ -679,10 +679,10 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
           "\n";
       }
 
-      //if (!t->Update(p, cov)) {
-      //  Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);
-      //  continue;;
-      //}
+      if (!t->Update(p, cov)) {
+        Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);
+        continue;;
+      }
       t->AddTracklet(iLayer, bestGuessIdx);
       ++result;
       if (TMath::Abs(fSpacePoints[bestGuessIdx].fX[0] - fR[iLayer]) > 5) {
