@@ -34,7 +34,7 @@ rundir=`pwd`
 # TODO: implement real argument scan and more configurable options
 while [ "x$1" != "x" ]; do
     if [ "x$1" == "x--print-commands" ]; then
-	printcmdtoscreen='echo'
+        printcmdtoscreen='echo'
     fi
     shift
 done
@@ -155,27 +155,32 @@ create_flpgroup() {
     basesocket=$2
 
     # for now only one flp per node
-        deviceid="FLP_$node"
-	command="flpSender"
-	command+=" --id $deviceid"
-	command+=" --num-inputs 3"
-	command+=" --num-outputs $nepnsessions"
-	command+=" --heartbeat-timeout 20000"
-	command+=" --send-offset $((1+3*$nflpsessions))"
-	command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_command_socket   --input-rate-logging 0" # command input
-	command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_heartbeat_socket --input-rate-logging 0" # heartbeat input
-	command+=" "
-	flpinputsocket[nflpsessions]=$((basesocket + 0))
-	command+=" --input-socket-type pull --input-buff-size 5000 --input-method bind --input-address tcp://*:${flpinputsocket[$nflpsessions]} --input-rate-logging 1" # data input
-	for ((j=0; j<$nepnsessions; j++));
-	do
-            command+=" --output-socket-type push --output-buff-size 5000 --output-method connect --output-address tcp://${epnsessionnode[$j]}:${epninputsocket[$j]} --output-rate-logging 1"
-	done
+    deviceid="FLP_$node"
+    command="flpSender"
+    command+=" --id $deviceid"
+    command+=" --control static"
+    command+=" --flp-index 0"
+    command+=" --num-epns $nepnsessions"
+    #command+=" --num-inputs 3"
+    #command+=" --num-outputs $nepnsessions"
+    #command+=" --heartbeat-timeout 20000"
+    command+=" --send-offset $((1+3*$nflpsessions))"
+    #command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_command_socket   --input-rate-logging 0" # command input
+    #command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_heartbeat_socket --input-rate-logging 0" # heartbeat input
+    command+=" "
+    command+=" --in-chan-name data-in"
+    flpinputsocket[nflpsessions]=$((basesocket + 0))
+    command+=" --channel-config name=data-in,type=pull,size=5000,method=bind,address=tcp://*:${flpinputsocket[$nflpsessions]},rateLogging=1" # data input
+    command+=" --out-chan-name data-out"
+    for ((j=0; j<$nepnsessions; j++));
+    do
+        command+=" --channel-config name=data-out,type=push,size=5000,method=connect,address=tcp://${epnsessionnode[$j]}:${epninputsocket[$j]},rateLogging=1"
+    done
 
-	flpsessionnode[nflpsessions]=$node
-	flpsessiontitle[nflpsessions]=$deviceid
-	flpsessioncmd[nflpsessions]=$command
-	let nflpsessions++
+    flpsessionnode[nflpsessions]=$node
+    flpsessiontitle[nflpsessions]=$deviceid
+    flpsessioncmd[nflpsessions]=$command
+    let nflpsessions++
 }
 
 ###################################################################
@@ -186,28 +191,32 @@ create_epngroup() {
 
     for ((nepn=0; nepn<$number_of_epns_per_node; nepn++)); do
         deviceid=EPN_`printf %02d $nepnsessions`
-	command="epnReceiver"
-	command+=" --id $deviceid"
-	command+=" --num-outputs $((number_of_flps + 1))"
-	command+=" --heartbeat-interval 5000"
-	command+=" --buffer-timeout 60000"
-	command+=" --num-flps $number_of_flps"
-	epninputsocket[nepnsessions]=$((2*nepn + basesocket))
-	command+=" --input-socket-type pull --input-buff-size 5000 --input-method bind --input-address tcp://$node:${epninputsocket[$nepnsessions]} --input-rate-logging 1" # data input
-	epnoutputsocket[nepnsessions]=$((2*nepn + basesocket +1))
+        command="epnReceiver"
+        command+=" --id $deviceid"
+        command+=" --control static"
+        #command+=" --num-outputs $((number_of_flps + 1))"
+        #command+=" --heartbeat-interval 5000"
+        #command+=" --buffer-timeout 60000"
+        command+=" --num-flps $number_of_flps"
+        epninputsocket[nepnsessions]=$((2*nepn + basesocket))
+        command+=" --in-chan-name data-in"
+        command+=" --out-chan-name data-out"
+        command+=" --channel-config name=data-in,type=pull,size=5000,method=bind,address=tcp://$node:${epninputsocket[$nepnsessions]},rateLogging=1" # data input
+        command+=" --channel-config name=ack,type=pub,method=connect,address=tcp://localhost:$flp_heartbeat_socket,rateLogging=1" # data input
+        epnoutputsocket[nepnsessions]=$((2*nepn + basesocket +1))
         
-	epnsessionnode[nepnsessions]=$node
+        epnsessionnode[nepnsessions]=$node
         epnsessiontitle[nepnsessions]="$deviceid"
         epnsessioncmd[nepnsessions]=$command
-	# have to postpone adding the data output socket because of fixed order in the device outputs
-        epnsessiondataout[nepnsessions]=" --output-socket-type push --output-buff-size 5000 --output-method bind --output-address tcp://*:${epnoutputsocket[$nepnsessions]} --output-rate-logging 1" # data output
+        # have to postpone adding the data output socket because of fixed order in the device outputs
+        epnsessiondataout[nepnsessions]=" --channel-config name=data-out,type=push,size=5000,method=bind,address=tcp://*:${epnoutputsocket[$nepnsessions]},rateLogging=1" # data output
         let nepnsessions++
 
 # TBD after the FLP creation
-#	for flpnode in ${epn1_input[@]}; # heartbeats
-#	do
-#	    command+=" --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://$flpnode:$flp_heartbeat_socket --output-rate-logging 0"
-#	done
+#       for flpnode in ${epn1_input[@]}; # heartbeats
+#       do
+#           command+=" --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://$flpnode:$flp_heartbeat_socket --output-rate-logging 0"
+#       done
     done
 }
 
@@ -219,9 +228,9 @@ error=0
 inode=0
 while [ "$nepnsessions" -lt "$number_of_epns" ]; do
     if [ "$inode" -ge "$nepnnodes" ]; then
-	echo "error: too few nodes to create all epn devices"
-	error=1
-	break
+        echo "error: too few nodes to create all epn devices"
+        error=1
+        break
     fi
     create_epngroup ${epnnodelist[$inode]} $baseport_on_epngroup
 
@@ -231,9 +240,9 @@ done
 inode=0
 while [ "$nflpsessions" -lt "$number_of_flps" ]; do
     if [ "$inode" -ge "$nflpnodes" ]; then
-	echo "error: too few nodes to create all flp devices"
-	error=1
-	break
+        echo "error: too few nodes to create all flp devices"
+        error=1
+        break
     fi
     create_flpgroup ${flpnodelist[$inode]} $baseport_on_flpgroup
 
@@ -246,9 +255,9 @@ fi
 
 # now set the heartbeat channels
 for ((iepnsession=0; iepnsession<$nepnsessions; iepnsession++)); do
-    for ((iflpsession=0; iflpsession<$nflpsessions; iflpsession++)); do
-	epnsessioncmd[$iepnsession]="${epnsessioncmd[$iepnsession]} --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://${flpsessionnode[$iflpsession]}:$flp_heartbeat_socket --output-rate-logging 0"
-    done
+    #for ((iflpsession=0; iflpsession<$nflpsessions; iflpsession++)); do
+    #   epnsessioncmd[$iepnsession]="${epnsessioncmd[$iepnsession]} --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://${flpsessionnode[$iflpsession]}:$flp_heartbeat_socket --output-rate-logging 0"
+    #done
     # now add the data output, note that there is a fixed order in the device outputs
     epnsessioncmd[$iepnsession]="${epnsessioncmd[$iepnsession]} ${epnsessiondataout[$iepnsession]}"
 done
@@ -268,27 +277,27 @@ for ((isession=$nflpsessions++-1; isession>=0; isession--)); do
     echo "FLP_DEVICE_IN=${flpsessionnode[$isession]}:${flpinputsocket[$isession]}"
     if [ "x$printcmdtoscreen" == "x" ]; then
         echo "scheduling ${flpsessiontitle[$isession]} on ${flpsessionnode[$isession]}: ${flpsessioncmd[$isession]}"
-	echo
+        echo
     fi
     applications+=" "`echo ${flpsessioncmd[$isession]} | sed -e 's| .*$||'`
     fi
 
     if [ "${sessionmap[isession]}" -gt 0 ]; then
-	#echo $isession: ${sessionmap[isession]} $lastnode
-	if [ "x$lastnode" == "x${flpsessionnode[$isession]}" ] && [ "${sessionmap[$isession]}" -lt 10 ]; then
-	    let sessionmap[isession]++
-	    let havesessions++
-	else
- 	    if [ "x$lastnode" == "x${flpsessionnode[$isession]}" ]; then
-		# sleep between starts, some of the screens are not started if the frequency is too high
-		usleep 500000
-	    fi
-	    
-	    logcmd=" 2>&1 | tee ${flpsessiontitle[$isession]}.log"
-	    $printcmdtoscreen screen -d -m -S "${flpsessiontitle[$isession]} on ${flpsessionnode[$isession]}" ssh ${flpsessionnode[$isession]} "cd $rundir && source setup.sh && ${flpsessioncmd[$isession]} $logcmd" &
-	    sessionmap[isession]=0
-	    lastnode=${flpsessionnode[$isession]}
-	fi
+        #echo $isession: ${sessionmap[isession]} $lastnode
+        if [ "x$lastnode" == "x${flpsessionnode[$isession]}" ] && [ "${sessionmap[$isession]}" -lt 10 ]; then
+            let sessionmap[isession]++
+            let havesessions++
+        else
+            if [ "x$lastnode" == "x${flpsessionnode[$isession]}" ]; then
+                # sleep between starts, some of the screens are not started if the frequency is too high
+                usleep 500000
+            fi
+
+            logcmd=" 2>&1 | tee ${flpsessiontitle[$isession]}.log"
+            $printcmdtoscreen screen -d -m -S "${flpsessiontitle[$isession]} on ${flpsessionnode[$isession]}" ssh ${flpsessionnode[$isession]} "cd $rundir && source setup.sh && ${flpsessioncmd[$isession]} $logcmd" &
+            sessionmap[isession]=0
+            lastnode=${flpsessionnode[$isession]}
+        fi
     fi
 done
 done
@@ -306,26 +315,26 @@ for ((isession=$nepnsessions++-1; isession>=0; isession--)); do
     echo "EPN_DEVICE_OUT=${epnsessionnode[$isession]}:${epnoutputsocket[$isession]}"
     if [ "x$printcmdtoscreen" == "x" ]; then
         echo "scheduling ${epnsessiontitle[$isession]} on ${epnsessionnode[$isession]}: ${epnsessioncmd[$isession]}"
-	echo
+        echo
     fi
     applications+=" "`echo ${epnsessioncmd[$isession]} | sed -e 's| .*$||'`
     fi
 
     if [ "${sessionmap[isession]}" -gt 0 ]; then
-	#echo $isession: ${sessionmap[isession]} $lastnode
-	if [ "x$lastnode" == "x${epnsessionnode[$isession]}" ] && [ "${sessionmap[$isession]}" -lt 10 ]; then
-	    let sessionmap[isession]++
-	    let havesessions++
-	else
- 	    if [ "x$lastnode" == "x${epnsessionnode[$isession]}" ]; then
-		# sleep between starts, some of the screens are not started if the frequency is too high
-		usleep 500000
-	    fi
-	    logcmd=" 2>&1 | tee ${epnsessiontitle[$isession]}.log"
-	    $printcmdtoscreen screen -d -m -S "${epnsessiontitle[$isession]} on ${epnsessionnode[$isession]}" ssh ${epnsessionnode[$isession]} "cd $rundir && source setup.sh && ${epnsessioncmd[$isession]} $logcmd" &
-	    sessionmap[isession]=0
-	    lastnode=${epnsessionnode[$isession]}
-	fi
+        #echo $isession: ${sessionmap[isession]} $lastnode
+        if [ "x$lastnode" == "x${epnsessionnode[$isession]}" ] && [ "${sessionmap[$isession]}" -lt 10 ]; then
+            let sessionmap[isession]++
+            let havesessions++
+        else
+            if [ "x$lastnode" == "x${epnsessionnode[$isession]}" ]; then
+                # sleep between starts, some of the screens are not started if the frequency is too high
+                usleep 500000
+            fi
+            logcmd=" 2>&1 | tee ${epnsessiontitle[$isession]}.log"
+            $printcmdtoscreen screen -d -m -S "${epnsessiontitle[$isession]} on ${epnsessionnode[$isession]}" ssh ${epnsessionnode[$isession]} "cd $rundir && source setup.sh && ${epnsessioncmd[$isession]} $logcmd" &
+            sessionmap[isession]=0
+            lastnode=${epnsessionnode[$isession]}
+        fi
     fi
 done
 done
