@@ -28,8 +28,8 @@ public:
 
   // struct to hold the information on the space points
   struct AliHLTTRDSpacePointInternal {
-    double fX[3];
-    double fCov[2];
+    double fX[3]; // 3d position in sector coordinates
+    double fCov[2]; // sigma_y^2, sigma_yz, sigma_z^2
     int fId;
     int fLabel;
     unsigned short fVolumeId;
