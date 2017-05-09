@@ -218,7 +218,6 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
         "pT=" << pT <<
         "alpha=" << alpha <<
         "nTrackletsAttached=" << result <<
-        "track.=" << t <<
         "\n";
     }
   }
@@ -289,7 +288,7 @@ void AliHLTTRDTracker::CalculateSpacePoints()
       matrix->LocalToMaster(xTrklt, fSpacePoints[trkltIdx].fX);
       fSpacePoints[trkltIdx].fId = fTracklets[trkltIdx].GetId();
       fSpacePoints[trkltIdx].fLabel = fTracklets[trkltIdx].GetLabel();
-      fSpacePoints[trkltIdx].fCov[0] = TMath::Power(0.05, 2);
+      fSpacePoints[trkltIdx].fCov[0] = TMath::Power(0.07, 2);
       fSpacePoints[trkltIdx].fCov[1] = TMath::Power(padPlane->GetRowSize(fTracklets[trkltIdx].GetZbin()), 2) / 12.;
 
       AliGeomManager::ELayerID iLayer = AliGeomManager::ELayerID(AliGeomManager::kTRD1+fTRDgeometry->GetLayer(iDet));
