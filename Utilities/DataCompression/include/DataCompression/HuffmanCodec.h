@@ -19,20 +19,20 @@
 //  @since  2015-08-11
 //  @brief  Implementation of a Huffman codec
 
-#include <cstdint>
 #include <cerrno>
-#include <set>
-#include <map>
-#include <vector>
-#include <memory>
+#include <cstdint>
 #include <exception>
-#include <stdexcept>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <set>
 #include <sstream> // stringstream in configuration parsing
+#include <stdexcept>
+#include <vector>
 
-namespace AliceO2 {
-
+namespace AliceO2
+{
 /**
  * @class HuffmanNode
  * @brief Container holding information to build Huffman tree
@@ -41,9 +41,10 @@ namespace AliceO2 {
  * accumulated weight (probability) according to coding model. Leave node, i.e.
  * the end of the tree branches, also contain the Huffman code after assignment.
  */
-template<typename _CodeType>
-class HuffmanNode {
-public:
+template <typename _CodeType>
+class HuffmanNode
+{
+ public:
   typedef HuffmanNode self_type;
   typedef self_type* pointer;
   typedef std::shared_ptr<self_type> shared_pointer;
@@ -53,58 +54,83 @@ public:
   HuffmanNode(const HuffmanNode& other) = default;
   HuffmanNode& operator=(const HuffmanNode& other) = default;
   ~HuffmanNode() {}
-
-  HuffmanNode(double weight, uint16_t index = ~uint16_t(0)) : mLeft(), mRight(), mWeight(weight), mIndex(index), mCode(), mCodeLen(0) {}
+  HuffmanNode(double weight, uint16_t index = ~uint16_t(0))
+    : mLeft(), mRight(), mWeight(weight), mIndex(index), mCode(), mCodeLen(0)
+  {
+  }
   // TODO: check if the shared pointers can be passed by reference
   // quick attempt lead to compilation error
-  HuffmanNode(shared_pointer left, shared_pointer right) : mLeft(left), mRight(right), mWeight((mLeft?mLeft->mWeight:0.)+(mRight?mRight->mWeight:0.)), mIndex(~uint16_t(0)), mCode(), mCodeLen(0) {}
-
-  bool operator<(const HuffmanNode& other) const {
-    return mWeight < other.mWeight;
+  HuffmanNode(shared_pointer left, shared_pointer right)
+    : mLeft(left),
+      mRight(right),
+      mWeight((mLeft ? mLeft->mWeight : 0.) + (mRight ? mRight->mWeight : 0.)),
+      mIndex(~uint16_t(0)),
+      mCode(),
+      mCodeLen(0)
+  {
   }
 
-  CodeType getBinaryCode() const {return mCode;}
-  uint16_t getBinaryCodeLength() const {return mCodeLen;}
-  uint16_t getIndex() const {return mIndex;}
-
+  bool operator<(const HuffmanNode& other) const { return mWeight < other.mWeight; }
+  CodeType getBinaryCode() const { return mCode; }
+  uint16_t getBinaryCodeLength() const { return mCodeLen; }
+  uint16_t getIndex() const { return mIndex; }
   // TODO: can be combined to one function with templated index
-  pointer  getLeftChild() const {return mLeft.get();}
-  pointer  getRightChild() const {return mRight.get();}
-  void setBinaryCode(uint16_t codeLen, CodeType code) {mCode = code; mCodeLen = codeLen;}
+  pointer getLeftChild() const { return mLeft.get(); }
+  pointer getRightChild() const { return mRight.get(); }
+  void setBinaryCode(uint16_t codeLen, CodeType code)
+  {
+    mCode = code;
+    mCodeLen = codeLen;
+  }
 
-  self_type& operator<<=(bool bit) {
+  self_type& operator<<=(bool bit)
+  {
     mCode <<= 1;
-    if (bit) mCode.set(0);
-    else mCode.reset(0);
-    mCodeLen +=1;
+    if (bit)
+      mCode.set(0);
+    else
+      mCode.reset(0);
+    mCodeLen += 1;
     return *this;
   }
 
-  self_type& operator>>=(bool bit) {
-    if (bit) mCode.set(mCodeLen);
-    else mCode.reset(mCodeLen);
-    mCodeLen +=1;
+  self_type& operator>>=(bool bit)
+  {
+    if (bit)
+      mCode.set(mCodeLen);
+    else
+      mCode.reset(mCodeLen);
+    mCodeLen += 1;
     return *this;
   }
 
-  void print(std::ostream& stream = std::cout) const {
-    static int level=1;
+  void print(std::ostream& stream = std::cout) const
+  {
+    static int level = 1;
     stream << "node weight: " << std::setw(9) << mWeight;
-    if (!mLeft) stream << " leave ";
-    else       stream << "  tree ";
+    if (!mLeft)
+      stream << " leave ";
+    else
+      stream << "  tree ";
     stream << " code length: " << mCodeLen;
     stream << " code " << mCode;
     stream << std::endl;
     level++;
-    if (mLeft)  {stream << std::setw(level) << level << ":  left: "; mLeft->print(stream);}
-    if (mRight) {stream << std::setw(level) << level << ": right: "; mRight->print(stream);}
+    if (mLeft) {
+      stream << std::setw(level) << level << ":  left: ";
+      mLeft->print(stream);
+    }
+    if (mRight) {
+      stream << std::setw(level) << level << ": right: ";
+      mRight->print(stream);
+    }
     level--;
   }
 
-private:
+ private:
   shared_pointer mLeft;
   shared_pointer mRight;
-  double  mWeight;
+  double mWeight;
   uint16_t mIndex;
   CodeType mCode;
   uint16_t mCodeLen;
@@ -121,31 +147,31 @@ private:
  * - Multi parameter support
  * - Interface methods to methods of the instances of the coding model
  */
-template<
-  typename _CodingModel
-  >
-class HuffmanCodec {
+template <typename _CodingModel>
+class HuffmanCodec
+{
  public:
   HuffmanCodec(const _CodingModel& model) : mCodingModel(model) {}
   ~HuffmanCodec() {}
-
   typedef _CodingModel model_type;
 
   /// Return Huffman code for a value
-  template<typename CodeType, typename ValueType>
-  const bool Encode(ValueType v, CodeType& code, uint16_t& codeLength) const {
+  template <typename CodeType, typename ValueType>
+  const bool Encode(ValueType v, CodeType& code, uint16_t& codeLength) const
+  {
     code = mCodingModel.Encode(v, codeLength);
     return true;
   }
 
-  template<typename ReturnType, typename CodeType, bool orderMSB = true>
-  bool Decode(ReturnType& v, CodeType code, uint16_t& codeLength) const {
+  template <typename ReturnType, typename CodeType, bool orderMSB = true>
+  bool Decode(ReturnType& v, CodeType code, uint16_t& codeLength) const
+  {
     v = mCodingModel.Decode(code, codeLength);
     return true;
   }
 
  private:
-  HuffmanCodec(); //forbidden
+  HuffmanCodec(); // forbidden
   _CodingModel mCodingModel;
 };
 
@@ -165,20 +191,19 @@ class HuffmanCodec {
  * - class StorageType as template parameter for Alphabet type
  * - error policy
  */
-template<typename _BASE, typename _NodeType, bool _orderMSB = true>
-class HuffmanModel : public _BASE {
-public:
+template <typename _BASE, typename _NodeType, bool _orderMSB = true>
+class HuffmanModel : public _BASE
+{
+ public:
   HuffmanModel() : mAlphabet(), mLeaveNodes(), mTreeNodes() {}
   ~HuffmanModel() {}
-
-  typedef _BASE                                base_type;
+  typedef _BASE base_type;
   typedef class HuffmanModel<_BASE, _NodeType> self_type;
   typedef typename _BASE::value_type value_type;
   typedef typename _NodeType::CodeType code_type;
   static constexpr bool orderMSB = _orderMSB;
 
-  int init(double v = 1.) {return _BASE::initWeight(mAlphabet, v);}
-
+  int init(double v = 1.) { return _BASE::initWeight(mAlphabet, v); }
   /**
    * Encode value
    *
@@ -186,7 +211,8 @@ public:
    * @arg codeLength [OUT] code length, number of LSBs
    * @return Huffman code, valid if codeLength > 0
    */
-  code_type Encode(typename _BASE::value_type symbol, uint16_t& codeLength) const {
+  code_type Encode(typename _BASE::value_type symbol, uint16_t& codeLength) const
+  {
     codeLength = 0;
     auto nodeIndex = _BASE::alphabet_type::getIndex(symbol);
     if (nodeIndex < mLeaveNodes.size()) {
@@ -194,8 +220,10 @@ public:
       codeLength = mLeaveNodes[nodeIndex]->getBinaryCodeLength();
       return mLeaveNodes[nodeIndex]->getBinaryCode();
     } else {
-      std::string msg = "symbol "; msg += symbol;
-      msg += " not found in alphapet "; msg += _BASE::getName();
+      std::string msg = "symbol ";
+      msg += symbol;
+      msg += " not found in alphapet ";
+      msg += _BASE::getName();
       throw std::range_error(msg);
     }
 
@@ -212,7 +240,8 @@ public:
    * @arg codeLength  [OUT] number of decoded bits
    * @return value, valid if codeLength > 0
    */
-  value_type Decode(code_type code, uint16_t& codeLength) const {
+  value_type Decode(code_type code, uint16_t& codeLength) const
+  {
     // TODO: need to check if there is a loaded tree, but don't
     // want to check this every time when calling. Maybe its enough
     // to let the dereferencing below throw an exception
@@ -240,11 +269,15 @@ public:
         break;
       }
       bool bit = false;
-      if (orderMSB) bit = code.test(codeMSB - codeLength);
-      else bit = code.test(codeLength);
+      if (orderMSB)
+        bit = code.test(codeMSB - codeLength);
+      else
+        bit = code.test(codeLength);
       ++codeLength;
-      if (bit) node = node->getLeftChild();
-      else node = node->getRightChild();
+      if (bit)
+        node = node->getLeftChild();
+      else
+        node = node->getRightChild();
     }
     return v;
   }
@@ -253,28 +286,33 @@ public:
    * 'less' functor used in the multiset for sorting in the order less
    * probable to more probable
    */
-  template<typename T>
-  class isless {
-  public:
-    bool operator()(const T a, const T b) {
-      return a < b;
-    }
+  template <typename T>
+  class isless
+  {
+   public:
+    bool operator()(const T a, const T b) { return a < b; }
   };
   /// specialization for pointer types
-  template<typename T>
-  class isless<T*> {
-  public:
-    bool operator()(const T* a, const T* b) {
-      if (a == nullptr || b == nullptr) return false;
+  template <typename T>
+  class isless<T*>
+  {
+   public:
+    bool operator()(const T* a, const T* b)
+    {
+      if (a == nullptr || b == nullptr)
+        return false;
       return *a < *b;
     }
   };
   /// specialization for shared pointer
-  template<typename T>
-  class isless<std::shared_ptr<T>> {
-  public:
-    bool operator()(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b) {
-      if (!a || !b) return false;
+  template <typename T>
+  class isless<std::shared_ptr<T>>
+  {
+   public:
+    bool operator()(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b)
+    {
+      if (!a || !b)
+        return false;
       return *a < *b;
     }
   };
@@ -284,12 +322,13 @@ public:
    * TODO: separate data structures for tree and leaf nodes to optimize
    * storage
    */
-  bool GenerateHuffmanTree() {
+  bool GenerateHuffmanTree()
+  {
     mLeaveNodes.clear();
 
     // probability model provides map of {symbol, weight}-pairs
     _BASE& model = *this;
-    for ( auto i : model) {
+    for (auto i : model) {
       // create nodes knowing about their index and the symbol weight
       mLeaveNodes.push_back(std::make_shared<_NodeType>(i.second, _BASE::alphabet_type::getIndex(i.first)));
     }
@@ -297,7 +336,7 @@ public:
     // insert pointer to nodes into ordered structure to build tree
     // since the type is a pointer, a specific 'less' functor needs to
     // be provided to dereference before applying operator<
-    for ( auto &i : mLeaveNodes) {
+    for (auto& i : mLeaveNodes) {
       mTreeNodes.insert(i);
     }
     while (mTreeNodes.size() > 1) {
@@ -309,7 +348,7 @@ public:
       // insert the new node according to the less functor
       mTreeNodes.insert(combinedNode);
     }
-    //assign value, method works on pointer
+    // assign value, method works on pointer
     // dereference iterator and shared_ptr to get the raw pointer
     // TODO: change method to work on shared instead of raw pointers
     assignCode((*mTreeNodes.begin()).get());
@@ -330,32 +369,34 @@ public:
    *
    * TODO: implement iterator concept
    */
-  int assignCode(_NodeType* node) {
-    if (node == nullptr) return 0;
+  int assignCode(_NodeType* node)
+  {
+    if (node == nullptr)
+      return 0;
     int codelen = node->getBinaryCodeLength();
     int retcodelen = codelen;
-    if (node->getLeftChild()) {// bit '1' branch
+    if (node->getLeftChild()) { // bit '1' branch
       code_type c = node->getBinaryCode();
-      if (orderMSB) {// note: this is a compile time switch
+      if (orderMSB) { // note: this is a compile time switch
         c <<= 1;
         c.set(0);
       } else {
         c.set(codelen);
       }
-      node->getLeftChild()->setBinaryCode(codelen+1, c);
+      node->getLeftChild()->setBinaryCode(codelen + 1, c);
       int branchlen = assignCode(node->getLeftChild());
       if (retcodelen < branchlen)
         retcodelen = branchlen;
     }
-    if (node->getRightChild()) {// bit '0' branch
+    if (node->getRightChild()) { // bit '0' branch
       code_type c = node->getBinaryCode();
       if (orderMSB) {
-        c<<=1;
+        c <<= 1;
         c.reset(0);
       } else {
         c.reset(codelen);
       }
-      node->getRightChild()->setBinaryCode(codelen+1, c);
+      node->getRightChild()->setBinaryCode(codelen + 1, c);
       int branchlen = assignCode(node->getRightChild());
       if (retcodelen < branchlen)
         retcodelen = branchlen;
@@ -366,8 +407,10 @@ public:
   /**
    * @brief Write Huffman table in self-consistent format.
    */
-  int write(std::ostream& out) {
-    if (mTreeNodes.size() == 0) return 0;
+  int write(std::ostream& out)
+  {
+    if (mTreeNodes.size() == 0)
+      return 0;
     return write(out, (*mTreeNodes.begin()).get(), 0);
   }
 
@@ -380,7 +423,8 @@ public:
    * Leave node format: index value weight codelen code
    * Tree node format:  index left_index right_index
    */
-  int read(std::istream& in) {
+  int read(std::istream& in)
+  {
     mLeaveNodes.clear();
     mTreeNodes.clear();
     int lineNo = -1;
@@ -388,24 +432,28 @@ public:
     std::set<int> nodeIndices;
     struct treeNodeConfiguration {
       treeNodeConfiguration(int _index, int _left, int _right) : index(_index), left(_left), right(_right) {}
-      int index; int left; int right;
-      bool operator<(const treeNodeConfiguration& other) const {return index < other.index;}
+      int index;
+      int left;
+      int right;
+      bool operator<(const treeNodeConfiguration& other) const { return index < other.index; }
       struct less {
-        bool operator()(const treeNodeConfiguration& a, const treeNodeConfiguration& b) {return a.index < b.index;}
+        bool operator()(const treeNodeConfiguration& a, const treeNodeConfiguration& b) { return a.index < b.index; }
       };
     };
     std::set<treeNodeConfiguration> treeNodeConfigurations;
     char firstChar = 0;
     std::map<int, int> leaveNodeMap;
-    while ((in.get(firstChar)) && firstChar != '\n' && (in.putback(firstChar)) && (in >> node) && (in >> left) && (in >> right) && ++lineNo>=0) {
+    while ((in.get(firstChar)) && firstChar != '\n' && (in.putback(firstChar)) && (in >> node) && (in >> left) &&
+           (in >> right) && ++lineNo >= 0) {
       std::getline(in, parameters);
       if (lineNo != std::stoi(node)) {
-        std::cerr << "format error: expected node no " << lineNo << ", but got " << node << " (" << left << " " << right << " " << parameters << ")" << std::endl;
+        std::cerr << "format error: expected node no " << lineNo << ", but got " << node << " (" << left << " " << right
+                  << " " << parameters << ")" << std::endl;
         std::cerr << "Note: Huffman table dump has to be terminated by blank line or eof" << std::endl;
         break;
       }
       if (parameters.empty()) {
-        //std::cout << "tree node " << lineNo << " left=" << left << " right=" << right << std::endl;
+        // std::cout << "tree node " << lineNo << " left=" << left << " right=" << right << std::endl;
         int leftIndex = std::stoi(left);
         int rightIndex = std::stoi(right);
         auto it = nodeIndices.find(leftIndex);
@@ -423,19 +471,25 @@ public:
         treeNodeConfigurations.insert(treeNodeConfiguration(lineNo, leftIndex, rightIndex));
       } else {
         std::stringstream vs(left), ws(right);
-        typename _BASE::alphabet_type::value_type symbol; vs >> symbol;
-        typename _BASE::weight_type weight; ws >> weight;
+        typename _BASE::alphabet_type::value_type symbol;
+        vs >> symbol;
+        typename _BASE::weight_type weight;
+        ws >> weight;
         int symbolIndex = _BASE::alphabet_type::getIndex(symbol);
         // grow the vector as operator[] always expects index within range
-        if (mLeaveNodes.size() < symbolIndex + 1) mLeaveNodes.resize(symbolIndex + 1);
+        if (mLeaveNodes.size() < symbolIndex + 1)
+          mLeaveNodes.resize(symbolIndex + 1);
         mLeaveNodes[symbolIndex] = std::make_shared<_NodeType>(weight, symbolIndex);
         std::stringstream ps(parameters);
-        uint16_t codeLen = 0; ps >> codeLen;
-        code_type code = 0; ps >> code;
+        uint16_t codeLen = 0;
+        ps >> codeLen;
+        code_type code = 0;
+        ps >> code;
         mLeaveNodes[symbolIndex]->setBinaryCode(codeLen, code);
         leaveNodeMap[lineNo] = symbolIndex;
         _BASE::addWeight(symbol, weight);
-        //std::cout << "leave node " << lineNo << " " << " value=" << value << " weight=" << weight << " " << codeLen << " " << code << std::endl;
+        // std::cout << "leave node " << lineNo << " " << " value=" << value << " weight=" << weight << " " << codeLen
+        // << " " << code << std::endl;
       }
       nodeIndices.insert(lineNo);
     }
@@ -443,7 +497,7 @@ public:
     for (auto conf : treeNodeConfigurations) {
       std::shared_ptr<_NodeType> left;
       auto ln = leaveNodeMap.find(conf.left);
-      if ( ln != leaveNodeMap.end()) {
+      if (ln != leaveNodeMap.end()) {
         left = mLeaveNodes[ln->second];
         leaveNodeMap.erase(ln);
       } else {
@@ -474,14 +528,14 @@ public:
     }
     if (leaveNodeMap.size() != 0 || treeNodes.size() != 1) {
       std::cerr << "error: " << leaveNodeMap.size() << " unhandled leave node(s)"
-                << "; " << treeNodes.size() << " tree nodes(s), expected 1"
-                << std::endl;
+                << "; " << treeNodes.size() << " tree nodes(s), expected 1" << std::endl;
     }
     mTreeNodes.insert(treeNodes.begin()->second);
     return 0;
   }
 
-  void print() const {
+  void print() const
+  {
     if (mTreeNodes.size() > 0) {
       _NodeType* topNode = (*mTreeNodes.begin()).get();
       if (topNode) {
@@ -492,23 +546,25 @@ public:
     }
   };
 
-private:
+ private:
   /**
    * @brief Recursive write of the node content.
    *
    * Iterate through Huffman tree and write information first of the
    * leave of each branch and then the corresponding parent tree nodes.
    */
-  template<typename NodeType>
+  template <typename NodeType>
   int write(std::ostream& out, NodeType* node, int nodeIndex) const
   {
-    if (!node) return nodeIndex;
+    if (!node)
+      return nodeIndex;
     const _BASE& model = *this;
     NodeType* left = node->getLeftChild();
     NodeType* right = node->getRightChild();
-    if (left==NULL) {
+    if (left == NULL) {
       typename _BASE::value_type value = _BASE::alphabet_type::getSymbol(node->getIndex());
-      out << nodeIndex << " " << value << " " << model[value] << " " << node->getBinaryCodeLength() << " " << node->getBinaryCode() << std::endl;
+      out << nodeIndex << " " << value << " " << model[value] << " " << node->getBinaryCodeLength() << " "
+          << node->getBinaryCode() << std::endl;
       return nodeIndex;
     }
     int leftIndex = write(out, left, nodeIndex);
