@@ -22,7 +22,7 @@
 # global settings
 number_of_flps=2
 flp_command_socket=48490
-flp_heartbeat_socket=48491
+epn_ack_socket=48491
 baseport_on_flpgroup=48420
 baseport_on_epngroup=48480
 number_of_epns=2
@@ -35,6 +35,13 @@ rundir=`pwd`
 while [ "x$1" != "x" ]; do
     if [ "x$1" == "x--print-commands" ]; then
         printcmdtoscreen='echo'
+    elif [ "x$1" == "x--non-blocking-output" ] ; then
+        # use method 'pub' for non-blocking EPN output
+        outputmethod=pub
+        shift
+    else
+	echo unknown option $1
+	exit
     fi
     shift
 done
@@ -72,7 +79,6 @@ epninputsocket=
 epnoutputsocket=
 epnsessiontitle=
 epnsessioncmd=
-epnsessiondataout=
 nepnsessions=0
 
 # the same node name can be specified for multiple FLP groups
@@ -87,19 +93,13 @@ create_flpgroup() {
     node=$1
     basesocket=$2
 
-    # for now only one flp per node
     deviceid="FLP_$node${3:+_${3}}"
     command="flpSender"
     command+=" --id $deviceid"
     command+=" --control static"
     command+=" --flp-index 0"
     command+=" --num-epns $nepnsessions"
-    #command+=" --num-inputs 3"
-    #command+=" --num-outputs $nepnsessions"
-    #command+=" --heartbeat-timeout 20000"
     command+=" --send-offset $((1+3*$nflpsessions))"
-    #command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_command_socket   --input-rate-logging 0" # command input
-    #command+=" --input-socket-type sub --input-buff-size 500 --input-method bind --input-address tcp://*:$flp_heartbeat_socket --input-rate-logging 0" # heartbeat input
     command+=" "
     command+=" --in-chan-name data-in"
     flpinputsocket[nflpsessions]=$((basesocket + 0))
@@ -127,29 +127,19 @@ create_epngroup() {
         command="epnReceiver"
         command+=" --id $deviceid"
         command+=" --control static"
-        #command+=" --num-outputs $((number_of_flps + 1))"
-        #command+=" --heartbeat-interval 5000"
-        #command+=" --buffer-timeout 60000"
         command+=" --num-flps $number_of_flps"
         epninputsocket[nepnsessions]=$((2*nepn + basesocket))
         command+=" --in-chan-name data-in"
         command+=" --out-chan-name data-out"
         command+=" --channel-config name=data-in,type=pull,size=5000,method=bind,address=tcp://$node:${epninputsocket[$nepnsessions]},rateLogging=1" # data input
-        command+=" --channel-config name=ack,type=pub,method=connect,address=tcp://localhost:$flp_heartbeat_socket,rateLogging=1" # data input
+        command+=" --channel-config name=ack,type=pub,method=connect,address=tcp://localhost:$epn_ack_socket,rateLogging=1" # data input
         epnoutputsocket[nepnsessions]=$((2*nepn + basesocket +1))
+        command+=" --channel-config name=data-out,type=${outputmethod:=push},size=5000,method=bind,address=tcp://*:${epnoutputsocket[$nepnsessions]},rateLogging=1" # data output
         
         epnsessionnode[nepnsessions]=$node
         epnsessiontitle[nepnsessions]="$deviceid"
         epnsessioncmd[nepnsessions]=$command
-        # have to postpone adding the data output socket because of fixed order in the device outputs
-        epnsessiondataout[nepnsessions]=" --channel-config name=data-out,type=push,size=5000,method=bind,address=tcp://*:${epnoutputsocket[$nepnsessions]},rateLogging=1" # data output
         let nepnsessions++
-
-# TBD after the FLP creation
-#       for flpnode in ${epn1_input[@]}; # heartbeats
-#       do
-#           command+=" --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://$flpnode:$flp_heartbeat_socket --output-rate-logging 0"
-#       done
     done
 }
 
@@ -178,6 +168,9 @@ while [ "$nflpsessions" -lt "$number_of_flps" ]; do
         break
     fi
     key=${flpnodelist[$inode]}
+    # keep record of the count of FLP groups on a node in a dedicated map and
+    # calculate the input port based on that. There is only one input socket
+    # per FLP group, multiple devices can connect to the same socket
     create_flpgroup ${flpnodelist[$inode]} $(( baseport_on_flpgroup + ${flpgroupsPerNode[$key]:=0} )) ${flpgroupsPerNode[$key]:=0}
     flpgroupsPerNode[$key]=$(( flpgroupsPerNode[$key] + 1 ))
 
@@ -187,15 +180,6 @@ done
 if [ "$error" -gt 0 ]; then
     exit
 fi
-
-# now set the heartbeat channels
-for ((iepnsession=0; iepnsession<$nepnsessions; iepnsession++)); do
-    #for ((iflpsession=0; iflpsession<$nflpsessions; iflpsession++)); do
-    #   epnsessioncmd[$iepnsession]="${epnsessioncmd[$iepnsession]} --output-socket-type pub --output-buff-size 500 --output-method connect --output-address tcp://${flpsessionnode[$iflpsession]}:$flp_heartbeat_socket --output-rate-logging 0"
-    #done
-    # now add the data output, note that there is a fixed order in the device outputs
-    epnsessioncmd[$iepnsession]="${epnsessioncmd[$iepnsession]} ${epnsessiondataout[$iepnsession]}"
-done
 
 sessionmap=
 for ((isession=$nflpsessions++-1; isession>=0; isession--)); do
