@@ -73,7 +73,9 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fGlobalTracking(0),
   fGPUDeviceNum(-1),
   fGPULibrary(""),
-  fGPUStuckProtection(0)
+  fGPUStuckProtection(0),
+  fAsync(0),
+  fAsyncProcessor()
 {
   // see header file for class documentation
   // or
@@ -106,7 +108,9 @@ AliHLTProcessor(),
   fGlobalTracking(0),
   fGPUDeviceNum(-1),
   fGPULibrary(""),
-  fGPUStuckProtection(0)
+  fGPUStuckProtection(0),
+  fAsync(0),
+  fAsyncProcessor()
 {
   // see header file for class documentation
   for( int i=0; i<fgkNSlices; i++ ){
@@ -292,10 +296,16 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       fGPULibrary = ( ( TObjString* )pTokens->At( i ) )->GetString();
       continue;
     }
-	
+
     if ( argument.CompareTo( "-GPUStuckProtection" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fGPUStuckProtection = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      continue;
+    }
+
+	if ( argument.CompareTo( "-AsyncGPUStuckProtection" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fAsync = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
       continue;
     }
 
@@ -427,27 +437,15 @@ void AliHLTTPCCATrackerComponent::ConfigureSlices()
   }
 }
 
-int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
+void* AliHLTTPCCATrackerComponent::TrackerInit(void* par)
 {
-  if ( fTracker ) return EINPROGRESS;
-
-  // Configure the CA tracker component
-  TString arguments = "";
-  for ( int i = 0; i < argc; i++ ) {
-    if ( !arguments.IsNull() ) arguments += " ";
-    arguments += argv[i];
-  }
-
-  int retVal = Configure( NULL, NULL, arguments.Data() );
-  if (retVal == 0)
-  {
     fMinSlice = 0;
     fSliceCount = fgkNSlices;
     //Create tracker instance and set parameters
     fTracker = new AliHLTTPCCATrackerFramework(fAllowGPU, fGPULibrary, fGPUDeviceNum);
     if ( fAllowGPU && fTracker->GetGPUStatus() < 2 ) {
       HLTError("GPU Tracker requested but unavailable, aborting.");
-      return -ENODEV;
+      return((void*) -1);
     }
     fClusterData = new AliHLTTPCCAClusterData[fgkNSlices];
     if (fGPUHelperThreads != -1)
@@ -473,18 +471,60 @@ int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
     }
 
     ConfigureSlices();
+    return(NULL);
+}
+
+int AliHLTTPCCATrackerComponent::DoInit( int argc, const char** argv )
+{
+  if ( fTracker ) return EINPROGRESS;
+
+  // Configure the CA tracker component
+  TString arguments = "";
+  for ( int i = 0; i < argc; i++ ) {
+    if ( !arguments.IsNull() ) arguments += " ";
+    arguments += argv[i];
+  }
+
+  int retVal = Configure( NULL, NULL, arguments.Data() );
+  if (retVal == 0)
+  {
+    if (fAsync)
+    {
+      if (fAsyncProcessor.Initialize(1)) return(-ENODEV);
+      void* initRetVal;
+      if (fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTTPCCATrackerComponent::TrackerInit, NULL, &initRetVal) != 0) return(-ENODEV);
+      if (initRetVal) return(-ENODEV);
+    }
+    else
+    {
+      if (TrackerInit(NULL) != NULL) return(-ENODEV);
+    }
   }
 
   return(retVal);
 }
 
+void* AliHLTTPCCATrackerComponent::TrackerExit(void* par)
+{
+    if (fTracker) delete fTracker;
+    fTracker = NULL;
+    if (fClusterData) delete[] fClusterData;
+    fClusterData = NULL;
+}
+
 int AliHLTTPCCATrackerComponent::DoDeinit()
 {
   // see header file for class documentation
-  if (fTracker) delete fTracker;
-  fTracker = NULL;
-  if (fClusterData) delete[] fClusterData;
-  fClusterData = NULL;
+  if (fAsync)
+  {
+    void* initRetVal = NULL;
+    fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTTPCCATrackerComponent::TrackerExit, NULL, &initRetVal);
+    fAsyncProcessor.Deinitialize();
+  }
+  else
+  {
+    TrackerExit(NULL);
+  }
   return 0;
 }
 
@@ -509,7 +549,49 @@ int AliHLTTPCCATrackerComponent::DoEvent
     HLTError( "CATracker not initialized properly" );
     return -ENOENT;
   }
-
+  
+  AliHLTTPCTrackerWrapperData tmpPar;
+  tmpPar.fEvtData = &evtData;
+  tmpPar.fBlocks = blocks;
+  tmpPar.fOutputPtr = outputPtr;
+  tmpPar.fSize = &size;
+  tmpPar.fOutputBlocks = &outputBlocks;
+  
+  static int trackerTimeout = 0;
+  if (trackerTimeout) return(-ENODEV);
+  
+  int retVal;
+  if (fAsync)
+  {
+    void* asyncRetVal = NULL;
+    if (fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTTPCCATrackerComponent::TrackerDoEvent, &tmpPar, &asyncRetVal, fAsync) != 0)
+    {
+      HLTError( "Tracking timed out, disabling this tracker instance" );
+      trackerTimeout = 1;
+      return(-ENODEV);
+    }
+    else
+    {
+      retVal = (int) (size_t) asyncRetVal;
+    }
+  }
+  else
+  {
+    retVal = (int) (size_t) TrackerDoEvent(&tmpPar);
+  }
+  return(retVal);
+}
+  
+void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
+{
+  AliHLTTPCTrackerWrapperData* tmpPar = (AliHLTTPCTrackerWrapperData*) par;
+  
+  const AliHLTComponentEventData& evtData = *(tmpPar->fEvtData);
+  const AliHLTComponentBlockData* blocks = tmpPar->fBlocks;
+  AliHLTUInt8_t* outputPtr = tmpPar->fOutputPtr;
+  AliHLTUInt32_t& size = *(tmpPar->fSize);
+  vector<AliHLTComponentBlockData>& outputBlocks = *(tmpPar->fOutputBlocks);
+  
   AliHLTUInt32_t maxBufferSize = size;
   size = 0; // output size
 
@@ -666,7 +748,5 @@ int AliHLTTPCCATrackerComponent::DoEvent
   fBenchmark.Stop(0);
   HLTInfo(fBenchmark.GetStatistics());
 
-  return ret;
+  return((void*) (size_t) ret);
 }
-
-

@@ -12,6 +12,7 @@
 
 #include "AliHLTProcessor.h"
 #include "AliHLTComponentBenchmark.h"
+#include "AliHLTAsyncMemberProcessor.h"
 
 class AliHLTTPCCATrackerFramework;
 class AliHLTTPCCASliceOutput;
@@ -76,6 +77,15 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
 
   private:
 
+    struct AliHLTTPCTrackerWrapperData
+    {  
+      const AliHLTComponentEventData* fEvtData;
+      const AliHLTComponentBlockData* fBlocks;
+      AliHLTUInt8_t* fOutputPtr;
+      AliHLTUInt32_t* fSize;
+      vector<AliHLTComponentBlockData>* fOutputBlocks;
+    };
+
     static const int fgkNSlices = 36;       //* N slices
     static const int fgkNPatches = 6;       //* N slices
 
@@ -106,6 +116,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     int fGPUDeviceNum;				  //GPU Device to use, default -1 for auto detection
     TString fGPULibrary;			  //Name of the library file that provides the GPU tracker object
     int fGPUStuckProtection;		//Protect from stuck GPUs
+	int fAsync;                       //Run tracking in async thread to catch GPU hangs....
 
     /** set configuration parameters **/
     void SetDefaultConfiguration();
@@ -113,6 +124,11 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     int ReadCDBEntry( const char* cdbEntry, const char* chainId );
     int Configure( const char* cdbEntry, const char* chainId, const char *commandLine );
     void ConfigureSlices();
+	
+	AliHLTAsyncMemberProcessor<AliHLTTPCCATrackerComponent> fAsyncProcessor;
+	void* TrackerInit(void*);
+    void* TrackerExit(void*);
+    void* TrackerDoEvent(void*);
 
     ClassDef( AliHLTTPCCATrackerComponent, 0 );
 
