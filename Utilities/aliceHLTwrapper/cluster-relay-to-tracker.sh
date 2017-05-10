@@ -29,7 +29,6 @@ runno=167808
 firstslice=0
 lastslice=35
 slices_per_node=1
-#dryrun="-n"
 pollingtimeout=100
 eventperiod=100000
 initialdelay=10000  # time before trigger starts
@@ -64,27 +63,37 @@ epn2node=localhost
 while [ "x$1" != "x" ]; do
     if [ "x$1" == "x--print-commands" ]; then
 	printcmdtoscreen='echo'
-    fi
-    if [ "x$1" == "x--polling-timeout" ] && [ "x$2" != "x" ] ; then
+    elif [ "x$1" == "x--polling-timeout" ] && [ "x$2" != "x" ] ; then
 	pollingtimeout=$2
 	shift
-    fi
-    if [ "x$1" == "x--eventperiod" ] && [ "x$2" != "x" ] ; then
+    elif [ "x$1" == "x--eventperiod" ] && [ "x$2" != "x" ] ; then
 	eventperiod=$2
 	shift
-    fi
-    if [ "x$1" == "x--initialdelay" ] && [ "x$2" != "x" ] ; then
+    elif [ "x$1" == "x--initialdelay" ] && [ "x$2" != "x" ] ; then
 	initialdelay=$2
 	shift
-    fi
-    if [ "x$1" == "x--sync-rundir" ]; then
+    elif [ "x$1" == "x--first-slice" ] && [ "x$2" != "x" ] ; then
+	firstslice=$2
+	shift
+    elif [ "x$1" == "x--last-slice" ] && [ "x$2" != "x" ] ; then
+	lastslice=$2
+	shift
+    elif [ "x$1" == "x--sync-rundir" ]; then
 	syncrundir=yes
-    fi
-    if [ "x$1" == "x--write-tracks" ]; then
+    elif [ "x$1" == "x--write-tracks" ]; then
 	write_tracks=yes
-    fi
-    if [ "x$1" == "x--skip-write-tracks" ]; then
+    elif [ "x$1" == "x--skip-write-tracks" ]; then
 	write_tracks=no
+    elif [ "x$1" == "x--skip-tracking" ]; then
+	# skip the tracking by using the dry-run option of the wrapper
+	# component
+	skiptracking="-n"
+    elif [ "x$1" == "x--enable-gpu" ]; then
+	# set the GPU parameter for the tracker
+	gpuparams="-allowGPU -GPUHelperThreads 4"
+    else
+	echo unknown option $1
+	exit
     fi
     shift
 done
@@ -354,7 +363,7 @@ create_epn1group() {
         fi
 
         output="--channel-config name=data-out,type=push,size=1000,method=connect,address=tcp://localhost:$((basesocket + socketcount))"
-        command="AliceHLTWrapperDevice --id=$deviceid ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCATracker --run $runno --parameter '-GlobalTracking -allowGPU -GPUHelperThreads 4 -loglevel=0x7c'"
+        command="AliceHLTWrapperDevice --id=$deviceid ${skiptracking} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCATracker --run $runno --parameter '-GlobalTracking ${gpuparams} -loglevel=0x7c'"
 
         sessionnode[nsessions]=$node
         sessiontitle[nsessions]="$deviceid"
@@ -367,7 +376,7 @@ create_epn1group() {
         input=`translate_io_attributes "$output"`
         output=`translate_io_attributes "$epn2_input"`
         let socketcount++
-        command="AliceHLTWrapperDevice --id=$deviceid ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCAGlobalMerger --run $runno --parameter '-loglevel=0x7c'"
+        command="AliceHLTWrapperDevice --id=$deviceid ${skiptracking} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCAGlobalMerger --run $runno --parameter '-loglevel=0x7c'"
 
         sessionnode[nsessions]=$node
         sessiontitle[nsessions]="$deviceid"
@@ -380,7 +389,7 @@ create_epn1group() {
     # input=`translate_io_attributes "$output"`
     # output=
     # let socketcount++
-    # command="AliceHLTWrapperDevice --id=$deviceid ${dryrun} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
+    # command="AliceHLTWrapperDevice --id=$deviceid ${skiptracking} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
 
     # sessionnode[nsessions]=$node
     # sessiontitle[nsessions]="$deviceid"
