@@ -175,7 +175,11 @@ nnodes=${#nodelist[@]}
 nflpnodes=${#flpnodelist[@]}
 nepnnodes=${#epnnodelist[@]}
 
-echo "using $nflpnodes FLP and $nepnnodes EPN node(s) for running processing topology"
+# the same node name can be specified for multiple FLP groups
+# this map holds a count of sockets already used per node
+declare -A numberOfUsedSocketsPerNode
+
+echo "using ${#flpinputnode[@]} FLP(s) on $nflpnodes node(s) and $nepnnodes EPN node(s) for running processing topology"
 echo "FLP ${flpnodelist[@]} - EPN ${epnnodelist[@]}"
 
 # init the variables for the session commands
@@ -239,6 +243,7 @@ create_flpgroup() {
     basesocket=$2
     firstslice_on_node=$3
     nofslices=$4
+    groupoutputsocket=$5
     socketcount=0
     cf_output=
     if [ "x$CFoptPublishIndividualPartitions" == "xyes" ]; then
@@ -293,22 +298,19 @@ create_flpgroup() {
         # or according to the base socket
         output=
         if [ "$nflpinputs" -eq 0 ]; then
-        output="--channel-config name=data-out,type=push,size=5000,method=bind,address=tcp://*:$((basesocket + c))"
+        output="--channel-config name=data-out,type=push,size=5000,method=bind,address=tcp://*:$((basesocket + socketcount))"
+        let socketcount++
         else
-            for ((iflpinput=0; iflpinput<nflpinputs; iflpinput++)); do
-                if [ "x${flpinputnode[$iflpinput]}" == "x$node" ]; then
-                    output="--channel-config name=data-out,type=push,size=5000,method=connect,address=tcp://${flpinputnode[$iflpinput]}:${flpinputsocket[$iflpinput]}"
-                fi
-            done
+            output="--channel-config name=data-out,type=push,size=5000,method=connect,address=tcp://${node}:${groupoutputsocket}"
         fi
 
-        let socketcount++
         command="AliceHLTWrapperDevice --id=$deviceid --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
 
         sessionnode[nsessions]=$node
         sessiontitle[nsessions]="$deviceid"
         sessioncmd[nsessions]=$command
         let nsessions++
+        numberOfUsedSocketsPerNode[$node]=$(( numberOfUsedSocketsPerNode[$node] + socketcount ))
 
         epn1_input[n_epn1_inputs]=${output/\/\/\*:///$node:}
         let n_epn1_inputs++
@@ -441,12 +443,13 @@ create_triggergroup $triggernode $baseport_on_triggergroup
 sliceno=$firstslice
 inode=0
 while [ "$sliceno" -le "$lastslice" ]; do
-    if [ "$inode" -ge "$nflpnodes" ]; then
+    if [ "$inode" -ge "${#flpinputnode[@]}" ]; then
         echo "error: too few nodes to create all flp node groups"
         sliceno=$((lastslice + 1))
         exit -1
     fi
-    create_flpgroup ${flpnodelist[inode]} $baseport_on_flpgroup $sliceno $slices_per_node
+    node=${flpinputnode[inode]}
+    create_flpgroup $node $(( baseport_on_flpgroup + ${numberOfUsedSocketsPerNode[$node]:=0} )) $sliceno $slices_per_node ${flpinputsocket[inode]}
     sliceno=$((sliceno + slices_per_node))
 
     let inode++
