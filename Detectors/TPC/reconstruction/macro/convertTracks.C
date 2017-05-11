@@ -44,7 +44,7 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
   c.AddFile(inputClusters);
 
   TClonesArray *clusters=0x0;
-  c.SetBranchAddress("TPCCluster", &clusters);
+  c.SetBranchAddress("TPCClusterHW", &clusters);
   //c.SetBranchAddress("TPC_Cluster", &clusters);
 
   // ===| output tree |=========================================================
@@ -96,7 +96,7 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
       printf("Track %d Parameters: Alpha %f, X %f, Y %f, Z %f, SinPhi %f, DzDs %f, Q/Pt %f, Number of clusters %d, Fit OK %d\n", iTrack, track.Alpha, track.X, track.Y, track.Z, track.SinPhi, track.DzDs, track.QPt, track.NClusters, track.FitOK);
 
       //TrackTPC* track = new(arrTracks[iTrack]) TrackTPC();
-      TrackTPC trackTPC(track.X, track.Alpha, {track.Y, track.Z, track.SinPhi, track.DzDs, track.QPt});
+      TrackTPC trackTPC(track.X, track.Alpha, {track.Y, track.Z, track.SinPhi, track.DzDs, track.QPt}, {0, 0});
       arrTracks.push_back(trackTPC);
       TrackTPC & storedTrack = arrTracks.back();
 
@@ -109,7 +109,9 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
       for (int iCluster = 0;iCluster < track.NClusters;iCluster++)
       {
         printf(" %d", ClusterIDs[iCluster]);
-        storedTrack.AddCluster(static_cast<Cluster*>(clusters->At(ClusterIDs[iCluster])));
+
+        Cluster& tempCluster = *(static_cast<Cluster*>(clusters->At(ClusterIDs[iCluster])));
+        storedTrack.addCluster(tempCluster);
       }
       printf("\n");
     }
