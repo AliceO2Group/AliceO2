@@ -6,13 +6,13 @@
 
 using namespace o2::TPC;
 
-float TrackTPC::GetTruncatedMean(float low, float high, int type, int removeRows, int *nclPID) const
+
+float TrackTPC::getTruncatedMean(float low, float high, int type, int removeRows, int *nclPID) const
 {
   std::vector<float> values;
 
-  for (auto clusterObject : *mClusterArray) {
-    Cluster *inputcluster = static_cast<Cluster *>(clusterObject);
-    values.push_back((type == 0)?inputcluster->getQmax():inputcluster->getQ());
+  for (auto &clusterObject : mClusterVector) {
+    values.push_back((type == 0)?clusterObject.getQmax():clusterObject.getQ());
   }
 
   std::sort(values.begin(), values.end());

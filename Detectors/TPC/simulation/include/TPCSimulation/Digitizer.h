@@ -12,7 +12,6 @@
 #include "TPCBase/Mapper.h"
 
 #include <cmath>
-#include <Vc/Vc>
 
 using std::vector;
 

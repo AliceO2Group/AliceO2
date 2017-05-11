@@ -51,7 +51,7 @@ void convertClusters(TString filename, Int_t nmaxEvent=-1, Int_t startEvent=0)
   c.AddFile(filename);
 
   TClonesArray *clusters=0x0;
-  c.SetBranchAddress("TPCCluster", &clusters);
+  c.SetBranchAddress("TPCClusterHW", &clusters);
   //c.SetBranchAddress("TPC_HW_Cluster", &clusters);
 
   // ===| event ranges |========================================================
