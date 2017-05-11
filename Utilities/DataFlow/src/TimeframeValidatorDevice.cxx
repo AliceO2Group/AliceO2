@@ -7,16 +7,16 @@
 #include <chrono>
 
 #include "DataFlow/TimeframeValidatorDevice.h"
+#include "TimeFrame/TimeFrame.h"
 #include "Headers/SubframeMetadata.h"
 #include "Headers/DataHeader.h"
+
 #include <options/FairMQProgOptions.h>
 
-
 using DataHeader = o2::Header::DataHeader;
-
-// FIXME: this should really be in a central place
-using PartPosition = int;
-typedef std::pair<o2::Header::DataHeader, PartPosition> IndexElement;
+using DataOrigin = o2::Header::DataOrigin;
+using DataDescription = o2::Header::DataDescription;
+using IndexElement = o2::DataFormat::IndexElement;
 
 o2::DataFlow::TimeframeValidatorDevice::TimeframeValidatorDevice()
   : O2Device()
@@ -48,8 +48,8 @@ void o2::DataFlow::TimeframeValidatorDevice::Run()
 
     // TODO: fill this with checks on time frame
     LOG(INFO) << "This time frame has " << timeframeParts.Size() << " parts.\n";
-    auto indexEntries = indexHeader->payloadSize / sizeof(IndexElement);
-    if (strncmp(indexHeader->dataDescription.str, "TIMEFRAMEINDEX", 14) != 0)
+    auto indexEntries = indexHeader->payloadSize / sizeof(DataHeader);
+    if (indexHeader->dataDescription != DataDescription("TIMEFRAMEINDEX"))
       LOG(ERROR) << "Could not find a valid index header\n";
     LOG(INFO) << indexHeader->dataDescription.str << "\n";
     LOG(INFO) << "This time frame has " << indexEntries << "entries in the index.\n";
@@ -66,11 +66,16 @@ void o2::DataFlow::TimeframeValidatorDevice::Run()
     for (int ii = 0; ii < indexEntries; ++ii) {
       IndexElement &ie = index[ii];
       assert(ie.second >= 0);
-      LOG(DEBUG) << ie.first.dataDescription.str << std::endl;
-      if (ie.first.dataDescription == "TPCCLUSTER")
+      LOG(DEBUG) << ie.first.dataDescription.str << " "
+                 << ie.first.dataOrigin.str << std::endl;
+      if ((ie.first.dataOrigin == Header::gDataOriginTPC)
+          && (ie.first.dataDescription == Header::gDataDescriptionClusters)) {
         tpcIndex = ie.second;
-      if (ie.first.dataDescription == "ITSRAW")
+      }
+      if ((ie.first.dataOrigin == Header::gDataOriginITS)
+          && (ie.first.dataDescription == Header::gDataDescriptionClusters)) {
         itsIndex = ie.second;
+      }
     }
 
     if (tpcIndex < 0)
@@ -88,14 +93,17 @@ void o2::DataFlow::TimeframeValidatorDevice::Run()
 
     // Data header it at position - 1
     auto tpcHeader = reinterpret_cast<DataHeader *>(timeframeParts.At(tpcIndex)->GetData());
-    if (tpcHeader->dataDescription != "TPCCLUSTER")
+    if ((tpcHeader->dataDescription != Header::gDataDescriptionClusters) ||
+        (tpcHeader->dataOrigin != Header::gDataOriginTPC))
     {
-      LOG(ERROR) << "Wrong data description. Expecting TPCCLUSTER, found " << tpcHeader->dataDescription.str << "\n";
+      LOG(ERROR) << "Wrong data description. Expecting TPC - CLUSTERS, found "
+                 << tpcHeader->dataOrigin.str << " - "
+                 << tpcHeader->dataDescription.str << "\n";
       continue;
     }
     auto tpcPayload = reinterpret_cast<TPCTestCluster *>(timeframeParts.At(tpcIndex + 1)->GetData());
     if (tpcHeader->payloadSize % sizeof(TPCTestCluster))
-      LOG(ERROR) << "TPCCLUSTER Size Mismatch\n";
+      LOG(ERROR) << "TPC - CLUSTERS Size Mismatch\n";
     auto numOfClusters = tpcHeader->payloadSize / sizeof(TPCTestCluster);
     for (size_t ci = 0 ; ci < numOfClusters; ++ci)
     {
@@ -114,21 +122,24 @@ void o2::DataFlow::TimeframeValidatorDevice::Run()
 
     // Data header it at position - 1
     auto itsHeader = reinterpret_cast<DataHeader *>(timeframeParts.At(itsIndex)->GetData());
-    if (strcmp(itsHeader->dataDescription.str,"ITSRAW")!=0)
+    if ((itsHeader->dataDescription != Header::gDataDescriptionClusters)
+        || (itsHeader->dataOrigin != Header::gDataOriginITS))
     {
-      LOG(ERROR) << "Wrong data description. Expecting ITSRAW, found " << itsHeader->dataDescription.str << "\n";
+      LOG(ERROR) << "Wrong data description. Expecting ITS - CLUSTERS, found "
+                 << itsHeader->dataOrigin.str << " - " << itsHeader->dataDescription.str << "\n";
       continue;
     }
     auto itsPayload = reinterpret_cast<ITSRawData*>(timeframeParts.At(itsIndex + 1)->GetData());
     if (itsHeader->payloadSize % sizeof(ITSRawData))
-      LOG(ERROR) << "ITSRawData Size Mismatch.\n";
+      LOG(ERROR) << "ITS - CLUSTERS Size Mismatch.\n";
     numOfClusters = itsHeader->payloadSize / sizeof(ITSRawData);
     for (size_t ci = 0 ; ci < numOfClusters; ++ci)
     {
       ITSRawData &cluster = itsPayload[ci];
       if (cluster.timeStamp != ci)
       {
-        LOG(ERROR) << "ITS Data mismatch. Expecting " << ci << " got " << cluster.timeStamp << "\n";
+        LOG(ERROR) << "ITS Data mismatch. Expecting " << ci
+        << " got " << cluster.timeStamp << "\n";
         break;
       }
     }

@@ -58,3 +58,7 @@ compile_commands.json
 .idea
 .settings
 .ycm_extra_conf.py
+
+# Datafiles
+*.root
+*.o2tf

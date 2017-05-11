@@ -1,0 +1,27 @@
+.\" Manpage for O2.
+.TH man 1 "19 May 2017" "1.0" "Alice O2 Timeframe Format"
+
+.SH DESCRIPTION
+
+O2 is Alice next generation software framework to be used for RUN3. This is a
+quick desctiption of the timeframe file format as dumped by
+TimeframeWriterDevice and read by the TimeframeReaderDevice.
+
+The file format is simply a dump of the timeframe on disk. Multiple timeframes
+can be concatenated resulting in a valid file. The format is as follow:
+
+o2tf: Timeframe [Timeframe [..]]
+Timeframe: Subtimeframe [Subtimeframe [...]] TimeframeIndex
+Subtimeframe: Header Payload
+Header: DataHeader derived header stack
+Payload: binary blob
+TimeframeIndex: IndexElement [IndexElement [..]]
+IndexElement: DataHeader Payload <Position in Timeframe>
+Position in timeframe: int (4 bytes)
+DataHeader: only the DataHeader part
+Payload: binary blob
+
+.SH DISCLAIMER
+
+Notice that this file format is a work in progress and cannot be used for
+anything but debugging purposes.
