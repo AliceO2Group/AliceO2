@@ -59,6 +59,7 @@ O2_GENERATE_LIBRARY()
 set(TEST_SRCS
    test/testTPCBase.cxx
    test/testTPCCalDet.cxx
+   test/testTPCMapper.cxx
 )
 
 O2_GENERATE_TESTS(
