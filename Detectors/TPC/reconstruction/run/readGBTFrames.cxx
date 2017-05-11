@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
     ("clock,c",     bpo::bool_switch(&checkAdcClock),                "check ADC clock")
     ("ADC,a",       bpo::bool_switch(&compileAdcValues),             "compiles the ADC values")
     ("keep,k",      bpo::bool_switch(&keepGbtFrames),                "keeps the GBT frames in memory")
-    ("type,t",      bpo::value<std::string>(&rorcFlavor),            "Type of RORC which generated binary file (\"trorc\" or \"grorc\"")
+    ("type,t",      bpo::value<std::string>(&rorcFlavor),            R"(Type of RORC which generated binary file ("trorc" or "grorc"))")
     ("print,p",     bpo::bool_switch(&printGbtFrames),               "print GBT frames")
     ("file,f",      bpo::value<std::string>(&adcInFile),             "ADC input file");
   bpo::store(parse_command_line(argc, argv, desc), vm);
