@@ -141,9 +141,9 @@ Int_t SimpleEventDisplay::Update(const Int_t roc,
 TH1D* SimpleEventDisplay::MakePadSignals(Int_t roc, Int_t row, Int_t pad)
 {
   // TODO: check
-  //if (roc<0||roc>=(Int_t)mROC->GetNSectors()) return 0x0;
-  //if (row<0||row>=(Int_t)mROC->GetNRows(roc)) return 0x0;
-  //if (pad<0||pad>=(Int_t)mROC->GetNPads(roc,row)) return 0x0;
+  //if (roc<0||roc>=(Int_t)mROC->GetNSectors()) return nullptr;
+  //if (row<0||row>=(Int_t)mROC->GetNRows(roc)) return nullptr;
+  //if (pad<0||pad>=(Int_t)mROC->GetNPads(roc,row)) return nullptr;
   // TODO: possible bug for OROC
   const Int_t channel =  
     mTPCmapper.globalPadNumber(PadPos(row,pad))
@@ -158,11 +158,11 @@ TH1D* SimpleEventDisplay::MakePadSignals(Int_t roc, Int_t row, Int_t pad)
     mLastSelSector=mSelectedSector;
     mSectorLoop=kFALSE;
   }
-  TH1D *h=0x0;
+  TH1D *h=nullptr;
   const Int_t nbins = mLastTimeBin - mFirstTimeBin;
-  if (nbins<=0) return 0x0;
+  if (nbins<=0) return nullptr;
   const Int_t offset = (nbins+2)*(channel+1);
-  Double_t *arrP=0x0;
+  Double_t *arrP=nullptr;
 
   const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadROCPos(roc, row, pad));
 

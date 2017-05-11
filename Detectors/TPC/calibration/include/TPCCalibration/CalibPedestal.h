@@ -40,8 +40,8 @@ class CalibPedestal : public CalibRawBase
     /// Update function called once per digit
     ///
     /// \param sector
-    virtual Int_t Update(const Int_t sector, const Int_t row, const Int_t pad,
-                         const Int_t timeBin, const Float_t signal) final;
+    Int_t Update(const Int_t sector, const Int_t row, const Int_t pad,
+                 const Int_t timeBin, const Float_t signal) final;
 
     /// Analyse the buffered adc values and calculate noise and pedestal
     void analyse();
@@ -57,7 +57,7 @@ class CalibPedestal : public CalibRawBase
     const CalPad& getNoise() const { return mNoise; }
 
     /// Dump the relevant data to file
-    virtual void dumpToFile(TString filename) final;
+    void dumpToFile(TString filename) final;
 
 
   //private:
@@ -76,7 +76,7 @@ class CalibPedestal : public CalibRawBase
     vectorType* getVector(ROC roc, bool create=kFALSE);
 
     /// dummy reset
-    virtual void ResetEvent() final {}
+    void ResetEvent() final {}
 };
 
 } // namespace TPC
