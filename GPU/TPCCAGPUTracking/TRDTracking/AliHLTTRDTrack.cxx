@@ -87,7 +87,7 @@ AliHLTTRDTrack::AliHLTTRDTrack(AliExternalTrackParam& t ) throw (const Char_t *)
 Int_t AliHLTTRDTrack::GetTracklet(Int_t iLayer) const
 {
   if (iLayer < 0 || iLayer > 5) {
-    Error("GetTracklet", "illegal layer number %i", iLayer);
+    //Error("GetTracklet", "illegal layer number %i", iLayer);
     return -1;
   }
   if (fAttachedTracklets[iLayer] == -1) {

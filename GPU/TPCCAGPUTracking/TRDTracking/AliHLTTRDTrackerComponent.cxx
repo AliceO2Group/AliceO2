@@ -291,7 +291,9 @@ int AliHLTTRDTrackerComponent::DoEvent
       int nTracks = dataPtr->fCount;
       AliHLTExternalTrackParam* currOutTrack = dataPtr->fTracklets;
       for( int itr=0; itr<nTracks; itr++ ){
-	      tracksITSId.push_back( currOutTrack->fTrackID );
+        if (currOutTrack->fNPoints >= 2) {
+	        tracksITSId.push_back( currOutTrack->fTrackID );
+        }
 	      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + currOutTrack->fNPoints * sizeof( unsigned int );
 	      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
       }

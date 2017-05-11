@@ -211,15 +211,6 @@ void AliHLTTRDTracker::DoTracking( AliExternalTrackParam *tracksTPC, int *tracks
     double pT = t->Pt();
     double alpha = t->GetAlpha();
 
-    if (fDebugOutput) {
-      (*fStreamer) << "tracksFinal" <<
-        "ev=" << fNEvents <<
-        "iTrk=" << i <<
-        "pT=" << pT <<
-        "alpha=" << alpha <<
-        "nTrackletsAttached=" << result <<
-        "\n";
-    }
   }
 
   if (fDebugOutput) {
@@ -503,6 +494,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
     double p[2] = { 0. };
     double cov[3] = { 0. };
     bool wasTrackRotated = false;
+    bool matchAvailable = false;
     for (iDet = det.begin(); iDet != det.end(); ++iDet) {
       int detToSearch = *iDet;
       int stackToSearch = (detToSearch % 30) / kNLayers;
@@ -523,24 +515,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
         Error("FollowProlongation", "track is in sector %i and sector %i is searched for tracklets", GetSector(t->GetAlpha()), sectorToSearch);
       }
 
-      // - first propagate track to x of chamber
-      // - for each tracklet: get track parameter at x of tracklet and compare y and z at this position
-      /*
-      double xOfChamberLoc[3] = {AliTRDgeometry::AnodePos(), 0., 0.};
-      double xOfChamberGlb[3];
-      TGeoHMatrix *matrix = fTRDgeometry->GetClusterMatrix(detToSearch);
-      if (!matrix) {
-        Error("FollowProlongation", "invalid TRD cluster matrix, skipping detector %i", detToSearch);
-        continue;
-      }
-      matrix->LocalToMaster(xOfChamberLoc, xOfChamberGlb);
-      if (TMath::Abs(xOfChamberGlb[0] - t->GetX()) > 1.) {
-        if (!PropagateTrackToBxByBz(t, xOfChamberGlb[0], mass, 1.0, kFALSE, 0.8)) {
-          Error("FollowProlongation", "track propagation failed while fine tuning track parameter for chamber. Abandoning track");
-          return result;
-        }
-      }
-      */
+      // get track parameter at radius of tracklet and compare y and z at this position if in window
       for (int iTrklt=0; iTrklt<fTrackletIndexArray[detToSearch][1]; ++iTrklt) {
         int trkltIdx = fTrackletIndexArray[detToSearch][0] + iTrklt;
         Double_t trackYZ[2] = { 9999, 9999 }; // local y and z position of the track at the tracklet x
@@ -552,7 +527,10 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
         }
         if ( (TMath::Abs(fSpacePoints[trkltIdx].fX[1] - trackYZ[0]) < deltaY) && (TMath::Abs(fSpacePoints[trkltIdx].fX[2] - trackYZ[1]) < deltaZ) )
         {
-          //tracklet is in windwow: get predicted chi2 for update and store tracklet index if best guess
+          // tracklet is in windwow: get predicted chi2 for update and store tracklet index if best guess
+          if (fSpacePoints[trkltIdx].fLabel == t->GetLabel()) {
+            matchAvailable = true;
+          }
           p[0] = fSpacePoints[trkltIdx].fX[1];
           p[1] = fSpacePoints[trkltIdx].fX[2];
           cov[0] = fSpacePoints[trkltIdx].fCov[0];
@@ -565,7 +543,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
             bestGuessDet = detToSearch;
           }
           if (fDebugOutput) {
-            float dX = xTracklet - fSpacePoints[trkltIdx].fX[0]; // zero by definition
+            float dX = xTracklet - fSpacePoints[trkltIdx].fX[0]; // zero by definition (paranoia check)
             float dY = trackYZ[0] - fSpacePoints[trkltIdx].fX[1];
             float dZ = trackYZ[1] - fSpacePoints[trkltIdx].fX[2];
             float trkErrorY = t->GetSigmaY2();
@@ -588,7 +566,6 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
                 correctUpdateInPrevLayer = true;
               }
             }
-            int charge = t->Charge();
             int trkLabel = t->GetLabel();
             int trkltLabel = fSpacePoints[trkltIdx].fLabel;
             bool match = (trkLabel == trkltLabel) ? true : false;
@@ -605,7 +582,6 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
               "dZ=" << dZ <<
               "updateInPrevLayer=" << updateInPrevLayer <<
               "correctUpdateInPrevLayer=" << correctUpdateInPrevLayer <<
-              "charge=" << charge <<
               "trkLabel=" << trkLabel <<
               "trkltLabel=" << trkLabel <<
               "match=" << match <<
@@ -657,6 +633,7 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
             prevUpdate = true;
           }
         }
+        bool matching = (t->GetLabel() == fSpacePoints[bestGuessIdx].fLabel) ? true : false;
         AliExternalTrackParam parameterUpdate(*t);
         (*fStreamer) << "updates" <<
           "iEv=" << fNEvents <<
@@ -674,6 +651,8 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
           "zPull=" << zPull <<
           "chi2=" << bestGuessChi2 <<
           "prevUpdate=" << prevUpdate <<
+          "matching=" << matching <<
+          "matchAvailable=" << matchAvailable <<
           "parameter.=" << &parameterUpdate <<
           "\n";
       }
@@ -688,6 +667,39 @@ int AliHLTTRDTracker::FollowProlongation(AliHLTTRDTrack *t, double mass)
         Error("FollowProlongation", "tracklet from wrong layer added to track. fR[iLayer]=%f, xTracklet=%f", fR[iLayer], fSpacePoints[bestGuessIdx].fX[0]);
       }
     }
+  }
+  if (fDebugOutput) {
+    bool updateInLayer[6] = { 0 };
+    bool matchInLayer[6] = { 0 };
+    for (Int_t iLy = 0; iLy < 6; iLy++) {
+      int iTracklet = t->GetTracklet(iLy);
+      if (iTracklet != -1) {
+        updateInLayer[iLy] = true;
+        if (fSpacePoints[iTracklet].fLabel == t->GetLabel()) {
+          matchInLayer[iLy] = true;
+        }
+      }
+    }
+    AliExternalTrackParam parameterFinal(*t);
+    int nTrkltsAttached = t->GetNtracklets();
+    (*fStreamer) << "tracks" <<
+      "ev=" << fNEvents <<
+      "iTrk=" << iTrack <<
+      "nTracklets=" << nTrkltsAttached <<
+      "upL0=" << updateInLayer[0] <<
+      "upL1=" << updateInLayer[1] <<
+      "upL2=" << updateInLayer[2] <<
+      "upL3=" << updateInLayer[3] <<
+      "upL4=" << updateInLayer[4] <<
+      "upL5=" << updateInLayer[5] <<
+      "matchL0=" << matchInLayer[0] <<
+      "matchL1=" << matchInLayer[1] <<
+      "matchL2=" << matchInLayer[2] <<
+      "matchL3=" << matchInLayer[3] <<
+      "matchL4=" << matchInLayer[4] <<
+      "matchL5=" << matchInLayer[5] <<
+      "parameter.=" << &parameterFinal <<
+      "\n";
   }
   return result;
 }
