@@ -31,8 +31,8 @@ class SimpleEventDisplay : public CalibRawBase
     
     virtual ~SimpleEventDisplay() = default;
 
-    virtual Int_t Update(const Int_t roc, const Int_t row, const Int_t pad,
-                         const Int_t timeBin, const Float_t signal) override;
+    Int_t Update(const Int_t roc, const Int_t row, const Int_t pad,
+                 const Int_t timeBin, const Float_t signal) final;
   
     CalPad* getCalPadMax() {return &mPadMax;}
 
@@ -63,7 +63,7 @@ class SimpleEventDisplay : public CalibRawBase
   
     const Mapper&  mTPCmapper;          //! mapper
   
-    virtual void ResetEvent() override;
+    void ResetEvent() final;
 };
 
 
