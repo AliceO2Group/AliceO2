@@ -262,9 +262,9 @@ struct Descriptor {
   bool operator==(const Descriptor& other) const {return itg == other.itg;}
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
   // print function needs to be implemented for every derivation
-  PrinterPolicy printer;
   void print() const {
     // eventually terminate string before printing
+    PrinterPolicy printer;
     printer(str);
   };
 };

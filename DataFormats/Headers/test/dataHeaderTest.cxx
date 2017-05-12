@@ -2,12 +2,13 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
+#include <iomanip>
 #include "Headers/DataHeader.h"
 
 namespace o2 {
   namespace Header {
 
-    BOOST_AUTO_TEST_CASE(Description_test)
+    BOOST_AUTO_TEST_CASE(Descriptor_test)
     {
       // test for the templated Descriptor struct
       constexpr int descriptorSize = 8;
@@ -15,6 +16,7 @@ namespace o2 {
       BOOST_CHECK(TestDescriptorT::size == descriptorSize);
       BOOST_CHECK(TestDescriptorT::bitcount == descriptorSize * 8);
       BOOST_CHECK(sizeof(TestDescriptorT::ItgType) == descriptorSize);
+      static_assert(TestDescriptorT::size == sizeof(TestDescriptorT));
 
       // the Descriptor allows to define an integral value from
       // a char sequence so that the in-memory representation shows
@@ -25,6 +27,7 @@ namespace o2 {
 
       TestDescriptorT testDescriptor(readable);
       TestDescriptorT anotherDescriptor("ANOTHER");
+      BOOST_CHECK(TestDescriptorT::size == sizeof(testDescriptor));
 
       // copy constructor and comparison operator
       BOOST_CHECK(testDescriptor == TestDescriptorT(testDescriptor));
@@ -82,6 +85,46 @@ namespace o2 {
       runtimeDesc.runtimeInit(runtimeString.c_str());
       BOOST_CHECK(runtimeDesc == DataDescription("DATA_DESCRIPTION"));
     }
-  } 
-}
 
+    BOOST_AUTO_TEST_CASE(DataOrigin_test)
+    {
+      // test for the templated Descriptor struct
+      constexpr int descriptorSize = 4;
+      using TestDescriptorT = Descriptor<descriptorSize>;
+      BOOST_CHECK(TestDescriptorT::size == descriptorSize);
+      BOOST_CHECK(TestDescriptorT::bitcount == descriptorSize * 8);
+      BOOST_CHECK(sizeof(TestDescriptorT::ItgType) == descriptorSize);
+      BOOST_CHECK(TestDescriptorT::size == sizeof(DataOrigin));
+
+      // we want to explicitely have the size of DataOrigin to be 4
+      static_assert(sizeof(DataOrigin) == 4);
+    }
+
+    BOOST_AUTO_TEST_CASE(BaseHeader_test)
+    {
+      static_assert(sizeof(HeaderType) == 8);
+      static_assert(sizeof(SerializationMethod) == 8);
+      static_assert(sizeof(BaseHeader) == 32);
+    }
+
+    BOOST_AUTO_TEST_CASE(DataHeader_test)
+    {
+      DataHeader dh;
+      bool verbose = false;
+      if (verbose) {
+        std::cout << "size of BaseHeader: " << sizeof(BaseHeader) << std::endl;
+        std::cout << "size of DataHeader: " << sizeof(DataHeader) << std::endl;
+
+        std::cout << "dataDescription:             " << "size " << std::setw(2) << sizeof(dh.dataDescription)            << " at " << (char *)(&dh.dataDescription) - (char *)(&dh) << std::endl;
+        std::cout << "dataOrigin:                  " << "size " << std::setw(2) << sizeof(dh.dataOrigin)                 << " at " << (char *)(&dh.dataOrigin) - (char *)(&dh) << std::endl;
+        std::cout << "reserved:                    " << "size " << std::setw(2) << sizeof(dh.reserved)                   << " at " << (char *)(&dh.reserved) - (char *)(&dh) << std::endl;
+        std::cout << "payloadSerializationMethod:  " << "size " << std::setw(2) << sizeof(dh.payloadSerializationMethod) << " at " << (char *)(&dh.payloadSerializationMethod) - (char *)(&dh) << std::endl;
+        std::cout << "subSpecification:            " << "size " << std::setw(2) << sizeof(dh.subSpecification)           << " at " << (char *)(&dh.subSpecification) - (char *)(&dh) << std::endl;
+        std::cout << "payloadSize                  " << "size " << std::setw(2) << sizeof(dh.payloadSize)                << " at " << (char *)(&dh.payloadSize) - (char *)(&dh) << std::endl;
+      }
+
+      // DataHeader must have size 80
+      static_assert(sizeof(DataHeader) == 80);
+    }
+  }
+}
