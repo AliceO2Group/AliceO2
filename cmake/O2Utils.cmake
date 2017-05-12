@@ -471,3 +471,36 @@ macro(O2_ROOT_GENERATE_DICTIONARY)
   endif ()
 
 endmacro(O2_ROOT_GENERATE_DICTIONARY)
+
+# Generate a man page
+# Make sure we have nroff. If that is not the case
+# we will not generate man pages
+find_program(
+          NROFF_FOUND
+          nroff)
+
+function(O2_GENERATE_MAN)
+  cmake_parse_arguments(
+      PARSED_ARGS
+      "" # bool args
+      "NAME;SECTION" # mono-valued arguments
+      "" # multi-valued arguments
+      ${ARGN} # arguments
+  )
+  if(NOT PARSED_ARGS_SECTION)
+    set(PARSED_ARGS_SECTION 1)
+  endif()
+  CHECK_VARIABLE(PARSED_ARGS_NAME "You must provide the name of the input man file in doc/<name>.<section>.in")
+  if(NROFF_FOUND)
+    ADD_CUSTOM_COMMAND(
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}
+      MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/doc/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}.in
+      COMMAND nroff -man ${CMAKE_CURRENT_SOURCE_DIR}/doc/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}.in > ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}
+      VERBATIM
+    )
+    ADD_CUSTOM_TARGET(${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION} DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+    add_dependencies(man ${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION} DESTINATION share/man/man${PARSED_ARGS_SECTION})
+  endif(NROFF_FOUND)
+endfunction(O2_GENERATE_MAN)
+

@@ -1,0 +1,29 @@
+.\" Manpage for runExampleModule2.
+.TH man 1 "12 May 2017" "1.0" "runExampleModule2 man page"
+
+.SH NAME
+
+runExampleModule2 - A test device
+
+.SH SYNOPSIS
+
+runExampleModule2 [options]
+
+.SH DESCRIPTION
+
+runExampleModule2 is just an example to demonstrate how AliceO2 modules work.
+This document is just an example demonstrating how to create man pages.
+
+.SH OPTIONS
+
+.TP 5
+
+--some-option some fancy option to use
+
+.SH SEE ALSO
+
+runExampleModule2(1)
+
+.SH BUGS
+
+No known bugs

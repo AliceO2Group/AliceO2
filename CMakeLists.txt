@@ -26,6 +26,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake) # 
 # after check of cmake version since this is a new feature
 project(ALICEO2)
 
+# Toplevel targets
+ADD_CUSTOM_TARGET(man ALL)
 #In case you need Fortran
 #ENABLE_LANGUAGE(Fortran)
 
