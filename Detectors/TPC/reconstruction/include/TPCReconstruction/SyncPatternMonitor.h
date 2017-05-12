@@ -119,7 +119,7 @@ void SyncPatternMonitor::checkWord(const short hw, const short pos) {
 
 inline
 void SyncPatternMonitor::patternFound(const short hw) { 
-  LOG(INFO) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
+  LOG(DEBUG) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
      << "SYNC found at " << hw << " in " << mCheckedWords << FairLogger::endl;
   if (mPatternFound) {
     LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
