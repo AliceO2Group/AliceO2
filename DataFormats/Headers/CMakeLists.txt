@@ -23,7 +23,7 @@ set(BUCKET_NAME fairroot_base_bucket)
 O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
-  test/dataHeaderTest.cxx
+  test/testDataHeader.cxx
   test/testTimeStamp.cxx
 )
 
