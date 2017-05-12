@@ -13,6 +13,10 @@
 *.dylib
 *.dll
 
+# Cint generated files
+*_C.d
+*rdict.pcm
+
 # Fortran module files
 *.mod
 
