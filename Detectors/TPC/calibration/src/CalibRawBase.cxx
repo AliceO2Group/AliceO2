@@ -16,13 +16,25 @@ void CalibRawBase::setupContainers(TString fileInfo)
 
   //auto contPtr = std::unique_ptr<GBTFrameContainer>(new GBTFrameContainer(iSize,iCRU,iLink));
   // input data
+  TString rorcType="grorc";
   auto arrData = fileInfo.Tokenize("; ");
   for (auto o : *arrData) {
     const TString& data = static_cast<TObjString*>(o)->String();
 
     // get file info: file name, cru, link
     auto arrDataInfo = data.Tokenize(":");
-    if (arrDataInfo->GetEntriesFast() != 3) {
+    if (arrDataInfo->GetEntriesFast() == 1) {
+      TString& rorcTypeTmp = static_cast<TObjString*>(arrDataInfo->At(0))->String();
+      if (rorcTypeTmp=="trorc") rorcType=rorcTypeTmp;
+      else if (rorcTypeTmp=="trorc2") rorcType=rorcTypeTmp;
+      else {
+        printf("Error, unrecognized option: %s\n", rorcTypeTmp.Data());
+      }
+      std::cout << "Found rorc type: " << rorcType << "\n";
+      delete arrDataInfo;
+      continue;
+    }
+    else if (arrDataInfo->GetEntriesFast() != 3) {
       printf("Error, badly formatte input data string: %s, expected format is <filename:cru:link>\n", data.Data());
       delete arrDataInfo;
       continue;
@@ -39,8 +51,8 @@ void CalibRawBase::setupContainers(TString fileInfo)
     cont->setEnableStoreGBTFrames(true);
     cont->setEnableCompileAdcValues(true);
 
-    std::cout << "Read digits from file " << filename << " with cru " << iCRU << ", link " << iLink << "...\n";
-    cont->addGBTFramesFromBinaryFile(filename.Data());
+    std::cout << "Read digits from file " << filename << " with cru " << iCRU << ", link " << iLink << ", rorc type " << rorcType << "...\n";
+    cont->addGBTFramesFromBinaryFile(filename.Data(), -1, rorcType.Data());
     std::cout << " ... done. Read " << cont->getSize() << "\n";
 
     addGBTFrameContainer(cont);
