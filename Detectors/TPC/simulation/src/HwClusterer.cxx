@@ -283,7 +283,8 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
 //  int iPad;
 //  float charge;
   int iTimeBin;
-  int iTimeBinMin = mLastTimebin + 1;
+  int iTimeBinMin = (mIsContinuousReadout)?mLastTimebin + 1 : 0;
+  //int iTimeBinMin = mLastTimebin + 1;
   int iTimeBinMax = mLastTimebin;
 
   /*  

@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
   } else if (mode == "digi") {
     run_digi_tpc(events,engine, isContinuous);
   } else if (mode == "clus") {
-    run_clus_tpc(events,engine);
+    run_clus_tpc(events,engine, isContinuous);
   } else if (mode == "all") {
     int status;
     pid_t PID = fork();
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
     PID = fork();
     if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
-    if (PID == 0)  { run_clus_tpc(events,engine); return EXIT_SUCCESS;}
+    if (PID == 0)  { run_clus_tpc(events,engine,isContinuous); return EXIT_SUCCESS;}
     else waitpid(PID,&status,0);
   } else {
       std::cout << "Mode was not recognised" << std::endl;

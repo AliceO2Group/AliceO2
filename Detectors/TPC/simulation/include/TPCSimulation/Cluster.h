@@ -64,10 +64,10 @@ class Cluster : public FairTimeStamp {
     /// Print function: Print basic digit information on the  output stream
     /// \param output Stream to put the digit on
     /// \return The output stream
-    friend std::ostream& operator<< (std::ostream& out, const Cluster &c) { return c.Print(out); }; 
+    friend std::ostream& operator<< (std::ostream& out, const Cluster &c) { return c.print(out); }; 
 
   protected:      
-    std::ostream& Print(std::ostream& out) const;
+    virtual std::ostream& print(std::ostream& out) const;
     
   private:
 #ifndef __CINT__

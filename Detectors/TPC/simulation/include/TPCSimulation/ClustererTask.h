@@ -77,7 +77,6 @@ inline
 void ClustererTask::setContinuousReadout(bool isContinuous)
 {
   mIsContinuousReadout = isContinuous;
-  mHwClusterer->setContinuousReadout(isContinuous);
 }
 
 }
