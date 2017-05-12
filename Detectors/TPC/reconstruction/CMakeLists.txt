@@ -10,6 +10,7 @@ set(SRCS
    src/GBTFrame.cxx
    src/GBTFrameContainer.cxx
    src/HalfSAMPAData.cxx
+   src/RawReader.cxx
    src/SyncPatternMonitor.cxx
    src/TrackTPC.cxx
 )
@@ -20,6 +21,7 @@ set(HEADERS
    include/${MODULE_NAME}/GBTFrame.h
    include/${MODULE_NAME}/GBTFrameContainer.h
    include/${MODULE_NAME}/HalfSAMPAData.h
+   include/${MODULE_NAME}/RawReader.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
    include/${MODULE_NAME}/TrackTPC.h
 )
@@ -31,11 +33,13 @@ O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
   tpc-read-GBTFrames
+  testRawReader
 )
 
 
 Set(Exe_Source
   run/readGBTFrames.cxx
+  run/testRawReader.cxx
 )
 
 # todo we repeat ourselves because the macro O2_GENERATE_LIBRARY dares deleting the variables we pass to it.
