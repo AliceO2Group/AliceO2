@@ -18,8 +18,6 @@
 #include "TPCSimulation/Cluster.h"
 #include "TPCBase/Mapper.h"
 
-#pragma link C++ class std::vector<TrackTPC>+;
-
 using namespace o2::TPC;
 
 void testHitsDigitsClusters(int iEv=0,

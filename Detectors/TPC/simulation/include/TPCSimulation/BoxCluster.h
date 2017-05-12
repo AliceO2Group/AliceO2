@@ -43,7 +43,7 @@ namespace o2{
 		 Short_t size);
 
       /// Destructor
-      ~BoxCluster() override;
+      ~BoxCluster() override = default;
 
       /// Setter for special Box cluster parameters
       /// @param pad Pad with the maximum charge
@@ -63,8 +63,8 @@ namespace o2{
       /// Print function: Print basic information to the output stream
       /// @param output stream
       /// @return The output stream
-      friend std::ostream& operator<< (std::ostream& out, const BoxCluster &c) { return c.Print(out); }
-      std::ostream& Print(std::ostream &output) const;
+      friend std::ostream& operator<< (std::ostream& out, const BoxCluster &c) { return c.print(out); }
+      std::ostream& print(std::ostream &output) const override;
 
     private:
 #ifndef __CINT__

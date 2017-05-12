@@ -30,10 +30,6 @@ BoxCluster::BoxCluster(Short_t cru, Short_t row, Short_t pad, Short_t time,
 }
 
 //________________________________________________________________________
-BoxCluster::~BoxCluster()
-= default;
-
-//________________________________________________________________________
 void BoxCluster::setBoxParameters(Short_t pad, Short_t time, Short_t size)
 {
   mPad = pad;
@@ -42,9 +38,9 @@ void BoxCluster::setBoxParameters(Short_t pad, Short_t time, Short_t size)
 }
 
 //________________________________________________________________________
-std::ostream& BoxCluster::Print(std::ostream &output) const
+std::ostream& BoxCluster::print(std::ostream &output) const
 {
-  Cluster::Print(output);
+  Cluster::print(output);
   output << " centered at (pad, time) = " << mPad << ", " << mTime
 	 << " covering " << Int_t(mSize/10)  << " pads and " << mSize%10
 	 << " time bins";

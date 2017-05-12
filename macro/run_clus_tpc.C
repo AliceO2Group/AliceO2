@@ -16,7 +16,7 @@
   #include "TPCSimulation/ClustererTask.h"
 #endif
 
-void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
+void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", bool isContinuous=true)
 {
   // Initialize logger
   FairLogger *logger = FairLogger::GetLogger();
@@ -48,6 +48,7 @@ void run_clus_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // Setup clusterer
   o2::TPC::ClustererTask *clustTPC = new o2::TPC::ClustererTask;
+  clustTPC->setContinuousReadout(isContinuous);
   clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::Box,false);
   clustTPC->setClustererEnable(o2::TPC::ClustererTask::ClustererType::HW,true);
 

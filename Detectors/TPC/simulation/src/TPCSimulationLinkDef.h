@@ -34,4 +34,6 @@
 #pragma link C++ class o2::TPC::Point+;
 #pragma link C++ class o2::TPC::SAMPAProcessing+;
 
+#pragma link C++ class std::vector<o2::TPC::Cluster>+;
+
 #endif

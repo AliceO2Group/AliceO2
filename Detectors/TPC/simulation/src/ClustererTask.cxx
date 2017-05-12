@@ -77,6 +77,7 @@ InitStatus ClustererTask::Init()
 
   if (mHwClustererEnable) {
     mHwClusterer = new HwClusterer();
+    mHwClusterer->setContinuousReadout(mIsContinuousReadout);
     mHwClusterer->Init();
 // TODO: implement noise/pedestal objecta
 //    mHwClusterer->setNoiseObject();
@@ -93,7 +94,7 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t *option)
 {
-  LOG(DEBUG) << "Running clusterization on new event" << FairLogger::endl;
+  LOG(DEBUG) << "Running clusterization on new event with " << mDigitsArray->GetEntriesFast() << " digits" << FairLogger::endl;
 
   if (mBoxClustererEnable) {
     mClustersArray->Clear();
@@ -105,6 +106,7 @@ void ClustererTask::Exec(Option_t *option)
     mHwClustersArray->Clear();
     ClusterContainer* hwClusters = mHwClusterer->Process(mDigitsArray);
     hwClusters->FillOutputContainer(mHwClustersArray);
+    LOG(DEBUG) << "Hw clusterer found " << mHwClustersArray->GetEntriesFast() << " clusters" << FairLogger::endl;
   }
 
 }

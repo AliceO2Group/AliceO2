@@ -62,8 +62,8 @@ class HwCluster : public Cluster {
     /// Print function
     /// \param output Stream to put the HwCluster on
     /// \return The output stream
-    friend std::ostream& operator<< (std::ostream& out, const HwCluster &c) { return c.Print(out); }
-    std::ostream& Print(std::ostream &output) const;
+    friend std::ostream& operator<< (std::ostream& out, const HwCluster &c) { return c.print(out); }
+    std::ostream& print(std::ostream &output) const override;
     std::ostream& PrintDetails(std::ostream &output) const;
 
   private:

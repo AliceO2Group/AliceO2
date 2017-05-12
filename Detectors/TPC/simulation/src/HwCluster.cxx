@@ -133,9 +133,9 @@ void HwCluster::calculateClusterProperties()
 }
 
 //________________________________________________________________________
-std::ostream& HwCluster::Print(std::ostream &output) const
+std::ostream& HwCluster::print(std::ostream &output) const
 {
-  Cluster::Print(output);
+  Cluster::print(output);
   output << " centered at (pad, time) = " << mPad << ", " << mTime
     << " covering " << (short)(mSize/10)  << " pads and " << mSize%10
     << " time bins";
@@ -145,7 +145,7 @@ std::ostream& HwCluster::Print(std::ostream &output) const
 //________________________________________________________________________
 std::ostream& HwCluster::PrintDetails(std::ostream &output) const
 {
-  Cluster::Print(output);
+  Cluster::print(output);
   output << " centered at (pad, time) = " << mPad << ", " << mTime
     << " covering " << (short)(mSize/10)  << " pads and " << mSize%10
     << " time bins" << "\n";

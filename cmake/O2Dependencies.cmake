@@ -585,6 +585,9 @@ o2_define_bucket(
     Gen
     Base
     TreePlayer
+    TPCSimulation
+    #the dependency on TPCSimulation should be removed at some point
+    #perhaps 'Cluster' can be moved to base, or so
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}

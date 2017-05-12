@@ -11,9 +11,6 @@
 #include "DetectorsBase/Track.h"
 #include "TPCSimulation/Cluster.h"
 
-#pragma link C++ class std::vector<o2::Base::Track::TrackPar>+;
-#pragma link C++ class std::vector<o2::TPC::TrackTPC>+;
-
 using namespace o2::TPC;
 using namespace o2::Base::Track;
 
@@ -93,7 +90,7 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
     for (int iTrack = 0;iTrack < numTracks;iTrack++)
     {
       count = fread(&track, sizeof(track), 1, fpInput);
-      printf("Track %d Parameters: Alpha %f, X %f, Y %f, Z %f, SinPhi %f, DzDs %f, Q/Pt %f, Number of clusters %d, Fit OK %d\n", iTrack, track.Alpha, track.X, track.Y, track.Z, track.SinPhi, track.DzDs, track.QPt, track.NClusters, track.FitOK);
+      //printf("Track %d Parameters: Alpha %f, X %f, Y %f, Z %f, SinPhi %f, DzDs %f, Q/Pt %f, Number of clusters %d, Fit OK %d\n", iTrack, track.Alpha, track.X, track.Y, track.Z, track.SinPhi, track.DzDs, track.QPt, track.NClusters, track.FitOK);
 
       //TrackTPC* track = new(arrTracks[iTrack]) TrackTPC();
       TrackTPC trackTPC(track.X, track.Alpha, {track.Y, track.Z, track.SinPhi, track.DzDs, track.QPt}, {0, 0});
@@ -103,17 +100,17 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
       // ---| read cluster IDs |---
       if (size_t(track.NClusters) > ClusterIDs.size()) ClusterIDs.resize(track.NClusters);
       count = fread(&ClusterIDs[0], sizeof(ClusterIDs[0]), track.NClusters, fpInput);
-      printf("Cluster IDs:");
+      //printf("Cluster IDs:");
 
       // ---| loop over clusters |---
       for (int iCluster = 0;iCluster < track.NClusters;iCluster++)
       {
-        printf(" %d", ClusterIDs[iCluster]);
+        //printf(" %d", ClusterIDs[iCluster]);
 
         Cluster& tempCluster = *(static_cast<Cluster*>(clusters->At(ClusterIDs[iCluster])));
         storedTrack.addCluster(tempCluster);
       }
-      printf("\n");
+      //printf("\n");
     }
 
     nEvents++;
