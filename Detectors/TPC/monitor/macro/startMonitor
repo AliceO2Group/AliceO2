@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ $# -lt 1 ]; then
+  echo usage: runMonitor <fileInfo> [pedestalFile]
+fi
+
+fileInfo=$1
+pedestalFile=$2
+
+cmd="root.exe $O2_SRC/Detectors/TPC/reconstruction/macro/addInclude.C $O2_SRC/Detectors/TPC/monitor/macro/RunSimpleEventDisplay.C+'(\"$fileInfo\",\"$pedestalFile\")'"
+echo "running: $cmd"
+eval $cmd
