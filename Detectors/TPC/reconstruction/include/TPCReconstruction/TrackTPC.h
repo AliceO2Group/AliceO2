@@ -54,7 +54,7 @@ class TrackTPC {
     /// \param removeRows option to remove certain rows from the dEdx calculation
     /// \param nclPID pass any pointer to have the number of used clusters written to it
     /// \return mean energy loss
-    float getTruncatedMean(float low=0.05, float high=0.7, int type=1, int removeRows=0, int *nclPID=0x0) const;
+    float getTruncatedMean(float low=0.05, float high=0.7, int type=1, int removeRows=0, int *nclPID=nullptr) const;
 
 
     float GetX()                         const { return mTrackParCov.GetX(); }
@@ -69,13 +69,13 @@ class TrackTPC {
     float GetCurvature(float b)          const { return mTrackParCov.GetCurvature(float(b));}
     float GetSign()                      const { return mTrackParCov.GetSign();}
     float GetPhi()                       const { return mTrackParCov.GetPhi();}
-    float GetPhiPos()                    const;
+    float GetPhiPos()                    const { return mTrackParCov.GetPhiPos(); }
 
-    float GetP()                         const;
-    float GetPt()                        const;
-    void  GetXYZ(std::array<float,3> &xyz)           const;
-    bool  GetPxPyPz(std::array<float,3> &pxyz)       const;
-    bool  GetPosDir(std::array<float,9> &posdirp)    const;
+    float GetP()                         const { return mTrackParCov.GetP(); }
+    float GetPt()                        const { return mTrackParCov.GetPt(); }
+    void  GetXYZ(std::array<float,3> &xyz)           const { mTrackParCov.GetXYZ(xyz); }
+    bool  GetPxPyPz(std::array<float,3> &pxyz)       const { return mTrackParCov.GetPxPyPz(pxyz); }
+    bool  GetPosDir(std::array<float,9> &posdirp)    const { return mTrackParCov.GetPosDir(posdirp); }
 
     /// \todo implement getters for covariance (missing access to full covariance in Track.h)
 
