@@ -16,8 +16,8 @@ Float_t Clusterer::mX0=0.;
 Float_t Clusterer::mZ0=0.;
 
 Clusterer::Clusterer()
-  :mCurr(mColumn2)
-  ,mPrev(mColumn1)
+  :mCurr(mColumn2+1)
+  ,mPrev(mColumn1+1)
   ,mChipID(65535)
   ,mCol(65535)
 {
@@ -51,18 +51,20 @@ void Clusterer::process(PixelReader &reader, TClonesArray &clusters)
 
 void Clusterer::initChip(UShort_t chipID, UShort_t row, UShort_t col, Int_t label)
 {
-  mPrev=mColumn1;
-  mCurr=mColumn2;
+  mPrev=mColumn1+1;
+  mCurr=mColumn2+1;
   std::fill(std::begin(mColumn1), std::end(mColumn1), -1);
   std::fill(std::begin(mColumn2), std::end(mColumn2), -1);
 
   mPreClusters.clear();
+  mIndices.clear();
   mLabels.clear();
 
   mChipID=chipID;
   mCol=col;
-  mCurr[row+1]=0;
+  mCurr[row]=0;
   mPreClusters.emplace_back(1,std::pair<UShort_t,UShort_t>(row,col)); //start the first precluster
+  mIndices.push_back(0);
   mLabels.push_back(label);
 }
 
@@ -72,30 +74,36 @@ void Clusterer::updateChip(UShort_t chipID, UShort_t row, UShort_t col, Int_t la
      Int_t *tmp=mCurr;
      mCurr=mPrev;
      mPrev=tmp;
-     if (col > mCol+1) std::fill(mPrev, mPrev+kMaxRow+2, -1);
-     std::fill(mCurr, mCurr+kMaxRow+2, -1);
+     if (col > mCol+1) std::fill(mPrev, mPrev+kMaxRow, -1);
+     std::fill(mCurr, mCurr+kMaxRow, -1);
      mCol=col;
   }
 
-  Int_t idx=row+1;
-  auto clusterIdx = mCurr[idx-1];     //upper
-  if (clusterIdx < 0) {
-     clusterIdx = mPrev[idx];         //left
-     if (clusterIdx < 0) {
-        clusterIdx = mPrev[idx-1];    //upper left
-        if (clusterIdx < 0) {
-	   clusterIdx = mPrev[idx+1]; //lower left
-	   if (clusterIdx < 0) {
-	      mCurr[idx]=mPreClusters.size();
-	      mPreClusters.emplace_back(1,std::pair<UShort_t,UShort_t>(row,col)); //new precluster
-              mLabels.push_back(label);
-              return;
-	   }
-        }
+  Bool_t attached=false;
+  Int_t neighbours[]{mCurr[row-1], mPrev[row], mPrev[row+1], mPrev[row-1]};
+  for (auto pci : neighbours) {
+     if (pci<0) continue;
+     auto &ci = mIndices[pci];
+     if (attached) {
+        auto &newci = mIndices[mCurr[row]];
+	if (ci < newci) newci = ci;
+	else ci = newci;
+     } else {
+        mPreClusters[ci].emplace_back(row,col);
+	mCurr[row] = pci;
+	attached = true;
      }
   }
-  mCurr[idx] = clusterIdx;
-  mPreClusters[clusterIdx].emplace_back(row,col); //update an existing precluster
+  
+  if (attached) return;
+
+  //start new precluster
+  mPreClusters.emplace_back(1,std::pair<UShort_t,UShort_t>(row,col));
+  Int_t lastIndex = mPreClusters.size()-1;
+  mCurr[row] = lastIndex;
+  mIndices.push_back(lastIndex);
+  mLabels.push_back(label);
+
 }
 
 void Clusterer::finishChip(TClonesArray &clusters)
@@ -103,13 +111,15 @@ void Clusterer::finishChip(TClonesArray &clusters)
   static Float_t sigmaX2 = mPitchX * mPitchX / 12.; //FIXME
   static Float_t sigmaY2 = mPitchZ * mPitchZ / 12.;
 
-  Int_t i=0;
-  for (auto pre : mPreClusters) {
-    Int_t npix = pre.size();
+  for (Int_t i1=0; i1<mPreClusters.size(); ++i1) {
+    const auto &preCluster1 = mPreClusters[i1];
+    const auto ci = mIndices[i1];
+    if (ci<0) continue;
     UShort_t xmax=0, xmin=65535;
     UShort_t zmax=0, zmin=65535;
     Float_t x=0., z=0.;
-    for (auto dig : pre) {
+    Int_t npix = preCluster1.size();
+    for (const auto &dig : preCluster1) {
       x += dig.first;
       z += dig.second;
       if (dig.first < xmin) xmin=dig.first;
@@ -117,6 +127,21 @@ void Clusterer::finishChip(TClonesArray &clusters)
       if (dig.second < zmin) zmin=dig.second;
       if (dig.second > zmax) zmax=dig.second;
     }
+    mIndices[i1] = -1;
+    for (Int_t i2=i1+1; i2<mPreClusters.size(); ++i2) {
+      const auto &preCluster2 = mPreClusters[i2];
+      if (mIndices[i2] != ci) continue;
+      npix += preCluster2.size();
+      for (const auto &dig : preCluster2) {
+        x += dig.first;
+        z += dig.second;
+        if (dig.first < xmin) xmin=dig.first;
+        if (dig.first > xmax) xmax=dig.first;
+        if (dig.second < zmin) zmin=dig.second;
+        if (dig.second > zmax) zmax=dig.second;
+      }
+      mIndices[i2] = -1;
+    }    
     x /= npix;
     x = mX0 + x*mPitchX;
     z /= npix;
@@ -130,7 +155,7 @@ void Clusterer::finishChip(TClonesArray &clusters)
     c.setSigmaZ2(sigmaY2);
     c.setNxNzN(xmax-xmin+1,zmax-zmin+1,npix);
     c.setFrameLoc();
-    c.setLabel(mLabels[i++], 0);
+    c.setLabel(mLabels[i1], 0);
     new (clusters[clusters.GetEntriesFast()]) Cluster(c);
   }
 }
