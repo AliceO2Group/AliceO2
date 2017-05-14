@@ -42,7 +42,7 @@ void addData(o2::TPC::GBTFrameContainer& container, std::string& infile, int fra
   std::cout << infile << std::endl;
   mtx.unlock();
 
-  container.addGBTFramesFromBinaryFile(infile, frames, rorcFlavor);
+  container.addGBTFramesFromBinaryFile(infile, rorcFlavor, frames);
 
   done = 1;
 }
