@@ -62,7 +62,7 @@ void CalibRawBase::setupContainers(TString fileInfo)
     cont->setEnableCompileAdcValues(true);
 
     std::cout << "Read digits from file " << filename << " with cru " << iCRU << ", link " << iLink << ", rorc type " << rorcType << "...\n";
-    cont->addGBTFramesFromBinaryFile(filename.Data(), -1, rorcType.Data());
+    cont->addGBTFramesFromBinaryFile(filename.Data(), rorcType.Data(), -1);
     std::cout << " ... done. Read " << cont->getSize() << "\n";
 
     addGBTFrameContainer(cont);

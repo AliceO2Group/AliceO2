@@ -124,8 +124,9 @@ class GBTFrameContainer {
 
     /// Add all frames from file to conatiner
     /// @param fileName Path to file
-    /// @param frames Frames to read from file
-    void addGBTFramesFromBinaryFile(std::string fileName, int frames = -1, std::string type = "grorc");
+    /// @param type rorc type of data
+    /// @param frames Frames to read from file (-1 -> all)
+    void addGBTFramesFromBinaryFile(std::string fileName, std::string type = "grorc", int frames = -1);
 
 //    /// Fill output TClonesArray
 //    /// @param output Output container
