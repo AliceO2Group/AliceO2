@@ -4,9 +4,11 @@
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
-#include <bitset>
+#include <queue>
 
 #include "TPCReconstruction/RawReader.h"
+#include "TPCReconstruction/GBTFrame.h"
+#include "TPCReconstruction/SyncPatternMonitor.h" 
 #include "TPCBase/Mapper.h"
 
 #include "FairLogger.h" 
@@ -15,10 +17,14 @@ using namespace o2::TPC;
 
 RawReader::RawReader()
   : mLastEvent(-1)
+  , mTimestampOfFirstData(0)
   , mEvents()
   , mData()
   , mDataIterator(mData.end())
-{}
+  , mSyncPos()
+{
+  mSyncPos.fill(-1);
+}
 
 bool RawReader::addInputFile(const std::vector<std::string>* infiles) {
   bool ret = false;
@@ -63,15 +69,15 @@ bool RawReader::addInputFile(std::string infile) {
   return addInputFile(region,link,path);
 }
 
-bool RawReader::addInputFile(int region, int link, std::string infile){
+bool RawReader::addInputFile(int region, int link, std::string path){
 
-  std::ifstream file(infile);
+  std::ifstream file(path);
   if (!file.is_open()) {
-    LOG(ERROR) << "Can't read file " << infile << FairLogger::endl;
+    LOG(ERROR) << "Can't read file " << path << FairLogger::endl;
     return false;
   }
 
-  header h;
+  Header h;
   int pos = 0;
   file.seekg(0,file.end);
   int length = file.tellg();
@@ -80,11 +86,10 @@ bool RawReader::addInputFile(int region, int link, std::string infile){
   while (pos < length) {
     file.read((char*)&h, sizeof(h));
     eventData eD;
-    eD.path = infile;
+    eD.path = path;
     eD.posInFile =  file.tellg();
     eD.region = region;
     eD.link = link;
-    eD.isProcessed = false;
     eD.headerInfo = h;
     if (h.headerVersion == 0) {
       auto it = mEvents.find(h.eventCount());
@@ -115,7 +120,10 @@ bool RawReader::addInputFile(int region, int link, std::string infile){
 }
 
 bool RawReader::loadEvent(int64_t event) {
+  LOG(DEBUG) << "Loading new event " << event << FairLogger::endl;
   mData.clear();
+  mTimestampOfFirstData = 0;
+
   auto ev = mEvents.find(event);
   mLastEvent = event;
 
@@ -130,14 +138,136 @@ bool RawReader::loadEvent(int64_t event) {
     }
     int nWords = data.headerInfo.nWords-8;
     uint32_t words[nWords];
+    LOG(DEBUG) << "reading " << nWords << " words from position " << data.posInFile << " in file " << data.path << FairLogger::endl;
     file.seekg(data.posInFile);
     file.read((char*)&words, nWords*sizeof(words[0]));
-    LOG(DEBUG) << "reading " << nWords << " from file " << data.path << FairLogger::endl;
+
+    std::array<char,5> sampas;
+    std::array<char,5> sampaChannelStart;
+    for (char i=0; i<5; ++i) {
+      sampas[i] = (i == 4) ? 2 : (data.region%2) ? i/2+3 : i/2;
+      sampaChannelStart[i] = (i == 4) ?   // 5th half SAMPA corresponds to  SAMPA2
+        ((data.region%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
+        ((i%2) ? 16 : 0);                 // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
+    }
 
     switch (data.headerInfo.dataType) {
       case 1: // RAW GBT frames
         { 
-          LOG(DEBUG) << "Readout Mode 1 not yet implemented" << FairLogger::endl;
+          LOG(DEBUG) << "Data of readout mode 1 (RAW GBT frames)" << FairLogger::endl;
+          std::array<SyncPatternMonitor,5> syncMon{
+            SyncPatternMonitor(0,0),
+              SyncPatternMonitor(0,1),
+              SyncPatternMonitor(1,0),
+              SyncPatternMonitor(1,1),
+              SyncPatternMonitor(2,0)};
+          std::array<short,5> lastSyncPos;
+          std::array<std::queue<uint16_t>,5> adcValues;
+          GBTFrame frame; 
+          GBTFrame lastFrame; 
+
+          for (int i=0; i<nWords; i=i+4) {
+
+            if ((mTimestampOfFirstData != 0) && 
+                ((mTimestampOfFirstData & 0x7) == ((data.headerInfo.timeStamp() + 1 + i/4) & 0x7))) {
+              for (char j=0; j<5; ++j) {
+                if (adcValues[j].size() < 16) {
+                  std::queue<uint16_t> empty;
+                  std::swap(adcValues[j], empty);
+                  continue;
+                }
+                for (int k=0; k<16; ++k) {
+                  const PadPos padPos = mapper.padPosRegion(
+                      data.region, data.link,sampas[j],k+sampaChannelStart[j]);
+                  auto it = mData.find(padPos);
+                  if (it != mData.end()) {
+                    it->second->push_back(adcValues[j].front());
+                  } else {
+                    mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j].front()}));
+                  }
+                  adcValues[j].pop();
+                }
+              }
+            }
+
+            lastSyncPos = mSyncPos;
+            lastFrame = frame;
+            frame.setData(words[i],words[i+1],words[i+2],words[i+3]);
+
+            if (syncMon[0].addSequence(
+                frame.getHalfWord(0,0,0),
+                frame.getHalfWord(0,1,0),
+                frame.getHalfWord(0,2,0),
+                frame.getHalfWord(0,3,0))) mSyncPos[0] = syncMon[0].getPosition();
+          
+            if (syncMon[1].addSequence(
+                frame.getHalfWord(0,0,1),
+                frame.getHalfWord(0,1,1),
+                frame.getHalfWord(0,2,1),
+                frame.getHalfWord(0,3,1))) mSyncPos[1] = syncMon[1].getPosition();
+          
+            if (syncMon[2].addSequence(
+                frame.getHalfWord(1,0,0),
+                frame.getHalfWord(1,1,0),
+                frame.getHalfWord(1,2,0),
+                frame.getHalfWord(1,3,0))) mSyncPos[2] = syncMon[2].getPosition();
+          
+            if (syncMon[3].addSequence(
+                frame.getHalfWord(1,0,1),
+                frame.getHalfWord(1,1,1),
+                frame.getHalfWord(1,2,1),
+                frame.getHalfWord(1,3,1))) mSyncPos[3] = syncMon[3].getPosition();
+          
+            if (syncMon[4].addSequence(
+                frame.getHalfWord(2,0),
+                frame.getHalfWord(2,1),
+                frame.getHalfWord(2,2),
+                frame.getHalfWord(2,3))) mSyncPos[4] = syncMon[4].getPosition();
+
+            short value1;
+            short value2;
+            for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
+              if (mSyncPos[iHalfSampa] < 0) continue;
+              if (lastSyncPos[iHalfSampa] < 0) continue;
+              if (mTimestampOfFirstData == 0) mTimestampOfFirstData = data.headerInfo.timeStamp() + 1 + i/4;
+
+              switch(mSyncPos[iHalfSampa]) {
+                case 0:
+                  value1 = (frame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) |
+                            frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
+                  value2 = (frame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) | 
+                            frame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
+                  break;
+            
+                case 1:
+                  value1 = (lastFrame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) |
+                            lastFrame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
+                  value2 = (frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
+                            lastFrame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
+                  break;
+            
+                case 2:
+                  value1 = (lastFrame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) |
+                            lastFrame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
+                  value2 = (frame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) | 
+                            frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
+                  break;
+            
+                case 3:
+                  value1 = (frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
+                            lastFrame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
+                  value2 = (frame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) | 
+                            frame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
+                  break;
+            
+                default:
+                  return false;
+              }
+
+              adcValues[iHalfSampa].emplace(value1 ^ (1 << 9));
+              adcValues[iHalfSampa].emplace(value2 ^ (1 << 9));
+            }
+          }
           break;
         }
       case 2: // Decoded data
@@ -147,14 +277,6 @@ bool RawReader::loadEvent(int64_t event) {
           std::array<bool,5> writeValue;
           writeValue.fill(false);
           std::array<std::array<uint16_t,16>,5> adcValues;
-          std::array<char,5> sampas;
-          std::array<char,5> sampaChannelStart;
-          for (char i=0; i<5; ++i) {
-            sampas[i] = (i == 4) ? 2 : (data.region%2) ? i/2+3 : i/2;
-            sampaChannelStart[i] = (i == 4) ?   // 5th half SAMPA corresponds to  SAMPA2
-              ((data.region%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
-              ((i%2) ? 16 : 0);                 // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
-          }
 
           for (int i=0; i<nWords; i=i+4) {
             ids[4] = (words[i] >> 4) & 0xF;
@@ -175,11 +297,16 @@ bool RawReader::loadEvent(int64_t event) {
             adcValues[0][((ids[0] & 0x7)*2)  ] = ((ids[0]>>3)&0x1 == 0) ? 0 : ((words[i+0] & 0xF) << 6) | ((words[i+1] >> 26) & 0x3F);
 
             for (char j=0; j<5; ++j) {
-              if (ids[j] == 0x8) writeValue[j] = true;
+              if (ids[j] == 0x8) {
+                writeValue[j] = true;
+                // header TS is one before first word -> +1
+                if (mTimestampOfFirstData == 0) mTimestampOfFirstData = data.headerInfo.timeStamp() + 1 + i/4;
+//                  std::cout << data.headerInfo.timeStamp() << " " << i/4 << " " << mTimestampOfFirstData << std::endl;}
+              }
             }
 
             for (char j=0; j<5; ++j) {
-              if (writeValue[j] & ids[j] == 0xF) {
+              if (writeValue[j] & (ids[j] == 0xF)) {
                 for (int k=0; k<16; ++k) {
                   const PadPos padPos = mapper.padPosRegion(
                       data.region, data.link,sampas[j],k+sampaChannelStart[j]);
@@ -209,14 +336,6 @@ bool RawReader::loadEvent(int64_t event) {
           std::array<bool,5> writeValue;
           writeValue.fill(false);
           std::array<std::array<uint16_t,16>,5> adcValues;
-          std::array<char,5> sampas;
-          std::array<char,5> sampaChannelStart;
-          for (char i=0; i<5; ++i) {
-            sampas[i] = (i == 4) ? 2 : (data.region%2) ? i/2+3 : i/2;
-            sampaChannelStart[i] = (i == 4) ?   // 5th half SAMPA corresponds to  SAMPA2
-              ((data.region%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
-              ((i%2) ? 16 : 0);                 // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
-          }
 
           for (int i=0; i<nWords; i=i+8) {
             ids[4] = (words[i+4] >> 4) & 0xF;
@@ -237,11 +356,16 @@ bool RawReader::loadEvent(int64_t event) {
             adcValues[0][((ids[0] & 0x7)*2)  ] = ((ids[0]>>3)&0x1 == 0) ? 0 : ((words[i+4] & 0xF) << 6) | ((words[i+5] >> 26) & 0x3F);
 
             for (char j=0; j<5; ++j) {
-              if (ids[j] == 0x8) writeValue[j] = true;
+              if (ids[j] == 0x8) {
+                writeValue[j] = true;
+                // header TS is one before first word -> +1
+                if (mTimestampOfFirstData == 0) mTimestampOfFirstData = data.headerInfo.timeStamp() + 1 + i/8;
+//                  std::cout << data.headerInfo.timeStamp() << " " << i/4 << " " << mTimestampOfFirstData << std::endl;}
+              }
             }
 
             for (char j=0; j<5; ++j) {
-              if (writeValue[j] & ids[j] == 0xF) {
+              if (writeValue[j] & (ids[j] == 0xF)) {
                 for (int k=0; k<16; ++k) {
                   const PadPos padPos = mapper.padPosRegion(
                       data.region, data.link,sampas[j],k+sampaChannelStart[j]);

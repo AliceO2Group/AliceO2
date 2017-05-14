@@ -62,9 +62,12 @@ int main(int argc, char *argv[])
   for (int i=0; i<100; ++i) {
     rr.loadNextEvent();
   }
+  uint64_t ts = 0;
   std::cout << "First event: " << rr.getFirstEvent() << " Last event: " << rr.getLastEvent() << std::endl;
   for (int i=rr.getFirstEvent(); i<=rr.getLastEvent(); ++i) {
-    std::cout << i << " " <<rr.loadEvent(i) << std::endl;
+    std::cout << i << " " << rr.loadEvent(i) << " " ;
+    std::cout << rr.getTimeStamp() << " " << rr.getTimeStamp() - ts << std::endl;
+    ts = rr.getTimeStamp();
     o2::TPC::PadPos padPos;
     while (std::shared_ptr<std::vector<uint16_t>> data = rr.getNextData(padPos)) {
 //      std::cout << "Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << " " << data->size() << std::endl;
