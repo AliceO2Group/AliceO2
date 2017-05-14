@@ -12,6 +12,7 @@
 /// \author Sebastian Klewin
 
 #include "TPCReconstruction/GBTFrameContainer.h"
+#include <bitset>
 
 using namespace o2::TPC;
 
@@ -98,7 +99,7 @@ void GBTFrameContainer::addGBTFramesFromFile(std::string fileName)
   }
 }
 
-void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, int frames, std::string type)
+void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::string type, int frames)
 {
   std::cout << "Reading from file " << fileName << std::endl;
   std::ifstream file(fileName);
@@ -126,10 +127,146 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, int fra
       addGBTFrame(words[0],words[1],words[2],words[3]); 
     }
   } else if (type == "trorc2") {
-    while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
-      file.read((char*)&words,8*sizeof(words[0]));
-      addGBTFrame(words[0],words[1],words[2],words[3]); 
+    //
+    // reading header
+    //
+    file.read((char*)&words,8*sizeof(words[0]));
+
+    // decoding header
+    uint32_t headerVersion = (words[0] >> 24) & 0xF;
+    if (headerVersion == 0) {
+      uint32_t readoutMode = words[0] & 0xFFFF;
+      uint32_t reserved_0 = (words[0] >> 16) & 0xF;
+      uint32_t channelID = (words[0] >> 20) & 0xF;
+      uint32_t n_words = words[1];
+      uint64_t timestamp = words[2]; timestamp = (timestamp << 32) | words[3];
+      uint64_t event_count = words[4]; event_count = (event_count << 32) | words[5];
+      uint64_t reserved_1 = words[6]; reserved_1 = (reserved_1 << 32) | words[7];
+      LOG(DEBUG) << "Header version: " << headerVersion << FairLogger::endl;
+      LOG(DEBUG) << "ChannelID: " << channelID << FairLogger::endl;
+      LOG(DEBUG) << "reserved_0: 0x" << std::hex << std::setfill('0') << std::right << std::setw(1) << reserved_0 << std::dec << FairLogger::endl;
+      LOG(DEBUG) << "Readout mode: " << readoutMode << FairLogger::endl;
+      LOG(DEBUG) << "n_words: " << n_words << FairLogger::endl;
+      LOG(DEBUG) << "Timestamp: 0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << timestamp << std::dec << FairLogger::endl;
+      LOG(DEBUG) << "Event counter: " << event_count << FairLogger::endl;
+      LOG(DEBUG) << "reserved_1: 0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << reserved_1 << std::dec << FairLogger::endl;
+
+      switch (readoutMode) {
+        case 1: {// raw GBT frames
+          for (int i=0; i<(n_words-8); i= i+4) {
+            file.read((char*)&words,4*sizeof(words[0]));
+            addGBTFrame(words[0],words[1],words[2],words[3]); 
+          }
+          break;
+          }
+
+        case 2: {// already decoded data
+          mAdcMutex.lock();
+          uint32_t ids[5];
+          std::array<bool,5> writeValue;
+          writeValue.fill(false);
+          std::array<std::array<uint32_t,16>,5> adcValues;
+
+          for (int i=0; i<(n_words-8); i= i+4) {
+            file.read((char*)&words,4*sizeof(words[0]));
+
+            ids[4] = (words[0] >> 4) & 0xF;
+            ids[3] = (words[0] >> 8) & 0xF;
+            ids[2] = (words[0] >> 12) & 0xF;
+            ids[1] = (words[0] >> 16) & 0xF;
+            ids[0] = (words[0] >> 20) & 0xF;
+
+            adcValues[4][((ids[4] & 0x7)*2)+1] = ((ids[4]>>3)&0x1 == 0) ? 0 : words[3] & 0x3FF;
+            adcValues[4][((ids[4] & 0x7)*2)  ] = ((ids[4]>>3)&0x1 == 0) ? 0 : (words[3] >> 10) & 0x3FF;
+            adcValues[3][((ids[3] & 0x7)*2)+1] = ((ids[3]>>3)&0x1 == 0) ? 0 : (words[3] >> 20) & 0x3FF;
+            adcValues[3][((ids[3] & 0x7)*2)  ] = ((ids[3]>>3)&0x1 == 0) ? 0 : ((words[2] & 0xFF) << 2) | ((words[3] >> 30) & 0x3);
+            adcValues[2][((ids[2] & 0x7)*2)+1] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[2] >> 8) & 0x3FF;
+            adcValues[2][((ids[2] & 0x7)*2)  ] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[2] >> 18) & 0x3FF;
+            adcValues[1][((ids[1] & 0x7)*2)+1] = ((ids[1]>>3)&0x1 == 0) ? 0 : ((words[1] & 0x3F) << 4) | ((words[2] >> 28) & 0xF);
+            adcValues[1][((ids[1] & 0x7)*2)  ] = ((ids[1]>>3)&0x1 == 0) ? 0 : (words[1] >> 6) & 0x3FF;
+            adcValues[0][((ids[0] & 0x7)*2)+1] = ((ids[0]>>3)&0x1 == 0) ? 0 : (words[1] >> 16) & 0x3FF;
+            adcValues[0][((ids[0] & 0x7)*2)  ] = ((ids[0]>>3)&0x1 == 0) ? 0 : ((words[0] & 0xF) << 6) | ((words[1] >> 26) & 0x3F);
+
+            for (int j=0; j<5; ++j) {
+              std::cout << std::bitset<4>(ids[j]) << " " <<  adcValues[0][((ids[0] & 0x7)*2)  ] << " " << adcValues[0][((ids[0] & 0x7)*2)+1] << std::endl;
+            }
+            std::cout << std::endl;
+                                                                                                                      
+            for (int j=0; j<5; ++j) {
+              if (ids[j] == 0x8) writeValue[j] = true;
+            }
+            for (int j=0; j<5; ++j) {
+              if (writeValue[j] & ids[j] == 0xF) {
+                for (int k=0; k<16; ++k) {
+                  mAdcValues[j]->push(adcValues[j][k]);
+                  std::cout << adcValues[j][k] << " ";
+                }
+                std::cout << std::endl;
+              }
+            }
+            std::cout << std::endl;
+          }
+
+          mAdcMutex.unlock();
+          break;
+          }
+
+        case 3: {// raw GBT frames
+          mAdcMutex.lock();
+          uint32_t ids[5];
+          std::array<bool,5> writeValue;
+          writeValue.fill(false);
+          std::array<std::array<uint32_t,16>,5> adcValues;
+
+          for (int i=0; i<(n_words-8); i= i+4) {
+            file.read((char*)&words,8*sizeof(words[0]));
+
+            ids[4] = (words[4] >> 4) & 0xF;
+            ids[3] = (words[4] >> 8) & 0xF;
+            ids[2] = (words[4] >> 12) & 0xF;
+            ids[1] = (words[4] >> 16) & 0xF;
+            ids[0] = (words[4] >> 20) & 0xF;
+
+            adcValues[4][((ids[4] & 0x7)*2)+1] = ((ids[4]>>3)&0x1 == 0) ? 0 : words[7] & 0x3FF;
+            adcValues[4][((ids[4] & 0x7)*2)  ] = ((ids[4]>>3)&0x1 == 0) ? 0 : (words[7] >> 10) & 0x3FF;
+            adcValues[3][((ids[3] & 0x7)*2)+1] = ((ids[3]>>3)&0x1 == 0) ? 0 : (words[7] >> 20) & 0x3FF;
+            adcValues[3][((ids[3] & 0x7)*2)  ] = ((ids[3]>>3)&0x1 == 0) ? 0 : ((words[6] & 0xFF) << 2) | ((words[7] >> 30) & 0x3);
+            adcValues[2][((ids[2] & 0x7)*2)+1] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[6] >> 8) & 0x3FF;
+            adcValues[2][((ids[2] & 0x7)*2)  ] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[6] >> 18) & 0x3FF;
+            adcValues[1][((ids[1] & 0x7)*2)+1] = ((ids[1]>>3)&0x1 == 0) ? 0 : ((words[5] & 0x3F) << 4) | ((words[6] >> 28) & 0xF);
+            adcValues[1][((ids[1] & 0x7)*2)  ] = ((ids[1]>>3)&0x1 == 0) ? 0 : (words[5] >> 6) & 0x3FF;
+            adcValues[0][((ids[0] & 0x7)*2)+1] = ((ids[0]>>3)&0x1 == 0) ? 0 : (words[5] >> 16) & 0x3FF;
+            adcValues[0][((ids[0] & 0x7)*2)  ] = ((ids[0]>>3)&0x1 == 0) ? 0 : ((words[4] & 0xF) << 6) | ((words[5] >> 26) & 0x3F);
+                                                                                                                      
+            for (int j=0; j<5; ++j) {
+              if (ids[j] == 0x8) writeValue[j] = true;
+            }
+            for (int j=0; j<5; ++j) {
+              if (writeValue[j] & ids[j] == 0xF) {
+                for (int k=0; k<16; ++k) {
+                  mAdcValues[j]->push(adcValues[j][k]);
+                }
+              }
+            }
+          }
+
+          mAdcMutex.unlock();
+          break;
+          }
+//          for (int i=0; i<(n_words-8); i= i+8) {
+//            file.read((char*)&words,8*sizeof(words[0]));
+//            addGBTFrame(words[0],words[1],words[2],words[3]); 
+//          }
+//          break;
+
+        default: 
+          break;
+      }
     }
+//    while (!file.eof() && ((frames == -1) || (mGBTFramesAnalyzed < frames))) {
+//      file.read((char*)&words,8*sizeof(words[0]));
+//      addGBTFrame(words[0],words[1],words[2],words[3]); 
+//    }
   }
 }
 
@@ -259,35 +396,40 @@ void GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame
     mPositionForHalfSampa[iHalfSampa+5] =  mPositionForHalfSampa[iHalfSampa];
   }
 
-  mPositionForHalfSampa[0] = mSyncPattern[0].addSequence(
+  mSyncPattern[0].addSequence(
       iFrame->getHalfWord(0,0,0),
       iFrame->getHalfWord(0,1,0),
       iFrame->getHalfWord(0,2,0),
       iFrame->getHalfWord(0,3,0));
+  mPositionForHalfSampa[0] = mSyncPattern[0].getPosition();
 
-  mPositionForHalfSampa[1] = mSyncPattern[1].addSequence(
+  mSyncPattern[1].addSequence(
       iFrame->getHalfWord(0,0,1),
       iFrame->getHalfWord(0,1,1),
       iFrame->getHalfWord(0,2,1),
       iFrame->getHalfWord(0,3,1));
+  mPositionForHalfSampa[1] = mSyncPattern[1].getPosition();
 
-  mPositionForHalfSampa[2] = mSyncPattern[2].addSequence(
+  mSyncPattern[2].addSequence(
       iFrame->getHalfWord(1,0,0),
       iFrame->getHalfWord(1,1,0),
       iFrame->getHalfWord(1,2,0),
       iFrame->getHalfWord(1,3,0));
+  mPositionForHalfSampa[2] = mSyncPattern[0].getPosition();
 
-  mPositionForHalfSampa[3] = mSyncPattern[3].addSequence(
+  mSyncPattern[2].addSequence(
       iFrame->getHalfWord(1,0,1),
       iFrame->getHalfWord(1,1,1),
       iFrame->getHalfWord(1,2,1),
       iFrame->getHalfWord(1,3,1));
+  mPositionForHalfSampa[3] = mSyncPattern[0].getPosition();
 
-  mPositionForHalfSampa[4] = mSyncPattern[4].addSequence(
+  mSyncPattern[3].addSequence(
       iFrame->getHalfWord(2,0),
       iFrame->getHalfWord(2,1),
       iFrame->getHalfWord(2,2),
       iFrame->getHalfWord(2,3));
+  mPositionForHalfSampa[4] = mSyncPattern[4].getPosition();
 
 //  std::cout << mPositionForHalfSampa[0] << " " << mPositionForHalfSampa[1] << " " << mPositionForHalfSampa[2] << " " << mPositionForHalfSampa[3] << " " << mPositionForHalfSampa[4] << std::endl;
 
