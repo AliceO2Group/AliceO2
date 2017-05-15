@@ -76,6 +76,9 @@ class RawReader {
     /// Copy constructor
     RawReader(const RawReader& other) = default;
 
+    /// Copy constructor
+    RawReader(const RawReader& other) = default;
+
     /// Destructor
     ~RawReader() = default;
 

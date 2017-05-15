@@ -58,10 +58,10 @@ int main(int argc, char *argv[])
 //    rr.addInputFile(i);
 
 
-  const o2::TPC::Mapper& mapper = o2::TPC::Mapper::instance();
-  for (int i=0; i<100; ++i) {
-    rr.loadNextEvent();
-  }
+//  const o2::TPC::Mapper& mapper = o2::TPC::Mapper::instance();
+//  for (int i=0; i<100; ++i) {
+//    rr.loadNextEvent();
+//  }
   uint64_t ts = 0;
   std::cout << "First event: " << rr.getFirstEvent() << " Last event: " << rr.getLastEvent() << " number of events available: " << rr.getNumberOfEvents() << std::endl;
   for (int i=rr.getFirstEvent(); i<=rr.getLastEvent(); ++i) {
@@ -77,18 +77,18 @@ int main(int argc, char *argv[])
     }
   }
 
-  std::cout << "part 1 done" << std::endl;
-  for (int sampa = 0; sampa < 3; ++sampa) {
-    for (int channel = 0; channel < 32; ++channel) {
-      o2::TPC::PadPos padPos = mapper.padPosRegion(0,0,sampa,channel);
-      std::shared_ptr<std::vector<uint16_t>> data = rr.getData(padPos);
-
-      std::cout << "S: " << sampa << " C: " << channel << " Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << " " << data->size() << std::endl;
-      for (std::vector<uint16_t>::iterator it = data->begin(); it != data->end(); ++it) {
-        std::cout << *it << std::endl;
-      }
-    }
-  }
+//  std::cout << "part 1 done" << std::endl;
+//  for (int sampa = 0; sampa < 3; ++sampa) {
+//    for (int channel = 0; channel < 32; ++channel) {
+//      o2::TPC::PadPos padPos = mapper.padPosRegion(0,0,sampa,channel);
+//      std::shared_ptr<std::vector<uint16_t>> data = rr.getData(padPos);
+//
+//      std::cout << "S: " << sampa << " C: " << channel << " Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << " " << data->size() << std::endl;
+//      for (std::vector<uint16_t>::iterator it = data->begin(); it != data->end(); ++it) {
+//        std::cout << *it << std::endl;
+//      }
+//    }
+//  }
 
 
   return EXIT_SUCCESS;
