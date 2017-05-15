@@ -37,8 +37,8 @@ class DigitPixelReader : public PixelReader {
  public:
   DigitPixelReader() : mDigitArray(nullptr), mIdx(0) {}
   void setDigitArray(const TClonesArray *a) { mDigitArray=a; mIdx=0; }
-  void init() {mIdx=0;}
-  virtual Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col, Int_t &label);
+  void init() override {mIdx=0;}
+  Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col, Int_t &label) override;
  private:
   const TClonesArray *mDigitArray;
   Int_t mIdx;
@@ -49,7 +49,7 @@ class DigitPixelReader : public PixelReader {
 ///
 class RawPixelReader : public PixelReader {
  public:
-  virtual Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col, Int_t &label); 
+  Bool_t getNextFiredPixel(UShort_t &id, UShort_t &row, UShort_t &col, Int_t &label) override; 
 };
 
  
