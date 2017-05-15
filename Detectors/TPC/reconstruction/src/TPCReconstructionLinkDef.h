@@ -20,6 +20,7 @@
 #pragma link C++ class o2::TPC::GBTFrameContainer;
 #pragma link C++ class o2::TPC::HalfSAMPAData;
 #pragma link C++ class o2::TPC::RawReader;
+#pragma link C++ class o2::TPC::RawReaderArray;
 #pragma link C++ class o2::TPC::SyncPatternMonitor;
 #pragma link C++ class o2::TPC::TrackTPC+;
 
