@@ -94,7 +94,8 @@ bool RawReader::addInputFile(int region, int link, std::string path){
     if (h.headerVersion == 0) {
       auto it = mEvents.find(h.eventCount());
       if (it != mEvents.end()) it->second->push_back(eD);
-      else mEvents.insert(std::pair< uint64_t, std::unique_ptr<std::vector<eventData>>> (h.eventCount(),new std::vector<eventData>{eD}));
+      //else mEvents.insert(std::pair< uint64_t, std::unique_ptr<std::vector<eventData>>> (h.eventCount(),new std::vector<eventData>{eD}));
+      else mEvents.insert(std::make_pair(h.eventCount(),std::unique_ptr<std::vector<eventData>>(new std::vector<eventData>{eD})));
 //      std::cout << mEvents.size() << " " << mEvents[h.eventCount()]->size() << std::endl
 //        << mEvents[h.eventCount()]->at(0).headerInfo.eventCount() << std::endl;
 //      std::cout 
@@ -183,7 +184,8 @@ bool RawReader::loadEvent(int64_t event) {
                   if (it != mData.end()) {
                     it->second->push_back(adcValues[j].front());
                   } else {
-                    mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j].front()}));
+                    //mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j].front()}));
+                    mData.insert(std::make_pair(padPos,std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>{adcValues[j].front()})));
                   }
                   adcValues[j].pop();
                 }
@@ -318,7 +320,8 @@ bool RawReader::loadEvent(int64_t event) {
                     it->second->push_back(adcValues[j][k]);
                   } else {
 //                    std::cout << "padpos (Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << ") not yet found." << std::endl;
-                    mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j][k]}));
+                    //mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j][k]}));
+                    mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>{adcValues[j][k]})));
                   }
 //                  std::cout << adcValues[j][k] << " ";
                 }
@@ -377,7 +380,8 @@ bool RawReader::loadEvent(int64_t event) {
                     it->second->push_back(adcValues[j][k]);
                   } else {
 //                    std::cout << "padpos (Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << ") not yet found." << std::endl;
-                    mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j][k]}));
+                    //mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j][k]}));
+                    mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>{adcValues[j][k]})));
                   }
 //                  std::cout << adcValues[j][k] << " ";
                 }
