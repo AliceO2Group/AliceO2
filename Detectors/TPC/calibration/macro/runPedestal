@@ -7,6 +7,6 @@ fi
 fileInfo=$1
 pedestalFile=$2
 
-cmd="root.exe $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'(\"$fileInfo\")'"
+cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'(\"$fileInfo\",\"$pedestalFile\")'"
 echo "running: $cmd"
 eval $cmd
