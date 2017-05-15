@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "TPCBase/PadPos.h"
+
 namespace o2 {
 namespace TPC {
 
@@ -22,12 +23,12 @@ class RawReader {
     /// Data header struct
     struct Header {
       uint16_t dataType;        ///< readout mode, 1: GBT frames, 2: decoded data, 3: both
-      uint8_t channelID;        ///< DMA channel
+      uint8_t reserved_01;      ///< reserved part
       uint8_t headerVersion;    ///< Header version
       uint32_t nWords;          ///< number of 32 bit words of header + payload
       uint64_t timeStamp_w;     ///< time stamp of header, high and low fields are reversed
       uint64_t eventCount_w;    ///< Event counter, high and low fields are reversed
-      uint64_t reserved_w;      ///< Reserved data, high and low fields are reversed
+      uint64_t reserved_2_w;    ///< Reserved part, high and low fields are reversed
 
       /// Get the timestamp
       /// @return corrected header time stamp
@@ -39,15 +40,15 @@ class RawReader {
 
       /// Get reserved data field
       /// @return corrected data field
-      uint64_t reserved() { return (reserved_w << 32) | (reserved_w >> 32);}
+      uint64_t reserved() { return (reserved_2_w << 32) | (reserved_2_w >> 32);}
 
       /// Default constructor
       Header() {};
 
       /// Copy constructor
-      Header(const Header& h) : dataType(h.dataType), channelID(h.channelID), 
+      Header(const Header& h) : dataType(h.dataType), reserved_01(h.reserved_01), 
         headerVersion(h.headerVersion), nWords(h.nWords), timeStamp_w(h.timeStamp_w),
-        eventCount_w(h.eventCount_w), reserved_w(h.reserved_w) {};
+        eventCount_w(h.eventCount_w), reserved_2_w(h.reserved_2_w) {};
     };
 
     /// Data struct
@@ -108,7 +109,7 @@ class RawReader {
 
     /// Get number of events
     /// @return If events are continous, it's the number of stored events
-    int getNumberOfEvents() const { return  (mEvents.size() == 0) ? 0 : mEvents.rbegin()->first - mEvents.begin()->first; };
+    int getNumberOfEvents() const { return  mEvents.size(); };
 
     /// Get time stamp of first data
     /// @return Timestamp of first decoded ADC value
