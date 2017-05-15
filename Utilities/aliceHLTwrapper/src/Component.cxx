@@ -209,7 +209,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   memset(&trigData, 0, sizeof(trigData));
   trigData.fStructSize = sizeof(trigData);
 
-  AliHLTUInt32_t outputBlockCnt = 0;
+  uint32_t outputBlockCnt = 0;
   AliHLTComponentBlockData* pOutputBlocks = nullptr;
   AliHLTComponentEventDoneData* pEventDoneData = nullptr;
 
@@ -290,8 +290,8 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
   // prepare output
   { // keep this after removing condition to preserve formatting
-    AliHLTUInt8_t* pOutputBufferStart = &mOutputBuffer[0];
-    AliHLTUInt8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
+    uint8_t* pOutputBufferStart = &mOutputBuffer[0];
+    uint8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
     // consistency check for data blocks
     // 1) all specified data must be either inside the output buffer given
     //    to the component or in one of the input buffers
@@ -314,10 +314,10 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
       bool bValid = pOutputBlock->fSize == 0;
 
       // calculate the data reference
-      AliHLTUInt8_t* pStart =
-        pOutputBlock->fPtr != nullptr ? reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr) : &mOutputBuffer[0];
+      uint8_t* pStart =
+        pOutputBlock->fPtr != nullptr ? reinterpret_cast<uint8_t*>(pOutputBlock->fPtr) : &mOutputBuffer[0];
       pStart += pOutputBlock->fOffset;
-      AliHLTUInt8_t* pEnd = pStart + pOutputBlock->fSize;
+      uint8_t* pEnd = pStart + pOutputBlock->fSize;
       pOutputBlock->fPtr = pStart;
       pOutputBlock->fOffset = 0;
 
@@ -328,8 +328,8 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
       if (!bValid) {
         vector<AliHLTComponentBlockData>::const_iterator ci = inputBlocks.begin();
         for (; ci != inputBlocks.end(); ci++) {
-          AliHLTUInt8_t* pInputBufferStart = reinterpret_cast<AliHLTUInt8_t*>(ci->fPtr);
-          AliHLTUInt8_t* pInputBufferEnd = pInputBufferStart + ci->fSize;
+          uint8_t* pInputBufferStart = reinterpret_cast<uint8_t*>(ci->fPtr);
+          uint8_t* pInputBufferEnd = pInputBufferStart + ci->fSize;
           if ((bValid = (pStart >= pInputBufferStart && pEnd <= pInputBufferEnd))) {
             break;
           }

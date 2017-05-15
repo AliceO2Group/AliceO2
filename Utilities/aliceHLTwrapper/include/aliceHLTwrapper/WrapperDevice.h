@@ -64,25 +64,9 @@ public:
   // the FairMQDevice interface
 
   /// inherited from FairMQDevice
-  void Init() override;
-  /// inherited from FairMQDevice
   void InitTask() override;
   /// inherited from FairMQDevice
   void Run() override;
-  /// inherited from FairMQDevice
-  void Pause() override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  void SetProperty(const int key, const std::string& value) override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  std::string GetProperty(const int key, const std::string& default_ = "") override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  void SetProperty(const int key, const int value) override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  int GetProperty(const int key, const int default_ = 0) override;
 
   /////////////////////////////////////////////////////////////////
   // device property identifier

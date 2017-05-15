@@ -74,10 +74,6 @@ bpo::options_description WrapperDevice::GetOptionsDescription()
   return od;
 }
 
-void WrapperDevice::Init()
-{
-}
-
 void WrapperDevice::InitTask()
 {
   /// inherited from FairMQDevice
@@ -284,7 +280,7 @@ void WrapperDevice::Run()
               if (mVerbosity > 2) {
                 LOG(DEBUG) << "scheduling message of size " << opayload.mSize;
               }
-              AliHLTUInt8_t* pTarget = reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
+              uint8_t* pTarget = reinterpret_cast<uint8_t*>(msg->GetData());
               memcpy(pTarget, opayload.mP, opayload.mSize);
               mMessages.push_back(move(msg));
             } else {
@@ -324,56 +320,6 @@ void WrapperDevice::Run()
   }
 }
 
-void WrapperDevice::Pause()
-{
-  /// inherited from FairMQDevice
-
-  // nothing to do
-  FairMQDevice::Pause();
-}
-
-void WrapperDevice::SetProperty(const int key, const string& value)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  return FairMQDevice::SetProperty(key, value);
-}
-
-string WrapperDevice::GetProperty(const int key, const string& default_)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  return FairMQDevice::GetProperty(key, default_);
-}
-
-void WrapperDevice::SetProperty(const int key, const int value)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  switch (key) {
-  case PollingPeriod:
-    mPollingPeriod = value;
-    return;
-  case SkipProcessing:
-    mSkipProcessing = value;
-    return;
-  }
-  return FairMQDevice::SetProperty(key, value);
-}
-
-int WrapperDevice::GetProperty(const int key, const int default_)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  switch (key) {
-  case PollingPeriod:
-    return mPollingPeriod;
-  case SkipProcessing:
-    return mSkipProcessing;
-  }
-  return FairMQDevice::GetProperty(key, default_);
-}
-
 unsigned char* WrapperDevice::createMessageBuffer(unsigned size)
 {
   /// create a new message with data buffer of specified size
@@ -388,5 +334,5 @@ unsigned char* WrapperDevice::createMessageBuffer(unsigned size)
     LOG(DEBUG) << "allocating message of size " << size;
   }
   mMessages.push_back(move(msg));
-  return reinterpret_cast<AliHLTUInt8_t*>(mMessages.back()->GetData());
+  return reinterpret_cast<uint8_t*>(mMessages.back()->GetData());
 }

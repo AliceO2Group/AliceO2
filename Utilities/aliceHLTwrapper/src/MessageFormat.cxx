@@ -1,8 +1,8 @@
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or	     *
-//* (at your option) any later version.					     *
+//* the Free Software Foundation, either version 3 of the License, or        *
+//* (at your option) any later version.                                      *
 //*                                                                          *
 //* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
 //*                                                                          *
@@ -60,7 +60,7 @@ void MessageFormat::clear()
   mListEvtData.clear();
 }
 
-int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
+int MessageFormat::addMessage(uint8_t* buffer, unsigned size)
 {
   // add message
   // this will extract the block descriptors from the message
@@ -87,18 +87,18 @@ int MessageFormat::addMessage(AliHLTUInt8_t* buffer, unsigned size)
       break;
     }
     if (readBlockSequence(buffer+position, size-position, mBlockDescriptors) < 0 ||
-	(evtData!=nullptr && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
+        (evtData!=nullptr && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
       // not in the format of a single block, check if its a HOMER block
       if (readHOMERFormat(buffer+position, size-position, mBlockDescriptors) < 0 ||
-	 (evtData!=nullptr && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
-	// not in HOMER format either
-	if (position>0) {
-	  // try once more without the assumption of event data header
-	  position=0;
-	  evtData=nullptr;
-	  continue;
-	}
-	return -ENODATA;
+         (evtData!=nullptr && ((mBlockDescriptors.size()-count) != evtData->fBlockCnt))) {
+        // not in HOMER format either
+        if (position>0) {
+          // try once more without the assumption of event data header
+          position=0;
+          evtData=nullptr;
+          continue;
+        }
+        return -ENODATA;
       }
     }
   } while (false);
@@ -134,7 +134,7 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
   return 0;
 }
 
-int MessageFormat::readBlockSequence(AliHLTUInt8_t* buffer, unsigned size,
+int MessageFormat::readBlockSequence(uint8_t* buffer, unsigned size,
                                      vector<AliHLTComponentBlockData>& descriptorList) const
 {
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
@@ -170,7 +170,7 @@ int MessageFormat::readBlockSequence(AliHLTUInt8_t* buffer, unsigned size,
   return input.size();
 }
 
-int MessageFormat::readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size,
+int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
                                    vector<AliHLTComponentBlockData>& descriptorList) const
 {
   // read message payload in HOMER format
@@ -209,26 +209,26 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
                                                                   boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate)
 {
   const AliHLTComponentBlockData* pOutputBlocks = blocks;
-  AliHLTUInt32_t outputBlockCnt = count;
+  uint32_t outputBlockCnt = count;
   mDataBuffer.clear();
   mMessages.clear();
   if (mOutputMode == kOutputModeHOMER) {
     AliHLTHOMERWriter* pWriter = createHOMERFormat(pOutputBlocks, outputBlockCnt);
     if (pWriter) {
-      AliHLTUInt32_t position = mDataBuffer.size();
-      AliHLTUInt32_t offset = 0;
-      AliHLTUInt32_t payloadSize = pWriter->GetTotalMemorySize();
+      uint32_t position = mDataBuffer.size();
+      uint32_t offset = 0;
+      uint32_t payloadSize = pWriter->GetTotalMemorySize();
       auto msgSize=payloadSize + sizeof(evtData);
       auto pTarget=&mDataBuffer[position];
       if (cbAllocate==nullptr) {
-	// make the target in the internal buffer
-	mDataBuffer.resize(position + msgSize);
+        // make the target in the internal buffer
+        mDataBuffer.resize(position + msgSize);
       } else {
-	// use callback to create target
-	pTarget=*(*cbAllocate)(msgSize);
-	if (pTarget==nullptr) {
-	  throw std::bad_alloc();
-	}
+        // use callback to create target
+        pTarget=*(*cbAllocate)(msgSize);
+        if (pTarget==nullptr) {
+          throw std::bad_alloc();
+        }
       }
       memcpy(pTarget + offset, &evtData, sizeof(evtData));
       offset+=sizeof(evtData);
@@ -251,9 +251,9 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     // sequence mode concatenates the output blocks in the internal
     // buffer. In contrast to multi part mode, only one buffer descriptor
     // for the complete sequence is handed over to device
-    AliHLTUInt32_t position = mDataBuffer.size();
+    uint32_t position = mDataBuffer.size();
     auto pTarget=&mDataBuffer[position];
-    AliHLTUInt32_t offset = 0;
+    uint32_t offset = 0;
     unsigned bi = 0;
     const auto* pOutputBlock = pOutputBlocks;
     auto maxBufferSize = sizeof(evtData) + count * sizeof(AliHLTComponentBlockData) + totalPayloadSize;
@@ -312,7 +312,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
 
       if (bi<count) {
         // copy BlockData and payload
-        AliHLTUInt8_t* pData = reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr);
+        uint8_t* pData = reinterpret_cast<uint8_t*>(pOutputBlock->fPtr);
         pData += pOutputBlock->fOffset;
         auto* bdTarget = reinterpret_cast<AliHLTComponentBlockData*>(pTarget + offset);
         memcpy(bdTarget, pOutputBlock, sizeof(AliHLTComponentBlockData));
@@ -326,7 +326,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
           mMessages.emplace_back(pTarget, offset);
           position+=offset;
         }
-	pOutputBlock++;
+        pOutputBlock++;
       }
     }
     while (++bi<count);
@@ -342,7 +342,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
 }
 
 AliHLTHOMERWriter* MessageFormat::createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
-                                                    AliHLTUInt32_t outputBlockCnt) const
+                                                    uint32_t outputBlockCnt) const
 {
   // send data blocks in HOMER format in one message
   int iResult = 0;
@@ -364,7 +364,7 @@ AliHLTHOMERWriter* MessageFormat::createHOMERFormat(const AliHLTComponentBlockDa
     homer_uint64 id = 0;
     homer_uint64 origin = 0;
     memcpy(&id, pOutputBlock->fDataType.fID, sizeof(homer_uint64));
-    memcpy(((AliHLTUInt8_t*)&origin) + sizeof(homer_uint32), pOutputBlock->fDataType.fOrigin, sizeof(homer_uint32));
+    memcpy(((uint8_t*)&origin) + sizeof(homer_uint32), pOutputBlock->fDataType.fOrigin, sizeof(homer_uint32));
     homerDescriptor.SetType(byteSwap64(id));
     homerDescriptor.SetSubType1(byteSwap64(origin));
     homerDescriptor.SetSubType2(pOutputBlock->fSpecification);
@@ -383,9 +383,9 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
     auto it=mListEvtData.begin();
     for (; it!=mListEvtData.end(); it++) {
       if ((it->fEventCreation_us*1e3 + it->fEventCreation_us/1e3)>
-	  (evtData.fEventCreation_us*1e3 + evtData.fEventCreation_us/1e3)) {
-	// found a younger element
-	break;
+          (evtData.fEventCreation_us*1e3 + evtData.fEventCreation_us/1e3)) {
+        // found a younger element
+        break;
       }
     }
     // TODO: simple logic at the moment, header is not inserted
@@ -394,10 +394,10 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
     if (it != mListEvtData.end() &&
         evtData.fEventID!=it->fEventID) {
       cerr << "Error: mismatching event ID " << evtData.fEventID
-	   << ", expected " << it->fEventID
-	   << " for event with timestamp "
-	   << evtData.fEventCreation_us*1e3 + evtData.fEventCreation_us/1e3 << " ms"
-	   << endl;
+           << ", expected " << it->fEventID
+           << " for event with timestamp "
+           << evtData.fEventCreation_us*1e3 + evtData.fEventCreation_us/1e3 << " ms"
+           << endl;
       return -1;
     }
     // insert before the younger element
@@ -406,7 +406,7 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
   return 0;
 }
 
-AliHLTUInt64_t MessageFormat::byteSwap64(AliHLTUInt64_t src) const
+uint64_t MessageFormat::byteSwap64(uint64_t src) const
 {
   // swap a 64 bit number
   return ((src & 0xFFULL) << 56) | 
@@ -419,7 +419,7 @@ AliHLTUInt64_t MessageFormat::byteSwap64(AliHLTUInt64_t src) const
     ((src & 0xFF00000000000000ULL) >> 56);
 }
 
-AliHLTUInt32_t MessageFormat::byteSwap32(AliHLTUInt32_t src) const
+uint32_t MessageFormat::byteSwap32(uint32_t src) const
 {
   // swap a 32 bit number
   return ((src & 0xFFULL) << 24) | 

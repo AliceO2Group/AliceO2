@@ -5,8 +5,8 @@
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
-//* the Free Software Foundation, either version 3 of the License, or	     *
-//* (at your option) any later version.					     *
+//* the Free Software Foundation, either version 3 of the License, or        *
+//* (at your option) any later version.                                      *
 //*                                                                          *
 //* Primary Authors: Matthias Richter <richterm@scieq.net>                   *
 //*                                                                          *
@@ -22,6 +22,7 @@
 #include "AliHLTDataTypes.h"
 #include "HOMERFactory.h"
 #include <vector>
+#include <cstdint>
 #include <boost/signals2.hpp>
 
 class AliHLTHOMERReader;
@@ -75,7 +76,7 @@ public:
   // add message
   // this will extract the block descriptors from the message
   // the descriptors refer to data in the original message buffer
-  int addMessage(AliHLTUInt8_t* buffer, unsigned size);
+  int addMessage(uint8_t* buffer, unsigned size);
 
   // add list of messages
   // this will extract the block descriptors from the message
@@ -104,14 +105,14 @@ public:
 
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
-  int readBlockSequence(AliHLTUInt8_t* buffer, unsigned size, std::vector<AliHLTComponentBlockData>& descriptorList) const;
+  int readBlockSequence(uint8_t* buffer, unsigned size, std::vector<AliHLTComponentBlockData>& descriptorList) const;
 
   // read message payload in HOMER format
-  int readHOMERFormat(AliHLTUInt8_t* buffer, unsigned size, std::vector<AliHLTComponentBlockData>& descriptorList) const;
+  int readHOMERFormat(uint8_t* buffer, unsigned size, std::vector<AliHLTComponentBlockData>& descriptorList) const;
 
   // create HOMER format from the output blocks
   AliHLTHOMERWriter* createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
-				       AliHLTUInt32_t outputBlockCnt) const;
+                                       uint32_t outputBlockCnt) const;
 
   // insert event header to list, sort by time, oldest first
   int insertEvtData(const AliHLTComponentEventData& evtData);
@@ -121,8 +122,8 @@ public:
     return mListEvtData;
   }
 
-  AliHLTUInt64_t byteSwap64(AliHLTUInt64_t src) const;
-  AliHLTUInt32_t byteSwap32(AliHLTUInt32_t src) const;
+  uint64_t byteSwap64(uint64_t src) const;
+  uint32_t byteSwap32(uint32_t src) const;
 
 protected:
 
@@ -134,7 +135,7 @@ private:
 
   std::vector<AliHLTComponentBlockData> mBlockDescriptors;
   /// internal buffer to assemble message data
-  std::vector<AliHLTUInt8_t>            mDataBuffer;
+  std::vector<uint8_t>            mDataBuffer;
   /// list of message payload descriptors
   std::vector<BufferDesc_t>             mMessages;
   /// HOMER factory for creation and deletion of HOMER readers and writers
