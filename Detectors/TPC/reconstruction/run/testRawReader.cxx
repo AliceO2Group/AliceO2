@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
     rr.loadNextEvent();
   }
   uint64_t ts = 0;
-  std::cout << "First event: " << rr.getFirstEvent() << " Last event: " << rr.getLastEvent() << std::endl;
+  std::cout << "First event: " << rr.getFirstEvent() << " Last event: " << rr.getLastEvent() << " number of events available: " << rr.getNumberOfEvents() << std::endl;
   for (int i=rr.getFirstEvent(); i<=rr.getLastEvent(); ++i) {
     std::cout << i << " " << rr.loadEvent(i) << " " ;
     std::cout << rr.getTimeStamp() << " " << rr.getTimeStamp() - ts << std::endl;

@@ -91,7 +91,7 @@ bool RawReader::addInputFile(int region, int link, std::string path){
     eD.region = region;
     eD.link = link;
     eD.headerInfo = h;
-    if (h.headerVersion == 0) {
+    if (h.headerVersion == 1) {
       auto it = mEvents.find(h.eventCount());
       if (it != mEvents.end()) it->second->push_back(eD);
       //else mEvents.insert(std::pair< uint64_t, std::unique_ptr<std::vector<eventData>>> (h.eventCount(),new std::vector<eventData>{eD}));
