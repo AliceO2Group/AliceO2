@@ -58,7 +58,7 @@ void CalibRawBase::setupContainers(TString fileInfo)
 
     cont->setEnableAdcClockWarning(false);
     cont->setEnableSyncPatternWarning(false);
-    cont->setEnableStoreGBTFrames(true);
+    cont->setEnableStoreGBTFrames(false);
     cont->setEnableCompileAdcValues(true);
 
     std::cout << "Read digits from file " << filename << " with cru " << iCRU << ", link " << iLink << ", rorc type " << rorcType << "...\n";
