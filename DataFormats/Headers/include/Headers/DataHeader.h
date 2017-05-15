@@ -739,6 +739,20 @@ struct DataIdentifier
 };
 
 //__________________________________________________________________________________________________
+///compile time checks for the basic structures
+/// use hardcoded numbers as these are fundamental assumption
+static_assert(sizeof(HeaderType) == 8,
+              "HeaderType struct must be of size 8");
+static_assert(sizeof(SerializationMethod) == 8,
+              "SerializationMethod struct must be of size 8");
+static_assert(sizeof(BaseHeader) == 32,
+              "BaseHeader struct must be of size 32");
+static_assert(sizeof(DataOrigin) == 4,
+              "DataOrigin struct must be of size 4");
+static_assert(sizeof(DataHeader) == 80,
+              "DataHeader struct must be of size 80");
+
+//__________________________________________________________________________________________________
 ///helper function to print a hex/ASCII dump of some memory
 void hexDump (const char* desc, const void* voidaddr, size_t len, size_t max=0);
 

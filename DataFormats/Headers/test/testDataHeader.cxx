@@ -16,7 +16,8 @@ namespace o2 {
       BOOST_CHECK(TestDescriptorT::size == descriptorSize);
       BOOST_CHECK(TestDescriptorT::bitcount == descriptorSize * 8);
       BOOST_CHECK(sizeof(TestDescriptorT::ItgType) == descriptorSize);
-      static_assert(TestDescriptorT::size == sizeof(TestDescriptorT));
+      static_assert(TestDescriptorT::size == sizeof(TestDescriptorT),
+                    "Descriptor must have size of the underlying data member");
 
       // the Descriptor allows to define an integral value from
       // a char sequence so that the in-memory representation shows
@@ -97,14 +98,18 @@ namespace o2 {
       BOOST_CHECK(TestDescriptorT::size == sizeof(DataOrigin));
 
       // we want to explicitely have the size of DataOrigin to be 4
-      static_assert(sizeof(DataOrigin) == 4);
+      static_assert(sizeof(DataOrigin) == 4,
+                    "DataOrigin struct must be of size 4");
     }
 
     BOOST_AUTO_TEST_CASE(BaseHeader_test)
     {
-      static_assert(sizeof(HeaderType) == 8);
-      static_assert(sizeof(SerializationMethod) == 8);
-      static_assert(sizeof(BaseHeader) == 32);
+      static_assert(sizeof(HeaderType) == 8,
+                    "HeaderType struct must be of size 8");
+      static_assert(sizeof(SerializationMethod) == 8,
+                    "SerializationMethod struct must be of size 8");
+      static_assert(sizeof(BaseHeader) == 32,
+                    "BaseHeader struct must be of size 32");
     }
 
     BOOST_AUTO_TEST_CASE(DataHeader_test)
@@ -124,7 +129,8 @@ namespace o2 {
       }
 
       // DataHeader must have size 80
-      static_assert(sizeof(DataHeader) == 80);
+      static_assert(sizeof(DataHeader) == 80,
+                    "DataHeader struct must be of size 80");
     }
   }
 }
