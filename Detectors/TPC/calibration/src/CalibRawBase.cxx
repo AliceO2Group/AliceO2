@@ -26,7 +26,7 @@ void CalibRawBase::setupContainers(TString fileInfo)
 
   //auto contPtr = std::unique_ptr<GBTFrameContainer>(new GBTFrameContainer(iSize,iCRU,iLink));
   // input data
-  TString rorcType="grorc";
+  TString rorcType="raw";
   auto arrData = fileInfo.Tokenize("; ");
   for (auto o : *arrData) {
     const TString& data = static_cast<TObjString*>(o)->String();
@@ -37,10 +37,11 @@ void CalibRawBase::setupContainers(TString fileInfo)
       TString& rorcTypeTmp = static_cast<TObjString*>(arrDataInfo->At(0))->String();
       if (rorcTypeTmp=="trorc") rorcType=rorcTypeTmp;
       else if (rorcTypeTmp=="trorc2") rorcType=rorcTypeTmp;
+      else if (rorcTypeTmp=="raw") rorcType=rorcTypeTmp;
       else {
         printf("Error, unrecognized option: %s\n", rorcTypeTmp.Data());
       }
-      std::cout << "Found rorc type: " << rorcType << "\n";
+      std::cout << "Found decoder type: " << rorcType << "\n";
       delete arrDataInfo;
       continue;
     }
@@ -50,22 +51,30 @@ void CalibRawBase::setupContainers(TString fileInfo)
       continue;
     }
 
-    TString& filename = static_cast<TObjString*>(arrDataInfo->At(0))->String();
-    iCRU = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
-    iLink = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();
+    if ( rorcType == "raw" ) {
+      auto rawReader = new RawReader;
+      rawReader->addInputFile(data.Data());
 
-    auto cont = new GBTFrameContainer(iSize,iCRU,iLink);
+      addRawReader(rawReader);
+    }
+    else {
+      TString& filename = static_cast<TObjString*>(arrDataInfo->At(0))->String();
+      iCRU = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
+      iLink = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();
 
-    cont->setEnableAdcClockWarning(false);
-    cont->setEnableSyncPatternWarning(false);
-    cont->setEnableStoreGBTFrames(false);
-    cont->setEnableCompileAdcValues(true);
+      auto cont = new GBTFrameContainer(iSize,iCRU,iLink);
 
-    std::cout << "Read digits from file " << filename << " with cru " << iCRU << ", link " << iLink << ", rorc type " << rorcType << "...\n";
-    cont->addGBTFramesFromBinaryFile(filename.Data(), rorcType.Data(), -1);
-    std::cout << " ... done. Read " << cont->getSize() << "\n";
+      cont->setEnableAdcClockWarning(false);
+      cont->setEnableSyncPatternWarning(false);
+      cont->setEnableStoreGBTFrames(false);
+      cont->setEnableCompileAdcValues(true);
 
-    addGBTFrameContainer(cont);
+      std::cout << "Read digits from file " << filename << " with cru " << iCRU << ", link " << iLink << ", rorc type " << rorcType << "...\n";
+      cont->addGBTFramesFromBinaryFile(filename.Data(), rorcType.Data(), -1);
+      std::cout << " ... done. Read " << cont->getSize() << "\n";
+
+      addGBTFrameContainer(cont);
+    }
   }
 
   delete arrData;

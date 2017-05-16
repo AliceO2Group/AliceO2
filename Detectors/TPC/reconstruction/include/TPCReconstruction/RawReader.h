@@ -71,7 +71,7 @@ class RawReader {
     /// Default constructor
     /// @param region Region of the data
     /// @param link FEC of the data
-    RawReader(int region, int link);
+    RawReader(int region=-1, int link=-1);
 
     /// Copy constructor
     RawReader(const RawReader& other) = default;
