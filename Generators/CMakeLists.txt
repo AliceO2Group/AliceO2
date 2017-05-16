@@ -4,27 +4,30 @@
 set(MODULE_NAME "Generators")
 
 O2_SETUP(NAME ${MODULE_NAME})
+
+set(SRCS
+    src/GeneratorFromFile.cxx
+    src/Pythia6Generator.cxx
+   )
+set(HEADERS
+    include/${MODULE_NAME}/GeneratorFromFile.h
+    include/${MODULE_NAME}/Pythia6Generator.h
+   )
+
 if (PYTHIA8_INCLUDE_DIR)
-
-  set(SRCS
-      src/Pythia6Generator.cxx
+  set(SRCS ${SRCS}
       src/Pythia8Generator.cxx
-      )
-
-  set(HEADERS
-      include/${MODULE_NAME}/Pythia6Generator.h
+     )
+  set(HEADERS ${HEADERS}
       include/${MODULE_NAME}/Pythia8Generator.h
       )
-
-  set(LINKDEF src/GeneratorsLinkDef.h)
-  set(LIBRARY_NAME ${MODULE_NAME})
-    set(BUCKET_NAME generators_bucket)
-
-#  set(DEPENDENCIES Base O2SimulationDataFormat pythia8 Pythia6)
-
-  O2_GENERATE_LIBRARY()
-
-
+  set(BUCKET_NAME generators_bucket)
 else (PYTHIA8_INCLUDE_DIR)
   message(STATUS "module 'Generators' requires Pythia8 ... deactivated")
+  set(BUCKET_NAME generators_base_bucket)
 endif (PYTHIA8_INCLUDE_DIR)
+
+set(LINKDEF src/GeneratorsLinkDef.h)
+set(LIBRARY_NAME ${MODULE_NAME})
+
+O2_GENERATE_LIBRARY()
