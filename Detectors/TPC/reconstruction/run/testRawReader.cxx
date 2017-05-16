@@ -66,8 +66,8 @@ int main(int argc, char *argv[])
   std::cout << "First event: " << rr.getFirstEvent() << " Last event: " << rr.getLastEvent() << " number of events available: " << rr.getNumberOfEvents() << std::endl;
   for (int i=rr.getFirstEvent(); i<=rr.getLastEvent(); ++i) {
     std::cout << i << " " << rr.loadEvent(i) << " " ;
-    std::cout << rr.getTimeStamp() << " " << rr.getTimeStamp() - ts << std::endl;
-    ts = rr.getTimeStamp();
+    std::cout << rr.getTimeStamp(1) << " " << rr.getTimeStamp(1) - ts << std::endl;
+    ts = rr.getTimeStamp(1);
     o2::TPC::PadPos padPos;
     while (std::shared_ptr<std::vector<uint16_t>> data = rr.getNextData(padPos)) {
 //      std::cout << "Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << " " << data->size() << std::endl;

@@ -19,7 +19,7 @@ RawReader::RawReader(int region, int link)
   : mRegion(region)
   , mLink(link)
   , mLastEvent(-1)
-  , mTimestampOfFirstData(0)
+  , mTimestampOfFirstData({0,0,0,0,0})
   , mEvents()
   , mData()
   , mDataIterator(mData.end())
@@ -183,9 +183,9 @@ bool RawReader::loadEvent(int64_t event) {
 
           for (int i=0; i<nWords; i=i+4) {
 
-            if ((mTimestampOfFirstData != 0) && 
-                ((mTimestampOfFirstData & 0x7) == ((data.headerInfo.timeStamp() + 1 + i/4) & 0x7))) {
-              for (char j=0; j<5; ++j) {
+            for (char j=0; j<5; ++j) {
+              if ((mTimestampOfFirstData[j] != 0) && 
+                  ((mTimestampOfFirstData[j] & 0x7) == ((data.headerInfo.timeStamp() + 1 + i/4) & 0x7))) {
                 if (adcValues[j].size() < 16) {
                   std::queue<uint16_t> empty;
                   std::swap(adcValues[j], empty);
@@ -246,7 +246,7 @@ bool RawReader::loadEvent(int64_t event) {
               if (i==0) continue;
               if (mSyncPos[iHalfSampa] < 0) continue;
               if (lastSyncPos[iHalfSampa] < 0) continue;
-              if (mTimestampOfFirstData == 0) mTimestampOfFirstData = data.headerInfo.timeStamp() + 1 + i/4;
+              if (mTimestampOfFirstData[iHalfSampa] == 0) mTimestampOfFirstData[iHalfSampa] = data.headerInfo.timeStamp() + 1 + i/4;
 
               switch(mSyncPos[iHalfSampa]) {
                 case 0:
@@ -317,8 +317,8 @@ bool RawReader::loadEvent(int64_t event) {
               if (ids[j] == 0x8) {
                 writeValue[j] = true;
                 // header TS is one before first word -> +1
-                if (mTimestampOfFirstData == 0) mTimestampOfFirstData = data.headerInfo.timeStamp() + 1 + i/4;
-//                  std::cout << data.headerInfo.timeStamp() << " " << i/4 << " " << mTimestampOfFirstData << std::endl;}
+                if (mTimestampOfFirstData[j] == 0) mTimestampOfFirstData[j] = data.headerInfo.timeStamp() + 1 + i/4;
+//                  std::cout << data.headerInfo.timeStamp() << " " << i/4 << " " << mTimestampOfFirstData[j] << std::endl;}
               }
             }
 
@@ -377,8 +377,8 @@ bool RawReader::loadEvent(int64_t event) {
               if (ids[j] == 0x8) {
                 writeValue[j] = true;
                 // header TS is one before first word -> +1
-                if (mTimestampOfFirstData == 0) mTimestampOfFirstData = data.headerInfo.timeStamp() + 1 + i/8;
-//                  std::cout << data.headerInfo.timeStamp() << " " << i/4 << " " << mTimestampOfFirstData << std::endl;}
+                if (mTimestampOfFirstData[j] == 0) mTimestampOfFirstData[j] = data.headerInfo.timeStamp() + 1 + i/8;
+//                  std::cout << data.headerInfo.timeStamp() << " " << i/4 << " " << mTimestampOfFirstData[j] << std::endl;}
               }
             }
 
