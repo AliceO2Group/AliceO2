@@ -24,6 +24,7 @@
 #include "TPCBase/Mapper.h"
 
 #include "TPCReconstruction/GBTFrameContainer.h"
+#include "TPCReconstruction/RawReader.h"
 
 
 namespace o2
@@ -35,7 +36,7 @@ namespace TPC
 /// \brief Base class for raw data calibrations
 ///
 /// This class is the base class for raw data calibrations
-/// It implements base raw reader functionality and calls 
+/// It implements base raw reader functionality and calls
 /// an 'Update' function for each digit
 ///
 /// origin: TPC
@@ -62,6 +63,9 @@ class CalibRawBase
     /// add GBT frame container to process
     void addGBTFrameContainer(GBTFrameContainer *cont) { mGBTFrameContainers.push_back(std::unique_ptr<GBTFrameContainer>(cont)); }
 
+    /// add RawReader
+    void addRawReader(RawReader *reader) { mRawReaders.push_back(std::unique_ptr<RawReader>(reader)); }
+
     /// set number of time bins to process in one call to ProcessEvent
     void setTimeBinsPerCall(Int_t nTimeBins) { mTimeBinsPerCall = nTimeBins; }
 
@@ -71,17 +75,17 @@ class CalibRawBase
     /// return pad subset type used
     PadSubset getPadSubset() const { return mPadSubset; }
 
+    /// Process one event
+    ProcessStatus ProcessEvent();
+
     void setupContainers(TString fileInfo);
-    
-    /// Process one event with mTimeBinsPerCall length
-    ProcessStatus ProcessEvent(); 
-    
+
     /// Rewind the events
     void RewindEvents();
 
     /// Dump the relevant data to file
     virtual void dumpToFile(TString filename) {}
-    
+
   protected:
     const Mapper&  mMapper;    //!< TPC mapper
 
@@ -90,9 +94,17 @@ class CalibRawBase
     Int_t     mTimeBinsPerCall;        //!< numver of time bins to process in ProcessEvent
     PadSubset mPadSubset;              //!< pad subset type used
     std::vector<std::unique_ptr<GBTFrameContainer>> mGBTFrameContainers; //! raw reader pointer
+    std::vector<std::unique_ptr<RawReader>> mRawReaders; //! raw reader pointer
 
     virtual void ResetEvent() = 0;
     virtual void EndEvent() {++mNevents; }
+
+    /// Process one event with mTimeBinsPerCall length using GBTFrameContainers
+    ProcessStatus ProcessEventGBT();
+
+    /// Process one event using RawReader
+    ProcessStatus ProcessEventRawReader();
+
 };
 
 //----------------------------------------------------------------
@@ -100,12 +112,26 @@ class CalibRawBase
 //----------------------------------------------------------------
 inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEvent()
 {
+  if (mGBTFrameContainers.size()) {
+    return ProcessEventGBT();
+  }
+  else if (mRawReaders.size()) {
+    return ProcessEventRawReader();
+  }
+  else {
+    return ProcessStatus::NoReaders;
+  }
+}
+
+//______________________________________________________________________________
+inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventGBT()
+{
   if (!mGBTFrameContainers.size()) return ProcessStatus::NoReaders;
   ResetEvent();
-  
+
   // loop over raw readers, fill digits for 500 time bins and process
   // digits
-  
+
   const int nRowIROC = mMapper.getNumberOfRowsROC(0);
 
   ProcessStatus status = ProcessStatus::Ok;
@@ -170,9 +196,87 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEvent()
   }
 
   EndEvent();
+  ++mNevents;
   return status;
 }
 
+//______________________________________________________________________________
+inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
+{
+  if (!mRawReaders.size()) return ProcessStatus::NoReaders;
+  ResetEvent();
+
+  // loop over raw readers, fill digits for 500 time bins and process
+  // digits
+
+  const int nRowIROC = mMapper.getNumberOfRowsROC(0);
+
+  ProcessStatus status = ProcessStatus::Ok;
+
+  int processedReaders = 0;
+  for (auto& reader_ptr : mRawReaders) {
+    auto reader = reader_ptr.get();
+
+    if (!reader->loadNextEvent()) continue;
+
+    o2::TPC::PadPos padPos;
+    while (std::shared_ptr<std::vector<uint16_t>> data = reader->getNextData(padPos)) {
+      if (!data) continue;
+
+      CRU cru(reader->getRegion());
+      const int sector = cru.sector().getSector();
+      // TODO: OROC case needs subtraction of number of pad rows in IROC
+      const PadRegionInfo& regionInfo = mMapper.getPadRegionInfo(cru.region());
+      const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
+
+      // row is local in region (CRU)
+      const int row    = padPos.getRow();
+      const int pad    = padPos.getPad();
+      if (row==255 || pad==255) continue;
+
+      int timeBin=0;
+      for (const auto& signalI : *data) {
+
+        int rowOffset = 0;
+        switch (mPadSubset) {
+          case PadSubset::ROC: {
+              rowOffset = regionInfo.getGlobalRowOffset();
+              rowOffset -= (cru.rocType()==RocType::OROC)*nRowIROC;
+              break;
+            }
+          case PadSubset::Region: {
+              break;
+            }
+          case PadSubset::Partition: {
+              rowOffset = regionInfo.getGlobalRowOffset();
+              rowOffset -= partInfo.getGlobalRowOffset();
+              break;
+            }
+        }
+
+        // modify row depending on the calibration type used
+        const float signal = float(signalI);
+        //const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadSecPos(sector, row, pad));
+        //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", sector, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+        Update(sector, row+rowOffset, pad, timeBin, signal );
+        ++timeBin;
+      }
+    }
+
+    ++processedReaders;
+  }
+
+  // set status, don't overwrite decision
+  if (processedReaders == 0 ) {
+    return ProcessStatus::NoMoreData;
+  }
+  else if (processedReaders < mRawReaders.size()) {
+    status = ProcessStatus::Truncated;
+  }
+
+  EndEvent();
+  return status;
+}
 } // namespace TPC
 
 } // namespace o2
