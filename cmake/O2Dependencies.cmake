@@ -648,26 +648,6 @@ o2_define_bucket(
     ${PYTHIA6_INCLUDE_DIR}
 )
 
-
-o2_define_bucket(
-    NAME
-    alicehlt_bucket
-
-    DEPENDENCIES
-    dl
-    ${CMAKE_THREAD_LIBS_INIT}
-    common_boost_bucket
-    Boost::chrono
-    Boost::date_time
-    Boost::random
-    Boost::regex
-    FairRoot::FairMQ
-
-    INCLUDE_DIRECTORIES
-    ${FAIRROOT_INCLUDE_DIR}
-
-)
-
 o2_define_bucket(
     NAME
     hough_bucket
