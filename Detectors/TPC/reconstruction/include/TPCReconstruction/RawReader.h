@@ -81,7 +81,7 @@ class RawReader {
 
     /// Reads (and decodes) the next event
     /// @return Indicator of success
-    bool loadNextEvent() { return (mLastEvent==1) ? loadEvent(getFirstEvent()) : loadEvent(mLastEvent+1); };
+    bool loadNextEvent() { return (mLastEvent==-1) ? loadEvent(getFirstEvent()) : loadEvent(mLastEvent+1); };
 
     /// Reads (and decodes) given event
     /// @param event Event number to read

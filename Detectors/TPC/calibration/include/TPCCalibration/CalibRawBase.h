@@ -269,7 +269,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
   }
 
   // set status, don't overwrite decision
-  if (hasData) {
+  if (!hasData) {
     return ProcessStatus::NoMoreData;
   }
   else if (processedReaders < mRawReaders.size()) {
