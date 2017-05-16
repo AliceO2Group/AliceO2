@@ -25,7 +25,7 @@ class DigitizerTask : public FairTask{
   public:
       
     /// Default constructor
-    DigitizerTask();
+    DigitizerTask(int sectorid=-1);
       
     /// Destructor
     ~DigitizerTask() override;
@@ -67,8 +67,11 @@ class DigitizerTask : public FairTask{
 
     int                 mTimeBinMax;   ///< Maximum time bin to be written out
     bool                mIsContinuousReadout; ///< Switch for continuous readout
+    int                 mHitSector=-1; ///< which sector to treat
 
-  ClassDefOverride(DigitizerTask, 1);
+    TClonesArray        *mSectorHitsArray[18];
+
+    ClassDefOverride(DigitizerTask, 1);
 };
 
 inline
