@@ -45,6 +45,7 @@
 
 
 #include <iostream>
+#include <cmath>
 
 using std::cout;
 using std::endl;
@@ -52,7 +53,15 @@ using std::ios_base;
 using std::ifstream;
 using namespace o2::TPC;
 
-//#define NEWHIT 1
+// helper function to retrieve a TPC sector given cartesian coordinates
+template <typename T>
+T ToSector(T x, T y) {
+  static const T invangle(static_cast<T>(180)/static_cast<T>(M_PI*20.)); // the angle describing one sector
+  // force positive angle for conversion
+  return (std::atan2(y,x) + static_cast<T>(M_PI))*invangle;
+}
+
+
 
 Detector::Detector()
   : o2::Base::Detector("TPC", kTRUE, kAliTpc),
@@ -62,6 +71,10 @@ Detector::Detector()
     mGeoFileName(),
     mEventNr(0)
 {
+  for(int i=0;i<18;++i){
+    mHitsPerSectorCollection[i]=new TClonesArray("o2::TPC::LinkableHitGroup");
+    mHitsPerSectorCollection[i]->BypassStreamer(true);
+  }
 }
 
 Detector::Detector(const char* name, Bool_t active)
@@ -72,8 +85,12 @@ Detector::Detector(const char* name, Bool_t active)
     mGeoFileName(),
     mEventNr(0)
 {
-
+  for(int i=0;i<18;++i){
+    mHitsPerSectorCollection[i]=new TClonesArray("o2::TPC::LinkableHitGroup");
+    mHitsPerSectorCollection[i]->BypassStreamer(true);
+  }
 }
+
 
 Detector::~Detector()
 {
@@ -81,6 +98,15 @@ Detector::~Detector()
     mPointCollection->Delete();
     delete mPointCollection;
   }
+#ifdef TPC_GROUPED_HITS
+  for(int i=0;i<18;++i){
+    mHitsPerSectorCollection[i]->Delete();
+    delete mHitsPerSectorCollection[i];
+  }
+#endif
+  std::cout << "Produced hits " << mHitCounter << "\n";
+  std::cout << "Produced electrons " << mElectronCounter << "\n";
+  std::cout << "Stepping called " << mStepCounter << "\n";
 }
 
 void Detector::Initialize()
@@ -183,6 +209,7 @@ void Detector::SetSpecialPhysicsCuts()
 
 Bool_t  Detector::ProcessHits(FairVolume* vol)
 {
+  mStepCounter++;
   static auto *refMC = TVirtualMC::GetMC();
 
   /* This method is called from the MC stepping for the sensitive volume only */
@@ -258,16 +285,19 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   float time    = refMC->TrackTime() * 1.0e09;
   int trackID = refMC->GetStack()->GetCurrentTrackNumber();
   int detID   = vol->getMCid();
+  int sectorID = static_cast<int>(ToSector(position.Y(), position.X()));
 
-#ifdef NEWHIT
+#ifdef TPC_GROUPED_HITS
   static int oldTrackId = trackID;
   static int oldDetId = detID;
   static int groupCounter = 0;
+  static int oldSectorId = sectorID;
 
   //  a new group is starting -> put it into the container
   static LinkableHitGroup *currentgroup = nullptr;
   if (groupCounter == 0) {
-    TClonesArray& clref = *mHitGroupCollection;
+    //TClonesArray& clref = *mHitGroupCollection;
+    TClonesArray& clref = *mHitsPerSectorCollection[sectorID];
 
     // push-back in place
     Int_t size = clref.GetEntriesFast();
@@ -276,16 +306,21 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
     // set the MC truth link for this group
     currentgroup->SetLink(FairLink(-1, mEventNr, mMCTrackBranchId, trackID)); 
   }
-  if ( trackID == oldTrackId && oldDetId == detID ){
+  if ( trackID == oldTrackId && oldSectorId == sectorID ){
     groupCounter++;
+    mHitCounter++;
+    mElectronCounter+=nel;
     currentgroup->addHit(position.X(), position.Y(), position.Z(), time, nel);
   }
   // finish group
   else {
+    currentgroup->shrinkToFit();
     oldTrackId = trackID;
+    oldSectorId = sectorID;
     groupCounter = 0;
   }
 #else
+  //  LOG(INFO) << "#" << position.X() << " " << position.Y() << " atan2 value: " << 180/(M_PI)*atan2(position.Y(), position.X()) << " S" << static_cast<int>(ToSector(position.X(), position.Y()))  << "\n";
   addHit(position.X(),  position.Y(),  position.Z(), time, nel, trackID, detID);
 #endif
 
@@ -303,11 +338,14 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   return kTRUE;
 }
   
-  
-
 void Detector::EndOfEvent()
 {
   mHitGroupCollection->Clear();
+  for(int i=0;i<18;++i) {
+    // passing "C" since objects contain other pointer data
+    // which needs to be cleaned up
+    mHitsPerSectorCollection[i]->Clear("C");
+  }
   mPointCollection->Clear();
   ++mEventNr;
 }
@@ -320,8 +358,13 @@ void Detector::Register()
       only during the simulation.
   */
   auto *mgr=FairRootManager::Instance();
-#ifdef NEWHIT
+#ifdef TPC_GROUPED_HITS
   mgr->Register("TPCGroupedHits", "TPC", mHitGroupCollection, kTRUE);
+  for (int i=0;i<18;++i) {
+    TString name;
+    name.Form("TPCHitsSector%d", i);
+    mgr->Register(name.Data(), "TPC", mHitsPerSectorCollection[i], kTRUE);
+  }
 #else
   mgr->Register("TPCPoint", "TPC", mPointCollection, kTRUE);
 #endif
@@ -330,8 +373,11 @@ void Detector::Register()
 
 TClonesArray* Detector::GetCollection(Int_t iColl) const
 {
-#ifdef NEWHIT
+#ifdef TPC_GROUPED_HITS
   if (iColl == 0) { return mHitGroupCollection; }
+  else if (iColl < 19) {
+    return mHitsPerSectorCollection[iColl-1];
+  }
 #else
   if (iColl == 0) { return mPointCollection; }
 #endif
@@ -340,8 +386,11 @@ TClonesArray* Detector::GetCollection(Int_t iColl) const
 
 void Detector::Reset()
 {
-#ifdef NEWHIT
+#ifdef TPC_GROUPED_HITS
   mHitGroupCollection->Clear();
+  for(int i=0;i<18;++i) {
+    mHitsPerSectorCollection[i]->Clear();
+  }
 #else
   mPointCollection->Clear();
 #endif
