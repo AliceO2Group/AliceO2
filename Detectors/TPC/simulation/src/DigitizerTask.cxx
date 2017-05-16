@@ -14,6 +14,7 @@
 #include "FairLogger.h"
 #include "FairRootManager.h"
 
+#include <sstream>
 //#include "valgrind/callgrind.h"
 
 ClassImp(o2::TPC::DigitizerTask)
@@ -21,7 +22,7 @@ ClassImp(o2::TPC::DigitizerTask)
 using namespace o2::TPC;
 
 
-DigitizerTask::DigitizerTask()
+DigitizerTask::DigitizerTask(int sectorid)
   : FairTask("TPCDigitizerTask")
   , mDigitizer(nullptr)
   , mDigitContainer(nullptr)
@@ -30,6 +31,7 @@ DigitizerTask::DigitizerTask()
   , mHitFileName()
   , mTimeBinMax(1000000)
   , mIsContinuousReadout(true)
+  , mHitSector(sectorid)
 {
   /// \todo get rid of new
   mDigitizer = new Digitizer;
@@ -61,12 +63,31 @@ InitStatus DigitizerTask::Init()
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
-  
+
+#ifdef TPC_GROUPED_HITS
+  // in case we are treating a specific sector
+  if (mHitSector != -1){
+    std::stringstream sectornamestr;
+    sectornamestr << "TPCHitsSector" << mHitSector;
+    LOG(INFO) << "FETCHING HITS FOR SECTOR " << mHitSector << "\n";
+    mSectorHitsArray[mHitSector] = dynamic_cast<TClonesArray *>(mgr->GetObject(sectornamestr.str().c_str()));
+  }
+  else {
+    // in case we are treating all sectors
+    for (int s=0;s<18;++s){
+      std::stringstream sectornamestr;
+      sectornamestr << "TPCHitsSector" << s;
+      LOG(INFO) << "FETCHING HITS FOR SECTOR " << s << "\n";
+      mSectorHitsArray[s] = dynamic_cast<TClonesArray *>(mgr->GetObject(sectornamestr.str().c_str()));
+    }
+  }
+#else
   mPointsArray = dynamic_cast<TClonesArray *>(mgr->GetObject("TPCPoint")); //TODO: does mPointsArray need to be deleted?
   if (!mPointsArray) {
     LOG(ERROR) << "TPC points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
+#endif
   
   // Register output container
   mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
@@ -88,7 +109,23 @@ void DigitizerTask::Exec(Option_t *option)
 
   LOG(DEBUG) << "Running digitization on new event at time bin " << eventTime << FairLogger::endl;
   mDigitsArray->Delete();
+
+#ifdef TPC_GROUPED_HITS
+
+  if (mHitSector == -1){
+    // treat all sectors
+    for (int s=0; s<18; ++s){
+      mDigitContainer = mDigitizer->Process(mSectorHitsArray[s]);
+    }
+  }
+  else {
+    // treat only chosen sector
+    mDigitContainer = mDigitizer->Process(mSectorHitsArray[mHitSector]);
+  }
+
+#else
   mDigitContainer = mDigitizer->Process(mPointsArray);
+#endif
   mDigitContainer->fillOutputContainer(mDigitsArray, eventTime, mIsContinuousReadout);
 }
 
