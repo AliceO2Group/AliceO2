@@ -214,6 +214,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
   ProcessStatus status = ProcessStatus::Ok;
 
   int processedReaders = 0;
+  bool hasData = false;
   for (auto& reader_ptr : mRawReaders) {
     auto reader = reader_ptr.get();
 
@@ -260,6 +261,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
         //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", sector, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
         Update(sector, row+rowOffset, pad, timeBin, signal );
         ++timeBin;
+        hasData=true;
       }
     }
 
@@ -267,7 +269,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
   }
 
   // set status, don't overwrite decision
-  if (processedReaders == 0 ) {
+  if (hasData) {
     return ProcessStatus::NoMoreData;
   }
   else if (processedReaders < mRawReaders.size()) {
