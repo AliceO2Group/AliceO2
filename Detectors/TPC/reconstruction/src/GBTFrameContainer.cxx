@@ -396,40 +396,45 @@ void GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame
     mPositionForHalfSampa[iHalfSampa+5] =  mPositionForHalfSampa[iHalfSampa];
   }
 
-  mSyncPattern[0].addSequence(
+  if (mSyncPattern[0].addSequence(
       iFrame->getHalfWord(0,0,0),
       iFrame->getHalfWord(0,1,0),
       iFrame->getHalfWord(0,2,0),
-      iFrame->getHalfWord(0,3,0));
-  mPositionForHalfSampa[0] = mSyncPattern[0].getPosition();
+      iFrame->getHalfWord(0,3,0))){
+    mPositionForHalfSampa[0] = mSyncPattern[0].getPosition();
+  }
 
-  mSyncPattern[1].addSequence(
+  if (mSyncPattern[1].addSequence(
       iFrame->getHalfWord(0,0,1),
       iFrame->getHalfWord(0,1,1),
       iFrame->getHalfWord(0,2,1),
-      iFrame->getHalfWord(0,3,1));
-  mPositionForHalfSampa[1] = mSyncPattern[1].getPosition();
+      iFrame->getHalfWord(0,3,1))) {
+    mPositionForHalfSampa[1] = mSyncPattern[1].getPosition();
+  }
 
-  mSyncPattern[2].addSequence(
+  if (mSyncPattern[2].addSequence(
       iFrame->getHalfWord(1,0,0),
       iFrame->getHalfWord(1,1,0),
       iFrame->getHalfWord(1,2,0),
-      iFrame->getHalfWord(1,3,0));
-  mPositionForHalfSampa[2] = mSyncPattern[0].getPosition();
+      iFrame->getHalfWord(1,3,0))) {
+    mPositionForHalfSampa[2] = mSyncPattern[2].getPosition();
+  }
 
-  mSyncPattern[2].addSequence(
+  if (mSyncPattern[3].addSequence(
       iFrame->getHalfWord(1,0,1),
       iFrame->getHalfWord(1,1,1),
       iFrame->getHalfWord(1,2,1),
-      iFrame->getHalfWord(1,3,1));
-  mPositionForHalfSampa[3] = mSyncPattern[0].getPosition();
+      iFrame->getHalfWord(1,3,1))) {
+    mPositionForHalfSampa[3] = mSyncPattern[3].getPosition();
+  }
 
-  mSyncPattern[3].addSequence(
+  if (mSyncPattern[4].addSequence(
       iFrame->getHalfWord(2,0),
       iFrame->getHalfWord(2,1),
       iFrame->getHalfWord(2,2),
-      iFrame->getHalfWord(2,3));
-  mPositionForHalfSampa[4] = mSyncPattern[4].getPosition();
+      iFrame->getHalfWord(2,3))) {
+    mPositionForHalfSampa[4] = mSyncPattern[4].getPosition();
+  }
 
 //  std::cout << mPositionForHalfSampa[0] << " " << mPositionForHalfSampa[1] << " " << mPositionForHalfSampa[2] << " " << mPositionForHalfSampa[3] << " " << mPositionForHalfSampa[4] << std::endl;
 
