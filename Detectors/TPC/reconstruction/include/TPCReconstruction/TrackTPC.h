@@ -67,6 +67,11 @@ class TrackTPC {
     float getTruncatedMean(float low=0.05, float high=0.7, int type=1, int removeRows=0, int *nclPID=nullptr) const;
 
 
+    /// Get the TrackParCov object
+    o2::Base::Track::TrackParCov getTrack() { return mTrackParCov; }
+
+
+
     float GetX()                         const { return mTrackParCov.GetX(); }
     float GetAlpha()                     const { return mTrackParCov.GetAlpha(); }
     float GetY()                         const { return mTrackParCov.GetY(); }
@@ -88,6 +93,15 @@ class TrackTPC {
     bool  GetPosDir(std::array<float,9> &posdirp)    const { return mTrackParCov.GetPosDir(posdirp); }
 
     /// \todo implement getters for covariance (missing access to full covariance in Track.h)
+
+
+    // parameters manipulation
+    bool  RotateParam(float alpha)       { return mTrackParCov.Rotate(alpha); }
+    bool  PropagateParamTo(float xk, float b)        { return mTrackParCov.PropagateParamTo(xk, b); }
+    bool  PropagateParamTo(float xk, const std::array<float,3> &b)    { return mTrackParCov.PropagateParamTo(xk, b); }
+    void  InvertParam()                  { mTrackParCov.InvertParam(); }
+
+    void  PrintParam()                   { mTrackParCov.PrintParam(); }
 
 
   private:
