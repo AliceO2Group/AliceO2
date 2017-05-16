@@ -17,6 +17,7 @@
 
 #include "aliceHLTwrapper/WrapperDevice.h"
 #include "aliceHLTwrapper/Component.h"
+#include <FairMQParts.h>
 #include <FairMQLogger.h>
 #include <FairMQPoller.h>
 #include <options/FairProgOptions.h>
@@ -29,6 +30,8 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <utility> //std::move
+#include <thread> // this_thread::sleep_for
 
 using std::string;
 using std::vector;
@@ -153,41 +156,42 @@ void WrapperDevice::Run()
 
   static system_clock::time_point refTime = system_clock::now();
 
-  unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels["data-in"]));
-
   // inherited variables of FairMQDevice:
   // fChannels
   // fTransportFactory
   int numInputs = fChannels["data-in"].size();
-  int NoOfMsgParts=numInputs-1;
+  unique_ptr<FairMQPoller> poller(numInputs > 0?fChannels["data-in"].at(0).Transport()->CreatePoller(fChannels["data-in"]):nullptr);
+
   int errorCount=0;
   const int maxError=10;
 
-  vector<unique_ptr<FairMQMessage>> inputMessages;
-  vector<int> inputMessageCntPerSocket(numInputs, 0);
+  vector<FairMQParts> socketInputs(numInputs);
   int nReadCycles=0;
   while (CheckCurrentState(RUNNING)) {
 
     // read input messages
-    poller->Poll(mPollingPeriod);
+    if (poller) {
+      poller->Poll(mPollingPeriod);
+    } else {
+      std::this_thread::sleep_for(std::chrono::milliseconds(mPollingPeriod));
+    }
     int inputsReceived=0;
     bool receivedAtLeastOneMessage=false;
     for(int i = 0; i < numInputs; i++) {
-      if (inputMessageCntPerSocket[i]>0) {
+      if (socketInputs[i].Size() > 0) {
         inputsReceived++;
         continue;
       }
       if (poller->CheckInput(i)) {
-        if (fChannels.at("data-in").at(i).Receive(inputMessages)) {
+        if (Receive(socketInputs[i], "data-in", i)) {
           receivedAtLeastOneMessage = true;
-          inputsReceived++; // count only the first message on that socket
-          inputMessageCntPerSocket[i] = inputMessages.size();
+          inputsReceived++;
           if (mVerbosity > 3) {
             LOG(INFO) << " |---- receive Msgs from socket " << i;
           }
         }
         if (mVerbosity > 2) {
-          LOG(INFO) << "------ received " << inputMessageCntPerSocket[i] << " message(s) from socket " << i;
+          LOG(INFO) << "------ received " << socketInputs[i].Size() << " message(s) from socket " << i;
         }
       }
     }
@@ -234,10 +238,11 @@ void WrapperDevice::Run()
     if (!mSkipProcessing) {
       // prepare input from messages
       vector<o2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
-      for (vector<unique_ptr<FairMQMessage>>::iterator msg=inputMessages.begin();
-           msg!=inputMessages.end(); msg++) {
-        void* buffer=(*msg)->GetData();
-        dataArray.emplace_back(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize());
+      for (auto& socketInput : socketInputs) {
+        for (auto& msg : socketInput.fParts) {
+          void* buffer=msg->GetData();
+          dataArray.emplace_back(reinterpret_cast<unsigned char*>(buffer), msg->GetSize());
+        }
       }
 
       // create a signal with the callback to the buffer allocation, the component
@@ -270,9 +275,8 @@ void WrapperDevice::Run()
             }
           }
           if (omsg==nullptr) {
-            unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+            FairMQMessagePtr msg = NewMessage(opayload.mSize);
             if (msg.get()) {
-              msg->Rebuild(opayload.mSize);
               if (msg->GetSize() < opayload.mSize) {
                 iResult = -ENOSPC;
                 break;
@@ -296,7 +300,13 @@ void WrapperDevice::Run()
 
       if (mMessages.size()>0) {
         if (fChannels.find("data-out") != fChannels.end() && fChannels["data-out"].size() > 0) {
-          fChannels["data-out"].at(0).Send(mMessages);
+          // TODO: request FairMQParts helper function to set vector
+          // of messages
+          FairMQParts outputParts;
+          for (auto & msg : mMessages) {
+            outputParts.AddPart(std::move(msg));
+          }
+          Send(outputParts, "data-out", 0);
           if (mVerbosity > 2) {
             LOG(DEBUG) << "sending multipart message with " << mMessages.size() << " parts";
           }
@@ -312,10 +322,10 @@ void WrapperDevice::Run()
     }
 
     // cleanup
-    inputMessages.clear();
-    for (vector<int>::iterator mcit=inputMessageCntPerSocket.begin();
-         mcit!=inputMessageCntPerSocket.end(); mcit++) {
-      *mcit=0;
+    for (auto& socketInput : socketInputs) {
+      // TODO: use method of FairMQParts to clear instead of
+      // accessing public member
+      socketInput.fParts.clear();
     }
   }
 }
@@ -323,10 +333,8 @@ void WrapperDevice::Run()
 unsigned char* WrapperDevice::createMessageBuffer(unsigned size)
 {
   /// create a new message with data buffer of specified size
-  unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-  if (msg.get()==nullptr) return nullptr;
-  msg->Rebuild(size);
-  if (msg->GetSize() < size) {
+  FairMQMessagePtr msg = NewMessage(size);
+  if (!msg || msg->GetSize() < size) {
     return nullptr;
   }
 

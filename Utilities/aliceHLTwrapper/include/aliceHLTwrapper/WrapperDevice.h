@@ -84,7 +84,7 @@ private:
   unsigned char* createMessageBuffer(unsigned size);
 
   Component* mComponent;     // component instance
-  std::vector<std::unique_ptr<FairMQMessage>> mMessages; // array of output messages
+  std::vector<FairMQMessagePtr> mMessages; // array of output messages
 
   int mPollingPeriod;        // period of polling on input sockets in ms
   int mSkipProcessing;       // skip component processing
