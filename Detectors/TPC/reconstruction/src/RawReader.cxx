@@ -15,8 +15,10 @@
 
 using namespace o2::TPC;
 
-RawReader::RawReader()
-  : mLastEvent(-1)
+RawReader::RawReader(int region, int link)
+  : mRegion(region)
+  , mLink(link)
+  , mLastEvent(-1)
   , mTimestampOfFirstData(0)
   , mEvents()
   , mData()
@@ -70,6 +72,16 @@ bool RawReader::addInputFile(std::string infile) {
 }
 
 bool RawReader::addInputFile(int region, int link, std::string path){
+
+  if (region != mRegion) {
+    LOG(DEBUG) << "Region of RawReader is " << mRegion << " and not " << region << FairLogger::endl;
+    return false;
+  }
+  
+  if (link != mLink) {
+    LOG(DEBUG) << "Link of RawReader is " << mLink << " and not " << link << FairLogger::endl;
+    return false;
+  }
 
   std::ifstream file(path);
   if (!file.is_open()) {

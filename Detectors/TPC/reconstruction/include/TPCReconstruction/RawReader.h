@@ -46,9 +46,9 @@ class RawReader {
       Header() {};
 
       /// Copy constructor
-      Header(const Header& h) : dataType(h.dataType), reserved_01(h.reserved_01), 
-        headerVersion(h.headerVersion), nWords(h.nWords), timeStamp_w(h.timeStamp_w),
-        eventCount_w(h.eventCount_w), reserved_2_w(h.reserved_2_w) {};
+      Header(const Header& other) = default;// : dataType(h.dataType), reserved_01(h.reserved_01), 
+        //headerVersion(h.headerVersion), nWords(h.nWords), timeStamp_w(h.timeStamp_w),
+        //eventCount_w(h.eventCount_w), reserved_2_w(h.reserved_2_w) {};
     };
 
     /// Data struct
@@ -63,12 +63,18 @@ class RawReader {
       eventData() : path(""), posInFile(-1), region(-1), link(-1), headerInfo() {};
 
       /// Copy constructor
-      eventData(const eventData& e) : path(e.path), posInFile(e.posInFile), region(e.region),
-        link(e.link), headerInfo(e.headerInfo) {};
+      eventData(const eventData& other) = default;
+      //: path(e.path), posInFile(e.posInFile), region(e.region),
+      //  link(e.link), headerInfo(e.headerInfo) {};
     };
 
     /// Default constructor
-    RawReader();
+    /// @param region Region of the data
+    /// @param link FEC of the data
+    RawReader(int region, int link);
+
+    /// Copy constructor
+    RawReader(const RawReader& other) = default;
 
     /// Destructor
     ~RawReader() = default;
@@ -125,11 +131,15 @@ class RawReader {
     /// @return shared pointer to data vector, each element is one timebin
     std::shared_ptr<std::vector<uint16_t>> getNextData(PadPos& padPos);
 
+    int getRegion() const { return mRegion; }
+    int getLink() const { return mLink; }
   private:
 
+    int mRegion;                        ///< Region of the data
+    int mLink;                          ///< FEC of the data
     int64_t mLastEvent;                 ///< Number of last loaded event
     uint64_t mTimestampOfFirstData;     ///< Time stamp of first decoded ADC value
-    std::map<uint64_t, std::unique_ptr<std::vector<eventData>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
+    std::map<uint64_t, std::shared_ptr<std::vector<eventData>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
     std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>> mData;                      ///< ADC values of last loaded Event
     std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>>::iterator mDataIterator;    ///< Iterator to last requested data
     std::array<short,5> mSyncPos;       ///< positions of the sync pattern (for readout mode 3)
