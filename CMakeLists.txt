@@ -154,10 +154,8 @@ ENDIF (NOT ALICEO2_MODULAR_BUILD)
 # cause another cmake executable to run.  The same process will walk through
 # the project's entire directory structure.
 
-IF (PYTHIA8_FOUND AND Pythia6_FOUND)
-  add_subdirectory(Generators)
-  set(GENERATORS_LIBRARY Generators)
-ENDIF ()
+add_subdirectory(Generators)
+set(GENERATORS_LIBRARY Generators)
 
 add_subdirectory(CCDB)
 add_subdirectory(Common)

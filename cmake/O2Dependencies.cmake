@@ -543,6 +543,7 @@ o2_define_bucket(
     tpc_base_bucket
     Field
     DetectorsBase
+    Generators
     TPCBase
     SimulationDataFormat
     Geom
@@ -634,18 +635,30 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/reconstruction/include
 )
 
+# base bucket for generators not needing any external stuff
+o2_define_bucket(
+    NAME
+    generators_base_bucket
+
+    DEPENDENCIES
+    Base SimulationDataFormat MathCore RIO Tree
+    fairroot_base_bucket
+
+    INCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+    ${FAIRROOT_INCLUDE_DIR}
+)
+
 o2_define_bucket(
     NAME
     generators_bucket
 
     DEPENDENCIES
-    Base SimulationDataFormat pythia6 pythia8 MathCore
+    generators_base_bucket
+    pythia8
 
     INCLUDE_DIRECTORIES
-    ${ROOT_INCLUDE_DIR}
-    ${FAIRROOT_INCLUDE_DIR}
     ${PYTHIA8_INCLUDE_DIR}
-    ${PYTHIA6_INCLUDE_DIR}
 )
 
 o2_define_bucket(
