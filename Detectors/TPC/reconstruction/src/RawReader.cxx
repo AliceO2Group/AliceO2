@@ -138,7 +138,6 @@ bool RawReader::addInputFile(int region, int link, std::string path){
 bool RawReader::loadEvent(int64_t event) {
   LOG(DEBUG) << "Loading new event " << event << FairLogger::endl;
   mData.clear();
-  mTimestampOfFirstData = 0;
 
   auto ev = mEvents.find(event);
   mLastEvent = event;
@@ -244,6 +243,7 @@ bool RawReader::loadEvent(int64_t event) {
             short value1;
             short value2;
             for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
+              if (i==0) continue;
               if (mSyncPos[iHalfSampa] < 0) continue;
               if (lastSyncPos[iHalfSampa] < 0) continue;
               if (mTimestampOfFirstData == 0) mTimestampOfFirstData = data.headerInfo.timeStamp() + 1 + i/4;
