@@ -21,6 +21,7 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CalArray.h"
+#include "FairLogger.h"
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -419,6 +420,9 @@ void Next()
 //__________________________________________________________________________
 void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile="", Int_t nTimeBinsPerCall=500)
 {
+  FairLogger *logger = FairLogger::GetLogger();
+  logger->SetLogVerbosityLevel("LOW");
+  logger->SetLogScreenLevel("DEBUG");
   if (!pedestalFile.IsNull()) {
     TFile f(pedestalFile);
     if (f.IsOpen()) {
