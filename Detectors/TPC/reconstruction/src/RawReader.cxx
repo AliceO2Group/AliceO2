@@ -73,6 +73,9 @@ bool RawReader::addInputFile(std::string infile) {
 
 bool RawReader::addInputFile(int region, int link, std::string path){
 
+  if (mRegion == -1 ) mRegion = region;
+  if (mLink == -1) mLink = link;
+
   if (region != mRegion) {
     LOG(DEBUG) << "Region of RawReader is " << mRegion << " and not " << region << FairLogger::endl;
     return false;
