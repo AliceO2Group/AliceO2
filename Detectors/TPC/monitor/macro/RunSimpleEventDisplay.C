@@ -385,9 +385,29 @@ void Next()
 {
   //Int_t ev=mRawReader->NextEvent();
   //if (!ev) return;
-  if (!mEvDisp.ProcessEvent()) {
-    std::cout << "Prolem processing this event\n";
-    return;
+  using Status = CalibRawBase::ProcessStatus;
+  Status status = mEvDisp.ProcessEvent();
+  const Int_t timeBins = mEvDisp.getTimeBinsPerCall();
+
+  switch (status) {
+    case Status::Ok: {
+      std::cout << "Read in full event with " << timeBins << " time bins\n";
+      break;
+    }
+    case Status::Truncated: {
+      std::cout << "Event is truncated and contains less than " << timeBins << " time bins\n";
+      break;
+    }
+    case Status::NoMoreData: {
+      std::cout << "No more data to be read\n";
+      return;
+      break;
+    }
+    case Status::NoReaders: {
+      std::cout << "No raw readers configured\n";
+      return;
+      break;
+    }
   }
   //Bool_t res=mEvDisp.ProcessEvent();
   //printf("Next: %d, %d (%d - %d), %d\n",res, ((AliRawReaderGEMDate*)mRawReader)->mEventInFile,((AliRawReaderGEMDate*)mRawReader)->GetCamacData(0),mRawReader->GetEventFromTag(), mRawReader->GetDataSize());
@@ -397,7 +417,7 @@ void Next()
 }
 
 //__________________________________________________________________________
-void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile="")
+void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile="", Int_t nTimeBinsPerCall=500)
 {
   if (!pedestalFile.IsNull()) {
     TFile f(pedestalFile);
@@ -410,6 +430,7 @@ void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile="")
   mEvDisp.setupContainers(fileInfo);
   mEvDisp.mSelectedSector=mSelectedSector;
   mEvDisp.mLastSelSector=mSelectedSector;
+  mEvDisp.setTimeBinsPerCall(nTimeBinsPerCall);
   InitGUI();
 //  while (mRawReader->NextEvent() && mRawReader->GetEventFromTag()==0) Next();
   MonitorGui();

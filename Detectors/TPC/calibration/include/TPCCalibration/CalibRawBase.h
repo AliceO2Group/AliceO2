@@ -44,6 +44,13 @@ namespace TPC
 class CalibRawBase
 {
   public:
+    enum class ProcessStatus : char {
+      Ok,         ///< Processing ok
+      Truncated,  ///< Read fewer time bins than mTimeBinsPerCall
+      NoMoreData, ///< No data read
+      NoReaders   ///< No raw reader configures
+    };
+
     CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mNevents(0), mTimeBinsPerCall(500), mPadSubset(padSubset) {;}
 
     /// Update function called once per digit
@@ -67,7 +74,7 @@ class CalibRawBase
     void setupContainers(TString fileInfo);
     
     /// Process one event with mTimeBinsPerCall length
-    Bool_t ProcessEvent(); 
+    ProcessStatus ProcessEvent(); 
     
     /// Rewind the events
     void RewindEvents();
@@ -91,9 +98,9 @@ class CalibRawBase
 //----------------------------------------------------------------
 // Inline Functions
 //----------------------------------------------------------------
-inline Bool_t CalibRawBase::ProcessEvent()
+inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEvent()
 {
-  if (!mGBTFrameContainers.size()) return kFALSE;
+  if (!mGBTFrameContainers.size()) return ProcessStatus::NoReaders;
   ResetEvent();
   
   // loop over raw readers, fill digits for 500 time bins and process
@@ -101,9 +108,12 @@ inline Bool_t CalibRawBase::ProcessEvent()
   
   const int nRowIROC = mMapper.getNumberOfRowsROC(0);
 
+  ProcessStatus status = ProcessStatus::Ok;
+
   std::vector<DigitData> digits(80);
   for (auto& reader_ptr : mGBTFrameContainers) {
     auto reader = reader_ptr.get();
+    int readTimeBins = 0;
     for (int i=0; i<mTimeBinsPerCall; ++i) {
       if (reader->getData(digits)) {
         for (auto& digi : digits) {
@@ -142,16 +152,25 @@ inline Bool_t CalibRawBase::ProcessEvent()
           //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", sector, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
           Update(sector, row+rowOffset, pad, timeBin, signal );
         }
+        ++readTimeBins;
       }
-      else {
-        return kFALSE;
-      }
+
       digits.clear();
+    }
+
+    // set status, don't overwrite decision
+    if (status == ProcessStatus::Ok) {
+      if (readTimeBins == 0 ) {
+        return ProcessStatus::NoMoreData;
+      }
+      else if (readTimeBins < mTimeBinsPerCall) {
+        status = ProcessStatus::Truncated;
+      }
     }
   }
 
   EndEvent();
-  return kTRUE;
+  return status;
 }
 
 } // namespace TPC
