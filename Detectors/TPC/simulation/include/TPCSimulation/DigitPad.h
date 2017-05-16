@@ -8,9 +8,13 @@
 
 #include <map>
 
+#define TPC_DIGIT_USEFAIRLINKS 1
+
 #include "FairRootManager.h"
+#ifdef TPC_DIGIT_USEFAIRLINKS
 #include "FairMultiLinkedData.h"
 #include "FairLink.h"
+#endif
 #include "TPCSimulation/CommonMode.h"
 #include <TClonesArray.h>
 
@@ -43,10 +47,11 @@ class DigitPad{
     /// \return Accumulated charge
     float getChargePad() const {return mChargePad;}
 
+#ifdef TPC_DIGIT_USEFAIRLINKS
     /// Get the MC Links
     /// \return MC Links
     const FairMultiLinkedData& getMCLinks() const { return mMCLinks; }
-
+#endif
     /// Add digit to the time bin container
     /// \param hitID MC Hit ID
     /// \param charge Charge of the digit
@@ -63,24 +68,30 @@ class DigitPad{
   private:
     float                  mChargePad;   ///< Total accumulated charge on that pad for a given time bin
     unsigned char          mPad;         ///< Pad of the ADC value
+#ifdef TPC_DIGIT_USEFAIRLINKS
     FairMultiLinkedData    mMCLinks;     ///< MC links
+#endif
 };
 
 inline
 DigitPad::DigitPad(int pad)
   : mChargePad(0.)
   , mPad(pad)
+#ifdef TPC_DIGIT_USEFAIRLINKS
   , mMCLinks()
+#endif
 {}
 
 inline 
-void DigitPad::setDigit(size_t hitID, float charge)
+void DigitPad::setDigit(size_t trackID, float charge)
 {
   /// the MC ID is encoded such that we can have 999,999 tracks
   /// numbers larger than 1000000 correspond to the event ID
   /// i.e. 12000010 corresponds to event 12 with track ID 10
   /// \todo Faster would be a bit shift
-  mMCLinks.AddLink(FairLink(-1, FairRootManager::Instance()->GetEntryNr(), "TPCPoint", hitID));
+#ifdef TPC_DIGIT_USEFAIRLINKS
+  mMCLinks.AddLink(FairLink(-1, FairRootManager::Instance()->GetEntryNr(), "MCTrack", trackID));
+#endif
   mChargePad += charge;
 }
 
@@ -88,7 +99,9 @@ inline
 void DigitPad::reset()
 {
   mChargePad = 0;
+#ifdef TPC_DIGIT_USEFAIRLINKS
   mMCLinks.Reset();
+#endif
 }
   
 }
