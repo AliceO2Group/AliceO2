@@ -24,7 +24,9 @@ void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
     TClonesArray &clref = *output;
     const size_t digiPos = clref.GetEntriesFast();
     DigitMC *digit = new(clref[digiPos]) DigitMC(cru, mADC, row, pad, timeBin, commonMode);
+#ifdef TPC_DIGIT_USEFAIRLINKS
     digit->SetLinks(getMCLinks());
+#endif
   }
 }
 
