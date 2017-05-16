@@ -76,9 +76,6 @@ class RawReader {
     /// Copy constructor
     RawReader(const RawReader& other) = default;
 
-    /// Copy constructor
-    RawReader(const RawReader& other) = default;
-
     /// Destructor
     ~RawReader() = default;
 
@@ -121,8 +118,9 @@ class RawReader {
     int getNumberOfEvents() const { return  mEvents.size(); };
 
     /// Get time stamp of first data
+    /// @param hf half SAMPA
     /// @return Timestamp of first decoded ADC value
-    uint64_t getTimeStamp() const { return mTimestampOfFirstData; };
+    uint64_t getTimeStamp(short hf) const { return mTimestampOfFirstData[hf]; };
 
     /// Get data
     /// @param padPos local pad position (row starts with 0 in each region)
@@ -141,7 +139,7 @@ class RawReader {
     int mRegion;                        ///< Region of the data
     int mLink;                          ///< FEC of the data
     int64_t mLastEvent;                 ///< Number of last loaded event
-    uint64_t mTimestampOfFirstData;     ///< Time stamp of first decoded ADC value
+    std::array<uint64_t,5> mTimestampOfFirstData;   ///< Time stamp of first decoded ADC value, individually for each half sampa
     std::map<uint64_t, std::shared_ptr<std::vector<eventData>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
     std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>> mData;                      ///< ADC values of last loaded Event
     std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>>::iterator mDataIterator;    ///< Iterator to last requested data
