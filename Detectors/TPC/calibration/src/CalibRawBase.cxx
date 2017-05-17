@@ -35,7 +35,8 @@ void CalibRawBase::setupContainers(TString fileInfo)
     auto arrDataInfo = data.Tokenize(":");
     if (arrDataInfo->GetEntriesFast() == 1) {
       TString& rorcTypeTmp = static_cast<TObjString*>(arrDataInfo->At(0))->String();
-      if (rorcTypeTmp=="trorc") rorcType=rorcTypeTmp;
+      if (rorcTypeTmp=="grorc") rorcType=rorcTypeTmp;
+      else if (rorcTypeTmp=="trorc") rorcType=rorcTypeTmp;
       else if (rorcTypeTmp=="trorc2") rorcType=rorcTypeTmp;
       else if (rorcTypeTmp=="raw") rorcType=rorcTypeTmp;
       else {
