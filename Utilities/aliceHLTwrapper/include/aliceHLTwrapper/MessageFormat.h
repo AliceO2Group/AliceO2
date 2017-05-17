@@ -102,6 +102,8 @@ public:
     kOutputModeMultiPart,
     // all blocks as sequence of header and payload
     kOutputModeSequence,
+    // O2 data format, header-payload pairs
+    kOutputModeO2,
     kOutputModeLast
   };
 
@@ -147,6 +149,9 @@ public:
 
   // read message payload in HOMER format
   int readHOMERFormat(uint8_t* buffer, unsigned size, std::vector<BlockDescriptor>& descriptorList) const;
+
+  // read messages in O2 format
+  int readO2Format(const std::vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList) const;
 
   // create HOMER format from the output blocks
   AliHLTHOMERWriter* createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,

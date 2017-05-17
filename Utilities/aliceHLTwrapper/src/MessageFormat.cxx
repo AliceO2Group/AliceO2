@@ -26,6 +26,8 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <cassert>
+#include <sstream>
 
 using namespace o2::AliceHLT;
 using namespace ALICE::HLT;
@@ -41,7 +43,7 @@ MessageFormat::MessageFormat()
   , mDataBuffer()
   , mMessages()
   , mpFactory(nullptr)
-  , mOutputMode(kOutputModeSequence)
+  , mOutputMode(kOutputModeO2)
   , mListEvtData()
 {
 }
@@ -118,10 +120,17 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
   // add list of messages
   int totalCount = 0;
   int i = 0;
-  for (auto data = list.begin(); data != list.end(); data++, i++) {
-    if (data->mSize > 0) {
+  bool tryO2format = true;
+  for (auto & data : list) {
+    if (tryO2format) {
+      if (o2::Header::get<o2::Header::DataHeader>(data.mP, data.mSize)) {
+        return readO2Format(list, mBlockDescriptors);
+      }
+      tryO2format = false;
+    }
+    if (data.mSize > 0) {
       unsigned nofEventHeaders=mListEvtData.size();
-      int result = addMessage(data->mP, data->mSize);
+      int result = addMessage(data.mP, data.mSize);
       if (result >= 0)
         totalCount += result;
       else {
@@ -203,11 +212,43 @@ int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
   return nofBlocks;
 }
 
+int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList) const
+{
+  int partNumber = 0;
+  const o2::Header::DataHeader* dh = nullptr;
+  for (auto part : list) {
+    if (!dh) {
+      // new header - payload pair, read DataHeader
+      dh = o2::Header::get<o2::Header::DataHeader>(part.mP, part.mSize);
+      if (!dh) {
+        cerr << "can not find DataHeader" << endl;
+        return -ENOMSG;
+      }
+    } else {
+      descriptorList.emplace_back(part.mP, part.mSize, *dh);
+      dh = nullptr;
+    }
+  }
+  if (dh) {
+    cerr << "missing payload to the last header" << endl;
+    return -ENOMSG;
+  }
+  return list.size()/2;
+}
+
 vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTComponentBlockData* blocks,
                                                                   unsigned count, unsigned totalPayloadSize,
                                                                   const AliHLTComponentEventData* evtData,
                                                                   boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate)
 {
+  // O2 output mode does not support event info struct
+  // for the moment simply ignore it, not sure if this is the best
+  // way to go, but this function is anyhow subject to change
+  if (mOutputMode == kOutputModeO2 && evtData != nullptr) {
+    evtData = nullptr;
+  }
+  //assert(mOutputMode != kOutputModeO2 || evtData == nullptr);
+
   const AliHLTComponentBlockData* pOutputBlocks = blocks;
   uint32_t outputBlockCnt = count;
   mDataBuffer.clear();
@@ -239,7 +280,9 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
       offset+=payloadSize;
       mMessages.emplace_back(pTarget, offset);
     }
-  } else if (mOutputMode == kOutputModeMultiPart || mOutputMode == kOutputModeSequence) {
+  } else if (mOutputMode == kOutputModeMultiPart ||
+             mOutputMode == kOutputModeSequence ||
+             mOutputMode == kOutputModeO2) {
     // the output blocks are assempled in the internal buffer, for each
     // block BlockData is added as header information, directly followed
     // by the block payload
@@ -259,42 +302,46 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     unsigned bi = 0;
     const auto* pOutputBlock = pOutputBlocks;
     auto maxBufferSize = sizeof(AliHLTComponentEventData) + count * sizeof(AliHLTComponentBlockData) + totalPayloadSize;
+    unsigned msgSize = 0;
     do {
       if (bi == 0 ||
-	  mOutputMode == kOutputModeMultiPart) {
-	// request a new message buffer when entering for the first time in concatanate mode
-	// and for every block in multi part mode
-	// the actual size depends on mode and block index
-	// - event data structure is only written at beginning of first
-	//   message, regardsless of mode
-	// - concatanate mode requests one big buffer for sequential sequence of
-	//   all blocks
-	auto msgSize = (bi==0 && evtData != nullptr?sizeof(AliHLTComponentEventData):0); // first message has event data
-	if (count>0 && mOutputMode==kOutputModeMultiPart) {
-	  msgSize+=sizeof(AliHLTComponentBlockData) + pOutputBlock->fSize;
-	} else {
-	  msgSize+=count*sizeof(AliHLTComponentBlockData) + totalPayloadSize;
-	}
-	if (cbAllocate==nullptr) {
-	  // make the target in the internal buffer, for simplicity data is copied
-	  // to a new buffer, a memmove would be possible to make room for block
-	  // descriptors
-	  if (mDataBuffer.size() < position + msgSize) {
-	    if (bi != 0) {
-	      throw std::runtime_error("complete buffer allocation must be done in the first cycle");
-	    }
-	    // resize to the full size at once
-	    mDataBuffer.resize(position + maxBufferSize);
-	  }
-	  pTarget=&mDataBuffer[position];
-	} else {
-	  // use callback to create target
-	  pTarget=*(*cbAllocate)(msgSize);
-	  if (pTarget==nullptr) {
-	    throw std::bad_alloc();
-	  }
-	}
-	offset=0;
+          mOutputMode == kOutputModeMultiPart ||
+          mOutputMode == kOutputModeO2) {
+        // request a new message buffer when entering for the first time in concatanate mode
+        // and for every block in multi part mode
+        // the actual size depends on mode and block index
+        // - event data structure is only written at beginning of first
+        //   message, regardsless of mode
+        // - concatanate mode requests one big buffer for sequential sequence of
+        //   all blocks
+        msgSize = (bi==0 && evtData != nullptr?sizeof(AliHLTComponentEventData):0); // first message has event data
+        if (count>0 && mOutputMode==kOutputModeMultiPart) {
+          msgSize+=sizeof(AliHLTComponentBlockData) + pOutputBlock->fSize;
+        } else if (mOutputMode == kOutputModeSequence) {
+          msgSize+=count*sizeof(AliHLTComponentBlockData) + totalPayloadSize;
+        } else if (mOutputMode == kOutputModeO2 ) {
+          msgSize = sizeof(o2::Header::DataHeader);
+        }
+        if (cbAllocate==nullptr) {
+          // make the target in the internal buffer, for simplicity data is copied
+          // to a new buffer, a memmove would be possible to make room for block
+          // descriptors
+          if (mDataBuffer.size() < position + msgSize) {
+            if (bi != 0) {
+              throw std::runtime_error("complete buffer allocation must be done in the first cycle");
+            }
+            // resize to the full size at once
+            mDataBuffer.resize(position + maxBufferSize);
+          }
+          pTarget=&mDataBuffer[position];
+        } else {
+          // use callback to create target
+          pTarget=*(*cbAllocate)(msgSize);
+          if (pTarget==nullptr) {
+            throw std::bad_alloc();
+          }
+        }
+        offset=0;
       }
 
       if (bi==0 && evtData != nullptr) {
@@ -317,16 +364,30 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
         uint8_t* pData = reinterpret_cast<uint8_t*>(pOutputBlock->fPtr);
         pData += pOutputBlock->fOffset;
         auto* bdTarget = reinterpret_cast<AliHLTComponentBlockData*>(pTarget + offset);
-        memcpy(bdTarget, pOutputBlock, sizeof(AliHLTComponentBlockData));
-        bdTarget->fOffset = 0;
-        bdTarget->fPtr = nullptr;
-        offset += sizeof(AliHLTComponentBlockData);
-        memcpy(pTarget + offset, pData, pOutputBlock->fSize);
-        offset += pOutputBlock->fSize;
+        if (mOutputMode != kOutputModeO2) {
+          assert(msgSize >= offset + sizeof(AliHLTComponentBlockData) + pOutputBlock->fSize);
+          memcpy(bdTarget, pOutputBlock, sizeof(AliHLTComponentBlockData));
+          bdTarget->fOffset = 0;
+          bdTarget->fPtr = nullptr;
+          offset += sizeof(AliHLTComponentBlockData);
+          memcpy(pTarget + offset, pData, pOutputBlock->fSize);
+          offset += pOutputBlock->fSize;
+        }
         if (mOutputMode == kOutputModeMultiPart) {
           // send one descriptor per block back to device
           mMessages.emplace_back(pTarget, offset);
-          position+=offset;
+          if (cbAllocate == nullptr) position+=offset;
+        } else if (mOutputMode == kOutputModeO2) {
+          o2::Header::DataHeader dh;
+          dh.dataDescription.runtimeInit(pOutputBlock->fDataType.fID, kAliHLTComponentDataTypefIDsize);
+          dh.dataOrigin.runtimeInit(pOutputBlock->fDataType.fOrigin, kAliHLTComponentDataTypefOriginSize);
+          dh.payloadSize = pOutputBlock->fSize;
+          dh.subSpecification = pOutputBlock->fSpecification;
+          memcpy(pTarget, &dh, sizeof(o2::Header::DataHeader));
+          offset += sizeof(o2::Header::DataHeader);
+          mMessages.emplace_back(pTarget, offset);
+          if (cbAllocate == nullptr) position+=offset;
+          mMessages.emplace_back(pData, pOutputBlock->fSize);
         }
         pOutputBlock++;
       }
@@ -338,7 +399,9 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     }
   } else {
     // invalid output mode
-    cerr << "error ALICE::HLT::Component: invalid output mode " << mOutputMode << endl;
+    std::stringstream errorMsg;
+    errorMsg << "invalid output mode: " << mOutputMode;
+    throw std::runtime_error(errorMsg.str());
   }
   return mMessages;
 }
