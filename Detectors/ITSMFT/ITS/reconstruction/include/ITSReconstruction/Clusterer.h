@@ -38,9 +38,16 @@ namespace ITS
   Int_t mColumn1[kMaxRow+2];
   Int_t mColumn2[kMaxRow+2];
   Int_t *mCurr, *mPrev;
-  std::vector<std::vector<std::pair<UShort_t,UShort_t>>> mPreClusters;
-  std::vector<Int_t> mIndices;
-  std::vector<Int_t> mLabels;
+  
+  using Pixel = std::pair<UShort_t,UShort_t>;
+  using NextIndex = Int_t;
+  std::vector< std::pair<NextIndex, Pixel> > mPixels;
+
+  using MCLabel = Int_t;
+  using FirstIndex = Int_t;
+  std::vector< std::pair<FirstIndex,MCLabel> > mPreClusterHeads;
+  
+  std::vector<Int_t> mPreClusterIndices;
   
   UShort_t mChipID; ///< ID of the chip being processed
   UShort_t mCol;    ///< Column being processed
