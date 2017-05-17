@@ -191,8 +191,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventGBT()
           // modify row depending on the calibration type used
           const int timeBin= i; //digi.getTimeStamp();
           const float signal = digi.getChargeFloat();
-          //const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadSecPos(roc, row, pad));
-          //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+
           UpdateCRU(cru, row, pad, timeBin, signal );
           UpdateROC(roc, row+rowOffset, pad, timeBin, signal );
         }
@@ -296,6 +295,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
   }
 
   EndEvent();
+  ++mNevents;
   return status;
 }
 } // namespace TPC
