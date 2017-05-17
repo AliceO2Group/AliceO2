@@ -1,15 +1,20 @@
-void runPedestal(TString fileInfo="GBTx0_Battery_Floating:0:0;GBTx1_Battery_Floating:1:0", TString outputFileName="")
+void runPedestal(TString fileInfo, TString outputFileName="", Int_t nevents=100, Int_t adcMin=0, Int_t adcMax=1100)
 {
   using namespace o2::TPC;
   CalibPedestal ped;//(PadSubset::Region);
+  ped.setADCRange(adcMin, adcMax);
   ped.setupContainers(fileInfo);
 
+  ped.ProcessEvent();
+  ped.resetData();
+
   //while (ped.ProcessEvent());
-  for (Int_t i=0; i<100; ++i) {
-    ped.ProcessEvent();
+  for (Int_t i=0; i<nevents; ++i) {
+    if (ped.ProcessEvent() != CalibRawBase::ProcessStatus::Ok) break;
   }
   ped.analyse();
 
+  cout << "Number of processed events: " << ped.getNumberOfProcessedEvents() << '\n';
   if (outputFileName.IsNull()) outputFileName="Pedestals.root";
   ped.dumpToFile(outputFileName);
 
@@ -29,7 +34,7 @@ void runPedestal(TString fileInfo="GBTx0_Battery_Floating:0:0;GBTx1_Battery_Floa
   //hNoise->SetTitle("Noise");
   //hNoise->Draw("colz");
 
-  cout << "To display the pedestals run: root.exe $calibMacroDir/drawNoiseAndPedestal.C'(\" " << outputFileName << "\")'\n";
+  cout << "To display the pedestals run: root.exe $calibMacroDir/drawNoiseAndPedestal.C'(\"" << outputFileName << "\")'\n";
 
 
 }

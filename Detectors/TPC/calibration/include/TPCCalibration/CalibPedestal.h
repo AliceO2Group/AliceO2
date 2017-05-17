@@ -58,6 +58,12 @@ class CalibPedestal : public CalibRawBase
     Int_t UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final { return 0;}
 
+    /// Reset pedestal data
+    void resetData();
+
+    /// set the adc range
+    void setADCRange(int minADC, int maxADC) { mADCMin = minADC; mADCMax = maxADC; mNumberOfADCs = mADCMax-mADCMin+1;}
+
     /// Analyse the buffered adc values and calculate noise and pedestal
     void analyse();
 
