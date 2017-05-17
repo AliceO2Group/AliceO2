@@ -95,13 +95,13 @@ void MonitorGui()
   mFrameNextEvent->MoveResize(10, 10, xsize, (UInt_t)ysize);
 
   //---------------------------
-  TGTextButton*  mFrameRewindEvent  = new TGTextButton(mContRight,  "Rewind Events"           );
-  mContRight->AddFrame(mFrameRewindEvent, new TGLayoutHints(kLHintsExpandX));
+  //TGTextButton*  mFrameRewindEvent  = new TGTextButton(mContRight,  "Rewind Events"           );
+  //mContRight->AddFrame(mFrameRewindEvent, new TGLayoutHints(kLHintsExpandX));
   
-  mFrameRewindEvent->SetCommand( "RewindEvents()");
-  mFrameRewindEvent->SetTextColor(200);
-  mFrameRewindEvent->SetToolTipText("Rewind Events to loop again");
-  mFrameRewindEvent->MoveResize(10, 10+ysize*3, xsize, (UInt_t)ysize);
+  //mFrameRewindEvent->SetCommand( "RewindEvents()");
+  //mFrameRewindEvent->SetTextColor(200);
+  //mFrameRewindEvent->SetToolTipText("Rewind Events to loop again");
+  //mFrameRewindEvent->MoveResize(10, 10+ysize*3, xsize, (UInt_t)ysize);
   
   //---------------------------
   mFrameMain->MapSubwindows();
@@ -201,7 +201,7 @@ void DrawPadSignal(TString type)
     //mRawReader->Reset();
     TH1D *h2=mEvDisp.MakePadSignals(roc,row,pad);
     if (h2) {
-      //h2->GetXaxis()->SetRangeUser(0,350);
+      h2->GetXaxis()->SetRangeUser(0,35);
       h2->Draw();
       h2->SetStats(0);
     }
@@ -221,8 +221,8 @@ void FillMaxHists(Int_t type=0)
   TH2F *hSide=0x0;
   TH2F *hROC=0x0;
   ResetHists(type);
-  const int runNumber = 0; // TODO: take from raw reader???
-  const int eventNumber = 0; // TODO: take from raw reader???
+  const int runNumber = TString(gSystem->Getenv("RUN_NUMBER")).Atoi();
+  const int eventNumber = mEvDisp.getNumberOfProcessedEvents() - 1;
   for (Int_t iROC=0; iROC<72; iROC++){
     // TODO: remove again at some point
     if (iROC >0) break;
@@ -363,7 +363,7 @@ void InitGUI()
   c = new TCanvas("MaxValsI","MaxValsI",1*w,0*h,w,h);
   c->AddExec("padSig","DrawPadSignal(\"SigI\")");
   mHMaxIROC=new TH2F("hMaxValsIROC","Max Values IROC;row;pad",63,0,63,108,-54,54);
-  //mHMaxIROC->GetYaxis()->SetRangeUser(0,25);
+  mHMaxIROC->GetYaxis()->SetRangeUser(5,30);
   mHMaxIROC->SetStats(kFALSE);
   mHMaxIROC->Draw("colz");
   //histograms and canvases for max values OROC
