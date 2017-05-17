@@ -114,6 +114,8 @@ void Clusterer::finishChip(TClonesArray &clusters)
   static Float_t sigmaX2 = mPitchX * mPitchX / 12.; //FIXME
   static Float_t sigmaY2 = mPitchZ * mPitchZ / 12.;
 
+  Int_t noc = clusters.GetEntriesFast();
+  
   for (Int_t i1=0; i1<mPreClusterHeads.size(); ++i1) {
     const auto ci = mPreClusterIndices[i1];
     if (ci<0) continue;
@@ -154,15 +156,15 @@ void Clusterer::finishChip(TClonesArray &clusters)
     x = mX0 + x*mPitchX;
     z /= npix;
     z = mZ0 + z*mPitchZ;
-    Cluster &c = *(new (clusters[clusters.GetEntriesFast()]) Cluster());
-    c.setVolumeId(mChipID);
-    c.setX(x);
-    c.setY(0);
-    c.setZ(z);
-    c.setSigmaY2(sigmaX2);
-    c.setSigmaZ2(sigmaY2);
-    c.setNxNzN(xmax-xmin+1,zmax-zmin+1,npix);
-    c.setFrameLoc();
-    c.setLabel(mPreClusterHeads[i1].second, 0);
+    Cluster *c = (Cluster *)clusters.ConstructedAt(noc++);
+    c->setVolumeId(mChipID);
+    c->setX(x);
+    c->setY(0);
+    c->setZ(z);
+    c->setSigmaY2(sigmaX2);
+    c->setSigmaZ2(sigmaY2);
+    c->setNxNzN(xmax-xmin+1,zmax-zmin+1,npix);
+    c->setFrameLoc();
+    c->setLabel(mPreClusterHeads[i1].second, 0);
   }
 }
