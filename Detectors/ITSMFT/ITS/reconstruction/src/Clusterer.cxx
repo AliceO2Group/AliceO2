@@ -156,7 +156,7 @@ void Clusterer::finishChip(TClonesArray &clusters)
     x = mX0 + x*mPitchX;
     z /= npix;
     z = mZ0 + z*mPitchZ;
-    Cluster *c = (Cluster *)clusters.ConstructedAt(noc++);
+    Cluster *c = static_cast<Cluster *>(clusters.ConstructedAt(noc++));
     c->setVolumeId(mChipID);
     c->setX(x);
     c->setY(0);
