@@ -69,11 +69,11 @@ SimpleEventDisplay::SimpleEventDisplay()
 }
 
 //_____________________________________________________________________
-Int_t SimpleEventDisplay::Update(const Int_t roc,
-                                 const Int_t row,
-                                 const Int_t pad,
-                                 const Int_t timeBin,
-                                 const Float_t signal)
+Int_t SimpleEventDisplay::UpdateROC(const Int_t roc,
+                                    const Int_t row,
+                                    const Int_t pad,
+                                    const Int_t timeBin,
+                                    const Float_t signal)
 {
   //
   // Signal filling methode on the fly pedestal and time offset correction if necessary.

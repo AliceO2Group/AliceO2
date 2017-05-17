@@ -17,6 +17,7 @@
 
 #include "THnSparse.h"
 #include "TPCBase/CalDet.h"
+#include "TPCBase/CRU.h"
 #include "TPCCalibration/CalibRawBase.h"
 
 class TH2D;
@@ -41,14 +42,21 @@ class SimpleEventDisplay : public CalibRawBase
     
     virtual ~SimpleEventDisplay() = default;
 
-    Int_t Update(const Int_t roc, const Int_t row, const Int_t pad,
-                 const Int_t timeBin, const Float_t signal) final;
+    Int_t UpdateROC(const Int_t roc, const Int_t row, const Int_t pad,
+                    const Int_t timeBin, const Float_t signal) final;
   
+    /// not used
+    Int_t UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+                    const Int_t timeBin, const Float_t signal) final { return 0;}
+
     CalPad* getCalPadMax() {return &mPadMax;}
 
     void setPedstals(CalPad* pedestals) { mPedestals = pedestals; }
   //   TH1D* MakePadSignals(Int_t roc, Int_t channel);
     TH1D* MakePadSignals(Int_t roc, Int_t row, Int_t pad);
+
+    /// Dummy end event
+    virtual void EndEvent() final {};
 
   // private:
     THnSparseS  *mHnDataIROC;      //!< Event Data IROCs

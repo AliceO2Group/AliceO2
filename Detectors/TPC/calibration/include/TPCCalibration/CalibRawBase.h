@@ -56,9 +56,23 @@ class CalibRawBase
 
     /// Update function called once per digit
     ///
-    /// \param sector
-    virtual Int_t Update(const Int_t roc, const Int_t row, const Int_t pad,
-                         const Int_t timeBin, const Float_t signal) = 0;
+    /// \param roc readout chamber
+    /// \param row row in roc
+    /// \param pad pad in row
+    /// \param timeBin time bin
+    /// \param signal ADC signal
+    virtual Int_t UpdateROC(const Int_t roc, const Int_t row, const Int_t pad,
+                            const Int_t timeBin, const Float_t signal) = 0;
+
+    /// Update function called once per digit
+    ///
+    /// \param cru CRU
+    /// \param row row in CRU
+    /// \param pad pad in row
+    /// \param timeBin time bin
+    /// \param signal ADC signal
+    virtual Int_t UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+                            const Int_t timeBin, const Float_t signal) = 0;
 
     /// add GBT frame container to process
     void addGBTFrameContainer(GBTFrameContainer *cont) { mGBTFrameContainers.push_back(std::unique_ptr<GBTFrameContainer>(cont)); }
@@ -86,6 +100,9 @@ class CalibRawBase
     /// Dump the relevant data to file
     virtual void dumpToFile(TString filename) {}
 
+    /// number of processed events
+    size_t getNumberOfProcessedEvents() const { return mNevents; }
+
   protected:
     const Mapper&  mMapper;    //!< TPC mapper
 
@@ -97,7 +114,7 @@ class CalibRawBase
     std::vector<std::unique_ptr<RawReader>> mRawReaders; //! raw reader pointer
 
     virtual void ResetEvent() = 0;
-    virtual void EndEvent() {++mNevents; }
+    virtual void EndEvent() = 0;
 
     /// Process one event with mTimeBinsPerCall length using GBTFrameContainers
     ProcessStatus ProcessEventGBT();
@@ -144,7 +161,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventGBT()
       if (reader->getData(digits)) {
         for (auto& digi : digits) {
           CRU cru(digi.getCRU());
-          const int sector = cru.sector().getSector();
+          const int roc = cru.roc();
           // TODO: OROC case needs subtraction of number of pad rows in IROC
           const PadRegionInfo& regionInfo = mMapper.getPadRegionInfo(cru.region());
           const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
@@ -174,9 +191,10 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventGBT()
           // modify row depending on the calibration type used
           const int timeBin= i; //digi.getTimeStamp();
           const float signal = digi.getChargeFloat();
-          //const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadSecPos(sector, row, pad));
-          //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", sector, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
-          Update(sector, row+rowOffset, pad, timeBin, signal );
+          //const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadSecPos(roc, row, pad));
+          //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+          UpdateCRU(cru, row, pad, timeBin, signal );
+          UpdateROC(roc, row+rowOffset, pad, timeBin, signal );
         }
         ++readTimeBins;
       }
@@ -225,7 +243,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
       if (!data) continue;
 
       CRU cru(reader->getRegion());
-      const int sector = cru.sector().getSector();
+      const int roc = cru.roc();
       // TODO: OROC case needs subtraction of number of pad rows in IROC
       const PadRegionInfo& regionInfo = mMapper.getPadRegionInfo(cru.region());
       const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
@@ -257,9 +275,10 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
 
         // modify row depending on the calibration type used
         const float signal = float(signalI);
-        //const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadSecPos(sector, row, pad));
-        //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", sector, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
-        Update(sector, row+rowOffset, pad, timeBin, signal );
+        //const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadSecPos(roc, row, pad));
+        //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+        UpdateCRU(cru, row, pad, timeBin, signal );
+        UpdateROC(roc, row+rowOffset, pad, timeBin, signal );
         ++timeBin;
         hasData=true;
       }

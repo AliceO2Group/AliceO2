@@ -21,6 +21,7 @@
 
 #include "TPCBase/Defs.h"
 #include "TPCBase/CalDet.h"
+#include "TPCBase/CRU.h"
 #include "TPCCalibration/CalibRawBase.h"
 
 namespace o2
@@ -50,8 +51,12 @@ class CalibPedestal : public CalibRawBase
     /// Update function called once per digit
     ///
     /// \param sector
-    Int_t Update(const Int_t sector, const Int_t row, const Int_t pad,
-                 const Int_t timeBin, const Float_t signal) final;
+    Int_t UpdateROC(const Int_t sector, const Int_t row, const Int_t pad,
+                    const Int_t timeBin, const Float_t signal) final;
+
+    /// not used
+    Int_t UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+                    const Int_t timeBin, const Float_t signal) final { return 0;}
 
     /// Analyse the buffered adc values and calculate noise and pedestal
     void analyse();
@@ -69,6 +74,8 @@ class CalibPedestal : public CalibRawBase
     /// Dump the relevant data to file
     void dumpToFile(TString filename) final;
 
+    /// Dummy end event
+    virtual void EndEvent() final {};
 
   //private:
     Int_t      mADCMin;    ///< minimum adc value
