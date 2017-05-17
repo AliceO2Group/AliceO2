@@ -135,13 +135,13 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
 }
 
 int MessageFormat::readBlockSequence(uint8_t* buffer, unsigned size,
-                                     vector<AliHLTComponentBlockData>& descriptorList) const
+                                     vector<BlockDescriptor>& descriptorList) const
 {
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
   if (buffer == nullptr) return 0;
   unsigned position = 0;
-  vector<AliHLTComponentBlockData> input;
+  vector<BlockDescriptor> input;
   while (position + sizeof(AliHLTComponentBlockData) < size) {
     AliHLTComponentBlockData* p = reinterpret_cast<AliHLTComponentBlockData*>(buffer + position);
     if (p->fStructSize == 0 ||                         // no valid header
@@ -153,7 +153,7 @@ int MessageFormat::readBlockSequence(uint8_t* buffer, unsigned size,
       return -ENODATA;
     }
     // insert a new block
-    input.push_back(*p);
+    input.emplace_back(*p);
     position += p->fStructSize;
     if (p->fSize > 0) {
       input.back().fPtr = buffer + position;
@@ -171,7 +171,7 @@ int MessageFormat::readBlockSequence(uint8_t* buffer, unsigned size,
 }
 
 int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
-                                   vector<AliHLTComponentBlockData>& descriptorList) const
+                                   vector<BlockDescriptor>& descriptorList) const
 {
   // read message payload in HOMER format
   if (mpFactory == nullptr) const_cast<MessageFormat*>(this)->mpFactory = new ALICE::HLT::HOMERFactory;

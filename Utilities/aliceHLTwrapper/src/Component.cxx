@@ -216,7 +216,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   // prepare input structure for the ALICE HLT component
   mFormatHandler.clear();
   mFormatHandler.addMessages(dataArray);
-  vector<AliHLTComponentBlockData>& inputBlocks = mFormatHandler.getBlockDescriptors();
+  vector<BlockDescriptor>& inputBlocks = mFormatHandler.getBlockDescriptors();
   unsigned nofInputBlocks = inputBlocks.size();
   if (dataArray.size() > 0 && nofInputBlocks == 0 && mFormatHandler.getEvtDataList().size() == 0) {
     cerr << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input" << endl;
@@ -230,8 +230,8 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
   // determine the total input size, needed later on for the calculation of the output buffer size
   int totalInputSize = 0;
-  for (vector<AliHLTComponentBlockData>::const_iterator ci = inputBlocks.begin(); ci != inputBlocks.end(); ci++) {
-    totalInputSize += ci->fSize;
+  for (auto & ci : inputBlocks) {
+    totalInputSize += ci.fSize;
   }
 
   // add event type data block
@@ -326,10 +326,9 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
       // possibly a forwarded data block, try the input buffers
       if (!bValid) {
-        vector<AliHLTComponentBlockData>::const_iterator ci = inputBlocks.begin();
-        for (; ci != inputBlocks.end(); ci++) {
-          uint8_t* pInputBufferStart = reinterpret_cast<uint8_t*>(ci->fPtr);
-          uint8_t* pInputBufferEnd = pInputBufferStart + ci->fSize;
+        for (auto & ci : inputBlocks) {
+          uint8_t* pInputBufferStart = reinterpret_cast<uint8_t*>(ci.fPtr);
+          uint8_t* pInputBufferEnd = pInputBufferStart + ci.fSize;
           if ((bValid = (pStart >= pInputBufferStart && pEnd <= pInputBufferEnd))) {
             break;
           }

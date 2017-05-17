@@ -24,12 +24,50 @@
 #include <vector>
 #include <cstdint>
 #include <boost/signals2.hpp>
+#include "Headers/DataHeader.h"
 
 class AliHLTHOMERReader;
 class AliHLTHOMERWriter;
 
 namespace o2 {
 namespace AliceHLT {
+/// @struct BlockDescriptor
+/// Helper struct to provide constructors to AliHLTComponentBlockData
+///
+struct BlockDescriptor : public AliHLTComponentBlockData {
+  BlockDescriptor(AliHLTUInt32_t offset,
+                  void* ptr,
+                  AliHLTUInt32_t size,
+                  AliHLTComponentDataType datatype,
+                  AliHLTUInt32_t specification)
+  {
+    fStructSize = sizeof(AliHLTComponentBlockData);
+    memset(&fShmKey, 0, sizeof(AliHLTComponentShmData));
+    fOffset = offset;
+    fPtr = ptr;
+    fSize = size;
+    fDataType = datatype;
+    fSpecification = specification;
+  }
+
+  BlockDescriptor(const AliHLTComponentBlockData& src)
+    : BlockDescriptor(src.fOffset, src.fPtr, src.fSize, src.fDataType, src.fSpecification) {}
+
+  BlockDescriptor(void* ptr,
+                  AliHLTUInt32_t size,
+                  AliHLTComponentDataType datatype,
+                  AliHLTUInt32_t specification)
+    : BlockDescriptor(0, ptr, size, datatype, specification) {}
+
+  BlockDescriptor()
+    : BlockDescriptor(0, nullptr, 0, kAliHLTVoidDataType, kAliHLTVoidDataSpec) {}
+
+  BlockDescriptor(void* ptr,
+                  AliHLTUInt32_t size,
+                  const o2::Header::DataHeader& o2dh)
+    : BlockDescriptor(0, ptr, size, AliHLTComponentDataTypeInitializer(o2dh.dataDescription.str, o2dh.dataOrigin.str), o2dh.subSpecification) {}
+};
+
 /// @class MessageFormat
 /// Helper class to format ALICE HLT data blocks for transport in
 /// messaging system.
@@ -87,12 +125,12 @@ public:
   // planned for future extension
   //int AddOutput(AliHLTComponentBlockData* db);
 
-  std::vector<AliHLTComponentBlockData>& getBlockDescriptors()
+  std::vector<BlockDescriptor>& getBlockDescriptors()
   {
     return mBlockDescriptors;
   }
 
-  const std::vector<AliHLTComponentBlockData>& getBlockDescriptors() const
+  const std::vector<BlockDescriptor>& getBlockDescriptors() const
   {
     return mBlockDescriptors;
   }
@@ -105,10 +143,10 @@ public:
 
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
-  int readBlockSequence(uint8_t* buffer, unsigned size, std::vector<AliHLTComponentBlockData>& descriptorList) const;
+  int readBlockSequence(uint8_t* buffer, unsigned size, std::vector<BlockDescriptor>& descriptorList) const;
 
   // read message payload in HOMER format
-  int readHOMERFormat(uint8_t* buffer, unsigned size, std::vector<AliHLTComponentBlockData>& descriptorList) const;
+  int readHOMERFormat(uint8_t* buffer, unsigned size, std::vector<BlockDescriptor>& descriptorList) const;
 
   // create HOMER format from the output blocks
   AliHLTHOMERWriter* createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
@@ -133,7 +171,7 @@ private:
   // assignment operator prohibited
   MessageFormat& operator=(const MessageFormat&);
 
-  std::vector<AliHLTComponentBlockData> mBlockDescriptors;
+  std::vector<BlockDescriptor> mBlockDescriptors;
   /// internal buffer to assemble message data
   std::vector<uint8_t>            mDataBuffer;
   /// list of message payload descriptors
