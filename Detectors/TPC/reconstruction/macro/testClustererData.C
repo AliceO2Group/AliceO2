@@ -68,6 +68,10 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
     }
 
     printf("Converted digits: %d, max time: %.2f\n", arr.GetEntriesFast(), maxTime);
+    //for (Int_t i=0; i<10; ++i) {
+      //printf("%.2f ", ((DigitMC*)arr.At(i))->getChargeFloat());
+    //}
+    //printf("\n");
 
     ClusterContainer* clCont = cl.Process(&arr);
 
