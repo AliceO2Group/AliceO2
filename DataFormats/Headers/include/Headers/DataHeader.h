@@ -249,14 +249,17 @@ struct Descriptor {
   ///
   /// Note: no assignment operator operator=(const char*) as this potentially runs
   /// into trouble with this general pointer type.
-  void runtimeInit(const char* string) {
+  void runtimeInit(const char* string, short length = -1) {
     char* target = str;
-    char* targetEnd = target + N;
+    char* targetEnd = target;
+    if (length >= 0 && length < N) targetEnd += length;
+    else targetEnd += N;
     const char* source = string;
     for ( ; source != nullptr && target < targetEnd && *source !=0; ++target, ++source) *target = *source;
+    targetEnd = str + N;
     for ( ; target < targetEnd; ++target) *target = 0;
-    // require the string to be maximum the descriptor size
-    assert(source != nullptr && *source == 0);
+    // require the string to be not longer than the descriptor size
+    assert(source != nullptr && (*source == 0 || (length >= 0 && length <= N)));
   }
 
   bool operator==(const Descriptor& other) const {return itg == other.itg;}
@@ -275,31 +278,8 @@ const uint32_t gInvalidToken32 = 0xFFFFFFFF;
 /// default int representation of 'invalid' token for 8-byte char field
 const uint64_t gInvalidToken64 = 0xFFFFFFFFFFFFFFFF;
 
-struct HeaderType {
-  union {
-    char     str[gSizeHeaderDescriptionString];
-    uint64_t itg;
-  };
-  constexpr HeaderType(uint64_t v) : itg{v} {}
-  template<std::size_t N>
-  constexpr HeaderType(const char (&s)[N]) : itg{String2<uint64_t>(s)} {}
-  constexpr HeaderType(const HeaderType& that) : itg{that.itg} {}
-  bool operator==(const HeaderType& that) const {return that.itg==itg;}
-  bool operator==(const uint64_t& that) const {return that==itg;}
-};
-
-struct SerializationMethod {
-  union {
-    char      str[gSizeSerializationMethodString];
-    uint64_t  itg;
-  };
-  constexpr SerializationMethod(uint64_t v) : itg{v} {}
-  template<std::size_t N>
-  constexpr SerializationMethod(const char (&s)[N]) : itg{String2<uint64_t>(s)} {}
-  constexpr SerializationMethod(const SerializationMethod& that) : itg{that.itg} {}
-  bool operator==(const SerializationMethod& that) const {return that.itg==itg;}
-  bool operator==(const uint64_t& that) const {return that==itg;}
-};
+typedef Descriptor<gSizeHeaderDescriptionString> HeaderType;
+typedef Descriptor<gSizeSerializationMethodString> SerializationMethod;
 
 //possible serialization types
 extern const o2::Header::SerializationMethod gSerializationMethodAny;
@@ -593,14 +573,17 @@ struct DataDescription {
   ///
   /// Note: no assignment operator operator=(const char*) as this potentially runs
   /// into trouble with this general pointer type.
-  void runtimeInit(const char* string) {
+  void runtimeInit(const char* string, short length = -1) {
     char* target = str;
-    char* targetEnd = target + N;
+    char* targetEnd = target;
+    if (length >= 0 && length < N) targetEnd += length;
+    else targetEnd += N;
     const char* source = string;
     for ( ; source != nullptr && target < targetEnd && *source !=0; ++target, ++source) *target = *source;
+    targetEnd = str + N;
     for ( ; target < targetEnd; ++target) *target = 0;
-    // require the string to be maximum the descriptor size
-    assert(source != nullptr && *source == 0);
+    // require the string to be not longer than the descriptor size
+    assert(source != nullptr && (*source == 0 || (length >= 0 && length <= N)));
   }
 
   bool operator==(const DataDescription&) const;
@@ -757,6 +740,6 @@ static_assert(sizeof(DataHeader) == 80,
 void hexDump (const char* desc, const void* voidaddr, size_t len, size_t max=0);
 
 } //namespace Header
-} //namespace AliceO2
+} //namespace o2
 
 #endif
