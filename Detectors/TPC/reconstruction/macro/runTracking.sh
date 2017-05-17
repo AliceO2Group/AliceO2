@@ -1,5 +1,7 @@
+#!/bin/bash
+
 if [ $# -lt 3 ]; then
-  echo usage: runMonitor <fileInfo> <pedestalFile> <nevents>
+  echo "usage: runTracking <fileInfo> <pedestalFile> <nevents>"
 fi
 
 fileInfo=$1
@@ -11,15 +13,16 @@ trackFile="tracks.root"
 
 script=$(readlink -f $0)
 macroDir=$(dirname $script)
-findClusters=${macroDir}/runRawClusterFinder.C
+findClusters=${macroDir}/RawClusterFinder.C
 runReco=${macroDir}/runRecoSim.sh
+addInclude=${macroDir}/addInclude.C
 
 # ===| find raw clusters |======================================================
-cmd="root.exe -b -q -x -l $findClusters'+(\"$fileInfo\",\"$pedestalFile\",\"$clusterFile\",\"$nevents\")'"
+cmd="root.exe -b -q -x -l  ${addInclude} $findClusters'+(\"$fileInfo\",\"$pedestalFile\",\"$clusterFile\",$nevents)'"
 echo $cmd
-$eval $cmd
+eval $cmd
 
 # ===| run reconstruction |=====================================================
 cmd="$runReco $clusterFile $trackFile"
 echo $cmd
-#eval $cmd
+eval $cmd
