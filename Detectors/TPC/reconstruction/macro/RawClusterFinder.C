@@ -18,7 +18,7 @@
 #include "TPCSimulation/HwClusterer.h"
 #include "TPCSimulation/BoxClusterer.h"
 #include "TPCSimulation/ClusterContainer.h"
-#include "TPCSimulation/DigitMC.h"
+#include "TPCReconstruction/DigitData.h"
 
 namespace o2
 {
@@ -44,7 +44,7 @@ class RawClusterFinder : public CalibRawBase
     using vectorType = std::vector<float>;
 
     /// default constructor
-    RawClusterFinder(PadSubset padSubset = PadSubset::ROC) : CalibRawBase(padSubset), mClustererType(ClustererType::HW), mPedestals(nullptr), mArrDigits("o2::TPC::DigitMC") {;}
+    RawClusterFinder(PadSubset padSubset = PadSubset::ROC) : CalibRawBase(padSubset), mClustererType(ClustererType::HW), mPedestals(nullptr), mVectorDigits() {;}
 
     /// default destructor
     virtual ~RawClusterFinder() = default;
@@ -63,7 +63,7 @@ class RawClusterFinder : public CalibRawBase
     void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
     static void ProcessEvents(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, ClustererType clustererType=ClustererType::HW);
 
-    TClonesArray& getDigitArray() { return mArrDigits; }
+    std::vector<std::unique_ptr<Digit>>& getDigitVector() { return mVectorDigits; }
 
     /// Dummy end event
     virtual void EndEvent() final {};
@@ -71,10 +71,10 @@ class RawClusterFinder : public CalibRawBase
   private:
     ClustererType     mClustererType;
     CalPad       *mPedestals;
-    TClonesArray mArrDigits;
+    std::vector<std::unique_ptr<Digit>> mVectorDigits;
 
     /// dummy reset
-    void ResetEvent() final { mArrDigits.Clear(); }
+    void ResetEvent() final { mVectorDigits.clear(); }
 };
 
 Int_t RawClusterFinder::UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
@@ -88,8 +88,7 @@ Int_t RawClusterFinder::UpdateCRU(const CRU& cru, const Int_t row, const Int_t p
   }
 
   // ===| add new digit |=======================================================
-  const size_t nDig = mArrDigits.GetEntries();
-  new (mArrDigits[nDig]) DigitMC(cru, signal, row, pad, timeBin);
+  mVectorDigits.emplace_back(new DigitData(cru, corrSignal, row, pad, timeBin));
 
   return 1;
 }
@@ -119,7 +118,7 @@ void RawClusterFinder::ProcessEvents(TString fileInfo, TString pedestalFile, TSt
   // HW cluster finder
   std::unique_ptr<Clusterer> cl;
   if (clustererType == ClustererType::HW) {
-    HwClusterer *hwCl = new HwClusterer;
+    HwClusterer *hwCl = new HwClusterer(HwClusterer::Processing::Parallel, 0, 4, 0,false, true, true, 8, 8, 0);
     hwCl->setContinuousReadout(false);
     hwCl->setPedestalObject(pedestal);
     cl = std::unique_ptr<Clusterer>(hwCl);
@@ -142,16 +141,12 @@ void RawClusterFinder::ProcessEvents(TString fileInfo, TString pedestalFile, TSt
   bool data = true;
   while ((converter.ProcessEvent() == CalibRawBase::ProcessStatus::Ok) && (maxEvents>0)?events<maxEvents:1) {
 
-    TClonesArray &arr = converter.getDigitArray();
     printf("========| Event %4zu |========\n", converter.getNumberOfProcessedEvents());
-    printf("Converted digits: %d %f\n", arr.GetEntriesFast(), ((DigitMC*)arr.At(0))->getChargeFloat());
-    //for (Int_t i=0; i<10; ++i) {
-      //printf("%.2f ", ((DigitMC*)arr.At(i))->getChargeFloat());
-    //}
-    //printf("\n");
 
+    auto &arr = converter.getDigitVector();
+    printf("Converted digits: %zu %f\n", arr.size(), arr.at(0)->getChargeFloat());
 
-    ClusterContainer* clCont = cl->Process(&arr);
+    ClusterContainer* clCont = cl->Process(arr);
 
     clCont->FillOutputContainer(&arrCluster);
     t.Fill();
@@ -170,3 +165,9 @@ void RawClusterFinder::ProcessEvents(TString fileInfo, TString pedestalFile, TSt
 
 } // namespace o2
 #endif
+
+void RawClusterFinder(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, o2::TPC::RawClusterFinder::ClustererType clustererType=o2::TPC::RawClusterFinder::ClustererType::HW)
+{
+   using namespace o2::TPC;
+   RawClusterFinder::ProcessEvents(fileInfo, pedestalFile, outputFileName, maxEvents, clustererType);
+}
