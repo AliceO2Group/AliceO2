@@ -89,6 +89,7 @@
  */
 
 
+#include "TPCBase/CRU.h"
 #include "TPCSimulation/BoxClusterer.h"
 #include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
@@ -108,7 +109,8 @@ BoxClusterer::BoxClusterer():
   Clusterer(),
   mAllBins(nullptr),
   mAllSigBins(nullptr),
-  mAllNSigBins(nullptr)
+  mAllNSigBins(nullptr),
+  mPedestals(nullptr)
 {
 }
 
@@ -403,6 +405,11 @@ Int_t BoxClusterer::Update(const Int_t iCRU,
 
   if (mRequirePositiveCharge && (signal <= 0)){
     return 0; // signal was not accepted
+  }
+
+  // ===| get pedestal |========================================================
+  if (mPedestals) {
+    signal -= mPedestals->getValue(CRU(iCRU), iRow, iPad);
   }
 
   // Fill signal in array. Add 2 to pad and time to make sure that the 2D

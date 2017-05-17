@@ -15,6 +15,7 @@
 
 #include "Rtypes.h"
 #include "TPCSimulation/Clusterer.h"
+#include "TPCBase/CalDet.h"
 
 class TClonesArray;
 
@@ -40,6 +41,9 @@ namespace o2{
       /// @return Container with clusters
       ClusterContainer* Process(TClonesArray *digits) override;
       
+      /// Set a pedestal object
+      void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
+
     private:
       // To be done
       /* BoxClusterer(const BoxClusterer &); */
@@ -65,6 +69,7 @@ namespace o2{
       Float_t** mAllBins;      //!<! Array for digit using random access
       Int_t**   mAllSigBins;   //!<! Array of pointers to the indexes over threshold
       Int_t*    mAllNSigBins;  //!<! Array with number of signals in each row
+      CalPad*   mPedestals;    //!<! Pedestal data
       
       ClassDefNV(BoxClusterer, 1);
     };
