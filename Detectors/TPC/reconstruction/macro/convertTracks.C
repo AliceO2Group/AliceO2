@@ -30,10 +30,11 @@ struct OutputTrack
 struct EventHeader
 {
   int run;
+  float cherenkovValue;
 
 };
 
-void convertTracks(TString inputBinaryFile, TString inputClusters, TString outputFile)
+void convertTracks(TString inputBinaryFile, TString inputClusters, TString cherenkovFile, TString outputFile)
 {
 
   // ===| input chain initialisation |==========================================
@@ -53,8 +54,10 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
   //TClonesArray *arrTracksPtr = new TClonesArray("TrackTPC");
   //TClonesArray &arrTracks = *arrTracksPtr;
   EventHeader eventHeader;
+  eventHeader.run = 0;
+  eventHeader.cherenkovValue = 0;
 
-  tout.Branch("header", &eventHeader, "run/I");
+  tout.Branch("header", &eventHeader, "run/I:cherenkovValue/F");
   tout.Branch("Tracks", &arrTracks);
   
   // ===| input binary file |===================================================
@@ -64,6 +67,8 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
     printf("Error opening input file\n");
     exit(1);
   }
+  // ===| input cherenkov file |================================================
+  ifstream istr(cherenkovFile.Data());
 
   // ===| Loop over all events in the input file |==============================
   //Number of events is not stored int the file, but we just read until we reach the end of file.
@@ -81,6 +86,9 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
 
     // ---| set event information |---------------------------------------------
     eventHeader.run = 12345;
+    if (istr.is_open()) {
+      istr >> eventHeader.cherenkovValue;
+    }
 
     // ---| read cluster tree |-------------------------------------------------
     c.GetEntry(nEvents);
