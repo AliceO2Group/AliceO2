@@ -138,7 +138,7 @@ public:
   // create message payloads in the internal buffer and return list
   // of decriptors
   std::vector<BufferDesc_t> createMessages(const AliHLTComponentBlockData* blocks, unsigned count,
-                                           unsigned totalPayloadSize, const AliHLTComponentEventData& evtData,
+                                           unsigned totalPayloadSize, const AliHLTComponentEventData* evtData = nullptr,
                                            boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate=nullptr);
 
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload

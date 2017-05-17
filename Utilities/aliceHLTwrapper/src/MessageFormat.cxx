@@ -205,7 +205,7 @@ int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
 
 vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTComponentBlockData* blocks,
                                                                   unsigned count, unsigned totalPayloadSize,
-                                                                  const AliHLTComponentEventData& evtData,
+                                                                  const AliHLTComponentEventData* evtData,
                                                                   boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate)
 {
   const AliHLTComponentBlockData* pOutputBlocks = blocks;
@@ -218,7 +218,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
       uint32_t position = mDataBuffer.size();
       uint32_t offset = 0;
       uint32_t payloadSize = pWriter->GetTotalMemorySize();
-      auto msgSize=payloadSize + sizeof(evtData);
+      auto msgSize=payloadSize + (evtData != nullptr?sizeof(AliHLTComponentEventData):0);
       auto pTarget=&mDataBuffer[position];
       if (cbAllocate==nullptr) {
         // make the target in the internal buffer
@@ -230,8 +230,10 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
           throw std::bad_alloc();
         }
       }
-      memcpy(pTarget + offset, &evtData, sizeof(evtData));
-      offset+=sizeof(evtData);
+      if (evtData) {
+        memcpy(pTarget + offset, evtData, sizeof(AliHLTComponentEventData));
+        offset+=sizeof(AliHLTComponentEventData);
+      }
       pWriter->Copy(pTarget + offset, 0, 0, 0, 0);
       mpFactory->DeleteWriter(pWriter);
       offset+=payloadSize;
@@ -256,7 +258,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     uint32_t offset = 0;
     unsigned bi = 0;
     const auto* pOutputBlock = pOutputBlocks;
-    auto maxBufferSize = sizeof(evtData) + count * sizeof(AliHLTComponentBlockData) + totalPayloadSize;
+    auto maxBufferSize = sizeof(AliHLTComponentEventData) + count * sizeof(AliHLTComponentBlockData) + totalPayloadSize;
     do {
       if (bi == 0 ||
 	  mOutputMode == kOutputModeMultiPart) {
@@ -267,7 +269,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
 	//   message, regardsless of mode
 	// - concatanate mode requests one big buffer for sequential sequence of
 	//   all blocks
-	auto msgSize = (bi==0?sizeof(evtData):0); // first message has event data
+	auto msgSize = (bi==0 && evtData != nullptr?sizeof(AliHLTComponentEventData):0); // first message has event data
 	if (count>0 && mOutputMode==kOutputModeMultiPart) {
 	  msgSize+=sizeof(AliHLTComponentBlockData) + pOutputBlock->fSize;
 	} else {
@@ -295,19 +297,19 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
 	offset=0;
       }
 
-      if (bi==0) {
-	// event data only in the first message in order to avoid increase of required
-	// buffer size due to duplicated event header
-	memcpy(pTarget + offset, &evtData, sizeof(evtData));
-        if (mOutputMode == kOutputModeMultiPart && evtData.fBlockCnt>1) {
+      if (bi==0 && evtData != nullptr) {
+        // event data only in the first message in order to avoid increase of required
+        // buffer size due to duplicated event header
+        memcpy(pTarget + offset, evtData, sizeof(AliHLTComponentEventData));
+        if (mOutputMode == kOutputModeMultiPart && evtData->fBlockCnt>1) {
           // in multipart mode, there is only one block per part
           // consequently, the number of blocks indicated in the event data header
           // does not reflect the number of blocks in this data sample. But it is
           // set to 1 to make the single message consistent
           auto* pEvtData = reinterpret_cast<AliHLTComponentEventData*>(pTarget + offset);
           pEvtData->fBlockCnt=1;
-	}
-	offset+=sizeof(evtData);
+        }
+        offset+=sizeof(AliHLTComponentEventData);
       }
 
       if (bi<count) {
