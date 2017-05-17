@@ -33,18 +33,14 @@ std::mutex g_display_mutex;
 
 using namespace o2::TPC;
 
-HwClusterer::HwClusterer()
-  : HwClusterer(Processing::Parallel, 0, 360, 0, false, true, true, 8, 8, 0)
-{
-}
-
 //________________________________________________________________________
-HwClusterer::HwClusterer(Processing processingType, int globalTime, int cru, float minQDiff,
+HwClusterer::HwClusterer(Processing processingType, int globalTime, int cruMin, int cruMax, float minQDiff,
     bool assignChargeUnique, bool enableNoiseSim, bool enablePedestalSubtraction, int padsPerCF, int timebinsPerCF, int cfPerRow)
   : Clusterer()
   , mProcessingType(processingType)
   , mGlobalTime(globalTime)
-  , mCRUs(cru)
+  , mCRUMin(cruMin)
+  , mCRUMax(cruMax)
   , mMinQDiff(minQDiff)
   , mAssignChargeUnique(assignChargeUnique)
   , mEnableNoiseSim(enableNoiseSim)
@@ -84,10 +80,11 @@ void HwClusterer::Init()
    * initalize all cluster finder
    */
   mCfPerRow = (int)ceil((double)(mPadsMax+2+2)/(mPadsPerCF-2-2));
-  mClusterFinder.resize(mCRUs);
-  for (int iCRU = 0; iCRU < mCRUs; iCRU++){
-    mClusterFinder[iCRU].resize(mRowsMax);
-    for (int iRow = 0; iRow < mRowsMax; iRow++){
+  mClusterFinder.resize(mCRUMax);
+  const Mapper& mapper = Mapper::instance();
+  for (int iCRU = mCRUMin; iCRU < mCRUMax; iCRU++){
+    mClusterFinder[iCRU].resize(mapper.getNumberOfRowsPartition(iCRU));
+    for (int iRow = 0; iRow < mapper.getNumberOfRowsPartition(iCRU); iRow++){
       mClusterFinder[iCRU][iRow].resize(mCfPerRow);
       for (int iCF = 0; iCF < mCfPerRow; iCF++){
         int padOffset = iCF*(mPadsPerCF-2-2)-2;
@@ -112,7 +109,7 @@ void HwClusterer::Init()
    * vector of HwCluster vectors, one vector for each CRU (possible thread)
    * to store the clusters found there
    */
-  mClusterStorage.resize(mCRUs);
+  mClusterStorage.resize(mCRUMax);
 
 
   /* 
@@ -120,9 +117,9 @@ void HwClusterer::Init()
    * store there only those digits which are relevant for this particular 
    * CRU (thread)
    */
-  mDigitContainer.resize(mCRUs);
-  for (std::vector<std::vector<Digit*>>& dc : mDigitContainer ) dc.resize(mRowsMax);
-  
+  mDigitContainer.resize(mCRUMax);
+  for (int iCRU = mCRUMin; iCRU < mCRUMax; iCRU++)
+    mDigitContainer[iCRU].resize(mapper.getNumberOfRowsPartition(iCRU));
 
   mClusterContainer = new ClusterContainer();
   mClusterContainer->InitArray("o2::TPC::HwCluster");
@@ -375,10 +372,11 @@ ClusterContainer* HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
    * one and the current one.
    */
 
-  for (int iCRU = 0; iCRU < mCRUs; ++iCRU) {
+  const Mapper& mapper = Mapper::instance();
+  for (int iCRU = mCRUMin; iCRU < mCRUMax; ++iCRU) {
     struct CfConfig cfConfig = {
       iCRU,
-      mRowsMax,
+      mapper.getNumberOfRowsPartition(iCRU),
       mPadsMax+2+2,
       iTimeBinMin,
       iTimeBinMax,
