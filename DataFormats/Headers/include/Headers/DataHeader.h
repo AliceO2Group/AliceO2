@@ -131,19 +131,19 @@ struct ArraySize<0, T> {
 /// select uint type depending on size, default is uint64_t
 template <int N>
 struct TraitsIntType {
-  typedef uint64_t Type;
+  using Type = uint64_t;
 };
 template <>
 struct TraitsIntType<1> {
-  typedef uint8_t Type;
+  using Type = uint8_t;
 };
 template <>
 struct TraitsIntType<2> {
-  typedef uint16_t Type;
+  using Type = uint16_t;
 };
 template <>
 struct TraitsIntType<4> {
-  typedef uint32_t Type;
+  using Type = uint32_t;
 };
 
 struct defaultPrinter {
@@ -220,7 +220,7 @@ struct Descriptor {
   static int const size = N;
   static int const bitcount = size*8;
   static int const arraySize = 1; //Internal::ArraySize<size, uint64_t>::value;
-  typedef typename Internal::TraitsIntType<N>::Type ItgType;
+  using ItgType = typename Internal::TraitsIntType<N>::Type;
 
   union {
     char     str[N];
@@ -278,8 +278,8 @@ const uint32_t gInvalidToken32 = 0xFFFFFFFF;
 /// default int representation of 'invalid' token for 8-byte char field
 const uint64_t gInvalidToken64 = 0xFFFFFFFFFFFFFFFF;
 
-typedef Descriptor<gSizeHeaderDescriptionString> HeaderType;
-typedef Descriptor<gSizeSerializationMethodString> SerializationMethod;
+using HeaderType = Descriptor<gSizeHeaderDescriptionString>;
+using SerializationMethod = Descriptor<gSizeSerializationMethodString>;
 
 //possible serialization types
 extern const o2::Header::SerializationMethod gSerializationMethodAny;
@@ -596,7 +596,7 @@ struct DataDescription {
 struct printDataOrigin {
   void operator()(const char* str) const;
 };
-typedef Descriptor<gSizeDataOriginString, printDataOrigin> DataOrigin;
+using DataOrigin = Descriptor<gSizeDataOriginString, printDataOrigin>;
 
 //__________________________________________________________________________________________________
 /// @struct DataHeader
@@ -613,7 +613,7 @@ typedef Descriptor<gSizeDataOriginString, printDataOrigin> DataOrigin;
 struct DataHeader : public BaseHeader
 {
   // allows DataHeader::SubSpecificationType to be used as generic type in the code
-  typedef uint64_t SubSpecificationType;
+  using SubSpecificationType = uint64_t;
 
   //static data for this header type/version
   static const uint32_t sVersion;
