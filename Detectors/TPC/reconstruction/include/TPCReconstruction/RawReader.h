@@ -80,8 +80,13 @@ class RawReader {
     ~RawReader() = default;
 
     /// Reads (and decodes) the next event
-    /// @return Indicator of success
-    bool loadNextEvent() { return (mLastEvent==-1) ? loadEvent(getFirstEvent()) : loadEvent(mLastEvent+1); };
+    /// @return loaded event number
+    int loadNextEvent();
+
+    /// Reads (and decodes) the previous event
+    /// @return loaded event number
+    int loadPreviousEvent();
+
 
     /// Reads (and decodes) given event
     /// @param event Event number to read
@@ -134,6 +139,7 @@ class RawReader {
 
     int getRegion() const { return mRegion; }
     int getLink() const { return mLink; }
+    int getEventNumber() const { return mLastEvent; }
   private:
 
     int mRegion;                        ///< Region of the data
@@ -163,6 +169,36 @@ std::shared_ptr<std::vector<uint16_t>> RawReader::getNextData(PadPos& padPos) {
   mDataIterator++;
   padPos = last->first;
   return last->second; 
+};
+
+inline
+int RawReader::loadNextEvent() { 
+  if (mLastEvent == -1) {
+    loadEvent(getFirstEvent());
+    return getFirstEvent();
+  } else {
+    loadEvent(mLastEvent+1);
+    return mLastEvent+1;
+  }
+};
+
+inline
+int RawReader::loadPreviousEvent() { 
+  if (mLastEvent == -1) {
+    loadEvent(getFirstEvent());
+    loadEvent(getLastEvent());
+    return getLastEvent();
+  } else if (mLastEvent <= getFirstEvent()+1) {
+
+    mSyncPos.fill(-1);
+    mTimestampOfFirstData.fill(0);
+
+    loadEvent(getFirstEvent());
+    return getFirstEvent();
+  } else {
+    loadEvent(mLastEvent-1);
+    return mLastEvent-1;
+  }
 };
 
 }
