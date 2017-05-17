@@ -39,8 +39,8 @@ eval $cmd
 mv output.bin $outdir
 
 # ===| convert to tracks |======================================================
-cd $outdir
-cmd="root.exe -b -q -l -n -x ${addInclude} ${trackConversion}'+g(\"output.bin\",\"${clusterInputfile}\",\"${outputTrackFile}\")'"
+#cd $outdir
+cmd="root.exe -b -q -l -n -x ${addInclude} ${trackConversion}'+g(\"${outdir}/output.bin\",\"${clusterInputfile}\",\"${outputTrackFile}\")'"
 echo $cmd
 eval $cmd
 
