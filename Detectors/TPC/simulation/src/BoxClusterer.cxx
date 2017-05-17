@@ -196,6 +196,49 @@ ClusterContainer* BoxClusterer::Process(TClonesArray *digits)
   return mClusterContainer;
 }
 
+//________________________________________________________________________
+ClusterContainer* BoxClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits)
+{
+  R__ASSERT(mClusterContainer);
+  mClusterContainer->Reset();
+
+  Int_t nSignals = 0;
+  Int_t lastCRU = -1;
+  Int_t iCRU    = -1;
+
+  for (auto& digit_ptr : digits) {
+    Digit* digit = digit_ptr.get();
+
+                  iCRU     = digit->getCRU();
+      const Int_t iRow     = digit->getRow();
+      const Int_t iPad     = digit->getPad();
+      const Int_t iTimeBin = digit->getTimeStamp();
+      const Float_t charge = digit->getCharge();
+//      if (iCRU == 179) {
+//        printf("box: digi: %d, %d, %d, %d, %.2f\n", iCRU, iRow, iPad, iTimeBin, charge);
+//      }
+      if(iCRU != lastCRU) {
+        if(nSignals>0) {
+          FindLocalMaxima(lastCRU);
+          CleanArrays();
+        }
+        lastCRU = iCRU;
+        nSignals = 0;
+      } //else { // add signal to array
+      Update(iCRU, iRow, iPad, iTimeBin, charge);
+      ++nSignals;
+      //}
+    }
+
+    // processing of last CRU
+    if(nSignals>0) {
+      FindLocalMaxima(iCRU);
+      CleanArrays();
+    }
+
+  return mClusterContainer;
+}
+
 //_____________________________________________________________________
 void BoxClusterer::FindLocalMaxima(const Int_t iCRU)
 {

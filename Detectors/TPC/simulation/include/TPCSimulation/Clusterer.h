@@ -14,6 +14,9 @@
 #ifndef ALICEO2_TPC_Clusterer_H_
 #define ALICEO2_TPC_Clusterer_H_
 
+#include <vector>
+#include <memory>
+
 #include "TPCSimulation/ClusterContainer.h"
 
 class TClonesArray;
@@ -21,6 +24,8 @@ class TClonesArray;
 namespace o2{
 namespace TPC {
     
+class Digit;
+
 /// \class Clusterer
 /// \brief Base Class fot TPC clusterer
 class Clusterer {
@@ -49,6 +54,7 @@ class Clusterer {
     /// \param digits Container with TPC digits
     /// \return Container with clusters
     virtual ClusterContainer* Process(TClonesArray *digits) = 0;
+    virtual ClusterContainer* Process(std::vector<std::unique_ptr<Digit>>& digits) = 0;
 
     void setRowsMax(int val)                    { mRowsMax = val; };
     void setPadsMax(int val)                    { mPadsMax = val; };

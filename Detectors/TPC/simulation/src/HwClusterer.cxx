@@ -14,8 +14,8 @@
 #include "TPCSimulation/HwCluster.h"
 #include "TPCSimulation/HwClusterer.h"
 #include "TPCSimulation/HwClusterFinder.h"
-#include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
+#include "TPCBase/Digit.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/PadSecPos.h"
@@ -121,7 +121,7 @@ void HwClusterer::Init()
    * CRU (thread)
    */
   mDigitContainer.resize(mCRUs);
-  for (std::vector<std::vector<DigitMC*>>& dc : mDigitContainer ) dc.resize(mRowsMax);
+  for (std::vector<std::vector<Digit*>>& dc : mDigitContainer ) dc.resize(mRowsMax);
   
 
   mClusterContainer = new ClusterContainer();
@@ -130,7 +130,7 @@ void HwClusterer::Init()
 
 //________________________________________________________________________
 void HwClusterer::processDigits(
-    const std::vector<std::vector<DigitMC*>>& digits,
+    const std::vector<std::vector<Digit*>>& digits,
     const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
           std::vector<HwCluster>& cluster,
     const CfConfig config)
@@ -176,7 +176,7 @@ void HwClusterer::processDigits(
     /*
      * fill in digits
      */
-    for (std::vector<DigitMC*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
+    for (std::vector<Digit*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
       const Int_t iTime         = (*it)->getTimeStamp();
       const Int_t iPad          = (*it)->getPad() + 2;  // offset to have 2 empty pads on the "left side"
       const Float_t charge      = (*it)->getChargeFloat();
@@ -261,7 +261,7 @@ void HwClusterer::processDigits(
 //    /* 
 //     * remove digits again from storage
 //     */
-//    for (std::vector<DigitMC*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
+//    for (std::vector<Digit*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
 //      const Int_t iTime       = (*it)->getTimeStamp();
 //      const Int_t iPad        = (*it)->getPad() + 2;  // offset to have 2 empty pads on the "left side"
 //  
@@ -284,8 +284,8 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
    * clear old storages
    */
   for (std::vector<HwCluster>& cs : mClusterStorage) cs.clear();
-  for (std::vector<std::vector<DigitMC*>>& dc : mDigitContainer ) {
-              for (std::vector<DigitMC*>& dcc : dc) dcc.clear();
+  for (std::vector<std::vector<Digit*>>& dc : mDigitContainer ) {
+              for (std::vector<Digit*>& dcc : dc) dcc.clear();
   }
 
 //  int iCRU;
@@ -301,7 +301,7 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
    * Loop over digits
    */
   for (TIter digititer = TIter(digits).Begin(); digititer != TIter::End(); ++digititer) {
-    DigitMC* digit = dynamic_cast<DigitMC*>(*digititer);
+    Digit* digit = dynamic_cast<Digit*>(*digititer);
     /*
      * add current digit to storage
      */
@@ -319,6 +319,47 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
     mDigitContainer[digit->getCRU()][digit->getRow()].push_back(digit);
   }
 
+  return ProcessTimeBins(iTimeBinMin, iTimeBinMax);
+}
+
+//________________________________________________________________________
+ClusterContainer* HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits)
+{
+  mClusterContainer->Reset();
+
+
+  /*  
+   * clear old storages
+   */
+  for (std::vector<HwCluster>& cs : mClusterStorage) cs.clear();
+  for (std::vector<std::vector<Digit*>>& dc : mDigitContainer ) {
+              for (std::vector<Digit*>& dcc : dc) dcc.clear();
+  }
+
+  int iTimeBin;
+  int iTimeBinMin = (mIsContinuousReadout)?mLastTimebin + 1 : 0;
+  int iTimeBinMax = mLastTimebin;
+
+  /*  
+   * Loop over digits
+   */
+  for (auto& digit_ptr : digits) {
+    Digit* digit = digit_ptr.get();
+    /*
+     * add current digit to storage
+     */
+
+    iTimeBin = digit->getTimeStamp();
+    if (iTimeBin < iTimeBinMin) continue;
+    iTimeBinMax = std::max(iTimeBinMax,iTimeBin);
+    mDigitContainer[digit->getCRU()][digit->getRow()].push_back(digit);
+  }
+
+  return ProcessTimeBins(iTimeBinMin, iTimeBinMax);
+}
+
+ClusterContainer* HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
+{
 
    /*
    * vector to store all threads for parallel processing

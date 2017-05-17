@@ -13,6 +13,9 @@
 #ifndef ALICEO2_TPC_BoxClusterer_H_
 #define ALICEO2_TPC_BoxClusterer_H_
 
+#include <vector>
+#include <memory>
+
 #include "Rtypes.h"
 #include "TPCSimulation/Clusterer.h"
 #include "TPCBase/CalDet.h"
@@ -40,6 +43,7 @@ namespace o2{
       /// @param digits Container with TPC digits
       /// @return Container with clusters
       ClusterContainer* Process(TClonesArray *digits) override;
+      ClusterContainer* Process(std::vector<std::unique_ptr<Digit>>& digits) override;
       
       /// Set a pedestal object
       void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
