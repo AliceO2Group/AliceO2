@@ -1,0 +1,16 @@
+.\" Manpage for O2.
+.TH man 1 "19 May 2017" "1.0" "Alice O2 man page"
+
+.SH NAME
+
+O2 is Alice next generation software framework to be used for RUN3.
+
+.SH DEVICES
+
+AliceHLTWrapperDevice(1)
+
+.SH TOOLS
+
+.SH BUGS
+
+No bugs whatsoever
