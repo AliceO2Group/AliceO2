@@ -192,20 +192,13 @@ int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
   if (reader->ReadNextEvent() == 0) {
     nofBlocks = reader->GetBlockCnt();
     for (unsigned i = 0; i < nofBlocks; i++) {
-      AliHLTComponentBlockData block;
-      memset(&block, 0, sizeof(AliHLTComponentBlockData));
-      block.fStructSize = sizeof(AliHLTComponentBlockData);
-      block.fDataType.fStructSize = sizeof(AliHLTComponentDataType);
+      descriptorList.emplace_back(const_cast<void*>(reader->GetBlockData(i)), reader->GetBlockDataLength(i), kAliHLTVoidDataType, reader->GetBlockDataSpec(i));
       homer_uint64 id = byteSwap64(reader->GetBlockDataType(i));
       homer_uint32 origin = byteSwap32(reader->GetBlockDataOrigin(i));
-      memcpy(&block.fDataType.fID, &id,
+      memcpy(&descriptorList.back().fDataType.fID, &id,
              sizeof(id) > kAliHLTComponentDataTypefIDsize ? kAliHLTComponentDataTypefIDsize : sizeof(id));
-      memcpy(&block.fDataType.fOrigin, &origin, 
+      memcpy(&descriptorList.back().fDataType.fOrigin, &origin, 
              sizeof(origin) > kAliHLTComponentDataTypefOriginSize ? kAliHLTComponentDataTypefOriginSize : sizeof(origin));
-      block.fSpecification = reader->GetBlockDataSpec(i);
-      block.fPtr = const_cast<void*>(reader->GetBlockData(i));
-      block.fSize = reader->GetBlockDataLength(i);
-      descriptorList.push_back(block);
     }
   }
 
@@ -443,7 +436,7 @@ int MessageFormat::insertEvtData(const AliHLTComponentEventData& evtData)
 {
   // insert event header to list, sort by time, oldest first
   if (mListEvtData.size()==0) {
-    mListEvtData.push_back(evtData);
+    mListEvtData.emplace_back(evtData);
   } else {
     auto it=mListEvtData.begin();
     for (; it!=mListEvtData.end(); it++) {

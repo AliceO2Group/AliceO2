@@ -112,7 +112,7 @@ void WrapperDevice::InitTask()
           assert(semantic->max_tokens() && semantic->min_tokens());
           if (semantic->min_tokens() > 0 ) {
             // add the token
-            argstrings.push_back(varit.second.as<std::string>());
+            argstrings.emplace_back(varit.second.as<std::string>());
           }
         }
       }
@@ -127,10 +127,10 @@ void WrapperDevice::InitTask()
   string id="";
   id=GetProperty(FairMQDevice::Id, id);
   vector<char*> argv;
-  argv.push_back(&idkey[0]);
-  argv.push_back(&id[0]);
+  argv.emplace_back(&idkey[0]);
+  argv.emplace_back(&id[0]);
   for (auto& argstringiter : argstrings) {
-    argv.push_back(&argstringiter[0]);
+    argv.emplace_back(&argstringiter[0]);
   }
 
   if ((iResult=component->init(argv.size(), &argv[0]))<0) {
@@ -286,7 +286,7 @@ void WrapperDevice::Run()
               }
               uint8_t* pTarget = reinterpret_cast<uint8_t*>(msg->GetData());
               memcpy(pTarget, opayload.mP, opayload.mSize);
-              mMessages.push_back(move(msg));
+              mMessages.emplace_back(move(msg));
             } else {
               if (errorCount == maxError && errorCount++ > 0)
                 LOG(ERROR) << "persistent error, suppressing further output";
@@ -341,6 +341,6 @@ unsigned char* WrapperDevice::createMessageBuffer(unsigned size)
   if (mVerbosity > 2) {
     LOG(DEBUG) << "allocating message of size " << size;
   }
-  mMessages.push_back(move(msg));
+  mMessages.emplace_back(move(msg));
   return reinterpret_cast<uint8_t*>(mMessages.back()->GetData());
 }

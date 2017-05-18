@@ -165,11 +165,11 @@ int Component::init(int argc, char** argv)
   if (parameterLength > 0 && parameterBuffer.get() != nullptr) {
     strcpy(parameterBuffer.get(), componentParameter.c_str());
     char* iterator = parameterBuffer.get();
-    parameters.push_back(iterator);
+    parameters.emplace_back(iterator);
     for (; *iterator != 0; iterator++) {
       if (*iterator != ' ') continue;
       *iterator = 0; // separate strings
-      if (*(iterator + 1) != ' ' && *(iterator + 1) != 0) parameters.push_back(iterator + 1);
+      if (*(iterator + 1) != ' ' && *(iterator + 1) != 0) parameters.emplace_back(iterator + 1);
     }
   }
 
@@ -235,13 +235,10 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   }
 
   // add event type data block
-  AliHLTComponentBlockData eventTypeBlock;
-  memset(&eventTypeBlock, 0, sizeof(eventTypeBlock));
-  eventTypeBlock.fStructSize = sizeof(eventTypeBlock);
-  // Note: no payload!
-  eventTypeBlock.fDataType = AliHLTComponentDataTypeInitializer("EVENTTYP", "PRIV");
-  eventTypeBlock.fSpecification = gkAliEventTypeData;
-  inputBlocks.push_back(eventTypeBlock);
+  // this data block describes the type of the event, set it
+  // to 'data' by using specification gkAliEventTypeData
+  const AliHLTComponentDataType kDataTypeEvent = AliHLTComponentDataTypeInitializer("EVENTTYP", "PRIV");
+  inputBlocks.emplace_back(nullptr, 0, kDataTypeEvent, gkAliEventTypeData);
 
   // process
   evtData.fBlockCnt = inputBlocks.size();
@@ -308,7 +305,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
     AliHLTComponentBlockData* pFiltered = pOutputBlocks;
     for (unsigned blockIndex = 0; blockIndex < outputBlockCnt; blockIndex++, pOutputBlock++) {
       // filter special data blocks
-      if (pOutputBlock->fDataType == eventTypeBlock.fDataType) continue;
+      if (pOutputBlock->fDataType == kDataTypeEvent) continue;
 
       // block descriptors without any attached payload are propagated
       bool bValid = pOutputBlock->fSize == 0;
