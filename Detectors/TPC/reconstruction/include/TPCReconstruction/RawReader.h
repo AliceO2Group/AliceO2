@@ -40,7 +40,7 @@ class RawReader {
 
       /// Get reserved data field
       /// @return corrected data field
-      uint64_t reserved() { return (reserved_2_w << 32) | (reserved_2_w >> 32);}
+      uint64_t reserved_2() { return (reserved_2_w << 32) | (reserved_2_w >> 32);}
 
       /// Default constructor
       Header() {};

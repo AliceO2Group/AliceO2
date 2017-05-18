@@ -100,6 +100,9 @@ bool RawReader::addInputFile(int region, int link, std::string path){
 
   while (pos < length) {
     file.read((char*)&h, sizeof(h));
+    if (h.reserved_01 != 0x0F || h.reserved_2() != 0x3fec2fec1fec0fec) {
+      LOG(ERROR) << "Header does not look consistent" << FairLogger::endl;
+    }
     eventData eD;
     eD.path = path;
     eD.posInFile =  file.tellg();
@@ -127,7 +130,7 @@ bool RawReader::addInputFile(int region, int link, std::string path){
       file.seekg(pos+(h.nWords*4));
       pos = file.tellg();
     } else {
-      LOG(ERROR) << "Header version " << h.headerVersion << " not implemented." << FairLogger::endl;
+      LOG(ERROR) << "Header version " << (int)h.headerVersion << " not implemented." << FairLogger::endl;
       return false;
     }
   }
