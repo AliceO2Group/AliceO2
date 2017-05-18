@@ -174,30 +174,53 @@ std::shared_ptr<std::vector<uint16_t>> RawReader::getNextData(PadPos& padPos) {
 inline
 int RawReader::loadNextEvent() { 
   if (mLastEvent == -1) {
-    loadEvent(getFirstEvent());
-    return getFirstEvent();
-  } else {
-    loadEvent(mLastEvent+1);
-    return mLastEvent+1;
-  }
-};
-
-inline
-int RawReader::loadPreviousEvent() { 
-  if (mLastEvent == -1) {
-    loadEvent(getFirstEvent());
-    loadEvent(getLastEvent());
-    return getLastEvent();
-  } else if (mLastEvent <= getFirstEvent()+1) {
 
     mSyncPos.fill(-1);
     mTimestampOfFirstData.fill(0);
 
     loadEvent(getFirstEvent());
     return getFirstEvent();
+
+  } else if ( mLastEvent == getLastEvent() ) {
+
+    mSyncPos.fill(-1);
+    mTimestampOfFirstData.fill(0);
+
+    loadEvent(getFirstEvent());
+    return getFirstEvent();
+
   } else {
-    loadEvent(mLastEvent-1);
-    return mLastEvent-1;
+
+    int event = mLastEvent + 1;
+    loadEvent(event);
+    return event;
+  }
+};
+
+inline
+int RawReader::loadPreviousEvent() { 
+  if (mLastEvent <= getFirstEvent()) {
+
+    mSyncPos.fill(-1);
+    mTimestampOfFirstData.fill(0);
+
+    loadEvent(getFirstEvent());
+    loadEvent(getLastEvent());
+    return getLastEvent();
+
+  } else if (mLastEvent == getFirstEvent()+1) {
+
+    mSyncPos.fill(-1);
+    mTimestampOfFirstData.fill(0);
+
+    loadEvent(getFirstEvent());
+    return getFirstEvent();
+
+  } else {
+
+    int event = mLastEvent - 1;
+    loadEvent(event);
+    return event;
   }
 };
 
