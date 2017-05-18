@@ -10,6 +10,7 @@
 #endif
 
 #include "TPCBase/Digit.h"
+#include "TPCSimulation/DigitPad.h"
 
 #include "FairTimeStamp.h"
 
@@ -22,19 +23,38 @@ class access;
 namespace o2 {
 namespace TPC {
 
+#ifdef TPC_DIGIT_USEFAIRLINKS
+  using DigitBase = FairTimeStamp;
+#else
+  // A minimal (temporary) TimeStamp class, introduced here for
+  // reducing memory consumption to a minimum.
+  // This can be used only when MCtruth is not done using FairLinks.
+  class TimeStamp : public TObject {
+  public:
+    TimeStamp() {}
+    TimeStamp(int time) {
+      // we use the TObjectID for the time
+      SetUniqueID(time);
+    }
+    int GetTimeStamp() const { return TObject::GetUniqueID(); }
+    ClassDef(TimeStamp, 1);
+  };
+  using DigitBase = TimeStamp;
+#endif
+
 /// \class DigitMC
 /// This is the definition of the Monte Carlo Digit object, which is the final entity after Digitization
 /// Its coordinates are defined by the CRU, the time bin, the pad row and the pad.
 /// It holds the ADC value of a given pad on the pad plane.
 /// Additional information attached to it are the MC label of the contributing tracks
 
-
-class DigitMC : public FairTimeStamp, public Digit {
+class DigitMC : public DigitBase, public Digit {
   public:
 
     /// Default constructor
     DigitMC();
 
+#ifdef TPC_DIGIT_USEFAIRLINKS
     /// Constructor, initializing values for position, charge, time and common mode
     /// \param MClabel std::vector containing the MC event and track ID encoded in a long int
     /// \param cru CRU of the DigitMC
@@ -44,13 +64,24 @@ class DigitMC : public FairTimeStamp, public Digit {
     /// \param time Time at which the DigitMC was created
     /// \param commonMode Common mode signal on that ROC in the time bin of the DigitMC. If not assigned, it is set to zero.
     DigitMC(int cru, float charge, int row, int pad, int time, float commonMode = 0.f);
+#else
+    /// Constructor, initializing values for position, charge, time and common mode
+    /// \param MClabel std::vector containing the MC event and track ID encoded in a long int
+    /// \param cru CRU of the DigitMC
+    /// \param charge Accumulated charge of DigitMC
+    /// \param row Row in which the DigitMC was created
+    /// \param pad Pad in which the DigitMC was created
+    /// \param time Time at which the DigitMC was created
+    /// \param commonMode Common mode signal on that ROC in the time bin of the DigitMC. If not assigned, it is set to zero.
+    DigitMC(std::vector<long> const &MClabel, int cru, float charge, int row, int pad, int time, float commonMode = 0.f);
+#endif
 
     /// Destructor
     ~DigitMC() override = default;
 
     /// Get the timeBin of the DigitMC
     /// \return timeBin of the DigitMC
-    int getTimeStamp() const final { return static_cast<int>(FairTimeStamp::GetTimeStamp()); };
+    int getTimeStamp() const final { return static_cast<int>(DigitBase::GetTimeStamp()); };
 
     /// Get the common mode signal of the DigitMC
     /// \return common mode signal of the DigitMC
@@ -60,7 +91,9 @@ class DigitMC : public FairTimeStamp, public Digit {
     #ifndef __CINT__
     friend class boost::serialization::access;
     #endif
-    
+#ifndef TPC_DIGIT_USEFAIRLINKS
+    std::vector<long>       mMClabel;         ///< MC truth information to (multiple) event ID and track ID encoded in a long
+#endif
     float                   mCommonMode;      ///< Common mode value of the DigitMC
       
   ClassDefOverride(DigitMC, 3);
@@ -68,17 +101,30 @@ class DigitMC : public FairTimeStamp, public Digit {
 
 inline
 DigitMC::DigitMC()
-  : FairTimeStamp()
+  : DigitBase()
   , Digit(-1, -1.f, -1, -1)
   , mCommonMode(0.f)
-{}
+#ifndef TPC_DIGIT_USEFAIRLINKS
+  , mMClabel()
+#endif
+  {}
 
+#ifdef TPC_DIGIT_USEFAIRLINKS
 inline
 DigitMC::DigitMC(int cru, float charge, int row, int pad, int time, float commonMode)
-  : FairTimeStamp(time)
+  : DigitBase(time)
   , Digit(cru, charge, row, pad)
   , mCommonMode(commonMode)
 {}
+#else
+inline
+DigitMC::DigitMC(std::vector<long> const &MClabel, int cru, float charge, int row, int pad, int time, float commonMode)
+  : DigitBase(time)
+  , Digit(cru, charge, row, pad)
+  , mMClabel(MClabel)
+  , mCommonMode(commonMode)
+{}
+#endif
 
 }
 }
