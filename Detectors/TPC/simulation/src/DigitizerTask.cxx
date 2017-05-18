@@ -91,6 +91,7 @@ InitStatus DigitizerTask::Init()
   
   // Register output container
   mDigitsArray = new TClonesArray("o2::TPC::DigitMC");
+  mDigitsArray->BypassStreamer(true);
   mgr->Register("TPCDigitMC", "TPC", mDigitsArray, kTRUE);
   
   mDigitizer->init();
@@ -115,6 +116,7 @@ void DigitizerTask::Exec(Option_t *option)
   if (mHitSector == -1){
     // treat all sectors
     for (int s=0; s<18; ++s){
+      LOG(DEBUG) << "Processing sector " << s << "\n";
       mDigitContainer = mDigitizer->Process(mSectorHitsArray[s]);
     }
   }

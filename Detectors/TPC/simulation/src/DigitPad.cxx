@@ -21,12 +21,36 @@ void DigitPad::fillOutputContainer(TClonesArray *output, int cru, int timeBin, i
 
   const float mADC = SAMPAProcessing::makeSignal(totalADC, PadSecPos(CRU(cru).sector(), PadPos(row, pad)));
   if(mADC > 0) {
+
+#ifndef TPC_DIGIT_USEFAIRLINKS
+    static std::vector<long> MClabels;
+    MClabels.resize(0);
+    DigitPad::processMClabels(MClabels);
+#endif
+
     TClonesArray &clref = *output;
     const size_t digiPos = clref.GetEntriesFast();
-    DigitMC *digit = new(clref[digiPos]) DigitMC(cru, mADC, row, pad, timeBin, commonMode);
+    DigitMC *digit = new(clref[digiPos]) DigitMC(
+#ifndef TPC_DIGIT_USEFAIRLINKS
+						 MClabels,
+#endif
+						 cru, mADC, row, pad, timeBin, commonMode);
 #ifdef TPC_DIGIT_USEFAIRLINKS
     digit->SetLinks(getMCLinks());
 #endif
   }
 }
 
+#ifndef TPC_DIGIT_USEFAIRLINKS
+void DigitPad::processMClabels(std::vector<long> &sortedMCLabels) const
+{
+  /// Dump the map into a vector of pairs
+  std::vector<std::pair<long, int> > pairMClabels(mMCID.begin(), mMCID.end());
+  /// Sort by the number of occurrences
+  std::sort(pairMClabels.begin(), pairMClabels.end(), boost::bind(&std::pair<long, int>::second, _1) < boost::bind(&std::pair<long, int>::second, _2));
+  // iterate backwards over the vector and hence write MC with largest number of occurrences as first into the sortedMClabels vector
+  for(auto &aMCIDreversed : boost::adaptors::reverse(pairMClabels)) {
+    sortedMCLabels.emplace_back(aMCIDreversed.first);
+  }
+}
+#endif
