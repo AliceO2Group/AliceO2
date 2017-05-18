@@ -140,10 +140,14 @@ class RawReader {
     int getRegion() const { return mRegion; }
     int getLink() const { return mLink; }
     int getEventNumber() const { return mLastEvent; }
+
+    void setUseRawInMode3(bool val) { mUseRawInMode3 = val; };
+
   private:
 
     int mRegion;                        ///< Region of the data
     int mLink;                          ///< FEC of the data
+    bool mUseRawInMode3;                ///< in readout mode 3 decode GBT frames
     int64_t mLastEvent;                 ///< Number of last loaded event
     std::array<uint64_t,5> mTimestampOfFirstData;   ///< Time stamp of first decoded ADC value, individually for each half sampa
     std::map<uint64_t, std::shared_ptr<std::vector<eventData>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data

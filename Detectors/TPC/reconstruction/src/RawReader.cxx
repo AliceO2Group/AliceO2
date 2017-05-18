@@ -19,6 +19,7 @@ RawReader::RawReader(int region, int link)
   : mRegion(region)
   , mLink(link)
   , mLastEvent(-1)
+  , mUseRawInMode3(true)
   , mTimestampOfFirstData({0,0,0,0,0})
   , mEvents()
   , mData()
@@ -352,36 +353,155 @@ bool RawReader::loadEvent(int64_t event) {
         }
       case 3: // both, RAW GBT frames and decoded data
         {
-          LOG(DEBUG) << "Data of readout mode 3 (using decoded data)" << FairLogger::endl;
-          std::array<uint32_t,5> ids;
-          std::array<bool,5> writeValue;
-          writeValue.fill(false);
-          std::array<std::array<uint16_t,16>,5> adcValues;
+          if (mUseRawInMode3) {
+            LOG(DEBUG) << "Data of readout mode 3 (decoding RAW GBT frames)" << FairLogger::endl;
+            std::array<SyncPatternMonitor,5> syncMon{
+              SyncPatternMonitor(0,0),
+                SyncPatternMonitor(0,1),
+                SyncPatternMonitor(1,0),
+                SyncPatternMonitor(1,1),
+                SyncPatternMonitor(2,0)};
+            std::array<short,5> lastSyncPos;
+            std::array<std::queue<uint16_t>,5> adcValues;
+            GBTFrame frame; 
+            GBTFrame lastFrame; 
 
-          for (int i=0; i<nWords; i=i+8) {
-            ids[4] = (words[i+4] >> 4) & 0xF;
-            ids[3] = (words[i+4] >> 8) & 0xF;
-            ids[2] = (words[i+4] >> 12) & 0xF;
-            ids[1] = (words[i+4] >> 16) & 0xF;
-            ids[0] = (words[i+4] >> 20) & 0xF;
+            for (int i=0; i<nWords; i=i+8) {
 
-            adcValues[4][((ids[4] & 0x7)*2)+1] = ((ids[4]>>3)&0x1 == 0) ? 0 : words[i+7] & 0x3FF;
-            adcValues[4][((ids[4] & 0x7)*2)  ] = ((ids[4]>>3)&0x1 == 0) ? 0 : (words[i+7] >> 10) & 0x3FF;
-            adcValues[3][((ids[3] & 0x7)*2)+1] = ((ids[3]>>3)&0x1 == 0) ? 0 : (words[i+7] >> 20) & 0x3FF;
-            adcValues[3][((ids[3] & 0x7)*2)  ] = ((ids[3]>>3)&0x1 == 0) ? 0 : ((words[i+6] & 0xFF) << 2) | ((words[i+7] >> 30) & 0x3);
-            adcValues[2][((ids[2] & 0x7)*2)+1] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[i+6] >> 8) & 0x3FF;
-            adcValues[2][((ids[2] & 0x7)*2)  ] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[i+6] >> 18) & 0x3FF;
-            adcValues[1][((ids[1] & 0x7)*2)+1] = ((ids[1]>>3)&0x1 == 0) ? 0 : ((words[i+5] & 0x3F) << 4) | ((words[i+6] >> 28) & 0xF);
-            adcValues[1][((ids[1] & 0x7)*2)  ] = ((ids[1]>>3)&0x1 == 0) ? 0 : (words[i+5] >> 6) & 0x3FF;
-            adcValues[0][((ids[0] & 0x7)*2)+1] = ((ids[0]>>3)&0x1 == 0) ? 0 : (words[i+5] >> 16) & 0x3FF;
-            adcValues[0][((ids[0] & 0x7)*2)  ] = ((ids[0]>>3)&0x1 == 0) ? 0 : ((words[i+4] & 0xF) << 6) | ((words[i+5] >> 26) & 0x3F);
+              for (char j=0; j<5; ++j) {
+                if ((mTimestampOfFirstData[j] != 0) && 
+                    ((mTimestampOfFirstData[j] & 0x7) == ((data.headerInfo.timeStamp() + 1 + i/4) & 0x7))) {
+                  if (adcValues[j].size() < 16) {
+                    std::queue<uint16_t> empty;
+                    std::swap(adcValues[j], empty);
+                    continue;
+                  }
+                  for (int k=0; k<16; ++k) {
+                    const PadPos padPos = mapper.padPosRegion(
+                        data.region, data.link,sampas[j],k+sampaChannelStart[j]);
+                    auto it = mData.find(padPos);
+                    if (it != mData.end()) {
+                      it->second->push_back(adcValues[j].front());
+                    } else {
+                      //mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j].front()}));
+                      mData.insert(std::make_pair(padPos,std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>{adcValues[j].front()})));
+                    }
+                    adcValues[j].pop();
+                  }
+                }
+              }
 
-            for (char j=0; j<5; ++j) {
-              if (ids[j] == 0x8) {
-                writeValue[j] = true;
-                // header TS is one before first word -> +1
-                if (mTimestampOfFirstData[j] == 0) mTimestampOfFirstData[j] = data.headerInfo.timeStamp() + 1 + i/8;
-//                  std::cout << data.headerInfo.timeStamp() << " " << i/4 << " " << mTimestampOfFirstData[j] << std::endl;}
+              lastSyncPos = mSyncPos;
+              lastFrame = frame;
+              frame.setData(words[i],words[i+1],words[i+2],words[i+3]);
+
+              if (syncMon[0].addSequence(
+                    frame.getHalfWord(0,0,0),
+                    frame.getHalfWord(0,1,0),
+                    frame.getHalfWord(0,2,0),
+                    frame.getHalfWord(0,3,0))) mSyncPos[0] = syncMon[0].getPosition();
+
+              if (syncMon[1].addSequence(
+                    frame.getHalfWord(0,0,1),
+                    frame.getHalfWord(0,1,1),
+                    frame.getHalfWord(0,2,1),
+                    frame.getHalfWord(0,3,1))) mSyncPos[1] = syncMon[1].getPosition();
+
+              if (syncMon[2].addSequence(
+                    frame.getHalfWord(1,0,0),
+                    frame.getHalfWord(1,1,0),
+                    frame.getHalfWord(1,2,0),
+                    frame.getHalfWord(1,3,0))) mSyncPos[2] = syncMon[2].getPosition();
+
+              if (syncMon[3].addSequence(
+                    frame.getHalfWord(1,0,1),
+                    frame.getHalfWord(1,1,1),
+                    frame.getHalfWord(1,2,1),
+                    frame.getHalfWord(1,3,1))) mSyncPos[3] = syncMon[3].getPosition();
+
+              if (syncMon[4].addSequence(
+                    frame.getHalfWord(2,0),
+                    frame.getHalfWord(2,1),
+                    frame.getHalfWord(2,2),
+                    frame.getHalfWord(2,3))) mSyncPos[4] = syncMon[4].getPosition();
+
+              short value1;
+              short value2;
+              for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
+                if (i==0) continue;
+                if (mSyncPos[iHalfSampa] < 0) continue;
+                if (lastSyncPos[iHalfSampa] < 0) continue;
+                if (mTimestampOfFirstData[iHalfSampa] == 0) mTimestampOfFirstData[iHalfSampa] = data.headerInfo.timeStamp() + 1 + i/4;
+
+                switch(mSyncPos[iHalfSampa]) {
+                  case 0:
+                    value1 = (frame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) |
+                      frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
+                    value2 = (frame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) | 
+                      frame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
+                    break;
+
+                  case 1:
+                    value1 = (lastFrame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) |
+                      lastFrame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
+                    value2 = (frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
+                      lastFrame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
+                    break;
+
+                  case 2:
+                    value1 = (lastFrame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) |
+                      lastFrame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
+                    value2 = (frame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) | 
+                      frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2);
+                    break;
+
+                  case 3:
+                    value1 = (frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
+                      lastFrame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
+                    value2 = (frame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) | 
+                      frame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
+                    break;
+
+                  default:
+                    return false;
+                }
+
+                adcValues[iHalfSampa].emplace(value1 ^ (1 << 9));
+                adcValues[iHalfSampa].emplace(value2 ^ (1 << 9));
+              }
+            }
+
+          } else {
+            LOG(DEBUG) << "Data of readout mode 3 (using decoded data)" << FairLogger::endl;
+            std::array<uint32_t,5> ids;
+            std::array<bool,5> writeValue;
+            writeValue.fill(false);
+            std::array<std::array<uint16_t,16>,5> adcValues;
+
+            for (int i=0; i<nWords; i=i+8) {
+              ids[4] = (words[i+4] >> 4) & 0xF;
+              ids[3] = (words[i+4] >> 8) & 0xF;
+              ids[2] = (words[i+4] >> 12) & 0xF;
+              ids[1] = (words[i+4] >> 16) & 0xF;
+              ids[0] = (words[i+4] >> 20) & 0xF;
+
+              adcValues[4][((ids[4] & 0x7)*2)+1] = ((ids[4]>>3)&0x1 == 0) ? 0 : words[i+7] & 0x3FF;
+              adcValues[4][((ids[4] & 0x7)*2)  ] = ((ids[4]>>3)&0x1 == 0) ? 0 : (words[i+7] >> 10) & 0x3FF;
+              adcValues[3][((ids[3] & 0x7)*2)+1] = ((ids[3]>>3)&0x1 == 0) ? 0 : (words[i+7] >> 20) & 0x3FF;
+              adcValues[3][((ids[3] & 0x7)*2)  ] = ((ids[3]>>3)&0x1 == 0) ? 0 : ((words[i+6] & 0xFF) << 2) | ((words[i+7] >> 30) & 0x3);
+              adcValues[2][((ids[2] & 0x7)*2)+1] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[i+6] >> 8) & 0x3FF;
+              adcValues[2][((ids[2] & 0x7)*2)  ] = ((ids[2]>>3)&0x1 == 0) ? 0 : (words[i+6] >> 18) & 0x3FF;
+              adcValues[1][((ids[1] & 0x7)*2)+1] = ((ids[1]>>3)&0x1 == 0) ? 0 : ((words[i+5] & 0x3F) << 4) | ((words[i+6] >> 28) & 0xF);
+              adcValues[1][((ids[1] & 0x7)*2)  ] = ((ids[1]>>3)&0x1 == 0) ? 0 : (words[i+5] >> 6) & 0x3FF;
+              adcValues[0][((ids[0] & 0x7)*2)+1] = ((ids[0]>>3)&0x1 == 0) ? 0 : (words[i+5] >> 16) & 0x3FF;
+              adcValues[0][((ids[0] & 0x7)*2)  ] = ((ids[0]>>3)&0x1 == 0) ? 0 : ((words[i+4] & 0xF) << 6) | ((words[i+5] >> 26) & 0x3F);
+
+              for (char j=0; j<5; ++j) {
+                if (ids[j] == 0x8) {
+                  writeValue[j] = true;
+                  // header TS is one before first word -> +1
+                  if (mTimestampOfFirstData[j] == 0) mTimestampOfFirstData[j] = data.headerInfo.timeStamp() + 1 + i/8;
+                  //                  std::cout << data.headerInfo.timeStamp() << " " << i/4 << " " << mTimestampOfFirstData[j] << std::endl;}
               }
             }
 
@@ -390,24 +510,25 @@ bool RawReader::loadEvent(int64_t event) {
                 for (int k=0; k<16; ++k) {
                   const PadPos padPos = mapper.padPosRegion(
                       data.region, data.link,sampas[j],k+sampaChannelStart[j]);
-//                  std::cout << "Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << std::endl;
+                  //                  std::cout << "Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << std::endl;
 
                   auto it = mData.find(padPos);
                   if (it != mData.end()) {
-//                    std::cout << "padpos (Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << ") already there, appending value." << std::endl;
+                    //                    std::cout << "padpos (Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << ") already there, appending value." << std::endl;
                     it->second->push_back(adcValues[j][k]);
                   } else {
-//                    std::cout << "padpos (Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << ") not yet found." << std::endl;
+                    //                    std::cout << "padpos (Row: " << (int)padPos.getRow() << " Pad: " << (int)padPos.getPad() << ") not yet found." << std::endl;
                     //mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j][k]}));
                     mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>{adcValues[j][k]})));
                   }
-//                  std::cout << adcValues[j][k] << " ";
+                  //                  std::cout << adcValues[j][k] << " ";
                 }
-//                std::cout << std::endl;
+                //                std::cout << std::endl;
               }
             }
-//            std::cout << std::endl;
+            //            std::cout << std::endl;
           }
+        }
 
           break;
         }
