@@ -370,7 +370,7 @@ bool RawReader::loadEvent(int64_t event) {
 
               for (char j=0; j<5; ++j) {
                 if ((mTimestampOfFirstData[j] != 0) && 
-                    ((mTimestampOfFirstData[j] & 0x7) == ((data.headerInfo.timeStamp() + 1 + i/4) & 0x7))) {
+                    ((mTimestampOfFirstData[j] & 0x7) == ((data.headerInfo.timeStamp() + 1 + i/8) & 0x7))) {
                   if (adcValues[j].size() < 16) {
                     std::queue<uint16_t> empty;
                     std::swap(adcValues[j], empty);
