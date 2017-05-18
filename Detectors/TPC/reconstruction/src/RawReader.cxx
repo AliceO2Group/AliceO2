@@ -19,14 +19,14 @@ RawReader::RawReader(int region, int link)
   : mRegion(region)
   , mLink(link)
   , mLastEvent(-1)
-  , mUseRawInMode3(true)
-  , mMaskChannels(false)
+  , mUseRawInMode3(false)
+  , mApplyChannelMask(false)
   , mTimestampOfFirstData({0,0,0,0,0})
   , mEvents()
   , mData()
   , mDataIterator(mData.end())
   , mSyncPos()
-//  , mChannelMask(nullptr)
+  , mChannelMask(nullptr)
 {
   mSyncPos.fill(-1);
 }
@@ -253,9 +253,14 @@ bool RawReader::decodePreprocessedData(eventData dataHeader) {
           const PadPos padPos = mapper.padPosRegion(
               dataHeader.region, dataHeader.link,sampas[j],k+sampaChannelStart[j]);
 
-          auto it = mData.find(padPos);
-          if (it != mData.end()) it->second->push_back(adcValues[j][k]);
-          else mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>{adcValues[j][k]})));
+          if (mApplyChannelMask &&          // channel mask should be applied
+              (mChannelMask != nullptr) &&  // channel mask is available
+              mChannelMask->getValue(CRU(dataHeader.region),padPos.getPad(),padPos.getRow())) { // channel mask
+              continue;
+          }
+
+          auto ins = mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>)));
+          ins.first->second->push_back(adcValues[j][k]);
         }
       }
     }
@@ -313,13 +318,16 @@ bool RawReader::decodeRawGBTFrames(eventData dataHeader) {
         for (int k=0; k<16; ++k) {
           const PadPos padPos = mapper.padPosRegion(
               dataHeader.region, dataHeader.link,sampas[j],k+sampaChannelStart[j]);
-          auto it = mData.find(padPos);
-          if (it != mData.end()) {
-            it->second->push_back(adcValues[j].front());
-          } else {
-            //mData.insert(std::pair<PadPos, std::shared_ptr<std::vector<uint16_t>>> (padPos,new std::vector<uint16_t>{adcValues[j].front()}));
-            mData.insert(std::make_pair(padPos,std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>{adcValues[j].front()})));
+
+          if (mApplyChannelMask &&          // channel mask should be applied
+              (mChannelMask != nullptr) &&  // channel mask is available
+              mChannelMask->getValue(CRU(dataHeader.region),padPos.getPad(),padPos.getRow())) {     // channel mask
+              adcValues[j].pop();           // discard value
+              continue;
           }
+
+          auto ins = mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>)));
+          ins.first->second->push_back(adcValues[j].front());
           adcValues[j].pop();
         }
       }

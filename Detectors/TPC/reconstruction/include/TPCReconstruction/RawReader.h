@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "TPCBase/PadPos.h"
+#include "TPCBase/CalDet.h"
 
 namespace o2 {
 namespace TPC {
@@ -142,8 +143,8 @@ class RawReader {
     int getEventNumber() const { return mLastEvent; }
 
     void setUseRawInMode3(bool val) { mUseRawInMode3 = val; };
-    void setMaskChannels(bool val) { mMaskChannels = val; };
- //   void setChannelMask(const std::shared_ptr<ChannelMask> cm) { mChannelMask = cm; }; 
+    void setApplyChannelMask(bool val) { mApplyChannelMask = val; };
+    void setChannelMask(std::shared_ptr<CalDet<bool>> channelMask) { mChannelMask = channelMask; };     
 
   private:
 
@@ -153,7 +154,7 @@ class RawReader {
     int mRegion;                        ///< Region of the data
     int mLink;                          ///< FEC of the data
     bool mUseRawInMode3;                ///< in readout mode 3 decode GBT frames
-    bool mMaskChannels;                 ///< Mask channels
+    bool mApplyChannelMask;             ///< apply channel mask
     int64_t mLastEvent;                 ///< Number of last loaded event
     std::array<uint64_t,5> mTimestampOfFirstData;   ///< Time stamp of first decoded ADC value, individually for each half sampa
     std::map<uint64_t, std::shared_ptr<std::vector<eventData>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
@@ -161,7 +162,7 @@ class RawReader {
     std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>>::iterator mDataIterator;    ///< Iterator to last requested data
     std::array<short,5> mSyncPos;       ///< positions of the sync pattern (for readout mode 3)
 
-//    std::shared_ptr<ChannelMask> mChannelMask;  ///< Channel mask
+    std::shared_ptr<CalDet<bool>> mChannelMask;     ///< Channel mask
 };
 
 inline
