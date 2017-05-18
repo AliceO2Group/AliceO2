@@ -173,13 +173,13 @@ bool RawReader::loadEvent(int64_t event) {
           } else {
             LOG(DEBUG) << "Data of readout mode 3 (using decoded data)" << FairLogger::endl;
             if (!decodePreprocessedData(data)) return false;
-            break;
           }
-          default: 
-          {
-            LOG(DEBUG) << "Readout mode not known" << FairLogger::endl;
-            break;
-          }
+          break;
+        }
+      default: 
+        {
+          LOG(DEBUG) << "Readout mode not known" << FairLogger::endl;
+          break;
         }
     }
   }
