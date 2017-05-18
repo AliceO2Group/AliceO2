@@ -5,6 +5,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/V11Geometry.cxx
     src/V1Layer.cxx
+    src/V3Layer.cxx
     src/Detector.cxx
     src/GeometryHandler.cxx
     src/Digitizer.cxx
