@@ -16,9 +16,9 @@ namespace ITS
 ///
 class PixelReader {
  public:
-  PixelReader() {}
+  PixelReader() = default;
   PixelReader(const PixelReader& cluster) = delete;
-  ~PixelReader() {};
+  virtual ~PixelReader() = default;
 
   PixelReader& operator=(const PixelReader& cluster) = delete;
 
