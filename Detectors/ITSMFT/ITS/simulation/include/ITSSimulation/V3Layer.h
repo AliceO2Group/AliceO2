@@ -34,21 +34,15 @@ class V3Layer : public V11Geometry
     // Default constructor
     V3Layer();
 
-    // Constructor setting debugging level
-    V3Layer(Int_t debug);
-
-    // Constructor setting layer number and debugging level
-    V3Layer(Int_t lay, Int_t debug);
-
     /// Constructor setting layer number and debugging level
     /// for a "turbo" layer (i.e. where staves overlap in phi)
-    V3Layer(Int_t lay, Bool_t turbo, Int_t debug);
+    V3Layer(Int_t lay, Bool_t turbo=kFALSE, Int_t debug=0);
 
     /// Copy constructor
-    V3Layer(const V3Layer &source);
+    V3Layer(const V3Layer &) = default;
 
     /// Assignment operator
-    V3Layer &operator=(const V3Layer &source);
+    V3Layer &operator=(const V3Layer &) = default;
 
     /// Default destructor
     ~V3Layer() override;
@@ -447,7 +441,7 @@ class V3Layer : public V11Geometry
     static const Double_t sOBSFBotBeamAngle;    ///< OB SF bottom beam angle
     static const Double_t sOBSFrameBeamSidePhi; ///< OB SF side beam angle
 
-  ClassDef(V3Layer, 0) // ITS v3 geometry
+  ClassDefOverride(V3Layer, 0) // ITS v3 geometry
 };
 }
 }

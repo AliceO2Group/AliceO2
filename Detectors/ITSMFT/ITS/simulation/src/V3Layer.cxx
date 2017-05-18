@@ -158,52 +158,6 @@ V3Layer::V3Layer()
   }
 }
 
-V3Layer::V3Layer(Int_t debug)
-  : V11Geometry(debug),
-    mLayerNumber(0),
-    mPhi0(0),
-    mLayerRadius(0),
-    mZLength(0),
-    mSensorThickness(0),
-    mChipThickness(0),
-    mStaveWidth(0),
-    mStaveTilt(0),
-    mNumberOfStaves(0),
-    mNumberOfModules(0),
-    mNumberOfChips(0),
-    mChipTypeID(0),
-    mIsTurbo(0),
-    mBuildLevel(0),
-    mStaveModel(Detector::kIBModelDummy)
-{
-  for (int i = kNHLevels; i--;) {
-    mHierarchy[i] = 0;
-  }
-}
-
-V3Layer::V3Layer(Int_t lay, Int_t debug)
-  : V11Geometry(debug),
-    mLayerNumber(lay),
-    mPhi0(0),
-    mLayerRadius(0),
-    mZLength(0),
-    mSensorThickness(0),
-    mChipThickness(0),
-    mStaveWidth(0),
-    mStaveTilt(0),
-    mNumberOfStaves(0),
-    mNumberOfModules(0),
-    mNumberOfChips(0),
-    mChipTypeID(0),
-    mIsTurbo(0),
-    mBuildLevel(0),
-    mStaveModel(Detector::kIBModelDummy)
-{
-  for (int i = kNHLevels; i--;) {
-    mHierarchy[i] = 0;
-  }
-}
-
 V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
   : V11Geometry(debug),
     mLayerNumber(lay),
@@ -225,57 +179,6 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
   for (int i = kNHLevels; i--;) {
     mHierarchy[i] = 0;
   }
-}
-
-V3Layer::V3Layer(const V3Layer &s)
-  : V11Geometry(s.getDebug()),
-    mLayerNumber(s.mLayerNumber),
-    mPhi0(s.mPhi0),
-    mLayerRadius(s.mLayerRadius),
-    mZLength(s.mZLength),
-    mSensorThickness(s.mSensorThickness),
-    mChipThickness(s.mChipThickness),
-    mStaveWidth(s.mStaveWidth),
-    mStaveTilt(s.mStaveTilt),
-    mNumberOfStaves(s.mNumberOfStaves),
-    mNumberOfModules(s.mNumberOfModules),
-    mNumberOfChips(s.mNumberOfChips),
-    mChipTypeID(s.mChipTypeID),
-    mIsTurbo(s.mIsTurbo),
-    mBuildLevel(s.mBuildLevel),
-    mStaveModel(s.mStaveModel)
-{
-  for (int i = kNHLevels; i--;) {
-    mHierarchy[i] = s.mHierarchy[i];
-  }
-}
-
-V3Layer &V3Layer::operator=(const V3Layer &s)
-{
-  if (&s == this) {
-    return *this;
-  }
-
-  mLayerNumber = s.mLayerNumber;
-  mPhi0 = s.mPhi0;
-  mLayerRadius = s.mLayerRadius;
-  mZLength = s.mZLength;
-  mSensorThickness = s.mSensorThickness;
-  mChipThickness = s.mChipThickness;
-  mStaveWidth = s.mStaveWidth;
-  mStaveTilt = s.mStaveTilt;
-  mNumberOfStaves = s.mNumberOfStaves;
-  mNumberOfModules = s.mNumberOfModules;
-  mNumberOfChips = s.mNumberOfChips;
-  mIsTurbo = s.mIsTurbo;
-  mChipTypeID = s.mChipTypeID;
-  mBuildLevel = s.mBuildLevel;
-  mStaveModel = s.mStaveModel;
-  for (int i = kNHLevels; i--;) {
-    mHierarchy[i] = s.mHierarchy[i];
-  }
-
-  return *this;
 }
 
 V3Layer::~V3Layer()
