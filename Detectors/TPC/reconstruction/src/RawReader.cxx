@@ -19,7 +19,7 @@ RawReader::RawReader(int region, int link)
   : mRegion(region)
   , mLink(link)
   , mLastEvent(-1)
-  , mUseRawInMode3(false)
+  , mUseRawInMode3(true)
   , mApplyChannelMask(false)
   , mTimestampOfFirstData({0,0,0,0,0})
   , mEvents()
@@ -138,9 +138,7 @@ bool RawReader::loadEvent(int64_t event) {
     loadEvent(getFirstEvent());
     LOG(DEBUG) << "Continue with event " << event << FairLogger::endl;
   }
-  std::cout << mData.size() << std::endl;
   mData.clear();
-  std::cout << mData.size() << std::endl;
 
   auto ev = mEvents.find(event);
   mLastEvent = event;
@@ -218,6 +216,7 @@ bool RawReader::decodePreprocessedData(EventInfo eventInfo) {
 
   int indexStep = (eventInfo.header.dataType == 3) ? 8 : 4;
   int offset = (eventInfo.header.dataType == 3) ? 4: 0;
+
   for (int i=0; i<nWords; i=i+indexStep) {
     ids[4] = (words[i+offset] >> 4) & 0xF;
     ids[3] = (words[i+offset] >> 8) & 0xF;
@@ -225,16 +224,16 @@ bool RawReader::decodePreprocessedData(EventInfo eventInfo) {
     ids[1] = (words[i+offset] >> 16) & 0xF;
     ids[0] = (words[i+offset] >> 20) & 0xF;
 
-    adcValues[4][((ids[4] & 0x7)*2)+1] = ((ids[4]>>3)&0x1 == 0) ? 0 :   words[i+offset+3] & 0x3FF;
-    adcValues[4][((ids[4] & 0x7)*2)  ] = ((ids[4]>>3)&0x1 == 0) ? 0 :  (words[i+offset+3] >> 10) & 0x3FF;
-    adcValues[3][((ids[3] & 0x7)*2)+1] = ((ids[3]>>3)&0x1 == 0) ? 0 :  (words[i+offset+3] >> 20) & 0x3FF;
-    adcValues[3][((ids[3] & 0x7)*2)  ] = ((ids[3]>>3)&0x1 == 0) ? 0 : ((words[i+offset+2] & 0xFF) << 2) | ((words[i+3] >> 30) & 0x3);
-    adcValues[2][((ids[2] & 0x7)*2)+1] = ((ids[2]>>3)&0x1 == 0) ? 0 :  (words[i+offset+2] >> 8) & 0x3FF;
-    adcValues[2][((ids[2] & 0x7)*2)  ] = ((ids[2]>>3)&0x1 == 0) ? 0 :  (words[i+offset+2] >> 18) & 0x3FF;
-    adcValues[1][((ids[1] & 0x7)*2)+1] = ((ids[1]>>3)&0x1 == 0) ? 0 : ((words[i+offset+1] & 0x3F) << 4) | ((words[i+2] >> 28) & 0xF);
-    adcValues[1][((ids[1] & 0x7)*2)  ] = ((ids[1]>>3)&0x1 == 0) ? 0 :  (words[i+offset+1] >> 6) & 0x3FF;
-    adcValues[0][((ids[0] & 0x7)*2)+1] = ((ids[0]>>3)&0x1 == 0) ? 0 :  (words[i+offset+1] >> 16) & 0x3FF;
-    adcValues[0][((ids[0] & 0x7)*2)  ] = ((ids[0]>>3)&0x1 == 0) ? 0 : ((words[i+offset+0] & 0xF) << 6) | ((words[i+1] >> 26) & 0x3F);
+    adcValues[4][((ids[4] & 0x7)*2)+1] = (((ids[4]>>3)&0x1) == 0) ? 0 :   words[i+offset+3] & 0x3FF;
+    adcValues[4][((ids[4] & 0x7)*2)  ] = (((ids[4]>>3)&0x1) == 0) ? 0 :  (words[i+offset+3] >> 10) & 0x3FF;
+    adcValues[3][((ids[3] & 0x7)*2)+1] = (((ids[3]>>3)&0x1) == 0) ? 0 :  (words[i+offset+3] >> 20) & 0x3FF;
+    adcValues[3][((ids[3] & 0x7)*2)  ] = (((ids[3]>>3)&0x1) == 0) ? 0 : ((words[i+offset+2] & 0xFF) << 2) | ((words[i+offset+3] >> 30) & 0x3);
+    adcValues[2][((ids[2] & 0x7)*2)+1] = (((ids[2]>>3)&0x1) == 0) ? 0 :  (words[i+offset+2] >> 8) & 0x3FF;
+    adcValues[2][((ids[2] & 0x7)*2)  ] = (((ids[2]>>3)&0x1) == 0) ? 0 :  (words[i+offset+2] >> 18) & 0x3FF;
+    adcValues[1][((ids[1] & 0x7)*2)+1] = (((ids[1]>>3)&0x1) == 0) ? 0 : ((words[i+offset+1] & 0x3F) << 4) | ((words[i+offset+2] >> 28) & 0xF);
+    adcValues[1][((ids[1] & 0x7)*2)  ] = (((ids[1]>>3)&0x1) == 0) ? 0 :  (words[i+offset+1] >> 6) & 0x3FF;
+    adcValues[0][((ids[0] & 0x7)*2)+1] = (((ids[0]>>3)&0x1) == 0) ? 0 :  (words[i+offset+1] >> 16) & 0x3FF;
+    adcValues[0][((ids[0] & 0x7)*2)  ] = (((ids[0]>>3)&0x1) == 0) ? 0 : ((words[i+offset+0] & 0xF) << 6) | ((words[i+offset+1] >> 26) & 0x3F);
 
     for (char j=0; j<5; ++j) {
       if (ids[j] == 0x8) {
@@ -252,7 +251,7 @@ bool RawReader::decodePreprocessedData(EventInfo eventInfo) {
 
           if (mApplyChannelMask &&          // channel mask should be applied
               (mChannelMask != nullptr) &&  // channel mask is available
-              mChannelMask->getValue(CRU(eventInfo.region),padPos.getPad(),padPos.getRow())) { // channel mask
+              !mChannelMask->getValue(CRU(eventInfo.region),padPos.getPad(),padPos.getRow())) { // channel mask
               continue;
           }
 
@@ -318,7 +317,7 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
 
           if (mApplyChannelMask &&          // channel mask should be applied
               (mChannelMask != nullptr) &&  // channel mask is available
-              mChannelMask->getValue(CRU(eventInfo.region),padPos.getPad(),padPos.getRow())) {     // channel mask
+              !mChannelMask->getValue(CRU(eventInfo.region),padPos.getPad(),padPos.getRow())) {     // channel mask
               adcValues[j].pop();           // discard value
               continue;
           }
