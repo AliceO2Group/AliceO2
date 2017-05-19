@@ -89,10 +89,19 @@ void MonitorGui()
   TGTextButton*  mFrameNextEvent  = new TGTextButton(mContRight,  "&Next Event"           );
   mContRight->AddFrame(mFrameNextEvent, new TGLayoutHints(kLHintsExpandX));
   
-  mFrameNextEvent->SetCommand( "Next()");
+  mFrameNextEvent->SetCommand( "Next(-1)");
   mFrameNextEvent->SetTextColor(200);
   mFrameNextEvent->SetToolTipText("Go to next event");
   mFrameNextEvent->MoveResize(10, 10, xsize, (UInt_t)ysize);
+
+  //---------------------------
+  TGTextButton*  mFramePreviousEvent  = new TGTextButton(mContRight,  "&Previous Event"           );
+  mContRight->AddFrame(mFramePreviousEvent, new TGLayoutHints(kLHintsExpandX));
+  
+  mFramePreviousEvent->SetCommand( "Next(-2)");
+  mFramePreviousEvent->SetTextColor(200);
+  mFramePreviousEvent->SetToolTipText("Go to next event");
+  mFramePreviousEvent->MoveResize(10, 10+ysize, xsize, (UInt_t)ysize);
 
   //---------------------------
   //TGTextButton*  mFrameRewindEvent  = new TGTextButton(mContRight,  "Rewind Events"           );
@@ -201,7 +210,7 @@ void DrawPadSignal(TString type)
     //mRawReader->Reset();
     TH1D *h2=mEvDisp.MakePadSignals(roc,row,pad);
     if (h2) {
-      h2->GetXaxis()->SetRangeUser(0,35);
+      h2->GetXaxis()->SetRangeUser(0,mEvDisp.getNumberOfProcessedTimeBins()+5);
       h2->Draw();
       h2->SetStats(0);
     }
@@ -222,7 +231,8 @@ void FillMaxHists(Int_t type=0)
   TH2F *hROC=0x0;
   ResetHists(type);
   const int runNumber = TString(gSystem->Getenv("RUN_NUMBER")).Atoi();
-  const int eventNumber = mEvDisp.getNumberOfProcessedEvents() - 1;
+  //const int eventNumber = mEvDisp.getNumberOfProcessedEvents() - 1;
+  const int eventNumber = mEvDisp.getPresentEventNumber();
   for (Int_t iROC=0; iROC<72; iROC++){
     // TODO: remove again at some point
     if (iROC >0) break;
@@ -382,13 +392,14 @@ void InitGUI()
 }
 
 //__________________________________________________________________________
-void Next()
+void Next(int eventNumber=-1)
 {
   //Int_t ev=mRawReader->NextEvent();
   //if (!ev) return;
   using Status = CalibRawBase::ProcessStatus;
-  Status status = mEvDisp.ProcessEvent();
-  const Int_t timeBins = mEvDisp.getTimeBinsPerCall();
+  Status status = mEvDisp.ProcessEvent(eventNumber);
+  //const Int_t timeBins = mEvDisp.getTimeBinsPerCall();
+  const Int_t timeBins = mEvDisp.getNumberOfProcessedTimeBins();
 
   switch (status) {
     case Status::Ok: {
