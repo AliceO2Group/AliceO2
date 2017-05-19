@@ -1,0 +1,50 @@
+.\" Manpage for runExampleModule2.
+.TH man 1 "19 May 2017" "1.0" "AliceHLTWrapperDevice man page"
+
+.SH NAME
+
+AliceHLTWrapperDevice - FairRoot/ALFA device running ALICE HLT code
+
+.SH SYNOPSIS
+
+AliceHLTWrapperDevice --id <deviceid> --channel-config <config> --library <arg> --component <arg> --parameter <arg> --runno <n>
+
+.SH DESCRIPTION
+
+A FairMQ device class supporting the HLT component interface
+for processing.
+
+The device class implements the interface functions of FairMQ, and it
+receives and send messages. The data of the messages are processed
+using the Component class.
+
+.SH OPTIONS
+Common FairMQ options
+  --id id of the device
+  --channel-config channel configuration as comma separated key=value pairs
+	name
+	type
+	method
+	address
+	property
+
+HLT component options
+  --library    HLT library containing the component
+  --component  HLT component id
+  --parameter  Parameter of the component
+  --run        Run number
+
+Other Options
+  --poll-period Polling period on the input channel
+
+.SH CONFIGURATION DATABASE
+HLT components need the Alice OCDB to load the configuration. The path to the OCDB must be set in environment variable ALIHLT_HCDBDIR.
+
+.SH Examples
+AliceHLTWrapperDevice --id publisher --channel-config name=data-out,type=pub,method=bind,address=tcp://*:42424 --library libAliHLTUtil.so --component FilePublisher --run 167808 --parameter '-datafile some_file_to_publish'
+
+.SH DISCLAIMER
+This is work in progress, please send questions and suggestions to Matthias.Richter@scieq.net
+
+.SH SEE ALSO
+HLT components

@@ -45,3 +45,15 @@ ForEach (_file RANGE 0 ${_length})
       BUCKET_NAME ${BUCKET_NAME}
   )
 EndForEach (_file RANGE 0 ${_length})
+
+set(TEST_SRCS
+  test/testMessageFormat.cxx
+)
+
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+  TEST_SRCS ${TEST_SRCS}
+)
+
+O2_GENERATE_MAN(NAME AliceHLTWrapperDevice)

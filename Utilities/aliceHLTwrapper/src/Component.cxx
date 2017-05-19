@@ -165,11 +165,11 @@ int Component::init(int argc, char** argv)
   if (parameterLength > 0 && parameterBuffer.get() != nullptr) {
     strcpy(parameterBuffer.get(), componentParameter.c_str());
     char* iterator = parameterBuffer.get();
-    parameters.push_back(iterator);
+    parameters.emplace_back(iterator);
     for (; *iterator != 0; iterator++) {
       if (*iterator != ' ') continue;
       *iterator = 0; // separate strings
-      if (*(iterator + 1) != ' ' && *(iterator + 1) != 0) parameters.push_back(iterator + 1);
+      if (*(iterator + 1) != ' ' && *(iterator + 1) != 0) parameters.emplace_back(iterator + 1);
     }
   }
 
@@ -209,14 +209,14 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   memset(&trigData, 0, sizeof(trigData));
   trigData.fStructSize = sizeof(trigData);
 
-  AliHLTUInt32_t outputBlockCnt = 0;
+  uint32_t outputBlockCnt = 0;
   AliHLTComponentBlockData* pOutputBlocks = nullptr;
   AliHLTComponentEventDoneData* pEventDoneData = nullptr;
 
   // prepare input structure for the ALICE HLT component
   mFormatHandler.clear();
   mFormatHandler.addMessages(dataArray);
-  vector<AliHLTComponentBlockData>& inputBlocks = mFormatHandler.getBlockDescriptors();
+  vector<BlockDescriptor>& inputBlocks = mFormatHandler.getBlockDescriptors();
   unsigned nofInputBlocks = inputBlocks.size();
   if (dataArray.size() > 0 && nofInputBlocks == 0 && mFormatHandler.getEvtDataList().size() == 0) {
     cerr << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input" << endl;
@@ -230,18 +230,15 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
   // determine the total input size, needed later on for the calculation of the output buffer size
   int totalInputSize = 0;
-  for (vector<AliHLTComponentBlockData>::const_iterator ci = inputBlocks.begin(); ci != inputBlocks.end(); ci++) {
-    totalInputSize += ci->fSize;
+  for (auto & ci : inputBlocks) {
+    totalInputSize += ci.fSize;
   }
 
   // add event type data block
-  AliHLTComponentBlockData eventTypeBlock;
-  memset(&eventTypeBlock, 0, sizeof(eventTypeBlock));
-  eventTypeBlock.fStructSize = sizeof(eventTypeBlock);
-  // Note: no payload!
-  eventTypeBlock.fDataType = AliHLTComponentDataTypeInitializer("EVENTTYP", "PRIV");
-  eventTypeBlock.fSpecification = gkAliEventTypeData;
-  inputBlocks.push_back(eventTypeBlock);
+  // this data block describes the type of the event, set it
+  // to 'data' by using specification gkAliEventTypeData
+  const AliHLTComponentDataType kDataTypeEvent = AliHLTComponentDataTypeInitializer("EVENTTYP", "PRIV");
+  inputBlocks.emplace_back(nullptr, 0, kDataTypeEvent, gkAliEventTypeData);
 
   // process
   evtData.fBlockCnt = inputBlocks.size();
@@ -290,8 +287,8 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
   // prepare output
   { // keep this after removing condition to preserve formatting
-    AliHLTUInt8_t* pOutputBufferStart = &mOutputBuffer[0];
-    AliHLTUInt8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
+    uint8_t* pOutputBufferStart = &mOutputBuffer[0];
+    uint8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
     // consistency check for data blocks
     // 1) all specified data must be either inside the output buffer given
     //    to the component or in one of the input buffers
@@ -308,16 +305,16 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
     AliHLTComponentBlockData* pFiltered = pOutputBlocks;
     for (unsigned blockIndex = 0; blockIndex < outputBlockCnt; blockIndex++, pOutputBlock++) {
       // filter special data blocks
-      if (pOutputBlock->fDataType == eventTypeBlock.fDataType) continue;
+      if (pOutputBlock->fDataType == kDataTypeEvent) continue;
 
       // block descriptors without any attached payload are propagated
       bool bValid = pOutputBlock->fSize == 0;
 
       // calculate the data reference
-      AliHLTUInt8_t* pStart =
-        pOutputBlock->fPtr != nullptr ? reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr) : &mOutputBuffer[0];
+      uint8_t* pStart =
+        pOutputBlock->fPtr != nullptr ? reinterpret_cast<uint8_t*>(pOutputBlock->fPtr) : &mOutputBuffer[0];
       pStart += pOutputBlock->fOffset;
-      AliHLTUInt8_t* pEnd = pStart + pOutputBlock->fSize;
+      uint8_t* pEnd = pStart + pOutputBlock->fSize;
       pOutputBlock->fPtr = pStart;
       pOutputBlock->fOffset = 0;
 
@@ -326,10 +323,9 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
       // possibly a forwarded data block, try the input buffers
       if (!bValid) {
-        vector<AliHLTComponentBlockData>::const_iterator ci = inputBlocks.begin();
-        for (; ci != inputBlocks.end(); ci++) {
-          AliHLTUInt8_t* pInputBufferStart = reinterpret_cast<AliHLTUInt8_t*>(ci->fPtr);
-          AliHLTUInt8_t* pInputBufferEnd = pInputBufferStart + ci->fSize;
+        for (auto & ci : inputBlocks) {
+          uint8_t* pInputBufferStart = reinterpret_cast<uint8_t*>(ci.fPtr);
+          uint8_t* pInputBufferEnd = pInputBufferStart + ci.fSize;
           if ((bValid = (pStart >= pInputBufferStart && pEnd <= pInputBufferEnd))) {
             break;
           }
@@ -351,7 +347,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
     // TODO: for now there is an extra copy of the data, but it should be
     // handled in place
     vector<MessageFormat::BufferDesc_t> outputMessages =
-      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, evtData, cbAllocate);
+      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, &evtData, cbAllocate);
     dataArray.insert(dataArray.end(), outputMessages.begin(), outputMessages.end());
   }
 

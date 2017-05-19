@@ -124,7 +124,7 @@ private:
   Component& operator=(const Component&);
 
   /// output buffer to receive the data produced by component
-  std::vector<AliHLTUInt8_t> mOutputBuffer;
+  std::vector<uint8_t> mOutputBuffer;
 
   /// instance of the system interface
   SystemInterface* mpSystem;
