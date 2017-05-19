@@ -65,9 +65,9 @@ int dEdxRes(TString trackfile, float trLow = 0., float trHigh = .7)
 
 
   /// loop over events and apply cuts on number of tracks per event (1), number of clusters per track (nclCut) and separate pions from electrons with cherenkov value
-  int nclCut = 32;
-  int CherCutLow = 40;
-  int CherCutHigh = 50;
+  int nclCut = 40;
+  int CherCutLow = 0.01;
+  int CherCutHigh = 0.01;
 
   for (int iEv=0; iEv<tree->GetEntriesFast(); ++iEv){
     tree->GetEntry(iEv);
@@ -76,7 +76,7 @@ int dEdxRes(TString trackfile, float trLow = 0., float trHigh = .7)
     CherenkovValue = Header.cherenkovValue;
 
     int nTracks = vecEvent->size();
-    if (nTracks != 1) continue;
+    //if (nTracks != 1) continue;
 
     for (auto& trackObject : *vecEvent){
       float dEdxTot = trackObject.getTruncatedMean(trLow,trHigh,1);
@@ -86,8 +86,8 @@ int dEdxRes(TString trackfile, float trLow = 0., float trHigh = .7)
       trackObject.getClusterVector(clCont);
 
       int ncl = clCont.size();
-      if (ncl < nclCut) continue;
-      if (CherenkovValue >= CherCutLow && CherenkovValue <= CherCutHigh) continue;
+      //if (ncl < nclCut) continue;
+      //if (CherenkovValue >= CherCutLow && CherenkovValue <= CherCutHigh) continue;
 
       if (CherenkovValue < CherCutLow){
         hdEdxPionTot->Fill(dEdxTot);
@@ -140,7 +140,7 @@ int dEdxRes(TString trackfile, float trLow = 0., float trHigh = .7)
   pave1->AddText(Form("Separation: %.2f#sigma", TMath::Abs(electronmeanTot-pionmeanTot)/((electronsigmaTot+pionsigmaTot)/2.)));
   pave1->Draw("same");
 
-  dEdxQ->Print(Form("dEdxResQtot_%i.png", runNr));
+  //dEdxQ->Print(Form("dEdxResQtot_%i.png", runNr));
 
 /// calculate and plot dE/dx for Qmax
 
@@ -181,7 +181,7 @@ int dEdxRes(TString trackfile, float trLow = 0., float trHigh = .7)
   pave2->AddText(Form("Separation: %.2f#sigma", TMath::Abs(electronmeanMax-pionmeanMax)/((electronsigmaMax+pionsigmaMax)/2.)));
   pave2->Draw("same");
 
-  dEdxQmax->Print(Form("dEdxResQmax_%i.png", runNr));
+  //dEdxQmax->Print(Form("dEdxResQmax_%i.png", runNr));
 
 
 return 0;
