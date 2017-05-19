@@ -318,6 +318,8 @@ o2_define_bucket(
     DEPENDENCIES
     fairroot_base_bucket
     root_physics_bucket
+    Tree
+    TreePlayer
     VMC # ROOT
 
     INCLUDE_DIRECTORIES

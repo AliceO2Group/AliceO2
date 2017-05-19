@@ -6,6 +6,7 @@ set(SRCS
   src/Detector.cxx
   src/Track.cxx
   src/TrackReference.cxx
+  src/ContVec.cxx
 )
 
 Set(HEADERS
@@ -14,6 +15,7 @@ Set(HEADERS
   include/${MODULE_NAME}/Track.h
   include/${MODULE_NAME}/TrackReference.h
   include/${MODULE_NAME}/Utils.h
+  include/${MODULE_NAME}/ContVec.h
 )
 
 Set(LINKDEF src/BaseLinkDef.h)
@@ -22,3 +24,12 @@ set(BUCKET_NAME detectors_base)
 
 O2_GENERATE_LIBRARY()
 
+set(TEST_SRCS
+   test/testContVec.cxx
+)
+
+O2_GENERATE_TESTS(
+  BUCKET_NAME ${BUCKET_NAME}
+  MODULE_LIBRARY_NAME ${MODULE_NAME}
+  TEST_SRCS ${TEST_SRCS}
+)
