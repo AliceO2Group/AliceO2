@@ -106,30 +106,17 @@ bool RawReader::addInputFile(int region, int link, std::string path){
     if (h.reserved_01 != 0x0F || h.reserved_2() != 0x3fec2fec1fec0fec) {
       LOG(ERROR) << "Header does not look consistent" << FairLogger::endl;
     }
-    eventData eD;
+    EventInfo eD;
     eD.path = path;
     eD.posInFile =  file.tellg();
     eD.region = region;
     eD.link = link;
-    eD.headerInfo = h;
+    eD.header = h;
     if (h.headerVersion == 1) {
-      auto it = mEvents.find(h.eventCount());
-      if (it != mEvents.end()) it->second->push_back(eD);
-      //else mEvents.insert(std::pair< uint64_t, std::shared_ptr<std::vector<eventData>>> (h.eventCount(),new std::vector<eventData>{eD}));
-      else mEvents.insert(std::make_pair(h.eventCount(),std::shared_ptr<std::vector<eventData>>(new std::vector<eventData>{eD})));
-//      std::cout << mEvents.size() << " " << mEvents[h.eventCount()]->size() << std::endl
-//        << mEvents[h.eventCount()]->at(0).headerInfo.eventCount() << std::endl;
-//      std::cout 
-//        << CHAR_BIT << " "
-//        << "Size: " << sizeof(h) 
-//        << " V: " << (int)h.headerVersion
-//        << " ID: " << (int)(h.channelID >> 4)
-//        << " T: " << (int)h.dataType
-//        << " W: " << h.nWords
-//        << " TS: " << h.timeStamp()
-//        << " EC: " << h.eventCount()
-//        << " R: " << h.reserved()
-//        << std::endl;
+
+      auto ins = mEvents.insert(std::make_pair(h.eventCount(),std::shared_ptr<std::vector<EventInfo>>(new std::vector<EventInfo>)));
+      ins.first->second->push_back(eD);
+
       file.seekg(pos+(h.nWords*4));
       pos = file.tellg();
     } else {
@@ -143,7 +130,17 @@ bool RawReader::addInputFile(int region, int link, std::string path){
 
 bool RawReader::loadEvent(int64_t event) {
   LOG(DEBUG) << "Loading new event " << event << FairLogger::endl;
+
+  if (mLastEvent == -1 && event != getFirstEvent() ) {
+    LOG(DEBUG) << "First event was not loaded (maybe important for decoding RAW GBT frames) lading first event." << FairLogger::endl;
+    mSyncPos.fill(-1);
+    mTimestampOfFirstData.fill(0);
+    loadEvent(getFirstEvent());
+    LOG(DEBUG) << "Continue with event " << event << FairLogger::endl;
+  }
+  std::cout << mData.size() << std::endl;
   mData.clear();
+  std::cout << mData.size() << std::endl;
 
   auto ev = mEvents.find(event);
   mLastEvent = event;
@@ -151,28 +148,28 @@ bool RawReader::loadEvent(int64_t event) {
   if (ev == mEvents.end()) return false;
   
   const Mapper& mapper = Mapper::instance();
-  for (auto &data : *(ev->second)) {
-    switch (data.headerInfo.dataType) {
+  for (auto &eventInfo : *(ev->second)) {
+    switch (eventInfo.header.dataType) {
       case 1: // RAW GBT frames
         { 
           LOG(DEBUG) << "Data of readout mode 1 (RAW GBT frames)" << FairLogger::endl;
-          if (!decodeRawGBTFrames(data)) return false;
+          if (!decodeRawGBTFrames(eventInfo)) return false;
           break;
         }
       case 2: // Decoded data
         {
           LOG(DEBUG) << "Data of readout mode 2 (decoded data)" << FairLogger::endl;
-          if (!decodePreprocessedData(data)) return false;
+          if (!decodePreprocessedData(eventInfo)) return false;
           break;
         }
       case 3: // both, RAW GBT frames and decoded data
         {
           if (mUseRawInMode3) {
             LOG(DEBUG) << "Data of readout mode 3 (decoding RAW GBT frames)" << FairLogger::endl;
-            if (!decodeRawGBTFrames(data)) return false;
+            if (!decodeRawGBTFrames(eventInfo)) return false;
           } else {
             LOG(DEBUG) << "Data of readout mode 3 (using decoded data)" << FairLogger::endl;
-            if (!decodePreprocessedData(data)) return false;
+            if (!decodePreprocessedData(eventInfo)) return false;
           }
           break;
         }
@@ -188,17 +185,17 @@ bool RawReader::loadEvent(int64_t event) {
   return true;
 }
 
-bool RawReader::decodePreprocessedData(eventData dataHeader) {
-  std::ifstream file(dataHeader.path);
+bool RawReader::decodePreprocessedData(EventInfo eventInfo) {
+  std::ifstream file(eventInfo.path);
   if (!file.is_open()) {
-    LOG(ERROR) << "Can't read file " << dataHeader.path << FairLogger::endl;
+    LOG(ERROR) << "Can't read file " << eventInfo.path << FairLogger::endl;
     return false;
   }
 
-  int nWords = dataHeader.headerInfo.nWords-8;
+  int nWords = eventInfo.header.nWords-8;
   uint32_t words[nWords];
-  LOG(DEBUG) << "reading " << nWords << " words from position " << dataHeader.posInFile << " in file " << dataHeader.path << FairLogger::endl;
-  file.seekg(dataHeader.posInFile);
+  LOG(DEBUG) << "reading " << nWords << " words from position " << eventInfo.posInFile << " in file " << eventInfo.path << FairLogger::endl;
+  file.seekg(eventInfo.posInFile);
   file.read((char*)&words, nWords*sizeof(words[0]));
 
   const Mapper& mapper = Mapper::instance();
@@ -206,9 +203,9 @@ bool RawReader::decodePreprocessedData(eventData dataHeader) {
   std::array<char,5> sampas;
   std::array<char,5> sampaChannelStart;
   for (char i=0; i<5; ++i) {
-    sampas[i] = (i == 4) ? 2 : (dataHeader.region%2) ? i/2+3 : i/2;
+    sampas[i] = (i == 4) ? 2 : (eventInfo.region%2) ? i/2+3 : i/2;
     sampaChannelStart[i] = (i == 4) ?   // 5th half SAMPA corresponds to  SAMPA2
-      ((dataHeader.region%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
+      ((eventInfo.region%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
       ((i%2) ? 16 : 0);                 // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
   }
 
@@ -219,8 +216,8 @@ bool RawReader::decodePreprocessedData(eventData dataHeader) {
   std::array<std::array<uint16_t,16>,5> adcValues;
 
 
-  int indexStep = (dataHeader.headerInfo.dataType == 3) ? 8 : 4;
-  int offset = (dataHeader.headerInfo.dataType == 3) ? 4: 0;
+  int indexStep = (eventInfo.header.dataType == 3) ? 8 : 4;
+  int offset = (eventInfo.header.dataType == 3) ? 4: 0;
   for (int i=0; i<nWords; i=i+indexStep) {
     ids[4] = (words[i+offset] >> 4) & 0xF;
     ids[3] = (words[i+offset] >> 8) & 0xF;
@@ -243,7 +240,7 @@ bool RawReader::decodePreprocessedData(eventData dataHeader) {
       if (ids[j] == 0x8) {
         writeValue[j] = true;
         // header TS is one before first word -> +1
-        if (mTimestampOfFirstData[j] == 0) mTimestampOfFirstData[j] = dataHeader.headerInfo.timeStamp() + 1 + i/8;
+        if (mTimestampOfFirstData[j] == 0) mTimestampOfFirstData[j] = eventInfo.header.timeStamp() + 1 + i/8;
       }
     }
 
@@ -251,11 +248,11 @@ bool RawReader::decodePreprocessedData(eventData dataHeader) {
       if (writeValue[j] & (ids[j] == 0xF)) {
         for (int k=0; k<16; ++k) {
           const PadPos padPos = mapper.padPosRegion(
-              dataHeader.region, dataHeader.link,sampas[j],k+sampaChannelStart[j]);
+              eventInfo.region, eventInfo.link,sampas[j],k+sampaChannelStart[j]);
 
           if (mApplyChannelMask &&          // channel mask should be applied
               (mChannelMask != nullptr) &&  // channel mask is available
-              mChannelMask->getValue(CRU(dataHeader.region),padPos.getPad(),padPos.getRow())) { // channel mask
+              mChannelMask->getValue(CRU(eventInfo.region),padPos.getPad(),padPos.getRow())) { // channel mask
               continue;
           }
 
@@ -269,17 +266,17 @@ bool RawReader::decodePreprocessedData(eventData dataHeader) {
   return true;
 }
 
-bool RawReader::decodeRawGBTFrames(eventData dataHeader) {
-  std::ifstream file(dataHeader.path);
+bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
+  std::ifstream file(eventInfo.path);
   if (!file.is_open()) {
-    LOG(ERROR) << "Can't read file " << dataHeader.path << FairLogger::endl;
+    LOG(ERROR) << "Can't read file " << eventInfo.path << FairLogger::endl;
     return false;
   }
 
-  int nWords = dataHeader.headerInfo.nWords-8;
+  int nWords = eventInfo.header.nWords-8;
   uint32_t words[nWords];
-  LOG(DEBUG) << "reading " << nWords << " words from position " << dataHeader.posInFile << " in file " << dataHeader.path << FairLogger::endl;
-  file.seekg(dataHeader.posInFile);
+  LOG(DEBUG) << "reading " << nWords << " words from position " << eventInfo.posInFile << " in file " << eventInfo.path << FairLogger::endl;
+  file.seekg(eventInfo.posInFile);
   file.read((char*)&words, nWords*sizeof(words[0]));
 
   const Mapper& mapper = Mapper::instance();
@@ -287,9 +284,9 @@ bool RawReader::decodeRawGBTFrames(eventData dataHeader) {
   std::array<char,5> sampas;
   std::array<char,5> sampaChannelStart;
   for (char i=0; i<5; ++i) {
-    sampas[i] = (i == 4) ? 2 : (dataHeader.region%2) ? i/2+3 : i/2;
+    sampas[i] = (i == 4) ? 2 : (eventInfo.region%2) ? i/2+3 : i/2;
     sampaChannelStart[i] = (i == 4) ?   // 5th half SAMPA corresponds to  SAMPA2
-      ((dataHeader.region%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
+      ((eventInfo.region%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
       ((i%2) ? 16 : 0);                 // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
   }
 
@@ -304,12 +301,12 @@ bool RawReader::decodeRawGBTFrames(eventData dataHeader) {
   GBTFrame frame; 
   GBTFrame lastFrame; 
 
-  int indexStep = (dataHeader.headerInfo.dataType == 3) ? 8 : 4;
+  int indexStep = (eventInfo.header.dataType == 3) ? 8 : 4;
   for (int i=0; i<nWords; i=i+indexStep) {
 
     for (char j=0; j<5; ++j) {
       if ((mTimestampOfFirstData[j] != 0) && 
-          ((mTimestampOfFirstData[j] & 0x7) == ((dataHeader.headerInfo.timeStamp() + 1 + i/indexStep) & 0x7))) {
+          ((mTimestampOfFirstData[j] & 0x7) == ((eventInfo.header.timeStamp() + 1 + i/indexStep) & 0x7))) {
         if (adcValues[j].size() < 16) {
           std::queue<uint16_t> empty;
           std::swap(adcValues[j], empty);
@@ -317,11 +314,11 @@ bool RawReader::decodeRawGBTFrames(eventData dataHeader) {
         }
         for (int k=0; k<16; ++k) {
           const PadPos padPos = mapper.padPosRegion(
-              dataHeader.region, dataHeader.link,sampas[j],k+sampaChannelStart[j]);
+              eventInfo.region, eventInfo.link,sampas[j],k+sampaChannelStart[j]);
 
           if (mApplyChannelMask &&          // channel mask should be applied
               (mChannelMask != nullptr) &&  // channel mask is available
-              mChannelMask->getValue(CRU(dataHeader.region),padPos.getPad(),padPos.getRow())) {     // channel mask
+              mChannelMask->getValue(CRU(eventInfo.region),padPos.getPad(),padPos.getRow())) {     // channel mask
               adcValues[j].pop();           // discard value
               continue;
           }
@@ -370,10 +367,9 @@ bool RawReader::decodeRawGBTFrames(eventData dataHeader) {
     short value1;
     short value2;
     for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
-      if (i==0) continue;
       if (mSyncPos[iHalfSampa] < 0) continue;
       if (lastSyncPos[iHalfSampa] < 0) continue;
-      if (mTimestampOfFirstData[iHalfSampa] == 0) mTimestampOfFirstData[iHalfSampa] = dataHeader.headerInfo.timeStamp() + 1 + i/4;
+      if (mTimestampOfFirstData[iHalfSampa] == 0) mTimestampOfFirstData[iHalfSampa] = eventInfo.header.timeStamp() + 1 + i/4;
 
       switch(mSyncPos[iHalfSampa]) {
         case 0:
@@ -384,6 +380,7 @@ bool RawReader::decodeRawGBTFrames(eventData dataHeader) {
           break;
 
         case 1:
+          if (i==0) continue;
           value1 = (lastFrame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) |
             lastFrame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2);
           value2 = (frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
@@ -391,6 +388,7 @@ bool RawReader::decodeRawGBTFrames(eventData dataHeader) {
           break;
 
         case 2:
+          if (i==0) continue;
           value1 = (lastFrame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2) << 5) |
             lastFrame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2);
           value2 = (frame.getHalfWord(iHalfSampa/2,1,iHalfSampa%2) << 5) | 
@@ -398,6 +396,7 @@ bool RawReader::decodeRawGBTFrames(eventData dataHeader) {
           break;
 
         case 3:
+          if (i==0) continue;
           value1 = (frame.getHalfWord(iHalfSampa/2,0,iHalfSampa%2) << 5) |
             lastFrame.getHalfWord(iHalfSampa/2,3,iHalfSampa%2);
           value2 = (frame.getHalfWord(iHalfSampa/2,2,iHalfSampa%2) << 5) | 
