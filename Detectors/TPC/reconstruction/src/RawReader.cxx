@@ -368,7 +368,7 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
     for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
       if (mSyncPos[iHalfSampa] < 0) continue;
       if (lastSyncPos[iHalfSampa] < 0) continue;
-      if (mTimestampOfFirstData[iHalfSampa] == 0) mTimestampOfFirstData[iHalfSampa] = eventInfo.header.timeStamp() + 1 + i/4;
+      if (mTimestampOfFirstData[iHalfSampa] == 0) mTimestampOfFirstData[iHalfSampa] = eventInfo.header.timeStamp() + 1 + i/indexStep;
 
       switch(mSyncPos[iHalfSampa]) {
         case 0:
