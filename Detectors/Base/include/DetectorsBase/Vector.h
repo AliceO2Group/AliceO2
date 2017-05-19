@@ -34,16 +34,16 @@ namespace Base {
   Vector(sizeType iniSize=0, int expPol=-100);
   
   // construct from received raw pointer on the existing buffer (create a copy of the buffer, ptr ownership unchanged)
-  Vector(const char* ptr, sizeType nbytes=-1) : mPtr(nullptr) {adopt(ptr,nbytes);}
+  Vector(const char* ptr, sizeType nbytes=-1) : mPtr(nullptr) {recreate(ptr,nbytes);}
 
   // construct from received pointer on the existing buffer (assuming ownership over the buffer)
-  Vector(std::unique_ptr<char[]>& ptr, sizeType nbytes=-1) : mPtr(nullptr) {adopt(ptr,nbytes);}
+  Vector(std::unique_ptr<char[]> ptr, sizeType nbytes=-1) : mPtr(nullptr) {adopt(std::move(ptr),nbytes);}
   
   // recreate buffer copy from received pointer,  ptr ownership unchanged
-  void  adopt(const char* ptr, sizeType nbytes=-1);
+  void  recreate(const char* ptr, sizeType nbytes=-1);
 
-  // recreate buffer from received pointer by assuming its ownership
-  void  adopt(std::unique_ptr<char[]>& ptr, sizeType nbytes=-1);
+  // adopt buffer from received pointer by assuming its ownership
+  void  adopt(std::unique_ptr<char[]> ptr, sizeType nbytes=-1);
   
   /// set/get data info (user defined)
   void  setUserInfo(const H& val);
@@ -77,8 +77,8 @@ namespace Base {
   /// create an object with supplied arguments in the end of the container
   template<typename ...Args> T* emplace_back(Args&&... args);
   
-  /// clear content w/o changing capacity, if requested, explicitly delete objects
-  void  clear(bool calldestructor=true);
+  /// clear content w/o changing capacity
+  void  clear(/*bool calldestructor=true*/);
 
   /// book space for objects and aux data
   void  reserve(sizeType n=1000);
@@ -143,7 +143,7 @@ template <class T, class H>
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  void Vector<T,H>::adopt(const char* ptr, sizeType nbytes)
+  void Vector<T,H>::recreate(const char* ptr, sizeType nbytes)
 {
   /**
    * recreates container buffer from provided raw pointer 
@@ -184,7 +184,7 @@ template <class T, class H>
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  void Vector<T,H>::adopt(std::unique_ptr<char[]>& ptr, sizeType nbytes)
+  void Vector<T,H>::adopt(std::unique_ptr<char[]> ptr, sizeType nbytes)
 {
   /**
    * recreates container buffer from provided pointer assuming its ownership
@@ -197,7 +197,7 @@ template <class T, class H>
       throw "invalid arguments:";
     }
   } catch(const char* msg) {
-    LOG(FATAL) << msg << " rawPtr is null" << FairLogger::endl;
+    LOG(FATAL) << msg << " ptr is null" << FairLogger::endl;
   }
   try {
     if (nbytes>=0 && (nbytes<dataOffset())) {
@@ -266,11 +266,12 @@ template <class T, class H>
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  void Vector<T,H>::clear(bool calldestructor)
+  void Vector<T,H>::clear(/*bool calldestructor*/)
 {
   /**
    * clear content w/o changing capacity, if requested, explicitly delete objects
    */
+  /*
   if (calldestructor) {
     T *objB = back(), *objF = front();
     while (objB>=objF) {
@@ -278,6 +279,7 @@ template <class T, class H>
       objB--;
     }
   }
+  */
   getHeader()->nObjects = 0;
 }
 
@@ -302,8 +304,8 @@ template <class T, class H>
    * Return pointer on new object
    */
   T* slot = nextFreeSlot();
-  new(slot) T(obj);
-  //std::copy_n(&obj,1, slot);
+  //new(slot) T(obj);
+  std::copy_n(&obj,1, slot);
   getHeader()->nObjects++;
   return slot;
 }

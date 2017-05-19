@@ -27,7 +27,6 @@ using namespace o2::Base;
 using namespace std;
 using myCont_t = Vector<o2::Base::Track::TrackPar,int>;
 
-
 void  writeToBinFile(const char* ptr, int nbytes, const char* fname="containerTest.bin");
 unique_ptr<char[]> readFromBinFile(int& nread, const char* fname="containerTest.bin");
 
@@ -103,7 +102,7 @@ bool testVector(bool cleanTmp)
   // managed by the pointer
   // 
   // nb is passed just for consistency check
-  myCont_t cntb0(pntr,nb); 
+  myCont_t cntb0(move(pntr),nb); 
 
   //***********************//
   //***********************//
@@ -181,7 +180,7 @@ bool testVector(bool cleanTmp)
   res = compareContainers(cnt, cntb1,"recreated from container->tree->container");  // compare with original
   if (cleanTmp) gSystem->Unlink(outTree.data());
 
-  return res;  
+  return res;
 }
 
 
