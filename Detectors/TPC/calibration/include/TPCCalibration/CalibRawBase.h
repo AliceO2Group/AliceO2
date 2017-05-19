@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 #include "TString.h"
 #include "Rtypes.h"
@@ -49,10 +50,11 @@ class CalibRawBase
       Ok,         ///< Processing ok
       Truncated,  ///< Read fewer time bins than mTimeBinsPerCall
       NoMoreData, ///< No data read
+      LastEvent,  ///< Last event
       NoReaders   ///< No raw reader configures
     };
 
-    CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mNevents(0), mTimeBinsPerCall(500), mPadSubset(padSubset) {;}
+    CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mNevents(0), mTimeBinsPerCall(500), mProcessedTimeBins(0), mPresentEventNumber(0), mPadSubset(padSubset) {;}
 
     /// Update function called once per digit
     ///
@@ -90,7 +92,8 @@ class CalibRawBase
     PadSubset getPadSubset() const { return mPadSubset; }
 
     /// Process one event
-    ProcessStatus ProcessEvent();
+    /// \param eventNumber: Either number >=0 or -1 (next event) or -2 (previous event)
+    ProcessStatus ProcessEvent(int eventNumber=-1);
 
     void setupContainers(TString fileInfo);
 
@@ -103,12 +106,20 @@ class CalibRawBase
     /// number of processed events
     size_t getNumberOfProcessedEvents() const { return mNevents; }
 
+    /// get present event number
+    size_t getPresentEventNumber() const { return mPresentEventNumber; }
+
+    /// number of processed time bins in last event
+    size_t getNumberOfProcessedTimeBins() const { return mProcessedTimeBins; }
+
   protected:
     const Mapper&  mMapper;    //!< TPC mapper
 
   private:
     size_t    mNevents;                //!< number of processed events
-    Int_t     mTimeBinsPerCall;        //!< numver of time bins to process in ProcessEvent
+    Int_t     mTimeBinsPerCall;        //!< number of time bins to process in ProcessEvent
+    size_t    mProcessedTimeBins;      //!< number of processed time bins in last event
+    size_t    mPresentEventNumber;     //!< present event number
     PadSubset mPadSubset;              //!< pad subset type used
     std::vector<std::unique_ptr<GBTFrameContainer>> mGBTFrameContainers; //! raw reader pointer
     std::vector<std::unique_ptr<RawReader>> mRawReaders; //! raw reader pointer
@@ -120,20 +131,20 @@ class CalibRawBase
     ProcessStatus ProcessEventGBT();
 
     /// Process one event using RawReader
-    ProcessStatus ProcessEventRawReader();
+    ProcessStatus ProcessEventRawReader(int eventNumber=-1);
 
 };
 
 //----------------------------------------------------------------
 // Inline Functions
 //----------------------------------------------------------------
-inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEvent()
+inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEvent(int eventNumber)
 {
   if (mGBTFrameContainers.size()) {
     return ProcessEventGBT();
   }
   else if (mRawReaders.size()) {
-    return ProcessEventRawReader();
+    return ProcessEventRawReader(eventNumber);
   }
   else {
     return ProcessStatus::NoReaders;
@@ -218,7 +229,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventGBT()
 }
 
 //______________________________________________________________________________
-inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
+inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader(int eventNumber)
 {
   if (!mRawReaders.size()) return ProcessStatus::NoReaders;
   ResetEvent();
@@ -230,16 +241,32 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
 
   ProcessStatus status = ProcessStatus::Ok;
 
+  mProcessedTimeBins = 0;
   int processedReaders = 0;
   bool hasData = false;
+
+  uint64_t lastEvent = 0;
   for (auto& reader_ptr : mRawReaders) {
     auto reader = reader_ptr.get();
 
-    if (!reader->loadNextEvent()) continue;
+    lastEvent = std::max(lastEvent, reader->getLastEvent());
+
+    if (eventNumber>=0) {
+      reader->loadEvent(eventNumber);
+      mPresentEventNumber = eventNumber;
+    }
+    else if (eventNumber==-1) {
+      mPresentEventNumber = reader->loadNextEvent();
+    }
+    else if (eventNumber==-2) {
+      mPresentEventNumber = reader->loadPreviousEvent();
+    }
 
     o2::TPC::PadPos padPos;
     while (std::shared_ptr<std::vector<uint16_t>> data = reader->getNextData(padPos)) {
       if (!data) continue;
+
+      mProcessedTimeBins = std::max(mProcessedTimeBins, data->size());
 
       CRU cru(reader->getRegion());
       const int roc = cru.roc();
@@ -292,6 +319,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader()
   }
   else if (processedReaders < mRawReaders.size()) {
     status = ProcessStatus::Truncated;
+  }
+  else if (mPresentEventNumber == lastEvent) {
+    status = ProcessStatus::LastEvent;
   }
 
   EndEvent();
