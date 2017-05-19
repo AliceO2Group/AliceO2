@@ -27,14 +27,15 @@ const o2::Header::SerializationMethod o2::Header::gSerializationMethodFlatBuf("F
 //__________________________________________________________________________________________________
 //possible data origins
 const o2::Header::DataOrigin o2::Header::gDataOriginAny    ("***");
-const o2::Header::DataOrigin o2::Header::gDataOriginInvalid("   ");
+const o2::Header::DataOrigin o2::Header::gDataOriginInvalid("NIL");
 const o2::Header::DataOrigin o2::Header::gDataOriginTPC    ("TPC");
 const o2::Header::DataOrigin o2::Header::gDataOriginTRD    ("TRD");
 const o2::Header::DataOrigin o2::Header::gDataOriginTOF    ("TOF");
+const o2::Header::DataOrigin o2::Header::gDataOriginITS    ("ITS");
 
 //possible data types
 const o2::Header::DataDescription o2::Header::gDataDescriptionAny     ("***************");
-const o2::Header::DataDescription o2::Header::gDataDescriptionInvalid ("               ");
+const o2::Header::DataDescription o2::Header::gDataDescriptionInvalid ("INVALID        ");
 const o2::Header::DataDescription o2::Header::gDataDescriptionRawData ("RAWDATA        ");
 const o2::Header::DataDescription o2::Header::gDataDescriptionClusters("CLUSTERS       ");
 const o2::Header::DataDescription o2::Header::gDataDescriptionTracks  ("TRACKS         ");

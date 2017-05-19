@@ -685,6 +685,7 @@ extern const o2::Header::DataOrigin gDataOriginInvalid;
 extern const o2::Header::DataOrigin gDataOriginTPC;
 extern const o2::Header::DataOrigin gDataOriginTRD;
 extern const o2::Header::DataOrigin gDataOriginTOF;
+extern const o2::Header::DataOrigin gDataOriginITS;
 
 //possible data types
 extern const o2::Header::DataDescription gDataDescriptionAny;
