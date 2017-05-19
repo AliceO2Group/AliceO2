@@ -10,6 +10,7 @@
 #include "FairLink.h"
 
 #include "TPCSimulation/Point.h"
+#include "TPCBase/Sector.h"
 
 class FairVolume;  // lines 10-10
 
@@ -123,7 +124,7 @@ class Detector: public o2::Base::Detector {
     /** container for data points */
     TClonesArray*  mPointCollection;
     TClonesArray*  mHitGroupCollection;    //! container that keeps track-grouped hits
-    TClonesArray*  mHitsPerSectorCollection[18];
+    TClonesArray*  mHitsPerSectorCollection[Sector::MAXSECTOR];
 
     TString mGeoFileName;                  ///< Name of the file containing the TPC geometry
     size_t mEventNr;                       //!< current event number

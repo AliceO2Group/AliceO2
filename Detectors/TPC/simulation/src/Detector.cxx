@@ -53,15 +53,6 @@ using std::ios_base;
 using std::ifstream;
 using namespace o2::TPC;
 
-// helper function to retrieve a TPC sector given cartesian coordinates
-template <typename T>
-T ToSector(T x, T y) {
-  static const T invangle(static_cast<T>(180)/static_cast<T>(M_PI*20.)); // the angle describing one sector
-  // force positive angle for conversion
-  return (std::atan2(y,x) + static_cast<T>(M_PI))*invangle;
-}
-
-
 
 Detector::Detector()
   : o2::Base::Detector("TPC", kTRUE, kAliTpc),
@@ -71,7 +62,7 @@ Detector::Detector()
     mGeoFileName(),
     mEventNr(0)
 {
-  for(int i=0;i<18;++i){
+  for(int i=0;i<Sector::MAXSECTOR;++i){
     mHitsPerSectorCollection[i]=new TClonesArray("o2::TPC::LinkableHitGroup");
     mHitsPerSectorCollection[i]->BypassStreamer(true);
   }
@@ -85,7 +76,7 @@ Detector::Detector(const char* name, Bool_t active)
     mGeoFileName(),
     mEventNr(0)
 {
-  for(int i=0;i<18;++i){
+  for(int i=0;i<Sector::MAXSECTOR;++i){
     mHitsPerSectorCollection[i]=new TClonesArray("o2::TPC::LinkableHitGroup");
     mHitsPerSectorCollection[i]->BypassStreamer(true);
   }
@@ -99,7 +90,7 @@ Detector::~Detector()
     delete mPointCollection;
   }
 #ifdef TPC_GROUPED_HITS
-  for(int i=0;i<18;++i){
+  for(int i=0;i<Sector::MAXSECTOR;++i){
     mHitsPerSectorCollection[i]->Delete();
     delete mHitsPerSectorCollection[i];
   }
@@ -285,7 +276,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   float time    = refMC->TrackTime() * 1.0e09;
   int trackID = refMC->GetStack()->GetCurrentTrackNumber();
   int detID   = vol->getMCid();
-  int sectorID = static_cast<int>(ToSector(position.Y(), position.X()));
+  int sectorID = static_cast<int>(Sector::ToSector(position.X(), position.Y(), position.Z()));
 
 #ifdef TPC_GROUPED_HITS
   static int oldTrackId = trackID;
@@ -341,7 +332,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
 void Detector::EndOfEvent()
 {
   mHitGroupCollection->Clear();
-  for(int i=0;i<18;++i) {
+  for(int i=0;i<Sector::MAXSECTOR;++i) {
     // passing "C" since objects contain other pointer data
     // which needs to be cleaned up
     mHitsPerSectorCollection[i]->Clear("C");
@@ -360,7 +351,7 @@ void Detector::Register()
   auto *mgr=FairRootManager::Instance();
 #ifdef TPC_GROUPED_HITS
   mgr->Register("TPCGroupedHits", "TPC", mHitGroupCollection, kTRUE);
-  for (int i=0;i<18;++i) {
+  for (int i=0;i<Sector::MAXSECTOR;++i) {
     TString name;
     name.Form("TPCHitsSector%d", i);
     mgr->Register(name.Data(), "TPC", mHitsPerSectorCollection[i], kTRUE);
@@ -388,7 +379,7 @@ void Detector::Reset()
 {
 #ifdef TPC_GROUPED_HITS
   mHitGroupCollection->Clear();
-  for(int i=0;i<18;++i) {
+  for(int i=0;i<Sector::MAXSECTOR;++i) {
     mHitsPerSectorCollection[i]->Clear();
   }
 #else

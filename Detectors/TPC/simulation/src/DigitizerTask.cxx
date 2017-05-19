@@ -10,6 +10,7 @@
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Constants.h"
 #include "TPCSimulation/Point.h"
+#include "TPCBase/Sector.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
@@ -74,7 +75,7 @@ InitStatus DigitizerTask::Init()
   }
   else {
     // in case we are treating all sectors
-    for (int s=0;s<18;++s){
+    for (int s=0;s<Sector::MAXSECTOR;++s){
       std::stringstream sectornamestr;
       sectornamestr << "TPCHitsSector" << s;
       LOG(INFO) << "FETCHING HITS FOR SECTOR " << s << "\n";
@@ -115,7 +116,7 @@ void DigitizerTask::Exec(Option_t *option)
 
   if (mHitSector == -1){
     // treat all sectors
-    for (int s=0; s<18; ++s){
+    for (int s=0; s<Sector::MAXSECTOR; ++s){
       LOG(DEBUG) << "Processing sector " << s << "\n";
       mDigitContainer = mDigitizer->Process(mSectorHitsArray[s]);
     }
