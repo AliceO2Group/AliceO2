@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ "$#" -ne 2 ]; then
-  echo "Usage: runRecoSim <cluster input file> <track output file>"
+if [ "$#" -ne 3 ]; then
+  echo "Usage: runRecoSim <cluster input file> <track output file> <cherenkov file>"
   exit 0
 fi
 
@@ -12,6 +12,7 @@ fi
 
 clusterInputfile=$1
 outputTrackFile=$2
+cherenkovFile=$3
 
 script=$(readlink -f $0)
 macroDir=$(dirname $script)
@@ -40,7 +41,7 @@ mv output.bin $outdir
 
 # ===| convert to tracks |======================================================
 #cd $outdir
-cmd="root.exe -b -q -l -n -x ${addInclude} ${trackConversion}'+g(\"${outdir}/output.bin\",\"${clusterInputfile}\", \"\", \"${outputTrackFile}\")'"
+cmd="root.exe -b -q -l -n -x ${addInclude} ${trackConversion}'+g(\"${outdir}/output.bin\",\"${clusterInputfile}\", \"$cherenkovFile\", \"${outputTrackFile}\")'"
 echo $cmd
 eval $cmd
 

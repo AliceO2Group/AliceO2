@@ -20,7 +20,7 @@ void drawSectorBoundaries();
 void testTracks(int checkEvent = 0,
                 std::string trackFile  ="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/tracks.root",
                 std::string clusterFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/AliceO2_TGeant3.tpc.clusters_100_event.root",
-                std::array<float,3> bField = {{0,0,-5}})
+                std::array<float,3> bField = {{0,0,0}})
 {
   gStyle->SetMarkerStyle(20);
   gStyle->SetMarkerSize(0.5);
@@ -37,17 +37,31 @@ void testTracks(int checkEvent = 0,
   clusterTree->SetBranchAddress("TPCClusterHW",&clusters);
 
   TGraph *grClusters   = new TGraph();
-  grClusters->SetTitle("x - y plane; x [cm]; y [cm]");
+  grClusters->SetTitle("x - y plane (global); x [cm]; y [cm]");
   grClusters->SetMarkerColor(kOrange+2);
   grClusters->SetMarkerSize(1);
   TGraph *grClustersXZ = new TGraph();
-  grClustersXZ->SetTitle("x - z plane; x [cm]; z [cm]");
+  grClustersXZ->SetTitle("x - z plane (global); x [cm]; z [cm]");
   grClustersXZ->SetMarkerColor(kOrange+2);
   grClustersXZ->SetMarkerSize(1);
   TGraph2D *grClusters3D = new TGraph2D();
   grClusters3D->SetTitle("; x [cm]; y [cm]; z [cm]");
   grClusters3D->SetMarkerColor(kOrange+2);
   grClusters3D->SetMarkerSize(1);
+
+  TGraph *grClustersLoc   = new TGraph();
+  grClustersLoc->SetTitle("x - y plane (local); x [cm]; y [cm]");
+  grClustersLoc->SetMarkerColor(kOrange+2);
+  grClustersLoc->SetMarkerSize(1);
+  TGraph *grClustersLocXZ = new TGraph();
+  grClustersLocXZ->SetTitle("x - z plane (local); x [cm]; z [cm]");
+  grClustersLocXZ->SetMarkerColor(kOrange+2);
+  grClustersLocXZ->SetMarkerSize(1);
+  TGraph2D *grClustersLoc3D = new TGraph2D();
+  grClustersLoc3D->SetTitle("; x [cm]; y [cm]; z [cm]");
+  grClustersLoc3D->SetMarkerColor(kOrange+2);
+  grClustersLoc3D->SetMarkerSize(1);
+
 
   int clusCounter = 0;
   clusterTree->GetEntry(checkEvent);
@@ -71,7 +85,12 @@ void testTracks(int checkEvent = 0,
 
     grClusters->SetPoint(clusCounter, clusterX, clusterY);
     grClustersXZ->SetPoint(clusCounter, clusterX, clusterZ);
-    grClusters3D->SetPoint(clusCounter++, clusterX, clusterY, clusterZ);
+    grClusters3D->SetPoint(clusCounter, clusterX, clusterY, clusterZ);
+    grClustersLoc->SetPoint(clusCounter, posLoc.getX(), posLoc.getY());
+    grClustersLocXZ->SetPoint(clusCounter, posLoc.getX(), posLoc.getZ());
+    grClustersLoc3D->SetPoint(clusCounter++, posLoc.getX(), posLoc.getY(), posLoc.getZ());
+
+
   }
 
   // Tracks
@@ -84,6 +103,10 @@ void testTracks(int checkEvent = 0,
   TGraph *grTracks     = new TGraph();
   TGraph *grTracksXZ   = new TGraph();
   TGraph2D *grTracks3D = new TGraph2D();
+  TGraph *grTracksLoc  = new TGraph();
+  TGraph *grTracksLocXZ= new TGraph();
+  TGraph2D *grTracksLoc3D= new TGraph2D();
+
 
   std::vector<TrackTPC> *arrTracks = 0;
   trackTree->SetBranchAddress("Tracks", &arrTracks);
@@ -112,7 +135,8 @@ void testTracks(int checkEvent = 0,
         trackObject.PropagateParamTo(clusLoc.getX(), bField);
 
         LocalPosition3D trackLoc(trackObject.GetX(), trackObject.GetY(), trackObject.GetZ());
-        GlobalPosition3D trackGlob = Mapper::LocalToGlobal(trackLoc, trackObject.GetAlpha());
+        /// \todo sector hardcoded for the time  being
+        GlobalPosition3D trackGlob = Mapper::LocalToGlobal(trackLoc, 0.1632);
 
         const float resY = trackLoc.getY() - clusLoc.getY();
         const float resZ = trackLoc.getY() - clusLoc.getZ();
@@ -123,7 +147,11 @@ void testTracks(int checkEvent = 0,
         if(iEv == checkEvent) {
           grTracks->SetPoint(counter, trackGlob.getX(), trackGlob.getY());
           grTracksXZ->SetPoint(counter, trackGlob.getX(), trackGlob.getZ());
-          grTracks3D->SetPoint(counter++, trackGlob.getX(), trackGlob.getY(), trackGlob.getZ());
+          grTracks3D->SetPoint(counter, trackGlob.getX(), trackGlob.getY(), trackGlob.getZ());
+          grTracksLoc->SetPoint(counter, trackLoc.getX(), trackLoc.getY());
+          grTracksLocXZ->SetPoint(counter, trackLoc.getX(), trackLoc.getZ());
+          grTracksLoc3D->SetPoint(counter++, trackLoc.getX(), trackLoc.getY(), trackLoc.getZ());
+
         }
       }
     }
@@ -144,7 +172,22 @@ void testTracks(int checkEvent = 0,
   grClustersXZ->SetMinimum(-250);
   grClustersXZ->SetMaximum(250);
   grTracksXZ->Draw("p");
-  drawSectorBoundaries();
+
+  TCanvas *CTracksLoc = new TCanvas("CTracksLoc", "CTracksLoc", 1200, 600);
+  CTracksLoc->Divide(2,1);
+  CTracksLoc->cd(1);
+  grClustersLoc->Draw("ap");
+  grClustersLoc->GetXaxis()->SetLimits(80, 150);
+  grClustersLoc->SetMinimum(-30);
+  grClustersLoc->SetMaximum(30);
+  grTracksLoc->Draw("p");
+  CTracksLoc->cd(2);
+  grClustersLocXZ->Draw("ap");
+  grClustersLocXZ->GetXaxis()->SetLimits(80, 150);
+  grClustersLocXZ->SetMinimum(200);
+  grClustersLocXZ->SetMaximum(250);
+  grTracksLocXZ->Draw("p");
+
 
   TCanvas *c3D = new TCanvas();
   grClusters3D->Draw("ap");

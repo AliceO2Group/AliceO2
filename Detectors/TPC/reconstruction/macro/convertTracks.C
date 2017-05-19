@@ -7,6 +7,8 @@
 #include "TTree.h"
 #include "TChain.h"
 #include "TClonesArray.h"
+#include "TSystem.h"
+
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCSimulation/Cluster.h"
@@ -54,7 +56,7 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString chere
   //TClonesArray *arrTracksPtr = new TClonesArray("TrackTPC");
   //TClonesArray &arrTracks = *arrTracksPtr;
   EventHeader eventHeader;
-  eventHeader.run = 0;
+  eventHeader.run = TString(gSystem->Getenv("RUN_NUMBER")).Atoi();
   eventHeader.cherenkovValue = 0;
 
   tout.Branch("header", &eventHeader, "run/I:cherenkovValue/F");
@@ -85,9 +87,10 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString chere
     printf("Event: %d, Number of tracks: %d, %zu\n", nEvents, numTracks, count);
 
     // ---| set event information |---------------------------------------------
-    eventHeader.run = 12345;
     if (istr.is_open()) {
-      istr >> eventHeader.cherenkovValue;
+      float value=0.f;
+      istr >> value;
+      eventHeader.cherenkovValue = TMath::Abs(value);
     }
 
     // ---| read cluster tree |-------------------------------------------------
