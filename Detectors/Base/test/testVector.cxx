@@ -1,17 +1,17 @@
-/// \file testContVec.cxx
-/// \brief This task tests some features of the ContVec class (vector-like container for copyable objects)
+/// \file testVector.cxx
+/// \brief This task tests some features of the Vector class (vector-like container for copyable objects)
 /// \author Ruben Shahoyan, ruben.shahoyan@cern.ch
 
-//#define RUN_CONTVEC_TEST_AS_ROOT_MACRO // uncomment this to run as standalone root macro, e.g. root -b -q testContVec.cxx+
+//#define RUN_VECTOR_TEST_AS_ROOT_MACRO // uncomment this to run as standalone root macro, e.g. root -b -q testVector.cxx+
 
-#ifndef RUN_CONTVEC_TEST_AS_ROOT_MACRO
-#define BOOST_TEST_MODULE Test ContVec
+#ifndef RUN_VECTOR_TEST_AS_ROOT_MACRO
+#define BOOST_TEST_MODULE Test Vector
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #endif
 
-#include "DetectorsBase/ContVec.h"
+#include "DetectorsBase/Vector.h"
 #include "DetectorsBase/Track.h"
 #include <TFile.h>
 #include <TTree.h>
@@ -22,27 +22,28 @@
 #include <iostream>
 #include <fstream>
 
-void  writeToBinFile(const char* ptr, int nbytes, const char* fname="containerTest.bin");
-char* readFromBinFile(int& nread, const char* fname="containerTest.bin");
-
 using namespace o2::Base::Track;
 using namespace o2::Base;
 using namespace std;
+using myCont_t = Vector<o2::Base::Track::TrackPar,int>;
 
-using myCont_t = ContVec<o2::Base::Track::TrackPar,int>;
+
+void  writeToBinFile(const char* ptr, int nbytes, const char* fname="containerTest.bin");
+unique_ptr<char[]> readFromBinFile(int& nread, const char* fname="containerTest.bin");
+
 
 bool compareTracks(const TrackPar* tr0, const TrackPar* tr1);
 bool compareContainers(const myCont_t& cont0, const myCont_t& cont1, string msg);
-bool testContVec(bool cleanTmp=true);
+bool testVector(bool cleanTmp=true);
 
-#ifndef RUN_CONTVEC_TEST_AS_ROOT_MACRO
-BOOST_AUTO_TEST_CASE(ContVec_test)
+#ifndef RUN_VECTOR_TEST_AS_ROOT_MACRO
+BOOST_AUTO_TEST_CASE(Vector_test)
 {
-  BOOST_CHECK(testContVec());
+  BOOST_CHECK(testVector());
 }
 #endif
 
-bool testContVec(bool cleanTmp)
+bool testVector(bool cleanTmp)
 {
   array<float,5> arp={0.,0.,0.1,0.1,1};
 
@@ -71,16 +72,14 @@ bool testContVec(bool cleanTmp)
   // store container in a root file as single object
   string outRoot={"contobj.root"};
 
-  TFile* flout = TFile::Open(outRoot.data(),"recreate");
+  auto flout = make_unique<TFile>(outRoot.data(),"recreate");
   cnt.Write("cntw");
   flout->Close();
-  delete flout;
   //
   // read back
-  TFile* flin = TFile::Open(outRoot.data());
+  auto flin = make_unique<TFile>(outRoot.data());
   auto cntroot = reinterpret_cast<myCont_t*>(flin->Get("cntw"));
   flin->Close();
-  delete flin;
   //
   //***********************//
   //***********************//
@@ -93,19 +92,18 @@ bool testContVec(bool cleanTmp)
   // Test transfer of raw pointers, makes sense only for plain data objects
   //
   int nb = 0;
-  char* pntr = 0;
   string outBin={"cont.bin"};
   // Write to bin file the raw pointer preserving the original object
   writeToBinFile(cnt.getPtr(),cnt.sizeInBytes(),outBin.data());
   //
-  // Read: recreate containers from raw pointer
-  pntr = readFromBinFile(nb,outBin.data());
+  // Read: recreate containers from buffer pointer
+  auto pntr = readFromBinFile(nb,outBin.data());
   //  
-  // "false" indicates that the pntr is currently not managed, so that the new container does not need
-  // to create new buffer but just take ownership of the buffer pointed by pntr
+  // passing unique_ptr to constructor means that the new container will takes ownership of the buffer
+  // managed by the pointer
   // 
   // nb is passed just for consistency check
-  myCont_t cntb0(pntr,false,nb); 
+  myCont_t cntb0(pntr,nb); 
 
   //***********************//
   //***********************//
@@ -113,22 +111,21 @@ bool testContVec(bool cleanTmp)
   res = compareContainers(cnt, cntb0,"using external raw pointer");  // compare with original
   if (cleanTmp) gSystem->Unlink(outBin.data());
   if (!res) return res;
-
   
   // Write to bin file the raw pointer resetting the original object
   nb = cntroot->sizeInBytes();
-  unique_ptr<char[]> tmpPtr( cntroot->release() ); // this will reset cntroot
-  writeToBinFile(tmpPtr.get(),nb, outBin.data());
-  delete[] tmpPtr.release(); // just to dispose unnecessary buffer
+  pntr = std::move(cntroot->release());      // this will reset cntroot
+  writeToBinFile(pntr.get(),nb, outBin.data());
+  pntr.reset(nullptr);
   //
   // Read: recreate containers from raw pointer
-  tmpPtr.reset( readFromBinFile(nb,outBin.data()) );
+  pntr = readFromBinFile(nb,outBin.data());
   //  
-  // "true" indicates that the raw pointer is currently managed, so that the new container must 
-  // create new buffer and copy the content
+  // when raw pointer is passed, constructor assumes that it is currently owned by other object,
+  // so that the new container must create new buffer and copy the content
   // -1 (default) indicates no request for buffer size consistency check
-  myCont_t cntb1(tmpPtr.get(),true,-1);
-  delete[] tmpPtr.release(); // just to dispose unnecessary buffer
+  myCont_t cntb1(pntr.get(),-1);
+  pntr.reset(nullptr);
 
   //***********************//
   //***********************//
@@ -136,7 +133,6 @@ bool testContVec(bool cleanTmp)
   res = compareContainers(cnt, cntb1,"copy from raw pointer");  // compare with original
   if (cleanTmp) gSystem->Unlink(outBin.data());
   if (!res) return res;
-  
   
   //======================================================================
   // Test output to TTree
@@ -146,38 +142,38 @@ bool testContVec(bool cleanTmp)
   //
   string outTree={"contTree.root"};
   
-  TFile* fltree = TFile::Open(outTree.data(),"recreate");
-  TTree* tree = new TTree("tstTree","testTree");
+  auto fltree = make_unique<TFile>(outTree.data(),"recreate");
+  auto tree = make_unique<TTree>("tstTree","testTree");
   for (auto j=0;j<cnt.size();j++) {
     auto trc = cnt[j];
     trc->PropagateParamTo( trc->GetX()+j%5 ,b);
   }
   for (auto i=0;i<5;i++) {
     // modifiy slightly the tracks to simulate new event
-    cnt.AddToTree(tree,"Tracks");
+    cnt.AddToTree(tree.get(),"Tracks");
     tree->Fill();
     //
   }
   tree->Write();
-  delete tree;
+  tree.reset(nullptr);
   fltree->Close();
-  delete fltree;
+  fltree.reset(nullptr);
   //
   /// read back the tree
   //
-  fltree = TFile::Open(outTree.data());
-  tree = reinterpret_cast<TTree*>( fltree->Get("tstTree") );
+  fltree = make_unique<TFile>(outTree.data());
+  tree.reset( reinterpret_cast<TTree*>(fltree->Get("tstTree")) );
   int nent = tree->GetEntries();
-  vector<o2::Base::Track::TrackPar> *vecIn = 0;
+  vector<o2::Base::Track::TrackPar> *vecIn = nullptr;
   tree->SetBranchAddress("Tracks",&vecIn);
   tree->GetEntry(nent-1);
   cntb1.clear();
   for (size_t i=0;i<vecIn->size();i++) {
     cntb1.push_back( (*vecIn)[i] );
   }
-  delete tree;
+  tree.reset(nullptr);
   fltree->Close();
-  delete fltree;
+  fltree.reset(nullptr);
   //
   //***********************//
   //***********************//
@@ -199,17 +195,17 @@ void  writeToBinFile(const char* ptr, int nbytes, const char* fname)
 }
 
 //____________________________________________
-char* readFromBinFile(int &nread, const char* fname)
+unique_ptr<char[]> readFromBinFile(int &nread, const char* fname)
 {
   // read char buffer from binary file
   nread = 0;
   ifstream file(fname, ios::in|ios::binary|ios::ate);
   nread = (int)file.tellg();
-  unique_ptr<char[]> buff(new char[nread]);
+  auto buff = make_unique<char[]>(nread);
   file.seekg (0, ios::beg);
   file.read(buff.get(),nread);
   file.close();
-  return buff.release();
+  return buff;
 }
 
 //____________________________________________

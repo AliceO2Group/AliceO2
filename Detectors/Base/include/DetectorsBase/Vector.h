@@ -1,5 +1,5 @@
-#ifndef O2_BASE_CONTVEC_H
-#define O2_BASE_CONTVEC_H
+#ifndef O2_BASE_VECTOR_H
+#define O2_BASE_VECTOR_H
 
 #include <TTree.h>
 #include <TBranch.h>
@@ -17,13 +17,13 @@
 namespace o2 {
 namespace Base {
 
-using sizeType = int;
-
  template <class T, class H>
-  class ContVec: public TObject {
-
+   class Vector: public TObject {
+   
  public:
-  
+   
+   using sizeType = std::int64_t;
+   
   struct Header {
     H         userInfo;         // user assigned data info
     int       expandPolicy;     // user assigned policy: n>0 -> new=old+n, n<=0 -> new=2*(old+n)
@@ -31,13 +31,19 @@ using sizeType = int;
     sizeType  nObjects;         // number of objects stored
   };
   // main constructor
-  ContVec(sizeType iniSize=0, int expPol=-100);
+  Vector(sizeType iniSize=0, int expPol=-100);
+  
+  // construct from received raw pointer on the existing buffer (create a copy of the buffer, ptr ownership unchanged)
+  Vector(const char* ptr, sizeType nbytes=-1) : mPtr(nullptr) {adopt(ptr,nbytes);}
 
-  // construct from received raw pointer on the existing buffer, see recreate comments
-  ContVec(char* rawptr, bool copy, sizeType nbytes=-1)  : mPtr(nullptr) {recreate(rawptr,copy,nbytes);}
+  // construct from received pointer on the existing buffer (assuming ownership over the buffer)
+  Vector(std::unique_ptr<char[]>& ptr, sizeType nbytes=-1) : mPtr(nullptr) {adopt(ptr,nbytes);}
+  
+  // recreate buffer copy from received pointer,  ptr ownership unchanged
+  void  adopt(const char* ptr, sizeType nbytes=-1);
 
-  // recreate container from received raw pointer on the existing buffer
-  void  recreate(char* rawptr, bool copy, sizeType nbytes=-1);
+  // recreate buffer from received pointer by assuming its ownership
+  void  adopt(std::unique_ptr<char[]>& ptr, sizeType nbytes=-1);
   
   /// set/get data info (user defined)
   void  setUserInfo(const H& val);
@@ -83,8 +89,8 @@ using sizeType = int;
   /// get raw pointer on the buffer, can be sent to another process
   char*               getPtr()    const {return mPtr.get();}
 
-  /// returns a buffer pointer (releases the ownership) and reset the container
-  char*               release();
+  /// returns the buffer pointer (releases the ownership) and reset the container
+  std::unique_ptr<char[]> release();
 
   /// return total size in bytes
   sizeType            sizeInBytes() const {return getHeader()->sizeInBytes;}
@@ -100,26 +106,26 @@ using sizeType = int;
 
   /// return next free slot, for "new with placement" creation, not LValue
   T*                  nextFreeSlot();
-      
+  
  protected:
 
   // offset of data wrt buffer start: account for Header + padding after Header block to respect T alignment
   constexpr sizeType dataOffset() const {return sizeof(Header) + sizeof(Header)%alignof(T);};
-  // for some reason using static constexpr leads to problem in linking the testContVec
+  // for some reason using static constexpr leads to problem in linking the testVector
   //  static constexpr sizeType dataOffset() = sizeof(Header) + sizeof(Header)%alignof(T);
 
   
   std::unique_ptr<char[]> mPtr;                //! pointer on continuos block containing full object data
-  std::unique_ptr<std::vector<T>> mVecForTree; //! vector for writing objects into the tree
+  std::vector<T> mVecForTree;                  //! vector for writing objects into the tree
   
-  ClassDef(ContVec,1)
+  ClassDef(Vector,1)
 };
 
 
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  ContVec<T,H>::ContVec(sizeType iniSize, int expPol) : mPtr(nullptr), mVecForTree(nullptr)
+  Vector<T,H>::Vector(sizeType iniSize, int expPol) : mPtr(nullptr), mVecForTree()
   {
     /**
      * Creates container for objects of 
@@ -137,23 +143,57 @@ template <class T, class H>
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  void ContVec<T,H>::recreate(char* rawPtr, bool copy, sizeType nbytes)
+  void Vector<T,H>::adopt(const char* ptr, sizeType nbytes)
 {
   /**
    * recreates container buffer from provided raw pointer 
-   * rawPtr: pointer extracted from the container of simular type using e.g. getPtr() or release() methods
+   * ptr: pointer extracted from the container of simular type and owned by it, using e.g. getPtr() method.
    * nbytes: expected size of the buffer in bytes, used for error check
-   * copy  : if true, create copy of the array (this is must if the new rawPtr is managed by other object, 
-   *         e.g. was obtained via ContVec::getPtr())
-   *         if false, then the new object will assume ownership over rawPtr
    */
   
-  {
-    std::unique_ptr<char[]> dum(mPtr.release()); // destroy old buffer if any (== delete[] mPtr.release())
+  try {
+    if (ptr==nullptr) {
+      throw "invalid arguments:";
+    }
+  } catch(const char* msg) {
+    LOG(FATAL) << msg << " ptr is null" << FairLogger::endl;
+  }
+  try {
+    if (nbytes>=0 && (nbytes<dataOffset())) {
+      throw "invalid arguments:";
+    }
+  } catch(const char* msg) {
+    LOG(FATAL) << msg <<  "wrong size " << nbytes <<  " at least " << dataOffset() << " expected" << FairLogger::endl;
   }
   
+  const sizeType nbDecoded = (reinterpret_cast<const Header*>(ptr))->sizeInBytes;
   try {
-    if (rawPtr==nullptr) {
+    if (nbytes>=0 && (nbytes!=nbDecoded)) {
+      throw "invalid arguments:";
+    }
+  } catch(const char* msg) {
+    LOG(FATAL) << msg <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded << FairLogger::endl;
+    exit(1);      
+  }
+
+  // create a copy of the buffer
+  mPtr = std::make_unique<char[]>(nbDecoded);
+  std::copy(ptr,ptr+nbDecoded,mPtr.get());
+  
+}
+
+//-------------------------------------------------------------------
+template <class T, class H>
+  void Vector<T,H>::adopt(std::unique_ptr<char[]>& ptr, sizeType nbytes)
+{
+  /**
+   * recreates container buffer from provided pointer assuming its ownership
+   * ptr:    pointer extracted from the container of simular type using e.g. release() methods
+   * nbytes: expected size of the buffer in bytes, used for error check
+   */
+  
+  try {
+    if (!ptr) {
       throw "invalid arguments:";
     }
   } catch(const char* msg) {
@@ -167,7 +207,7 @@ template <class T, class H>
     LOG(FATAL) << msg <<  "wrong size " << nbytes <<  " at least " << dataOffset() << " expected" << FairLogger::endl;
   }
   
-  sizeType nbDecoded = (reinterpret_cast<Header*>(rawPtr))->sizeInBytes;
+  sizeType nbDecoded = (reinterpret_cast<Header*>(ptr.get()))->sizeInBytes;
   try {
     if (nbytes>=0 && (nbytes!=nbDecoded)) {
       throw "invalid arguments:";
@@ -176,20 +216,14 @@ template <class T, class H>
     LOG(FATAL) << msg <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded << FairLogger::endl;
     exit(1);      
   }
-  
-  if (copy) {
-    mPtr.reset(new char[nbDecoded]());
-    std::copy(rawPtr,rawPtr+nbDecoded,mPtr.get());
-  }
-  else {
-    mPtr.reset(rawPtr);
-  }
+
+  mPtr = std::move(ptr); // transfer ownership
   
 }
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  void ContVec<T,H>::reserve(sizeType n)
+  void Vector<T,H>::reserve(sizeType n)
 {
   /**
    * Resize container to size n. 
@@ -198,7 +232,7 @@ template <class T, class H>
   if (n<0) n = 0;
   sizeType bookSize = dataOffset() + n*sizeof(T);
   //  auto tmpPtr = std::move(mPtr);
-  std::unique_ptr<char[]> tmpPtr(new char[bookSize]());
+  std::unique_ptr<char[]> tmpPtr = std::make_unique<char[]>(bookSize);
   if (mPtr!=nullptr) std::copy(mPtr.get(), mPtr.get()+std::min(bookSize,sizeInBytes()), tmpPtr.get());  
   mPtr.swap(tmpPtr);
   if (n<getHeader()->nObjects) getHeader()->nObjects = n;
@@ -207,7 +241,7 @@ template <class T, class H>
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  void ContVec<T,H>::setUserInfo(const H& v)
+  void Vector<T,H>::setUserInfo(const H& v)
 {
   /**
    * Sets data identification field
@@ -218,19 +252,21 @@ template <class T, class H>
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  void ContVec<T,H>::expand()
+  void Vector<T,H>::expand()
 {
   /**
    * expand container according to expansion policy
    */
   auto oldSize = capacity();
-  auto newSize = getExpandPolicy()<0 ? 2*std::max(oldSize-getExpandPolicy(),1) : oldSize+getExpandPolicy();
+  auto newSize = getExpandPolicy()<0 ?
+    2*std::max(oldSize-getExpandPolicy(),static_cast<sizeType>(1)) :
+    oldSize+getExpandPolicy();
   reserve(newSize);
 }
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  void ContVec<T,H>::clear(bool calldestructor)
+  void Vector<T,H>::clear(bool calldestructor)
 {
   /**
    * clear content w/o changing capacity, if requested, explicitly delete objects
@@ -247,7 +283,7 @@ template <class T, class H>
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  inline T* ContVec<T,H>::nextFreeSlot()
+  inline T* Vector<T,H>::nextFreeSlot()
 {
   /**
    * Return pointer on next free slot where new object will be placed.
@@ -259,7 +295,7 @@ template <class T, class H>
 
 //-------------------------------------------------------------------
 template <class T, class H>
-  T* ContVec<T,H>::push_back(const T& obj)
+  T* Vector<T,H>::push_back(const T& obj)
 {
   /**
    * Create copy of the object in the end of the container
@@ -274,7 +310,7 @@ template <class T, class H>
 
 //-------------------------------------------------------------------
 template<class T, class H> template <typename ...Args>
-  T* ContVec<T,H>::emplace_back(Args&&... args) 
+  T* Vector<T,H>::emplace_back(Args&&... args) 
 {
   /**
    * Create copy of the object in the end of the container
@@ -288,23 +324,23 @@ template<class T, class H> template <typename ...Args>
 
 //-------------------------------------------------------------------
 template<class T, class H>
-  char* ContVec<T,H>::release()
+  std::unique_ptr<char[]> Vector<T,H>::release()
 {
   /**
    * returns a buffer pointer (releasing the ownership) and reset the container
    * 
    */
-  char* ptr = mPtr.release();
+  auto ptr = std::move(mPtr);
   reserve(0);
-  setUserInfo( reinterpret_cast<Header*>(ptr)->userInfo );
-  setExpandPolicy( reinterpret_cast<Header*>(ptr)->expandPolicy );
+  setUserInfo( reinterpret_cast<Header*>(ptr.get())->userInfo );
+  setExpandPolicy( reinterpret_cast<Header*>(ptr.get())->expandPolicy );
   return ptr;
 }
 
 
 //-------------------------------------------------------------------
 template<class T, class H>
-  void ContVec<T,H>::Streamer(TBuffer &b)
+  void Vector<T,H>::Streamer(TBuffer &b)
 {
    if (b.IsReading()) {
      Int_t n;
@@ -321,7 +357,7 @@ template<class T, class H>
 
 //-------------------------------------------------------------------
 template<class T, class H>
-  void ContVec<T,H>::AddToTree(TTree* tree, const std::string& brName)
+  void Vector<T,H>::AddToTree(TTree* tree, const std::string& brName)
 {
   /**
    * Add T-class objects of the container to std::vector<T> branch (create if needed) in the tree.
@@ -337,22 +373,17 @@ template<class T, class H>
     LOG(FATAL) << msg << " tree: " << tree << " branchName: " << brName << FairLogger::endl;
   }
 
-  if (!mVecForTree) {
-    mVecForTree.reset( new  std::vector<T> );
-  }
-  std::vector<T>* vp = mVecForTree.get();
-
   TBranch* br = tree->GetBranch(brName.data());
   if (!br) { // need to create branch
-    br = tree->Branch(brName.data(), vp);
+    br = tree->Branch(brName.data(), &mVecForTree);
     //    std::cout << "Added branch "<< brName << " to tree " << tree->GetName() << std::endl;
   }
   
   // fill objects
-  vp->clear();
+  mVecForTree.clear();
   auto n = size();
   for (auto i=0;i<n;i++) {
-    vp->push_back( *(*this)[i] );
+    mVecForTree.push_back( *(*this)[i] );
   } 
 }
 
