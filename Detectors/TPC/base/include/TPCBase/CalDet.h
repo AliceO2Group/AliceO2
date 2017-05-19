@@ -170,11 +170,11 @@ CalDet<T>::CalDet(PadSubset padSusbset)
       break;
     }
     case PadSubset::Partition: {
-      size = Sector::MaxSector * mapper.getNumberOfPartitions();
+      size = Sector::MAXSECTOR * mapper.getNumberOfPartitions();
       break;
     }
     case PadSubset::Region: {
-      size = Sector::MaxSector * mapper.getNumberOfPadRegions();
+      size = Sector::MAXSECTOR * mapper.getNumberOfPadRegions();
       break;
     }
   }

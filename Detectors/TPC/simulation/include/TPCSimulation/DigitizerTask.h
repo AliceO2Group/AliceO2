@@ -10,6 +10,8 @@
 #include "FairTask.h"
 #include "FairLogger.h"
 #include "TPCSimulation/Digitizer.h"
+#include "TPCBase/Sector.h"
+
 #include <TClonesArray.h>
 
 namespace o2 {
@@ -69,7 +71,7 @@ class DigitizerTask : public FairTask{
     bool                mIsContinuousReadout; ///< Switch for continuous readout
     int                 mHitSector=-1; ///< which sector to treat
 
-    TClonesArray        *mSectorHitsArray[18];
+    TClonesArray        *mSectorHitsArray[Sector::MAXSECTOR];
 
     ClassDefOverride(DigitizerTask, 1);
 };
