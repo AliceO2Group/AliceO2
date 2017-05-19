@@ -53,20 +53,20 @@ class RawReader {
     };
 
     /// Data struct
-    struct eventData {
+    struct EventInfo {
       std::string path;     ///< Path to data file
       int posInFile;        ///< Position in data file
       int region;           ///< Region of this data
       int link;             ///< FEC of this data
-      Header headerInfo;    ///< Header of this evend
+      Header header;    ///< Header of this evend
 
       /// Default constructor
-      eventData() : path(""), posInFile(-1), region(-1), link(-1), headerInfo() {};
+      EventInfo() : path(""), posInFile(-1), region(-1), link(-1), header() {};
 
       /// Copy constructor
-      eventData(const eventData& other) = default;
+      EventInfo(const EventInfo& other) = default;
       //: path(e.path), posInFile(e.posInFile), region(e.region),
-      //  link(e.link), headerInfo(e.headerInfo) {};
+      //  link(e.link), header(e.header) {};
     };
 
     /// Default constructor
@@ -146,10 +146,12 @@ class RawReader {
     void setApplyChannelMask(bool val) { mApplyChannelMask = val; };
     void setChannelMask(std::shared_ptr<CalDet<bool>> channelMask) { mChannelMask = channelMask; };     
 
+    std::shared_ptr<std::vector<EventInfo>> getEventInfo(uint64_t event) const;
+
   private:
 
-    bool decodeRawGBTFrames(eventData dataHeader);
-    bool decodePreprocessedData(eventData dataHeader);
+    bool decodeRawGBTFrames(EventInfo eventInfo);
+    bool decodePreprocessedData(EventInfo eventInfo);
 
     int mRegion;                        ///< Region of the data
     int mLink;                          ///< FEC of the data
@@ -157,7 +159,7 @@ class RawReader {
     bool mApplyChannelMask;             ///< apply channel mask
     int64_t mLastEvent;                 ///< Number of last loaded event
     std::array<uint64_t,5> mTimestampOfFirstData;   ///< Time stamp of first decoded ADC value, individually for each half sampa
-    std::map<uint64_t, std::shared_ptr<std::vector<eventData>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
+    std::map<uint64_t, std::shared_ptr<std::vector<EventInfo>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
     std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>> mData;                      ///< ADC values of last loaded Event
     std::map<PadPos,std::shared_ptr<std::vector<uint16_t>>>::iterator mDataIterator;    ///< Iterator to last requested data
     std::array<short,5> mSyncPos;       ///< positions of the sync pattern (for readout mode 3)
@@ -166,10 +168,20 @@ class RawReader {
 };
 
 inline
+std::shared_ptr<std::vector<RawReader::EventInfo>> RawReader::getEventInfo(uint64_t event) const {
+  auto evIterator = mEvents.find(event);
+  if (evIterator == mEvents.end()) {
+    std::shared_ptr<std::vector<EventInfo>> emptyVecPtr(new std::vector<EventInfo>);
+    return emptyVecPtr;
+  }
+  return evIterator->second;
+};
+
+inline
 std::shared_ptr<std::vector<uint16_t>> RawReader::getData(const PadPos& padPos) {
   mDataIterator = mData.find(padPos);
   if (mDataIterator == mData.end()) {
-    std::shared_ptr<std::vector<uint16_t>> emptyVecPtr(new std::vector<uint16_t>{});
+    std::shared_ptr<std::vector<uint16_t>> emptyVecPtr(new std::vector<uint16_t>);
     return emptyVecPtr;
   }
   return mDataIterator->second; 
