@@ -141,7 +141,8 @@ void addCluster(std::vector<ClusterData> &data, Cluster& cluster)
   const PadCentre& padCentre  = mapper.padCentre(pad);
   const float localY          = padCentre.getY() - (padY - padNumber - 0.5) * region.getPadWidth();
   const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
-        float zPosition         = TPCLENGTH - cluster.getTimeMean()*ZBINWIDTH*DRIFTV;
+        float zPosition         = cluster.getTimeMean()*ZBINWIDTH*DRIFTV;
+        //float zPosition         = TPCLENGTH - cluster.getTimeMean()*ZBINWIDTH*DRIFTV;
 
   Point2D<float> clusterPos(padCentre.getX(), localY); 
 
