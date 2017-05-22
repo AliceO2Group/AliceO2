@@ -15,8 +15,16 @@
 #include <iomanip>
 #include "aliceHLTwrapper/MessageFormat.h"
 #include "Headers/DataHeader.h"
+#include "Headers/HeartbeatFrame.h"
 
 namespace o2::AliceHLT {
+  template<typename... Targs>
+  void hexDump(Targs... Fargs) {
+    //o2::Header::hexDump(Fargs...);
+  }
+
+  using DataHeader = o2::Header::DataHeader;
+
   BOOST_AUTO_TEST_CASE(test_createMessagesModeMultiPart)
   {
     std::cout << "Testing kOutputModeMultiPart" << std::endl;
@@ -36,9 +44,9 @@ namespace o2::AliceHLT {
     unsigned totalPayloadSize = 0;
     for (auto & desc : dataDescriptors) {
       totalPayloadSize += desc.fSize;
-      o2::Header::hexDump("HLT data descriptor", &desc, sizeof(desc));
+      hexDump("HLT data descriptor", &desc, sizeof(desc));
       if (!desc.fPtr) continue;
-      o2::Header::hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
+      hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
     }
 
     // testing without event info
@@ -46,7 +54,7 @@ namespace o2::AliceHLT {
     BOOST_REQUIRE(outputs.size() == dataDescriptors.size());
     unsigned dataidx = 0;
     for (auto & output : outputs) {
-      o2::Header::hexDump("Output block (w/o event info)", output.mP, output.mSize);
+      hexDump("Output block (w/o event info)", output.mP, output.mSize);
       const char* data = (char*)output.mP + sizeof(AliHLTComponentBlockData);
       BOOST_CHECK(dataFields[dataidx++] == data);
     }
@@ -61,7 +69,7 @@ namespace o2::AliceHLT {
       std::string debugMessage = "Output block (with";
       debugMessage += (dataidx == 0?"":"out");
       debugMessage += " event info)";
-      o2::Header::hexDump(debugMessage.c_str(), output.mP, output.mSize);
+      hexDump(debugMessage.c_str(), output.mP, output.mSize);
       const char* data = (char*)output.mP + sizeof(AliHLTComponentBlockData) + (dataidx == 0?sizeof(AliHLTComponentEventData):0);
       BOOST_CHECK(dataFields[dataidx++] == data);
     }
@@ -86,22 +94,22 @@ namespace o2::AliceHLT {
     unsigned totalPayloadSize = 0;
     for (auto & desc : dataDescriptors) {
       totalPayloadSize += desc.fSize;
-      o2::Header::hexDump("HLT data descriptor", &desc, sizeof(desc));
+      hexDump("HLT data descriptor", &desc, sizeof(desc));
       if (!desc.fPtr) continue;
-      o2::Header::hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
+      hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
     }
 
     // testing without event info
     auto outputs = handler.createMessages(&dataDescriptors[0], dataDescriptors.size(), totalPayloadSize);
     BOOST_REQUIRE(outputs.size() == 1);
-    o2::Header::hexDump("Sequential collection", outputs[0].mP, outputs[0].mSize);
+    hexDump("Sequential collection", outputs[0].mP, outputs[0].mSize);
     unsigned capacity = outputs[0].mSize;
     BOOST_REQUIRE(capacity >= sizeof(AliHLTComponentBlockData));
     const AliHLTComponentBlockData* desc = reinterpret_cast<const AliHLTComponentBlockData*>(outputs[0].mP);
     for (auto & dataField : dataFields) {
       BOOST_REQUIRE(desc->fSize + sizeof(AliHLTComponentBlockData) <= capacity);
       const char* data = (const char*)desc + sizeof(AliHLTComponentBlockData);
-      o2::Header::hexDump("Output block", data, desc->fSize);
+      hexDump("Output block", data, desc->fSize);
       BOOST_CHECK(dataField == data);
       capacity -= desc->fSize + sizeof(AliHLTComponentBlockData);
       data += desc->fSize;
@@ -128,9 +136,9 @@ namespace o2::AliceHLT {
     unsigned totalPayloadSize = 0;
     for (auto & desc : dataDescriptors) {
       totalPayloadSize += desc.fSize;
-      o2::Header::hexDump("HLT data descriptor", &desc, sizeof(desc));
+      hexDump("HLT data descriptor", &desc, sizeof(desc));
       if (!desc.fPtr) continue;
-      o2::Header::hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
+      hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
     }
 
     // testing without event info
@@ -139,11 +147,11 @@ namespace o2::AliceHLT {
     unsigned dataidx = 0;
     for (auto & output : outputs) {
       if (dataidx % 2 == 0) {
-        o2::Header::hexDump("Header block", output.mP, output.mSize);
-        BOOST_CHECK(output.mSize == sizeof(o2::Header::DataHeader));
+        hexDump("Header block", output.mP, output.mSize);
+        BOOST_CHECK(output.mSize == sizeof(DataHeader));
       } else {
-        o2::Header::hexDump("Payload block", output.mP, output.mSize);
-        o2::Header::hexDump("  Data string", dataFields[dataidx/2].c_str(), dataFields[dataidx/2].size() + 1);
+        hexDump("Payload block", output.mP, output.mSize);
+        hexDump("  Data string", dataFields[dataidx/2].c_str(), dataFields[dataidx/2].size() + 1);
         const char* data = (char*)output.mP;
         BOOST_CHECK(dataFields[dataidx/2] == data);
       }
@@ -158,11 +166,103 @@ namespace o2::AliceHLT {
     const std::vector<BlockDescriptor>& descriptors = inputHandler.getBlockDescriptors();
     dataidx = 0;
     for (auto & desc : descriptors) {
-      o2::Header::hexDump("Readback: HLT data descriptor", &desc, sizeof(desc));
+      hexDump("Readback: HLT data descriptor", &desc, sizeof(desc));
       if (!desc.fPtr) continue;
       const char* data = (char*)desc.fPtr + desc.fOffset;
-      o2::Header::hexDump("  data payload", data, desc.fSize);
+      hexDump("  data payload", data, desc.fSize);
       BOOST_CHECK(dataFields[dataidx++] == data);
+    }
+  }
+
+  BOOST_AUTO_TEST_CASE(test_createHeartbeatFrame)
+  {
+    using HeartbeatFrameEnvelope = o2::Header::HeartbeatFrameEnvelope;
+    using HeartbeatHeader = o2::Header::HeartbeatHeader;
+    using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
+    using HeartbeatStatistics = o2::Header::HeartbeatStatistics;
+    std::cout << "Testing HearbeatFrame propagation" << std::endl;
+    MessageFormat handler;
+    handler.setOutputMode(MessageFormat::kOutputModeO2);
+
+    // data is wrapped into heartbeat frame if the
+    // HeartbeatFrameEnvelope header is found in the incoming
+    // header stack
+    HeartbeatStatistics hbfPayload;
+    DataHeader dh;
+    dh.dataDescription = o2::Header::gDataDescriptionHeartbeatFrame;
+    dh.dataOrigin = o2::Header::DataOrigin("TEST");
+    dh.subSpecification = 0;
+    dh.payloadSize = sizeof(hbfPayload);
+
+    // create incoming header stack
+    HeartbeatFrameEnvelope hbfHeader;
+    o2::Header::Stack headerMessage(dh, hbfHeader);
+
+    std::vector<MessageFormat::BufferDesc_t> incomingMessages;
+    incomingMessages.emplace_back((MessageFormat::BufferDesc_t::PtrT)headerMessage.data(), headerMessage.size());
+    incomingMessages.emplace_back((MessageFormat::BufferDesc_t::PtrT)&hbfPayload, sizeof(hbfPayload));
+    for (auto& imsg : incomingMessages) {
+      hexDump("Incoming message:", imsg.mP, imsg.mSize);
+    }
+    handler.addMessages(incomingMessages);
+
+    std::vector<std::string> dataFields = {
+      "data1",
+      "anotherDataSet"
+    };
+
+    std::vector<BlockDescriptor> dataDescriptors;
+    for (auto & dataField : dataFields) {
+      dataDescriptors.emplace_back((void*)dataField.c_str(), dataField.size() + 1, AliHLTComponentDataTypeInitializer("TESTDATA", "TEST"), 0);
+    }
+
+    unsigned totalPayloadSize = 0;
+    for (auto & desc : dataDescriptors) {
+      totalPayloadSize += desc.fSize;
+      hexDump("HLT data descriptor", &desc, sizeof(desc));
+      if (!desc.fPtr) continue;
+      hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
+    }
+
+    // testing without event info
+    std::cout << "... creating messages" << std::endl;
+    auto outputs = handler.createMessages(&dataDescriptors[0], dataDescriptors.size(), totalPayloadSize);
+    std::cout << "... checking messages" << std::endl;
+    BOOST_REQUIRE(outputs.size() % 2 == 0);
+    unsigned dataidx = 0;
+    unsigned datafieldidx = 0;
+    for (auto & output : outputs) {
+      if (dataidx % 2 == 0) {
+        hexDump("Header block", output.mP, output.mSize);
+        BOOST_CHECK(output.mSize >= sizeof(o2::Header::DataHeader));
+      } else {
+        hexDump("Payload block", output.mP, output.mSize);
+        hexDump("  Data string", dataFields[datafieldidx].c_str(), dataFields[datafieldidx].size() + 1);
+        if (dataidx >= 2) {
+          const HeartbeatHeader* hbh = reinterpret_cast<const HeartbeatHeader*>(output.mP);
+          const HeartbeatTrailer* hbt = reinterpret_cast<const HeartbeatTrailer*>(output.mP + output.mSize - sizeof(HeartbeatTrailer));
+          BOOST_CHECK(hbh->blockType == 1 && hbh->headerLength == 1);
+          BOOST_CHECK(hbt->blockType == 5 && hbt->trailerLength == 1);
+          const char* data = (char*)(output.mP + sizeof(HeartbeatHeader));
+          BOOST_CHECK(dataFields[datafieldidx] == data);
+          ++datafieldidx;
+        }
+      }
+      ++dataidx;
+    }
+
+    std::cout << "... reading back messages" << std::endl;
+    MessageFormat readhandler;
+    readhandler.addMessages(outputs);
+    const auto readbackdescriptors = readhandler.getBlockDescriptors();
+    BOOST_CHECK(readbackdescriptors.size() == dataFields.size());
+    datafieldidx = 0;
+    for (auto readbackdesc : readbackdescriptors) {
+      auto data = reinterpret_cast<const char*>(readbackdesc.fPtr);
+      data += readbackdesc.fOffset;
+      hexDump("Payload block", data, readbackdesc.fSize);
+      BOOST_CHECK(dataFields[datafieldidx] == data);
+      ++datafieldidx;
     }
   }
 }
