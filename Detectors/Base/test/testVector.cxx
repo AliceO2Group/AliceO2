@@ -102,7 +102,7 @@ bool testVector(bool cleanTmp)
   // managed by the pointer
   // 
   // nb is passed just for consistency check
-  myCont_t cntb0(move(pntr),nb); 
+  myCont_t cntb0(move(pntr),nb);
 
   //***********************//
   //***********************//
@@ -149,7 +149,11 @@ bool testVector(bool cleanTmp)
   }
   for (auto i=0;i<5;i++) {
     // modifiy slightly the tracks to simulate new event
-    cnt.AddToTree(tree.get(),"Tracks");
+    try {
+      cnt.AddToTree(tree.get(),"Tracks");
+    } catch ( const std::string msg ) {
+      std::cerr << msg << std::endl;
+    }
     tree->Fill();
     //
   }

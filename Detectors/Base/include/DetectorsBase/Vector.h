@@ -11,6 +11,8 @@
 #include <type_traits>
 #include <stdexcept>
 #include <iostream>
+#include <string>
+#include <sstream>
 #include <FairLogger.h>
 
 
@@ -150,30 +152,25 @@ template <class T, class H>
    * ptr: pointer extracted from the container of simular type and owned by it, using e.g. getPtr() method.
    * nbytes: expected size of the buffer in bytes, used for error check
    */
-  
-  try {
-    if (ptr==nullptr) {
-      throw "invalid arguments:";
-    }
-  } catch(const char* msg) {
-    LOG(FATAL) << msg << " ptr is null" << FairLogger::endl;
+
+  if (ptr==nullptr) {
+    std::ostringstream strErr;
+    strErr << "invalid arguments: ptr is null" << std::endl;
+    throw strErr.str();
   }
-  try {
-    if (nbytes>=0 && (nbytes<dataOffset())) {
-      throw "invalid arguments:";
-    }
-  } catch(const char* msg) {
-    LOG(FATAL) << msg <<  "wrong size " << nbytes <<  " at least " << dataOffset() << " expected" << FairLogger::endl;
+  
+  if (nbytes>=0 && (nbytes<dataOffset())) {
+    std::ostringstream strErr;
+    strErr << "invalid arguments: " << "wrong size " << nbytes <<
+      " at least " << dataOffset() << " expected" << std::endl;
+    throw  strErr.str();
   }
   
   const sizeType nbDecoded = (reinterpret_cast<const Header*>(ptr))->sizeInBytes;
-  try {
-    if (nbytes>=0 && (nbytes!=nbDecoded)) {
-      throw "invalid arguments:";
-    }
-  } catch(const char* msg) {
-    LOG(FATAL) << msg <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded << FairLogger::endl;
-    exit(1);      
+  if (nbytes>=0 && (nbytes!=nbDecoded)) {
+    std::ostringstream strErr;
+    strErr << "invalid arguments: " <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded << std::endl;
+    throw strErr.str();
   }
 
   // create a copy of the buffer
@@ -192,31 +189,26 @@ template <class T, class H>
    * nbytes: expected size of the buffer in bytes, used for error check
    */
   
-  try {
-    if (!ptr) {
-      throw "invalid arguments:";
-    }
-  } catch(const char* msg) {
-    LOG(FATAL) << msg << " ptr is null" << FairLogger::endl;
-  }
-  try {
-    if (nbytes>=0 && (nbytes<dataOffset())) {
-      throw "invalid arguments:";
-    }
-  } catch(const char* msg) {
-    LOG(FATAL) << msg <<  "wrong size " << nbytes <<  " at least " << dataOffset() << " expected" << FairLogger::endl;
-  }
-  
-  sizeType nbDecoded = (reinterpret_cast<Header*>(ptr.get()))->sizeInBytes;
-  try {
-    if (nbytes>=0 && (nbytes!=nbDecoded)) {
-      throw "invalid arguments:";
-    }
-  } catch(const char* msg) {
-    LOG(FATAL) << msg <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded << FairLogger::endl;
-    exit(1);      
+  if (ptr==nullptr) {
+    std::ostringstream strErr;
+    strErr << "invalid arguments: ptr is null" << std::endl;
+    throw strErr.str();
   }
 
+  if (nbytes>=0 && (nbytes<dataOffset())) {
+    std::ostringstream strErr;
+    strErr << "invalid arguments: " << "wrong size " << nbytes <<
+      " at least " << dataOffset() << " expected" << std::endl;
+    throw  strErr.str();
+  }
+
+  sizeType nbDecoded = (reinterpret_cast<Header*>(ptr.get()))->sizeInBytes;
+  if (nbytes>=0 && (nbytes!=nbDecoded)) {
+    std::ostringstream strErr;
+    strErr << "invalid arguments: " <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded << std::endl;
+    throw strErr.str();
+  }
+  
   mPtr = std::move(ptr); // transfer ownership
   
 }
@@ -367,12 +359,10 @@ template<class T, class H>
    *
    */
   
-  try {
-    if (tree==nullptr || !brName.size() ) {
-      throw "invalid arguments:";
-    }
-  } catch(const char* msg) {
-    LOG(FATAL) << msg << " tree: " << tree << " branchName: " << brName << FairLogger::endl;
+  if (tree==nullptr || !brName.size() ) {
+    std::ostringstream strErr;
+    strErr << "invalid arguments:" << " tree: " << tree << " branchName: " << brName << std::endl;
+    throw strErr.str();
   }
 
   TBranch* br = tree->GetBranch(brName.data());
