@@ -5,7 +5,6 @@
 #include <TBranch.h>
 #include <TBranchElement.h>
 #include <TBuffer.h>
-#include <TObject.h>
 #include <memory>
 #include <algorithm>
 #include <type_traits>
@@ -20,7 +19,7 @@ namespace o2 {
 namespace Base {
 
  template <class T, class H>
-   class Vector: public TObject {
+   class Vector {//:public TObject {
    
  public:
    

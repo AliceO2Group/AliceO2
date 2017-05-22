@@ -72,7 +72,7 @@ bool testVector(bool cleanTmp)
   string outRoot={"contobj.root"};
 
   auto flout = make_unique<TFile>(outRoot.data(),"recreate");
-  cnt.Write("cntw");
+  flout->WriteObject(&cnt,"cntw");
   flout->Close();
   //
   // read back
