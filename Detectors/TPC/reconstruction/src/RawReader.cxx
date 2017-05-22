@@ -4,11 +4,13 @@
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
+#include <bitset>
 #include <queue>
 
 #include "TPCReconstruction/RawReader.h"
 #include "TPCReconstruction/GBTFrame.h"
 #include "TPCReconstruction/SyncPatternMonitor.h" 
+#include "TPCReconstruction/AdcClockMonitor.h" 
 #include "TPCBase/Mapper.h"
 
 #include "FairLogger.h" 
@@ -21,6 +23,7 @@ RawReader::RawReader(int region, int link)
   , mLastEvent(-1)
   , mUseRawInMode3(true)
   , mApplyChannelMask(false)
+  , mCheckAdcClock(true)
   , mTimestampOfFirstData({0,0,0,0,0})
   , mEvents()
   , mData()
@@ -291,10 +294,17 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
 
   std::array<SyncPatternMonitor,5> syncMon{
     SyncPatternMonitor(0,0),
-      SyncPatternMonitor(0,1),
-      SyncPatternMonitor(1,0),
-      SyncPatternMonitor(1,1),
-      SyncPatternMonitor(2,0)};
+    SyncPatternMonitor(0,1),
+    SyncPatternMonitor(1,0),
+    SyncPatternMonitor(1,1),
+    SyncPatternMonitor(2,0)};
+  std::array<AdcClockMonitor,3> adcClockMon{
+    AdcClockMonitor(0),
+    AdcClockMonitor(1),
+    AdcClockMonitor(2)};
+  std::array<bool,3> adcClockFound{false, false, false};
+  std::array<uint64_t,3> adcSequence{0,0,0};
+
   std::array<short,5> lastSyncPos;
   std::array<std::queue<uint16_t>,5> adcValues;
   GBTFrame frame; 
@@ -362,6 +372,39 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
           frame.getHalfWord(2,1),
           frame.getHalfWord(2,2),
           frame.getHalfWord(2,3))) mSyncPos[4] = syncMon[4].getPosition();
+
+    if (mCheckAdcClock) {
+      adcSequence[0] = (adcSequence[0] << 4) | (frame.getAdcClock(0) & 0xF);
+      adcSequence[1] = (adcSequence[1] << 4) | (frame.getAdcClock(1) & 0xF);
+      adcSequence[2] = (adcSequence[2] << 4) | (frame.getAdcClock(2) & 0xF);
+//      std::cout << std::bitset<4>(frame.getAdcClock(0)) << "\t" 
+//        << std::bitset<4>(frame.getAdcClock(1)) << "\t"
+//        << std::bitset<4>(frame.getAdcClock(2)) << std::endl;
+
+      bool adcCheckErr0 = adcClockMon[0].addSequence(frame.getAdcClock(0));
+      bool adcCheckErr1 = adcClockMon[1].addSequence(frame.getAdcClock(1));
+      bool adcCheckErr2 = adcClockMon[2].addSequence(frame.getAdcClock(2));
+//      std::cout << adcCheckErr0 << " " << adcCheckErr1 << " " << adcCheckErr2 << std::endl;
+      if (mSyncPos[0] >= 0) adcClockFound[0] = adcClockFound[0] | !adcCheckErr0;
+      if (mSyncPos[2] >= 0) adcClockFound[1] = adcClockFound[1] | !adcCheckErr1;
+      if (mSyncPos[4] >= 0) adcClockFound[2] = adcClockFound[2] | !adcCheckErr2;
+//      std::cout << adcClockFound[0] << " " << adcClockFound[1] << " " << adcClockFound[2] << std::endl;
+      if(adcClockFound[0] & adcCheckErr0) {
+//        adcClockFound[0] = false;
+        LOG(DEBUG) << "ADC clock 0 mon error in " << i << FairLogger::endl;
+        std::cout << std::bitset<64>(adcSequence[0]) << std::endl;
+      };
+      if(adcClockFound[1] & adcCheckErr1) {
+//        adcClockFound[1] = false;
+        LOG(DEBUG) << "ADC clock 1 mon error in " << i << FairLogger::endl;
+        std::cout << std::bitset<64>(adcSequence[1]) << std::endl;
+      };
+      if(adcClockFound[2] & adcCheckErr2) {
+//        adcClockFound[2] = false;
+        LOG(DEBUG) << "ADC clock 2 mon error in " << i << FairLogger::endl;
+        std::cout << std::bitset<64>(adcSequence[2]) << std::endl;
+      };
+    }
 
     short value1;
     short value2;

@@ -146,6 +146,8 @@ class RawReader {
     void setApplyChannelMask(bool val) { mApplyChannelMask = val; };
     void setChannelMask(std::shared_ptr<CalDet<bool>> channelMask) { mChannelMask = channelMask; };     
 
+    void setCheckAdcClock(bool val) { mCheckAdcClock = val; };
+
     std::shared_ptr<std::vector<EventInfo>> getEventInfo(uint64_t event) const;
 
   private:
@@ -157,6 +159,7 @@ class RawReader {
     int mLink;                          ///< FEC of the data
     bool mUseRawInMode3;                ///< in readout mode 3 decode GBT frames
     bool mApplyChannelMask;             ///< apply channel mask
+    bool mCheckAdcClock;                ///< check the ADC clock
     int64_t mLastEvent;                 ///< Number of last loaded event
     std::array<uint64_t,5> mTimestampOfFirstData;   ///< Time stamp of first decoded ADC value, individually for each half sampa
     std::map<uint64_t, std::shared_ptr<std::vector<EventInfo>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
