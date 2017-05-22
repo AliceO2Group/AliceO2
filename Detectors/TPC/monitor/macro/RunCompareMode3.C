@@ -31,6 +31,7 @@ void RunCompareMode3(TString fileInfo)
   logger->SetLogScreenLevel("INFO");
 
   auto arrData = fileInfo.Tokenize("; ");
+  uint64_t checkedAdcValues = 0;
   for (auto o : *arrData) {
     const TString& data = static_cast<TObjString*>(o)->String();
     LOG(INFO) << "Checking file " << data.Data() << FairLogger::endl;
@@ -80,38 +81,39 @@ void RunCompareMode3(TString fileInfo)
       PadPos padPos;
       while (std::shared_ptr<std::vector<uint16_t>> dataRaw = rawReaderRaw.getNextData(padPos)) {
         std::shared_ptr<std::vector<uint16_t>> dataDec = rawReaderDec.getData(padPos);
-        if ( (*dataRaw) != (*dataDec) ){
-
-          if (dataDec->size() - dataRaw->size() == 2) {
-            for (int i = 0; i < std::min(dataDec->size(),dataRaw->size()); ++i){
-              if (dataRaw->at(i) - dataDec->at(i+1) != 0) {
-                LOG(ERROR) << "Data is not equal in event " << ev 
-                  << " for pad " << (int)padPos.getPad() 
-                  << " in row " << (int)padPos.getRow() 
-                  << " in timebin " << i
-                  << " RawVec size: " << dataRaw->size()
-                  << " DecVec size: " << dataDec->size() 
-                  << FairLogger:: endl;
-                LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i) << FairLogger::endl;
-              }
+        if (dataDec->size() - dataRaw->size() == 2) {
+          for (int i = 0; i < std::min(dataDec->size(),dataRaw->size()); ++i) {
+            ++checkedAdcValues;
+            if (dataRaw->at(i) - dataDec->at(i+1) != 0) {
+              LOG(ERROR) << "Data is not equal in event " << ev 
+                << " for pad " << (int)padPos.getPad() 
+                << " in row " << (int)padPos.getRow() 
+                << " in timebin " << i
+                << " RawVec size: " << dataRaw->size()
+                << " DecVec size: " << dataDec->size() 
+                << FairLogger:: endl;
+              LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i) << FairLogger::endl;
             }
-          } else { 
-            for (int i = 0; i < std::min(dataDec->size(),dataRaw->size()); ++i){
-              if (dataRaw->at(i) - dataDec->at(i) != 0) {
-                LOG(ERROR) << "Data is not equal in event " << ev 
-                  << " for pad " << (int)padPos.getPad() 
-                  << " in row " << (int)padPos.getRow() 
-                  << " in timebin " << i
-                  << " RawVec size: " << dataRaw->size()
-                  << " DecVec size: " << dataDec->size() 
-                  << FairLogger:: endl;
-                LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i) << FairLogger::endl;
-              }
+          }
+        } else { 
+          for (int i = 0; i < std::min(dataDec->size(),dataRaw->size()); ++i){
+            ++checkedAdcValues;
+            if (dataRaw->at(i) - dataDec->at(i) != 0) {
+              LOG(ERROR) << "Data is not equal in event " << ev 
+                << " for pad " << (int)padPos.getPad() 
+                << " in row " << (int)padPos.getRow() 
+                << " in timebin " << i
+                << " RawVec size: " << dataRaw->size()
+                << " DecVec size: " << dataDec->size() 
+                << FairLogger:: endl;
+              LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i) << FairLogger::endl;
             }
           }
         }
       }
     }
+    LOG(INFO) << "Compared " << (double)checkedAdcValues/1000000 << "M ADC values in total" << FairLogger::endl;
   }
+  LOG(INFO) << "Compared " << (double)checkedAdcValues/1000000 << "M ADC values in total" << FairLogger::endl;
 }
 
