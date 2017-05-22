@@ -17,8 +17,6 @@
 #include "ITSMFTSimulation/Point.h"
 #include "ITSMFTSimulation/DigitContainer.h"
 
-ClassImp(o2::ITSMFT::SimulationAlpide)
-
 using namespace o2::ITSMFT;
 
 //______________________________________________________________________

@@ -10,7 +10,7 @@
   #include "FairParRootFileIo.h"
   #include "FairSystemInfo.h"
 
-  #include "ITSReconstruction/TrivialClustererTask.h"
+  #include "ITSReconstruction/ClustererTask.h"
 #endif
 
 void run_clus_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
@@ -41,7 +41,7 @@ void run_clus_its(Int_t nEvents = 10, TString mcEngine = "TGeant3"){
         rtdb->setFirstInput(parInput1);
 
         // Setup clusterizer
-        o2::ITS::TrivialClustererTask *clus = new o2::ITS::TrivialClustererTask;
+        o2::ITS::ClustererTask *clus = new o2::ITS::ClustererTask;
         fRun->AddTask(clus);
 
         fRun->Init();

@@ -48,7 +48,8 @@ Digit* DigitChip::addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t
   if (digit) {
     LOG(DEBUG) << "Adding charge to pixel..." << FairLogger::endl;
     charge += digit->getCharge();
-    delete digit;
+    digit->setCharge(charge);
+    return digit;
   }
 
   digit = new Digit(chipid, row, col, charge, timestamp);

@@ -213,8 +213,6 @@ class Chip : public TObject
     Int_t mChipIndex;     ///< Chip ID
     std::vector<const Point *>mPoints;        ///< Hits connnected to the given chip
     const TGeoHMatrix *mMat;     ///< Transformation matrix
-
-  ClassDefOverride(Chip, 2);
 };
 }
 }
