@@ -15,6 +15,7 @@ using TPCTestCluster = o2::DataFlow::TPCTestCluster;
 using ITSRawData = o2::DataFlow::ITSRawData;
 
 using DataDescription = o2::Header::DataDescription;
+using DataOrigin = o2::Header::DataOrigin;
 
 template <typename T>
 void fakePayload(std::vector<byte> &buffer, std::function<void(T&,int)> filler, int numOfElements) {
@@ -64,10 +65,15 @@ void o2::Utilities::DataPublisherDevice::InitTask()
   //   check in the registry
   // * constructors and assignment operators taking the integer type as argument
   if (GetConfig()->GetValue<std::string>(OptionKeyDataDescription) == "TPCCLUSTER")
-    mDataDescription = DataDescription("TPCCLUSTER");
+  {
+    mDataDescription = DataDescription("CLUSTERS");
+    mDataOrigin = DataOrigin("TPC");
+  }
   else if (GetConfig()->GetValue<std::string>(OptionKeyDataDescription) == "ITSRAW")
-    mDataDescription = DataDescription("ITSRAW");
-  mDataOrigin = o2::Header::DataOrigin("TEST");
+  {
+    mDataDescription = DataDescription("CLUSTERS");
+    mDataOrigin = DataOrigin("ITS");
+  }
   mSubSpecification = GetConfig()->GetValue<SubSpecificationT>(OptionKeySubspecification);
   mFileName = GetConfig()->GetValue<std::string>(OptionKeyFileName);
 
@@ -78,12 +84,18 @@ void o2::Utilities::DataPublisherDevice::InitTask()
 
   if (!mFileName.empty()) {
     AppendFile(mFileName.c_str(), mFileBuffer);
-  } else if (strncmp(mDataDescription.str, "TPCCLUSTER", 16) == 0) {
+  }
+  else if (mDataDescription ==  DataDescription("CLUSTERS") 
+           && mDataOrigin == DataOrigin("TPC"))
+  {
     auto f = [](TPCTestCluster &cluster, int idx) {cluster.timeStamp = idx;};
     fakePayload<TPCTestCluster>(mFileBuffer, f, 1000);
     LOG(INFO) << "Payload size (after) " << mFileBuffer.size() << "\n";
     // For the moment, add the data as another part to this message
-  } else if (strncmp(mDataDescription.str, "ITSRAW", 16) == 0) {
+  } 
+  else if (mDataDescription ==  DataDescription("CLUSTERS") 
+           && mDataOrigin == DataOrigin("ITS"))
+  {
     auto f = [](ITSRawData &cluster, int idx) {cluster.timeStamp = idx;};
     fakePayload<ITSRawData>(mFileBuffer, f, 500);
   }

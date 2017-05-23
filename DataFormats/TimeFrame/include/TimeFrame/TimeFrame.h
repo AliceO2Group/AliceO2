@@ -9,6 +9,10 @@ namespace o2
 {
 namespace DataFormat
 {
+
+using PartPosition = int;
+typedef std::pair<o2::Header::DataHeader, PartPosition> IndexElement;
+
 // helper struct so that we can
 // stream messages using ROOT
 struct MessageSizePair {

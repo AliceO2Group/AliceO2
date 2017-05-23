@@ -142,6 +142,7 @@ o2_define_bucket(
     DEPENDENCIES
     Base
     Headers
+    TimeFrame
     O2Device
     dl
 )
