@@ -151,8 +151,9 @@ bool testVector(bool cleanTmp)
     // modifiy slightly the tracks to simulate new event
     try {
       cnt.AddToTree(tree.get(),"Tracks");
-    } catch ( const std::string msg ) {
-      std::cerr << msg << std::endl;
+    } catch ( std::runtime_error &e ) {
+      std::cerr << e.what() << std::endl;
+      return false;
     }
     tree->Fill();
     //

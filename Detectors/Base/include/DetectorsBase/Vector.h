@@ -153,23 +153,21 @@ template <class T, class H>
    */
 
   if (ptr==nullptr) {
-    std::ostringstream strErr;
-    strErr << "invalid arguments: ptr is null" << std::endl;
-    throw strErr.str();
+    throw std::runtime_error("invalid arguments: ptr is null");
   }
   
   if (nbytes>=0 && (nbytes<dataOffset())) {
     std::ostringstream strErr;
     strErr << "invalid arguments: " << "wrong size " << nbytes <<
-      " at least " << dataOffset() << " expected" << std::endl;
-    throw  strErr.str();
+      " at least " << dataOffset() << " expected";
+    throw  std::runtime_error(strErr.str());
   }
   
   const sizeType nbDecoded = (reinterpret_cast<const Header*>(ptr))->sizeInBytes;
   if (nbytes>=0 && (nbytes!=nbDecoded)) {
     std::ostringstream strErr;
-    strErr << "invalid arguments: " <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded << std::endl;
-    throw strErr.str();
+    strErr << "invalid arguments: " <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded;
+    throw std::runtime_error(strErr.str());
   }
 
   // create a copy of the buffer
@@ -189,23 +187,21 @@ template <class T, class H>
    */
   
   if (ptr==nullptr) {
-    std::ostringstream strErr;
-    strErr << "invalid arguments: ptr is null" << std::endl;
-    throw strErr.str();
+    throw std::runtime_error("invalid arguments: ptr is null");
   }
 
   if (nbytes>=0 && (nbytes<dataOffset())) {
     std::ostringstream strErr;
     strErr << "invalid arguments: " << "wrong size " << nbytes <<
-      " at least " << dataOffset() << " expected" << std::endl;
-    throw  strErr.str();
+      " at least " << dataOffset() << " expected";
+    throw  std::runtime_error(strErr.str());
   }
 
   sizeType nbDecoded = (reinterpret_cast<Header*>(ptr.get()))->sizeInBytes;
   if (nbytes>=0 && (nbytes!=nbDecoded)) {
     std::ostringstream strErr;
-    strErr << "invalid arguments: " <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded << std::endl;
-    throw strErr.str();
+    strErr << "invalid arguments: " <<" supplied size " << nbytes <<  " differs from decoded size " << nbDecoded;
+    throw std::runtime_error(strErr.str());
   }
   
   mPtr = std::move(ptr); // transfer ownership
@@ -360,8 +356,8 @@ template<class T, class H>
   
   if (tree==nullptr || !brName.size() ) {
     std::ostringstream strErr;
-    strErr << "invalid arguments:" << " tree: " << tree << " branchName: " << brName << std::endl;
-    throw strErr.str();
+    strErr << "invalid arguments:" << " tree: " << tree << " branchName: " << brName;
+    throw std::runtime_error(strErr.str());
   }
 
   TBranch* br = tree->GetBranch(brName.data());
