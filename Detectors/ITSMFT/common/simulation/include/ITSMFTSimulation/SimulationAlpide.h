@@ -26,7 +26,7 @@ namespace o2 {
 
     class SegmentationPixel;
     class DigitContainer;
-    
+
     class SimulationAlpide : public Chip {
     public:
       enum {
@@ -47,6 +47,8 @@ namespace o2 {
       void      clearSimulation() { Chip::Clear(); }
 
     private:
+      Double_t  betaGammaFunction(Double_t, Double_t, Double_t, Double_t) const;
+      Double_t  gaussian2D(Double_t, Double_t, Double_t, Double_t) const; 
       Double_t  getACSFromBetaGamma(Double_t, Double_t) const; // Returns the average cluster size from the betagamma value
       Int_t     sampleCSFromLandau(Double_t, Double_t) const; // Sample the actual cluster size from a Landau distribution
       Double_t  computeIncidenceAngle(TLorentzVector) const; // Compute the angle between the particle and the normal to the chip
