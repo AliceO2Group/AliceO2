@@ -46,7 +46,8 @@ Double_t SimulationAlpide::getACSFromBetaGamma(Double_t x, Double_t theta) const
   acs->SetParameter(0, mParam[ACSFromBGPar0]);
   acs->SetParameter(1, mParam[ACSFromBGPar1]);
   acs->SetParameter(2, mParam[ACSFromBGPar2]);
-  Double_t val = acs->Eval(x)/fabs(cos(theta));
+  Double_t mval = std::max(0.35, acs->Eval(x));
+  Double_t val = mval/fabs(cos(theta));
   delete acs;
   return val;
 }
