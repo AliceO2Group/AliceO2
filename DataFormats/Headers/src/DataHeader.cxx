@@ -183,26 +183,6 @@ void o2::Header::printDataOrigin::operator()(const char* str) const
 }
 
 //__________________________________________________________________________________________________
-o2::Header::DataDescription::DataDescription()
-  : itg()
-{
-  itg[0] = gInvalidToken64;
-  itg[1] = gInvalidToken64<<8 | gInvalidToken64;
-}
-
-//__________________________________________________________________________________________________
-bool o2::Header::DataDescription::operator==(const DataDescription& other) const {
-  return (itg[0] == other.itg[0] &&
-          itg[1] == other.itg[1]);
-}
-
-//__________________________________________________________________________________________________
-void o2::Header::DataDescription::print() const
-{
-  printf("Data descr.  : %s\n", str);
-}
-
-//__________________________________________________________________________________________________
 o2::Header::DataIdentifier::DataIdentifier()
   : dataDescription(), dataOrigin()
 {

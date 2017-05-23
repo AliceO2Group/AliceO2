@@ -15,7 +15,7 @@ namespace o2 {
       using TestDescriptorT = Descriptor<descriptorSize>;
       BOOST_CHECK(TestDescriptorT::size == descriptorSize);
       BOOST_CHECK(TestDescriptorT::bitcount == descriptorSize * 8);
-      BOOST_CHECK(sizeof(TestDescriptorT::ItgType) == descriptorSize);
+      BOOST_CHECK(sizeof(TestDescriptorT::ItgType)*TestDescriptorT::arraySize == descriptorSize);
       static_assert(TestDescriptorT::size == sizeof(TestDescriptorT),
                     "Descriptor must have size of the underlying data member");
 
@@ -94,7 +94,7 @@ namespace o2 {
       using TestDescriptorT = Descriptor<descriptorSize>;
       BOOST_CHECK(TestDescriptorT::size == descriptorSize);
       BOOST_CHECK(TestDescriptorT::bitcount == descriptorSize * 8);
-      BOOST_CHECK(sizeof(TestDescriptorT::ItgType) == descriptorSize);
+      BOOST_CHECK(sizeof(TestDescriptorT::ItgType)*TestDescriptorT::arraySize == descriptorSize);
       BOOST_CHECK(TestDescriptorT::size == sizeof(DataOrigin));
 
       // we want to explicitely have the size of DataOrigin to be 4
