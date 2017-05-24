@@ -19,8 +19,7 @@ using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide():
-Chip()
-{
+Chip() {
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=0.;
 }
 
@@ -68,15 +67,13 @@ Int_t SimulationAlpide::getPixelPositionResponse(const SegmentationPixel *seg, I
   Double_t sigma = 0.001; // = 10 um
   Double_t offc  = acs; // WARNING: this is just temporary! (a function for this is ready but need further testing)
   Int_t cs = (Int_t) round(gaussian2D(sigma, offc, Dx, Dy));
-
   return cs;
 }
 
 
 //______________________________________________________________________
 Int_t SimulationAlpide::sampleCSFromLandau(Double_t mpv, Double_t w) const {
-  auto r = std::make_unique<TRandom>();
-  Double_t x = std::max(1., r->Landau(mpv, w));
+  Double_t x = std::max(1., gRandom->Landau(mpv, w));
   Int_t cs = (Int_t) round(x);
   return cs;
 }
@@ -99,8 +96,7 @@ Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const {
 
 
 //______________________________________________________________________
-void
-SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitContainer *digitContainer) {
+void SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitContainer *digitContainer) {
   Int_t nhits = Chip::GetNumberOfPoints();
   if (nhits <= 0) return;
 
