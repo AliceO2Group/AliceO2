@@ -34,6 +34,7 @@ namespace o2 {
         ACSFromBGPar0,
         ACSFromBGPar1,
         ACSFromBGPar2,
+        Noise,
         NumberOfParameters
       };
       SimulationAlpide();

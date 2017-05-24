@@ -116,10 +116,9 @@ void SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitConta
   Int_t nhits = Chip::GetNumberOfPoints();
 
   // Add noise to the chip
-  addNoise(5, seg, digitContainer);
+  addNoise(mParam[Noise], seg, digitContainer);
 
   if (nhits <= 0) return;
-
   for (Int_t h = 0; h < nhits; ++h) {
     Double_t x0, x1, y0, y1, z0, z1, tof, de;
     if (!Chip::LineSegmentLocal(h, x0, x1, y0, y1, z0, z1, tof, de)) continue;
