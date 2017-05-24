@@ -27,7 +27,7 @@ class Sector
 {
   public:
     // the number of sectors
-    static constexpr char MAXSECTOR=36;
+    static constexpr int MAXSECTOR=36;
 
     /// constructor
     Sector() {}
