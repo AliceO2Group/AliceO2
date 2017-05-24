@@ -47,15 +47,16 @@ namespace o2 {
       void      clearSimulation() { Chip::Clear(); }
 
     private:
+      void      addNoise(Double_t, const SegmentationPixel*, DigitContainer*); // Add noise to the chip
       Double_t  betaGammaFunction(Double_t, Double_t, Double_t, Double_t) const;
-      Double_t  gaussian2D(Double_t, Double_t, Double_t, Double_t) const; 
+      Double_t  gaussian2D(Double_t, Double_t, Double_t, Double_t) const;
       Double_t  getACSFromBetaGamma(Double_t, Double_t) const; // Returns the average cluster size from the betagamma value
       Int_t     sampleCSFromLandau(Double_t, Double_t) const; // Sample the actual cluster size from a Landau distribution
       Double_t  computeIncidenceAngle(TLorentzVector) const; // Compute the angle between the particle and the normal to the chip
       Int_t     getPixelPositionResponse(const SegmentationPixel *, Int_t, Int_t, Float_t, Float_t, Double_t) const;
 
     protected:
-      Double_t           mParam[NumberOfParameters]; // Chip response parameters
+      Double_t  mParam[NumberOfParameters]; // Chip response parameters
     };
   }
 }

@@ -55,7 +55,6 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
 
   // Convert points to digits
   const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
-  mDigitContainer.addNoise(5., seg); // should be tuned 
   for (TIter iter = TIter(points).Begin(); iter != TIter::End(); ++iter) {
     Point* point = dynamic_cast<Point*>(*iter);
     Int_t chipID = point->GetDetectorID();

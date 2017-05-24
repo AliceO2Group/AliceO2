@@ -22,9 +22,6 @@ namespace o2
       DigitContainer() {}
       ~DigitContainer() = default;
       void reset();
-
-      void addNoise(Double_t, const SegmentationPixel*); // add noise to each chip
-
       void resize(Int_t n) { mChips.resize(n); }
       o2::ITSMFT::Digit* addDigit(UShort_t chipid, UShort_t row, UShort_t col, Double_t charge, Double_t timestamp);
       o2::ITSMFT::Digit* getDigit(Int_t chipID, UShort_t row, UShort_t col);

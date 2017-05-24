@@ -96,8 +96,28 @@ Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const {
 
 
 //______________________________________________________________________
+void SimulationAlpide::addNoise(Double_t mean, const SegmentationPixel* seg, DigitContainer *digitContainer) {
+  UInt_t row = 0;
+  UInt_t col = 0;
+  Int_t nhits = 0;
+  Int_t chipId = Chip::GetChipIndex();
+  nhits = gRandom->Poisson(mean);
+  for (Int_t i = 0; i < nhits; ++i) {
+    row = gRandom->Integer(seg->getNumberOfRows());
+    col = gRandom->Integer(seg->getNumberOfColumns());
+    Digit *noiseD = digitContainer->addDigit(chipId, row, col, 0., 0.);
+    noiseD->setLabel(0, -1);
+  }
+}
+
+
+//______________________________________________________________________
 void SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitContainer *digitContainer) {
   Int_t nhits = Chip::GetNumberOfPoints();
+
+  // Add noise to the chip
+  addNoise(5, seg, digitContainer);
+
   if (nhits <= 0) return;
 
   for (Int_t h = 0; h < nhits; ++h) {
