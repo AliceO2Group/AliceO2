@@ -8,6 +8,7 @@
 #include "DataFlow/EPNReceiverDevice.h"
 #include "Headers/DataHeader.h"
 #include "Headers/SubframeMetadata.h"
+#include "TimeFrame/TimeFrame.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -15,6 +16,7 @@ using namespace o2::Devices;
 using SubframeMetadata = o2::DataFlow::SubframeMetadata;
 using TPCTestPayload = o2::DataFlow::TPCTestPayload;
 using TPCTestCluster = o2::DataFlow::TPCTestCluster;
+using IndexElement = o2::DataFormat::IndexElement;
 
 void EPNReceiverDevice::InitTask()
 {
@@ -74,7 +76,6 @@ void EPNReceiverDevice::Run()
   using PartPosition = int;
   using TimeframeId = int;
   using FlpId = int;
-  typedef std::pair<Header::DataHeader, PartPosition> IndexElement;
   std::multimap<TimeframeId, IndexElement> index;
   std::multimap<TimeframeId, FlpId> flpIds;
 

@@ -1,6 +1,8 @@
 #ifndef SUBFRAMEMETADATA_H
 #define SUBFRAMEMETADATA_H
 
+#include <vector>
+
 namespace o2 {
 namespace DataFlow {
 
