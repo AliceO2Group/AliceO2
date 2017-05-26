@@ -72,14 +72,14 @@ namespace o2 {
       BOOST_CHECK(desc.itg[0] == itgDesc);
       BOOST_CHECK(desc.itg[1] == 0);
 
-      BOOST_CHECK(desc == "ITSRAW");
+      BOOST_CHECK(desc == DataDescription("ITSRAW"));
 
       DataDescription desc2(test);
       BOOST_CHECK(strcmp(desc2.str, "ITSRAW")==0);
       // the upper part must be 0 since the string has only up tp 8 chars
       BOOST_CHECK(desc2.itg[1] == 0);
 
-      BOOST_CHECK(desc2 == "ITSRAW");
+      BOOST_CHECK(desc2 == DataDescription("ITSRAW"));
 
       std::string runtimeString = "DATA_DESCRIPTION";
       DataDescription runtimeDesc;

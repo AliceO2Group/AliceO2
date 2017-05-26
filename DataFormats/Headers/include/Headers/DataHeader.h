@@ -264,6 +264,14 @@ struct Descriptor {
 
   bool operator==(const Descriptor& other) const {return itg == other.itg;}
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
+
+  // explicitly forbid comparison with e.g. const char* strings
+  // use: value == Descriptor<N>("DESC") for the appropriate
+  // template instantiation instead
+  template<typename T>
+  bool operator==(const T*) const = delete;
+  template<typename T>
+  bool operator!=(const T*) const = delete;
   // print function needs to be implemented for every derivation
   void print() const {
     // eventually terminate string before printing
@@ -588,6 +596,13 @@ struct DataDescription {
 
   bool operator==(const DataDescription&) const;
   bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
+
+  // explicitly forbid comparison with e.g. const char* strings
+  // use: value == DataDescription("SOMEDESCRIPTION") instead
+  template<typename T>
+  bool operator==(const T*) const = delete;
+  template<typename T>
+  bool operator!=(const T*) const = delete;
   void print() const;
 };
 
