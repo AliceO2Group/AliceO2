@@ -45,9 +45,9 @@ Double_t SimulationAlpide::betaGammaFunction(Double_t Par0, Double_t Par1, Doubl
 
 
 //______________________________________________________________________
-Double_t SimulationAlpide::getACSFromBetaGamma(Double_t x, Double_t theta) const {
+Double_t SimulationAlpide::getACSFromBetaGamma(Double_t x) const {
   Double_t evalX = betaGammaFunction(mParam[ACSFromBGPar0], mParam[ACSFromBGPar1], mParam[ACSFromBGPar2], x);
-  return evalX/fabs(cos(theta));
+  return evalX;
 }
 
 
@@ -64,6 +64,7 @@ Int_t SimulationAlpide::getPixelPositionResponse(const SegmentationPixel *seg, I
 
   Double_t Dx = locx-centerX;
   Double_t Dy = locz-centerZ;
+
   Double_t sigma = 0.001; // = 10 um
   Double_t offc  = acs; // WARNING: this is just temporary! (a function for this is ready but need further testing)
   Int_t cs = (Int_t) round(gaussian2D(sigma, offc, Dx, Dy));
@@ -90,8 +91,16 @@ Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const {
 
   TVector3 pdirection(loc[0], loc[1], loc[2]);
   TVector3 normal(0., -1., 0.);
+  Double_t theta = pdirection.Theta() - normal.Theta();
+  Double_t phi   = pdirection.Phi() - normal.Phi();
+  Double_t angle = sqrt(pow(theta, 2) + pow(phi, 2));
+  return sqrt(pow(theta, 2) + pow(phi, 2));
+}
 
-  return pdirection.Angle(normal);
+
+//______________________________________________________________________
+void SimulationAlpide::updateACSWithAngle(Double_t& acs, Double_t angle) const {
+  acs = acs/TMath::Power(TMath::Cos(angle*TMath::Pi()/180.), 0.7873);
 }
 
 
@@ -134,13 +143,14 @@ void SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitConta
     Double_t beta = std::min(0.99999, trackP4.Beta());
     Double_t bgamma = beta / sqrt(1 - pow(beta, 2));
     if (bgamma < 0.001) continue;
-    Double_t theta = computeIncidenceAngle(trackP4);
+    Double_t effangle = computeIncidenceAngle(trackP4);
 
     // Get the pixel ID
     Int_t ix, iz;
     if (!seg->localToDetector(x, z, ix, iz)) continue;
 
-    Double_t acs = getACSFromBetaGamma(bgamma, theta);
+    Double_t acs = getACSFromBetaGamma(bgamma);
+    updateACSWithAngle(acs, effangle);
     UInt_t cs = getPixelPositionResponse(seg, ix, iz, x, z, acs);
     //cs = 3; // uncomment to set the cluster size manually
 
