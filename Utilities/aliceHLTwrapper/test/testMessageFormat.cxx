@@ -133,7 +133,7 @@ namespace o2::AliceHLT {
         BOOST_CHECK(output.mSize == sizeof(o2::Header::DataHeader));
       } else {
         o2::Header::hexDump("Payload block", output.mP, output.mSize);
-        o2::Header::hexDump("  Data string", dataFields[dataidx].c_str(), dataFields[dataidx].size());
+        o2::Header::hexDump("  Data string", dataFields[dataidx/2].c_str(), dataFields[dataidx/2].size() + 1);
         const char* data = (char*)output.mP;
         BOOST_CHECK(dataFields[dataidx/2] == data);
       }
