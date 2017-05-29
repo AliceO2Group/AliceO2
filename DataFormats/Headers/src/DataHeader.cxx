@@ -267,15 +267,18 @@ void o2::Header::hexDump (const char* desc, const void* voidaddr, size_t len, si
     else
       buff[i % 16] = addr[i];
     buff[(i % 16) + 1] = '\0';
+    fflush(stdout);
   }
 
   // Pad out last line if not exactly 16 characters.
   while ((i % 16) != 0) {
     printf ("   ");
+    fflush(stdout);
     i++;
   }
 
   // And print the final ASCII bit.
   printf ("  %s\n", buff);
+  fflush(stdout);
 }
 
