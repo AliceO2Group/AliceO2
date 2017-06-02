@@ -193,26 +193,6 @@ void o2::Header::printDataOrigin::operator()(const char* str) const
 }
 
 //__________________________________________________________________________________________________
-o2::Header::DataDescription::DataDescription()
-  : itg()
-{
-  itg[0] = gInvalidToken64;
-  itg[1] = gInvalidToken64<<8 | gInvalidToken64;
-}
-
-//__________________________________________________________________________________________________
-bool o2::Header::DataDescription::operator==(const DataDescription& other) const {
-  return (itg[0] == other.itg[0] &&
-          itg[1] == other.itg[1]);
-}
-
-//__________________________________________________________________________________________________
-void o2::Header::DataDescription::print() const
-{
-  printf("Data descr.  : %s\n", str);
-}
-
-//__________________________________________________________________________________________________
 o2::Header::DataIdentifier::DataIdentifier()
   : dataDescription(), dataOrigin()
 {
@@ -277,15 +257,18 @@ void o2::Header::hexDump (const char* desc, const void* voidaddr, size_t len, si
     else
       buff[i % 16] = addr[i];
     buff[(i % 16) + 1] = '\0';
+    fflush(stdout);
   }
 
   // Pad out last line if not exactly 16 characters.
   while ((i % 16) != 0) {
     printf ("   ");
+    fflush(stdout);
     i++;
   }
 
   // And print the final ASCII bit.
   printf ("  %s\n", buff);
+  fflush(stdout);
 }
 
