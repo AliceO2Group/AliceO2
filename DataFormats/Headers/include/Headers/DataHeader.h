@@ -201,7 +201,7 @@ constexpr T String2(const char (&str)[N])
 template <int N, typename PrinterPolicy = Internal::defaultPrinter>
 struct Descriptor {
   static_assert(Internal::NumberOfActiveBits<N>::value == 1,
-		"Descriptor size is required to a power of 2");
+		"Descriptor size is required to be a power of 2");
   static int const size = N;
   static int const bitcount = size*8;
   static constexpr int arraySize = Internal::ArraySize<uint64_t, size>();
