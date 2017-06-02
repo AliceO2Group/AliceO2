@@ -15,7 +15,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/GeometryHandler.h"
-#include "ITSSimulation/V1Layer.h"
+#include "ITSSimulation/V3Layer.h"
 
 #include "ITSBase/MisalignmentParameter.h"  // for MisalignmentParameter
 
@@ -83,7 +83,7 @@ Detector::Detector()
     mLayerZLength(nullptr),
     mStavePerLayer(nullptr),
     mUnitPerStave(nullptr),
-    mStaveThickness(nullptr),
+    mChipThickness(nullptr),
     mStaveWidth(nullptr),
     mStaveTilt(nullptr),
     mDetectorThickness(nullptr),
@@ -131,7 +131,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mLayerZLength(nullptr),
     mStavePerLayer(nullptr),
     mUnitPerStave(nullptr),
-    mStaveThickness(nullptr),
+    mChipThickness(nullptr),
     mStaveWidth(nullptr),
     mStaveTilt(nullptr),
     mDetectorThickness(nullptr),
@@ -148,7 +148,7 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
 {
 
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V1Layer
+    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
   }
 
   mTurboLayer = new Bool_t[mNumberLayers];
@@ -157,14 +157,14 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
   mLayerZLength = new Double_t[mNumberLayers];
   mStavePerLayer = new Int_t[mNumberLayers];
   mUnitPerStave = new Int_t[mNumberLayers];
-  mStaveThickness = new Double_t[mNumberLayers];
+  mChipThickness = new Double_t[mNumberLayers];
   mStaveWidth = new Double_t[mNumberLayers];
   mStaveTilt = new Double_t[mNumberLayers];
   mDetectorThickness = new Double_t[mNumberLayers];
   mChipTypeID = new UInt_t[mNumberLayers];
   mBuildLevel = new Int_t[mNumberLayers];
 
-  mGeometry = new V1Layer *[mNumberLayers];
+  mGeometry = new V3Layer *[mNumberLayers];
 
   if (mNumberLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
     for (Int_t j = 0; j < mNumberLayers; j++) {
@@ -218,7 +218,7 @@ Detector::Detector(const Detector &rhs)
     mLayerZLength(nullptr),
     mStavePerLayer(nullptr),
     mUnitPerStave(nullptr),
-    mStaveThickness(nullptr),
+    mChipThickness(nullptr),
     mStaveWidth(nullptr),
     mStaveTilt(nullptr),
     mDetectorThickness(nullptr),
@@ -237,7 +237,7 @@ Detector::Detector(const Detector &rhs)
   mLayerName = new TString[mNumberLayers];
 
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V1Layer
+    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
   }
 }
 
@@ -249,7 +249,7 @@ Detector::~Detector()
   delete[] mLayerZLength;
   delete[] mStavePerLayer;
   delete[] mUnitPerStave;
-  delete[] mStaveThickness;
+  delete[] mChipThickness;
   delete[] mStaveWidth;
   delete[] mStaveTilt;
   delete[] mDetectorThickness;
@@ -307,7 +307,7 @@ Detector &Detector::operator=(const Detector &rhs)
   mLayerZLength = nullptr;
   mStavePerLayer = nullptr;
   mUnitPerStave = nullptr;
-  mStaveThickness = nullptr;
+  mChipThickness = nullptr;
   mStaveWidth = nullptr;
   mStaveTilt = nullptr;
   mDetectorThickness = nullptr;
@@ -326,7 +326,7 @@ Detector &Detector::operator=(const Detector &rhs)
 
   mLayerName = new TString[mNumberLayers];
   for (Int_t j = 0; j < mNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V1Layer
+    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
   }
 
   return *this;
@@ -683,7 +683,7 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Double_t zlen,
   mLayerZLength[nlay] = zlen;
   mStavePerLayer[nlay] = nstav;
   mUnitPerStave[nlay] = nunit;
-  mStaveThickness[nlay] = lthick;
+  mChipThickness[nlay] = lthick;
   mDetectorThickness[nlay] = dthick;
   mChipTypeID[nlay] = dettypeID;
   mBuildLevel[nlay] = buildLevel;
@@ -731,7 +731,7 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t 
   mLayerZLength[nlay] = zlen;
   mStavePerLayer[nlay] = nstav;
   mUnitPerStave[nlay] = nunit;
-  mStaveThickness[nlay] = lthick;
+  mChipThickness[nlay] = lthick;
   mStaveWidth[nlay] = width;
   mStaveTilt[nlay] = tilt;
   mDetectorThickness[nlay] = dthick;
@@ -774,7 +774,7 @@ void Detector::getLayerParameters(Int_t nlay, Double_t &phi0, Double_t &r,
   nmod = mUnitPerStave[nlay];
   width = mStaveWidth[nlay];
   tilt = mStaveTilt[nlay];
-  lthick = mStaveThickness[nlay];
+  lthick = mChipThickness[nlay];
   dthick = mDetectorThickness[nlay];
   dettype = mChipTypeID[nlay];
 }
@@ -855,8 +855,8 @@ void Detector::constructDetectorGeometry()
       LOG(FATAL) << "Wrong number of chips for layer " << j << "(" << mUnitPerStave[j] << ")"
                  << FairLogger::endl;
     }
-    if (mStaveThickness[j] < 0) {
-      LOG(FATAL) << "Wrong stave thickness for layer " << j << "(" << mStaveThickness[j] << ")"
+    if (mChipThickness[j] < 0) {
+      LOG(FATAL) << "Wrong chip thickness for layer " << j << "(" << mChipThickness[j] << ")"
                  << FairLogger::endl;
     }
     if (mTurboLayer[j] && mStaveWidth[j] <= 0) {
@@ -864,7 +864,7 @@ void Detector::constructDetectorGeometry()
                  << FairLogger::endl;
     }
     if (mDetectorThickness[j] < 0) {
-      LOG(FATAL) << "Wrong chip thickness for layer " << j << "(" << mDetectorThickness[j] << ")"
+      LOG(FATAL) << "Wrong Sensor thickness for layer " << j << "(" << mDetectorThickness[j] << ")"
                  << FairLogger::endl;
     }
 
@@ -875,12 +875,12 @@ void Detector::constructDetectorGeometry()
       }
     }
 
-    if (mStaveThickness[j] == 0) {
-      LOG(INFO) << "Stave thickness for layer " << j << " not set, using default"
+    if (mChipThickness[j] == 0) {
+      LOG(INFO) << "Chip thickness for layer " << j << " not set, using default"
                 << FairLogger::endl;
     }
     if (mDetectorThickness[j] == 0) {
-      LOG(INFO) << "Chip thickness for layer " << j << " not set, using default"
+      LOG(INFO) << "Sensor thickness for layer " << j << " not set, using default"
                 << FairLogger::endl;
     }
   }
@@ -904,11 +904,11 @@ void Detector::constructDetectorGeometry()
     mWrapperLayerId[j] = -1;
 
     if (mTurboLayer[j]) {
-      mGeometry[j] = new V1Layer(j, kTRUE, kFALSE);
+      mGeometry[j] = new V3Layer(j, kTRUE, kFALSE);
       mGeometry[j]->setStaveWidth(mStaveWidth[j]);
       mGeometry[j]->setStaveTilt(mStaveTilt[j]);
     } else {
-      mGeometry[j] = new V1Layer(j, kFALSE);
+      mGeometry[j] = new V3Layer(j, kFALSE);
     }
 
     mGeometry[j]->setPhi0(mLayerPhi0[j]);
@@ -927,8 +927,8 @@ void Detector::constructDetectorGeometry()
 
     LOG(DEBUG1) << "mBuildLevel: " << mBuildLevel[j] << FairLogger::endl;
 
-    if (mStaveThickness[j] != 0) {
-      mGeometry[j]->setStaveThick(mStaveThickness[j]);
+    if (mChipThickness[j] != 0) {
+      mGeometry[j]->setChipThick(mChipThickness[j]);
     }
     if (mDetectorThickness[j] != 0) {
       mGeometry[j]->setSensorThick(mDetectorThickness[j]);
