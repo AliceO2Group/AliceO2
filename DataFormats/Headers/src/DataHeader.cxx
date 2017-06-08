@@ -29,9 +29,9 @@ const uint32_t o2::Header::BaseHeader::sMagicString = String2<uint32_t>("O2O2");
 
 //possible serialization types
 const o2::Header::SerializationMethod o2::Header::gSerializationMethodAny    ("*******");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodInvalid("       ");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodNone   ("NONE   ");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodROOT   ("ROOT   ");
+const o2::Header::SerializationMethod o2::Header::gSerializationMethodInvalid("INVALID");
+const o2::Header::SerializationMethod o2::Header::gSerializationMethodNone   ("NONE");
+const o2::Header::SerializationMethod o2::Header::gSerializationMethodROOT   ("ROOT");
 const o2::Header::SerializationMethod o2::Header::gSerializationMethodFlatBuf("FLATBUF");
 
 //__________________________________________________________________________________________________
@@ -45,12 +45,12 @@ const o2::Header::DataOrigin o2::Header::gDataOriginITS    ("ITS");
 
 //possible data types
 const o2::Header::DataDescription o2::Header::gDataDescriptionAny     ("***************");
-const o2::Header::DataDescription o2::Header::gDataDescriptionInvalid ("INVALID        ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionRawData ("RAWDATA        ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionClusters("CLUSTERS       ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionTracks  ("TRACKS         ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionConfig  ("CONFIG         ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionInfo    ("INFO           ");
+const o2::Header::DataDescription o2::Header::gDataDescriptionInvalid ("INVALID_DESC");
+const o2::Header::DataDescription o2::Header::gDataDescriptionRawData ("RAWDATA");
+const o2::Header::DataDescription o2::Header::gDataDescriptionClusters("CLUSTERS");
+const o2::Header::DataDescription o2::Header::gDataDescriptionTracks  ("TRACKS");
+const o2::Header::DataDescription o2::Header::gDataDescriptionConfig  ("CONFIGURATION");
+const o2::Header::DataDescription o2::Header::gDataDescriptionInfo    ("INFORMATION");
 
 //definitions for Stack statics
 std::default_delete<byte[]> o2::Header::Stack::sDeleter;
