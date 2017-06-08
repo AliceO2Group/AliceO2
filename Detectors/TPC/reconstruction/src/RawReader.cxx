@@ -4,6 +4,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
+#include <iomanip>
 #include <bitset>
 #include <queue>
 
@@ -17,13 +18,15 @@
 
 using namespace o2::TPC;
 
-RawReader::RawReader(int region, int link)
+RawReader::RawReader(int region, int link, int run)
   : mRegion(region)
   , mLink(link)
+  , mRun(run)
   , mLastEvent(-1)
   , mUseRawInMode3(true)
   , mApplyChannelMask(false)
-  , mCheckAdcClock(true)
+  , mCheckAdcClock(false)
+  , mPrintRawData(false)
   , mTimestampOfFirstData({0,0,0,0,0})
   , mEvents()
   , mData()
@@ -54,6 +57,7 @@ bool RawReader::addInputFile(std::string infile) {
 
   tokenizer::iterator it1= tok.begin();
   std::string path = boost::lexical_cast<std::string>(*it1);
+  int run = std::stoi(path.substr(path.find("run")+3,6));
 
   int region, link;
   try {
@@ -74,13 +78,19 @@ bool RawReader::addInputFile(std::string infile) {
     return false;
   }
 
-  return addInputFile(region,link,path);
+  return addInputFile(region, link, path, run);
 }
 
-bool RawReader::addInputFile(int region, int link, std::string path){
+bool RawReader::addInputFile(int region, int link, std::string path, int run){
 
+  if (mRun == -1) mRun = run;
   if (mRegion == -1 ) mRegion = region;
   if (mLink == -1) mLink = link;
+
+  if (run != mRun) {
+    LOG(DEBUG) << "Run of RawReader is " << mRun << " and not " << run << FairLogger::endl;
+    return false;
+  }
 
   if (region != mRegion) {
     LOG(DEBUG) << "Region of RawReader is " << mRegion << " and not " << region << FairLogger::endl;
@@ -112,12 +122,11 @@ bool RawReader::addInputFile(int region, int link, std::string path){
     EventInfo eD;
     eD.path = path;
     eD.posInFile =  file.tellg();
-    eD.region = region;
-    eD.link = link;
     eD.header = h;
     if (h.headerVersion == 1) {
 
-      auto ins = mEvents.insert(std::make_pair(h.eventCount(),std::shared_ptr<std::vector<EventInfo>>(new std::vector<EventInfo>)));
+//      auto ins = mEvents.insert(std::make_pair(h.eventCount(),std::shared_ptr<std::vector<EventInfo>>(new std::vector<EventInfo>)));
+      auto ins = mEvents.insert(std::make_pair(h.eventCount(),std::make_shared<std::vector<EventInfo>>()));
       ins.first->second->push_back(eD);
 
       file.seekg(pos+(h.nWords*4));
@@ -132,7 +141,7 @@ bool RawReader::addInputFile(int region, int link, std::string path){
 }
 
 bool RawReader::loadEvent(int64_t event) {
-  LOG(DEBUG) << "Loading new event " << event << FairLogger::endl;
+  LOG(DEBUG) << "Loading event " << event << FairLogger::endl;
 
   if (mLastEvent == -1 && event != getFirstEvent() ) {
     LOG(DEBUG) << "First event was not loaded (maybe important for decoding RAW GBT frames) lading first event." << FairLogger::endl;
@@ -144,12 +153,30 @@ bool RawReader::loadEvent(int64_t event) {
   mData.clear();
 
   auto ev = mEvents.find(event);
-  mLastEvent = event;
 
   if (ev == mEvents.end()) return false;
+  mLastEvent = event;
   
   const Mapper& mapper = Mapper::instance();
   for (auto &eventInfo : *(ev->second)) {
+    if (mPrintRawData) {
+      LOG(INFO) << "Header:" << FairLogger::endl;
+      LOG(INFO) << std::setfill(' ') << std::left << std::setw(16) << "Version" 
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << (unsigned) eventInfo.header.headerVersion << FairLogger::endl;
+//      LOG(INFO) << std::setfill(' ') << std::left << std::setw(16) << "Reserved"
+//        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << (unsigned) eventInfo.header.reserved_01 << FairLogger::endl;
+      LOG(INFO) << std::setfill(' ') << std::left << std::setw(16) << "Datatype"
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(4) << eventInfo.header.dataType << FairLogger::endl;
+      LOG(INFO) << std::setfill(' ') << std::left << std::setw(16) << "Number of Words"
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(8) << eventInfo.header.nWords << FairLogger::endl;
+      LOG(INFO) << std::setfill(' ') << std::left << std::setw(16) << "Timestamp"
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << eventInfo.header.timeStamp() << FairLogger::endl;
+      LOG(INFO) << std::setfill(' ') << std::left << std::setw(16) << "Event counter"
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << eventInfo.header.eventCount() << FairLogger::endl;
+//      LOG(INFO) << std::setfill(' ') << std::left << std::setw(16) << "Reserved2"
+//        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << eventInfo.header.reserved_2() << FairLogger::endl;
+      LOG(INFO) << std::dec << FairLogger::endl;
+    }
     switch (eventInfo.header.dataType) {
       case 1: // RAW GBT frames
         { 
@@ -204,9 +231,9 @@ bool RawReader::decodePreprocessedData(EventInfo eventInfo) {
   std::array<char,5> sampas;
   std::array<char,5> sampaChannelStart;
   for (char i=0; i<5; ++i) {
-    sampas[i] = (i == 4) ? 2 : (eventInfo.region%2) ? i/2+3 : i/2;
+    sampas[i] = (i == 4) ? 2 : (mRegion%2) ? i/2+3 : i/2;
     sampaChannelStart[i] = (i == 4) ?   // 5th half SAMPA corresponds to  SAMPA2
-      ((eventInfo.region%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
+      ((mRegion%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
       ((i%2) ? 16 : 0);                 // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
   }
 
@@ -238,6 +265,36 @@ bool RawReader::decodePreprocessedData(EventInfo eventInfo) {
     adcValues[0][((ids[0] & 0x7)*2)+1] = (((ids[0]>>3)&0x1) == 0) ? 0 :  (words[i+offset+1] >> 16) & 0x3FF;
     adcValues[0][((ids[0] & 0x7)*2)  ] = (((ids[0]>>3)&0x1) == 0) ? 0 : ((words[i+offset+0] & 0xF) << 6) | ((words[i+offset+1] >> 26) & 0x3F);
 
+    if (mPrintRawData) {
+      LOG(INFO) << std::dec << std::setfill('0') << std::right << std::setw(5) << (i/indexStep*2) << ": "
+        << "(" << ((ids[0] >> 3) & 0x1) << ") " 
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[0][((ids[0] & 0x7)*2)] << " "
+        << "(" << std::hex << std::setfill('0') << std::right << std::setw(1) << (ids[0] & 0x7) << ")  " 
+
+        << "(" << ((ids[0] >> 3) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[1][((ids[1] & 0x7)*2)] << " "
+        << "(" << std::hex << std::setfill('0') << std::right << std::setw(1) << (ids[1] & 0x7) << ")  " 
+
+        << "(" << ((ids[0] >> 3) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[2][((ids[2] & 0x7)*2)] << " "
+        << "(" << std::hex << std::setfill('0') << std::right << std::setw(1) << (ids[2] & 0x7) << ")  " 
+        
+        << "(" << ((ids[0] >> 3) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[3][((ids[3] & 0x7)*2)] << " "
+        << "(" << std::hex << std::setfill('0') << std::right << std::setw(1) << (ids[3] & 0x7) << ")  " 
+        
+        << "(" << ((ids[0] >> 3) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[4][((ids[4] & 0x7)*2)] << " " 
+        << "(" << std::hex << std::setfill('0') << std::right << std::setw(1) << (ids[4] & 0x7) << ")" << std::dec << FairLogger::endl;
+
+      LOG(INFO) << std::dec << std::setfill('0') << std::right << std::setw(5) << (i/indexStep*2+1) << ":     "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[0][((ids[0] & 0x7)*2)+1] << "          "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[1][((ids[1] & 0x7)*2)+1] << "          "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[2][((ids[2] & 0x7)*2)+1] << "          "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[3][((ids[3] & 0x7)*2)+1] << "          "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(3) << adcValues[4][((ids[4] & 0x7)*2)+1] << std::dec << FairLogger::endl;
+    }
+
     for (char j=0; j<5; ++j) {
       if (ids[j] == 0x8) {
         writeValue[j] = true;
@@ -250,15 +307,16 @@ bool RawReader::decodePreprocessedData(EventInfo eventInfo) {
       if (writeValue[j] & (ids[j] == 0xF)) {
         for (int k=0; k<16; ++k) {
           const PadPos padPos = mapper.padPosRegion(
-              eventInfo.region, eventInfo.link,sampas[j],k+sampaChannelStart[j]);
+              mRegion, mLink,sampas[j],k+sampaChannelStart[j]);
 
           if (mApplyChannelMask &&          // channel mask should be applied
               (mChannelMask != nullptr) &&  // channel mask is available
-              !mChannelMask->getValue(CRU(eventInfo.region),padPos.getPad(),padPos.getRow())) { // channel mask
+              !mChannelMask->getValue(CRU(mRegion),padPos.getPad(),padPos.getRow())) { // channel mask
               continue;
           }
 
-          auto ins = mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>)));
+//          auto ins = mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>)));
+          auto ins = mData.insert(std::make_pair(padPos, std::make_shared<std::vector<uint16_t>>()));
           ins.first->second->push_back(adcValues[j][k]);
         }
       }
@@ -286,9 +344,9 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
   std::array<char,5> sampas;
   std::array<char,5> sampaChannelStart;
   for (char i=0; i<5; ++i) {
-    sampas[i] = (i == 4) ? 2 : (eventInfo.region%2) ? i/2+3 : i/2;
+    sampas[i] = (i == 4) ? 2 : (mRegion%2) ? i/2+3 : i/2;
     sampaChannelStart[i] = (i == 4) ?   // 5th half SAMPA corresponds to  SAMPA2
-      ((eventInfo.region%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
+      ((mRegion%2) ? 16 : 0) :      // every even CRU receives channel 0-15 from SAMPA 2, the odd ones channel 16-31
       ((i%2) ? 16 : 0);                 // every even half SAMPA containes channel 0-15, the odd ones channel 16-31
   }
 
@@ -309,6 +367,8 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
   std::array<std::queue<uint16_t>,5> adcValues;
   GBTFrame frame; 
   GBTFrame lastFrame; 
+  mAdcError.clear();
+  uint64_t timebin = 0;
 
   int indexStep = (eventInfo.header.dataType == 3) ? 8 : 4;
   for (int i=0; i<nWords; i=i+indexStep) {
@@ -321,18 +381,20 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
           std::swap(adcValues[j], empty);
           continue;
         }
+        ++timebin;
         for (int k=0; k<16; ++k) {
           const PadPos padPos = mapper.padPosRegion(
-              eventInfo.region, eventInfo.link,sampas[j],k+sampaChannelStart[j]);
+              mRegion, mLink,sampas[j],k+sampaChannelStart[j]);
 
           if (mApplyChannelMask &&          // channel mask should be applied
               (mChannelMask != nullptr) &&  // channel mask is available
-              !mChannelMask->getValue(CRU(eventInfo.region),padPos.getPad(),padPos.getRow())) {     // channel mask
+              !mChannelMask->getValue(CRU(mRegion),padPos.getPad(),padPos.getRow())) {     // channel mask
               adcValues[j].pop();           // discard value
               continue;
           }
 
-          auto ins = mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>)));
+//          auto ins = mData.insert(std::make_pair(padPos, std::shared_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>)));
+          auto ins = mData.insert(std::make_pair(padPos, std::make_shared<std::vector<uint16_t>>()));
           ins.first->second->push_back(adcValues[j].front());
           adcValues[j].pop();
         }
@@ -342,6 +404,44 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
     lastSyncPos = mSyncPos;
     lastFrame = frame;
     frame.setData(words[i],words[i+1],words[i+2],words[i+3]);
+    
+
+    if (mPrintRawData) {
+      LOG(INFO) << std::dec << std::setfill('0') << std::right << std::setw(5) << (i/indexStep*4) << ": ";
+      LOG(INFO)
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,0,0) << " (" << ((frame.getAdcClock(0) >> 3) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,0,1) << " (" << ((frame.getAdcClock(0) >> 3) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(1,0,0) << " (" << ((frame.getAdcClock(1) >> 3) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(1,0,1) << " (" << ((frame.getAdcClock(1) >> 3) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,0,0) << " (" << ((frame.getAdcClock(2) >> 3) & 0x1) << ") "
+        << std::dec << FairLogger::endl;
+      LOG(INFO) << std::dec << std::setfill('0') << std::right << std::setw(5) << (i/indexStep*4+1) << ": ";
+      LOG(INFO)
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,1,0) << " (" << ((frame.getAdcClock(0) >> 2) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,1,1) << " (" << ((frame.getAdcClock(0) >> 2) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(1,1,0) << " (" << ((frame.getAdcClock(1) >> 2) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(1,1,1) << " (" << ((frame.getAdcClock(1) >> 2) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,1,0) << " (" << ((frame.getAdcClock(2) >> 2) & 0x1) << ") "
+        << std::dec << FairLogger::endl;
+      LOG(INFO) << std::dec << std::setfill('0') << std::right << std::setw(5) << (i/indexStep*4+2) << ": ";
+      LOG(INFO)
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,2,0) << " (" << ((frame.getAdcClock(0) >> 1) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,2,1) << " (" << ((frame.getAdcClock(0) >> 1) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(1,2,0) << " (" << ((frame.getAdcClock(1) >> 1) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(1,2,1) << " (" << ((frame.getAdcClock(1) >> 1) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,2,0) << " (" << ((frame.getAdcClock(2) >> 1) & 0x1) << ") "
+        << std::dec << FairLogger::endl;
+      LOG(INFO) << std::dec << std::setfill('0') << std::right << std::setw(5) << (i/indexStep*4+3) << ": ";
+      LOG(INFO)
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,3,0) << " (" << ((frame.getAdcClock(0) >> 0) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,3,1) << " (" << ((frame.getAdcClock(0) >> 0) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(1,3,0) << " (" << ((frame.getAdcClock(1) >> 0) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(1,3,1) << " (" << ((frame.getAdcClock(1) >> 0) & 0x1) << ") "
+        << "0x" << std::hex << std::setfill('0') << std::right << std::setw(2) << frame.getHalfWord(0,3,0) << " (" << ((frame.getAdcClock(2) >> 0) & 0x1) << ") "
+        << std::dec << FairLogger::endl;
+
+    }
+
 
     if (syncMon[0].addSequence(
           frame.getHalfWord(0,0,0),
@@ -377,40 +477,63 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
       adcSequence[0] = (adcSequence[0] << 4) | (frame.getAdcClock(0) & 0xF);
       adcSequence[1] = (adcSequence[1] << 4) | (frame.getAdcClock(1) & 0xF);
       adcSequence[2] = (adcSequence[2] << 4) | (frame.getAdcClock(2) & 0xF);
-//      std::cout << std::bitset<4>(frame.getAdcClock(0)) << "\t" 
-//        << std::bitset<4>(frame.getAdcClock(1)) << "\t"
-//        << std::bitset<4>(frame.getAdcClock(2)) << std::endl;
 
       bool adcCheckErr0 = adcClockMon[0].addSequence(frame.getAdcClock(0));
       bool adcCheckErr1 = adcClockMon[1].addSequence(frame.getAdcClock(1));
       bool adcCheckErr2 = adcClockMon[2].addSequence(frame.getAdcClock(2));
+
+//      std::cout << std::bitset<4>(frame.getAdcClock(0)) << " " << adcCheckErr0 << "\t" 
+//        << std::bitset<4>(frame.getAdcClock(1)) << " " << adcCheckErr1 << "\t"
+//        << std::bitset<4>(frame.getAdcClock(2)) << " " << adcCheckErr2 << std::endl;
+
 //      std::cout << adcCheckErr0 << " " << adcCheckErr1 << " " << adcCheckErr2 << std::endl;
       if (mSyncPos[0] >= 0) adcClockFound[0] = adcClockFound[0] | !adcCheckErr0;
       if (mSyncPos[2] >= 0) adcClockFound[1] = adcClockFound[1] | !adcCheckErr1;
       if (mSyncPos[4] >= 0) adcClockFound[2] = adcClockFound[2] | !adcCheckErr2;
 //      std::cout << adcClockFound[0] << " " << adcClockFound[1] << " " << adcClockFound[2] << std::endl;
       if(adcClockFound[0] & adcCheckErr0) {
-//        adcClockFound[0] = false;
-        LOG(DEBUG) << "ADC clock 0 mon error in " << i << FairLogger::endl;
-        std::cout << std::bitset<64>(adcSequence[0]) << std::endl;
+        adcClockFound[0] = false;
+        LOG(DEBUG) << "ADC clock 0 mon error in " << i << " " << adcValues[0].size() << " " << i/indexStep << " " << timebin/5 << FairLogger::endl;
+//        std::cout << std::bitset<32>(adcSequence[0]&0xFFFFFFFF) << std::endl;
+        mAdcError.emplace_back(std::make_tuple(0,timebin/5,mSyncPos[0]));
+//        std::cout << 0 << " " 
+//          << adcValues[0].size() << " "
+//          << adcValues[1].size() << " "
+//          << adcValues[2].size() << " "
+//          << adcValues[3].size() << " "
+//          << adcValues[4].size() << std::endl;
       };
       if(adcClockFound[1] & adcCheckErr1) {
-//        adcClockFound[1] = false;
-        LOG(DEBUG) << "ADC clock 1 mon error in " << i << FairLogger::endl;
-        std::cout << std::bitset<64>(adcSequence[1]) << std::endl;
+        adcClockFound[1] = false;
+        LOG(DEBUG) << "ADC clock 1 mon error in " << i << " " << adcValues[1].size() << " " << i/indexStep << " " << timebin/5 << FairLogger::endl;
+//        std::cout << std::bitset<32>(adcSequence[1]&0xFFFFFFFF) << std::endl;
+        mAdcError.emplace_back(std::make_tuple(1,timebin/5,mSyncPos[2]));
+//       std::cout << 1 << " " 
+//         << adcValues[0].size() << " "
+//         << adcValues[1].size() << " "
+//         << adcValues[2].size() << " "
+//         << adcValues[3].size() << " "
+//         << adcValues[4].size() << std::endl;
       };
       if(adcClockFound[2] & adcCheckErr2) {
-//        adcClockFound[2] = false;
-        LOG(DEBUG) << "ADC clock 2 mon error in " << i << FairLogger::endl;
-        std::cout << std::bitset<64>(adcSequence[2]) << std::endl;
+        adcClockFound[2] = false;
+        LOG(DEBUG) << "ADC clock 2 mon error in " << i << " " << adcValues[4].size() << " " << i/indexStep << " " << timebin/5 << FairLogger::endl;
+//        std::cout << std::bitset<32>(adcSequence[2]&0xFFFFFFFF) << std::endl;
+        mAdcError.emplace_back(std::make_tuple(2,timebin/5,mSyncPos[4]));
+//       std::cout << 2 << " " 
+//         << adcValues[0].size() << " "
+//         << adcValues[1].size() << " "
+//         << adcValues[2].size() << " "
+//         << adcValues[3].size() << " "
+//         << adcValues[4].size() << std::endl;
       };
     }
 
     short value1;
     short value2;
     for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
-      if (mSyncPos[iHalfSampa] < 0) continue;
-      if (lastSyncPos[iHalfSampa] < 0) continue;
+      if (mSyncPos[iHalfSampa] < 0 ) continue;
+      if (lastSyncPos[iHalfSampa] < 0 ) continue;
       if (mTimestampOfFirstData[iHalfSampa] == 0) mTimestampOfFirstData[iHalfSampa] = eventInfo.header.timeStamp() + 1 + i/indexStep;
 
       switch(mSyncPos[iHalfSampa]) {
@@ -449,8 +572,8 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo) {
           return false;
       }
 
-      adcValues[iHalfSampa].emplace(value1 ^ (1 << 9));
-      adcValues[iHalfSampa].emplace(value2 ^ (1 << 9));
+      adcValues[iHalfSampa].emplace ( value1 ^ (1 << 9));
+      adcValues[iHalfSampa].emplace ( value2 ^ (1 << 9));
     }
   }
   return true;
