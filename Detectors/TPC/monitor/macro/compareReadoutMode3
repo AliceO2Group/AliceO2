@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#if [ $# -lt 1 ]; then
-#  echo usage: compareReadoutMode3 <fileInfo>
-#fi
+if [ $# -lt 1 ]; then
+  echo "usage: compareReadoutMode3 <fileInfo>"
+fi
 
 fileInfo=$1
 

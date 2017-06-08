@@ -11,7 +11,6 @@ set(SRCS
    src/GBTFrameContainer.cxx
    src/HalfSAMPAData.cxx
    src/RawReader.cxx
-   src/RawReaderArray.cxx
    src/SyncPatternMonitor.cxx
    src/TrackTPC.cxx
 )
@@ -23,7 +22,6 @@ set(HEADERS
    include/${MODULE_NAME}/GBTFrameContainer.h
    include/${MODULE_NAME}/HalfSAMPAData.h
    include/${MODULE_NAME}/RawReader.h
-   include/${MODULE_NAME}/RawReaderArray.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
    include/${MODULE_NAME}/TrackTPC.h
 )
@@ -35,12 +33,14 @@ O2_GENERATE_LIBRARY()
 
 Set(Exe_Names
   tpc-read-GBTFrames
+  tpc-read-RawData
   testRawReader
 )
 
 
 Set(Exe_Source
   run/readGBTFrames.cxx
+  run/readRawData.cxx
   run/testRawReader.cxx
 )
 

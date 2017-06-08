@@ -8,6 +8,8 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <utility>
+#include <tuple>
 
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CalDet.h"
@@ -56,12 +58,10 @@ class RawReader {
     struct EventInfo {
       std::string path;     ///< Path to data file
       int posInFile;        ///< Position in data file
-      int region;           ///< Region of this data
-      int link;             ///< FEC of this data
-      Header header;    ///< Header of this evend
+      Header header;        ///< Header of this evend
 
       /// Default constructor
-      EventInfo() : path(""), posInFile(-1), region(-1), link(-1), header() {};
+      EventInfo() : path(""), posInFile(-1), header() {};
 
       /// Copy constructor
       EventInfo(const EventInfo& other) = default;
@@ -72,7 +72,8 @@ class RawReader {
     /// Default constructor
     /// @param region Region of the data
     /// @param link FEC of the data
-    RawReader(int region=-1, int link=-1);
+    /// @param run RUN number of the data
+    RawReader(int region=-1, int link=-1, int run=-1);
 
     /// Copy constructor
     RawReader(const RawReader& other) = default;
@@ -80,14 +81,21 @@ class RawReader {
     /// Destructor
     ~RawReader() = default;
 
-    /// Reads (and decodes) the next event
+    /// Reads (and decodes) the next event, starts again with event 0 after last one
     /// @return loaded event number
     int loadNextEvent();
 
-    /// Reads (and decodes) the previous event
+    /// Reads (and decodes) the next event
+    /// @return loaded event number, -1 after last event
+    int loadNextEventNoWrap();
+
+    /// Reads (and decodes) the previous event, starts again with last one after event 0
     /// @return loaded event number
     int loadPreviousEvent();
 
+    /// Reads (and decodes) the previous event
+    /// @return loaded event number, -1 after first event
+    int loadPreviousEventNoWrap();
 
     /// Reads (and decodes) given event
     /// @param event Event number to read
@@ -108,8 +116,9 @@ class RawReader {
     /// @param region Region of the data
     /// @param link FEC of the data
     /// @param path Path to data
+    /// @param run Run number
     /// @return True file can be opened
-    bool addInputFile(int region, int link, std::string path);
+    bool addInputFile(int region, int link, std::string path, int run=-1);
 
     /// Get the first event
     /// @return Event number of first event in data
@@ -138,17 +147,23 @@ class RawReader {
     /// @return shared pointer to data vector, each element is one timebin
     std::shared_ptr<std::vector<uint16_t>> getNextData(PadPos& padPos);
 
-    int getRegion() const { return mRegion; }
-    int getLink() const { return mLink; }
-    int getEventNumber() const { return mLastEvent; }
+    int getRegion() const { return mRegion; };
+    int getLink() const { return mLink; };
+    int getEventNumber() const { return mLastEvent; };
+    int getRunNumber() const { return mRun; };
 
     void setUseRawInMode3(bool val) { mUseRawInMode3 = val; };
     void setApplyChannelMask(bool val) { mApplyChannelMask = val; };
-    void setChannelMask(std::shared_ptr<CalDet<bool>> channelMask) { mChannelMask = channelMask; };     
-
+    void setChannelMask(std::shared_ptr<CalDet<bool>> channelMask) { mChannelMask = channelMask; };
+    void setPrintRawData(bool val) { mPrintRawData = val; };
     void setCheckAdcClock(bool val) { mCheckAdcClock = val; };
 
+    /// Returns some innformation about the event, e.g. the header
+    /// @param event Event number
+    /// @return shared pointer to vector with event informations
     std::shared_ptr<std::vector<EventInfo>> getEventInfo(uint64_t event) const;
+
+    std::vector<std::tuple<short,short,short>> getAdcError() { return mAdcError; };
 
   private:
 
@@ -157,9 +172,11 @@ class RawReader {
 
     int mRegion;                        ///< Region of the data
     int mLink;                          ///< FEC of the data
+    int mRun;                           ///< Run number
     bool mUseRawInMode3;                ///< in readout mode 3 decode GBT frames
     bool mApplyChannelMask;             ///< apply channel mask
     bool mCheckAdcClock;                ///< check the ADC clock
+    bool mPrintRawData;                 ///< print the RAW data while decoding
     int64_t mLastEvent;                 ///< Number of last loaded event
     std::array<uint64_t,5> mTimestampOfFirstData;   ///< Time stamp of first decoded ADC value, individually for each half sampa
     std::map<uint64_t, std::shared_ptr<std::vector<EventInfo>>> mEvents;                ///< all "event data" - headers, file path, etc. NOT actual data
@@ -168,6 +185,7 @@ class RawReader {
     std::array<short,5> mSyncPos;       ///< positions of the sync pattern (for readout mode 3)
 
     std::shared_ptr<CalDet<bool>> mChannelMask;     ///< Channel mask
+    std::vector<std::tuple<short,short,short>> mAdcError;
 };
 
 inline
@@ -251,6 +269,50 @@ int RawReader::loadPreviousEvent() {
     return event;
   }
 };
+
+inline
+int RawReader::loadNextEventNoWrap() { 
+  if (mLastEvent == -1) {
+
+    mSyncPos.fill(-1);
+    mTimestampOfFirstData.fill(0);
+
+    loadEvent(getFirstEvent());
+    return getFirstEvent();
+
+  } else if ( mLastEvent == getLastEvent() ) {
+
+    return -1;
+
+  } else {
+
+    int event = mLastEvent + 1;
+    loadEvent(event);
+    return event;
+  }
+};
+
+inline
+int RawReader::loadPreviousEventNoWrap() { 
+  if (mLastEvent <= getFirstEvent()) {
+    return -1;
+
+  } else if (mLastEvent == getFirstEvent()+1) {
+
+    mSyncPos.fill(-1);
+    mTimestampOfFirstData.fill(0);
+
+    loadEvent(getFirstEvent());
+    return getFirstEvent();
+
+  } else {
+
+    int event = mLastEvent - 1;
+    loadEvent(event);
+    return event;
+  }
+};
+
 
 }
 }
