@@ -199,6 +199,7 @@ int main(int argc, char** argv)
 	std::ofstream CPUOut, GPUOut;
 	FILE* fpBinaryOutput = NULL;
 
+	if (eventDisplay) noprompt = 1;
 	if (DebugLevel >= 4)
 	{
 		CPUOut.open("CPU.out");
