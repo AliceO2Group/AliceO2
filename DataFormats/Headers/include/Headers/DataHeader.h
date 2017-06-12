@@ -646,10 +646,22 @@ struct DataHeader : public BaseHeader
 //possible data origins
 extern const o2::Header::DataOrigin gDataOriginAny;
 extern const o2::Header::DataOrigin gDataOriginInvalid;
+extern const o2::Header::DataOrigin gDataOriginFLP;
+extern const o2::Header::DataOrigin gDataOriginACO;
+extern const o2::Header::DataOrigin gDataOriginCPV;
+extern const o2::Header::DataOrigin gDataOriginCTP;
+extern const o2::Header::DataOrigin gDataOriginEMC;
+extern const o2::Header::DataOrigin gDataOriginFIT;
+extern const o2::Header::DataOrigin gDataOriginHMP;
+extern const o2::Header::DataOrigin gDataOriginITS;
+extern const o2::Header::DataOrigin gDataOriginMCH;
+extern const o2::Header::DataOrigin gDataOriginMFT;
+extern const o2::Header::DataOrigin gDataOriginMID;
+extern const o2::Header::DataOrigin gDataOriginPHS;
+extern const o2::Header::DataOrigin gDataOriginTOF;
 extern const o2::Header::DataOrigin gDataOriginTPC;
 extern const o2::Header::DataOrigin gDataOriginTRD;
-extern const o2::Header::DataOrigin gDataOriginTOF;
-extern const o2::Header::DataOrigin gDataOriginITS;
+extern const o2::Header::DataOrigin gDataOriginZDC;
 
 //possible data types
 extern const o2::Header::DataDescription gDataDescriptionAny;

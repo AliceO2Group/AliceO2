@@ -38,10 +38,22 @@ const o2::Header::SerializationMethod o2::Header::gSerializationMethodFlatBuf("F
 //possible data origins
 const o2::Header::DataOrigin o2::Header::gDataOriginAny    ("***");
 const o2::Header::DataOrigin o2::Header::gDataOriginInvalid("NIL");
+const o2::Header::DataOrigin o2::Header::gDataOriginFLP    ("FLP");
+const o2::Header::DataOrigin o2::Header::gDataOriginACO    ("ACO");
+const o2::Header::DataOrigin o2::Header::gDataOriginCPV    ("CPV");
+const o2::Header::DataOrigin o2::Header::gDataOriginCTP    ("CTP");
+const o2::Header::DataOrigin o2::Header::gDataOriginEMC    ("EMC");
+const o2::Header::DataOrigin o2::Header::gDataOriginFIT    ("FIT");
+const o2::Header::DataOrigin o2::Header::gDataOriginHMP    ("HMP");
+const o2::Header::DataOrigin o2::Header::gDataOriginITS    ("ITS");
+const o2::Header::DataOrigin o2::Header::gDataOriginMCH    ("MCH");
+const o2::Header::DataOrigin o2::Header::gDataOriginMFT    ("MFT");
+const o2::Header::DataOrigin o2::Header::gDataOriginMID    ("MID");
+const o2::Header::DataOrigin o2::Header::gDataOriginPHS    ("PHS");
+const o2::Header::DataOrigin o2::Header::gDataOriginTOF    ("TOF");
 const o2::Header::DataOrigin o2::Header::gDataOriginTPC    ("TPC");
 const o2::Header::DataOrigin o2::Header::gDataOriginTRD    ("TRD");
-const o2::Header::DataOrigin o2::Header::gDataOriginTOF    ("TOF");
-const o2::Header::DataOrigin o2::Header::gDataOriginITS    ("ITS");
+const o2::Header::DataOrigin o2::Header::gDataOriginZDC    ("ZDC");
 
 //possible data types
 const o2::Header::DataDescription o2::Header::gDataDescriptionAny     ("***************");
