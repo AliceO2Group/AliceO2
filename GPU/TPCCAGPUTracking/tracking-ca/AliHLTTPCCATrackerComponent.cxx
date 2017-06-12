@@ -510,6 +510,7 @@ void* AliHLTTPCCATrackerComponent::TrackerExit(void* par)
     fTracker = NULL;
     if (fClusterData) delete[] fClusterData;
     fClusterData = NULL;
+	return(NULL);
 }
 
 int AliHLTTPCCATrackerComponent::DoDeinit()
