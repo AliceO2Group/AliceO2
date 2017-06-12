@@ -32,7 +32,7 @@ void RunCompareMode3(TString fileInfo)
 
   auto arrData = fileInfo.Tokenize("; ");
   uint64_t checkedAdcValues = 0;
-  for (auto o : *arrData) {
+  for (const auto &o : *arrData) {
     const TString& data = static_cast<TObjString*>(o)->String();
     LOG(INFO) << "Checking file " << data.Data() << FairLogger::endl;
     // get file info: file name, cru, link

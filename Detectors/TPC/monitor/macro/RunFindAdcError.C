@@ -45,7 +45,7 @@ void loopReader(std::shared_ptr<RawReader> reader_ptr, std::vector<Result>& resu
   auto reader = reader_ptr.get();
   while (reader->loadNextEventNoWrap() >= 0) {
     if (reader->getAdcError().size() != 0) {
-      for (auto err : reader->getAdcError()){
+      for (const auto &err : reader->getAdcError()){
         result_ptr.emplace_back(
             reader->getRunNumber(),
             reader->getEventNumber(),
@@ -97,7 +97,7 @@ void RunFindAdcError(int run_min, int run_max)
   // ===========================================================================
   LOG(INFO) << "Create all Readers..." << FairLogger::endl;
   std::vector<std::shared_ptr<RawReader>> RawReaders;
-  for (auto &s : fileInfos) {
+  for (const auto &s : fileInfos) {
     auto rawReader = new RawReader;
     rawReader->addInputFile(s);
     rawReader->setUseRawInMode3(true);
@@ -147,7 +147,7 @@ void RunFindAdcError(int run_min, int run_max)
     if (results[i].size() == 0) continue;
     std::cout << results[i].size() << " " << results[i][0].mEvent << " " << i<< std::endl;
     int sampaChip = 0;
-    for (auto &r : results[i]) {
+    for (const auto &r : results[i]) {
       sampaChip = (r.mRegion*4)+((r.mLink-9)*3)+r.mSampa;
       hAdcError->Fill(sampaChip,r.mTimebin);
       std::cout 
