@@ -384,13 +384,20 @@ void AliHLTTPCCAStandaloneFramework::WriteEvent( std::ostream &out ) const
   }
 }
 
-void AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in )
+void AliHLTTPCCAStandaloneFramework::ReadEvent( std::istream &in, bool resetIds )
 {
   //* Read event from file
   int nClusters = 0;
   for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ ) {
     fClusterData[iSlice].ReadEvent( in );
-	nClusters += fClusterData[iSlice].NumberOfClusters();
+    if (resetIds)
+    {
+      for (int i = 0;i < fClusterData[iSlice].NumberOfClusters();i++)
+      {
+        fClusterData[iSlice].Clusters()[i].fId = nClusters + i;
+      }
+    }
+    nClusters += fClusterData[iSlice].NumberOfClusters();
   }
 #ifdef HLTCA_STANDALONE
   printf("Read %d Clusters\n", nClusters);

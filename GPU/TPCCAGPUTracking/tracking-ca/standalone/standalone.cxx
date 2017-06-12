@@ -277,7 +277,7 @@ int main(int argc, char** argv)
 		printf("Loading Event %d\n", i);
 
 		hlt.StartDataReading(0);
-		hlt.ReadEvent(in);
+		hlt.ReadEvent(in, eventDisplay != 0);
 		
 #ifdef BROKEN_EVENTS
 		int break_slices = rand() % 36;
@@ -335,6 +335,10 @@ int main(int argc, char** argv)
 			if (merger)
 			{
 				const AliHLTTPCGMMerger& merger = hlt.Merger();
+				if (eventDisplay && (writeoutput || writebinary))
+				{
+					printf("\nWARNING: Renumbering Cluster IDs for event display, Cluster IDs in output do NOT match IDs from input\n\n");
+				}
 				if (writeoutput)
 				{
 					char filename[1024];
