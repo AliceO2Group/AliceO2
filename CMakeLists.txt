@@ -201,3 +201,4 @@ configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
     )
 
 O2_GENERATE_MAN(NAME o2)
+O2_GENERATE_MAN(NAME FairMQDevice)

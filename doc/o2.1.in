@@ -9,7 +9,10 @@ O2 is Alice next generation software framework to be used for RUN3.
 
 AliceHLTWrapperDevice(1)
 
-.SH TOOLS
+.\.SH TOOLS
+
+.SH SEE ALSO
+FairMQDevice(1)
 
 .SH BUGS
 
