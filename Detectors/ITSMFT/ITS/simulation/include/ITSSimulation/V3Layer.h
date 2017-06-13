@@ -1,5 +1,5 @@
-/// \file AliITSUv1Layer.cxx
-/// \brief Definition of the AliITSUv1Layer class
+/// \file V3Layer.h
+/// \brief Definition of the V3Layer class
 /// \author Mario Sitta <sitta@to.infn.it>
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 

@@ -13,20 +13,20 @@
 
 class FairModule;
 
-class FairVolume;  // lines 16-16
-class TClonesArray;  // lines 17-17
+class FairVolume;
+class TClonesArray;
 class TGeoVolume;
 
 class TParticle;
 
 class TString;
 
-namespace o2 { namespace ITSMFT { class Point; }}  // lines 22-22
+namespace o2 { namespace ITSMFT { class Point; }}
 
 namespace o2 { namespace ITS { class GeometryHandler; }}
 namespace o2 { namespace ITS { class MisalignmentParameter; }}
 namespace o2 { namespace ITS { class GeometryTGeo; }}
-namespace o2 { namespace ITS { class V3Layer; }}  // lines 23-23
+namespace o2 { namespace ITS { class V3Layer; }}
 
 namespace o2 {
 namespace ITS {
