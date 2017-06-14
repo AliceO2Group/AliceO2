@@ -39,7 +39,7 @@ Chip(s) {
 
 //______________________________________________________________________
 Double_t SimulationAlpide::betaGammaFunction(Double_t Par0, Double_t Par1, Double_t Par2, Double_t x) const {
-  Double_t y = Par0*((1+TMath::Power(x, 2))/TMath::Power(x, 2))*(0.5*TMath::Log(Par1*TMath::Power(x, 2)) - (TMath::Power(x, 2)/(1+TMath::Power(x, 2))) - Par2*TMath::Log(x));
+  Double_t y = Par0*((1+x*x)/x*x)*(0.5*TMath::Log(Par1*x*x) - (x*x/(1+x*x)) - Par2*TMath::Log(x));
   return std::max(0.35, y);
 }
 
