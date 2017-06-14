@@ -93,8 +93,8 @@ Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const {
   TVector3 normal(0., -1., 0.);
   Double_t theta = pdirection.Theta() - normal.Theta();
   Double_t phi   = pdirection.Phi() - normal.Phi();
-  Double_t angle = sqrt(pow(theta, 2) + pow(phi, 2));
-  return sqrt(pow(theta, 2) + pow(phi, 2));
+  Double_t angle = TMath::Sqrt(theta*theta + phi*phi);
+  return TMath::Sqrt(theta*theta + phi*phi);
 }
 
 
