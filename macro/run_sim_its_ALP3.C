@@ -140,7 +140,7 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   o2::ITS::Detector* its = new o2::ITS::Detector("ITS", kTRUE, kNLr);
   run->AddModule(its);
 
-  its->setStaveModelIB(o2::ITS::Detector::kIBModel22);
+  its->setStaveModelIB(o2::ITS::Detector::kIBModel4);
   its->setStaveModelOB(o2::ITS::Detector::kOBModel1);
 
   const int kNWrapVol = 3;
