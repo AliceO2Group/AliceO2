@@ -10,8 +10,9 @@ using namespace o2::ITSMFT;
 
 void DigitContainer::reset()
 {
-  for (Int_t i = 0; i < mChips.size(); i++)
-  mChips[i].reset();
+  for (Int_t i = 0; i < mChips.size(); i++){
+    mChips[i].reset();
+  }
 }
 
 Digit* DigitContainer::getDigit(Int_t chipID, UShort_t row, UShort_t col) { return mChips[chipID].getDigit(row, col); }
