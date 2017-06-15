@@ -11,8 +11,6 @@
 /// \file SimulationAlpide.cxx
 /// \brief Simulation of the ALIPIDE chip response
 
-#include <TF1.h>
-#include <TF2.h>
 #include <TRandom.h>
 #include <TLorentzVector.h>
 #include <TClonesArray.h>
@@ -31,34 +29,42 @@ using namespace o2::ITSMFT;
 
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide():
-  Chip()
-{
+Chip() {
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=0.;
 }
 
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide(Double_t par[NumberOfParameters], Int_t n, const TGeoHMatrix *m):
-  Chip(n,m)
-{
+Chip(n,m) {
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=par[i];
 }
 
+
 //______________________________________________________________________
 SimulationAlpide::SimulationAlpide(const SimulationAlpide &s):
-Chip(s)
-{
+Chip(s) {
   for (Int_t i=0; i<NumberOfParameters; i++) mParam[i]=s.mParam[i];
 }
 
+
 //______________________________________________________________________
-Double_t SimulationAlpide::getACSFromBetaGamma(Double_t x, Double_t theta) const {
-  auto *acs = new TF1("acs", "[0]*((1+TMath::Power(x, 2))/TMath::Power(x, 2))*(0.5*TMath::Log([1]*TMath::Power(x, 2)) - (TMath::Power(x, 2)/(1+TMath::Power(x, 2))) - [2]*TMath::Log(x))", 0, 10000);
-  acs->SetParameter(0, mParam[ACSFromBGPar0]);
-  acs->SetParameter(1, mParam[ACSFromBGPar1]);
-  acs->SetParameter(2, mParam[ACSFromBGPar2]);
-  Double_t val = acs->Eval(x)/fabs(cos(theta));
-  delete acs;
-  return val;
+Double_t SimulationAlpide::betaGammaFunction(Double_t Par0, Double_t Par1, Double_t Par2, Double_t x) const {
+  auto xsqr = x*x;
+  Double_t y = Par0*((1+xsqr)/xsqr)*(0.5*TMath::Log(Par1*xsqr) - (xsqr/(1+xsqr)) - Par2*TMath::Log(x));
+  return std::max(0.35, y);
+}
+
+
+//______________________________________________________________________
+Double_t SimulationAlpide::getACSFromBetaGamma(Double_t x) const {
+  Double_t evalX = betaGammaFunction(mParam[ACSFromBGPar0], mParam[ACSFromBGPar1], mParam[ACSFromBGPar2], x);
+  return evalX;
+}
+
+
+//______________________________________________________________________
+Double_t SimulationAlpide::gaussian2D(Double_t sigma, Double_t offc, Double_t x, Double_t y) const {
+  return (offc-1)*(1-TMath::Gaus(x,0,sigma)*TMath::Gaus(y,0,sigma))+1;
 }
 
 
@@ -69,35 +75,18 @@ Int_t SimulationAlpide::getPixelPositionResponse(const SegmentationPixel *seg, I
 
   Double_t Dx = locx-centerX;
   Double_t Dy = locz-centerZ;
+
   Double_t sigma = 0.001; // = 10 um
   Double_t offc  = acs; // WARNING: this is just temporary! (a function for this is ready but need further testing)
-
-  auto *respf = new TF2("respf", "([1]-1)*(1-TMath::Gaus(x,0,[0])*TMath::Gaus(y,0,[0]))+1",
-  -seg->cellSizeX()/2, seg->cellSizeX()/2, -seg->cellSizeZ(0)/2, seg->cellSizeZ(0)/2);
-  respf->SetParameter(0, sigma);
-  respf->SetParameter(1, offc);
-  Int_t cs = (Int_t) round(respf->Eval(Dx, Dy));
-  delete respf;
+  Int_t cs = (Int_t) round(gaussian2D(sigma, offc, Dx, Dy));
   return cs;
 }
 
 
 //______________________________________________________________________
 Int_t SimulationAlpide::sampleCSFromLandau(Double_t mpv, Double_t w) const {
-  auto *landauDistr = new TF1("landauDistr","TMath::Landau(x,[0],[1])", 0, 20);
-  landauDistr->SetParameter(0, mpv);
-  landauDistr->SetParameter(1, w);
-
-  // Generation according to the Landau distribution defined above
-  Double_t fmax = landauDistr->GetMaximum();
-  Double_t x1 = gRandom->Uniform(0, 20);
-  Double_t y1 = gRandom->Uniform(0, fmax);
-  while (y1 > landauDistr->Eval(x1)) {
-    x1 = gRandom->Uniform(0, 20);
-    y1 = gRandom->Uniform(0, fmax);
-  }
-  Int_t cs = (Int_t) round(x1);
-  delete landauDistr;
+  Double_t x = std::max(1., gRandom->Landau(mpv, w));
+  Int_t cs = (Int_t) round(x);
   return cs;
 }
 
@@ -113,17 +102,43 @@ Double_t SimulationAlpide::computeIncidenceAngle(TLorentzVector dir) const {
 
   TVector3 pdirection(loc[0], loc[1], loc[2]);
   TVector3 normal(0., -1., 0.);
-
-  return pdirection.Angle(normal);
+  Double_t theta = pdirection.Theta() - normal.Theta();
+  Double_t phi   = pdirection.Phi() - normal.Phi();
+  Double_t angle = TMath::Sqrt(theta*theta + phi*phi);
+  return TMath::Sqrt(theta*theta + phi*phi);
 }
 
 
 //______________________________________________________________________
-void
-SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitContainer *digitContainer) {
-  Int_t nhits = Chip::GetNumberOfPoints();
-  if (nhits <= 0) return;
+void SimulationAlpide::updateACSWithAngle(Double_t& acs, Double_t angle) const {
+  acs = acs/TMath::Power(TMath::Cos(angle*TMath::Pi()/180.), 0.7873);
+}
 
+
+//______________________________________________________________________
+void SimulationAlpide::addNoise(Double_t mean, const SegmentationPixel* seg, DigitContainer *digitContainer) {
+  UInt_t row = 0;
+  UInt_t col = 0;
+  Int_t nhits = 0;
+  Int_t chipId = Chip::GetChipIndex();
+  nhits = gRandom->Poisson(mean);
+  for (Int_t i = 0; i < nhits; ++i) {
+    row = gRandom->Integer(seg->getNumberOfRows());
+    col = gRandom->Integer(seg->getNumberOfColumns());
+    Digit *noiseD = digitContainer->addDigit(chipId, row, col, 0., 0.);
+    noiseD->setLabel(0, -1);
+  }
+}
+
+
+//______________________________________________________________________
+void SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitContainer *digitContainer) {
+  Int_t nhits = Chip::GetNumberOfPoints();
+
+  // Add noise to the chip
+  addNoise(mParam[Noise], seg, digitContainer);
+
+  if (nhits <= 0) return;
   for (Int_t h = 0; h < nhits; ++h) {
     Double_t x0, x1, y0, y1, z0, z1, tof, de;
     if (!Chip::LineSegmentLocal(h, x0, x1, y0, y1, z0, z1, tof, de)) continue;
@@ -137,23 +152,23 @@ SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitContainer 
     TLorentzVector trackP4;
     trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
     Double_t beta = std::min(0.99999, trackP4.Beta());
-    Double_t bgamma = beta / sqrt(1 - pow(beta, 2));
+    Double_t bgamma = beta / std::sqrt(1. - beta*beta);
     if (bgamma < 0.001) continue;
-    Double_t theta = computeIncidenceAngle(trackP4);
+    Double_t effangle = computeIncidenceAngle(trackP4);
 
     // Get the pixel ID
     Int_t ix, iz;
     if (!seg->localToDetector(x, z, ix, iz)) continue;
 
-    Double_t acs = getACSFromBetaGamma(bgamma, theta);
+    Double_t acs = getACSFromBetaGamma(bgamma);
+    updateACSWithAngle(acs, effangle);
     UInt_t cs = getPixelPositionResponse(seg, ix, iz, x, z, acs);
     //cs = 3; // uncomment to set the cluster size manually
 
     // Create the shape
     std::vector<UInt_t> cshape;
-    auto *csManager = new SimuClusterShaper(cs);
+    auto csManager = std::make_unique<SimuClusterShaper>(cs);
     csManager->SetFireCenter(true);
-    //csManager->FillClusterRandomly();
 
     csManager->SetHit(ix, iz, x, z, seg);
     csManager->FillClusterSorted();
@@ -179,17 +194,15 @@ SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitContainer 
       Int_t r = (Int_t) cshape[ipix] / nrows;
       Int_t c = (Int_t) cshape[ipix] % nrows;
       Int_t nx = ix - cx + c;
-        if (nx<0) continue;
-        if (nx>=seg->getNumberOfRows()) continue;
+      if (nx<0) continue;
+      if (nx>=seg->getNumberOfRows()) continue;
       Int_t nz = iz - cz + r;
-        if (nz<0) continue;
-        if (nz>=seg->getNumberOfColumns()) continue;
+      if (nz<0) continue;
+      if (nz>=seg->getNumberOfColumns()) continue;
       Int_t chipID = hit->GetDetectorID();
       Double_t charge = hit->GetEnergyLoss();
       Digit *digit = digitContainer->addDigit(chipID, nx, nz, charge, hit->GetTime());
       digit->setLabel(0, hit->GetTrackID());
     }
-
-    delete csManager;
   }
 }

@@ -18,6 +18,7 @@
 
 #include "Rtypes.h"
 #include "ITSMFTSimulation/DigitChip.h"
+#include "ITSMFTBase/SegmentationPixel.h"
 
 class TClonesArray;
 

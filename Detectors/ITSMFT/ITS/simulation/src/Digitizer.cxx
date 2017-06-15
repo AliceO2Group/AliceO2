@@ -51,7 +51,8 @@ void Digitizer::init(Bool_t build)
     50,     // ALPIDE threshold
     -1.315, // ACSFromBGPar0
     0.5018, // ACSFromBGPar1
-    1.084   // ACSFromBGPar2
+    1.084,  // ACSFromBGPar2
+    5.      // ALPIDE Noise per chip
   };
   for (Int_t i = 0; i < numOfChips; i++) {
     mSimulations.emplace_back(param, i, mGeometry.getMatrixSensor(i));
@@ -77,7 +78,7 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
     simulation.generateClusters(seg, &mDigitContainer);
     simulation.clearSimulation();
   }
-  
+
   mDigitContainer.fillOutputContainer(digits);
 }
 
