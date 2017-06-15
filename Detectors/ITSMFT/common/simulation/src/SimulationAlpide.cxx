@@ -142,7 +142,7 @@ void SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitConta
     TLorentzVector trackP4;
     trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
     Double_t beta = std::min(0.99999, trackP4.Beta());
-    Double_t bgamma = beta / std::sqrt(1. - beta*beta));
+    Double_t bgamma = beta / std::sqrt(1. - beta*beta);
     if (bgamma < 0.001) continue;
     Double_t effangle = computeIncidenceAngle(trackP4);
 
