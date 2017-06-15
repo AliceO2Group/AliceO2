@@ -83,7 +83,6 @@ void EPNReceiverDevice::Run()
   FairMQChannel& ackOutChannel = fChannels.at(mAckChannelName).at(0);
 
   // Simple multi timeframe index
-  using PartPosition = int;
   using TimeframeId = int;
   using FlpId = int;
   std::multimap<TimeframeId, IndexElement> index;
@@ -101,25 +100,6 @@ void EPNReceiverDevice::Run()
     SubframeMetadata* sfm = reinterpret_cast<SubframeMetadata*>(subtimeframeParts.At(1)->GetData());
     id = o2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
     auto flpId = sfm->flpIndex;
-
-    // in this case the subtime frame did send some data
-    if (subtimeframeParts.Size() > 2) {
-      int part = 2;
-      // check if we got something from TPC
-      auto *header = reinterpret_cast<Header::DataHeader*>(subtimeframeParts.At(part)->GetData());
-      if (strncmp(header->dataDescription.str, "TPCCLUSTER", 16) == 0) {
-         assert( header->payloadSize == subtimeframeParts.At(part+1)->GetSize() );
-         TPCTestCluster *cl = reinterpret_cast<TPCTestCluster*>(subtimeframeParts.At(part+1)->GetData());
-         auto numberofClusters = header->payloadSize / sizeof(TPCTestCluster);
-         if (header->payloadSize % sizeof(TPCTestCluster) != 0)
-         {
-            LOG(ERROR) << "Unexpected size for TPCTestCluster: got an extra " 
-                       << header->payloadSize % sizeof(TPCTestCluster)
-                       << " total size " << header->payloadSize << "\n";
-         }
-        LOG(DEBUG) << "TPCCLUSTER found\n";
-      }
-    }
 
     if (mDiscardedSet.find(id) == mDiscardedSet.end())
     {
