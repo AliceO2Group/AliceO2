@@ -97,9 +97,9 @@ o2::Header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
 //__________________________________________________________________________________________________
 o2::Header::DataHeader::DataHeader()
   : BaseHeader(sizeof(DataHeader),sHeaderType,sSerializationMethod,sVersion)
+  , payloadSerializationMethod(gSerializationMethodInvalid)
   , dataOrigin(gDataOriginInvalid)
   , reserved(gInvalidToken32)
-  , payloadSerializationMethod(gSerializationMethodInvalid)
   , dataDescription(gDataDescriptionInvalid)
   , subSpecification(0)
   , payloadSize(0)
