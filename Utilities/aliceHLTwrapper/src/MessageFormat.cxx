@@ -55,7 +55,12 @@ MessageFormat::MessageFormat()
   , mpFactory(nullptr)
   , mOutputMode(kOutputModeO2)
   , mListEvtData()
+  , mHeartbeatHeader()
+  , mHeartbeatTrailer()
 {
+  // invalidate the heartbeat header and trailer
+  mHeartbeatHeader.headerWord = 0;
+  mHeartbeatTrailer.trailerWord = 0;
 }
 
 MessageFormat::~MessageFormat()
@@ -70,6 +75,10 @@ void MessageFormat::clear()
   mDataBuffer.clear();
   mMessages.clear();
   mListEvtData.clear();
+
+  // invalidate the heartbeat header and trailer
+  mHeartbeatHeader.headerWord = 0;
+  mHeartbeatTrailer.trailerWord = 0;
 }
 
 int MessageFormat::addMessage(uint8_t* buffer, unsigned size)
@@ -134,7 +143,7 @@ int MessageFormat::addMessages(const vector<BufferDesc_t>& list)
   for (auto & data : list) {
     if (tryO2format) {
       if (o2::Header::get<o2::Header::DataHeader>(data.mP, data.mSize)) {
-        return readO2Format(list, mBlockDescriptors);
+        return readO2Format(list, mBlockDescriptors, mHeartbeatHeader, mHeartbeatTrailer);
       }
       tryO2format = false;
     }
@@ -215,7 +224,7 @@ int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
   return nofBlocks;
 }
 
-int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList) const
+int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList, HeartbeatHeader& hbh, HeartbeatTrailer& hbt) const
 {
   int partNumber = 0;
   const o2::Header::DataHeader* dh = nullptr;
@@ -227,8 +236,38 @@ int MessageFormat::readO2Format(const vector<BufferDesc_t>& list, std::vector<Bl
         cerr << "can not find DataHeader" << endl;
         return -ENOMSG;
       }
+      // extract the heartbeat information if available and keep it to
+      // envelope the data blocks in the output message
+      if (dh->dataDescription == o2::Header::gDataDescriptionHeartbeatFrame) {
+        const HeartbeatFrameEnvelope* hbf = o2::Header::get<HeartbeatFrameEnvelope>(part.mP, part.mSize);
+        if (hbf) {
+          hbh = hbf->header;
+          hbt = hbf->trailer;
+        } else {
+          hbh.headerWord = hbt.trailerWord = 0;
+        }
+      }
     } else {
-      descriptorList.emplace_back(part.mP, part.mSize, *dh);
+      if (dh->dataDescription == o2::Header::gDataDescriptionHeartbeatFrame) {
+        // this is pure O2 information, do not forward to HLT component
+        dh = nullptr;
+        continue;
+      }
+      auto ptr = part.mP;
+      auto size = part.mSize;
+      if (hbh) {
+        // check if the data is enveloped in a heartbeat frame
+        if (size > sizeof(HeartbeatHeader) + sizeof(HeartbeatTrailer)) {
+          auto* datahbh = reinterpret_cast<const HeartbeatHeader*>(ptr);
+          auto* datahbt = reinterpret_cast<const HeartbeatTrailer*>(ptr + size - sizeof(HeartbeatTrailer));
+          if ((*datahbh) && (*datahbt)) {
+            // valid header and trailer found, strip the block
+            ptr += sizeof(HeartbeatHeader);
+            size -= sizeof(HeartbeatHeader) + sizeof(HeartbeatTrailer);
+          }
+        }
+      }
+      descriptorList.emplace_back(ptr, size, *dh);
       dh = nullptr;
     }
   }
@@ -263,17 +302,11 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
       uint32_t offset = 0;
       uint32_t payloadSize = pWriter->GetTotalMemorySize();
       auto msgSize=payloadSize + (evtData != nullptr?sizeof(AliHLTComponentEventData):0);
-      auto pTarget=&mDataBuffer[position];
       if (cbAllocate==nullptr) {
         // make the target in the internal buffer
         mDataBuffer.resize(position + msgSize);
-      } else {
-        // use callback to create target
-        pTarget=*(*cbAllocate)(msgSize);
-        if (pTarget==nullptr) {
-          throw std::bad_alloc();
-        }
       }
+      auto pTarget = MakeTarget(msgSize, position, cbAllocate);
       if (evtData) {
         memcpy(pTarget + offset, evtData, sizeof(AliHLTComponentEventData));
         offset+=sizeof(AliHLTComponentEventData);
@@ -299,12 +332,60 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     // sequence mode concatenates the output blocks in the internal
     // buffer. In contrast to multi part mode, only one buffer descriptor
     // for the complete sequence is handed over to device
+    //
+    // kOutputModeO2
+    // the O2 data format consisting of header-payload pairs
     uint32_t position = mDataBuffer.size();
-    auto pTarget=&mDataBuffer[position];
     uint32_t offset = 0;
     unsigned bi = 0;
     const auto* pOutputBlock = pOutputBlocks;
-    auto maxBufferSize = sizeof(AliHLTComponentEventData) + count * sizeof(AliHLTComponentBlockData) + totalPayloadSize;
+    auto maxBufferSize = totalPayloadSize;
+    if (mOutputMode == kOutputModeO2) {
+      maxBufferSize += count * sizeof(o2::Header::DataHeader);
+      if (mHeartbeatHeader) {
+        // one extra header for the generated HB information
+        maxBufferSize += sizeof(o2::Header::DataHeader) + sizeof(HeartbeatFrameEnvelope);
+        // the payload of the additional block
+        maxBufferSize += sizeof(o2::Header::HeartbeatStatistics);
+        // one heartbeat header-trailer pair per data block
+        maxBufferSize += count * (sizeof(mHeartbeatHeader) + sizeof(mHeartbeatTrailer));
+      }
+    } else {
+      maxBufferSize += sizeof(AliHLTComponentEventData) + count * sizeof(AliHLTComponentBlockData);
+    }
+    if (mDataBuffer.size() < position + maxBufferSize) {
+      // make the target in the internal buffer, for simplicity data is copied
+      // to a new buffer, a memmove would be possible to make room for block
+      // descriptors
+      // resize to the full size before using individual chunks of
+      // this buffer to ensure, that all pointers are valid at the end.
+      mDataBuffer.resize(position + maxBufferSize);
+    }
+    auto pTarget=&mDataBuffer[position];
+    pTarget = nullptr;
+    if (mOutputMode == kOutputModeO2 && mHeartbeatHeader) {
+      // add additional heartbeat envelope block at the beginning
+      // data header
+      o2::Header::DataHeader dh;
+      o2::Header::HeartbeatStatistics hbfPayload;
+      dh.dataDescription = o2::Header::gDataDescriptionHeartbeatFrame;
+      dh.dataOrigin = o2::Header::gDataOriginAny;
+      dh.payloadSize = sizeof(hbfPayload);
+      dh.subSpecification = 0;
+      // make the stack
+      o2::Header::Stack headerMessage(dh, HeartbeatFrameEnvelope(mHeartbeatHeader, mHeartbeatTrailer));
+
+      auto msgSize = headerMessage.size();
+      pTarget = MakeTarget(msgSize, position, cbAllocate);
+      memcpy(pTarget, headerMessage.data(), msgSize);
+      mMessages.emplace_back(pTarget, msgSize);
+      if (cbAllocate == nullptr) position += msgSize;
+      msgSize = dh.payloadSize;
+      pTarget = MakeTarget(msgSize, position, cbAllocate);
+      memcpy(pTarget, &hbfPayload, msgSize);
+      mMessages.emplace_back(pTarget, msgSize);
+      if (cbAllocate == nullptr) position += msgSize;
+    }
     unsigned msgSize = 0;
     do {
       if (bi == 0 ||
@@ -325,26 +406,8 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
         } else if (mOutputMode == kOutputModeO2 ) {
           msgSize = sizeof(o2::Header::DataHeader);
         }
-        if (cbAllocate==nullptr) {
-          // make the target in the internal buffer, for simplicity data is copied
-          // to a new buffer, a memmove would be possible to make room for block
-          // descriptors
-          if (mDataBuffer.size() < position + msgSize) {
-            if (bi != 0) {
-              throw std::runtime_error("complete buffer allocation must be done in the first cycle");
-            }
-            // resize to the full size at once
-            mDataBuffer.resize(position + maxBufferSize);
-          }
-          pTarget=&mDataBuffer[position];
-        } else {
-          // use callback to create target
-          pTarget=*(*cbAllocate)(msgSize);
-          if (pTarget==nullptr) {
-            throw std::bad_alloc();
-          }
-        }
-        offset=0;
+        pTarget = MakeTarget(msgSize, position, cbAllocate);
+        offset = 0;
       }
 
       if (bi==0 && evtData != nullptr) {
@@ -380,6 +443,7 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
           // send one descriptor per block back to device
           mMessages.emplace_back(pTarget, offset);
           if (cbAllocate == nullptr) position+=offset;
+          offset = 0;
         } else if (mOutputMode == kOutputModeO2) {
           o2::Header::DataHeader dh;
           dh.dataDescription.runtimeInit(pOutputBlock->fDataType.fID, kAliHLTComponentDataTypefIDsize);
@@ -390,7 +454,25 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
           offset += sizeof(o2::Header::DataHeader);
           mMessages.emplace_back(pTarget, offset);
           if (cbAllocate == nullptr) position+=offset;
-          mMessages.emplace_back(pData, pOutputBlock->fSize);
+          offset = 0;
+          if (mHeartbeatHeader.headerWord == 0) {
+            // no heartbeat information availalbe, send the buffer
+            // as it is
+            mMessages.emplace_back(pData, pOutputBlock->fSize);
+          } else {
+            // make the heartbeat frame
+            msgSize = pOutputBlock->fSize + sizeof(mHeartbeatHeader) + sizeof(mHeartbeatTrailer);
+            pTarget = MakeTarget(msgSize, position, cbAllocate);
+            memcpy(pTarget + offset, &mHeartbeatHeader, sizeof(mHeartbeatHeader));
+            offset += sizeof(mHeartbeatHeader);
+            memcpy(pTarget + offset, pData, pOutputBlock->fSize);
+            offset += pOutputBlock->fSize;
+            memcpy(pTarget + offset, &mHeartbeatTrailer, sizeof(mHeartbeatTrailer));
+            offset += sizeof(mHeartbeatTrailer);
+            mMessages.emplace_back(pTarget, offset);
+            if (cbAllocate == nullptr) position += offset;
+            offset = 0;
+          }
         }
         pOutputBlock++;
       }
@@ -407,6 +489,26 @@ vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const AliHLTCo
     throw std::runtime_error(errorMsg.str());
   }
   return mMessages;
+}
+
+uint8_t* MessageFormat::MakeTarget(unsigned size, unsigned position, boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate)
+{
+  // TODO: obviously this can be done in a better way, it's a bit of a hack
+  // taking account for the limited lifetime of the wrapper device code
+  uint8_t* pTarget = nullptr;
+  if (cbAllocate==nullptr) {
+    if (mDataBuffer.size() < position + size) {
+      throw std::runtime_error("complete buffer allocation must be done in the first cycle");
+    }
+    pTarget=&mDataBuffer[position];
+  } else {
+    // use callback to create target
+    pTarget=*(*cbAllocate)(size);
+    if (pTarget==nullptr) {
+      throw std::bad_alloc();
+    }
+  }
+  return pTarget;
 }
 
 AliHLTHOMERWriter* MessageFormat::createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,

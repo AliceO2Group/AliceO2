@@ -35,6 +35,7 @@
 #include <cstdint>
 #include <boost/signals2.hpp>
 #include "Headers/DataHeader.h"
+#include "Headers/HeartbeatFrame.h"
 
 class AliHLTHOMERReader;
 class AliHLTHOMERWriter;
@@ -94,8 +95,14 @@ public:
   /// destructor
   ~MessageFormat();
 
+  using DataHeader = o2::Header::DataHeader;
+  using HeartbeatFrameEnvelope = o2::Header::HeartbeatFrameEnvelope;
+  using HeartbeatHeader = o2::Header::HeartbeatHeader;
+  using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
+
   struct BufferDesc_t {
-    unsigned char* mP;
+    using PtrT = unsigned char*;
+    PtrT mP;
     unsigned mSize;
 
     BufferDesc_t(unsigned char* p, unsigned size)
@@ -161,7 +168,7 @@ public:
   int readHOMERFormat(uint8_t* buffer, unsigned size, std::vector<BlockDescriptor>& descriptorList) const;
 
   // read messages in O2 format
-  int readO2Format(const std::vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList) const;
+  int readO2Format(const std::vector<BufferDesc_t>& list, std::vector<BlockDescriptor>& descriptorList, HeartbeatHeader& hbh, HeartbeatTrailer& hbt) const;
 
   // create HOMER format from the output blocks
   AliHLTHOMERWriter* createHOMERFormat(const AliHLTComponentBlockData* pOutputBlocks,
@@ -186,6 +193,12 @@ private:
   // assignment operator prohibited
   MessageFormat& operator=(const MessageFormat&);
 
+  // single point to provide a target pointer, either by using a
+  // provided callback function or in the internal buffer, which has
+  // to be allocated completely in advance in order to ensure validity
+  // of the pointers
+  uint8_t* MakeTarget(unsigned size, unsigned position, boost::signals2::signal<unsigned char* (unsigned int)> *cbAllocate);
+
   std::vector<BlockDescriptor> mBlockDescriptors;
   /// internal buffer to assemble message data
   std::vector<uint8_t>            mDataBuffer;
@@ -197,6 +210,11 @@ private:
   int mOutputMode;
   /// list of event descriptors
   std::vector<AliHLTComponentEventData> mListEvtData;
+
+  /// the current  heartbeat header
+  HeartbeatHeader mHeartbeatHeader;
+  /// the current  heartbeat trailer
+  HeartbeatTrailer mHeartbeatTrailer;
 };
 
 } // namespace AliceHLT

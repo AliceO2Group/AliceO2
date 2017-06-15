@@ -81,7 +81,7 @@ bpo::options_description Component::GetOptionsDescription()
      bpo::value<string>()->default_value("0"),
      "maximum size of output buffer/msg")
     ((std::string(OptionKeys[OptionKeyOutputMode]) + ",m").c_str(),
-     bpo::value<string>()->default_value("2"),
+     bpo::value<string>()->default_value("3"),
      "output mode");
 
   return od;
