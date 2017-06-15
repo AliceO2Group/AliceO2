@@ -39,7 +39,8 @@ Chip(s) {
 
 //______________________________________________________________________
 Double_t SimulationAlpide::betaGammaFunction(Double_t Par0, Double_t Par1, Double_t Par2, Double_t x) const {
-  Double_t y = Par0*((1+x*x)/x*x)*(0.5*TMath::Log(Par1*x*x) - (x*x/(1+x*x)) - Par2*TMath::Log(x));
+  auto xsqr = x*x;
+  Double_t y = Par0*((1+xsqr)/xsqr)*(0.5*TMath::Log(Par1*xsqr) - (xsqr/(1+xsqr)) - Par2*TMath::Log(x));
   return std::max(0.35, y);
 }
 
@@ -141,7 +142,7 @@ void SimulationAlpide::generateClusters(const SegmentationPixel *seg, DigitConta
     TLorentzVector trackP4;
     trackP4.SetPxPyPzE(hit->GetPx(), hit->GetPy(), hit->GetPz(), hit->GetTotalEnergy());
     Double_t beta = std::min(0.99999, trackP4.Beta());
-    Double_t bgamma = beta / sqrt(1 - pow(beta, 2));
+    Double_t bgamma = beta / std::sqrt(1. - beta*beta));
     if (bgamma < 0.001) continue;
     Double_t effangle = computeIncidenceAngle(trackP4);
 
