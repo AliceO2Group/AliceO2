@@ -85,6 +85,8 @@ O2_GENERATE_EXECUTABLE(
 
 set(TEST_SRCS
   test/test_TimeframeParser.cxx
+  test/test_SubframeUtils01.cxx
+  test/test_PayloadMerger01.cxx
 )
 
 O2_GENERATE_TESTS(
@@ -94,5 +96,3 @@ O2_GENERATE_TESTS(
 
 O2_GENERATE_MAN(NAME TimeframeReaderDevice)
 O2_GENERATE_MAN(NAME TimeframeWriterDevice)
-
-target_compile_options(test_TimeframeParser PUBLIC -O0 -g)
