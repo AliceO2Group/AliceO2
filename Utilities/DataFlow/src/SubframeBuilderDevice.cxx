@@ -18,27 +18,20 @@
 #include <functional>
 
 #include "DataFlow/SubframeBuilderDevice.h"
+#include "DataFlow/SubframeUtils.h"
 #include "Headers/SubframeMetadata.h"
 #include "Headers/HeartbeatFrame.h"
 #include "Headers/DataHeader.h"
 #include <options/FairMQProgOptions.h>
 
-// From C++11 on, constexpr static data members are implicitly inlined. Redeclaration
-// is still permitted, but deprecated. Some compilers do not implement this standard
-// correctly. It also has to be noticed that this error does not occur for all the
-// other public constexpr members
-constexpr uint32_t o2::DataFlow::SubframeBuilderDevice::mOrbitsPerTimeframe;
-constexpr uint32_t o2::DataFlow::SubframeBuilderDevice::mOrbitDuration;
-constexpr uint32_t o2::DataFlow::SubframeBuilderDevice::mDuration;
-
 using HeartbeatHeader = o2::Header::HeartbeatHeader;
 using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
 using DataHeader = o2::Header::DataHeader;
+using SubframeId = o2::dataflow::SubframeId;
 
 o2::DataFlow::SubframeBuilderDevice::SubframeBuilderDevice()
   : O2Device()
 {
-  LOG(INFO) << "o2::DataFlow::SubframeBuilderDevice::SubframeBuilderDevice " << mDuration << "\n";
 }
 
 o2::DataFlow::SubframeBuilderDevice::~SubframeBuilderDevice()
@@ -46,35 +39,57 @@ o2::DataFlow::SubframeBuilderDevice::~SubframeBuilderDevice()
 
 void o2::DataFlow::SubframeBuilderDevice::InitTask()
 {
-//  mDuration = GetConfig()->GetValue<uint32_t>(OptionKeyDuration);
-  mIsSelfTriggered = GetConfig()->GetValue<bool>(OptionKeySelfTriggered);
+  mOrbitDuration = GetConfig()->GetValue<uint32_t>(OptionKeyOrbitDuration);
+  mOrbitsPerTimeframe = GetConfig()->GetValue<uint32_t>(OptionKeyOrbitsPerTimeframe);
   mInputChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
   mOutputChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
+  mFLPId= GetConfig()->GetValue<size_t>(OptionKeyFLPId);
+  mStripHBF= GetConfig()->GetValue<bool>(OptionKeyStripHBF);
 
-  if (!mIsSelfTriggered) {
-    // depending on whether the device is self-triggered or expects input,
-    // the handler function needs to be registered or not.
-    // ConditionalRun is not called anymore from the base class if the
-    // callback is registered
-    LOG(INFO) << "Obtaining data from DataPublisher\n";
-    OnData(mInputChannelName.c_str(), &o2::DataFlow::SubframeBuilderDevice::HandleData);
-  } else {
-    LOG(INFO) << "Self triggered mode. Doing nothing for now.\n";
-  }
-  LOG(INFO) << "o2::DataFlow::SubframeBuilderDevice::InitTask " << mDuration << "\n";
-}
+  LOG(INFO) << "Obtaining data from DataPublisher\n";
+  // Now that we have all the information lets create the policies to do the 
+  // payload extraction and merging and create the actual PayloadMerger.
 
-// FIXME: how do we actually find out the payload size???
-int64_t extractDetectorPayload(char **payload, char *buffer, size_t bufferSize) {
-  *payload = buffer + sizeof(HeartbeatHeader);
-  return bufferSize - sizeof(HeartbeatHeader) - sizeof(HeartbeatTrailer);
+  // We extract the timeframeId from the number of orbits.
+  // FIXME: handle multiple socket ids
+  Merger::IdExtractor makeId = [this](std::unique_ptr<FairMQMessage> &msg) -> SubframeId {
+    HeartbeatHeader *hbh = reinterpret_cast<HeartbeatHeader*>(msg->GetData());
+    SubframeId id = {.timeframeId = hbh->orbit / this->mOrbitsPerTimeframe,
+                     .socketId = 0 };
+    return id;
+  };
+
+  // We extract the payload differently depending on wether we want to strip
+  // the header or not.
+  Merger::PayloadExtractor payloadExtractor = [this](char **out, char *in, size_t inSize) -> size_t {
+    if (!this->mStripHBF) {
+      return Merger::fullPayloadExtractor(out, in, inSize);
+    }
+    return o2::dataflow::extractDetectorPayloadStrip(out, in, inSize);
+  };
+
+  // Whether a given timeframe is complete depends on how many orbits per
+  // timeframe we want.
+  Merger::MergeCompletionCheker checkIfComplete =
+    [this](Merger::MergeableId id, Merger::MessageMap &map) {
+      return map.count(id) < this->mOrbitsPerTimeframe;
+  };
+
+  mMerger.reset(new Merger(makeId, checkIfComplete, payloadExtractor));
+  OnData(mInputChannelName.c_str(), &o2::DataFlow::SubframeBuilderDevice::HandleData);
 }
 
 bool o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts)
 {
-  LOG(INFO) << "o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame" << mDuration << "\n";
-  char *incomingBuffer = (char *)inParts.At(1)->GetData();
-  HeartbeatHeader *hbh = reinterpret_cast<HeartbeatHeader*>(incomingBuffer);
+  auto id = mMerger->aggregate(inParts.At(1));
+
+  char **outBuffer;
+  size_t outSize = mMerger->finalise(outBuffer, id);
+  // In this case we do not have enough subtimeframes for id,
+  // so we simply return.
+  if (outSize == 0)
+    return true;
+  // If we reach here, it means we do have enough subtimeframes.
 
   // top level subframe header, the DataHeader is going to be used with
   // description "SUBTIMEFRAMEMD"
@@ -83,60 +98,33 @@ bool o2::DataFlow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts &inParts
   // all CRUs of a FLP in all cases serve a single detector
   o2::Header::DataHeader dh;
   dh.dataDescription = o2::Header::DataDescription("SUBTIMEFRAMEMD");
-  dh.dataOrigin = o2::Header::DataOrigin("TEST");
-  dh.subSpecification = 0;
+  dh.dataOrigin = o2::Header::DataOrigin("FLP");
+  dh.subSpecification = mFLPId;
   dh.payloadSize = sizeof(SubframeMetadata);
+
+  DataHeader payloadheader(*o2::Header::get<DataHeader>((byte*)inParts.At(0)->GetData()));
 
   // subframe meta information as payload
   SubframeMetadata md;
-  // md.startTime = (hbh->orbit / mOrbitsPerTimeframe) * mDuration;
-  md.startTime = static_cast<uint64_t>(hbh->orbit) * static_cast<uint64_t>(mOrbitDuration);
-  md.duration = mDuration;
-  LOG(INFO) << "Start time for subframe (" << hbh->orbit << ", "
-                                           << mDuration
-            << ") " << timeframeIdFromTimestamp(md.startTime, mDuration) << " " << md.startTime<< "\n";
+  // id is really the first orbit in the timeframe.
+  md.startTime = id.timeframeId * mOrbitsPerTimeframe * static_cast<uint64_t>(mOrbitDuration);
+  md.duration = mOrbitDuration*mOrbitsPerTimeframe;
+  LOG(INFO) << "Start time for subframe (" << md.startTime << ", "
+                                           << md.duration
+            << ")";
 
-  // send an empty subframe (no detector payload), only the data header
-  // and the subframe meta data are added to the sub timeframe
-  // TODO: this is going to be changed as soon as the device implements
-  // handling of the input data
+  // Add the metadata about the merged subtimeframes
+  // FIXME: do we really need this?
   O2Message outgoing;
-
-  // build multipart message from header and payload
   AddMessage(outgoing, dh, NewSimpleMessage(md));
 
-  char *sourcePayload = nullptr;
-  auto payloadSize = extractDetectorPayload(&sourcePayload,
-                                            incomingBuffer,
-                                            inParts.At(1)->GetSize());
-  LOG(INFO) << "Got "  << inParts.Size() << " parts\n";
-  for (auto pi = 0; pi < inParts.Size(); ++pi)
-  {
-    LOG(INFO) << " Part " << pi << ": " << inParts.At(pi)->GetSize() << " bytes \n";
-  }
-  if (payloadSize <= 0)
-  {
-    LOG(ERROR) << "Payload is too small: " << payloadSize << "\n";
-    return true;
-  }
-  else
-  {
-    LOG(INFO) << "Payload of size " << payloadSize << "received\n";
-  }
-
-  auto *payload = new char[payloadSize]();
-  memcpy(payload, sourcePayload, payloadSize);
-  DataHeader payloadheader(*o2::Header::get<DataHeader>((byte*)inParts.At(0)->GetData()));
-
-  payloadheader.subSpecification = 0;
-  payloadheader.payloadSize = payloadSize;
-
-  // FIXME: take care of multiple HBF per SubtimeFrame
+  // Add the actual merged payload.
   AddMessage(outgoing, payloadheader,
-             NewMessage(payload, payloadSize,
-                        [](void* data, void* hint) { delete[] reinterpret_cast<char *>(hint); }, payload));
+             NewMessage(*outBuffer, outSize,
+                        [](void* data, void* hint) { delete[] reinterpret_cast<char *>(hint); }, *outBuffer));
   // send message
   Send(outgoing, mOutputChannelName.c_str());
+  // FIXME: do we actually need this? outgoing should go out of scope
   outgoing.fParts.clear();
 
   return true;
