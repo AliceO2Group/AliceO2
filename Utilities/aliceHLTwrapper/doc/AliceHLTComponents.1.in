@@ -1,0 +1,138 @@
+.\" Manpage for AliceHLT components.
+.TH AliceO2 1 "19 May 2017" "1.0" "AliceHLT components man page"
+
+.SH DESCRIPTION
+ALICE HLT components are part of AliRoot and can be plugged into the
+O2 system via the AliceHLTWrapperDevice. The wrapper device takes the
+shared library name and component id as parameters to instantiate the
+component instance.
+
+.SH SELECTED COMPONENTS
+.B libAliHLTUtil.so
+ FilePublisher
+ FileWriter
+ ROOTFilePublisher
+ ROOTFileWriter
+
+.SH COMPONENT OPTIONS
+.SS FilePublisher
+.TP 2
+.B -datafile
+.I filename
+ data file to be published
+.TP 2
+.B -datafilelist
+.I configfile
+ read arguments from a configfile
+.TP 2
+.B -datatype
+.I datatype dataorigin
+ data type ID and origin, e.g. -datatype 'CLUSTERS' 'TPC '
+.TP 2
+.B -dataspec
+.I specification
+ data specification treated as decimal number or hex number if prepended by '0x'
+.TP
+.B -open_files_at_start (optional)
+Opens all files during component initialisation rather than as needed during event processing. Note: this feature may result in the system running out of file handles if a large number of files was specified.
+.TP
+.B -nextevent (optional)
+indicate subsequent files to be published by the next event
+
+.SS FileWriter
+.TP
+.B -datafile
+.I filename
+ file name base
+.TP
+.B -directory
+.I directory
+ target directory
+.TP
+.B -subdir[=pattern]
+ create sub dir for each event, the format pattern can contain printfspecifiers to print the event no into the dir name, default is'event%%03lu' (-subdir w/o additional pattern). The format specifyer%%lu is automatically added if missing in the pattern. Please note thelong int type of the event id, the idfmt string is reset since the subdircontains the id
+.TP
+.B -idfmt[=pattern]
+ format specifier for the event id in the file name, default: on, default pattern: '_0x%%08x'
+.TP
+.B -specfmt[=pattern]
+format specifier for the data specification in the file name default: off, default pattern: '_0x%%08x'
+.TP
+.B -blocknofmt[=pattern]
+format specifier for the block no in the file name default: on, default pattern: '_0x%%02x'
+.TP
+.B -skip-datatype
+ do not consider data type when building the file name.
+.TP
+.B -enumerate
+don't use the event number but an event counter beginning from 0
+.TP
+.B -concatenate-blocks
+ concatenate all blocks of one event into one file, this skips the block no, and the block data type in the file name
+.TP
+.B -concatenate-events
+ concatenate all events into one file, this skips the event no, the block no, and the block data type in the file name. Currently, this implies the -concatenate-blocks option.
+.TP
+.B -publisher-conf
+.I filename
+ write configuration file for FilePublisher component (AliHLTFilePublisher) one line per file: -datatype id origin -datafile filename events separated by -nextevent
+.TP
+.B -write-all-events
+ by default, the file writer ignores all steering events like thethe SOR/EOR events, with this option, all events will be consideredthe beginning.
+.TP
+.B -write-all-blocks
+ by default, the file writer ignores all blocks of origin {PRIV} (::kAliHLTDataOriginPrivate), with this option, all blocks willbe written. For SOR/EOR events, a short string will be added in the beginning.
+.TP
+.B -write-all
+ combines both -write-all-events and -write-all-blocks
+.TP
+.B -burst-buffer <size>
+ size of burst buffer, blocks are written to buffer until it is filled and written in one burst (though to different files according to conf). Note: burst write is currently only supported for mode -concatenate-events AND -concatenate-blocks (both enabled).
+.TP
+.B -datatype
+.I id origin
+ data block selection by AliHLTBlockDataCollection
+.TP
+.B -origin
+.I origin
+ data block selection by AliHLTBlockDataCollection
+.TP
+.B -typeid
+.I id
+ data block selection by AliHLTBlockDataCollection
+.TP
+.B -dataspec
+.I specification
+ data block selection by AliHLTBlockDataCollection
+
+.SS ROOTFilePublisher
+Special implementation of the
+.I FilePublisher
+component.
+.P
+Additional options:
+.TP
+.B -objectname
+.I objectname
+Name of the object in the root file to be fetched. This is set for all events/files. If not given, all objects are fetched.
+
+.SS ROOTFileWriter
+Special implementation of the
+.I FileWriter
+component.
+.P
+Additional options:
+.TP
+.B -overwrite
+write objects with the TObject::kOverwrite flag and avoid multiple keys in the file
+
+
+.SH AUTHOR
+Matthias.Richter@scieq.net
+All questions and suggestions welcome
+
+.SH "SEE ALSO"
+AliceHLTWrapperDevice(1)
+
+.SH BUGS
+

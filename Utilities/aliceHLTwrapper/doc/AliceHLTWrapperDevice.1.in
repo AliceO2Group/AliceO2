@@ -1,13 +1,22 @@
-.\" Manpage for runExampleModule2.
-.TH man 1 "19 May 2017" "1.0" "AliceHLTWrapperDevice man page"
-
+.\" Manpage for AliceHLTWrapperDevice.
+.TH AliceO2 1 "19 May 2017" "1.0" "AliceHLTWrapperDevice man page"
 .SH NAME
-
 AliceHLTWrapperDevice - FairRoot/ALFA device running ALICE HLT code
 
 .SH SYNOPSIS
-
-AliceHLTWrapperDevice --id <deviceid> --channel-config <config> --library <arg> --component <arg> --parameter <arg> --runno <n>
+.B AliceHLTWrapperDevice
+.B --id
+.I deviceid
+.B --channel-config
+.I config
+.B --library
+.I arg
+.B --component
+.I arg
+.B --parameter
+.I arg
+.B --runno
+.I n
 
 .SH DESCRIPTION
 
@@ -19,32 +28,67 @@ receives and send messages. The data of the messages are processed
 using the Component class.
 
 .SH OPTIONS
-Common FairMQ options
-  --id id of the device
-  --channel-config channel configuration as comma separated key=value pairs
-	name
-	type
-	method
-	address
-	property
+.SS Common FairMQDevice options
+.TP 2
+.B --id  \fIid\fR
+A unique identifier of the device
+.TP 2
+.B --channel-config  \fIargs\fR
+channel configuration as comma separated key=\fIvalue\fR pairs
+.RS
+Valid Keys:
+.B name
+.B type
+.B method
+.B address
+.B property
+.RE
 
-HLT component options
-  --library    HLT library containing the component
-  --component  HLT component id
-  --parameter  Parameter of the component
-  --run        Run number
+.SS Mandatory HLT Component related options
+.B Note:
+Every HLT component has it's own set of (command line) options which can be passed via the \fB--parameter\fR option.
+.TP 2
+.B --library \fIarg\fR
+HLT library containing the component
+.TP 2
+.B --component \fIarg\fR
+HLT component id
+.TP 2
+.B --parameter \fIarg\fR
+Parameter of the component, make sure to put in quotes if the argument consists
+of multiple strings
+.TP 2
+.B --run  \fIn\fR
+Run number
 
-Other Options
-  --poll-period Polling period on the input channel
+.SS Other Options
+.B --poll-period \fIperiod\fR
+Polling period on the input channel
 
 .SH CONFIGURATION DATABASE
-HLT components need the Alice OCDB to load the configuration. The path to the OCDB must be set in environment variable ALIHLT_HCDBDIR.
+HLT components need the Alice OCDB to load the configuration. The path to the OCDB must be set in environment variable \fBALIHLT_HCDBDIR\fR.
 
-.SH Examples
-AliceHLTWrapperDevice --id publisher --channel-config name=data-out,type=pub,method=bind,address=tcp://*:42424 --library libAliHLTUtil.so --component FilePublisher --run 167808 --parameter '-datafile some_file_to_publish'
+.SH EXAMPLES
+.B AliceHLTWrapperDevice
+--id publisher \\
+.br
+--channel-config \\
+.br
+  name=data-out,type=pub,method=bind,address=tcp://*:42424 \\
+.br
+--library libAliHLTUtil.so --component FilePublisher --run 167808 \\
+.br
+--parameter '-datafile some_file_to_publish'
 
-.SH DISCLAIMER
-This is work in progress, please send questions and suggestions to Matthias.Richter@scieq.net
+.SH AUTHOR
+Matthias.Richter@scieq.net
+All questions and suggestions welcome
 
 .SH SEE ALSO
-HLT components
+AliceHLTComponents(1), FairMQDevice(1)
+
+.SH BUGS/ISSUES
+.SS Parameter Manager
+The device does not interface to the FairMQ parameter manager. The device itself
+does not need any more parameters than the command line options. The HLT component
+needs the ALICE OCDB location and the run number.
