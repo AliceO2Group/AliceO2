@@ -26,12 +26,6 @@ namespace o2 { namespace dataflow {
 /// - Finalise buffer creation with the finalise call.
 template <typename ID>
 class PayloadMerger {
-  static int64_t fullPayloadExtractor(char **payload,
-                                      char *buffer,
-                                      size_t bufferSize) {
-    *payload = buffer;
-    return bufferSize;
-  }
 public:
   using MergeableId = ID;
   using MessageMap = std::multimap<MergeableId, std::unique_ptr<FairMQMessage>>;
@@ -110,6 +104,13 @@ public:
     return sum;
   }
 
+  // Helper method which leaves the payload untouched
+  static int64_t fullPayloadExtractor(char **payload,
+                                      char *buffer,
+                                      size_t bufferSize) {
+    *payload = buffer;
+    return bufferSize;
+  }
 private:
   IdExtractor mMakeId;
   MergeCompletionCheker mCheckIfComplete;

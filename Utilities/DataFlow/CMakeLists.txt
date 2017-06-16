@@ -76,6 +76,7 @@ ForEach (_file RANGE 0 ${_length})
   )
 EndForEach (_file RANGE 0 ${_length})
 
+
 O2_GENERATE_EXECUTABLE(
   EXE_NAME TimeframeValidationTool
   SOURCES src/TimeframeValidationTool
@@ -96,3 +97,4 @@ O2_GENERATE_TESTS(
 
 O2_GENERATE_MAN(NAME TimeframeReaderDevice)
 O2_GENERATE_MAN(NAME TimeframeWriterDevice)
+O2_GENERATE_MAN(NAME SubframeBuilderDevice)
