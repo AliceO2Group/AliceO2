@@ -349,9 +349,8 @@ function(O2_GENERATE_TESTS)
       ${ARGN} # arguments
   )
 
-  CHECK_VARIABLE(PARSED_ARGS_BUCKET_NAME "You must provide a bucket name")
+# Note: the BUCKET_NAME and MODULE_LIBRARY_NAME are optional arguments
   CHECK_VARIABLE(PARSED_ARGS_TEST_SRCS "You must provide the list of sources")
-  CHECK_VARIABLE(PARSED_ARGS_MODULE_LIBRARY_NAME "You must provide the module library name this executable belongs to")
 
   foreach (test ${PARSED_ARGS_TEST_SRCS})
     string(REGEX REPLACE ".*/" "" test_name ${test})
