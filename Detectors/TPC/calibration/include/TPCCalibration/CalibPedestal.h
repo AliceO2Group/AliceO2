@@ -81,7 +81,7 @@ class CalibPedestal : public CalibRawBase
     void dumpToFile(TString filename) final;
 
     /// Dummy end event
-    virtual void EndEvent() final {};
+    void EndEvent() final {};
 
   //private:
     Int_t      mADCMin;    ///< minimum adc value
