@@ -26,11 +26,11 @@
 
 //  @file   TruncatedPrecisionConverter.h
 //  @author Matthias Richter
-//  @since  2015-08-08
+//  @since  2016-08-08
 //  @brief  A simple converter producing truncated precision
 //          according to a data model 
 
-namespace AliceO2 {
+namespace o2 {
 
 template<class _ParameterModel>
 class TruncatedPrecisionConverter {

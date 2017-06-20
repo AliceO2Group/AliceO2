@@ -26,7 +26,7 @@
 
 //  @file   HuffmanCodec.h
 //  @author Matthias Richter
-//  @since  2015-08-11
+//  @since  2016-08-11
 //  @brief  Implementation of a Huffman codec
 
 #include <cstdint>
@@ -41,7 +41,7 @@
 #include <iomanip>
 #include <sstream> // stringstream in configuration parsing
 
-namespace AliceO2 {
+namespace o2 {
 
 /**
  * @class HuffmanNode
@@ -535,6 +535,6 @@ private:
   std::multiset<std::shared_ptr<_NodeType>, isless<std::shared_ptr<_NodeType>>> mTreeNodes;
 };
 
-}; // namespace AliceO2
+}; // namespace o2
 
 #endif

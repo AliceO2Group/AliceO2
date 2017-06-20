@@ -26,13 +26,13 @@
 
 //  @file   DataDeflater.h
 //  @author Matthias Richter
-//  @since  2015-08-08
+//  @since  2016-08-08
 //  @brief  A general data deflater
 
 #include <cstdint>
 #include <cerrno>
 
-namespace AliceO2 {
+namespace o2 {
 
 /* TODO: separate the bare deflater and additional functionality like
    bounds check and codec by using a mixin approach
@@ -167,6 +167,6 @@ class DataDeflater {
 
 };
 
-}; // namespace AliceO2
+}; // namespace o2
 
 #endif

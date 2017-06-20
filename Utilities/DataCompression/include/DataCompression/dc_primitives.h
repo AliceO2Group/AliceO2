@@ -26,7 +26,7 @@
 
 //  @file   dc_primitives.h
 //  @author Matthias Richter
-//  @since  2015-08-15
+//  @since  2016-08-15
 //  @brief  Primitives for data compression
 
 /**
