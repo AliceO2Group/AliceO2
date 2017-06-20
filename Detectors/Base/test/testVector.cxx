@@ -1,6 +1,16 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file testVector.cxx
 /// \brief This task tests some features of the Vector class (vector-like container for copyable objects)
-/// \author Ruben Shahoyan, ruben.shahoyan@cern.ch
+/// \author Ruben Shahoyan <ruben.shahoyan@cern.ch>
 
 //#define RUN_VECTOR_TEST_AS_ROOT_MACRO // uncomment this to run as standalone root macro, e.g. root -b -q testVector.cxx+
 
