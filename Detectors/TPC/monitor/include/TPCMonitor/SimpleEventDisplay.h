@@ -56,9 +56,9 @@ class SimpleEventDisplay : public CalibRawBase
     TH1D* MakePadSignals(Int_t roc, Int_t row, Int_t pad);
 
     /// Dummy end event
-    virtual void EndEvent() final {};
+    void EndEvent() final {};
 
-  // private:
+  private:
     THnSparseS  *mHnDataIROC;      //!< Event Data IROCs
     THnSparseS  *mHnDataOROC;      //!< Event Data OROCs
     CalPad       mPadMax;          //!< Cal Pad with max Entry per channel
