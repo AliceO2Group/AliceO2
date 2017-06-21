@@ -41,6 +41,7 @@ set(TEST_SRCS
   test/test_Fifo.cxx
   test/test_DataGenerator.cxx
   test/test_HuffmanCodec.cxx
+  test/test_DataDeflater.cxx
 )
 
 O2_GENERATE_TESTS(
