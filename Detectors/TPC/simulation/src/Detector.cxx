@@ -295,7 +295,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   static int oldSectorId = sectorID;
 
   //  a new group is starting -> put it into the container
-  static LinkableHitGroup *currentgroup = nullptr;
+  static LinkableHitGroup *currentgroup = 0;
   if (groupCounter == 0) {
     //TClonesArray& clref = *mHitGroupCollection;
     TClonesArray& clref = *mHitsPerSectorCollection[sectorID];
