@@ -171,6 +171,7 @@ if (GEANT4_FOUND AND GEANT3_FOUND)
 endif()
 add_subdirectory(Utilities)
 add_subdirectory(doc)
+add_subdirectory(Legacy)
 
 IF (IWYU_FOUND)
   ADD_CUSTOM_TARGET(checkHEADERS
