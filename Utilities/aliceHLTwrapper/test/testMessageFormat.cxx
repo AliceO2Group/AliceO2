@@ -17,7 +17,8 @@
 #include "Headers/DataHeader.h"
 #include "Headers/HeartbeatFrame.h"
 
-namespace o2 { namespace AliceHLT {
+namespace o2 { 
+namespace AliceHLT {
   template<typename... Targs>
   void hexDump(Targs... Fargs) {
     //o2::Header::hexDump(Fargs...);
