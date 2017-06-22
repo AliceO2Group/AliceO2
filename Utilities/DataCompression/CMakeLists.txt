@@ -37,6 +37,7 @@ EndForEach (_file RANGE 0 ${_length})
 endif()
 
 set(TEST_SRCS
+  test/test_mpl_tools.cxx
   test/test_dc_primitives.cxx
   test/test_Fifo.cxx
   test/test_DataGenerator.cxx
