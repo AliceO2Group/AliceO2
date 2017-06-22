@@ -18,30 +18,44 @@
  * Parameter model definitions
  * - boost mpl vector of alphabets
  */
-typedef boost::mpl::vector<
-  BitRangeContiguousAlphabet<uint16_t,  6 , boost::mpl::string < 'p','a','d','r','o','w' >    >,
-  BitRangeContiguousAlphabet<uint16_t, 14 , boost::mpl::string < 'p','a','d' >                >,
-  BitRangeContiguousAlphabet<uint16_t, 15 , boost::mpl::string < 't','i','m','e' >            >,
-  BitRangeContiguousAlphabet<uint16_t,  8 , boost::mpl::string < 's','i','g','m','a','Y','2' >>,
-  BitRangeContiguousAlphabet<uint16_t,  8 , boost::mpl::string < 's','i','g','m','a','Z','2' >>,
-  BitRangeContiguousAlphabet<uint16_t, 16 , boost::mpl::string < 'c','h','a','r','g','e' >    >,
-  BitRangeContiguousAlphabet<uint16_t, 10 , boost::mpl::string < 'q','m','a','x' >            >
-  > tpccluster_parameter;
+using tpccluster_parameter =
+  boost::mpl::vector<BitRangeContiguousAlphabet<uint16_t, 6, boost::mpl::string<'p', 'a', 'd', 'r', 'o', 'w'>>,
+                     BitRangeContiguousAlphabet<uint16_t, 14, boost::mpl::string<'p', 'a', 'd'>>,
+                     BitRangeContiguousAlphabet<uint16_t, 15, boost::mpl::string<'t', 'i', 'm', 'e'>>,
+                     BitRangeContiguousAlphabet<uint16_t, 8, boost::mpl::string<'s', 'i', 'g', 'm', 'a', 'Y', '2'>>,
+                     BitRangeContiguousAlphabet<uint16_t, 8, boost::mpl::string<'s', 'i', 'g', 'm', 'a', 'Z', '2'>>,
+                     BitRangeContiguousAlphabet<uint16_t, 16, boost::mpl::string<'c', 'h', 'a', 'r', 'g', 'e'>>,
+                     BitRangeContiguousAlphabet<uint16_t, 10, boost::mpl::string<'q', 'm', 'a', 'x'>>>;
 /**
  * Definition of Huffman probability models for the above defined alphabets
  *
  * This is a temporary definition, the mpl sequence can be created automatically
  * from the list of alphabet types, but did not manage so far (see below)
  */
-typedef boost::mpl::vector<
-  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t,  6 , boost::mpl::string < 'p','a','d','r','o','w' >    >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 14 , boost::mpl::string < 'p','a','d' >                >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 15 , boost::mpl::string < 't','i','m','e' >            >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t,  8 , boost::mpl::string < 's','i','g','m','a','Y','2' >>>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t,  8 , boost::mpl::string < 's','i','g','m','a','Z','2' >>>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 16 , boost::mpl::string < 'c','h','a','r','g','e' >    >>, AliceO2::HuffmanNode<std::bitset<64>>, true>,
-  o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<uint16_t, 10 , boost::mpl::string < 'q','m','a','x' >            >>, AliceO2::HuffmanNode<std::bitset<64>>, true>
-  > tpccluster_parameter_models;
+template <typename RepT, int Length, typename Description>
+using Model = o2::HuffmanModel<ProbabilityModel<BitRangeContiguousAlphabet<RepT, Length, Description>>,
+                               o2::HuffmanNode<std::bitset<64>>, true>;
+
+using tpccluster_parameter_models =
+  boost::mpl::vector<Model<uint16_t, /* */ 6, boost::mpl::string<'p', 'a', 'd', 'r', 'o', 'w'>>,
+                     Model<uint16_t, /**/ 14, boost::mpl::string<'p', 'a', 'd'>>,
+                     Model<uint16_t, /**/ 15, boost::mpl::string<'t', 'i', 'm', 'e'>>,
+                     Model<uint16_t, /* */ 8, boost::mpl::string<'s', 'i', 'g', 'm', 'a', 'Y', '2'>>,
+                     Model<uint16_t, /* */ 8, boost::mpl::string<'s', 'i', 'g', 'm', 'a', 'Z', '2'>>,
+                     Model<uint16_t, /**/ 16, boost::mpl::string<'c', 'h', 'a', 'r', 'g', 'e'>>,
+                     Model<uint16_t, /**/ 10, boost::mpl::string<'q', 'm', 'a', 'x'>>>;
+
+/** new approach
+  using basemodels = foldtype
+    < tpccluster_parameter,
+      mpl::lambda<ProbabilityModel<_>>::type
+      >::type;
+
+  using tpcmodels = foldtype
+    < basemodels,
+      mpl::lambda<_, o2::HuffmanNode<std::bitset<64>>>::type
+      >::type;
+*/
 
 /**
  * this was an attemp to create the vector of Huffman models directly
