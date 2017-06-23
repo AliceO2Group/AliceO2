@@ -84,7 +84,7 @@ function(GET_BUCKET_CONTENT
 #  message("${INDENTATION}    RESULT_SYSTEMINC_DIRS_VAR_NAME = ${RESULT_SYSTEMINC_DIRS_VAR_NAME}")
 
   if (NOT DEFINED bucket_map_${BUCKET_NAME})
-    message(FATAL_ERROR "${INDENTATION}bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it.")
+    message(FATAL_ERROR "${INDENTATION}bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it in `cmake/O2Dependencies.cmake'.")
   endif ()
   list (FIND RECURSIVE_BUCKETS ${BUCKET_NAME} _index)
   if (${_index} GREATER -1)
@@ -351,6 +351,44 @@ function(O2_GENERATE_EXECUTABLE)
   endif ()
 
 endfunction(O2_GENERATE_EXECUTABLE)
+
+function(O2_FRAMEWORK_WORKFLOW)
+  cmake_parse_arguments(
+      PARSED_ARGS
+      "NO_INSTALL" # bool args
+      "WORKFLOW_NAME" # mono-valued arguments
+      "DETECTOR_BUCKETS;SOURCES" # multi-valued arguments
+      ${ARGN} # arguments
+  )
+
+CHECK_VARIABLE(PARSED_ARGS_WORKFLOW_NAME "You must provide an executable name")
+  CHECK_VARIABLE(PARSED_ARGS_DETECTOR_BUCKETS "You must provide a bucket name")
+  CHECK_VARIABLE(PARSED_ARGS_SOURCES "You must provide the list of sources")
+
+  ############### build the executable #####################
+  ADD_EXECUTABLE(${PARSED_ARGS_WORKFLOW_NAME} ${PARSED_ARGS_SOURCES})
+  FOREACH(bucket ${PARSED_ARGS_DETECTOR_BUCKETS})
+    MESSAGE(${bucket})
+    O2_TARGET_LINK_BUCKET(
+      TARGET ${PARSED_ARGS_WORKFLOW_NAME}
+      BUCKET ${bucket}
+      EXE TRUE
+    )
+  ENDFOREACH()
+  O2_TARGET_LINK_BUCKET(
+    TARGET ${PARSED_ARGS_WORKFLOW_NAME}
+    BUCKET FrameworkApplication_bucket
+    EXE TRUE
+  )
+  if (NOT ${PARSED_ARGS_NO_INSTALL})
+    ############### install the executable #################
+    install(TARGETS ${PARSED_ARGS_EXE_NAME} DESTINATION bin)
+
+    ############### install the library ###################
+    install(TARGETS ${PARSED_ARGS_MODULE_LIBRARY_NAME} DESTINATION lib)
+  endif ()
+
+endfunction(O2_FRAMEWORK_WORKFLOW)
 
 
 #------------------------------------------------------------------------------
