@@ -6,13 +6,13 @@
 #ifndef ALICEO2_MFT_DIGITIZER_H_
 #define ALICEO2_MFT_DIGITIZER_H_
 
+#include "TClonesArray.h"
+
 #include "ITSMFTSimulation/Chip.h"
 #include "ITSMFTSimulation/SimulationAlpide.h"
 
 #include "MFTBase/GeometryTGeo.h"
 #include "MFTSimulation/DigitContainer.h"
-
-class TClonesArray;
 
 namespace o2 
 {

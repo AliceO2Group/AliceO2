@@ -8,9 +8,9 @@
 
 #include "FairTask.h"
 
-#include "MFTSimulation/Digitizer.h"
+#include "TClonesArray.h"
 
-class TClonesArray;
+#include "MFTSimulation/Digitizer.h"
 
 namespace o2 
 {

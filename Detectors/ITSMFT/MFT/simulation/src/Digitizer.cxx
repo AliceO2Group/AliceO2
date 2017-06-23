@@ -45,7 +45,6 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
   }
 
   for (Int_t i = 0; i < mNumOfChips; i++) {
-    mSimulations[i].DigitiseChip(digits);
   }
 
 }
