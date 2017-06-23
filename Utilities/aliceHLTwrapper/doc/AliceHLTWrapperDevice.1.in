@@ -60,13 +60,52 @@ of multiple strings
 .TP 2
 .B --run  \fIn\fR
 Run number
+.TP 2
+.B --ocdb  \fIuri\fR
+Set the OCDB URI and override the value of environment variable ALIHLT_HCDBDIR
 
 .SS Other Options
 .B --poll-period \fIperiod\fR
 Polling period on the input channel
+.B --output-mode \fImode\fR
+The output mode of the device, default is O2 format (3)
+.RS 2
+.B 0
+- HOMER format
+.br
+.B 1
+- blocks in multiple messages
+.br
+.B 2
+- blocks concatenated in one message (default)
+.br
+.B 3
+- O2 format
+.RE
 
-.SH CONFIGURATION DATABASE
-HLT components need the Alice OCDB to load the configuration. The path to the OCDB must be set in environment variable \fBALIHLT_HCDBDIR\fR.
+.SH FEATURES
+.SS Message channels
+The device supports input and output channels with the names
+.IR --data-in /
+.I --data-out
+respectively. All input channels are treated equally and the device expects messages
+from all channels before data is processed.
+
+If no input channel is specified the device will run in a self-triggered mode
+and call the component processing repeatedly with the period specified by
+.IR --poll-period .
+
+.SS Configuration database
+HLT components need the Alice OCDB to load the configuration. The path to the OCDB
+must be set in environment variable
+.B ALIHLT_HCDBDIR
+or via option
+.BR --ocdb .
+
+.SS Heartbeat information
+The device interprets Heartbeat frame data blocks at the input channel. If this
+information is available at the input, all output blocks will be wrapped into
+Haertbeat frames.
 
 .SH EXAMPLES
 .B AliceHLTWrapperDevice
