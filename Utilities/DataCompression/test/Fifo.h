@@ -34,8 +34,8 @@
 #include <condition_variable>
 #include <chrono>
 
-namespace AliceO2 {
-namespace Test {
+namespace o2 {
+namespace test {
 
 /**
  * @class Fifo
@@ -120,5 +120,5 @@ class Fifo : protected _BASE {
 };
 
 }; // namespace test
-}; // namespace AliceO2
+}; // namespace o2
 #endif

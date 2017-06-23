@@ -20,52 +20,73 @@
 //* any purpose. It is provided "as is" without express or implied warranty. *
 //****************************************************************************
 
-//  @file   test_datagenerator.cxx
+//  @file   test_DataGenerator.cxx
 //  @author Matthias Richter
-//  @since  2015-12-06
+//  @since  2016-12-06
 //  @brief  Test program for simple data generator
 
-//
-/*
-   g++ --std=c++11 -g -ggdb -o test_datagenerator test_datagenerator.cxx
-*/
-
+#define BOOST_TEST_MODULE Utility test
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
 #include "DataGenerator.h"
 #include <iostream>
 #include <iomanip>
 #include <vector>
 
-int main()
+template<typename DistributionType, typename... Args>
+bool testWithDistribution(Args&&... args)
 {
+  using value_type = typename DistributionType::result_type;
+  o2::test::DataGenerator<value_type, DistributionType> dg(std::forward<Args>(args)...);
 
-  //typedef AliceO2::Test::normal_distribution<double> TestDistribution_t;
-  //AliceO2::Test::DataGenerator<TestDistribution_t::result_type, TestDistribution_t> dg(-7.5, 7.5, 1., 0., 1.);
-  //typedef AliceO2::Test::poisson_distribution<int> TestDistribution_t;
-  //AliceO2::Test::DataGenerator<TestDistribution_t::result_type, TestDistribution_t> dg(0, 15, 1, 3);
-  typedef o2::Test::geometric_distribution<int> TestDistribution_t;
-  o2::Test::DataGenerator<TestDistribution_t::result_type, TestDistribution_t> dg(0, 31, 1, 0.3);
-
-  typedef TestDistribution_t::result_type value_type;
-
-  std::vector<value_type> throws(dg.nbins);
+  std::vector<int> throws(dg.nbins);
   const int nRolls = 1000000;
 
   for (int n = 0; n < nRolls; n++) {
     value_type v = dg();
     int bin = v/dg.step - dg.min;
-    if (bin >= dg.nbins) {
-      std::cout << v << " " << bin << std::endl;
-    } else {
-      throws[bin]++;
-    }
+    BOOST_REQUIRE(bin < dg.nbins);
+    throws[bin]++;
   }
 
+  value_type mostAbundantValue = dg.min;
+  int mostAbundantValueCount = 0;
+  auto highestProbability = dg.getProbability(0);
+  highestProbability = 0.;
+  value_type mostProbableValue = dg.min;
   for (auto i : dg) {
     int bin = i/dg.step - dg.min;
+    if (mostAbundantValueCount < throws[bin]) {
+      mostAbundantValue = i;
+      mostAbundantValueCount = throws[bin];
+    }
+    if (highestProbability < dg.getProbability(i)) {
+      mostProbableValue = i;
+      highestProbability = dg.getProbability(i);
+    }
     std::cout << std::setw(4)  << std::right << i << ": "
               << std::setw(11) << std::left << dg.getProbability(i)
               << " -- "
               << throws[bin]
               << std::endl;
   }
+  BOOST_CHECK(mostAbundantValue == mostProbableValue);
+
+  return true;
+}
+
+BOOST_AUTO_TEST_CASE(test_DataGenerator)
+{
+  std::cout << "Testing normal distribution" << std::endl;
+  using normal_distribution = o2::test::normal_distribution<double>;
+  testWithDistribution<normal_distribution>(-7.5, 7.5, 1., 0., 1.);
+
+  std::cout << "Testing poisson distribution" << std::endl;
+  using poisson_distribution = o2::test::poisson_distribution<int>;
+  testWithDistribution<poisson_distribution>(0, 15, 1, 3);
+
+  std::cout << "Testing geometric distribution" << std::endl;
+  using geometric_distribution = o2::test::geometric_distribution<int>;
+  testWithDistribution<geometric_distribution>(0, 31, 1, 0.3);
 }

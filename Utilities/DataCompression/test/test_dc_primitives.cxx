@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/**
-g++ --std=c++11 -g -ggdb -I$BOOST_ROOT/include -I../include/ -o test_dc_primitives test_dc_primitives.cxx
- */
-
-#include "DataCompression/dc_primitives.h"
+#define BOOST_TEST_MODULE Utility test
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
+#include "../include/DataCompression/dc_primitives.h"
 #include <boost/mpl/size.hpp>
 #include <boost/type.hpp>
 #include <boost/mpl/range_c.hpp>
@@ -59,7 +59,7 @@ struct AlphabetTester
   }
 };
 
-int main()
+BOOST_AUTO_TEST_CASE(test_dc_primitives)
 {
   // test the getmax meta program
   std::cout << std::endl << "Testing getmax meta program ..." << std::endl;

@@ -38,8 +38,7 @@
 
 using namespace gNeric;
 
-namespace ALICE {
-namespace O2 {
+namespace o2 {
 
 /**
  * @class CodingModelDispatcher Runtime dispatcher interface
@@ -57,7 +56,7 @@ template<typename ModelDefinition>
 class CodingModelDispatcher {
 public:
   CodingModelDispatcher() : mPosition(0), mContainer() {}
-  ~CodingModelDispatcher() {}
+  ~CodingModelDispatcher() = default;
 
   typedef CodingModelDispatcher<ModelDefinition> self_type;
 
@@ -343,7 +342,6 @@ private:
   container_type mContainer;
 };
 
-}; // namespace O2
-}; // namespace ALICE
+}; // namespace o2
 
 #endif

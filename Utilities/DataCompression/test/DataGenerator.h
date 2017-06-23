@@ -36,8 +36,8 @@
 //#include <iostream> // lets see if needed, or keep class fre from output
 //#include <iomanip>  // lets see if needed, or keep class fre from output
 
-namespace AliceO2 {
-namespace Test {
+namespace o2 {
+namespace test {
 
 /**
  * @class DataGenerator

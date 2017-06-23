@@ -26,15 +26,14 @@
 
 //  @file   mpl_tools.h
 //  @author Matthias Richter
-//  @since  2015-09-09
+//  @since  2016-09-09
 //  @brief  Tools for using the boost MPL
 
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/mpl/set.hpp>
 
-namespace ALICE {
-namespace O2 {
+namespace o2 {
 namespace mpl {
 
 /**
@@ -168,6 +167,5 @@ typename F::return_type apply_at( _IndexT position, F f)
 }
 
 } // namespace mpl
-} // namespace O2
-} // namespace ALICE
+} // namespace o2
 #endif
