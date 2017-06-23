@@ -28,6 +28,7 @@
 #include "aliceHLTwrapper/Component.h"
 #include "aliceHLTwrapper/AliHLTDataTypes.h"
 #include "aliceHLTwrapper/SystemInterface.h"
+#include "FairMQLogger.h"
 
 #include <cstdlib>
 #include <cerrno>
@@ -40,7 +41,6 @@
 using namespace ALICE::HLT;
 using namespace o2::AliceHLT;
 
-using std::cerr;
 using std::endl;
 using std::string;
 using std::unique_ptr;
@@ -75,8 +75,11 @@ bpo::options_description Component::GetOptionsDescription()
      bpo::value<string>()->default_value(""),
      "component command line parameter")
     ((std::string(OptionKeys[OptionKeyRun]) + ",r").c_str(),
-     bpo::value<string>()->default_value("-1"),
+     bpo::value<string>()->required(),
      "run number")
+    ((std::string(OptionKeys[OptionKeyOCDB])).c_str(),
+     bpo::value<string>(),
+     "ocdb uri")
     ((std::string(OptionKeys[OptionKeyMsgsize]) + ",s").c_str(),
      bpo::value<string>()->default_value("0"),
      "maximum size of output buffer/msg")
@@ -126,6 +129,12 @@ int Component::init(int argc, char** argv)
     case OptionKeyRun:
       stringstream(varmap[OptionKeys[option]].as<string>()) >> runNumber;
       break;
+    case OptionKeyOCDB:
+      if (getenv("ALIHLT_HCDBDIR") != nullptr) {
+	LOG(WARN) << "overriding value of ALICEHLT_HCDBDIR by --ocdb command option";
+      }
+      setenv("ALIHLT_HCDBDIR", varmap[OptionKeys[option]].as<string>().c_str(), 1);
+      break;
     case OptionKeyMsgsize: {
       unsigned size = 0;
       stringstream(varmap[OptionKeys[option]].as<string>()) >> size;
@@ -149,8 +158,15 @@ int Component::init(int argc, char** argv)
   if (varmap.count(OptionKeys[OptionKeyLibrary]) == 0 ||
       varmap.count(OptionKeys[OptionKeyComponent]) == 0 ||
       runNumber < 0) {
-    cerr << "missing argument" << endl;
+    LOG(ERROR) << "missing argument, required options: library, component,run";
     return -EINVAL;
+  }
+
+  // check the OCDB URI
+  // the HLT code relies on ALIHLT_HCDBDIR environment variable to be set
+  if (!getenv("ALIHLT_HCDBDIR")) {
+    LOG(ERROR) << "FATAL: OCDB URI is needed, use option --ocdb or environment variable ALIHLT_HCDBDIR";
+    return -ENOKEY;
   }
 
   int iResult = 0;
@@ -229,7 +245,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   vector<BlockDescriptor>& inputBlocks = mFormatHandler.getBlockDescriptors();
   unsigned nofInputBlocks = inputBlocks.size();
   if (dataArray.size() > 0 && nofInputBlocks == 0 && mFormatHandler.getEvtDataList().size() == 0) {
-    cerr << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input" << endl;
+    LOG(ERROR) << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input";
   }
   dataArray.clear();
 
@@ -284,7 +300,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
                                      &pEventDoneData);
     if (outputBufferSize > 0) {
       if (outputBufferSize > mOutputBuffer.size()) {
-        cerr << "fatal error: component writing beyond buffer capacity" << endl;
+        LOG(ERROR) << "FATAL: fatal error: component writing beyond buffer capacity";
         return -EFAULT;
       } else if (outputBufferSize < mOutputBuffer.size()) {
         mOutputBuffer.resize(outputBufferSize);
@@ -348,7 +364,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
         memcpy(pFiltered, pOutputBlock, sizeof(AliHLTComponentBlockData));
         pFiltered++;
       } else {
-        cerr << "Inconsistent data reference in output block " << blockIndex << endl;
+        LOG(ERROR) << "Inconsistent data reference in output block " << blockIndex;
       }
     }
     evtData.fBlockCnt=validBlocks;
