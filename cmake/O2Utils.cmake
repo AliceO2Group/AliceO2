@@ -84,7 +84,7 @@ function(GET_BUCKET_CONTENT
 #  message("${INDENTATION}    RESULT_SYSTEMINC_DIRS_VAR_NAME = ${RESULT_SYSTEMINC_DIRS_VAR_NAME}")
 
   if (NOT DEFINED bucket_map_${BUCKET_NAME})
-    message(FATAL_ERROR "${INDENTATION}bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it.")
+    message(FATAL_ERROR "${INDENTATION}bucket ${BUCKET_NAME} not defined. Use o2_define_bucket to define it in `cmake/O2Dependencies.cmake'.")
   endif ()
   list (FIND RECURSIVE_BUCKETS ${BUCKET_NAME} _index)
   if (${_index} GREATER -1)
