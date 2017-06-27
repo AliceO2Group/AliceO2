@@ -29,7 +29,7 @@ int main(int argc, char** argv)
   auto* app = new TApplication("app1", &argc, argv);
 
   LOG(INFO) << "PID: " << getpid();
-  LOG(INFO) << "Viewer id: " << viewerDevice.GetProperty(ViewerDevice::Id, "default_id");
+  LOG(INFO) << "Viewer id: " << viewerDevice.GetId();
 
   viewerDevice.establishChannel("pull", "bind", "tcp://*:5004", "data-in");
   viewerDevice.executeRunLoop();

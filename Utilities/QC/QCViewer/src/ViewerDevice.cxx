@@ -27,8 +27,8 @@ namespace qc
 ViewerDevice::ViewerDevice(std::string viewerId, int numIoThreads, string drawingOptions)
 {
   this->SetTransport("zeromq");
-  this->SetProperty(ViewerDevice::Id, viewerId);
-  this->SetProperty(ViewerDevice::NumIoThreads, numIoThreads);
+  this->SetId(viewerId);
+  this->SetNumIoThreads(numIoThreads);
   mDrawingOptions = drawingOptions;
 }
 

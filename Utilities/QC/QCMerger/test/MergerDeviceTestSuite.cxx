@@ -38,8 +38,8 @@ BOOST_AUTO_TEST_CASE(createMergerDevice)
   unique_ptr<MergerDevice> mrgerDevice(new MergerDevice(
     unique_ptr<Merger>(new Merger(NUMBER_OF_QC_OBJECTS_FOR_COMPLETE_DATA)), MERGER_DEVICE_ID, NUMBER_OF_IO_THREADS));
 
-  BOOST_CHECK(mrgerDevice->GetProperty(MergerDevice::Id, "default_id") == MERGER_DEVICE_ID);
-  BOOST_CHECK(mrgerDevice->GetProperty(MergerDevice::NumIoThreads, 0) == NUMBER_OF_IO_THREADS);
+  BOOST_CHECK(mrgerDevice->GetId() == MERGER_DEVICE_ID);
+  BOOST_CHECK(mrgerDevice->GetNumIoThreads() == NUMBER_OF_IO_THREADS);
 }
 
 BOOST_AUTO_TEST_CASE(establishChannelByMergerDevice)

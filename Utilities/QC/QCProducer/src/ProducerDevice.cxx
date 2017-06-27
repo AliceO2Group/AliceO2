@@ -33,8 +33,8 @@ ProducerDevice::ProducerDevice(const char* producerId, const int numIoThreads, s
   : ddsCustomCmd(new CCustomCmd(mService))
 {
   this->SetTransport("zeromq");
-  this->SetProperty(Id, producerId);
-  this->SetProperty(NumIoThreads, numIoThreads);
+  this->SetId(producerId);
+  this->SetNumIoThreads(numIoThreads);
   mProducer = producer;
   lastCheckedSecond = getCurrentSecond();
 }
@@ -135,7 +135,7 @@ void ProducerDevice::subscribeDdsCommands()
     if (request.get<string>("command") == "check-state") {
       ptree response;
       response.put("command", "check-state");
-      response.put("node_id", GetProperty(Id, "error"));
+      response.put("node_id", GetId());
       response.put("node_state", GetCurrentStateName());
       response.put("internal_message_id", to_string(mInternalStateMessageId));
       response.put("request_timestamp", request.get<string>("requestTimestamp"));

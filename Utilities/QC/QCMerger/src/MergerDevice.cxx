@@ -36,8 +36,8 @@ MergerDevice::MergerDevice(unique_ptr<Merger> merger, string mergerId, int numIo
   : mMerger(move(merger)), ddsCustomCmd(new CCustomCmd(mService))
 {
   this->SetTransport("zeromq");
-  this->SetProperty(Id, mergerId);
-  this->SetProperty(NumIoThreads, numIoThreads);
+  this->SetId(mergerId);
+  this->SetNumIoThreads(numIoThreads);
 
   procSelfStatus.open("/proc/self/status");
 
@@ -119,7 +119,7 @@ boost::property_tree::ptree MergerDevice::createCheckStateResponse(const ptree& 
 
   ptree response;
   response.put("command", "state");
-  response.put("node_id", GetProperty(Id, "error"));
+  response.put("node_id", GetId());
   response.put("node_state", GetCurrentStateName());
   response.put("internal_message_id", to_string(mInternalStateMessageId));
   response.put("request_timestamp", request.get<string>("requestTimestamp"));
@@ -140,7 +140,7 @@ boost::property_tree::ptree MergerDevice::createGetMetricsResponse(const ptree& 
 
   ptree response;
   response.put("command", "metrics");
-  response.put("node_id", GetProperty(Id, "error"));
+  response.put("node_id", GetId());
   response.put("PID", getpid());
   response.put("internal_message_id", to_string(mInternalMetricMessageId));
   response.put("request_timestamp", request.get<string>("requestTimestamp"));

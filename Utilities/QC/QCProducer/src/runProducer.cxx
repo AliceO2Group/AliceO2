@@ -81,7 +81,7 @@ int main(int argc, char** argv)
   producerDevice.CatchSignals();
 
   LOG(INFO) << "PID: " << getpid();
-  LOG(INFO) << "Producer id: " << producerDevice.GetProperty(ProducerDevice::Id, "default_id");
+  LOG(INFO) << "Producer id: " << producerDevice.GetId();
   LOG(INFO) << "Hostname: " << getenv("HOSTNAME");
 
   condition_variable keyCondition;
