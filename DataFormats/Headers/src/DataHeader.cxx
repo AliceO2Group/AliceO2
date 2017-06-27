@@ -80,17 +80,6 @@ const o2::Header::SerializationMethod o2::Header::DataHeader::sSerializationMeth
 using namespace o2::Header;
 
 //__________________________________________________________________________________________________
-o2::Header::BaseHeader::BaseHeader()
-  : magicStringInt(sMagicString)
-  , headerSize(sizeof(BaseHeader))
-  , flags(0)
-  , headerVersion(gInvalidToken32)
-  , description(gInvalidToken64)
-  , serialization(gInvalidToken64)
-{
-}
-
-//__________________________________________________________________________________________________
 o2::Header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc,
                                         SerializationMethod ser, uint32_t version)
   : magicStringInt(sMagicString)
