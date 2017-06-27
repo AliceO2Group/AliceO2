@@ -1,12 +1,13 @@
 
-AliceO2
-=======
+ALICE O2 software 
+=================
 
-Alice O2 project software. Simulation, reconstruction and common software for
-the ALICE experiment at CERN based on ALFA and the FairRoot software.
+### Scope
+The ALICE O2 software repository contains the framework, as well as the detector specific, code for the reconstruction, calibration and simulation for the ALICE experiment at CERN for Run 3 and 4. It also encompasses the commonalities such as the data format, and the global algorithms like the global tracking. 
+Other repositories in AliceO2Group contain a number of large common modules, per instance the Monitoring or the Configuration.
 
-### Documentation
-The documentation single entry point is [here](https://alice-o2.web.cern.ch/).
+### Website
+The main entry point for O2 information is [here](https://alice-o2.web.cern.ch/).
 
 ### Installation
 In order to install with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
@@ -27,8 +28,8 @@ turn on the variable `DOC_INSTALL`.
 Doxygen documentation is also available online [here](http://aliceo2group.github.io/AliceO2/)
 
 ### Build system (cmake) and directory structure
-The code organisation is described [here](docs/CodeOrganization.md).
-The build system (cmake) is described [here](docs/CMakeInstructions.md).
+The code organisation is described [here](doc/CodeOrganization.md).
+The build system (cmake) is described [here](doc/CMakeInstructions.md).
 
 ### Formatting
 ##### Using clang-format
@@ -49,11 +50,3 @@ clang-format -style=file -i SOURCEFILE
 
 ##### Using an IDE
 A number of config files are available [here](https://github.com/AliceO2Group/CodingGuidelines) for various IDEs.
-
-### Documentation
-
-The documentation single entry point is [here](https://alice-o2.web.cern.ch/).
-
-### Issue tracking system
-
-We use JIRA to track issues. Head [here](https://alice.its.cern.ch/jira) to create tickets.
