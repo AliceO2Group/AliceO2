@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(createViewerDevice)
 
   ViewerDevice viewer(viewerId, numberOfThreads);
 
-  BOOST_TEST(viewer.GetProperty(ViewerDevice::Id, "default_id") == viewerId);
+  BOOST_TEST(viewer.GetId() == viewerId);
 }
 
 BOOST_AUTO_TEST_CASE(establishChannelByViewerDevice)

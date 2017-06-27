@@ -135,7 +135,7 @@ void WrapperDevice::InitTask()
   // id is now specified with the --id option of FairMQProgOptions
   string idkey="--instance-id";
   string id="";
-  id=GetProperty(FairMQDevice::Id, id);
+  id=GetId();
   vector<char*> argv;
   argv.emplace_back(&idkey[0]);
   argv.emplace_back(&id[0]);
