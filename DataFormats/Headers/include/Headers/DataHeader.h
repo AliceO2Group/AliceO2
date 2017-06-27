@@ -384,7 +384,7 @@ struct BaseHeader
   //___the functions:
 
   /// dont construct directly
-  BaseHeader();
+  BaseHeader() = delete;
   BaseHeader(const BaseHeader&) = default;
   /// Special ctor for initialization in derived types
   BaseHeader(uint32_t mySize, HeaderType description,
