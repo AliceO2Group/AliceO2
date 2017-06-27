@@ -32,6 +32,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <array>
 #include <bitset>
 #include <thread>
 #include <stdexcept>  // exeptions, runtime_error
