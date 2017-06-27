@@ -48,19 +48,19 @@ void ConditionsMQServer::InitTask()
 {
   ParameterMQServer::InitTask();
   // Set first input
-  if (GetProperty(FirstInputType, "") == "OCDB") {
-    mCdbManager->setDefaultStorage(GetProperty(FirstInputName, "").c_str());
+  if (GetFirstInputType() == "OCDB") {
+    mCdbManager->setDefaultStorage(GetFirstInputName().c_str());
   }
 
   // Set second input
-  if (GetProperty(SecondInputType, "") == "OCDB") {
-    mCdbManager->setDefaultStorage(GetProperty(SecondInputName, "").c_str());
+  if (GetSecondInputType() == "OCDB") {
+    mCdbManager->setDefaultStorage(GetSecondInputName().c_str());
   }
 
   // Set output
-  if (GetProperty(OutputName, "") != "") {
-    if (GetProperty(OutputType, "") == "OCDB") {
-      mCdbManager->setDefaultStorage(GetProperty(OutputName, "").c_str());
+  if (GetOutputName() != "") {
+    if (GetOutputType() == "OCDB") {
+      mCdbManager->setDefaultStorage(GetOutputName().c_str());
     }
   }
 }

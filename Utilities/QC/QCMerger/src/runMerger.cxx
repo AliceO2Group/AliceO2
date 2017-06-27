@@ -102,7 +102,7 @@ int main(int argc, char** argv)
   mergerDevice.CatchSignals();
 
   LOG(INFO) << "PID: " << getpid();
-  LOG(INFO) << "Merger id: " << mergerDevice.GetProperty(MergerDevice::Id, "default_id");
+  LOG(INFO) << "Merger id: " << mergerDevice.GetId());
 
   mergerDevice.establishChannel("pull", "bind", stringLocalAddress.c_str(), "data-in", INPUT_BUFFER_SIZE,
                                 INPUT_BUFFER_SIZE);
