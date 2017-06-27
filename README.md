@@ -4,7 +4,7 @@ ALICE O2 software
 
 ### Scope
 The ALICE O2 software repository contains the framework, as well as the detector specific, code for the reconstruction, calibration and simulation for the ALICE experiment at CERN for Run 3 and 4. It also encompasses the commonalities such as the data format, and the global algorithms like the global tracking. 
-Other repositories in AliceO2Group contain a number of large common modules, per instance the Monitoring or the Configuration.
+Other repositories in AliceO2Group contain a number of large common modules, for instance for Monitoring or Configuration.
 
 ### Website
 The main entry point for O2 information is [here](https://alice-o2.web.cern.ch/).
