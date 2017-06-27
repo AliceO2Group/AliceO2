@@ -44,7 +44,7 @@ template<typename CodeType, std::size_t Length = 8 * sizeof(CodeType)>
 class CodecIdentity {
 public:
   using code_type = CodeType;
-  static_assert(Length <= 8 * sizeof(code_type));
+  static_assert(Length <= 8 * sizeof(code_type), "CodeType must allow specified bit length");
   static const std::size_t sMaxLength = Length;
 
   CodecIdentity() = default;
