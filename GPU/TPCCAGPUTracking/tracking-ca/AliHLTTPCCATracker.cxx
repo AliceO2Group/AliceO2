@@ -739,7 +739,7 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 		int iTr = trackOrder[iTrTmp].fTtrack;
 		AliHLTTPCCATrack &iTrack = fTracks[iTr];    
 
-		if( iTr < fCommonMem->fNLocalTracks && iTrack.NHits() < fParam.MinNTrackClusters() ) continue;
+		if( iTr < fCommonMem->fNLocalTracks && iTrack.NHits() < (fParam.MinNTrackClusters() == -1 ? TRACKLET_SELECTOR_MIN_HITS(iTrack.Param().GetQPt()) : fParam.MinNTrackClusters()) ) continue;
 		if( CAMath::Abs(iTrack.Param().GetQPt())> fParam.MaxTrackQPt() ) continue;
 
 		out->SetParam( iTrack.Param() );

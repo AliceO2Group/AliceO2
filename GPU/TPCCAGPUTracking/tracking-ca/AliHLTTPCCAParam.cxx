@@ -30,7 +30,7 @@ GPUdi() AliHLTTPCCAParam::AliHLTTPCCAParam()
     fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBzkG( -5.00668 ),
     fConstBz( -5.00668*0.000299792458 ), fHitPickUpFactor( 1. ),
       fMaxTrackMatchDRow( 4 ), fNeighboursSearchArea(3.), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 ), fClusterError2CorrectionY(1.), fClusterError2CorrectionZ(1.),
-      fMinNTrackClusters( 30 ),
+      fMinNTrackClusters( -1 ),
       fMaxTrackQPt(1./0.1)
 {
   // constructor
