@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+
 #include "TPCSimulation/Detector.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/Constants.h"
@@ -295,7 +296,7 @@ Bool_t  Detector::ProcessHits(FairVolume* vol)
   static int oldSectorId = sectorID;
 
   //  a new group is starting -> put it into the container
-  static LinkableHitGroup *currentgroup = nullptr;
+  static LinkableHitGroup *currentgroup = 0;
   if (groupCounter == 0) {
     //TClonesArray& clref = *mHitGroupCollection;
     TClonesArray& clref = *mHitsPerSectorCollection[sectorID];
