@@ -595,7 +595,9 @@ GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, float* Poli
 
 		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 		
-		bool ok = N >= 30 && t.CheckNumericalQuality() && fabs( t.SinPhi() ) <= .999;
+		bool ok = N >= TRACKLET_SELECTOR_MIN_HITS(track.QPt()) &&
+					t.CheckNumericalQuality() &&
+					fabs( t.SinPhi() ) <= .999;
 		track.SetOK(ok);
 		if( !ok ) continue;
 
