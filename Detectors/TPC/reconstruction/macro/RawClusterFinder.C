@@ -81,11 +81,11 @@ class RawClusterFinder : public CalibRawBase
     void setClustererType(ClustererType clustererType) { mClustererType = clustererType; }
 
     /// not used
-    Int_t UpdateROC(const Int_t sector, const Int_t row, const Int_t pad,
+    Int_t updateROC(const Int_t sector, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final { return 0;}
 
     /// 
-    Int_t UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+    Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final;
 
 
@@ -93,12 +93,12 @@ class RawClusterFinder : public CalibRawBase
     static void GetFit(TGraph *trackGraph, float& slope, float& offset, float& slopeError, float& offsetError, float& chi2);
 
     void setPedestals(CalPad* pedestals) { mPedestals = pedestals; }
-    static void ProcessEvents(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, TString cherenkovFile="", ClustererType clustererType=ClustererType::HW);
+    static void processEvents(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, TString cherenkovFile="", ClustererType clustererType=ClustererType::HW);
 
     std::vector<std::unique_ptr<Digit>>& getDigitVector() { return mVectorDigits; }
 
     /// Dummy end event
-    virtual void EndEvent() final {};
+    virtual void endEvent() final {};
 
     TTree *mTOut;
 
@@ -108,10 +108,10 @@ class RawClusterFinder : public CalibRawBase
     std::vector<std::unique_ptr<Digit>> mVectorDigits;
 
     /// dummy reset
-    void ResetEvent() final { mVectorDigits.clear(); }
+    void resetEvent() final { mVectorDigits.clear(); }
 };
 
-Int_t RawClusterFinder::UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+Int_t RawClusterFinder::updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                                      const Int_t timeBin, const Float_t signal)
 {
   float corrSignal = signal;
@@ -127,7 +127,7 @@ Int_t RawClusterFinder::UpdateCRU(const CRU& cru, const Int_t row, const Int_t p
   return 1;
 }
 
-void RawClusterFinder::ProcessEvents(TString fileInfo, TString pedestalFile, TString outputFileName, Int_t maxEvents, TString cherenkovFile, ClustererType clustererType)
+void RawClusterFinder::processEvents(TString fileInfo, TString pedestalFile, TString outputFileName, Int_t maxEvents, TString cherenkovFile, ClustererType clustererType)
 {
 
   // ===| create raw converter |================================================
@@ -199,10 +199,10 @@ void RawClusterFinder::ProcessEvents(TString fileInfo, TString pedestalFile, TSt
   bool data = true;
   printf("max events %d\n", maxEvents);
   CalibRawBase::ProcessStatus status;
-  //while (((status = converter.ProcessEvent()) == CalibRawBase::ProcessStatus::Ok) && (maxEvents>0)?events<maxEvents:1) {
+  //while (((status = converter.processEvent()) == CalibRawBase::ProcessStatus::Ok) && (maxEvents>0)?events<maxEvents:1) {
   // skip synch event
-  converter.ProcessEvent();
-  while (converter.ProcessEvent() == CalibRawBase::ProcessStatus::Ok) {
+  converter.processEvent();
+  while (converter.processEvent() == CalibRawBase::ProcessStatus::Ok) {
     if (maxEvents>0 && events>=maxEvents) break;
 
     printf("========| Event %4zu %d %d %d |========\n", converter.getPresentEventNumber(), events, maxEvents, status);
@@ -556,5 +556,5 @@ void RawClusterFinder::GetFit(TGraph *trackGraph, float& slope, float& offset, f
 void RawClusterFinder(TString fileInfo, TString pedestalFile, TString outputFileName="clusters.root", Int_t maxEvents=-1, TString cherenkovFile="cherenkov.txt", o2::TPC::RawClusterFinder::ClustererType clustererType=o2::TPC::RawClusterFinder::ClustererType::HW)
 {
    using namespace o2::TPC;
-   RawClusterFinder::ProcessEvents(fileInfo, pedestalFile, outputFileName, maxEvents, cherenkovFile, clustererType);
+   RawClusterFinder::processEvents(fileInfo, pedestalFile, outputFileName, maxEvents, cherenkovFile, clustererType);
 }

@@ -48,14 +48,14 @@ class CalibPedestal : public CalibRawBase
     /// default destructor
     virtual ~CalibPedestal() = default;
 
-    /// Update function called once per digit
+    /// update function called once per digit
     ///
     /// \param sector
-    Int_t UpdateROC(const Int_t sector, const Int_t row, const Int_t pad,
+    Int_t updateROC(const Int_t sector, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final;
 
     /// not used
-    Int_t UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+    Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final { return 0;}
 
     /// Reset pedestal data
@@ -81,7 +81,7 @@ class CalibPedestal : public CalibRawBase
     void dumpToFile(TString filename) final;
 
     /// Dummy end event
-    void EndEvent() final {};
+    void endEvent() final {};
 
   //private:
     Int_t      mADCMin;    ///< minimum adc value
@@ -99,7 +99,7 @@ class CalibPedestal : public CalibRawBase
     vectorType* getVector(ROC roc, bool create=kFALSE);
 
     /// dummy reset
-    void ResetEvent() final {}
+    void resetEvent() final {}
 };
 
 } // namespace TPC

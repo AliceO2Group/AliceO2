@@ -131,8 +131,8 @@ void MonitorGui()
 
 //__________________________________________________________________________
 void RewindEvents(){
-  mEvDisp.RewindEvents();
-  //if (mRawReader) mRawReader->RewindEvents();
+  mEvDisp.rewindEvents();
+  //if (mRawReader) mRawReader->rewindEvents();
   //printf("RewindEvents: not implemented\n");
 }
 
@@ -407,7 +407,7 @@ void Next(int eventNumber=-1)
   //Int_t ev=mRawReader->NextEvent();
   //if (!ev) return;
   using Status = CalibRawBase::ProcessStatus;
-  Status status = mEvDisp.ProcessEvent(eventNumber);
+  Status status = mEvDisp.processEvent(eventNumber);
   //const Int_t timeBins = mEvDisp.getTimeBinsPerCall();
   const Int_t timeBins = mEvDisp.getNumberOfProcessedTimeBins();
 
@@ -431,7 +431,7 @@ void Next(int eventNumber=-1)
       break;
     }
   }
-  //Bool_t res=mEvDisp.ProcessEvent();
+  //Bool_t res=mEvDisp.processEvent();
   //printf("Next: %d, %d (%d - %d), %d\n",res, ((AliRawReaderGEMDate*)mRawReader)->mEventInFile,((AliRawReaderGEMDate*)mRawReader)->GetCamacData(0),mRawReader->GetEventFromTag(), mRawReader->GetDataSize());
   //printf("Next Event: %d\n",mRawReader->GetEventFromTag());
   printf("Next Event\n");

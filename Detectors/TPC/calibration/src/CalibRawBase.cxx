@@ -81,7 +81,7 @@ void CalibRawBase::setupContainers(TString fileInfo)
   delete arrData;
 }
 
-void CalibRawBase::RewindEvents()
+void CalibRawBase::rewindEvents()
 {
   for (auto& c : mGBTFrameContainers) {
     c.get()->reProcessAllFrames();

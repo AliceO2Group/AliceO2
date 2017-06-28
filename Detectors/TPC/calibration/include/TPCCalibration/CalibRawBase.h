@@ -38,7 +38,7 @@ namespace TPC
 ///
 /// This class is the base class for raw data calibrations
 /// It implements base raw reader functionality and calls
-/// an 'Update' function for each digit
+/// an 'update' function for each digit
 ///
 /// origin: TPC
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
@@ -56,24 +56,24 @@ class CalibRawBase
 
     CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mNevents(0), mTimeBinsPerCall(500), mProcessedTimeBins(0), mPresentEventNumber(0), mPadSubset(padSubset) {;}
 
-    /// Update function called once per digit
+    /// update function called once per digit
     ///
     /// \param roc readout chamber
     /// \param row row in roc
     /// \param pad pad in row
     /// \param timeBin time bin
     /// \param signal ADC signal
-    virtual Int_t UpdateROC(const Int_t roc, const Int_t row, const Int_t pad,
+    virtual Int_t updateROC(const Int_t roc, const Int_t row, const Int_t pad,
                             const Int_t timeBin, const Float_t signal) = 0;
 
-    /// Update function called once per digit
+    /// update function called once per digit
     ///
     /// \param cru CRU
     /// \param row row in CRU
     /// \param pad pad in row
     /// \param timeBin time bin
     /// \param signal ADC signal
-    virtual Int_t UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+    virtual Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                             const Int_t timeBin, const Float_t signal) = 0;
 
     /// add GBT frame container to process
@@ -82,10 +82,10 @@ class CalibRawBase
     /// add RawReader
     void addRawReader(RawReader *reader) { mRawReaders.push_back(std::unique_ptr<RawReader>(reader)); }
 
-    /// set number of time bins to process in one call to ProcessEvent
+    /// set number of time bins to process in one call to processEvent
     void setTimeBinsPerCall(Int_t nTimeBins) { mTimeBinsPerCall = nTimeBins; }
 
-    /// return the number of time bins processed in one call to ProcessEvent
+    /// return the number of time bins processed in one call to processEvent
     Int_t getTimeBinsPerCall() const { return mTimeBinsPerCall; }
 
     /// return pad subset type used
@@ -93,12 +93,12 @@ class CalibRawBase
 
     /// Process one event
     /// \param eventNumber: Either number >=0 or -1 (next event) or -2 (previous event)
-    ProcessStatus ProcessEvent(int eventNumber=-1);
+    ProcessStatus processEvent(int eventNumber=-1);
 
     void setupContainers(TString fileInfo);
 
     /// Rewind the events
-    void RewindEvents();
+    void rewindEvents();
 
     /// Dump the relevant data to file
     virtual void dumpToFile(TString filename) {}
@@ -117,34 +117,34 @@ class CalibRawBase
 
   private:
     size_t    mNevents;                //!< number of processed events
-    Int_t     mTimeBinsPerCall;        //!< number of time bins to process in ProcessEvent
+    Int_t     mTimeBinsPerCall;        //!< number of time bins to process in processEvent
     size_t    mProcessedTimeBins;      //!< number of processed time bins in last event
     size_t    mPresentEventNumber;     //!< present event number
     PadSubset mPadSubset;              //!< pad subset type used
     std::vector<std::unique_ptr<GBTFrameContainer>> mGBTFrameContainers; //! raw reader pointer
     std::vector<std::unique_ptr<RawReader>> mRawReaders; //! raw reader pointer
 
-    virtual void ResetEvent() = 0;
-    virtual void EndEvent() = 0;
+    virtual void resetEvent() = 0;
+    virtual void endEvent() = 0;
 
     /// Process one event with mTimeBinsPerCall length using GBTFrameContainers
-    ProcessStatus ProcessEventGBT();
+    ProcessStatus processEventGBT();
 
     /// Process one event using RawReader
-    ProcessStatus ProcessEventRawReader(int eventNumber=-1);
+    ProcessStatus processEventRawReader(int eventNumber=-1);
 
 };
 
 //----------------------------------------------------------------
 // Inline Functions
 //----------------------------------------------------------------
-inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEvent(int eventNumber)
+inline CalibRawBase::ProcessStatus CalibRawBase::processEvent(int eventNumber)
 {
   if (mGBTFrameContainers.size()) {
-    return ProcessEventGBT();
+    return processEventGBT();
   }
   else if (mRawReaders.size()) {
-    return ProcessEventRawReader(eventNumber);
+    return processEventRawReader(eventNumber);
   }
   else {
     return ProcessStatus::NoReaders;
@@ -152,10 +152,10 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEvent(int eventNumber)
 }
 
 //______________________________________________________________________________
-inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventGBT()
+inline CalibRawBase::ProcessStatus CalibRawBase::processEventGBT()
 {
   if (!mGBTFrameContainers.size()) return ProcessStatus::NoReaders;
-  ResetEvent();
+  resetEvent();
 
   // loop over raw readers, fill digits for 500 time bins and process
   // digits
@@ -203,8 +203,8 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventGBT()
           const int timeBin= i; //digi.getTimeStamp();
           const float signal = digi.getChargeFloat();
 
-          UpdateCRU(cru, row, pad, timeBin, signal );
-          UpdateROC(roc, row+rowOffset, pad, timeBin, signal );
+          updateCRU(cru, row, pad, timeBin, signal );
+          updateROC(roc, row+rowOffset, pad, timeBin, signal );
         }
         ++readTimeBins;
       }
@@ -223,16 +223,16 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventGBT()
     }
   }
 
-  EndEvent();
+  endEvent();
   ++mNevents;
   return status;
 }
 
 //______________________________________________________________________________
-inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader(int eventNumber)
+inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int eventNumber)
 {
   if (!mRawReaders.size()) return ProcessStatus::NoReaders;
-  ResetEvent();
+  resetEvent();
 
   // loop over raw readers, fill digits for 500 time bins and process
   // digits
@@ -303,8 +303,8 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader(int event
         const float signal = float(signalI);
         //const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadSecPos(roc, row, pad));
         //printf("Call update: %d, %d, %d, %d (%d), %.3f -- reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, pad, timeBin, i, signal, cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
-        UpdateCRU(cru, row, pad, timeBin, signal );
-        UpdateROC(roc, row+rowOffset, pad, timeBin, signal );
+        updateCRU(cru, row, pad, timeBin, signal );
+        updateROC(roc, row+rowOffset, pad, timeBin, signal );
         ++timeBin;
         hasData=true;
       }
@@ -324,7 +324,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::ProcessEventRawReader(int event
     status = ProcessStatus::LastEvent;
   }
 
-  EndEvent();
+  endEvent();
   ++mNevents;
   return status;
 }

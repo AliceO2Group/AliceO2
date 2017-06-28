@@ -15,12 +15,12 @@ void runPedestal(TString fileInfo, TString outputFileName="", Int_t nevents=100,
   ped.setADCRange(adcMin, adcMax);
   ped.setupContainers(fileInfo);
 
-  ped.ProcessEvent();
+  ped.processEvent();
   ped.resetData();
 
-  //while (ped.ProcessEvent());
+  //while (ped.processEvent());
   for (Int_t i=0; i<nevents; ++i) {
-    if (ped.ProcessEvent() != CalibRawBase::ProcessStatus::Ok) break;
+    if (ped.processEvent() != CalibRawBase::ProcessStatus::Ok) break;
   }
   ped.analyse();
 

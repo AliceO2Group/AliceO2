@@ -42,11 +42,11 @@ class SimpleEventDisplay : public CalibRawBase
     
     virtual ~SimpleEventDisplay() = default;
 
-    Int_t UpdateROC(const Int_t roc, const Int_t row, const Int_t pad,
+    Int_t updateROC(const Int_t roc, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final;
   
     /// not used
-    Int_t UpdateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+    Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                     const Int_t timeBin, const Float_t signal) final { return 0;}
 
     CalPad* getCalPadMax() {return &mPadMax;}
@@ -56,7 +56,7 @@ class SimpleEventDisplay : public CalibRawBase
     TH1D* MakePadSignals(Int_t roc, Int_t row, Int_t pad);
 
     /// Dummy end event
-    void EndEvent() final {};
+    void endEvent() final {};
 
   private:
     THnSparseS  *mHnDataIROC;      //!< Event Data IROCs
@@ -81,7 +81,7 @@ class SimpleEventDisplay : public CalibRawBase
   
     const Mapper&  mTPCmapper;          //! mapper
   
-    void ResetEvent() final;
+    void resetEvent() final;
 };
 
 
