@@ -54,7 +54,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fNOutputTrackClusters( 0 ),
   fOutputTracks( 0 ),
   fOutputClusterIds(0),
-  fSliceTrackInfos( 0 ),  
+  fSliceTrackInfos( 0 ),
   fMaxSliceTracks(0),
   fClusterX(0),
   fClusterY(0),

@@ -161,7 +161,7 @@ inline Int_t AliHLTTPCFastTransform::Transform( Int_t iSec, Int_t iRow, Float_t 
     Double_t xx[]={static_cast<Double_t>(iRow),Pad,Time};
     fOrigTransform->Transform(xx,is,0,1);
     for (int i = 0;i < 3;i++) XYZ[i] = xx[i];
-    printf("Clusters Sec %d Row %d P %f T %f --> %f %f %f\n", iSec, iRow, Pad, Time, XYZ[0], XYZ[1], XYZ[2]);
+    printf("Clusters Sec %d Row %d P %f T %f --> %f %f %f (time %lld)\n", iSec, iRow, Pad, Time, XYZ[0], XYZ[1], XYZ[2], (long long int) fOrigTransform->GetCurrentTimeStamp());
     return 0;
   }
 
@@ -179,7 +179,7 @@ inline Int_t  AliHLTTPCFastTransform::Transform( Int_t iSec, Int_t iRow, Float_t
     Double_t xx[]={static_cast<Double_t>(iRow),Pad,Time};
     fOrigTransform->Transform(xx,is,0,1);
     for (int i = 0;i < 3;i++) XYZ[i] = xx[i];
-    printf("Clusters Sec %d Row %d P %f T %f --> %f %f %f\n", iSec, iRow, Pad, Time, XYZ[0], XYZ[1], XYZ[2]);
+    printf("Clusters Sec %d Row %d P %f T %f --> %f %f %f (time %lld)\n", iSec, iRow, Pad, Time, XYZ[0], XYZ[1], XYZ[2], (long long int) fOrigTransform->GetCurrentTimeStamp());
     return 0;
   }
 
