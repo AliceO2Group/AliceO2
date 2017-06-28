@@ -314,7 +314,7 @@ Int_t AliHLTTPCFastTransform::SetCurrentTimeStamp( Long_t TimeStamp )
 {
   // Set the current time stamp
   
-  if( fInitialisationMode!=1 ){
+  if( fgkUseOrigTransform==0 && fInitialisationMode!=1 ){
     fLastTimeStamp = TimeStamp;
     return 0;
   }
