@@ -28,7 +28,7 @@
 #include "TH2F.h"
 
 
-TH2F* hAdcError = 0x0;
+TH2F* hAdcError = nullptr;
 
 
 bool run_parallel = true;

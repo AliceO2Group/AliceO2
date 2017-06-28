@@ -245,9 +245,9 @@ void testHitsDigitsClusters(int iEv=0,
       const std::array<float,3> bField = {{0,0,-5}};
 
       // Track parameters are in local coordinate system - propagate to pad row of the cluster
-      trackObject.PropagateParamTo(posLoc.getX(), bField);
+      trackObject.propagateParamTo(posLoc.getX(), bField);
 
-      LocalPosition3D trackLoc(trackObject.GetX(), trackObject.GetY(), trackObject.GetZ());
+      LocalPosition3D trackLoc(trackObject.getX(), trackObject.getY(), trackObject.getZ());
       GlobalPosition3D trackGlob = Mapper::LocalToGlobal(trackLoc, cru.sector());
 
       const float resY = trackLoc.getY() - posLoc.getY();

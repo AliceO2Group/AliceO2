@@ -35,7 +35,7 @@ CalibPedestal::CalibPedestal(PadSubset padSubset)
 }
 
 //______________________________________________________________________________
-Int_t CalibPedestal::UpdateROC(const Int_t roc, const Int_t row, const Int_t pad,
+Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad,
                                const Int_t timeBin, const Float_t signal)
 {
   Int_t adcValue = Int_t(signal);
