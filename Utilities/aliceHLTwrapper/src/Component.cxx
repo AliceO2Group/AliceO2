@@ -166,6 +166,10 @@ int Component::init(int argc, char** argv)
   // the HLT code relies on ALIHLT_HCDBDIR environment variable to be set
   if (!getenv("ALIHLT_HCDBDIR")) {
     LOG(ERROR) << "FATAL: OCDB URI is needed, use option --ocdb or environment variable ALIHLT_HCDBDIR";
+// temporary fix to regain compilation on MacOS (which on some platforms does not define ENOKEY)
+#ifndef ENOKEY
+#define ENOKEY 126
+#endif
     return -ENOKEY;
   }
 
