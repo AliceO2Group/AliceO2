@@ -894,6 +894,7 @@ void AliHLTTPCGMMerger::Refit()
 	       
 		AliHLTTPCGMTrackParam t = track.Param();
 		float Alpha = track.Alpha();  
+		int nTrackHitsOld = nTrackHits;
 		t.Fit( fPolinomialFieldBz,
 		   fClusterX+track.FirstClusterRef(),
 		   fClusterY+track.FirstClusterRef(),
@@ -907,6 +908,11 @@ void AliHLTTPCGMMerger::Refit()
 				t.CheckNumericalQuality() &&
 				fabs( t.SinPhi() ) <= .999;
 
+		if (fSliceParam.HighQPtForward() < track.Param().QPt())
+		{
+			ok = 1;
+			nTrackHits = nTrackHitsOld;
+		}
 		track.SetOK(ok);
 		if (!ok) continue;
 
