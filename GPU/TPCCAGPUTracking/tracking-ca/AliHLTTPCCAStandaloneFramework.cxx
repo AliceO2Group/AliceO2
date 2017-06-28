@@ -336,7 +336,7 @@ void AliHLTTPCCAStandaloneFramework::SetSettings( )
         inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, solenoidBz );
       param.SetHitPickUpFactor( 2 );
       param.SetMinNTrackClusters( 30 );
-      param.SetMinTrackPt( 0.05 );
+      param.SetMinTrackPt( 0.015 );
 
       param.Update();
       fTracker.InitializeSliceParam( slice, param );

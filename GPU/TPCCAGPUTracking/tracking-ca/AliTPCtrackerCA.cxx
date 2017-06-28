@@ -122,7 +122,7 @@ AliTPCtrackerCA::AliTPCtrackerCA( const AliTPCParam *par ):
     param.SetMaxTrackMatchDRow( 5 );
     param.SetTrackConnectionFactor( 3.5 );
     param.SetMinNTrackClusters( 30 );
-    param.SetMinTrackPt(0.2);
+    param.SetMinTrackPt(0.015);
     AliTPCClusterParam * clparam = AliTPCcalibDB::Instance()->GetClusterParam();
     for ( int iRow = 0; iRow < nRows; iRow++ ) {
       int    type = ( iRow < 63 ) ? 0 : ( ( iRow > 126 ) ? 1 : 2 );

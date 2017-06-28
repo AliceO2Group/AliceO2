@@ -380,7 +380,7 @@ void AliHLTTPCGMMerger::UnpackSlices()
 	  fSliceNGlobalTrackInfos[iSlice] = 0;
 
 	  if ( !fkSlices[iSlice] ) continue;
-      float alpha = fSliceParam.Alpha( iSlice );
+	  float alpha = fSliceParam.Alpha( iSlice );
 
 	  const AliHLTTPCCASliceOutput &slice = *( fkSlices[iSlice] );
 	  const AliHLTTPCCASliceOutTrack *sliceTr = firstGlobalTracks[iSlice];
@@ -697,7 +697,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	    if( nParts >= kMaxParts ) break;
 	    trackParts[nParts++] = tr;
 #ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
-		for (int i = 0;i < 2;i++) if (tr->GlobalTrackId(i) != -1) trackParts[nParts++] = &fSliceTrackInfos[tr->GlobalTrackId(i)];
+	    for (int i = 0;i < 2;i++) if (tr->GlobalTrackId(i) != -1) trackParts[nParts++] = &fSliceTrackInfos[tr->GlobalTrackId(i)];
 #endif
 	    int jtr = tr->SliceNeighbour();
 	    if( jtr >= 0 ) {
@@ -705,7 +705,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	      tr->SetUsed( 2 );
 	      continue;
 	    }
-        jtr = trbase->NextNeighbour();
+	    jtr = trbase->NextNeighbour();
 	    if( jtr>=0 ){
 	      jSlice = fNextSliceInd[jSlice];
 	      trbase = &(fSliceTrackInfos[fSliceTrackInfoStart[jSlice] + jtr]);
@@ -730,7 +730,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	if( nHits + nTrackHits > kMaxClusters ) break;
 	const AliHLTTPCCASliceOutCluster *c= t->OrigTrack()->Clusters();
 	AliHLTTPCCASliceOutCluster *c2 = trackClusters + nHits + nTrackHits-1;
-	float alpha =  t->Alpha();
+	float alpha = t->Alpha();
 	for( int i=0; i<nTrackHits; i++, c++, c2-- )
 	{
 		*c2 = *c;
@@ -747,7 +747,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  {
 	    ordered = 0;
 	    break;
-  	  }
+	  }
 	}
 
       int firstTrackIndex = 0;
@@ -775,7 +775,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 		const AliHLTTPCGMSliceTrack *t = trackParts[i];
 		int nTrackHits = t->NClusters();
 		if (nTmpHits + nTrackHits > kMaxClusters) break;
-	    for (int j = 0;j < nTrackHits;j++)
+		for (int j = 0;j < nTrackHits;j++)
 		{
 			const AliHLTTPCCASliceOutCluster *c = trackClusters + nTmpHits + j;
 			//Give Z-difference precendense if it is big, otherwise order the rows.
@@ -791,12 +791,12 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  float clAUnsorted[kMaxClusters];
 	  intfloat2 clusterIndices[kMaxClusters];
 	  for( int i = 0;i < nHits;i++)
-	    {
-	      trackClustersUnsorted[i] = trackClusters[i];
-	      clAUnsorted[i] = clA[i];
-	      clusterIndices[i].x = i;
-	      clusterIndices[i].y = trackClusterSortWeights[i];
-	    }
+	  {
+	    trackClustersUnsorted[i] = trackClusters[i];
+	    clAUnsorted[i] = clA[i];
+	    clusterIndices[i].x = i;
+	    clusterIndices[i].y = trackClusterSortWeights[i];
+	  }
 	  qsort(clusterIndices, nHits, sizeof(intfloat2), CompareClusterIds);
 	  nTmpHits = 0;
 	  for (int i = 0;i < nParts;i++)
@@ -813,7 +813,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  int indPrev = -1;
 	  for (int i = 0;i < nHits;i++)
 	    {
-		  int ind = clusterIndices[i].x;
+	      int ind = clusterIndices[i].x;
 	      if(indPrev >= 0 && trackClusters[ind].GetId() == trackClusters[indPrev].GetId()) continue;
 	      indPrev = ind;
 	      trackClusters[nFilteredHits] = trackClustersUnsorted[ind];
@@ -903,7 +903,6 @@ void AliHLTTPCGMMerger::Refit()
 		   fSliceParam, nTrackHits, Alpha, 0 );      
 	    
 		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
-		
 		bool ok = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(track.Param().QPt()) &&
 				t.CheckNumericalQuality() &&
 				fabs( t.SinPhi() ) <= .999;
