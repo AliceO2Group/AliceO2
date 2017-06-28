@@ -738,7 +738,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	}
       }
 
-      if ( nHits < 30 ) continue;
+      if ( nHits < TRACKLET_SELECTOR_MIN_HITS(track.QPt()) ) continue;
 
       int ordered = 1;
       for( int i=1; i<nHits; i++ )
@@ -904,7 +904,9 @@ void AliHLTTPCGMMerger::Refit()
 	    
 		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
 		
-		bool ok = nTrackHits >= 30 && t.CheckNumericalQuality() && fabs( t.SinPhi() ) <= .999;
+		bool ok = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(track.Param().QPt()) &&
+				t.CheckNumericalQuality() &&
+				fabs( t.SinPhi() ) <= .999;
 
 		track.SetOK(ok);
 		if (!ok) continue;
