@@ -51,7 +51,8 @@ AliHLTTPCFastTransform::AliHLTTPCFastTransform()
   fTimeBorder2(500),
   fAlignment(NULL),
   fReverseTransformInfo(),
-  fUseCorrectionMap(false)
+  fUseCorrectionMap(false),
+  fUseOrigTransform(0)
 {
   // see header file for class documentation
   // or
@@ -88,12 +89,13 @@ void  AliHLTTPCFastTransform::DeInit()
 }
 
 
-Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Long_t TimeStamp )
+Int_t  AliHLTTPCFastTransform::Init( AliTPCTransform *transform, Long_t TimeStamp, int useOrigTransform )
 {
   // Initialisation 
 
   DeInit();
   fInitialisationMode = 1;
+  fUseOrigTransform = useOrigTransform;
 
   AliTPCcalibDB* pCalib=AliTPCcalibDB::Instance();  
   if(!pCalib ) return Error( -1, "AliHLTTPCFastTransform::Init: No TPC calibration instance found");
@@ -206,7 +208,7 @@ Int_t AliHLTTPCFastTransform::ReadFromObject( const AliHLTTPCFastTransformObject
   // read fast transformation from ROOT object in database
   //
 
-  if (fgkUseOrigTransform) return 0;
+  if (fUseOrigTransform) return 0;
   DeInit();
   fInitialisationMode = 0;
 
@@ -314,7 +316,7 @@ Int_t AliHLTTPCFastTransform::SetCurrentTimeStamp( Long_t TimeStamp )
 {
   // Set the current time stamp
   
-  if( fgkUseOrigTransform==0 && fInitialisationMode!=1 ){
+  if( fUseOrigTransform==0 && fInitialisationMode!=1 ){
     fLastTimeStamp = TimeStamp;
     return 0;
   }
@@ -342,7 +344,7 @@ Int_t AliHLTTPCFastTransform::SetCurrentTimeStamp( Long_t TimeStamp )
   fOrigTransform->SetCurrentTimeStamp( static_cast<UInt_t>(TimeStamp) );
   fLastTimeStamp = TimeStamp;  
   
-  if (fgkUseOrigTransform) return(0);
+  if (fUseOrigTransform) return(0);
 
   // find last calibrated time bin
   
