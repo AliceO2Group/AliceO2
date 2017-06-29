@@ -45,7 +45,7 @@ class AliHLTTPCFastTransform{
   virtual ~AliHLTTPCFastTransform();
   
   /** initialization */
-  Int_t  Init( AliTPCTransform *transform=0, Long_t TimeStamp=-1 );
+  Int_t  Init( AliTPCTransform *transform, Long_t TimeStamp, int useOrigTransform );
 
   /** initialization */
   Int_t ReadFromObject( const AliHLTTPCFastTransformObject &obj );
@@ -105,7 +105,6 @@ class AliHLTTPCFastTransform{
   void SetInitSec(Int_t min, Int_t max) {fMinInitSec = min;fMaxInitSec = max;if (min < 0) min = 0;if (max > fkNSec) max = fkNSec;}
   
   const AliHLTTPCReverseTransformInfoV1* GetReverseTransformInfo() {return &fReverseTransformInfo;}
-  static const int GetUseOrigTransform() {return(fgkUseOrigTransform);}
 
   AliTPCTransform *GetOrigTransform()  { return fOrigTransform; }
 
@@ -149,13 +148,13 @@ class AliHLTTPCFastTransform{
 
   AliHLTTPCFastTransform::AliRowTransform *fRows[fkNSec][fkNRows]; //! transient
   
-  static const int fgkUseOrigTransform = 0; //Static control variable to bypass HLT map and use original offline transform
+  int fUseOrigTransform; //Static control variable to bypass HLT map and use original offline transform
 
   ClassDef(AliHLTTPCFastTransform,0)
 };
 
 inline Int_t AliHLTTPCFastTransform::Transform( Int_t iSec, Int_t iRow, Float_t Pad, Float_t Time, Float_t XYZ[] ){
-  if (fgkUseOrigTransform)
+  if (fUseOrigTransform)
   {
     Int_t is[]={iSec};
     Double_t xx[]={static_cast<Double_t>(iRow),Pad,Time};
@@ -169,11 +168,12 @@ inline Int_t AliHLTTPCFastTransform::Transform( Int_t iSec, Int_t iRow, Float_t 
   Int_t iTime = ( Time>=fTimeBorder2 ) ?2 :( ( Time>fTimeBorder1 ) ?1 :0 );
   fRows[iSec][iRow]->fSpline[iTime].GetValue(Pad, Time, XYZ);              
   if( fAlignment ) Alignment( iSec, XYZ );
+  //printf("Clusters Sec %d Row %d P %f T %f --> %f %f %f (time %lld)\n", iSec, iRow, Pad, Time, XYZ[0], XYZ[1], XYZ[2], 0.);
   return 0; 
 }
 
 inline Int_t  AliHLTTPCFastTransform::Transform( Int_t iSec, Int_t iRow, Float_t Pad, Float_t Time, Double_t XYZ[] ){
-  if (fgkUseOrigTransform)
+  if (fUseOrigTransform)
   {
     Int_t is[]={iSec};
     Double_t xx[]={static_cast<Double_t>(iRow),Pad,Time};
@@ -187,6 +187,7 @@ inline Int_t  AliHLTTPCFastTransform::Transform( Int_t iSec, Int_t iRow, Float_t
   Int_t iTime = ( Time>=fTimeBorder2 ) ?2 :( ( Time>fTimeBorder1 ) ?1 :0 );
   fRows[iSec][iRow]->fSpline[iTime].GetValue(Pad, Time, XYZ);              
   if( fAlignment ) Alignment( iSec, XYZ );
+  //printf("Clusters Sec %d Row %d P %f T %f --> %f %f %f (time %lld)\n", iSec, iRow, Pad, Time, XYZ[0], XYZ[1], XYZ[2], 0.);
   return 0; 
 }
 
