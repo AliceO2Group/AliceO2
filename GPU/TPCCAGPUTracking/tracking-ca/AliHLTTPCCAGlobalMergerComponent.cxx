@@ -294,7 +294,7 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
     param.Update();
 
     delete[] rowX;
-	param.SetHighQPtForward(fHighQPtForward);
+    param.SetHighQPtForward(fHighQPtForward);
   }
 
 
