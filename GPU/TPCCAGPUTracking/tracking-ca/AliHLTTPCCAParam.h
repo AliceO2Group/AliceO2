@@ -112,7 +112,7 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
 
   GPUd() void SetMinNTrackClusters( int v ){ fMinNTrackClusters = v; }
   GPUd() void SetMinTrackPt( float v ){ fMaxTrackQPt = CAMath::Abs(v)>0.015 ?1./CAMath::Abs(v) :1./0.015; }
-  GPUd() void SetHighQPtForward( int v ){ fHighQPtForward = v; }
+  GPUd() void SetHighQPtForward( float v ){ fHighQPtForward = v; }
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle ) const;
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
