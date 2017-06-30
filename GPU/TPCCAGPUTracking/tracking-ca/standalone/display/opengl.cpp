@@ -56,6 +56,7 @@ bool separateGlobalTracks = 0;
 #define SEPERATE_GLOBAL_TRACKS_MAXID 5
 #define TRACK_TYPE_ID_LIMIT 100
 #define SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES 6
+bool reorderFinalTracks = 0;
 
 float rotateX = 0, rotateY = 0;
 float mouseDnX, mouseDnY;
@@ -307,27 +308,32 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 	{
 		const AliHLTTPCGMMergedTrack &track = merger.OutputTracks()[i];
 		if (track.NClusters() == 0) continue;
-		int *clusterused = new int[track.NClusters()];
-		for (int j = 0; j < track.NClusters(); j++)
-			clusterused[j] = 0;
+		int *clusterused = NULL;
+		int bestk = 0;
 		if (!track.OK()) continue;
 		glBegin(GL_LINE_STRIP);
-
-		float smallest = 1e20;
-		int bestk = 0;
-		for (int k = 0; k < track.NClusters(); k++)
+		
+		if (reorderFinalTracks)
 		{
-			int cid = merger.OutputClusterIds()[track.FirstClusterRef() + k];
-			float dist = globalPos[cid].x * globalPos[cid].x + globalPos[cid].y * globalPos[cid].y + globalPos[cid].z * globalPos[cid].z;
-			if (dist < smallest)
+			clusterused = new int[track.NClusters()];
+			for (int j = 0; j < track.NClusters(); j++)
+				clusterused[j] = 0;
+
+			float smallest = 1e20;
+			for (int k = 0; k < track.NClusters(); k++)
 			{
-				smallest = dist;
-				bestk = k;
+				int cid = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+				float dist = globalPos[cid].x * globalPos[cid].x + globalPos[cid].y * globalPos[cid].y + globalPos[cid].z * globalPos[cid].z;
+				if (dist < smallest)
+				{
+					smallest = dist;
+					bestk = k;
+				}
 			}
 		}
 
 		int lastcid = merger.OutputClusterIds()[track.FirstClusterRef() + bestk];
-		clusterused[bestk] = 1;
+		if (reorderFinalTracks) clusterused[bestk] = 1;
 
 		bool linestarted = (globalPos[lastcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES);
 		if (!separateGlobalTracks || linestarted)
@@ -338,21 +344,28 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 		for (int j = 1; j < track.NClusters(); j++)
 		{
 			int bestcid = 0;
-			int bestk = 0;
-			float bestdist = 1e20;
-			for (int k = 0; k < track.NClusters(); k++)
+			if (reorderFinalTracks)
 			{
-				if (clusterused[k]) continue;
-				int cid = merger.OutputClusterIds()[track.FirstClusterRef() + k];
-				float dist = (globalPos[cid].x - globalPos[lastcid].x) * (globalPos[cid].x - globalPos[lastcid].x) +
-				             (globalPos[cid].y - globalPos[lastcid].y) * (globalPos[cid].y - globalPos[lastcid].y) +
-				             (globalPos[cid].z - globalPos[lastcid].z) * (globalPos[cid].z - globalPos[lastcid].z);
-				if (dist < bestdist)
+				bestk = 0;
+				float bestdist = 1e20;
+				for (int k = 0; k < track.NClusters(); k++)
 				{
-					bestdist = dist;
-					bestcid = cid;
-					bestk = k;
+					if (clusterused[k]) continue;
+					int cid = merger.OutputClusterIds()[track.FirstClusterRef() + k];
+					float dist = (globalPos[cid].x - globalPos[lastcid].x) * (globalPos[cid].x - globalPos[lastcid].x) +
+					             (globalPos[cid].y - globalPos[lastcid].y) * (globalPos[cid].y - globalPos[lastcid].y) +
+					             (globalPos[cid].z - globalPos[lastcid].z) * (globalPos[cid].z - globalPos[lastcid].z);
+					if (dist < bestdist)
+					{
+						bestdist = dist;
+						bestcid = cid;
+						bestk = k;
+					}
 				}
+			}
+			else
+			{
+				bestcid = merger.OutputClusterIds()[track.FirstClusterRef() + j];
 			}
 			if (separateGlobalTracks && !linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
 			{
@@ -364,11 +377,11 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 				drawPointLinestrip(bestcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
 			}
 			if (separateGlobalTracks && linestarted && !(globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)) linestarted = false;
-			clusterused[bestk] = 1;
+			if (reorderFinalTracks) clusterused[bestk] = 1;
 			lastcid = bestcid;
 		}
 		glEnd();
-		delete[] clusterused;
+		if (reorderFinalTracks) delete[] clusterused;
 	}
 }
 
@@ -1007,6 +1020,7 @@ void PrintHelp()
 	printf("[7]\t\tShow Global Track Segments\n");
 	printf("[8]\t\tShow Final Merged Tracks (after Track Merger)\n");
 	printf("[J]\t\tShow global tracks as additional segments of final tracks\n");
+	printf("[M]\t\tReorder clusters of merged tracks before showing them geometrically\n");
 	printf("[T]\t\tTake Screenshot\n");
 	printf("[O]\t\tSave current camera position\n");
 	printf("[P]\t\tRestore camera position\n");
@@ -1045,6 +1059,11 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == 'J')
 	{
 		separateGlobalTracks ^= 1;
+		updateDLList = true;
+	}
+	else if (wParam == 'M')
+	{
+		reorderFinalTracks ^= 1;
 		updateDLList = true;
 	}
 	else if (wParam == 'I')
