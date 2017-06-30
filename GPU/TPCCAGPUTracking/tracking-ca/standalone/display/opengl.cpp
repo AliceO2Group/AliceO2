@@ -991,6 +991,7 @@ void PrintHelp()
 	printf("[6]\t\tShow Tracks (after Tracklet Selector)\n");
 	printf("[7]\t\tShow Global Track Segments\n");
 	printf("[8]\t\tShow Final Merged Tracks (after Track Merger)\n");
+	printf("[J]\t\tShow global tracks as additional segments of final tracks\n");
 	printf("[T]\t\tTake Screenshot\n");
 	printf("[O]\t\tSave current camera position\n");
 	printf("[P]\t\tRestore camera position\n");
@@ -1025,6 +1026,11 @@ void HandleKeyRelease(int wParam)
 			drawSlice = fgkNSlices - 1;
 		else
 			drawSlice--;
+	}
+	else if (wParam == 'J')
+	{
+		separateGlobalTracks ^= 1;
+		updateDLList = true;
 	}
 	else if (wParam == 'I')
 	{
