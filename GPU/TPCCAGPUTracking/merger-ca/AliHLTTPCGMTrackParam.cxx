@@ -20,6 +20,7 @@
 #include "AliHLTTPCCAMath.h"
 #include "AliHLTTPCGMTrackLinearisation.h"
 #include "AliHLTTPCGMBorderTrack.h"
+#include "AliHLTTPCGMMergedTrack.h"
 #include "Riostream.h"
 #ifndef HLTCA_STANDALONE
 #include "AliExternalTrackParam.h"
@@ -566,58 +567,63 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 }
 #endif
 
-#ifdef HLTCA_GPUCODE
+GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, unsigned int* rowType, float* alpha, AliHLTTPCCAParam& param)
+{
+	if( !track.OK() ) return;    
 
-#include "AliHLTTPCGMMergedTrack.h"
+	int nTrackHits = track.NClusters();
+	   
+	AliHLTTPCGMTrackParam t = track.Param();
+	float Alpha = track.Alpha();  
+	int nTrackHitsOld = nTrackHits;
+	t.Fit( PolinomialFieldBz,
+	   x+track.FirstClusterRef(),
+	   y+track.FirstClusterRef(),
+	   z+track.FirstClusterRef(),
+	   rowType+track.FirstClusterRef(),
+	   alpha+track.FirstClusterRef(),
+	   param, nTrackHits, Alpha, 0 );      
+	
+	if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
+	bool ok = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(track.Param().QPt()) &&
+			t.CheckNumericalQuality() &&
+			fabs( t.SinPhi() ) <= .999;
+
+	if (param.HighQPtForward() < fabs(track.Param().QPt()))
+	{
+		ok = 1;
+		nTrackHits = nTrackHitsOld;
+	}
+	track.SetOK(ok);
+	if (!ok) return;
+
+	if( 1 ){//SG!!!
+	  track.SetNClusters( nTrackHits );
+	  track.Param() = t;
+	  track.Alpha() = Alpha;
+	}
+
+	{
+	  int ind = track.FirstClusterRef();
+	  float alphaa = alpha[ind];
+	  float xx = x[ind];
+	  float yy = y[ind];
+	  float zz = z[ind];
+	  float sinA = AliHLTTPCCAMath::Sin( alphaa - track.Alpha());
+	  float cosA = AliHLTTPCCAMath::Cos( alphaa - track.Alpha());
+	  track.SetLastX( xx*cosA - yy*sinA );
+	  track.SetLastY( xx*sinA + yy*cosA );
+	  track.SetLastZ( zz );
+	}
+}
+
+#ifdef HLTCA_GPUCODE
 
 GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, float* PolinomialFieldBz, float* x, float* y, float* z, unsigned int* rowType, float* alpha, AliHLTTPCCAParam* param)
 {
 	for (int i = get_global_id(0);i < nTracks;i += get_global_size(0))
 	{
-		//This is in fact a copy of ReFit() in AliHLTTPCGMMerger.cxx
-		AliHLTTPCGMMergedTrack& track = tracks[i];
-		float Alpha = track.Alpha();
-		int N = track.NClusters();
-		AliHLTTPCGMTrackParam t = track.Param();
-
-		t.Fit(PolinomialFieldBz,
-			x+track.FirstClusterRef(),
-			y+track.FirstClusterRef(),
-			z+track.FirstClusterRef(),
-			rowType+track.FirstClusterRef(),
-			alpha+track.FirstClusterRef(),
-			*param,
-			N,
-			Alpha,
-			0
-			);
-
-		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
-		
-		bool ok = N >= TRACKLET_SELECTOR_MIN_HITS(track.Param().QPt()) &&
-					t.CheckNumericalQuality() &&
-					fabs( t.SinPhi() ) <= .999;
-		track.SetOK(ok);
-		if( !ok ) continue;
-
-		if( 1 ){//SG!!!
-		  track.SetNClusters( N );
-		  track.Param() = t;
-		  track.Alpha() = Alpha;
-		}
-
-		{
-		  int ind = track.FirstClusterRef();
-		  float alphaalpha = alpha[ind];
-		  float xx = x[ind];
-		  float yy = y[ind];
-		  float zz = z[ind];
-		  float sinA = AliHLTTPCCAMath::Sin( alphaalpha - track.Alpha());
-		  float cosA = AliHLTTPCCAMath::Cos( alphaalpha - track.Alpha());
-		  track.SetLastX( xx*cosA - yy*sinA );
-		  track.SetLastY( xx*sinA + yy*cosA );
-		  track.SetLastZ( zz );
-		}
+		AliHLTTPCGMTrackParam::RefitTrack(tracks[i], PolinomialFieldBz, x, y, z, rowType, alpha, *param);
 	}
 }
 

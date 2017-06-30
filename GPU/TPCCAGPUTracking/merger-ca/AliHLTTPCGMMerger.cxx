@@ -885,55 +885,10 @@ void AliHLTTPCGMMerger::Refit()
 #ifdef HLTCA_STANDALONE
 #pragma omp parallel for
 #endif
-	  for ( int itr = 0; itr < fNOutputTracks; itr++ ) {
+	  for ( int itr = 0; itr < fNOutputTracks; itr++ )
+	  {
+		  AliHLTTPCGMTrackParam::RefitTrack(fOutputTracks[itr], fPolinomialFieldBz, fClusterX, fClusterY, fClusterZ, fClusterRowType, fClusterAngle, fSliceParam);
 
-		AliHLTTPCGMMergedTrack &track = fOutputTracks[itr];
-		if( !track.OK() ) continue;    
-
-		int nTrackHits = track.NClusters();
-	       
-		AliHLTTPCGMTrackParam t = track.Param();
-		float Alpha = track.Alpha();  
-		int nTrackHitsOld = nTrackHits;
-		t.Fit( fPolinomialFieldBz,
-		   fClusterX+track.FirstClusterRef(),
-		   fClusterY+track.FirstClusterRef(),
-		   fClusterZ+track.FirstClusterRef(),
-		   fClusterRowType+track.FirstClusterRef(),
-		   fClusterAngle+track.FirstClusterRef(),
-		   fSliceParam, nTrackHits, Alpha, 0 );      
-	    
-		if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
-		bool ok = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(track.Param().QPt()) &&
-				t.CheckNumericalQuality() &&
-				fabs( t.SinPhi() ) <= .999;
-
-		if (fSliceParam.HighQPtForward() < fabs(track.Param().QPt()))
-		{
-			ok = 1;
-			nTrackHits = nTrackHitsOld;
-		}
-		track.SetOK(ok);
-		if (!ok) continue;
-
-		if( 1 ){//SG!!!
-		  track.SetNClusters( nTrackHits );
-		  track.Param() = t;
-		  track.Alpha() = Alpha;
-		}
-
-		{
-		  int ind = track.FirstClusterRef();
-		  float alpha = fClusterAngle[ind];
-		  float x = fClusterX[ind];
-		  float y = fClusterY[ind];
-		  float z = fClusterZ[ind];
-		  float sinA = AliHLTTPCCAMath::Sin( alpha - track.Alpha());
-		  float cosA = AliHLTTPCCAMath::Cos( alpha - track.Alpha());
-		  track.SetLastX( x*cosA - y*sinA );
-		  track.SetLastY( x*sinA + y*cosA );
-		  track.SetLastZ( z );
-		}
 	  }
 	}
 }
