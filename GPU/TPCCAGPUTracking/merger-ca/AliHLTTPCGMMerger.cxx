@@ -908,7 +908,7 @@ void AliHLTTPCGMMerger::Refit()
 				t.CheckNumericalQuality() &&
 				fabs( t.SinPhi() ) <= .999;
 
-		if (fSliceParam.HighQPtForward() < track.Param().QPt())
+		if (fSliceParam.HighQPtForward() < fabs(track.Param().QPt()))
 		{
 			ok = 1;
 			nTrackHits = nTrackHitsOld;
