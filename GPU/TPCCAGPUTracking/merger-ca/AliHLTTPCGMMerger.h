@@ -74,12 +74,6 @@ private:
   void MergeBorderTracks( int iSlice1, AliHLTTPCGMBorderTrack B1[],  int N1,
 			  int iSlice2, AliHLTTPCGMBorderTrack B2[],  int N2 );
   
-  static bool CompareTrackParts( const AliHLTTPCGMSliceTrack *t1, const AliHLTTPCGMSliceTrack *t2 ){
-    //return (t1->X() > t2->X() );
-    return (fabs(t1->OrigTrack()->Cluster(0).GetX() - t2->OrigTrack()->Cluster(t2->NClusters() - 1).GetX()) <
-               fabs(t2->OrigTrack()->Cluster(0).GetX() - t1->OrigTrack()->Cluster(t1->NClusters() - 1).GetX()));
-  }
-
   struct intfloat2 {int x; float y;};
   static int CompareClusterIds(const void* a, const void* b) {
 	  return(((intfloat2*)a)->y < ((intfloat2*)b)->y ? 1 : -1);

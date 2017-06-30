@@ -719,8 +719,6 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  
       // unpack and sort clusters
       
-      std::sort(trackParts, trackParts+nParts, CompareTrackParts );
-
       AliHLTTPCCASliceOutCluster trackClusters[kMaxClusters];
       float *clA = fClusterAngle + nOutTrackClusters;
       int nHits = 0;
