@@ -795,7 +795,8 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	    clusterIndices[i].x = i;
 	    clusterIndices[i].y = trackClusterSortWeights[i];
 	  }
-	  qsort(clusterIndices, nHits, sizeof(intfloat2), CompareClusterIds);
+	  
+	  std::sort(clusterIndices, clusterIndices + nHits, CompareClusterIds);
 	  nTmpHits = 0;
 	  for (int i = 0;i < nParts;i++)
 	  {

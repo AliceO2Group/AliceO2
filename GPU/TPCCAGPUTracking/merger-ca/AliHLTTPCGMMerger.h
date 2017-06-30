@@ -75,8 +75,8 @@ private:
 			  int iSlice2, AliHLTTPCGMBorderTrack B2[],  int N2 );
   
   struct intfloat2 {int x; float y;};
-  static int CompareClusterIds(const void* a, const void* b) {
-	  return(((intfloat2*)a)->y < ((intfloat2*)b)->y ? 1 : -1);
+  static bool CompareClusterIds(const intfloat2& a, const intfloat2& b) {
+	  return(a.y > b.y);
   }
 
   void ClearMemory();
