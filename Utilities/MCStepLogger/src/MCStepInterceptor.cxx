@@ -61,7 +61,7 @@ extern "C" void flushLog();
   }
 
 
-// the runtime will now dispatch to these these functions due to LD_PRELOAD
+// the runtime will now dispatch to these functions due to LD_PRELOAD
 INTERCEPT_STEPPING(FairMCApplication,"libBase","_ZN17FairMCApplication8SteppingEv")
 INTERCEPT_STEPPING(AliMC,"libSTEER","_ZN5AliMC8SteppingEv")
 
