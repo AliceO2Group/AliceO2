@@ -371,7 +371,6 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
        ) ok = 0;
 
   if ( fabs( fP[2] ) > .999 ) ok = 0;
-  if ( fabs( fP[4] ) > 1. / 0.05 ) ok = 0;
   if( ok ){
     ok = ok 
       && ( c[1]*c[1]<=c[2]*c[0] )
