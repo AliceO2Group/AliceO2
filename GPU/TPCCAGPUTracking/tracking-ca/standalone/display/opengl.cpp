@@ -663,17 +663,24 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 		{
 			AliHLTTPCCATracker &tracker = hlt.fTracker.fCPUTrackers[iSlice];
 			glNewList(glDLlines[iSlice][0], GL_COMPILE);
-			if (drawInitLinks)
+			if (drawInitLinks && iSlice == 0)
 			{
 				char *tmpMem[fgkNSlices];
+				int prelinksok = 1;
 				for (int i = 0; i < fgkNSlices; i++)
 				{
+					if (tracker.LinkTmpMemory() == NULL)
+					{
+						printf("Need to set TRACKER_KEEP_TEMPDATA for visualizing PreLinks!\n");
+						prelinksok = 0;
+						break;
+					}
 					AliHLTTPCCATracker &tracker = hlt.fTracker.fCPUTrackers[i];
 					tmpMem[i] = tracker.Data().Memory();
 					tracker.SetGPUSliceDataMemory((void *) tracker.LinkTmpMemory(), tracker.Data().Rows());
 					tracker.SetPointersSliceData(tracker.ClusterData());
 				}
-				DrawLinks(tracker, 1, true);
+				if (prelinksok) DrawLinks(tracker, 1, true);
 				for (int i = 0; i < fgkNSlices; i++)
 				{
 					AliHLTTPCCATracker &tracker = hlt.fTracker.fCPUTrackers[i];
@@ -776,6 +783,10 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 					if (excludeClusters) goto skip1;
 					SetColorLinks();
 				}
+				else
+				{
+					SetColorClusters();
+				}
 				glCallList(glDLpoints[iSlice][2]);
 
 				if (drawSeeds)
@@ -806,6 +817,10 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 				{
 					if (excludeClusters) goto skip3;
 					SetColorGlobalTracks();
+				}
+				else
+				{
+					SetColorClusters();
 				}
 				glCallList(glDLpoints[iSlice][6]);
 
@@ -1062,7 +1077,10 @@ void HandleKeyRelease(int wParam)
 	else if (wParam == '1')
 		drawClusters ^= 1;
 	else if (wParam == '2')
+	{
 		drawInitLinks ^= 1;
+		updateDLList = true;
+	}
 	else if (wParam == '3')
 		drawLinks ^= 1;
 	else if (wParam == '4')
