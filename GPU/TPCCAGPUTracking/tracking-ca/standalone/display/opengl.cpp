@@ -1,5 +1,3 @@
-#define SEPERATE_GLOBAL_TRACKS
-
 #include "AliHLTTPCCADef.h"
 
 #ifdef R__WIN32
@@ -54,11 +52,9 @@ pthread_mutex_t semLockDisplay = PTHREAD_MUTEX_INITIALIZER;
 
 bool keys[256]; // Array Used For The Keyboard Routine
 
-#ifdef SEPERATE_GLOBAL_TRACKS
+bool separateGlobalTracks = 0;
 #define SEPERATE_GLOBAL_TRACKS_MAXID 5
-#else
-#define SEPERATE_GLOBAL_TRACKS_MAXID 100
-#endif
+#define TRACK_TYPE_ID_LIMIT 100
 #define SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES 6
 
 float rotateX = 0, rotateY = 0;
@@ -110,19 +106,16 @@ inline void SetColorInitLinks() { glColor3f(0.62, 0.1, 0.1); }
 inline void SetColorLinks() { glColor3f(0.8, 0.2, 0.2); }
 inline void SetColorSeeds() { glColor3f(0.8, 0.1, 0.85); }
 inline void SetColorTracklets() { glColor3f(1, 1, 1); }
-#ifdef SEPERATE_GLOBAL_TRACKSa
 inline void SetColorTracks()
 {
-	glColor3f(1., 1., 0.15);
+	if (separateGlobalTracks) glColor3f(1., 1., 0.15);
+	else glColor3f(0.4, 1, 0);
 }
-inline void SetColorGlobalTracks() { glColor3f(1., 0.15, 0.15); }
-#else
-inline void SetColorTracks()
+inline void SetColorGlobalTracks()
 {
-	glColor3f(0.4, 1, 0);
+	if (separateGlobalTracks) glColor3f(1., 0.15, 0.15);
+	else glColor3f(1.0, 0.4, 0);
 }
-inline void SetColorGlobalTracks() { glColor3f(1.0, 0.4, 0); }
-#endif
 inline void SetColorFinal()
 {
 	glColor3f(0, 0.7, 0.2);
@@ -175,7 +168,7 @@ int InitGL() // All Setup For OpenGL Goes Here
 	return (true);                                     // Initialization Went OK
 }
 
-inline void drawPointLinestrip(int cid, int id, int id_limit = 100)
+inline void drawPointLinestrip(int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT)
 {
 	glVertex3f(globalPos[cid].x, globalPos[cid].y, globalPos[cid].z);
 	if (globalPos[cid].w < id_limit) globalPos[cid].w = id;
@@ -336,10 +329,8 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 		int lastcid = merger.OutputClusterIds()[track.FirstClusterRef() + bestk];
 		clusterused[bestk] = 1;
 
-#ifdef SEPERATE_GLOBAL_TRACKS
 		bool linestarted = (globalPos[lastcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES);
-		if (linestarted)
-#endif
+		if (!separateGlobalTracks || linestarted)
 		{
 			drawPointLinestrip(lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
 		}
@@ -363,20 +354,16 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 					bestk = k;
 				}
 			}
-#ifdef SEPERATE_GLOBAL_TRACKS
-			if (!linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
+			if (separateGlobalTracks && !linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
 			{
 				drawPointLinestrip(lastcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
 				linestarted = true;
 			}
-			if (linestarted)
-#endif
+			if (!separateGlobalTracks || linestarted)
 			{
 				drawPointLinestrip(bestcid, 7, SEPERATE_GLOBAL_TRACKS_MAXID);
 			}
-#ifdef SEPERATE_GLOBAL_TRACKS
-			if (linestarted && !(globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)) linestarted = false;
-#endif
+			if (separateGlobalTracks && linestarted && !(globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)) linestarted = false;
 			clusterused[bestk] = 1;
 			lastcid = bestcid;
 		}
@@ -722,9 +709,7 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 		}
 
 		glNewList(glDLlinesFinal, GL_COMPILE);
-		//#ifndef SEPERATE_GLOBAL_TRACKS
 		DrawFinal(hlt);
-		//#endif
 		glEndList();
 
 		for (int iSlice = 0; iSlice < fgkNSlices; iSlice++)
