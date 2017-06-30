@@ -1558,116 +1558,16 @@ void init(void);
 
 int GetKey(int key)
 {
-	int wParam = 0;
-	switch (key)
-	{
-	case 50:
-		wParam = 16;
-		break;
-	case 10:
-		wParam = '1';
-		break;
-	case 11:
-		wParam = '2';
-		break;
-	case 12:
-		wParam = '3';
-		break;
-	case 13:
-		wParam = '4';
-		break;
-	case 14:
-		wParam = '5';
-		break;
-	case 15:
-		wParam = '6';
-		break;
-	case 16:
-		wParam = '7';
-		break;
-	case 17:
-		wParam = '8';
-		break;
-	case 18:
-		wParam = '9';
-		break;
-	case 57:
-		wParam = 'N';
-		break;
-	case 24:
-	case 9:
-		wParam = 'Q';
-		break;
-	case 27:
-		wParam = 'R';
-		break;
-	case 65:
-		wParam = 13;
-		break;
-	case 25:
-		wParam = 'W';
-		break;
-	case 38:
-		wParam = 'A';
-		break;
-	case 39:
-		wParam = 'S';
-		break;
-	case 40:
-		wParam = 'D';
-		break;
-	case 26:
-		wParam = 'E';
-		break;
-	case 41:
-		wParam = 'F';
-		break;
-	case 43:
-		wParam = 'H';
-		break;
-	case 33:
-		wParam = 'P';
-		break;
-	case 32:
-		wParam = 'O';
-		break;
-	case 42:
-		wParam = 'G';
-		break;
-	case 29:
-		wParam = 'Z';
-		break;
-	case 28:
-		wParam = 'T';
-		break;
-	case 30:
-		wParam = 'U';
-		break;
-	case 45:
-		wParam = 'K';
-		break;
-	case 46:
-		wParam = 'L';
-		break;
-	case 53:
-		wParam = 'X';
-		break;
-	case 31:
-		wParam = 'I';
-		break;
-	case 52:
-		wParam = 'Y';
-		break;
-	case 35:
-	case 86:
-		wParam = 107;
-		break;
-	case 61:
-	case 82:
-		wParam = 109;
-		break;
-	}
-	return (wParam);
+	if (key == 65453 || key == 45) return(109); //+
+	if (key == 65451 || key == 43) return(107); //-
+	if (key == 65505) return(16); //Shift
+	if (key == 65307) return('Q'); //ESC
+	if (key == 32) return(13); //Space
+	if (key > 255) return(0);
+	
+	if (key >= 'a' && key <= 'z') key += 'A' - 'a';
+	
+	return(key);
 }
 
 volatile static int needUpdate = 0;
@@ -1868,16 +1768,18 @@ void *OpenGLMain(void *ptr)
 
 				case KeyPress:
 				{
-					int wParam = GetKey(event.xkey.keycode);
-					//fprintf(stderr, "KeyPress event %d --> %d (%c)\n", event.xkey.keycode, wParam, (char) wParam);
+					KeySym sym = XLookupKeysym(&event.xkey, 0);
+					int wParam = GetKey(sym);
+					//fprintf(stderr, "KeyPress event %d --> %d (%c) -> %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam);
 					keys[wParam] = true;
 				}
 				break;
 
 				case KeyRelease:
 				{
-					int wParam = GetKey(event.xkey.keycode);
-					fprintf(stderr, "KeyRelease event %d -> %d (%c)\n", event.xkey.keycode, wParam, (char) wParam);
+					KeySym sym = XLookupKeysym(&event.xkey, 0);
+					int wParam = GetKey(sym);
+					fprintf(stderr, "KeyRelease event %d -> %d (%c) -> %d\n", event.xkey.keycode, (int) sym, (char) (sym > 27 ? sym : ' '), wParam);
 					HandleKeyRelease(wParam);
 				}
 				break;
