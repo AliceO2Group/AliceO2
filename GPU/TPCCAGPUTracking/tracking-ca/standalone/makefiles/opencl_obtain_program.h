@@ -52,9 +52,9 @@ static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint n
 		current_ptr += dinfo->binary_size;
 	}
 
-	std::vector<cl_int> return_status(pinfo->count);
+	cl_int return_status[pinfo->count];
 	cl_int ocl_error;
-	*program = clCreateProgramWithBinary(context, num_devices, devices, program_sizes.data(), (const unsigned char**) program_binaries.data(), return_status.data(), &ocl_error);
+	*program = clCreateProgramWithBinary(context, num_devices, devices, program_sizes.data(), (const unsigned char**) program_binaries.data(), return_status, &ocl_error);
 
 	if (ocl_error != CL_SUCCESS)
 	{
