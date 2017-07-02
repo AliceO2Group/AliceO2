@@ -4,14 +4,12 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
     src/GeometryTGeo.cxx
-    src/GeometryManager.cxx
     src/ContainerFactory.cxx
     src/MisalignmentParameter.cxx
     )
 
 set(HEADERS
     include/${MODULE_NAME}/GeometryTGeo.h
-    include/${MODULE_NAME}/GeometryManager.h
     include/${MODULE_NAME}/ContainerFactory.h
     include/${MODULE_NAME}/MisalignmentParameter.h
     )

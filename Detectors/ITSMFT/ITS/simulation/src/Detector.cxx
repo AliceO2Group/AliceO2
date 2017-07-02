@@ -826,7 +826,6 @@ void Detector::constructDetectorGeometry()
 
   new TGeoVolumeAssembly(GeometryTGeo::getITSVolPattern());
   TGeoVolume *vITSV = geoManager->GetVolume(GeometryTGeo::getITSVolPattern());
-  vITSV->SetUniqueID(GeometryTGeo::getUIDShift()); // store modID -> midUUID bitshift
   vALIC->AddNode(vITSV, 2, nullptr); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
 
   const Int_t kLength = 100;

@@ -20,16 +20,18 @@
 #include <TObjArray.h>  // for TObjArray
 #include <TObject.h>    // for TObject
 #include <TString.h>    // for TString
-#include "Rtypes.h"     // for Int_t, Double_t, Bool_t, UInt_t, etc
+#include "DetectorsBase/DetID.h"
+#include "DetectorsBase/GeometryManager.h"
+#include "Rtypes.h" // for Int_t, Double_t, Bool_t, UInt_t, etc
 
 class TGeoPNEntry; // lines 17-17
 
 namespace o2
 {
-  namespace ITSMFT
-  {
-    class Segmentation;
-  }
+namespace ITSMFT
+{
+class Segmentation;
+}
 }
 
 namespace o2
@@ -151,46 +153,34 @@ class GeometryTGeo : public TObject
 
   Int_t getLastChipIndex(Int_t lay) const { return mLastChipIndex[lay]; }
   Int_t getFirstChipIndex(Int_t lay) const { return (lay == 0) ? 0 : mLastChipIndex[lay - 1] + 1; }
-  /// Get the TGeoPNEntry symbolic name for a given chip identified by 'index'
-  const char* getSymbolicName(Int_t index) const;
+  const char* getSymbolicName(Int_t index) const
+  {
+    /// return symbolic name of sensor
+    return o2::Base::GeometryManager::getSymbolicName(sDetID, index);
+  }
 
-  const char* getSymbolicName(Int_t lay, Int_t sta, Int_t det) const;
-
-  // Attention: these are the matrices for the alignable volumes of the chips, i.e. not necessarily
-  // the sensors
+  const char* getSymbolicName(Int_t lay, Int_t sta, Int_t det) const
+  {
+    /// return symbolic name of sensor
+    return getSymbolicName(getChipIndex(lay, sta, det));
+  }
 
   /// Get the transformation matrix for a given chip 'index' by quering the TGeoManager
-  TGeoHMatrix* GetMatrix(Int_t index) const;
+  TGeoHMatrix* getMatrix(Int_t index) const { return o2::Base::GeometryManager::getMatrix(sDetID, index); }
+  TGeoHMatrix* getMatrix(Int_t lay, Int_t sta, Int_t sens) const { return getMatrix(getChipIndex(lay, sta, sens)); }
+  Bool_t getOriginalMatrix(Int_t index, TGeoHMatrix& m) const
+  {
+    /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
+    /// The method is slow, so it should be used with great care (for caching only)
+    return o2::Base::GeometryManager::getOriginalMatrix(sDetID, index, m);
+  }
 
-  TGeoHMatrix* GetMatrix(Int_t lay, Int_t sta, Int_t det) const;
-
-  /// Get the translation vector for a given chip 'index' by quering the TGeoManager
-  Bool_t GetTranslation(Int_t index, Double_t t[3]) const;
-
-  Bool_t GetTranslation(Int_t lay, Int_t sta, Int_t det, Double_t t[3]) const;
-
-  /// Get the rotation matrix for a given chip 'index' by quering the TGeoManager
-  Bool_t getRotation(Int_t index, Double_t r[9]) const;
-
-  Bool_t getRotation(Int_t lay, Int_t sta, Int_t det, Double_t r[9]) const;
-
-  /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
-  /// The method is slow, so it should be used with great care
-  Bool_t GetOriginalMatrix(Int_t index, TGeoHMatrix& m) const;
-
-  Bool_t GetOriginalMatrix(Int_t lay, Int_t sta, Int_t det, TGeoHMatrix& m) const;
-
-  /// Get the original translation vector (ideal geometry)
-  /// for a given chip 'index' by quering the TGeoManager
-  Bool_t getOriginalTranslation(Int_t index, Double_t t[3]) const;
-
-  Bool_t getOriginalTranslation(Int_t lay, Int_t sta, Int_t det, Double_t t[3]) const;
-
-  /// Get the original rotation matrix (ideal geometry)
-  /// for a given chip 'index' by quering the TGeoManager
-  Bool_t getOriginalRotation(Int_t index, Double_t r[9]) const;
-
-  Bool_t getOriginalRotation(Int_t lay, Int_t sta, Int_t det, Double_t r[9]) const;
+  Bool_t getOriginalMatrix(Int_t lay, Int_t sta, Int_t det, TGeoHMatrix& m) const
+  {
+    /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
+    /// The method is slow, so it should be used with great care (for caching only)
+    return getOriginalMatrix(getChipIndex(lay, sta, det), m);
+  }
 
   const TGeoHMatrix* getMatrixT2L(Int_t index);
 
@@ -199,6 +189,7 @@ class GeometryTGeo : public TObject
 
   const TGeoHMatrix* getMatrixSensor(Int_t lay, Int_t sta, Int_t det)
   {
+    // get positioning matrix of the sensor
     return getMatrixSensor(getChipIndex(lay, sta, det));
   }
 
@@ -206,7 +197,11 @@ class GeometryTGeo : public TObject
   /// Returns kFALSE in case of error.
   Bool_t getTrackingMatrix(Int_t index, TGeoHMatrix& m);
 
-  Bool_t getTrackingMatrix(Int_t lay, Int_t sta, Int_t det, TGeoHMatrix& m);
+  Bool_t getTrackingMatrix(Int_t lay, Int_t sta, Int_t sens, TGeoHMatrix& m)
+  {
+    /// assign to m the matrix transforming from Tracking to Global frame
+    return getTrackingMatrix(getChipIndex(lay, sta, sens), m);
+  }
 
   // Attention: these are transformations wrt sensitive volume!
   void localToGlobal(Int_t index, const Double_t* loc, Double_t* glob);
@@ -232,30 +227,28 @@ class GeometryTGeo : public TObject
   TObjArray* getSegmentations() const { return (TObjArray*)mSegmentations; }
   void Print(Option_t* opt = "") const override;
 
-  static UInt_t getUIDShift() { return mUIDShift; }
-  static void setUIDShift(UInt_t s = 16) { mUIDShift = s < 16 ? s : 16; }
-  static const char* getITSVolPattern() { return mVolumeName.Data(); }
-  static const char* getITSLayerPattern() { return mLayerName.Data(); }
-  static const char* getITSWrapVolPattern() { return mWrapperVolumeName.Data(); }
-  static const char* getITSStavePattern() { return mStaveName.Data(); }
-  static const char* getITSHalfStavePattern() { return mHalfStaveName.Data(); }
-  static const char* getITSModulePattern() { return mModuleName.Data(); }
-  static const char* getITSChipPattern() { return mChipName.Data(); }
-  static const char* getITSSensorPattern() { return mSensorName.Data(); }
-  static const char* getITSsegmentationFileName() { return mSegmentationFileName.Data(); }
+  static const char* getITSVolPattern() { return sVolumeName.Data(); }
+  static const char* getITSLayerPattern() { return sLayerName.Data(); }
+  static const char* getITSWrapVolPattern() { return sWrapperVolumeName.Data(); }
+  static const char* getITSStavePattern() { return sStaveName.Data(); }
+  static const char* getITSHalfStavePattern() { return sHalfStaveName.Data(); }
+  static const char* getITSModulePattern() { return sModuleName.Data(); }
+  static const char* getITSChipPattern() { return sChipName.Data(); }
+  static const char* getITSSensorPattern() { return sSensorName.Data(); }
+  static const char* getITSsegmentationFileName() { return sSegmentationFileName.Data(); }
   static const char* getChipTypeName(Int_t i);
 
-  static void setITSVolPattern(const char* nm) { mVolumeName = nm; }
-  static void setITSLayerPattern(const char* nm) { mLayerName = nm; }
-  static void setITSWrapVolPattern(const char* nm) { mWrapperVolumeName = nm; }
-  static void setITSStavePattern(const char* nm) { mStaveName = nm; }
-  static void setITSHalfStavePattern(const char* nm) { mHalfStaveName = nm; }
-  static void setITSModulePattern(const char* nm) { mModuleName = nm; }
-  static void setITSChipPattern(const char* nm) { mChipName = nm; }
-  static void setITSSensorPattern(const char* nm) { mSensorName = nm; }
+  static void setITSVolPattern(const char* nm) { sVolumeName = nm; }
+  static void setITSLayerPattern(const char* nm) { sLayerName = nm; }
+  static void setITSWrapVolPattern(const char* nm) { sWrapperVolumeName = nm; }
+  static void setITSStavePattern(const char* nm) { sStaveName = nm; }
+  static void setITSHalfStavePattern(const char* nm) { sHalfStaveName = nm; }
+  static void setITSModulePattern(const char* nm) { sModuleName = nm; }
+  static void setITSChipPattern(const char* nm) { sChipName = nm; }
+  static void setITSSensorPattern(const char* nm) { sSensorName = nm; }
   static void setChipTypeName(Int_t i, const char* nm);
 
-  static void setITSsegmentationFileName(const char* nm) { mSegmentationFileName = nm; }
+  static void setITSsegmentationFileName(const char* nm) { sSegmentationFileName = nm; }
   static UInt_t composeChipTypeId(UInt_t segmId);
 
   /// sym name of the layer
@@ -276,18 +269,11 @@ class GeometryTGeo : public TObject
   /// Sym name of the chip in the given layer/stave/substave/module
   static const char* composeSymNameChip(Int_t lr, Int_t sta, Int_t ssta, Int_t mod, Int_t chip);
 
-  // hack to avoid using AliGeomManager
-  Int_t layerToVolUID(Int_t lay, int detInLay) const { return chipVolUID(getChipIndex(lay, detInLay)); }
-  static Int_t chipVolUID(Int_t mod) { return (mod & 0xffff) << mUIDShift; }
  protected:
   /// Store pointer on often used matrices for faster access
   void fetchMatrices();
 
   void createT2LMatrices();
-
-  /// Get the matrix which transforms from the tracking to local r.s.
-  /// The method queries directly the TGeoPNEntry
-  TGeoHMatrix* extractMatrixTrackingToLocal(Int_t index) const;
 
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
   /// for a given chip 'index' by quering the TGeoManager
@@ -298,10 +284,6 @@ class GeometryTGeo : public TObject
   /// \param Int_t indexInLr The chip index inside a layer, starting from zero.
   /// \param Int_t lay The layer number. Starting from 0.
   Bool_t getLayer(Int_t index, Int_t& lay, Int_t& index2) const;
-
-  /// Get a pointer to the TGeoPNEntry of a chip identified by 'index'
-  /// Returns NULL in case of invalid index, missing TGeoManager or invalid symbolic name
-  TGeoPNEntry* getPNEntry(Int_t index) const;
 
   /// Determines the number of chips per module on the (sub)stave in the Geometry
   /// Also extract the layout: span of module centers in Z and X
@@ -332,6 +314,13 @@ class GeometryTGeo : public TObject
   /// Extract number following the prefix in the name string
   Int_t extractVolumeCopy(const char* name, const char* prefix) const;
 
+  TGeoPNEntry* getPNEntry(Int_t index) const
+  {
+    /// Get a pointer to the TGeoPNEntry of a chip identified by 'index'
+    /// Returns NULL in case of invalid index, missing TGeoManager or invalid symbolic name
+    return o2::Base::GeometryManager::getPNEntry(sDetID, index);
+  }
+
  protected:
   Int_t mVersion;                 ///< ITS Version
   Int_t mNumberOfLayers;          ///< number of layers
@@ -353,69 +342,22 @@ class GeometryTGeo : public TObject
   TObjArray* mTrackingToLocalMatrices; ///< Tracking to Local matrices pointers in the geometry
   TObjArray* mSegmentations;           ///< segmentations
 
-  static UInt_t mUIDShift;                   ///< bit shift to go from mod.id to modUUID for TGeo
-  static TString mVolumeName;                ///< Mother volume name
-  static TString mLayerName;                 ///< Layer name
-  static TString mStaveName;                 ///< Stave name
-  static TString mHalfStaveName;             ///< HalfStave name
-  static TString mModuleName;                ///< Module name
-  static TString mChipName;                  ///< Chip name
-  static TString mSensorName;                ///< Sensor name
-  static TString mWrapperVolumeName;         ///< Wrapper volume name
-  static TString mChipTypeName[kNChipTypes]; ///< upg detType Names
+  static TString sVolumeName;                ///< Mother volume name
+  static TString sLayerName;                 ///< Layer name
+  static TString sStaveName;                 ///< Stave name
+  static TString sHalfStaveName;             ///< HalfStave name
+  static TString sModuleName;                ///< Module name
+  static TString sChipName;                  ///< Chip name
+  static TString sSensorName;                ///< Sensor name
+  static TString sWrapperVolumeName;         ///< Wrapper volume name
+  static TString sChipTypeName[kNChipTypes]; ///< upg detType Names
 
-  static TString mSegmentationFileName; ///< file name for segmentations
+  static TString sSegmentationFileName; ///< file name for segmentations
+
+  static const o2::Base::DetID sDetID; ///< det ID for comminication with GeometryManager
 
   ClassDefOverride(GeometryTGeo, 1) // ITS geometry based on TGeo
 };
-
-/// Returns ymbolic name
-inline const char* GeometryTGeo::getSymbolicName(Int_t lay, Int_t sta, Int_t det) const
-{
-  return getSymbolicName(getChipIndex(lay, sta, det));
-}
-
-/// Returns chip current matrix
-inline TGeoHMatrix* GeometryTGeo::GetMatrix(Int_t lay, Int_t sta, Int_t det) const
-{
-  return GetMatrix(getChipIndex(lay, sta, det));
-}
-
-/// Returns translation
-inline Bool_t GeometryTGeo::GetTranslation(Int_t lay, Int_t sta, Int_t det, Double_t t[3]) const
-{
-  return GetTranslation(getChipIndex(lay, sta, det), t);
-}
-
-/// Returns rotation
-inline Bool_t GeometryTGeo::getRotation(Int_t lay, Int_t sta, Int_t det, Double_t r[9]) const
-{
-  return getRotation(getChipIndex(lay, sta, det), r);
-}
-
-/// Returns original matrix
-inline Bool_t GeometryTGeo::GetOriginalMatrix(Int_t lay, Int_t sta, Int_t det, TGeoHMatrix& m) const
-{
-  return GetOriginalMatrix(getChipIndex(lay, sta, det), m);
-}
-
-/// Returns original translation
-inline Bool_t GeometryTGeo::getOriginalTranslation(Int_t lay, Int_t sta, Int_t det, Double_t t[3]) const
-{
-  return getOriginalTranslation(getChipIndex(lay, sta, det), t);
-}
-
-/// Original rotation
-inline Bool_t GeometryTGeo::getOriginalRotation(Int_t lay, Int_t sta, Int_t det, Double_t r[9]) const
-{
-  return getOriginalRotation(getChipIndex(lay, sta, det), r);
-}
-
-/// Tracking matrix
-inline Bool_t GeometryTGeo::getTrackingMatrix(Int_t lay, Int_t sta, Int_t det, TGeoHMatrix& m)
-{
-  return getTrackingMatrix(getChipIndex(lay, sta, det), m);
-}
 
 /// Detector type ID of layer
 inline Int_t GeometryTGeo::getLayerChipTypeId(Int_t lr) const { return mLayerChipType[lr]; }
@@ -480,7 +422,7 @@ inline const char* GeometryTGeo::getChipTypeName(Int_t i)
   if (i >= kNChipTypes) {
     i /= kMaxSegmPerChipType; // full type is provided
   }
-  return mChipTypeName[i].Data();
+  return sChipTypeName[i].Data();
 }
 
 inline void GeometryTGeo::setChipTypeName(Int_t i, const char* nm)
@@ -488,17 +430,17 @@ inline void GeometryTGeo::setChipTypeName(Int_t i, const char* nm)
   if (i >= kNChipTypes) {
     i /= kMaxSegmPerChipType; // full type is provided
   }
-  mChipTypeName[i] = nm;
+  sChipTypeName[i] = nm;
 }
 
 /// Get segmentation by ID
- inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentationById(Int_t id) const
+inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentationById(Int_t id) const
 {
   return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(id) : nullptr;
 }
 
 /// Get segmentation of layer
- inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentation(Int_t lr) const
+inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentation(Int_t lr) const
 {
   return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(getLayerChipTypeId(lr)) : nullptr;
 }
