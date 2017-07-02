@@ -344,6 +344,18 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
+    mcsteplogger_bucket
+
+    DEPENDENCIES
+    dl
+    root_base_bucket
+    VMC
+
+    INCLUDE_DIRECTORIES
+)
+
+o2_define_bucket(
+    NAME
     itsmft_simulation_bucket
 
     DEPENDENCIES
