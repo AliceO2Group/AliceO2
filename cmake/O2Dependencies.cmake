@@ -314,12 +314,13 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    detectors_base
+    detectors_base_bucket
 
     DEPENDENCIES
     fairroot_base_bucket
     root_physics_bucket
     VMC # ROOT
+    Geom
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -395,8 +396,10 @@ o2_define_bucket(
     DEPENDENCIES
     itsmft_base_bucket
     ITSMFTBase
-
+    DetectorsBase
+    
     INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
 )
 
 o2_define_bucket(

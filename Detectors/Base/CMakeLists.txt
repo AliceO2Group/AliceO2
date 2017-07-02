@@ -7,6 +7,7 @@ set(SRCS
   src/Track.cxx
   src/TrackReference.cxx
   src/DetID.cxx
+  src/GeometryManager.cxx
 )
 
 Set(HEADERS
@@ -16,11 +17,12 @@ Set(HEADERS
   include/${MODULE_NAME}/TrackReference.h
   include/${MODULE_NAME}/Utils.h
   include/${MODULE_NAME}/DetID.h
+  include/${MODULE_NAME}/GeometryManager.h
 )
 
 Set(LINKDEF src/BaseLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME detectors_base)
+set(BUCKET_NAME detectors_base_bucket)
 
 O2_GENERATE_LIBRARY()
 

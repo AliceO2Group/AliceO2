@@ -222,8 +222,8 @@ void HitAnalysis::ProcessHits()
       phitglob[3] = {p->GetX(), p->GetY(), p->GetZ()},
       pstartglob[3] = {p->GetStartX(), p->GetStartY(), p->GetStartZ()};
 
-    //fGeometry->GetMatrix(p->GetDetectorID())->MasterToLocal(phitglob, phitloc);
-    //fGeometry->GetMatrix(p->GetDetectorID())->MasterToLocal(pstartglob, pstartloc);
+    //fGeometry->getMatrix(p->GetDetectorID())->MasterToLocal(phitglob, phitloc);
+    //fGeometry->getMatrix(p->GetDetectorID())->MasterToLocal(pstartglob, pstartloc);
     mGeometry->globalToLocal(p->GetDetectorID(), phitglob, phitloc);
     mGeometry->globalToLocal(p->GetDetectorID(), pstartglob, pstartloc);
 
