@@ -73,11 +73,6 @@ private:
 
   void MergeBorderTracks( int iSlice1, AliHLTTPCGMBorderTrack B1[],  int N1,
 			  int iSlice2, AliHLTTPCGMBorderTrack B2[],  int N2 );
-  
-  struct intfloat2 {int x; float y;};
-  static bool CompareClusterIds(const intfloat2& a, const intfloat2& b) {
-	  return(a.y > b.y);
-  }
 
   void ClearMemory();
   bool AllocateMemory();
