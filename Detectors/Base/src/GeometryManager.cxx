@@ -23,7 +23,7 @@
 #include "TObjArray.h"        // for TObjArray
 #include "TObject.h"          // for TObject
 
-#include <assert.h>
+#include <cassert>
 #include <cstddef> // for NULL
 
 using namespace o2::Base;
