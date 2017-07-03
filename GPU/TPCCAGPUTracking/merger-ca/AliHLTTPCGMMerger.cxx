@@ -318,8 +318,6 @@ bool AliHLTTPCGMMerger::AllocateMemory()
 	   );
 }
 
-
-
 void AliHLTTPCGMMerger::UnpackSlices()
 {
   //* unpack the cluster information from the slice tracks and initialize track info array
@@ -647,7 +645,10 @@ void AliHLTTPCGMMerger::MergeSlices()
 
 
 
-
+struct clcomparestruct {int x; float y;};
+static bool CompareClusterIds(const clcomparestruct& a, const clcomparestruct& b) {
+	return(a.y > b.y);
+}
 
 void AliHLTTPCGMMerger::CollectMergedTracks()
 {
@@ -787,7 +788,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  
 	  AliHLTTPCCASliceOutCluster trackClustersUnsorted[kMaxClusters];
 	  float clAUnsorted[kMaxClusters];
-	  intfloat2 clusterIndices[kMaxClusters];
+	  clcomparestruct clusterIndices[kMaxClusters];
 	  for( int i = 0;i < nHits;i++)
 	  {
 	    trackClustersUnsorted[i] = trackClusters[i];
