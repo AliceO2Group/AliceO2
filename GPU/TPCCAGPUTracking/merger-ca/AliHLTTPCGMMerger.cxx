@@ -802,7 +802,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  for (int i = 0;i < nParts;i++)
 	  {
 		  nTmpHits += trackParts[i]->NClusters();
-		  if (nTmpHits > clusterIndices[i].x)
+		  if (nTmpHits > clusterIndices[0].x)
 		  {
 			firstTrackIndex = i;
 			break;
