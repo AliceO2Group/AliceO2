@@ -4,10 +4,12 @@ O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
   src/Detector.cxx
+  src/SpaceFrame.cxx
 )
 
 set(HEADERS
   include/EMCALSimulation/Detector.h
+  include/EMCALSimulation/SpaceFrame.h
 )
 
 SET(LINKDEF src/EMCALSimulationLinkDef.h)
