@@ -267,7 +267,7 @@ o2_define_bucket(
     fairroot_geom
 
     DEPENDENCIES
-    Base GeoBase ParBase Geom Core
+    Base GeoBase ParBase Geom Core VMC
     common_boost_bucket
 
     INCLUDE_DIRECTORIES

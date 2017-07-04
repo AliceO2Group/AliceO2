@@ -8,6 +8,7 @@ set(SRCS
   src/Pipe.cxx
   src/Magnet.cxx
   src/PassiveContFact.cxx
+  src/FrameStructure.cxx
 )
 
 Set(HEADERS
@@ -16,6 +17,7 @@ Set(HEADERS
     include/${MODULE_NAME}/Magnet.h
     include/${MODULE_NAME}/PassiveContFact.h
     include/${MODULE_NAME}/Pipe.h
+    include/${MODULE_NAME}/FrameStructure.h
  )
 
 Set(LINKDEF src/PassiveLinkDef.h)
