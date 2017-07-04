@@ -29,9 +29,10 @@
 
 #pragma link C++ class  o2::Passive::Magnet+;
 #pragma link C++ class  o2::Passive::Cave+;
-#pragma link C++ class  o2::Passive::GeoCave;
-#pragma link C++ class  o2::Passive::PassiveContFact;
+#pragma link C++ class  o2::Passive::GeoCave+;
+#pragma link C++ class  o2::Passive::PassiveContFact+;
 #pragma link C++ class  o2::Passive::Pipe+;
+#pragma link C++ class  o2::Passive::FrameStructure+;
 
 #endif
 
