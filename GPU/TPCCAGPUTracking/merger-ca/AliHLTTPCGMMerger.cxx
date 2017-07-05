@@ -645,10 +645,19 @@ void AliHLTTPCGMMerger::MergeSlices()
 
 
 
-struct clcomparestruct {int x; float y;};
-static bool CompareClusterIds(const clcomparestruct& a, const clcomparestruct& b) {
-	return(a.y > b.y);
-}
+struct clcomparestruct {int i; float x; float z; float q;};
+
+struct AliHLTTPCGMMerger_CompareClusterIds
+{
+	float fQPt, fZ;
+	AliHLTTPCGMMerger_CompareClusterIds(float q, float z) : fQPt(q), fZ(z) {}
+	bool operator()(const clcomparestruct& a, const clcomparestruct& b) { //a < b ?
+		if (a.q * b.q < 0) return((a.z - b.z) * fZ > 0);
+		int dz = a.z - b.z;
+		if (fabs(dz) > 4) return((a.z - b.z) * fZ > 0);
+		return((a.x - b.x) * a.q * fQPt > 0);
+	}
+};
 
 void AliHLTTPCGMMerger::CollectMergedTracks()
 {
@@ -739,8 +748,8 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 
       if ( nHits < TRACKLET_SELECTOR_MIN_HITS(track.QPt()) ) continue;
 
-      int ordered = 1;
-      for( int i=1; i<nHits; i++ )
+	int ordered = 1;
+	for( int i=1; i<nHits; i++ )
 	{
 	  if ( trackClusters[i].GetX() > trackClusters[i-1].GetX() )
 	  {
@@ -749,60 +758,55 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  }
 	}
 
-      int firstTrackIndex = 0;
-      if (ordered == 0)
+	int firstTrackIndex = 0;
+	if (ordered == 0)
 	{
-	  float trackClusterSortWeights[kMaxClusters];
 	  int nTmpHits = 0;
 	  
 	  //Find sign(Pt) for the segment closest to the vertex, if low/mid Pt
-	  float baseSign = 0.f;
+	  float baseQPt = 1.f;
+	  float baseZ = 1.0;
 	  if (fabs(trackParts[0]->QPt()) > 2)
 	  {
 		  float minZ = 1000.f;
 		  for (int i = 0;i < nParts;i++)
 		  {
-			  if (fabs(trackParts[i]->Z()) < minZ)
-			  {
-				  baseSign = trackParts[i]->QPt() < 0 ? -1.f : 1.f;
+			if (fabs(trackParts[i]->Z()) < minZ)
+			{
+				  baseQPt = trackParts[i]->QPt();
+				  baseZ = trackParts[i]->DzDs();
 				  minZ = fabs(trackParts[i]->Z());
-			  }
+			}
 		  }
 	  }
-	  for (int i = 0;i < nParts;i++)
+
+	  AliHLTTPCCASliceOutCluster trackClustersUnsorted[kMaxClusters];
+	  float clAUnsorted[kMaxClusters];
+	  clcomparestruct clusterIndices[kMaxClusters];
+	  for (int iPart = 0;iPart < nParts;iPart++)
 	  {
-		const AliHLTTPCGMSliceTrack *t = trackParts[i];
+		const AliHLTTPCGMSliceTrack *t = trackParts[iPart];
 		int nTrackHits = t->NClusters();
 		if (nTmpHits + nTrackHits > kMaxClusters) break;
 		for (int j = 0;j < nTrackHits;j++)
 		{
-			const AliHLTTPCCASliceOutCluster *c = trackClusters + nTmpHits + j;
-			//Give Z-difference precendense if it is big, otherwise order the rows.
-			//We need to reverse the order for the second half of a helix --> negative sign for low/medium negative Pt
-			//Correct for negative charge particle via baseSign
-			float sign = baseSign == 0.f ? 1. : (baseSign * (t->QPt() < 0 ? -1.f : 1.f));
-			trackClusterSortWeights[nTmpHits + j] = fabs(c->GetZ()) * -0.1f + c->GetX() * sign;
+			int i = nTmpHits + j;
+			trackClustersUnsorted[i] = trackClusters[i];
+			clAUnsorted[i] = clA[i];
+			clusterIndices[i].i = i;
+			clusterIndices[i].x = trackClusters[i].GetX();
+			clusterIndices[i].z = trackClusters[i].GetZ();
+			clusterIndices[i].q = t->QPt();
 		}
 		nTmpHits += nTrackHits;
 	  }
 	  
-	  AliHLTTPCCASliceOutCluster trackClustersUnsorted[kMaxClusters];
-	  float clAUnsorted[kMaxClusters];
-	  clcomparestruct clusterIndices[kMaxClusters];
-	  for( int i = 0;i < nHits;i++)
-	  {
-	    trackClustersUnsorted[i] = trackClusters[i];
-	    clAUnsorted[i] = clA[i];
-	    clusterIndices[i].x = i;
-	    clusterIndices[i].y = trackClusterSortWeights[i];
-	  }
-	  
-	  std::sort(clusterIndices, clusterIndices + nHits, CompareClusterIds);
+	  std::sort(clusterIndices, clusterIndices + nHits, AliHLTTPCGMMerger_CompareClusterIds(baseQPt, baseZ));
 	  nTmpHits = 0;
 	  for (int i = 0;i < nParts;i++)
 	  {
 		  nTmpHits += trackParts[i]->NClusters();
-		  if (nTmpHits > clusterIndices[0].x)
+		  if (nTmpHits > clusterIndices[0].i)
 		  {
 			firstTrackIndex = i;
 			break;
@@ -813,7 +817,7 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  int indPrev = -1;
 	  for (int i = 0;i < nHits;i++)
 	    {
-	      int ind = clusterIndices[i].x;
+	      int ind = clusterIndices[i].i;
 	      if(indPrev >= 0 && trackClusters[ind].GetId() == trackClusters[indPrev].GetId()) continue;
 	      indPrev = ind;
 	      trackClusters[nFilteredHits] = trackClustersUnsorted[ind];
