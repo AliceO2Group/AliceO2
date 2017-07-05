@@ -40,10 +40,16 @@ class GeometryManager : public TObject
   /// name, the query being performed after alignment, or a valid volume path if the query is
   /// performed before alignment.
   static Bool_t getOriginalMatrix(DetID detid, int sensid, TGeoHMatrix& m);
-  static Bool_t getOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m);
+  static Bool_t getOriginalMatrix(const char* symname, TGeoHMatrix& m);
   static const char* getSymbolicName(DetID detid, int sensid);
   static TGeoPNEntry* getPNEntry(DetID detid, Int_t sensid);
   static TGeoHMatrix* getMatrix(DetID detid, Int_t sensid);
+
+  static int getSensID(DetID detid, int sensid)
+  {
+    /// compose combined detector+sensor ID for sensitive volumes
+    return (detid.getMask() << sDetOffset) | (sensid & sSensorMask);
+  }
 
   /// Default destructor
   ~GeometryManager() override = default;
@@ -55,15 +61,9 @@ class GeometryManager : public TObject
   /// The method returns the global matrix for the volume identified by 'path' in the ideal
   /// detector geometry. The output global matrix is stored in 'm'.
   /// Returns kFALSE in case TGeo has not been initialized or the volume path is not valid.
-  static Bool_t getOriginalGlobalMatrixFromPath(const char* path, TGeoHMatrix& m);
+  static Bool_t getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m);
 
   static TGeoManager* sGeometry;
-
-  static int getSensID(DetID detid, int sensid)
-  {
-    /// compose combined detector+sensor ID for sensitive volumes
-    return (detid.getMask() << sDetOffset) | (sensid & sSensorMask);
-  }
 
  protected:
   /// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
