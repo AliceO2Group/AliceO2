@@ -1852,8 +1852,6 @@ void Detector::AddAlignableVolumes() const
 	printf("Alignable entry %s not set\n",symName.Data());
 	//	AliError(Form("Alignable entry %s not set",symName.Data()));
 
-    }}
-      /*
       //T2L matrices for alignment
       TGeoPNEntry *e = gGeoManager->GetAlignableEntryByUID(modUID);
       if (e) {
@@ -1865,7 +1863,7 @@ void Detector::AddAlignableVolumes() const
 	e->SetMatrix(t2l);
       }
       else {
-	AliError(Form("Alignable entry %s is not valid!",symName.Data()));
+	// AliError(Form("Alignable entry %s is not valid!",symName.Data()));
       }
       imod++;
     }
@@ -1889,14 +1887,13 @@ void Detector::AddAlignableVolumes() const
     symName  = snSM;
     symName += Form("%02d",isect);
 
-    AliDebug(2,"--------------------------------------------"); 
-    AliDebug(2,Form("Alignable object %d", isect+imod)); 
-    AliDebug(2,Form("volPath=%s\n",volPath.Data()));
-    AliDebug(2,Form("symName=%s\n",symName.Data()));
-    AliDebug(2,"--------------------------------------------"); 
+    // AliDebug(2,"--------------------------------------------"); 
+    // AliDebug(2,Form("Alignable object %d", isect+imod)); 
+    // AliDebug(2,Form("volPath=%s\n",volPath.Data()));
+    // AliDebug(2,Form("symName=%s\n",symName.Data()));
+    // AliDebug(2,"--------------------------------------------"); 
 
     gGeoManager->SetAlignableEntry(symName.Data(),volPath.Data());
 
   }
-  */  
 }
