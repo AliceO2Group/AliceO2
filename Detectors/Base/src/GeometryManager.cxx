@@ -45,7 +45,7 @@ GeometryManager::GeometryManager()
                 "N detectors exceeds available N bits for their encoding");
 }
 
-Bool_t GeometryManager::getOriginalGlobalMatrix(const char* symname, TGeoHMatrix& m)
+Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
 {
   m.Clear();
 
@@ -78,10 +78,10 @@ Bool_t GeometryManager::getOriginalGlobalMatrix(const char* symname, TGeoHMatrix
     path = symname;
   }
 
-  return getOriginalGlobalMatrixFromPath(path, m);
+  return getOriginalMatrixFromPath(path, m);
 }
 
-Bool_t GeometryManager::getOriginalGlobalMatrixFromPath(const char* path, TGeoHMatrix& m)
+Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m)
 {
   m.Clear();
 
@@ -196,5 +196,5 @@ Bool_t GeometryManager::getOriginalMatrix(DetID detid, int sensid, TGeoHMatrix& 
     return kFALSE;
   }
 
-  return getOriginalGlobalMatrix(symname, m);
+  return getOriginalMatrix(symname, m);
 }
