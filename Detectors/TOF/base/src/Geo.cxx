@@ -17,5 +17,4 @@ using namespace o2::TOF;
 constexpr Float_t Geo::ANGLES[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::HEIGHTS[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::DISTANCES[NPLATES][NMAXNSTRIP];
-
-Bool_t  Geo::sHoles  = 1;//logical for geometry version (w/wo holes)
+constexpr Bool_t  Geo::FEAWITHMASKS[18];

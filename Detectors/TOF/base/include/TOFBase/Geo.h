@@ -54,8 +54,6 @@ namespace o2 {
       
       static constexpr Float_t PHISEC= 20;//sector Phi width (deg)
       
-      static Bool_t  sHoles;//logical for geometry version (w/wo holes)
-
       static constexpr Float_t TDCBIN = 24.4;     // time-of-flight bin width [ps]
       static constexpr Float_t TOTBIN = 48.8;     // time-over-threshold bin width [ps]
       static constexpr Float_t BUNCHCROSSINGBIN = TDCBIN * 1024; // bunch-crossing bin width [ps]
@@ -183,7 +181,7 @@ namespace o2 {
       static constexpr Float_t  BAR2[3] = { BAR[0], 0.1, static_cast<Float_t>( BAR[1] - 2.* BAR1[2])}; // (cm)
       static constexpr Float_t  BARS[3] = {2.,  BAR[1],  BAR[2]}; // (cm)
       static constexpr Float_t  BARS1[3] = { BARS[0],  BAR1[1],  BAR1[2]}; // (cm)
-      static constexpr Float_t  YYBARS2[3] = { BARS[0],  BAR2[1],  BAR2[2]}; // (cm)
+      static constexpr Float_t  BARS2[3] = { BARS[0],  BAR2[1],  BAR2[2]}; // (cm)
       
     private:
       

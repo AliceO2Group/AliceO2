@@ -88,8 +88,16 @@ namespace o2 {
       void MakeStripsInModules(Float_t ytof, Float_t zlenA) const;
       void CreateModuleCovers(Float_t xtof, Float_t zlenA) const;
       void CreateBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const;
+      void MakeFrontEndElectronics(Float_t xtof) const;
+      void MakeFEACooling(Float_t xtof) const;
+      void MakeNinoMask(Float_t xtof) const;
+      void MakeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA) const;
+      void MakeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA) const;
+      void MakeReadoutCrates(Float_t ytof) const;
 
       void MakeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const;
+      void MakeCoversInBTOFvolumes() const;
+      void MakeBackInBTOFvolumes(Float_t ytof) const;
 
       void AddAlignableVolumes() const;
 
