@@ -49,7 +49,7 @@ Detector::Detector()
   mVersion(1),
   mGeometryTGeo(nullptr),
   mDensitySupportOverSi(0.036),
-  mPoints(new TClonesArray("o2::ITSMFT::Hit")),
+  mHits(new TClonesArray("o2::ITSMFT::Hit")),
   mTrackData()
 {
 
@@ -61,7 +61,7 @@ Detector::Detector(const Detector& src)
     mVersion(src.mVersion),
     mGeometryTGeo(src.mGeometryTGeo),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
-    mPoints(nullptr),
+    mHits(nullptr),
     mTrackData()
 {
   
@@ -81,7 +81,7 @@ Detector &Detector::operator=(const Detector &src)
   mVersion = src.mVersion;
   mGeometryTGeo = src.mGeometryTGeo;
   mDensitySupportOverSi = src.mDensitySupportOverSi;
-  mPoints = nullptr;
+  mHits = nullptr;
   mTrackData.mHitStarted = src.mTrackData.mHitStarted;
   mTrackData.mTrkStatusStart = src.mTrackData.mTrkStatusStart;
   mTrackData.mPositionStart = src.mTrackData.mPositionStart;
@@ -96,9 +96,9 @@ Detector::~Detector()
 
   delete mGeometryTGeo;
 
-  if (mPoints) {
-    mPoints->Delete();
-    delete mPoints;
+  if (mHits) {
+    mHits->Delete();
+    delete mHits;
   }
   
 }
@@ -202,7 +202,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 Hit* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
 
-  TClonesArray &clref = *mPoints;
+  TClonesArray &clref = *mHits;
   Int_t size = clref.GetEntriesFast();
 
   return new(clref[size]) Hit(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
@@ -489,8 +489,8 @@ void Detector::defineSensitiveVolumes()
 void Detector::EndOfEvent()
 {
 
-  if (mPoints) { 
-    mPoints->Clear(); 
+  if (mHits) { 
+    mHits->Clear(); 
   }
 
 }
@@ -498,12 +498,12 @@ void Detector::EndOfEvent()
 //_____________________________________________________________________________
 void Detector::Register()
 {
-  // This will create a branch in the output tree called Point, setting the last
+  // This will create a branch in the output tree called Hit, setting the last
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
   if (FairGenericRootManager::Instance()) {
-    FairGenericRootManager::Instance()->Register("MFTPoints", "MFT", mPoints, kTRUE);
+    FairGenericRootManager::Instance()->Register("MFTHits", "MFT", mHits, kTRUE);
   }
 
 }
@@ -512,7 +512,7 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 {
 
   if (iColl == 0) {
-    return mPoints;
+    return mHits;
   } else {
     return nullptr;
   }
@@ -523,6 +523,6 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 void Detector::Reset()
 {
 
-  mPoints->Clear();
+  mHits->Clear();
 
 }

@@ -7,11 +7,11 @@
 
 #include "MFTSimulation/Digitizer.h"
 
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 
 ClassImp(o2::MFT::Digitizer)
 
-using o2::ITSMFT::Point;
+using o2::ITSMFT::Hit;
 using o2::ITSMFT::Chip;
 using o2::ITSMFT::SimulationAlpide;
 using o2::ITSMFT::Digit;
@@ -37,11 +37,11 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
 
   // Convert points to digits
   for (TIter iter = TIter(points).Begin(); iter != TIter::End(); ++iter) {
-    Point* point = dynamic_cast<Point*>(*iter);
+    Hit* point = dynamic_cast<Hit*>(*iter);
     Int_t chipID = point->GetDetectorID();
     if (chipID >= mNumOfChips)
       continue;
-    mChips[chipID].InsertPoint(point);
+    mChips[chipID].InsertHit(point);
   }
 
   for (Int_t i = 0; i < mNumOfChips; i++) {
@@ -50,25 +50,25 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
 }
 
 //_____________________________________________________________________________
-DigitContainer& Digitizer::process(TClonesArray* points)
+DigitContainer& Digitizer::process(TClonesArray* hits)
 {
 
   mDigitContainer.reset();
   /*
-  // Convert points to digits
-  for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
-    Point* point = dynamic_cast<Point*>(*pointiter);
+  // Convert hits to digits
+  for (TIter hititer = TIter(hits).Begin(); hititer != TIter::End(); ++hititer) {
+    Hit* hit = dynamic_cast<Hit*>(*hititer);
     
-    LOG(DEBUG) << "Processing next point: " << FairLogger::endl;
+    LOG(DEBUG) << "Processing next hit: " << FairLogger::endl;
     LOG(DEBUG) << "=======================" << FairLogger::endl;
-    LOG(DEBUG) << *point << FairLogger::endl;
+    LOG(DEBUG) << *hit << FairLogger::endl;
 
-    Double_t x = 0.5 * (point->GetX() + point->GetStartX());
-    Double_t y = 0.5 * (point->GetY() + point->GetStartY());
-    Double_t z = 0.5 * (point->GetZ() + point->GetStartZ());
-    Double_t charge = point->GetEnergyLoss();
-    Int_t label = point->GetTrackID();
-    Int_t chipID = point->GetDetectorID();
+    Double_t x = 0.5 * (hit->GetX() + hit->GetStartX());
+    Double_t y = 0.5 * (hit->GetY() + hit->GetStartY());
+    Double_t z = 0.5 * (hit->GetZ() + hit->GetStartZ());
+    Double_t charge = hit->GetEnergyLoss();
+    Int_t label = hit->GetTrackID();
+    Int_t chipID = hit->GetDetectorID();
 
     LOG(DEBUG) << "Creating new digit" << FairLogger::endl;
     const Double_t glo[3] = { x, y, z };
@@ -81,7 +81,7 @@ DigitContainer& Digitizer::process(TClonesArray* points)
       LOG(DEBUG) << "Out of the chip" << FairLogger::endl;
       continue;
     }
-    Digit* digit = mDigitContainer.addDigit(chipID, ix, iz, charge, point->GetTime());
+    Digit* digit = mDigitContainer.addDigit(chipID, ix, iz, charge, hit->GetTime());
     digit->setLabel(0, label);
   }
   */

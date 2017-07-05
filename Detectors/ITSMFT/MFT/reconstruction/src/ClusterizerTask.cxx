@@ -121,24 +121,24 @@ void ClusterizerTask::Exec(Option_t* /*opt*/)
 
   reset();
   /*
-  o2::ITSMFT::Point *point;
+  o2::ITSMFT::Hit *hit;
   TVector3 pos, dpos;
   Int_t detID, trackID;
   Double_t dx = Geometry::sXPixelPitch/TMath::Sqrt(12);
   Double_t dy = Geometry::sYPixelPitch/TMath::Sqrt(12);
   Double_t dz = 0.;
 
-  // Loop over fPoints
-  Int_t nPoints = mPoints->GetEntriesFast();
-  for (Int_t iPoint = 0; iPoint < nPoints; iPoint++) {
-    point = static_cast<o2::ITSMFT::Hit*>(mPoints->At(iPoint));
-    if (!point) continue;
-    detID = point->GetDetectorID();
-    trackID = point->GetTrackID();
-    // copy the coordinates from point to hit
-    pos.SetXYZ(point->GetStartX(),point->GetStartY(),point->GetStartZ());
+  // Loop over fHits
+  Int_t nHits = mHits->GetEntriesFast();
+  for (Int_t iHit = 0; iHit < nHits; iHit++) {
+    hit = static_cast<o2::ITSMFT::Hit*>(mHits->At(iHit));
+    if (!hit) continue;
+    detID = hit->GetDetectorID();
+    trackID = hit->GetTrackID();
+    // copy the coordinates from hit to hit
+    pos.SetXYZ(hit->GetStartX(),hit->GetStartY(),hit->GetStartZ());
     dpos.SetXYZ(dx,dy,dz);
-    //new ((*fHits)[nHits]) Hit(detID, pos, dpos, iPoint);
+    //new ((*fHits)[nHits]) Hit(detID, pos, dpos, iHit);
     new ((*mHits)[mNClusters]) Hit(detID, pos, dpos, trackID);
     mNClusters++;
   }

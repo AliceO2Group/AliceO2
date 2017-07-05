@@ -92,7 +92,7 @@ protected:
   Int_t mVersion;                  //
   GeometryTGeo *mGeometryTGeo;     //!
   Double_t mDensitySupportOverSi;  //
-  TClonesArray *mPoints;           //!
+  TClonesArray *mHits;           //!
  
 private:
 
