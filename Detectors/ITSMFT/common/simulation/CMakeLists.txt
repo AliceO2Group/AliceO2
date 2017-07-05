@@ -5,10 +5,12 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/Point.cxx
     src/ClusterShape.cxx
+    src/AlpideSimResponse.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Point.h
     include/${MODULE_NAME}/ClusterShape.h
+    include/${MODULE_NAME}/AlpideSimResponse.h
     )
 set(NO_DICT_SRCS # sources not for the dictionary
     src/Chip.cxx
