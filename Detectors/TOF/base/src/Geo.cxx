@@ -18,3 +18,4 @@ constexpr Float_t Geo::ANGLES[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::HEIGHTS[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::DISTANCES[NPLATES][NMAXNSTRIP];
 constexpr Bool_t Geo::FEAWITHMASKS[18];
+constexpr Float_t Geo::ROOF2PARAMETERS[3];
