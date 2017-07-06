@@ -25,8 +25,34 @@ using namespace o2::EMCAL;
 ClassImp(Detector);
 
 Detector::Detector(const char* Name, Bool_t Active)
-  : o2::Base::Detector(Name, Active), mPointCollection(new TClonesArray("o2::EMCAL::Hit"))
+  : o2::Base::Detector(Name, Active),
+  mBirkC0(0),
+  mBirkC1(0.),
+  mBirkC2(0.),
+  mPointCollection(new TClonesArray("o2::EMCAL::Hit")),
+  mGeometry(nullptr),
+  mShishKebabModules(nullptr),
+  mEnvelop1(),
+  mIdRotm(0),
+  mSampleWidth(0.),
+  mSmodPar0(0.),
+  mSmodPar1(0.),
+  mSmodPar2(0.),
+  mInnerEdge(0.)
+
 {
+  memset(mParEMOD, 0, sizeof(Double_t) * 5);
+  
+  Geometry *geo  = GetGeometry() ;
+  
+  TString gn(geo->GetName());
+  gn.ToUpper();
+  
+  mShishKebabModules = geo->GetShishKebabTrd1Modules();
+  
+  mSampleWidth = Double_t(geo->GetECPbRadThick() + geo->GetECScintThick());
+  
+  if(gn.Contains("V1")) mSampleWidth += 2.*geo->GetTrd1BondPaperThick();
 }
 
 void Detector::Initialize() {}
@@ -34,8 +60,74 @@ void Detector::Initialize() {}
 void Detector::ConstructGeometry()
 {
   LOG(DEBUG) << "Creating EMCAL geometry\n";
+  CreateMaterials();
+
   SpaceFrame emcalframe;
   emcalframe.CreateGeometry();
+  
+  Geometry * geom = GetGeometry() ;
+  TString gn(geom->GetName());
+  gn.ToUpper();
+  
+  if(!(geom->IsInitialized()))
+  {
+    LOG(ERROR) << "ConstructGeometry: EMCAL Geometry class has not been set up.\n";
+  }
+  
+  mIdRotm = 1;
+  //  TVirtualMC::GetMC()->Matrix(nmat, theta1, phi1, theta2, phi2, theta3, phi3) - see AliModule
+  Matrix(mIdRotm, 90.0, 0., 90.0, 90.0, 0.0, 0.0) ;
+  
+  // Create the EMCAL Mother Volume (a polygone) within which to place the Detector and named XEN1
+  
+  Float_t envelopA[10];
+  if(gn.Contains("WSUC") )
+  { // TRD1 for WSUC facility
+    // Nov 25,2010
+    envelopA[0] = 30.;
+    envelopA[1] = 30;
+    envelopA[2] = 20;
+    
+    TVirtualMC::GetMC()->Gsvolu("XEN1", "BOX", getMapMedium()[ID_SC], envelopA, 3) ;
+    mEnvelop1.Set(3);
+    
+    for(Int_t i=0; i<3; i++) mEnvelop1[i] = envelopA[i]; // 23-may-05
+    // Position the EMCAL Mother Volume (XEN1) in WSUC.
+    // Look to AliEMCALWsuCosmicRaySetUp.
+    TVirtualMC::GetMC()->Gspos("XEN1", 1, "WSUC", 0.0, 0.0, + 265., mIdRotm, "ONLY") ;
+  }
+  else
+  {
+    envelopA[0] = geom->GetArm1PhiMin();                         // minimum phi angle
+    envelopA[1] = geom->GetArm1PhiMax() - geom->GetArm1PhiMin(); // angular range in phi
+    envelopA[2] = envelopA[1]/geom->GetEMCGeometry()->GetPhiSuperModule();	 // Section of that
+    envelopA[3] = 2;                                             // 2: z coordinates
+    envelopA[4] = -geom->GetEnvelop(2)/2.;                       // zmin - includes padding
+    envelopA[5] = geom->GetEnvelop(0) ;                          // rmin at z1 - includes padding
+    envelopA[6] = geom->GetEnvelop(1) ;                          // rmax at z1 - includes padding
+    envelopA[7] = geom->GetEnvelop(2)/2.;                        // zmax includes padding
+    
+    envelopA[8] = envelopA[5] ;                                  // radii are the same.
+    envelopA[9] = envelopA[6] ;
+    // radii are the same.
+    
+    TVirtualMC::GetMC()->Gsvolu("XEN1", "PGON", getMapMedium()[ID_AIR], envelopA, 10) ;   // Polygone filled with air
+    mEnvelop1.Set(10, envelopA);
+    
+    LOG(DEBUG2) << "ConstructGeometry: XEN1 = " << envelopA[5] << ", " << envelopA[6] << FairLogger::endl;
+    LOG(DEBUG2) << "ConstructGeometry: XU0 = " << envelopA[5] << ", " << envelopA[6] << FairLogger::endl;
+    
+    // Position the EMCAL Mother Volume (XEN1) in Alice (ALIC)
+    TVirtualMC::GetMC()->Gspos(geom->GetNameOfEMCALEnvelope(), 1, "cave", 0.0, 0.0, 0.0, mIdRotm, "ONLY") ;
+  }
+  
+  // COMPACT, TRD1
+  LOG(DEBUG2) << "Shish-Kebab geometry : " <<  GetTitle() << FairLogger::endl;
+  CreateShiskebabGeometry();
+  
+  // Set the sampling fraction used at creation hit level
+  // Previously called in AliEMCALEMCGeometry::Init(), put it here for proper initialization by Geant3/4
+  geom->GetEMCGeometry()->DefineSamplingFraction(TVirtualMC::GetMC()->GetName(),TVirtualMC::GetMC()->GetTitle());
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v) { return true; }
@@ -80,6 +172,7 @@ void Detector::CreateShiskebabGeometry()
   //  idAL = 1602;
   Double_t par[10], xpos = 0., ypos = 0., zpos = 0.;
 
+  LOG(DEBUG2) << "Name of mother volume: " << g->GetNameOfEMCALEnvelope() << FairLogger::endl;
   CreateSmod(g->GetNameOfEMCALEnvelope());
 
   Int_t* SMTypeList = g->GetEMCSystem();
@@ -111,7 +204,7 @@ void Detector::CreateShiskebabGeometry()
     for (Int_t i = 0; i < 3; i++)
       parSCM0[i] = mParEMOD[i] - wallThickness;
     parSCM0[3] = mParEMOD[3];
-    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", mIdTmedArr[ID_AIR], parSCM0, 4);
+    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", getMapMedium()[ID_AIR], parSCM0, 4);
     TVirtualMC::GetMC()->Gspos("SCM0", 1, "EMOD", 0., 0., 0., 0, "ONLY");
   } else {
     Double_t wTh = g->GetLateralSteelStrip();
@@ -119,7 +212,7 @@ void Detector::CreateShiskebabGeometry()
     parSCM0[1] = mParEMOD[1] - wTh;
     parSCM0[2] = mParEMOD[2] - wTh;
     parSCM0[3] = mParEMOD[3] - g->GetTrd1AlFrontThick() / 2.;
-    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", mIdTmedArr[ID_AIR], parSCM0, 4);
+    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", getMapMedium()[ID_AIR], parSCM0, 4);
     Double_t zshift = g->GetTrd1AlFrontThick() / 2.;
     TVirtualMC::GetMC()->Gspos("SCM0", 1, "EMOD", 0., 0., zshift, 0, "ONLY");
     //
@@ -153,7 +246,7 @@ void Detector::CreateShiskebabGeometry()
       LOG(DEBUG3) << " par[" << std::setw(2) << std::setprecision(2) << i << "] " << std::setw(9)
                   << std::setprecision(4) << parTRAP[i] << FairLogger::endl;
 
-    TVirtualMC::GetMC()->Gsvolu("SCMX", "TRAP", mIdTmedArr[ID_SC], parTRAP, 11);
+    TVirtualMC::GetMC()->Gsvolu("SCMX", "TRAP", getMapMedium()[ID_SC], parTRAP, 11);
     xpos = +(parSCM0[1] + parSCM0[0]) / 4.;
     TVirtualMC::GetMC()->Gspos("SCMX", 1, "SCMY", xpos, 0.0, 0.0, 0, "ONLY");
 
@@ -172,7 +265,7 @@ void Detector::CreateShiskebabGeometry()
     if (!gn.Contains("V1")) {
       par[1] = parSCM0[2] / 2;            // y
       par[2] = g->GetECPbRadThick() / 2.; // z
-      TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", mIdTmedArr[ID_PB], dummy, 0);
+      TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMapMedium()[ID_PB], dummy, 0);
 
       zpos = -mSampleWidth * g->GetNECLayers() / 2. + g->GetECPbRadThick() / 2.;
       LOG(DEBUG2) << " Pb tiles \n";
@@ -192,7 +285,7 @@ void Detector::CreateShiskebabGeometry()
       par[1] = parSCM0[2] / 2.;                 // y
       par[2] = g->GetTrd1BondPaperThick() / 2.; // z
       par[0] = parSCM0[0] / 2.;                 // x
-      TVirtualMC::GetMC()->Gsvolu("PAP1", "BOX", mIdTmedArr[ID_PAPER], par, 3);
+      TVirtualMC::GetMC()->Gsvolu("PAP1", "BOX", getMapMedium()[ID_PAPER], par, 3);
 
       xpos = par[0] - xCenterSCMX;
       zpos = -parSCM0[3] + g->GetTrd1BondPaperThick() / 2.;
@@ -206,7 +299,7 @@ void Detector::CreateShiskebabGeometry()
         par[2] = g->GetECPbRadThick() / 2. + g->GetTrd1BondPaperThick(); // z
         par[0] = (parSCM0[0] + tanBetta * dz) / 2.;
         TString pa(Form("PA%2.2i", nr));
-        TVirtualMC::GetMC()->Gsvolu(pa.Data(), "BOX", mIdTmedArr[ID_PAPER], par, 3);
+        TVirtualMC::GetMC()->Gsvolu(pa.Data(), "BOX", getMapMedium()[ID_PAPER], par, 3);
 
         xpos = par[0] - xCenterSCMX;
         zpos = -parSCM0[3] + dz + par[2];
@@ -215,7 +308,7 @@ void Detector::CreateShiskebabGeometry()
         // Pb
         TString pb(Form("PB%2.2i", nr));
         par[2] = g->GetECPbRadThick() / 2.; // z
-        TVirtualMC::GetMC()->Gsvolu(pb.Data(), "BOX", mIdTmedArr[ID_PB], par, 3);
+        TVirtualMC::GetMC()->Gsvolu(pb.Data(), "BOX", getMapMedium()[ID_PB], par, 3);
         TVirtualMC::GetMC()->Gspos(pb.Data(), 1, pa.Data(), 0.0, 0.0, 0.0, 0, "ONLY");
       }
     }
@@ -225,10 +318,9 @@ void Detector::CreateShiskebabGeometry()
   // Remove? Next too cases seem early prototype studies
   //
   else if (g->GetNPHIdiv() == 3 && g->GetNETAdiv() == 3) {
-    printf(" before AliEMCALv0::Trd1Tower3X3() : parSCM0");
     for (Int_t i = 0; i < 4; i++)
-      printf(" %7.4f ", parSCM0[i]);
-    printf("\n");
+      LOG(DEBUG2) << " " << std::setw(7) << std::setprecision(4) << " %7.4f " << parSCM0[i];
+    LOG(DEBUG2) << "\n";
     Trd1Tower3X3(parSCM0);
   } else if (g->GetNPHIdiv() == 1 && g->GetNETAdiv() == 1) {
     // no division in SCM0
@@ -290,25 +382,24 @@ void Detector::CreateMaterials()
   Float_t sxmgmx = 10.0;
 
   // Air                                                                         -> idtmed[1599]
-  Medium(0, "Air$", 0, 0, isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, nullptr, 0);
+  Medium(ID_AIR, "Air$", 0, 0, isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, nullptr, 0);
 
   // The Lead                                                                      -> idtmed[1600]
-
-  Medium(1, "Lead$", 1, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
+  Medium(ID_PB, "Lead$", 1, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
   // The scintillator of the CPV made of Polystyrene scintillator                   -> idtmed[1601]
   float deemax = 0.1; // maximum fractional energy loss in one step (0 < DEEMAX < deemax )
-  Medium(2, "Scintillator$", 2, 1, isxfld, sxmgmx, 10.0, 0.001, deemax, 0.001, 0.001, nullptr, 0);
+  Medium(ID_SC, "Scintillator$", 2, 1, isxfld, sxmgmx, 10.0, 0.001, deemax, 0.001, 0.001, nullptr, 0);
 
   // Various Aluminium parts made of Al                                            -> idtmed[1602]
-  Medium(3, "Al$", 3, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0);
+  Medium(ID_AL, "Al$", 3, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0);
 
   // 25-aug-04 by PAI : see  PMD/AliPMDv0.cxx for STEEL definition                 -> idtmed[1603]
-  Medium(4, "S steel$", 4, 0, isxfld, sxmgmx, 10.0, 0.01, 0.1, 0.001, 0.001, nullptr, 0);
+  Medium(ID_STEEL, "S steel$", 4, 0, isxfld, sxmgmx, 10.0, 0.01, 0.1, 0.001, 0.001, nullptr, 0);
 
   // Oct 26,2010; Nov 24,2010                                                      -> idtmed[1604]
   deemax = 0.01;
-  Medium(5, "Paper$", 5, 0, isxfld, sxmgmx, 10.0, deemax, 0.1, 0.001, 0.001, nullptr, 0);
+  Medium(ID_PAPER, "Paper$", 5, 0, isxfld, sxmgmx, 10.0, deemax, 0.1, 0.001, 0.001, nullptr, 0);
 
   // Set constants for Birk's Law implentation
   mBirkC0 = 1;
@@ -353,9 +444,9 @@ void Detector::CreateSmod(const char* mother)
     par[1] = g->GetShellThickness() / 2.;
     par[2] = g->GetEtaModuleSize() * g->GetNZ() / 2. + 5;
 
-    TVirtualMC::GetMC()->Gsvolu("SMOD", "BOX", mIdTmedArr[ID_AIR], par, 3);
+    TVirtualMC::GetMC()->Gsvolu("SMOD", "BOX", getMapMedium()[ID_AIR], par, 3);
 
-    LOG(DEBUG2) << "SMOD in WSUC : tmed " << mIdTmedArr[ID_AIR] << " | dx " << std::setw(7) << std::setprecision(2)
+    LOG(DEBUG2) << "SMOD in WSUC : tmed " << getMapMedium()[ID_AIR] << " | dx " << std::setw(7) << std::setprecision(2)
                 << par[0] << " dy " << std::setw(7) << std::setprecision(2) << par[1] << " dz " << std::setw(7)
                 << std::setprecision(2) << par[2] << " (SMOD, BOX)\n";
     mSmodPar0 = par[0];
@@ -367,8 +458,10 @@ void Detector::CreateSmod(const char* mother)
       mIdRotm = 0;
       TVirtualMC::GetMC()->Gspos("SMOD", 1, mother, xpos, ypos, zpos, mIdRotm, "ONLY");
 
-      printf(" fIdRotm %3i phi %6.1f(%5.3f) xpos %7.2f ypos %7.2f zpos %7.2f \n", mIdRotm, phi, phiRad, xpos, ypos,
-             zpos);
+      LOG(DEBUG2) << " fIdRotm " << std::setw(3) << mIdRotm << " phi " << std::setw(7) << std::setprecision(1) << phi << "("
+                  << std::setw(5) << std::setprecision(3) << phiRad << ") xpos " << std::setw(7) << std::setprecision(2)
+                  << xpos << " ypos " << std::setw(7) << std::setprecision(2) << ypos << " zpos " << std::setw(7)
+                  << std::setprecision(2) << zpos << FairLogger::endl;
 
       nr++;
     }
@@ -424,7 +517,7 @@ void Detector::CreateSmod(const char* mother)
         LOG(ERROR) << "Unkown SM Type!!\n";
 
       if (SMOrder == 1) { // first time, create the SM
-        TVirtualMC::GetMC()->Gsvolu(smName.Data(), "BOX", mIdTmedArr[ID_AIR], parC, 3);
+        TVirtualMC::GetMC()->Gsvolu(smName.Data(), "BOX", getMapMedium()[ID_AIR], parC, 3);
 
         LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )" << parC[0]
                     << ", par[1] = " << parC[1] << ", par[2] = " << parC[2] << FairLogger::endl;
@@ -454,9 +547,9 @@ void Detector::CreateSmod(const char* mother)
   // Steel plate
   if (g->GetSteelFrontThickness() > 0.0) { // 28-mar-05
     par[0] = g->GetSteelFrontThickness() / 2.;
-    TVirtualMC::GetMC()->Gsvolu("STPL", "BOX", mIdTmedArr[ID_STEEL], par, 3);
+    TVirtualMC::GetMC()->Gsvolu("STPL", "BOX", getMapMedium()[ID_STEEL], par, 3);
 
-    LOG(DEBUG1) << "tmed " << mIdTmedArr[ID_STEEL] << " | dx " << std::setw(7) << std::setprecision(2) << par[0]
+    LOG(DEBUG1) << "tmed " << getMapMedium()[ID_STEEL] << " | dx " << std::setw(7) << std::setprecision(2) << par[0]
                 << " dy " << std::setw(7) << std::setprecision(2) << par[1] << " dz " << std::setw(7)
                 << std::setprecision(2) << par[2] << " (STPL) \n";
 
@@ -483,7 +576,7 @@ void Detector::CreateEmod(const char* mother, const char* child)
     mParEMOD[2] = g->GetPhiModuleSize() / 2.;
     ;                                          // dy
     mParEMOD[3] = g->GetLongModuleSize() / 2.; // dz
-    TVirtualMC::GetMC()->Gsvolu(child, "TRD1", mIdTmedArr[ID_STEEL], mParEMOD, 4);
+    TVirtualMC::GetMC()->Gsvolu(child, "TRD1", getMapMedium()[ID_STEEL], mParEMOD, 4);
   }
 
   Int_t nr = 0;
@@ -574,7 +667,7 @@ void Detector::CreateAlFrontPlate(const char* mother, const char* child)
   parALFP[2] = g->GetPhiModuleSize() / 2. - g->GetLateralSteelStrip(); // dy
   parALFP[3] = g->GetTrd1AlFrontThick() / 2.;                          // dz
 
-  TVirtualMC::GetMC()->Gsvolu(child, "TRD1", mIdTmedArr[ID_AL], parALFP, 4);
+  TVirtualMC::GetMC()->Gsvolu(child, "TRD1", getMapMedium()[ID_AL], parALFP, 4);
 
   zposALFP = -mParEMOD[3] + g->GetTrd1AlFrontThick() / 2.;
   TVirtualMC::GetMC()->Gspos(child, 1, mother, 0.0, 0.0, zposALFP, 0, "ONLY");
@@ -592,14 +685,14 @@ void Detector::Trd1Tower1X1(Double_t* parSCM0)
   // and as consequence the same abs is scheme
   LOG(DEBUG2) << "Trd1Tower1X1() : Create SCMX(SCMY) as SCM0\n";
 
-  TVirtualMC::GetMC()->Gsvolu("SCMY", "TRD1", mIdTmedArr[ID_AIR], parSCM0, 4);
+  TVirtualMC::GetMC()->Gsvolu("SCMY", "TRD1", getMapMedium()[ID_AIR], parSCM0, 4);
   TVirtualMC::GetMC()->Gspos("SCMY", 1, "SCM0", 0.0, 0.0, 0.0, 0, "ONLY");
-  TVirtualMC::GetMC()->Gsvolu("SCMX", "TRD1", mIdTmedArr[ID_SC], parSCM0, 4);
+  TVirtualMC::GetMC()->Gsvolu("SCMX", "TRD1", getMapMedium()[ID_SC], parSCM0, 4);
   TVirtualMC::GetMC()->Gspos("SCMX", 1, "SCMY", 0.0, 0.0, 0.0, 0, "ONLY");
 
   // should be defined once
   Double_t* dummy = nullptr;
-  TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", mIdTmedArr[ID_PB], dummy, 0);
+  TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMapMedium()[ID_PB], dummy, 0);
 
   PbInTrd1(parSCM0, "SCMX");
 
@@ -610,10 +703,10 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
 {
   // Started Dec 8,2004 by PAI
   // Fixed Nov 13,2006
-  printf(" o2::EMCAL::Detector::Trd1Tower3X3() : parSCM0");
+  LOG(DEBUG) << " o2::EMCAL::Detector::Trd1Tower3X3() : parSCM0\n";
   for (Int_t i = 0; i < 4; i++)
-    printf(" %7.4f ", parSCM0[i]);
-  printf("\n");
+    LOG(DEBUG2) << " " << std::setw(7) << std::setprecision(4) << parSCM0[i];
+  LOG(DEBUG2) << "\n";
 
   // Nov 10, 2006 - different name of SCMX
   Double_t parTRAP[11], *dummy = nullptr;
@@ -630,7 +723,7 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
   Double_t ndiv = 3., xpos = 0.0;
 
   // should be defined once
-  TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", mIdTmedArr[ID_PB], dummy, 0);
+  TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMapMedium()[ID_PB], dummy, 0);
 
   for (Int_t ix = 1; ix <= 3; ix++) { // 3X3
     scmx = "SCX";                     // Nov 10,2006
@@ -668,7 +761,7 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
                   << std::setprecision(4) << parTRAP[i] << FairLogger::endl;
 
     scmx += ix;
-    TVirtualMC::GetMC()->Gsvolu(scmx.Data(), "TRAP", mIdTmedArr[ID_SC], parTRAP, 11);
+    TVirtualMC::GetMC()->Gsvolu(scmx.Data(), "TRAP", getMapMedium()[ID_SC], parTRAP, 11);
     TVirtualMC::GetMC()->Gspos(scmx.Data(), 1, "SCMY", xpos, 0.0, 0.0, 0, "ONLY");
 
     PbInTrap(parTRAP, scmx);

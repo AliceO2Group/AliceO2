@@ -103,7 +103,7 @@ class Geometry : public TNamed
   //////////
   // General
   //
-  static Bool_t IsInitialized() { return Geometry::sInit; }
+  static Bool_t IsInitialized() { return Geometry::sGeom != nullptr; }
   // static const Char_t* GetDefaultGeometryName() {return EMCGeometry::fgkDefaultGeometryName;}
 
   ///
@@ -673,7 +673,6 @@ class Geometry : public TNamed
 
  private:
   static Geometry* sGeom;                    ///< Pointer to the unique instance of the singleton
-  static Bool_t sInit;                       ///< Tells if geometry has been succesfully set up.
   static const Char_t* sDefaultGeometryName; ///< Default name of geometry
 
   ClassDef(Geometry, 1);

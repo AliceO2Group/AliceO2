@@ -50,7 +50,7 @@ namespace EMCAL
 class Detector : public o2::Base::Detector
 {
  public:
-  enum { ID_AIR = 1599, ID_PB = 1600, ID_SC = 1601, ID_AL = 1602, ID_STEEL = 1603, ID_PAPER = 1604 };
+  enum { ID_AIR = 0, ID_PB = 1, ID_SC = 2, ID_AL = 3, ID_STEEL = 4, ID_PAPER = 5 };
 
   Detector() = default;
 
@@ -136,7 +136,6 @@ class Detector : public o2::Base::Detector
   TList* mShishKebabModules; //!<! list of modules
   TArrayF mEnvelop1;         //!<! parameters of EMCAL envelop for TRD1(2) case
   Int_t mIdRotm;             //!<! number of rotation matrix (working variable)
-  Int_t* mIdTmedArr;         //!<! fIdtmed->GetArray() - 1599;
 
   Double_t mSampleWidth; //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
   Double_t mSmodPar0;    //!<! x size of super module
