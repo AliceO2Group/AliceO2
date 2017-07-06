@@ -12,9 +12,9 @@
 
 ClassImp(o2::TOF::Geo)
 
-using namespace o2::TOF;
+  using namespace o2::TOF;
 
 constexpr Float_t Geo::ANGLES[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::HEIGHTS[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::DISTANCES[NPLATES][NMAXNSTRIP];
-constexpr Bool_t  Geo::FEAWITHMASKS[18];
+constexpr Bool_t Geo::FEAWITHMASKS[18];

@@ -24,88 +24,91 @@ using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, RO
 
 class FairVolume;
 class TClonesArray;
-namespace o2 { namespace TOF { class Hit; } }
+namespace o2
+{
+namespace TOF
+{
+class Hit;
+}
+}
 
-namespace o2 {
-  namespace TOF {
-    
-    class Detector : public o2::Base::Detector {
-    public:
-      
-      enum TOFMaterial{
-	kAir=1,
-	kNomex=2,
-	kG10=3,
-	kFiberGlass=4,
-	kAlFrame=5,
-	kHoneycomb=6,
-	kFre=7,
-	kCuS=8,
-	kGlass=9,
-	kWater=10,
-	kCable=11,
-	kCableTubes=12,
-	kCopper=13,
-	kPlastic=14,
-	kCrates=15,
-	kHoneyHoles=16
-      };
+namespace o2
+{
+namespace TOF
+{
+class Detector : public o2::Base::Detector
+{
+ public:
+  enum TOFMaterial {
+    kAir = 1,
+    kNomex = 2,
+    kG10 = 3,
+    kFiberGlass = 4,
+    kAlFrame = 5,
+    kHoneycomb = 6,
+    kFre = 7,
+    kCuS = 8,
+    kGlass = 9,
+    kWater = 10,
+    kCable = 11,
+    kCableTubes = 12,
+    kCopper = 13,
+    kPlastic = 14,
+    kCrates = 15,
+    kHoneyHoles = 16
+  };
 
-      Detector() = default;
-      
-      Detector(const char* Name, Bool_t Active);
-      
-      ~Detector() override = default;
-      
-      void   Initialize() final;
-      
-      Bool_t ProcessHits( FairVolume* v=nullptr) final;
-      
-      Hit *AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy,
-                    Int_t detID, const Point3D<float> &pos, const Vector3D<float> &mom, Double_t time, Double_t length);
-      
-      void   Register() override;
-      
-      TClonesArray* GetCollection(Int_t iColl) const final;
-      
-      void   Reset() final;
-      
-      virtual void CreateMaterials() final;
-      virtual void ConstructGeometry() final;
+  Detector() = default;
 
-      void SetTOFholes(Bool_t flag=kTRUE) {mTOFHoles = flag;}
+  Detector(const char* Name, Bool_t Active);
 
-    protected:
-      
-      virtual void ConstructSuperModule(Int_t imodule) final;
-      virtual void DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA) final;
-      virtual void MaterialMixer(Float_t * p, const Float_t * const a,
-					   const Float_t * const m, Int_t n) const final;
-    private:
+  ~Detector() override = default;
 
-      void CreateModules(Float_t xtof,  Float_t ytof, Float_t zlenA,
-				   Float_t xFLT,  Float_t yFLT, Float_t zFLTA) const;  
-      void MakeStripsInModules(Float_t ytof, Float_t zlenA) const;
-      void CreateModuleCovers(Float_t xtof, Float_t zlenA) const;
-      void CreateBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const;
-      void MakeFrontEndElectronics(Float_t xtof) const;
-      void MakeFEACooling(Float_t xtof) const;
-      void MakeNinoMask(Float_t xtof) const;
-      void MakeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA) const;
-      void MakeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA) const;
-      void MakeReadoutCrates(Float_t ytof) const;
+  void Initialize() final;
 
-      void MakeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const;
-      void MakeCoversInBTOFvolumes() const;
-      void MakeBackInBTOFvolumes(Float_t ytof) const;
+  Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
-      void AddAlignableVolumes() const;
+  Hit* AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy, Int_t detID,
+              const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t length);
 
-      Int_t mTOFSectors[o2::TOF::Geo::NSECTORS];
-      Bool_t mTOFHoles; // flag to allow for holes in front of the PHOS
+  void Register() override;
 
-      ClassDefOverride(Detector, 1)
-    };
-  }
+  TClonesArray* GetCollection(Int_t iColl) const final;
+
+  void Reset() final;
+
+  virtual void CreateMaterials() final;
+  virtual void ConstructGeometry() final;
+
+  void SetTOFholes(Bool_t flag = kTRUE) { mTOFHoles = flag; }
+ protected:
+  virtual void ConstructSuperModule(Int_t imodule) final;
+  virtual void DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA) final;
+  virtual void MaterialMixer(Float_t* p, const Float_t* const a, const Float_t* const m, Int_t n) const final;
+
+ private:
+  void CreateModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t xFLT, Float_t yFLT, Float_t zFLTA) const;
+  void MakeStripsInModules(Float_t ytof, Float_t zlenA) const;
+  void CreateModuleCovers(Float_t xtof, Float_t zlenA) const;
+  void CreateBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const;
+  void MakeFrontEndElectronics(Float_t xtof) const;
+  void MakeFEACooling(Float_t xtof) const;
+  void MakeNinoMask(Float_t xtof) const;
+  void MakeSuperModuleCooling(Float_t xtof, Float_t ytof, Float_t zlenA) const;
+  void MakeSuperModuleServices(Float_t xtof, Float_t ytof, Float_t zlenA) const;
+  void MakeReadoutCrates(Float_t ytof) const;
+
+  void MakeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const;
+  void MakeCoversInBTOFvolumes() const;
+  void MakeBackInBTOFvolumes(Float_t ytof) const;
+
+  void AddAlignableVolumes() const;
+
+  Int_t mTOFSectors[o2::TOF::Geo::NSECTORS];
+  Bool_t mTOFHoles; // flag to allow for holes in front of the PHOS
+
+  ClassDefOverride(Detector, 1)
+};
+}
 }
 #endif
