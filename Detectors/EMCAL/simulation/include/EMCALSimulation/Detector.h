@@ -74,7 +74,10 @@ class Detector : public o2::Base::Detector
   Geometry* GetGeometry();
 
  protected:
-  virtual void CreateMaterials() final;
+  ///
+  /// Creating detector materials for the EMCAL detector and space frame
+  ///
+  void CreateMaterials();
 
   void ConstructGeometry() override;
 

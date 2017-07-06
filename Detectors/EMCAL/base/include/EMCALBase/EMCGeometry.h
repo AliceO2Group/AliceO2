@@ -6,7 +6,7 @@
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
-// or submit itself to any jurisdiction.'
+// or submit itself to any jurisdiction.
 
 #ifndef ALICEO2_EMCAL_EMCGEOMETRY_H_
 #define ALICEO2_EMCAL_EMCGEOMETRY_H_
