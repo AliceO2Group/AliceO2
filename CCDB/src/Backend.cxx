@@ -13,6 +13,7 @@
 /// \author Charis Kouzinopoulos <charalampos.kouzinopoulos@cern.ch>
 
 #include "CCDB/Backend.h"
+#include "request.pb.h"
 
 using namespace o2::CDB;
 using namespace std;
