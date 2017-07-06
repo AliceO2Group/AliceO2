@@ -22,7 +22,7 @@
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
-  o2::TOF::Detector* tof = new o2::TOF::Detector("TOF", kTRUE);
+  o2::tof::Detector* tof = new o2::tof::Detector("TOF", kTRUE);
   run->AddModule(tof);
 
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
@@ -48,7 +48,7 @@
 
   printf("prova2 %i -> \n",gGeoManager->GetListOfVolumes()->GetEntries());
 
-  o2::TOF::Detector* tof = new o2::TOF::Detector("TOF", kTRUE);
+  o2::tof::Detector* tof = new o2::tof::Detector("TOF", kTRUE);
   tof->ConstructGeometry();
 
   gGeoManager->SetTopVolume(gGeoManager->GetVolume("FTOA"));

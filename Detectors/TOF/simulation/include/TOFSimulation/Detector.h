@@ -26,7 +26,7 @@ class FairVolume;
 class TClonesArray;
 namespace o2
 {
-namespace TOF
+namespace tof
 {
 class Hit;
 }
@@ -34,7 +34,7 @@ class Hit;
 
 namespace o2
 {
-namespace TOF
+namespace tof
 {
 class Detector : public o2::Base::Detector
 {
@@ -78,7 +78,7 @@ class Detector : public o2::Base::Detector
   void Reset() final;
 
   virtual void CreateMaterials() final;
-  virtual void ConstructGeometry() final;
+  void ConstructGeometry() final;
 
   void SetTOFholes(Bool_t flag = kTRUE) { mTOFHoles = flag; }
  protected:
@@ -104,7 +104,7 @@ class Detector : public o2::Base::Detector
 
   void AddAlignableVolumes() const;
 
-  Int_t mTOFSectors[o2::TOF::Geo::NSECTORS];
+  Int_t mTOFSectors[o2::tof::Geo::NSECTORS];
   Bool_t mTOFHoles; // flag to allow for holes in front of the PHOS
 
   ClassDefOverride(Detector, 1)

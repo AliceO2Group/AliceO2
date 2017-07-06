@@ -14,6 +14,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::TOF::Geo+;
+#pragma link C++ class o2::tof::Geo+;
 
 #endif

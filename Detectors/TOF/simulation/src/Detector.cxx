@@ -22,7 +22,7 @@
 
 #include <TVirtualMC.h> // for TVirtualMC, gMC
 
-using namespace o2::TOF;
+using namespace o2::tof;
 
 ClassImp(Detector)
 
@@ -38,7 +38,7 @@ Bool_t Detector::ProcessHits(FairVolume* v) { return true; }
 Hit* Detector::AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy, Int_t detID,
                       const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t eLoss)
 {
-  return NULL;
+  return nullptr;
 }
 
 void Detector::Register()

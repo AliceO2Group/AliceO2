@@ -15,7 +15,7 @@
 
 namespace o2
 {
-namespace TOF
+namespace tof
 {
 /// \class Geo
 /// \brief TOF geo parameters (only statics)
