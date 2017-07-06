@@ -10,9 +10,9 @@
 
 #include "TOFBase/Geo.h"
 
-ClassImp(o2::tof::Geo)
+ClassImp(o2::tof::Geo);
 
-  using namespace o2::tof;
+using namespace o2::tof;
 
 constexpr Float_t Geo::ANGLES[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::HEIGHTS[NPLATES][NMAXNSTRIP];

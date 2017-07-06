@@ -14,28 +14,17 @@
 #include "DetectorsBase/Detector.h"
 #include "TOFBase/Geo.h"
 
-#include "Math/GenVector/DisplacementVector3D.h"
-#include "Math/GenVector/PositionVector3D.h"
-
-template <typename T>
-using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
-template <typename T>
-using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
+#include "SimulationDataFormat/BaseHits.h"
 
 class FairVolume;
 class TClonesArray;
-namespace o2
-{
-namespace tof
-{
-class Hit;
-}
-}
 
 namespace o2
 {
 namespace tof
 {
+using HitType = o2::BasicXYZEHit<float>;
+
 class Detector : public o2::Base::Detector
 {
  public:
@@ -68,16 +57,13 @@ class Detector : public o2::Base::Detector
 
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
-  Hit* AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy, Int_t detID,
-              const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t length);
-
   void Register() override;
 
   TClonesArray* GetCollection(Int_t iColl) const final;
 
   void Reset() final;
 
-  virtual void CreateMaterials() final;
+  void CreateMaterials();
   void ConstructGeometry() final;
 
   void SetTOFholes(Bool_t flag = kTRUE) { mTOFHoles = flag; }
@@ -107,7 +93,7 @@ class Detector : public o2::Base::Detector
   Int_t mTOFSectors[o2::tof::Geo::NSECTORS];
   Bool_t mTOFHoles; // flag to allow for holes in front of the PHOS
 
-  ClassDefOverride(Detector, 1)
+  ClassDefOverride(Detector, 1);
 };
 }
 }

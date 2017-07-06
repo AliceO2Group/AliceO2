@@ -11,7 +11,7 @@
 #ifndef ALICEO2_TOF_GEO_H
 #define ALICEO2_TOF_GEO_H
 
-#include "TMath.h"
+#include "Rtypes.h"
 
 namespace o2
 {

@@ -24,10 +24,9 @@
 
 using namespace o2::tof;
 
-ClassImp(Detector)
+ClassImp(Detector);
 
-  Detector::Detector(const char* Name, Bool_t Active)
-  : o2::Base::Detector(Name, Active), mTOFHoles(kTRUE)
+Detector::Detector(const char* Name, Bool_t Active) : o2::Base::Detector(Name, Active), mTOFHoles(kTRUE)
 {
   for (Int_t i = 0; i < Geo::NSECTORS; i++)
     mTOFSectors[i] = 1;
@@ -35,12 +34,6 @@ ClassImp(Detector)
 
 void Detector::Initialize() {}
 Bool_t Detector::ProcessHits(FairVolume* v) { return true; }
-Hit* Detector::AddHit(Int_t shunt, Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy, Int_t detID,
-                      const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t eLoss)
-{
-  return nullptr;
-}
-
 void Detector::Register()
 {
   //  FairRootManager::Instance()->Register("EMCALHit", "EMCAL", mPointCollection, kTRUE);
