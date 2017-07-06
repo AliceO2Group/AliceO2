@@ -789,3 +789,26 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/EMCAL/base/include
 )
+
+o2_define_bucket(
+    NAME
+    tof_simulation_bucket
+
+    DEPENDENCIES
+    emcal_base_bucket
+    root_base_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    TOFBase
+    DetectorsBase
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TOF/base/include
+)
