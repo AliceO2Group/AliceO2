@@ -11,6 +11,8 @@
 #ifndef ALICEO2_TOF_DETECTOR_H_
 #define ALICEO2_TOF_DETECTOR_H_
 
+#include "TClonesArray.h"
+
 #include "DetectorsBase/Detector.h"
 #include "TOFBase/Geo.h"
 
@@ -62,13 +64,13 @@ class Detector : public o2::Base::Detector
   TClonesArray* GetCollection(Int_t iColl) const final;
 
   void Reset() final;
+  void EndOfEvent() final;
 
   void CreateMaterials();
   void ConstructGeometry() final;
 
   void SetTOFholes(Bool_t flag = kTRUE) { mTOFHoles = flag; }
  protected:
-  virtual void ConstructSuperModule(Int_t imodule) final;
   virtual void DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA) final;
   virtual void MaterialMixer(Float_t* p, const Float_t* const a, const Float_t* const m, Int_t n) const final;
 
@@ -92,6 +94,9 @@ class Detector : public o2::Base::Detector
 
   Int_t mTOFSectors[o2::tof::Geo::NSECTORS];
   Bool_t mTOFHoles; // flag to allow for holes in front of the PHOS
+
+  /// container for data points 
+  TClonesArray*  mHitCollection;
 
   ClassDefOverride(Detector, 1);
 };
