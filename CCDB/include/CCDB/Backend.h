@@ -22,7 +22,7 @@
 
 // Google protocol buffers headers
 #include <google/protobuf/stubs/common.h>
-#include "request.pb.h"
+
 
 namespace o2 {
 namespace CDB {
