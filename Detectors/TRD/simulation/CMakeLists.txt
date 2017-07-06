@@ -1,0 +1,12 @@
+SET(MODULE_NAME TRDSimulation)
+
+O2_SETUP(NAME ${MODULE_NAME})
+
+SET(SRCS src/Detector.cxx)
+SET(HEADERS include/${MODULE_NAME}/Detector.h)
+
+SET(LINKDEF src/TRDSimulationLinkDef.h)
+SET(LIBRARY_NAME ${MODULE_NAME})
+SET(BUCKET_NAME trd_simulation_bucket)
+
+O2_GENERATE_LIBRARY()

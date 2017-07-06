@@ -34,6 +34,9 @@ void PutFrameInTop() {
   o2::Passive::FrameStructure* frame = new o2::Passive::FrameStructure("Frame","Frame");
   run->AddModule(frame);
 
+  auto *trd = new o2::trd::Detector("TRD",true);
+  run->AddModule(trd);
+
   run->Init();
 
   gGeoManager->Export("geometry.root");
