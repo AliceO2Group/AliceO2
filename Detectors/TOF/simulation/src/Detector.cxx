@@ -16,7 +16,6 @@
 #include "FairVolume.h"
 #include "FairRootManager.h"
 
-#include "TOFBase/Hit.h"
 #include "TOFSimulation/Detector.h"
 
 #include "DetectorsBase/GeometryManager.h"
