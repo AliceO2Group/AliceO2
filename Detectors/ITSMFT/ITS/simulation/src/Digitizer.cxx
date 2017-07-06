@@ -67,7 +67,7 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
   // Convert points to digits
   const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
   for (TIter iter = TIter(points).Begin(); iter != TIter::End(); ++iter) {
-    Hit* point = dynamic_cast<Hit*>(*iter);
+    Hit* point = static_cast<Hit*>(*iter);
     Int_t chipID = point->GetDetectorID();
     if (chipID >= numOfChips)
       continue;
@@ -89,7 +89,7 @@ DigitContainer& Digitizer::process(TClonesArray* points)
   // Convert points to digits
   const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
-    Hit* point = dynamic_cast<Hit*>(*pointiter);
+    Hit* point = static_cast<Hit*>(*pointiter);
 
     LOG(DEBUG) << "Processing next point: " << FairLogger::endl;
     LOG(DEBUG) << "=======================" << FairLogger::endl;
