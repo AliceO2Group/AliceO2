@@ -768,6 +768,8 @@ o2_define_bucket(
     Matrix
     Physics
     ParBase
+    VMC
+    Geom
     SimulationDataFormat
 
     INCLUDE_DIRECTORIES
@@ -839,4 +841,27 @@ o2_define_bucket(
 
     SYSTEMINCLUDE_DIRECTORIES
     ${ROOT_INCLUDE_DIR}
+)
+
+o2_define_bucket(
+    NAME
+    trd_simulation_bucket
+
+    DEPENDENCIES
+    emcal_base_bucket
+    root_base_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    TRDBase
+    DetectorsBase
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/include
 )

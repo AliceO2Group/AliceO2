@@ -20,5 +20,6 @@ add_subdirectory(ITSMFT)
 add_subdirectory(TPC)
 add_subdirectory(EMCAL)
 add_subdirectory(TOF)
+add_subdirectory(TRD)
 
 Install(DIRECTORY Geometry gconfig DESTINATION share/Detectors/)
