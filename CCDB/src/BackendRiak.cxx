@@ -14,6 +14,7 @@
 
 #include "CCDB/BackendRiak.h"
 #include "CCDB/ObjectHandler.h"
+#include "request.pb.h"
 
 #include <zlib.h>
 
