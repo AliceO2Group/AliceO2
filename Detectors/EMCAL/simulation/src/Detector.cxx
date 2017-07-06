@@ -105,7 +105,7 @@ void Detector::CreateShiskebabGeometry()
   }
 
   // Sensitive SC  (2x2 tiles)
-  Double_t parSCM0[5] = { 0, 0, 0, 0 }, *dummy = 0, parTRAP[11];
+  Double_t parSCM0[5] = { 0, 0, 0, 0 }, *dummy = nullptr, parTRAP[11];
   if (!gn.Contains("V1")) {
     Double_t wallThickness = g->GetPhiModuleSize() / g->GetNPHIdiv() - g->GetPhiTileSize();
     for (Int_t i = 0; i < 3; i++)
@@ -247,7 +247,7 @@ void Detector::CreateMaterials()
   Mixture(0, "Air$", aAir, zAir, dAir, 4, wAir);
 
   // --- Lead ---
-  Material(1, "Pb$", 207.2, 82, 11.35, 0.56, 0., 0, 0);
+  Material(1, "Pb$", 207.2, 82, 11.35, 0.56, 0., nullptr, 0);
 
   // --- The polysterene scintillator (CH) ---
   Float_t aP[2] = { 12.011, 1.00794 };
@@ -258,7 +258,7 @@ void Detector::CreateMaterials()
   Mixture(2, "Polystyrene$", aP, zP, dP, -2, wP);
 
   // --- Aluminium ---
-  Material(3, "Al$", 26.98, 13., 2.7, 8.9, 999., 0, 0);
+  Material(3, "Al$", 26.98, 13., 2.7, 8.9, 999., nullptr, 0);
   // ---         Absorption length is ignored ^
 
   // 25-aug-04 by PAI - see  PMD/AliPMDv0.cxx for STEEL definition
@@ -290,25 +290,25 @@ void Detector::CreateMaterials()
   Float_t sxmgmx = 10.0;
 
   // Air                                                                         -> idtmed[1599]
-  Medium(0, "Air$", 0, 0, isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, 0, 0);
+  Medium(0, "Air$", 0, 0, isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, nullptr, 0);
 
   // The Lead                                                                      -> idtmed[1600]
 
-  Medium(1, "Lead$", 1, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0);
+  Medium(1, "Lead$", 1, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
   // The scintillator of the CPV made of Polystyrene scintillator                   -> idtmed[1601]
   float deemax = 0.1; // maximum fractional energy loss in one step (0 < DEEMAX < deemax )
-  Medium(2, "Scintillator$", 2, 1, isxfld, sxmgmx, 10.0, 0.001, deemax, 0.001, 0.001, 0, 0);
+  Medium(2, "Scintillator$", 2, 1, isxfld, sxmgmx, 10.0, 0.001, deemax, 0.001, 0.001, nullptr, 0);
 
   // Various Aluminium parts made of Al                                            -> idtmed[1602]
-  Medium(3, "Al$", 3, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, 0, 0);
+  Medium(3, "Al$", 3, 0, isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, nullptr, 0);
 
   // 25-aug-04 by PAI : see  PMD/AliPMDv0.cxx for STEEL definition                 -> idtmed[1603]
-  Medium(4, "S steel$", 4, 0, isxfld, sxmgmx, 10.0, 0.01, 0.1, 0.001, 0.001, 0, 0);
+  Medium(4, "S steel$", 4, 0, isxfld, sxmgmx, 10.0, 0.01, 0.1, 0.001, 0.001, nullptr, 0);
 
   // Oct 26,2010; Nov 24,2010                                                      -> idtmed[1604]
   deemax = 0.01;
-  Medium(5, "Paper$", 5, 0, isxfld, sxmgmx, 10.0, deemax, 0.1, 0.001, 0.001, 0, 0);
+  Medium(5, "Paper$", 5, 0, isxfld, sxmgmx, 10.0, deemax, 0.1, 0.001, 0.001, nullptr, 0);
 
   // Set constants for Birk's Law implentation
   mBirkC0 = 1;
@@ -426,7 +426,7 @@ void Detector::CreateSmod(const char* mother)
       if (SMOrder == 1) { // first time, create the SM
         TVirtualMC::GetMC()->Gsvolu(smName.Data(), "BOX", mIdTmedArr[ID_AIR], parC, 3);
 
-        LOG(DEBUG2) << " Super module with name \"" << smName << "\" was created in \"box\" with: par[0] = " << parC[0]
+        LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )" << parC[0]
                     << ", par[1] = " << parC[1] << ", par[2] = " << parC[2] << FairLogger::endl;
       }
 
@@ -489,7 +489,7 @@ void Detector::CreateEmod(const char* mother, const char* child)
   Int_t nr = 0;
   mIdRotm = 0;
   // X->Z(0, 0); Y->Y(90, 90); Z->X(90, 0)
-  ShishKebabTrd1Module* mod = 0; // current module
+  ShishKebabTrd1Module* mod = nullptr; // current module
 
   for (Int_t iz = 0; iz < g->GetNZ(); iz++) {
     Double_t angle = 90., phiOK = 0;
@@ -598,7 +598,7 @@ void Detector::Trd1Tower1X1(Double_t* parSCM0)
   TVirtualMC::GetMC()->Gspos("SCMX", 1, "SCMY", 0.0, 0.0, 0.0, 0, "ONLY");
 
   // should be defined once
-  Double_t* dummy = 0;
+  Double_t* dummy = nullptr;
   TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", mIdTmedArr[ID_PB], dummy, 0);
 
   PbInTrd1(parSCM0, "SCMX");
@@ -616,7 +616,7 @@ void Detector::Trd1Tower3X3(const Double_t* parSCM0)
   printf("\n");
 
   // Nov 10, 2006 - different name of SCMX
-  Double_t parTRAP[11], *dummy = 0;
+  Double_t parTRAP[11], *dummy = nullptr;
   Geometry* g = GetGeometry();
 
   TString gn(g->GetName()), scmx;

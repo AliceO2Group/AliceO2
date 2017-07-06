@@ -62,7 +62,7 @@ class Geometry : public TNamed
   ///
   /// Destructor.
   ///
-  virtual ~Geometry();
+  ~Geometry() override;
 
   ///
   /// Assign operator.
@@ -103,7 +103,7 @@ class Geometry : public TNamed
   //////////
   // General
   //
-  static Bool_t IsInitialized(void) { return Geometry::sInit; }
+  static Bool_t IsInitialized() { return Geometry::sInit; }
   // static const Char_t* GetDefaultGeometryName() {return EMCGeometry::fgkDefaultGeometryName;}
 
   ///
@@ -169,57 +169,57 @@ class Geometry : public TNamed
 
   EMCGeometry* GetEMCGeometry() const { return mEMCGeometry; }
 
-  const Char_t* GetNameOfEMCALEnvelope(void) const { return mEMCGeometry->GetNameOfEMCALEnvelope(); }
-  Float_t GetArm1PhiMin(void) const { return mEMCGeometry->GetArm1PhiMin(); }
-  Float_t GetArm1PhiMax(void) const { return mEMCGeometry->GetArm1PhiMax(); }
-  Float_t GetArm1EtaMin(void) const { return mEMCGeometry->GetArm1EtaMin(); }
-  Float_t GetArm1EtaMax(void) const { return mEMCGeometry->GetArm1EtaMax(); }
-  Float_t GetIPDistance(void) const { return mEMCGeometry->GetIPDistance(); }
+  const Char_t* GetNameOfEMCALEnvelope() const { return mEMCGeometry->GetNameOfEMCALEnvelope(); }
+  Float_t GetArm1PhiMin() const { return mEMCGeometry->GetArm1PhiMin(); }
+  Float_t GetArm1PhiMax() const { return mEMCGeometry->GetArm1PhiMax(); }
+  Float_t GetArm1EtaMin() const { return mEMCGeometry->GetArm1EtaMin(); }
+  Float_t GetArm1EtaMax() const { return mEMCGeometry->GetArm1EtaMax(); }
+  Float_t GetIPDistance() const { return mEMCGeometry->GetIPDistance(); }
   Float_t GetEnvelop(Int_t index) const { return mEMCGeometry->GetEnvelop(index); }
-  Float_t GetShellThickness(void) const { return mEMCGeometry->GetShellThickness(); }
-  Float_t GetZLength(void) const { return mEMCGeometry->GetZLength(); }
-  Float_t GetDCALInnerEdge(void) const { return mEMCGeometry->GetDCALInnerEdge(); }
-  Float_t GetDCALPhiMin(void) const { return mEMCGeometry->GetDCALPhiMin(); }
-  Float_t GetDCALPhiMax(void) const { return mEMCGeometry->GetDCALPhiMax(); }
-  Float_t GetEMCALPhiMax(void) const { return mEMCGeometry->GetEMCALPhiMax(); }
-  Int_t GetNECLayers(void) const { return mEMCGeometry->GetNECLayers(); }
-  Float_t GetDCALInnerExtandedEta(void) const { return mEMCGeometry->GetDCALInnerExtandedEta(); }
-  Int_t GetNZ(void) const { return mEMCGeometry->GetNZ(); }
-  Int_t GetNEta(void) const { return mEMCGeometry->GetNEta(); }
-  Int_t GetNPhi(void) const { return mEMCGeometry->GetNPhi(); }
-  Float_t GetECPbRadThick(void) const { return mEMCGeometry->GetECPbRadThick(); }
-  Float_t GetECScintThick(void) const { return mEMCGeometry->GetECScintThick(); }
-  Float_t GetSampling(void) const { return mEMCGeometry->GetSampling(); }
-  Int_t GetNumberOfSuperModules(void) const { return mEMCGeometry->GetNumberOfSuperModules(); }
-  Float_t GetPhiGapForSuperModules(void) const { return mEMCGeometry->GetPhiGapForSuperModules(); }
-  Float_t GetPhiModuleSize(void) const { return mEMCGeometry->GetPhiModuleSize(); }
-  Float_t GetEtaModuleSize(void) const { return mEMCGeometry->GetEtaModuleSize(); }
-  Float_t GetFrontSteelStrip(void) const { return mEMCGeometry->GetFrontSteelStrip(); }
-  Float_t GetLateralSteelStrip(void) const { return mEMCGeometry->GetLateralSteelStrip(); }
-  Float_t GetPassiveScintThick(void) const { return mEMCGeometry->GetPassiveScintThick(); }
-  Float_t GetPhiTileSize(void) const { return mEMCGeometry->GetPhiTileSize(); }
-  Float_t GetEtaTileSize(void) const { return mEMCGeometry->GetEtaTileSize(); }
-  Float_t GetPhiSuperModule(void) const { return mEMCGeometry->GetPhiSuperModule(); }
-  Int_t GetNPhiSuperModule(void) const { return mEMCGeometry->GetNPhiSuperModule(); }
-  Int_t GetNPHIdiv(void) const { return mEMCGeometry->GetNPHIdiv(); }
-  Int_t GetNETAdiv(void) const { return mEMCGeometry->GetNETAdiv(); }
-  Int_t GetNCells(void) const { return mEMCGeometry->GetNCells(); }
-  Float_t GetLongModuleSize(void) const { return mEMCGeometry->GetLongModuleSize(); }
-  Float_t GetTrd1Angle(void) const { return mEMCGeometry->GetTrd1Angle(); }
-  Float_t Get2Trd1Dx2(void) const { return mEMCGeometry->Get2Trd1Dx2(); }
+  Float_t GetShellThickness() const { return mEMCGeometry->GetShellThickness(); }
+  Float_t GetZLength() const { return mEMCGeometry->GetZLength(); }
+  Float_t GetDCALInnerEdge() const { return mEMCGeometry->GetDCALInnerEdge(); }
+  Float_t GetDCALPhiMin() const { return mEMCGeometry->GetDCALPhiMin(); }
+  Float_t GetDCALPhiMax() const { return mEMCGeometry->GetDCALPhiMax(); }
+  Float_t GetEMCALPhiMax() const { return mEMCGeometry->GetEMCALPhiMax(); }
+  Int_t GetNECLayers() const { return mEMCGeometry->GetNECLayers(); }
+  Float_t GetDCALInnerExtandedEta() const { return mEMCGeometry->GetDCALInnerExtandedEta(); }
+  Int_t GetNZ() const { return mEMCGeometry->GetNZ(); }
+  Int_t GetNEta() const { return mEMCGeometry->GetNEta(); }
+  Int_t GetNPhi() const { return mEMCGeometry->GetNPhi(); }
+  Float_t GetECPbRadThick() const { return mEMCGeometry->GetECPbRadThick(); }
+  Float_t GetECScintThick() const { return mEMCGeometry->GetECScintThick(); }
+  Float_t GetSampling() const { return mEMCGeometry->GetSampling(); }
+  Int_t GetNumberOfSuperModules() const { return mEMCGeometry->GetNumberOfSuperModules(); }
+  Float_t GetPhiGapForSuperModules() const { return mEMCGeometry->GetPhiGapForSuperModules(); }
+  Float_t GetPhiModuleSize() const { return mEMCGeometry->GetPhiModuleSize(); }
+  Float_t GetEtaModuleSize() const { return mEMCGeometry->GetEtaModuleSize(); }
+  Float_t GetFrontSteelStrip() const { return mEMCGeometry->GetFrontSteelStrip(); }
+  Float_t GetLateralSteelStrip() const { return mEMCGeometry->GetLateralSteelStrip(); }
+  Float_t GetPassiveScintThick() const { return mEMCGeometry->GetPassiveScintThick(); }
+  Float_t GetPhiTileSize() const { return mEMCGeometry->GetPhiTileSize(); }
+  Float_t GetEtaTileSize() const { return mEMCGeometry->GetEtaTileSize(); }
+  Float_t GetPhiSuperModule() const { return mEMCGeometry->GetPhiSuperModule(); }
+  Int_t GetNPhiSuperModule() const { return mEMCGeometry->GetNPhiSuperModule(); }
+  Int_t GetNPHIdiv() const { return mEMCGeometry->GetNPHIdiv(); }
+  Int_t GetNETAdiv() const { return mEMCGeometry->GetNETAdiv(); }
+  Int_t GetNCells() const { return mEMCGeometry->GetNCells(); }
+  Float_t GetLongModuleSize() const { return mEMCGeometry->GetLongModuleSize(); }
+  Float_t GetTrd1Angle() const { return mEMCGeometry->GetTrd1Angle(); }
+  Float_t Get2Trd1Dx2() const { return mEMCGeometry->Get2Trd1Dx2(); }
   Float_t GetTrd1AlFrontThick() const { return mEMCGeometry->GetTrd1AlFrontThick(); }
   Float_t GetTrd1BondPaperThick() const { return mEMCGeometry->GetTrd1BondPaperThick(); }
   // --
-  Int_t GetNCellsInSupMod(void) const { return mEMCGeometry->GetNCellsInSupMod(); }
-  Int_t GetNCellsInModule(void) const { return mEMCGeometry->GetNCellsInModule(); }
-  Int_t GetKey110DEG(void) const { return mEMCGeometry->GetKey110DEG(); }
-  Int_t GetnSupModInDCAL(void) const { return mEMCGeometry->GetnSupModInDCAL(); }
-  Int_t GetILOSS(void) const { return mEMCGeometry->GetILOSS(); }
-  Int_t GetIHADR(void) const { return mEMCGeometry->GetIHADR(); }
+  Int_t GetNCellsInSupMod() const { return mEMCGeometry->GetNCellsInSupMod(); }
+  Int_t GetNCellsInModule() const { return mEMCGeometry->GetNCellsInModule(); }
+  Int_t GetKey110DEG() const { return mEMCGeometry->GetKey110DEG(); }
+  Int_t GetnSupModInDCAL() const { return mEMCGeometry->GetnSupModInDCAL(); }
+  Int_t GetILOSS() const { return mEMCGeometry->GetILOSS(); }
+  Int_t GetIHADR() const { return mEMCGeometry->GetIHADR(); }
   // --
-  Float_t GetDeltaEta(void) const { return mEMCGeometry->GetDeltaEta(); }
-  Float_t GetDeltaPhi(void) const { return mEMCGeometry->GetDeltaPhi(); }
-  Int_t GetNTowers(void) const { return mEMCGeometry->GetNTowers(); }
+  Float_t GetDeltaEta() const { return mEMCGeometry->GetDeltaEta(); }
+  Float_t GetDeltaPhi() const { return mEMCGeometry->GetDeltaPhi(); }
+  Int_t GetNTowers() const { return mEMCGeometry->GetNTowers(); }
   //
   Double_t GetPhiCenterOfSM(Int_t nsupmod) const { return mEMCGeometry->GetPhiCenterOfSM(nsupmod); }
   Double_t GetPhiCenterOfSMSec(Int_t nsupmod) const { return mEMCGeometry->GetPhiCenterOfSMSec(nsupmod); }

@@ -24,7 +24,7 @@ ClassImp(o2::EMCAL::Geometry);
 using namespace o2::EMCAL;
 
 // these initialisations are needed for a singleton
-Geometry* Geometry::sGeom = 0;
+Geometry* Geometry::sGeom = nullptr;
 const Char_t* Geometry::sDefaultGeometryName = "EMCAL_COMPLETE12SMV1_DCAL_8SM";
 
 Geometry::Geometry(const Geometry& geo)
@@ -105,7 +105,7 @@ Geometry::Geometry(const Text_t* name, const Text_t* title, const Text_t* mcname
     mEMCALPhiMax(0),
     mDCALStandardPhiMax(0),
     mDCALInnerExtandedEta(0),
-    mShishKebabTrd1Modules(0),
+    mShishKebabTrd1Modules(nullptr),
     mPhiModuleSize(0.),
     mEtaModuleSize(0.),
     mPhiTileSize(0.),
@@ -212,9 +212,9 @@ Geometry* Geometry::GetInstance()
 
 Geometry* Geometry::GetInstance(const Text_t* name, const Text_t* title, const Text_t* mcname, const Text_t* mctitle)
 {
-  Geometry* rv = 0;
+  Geometry* rv = nullptr;
 
-  if (sGeom == 0) {
+  if (!sGeom) {
     if (!strcmp(name, "")) { // get default geometry
       sGeom = new Geometry(sDefaultGeometryName, title, mcname, mctitle);
     } else {
@@ -224,9 +224,9 @@ Geometry* Geometry::GetInstance(const Text_t* name, const Text_t* title, const T
     if (EMCGeometry::sInit)
       rv = static_cast<Geometry*>(sGeom);
     else {
-      rv = 0;
+      rv = nullptr;
       delete sGeom;
-      sGeom = 0;
+      sGeom = nullptr;
     } // end if fgInit
   } else {
     if (strcmp(sGeom->GetName(), name) != 0) {
@@ -727,7 +727,7 @@ Bool_t Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff, Double_t& xr
 
   Int_t nSupMod = 0, nModule = -1, nIphi = -1, nIeta = -1, iphi = -1, ieta = -1;
   Int_t iphim = -1, ietam = -1;
-  ShishKebabTrd1Module* mod = 0;
+  ShishKebabTrd1Module* mod = nullptr;
   TVector2 v;
   if (!CheckAbsCellId(absId))
     return kFALSE;
@@ -786,7 +786,7 @@ void Geometry::CreateListOfTrd1Modules()
 {
   LOG(DEBUG2) << " o2::EMCAL::Geometry::CreateListOfTrd1Modules() started\n";
 
-  ShishKebabTrd1Module *mod = 0, *mTmp = 0; // current module
+  ShishKebabTrd1Module *mod = nullptr, *mTmp = nullptr; // current module
   if (!mShishKebabTrd1Modules) {
     mShishKebabTrd1Modules = new TList;
     mShishKebabTrd1Modules->SetName("ListOfTRD1");
@@ -899,12 +899,9 @@ void Geometry::CreateListOfTrd1Modules()
 
 ShishKebabTrd1Module* Geometry::GetShishKebabModule(Int_t neta) const
 {
-  ShishKebabTrd1Module* trd1 = 0;
+  ShishKebabTrd1Module* trd1 = nullptr;
   if (mShishKebabTrd1Modules && neta >= 0 && neta < mShishKebabTrd1Modules->GetSize())
     trd1 = static_cast<ShishKebabTrd1Module*>(mShishKebabTrd1Modules->At(neta));
-  else
-    trd1 = 0;
-
   return trd1;
 }
 

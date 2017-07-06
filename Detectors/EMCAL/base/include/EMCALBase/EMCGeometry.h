@@ -6,7 +6,7 @@
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
-// or submit itself to any jurisdiction.
+// or submit itself to any jurisdiction.'
 
 #ifndef ALICEO2_EMCAL_EMCGEOMETRY_H_
 #define ALICEO2_EMCAL_EMCGEOMETRY_H_
@@ -64,7 +64,7 @@ class EMCGeometry : public TNamed
   ///
   /// Destructor
   ///
-  virtual ~EMCGeometry();
+  ~EMCGeometry() override;
 
   /// Assignement operator requested by coding convention but not needed
   EMCGeometry& operator=(const EMCGeometry& /*rvalue*/)
@@ -77,7 +77,7 @@ class EMCGeometry : public TNamed
   // General
   //
 
-  Bool_t IsInitialized(void) const { return sInit; }
+  Bool_t IsInitialized() const { return sInit; }
   static const Char_t* GetDefaultGeometryName() { return sDefaultGeometryName; }
 
   ///

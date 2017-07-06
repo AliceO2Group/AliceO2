@@ -27,7 +27,7 @@ const Char_t* EMCGeometry::sDefaultGeometryName = "EMCAL_COMPLETE12SMV1_DCAL_8SM
 EMCGeometry::EMCGeometry(const Text_t* name, const Text_t* title, const Text_t* mcname, const Text_t* mctitle)
   : TNamed(name, title),
     mGeoName(0),
-    mArrayOpts(0),
+    mArrayOpts(nullptr),
     mNAdditionalOpts(0),
     mECPbRadThickness(0.),
     mECScintThick(0.),
@@ -81,7 +81,7 @@ EMCGeometry::EMCGeometry(const Text_t* name, const Text_t* title, const Text_t* 
     mCentersOfCellsPhiDir(0),
     mEtaCentersOfCells(0),
     mPhiCentersOfCells(0),
-    mShishKebabTrd1Modules(0),
+    mShishKebabTrd1Modules(nullptr),
     mParSM(),
     mILOSS(-1),
     mIHADR(-1),
@@ -212,7 +212,7 @@ void EMCGeometry::Init(const Text_t* mcname, const Text_t* mctitle)
     mKey110DEG = 1; // for GetAbsCellId
   if (mGeoName.Contains("COMPLETEV1"))
     mKey110DEG = 0;
-  mShishKebabTrd1Modules = 0;
+  mShishKebabTrd1Modules = nullptr;
 
   mnSupModInDCAL = 0;
   if (mGeoName.Contains("DCAL_DEV")) {
@@ -582,7 +582,7 @@ void EMCGeometry::CheckAdditionalOptions()
   if (nopt == 1) { // no aditional option(s)
     mArrayOpts->Delete();
     delete mArrayOpts;
-    mArrayOpts = 0;
+    mArrayOpts = nullptr;
     return;
   }
 
@@ -714,7 +714,7 @@ int EMCGeometry::ParseString(const TString& topt, TObjArray& Opt)
 {
   Ssiz_t begin, index, end, end2;
   begin = index = end = end2 = 0;
-  TRegexp separator("[^ ;,\\t\\s/]+");
+  TRegexp separator(R"([^ ;,\\t\\s/]+)");
   while ((begin < topt.Length()) && (index != kNPOS)) {
     // loop over given options
     index = topt.Index(separator, &end, begin);

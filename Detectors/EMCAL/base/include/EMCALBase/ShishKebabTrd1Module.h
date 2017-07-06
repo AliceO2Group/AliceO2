@@ -43,7 +43,7 @@ class ShishKebabTrd1Module : public TNamed
   ///
   /// Constructor.
   ///
-  ShishKebabTrd1Module(Double_t theta = 0.0, EMCGeometry* g = 0);
+  ShishKebabTrd1Module(Double_t theta = 0.0, EMCGeometry* g = nullptr);
 
   ///
   /// Constructor.
@@ -71,7 +71,7 @@ class ShishKebabTrd1Module : public TNamed
     return *this;
   }
 
-  virtual ~ShishKebabTrd1Module() = default;
+  ~ShishKebabTrd1Module() override = default;
 
   ///
   /// Recover module parameters stored in geometry
