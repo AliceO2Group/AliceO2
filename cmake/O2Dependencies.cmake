@@ -756,6 +756,7 @@ o2_define_bucket(
     DEPENDENCIES
     root_base_bucket
     fairroot_base_bucket
+    Geom
     MathCore
     Matrix
     Physics
