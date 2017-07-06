@@ -14,7 +14,7 @@
 # **************************************************************************
 
 # Libraries
-#add_subdirectory(ITS)
+add_subdirectory(ITS)
 add_subdirectory(common)
-#add_subdirectory(test)
+add_subdirectory(test)
 add_subdirectory(MFT)
