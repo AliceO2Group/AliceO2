@@ -129,19 +129,12 @@ void AlpideSimResponse::initData()
 		     << FairLogger::endl;
         }
 
-        if (mZMax < -1e9) {
-          mZMax = gz;
-	}
-        if (mZMin > gz) {
-          mZMin = gz;
-	}
+        if (mZMax < -1e9) mZMax = gz;
+        if (mZMin > gz)   mZMin = gz;
 
         // normalize
         float norm = 1. / nele;
-        for (int ip = 0; ip < npix * npix; ip++) {
-          (*arr)[ip] *= norm;
-	}
-
+        for (int ip = 0; ip < npix * npix; ip++) (*arr)[ip] *= norm;
         mData.push_back(mat); // store in the final container
       }                       // loop over z
 
@@ -204,21 +197,14 @@ const RespSimMat* AlpideSimResponse::getResponse(float x, float y, float z) cons
   /*
    * get linearized NPix*NPix matrix for response at point x,y,z
    */
-  if (z < mZMin || z > mZMax) {
-    return nullptr;
+  if (!mNBinZ) {
+    LOG(FATAL) << "response object is not initialized" << FairLogger::endl;
   }
-  if (x < 0) {
-    x = -x;
-  }
-  if (x > mXMax) {
-    return nullptr;
-  }
-  if (y < 0) {
-    y = -y;
-  }
-  if (y > mYMax) {
-    return nullptr;
-  }
+  if (z < mZMin || z > mZMax) return nullptr;
+  if (x < 0) x = -x;
+  if (x > mXMax) return nullptr;
+  if (y < 0) y = -y;
+  if (y > mYMax) return nullptr;
 
   size_t bin = getZBin(z) + mNBinZ * (getYBin(y) + mNBinY * getXBin(x));
   if (bin >= mData.size()) {

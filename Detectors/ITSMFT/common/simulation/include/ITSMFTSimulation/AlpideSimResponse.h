@@ -124,14 +124,14 @@ class AlpideSimResponse
 inline int AlpideSimResponse::getXBin(float xpos) const
 {
   /// get x bin w/o checking for over/under flow. xpos MUST be >=0
-  return xpos * mStepInvX;
+  return xpos * mStepInvX + 0.5f;
 }
 
 //-----------------------------------------------------
 inline int AlpideSimResponse::getYBin(float ypos) const
 {
   /// get y bin w/o checking for over/under flow. ypos MUST be >=0
-  return ypos * mStepInvY;
+  return ypos * mStepInvY + 0.5f;
 }
 
 //-----------------------------------------------------
