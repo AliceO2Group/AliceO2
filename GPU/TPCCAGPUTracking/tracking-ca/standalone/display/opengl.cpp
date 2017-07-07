@@ -322,6 +322,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 			float smallest = 1e20;
 			for (int k = 0; k < track.NClusters(); k++)
 			{
+				if (merger.ClusterRowType()[track.FirstClusterRef() + k] < 0) continue;
 				int cid = merger.OutputClusterIds()[track.FirstClusterRef() + k];
 				float dist = globalPos[cid].x * globalPos[cid].x + globalPos[cid].y * globalPos[cid].y + globalPos[cid].z * globalPos[cid].z;
 				if (dist < smallest)
@@ -351,6 +352,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 				for (int k = 0; k < track.NClusters(); k++)
 				{
 					if (clusterused[k]) continue;
+					if (merger.ClusterRowType()[track.FirstClusterRef() + k] < 0) continue;
 					int cid = merger.OutputClusterIds()[track.FirstClusterRef() + k];
 					float dist = (globalPos[cid].x - globalPos[lastcid].x) * (globalPos[cid].x - globalPos[lastcid].x) +
 					             (globalPos[cid].y - globalPos[lastcid].y) * (globalPos[cid].y - globalPos[lastcid].y) +
@@ -365,6 +367,7 @@ void DrawFinal(AliHLTTPCCAStandaloneFramework &hlt)
 			}
 			else
 			{
+				if (merger.ClusterRowType()[track.FirstClusterRef() + j] < 0) continue;
 				bestcid = merger.OutputClusterIds()[track.FirstClusterRef() + j];
 			}
 			if (separateGlobalTracks && !linestarted && globalPos[bestcid].w < SEPERATE_GLOBAL_TRACKS_DISTINGUISH_TYPES)
