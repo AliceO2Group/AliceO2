@@ -71,7 +71,7 @@ class Detector : public o2::Base::Detector
 
   void SetTOFholes(Bool_t flag = kTRUE) { mTOFHoles = flag; }
  protected:
-  HitType* AddHit(Float_t x,Float_t y,Float_t z,Float_t time,Float_t energy,Int_t trackId,Int_t detId);
+  HitType* AddHit(Float_t x, Float_t y, Float_t z, Float_t time, Float_t energy, Int_t trackId, Int_t detId);
   virtual void DefineGeometry(Float_t xtof, Float_t ytof, Float_t zlenA) final;
   virtual void MaterialMixer(Float_t* p, const Float_t* const a, const Float_t* const m, Int_t n) const final;
 
@@ -97,8 +97,8 @@ class Detector : public o2::Base::Detector
   Int_t mTOFSectors[o2::tof::Geo::NSECTORS];
   Bool_t mTOFHoles; // flag to allow for holes in front of the PHOS
 
-  /// container for data points 
-  TClonesArray*  mHitCollection;
+  /// container for data points
+  TClonesArray* mHitCollection;
   int mMCTrackBranchId; //! cache for the MCTrackBranchID (to avoid string based query)
 
   ClassDefOverride(Detector, 1);
