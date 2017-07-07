@@ -39,9 +39,15 @@ class FrameStructure : public FairModule {
 private:
     void MakeHeatScreen(const char* name, Float_t dyP, Int_t rot1, Int_t rot2);
     void WebFrame(const char* name, Float_t dHz, Float_t theta0, Float_t phi0);
+    void CreateMaterials();
 
     bool mCaveIsAvailable = false; ///! if the mother volume is available (to hook the frame)
     
+    // medium IDs for the Frame
+    int mAirMedID=-1;
+    int mSteelMedID=-1;
+    int mAluMedID=-1;
+
     ClassDefOverride(FrameStructure, 1);
 };
 

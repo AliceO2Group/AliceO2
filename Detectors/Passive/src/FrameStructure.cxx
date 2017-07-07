@@ -21,6 +21,8 @@
 #include <TSystem.h>
 #include <TVirtualMC.h>
 
+#include <cassert>
+
 namespace o2
 {
 namespace Passive
@@ -43,9 +45,8 @@ void FrameStructure::MakeHeatScreen(const char* name, Float_t dyP, Int_t rot1, I
 {
   // Heat screen panel
   //
-  // Int_t *idtmed = fIdtmed->GetArray()-1999;
-  const Int_t kAir = 1; // idtmed[2004];
-  const Int_t kAlu = 1; // idtmed[2008];
+  const Int_t kAir = mAirMedID;
+  const Int_t kAlu = mAluMedID;
 
   Float_t dx, dy;
   char mname[16];
@@ -122,11 +123,10 @@ void FrameStructure::WebFrame(const char* name, Float_t dHz, Float_t theta0, Flo
   //
   // Create a web frame element
   //
-  // Int_t *idtmed = fIdtmed->GetArray()-1999;
   const Float_t krad2deg = 180. / TMath::Pi();
   const Float_t kdeg2rad = 1. / krad2deg;
-  const Int_t kAir = 1;   // idtmed[2004];
-  const Int_t kSteel = 1; // idtmed[2064];
+  const Int_t kAir = mAirMedID;
+  const Int_t kSteel = mSteelMedID;
 
   Float_t ptrap[11];
   char nameA[16];
@@ -167,6 +167,7 @@ void FrameStructure::WebFrame(const char* name, Float_t dHz, Float_t theta0, Flo
 
 void FrameStructure::ConstructGeometry()
 {
+  // TODO: we should be allowed to call this function only once
   if (TVirtualMC::GetMC() == nullptr) {
     throw std::runtime_error("VMC instance not initialized");
   }
@@ -174,18 +175,10 @@ void FrameStructure::ConstructGeometry()
   // verify that we have the world volume already setup
   if (gGeoManager != nullptr && gGeoManager->GetVolume(TOPNAME)) {
     mCaveIsAvailable = true;
-    std::cout << TOPNAME << " is available \n";
   }
 
-  // this code is temporary until I have a way to access the materials properly
-  // create some fake material for the moment
-  int matid = 0;
-  float buf[1];
-  TVirtualMC::GetMC()->Material(matid, "fakemat", 1., 1., 1., 1., 1., buf, 1);
-
-  double ubuf[1];
-  int id = 0;
-  TVirtualMC::GetMC()->Medium(id, "fakemedium", 1, 1, 1, 1., 1., 1., 1., 1., 1., ubuf, 0);
+  // create materials
+  CreateMaterials();
 
   Int_t idrotm[2299];
 
@@ -241,7 +234,6 @@ void FrameStructure::ConstructGeometry()
   AliMatrix(idrotm[2032], 0.0, 0.0, 90.0, 190.0, 90.0, 100.0);
   AliMatrix(idrotm[2033], 0.0, 0.0, 90.0, 350.0, 90.0, 80.0);
 
-  // Int_t *idtmed = fIdtmed->GetArray()-1999;
   //
   // The Space frame
   //
@@ -254,8 +246,8 @@ void FrameStructure::ConstructGeometry()
   //
   // Constants
   const Float_t kEps = 0.01;
-  const Int_t kAir = 1;   // idtmed[2004];
-  const Int_t kSteel = 1; // idtmed[2064];
+  const Int_t kAir = mAirMedID;
+  const Int_t kSteel = mSteelMedID;
 
   const Float_t krad2deg = 180. / TMath::Pi();
   const Float_t kdeg2rad = 1. / krad2deg;
@@ -1342,6 +1334,73 @@ void FrameStructure::ConstructGeometry()
   if (mCaveIsAvailable) {
     TVirtualMC::GetMC()->Gspos("BBMO", 1, TOPNAME, 0., 0., +376. + kBBMdz / 2. + 0.5, 0, "ONLY");
   }
+}
+
+namespace
+{
+// only here temporarily, I would like to harmonize Material treatment (outside of base detector)
+int Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
+             Float_t* buf = nullptr, Int_t nwbuf = 0)
+{
+  int kmat = -1;
+  TVirtualMC::GetMC()->Material(kmat, name, a, z, dens, radl, absl, buf, nwbuf);
+  return kmat;
+}
+
+int Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens, Int_t nlmat, Float_t* wmat = nullptr)
+{
+  // Check this!!!
+  int kmat = -1;
+  TVirtualMC::GetMC()->Mixture(kmat, name, a, z, dens, nlmat, wmat);
+  return kmat;
+}
+
+int Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, Int_t ifield, Float_t fieldm, Float_t tmaxfd,
+           Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf = nullptr, Int_t nbuf = 0)
+{
+  // Check this!!!
+  int kmed = -1;
+  TVirtualMC::GetMC()->Medium(kmed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf,
+                              nbuf);
+  return kmed;
+}
+}
+
+void FrameStructure::CreateMaterials()
+{
+  // Creates the materials
+  Float_t epsil, stemax, tmaxfd, deemax, stmin;
+
+  epsil = 1.e-4;  // Tracking precision,
+  stemax = -0.01; // Maximum displacement for multiple scat
+  tmaxfd = -20.;  // Maximum angle due to field deflection
+  deemax = -.3;   // Maximum fractional energy loss, DLS
+  stmin = -.8;
+  Int_t isxfld = 2.;    //((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
+  Float_t sxmgmx = 10.; //((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();
+
+  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
+  Float_t zsteel[4] = { 26., 24., 28., 14. };
+  Float_t wsteel[4] = { .715, .18, .1, .005 };
+
+  // Air
+  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
+  Float_t zAir[4] = { 6., 7., 8., 18. };
+  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t dAir = 1.20479E-3;
+
+  auto kSteelMatId = Mixture(65, "STAINLESS STEEL$", asteel, zsteel, 7.88, 4, wsteel);
+  auto kAirMatId = Mixture(5, "AIR$      ", aAir, zAir, dAir, 4, wAir);
+  auto kAluMatId = Material(9, "ALU      ", 26.98, 13., 2.7, 8.9, 37.2);
+
+  mSteelMedID = Medium(65, "Stainless Steel", kSteelMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  mAirMedID = Medium(5, "Air", kAirMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  mAluMedID = Medium(9, "Aluminum", kAluMatId, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+
+  // do a cross check
+  assert(gGeoManager->GetMedium("Air")->GetId() == mAirMedID);
+  assert(gGeoManager->GetMedium("Aluminum")->GetId() == mAluMedID);
+  assert(gGeoManager->GetMedium("Stainless Steel")->GetId() == mSteelMedID);
 }
 }
 }
