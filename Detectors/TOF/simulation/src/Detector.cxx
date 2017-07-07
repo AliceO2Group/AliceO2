@@ -28,7 +28,7 @@ using namespace o2::tof;
 
 ClassImp(Detector);
 
-Detector::Detector(const char* Name, Bool_t Active) : o2::Base::Detector(Name, Active), mTOFHoles(kTRUE), mHitCollection(new TClonesArray("o2::tof::HitType"))
+Detector::Detector(const char* Name, Bool_t Active) : o2::Base::Detector(Name, Active), mEventNr(0),mTOFHoles(kTRUE), mHitCollection(new TClonesArray("o2::tof::HitType")),mMCTrackBranchId(-1)
 {
   for (Int_t i = 0; i < Geo::NSECTORS; i++)
     mTOFSectors[i] = 1;
@@ -44,10 +44,7 @@ Bool_t Detector::ProcessHits(FairVolume* v) {
   static TLorentzVector position2;
   refMC->TrackPosition(position2);
   Float_t radius = TMath::Sqrt(position2.X()*position2.X() + position2.Y()*position2.Y());
-
-  LOG(INFO) << "Process hit in TOF volume ar R="<<  radius<< " - Z=" << position2.Z()<<  FairLogger::endl;
-
-  return kTRUE;
+  LOG(DEBUG) << "Process hit in TOF volume ar R="<<  radius<< " - Z=" << position2.Z()<<  FairLogger::endl;
 
   // This method is called from the MC stepping for the sensitive volume only
 
@@ -57,9 +54,7 @@ Bool_t Detector::ProcessHits(FairVolume* v) {
   }
 
   Float_t enDep = refMC->Edep();
-  if(enDep < 1E-8) return kFALSE;
-
-  printf("TOF en dep = %f\n",enDep);
+  if(enDep < 1E-8) return kFALSE; // wo se need a threshold?
 
   // ADD HIT
   static TLorentzVector position;
@@ -68,13 +63,31 @@ Bool_t Detector::ProcessHits(FairVolume* v) {
   int trackID = refMC->GetStack()->GetCurrentTrackNumber();
   int detID   = v->getMCid();
 
+  AddHit(position.X(),position.Y(),position.Z(),time,enDep,trackID,detID);
+
   return kTRUE; 
+}
+
+HitType* Detector::AddHit(Float_t x,Float_t y,Float_t z,Float_t time,Float_t energy,Int_t trackId,Int_t detId){
+  TClonesArray& clref = *mHitCollection;
+
+  Int_t size = clref.GetEntriesFast();
+
+  HitType *hit = new(clref[size]) HitType(x, y, z, time, energy, trackId, detId);
+
+  if(mMCTrackBranchId > -1) 
+    hit->SetLink(FairLink(-1, mEventNr, mMCTrackBranchId, trackId));
+
+  return hit;
 }
 
 void Detector::Register()
 {
   auto *mgr=FairRootManager::Instance();
   mgr->Register("TOFHit", "TOF", mHitCollection, kTRUE);
+
+
+  mMCTrackBranchId=mgr->GetBranchId("MCTrack");
 }
 
 TClonesArray* Detector::GetCollection(Int_t iColl) const {
@@ -1840,7 +1853,7 @@ void Detector::AddAlignableVolumes() const
   TString volPath;
   TString symName;
 
-  TString vpL0 = "ALIC_1/B077_1/BSEGMO";
+  TString vpL0 = "cave/B077_1/BSEGMO";
   TString vpL1 = "_1/BTOF";
   TString vpL2 = "_1";
   TString vpL3 = "/FTOA_0";
