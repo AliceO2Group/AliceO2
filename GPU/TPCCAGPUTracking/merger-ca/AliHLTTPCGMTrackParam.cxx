@@ -51,11 +51,9 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
 
   int first = 1;
   N = 0;
-
   for( int ihit=0; ihit<maxN; ihit++ ){
     float dL = 0;
     float ex1i = 0;
-
     if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2)) break;
     if (first == 0 && UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, t0, dL, ex1i, trDzDs2)) break;
     first = 0;
@@ -290,11 +288,14 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
     
     // Filter block
     
-    if (posY - fP[0] > 3 || posZ - fP[1] > 3) return 1;
-    
     float  z0 = posY - fP[0];
+	float  z1 = posZ - fP[1];
     float mS2 = Reciprocal(err2Z + c11);
     
+	fChi2  += mS0*z0*z0;
+    fChi2  +=  mS2*z1*z1 ;
+    if (fChi2 / (N + 1) > 5) return 1;
+	if (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3) return 1;
     if( fabs( fP[2] + z0*c20*mS0  ) > maxSinPhi ) return 1;
     
     // MS block
@@ -302,7 +303,6 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
     float dLabs = fabs( dLmask); 
     float corr = float(1.f) - par.fEP2* dLmask ;
     
-    fP[4]*= corr;
     fC40 *= corr;
     fC41 *= corr;
     fC42 *= corr;
@@ -325,33 +325,30 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
     k00 = c00 * mS0;
     k20 = c20 * mS0;
     k40 = c40 * mS0;
-    fChi2  += mS0*z0*z0;
-    fP[0] += k00 * z0;
-    fP[2] += k20 * z0;
-    fP[4] += k40 * z0;
-    fC[ 0] -= k00 * c00 ;
-    fC[ 5] -= k20 * c20 ;
-    fC[10] -= k00 * c40 ;
-    fC[12] -= k40 * c20 ;
-    fC[ 3] -= k20 * c00 ;
-    fC[14] -= k40 * c40 ;
   
-    float  z1 = posZ - fP[1];
     
     k11 = c11 * mS2;
     k31 = c31 * mS2;
     
-    fChi2  +=  mS2*z1*z1 ;
-    if (fChi2 / (N + 1) > 5) return 1;
     fNDF  += 2;
     N+=1;
     
+	fP[0] += k00 * z0;
     fP[1] += k11 * z1;
+	fP[2] += k20 * z0;
     fP[3] += k31 * z1;
+	fP[4]*= corr;
+	fP[4] += k40 * z0;
     
-    fC[ 7] -= k31 * c11;
-    fC[ 2] -= k11 * c11;
+	fC[ 0] -= k00 * c00 ;
+	fC[ 2] -= k11 * c11;
+	fC[ 3] -= k20 * c00 ;
+    fC[ 5] -= k20 * c20 ;
+	fC[ 7] -= k31 * c11;
     fC[ 9] -= k31 * c31;
+    fC[10] -= k00 * c40 ;
+    fC[12] -= k40 * c20 ;
+    fC[14] -= k40 * c40 ;
     
     return 0;
 }
@@ -576,18 +573,21 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, flo
 	AliHLTTPCGMTrackParam t = track.Param();
 	float Alpha = track.Alpha();  
 	int nTrackHitsOld = nTrackHits;
+	float ptOld = t.QPt();
 	t.Fit( PolinomialFieldBz,
 	   x+track.FirstClusterRef(),
 	   y+track.FirstClusterRef(),
 	   z+track.FirstClusterRef(),
 	   rowType+track.FirstClusterRef(),
 	   alpha+track.FirstClusterRef(),
-	   param, nTrackHits, Alpha, 0 );      
+	   param, nTrackHits, Alpha );      
 	
 	if ( fabs( t.QPt() ) < 1.e-4 ) t.QPt() = 1.e-4 ;
-	bool ok = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(track.Param().QPt()) &&
-			t.CheckNumericalQuality() &&
-			fabs( t.SinPhi() ) <= .999;
+	bool okhits = nTrackHits >= TRACKLET_SELECTOR_MIN_HITS(track.Param().QPt());
+	bool okqual = t.CheckNumericalQuality();
+	bool okphi = fabs( t.SinPhi() ) <= .999;
+			
+	bool ok = okhits && okqual && okphi;
 
 	if (param.HighQPtForward() < fabs(track.Param().QPt()))
 	{
