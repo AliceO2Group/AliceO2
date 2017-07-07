@@ -51,6 +51,12 @@ class SimpleEventDisplay : public CalibRawBase
 
     CalPad* getCalPadMax() {return &mPadMax;}
 
+    /// Set currently selected sector
+    void setSelectedSector(Int_t selectedSector) { mSelectedSector=selectedSector; }
+
+    /// Set last processed sector
+    void setLastSector(Int_t lastSector) { mLastSector=lastSector; }
+
     void setPedstals(CalPad* pedestals) { mPedestals = pedestals; }
   //   TH1D* MakePadSignals(Int_t roc, Int_t channel);
     TH1D* MakePadSignals(Int_t roc, Int_t row, Int_t pad);
