@@ -54,8 +54,14 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
   for( int ihit=0; ihit<maxN; ihit++ ){
     float dL = 0;
     float ex1i = 0;
+	if (rowType[ihit] < 0) continue;
     if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2)) break;
-    if (first == 0 && UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, t0, dL, ex1i, trDzDs2)) break;
+    if (first == 0)
+	{
+		int retVal = UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, t0, dL, ex1i, trDzDs2);
+		if (retVal == 1) break;
+		if (retVal == 2) rowType[ihit] = -(rowType[ihit] + 1);
+	}
     first = 0;
   }
 }
@@ -295,7 +301,7 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
 	fChi2  += mS0*z0*z0;
     fChi2  +=  mS2*z1*z1 ;
     if (fChi2 / (N + 1) > 5) return 1;
-	if (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3) return 1;
+	if (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3) return 2;
     if( fabs( fP[2] + z0*c20*mS0  ) > maxSinPhi ) return 1;
     
     // MS block
