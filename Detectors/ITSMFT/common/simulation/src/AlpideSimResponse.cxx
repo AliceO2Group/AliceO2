@@ -12,6 +12,7 @@
 /// \brief Implementation of the ITSMFT Alpide simulated response parametrization
 
 #include "ITSMFTSimulation/AlpideSimResponse.h"
+#include <TSystem.h>
 #include <stdio.h>
 #include <cstddef>
 #include <fstream>
@@ -44,7 +45,7 @@ void AlpideSimResponse::initData()
   if (mDataPath.length() && mDataPath.back() != '/') {
     mDataPath.push_back('/');
   }
-
+  mDataPath = gSystem->ExpandPathName(mDataPath.data());
   string inpfname = mDataPath + mGridXName;
   std::ifstream inpGrid;
 

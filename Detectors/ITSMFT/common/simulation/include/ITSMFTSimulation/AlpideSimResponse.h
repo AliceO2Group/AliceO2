@@ -83,8 +83,8 @@ class AlpideSimResponse
   float mStepInvY = 0;           /// inverse step of the Y grid
   float mStepInvZ = 0;           /// inverse step of the Z grid
   std::vector<RespSimMat> mData; /// response data
-
-  std::string mDataPath = "./alpide_grid";              /// path to look for data file
+  /// path to look for data file
+  std::string mDataPath  = "$(O2_ROOT)/share/Detectors/ITSMFT/data/alpideResponseData";
   std::string mGridXName = "grid_list_x.txt";           /// name of the file with grid in X
   std::string mGridYName = "grid_list_y.txt";           /// name of the file with grid in Y
   std::string mXYDataFmt = "data_pixels_%.2f_%.2f.txt"; /// format to read the data for given X,Y

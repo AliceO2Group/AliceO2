@@ -32,3 +32,12 @@ set(BUCKET_NAME itsmft_simulation_bucket)
 
 O2_GENERATE_LIBRARY()
 
+set(TEST_SRCS
+  test/testAlpideSimResponse.cxx
+)
+
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+  TEST_SRCS ${TEST_SRCS}
+)
