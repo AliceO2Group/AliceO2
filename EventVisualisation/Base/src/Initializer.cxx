@@ -51,9 +51,6 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
 //  gEve->AddEvent(eventManager);
   
   setupGeometry();
-  gSystem->ProcessEvents();
-  gEve->Redraw3D(true);
-  
   setupBackground();
   
   // Setup windows size, fullscreen and focus
@@ -67,6 +64,7 @@ Initializer::Initializer(EventManager::EDataSource defaultDataSource)
     
   }
   gEve->GetBrowser()->Layout();
+  gEve->Redraw3D(true);
   gSystem->ProcessEvents();
   
   setupCamera();
