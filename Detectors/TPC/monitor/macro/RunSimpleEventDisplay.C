@@ -300,7 +300,7 @@ void FillMaxHistsSector()
 void SelectSector(Int_t sector)
 {
   mSelectedSector=sector%36;
-  mEvDisp.mSelectedSector=mSelectedSector;
+  mEvDisp.setSelectedSector(mSelectedSector);
   FillMaxHists(1);
 }
 
@@ -453,8 +453,8 @@ void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile="", Int_t nTim
     }
   }
   mEvDisp.setupContainers(fileInfo);
-  mEvDisp.mSelectedSector=mSelectedSector;
-  mEvDisp.mLastSelSector=mSelectedSector;
+  mEvDisp.setSelectedSector(mSelectedSector);
+  mEvDisp.setLastSector (mSelectedSector);
   mEvDisp.setTimeBinsPerCall(nTimeBinsPerCall);
   InitGUI();
 //  while (mRawReader->NextEvent() && mRawReader->GetEventFromTag()==0) Next();
