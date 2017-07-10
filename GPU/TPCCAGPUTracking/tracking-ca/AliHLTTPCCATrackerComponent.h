@@ -117,6 +117,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     TString fGPULibrary;			  //Name of the library file that provides the GPU tracker object
     int fGPUStuckProtection;		//Protect from stuck GPUs
 	int fAsync;                       //Run tracking in async thread to catch GPU hangs....
+	int fDumpEvent;					//Debug function to dump event for standalone tracker
 
     /** set configuration parameters **/
     void SetDefaultConfiguration();
