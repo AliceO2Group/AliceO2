@@ -300,6 +300,8 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
 	float  z1 = posZ - fP[1];
     float mS2 = Reciprocal(err2Z + c11);
     
+	float tmpCut = param.HighQPtForward() < fP[4] ? 5 : 5;
+	if (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut) return 2;
 	fChi2  += mS0*z0*z0;
     fChi2  +=  mS2*z1*z1;
     if (fChi2 / (N + 1) > 5) return 1;
