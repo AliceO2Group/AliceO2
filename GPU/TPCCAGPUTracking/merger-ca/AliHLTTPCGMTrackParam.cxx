@@ -53,7 +53,7 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
     if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2)) break;
     if (first == 0)
 	{
-		int retVal = UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, t0, dL, ex1i, trDzDs2);
+		int retVal = UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, dL, ex1i, trDzDs2);
 		if (retVal == 2) rowType[ihit] = -(rowType[ihit] + 1);
 		if (retVal != 0) break;
 	}
@@ -232,7 +232,7 @@ GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz,float 
     return 0;
 }
 
-GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMTrackLinearisation& t0, float& dL, float& ex1i, float trDzDs2)
+GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, float& dL, float& ex1i, float trDzDs2)
 {
 	if (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3) return 2;
 	
