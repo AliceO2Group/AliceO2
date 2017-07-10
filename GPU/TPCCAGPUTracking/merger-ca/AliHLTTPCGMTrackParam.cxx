@@ -41,9 +41,6 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
   float trDzDs2 = t0.DzDs()*t0.DzDs();
  
   AliHLTTPCGMTrackFitParam par;
-  const float kRho = 1.025e-3;//0.9e-3;
-  const float kRadLen = 29.532;//28.94;
-  const float kRhoOverRadLen = kRho / kRadLen;
     
   int maxN = N;
 
@@ -66,10 +63,6 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
 
 GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, bool UseMeanPt, int first, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMTrackLinearisation& t0, float& dL, float& ex1i, float trDzDs2)
 {
-    const float kRho = 1.025e-3;//0.9e-3;
-    const float kRadLen = 29.532;//28.94;
-    const float kRhoOverRadLen = kRho / kRadLen;
-    
     float sliceAlpha = posAlpha;
     
     if ( fabs( sliceAlpha - Alpha ) > 1.e-4 ) {
@@ -184,6 +177,9 @@ GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz,float 
 	SetCov( 14,  10 );
 	SetChi2( 0 );
 	SetNDF( -3 );
+	const float kRho = 1.025e-3;//0.9e-3;
+	const float kRadLen = 29.532;//28.94;
+	const float kRhoOverRadLen = kRho / kRadLen;
 	CalculateFitParameters( par, kRhoOverRadLen, kRho, UseMeanPt );
 	N+=1;
 	return 0;
