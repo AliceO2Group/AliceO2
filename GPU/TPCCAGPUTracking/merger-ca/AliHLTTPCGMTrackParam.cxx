@@ -45,8 +45,6 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
   const float kRadLen = 29.532;//28.94;
   const float kRhoOverRadLen = kRho / kRadLen;
     
-  CalculateFitParameters( par, kRhoOverRadLen, kRho, UseMeanPt );
-
   int maxN = N;
 
   int first = 1;
