@@ -31,7 +31,7 @@
 GPUd() void AliHLTTPCGMTrackParam::Fit
 (
  float* PolinomialFieldBz,
- float x[], float y[], float z[], unsigned int rowType[], float alpha[], AliHLTTPCCAParam &param,
+ float x[], float y[], float z[], int rowType[], float alpha[], AliHLTTPCCAParam &param,
  int &N,
  float &Alpha, 
  bool UseMeanPt,
@@ -59,8 +59,8 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
     if (first == 0)
 	{
 		int retVal = UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, t0, dL, ex1i, trDzDs2);
-		if (retVal == 1) break;
 		if (retVal == 2) rowType[ihit] = -(rowType[ihit] + 1);
+		if (retVal != 0) break;
 	}
     first = 0;
   }
@@ -240,6 +240,8 @@ GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz,float 
 
 GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, AliHLTTPCGMTrackLinearisation& t0, float& dL, float& ex1i, float trDzDs2)
 {
+	if (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3) return 2;
+	
     float &fC22 = fC[5];
     float &fC33 = fC[9];
     float &fC40 = fC[10];
@@ -299,9 +301,8 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
     float mS2 = Reciprocal(err2Z + c11);
     
 	fChi2  += mS0*z0*z0;
-    fChi2  +=  mS2*z1*z1 ;
+    fChi2  +=  mS2*z1*z1;
     if (fChi2 / (N + 1) > 5) return 1;
-	if (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3) return 2;
     if( fabs( fP[2] + z0*c20*mS0  ) > maxSinPhi ) return 1;
     
     // MS block
@@ -570,7 +571,7 @@ void AliHLTTPCGMTrackParam::SetExtParam( const AliExternalTrackParam &T )
 }
 #endif
 
-GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, unsigned int* rowType, float* alpha, AliHLTTPCCAParam& param)
+GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, float* PolinomialFieldBz, float* x, float* y, float* z, int* rowType, float* alpha, AliHLTTPCCAParam& param)
 {
 	if( !track.OK() ) return;    
 
@@ -625,7 +626,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, flo
 
 #ifdef HLTCA_GPUCODE
 
-GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, float* PolinomialFieldBz, float* x, float* y, float* z, unsigned int* rowType, float* alpha, AliHLTTPCCAParam* param)
+GPUg() void RefitTracks(AliHLTTPCGMMergedTrack* tracks, int nTracks, float* PolinomialFieldBz, float* x, float* y, float* z, int* rowType, float* alpha, AliHLTTPCCAParam* param)
 {
 	for (int i = get_global_id(0);i < nTracks;i += get_global_size(0))
 	{
