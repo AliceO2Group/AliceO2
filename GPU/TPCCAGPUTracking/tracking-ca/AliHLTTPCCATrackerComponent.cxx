@@ -75,6 +75,7 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fGPULibrary(""),
   fGPUStuckProtection(0),
   fAsync(0),
+  fDumpEvent(0),
   fAsyncProcessor()
 {
   // see header file for class documentation
@@ -110,6 +111,7 @@ AliHLTProcessor(),
   fGPULibrary(""),
   fGPUStuckProtection(0),
   fAsync(0),
+  fDumpEvent(0),
   fAsyncProcessor()
 {
   // see header file for class documentation
@@ -267,6 +269,12 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
     if (argument.CompareTo( "-GlobalTracking" ) == 0) {
       fGlobalTracking = 1;
       HLTInfo( "Global Tracking Activated" );
+      continue;
+    }
+
+    if (argument.CompareTo( "-DumpEvent" ) == 0) {
+      fDumpEvent = 1;
+      HLTImportant( "Dumping Event for Debugging" );
       continue;
     }
 
@@ -696,6 +704,23 @@ void* AliHLTTPCCATrackerComponent::TrackerDoEvent(void* par)
       
         HLTDebug("Read %d->%d hits for slice %d - patch %d", pcN[patch], fClusterData[islice].NumberOfClusters(), slice, patch );
       }
+    }
+  }
+  
+  if (fDumpEvent)
+  {
+    static int nEvent = 0;
+    std::ofstream out;
+    char filename[256];
+    sprintf(filename, "event.%d.dump", nEvent++);
+    out.open(filename, std::ofstream::binary);
+    if (!out.fail())
+    {
+      for ( int iSlice = 0; iSlice < fgkNSlices; iSlice++ )
+      {
+        fClusterData[iSlice].WriteEvent( out );
+      }
+      out.close();
     }
   }
 
