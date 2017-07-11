@@ -13,7 +13,7 @@
 
 #include "ITSMFTSimulation/AlpideSimResponse.h"
 #include <TSystem.h>
-#include <stdio.h>
+#include <cstdio>
 #include <cstddef>
 #include <fstream>
 #include <iostream>
