@@ -1,8 +1,20 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include <vector>
 #include <fstream>
 #include <iostream>
 
 #include "TROOT.h"
+#include "TLine.h"
+#include "TMath.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TClonesArray.h"
@@ -10,6 +22,7 @@
 #include "TStyle.h"
 #include "TGraph.h"
 #include "TAxis.h"
+#include "TH1F.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/Digitizer.h"
@@ -20,12 +33,15 @@
 
 using namespace o2::TPC;
 
+void drawSectorBoundaries();
+
 void testHitsDigitsClusters(int iEv=0,
-               std::string simFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/bin/AliceO2_TGeant3.tpc.mc_10_event.root",
-               std::string digiFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/bin/AliceO2_TGeant3.tpc.digi_10_event.root",
-               std::string clusFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/bin/AliceO2_TGeant3.tpc.clusters_10_event.root",
-               std::string trackFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/bin/tracks.root")
+               std::string simFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/AliceO2_TGeant3.tpc.mc_100_event.root",
+               std::string digiFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/AliceO2_TGeant3.tpc.digi_100_event.root",
+               std::string clusFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/AliceO2_TGeant3.tpc.clusters_100_event.root",
+               std::string trackFile="~/AliSoftware/sw/BUILD/O2-latest-O2dir/O2/tracks.root")
 {
+  gStyle->SetMarkerStyle(20);
   gStyle->SetMarkerSize(0.5);
   gStyle->SetTitleSize(24);
 
@@ -39,11 +55,15 @@ void testHitsDigitsClusters(int iEv=0,
 
   TGraph *grHitsA = new TGraph();
   grHitsA->SetTitle("A side ; x [cm]; y [cm]");
+  grHitsA->SetMarkerColor(kBlue+2);
   TGraph *grHitsC = new TGraph();
   grHitsC->SetTitle("C side ; x [cm]; y [cm]");
+  grHitsC->SetMarkerColor(kBlue+2);
   TGraph *grHitsAxz = new TGraph();
+  grHitsAxz->SetMarkerColor(kBlue+2);
   grHitsAxz->SetTitle("; x [cm]; z [cm]");
   TGraph *grHitsCxz = new TGraph();
+  grHitsCxz->SetMarkerColor(kBlue+2);
   grHitsCxz->SetTitle("; x [cm]; z [cm]");
 
 
@@ -167,7 +187,7 @@ void testHitsDigitsClusters(int iEv=0,
     }
   }
 
-  // clusters from tracks
+  // Tracks
   TFile *tracks = TFile::Open(trackFile.data());
   TTree *trackTree = (TTree *)gDirectory->Get("events");
 
@@ -184,12 +204,22 @@ void testHitsDigitsClusters(int iEv=0,
   grClustersTrackCxz->SetMarkerColor(kOrange+2);
   grClustersTrackCxz->SetMarkerSize(1);
 
+  TGraph *grTrackA = new TGraph();
+  TGraph *grTrackC = new TGraph();
+  TGraph *grTrackxz = new TGraph();
+
+  TH1F *hResY = new TH1F("hResY", "; Residual y [cm]; Entries", 101, -2, 2);
+  TH1F *hResZ = new TH1F("hResZ", "; Residual z [cm]; Entries", 101, -2, 2);
 
   std::vector<TrackTPC> *arrTracks = 0;
   trackTree->SetBranchAddress("Tracks", &arrTracks);
 
   int clusCounterTrackA = 0;
   int clusCounterTrackC = 0;
+
+  int trackCounterA = 0;
+  int trackCounterC = 0;
+  int trackCounterXZ = 0;
 
   trackTree->GetEntry(iEv);
   for (auto trackObject : *arrTracks) {
@@ -212,14 +242,31 @@ void testHitsDigitsClusters(int iEv=0,
       const float digiY = posGlob.getY();
       const float digiZ = zPosition;
 
+      const std::array<float,3> bField = {{0,0,-5}};
+
+      // Track parameters are in local coordinate system - propagate to pad row of the cluster
+      trackObject.propagateParamTo(posLoc.getX(), bField);
+
+      LocalPosition3D trackLoc(trackObject.getX(), trackObject.getY(), trackObject.getZ());
+      GlobalPosition3D trackGlob = Mapper::LocalToGlobal(trackLoc, cru.sector());
+
+      const float resY = trackLoc.getY() - posLoc.getY();
+      const float resZ = trackLoc.getY() - posLoc.getZ();
+
+      hResY->Fill(resY);
+      hResZ->Fill(resZ);
+
       if(cru.side() == Side::A) {
         grClustersTrackA->SetPoint(clusCounterTrackA, digiX, digiY);
         grClustersTrackAxz->SetPoint(clusCounterTrackA++, digiX, digiZ);
+        grTrackA->SetPoint(trackCounterA++, trackGlob.getX(), trackGlob.getY());
       }
       if(cru.side() == Side::C) {
         grClustersTrackC->SetPoint(clusCounterTrackC, digiX, digiY);
         grClustersTrackCxz->SetPoint(clusCounterTrackC++, digiX, digiZ);
+        grTrackC->SetPoint(trackCounterC++, trackGlob.getX(), trackGlob.getY());
       }
+      grTrackxz->SetPoint(trackCounterXZ++, trackGlob.getX(), trackGlob.getZ());
     }
   }
 
@@ -258,4 +305,41 @@ void testHitsDigitsClusters(int iEv=0,
   grDigitsCxz->Draw("p");
   grClustersCxz->Draw("p");
   grClustersTrackCxz->Draw("p");
+
+  TCanvas *CTracks = new TCanvas("CTracks", "Compare Tracks - Cluster on A & C side", 1200, 600);
+  CTracks->Divide(2,1);
+  CTracks->cd(1);
+  grClustersTrackA->Draw("ap");
+  grClustersTrackA->GetXaxis()->SetLimits(-250, 250);
+  grClustersTrackA->SetMinimum(-250);
+  grClustersTrackA->SetMaximum(250);
+  grTrackA->Draw("p");
+  drawSectorBoundaries();
+  CTracks->cd(2);
+  grClustersTrackC->Draw("ap");
+  grClustersTrackC->GetXaxis()->SetLimits(-250, 250);
+  grClustersTrackC->SetMinimum(-250);
+  grClustersTrackC->SetMaximum(250);
+  grTrackC->Draw("p");
+  drawSectorBoundaries();
+
+  TCanvas *CTracksXZ = new TCanvas("CTracksXZ", "Compare Tracks - Clusters on A & C side", 600, 600);
+  grClustersAxz->Draw("ap");
+  grClustersAxz->GetXaxis()->SetLimits(-250, 250);
+  grClustersAxz->SetMinimum(-250);
+  grClustersAxz->SetMaximum(250);
+  grClustersCxz->Draw("p");
+  grTrackxz->Draw("p");
+}
+
+void drawSectorBoundaries()
+{
+  TLine *sectorBoundary[18];
+  for(float i = 0; i<18; ++i) {
+    const float angle = i*20.f*TMath::DegToRad();
+    sectorBoundary[int(i)] = new TLine(80.f*std::cos(angle), 80.f*std::sin(angle), 250.f*std::cos(angle), 250.f*std::sin(angle));
+    sectorBoundary[int(i)]->SetLineStyle(2);
+    sectorBoundary[int(i)]->SetLineColor(kGray);
+    sectorBoundary[int(i)]->Draw("same");
+  }
 }

@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #ifndef ALICEO2_TPC_TRACKTPC
 #define ALICEO2_TPC_TRACKTPC
 
@@ -57,27 +67,41 @@ class TrackTPC {
     float getTruncatedMean(float low=0.05, float high=0.7, int type=1, int removeRows=0, int *nclPID=nullptr) const;
 
 
-    float GetX()                         const { return mTrackParCov.GetX(); }
-    float GetAlpha()                     const { return mTrackParCov.GetAlpha(); }
-    float GetY()                         const { return mTrackParCov.GetY(); }
-    float GetZ()                         const { return mTrackParCov.GetZ(); }
-    float GetSnp()                       const { return mTrackParCov.GetSnp(); }
-    float GetTgl()                       const { return mTrackParCov.GetTgl(); }
-    float GetQ2Pt()                      const { return mTrackParCov.GetQ2Pt(); }
+    /// Get the TrackParCov object
+    o2::Base::Track::TrackParCov getTrack() { return mTrackParCov; }
+
+
+
+    float getX()                         const { return mTrackParCov.GetX(); }
+    float getAlpha()                     const { return mTrackParCov.GetAlpha(); }
+    float getY()                         const { return mTrackParCov.GetY(); }
+    float getZ()                         const { return mTrackParCov.GetZ(); }
+    float getSnp()                       const { return mTrackParCov.GetSnp(); }
+    float getTgl()                       const { return mTrackParCov.GetTgl(); }
+    float getQ2Pt()                      const { return mTrackParCov.GetQ2Pt(); }
 
     // derived getters
-    float GetCurvature(float b)          const { return mTrackParCov.GetCurvature(float(b));}
-    float GetSign()                      const { return mTrackParCov.GetSign();}
-    float GetPhi()                       const { return mTrackParCov.GetPhi();}
-    float GetPhiPos()                    const { return mTrackParCov.GetPhiPos(); }
+    float getCurvature(float b)          const { return mTrackParCov.GetCurvature(float(b));}
+    float getSign()                      const { return mTrackParCov.GetSign();}
+    float getPhi()                       const { return mTrackParCov.GetPhi();}
+    float getPhiPos()                    const { return mTrackParCov.GetPhiPos(); }
 
-    float GetP()                         const { return mTrackParCov.GetP(); }
-    float GetPt()                        const { return mTrackParCov.GetPt(); }
-    void  GetXYZ(std::array<float,3> &xyz)           const { mTrackParCov.GetXYZ(xyz); }
-    bool  GetPxPyPz(std::array<float,3> &pxyz)       const { return mTrackParCov.GetPxPyPz(pxyz); }
-    bool  GetPosDir(std::array<float,9> &posdirp)    const { return mTrackParCov.GetPosDir(posdirp); }
+    float getP()                         const { return mTrackParCov.GetP(); }
+    float getPt()                        const { return mTrackParCov.GetPt(); }
+    void  getXYZ(std::array<float,3> &xyz)           const { mTrackParCov.GetXYZ(xyz); }
+    bool  getPxPyPz(std::array<float,3> &pxyz)       const { return mTrackParCov.GetPxPyPz(pxyz); }
+    bool  getPosDir(std::array<float,9> &posdirp)    const { return mTrackParCov.GetPosDir(posdirp); }
 
     /// \todo implement getters for covariance (missing access to full covariance in Track.h)
+
+
+    // parameters manipulation
+    bool  rotateParam(float alpha)       { return mTrackParCov.Rotate(alpha); }
+    bool  propagateParamTo(float xk, float b)        { return mTrackParCov.PropagateParamTo(xk, b); }
+    bool  propagateParamTo(float xk, const std::array<float,3> &b)    { return mTrackParCov.PropagateParamTo(xk, b); }
+    void  invertParam()                  { mTrackParCov.InvertParam(); }
+
+    void  printParam()                   { mTrackParCov.PrintParam(); }
 
 
   private:

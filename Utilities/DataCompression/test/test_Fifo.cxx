@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
@@ -10,16 +20,15 @@
 //* any purpose. It is provided "as is" without express or implied warranty. *
 //****************************************************************************
 
-//  @file   test_fifo.cxx
+//  @file   test_Fifo.cxx
 //  @author Matthias Richter
-//  @since  2015-12-06
+//  @since  2016-12-06
 //  @brief  Test program for thread safe FIFO
 
-//
-/*
-   g++ --std=c++11 -g -ggdb -pthread -o test_fifo test_fifo.cxx
-*/
-
+#define BOOST_TEST_MODULE Utility test
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
 #include "Fifo.h"
 #include <iostream>
 #include <iomanip>
@@ -36,22 +45,23 @@ bool processValue(T value) {
   return (value + 1 < nEvents);
 }
 
-template<class Fifo, typename T>
-void pushFifo(Fifo& fifo, T value) {
+template<class FifoT, typename T>
+void pushFifo(FifoT& fifo, T value = FifoT::value_type) {
   std::cout << "pushing " << value << std::endl;
   fifo.push(value);
 }
 
-int main()
+BOOST_AUTO_TEST_CASE(test_Fifo)
 {
-  o2::Test::Fifo<unsigned int> fifo;
+  using value_type = unsigned int;
+  o2::test::Fifo<value_type> fifo;
 
   // start a consumer thread which pulls from the FIFO to the function
   // processValue with a simulated prcessing of one second.
   std::thread consumer([&fifo]()
                        {
                          do {}
-                         while (fifo.pull([](unsigned int v)
+                         while (fifo.pull([](value_type v)
                                           {
                                             return processValue(v);
                                           }

@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 ///
 /// @file   readGBTFrames.cxx
 /// @author Sebastian Klewin
@@ -32,7 +42,7 @@ void addData(o2::TPC::GBTFrameContainer& container, std::string& infile, int fra
   std::cout << infile << std::endl;
   mtx.unlock();
 
-  container.addGBTFramesFromBinaryFile(infile, frames, rorcFlavor);
+  container.addGBTFramesFromBinaryFile(infile, rorcFlavor, frames);
 
   done = 1;
 }

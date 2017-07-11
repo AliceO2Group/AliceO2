@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 //-*- Mode: C++ -*-
 
 #ifndef ALICEO2_HEADER_HEARTBEATFRAME_H
@@ -36,7 +46,7 @@ struct HeartbeatHeader
 {
   union {
     // the complete 64 bit header word, initialize with blockType 1 and size 1
-    uint64_t headerWord = 0x11000000;
+    uint64_t headerWord = 0x1100000000000000;
     struct {
 	// bit 0 to 31: orbit number
 	uint32_t orbit;
@@ -54,13 +64,15 @@ struct HeartbeatHeader
 	uint8_t blockType:4;
     };
   };
+
+  operator bool() const {return headerWord != 0 && blockType == 0x1;}
 };
 
 struct HeartbeatTrailer
 {
   union {
-    // the complete 64 bit trailer word, initialize with blockType 1 and size 1
-    uint64_t trailerWord = 0x51000000;
+    // the complete 64 bit trailer word, initialize with blockType 5 and size 1
+    uint64_t trailerWord = 0x5100000000000000;
     struct {
 	// bit 0 to 31: data length in words
 	uint32_t dataLength;
@@ -78,6 +90,8 @@ struct HeartbeatTrailer
 	uint8_t blockType:4;
     };
   };
+
+  operator bool() const {return trailerWord != 0 && blockType == 0x5;}
 };
 
 // composite struct for the HBH and HBT which are the envelope for the payload

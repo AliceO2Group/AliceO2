@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file SyncPatternMonitor.h
 /// \brief Class to monitor the data stream and detect synchronization patterns
 /// \author Sebastian Klewin
@@ -86,7 +96,7 @@ inline
 short SyncPatternMonitor::addSequence(const short hw0, const short hw1, const short hw2, const short hw3) {
   checkWord(hw0,1); checkWord(hw1,2);
   checkWord(hw2,3); checkWord(hw3,0);
-  return getPosition();
+  return mPatternFound; //getPosition();
 };
 
 inline
@@ -109,7 +119,7 @@ void SyncPatternMonitor::checkWord(const short hw, const short pos) {
 
 inline
 void SyncPatternMonitor::patternFound(const short hw) { 
-  LOG(INFO) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
+  LOG(DEBUG) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "
      << "SYNC found at " << hw << " in " << mCheckedWords << FairLogger::endl;
   if (mPatternFound) {
     LOG(WARNING) << "SAMPA " << mSampa << " (" << ((mLowHigh == 0) ? " low" : "high") << "): "

@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 ///
 /// @file   Sector.h
 /// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
@@ -26,17 +36,15 @@ namespace TPC {
 class Sector
 {
   public:
-    enum
-    {
-        MaxSector = 36
-    };
+    // the number of sectors
+    static constexpr int MAXSECTOR=36;
 
     /// constructor
     Sector() {}
 
     /// construction
     /// @param [in] sec sector number
-    Sector(unsigned char sec) : mSector(sec % MaxSector) { ; }
+    Sector(unsigned char sec) : mSector(sec % MAXSECTOR) { ; }
 
     /// comparison operator
     bool operator==(const Sector &other) const { return mSector == other.mSector; }
@@ -53,8 +61,8 @@ class Sector
     /// while (++sec) { std::cout << "Sector: " << sec.getSector() << std::endl; }
     bool operator++()
     {
-      mLoop = ++mSector >= MaxSector;
-      mSector %= MaxSector;
+      mLoop = ++mSector >= MAXSECTOR;
+      mSector %= MAXSECTOR;
       return mLoop;
     }
 
@@ -63,18 +71,31 @@ class Sector
     operator int() { return int(mSector); }
 
     /// assignment operator with int
-    Sector& operator=(int sector) { mSector=sector%MaxSector; return *this; }
+    Sector& operator=(int sector) { mSector=sector%MAXSECTOR; return *this; }
 
     unsigned char getSector() const { return mSector; }
 
-    Side side() const { return (mSector < MaxSector / 2) ? Side::A : Side::C; }
+    Side side() const { return (mSector < MAXSECTOR / 2) ? Side::A : Side::C; }
 
     bool looped() const { return mLoop; }
 
     const double phi() const { return (mSector % SECTORSPERSIDE) * SECPHIWIDTH + SECPHIWIDTH / 2.; }
 
+    // helper function to retrieve a TPC sector given cartesian coordinates
+    template <typename T>
+    static int ToSector(T x, T y, T z) {
+      static const T invangle(static_cast<T>(180)/static_cast<T>(M_PI*20.)); // the angle describing one sector
+      // force positive angle for conversion
+      auto s = (std::atan2(-y,-x) + static_cast<T>(M_PI))*invangle;
+      // detect if on C size
+      if (z<static_cast<T>(0.)) {
+        s += Sector::MAXSECTOR/2;
+      }
+      return s;
+    }
+
   private:
-    unsigned char mSector{};    /// Sector representation 0-MaxSector
+    unsigned char mSector{};    /// Sector representation 0-MAXSECTOR
     bool mLoop{};   /// if operator execution resulted in looping
 };
 }

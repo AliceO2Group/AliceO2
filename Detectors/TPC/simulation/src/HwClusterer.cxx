@@ -1,11 +1,21 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file AliTPCUpgradeHwClusterer.cxx
 /// \brief Hwclusterer for the TPC
 
 #include "TPCSimulation/HwCluster.h"
 #include "TPCSimulation/HwClusterer.h"
 #include "TPCSimulation/HwClusterFinder.h"
-#include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
+#include "TPCBase/Digit.h"
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/PadSecPos.h"
@@ -23,18 +33,14 @@ std::mutex g_display_mutex;
 
 using namespace o2::TPC;
 
-HwClusterer::HwClusterer()
-  : HwClusterer(Processing::Parallel, 0, 360, 0, false, true, true, 8, 8, 0)
-{
-}
-
 //________________________________________________________________________
-HwClusterer::HwClusterer(Processing processingType, int globalTime, int cru, float minQDiff,
+HwClusterer::HwClusterer(Processing processingType, int globalTime, int cruMin, int cruMax, float minQDiff,
     bool assignChargeUnique, bool enableNoiseSim, bool enablePedestalSubtraction, int padsPerCF, int timebinsPerCF, int cfPerRow)
   : Clusterer()
   , mProcessingType(processingType)
   , mGlobalTime(globalTime)
-  , mCRUs(cru)
+  , mCRUMin(cruMin)
+  , mCRUMax(cruMax)
   , mMinQDiff(minQDiff)
   , mAssignChargeUnique(assignChargeUnique)
   , mEnableNoiseSim(enableNoiseSim)
@@ -74,10 +80,11 @@ void HwClusterer::Init()
    * initalize all cluster finder
    */
   mCfPerRow = (int)ceil((double)(mPadsMax+2+2)/(mPadsPerCF-2-2));
-  mClusterFinder.resize(mCRUs);
-  for (int iCRU = 0; iCRU < mCRUs; iCRU++){
-    mClusterFinder[iCRU].resize(mRowsMax);
-    for (int iRow = 0; iRow < mRowsMax; iRow++){
+  mClusterFinder.resize(mCRUMax);
+  const Mapper& mapper = Mapper::instance();
+  for (int iCRU = mCRUMin; iCRU < mCRUMax; iCRU++){
+    mClusterFinder[iCRU].resize(mapper.getNumberOfRowsPartition(iCRU));
+    for (int iRow = 0; iRow < mapper.getNumberOfRowsPartition(iCRU); iRow++){
       mClusterFinder[iCRU][iRow].resize(mCfPerRow);
       for (int iCF = 0; iCF < mCfPerRow; iCF++){
         int padOffset = iCF*(mPadsPerCF-2-2)-2;
@@ -102,7 +109,7 @@ void HwClusterer::Init()
    * vector of HwCluster vectors, one vector for each CRU (possible thread)
    * to store the clusters found there
    */
-  mClusterStorage.resize(mCRUs);
+  mClusterStorage.resize(mCRUMax);
 
 
   /* 
@@ -110,9 +117,9 @@ void HwClusterer::Init()
    * store there only those digits which are relevant for this particular 
    * CRU (thread)
    */
-  mDigitContainer.resize(mCRUs);
-  for (std::vector<std::vector<DigitMC*>>& dc : mDigitContainer ) dc.resize(mRowsMax);
-  
+  mDigitContainer.resize(mCRUMax);
+  for (int iCRU = mCRUMin; iCRU < mCRUMax; iCRU++)
+    mDigitContainer[iCRU].resize(mapper.getNumberOfRowsPartition(iCRU));
 
   mClusterContainer = new ClusterContainer();
   mClusterContainer->InitArray("o2::TPC::HwCluster");
@@ -120,7 +127,7 @@ void HwClusterer::Init()
 
 //________________________________________________________________________
 void HwClusterer::processDigits(
-    const std::vector<std::vector<DigitMC*>>& digits,
+    const std::vector<std::vector<Digit*>>& digits,
     const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
           std::vector<HwCluster>& cluster,
     const CfConfig config)
@@ -166,7 +173,7 @@ void HwClusterer::processDigits(
     /*
      * fill in digits
      */
-    for (std::vector<DigitMC*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
+    for (std::vector<Digit*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
       const Int_t iTime         = (*it)->getTimeStamp();
       const Int_t iPad          = (*it)->getPad() + 2;  // offset to have 2 empty pads on the "left side"
       const Float_t charge      = (*it)->getChargeFloat();
@@ -251,7 +258,7 @@ void HwClusterer::processDigits(
 //    /* 
 //     * remove digits again from storage
 //     */
-//    for (std::vector<DigitMC*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
+//    for (std::vector<Digit*>::const_iterator it = digits[iRow].begin(); it != digits[iRow].end(); ++it){
 //      const Int_t iTime       = (*it)->getTimeStamp();
 //      const Int_t iPad        = (*it)->getPad() + 2;  // offset to have 2 empty pads on the "left side"
 //  
@@ -274,8 +281,8 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
    * clear old storages
    */
   for (std::vector<HwCluster>& cs : mClusterStorage) cs.clear();
-  for (std::vector<std::vector<DigitMC*>>& dc : mDigitContainer ) {
-              for (std::vector<DigitMC*>& dcc : dc) dcc.clear();
+  for (std::vector<std::vector<Digit*>>& dc : mDigitContainer ) {
+              for (std::vector<Digit*>& dcc : dc) dcc.clear();
   }
 
 //  int iCRU;
@@ -291,7 +298,7 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
    * Loop over digits
    */
   for (TIter digititer = TIter(digits).Begin(); digititer != TIter::End(); ++digititer) {
-    DigitMC* digit = dynamic_cast<DigitMC*>(*digititer);
+    Digit* digit = dynamic_cast<Digit*>(*digititer);
     /*
      * add current digit to storage
      */
@@ -309,6 +316,47 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
     mDigitContainer[digit->getCRU()][digit->getRow()].push_back(digit);
   }
 
+  return ProcessTimeBins(iTimeBinMin, iTimeBinMax);
+}
+
+//________________________________________________________________________
+ClusterContainer* HwClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits)
+{
+  mClusterContainer->Reset();
+
+
+  /*  
+   * clear old storages
+   */
+  for (std::vector<HwCluster>& cs : mClusterStorage) cs.clear();
+  for (std::vector<std::vector<Digit*>>& dc : mDigitContainer ) {
+              for (std::vector<Digit*>& dcc : dc) dcc.clear();
+  }
+
+  int iTimeBin;
+  int iTimeBinMin = (mIsContinuousReadout)?mLastTimebin + 1 : 0;
+  int iTimeBinMax = mLastTimebin;
+
+  /*  
+   * Loop over digits
+   */
+  for (auto& digit_ptr : digits) {
+    Digit* digit = digit_ptr.get();
+    /*
+     * add current digit to storage
+     */
+
+    iTimeBin = digit->getTimeStamp();
+    if (iTimeBin < iTimeBinMin) continue;
+    iTimeBinMax = std::max(iTimeBinMax,iTimeBin);
+    mDigitContainer[digit->getCRU()][digit->getRow()].push_back(digit);
+  }
+
+  return ProcessTimeBins(iTimeBinMin, iTimeBinMax);
+}
+
+ClusterContainer* HwClusterer::ProcessTimeBins(int iTimeBinMin, int iTimeBinMax)
+{
 
    /*
    * vector to store all threads for parallel processing
@@ -324,10 +372,11 @@ ClusterContainer* HwClusterer::Process(TClonesArray *digits)
    * one and the current one.
    */
 
-  for (int iCRU = 0; iCRU < mCRUs; ++iCRU) {
+  const Mapper& mapper = Mapper::instance();
+  for (int iCRU = mCRUMin; iCRU < mCRUMax; ++iCRU) {
     struct CfConfig cfConfig = {
       iCRU,
-      mRowsMax,
+      mapper.getNumberOfRowsPartition(iCRU),
       mPadsMax+2+2,
       iTimeBinMin,
       iTimeBinMax,

@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
@@ -18,6 +28,7 @@
 #include "aliceHLTwrapper/Component.h"
 #include "aliceHLTwrapper/AliHLTDataTypes.h"
 #include "aliceHLTwrapper/SystemInterface.h"
+#include "FairMQLogger.h"
 
 #include <cstdlib>
 #include <cerrno>
@@ -30,7 +41,6 @@
 using namespace ALICE::HLT;
 using namespace o2::AliceHLT;
 
-using std::cerr;
 using std::endl;
 using std::string;
 using std::unique_ptr;
@@ -65,13 +75,16 @@ bpo::options_description Component::GetOptionsDescription()
      bpo::value<string>()->default_value(""),
      "component command line parameter")
     ((std::string(OptionKeys[OptionKeyRun]) + ",r").c_str(),
-     bpo::value<string>()->default_value("-1"),
+     bpo::value<string>()->required(),
      "run number")
+    ((std::string(OptionKeys[OptionKeyOCDB])).c_str(),
+     bpo::value<string>(),
+     "ocdb uri")
     ((std::string(OptionKeys[OptionKeyMsgsize]) + ",s").c_str(),
      bpo::value<string>()->default_value("0"),
      "maximum size of output buffer/msg")
     ((std::string(OptionKeys[OptionKeyOutputMode]) + ",m").c_str(),
-     bpo::value<string>()->default_value("2"),
+     bpo::value<string>()->default_value("3"),
      "output mode");
 
   return od;
@@ -116,6 +129,12 @@ int Component::init(int argc, char** argv)
     case OptionKeyRun:
       stringstream(varmap[OptionKeys[option]].as<string>()) >> runNumber;
       break;
+    case OptionKeyOCDB:
+      if (getenv("ALIHLT_HCDBDIR") != nullptr) {
+	LOG(WARN) << "overriding value of ALICEHLT_HCDBDIR by --ocdb command option";
+      }
+      setenv("ALIHLT_HCDBDIR", varmap[OptionKeys[option]].as<string>().c_str(), 1);
+      break;
     case OptionKeyMsgsize: {
       unsigned size = 0;
       stringstream(varmap[OptionKeys[option]].as<string>()) >> size;
@@ -139,8 +158,19 @@ int Component::init(int argc, char** argv)
   if (varmap.count(OptionKeys[OptionKeyLibrary]) == 0 ||
       varmap.count(OptionKeys[OptionKeyComponent]) == 0 ||
       runNumber < 0) {
-    cerr << "missing argument" << endl;
+    LOG(ERROR) << "missing argument, required options: library, component,run";
     return -EINVAL;
+  }
+
+  // check the OCDB URI
+  // the HLT code relies on ALIHLT_HCDBDIR environment variable to be set
+  if (!getenv("ALIHLT_HCDBDIR")) {
+    LOG(ERROR) << "FATAL: OCDB URI is needed, use option --ocdb or environment variable ALIHLT_HCDBDIR";
+// temporary fix to regain compilation on MacOS (which on some platforms does not define ENOKEY)
+#ifndef ENOKEY
+#define ENOKEY 126
+#endif
+    return -ENOKEY;
   }
 
   int iResult = 0;
@@ -165,11 +195,11 @@ int Component::init(int argc, char** argv)
   if (parameterLength > 0 && parameterBuffer.get() != nullptr) {
     strcpy(parameterBuffer.get(), componentParameter.c_str());
     char* iterator = parameterBuffer.get();
-    parameters.push_back(iterator);
+    parameters.emplace_back(iterator);
     for (; *iterator != 0; iterator++) {
       if (*iterator != ' ') continue;
       *iterator = 0; // separate strings
-      if (*(iterator + 1) != ' ' && *(iterator + 1) != 0) parameters.push_back(iterator + 1);
+      if (*(iterator + 1) != ' ' && *(iterator + 1) != 0) parameters.emplace_back(iterator + 1);
     }
   }
 
@@ -209,17 +239,17 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   memset(&trigData, 0, sizeof(trigData));
   trigData.fStructSize = sizeof(trigData);
 
-  AliHLTUInt32_t outputBlockCnt = 0;
+  uint32_t outputBlockCnt = 0;
   AliHLTComponentBlockData* pOutputBlocks = nullptr;
   AliHLTComponentEventDoneData* pEventDoneData = nullptr;
 
   // prepare input structure for the ALICE HLT component
   mFormatHandler.clear();
   mFormatHandler.addMessages(dataArray);
-  vector<AliHLTComponentBlockData>& inputBlocks = mFormatHandler.getBlockDescriptors();
+  vector<BlockDescriptor>& inputBlocks = mFormatHandler.getBlockDescriptors();
   unsigned nofInputBlocks = inputBlocks.size();
   if (dataArray.size() > 0 && nofInputBlocks == 0 && mFormatHandler.getEvtDataList().size() == 0) {
-    cerr << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input" << endl;
+    LOG(ERROR) << "warning: none of " << dataArray.size() << " input buffer(s) recognized as valid input";
   }
   dataArray.clear();
 
@@ -230,18 +260,15 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
   // determine the total input size, needed later on for the calculation of the output buffer size
   int totalInputSize = 0;
-  for (vector<AliHLTComponentBlockData>::const_iterator ci = inputBlocks.begin(); ci != inputBlocks.end(); ci++) {
-    totalInputSize += ci->fSize;
+  for (auto & ci : inputBlocks) {
+    totalInputSize += ci.fSize;
   }
 
   // add event type data block
-  AliHLTComponentBlockData eventTypeBlock;
-  memset(&eventTypeBlock, 0, sizeof(eventTypeBlock));
-  eventTypeBlock.fStructSize = sizeof(eventTypeBlock);
-  // Note: no payload!
-  eventTypeBlock.fDataType = AliHLTComponentDataTypeInitializer("EVENTTYP", "PRIV");
-  eventTypeBlock.fSpecification = gkAliEventTypeData;
-  inputBlocks.push_back(eventTypeBlock);
+  // this data block describes the type of the event, set it
+  // to 'data' by using specification gkAliEventTypeData
+  const AliHLTComponentDataType kDataTypeEvent = AliHLTComponentDataTypeInitializer("EVENTTYP", "PRIV");
+  inputBlocks.emplace_back(nullptr, 0, kDataTypeEvent, gkAliEventTypeData);
 
   // process
   evtData.fBlockCnt = inputBlocks.size();
@@ -277,7 +304,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
                                      &pEventDoneData);
     if (outputBufferSize > 0) {
       if (outputBufferSize > mOutputBuffer.size()) {
-        cerr << "fatal error: component writing beyond buffer capacity" << endl;
+        LOG(ERROR) << "FATAL: fatal error: component writing beyond buffer capacity";
         return -EFAULT;
       } else if (outputBufferSize < mOutputBuffer.size()) {
         mOutputBuffer.resize(outputBufferSize);
@@ -290,8 +317,8 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
   // prepare output
   { // keep this after removing condition to preserve formatting
-    AliHLTUInt8_t* pOutputBufferStart = &mOutputBuffer[0];
-    AliHLTUInt8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
+    uint8_t* pOutputBufferStart = &mOutputBuffer[0];
+    uint8_t* pOutputBufferEnd = pOutputBufferStart + mOutputBuffer.size();
     // consistency check for data blocks
     // 1) all specified data must be either inside the output buffer given
     //    to the component or in one of the input buffers
@@ -308,16 +335,16 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
     AliHLTComponentBlockData* pFiltered = pOutputBlocks;
     for (unsigned blockIndex = 0; blockIndex < outputBlockCnt; blockIndex++, pOutputBlock++) {
       // filter special data blocks
-      if (pOutputBlock->fDataType == eventTypeBlock.fDataType) continue;
+      if (pOutputBlock->fDataType == kDataTypeEvent) continue;
 
       // block descriptors without any attached payload are propagated
       bool bValid = pOutputBlock->fSize == 0;
 
       // calculate the data reference
-      AliHLTUInt8_t* pStart =
-        pOutputBlock->fPtr != nullptr ? reinterpret_cast<AliHLTUInt8_t*>(pOutputBlock->fPtr) : &mOutputBuffer[0];
+      uint8_t* pStart =
+        pOutputBlock->fPtr != nullptr ? reinterpret_cast<uint8_t*>(pOutputBlock->fPtr) : &mOutputBuffer[0];
       pStart += pOutputBlock->fOffset;
-      AliHLTUInt8_t* pEnd = pStart + pOutputBlock->fSize;
+      uint8_t* pEnd = pStart + pOutputBlock->fSize;
       pOutputBlock->fPtr = pStart;
       pOutputBlock->fOffset = 0;
 
@@ -326,10 +353,9 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
       // possibly a forwarded data block, try the input buffers
       if (!bValid) {
-        vector<AliHLTComponentBlockData>::const_iterator ci = inputBlocks.begin();
-        for (; ci != inputBlocks.end(); ci++) {
-          AliHLTUInt8_t* pInputBufferStart = reinterpret_cast<AliHLTUInt8_t*>(ci->fPtr);
-          AliHLTUInt8_t* pInputBufferEnd = pInputBufferStart + ci->fSize;
+        for (auto & ci : inputBlocks) {
+          uint8_t* pInputBufferStart = reinterpret_cast<uint8_t*>(ci.fPtr);
+          uint8_t* pInputBufferEnd = pInputBufferStart + ci.fSize;
           if ((bValid = (pStart >= pInputBufferStart && pEnd <= pInputBufferEnd))) {
             break;
           }
@@ -342,7 +368,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
         memcpy(pFiltered, pOutputBlock, sizeof(AliHLTComponentBlockData));
         pFiltered++;
       } else {
-        cerr << "Inconsistent data reference in output block " << blockIndex << endl;
+        LOG(ERROR) << "Inconsistent data reference in output block " << blockIndex;
       }
     }
     evtData.fBlockCnt=validBlocks;
@@ -351,7 +377,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
     // TODO: for now there is an extra copy of the data, but it should be
     // handled in place
     vector<MessageFormat::BufferDesc_t> outputMessages =
-      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, evtData, cbAllocate);
+      mFormatHandler.createMessages(pOutputBlocks, validBlocks, totalPayloadSize, &evtData, cbAllocate);
     dataArray.insert(dataArray.end(), outputMessages.begin(), outputMessages.end());
   }
 

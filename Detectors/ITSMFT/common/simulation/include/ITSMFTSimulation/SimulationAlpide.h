@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file SimulationAlpide.h
 /// \brief Simulation of the ALIPIDE chip response
 
@@ -26,7 +36,7 @@ namespace o2 {
 
     class SegmentationPixel;
     class DigitContainer;
-    
+
     class SimulationAlpide : public Chip {
     public:
       enum {
@@ -34,6 +44,7 @@ namespace o2 {
         ACSFromBGPar0,
         ACSFromBGPar1,
         ACSFromBGPar2,
+        Noise,
         NumberOfParameters
       };
       SimulationAlpide();
@@ -47,15 +58,17 @@ namespace o2 {
       void      clearSimulation() { Chip::Clear(); }
 
     private:
-      Double_t  getACSFromBetaGamma(Double_t, Double_t) const; // Returns the average cluster size from the betagamma value
+      void      addNoise(Double_t, const SegmentationPixel*, DigitContainer*); // Add noise to the chip
+      Double_t  betaGammaFunction(Double_t, Double_t, Double_t, Double_t) const;
+      Double_t  gaussian2D(Double_t, Double_t, Double_t, Double_t) const;
+      Double_t  getACSFromBetaGamma(Double_t) const; // Returns the average cluster size from the betagamma value
+      void      updateACSWithAngle(Double_t&, Double_t) const; // Modify the ACS according to the effective incidence angles
       Int_t     sampleCSFromLandau(Double_t, Double_t) const; // Sample the actual cluster size from a Landau distribution
       Double_t  computeIncidenceAngle(TLorentzVector) const; // Compute the angle between the particle and the normal to the chip
       Int_t     getPixelPositionResponse(const SegmentationPixel *, Int_t, Int_t, Float_t, Float_t, Double_t) const;
 
     protected:
-      Double_t           mParam[NumberOfParameters]; // Chip response parameters
-
-      ClassDefOverride(SimulationAlpide,1)   // Simulation of pixel clusters
+      Double_t  mParam[NumberOfParameters]; // Chip response parameters
     };
   }
 }

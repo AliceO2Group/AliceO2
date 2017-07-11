@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file   SimpleEventDisplay.cxx
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
@@ -59,18 +69,18 @@ SimpleEventDisplay::SimpleEventDisplay()
 }
 
 //_____________________________________________________________________
-Int_t SimpleEventDisplay::Update(const Int_t roc,
-                                 const Int_t row,
-                                 const Int_t pad,
-                                 const Int_t timeBin,
-                                 const Float_t signal)
+Int_t SimpleEventDisplay::updateROC(const Int_t roc,
+                                    const Int_t row,
+                                    const Int_t pad,
+                                    const Int_t timeBin,
+                                    const Float_t signal)
 {
   //
   // Signal filling methode on the fly pedestal and time offset correction if necessary.
   // no extra analysis necessary. Assumes knowledge of the signal shape!
   // assumes that it is looped over consecutive time bins of one pad
   //
-  //printf("Update called: %d, %d, %d, %d, %.3f\n", roc, row, pad, timeBin, signal);
+  //printf("update called: %d, %d, %d, %d, %.3f\n", roc, row, pad, timeBin, signal);
   if (row<0) return 0;
   if (pad<0) return 0;
   if (timeBin<0) return 0;
@@ -133,7 +143,7 @@ Int_t SimpleEventDisplay::Update(const Int_t roc,
     mMaxPadSignal = corrSignal;
     mMaxTimeBin   = timeBin;
   }
-  //printf("Update done\n");
+  //printf("update done\n");
   return 0;
 }
 
@@ -154,7 +164,7 @@ TH1D* SimpleEventDisplay::MakePadSignals(Int_t roc, Int_t row, Int_t pad)
   //attention change for if event has changed
   if (mSelectedSector%36!=mLastSelSector%36){
     mSectorLoop=kTRUE;
-    ProcessEvent();
+    processEvent();
     mLastSelSector=mSelectedSector;
     mSectorLoop=kFALSE;
   }
@@ -200,7 +210,7 @@ TH1D* SimpleEventDisplay::MakePadSignals(Int_t roc, Int_t row, Int_t pad)
   return h;
 }
 //_____________________________________________________________________
-void SimpleEventDisplay::ResetEvent()
+void SimpleEventDisplay::resetEvent()
 {
   //
   //

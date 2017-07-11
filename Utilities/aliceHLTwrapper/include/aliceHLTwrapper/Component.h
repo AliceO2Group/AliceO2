@@ -1,4 +1,13 @@
 //-*- Mode: C++ -*-
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
 #ifndef COMPONENT_H
 #define COMPONENT_H
@@ -53,6 +62,7 @@ class SystemInterface;
 ///                 Currently, all HLT components need configuration and
 ///                 calibration data from OCDB; OCDB interface needs to
 ///                 be initialized with run number
+/// --ocdb          uri of the OCDB, e.g. 'local://./OCDB'
 /// --msgsize       size of the output buffer in byte
 ///                 This overrides the default behavior where output buffer
 ///                 size is determined from the input size and properties
@@ -61,6 +71,7 @@ class SystemInterface;
 ///                 0  HOMER format
 ///                 1  blocks in multiple messages
 ///                 2  blocks concatenated in one message (default)
+///                 3  O2 data format (default)
 ///
 class Component {
 public:
@@ -85,6 +96,7 @@ public:
     OptionKeyComponent,
     OptionKeyParameter,
     OptionKeyRun,
+    OptionKeyOCDB,
     OptionKeyMsgsize,
     OptionKeyOutputMode,
     OptionKeyInstanceId,
@@ -96,6 +108,7 @@ public:
     "component",
     "parameter",
     "run",
+    "ocdb",
     "msgsize",
     "output-mode",
     "instance-id",
@@ -124,7 +137,7 @@ private:
   Component& operator=(const Component&);
 
   /// output buffer to receive the data produced by component
-  std::vector<AliHLTUInt8_t> mOutputBuffer;
+  std::vector<uint8_t> mOutputBuffer;
 
   /// instance of the system interface
   SystemInterface* mpSystem;

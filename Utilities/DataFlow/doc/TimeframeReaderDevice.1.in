@@ -1,0 +1,29 @@
+.\" Manpage for TimeframeReaderDevice.
+.TH man 1 "12 May 2017" "1.0" "TimeframeReaderDevice man page"
+
+.SH NAME
+
+TimeframeReaderDevice - read a timeframe from disk
+
+.SH SYNOPSIS
+
+TimeframeReaderDevice --input-file [FILE]
+
+.SH DESCRIPTION
+
+TimeframeReaderDevice will read a Timeframe from the FILE on disk and streams it
+via FairMQ
+
+.SH OPTIONS
+
+.TP 5
+
+--input-file [FILE] the file to be streamed
+
+.SH SEE ALSO
+
+TimeframeWriterDevice(1)
+
+.SH BUGS
+
+Lots of bugs

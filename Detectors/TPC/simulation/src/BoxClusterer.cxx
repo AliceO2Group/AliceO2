@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file AliTPCUpgradeBoxClusterer.cxx
 /// \brief Boxclusterer for the TPC
 
@@ -79,6 +89,7 @@
  */
 
 
+#include "TPCBase/CRU.h"
 #include "TPCSimulation/BoxClusterer.h"
 #include "TPCSimulation/DigitMC.h"
 #include "TPCSimulation/ClusterContainer.h"
@@ -98,7 +109,8 @@ BoxClusterer::BoxClusterer():
   Clusterer(),
   mAllBins(nullptr),
   mAllSigBins(nullptr),
-  mAllNSigBins(nullptr)
+  mAllNSigBins(nullptr),
+  mPedestals(nullptr)
 {
 }
 
@@ -153,6 +165,49 @@ ClusterContainer* BoxClusterer::Process(TClonesArray *digits)
   for (TIter digititer = TIter(digits).Begin(); digititer != TIter::End(); ++digititer)
     {
       DigitMC* digit = dynamic_cast<DigitMC*>(*digititer);
+
+                  iCRU     = digit->getCRU();
+      const Int_t iRow     = digit->getRow();
+      const Int_t iPad     = digit->getPad();
+      const Int_t iTimeBin = digit->getTimeStamp();
+      const Float_t charge = digit->getCharge();
+//      if (iCRU == 179) {
+//        printf("box: digi: %d, %d, %d, %d, %.2f\n", iCRU, iRow, iPad, iTimeBin, charge);
+//      }
+      if(iCRU != lastCRU) {
+        if(nSignals>0) {
+          FindLocalMaxima(lastCRU);
+          CleanArrays();
+        }
+        lastCRU = iCRU;
+        nSignals = 0;
+      } //else { // add signal to array
+      Update(iCRU, iRow, iPad, iTimeBin, charge);
+      ++nSignals;
+      //}
+    }
+
+    // processing of last CRU
+    if(nSignals>0) {
+      FindLocalMaxima(iCRU);
+      CleanArrays();
+    }
+
+  return mClusterContainer;
+}
+
+//________________________________________________________________________
+ClusterContainer* BoxClusterer::Process(std::vector<std::unique_ptr<Digit>>& digits)
+{
+  R__ASSERT(mClusterContainer);
+  mClusterContainer->Reset();
+
+  Int_t nSignals = 0;
+  Int_t lastCRU = -1;
+  Int_t iCRU    = -1;
+
+  for (auto& digit_ptr : digits) {
+    Digit* digit = digit_ptr.get();
 
                   iCRU     = digit->getCRU();
       const Int_t iRow     = digit->getRow();
@@ -393,6 +448,11 @@ Int_t BoxClusterer::Update(const Int_t iCRU,
 
   if (mRequirePositiveCharge && (signal <= 0)){
     return 0; // signal was not accepted
+  }
+
+  // ===| get pedestal |========================================================
+  if (mPedestals) {
+    signal -= mPedestals->getValue(CRU(iCRU), iRow, iPad);
   }
 
   // Fill signal in array. Add 2 to pad and time to make sure that the 2D

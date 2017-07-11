@@ -56,9 +56,9 @@ ForEach (_file RANGE 0 ${_length})
   )
 EndForEach (_file RANGE 0 ${_length})
 
-add_test(NAME run_flp2epn_distributed COMMAND ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/testFLP2EPN-distributed.sh)
-set_tests_properties(run_flp2epn_distributed PROPERTIES TIMEOUT "30")
-set_tests_properties(run_flp2epn_distributed PROPERTIES PASS_REGULAR_EXPRESSION "acknowledged after")
+#add_test(NAME run_flp2epn_distributed COMMAND ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/testFLP2EPN-distributed.sh)
+#set_tests_properties(run_flp2epn_distributed PROPERTIES TIMEOUT "30")
+#set_tests_properties(run_flp2epn_distributed PROPERTIES PASS_REGULAR_EXPRESSION "acknowledged after")
 
 install(FILES ${CMAKE_BINARY_DIR}/bin/startFLP2EPN-distributed.sh
               ${CMAKE_BINARY_DIR}/Examples/flp2epn-distributed/test/testFLP2EPN-distributed.sh

@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 //-*- Mode: C++ -*-
 
 #ifndef SUBFRAMEBUILDERDEVICE_H
@@ -11,7 +21,10 @@
 #include "Headers/DataHeader.h"
 #include "Headers/HeartbeatFrame.h"
 #include "O2Device/O2Device.h"
+#include "DataFlow/PayloadMerger.h"
+#include "DataFlow/SubframeUtils.h"
 #include <cstring>
+#include <map>
 
 class FairMQParts;
 
@@ -41,22 +54,26 @@ namespace DataFlow {
 class SubframeBuilderDevice : public Base::O2Device
 {
 public:
-  typedef o2::Base::O2Message O2Message;
+  using O2Message = o2::Base::O2Message;
+  using SubframeId = o2::dataflow::SubframeId;
+  using Merger = dataflow::PayloadMerger<SubframeId>;
 
   static constexpr const char* OptionKeyInputChannelName = "in-chan-name";
   static constexpr const char* OptionKeyOutputChannelName = "out-chan-name";
-  static constexpr const char* OptionKeyDuration = "duration";
-  static constexpr const char* OptionKeySelfTriggered = "self-triggered";
+  static constexpr const char* OptionKeyOrbitDuration = "orbit-duration";
+  static constexpr const char* OptionKeyOrbitsPerTimeframe = "orbits-per-timeframe";
   static constexpr const char* OptionKeyInDataFile = "indatafile-name";
   static constexpr const char* OptionKeyDetector = "detector-name";
+  static constexpr const char* OptionKeyFLPId = "flp-id";
+  static constexpr const char* OptionKeyStripHBF = "strip-hbf";
 
   // TODO: this is just a first mockup, remove it
-  // Default duration is for now harcoded to 22 milliseconds.
   // Default start time for all the producers is 8/4/1977
   // Timeframe start time will be ((N * duration) + start time) where
   // N is the incremental number of timeframes being sent out.
   // TODO: replace this with a unique Heartbeat from a common device.
-  static constexpr uint32_t DefaultDuration = 22000000;
+  static constexpr uint32_t DefaultOrbitDuration = 88924;
+  static constexpr uint32_t DefaultOrbitsPerTimeframe = 256;
   static constexpr uint64_t DefaultHeartbeatStart = 229314600000000000LL;
 
   /// Default constructor
@@ -83,13 +100,15 @@ protected:
   bool BuildAndSendFrame(FairMQParts &parts);
 
 private:
-  unsigned mFrameNumber = 0;
-  constexpr static uint32_t mOrbitsPerTimeframe = 1;
-  constexpr static uint32_t mOrbitDuration = 1000000000;
-  constexpr static uint32_t mDuration = mOrbitsPerTimeframe * mOrbitDuration;
+  uint32_t mOrbitsPerTimeframe;
+  // FIXME: lookup the actual value
+  uint32_t mOrbitDuration;
   std::string mInputChannelName = "";
   std::string mOutputChannelName = "";
-  bool mIsSelfTriggered = false;
+  size_t mFLPId = 0;
+  bool mStripHBF = false;
+  std::unique_ptr<Merger> mMerger;
+
   uint64_t mHeartbeatStart = DefaultHeartbeatStart;
 
   template <typename T>

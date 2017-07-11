@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #define BOOST_TEST_MODULE Test Headers DataHeaderTest
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -15,7 +25,7 @@ namespace o2 {
       using TestDescriptorT = Descriptor<descriptorSize>;
       BOOST_CHECK(TestDescriptorT::size == descriptorSize);
       BOOST_CHECK(TestDescriptorT::bitcount == descriptorSize * 8);
-      BOOST_CHECK(sizeof(TestDescriptorT::ItgType) == descriptorSize);
+      BOOST_CHECK(sizeof(TestDescriptorT::ItgType)*TestDescriptorT::arraySize == descriptorSize);
       static_assert(TestDescriptorT::size == sizeof(TestDescriptorT),
                     "Descriptor must have size of the underlying data member");
 
@@ -72,14 +82,14 @@ namespace o2 {
       BOOST_CHECK(desc.itg[0] == itgDesc);
       BOOST_CHECK(desc.itg[1] == 0);
 
-      BOOST_CHECK(desc == "ITSRAW");
+      BOOST_CHECK(desc == DataDescription("ITSRAW"));
 
       DataDescription desc2(test);
       BOOST_CHECK(strcmp(desc2.str, "ITSRAW")==0);
       // the upper part must be 0 since the string has only up tp 8 chars
       BOOST_CHECK(desc2.itg[1] == 0);
 
-      BOOST_CHECK(desc2 == "ITSRAW");
+      BOOST_CHECK(desc2 == DataDescription("ITSRAW"));
 
       std::string runtimeString = "DATA_DESCRIPTION";
       DataDescription runtimeDesc;
@@ -94,7 +104,7 @@ namespace o2 {
       using TestDescriptorT = Descriptor<descriptorSize>;
       BOOST_CHECK(TestDescriptorT::size == descriptorSize);
       BOOST_CHECK(TestDescriptorT::bitcount == descriptorSize * 8);
-      BOOST_CHECK(sizeof(TestDescriptorT::ItgType) == descriptorSize);
+      BOOST_CHECK(sizeof(TestDescriptorT::ItgType)*TestDescriptorT::arraySize == descriptorSize);
       BOOST_CHECK(TestDescriptorT::size == sizeof(DataOrigin));
 
       // we want to explicitely have the size of DataOrigin to be 4

@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file Detector.h
 /// \brief Definition of the Detector class
 
@@ -13,25 +23,25 @@
 
 class FairModule;
 
-class FairVolume;  // lines 16-16
-class TClonesArray;  // lines 17-17
+class FairVolume;
+class TClonesArray;
 class TGeoVolume;
 
 class TParticle;
 
 class TString;
 
-namespace o2 { namespace ITSMFT { class Point; }}  // lines 22-22
+namespace o2 { namespace ITSMFT { class Point; }}
 
 namespace o2 { namespace ITS { class GeometryHandler; }}
 namespace o2 { namespace ITS { class MisalignmentParameter; }}
 namespace o2 { namespace ITS { class GeometryTGeo; }}
-namespace o2 { namespace ITS { class V1Layer; }}  // lines 23-23
+namespace o2 { namespace ITS { class V3Layer; }}
 
 namespace o2 {
 namespace ITS {
 
-class V1Layer;
+class V3Layer;
 
 class Detector : public o2::Base::Detector
 {
@@ -40,14 +50,16 @@ class Detector : public o2::Base::Detector
     enum Model
     {
         kIBModelDummy = 0,
-        kIBModel0 = 1,
-        kIBModel1 = 2,
-        kIBModel21 = 3,
-        kIBModel22 = 4,
-        kIBModel3 = 5,
-        kOBModelDummy = 6,
-        kOBModel0 = 7,
-        kOBModel1 = 8
+	kIBModel0 = 1,
+	kIBModel1 = 2, 
+	kIBModel21 = 3,
+	kIBModel22 = 4,
+	kIBModel3 = 5,
+	kIBModel4 = 10,
+	kOBModelDummy = 6,
+	kOBModel0 = 7,
+	kOBModel1 = 8, 
+	kOBModel2 = 9 
     };
 
     /// Name : Detector Name
@@ -277,7 +289,7 @@ class Detector : public o2::Base::Detector
     Double_t *mLayerZLength;       //! Vector of layer length along Z
     Int_t *mStavePerLayer;         //! Vector of number of staves per layer
     Int_t *mUnitPerStave;          //! Vector of number of "units" per stave
-    Double_t *mStaveThickness;     //! Vector of stave thicknesses
+    Double_t *mChipThickness;      //! Vector of chip thicknesses
     Double_t *mStaveWidth;         //! Vector of stave width (only used for turbo)
     Double_t *mStaveTilt;          //! Vector of stave tilt (only used for turbo)
     Double_t *mDetectorThickness;  //! Vector of detector thicknesses
@@ -306,7 +318,7 @@ class Detector : public o2::Base::Detector
     GeometryHandler *mGeometryHandler;
     MisalignmentParameter *mMisalignmentParameter;
 
-    V1Layer **mGeometry;   //! Geometry
+    V3Layer **mGeometry;   //! Geometry
     Model mStaveModelInnerBarrel; //! The stave model for the Inner Barrel
     Model mStaveModelOuterBarrel; //! The stave model for the Outer Barrel
 

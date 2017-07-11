@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include <vector>
 #include <memory>
 
@@ -68,6 +78,10 @@ void testClustererData(Int_t maxEvents=50, TString fileInfo="GBTx0_Run005:0:0;GB
     }
 
     printf("Converted digits: %d, max time: %.2f\n", arr.GetEntriesFast(), maxTime);
+    //for (Int_t i=0; i<10; ++i) {
+      //printf("%.2f ", ((DigitMC*)arr.At(i))->getChargeFloat());
+    //}
+    //printf("\n");
 
     ClusterContainer* clCont = cl.Process(&arr);
 

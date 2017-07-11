@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include <vector>
 #include <fstream>
 #include <iostream>
@@ -141,7 +151,8 @@ void addCluster(std::vector<ClusterData> &data, Cluster& cluster)
   const PadCentre& padCentre  = mapper.padCentre(pad);
   const float localY          = padCentre.getY() - (padY - padNumber - 0.5) * region.getPadWidth();
   const float localYfactor    = (cru.side()==Side::A)?-1.f:1.f;
-        float zPosition         = TPCLENGTH - cluster.getTimeMean()*ZBINWIDTH*DRIFTV;
+        float zPosition         = cluster.getTimeMean()*ZBINWIDTH*DRIFTV;
+        //float zPosition         = TPCLENGTH - cluster.getTimeMean()*ZBINWIDTH*DRIFTV;
 
   Point2D<float> clusterPos(padCentre.getX(), localY); 
 

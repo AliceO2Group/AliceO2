@@ -1,4 +1,13 @@
 //-*- Mode: C++ -*-
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
 #ifndef WRAPPERDEVICE_H
 #define WRAPPERDEVICE_H
@@ -64,25 +73,9 @@ public:
   // the FairMQDevice interface
 
   /// inherited from FairMQDevice
-  void Init() override;
-  /// inherited from FairMQDevice
   void InitTask() override;
   /// inherited from FairMQDevice
   void Run() override;
-  /// inherited from FairMQDevice
-  void Pause() override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  void SetProperty(const int key, const std::string& value) override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  std::string GetProperty(const int key, const std::string& default_ = "") override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  void SetProperty(const int key, const int value) override;
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  int GetProperty(const int key, const int default_ = 0) override;
 
   /////////////////////////////////////////////////////////////////
   // device property identifier
@@ -100,7 +93,7 @@ private:
   unsigned char* createMessageBuffer(unsigned size);
 
   Component* mComponent;     // component instance
-  std::vector<std::unique_ptr<FairMQMessage>> mMessages; // array of output messages
+  std::vector<FairMQMessagePtr> mMessages; // array of output messages
 
   int mPollingPeriod;        // period of polling on input sockets in ms
   int mSkipProcessing;       // skip component processing

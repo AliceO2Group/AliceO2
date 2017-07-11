@@ -15,6 +15,13 @@ macro(O2_SETUP)
   )
   CHECK_VARIABLE(PARSED_ARGS_NAME "You must provide a name")
 
+  # set the variable to be used within parsing of this module
+  set(MODULE_NAME ${PARSED_ARGS_NAME})
+
+  # add a local target for the man page generation and make the
+  # global man target dpending on it
+  add_custom_target(${PARSED_ARGS_NAME}.man ALL)
+  add_dependencies(man ${PARSED_ARGS_NAME}.man)
 endmacro()
 
 #------------------------------------------------------------------------------
@@ -342,9 +349,8 @@ function(O2_GENERATE_TESTS)
       ${ARGN} # arguments
   )
 
-  CHECK_VARIABLE(PARSED_ARGS_BUCKET_NAME "You must provide a bucket name")
+# Note: the BUCKET_NAME and MODULE_LIBRARY_NAME are optional arguments
   CHECK_VARIABLE(PARSED_ARGS_TEST_SRCS "You must provide the list of sources")
-  CHECK_VARIABLE(PARSED_ARGS_MODULE_LIBRARY_NAME "You must provide the module library name this executable belongs to")
 
   foreach (test ${PARSED_ARGS_TEST_SRCS})
     string(REGEX REPLACE ".*/" "" test_name ${test})
@@ -483,7 +489,7 @@ function(O2_GENERATE_MAN)
   cmake_parse_arguments(
       PARSED_ARGS
       "" # bool args
-      "NAME;SECTION" # mono-valued arguments
+      "NAME;SECTION;MODULE" # mono-valued arguments
       "" # multi-valued arguments
       ${ARGN} # arguments
   )
@@ -495,11 +501,20 @@ function(O2_GENERATE_MAN)
     ADD_CUSTOM_COMMAND(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}
       MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/doc/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}.in
-      COMMAND nroff -man ${CMAKE_CURRENT_SOURCE_DIR}/doc/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}.in > ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}
+      COMMAND nroff -Tascii -man ${CMAKE_CURRENT_SOURCE_DIR}/doc/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}.in > ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION}
       VERBATIM
     )
     ADD_CUSTOM_TARGET(${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION} DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
-    add_dependencies(man ${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+    if (PARSED_ARGS_MODULE)
+      # add to the man target of specified module
+      add_dependencies(${PARSED_ARGS_MODULE}.man ${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+    elseif(MODULE_NAME)
+      # add to the man target of current module
+      add_dependencies(${MODULE_NAME}.man ${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+    else()
+      # add to top level target otherwise
+      add_dependencies(man ${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION})
+    endif()
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PARSED_ARGS_NAME}.${PARSED_ARGS_SECTION} DESTINATION share/man/man${PARSED_ARGS_SECTION})
   endif(NROFF_FOUND)
 endfunction(O2_GENERATE_MAN)

@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #ifndef ALICEO2_TPC_SIMPLEEVENTDISPLAY_H_
 #define ALICEO2_TPC_SIMPLEEVENTDISPLAY_H_
 
@@ -7,6 +17,7 @@
 
 #include "THnSparse.h"
 #include "TPCBase/CalDet.h"
+#include "TPCBase/CRU.h"
 #include "TPCCalibration/CalibRawBase.h"
 
 class TH2D;
@@ -31,16 +42,23 @@ class SimpleEventDisplay : public CalibRawBase
     
     virtual ~SimpleEventDisplay() = default;
 
-    Int_t Update(const Int_t roc, const Int_t row, const Int_t pad,
-                 const Int_t timeBin, const Float_t signal) final;
+    Int_t updateROC(const Int_t roc, const Int_t row, const Int_t pad,
+                    const Int_t timeBin, const Float_t signal) final;
   
+    /// not used
+    Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
+                    const Int_t timeBin, const Float_t signal) final { return 0;}
+
     CalPad* getCalPadMax() {return &mPadMax;}
 
     void setPedstals(CalPad* pedestals) { mPedestals = pedestals; }
   //   TH1D* MakePadSignals(Int_t roc, Int_t channel);
     TH1D* MakePadSignals(Int_t roc, Int_t row, Int_t pad);
 
-  // private:
+    /// Dummy end event
+    void endEvent() final {};
+
+  private:
     THnSparseS  *mHnDataIROC;      //!< Event Data IROCs
     THnSparseS  *mHnDataOROC;      //!< Event Data OROCs
     CalPad       mPadMax;          //!< Cal Pad with max Entry per channel
@@ -63,7 +81,7 @@ class SimpleEventDisplay : public CalibRawBase
   
     const Mapper&  mTPCmapper;          //! mapper
   
-    void ResetEvent() final;
+    void resetEvent() final;
 };
 
 

@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include <vector>
 #include <fstream>
 #include <iostream>
@@ -7,6 +17,7 @@
 #include "TTree.h"
 #include "TChain.h"
 #include "TClonesArray.h"
+
 #include "TPCReconstruction/TrackTPC.h"
 #include "DetectorsBase/Track.h"
 #include "TPCSimulation/Cluster.h"
@@ -30,19 +41,25 @@ struct OutputTrack
 struct EventHeader
 {
   int run;
+  float cherenkovValue;
 
 };
 
-void convertTracks(TString inputBinaryFile, TString inputClusters, TString outputFile)
+void convertTracks(TString inputBinaryFile, TString inputClusters, TString cherenkovFile, TString outputFile)
 {
 
   // ===| input chain initialisation |==========================================
   TChain c("cbmsim");
   c.AddFile(inputClusters);
 
+  float cherenkovValue = 0.;
+  int runNumber = 0;
+
   TClonesArray *clusters=0x0;
   c.SetBranchAddress("TPCClusterHW", &clusters);
   //c.SetBranchAddress("TPC_Cluster", &clusters);
+  c.SetBranchAddress("cherenkovValue", &cherenkovValue);
+  c.SetBranchAddress("runNumber",      &runNumber);
 
   // ===| output tree |=========================================================
   TFile fout(outputFile, "recreate");
@@ -53,8 +70,10 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
   //TClonesArray *arrTracksPtr = new TClonesArray("TrackTPC");
   //TClonesArray &arrTracks = *arrTracksPtr;
   EventHeader eventHeader;
+  eventHeader.run = 0;
+  eventHeader.cherenkovValue = 0;
 
-  tout.Branch("header", &eventHeader, "run/I");
+  tout.Branch("header", &eventHeader, "run/I:cherenkovValue/F");
   tout.Branch("Tracks", &arrTracks);
   
   // ===| input binary file |===================================================
@@ -64,6 +83,8 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
     printf("Error opening input file\n");
     exit(1);
   }
+  // ===| input cherenkov file |================================================
+  ifstream istr(cherenkovFile.Data());
 
   // ===| Loop over all events in the input file |==============================
   //Number of events is not stored int the file, but we just read until we reach the end of file.
@@ -79,11 +100,12 @@ void convertTracks(TString inputBinaryFile, TString inputClusters, TString outpu
     if (!count) break;
     printf("Event: %d, Number of tracks: %d, %zu\n", nEvents, numTracks, count);
 
-    // ---| set event information |---------------------------------------------
-    eventHeader.run = 12345;
-
     // ---| read cluster tree |-------------------------------------------------
     c.GetEntry(nEvents);
+
+    // ---| set event information from cluster file |---------------------------
+    eventHeader.run = runNumber;
+    eventHeader.cherenkovValue = cherenkovValue;
 
     // ---| loop over tracks |--------------------------------------------------
     arrTracks.clear();

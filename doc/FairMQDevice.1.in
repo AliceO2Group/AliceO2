@@ -1,0 +1,64 @@
+.\" Manpage for general FairMQDevice properties and options.
+.TH AliceO2 1 "12 Jun 2017" "1.0" "FairMQDevice man page"
+.SH NAME
+FairMQDevice - The basis for software devices in O2
+
+.SH SYNOPSIS
+.I deviceapp
+.BI --id deviceid
+.BI --mq-config " configfile"
+|
+.BI --channel-config " config"
+|
+.BI --config-json-string " arg"
+|
+.BI --config-xml-string " arg"
+
+.SH DESCRIPTION
+All AliceO2 devices derive from FairMQDevice which provides the
+transport functionality.
+
+.SH OPTIONS
+.SS Common FairMQDevice options
+.TP 2
+.BI --id " id"
+A unique identifier of the device
+.TP 2
+.BI --verbosity " arg " \fR(=DEBUG)
+.RS
+Verbosity level :
+.B TRACE
+.B DEBUG
+.B RESULTS
+.B INFO
+.B WARN
+.B ERROR
+.B STATE
+.B NOLOG
+.RE
+
+.SS FairMQDevice channel configuration
+.TP 2
+.BI --config-xml-string " arg "
+XML input as command line string.
+.TP 2
+.BI --config-json-string " arg "
+JSON input as command line string.
+.TP 2
+.BI --mq-config " arg "
+JSON/XML input as file. The configuration object will check xml or
+json file extention and will call the json or xml parser accordingly
+.TP 2
+.BI --channel-config  " args "
+channel configuration as comma separated key=\fIvalue\fR pairs
+.RS
+Valid Keys:
+.B name
+.B type
+.B method
+.B address
+.B property
+.RE
+
+.SH MORE OPTIONS
+Use '\fIdeviceapp\fR --help' to get a full list of options.

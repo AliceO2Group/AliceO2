@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file HwCluster.cxx
 /// \brief Class to have some more info about the HwClusterer clusters
 
@@ -98,11 +108,11 @@ void HwCluster::calculateClusterProperties()
 
       qTot += charge;
 
-      meanP += charge * (p+1);//deltaP;
-      meanT += charge * (t+1);//deltaT;
+      meanP += charge * deltaP;
+      meanT += charge * deltaT;
 
-      sigmaP += (double) charge * deltaP*deltaP;
-      sigmaT += (double) charge * deltaT*deltaT;
+      sigmaP += charge * deltaP*deltaP;
+      sigmaT += charge * deltaT*deltaT;
 
       if (charge > 0) {
         minP = std::min(minP,p); maxP = std::max(maxP,p);
@@ -116,14 +126,12 @@ void HwCluster::calculateClusterProperties()
 
   if (qTot > 0) {
     meanP  /= qTot;
-    meanP -= 3;
     meanT  /= qTot;
-    meanT -= 3;
-    sigmaP /= (double) qTot;
-    sigmaT /= (double) qTot;
+    sigmaP /= qTot;
+    sigmaT /= qTot;
 
-    sigmaP = std::sqrt(sigmaP - ((double)meanP*(double)meanP));
-    sigmaT = std::sqrt(sigmaT - ((double)meanT*(double)meanT));
+    sigmaP = std::sqrt(sigmaP - (meanP*meanP));
+    sigmaT = std::sqrt(sigmaT - (meanT*meanT));
 
     meanP += mPad;
     meanT += mTime;

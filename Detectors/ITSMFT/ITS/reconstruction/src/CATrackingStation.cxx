@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 //-*- Mode: C++ -*-
 // **************************************************************************
 // This file is property of and copyright by the ALICE ITSU Project         *
@@ -125,7 +135,7 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
     det.index = iCl;
     //
     TGeoHMatrix m;
-    geo->GetOriginalMatrix(detID,m);
+    geo->getOriginalMatrix(detID,m);
     //
     mIndex[detID - mVIDOffset] = mDetectors.size();
     const TGeoHMatrix *tm = geo->getMatrixT2L(detID);
@@ -139,7 +149,7 @@ void TrackingStation::Init(TClonesArray* points, o2::ITS::GeometryTGeo* geo) {
     det.cosTF = cosf(det.phiTF);
     //
     // compute the real radius (with misalignment)
-    TGeoHMatrix mmisal(*(geo->GetMatrix(detID)));
+    TGeoHMatrix mmisal(*(geo->getMatrix(detID)));
     mmisal.Multiply(tm);
     xyz[0] = 0.;
     xyz[1] = 0.;

@@ -7,6 +7,8 @@ set(SRCS
   src/Track.cxx
   src/TrackReference.cxx
   src/Vector.cxx
+  src/DetID.cxx
+  src/GeometryManager.cxx
 )
 
 Set(HEADERS
@@ -16,20 +18,23 @@ Set(HEADERS
   include/${MODULE_NAME}/TrackReference.h
   include/${MODULE_NAME}/Utils.h
   include/${MODULE_NAME}/Vector.h
+  include/${MODULE_NAME}/DetID.h
+  include/${MODULE_NAME}/GeometryManager.h
 )
 
 Set(LINKDEF src/BaseLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME detectors_base)
+set(BUCKET_NAME detectors_base_bucket)
 
 O2_GENERATE_LIBRARY()
 
 set(TEST_SRCS
-   test/testVector.cxx
+  test/testDetID.cxx
+  test/testVector.cxx
 )
 
 O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
   BUCKET_NAME ${BUCKET_NAME}
-  MODULE_LIBRARY_NAME ${MODULE_NAME}
   TEST_SRCS ${TEST_SRCS}
 )

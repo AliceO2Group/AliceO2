@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 //#if (!defined(__CINT__) && !defined(__CLING__)) || defined(__MAKECINT__)
 #include "TObjString.h"
 #include "TH1F.h"
@@ -21,6 +31,7 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CalArray.h"
+#include "FairLogger.h"
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -88,19 +99,28 @@ void MonitorGui()
   TGTextButton*  mFrameNextEvent  = new TGTextButton(mContRight,  "&Next Event"           );
   mContRight->AddFrame(mFrameNextEvent, new TGLayoutHints(kLHintsExpandX));
   
-  mFrameNextEvent->SetCommand( "Next()");
+  mFrameNextEvent->SetCommand( "Next(-1)");
   mFrameNextEvent->SetTextColor(200);
   mFrameNextEvent->SetToolTipText("Go to next event");
   mFrameNextEvent->MoveResize(10, 10, xsize, (UInt_t)ysize);
 
   //---------------------------
-  TGTextButton*  mFrameRewindEvent  = new TGTextButton(mContRight,  "Rewind Events"           );
-  mContRight->AddFrame(mFrameRewindEvent, new TGLayoutHints(kLHintsExpandX));
+  TGTextButton*  mFramePreviousEvent  = new TGTextButton(mContRight,  "&Previous Event"           );
+  mContRight->AddFrame(mFramePreviousEvent, new TGLayoutHints(kLHintsExpandX));
   
-  mFrameRewindEvent->SetCommand( "RewindEvents()");
-  mFrameRewindEvent->SetTextColor(200);
-  mFrameRewindEvent->SetToolTipText("Rewind Events to loop again");
-  mFrameRewindEvent->MoveResize(10, 10+ysize*3, xsize, (UInt_t)ysize);
+  mFramePreviousEvent->SetCommand( "Next(-2)");
+  mFramePreviousEvent->SetTextColor(200);
+  mFramePreviousEvent->SetToolTipText("Go to next event");
+  mFramePreviousEvent->MoveResize(10, 10+ysize, xsize, (UInt_t)ysize);
+
+  //---------------------------
+  //TGTextButton*  mFrameRewindEvent  = new TGTextButton(mContRight,  "Rewind Events"           );
+  //mContRight->AddFrame(mFrameRewindEvent, new TGLayoutHints(kLHintsExpandX));
+  
+  //mFrameRewindEvent->SetCommand( "RewindEvents()");
+  //mFrameRewindEvent->SetTextColor(200);
+  //mFrameRewindEvent->SetToolTipText("Rewind Events to loop again");
+  //mFrameRewindEvent->MoveResize(10, 10+ysize*3, xsize, (UInt_t)ysize);
   
   //---------------------------
   mFrameMain->MapSubwindows();
@@ -111,8 +131,8 @@ void MonitorGui()
 
 //__________________________________________________________________________
 void RewindEvents(){
-  mEvDisp.RewindEvents();
-  //if (mRawReader) mRawReader->RewindEvents();
+  mEvDisp.rewindEvents();
+  //if (mRawReader) mRawReader->rewindEvents();
   //printf("RewindEvents: not implemented\n");
 }
 
@@ -200,7 +220,7 @@ void DrawPadSignal(TString type)
     //mRawReader->Reset();
     TH1D *h2=mEvDisp.MakePadSignals(roc,row,pad);
     if (h2) {
-      //h2->GetXaxis()->SetRangeUser(0,350);
+      h2->GetXaxis()->SetRangeUser(0,mEvDisp.getNumberOfProcessedTimeBins()+5);
       h2->Draw();
       h2->SetStats(0);
     }
@@ -220,8 +240,9 @@ void FillMaxHists(Int_t type=0)
   TH2F *hSide=0x0;
   TH2F *hROC=0x0;
   ResetHists(type);
-  const int runNumber = 0; // TODO: take from raw reader???
-  const int eventNumber = 0; // TODO: take from raw reader???
+  const int runNumber = TString(gSystem->Getenv("RUN_NUMBER")).Atoi();
+  //const int eventNumber = mEvDisp.getNumberOfProcessedEvents() - 1;
+  const int eventNumber = mEvDisp.getPresentEventNumber();
   for (Int_t iROC=0; iROC<72; iROC++){
     // TODO: remove again at some point
     if (iROC >0) break;
@@ -362,7 +383,7 @@ void InitGUI()
   c = new TCanvas("MaxValsI","MaxValsI",1*w,0*h,w,h);
   c->AddExec("padSig","DrawPadSignal(\"SigI\")");
   mHMaxIROC=new TH2F("hMaxValsIROC","Max Values IROC;row;pad",63,0,63,108,-54,54);
-  //mHMaxIROC->GetYaxis()->SetRangeUser(0,25);
+  mHMaxIROC->GetYaxis()->SetRangeUser(5,30);
   mHMaxIROC->SetStats(kFALSE);
   mHMaxIROC->Draw("colz");
   //histograms and canvases for max values OROC
@@ -381,15 +402,36 @@ void InitGUI()
 }
 
 //__________________________________________________________________________
-void Next()
+void Next(int eventNumber=-1)
 {
   //Int_t ev=mRawReader->NextEvent();
   //if (!ev) return;
-  if (!mEvDisp.ProcessEvent()) {
-    std::cout << "Prolem processing this event\n";
-    return;
+  using Status = CalibRawBase::ProcessStatus;
+  Status status = mEvDisp.processEvent(eventNumber);
+  //const Int_t timeBins = mEvDisp.getTimeBinsPerCall();
+  const Int_t timeBins = mEvDisp.getNumberOfProcessedTimeBins();
+
+  switch (status) {
+    case Status::Ok: {
+      std::cout << "Read in full event with " << timeBins << " time bins\n";
+      break;
+    }
+    case Status::Truncated: {
+      std::cout << "Event is truncated and contains less than " << timeBins << " time bins\n";
+      break;
+    }
+    case Status::NoMoreData: {
+      std::cout << "No more data to be read\n";
+      return;
+      break;
+    }
+    case Status::NoReaders: {
+      std::cout << "No raw readers configured\n";
+      return;
+      break;
+    }
   }
-  //Bool_t res=mEvDisp.ProcessEvent();
+  //Bool_t res=mEvDisp.processEvent();
   //printf("Next: %d, %d (%d - %d), %d\n",res, ((AliRawReaderGEMDate*)mRawReader)->mEventInFile,((AliRawReaderGEMDate*)mRawReader)->GetCamacData(0),mRawReader->GetEventFromTag(), mRawReader->GetDataSize());
   //printf("Next Event: %d\n",mRawReader->GetEventFromTag());
   printf("Next Event\n");
@@ -397,8 +439,11 @@ void Next()
 }
 
 //__________________________________________________________________________
-void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile="")
+void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile="", Int_t nTimeBinsPerCall=500)
 {
+  FairLogger *logger = FairLogger::GetLogger();
+  logger->SetLogVerbosityLevel("LOW");
+  logger->SetLogScreenLevel("DEBUG");
   if (!pedestalFile.IsNull()) {
     TFile f(pedestalFile);
     if (f.IsOpen()) {
@@ -410,6 +455,7 @@ void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile="")
   mEvDisp.setupContainers(fileInfo);
   mEvDisp.mSelectedSector=mSelectedSector;
   mEvDisp.mLastSelSector=mSelectedSector;
+  mEvDisp.setTimeBinsPerCall(nTimeBinsPerCall);
   InitGUI();
 //  while (mRawReader->NextEvent() && mRawReader->GetEventFromTag()==0) Next();
   MonitorGui();

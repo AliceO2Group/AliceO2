@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// @copyright
 /// © Copyright 2014 Copyright Holders of the ALICE O2 collaboration.
 /// See https://aliceinfo.cern.ch/AliceO2 for details on the Copyright holders.
@@ -19,27 +29,40 @@ const uint32_t o2::Header::BaseHeader::sMagicString = String2<uint32_t>("O2O2");
 
 //possible serialization types
 const o2::Header::SerializationMethod o2::Header::gSerializationMethodAny    ("*******");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodInvalid("       ");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodNone   ("NONE   ");
-const o2::Header::SerializationMethod o2::Header::gSerializationMethodROOT   ("ROOT   ");
+const o2::Header::SerializationMethod o2::Header::gSerializationMethodInvalid("INVALID");
+const o2::Header::SerializationMethod o2::Header::gSerializationMethodNone   ("NONE");
+const o2::Header::SerializationMethod o2::Header::gSerializationMethodROOT   ("ROOT");
 const o2::Header::SerializationMethod o2::Header::gSerializationMethodFlatBuf("FLATBUF");
 
 //__________________________________________________________________________________________________
 //possible data origins
 const o2::Header::DataOrigin o2::Header::gDataOriginAny    ("***");
-const o2::Header::DataOrigin o2::Header::gDataOriginInvalid("   ");
+const o2::Header::DataOrigin o2::Header::gDataOriginInvalid("NIL");
+const o2::Header::DataOrigin o2::Header::gDataOriginFLP    ("FLP");
+const o2::Header::DataOrigin o2::Header::gDataOriginACO    ("ACO");
+const o2::Header::DataOrigin o2::Header::gDataOriginCPV    ("CPV");
+const o2::Header::DataOrigin o2::Header::gDataOriginCTP    ("CTP");
+const o2::Header::DataOrigin o2::Header::gDataOriginEMC    ("EMC");
+const o2::Header::DataOrigin o2::Header::gDataOriginFIT    ("FIT");
+const o2::Header::DataOrigin o2::Header::gDataOriginHMP    ("HMP");
+const o2::Header::DataOrigin o2::Header::gDataOriginITS    ("ITS");
+const o2::Header::DataOrigin o2::Header::gDataOriginMCH    ("MCH");
+const o2::Header::DataOrigin o2::Header::gDataOriginMFT    ("MFT");
+const o2::Header::DataOrigin o2::Header::gDataOriginMID    ("MID");
+const o2::Header::DataOrigin o2::Header::gDataOriginPHS    ("PHS");
+const o2::Header::DataOrigin o2::Header::gDataOriginTOF    ("TOF");
 const o2::Header::DataOrigin o2::Header::gDataOriginTPC    ("TPC");
 const o2::Header::DataOrigin o2::Header::gDataOriginTRD    ("TRD");
-const o2::Header::DataOrigin o2::Header::gDataOriginTOF    ("TOF");
+const o2::Header::DataOrigin o2::Header::gDataOriginZDC    ("ZDC");
 
 //possible data types
 const o2::Header::DataDescription o2::Header::gDataDescriptionAny     ("***************");
-const o2::Header::DataDescription o2::Header::gDataDescriptionInvalid ("               ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionRawData ("RAWDATA        ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionClusters("CLUSTERS       ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionTracks  ("TRACKS         ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionConfig  ("CONFIG         ");
-const o2::Header::DataDescription o2::Header::gDataDescriptionInfo    ("INFO           ");
+const o2::Header::DataDescription o2::Header::gDataDescriptionInvalid ("INVALID_DESC");
+const o2::Header::DataDescription o2::Header::gDataDescriptionRawData ("RAWDATA");
+const o2::Header::DataDescription o2::Header::gDataDescriptionClusters("CLUSTERS");
+const o2::Header::DataDescription o2::Header::gDataDescriptionTracks  ("TRACKS");
+const o2::Header::DataDescription o2::Header::gDataDescriptionConfig  ("CONFIGURATION");
+const o2::Header::DataDescription o2::Header::gDataDescriptionInfo    ("INFORMATION");
 
 //definitions for Stack statics
 std::default_delete<byte[]> o2::Header::Stack::sDeleter;
@@ -182,26 +205,6 @@ void o2::Header::printDataOrigin::operator()(const char* str) const
 }
 
 //__________________________________________________________________________________________________
-o2::Header::DataDescription::DataDescription()
-  : itg()
-{
-  itg[0] = gInvalidToken64;
-  itg[1] = gInvalidToken64<<8 | gInvalidToken64;
-}
-
-//__________________________________________________________________________________________________
-bool o2::Header::DataDescription::operator==(const DataDescription& other) const {
-  return (itg[0] == other.itg[0] &&
-          itg[1] == other.itg[1]);
-}
-
-//__________________________________________________________________________________________________
-void o2::Header::DataDescription::print() const
-{
-  printf("Data descr.  : %s\n", str);
-}
-
-//__________________________________________________________________________________________________
 o2::Header::DataIdentifier::DataIdentifier()
   : dataDescription(), dataOrigin()
 {
@@ -266,15 +269,18 @@ void o2::Header::hexDump (const char* desc, const void* voidaddr, size_t len, si
     else
       buff[i % 16] = addr[i];
     buff[(i % 16) + 1] = '\0';
+    fflush(stdout);
   }
 
   // Pad out last line if not exactly 16 characters.
   while ((i % 16) != 0) {
     printf ("   ");
+    fflush(stdout);
     i++;
   }
 
   // And print the final ASCII bit.
   printf ("  %s\n", buff);
+  fflush(stdout);
 }
 

@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #ifndef ALICEO2_TIMEFRAME_H
 #define ALICEO2_TIMEFRAME_H
 
@@ -9,6 +19,10 @@ namespace o2
 {
 namespace DataFormat
 {
+
+using PartPosition = int;
+typedef std::pair<o2::Header::DataHeader, PartPosition> IndexElement;
+
 // helper struct so that we can
 // stream messages using ROOT
 struct MessageSizePair {

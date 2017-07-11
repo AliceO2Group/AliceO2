@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
@@ -10,27 +20,23 @@
 //* any purpose. It is provided "as is" without express or implied warranty. *
 //****************************************************************************
 
-//  @file   test_huffmancodec.cxx
+//  @file   test_HuffmanCodec.cxx
 //  @author Matthias Richter
-//  @since  2015-08-11
+//  @since  2016-08-11
 //  @brief  Test program for Huffman codec template class
 
-// Compilation: make sure variable BOOST_ROOT points to your boost installation
-/*
-   g++ --std=c++11 -g -ggdb -I$BOOST_ROOT/include -I../include -pthread -o test_huffmancodec test_huffmancodec.cxx
-*/
-
+#define BOOST_TEST_MODULE Utility test
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <iomanip>
-#include <cstring>
 #include <vector>
 #include <bitset>
-#include <random> // std::exponential_distribution
-#include <cmath>  // std::exp
 #include <thread>
 #include <stdexcept>  // exeptions, runtime_error
-#include "DataCompression/dc_primitives.h"
-#include "DataCompression/HuffmanCodec.h"
+#include "../include/DataCompression/dc_primitives.h"
+#include "../include/DataCompression/HuffmanCodec.h"
 #include "DataGenerator.h"
 #include "Fifo.h"
 
@@ -65,14 +71,14 @@ void decoderProcess(RandvalStreamT& fifoRandvals, EncodedStreamT& fifoEncoded, C
          );
 }
 
-int main()
+BOOST_AUTO_TEST_CASE(test_HuffmanCodec)
 {
   // defining a contiguous alphabet of integral 16 bit unsigned numbers
-  // in the range [-1, 10] including the upper bound
+  // in the range [-7, 10] including the upper bound
   // the first definition is a data type, then an object of this type is
   // defined
-  typedef o2::Test::normal_distribution<double> TestDistribution_t;
-  typedef o2::Test::DataGenerator<int16_t, TestDistribution_t> DataGenerator_t;
+  typedef o2::test::normal_distribution<double> TestDistribution_t;
+  typedef o2::test::DataGenerator<int16_t, TestDistribution_t> DataGenerator_t;
   DataGenerator_t dg(-7.5, 10.5, 1., 0., 1.);
   typedef ContiguousAlphabet<DataGenerator_t::value_type, -7, 10> SimpleRangeAlphabet_t;
   SimpleRangeAlphabet_t alphabet;
@@ -151,10 +157,10 @@ int main()
   //
 
   // FIFO for the random numbers
-  o2::Test::Fifo<DataGenerator_t::value_type> fifoRandvals;
+  o2::test::Fifo<DataGenerator_t::value_type> fifoRandvals;
 
   // FIFO for encoded values
-  typedef o2::Test::Fifo<uint32_t> FifoBuffer_t;
+  typedef o2::test::Fifo<uint32_t> FifoBuffer_t;
   FifoBuffer_t fifoEncoded;
 
   const int nRolls = 1000000;

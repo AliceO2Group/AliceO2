@@ -1,11 +1,22 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file GeometryTGeo.cxx
 /// \brief Implementation of the GeometryTGeo class
 /// \author cvetan.cheshkov@cern.ch - 15/02/2007
 /// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
+
 #include "ITSBase/GeometryTGeo.h"
-#include "ITSBase/GeometryManager.h"
+#include "DetectorsBase/GeometryManager.h"
 #include "ITSMFTBase/Segmentation.h"
 #include "ITSMFTBase/SegmentationPixel.h"
 
@@ -33,21 +44,24 @@ using o2::ITSMFT::Segmentation;
 using o2::ITSMFT::SegmentationPixel;
 using namespace TMath;
 using namespace o2::ITS;
+using namespace o2::Base;
 
 ClassImp(o2::ITS::GeometryTGeo)
 
-  UInt_t GeometryTGeo::mUIDShift = 16; // bit shift to go from mod.id to modUUID for TGeo
-TString GeometryTGeo::mVolumeName = "ITSV";
-TString GeometryTGeo::mLayerName = "ITSULayer";
-TString GeometryTGeo::mStaveName = "ITSUStave";
-TString GeometryTGeo::mHalfStaveName = "ITSUHalfStave";
-TString GeometryTGeo::mModuleName = "ITSUModule";
-TString GeometryTGeo::mChipName = "ITSUChip";
-TString GeometryTGeo::mSensorName = "ITSUSensor";
-TString GeometryTGeo::mWrapperVolumeName = "ITSUWrapVol";
-TString GeometryTGeo::mChipTypeName[GeometryTGeo::kNChipTypes] = { "Pix" };
+  TString GeometryTGeo::sVolumeName = "ITSV";
+TString GeometryTGeo::sLayerName = "ITSULayer";
+TString GeometryTGeo::sStaveName = "ITSUStave";
+TString GeometryTGeo::sHalfStaveName = "ITSUHalfStave";
+TString GeometryTGeo::sModuleName = "ITSUModule";
+TString GeometryTGeo::sChipName = "ITSUChip";
+TString GeometryTGeo::sSensorName = "ITSUSensor";
+TString GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol";
+TString GeometryTGeo::sChipTypeName[GeometryTGeo::kNChipTypes] = { "Pix" };
 
-TString GeometryTGeo::mSegmentationFileName = "itsSegmentations.root";
+TString GeometryTGeo::sSegmentationFileName = "itsSegmentations.root";
+
+/// definition of underlying detector ID
+const DetID GeometryTGeo::sDetID(DetID::ITS);
 
 GeometryTGeo::GeometryTGeo(Bool_t build, Bool_t loadSegmentations)
   : mVersion(kITSVNA),
@@ -385,27 +399,6 @@ Bool_t GeometryTGeo::getChipId(Int_t index, Int_t& lay, Int_t& sta, Int_t& hsta,
   return kTRUE;
 }
 
-const char* GeometryTGeo::getSymbolicName(Int_t index) const
-{
-  Int_t lay, index2;
-  if (!getLayer(index, lay, index2)) {
-    return nullptr;
-  }
-  // return
-  // GeometryManager::SymName((GeometryManager::ELayerID)((lay-1)+GeometryManager::kSPD1),index2);
-  // RS: this is not optimal, but we cannod access directly GeometryManager, since the latter has
-  // hardwired layers
-  //  TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(
-  // GeometryManager::layerToVolUID(lay+1,index2) );
-  TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(chipVolUID(index));
-  if (!pne) {
-    LOG(ERROR) << "Failed to find alignable entry with index " << index << ": (Lr" << lay << " Chip:" << index2 << ") !"
-               << FairLogger::endl;
-    return nullptr;
-  }
-  return pne->GetName();
-}
-
 const char* GeometryTGeo::composeSymNameITS() { return "ITS"; }
 const char* GeometryTGeo::composeSymNameLayer(Int_t lr)
 {
@@ -434,123 +427,12 @@ const char* GeometryTGeo::composeSymNameChip(Int_t lr, Int_t sta, Int_t substave
   return Form("%s/%s%d", composeSymNameModule(lr, sta, substave, mod), getITSChipPattern(), chip);
 }
 
-TGeoHMatrix* GeometryTGeo::GetMatrix(Int_t index) const
-{
-  static TGeoHMatrix matTmp;
-  TGeoPNEntry* pne = getPNEntry(index);
-  if (!pne) {
-    return nullptr;
-  }
-
-  TGeoPhysicalNode* pnode = pne->GetPhysicalNode();
-  if (pnode) {
-    return pnode->GetMatrix();
-  }
-
-  const char* path = pne->GetTitle();
-  gGeoManager->PushPath(); // Preserve the modeler state.
-  if (!gGeoManager->cd(path)) {
-    gGeoManager->PopPath();
-    LOG(ERROR) << "Volume path " << path << " not valid!" << FairLogger::endl;
-    return nullptr;
-  }
-  matTmp = *gGeoManager->GetCurrentMatrix();
-  gGeoManager->PopPath();
-  return &matTmp;
-}
-
-Bool_t GeometryTGeo::GetTranslation(Int_t index, Double_t t[3]) const
-{
-  TGeoHMatrix* m = GetMatrix(index);
-  if (!m) {
-    return kFALSE;
-  }
-
-  Double_t* trans = m->GetTranslation();
-  for (Int_t i = 0; i < 3; i++) {
-    t[i] = trans[i];
-  }
-
-  return kTRUE;
-}
-
-Bool_t GeometryTGeo::getRotation(Int_t index, Double_t r[9]) const
-{
-  TGeoHMatrix* m = GetMatrix(index);
-  if (!m) {
-    return kFALSE;
-  }
-
-  Double_t* rot = m->GetRotationMatrix();
-  for (Int_t i = 0; i < 9; i++) {
-    r[i] = rot[i];
-  }
-
-  return kTRUE;
-}
-
-Bool_t GeometryTGeo::GetOriginalMatrix(Int_t index, TGeoHMatrix& m) const
-{
-  m.Clear();
-
-  const char* symname = getSymbolicName(index);
-  if (!symname) {
-    return kFALSE;
-  }
-
-  return GeometryManager::getOriginalGlobalMatrix(symname, m);
-}
-
-Bool_t GeometryTGeo::getOriginalTranslation(Int_t index, Double_t t[3]) const
-{
-  TGeoHMatrix m;
-  if (!GetOriginalMatrix(index, m)) {
-    return kFALSE;
-  }
-
-  Double_t* trans = m.GetTranslation();
-  for (Int_t i = 0; i < 3; i++) {
-    t[i] = trans[i];
-  }
-
-  return kTRUE;
-}
-
-Bool_t GeometryTGeo::getOriginalRotation(Int_t index, Double_t r[9]) const
-{
-  TGeoHMatrix m;
-  if (!GetOriginalMatrix(index, m)) {
-    return kFALSE;
-  }
-
-  Double_t* rot = m.GetRotationMatrix();
-  for (Int_t i = 0; i < 9; i++) {
-    r[i] = rot[i];
-  }
-
-  return kTRUE;
-}
-
-TGeoHMatrix* GeometryTGeo::extractMatrixTrackingToLocal(Int_t index) const
-{
-  TGeoPNEntry* pne = getPNEntry(index);
-  if (!pne) {
-    return nullptr;
-  }
-
-  TGeoHMatrix* m = (TGeoHMatrix*)pne->GetMatrix();
-  if (!m) {
-    LOG(ERROR) << "TGeoPNEntry (" << pne->GetName() << ") contains no matrix !" << FairLogger::endl;
-  }
-
-  return m;
-}
-
 Bool_t GeometryTGeo::getTrackingMatrix(Int_t index, TGeoHMatrix& m)
 {
+  /// assign to m the matrix transforming from Tracking to Global frame
   m.Clear();
 
-  TGeoHMatrix* m1 = GetMatrix(index);
+  TGeoHMatrix* m1 = getMatrix(index);
   if (!m1) {
     return kFALSE;
   }
@@ -607,26 +489,6 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(Int_t index) const
   // Restore the modeler state.
   gGeoManager->PopPath();
   return &matTmp;
-}
-
-TGeoPNEntry* GeometryTGeo::getPNEntry(Int_t index) const
-{
-  if (index >= mNumberOfChips) {
-    LOG(ERROR) << "Invalid ITS chip index: " << index << " (0 -> " << mNumberOfChips << ") !" << FairLogger::endl;
-    return nullptr;
-  }
-
-  if (!gGeoManager || !gGeoManager->IsClosed()) {
-    LOG(ERROR) << "Can't get the matrix! gGeoManager doesn't exist or it is still opened!" << FairLogger::endl;
-    return nullptr;
-  }
-  TGeoPNEntry* pne = gGeoManager->GetAlignableEntryByUID(chipVolUID(index));
-  //  TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(getSymbolicName(index));
-
-  if (!pne) {
-    LOG(ERROR) << "The index " << index << " does not correspond to a physical entry!" << FairLogger::endl;
-  }
-  return pne;
 }
 
 void GeometryTGeo::Build(Bool_t loadSegmentations)
@@ -686,7 +548,6 @@ Int_t GeometryTGeo::extractNumberOfLayers()
   if (!itsV) {
     LOG(FATAL) << "ITS volume " << getITSVolPattern() << " is not in the geometry" << FairLogger::endl;
   }
-  setUIDShift(itsV->GetUniqueID());
 
   // Loop on all ITSV nodes, count Layer volumes by checking names
   // Build on the fly layer - wrapper correspondence
@@ -758,7 +619,7 @@ Int_t GeometryTGeo::extractNumberOfStaves(Int_t lay) const
 
 Int_t GeometryTGeo::extractNumberOfHalfStaves(Int_t lay) const
 {
-  if (mHalfStaveName.IsNull()) {
+  if (sHalfStaveName.IsNull()) {
     return 0; // for the setup w/o substave defined the stave and the substave is the same thing
   }
   Int_t nSS = 0;
@@ -780,14 +641,14 @@ Int_t GeometryTGeo::extractNumberOfHalfStaves(Int_t lay) const
 
 Int_t GeometryTGeo::extractNumberOfModules(Int_t lay) const
 {
-  if (mModuleName.IsNull()) {
+  if (sModuleName.IsNull()) {
     return 0;
   }
 
   char stavnam[30];
   TGeoVolume* volLd = nullptr;
 
-  if (!mHalfStaveName.IsNull()) {
+  if (!sHalfStaveName.IsNull()) {
     snprintf(stavnam, 30, "%s%d", getITSHalfStavePattern(), lay);
     volLd = gGeoManager->GetVolume(stavnam);
   }
@@ -818,12 +679,12 @@ Int_t GeometryTGeo::extractNumberOfChipsPerModule(Int_t lay, int& nrow) const
   char stavnam[30];
   TGeoVolume* volLd = nullptr;
 
-  if (!mModuleName.IsNull()) {
+  if (!sModuleName.IsNull()) {
     snprintf(stavnam, 30, "%s%d", getITSModulePattern(), lay);
     volLd = gGeoManager->GetVolume(stavnam);
   }
   if (!volLd) { // no modules on this layer, check substaves
-    if (!mHalfStaveName.IsNull()) {
+    if (!sHalfStaveName.IsNull()) {
       snprintf(stavnam, 30, "%s%d", getITSHalfStavePattern(), lay);
       volLd = gGeoManager->GetVolume(stavnam);
     }

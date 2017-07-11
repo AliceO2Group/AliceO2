@@ -1,8 +1,8 @@
 #
 nEvents=10
 mcEngine=\"TGeant3\"
-#To activate the ALPIDE response, set alp=kTRUE
-alp=kFALSE
+#To de-activate the ALPIDE response, set alp=kFALSE
+alp=kTRUE
 #
 root.exe -b -q $O2_ROOT/share/macro/run_sim_its_ALP3.C+\($nEvents,$mcEngine\) >& sim.log
 #root.exe -b -q $O2_ROOT/share/macro/run_sim_its.C+\($nEvents,$mcEngine\) >& sim.log

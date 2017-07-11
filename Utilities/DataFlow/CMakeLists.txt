@@ -18,9 +18,14 @@ set(MODULE_BUCKET_NAME O2DeviceApplication_bucket)
 O2_SETUP(NAME ${MODULE_NAME})
 
 set(SRCS
+    src/FakeTimeframeBuilder.cxx
+    src/FakeTimeframeGeneratorDevice.cxx
     src/HeartbeatSampler.cxx
     src/SubframeBuilderDevice.cxx
+    src/TimeframeParser.cxx
+    src/TimeframeReaderDevice.cxx
     src/TimeframeValidatorDevice.cxx
+    src/TimeframeWriterDevice.cxx
     src/EPNReceiverDevice.cxx
     src/FLPSenderDevice.cxx
     )
@@ -36,17 +41,23 @@ set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME ${MODULE_BUCKET_NAME})
 
 Set(Exe_Names
+    FakeTimeframeGeneratorDevice
     heartbeatSampler
     SubframeBuilderDevice
+    TimeframeReaderDevice
     TimeframeValidatorDevice
+    TimeframeWriterDevice
     EPNReceiverDevice
     FLPSenderDevice
    )
 
 set(Exe_Source
+    src/runFakeTimeframeGeneratorDevice.cxx
     src/runHeartbeatSampler.cxx
     src/runSubframeBuilderDevice.cxx
+    src/runTimeframeReaderDevice.cxx
     src/runTimeframeValidatorDevice.cxx
+    src/runTimeframeWriterDevice.cxx
     src/runEPNReceiver.cxx
     src/runFLPSender.cxx
     )
@@ -64,3 +75,26 @@ ForEach (_file RANGE 0 ${_length})
       BUCKET_NAME ${MODULE_BUCKET_NAME}
   )
 EndForEach (_file RANGE 0 ${_length})
+
+
+O2_GENERATE_EXECUTABLE(
+  EXE_NAME TimeframeValidationTool
+  SOURCES src/TimeframeValidationTool
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${MODULE_BUCKET_NAME}
+)
+
+set(TEST_SRCS
+  test/test_TimeframeParser.cxx
+  test/test_SubframeUtils01.cxx
+  test/test_PayloadMerger01.cxx
+)
+
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+  TEST_SRCS ${TEST_SRCS})
+
+O2_GENERATE_MAN(NAME TimeframeReaderDevice)
+O2_GENERATE_MAN(NAME TimeframeWriterDevice)
+O2_GENERATE_MAN(NAME SubframeBuilderDevice)

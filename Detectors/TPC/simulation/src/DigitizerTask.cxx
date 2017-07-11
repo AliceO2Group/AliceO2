@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file Digitizer.cxx
 /// \brief Implementation of the ALICE TPC digitizer task
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
@@ -10,6 +20,7 @@
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Constants.h"
 #include "TPCSimulation/Point.h"
+#include "TPCBase/Sector.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
@@ -74,7 +85,7 @@ InitStatus DigitizerTask::Init()
   }
   else {
     // in case we are treating all sectors
-    for (int s=0;s<18;++s){
+    for (int s=0;s<Sector::MAXSECTOR;++s){
       std::stringstream sectornamestr;
       sectornamestr << "TPCHitsSector" << s;
       LOG(INFO) << "FETCHING HITS FOR SECTOR " << s << "\n";
@@ -115,7 +126,7 @@ void DigitizerTask::Exec(Option_t *option)
 
   if (mHitSector == -1){
     // treat all sectors
-    for (int s=0; s<18; ++s){
+    for (int s=0; s<Sector::MAXSECTOR; ++s){
       LOG(DEBUG) << "Processing sector " << s << "\n";
       mDigitContainer = mDigitizer->Process(mSectorHitsArray[s]);
     }

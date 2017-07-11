@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include <cstddef> // size_t
 #include <fstream> // writing to file (DEBUG)
 #include <cstring>
@@ -8,6 +18,7 @@
 #include "DataFlow/EPNReceiverDevice.h"
 #include "Headers/DataHeader.h"
 #include "Headers/SubframeMetadata.h"
+#include "TimeFrame/TimeFrame.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -15,6 +26,7 @@ using namespace o2::Devices;
 using SubframeMetadata = o2::DataFlow::SubframeMetadata;
 using TPCTestPayload = o2::DataFlow::TPCTestPayload;
 using TPCTestCluster = o2::DataFlow::TPCTestCluster;
+using IndexElement = o2::DataFormat::IndexElement;
 
 void EPNReceiverDevice::InitTask()
 {
@@ -71,10 +83,8 @@ void EPNReceiverDevice::Run()
   FairMQChannel& ackOutChannel = fChannels.at(mAckChannelName).at(0);
 
   // Simple multi timeframe index
-  using PartPosition = int;
   using TimeframeId = int;
   using FlpId = int;
-  typedef std::pair<Header::DataHeader, PartPosition> IndexElement;
   std::multimap<TimeframeId, IndexElement> index;
   std::multimap<TimeframeId, FlpId> flpIds;
 
@@ -90,25 +100,6 @@ void EPNReceiverDevice::Run()
     SubframeMetadata* sfm = reinterpret_cast<SubframeMetadata*>(subtimeframeParts.At(1)->GetData());
     id = o2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
     auto flpId = sfm->flpIndex;
-
-    // in this case the subtime frame did send some data
-    if (subtimeframeParts.Size() > 2) {
-      int part = 2;
-      // check if we got something from TPC
-      auto *header = reinterpret_cast<Header::DataHeader*>(subtimeframeParts.At(part)->GetData());
-      if (strncmp(header->dataDescription.str, "TPCCLUSTER", 16) == 0) {
-         assert( header->payloadSize == subtimeframeParts.At(part+1)->GetSize() );
-         TPCTestCluster *cl = reinterpret_cast<TPCTestCluster*>(subtimeframeParts.At(part+1)->GetData());
-         auto numberofClusters = header->payloadSize / sizeof(TPCTestCluster);
-         if (header->payloadSize % sizeof(TPCTestCluster) != 0)
-         {
-            LOG(ERROR) << "Unexpected size for TPCTestCluster: got an extra " 
-                       << header->payloadSize % sizeof(TPCTestCluster)
-                       << " total size " << header->payloadSize << "\n";
-         }
-        LOG(DEBUG) << "TPCCLUSTER found\n";
-      }
-    }
 
     if (mDiscardedSet.find(id) == mDiscardedSet.end())
     {

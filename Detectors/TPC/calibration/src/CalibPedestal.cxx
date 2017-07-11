@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file   CalibPedestal.cxx
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
@@ -25,8 +35,8 @@ CalibPedestal::CalibPedestal(PadSubset padSubset)
 }
 
 //______________________________________________________________________________
-Int_t CalibPedestal::Update(const Int_t roc, const Int_t row, const Int_t pad,
-                            const Int_t timeBin, const Float_t signal)
+Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad,
+                               const Int_t timeBin, const Float_t signal)
 {
   Int_t adcValue = Int_t(signal);
   if (adcValue<mADCMin || adcValue>mADCMax) return 0;
@@ -92,6 +102,18 @@ void CalibPedestal::analyse()
     }
 
     ++roc;
+  }
+}
+
+//______________________________________________________________________________
+void CalibPedestal::resetData()
+{
+  for (auto& vecPtr : mADCdata) {
+    auto vec = vecPtr.get();
+    if (!vec) {
+      continue;
+    }
+    vec->clear();
   }
 }
 

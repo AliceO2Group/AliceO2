@@ -1,0 +1,133 @@
+.\" Manpage for AliceHLTWrapperDevice.
+.TH AliceO2 1 "19 May 2017" "1.0" "AliceHLTWrapperDevice man page"
+.SH NAME
+AliceHLTWrapperDevice - FairRoot/ALFA device running ALICE HLT code
+
+.SH SYNOPSIS
+.B AliceHLTWrapperDevice
+.B --id
+.I deviceid
+.B --channel-config
+.I config
+.B --library
+.I arg
+.B --component
+.I arg
+.B --parameter
+.I arg
+.B --runno
+.I n
+
+.SH DESCRIPTION
+
+A FairMQ device class supporting the HLT component interface
+for processing.
+
+The device class implements the interface functions of FairMQ, and it
+receives and send messages. The data of the messages are processed
+using the Component class.
+
+.SH OPTIONS
+.SS Common FairMQDevice options
+.TP 2
+.B --id  \fIid\fR
+A unique identifier of the device
+.TP 2
+.B --channel-config  \fIargs\fR
+channel configuration as comma separated key=\fIvalue\fR pairs
+.RS
+Valid Keys:
+.B name
+.B type
+.B method
+.B address
+.B property
+.RE
+
+.SS Mandatory HLT Component related options
+.B Note:
+Every HLT component has it's own set of (command line) options which can be passed via the \fB--parameter\fR option.
+.TP 2
+.B --library \fIarg\fR
+HLT library containing the component
+.TP 2
+.B --component \fIarg\fR
+HLT component id
+.TP 2
+.B --parameter \fIarg\fR
+Parameter of the component, make sure to put in quotes if the argument consists
+of multiple strings
+.TP 2
+.B --run  \fIn\fR
+Run number
+.TP 2
+.B --ocdb  \fIuri\fR
+Set the OCDB URI and override the value of environment variable ALIHLT_HCDBDIR
+
+.SS Other Options
+.B --poll-period \fIperiod\fR
+Polling period on the input channel
+.B --output-mode \fImode\fR
+The output mode of the device, default is O2 format (3)
+.RS 2
+.B 0
+- HOMER format
+.br
+.B 1
+- blocks in multiple messages
+.br
+.B 2
+- blocks concatenated in one message (default)
+.br
+.B 3
+- O2 format
+.RE
+
+.SH FEATURES
+.SS Message channels
+The device supports input and output channels with the names
+.IR --data-in /
+.I --data-out
+respectively. All input channels are treated equally and the device expects messages
+from all channels before data is processed.
+
+If no input channel is specified the device will run in a self-triggered mode
+and call the component processing repeatedly with the period specified by
+.IR --poll-period .
+
+.SS Configuration database
+HLT components need the Alice OCDB to load the configuration. The path to the OCDB
+must be set in environment variable
+.B ALIHLT_HCDBDIR
+or via option
+.BR --ocdb .
+
+.SS Heartbeat information
+The device interprets Heartbeat frame data blocks at the input channel. If this
+information is available at the input, all output blocks will be wrapped into
+Haertbeat frames.
+
+.SH EXAMPLES
+.B AliceHLTWrapperDevice
+--id publisher \\
+.br
+--channel-config \\
+.br
+  name=data-out,type=pub,method=bind,address=tcp://*:42424 \\
+.br
+--library libAliHLTUtil.so --component FilePublisher --run 167808 \\
+.br
+--parameter '-datafile some_file_to_publish'
+
+.SH AUTHOR
+Matthias.Richter@scieq.net
+All questions and suggestions welcome
+
+.SH SEE ALSO
+AliceHLTComponents(1), FairMQDevice(1)
+
+.SH BUGS/ISSUES
+.SS Parameter Manager
+The device does not interface to the FairMQ parameter manager. The device itself
+does not need any more parameters than the command line options. The HLT component
+needs the ALICE OCDB location and the run number.

@@ -199,3 +199,6 @@ Install(FILES ${CMAKE_BINARY_DIR}/config.sh_install
 configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
     ${CMAKE_BINARY_DIR}/CTestCustom.cmake
     )
+
+O2_GENERATE_MAN(NAME o2)
+O2_GENERATE_MAN(NAME FairMQDevice)

@@ -142,6 +142,7 @@ o2_define_bucket(
     DEPENDENCIES
     Base
     Headers
+    TimeFrame
     O2Device
     dl
 )
@@ -266,7 +267,7 @@ o2_define_bucket(
     fairroot_geom
 
     DEPENDENCIES
-    Base GeoBase ParBase Geom Core
+    Base GeoBase ParBase Geom Core VMC
     common_boost_bucket
 
     INCLUDE_DIRECTORIES
@@ -313,7 +314,7 @@ o2_define_bucket(
 
 o2_define_bucket(
     NAME
-    detectors_base
+    detectors_base_bucket
 
     DEPENDENCIES
     fairroot_base_bucket
@@ -321,6 +322,7 @@ o2_define_bucket(
     Tree
     TreePlayer
     VMC # ROOT
+    Geom
 
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
@@ -339,6 +341,18 @@ o2_define_bucket(
     Hist
     ParBase
     Field
+
+    INCLUDE_DIRECTORIES
+)
+
+o2_define_bucket(
+    NAME
+    mcsteplogger_bucket
+
+    DEPENDENCIES
+    dl
+    root_base_bucket
+    VMC
 
     INCLUDE_DIRECTORIES
 )
@@ -384,8 +398,10 @@ o2_define_bucket(
     DEPENDENCIES
     itsmft_base_bucket
     ITSMFTBase
-
+    DetectorsBase
+    
     INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
 )
 
 o2_define_bucket(
@@ -774,4 +790,27 @@ o2_define_bucket(
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/EMCAL/base/include
+)
+
+o2_define_bucket(
+    NAME
+    tof_simulation_bucket
+
+    DEPENDENCIES
+    emcal_base_bucket
+    root_base_bucket
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+    TOFBase
+    DetectorsBase
+    SimulationDataFormat
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/TOF/base/include
 )

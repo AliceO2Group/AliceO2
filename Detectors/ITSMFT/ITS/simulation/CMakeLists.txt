@@ -5,6 +5,7 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/V11Geometry.cxx
     src/V1Layer.cxx
+    src/V3Layer.cxx
     src/Detector.cxx
     src/GeometryHandler.cxx
     src/Digitizer.cxx
@@ -22,6 +23,7 @@ set(HEADERS
     include/${MODULE_NAME}/DigitizerTask.h
     include/${MODULE_NAME}/GeometryHandler.h
     include/${MODULE_NAME}/V1Layer.h
+    include/${MODULE_NAME}/V3Layer.h
     include/${MODULE_NAME}/V11Geometry.h
     )
 

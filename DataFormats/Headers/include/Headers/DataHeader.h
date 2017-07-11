@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// @copyright
 /// © Copyright 2014 Copyright Holders of the ALICE O2 collaboration.
 /// See https://aliceinfo.cern.ch/AliceO2 for details on the Copyright holders.
@@ -25,6 +35,7 @@
 #include <iostream>
 #include <memory>
 #include <cassert>
+#include <cstring> //needed for memcmp
 
 // enum class byte : unsigned char
 // {
@@ -96,16 +107,6 @@ constexpr T String2__(char c, Targs... Fargs)
   return (T) c | String2__<T>(Fargs...) << 8;
 }
 
-/// compile time evaluation of the number of arguments in argument pack
-template<typename T, typename... Targs>
-struct getnargs {
-  static int const value = getnargs<Targs...>::value + 1;
-};
-template<typename T>
-struct getnargs<T> {
-  static int const value = 1;
-};
-
 /// get the number of active bits (set to 1) in a bitfield
 template <unsigned int N>
 struct NumberOfActiveBits {
@@ -117,16 +118,10 @@ struct NumberOfActiveBits<0> {
 };
 
 /// evaluate the array size necessary to hold a N-byte number with type T
-template <int N, typename T>
-struct ArraySize {
-  static_assert(N >= sizeof(T), "get this code to work first");
-  static int const value = 1;
-  //static int const value = std::conditional<(N > sizeof(T)), ArraySize<(N - sizeof(T)), T>, ArraySize<0, T>>::value + 1;
-};
-template <typename T>
-struct ArraySize<0, T> {
-  static int const value = 0;
-};
+template <typename T, int N>
+constexpr int ArraySize() {
+  return N / sizeof(T) + ((N%sizeof(T))?1:0);
+}
 
 /// select uint type depending on size, default is uint64_t
 template <int N>
@@ -176,8 +171,8 @@ constexpr T String2(char c, Targs... Fargs)
   // TODO: this is a bit of a question, do we allow the number of characters to
   // be smaller than the size of the type and just pad with 0 like in the case
   // of a char array argument?
-  static_assert(Internal::getnargs<T, Targs...>::value == sizeof(T) ||
-		Internal::getnargs<T, Targs...>::value == sizeof(T) - 1,
+  static_assert(sizeof...(Targs) == sizeof(T) + 1 ||
+		sizeof...(Targs) == sizeof(T),
 		"number of arguments does not match the uint type width"
 		);
   return Internal::String2__<T>(c, Fargs...);
@@ -215,33 +210,42 @@ constexpr T String2(const char (&str)[N])
 /// have to be studied.
 template <int N, typename PrinterPolicy = Internal::defaultPrinter>
 struct Descriptor {
-  static_assert(Internal::NumberOfActiveBits<N>::value == 1 && N <= 8,
-		"size is required to be 1 or a multiple of 2");
+  static_assert(Internal::NumberOfActiveBits<N>::value == 1,
+		"Descriptor size is required to be a power of 2");
   static int const size = N;
   static int const bitcount = size*8;
-  static int const arraySize = 1; //Internal::ArraySize<size, uint64_t>::value;
+  static constexpr int arraySize = Internal::ArraySize<uint64_t, size>();
   using ItgType = typename Internal::TraitsIntType<N>::Type;
 
   union {
     char     str[N];
-    ItgType  itg; // for extension > 64 bit: [arraySize];
+    ItgType  itg[arraySize];
   };
-  constexpr Descriptor() : itg(0) {};
-  constexpr Descriptor(ItgType initializer) : itg(initializer) {};
-  constexpr Descriptor(const Descriptor& other) : itg(other.itg) {}
-  Descriptor& operator=(const Descriptor& other) {
-    if (&other != this) itg = other.itg;
-    return *this;
-  }
+  constexpr Descriptor() : itg{0} {};
+  constexpr Descriptor(ItgType initializer) : itg{initializer} {};
+  constexpr Descriptor(const Descriptor& other) = default;
+  Descriptor& operator=(const Descriptor& other) = default;
+
   // Note: don't need to define operator=(ItgType v) because the compiler
   // can use Descriptor(ItgType initializer) for conversion
 
   // type cast operator for simplified usage of the descriptor's integer member
-  operator ItgType() const {return itg;}
+  // TODO: this is sort of a hack, takes the first element.
+  //       we should rethink these implicit conversions
+  operator ItgType() const
+  {
+    static_assert(arraySize == 1, "casting Descriptor to ItgType only allowed for N<=8");
+    return itg[0];
+  }
 
   /// constructor from a compile-time string
-  template<std::size_t NN>
-  constexpr Descriptor(const char (&origin)[NN]) : itg(String2<ItgType>(origin)) {};
+  constexpr Descriptor(const char* in) : str{0}
+  {
+    int i = 0;
+    for (; in[i] && i < N ; ++i) {
+      str[i] = in[i];
+    }
+  }
 
   /// Init descriptor from string at runtime
   /// In contrast to all other functions which are fixed at compile time, this is
@@ -262,8 +266,16 @@ struct Descriptor {
     assert(source != nullptr && (*source == 0 || (length >= 0 && length <= N)));
   }
 
-  bool operator==(const Descriptor& other) const {return itg == other.itg;}
+  bool operator==(const Descriptor& other) const {return std::memcmp(str,other.str,N)==0;}
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
+
+  // explicitly forbid comparison with e.g. const char* strings
+  // use: value == Descriptor<N>("DESC") for the appropriate
+  // template instantiation instead
+  template<typename T>
+  bool operator==(const T*) const = delete;
+  template<typename T>
+  bool operator!=(const T*) const = delete;
   // print function needs to be implemented for every derivation
   void print() const {
     // eventually terminate string before printing
@@ -407,13 +419,17 @@ const HeaderType* get(const void* buffer, size_t len=0) {
 ///   - as a variadic intializer list (as an argument to a function)
 ///
 ///   One can also use Stack::compose(const T& header1, const T& header2, ...)
-///   - T are derived from BaseHeader, arbirtary number of arguments/headers
-///   - return is a unique_ptr holding the serialized buffer ready to be shipped.
+//    - arguments can be headers, or stacks, all will be concatenated in a new Stack
+///   - returns a Stack ready to be shipped.
 struct Stack {
 
   // This is ugly and needs fixing BUT:
   // we need a static deleter for fairmq.
-  // TODO: template the class with allocators
+  // TODO: maybe use allocator_traits if custom allocation is desired
+  //       the deallocate function is then static.
+  //       In the case of special transports is is cheap to copy the header stack into a message, so no problem there.
+  //       The copy can be avoided if we construct in place inside a FairMQMessage directly (instead of
+  //       allocating a unique_ptr we would hold a FairMQMessage which for the large part has similar semantics).
   //
   using Buffer = std::unique_ptr<byte[]>;
   static std::default_delete<byte[]> sDeleter;
@@ -435,7 +451,7 @@ struct Stack {
   template<typename... Headers>
   Stack(const Headers&... headers)
     : bufferSize{size(headers...)}
-    , buffer{new byte[bufferSize]}
+    , buffer{std::make_unique<byte[]>(bufferSize)}
   {
     inject(buffer.get(), headers...);
   }
@@ -449,9 +465,7 @@ struct Stack {
   /// (works with headers, strings and arrays)
   template<typename... Args>
   static Stack compose(const Args&... args) {
-    Stack b;
-    b.bufferSize = size(args...);
-    b.buffer.reset(new byte[b.bufferSize]);
+    Stack b{size(args...),std::make_unique<byte[]>(b.bufferSize)};
     inject(b.buffer.get(), args...);
     return b;
   }
@@ -535,61 +549,11 @@ const uint32_t NameHeader<N>::sVersion = 1;
 
 //__________________________________________________________________________________________________
 /// this 128 bit type for a header field describing the payload data type
-struct DataDescription {
-  static const std::size_t N = gSizeDataDescriptionString;
-  union {
-    char     str[N];
-    uint64_t itg[2];
-  };
-  DataDescription();
-  DataDescription(const DataDescription& other) : itg() {*this = other;}
-  DataDescription& operator=(const DataDescription& other) {
-    if (&other != this) {
-      itg[0] = other.itg[0];
-      itg[1] = other.itg[1];
-    }
-    return *this;
-  }
-  // note: no operator=(const char*) as this potentially runs into trouble with this
-  // general pointer type, use: somedesc = DataDescription("SOMEDESCRIPTION")
-  template<std::size_t NN>
-  constexpr DataDescription(const char (&desc)[NN]) : itg{String2<uint64_t, NN, 0, true>(desc), (Internal::strLength(desc) > 8 ? String2<uint64_t, NN, std::conditional< (NN > 8), Internal::intWrapper<8>, Internal::intWrapper<0>>::type::value >(desc) : 0)} {
-    // the initializer implements a number of compile time checks
-    // - for the conversion of the first part of the string to the first 64bit field
-    //   the check for the string length needs to be disabled as it is naturally longer
-    //   then the type size
-    // - the second field only has to be filled if the string is longer than 8 chars, padding
-    //   with 0 otherwize, this catches the rare case that one character within the array
-    //   has been explicitely set to 0, but the compile time length is longer
-    // - depending on the length of the char field, either the offset 8 can be chosen or the
-    //   offset is set to the maximum, which will lead also to 0
-    // - it's probably given that N > 0
-    static_assert(N > 0, "Strange error, that should not happen at all");
-  }
-
-  /// Init from string at runtime
-  /// In contrast to all other functions which are fixed at compile time, this is
-  /// available at runtime and must be used with care
-  ///
-  /// Note: no assignment operator operator=(const char*) as this potentially runs
-  /// into trouble with this general pointer type.
-  void runtimeInit(const char* string, short length = -1) {
-    char* target = str;
-    char* targetEnd = target;
-    if (length >= 0 && length < N) targetEnd += length;
-    else targetEnd += N;
-    const char* source = string;
-    for ( ; source != nullptr && target < targetEnd && *source !=0; ++target, ++source) *target = *source;
-    targetEnd = str + N;
-    for ( ; target < targetEnd; ++target) *target = 0;
-    // require the string to be not longer than the descriptor size
-    assert(source != nullptr && (*source == 0 || (length >= 0 && length <= N)));
-  }
-
-  bool operator==(const DataDescription&) const;
-  bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
-  void print() const;
+struct printDataDescription {
+  void operator()(const char* str) const { printf("Data origin  : %s\n", str); }
 };
+
+using DataDescription = Descriptor<gSizeDataDescriptionString, printDataDescription>;
 
 //__________________________________________________________________________________________________
 // 32bit (4 characters) for data origin, ex. the detector or subsystem name
@@ -682,9 +646,22 @@ struct DataHeader : public BaseHeader
 //possible data origins
 extern const o2::Header::DataOrigin gDataOriginAny;
 extern const o2::Header::DataOrigin gDataOriginInvalid;
+extern const o2::Header::DataOrigin gDataOriginFLP;
+extern const o2::Header::DataOrigin gDataOriginACO;
+extern const o2::Header::DataOrigin gDataOriginCPV;
+extern const o2::Header::DataOrigin gDataOriginCTP;
+extern const o2::Header::DataOrigin gDataOriginEMC;
+extern const o2::Header::DataOrigin gDataOriginFIT;
+extern const o2::Header::DataOrigin gDataOriginHMP;
+extern const o2::Header::DataOrigin gDataOriginITS;
+extern const o2::Header::DataOrigin gDataOriginMCH;
+extern const o2::Header::DataOrigin gDataOriginMFT;
+extern const o2::Header::DataOrigin gDataOriginMID;
+extern const o2::Header::DataOrigin gDataOriginPHS;
+extern const o2::Header::DataOrigin gDataOriginTOF;
 extern const o2::Header::DataOrigin gDataOriginTPC;
 extern const o2::Header::DataOrigin gDataOriginTRD;
-extern const o2::Header::DataOrigin gDataOriginTOF;
+extern const o2::Header::DataOrigin gDataOriginZDC;
 
 //possible data types
 extern const o2::Header::DataDescription gDataDescriptionAny;

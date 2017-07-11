@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include "TCanvas.h"
 #include "TString.h"
 #include "TAxis.h"
@@ -69,7 +79,6 @@ void Painter::draw(const CalDet<T>& calDet)
       }
     }
 
-    printf("sector: %d, %d (%d)\n", calPadSubsetNumber, sector.getSector(), sector.side()==Side::C);
     auto hist2D = hAside2D;
     auto hist1D = hAside1D;
     if (sector.side() == Side::C) {
@@ -87,9 +96,6 @@ void Painter::draw(const CalDet<T>& calDet)
       //hist2D->SetBinContent(bin, val);
       hist2D->Fill(pos.getX(), pos.getY(), val);
       hist1D->Fill(val);
-      if (val>0) {
-        printf("%d, %.2f, %.2f, %.2f\n", sector.getSector(), pos.getX(), pos.getY(), val);
-      }
 
       ++padNumber;
     }
@@ -171,7 +177,6 @@ TH2* Painter::getHistogram2D(const CalArray<T>& calArray)
        const auto val = calArray.getValue(irow, ipad);
        const int cpad = ipad - padsInRow/2;
        hist->Fill(irow, cpad, val);
-       if (irow<10) printf("%d, %d, %d, %.2f\n", irow, ipad, cpad, val);
     }
   }
   return hist;

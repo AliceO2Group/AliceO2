@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 //
 //  HitAnalysis.cpp
 //  ALICEO2
@@ -212,8 +222,8 @@ void HitAnalysis::ProcessHits()
       phitglob[3] = {p->GetX(), p->GetY(), p->GetZ()},
       pstartglob[3] = {p->GetStartX(), p->GetStartY(), p->GetStartZ()};
 
-    //fGeometry->GetMatrix(p->GetDetectorID())->MasterToLocal(phitglob, phitloc);
-    //fGeometry->GetMatrix(p->GetDetectorID())->MasterToLocal(pstartglob, pstartloc);
+    //fGeometry->getMatrix(p->GetDetectorID())->MasterToLocal(phitglob, phitloc);
+    //fGeometry->getMatrix(p->GetDetectorID())->MasterToLocal(pstartglob, pstartloc);
     mGeometry->globalToLocal(p->GetDetectorID(), phitglob, phitloc);
     mGeometry->globalToLocal(p->GetDetectorID(), pstartglob, pstartloc);
 

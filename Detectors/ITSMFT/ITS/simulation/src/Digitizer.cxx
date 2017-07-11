@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file Digitizer.cxx
 /// \brief Implementation of the ITS digitizer
 
@@ -41,7 +51,8 @@ void Digitizer::init(Bool_t build)
     50,     // ALPIDE threshold
     -1.315, // ACSFromBGPar0
     0.5018, // ACSFromBGPar1
-    1.084   // ACSFromBGPar2
+    1.084,  // ACSFromBGPar2
+    5.      // ALPIDE Noise per chip
   };
   for (Int_t i = 0; i < numOfChips; i++) {
     mSimulations.emplace_back(param, i, mGeometry.getMatrixSensor(i));
@@ -67,7 +78,7 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
     simulation.generateClusters(seg, &mDigitContainer);
     simulation.clearSimulation();
   }
-  
+
   mDigitContainer.fillOutputContainer(digits);
 }
 

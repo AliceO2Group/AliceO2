@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file HwClusterer.h
 /// \brief Class for TPC HW cluster finding
 /// \author Sebastian Klewin
@@ -18,16 +28,13 @@ class ClusterContainer;
 class ClustererTask;
 class HwClusterFinder;
 class HwCluster;
-class DigitMC;
+class Digit;
 
 /// \class HwClusterer
 /// \brief Class for TPC HW cluster finding
 class HwClusterer : public Clusterer {
   public:
     enum class Processing : int { Sequential, Parallel};
-
-    /// Default Constructor
-    HwClusterer();
 
     /// Constructor
     /// \param processingType parallel or sequential
@@ -40,8 +47,18 @@ class HwClusterer : public Clusterer {
     /// \param padsPerCF Pads per cluster finder
     /// \param timebinsPerCF Timebins per cluster finder
     /// \param cfPerRow Number of cluster finder in each row
-    HwClusterer(Processing processingType, int globalTime, int cru, float minQDiff,
-      bool assignChargeUnique, bool enableNoiseSim, bool enablePedestalSubtraction, int padsPerCF, int timebinsPerCF, int cfPerRow);
+    HwClusterer(
+        Processing processingType = Processing::Parallel,
+        int globalTime = 0, 
+        int cruMin = 0,
+        int cruMax = 360, 
+        float minQDiff = 0,
+        bool assignChargeUnique = false,
+        bool enableNoiseSim = true, 
+        bool enablePedestalSubtraction = true, 
+        int padsPerCF = 8, 
+        int timebinsPerCF = 8, 
+        int cfPerRow = 0);
     
     /// Destructor
     ~HwClusterer();
@@ -54,6 +71,7 @@ class HwClusterer : public Clusterer {
     /// @param digits Container with TPC digits
     /// @return Container with clusters
     ClusterContainer* Process(TClonesArray *digits) override;
+    ClusterContainer* Process(std::vector<std::unique_ptr<Digit>>& digits) override;
 
     void setProcessingType(Processing processing)    { mProcessingType = processing; };   
 
@@ -63,6 +81,9 @@ class HwClusterer : public Clusterer {
     /// Switch for triggered / continuous readout
     /// \param isContinuous - false for triggered readout, true for continuous readout
     void setContinuousReadout(bool isContinuous) { mIsContinuousReadout = isContinuous; };
+
+    void setCRUMin(int cru) { mCRUMin = cru; };
+    void setCRUMax(int cru) { mCRUMax = cru; };
     
   private:
     // To be done
@@ -83,7 +104,7 @@ class HwClusterer : public Clusterer {
     };
     
     static void processDigits(
-        const std::vector<std::vector<DigitMC*>>& digits, 
+        const std::vector<std::vector<Digit*>>& digits, 
         const std::vector<std::vector<HwClusterFinder*>>& clusterFinder, 
               std::vector<HwCluster>& cluster, 
               CfConfig config);
@@ -93,15 +114,18 @@ class HwClusterer : public Clusterer {
 //              unsigned minTimeBin,
 //              unsigned maxTimeBin);
     
+    ClusterContainer* ProcessTimeBins(int iTimeBinMin, int iTimeBinMax);
+
     std::vector<std::vector<std::vector<HwClusterFinder*>>> mClusterFinder;
-    std::vector<std::vector<std::vector<DigitMC*>>> mDigitContainer;
+    std::vector<std::vector<std::vector<Digit*>>> mDigitContainer;
 
     std::vector<std::vector<HwCluster>> mClusterStorage;
     
     Processing    mProcessingType; 
 
     int     mGlobalTime;
-    int     mCRUs;
+    int     mCRUMin;
+    int     mCRUMax;
     float   mMinQDiff;
     bool    mAssignChargeUnique;
     bool    mEnableNoiseSim;

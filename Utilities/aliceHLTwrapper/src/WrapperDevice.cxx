@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 //****************************************************************************
 //* This file is free software: you can redistribute it and/or modify        *
 //* it under the terms of the GNU General Public License as published by     *
@@ -17,6 +27,7 @@
 
 #include "aliceHLTwrapper/WrapperDevice.h"
 #include "aliceHLTwrapper/Component.h"
+#include <FairMQParts.h>
 #include <FairMQLogger.h>
 #include <FairMQPoller.h>
 #include <options/FairProgOptions.h>
@@ -29,6 +40,8 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <utility> //std::move
+#include <thread> // this_thread::sleep_for
 
 using std::string;
 using std::vector;
@@ -74,10 +87,6 @@ bpo::options_description WrapperDevice::GetOptionsDescription()
   return od;
 }
 
-void WrapperDevice::Init()
-{
-}
-
 void WrapperDevice::InitTask()
 {
   /// inherited from FairMQDevice
@@ -113,7 +122,7 @@ void WrapperDevice::InitTask()
           assert(semantic->max_tokens() && semantic->min_tokens());
           if (semantic->min_tokens() > 0 ) {
             // add the token
-            argstrings.push_back(varit.second.as<std::string>());
+            argstrings.emplace_back(varit.second.as<std::string>());
           }
         }
       }
@@ -128,10 +137,10 @@ void WrapperDevice::InitTask()
   string id="";
   id=GetProperty(FairMQDevice::Id, id);
   vector<char*> argv;
-  argv.push_back(&idkey[0]);
-  argv.push_back(&id[0]);
+  argv.emplace_back(&idkey[0]);
+  argv.emplace_back(&id[0]);
   for (auto& argstringiter : argstrings) {
-    argv.push_back(&argstringiter[0]);
+    argv.emplace_back(&argstringiter[0]);
   }
 
   if ((iResult=component->init(argv.size(), &argv[0]))<0) {
@@ -157,41 +166,42 @@ void WrapperDevice::Run()
 
   static system_clock::time_point refTime = system_clock::now();
 
-  unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels["data-in"]));
-
   // inherited variables of FairMQDevice:
   // fChannels
   // fTransportFactory
   int numInputs = fChannels["data-in"].size();
-  int NoOfMsgParts=numInputs-1;
+  unique_ptr<FairMQPoller> poller(numInputs > 0?fChannels["data-in"].at(0).Transport()->CreatePoller(fChannels["data-in"]):nullptr);
+
   int errorCount=0;
   const int maxError=10;
 
-  vector<unique_ptr<FairMQMessage>> inputMessages;
-  vector<int> inputMessageCntPerSocket(numInputs, 0);
+  vector<FairMQParts> socketInputs(numInputs);
   int nReadCycles=0;
   while (CheckCurrentState(RUNNING)) {
 
     // read input messages
-    poller->Poll(mPollingPeriod);
+    if (poller) {
+      poller->Poll(mPollingPeriod);
+    } else {
+      std::this_thread::sleep_for(std::chrono::milliseconds(mPollingPeriod));
+    }
     int inputsReceived=0;
     bool receivedAtLeastOneMessage=false;
     for(int i = 0; i < numInputs; i++) {
-      if (inputMessageCntPerSocket[i]>0) {
+      if (socketInputs[i].Size() > 0) {
         inputsReceived++;
         continue;
       }
       if (poller->CheckInput(i)) {
-        if (fChannels.at("data-in").at(i).Receive(inputMessages)) {
+        if (Receive(socketInputs[i], "data-in", i)) {
           receivedAtLeastOneMessage = true;
-          inputsReceived++; // count only the first message on that socket
-          inputMessageCntPerSocket[i] = inputMessages.size();
+          inputsReceived++;
           if (mVerbosity > 3) {
             LOG(INFO) << " |---- receive Msgs from socket " << i;
           }
         }
         if (mVerbosity > 2) {
-          LOG(INFO) << "------ received " << inputMessageCntPerSocket[i] << " message(s) from socket " << i;
+          LOG(INFO) << "------ received " << socketInputs[i].Size() << " message(s) from socket " << i;
         }
       }
     }
@@ -238,10 +248,11 @@ void WrapperDevice::Run()
     if (!mSkipProcessing) {
       // prepare input from messages
       vector<o2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
-      for (vector<unique_ptr<FairMQMessage>>::iterator msg=inputMessages.begin();
-           msg!=inputMessages.end(); msg++) {
-        void* buffer=(*msg)->GetData();
-        dataArray.emplace_back(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize());
+      for (auto& socketInput : socketInputs) {
+        for (auto& msg : socketInput.fParts) {
+          void* buffer=msg->GetData();
+          dataArray.emplace_back(reinterpret_cast<unsigned char*>(buffer), msg->GetSize());
+        }
       }
 
       // create a signal with the callback to the buffer allocation, the component
@@ -274,9 +285,8 @@ void WrapperDevice::Run()
             }
           }
           if (omsg==nullptr) {
-            unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
+            FairMQMessagePtr msg = NewMessage(opayload.mSize);
             if (msg.get()) {
-              msg->Rebuild(opayload.mSize);
               if (msg->GetSize() < opayload.mSize) {
                 iResult = -ENOSPC;
                 break;
@@ -284,9 +294,9 @@ void WrapperDevice::Run()
               if (mVerbosity > 2) {
                 LOG(DEBUG) << "scheduling message of size " << opayload.mSize;
               }
-              AliHLTUInt8_t* pTarget = reinterpret_cast<AliHLTUInt8_t*>(msg->GetData());
+              uint8_t* pTarget = reinterpret_cast<uint8_t*>(msg->GetData());
               memcpy(pTarget, opayload.mP, opayload.mSize);
-              mMessages.push_back(move(msg));
+              mMessages.emplace_back(move(msg));
             } else {
               if (errorCount == maxError && errorCount++ > 0)
                 LOG(ERROR) << "persistent error, suppressing further output";
@@ -300,7 +310,13 @@ void WrapperDevice::Run()
 
       if (mMessages.size()>0) {
         if (fChannels.find("data-out") != fChannels.end() && fChannels["data-out"].size() > 0) {
-          fChannels["data-out"].at(0).Send(mMessages);
+          // TODO: request FairMQParts helper function to set vector
+          // of messages
+          FairMQParts outputParts;
+          for (auto & msg : mMessages) {
+            outputParts.AddPart(std::move(msg));
+          }
+          Send(outputParts, "data-out", 0);
           if (mVerbosity > 2) {
             LOG(DEBUG) << "sending multipart message with " << mMessages.size() << " parts";
           }
@@ -316,77 +332,25 @@ void WrapperDevice::Run()
     }
 
     // cleanup
-    inputMessages.clear();
-    for (vector<int>::iterator mcit=inputMessageCntPerSocket.begin();
-         mcit!=inputMessageCntPerSocket.end(); mcit++) {
-      *mcit=0;
+    for (auto& socketInput : socketInputs) {
+      // TODO: use method of FairMQParts to clear instead of
+      // accessing public member
+      socketInput.fParts.clear();
     }
   }
-}
-
-void WrapperDevice::Pause()
-{
-  /// inherited from FairMQDevice
-
-  // nothing to do
-  FairMQDevice::Pause();
-}
-
-void WrapperDevice::SetProperty(const int key, const string& value)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  return FairMQDevice::SetProperty(key, value);
-}
-
-string WrapperDevice::GetProperty(const int key, const string& default_)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  return FairMQDevice::GetProperty(key, default_);
-}
-
-void WrapperDevice::SetProperty(const int key, const int value)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::SetProperty
-  switch (key) {
-  case PollingPeriod:
-    mPollingPeriod = value;
-    return;
-  case SkipProcessing:
-    mSkipProcessing = value;
-    return;
-  }
-  return FairMQDevice::SetProperty(key, value);
-}
-
-int WrapperDevice::GetProperty(const int key, const int default_)
-{
-  /// inherited from FairMQDevice
-  /// handle device specific properties and forward to FairMQDevice::GetProperty
-  switch (key) {
-  case PollingPeriod:
-    return mPollingPeriod;
-  case SkipProcessing:
-    return mSkipProcessing;
-  }
-  return FairMQDevice::GetProperty(key, default_);
 }
 
 unsigned char* WrapperDevice::createMessageBuffer(unsigned size)
 {
   /// create a new message with data buffer of specified size
-  unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
-  if (msg.get()==nullptr) return nullptr;
-  msg->Rebuild(size);
-  if (msg->GetSize() < size) {
+  FairMQMessagePtr msg = NewMessage(size);
+  if (!msg || msg->GetSize() < size) {
     return nullptr;
   }
 
   if (mVerbosity > 2) {
     LOG(DEBUG) << "allocating message of size " << size;
   }
-  mMessages.push_back(move(msg));
-  return reinterpret_cast<AliHLTUInt8_t*>(mMessages.back()->GetData());
+  mMessages.emplace_back(move(msg));
+  return reinterpret_cast<uint8_t*>(mMessages.back()->GetData());
 }

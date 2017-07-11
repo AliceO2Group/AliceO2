@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See https://alice-o2.web.cern.ch/ for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file GBTFrameContainer.h
 /// \brief Container class for the GBT Frames
 /// \author Sebastian Klewin
@@ -114,8 +124,9 @@ class GBTFrameContainer {
 
     /// Add all frames from file to conatiner
     /// @param fileName Path to file
-    /// @param frames Frames to read from file
-    void addGBTFramesFromBinaryFile(std::string fileName, int frames = -1, std::string type = "grorc");
+    /// @param type rorc type of data
+    /// @param frames Frames to read from file (-1 -> all)
+    void addGBTFramesFromBinaryFile(std::string fileName, std::string type = "grorc", int frames = -1);
 
 //    /// Fill output TClonesArray
 //    /// @param output Output container
