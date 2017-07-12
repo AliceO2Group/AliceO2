@@ -17,3 +17,8 @@
 add_subdirectory(base)
 add_subdirectory(simulation)
 add_subdirectory(reconstruction)
+
+install(
+    DIRECTORY data
+    DESTINATION share/Detectors/ITSMFT
+)
