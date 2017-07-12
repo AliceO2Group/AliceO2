@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Point.h
-/// \brief Definition of the ITSMFT Point class
+/// \file Hit.h
+/// \brief Definition of the ITSMFT Hit class
 
 #ifndef ALICEO2_ITSMFT_POINT_H_
 #define ALICEO2_ITSMFT_POINT_H_
@@ -22,11 +22,11 @@
 namespace o2 {
 namespace ITSMFT {
 
-class Point : public o2::BasicXYZEHit<Float_t,Float_t>
+class Hit : public o2::BasicXYZEHit<Float_t,Float_t>
 {
 
   public:
-    enum PointStatus_t
+    enum HitStatus_t
     {
         kTrackEntering = 0x1,
         kTrackInside   = 0x1<<1,
@@ -37,7 +37,7 @@ class Point : public o2::BasicXYZEHit<Float_t,Float_t>
     };
 
     /// Default constructor
-    Point() = default;
+    Hit() = default;
 
     /// Class Constructor
     /// \param trackID Index of MCTrack
@@ -50,7 +50,7 @@ class Point : public o2::BasicXYZEHit<Float_t,Float_t>
     /// \param eLoss Energy deposit [GeV]
     /// \param startStatus: status at entrance
     /// \param endStatus: status at exit
-    inline Point(int trackID, unsigned short detID, TVector3 startPos, TVector3 pos, TVector3 mom, double startE,
+    inline Hit(int trackID, unsigned short detID, TVector3 startPos, TVector3 pos, TVector3 mom, double startE,
 		 double endTime, double eLoss,unsigned char statusStart, unsigned char status);
 
 
@@ -93,9 +93,9 @@ class Point : public o2::BasicXYZEHit<Float_t,Float_t>
 
     /// Output to screen
     void Print(const Option_t *opt) const override;
-    friend std::ostream &operator<<(std::ostream &of, const Point &point)
+    friend std::ostream &operator<<(std::ostream &of, const Hit &point)
     {
-      of << "-I- Point: O2its point for track " << point.GetTrackID() << " in detector " << point.GetDetectorID() << std::endl;
+      of << "-I- Hit: O2its point for track " << point.GetTrackID() << " in detector " << point.GetDetectorID() << std::endl;
       /*
       of << "    Position (" << point.fX << ", " << point.fY << ", " << point.fZ << ") cm" << std::endl;
       of << "    Momentum (" << point.fPx << ", " << point.fPy << ", " << point.fPz << ") GeV" << std::endl;
@@ -107,18 +107,18 @@ class Point : public o2::BasicXYZEHit<Float_t,Float_t>
 
   private:
     /// Copy constructor
-    Point(const Point &point);
-    Point operator=(const Point &point);
+    Hit(const Hit &point);
+    Hit operator=(const Hit &point);
     Vector3D<Float_t> mMomentum;              ///< momentum at entrance
     Point3D<Float_t> mPosStart;               ///< position at entrance (base mPos give position on exit)
     Float_t mE;                               ///< total energy at entrance
     UChar_t mTrackStatusEnd;                  ///< MC status flag at exit
     UChar_t mTrackStatusStart;                ///< MC status at starting point
 
-  ClassDefOverride(Point, 3)
+  ClassDefOverride(Hit, 3)
 };
 
-Point::Point(int trackID, unsigned short detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,
+Hit::Hit(int trackID, unsigned short detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,
              double startE,double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
   : BasicXYZEHit(endPos.X(),endPos.Y(),endPos.Z(),endTime,eLoss,trackID,detID),
     mMomentum(startMom.Px(),startMom.Py(),startMom.Pz()),

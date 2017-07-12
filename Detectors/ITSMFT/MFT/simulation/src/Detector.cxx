@@ -13,7 +13,7 @@
 /// \author antonio.uras@cern.ch, bogdan.vulpescu@cern.ch 
 /// \date 01/08/2016
 
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -38,7 +38,7 @@
 #include "FairGenericRootManager.h"
 #include "FairVolume.h"
 
-using o2::ITSMFT::Point;
+using o2::ITSMFT::Hit;
 using namespace o2::MFT;
 
 ClassImp(o2::MFT::Detector)
@@ -49,7 +49,7 @@ Detector::Detector()
   mVersion(1),
   mGeometryTGeo(nullptr),
   mDensitySupportOverSi(0.036),
-  mPoints(new TClonesArray("o2::ITSMFT::Point")),
+  mHits(new TClonesArray("o2::ITSMFT::Hit")),
   mTrackData()
 {
 
@@ -61,7 +61,7 @@ Detector::Detector(const Detector& src)
     mVersion(src.mVersion),
     mGeometryTGeo(src.mGeometryTGeo),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
-    mPoints(nullptr),
+    mHits(nullptr),
     mTrackData()
 {
   
@@ -81,7 +81,7 @@ Detector &Detector::operator=(const Detector &src)
   mVersion = src.mVersion;
   mGeometryTGeo = src.mGeometryTGeo;
   mDensitySupportOverSi = src.mDensitySupportOverSi;
-  mPoints = nullptr;
+  mHits = nullptr;
   mTrackData.mHitStarted = src.mTrackData.mHitStarted;
   mTrackData.mTrkStatusStart = src.mTrackData.mTrkStatusStart;
   mTrackData.mPositionStart = src.mTrackData.mPositionStart;
@@ -96,9 +96,9 @@ Detector::~Detector()
 
   delete mGeometryTGeo;
 
-  if (mPoints) {
-    mPoints->Delete();
-    delete mPoints;
+  if (mHits) {
+    mHits->Delete();
+    delete mHits;
   }
   
 }
@@ -142,18 +142,18 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   bool startHit=false, stopHit=false;
   unsigned char status = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Point::kTrackEntering; }
-  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Point::kTrackInside; }
-  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Point::kTrackExiting; }
-  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Point::kTrackOut; }
-  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Point::kTrackStopped; }
-  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Point::kTrackAlive; }
+  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Hit::kTrackEntering; }
+  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Hit::kTrackInside; }
+  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Hit::kTrackExiting; }
+  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Hit::kTrackOut; }
+  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Hit::kTrackStopped; }
+  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Hit::kTrackAlive; }
 
   // track is entering or created in the volume
-  if ( (status & Point::kTrackEntering) || (status & Point::kTrackInside && !mTrackData.mHitStarted) ) {
+  if ( (status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted) ) {
     startHit = true;
   }
-  else if ( (status & (Point::kTrackExiting|Point::kTrackOut|Point::kTrackStopped)) ) {
+  else if ( (status & (Hit::kTrackExiting|Hit::kTrackOut|Hit::kTrackStopped)) ) {
     stopHit = true;
   }
 
@@ -179,7 +179,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
     Int_t detID = vol->getMCid();
 
-    Point *p = addHit(trackID,detID,
+    Hit *p = addHit(trackID,detID,
 		      mTrackData.mPositionStart.Vect(),
 		      positionStop.Vect(),
 		      mTrackData.mMomentumStart.Vect(),
@@ -199,13 +199,13 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 }
 
 //_____________________________________________________________________________
-Point* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
+Hit* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
 
-  TClonesArray &clref = *mPoints;
+  TClonesArray &clref = *mHits;
   Int_t size = clref.GetEntriesFast();
 
-  return new(clref[size]) Point(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  return new(clref[size]) Hit(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
 
 }
 
@@ -489,8 +489,8 @@ void Detector::defineSensitiveVolumes()
 void Detector::EndOfEvent()
 {
 
-  if (mPoints) { 
-    mPoints->Clear(); 
+  if (mHits) { 
+    mHits->Clear(); 
   }
 
 }
@@ -498,12 +498,12 @@ void Detector::EndOfEvent()
 //_____________________________________________________________________________
 void Detector::Register()
 {
-  // This will create a branch in the output tree called Point, setting the last
+  // This will create a branch in the output tree called Hit, setting the last
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
   if (FairGenericRootManager::Instance()) {
-    FairGenericRootManager::Instance()->Register("MFTPoints", "MFT", mPoints, kTRUE);
+    FairGenericRootManager::Instance()->Register("MFTHits", "MFT", mHits, kTRUE);
   }
 
 }
@@ -512,7 +512,7 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 {
 
   if (iColl == 0) {
-    return mPoints;
+    return mHits;
   } else {
     return nullptr;
   }
@@ -523,6 +523,6 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 void Detector::Reset()
 {
 
-  mPoints->Clear();
+  mHits->Clear();
 
 }

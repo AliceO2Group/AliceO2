@@ -8,33 +8,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Hit.cxx
-/// \brief Implementation of the Hit class
+/// \file Clusterizer.h
+/// \brief Implementation of the cluster finder
 /// \author bogdan.vulpescu@cern.ch 
-/// \date 10/10/2016
+/// \date 03/05/2017
 
-#include "MFTReconstruction/Hit.h"
+#include "ITSMFTBase/Digit.h"
 
-#include "TVector3.h"
+#include "MFTReconstruction/Clusterizer.h"
+
+using o2::ITSMFT::SegmentationPixel;
+using o2::ITSMFT::Digit;
 
 using namespace o2::MFT;
 
-ClassImp(o2::MFT::Hit)
+//_____________________________________________________________________________
+Clusterizer::Clusterizer() = default;
 
 //_____________________________________________________________________________
-Hit::Hit() : 
-FairHit()
+Clusterizer::~Clusterizer() = default;
+
+//_____________________________________________________________________________
+void Clusterizer::process(const SegmentationPixel *seg, const TClonesArray* digits, TClonesArray* clusters)
 {
 
 }
 
-//_____________________________________________________________________________
-Hit::Hit(Int_t detID, TVector3& pos, TVector3& dpos, Int_t mcindex) : 
-  FairHit(detID, pos, dpos, mcindex)
-{
-
-}
-
-//_____________________________________________________________________________
-Hit::~Hit()
-= default;

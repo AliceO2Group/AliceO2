@@ -55,16 +55,16 @@ TGeoVolumeAssembly* Support::createVolume(Int_t half, Int_t disk)
   mSupportVolume = new TGeoVolumeAssembly(Form("SupportPCB_%d_%d", half, disk));
   
   TGeoVolume * supportVolume =  createSupport(half, disk);
-  TGeoVolumeAssembly * pcbVolume = createPCBs(half, disk);
+  //TGeoVolumeAssembly * pcbVolume = createPCBs(half, disk);
   
   // Place the core of the support
   mSupportVolume->AddNode(supportVolume, 1);   // to much issue with the latest support, fm
-  
+  /*
   // Place the front PCB
   mSupportVolume->AddNode(pcbVolume, 1,new TGeoTranslation(0.,0.,(mSupportThickness+ mPCBThickness)/2.+0.0));
   // Place the back PCB (supposing both fron and back are the same shapes)
   mSupportVolume->AddNode(pcbVolume, 2,new TGeoCombiTrans (0.,0.,-(mSupportThickness+ mPCBThickness)/2.-0.0, new TGeoRotation("rot",0.,180.,0.)));
-  
+  */
   return mSupportVolume;
 
 }

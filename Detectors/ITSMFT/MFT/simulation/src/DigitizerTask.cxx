@@ -8,74 +8,77 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DigitizerTask.cxx
-/// \brief Implementation of the ITS digitizer task
+/// \file DigitizerTask.h
+/// \brief Task driving the convertion from Point to Digit
+/// \author bogdan.vulpescu@cern.ch 
+/// \date 03/05/2017
 
-//
-//  Created by Markus Fasel on 16.07.15.
-//
-//
+#include "FairLogger.h"
 
-#include "ITSMFTSimulation/DigitContainer.h"
-#include "ITSSimulation/DigitizerTask.h"
+#include "MFTSimulation/DigitizerTask.h"
 
-#include "FairLogger.h"      // for LOG
-#include "FairRootManager.h" // for FairRootManager
-#include "TClonesArray.h"    // for TClonesArray
-#include "TObject.h"         // for TObject
+ClassImp(o2::MFT::DigitizerTask)
 
-ClassImp(o2::ITS::DigitizerTask)
+using namespace o2::MFT;
 
-using o2::ITSMFT::DigitContainer;
-using namespace o2::ITS;
-
+//_____________________________________________________________________________
 DigitizerTask::DigitizerTask(Bool_t useAlpide)
-  : FairTask("ITSDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer(), mHitsArray(nullptr), mDigitsArray(nullptr)
+  : FairTask("MFTDigitizerTask"), mUseAlpideSim(useAlpide), mDigitizer(), mPointsArray(nullptr), mDigitsArray(nullptr)
 {
+
 }
 
+//_____________________________________________________________________________
 DigitizerTask::~DigitizerTask()
 {
+
   if (mDigitsArray) {
     mDigitsArray->Delete();
     delete mDigitsArray;
   }
-}
 
+}
 /// \brief Init function
 ///
 /// Inititializes the digitizer and connects input and output container
+//_____________________________________________________________________________
 InitStatus DigitizerTask::Init()
 {
+
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
     LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
-  mHitsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("ITSHit"));
-  if (!mHitsArray) {
-    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+  mPointsArray = dynamic_cast<TClonesArray*>(mgr->GetObject("MFTPoint"));
+  if (!mPointsArray) {
+    LOG(ERROR) << "MFT points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
     return kERROR;
   }
 
   // Register output container
   mDigitsArray = new TClonesArray("o2::ITSMFT::Digit");
-  mgr->Register("ITSDigit", "ITS", mDigitsArray, kTRUE);
+  mgr->Register("MFTDigit", "MFT", mDigitsArray, kTRUE);
 
   mDigitizer.init(kTRUE);
 
   return kSUCCESS;
+
 }
 
+//_____________________________________________________________________________
 void DigitizerTask::Exec(Option_t* option)
 {
+
   mDigitsArray->Clear();
   LOG(DEBUG) << "Running digitization on new event" << FairLogger::endl;
   if (!mUseAlpideSim) {
-    DigitContainer& digits = mDigitizer.process(mHitsArray);
+    DigitContainer& digits = mDigitizer.process(mPointsArray);
     digits.fillOutputContainer(mDigitsArray);
   } else {
-    mDigitizer.process(mHitsArray, mDigitsArray); // ALPIDE response
+    mDigitizer.process(mPointsArray, mDigitsArray); // ALPIDE response
   }
+
 }
+

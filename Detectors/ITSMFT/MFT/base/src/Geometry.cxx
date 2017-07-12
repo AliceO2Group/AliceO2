@@ -114,7 +114,7 @@ void Geometry::build()
 {
 
   // load the detector segmentation
-  if(!mSegmentation) mSegmentation = new Segmentation(gSystem->ExpandPathName("$(ALICE_ROOT)/ITSMFT/MFT/data/AliMFTGeometry.xml" ));
+  if(!mSegmentation) mSegmentation = new Segmentation(gSystem->ExpandPathName("$(VMCWORKDIR)/Detectors/Geometry/MFT/data/Geometry.xml" ));
 
   // build the geometry
   if (!mBuilder) mBuilder = new GeometryBuilder();

@@ -13,7 +13,7 @@
 
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTBase/SegmentationPixel.h"
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "ITSMFTSimulation/DigitChip.h"
 #include "ITSMFTSimulation/DigitContainer.h"
 #include "ITSSimulation/Digitizer.h"
@@ -23,7 +23,7 @@
 
 ClassImp(o2::ITS::Digitizer)
 
-using o2::ITSMFT::Point;
+using o2::ITSMFT::Hit;
 using o2::ITSMFT::Chip;
 using o2::ITSMFT::SimulationAlpide;
 using o2::ITSMFT::Digit;
@@ -67,11 +67,11 @@ void Digitizer::process(TClonesArray* points, TClonesArray* digits)
   // Convert points to digits
   const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
   for (TIter iter = TIter(points).Begin(); iter != TIter::End(); ++iter) {
-    Point* point = dynamic_cast<Point*>(*iter);
+    Hit* point = static_cast<Hit*>(*iter);
     Int_t chipID = point->GetDetectorID();
     if (chipID >= numOfChips)
       continue;
-    mSimulations[chipID].InsertPoint(point);
+      mSimulations[chipID].InsertHit(point);
   }
 
   for (auto &simulation : mSimulations) {
@@ -89,7 +89,7 @@ DigitContainer& Digitizer::process(TClonesArray* points)
   // Convert points to digits
   const SegmentationPixel* seg = (SegmentationPixel*)mGeometry.getSegmentationById(0);
   for (TIter pointiter = TIter(points).Begin(); pointiter != TIter::End(); ++pointiter) {
-    Point* point = dynamic_cast<Point*>(*pointiter);
+    Hit* point = static_cast<Hit*>(*pointiter);
 
     LOG(DEBUG) << "Processing next point: " << FairLogger::endl;
     LOG(DEBUG) << "=======================" << FairLogger::endl;

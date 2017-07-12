@@ -14,7 +14,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::ITSMFT::Point+;
+#pragma link C++ class o2::ITSMFT::Hit+;
 #pragma link C++ class o2::ITSMFT::ClusterShape+;
 #pragma link C++ class o2::ITSMFT::AlpideSimResponse+;
 #pragma link C++ class o2::ITSMFT::RespSimMat+;
