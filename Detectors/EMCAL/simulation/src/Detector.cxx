@@ -31,7 +31,6 @@ Detector::Detector(const char* Name, Bool_t Active)
   mBirkC2(0.),
   mPointCollection(new TClonesArray("o2::EMCAL::Hit")),
   mGeometry(nullptr),
-  mShishKebabModules(nullptr),
   mEnvelop1(),
   mIdRotm(0),
   mSampleWidth(0.),
@@ -47,9 +46,7 @@ Detector::Detector(const char* Name, Bool_t Active)
   
   TString gn(geo->GetName());
   gn.ToUpper();
-  
-  mShishKebabModules = geo->GetShishKebabTrd1Modules();
-  
+    
   mSampleWidth = Double_t(geo->GetECPbRadThick() + geo->GetECScintThick());
   
   if(gn.Contains("V1")) mSampleWidth += 2.*geo->GetTrd1BondPaperThick();
@@ -100,7 +97,7 @@ void Detector::ConstructGeometry()
   {
     envelopA[0] = geom->GetArm1PhiMin();                         // minimum phi angle
     envelopA[1] = geom->GetArm1PhiMax() - geom->GetArm1PhiMin(); // angular range in phi
-    envelopA[2] = envelopA[1]/geom->GetEMCGeometry()->GetPhiSuperModule();	 // Section of that
+    envelopA[2] = envelopA[1]/geom->GetEMCGeometry().GetPhiSuperModule();	 // Section of that
     envelopA[3] = 2;                                             // 2: z coordinates
     envelopA[4] = -geom->GetEnvelop(2)/2.;                       // zmin - includes padding
     envelopA[5] = geom->GetEnvelop(0) ;                          // rmin at z1 - includes padding
@@ -127,7 +124,7 @@ void Detector::ConstructGeometry()
   
   // Set the sampling fraction used at creation hit level
   // Previously called in AliEMCALEMCGeometry::Init(), put it here for proper initialization by Geant3/4
-  geom->GetEMCGeometry()->DefineSamplingFraction(TVirtualMC::GetMC()->GetName(),TVirtualMC::GetMC()->GetTitle());
+  geom->AccessGeometry().DefineSamplingFraction(TVirtualMC::GetMC()->GetName(),TVirtualMC::GetMC()->GetTitle());
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v) { return true; }
@@ -175,7 +172,7 @@ void Detector::CreateShiskebabGeometry()
   LOG(DEBUG2) << "Name of mother volume: " << g->GetNameOfEMCALEnvelope() << FairLogger::endl;
   CreateSmod(g->GetNameOfEMCALEnvelope());
 
-  Int_t* SMTypeList = g->GetEMCSystem();
+  const Int_t* SMTypeList = g->GetEMCGeometry().GetEMCSystem();
   Int_t tmpType = -1;
   for (Int_t i = 0; i < g->GetNumberOfSuperModules(); i++) {
     if (SMTypeList[i] == tmpType)
@@ -256,8 +253,8 @@ void Detector::CreateShiskebabGeometry()
     TVirtualMC::GetMC()->Gspos("SCMX", 2, "SCMY", xpos, 0.0, 0.0, mIdRotm, "ONLY");
 
     // put LED to the SCM0
-    ShishKebabTrd1Module* mod = static_cast<ShishKebabTrd1Module*>(mShishKebabModules->At(0));
-    Double_t tanBetta = mod->GetTanBetta();
+    const ShishKebabTrd1Module &mod = g->GetShishKebabTrd1Modules()[0];
+    Double_t tanBetta = mod.GetTanBetta();
 
     Int_t nr = 0;
     ypos = 0.0;
@@ -432,7 +429,7 @@ void Detector::CreateSmod(const char* mother)
   Int_t nSMod = g->GetNumberOfSuperModules();
   Int_t nphism = nSMod / 2; // 20-may-05
   if (nphism > 0) {
-    dphi = g->GetEMCGeometry()->GetPhiSuperModule();
+    dphi = g->GetEMCGeometry().GetPhiSuperModule();
     rpos = (g->GetEnvelop(0) + g->GetEnvelop(1)) / 2.;
     LOG(DEBUG2) << " rpos " << std::setw(8) << std::setprecision(2) << rpos << " : dphi " << std::setw(6)
                 << std::setprecision(1) << dphi << " degree \n";
@@ -582,22 +579,21 @@ void Detector::CreateEmod(const char* mother, const char* child)
   Int_t nr = 0;
   mIdRotm = 0;
   // X->Z(0, 0); Y->Y(90, 90); Z->X(90, 0)
-  ShishKebabTrd1Module* mod = nullptr; // current module
 
   for (Int_t iz = 0; iz < g->GetNZ(); iz++) {
     Double_t angle = 90., phiOK = 0;
-    mod = static_cast<ShishKebabTrd1Module*>(mShishKebabModules->At(iz));
-    angle = mod->GetThetaInDegree();
+    const ShishKebabTrd1Module &mod = g->GetShishKebabTrd1Modules()[iz];
+    angle = mod.GetThetaInDegree();
 
     if (!gn.Contains("WSUC")) { // ALICE
       Matrix(mIdRotm, 90. - angle, 180., 90.0, 90.0, angle, 0.);
-      phiOK = mod->GetCenterOfModule().Phi() * 180. / TMath::Pi();
+      phiOK = mod.GetCenterOfModule().Phi() * 180. / TMath::Pi();
       LOG(DEBUG4) << std::setw(2) << iz + 1 << " | angle | " << std::setw(6) << std::setprecision(3) << angle << " - "
                   << std::setw(6) << std::setprecision(3) << phiOK << " = " << std::setw(6) << std::setprecision(3)
-                  << angle - phiOK << "(eta " << std::setw(5) << std::setprecision(3) << mod->GetEtaOfCenterOfModule()
+                  << angle - phiOK << "(eta " << std::setw(5) << std::setprecision(3) << mod.GetEtaOfCenterOfModule()
                   << ")\n";
-      xpos = mod->GetPosXfromR() + g->GetSteelFrontThickness() - mSmodPar0;
-      zpos = mod->GetPosZ() - mSmodPar2;
+      xpos = mod.GetPosXfromR() + g->GetSteelFrontThickness() - mSmodPar0;
+      zpos = mod.GetPosZ() - mSmodPar2;
 
       Int_t iyMax = g->GetNPhi();
       if (strcmp(mother, "SM10") == 0) {
@@ -609,7 +605,7 @@ void Detector::CreateEmod(const char* mother, const char* child)
       } else if (strcmp(mother, "DCSM") == 0) {
         if (iz < 8)
           continue; //!!!DCSM from 8th to 23th
-        zpos = mod->GetPosZ() - mSmodPar2 - g->GetDCALInnerEdge() / 2.;
+        zpos = mod.GetPosZ() - mSmodPar2 - g->GetDCALInnerEdge() / 2.;
       } else if (strcmp(mother, "SMOD") != 0)
         LOG(ERROR) << "Unknown super module Type!!\n";
 
@@ -628,15 +624,15 @@ void Detector::CreateEmod(const char* mother, const char* child)
       else
         Matrix(mIdRotm, 90 - angle, 270., 90.0, 0.0, angle, 90.);
 
-      phiOK = mod->GetCenterOfModule().Phi() * 180. / TMath::Pi();
+      phiOK = mod.GetCenterOfModule().Phi() * 180. / TMath::Pi();
 
       LOG(DEBUG4) << std::setw(2) << iz + 1 << " | angle -phiOK | " << std::setw(6) << std::setprecision(3) << angle
                   << " - " << std::setw(6) << std::setprecision(3) << phiOK << " = " << std::setw(6)
                   << std::setprecision(3) << angle - phiOK << "(eta " << std::setw(5) << std::setprecision(3)
-                  << mod->GetEtaOfCenterOfModule() << ")\n";
+                  << mod.GetEtaOfCenterOfModule() << ")\n";
 
-      zpos = mod->GetPosZ() - mSmodPar2;
-      ypos = mod->GetPosXfromR() - mSmodPar1;
+      zpos = mod.GetPosZ() - mSmodPar2;
+      ypos = mod.GetPosXfromR() - mSmodPar1;
 
       // printf(" zpos %7.2f ypos %7.2f fIdRotm %i\n xpos ", zpos, xpos, fIdRotm);
 

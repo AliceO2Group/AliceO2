@@ -11,6 +11,13 @@
 #ifndef ALICEO2_EMCAL_GEOMETRY_H_
 #define ALICEO2_EMCAL_GEOMETRY_H_
 
+#include <exception>
+#include <string>
+#include <vector>
+
+#include <RStringView.h>
+#include "Math/GenVector/DisplacementVector3D.h"
+#include "Math/GenVector/PositionVector3D.h"
 #include <TArrayD.h>
 #include <TGeoMatrix.h>
 #include <TList.h>
@@ -21,13 +28,19 @@
 #include "EMCALBase/Constants.h"
 #include "EMCALBase/EMCGeometry.h"
 
+template <typename T>
+using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
+template <typename T>
+using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
+
+
 namespace o2
 {
 namespace EMCAL
 {
 class ShishKebabTrd1Module;
 
-class Geometry : public TNamed
+class Geometry
 {
  public:
   enum fEMCSMType {
@@ -37,6 +50,42 @@ class Geometry : public TNamed
     DCAL_STANDARD = 3,
     DCAL_EXT = 4
   }; // possible SM Type
+    
+  enum AcceptanceType_t {
+    EMCAL_ACCEPTANCE = 1,
+    DCAL_ACCEPTANCE = 2,
+    NON_ACCEPTANCE = 0
+  };
+
+  /// \class InvalidModuleException
+  /// \brief Error Handling when an invalid module ID (outside the limits) is called
+  class InvalidModuleException : public std::exception {
+  public:
+      /// \brief Constructor
+      /// \param nModule Module number raising the exception
+      /// \param nMax Maximum amount of modules in setup
+      InvalidModuleException(Int_t nModule, Int_t nMax): std::exception(), mModule(nModule), mMax(nMax), mMessage() {
+        mMessage = "Invalid Module [ " + std::to_string(mModule) + "|" + std::to_string(mMax) + "]";
+      }
+      /// \brief Destructor
+      ~InvalidModuleException() noexcept final = default;
+      
+      /// \brief Get ID of the module raising the exception
+      /// \return ID of the module
+      int GetModuleID() const { return mModule; }
+      
+      /// \brief Get number of modules
+      /// \return Number of modules
+      int GetMaxNumberOfModules() const { return mMax; }
+      
+      /// \brief Access to error message
+      /// \return Error message for given exception
+      const char *what() const noexcept final { return mMessage.c_str(); }
+  private:
+    Int_t       mModule;  ///< Module ID raising the exception
+    Int_t       mMax;     ///< Max. Number of modules
+    std::string mMessage; ///< Error message
+  };
 
   ///
   /// Default constructor.
@@ -52,7 +101,7 @@ class Geometry : public TNamed
   /// title \param mcname: Geant3/4, Flukla, needed for settings of transport (check) \param mctitle: Geant4 physics
   /// list (check)
   ///
-  Geometry(const Text_t* name, const Text_t* title = "", const Text_t* mcname = "", const Text_t* mctitle = "");
+  Geometry(const std::string_view name, const std::string_view mcname = "", const std::string_view mctitle = "");
 
   ///
   /// Copy constructor.
@@ -62,7 +111,7 @@ class Geometry : public TNamed
   ///
   /// Destructor.
   ///
-  ~Geometry() override;
+  ~Geometry();
 
   ///
   /// Assign operator.
@@ -84,8 +133,8 @@ class Geometry : public TNamed
   /// title \param mcname: Geant3/4, Fluka, needed for settings of transport (check) \param mctitle: Geant4 physics list
   /// (check)
   ///
-  static Geometry* GetInstance(const Text_t* name, const Text_t* title = "", const Text_t* mcname = "TGeant3",
-                               const Text_t* mctitle = "");
+  static Geometry* GetInstance(const std::string_view name, const std::string_view mcname = "TGeant3",
+                                 const std::string_view mctitle = "");
 
   ///
   /// Instanciate geometry depending on the run number. Mostly used in analysis and MC anchors.
@@ -97,12 +146,15 @@ class Geometry : public TNamed
   /// \param mcname: Geant3/4, Fluka, needed for settings of transport (check). Not really needed to be specified.
   /// \param mctitle:  Geant4 physics list (check). Not really needed to be specified.
   ///
-  static Geometry* GetInstanceFromRunNumber(Int_t runNumber, TString geoName = "", const Text_t* mcname = "TGeant3",
-                                            const Text_t* mctitle = "");
+  static Geometry* GetInstanceFromRunNumber(Int_t runNumber, const std::string_view = "", const std::string_view mcname = "TGeant3",
+                                              const std::string_view mctitle = "");
 
   //////////
   // General
   //
+    
+  const std::string &GetName() const { return mGeoName; }
+    
   static Bool_t IsInitialized() { return Geometry::sGeom != nullptr; }
   // static const Char_t* GetDefaultGeometryName() {return EMCGeometry::fgkDefaultGeometryName;}
 
@@ -113,12 +165,12 @@ class Geometry : public TNamed
   ///
   void CreateListOfTrd1Modules();
 
-  TList* GetShishKebabTrd1Modules() const { return mShishKebabTrd1Modules; }
+  const std::vector<ShishKebabTrd1Module> &GetShishKebabTrd1Modules() const { return mShishKebabTrd1Modules; }
 
   ///
   /// \return  the shishkebabmodule at a given eta index point.
   ///
-  ShishKebabTrd1Module* GetShishKebabModule(Int_t neta) const;
+  const ShishKebabTrd1Module& GetShishKebabModule(Int_t neta) const;
 
   ///
   /// Given a TParticle, check if it falls in the EMCal/DCal geometry
@@ -145,12 +197,12 @@ class Geometry : public TNamed
   ///
   /// Checks whether point is inside the EMCal volume
   ///
-  Bool_t IsInEMCAL(Double_t x, Double_t y, Double_t z) const;
+  Bool_t IsInEMCAL(Point3D<double> &pnt) const;
 
   ///
   /// Checks whether point is inside the DCal volume
   ///
-  Bool_t IsInDCAL(Double_t x, Double_t y, Double_t z) const;
+  Bool_t IsInDCAL(Point3D<double> &pnt) const;
 
   ///
   /// Checks whether point is inside the EMCal volume (included DCal), used in AliEMCALv*.cxx
@@ -161,75 +213,77 @@ class Geometry : public TNamed
   ///
   /// \return calo type, 1 EMCal, 2 DCal
   ///
-  Int_t IsInEMCALOrDCAL(Double_t x, Double_t y, Double_t z) const;
+  AcceptanceType_t IsInEMCALOrDCAL(Point3D<double> &pnt) const;
 
   //////////////////////////////////////
   // Return EMCAL geometrical parameters
   //
 
-  EMCGeometry* GetEMCGeometry() const { return mEMCGeometry; }
+  const EMCGeometry& GetEMCGeometry() const { return mEMCGeometry; }
 
-  const Char_t* GetNameOfEMCALEnvelope() const { return mEMCGeometry->GetNameOfEMCALEnvelope(); }
-  Float_t GetArm1PhiMin() const { return mEMCGeometry->GetArm1PhiMin(); }
-  Float_t GetArm1PhiMax() const { return mEMCGeometry->GetArm1PhiMax(); }
-  Float_t GetArm1EtaMin() const { return mEMCGeometry->GetArm1EtaMin(); }
-  Float_t GetArm1EtaMax() const { return mEMCGeometry->GetArm1EtaMax(); }
-  Float_t GetIPDistance() const { return mEMCGeometry->GetIPDistance(); }
-  Float_t GetEnvelop(Int_t index) const { return mEMCGeometry->GetEnvelop(index); }
-  Float_t GetShellThickness() const { return mEMCGeometry->GetShellThickness(); }
-  Float_t GetZLength() const { return mEMCGeometry->GetZLength(); }
-  Float_t GetDCALInnerEdge() const { return mEMCGeometry->GetDCALInnerEdge(); }
-  Float_t GetDCALPhiMin() const { return mEMCGeometry->GetDCALPhiMin(); }
-  Float_t GetDCALPhiMax() const { return mEMCGeometry->GetDCALPhiMax(); }
-  Float_t GetEMCALPhiMax() const { return mEMCGeometry->GetEMCALPhiMax(); }
-  Int_t GetNECLayers() const { return mEMCGeometry->GetNECLayers(); }
-  Float_t GetDCALInnerExtandedEta() const { return mEMCGeometry->GetDCALInnerExtandedEta(); }
-  Int_t GetNZ() const { return mEMCGeometry->GetNZ(); }
-  Int_t GetNEta() const { return mEMCGeometry->GetNEta(); }
-  Int_t GetNPhi() const { return mEMCGeometry->GetNPhi(); }
-  Float_t GetECPbRadThick() const { return mEMCGeometry->GetECPbRadThick(); }
-  Float_t GetECScintThick() const { return mEMCGeometry->GetECScintThick(); }
-  Float_t GetSampling() const { return mEMCGeometry->GetSampling(); }
-  Int_t GetNumberOfSuperModules() const { return mEMCGeometry->GetNumberOfSuperModules(); }
-  Float_t GetPhiGapForSuperModules() const { return mEMCGeometry->GetPhiGapForSuperModules(); }
-  Float_t GetPhiModuleSize() const { return mEMCGeometry->GetPhiModuleSize(); }
-  Float_t GetEtaModuleSize() const { return mEMCGeometry->GetEtaModuleSize(); }
-  Float_t GetFrontSteelStrip() const { return mEMCGeometry->GetFrontSteelStrip(); }
-  Float_t GetLateralSteelStrip() const { return mEMCGeometry->GetLateralSteelStrip(); }
-  Float_t GetPassiveScintThick() const { return mEMCGeometry->GetPassiveScintThick(); }
-  Float_t GetPhiTileSize() const { return mEMCGeometry->GetPhiTileSize(); }
-  Float_t GetEtaTileSize() const { return mEMCGeometry->GetEtaTileSize(); }
-  Float_t GetPhiSuperModule() const { return mEMCGeometry->GetPhiSuperModule(); }
-  Int_t GetNPhiSuperModule() const { return mEMCGeometry->GetNPhiSuperModule(); }
-  Int_t GetNPHIdiv() const { return mEMCGeometry->GetNPHIdiv(); }
-  Int_t GetNETAdiv() const { return mEMCGeometry->GetNETAdiv(); }
-  Int_t GetNCells() const { return mEMCGeometry->GetNCells(); }
-  Float_t GetLongModuleSize() const { return mEMCGeometry->GetLongModuleSize(); }
-  Float_t GetTrd1Angle() const { return mEMCGeometry->GetTrd1Angle(); }
-  Float_t Get2Trd1Dx2() const { return mEMCGeometry->Get2Trd1Dx2(); }
-  Float_t GetTrd1AlFrontThick() const { return mEMCGeometry->GetTrd1AlFrontThick(); }
-  Float_t GetTrd1BondPaperThick() const { return mEMCGeometry->GetTrd1BondPaperThick(); }
+  EMCGeometry &AccessGeometry() { return mEMCGeometry; }
+
+  const Char_t* GetNameOfEMCALEnvelope() const { return mEMCGeometry.GetNameOfEMCALEnvelope(); }
+  Float_t GetArm1PhiMin() const { return mEMCGeometry.GetArm1PhiMin(); }
+  Float_t GetArm1PhiMax() const { return mEMCGeometry.GetArm1PhiMax(); }
+  Float_t GetArm1EtaMin() const { return mEMCGeometry.GetArm1EtaMin(); }
+  Float_t GetArm1EtaMax() const { return mEMCGeometry.GetArm1EtaMax(); }
+  Float_t GetIPDistance() const { return mEMCGeometry.GetIPDistance(); }
+  Float_t GetEnvelop(Int_t index) const { return mEMCGeometry.GetEnvelop(index); }
+  Float_t GetShellThickness() const { return mEMCGeometry.GetShellThickness(); }
+  Float_t GetZLength() const { return mEMCGeometry.GetZLength(); }
+  Float_t GetDCALInnerEdge() const { return mEMCGeometry.GetDCALInnerEdge(); }
+  Float_t GetDCALPhiMin() const { return mEMCGeometry.GetDCALPhiMin(); }
+  Float_t GetDCALPhiMax() const { return mEMCGeometry.GetDCALPhiMax(); }
+  Float_t GetEMCALPhiMax() const { return mEMCGeometry.GetEMCALPhiMax(); }
+  Int_t GetNECLayers() const { return mEMCGeometry.GetNECLayers(); }
+  Float_t GetDCALInnerExtandedEta() const { return mEMCGeometry.GetDCALInnerExtandedEta(); }
+  Int_t GetNZ() const { return mEMCGeometry.GetNZ(); }
+  Int_t GetNEta() const { return mEMCGeometry.GetNEta(); }
+  Int_t GetNPhi() const { return mEMCGeometry.GetNPhi(); }
+  Float_t GetECPbRadThick() const { return mEMCGeometry.GetECPbRadThick(); }
+  Float_t GetECScintThick() const { return mEMCGeometry.GetECScintThick(); }
+  Float_t GetSampling() const { return mEMCGeometry.GetSampling(); }
+  Int_t GetNumberOfSuperModules() const { return mEMCGeometry.GetNumberOfSuperModules(); }
+  Float_t GetPhiGapForSuperModules() const { return mEMCGeometry.GetPhiGapForSuperModules(); }
+  Float_t GetPhiModuleSize() const { return mEMCGeometry.GetPhiModuleSize(); }
+  Float_t GetEtaModuleSize() const { return mEMCGeometry.GetEtaModuleSize(); }
+  Float_t GetFrontSteelStrip() const { return mEMCGeometry.GetFrontSteelStrip(); }
+  Float_t GetLateralSteelStrip() const { return mEMCGeometry.GetLateralSteelStrip(); }
+  Float_t GetPassiveScintThick() const { return mEMCGeometry.GetPassiveScintThick(); }
+  Float_t GetPhiTileSize() const { return mEMCGeometry.GetPhiTileSize(); }
+  Float_t GetEtaTileSize() const { return mEMCGeometry.GetEtaTileSize(); }
+  Float_t GetPhiSuperModule() const { return mEMCGeometry.GetPhiSuperModule(); }
+  Int_t GetNPhiSuperModule() const { return mEMCGeometry.GetNPhiSuperModule(); }
+  Int_t GetNPHIdiv() const { return mEMCGeometry.GetNPHIdiv(); }
+  Int_t GetNETAdiv() const { return mEMCGeometry.GetNETAdiv(); }
+  Int_t GetNCells() const { return mEMCGeometry.GetNCells(); }
+  Float_t GetLongModuleSize() const { return mEMCGeometry.GetLongModuleSize(); }
+  Float_t GetTrd1Angle() const { return mEMCGeometry.GetTrd1Angle(); }
+  Float_t Get2Trd1Dx2() const { return mEMCGeometry.Get2Trd1Dx2(); }
+  Float_t GetTrd1AlFrontThick() const { return mEMCGeometry.GetTrd1AlFrontThick(); }
+  Float_t GetTrd1BondPaperThick() const { return mEMCGeometry.GetTrd1BondPaperThick(); }
   // --
-  Int_t GetNCellsInSupMod() const { return mEMCGeometry->GetNCellsInSupMod(); }
-  Int_t GetNCellsInModule() const { return mEMCGeometry->GetNCellsInModule(); }
-  Int_t GetKey110DEG() const { return mEMCGeometry->GetKey110DEG(); }
-  Int_t GetnSupModInDCAL() const { return mEMCGeometry->GetnSupModInDCAL(); }
-  Int_t GetILOSS() const { return mEMCGeometry->GetILOSS(); }
-  Int_t GetIHADR() const { return mEMCGeometry->GetIHADR(); }
+  Int_t GetNCellsInSupMod() const { return mEMCGeometry.GetNCellsInSupMod(); }
+  Int_t GetNCellsInModule() const { return mEMCGeometry.GetNCellsInModule(); }
+  Int_t GetKey110DEG() const { return mEMCGeometry.GetKey110DEG(); }
+  Int_t GetnSupModInDCAL() const { return mEMCGeometry.GetnSupModInDCAL(); }
+  Int_t GetILOSS() const { return mEMCGeometry.GetILOSS(); }
+  Int_t GetIHADR() const { return mEMCGeometry.GetIHADR(); }
   // --
-  Float_t GetDeltaEta() const { return mEMCGeometry->GetDeltaEta(); }
-  Float_t GetDeltaPhi() const { return mEMCGeometry->GetDeltaPhi(); }
-  Int_t GetNTowers() const { return mEMCGeometry->GetNTowers(); }
+  Float_t GetDeltaEta() const { return mEMCGeometry.GetDeltaEta(); }
+  Float_t GetDeltaPhi() const { return mEMCGeometry.GetDeltaPhi(); }
+  Int_t GetNTowers() const { return mEMCGeometry.GetNTowers(); }
   //
-  Double_t GetPhiCenterOfSM(Int_t nsupmod) const { return mEMCGeometry->GetPhiCenterOfSM(nsupmod); }
-  Double_t GetPhiCenterOfSMSec(Int_t nsupmod) const { return mEMCGeometry->GetPhiCenterOfSMSec(nsupmod); }
-  Float_t GetSuperModulesPar(Int_t ipar) const { return mEMCGeometry->GetSuperModulesPar(ipar); }
+  Double_t GetPhiCenterOfSM(Int_t nsupmod) const { return mEMCGeometry.GetPhiCenterOfSM(nsupmod); }
+  Double_t GetPhiCenterOfSMSec(Int_t nsupmod) const { return mEMCGeometry.GetPhiCenterOfSMSec(nsupmod); }
+  Float_t GetSuperModulesPar(Int_t ipar) const { return mEMCGeometry.GetSuperModulesPar(ipar); }
   //
   Int_t GetSMType(Int_t nSupMod) const
   {
-    if (nSupMod > mEMCGeometry->GetNumberOfSuperModules())
+    if (nSupMod > mEMCGeometry.GetNumberOfSuperModules())
       return -1;
-    return mEMCGeometry->GetEMCSystem()[nSupMod];
+    return mEMCGeometry.GetEMCSystem()[nSupMod];
   }
 
   ///
@@ -246,23 +300,23 @@ class Geometry : public TNamed
   // Used in AliEMCALv0 to calculate position.
   Bool_t GetPhiBoundariesOfSM(Int_t nSupMod, Double_t& phiMin, Double_t& phiMax) const
   {
-    return mEMCGeometry->GetPhiBoundariesOfSM(nSupMod, phiMin, phiMax);
+    return mEMCGeometry.GetPhiBoundariesOfSM(nSupMod, phiMin, phiMax);
   }
   Bool_t GetPhiBoundariesOfSMGap(Int_t nPhiSec, Double_t& phiMin, Double_t& phiMax) const
   {
-    return mEMCGeometry->GetPhiBoundariesOfSMGap(nPhiSec, phiMin, phiMax);
+    return mEMCGeometry.GetPhiBoundariesOfSMGap(nPhiSec, phiMin, phiMax);
   }
 
   // Obsolete?
-  Float_t GetSteelFrontThickness() const { return mEMCGeometry->GetSteelFrontThickness(); }
+  Float_t GetSteelFrontThickness() const { return mEMCGeometry.GetSteelFrontThickness(); }
 
   ///////////////////////////////
   // Geometry data member setters
   //
-  void SetNZ(Int_t nz) { mEMCGeometry->SetNZ(nz); }
-  void SetNPhi(Int_t nphi) { mEMCGeometry->SetNPhi(nphi); }
+  void SetNZ(Int_t nz) { mEMCGeometry.SetNZ(nz); }
+  void SetNPhi(Int_t nphi) { mEMCGeometry.SetNPhi(nphi); }
   //
-  void SetSampling(Float_t samp) { mEMCGeometry->SetSampling(samp); }
+  void SetSampling(Float_t samp) { mEMCGeometry.SetSampling(samp); }
 
   //////////////////////////
   // Global geometry methods
@@ -535,7 +589,7 @@ class Geometry : public TNamed
   /// \return false if cell absId does not exist
   Bool_t RelPosCellInSModule(Int_t absId, TVector3& vloc) const;
 
-  Int_t* GetEMCSystem() const { return mEMCGeometry->GetEMCSystem(); } // EMC System, SM type list
+  const Int_t* GetEMCSystem() const { return mEMCGeometry.GetEMCSystem(); } // EMC System, SM type list
   // Local Coordinates of SM
   TArrayD GetCentersOfCellsEtaDir() const
   {
@@ -620,10 +674,9 @@ class Geometry : public TNamed
   /// initializes the parameters of EMCAL
   void Init();
 
-  EMCGeometry* mEMCGeometry; ///< Geometry object for Electromagnetic calorimeter
+  EMCGeometry mEMCGeometry; ///< Geometry object for Electromagnetic calorimeter
 
-  TString mGeoName; ///< Geometry name string
-  // Int_t    *fEMCSMSystem;	         ///< [fEMCGeometry.fNumberOfSuperModules] geometry structure
+  std::string mGeoName; ///< Geometry name string
   Int_t mKey110DEG;           ///< For calculation abs cell id; 19-oct-05
   Int_t mnSupModInDCAL;       ///< For calculation abs cell id; 06-nov-12
   Int_t mNCellsInSupMod;      ///< Number cell in super module
@@ -654,7 +707,7 @@ class Geometry : public TNamed
   Float_t mEMCALPhiMax;          ///< Maximum angular position of EMCAL in Phi (degrees)
   Float_t mDCALStandardPhiMax;   ///< Special edge for the case that DCAL contian extension
   Float_t mDCALInnerExtandedEta; ///< DCAL inner edge in Eta (with some extension)
-  TList* mShishKebabTrd1Modules; ///< List of modules
+  std::vector<ShishKebabTrd1Module> mShishKebabTrd1Modules; ///< List of modules
   Float_t mParSM[3];             ///< SM sizes as in GEANT (TRD1)
   Float_t mPhiModuleSize;        ///< Phi -> X
   Float_t mEtaModuleSize;        ///< Eta -> Y
@@ -673,9 +726,8 @@ class Geometry : public TNamed
 
  private:
   static Geometry* sGeom;                    ///< Pointer to the unique instance of the singleton
-  static const Char_t* sDefaultGeometryName; ///< Default name of geometry
+  static std::string sDefaultGeometryName; ///< Default name of geometry
 
-  ClassDef(Geometry, 1);
 };
 }
 }
