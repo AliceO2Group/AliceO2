@@ -5,10 +5,12 @@ O2_SETUP(NAME ${MODULE_NAME})
 set(SRCS
     src/Point.cxx
     src/ClusterShape.cxx
+    src/AlpideSimResponse.cxx
     )
 set(HEADERS
     include/${MODULE_NAME}/Point.h
     include/${MODULE_NAME}/ClusterShape.h
+    include/${MODULE_NAME}/AlpideSimResponse.h
     )
 set(NO_DICT_SRCS # sources not for the dictionary
     src/Chip.cxx
@@ -30,3 +32,12 @@ set(BUCKET_NAME itsmft_simulation_bucket)
 
 O2_GENERATE_LIBRARY()
 
+set(TEST_SRCS
+  test/testAlpideSimResponse.cxx
+)
+
+O2_GENERATE_TESTS(
+  MODULE_LIBRARY_NAME ${LIBRARY_NAME}
+  BUCKET_NAME ${BUCKET_NAME}
+  TEST_SRCS ${TEST_SRCS}
+)

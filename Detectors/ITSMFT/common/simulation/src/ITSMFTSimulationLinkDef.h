@@ -16,5 +16,7 @@
 
 #pragma link C++ class o2::ITSMFT::Point+;
 #pragma link C++ class o2::ITSMFT::ClusterShape+;
+#pragma link C++ class o2::ITSMFT::AlpideSimResponse+;
+#pragma link C++ class o2::ITSMFT::RespSimMat+;
 
 #endif
