@@ -31,7 +31,8 @@ namespace o2 {
 namespace field {
 
 class MagneticWrapperChebyshev;
- 
+class MagFieldFast;
+
 /// Interface between the TVirtualMagField and MagneticWrapperChebyshev: wrapper to the set of magnetic field data +
 /// Tosca
 /// parametrization by Chebyshev polynomials
@@ -58,8 +59,8 @@ class MagneticField : public FairField
                   MagFieldParam::BMap_t maptype = MagFieldParam::k5kG,
 		  MagFieldParam::BeamType_t btype = MagFieldParam::kBeamTypepp,
 		  Double_t benergy = -1, Int_t integ = 2,
-                  Double_t fmax = 15, const std::string path = std::string(gSystem->Getenv("VMCWORKDIR")) +
-                                                               std::string("/Common/maps/mfchebKGI_sym.root")
+                  Double_t fmax = 15, const std::string path = std::string(gSystem->ExpandPathName("$(O2_ROOT)"))
+		  + std::string("/share/Common/maps/mfchebKGI_sym.root")
     );
 
 
@@ -73,6 +74,9 @@ class MagneticField : public FairField
     /// real field creation is here
     void CreateField();
 
+    /// allow fast field param
+    void        AllowFastField(bool v=true);
+    
     /// Virtual methods from FairField
 
     /// X component, avoid using since slow
@@ -121,7 +125,10 @@ class MagneticField : public FairField
     Double_t getBz(const Double_t *xyz) const;
 
     MagneticWrapperChebyshev *getMeasuredMap() const { return mMeasuredMap.get();}
-
+    
+    /// get fast field direct pointer
+    const MagFieldFast* getFastField() const {return mFastField.get();}
+    
     // Former MagF methods or their aliases
 
     /// Sets the sign/scale of the current in the L3 according to sPolarityConvention
@@ -254,6 +261,7 @@ class MagneticField : public FairField
 
   protected:
     std::unique_ptr<MagneticWrapperChebyshev> mMeasuredMap; //! Measured part of the field map
+    std::unique_ptr<MagFieldFast>             mFastField; // ! optional fast parametrization
     MagFieldParam::BMap_t mMapType;         ///< field map type
     Double_t mSolenoid;                     ///< Solenoid field setting
     MagFieldParam::BeamType_t mBeamType;    ///< Beam type: A-A (mBeamType=0) or p-p (mBeamType=1)
