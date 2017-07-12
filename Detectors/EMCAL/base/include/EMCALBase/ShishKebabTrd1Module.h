@@ -12,6 +12,7 @@
 #define ALICEO2_EMCAL_SHISHKEBABTRD1MODULE_H
 
 #include <iomanip>
+#include <memory>
 
 #include <TMath.h>
 #include <TNamed.h>
@@ -37,13 +38,13 @@ class EMCGeometry;
 ///
 /// \author: Alexei Pavlinov (WSU).
 ///
-class ShishKebabTrd1Module : public TNamed
+class ShishKebabTrd1Module
 {
  public:
   ///
   /// Constructor.
   ///
-  ShishKebabTrd1Module(Double_t theta = 0.0, EMCGeometry* g = nullptr);
+  ShishKebabTrd1Module(Double_t theta = 0.0, EMCGeometry * g = nullptr);
 
   ///
   /// Constructor.
@@ -71,15 +72,12 @@ class ShishKebabTrd1Module : public TNamed
     return *this;
   }
 
-  ~ShishKebabTrd1Module() override = default;
+  ~ShishKebabTrd1Module() = default;
 
   ///
   /// Recover module parameters stored in geometry
   ///
-  Bool_t GetParameters();
-
-  /// Define name of object (add more comment)
-  void DefineName(Double_t theta);
+  Bool_t SetParameters();
 
   ///
   /// This is what we have in produced SM. (add explanation)
@@ -90,7 +88,7 @@ class ShishKebabTrd1Module : public TNamed
   void DefineFirstModule(const Int_t key = 0); // key=0-zero tilt of first module
 
   Double_t GetTheta() const { return mTheta; }
-  TVector2& GetCenterOfModule() { return mOK; }
+  const TVector2& GetCenterOfModule() const { return mOK; }
   Double_t GetPosX() const { return mOK.Y(); }
   Double_t GetPosZ() const { return mOK.X(); }
   Double_t GetPosXfromR() const { return mOK.Y() - mgr; }
@@ -102,7 +100,7 @@ class ShishKebabTrd1Module : public TNamed
 
   //  Additional offline stuff
   //  ieta=0 or 1 - Jun 02, 2006
-  TVector2& GetCenterOfCellInLocalCoordinateofSM(Int_t ieta)
+  const TVector2& GetCenterOfCellInLocalCoordinateofSM(Int_t ieta) const
   {
     if (ieta <= 0)
       return mOK2;
@@ -119,7 +117,7 @@ class ShishKebabTrd1Module : public TNamed
       xr = mOK1.Y();
       zr = mOK1.X();
     }
-    LOG(DEBUG2) << GetName() << " ieta " << std::setw(2) << std::setprecision(2) << ieta << " xr " << std::setw(8)
+    LOG(DEBUG2) <<  " ieta " << std::setw(2) << std::setprecision(2) << ieta << " xr " << std::setw(8)
                 << std::setprecision(4) << xr << " zr " << std::setw(8) << std::setprecision(4) << zr
                 << FairLogger::endl;
   }
@@ -141,8 +139,8 @@ class ShishKebabTrd1Module : public TNamed
   }
 
   // 15-may-06
-  TVector2& GetCenterOfModuleFace() { return mOB; }
-  TVector2& GetCenterOfModuleFace(Int_t ieta)
+  const TVector2& GetCenterOfModuleFace() const { return mOB; }
+  const TVector2& GetCenterOfModuleFace(Int_t ieta) const
   {
     if (ieta <= 0)
       return mOB2;
@@ -151,7 +149,7 @@ class ShishKebabTrd1Module : public TNamed
   }
 
   // Jul 30, 2007
-  void GetPositionAtCenterCellLine(Int_t ieta, Double_t dist, TVector2& v);
+  void GetPositionAtCenterCellLine(Int_t ieta, Double_t dist, TVector2& v) const;
 
   //
   Double_t GetTanBetta() const { return mgtanBetta; }
@@ -166,7 +164,7 @@ class ShishKebabTrd1Module : public TNamed
 
  protected:
   // geometry info
-  EMCGeometry* mGeometry; //!<! pointer to geometry info
+  EMCGeometry *mGeometry; //!<! pointer to geometry info
   Double_t mga;           ///<  2*dx1=2*dy1
   Double_t mga2;          ///<  2*dx2
   Double_t mgb;           ///<  2*dz1
@@ -201,7 +199,6 @@ class ShishKebabTrd1Module : public TNamed
   TVector2 mORB; ///< position of right/bottom point of module
   TVector2 mORT; ///< position of right/top    point of module
 
-  ClassDef(ShishKebabTrd1Module, 1);
 };
 }
 }

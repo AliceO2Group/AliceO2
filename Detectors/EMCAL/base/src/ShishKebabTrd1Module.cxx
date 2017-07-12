@@ -10,26 +10,15 @@
 
 #include <cassert>
 
+#include "RStringView.h"
+
 #include "EMCALBase/EMCGeometry.h"
 #include "EMCALBase/ShishKebabTrd1Module.h"
 
-ClassImp(o2::EMCAL::ShishKebabTrd1Module);
-
 using namespace o2::EMCAL;
 
-/*
-//AliEMCALEMCGeometry *AliEMCALShishKebabTrd1Module::fgGeometry=0;
-Double_t AliEMCALShishKebabTrd1Module::fga=0.;
-Double_t AliEMCALShishKebabTrd1Module::fga2=0.;
-Double_t AliEMCALShishKebabTrd1Module::fgb=0.;
-Double_t AliEMCALShishKebabTrd1Module::fgr=0.;
-Double_t AliEMCALShishKebabTrd1Module::fgangle=0.;   // around one degree
-Double_t AliEMCALShishKebabTrd1Module::fgtanBetta=0; //
-*/
-
 ShishKebabTrd1Module::ShishKebabTrd1Module(Double_t theta, EMCGeometry* g)
-  : TNamed(),
-    mGeometry(g),
+ :  mGeometry(g),
     mOK(),
     mA(0.),
     mB(0.),
@@ -46,22 +35,21 @@ ShishKebabTrd1Module::ShishKebabTrd1Module(Double_t theta, EMCGeometry* g)
     mORB(),
     mORT()
 {
-  TString snam(g->GetName());
+  std::string_view sname = g->GetName();
   Int_t key = 0;
-  if (snam.Contains("v1", TString::kIgnoreCase))
+  if (sname.find("v1") != std::string::npos ||sname.find("V1") != std::string::npos )
     key = 1; // EMCAL_COMPLETEV1 vs EMCAL_COMPLETEv1 (or other)
 
-  if (GetParameters())
+  if (SetParameters())
     DefineFirstModule(key);
 
-  DefineName(mTheta);
+  //DefineName(mTheta);
   LOG(DEBUG4) << "o2::EMCAL::ShishKebabTrd1Module - first module key=" << key << ":  theta " << std::setw(1)
               << std::setprecision(4) << mTheta << " geometry " << g << FairLogger::endl;
 }
 
 ShishKebabTrd1Module::ShishKebabTrd1Module(ShishKebabTrd1Module& leftNeighbor)
-  : TNamed(),
-    mGeometry(leftNeighbor.mGeometry),
+  : mGeometry(leftNeighbor.mGeometry),
     mOK(),
     mA(0.),
     mB(0.),
@@ -80,15 +68,11 @@ ShishKebabTrd1Module::ShishKebabTrd1Module(ShishKebabTrd1Module& leftNeighbor)
 {
   //  printf("** Left Neighbor : %s **\n", leftNeighbor.GetName());
   mTheta = leftNeighbor.GetTheta() - mgangle;
-
-  TObject::SetUniqueID(leftNeighbor.GetUniqueID() + 1);
-
   Init(leftNeighbor.GetA(), leftNeighbor.GetB());
 }
 
 ShishKebabTrd1Module::ShishKebabTrd1Module(const ShishKebabTrd1Module& mod)
-  : TNamed(mod.GetName(), mod.GetTitle()),
-    mGeometry(mod.mGeometry),
+  : mGeometry(mod.mGeometry),
     mOK(mod.mOK),
     mA(mod.mA),
     mB(mod.mB),
@@ -140,7 +124,7 @@ void ShishKebabTrd1Module::Init(Double_t A, Double_t B)
 void ShishKebabTrd1Module::DefineAllStuff()
 {
   // Define some parameters
-  DefineName(mTheta);
+  //DefineName(mTheta);
   // Centers of cells - 2X2 case
   Double_t kk1 = (mga + mga2) / (2. * 4.); // kk1=kk2
 
@@ -217,17 +201,10 @@ void ShishKebabTrd1Module::DefineFirstModule(const Int_t key)
     assert(0);
   }
 
-  TObject::SetUniqueID(1); //
-
   DefineAllStuff();
 }
 
-void ShishKebabTrd1Module::DefineName(Double_t theta)
-{
-  SetName(Form("%2i(%5.2f)", TObject::GetUniqueID(), theta * TMath::RadToDeg()));
-}
-
-Bool_t ShishKebabTrd1Module::GetParameters()
+Bool_t ShishKebabTrd1Module::SetParameters()
 {
   if (!mGeometry) {
     LOG(WARNING) << "GetParameters(): << No geometry\n";
@@ -254,8 +231,6 @@ Bool_t ShishKebabTrd1Module::GetParameters()
 // Service methods
 //
 
-/// Add comment
-//_____________________________________________________________________________
 void ShishKebabTrd1Module::PrintShish(int pri) const
 {
   if (pri >= 0) {
@@ -263,7 +238,7 @@ void ShishKebabTrd1Module::PrintShish(int pri) const
       printf("PrintShish() \n a %7.3f:%7.3f | b %7.2f | r %7.2f \n TRD1 angle %7.6f(%5.2f) | tanBetta %7.6f", mga, mga2,
              mgb, mgr, mgangle, mgangle * TMath::RadToDeg(), mgtanBetta);
       printf(" fTheta %f : %5.2f : cos(theta) %f\n", mTheta, GetThetaInDegree(), TMath::Cos(mTheta));
-      printf(" OK : %i |%s| theta %f :  phi = %f(%5.2f) \n", GetUniqueID(), GetName(), mTheta, mOK.Phi(),
+      printf(" OK : theta %f :  phi = %f(%5.2f) \n", mTheta, mOK.Phi(),
              mOK.Phi() * TMath::RadToDeg());
     }
 
@@ -292,10 +267,10 @@ Double_t ShishKebabTrd1Module::GetThetaInDegree() const { return mTheta * TMath:
 
 Double_t ShishKebabTrd1Module::GetEtaOfCenterOfModule() const { return -TMath::Log(TMath::Tan(mOK.Phi() / 2.)); }
 
-void ShishKebabTrd1Module::GetPositionAtCenterCellLine(Int_t ieta, Double_t dist, TVector2& v)
+void ShishKebabTrd1Module::GetPositionAtCenterCellLine(Int_t ieta, Double_t dist, TVector2& v) const
 {
   // Jul 30, 2007
-  static Double_t theta = 0., x = 0., y = 0.;
+  Double_t theta = 0., x = 0., y = 0.;
   if (ieta == 0) {
     v = mOB2;
     theta = mTheta;

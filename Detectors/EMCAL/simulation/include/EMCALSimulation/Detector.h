@@ -16,6 +16,8 @@
 #include "TArrayF.h"
 #include "TString.h"
 
+#include <vector>
+
 #include "Math/GenVector/DisplacementVector3D.h"
 #include "Math/GenVector/PositionVector3D.h"
 
@@ -26,27 +28,15 @@ using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, RO
 
 class FairVolume;
 class TClonesArray;
-class TList;
 
 namespace o2
 {
 namespace EMCAL
 {
+
 class Hit;
-}
-}
-namespace o2
-{
-namespace EMCAL
-{
 class Geometry;
-}
-}
-
-namespace o2
-{
-namespace EMCAL
-{
+    
 class Detector : public o2::Base::Detector
 {
  public:
@@ -133,7 +123,6 @@ class Detector : public o2::Base::Detector
   TClonesArray* mPointCollection; ///< Collection of EMCAL points
   Geometry* mGeometry;            ///< Geometry pointer
 
-  TList* mShishKebabModules; //!<! list of modules
   TArrayF mEnvelop1;         //!<! parameters of EMCAL envelop for TRD1(2) case
   Int_t mIdRotm;             //!<! number of rotation matrix (working variable)
 
