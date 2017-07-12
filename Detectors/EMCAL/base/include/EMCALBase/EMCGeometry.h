@@ -11,13 +11,15 @@
 #ifndef ALICEO2_EMCAL_EMCGEOMETRY_H_
 #define ALICEO2_EMCAL_EMCGEOMETRY_H_
 
+#include <array>
 #include <iosfwd>
+#include <string>
+#include <vector>
 
 #include <TArrayD.h>
 #include <TList.h>
 #include <TMath.h>
-#include <TNamed.h>
-#include <TString.h>
+#include <RStringView.h>
 
 #include <FairLogger.h>
 
@@ -27,7 +29,7 @@ namespace o2
 {
 namespace EMCAL
 {
-class EMCGeometry : public TNamed
+class EMCGeometry
 {
   /// possible SM Type
  public:
@@ -59,13 +61,13 @@ class EMCGeometry : public TNamed
   /// EMCAL_COMPLETE12SMV1_DCAL_8SM, EMCAL_COMPLETE12SMV1_DCAL_DEV (see main class description for definition) \param
   /// title \param mcname: Geant3/4, Flukla, ... \param mctitle: Geant4 physics list tag name
   ///
-  EMCGeometry(const Text_t* name, const Text_t* title, const Text_t* mcname = "", const Text_t* mctitle = "");
+  EMCGeometry(const std::string_view name, const std::string_view mcname = "", const std::string_view mctitle = "");
 
   ///
   /// Destructor
   ///
-  ~EMCGeometry() override;
-
+  ~EMCGeometry();
+    
   /// Assignement operator requested by coding convention but not needed
   EMCGeometry& operator=(const EMCGeometry& /*rvalue*/)
   {
@@ -77,8 +79,9 @@ class EMCGeometry : public TNamed
   // General
   //
 
+  const std::string &GetName() const { return mGeoName; }
   Bool_t IsInitialized() const { return sInit; }
-  static const Char_t* GetDefaultGeometryName() { return sDefaultGeometryName; }
+  static const std::string &GetDefaultGeometryName() { return sDefaultGeometryName; }
 
   ///
   /// Print EMCal parameters
@@ -94,7 +97,7 @@ class EMCGeometry : public TNamed
   /// \param mcname: Geant3/4, Fluka, needed for settings of transport (not needed since 15/03/16)
   /// \param mctitle: Geant4 physics list ((not needed since 15/03/16))
   ///
-  void Init(const Text_t* mcname = "", const Text_t* mctitle = "");
+  void Init(const std::string_view mcname = "", const std::string_view mctitle = "");
 
   ///
   /// Additional options that can be used to select
@@ -109,13 +112,13 @@ class EMCGeometry : public TNamed
   /// \param mcname: Geant3/4, Flukla, ...
   /// \param mctitle: Geant4 physics list tag name
   ///
-  void DefineSamplingFraction(const Text_t* mcname = "", const Text_t* mctitle = "");
+    void DefineSamplingFraction(const std::string_view mcname = "", const std::string_view mctitle = "");
 
   //////////////////////////////////////
   // Return EMCAL geometrical parameters
   //
 
-  TString GetGeoName() const { return mGeoName; }
+  const std::string &GetGeoName() const { return mGeoName; }
 
   const Int_t* GetEMCSystem() const { return mEMCSMSystem; }
   Int_t* GetEMCSystem() { return mEMCSMSystem; } // Why? GCB
@@ -270,16 +273,16 @@ class EMCGeometry : public TNamed
   Float_t GetSteelFrontThickness() const { return mSteelFrontThick; }
   //////////////////////////////////////////////////
 
-  static const Char_t* sDefaultGeometryName; ///< Default name of geometry
+  static std::string sDefaultGeometryName; ///< Default name of geometry
   static Bool_t sInit;                       ///< Tells if geometry has been succesfully set up.
 
  private:
   // Member data
 
-  TString mGeoName; ///< geometry name
+  std::string mGeoName; ///< geometry name
 
   TObjArray* mArrayOpts;          //!<! array of geometry options
-  const char* mAdditionalOpts[6]; //!<! some additional options for the geometry type and name
+  std::array<std::string, 6> mAdditionalOpts; //!<! some additional options for the geometry type and name
   Int_t mNAdditionalOpts;         //!<! size of additional options parameter
 
   Float_t mECPbRadThickness; ///< cm, Thickness of the Pb radiators
@@ -356,9 +359,6 @@ class EMCGeometry : public TNamed
     mEtaCentersOfCells; ///< [fNEta*fNETAdiv*fNPhi*fNPHIdiv], positive direction (eta>0); eta depend from phi position;
   TArrayD mPhiCentersOfCells; ///< [fNPhi*fNPHIdiv] from center of SM (-10. < phi < +10.)
 
-  // Move from AliEMCALv0 - Feb 19, 2006
-  TList* mShishKebabTrd1Modules; //!<! list of modules
-
   // Local coordinates of SM for TRD1
   Float_t mParSM[3]; ///< SM sizes as in GEANT (TRD1)
 
@@ -366,13 +366,10 @@ class EMCGeometry : public TNamed
   Int_t mIHADR; ///< Options for Geant (MIP business) - will call in AliEMCAL
 
   Float_t mSteelFrontThick; ///< Thickness of the front stell face of the support box - 9-sep-04; obsolete?
-
-  /// \cond CLASSIMP
-  ClassDef(EMCGeometry, 1);
-  /// \endcond
 };
+
+std::ostream& operator<<(std::ostream& stream, const EMCGeometry& geo);
 }
 }
 
-std::ostream& operator<<(std::ostream& stream, const o2::EMCAL::EMCGeometry& geo);
 #endif
