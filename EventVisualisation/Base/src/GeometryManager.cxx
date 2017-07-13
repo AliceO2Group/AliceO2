@@ -56,7 +56,7 @@ void GeometryManager::destroyAllGeometries()
     {
       mGeomVector[i]->DestroyElements();
       gEve->RemoveElement(mGeomVector[i],MultiView::getInstance()->getScene(MultiView::Scene3dGeom));
-      mGeomVector[i] = 0;
+      mGeomVector[i] = nullptr;
     }
   }
 }

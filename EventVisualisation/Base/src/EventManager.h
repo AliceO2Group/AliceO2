@@ -65,7 +65,7 @@ class EventManager : public TEveEventManager, public TQObject
     /// Default constructor
     EventManager();
     /// Default destructor
-    ~EventManager();
+    ~EventManager() final;
     
     static EventManager* sMaster;       ///< Singleton instance of EventManager
     EDataSource mCurrentDataSourceType; ///< enum type of the current data source
