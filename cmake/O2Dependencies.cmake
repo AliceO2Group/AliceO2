@@ -819,8 +819,10 @@ o2_define_bucket(
 
     DEPENDENCIES
     root_base_bucket
-    graf3d
-    eve
+    Graf3d
+    Eve
+    RGL
+    Gui
     CCDB
 
     INCLUDE_DIRECTORIES
