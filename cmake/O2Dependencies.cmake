@@ -813,3 +813,22 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/TOF/base/include
 )
+
+o2_define_bucket(
+    NAME
+    event_visualisation_bucket
+
+    DEPENDENCIES
+    root_base_bucket
+    Graf3d
+    Eve
+    RGL
+    Gui
+    CCDB
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/CCDB/include
+
+    SYSTEMINCLUDE_DIRECTORIES
+    ${ROOT_INCLUDE_DIR}
+)
