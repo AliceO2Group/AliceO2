@@ -33,31 +33,71 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
  float* PolinomialFieldBz,
  float x[], float y[], float z[], int rowType[], float alpha[], AliHLTTPCCAParam &param,
  int &N,
- float &Alpha, 
+ float &Alpha,
  bool UseMeanPt,
  float maxSinPhi
  ){
-  AliHLTTPCGMTrackLinearisation t0(*this);
-  float trDzDs2 = t0.DzDs()*t0.DzDs();
- 
-  AliHLTTPCGMTrackFitParam par;
+   if (0)
+   {
+     AliHLTTPCGMTrackLinearisation t0(*this);
+     float trDzDs2 = t0.DzDs()*t0.DzDs();
     
-  int maxN = N;
+     AliHLTTPCGMTrackFitParam par;
+       
+     int maxN = N;
 
-  int first = 1;
-  N = 0;
-  for( int ihit=0; ihit<maxN; ihit++ ){
-    float dL = 0;
-    float ex1i = 0;
-	if (rowType[ihit] < 0) continue;
-    if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2)) break;
-    if (first == 0)
-	{
-		int retVal = UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, dL, ex1i, trDzDs2);
-		if (retVal == 2) rowType[ihit] = -(rowType[ihit] + 1);
-		if (retVal != 0) break;
-	}
-    first = 0;
+     int first = 1;
+     N = 0;
+     for( int ihit=0; ihit<maxN; ihit++ ){
+       float dL = 0;
+       float ex1i = 0;
+       if (rowType[ihit] < 0) continue;
+       if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2)) break;
+       if (first == 0)
+       {
+         int retVal = UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, dL, ex1i, trDzDs2, true);
+         if (retVal == 2) rowType[ihit] = -(rowType[ihit] + 1);
+         if (retVal != 0) break;
+       }
+       first = 0;
+     }
+     return;
+   }
+
+
+  int nWays = param.GetNWays();
+  int maxN = N;
+  for (int iWay = 0;iWay < nWays;iWay++)
+  {
+    AliHLTTPCGMTrackLinearisation t0(*this);
+    float trDzDs2 = t0.DzDs()*t0.DzDs();
+ 
+    AliHLTTPCGMTrackFitParam par;
+
+    int first = 1;
+    N = 0;
+    int iihit;
+    for( iihit=0; iihit<maxN; iihit++)
+    {
+      const int ihit = (iWay & 1) ? (maxN - iihit - 1) : iihit;
+      if (rowType[ihit] < 0) continue;
+      float dL = 0;
+      float ex1i = 0;
+      if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2)) break;
+      if (first == 0)
+      {
+        bool rejectThisRound = nWays == 1 || iWay == 1;
+        int retVal = UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, dL, ex1i, trDzDs2, rejectThisRound);
+        if (retVal == 0) {}
+        else if (retVal == 2)
+        {
+          if (rejectThisRound && !(param.HighQPtForward() < fabs(QPt()))) rowType[ihit] = -(rowType[ihit] + 1);
+        }
+        else break;
+      }
+      first = 0;
+    }
+    maxN = iihit;
   }
 }
 
@@ -232,7 +272,7 @@ GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz,float 
     return 0;
 }
 
-GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, float& dL, float& ex1i, float trDzDs2)
+GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float posX, float posY, float posZ, float posAlpha, int rowType, AliHLTTPCCAParam &param, int& N, float& Alpha, float maxSinPhi, AliHLTTPCGMTrackFitParam& par, float& dL, float& ex1i, float trDzDs2, bool rejectChi2)
 {
 	if (fabs(posY - fP[0]) > 3 || fabs(posZ - fP[1]) > 3) return 2;
 	
@@ -291,12 +331,12 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
     // Filter block
     
     float  z0 = posY - fP[0];
-	float  z1 = posZ - fP[1];
+    float  z1 = posZ - fP[1];
     float mS2 = Reciprocal(err2Z + c11);
     
-	float tmpCut = param.HighQPtForward() < fP[4] ? 5 : 5;
-	if (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut) return 2;
-	fChi2  += mS0*z0*z0;
+    float tmpCut = param.HighQPtForward() < fP[4] ? 5 : 5;
+    if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;
+    fChi2  += mS0*z0*z0;
     fChi2  +=  mS2*z1*z1;
     if (fChi2 / (N + 1) > 5) return 1;
     if( fabs( fP[2] + z0*c20*mS0  ) > maxSinPhi ) return 1;
@@ -336,18 +376,18 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
     fNDF  += 2;
     N+=1;
     
-	fP[0] += k00 * z0;
+    fP[0] += k00 * z0;
     fP[1] += k11 * z1;
-	fP[2] += k20 * z0;
+    fP[2] += k20 * z0;
     fP[3] += k31 * z1;
-	fP[4]*= corr;
-	fP[4] += k40 * z0;
+    fP[4]*= corr;
+    fP[4] += k40 * z0;
     
-	fC[ 0] -= k00 * c00 ;
-	fC[ 2] -= k11 * c11;
-	fC[ 3] -= k20 * c00 ;
+    fC[ 0] -= k00 * c00 ;
+    fC[ 2] -= k11 * c11;
+    fC[ 3] -= k20 * c00 ;
     fC[ 5] -= k20 * c20 ;
-	fC[ 7] -= k31 * c11;
+    fC[ 7] -= k31 * c11;
     fC[ 9] -= k31 * c31;
     fC[10] -= k00 * c40 ;
     fC[12] -= k40 * c20 ;

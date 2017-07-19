@@ -110,6 +110,7 @@ private:
 
   AliHLTTPCCAGPUTracker* fGPUTracker;
   int fDebugLevel;
+  int fNWays;
 
   int fNClusters;			//Total number of incoming clusters
 
