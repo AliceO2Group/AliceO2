@@ -1,0 +1,94 @@
+#===============================================================#
+#           This is Event Display config file.                  #
+#                                                               #
+# You can copy it to your home directory and set custom values. #
+#                                                               #
+#===============================================================#
+
+trigger.class.filter:                   none
+
+axes.show:                              1
+fullscreen.mode:                        0
+background.color:                       1
+
+camera.3D.rotation.horizontal:          -0.4
+camera.3D.rotation.vertical:            1.0
+camera.3D.zoom:                         1.0
+camera.R-Phi.zoom:                      1.0
+camera.Rho-Z.zoom:                      1.0
+
+simple.geom.path:                       ${ALICE_ROOT}/EVE/resources/geometry/run3/
+
+PHS.draw:                               1
+TPC.draw:                               1
+HMP.draw:                               1
+TRD.draw:                               1
+MCH.draw:                               1
+EMC.draw:                               1
+ACO.draw:                               0
+SPD.draw:                               1
+SDD.draw:                               1
+SSD.draw:                               1
+TOF.draw:                               1
+MFT.draw:                               1
+T00.draw:                               0
+FIT.draw:                               1
+AD0.draw:                               1
+ITS.draw:                               0
+FMD.draw:                               1
+
+PHS.color:                              53
+TPC.color:                              3
+HMP.color:                              5
+TRD.color:                              921
+MCH.color:                              920
+EMC.color:                              53
+ACO.color:                              920
+SPD.color:                              634
+SDD.color:                              3
+SSD.color:                              53
+TOF.color:                              634
+MFT.color:                              920
+T00.color:                              2
+FIT.color:                              2
+AD0.color:                              5
+FMD.color:                              906
+
+PHS.trans:                              70
+TPC.trans:                              60
+HMP.trans:                              70
+TRD.trans:                              80
+MCH.trans:                              80
+EMC.trans:                              80
+ACO.trans:                              50
+SPD.trans:                              50
+SDD.trans:                              50
+SSD.trans:                              50
+TOF.trans:                              60
+MFT.trans:                              80
+T00.trans:                              70
+FIT.trans:                              40
+AD0.trans:                              40
+FMD.trans:                              50
+
+MCH.line.color:                         920
+TPC.line.color:                         1
+HMP.line.color:                         1
+PHS.line.color:                         1
+TRD.line.color:                         1
+TOF.line.color:                         1
+EMC.line.color:                         1
+SPD.line.color:                         1
+SDD.line.color:                         1
+SSD.line.color:                         1
+MFT.line.color:                         0
+T00.line.color:                         1
+FIT.line.color:                         1
+AD0.line.color:                         1
+FMD.line.color:                         907
+
+OCDB.default.path:                      local://$(ALICE_ROOT)/OCDB/
+
+#
+# EOF
+#
