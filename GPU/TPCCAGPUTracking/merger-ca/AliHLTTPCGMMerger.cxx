@@ -65,6 +65,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger()
   fBorderRangeMemory(0),
   fGPUTracker(NULL),
   fDebugLevel(0),
+  fNWays(1),
   fNClusters(0)
 {
   //* constructor
@@ -112,6 +113,7 @@ AliHLTTPCGMMerger::AliHLTTPCGMMerger(const AliHLTTPCGMMerger&)
   fBorderRangeMemory(0),
   fGPUTracker(NULL),
   fDebugLevel(0),
+  fNWays(1),
   fNClusters(0)
 {
   //* dummy

@@ -1061,7 +1061,7 @@ int AliHLTTPCCAGPUTrackerNVCC::RefitMergedTracks(AliHLTTPCGMMerger* Merger)
 
 	char* gpumem = (char*) fGPUMergerMemory;
 	float *X, *Y, *Z, *Angle;
-	unsigned int *RowType;
+	int *RowType;
 	AliHLTTPCGMMergedTrack* tracks;
 	float* field;
 	AliHLTTPCCAParam* param;
@@ -1151,4 +1151,3 @@ void AliHLTTPCCAGPUTrackerNVCCDestroy(AliHLTTPCCAGPUTracker* ptr)
 {
 	delete ptr;
 }
-

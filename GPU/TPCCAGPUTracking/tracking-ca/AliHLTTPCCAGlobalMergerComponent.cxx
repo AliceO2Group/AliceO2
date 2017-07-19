@@ -56,12 +56,12 @@ ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-: AliHLTProcessor(), fVersion(1), fGlobalMergerVersion0( 0 ), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fHighQPtForward(1.e10), fBenchmark("GlobalMerger")
+: AliHLTProcessor(), fVersion(1), fGlobalMergerVersion0( 0 ), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fHighQPtForward(1.e10), fNWays(1), fBenchmark("GlobalMerger")
 {
   // see header file for class documentation
 }
 
-AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent( const AliHLTTPCCAGlobalMergerComponent & ):AliHLTProcessor(), fVersion(1), fGlobalMergerVersion0( 0 ), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fHighQPtForward(1.e10), fBenchmark("GlobalMerger")
+AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent( const AliHLTTPCCAGlobalMergerComponent & ):AliHLTProcessor(), fVersion(1), fGlobalMergerVersion0( 0 ), fGlobalMerger(0), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0), fHighQPtForward(1.e10), fNWays(1), fBenchmark("GlobalMerger")
 {
 // dummy
 }
@@ -122,6 +122,7 @@ void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
   fClusterErrorCorrectionY = 0;
   fClusterErrorCorrectionZ = 1.1;
   fHighQPtForward = 1.e10;
+  fNWays = 1;
   fBenchmark.Reset();
   fBenchmark.SetTimer(0,"total");
   fBenchmark.SetTimer(1,"reco");    
@@ -177,6 +178,13 @@ int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* argu
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fHighQPtForward = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
       HLTInfo( "highQPtForward set to: %f", fHighQPtForward );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-nways" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fHighQPtForward = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "nways set to: %d", fNWays );
       continue;
     }
 
@@ -295,6 +303,7 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
     delete[] rowX;
     param.SetHighQPtForward(fHighQPtForward);
+	param.SetNWays(fNWays);
   }
 
 
