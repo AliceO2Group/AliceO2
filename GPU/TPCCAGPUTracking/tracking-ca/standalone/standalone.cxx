@@ -27,7 +27,8 @@
 int main(int argc, char** argv)
 {
 	int i;
-	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, runs2 = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0, continueOnError = 0, seed = -1, writeoutput = 0, writebinary = 0, resetids = 0, lowpt = 0;
+	int RUNGPU = 1, DebugLevel = 0, NEvents = -1, StartEvent = 0, noprompt = 0, cudaDevice = -1, forceSlice = -1, sliceCount = -1, eventDisplay = 0, runs = 1, runs2 = 1, merger = 1, cleardebugout = 0, outputcontrolmem = 0, clusterstats = 0,
+	    continueOnError = 0, seed = -1, writeoutput = 0, writebinary = 0, resetids = 0, lowpt = 0, nways = 1;
 	void* outputmemory = NULL;
 	AliHLTTPCCAStandaloneFramework &hlt = AliHLTTPCCAStandaloneFramework::Instance();
 	char EventsDir[256] = "";
@@ -172,6 +173,11 @@ int main(int argc, char** argv)
 			lowpt = 1;
 		}
 
+		if ( !strcmp( argv[i], "-3WAY" ) ) 
+		{
+			nways = 3;
+		}
+
 		if ( !strcmp( argv[i], "-OUTPUTMEMORY" ) && argc > i + 1)
 		{
 			outputcontrolmem = atoi(argv[i + 1]);
@@ -254,6 +260,7 @@ int main(int argc, char** argv)
 
 	hlt.SetSettings();
 	if (lowpt) hlt.SetHighQPtForward(1./0.1);
+	hlt.SetNWays(nways);
 	
 	for( int i=0; i < argc; i++ ){
 		if ( !strcmp( argv[i], "-GPUOPT" ) && argc >= i + 1 ) 
