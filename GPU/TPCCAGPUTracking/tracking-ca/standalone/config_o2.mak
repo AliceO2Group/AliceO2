@@ -1,18 +1,9 @@
-include						config_options.mak
 include						config_common.mak
 
-TARGET						= ca
+TARGET						= libO2TPCCATracking
+TARGETTYPE					= LIB
 
-ifeq ($(BUILD_CUDA), 1)
-SUBTARGETS					+= libAliHLTTPCCAGPUSA
-endif
-
-ifeq ($(BUILD_OPENCL), 1)
-SUBTARGETS					+= libAliHLTTPCCAGPUSAOpenCL
-endif
-
-CXXFILES					= standalone.cxx \
-								code/AliHLTTPCCATrack.cxx \
+CXXFILES					= code/AliHLTTPCCATrack.cxx \
 								code/AliHLTTPCCATrackParam.cxx \
 								code/AliHLTTPCCATracklet.cxx \
 								code/AliHLTTPCCAStartHitsFinder.cxx \
@@ -37,14 +28,6 @@ CXXFILES					= standalone.cxx \
 								merger-ca/AliHLTTPCGMTrackParam.cxx \
 								standalone/AliHLTLogging.cxx
 
-ifeq ($(BUILD_EVENT_DISPLAY), 1)
-CPPFILES					+= display/opengl.cpp
-CONFIG_OPENGL				= 1
-CONFIG_X11					= 1
-DEFINES						+= BUILD_EVENT_DISPLAY
-endif
-
 ALLDEP						+= config_common.mak
 
-o2:
-	make CONFIGFILE=config_o2.mak -f makefile
+DEFINES						+= HLTCA_TPC_GEOMETRY_O2
