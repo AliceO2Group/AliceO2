@@ -21,7 +21,7 @@
 #include "ITSSimulation/V11Geometry.h"   // for V11Geometry
 #include "ITSSimulation/Detector.h"  // for Detector, Detector::Model
 
-class TGeoArb8;
+class TGeoXtru;
 
 class TGeoCombiTrans;
 
@@ -56,6 +56,11 @@ class V3Layer : public V11Geometry
 
     /// Default destructor
     ~V3Layer() override;
+
+    Bool_t hasGammaConversionRods() const
+    {
+      return mAddGammaConv;
+    };
 
     Bool_t isTurbo() const
     {
@@ -147,6 +152,13 @@ class V3Layer : public V11Geometry
       mChipThickness = t;
     };
 
+
+    /// Gets the Gamma Conversion Rod diameter
+    Double_t getGammaConversionRodDiam();
+
+    /// Gets the Gamma Conversion Rod X position
+    Double_t getGammaConversionRodXPos();
+
     /// Sets the Stave tilt angle (for turbo layers only)
     /// \param t The stave tilt angle
     void setStaveTilt(Double_t t);
@@ -200,6 +212,11 @@ class V3Layer : public V11Geometry
     {
       mStaveModel = model;
     }
+
+    /// Adds the Gamma Conversion Rods to the geometry
+    /// \param diam the diameter of each rod
+    /// \param xPos the X position of each rod
+    void addGammaConversionRods(const Double_t diam, const Double_t xPos);
 
     /// Creates the actual Layer and places inside its mother volume
     /// \param motherVolume the TGeoVolume owing the volume structure
@@ -267,16 +284,15 @@ class V3Layer : public V11Geometry
 
     /// Create the Inner Barrel End Stave connectors
     /// \param mgr The GeoManager (used only to get the proper material)
-    void CreateIBConnectors(const TGeoManager *mgr=gGeoManager);
+    void createIBConnectors(const TGeoManager *mgr=gGeoManager);
 
     /// Create the Inner Barrel End Stave connectors on Side A
     /// \param mgr The GeoManager (used only to get the proper material)
-    void CreateIBConnectorsASide(const TGeoManager *mgr=gGeoManager);
+    void createIBConnectorsASide(const TGeoManager *mgr=gGeoManager);
 
     /// Create the Inner Barrel End Stave connectors on Side C
     /// \param mgr The GeoManager (used only to get the proper material)
-    void CreateIBConnectorsCSide(const TGeoManager *mgr=gGeoManager);
-
+    void createIBConnectorsCSide(const TGeoManager *mgr=gGeoManager);
 
     /// Create the chip stave for the Outer Barrel
     /// \param mgr The GeoManager (used only to get the proper material)
@@ -286,15 +302,18 @@ class V3Layer : public V11Geometry
     /// \param mgr The GeoManager (used only to get the proper material)
     TGeoVolume *createStaveModelOuterBDummy(const TGeoManager *mgr = gGeoManager) const;
 
-    /// Creation of the mechanical stave structure for the Outer Barrel as in v0
-    /// (we fake the module and halfstave volumes to have always
-    /// the same formal geometry hierarchy)
-    /// \param mgr The GeoManager (used only to get the proper material)
-    TGeoVolume *createStaveModelOuterB0(const TGeoManager *mgr = gGeoManager);
-
     /// Create the mechanical half stave structure or the Outer Barrel as in TDR
     /// \param mgr The GeoManager (used only to get the proper material)
-    TGeoVolume *createStaveModelOuterB1(const TGeoManager *mgr = gGeoManager);
+    TGeoVolume *createStaveModelOuterB2(const TGeoManager *mgr = gGeoManager);
+
+    /// Create the Cold Plate connectors
+    void createOBColdPlateConnectors();
+
+    /// Create the A-Side end-stave connectors for OB staves
+    void createOBColdPlateConnectorsASide();
+
+    /// Create the C-Side end-stave connectors for OB staves
+    void createOBColdPlateConnectorsCSide();
 
     /// Create the space frame for the Outer Barrel
     /// \param mgr The GeoManager (used only to get the proper material)
@@ -304,15 +323,27 @@ class V3Layer : public V11Geometry
     /// \param mgr The GeoManager (used only to get the proper material)
     TGeoVolume *createSpaceFrameOuterBDummy(const TGeoManager *mgr = gGeoManager) const;
 
-    /// Create the space frame for the Outer Barrel (Model 1)
+    /// Create the space frame for the Outer Barrel (Model 2)
     /// Returns a TGeoVolume with the Space Frame of a stave
     /// \param mgr The GeoManager (used only to get the proper material)
-    TGeoVolume *createSpaceFrameOuterB1(const TGeoManager *mgr = gGeoManager);
+    TGeoVolume *createSpaceFrameOuterB2(const TGeoManager *mgr = gGeoManager);
+
+    /// Create the space frame building blocks for the Outer Barrel
+    /// \param mgr The GeoManager (used only to get the proper material)
+    void createOBSpaceFrameObjects(const TGeoManager *mgr=gGeoManager);
 
     /// Creates the V-shaped sides of the OB space frame (from a similar method with same
     /// name and function in V11GeometrySDD class by L.Gaudichet)
-    TGeoArb8 *createStaveSide(const char *name, Double_t dz, Double_t angle, Double_t xSign, Double_t L, Double_t H,
-                              Double_t l);
+    /// \param name The volume name
+    /// \param dz The half Z length
+    /// \param alpha The first rotation angle
+    /// \param beta The second rotation angle
+    /// \param L The stave length
+    /// \param H The stave height
+    /// \param top True to create the top corner, False to create the side one
+    TGeoXtru *createStaveSide(const char *name,
+			      Double_t dz, Double_t alpha, Double_t beta,
+			      Double_t L, Double_t H, Bool_t top);
 
     /// Help method to create a TGeoCombiTrans matrix from a similar method with same name and
     /// function in V11GeometrySDD class by L.Gaudichet)
@@ -347,6 +378,10 @@ class V3Layer : public V11Geometry
     Int_t mBuildLevel;  ///< Used for material studies
 
     Detector::Model mStaveModel; ///< The stave model
+
+    Bool_t mAddGammaConv;    ///< True to add Gamma Conversion Rods
+    Double_t mGammaConvDiam; ///< Gamma Conversion Rod Diameter
+    Double_t mGammaConvXPos; ///< Gamma Conversion Rod X Position
 
     // Parameters for the  geometry
 
@@ -417,8 +452,8 @@ class V3Layer : public V11Geometry
     static const Double_t sIBStaveHeight;      ///< IB Stave Total Y Height
 
     // Outer Barrel Parameters
-    static const Int_t sOBChipsPerRow; ///< OB chips per row in module
-    static const Int_t sOBNChipRows;   ///< OB chip rows in module
+    static const Int_t    sOBChipsPerRow;       ///< OB chips per row in module
+    static const Int_t    sOBNChipRows;         ///< OB chip rows in module
 
     static const Double_t sOBHalfStaveWidth;    ///< OB Half Stave Width
     static const Double_t sOBModuleWidth;       ///< OB Module Width
@@ -426,30 +461,78 @@ class V3Layer : public V11Geometry
     static const Double_t sOBChipXGap;          ///< Gap between OB chips on X
     static const Double_t sOBChipZGap;          ///< Gap between OB chips on Z
     static const Double_t sOBFlexCableAlThick;  ///< Thickness of FPC Aluminum
+    static const Double_t sOBFlexCableCuThick;  ///< Thickness of FPC Copper
     static const Double_t sOBFlexCableKapThick; ///< Thickness of FPC Kapton
     static const Double_t sOBBusCableAlThick;   ///< Thickness of Bus Aluminum
     static const Double_t sOBBusCableKapThick;  ///< Thickness of Bus Kapton
     static const Double_t sOBCarbonPlateThick;  ///< OB Carbon Plate Thickness
     static const Double_t sOBColdPlateThick;    ///< OB Cold Plate Thickness
-    static const Double_t sOBGlueThick;         ///< OB Glue total Thickness
+    static const Double_t sOBGlueThickM1;       ///< OB Glue Thickness (Model1)
+    static const Double_t sOBGlueThick;         ///< OB Glue Thickness
     static const Double_t sOBModuleZLength;     ///< OB Chip Length along Z
+    static const Double_t sOBHalfStaveYPos;     ///< OB half staves Y position
     static const Double_t sOBHalfStaveYTrans;   ///< OB half staves Y transl.
     static const Double_t sOBHalfStaveXOverlap; ///< OB half staves X overlap
     static const Double_t sOBGraphiteFoilThick; ///< OB graphite foil thickness
+    static const Double_t sOBCarbonFleeceThick; ///< OB carbon fleece thickness
+    static const Double_t sOBCoolTubeInnerDM1;  ///< OB cooling inner diameter
     static const Double_t sOBCoolTubeInnerD;    ///< OB cooling inner diameter
     static const Double_t sOBCoolTubeThick;     ///< OB cooling tube thickness
     static const Double_t sOBCoolTubeXDist;     ///< OB cooling tube separation
 
-    static const Double_t sOBSpaceFrameWidth;   ///< OB Space Frame Width
-    static const Double_t sOBSpaceFrameTotHigh; ///< OB Total Y Height
-    static const Double_t sOBSFrameBeamRadius;  ///< OB Space Frame Beam Radius
-    static const Double_t sOBSpaceFrameLa;      ///< Parameters defining...
-    static const Double_t sOBSpaceFrameHa;      ///< ...the V side shape...
-    static const Double_t sOBSpaceFrameLb;      ///< ...of the carbon...
-    static const Double_t sOBSpaceFrameHb;      ///< ...OB Space Frame
-    static const Double_t sOBSpaceFrameL;       ///< OB SF
-    static const Double_t sOBSFBotBeamAngle;    ///< OB SF bottom beam angle
-    static const Double_t sOBSFrameBeamSidePhi; ///< OB SF side beam angle
+    static const Double_t sOBCPConnectorXWidth;///< OB Cold Plate Connect Width
+    static const Double_t sOBCPConnBlockZLen;  ///< OB CP Connect Block Z len
+    static const Double_t sOBCPConnBlockYHei;  ///< OB CP Connect Block Z len
+    static const Double_t sOBCPConnHollowZLen; ///< OB CP Connect Block Z len
+    static const Double_t sOBCPConnHollowYHei; ///< OB CP Connect Block Z len
+    static const Double_t sOBCPConnSquareHoleX;///< OB Conn Square Hole X len
+    static const Double_t sOBCPConnSquareHoleZ;///< OB Conn Square Hole Z len
+    static const Double_t sOBCPConnSqrHoleZPos;///< OB Conn Square Hole Z pos
+    static const Double_t sOBCPConnSqrInsertRZ;///< OB Conn Square Insert RZpos
+    static const Double_t sOBCPConnRoundHoleD; ///< OB Conn Round Hole diam
+    static const Double_t sOBCPConnRndHoleZPos;///< OB Conn Round Hole Z pos
+    static const Double_t sOBCPConnTubesXDist; ///< OB Connector Tubes X dist
+    static const Double_t sOBCPConnTubesYPos;  ///< OB Connector Tubes Y pos
+    static const Double_t sOBCPConnTubeHole1D; ///< OB Connector Tube1 diam
+    static const Double_t sOBCPConnTubeHole1Z; ///< OB Connector Tube1 Z len
+    static const Double_t sOBCPConnTubeHole2D; ///< OB Connector Tube2 diam
+    static const Double_t sOBCPConnFitHoleD;   ///< OB Connector Fit Hole diam
+    static const Double_t sOBCPConnTubeHole3XP;///< OB Connector Tube3 X pos
+    static const Double_t sOBCPConnTubeHole3ZP;///< OB Connector Tube3 Z pos
+    static const Double_t sOBCPConnInstInnerX; ///< OB Connector Insert X in
+    static const Double_t sOBCPConnInstInnerR; ///< OB Connector Insert R in
+    static const Double_t sOBCPConnInstZThick; ///< OB Connector Insert height
+    static const Double_t sOBCPConnInsertYHei; ///< OB Connector Insert height
+    static const Double_t sOBCPConnInsertD;    ///< OB Connector Insert diam
+    static const Double_t sOBCPConnAFitExtD;   ///< OB ConnectorA Fitting ext D
+    static const Double_t sOBCPConnAFitThick;  ///< OB ConnectorA Fitting thick
+    static const Double_t sOBCPConnAFitZLen;   ///< OB ConnectorA Fitting Z len
+    static const Double_t sOBCPConnAFitZOut;   ///< OB ConnectorA Fitting Z Out
+    static const Double_t sOBCPConnPlugInnerD; ///< OB Connector Plug int diam
+    static const Double_t sOBCPConnPlugTotLen; ///< OB Connector Plug tot le
+    static const Double_t sOBCPConnPlugThick;  ///< OB Connector Plug thickness
+
+    static const Double_t sOBSpaceFrameZLen[2];  ///< OB Space Frame Length
+    static const Int_t    sOBSpaceFrameNUnits[2];///< OB Number of SF Units
+    static const Double_t sOBSpaceFrameUnitLen;  ///< OB Space Frame Unit length
+    static const Double_t sOBSpaceFrameWidth;    ///< OB Space Frame Width
+    static const Double_t sOBSpaceFrameHeight;   ///< OB Space Frame Height
+    static const Double_t sOBSpaceFrameTopVL;    ///< Parameters defining...
+    static const Double_t sOBSpaceFrameTopVH;    ///< ...the Top V shape
+    static const Double_t sOBSpaceFrameSideVL;   ///< Parameters defining...
+    static const Double_t sOBSpaceFrameSideVH;   ///< ...the Side V shape
+    static const Double_t sOBSpaceFrameVAlpha;   ///< Angles of aperture...
+    static const Double_t sOBSpaceFrameVBeta;    ///< ...of the V shapes
+    static const Double_t sOBSFrameBaseRibDiam;  ///< OB SFrame Base Rib Diam
+    static const Double_t sOBSFrameBaseRibPhi;   ///< OB SF base beam angle
+    static const Double_t sOBSFrameSideRibDiam;  ///< OB SFrame Side Rib Diam
+    static const Double_t sOBSFrameSideRibPhi;   ///< OB SF side beam angle
+    static const Double_t sOBSFrameULegLen;      ///< OB SF U-Leg length
+    static const Double_t sOBSFrameULegWidth;    ///< OB SF U-Leg width
+    static const Double_t sOBSFrameULegHeight1;  ///< OB SF U-Leg height
+    static const Double_t sOBSFrameULegHeight2;  ///< OB SF U-Leg height
+    static const Double_t sOBSFrameULegThick;    ///< OB SF U-Leg thickness
+    static const Double_t sOBSFrameULegXPos;     ///< OB SF U-Leg X position
 
   ClassDefOverride(V3Layer, 0) // ITS v3 geometry
 };
