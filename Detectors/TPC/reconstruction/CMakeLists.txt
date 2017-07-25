@@ -12,6 +12,7 @@ set(SRCS
    src/RawReader.cxx
    src/SyncPatternMonitor.cxx
    src/TrackTPC.cxx
+   src/TPCCATracking.cxx
 )
 
 set(HEADERS
@@ -22,10 +23,19 @@ set(HEADERS
    include/${MODULE_NAME}/RawReader.h
    include/${MODULE_NAME}/SyncPatternMonitor.h
    include/${MODULE_NAME}/TrackTPC.h
+   include/${MODULE_NAME}/TPCCATracking.h
 )
 Set(LINKDEF src/TPCReconstructionLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME tpc_reconstruction_bucket)
+
+if(DEFINED ENV{O2_TPCCA_TRACKING_LIB_DIR})
+  set(O2_TPCCA_TRACKING_LIB_DIR $ENV{O2_TPCCA_TRACKING_LIB_DIR})
+  include_directories(${O2_TPCCA_TRACKING_LIB_DIR}/code ${O2_TPCCA_TRACKING_LIB_DIR}/merger-ca ${O2_TPCCA_TRACKING_LIB_DIR}/interface)
+  add_definitions(-DHAVE_O2_TPCCA_TRACKING_LIB -DHLTCA_STANDALONE -DHLTCA_TPC_GEOMETRY_O2)
+  FIND_LIBRARY(CATRACKING_LIB libO2TPCCATracking.so ${O2_TPCCA_TRACKING_LIB_DIR})
+  link_libraries(${CATRACKING_LIB})
+endif()
 
 O2_GENERATE_LIBRARY()
 
