@@ -111,6 +111,8 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     {-1,  39.34, -1,    7.,  0.  , 48}   // 48 was 100
   };
   const int nChipsPerModule = 7; // For OB: how many chips in a row
+  const double zChipGap = 0.01;  // For OB: gap in Z between chips
+  const double zModuleGap = 0.01;// For OB: gap in Z between modules
 
   // Delete the segmentations from previous runs
   gSystem->Exec(" rm itsSegmentations.root ");
@@ -141,7 +143,7 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->AddModule(its);
 
   its->setStaveModelIB(o2::ITS::Detector::kIBModel4);
-  its->setStaveModelOB(o2::ITS::Detector::kOBModel1);
+  its->setStaveModelOB(o2::ITS::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol]  = { 2.1, 15.0, 32.0};
@@ -162,8 +164,9 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
     nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
     int nChipsPerStaveLr = nModPerStaveLr;
     if (idLr >= kNLrInner) {
-      nChipsPerStaveLr *= nChipsPerModule;
-      its->defineLayer(idLr, phi0, rLr, nChipsPerStaveLr * seg0->Dz(), nStaveLr, nModPerStaveLr,
+      double modlen = nChipsPerModule*seg0->Dz() + (nChipsPerModule-1)*zChipGap;
+      double zlen = nModPerStaveLr*modlen + (nModPerStaveLr-1)*zModuleGap;
+      its->defineLayer(idLr, phi0, rLr, zlen, nStaveLr, nModPerStaveLr,
                        kSiThickOB, seg0->Dy(), seg0->getChipTypeID(), kBuildLevel);
       //      printf("Add Lr%d: R=%6.2f DZ:%6.2f Staves:%3d NMod/Stave:%3d\n",
       //	     idLr,rLr,nChipsPerStaveLr*seg0->Dz(),nStaveLr,nModPerStaveLr);
