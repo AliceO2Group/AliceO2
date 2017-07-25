@@ -26,6 +26,7 @@ CXXFILES					= code/AliHLTTPCCATrack.cxx \
 								merger-ca/AliHLTTPCGMMerger.cxx \
 								merger-ca/AliHLTTPCGMSliceTrack.cxx \
 								merger-ca/AliHLTTPCGMTrackParam.cxx \
+								interface/AliHLTTPCCAO2Interface.cxx \
 								standalone/AliHLTLogging.cxx
 
 ALLDEP						+= config_common.mak
