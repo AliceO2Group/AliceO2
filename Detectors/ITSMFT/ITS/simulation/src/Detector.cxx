@@ -968,7 +968,7 @@ void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume *dest,
   //
 
   Double_t rminIB = 4.7;
-  Double_t rminOB = 43.4;
+  Double_t rminOB = 43.9;
   Double_t zLenOB;
   Double_t cInt = 0.22; // dimensioni cilindro di supporto interno
   Double_t cExt = 1.00; // dimensioni cilindro di supporto esterno
