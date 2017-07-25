@@ -46,14 +46,6 @@
 
 // class TObject{};
 
-#ifdef ClassDef
-#undef ClassDef
-#endif //ClassDef
-
-#ifdef ClassTmp
-#undef ClassTmp
-#endif //ClassTmp
-
 #define ClassDef(name,id)
 #define ClassImp(name)
 
