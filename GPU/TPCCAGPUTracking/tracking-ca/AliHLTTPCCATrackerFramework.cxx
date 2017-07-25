@@ -218,15 +218,28 @@ int AliHLTTPCCATrackerFramework::InitializeSliceParam(int iSlice, AliHLTTPCCAPar
 AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const char* GPU_Library, int GPUDeviceNum) : fGPULibAvailable(false), fGPUTrackerAvailable(false), fUseGPUTracker(false), fGPUDebugLevel(0), fGPUTracker(NULL), fGPULib(NULL), fOutputControl( NULL ), fKeepData(false), fGlobalTracking(false)
 {
 	//Constructor
-	if (GPU_Library && !GPU_Library[0]) GPU_Library = NULL;
+	#ifdef R__WIN32
+		HMODULE hGPULib;
+	#else
+		void* hGPULib;
+	#endif
+	if (allowGPU != -1)
+	{
+		if (GPU_Library && !GPU_Library[0]) GPU_Library = NULL;
 #ifdef R__WIN32
-	HMODULE hGPULib = LoadLibraryEx(GPU_Library == NULL ? (GPULIBNAME ".dll") : GPU_Library, NULL, NULL);
+		hGPULib = LoadLibraryEx(GPU_Library == NULL ? (GPULIBNAME ".dll") : GPU_Library, NULL, NULL);
 #else
-	void* hGPULib = dlopen(GPU_Library == NULL ? (GPULIBNAME ".so") : GPU_Library, RTLD_NOW);
+		hGPULib = dlopen(GPU_Library == NULL ? (GPULIBNAME ".so") : GPU_Library, RTLD_NOW);
 #endif
+	}
+	else
+	{
+		hGPULib = NULL;
+	}
+	
 	if (hGPULib == NULL)
 	{
-		if (allowGPU)
+		if (allowGPU > 0)
 		{
 			#ifndef R__WIN32
 				HLTImportant("The following error occured during dlopen: %s", dlerror());
@@ -235,7 +248,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 		}
 		else
 		{
-			HLTDebug("Cagpu library was not found, Tracking on GPU will not be available");
+			HLTDebug("Tracking on GPU disabled");
 		}
 		fGPUTracker = new AliHLTTPCCAGPUTracker;
 	}
@@ -262,7 +275,7 @@ AliHLTTPCCATrackerFramework::AliHLTTPCCATrackerFramework(int allowGPU, const cha
 			fGPUTracker = tmp();
 			fGPULibAvailable = true;
 			fGPULib = (void*) (size_t) hGPULib;
-			HLTInfo("GPU Tracker library loaded and GPU tracker object created sucessfully (%sactive)", allowGPU ? "" : "in");
+			HLTInfo("GPU Tracker library loaded and GPU tracker object created sucessfully (%sactive)", allowGPU > 0 ? "" : "in");
 		}
 	}
 

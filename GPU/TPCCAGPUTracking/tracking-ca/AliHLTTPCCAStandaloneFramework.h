@@ -37,10 +37,10 @@ class AliHLTTPCCAStandaloneFramework
 
   public:
 
-    AliHLTTPCCAStandaloneFramework();
+    AliHLTTPCCAStandaloneFramework(int allowGPU = 1, const char* GPULibrary = NULL);
     ~AliHLTTPCCAStandaloneFramework();
 
-    static AliHLTTPCCAStandaloneFramework &Instance();
+    static AliHLTTPCCAStandaloneFramework &Instance(int allowGPU = 1, const char* GPULibrary = NULL);
 
 	const AliHLTTPCCAParam &Param ( int iSlice ) const { return(fTracker.Param(iSlice)); }
 	const AliHLTTPCCARow &Row ( int iSlice, int iRow ) const { return(fTracker.Row(iSlice, iRow)); }
@@ -95,6 +95,7 @@ class AliHLTTPCCAStandaloneFramework
 	void SetNWays(int v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetNWays(v); fMerger.SetSliceParam(param);}
 	void SetEventDisplay(int v) {fEventDisplay = v;}
 	void SetRunMerger(int v) {fRunMerger = v;}
+	void SetExternalClusterData(AliHLTTPCCAClusterData* v) {fClusterData = v;}
 
 	int InitializeSliceParam(int iSlice, AliHLTTPCCAParam& param) { return(fTracker.InitializeSliceParam(iSlice, param)); }
 	void SetOutputControl(char* ptr, size_t size) {fOutputControl.fOutputPtr = ptr;fOutputControl.fOutputMaxSize = size;}
@@ -107,7 +108,8 @@ class AliHLTTPCCAStandaloneFramework
     const AliHLTTPCCAStandaloneFramework &operator=( const AliHLTTPCCAStandaloneFramework& ) const;
 
     AliHLTTPCGMMerger fMerger;  //* global merger
-    AliHLTTPCCAClusterData fClusterData[fgkNSlices];
+	AliHLTTPCCAClusterData* fClusterData;
+    AliHLTTPCCAClusterData fInternalClusterData[fgkNSlices];
 	AliHLTTPCCASliceOutput* fSliceOutput[fgkNSlices];
 	AliHLTTPCCASliceOutput::outputControlStruct fOutputControl;
 
