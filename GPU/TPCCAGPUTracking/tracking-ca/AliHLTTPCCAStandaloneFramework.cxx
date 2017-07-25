@@ -36,21 +36,22 @@
 #endif
 #endif
 
-AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance()
+AliHLTTPCCAStandaloneFramework &AliHLTTPCCAStandaloneFramework::Instance(int allowGPU, const char* GPULibrary)
 {
   // reference to static object
-  static AliHLTTPCCAStandaloneFramework gAliHLTTPCCAStandaloneFramework;
+  static AliHLTTPCCAStandaloneFramework gAliHLTTPCCAStandaloneFramework(allowGPU, GPULibrary);
   return gAliHLTTPCCAStandaloneFramework;
 }
 
-AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework()
-: fMerger(), fOutputControl(),
+AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework(int allowGPU, const char* GPULibrary)
+: fMerger(), fClusterData(fInternalClusterData), fOutputControl(),
+  fTracker(allowGPU, GPULibrary ? GPULibrary : 
 #ifdef HLTCA_STANDALONE
-fTracker(1, getenv("HLTCA_GPUTRACKER_LIBRARY"))
+    getenv("HLTCA_GPUTRACKER_LIBRARY")
 #else
-fTracker(1)
+    NULL
 #endif
-, fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
+  ), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
 {
   //* constructor
 
@@ -63,7 +64,7 @@ fTracker(1)
 }
 
 AliHLTTPCCAStandaloneFramework::AliHLTTPCCAStandaloneFramework( const AliHLTTPCCAStandaloneFramework& )
-    : fMerger(), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
+    : fMerger(), fClusterData(fInternalClusterData), fOutputControl(), fTracker(), fStatNEvents( 0 ), fDebugLevel(0), fEventDisplay(0), fRunMerger(1)
 {
   //* dummy
   for ( int i = 0; i < 20; i++ ) {
