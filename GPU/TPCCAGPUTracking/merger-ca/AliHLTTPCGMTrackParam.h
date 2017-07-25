@@ -11,7 +11,6 @@
 #ifndef ALIHLTTPCGMTRACKPARAM_H
 #define ALIHLTTPCGMTRACKPARAM_H
 
-#include "AliHLTTPCCADef.h"
 #include "AliHLTTPCCAMath.h"
 
 class AliHLTTPCGMTrackLinearisation;

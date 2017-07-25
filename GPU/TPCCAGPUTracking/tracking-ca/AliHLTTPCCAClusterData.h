@@ -17,8 +17,6 @@
 #ifndef ALIHLTTPCCACLUSTERDATA_H
 #define ALIHLTTPCCACLUSTERDATA_H
 
-#include "AliHLTTPCCADef.h"
-
 #if !defined(__OPENCL__) || defined(HLTCA_HOSTCODE)
 #include <iostream>
 #include <vector>
