@@ -52,7 +52,11 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
        float dL = 0;
        float ex1i = 0;
        if (rowType[ihit] < 0) continue;
-       if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2)) break;
+       if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2))
+       {
+         if (first) for (int i = 0;i < 15;i++) fC[i] = 0;
+         break;
+       }
        if (first == 0)
        {
          int retVal = UpdateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, par, dL, ex1i, trDzDs2, true);
@@ -83,7 +87,11 @@ GPUd() void AliHLTTPCGMTrackParam::Fit
       if (rowType[ihit] < 0) continue;
       float dL = 0;
       float ex1i = 0;
-      if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2)) break;
+      if (PropagateTrack(PolinomialFieldBz, x[ihit], y[ihit], z[ihit], alpha[ihit], rowType[ihit], param, N, Alpha, maxSinPhi, UseMeanPt, first, par, t0, dL, ex1i, trDzDs2))
+      {
+        if (first) for (int i = 0;i < 15;i++) fC[i] = 0;
+        break;
+      }
       if (first == 0)
       {
         bool rejectThisRound = nWays == 1 || iWay == 1;
@@ -399,7 +407,6 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
 GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
 {
   //* Check that the track parameters and covariance matrix are reasonable
-
   bool ok = AliHLTTPCCAMath::Finite(fX) && AliHLTTPCCAMath::Finite( fChi2 ) && AliHLTTPCCAMath::Finite( fNDF );
 
   const float *c = fC;
