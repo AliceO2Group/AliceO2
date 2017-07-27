@@ -76,6 +76,7 @@ ClassImp( AliHLTTPCCATrackerComponent )
   fGPUStuckProtection(0),
   fAsync(0),
   fDumpEvent(0),
+  fSearchWindowDZDR(0.),
   fAsyncProcessor()
 {
   // see header file for class documentation
@@ -112,6 +113,7 @@ AliHLTProcessor(),
   fGPUStuckProtection(0),
   fAsync(0),
   fDumpEvent(0),
+  fSearchWindowDZDR(0.),
   fAsyncProcessor()
 {
   // see header file for class documentation
@@ -292,6 +294,14 @@ int AliHLTTPCCATrackerComponent::ReadConfigurationString(  const char* arguments
       continue;
     }
 
+    if ( argument.CompareTo( "-SearchWindowDZDR" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fSearchWindowDZDR = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      HLTInfo( "Search Window DZDR set to: %f", fSearchWindowDZDR );
+      continue;
+    }
+
+
     if ( argument.CompareTo( "-GPUDeviceNum" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fGPUDeviceNum = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
@@ -438,6 +448,7 @@ void AliHLTTPCCATrackerComponent::ConfigureSlices()
     if( fClusterErrorCorrectionZ>1.e-4 ) param.SetClusterError2CorrectionZ( fClusterErrorCorrectionZ*fClusterErrorCorrectionZ );
     param.SetMinNTrackClusters( fMinNTrackClusters );
     param.SetMinTrackPt( fMinTrackPt );
+    param.SetSearchWindowDZDR(fSearchWindowDZDR);
 
     param.Update();
     fTracker->InitializeSliceParam( slice, param );

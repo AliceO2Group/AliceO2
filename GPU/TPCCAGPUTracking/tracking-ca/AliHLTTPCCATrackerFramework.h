@@ -49,6 +49,7 @@ public:
 	int GetGPUStatus() const { return(fGPUTrackerAvailable + fUseGPUTracker); }
 
 	const AliHLTTPCCAParam& Param(int iSlice) const { return(fCPUTrackers[iSlice].Param()); }
+	AliHLTTPCCAParam& GetParam(int iSlice) { return(*((AliHLTTPCCAParam*)fCPUTrackers[iSlice].pParam())); }
 	const AliHLTTPCCARow& Row(int iSlice, int iRow) const { return(fCPUTrackers[iSlice].Row(iRow)); }  //TODO: Should be changed to return only row parameters
 
 	void SetKeepData(bool v) {fKeepData = v;}

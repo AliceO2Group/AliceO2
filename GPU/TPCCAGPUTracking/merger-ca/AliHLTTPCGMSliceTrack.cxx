@@ -46,7 +46,7 @@ bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinP
 
   {
     float secPhi2 = fSecPhi*fSecPhi;
-    float zz = fabs( kZLength - fabs(fZ) );	
+    float zz = param.GetContinuousTracking() ? 125. : fabs( kZLength - fabs(fZ) );
     float zz2 = zz*zz;
     float angleY2 = secPhi2 - 1.f; 
     float angleZ2 = trDzDs2 * secPhi2 ;
@@ -105,7 +105,7 @@ bool AliHLTTPCGMSliceTrack::FilterErrors( AliHLTTPCCAParam &param, float maxSinP
       float z = fZ+ dz;
       {	
 	float secPhi2 = ex1i*ex1i;
-	float zz = fabs( kZLength - fabs(z) );	
+	float zz = param.GetContinuousTracking() ? 125. : fabs( kZLength - fabs(z) );
 	float zz2 = zz*zz;
 	float angleY2 = secPhi2 - 1.f; 
 	float angleZ2 = trDzDs2 * secPhi2 ;

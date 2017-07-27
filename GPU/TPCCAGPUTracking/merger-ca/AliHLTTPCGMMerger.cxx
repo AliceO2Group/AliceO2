@@ -361,6 +361,7 @@ void AliHLTTPCGMMerger::UnpackSlices()
       track.SetNextNeighbour( -1 );
       track.SetSliceNeighbour( -1 );
       track.SetUsed( 0 );
+      //printf("INPUT %d/%d hits %d QPt %f\n", iSlice, itr, track.NClusters(), track.QPt());
 #ifdef GLOBAL_TRACKS_SPECIAL_TREATMENT
 	  track.SetGlobalTrackId(0, -1);
 	  track.SetGlobalTrackId(1, -1);
@@ -867,6 +868,8 @@ void AliHLTTPCGMMerger::CollectMergedTracks()
 	  p1.DzDs()  = p2.DzDs();
 	  p1.QPt()  = p2.QPt();
       mergedTrack.SetAlpha( p2.Alpha() );
+	  
+	  //if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", fNOutputTracks, p1.QPt(), nParts, nHits);
 
       fNOutputTracks++;
       nOutTrackClusters += nHits;

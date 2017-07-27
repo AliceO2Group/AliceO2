@@ -118,7 +118,7 @@ GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz,float 
       Alpha = sliceAlpha;
     }
 
-    float bz =  GetBz(posX, posY, posZ, PolinomialFieldBz);
+    float bz =  GetBz(posX, posY, param.GetContinuousTracking() ? (posZ > 0 ? 125. : -125.) : posZ, PolinomialFieldBz);
         
     { // transport block
       
@@ -189,7 +189,7 @@ GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz,float 
 
 	    float secPhi2 = ex1i*ex1i;
 	    const float kZLength = 250.f - 0.275f;
-	    float zz = fabs( kZLength - fabs(fP[1]) );
+	    float zz = param.GetContinuousTracking() ? 125. : fabs( kZLength - fabs(fP[1]) );
 	    float zz2 = zz*zz;
 	    float angleY2 = secPhi2 - 1.f; 
 	    const float trDzDs2 = t0.DzDs()*t0.DzDs();
@@ -306,7 +306,7 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
 
 	    float secPhi2 = ex1i*ex1i;
 	    const float kZLength = 250.f - 0.275f;
-	    float zz = fabs( kZLength - fabs(fP[1]) );
+	    float zz = param.GetContinuousTracking() ? 125. : fabs( kZLength - fabs(fP[1]) );
 	    float zz2 = zz*zz;
 	    float angleY2 = secPhi2 - 1.f; 
 	    float angleZ2 = trDzDs2 * secPhi2 ;

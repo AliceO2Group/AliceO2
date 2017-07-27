@@ -132,7 +132,6 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
 #endif
 
     float chi2Cut = 3.*3.*4 * ( s.fUpDx * s.fUpDx + s.fDnDx * s.fDnDx );
-    const float kAreaSize = tracker.Param().NeighboursSearchArea();
     //float chi2Cut = 3.*3.*(s.fUpDx*s.fUpDx + s.fDnDx*s.fDnDx ); //SG
 #define kMaxN 20
 
@@ -183,8 +182,11 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
 
 		int nNeighUp = 0;
         AliHLTTPCCAHitArea areaDn, areaUp;
-        areaUp.Init( rowUp, tracker.Data(), y*s.fUpTx, z*s.fUpTx, kAreaSize, kAreaSize );
-        areaDn.Init( rowDn, tracker.Data(), y*s.fDnTx, z*s.fDnTx, kAreaSize, kAreaSize );
+
+        const float kAngularMultiplier = tracker.Param().GetSearchWindowDZDR();
+        const float kAreaSize = tracker.Param().NeighboursSearchArea();
+        areaUp.Init( rowUp, tracker.Data(), y*s.fUpTx, kAngularMultiplier != 0. ? z : (z*s.fUpTx), kAreaSize, kAngularMultiplier != 0 ? (s.fUpDx * kAngularMultiplier) : kAreaSize);
+        areaDn.Init( rowDn, tracker.Data(), y*s.fDnTx, kAngularMultiplier != 0. ? z : (z*s.fDnTx), kAreaSize, kAngularMultiplier != 0 ? (-s.fDnDx * kAngularMultiplier) : kAreaSize);
 
         do {
           AliHLTTPCCAHit h;
@@ -202,7 +204,11 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
 			neighUp[nNeighUp] = ( unsigned short ) i;
 			yzUp[nNeighUp] = CAMath::MakeFloat2( s.fDnDx * ( h.Y() - y ), s.fDnDx * ( h.Z() - z ) );
 		  }
-          if ( ++nNeighUp >= kMaxN ) break;
+          if ( ++nNeighUp >= kMaxN )
+          {
+              //printf("Neighbors buffer ran full...\n");
+              break;
+          }
         } while ( 1 );
 
         int nNeighDn = 0;
@@ -265,4 +271,3 @@ GPUdi() void AliHLTTPCCANeighboursFinder::Thread
     }
   }
 }
-
