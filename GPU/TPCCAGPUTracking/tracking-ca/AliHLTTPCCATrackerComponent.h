@@ -118,6 +118,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     int fGPUStuckProtection;		//Protect from stuck GPUs
 	int fAsync;                       //Run tracking in async thread to catch GPU hangs....
 	int fDumpEvent;					//Debug function to dump event for standalone tracker
+    float fSearchWindowDZDR;        //See TPCCAParam
 
     /** set configuration parameters **/
     void SetDefaultConfiguration();

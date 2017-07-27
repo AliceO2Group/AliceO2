@@ -93,6 +93,8 @@ class AliHLTTPCCAStandaloneFramework
 	int GetGPUMaxSliceCount() const { return(fTracker.MaxSliceCount()); }
 	void SetHighQPtForward(float v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetHighQPtForward(v); fMerger.SetSliceParam(param);}
 	void SetNWays(int v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetNWays(v); fMerger.SetSliceParam(param);}
+	void SetSearchWindowDZDR(float v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetSearchWindowDZDR(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker.GetParam(i).SetSearchWindowDZDR(v);}
+	void SetContinuousTracking(bool v) { AliHLTTPCCAParam param = fMerger.SliceParam(); param.SetContinuousTracking(v); fMerger.SetSliceParam(param);for (int i = 0;i < fgkNSlices;i++) fTracker.GetParam(i).SetContinuousTracking(v);}
 	void SetEventDisplay(int v) {fEventDisplay = v;}
 	void SetRunMerger(int v) {fRunMerger = v;}
 	void SetExternalClusterData(AliHLTTPCCAClusterData* v) {fClusterData = v;}

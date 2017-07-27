@@ -167,7 +167,6 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 		  break; // SG!!! - jump over the row
 	  }
 
-
 	  ushort2 hh;
 #if defined(HLTCA_GPU_TEXTURE_FETCH)
 	  hh = tex1Dfetch(gAliTexRefu2, ((char*) tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(ushort2) + row.HitNumberOffset() + r.fCurrIH);
@@ -224,7 +223,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           SETRowHit(iRow, -1);
           break;
         }
-        tracker.GetErrors2( iRow, tParam.GetZ(), sinPhi, cosPhi, tParam.GetDzDs(), err2Y, err2Z );
+        tracker.GetErrors2( iRow, tracker.Param().GetContinuousTracking() ? 125. : tParam.GetZ(), sinPhi, cosPhi, tParam.GetDzDs(), err2Y, err2Z );
 
         if ( !tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
           SETRowHit(iRow, -1);
@@ -237,6 +236,10 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       r.fEndRow = iRow;
       break;
     } while ( 0 );
+    
+    /*QQQQprintf("Extrapolate Row %d X %f Y %f Z %f SinPhi %f DzDs %f QPt %f", iRow, tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt());
+    for (int i = 0;i < 15;i++) printf(" C%d=%6.2f", i, tParam.GetCov(i));
+    printf("\n");*/
 
     if ( r.fCurrIH < 0 ) {
       r.fStage = 1;

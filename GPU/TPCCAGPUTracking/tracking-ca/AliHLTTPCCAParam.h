@@ -75,14 +75,14 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() float TrackChi2Cut() const { return fTrackChi2Cut; }
     GPUd() int   MaxTrackMatchDRow() const { return fMaxTrackMatchDRow; }
     GPUd() float HitPickUpFactor() const { return fHitPickUpFactor; }
-  GPUd() float ClusterError2CorrectionY() const { return fClusterError2CorrectionY; }
-  GPUd() float ClusterError2CorrectionZ() const { return fClusterError2CorrectionZ; }
-  GPUd() int MinNTrackClusters() const { return fMinNTrackClusters; }
-  GPUd() float MaxTrackQPt() const { return fMaxTrackQPt; }
-  GPUd() float HighQPtForward() const { return fHighQPtForward; }
-  GPUd() int GetNWays() const { return fNWays; }
-
-
+    GPUd() float ClusterError2CorrectionY() const { return fClusterError2CorrectionY; }
+    GPUd() float ClusterError2CorrectionZ() const { return fClusterError2CorrectionZ; }
+    GPUd() int MinNTrackClusters() const { return fMinNTrackClusters; }
+    GPUd() float MaxTrackQPt() const { return fMaxTrackQPt; }
+    GPUd() float HighQPtForward() const { return fHighQPtForward; }
+    GPUd() int GetNWays() const { return fNWays; }
+    GPUd() float GetSearchWindowDZDR() const { return fSearchWindowDZDR; }
+    GPUd() bool GetContinuousTracking() const { return fContinuousTracking; }
 
     GPUhd() void SetISlice( int v ) {  fISlice = v;}
     GPUhd() void SetNRows( int v ) {  fNRows = v;}
@@ -102,19 +102,21 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     GPUd() void SetErrY( float v ) {  fErrY = v;}
     GPUd() void SetBzkG( float v ) {  fBzkG = v;}
 
-  GPUd() void SetNeighboursSearchArea( float v ) { fNeighboursSearchArea = v;}
+    GPUd() void SetNeighboursSearchArea( float v ) { fNeighboursSearchArea = v;}
     GPUd() void SetTrackConnectionFactor( float v ) { fTrackConnectionFactor = v;}
     GPUd() void SetTrackChiCut( float v ) {  fTrackChiCut = v; }
-  GPUd() void SetTrackChi2Cut( float v ) {  fTrackChi2Cut = v; }
+    GPUd() void SetTrackChi2Cut( float v ) {  fTrackChi2Cut = v; }
     GPUd() void SetMaxTrackMatchDRow( int v ) {  fMaxTrackMatchDRow = v; }
     GPUd() void SetHitPickUpFactor( float v ) {  fHitPickUpFactor = v; }
     GPUd() void SetClusterError2CorrectionY( float v ) { fClusterError2CorrectionY = v; }
     GPUd() void SetClusterError2CorrectionZ( float v ) { fClusterError2CorrectionZ = v; }
 
-  GPUd() void SetMinNTrackClusters( int v ){ fMinNTrackClusters = v; }
-  GPUd() void SetMinTrackPt( float v ){ fMaxTrackQPt = CAMath::Abs(v)>0.015 ?1./CAMath::Abs(v) :1./0.015; }
-  GPUd() void SetHighQPtForward( float v ){ fHighQPtForward = v; }
-  GPUd() void SetNWays( int v ){ fNWays = v; }
+    GPUd() void SetMinNTrackClusters( int v ){ fMinNTrackClusters = v; }
+    GPUd() void SetMinTrackPt( float v ){ fMaxTrackQPt = CAMath::Abs(v)>0.015 ?1./CAMath::Abs(v) :1./0.015; }
+    GPUd() void SetHighQPtForward( float v ){ fHighQPtForward = v; }
+    GPUd() void SetNWays( int v ){ fNWays = v; }
+    GPUd() void SetSearchWindowDZDR( float v ){ fSearchWindowDZDR = v; }
+    GPUd() void SetContinuousTracking( bool v ){ fContinuousTracking = v; }
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle ) const;
     GPUd() void GetClusterErrors2( int row, float z, float sinPhi, float cosPhi, float DzDs, float &Err2Y, float &Err2Z ) const;
@@ -159,12 +161,14 @@ MEM_CLASS_PRE() class AliHLTTPCCAParam
     float fTrackConnectionFactor; // allowed distance in Chi^2/3.5 for neighbouring tracks
     float fTrackChiCut; // cut for track Sqrt(Chi2/NDF);
     float fTrackChi2Cut;// cut for track Chi^2/NDF
-  float fClusterError2CorrectionY; // correction for the squared cluster error during tracking
-  float fClusterError2CorrectionZ; // correction for the squared cluster error during tracking
+    float fClusterError2CorrectionY; // correction for the squared cluster error during tracking
+    float fClusterError2CorrectionZ; // correction for the squared cluster error during tracking
     int fMinNTrackClusters; //* required min number of clusters on the track
     float fMaxTrackQPt;    //* required max Q/Pt (==min Pt) of tracks
-	float fHighQPtForward; //Try to forward low Pt tracks with Q/Pt larger than this
-	float fNWays;          //Do N fit passes in final fit of merger
+    float fHighQPtForward; //Try to forward low Pt tracks with Q/Pt larger than this
+    int fNWays;          //Do N fit passes in final fit of merger
+    float fSearchWindowDZDR; //Use DZDR window for seeding instead of vertex window
+    bool fContinuousTracking; //Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
 
     float fRowX[200];// X-coordinate of rows
     float fParamS0Par[2][3][7];    // cluster error parameterization coeficients
