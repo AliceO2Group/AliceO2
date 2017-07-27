@@ -21,12 +21,21 @@ bool unknown_type( std::runtime_error const &ex ) { return strcmp(ex.what(), "Un
 
 
 BOOST_AUTO_TEST_CASE(VariantTest) {
+  std::ostringstream ss;
   Variant a(10);
   BOOST_CHECK(a.get<int>() == 10);
-  Variant b(10.f);
-  BOOST_CHECK(b.get<float>() == 10.f);
-  Variant c(10.);
-  BOOST_CHECK(c.get<double>() == 10.);
+  ss << a;
+  Variant b(10.1f);
+  BOOST_CHECK(b.get<float>() == 10.1f);
+  ss << b;
+  Variant c(10.2);
+  BOOST_CHECK(c.get<double>() == 10.2);
+  ss << c;
   BOOST_REQUIRE_EXCEPTION(a.get<char*>(), std::runtime_error, unknown_type);
+  Variant d("foo");
+  ss << d;
+  BOOST_CHECK(std::string(d.get<const char *>()) == "foo");
+
+  BOOST_CHECK(ss.str() == "1010.110.2foo");
 }
 

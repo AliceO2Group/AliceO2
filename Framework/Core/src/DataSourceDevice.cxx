@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataSourceDevice.h"
+#include "Framework/MetricsService.h"
 #include <cassert>
 
 using namespace o2::framework;
@@ -35,6 +36,7 @@ void DataSourceDevice::InitTask() {
 bool DataSourceDevice::ConditionalRun() {
   // We do not have any inputs for a source, by definition, 
   // so we simply pass an empty vector.
+//  auto &metricsService = mServiceRegistry.get<MetricsService>();
   LOG(DEBUG) << "DataSourceDevice::Processing::START";
   std::vector<DataRef> dummyInputs;
   try {
@@ -45,10 +47,7 @@ bool DataSourceDevice::ConditionalRun() {
     }
     LOG(DEBUG) << "Process produced " << mContext.size() << " messages";
     for (auto &message : mContext) {
-      LOG(DEBUG) << "Sending " <<  message.parts.Size()
-                 << " parts on channel "
-                 << message.channel
-                 << " payload at " << message.parts.At(0)->GetData();
+ //     metricsService.post("outputs/total", message.parts.Size());
       assert(message.parts.Size() == 2);
       FairMQParts parts = std::move(message.parts);
       assert(message.parts.Size() == 0);

@@ -7,31 +7,27 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DEVICEINFO_H
-#define FRAMEWORK_DEVICEINFO_H
+#ifndef FRAMEWORK_SIMPLEMETRICSSERVICE_H
+#define FRAMEWORK_SIMPLEMETRICSSERVICE_H
 
+#include "Framework/MetricsService.h"
 #include "Framework/Variant.h"
-
-#include <vector>
+#include <map>
 #include <string>
-#include <cstddef>
-// For pid_t 
-#include <unistd.h>
-#include <array>
+#include <vector>
 
 namespace o2 {
 namespace framework {
 
-struct DeviceInfo {
-  pid_t pid;
-  size_t historyPos;
-  size_t historySize;
-  std::vector<std::string> history;
-  std::string unprinted;
-  bool active;
-
+/// A simple metrics service which prints out metrics so tha
+/// they can be collected by the driver process.
+class SimpleMetricsService : public MetricsService{
+public:
+  void post(const char *label, float value) final;
+  void post(const char *label, int value) final;
+  void post(const char *label, const char *value) final;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_DEVICEINFO_H
+} // framework
+} // o2
+#endif // FRAMEWORK_SIMPLEMETRICSSERVICE_H

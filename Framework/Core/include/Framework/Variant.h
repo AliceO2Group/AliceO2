@@ -5,12 +5,14 @@
 #include <cstdint>
 #include <cstdlib>
 #include <stdexcept>
+#include <iosfwd>
+#include <iostream>
 
 namespace o2 {
 namespace framework {
 
-enum Type {
-  Int,
+enum class VariantType : int {
+  Int = 0,
   Int64,
   Float,
   Double,
@@ -21,26 +23,35 @@ enum Type {
 
 template <typename T>
 struct variant_trait {
-  static int type() { return Unknown; }
+  static VariantType type() { return VariantType::Unknown; }
 };
 
 template <> struct variant_trait<int> {
-  static int type() { return Type::Int; }
+  static VariantType type() { return VariantType::Int; }
 };
 template <> struct variant_trait<int64_t> {
-  static int type() { return Int64; }
+  static VariantType type() { return VariantType::Int64; }
 };
 template <> struct variant_trait<float> {
-  static int type() { return Float; }
+  static VariantType type() { return VariantType::Float; }
 };
 template <> struct variant_trait<double> {
-  static int type() { return Double; }
+  static VariantType type() { return VariantType::Double; }
 };
 template <> struct variant_trait<const char *> {
-  static int type() { return String; }
+  static VariantType type() { return VariantType::String; }
+};
+template <> struct variant_trait<char *> {
+  static VariantType type() { return VariantType::String; }
+};
+template <> struct variant_trait<char *const> {
+  static VariantType type() { return VariantType::String; }
+};
+template <> struct variant_trait<const char *const> {
+  static VariantType type() { return VariantType::String; }
 };
 template <> struct variant_trait<bool> {
-  static int type() { return Bool; }
+  static VariantType type() { return VariantType::Bool; }
 };
 
 template <typename S, typename T>
@@ -50,25 +61,24 @@ struct variant_helper {
     *(reinterpret_cast<T*>(store)) = value;
   }
 
-  static T get(S*store)
+  static T get(const S*store)
   {
-    return *(reinterpret_cast<T*>(store));
+    return *(reinterpret_cast<const T*>(store));
   }
 };
 
 template<typename S>
 struct variant_helper<S, const char *> {
-  static const char *get(S* store)
+  static const char *get(const S* store)
   {
-    return *(reinterpret_cast<const char **>(store));
+    return *reinterpret_cast<const char *const*>(store);
   }
 
   static void set(S*store, const char *value)
   {
-    *store = strdup(value);
+    *reinterpret_cast<char **>(store) = strdup(value);
   }
 };
-
 
 // Poor man variant class. Does not take ownership of anything passed to it.
 // FIXME: we should really use C++17 std::variant when it
@@ -85,14 +95,13 @@ public:
     // In case we allocated a string out of bound, we
     // should delete it.
     if (mType == variant_trait<const char *>::type()) {
-      free(*(void **)(&mStore));
+      free(*reinterpret_cast<void **>(&mStore));
     }
   }
 
   template<typename T>
-  T get() {
-    if (mType != variant_trait<T>::type())
-    {
+  T get() const {
+    if (mType != variant_trait<T>::type()) {
       throw std::runtime_error("Unknown type");
     }
     return variant_helper<storage_t, T>::get(&mStore);
@@ -103,9 +112,36 @@ public:
     return variant_helper<storage_t, T>::set(mStore, value);
   }
 
+  friend std::ostream& operator<< (std::ostream& oss, Variant const & val) {
+    switch(val.mType) {
+      case VariantType::Int:
+        oss << val.get<int>();
+        break;
+      case VariantType::Int64:
+        oss << val.get<int64_t>();
+        break;
+      case VariantType::Float:
+        oss << val.get<float>();
+        break;
+      case VariantType::Double:
+        oss << val.get<double>();
+        break;
+      case VariantType::String:
+        oss << val.get<const char*>();
+        break;
+      case VariantType::Bool:
+        oss << val.get<bool>();
+        break;
+      default:
+        oss << "undefined";
+        break;
+    };
+    return oss;
+  }
+
 private:
   storage_t mStore;
-  int mType;
+  VariantType mType;
 };
 
 }

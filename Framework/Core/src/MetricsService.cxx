@@ -7,31 +7,13 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DEVICEINFO_H
-#define FRAMEWORK_DEVICEINFO_H
+#include "Framework/MetricsService.h"
+#include "FairMQLogger.h"
 
-#include "Framework/Variant.h"
-
-#include <vector>
-#include <string>
-#include <cstddef>
-// For pid_t 
-#include <unistd.h>
-#include <array>
+#include <cassert>
 
 namespace o2 {
 namespace framework {
 
-struct DeviceInfo {
-  pid_t pid;
-  size_t historyPos;
-  size_t historySize;
-  std::vector<std::string> history;
-  std::string unprinted;
-  bool active;
-
-};
-
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_DEVICEINFO_H
+} // framework
+} // o2

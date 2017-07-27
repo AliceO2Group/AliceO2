@@ -1,5 +1,7 @@
 #include "Framework/DataRefUtils.h"
+#include "Framework/ServiceRegistry.h"
 #include "Framework/runDataProcessing.h"
+#include "Framework/MetricsService.h"
 #include "FairMQLogger.h"
 
 using namespace o2::framework;
@@ -117,6 +119,9 @@ void defineDataProcessing(std::vector<DataProcessorSpec> &specs) {
        DataAllocator& allocator) {
       LOG(DEBUG) << "Consumer Invoked";
       LOG(DEBUG) << "Number of inputs" << inputs.size();
+      auto &metrics = services.get<MetricsService>();
+      metrics.post("merger/invoked", 1);
+      metrics.post("merger/inputs", (int) inputs.size());
     },
 
   };

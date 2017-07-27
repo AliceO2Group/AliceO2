@@ -12,6 +12,7 @@
 
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceControl.h"
 #include <functional>
 #include <vector>
@@ -21,6 +22,7 @@ namespace framework {
 
 std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo> &infos,
                                          const std::vector<DeviceSpec> &specs,
+                                         const std::vector<DeviceMetricsInfo> &metricsInfos,
                                          std::vector<DeviceControl> &controls);
 
 }

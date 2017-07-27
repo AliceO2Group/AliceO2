@@ -9,15 +9,24 @@
 // or submit itself to any jurisdiction.
 #include "Framework/FrameworkGUIDebugger.h"
 #include <imgui.h>
+#include <set>
+#include <algorithm>
 
 namespace o2 {
 namespace framework {
 
-struct GUIState {
+struct DeviceGUIState {
   std::string label;
 };
 
-static std::vector<GUIState> gState;
+
+struct WorkspaceGUIState {
+  int selectedMetric;
+  std::vector<std::string> availableMetrics;
+  std::vector<DeviceGUIState> devices;
+};
+
+static WorkspaceGUIState gState;
 
 void displayHistory(const DeviceInfo &info, DeviceControl &control) {
   if (info.history.empty()) {
@@ -48,7 +57,7 @@ void displayHistory(const DeviceInfo &info, DeviceControl &control) {
     }
   }
 
-  // Look for the last instance of the start trigger before the 
+  // Look for the last instance of the start trigger before the
   // last stop trigger.
   j = startPos + 1;
   if (control.logStartTrigger[0]) {
@@ -87,26 +96,159 @@ void displayHistory(const DeviceInfo &info, DeviceControl &control) {
     ji = (ji + 1) % historySize;
   }
 }
-// FIXME: return empty function in case we were not built 
+
+template <typename T>
+struct HistoData {
+  int mod;
+  size_t first;
+  size_t size;
+  const T *points;
+};
+
+bool
+historyBar(DeviceGUIState &state, const DeviceMetricsInfo &metricsInfo) {
+  bool open = ImGui::TreeNode(state.label.c_str());
+
+  if (gState.selectedMetric == -1) {
+    return open;
+  }
+
+  auto currentMetricName = gState.availableMetrics[gState.selectedMetric];
+  // FIXME: use binary_search?
+  size_t i = 0;
+  for (; i < metricsInfo.metricLabelsIdx.size(); ++i) {
+    auto &metricName = metricsInfo.metricLabelsIdx[i];
+    if (metricName.first == currentMetricName) {
+      break;
+    }
+  }
+  // We did not find any plot, skipping this.
+  if (i == metricsInfo.metricLabelsIdx.size()) {
+    return open;
+  }
+  auto &metric = metricsInfo.metrics[i];
+
+  switch(metric.type) {
+    case MetricType::Int:
+      {
+        HistoData<int> data;
+        data.mod = metricsInfo.timestamps[metric.storeIdx].size();
+        data.first = metric.pos - data.mod;
+        data.size = metricsInfo.intMetrics[metric.storeIdx].size();
+        data.points = metricsInfo.intMetrics[metric.storeIdx].data();
+
+        auto getter = [](void *hData, int idx) -> float {
+          auto histoData = reinterpret_cast<HistoData<int> *>(hData);
+          return histoData->points[(histoData->first + idx) % histoData->mod];
+        };
+        ImGui::SameLine(150);
+        ImGui::PlotLines(currentMetricName.c_str(),
+                         getter,
+                         &data,
+                         data.size);
+      }
+    break;
+    case MetricType::Float:
+      {
+        HistoData<float> data;
+        data.mod = metricsInfo.timestamps[metric.storeIdx].size();
+        data.first = metric.pos - data.mod;
+        data.size = metricsInfo.floatMetrics[metric.storeIdx].size();
+        data.points = metricsInfo.floatMetrics[metric.storeIdx].data();
+
+        auto getter = [](void *hData, int idx) -> float {
+          auto histoData = reinterpret_cast<HistoData<float> *>(hData);
+          return histoData->points[(histoData->first + idx) % histoData->mod];
+        };
+        ImGui::SameLine(150);
+        ImGui::PlotLines(currentMetricName.c_str(),
+                         getter,
+                         &data,
+                         data.size);
+      }
+    break;
+    default:
+    return open;
+    break;
+  }
+
+  return open;
+}
+
+void
+displayDeviceHistograms(const std::vector<DeviceInfo> &infos,
+                        const std::vector<DeviceSpec> &devices,
+                        std::vector<DeviceControl> &controls,
+                        const std::vector<DeviceMetricsInfo> &metricsInfos) {
+  ImGui::SetNextWindowSize(ImVec2(0.0,100), ImGuiSetCond_FirstUseEver);
+  ImGui::SetNextWindowPos(ImVec2(0, 500));
+  // Calculate the unique set of metrics, as available in the metrics service
+  std::set<std::string> allMetricsNames;
+  for (const auto &metricsInfo : metricsInfos) {
+    for (const auto &labelsPairs : metricsInfo.metricLabelsIdx) {
+      allMetricsNames.insert(labelsPairs.first);
+    }
+  }
+  using NamesIndex = std::vector<std::string>;
+  gState.availableMetrics.clear();
+  std::copy(allMetricsNames.begin(),
+            allMetricsNames.end(),
+            std::back_inserter(gState.availableMetrics));
+
+  ImGui::Begin("Devices");
+  ImGui::Combo("Select metric",
+               &gState.selectedMetric,
+               [](void *data, int idx, const char **outText) -> bool {
+                NamesIndex *v = reinterpret_cast<NamesIndex*>(data);
+                if (idx >= v->size()) {
+                  return false;
+                }
+                *outText = v->at(idx).c_str();
+                return true;
+               },
+               &gState.availableMetrics,
+               gState.availableMetrics.size()
+  );
+  ImGui::BeginChild("ScrollingRegion", ImVec2(0,-ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
+  for (size_t i = 0; i < gState.devices.size(); ++i) {
+    DeviceGUIState &state = gState.devices[i];
+    const DeviceSpec &spec = devices[i];
+    const DeviceInfo &info = infos[i];
+    const DeviceMetricsInfo &metricsInfo = metricsInfos[i];
+
+    if (historyBar(state, metricsInfo)) {
+      ImGui::Text("# channels: %lu", spec.channels.size());
+      ImGui::TreePop();
+    }
+  }
+  ImGui::EndChild();
+  ImGui::End();
+}
+// FIXME: return empty function in case we were not built
 // with GLFW support.
 std::function<void(void)>
 getGUIDebugger(const std::vector<DeviceInfo> &infos,
                const std::vector<DeviceSpec> &devices,
-               std::vector<DeviceControl> &controls) {
+               const std::vector<DeviceMetricsInfo> &metricsInfos,
+               std::vector<DeviceControl> &controls
+               ) {
+  gState.selectedMetric = -1;
   // FIXME: this should probaly have a better mapping between our window state and
-  gState.resize(infos.size());
-  for (size_t i = 0; i < gState.size(); ++i) {
-    GUIState &state = gState[i];
+  gState.devices.resize(infos.size());
+  for (size_t i = 0; i < gState.devices.size(); ++i) {
+    DeviceGUIState &state = gState.devices[i];
     const DeviceSpec &spec = devices[i];
     const DeviceInfo &info = infos[i];
     state.label = devices[i].id + "(" + std::to_string(info.pid) + ")";
   }
 
-  return [&infos, &devices, &controls]() {
-    for (size_t i = 0; i < gState.size(); ++i) {
-      GUIState &state = gState[i];
+  return [&infos, &devices, &controls, &metricsInfos]() {
+    displayDeviceHistograms(infos, devices, controls, metricsInfos);
+    for (size_t i = 0; i < gState.devices.size(); ++i) {
+      DeviceGUIState &state = gState.devices[i];
       const DeviceInfo &info = infos[i];
       const DeviceSpec &spec = devices[i];
+
       DeviceControl &control = controls[i];
       ImGui::SetNextWindowSize(ImVec2(550,400), ImGuiSetCond_FirstUseEver);
       if (!info.active) {

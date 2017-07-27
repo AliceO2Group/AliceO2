@@ -9,37 +9,47 @@
 // or submit itself to any jurisdiction.
 #include "FairMQDevice.h"
 #include "Framework/DataProcessingDevice.h"
-#include "Framework/FrameworkGUIDebugger.h"
-#include "Framework/DataSourceDevice.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/DeviceSpec.h"
-#include "Framework/DeviceInfo.h"
-#include "Framework/DeviceControl.h"
-#include "Framework/WorkflowSpec.h"
+#include "Framework/DataSourceDevice.h"
 #include "Framework/DebugGUI.h"
+#include "Framework/DeviceControl.h"
+#include "Framework/DeviceInfo.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/DeviceMetricsInfo.h"
+#include "Framework/FrameworkGUIDebugger.h"
+#include "Framework/SimpleMetricsService.h"
+#include "Framework/WorkflowSpec.h"
 
 #include "GraphvizHelpers.h"
 #include "options/FairMQProgOptions.h"
+
+
+#include <cinttypes>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <regex>
 #include <set>
 #include <string>
+
+#include <getopt.h>
+#include <signal.h>
+#include <sys/resource.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <unistd.h>
-#include <signal.h>
 #include <sys/wait.h>
-#include <sys/resource.h>
-#include <getopt.h>
+#include <unistd.h>
 
 #include "fairmq/tools/runSimpleMQStateMachine.h"
 
 using namespace o2::framework;
 
 std::vector<DeviceInfo> gDeviceInfos;
+std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 std::vector<DeviceControl> gDeviceControls;
 
 // Read from a given fd and print it.
@@ -71,6 +81,7 @@ bool getChildData(int infd, DeviceInfo &outinfo) {
   return true;
 }
 
+
 // This is the handler for the parent inner loop.
 // So far the only responsibility for it are:
 //
@@ -85,11 +96,12 @@ int doParent(fd_set *in_fdset,
              std::vector<DeviceInfo> infos,
              std::vector<DeviceSpec> specs,
              std::vector<DeviceControl> controls,
+             std::vector<DeviceMetricsInfo> metricsInfos,
              std::map<int,size_t> &socket2Info) {
   void *window = initGUI("O2 Framework debug GUI");
   // FIXME: I should really have some way of exiting the
   // parent..
-  auto debugGUICallback = getGUIDebugger(infos, specs, controls);
+  auto debugGUICallback = getGUIDebugger(infos, specs, metricsInfos, controls);
 
   while (pollGUI(window, debugGUICallback)) {
     // Wait for children to say something. When they do
@@ -107,6 +119,7 @@ int doParent(fd_set *in_fdset,
       if (FD_ISSET(si, fdset)) {
         assert(socket2Info.find(si) != socket2Info.end());
         auto &info = infos[socket2Info[si]];
+
         bool fdActive = getChildData(si, info);
         // If the pipe was closed due to the process exiting, we
         // can avoid the select.
@@ -130,6 +143,7 @@ int doParent(fd_set *in_fdset,
     for (size_t di = 0, de = infos.size(); di < de; ++di) {
       DeviceInfo &info = infos[di];
       DeviceControl &control = controls[di];
+      DeviceMetricsInfo &metrics = metricsInfos[di];
 
       if (info.unprinted.empty()) {
         continue;
@@ -140,9 +154,17 @@ int doParent(fd_set *in_fdset,
       size_t pos = 0;
       std::string token;
       info.history.resize(info.historySize);
+      std::smatch metricsMatch;
+
       while ((pos = s.find(delimiter)) != std::string::npos) {
           token = s.substr(0, pos);
-          if (!control.quiet && (strstr(token.c_str(), control.logFilter) != NULL)) {
+          // Check if the token is a metric from SimpleMetricsService
+          // if yes, we do not print it out and simply store it to be displayed
+          // in the GUI.
+          if (parseMetric(token, metricsMatch)) {
+              LOG(INFO) << "Found metric with key " << metricsMatch[2];
+              processMetric(metricsMatch, metrics);
+          } else if (!control.quiet && (strstr(token.c_str(), control.logFilter) != NULL)) {
             assert(info.historyPos >= 0);
             assert(info.historyPos < info.history.size());
             info.history[info.historyPos] = token;
@@ -396,17 +418,21 @@ int doChild(int argc, char **argv, const o2::framework::DeviceSpec &spec) {
     FairMQProgOptions config;
     config.ParseAll(args.size(), args.data());
 
+    // We initialise this in the driver, because different drivers might have
+    // different versions of the service
+    ServiceRegistry serviceRegistry;
+    serviceRegistry.registerService<MetricsService>(new SimpleMetricsService());
+
     std::unique_ptr<FairMQDevice> device;
     if (spec.inputs.empty()) {
       LOG(DEBUG) << spec.id << " is a source\n";
       device.reset(new DataSourceDevice(spec));
     } else {
       LOG(DEBUG) << spec.id << " is a processor\n";
-      device.reset(new DataProcessingDevice(spec));
+      device.reset(new DataProcessingDevice(spec, serviceRegistry));
     }
 
-    if (!device)
-    {
+    if (!device) {
       LOG(ERROR) << "getDevice(): no valid device provided. Exiting.";
       return 1;
     }
@@ -653,6 +679,8 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
     socket2DeviceInfo.insert(std::make_pair(childstdout[0], gDeviceInfos.size()));
     socket2DeviceInfo.insert(std::make_pair(childstderr[0], gDeviceInfos.size()));
     gDeviceInfos.emplace_back(info);
+    // Let's add also metrics information for the given device
+    gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 
     close(childstdout[1]);
     close(childstderr[1]);
@@ -660,7 +688,13 @@ int doMain(int argc, char **argv, const o2::framework::WorkflowSpec & specs) {
     FD_SET(childstderr[0], &childFdset);
   }
   maxFd += 1;
-  auto exitCode = doParent(&childFdset, maxFd, gDeviceInfos, deviceSpecs, gDeviceControls, socket2DeviceInfo);
+  auto exitCode = doParent(&childFdset,
+                           maxFd,
+                           gDeviceInfos,
+                           deviceSpecs,
+                           gDeviceControls,
+                           gDeviceMetricsInfos,
+                           socket2DeviceInfo);
   killChildren(gDeviceInfos);
   return exitCode;
 }

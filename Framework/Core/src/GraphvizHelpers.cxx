@@ -78,8 +78,9 @@ dumpDeviceSpec2Graphviz(const std::vector<DeviceSpec> &specs)
       std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
       // If this is an output, we do not care for now.
       // FIXME: make sure that all the outputs are sinked by something.
-      if (channel.type == Pub)
+      if (channel.type == Pub) {
         continue;
+      }
       auto outputName = channel.name;
       outputName.erase(0, 3);
       std::cout << outputChannel2Device[outputName] << ":" << outputName

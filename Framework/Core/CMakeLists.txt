@@ -25,7 +25,9 @@ set(SRCS
     src/DataProcessor.cxx
     src/DataRelayer.cxx
     src/DataSourceDevice.cxx
+    src/DeviceMetricsInfo.cxx
     src/GraphvizHelpers.cxx
+    src/SimpleMetricsService.cxx
     src/runDataProcessing.cxx
     ${GUI_SOURCES}
    )
@@ -50,9 +52,10 @@ O2_GENERATE_EXECUTABLE(
 target_compile_options(Framework PUBLIC -O0 -g -fno-omit-frame-pointer)
 target_compile_options(test_SimpleDataProcessingDevice01 PUBLIC -O0 -g -fno-omit-frame-pointer)
 
-
 set(TEST_SRCS test/test_Variants.cxx
-              test/test_Collections.cxx)
+              test/test_Collections.cxx
+              test/test_Services.cxx
+              test/test_DeviceMetricsInfo.cxx)
 
 O2_GENERATE_TESTS(
   MODULE_LIBRARY_NAME ${LIBRARY_NAME}

@@ -133,5 +133,10 @@ DataRelayer::getReadyToProcess() {
   return std::move(result);
 }
 
+size_t
+DataRelayer::getCacheSize() const {
+  return mCache.size();
+}
+
 }
 }

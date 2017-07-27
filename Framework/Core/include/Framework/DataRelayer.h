@@ -57,8 +57,11 @@ public:
                     std::unique_ptr<FairMQMessage> &&payload);
 
   DataReadyInfo getReadyToProcess();
+
   // The messages which need to be forwarded to next stage.
   const std::vector<bool> &forwardingMask();
+  size_t getCacheSize() const;
+
 private:
   static constexpr TimeframeId sInvalidTimeframeId{(size_t) -1};
   struct CompletionMask {

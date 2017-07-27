@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataProcessingDevice.h"
+#include "Framework/MetricsService.h"
 #include <fairmq/FairMQParts.h>
 
 using namespace o2::framework;
@@ -15,14 +16,15 @@ using namespace o2::framework;
 namespace o2 {
 namespace framework {
 
-DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec)
+DataProcessingDevice::DataProcessingDevice(const DeviceSpec &spec, ServiceRegistry &registry)
 : mInit{spec.init},
   mProcess{spec.process},
   mError{spec.onError},
   mChannels{spec.channels},
   mAllocator{this, &mContext, spec.outputs},
   mRelayer{spec.inputs, spec.forwards},
-  mInputs{spec.inputs}
+  mInputs{spec.inputs},
+  mServiceRegistry{registry}
 {
 }
 
@@ -56,8 +58,10 @@ void DataProcessingDevice::InitTask() {
 // - Forward the parts to the next stage
 bool
 DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
+  auto &metricsService = mServiceRegistry.get<MetricsService>();
   // FIXME: I need to construct the DataRefs
-  LOG(DEBUG) << "Received " << parts.Size() << " parts";
+  metricsService.post("inputs/parts/total", (int)parts.Size());
+
   for (size_t i = 0; i < parts.Size() ; ++i) {
     LOG(DEBUG) << " part " << i << " is " << parts.At(i)->GetSize() << "bytes";
   }
@@ -83,7 +87,9 @@ DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
 
   LOG(DEBUG) << "Getting parts to process";
   auto completed = mRelayer.getReadyToProcess();
-  LOG(DEBUG) << "# of completed parts " << completed.readyInputs.size();
+
+  metricsService.post("inputs/relayed/complete", (int)completed.readyInputs.size());
+  metricsService.post("inputs/relayed/pending", (int)mRelayer.getCacheSize());
 
   assert(!mInputs.empty());
   if (completed.readyInputs.size() % mInputs.size()) {
@@ -113,10 +119,7 @@ DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
         mProcess(inputs, mServiceRegistry, mAllocator);
         LOG(DEBUG) << "Processing ended";
         for (auto &message : mContext) {
-          LOG(DEBUG) << "Sending " <<  message.parts.Size()
-                     << " parts on channel "
-                     << message.channel
-                     << " payload at " << message.parts.At(0)->GetData();
+          metricsService.post("output/parts", message.parts.Size());
           assert(message.parts.Size() == 2);
           FairMQParts outParts = std::move(message.parts);
           assert(message.parts.Size() == 0);
@@ -127,7 +130,9 @@ DataProcessingDevice::HandleData(FairMQParts &parts, int /*index*/) {
         }
       }
     } catch(std::exception &e) {
+      LOG(DEBUG) << "Exception caught" << e.what() << std::endl;
       if (mError) {
+        metricsService.post("error", 1);
         mError(inputs, mServiceRegistry, e);
       }
     }
