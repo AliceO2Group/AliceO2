@@ -381,13 +381,8 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
         SETRowHit(iRow, -1);
         break;
       }
-#ifdef GLOBAL_TRACKING_EXTRAPOLATE_ONLY
-      if ( r.fStage <= 2)
-#endif
-      {
-        if (!tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
-          break;
-        }
+      if (!tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
+        break;
       }
       SETRowHit(iRow, best);
       r.fNHits++;
