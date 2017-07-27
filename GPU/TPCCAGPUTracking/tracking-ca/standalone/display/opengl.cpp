@@ -1684,10 +1684,12 @@ void *OpenGLMain(void *ptr)
 		fprintf(stderr, "glxsimple: %s\n", "could not create rendering context");
 		exit(1);
 	}
+	
+	Window win = RootWindow(g_pDisplay, visualInfo->screen);
 
 	// Create an X colormap since we're probably not using the default visual
 	colorMap = XCreateColormap(g_pDisplay,
-	                           RootWindow(g_pDisplay, visualInfo->screen),
+	                           win,
 	                           visualInfo->visual,
 	                           AllocNone);
 
@@ -1706,9 +1708,9 @@ void *OpenGLMain(void *ptr)
 
 	// Create an X window with the selected visual
 	g_window = XCreateWindow(g_pDisplay,
-	                         RootWindow(g_pDisplay, visualInfo->screen),
+	                         win,
 	                         0, 0,     // x/y position of top-left outside corner of the window
-	                         640, 480, // Width and height of window
+	                         3840, 2000, // Width and height of window
 	                         0,        // Border width
 	                         visualInfo->depth,
 	                         InputOutput,
