@@ -103,7 +103,7 @@ int animate = 0;
 volatile int resetScene = 0;
 
 inline void SetColorClusters() { glColor3f(0, 0.7, 1.0); }
-inline void SetColorInitLinks() { glColor3f(0.62, 0.1, 0.1); }
+inline void SetColorInitLinks() { glColor3f(0.42, 0.4, 0.1); }
 inline void SetColorLinks() { glColor3f(0.8, 0.2, 0.2); }
 inline void SetColorSeeds() { glColor3f(0.8, 0.1, 0.85); }
 inline void SetColorTracklets() { glColor3f(1, 1, 1); }
@@ -682,24 +682,18 @@ int DrawGLScene(bool doAnimation = false) // Here's Where We Do All The Drawing
 			if (drawInitLinks && iSlice == 0)
 			{
 				char *tmpMem[fgkNSlices];
-				int prelinksok = 1;
 				for (int i = 0; i < fgkNSlices; i++)
 				{
 					if (tracker.LinkTmpMemory() == NULL)
 					{
 						printf("Need to set TRACKER_KEEP_TEMPDATA for visualizing PreLinks!\n");
-						prelinksok = 0;
 						break;
 					}
 					AliHLTTPCCATracker &tracker = hlt.fTracker.fCPUTrackers[i];
 					tmpMem[i] = tracker.Data().Memory();
 					tracker.SetGPUSliceDataMemory((void *) tracker.LinkTmpMemory(), tracker.Data().Rows());
 					tracker.SetPointersSliceData(tracker.ClusterData());
-				}
-				if (prelinksok) DrawLinks(tracker, 1, true);
-				for (int i = 0; i < fgkNSlices; i++)
-				{
-					AliHLTTPCCATracker &tracker = hlt.fTracker.fCPUTrackers[i];
+					DrawLinks(tracker, 1, true);
 					tracker.SetGPUSliceDataMemory(tmpMem[i], tracker.Data().Rows());
 					tracker.SetPointersSliceData(tracker.ClusterData());
 				}
