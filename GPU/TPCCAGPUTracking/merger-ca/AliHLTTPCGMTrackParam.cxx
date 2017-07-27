@@ -189,7 +189,7 @@ GPUd() int AliHLTTPCGMTrackParam::PropagateTrack(float* PolinomialFieldBz,float 
 
 	    float secPhi2 = ex1i*ex1i;
 	    const float kZLength = 250.f - 0.275f;
-	    float zz = fabs( kZLength - fabs(fP[2]) );	
+	    float zz = fabs( kZLength - fabs(fP[1]) );
 	    float zz2 = zz*zz;
 	    float angleY2 = secPhi2 - 1.f; 
 	    const float trDzDs2 = t0.DzDs()*t0.DzDs();
@@ -306,7 +306,7 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
 
 	    float secPhi2 = ex1i*ex1i;
 	    const float kZLength = 250.f - 0.275f;
-	    float zz = fabs( kZLength - fabs(fP[2]) );	
+	    float zz = fabs( kZLength - fabs(fP[1]) );
 	    float zz2 = zz*zz;
 	    float angleY2 = secPhi2 - 1.f; 
 	    float angleZ2 = trDzDs2 * secPhi2 ;
@@ -342,6 +342,7 @@ GPUd() int AliHLTTPCGMTrackParam::UpdateTrack(float* PolinomialFieldBz,float pos
     float  z1 = posZ - fP[1];
     float mS2 = Reciprocal(err2Z + c11);
     
+    //printf("hits %d chi2 %f, new %f %f\n", N, fChi2, mS0 * z0 * z0, mS2 * z1 * z1);
     float tmpCut = param.HighQPtForward() < fP[4] ? 5 : 5;
     if (rejectChi2 && (mS0*z0*z0 > tmpCut || mS2*z1*z1 > tmpCut)) return 2;
     fChi2  += mS0*z0*z0;
@@ -412,7 +413,7 @@ GPUd() bool AliHLTTPCGMTrackParam::CheckNumericalQuality() const
   const float *c = fC;
   for ( int i = 0; i < 15; i++ ) ok = ok && AliHLTTPCCAMath::Finite( c[i] );
   for ( int i = 0; i < 5; i++ ) ok = ok && AliHLTTPCCAMath::Finite( fP[i] );
-
+  
   if ( c[0] <= 0 || c[2] <= 0 || c[5] <= 0 || c[9] <= 0 || c[14] <= 0 ) ok = 0;
   if ( c[0] > 5. || c[2] > 5. || c[5] > 2. || c[9] > 2. 
        //|| ( CAMath::Abs( QPt() ) > 1.e-2 && c[14] > 2. ) 
@@ -639,6 +640,7 @@ GPUd() void AliHLTTPCGMTrackParam::RefitTrack(AliHLTTPCGMMergedTrack &track, flo
 			
 	bool ok = okhits && okqual && okphi;
 
+	//printf("OUTPUT hits %d -> %d, QPt %f -> %f, ok %d (%d %d %d)\n", nTrackHitsOld, nTrackHits, ptOld, t.QPt(), (int) ok, (int) okhits, (int) okqual, (int) okphi);
 	if (param.HighQPtForward() < fabs(track.Param().QPt()))
 	{
 		ok = 1;
