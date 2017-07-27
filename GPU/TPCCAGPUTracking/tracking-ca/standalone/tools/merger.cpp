@@ -20,10 +20,21 @@ int main(int argc, char** argv)
 	timespec tv;
 	clock_gettime(CLOCK_REALTIME, &tv);
 	srand(tv.tv_nsec);
+	
 	int nMerge = 1;
 	float averageDistance = 200;
 	bool randomizeDistance = true;
 	bool shiftFirstEvent = true;
+	
+	if (argc != 5)
+	{
+		printf("Usage merger nMerge averageDist randomizeDist shiftFirst\n");
+		return(1);
+	}
+	nMerge = atoi(argv[1]);
+	averageDistance = atof(argv[2]);
+	randomizeDistance = atoi(argv[3]);
+	shiftFirstEvent = atoi(argv[4]);
 	
 	std::vector<ClusterData> clusters[36];
 	int nClusters [36] = {};
@@ -42,24 +53,24 @@ int main(int argc, char** argv)
 				shift = (double) rand() / (double) RAND_MAX;
 				if (shiftFirstEvent)
 				{
-					if (iEventInTimeframe == 0) shift = shift * averageDistance * 0.5;
-					else shift = (iEventInTimeframe - 0.5 + shift) * averageDistance;
+					if (iEventInTimeframe == 0) shift = shift * averageDistance;
+					else shift = (iEventInTimeframe + shift) * averageDistance;
 				}
 				else
 				{
 					if (iEventInTimeframe == 0) shift = 0;
-					else shift = (iEventInTimeframe - 1.0 + shift) * averageDistance;
+					else shift = (iEventInTimeframe - 0.5 + shift) * averageDistance;
 				}
 			}
 			else
 			{
 				if (shiftFirstEvent)
 				{
-					shift = averageDistance * (iEventInTimeframe - 0.5);
+					shift = averageDistance * (iEventInTimeframe + 0.5);
 				}
 				else
 				{
-					shift = averageDistance * (iEventInTimeframe - 1);
+					shift = averageDistance * (iEventInTimeframe);
 				}
 			}
 		}
