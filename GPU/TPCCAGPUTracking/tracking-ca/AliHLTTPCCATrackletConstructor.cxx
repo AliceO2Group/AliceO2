@@ -45,6 +45,13 @@ MEM_CLASS_PRE2() GPUdi() bool AliHLTTPCCATrackletConstructor::CheckCov(MEM_LG2(A
 	  return(ok);
 }
 
+#ifdef EXTERN_ROW_HITS
+#define GETRowHit(iRow) tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr]
+#define SETRowHit(iRow, val) tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = val
+#else
+#define GETRowHit(iRow) tracklet.RowHit(iRow)
+#define SETRowHit(iRow, val) tracklet.SetRowHit(iRow, val)
+#endif
 
 MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
 ( int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/,
@@ -106,11 +113,7 @@ MEM_CLASS_PRE23() GPUdi() void AliHLTTPCCATrackletConstructor::StoreTracklet
     int w = tracker.CalculateHitWeight(r.fNHits, tParam.GetChi2(), r.fItr);
     tracklet.SetHitWeight(w);
     for ( int iRow = r.fFirstRow; iRow <= r.fLastRow; iRow++ ) {
-#ifdef EXTERN_ROW_HITS
-      int ih = tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr];
-#else
-	  int ih = tracklet.RowHit( iRow );
-#endif //EXTERN_ROW_HITS
+      int ih = GETRowHit(iRow);
       if ( ih >= 0 ) {
 #if defined(HLTCA_GPUCODE)
    	    tracker.MaximizeHitWeight( s.fRows[ iRow ], ih, w );
@@ -160,11 +163,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       if ( iRow < r.fStartRow || r.fCurrIH < 0  ) break;
       if ( ( iRow - r.fStartRow ) % 2 != 0 )
 	  {
-#ifndef EXTERN_ROW_HITS
-		  tracklet.SetRowHit(iRow, -1);
-#else
-		  tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = -1;
-#endif //EXTERN_ROW_HITS
+          SETRowHit(iRow, -1);
 		  break; // SG!!! - jump over the row
 	  }
 
@@ -222,29 +221,17 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
           cosPhi = dx * ri;
         }
         if ( !tParam.TransportToX( x, sinPhi, cosPhi, tracker.Param().ConstBz(), -1 ) ) {
-#ifndef EXTERN_ROW_HITS
-          tracklet.SetRowHit( iRow, -1 );
-#else
-		  tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = -1;
-#endif //EXTERN_ROW_HITS
+          SETRowHit(iRow, -1);
           break;
         }
         tracker.GetErrors2( iRow, tParam.GetZ(), sinPhi, cosPhi, tParam.GetDzDs(), err2Y, err2Z );
 
         if ( !tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
-#ifndef EXTERN_ROW_HITS
-          tracklet.SetRowHit( iRow, -1 );
-#else
-		  tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = -1;
-#endif //EXTERN_ROW_HITS
+          SETRowHit(iRow, -1);
           break;
         }
       }
-#ifndef EXTERN_ROW_HITS
-      tracklet.SetRowHit( iRow, oldIH );
-#else
-	  tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = oldIH;
-#endif //!EXTERN_ROW_HITS
+      SETRowHit(iRow, oldIH);
       r.fNHits++;
       r.fLastRow = iRow;
       r.fEndRow = iRow;
@@ -273,20 +260,12 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       float x = row.X();
       float err2Y, err2Z;
       if ( !tParam.TransportToX( x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().ConstBz(), .99 ) ) {
-#ifndef EXTERN_ROW_HITS
-		tracklet.SetRowHit(iRow, -1);
-#else
-		tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = -1;
-#endif //!EXTERN_ROW_HITS
+        SETRowHit(iRow, -1);
         break;
       }
       if ( row.NHits() < 1 ) {
         // skip empty row
-#ifndef EXTERN_ROW_HITS
-		  tracklet.SetRowHit(iRow, -1);
-#else
-		  tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = -1;
-#endif //!EXTERN_ROW_HITS
+          SETRowHit(iRow, -1);
         break;
       }
 
@@ -374,11 +353,7 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
 
       if ( best < 0 )
 	  {
-#ifndef EXTERN_ROW_HITS
-		  tracklet.SetRowHit(iRow, -1);
-#else
-		  tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = -1;
-#endif //!EXTERN_ROW_HITS
+          SETRowHit(iRow, -1);
 		  break;
 	  }
 
@@ -403,24 +378,18 @@ MEM_CLASS_PRE2() GPUdi() void AliHLTTPCCATrackletConstructor::UpdateTracklet
       if ( sz2 > 2. ) sz2 = 2.;
 
       if ( CAMath::FMulRZ( dy, dy ) > sy2 || CAMath::FMulRZ( dz, dz ) > sz2  ) {
-#ifndef EXTERN_ROW_HITS
-		tracklet.SetRowHit(iRow, -1);
-#else
-		tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = -1;
-#endif //!EXTERN_ROW_HITS
+        SETRowHit(iRow, -1);
         break;
       }
 #ifdef GLOBAL_TRACKING_EXTRAPOLATE_ONLY
       if ( r.fStage <= 2)
 #endif
-		  if (!tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
-			break;
-		  }
-#ifndef EXTERN_ROW_HITS
-	  tracklet.SetRowHit( iRow, best );
-#else
-	  tracker.TrackletRowHits()[iRow * s.fNTracklets + r.fItr] = best;
-#endif //!EXTERN_ROW_HITS
+      {
+        if (!tParam.Filter( y, z, err2Y, err2Z, .99 ) ) {
+          break;
+        }
+      }
+      SETRowHit(iRow, best);
       r.fNHits++;
       r.fNMissed = 0;
       if ( r.fStage == 1 ) r.fLastRow = iRow;
