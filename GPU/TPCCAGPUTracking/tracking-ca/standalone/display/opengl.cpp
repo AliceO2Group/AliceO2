@@ -171,7 +171,7 @@ int InitGL() // All Setup For OpenGL Goes Here
 
 inline void drawPointLinestrip(int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT)
 {
-	glVertex3f(globalPos[cid].x, globalPos[cid].y, globalPos[cid].z);
+	glVertex3f(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
 	if (globalPos[cid].w < id_limit) globalPos[cid].w = id;
 }
 
@@ -186,7 +186,7 @@ void DrawClusters(AliHLTTPCCATracker &tracker, int id)
 			const int cid = tracker.ClusterData()->Id(tracker.Data().ClusterDataIndex(row, j));
 			if (globalPos[cid].w == id)
 			{
-				glVertex3f(globalPos[cid].x, globalPos[cid].y, globalPos[cid].z);
+				glVertex3f(globalPos[cid].x, globalPos[cid].y, projectxy ? 0 : globalPos[cid].z);
 			}
 		}
 	}
@@ -1013,6 +1013,7 @@ void PrintHelp()
 	printf("[Z]/[U]\t\tShow splitting of TPC in slices by extruding volume, [U] resets\n");
 	printf("[Y]\t\tStart Animation\n");
 	printf("[G]\t\tDraw Grid\n");
+	printf("[I]\t\tProject onto XY-plane\n");
 	printf("[X]\t\tExclude Clusters used in the tracking steps enabled for visualization ([1]-[8])");
 	printf("[1]\t\tShow Clusters\n");
 	printf("[2]\t\tShow Links that were removed\n");
