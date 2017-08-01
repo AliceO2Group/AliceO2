@@ -19,6 +19,8 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/ShishKebabTrd1Module.h"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 using namespace o2::EMCAL;
 
 // these initialisations are needed for a singleton
@@ -235,6 +237,8 @@ Geometry* Geometry::GetInstance(const std::string_view name, const std::string_v
 Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_view geoName, const std::string_view mcname,
                                              const std::string_view mctitle)
 {
+  using boost::algorithm::contains;
+
   // printf("AliEMCALGeometry::GetInstanceFromRunNumber() - run %d, geoName <<%s>> \n",runNumber,geoName.Data());
 
   bool showInfo = !(getenv("HLT_ONLINE_MODE") && strcmp(getenv("HLT_ONLINE_MODE"), "on") == 0);
@@ -244,7 +248,7 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
     // First year geometry, 4 SM.
 
     if (showInfo) {
-      if (geoName.find("FIRSTYEARV1") != std::string::npos && geoName != std::string("")) {
+      if (contains(geoName, "FIRSTYEARV1") && geoName != std::string("")) {
         LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
                   << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
                   << " is not considered! \n"
@@ -260,7 +264,7 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
     // Almost complete EMCAL geometry, 10 SM. Year 2011 configuration
 
     if (showInfo) {
-      if (geoName.find("COMPLETEV1") != std::string::npos && geoName != std::string("")) {
+      if (contains(geoName, "COMPLETEV1") && geoName != std::string("")) {
         LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
                   << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
                   << " is not considered! \n"
@@ -276,7 +280,7 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
     // The last 2 SM were not active, anyway they were there.
 
     if (showInfo) {
-      if (geoName.find("COMPLETE12SMV1") != std::string::npos && geoName != std::string("")) {
+      if (contains(geoName, "COMPLETE12SMV1") && geoName != std::string("")) {
         LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
                   << "\t Specified geometry name <<" << geoName << " >> for run " << runNumber
                   << " is not considered! \n"
@@ -292,7 +296,7 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
     // EMCAL + DCAL geometry, 20 SM. Year 2015 and on
 
     if (showInfo) {
-      if (geoName.find("DCAL_8SM") != std::string::npos && geoName != std::string("")) {
+      if (contains(geoName, "DCAL_8SM") && geoName != std::string("")) {
         LOG(INFO) << "o2::EMCAL::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
                   << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
                   << " is not considered! \n"

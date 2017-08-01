@@ -18,6 +18,8 @@
 #include <TObjString.h>
 #include <TRegexp.h>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "EMCALBase/EMCGeometry.h"
 
 using namespace o2::EMCAL;
@@ -169,6 +171,7 @@ EMCGeometry::~EMCGeometry()
 
 void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
 {
+  using boost::algorithm::contains;
   mAdditionalOpts[0] = "nl=";       // number of sampling layers (fNECLayers)
   mAdditionalOpts[1] = "pbTh=";     // cm, Thickness of the Pb   (fECPbRadThick)
   mAdditionalOpts[2] = "scTh=";     // cm, Thickness of the Sc    (fECScintThick)
@@ -177,45 +180,43 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   mAdditionalOpts[5] = "allIHADR="; // = 0,1,2 (0 - no hadronic interaction)
 
   mNAdditionalOpts = sizeof(mAdditionalOpts) / sizeof(char*);
-    
-  std::function<bool(const std::string_view, const char *)> findSubstring = [](const std::string_view tocheck, const char *teststring) { return tocheck.find(teststring) != std::string::npos; };
 
   // geometry
   sInit = kFALSE; // Assume failed until proven otherwise.
   std::transform(mGeoName.begin(), mGeoName.end(), mGeoName.begin(), ::toupper);
  
   // Convert old geometry names to new ones
-  if (findSubstring(mGeoName, "SHISH_77_TRD1_2X2_FINAL_110DEG")) {
-    if (findSubstring(mGeoName, "PBTH=0.144") && findSubstring(mGeoName, "SCTH=0.176")) {
+  if (contains(mGeoName, "SHISH_77_TRD1_2X2_FINAL_110DEG")) {
+    if (contains(mGeoName, "PBTH=0.144") && contains(mGeoName, "SCTH=0.176")) {
       mGeoName = "EMCAL_COMPLETE";
     } else {
       mGeoName = "EMCAL_PDC06";
     }
   }
 
-  if (findSubstring(mGeoName, "WSUC"))
+  if (contains(mGeoName, "WSUC"))
     mGeoName = "EMCAL_WSUC";
 
   // check that we have a valid geometry name
-  if(!(findSubstring(mGeoName, "EMCAL_PDC06") || findSubstring(mGeoName, "EMCAL_WSUC") || findSubstring(mGeoName, "EMCAL_COMPLETE") ||
-       findSubstring(mGeoName, "EMCAL_COMPLETEV1") || findSubstring(mGeoName, "EMCAL_COMPLETE12SMV1") ||
-       findSubstring(mGeoName, "EMCAL_FIRSTYEAR") || findSubstring(mGeoName, "EMCAL_FIRSTYEARV1"))) {
+  if(!(contains(mGeoName, "EMCAL_PDC06") || contains(mGeoName, "EMCAL_WSUC") || contains(mGeoName, "EMCAL_COMPLETE") ||
+       contains(mGeoName, "EMCAL_COMPLETEV1") || contains(mGeoName, "EMCAL_COMPLETE12SMV1") ||
+       contains(mGeoName, "EMCAL_FIRSTYEAR") || contains(mGeoName, "EMCAL_FIRSTYEARV1"))) {
     LOG(FATAL) << "Init, " << mGeoName << " is an undefined geometry!\n";
   }
 
   // Option to know whether we have the "half" supermodule(s) or not
   mKey110DEG = 0;
-  if(findSubstring(mGeoName,"COMPLETE") || findSubstring(mGeoName,"PDC06") || findSubstring(mGeoName,"12SM"))
+  if(contains(mGeoName,"COMPLETE") || contains(mGeoName,"PDC06") || contains(mGeoName,"12SM"))
     mKey110DEG = 1; // for GetAbsCellId
-  if(findSubstring(mGeoName,"COMPLETEV1"))
+  if(contains(mGeoName,"COMPLETEV1"))
     mKey110DEG = 0;
 
   mnSupModInDCAL = 0;
-  if(findSubstring(mGeoName, "DCAL_DEV")) {
+  if(contains(mGeoName, "DCAL_DEV")) {
     mnSupModInDCAL = 10;
-  } else if(findSubstring(mGeoName, "DCAL_8SM")) {
+  } else if(contains(mGeoName, "DCAL_8SM")) {
     mnSupModInDCAL = 8;
-  } else if(findSubstring(mGeoName, "DCAL")) {
+  } else if(contains(mGeoName, "DCAL")) {
     mnSupModInDCAL = 6;
   }
 
@@ -256,13 +257,13 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   CheckAdditionalOptions();
 
   // modifications to the above for PDC06 geometry
-  if(findSubstring(mGeoName, "PDC06")) {           // 18-may-05 - about common structure
+  if(contains(mGeoName, "PDC06")) {           // 18-may-05 - about common structure
     mECScintThick = mECPbRadThickness = 0.16; // (13-may-05 from V.Petrov)
     CheckAdditionalOptions();
   }
 
   // modifications to the above for WSUC geometry
-  if(findSubstring(mGeoName, "WSUC")) { // 18-may-05 - about common structure
+  if(contains(mGeoName, "WSUC")) { // 18-may-05 - about common structure
     mNumberOfSuperModules = 2;     // 27-may-05; Nov 24,2010 for TB
     mNPhi = mNZ = 4;
     mTrd1AlFrontThick = 1.0; // one cm
@@ -277,13 +278,13 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   }
 
   // In 2009-2010 data taking runs only 4 SM, in the upper position.
-  if(findSubstring(mGeoName, "FIRSTYEAR")) {
+  if(contains(mGeoName, "FIRSTYEAR")) {
     mNumberOfSuperModules = 4;
     mArm1PhiMax = 120.0;
     CheckAdditionalOptions();
   }
 
-  if(findSubstring(mGeoName, "FIRSTYEARV1") || findSubstring(mGeoName, "COMPLETEV1") || findSubstring(mGeoName, "COMPLETE12SMV1")) {
+  if(contains(mGeoName, "FIRSTYEARV1") || contains(mGeoName, "COMPLETEV1") || contains(mGeoName, "COMPLETE12SMV1")) {
     // Oct 26,2010 : First module has tilt = 0.75 degree :
     // look to AliEMCALShishKebabTrd1Module::DefineFirstModule(key)
     // New sizes from production drawing, added Al front plate.
@@ -298,19 +299,19 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
     mEtaModuleSize = mPhiModuleSize;
     mLateralSteelStrip = 0.015; // 0.015cm  = 0.15mm
 
-    if(findSubstring(mGeoName, "COMPLETEV1")) {
+    if(contains(mGeoName, "COMPLETEV1")) {
       mNumberOfSuperModules = 10;
       mArm1PhiMax = 180.0;
-    } else if(findSubstring(mGeoName, "COMPLETE12SMV1")) {
+    } else if(contains(mGeoName, "COMPLETE12SMV1")) {
       mNumberOfSuperModules = 12;
       mArm1PhiMax = 200.0;
     }
-    if(findSubstring(mGeoName, "DCAL")) {
+    if(contains(mGeoName, "DCAL")) {
       mNumberOfSuperModules = 12 + mnSupModInDCAL;
       mArm1PhiMax = 320.0;
-      if(findSubstring(mGeoName, "DCAL_8SM"))
+      if(contains(mGeoName, "DCAL_8SM"))
         mArm1PhiMax = 340.0; // degrees, End of DCAL Phi position
-      else if(findSubstring(mGeoName, "DCAL_DEV"))
+      else if(contains(mGeoName, "DCAL_DEV"))
         mArm1PhiMin = 40.0; // degrees, Starting EMCAL(shifted) Phi position
       mDCALPhiMin = mArm1PhiMax - 10. * mnSupModInDCAL;
     }
@@ -331,17 +332,17 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
 
   //
   // BASIC EMCAL SM
-  if(findSubstring(mGeoName, "WSUC")) {
+  if(contains(mGeoName, "WSUC")) {
     for(int i = 0; i < 2; i++) {
       mEMCSMSystem[iSM] = EMCAL_STANDARD;
       iSM++;
     }
-  } else if(findSubstring(mGeoName, "FIRSTYEAR")) {
+  } else if(contains(mGeoName, "FIRSTYEAR")) {
     for(int i = 0; i < 4; i++) {
       mEMCSMSystem[iSM] = EMCAL_STANDARD;
       iSM++;
     }
-  } else if(findSubstring(mGeoName, "PDC06") || findSubstring(mGeoName, "COMPLETE")) {
+  } else if(contains(mGeoName, "PDC06") || contains(mGeoName, "COMPLETE")) {
     for(int i = 0; i < 10; i++) {
       mEMCSMSystem[iSM] = EMCAL_STANDARD;
       iSM++;
@@ -350,10 +351,10 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
 
   //
   // EMCAL 110SM
-  if (mKey110DEG && findSubstring(mGeoName, "12SM")) {
+  if (mKey110DEG && contains(mGeoName, "12SM")) {
     for(int i = 0; i < 2; i++) {
       mEMCSMSystem[iSM] = EMCAL_HALF;
-      if(findSubstring(mGeoName, "12SMV1")) {
+      if(contains(mGeoName, "12SMV1")) {
         mEMCSMSystem[iSM] = EMCAL_THIRD;
       }
       iSM++;
@@ -362,8 +363,8 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
 
   //
   // DCAL SM
-  if(mnSupModInDCAL && findSubstring(mGeoName, "DCAL")) {
-    if(findSubstring(mGeoName, "8SM")) {
+  if(mnSupModInDCAL && contains(mGeoName, "DCAL")) {
+    if(contains(mGeoName, "8SM")) {
       for(int i = 0; i < mnSupModInDCAL - 2; i++) {
         mEMCSMSystem[iSM] = DCAL_STANDARD;
         iSM++;
@@ -407,14 +408,14 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
   mEtaTileSize = mEtaModuleSize / double(mNETAdiv) - mLateralSteelStrip; // 13-may-05
 
   mLongModuleSize = mNECLayers * (mECScintThick + mECPbRadThickness);
-  if(findSubstring(mGeoName, "V1")) {
+  if(contains(mGeoName, "V1")) {
     Double_t ws = mECScintThick + mECPbRadThickness + 2. * mTrd1BondPaperThick; // sampling width
     // Number of Pb tiles = Number of Sc tiles - 1
     mLongModuleSize = mTrd1AlFrontThick + (ws * mNECLayers - mECPbRadThickness);
   }
   m2Trd1Dx2 = mEtaModuleSize + 2. * mLongModuleSize * TMath::Tan(mTrd1Angle * TMath::DegToRad() / 2.);
 
-  if(!findSubstring(mGeoName, "WSUC"))
+  if(!contains(mGeoName, "WSUC"))
     mShellThickness = TMath::Sqrt(mLongModuleSize * mLongModuleSize + m2Trd1Dx2 * m2Trd1Dx2);
 
   // These parameters are used to create the mother volume to hold the supermodules
@@ -506,7 +507,7 @@ void EMCGeometry::Init(std::string_view mcname, std::string_view mctitle)
 
 void EMCGeometry::PrintStream(std::ostream& stream) const
 {
-  std::function<bool(const std::string_view, const char *)> findSubstring = [](const std::string_view tocheck, const char *teststring) { return tocheck.find(teststring) != std::string::npos; };
+  using boost::algorithm::contains;
 
   // Separate routine is callable from broswer; Nov 7,2006
   stream << "\nInit: geometry of EMCAL named " << mGeoName << " :\n";
@@ -516,11 +517,11 @@ void EMCGeometry::PrintStream(std::ostream& stream) const
       stream << i << ": " << o->String() << std::endl;
     }
   }
-  if (findSubstring(mGeoName, "DCAL")) {
+  if (contains(mGeoName, "DCAL")) {
     stream << "Phi min of DCAL SuperModule: " << std::setw(7) << std::setprecision(1) << mDCALPhiMin << ", DCAL has "
            << mnSupModInDCAL << "  SuperModule\n";
     stream << "The DCAL inner edge is +- " << std::setw(7) << std::setprecision(1) << mDCALInnerEdge << std::endl;
-    if (findSubstring(mGeoName, "DCAL_8SM"))
+    if (contains(mGeoName, "DCAL_8SM"))
       stream << "DCAL has its 2 EXTENTION SM\n";
   }
   stream << "Granularity: " << GetNZ() << " in eta and " << GetNPhi() << " in phi\n";
@@ -552,9 +553,9 @@ void EMCGeometry::PrintStream(std::ostream& stream) const
          << " dz " << mParSM[2] << "(SMOD, BOX)\n";
   stream << " fPhiGapForSM  " << std::setw(7) << std::setprecision(4) << mPhiGapForSM << " cm ("
          << TMath::ATan2(mPhiGapForSM, mIPDistance) * TMath::RadToDeg() << " <- phi size in degree)\n";
-  if (mKey110DEG && !findSubstring(mGeoName, "12SMV1"))
+  if (mKey110DEG && !contains(mGeoName, "12SMV1"))
     stream << " Last two modules have size 10 degree in  phi (180<phi<190)\n";
-  if (mKey110DEG && findSubstring(mGeoName, "12SMV1"))
+  if (mKey110DEG && contains(mGeoName, "12SMV1"))
     stream << " Last two modules have size 6.6 degree in  phi (180<phi<186.6)\n";
   stream << " phi SM boundaries \n";
   for (int i = 0; i < mPhiBoundariesOfSM.GetSize() / 2.; i++) {
@@ -631,8 +632,7 @@ void EMCGeometry::DefineSamplingFraction(const std::string_view mcname, const st
   // Look http://rhic.physics.wayne.edu/~pavlinov/ALICE/SHISHKEBAB/RES/linearityAndResolutionForTRD1.html
   // Keep for compatibility
   //
-
-  std::function<bool(const std::string_view, const char *)> findSubstring = [](const std::string_view tocheck, const char *teststring) { return tocheck.find(teststring) != std::string::npos; };
+  using boost::algorithm::contains;
 
   // Sampling factor for G3
   mSampling = 10.87;      // Default value - Nov 25,2010
@@ -641,7 +641,7 @@ void EMCGeometry::DefineSamplingFraction(const std::string_view mcname, const st
   } else if (mNECLayers == 61) { // 20% layer reduction
     mSampling = 12.80;
   } else if (mNECLayers == 77) {
-    if(findSubstring(mGeoName, "V1")) {
+    if(contains(mGeoName, "V1")) {
       mSampling = 10.87;                                         // Adding paper sheets and cover plate; Nov 25,2010
     } else if (mECScintThick > 0.159 && mECScintThick < 0.161) { // original sampling fraction, equal layers
       mSampling = 12.327;                                        // fECScintThick = fECPbRadThickness = 0.160;
@@ -653,14 +653,14 @@ void EMCGeometry::DefineSamplingFraction(const std::string_view mcname, const st
   }
 
   Float_t samplingFactorTranportModel = 1.;
-  if(findSubstring(mcname, "Geant3"))
+  if(contains(mcname, "Geant3"))
     samplingFactorTranportModel = 1.; // 0.988 // Do nothing
-  else if(findSubstring(mcname, "Fluka"))
+  else if(contains(mcname, "Fluka"))
     samplingFactorTranportModel = 1.; // To be set
-  else if(findSubstring(mcname, "Geant4")) {
-    if(findSubstring(mctitle, "EMV-EMCAL"))
+  else if(contains(mcname, "Geant4")) {
+    if(contains(mctitle, "EMV-EMCAL"))
       samplingFactorTranportModel = 0.821; // EMC list but for EMCal, before 0.86
-    else if(findSubstring(mctitle, "EMV"))
+    else if(contains(mctitle, "EMV"))
       samplingFactorTranportModel = 1.096; // 0.906, 0.896 (OPT)
     else
       samplingFactorTranportModel = 0.821; // 1.15 (CHIPS), 1.149 (BERT), 1.147 (BERT_CHIPS)
