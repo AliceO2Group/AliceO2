@@ -15,7 +15,7 @@
 #include "TimeFrame/TimeFrame.h"
 #include <FairMQMessage.h>
 #include <FairMQParts.h>
-#include <FairMQDevice.h>
+#include <FairMQTransportFactory.h>
 #include "Headers/DataHeader.h"
 #include "TFile.h"
 
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(TimeFrame_test)
   FairMQParts messages;
 
   // we use the ZMQ Factory to create some messages
-  std::unique_ptr<FairMQTransportFactory> zmq(FairMQDevice::MakeTransport("zeromq"));
+  std::shared_ptr<FairMQTransportFactory> zmq(FairMQTransportFactory::CreateTransportFactory("zeromq"));
   BOOST_CHECK(zmq);
   messages.AddPart(zmq->CreateMessage(1000));
 
