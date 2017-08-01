@@ -310,6 +310,10 @@ o2_define_bucket(
     DEPENDENCIES
     fairroot_base_bucket
     root_physics_bucket
+    common_math_bucket
+
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
 
 o2_define_bucket(
@@ -369,6 +373,7 @@ o2_define_bucket(
 
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/common/base/include
 )
@@ -582,6 +587,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/Detectors/TPC/base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Common/Field/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
 
 
@@ -766,6 +772,7 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
 )
 
 o2_define_bucket(
