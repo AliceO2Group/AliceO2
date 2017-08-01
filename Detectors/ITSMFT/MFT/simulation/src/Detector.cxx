@@ -13,7 +13,7 @@
 /// \author antonio.uras@cern.ch, bogdan.vulpescu@cern.ch 
 /// \date 01/08/2016
 
-#include "ITSMFTSimulation/Point.h"
+#include "ITSMFTSimulation/Hit.h"
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -37,7 +37,7 @@
 #include "FairGenericRootManager.h"
 #include "FairVolume.h"
 
-using o2::ITSMFT::Point;
+using o2::ITSMFT::Hit;
 using namespace o2::MFT;
 
 ClassImp(o2::MFT::Detector)
@@ -48,7 +48,7 @@ Detector::Detector()
   mVersion(1),
   mGeometryTGeo(nullptr),
   mDensitySupportOverSi(0.036),
-  mPoints(new TClonesArray("o2::ITSMFT::Point")),
+  mHits(new TClonesArray("o2::ITSMFT::Hit")),
   mTrackData()
 {
 
@@ -60,7 +60,7 @@ Detector::Detector(const Detector& src)
     mVersion(src.mVersion),
     mGeometryTGeo(src.mGeometryTGeo),
     mDensitySupportOverSi(src.mDensitySupportOverSi),
-    mPoints(nullptr),
+    mHits(nullptr),
     mTrackData()
 {
   
@@ -80,7 +80,7 @@ Detector &Detector::operator=(const Detector &src)
   mVersion = src.mVersion;
   mGeometryTGeo = src.mGeometryTGeo;
   mDensitySupportOverSi = src.mDensitySupportOverSi;
-  mPoints = nullptr;
+  mHits = nullptr;
   mTrackData.mHitStarted = src.mTrackData.mHitStarted;
   mTrackData.mTrkStatusStart = src.mTrackData.mTrkStatusStart;
   mTrackData.mPositionStart = src.mTrackData.mPositionStart;
@@ -95,9 +95,9 @@ Detector::~Detector()
 
   delete mGeometryTGeo;
 
-  if (mPoints) {
-    mPoints->Delete();
-    delete mPoints;
+  if (mHits) {
+    mHits->Delete();
+    delete mHits;
   }
   
 }
@@ -129,30 +129,30 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if(TVirtualMC::GetMC()->CurrentVolID(copy) != mftGeo->getSensorVolumeID() ) return kFALSE;
 
   // Get The Sensor Unique ID
-  Int_t chipId = -1, ladderId = -1, diskId = -1, halfId = -1, level = 0;
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,chipId);
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,ladderId);
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,diskId);
-  TVirtualMC::GetMC()->CurrentVolOffID(++level,halfId);
+  Int_t chipID = -1, ladderID = -1, diskID = -1, halfID = -1, level = 0;
+  TVirtualMC::GetMC()->CurrentVolOffID(++level,chipID);
+  TVirtualMC::GetMC()->CurrentVolOffID(++level,ladderID);
+  TVirtualMC::GetMC()->CurrentVolOffID(++level,diskID);
+  TVirtualMC::GetMC()->CurrentVolOffID(++level,halfID);
 
-  Int_t detElemID = mftGeo->getObjectID(Geometry::SensorType,halfId,diskId,ladderId,chipId);
+  Int_t chipIndex = mGeometryTGeo->getChipIndex(halfID,diskID,ladderID,chipID);
 
-  //LOG(INFO) << "Found hit into half = " << halfId << "; disk = " << diskId << "; ladder = " << ladderId << "; chip = " << chipId << FairLogger::endl;
+  //LOG(INFO) << "Found hit into half = " << halfID << "; disk = " << diskID << "; ladder = " << ladderID << "; chip = " << chipID << FairLogger::endl;
 
   bool startHit=false, stopHit=false;
   unsigned char status = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Point::kTrackEntering; }
-  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Point::kTrackInside; }
-  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Point::kTrackExiting; }
-  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Point::kTrackOut; }
-  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Point::kTrackStopped; }
-  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Point::kTrackAlive; }
+  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Hit::kTrackEntering; }
+  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Hit::kTrackInside; }
+  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Hit::kTrackExiting; }
+  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Hit::kTrackOut; }
+  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Hit::kTrackStopped; }
+  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Hit::kTrackAlive; }
 
   // track is entering or created in the volume
-  if ( (status & Point::kTrackEntering) || (status & Point::kTrackInside && !mTrackData.mHitStarted) ) {
+  if ( (status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted) ) {
     startHit = true;
   }
-  else if ( (status & (Point::kTrackExiting|Point::kTrackOut|Point::kTrackStopped)) ) {
+  else if ( (status & (Hit::kTrackExiting|Hit::kTrackOut|Hit::kTrackStopped)) ) {
     stopHit = true;
   }
 
@@ -176,17 +176,18 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     TVirtualMC::GetMC()->TrackPosition(positionStop);
 
     Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-    Int_t detID = vol->getMCid();
+    //Int_t detID = vol->getMCid();
 
-    Point *p = addHit(trackID,detID,
-		      mTrackData.mPositionStart.Vect(),
-		      positionStop.Vect(),
-		      mTrackData.mMomentumStart.Vect(),
-		      mTrackData.mMomentumStart.E(),
-		      positionStop.T(),
-		      mTrackData.mEnergyLoss, 
-		      mTrackData.mTrkStatusStart,
-		      status);
+    Hit *p = addHit(trackID,
+                    chipIndex,
+		    mTrackData.mPositionStart.Vect(),
+		    positionStop.Vect(),
+		    mTrackData.mMomentumStart.Vect(),
+		    mTrackData.mMomentumStart.E(),
+		    positionStop.T(),
+		    mTrackData.mEnergyLoss, 
+		    mTrackData.mTrkStatusStart,
+		    status);
     
     o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
     stack->AddPoint(kAliMft);
@@ -198,13 +199,13 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 }
 
 //_____________________________________________________________________________
-Point* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
+Hit* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
 
-  TClonesArray &clref = *mPoints;
+  TClonesArray &clref = *mHits;
   Int_t size = clref.GetEntriesFast();
 
-  return new(clref[size]) Point(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  return new(clref[size]) Hit(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
 
 }
 
@@ -370,9 +371,6 @@ void Detector::createMaterials()
   o2::Base::Detector::Material(++matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb);
   o2::Base::Detector::Medium(Carbon, "Carbon$", matId,0,fieldType,maxField,maxBending,maxStepSize,maxEnergyLoss,precision,minStepSize);
 
-  //AliceO2::Base::Detector::Material(++matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb );
-  //AliceO2::Base::Detector::Medium(Carbon,   "Carbon$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
-  
   o2::Base::Detector::Material(++matId, "Be$", aBe, zBe, dBe, radBe, absBe );
   o2::Base::Detector::Medium(Be,   "Be$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
   
@@ -435,7 +433,9 @@ void Detector::createGeometry()
 
   Geometry *mftGeom = Geometry::instance();
   mftGeom->build();
+
   mGeometryTGeo = new GeometryTGeo();
+  mGeometryTGeo->build(kFALSE);
 
 }
 
@@ -454,30 +454,6 @@ void Detector::defineSensitiveVolumes()
 {
 
   TGeoVolume* vol;
-  /*
-  Geometry *mftGeo = Geometry::instance();
-  Segmentation *seg = mftGeo->getSegmentation();
-
-  Int_t nSensVol = 0;
-  for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
-    HalfSegmentation * halfSeg = seg->getHalf(iHalf);
-    for (Int_t iDisk = 0; iDisk < halfSeg->getNHalfDisks(); iDisk++) {
-      HalfDiskSegmentation* halfDiskSeg = halfSeg->getHalfDisk(iDisk);
-      for (Int_t iLadder = 0; iLadder < halfDiskSeg->getNLadders(); iLadder++) {
-	LadderSegmentation* ladderSeg = halfDiskSeg->getLadder(iLadder);
-	TString volumeName = Form("MFT_S_%d_%d_%d",
-	  mftGeo->getHalfMFTID(ladderSeg->GetUniqueID()),
-	  mftGeo->getHalfDiskID(ladderSeg->GetUniqueID()),
-	  mftGeo->getLadderID(ladderSeg->GetUniqueID()));
-	vol = gGeoManager->GetVolume(volumeName.Data());
-	LOG(INFO) << "Add sensitive volume: " << volumeName.Data() << FairLogger::endl;
-	addSensitiveVolume(vol);
-	nSensVol++;
-      }
-    }
-  }
-  Info("DefineSensitiveVolumes",Form("%d volumes addes.\n",nSensVol),0,0);
-  */
   vol = gGeoManager->GetVolume("MFTSensor");
   AddSensitiveVolume(vol);
 
@@ -487,8 +463,8 @@ void Detector::defineSensitiveVolumes()
 void Detector::EndOfEvent()
 {
 
-  if (mPoints) { 
-    mPoints->Clear(); 
+  if (mHits) { 
+    mHits->Clear(); 
   }
 
 }
@@ -496,12 +472,12 @@ void Detector::EndOfEvent()
 //_____________________________________________________________________________
 void Detector::Register()
 {
-  // This will create a branch in the output tree called Point, setting the last
+  // This will create a branch in the output tree called Hit, setting the last
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
   if (FairGenericRootManager::Instance()) {
-    FairGenericRootManager::Instance()->Register("MFTPoints", "MFT", mPoints, kTRUE);
+    FairGenericRootManager::Instance()->Register("MFTHits", "MFT", mHits, kTRUE);
   }
 
 }
@@ -510,7 +486,7 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 {
 
   if (iColl == 0) {
-    return mPoints;
+    return mHits;
   } else {
     return nullptr;
   }
@@ -521,6 +497,6 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 void Detector::Reset()
 {
 
-  mPoints->Clear();
+  mHits->Clear();
 
 }

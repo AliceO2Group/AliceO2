@@ -118,8 +118,8 @@ void Ladder::createSensors()
   Geometry * mftGeom = Geometry::instance();
   
   TString namePrefix = Form("MFT_S_%d_%d_%d",
-	  mftGeom->getHalfMFTID(mSegmentation->GetUniqueID()),
-	  mftGeom->getHalfDiskID(mSegmentation->GetUniqueID()),
+	  mftGeom->getHalfID(mSegmentation->GetUniqueID()),
+	  mftGeom->getDiskID(mSegmentation->GetUniqueID()),
 	  mftGeom->getLadderID(mSegmentation->GetUniqueID()) );
   
   TGeoVolume * chipVol = gGeoManager->MakeBox(namePrefix.Data(), medAir,Geometry::sSensorLength/2.,Geometry::sSensorHeight/2., Geometry::sSensorThickness/2.);

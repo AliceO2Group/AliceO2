@@ -52,7 +52,7 @@ mHalfDisks(nullptr)
 
 /// Constructor
 /// \param nameGeomFile Char_t * : name of the XML geometry file.
-/// By default it is : $ALICE_ROOT/ITSMFT/MFT/data/AliMFTGeometry.xml
+/// By default it is : $(VMCWORKDIR)/Detectors/Geometry/MFT/data/Geometry.xml
 /// \param id Short_t : ID Of the Half-MFT to build (0=Bottom; 1=Top)
 
 //_____________________________________________________________________________
@@ -65,7 +65,7 @@ mHalfDisks(nullptr)
   
   UInt_t halfUniqueID = mftGeom->getObjectID(Geometry::HalfType, id);
   SetUniqueID(halfUniqueID);
-  SetName(Form("%s_%d",GeometryTGeo::getHalfDetName(),id));
+  SetName(Form("%s_%d",GeometryTGeo::getHalfName(),id));
     
   mHalfDisks = new TClonesArray("o2::MFT::HalfDiskSegmentation", Constants::sNDisks);
   mHalfDisks -> SetOwner(kTRUE);
@@ -164,7 +164,7 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
       attr = xml->GetNextAttr(attr);
     }
     
-    UInt_t diskUniqueID = mftGeom->getObjectID(Geometry::HalfDiskType,mftGeom->getHalfMFTID(GetUniqueID()),idisk );
+    UInt_t diskUniqueID = mftGeom->getObjectID(Geometry::HalfDiskType,mftGeom->getHalfID(GetUniqueID()),idisk);
     
     auto *halfDisk = new HalfDiskSegmentation(diskUniqueID);
     halfDisk->setPosition(pos);
@@ -176,7 +176,7 @@ void HalfSegmentation::createHalfDisks(TXMLEngine* xml, XMLNodePointer_t node)
     }
     new ((*mHalfDisks)[idisk]) HalfDiskSegmentation(*halfDisk);
     delete halfDisk;
-    //getHalfDisk(idisk)->Print("ls");
+    //getDisk(idisk)->Print("ls");
 
   }
 
@@ -244,7 +244,7 @@ void HalfSegmentation::findHalf(TXMLEngine* xml, XMLNodePointer_t node, XMLNodeP
     }
     
     Geometry * mftGeom = Geometry::instance();
-    if(isTop == mftGeom->getHalfMFTID(GetUniqueID())) {
+    if(isTop == mftGeom->getHalfID(GetUniqueID())) {
       setPosition(pos);
       setRotationAngles(ang);
       retnode = node;

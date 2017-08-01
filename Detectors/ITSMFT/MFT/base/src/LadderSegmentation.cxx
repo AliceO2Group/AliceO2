@@ -49,8 +49,8 @@ LadderSegmentation::LadderSegmentation(UInt_t uniqueID):
   Geometry * mftGeom = Geometry::instance();
   
   SetName(Form("%s_%d_%d_%d",GeometryTGeo::getLadderName(),
-               mftGeom->getHalfMFTID(GetUniqueID()),
-               mftGeom->getHalfDiskID(GetUniqueID()),
+               mftGeom->getHalfID(GetUniqueID()),
+               mftGeom->getDiskID(GetUniqueID()),
                mftGeom->getLadderID(GetUniqueID()) ));
 
   // constructor
@@ -87,10 +87,11 @@ void LadderSegmentation::createSensors() {
 
   for (Int_t iSensor=0; iSensor<mNSensors; iSensor++) {
     UInt_t sensorUniqueID = mftGeom->getObjectID(Geometry::SensorType,
-                                                 mftGeom->getHalfMFTID(GetUniqueID()),
-                                                 mftGeom->getHalfDiskID(GetUniqueID()),
-                                                 mftGeom->getLadderID(GetUniqueID()),
-                                                 iSensor);
+			   mftGeom->getHalfID(GetUniqueID()),
+			   mftGeom->getDiskID(GetUniqueID()),
+			   mftGeom->getPlaneID(GetUniqueID()),
+			   mftGeom->getLadderID(GetUniqueID()),
+			   iSensor);
     
     auto *chip = new ChipSegmentation(sensorUniqueID);
 

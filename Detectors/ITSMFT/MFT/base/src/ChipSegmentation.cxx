@@ -43,8 +43,8 @@ ChipSegmentation::ChipSegmentation(UInt_t uniqueID):
   SetUniqueID(uniqueID);
 
   SetName(Form("%s_%d_%d_%d_%d",GeometryTGeo::getSensorName(),
-               mftGeom->getHalfMFTID(GetUniqueID()),
-               mftGeom->getHalfDiskID(GetUniqueID()),
+               mftGeom->getHalfID(GetUniqueID()),
+               mftGeom->getDiskID(GetUniqueID()),
                mftGeom->getLadderID(GetUniqueID()),
                mftGeom->getSensorID(GetUniqueID()) ));
 

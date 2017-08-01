@@ -1,0 +1,31 @@
+01.08.2017 (Bogdan Vulpescu, LPC)
+---------------------------------
+Check the simulation chain
+--------------------------
+
+1) copy and rename the macros:
+
+cp SetIncludePath_mft.C SetIncludePath.C
+cp load_all_libs_mft.C  load_all_libs.C
+cp rootlogon_mft.C      rootlogon.C
+cp CheckClusters_mft.C  CheckClusters.C
+
+2) simulation:
+
+10 events each with 100 muons using GEANT3 as transport engine:
+
+./run_sim_mft.sh 10 100 TGeant3
+
+3) digitization:
+
+./run_digi_mft.sh 10 100 TGeant3
+
+4) clusterization:
+
+./run_clus_mft.sh 10 100 TGeant3
+
+5) compare with the MC hits in the global frame
+
+root.exe
+.x CheckClusters.C+(10,100,"TGeant3")
+
