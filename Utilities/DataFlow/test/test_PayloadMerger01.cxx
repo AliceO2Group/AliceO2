@@ -21,14 +21,13 @@
 #include "DataFlow/SubframeUtils.h"
 #include "fairmq/FairMQTransportFactory.h"
 #include "fairmq/FairMQParts.h"
-#include "fairmq/FairMQDevice.h"
 
 using SubframeId = o2::dataflow::SubframeId;
 using HeartbeatHeader = o2::Header::HeartbeatHeader;
 using HeartbeatTrailer = o2::Header::HeartbeatTrailer;
 
 SubframeId fakeAddition(o2::dataflow::PayloadMerger<SubframeId> &merger,
-                  std::unique_ptr<FairMQTransportFactory> &transport,
+                  std::shared_ptr<FairMQTransportFactory> &transport,
                   int64_t orbit) {
   // Create a message
   //
@@ -46,7 +45,7 @@ SubframeId fakeAddition(o2::dataflow::PayloadMerger<SubframeId> &merger,
 }
 
 BOOST_AUTO_TEST_CASE(PayloadMergerTest) {
-  std::unique_ptr<FairMQTransportFactory> zmq(FairMQDevice::MakeTransport("zeromq"));
+  auto zmq = FairMQTransportFactory::CreateTransportFactory("zeromq");
 
   // Needs three subtimeframes to merge them
   auto checkIfComplete = [](SubframeId id, o2::dataflow::PayloadMerger<SubframeId>::MessageMap &m) -> bool {
