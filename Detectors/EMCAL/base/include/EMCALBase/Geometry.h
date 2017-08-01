@@ -16,8 +16,6 @@
 #include <vector>
 
 #include <RStringView.h>
-#include "Math/GenVector/DisplacementVector3D.h"
-#include "Math/GenVector/PositionVector3D.h"
 #include <TArrayD.h>
 #include <TGeoMatrix.h>
 #include <TList.h>
@@ -27,12 +25,7 @@
 
 #include "EMCALBase/Constants.h"
 #include "EMCALBase/EMCGeometry.h"
-
-template <typename T>
-using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
-template <typename T>
-using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
-
+#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {

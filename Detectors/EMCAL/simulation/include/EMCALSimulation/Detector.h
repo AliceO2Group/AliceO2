@@ -11,20 +11,13 @@
 #ifndef ALICEO2_EMCAL_DETECTOR_H_
 #define ALICEO2_EMCAL_DETECTOR_H_
 
+#include "MathUtils/Cartesian3D.h"
 #include "DetectorsBase/Detector.h"
 #include "Rtypes.h"
 #include "TArrayF.h"
 #include "TString.h"
 
 #include <vector>
-
-#include "Math/GenVector/DisplacementVector3D.h"
-#include "Math/GenVector/PositionVector3D.h"
-
-template <typename T>
-using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
-template <typename T>
-using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 
 class FairVolume;
 class TClonesArray;
