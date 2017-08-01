@@ -4,7 +4,7 @@ You can run the code checker and have it fix the errors it reports
 (whenever possible) by doing:
 
     aliBuild init O2@dev                      # In case you have not a local checkout already
-    O2_CHECKER_FIX=true alibuild build o2checkcode --defaults o2-daq --debug
+    O2_CHECKER_FIX=true aliBuild build o2checkcode --defaults o2-daq --debug
 
 At the end of which the sources in the O2 checkout directory should be
 modified with the requested changes. You can modify which clang-tidy
